@@ -38,7 +38,7 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 		IncludeScanning()
 
 		files({
-			[[garrysmod_common\sourcesdk-minimal\public\tier2\tier2.cpp]],
+			[[source/sourcesdk/tier2.cpp]],
 			[[source/modules/_modules.h]],
 			[[source/modules/holylib.cpp]],
 			[[source/modules/gameevent.cpp]],
