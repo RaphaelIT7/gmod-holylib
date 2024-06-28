@@ -2,7 +2,8 @@
 #include <GarrysMod/Lua/Interface.h>
 #include "sourcesdk/GameEventManager.h"
 #include "lua.h"
-#include <usercmd.h>
+
+class CUserCmd; // Fixes an error in igamesystem.h
 #include <igamesystem.h>
 
 class CGameeventLibModule : public IModule
