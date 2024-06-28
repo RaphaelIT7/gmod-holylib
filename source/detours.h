@@ -32,6 +32,9 @@ namespace Symbols
 
 	const Symbol s_GameSystemsSym = Symbol::FromName("_ZL13s_GameSystems");
 
+	typedef void* (*CPlugin_Load)(void*, const char*);
+	const Symbol CPlugin_LoadSym = Symbol::FromName("_ZN7CPlugin4LoadEPKc");
+
 	typedef void* (*CGameClient_ProcessGMod_ClientToServer)(IClient*, void*);
 	const Symbol CGameClient_ProcessGMod_ClientToServerSym = Symbol::FromName("_ZN11CGameClient26ProcessGMod_ClientToServerEP23CLC_GMod_ClientToServer");
 }

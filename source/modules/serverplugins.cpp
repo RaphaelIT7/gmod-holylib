@@ -36,6 +36,7 @@ IModule* pServerPluginLibModule = &g_pServerPluginLibModule;
 		} \
 	} while (0)
 
+Detouring::Hook detour_CPlugin_Load;
 bool hook_CPlugin_Load(CPlugin* pPlugin, const char* fileName)
 {
 	char fixedFileName[MAX_PATH];
@@ -118,6 +119,11 @@ void CServerPluginLibModule::LuaShutdown() // ToDo: Change this to be called whe
 
 void CServerPluginLibModule::InitDetour()
 {
+	SourceSDK::ModuleLoader engine_loader("engine");
+	Detour::Create(
+		&detour_CPlugin_Load, "CPlugin::Load", engine_loader.GetModule(),
+		Symbols::CPlugin_LoadSym, (void*)hook_CPlugin_Load, m_pID
+	);
 }
 
 void CServerPluginLibModule::Think(bool simulating)

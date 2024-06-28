@@ -96,7 +96,7 @@ void CHolyLibModule::InitDetour()
 	Detour::Create(
 		&detour_CServerGameDLL_ShouldHideServer, "CServerGameDLL::ShouldHideServer",
 		server_loader.GetModule(), Symbols::CServerGameDLL_ShouldHideServerSym,
-		hook_CServerGameDLL_ShouldHideServer, m_pID
+		(void*)hook_CServerGameDLL_ShouldHideServer, m_pID
 	);
 }
 
