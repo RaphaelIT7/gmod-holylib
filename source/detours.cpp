@@ -4,7 +4,7 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-// Detours.
+unsigned int g_pCurrentCategory = 0;
 
 SymbolFinder symfinder;
 void* GetFunction(void* module, Symbol symbol)

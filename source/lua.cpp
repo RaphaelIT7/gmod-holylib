@@ -69,7 +69,7 @@ void Lua::AddDetour() // Our Lua Loader.
 	Detour::Create(
 		&detour_InitLuaClasses, "InitLuaClasses",
 		server_loader.GetModule(), Symbols::InitLuaClassesSym,
-		hook_InitLuaClasses, 0
+		(void*)hook_InitLuaClasses, 0
 	);
 }
 
