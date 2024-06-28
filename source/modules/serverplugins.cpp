@@ -2,6 +2,7 @@
 #include "module.h"
 #include <GarrysMod/Lua/Interface.h>
 #include "lua.h"
+#include "filesystem.h"
 
 class CServerPluginLibModule : public IModule
 {
@@ -41,7 +42,7 @@ bool hook_CPlugin_Load(CPlugin* pPlugin, const char* fileName)
 	Q_strncpy(fixedFileName, fileName, sizeof(fixedFileName));
 	Q_FixSlashes(fixedFileName);
 
-	pPlugin->m_pPluginModule = g_pFileSystem->LoadModule(fixedFileName, "GAME", false);
+	pPlugin->m_pPluginModule = g_pFullFileSystem->LoadModule(fixedFileName, "GAME", false);
 	if (pPlugin->m_pPluginModule)
 	{
 		CreateInterfaceFn pluginFactory = Sys_GetFactory(pPlugin->m_pPluginModule);

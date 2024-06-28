@@ -2,6 +2,8 @@
 #include <GarrysMod/Lua/Interface.h>
 #include "sourcesdk/GameEventManager.h"
 #include "lua.h"
+#include <usercmd.h>
+#include <igamesystem.h>
 
 class CGameeventLibModule : public IModule
 {
@@ -22,7 +24,7 @@ IModule* pGameeventLibModule = &g_pGameeventLibModule;
 CGameEventManager* pManager;
 LUA_FUNCTION_STATIC(gameevent_GetListeners)
 {
-	if (LUA->IsType(1, Type::String))
+	if (LUA->IsType(1, GarrysMod::Lua::Type::String))
 	{
 		CGameEventDescriptor* desciptor = pManager->GetEventDescriptor(LUA->GetString(1));
 		LUA->PushNumber(desciptor->listeners.Count());
@@ -85,9 +87,9 @@ void CGameeventLibModule::LuaInit(bool bServerInit)
 {
 	if (!bServerInit)
 	{
-		g_Lua->PushSpecial(SPECIAL_GLOB);
+		g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
 			g_Lua->GetField(-1, "gameevent");
-				if (g_Lua->IsType(-1, Type::Table)) // Maybe add a hook that allows one to block the networking of a gameevent?
+				if (g_Lua->IsType(-1, GarrysMod::Lua::Type::Table)) // Maybe add a hook that allows one to block the networking of a gameevent?
 				{
 					Util::AddFunc(gameevent_GetListeners, "GetListeners");
 					Util::AddFunc(gameevent_RemoveListener, "RemoveListener");

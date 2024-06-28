@@ -5,6 +5,8 @@
 #include "detours.h"
 #include "util.h"
 #include "lua.h"
+#include "player.h"
+#include "iclient.h"
 
 class CHolyLibModule : public IModule
 {

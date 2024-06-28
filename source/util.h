@@ -5,10 +5,7 @@
 #include "detours.h"
 #include "eiface.h"
 #include <GarrysMod/FactoryLoader.hpp>
-#include "sv_main.h"
 #include <tier3/tier3.h>
-
-using namespace GarrysMod::Lua;
 
 extern IVEngineServer* engine;
 
@@ -20,7 +17,7 @@ extern GarrysMod::Lua::ILuaInterface* g_Lua;
 namespace Util
 {
 	extern void StartTable();
-	extern void AddFunc(CFunc, const char*);
+	extern void AddFunc(GarrysMod::Lua::CFunc, const char*);
 	extern void FinishTable(const char*);
 
 	// Gmod's functions:

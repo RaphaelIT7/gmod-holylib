@@ -1,6 +1,5 @@
 #include <GarrysMod/Lua/LuaInterface.h>
 #include <GarrysMod/FactoryLoader.hpp>
-#include "sv_client.h"
 #include "lua.h"
 #include <GarrysMod/InterfacePointers.hpp>
 #include "filesystem.h"
@@ -8,9 +7,9 @@
 
 bool Lua::PushHook(const char* hook)
 {
-	g_Lua->PushSpecial(SPECIAL_GLOB);
+	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
 		g_Lua->GetField(-1, "hook");
-		if (g_Lua->GetType(-1) != Type::Table)
+		if (g_Lua->GetType(-1) != GarrysMod::Lua::Type::Table)
 		{
 			g_Lua->Pop(2);
 			DevMsg("Missing hook table!\n");
@@ -18,7 +17,7 @@ bool Lua::PushHook(const char* hook)
 		}
 
 			g_Lua->GetField(-1, "Run");
-			if (g_Lua->GetType(-1) != Type::Function)
+			if (g_Lua->GetType(-1) != GarrysMod::Lua::Type::Function)
 			{
 				g_Lua->Pop(3);
 				DevMsg("Missing hook.Run function!\n");

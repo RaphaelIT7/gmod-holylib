@@ -1,5 +1,7 @@
 #include "detours.h"
 #include "module.h"
+#include "KeyValues.h"
+#include <tier2/tier2.h>
 
 int g_pIDs = 0;
 void CModuleManager::RegisterModule(IModule* pModule)
@@ -14,7 +16,7 @@ void CModuleManager::LoadConfig()
 	if (!m_pConfig)
 		m_pConfig = new KeyValues("holylib");
 
-	m_pConfig->LoadFromFile(g_pFullFileSystem, "cfg/holylib.vdf", "MOD");
+	m_pConfig->LoadFromFile((IBaseFileSystem*)g_pFullFileSystem, "cfg/holylib.vdf", "MOD");
 
 	for (IModule* pModule : m_pModules)
 	{
@@ -43,7 +45,7 @@ void CModuleManager::LoadConfig()
 		pModule->LoadConfig(pKey);
 	}
 
-	m_pConfig->SaveToFile(g_pFullFileSystem, "cfg/holylib.vdf", "MOD");
+	m_pConfig->SaveToFile((IBaseFileSystem*)g_pFullFileSystem, "cfg/holylib.vdf", "MOD");
 }
 
 void CModuleManager::Init(CreateInterfaceFn* fn)

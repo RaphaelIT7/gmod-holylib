@@ -9,11 +9,11 @@ CreateInterfaceFn g_interfaceFactory;
 CreateInterfaceFn g_gameServerFactory;
 
 void Util::StartTable() {
-	g_Lua->PushSpecial(SPECIAL_GLOB);
+	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
 	g_Lua->CreateTable();
 }
 
-void Util::AddFunc(CFunc Func, const char* Name) {
+void Util::AddFunc(GarrysMod::Lua::CFunc Func, const char* Name) {
 	g_Lua->PushCFunction(Func);
 	g_Lua->SetField(-2, Name);
 }

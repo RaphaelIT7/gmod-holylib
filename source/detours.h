@@ -5,16 +5,10 @@
 #include <detouring/hook.hpp>
 #include <scanning/symbolfinder.hpp>
 #include <vector>
-#include "player.h"
-#include <edict.h>
-#include "datacache/imdlcache.h"
-#include <framesnapshot.h>
-#include "server.h"
-#include "cmodel_private.h"
-#define PL_DEBUG 1
-//#define NETWORKING_TEST 1
 
-extern CGameServer* gsv;
+class CBaseEntity;
+class CBasePlayer;
+class IClient;
 
 namespace Symbols
 {
@@ -38,7 +32,7 @@ namespace Symbols
 
 	const Symbol s_GameSystemsSym = Symbol::FromName("_ZL13s_GameSystems");
 
-	typedef DWORD (*CGameClient_ProcessGMod_ClientToServer)(IClient*, void*);
+	typedef void* (*CGameClient_ProcessGMod_ClientToServer)(IClient*, void*);
 	const Symbol CGameClient_ProcessGMod_ClientToServerSym = Symbol::FromName("_ZN11CGameClient26ProcessGMod_ClientToServerEP23CLC_GMod_ClientToServer");
 }
 
