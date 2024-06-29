@@ -39,8 +39,8 @@ Returns `true` if the listener was successfully removed from the given event.
 
 ## serverplugins
 This module adds two new `IServerPluginCallbacks` functions:  
-`virtual void OnLuaInit( GarrysMod::Lua::ILuaInterface* LUA )`
-`virtual void OnLuaShutdown( GarrysMod::Lua::ILuaInterface* LUA )`
+`virtual void OnLuaInit( GarrysMod::Lua::ILuaInterface* LUA )`  
+`virtual void OnLuaShutdown( GarrysMod::Lua::ILuaInterface* LUA )`  
 
 ## sourcetv
 This module plans to add a new `sourcetv` library and a new class `HLTVPlayer` will allow a SourceTV client to send net messages to the server.
