@@ -20,8 +20,14 @@ public:
 CServerPluginLibModule g_pServerPluginLibModule;
 IModule* pServerPluginLibModule = &g_pServerPluginLibModule;
 
+void CPlugin::SetName( const char *name )
+{
+	Q_strncpy( m_szName, name, sizeof(m_szName) );
+}
+
 // Source: engine/sv_plugins.cpp
 // helper macro to stop this being typed for every passthrough
+CServerPlugin* g_pServerPluginHandler;
 #define FORALL_PLUGINS	for( int i = 0; i < g_pServerPluginHandler->m_Plugins.Count(); i++ ) 
 #define CALL_PLUGIN_IF_ENABLED(call) \
 	do { \

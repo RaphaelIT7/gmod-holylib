@@ -95,3 +95,5 @@ void CModuleManager::Shutdown()
 		pModule->Shutdown();
 	}
 }
+
+CModuleManager g_pModuleManager;
