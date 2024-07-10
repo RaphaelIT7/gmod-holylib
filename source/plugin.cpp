@@ -43,6 +43,7 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 
 	Lua::AddDetour();
 	Util::AddDetour();
+	g_pModuleManager.Init(&interfaceFactory);
 
 	Msg("--- HolyLib Plugin finished loading ---\n");
 

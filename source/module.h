@@ -1,4 +1,5 @@
 #include "interface.h"
+#include "KeyValues.h"
 #include <scanning/symbolfinder.hpp>
 #include <vector>
 

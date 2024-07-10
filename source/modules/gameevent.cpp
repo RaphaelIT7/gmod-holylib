@@ -38,7 +38,6 @@ CGameEventDescriptor *CGameEventManager::GetEventDescriptor(const char * name)
 	return NULL;
 }
 
-
 CGameEventManager* pManager;
 LUA_FUNCTION_STATIC(gameevent_GetListeners)
 {

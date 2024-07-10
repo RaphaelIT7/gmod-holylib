@@ -2,6 +2,7 @@
 #include "module.h"
 #include "KeyValues.h"
 #include <tier2/tier2.h>
+#include "modules/_modules.h"
 
 int g_pIDs = 0;
 void CModuleManager::RegisterModule(IModule* pModule)
@@ -50,6 +51,14 @@ void CModuleManager::LoadConfig()
 
 void CModuleManager::Init(CreateInterfaceFn* fn)
 {
+	RegisterModule(pHolyLibModule);
+	RegisterModule(pGameeventLibModule);
+	RegisterModule(pServerPluginLibModule);
+	RegisterModule(pSourceTVLibModule);
+	RegisterModule(pThreadpoolFixModule);
+
+	LoadConfig();
+
 	for (IModule* pModule : m_pModules)
 	{
 		pModule->Init(fn);
