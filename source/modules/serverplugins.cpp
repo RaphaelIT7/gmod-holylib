@@ -25,6 +25,12 @@ void CPlugin::SetName( const char *name )
 	Q_strncpy( m_szName, name, sizeof(m_szName) );
 }
 
+const char *CPlugin::GetName()
+{
+	return m_szName;
+}
+
+
 IServerPluginCallbacks *CPlugin::GetCallback()
 {
 	Assert( m_pPlugin );
