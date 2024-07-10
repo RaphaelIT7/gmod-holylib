@@ -2,7 +2,6 @@
 #include "module.h"
 #include "KeyValues.h"
 #include <tier2/tier2.h>
-#include "modules/_modules.h"
 
 int g_pIDs = 0;
 void CModuleManager::RegisterModule(IModule* pModule)
