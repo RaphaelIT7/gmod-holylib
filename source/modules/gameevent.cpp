@@ -22,6 +22,23 @@ public:
 CGameeventLibModule g_pGameeventLibModule;
 IModule* pGameeventLibModule = &g_pGameeventLibModule;
 
+CGameEventDescriptor *CGameEventManager::GetEventDescriptor(const char * name)
+{
+	if ( !name || !name[0] )
+		return NULL;
+
+	for (int i=0; i < m_GameEvents.Count(); i++ )
+	{
+		CGameEventDescriptor *descriptor = &m_GameEvents[i];
+
+		if ( Q_strcmp( descriptor->name, name ) == 0 )
+			return descriptor;
+	}
+
+	return NULL;
+}
+
+
 CGameEventManager* pManager;
 LUA_FUNCTION_STATIC(gameevent_GetListeners)
 {

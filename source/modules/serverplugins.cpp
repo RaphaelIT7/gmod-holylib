@@ -25,6 +25,21 @@ void CPlugin::SetName( const char *name )
 	Q_strncpy( m_szName, name, sizeof(m_szName) );
 }
 
+IServerPluginCallbacks *CPlugin::GetCallback()
+{
+	Assert( m_pPlugin );
+	if ( m_pPlugin ) 
+	{	
+		return m_pPlugin;
+	}
+	else
+	{
+		Assert( !"Unable to get plugin callback interface" );
+		Warning( "Unable to get callback interface for \"%s\"\n", GetName() );
+		return NULL;
+	}
+}
+
 // Source: engine/sv_plugins.cpp
 // helper macro to stop this being typed for every passthrough
 CServerPlugin* g_pServerPluginHandler;
