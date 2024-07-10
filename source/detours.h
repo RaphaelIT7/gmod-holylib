@@ -37,6 +37,9 @@ namespace Symbols
 
 	typedef void* (*CGameClient_ProcessGMod_ClientToServer)(IClient*, void*);
 	const Symbol CGameClient_ProcessGMod_ClientToServerSym = Symbol::FromName("_ZN11CGameClient26ProcessGMod_ClientToServerEP23CLC_GMod_ClientToServer");
+
+	typedef int (*CThreadPool_ExecuteToPriority)(void* pool, void* idk, void* idk2);
+	const Symbol CThreadPool_ExecuteToPrioritySym = Symbol::FromName("_ZN11CThreadPool17ExecuteToPriorityE13JobPriority_tPFbP4CJobE");
 }
 
 //---------------------------------------------------------------------------------
