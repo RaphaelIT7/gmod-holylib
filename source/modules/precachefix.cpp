@@ -19,8 +19,8 @@ public:
 	virtual void LoadConfig(KeyValues* config) {};
 };
 
-CPrecacheFixModule g_pThreadPoolFixModule;
-IModule* pThreadPoolFixModule = &g_pThreadPoolFixModule;
+CPrecacheFixModule g_pPrecacheFixModule;
+IModule* pPrecacheFixModule = &g_pPrecacheFixModule;
 
 static void PR_CheckEmptyString( const char *s )
 {

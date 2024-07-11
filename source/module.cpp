@@ -11,6 +11,7 @@ CModuleManager::CModuleManager() // ToDo: Look into how IGameSystem works and us
 	RegisterModule(pSourceTVLibModule);
 	RegisterModule(pThreadPoolFixModule);
 	RegisterModule(pStringTableModule);
+	RegisterModule(pPrecacheFixModule);
 
 	LoadConfig();
 }

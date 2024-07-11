@@ -6,3 +6,4 @@ extern IModule* pServerPluginLibModule;
 extern IModule* pSourceTVLibModule;
 extern IModule* pThreadPoolFixModule;
 extern IModule* pStringTableModule;
+extern IModule* pPrecacheFixModule;
