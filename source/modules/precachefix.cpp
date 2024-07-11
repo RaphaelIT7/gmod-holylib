@@ -47,8 +47,8 @@ int hook_CVEngineServer_PrecacheModel(IVEngineServer* engine, const char* mdl, b
 		g_Lua->CallFunctionProtected(2, 0, true);
 	}
 		
-	Warning( "CVEngineServer::PrecacheModel: '%s' overflow, too many models\nHolyLib PrecacheFix: Expect error models!\n", mdl );
-	return 0; // The engine already handles 0 cases, so this shouldn't cause other issues, that models that failed to precache being an error model for the client.
+	Warning( "CVEngineServer::PrecacheModel: '%s' overflow, too many models\n", mdl );
+	return 0; // The engine already handles 0 cases, so this shouldn't cause other issues, that models that failed to precache being an error model for the client or the entity may not spawn.
 }
 
 Symbols::SV_FindOrAddGeneric func_SV_FindOrAddGeneric;
