@@ -61,6 +61,14 @@ LUA_FUNCTION_STATIC(INetworkStringTable__tostring)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(INetworkStringTable__index)
+{
+	if (!g_Lua->FindOnObjectsMetaTable(1, 2))
+		LUA->PushNil();
+
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(INetworkStringTable_GetTableName)
 {
 	INetworkStringTable* table = Get_INetworkStringTable(1);
@@ -268,6 +276,7 @@ void CStringTableModule::LuaInit(bool bServerInit) // ToDo: Implement a INetwork
 	metatable = g_Lua->CreateObject();
 	INetworkStringTable_TypeID = g_Lua->CreateMetaTable("INetworkStringTable");
 		Util::AddFunc(INetworkStringTable__tostring, "__tostring");
+		Util::AddFunc(INetworkStringTable__index, "__index");
 		Util::AddFunc(INetworkStringTable_GetTableName, "GetTableName");
 		Util::AddFunc(INetworkStringTable_GetTableId, "GetTableId");
 		Util::AddFunc(INetworkStringTable_GetNumStrings, "GetNumStrings");
