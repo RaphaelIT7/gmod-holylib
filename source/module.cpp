@@ -11,7 +11,7 @@ void CModuleManager::RegisterModule(IModule* pModule)
 	m_pModules.push_back(pModule);
 }
 
-void CModuleManager::LoadConfig()
+void CModuleManager::LoadConfig() // ToDo: Finish this config system.
 {
 	if (!m_pConfig)
 		m_pConfig = new KeyValues("holylib");
@@ -48,13 +48,13 @@ void CModuleManager::LoadConfig()
 	m_pConfig->SaveToFile((IBaseFileSystem*)g_pFullFileSystem, "cfg/holylib.vdf", "MOD");
 }
 
-void CModuleManager::Init(CreateInterfaceFn* fn)
+void CModuleManager::Init(CreateInterfaceFn* fn) // ToDo: Look into how IGameSystem works and use something similar. I don't like to add each one manually
 {
 	RegisterModule(pHolyLibModule);
 	RegisterModule(pGameeventLibModule);
 	RegisterModule(pServerPluginLibModule);
 	RegisterModule(pSourceTVLibModule);
-	RegisterModule(pThreadpoolFixModule);
+	RegisterModule(pThreadPoolFixModule);
 
 	LoadConfig();
 

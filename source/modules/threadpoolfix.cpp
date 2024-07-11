@@ -6,7 +6,7 @@
 #include "lua.h"
 #include <vstdlib/jobthread.h>
 
-class CHolyLibModule : public IModule
+class CThreadPoolFixModule : public IModule
 {
 public:
 	virtual void Init(CreateInterfaceFn* fn);
@@ -19,8 +19,8 @@ public:
 	virtual void LoadConfig(KeyValues* config) {};
 };
 
-CHolyLibModule g_pThreadpoolFixModule;
-IModule* pThreadpoolFixModule = &g_pThreadpoolFixModule;
+CThreadPoolFixModule g_pThreadPoolFixModule;
+IModule* pThreadPoolFixModule = &g_pThreadPoolFixModule;
 
 Detouring::Hook detour_CThreadPool_ExecuteToPriority;
 int hook_CThreadPool_ExecuteToPriority(IThreadPool* pool, void* idx, void* idx2)
@@ -31,19 +31,19 @@ int hook_CThreadPool_ExecuteToPriority(IThreadPool* pool, void* idx, void* idx2)
 	return detour_CThreadPool_ExecuteToPriority.GetTrampoline<Symbols::CThreadPool_ExecuteToPriority>()(pool, idx, idx2);
 }
 
-void CHolyLibModule::Init(CreateInterfaceFn* fn)
+void CThreadPoolFixModule::Init(CreateInterfaceFn* fn)
 {
 }
 
-void CHolyLibModule::LuaInit(bool bServerInit)
+void CThreadPoolFixModule::LuaInit(bool bServerInit)
 {
 }
 
-void CHolyLibModule::LuaShutdown()
+void CThreadPoolFixModule::LuaShutdown()
 {
 }
 
-void CHolyLibModule::InitDetour()
+void CThreadPoolFixModule::InitDetour()
 {
 	SourceSDK::ModuleLoader libvstdlib_loader("libvstdlib_srv");
 	Detour::Create(
@@ -53,11 +53,11 @@ void CHolyLibModule::InitDetour()
 	);
 }
 
-void CHolyLibModule::Think(bool bSimulating)
+void CThreadPoolFixModule::Think(bool bSimulating)
 {
 }
 
-void CHolyLibModule::Shutdown()
+void CThreadPoolFixModule::Shutdown()
 {
 	Detour::Remove(m_pID);
 }
