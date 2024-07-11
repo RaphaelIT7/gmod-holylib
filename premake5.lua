@@ -38,15 +38,10 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 		IncludeScanning()
 
 		files({
-			[[source/sourcesdk/tier2.cpp]],
-			[[source/modules/_modules.h]],
-			[[source/modules/holylib.cpp]],
-			[[source/modules/gameevent.cpp]],
-			[[source/modules/sourcetv.cpp]],
-			[[source/modules/serverplugins.cpp]],
-			[[source/sourcesdk/GameEventManager.h]],
-			[[source/sourcesdk/sv_plugin.h]],
-			[[source/sourcesdk/iserverplugin.h]],
+			[[source/modules/*.h]],
+			[[source/modules/*.cpp]],
+			[[source/sourcesdk/*.h]],
+			[[source/sourcesdk/*.cpp]],
 		})
 
 		filter("system:windows")
