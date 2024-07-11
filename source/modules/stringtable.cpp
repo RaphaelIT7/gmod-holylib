@@ -28,7 +28,7 @@ void CStringTableModule::Init(CreateInterfaceFn* fn)
 	Detour::CheckValue("get interface", "networkStringTableContainerServer", networkStringTableContainerServer != NULL);
 }
 
-GarrysMod::Lua::ILuaObject* metatable;
+GarrysMod::Lua::ILuaObject* metatable = NULL;
 #define INetworkStringTable_Type 100 // 100 shouldn't be used right? Also we got ILuaInterface::RegisterMetaTable in the next update :D
 void Push_INetworkStringTable(INetworkStringTable* tbl)
 {
@@ -38,9 +38,7 @@ void Push_INetworkStringTable(INetworkStringTable* tbl)
 		return;
 	}
 
-	g_Lua->PushUserType( tbl, INetworkStringTable_Type );
-	metatable->Push();
-	g_Lua->SetMetaTable(-2);
+	g_Lua->PushUserType_Value( tbl, INetworkStringTable_Type );
 }
 
 INetworkStringTable* Get_INetworkStringTable(int iStackPos)
@@ -281,6 +279,13 @@ void CStringTableModule::LuaInit(bool bServerInit) // ToDo: Implement a INetwork
 		Util::AddFunc(INetworkStringTable_FindStringIndex, "FindStringIndex");
 		metatable->SetFromStack(-1);
 	g_Lua->Pop(1);
+
+	if (g_Lua->PushMetaTable(INetworkStringTable_Type))
+	{
+		g_Lua->Pop(1);
+	} else {
+		Warning("HolyLib: g_Lua->PushMetaTable fails to push INetworkStringTable!\n");
+	}
 
 	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
 		Util::StartTable();
