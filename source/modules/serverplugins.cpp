@@ -132,12 +132,9 @@ void CServerPluginLibModule::LuaInit(bool bServerInit)
 		FORALL_PLUGINS
 		{
 			CPlugin *p = g_pServerPluginHandler->m_Plugins[i];
-			if ( !p->IsDisabled() )
+			if ( !p->IsDisabled() && p->GetPluginInterfaceVersion() >= 4 )
 			{
-				if ( p->GetPluginInterfaceVersion() >= 4 )
-				{
-					p->GetCallback()->OnLuaInit(g_Lua);
-				}
+				p->GetCallback()->OnLuaInit(g_Lua);
 			}
 		}
 	}
@@ -148,12 +145,9 @@ void CServerPluginLibModule::LuaShutdown() // ToDo: Change this to be called whe
 	FORALL_PLUGINS
 	{
 		CPlugin *p = g_pServerPluginHandler->m_Plugins[i];
-		if ( !p->IsDisabled() )
+		if ( !p->IsDisabled() && p->GetPluginInterfaceVersion() >= 4 )
 		{
-			if ( p->GetPluginInterfaceVersion() >= 4 )
-			{
-				p->GetCallback()->OnLuaShutdown();
-			}
+			p->GetCallback()->OnLuaShutdown(g_Lua);
 		}
 	}
 }
