@@ -87,6 +87,8 @@ LUA_FUNCTION_STATIC(gameevent_RemoveListener)
 				break;
 			}
 		}
+	} else {
+		DevMsg("Failed to find LuaGameEventListener in GameSystems?\n");
 	}
 
 	LUA->PushBool(bSuccess);
