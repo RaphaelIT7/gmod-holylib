@@ -12,6 +12,7 @@ jobs:
   build:
     uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
     with:
+      PROJECT_PATH: "ghostinj-dll/"
       PROJECT_NAME: "ghostinj"
       BUILD_64x: "false"
       LINUX_FILEEXTENTION: "dll"
