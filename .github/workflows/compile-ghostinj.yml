@@ -1,0 +1,20 @@
+name: Build GhostInj
+
+on: 
+  push:
+    paths:
+      - 'ghostinj-dll/source/**'
+      - 'ghostinj-dll/premake5.lua'
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
+    with:
+      PROJECT_NAME: "ghostinj"
+      BUILD_64x: "false"
+      LINUX_FILEEXTENTION: "dll"
+      BUILD_WINDOWS: "false"
+      USE_PREFIX: "false"
+      ARTIFACT_EXPIRE: "1"

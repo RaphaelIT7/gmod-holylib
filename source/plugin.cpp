@@ -27,6 +27,11 @@ CServerPlugin::~CServerPlugin()
 {
 }
 
+DLL_EXPORT void HolyLib_PreLoad() // ToDo: Make this a CServerPlugin member later!
+{
+	// ToDo
+}
+
 //---------------------------------------------------------------------------------
 // Purpose: called when the plugin is loaded, load the interface we need from the engine
 //---------------------------------------------------------------------------------
