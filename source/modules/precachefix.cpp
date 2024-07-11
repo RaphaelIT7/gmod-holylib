@@ -74,7 +74,7 @@ void CPrecacheFixModule::LuaShutdown()
 
 void CPrecacheFixModule::InitDetour(bool bPreServer)
 {
-	if ( !bPreServer ) { return; }
+	if ( bPreServer ) { return; }
 
 	SourceSDK::ModuleLoader engine_loader("engine_srv");
 	Detour::Create(
