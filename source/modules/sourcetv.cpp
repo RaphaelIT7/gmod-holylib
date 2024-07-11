@@ -27,10 +27,10 @@ void CSourceTVLibModule::Init(CreateInterfaceFn* fn)
 
 void CSourceTVLibModule::LoadConfig(KeyValues* config)
 {
-	if (config->IsEmpty("sourcetv_allownetworking"))
-		config->SetBool("sourcetv_allownetworking", true);
+	//if (config->IsEmpty("sourcetv_allownetworking"))
+	//	config->SetBool("sourcetv_allownetworking", true);
 
-	m_bAllowNetworking = config->GetBool("sourcetv_allownetworking", false);
+	//m_bAllowNetworking = config->GetBool("sourcetv_allownetworking", false);
 }
 
 void CSourceTVLibModule::LuaInit(bool bServerInit)
@@ -47,6 +47,8 @@ void CSourceTVLibModule::LuaShutdown()
 
 void CSourceTVLibModule::InitDetour(bool bPreServer)
 {
+	if ( bPreServer ) { return; }
+
 }
 
 void CSourceTVLibModule::Think(bool simulating)

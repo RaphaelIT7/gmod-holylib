@@ -146,7 +146,9 @@ void CServerPluginLibModule::LuaShutdown() // ToDo: Change this to be called whe
 
 void CServerPluginLibModule::InitDetour(bool bPreServer)
 {
-	SourceSDK::ModuleLoader engine_loader("engine");
+	if ( !bPreServer ) { return; }
+
+	SourceSDK::ModuleLoader engine_loader("engine_srv");
 	Detour::Create(
 		&detour_CPlugin_Load, "CPlugin::Load", engine_loader.GetModule(),
 		Symbols::CPlugin_LoadSym, (void*)hook_CPlugin_Load, m_pID
