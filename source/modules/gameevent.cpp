@@ -80,6 +80,7 @@ LUA_FUNCTION_STATIC(gameevent_RemoveListener)
 		FOR_EACH_VEC(desciptor->listeners, i)
 		{
 			IGameEventListener2* listener = (IGameEventListener2*)desciptor->listeners[i]->m_pCallback;
+			Msg("Pointer 1: %p\nPointer 2: %p\n", listener, pLuaGameEventListener);
 			if ( listener == pLuaGameEventListener )
 			{
 				desciptor->listeners.Remove(i); // ToDo: Verify that this doesn't cause a memory leak because CGameEventCallback isn't deleted.
@@ -88,7 +89,7 @@ LUA_FUNCTION_STATIC(gameevent_RemoveListener)
 			}
 		}
 	} else {
-		DevMsg("Failed to find LuaGameEventListener in GameSystems?\n");
+		Warning("Failed to find LuaGameEventListener in GameSystems?\n");
 	}
 
 	LUA->PushBool(bSuccess);
