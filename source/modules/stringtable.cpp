@@ -267,6 +267,7 @@ void CStringTableModule::LuaInit(bool bServerInit) // ToDo: Implement a INetwork
 
 	metatable = g_Lua->CreateObject();
 	g_Lua->CreateMetaTableType("INetworkStringTable", INetworkStringTable_Type);
+		Util::AddFunc(INetworkStringTable__tostring, "__tostring");
 		Util::AddFunc(INetworkStringTable_GetTableName, "GetTableName");
 		Util::AddFunc(INetworkStringTable_GetTableId, "GetTableId");
 		Util::AddFunc(INetworkStringTable_GetNumStrings, "GetNumStrings");
