@@ -40,6 +40,21 @@ namespace Symbols
 
 	typedef int (*CThreadPool_ExecuteToPriority)(void* pool, void* idk, void* idk2);
 	const Symbol CThreadPool_ExecuteToPrioritySym = Symbol::FromName("_ZN11CThreadPool17ExecuteToPriorityE13JobPriority_tPFbP4CJobE");
+
+	//---------------------------------------------------------------------------------
+	// Purpose: precachefix Symbols
+	//---------------------------------------------------------------------------------
+	typedef int (*CVEngineServer_PrecacheModel)(void* engine, const char* mdl, bool preload);
+	const Symbol CVEngineServer_PrecacheModelSym = Symbol::FromName("_ZN14CVEngineServer13PrecacheModelEPKcb");
+
+	typedef int (*CVEngineServer_PrecacheGeneric)(void* engine, const char* mdl, bool preload);
+	const Symbol CVEngineServer_PrecacheGenericSym = Symbol::FromName("_ZN14CVEngineServer15PrecacheGenericEPKcb");
+
+	typedef int (*SV_FindOrAddModel)(const char* mdl, bool preload);
+	const Symbol SV_FindOrAddModelSym = Symbol::FromName("_Z17SV_FindOrAddModelPKcb");
+
+	typedef int (*SV_FindOrAddGeneric)(const char* mdl, bool preload);
+	const Symbol SV_FindOrAddGenericSym = Symbol::FromName("_Z19SV_FindOrAddGenericPKcb");
 }
 
 //---------------------------------------------------------------------------------

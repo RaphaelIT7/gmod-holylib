@@ -37,6 +37,12 @@ string name - The event to remove the Lua gameevent listener from.
 
 Returns `true` if the listener was successfully removed from the given event.
 
+## precachefix
+This module removes the host error when the model or generic precache stringtable overflows. Instead it will throw a warning.  
+If these stringtables overflow, expect the models that failed to precache to be errors.  
+
+# Unfinished Modules
+
 ## serverplugins
 This module adds two new `IServerPluginCallbacks` functions:  
 `virtual void OnLuaInit( GarrysMod::Lua::ILuaInterface* LUA )`  
@@ -44,6 +50,16 @@ This module adds two new `IServerPluginCallbacks` functions:
 
 ## sourcetv
 This module plans to add a new `sourcetv` library and a new class `HLTVPlayer` will allow a SourceTV client to send net messages to the server.
+
+## stringtable
+This module plans to add a new library called `stringtable` later on, which will contain all functions to handle stringtables,  
+and it will a hook for when the stringtables are created, since they are created while Lua was already loaded.
+
+### Functions
+
+#### (int or table) stringtable.GetSize(string tablename)
+string name(optional) - The stringtable to get the size of.  
+Returns nil if the stringtable wasn't found.
 
 # Things planned to add:
 https://github.com/Facepunch/garrysmod-requests/issues/1884  

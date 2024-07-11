@@ -10,6 +10,7 @@ CModuleManager::CModuleManager() // ToDo: Look into how IGameSystem works and us
 	RegisterModule(pServerPluginLibModule);
 	RegisterModule(pSourceTVLibModule);
 	RegisterModule(pThreadPoolFixModule);
+	RegisterModule(pStringTableModule);
 
 	LoadConfig();
 }
