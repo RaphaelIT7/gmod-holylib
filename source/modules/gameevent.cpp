@@ -64,12 +64,12 @@ LUA_FUNCTION_STATIC(gameevent_RemoveListener)
 	const char* strEvent = LUA->CheckString(1);
 
 	bool bSuccess = false;
-	IGameSystem* pLuaGameEventListener = NULL;
+	IGameEventListener2* pLuaGameEventListener = NULL;
 	FOR_EACH_VEC(*s_GameSystems, i)
 	{
 		if (V_stricmp((*s_GameSystems)[i]->Name(), "LuaGameEventListener") == 0)
 		{
-			pLuaGameEventListener = (IGameSystem*)(*s_GameSystems)[i];
+			pLuaGameEventListener = dynamic_cast<IGameEventListener2*>((*s_GameSystems)[i]);
 			break;
 		}
 	}
@@ -79,7 +79,7 @@ LUA_FUNCTION_STATIC(gameevent_RemoveListener)
 		CGameEventDescriptor* desciptor = pManager->GetEventDescriptor(strEvent);
 		FOR_EACH_VEC(desciptor->listeners, i)
 		{
-			IGameSystem* listener = (IGameSystem*)desciptor->listeners[i]->m_pCallback;
+			IGameEventListener2* listener = (IGameEventListener2*)desciptor->listeners[i]->m_pCallback;
 			Msg("Pointer 1: %p\nPointer 2: %p\n", listener, pLuaGameEventListener);
 			if ( listener == pLuaGameEventListener )
 			{
