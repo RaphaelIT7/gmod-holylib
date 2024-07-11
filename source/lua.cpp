@@ -7,6 +7,12 @@
 
 bool Lua::PushHook(const char* hook)
 {
+	if ( !g_Lua )
+	{
+		Warning("HolyLib: Lua::PushHook was while g_Lua was NULL! (%s)\n", hook);
+		return false;
+	}
+
 	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
 		g_Lua->GetField(-1, "hook");
 		if (g_Lua->GetType(-1) != GarrysMod::Lua::Type::Table)
