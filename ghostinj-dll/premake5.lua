@@ -44,7 +44,7 @@ CreateWorkspace({name = "ghostinj", abi_compatible = false})
             files({"source/win32/*.cpp", "source/win32/*.hpp"})
 
         filter("system:linux")
-            targetextension(".so")
+            targetextension(".dll")
             links -- this fixes the undefined reference to `dlopen' errors.
                 {
                     "dl",
