@@ -55,6 +55,13 @@ namespace Symbols
 
 	typedef int (*SV_FindOrAddGeneric)(const char* mdl, bool preload);
 	const Symbol SV_FindOrAddGenericSym = Symbol::FromName("_Z19SV_FindOrAddGenericPKcb");
+
+	//---------------------------------------------------------------------------------
+	// Purpose: stringtable Symbols
+	//---------------------------------------------------------------------------------
+
+	typedef int (*CServerGameDLL_CreateNetworkStringTables)(void* servergamedll);
+	const Symbol CServerGameDLL_CreateNetworkStringTablesSym = Symbol::FromName("_ZN14CServerGameDLL25CreateNetworkStringTablesEv");
 }
 
 //---------------------------------------------------------------------------------

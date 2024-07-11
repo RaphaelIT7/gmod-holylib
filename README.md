@@ -56,6 +56,101 @@ This is a huge speed improvement for adding searchpaths / mounting legacy addons
 This module removes the host error when the model or generic precache stringtable overflows. Instead it will throw a warning.  
 If these stringtables overflow, expect the models that failed to precache to be errors.  
 
+## stringtable
+This module adds a new library called `stringtable`, which will contain all functions to handle stringtables,  
+and it will a hook for when the stringtables are created, since they are created while Lua was already loaded.  
+
+NOTE: For now, all functions below are just a bind to their C++ versions -> [INetworkStringTable](https://github.com/RaphaelIT7/obsolete-source-engine/blob/gmod/public/networkstringtabledefs.h#L32)  
+
+### Functions
+
+#### INetworkStringTable stringtable.CreateStringTable(string tablename, number maxentries, number userdatafixedsize = 0, number userdatanetworkbits = 0)
+string tablename - The name for the stringtable we want to create.  
+number maxentries - The maximal amount of entries.  
+number userdatafixedsize(default `0`) - The size of the userdata.  
+number userdatanetworkbits(default `0`) - The networkbits to use for the userdata.  
+
+Returns `nil` or a `INetworkStringTable`.  
+
+#### stringtable.RemoveAllTables()
+Nuke all stringtables. BOOOM  
+
+#### INetworkStringTable stringtable.FindTable(string tablename)
+string tablename - The table to search for  
+
+Returns `nil` or the `INetworkStringTable`  
+
+#### INetworkStringTable stringtable.GetTable(number tableid)
+number tableid - The tableid of the table to get  
+
+Returns `nil` or the `INetworkStringTable`  
+
+#### number stringtable.GetNumTables()
+Returns the number of stringtables that exist.  
+
+#### INetworkStringTable stringtable.CreateStringTableEx(string tablename, number maxentries, number userdatafixedsize = 0, number userdatanetworkbits = 0, bool bIsFilenames = false )
+string tablename - The name for the stringtable we want to create.  
+number maxentries - The maximal amount of entries.  
+number userdatafixedsize(default `0`) - The size of the userdata.  
+number userdatanetworkbits(default `0`) - The networkbits to use for the userdata.  
+bool bIsFilenames(default `false`) - If the stringtable will contain filenames.  
+
+#### stringtable.SetAllowClientSideAddString(INetworkStringTable table, bool bAllowClientSideAddString)
+INetworkStringTable table - The table to set it on  
+bool bAllowClientSideAddString - If clients should be able to modify the stringtable.  
+
+Returns `nil` or the `INetworkStringTable`  
+
+### INetworkStringTable
+This is a metatable that is pushed by this module. It contains the functions listed below  
+
+#### string INetworkStringTable:GetTableName() 
+Returns the name of the stringtable  
+
+#### number INetworkStringTable:GetTableId() 
+Returns the id of the stringtable  
+
+#### number INetworkStringTable:GetNumStrings() 
+Returns the number of strings this stringtable has  
+
+#### number INetworkStringTable:GetMaxStrings() 
+Returns the maximum number of string this stringtable has  
+
+#### number INetworkStringTable:GetEntryBits() 
+ToDo: I have no idea  
+
+#### INetworkStringTable:SetTick(number tick) 
+number tick - The tick to set the stringtable to  
+
+Returns the number of strings this stringtable has  
+
+#### bool INetworkStringTable:ChangedSinceTick(number tick) 
+number tick - The tick to set the stringtable to  
+
+Returns whether or not the stringtable changed since that tick.  
+
+#### number INetworkStringTable:AddString(bool bIsServer, const char* pStr) 
+bool bIsServer - Weather or not the server is adding this value? (Idk, added it so you have more control.)  
+string pStr - The string to add  
+
+Returns the index of the added string.  
+
+#### string INetworkStringTable:GetString(number index) 
+number index - The index to get the string from  
+
+Returns the string from that index  
+
+#### number INetworkStringTable:FindStringIndex(string pStr) 
+string pStr - The string to find the index of  
+
+Returns the index of the given string.  
+
+### Enums
+This module adds these enums  
+
+#### number stringtable.INVALID_STRING_INDEX
+This value is returned if the index of a string is invalid, like if INetworkStringTable:AddString fails.
+
 # Unfinished Modules
 
 ## serverplugins
@@ -64,17 +159,7 @@ This module adds two new `IServerPluginCallbacks` functions:
 `virtual void OnLuaShutdown( GarrysMod::Lua::ILuaInterface* LUA )`  
 
 ## sourcetv
-This module plans to add a new `sourcetv` library and a new class `HLTVPlayer` will allow a SourceTV client to send net messages to the server.
-
-## stringtable
-This module plans to add a new library called `stringtable` later on, which will contain all functions to handle stringtables,  
-and it will a hook for when the stringtables are created, since they are created while Lua was already loaded.
-
-### Functions
-
-#### (int or table) stringtable.GetSize(string tablename)
-string name(optional) - The stringtable to get the size of.  
-Returns nil if the stringtable wasn't found.
+This module plans to add a new `sourcetv` library and a new class `HLTVPlayer` will allow a SourceTV client to send net messages to the server.  
 
 # Things planned to add:
 https://github.com/Facepunch/garrysmod-requests/issues/1884  

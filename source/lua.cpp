@@ -35,7 +35,7 @@ bool Lua::PushHook(const char* hook)
 
 void Lua::Init(GarrysMod::Lua::ILuaInterface* LUA)
 {
-	g_Lua = LUA;
+	g_Lua = (GarrysMod::Lua::IUpdatedLuaInterface*)LUA;
 
 	g_pModuleManager.LuaInit(false);
 }

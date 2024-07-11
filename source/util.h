@@ -1,5 +1,7 @@
 #pragma once
 
+#define GMOD_ALLOW_DEPRECATED
+#include <sourcesdk/ILuaInterface.h>
 #include "GarrysMod/Lua/Interface.h"
 #include <string>
 #include "detours.h"
@@ -12,7 +14,7 @@ extern IVEngineServer* engine;
 extern CreateInterfaceFn g_interfaceFactory;
 extern CreateInterfaceFn g_gameServerFactory;
 
-extern GarrysMod::Lua::ILuaInterface* g_Lua;
+extern GarrysMod::Lua::IUpdatedLuaInterface* g_Lua;
 
 namespace Util
 {

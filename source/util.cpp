@@ -2,7 +2,7 @@
 #include <string>
 #include "edict.h"
 
-GarrysMod::Lua::ILuaInterface* g_Lua;
+GarrysMod::Lua::IUpdatedLuaInterface* g_Lua;
 IVEngineServer* engine;
 
 CreateInterfaceFn g_interfaceFactory;
