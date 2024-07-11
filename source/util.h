@@ -1,6 +1,5 @@
 #pragma once
 
-#define GMOD_ALLOW_DEPRECATED
 #include <sourcesdk/ILuaInterface.h>
 #include "GarrysMod/Lua/Interface.h"
 #include <string>

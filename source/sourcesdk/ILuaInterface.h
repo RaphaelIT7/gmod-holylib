@@ -2,9 +2,7 @@
 #define GMOD_ILUAINTERFACE
 
 #include <cstdarg>
-#define GMOD_ALLOW_DEPRECATED
 #include <GarrysMod/Lua/LuaBase.h>
-#undef GMOD_ALLOW_DEPRECATED
 #include <GarrysMod/Lua/LuaObject.h>
 #include <GarrysMod/Lua/LuaGameCallback.h>
 #include <convar.h>

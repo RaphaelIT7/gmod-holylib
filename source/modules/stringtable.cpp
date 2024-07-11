@@ -29,7 +29,7 @@ void CStringTableModule::Init(CreateInterfaceFn* fn)
 }
 
 GarrysMod::Lua::ILuaObject* metatable = NULL;
-#define INetworkStringTable_Type 100 // 100 shouldn't be used right? Also we got ILuaInterface::RegisterMetaTable in the next update :D
+int INetworkStringTable_TypeID = -1;
 void Push_INetworkStringTable(INetworkStringTable* tbl)
 {
 	if ( !tbl )
@@ -38,15 +38,15 @@ void Push_INetworkStringTable(INetworkStringTable* tbl)
 		return;
 	}
 
-	g_Lua->PushUserType_Value( tbl, INetworkStringTable_Type );
+	g_Lua->PushUserType( tbl, INetworkStringTable_TypeID );
 }
 
 INetworkStringTable* Get_INetworkStringTable(int iStackPos)
 {
-	if (!g_Lua->IsType(iStackPos, INetworkStringTable_Type))
+	if (!g_Lua->IsType(iStackPos, INetworkStringTable_TypeID))
 		return NULL;
 
-	return g_Lua->GetUserType<INetworkStringTable>(iStackPos, INetworkStringTable_Type);
+	return g_Lua->GetUserType<INetworkStringTable>(iStackPos, INetworkStringTable_TypeID);
 }
 
 LUA_FUNCTION_STATIC(INetworkStringTable__tostring)
@@ -266,7 +266,7 @@ void CStringTableModule::LuaInit(bool bServerInit) // ToDo: Implement a INetwork
 		g_Lua->DestroyObject(metatable);
 
 	metatable = g_Lua->CreateObject();
-	g_Lua->CreateMetaTableType("INetworkStringTable", INetworkStringTable_Type);
+	INetworkStringTable_TypeID = g_Lua->CreateMetaTable("INetworkStringTable");
 		Util::AddFunc(INetworkStringTable__tostring, "__tostring");
 		Util::AddFunc(INetworkStringTable_GetTableName, "GetTableName");
 		Util::AddFunc(INetworkStringTable_GetTableId, "GetTableId");
@@ -281,7 +281,7 @@ void CStringTableModule::LuaInit(bool bServerInit) // ToDo: Implement a INetwork
 		metatable->SetFromStack(-1);
 	g_Lua->Pop(1);
 
-	if (g_Lua->PushMetaTable(INetworkStringTable_Type))
+	if (g_Lua->PushMetaTable(INetworkStringTable_TypeID))
 	{
 		g_Lua->Pop(1);
 	} else {
