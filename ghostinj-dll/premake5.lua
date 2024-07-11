@@ -39,6 +39,7 @@ CreateWorkspace({name = "ghostinj", abi_compatible = false})
         --IncludeDetouring()
         --IncludeScanning()
 
+        targetsuffix("")
         filter("system:windows")
             files({"source/win32/*.cpp", "source/win32/*.hpp"})
 
