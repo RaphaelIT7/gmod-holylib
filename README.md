@@ -3,6 +3,16 @@
 A library that will contain some functions and optimizations for gmod.  
 If you need any function, make an issue for it, and I'll look into it.  
 
+# How to Install
+1. Download the `ghostinj.dll`, `holylib.vdf` and `gmsv_holylib_linux.so` from the latest release.  
+2. Put the `ghostinj.dll` into the main directory where `srcds_linux` is located.  
+3. Put the `holylib.vdf` into the `garrysmod/addons/` directory.  
+4. Put the `gmsv_holylib_linux.so` into the `garrysmod/lua/bin/` directory.
+5. Add `-usegh` to the servers startup params.  
+If you use a panel like Pterodactyl or something similar, you can use the gamemode field(in most cases) like this: `sandbox -usegh`  
+
+If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it will be loaded by holylib's ghostinj.  
+
 # Modules
 
 ## holylib
@@ -36,6 +46,11 @@ If name is not a string, it will return a table containing all events and their 
 string name - The event to remove the Lua gameevent listener from.  
 
 Returns `true` if the listener was successfully removed from the given event.
+
+## threadpoolfix
+This module modifies `CThreadPool::ExecuteToPriority` to not call `CThreadPool::SuspendExecution` when it doesn't have any jobs.  
+This is a huge speed improvement for adding searchpaths / mounting legacy addons.  
+> NOTE: This requires the `ghostinj.dll` to be installed!
 
 ## precachefix
 This module removes the host error when the model or generic precache stringtable overflows. Instead it will throw a warning.  

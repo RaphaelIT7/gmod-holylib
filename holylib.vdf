@@ -1,0 +1,4 @@
+Plugin
+{
+	file		"lua/bin/gmsv_holylib_linux.so"
+}

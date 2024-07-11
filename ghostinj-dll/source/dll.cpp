@@ -52,13 +52,14 @@
 #include <dlfcn.h>
 #endif
 
+void* ghostinj2 = NULL;
 void* holylib = NULL;
 typedef void ( *plugin_main )();
 void Load()
 {
 	Msg( "--- Holylib Loading ---\n" );
 
-	holylib = dlopen( "garrysmod/plugins/gmsv_holylib_linux.so", RTLD_NOW );
+	holylib = dlopen( "garrysmod/lua/bin/gmsv_holylib_linux.so", RTLD_NOW );
 	if ( !holylib )
 		Msg( "Failed to open gmsv_holylib_linux.so (%s)\n", dlerror() );
 
@@ -69,6 +70,10 @@ void Load()
 		plugin();
 	}
 
+	ghostinj2 = dlopen( "ghostinj2.dll", RTLD_NOW );
+	if ( ghostinj2 )
+		Msg( "Found and loaded ghostinj2.dll\n" );
+
 	Msg( "--- Holylib loaded ---\n" );
 }
 
@@ -78,6 +83,9 @@ void Unload()
 
 	if ( holylib )
 		dlclose( holylib );
+
+	if ( ghostinj2 )
+		dlclose( ghostinj2 );
 
 	Msg( "--- Holylib unloaded ---\n" );
 }

@@ -6,7 +6,7 @@ ToDo: Allow it to load a `ghostinj2.dll` so that if you have multiple ones, this
 
 ### How it's called
 
-File (with link to the line) - Function
-[sys_ded.cpp](https://github.com/RaphaelIT7/obsolete-source-engine/blob/gmod/dedicated/sys_ded.cpp#L517) - `main`
-[sys_common.cpp](https://github.com/RaphaelIT7/obsolete-source-engine/blob/gmod/dedicated/sys_common.cpp#L88) - `InitInstance`
-[sys_common.cpp](https://github.com/RaphaelIT7/obsolete-source-engine/blob/gmod/dedicated/sys_common.cpp#L53) - `Load3rdParty`
+File (with link to the line) - Function  
+[sys_ded.cpp](https://github.com/RaphaelIT7/obsolete-source-engine/blob/gmod/dedicated/sys_ded.cpp#L517) - `main`  
+[sys_common.cpp](https://github.com/RaphaelIT7/obsolete-source-engine/blob/gmod/dedicated/sys_common.cpp#L88) - `InitInstance`  
+[sys_common.cpp](https://github.com/RaphaelIT7/obsolete-source-engine/blob/gmod/dedicated/sys_common.cpp#L53) - `Load3rdParty`  
