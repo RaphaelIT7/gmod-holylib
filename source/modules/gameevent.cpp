@@ -80,8 +80,8 @@ LUA_FUNCTION_STATIC(gameevent_RemoveListener)
 		FOR_EACH_VEC(desciptor->listeners, i)
 		{
 			IGameEventListener2* listener = (IGameEventListener2*)desciptor->listeners[i]->m_pCallback;
-			Msg("Pointer 1: %hhu\nPointer 2: %hhu\n", (uint8_t*)listener, (uint8_t*)pLuaGameEventListener + 12);
-			if ( (uint8_t*)listener == ((uint8_t*)pLuaGameEventListener + 12) )
+			//Msg("Pointer 1: %hhu\nPointer 2: %hhu\n", (uint8_t*)listener, (uint8_t*)pLuaGameEventListener + 12);
+			if ( (uint8_t*)listener == ((uint8_t*)pLuaGameEventListener + 12) ) // WHY is pLuaGameEventListener always off by 12 bytes? I HATE THAT THIS WORKS
 			{
 				desciptor->listeners.Remove(i); // ToDo: Verify that this doesn't cause a memory leak because CGameEventCallback isn't deleted.
 				bSuccess = true;
