@@ -151,6 +151,12 @@ This module adds these enums
 #### number stringtable.INVALID_STRING_INDEX
 This value is returned if the index of a string is invalid, like if INetworkStringTable:AddString fails.
 
+### Hooks
+This module adds these hooks
+
+#### HolyLib:OnStringtableCreation()
+NOTE: This is currently broken, since it's actually called before Lua :/
+
 # Unfinished Modules
 
 ## serverplugins

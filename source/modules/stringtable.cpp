@@ -28,6 +28,7 @@ void CStringTableModule::Init(CreateInterfaceFn* fn)
 	Detour::CheckValue("get interface", "networkStringTableContainerServer", networkStringTableContainerServer != NULL);
 }
 
+GarrysMod::Lua::ILuaObject* metatable;
 #define INetworkStringTable_Type 100 // 100 shouldn't be used right? Also we got ILuaInterface::RegisterMetaTable in the next update :D
 void Push_INetworkStringTable(INetworkStringTable* tbl)
 {
@@ -38,6 +39,8 @@ void Push_INetworkStringTable(INetworkStringTable* tbl)
 	}
 
 	g_Lua->PushUserType( tbl, INetworkStringTable_Type );
+	metatable->Push();
+	g_Lua->SetMetaTable(-2);
 }
 
 INetworkStringTable* Get_INetworkStringTable(int iStackPos)
@@ -256,12 +259,15 @@ void hook_CServerGameDLL_CreateNetworkStringTables(void* servergamedll)
 	}
 }
 
-GarrysMod::Lua::ILuaObject* metatable;
 void CStringTableModule::LuaInit(bool bServerInit) // ToDo: Implement a INetworkStringTable class, a full table and call a hook when SV_CreateNetworkStringTables -> CreateNetworkStringTables is called.
 {
 	if (!networkStringTableContainerServer)
 		return;
 
+	if ( metatable )
+		g_Lua->DestroyObject(metatable);
+
+	metatable = g_Lua->CreateObject();
 	g_Lua->CreateMetaTableType("INetworkStringTable", INetworkStringTable_Type);
 		Util::AddFunc(INetworkStringTable_GetTableName, "GetTableName");
 		Util::AddFunc(INetworkStringTable_GetTableId, "GetTableId");
@@ -273,6 +279,7 @@ void CStringTableModule::LuaInit(bool bServerInit) // ToDo: Implement a INetwork
 		Util::AddFunc(INetworkStringTable_AddString, "AddString");
 		Util::AddFunc(INetworkStringTable_GetString, "GetString");
 		Util::AddFunc(INetworkStringTable_FindStringIndex, "FindStringIndex");
+		metatable->SetFromStack(-1);
 	g_Lua->Pop(1);
 
 	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
