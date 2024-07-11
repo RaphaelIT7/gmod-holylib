@@ -12,7 +12,7 @@ public:
 	virtual void Init(CreateInterfaceFn* fn);
 	virtual void LuaInit(bool bServerInit);
 	virtual void LuaShutdown();
-	virtual void InitDetour();
+	virtual void InitDetour(bool bPreServer);
 	virtual void Think(bool simulating);
 	virtual void Shutdown();
 	virtual const char* Name() { return "threadpoolfix"; };
@@ -43,8 +43,10 @@ void CThreadPoolFixModule::LuaShutdown()
 {
 }
 
-void CThreadPoolFixModule::InitDetour()
+void CThreadPoolFixModule::InitDetour(bool bPreServer)
 {
+	if ( !bPreServer ) { return; }
+
 	SourceSDK::ModuleLoader libvstdlib_loader("libvstdlib_srv");
 	Detour::Create(
 		&detour_CThreadPool_ExecuteToPriority, "CThreadPool::ExecuteToPriority",

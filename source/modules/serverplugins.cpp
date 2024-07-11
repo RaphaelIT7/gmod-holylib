@@ -10,7 +10,7 @@ public:
 	virtual void Init(CreateInterfaceFn* fn);
 	virtual void LuaInit(bool bServerInit);
 	virtual void LuaShutdown();
-	virtual void InitDetour();
+	virtual void InitDetour(bool bPreServer);
 	virtual void Think(bool bSimulating);
 	virtual void Shutdown();
 	virtual const char* Name() { return "serverplugin"; };
@@ -144,7 +144,7 @@ void CServerPluginLibModule::LuaShutdown() // ToDo: Change this to be called whe
 	}
 }
 
-void CServerPluginLibModule::InitDetour()
+void CServerPluginLibModule::InitDetour(bool bPreServer)
 {
 	SourceSDK::ModuleLoader engine_loader("engine");
 	Detour::Create(

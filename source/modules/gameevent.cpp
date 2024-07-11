@@ -12,7 +12,7 @@ public:
 	virtual void Init(CreateInterfaceFn* fn);
 	virtual void LuaInit(bool bServerInit);
 	virtual void LuaShutdown();
-	virtual void InitDetour();
+	virtual void InitDetour(bool bPreServer);
 	virtual void Think(bool bSimulating);
 	virtual void Shutdown();
 	virtual const char* Name() { return "gameevent"; };
@@ -119,8 +119,10 @@ void CGameeventLibModule::LuaShutdown()
 {
 }
 
-void CGameeventLibModule::InitDetour()
+void CGameeventLibModule::InitDetour(bool bPreServer)
 {
+	if ( bPreServer ) { return; }
+
 	SourceSDK::FactoryLoader server_loader("server_srv");
 	s_GameSystems = ResolveSymbol<CUtlVector<IGameSystem*>>(server_loader, Symbols::s_GameSystemsSym);
 }

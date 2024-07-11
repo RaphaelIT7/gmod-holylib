@@ -14,7 +14,7 @@ public:
 	virtual void Init(CreateInterfaceFn* fn);
 	virtual void LuaInit(bool bServerInit);
 	virtual void LuaShutdown();
-	virtual void InitDetour();
+	virtual void InitDetour(bool bPreServer);
 	virtual void Think(bool simulating);
 	virtual void Shutdown();
 	virtual const char* Name() { return "holylib"; };
@@ -90,8 +90,10 @@ void CHolyLibModule::LuaShutdown()
 {
 }
 
-void CHolyLibModule::InitDetour()
+void CHolyLibModule::InitDetour(bool bPreServer)
 {
+	if ( bPreServer ) { return; }
+
 	SourceSDK::ModuleLoader server_loader("server_srv");
 	Detour::Create(
 		&detour_CServerGameDLL_ShouldHideServer, "CServerGameDLL::ShouldHideServer",

@@ -8,7 +8,7 @@ public:
 	virtual void Init(CreateInterfaceFn* fn);
 	virtual void LuaInit(bool bServerInit);
 	virtual void LuaShutdown();
-	virtual void InitDetour();
+	virtual void InitDetour(bool bPreServer);
 	virtual void Think(bool bSimulating);
 	virtual void Shutdown();
 	virtual const char* Name() { return "sourcetv"; };
@@ -45,7 +45,7 @@ void CSourceTVLibModule::LuaShutdown()
 {
 }
 
-void CSourceTVLibModule::InitDetour()
+void CSourceTVLibModule::InitDetour(bool bPreServer)
 {
 }
 

@@ -9,7 +9,7 @@ public:
 	virtual void Init(CreateInterfaceFn* fn) = 0;
 	virtual void LuaInit(bool bServerInit) = 0;
 	virtual void LuaShutdown() = 0;
-	virtual void InitDetour() = 0;
+	virtual void InitDetour( bool bPreServer ) = 0; // bPreServer = Called before the Dedicated Server was started
 	virtual void Think(bool bSimulating) = 0;
 	virtual void Shutdown() = 0;
 	virtual const char* Name() = 0;
@@ -22,13 +22,14 @@ public:
 class CModuleManager
 {
 public:
+	CModuleManager();
 	void RegisterModule(IModule* mdl);
 
 	void LoadConfig();
 	void Init(CreateInterfaceFn* fn);
 	void LuaInit(bool bServerInit);
 	void LuaShutdown();
-	void InitDetour();
+	void InitDetour(bool bPreServer);
 	void Think(bool bSimulating);
 	void Shutdown();
 

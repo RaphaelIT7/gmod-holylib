@@ -3,6 +3,17 @@
 #include <tier2/tier2.h>
 #include "modules/_modules.h"
 
+CModuleManager::CModuleManager() // ToDo: Look into how IGameSystem works and use something similar. I don't like to add each one manually
+{
+	RegisterModule(pHolyLibModule);
+	RegisterModule(pGameeventLibModule);
+	RegisterModule(pServerPluginLibModule);
+	RegisterModule(pSourceTVLibModule);
+	RegisterModule(pThreadPoolFixModule);
+
+	LoadConfig();
+}
+
 int g_pIDs = 0;
 void CModuleManager::RegisterModule(IModule* pModule)
 {
@@ -48,16 +59,8 @@ void CModuleManager::LoadConfig() // ToDo: Finish this config system.
 	m_pConfig->SaveToFile((IBaseFileSystem*)g_pFullFileSystem, "cfg/holylib.vdf", "MOD");
 }
 
-void CModuleManager::Init(CreateInterfaceFn* fn) // ToDo: Look into how IGameSystem works and use something similar. I don't like to add each one manually
+void CModuleManager::Init(CreateInterfaceFn* fn)
 {
-	RegisterModule(pHolyLibModule);
-	RegisterModule(pGameeventLibModule);
-	RegisterModule(pServerPluginLibModule);
-	RegisterModule(pSourceTVLibModule);
-	RegisterModule(pThreadPoolFixModule);
-
-	LoadConfig();
-
 	for (IModule* pModule : m_pModules)
 	{
 		pModule->Init(fn);
@@ -80,11 +83,11 @@ void CModuleManager::LuaShutdown()
 	}
 }
 
-void CModuleManager::InitDetour()
+void CModuleManager::InitDetour(bool bPreServer)
 {
 	for (IModule* pModule : m_pModules)
 	{
-		pModule->InitDetour();
+		pModule->InitDetour(bPreServer);
 	}
 }
 
