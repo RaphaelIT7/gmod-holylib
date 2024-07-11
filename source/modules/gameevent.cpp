@@ -69,7 +69,7 @@ LUA_FUNCTION_STATIC(gameevent_RemoveListener)
 	{
 		if (V_stricmp((*s_GameSystems)[i]->Name(), "LuaGameEventListener") == 0)
 		{
-			pLuaGameEventListener = dynamic_cast<IGameEventListener2*>((*s_GameSystems)[i]);
+			pLuaGameEventListener = (IGameEventListener2*)(*s_GameSystems)[i];
 			break;
 		}
 	}
@@ -80,8 +80,8 @@ LUA_FUNCTION_STATIC(gameevent_RemoveListener)
 		FOR_EACH_VEC(desciptor->listeners, i)
 		{
 			IGameEventListener2* listener = (IGameEventListener2*)desciptor->listeners[i]->m_pCallback;
-			Msg("Pointer 1: %p\nPointer 2: %p\n", listener, pLuaGameEventListener);
-			if ( listener == pLuaGameEventListener )
+			Msg("Pointer 1: %hhu\nPointer 2: %hhu\n", (uint8_t*)listener + 12, (uint8_t*)pLuaGameEventListener);
+			if ( ((uint8_t*)listener + 12) == (uint8_t*)pLuaGameEventListener )
 			{
 				desciptor->listeners.Remove(i); // ToDo: Verify that this doesn't cause a memory leak because CGameEventCallback isn't deleted.
 				bSuccess = true;
