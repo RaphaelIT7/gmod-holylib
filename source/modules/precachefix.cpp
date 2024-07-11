@@ -40,6 +40,12 @@ int hook_CVEngineServer_PrecacheModel(IVEngineServer* engine, const char* mdl, b
 	{
 		return i;
 	}
+
+	if (Lua::PushHook("HolyLib:OnModelPrecacheFail"))
+	{
+		g_Lua->PushString(mdl);
+		g_Lua->CallFunctionProtected(2, 0, true);
+	}
 		
 	Warning( "CVEngineServer::PrecacheModel: '%s' overflow, too many models\nHolyLib PrecacheFix: Expect error models!\n", mdl );
 	return 0; // The engine already handles 0 cases, so this shouldn't cause other issues, that models that failed to precache being an error model for the client.
@@ -54,6 +60,12 @@ int hook_CVEngineServer_PrecacheGeneric(IVEngineServer* engine, const char* mdl,
 	if ( i >= 0 )
 	{
 		return i;
+	}
+
+	if (Lua::PushHook("HolyLib:OnGenericPrecacheFail"))
+	{
+		g_Lua->PushString(mdl);
+		g_Lua->CallFunctionProtected(2, 0, true);
 	}
 		
 	Warning( "CVEngineServer::PrecacheGeneric: '%s' overflow\n", mdl );

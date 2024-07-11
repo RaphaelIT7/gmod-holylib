@@ -56,6 +56,15 @@ This is a huge speed improvement for adding searchpaths / mounting legacy addons
 This module removes the host error when the model or generic precache stringtable overflows. Instead it will throw a warning.  
 If these stringtables overflow, expect the models that failed to precache to be errors.  
 
+### Hooks
+This module calls these hooks from (`hook.Run`)  
+
+#### HolyLib:OnModelPrecacheFail(string model)
+string model - The model that failed to precache.  
+
+#### HolyLib:OnGenericPrecacheFail(string model)
+string model - The model that failed to precache.  
+
 ## stringtable
 This module adds a new library called `stringtable`, which will contain all functions to handle stringtables,  
 and it will a hook for when the stringtables are created, since they are created while Lua was already loaded.  
@@ -152,7 +161,7 @@ This module adds these enums
 This value is returned if the index of a string is invalid, like if INetworkStringTable:AddString fails.
 
 ### Hooks
-This module adds these hooks
+This module calls these hooks from (`hook.Run`)  
 
 #### HolyLib:OnStringtableCreation()
 NOTE: This is currently broken, since it's actually called before Lua :/
