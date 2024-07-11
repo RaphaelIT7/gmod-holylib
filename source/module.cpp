@@ -12,8 +12,6 @@ CModuleManager::CModuleManager() // ToDo: Look into how IGameSystem works and us
 	RegisterModule(pThreadPoolFixModule);
 	RegisterModule(pStringTableModule);
 	RegisterModule(pPrecacheFixModule);
-
-	LoadConfig();
 }
 
 int g_pIDs = 0;
@@ -63,6 +61,8 @@ void CModuleManager::LoadConfig() // ToDo: Finish this config system.
 
 void CModuleManager::Init(CreateInterfaceFn* fn)
 {
+	LoadConfig(); // If we call it in the constructor, it will crash, since the g_pFullFilesystem wasn't set yet.
+
 	for (IModule* pModule : m_pModules)
 	{
 		pModule->Init(fn);
