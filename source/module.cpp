@@ -26,48 +26,8 @@ void CModuleManager::RegisterModule(IModule* pModule)
 	m_pModules.push_back(module);
 }
 
-void CModuleManager::LoadConfig() // ToDo: Finish this config system.
-{
-	if (!m_pConfig)
-		m_pConfig = new KeyValues("holylib");
-
-	m_pConfig->LoadFromFile((IBaseFileSystem*)g_pFullFileSystem, "cfg/holylib.vdf", "MOD");
-
-	for (CModule* module : m_pModules)
-	{
-		IModule* pModule = module->GetModule();
-		KeyValues* pKey = NULL;
-		if(m_pConfig->IsEmpty(pModule->Name()))
-		{
-			pKey = m_pConfig->CreateNewKey();
-			pKey->SetName(pModule->Name());
-		} else {
-			for (KeyValues* sub = m_pConfig->GetFirstSubKey(); sub; sub=sub->GetNextKey())
-			{
-				if (V_stricmp(sub->GetName(), pModule->Name()) == 0)
-				{
-					pKey = sub;
-					break;
-				}
-			}
-		}
-
-		if (!pKey)
-		{
-			DevMsg(1, "Failed to get an KeyValues* for %s!\n", pModule->Name());
-			continue;
-		}
-
-		pModule->LoadConfig(pKey);
-	}
-
-	m_pConfig->SaveToFile((IBaseFileSystem*)g_pFullFileSystem, "cfg/holylib.vdf");
-}
-
 void CModuleManager::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
-	LoadConfig(); // If we call it in the constructor, it will crash, since the g_pFullFilesystem wasn't set yet.
-
 	for (CModule* pModule : m_pModules)
 	{
 		if ( !pModule->IsEnabled() ) { continue; }

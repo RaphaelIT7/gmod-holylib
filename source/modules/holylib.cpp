@@ -18,7 +18,6 @@ public:
 	virtual void Think(bool simulating);
 	virtual void Shutdown();
 	virtual const char* Name() { return "holylib"; };
-	virtual void LoadConfig(KeyValues* config) {};
 };
 
 CHolyLibModule g_pHolyLibModule;

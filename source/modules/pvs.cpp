@@ -15,7 +15,6 @@ public:
 	virtual void Think(bool simulating);
 	virtual void Shutdown();
 	virtual const char* Name() { return "pvs"; };
-	virtual void LoadConfig(KeyValues* config) {};
 };
 
 CPVSModule g_pPVSModule;

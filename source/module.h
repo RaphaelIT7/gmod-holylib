@@ -15,7 +15,6 @@ public:
 	virtual void Think(bool bSimulating) = 0;
 	virtual void Shutdown() = 0;
 	virtual const char* Name() = 0;
-	virtual void LoadConfig(KeyValues* config) = 0;
 
 public:
 	unsigned int m_pID = 0; // Set by the CModuleManager!
@@ -50,7 +49,6 @@ public:
 	CModuleManager();
 	void RegisterModule(IModule* mdl);
 
-	void LoadConfig();
 	void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
 	void LuaInit(bool bServerInit);
 	void LuaShutdown();
@@ -60,6 +58,5 @@ public:
 
 private:
 	std::vector<CModule*> m_pModules;
-	KeyValues* m_pConfig = NULL;
 };
 extern CModuleManager g_pModuleManager;

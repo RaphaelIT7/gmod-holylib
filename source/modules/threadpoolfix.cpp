@@ -16,7 +16,6 @@ public:
 	virtual void Think(bool simulating);
 	virtual void Shutdown();
 	virtual const char* Name() { return "threadpoolfix"; };
-	virtual void LoadConfig(KeyValues* config) {};
 };
 
 CThreadPoolFixModule g_pThreadPoolFixModule;

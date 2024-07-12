@@ -17,7 +17,6 @@ public:
 	virtual void Think(bool simulating);
 	virtual void Shutdown();
 	virtual const char* Name() { return "surffix"; };
-	virtual void LoadConfig(KeyValues* config) {};
 };
 
 CSurfFixModule g_pSurfFixModule;

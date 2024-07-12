@@ -14,7 +14,6 @@ public:
 	virtual void Think(bool bSimulating);
 	virtual void Shutdown();
 	virtual const char* Name() { return "serverplugin"; };
-	virtual void LoadConfig(KeyValues* config) {};
 };
 
 CServerPluginLibModule g_pServerPluginLibModule;

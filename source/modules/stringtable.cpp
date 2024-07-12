@@ -15,7 +15,6 @@ public:
 	virtual void Think(bool simulating);
 	virtual void Shutdown();
 	virtual const char* Name() { return "stringtable"; };
-	virtual void LoadConfig(KeyValues* config) {};
 };
 
 CStringTableModule g_pStringTableFixModule;

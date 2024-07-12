@@ -16,7 +16,6 @@ public:
 	virtual void Think(bool bSimulating);
 	virtual void Shutdown();
 	virtual const char* Name() { return "gameevent"; };
-	virtual void LoadConfig(KeyValues* config) {};
 };
 
 CGameeventLibModule g_pGameeventLibModule;
