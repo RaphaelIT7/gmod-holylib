@@ -68,7 +68,25 @@ bool CGameMovement_IsValidMovementTrace(CGameMovement* gamemovement, trace_t &tr
 }
 
 #define	MAX_CLIP_PLANES		5
-Symbols::MoveHelperServer func_MoveHelperServer;
+Symbols::MoveHelperServer func_MoveHelperServer = NULL;
+Symbols::CGameMovement_ClipVelocity func_CGameMovement_ClipVelocity = NULL;
+Symbols::CBaseEntity_GetGroundEntity func_CBaseEntity_GetGroundEntity = NULL;
+inline IMoveHelper* TMoveHelper()
+{
+	return (IMoveHelper*)func_MoveHelperServer();
+}
+
+int CGameMovement::ClipVelocity(Vector& a, Vector& b, Vector& c, float d)
+{
+	return func_CGameMovement_ClipVelocity(this, a, b, c, d);
+}
+
+CBaseEntity* CBaseEntity::GetGroundEntity()
+{
+	return (CBaseEntity*)func_CBaseEntity_GetGroundEntity(this);
+}
+
+CGlobalVars* gpGlobals = NULL;
 Detouring::Hook detour_CGameMovement_TryPlayerMove;
 int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector* pFirstDest, trace_t* pFirstTrace)
 {
@@ -334,7 +352,7 @@ int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector* pFirst
 		// Save entity that blocked us (since fraction was < 1.0)
 		//  for contact
 		// Add it if it's not already in the list!!!
-		MoveHelper( )->AddToTouched( pm, gamemovement->mv->m_vecVelocity );
+		TMoveHelper()->AddToTouched( pm, gamemovement->mv->m_vecVelocity );
 
 		// If the plane we hit has a high z component in the normal, then
 		//  it's probably a floor
@@ -474,6 +492,13 @@ int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector* pFirst
 
 void CSurfFixModule::Init(CreateInterfaceFn* fn)
 {
+	IPlayerInfoManager* playerinfomanager = (IPlayerInfoManager*)fn[0](INTERFACEVERSION_PLAYERINFOMANAGER, NULL);
+	Detour::CheckValue("get interface", "playerinfomanager", playerinfomanager != NULL);
+
+	if ( playerinfomanager )
+	{
+		gpGlobals = playerinfomanager->GetGlobalVars();
+	}
 }
 
 void CSurfFixModule::LuaInit(bool bServerInit)
@@ -487,6 +512,7 @@ void CSurfFixModule::LuaShutdown()
 void CSurfFixModule::InitDetour(bool bPreServer)
 {
 	if ( bPreServer ) { return; }
+	if ( gpGlobals ) { return; }
 
 	SourceSDK::ModuleLoader server_loader("server_srv");
 	Detour::Create(
@@ -497,6 +523,12 @@ void CSurfFixModule::InitDetour(bool bPreServer)
 
 	func_MoveHelperServer = (Symbols::MoveHelperServer)Detour::GetFunction(server_loader.GetModule(), Symbols::MoveHelperServerSym);
 	Detour::CheckFunction(func_MoveHelperServer, "MoveHelperServer");
+
+	func_CGameMovement_ClipVelocity = (Symbols::CGameMovement_ClipVelocity)Detour::GetFunction(server_loader.GetModule(), Symbols::CGameMovement_ClipVelocitySym);
+	Detour::CheckFunction(func_CGameMovement_ClipVelocity, "CGameMovement:ClipVelocity");
+
+	func_CBaseEntity_GetGroundEntity = (Symbols::CBaseEntity_GetGroundEntity)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseEntity_GetGroundEntitySym);
+	Detour::CheckFunction(func_CBaseEntity_GetGroundEntity, "CBaseEntity::GetGroundEntity");
 }
 
 void CSurfFixModule::Think(bool bSimulating)
