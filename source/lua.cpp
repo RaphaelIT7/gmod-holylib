@@ -59,6 +59,7 @@ void Lua::ServerInit()
 void Lua::Shutdown()
 {
 	g_pModuleManager.LuaShutdown();
+	g_Lua = NULL;
 }
 
 Detouring::Hook detour_InitLuaClasses;
