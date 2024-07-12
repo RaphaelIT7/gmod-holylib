@@ -24,7 +24,7 @@ IModule* pStringTableModule = &g_pStringTableFixModule;
 INetworkStringTableContainer* networkStringTableContainerServer = NULL;
 void CStringTableModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
-	networkStringTableContainerServer = (INetworkStringTableContainer*)fn[0](INTERFACENAME_NETWORKSTRINGTABLESERVER, NULL);
+	networkStringTableContainerServer = (INetworkStringTableContainer*)appfn[0](INTERFACENAME_NETWORKSTRINGTABLESERVER, NULL);
 	Detour::CheckValue("get interface", "networkStringTableContainerServer", networkStringTableContainerServer != NULL);
 }
 

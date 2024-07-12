@@ -527,7 +527,7 @@ void CSurfFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 		gpGlobals = playerinfomanager->GetGlobalVars();
 	}
 
-	enginetrace = (IEngineTrace*)fn[0](INTERFACEVERSION_ENGINETRACE_SERVER, NULL);
+	enginetrace = (IEngineTrace*)appfn[0](INTERFACEVERSION_ENGINETRACE_SERVER, NULL);
 	Detour::CheckValue("get interface", "enginetrace", enginetrace != NULL);
 }
 
