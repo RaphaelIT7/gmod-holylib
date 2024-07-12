@@ -51,6 +51,8 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 	g_pModuleManager.Init(&interfaceFactory);
 	g_pModuleManager.InitDetour( false );
 
+	ConVar_Register();
+
 	Msg("--- HolyLib Plugin finished loading ---\n");
 
 	return true;
@@ -63,6 +65,7 @@ void CServerPlugin::Unload(void)
 {
 	g_pModuleManager.Shutdown();
 	Detour::Remove(0);
+	ConVar_Unregister();
 }
 
 //---------------------------------------------------------------------------------

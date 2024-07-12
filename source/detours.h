@@ -79,6 +79,9 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	typedef int (*CGameMovement_TryPlayerMove)(void* gamemovement, Vector*, void*);
 	const Symbol CGameMovement_TryPlayerMoveSym = Symbol::FromName("_ZN13CGameMovement13TryPlayerMoveEP6VectorP10CGameTrace");
+
+	typedef int (*MoveHelperServer)();
+	const Symbol MoveHelperServerSym = Symbol::FromName("_Z16MoveHelperServerv");
 }
 
 //---------------------------------------------------------------------------------

@@ -7,3 +7,5 @@ extern IModule* pSourceTVLibModule;
 extern IModule* pThreadPoolFixModule;
 extern IModule* pStringTableModule;
 extern IModule* pPrecacheFixModule;
+extern IModule* pPVSModule;
+extern IModule* pSurfFuxModule;
