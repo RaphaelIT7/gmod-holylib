@@ -86,19 +86,18 @@ CBaseEntity* CBaseEntity::GetGroundEntity()
 	return (CBaseEntity*)func_CBaseEntity_GetGroundEntity(this);
 }
 
-CTraceFilterSimple::CTraceFilterSimple( const IHandleEntity *passedict, int collisionGroup,
-									   ShouldHitFunc_t pExtraShouldHitFunc )
+CTraceFilterSimple::CTraceFilterSimple(const IHandleEntity *passedict, int collisionGroup, ShouldHitFunc_t pExtraShouldHitFunc)
 {
 	m_pPassEnt = passedict;
 	m_collisionGroup = collisionGroup;
 	m_pExtraShouldHitCheckFunction = pExtraShouldHitFunc;
 }
 
-inline void UTIL_TraceRay( const Ray_t &ray, unsigned int mask, const IHandleEntity *ignore, int collisionGroup, trace_t *ptr, ShouldHitFunc_t pExtraShouldHitCheckFn = NULL )
+inline void UTIL_TraceRay(const Ray_t &ray, unsigned int mask, const IHandleEntity *ignore, int collisionGroup, trace_t *ptr, ShouldHitFunc_t pExtraShouldHitCheckFn = NULL)
 {
-	CTraceFilterSimple traceFilter( ignore, collisionGroup, pExtraShouldHitCheckFn );
+	CTraceFilterSimple traceFilter(ignore, collisionGroup, pExtraShouldHitCheckFn);
 
-	enginetrace->TraceRay( ray, mask, &traceFilter, ptr );
+	enginetrace->TraceRay(ray, mask, &traceFilter, ptr);
 	
 	//if( r_visualizetraces.GetBool() )
 	//{
