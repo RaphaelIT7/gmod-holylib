@@ -71,7 +71,7 @@ bool CGameMovement_IsValidMovementTrace(CGameMovement* gamemovement, trace_t &tr
 Symbols::MoveHelperServer func_MoveHelperServer = NULL;
 Symbols::CGameMovement_ClipVelocity func_CGameMovement_ClipVelocity = NULL;
 Symbols::CBaseEntity_GetGroundEntity func_CBaseEntity_GetGroundEntity = NULL;
-inline IMoveHelper* TMoveHelper()
+inline IMoveHelper* HolyLib_MoveHelper()
 {
 	return (IMoveHelper*)func_MoveHelperServer();
 }
@@ -93,7 +93,7 @@ CTraceFilterSimple::CTraceFilterSimple(const IHandleEntity *passedict, int colli
 	m_pExtraShouldHitCheckFunction = pExtraShouldHitFunc;
 }
 
-inline void UTIL_TraceRay(const Ray_t &ray, unsigned int mask, const IHandleEntity *ignore, int collisionGroup, trace_t *ptr, ShouldHitFunc_t pExtraShouldHitCheckFn = NULL)
+inline void HolyLib_UTIL_TraceRay(const Ray_t &ray, unsigned int mask, const IHandleEntity *ignore, int collisionGroup, trace_t *ptr, ShouldHitFunc_t pExtraShouldHitCheckFn = NULL)
 {
 	CTraceFilterSimple traceFilter(ignore, collisionGroup, pExtraShouldHitCheckFn);
 
@@ -107,7 +107,7 @@ inline void UTIL_TraceRay(const Ray_t &ray, unsigned int mask, const IHandleEnti
 
 CGlobalVars* gpGlobals = NULL;
 Detouring::Hook detour_CGameMovement_TryPlayerMove;
-int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector* pFirstDest, trace_t* pFirstTrace)
+int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector* pFirstDest, trace_t* pFirstTrace) // Raphael: We still need to support player->m_surfaceFriction or what it's name was. I removed it since I currently can't get it.
 {
 	int			bumpcount, numbumps;
 	Vector		dir;
@@ -225,7 +225,7 @@ int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector* pFirst
 							Ray_t ray;
 							ray.Init(fixed_origin + offset, end - offset, gamemovement->GetPlayerMins() - offset_mins,
 									 gamemovement->GetPlayerMaxs() + offset_maxs);
-							UTIL_TraceRay(ray, gamemovement->PlayerSolidMask(), gamemovement->mv->m_nPlayerHandle.Get(),
+							HolyLib_UTIL_TraceRay(ray, gamemovement->PlayerSolidMask(), gamemovement->mv->m_nPlayerHandle.Get(),
 										  COLLISION_GROUP_PLAYER_MOVEMENT, &pm);
 
 							// Only use non deformed planes and planes with values where the start point is not from a
@@ -371,7 +371,7 @@ int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector* pFirst
 		// Save entity that blocked us (since fraction was < 1.0)
 		//  for contact
 		// Add it if it's not already in the list!!!
-		TMoveHelper()->AddToTouched( pm, gamemovement->mv->m_vecVelocity );
+		HolyLib_MoveHelper()->AddToTouched( pm, gamemovement->mv->m_vecVelocity );
 
 		// If the plane we hit has a high z component in the normal, then
 		//  it's probably a floor
