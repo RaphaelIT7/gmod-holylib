@@ -25,19 +25,31 @@ namespace Symbols
 	const Symbol Push_EntitySym = Symbol::FromName("_Z11Push_EntityP11CBaseEntity");
 
 	//---------------------------------------------------------------------------------
-	// Purpose: All other Symbols
+	// Purpose: holylib Symbols
 	//---------------------------------------------------------------------------------
 	typedef bool (*CServerGameDLL_ShouldHideServer)();
 	const Symbol CServerGameDLL_ShouldHideServerSym = Symbol::FromName("_ZN14CServerGameDLL16ShouldHideServerEv");
 
+	//---------------------------------------------------------------------------------
+	// Purpose: gameevent Symbols
+	//---------------------------------------------------------------------------------
 	const Symbol s_GameSystemsSym = Symbol::FromName("_ZL13s_GameSystems");
 
+	//---------------------------------------------------------------------------------
+	// Purpose: serverplugin Symbols
+	//---------------------------------------------------------------------------------
 	typedef void* (*CPlugin_Load)(void*, const char*);
 	const Symbol CPlugin_LoadSym = Symbol::FromName("_ZN7CPlugin4LoadEPKc");
 
+	//---------------------------------------------------------------------------------
+	// Purpose: sourcetv Symbols
+	//---------------------------------------------------------------------------------
 	typedef void* (*CGameClient_ProcessGMod_ClientToServer)(IClient*, void*);
 	const Symbol CGameClient_ProcessGMod_ClientToServerSym = Symbol::FromName("_ZN11CGameClient26ProcessGMod_ClientToServerEP23CLC_GMod_ClientToServer");
 
+	//---------------------------------------------------------------------------------
+	// Purpose: threadpoolfix Symbols
+	//---------------------------------------------------------------------------------
 	typedef int (*CThreadPool_ExecuteToPriority)(void* pool, void* idk, void* idk2);
 	const Symbol CThreadPool_ExecuteToPrioritySym = Symbol::FromName("_ZN11CThreadPool17ExecuteToPriorityE13JobPriority_tPFbP4CJobE");
 
@@ -59,9 +71,14 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: stringtable Symbols
 	//---------------------------------------------------------------------------------
-
 	typedef int (*CServerGameDLL_CreateNetworkStringTables)(void* servergamedll);
 	const Symbol CServerGameDLL_CreateNetworkStringTablesSym = Symbol::FromName("_ZN14CServerGameDLL25CreateNetworkStringTablesEv");
+
+	//---------------------------------------------------------------------------------
+	// Purpose: surffix Symbols
+	//---------------------------------------------------------------------------------
+	typedef int (*CGameMovement_TryPlayerMove)(void* gamemovement, Vector*, void*);
+	const Symbol CGameMovement_TryPlayerMoveSym = Symbol::FromName("_ZN13CGameMovement13TryPlayerMoveEP6VectorP10CGameTrace");
 }
 
 //---------------------------------------------------------------------------------

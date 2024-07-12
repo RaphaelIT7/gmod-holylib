@@ -56,7 +56,7 @@ void CModuleManager::LoadConfig() // ToDo: Finish this config system.
 		pModule->LoadConfig(pKey);
 	}
 
-	m_pConfig->SaveToFile((IBaseFileSystem*)g_pFullFileSystem, "cfg/holylib.vdf", "MOD");
+	m_pConfig->SaveToFile((IBaseFileSystem*)g_pFullFileSystem, "cfg/holylib.vdf");
 }
 
 void CModuleManager::Init(CreateInterfaceFn* fn)
