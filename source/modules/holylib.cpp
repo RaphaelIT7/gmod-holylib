@@ -11,7 +11,7 @@
 class CHolyLibModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* fn);
+	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
 	virtual void LuaInit(bool bServerInit);
 	virtual void LuaShutdown();
 	virtual void InitDetour(bool bPreServer);
@@ -63,7 +63,7 @@ bool hook_CServerGameDLL_ShouldHideServer()
 	return detour_CServerGameDLL_ShouldHideServer.GetTrampoline<Symbols::CServerGameDLL_ShouldHideServer>()(); // "commentary 1" will also hide it.
 }
 
-void CHolyLibModule::Init(CreateInterfaceFn* fn)
+void CHolyLibModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	pServer = InterfacePointers::Server();
 }

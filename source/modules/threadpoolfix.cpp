@@ -9,7 +9,7 @@
 class CThreadPoolFixModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* fn);
+	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
 	virtual void LuaInit(bool bServerInit);
 	virtual void LuaShutdown();
 	virtual void InitDetour(bool bPreServer);
@@ -31,7 +31,7 @@ int hook_CThreadPool_ExecuteToPriority(IThreadPool* pool, void* idx, void* idx2)
 	return detour_CThreadPool_ExecuteToPriority.GetTrampoline<Symbols::CThreadPool_ExecuteToPriority>()(pool, idx, idx2);
 }
 
-void CThreadPoolFixModule::Init(CreateInterfaceFn* fn)
+void CThreadPoolFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 }
 

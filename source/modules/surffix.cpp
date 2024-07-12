@@ -10,7 +10,7 @@
 class CSurfFixModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* fn);
+	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
 	virtual void LuaInit(bool bServerInit);
 	virtual void LuaShutdown();
 	virtual void InitDetour(bool bPreServer);
@@ -517,9 +517,9 @@ int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector* pFirst
 	return blocked;
 }
 
-void CSurfFixModule::Init(CreateInterfaceFn* fn)
+void CSurfFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
-	IPlayerInfoManager* playerinfomanager = (IPlayerInfoManager*)fn[0](INTERFACEVERSION_PLAYERINFOMANAGER, NULL);
+	IPlayerInfoManager* playerinfomanager = (IPlayerInfoManager*)gamefn[0](INTERFACEVERSION_PLAYERINFOMANAGER, NULL);
 	Detour::CheckValue("get interface", "playerinfomanager", playerinfomanager != NULL);
 
 	if ( playerinfomanager )

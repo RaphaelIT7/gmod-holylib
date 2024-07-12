@@ -64,14 +64,14 @@ void CModuleManager::LoadConfig() // ToDo: Finish this config system.
 	m_pConfig->SaveToFile((IBaseFileSystem*)g_pFullFileSystem, "cfg/holylib.vdf");
 }
 
-void CModuleManager::Init(CreateInterfaceFn* fn)
+void CModuleManager::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	LoadConfig(); // If we call it in the constructor, it will crash, since the g_pFullFilesystem wasn't set yet.
 
 	for (CModule* pModule : m_pModules)
 	{
 		if ( !pModule->IsEnabled() ) { continue; }
-		pModule->GetModule()->Init(fn);
+		pModule->GetModule()->Init(appfn, gamefn);
 	}
 }
 

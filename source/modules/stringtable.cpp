@@ -8,7 +8,7 @@
 class CStringTableModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* fn);
+	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
 	virtual void LuaInit(bool bServerInit);
 	virtual void LuaShutdown();
 	virtual void InitDetour(bool bPreServer);
@@ -22,7 +22,7 @@ CStringTableModule g_pStringTableFixModule;
 IModule* pStringTableModule = &g_pStringTableFixModule;
 
 INetworkStringTableContainer* networkStringTableContainerServer = NULL;
-void CStringTableModule::Init(CreateInterfaceFn* fn)
+void CStringTableModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	networkStringTableContainerServer = (INetworkStringTableContainer*)fn[0](INTERFACENAME_NETWORKSTRINGTABLESERVER, NULL);
 	Detour::CheckValue("get interface", "networkStringTableContainerServer", networkStringTableContainerServer != NULL);

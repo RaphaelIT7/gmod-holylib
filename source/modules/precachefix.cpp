@@ -9,7 +9,7 @@
 class CPrecacheFixModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* fn);
+	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
 	virtual void LuaInit(bool bServerInit);
 	virtual void LuaShutdown();
 	virtual void InitDetour(bool bPreServer);
@@ -72,7 +72,7 @@ int hook_CVEngineServer_PrecacheGeneric(IVEngineServer* eengine, const char* mdl
 	return 0; // ToDo: Find out, what happens when we hit the limit and verify that everything that calls this, handles a case like 0 properly.
 }
 
-void CPrecacheFixModule::Init(CreateInterfaceFn* fn)
+void CPrecacheFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 }
 

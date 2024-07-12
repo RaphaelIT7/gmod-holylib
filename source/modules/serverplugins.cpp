@@ -7,7 +7,7 @@
 class CServerPluginLibModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* fn);
+	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
 	virtual void LuaInit(bool bServerInit);
 	virtual void LuaShutdown();
 	virtual void InitDetour(bool bPreServer);
@@ -119,9 +119,9 @@ bool hook_CPlugin_Load(CPlugin* pPlugin, const char* fileName)
 	return true;
 }
 
-void CServerPluginLibModule::Init(CreateInterfaceFn* fn)
+void CServerPluginLibModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
-	g_pServerPluginHandler = (CServerPlugin*)fn[0](INTERFACEVERSION_ISERVERPLUGINHELPERS, NULL);
+	g_pServerPluginHandler = (CServerPlugin*)appfn[0](INTERFACEVERSION_ISERVERPLUGINHELPERS, NULL);
 	Detour::CheckValue("get interface", "g_pServerPluginHandler", g_pServerPluginHandler != NULL);
 }
 

@@ -5,7 +5,7 @@
 class CSourceTVLibModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* fn);
+	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
 	virtual void LuaInit(bool bServerInit);
 	virtual void LuaShutdown();
 	virtual void InitDetour(bool bPreServer);
@@ -21,7 +21,7 @@ private:
 CSourceTVLibModule g_pSourceTVLibModule;
 IModule* pSourceTVLibModule = &g_pSourceTVLibModule;
 
-void CSourceTVLibModule::Init(CreateInterfaceFn* fn)
+void CSourceTVLibModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 }
 

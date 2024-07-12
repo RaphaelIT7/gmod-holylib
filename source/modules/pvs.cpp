@@ -8,7 +8,7 @@
 class CPVSModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* fn);
+	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
 	virtual void LuaInit(bool bServerInit);
 	virtual void LuaShutdown();
 	virtual void InitDetour(bool bPreServer);
@@ -21,7 +21,7 @@ public:
 CPVSModule g_pPVSModule;
 IModule* pPVSModule = &g_pPVSModule;
 
-void CPVSModule::Init(CreateInterfaceFn* fn)
+void CPVSModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 }
 

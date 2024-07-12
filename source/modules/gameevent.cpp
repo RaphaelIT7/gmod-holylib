@@ -9,7 +9,7 @@ class CUserCmd; // Fixes an error in igamesystem.h
 class CGameeventLibModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* fn);
+	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
 	virtual void LuaInit(bool bServerInit);
 	virtual void LuaShutdown();
 	virtual void InitDetour(bool bPreServer);
@@ -97,9 +97,9 @@ LUA_FUNCTION_STATIC(gameevent_RemoveListener)
 	return 1;
 }
 
-void CGameeventLibModule::Init(CreateInterfaceFn* fn)
+void CGameeventLibModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
-	pManager = (CGameEventManager*)fn[0](INTERFACEVERSION_GAMEEVENTSMANAGER2, NULL);
+	pManager = (CGameEventManager*)appfn[0](INTERFACEVERSION_GAMEEVENTSMANAGER2, NULL);
 	Detour::CheckValue("get interface", "CGameEventManager", pManager != NULL);
 }
 
