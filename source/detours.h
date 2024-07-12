@@ -9,6 +9,7 @@
 class CBaseEntity;
 class CBasePlayer;
 class IClient;
+class IHandleEntity;
 
 namespace Symbols
 {
@@ -85,6 +86,9 @@ namespace Symbols
 
 	typedef void* (*CBaseEntity_GetGroundEntity)(void* ent);
 	const Symbol CBaseEntity_GetGroundEntitySym = Symbol::FromName("_ZN11CBaseEntity15GetGroundEntityEv");
+
+	typedef bool (*CTraceFilterSimple_ShouldHitEntity)(IHandleEntity*, int);
+	const Symbol CTraceFilterSimple_ShouldHitEntitySym = Symbol::FromName("_ZN18CTraceFilterSimple15ShouldHitEntityEP13IHandleEntityi");
 
 	typedef void* (*MoveHelperServer)();
 	const Symbol MoveHelperServerSym = Symbol::FromName("_Z16MoveHelperServerv");

@@ -71,6 +71,7 @@ bool CGameMovement_IsValidMovementTrace(CGameMovement* gamemovement, trace_t &tr
 Symbols::MoveHelperServer func_MoveHelperServer = NULL;
 Symbols::CGameMovement_ClipVelocity func_CGameMovement_ClipVelocity = NULL;
 Symbols::CBaseEntity_GetGroundEntity func_CBaseEntity_GetGroundEntity = NULL;
+Symbols::CTraceFilterSimple_ShouldHitEntity func_CTraceFilterSimple_ShouldHitEntity = NULL;
 inline IMoveHelper* HolyLib_MoveHelper()
 {
 	return (IMoveHelper*)func_MoveHelperServer();
@@ -91,6 +92,11 @@ CTraceFilterSimple::CTraceFilterSimple(const IHandleEntity *passedict, int colli
 	m_pPassEnt = passedict;
 	m_collisionGroup = collisionGroup;
 	m_pExtraShouldHitCheckFunction = pExtraShouldHitFunc;
+}
+
+bool CTraceFilterSimple::ShouldHitEntity(IHandleEntity *pHandleEntity, int contentsMask)
+{
+	return func_CTraceFilterSimple_ShouldHitEntity(pHandleEntity, contentsMask);
 }
 
 inline void HolyLib_UTIL_TraceRay(const Ray_t &ray, unsigned int mask, const IHandleEntity *ignore, int collisionGroup, trace_t *ptr, ShouldHitFunc_t pExtraShouldHitCheckFn = NULL)
@@ -553,6 +559,9 @@ void CSurfFixModule::InitDetour(bool bPreServer)
 
 	func_CBaseEntity_GetGroundEntity = (Symbols::CBaseEntity_GetGroundEntity)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseEntity_GetGroundEntitySym);
 	Detour::CheckFunction(func_CBaseEntity_GetGroundEntity, "CBaseEntity::GetGroundEntity");
+
+	func_CTraceFilterSimple_ShouldHitEntity = (Symbols::CTraceFilterSimple_ShouldHitEntity)Detour::GetFunction(server_loader.GetModule(), Symbols::CTraceFilterSimple_ShouldHitEntitySym);
+	Detour::CheckFunction(func_CTraceFilterSimple_ShouldHitEntity, "CTraceFilterSimple::ShouldHitEntitySym");
 
 	SourceSDK::FactoryLoader server_loaderfactory("server_srv");
 	g_pEntityList = ResolveSymbol<CBaseEntityList>(server_loaderfactory, Symbols::g_pEntityListSym);
