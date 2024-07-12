@@ -105,7 +105,9 @@ inline void HolyLib_UTIL_TraceRay(const Ray_t &ray, unsigned int mask, const IHa
 	//}
 }
 
-CGlobalVars* gpGlobals = NULL;
+CGlobalVars *gpGlobals = NULL;
+IEngineTrace *enginetrace = NULL;
+CBaseEntityList *g_pEntityList = NULL;
 Detouring::Hook detour_CGameMovement_TryPlayerMove;
 int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector* pFirstDest, trace_t* pFirstTrace) // Raphael: We still need to support player->m_surfaceFriction or what it's name was. I removed it since I currently can't get it.
 {
@@ -551,6 +553,10 @@ void CSurfFixModule::InitDetour(bool bPreServer)
 
 	func_CBaseEntity_GetGroundEntity = (Symbols::CBaseEntity_GetGroundEntity)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseEntity_GetGroundEntitySym);
 	Detour::CheckFunction(func_CBaseEntity_GetGroundEntity, "CBaseEntity::GetGroundEntity");
+
+	SourceSDK::FactoryLoader server_loaderfactory("server_srv");
+	g_pEntityList = ResolveSymbol<CBaseEntityList>(server_loaderfactory, Symbols::g_pEntityListSym);
+	Detour::CheckValue("get class", "g_pEntityList", g_pEntityList != NULL);
 }
 
 void CSurfFixModule::Think(bool bSimulating)

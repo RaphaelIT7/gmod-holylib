@@ -20,7 +20,10 @@ void CModuleManager::RegisterModule(IModule* pModule)
 {
 	++g_pIDs;
 	pModule->m_pID = g_pIDs;
-	m_pModules.push_back(pModule);
+	CModule* module = new CModule();
+	module->SetModule(pModule);
+
+	m_pModules.push_back(module);
 }
 
 void CModuleManager::LoadConfig() // ToDo: Finish this config system.
@@ -30,8 +33,9 @@ void CModuleManager::LoadConfig() // ToDo: Finish this config system.
 
 	m_pConfig->LoadFromFile((IBaseFileSystem*)g_pFullFileSystem, "cfg/holylib.vdf", "MOD");
 
-	for (IModule* pModule : m_pModules)
+	for (CModule* module : m_pModules)
 	{
+		IModule* pModule = module->GetModule();
 		KeyValues* pKey = NULL;
 		if(m_pConfig->IsEmpty(pModule->Name()))
 		{
@@ -64,49 +68,55 @@ void CModuleManager::Init(CreateInterfaceFn* fn)
 {
 	LoadConfig(); // If we call it in the constructor, it will crash, since the g_pFullFilesystem wasn't set yet.
 
-	for (IModule* pModule : m_pModules)
+	for (CModule* pModule : m_pModules)
 	{
-		pModule->Init(fn);
+		if ( !pModule->IsEnabled() ) { continue; }
+		pModule->GetModule()->Init(fn);
 	}
 }
 
 void CModuleManager::LuaInit(bool bServerInit)
 {
-	for (IModule* pModule : m_pModules)
+	for (CModule* pModule : m_pModules)
 	{
-		pModule->LuaInit(bServerInit);
+		if ( !pModule->IsEnabled() ) { continue; }
+		pModule->GetModule()->LuaInit(bServerInit);
 	}
 }
 
 void CModuleManager::LuaShutdown()
 {
-	for (IModule* pModule : m_pModules)
+	for (CModule* pModule : m_pModules)
 	{
-		pModule->LuaShutdown();
+		if ( !pModule->IsEnabled() ) { continue; }
+		pModule->GetModule()->LuaShutdown();
 	}
 }
 
 void CModuleManager::InitDetour(bool bPreServer)
 {
-	for (IModule* pModule : m_pModules)
+	for (CModule* pModule : m_pModules)
 	{
-		pModule->InitDetour(bPreServer);
+		if ( !pModule->IsEnabled() ) { continue; }
+		pModule->GetModule()->InitDetour(bPreServer);
 	}
 }
 
 void CModuleManager::Think(bool bSimulating)
 {
-	for (IModule* pModule : m_pModules)
+	for (CModule* pModule : m_pModules)
 	{
-		pModule->Think(bSimulating);
+		if ( !pModule->IsEnabled() ) { continue; }
+		pModule->GetModule()->Think(bSimulating);
 	}
 }
 
 void CModuleManager::Shutdown()
 {
-	for (IModule* pModule : m_pModules)
+	for (CModule* pModule : m_pModules)
 	{
-		pModule->Shutdown();
+		if ( !pModule->IsEnabled() ) { continue; }
+		pModule->GetModule()->Shutdown();
 	}
 }
 

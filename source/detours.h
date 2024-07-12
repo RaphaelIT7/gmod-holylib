@@ -88,6 +88,8 @@ namespace Symbols
 
 	typedef void* (*MoveHelperServer)();
 	const Symbol MoveHelperServerSym = Symbol::FromName("_Z16MoveHelperServerv");
+
+	const Symbol g_pEntityListSym = Symbol::FromName("g_pEntityList");
 }
 
 //---------------------------------------------------------------------------------

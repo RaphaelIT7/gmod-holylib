@@ -1,6 +1,8 @@
 #include "interface.h"
 #include <scanning/symbolfinder.hpp>
 #include <vector>
+#include <string>
+#include "convar.h"
 
 class KeyValues;
 class IModule
@@ -19,6 +21,29 @@ public:
 	unsigned int m_pID = 0; // Set by the CModuleManager!
 };
 
+class CModule
+{
+public:
+	~CModule() {
+		if ( m_pCVar )
+			delete m_pCVar; // Could this cause a crash? idk.
+	}
+	void SetModule(IModule* module)
+	{
+		m_pModule = module;
+		m_strName = "holylib_enable_";
+		m_strName = m_strName + module->Name();
+		m_pCVar = new ConVar(m_strName.c_str(), "1", 0);
+	};
+	inline IModule* GetModule() { return m_pModule; };
+	inline bool IsEnabled() { return m_pCVar->GetBool(); };
+
+protected:
+	IModule* m_pModule;
+	ConVar* m_pCVar;
+	std::string m_strName;
+};
+
 class CModuleManager
 {
 public:
@@ -34,7 +59,7 @@ public:
 	void Shutdown();
 
 private:
-	std::vector<IModule*> m_pModules;
+	std::vector<CModule*> m_pModules;
 	KeyValues* m_pConfig = NULL;
 };
 extern CModuleManager g_pModuleManager;
