@@ -86,6 +86,26 @@ CBaseEntity* CBaseEntity::GetGroundEntity()
 	return (CBaseEntity*)func_CBaseEntity_GetGroundEntity(this);
 }
 
+CTraceFilterSimple::CTraceFilterSimple( const IHandleEntity *passedict, int collisionGroup,
+									   ShouldHitFunc_t pExtraShouldHitFunc )
+{
+	m_pPassEnt = passedict;
+	m_collisionGroup = collisionGroup;
+	m_pExtraShouldHitCheckFunction = pExtraShouldHitFunc;
+}
+
+inline void UTIL_TraceRay( const Ray_t &ray, unsigned int mask, const IHandleEntity *ignore, int collisionGroup, trace_t *ptr, ShouldHitFunc_t pExtraShouldHitCheckFn = NULL )
+{
+	CTraceFilterSimple traceFilter( ignore, collisionGroup, pExtraShouldHitCheckFn );
+
+	enginetrace->TraceRay( ray, mask, &traceFilter, ptr );
+	
+	//if( r_visualizetraces.GetBool() )
+	//{
+	//	DebugDrawLine( ptr->startpos, ptr->endpos, 255, 0, 0, true, -1.0f );
+	//}
+}
+
 CGlobalVars* gpGlobals = NULL;
 Detouring::Hook detour_CGameMovement_TryPlayerMove;
 int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector* pFirstDest, trace_t* pFirstTrace)
@@ -499,6 +519,9 @@ void CSurfFixModule::Init(CreateInterfaceFn* fn)
 	{
 		gpGlobals = playerinfomanager->GetGlobalVars();
 	}
+
+	enginetrace = (IEngineTrace*)fn[0](INTERFACEVERSION_ENGINETRACE_SERVER, NULL);
+	Detour::CheckValue("get interface", "enginetrace", enginetrace != NULL);
 }
 
 void CSurfFixModule::LuaInit(bool bServerInit)

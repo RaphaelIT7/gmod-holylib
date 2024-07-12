@@ -32,7 +32,7 @@ static void PR_CheckEmptyString( const char *s )
 
 Symbols::SV_FindOrAddModel func_SV_FindOrAddModel;
 Detouring::Hook detour_CVEngineServer_PrecacheModel;
-int hook_CVEngineServer_PrecacheModel(IVEngineServer* engine, const char* mdl, bool preload)
+int hook_CVEngineServer_PrecacheModel(IVEngineServer* eengine, const char* mdl, bool preload)
 {
 	PR_CheckEmptyString( mdl );
 	int i = func_SV_FindOrAddModel( mdl, preload );
@@ -53,7 +53,7 @@ int hook_CVEngineServer_PrecacheModel(IVEngineServer* engine, const char* mdl, b
 
 Symbols::SV_FindOrAddGeneric func_SV_FindOrAddGeneric;
 Detouring::Hook detour_CVEngineServer_PrecacheGeneric;
-int hook_CVEngineServer_PrecacheGeneric(IVEngineServer* engine, const char* mdl, bool preload)
+int hook_CVEngineServer_PrecacheGeneric(IVEngineServer* eengine, const char* mdl, bool preload)
 {		
 	PR_CheckEmptyString( mdl );
 	int i = func_SV_FindOrAddGeneric( mdl, preload );
