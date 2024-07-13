@@ -12,6 +12,7 @@ CModuleManager::CModuleManager() // ToDo: Look into how IGameSystem works and us
 	RegisterModule(pThreadPoolFixModule);
 	RegisterModule(pStringTableModule);
 	RegisterModule(pPrecacheFixModule);
+	RegisterModule(pPVSModule);
 	RegisterModule(pSurfFixModule);
 }
 

@@ -166,6 +166,15 @@ This module calls these hooks from (`hook.Run`)
 #### HolyLib:OnStringtableCreation()
 NOTE: This is currently broken, since it's actually called before Lua :/
 
+
+## pvs
+This module plans to implement multiple PVS related functions.  
+
+### Functions
+
+#### pvs.ResetPVS()
+Resets the current PVS.  
+
 # Unfinished Modules
 
 ## serverplugins

@@ -94,6 +94,12 @@ namespace Symbols
 	const Symbol MoveHelperServerSym = Symbol::FromName("_Z16MoveHelperServerv");
 
 	const Symbol g_pEntityListSym = Symbol::FromName("g_pEntityList");
+
+	//---------------------------------------------------------------------------------
+	// Purpose: surffix Symbols
+	//---------------------------------------------------------------------------------
+	typedef int (*CGMOD_Player_SetupVisibility)(void* ent, unsigned char* pvs, int pvssize);
+	const Symbol CGMOD_Player_SetupVisibilitySym = Symbol::FromName("_ZN12CGMOD_Player15SetupVisibilityEP11CBaseEntityPhi");
 }
 
 //---------------------------------------------------------------------------------
