@@ -173,7 +173,9 @@ LUA_FUNCTION_STATIC(pvs_AddEntityToPVS)
 {
 	CBaseEntity* ent = Get_Entity(1);
 
-	g_pAddEntityToPVS.push_back(ent->edict());
+	Msg("Index: %i\n", ent->entindex());
+	Msg("Valid: %s\n", engineserver->PEntityOfEntIndex(ent->entindex()) != NULL ? "true" : "false");
+	g_pAddEntityToPVS.push_back(engineserver->PEntityOfEntIndex(ent->entindex()));
 
 	return 0;
 }
@@ -183,7 +185,7 @@ LUA_FUNCTION_STATIC(pvs_OverrideStateFlag)
 	CBaseEntity* ent = Get_Entity(1);
 	int flag = LUA->CheckNumber(2);
 
-	g_pOverrideStateFlag[ent->edict()] = flag;
+	g_pOverrideStateFlag[engineserver->PEntityOfEntIndex(ent->entindex())] = flag;
 
 	return 0;
 }
@@ -210,7 +212,7 @@ LUA_FUNCTION_STATIC(pvs_SetStateFlag)
 	if (flags & LUA_FL_EDICT_FULLCHECK)
 		newFlags |= FL_EDICT_FULLCHECK;
 
-	ent->edict()->m_fStateFlags = newFlags;
+	engineserver->PEntityOfEntIndex(ent->entindex())->m_fStateFlags = newFlags;
 
 	return 0;
 }
