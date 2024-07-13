@@ -46,7 +46,7 @@ static void hook_CServerGameEnts_CheckTransmit(CCheckTransmitInfo *pInfo, const 
 {
 	for (edict_t* ent : g_pAddEntityToPVS)
 	{
-		pInfo->m_pTransmitEdict->Set(ent->m_EdictIndex);
+		pInfo->m_pTransmitAlways->Set(ent->m_EdictIndex);
 	}
 	
 	static std::unordered_map<edict_t*, int> pOriginalFlags;
@@ -173,9 +173,6 @@ LUA_FUNCTION_STATIC(pvs_AddEntityToPVS)
 {
 	int index = LUA->CheckNumber(1);
 
-	Msg("Index: %i\n", index);
-	Msg("Valid: %s\n", engineserver->PEntityOfEntIndex(index) != NULL ? "true" : "false");
-	Msg("Ent Index: %i\n", engineserver->PEntityOfEntIndex(index) != NULL ? engineserver->PEntityOfEntIndex(index)->m_EdictIndex : -1);
 	g_pAddEntityToPVS.push_back(engineserver->PEntityOfEntIndex(index));
 
 	return 0;
@@ -183,10 +180,10 @@ LUA_FUNCTION_STATIC(pvs_AddEntityToPVS)
 
 LUA_FUNCTION_STATIC(pvs_OverrideStateFlag)
 {
-	CBaseEntity* ent = Get_Entity(1);
+	int index = LUA->CheckNumber(1);
 	int flag = LUA->CheckNumber(2);
 
-	g_pOverrideStateFlag[engineserver->PEntityOfEntIndex(ent->entindex())] = flag;
+	g_pOverrideStateFlag[engineserver->PEntityOfEntIndex(index)] = flag;
 
 	return 0;
 }
@@ -197,7 +194,7 @@ LUA_FUNCTION_STATIC(pvs_OverrideStateFlag)
 #define LUA_FL_EDICT_FULLCHECK 1 << 4
 LUA_FUNCTION_STATIC(pvs_SetStateFlag)
 {
-	CBaseEntity* ent = Get_Entity(1);
+	int index = LUA->CheckNumber(1);
 	int flags = LUA->CheckNumber(2);
 
 	int newFlags = 0;
@@ -213,16 +210,15 @@ LUA_FUNCTION_STATIC(pvs_SetStateFlag)
 	if (flags & LUA_FL_EDICT_FULLCHECK)
 		newFlags |= FL_EDICT_FULLCHECK;
 
-	engineserver->PEntityOfEntIndex(ent->entindex())->m_fStateFlags = newFlags;
+	engineserver->PEntityOfEntIndex(index)->m_fStateFlags = newFlags;
 
 	return 0;
 }
 
 LUA_FUNCTION_STATIC(pvs_GetStateFlag)
 {
-	CBaseEntity* ent = Get_Entity(1);
-
-	int flags = ent->edict()->m_fStateFlags;
+	int index = LUA->CheckNumber(1);
+	int flags = engineserver->PEntityOfEntIndex(index)->m_fStateFlags;
 	int newFlags = 0;
 	if (flags & FL_EDICT_DONTSEND)
 		newFlags |= LUA_FL_EDICT_DONTSEND;
