@@ -314,8 +314,8 @@ void CStringTableModule::LuaInit(bool bServerInit) // ToDo: Implement a INetwork
 
 void CStringTableModule::LuaShutdown()
 {
-	if ( metatable )
-		g_Lua->DestroyObject(metatable);
+	//if ( metatable )
+	//	g_Lua->DestroyObject(metatable);
 }
 
 void CStringTableModule::InitDetour(bool bPreServer)
