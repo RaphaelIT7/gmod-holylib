@@ -171,11 +171,12 @@ LUA_FUNCTION_STATIC(pvs_CheckBoxInPVS)
 
 LUA_FUNCTION_STATIC(pvs_AddEntityToPVS)
 {
-	CBaseEntity* ent = Get_Entity(1);
+	int index = LUA->CheckNumber(1);
 
-	Msg("Index: %i\n", ent->entindex());
-	Msg("Valid: %s\n", engineserver->PEntityOfEntIndex(ent->entindex()) != NULL ? "true" : "false");
-	g_pAddEntityToPVS.push_back(engineserver->PEntityOfEntIndex(ent->entindex()));
+	Msg("Index: %i\n", index);
+	Msg("Valid: %s\n", engineserver->PEntityOfEntIndex(index) != NULL ? "true" : "false");
+	Msg("Ent Index: %i\n", engineserver->PEntityOfEntIndex(index) != NULL ? engineserver->PEntityOfEntIndex(index)->m_EdictIndex : -1);
+	g_pAddEntityToPVS.push_back(engineserver->PEntityOfEntIndex(index));
 
 	return 0;
 }
