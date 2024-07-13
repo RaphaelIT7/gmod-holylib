@@ -217,8 +217,8 @@ LUA_FUNCTION_STATIC(pvs_SetStateFlag)
 
 LUA_FUNCTION_STATIC(pvs_GetStateFlag)
 {
-	int index = LUA->CheckNumber(1);
-	int flags = engineserver->PEntityOfEntIndex(index)->m_fStateFlags;
+	CBaseEntity* ent = Get_Entity(1);
+	int flags = ent->edict()->m_fStateFlags;
 	int newFlags = 0;
 	if (flags & FL_EDICT_DONTSEND)
 		newFlags |= LUA_FL_EDICT_DONTSEND;
@@ -260,9 +260,9 @@ void CPVSModule::LuaInit(bool bServerInit)
 			Util::AddFunc(pvs_GetArea, "GetArea");
 			Util::AddFunc(pvs_GetPVSForCluster, "GetPVSForCluster");
 			Util::AddFunc(pvs_CheckBoxInPVS, "CheckBoxInPVS");
-			Util::AddFunc(pvs_AddEntityToPVS, "AddEntityToPVS");
-			Util::AddFunc(pvs_OverrideStateFlag, "OverrideStateFlag");
-			Util::AddFunc(pvs_SetStateFlag, "SetStateFlag");
+			//Util::AddFunc(pvs_AddEntityToPVS, "AddEntityToPVS");
+			//Util::AddFunc(pvs_OverrideStateFlag, "OverrideStateFlag");
+			//Util::AddFunc(pvs_SetStateFlag, "SetStateFlag");
 			Util::AddFunc(pvs_GetStateFlag, "GetStateFlag");
 
 			g_Lua->PushNumber(LUA_FL_EDICT_DONTSEND);
