@@ -46,7 +46,6 @@ static void hook_CServerGameEnts_CheckTransmit(CCheckTransmitInfo *pInfo, const 
 {
 	for (edict_t* ent : g_pAddEntityToPVS)
 	{
-		if (ent->IsFree()) { continue; }
 		pInfo->m_pTransmitEdict->Set(ent->m_EdictIndex);
 	}
 	
@@ -189,10 +188,27 @@ LUA_FUNCTION_STATIC(pvs_OverrideStateFlag)
 	return 0;
 }
 
+#define LUA_FL_EDICT_DONTSEND 1 << 1
+#define LUA_FL_EDICT_ALWAYS 1 << 2
+#define LUA_FL_EDICT_PVSCHECK 1 << 3
+#define LUA_FL_EDICT_FULLCHECK 1 << 4
 LUA_FUNCTION_STATIC(pvs_SetStateFlag)
 {
 	CBaseEntity* ent = Get_Entity(1);
-	int newFlags = LUA->CheckNumber(2);
+	int flags = LUA->CheckNumber(2);
+
+	int newFlags = 0;
+	if (flags & LUA_FL_EDICT_DONTSEND)
+		newFlags |= FL_EDICT_DONTSEND;
+
+	if (flags & LUA_FL_EDICT_ALWAYS)
+		newFlags |= FL_EDICT_ALWAYS;
+
+	if (flags & LUA_FL_EDICT_PVSCHECK)
+		newFlags |= FL_EDICT_PVSCHECK;
+
+	if (flags & LUA_FL_EDICT_FULLCHECK)
+		newFlags |= FL_EDICT_FULLCHECK;
 
 	ent->edict()->m_fStateFlags = newFlags;
 
@@ -206,16 +222,16 @@ LUA_FUNCTION_STATIC(pvs_GetStateFlag)
 	int flags = ent->edict()->m_fStateFlags;
 	int newFlags = 0;
 	if (flags & FL_EDICT_DONTSEND)
-		newFlags |= 1;
+		newFlags |= LUA_FL_EDICT_DONTSEND;
 
 	if (flags & FL_EDICT_ALWAYS)
-		newFlags |= 2;
+		newFlags |= LUA_FL_EDICT_ALWAYS;
 
 	if (flags & FL_EDICT_PVSCHECK)
-		newFlags |= 3;
+		newFlags |= LUA_FL_EDICT_PVSCHECK;
 
 	if (flags & FL_EDICT_FULLCHECK)
-		newFlags |= 4;
+		newFlags |= LUA_FL_EDICT_FULLCHECK;
 
 	LUA->PushNumber(newFlags);
 
@@ -250,16 +266,16 @@ void CPVSModule::LuaInit(bool bServerInit)
 			Util::AddFunc(pvs_SetStateFlag, "SetStateFlag");
 			Util::AddFunc(pvs_GetStateFlag, "GetStateFlag");
 
-			g_Lua->PushNumber(1);
+			g_Lua->PushNumber(LUA_FL_EDICT_DONTSEND);
 			g_Lua->SetField(-2, "FL_EDICT_DONTSEND");
 
-			g_Lua->PushNumber(2);
+			g_Lua->PushNumber(LUA_FL_EDICT_ALWAYS);
 			g_Lua->SetField(-2, "FL_EDICT_ALWAYS");
 
-			g_Lua->PushNumber(3);
+			g_Lua->PushNumber(LUA_FL_EDICT_PVSCHECK);
 			g_Lua->SetField(-2, "FL_EDICT_PVSCHECK");
 
-			g_Lua->PushNumber(4);
+			g_Lua->PushNumber(LUA_FL_EDICT_FULLCHECK);
 			g_Lua->SetField(-2, "FL_EDICT_FULLCHECK");
 		Util::FinishTable("pvs");
 	g_Lua->Pop(1);
