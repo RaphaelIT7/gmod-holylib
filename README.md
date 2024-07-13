@@ -175,6 +175,60 @@ This module plans to implement multiple PVS related functions.
 #### pvs.ResetPVS()
 Resets the current PVS.  
 
+#### bool pvs.CheckOriginInPVS(Vector vec)
+Checks if the given position is inside the current PVS.  
+
+#### pvs.AddOriginToPVS(Vector vec)
+Adds the given Origin to the PVS. Gmod already has this function.  
+
+#### number pvs.GetClusterCount()
+Returns the number of clusters that exist.  
+
+#### number pvs.GetClusterForOrigin(Vector vec)
+Returns the cluster id of the given origin.  
+
+#### bool pvs.CheckAreasConnected(number area1, number area2)
+Returns whether or not the given areas are connected.  
+We don't validate if you pass valid areas!  
+
+#### number pvs.GetArea(Vector vec)
+Returns the area id of the given origin.  
+
+#### pvs.GetPVSForCluster(number clusterID)
+Sets the current PVS to that of the given cluster.  
+We don't validate if the passed cluster id is valid!  
+
+#### bool pvs.CheckBoxInPVS(Vector mins, Vector maxs)
+Returns whether or not the given box is inside the PVS.  
+
+#### pvs.AddEntityToPVS(Entity ent)
+Adds the given Entity to the PVS  
+
+#### pvs.OverrideStateFlag(Entity ent, number flags)
+Overrides the StateFlag for this Snapshot.  
+The value will be reset in the next one.  
+
+#### pvs.SetStateFlag(Entity ent, number flags)
+Sets the State flag for this entity.  
+Unlike `OverrideStateFlag`, this won't be reset after the snapshot.  
+
+#### number pvs.GetStateFlag(Entity ent)
+Returns the state flags for this entity.
+
+### Enums
+
+#### pvs.FL_EDICT_DONTSEND  
+The Entity won't be networked.  
+
+#### pvs.FL_EDICT_ALWAYS  
+The Entity will always be networked.  
+
+#### pvs.FL_EDICT_PVSCHECK  
+The Entity will only be networked if it's inside the PVS.  
+
+#### pvs.FL_EDICT_FULLCHECK  
+The Entity's `ShouldTransmit` function will be called, and its return value will be used.  
+
 # Unfinished Modules
 
 ## serverplugins

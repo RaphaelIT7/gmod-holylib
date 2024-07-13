@@ -96,10 +96,13 @@ namespace Symbols
 	const Symbol g_pEntityListSym = Symbol::FromName("g_pEntityList");
 
 	//---------------------------------------------------------------------------------
-	// Purpose: surffix Symbols
+	// Purpose: pvs Symbols
 	//---------------------------------------------------------------------------------
 	typedef int (*CGMOD_Player_SetupVisibility)(void* ent, unsigned char* pvs, int pvssize);
 	const Symbol CGMOD_Player_SetupVisibilitySym = Symbol::FromName("_ZN12CGMOD_Player15SetupVisibilityEP11CBaseEntityPhi");
+
+	typedef int (*CServerGameEnts_CheckTransmit)(CCheckTransmitInfo*, const unsigned short*, int);
+	const Symbol CServerGameEnts_CheckTransmitSym = Symbol::FromName("_ZN15CServerGameEnts13CheckTransmitEP18CCheckTransmitInfoPKti");
 }
 
 //---------------------------------------------------------------------------------

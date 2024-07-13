@@ -5,6 +5,8 @@
 #include "util.h"
 #include "lua.h"
 #include "eiface.h"
+#include "unordered_map"
+#include "player.h"
 
 class CPVSModule : public IModule
 {
@@ -23,6 +25,7 @@ IModule* pPVSModule = &g_pPVSModule;
 
 static int currentPVSSize = -1;
 static unsigned char* currentPVS = NULL;
+static int mapPVSSize = -1;
 static IVEngineServer* engineserver = NULL;
 static Detouring::Hook detour_CGMOD_Player_SetupVisibility;
 static void hook_CGMOD_Player_SetupVisibility(void* ent, unsigned char* pvs, int pvssize)
@@ -36,12 +39,187 @@ static void hook_CGMOD_Player_SetupVisibility(void* ent, unsigned char* pvs, int
 	currentPVSSize = -1;
 }
 
+static std::vector<edict_t*> g_pAddEntityToPVS;
+static std::unordered_map<edict_t*, int> g_pOverrideStateFlag;
+static Detouring::Hook detour_CServerGameEnts_CheckTransmit;
+static void hook_CServerGameEnts_CheckTransmit(CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts)
+{
+	for (edict_t* ent : g_pAddEntityToPVS)
+	{
+		if (ent->IsFree()) { continue; }
+		pInfo->m_pTransmitEdict->Set(ent->m_EdictIndex);
+	}
+	
+	static std::unordered_map<edict_t*, int> pOriginalFlags;
+	for (auto&[ent, flag] : g_pOverrideStateFlag)
+	{
+		pOriginalFlags[ent] = ent->m_fStateFlags;
+		ent->m_fStateFlags = flag;
+	}
+
+	detour_CServerGameEnts_CheckTransmit.GetTrampoline<Symbols::CServerGameEnts_CheckTransmit>()(pInfo, pEdictIndices, nEdicts);
+
+	for (auto&[ent, flag] : pOriginalFlags)
+	{
+		ent->m_fStateFlags = flag;
+	}
+	pOriginalFlags.clear();
+	g_pAddEntityToPVS.clear();
+	g_pOverrideStateFlag.clear();
+}
+
+Vector* Get_Vector(int iStackPos)
+{
+	return g_Lua->GetUserType<Vector>(iStackPos, GarrysMod::Lua::Type::Vector);
+}
+
+CBaseEntity* Get_Entity(int iStackPos)
+{
+	return g_Lua->GetUserType<CBaseEntity>(iStackPos, GarrysMod::Lua::Type::Entity);
+}
+
 LUA_FUNCTION_STATIC(pvs_ResetPVS)
 {
-	if (currentPVS)
-		engineserver->ResetPVS(currentPVS, currentPVSSize);
+	if (!currentPVS)
+		LUA->ThrowError("pvs: tried to call pvs.ResetPVS with no active PVS!");
+
+	engineserver->ResetPVS(currentPVS, currentPVSSize);
 
 	return 0;
+}
+
+LUA_FUNCTION_STATIC(pvs_CheckOriginInPVS)
+{
+	Vector* vec = Get_Vector(1);
+
+	if (!currentPVS)
+		LUA->ThrowError("pvs: tried to call pvs.CheckOriginInPVS with no active PVS!");
+
+	LUA->PushBool(engineserver->CheckOriginInPVS(*vec, currentPVS, currentPVSSize));
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(pvs_AddOriginToPVS)
+{
+	Vector* vec = Get_Vector(1);
+
+	if (!currentPVS)
+		LUA->ThrowError("pvs: tried to call pvs.AddOriginToPVS with no active PVS!");
+
+	engineserver->AddOriginToPVS(*vec);
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(pvs_GetClusterCount)
+{
+	LUA->PushNumber(engineserver->GetClusterCount());
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(pvs_GetClusterForOrigin)
+{
+	Vector* vec = Get_Vector(1);
+
+	LUA->PushNumber(engineserver->GetClusterForOrigin(*vec));
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(pvs_CheckAreasConnected)
+{
+	int area1 = LUA->CheckNumber(1);
+	int area2 = LUA->CheckNumber(2);
+
+	LUA->PushBool(engineserver->CheckAreasConnected(area1, area2));
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(pvs_GetArea)
+{
+	Vector* vec = Get_Vector(1);
+
+	LUA->PushNumber(engineserver->GetArea(*vec));
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(pvs_GetPVSForCluster)
+{
+	int cluster = LUA->CheckNumber(1);
+
+	if (!currentPVS)
+		LUA->ThrowError("pvs: tried to call pvs.GetPVSForCluster with no active PVS!");
+
+	engineserver->ResetPVS(currentPVS, currentPVSSize);
+	engineserver->GetPVSForCluster(cluster, currentPVSSize, currentPVS);
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(pvs_CheckBoxInPVS)
+{
+	Vector* vec1 = Get_Vector(1);
+	Vector* vec2 = Get_Vector(2);
+
+	LUA->PushBool(engine->CheckBoxInPVS(*vec1, *vec2, currentPVS, currentPVSSize));
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(pvs_AddEntityToPVS)
+{
+	CBaseEntity* ent = Get_Entity(1);
+
+	g_pAddEntityToPVS.push_back(ent->edict());
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(pvs_OverrideStateFlag)
+{
+	CBaseEntity* ent = Get_Entity(1);
+	int flag = LUA->CheckNumber(2);
+
+	g_pOverrideStateFlag[ent->edict()] = flag;
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(pvs_SetStateFlag)
+{
+	CBaseEntity* ent = Get_Entity(1);
+	int newFlags = LUA->CheckNumber(2);
+
+	ent->edict()->m_fStateFlags = newFlags;
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(pvs_GetStateFlag)
+{
+	CBaseEntity* ent = Get_Entity(1);
+
+	int flags = ent->edict()->m_fStateFlags;
+	int newFlags = 0;
+	if (flags & FL_EDICT_DONTSEND)
+		newFlags |= 1;
+
+	if (flags & FL_EDICT_ALWAYS)
+		newFlags |= 2;
+
+	if (flags & FL_EDICT_PVSCHECK)
+		newFlags |= 3;
+
+	if (flags & FL_EDICT_FULLCHECK)
+		newFlags |= 4;
+
+	LUA->PushNumber(newFlags);
+
+	return 1;
 }
 
 void CPVSModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
@@ -54,9 +232,35 @@ void CPVSModule::LuaInit(bool bServerInit)
 {
 	if ( bServerInit ) { return; }
 
+	mapPVSSize = ceil(engineserver->GetClusterCount() / 8.0f);
+
 	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
 		Util::StartTable();
 			Util::AddFunc(pvs_ResetPVS, "ResetPVS");
+			Util::AddFunc(pvs_CheckOriginInPVS, "CheckOriginInPVS");
+			Util::AddFunc(pvs_AddOriginToPVS, "AddOriginToPVS");
+			Util::AddFunc(pvs_GetClusterCount, "GetClusterCount");
+			Util::AddFunc(pvs_GetClusterForOrigin, "GetClusterForOrigin");
+			Util::AddFunc(pvs_CheckAreasConnected, "CheckAreasConnected");
+			Util::AddFunc(pvs_GetArea, "GetArea");
+			Util::AddFunc(pvs_GetPVSForCluster, "GetPVSForCluster");
+			Util::AddFunc(pvs_CheckBoxInPVS, "CheckBoxInPVS");
+			Util::AddFunc(pvs_AddEntityToPVS, "AddEntityToPVS");
+			Util::AddFunc(pvs_OverrideStateFlag, "OverrideStateFlag");
+			Util::AddFunc(pvs_SetStateFlag, "SetStateFlag");
+			Util::AddFunc(pvs_GetStateFlag, "GetStateFlag");
+
+			g_Lua->PushNumber(1);
+			g_Lua->SetField(-2, "FL_EDICT_DONTSEND");
+
+			g_Lua->PushNumber(2);
+			g_Lua->SetField(-2, "FL_EDICT_ALWAYS");
+
+			g_Lua->PushNumber(3);
+			g_Lua->SetField(-2, "FL_EDICT_PVSCHECK");
+
+			g_Lua->PushNumber(4);
+			g_Lua->SetField(-2, "FL_EDICT_FULLCHECK");
 		Util::FinishTable("pvs");
 	g_Lua->Pop(1);
 }
@@ -70,6 +274,12 @@ void CPVSModule::InitDetour(bool bPreServer)
 	if ( bPreServer ) { return; }
 
 	SourceSDK::ModuleLoader server_loader("server_srv");
+	Detour::Create(
+		&detour_CGMOD_Player_SetupVisibility, "CGMOD_Player::SetupVisibility",
+		server_loader.GetModule(), Symbols::CGMOD_Player_SetupVisibilitySym,
+		(void*)hook_CGMOD_Player_SetupVisibility, m_pID
+	);
+
 	Detour::Create(
 		&detour_CGMOD_Player_SetupVisibility, "CGMOD_Player::SetupVisibility",
 		server_loader.GetModule(), Symbols::CGMOD_Player_SetupVisibilitySym,
