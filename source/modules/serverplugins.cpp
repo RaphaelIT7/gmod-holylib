@@ -141,14 +141,14 @@ void CServerPluginLibModule::LuaInit(bool bServerInit)
 
 void CServerPluginLibModule::LuaShutdown() // ToDo: Change this to be called when the Lua Interface is actually shutdown -> Lua::Kill
 {
-	/*FORALL_PLUGINS
+	FORALL_PLUGINS
 	{
 		CPlugin *p = g_pServerPluginHandler->m_Plugins[i];
 		if ( !p->IsDisabled() && p->GetPluginInterfaceVersion() >= 4 )
 		{
 			p->GetCallback()->OnLuaShutdown((GarrysMod::Lua::ILuaInterface*)g_Lua);
 		}
-	}*/
+	}
 }
 
 void CServerPluginLibModule::InitDetour(bool bPreServer)

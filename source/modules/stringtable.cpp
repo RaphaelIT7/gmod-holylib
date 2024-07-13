@@ -27,7 +27,6 @@ void CStringTableModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamef
 	Detour::CheckValue("get interface", "networkStringTableContainerServer", networkStringTableContainerServer != NULL);
 }
 
-GarrysMod::Lua::ILuaObject* metatable = NULL;
 int INetworkStringTable_TypeID = -1;
 void Push_INetworkStringTable(INetworkStringTable* tbl)
 {
@@ -269,10 +268,6 @@ void CStringTableModule::LuaInit(bool bServerInit) // ToDo: Implement a INetwork
 	if (!networkStringTableContainerServer)
 		return;
 
-	if ( metatable )
-		g_Lua->DestroyObject(metatable);
-
-	metatable = g_Lua->CreateObject();
 	INetworkStringTable_TypeID = g_Lua->CreateMetaTable("INetworkStringTable");
 		Util::AddFunc(INetworkStringTable__tostring, "__tostring");
 		Util::AddFunc(INetworkStringTable__index, "__index");
@@ -286,7 +281,6 @@ void CStringTableModule::LuaInit(bool bServerInit) // ToDo: Implement a INetwork
 		Util::AddFunc(INetworkStringTable_AddString, "AddString");
 		Util::AddFunc(INetworkStringTable_GetString, "GetString");
 		Util::AddFunc(INetworkStringTable_FindStringIndex, "FindStringIndex");
-		metatable->SetFromStack(-1);
 	g_Lua->Pop(1);
 
 	if (g_Lua->PushMetaTable(INetworkStringTable_TypeID))
@@ -314,8 +308,6 @@ void CStringTableModule::LuaInit(bool bServerInit) // ToDo: Implement a INetwork
 
 void CStringTableModule::LuaShutdown()
 {
-	//if ( metatable )
-	//	g_Lua->DestroyObject(metatable);
 }
 
 void CStringTableModule::InitDetour(bool bPreServer)
