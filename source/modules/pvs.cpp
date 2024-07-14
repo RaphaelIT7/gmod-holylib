@@ -171,19 +171,22 @@ LUA_FUNCTION_STATIC(pvs_CheckBoxInPVS)
 
 LUA_FUNCTION_STATIC(pvs_AddEntityToPVS)
 {
-	int index = LUA->CheckNumber(1);
+	CBaseEntity* ent = Get_Entity(1);
 
-	g_pAddEntityToPVS.push_back(engineserver->PEntityOfEntIndex(index));
+	Msg("Index: %i\n", ent->entindex());
+	Msg("Edict: %p\n", ent->edict());
+	Msg("Edict Index: %i\n", ent->edict()->m_EdictIndex);
+	g_pAddEntityToPVS.push_back(ent->edict());
 
 	return 0;
 }
 
 LUA_FUNCTION_STATIC(pvs_OverrideStateFlag)
 {
-	int index = LUA->CheckNumber(1);
+	CBaseEntity* ent = Get_Entity(1);
 	int flag = LUA->CheckNumber(2);
 
-	g_pOverrideStateFlag[engineserver->PEntityOfEntIndex(index)] = flag;
+	g_pOverrideStateFlag[ent->edict()] = flag;
 
 	return 0;
 }
@@ -194,7 +197,7 @@ LUA_FUNCTION_STATIC(pvs_OverrideStateFlag)
 #define LUA_FL_EDICT_FULLCHECK 1 << 4
 LUA_FUNCTION_STATIC(pvs_SetStateFlag)
 {
-	int index = LUA->CheckNumber(1);
+	CBaseEntity* ent = Get_Entity(1);
 	int flags = LUA->CheckNumber(2);
 
 	int newFlags = 0;
@@ -210,7 +213,7 @@ LUA_FUNCTION_STATIC(pvs_SetStateFlag)
 	if (flags & LUA_FL_EDICT_FULLCHECK)
 		newFlags |= FL_EDICT_FULLCHECK;
 
-	engineserver->PEntityOfEntIndex(index)->m_fStateFlags = newFlags;
+	ent->edict()->m_fStateFlags = newFlags;
 
 	return 0;
 }
@@ -259,9 +262,9 @@ void CPVSModule::LuaInit(bool bServerInit)
 		Util::AddFunc(pvs_GetArea, "GetArea");
 		Util::AddFunc(pvs_GetPVSForCluster, "GetPVSForCluster");
 		Util::AddFunc(pvs_CheckBoxInPVS, "CheckBoxInPVS");
-		//Util::AddFunc(pvs_AddEntityToPVS, "AddEntityToPVS");
-		//Util::AddFunc(pvs_OverrideStateFlag, "OverrideStateFlag");
-		//Util::AddFunc(pvs_SetStateFlag, "SetStateFlag");
+		Util::AddFunc(pvs_AddEntityToPVS, "AddEntityToPVS");
+		Util::AddFunc(pvs_OverrideStateFlag, "OverrideStateFlag");
+		Util::AddFunc(pvs_SetStateFlag, "SetStateFlag");
 		Util::AddFunc(pvs_GetStateFlag, "GetStateFlag");
 
 		g_Lua->PushNumber(LUA_FL_EDICT_DONTSEND);

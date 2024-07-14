@@ -107,6 +107,7 @@ long hook_CBaseFileSystem_FastFileTime(void* filesystem, const CSearchPath* path
 	if (cachePath)
 	{
 		VPROF("HolyLib::FileSystem::Cache-CBaseFileSystem::FastFileTime");
+
 		long time = detour_CBaseFileSystem_FastFileTime.GetTrampoline<Symbols::CBaseFileSystem_FastFileTime>()(filesystem, cachePath, pFileName);
 		if (time != 0L)
 			return time;
