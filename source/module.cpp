@@ -66,6 +66,7 @@ CModuleManager::CModuleManager() // ToDo: Look into how IGameSystem works and us
 	RegisterModule(pPrecacheFixModule);
 	RegisterModule(pPVSModule);
 	RegisterModule(pSurfFixModule);
+	RegisterModule(pFileSystemModule);
 }
 
 int g_pIDs = 0;

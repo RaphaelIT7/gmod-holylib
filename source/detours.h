@@ -5,12 +5,15 @@
 #include <detouring/hook.hpp>
 #include <scanning/symbolfinder.hpp>
 #include <vector>
+#include "filesystem.h"
 
 class CBaseEntity;
 class CBasePlayer;
 class IClient;
 class IHandleEntity;
 class CCheckTransmitInfo;
+class CFileOpenInfo;
+class CSearchPath;
 
 namespace Symbols
 {
@@ -104,6 +107,21 @@ namespace Symbols
 
 	typedef void (*CServerGameEnts_CheckTransmit)(CCheckTransmitInfo*, const unsigned short*, int);
 	const Symbol CServerGameEnts_CheckTransmitSym = Symbol::FromName("_ZN15CServerGameEnts13CheckTransmitEP18CCheckTransmitInfoPKti");
+
+	//---------------------------------------------------------------------------------
+	// Purpose: filesystem Symbols
+	//---------------------------------------------------------------------------------
+	typedef FileHandle_t* (*CBaseFileSystem_FindFileInSearchPath)(void* filesystem, CFileOpenInfo &);
+	const Symbol CBaseFileSystem_FindFileInSearchPathSym = Symbol::FromName("_ZN15CBaseFileSystem20FindFileInSearchPathER13CFileOpenInfo");
+
+	typedef bool (*CBaseFileSystem_IsDirectory)(void* filesystem, const char* pFileName, const char* pathID);
+	const Symbol CBaseFileSystem_IsDirectorySym = Symbol::FromName("_ZN15CBaseFileSystem11IsDirectoryEPKcS1_");
+
+	typedef CSearchPath* (*CBaseFileSystem_FindSearchPathByStoreId)(void* filesystem, int);
+	const Symbol CBaseFileSystem_FindSearchPathByStoreIdSym = Symbol::FromName("_ZN15CBaseFileSystem23FindSearchPathByStoreIdEi");
+
+	typedef long (*CBaseFileSystem_FastFileTime)(void* filesystem, const CSearchPath* path, const char* pFileName);
+	const Symbol CBaseFileSystem_FastFileTimeSym = Symbol::FromName("_ZN15CBaseFileSystem12FastFileTimeEPKNS_11CSearchPathEPKc");
 }
 
 //---------------------------------------------------------------------------------
