@@ -29,12 +29,14 @@ Symbols::CBaseFileSystem_FindSearchPathByStoreId func_CBaseFileSystem_FindSearch
 std::unordered_map<std::string, int> m_SearchCache;
 void AddFileToSearchCache(const char* pFileName, int path)
 {
+	Msg("Added file %s to seach cache (%i)\n", pFileName, path);
 	m_SearchCache[pFileName] = path;
 }
 
 
 void RemoveFileFromSearchCache(const char* pFileName)
 {
+	Msg("Removed file %s from seach cache!\n", pFileName);
 	m_SearchCache.erase(pFileName);
 }
 
@@ -42,13 +44,15 @@ CSearchPath* GetPathFromSearchCache(const char* pFileName)
 {
 	auto it = m_SearchCache.find(pFileName);
 	if (it == m_SearchCache.end())
-		return nullptr;
+		return NULL;
 
+	Msg("Getting search path for file %s from cache!\n", pFileName);
 	return func_CBaseFileSystem_FindSearchPathByStoreId(g_pFullFileSystem, it->second);
 }
 
 void NukeSearchCache()
 {
+	Msg("Search cache got nuked\n");
 	m_SearchCache.clear();
 }
 
@@ -78,22 +82,6 @@ FileHandle_t* hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, CFileO
 	return file;
 }
 
-bool is_file(const char *path) {
-    const char *last_slash = strrchr(path, '/');
-    const char *last_dot = strrchr(path, '.');
-
-    return last_dot != NULL && (last_slash == NULL || last_dot > last_slash);
-}
-
-Detouring::Hook detour_CBaseFileSystem_IsDirectory;
-bool hook_CBaseFileSystem_IsDirectory(void* filesystem, const char* pFileName, const char* pPathID)
-{
-	if (holylib_filesystem_easydircheck.GetBool() && is_file(pFileName))
-		return false;
-
-	return detour_CBaseFileSystem_IsDirectory.GetTrampoline<Symbols::CBaseFileSystem_IsDirectory>()(filesystem, pFileName, pPathID);
-}
-
 Detouring::Hook detour_CBaseFileSystem_FastFileTime;
 long hook_CBaseFileSystem_FastFileTime(void* filesystem, const CSearchPath* path, const char* pFileName)
 {
@@ -116,6 +104,22 @@ long hook_CBaseFileSystem_FastFileTime(void* filesystem, const CSearchPath* path
 		AddFileToSearchCache(pFileName, path->m_storeId);
 
 	return time;
+}
+
+bool is_file(const char *path) {
+    const char *last_slash = strrchr(path, '/');
+    const char *last_dot = strrchr(path, '.');
+
+    return last_dot != NULL && (last_slash == NULL || last_dot > last_slash);
+}
+
+Detouring::Hook detour_CBaseFileSystem_IsDirectory;
+bool hook_CBaseFileSystem_IsDirectory(void* filesystem, const char* pFileName, const char* pPathID)
+{
+	if (holylib_filesystem_easydircheck.GetBool() && is_file(pFileName))
+		return false;
+
+	return detour_CBaseFileSystem_IsDirectory.GetTrampoline<Symbols::CBaseFileSystem_IsDirectory>()(filesystem, pFileName, pPathID);
 }
 
 void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)

@@ -230,6 +230,26 @@ The Entity will only be networked if it's inside the PVS.
 #### pvs.FL_EDICT_FULLCHECK  
 The Entity's `ShouldTransmit` function will be called, and its return value will be used.  
 
+## filesystem
+This module currently only contains two optimizations for the filesystem.  
+
+### ConVars
+
+#### holylib_filesystem_easydircheck (default `0`)
+If enabled, it will check if the file contains a `.` after the last `/`.  
+If so it will cause `CBaseFileSystem::IsDirectory` to return false since we assume it's a file.  
+This will cause `file.IsDir` to fail on folders with names like these `test/test1.23`.  
+
+#### holylib_filesystem_searchcache (default `0`)
+If enabled, it will cause the filesystem to use a cache for the searchpaths.  
+When you try to open a file with a path like `GAME` which has multiple searchpaths, it will check each one until it finds it.  
+Now, the first time it searches for it, if it finds it, we add the file and the searchpath to a cache and the next time the same file is searched for, we try to use our cache search path.  
+
+This will improve `file.Open`, `file.Time` and `file.Exists`.  
+Currently only `file.Time` is affectect. `file.Open` and `file.Exists` are broken.  
+
+NOTE: I don't know if this has any bugs, but while using this for ~1 Month on a server, I didn't find any issues.  
+
 # Unfinished Modules
 
 ## serverplugins
