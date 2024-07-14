@@ -157,7 +157,7 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 		(void*)hook_CBaseFileSystem_FastFileTime, m_pID
 	);
 
-	func_CBaseFileSystem_FindSearchPathByStoreId = Detour::GetFunction(dedicated_loader.GetModule(), Symbols::CBaseFileSystem_FindSearchPathByStoreIdSym);
+	func_CBaseFileSystem_FindSearchPathByStoreId = (Symbols::CBaseFileSystem_FindSearchPathByStoreId)Detour::GetFunction(dedicated_loader.GetModule(), Symbols::CBaseFileSystem_FindSearchPathByStoreIdSym);
 	Detour::CheckFunction(func_CBaseFileSystem_FindSearchPathByStoreId, "CBaseFileSystem::FindSearchPathByStoreId");
 }
 
