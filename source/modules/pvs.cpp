@@ -39,7 +39,7 @@ static void hook_CGMOD_Player_SetupVisibility(void* ent, unsigned char* pvs, int
 	currentPVSSize = -1;
 }
 
-IServerGameEnts* servergameents = NULL;
+static IServerGameEnts* servergameents = NULL;
 static std::vector<edict_t*> g_pAddEntityToPVS;
 static std::unordered_map<edict_t*, int> g_pOverrideStateFlag;
 static Detouring::Hook detour_CServerGameEnts_CheckTransmit;
@@ -47,7 +47,7 @@ static void hook_CServerGameEnts_CheckTransmit(CCheckTransmitInfo *pInfo, const 
 {
 	for (edict_t* ent : g_pAddEntityToPVS)
 	{
-		Msg("Adding ent(%i) to snapshot", ent->m_EdictIndex);
+		Msg("Adding ent(%i) to snapshot\n", ent->m_EdictIndex);
 		servergameents->EdictToBaseEntity(ent)->SetTransmit(pInfo, true);
 	}
 	
@@ -55,7 +55,7 @@ static void hook_CServerGameEnts_CheckTransmit(CCheckTransmitInfo *pInfo, const 
 	for (auto&[ent, flag] : g_pOverrideStateFlag)
 	{
 		pOriginalFlags[ent] = ent->m_fStateFlags;
-		Msg("Overriding ent(%i) flags for snapshot (%i -> %i)", ent->m_EdictIndex, ent->m_fStateFlags, flag);
+		Msg("Overriding ent(%i) flags for snapshot (%i -> %i)\n", ent->m_EdictIndex, ent->m_fStateFlags, flag);
 		ent->m_fStateFlags = flag;
 	}
 
@@ -339,9 +339,9 @@ void CPVSModule::InitDetour(bool bPreServer)
 	);
 
 	Detour::Create(
-		&detour_CGMOD_Player_SetupVisibility, "CGMOD_Player::SetupVisibility",
-		server_loader.GetModule(), Symbols::CGMOD_Player_SetupVisibilitySym,
-		(void*)hook_CGMOD_Player_SetupVisibility, m_pID
+		&detour_CServerGameEnts_CheckTransmit, "CServerGameEnts::CheckTransmit",
+		server_loader.GetModule(), Symbols::CServerGameEnts_CheckTransmitSym,
+		(void*)hook_CServerGameEnts_CheckTransmit, m_pID
 	);
 
 	func_Get_Entity = (Symbols::Get_Entity)Detour::GetFunction(server_loader.GetModule(), Symbols::Get_EntitySym);
