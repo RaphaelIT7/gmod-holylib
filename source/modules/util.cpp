@@ -61,7 +61,9 @@ unsigned CompressThread(void* data)
 			else
 				Bootil::Compression::LZMA::Extract(entry->pData, entry->iLength, entry->buffer);
 
+			//cData->pMutex.Lock();
 			cData->pFinished.push_back(entry);
+			//cData->pMutex.Unlock();
 		}
 
 		if(cData->bInvalidEverything)
@@ -153,6 +155,12 @@ void CUtilModule::LuaInit(bool bServerInit)
 void CUtilModule::LuaShutdown()
 {
 	threaddata.bInvalidEverything = true;
+
+	for (CompressEntry* entry : threaddata.pQueue)
+	{
+		delete entry;
+	}
+	threaddata.pQueue.clear();
 }
 
 void CUtilModule::InitDetour(bool bPreServer)
@@ -170,7 +178,9 @@ void CUtilModule::Think(bool simulating)
 		g_Lua->ReferencePush(entry->iCallback);
 			g_Lua->PushString((const char*)entry->buffer.GetBase());
 		g_Lua->CallFunctionProtected(1, 0, true);
+		delete entry;
 	}
+	threaddata.pFinished.clear();
 }
 
 void CUtilModule::Shutdown()
