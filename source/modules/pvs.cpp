@@ -46,7 +46,9 @@ static void hook_CServerGameEnts_CheckTransmit(CCheckTransmitInfo *pInfo, const 
 {
 	for (edict_t* ent : g_pAddEntityToPVS)
 	{
-		pInfo->m_pTransmitAlways->Set(ent->m_EdictIndex);
+		pInfo->m_pTransmitEdict->Set(ent->m_EdictIndex);
+		if(pInfo->m_pTransmitAlways)
+			pInfo->m_pTransmitAlways->Set(ent->m_EdictIndex);
 	}
 	
 	static std::unordered_map<edict_t*, int> pOriginalFlags;
