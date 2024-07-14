@@ -44,8 +44,25 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			[[source/sourcesdk/*.cpp]],
 		})
 
+		includedirs({
+			[[Bootil/include/]]
+		})
+
+		libdirs(current_dir .. "/libs")
 		filter("system:windows")
 			files({"source/win32/*.cpp", "source/win32/*.hpp"})
+
+		filter("system:windows", "platforms:x86_64")
+			links({"bootil_static_64.lib"})
+
+		filter("system:windows", "platforms:x86")
+			links({"bootil_static_32.lib"})
+
+		filter({"system:linux", "platforms:x86_64"})
+			links("bootil_static_64")
+
+		filter({"system:linux", "platforms:x86"})
+			links("bootil_static_32")
 
 		filter("system:linux")
 			targetextension(".so")

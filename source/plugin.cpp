@@ -5,6 +5,7 @@
 #include <tier1.h>
 #include <tier2/tier2.h>
 #include <GarrysMod/Symbols.hpp>
+#include <GarrysMod/Lua/LuaShared.h>
 #include "module.h"
 
 #define DEDICATED

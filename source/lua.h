@@ -1,7 +1,11 @@
 #pragma once
 
-#include <GarrysMod/Lua/LuaShared.h>
 #include "util.h"
+
+namespace GarrysMod::Lua
+{
+	class ILuaShared;
+}
 
 namespace Lua
 {

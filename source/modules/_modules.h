@@ -10,3 +10,4 @@ extern IModule* pPrecacheFixModule;
 extern IModule* pPVSModule;
 extern IModule* pSurfFixModule;
 extern IModule* pFileSystemModule;
+extern IModule* pUtilModule;

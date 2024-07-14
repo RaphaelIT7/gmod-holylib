@@ -1,0 +1,417 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="..">
+      <UniqueIdentifier>{61705900-4DFC-870B-B6AA-880BA255880B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\include">
+      <UniqueIdentifier>{D4687DD8-C020-BF25-2928-988115FF5916}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\include\Bootil">
+      <UniqueIdentifier>{ACCCD9F2-18E3-D788-615A-63AACDAFA810}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\include\Bootil\Console">
+      <UniqueIdentifier>{CECF09BA-3A92-3D44-8342-CCD0EF431622}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\include\Bootil\Data">
+      <UniqueIdentifier>{950D8A13-8107-B365-6A74-4976560D19D2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\include\Bootil\Debug">
+      <UniqueIdentifier>{22A8CD84-8EDF-151C-97E9-793F03A03C15}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\include\Bootil\File">
+      <UniqueIdentifier>{5B478B13-4741-B465-30AE-4A761C471AD2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\include\Bootil\Image">
+      <UniqueIdentifier>{9E7F2C85-0AB7-741C-13C1-D83F7F779B15}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\include\Bootil\Network">
+      <UniqueIdentifier>{259BE5F1-915D-197C-DA0D-A808460FF259}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\include\Bootil\Platform">
+      <UniqueIdentifier>{800A67F5-6C1A-13C6-D5D3-77E4C102025F}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\include\Bootil\Threads">
+      <UniqueIdentifier>{663494C6-D2F6-C750-1BA7-56DD87A8A02E}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\include\Bootil\Types">
+      <UniqueIdentifier>{5061FA85-BC98-421D-C5A2-A64031596916}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\include\Bootil\Utility">
+      <UniqueIdentifier>{EF76ED2E-5B39-21B9-A4E9-AF4510EBF996}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\src">
+      <UniqueIdentifier>{F8768876-E418-B34C-CDD3-C6A0B9143A9D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\src\3rdParty">
+      <UniqueIdentifier>{40B031C3-AC3B-9F87-B54C-227C2157FB87}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\src\3rdParty\fastlz">
+      <UniqueIdentifier>{2394DC8B-0F8E-05DE-F8FA-9BEEE4936B4A}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\src\3rdParty\happyhttp">
+      <UniqueIdentifier>{112B3099-7DED-6323-C69D-F2AF329F3C01}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\src\3rdParty\jpegcompressor">
+      <UniqueIdentifier>{C239DDD7-AE5F-A73E-97A5-2C0A836ACC0A}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\src\3rdParty\lzma">
+      <UniqueIdentifier>{43A6998E-2F35-2358-D853-3753C4C133FE}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\src\3rdParty\smhasher">
+      <UniqueIdentifier>{6AD86775-56FD-B6F5-7F48-9C856BCCB513}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\src\3rdParty\tinythreadpp">
+      <UniqueIdentifier>{2B145D46-17CF-4CF2-C086-C53CAC209782}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\src\3rdParty\xzip">
+      <UniqueIdentifier>{5A3AA08E-46C9-2958-EFE7-3D53DB553AFE}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\src\3rdParty\zlib">
+      <UniqueIdentifier>{8017A18E-6CA6-2A58-15C5-3E5301333BFE}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\src\Bootil">
+      <UniqueIdentifier>{500A6BC9-BCCA-E6FF-8505-307DF1842BDC}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\src\Bootil\Console">
+      <UniqueIdentifier>{727140D8-DEDD-FBD2-A7D1-933013FD1D3B}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\src\Bootil\Data">
+      <UniqueIdentifier>{B971F775-A555-B8CB-0EB6-B21EFAB8A24D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\src\Bootil\Debug">
+      <UniqueIdentifier>{C690E734-32F2-C442-BB5F-0BF527C0FB01}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\src\Bootil\File">
+      <UniqueIdentifier>{7FABF875-6B8F-B9CB-D4EF-B31EC0F2A34D}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\src\Bootil\Image">
+      <UniqueIdentifier>{42684635-AEC9-2343-3737-6AF5A3975A02}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\src\Bootil\Network">
+      <UniqueIdentifier>{C93C1C10-35A9-D70A-FE9C-6F686AC8F972}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\src\Bootil\Platform">
+      <UniqueIdentifier>{A4E071DA-90DA-9A2C-7947-313D65E00099}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\src\Bootil\Threads">
+      <UniqueIdentifier>{0AD6CAE4-7642-86DF-3F36-1E3DAB61A847}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\src\Bootil\Types">
+      <UniqueIdentifier>{F4491436-60AB-F143-E918-38F655792803}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="..\src\Bootil\Utility">
+      <UniqueIdentifier>{9318244D-FF84-DF47-C878-77A534A401B0}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\include\Bootil\Base.h">
+      <Filter>..\include\Bootil</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Bootil\Bootil.h">
+      <Filter>..\include\Bootil</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Bootil\Console\Console.h">
+      <Filter>..\include\Bootil\Console</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Bootil\Console\ConsoleInput.h">
+      <Filter>..\include\Bootil\Console</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Bootil\Data\Json.h">
+      <Filter>..\include\Bootil\Data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Bootil\Data\Tree.h">
+      <Filter>..\include\Bootil\Data</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Bootil\Debug\Debug.h">
+      <Filter>..\include\Bootil\Debug</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Bootil\Debug\InstanceCounter.h">
+      <Filter>..\include\Bootil\Debug</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Bootil\File\Changes.h">
+      <Filter>..\include\Bootil\File</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Bootil\File\File.h">
+      <Filter>..\include\Bootil\File</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Bootil\File\System.h">
+      <Filter>..\include\Bootil\File</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Bootil\Image\Image.h">
+      <Filter>..\include\Bootil\Image</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Bootil\Image\JPEG.h">
+      <Filter>..\include\Bootil\Image</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Bootil\Image\PNG.h">
+      <Filter>..\include\Bootil\Image</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Bootil\Network\HTTP.h">
+      <Filter>..\include\Bootil\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Bootil\Network\Network.h">
+      <Filter>..\include\Bootil\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Bootil\Network\Router.h">
+      <Filter>..\include\Bootil\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Bootil\Network\Socket.h">
+      <Filter>..\include\Bootil\Network</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Bootil\Platform\Platform.h">
+      <Filter>..\include\Bootil\Platform</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Bootil\Threads\Mutex.h">
+      <Filter>..\include\Bootil\Threads</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Bootil\Threads\Thread.h">
+      <Filter>..\include\Bootil\Threads</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Bootil\Threads\Utility.h">
+      <Filter>..\include\Bootil\Threads</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Bootil\Types\Buffer.h">
+      <Filter>..\include\Bootil\Types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Bootil\Types\Math.h">
+      <Filter>..\include\Bootil\Types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Bootil\Types\String.h">
+      <Filter>..\include\Bootil\Types</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Bootil\Utility\CommandLine.h">
+      <Filter>..\include\Bootil\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Bootil\Utility\Compression.h">
+      <Filter>..\include\Bootil\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Bootil\Utility\Hasher.h">
+      <Filter>..\include\Bootil\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Bootil\Utility\PackFile.h">
+      <Filter>..\include\Bootil\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Bootil\Utility\Processes.h">
+      <Filter>..\include\Bootil\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Bootil\Utility\STLUtility.h">
+      <Filter>..\include\Bootil\Utility</Filter>
+    </ClInclude>
+    <ClInclude Include="..\include\Bootil\Utility\Time.h">
+      <Filter>..\include\Bootil\Utility</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="..\src\3rdParty\fastlz\fastlz.c">
+      <Filter>..\src\3rdParty\fastlz</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rdParty\globber.cpp">
+      <Filter>..\src\3rdParty</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rdParty\happyhttp\happyhttp.cpp">
+      <Filter>..\src\3rdParty\happyhttp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rdParty\jpegcompressor\jpge.cpp">
+      <Filter>..\src\3rdParty\jpegcompressor</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rdParty\lzma\Alloc.c">
+      <Filter>..\src\3rdParty\lzma</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rdParty\lzma\LzFind.c">
+      <Filter>..\src\3rdParty\lzma</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rdParty\lzma\LzmaDec.c">
+      <Filter>..\src\3rdParty\lzma</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rdParty\lzma\LzmaEnc.c">
+      <Filter>..\src\3rdParty\lzma</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rdParty\lzma\LzmaLib.c">
+      <Filter>..\src\3rdParty\lzma</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rdParty\smhasher\crc.cpp">
+      <Filter>..\src\3rdParty\smhasher</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rdParty\smhasher\smhash_md5.cpp">
+      <Filter>..\src\3rdParty\smhasher</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rdParty\tinythreadpp\tinythread.cpp">
+      <Filter>..\src\3rdParty\tinythreadpp</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rdParty\xzip\unzip.cc">
+      <Filter>..\src\3rdParty\xzip</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rdParty\xzip\zip.cc">
+      <Filter>..\src\3rdParty\xzip</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rdParty\zlib\adler32.c">
+      <Filter>..\src\3rdParty\zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rdParty\zlib\compress.c">
+      <Filter>..\src\3rdParty\zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rdParty\zlib\crc32.c">
+      <Filter>..\src\3rdParty\zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rdParty\zlib\deflate.c">
+      <Filter>..\src\3rdParty\zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rdParty\zlib\gzclose.c">
+      <Filter>..\src\3rdParty\zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rdParty\zlib\gzlib.c">
+      <Filter>..\src\3rdParty\zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rdParty\zlib\gzread.c">
+      <Filter>..\src\3rdParty\zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rdParty\zlib\gzwrite.c">
+      <Filter>..\src\3rdParty\zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rdParty\zlib\infback.c">
+      <Filter>..\src\3rdParty\zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rdParty\zlib\inffast.c">
+      <Filter>..\src\3rdParty\zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rdParty\zlib\inflate.c">
+      <Filter>..\src\3rdParty\zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rdParty\zlib\inftrees.c">
+      <Filter>..\src\3rdParty\zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rdParty\zlib\trees.c">
+      <Filter>..\src\3rdParty\zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rdParty\zlib\uncompr.c">
+      <Filter>..\src\3rdParty\zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\3rdParty\zlib\zutil.c">
+      <Filter>..\src\3rdParty\zlib</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Base.cpp">
+      <Filter>..\src\Bootil</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Console\Console.cpp">
+      <Filter>..\src\Bootil\Console</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Console\ConsoleInput.cpp">
+      <Filter>..\src\Bootil\Console</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Data\Json.cpp">
+      <Filter>..\src\Bootil\Data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Data\Tree.cpp">
+      <Filter>..\src\Bootil\Data</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Debug\Debug.cpp">
+      <Filter>..\src\Bootil\Debug</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\File\Changes.cpp">
+      <Filter>..\src\Bootil\File</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\File\File.cpp">
+      <Filter>..\src\Bootil\File</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\File\System.cpp">
+      <Filter>..\src\Bootil\File</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Image\Image.cpp">
+      <Filter>..\src\Bootil\Image</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Image\JPEG.cpp">
+      <Filter>..\src\Bootil\Image</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Network\HTTP.cpp">
+      <Filter>..\src\Bootil\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Network\Network.cpp">
+      <Filter>..\src\Bootil\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Network\Socket.cpp">
+      <Filter>..\src\Bootil\Network</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Platform\Platform_LINUX.cpp">
+      <Filter>..\src\Bootil\Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Platform\Platform_NULL.cpp">
+      <Filter>..\src\Bootil\Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Platform\Platform_OSX.cpp">
+      <Filter>..\src\Bootil\Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Platform\Platform_WINDOWS.cpp">
+      <Filter>..\src\Bootil\Platform</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Threads\Mutex.cpp">
+      <Filter>..\src\Bootil\Threads</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Threads\Thread.cpp">
+      <Filter>..\src\Bootil\Threads</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Threads\Utility.cpp">
+      <Filter>..\src\Bootil\Threads</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Types\Buffer.cpp">
+      <Filter>..\src\Bootil\Types</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Types\Math.cpp">
+      <Filter>..\src\Bootil\Types</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Types\String.cpp">
+      <Filter>..\src\Bootil\Types</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Types\String_Convert.cpp">
+      <Filter>..\src\Bootil\Types</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Types\String_Encode.cpp">
+      <Filter>..\src\Bootil\Types</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Types\String_File.cpp">
+      <Filter>..\src\Bootil\Types</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Types\String_Format.cpp">
+      <Filter>..\src\Bootil\Types</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Types\String_Sanitize.cpp">
+      <Filter>..\src\Bootil\Types</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Types\String_Test.cpp">
+      <Filter>..\src\Bootil\Types</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Types\String_To.cpp">
+      <Filter>..\src\Bootil\Types</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Types\String_URL.cpp">
+      <Filter>..\src\Bootil\Types</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Types\String_Util.cpp">
+      <Filter>..\src\Bootil\Types</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Utility\CommandLine.cpp">
+      <Filter>..\src\Bootil\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Utility\Compression.cpp">
+      <Filter>..\src\Bootil\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Utility\CompressionLZMA.cpp">
+      <Filter>..\src\Bootil\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Utility\Hasher.cpp">
+      <Filter>..\src\Bootil\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Utility\PackFile.cpp">
+      <Filter>..\src\Bootil\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Utility\Processes.cpp">
+      <Filter>..\src\Bootil\Utility</Filter>
+    </ClCompile>
+    <ClCompile Include="..\src\Bootil\Utility\Time.cpp">
+      <Filter>..\src\Bootil\Utility</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="premake4.lua" />
+  </ItemGroup>
+</Project>
