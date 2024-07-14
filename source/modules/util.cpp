@@ -87,6 +87,8 @@ unsigned CompressThread(void* data)
 
 		ThreadSleep(10);
 	}
+
+	return 0;
 }
 
 ThreadHandle_t threadhandle;
@@ -95,6 +97,8 @@ LUA_FUNCTION_STATIC(util_AsyncCompress)
 {
 	const char* pData = LUA->CheckString(1);
 	int iLength = LUA->ObjLen(1);
+	Msg("strlen: %i\n", strlen(pData));
+	Msg("objlen: %i\n", iLength);
 	int iLevel = g_Lua->CheckNumberOpt(2, 5);
 	int iDictSize = g_Lua->CheckNumberOpt(3, 65536);
 	LUA->CheckType(4, GarrysMod::Lua::Type::Function);
@@ -176,7 +180,7 @@ void CUtilModule::Think(bool simulating)
 	for(CompressEntry* entry : threaddata.pFinished)
 	{
 		g_Lua->ReferencePush(entry->iCallback);
-			g_Lua->PushString((const char*)entry->buffer.GetBase());
+			g_Lua->PushString((const char*)entry->buffer.GetBase(), entry->buffer.GetWritten());
 		g_Lua->CallFunctionProtected(1, 0, true);
 		delete entry;
 	}
