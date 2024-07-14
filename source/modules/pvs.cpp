@@ -47,6 +47,7 @@ static void hook_CServerGameEnts_CheckTransmit(CCheckTransmitInfo *pInfo, const 
 {
 	for (edict_t* ent : g_pAddEntityToPVS)
 	{
+		Msg("Adding ent(%i) to snapshot", ent->m_EdictIndex);
 		servergameents->EdictToBaseEntity(ent)->SetTransmit(pInfo, true);
 	}
 	
@@ -54,6 +55,7 @@ static void hook_CServerGameEnts_CheckTransmit(CCheckTransmitInfo *pInfo, const 
 	for (auto&[ent, flag] : g_pOverrideStateFlag)
 	{
 		pOriginalFlags[ent] = ent->m_fStateFlags;
+		Msg("Overriding ent(%i) flags for snapshot (%i -> %i)", ent->m_EdictIndex, ent->m_fStateFlags, flag);
 		ent->m_fStateFlags = flag;
 	}
 
@@ -183,10 +185,10 @@ LUA_FUNCTION_STATIC(pvs_AddEntityToPVS)
 		LUA->ThrowError("Tried to use a NULL Entity!");
 
 	edict_t* edict = GetEdictOfEnt(ent);
-	Msg("Index: %i\n", edict ? edict->m_EdictIndex : -1);
-	Msg("Edict: %p\n", edict);
 	if (edict)
 		g_pAddEntityToPVS.push_back(edict);
+	else
+		LUA->ThrowError("Failed to get edict?");
 
 	return 0;
 }
