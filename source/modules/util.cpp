@@ -164,6 +164,18 @@ void CUtilModule::LuaShutdown()
 		delete entry;
 	}
 	threaddata.pQueue.clear();
+
+	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
+		g_Lua->GetField(-1, "util");
+			if (g_Lua->IsType(-1, GarrysMod::Lua::Type::Table))
+			{
+				g_Lua->PushNil();
+				g_Lua->SetField(-2, "AsyncCompress");
+
+				g_Lua->PushNil();
+				g_Lua->SetField(-2, "AsyncDecompress");
+			}
+	g_Lua->Pop(2);
 }
 
 void CUtilModule::InitDetour(bool bPreServer)

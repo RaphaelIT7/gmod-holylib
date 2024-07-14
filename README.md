@@ -273,6 +273,18 @@ lua_run local a = SysTime() for k=1, 1000 do file.Exists("garrysmod.ver", "MOD")
 - I don't know if this has any bugs, but while using this for ~1 Month on a server, I didn't find any issues.  
 - It will also improve the `MOD` search path since it also has multiple search paths.  
 
+## util
+
+### Functions
+
+#### util.AsyncCompress(string data, number level = 5, number dictSize = 65536, function callback)
+Works like util.Compress but it's async and allows you to set the level and dictSize.  
+The defaults for level and dictSize are the same as gmod's util.Compress.  
+Both AsyncCompress and AsyncDecompress use the same thread.  
+
+#### util.AsyncDecompress(string data, function callback)
+Works like util.Decompress but it's async.  
+
 # Unfinished Modules
 
 ## serverplugins
@@ -289,10 +301,10 @@ This module plans to add a new `sourcetv` library and a new class `HLTVPlayer` w
 https://github.com/Facepunch/garrysmod-issues/issues/5932  
 `HolyLib.Reconnect(ply)` -> https://github.com/Facepunch/garrysmod-requests/issues/2089  
 `pvs.AddEntityToPVS(ent)` -> https://github.com/Facepunch/garrysmod-requests/issues/245  
+`util.AsyncCompress(data, nil, nil, callback)` -> https://github.com/Facepunch/garrysmod-requests/issues/2165   
 
 # Things planned to add:
 https://github.com/Facepunch/garrysmod-requests/issues/1884  
 https://github.com/Facepunch/garrysmod-requests/issues/2298  
 https://github.com/Facepunch/garrysmod-requests/issues/2237  
-https://github.com/Facepunch/garrysmod-requests/issues/2165   
 (Maybe)https://github.com/Facepunch/garrysmod-requests/issues/132  
