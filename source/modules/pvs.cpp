@@ -249,39 +249,41 @@ void CPVSModule::LuaInit(bool bServerInit)
 
 	mapPVSSize = ceil(engineserver->GetClusterCount() / 8.0f);
 
-	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-		Util::StartTable();
-			Util::AddFunc(pvs_ResetPVS, "ResetPVS");
-			Util::AddFunc(pvs_CheckOriginInPVS, "CheckOriginInPVS");
-			Util::AddFunc(pvs_AddOriginToPVS, "AddOriginToPVS");
-			Util::AddFunc(pvs_GetClusterCount, "GetClusterCount");
-			Util::AddFunc(pvs_GetClusterForOrigin, "GetClusterForOrigin");
-			Util::AddFunc(pvs_CheckAreasConnected, "CheckAreasConnected");
-			Util::AddFunc(pvs_GetArea, "GetArea");
-			Util::AddFunc(pvs_GetPVSForCluster, "GetPVSForCluster");
-			Util::AddFunc(pvs_CheckBoxInPVS, "CheckBoxInPVS");
-			//Util::AddFunc(pvs_AddEntityToPVS, "AddEntityToPVS");
-			//Util::AddFunc(pvs_OverrideStateFlag, "OverrideStateFlag");
-			//Util::AddFunc(pvs_SetStateFlag, "SetStateFlag");
-			Util::AddFunc(pvs_GetStateFlag, "GetStateFlag");
+	Util::StartTable();
+		Util::AddFunc(pvs_ResetPVS, "ResetPVS");
+		Util::AddFunc(pvs_CheckOriginInPVS, "CheckOriginInPVS");
+		Util::AddFunc(pvs_AddOriginToPVS, "AddOriginToPVS");
+		Util::AddFunc(pvs_GetClusterCount, "GetClusterCount");
+		Util::AddFunc(pvs_GetClusterForOrigin, "GetClusterForOrigin");
+		Util::AddFunc(pvs_CheckAreasConnected, "CheckAreasConnected");
+		Util::AddFunc(pvs_GetArea, "GetArea");
+		Util::AddFunc(pvs_GetPVSForCluster, "GetPVSForCluster");
+		Util::AddFunc(pvs_CheckBoxInPVS, "CheckBoxInPVS");
+		//Util::AddFunc(pvs_AddEntityToPVS, "AddEntityToPVS");
+		//Util::AddFunc(pvs_OverrideStateFlag, "OverrideStateFlag");
+		//Util::AddFunc(pvs_SetStateFlag, "SetStateFlag");
+		Util::AddFunc(pvs_GetStateFlag, "GetStateFlag");
 
-			g_Lua->PushNumber(LUA_FL_EDICT_DONTSEND);
-			g_Lua->SetField(-2, "FL_EDICT_DONTSEND");
+		g_Lua->PushNumber(LUA_FL_EDICT_DONTSEND);
+		g_Lua->SetField(-2, "FL_EDICT_DONTSEND");
 
-			g_Lua->PushNumber(LUA_FL_EDICT_ALWAYS);
-			g_Lua->SetField(-2, "FL_EDICT_ALWAYS");
+		g_Lua->PushNumber(LUA_FL_EDICT_ALWAYS);
+		g_Lua->SetField(-2, "FL_EDICT_ALWAYS");
 
-			g_Lua->PushNumber(LUA_FL_EDICT_PVSCHECK);
-			g_Lua->SetField(-2, "FL_EDICT_PVSCHECK");
+		g_Lua->PushNumber(LUA_FL_EDICT_PVSCHECK);
+		g_Lua->SetField(-2, "FL_EDICT_PVSCHECK");
 
-			g_Lua->PushNumber(LUA_FL_EDICT_FULLCHECK);
-			g_Lua->SetField(-2, "FL_EDICT_FULLCHECK");
-		Util::FinishTable("pvs");
-	g_Lua->Pop(1);
+		g_Lua->PushNumber(LUA_FL_EDICT_FULLCHECK);
+		g_Lua->SetField(-2, "FL_EDICT_FULLCHECK");
+	Util::FinishTable("pvs");
 }
 
 void CPVSModule::LuaShutdown()
 {
+	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
+		g_Lua->PushNil();
+		g_Lua->SetField(-2, "pvs");
+	g_Lua->Pop(1);
 }
 
 void CPVSModule::InitDetour(bool bPreServer)

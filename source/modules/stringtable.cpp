@@ -290,24 +290,26 @@ void CStringTableModule::LuaInit(bool bServerInit) // ToDo: Implement a INetwork
 		Warning("HolyLib: g_Lua->PushMetaTable fails to push INetworkStringTable!\n");
 	}
 
-	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-		Util::StartTable();
-			Util::AddFunc(stringtable_CreateStringTable, "CreateStringTable");
-			Util::AddFunc(stringtable_RemoveAllTables, "RemoveAllTables");
-			Util::AddFunc(stringtable_FindTable, "FindTable");
-			Util::AddFunc(stringtable_GetTable, "GetTable");
-			Util::AddFunc(stringtable_GetNumTables, "GetNumTables");
-			Util::AddFunc(stringtable_CreateStringTableEx, "CreateStringTableEx");
-			Util::AddFunc(stringtable_SetAllowClientSideAddString, "SetAllowClientSideAddString");
+	Util::StartTable();
+		Util::AddFunc(stringtable_CreateStringTable, "CreateStringTable");
+		Util::AddFunc(stringtable_RemoveAllTables, "RemoveAllTables");
+		Util::AddFunc(stringtable_FindTable, "FindTable");
+		Util::AddFunc(stringtable_GetTable, "GetTable");
+		Util::AddFunc(stringtable_GetNumTables, "GetNumTables");
+		Util::AddFunc(stringtable_CreateStringTableEx, "CreateStringTableEx");
+		Util::AddFunc(stringtable_SetAllowClientSideAddString, "SetAllowClientSideAddString");
 
-			g_Lua->PushNumber(INVALID_STRING_INDEX);
-			g_Lua->SetField(-2, "INVALID_STRING_INDEX");
-		Util::FinishTable("stringtable");
-	g_Lua->Pop(1);
+		g_Lua->PushNumber(INVALID_STRING_INDEX);
+		g_Lua->SetField(-2, "INVALID_STRING_INDEX");
+	Util::FinishTable("stringtable");
 }
 
-void CStringTableModule::LuaShutdown()
+void CStringTableModule::LuaShutdown() // ToDo: Can we remove the metatable?
 {
+	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
+		g_Lua->PushNil();
+		g_Lua->SetField(-2, "stringtable");
+	g_Lua->Pop(1);
 }
 
 void CStringTableModule::InitDetour(bool bPreServer)

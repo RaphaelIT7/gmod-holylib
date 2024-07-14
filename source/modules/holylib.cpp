@@ -87,6 +87,10 @@ void CHolyLibModule::LuaInit(bool bServerInit)
 
 void CHolyLibModule::LuaShutdown()
 {
+	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
+		g_Lua->PushNil();
+		g_Lua->SetField(-2, "holylib");
+	g_Lua->Pop(1);
 }
 
 void CHolyLibModule::InitDetour(bool bPreServer)

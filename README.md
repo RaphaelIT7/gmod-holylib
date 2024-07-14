@@ -14,6 +14,7 @@ If you use a panel like Pterodactyl or something similar, you can use the gamemo
 If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it will be loaded by holylib's ghostinj.  
 
 # Modules
+Each module has its own convar `holylib_enable_[module name]` which allows you to enable/disable specific modules.  
 
 ## holylib
 This module contains the HolyLib library.   

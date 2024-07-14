@@ -119,6 +119,17 @@ void CGameeventLibModule::LuaInit(bool bServerInit)
 
 void CGameeventLibModule::LuaShutdown()
 {
+	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
+		g_Lua->GetField(-1, "gameevent");
+			if (g_Lua->IsType(-1, GarrysMod::Lua::Type::Table))
+			{
+				g_Lua->PushNil();
+				g_Lua->SetField(-2, "GetListeners");
+
+				g_Lua->PushNil();
+				g_Lua->SetField(-2, "RemoveListener");
+			}
+	g_Lua->Pop(2);
 }
 
 void CGameeventLibModule::InitDetour(bool bPreServer)
