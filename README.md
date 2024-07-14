@@ -284,16 +284,15 @@ This module adds two new `IServerPluginCallbacks` functions:
 This module plans to add a new `sourcetv` library and a new class `HLTVPlayer` will allow a SourceTV client to send net messages to the server.  
 
 # Issues implemented
-`gameevent.GetListeners` -> https://github.com/Facepunch/garrysmod-requests/issues/2377
-`stringtable.FindTable("modelprecache"):GetNumStrings()` -> https://github.com/Facepunch/garrysmod-requests/issues/82
-https://github.com/Facepunch/garrysmod-issues/issues/5932
-`HolyLib.Reconnect(ply)` -> https://github.com/Facepunch/garrysmod-requests/issues/2089
+`gameevent.GetListeners` -> https://github.com/Facepunch/garrysmod-requests/issues/2377  
+`stringtable.FindTable("modelprecache"):GetNumStrings()` -> https://github.com/Facepunch/garrysmod-requests/issues/82  
+https://github.com/Facepunch/garrysmod-issues/issues/5932  
+`HolyLib.Reconnect(ply)` -> https://github.com/Facepunch/garrysmod-requests/issues/2089  
+`pvs.AddEntityToPVS(ent)` -> https://github.com/Facepunch/garrysmod-requests/issues/245  
 
 # Things planned to add:
 https://github.com/Facepunch/garrysmod-requests/issues/1884  
 https://github.com/Facepunch/garrysmod-requests/issues/2298  
 https://github.com/Facepunch/garrysmod-requests/issues/2237  
-https://github.com/Facepunch/garrysmod-requests/issues/2165  
-https://github.com/Facepunch/garrysmod-requests/issues/82  
+https://github.com/Facepunch/garrysmod-requests/issues/2165   
 (Maybe)https://github.com/Facepunch/garrysmod-requests/issues/132  
-https://github.com/Facepunch/garrysmod-requests/issues/245  
