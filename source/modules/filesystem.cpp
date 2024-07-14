@@ -29,14 +29,14 @@ Symbols::CBaseFileSystem_FindSearchPathByStoreId func_CBaseFileSystem_FindSearch
 std::unordered_map<std::string, int> m_SearchCache;
 void AddFileToSearchCache(const char* pFileName, int path)
 {
-	Msg("Added file %s to seach cache (%i)\n", pFileName, path);
+	//Msg("Added file %s to seach cache (%i)\n", pFileName, path);
 	m_SearchCache[pFileName] = path;
 }
 
 
 void RemoveFileFromSearchCache(const char* pFileName)
 {
-	Msg("Removed file %s from seach cache!\n", pFileName);
+	//Msg("Removed file %s from seach cache!\n", pFileName);
 	m_SearchCache.erase(pFileName);
 }
 
@@ -46,13 +46,13 @@ CSearchPath* GetPathFromSearchCache(const char* pFileName)
 	if (it == m_SearchCache.end())
 		return NULL;
 
-	Msg("Getting search path for file %s from cache!\n", pFileName);
+	//Msg("Getting search path for file %s from cache!\n", pFileName);
 	return func_CBaseFileSystem_FindSearchPathByStoreId(g_pFullFileSystem, it->second);
 }
 
 void NukeSearchCache()
 {
-	Msg("Search cache got nuked\n");
+	//Msg("Search cache got nuked\n");
 	m_SearchCache.clear();
 }
 
