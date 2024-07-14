@@ -240,7 +240,7 @@ If enabled, it will check if the file contains a `.` after the last `/`.
 If so it will cause `CBaseFileSystem::IsDirectory` to return false since we assume it's a file.  
 This will cause `file.IsDir` to fail on folders with names like these `test/test1.23`.  
 
-#### holylib_filesystem_searchcache (default `0`)
+#### holylib_filesystem_searchcache (default `1`)
 If enabled, it will cause the filesystem to use a cache for the searchpaths.  
 When you try to open a file with a path like `GAME` which has multiple searchpaths, it will check each one until it finds it.  
 Now, the first time it searches for it, if it finds it, we add the file and the searchpath to a cache and the next time the same file is searched for, we try to use our cache search path.  

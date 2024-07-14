@@ -22,7 +22,7 @@ IModule* pFileSystemModule = &g_pFileSystemModule;
 
 ConVar holylib_filesystem_easydircheck("holylib_filesystem_easydircheck", "0", 0, 
 	"Checks if the folder CBaseFileSystem::IsDirectory checks has a . in the name after the last /. if so assume it's a file extension.");
-ConVar holylib_filesystem_searchcache("holylib_filesystem_searchcache", "0", 0, 
+ConVar holylib_filesystem_searchcache("holylib_filesystem_searchcache", "1", 0, 
 	"If enabled, it will cache the search path a file was located in and if the same file is requested, it will use that search path directly.");
 
 Symbols::CBaseFileSystem_FindSearchPathByStoreId func_CBaseFileSystem_FindSearchPathByStoreId;
