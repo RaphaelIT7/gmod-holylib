@@ -48,7 +48,10 @@ static void hook_CServerGameEnts_CheckTransmit(CCheckTransmitInfo *pInfo, const 
 	for (edict_t* ent : g_pAddEntityToPVS)
 	{
 		Msg("Adding ent(%i) to snapshot\n", ent->m_EdictIndex);
-		servergameents->EdictToBaseEntity(ent)->SetTransmit(pInfo, true);
+		pInfo->m_pTransmitEdict->Set(ent->m_EdictIndex);
+		if(pInfo->m_pTransmitAlways)
+			pInfo->m_pTransmitAlways->Set(ent->m_EdictIndex);
+		//servergameents->EdictToBaseEntity(ent)->SetTransmit(pInfo, true);
 	}
 	
 	static std::unordered_map<edict_t*, int> pOriginalFlags;
