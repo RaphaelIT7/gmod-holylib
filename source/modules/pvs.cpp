@@ -286,7 +286,7 @@ LUA_FUNCTION_STATIC(pvs_GetStateFlags)
 
 	int flags = edict->m_fStateFlags;
 	int newFlags = flags;
-	bool force = LUA->GetBool(3);
+	bool force = LUA->GetBool(2);
 	if (!force)
 	{
 		newFlags = 0;

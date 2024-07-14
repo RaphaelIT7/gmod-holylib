@@ -209,13 +209,16 @@ Adds the given entity index to the PVS
 bool force - Allows you to set the flags directly. It won't make sure that the value is correct!  
 Overrides the StateFlag for this Snapshot.  
 The value will be reset in the next one.  
+NOTE: If you use force, you should know what your doing or else it might cause a crash.  
 
 #### pvs.SetStateFlags(Entity ent, number flags, bool force)
 bool force - Allows you to set the flags directly. It won't make sure that the value is correct!  
 Sets the State flag for this entity.  
 Unlike `OverrideStateFlag`, this won't be reset after the snapshot.  
+NOTE: If you use force, you should know what your doing or else it might cause a crash.  
 
-#### number pvs.GetStateFlags(Entity ent)
+#### number pvs.GetStateFlags(Entity ent, bool force)
+bool force - Allows you to get all flags instead of only the ones for networking.  
 Returns the state flags for this entity.  
 
 ### Enums
