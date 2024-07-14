@@ -35,7 +35,10 @@ void CModule::SetEnabled(bool bEnabled)
 				m_pModule->Init(g_pModuleManager.GetAppFactory(), g_pModuleManager.GetGameFactory());
 
 			if (status & LoadStatus_DetourInit)
+			{
+				m_pModule->InitDetour(true); // I want every module to be able to be disabled/enabled properly
 				m_pModule->InitDetour(false);
+			}
 
 			if (status & LoadStatus_LuaInit)
 				m_pModule->LuaInit(false);
