@@ -198,7 +198,11 @@ LUA_FUNCTION_STATIC(pvs_OverrideStateFlag)
 
 	int flag = LUA->CheckNumber(2);
 
-	g_pOverrideStateFlag[GetEdictOfEnt(ent);] = flag;
+	edict_t* edict = GetEdictOfEnt(ent);
+	if (edict)
+		g_pOverrideStateFlag[GetEdictOfEnt(ent)] = flag;
+	else
+		LUA->ThrowError("Failed to get edict?");
 
 	return 0;
 }
