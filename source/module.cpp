@@ -19,7 +19,7 @@ void OnModuleConVarChange(IConVar* convar, const char* pOldValue, float flOldVal
 		return;
 	}
 
-	module->SetEnabled(((ConVar*)cvar)->GetBool());
+	module->SetEnabled(((ConVar*)convar)->GetBool());
 }
 
 void CModule::SetModule(IModule* module)
