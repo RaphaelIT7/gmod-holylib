@@ -141,7 +141,7 @@ void CFileSystemModule::LuaShutdown()
 
 void CFileSystemModule::InitDetour(bool bPreServer)
 {
-	if ( !bPreServer ) { return; }
+	if ( bPreServer ) { return; }
 
 	SourceSDK::ModuleLoader dedicated_loader("dedicated_srv");
 	Detour::Create(
