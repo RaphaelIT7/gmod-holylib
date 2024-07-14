@@ -62,15 +62,16 @@ FileHandle_t* hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, CFileO
 	if (!holylib_filesystem_searchcache.GetBool())
 		return detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
 
-	CSearchPath* path = GetPathFromSearchCache(openInfo.m_pFileName);
-	if (path)
+	CSearchPath* cachePath = GetPathFromSearchCache(openInfo.m_pFileName);
+	if (cachePath)
 	{
-		const CSearchPath* path = openInfo.m_pSearchPath;
+		const CSearchPath* origPath = openInfo.m_pSearchPath;
+		openInfo.m_pSearchPath = cachePath;
 		FileHandle_t* file = detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
 		if (file)
 			return file;
 
-		openInfo.m_pSearchPath = path;
+		openInfo.m_pSearchPath = origPath;
 		RemoveFileFromSearchCache(openInfo.m_pFileName);
 	}
 
@@ -88,10 +89,10 @@ long hook_CBaseFileSystem_FastFileTime(void* filesystem, const CSearchPath* path
 	if (!holylib_filesystem_searchcache.GetBool())
 		return detour_CBaseFileSystem_FastFileTime.GetTrampoline<Symbols::CBaseFileSystem_FastFileTime>()(filesystem, path, pFileName);
 
-	CSearchPath* cPath = GetPathFromSearchCache(pFileName);
-	if (cPath)
+	CSearchPath* cachePath = GetPathFromSearchCache(pFileName);
+	if (cachePath)
 	{
-		long time = detour_CBaseFileSystem_FastFileTime.GetTrampoline<Symbols::CBaseFileSystem_FastFileTime>()(filesystem, cPath, pFileName);
+		long time = detour_CBaseFileSystem_FastFileTime.GetTrampoline<Symbols::CBaseFileSystem_FastFileTime>()(filesystem, cachePath, pFileName);
 		if (time != 0L)
 			return time;
 
