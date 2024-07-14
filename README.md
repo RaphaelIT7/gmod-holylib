@@ -283,7 +283,7 @@ This module adds two new `IServerPluginCallbacks` functions:
 ## sourcetv
 This module plans to add a new `sourcetv` library and a new class `HLTVPlayer` will allow a SourceTV client to send net messages to the server.  
 
-# Issues implemented
+# Issues implemented / fixed
 `gameevent.GetListeners` -> https://github.com/Facepunch/garrysmod-requests/issues/2377  
 `stringtable.FindTable("modelprecache"):GetNumStrings()` -> https://github.com/Facepunch/garrysmod-requests/issues/82  
 https://github.com/Facepunch/garrysmod-issues/issues/5932  

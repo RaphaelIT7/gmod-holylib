@@ -26,6 +26,7 @@ void Util::FinishTable(const char* Name) {
 
 Symbols::Get_Player func_GetPlayer;
 Symbols::Push_Entity func_PushEntity;
+Symbols::Get_Entity func_GetEntity;
 CBasePlayer* Util::Get_Player(int iStackPos, bool unknown)
 {
 	if (func_GetPlayer)
@@ -40,11 +41,21 @@ void Util::Push_Entity(CBaseEntity* pEnt)
 		func_PushEntity(pEnt);
 }
 
+CBaseEntity* Util::Get_Entity(int iStackPos, bool unknown)
+{
+	if (func_GetEntity)
+		func_GetEntity(iStackPos, unknown);
+
+	return NULL;
+}
+
 void Util::AddDetour()
 {
 	SourceSDK::ModuleLoader server_loader("server_srv");
 	func_GetPlayer = (Symbols::Get_Player)Detour::GetFunction(server_loader.GetModule(), Symbols::Get_PlayerSym);
 	func_PushEntity = (Symbols::Push_Entity)Detour::GetFunction(server_loader.GetModule(), Symbols::Push_EntitySym);
+	func_GetEntity = (Symbols::Get_Entity)Detour::GetFunction(server_loader.GetModule(), Symbols::Get_EntitySym);
 	Detour::CheckFunction(func_GetPlayer, "Get_Player");
 	Detour::CheckFunction(func_PushEntity, "Push_Entity");
+	Detour::CheckFunction(func_GetEntity, "Get_Entity");
 }

@@ -23,6 +23,7 @@ namespace Util
 
 	// Gmod's functions:
 	extern CBasePlayer* Get_Player(int iStackPos, bool unknown);
+	extern CBaseEntity* Get_Entity(int iStackPos, bool unknown);
 	extern void Push_Entity(CBaseEntity* pEnt);
 
 	extern void AddDetour(); // We load Gmod's functions in there.

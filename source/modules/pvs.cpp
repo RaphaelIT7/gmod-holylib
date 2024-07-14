@@ -74,12 +74,6 @@ Vector* Get_Vector(int iStackPos)
 	return g_Lua->GetUserType<Vector>(iStackPos, GarrysMod::Lua::Type::Vector);
 }
 
-Symbols::Get_Entity func_Get_Entity;
-CBaseEntity* Get_Entity(int iStackPos)
-{
-	return func_Get_Entity(iStackPos, false);
-}
-
 edict_t* GetEdictOfEnt(CBaseEntity* ent)
 {
 	return servergameents->BaseEntityToEdict(ent);
@@ -179,7 +173,7 @@ LUA_FUNCTION_STATIC(pvs_CheckBoxInPVS)
 
 LUA_FUNCTION_STATIC(pvs_AddEntityToPVS)
 {
-	CBaseEntity* ent = Get_Entity(1);
+	CBaseEntity* ent = Util::Get_Entity(1, false);
 	if (!ent)
 		LUA->ThrowError("Tried to use a NULL Entity!");
 
@@ -198,7 +192,7 @@ LUA_FUNCTION_STATIC(pvs_AddEntityToPVS)
 #define LUA_FL_EDICT_FULLCHECK 1 << 4
 LUA_FUNCTION_STATIC(pvs_OverrideStateFlags)
 {
-	CBaseEntity* ent = Get_Entity(1);
+	CBaseEntity* ent = Util::Get_Entity(1, false);
 	if (!ent)
 		LUA->ThrowError("Tried to use a NULL Entity!");
 
@@ -237,7 +231,7 @@ LUA_FUNCTION_STATIC(pvs_OverrideStateFlags)
 
 LUA_FUNCTION_STATIC(pvs_SetStateFlags)
 {
-	CBaseEntity* ent = Get_Entity(1);
+	CBaseEntity* ent = Util::Get_Entity(1, false);
 	if (!ent)
 		LUA->ThrowError("Tried to use a NULL Entity!");
 
@@ -276,7 +270,7 @@ LUA_FUNCTION_STATIC(pvs_SetStateFlags)
 
 LUA_FUNCTION_STATIC(pvs_GetStateFlags)
 {
-	CBaseEntity* ent = Get_Entity(1);
+	CBaseEntity* ent = Util::Get_Entity(1, false);
 	if (!ent)
 		LUA->ThrowError("Tried to use a NULL Entity!");
 
@@ -376,9 +370,6 @@ void CPVSModule::InitDetour(bool bPreServer)
 		server_loader.GetModule(), Symbols::CServerGameEnts_CheckTransmitSym,
 		(void*)hook_CServerGameEnts_CheckTransmit, m_pID
 	);
-
-	func_Get_Entity = (Symbols::Get_Entity)Detour::GetFunction(server_loader.GetModule(), Symbols::Get_EntitySym);
-	Detour::CheckFunction(func_Get_Entity, "Get_Entity");
 }
 
 void CPVSModule::Think(bool bSimulating)

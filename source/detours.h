@@ -29,6 +29,9 @@ namespace Symbols
 	typedef void (*Push_Entity)(CBaseEntity*);
 	const Symbol Push_EntitySym = Symbol::FromName("_Z11Push_EntityP11CBaseEntity");
 
+	typedef CBaseEntity* (*Get_Entity)(int, bool);
+	const Symbol Get_EntitySym = Symbol::FromName("_Z10Get_Entityib");
+
 	//---------------------------------------------------------------------------------
 	// Purpose: holylib Symbols
 	//---------------------------------------------------------------------------------
@@ -107,9 +110,6 @@ namespace Symbols
 
 	typedef void (*CServerGameEnts_CheckTransmit)(void* gameents, CCheckTransmitInfo*, const unsigned short*, int);
 	const Symbol CServerGameEnts_CheckTransmitSym = Symbol::FromName("_ZN15CServerGameEnts13CheckTransmitEP18CCheckTransmitInfoPKti");
-
-	typedef CBaseEntity* (*Get_Entity)(int, bool);
-	const Symbol Get_EntitySym = Symbol::FromName("_Z10Get_Entityib");
 
 	//---------------------------------------------------------------------------------
 	// Purpose: filesystem Symbols
