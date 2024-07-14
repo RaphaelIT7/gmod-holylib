@@ -36,21 +36,21 @@ struct CompressData
 	bool bInvalidEverything = false;
 	std::vector<CompressEntry*> pQueue;
 	std::vector<CompressEntry*> pFinished;
-	CThreadFastMutex* pMutex;
+	CThreadFastMutex pMutex;
 };
 unsigned CompressThread(void* data)
 {
 	CompressData* cData = (CompressData*)data;
 	while (cData->bRun)
 	{
-		cData->pMutex->Lock();
+		cData->pMutex.Lock();
 		std::vector<CompressEntry*> batch;
 		for (CompressEntry* entry : cData->pQueue)
 		{
 			batch.push_back(entry);
 		}
 		cData->pQueue.clear();
-		cData->pMutex->Unlock();
+		cData->pMutex.Unlock();
 
 		for (CompressEntry* entry : batch)
 		{
