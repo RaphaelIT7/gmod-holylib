@@ -48,7 +48,7 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			[[Bootil/include/]]
 		})
 
-		libdirs(current_dir .. "/libs")
+		libdirs("libs")
 		filter("system:windows")
 			files({"source/win32/*.cpp", "source/win32/*.hpp"})
 
