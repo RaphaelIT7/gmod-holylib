@@ -46,6 +46,7 @@ static void hook_CServerGameEnts_CheckTransmit(CCheckTransmitInfo *pInfo, const 
 {
 	for (edict_t* ent : g_pAddEntityToPVS)
 	{
+		Msg("Adding edict to pvs (%i)\n", ent->m_EdictIndex);
 		pInfo->m_pTransmitAlways->Set(ent->m_EdictIndex);
 	}
 	
@@ -171,28 +172,25 @@ LUA_FUNCTION_STATIC(pvs_CheckBoxInPVS)
 
 LUA_FUNCTION_STATIC(pvs_AddEntityToPVS)
 {
-	CBaseEntity* ent = Get_Entity(1);
-	if (!ent)
-		LUA->ThrowError("Tried to use a NULL Entity!");
+	edict_t* edict = engine->PEntityOfEntIndex(LUA->CheckNumber(1));
+	if (!edict)
+		LUA->ThrowError("Failed to get edict?");
 
-	edict_t* edict = ent->edict();
-	Msg("Index: %i\n", edict ? edict->m_EdictIndex : -1);
-	Msg("Edict: %p\n", edict);
-	if (edict)
-		g_pAddEntityToPVS.push_back(edict);
+	Msg("Ent index: %i\n", edict->m_EdictIndex);
+	g_pAddEntityToPVS.push_back(edict);
 
 	return 0;
 }
 
 LUA_FUNCTION_STATIC(pvs_OverrideStateFlag)
 {
-	CBaseEntity* ent = Get_Entity(1);
-	if (!ent)
-		LUA->ThrowError("Tried to use a NULL Entity!");
-
+	edict_t* edict = engine->PEntityOfEntIndex(LUA->CheckNumber(1));
 	int flag = LUA->CheckNumber(2);
 
-	g_pOverrideStateFlag[ent->edict()] = flag;
+	if (!edict)
+		LUA->ThrowError("Failed to get edict?");
+
+	g_pOverrideStateFlag[edict] = flag;
 
 	return 0;
 }
@@ -203,9 +201,9 @@ LUA_FUNCTION_STATIC(pvs_OverrideStateFlag)
 #define LUA_FL_EDICT_FULLCHECK 1 << 4
 LUA_FUNCTION_STATIC(pvs_SetStateFlag)
 {
-	CBaseEntity* ent = Get_Entity(1);
-	if (!ent)
-		LUA->ThrowError("Tried to use a NULL Entity!");
+	edict_t* edict = engine->PEntityOfEntIndex(LUA->CheckNumber(1));
+	if (!edict)
+		LUA->ThrowError("Failed to get edict?");
 
 	int flags = LUA->CheckNumber(2);
 
@@ -222,28 +220,18 @@ LUA_FUNCTION_STATIC(pvs_SetStateFlag)
 	if (flags & LUA_FL_EDICT_FULLCHECK)
 		newFlags |= FL_EDICT_FULLCHECK;
 
-	edict_t* edict = ent->edict();
-	if (edict)
-		edict->m_fStateFlags = newFlags;
-	else
-		LUA->ThrowError("Failed to get edict?");
+	edict->m_fStateFlags = newFlags;
 
 	return 0;
 }
 
 LUA_FUNCTION_STATIC(pvs_GetStateFlag)
 {
-	CBaseEntity* ent = Get_Entity(1);
-	if (!ent)
-		LUA->ThrowError("Tried to use a NULL Entity!");
-
-	int flags = 0;
-	edict_t* edict = ent->edict();
-	if (edict)
-		flags = edict->m_fStateFlags;
-	else
+	edict_t* edict = engine->PEntityOfEntIndex(LUA->CheckNumber(1));
+	if (!edict)
 		LUA->ThrowError("Failed to get edict?");
 
+	int flags = edict->m_fStateFlags;
 	int newFlags = 0;
 	if (flags & FL_EDICT_DONTSEND)
 		newFlags |= LUA_FL_EDICT_DONTSEND;
