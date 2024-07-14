@@ -92,6 +92,8 @@ CModule* CModuleManager::FindModuleByConVar(ConVar* cvar)
 
 void CModuleManager::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
+	m_pAppFactory = appfn;
+	m_pGameFactory = gamefn;
 	m_pStatus |= LoadStatus_Init;
 	for (CModule* pModule : m_pModules)
 	{
