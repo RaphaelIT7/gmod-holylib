@@ -202,18 +202,20 @@ We don't validate if the passed cluster id is valid!
 #### bool pvs.CheckBoxInPVS(Vector mins, Vector maxs)
 Returns whether or not the given box is inside the PVS.  
 
-#### pvs.AddEntityToPVS(number entIndex)
+#### pvs.AddEntityToPVS(Entity ent)
 Adds the given entity index to the PVS  
 
-#### pvs.OverrideStateFlag(number entIndex, number flags)
+#### pvs.OverrideStateFlags(Entity ent, number flags, bool force)
+bool force - Allows you to set the flags directly. It won't make sure that the value is correct!  
 Overrides the StateFlag for this Snapshot.  
 The value will be reset in the next one.  
 
-#### pvs.SetStateFlag(number entIndex, number flags)
+#### pvs.SetStateFlags(Entity ent, number flags, bool force)
+bool force - Allows you to set the flags directly. It won't make sure that the value is correct!  
 Sets the State flag for this entity.  
 Unlike `OverrideStateFlag`, this won't be reset after the snapshot.  
 
-#### number pvs.GetStateFlag(Entity ent)
+#### number pvs.GetStateFlags(Entity ent)
 Returns the state flags for this entity.  
 
 ### Enums
