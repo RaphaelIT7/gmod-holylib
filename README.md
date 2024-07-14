@@ -302,6 +302,7 @@ https://github.com/Facepunch/garrysmod-issues/issues/5932
 `HolyLib.Reconnect(ply)` -> https://github.com/Facepunch/garrysmod-requests/issues/2089  
 `pvs.AddEntityToPVS(ent)` -> https://github.com/Facepunch/garrysmod-requests/issues/245  
 `util.AsyncCompress(data, nil, nil, callback)` -> https://github.com/Facepunch/garrysmod-requests/issues/2165   
+It now throws a warning instead of crashing -> https://github.com/Facepunch/garrysmod-issues/issues/56  
 
 # Things planned to add:
 https://github.com/Facepunch/garrysmod-requests/issues/1884  
