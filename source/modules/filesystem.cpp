@@ -188,4 +188,5 @@ void CFileSystemModule::Think(bool simulating)
 
 void CFileSystemModule::Shutdown()
 {
+	Detour::Remove(m_pID);
 }

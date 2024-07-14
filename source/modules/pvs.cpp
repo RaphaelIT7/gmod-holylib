@@ -172,11 +172,14 @@ LUA_FUNCTION_STATIC(pvs_CheckBoxInPVS)
 LUA_FUNCTION_STATIC(pvs_AddEntityToPVS)
 {
 	CBaseEntity* ent = Get_Entity(1);
+	if (!ent)
+		LUA->ThrowError("Tried to use a NULL Entity!");
 
-	Msg("Index: %i\n", ent->entindex());
-	Msg("Edict: %p\n", ent->edict());
-	Msg("Edict Index: %i\n", ent->edict()->m_EdictIndex);
-	g_pAddEntityToPVS.push_back(ent->edict());
+	edict_t* edict = ent->edict();
+	Msg("Index: %i\n", edict ? edict->m_EdictIndex : -1);
+	Msg("Edict: %p\n", edict);
+	if (edict)
+		g_pAddEntityToPVS.push_back(edict);
 
 	return 0;
 }
@@ -184,6 +187,9 @@ LUA_FUNCTION_STATIC(pvs_AddEntityToPVS)
 LUA_FUNCTION_STATIC(pvs_OverrideStateFlag)
 {
 	CBaseEntity* ent = Get_Entity(1);
+	if (!ent)
+		LUA->ThrowError("Tried to use a NULL Entity!");
+
 	int flag = LUA->CheckNumber(2);
 
 	g_pOverrideStateFlag[ent->edict()] = flag;
@@ -198,6 +204,9 @@ LUA_FUNCTION_STATIC(pvs_OverrideStateFlag)
 LUA_FUNCTION_STATIC(pvs_SetStateFlag)
 {
 	CBaseEntity* ent = Get_Entity(1);
+	if (!ent)
+		LUA->ThrowError("Tried to use a NULL Entity!");
+
 	int flags = LUA->CheckNumber(2);
 
 	int newFlags = 0;
@@ -213,7 +222,11 @@ LUA_FUNCTION_STATIC(pvs_SetStateFlag)
 	if (flags & LUA_FL_EDICT_FULLCHECK)
 		newFlags |= FL_EDICT_FULLCHECK;
 
-	ent->edict()->m_fStateFlags = newFlags;
+	edict_t* edict = ent->edict();
+	if (edict)
+		edict->m_fStateFlags = newFlags;
+	else
+		LUA->ThrowError("Failed to get edict?");
 
 	return 0;
 }
@@ -221,7 +234,16 @@ LUA_FUNCTION_STATIC(pvs_SetStateFlag)
 LUA_FUNCTION_STATIC(pvs_GetStateFlag)
 {
 	CBaseEntity* ent = Get_Entity(1);
-	int flags = ent->edict()->m_fStateFlags;
+	if (!ent)
+		LUA->ThrowError("Tried to use a NULL Entity!");
+
+	int flags = 0;
+	edict_t* edict = ent->edict();
+	if (edict)
+		flags = edict->m_fStateFlags;
+	else
+		LUA->ThrowError("Failed to get edict?");
+
 	int newFlags = 0;
 	if (flags & FL_EDICT_DONTSEND)
 		newFlags |= LUA_FL_EDICT_DONTSEND;
