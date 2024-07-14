@@ -2,8 +2,8 @@
 #include <scanning/symbolfinder.hpp>
 #include <vector>
 #include <string>
-#include "convar.h"
 
+class ConVar;
 class KeyValues;
 class IModule
 {
@@ -27,27 +27,33 @@ public:
 		if ( m_pCVar )
 			delete m_pCVar; // Could this cause a crash? idk.
 	}
-	void SetModule(IModule* module)
-	{
-		m_pModule = module;
-		m_strName = "holylib_enable_";
-		m_strName = m_strName + module->Name();
-		m_pCVar = new ConVar(m_strName.c_str(), "1", 0);
-	};
+	void SetModule(IModule* module);
+	void SetEnabled(bool bEnabled);
 	inline IModule* GetModule() { return m_pModule; };
-	inline bool IsEnabled() { return m_pCVar->GetBool(); };
+	inline bool IsEnabled() { return m_bEnabled; };
+	inline ConVar* GetConVar() { return m_pCVar; };
 
 protected:
 	IModule* m_pModule;
 	ConVar* m_pCVar;
 	std::string m_strName;
+	bool m_bEnabled = false;
 };
+
+#define LoadStatus_Init (1<<1)
+#define LoadStatus_DetourInit (1<<2)
+#define LoadStatus_LuaInit (1<<3)
+#define LoadStatus_LuaServerInit (1<<4)
 
 class CModuleManager
 {
 public:
 	CModuleManager();
 	void RegisterModule(IModule* mdl);
+	CModule* FindModuleByConVar(ConVar* cvar);
+	inline int GetStatus() { return m_pStatus; };
+	inline CreateInterfaceFn* GetAppFactory() { return m_pAppFactory; };
+	inline CreateInterfaceFn* GetGameFactory() { return m_pGameFactory; };
 
 	void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
 	void LuaInit(bool bServerInit);
@@ -58,5 +64,8 @@ public:
 
 private:
 	std::vector<CModule*> m_pModules;
+	int m_pStatus = 0;
+	CreateInterfaceFn* m_pAppFactory = NULL;
+	CreateInterfaceFn* m_pGameFactory = NULL;
 };
 extern CModuleManager g_pModuleManager;

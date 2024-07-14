@@ -2,6 +2,58 @@
 #include "KeyValues.h"
 #include <tier2/tier2.h>
 #include "modules/_modules.h"
+#include "convar.h"
+
+void OnModuleConVarChange(IConVar* cvar, const char* pOldValue, float flOldValue)
+{
+	CModule* module = g_pModuleManager.FindModuleByConVar((ConVar*)cvar);
+	if (!module)
+	{
+		Warning("Failed to find CModule for convar %s!\n", cvar->GetName());
+		return;
+	}
+
+	module->SetEnabled(((ConVar*)cvar)->GetBool());
+}
+
+void CModule::SetModule(IModule* module)
+{
+	m_pModule = module;
+	m_strName = "holylib_enable_";
+	m_strName = m_strName + module->Name();
+	m_pCVar = new ConVar(m_strName.c_str(), "1", 0, "Whether this module should be active or not", OnModuleConVarChange);
+	m_bEnabled = true;
+}
+void CModule::SetEnabled(bool bEnabled)
+{
+	if (m_bEnabled != bEnabled)
+	{
+		if (bEnabled && !m_bEnabled)
+		{
+			int status = g_pModuleManager.GetStatus();
+			if (status & LoadStatus_Init)
+				m_pModule->Init(g_pModuleManager.GetAppFactory(), g_pModuleManager.GetGameFactory());
+
+			if (status & LoadStatus_DetourInit)
+				m_pModule->InitDetour(false);
+
+			if (status & LoadStatus_LuaInit)
+				m_pModule->LuaInit(false);
+
+			if (status & LoadStatus_LuaServerInit)
+				m_pModule->LuaInit(true);
+		} else {
+			int status = g_pModuleManager.GetStatus();
+			if (status & LoadStatus_Init)
+				m_pModule->Shutdown();
+
+			if (status & LoadStatus_LuaInit)
+				m_pModule->LuaShutdown();
+		}
+	}
+
+	m_bEnabled = bEnabled;
+}
 
 CModuleManager::CModuleManager() // ToDo: Look into how IGameSystem works and use something similar. I don't like to add each one manually
 {
@@ -27,8 +79,20 @@ void CModuleManager::RegisterModule(IModule* pModule)
 	m_pModules.push_back(module);
 }
 
+CModule* CModuleManager::FindModuleByConVar(ConVar* cvar)
+{
+	for (CModule* module : m_pModules)
+	{
+		if (cvar == module->GetConVar())
+			return module;
+	}
+
+	return NULL;
+}
+
 void CModuleManager::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
+	m_pStatus |= LoadStatus_Init;
 	for (CModule* pModule : m_pModules)
 	{
 		if ( !pModule->IsEnabled() ) { continue; }
@@ -38,6 +102,11 @@ void CModuleManager::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 
 void CModuleManager::LuaInit(bool bServerInit)
 {
+	if (bServerInit)
+		m_pStatus |= LoadStatus_LuaServerInit;
+	else
+		m_pStatus |= LoadStatus_LuaInit;
+
 	for (CModule* pModule : m_pModules)
 	{
 		if ( !pModule->IsEnabled() ) { continue; }
@@ -56,6 +125,7 @@ void CModuleManager::LuaShutdown()
 
 void CModuleManager::InitDetour(bool bPreServer)
 {
+	m_pStatus |= LoadStatus_DetourInit;
 	for (CModule* pModule : m_pModules)
 	{
 		if ( !pModule->IsEnabled() ) { continue; }
@@ -74,6 +144,7 @@ void CModuleManager::Think(bool bSimulating)
 
 void CModuleManager::Shutdown()
 {
+	m_pStatus = 0;
 	for (CModule* pModule : m_pModules)
 	{
 		if ( !pModule->IsEnabled() ) { continue; }
