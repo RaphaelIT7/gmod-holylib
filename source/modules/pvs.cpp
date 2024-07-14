@@ -39,6 +39,7 @@ static void hook_CGMOD_Player_SetupVisibility(void* ent, unsigned char* pvs, int
 	currentPVSSize = -1;
 }
 
+IServerGameEnts* servergameents = NULL;
 static std::vector<edict_t*> g_pAddEntityToPVS;
 static std::unordered_map<edict_t*, int> g_pOverrideStateFlag;
 static Detouring::Hook detour_CServerGameEnts_CheckTransmit;
@@ -46,9 +47,7 @@ static void hook_CServerGameEnts_CheckTransmit(CCheckTransmitInfo *pInfo, const 
 {
 	for (edict_t* ent : g_pAddEntityToPVS)
 	{
-		pInfo->m_pTransmitEdict->Set(ent->m_EdictIndex);
-		if(pInfo->m_pTransmitAlways)
-			pInfo->m_pTransmitAlways->Set(ent->m_EdictIndex);
+		servergameents->EdictToBaseEntity(ent)->SetTransmit(pInfo, true);
 	}
 	
 	static std::unordered_map<edict_t*, int> pOriginalFlags;
@@ -80,7 +79,6 @@ CBaseEntity* Get_Entity(int iStackPos)
 	return func_Get_Entity(iStackPos, false);
 }
 
-IServerGameEnts* servergameents = NULL;
 edict_t* GetEdictOfEnt(CBaseEntity* ent)
 {
 	return servergameents->BaseEntityToEdict(ent);
