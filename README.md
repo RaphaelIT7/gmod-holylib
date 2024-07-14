@@ -246,9 +246,27 @@ When you try to open a file with a path like `GAME` which has multiple searchpat
 Now, the first time it searches for it, if it finds it, we add the file and the searchpath to a cache and the next time the same file is searched for, we try to use our cache search path.  
 
 This will improve `file.Open`, `file.Time` and `file.Exists`.  
-Currently only `file.Time` is affectect. `file.Open` and `file.Exists` are broken.  
+The more searchpaths exist, the bigger the improvement for that path will be.
+Example (I got 101 legacy addons):
+```
+lua_run local a = SysTime() for k=1, 1000 do file.Exists("garrysmod.ver", "GAME") end print(SysTime()-a)
 
-NOTE: I don't know if this has any bugs, but while using this for ~1 Month on a server, I didn't find any issues.  
+Disabled: 1.907318733
+Enabled: 0.035948700999995
+```
+
+You also can test it using the `MOD` path. The performance of `file.Exists` for any search path and `MOD` should be somewhat near each other since, it checks the same amount of searchpaths while this is enabled.  
+```
+lua_run local a = SysTime() for k=1, 1000 do file.Exists("garrysmod.ver", "GAME") end print(SysTime()-a)
+0.033513544999998
+
+lua_run local a = SysTime() for k=1, 1000 do file.Exists("garrysmod.ver", "MOD") end print(SysTime()-a)
+0.037827891999996
+```
+##### NOTES
+- If the file doesn't exist, it will still go thru all search paths to search for it again!  
+- I don't know if this has any bugs, but while using this for ~1 Month on a server, I didn't find any issues.  
+- It will also improve the `MOD` search path since it also has multiple search paths.  
 
 # Unfinished Modules
 
