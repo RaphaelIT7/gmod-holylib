@@ -23,10 +23,7 @@ public:
 class CModule
 {
 public:
-	~CModule() {
-		if ( m_pCVar )
-			delete m_pCVar; // Could this cause a crash? idk.
-	}
+	~CModule();
 	void SetModule(IModule* module);
 	void SetEnabled(bool bEnabled);
 	inline IModule* GetModule() { return m_pModule; };
@@ -50,7 +47,7 @@ class CModuleManager
 public:
 	CModuleManager();
 	void RegisterModule(IModule* mdl);
-	CModule* FindModuleByConVar(ConVar* cvar);
+	CModule* FindModuleByConVar(ConVar* convar);
 	inline int GetStatus() { return m_pStatus; };
 	inline CreateInterfaceFn* GetAppFactory() { return m_pAppFactory; };
 	inline CreateInterfaceFn* GetGameFactory() { return m_pGameFactory; };

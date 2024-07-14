@@ -4,12 +4,19 @@
 #include "modules/_modules.h"
 #include "convar.h"
 
-void OnModuleConVarChange(IConVar* cvar, const char* pOldValue, float flOldValue)
+CModule::~CModule()
 {
-	CModule* module = g_pModuleManager.FindModuleByConVar((ConVar*)cvar);
+	if ( m_pCVar )
+		delete m_pCVar; // Could this cause a crash? idk.
+	}
+}
+
+void OnModuleConVarChange(IConVar* convar, const char* pOldValue, float flOldValue)
+{
+	CModule* module = g_pModuleManager.FindModuleByConVar((ConVar*)convar);
 	if (!module)
 	{
-		Warning("Failed to find CModule for convar %s!\n", cvar->GetName());
+		Warning("Failed to find CModule for convar %s!\n", convar->GetName());
 		return;
 	}
 
@@ -83,11 +90,11 @@ void CModuleManager::RegisterModule(IModule* pModule)
 	m_pModules.push_back(module);
 }
 
-CModule* CModuleManager::FindModuleByConVar(ConVar* cvar)
+CModule* CModuleManager::FindModuleByConVar(ConVar* convar)
 {
 	for (CModule* module : m_pModules)
 	{
-		if (cvar == module->GetConVar())
+		if (convar == module->GetConVar())
 			return module;
 	}
 

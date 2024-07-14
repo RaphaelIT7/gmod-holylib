@@ -72,9 +72,10 @@ Vector* Get_Vector(int iStackPos)
 	return g_Lua->GetUserType<Vector>(iStackPos, GarrysMod::Lua::Type::Vector);
 }
 
+Symbols::Get_Entity func_Get_Entity;
 CBaseEntity* Get_Entity(int iStackPos)
 {
-	return g_Lua->GetUserType<CBaseEntity>(iStackPos, GarrysMod::Lua::Type::Entity);
+	return func_Get_Entity(iStackPos, false);
 }
 
 IServerGameEnts* servergameents = NULL;
@@ -340,6 +341,9 @@ void CPVSModule::InitDetour(bool bPreServer)
 		server_loader.GetModule(), Symbols::CGMOD_Player_SetupVisibilitySym,
 		(void*)hook_CGMOD_Player_SetupVisibility, m_pID
 	);
+
+	func_Get_Entity = (Symbols::Get_Entity)Detour::GetFunction(server_loader.GetModule(), Symbols::Get_EntitySym);
+	Detour::CheckFunction(func_Get_Entity, "Get_Entity");
 }
 
 void CPVSModule::Think(bool bSimulating)
