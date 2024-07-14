@@ -4,6 +4,7 @@
 #include "filesystem.h"
 #include <sourcesdk/filesystem_things.h>
 #include <unordered_map>
+#include <vprof.h>
 
 class CFileSystemModule : public IModule
 {
@@ -25,18 +26,25 @@ ConVar holylib_filesystem_easydircheck("holylib_filesystem_easydircheck", "0", 0
 ConVar holylib_filesystem_searchcache("holylib_filesystem_searchcache", "1", 0, 
 	"If enabled, it will cache the search path a file was located in and if the same file is requested, it will use that search path directly.");
 
+ConVar holylib_filesystem_debug("holylib_filesystem_debug", "0", 0, 
+	"If enabled, it will show any change to the search cache.");
+
 Symbols::CBaseFileSystem_FindSearchPathByStoreId func_CBaseFileSystem_FindSearchPathByStoreId;
 std::unordered_map<std::string, int> m_SearchCache;
 void AddFileToSearchCache(const char* pFileName, int path)
 {
-	//Msg("Added file %s to seach cache (%i)\n", pFileName, path);
+	if (holylib_filesystem_debug.GetBool())
+		Msg("Added file %s to seach cache (%i)\n", pFileName, path);
+
 	m_SearchCache[pFileName] = path;
 }
 
 
 void RemoveFileFromSearchCache(const char* pFileName)
 {
-	//Msg("Removed file %s from seach cache!\n", pFileName);
+	if (holylib_filesystem_debug.GetBool())
+		Msg("Removed file %s from seach cache!\n", pFileName);
+
 	m_SearchCache.erase(pFileName);
 }
 
@@ -46,13 +54,17 @@ CSearchPath* GetPathFromSearchCache(const char* pFileName)
 	if (it == m_SearchCache.end())
 		return NULL;
 
-	//Msg("Getting search path for file %s from cache!\n", pFileName);
+	if (holylib_filesystem_debug.GetBool())
+		Msg("Getting search path for file %s from cache!\n", pFileName);
+
 	return func_CBaseFileSystem_FindSearchPathByStoreId(g_pFullFileSystem, it->second);
 }
 
 void NukeSearchCache()
 {
-	//Msg("Search cache got nuked\n");
+	if (holylib_filesystem_debug.GetBool())
+		Msg("Search cache got nuked\n");
+
 	m_SearchCache.clear();
 }
 
@@ -65,6 +77,8 @@ FileHandle_t* hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, CFileO
 	CSearchPath* cachePath = GetPathFromSearchCache(openInfo.m_pFileName);
 	if (cachePath)
 	{
+		VPROF("HolyLib::FileSystem::Cache-CBaseFileSystem::FindFile");
+
 		const CSearchPath* origPath = openInfo.m_pSearchPath;
 		openInfo.m_pSearchPath = cachePath;
 		FileHandle_t* file = detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
@@ -92,6 +106,7 @@ long hook_CBaseFileSystem_FastFileTime(void* filesystem, const CSearchPath* path
 	CSearchPath* cachePath = GetPathFromSearchCache(pFileName);
 	if (cachePath)
 	{
+		VPROF("HolyLib::FileSystem::Cache-CBaseFileSystem::FastFileTime");
 		long time = detour_CBaseFileSystem_FastFileTime.GetTrampoline<Symbols::CBaseFileSystem_FastFileTime>()(filesystem, cachePath, pFileName);
 		if (time != 0L)
 			return time;
