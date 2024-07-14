@@ -43,15 +43,15 @@ static IServerGameEnts* servergameents = NULL;
 static std::vector<edict_t*> g_pAddEntityToPVS;
 static std::unordered_map<edict_t*, int> g_pOverrideStateFlag;
 static Detouring::Hook detour_CServerGameEnts_CheckTransmit;
-static void hook_CServerGameEnts_CheckTransmit(CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts)
+static void hook_CServerGameEnts_CheckTransmit(void* gameents, CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts)
 {
 	for (edict_t* ent : g_pAddEntityToPVS)
 	{
 		Msg("Adding ent(%i) to snapshot\n", ent->m_EdictIndex);
-		pInfo->m_pTransmitEdict->Set(ent->m_EdictIndex);
-		if(pInfo->m_pTransmitAlways)
-			pInfo->m_pTransmitAlways->Set(ent->m_EdictIndex);
-		//servergameents->EdictToBaseEntity(ent)->SetTransmit(pInfo, true);
+		//pInfo->m_pTransmitEdict->Set(ent->m_EdictIndex);
+		//if(pInfo->m_pTransmitAlways)
+		//	pInfo->m_pTransmitAlways->Set(ent->m_EdictIndex);
+		servergameents->EdictToBaseEntity(ent)->SetTransmit(pInfo, true);
 	}
 	
 	static std::unordered_map<edict_t*, int> pOriginalFlags;
@@ -62,7 +62,7 @@ static void hook_CServerGameEnts_CheckTransmit(CCheckTransmitInfo *pInfo, const 
 		ent->m_fStateFlags = flag;
 	}
 
-	detour_CServerGameEnts_CheckTransmit.GetTrampoline<Symbols::CServerGameEnts_CheckTransmit>()(pInfo, pEdictIndices, nEdicts);
+	detour_CServerGameEnts_CheckTransmit.GetTrampoline<Symbols::CServerGameEnts_CheckTransmit>()(gameents, pInfo, pEdictIndices, nEdicts);
 
 	for (auto&[ent, flag] : pOriginalFlags)
 	{

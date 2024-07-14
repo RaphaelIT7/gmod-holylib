@@ -105,7 +105,7 @@ namespace Symbols
 	typedef int (*CGMOD_Player_SetupVisibility)(void* ent, unsigned char* pvs, int pvssize);
 	const Symbol CGMOD_Player_SetupVisibilitySym = Symbol::FromName("_ZN12CGMOD_Player15SetupVisibilityEP11CBaseEntityPhi");
 
-	typedef void (*CServerGameEnts_CheckTransmit)(CCheckTransmitInfo*, const unsigned short*, int);
+	typedef void (*CServerGameEnts_CheckTransmit)(void* gameents, CCheckTransmitInfo*, const unsigned short*, int);
 	const Symbol CServerGameEnts_CheckTransmitSym = Symbol::FromName("_ZN15CServerGameEnts13CheckTransmitEP18CCheckTransmitInfoPKti");
 
 	typedef CBaseEntity* (*Get_Entity)(int, bool);
