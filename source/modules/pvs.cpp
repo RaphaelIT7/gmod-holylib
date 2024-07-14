@@ -46,7 +46,6 @@ static void hook_CServerGameEnts_CheckTransmit(CCheckTransmitInfo *pInfo, const 
 {
 	for (edict_t* ent : g_pAddEntityToPVS)
 	{
-		Msg("Adding edict to pvs (%i)\n", ent->m_EdictIndex);
 		pInfo->m_pTransmitAlways->Set(ent->m_EdictIndex);
 	}
 	
@@ -76,6 +75,12 @@ Vector* Get_Vector(int iStackPos)
 CBaseEntity* Get_Entity(int iStackPos)
 {
 	return g_Lua->GetUserType<CBaseEntity>(iStackPos, GarrysMod::Lua::Type::Entity);
+}
+
+IServerGameEnts* servergameents = NULL;
+edict_t* GetEdictOfEnt(CBaseEntity* ent)
+{
+	return servergameents->BaseEntityToEdict(ent);
 }
 
 LUA_FUNCTION_STATIC(pvs_ResetPVS)
@@ -172,25 +177,28 @@ LUA_FUNCTION_STATIC(pvs_CheckBoxInPVS)
 
 LUA_FUNCTION_STATIC(pvs_AddEntityToPVS)
 {
-	edict_t* edict = engine->PEntityOfEntIndex(LUA->CheckNumber(1));
-	if (!edict)
-		LUA->ThrowError("Failed to get edict?");
+	CBaseEntity* ent = Get_Entity(1);
+	if (!ent)
+		LUA->ThrowError("Tried to use a NULL Entity!");
 
-	Msg("Ent index: %i\n", edict->m_EdictIndex);
-	g_pAddEntityToPVS.push_back(edict);
+	edict_t* edict = GetEdictOfEnt(ent);
+	Msg("Index: %i\n", edict ? edict->m_EdictIndex : -1);
+	Msg("Edict: %p\n", edict);
+	if (edict)
+		g_pAddEntityToPVS.push_back(edict);
 
 	return 0;
 }
 
 LUA_FUNCTION_STATIC(pvs_OverrideStateFlag)
 {
-	edict_t* edict = engine->PEntityOfEntIndex(LUA->CheckNumber(1));
+	CBaseEntity* ent = Get_Entity(1);
+	if (!ent)
+		LUA->ThrowError("Tried to use a NULL Entity!");
+
 	int flag = LUA->CheckNumber(2);
 
-	if (!edict)
-		LUA->ThrowError("Failed to get edict?");
-
-	g_pOverrideStateFlag[edict] = flag;
+	g_pOverrideStateFlag[GetEdictOfEnt(ent);] = flag;
 
 	return 0;
 }
@@ -201,9 +209,9 @@ LUA_FUNCTION_STATIC(pvs_OverrideStateFlag)
 #define LUA_FL_EDICT_FULLCHECK 1 << 4
 LUA_FUNCTION_STATIC(pvs_SetStateFlag)
 {
-	edict_t* edict = engine->PEntityOfEntIndex(LUA->CheckNumber(1));
-	if (!edict)
-		LUA->ThrowError("Failed to get edict?");
+	CBaseEntity* ent = Get_Entity(1);
+	if (!ent)
+		LUA->ThrowError("Tried to use a NULL Entity!");
 
 	int flags = LUA->CheckNumber(2);
 
@@ -220,18 +228,28 @@ LUA_FUNCTION_STATIC(pvs_SetStateFlag)
 	if (flags & LUA_FL_EDICT_FULLCHECK)
 		newFlags |= FL_EDICT_FULLCHECK;
 
-	edict->m_fStateFlags = newFlags;
+	edict_t* edict = GetEdictOfEnt(ent);
+	if (edict)
+		edict->m_fStateFlags = newFlags;
+	else
+		LUA->ThrowError("Failed to get edict?");
 
 	return 0;
 }
 
 LUA_FUNCTION_STATIC(pvs_GetStateFlag)
 {
-	edict_t* edict = engine->PEntityOfEntIndex(LUA->CheckNumber(1));
-	if (!edict)
+	CBaseEntity* ent = Get_Entity(1);
+	if (!ent)
+		LUA->ThrowError("Tried to use a NULL Entity!");
+
+	int flags = 0;
+	edict_t* edict = GetEdictOfEnt(ent);
+	if (edict)
+		flags = edict->m_fStateFlags;
+	else
 		LUA->ThrowError("Failed to get edict?");
 
-	int flags = edict->m_fStateFlags;
 	int newFlags = 0;
 	if (flags & FL_EDICT_DONTSEND)
 		newFlags |= LUA_FL_EDICT_DONTSEND;
@@ -254,6 +272,9 @@ void CPVSModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	engineserver = (IVEngineServer*)appfn[0](INTERFACEVERSION_VENGINESERVER, NULL);
 	Detour::CheckValue("get interface", "IVEngineServer", engineserver != NULL);
+
+	servergameents = (IServerGameEnts*)gamefn[0](INTERFACEVERSION_SERVERGAMEENTS, NULL);
+	Detour::CheckValue("get interface", "IServerGameEnts", servergameents != NULL);
 }
 
 void CPVSModule::LuaInit(bool bServerInit)
