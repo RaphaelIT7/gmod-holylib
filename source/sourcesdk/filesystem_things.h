@@ -93,7 +93,7 @@ public:
 
 	// These are output parameters.
 	void *m_pFileHandle;
-	char **m_ppszResolvedFilename;
+	char **m_ppszResolvedFilename = NULL;
 
 	void *m_pPackFile;
 	void *m_pVPKFile;
@@ -101,7 +101,7 @@ public:
 	const char *m_pFileName;
 	const CSearchPath *m_pSearchPath;
 	const char *m_pOptions;
-	int m_Flags;
+	int m_Flags = 0;
 
 	EPureServerFileClass m_ePureFileClass;
 
