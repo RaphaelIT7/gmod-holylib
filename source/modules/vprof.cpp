@@ -47,6 +47,7 @@ std::string GetCurrentTime() { // Yoink from vprof module
     return ss.str();
 }
 
+std::stringstream ss;
 static SpewRetval_t VProf_Spew(SpewType_t type, const char *msg)
 {
 	ss << msg;
@@ -54,7 +55,6 @@ static SpewRetval_t VProf_Spew(SpewType_t type, const char *msg)
 	return SPEW_CONTINUE;
 }
 
-std::stringstream ss;
 Detouring::Hook detour_CVProfile_OutputReport;
 void hook_CVProfile_OutputReport(void* fancy, int type, const tchar* pszStartMode, int budgetGroupID)
 {
