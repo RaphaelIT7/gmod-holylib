@@ -294,6 +294,18 @@ This module unblocks `quit` and `exit` for `RunConsoleCommand`.
 #### holylib_concommand_disableblacklist (default `0`)
 If enabled, it completely disables the concommand/convar blacklist.  
 
+## vprof
+This module adds VProf to gamemode calls and adds two convars.
+
+### ConVars
+
+#### holylib_vprof_exportreport (default `1`)
+If enabled, vprof results will be dumped into a file in the vprof/ folder  
+
+#### holylib_sv_stressbots (default `0`)
+Sets the value of `sv_stressbots`.  
+`sv_stressbots` is a hidden convar which is very useful for performance tests with bots.  
+
 # Unfinished Modules
 
 ## serverplugins
@@ -324,6 +336,7 @@ https://github.com/Facepunch/garrysmod-issues/issues/5932
 It now throws a warning instead of crashing -> https://github.com/Facepunch/garrysmod-issues/issues/56  
 `HolyLib.Reconnect(ply)` -> https://github.com/Facepunch/garrysmod-requests/issues/2089  
 `concommand` module -> https://github.com/Facepunch/garrysmod-requests/issues/1534  
+`vprof` module -> https://github.com/Facepunch/garrysmod-requests/issues/2374  
 
 # Things planned to add:
 https://github.com/Facepunch/garrysmod-requests/issues/1884  
@@ -337,7 +350,6 @@ https://github.com/Facepunch/garrysmod-requests/issues/341
 https://github.com/Facepunch/garrysmod-requests/issues/140  
 https://github.com/Facepunch/garrysmod-requests/issues/1323  
 (Should be possible?)https://github.com/Facepunch/garrysmod-requests/issues/756  
-https://github.com/Facepunch/garrysmod-requests/issues/2374  
 (Gonna make a seperate ConVar for it)https://github.com/Facepunch/garrysmod-requests/issues/2120  
 (Maybe)https://github.com/Facepunch/garrysmod-requests/issues/1633  
 https://github.com/Facepunch/garrysmod-requests/issues/1472  

@@ -131,6 +131,21 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	typedef bool (*ConCommand_IsBlocked)(const char* cmd);
 	const Symbol ConCommand_IsBlockedSym = Symbol::FromName("_Z20ConCommand_IsBlockedPKc");
+
+	//---------------------------------------------------------------------------------
+	// Purpose: vprof Symbols
+	//---------------------------------------------------------------------------------
+	typedef void* (*CLuaGamemode_CallFinish)(void*, int);
+	const Symbol CLuaGamemode_CallFinishSym = Symbol::FromName("_ZN12CLuaGamemode10CallFinishEi");
+
+	typedef void* (*CLuaGamemode_CallWithArgs)(void*, int);
+	const Symbol CLuaGamemode_CallWithArgsSym = Symbol::FromName("_ZN12CLuaGamemode12CallWithArgsEi");
+
+	typedef void* (*CLuaGamemode_Call)(void*, int);
+	const Symbol CLuaGamemode_CallSym = Symbol::FromName("_ZN12CLuaGamemode4CallEi");
+
+	typedef void (*CVProfile_OutputReport)(void*, int, const tchar*, int);
+	const Symbol CVProfile_OutputReportSym = Symbol::FromName("_ZN9CVProfile12OutputReportEiPKci");
 }
 
 //---------------------------------------------------------------------------------
