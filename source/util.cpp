@@ -44,7 +44,7 @@ void Util::Push_Entity(CBaseEntity* pEnt)
 CBaseEntity* Util::Get_Entity(int iStackPos, bool unknown)
 {
 	if (func_GetEntity)
-		func_GetEntity(iStackPos, unknown);
+		return func_GetEntity(iStackPos, unknown);
 
 	return NULL;
 }
