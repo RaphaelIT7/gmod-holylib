@@ -169,7 +169,7 @@ NOTE: This is currently broken, since it's actually called before Lua :/
 
 
 ## pvs
-This module plans to implement multiple PVS related functions.  
+This adds a bunch of PVS related functions.  
 
 ### Functions
 
@@ -295,6 +295,16 @@ This module adds two new `IServerPluginCallbacks` functions:
 ## sourcetv
 This module plans to add a new `sourcetv` library and a new class `HLTVPlayer` will allow a SourceTV client to send net messages to the server.  
 
+## pas
+This module plans to add a few PAS related functions like `table pas.FindInPAS(Vector pos or Entity ent)`.  
+If you got an Idea for a function to add, feel free to comment it into [its issue](https://github.com/RaphaelIT7/gmod-holylib/issues/1).
+
+### Functions
+
+#### (Planned) table pas.FindInPAS(Vector vec / Entity ent)
+Vector vec - The position to find all entities in.  
+Entity ent - The Entity which should be used to find all entities.  
+
 # Issues implemented / fixed
 `gameevent.GetListeners` -> https://github.com/Facepunch/garrysmod-requests/issues/2377  
 `stringtable.FindTable("modelprecache"):GetNumStrings()` -> https://github.com/Facepunch/garrysmod-requests/issues/82  
@@ -303,9 +313,26 @@ https://github.com/Facepunch/garrysmod-issues/issues/5932
 `pvs.AddEntityToPVS(ent)` -> https://github.com/Facepunch/garrysmod-requests/issues/245  
 `util.AsyncCompress(data, nil, nil, callback)` -> https://github.com/Facepunch/garrysmod-requests/issues/2165   
 It now throws a warning instead of crashing -> https://github.com/Facepunch/garrysmod-issues/issues/56  
+`HolyLib.Reconnect(ply)` -> https://github.com/Facepunch/garrysmod-requests/issues/2089  
 
 # Things planned to add:
 https://github.com/Facepunch/garrysmod-requests/issues/1884  
 https://github.com/Facepunch/garrysmod-requests/issues/2298  
 https://github.com/Facepunch/garrysmod-requests/issues/2237  
 (Maybe)https://github.com/Facepunch/garrysmod-requests/issues/132  
+https://github.com/Facepunch/garrysmod-requests/issues/77  
+(Maybe)https://github.com/Facepunch/garrysmod-requests/issues/603  
+https://github.com/Facepunch/garrysmod-requests/issues/439  
+https://github.com/Facepunch/garrysmod-requests/issues/341  
+https://github.com/Facepunch/garrysmod-requests/issues/140  
+https://github.com/Facepunch/garrysmod-requests/issues/1323  
+(Should be possible?)https://github.com/Facepunch/garrysmod-requests/issues/756  
+https://github.com/Facepunch/garrysmod-requests/issues/1534  
+https://github.com/Facepunch/garrysmod-requests/issues/2374  
+(Gonna make a seperate ConVar for it)https://github.com/Facepunch/garrysmod-requests/issues/2120  
+(Maybe)https://github.com/Facepunch/garrysmod-requests/issues/1633  
+https://github.com/Facepunch/garrysmod-requests/issues/1472  
+(Maybe)https://github.com/Facepunch/garrysmod-requests/issues/1671  
+
+# ToDo
+- [ ] Fix the CBaseEntity class having variables that don't exist and add Gmod's variables to it.  
