@@ -274,6 +274,7 @@ lua_run local a = SysTime() for k=1, 1000 do file.Exists("garrysmod.ver", "MOD")
 - It will also improve the `MOD` search path since it also has multiple search paths.  
 
 ## util
+This module adds two new functions to the `util` library.  
 
 ### Functions
 
@@ -284,6 +285,14 @@ Both AsyncCompress and AsyncDecompress use the same thread.
 
 #### util.AsyncDecompress(string data, function callback)
 Works like util.Decompress but it's async.  
+
+## concommand
+This module unblocks `quit` and `exit` for `RunConsoleCommand`.  
+
+### ConVars
+
+#### holylib_concommand_disableblacklist (default `0`)
+If enabled, it completely disables the concommand/convar blacklist.  
 
 # Unfinished Modules
 
@@ -314,6 +323,7 @@ https://github.com/Facepunch/garrysmod-issues/issues/5932
 `util.AsyncCompress(data, nil, nil, callback)` -> https://github.com/Facepunch/garrysmod-requests/issues/2165   
 It now throws a warning instead of crashing -> https://github.com/Facepunch/garrysmod-issues/issues/56  
 `HolyLib.Reconnect(ply)` -> https://github.com/Facepunch/garrysmod-requests/issues/2089  
+`concommand` module -> https://github.com/Facepunch/garrysmod-requests/issues/1534  
 
 # Things planned to add:
 https://github.com/Facepunch/garrysmod-requests/issues/1884  
@@ -327,7 +337,6 @@ https://github.com/Facepunch/garrysmod-requests/issues/341
 https://github.com/Facepunch/garrysmod-requests/issues/140  
 https://github.com/Facepunch/garrysmod-requests/issues/1323  
 (Should be possible?)https://github.com/Facepunch/garrysmod-requests/issues/756  
-https://github.com/Facepunch/garrysmod-requests/issues/1534  
 https://github.com/Facepunch/garrysmod-requests/issues/2374  
 (Gonna make a seperate ConVar for it)https://github.com/Facepunch/garrysmod-requests/issues/2120  
 (Maybe)https://github.com/Facepunch/garrysmod-requests/issues/1633  
@@ -335,4 +344,5 @@ https://github.com/Facepunch/garrysmod-requests/issues/1472
 (Maybe)https://github.com/Facepunch/garrysmod-requests/issues/1671  
 
 # ToDo
-- [ ] Fix the CBaseEntity class having variables that don't exist and add Gmod's variables to it.  
+- Fix the CBaseEntity class having variables that don't exist and add Gmod's variables to it.  
+- Make this readme better.  

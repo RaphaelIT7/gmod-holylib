@@ -11,3 +11,4 @@ extern IModule* pPVSModule;
 extern IModule* pSurfFixModule;
 extern IModule* pFileSystemModule;
 extern IModule* pUtilModule;
+extern IModule* pConCommandModule;
