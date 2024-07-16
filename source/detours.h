@@ -125,6 +125,12 @@ namespace Symbols
 
 	typedef long (*CBaseFileSystem_FastFileTime)(void* filesystem, const CSearchPath* path, const char* pFileName);
 	const Symbol CBaseFileSystem_FastFileTimeSym = Symbol::FromName("_ZN15CBaseFileSystem12FastFileTimeEPKNS_11CSearchPathEPKc");
+
+	//---------------------------------------------------------------------------------
+	// Purpose: concommand Symbols
+	//---------------------------------------------------------------------------------
+	typedef bool (*ConCommand_IsBlocked)(const char* cmd);
+	const Symbol ConCommand_IsBlockedSym = Symbol::FromName("_Z20ConCommand_IsBlockedPKc");
 }
 
 //---------------------------------------------------------------------------------
