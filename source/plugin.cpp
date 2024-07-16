@@ -88,7 +88,7 @@ void CServerPlugin::UnPause(void)
 //---------------------------------------------------------------------------------
 const char * CServerPlugin::GetPluginDescription(void)
 {
-	return "HolyLib Serverplugin V0.1";
+	return "HolyLib Serverplugin V0.3";
 }
 
 //---------------------------------------------------------------------------------
