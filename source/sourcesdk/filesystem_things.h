@@ -68,7 +68,7 @@ class CFileOpenInfo
 {
 public:
 	CFileOpenInfo( void* *pFileSystem, const char *pFileName, const CSearchPath *path, const char *pOptions, int flags, char **ppszResolvedFilename ) : 
-		m_pFileSystem( pFileSystem ), m_pFileName( pFileName ), m_pSearchPath( path ), m_pOptions( pOptions ), m_Flags( flags ), m_ppszResolvedFilename( ppszResolvedFilename )
+		m_pFileSystem( pFileSystem ), m_ppszResolvedFilename( ppszResolvedFilename ), m_pFileName( pFileName ), m_pSearchPath( path ), m_pOptions( pOptions ), m_Flags( flags )
 	{
 	}
 	
@@ -93,7 +93,7 @@ public:
 
 	// These are output parameters.
 	void *m_pFileHandle;
-	char **m_ppszResolvedFilename = NULL;
+	char **m_ppszResolvedFilename;
 
 	void *m_pPackFile;
 	void *m_pVPKFile;
@@ -101,7 +101,7 @@ public:
 	const char *m_pFileName;
 	const CSearchPath *m_pSearchPath;
 	const char *m_pOptions;
-	int m_Flags = 0;
+	int m_Flags;
 
 	EPureServerFileClass m_ePureFileClass;
 
