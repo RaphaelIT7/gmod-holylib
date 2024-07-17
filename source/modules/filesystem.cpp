@@ -585,7 +585,9 @@ const char* hook_CBaseFileSystem_FindFirstEx(CBaseFileSystem* filesystem, const 
 Detouring::Hook detour_CBaseFileSystem_FindNext;
 const char* hook_CBaseFileSystem_FindNext(CBaseFileSystem* filesystem, FileFindHandle_t pHandle)
 {
+	Msg("Find Count: %i\n", filesystem->m_FindData.Count());
 	CBaseFileSystem::FindData_t* data = &filesystem->m_FindData[pHandle];
+	Msg("Data: %p\n", data);
 	AddFileToSearchCache(data->findData.cFileName, data->m_CurrentStoreID);
 
 	const char* ret = detour_CBaseFileSystem_FindNext.GetTrampoline<Symbols::CBaseFileSystem_FindNext>()(filesystem, pHandle);
