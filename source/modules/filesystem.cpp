@@ -87,6 +87,9 @@ FileHandle_t* hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, CFileO
 
 		openInfo.m_pSearchPath = origPath;
 		RemoveFileFromSearchCache(openInfo.m_pFileName);
+	} else {
+		if (holylib_filesystem_debug.GetBool())
+			Msg("FindFileInSearchPath: Failed to find cachePath! (%s)\n", openInfo.m_pFileName);
 	}
 
 	FileHandle_t* file = detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
@@ -113,6 +116,9 @@ long hook_CBaseFileSystem_FastFileTime(void* filesystem, const CSearchPath* path
 			return time;
 
 		RemoveFileFromSearchCache(pFileName);
+	} else {
+		if (holylib_filesystem_debug.GetBool())
+			Msg("FastFileTime: Failed to find cachePath! (%s)\n", pFileName);
 	}
 
 	long time = detour_CBaseFileSystem_FastFileTime.GetTrampoline<Symbols::CBaseFileSystem_FastFileTime>()(filesystem, path, pFileName);
