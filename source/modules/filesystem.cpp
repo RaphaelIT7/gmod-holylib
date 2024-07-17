@@ -258,7 +258,7 @@ const char* GetOverridePath(const char* pFileName, const char* pathID)
 	if (strFileName.rfind("lua/includes/") == 0)
 		return "LUA_INCLUDES";
 
-	if (pathID && V_stricmp(pathID, "lsv") == 0)
+	if (pathID && (V_stricmp(pathID, "lsv") == 0 || V_stricmp(pathID, "GAME") == 0))
 	{
 		if (strFileName.rfind("sandbox/") == 0)
 			return "LUA_GAMEMODE_SANDBOX";
@@ -715,7 +715,9 @@ void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const char *pPa
 
 		if (filesystem->IsDirectory((strPath + "/lua/includes").c_str()))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_INCLUDES", addType);
-	} else if(V_stricmp(pathID, "lsv") == 0)
+	}
+	
+	if(V_stricmp(pathID, "lsv") == 0 || V_stricmp(pathID, "GAME") == 0)
 	{
 		if (filesystem->IsDirectory((strPath + "/sandbox").c_str()))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_GAMEMODE_SANDBOX", addType);
