@@ -134,6 +134,9 @@ namespace Symbols
 	typedef bool (*CBaseFileSystem_FixUpPath)(void* filesystem, const char *pFileName, char *pFixedUpFileName, int sizeFixedUpFileName);
 	const Symbol CBaseFileSystem_FixUpPathSym = Symbol::FromName("_ZN15CBaseFileSystem9FixUpPathEPKcPci");
 
+	typedef FileHandle_t (*CBaseFileSystem_OpenForRead)(void* filesystem, const char *pFileNameT, const char *pOptions, unsigned flags, const char *pathID, char **ppszResolvedFilename);
+	const Symbol CBaseFileSystem_OpenForReadSym = Symbol::FromName("_ZN15CBaseFileSystem11OpenForReadEPKcS1_jS1_PPc");
+
 	//---------------------------------------------------------------------------------
 	// Purpose: concommand Symbols
 	//---------------------------------------------------------------------------------
