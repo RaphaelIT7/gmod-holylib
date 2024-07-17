@@ -592,7 +592,6 @@ const char* hook_CBaseFileSystem_FindNext(CBaseFileSystem* filesystem, FileFindH
 	if (!ret || !holylib_filesystem_searchcache.GetBool())
 		return ret;
 
-	CBaseFileSystem::FindData_t* data = &filesystem->m_FindData[pHandle];
 	AddFileToSearchCache(ret, data->m_CurrentStoreID);
 }
 
