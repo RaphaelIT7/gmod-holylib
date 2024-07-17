@@ -574,12 +574,16 @@ long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char *pFile
 Detouring::Hook detour_CBaseFileSystem_FindNextFileHelper;
 bool hook_CBaseFileSystem_FindNextFileHelper(CBaseFileSystem* filesystem, CBaseFileSystem::FindData_t* data, int *pFoundStoreID)
 {
+	Msg("Dir: %s\n", data->findData.cBaseDir);
+	Msg("Name: %s\n", data->findData.cFileName);
 	AddFileToSearchCache(data->findData.cFileName, data->m_CurrentStoreID);
 
 	bool found = detour_CBaseFileSystem_FindNextFileHelper.GetTrampoline<Symbols::CBaseFileSystem_FindNextFileHelper>()(filesystem, data, pFoundStoreID);
 	if (!found || !holylib_filesystem_searchcache.GetBool())
 		return found;
 
+	Msg("New Dir: %s\n", data->findData.cBaseDir);
+	Msg("New Name: %s\n", data->findData.cFileName);
 	AddFileToSearchCache(data->findData.cFileName, data->m_CurrentStoreID);
 
 	return true;
