@@ -101,6 +101,9 @@ std::map<int, std::string> CallFinish_strs;
 Detouring::Hook detour_CLuaGamemode_CallFinish;
 void* hook_CLuaGamemode_CallFinish(void* funky_srv, int pool)
 {
+	if (!g_Lua)
+		return detour_CLuaGamemode_CallFinish.GetTrampoline<Symbols::CLuaGamemode_CallFinish>()(funky_srv, pool);
+
 	if (CallFinish_strs.find(pool) == CallFinish_strs.end())
 	{
 		CallFinish_strs[pool] = "CLuaGamemode::CallFinish (" + (std::string)g_Lua->GetPooledString(pool) + ")";
@@ -115,6 +118,9 @@ std::map<int, std::string> CallWithArgs_strs;
 Detouring::Hook detour_CLuaGamemode_CallWithArgs;
 void* hook_CLuaGamemode_CallWithArgs(void* funky_srv, int pool)
 {
+	if (!g_Lua)
+		return detour_CLuaGamemode_CallWithArgs.GetTrampoline<Symbols::CLuaGamemode_CallWithArgs>()(funky_srv, pool);
+
 	if (CallWithArgs_strs.find(pool) == CallWithArgs_strs.end())
 	{
 		CallWithArgs_strs[pool] = "CLuaGamemode::CallWithArgs (" + (std::string)g_Lua->GetPooledString(pool) + ")";
@@ -129,6 +135,9 @@ std::map<int, std::string> Call_strs;
 Detouring::Hook detour_CLuaGamemode_Call;
 void* hook_CLuaGamemode_Call(void* funky_srv, int pool)
 {
+	if (!g_Lua)
+		return detour_CLuaGamemode_Call.GetTrampoline<Symbols::CLuaGamemode_Call>()(funky_srv, pool);
+
 	if (Call_strs.find(pool) == Call_strs.end())
 	{
 		Call_strs[pool] = "CLuaGamemode::Call (" + (std::string)g_Lua->GetPooledString(pool) + ")";
