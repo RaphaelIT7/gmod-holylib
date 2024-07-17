@@ -150,10 +150,10 @@ long hook_CBaseFileSystem_FastFileTime(void* filesystem, const CSearchPath* path
 }
 
 bool is_file(const char *path) {
-    const char *last_slash = strrchr(path, '/');
-    const char *last_dot = strrchr(path, '.');
+	const char *last_slash = strrchr(path, '/');
+	const char *last_dot = strrchr(path, '.');
 
-    return last_dot != NULL && (last_slash == NULL || last_dot > last_slash);
+	return last_dot != NULL && (last_slash == NULL || last_dot > last_slash);
 }
 
 Detouring::Hook detour_CBaseFileSystem_IsDirectory;
@@ -203,26 +203,26 @@ bool hook_CBaseFileSystem_FixUpPath(IFileSystem* filesystem, const char *pFileNa
 				V_strlower( &pFixedUpFileName[pBaseLength-1] );
 			}
 		}
-	    
+		
 	}
 
 	return true;
 }
 
 std::string nukeFileExtension(const std::string& fileName) {
-    size_t lastDotPos = fileName.find_last_of('.');
-    if (lastDotPos == std::string::npos) 
-        return fileName;
+	size_t lastDotPos = fileName.find_last_of('.');
+	if (lastDotPos == std::string::npos) 
+		return fileName;
 
-    return fileName.substr(0, lastDotPos);
+	return fileName.substr(0, lastDotPos);
 }
 
 std::string getFileExtension(const std::string& fileName) {
-    size_t lastDotPos = fileName.find_last_of('.');
-    if (lastDotPos == std::string::npos || lastDotPos == fileName.length() - 1)
-        return "";
+	size_t lastDotPos = fileName.find_last_of('.');
+	if (lastDotPos == std::string::npos || lastDotPos == fileName.length() - 1)
+		return "";
 
-    return fileName.substr(lastDotPos + 1);
+	return fileName.substr(lastDotPos + 1);
 }
 
 const char* GetOverridePath(const char* pFileName, const char* pathID)
@@ -594,6 +594,15 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
  * GMOD first calls GetFileTime and then OpenForRead, so we need to make changes for lua in GetFileTime.
  */
 
+std::string replaceString(std::string str, const std::string& from, const std::string& to)
+{
+	size_t startPos = str.find(from);
+	if (startPos != std::string::npos)
+		str.replace(startPos, from.length(), to);
+
+	return str;
+}
+
 Detouring::Hook detour_CBaseFileSystem_GetFileTime;
 long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char *pFileName, const char *pPathID)
 {
@@ -607,6 +616,10 @@ long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char *pFile
 
 		pPathID = newPath;
 	}
+
+	std::string strFileName = pFileName; // Workaround for now.
+	strFileName = replaceString(strFileName, "sandbox/gamemode/spawnmenu/sandbox/gamemode/spawnmenu/controls", "sandbox/gamemode/spawnmenu/controls");
+	pFileName = strFileName.c_str();
 
 	if (holylib_filesystem_forcepath.GetBool())
 	{
@@ -759,9 +772,9 @@ void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const char *pPa
 
 std::string getVPKFile(const std::string& fileName) {
 	size_t lastThingyPos = fileName.find_last_of('/');
-    size_t lastDotPos = fileName.find_last_of('.');
+	size_t lastDotPos = fileName.find_last_of('.');
 
-    return fileName.substr(lastThingyPos + 1, lastDotPos - lastThingyPos - 1);
+	return fileName.substr(lastThingyPos + 1, lastDotPos - lastThingyPos - 1);
 }
 
 Detouring::Hook detour_CBaseFileSystem_AddVPKFile;
