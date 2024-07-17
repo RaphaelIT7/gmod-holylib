@@ -574,7 +574,7 @@ long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char *pFile
 CUtlSymbolTableMT* g_pPathIDTable;
 inline const char* CSearchPath::GetPathString() const
 {
-	return g_pPathIDTable->String( m_Path );
+	return (*g_pPathIDTable).String( m_Path );
 }
 
 Detouring::Hook detour_CBaseFileSystem_FindNextFileHelper;
