@@ -20,10 +20,10 @@ ConVar sourcetv_allownetworking("holylib_sourcetv_allownetworking", "0", 0, "All
 CSourceTVLibModule g_pSourceTVLibModule;
 IModule* pSourceTVLibModule = &g_pSourceTVLibModule;
 
-CBaseServer** hltv;
+CBaseServer* hltv;
 LUA_FUNCTION_STATIC(sourcetv_IsActive)
 {
-	LUA->PushBool((*hltv)->IsActive());
+	LUA->PushBool(hltv->IsActive());
 	
 	return 1;
 }
@@ -55,7 +55,7 @@ void CSourceTVLibModule::InitDetour(bool bPreServer)
 	if ( bPreServer ) { return; }
 
 	SourceSDK::FactoryLoader engine_loader("engine_srv");
-	hltv = ResolveSymbol<CBaseServer*>(engine_loader, Symbols::hltvSym);
+	hltv = ResolveSymbol<CBaseServer>(engine_loader, Symbols::hltvSym);
 	Detour::CheckValue("get class", "hltv", hltv != NULL);
 }
 
