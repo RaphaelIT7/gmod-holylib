@@ -701,7 +701,7 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 
 	SourceSDK::FactoryLoader dedicated_factory("dedicated_srv");
 	g_pPathIDTable = ResolveSymbol<CUtlSymbolTableMT>(dedicated_factory, Symbols::g_PathIDTableSym);
-	Detour::CheckValue("get class", "g_PathIDTable", g_PathIDTable != NULL);
+	Detour::CheckValue("get class", "g_PathIDTable", g_pPathIDTable != NULL);
 }
 
 void CFileSystemModule::Think(bool simulating)
