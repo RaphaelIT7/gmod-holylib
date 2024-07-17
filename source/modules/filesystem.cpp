@@ -580,6 +580,7 @@ inline const char* CSearchPath::GetPathString() const
 Detouring::Hook detour_CBaseFileSystem_FindNextFileHelper;
 bool hook_CBaseFileSystem_FindNextFileHelper(CBaseFileSystem* filesystem, CBaseFileSystem::FindData_t* data, int *pFoundStoreID)
 {
+	Msg("Wildcard: %s\n", data->wildCardString.Base());
 	Msg("Dir: %s\n", data->findData.cBaseDir);
 	Msg("Name: %s\n", data->findData.cFileName);
 	CSearchPath* path = func_CBaseFileSystem_FindSearchPathByStoreId(filesystem, data->m_CurrentStoreID);
@@ -606,9 +607,12 @@ bool hook_CBaseFileSystem_FindNextFileHelper(CBaseFileSystem* filesystem, CBaseF
 	if (path3)
 		Msg("Path dir: %s\n", path3->GetPathString());
 
-	CSearchPath* path2 = func_CBaseFileSystem_FindSearchPathByStoreId(filesystem, *pFoundStoreID);
-	if (path2)
-		Msg("(Found) Path dir: %s\n", path2->GetPathString());
+	if (pFoundStoreID != 0)
+	{
+		CSearchPath* path2 = func_CBaseFileSystem_FindSearchPathByStoreId(filesystem, *pFoundStoreID);
+		if (path2)
+			Msg("(Found) Path dir: %s\n", path2->GetPathString());
+	}
 
 	AddFileToSearchCache(data->findData.cFileName, data->m_CurrentStoreID);
 
