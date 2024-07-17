@@ -743,7 +743,7 @@ void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const char *pPa
 		if (filesystem->IsDirectory((strPath + "/vgui").c_str()))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_VGUI", addType);
 
-		if (filesystem->IsDirectory((strPath + "/postprogress").c_str()))
+		if (filesystem->IsDirectory((strPath + "/postprocess").c_str()))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_POSTPROCESS", addType);
 
 		if (filesystem->IsDirectory((strPath + "/matproxy").c_str()))
