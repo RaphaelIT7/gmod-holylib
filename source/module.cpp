@@ -27,7 +27,7 @@ void CModule::SetModule(IModule* module)
 	m_pModule = module;
 	m_strName = "holylib_enable_";
 	m_strName = m_strName + module->Name();
-	m_pCVar = new ConVar(m_strName.c_str(), "1", 0, "Whether this module should be active or not", OnModuleConVarChange);
+	m_pCVar = new ConVar(m_strName.c_str(), "1", FCVAR_ARCHIVE, "Whether this module should be active or not", OnModuleConVarChange);
 	m_bEnabled = true;
 }
 
@@ -80,6 +80,7 @@ CModuleManager::CModuleManager() // ToDo: Look into how IGameSystem works and us
 	RegisterModule(pUtilModule);
 	RegisterModule(pConCommandModule);
 	RegisterModule(pVProfModule);
+	RegisterModule(pCVarsModule);
 }
 
 int g_pIDs = 0;

@@ -306,6 +306,14 @@ If enabled, vprof results will be dumped into a file in the vprof/ folder
 Sets the value of `sv_stressbots`.  
 `sv_stressbots` is a hidden convar which is very useful for performance tests with bots.  
 
+### cvars
+This module adds one function to the `cvars` library.  
+
+#### Functions
+
+##### table cvars.GetAll()
+Returns a sequential table with all ConVar's that exist.  
+
 # Unfinished Modules
 
 ## serverplugins
@@ -337,6 +345,7 @@ It now throws a warning instead of crashing -> https://github.com/Facepunch/garr
 `HolyLib.Reconnect(ply)` -> https://github.com/Facepunch/garrysmod-requests/issues/2089  
 `concommand` module -> https://github.com/Facepunch/garrysmod-requests/issues/1534  
 `vprof` module -> https://github.com/Facepunch/garrysmod-requests/issues/2374  
+`cvars.GetAll` -> https://github.com/Facepunch/garrysmod-requests/issues/341  
 
 # Things planned to add:
 https://github.com/Facepunch/garrysmod-requests/issues/1884  
@@ -346,7 +355,6 @@ https://github.com/Facepunch/garrysmod-requests/issues/2237
 https://github.com/Facepunch/garrysmod-requests/issues/77  
 (Maybe)https://github.com/Facepunch/garrysmod-requests/issues/603  
 https://github.com/Facepunch/garrysmod-requests/issues/439  
-https://github.com/Facepunch/garrysmod-requests/issues/341  
 https://github.com/Facepunch/garrysmod-requests/issues/140  
 https://github.com/Facepunch/garrysmod-requests/issues/1323  
 (Should be possible?)https://github.com/Facepunch/garrysmod-requests/issues/756  

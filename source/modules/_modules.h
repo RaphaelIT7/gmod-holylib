@@ -13,3 +13,4 @@ extern IModule* pFileSystemModule;
 extern IModule* pUtilModule;
 extern IModule* pConCommandModule;
 extern IModule* pVProfModule;
+extern IModule* pCVarsModule;
