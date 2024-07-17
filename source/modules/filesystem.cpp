@@ -27,8 +27,10 @@ ConVar holylib_filesystem_searchcache("holylib_filesystem_searchcache", "1", 0,
 	"If enabled, it will cache the search path a file was located in and if the same file is requested, it will use that search path directly.");
 ConVar holylib_filesystem_optimizedfixpath("holylib_filesystem_optimizedfixpath", "1", 0, 
 	"If enabled, it will optimize CBaseFilesystem::FixUpPath by caching the BASE_PATH search cache.");
-ConVar holylib_filesystem_optimizediterator("holylib_filesystem_optimizediterator", "1", 0, 
-	"If enabled, it will optimize the SearchPath iterator.");
+ConVar holylib_filesystem_earlysearchcache("holylib_filesystem_earlysearchcache", "1", 0, 
+	"If enabled, it will check early in CBaseFilesystem::OpenForRead if the file is in the search cache.");
+ConVar holylib_filesystem_forcepath("holylib_filesystem_forcepath", "1", 0, 
+	"If enabled, it will change the paths of some specific files");
 
 ConVar holylib_filesystem_debug("holylib_filesystem_debug", "0", 0, 
 	"If enabled, it will show any change to the search cache.");
@@ -190,10 +192,37 @@ bool hook_CBaseFileSystem_FixUpPath(IFileSystem* filesystem, const char *pFileNa
 	return true;
 }
 
+std::unordered_map<std::string, std::string> g_pOverridePaths;
 Detouring::Hook detour_CBaseFileSystem_OpenForRead;
 FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const char *pFileNameT, const char *pOptions, unsigned flags, const char *pathID, char **ppszResolvedFilename)
 {
-	if (!holylib_filesystem_optimizediterator.GetBool())
+	if (holylib_filesystem_forcepath.GetBool())
+	{
+		const char* newPath = NULL;
+		std::string strFileName = pFileNameT;
+
+		auto it = g_pOverridePaths.find(strFileName);
+		if (it != g_pOverridePaths.end())
+			newPath = it->second.c_str();
+
+		if (!newPath && strFileName.rfind("gamemodes/base") == 0)
+			newPath = "MOD_WRITE";
+
+		if (newPath)
+		{
+			FileHandle_t handle = detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
+			if (handle)
+				return handle;
+			else
+				if (holylib_filesystem_debug.GetBool())
+					Msg("OpenForRead: Failed to find file in forced path! (%s, %s, %s)\n", pFileNameT, pathID, newPath);
+		} else {
+			if (holylib_filesystem_debug.GetBool())
+				Msg("OpenForRead: Failed to find file in overridePaths! (%s, %s)\n", pFileNameT, pathID);
+		}
+	}
+
+	if (!holylib_filesystem_earlysearchcache.GetBool())
 		return detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
 
 	char pFileNameBuff[MAX_PATH];
@@ -204,6 +233,8 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 	if ( V_IsAbsolutePath( pFileName ) )
 		return detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
 
+	// So we now got the issue that CBaseFileSystem::CSearchPathsIterator::CSearchPathsIterator is way too slow.
+	// so we need to skip it. We do this by checking if we got the file in the search cache before we call the OpenForRead function.
 	CSearchPath* cachePath = GetPathFromSearchCache(pFileName);
 	if (cachePath)
 	{
@@ -408,6 +439,34 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 
 void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
+	// We use MOD_WRITE because it doesn't have additional junk search paths.
+	g_pOverridePaths["cfg/server.cfg"] = "MOD_WRITE";
+	g_pOverridePaths["cfg/banned_ip.cfg"] = "MOD_WRITE";
+	g_pOverridePaths["cfg/banned_user.cfg"] = "MOD_WRITE";
+	g_pOverridePaths["cfg/skill2.cfg"] = "MOD_WRITE";
+	g_pOverridePaths["cfg/game.cfg"] = "MOD_WRITE";
+	g_pOverridePaths["cfg/trusted_keys_base.txt"] = "MOD_WRITE";
+	g_pOverridePaths["cfg/pure_server_minimal.txt"] = "MOD_WRITE";
+	g_pOverridePaths["cfg/skill_manifest.cfg"] = "MOD_WRITE";
+	g_pOverridePaths["cfg/skill.cfg"] = "MOD_WRITE";
+	g_pOverridePaths["cfg/mapcycle.txt"] = "MOD_WRITE";
+
+	g_pOverridePaths["stale.txt"] = "MOD_WRITE";
+	g_pOverridePaths["garrysmod.ver"] = "MOD_WRITE";
+	g_pOverridePaths["scripts/actbusy.txt"] = "MOD_WRITE";
+	g_pOverridePaths["modelsounds.cache"] = "MOD_WRITE";
+
+	g_pOverridePaths["resource/serverevents.res"] = "MOD_WRITE";
+	g_pOverridePaths["resource/gameevents.res"] = "MOD_WRITE";
+	g_pOverridePaths["resource/modevents.res"] = "MOD_WRITE";
+	g_pOverridePaths["resource/hltvevents.res"] = "MOD_WRITE";
+
+	//g_pOverridePaths["scripts/voicecommands.txt"] = "MOD_WRITE";
+	//g_pOverridePaths["scripts/propdata.txt"] = "MOD_WRITE";
+	//g_pOverridePaths["scripts/propdata/base.txt"] = "MOD_WRITE";
+	//g_pOverridePaths["scripts/propdata/cs.txt"] = "MOD_WRITE";
+	//g_pOverridePaths["scripts/propdata/l4d.txt"] = "MOD_WRITE";
+	//g_pOverridePaths["scripts/propdata/phx.txt"] = "MOD_WRITE";
 }
 
 void CFileSystemModule::LuaInit(bool bServerInit)
