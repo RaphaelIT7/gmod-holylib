@@ -87,10 +87,12 @@ FileHandle_t* hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, CFileO
 	if (!g_pFullFileSystem)
 		g_pFullFileSystem = (IFileSystem*)filesystem;
 
+	VPROF_BUDGET("HolyLib - CBaseFileSystem::FindFile", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
+
 	CSearchPath* cachePath = GetPathFromSearchCache(openInfo.m_pFileName);
 	if (cachePath)
 	{
-		VPROF_BUDGET("HolyLib::FileSystem::Cache-CBaseFileSystem::FindFile", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
+		VPROF_BUDGET("HolyLib - CBaseFileSystem::FindFile - Cache", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
 		const CSearchPath* origPath = openInfo.m_pSearchPath;
 		openInfo.m_pSearchPath = cachePath;
@@ -122,10 +124,12 @@ long hook_CBaseFileSystem_FastFileTime(void* filesystem, const CSearchPath* path
 	if (!g_pFullFileSystem)
 		g_pFullFileSystem = (IFileSystem*)filesystem;
 
+	VPROF_BUDGET("HolyLib - CBaseFileSystem::FastFileTime", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
+
 	CSearchPath* cachePath = GetPathFromSearchCache(pFileName);
 	if (cachePath)
 	{
-		VPROF_BUDGET("HolyLib::FileSystem::Cache-CBaseFileSystem::FastFileTime", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
+		VPROF_BUDGET("HolyLib - CBaseFileSystem::FastFileTime - Cache", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
 		long time = detour_CBaseFileSystem_FastFileTime.GetTrampoline<Symbols::CBaseFileSystem_FastFileTime>()(filesystem, cachePath, pFileName);
 		if (time != 0L)
@@ -275,6 +279,8 @@ std::unordered_map<std::string, std::string> g_pOverridePaths;
 Detouring::Hook detour_CBaseFileSystem_OpenForRead;
 FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const char *pFileNameT, const char *pOptions, unsigned flags, const char *pathID, char **ppszResolvedFilename)
 {
+	VPROF_BUDGET("HolyLib - CBaseFileSystem::OpenForRead", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
+
 	char pFileNameBuff[MAX_PATH];
 	const char *pFileName = pFileNameBuff;
 
@@ -570,6 +576,8 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 Detouring::Hook detour_CBaseFileSystem_GetFileTime;
 long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char *pFileName, const char *pPathID)
 {
+	VPROF_BUDGET("HolyLib - CBaseFileSystem::GetFileTime", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
+
 	const char* newPath = GetOverridePath(pFileName, pPathID);
 	if (newPath)
 	{
@@ -653,6 +661,8 @@ long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char *pFile
 Detouring::Hook detour_CBaseFileSystem_AddSearchPath;
 void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const char *pPath, const char *pathID, SearchPathAdd_t addType)
 {
+	VPROF_BUDGET("HolyLib - CBaseFileSystem::AddSearchPath", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
+
 	detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, pathID, addType);
 
 	std::string strPath = pPath;
@@ -713,6 +723,8 @@ std::string getVPKFile(const std::string& fileName) {
 Detouring::Hook detour_CBaseFileSystem_AddVPKFile;
 void hook_CBaseFileSystem_AddVPKFile(IFileSystem* filesystem, const char *pPath, const char *pathID, SearchPathAdd_t addType)
 {
+	VPROF_BUDGET("HolyLib - CBaseFileSystem::AddVPKFile", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
+
 	detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, pathID, addType);
 
 	if (V_stricmp(pathID, "GAME") == 0)
