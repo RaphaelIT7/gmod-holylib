@@ -751,8 +751,8 @@ void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const char *pPa
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_AUTORUN", addType);
 	}
 
-
-	Msg("Added Searchpath: %s %s %i\n", pPath, pathID, (int)addType);
+	if (holylib_filesystem_debug.GetBool())
+		Msg("Added Searchpath: %s %s %i\n", pPath, pathID, (int)addType);
 }
 
 std::string getVPKFile(const std::string& fileName) {
@@ -804,7 +804,9 @@ void hook_CBaseFileSystem_AddVPKFile(IFileSystem* filesystem, const char *pPath,
 	
 		filesystem->RemoveSearchPath(pPath, vpkPath.c_str());
 	}
-	Msg("Added vpk: %s %s %i\n", pPath, pathID, (int)addType);
+
+	if (holylib_filesystem_debug.GetBool())
+		Msg("Added vpk: %s %s %i\n", pPath, pathID, (int)addType);
 }
 
 void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
