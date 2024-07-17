@@ -245,6 +245,12 @@ const char* GetOverridePath(const char* pFileName, const char* pathID)
 	if (strFileName.rfind("scripts/") == 0)
 		return "CONTENT_SCRIPTS";
 
+	if (strFileName.rfind("cfg/") == 0)
+		return "CONTENT_CONFIGS";
+
+	if (strFileName.rfind("gamemodes/") == 0)
+		return "LUA_GAMEMODES";
+
 	return NULL;
 }
 std::unordered_map<std::string, std::string> g_pOverridePaths;
@@ -651,6 +657,12 @@ void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const char *pPa
 
 		if (filesystem->IsDirectory((strPath + "/scripts").c_str()))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_SCRIPTS", addType);
+
+		if (filesystem->IsDirectory((strPath + "/cfg").c_str()))
+			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_CONFIGS", addType);
+
+		if (filesystem->IsDirectory((strPath + "/gamemodes").c_str()))
+			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_GAMEMODES", addType);
 	}
 	Msg("Added Searchpath: %s %s %i\n", pPath, pathID, (int)addType);
 }
@@ -690,6 +702,12 @@ void hook_CBaseFileSystem_AddVPKFile(IFileSystem* filesystem, const char *pPath,
 
 		if (filesystem->IsDirectory("scripts/"), vpkPath.c_str())
 			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_SCRIPTS", addType);
+
+		if (filesystem->IsDirectory("cfg/"), vpkPath.c_str())
+			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_CONFIGS", addType);
+
+		if (filesystem->IsDirectory("gamemodes/"), vpkPath.c_str())
+			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "LUA_GAMEMODES", addType);
 	
 		filesystem->RemoveSearchPath(pPath, vpkPath.c_str());
 	}
