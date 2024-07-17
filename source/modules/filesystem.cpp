@@ -251,6 +251,24 @@ const char* GetOverridePath(const char* pFileName, const char* pathID)
 	if (strFileName.rfind("gamemodes/") == 0)
 		return "LUA_GAMEMODES";
 
+	if (strFileName.rfind("lua/includes/") == 0)
+		return "LUA_INCLUDES";
+
+	if (V_stricmp(pathID, "lsv") == 0)
+	{
+		if (strFileName.rfind("sandbox/") == 0)
+			return "LUA_GAMEMODE_SANDBOX";
+
+		if (strFileName.rfind("effects/") == 0)
+			return "LUA_EFFECTS";
+
+		if (strFileName.rfind("entities/") == 0)
+			return "LUA_ENTITIES";
+
+		if (strFileName.rfind("weapons/") == 0)
+			return "LUA_WEAPONS";
+	}
+
 	return NULL;
 }
 std::unordered_map<std::string, std::string> g_pOverridePaths;
@@ -637,9 +655,9 @@ void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const char *pPa
 {
 	detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, pathID, addType);
 
+	std::string strPath = pPath;
 	if (V_stricmp(pathID, "GAME") == 0)
 	{
-		std::string strPath = pPath;
 		if (filesystem->IsDirectory((strPath + "/materials").c_str()))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_MATERIALS", addType);
 
@@ -663,7 +681,25 @@ void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const char *pPa
 
 		if (filesystem->IsDirectory((strPath + "/gamemodes").c_str()))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_GAMEMODES", addType);
+
+		if (filesystem->IsDirectory((strPath + "/lua/includes").c_str()))
+			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_INCLUDES", addType);
+	} else if(V_stricmp(pathID, "lsv") == 0)
+	{
+		if (filesystem->IsDirectory((strPath + "/sandbox").c_str()))
+			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_GAMEMODE_SANDBOX", addType);
+
+		if (filesystem->IsDirectory((strPath + "/effects").c_str()))
+			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_EFFECTS", addType);
+	
+		if (filesystem->IsDirectory((strPath + "/entities").c_str()))
+			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_ENTITIES", addType);
+
+		if (filesystem->IsDirectory((strPath + "/weapons").c_str()))
+			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_WEAPONS", addType);
 	}
+
+
 	Msg("Added Searchpath: %s %s %i\n", pPath, pathID, (int)addType);
 }
 
@@ -708,6 +744,9 @@ void hook_CBaseFileSystem_AddVPKFile(IFileSystem* filesystem, const char *pPath,
 
 		if (filesystem->IsDirectory("gamemodes/"), vpkPath.c_str())
 			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "LUA_GAMEMODES", addType);
+
+		if (filesystem->IsDirectory("lua/includes/"), vpkPath.c_str())
+			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "LUA_INCLUDES", addType);
 	
 		filesystem->RemoveSearchPath(pPath, vpkPath.c_str());
 	}
