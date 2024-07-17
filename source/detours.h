@@ -140,10 +140,8 @@ namespace Symbols
 	typedef long (*CBaseFileSystem_GetFileTime)(void* filesystem, const char *pFileName, const char *pPathID);
 	const Symbol CBaseFileSystem_GetFileTimeSym = Symbol::FromName("_ZN15CBaseFileSystem11GetFileTimeEPKcS1_");
 
-	typedef bool (*CBaseFileSystem_FindNextFileHelper)(void* filesystem, void *, int *);
-	const Symbol CBaseFileSystem_FindNextFileHelperSym = Symbol::FromName("_ZN15CBaseFileSystem18FindNextFileHelperEPNS_10FindData_tEPi");
-
-	const Symbol g_PathIDTableSym = Symbol::FromName("g_PathIDTable");
+	typedef void (*CBaseFileSystem_AddSearchPath)(void* filesystem, const char *pPath, const char *pathID, SearchPathAdd_t addType);
+	const Symbol CBaseFileSystem_AddSearchPathSym = Symbol::FromName("_ZN15CBaseFileSystem13AddSearchPathEPKcS1_j");
 
 	//---------------------------------------------------------------------------------
 	// Purpose: concommand Symbols

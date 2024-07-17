@@ -82,6 +82,9 @@ FileHandle_t* hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, CFileO
 	if (!holylib_filesystem_searchcache.GetBool())
 		return detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
 
+	if (!g_pFullFileSystem)
+		g_pFullFileSystem = (IFileSystem*)filesystem;
+
 	CSearchPath* cachePath = GetPathFromSearchCache(openInfo.m_pFileName);
 	if (cachePath)
 	{
@@ -113,6 +116,9 @@ long hook_CBaseFileSystem_FastFileTime(void* filesystem, const CSearchPath* path
 {
 	if (!holylib_filesystem_searchcache.GetBool())
 		return detour_CBaseFileSystem_FastFileTime.GetTrampoline<Symbols::CBaseFileSystem_FastFileTime>()(filesystem, path, pFileName);
+
+	if (!g_pFullFileSystem)
+		g_pFullFileSystem = (IFileSystem*)filesystem;
 
 	CSearchPath* cachePath = GetPathFromSearchCache(pFileName);
 	if (cachePath)
@@ -162,6 +168,9 @@ bool hook_CBaseFileSystem_FixUpPath(IFileSystem* filesystem, const char *pFileNa
 		return detour_CBaseFileSystem_FixUpPath.GetTrampoline<Symbols::CBaseFileSystem_FixUpPath>()(filesystem, pFileName, pFixedUpFileName, sizeFixedUpFileName);
 
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::FixUpPath", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
+
+	if (!g_pFullFileSystem)
+		g_pFullFileSystem = (IFileSystem*)filesystem;
 
 	V_strncpy( pFixedUpFileName, pFileName, sizeFixedUpFileName );
 	V_FixSlashes( pFixedUpFileName, CORRECT_PATH_SEPARATOR );
@@ -571,54 +580,11 @@ long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char *pFile
 	return detour_CBaseFileSystem_GetFileTime.GetTrampoline<Symbols::CBaseFileSystem_GetFileTime>()(filesystem, pFileName, pPathID);
 }
 
-CUtlSymbolTableMT* g_pPathIDTable;
-inline const char* CSearchPath::GetPathString() const
+Detouring::Hook detour_CBaseFileSystem_AddSearchPath;
+void hook_CBaseFileSystem_AddSearchPath(void* filesystem, const char *pPath, const char *pathID, SearchPathAdd_t addType)
 {
-	return (*g_pPathIDTable).String( m_Path );
-}
-
-Detouring::Hook detour_CBaseFileSystem_FindNextFileHelper;
-bool hook_CBaseFileSystem_FindNextFileHelper(CBaseFileSystem* filesystem, CBaseFileSystem::FindData_t* data, int *pFoundStoreID)
-{
-	Msg("Wildcard: %s\n", data->wildCardString.Base());
-	Msg("Dir: %s\n", data->findData.cBaseDir);
-	Msg("Name: %s\n", data->findData.cFileName);
-	Msg("ID: %i\n", data->m_CurrentStoreID);
-	CSearchPath* path = func_CBaseFileSystem_FindSearchPathByStoreId(filesystem, data->m_CurrentStoreID);
-	if (path)
-		Msg("Path dir: %s\n", path->GetPathString());
-	std::string filePath = data->findData.cFileName;
-	/*if (strlen(data->findData.cBaseDir) > 0)
-		filePath = data->findData.cBaseDir + (std::string)"/" + filePath;
-	else {
-		CSearchPath* path = func_CBaseFileSystem_FindSearchPathByStoreId(filesystem, data->m_CurrentStoreID);
-		path->GetPathString()
-	}*/
-
-
-	AddFileToSearchCache(data->findData.cFileName, data->m_CurrentStoreID);
-
-	bool found = detour_CBaseFileSystem_FindNextFileHelper.GetTrampoline<Symbols::CBaseFileSystem_FindNextFileHelper>()(filesystem, data, pFoundStoreID);
-	if (!found || !holylib_filesystem_searchcache.GetBool())
-		return found;
-
-	Msg("New Dir: %s\n", data->findData.cBaseDir);
-	Msg("New Name: %s\n", data->findData.cFileName);
-	Msg("New ID: %i\n", data->m_CurrentStoreID);
-	CSearchPath* path3 = func_CBaseFileSystem_FindSearchPathByStoreId(filesystem, data->m_CurrentStoreID);
-	if (path3)
-		Msg("Path dir: %s\n", path3->GetPathString());
-
-	if (pFoundStoreID != 0)
-	{
-		CSearchPath* path2 = func_CBaseFileSystem_FindSearchPathByStoreId(filesystem, *pFoundStoreID);
-		if (path2)
-			Msg("(Found) Path dir: %s\n", path2->GetPathString());
-	}
-
-	AddFileToSearchCache(data->findData.cFileName, data->m_CurrentStoreID);
-
-	return true;
+	detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, pathID, addType);
+	Msg("Added Searchpath: %s %s %i\n", pPath, pathID, (int)addType);
 }
 
 void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
@@ -667,7 +633,7 @@ void CFileSystemModule::LuaShutdown()
 
 void CFileSystemModule::InitDetour(bool bPreServer)
 {
-	if ( bPreServer ) { return; }
+	if ( !bPreServer ) { return; }
 
 	SourceSDK::ModuleLoader dedicated_loader("dedicated_srv");
 	Detour::Create(
@@ -707,17 +673,13 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 	);
 
 	Detour::Create(
-		&detour_CBaseFileSystem_FindNextFileHelper, "CBaseFileSystem::FindNextFileHelper",
-		dedicated_loader.GetModule(), Symbols::CBaseFileSystem_FindNextFileHelperSym,
-		(void*)hook_CBaseFileSystem_FindNextFileHelper, m_pID
+		&detour_CBaseFileSystem_AddSearchPath, "CBaseFileSystem::AddSearchPath",
+		dedicated_loader.GetModule(), Symbols::CBaseFileSystem_AddSearchPathSym,
+		(void*)hook_CBaseFileSystem_AddSearchPath, m_pID
 	);
 
 	func_CBaseFileSystem_FindSearchPathByStoreId = (Symbols::CBaseFileSystem_FindSearchPathByStoreId)Detour::GetFunction(dedicated_loader.GetModule(), Symbols::CBaseFileSystem_FindSearchPathByStoreIdSym);
 	Detour::CheckFunction(func_CBaseFileSystem_FindSearchPathByStoreId, "CBaseFileSystem::FindSearchPathByStoreId");
-
-	SourceSDK::FactoryLoader dedicated_factory("dedicated_srv");
-	g_pPathIDTable = ResolveSymbol<CUtlSymbolTableMT>(dedicated_factory, Symbols::g_PathIDTableSym);
-	Detour::CheckValue("get class", "g_PathIDTable", g_pPathIDTable != NULL);
 }
 
 void CFileSystemModule::Think(bool simulating)
