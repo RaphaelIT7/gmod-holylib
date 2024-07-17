@@ -220,20 +220,19 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 		if (it != g_pOverridePaths.end())
 			newPath = it->second.c_str();
 
-		if (!newPath && strFileName.rfind("gamemodes/base") == 0)
-			newPath = "MOD_WRITE";
-
 		if (newPath)
 		{
 			FileHandle_t handle = detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
-			if (handle)
+			if (handle) {
+				if (holylib_filesystem_debug.GetBool())
+					Msg("OpenForRead: Found file in forced path! (%s, %s, %s)\n", pFileNameT, pathID, newPath);
 				return handle;
-			else
+			} else
 				if (holylib_filesystem_debug.GetBool())
 					Msg("OpenForRead: Failed to find file in forced path! (%s, %s, %s)\n", pFileNameT, pathID, newPath);
 		} else {
 			if (holylib_filesystem_debug.GetBool())
-				Msg("OpenForRead: Failed to find file in overridePaths! (%s, %s)\n", pFileNameT, pathID);
+				Msg("OpenForRead: File is not in overridePaths (%s, %s)\n", pFileNameT, pathID);
 		}
 	}
 
@@ -247,7 +246,7 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 		if (V_stricmp(extension, "vvd") == 0)
 			isModel = true;
 
-		if (!isModel && (V_stricmp(extension, "dx90.vtx") == 0 || V_stricmp(extension, "vtx") == 0)) // ToDo: find out which one to keep
+		if (!isModel && V_stricmp(extension, "vtx") == 0) // ToDo: find out which one to keep
 			isModel = true;
 
 		if (!isModel && V_stricmp(extension, "phy") == 0)
@@ -263,10 +262,12 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 		{
 			CFileOpenInfo openInfo( filesystem, pFileName, NULL, pOptions, flags, ppszResolvedFilename );
 			openInfo.m_pSearchPath = path;
-			FileHandle_t* file = detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
-			if (file)
+			FileHandle_t* file = hook_CBaseFileSystem_FindFileInSearchPath(filesystem, openInfo);
+			if (file) {
+				if (holylib_filesystem_debug.GetBool())
+					Msg("OpenForRead: Found file in predicted path! (%s, %s)\n", pFileNameT, pathID);
 				return file;
-			else
+			} else
 				if (holylib_filesystem_debug.GetBool())
 					Msg("OpenForRead: Failed to predict file path! (%s, %s)\n", pFileNameT, pathID);
 		} else {
@@ -485,6 +486,84 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 	return ( FileHandle_t )0;*/
 }
 
+/*
+ * GMOD first calls GetFileTime and then OpenForRead, so we need to make changes for lua in GetFileTime.
+ */
+
+Detouring::Hook detour_CBaseFileSystem_GetFileTime;
+long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char *pFileName, const char *pPathID)
+{
+	if (holylib_filesystem_forcepath.GetBool())
+	{
+		const char* newPath = NULL;
+		std::string strFileName = pFileName;
+
+		if (!newPath && strFileName.rfind("gamemodes/base") == 0)
+			newPath = "MOD_WRITE";
+
+		if (!newPath && strFileName.rfind("gamemodes/sandbox") == 0)
+			newPath = "MOD_WRITE";
+
+		if (!newPath && strFileName.rfind("gamemodes/terrortown") == 0)
+			newPath = "MOD_WRITE";
+
+		if (newPath)
+		{
+			long time = detour_CBaseFileSystem_GetFileTime.GetTrampoline<Symbols::CBaseFileSystem_GetFileTime>()(filesystem, pFileName, pPathID);
+			if (time != 0L) {
+				if (holylib_filesystem_debug.GetBool())
+					Msg("GetFileTime: Found file in forced path! (%s, %s, %s)\n", pFileName, pPathID, newPath);
+				return time;
+			} else
+				if (holylib_filesystem_debug.GetBool())
+					Msg("GetFileTime: Failed to find file in forced path! (%s, %s, %s)\n", pFileName, pPathID, newPath);
+		} else {
+			if (holylib_filesystem_debug.GetBool())
+				Msg("GetFileTime: File is not in overridePaths (%s, %s)\n", pFileName, pPathID);
+		}
+	}
+
+	/*if (holylib_filesystem_predictpath.GetBool())
+	{
+		CSearchPath* path = NULL;
+		std::string strFileName = pFileNameT;
+		const char* extension = V_GetFileExtension(pFileNameT);
+
+		bool isModel = false;
+		if (V_stricmp(extension, "vvd") == 0)
+			isModel = true;
+
+		if (!isModel && V_stricmp(extension, "vtx") == 0) // ToDo: find out which one to keep
+			isModel = true;
+
+		if (!isModel && V_stricmp(extension, "phy") == 0)
+			isModel = true;
+
+		if (isModel)
+		{
+			std::string mdlPath = nukeFileExtension(strFileName) + ".mdl";
+			path = GetPathFromSearchCache(mdlPath.c_str());
+		}
+
+		if (path)
+		{
+			long time = detour_CBaseFileSystem_GetFileTime.GetTrampoline<Symbols::CBaseFileSystem_GetFileTime>()(filesystem, pFileName, pPathID);
+			if (time != 0L) {
+				if (holylib_filesystem_debug.GetBool())
+					Msg("OpenForRead: Found file in predicted path! (%s, %s)\n", pFileName, pPathID);
+				return time;
+			} else
+				if (holylib_filesystem_debug.GetBool())
+					Msg("OpenForRead: Failed to predict file path! (%s, %s)\n", pFileName, pPathID);
+		} else {
+			if (holylib_filesystem_debug.GetBool())
+				Msg("OpenForRead: Not predicting it! (%s, %s, %s)\n", pFileName, pPathID, extension);
+		}
+	}*/
+
+	return detour_CBaseFileSystem_GetFileTime.GetTrampoline<Symbols::CBaseFileSystem_GetFileTime>()(filesystem, pFileName, pPathID);
+}
+
 void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	// We use MOD_WRITE because it doesn't have additional junk search paths.
@@ -562,6 +641,12 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 		&detour_CBaseFileSystem_OpenForRead, "CBaseFileSystem::OpenForRead",
 		dedicated_loader.GetModule(), Symbols::CBaseFileSystem_OpenForReadSym,
 		(void*)hook_CBaseFileSystem_OpenForRead, m_pID
+	);
+
+	Detour::Create(
+		&detour_CBaseFileSystem_GetFileTime, "CBaseFileSystem::GetFileTime",
+		dedicated_loader.GetModule(), Symbols::CBaseFileSystem_GetFileTimeSym,
+		(void*)hook_CBaseFileSystem_GetFileTime, m_pID
 	);
 
 	func_CBaseFileSystem_FindSearchPathByStoreId = (Symbols::CBaseFileSystem_FindSearchPathByStoreId)Detour::GetFunction(dedicated_loader.GetModule(), Symbols::CBaseFileSystem_FindSearchPathByStoreIdSym);
