@@ -70,7 +70,7 @@ CSearchPath* GetPathFromSearchCache(const char* pFileName)
 	return func_CBaseFileSystem_FindSearchPathByStoreId(g_pFullFileSystem, it->second);
 }
 
-void NukeSearchCache()
+void NukeSearchCache() // NOTE: We actually never nuke it :D
 {
 	if (holylib_filesystem_debug.GetBool())
 		Msg("Search cache got nuked\n");
@@ -271,6 +271,27 @@ const char* GetOverridePath(const char* pFileName, const char* pathID)
 
 		if (strFileName.rfind("weapons/") == 0)
 			return "LUA_WEAPONS";
+
+		if (strFileName.rfind("lua/derma/") == 0)
+			return "LUA_DERMA";
+
+		if (strFileName.rfind("lua/drive/") == 0)
+			return "LUA_DRIVE";
+
+		if (strFileName.rfind("lua/entities/") == 0)
+			return "LUA_LUA_ENTITIES";
+
+		if (strFileName.rfind("vgui/") == 0)
+			return "LUA_VGUI";
+
+		if (strFileName.rfind("postprocess/") == 0)
+			return "LUA_POSTPROCESS";
+
+		if (strFileName.rfind("matproxy/") == 0)
+			return "LUA_MATPROXY";
+
+		if (strFileName.rfind("autorun/") == 0)
+			return "LUA_AUTORUN";
 	}
 
 	return NULL;
@@ -707,6 +728,27 @@ void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const char *pPa
 
 		if (filesystem->IsDirectory((strPath + "/weapons").c_str()))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_WEAPONS", addType);
+
+		if (filesystem->IsDirectory((strPath + "/lua/derma").c_str()))
+			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_DERMA", addType);
+
+		if (filesystem->IsDirectory((strPath + "/lua/drive").c_str()))
+			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_DRIVE", addType);
+
+		if (filesystem->IsDirectory((strPath + "/lua/entities").c_str()))
+			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_LUA_ENTITIES", addType);
+
+		if (filesystem->IsDirectory((strPath + "/vgui").c_str()))
+			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_VGUI", addType);
+
+		if (filesystem->IsDirectory((strPath + "/postprogress").c_str()))
+			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_POSTPROCESS", addType);
+
+		if (filesystem->IsDirectory((strPath + "/matproxy").c_str()))
+			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_MATPROXY", addType);
+
+		if (filesystem->IsDirectory((strPath + "/autorun").c_str()))
+			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_AUTORUN", addType);
 	}
 
 
