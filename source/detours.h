@@ -143,6 +143,8 @@ namespace Symbols
 	typedef bool (*CBaseFileSystem_FindNextFileHelper)(void* filesystem, void *, int *);
 	const Symbol CBaseFileSystem_FindNextFileHelperSym = Symbol::FromName("_ZN15CBaseFileSystem18FindNextFileHelperEPNS_10FindData_tEPi");
 
+	const Symbol g_PathIDTableSym = Symbol::FromName("g_PathIDTable");
+
 	//---------------------------------------------------------------------------------
 	// Purpose: concommand Symbols
 	//---------------------------------------------------------------------------------

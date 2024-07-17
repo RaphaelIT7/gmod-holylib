@@ -571,11 +571,27 @@ long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char *pFile
 	return detour_CBaseFileSystem_GetFileTime.GetTrampoline<Symbols::CBaseFileSystem_GetFileTime>()(filesystem, pFileName, pPathID);
 }
 
+CUtlSymbolTableMT* g_pPathIDTable;
+inline const char* CBaseFileSystem::CSearchPath::GetPathString() const
+{
+	return g_PathIDTable->String( m_Path );
+}
+
 Detouring::Hook detour_CBaseFileSystem_FindNextFileHelper;
 bool hook_CBaseFileSystem_FindNextFileHelper(CBaseFileSystem* filesystem, CBaseFileSystem::FindData_t* data, int *pFoundStoreID)
 {
 	Msg("Dir: %s\n", data->findData.cBaseDir);
 	Msg("Name: %s\n", data->findData.cFileName);
+	Msg("Path dir: %s\n", func_CBaseFileSystem_FindSearchPathByStoreId(filesystem, data->m_CurrentStoreID)->GetPathString());
+	std::string filePath = data->findData.cFileName;
+	/*if (strlen(data->findData.cBaseDir) > 0)
+		filePath = data->findData.cBaseDir + (std::string)"/" + filePath;
+	else {
+		CSearchPath* path = func_CBaseFileSystem_FindSearchPathByStoreId(filesystem, data->m_CurrentStoreID);
+		path->GetPathString()
+	}*/
+
+
 	AddFileToSearchCache(data->findData.cFileName, data->m_CurrentStoreID);
 
 	bool found = detour_CBaseFileSystem_FindNextFileHelper.GetTrampoline<Symbols::CBaseFileSystem_FindNextFileHelper>()(filesystem, data, pFoundStoreID);
@@ -682,6 +698,10 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 
 	func_CBaseFileSystem_FindSearchPathByStoreId = (Symbols::CBaseFileSystem_FindSearchPathByStoreId)Detour::GetFunction(dedicated_loader.GetModule(), Symbols::CBaseFileSystem_FindSearchPathByStoreIdSym);
 	Detour::CheckFunction(func_CBaseFileSystem_FindSearchPathByStoreId, "CBaseFileSystem::FindSearchPathByStoreId");
+
+	SourceSDK::FactoryLoader dedicated_factory("dedicated_srv");
+	g_pPathIDTable = ResolveSymbol<CUtlSymbolTableMT>(dedicated_factory, Symbols::g_PathIDTableSym);
+	Detour::CheckValue("get class", "g_PathIDTable", g_PathIDTable != NULL);
 }
 
 void CFileSystemModule::Think(bool simulating)
