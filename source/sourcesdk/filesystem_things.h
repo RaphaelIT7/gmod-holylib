@@ -173,6 +173,7 @@ public:
 	IFileList *GetFilesToUnloadForWhitelistChange( IPureServerWhitelist *pNewWhiteList ) { return NULL; }
 };
 
+class CPackFile;
 class CPackFileHandle;
 class CPackedStoreRefCount;
 class CCompiledKeyValuesReader;
