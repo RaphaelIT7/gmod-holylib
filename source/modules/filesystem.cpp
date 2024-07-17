@@ -655,6 +655,35 @@ void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const char *pPa
 	Msg("Added Searchpath: %s %s %i\n", pPath, pathID, (int)addType);
 }
 
+Detouring::Hook detour_CBaseFileSystem_AddVPKFile;
+void hook_CBaseFileSystem_AddVPKFile(IFileSystem* filesystem, const char *pPath, const char *pathID, SearchPathAdd_t addType)
+{
+	detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, pathID, addType);
+
+	if (V_stricmp(pathID, "GAME") == 0)
+	{
+		std::string strPath = pPath;
+		if (filesystem->IsDirectory((strPath + "/materials").c_str()))
+			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_MATERIALS", addType);
+
+		if (filesystem->IsDirectory((strPath + "/models").c_str()))
+			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_MODELS", addType);
+	
+		if (filesystem->IsDirectory((strPath + "/sound").c_str()))
+			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_SOUNDS", addType);
+	
+		if (filesystem->IsDirectory((strPath + "/maps").c_str()))
+			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_MAPS", addType);
+	
+		if (filesystem->IsDirectory((strPath + "/resource").c_str()))
+			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_RESOURCE", addType);
+
+		if (filesystem->IsDirectory((strPath + "/scripts").c_str()))
+			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_SCRIPTS", addType);
+	}
+	Msg("Added vpk: %s %s %i\n", pPath, pathID, (int)addType);
+}
+
 void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	// We use MOD_WRITE because it doesn't have additional junk search paths.
@@ -744,6 +773,12 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 		&detour_CBaseFileSystem_AddSearchPath, "CBaseFileSystem::AddSearchPath",
 		dedicated_loader.GetModule(), Symbols::CBaseFileSystem_AddSearchPathSym,
 		(void*)hook_CBaseFileSystem_AddSearchPath, m_pID
+	);
+
+	Detour::Create(
+		&detour_CBaseFileSystem_AddVPKFile, "CBaseFileSystem::AddVPKFile",
+		dedicated_loader.GetModule(), Symbols::CBaseFileSystem_AddVPKFileSym,
+		(void*)hook_CBaseFileSystem_AddVPKFile, m_pID
 	);
 
 	func_CBaseFileSystem_FindSearchPathByStoreId = (Symbols::CBaseFileSystem_FindSearchPathByStoreId)Detour::GetFunction(dedicated_loader.GetModule(), Symbols::CBaseFileSystem_FindSearchPathByStoreIdSym);

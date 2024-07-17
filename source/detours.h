@@ -143,6 +143,9 @@ namespace Symbols
 	typedef void (*CBaseFileSystem_AddSearchPath)(void* filesystem, const char *pPath, const char *pathID, SearchPathAdd_t addType);
 	const Symbol CBaseFileSystem_AddSearchPathSym = Symbol::FromName("_ZN15CBaseFileSystem13AddSearchPathEPKcS1_j");
 
+	typedef void (*CBaseFileSystem_AddVPKFile)(void* filesystem, const char *pPath, const char *pathID, SearchPathAdd_t addType);
+	const Symbol CBaseFileSystem_AddVPKFileSym = Symbol::FromName("_ZN15CBaseFileSystem10AddVPKFileEPKcS1_j");
+
 	//---------------------------------------------------------------------------------
 	// Purpose: concommand Symbols
 	//---------------------------------------------------------------------------------
