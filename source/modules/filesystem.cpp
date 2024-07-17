@@ -31,6 +31,8 @@ ConVar holylib_filesystem_earlysearchcache("holylib_filesystem_earlysearchcache"
 	"If enabled, it will check early in CBaseFilesystem::OpenForRead if the file is in the search cache.");
 ConVar holylib_filesystem_forcepath("holylib_filesystem_forcepath", "1", 0, 
 	"If enabled, it will change the paths of some specific files");
+ConVar holylib_filesystem_predictpath("holylib_filesystem_predictpath", "1", 0, 
+	"If enabled, it will try to predict the path of a file");
 
 ConVar holylib_filesystem_debug("holylib_filesystem_debug", "0", 0, 
 	"If enabled, it will show any change to the search cache.");
@@ -192,14 +194,27 @@ bool hook_CBaseFileSystem_FixUpPath(IFileSystem* filesystem, const char *pFileNa
 	return true;
 }
 
+std::string nukeFileExtension(const std::string& fileName) {
+    size_t lastDotPos = fileName.find_last_of('.');
+    if (lastDotPos == std::string::npos) 
+        return fileName;
+
+    return fileName.substr(0, lastDotPos);
+}
+
 std::unordered_map<std::string, std::string> g_pOverridePaths;
 Detouring::Hook detour_CBaseFileSystem_OpenForRead;
 FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const char *pFileNameT, const char *pOptions, unsigned flags, const char *pathID, char **ppszResolvedFilename)
 {
+	char pFileNameBuff[MAX_PATH];
+	const char *pFileName = pFileNameBuff;
+
+	hook_CBaseFileSystem_FixUpPath(filesystem, pFileNameT, pFileNameBuff, sizeof(pFileNameBuff));
+
 	if (holylib_filesystem_forcepath.GetBool())
 	{
 		const char* newPath = NULL;
-		std::string strFileName = pFileNameT;
+		std::string strFileName = pFileName;
 
 		auto it = g_pOverridePaths.find(strFileName);
 		if (it != g_pOverridePaths.end())
@@ -222,13 +237,46 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 		}
 	}
 
+	if (holylib_filesystem_predictpath.GetBool())
+	{
+		CSearchPath* path = NULL;
+		std::string strFileName = pFileNameT;
+		const char* extension = V_GetFileExtension(pFileNameT);
+
+		bool isModel = false;
+		if (V_stricmp(extension, "vvd") == 0)
+			isModel = true;
+
+		if (!isModel && (V_stricmp(extension, "dx90.vtx") == 0 || V_stricmp(extension, "vtx") == 0)) // ToDo: find out which one to keep
+			isModel = true;
+
+		if (!isModel && V_stricmp(extension, "phy") == 0)
+			isModel = true;
+
+		if (isModel)
+		{
+			std::string mdlPath = nukeFileExtension(strFileName) + ".mdl";
+			path = GetPathFromSearchCache(mdlPath.c_str());
+		}
+
+		if (path)
+		{
+			CFileOpenInfo openInfo( filesystem, pFileName, NULL, pOptions, flags, ppszResolvedFilename );
+			openInfo.m_pSearchPath = path;
+			FileHandle_t* file = detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
+			if (file)
+				return file;
+			else
+				if (holylib_filesystem_debug.GetBool())
+					Msg("OpenForRead: Failed to predict file path! (%s, %s)\n", pFileNameT, pathID);
+		} else {
+			if (holylib_filesystem_debug.GetBool())
+				Msg("OpenForRead: Not predicting it! (%s, %s, %s)\n", pFileNameT, pathID, extension);
+		}
+	}
+
 	if (!holylib_filesystem_earlysearchcache.GetBool())
 		return detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
-
-	char pFileNameBuff[MAX_PATH];
-	const char *pFileName = pFileNameBuff;
-
-	hook_CBaseFileSystem_FixUpPath(filesystem, pFileNameT, pFileNameBuff, sizeof(pFileNameBuff));
 
 	if ( V_IsAbsolutePath( pFileName ) )
 		return detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
