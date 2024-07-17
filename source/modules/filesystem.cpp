@@ -602,6 +602,14 @@ bool hook_CBaseFileSystem_FindNextFileHelper(CBaseFileSystem* filesystem, CBaseF
 
 	Msg("New Dir: %s\n", data->findData.cBaseDir);
 	Msg("New Name: %s\n", data->findData.cFileName);
+	CSearchPath* path = func_CBaseFileSystem_FindSearchPathByStoreId(filesystem, data->m_CurrentStoreID);
+	if (path)
+		Msg("Path dir: %s\n", path->GetPathString());
+
+	CSearchPath* path = func_CBaseFileSystem_FindSearchPathByStoreId(filesystem, *pFoundStoreID);
+	if (path)
+		Msg("(Found) Path dir: %s\n", path->GetPathString());
+
 	AddFileToSearchCache(data->findData.cFileName, data->m_CurrentStoreID);
 
 	return true;
