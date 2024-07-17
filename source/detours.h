@@ -131,6 +131,9 @@ namespace Symbols
 	typedef long (*CBaseFileSystem_FastFileTime)(void* filesystem, const CSearchPath* path, const char* pFileName);
 	const Symbol CBaseFileSystem_FastFileTimeSym = Symbol::FromName("_ZN15CBaseFileSystem12FastFileTimeEPKNS_11CSearchPathEPKc");
 
+	typedef bool (*CBaseFileSystem_FixUpPath)(void* filesystem, const char *pFileName, char *pFixedUpFileName, int sizeFixedUpFileName);
+	const Symbol CBaseFileSystem_FixUpPathSym = Symbol::FromName("_ZN15CBaseFileSystem9FixUpPathEPKcPci");
+
 	//---------------------------------------------------------------------------------
 	// Purpose: concommand Symbols
 	//---------------------------------------------------------------------------------

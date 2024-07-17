@@ -25,6 +25,8 @@ ConVar holylib_filesystem_easydircheck("holylib_filesystem_easydircheck", "0", 0
 	"Checks if the folder CBaseFileSystem::IsDirectory checks has a . in the name after the last /. if so assume it's a file extension.");
 ConVar holylib_filesystem_searchcache("holylib_filesystem_searchcache", "1", 0, 
 	"If enabled, it will cache the search path a file was located in and if the same file is requested, it will use that search path directly.");
+ConVar holylib_filesystem_optimizedfixpath("holylib_filesystem_optimizedfixpath", "1", 0, 
+	"If enabled, it will optimize CBaseFilesystem::FixUpPath by caching the BASE_PATH search cache.");
 
 ConVar holylib_filesystem_debug("holylib_filesystem_debug", "0", 0, 
 	"If enabled, it will show any change to the search cache.");
@@ -77,7 +79,7 @@ FileHandle_t* hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, CFileO
 	CSearchPath* cachePath = GetPathFromSearchCache(openInfo.m_pFileName);
 	if (cachePath)
 	{
-		VPROF("HolyLib::FileSystem::Cache-CBaseFileSystem::FindFile");
+		VPROF_BUDGET("HolyLib::FileSystem::Cache-CBaseFileSystem::FindFile", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
 		const CSearchPath* origPath = openInfo.m_pSearchPath;
 		openInfo.m_pSearchPath = cachePath;
@@ -109,7 +111,7 @@ long hook_CBaseFileSystem_FastFileTime(void* filesystem, const CSearchPath* path
 	CSearchPath* cachePath = GetPathFromSearchCache(pFileName);
 	if (cachePath)
 	{
-		VPROF("HolyLib::FileSystem::Cache-CBaseFileSystem::FastFileTime");
+		VPROF_BUDGET("HolyLib::FileSystem::Cache-CBaseFileSystem::FastFileTime", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
 		long time = detour_CBaseFileSystem_FastFileTime.GetTrampoline<Symbols::CBaseFileSystem_FastFileTime>()(filesystem, cachePath, pFileName);
 		if (time != 0L)
@@ -143,6 +145,43 @@ bool hook_CBaseFileSystem_IsDirectory(void* filesystem, const char* pFileName, c
 		return false;
 
 	return detour_CBaseFileSystem_IsDirectory.GetTrampoline<Symbols::CBaseFileSystem_IsDirectory>()(filesystem, pFileName, pPathID);
+}
+
+int pBaseLength = 0;
+char pBaseDir[MAX_PATH];
+Detouring::Hook detour_CBaseFileSystem_FixUpPath;
+bool hook_CBaseFileSystem_FixUpPath(IFileSystem* filesystem, const char *pFileName, char *pFixedUpFileName, int sizeFixedUpFileName)
+{
+	if (!holylib_filesystem_optimizedfixpath.GetBool())
+		return detour_CBaseFileSystem_FixUpPath.GetTrampoline<Symbols::CBaseFileSystem_FixUpPath>()(filesystem, pFileName, pFixedUpFileName, sizeFixedUpFileName);
+
+	VPROF_BUDGET("HolyLib - CBaseFileSystem::FixUpPath", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
+
+	V_strncpy( pFixedUpFileName, pFileName, sizeFixedUpFileName );
+	V_FixSlashes( pFixedUpFileName, CORRECT_PATH_SEPARATOR );
+//	V_RemoveDotSlashes( pFixedUpFileName, CORRECT_PATH_SEPARATOR, true );
+	V_FixDoubleSlashes( pFixedUpFileName );
+
+	if ( !V_IsAbsolutePath( pFixedUpFileName ) )
+	{
+		V_strlower( pFixedUpFileName );
+	}
+	else 
+	{
+		if (!pBaseLength || pBaseLength < 3)
+			pBaseLength = filesystem->GetSearchPath( "BASE_PATH", true, pBaseDir, sizeof( pBaseDir ) );
+
+		if ( pBaseLength )
+		{
+			if ( *pBaseDir && (pBaseLength+1 < V_strlen( pFixedUpFileName ) ) && (0 != V_strncmp( pBaseDir, pFixedUpFileName, pBaseLength ) )  )
+			{
+				V_strlower( &pFixedUpFileName[pBaseLength-1] );
+			}
+		}
+	    
+	}
+
+	return true;
 }
 
 void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
@@ -182,6 +221,12 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 		&detour_CBaseFileSystem_FastFileTime, "CBaseFileSystem::FastFileTime",
 		dedicated_loader.GetModule(), Symbols::CBaseFileSystem_FastFileTimeSym,
 		(void*)hook_CBaseFileSystem_FastFileTime, m_pID
+	);
+
+	Detour::Create(
+		&detour_CBaseFileSystem_FixUpPath, "CBaseFileSystem::FixUpPath",
+		dedicated_loader.GetModule(), Symbols::CBaseFileSystem_FixUpPathSym,
+		(void*)hook_CBaseFileSystem_FixUpPath, m_pID
 	);
 
 	func_CBaseFileSystem_FindSearchPathByStoreId = (Symbols::CBaseFileSystem_FindSearchPathByStoreId)Detour::GetFunction(dedicated_loader.GetModule(), Symbols::CBaseFileSystem_FindSearchPathByStoreIdSym);
