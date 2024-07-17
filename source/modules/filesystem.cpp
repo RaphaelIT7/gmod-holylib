@@ -572,7 +572,7 @@ long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char *pFile
 }
 
 CUtlSymbolTableMT* g_pPathIDTable;
-inline const char* CBaseFileSystem::CSearchPath::GetPathString() const
+inline const char* CSearchPath::GetPathString() const
 {
 	return g_pPathIDTable->String( m_Path );
 }
