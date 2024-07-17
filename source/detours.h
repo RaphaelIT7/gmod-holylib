@@ -23,6 +23,9 @@ namespace Symbols
 	typedef bool (*InitLuaClasses)(GarrysMod::Lua::ILuaInterface*);
 	const Symbol InitLuaClassesSym = Symbol::FromName("_Z14InitLuaClassesP13ILuaInterface");
 
+	typedef bool (*CLuaInterface_Shutdown)(GarrysMod::Lua::ILuaInterface*);
+	const Symbol CLuaInterface_ShutdownSym = Symbol::FromName("_ZN13CLuaInterface8ShutdownEv");
+
 	typedef CBasePlayer* (*Get_Player)(int, bool);
 	const Symbol Get_PlayerSym = Symbol::FromName("_Z10Get_Playerib");
 

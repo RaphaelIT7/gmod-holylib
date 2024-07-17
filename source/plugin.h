@@ -49,5 +49,4 @@ public:
 	virtual int GetCommandIndex() { return m_iClientCommandIndex; }
 private:
 	int m_iClientCommandIndex;
-	bool lua_init = false;
 };

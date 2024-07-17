@@ -129,8 +129,8 @@ void CServerPlugin::LuaShutdown()
 //---------------------------------------------------------------------------------
 void CServerPlugin::ServerActivate(edict_t *pEdictList, int edictCount, int clientMax)
 {
-	if (!lua_init) {
-		lua_init = LuaInit();
+	if (!g_Lua) {
+		LuaInit();
 	}
 
 	Lua::ServerInit();
@@ -149,10 +149,6 @@ void CServerPlugin::GameFrame(bool simulating)
 //---------------------------------------------------------------------------------
 void CServerPlugin::LevelShutdown(void) // !!!!this can get called multiple times per map change
 {
-	if (lua_init) {
-		LuaShutdown();
-		lua_init = false;
-	}
 }
 
 //---------------------------------------------------------------------------------

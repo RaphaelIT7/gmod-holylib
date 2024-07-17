@@ -71,6 +71,15 @@ void hook_InitLuaClasses(GarrysMod::Lua::ILuaInterface* LUA)
 	Lua::Init(LUA);
 }
 
+Detouring::Hook detour_CLuaInterface_Shutdown;
+void hook_CLuaInterface_Shutdown(GarrysMod::Lua::ILuaInterface* LUA)
+{
+	if ((void*)LUA == (void*)g_Lua)
+		Lua::Shutdown();
+
+	detour_CLuaInterface_Shutdown.GetTrampoline<Symbols::CLuaInterface_Shutdown>()(LUA);
+}
+
 void Lua::AddDetour() // Our Lua Loader.
 {
 	SourceSDK::ModuleLoader server_loader("server_srv");
@@ -78,6 +87,13 @@ void Lua::AddDetour() // Our Lua Loader.
 		&detour_InitLuaClasses, "InitLuaClasses",
 		server_loader.GetModule(), Symbols::InitLuaClassesSym,
 		(void*)hook_InitLuaClasses, 0
+	);
+
+	SourceSDK::ModuleLoader lua_shared_loader("lua_shared");
+	Detour::Create(
+		&detour_CLuaInterface_Shutdown, "CLuaInterface::Shutdown",
+		lua_shared_loader.GetModule(), Symbols::CLuaInterface_ShutdownSym,
+		(void*)hook_CLuaInterface_Shutdown, 0
 	);
 }
 

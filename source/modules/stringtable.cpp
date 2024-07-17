@@ -257,9 +257,9 @@ void hook_CServerGameDLL_CreateNetworkStringTables(void* servergamedll)
 {
 	detour_CServerGameDLL_CreateNetworkStringTables.GetTrampoline<Symbols::CServerGameDLL_CreateNetworkStringTables>()(servergamedll);
 
-	if (Lua::PushHook("HolyLib:OnStringtableCreation")) // Use this hook to create / modify the stringtables.
+	//if (Lua::PushHook("HolyLib:OnStringtableCreation")) // Use this hook to create / modify the stringtables.
 	{
-		g_Lua->CallFunctionProtected(1, 0, true);
+	//	g_Lua->CallFunctionProtected(1, 0, true);
 	}
 }
 
