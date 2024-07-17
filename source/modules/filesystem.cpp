@@ -202,6 +202,14 @@ std::string nukeFileExtension(const std::string& fileName) {
     return fileName.substr(0, lastDotPos);
 }
 
+std::string getFileExtension(const std::string& fileName) {
+    size_t lastDotPos = fileName.find_last_of('.');
+    if (lastDotPos == std::string::npos || lastDotPos == fileName.length() - 1)
+        return "";
+
+    return fileName.substr(lastDotPos + 1);
+}
+
 std::unordered_map<std::string, std::string> g_pOverridePaths;
 Detouring::Hook detour_CBaseFileSystem_OpenForRead;
 FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const char *pFileNameT, const char *pOptions, unsigned flags, const char *pathID, char **ppszResolvedFilename)
@@ -227,9 +235,10 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 				if (holylib_filesystem_debug.GetBool())
 					Msg("OpenForRead: Found file in forced path! (%s, %s, %s)\n", pFileNameT, pathID, newPath);
 				return handle;
-			} else
+			} else {
 				if (holylib_filesystem_debug.GetBool())
 					Msg("OpenForRead: Failed to find file in forced path! (%s, %s, %s)\n", pFileNameT, pathID, newPath);
+			}
 		} else {
 			if (holylib_filesystem_debug.GetBool())
 				Msg("OpenForRead: File is not in overridePaths (%s, %s)\n", pFileNameT, pathID);
@@ -240,22 +249,19 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 	{
 		CSearchPath* path = NULL;
 		std::string strFileName = pFileNameT;
-		const char* extension = V_GetFileExtension(pFileNameT);
+		std::string extension = getFileExtension(strFileName);
 
 		bool isModel = false;
-		if (V_stricmp(extension, "vvd") == 0)
-			isModel = true;
-
-		if (!isModel && V_stricmp(extension, "vtx") == 0) // ToDo: find out which one to keep
-			isModel = true;
-
-		if (!isModel && V_stricmp(extension, "phy") == 0)
+		if (extension == "vvd" || extension == "vtx" || extension == "phy")
 			isModel = true;
 
 		if (isModel)
 		{
-			std::string mdlPath = nukeFileExtension(strFileName) + ".mdl";
-			path = GetPathFromSearchCache(mdlPath.c_str());
+			std::string mdlPath = nukeFileExtension(strFileName);
+			if (extension == "vtx")
+				mdlPath = nukeFileExtension(mdlPath); // "dx90.vtx" -> "dx90" -> ""
+
+			path = GetPathFromSearchCache((mdlPath + ".mdl").c_str());
 		}
 
 		if (path)
@@ -267,9 +273,10 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 				if (holylib_filesystem_debug.GetBool())
 					Msg("OpenForRead: Found file in predicted path! (%s, %s)\n", pFileNameT, pathID);
 				return file;
-			} else
+			} else {
 				if (holylib_filesystem_debug.GetBool())
 					Msg("OpenForRead: Failed to predict file path! (%s, %s)\n", pFileNameT, pathID);
+			}
 		} else {
 			if (holylib_filesystem_debug.GetBool())
 				Msg("OpenForRead: Not predicting it! (%s, %s, %s)\n", pFileNameT, pathID, extension);
@@ -487,11 +494,11 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 }
 
 /*
- * GMOD first calls GetFileTime and then OpenForRead, so we need to make changes for lua in GetFileTime.
+ * GMOD first calls GetPathTime? and then OpenForRead, so we need to make changes for lua in GetFileTime.
  */
 
-Detouring::Hook detour_CBaseFileSystem_GetFileTime;
-long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char *pFileName, const char *pPathID)
+Detouring::Hook detour_CBaseFileSystem_GetPathTime;
+long hook_CBaseFileSystem_GetPathTime(IFileSystem* filesystem, const char *pFileName, const char *pPathID)
 {
 	if (holylib_filesystem_forcepath.GetBool())
 	{
@@ -509,7 +516,7 @@ long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char *pFile
 
 		if (newPath)
 		{
-			long time = detour_CBaseFileSystem_GetFileTime.GetTrampoline<Symbols::CBaseFileSystem_GetFileTime>()(filesystem, pFileName, pPathID);
+			long time = detour_CBaseFileSystem_GetPathTime.GetTrampoline<Symbols::CBaseFileSystem_GetPathTime>()(filesystem, pFileName, pPathID);
 			if (time != 0L) {
 				if (holylib_filesystem_debug.GetBool())
 					Msg("GetFileTime: Found file in forced path! (%s, %s, %s)\n", pFileName, pPathID, newPath);
@@ -561,7 +568,7 @@ long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char *pFile
 		}
 	}*/
 
-	return detour_CBaseFileSystem_GetFileTime.GetTrampoline<Symbols::CBaseFileSystem_GetFileTime>()(filesystem, pFileName, pPathID);
+	return detour_CBaseFileSystem_GetPathTime.GetTrampoline<Symbols::CBaseFileSystem_GetPathTime>()(filesystem, pFileName, pPathID);
 }
 
 void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
@@ -644,9 +651,9 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 	);
 
 	Detour::Create(
-		&detour_CBaseFileSystem_GetFileTime, "CBaseFileSystem::GetFileTime",
-		dedicated_loader.GetModule(), Symbols::CBaseFileSystem_GetFileTimeSym,
-		(void*)hook_CBaseFileSystem_GetFileTime, m_pID
+		&detour_CBaseFileSystem_GetPathTime, "CBaseFileSystem::GetPathTime",
+		dedicated_loader.GetModule(), Symbols::CBaseFileSystem_GetPathTimeSym,
+		(void*)hook_CBaseFileSystem_GetPathTime, m_pID
 	);
 
 	func_CBaseFileSystem_FindSearchPathByStoreId = (Symbols::CBaseFileSystem_FindSearchPathByStoreId)Detour::GetFunction(dedicated_loader.GetModule(), Symbols::CBaseFileSystem_FindSearchPathByStoreIdSym);
