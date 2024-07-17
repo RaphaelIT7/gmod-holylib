@@ -451,6 +451,12 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 		(void*)hook_CBaseFileSystem_FixUpPath, m_pID
 	);
 
+	Detour::Create(
+		&detour_CBaseFileSystem_OpenForRead, "CBaseFileSystem::OpenForRead",
+		dedicated_loader.GetModule(), Symbols::CBaseFileSystem_OpenForReadSym,
+		(void*)hook_CBaseFileSystem_OpenForRead, m_pID
+	);
+
 	func_CBaseFileSystem_FindSearchPathByStoreId = (Symbols::CBaseFileSystem_FindSearchPathByStoreId)Detour::GetFunction(dedicated_loader.GetModule(), Symbols::CBaseFileSystem_FindSearchPathByStoreIdSym);
 	Detour::CheckFunction(func_CBaseFileSystem_FindSearchPathByStoreId, "CBaseFileSystem::FindSearchPathByStoreId");
 }
