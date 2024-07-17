@@ -578,28 +578,23 @@ const char* hook_CBaseFileSystem_FindFirstEx(CBaseFileSystem* filesystem, const 
 	if (!ret || !holylib_filesystem_searchcache.GetBool())
 		return ret;
 
-	//CBaseFileSystem::FindData_t* data = &filesystem->m_FindData[*pHandle];
-	//AddFileToSearchCache(ret, data->m_CurrentStoreID);
+	CBaseFileSystem::FindData_t* data = &filesystem->m_FindData[*pHandle];
+	AddFileToSearchCache(ret, data->m_CurrentStoreID);
+
+	return ret;
 }
 
 Detouring::Hook detour_CBaseFileSystem_FindNext;
 const char* hook_CBaseFileSystem_FindNext(CBaseFileSystem* filesystem, FileFindHandle_t pHandle)
 {
-	CBaseFileSystem::FindData_t* data;
-	if ( pHandle > 0 )
-	{
-		Msg("Find Count: %i\n", filesystem->m_FindData.Count());
-		data = &filesystem->m_FindData[pHandle];
-		Msg("Data: %p\n", data);
-		AddFileToSearchCache(data->findData.cFileName, data->m_CurrentStoreID);
-	}
-
 	const char* ret = detour_CBaseFileSystem_FindNext.GetTrampoline<Symbols::CBaseFileSystem_FindNext>()(filesystem, pHandle);
 	if (!ret || !holylib_filesystem_searchcache.GetBool())
 		return ret;
 
-	if ( pHandle > 0 )
-		AddFileToSearchCache(ret, data->m_CurrentStoreID);
+	CBaseFileSystem::FindData_t* data = &filesystem->m_FindData[pHandle];
+	AddFileToSearchCache(ret, data->m_CurrentStoreID);
+
+	return ret;
 }
 
 void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
