@@ -258,7 +258,7 @@ const char* GetOverridePath(const char* pFileName, const char* pathID)
 	if (strFileName.rfind("lua/includes/") == 0)
 		return "LUA_INCLUDES";
 
-	if (V_stricmp(pathID, "lsv") == 0)
+	if (pathID && V_stricmp(pathID, "lsv") == 0)
 	{
 		if (strFileName.rfind("sandbox/") == 0)
 			return "LUA_GAMEMODE_SANDBOX";
