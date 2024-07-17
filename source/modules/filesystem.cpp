@@ -168,6 +168,10 @@ bool hook_CBaseFileSystem_FixUpPath(IFileSystem* filesystem, const char *pFileNa
 	}
 	else 
 	{
+		// What changed here?
+		// Gmod calls GetSearchPath every time FixUpPath is called.
+		// Now, we only call it once and then reuse the value, since the BASE_PATH shouldn't change at runtime.
+
 		if (!pBaseLength || pBaseLength < 3)
 			pBaseLength = filesystem->GetSearchPath( "BASE_PATH", true, pBaseDir, sizeof( pBaseDir ) );
 
