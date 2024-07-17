@@ -655,6 +655,13 @@ void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const char *pPa
 	Msg("Added Searchpath: %s %s %i\n", pPath, pathID, (int)addType);
 }
 
+std::string getVPKFile(const std::string& fileName) {
+	size_t lastThingyPos = fileName.find_last_of('/');
+    size_t lastDotPos = fileName.find_last_of('.');
+
+    return fileName.substr(lastThingyPos + 1, lastDotPos - lastThingyPos - 1);
+}
+
 Detouring::Hook detour_CBaseFileSystem_AddVPKFile;
 void hook_CBaseFileSystem_AddVPKFile(IFileSystem* filesystem, const char *pPath, const char *pathID, SearchPathAdd_t addType)
 {
@@ -662,24 +669,29 @@ void hook_CBaseFileSystem_AddVPKFile(IFileSystem* filesystem, const char *pPath,
 
 	if (V_stricmp(pathID, "GAME") == 0)
 	{
+		std::string vpkPath = getVPKFile(pPath);
+		detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, vpkPath.c_str(), addType);
+
 		std::string strPath = pPath;
-		if (filesystem->IsDirectory((strPath + "/materials").c_str()))
+		if (filesystem->IsDirectory("materials/"), vpkPath.c_str())
 			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_MATERIALS", addType);
 
-		if (filesystem->IsDirectory((strPath + "/models").c_str()))
+		if (filesystem->IsDirectory("models/"), vpkPath.c_str())
 			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_MODELS", addType);
 	
-		if (filesystem->IsDirectory((strPath + "/sound").c_str()))
+		if (filesystem->IsDirectory("sound/"), vpkPath.c_str())
 			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_SOUNDS", addType);
 	
-		if (filesystem->IsDirectory((strPath + "/maps").c_str()))
+		if (filesystem->IsDirectory("maps/"), vpkPath.c_str())
 			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_MAPS", addType);
 	
-		if (filesystem->IsDirectory((strPath + "/resource").c_str()))
+		if (filesystem->IsDirectory("resource/"), vpkPath.c_str())
 			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_RESOURCE", addType);
 
-		if (filesystem->IsDirectory((strPath + "/scripts").c_str()))
+		if (filesystem->IsDirectory("scripts/"), vpkPath.c_str())
 			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_SCRIPTS", addType);
+	
+		filesystem->RemoveSearchPath(pPath, vpkPath.c_str());
 	}
 	Msg("Added vpk: %s %s %i\n", pPath, pathID, (int)addType);
 }
