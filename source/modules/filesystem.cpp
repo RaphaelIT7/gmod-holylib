@@ -33,6 +33,8 @@ ConVar holylib_filesystem_forcepath("holylib_filesystem_forcepath", "1", 0,
 	"If enabled, it will change the paths of some specific files");
 ConVar holylib_filesystem_predictpath("holylib_filesystem_predictpath", "1", 0, 
 	"If enabled, it will try to predict the path of a file");
+ConVar holylib_filesystem_splitgamepath("holylib_filesystem_splitgamepath", "1", 0, 
+	"If enabled, it will create for each content type like models/, materials/ a game path which will be used to find that content.");
 
 ConVar holylib_filesystem_debug("holylib_filesystem_debug", "0", 0, 
 	"If enabled, it will show any change to the search cache.");
@@ -219,6 +221,8 @@ std::string getFileExtension(const std::string& fileName) {
     return fileName.substr(lastDotPos + 1);
 }
 
+extern const char* GetOverridePath(const char*, const char*);
+
 std::unordered_map<std::string, std::string> g_pOverridePaths;
 Detouring::Hook detour_CBaseFileSystem_OpenForRead;
 FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const char *pFileNameT, const char *pOptions, unsigned flags, const char *pathID, char **ppszResolvedFilename)
@@ -227,6 +231,10 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 	const char *pFileName = pFileNameBuff;
 
 	hook_CBaseFileSystem_FixUpPath(filesystem, pFileNameT, pFileNameBuff, sizeof(pFileNameBuff));
+
+	const char* newPath = GetOverridePath(pFileName, pathID);
+	if (newPath)
+		pathID = newPath;
 
 	if (holylib_filesystem_forcepath.GetBool())
 	{
@@ -509,6 +517,10 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 Detouring::Hook detour_CBaseFileSystem_GetFileTime;
 long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char *pFileName, const char *pPathID)
 {
+	const char* newPath = GetOverridePath(pFileName, pPathID);
+	if (newPath)
+		pPathID = newPath;
+
 	if (holylib_filesystem_forcepath.GetBool())
 	{
 		const char* newPath = NULL;
@@ -580,10 +592,57 @@ long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char *pFile
 	return detour_CBaseFileSystem_GetFileTime.GetTrampoline<Symbols::CBaseFileSystem_GetFileTime>()(filesystem, pFileName, pPathID);
 }
 
+const char* GetOverridePath(const char* pFileName, const char* pathID)
+{
+	if (!holylib_filesystem_splitgamepath.GetBool())
+		return NULL;
+
+	std::string strFileName = pFileName;
+	if (strFileName.rfind("materials/") == 0)
+		return "CONTENT_MATERIALS";
+
+	if (strFileName.rfind("models/") == 0)
+		return "CONTENT_MODELS";
+
+	if (strFileName.rfind("sound/") == 0)
+		return "CONTENT_SOUNDS";
+
+	if (strFileName.rfind("maps/") == 0)
+		return "CONTENT_MAPS";
+
+	if (strFileName.rfind("resource/") == 0)
+		return "CONTENT_RESOURCE";
+
+	if (strFileName.rfind("scripts/") == 0)
+		return "CONTENT_SCRIPTS";
+}
+
 Detouring::Hook detour_CBaseFileSystem_AddSearchPath;
-void hook_CBaseFileSystem_AddSearchPath(void* filesystem, const char *pPath, const char *pathID, SearchPathAdd_t addType)
+void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const char *pPath, const char *pathID, SearchPathAdd_t addType)
 {
 	detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, pathID, addType);
+
+	if (V_stricmp(pathID, "GAME") == 0)
+	{
+		std::string strPath = pPath;
+		if (filesystem->IsDirectory((strPath + "/materials").c_str()))
+			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_MATERIALS", addType);
+
+		if (filesystem->IsDirectory((strPath + "/models").c_str()))
+			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_MODELS", addType);
+	
+		if (filesystem->IsDirectory((strPath + "/sound").c_str()))
+			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_SOUNDS", addType);
+	
+		if (filesystem->IsDirectory((strPath + "/maps").c_str()))
+			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_MAPS", addType);
+	
+		if (filesystem->IsDirectory((strPath + "/resource").c_str()))
+			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_RESOURCE", addType);
+
+		if (filesystem->IsDirectory((strPath + "/scripts").c_str()))
+			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_SCRIPTS", addType);
+	}
 	Msg("Added Searchpath: %s %s %i\n", pPath, pathID, (int)addType);
 }
 
