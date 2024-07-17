@@ -221,8 +221,32 @@ std::string getFileExtension(const std::string& fileName) {
     return fileName.substr(lastDotPos + 1);
 }
 
-extern const char* GetOverridePath(const char*, const char*);
+const char* GetOverridePath(const char* pFileName, const char* pathID)
+{
+	if (!holylib_filesystem_splitgamepath.GetBool())
+		return NULL;
 
+	std::string strFileName = pFileName;
+	if (strFileName.rfind("materials/") == 0)
+		return "CONTENT_MATERIALS";
+
+	if (strFileName.rfind("models/") == 0)
+		return "CONTENT_MODELS";
+
+	if (strFileName.rfind("sound/") == 0)
+		return "CONTENT_SOUNDS";
+
+	if (strFileName.rfind("maps/") == 0)
+		return "CONTENT_MAPS";
+
+	if (strFileName.rfind("resource/") == 0)
+		return "CONTENT_RESOURCE";
+
+	if (strFileName.rfind("scripts/") == 0)
+		return "CONTENT_SCRIPTS";
+
+	return NULL;
+}
 std::unordered_map<std::string, std::string> g_pOverridePaths;
 Detouring::Hook detour_CBaseFileSystem_OpenForRead;
 FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const char *pFileNameT, const char *pOptions, unsigned flags, const char *pathID, char **ppszResolvedFilename)
@@ -234,7 +258,12 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 
 	const char* newPath = GetOverridePath(pFileName, pathID);
 	if (newPath)
+	{
+		if (holylib_filesystem_debug.GetBool())
+			Msg("OpenForRead: Found split path! switching (%s, %s)\n", pathID, newPath);
+
 		pathID = newPath;
+	}
 
 	if (holylib_filesystem_forcepath.GetBool())
 	{
@@ -519,7 +548,12 @@ long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char *pFile
 {
 	const char* newPath = GetOverridePath(pFileName, pPathID);
 	if (newPath)
+	{
+		if (holylib_filesystem_debug.GetBool())
+			Msg("GetFileTime: Found split path! switching (%s, %s)\n", pPathID, newPath);
+
 		pPathID = newPath;
+	}
 
 	if (holylib_filesystem_forcepath.GetBool())
 	{
@@ -590,31 +624,6 @@ long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char *pFile
 	}*/
 
 	return detour_CBaseFileSystem_GetFileTime.GetTrampoline<Symbols::CBaseFileSystem_GetFileTime>()(filesystem, pFileName, pPathID);
-}
-
-const char* GetOverridePath(const char* pFileName, const char* pathID)
-{
-	if (!holylib_filesystem_splitgamepath.GetBool())
-		return NULL;
-
-	std::string strFileName = pFileName;
-	if (strFileName.rfind("materials/") == 0)
-		return "CONTENT_MATERIALS";
-
-	if (strFileName.rfind("models/") == 0)
-		return "CONTENT_MODELS";
-
-	if (strFileName.rfind("sound/") == 0)
-		return "CONTENT_SOUNDS";
-
-	if (strFileName.rfind("maps/") == 0)
-		return "CONTENT_MAPS";
-
-	if (strFileName.rfind("resource/") == 0)
-		return "CONTENT_RESOURCE";
-
-	if (strFileName.rfind("scripts/") == 0)
-		return "CONTENT_SCRIPTS";
 }
 
 Detouring::Hook detour_CBaseFileSystem_AddSearchPath;
