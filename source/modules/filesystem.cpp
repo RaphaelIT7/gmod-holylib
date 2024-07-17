@@ -571,6 +571,28 @@ long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char *pFile
 	return detour_CBaseFileSystem_GetFileTime.GetTrampoline<Symbols::CBaseFileSystem_GetFileTime>()(filesystem, pFileName, pPathID);
 }
 
+Detouring::Hook detour_CBaseFileSystem_FindFirstEx;
+const char* hook_CBaseFileSystem_FindFirstEx(CBaseFileSystem* filesystem, const char *pWildCard, const char *pPathID, FileFindHandle_t *pHandle)
+{
+	const char* ret = detour_CBaseFileSystem_FindFirstEx.GetTrampoline<Symbols::CBaseFileSystem_FindFirstEx>()(filesystem, pWildCard, pPathID, pHandle);
+	if (!ret || !holylib_filesystem_searchcache.GetBool())
+		return ret;
+
+	CBaseFileSystem::FindData_t* data = &filesystem->m_FindData[*pHandle];
+	AddFileToSearchCache(ret, data->m_CurrentStoreID);
+}
+
+Detouring::Hook detour_CBaseFileSystem_FindNext;
+const char* hook_CBaseFileSystem_FindNext(CBaseFileSystem* filesystem, FileFindHandle_t pHandle)
+{
+	const char* ret = detour_CBaseFileSystem_FindNext.GetTrampoline<Symbols::CBaseFileSystem_FindNext>()(filesystem, pHandle);
+	if (!ret || !holylib_filesystem_searchcache.GetBool())
+		return ret;
+
+	CBaseFileSystem::FindData_t* data = &filesystem->m_FindData[pHandle];
+	AddFileToSearchCache(ret, data->m_CurrentStoreID);
+}
+
 void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	// We use MOD_WRITE because it doesn't have additional junk search paths.
@@ -654,6 +676,18 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 		&detour_CBaseFileSystem_GetFileTime, "CBaseFileSystem::GetFileTime",
 		dedicated_loader.GetModule(), Symbols::CBaseFileSystem_GetFileTimeSym,
 		(void*)hook_CBaseFileSystem_GetFileTime, m_pID
+	);
+
+	Detour::Create(
+		&detour_CBaseFileSystem_FindFirstEx, "CBaseFileSystem::FindFirstEx",
+		dedicated_loader.GetModule(), Symbols::CBaseFileSystem_FindFirstExSym,
+		(void*)hook_CBaseFileSystem_FindFirstEx, m_pID
+	);
+
+	Detour::Create(
+		&detour_CBaseFileSystem_FindNext, "CBaseFileSystem::FindNext",
+		dedicated_loader.GetModule(), Symbols::CBaseFileSystem_FindNextSym,
+		(void*)hook_CBaseFileSystem_FindNext, m_pID
 	);
 
 	func_CBaseFileSystem_FindSearchPathByStoreId = (Symbols::CBaseFileSystem_FindSearchPathByStoreId)Detour::GetFunction(dedicated_loader.GetModule(), Symbols::CBaseFileSystem_FindSearchPathByStoreIdSym);
