@@ -706,11 +706,11 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 		(void*)hook_CBaseFileSystem_GetFileTime, m_pID
 	);
 
-	/*Detour::Create(
+	Detour::Create(
 		&detour_CBaseFileSystem_FindNextFileHelper, "CBaseFileSystem::FindNextFileHelper",
 		dedicated_loader.GetModule(), Symbols::CBaseFileSystem_FindNextFileHelperSym,
 		(void*)hook_CBaseFileSystem_FindNextFileHelper, m_pID
-	);*/
+	);
 
 	func_CBaseFileSystem_FindSearchPathByStoreId = (Symbols::CBaseFileSystem_FindSearchPathByStoreId)Detour::GetFunction(dedicated_loader.GetModule(), Symbols::CBaseFileSystem_FindSearchPathByStoreIdSym);
 	Detour::CheckFunction(func_CBaseFileSystem_FindSearchPathByStoreId, "CBaseFileSystem::FindSearchPathByStoreId");
