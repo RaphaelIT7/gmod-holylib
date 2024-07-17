@@ -582,7 +582,9 @@ bool hook_CBaseFileSystem_FindNextFileHelper(CBaseFileSystem* filesystem, CBaseF
 {
 	Msg("Dir: %s\n", data->findData.cBaseDir);
 	Msg("Name: %s\n", data->findData.cFileName);
-	Msg("Path dir: %s\n", func_CBaseFileSystem_FindSearchPathByStoreId(filesystem, data->m_CurrentStoreID)->GetPathString());
+	CSearchPath* path = func_CBaseFileSystem_FindSearchPathByStoreId(filesystem, data->m_CurrentStoreID);
+	if (path)
+		Msg("Path dir: %s\n", path->GetPathString());
 	std::string filePath = data->findData.cFileName;
 	/*if (strlen(data->findData.cBaseDir) > 0)
 		filePath = data->findData.cBaseDir + (std::string)"/" + filePath;
