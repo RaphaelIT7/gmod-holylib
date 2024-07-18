@@ -1018,6 +1018,12 @@ void hook_Addon_FileSystem_MarkChanged(void* fs)
 
 		if (g_pFullFileSystem->IsDirectory((strPath + "/autorun").c_str()))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, g_pWorkshopFilepath, "LUA_AUTORUN", SearchPathAdd_t::PATH_ADD_TO_TAIL);
+	
+		if (holylib_filesystem_debug.GetBool())
+			Msg("Updated workshop path. (%s)\n", g_pWorkshopFilepath);
+	} else {
+		if (holylib_filesystem_debug.GetBool())
+			Msg("Failed to update workshop path! It's missing\n");
 	}
 }
 
