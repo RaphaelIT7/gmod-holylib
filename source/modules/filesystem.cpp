@@ -39,10 +39,15 @@ ConVar holylib_filesystem_splitgamepath("holylib_filesystem_splitgamepath", "1",
 ConVar holylib_filesystem_debug("holylib_filesystem_debug", "0", 0, 
 	"If enabled, it will show any change to the search cache.");
 
+
+static const char* nullPath = "NULL_PATH";
 Symbols::CBaseFileSystem_FindSearchPathByStoreId func_CBaseFileSystem_FindSearchPathByStoreId;
 std::unordered_map<std::string, std::unordered_map<std::string, int>> m_SearchCache;
 void AddFileToSearchCache(const char* pFileName, int path, const char* pathID)
 {
+	if (!pathID)
+		pathID = nullPath;
+
 	if (holylib_filesystem_debug.GetBool())
 		Msg("Added file %s to seach cache (%i, %s)\n", pFileName, path, pathID);
 
@@ -52,6 +57,9 @@ void AddFileToSearchCache(const char* pFileName, int path, const char* pathID)
 
 void RemoveFileFromSearchCache(const char* pFileName, const char* pathID)
 {
+	if (!pathID)
+		pathID = nullPath;
+
 	if (holylib_filesystem_debug.GetBool())
 		Msg("Removed file %s from seach cache! (%s)\n", pFileName, pathID);
 
@@ -60,6 +68,9 @@ void RemoveFileFromSearchCache(const char* pFileName, const char* pathID)
 
 CSearchPath* GetPathFromSearchCache(const char* pFileName, const char* pathID)
 {
+	if (!pathID)
+		pathID = nullPath;
+
 	auto it = m_SearchCache[pathID].find(pFileName);
 	if (it == m_SearchCache[pathID].end())
 		return NULL;
