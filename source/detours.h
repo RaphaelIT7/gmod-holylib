@@ -149,6 +149,9 @@ namespace Symbols
 	typedef void (*CBaseFileSystem_RemoveAllMapSearchPaths)(void* filesystem);
 	const Symbol CBaseFileSystem_RemoveAllMapSearchPathsSym = Symbol::FromName("_ZN15CBaseFileSystem23RemoveAllMapSearchPathsEv");
 
+	typedef void (*Addon_FileSystem_MarkChanged)(void* filesystem);
+	const Symbol Addon_FileSystem_MarkChangedSym = Symbol::FromName("_ZN5Addon10FileSystem11MarkChangedEv");
+
 	const Symbol g_PathIDTableSym = Symbol::FromName("g_PathIDTable");
 
 	//---------------------------------------------------------------------------------
