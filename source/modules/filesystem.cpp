@@ -40,28 +40,28 @@ ConVar holylib_filesystem_debug("holylib_filesystem_debug", "0", 0,
 	"If enabled, it will show any change to the search cache.");
 
 Symbols::CBaseFileSystem_FindSearchPathByStoreId func_CBaseFileSystem_FindSearchPathByStoreId;
-std::unordered_map<std::string, int> m_SearchCache;
-void AddFileToSearchCache(const char* pFileName, int path)
+std::unordered_map<std::string, std::unordered_map<std::string, int>> m_SearchCache;
+void AddFileToSearchCache(const char* pFileName, int path, const char* pathID)
 {
 	if (holylib_filesystem_debug.GetBool())
-		Msg("Added file %s to seach cache (%i)\n", pFileName, path);
+		Msg("Added file %s to seach cache (%i, %s)\n", pFileName, path, pathID);
 
-	m_SearchCache[pFileName] = path;
+	m_SearchCache[pathID][pFileName] = path;
 }
 
 
-void RemoveFileFromSearchCache(const char* pFileName)
+void RemoveFileFromSearchCache(const char* pFileName, const char* pathID)
 {
 	if (holylib_filesystem_debug.GetBool())
-		Msg("Removed file %s from seach cache!\n", pFileName);
+		Msg("Removed file %s from seach cache! (%s)\n", pFileName, pathID);
 
-	m_SearchCache.erase(pFileName);
+	m_SearchCache[pathID].erase(pFileName);
 }
 
-CSearchPath* GetPathFromSearchCache(const char* pFileName)
+CSearchPath* GetPathFromSearchCache(const char* pFileName, const char* pathID)
 {
-	auto it = m_SearchCache.find(pFileName);
-	if (it == m_SearchCache.end())
+	auto it = m_SearchCache[pathID].find(pFileName);
+	if (it == m_SearchCache[pathID].end())
 		return NULL;
 
 	if (holylib_filesystem_debug.GetBool())
@@ -89,7 +89,7 @@ FileHandle_t* hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, CFileO
 
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::FindFile", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
-	CSearchPath* cachePath = GetPathFromSearchCache(openInfo.m_pFileName);
+	CSearchPath* cachePath = GetPathFromSearchCache(openInfo.m_pFileName, openInfo.m_pSearchPath->GetPathIDString());
 	if (cachePath)
 	{
 		VPROF_BUDGET("HolyLib - CBaseFileSystem::FindFile - Cache", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
@@ -101,7 +101,7 @@ FileHandle_t* hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, CFileO
 			return file;
 
 		openInfo.m_pSearchPath = origPath;
-		RemoveFileFromSearchCache(openInfo.m_pFileName);
+		RemoveFileFromSearchCache(openInfo.m_pFileName, openInfo.m_pSearchPath->GetPathIDString());
 	} else {
 		if (holylib_filesystem_debug.GetBool())
 			Msg("FindFileInSearchPath: Failed to find cachePath! (%s)\n", openInfo.m_pFileName);
@@ -110,7 +110,7 @@ FileHandle_t* hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, CFileO
 	FileHandle_t* file = detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
 
 	if (file)
-		AddFileToSearchCache(openInfo.m_pFileName, openInfo.m_pSearchPath->m_storeId);
+		AddFileToSearchCache(openInfo.m_pFileName, openInfo.m_pSearchPath->m_storeId, openInfo.m_pSearchPath->GetPathIDString());
 
 	return file;
 }
@@ -126,7 +126,7 @@ long hook_CBaseFileSystem_FastFileTime(void* filesystem, const CSearchPath* path
 
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::FastFileTime", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
-	CSearchPath* cachePath = GetPathFromSearchCache(pFileName);
+	CSearchPath* cachePath = GetPathFromSearchCache(pFileName, path->GetPathIDString());
 	if (cachePath)
 	{
 		VPROF_BUDGET("HolyLib - CBaseFileSystem::FastFileTime - Cache", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
@@ -135,7 +135,7 @@ long hook_CBaseFileSystem_FastFileTime(void* filesystem, const CSearchPath* path
 		if (time != 0L)
 			return time;
 
-		RemoveFileFromSearchCache(pFileName);
+		RemoveFileFromSearchCache(pFileName, path->GetPathIDString());
 	} else {
 		if (holylib_filesystem_debug.GetBool())
 			Msg("FastFileTime: Failed to find cachePath! (%s)\n", pFileName);
@@ -144,7 +144,7 @@ long hook_CBaseFileSystem_FastFileTime(void* filesystem, const CSearchPath* path
 	long time = detour_CBaseFileSystem_FastFileTime.GetTrampoline<Symbols::CBaseFileSystem_FastFileTime>()(filesystem, path, pFileName);
 
 	if (time != 0L)
-		AddFileToSearchCache(pFileName, path->m_storeId);
+		AddFileToSearchCache(pFileName, path->m_storeId, path->GetPathIDString());
 
 	return time;
 }
@@ -361,7 +361,7 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 			if (extension == "vtx")
 				mdlPath = nukeFileExtension(mdlPath); // "dx90.vtx" -> "dx90" -> ""
 
-			path = GetPathFromSearchCache((mdlPath + ".mdl").c_str());
+			path = GetPathFromSearchCache((mdlPath + ".mdl").c_str(), pathID);
 		}
 
 		if (path)
@@ -391,7 +391,7 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 
 	// So we now got the issue that CBaseFileSystem::CSearchPathsIterator::CSearchPathsIterator is way too slow.
 	// so we need to skip it. We do this by checking if we got the file in the search cache before we call the OpenForRead function.
-	CSearchPath* cachePath = GetPathFromSearchCache(pFileName);
+	CSearchPath* cachePath = GetPathFromSearchCache(pFileName, pathID);
 	if (cachePath)
 	{
 		VPROF_BUDGET("HolyLib - SearchCache::OpenForRead", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
@@ -919,6 +919,18 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 	//g_pOverridePaths["scripts/propdata/phx.txt"] = "MOD_WRITE";
 }
 
+CUtlSymbolTableMT* g_pPathIDTable;
+inline const char* CPathIDInfo::GetPathIDString() const
+{
+	return g_pPathIDTable->String( m_PathID );
+}
+
+
+inline const char* CSearchPath::GetPathIDString() const
+{
+	return m_pPathIDInfo->GetPathIDString();
+}
+
 void CFileSystemModule::LuaInit(bool bServerInit)
 {
 	if (!bServerInit)
@@ -992,6 +1004,10 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 
 	func_CBaseFileSystem_FindSearchPathByStoreId = (Symbols::CBaseFileSystem_FindSearchPathByStoreId)Detour::GetFunction(dedicated_loader.GetModule(), Symbols::CBaseFileSystem_FindSearchPathByStoreIdSym);
 	Detour::CheckFunction(func_CBaseFileSystem_FindSearchPathByStoreId, "CBaseFileSystem::FindSearchPathByStoreId");
+
+	SourceSDK::FactoryLoader dedicated_factory("dedicated_srv");
+	g_pPathIDTable = ResolveSymbol<CUtlSymbolTableMT>(dedicated_factory, Symbols::g_PathIDTableSym);
+	Detour::CheckValue("get class", "g_PathIDTable", g_pPathIDTable != NULL);
 }
 
 void CFileSystemModule::Think(bool simulating)

@@ -149,6 +149,8 @@ namespace Symbols
 	typedef void (*CBaseFileSystem_RemoveAllMapSearchPaths)(void* filesystem);
 	const Symbol CBaseFileSystem_RemoveAllMapSearchPathsSym = Symbol::FromName("_ZN15CBaseFileSystem23RemoveAllMapSearchPathsEv");
 
+	const Symbol g_PathIDTableSym = Symbol::FromName("g_PathIDTable");
+
 	//---------------------------------------------------------------------------------
 	// Purpose: concommand Symbols
 	//---------------------------------------------------------------------------------
