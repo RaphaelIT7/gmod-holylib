@@ -383,7 +383,7 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 
 	if (holylib_filesystem_forcepath.GetBool())
 	{
-		const char* newPath = NULL;
+		newPath = NULL;
 		std::string strFileName = pFileName;
 
 		auto it = g_pOverridePaths.find(strFileName);
@@ -706,8 +706,7 @@ long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char *pFile
 
 	if (holylib_filesystem_forcepath.GetBool())
 	{
-		const char* newPath = NULL;
-		std::string strFileName = pFileName;
+		newPath = NULL;
 
 		if (!newPath && strFileName.rfind("gamemodes/base") == 0)
 			newPath = "MOD_WRITE";
