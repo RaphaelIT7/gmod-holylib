@@ -129,7 +129,7 @@ void GetPathFromIDCmd(const CCommand &args)
 	Msg("Id: &%s\n", args.Arg(1));
 	Msg("Path %s\n", path->GetPathString());
 }
-ConCommand nukesearchcache("holylib_filesystem_getpathfromid", GetPathFromIDCmd, "prints the path of the given searchpath id", 0);
+ConCommand getpathfromid("holylib_filesystem_getpathfromid", GetPathFromIDCmd, "prints the path of the given searchpath id", 0);
 
 void NukeSearchcacheCmd(const CCommand &args)
 {
