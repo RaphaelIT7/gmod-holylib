@@ -327,11 +327,11 @@ If enabled, it will split each `GAME` path into multiple search paths, depending
 Then when you try to find a file with the `GAME` search path, it will change the pathID to the content path.  
 
 Example:  
-File: `cfg/game.cfg`
-Path: `GAME`
-becomes:
-File: `cfg/game.cfg`
-Path: `CONTENT_CONFIGS`  
+File: `cfg/game.cfg`  
+Path: `GAME`  
+becomes:  
+File: `cfg/game.cfg`  
+Path: `CONTENT_CONFIGS`    
 
 This will reduce the amount of searchpaths it has to go through which improves performance.  
 
@@ -346,7 +346,10 @@ Content paths:
 - `gamemodes/` -> `LUA_GAMEMODES`  
 - `lua/includes/` -> `LUA_INCLUDES`  
 
-We also do this for `lsv` since if we wouldn't do this, it would waste performance.  
+#### holylib_filesystem_splitluapath (default `0`)
+Does the same for `lsv` to save performance.  
+
+> BUG: This currently breaks workshop addons.  
 
 Lua paths:  
 - `sandbox/` -> `LUA_GAMEMODE_SANDBOX`  
