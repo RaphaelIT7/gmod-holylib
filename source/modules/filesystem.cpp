@@ -1005,7 +1005,7 @@ void CFileSystemModule::LuaInit(bool bServerInit)
 	if (!bServerInit)
 	{
 		std::string workshopDir = pBaseDir;
-		workshopDir = workshopDir + "/garrysmod/workshop";
+		workshopDir = workshopDir + "garrysmod/workshop";
 
 		if (g_pFullFileSystem->IsDirectory((workshopDir + "/materials").c_str()))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "CONTENT_MATERIALS", SearchPathAdd_t::PATH_ADD_TO_TAIL);
