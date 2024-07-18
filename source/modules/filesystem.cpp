@@ -619,7 +619,7 @@ long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char *pFile
 	}
 
 	std::string strFileName = pFileName; // Workaround for now.
-	if (V_stricmp(origPath, "lsv") == 0) // Some weird things happen in the lsv path.  
+	if (origPath && V_stricmp(origPath, "lsv") == 0) // Some weird things happen in the lsv path.  
 	{
 		strFileName = replaceString(strFileName, "sandbox/gamemode/spawnmenu/sandbox/gamemode/spawnmenu", "sandbox/gamemode/spawnmenu/");
 		strFileName = replaceString(strFileName, "includes/includes/", "includes/"); // What causes this?
