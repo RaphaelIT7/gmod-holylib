@@ -712,6 +712,16 @@ long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char *pFile
 	return detour_CBaseFileSystem_GetFileTime.GetTrampoline<Symbols::CBaseFileSystem_GetFileTime>()(filesystem, pFileName, pPathID);
 }
 
+static bool gBlockRemoveAllMapPaths = false;
+Detouring::Hook detour_CBaseFileSystem_RemoveAllMapSearchPaths;
+void hook_CBaseFileSystem_RemoveAllMapSearchPaths(IFileSystem* filesystem)
+{
+	if (gBlockRemoveAllMapPaths)
+		return;
+
+	detour_CBaseFileSystem_RemoveAllMapSearchPaths.GetTrampoline<Symbols::CBaseFileSystem_RemoveAllMapSearchPaths>()(filesystem);
+}
+
 std::string getVPKFile(const std::string& fileName) {
 	size_t lastThingyPos = fileName.find_last_of('/');
 	size_t lastDotPos = fileName.find_last_of('.');
@@ -729,6 +739,7 @@ void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const char *pPa
 	std::string extension = getFileExtension(pPath);
 	if (extension == "bsp") {
 		const char* pPathID = "__TEMP_MAP_PATH";
+		gBlockRemoveAllMapPaths = true;
 		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, pPathID, addType);
 
 		if (filesystem->IsDirectory("materials/", pPathID))
@@ -751,7 +762,7 @@ void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const char *pPa
 
 		if (filesystem->IsDirectory("cfg/", pPathID))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_CONFIGS", addType);
-
+		gBlockRemoveAllMapPaths = false;
 		//filesystem->RemoveSearchPath(pPath, pPathID);
 	}
 
@@ -969,6 +980,12 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 		&detour_CBaseFileSystem_AddVPKFile, "CBaseFileSystem::AddVPKFile",
 		dedicated_loader.GetModule(), Symbols::CBaseFileSystem_AddVPKFileSym,
 		(void*)hook_CBaseFileSystem_AddVPKFile, m_pID
+	);
+
+	Detour::Create(
+		&detour_CBaseFileSystem_RemoveAllMapSearchPaths, "CBaseFileSystem::RemoveAllMapSearchPaths",
+		dedicated_loader.GetModule(), Symbols::CBaseFileSystem_RemoveAllMapSearchPathsSym,
+		(void*)hook_CBaseFileSystem_RemoveAllMapSearchPaths, m_pID
 	);
 
 	func_CBaseFileSystem_FindSearchPathByStoreId = (Symbols::CBaseFileSystem_FindSearchPathByStoreId)Detour::GetFunction(dedicated_loader.GetModule(), Symbols::CBaseFileSystem_FindSearchPathByStoreIdSym);
