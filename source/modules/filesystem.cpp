@@ -608,6 +608,7 @@ long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char *pFile
 {
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::GetFileTime", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
+	const char* origPath = pPathID;
 	const char* newPath = GetOverridePath(pFileName, pPathID);
 	if (newPath)
 	{
@@ -618,7 +619,11 @@ long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char *pFile
 	}
 
 	std::string strFileName = pFileName; // Workaround for now.
-	strFileName = replaceString(strFileName, "sandbox/gamemode/spawnmenu/sandbox/gamemode/spawnmenu/controls", "sandbox/gamemode/spawnmenu/controls");
+	if (V_stricmp(origPath, "lsv") == 0) // Some weird things happen in the lsv path.  
+	{
+		strFileName = replaceString(strFileName, "sandbox/gamemode/spawnmenu/sandbox/gamemode/spawnmenu", "sandbox/gamemode/spawnmenu/");
+		strFileName = replaceString(strFileName, "includes/includes/", "includes/"); // What causes this?
+	}
 	pFileName = strFileName.c_str();
 
 	if (holylib_filesystem_forcepath.GetBool())
@@ -842,6 +847,7 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 	g_pOverridePaths["garrysmod.ver"] = "MOD_WRITE";
 	g_pOverridePaths["scripts/actbusy.txt"] = "MOD_WRITE";
 	g_pOverridePaths["modelsounds.cache"] = "MOD_WRITE";
+	g_pOverridePaths["lua/send.txt"] = "MOD_WRITE";
 
 	g_pOverridePaths["resource/serverevents.res"] = "MOD_WRITE";
 	g_pOverridePaths["resource/gameevents.res"] = "MOD_WRITE";
