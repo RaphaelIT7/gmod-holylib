@@ -23,6 +23,8 @@ public:
 CPVSModule g_pPVSModule;
 IModule* pPVSModule = &g_pPVSModule;
 
+ConVar pvs_postchecktransmit("holylib_pvs_postchecktransmit", "0", 0, "If enabled, it will add the HolyLib:PostCheckTransmit hook.");
+
 static int currentPVSSize = -1;
 static unsigned char* currentPVS = NULL;
 static int mapPVSSize = -1;
@@ -42,9 +44,12 @@ static void hook_CGMOD_Player_SetupVisibility(void* ent, unsigned char* pvs, int
 static IServerGameEnts* servergameents = NULL;
 static std::vector<edict_t*> g_pAddEntityToPVS;
 static std::unordered_map<edict_t*, int> g_pOverrideStateFlag;
+static CCheckTransmitInfo* g_pCurrentTransmitInfo = NULL;
 static Detouring::Hook detour_CServerGameEnts_CheckTransmit;
 static void hook_CServerGameEnts_CheckTransmit(void* gameents, CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts)
 {
+	g_pCurrentTransmitInfo = pInfo;
+
 	for (edict_t* ent : g_pAddEntityToPVS)
 	{
 		servergameents->EdictToBaseEntity(ent)->SetTransmit(pInfo, true);
@@ -60,6 +65,31 @@ static void hook_CServerGameEnts_CheckTransmit(void* gameents, CCheckTransmitInf
 
 	detour_CServerGameEnts_CheckTransmit.GetTrampoline<Symbols::CServerGameEnts_CheckTransmit>()(gameents, pInfo, pEdictIndices, nEdicts);
 
+	if (pvs_postchecktransmit.GetBool())
+	{
+		if(Lua::PushHook("HolyLib:PostCheckTransmit"))
+		{
+			g_Lua->CreateTable();
+			int idx = 0;
+			edict_t *pBaseEdict = engine->PEntityOfEntIndex(0);
+			for (int i=0; i<nEdicts; ++i)
+			{
+				int iEdict = pEdictIndices[i];
+				edict_t *pEdict = &pBaseEdict[iEdict];
+
+				if (!pInfo->m_pTransmitEdict->Get(i))
+					continue;
+
+				++idx;
+				g_Lua->PushNumber(idx);
+				Util::Push_Entity(servergameents->EdictToBaseEntity(pEdict));
+				g_Lua->SetTable(-3);
+			}
+
+			g_Lua->CallFunctionProtected(2, 0, true);
+		}
+	}
+
 	for (auto&[ent, flag] : pOriginalFlags)
 	{
 		ent->m_fStateFlags = flag;
@@ -67,6 +97,8 @@ static void hook_CServerGameEnts_CheckTransmit(void* gameents, CCheckTransmitInf
 	pOriginalFlags.clear();
 	g_pAddEntityToPVS.clear();
 	g_pOverrideStateFlag.clear();
+
+	g_pCurrentTransmitInfo = NULL;
 }
 
 Vector* Get_Vector(int iStackPos)
@@ -302,6 +334,58 @@ LUA_FUNCTION_STATIC(pvs_GetStateFlags)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(pvs_RemoveEntityFromTransmit)
+{
+	CBaseEntity* ent = Util::Get_Entity(1, false);
+	if (!ent)
+		LUA->ThrowError("Tried to use a NULL Entity!");
+
+	edict_t* edict = GetEdictOfEnt(ent);
+	if (!edict)
+		LUA->ThrowError("Failed to get edict?");
+
+	if (!g_pCurrentTransmitInfo)
+		LUA->ThrowError("Tried to use pvs.RemoveEntityFromTransmit while not in a CheckTransmit call!");
+
+	if (!g_pCurrentTransmitInfo->m_pTransmitEdict->Get(edict->m_EdictIndex)) {
+		LUA->PushBool(false);
+		return 1;
+	}
+
+	g_pCurrentTransmitInfo->m_pTransmitEdict->Clear(edict->m_EdictIndex);
+	if (g_pCurrentTransmitInfo->m_pTransmitAlways->Get(edict->m_EdictIndex))
+		g_pCurrentTransmitInfo->m_pTransmitAlways->Clear(edict->m_EdictIndex);
+
+	LUA->PushBool(true);
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(pvs_RemoveAllEntityFromTransmit)
+{
+	if (!g_pCurrentTransmitInfo)
+		LUA->ThrowError("Tried to use pvs.RemoveEntityFromTransmit while not in a CheckTransmit call!");
+
+	g_pCurrentTransmitInfo->m_pTransmitEdict->ClearAll();
+	g_pCurrentTransmitInfo->m_pTransmitAlways->ClearAll();
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(pvs_AddEntityToTransmit)
+{
+	CBaseEntity* ent = Util::Get_Entity(1, false);
+	if (!ent)
+		LUA->ThrowError("Tried to use a NULL Entity!");
+
+	if (!g_pCurrentTransmitInfo)
+		LUA->ThrowError("Tried to use pvs.RemoveEntityFromTransmit while not in a CheckTransmit call!");
+
+	ent->SetTransmit(g_pCurrentTransmitInfo, LUA->GetBool(2));
+	
+	return 1;
+}
+
 void CPVSModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	engineserver = (IVEngineServer*)appfn[0](INTERFACEVERSION_VENGINESERVER, NULL);
@@ -331,6 +415,11 @@ void CPVSModule::LuaInit(bool bServerInit)
 		Util::AddFunc(pvs_OverrideStateFlags, "OverrideStateFlags");
 		Util::AddFunc(pvs_SetStateFlags, "SetStateFlags");
 		Util::AddFunc(pvs_GetStateFlags, "GetStateFlags");
+
+		// Use the functions below only inside the HolyLib:PostCheckTransmit hook.  
+		Util::AddFunc(pvs_RemoveEntityFromTransmit, "RemoveEntityFromTransmit");
+		Util::AddFunc(pvs_RemoveAllEntityFromTransmit, "RemoveAllEntityFromTransmit");
+		Util::AddFunc(pvs_AddEntityToTransmit, "AddEntityToTransmit");
 
 		g_Lua->PushNumber(LUA_FL_EDICT_DONTSEND);
 		g_Lua->SetField(-2, "FL_EDICT_DONTSEND");

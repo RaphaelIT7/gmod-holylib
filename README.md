@@ -221,6 +221,23 @@ NOTE: If you use force, you should know what your doing or else it might cause a
 bool force - Allows you to get all flags instead of only the ones for networking.  
 Returns the state flags for this entity.  
 
+#### bool pvs.RemoveEntityFromTransmit(Entity ent)
+Returns true if the entity was removed from being transmitted.  
+
+> NOTE: Only use this function inside the `HolyLib:CheckTransmit` hook!  
+
+#### pvs.RemoveAllEntityFromTransmit()
+Removes all Entities from being transmitted.  
+
+> NOTE: Only use this function inside the `HolyLib:CheckTransmit` hook!  
+
+#### pvs.AddEntityToTransmit(Entity ent, bool always)
+bool always - If the entity should always be transmitted? (Verify)  
+
+Adds the given Entity to be transmitted.
+
+> NOTE: Only use this function inside the `HolyLib:CheckTransmit` hook!  
+
 ### Enums
 
 #### pvs.FL_EDICT_DONTSEND  
@@ -234,6 +251,18 @@ The Entity will only be networked if it's inside the PVS.
 
 #### pvs.FL_EDICT_FULLCHECK  
 The Entity's `ShouldTransmit` function will be called, and its return value will be used.  
+
+### Hooks
+
+#### HolyLib:CheckTransmit(table entities)
+table enitites - The Entities that get transmitted.  
+
+> NOTE: This hook is only called when `holylib_pvs_postchecktransmit` is enabled!
+
+### ConVars
+
+#### holylib_pvs_postchecktransmit (default `0`)
+If enabled, it will add/call the `HolyLib:CheckTransmit` hook.
 
 ## filesystem
 This module currently only contains two optimizations for the filesystem.  
@@ -272,6 +301,65 @@ lua_run local a = SysTime() for k=1, 1000 do file.Exists("garrysmod.ver", "MOD")
 - If the file doesn't exist, it will still go thru all search paths to search for it again!  
 - I don't know if this has any bugs, but while using this for ~1 Month on a server, I didn't find any issues.  
 - It will also improve the `MOD` search path since it also has multiple search paths.  
+
+#### holylib_filesystem_optimizedfixpath (default `1`)
+If enabled, it will optimize the `CBaseFileSystem::FixPath` function by caching the `BASE_PATH`.  
+
+#### holylib_filesystem_earlysearchcache (default `1`)
+If enabled, it will check the searchcache inside `CBaseFileSystem::OpenForRead`.  
+
+#### holylib_filesystem_forcepath (default `1`)
+If enabled, it will force the pathID for specific files.  
+
+#### holylib_filesystem_predictpath (default `1`)
+If enabled, it will try to predict the path for a file.  
+
+Example:  
+Your loading a model.  
+First you load the `example.mdl` file.  
+Then you load the `example.phy` file.   
+Here we can check if the `example.mdl` file is in the searchcache.  
+If so, we try to use the searchpath of that file for the `.phy` file and since all model files should be in the same folder, this will work for most cases.  
+If we fail to predict a path, it will end up using one additional search path.  
+
+#### holylib_filesystem_splitgamepath (default `1`)
+If enabled, it will split each `GAME` path into multiple search paths, depending on it's contents.  
+Then when you try to find a file with the `GAME` search path, it will change the pathID to the content path.  
+
+Example:  
+File: `cfg/game.cfg`
+Path: `GAME`
+becomes:
+File: `cfg/game.cfg`
+Path: `CONTENT_CONFIGS`  
+
+This will reduce the amount of searchpaths it has to go through which improves performance.  
+
+Content paths:  
+- `materials/` -> `CONTENT_MATERIALS`  
+- `models/` -> `CONTENT_MODELS`  
+- `sound/` -> `CONTENT_SOUNDS`  
+- `maps/` -> `CONTENT_MAPS`  
+- `resource/` -> `CONTENT_RESOURCE`  
+- `scripts/` -> `CONTENT_SCRIPTS`  
+- `cfg/` -> `CONTENT_CONFIGS`  
+- `gamemodes/` -> `LUA_GAMEMODES`  
+- `lua/includes/` -> `LUA_INCLUDES`  
+
+We also do this for `lsv` since if we wouldn't do this, it would waste performance.  
+
+Lua paths:  
+- `sandbox/` -> `LUA_GAMEMODE_SANDBOX`  
+- `effects/` -> `LUA_EFFECTS`  
+- `entities/` -> `LUA_ENTITIES`  
+- `weapons/` -> `LUA_WEAPONS`  
+- `lua/derma/` -> `LUA_DERMA`  
+- `lua/drive/` -> `LUA_DRIVE`  
+- `lua/entities/` -> `LUA_LUA_ENTITIES`  
+- `vgui/` -> `LUA_VGUI`  
+- `postprocess/` -> `LUA_POSTPROCESS`  
+- `matproxy/` -> `LUA_MATPROXY`  
+- `autorun/` -> `LUA_AUTORUN`  
 
 ## util
 This module adds two new functions to the `util` library.  
