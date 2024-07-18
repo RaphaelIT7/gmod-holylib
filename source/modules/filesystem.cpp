@@ -414,6 +414,7 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 		if (file)
 			return file;
 
+		// ToDo: Find out why map content isn't found properly.
 		if (holylib_filesystem_debug.GetBool())
 			Msg("OpenForRead: Failed to find file in splitPath! Failling back to original. This is slow! (%s)\n", pFileName);
 
@@ -737,7 +738,7 @@ void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const char *pPa
 	detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, pathID, addType);
 
 	std::string extension = getFileExtension(pPath);
-	if (extension == "bsp") {
+	/*if (extension == "bsp") {
 		const char* pPathID = "__TEMP_MAP_PATH";
 		gBlockRemoveAllMapPaths = true;
 		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, pPathID, addType);
@@ -762,9 +763,10 @@ void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const char *pPa
 
 		if (filesystem->IsDirectory("cfg/", pPathID))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_CONFIGS", addType);
+		
 		gBlockRemoveAllMapPaths = false;
-		//filesystem->RemoveSearchPath(pPath, pPathID);
-	}
+		filesystem->RemoveSearchPath(pPath, pPathID);
+	}*/
 
 	std::string strPath = pPath;
 	if (V_stricmp(pathID, "GAME") == 0)
