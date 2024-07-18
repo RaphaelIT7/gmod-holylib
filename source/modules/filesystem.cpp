@@ -307,6 +307,8 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 
 	hook_CBaseFileSystem_FixUpPath(filesystem, pFileNameT, pFileNameBuff, sizeof(pFileNameBuff));
 
+	bool splitPath = false;
+	const char* origPath = pathID;
 	const char* newPath = GetOverridePath(pFileName, pathID);
 	if (newPath)
 	{
@@ -314,6 +316,7 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 			Msg("OpenForRead: Found split path! switching (%s, %s)\n", pathID, newPath);
 
 		pathID = newPath;
+		splitPath = true;
 	}
 
 	if (holylib_filesystem_forcepath.GetBool())
@@ -403,6 +406,18 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 	} else {
 		if (holylib_filesystem_debug.GetBool())
 			Msg("OpenForRead: Failed to find cachePath! (%s)\n", pFileName);
+	}
+	
+	if (splitPath)
+	{
+		FileHandle_t file = detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
+		if (file)
+			return file;
+
+		if (holylib_filesystem_debug.GetBool())
+			Msg("OpenForRead: Failed to find file in splitPath! Failling back to original. This is slow! (%s)\n", pFileName);
+
+		pathID = origPath;
 	}
 
 	return detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
@@ -607,7 +622,7 @@ Detouring::Hook detour_CBaseFileSystem_GetFileTime;
 long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char *pFileName, const char *pPathID)
 {
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::GetFileTime", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
-
+	
 	const char* origPath = pPathID;
 	const char* newPath = GetOverridePath(pFileName, pPathID);
 	if (newPath)
@@ -713,9 +728,8 @@ void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const char *pPa
 
 	std::string extension = getFileExtension(pPath);
 	if (extension == "bsp") {
-		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "__TEMP_MAP_PATH", addType);
-
 		const char* pPathID = "__TEMP_MAP_PATH";
+		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, pPathID, addType);
 
 		if (filesystem->IsDirectory("materials/"), pPathID)
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_MATERIALS", addType);
@@ -738,7 +752,7 @@ void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const char *pPa
 		if (filesystem->IsDirectory("cfg/"), pPathID)
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_CONFIGS", addType);
 
-		filesystem->RemoveSearchPath(pPath, pPathID);
+		//filesystem->RemoveSearchPath(pPath, pPathID);
 	}
 
 	std::string strPath = pPath;
