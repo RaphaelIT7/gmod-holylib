@@ -89,6 +89,35 @@ void NukeSearchCache() // NOTE: We actually never nuke it :D
 	m_SearchCache.clear();
 }
 
+void DumpSearchcacheCmd(const CCommand &args)
+{
+	//if (args.ArgC() < 1)
+	{
+		Msg("---- Search cache ----\n");
+		for (auto&[strPath, cache] : m_SearchCache)
+		{
+			Msg("	\"%s\":\n", strPath.c_str());
+			for (auto&[entry, storeID] : cache)
+			{
+				Msg("		\"%s\": %i\n", entry.c_str(), storeID);
+			}
+		}
+		Msg("---- End of Search cache ----\n");
+	//} else {
+	//	if (V_stricmp(args.Arg(1), "file") == 0)
+	//	{
+			// ToDo: Dump it into a file and print the filename, like with vprof.
+	//	}
+	}
+}
+ConCommand dumpsearchcache("holylib_filesystem_dumpsearchcache", DumpSearchcacheCmd, "Dumps the searchcache", 0);
+
+void NukeSearchcacheCmd(const CCommand &args)
+{
+	NukeSearchCache();
+}
+ConCommand nukesearchcache("holylib_filesystem_nukesearchcache", NukeSearchcacheCmd, "Nukes the searchcache", 0);
+
 Detouring::Hook detour_CBaseFileSystem_FindFileInSearchPath;
 FileHandle_t* hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, CFileOpenInfo &openInfo)
 {

@@ -361,6 +361,15 @@ Lua paths:
 - `matproxy/` -> `LUA_MATPROXY`  
 - `autorun/` -> `LUA_AUTORUN`  
 
+### ConCommands
+
+#### holylib_filesystem_dumpsearchcache
+Dumps the searchcache into the console.  
+ToDo: Allow one to dump it into a file.  
+
+#### holylib_filesystem_nukesearchcache
+Nukes the searchcache.  
+
 ## util
 This module adds two new functions to the `util` library.  
 
