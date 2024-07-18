@@ -731,25 +731,25 @@ void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const char *pPa
 		const char* pPathID = "__TEMP_MAP_PATH";
 		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, pPathID, addType);
 
-		if (filesystem->IsDirectory("materials/"), pPathID)
+		if (filesystem->IsDirectory("materials/", pPathID))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_MATERIALS", addType);
 
-		if (filesystem->IsDirectory("models/"), pPathID)
+		if (filesystem->IsDirectory("models/", pPathID))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_MODELS", addType);
 	
-		if (filesystem->IsDirectory("sound/"), pPathID)
+		if (filesystem->IsDirectory("sound/", pPathID))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_SOUNDS", addType);
 	
-		if (filesystem->IsDirectory("maps/"), pPathID)
+		if (filesystem->IsDirectory("maps/", pPathID))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_MAPS", addType);
 	
-		if (filesystem->IsDirectory("resource/"), pPathID)
+		if (filesystem->IsDirectory("resource/", pPathID))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_RESOURCE", addType);
 
-		if (filesystem->IsDirectory("scripts/"), pPathID)
+		if (filesystem->IsDirectory("scripts/", pPathID))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_SCRIPTS", addType);
 
-		if (filesystem->IsDirectory("cfg/"), pPathID)
+		if (filesystem->IsDirectory("cfg/", pPathID))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_CONFIGS", addType);
 
 		//filesystem->RemoveSearchPath(pPath, pPathID);
