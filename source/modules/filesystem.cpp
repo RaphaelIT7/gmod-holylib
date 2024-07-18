@@ -114,6 +114,23 @@ void DumpSearchcacheCmd(const CCommand &args)
 }
 ConCommand dumpsearchcache("holylib_filesystem_dumpsearchcache", DumpSearchcacheCmd, "Dumps the searchcache", 0);
 
+void GetPathFromIDCmd(const CCommand &args)
+{
+	if ( args.ArgC() < 1 || args.Arg(1) == "" )
+	{
+		Msg("Usage: holylib_filesystem_getpathfromid <id>\n");
+		return;
+	}
+
+	CSearchPath* path = func_CBaseFileSystem_FindSearchPathByStoreId(g_pFullFileSystem, atoi(args.Arg(1)));
+	if (!path)
+		Msg("Failed to find CSearchPath :/\n");
+
+	Msg("Id: &%s\n", args.Arg(1));
+	Msg("Path %s\n", path->GetPathString());
+}
+ConCommand nukesearchcache("holylib_filesystem_getpathfromid", GetPathFromIDCmd, "prints the path of the given searchpath id", 0);
+
 void NukeSearchcacheCmd(const CCommand &args)
 {
 	NukeSearchCache();
@@ -971,6 +988,11 @@ inline const char* CPathIDInfo::GetPathIDString() const
 inline const char* CSearchPath::GetPathIDString() const
 {
 	return m_pPathIDInfo->GetPathIDString();
+}
+
+inline const char* CSearchPath::GetPathString() const
+{
+	return g_pPathIDTable->String( m_Path );
 }
 
 void CFileSystemModule::LuaInit(bool bServerInit)

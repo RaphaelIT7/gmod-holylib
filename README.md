@@ -370,6 +370,10 @@ Lua paths:
 Dumps the searchcache into the console.  
 ToDo: Allow one to dump it into a file.  
 
+#### holylib_filesystem_getpathfromid
+Dumps the path for the given searchpath id.  
+The id is the one listed with each file in the dumped searchcache.  
+
 #### holylib_filesystem_nukesearchcache
 Nukes the searchcache.  
 
