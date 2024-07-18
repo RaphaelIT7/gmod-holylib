@@ -697,12 +697,49 @@ long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char *pFile
 	return detour_CBaseFileSystem_GetFileTime.GetTrampoline<Symbols::CBaseFileSystem_GetFileTime>()(filesystem, pFileName, pPathID);
 }
 
+std::string getVPKFile(const std::string& fileName) {
+	size_t lastThingyPos = fileName.find_last_of('/');
+	size_t lastDotPos = fileName.find_last_of('.');
+
+	return fileName.substr(lastThingyPos + 1, lastDotPos - lastThingyPos - 1);
+}
+
 Detouring::Hook detour_CBaseFileSystem_AddSearchPath;
 void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const char *pPath, const char *pathID, SearchPathAdd_t addType)
 {
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::AddSearchPath", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
 	detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, pathID, addType);
+
+	std::string extension = getFileExtension(pPath);
+	if (extension == "bsp") {
+		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "__TEMP_MAP_PATH", addType);
+
+		const char* pPathID = "__TEMP_MAP_PATH";
+
+		if (filesystem->IsDirectory("materials/"), pPathID)
+			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_MATERIALS", addType);
+
+		if (filesystem->IsDirectory("models/"), pPathID)
+			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_MODELS", addType);
+	
+		if (filesystem->IsDirectory("sound/"), pPathID)
+			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_SOUNDS", addType);
+	
+		if (filesystem->IsDirectory("maps/"), pPathID)
+			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_MAPS", addType);
+	
+		if (filesystem->IsDirectory("resource/"), pPathID)
+			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_RESOURCE", addType);
+
+		if (filesystem->IsDirectory("scripts/"), pPathID)
+			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_SCRIPTS", addType);
+
+		if (filesystem->IsDirectory("cfg/"), pPathID)
+			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_CONFIGS", addType);
+
+		filesystem->RemoveSearchPath(pPath, pPathID);
+	}
 
 	std::string strPath = pPath;
 	if (V_stricmp(pathID, "GAME") == 0)
@@ -773,13 +810,6 @@ void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const char *pPa
 
 	if (holylib_filesystem_debug.GetBool())
 		Msg("Added Searchpath: %s %s %i\n", pPath, pathID, (int)addType);
-}
-
-std::string getVPKFile(const std::string& fileName) {
-	size_t lastThingyPos = fileName.find_last_of('/');
-	size_t lastDotPos = fileName.find_last_of('.');
-
-	return fileName.substr(lastThingyPos + 1, lastDotPos - lastThingyPos - 1);
 }
 
 Detouring::Hook detour_CBaseFileSystem_AddVPKFile;
