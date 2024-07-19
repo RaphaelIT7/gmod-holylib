@@ -193,6 +193,13 @@ Sets the new Entry limit for that stringtable.
 > NOTE: If there are already more entries than the new limit, they won't be removed.  
 > (This could cause issues, so make sure you know what you're doing.)  
 
+#### bool INetworkStringTable:DeleteString(number index)
+Deletes the given string at the given index.  
+
+Returns `true` if the string was deleted.  
+
+> NOTE: Currently this deletes all strings and readds all except the one at the given index. This is slow and I need to improve it later.  
+
 ### Enums
 This module adds these enums  
 

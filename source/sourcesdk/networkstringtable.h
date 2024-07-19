@@ -16,6 +16,7 @@
 #include <utldict.h>
 #include <utlbuffer.h>
 #include "tier1/bitbuf.h"
+#include <utlhashtable.h>
 
 class SVC_CreateStringTable;
 class CBaseClient;
@@ -34,6 +35,61 @@ public:
 	virtual int Find( const char *pString ) = 0;
 	virtual CNetworkStringTableItem	&Element( int index ) = 0;
 	virtual const CNetworkStringTableItem &Element( int index ) const = 0;
+};
+
+class CNetworkStringDict : public INetworkStringDict
+{
+public:
+	CNetworkStringDict() 
+	{
+	}
+
+	virtual ~CNetworkStringDict() 
+	{ 
+	}
+
+	unsigned int Count()
+	{
+		return m_Lookup.Count();
+	}
+
+	void Purge()
+	{
+		m_Lookup.Purge();
+	}
+
+	const char *String( int index )
+	{
+		return m_Lookup.Key( index ).Get();
+	}
+
+	bool IsValidIndex( int index )
+	{
+		return m_Lookup.IsValidHandle( index );
+	}
+
+	int Insert( const char *pString )
+	{
+		return m_Lookup.Insert( pString );
+	}
+
+	int Find( const char *pString )
+	{
+		return pString ? m_Lookup.Find( pString ) : m_Lookup.InvalidHandle();
+	}
+
+	CNetworkStringTableItem	&Element( int index )
+	{
+		return m_Lookup.Element( index );
+	}
+
+	const CNetworkStringTableItem &Element( int index ) const
+	{
+		return m_Lookup.Element( index );
+	}
+
+public:
+	CUtlStableHashtable< CUtlConstString, CNetworkStringTableItem, CaselessStringHashFunctor, UTLConstStringCaselessStringEqualFunctor<char> > m_Lookup;
 };
 
 //-----------------------------------------------------------------------------

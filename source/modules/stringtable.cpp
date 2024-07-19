@@ -5,6 +5,7 @@
 #include "detours.h"
 #include "lua.h"
 #include <sourcesdk/networkstringtable.h>
+#include <unordered_map>
 
 class CStringTableModule : public IModule
 {
@@ -219,6 +220,42 @@ LUA_FUNCTION_STATIC(INetworkStringTable_SetMaxEntries)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(INetworkStringTable_DeleteString)
+{
+	INetworkStringTable* table = Get_INetworkStringTable(1);
+	if (!table)
+		LUA->ArgError(1, "INetworkStringTable");
+
+	int strIndex = LUA->CheckNumber(2);
+	if (!table->GetString(strIndex))
+	{
+		LUA->PushBool(false);
+		return 1;
+	}
+
+	std::vector<std::string> pElements;
+	for (int i=0; i<table->GetNumStrings(); ++i)
+	{
+		if (i == strIndex)
+			continue;
+
+		const char* str = table->GetString(i);
+		if (str)
+			pElements.push_back(str);
+		// ToDo: Save and restore userdata. Maybe I could also try later to not use a std::string above?
+	}
+
+	func_CNetworkStringTable_DeleteAllStrings(table); // If this deletes the UserData that we got, were gonna have a problem.
+
+	for (std::string key : pElements)
+	{
+		table->AddString(true, key.c_str());
+	}
+
+	LUA->PushBool(true);
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(stringtable_CreateStringTable)
 {
 	const char* name = LUA->CheckString(1);
@@ -357,6 +394,7 @@ void CStringTableModule::LuaInit(bool bServerInit) // ToDo: Implement a INetwork
 			Util::AddFunc(INetworkStringTable_FindStringIndex, "FindStringIndex");
 			Util::AddFunc(INetworkStringTable_DeleteAllStrings, "DeleteAllStrings");
 			Util::AddFunc(INetworkStringTable_SetMaxEntries, "SetMaxEntries");
+			Util::AddFunc(INetworkStringTable_DeleteString, "DeleteString");
 		g_Lua->Pop(1); // ToDo: Add a IsValid function.
 
 		if (g_Lua->PushMetaTable(INetworkStringTable_TypeID))
