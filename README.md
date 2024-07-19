@@ -163,6 +163,9 @@ string pStr - The string to find the index of
 
 Returns the index of the given string.  
 
+#### INetworkStringTable:DeleteAllStrings()
+Deletes all strings from the stringtable.  
+
 ### Enums
 This module adds these enums  
 

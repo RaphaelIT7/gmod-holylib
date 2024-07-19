@@ -87,6 +87,9 @@ namespace Symbols
 	typedef int (*CServerGameDLL_CreateNetworkStringTables)(void* servergamedll);
 	const Symbol CServerGameDLL_CreateNetworkStringTablesSym = Symbol::FromName("_ZN14CServerGameDLL25CreateNetworkStringTablesEv");
 
+	typedef void (*CNetworkStringTable_DeleteAllStrings)(void* table);
+	const Symbol CNetworkStringTable_DeleteAllStringsSym = Symbol::FromName("_ZN19CNetworkStringTable16DeleteAllStringsEv");
+
 	//---------------------------------------------------------------------------------
 	// Purpose: surffix Symbols
 	//---------------------------------------------------------------------------------

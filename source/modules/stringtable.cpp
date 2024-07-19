@@ -178,6 +178,21 @@ LUA_FUNCTION_STATIC(INetworkStringTable_FindStringIndex)
 	return 1;
 }
 
+Symbols::CNetworkStringTable_DeleteAllStrings func_CNetworkStringTable_DeleteAllStrings;
+LUA_FUNCTION_STATIC(INetworkStringTable_DeleteAllStrings)
+{
+	INetworkStringTable* table = Get_INetworkStringTable(1);
+	if (!table)
+		LUA->ArgError(1, "INetworkStringTable");
+
+	if (!func_CNetworkStringTable_DeleteAllStrings)
+		LUA->ThrowError("Failed to get CNetworkStringTable::DeleteAllStrings");
+
+	func_CNetworkStringTable_DeleteAllStrings(table);
+
+	return 0;
+}
+
 LUA_FUNCTION_STATIC(stringtable_CreateStringTable)
 {
 	const char* name = LUA->CheckString(1);
@@ -281,6 +296,7 @@ void CStringTableModule::LuaInit(bool bServerInit) // ToDo: Implement a INetwork
 		Util::AddFunc(INetworkStringTable_AddString, "AddString");
 		Util::AddFunc(INetworkStringTable_GetString, "GetString");
 		Util::AddFunc(INetworkStringTable_FindStringIndex, "FindStringIndex");
+		Util::AddFunc(INetworkStringTable_DeleteAllStrings, "DeleteAllStrings");
 	g_Lua->Pop(1);
 
 	if (g_Lua->PushMetaTable(INetworkStringTable_TypeID))
@@ -322,6 +338,10 @@ void CStringTableModule::InitDetour(bool bPreServer)
 		server_loader.GetModule(), Symbols::CServerGameDLL_CreateNetworkStringTablesSym,
 		(void*)hook_CServerGameDLL_CreateNetworkStringTables, m_pID
 	);
+
+	SourceSDK::ModuleLoader engine_loader("engine");
+	func_CNetworkStringTable_DeleteAllStrings = (Symbols::CNetworkStringTable_DeleteAllStrings)Detour::GetFunction(engine_loader.GetModule(), Symbols::CNetworkStringTable_DeleteAllStringsSym);
+	Detour::CheckFunction(func_CNetworkStringTable_DeleteAllStrings, "CNetworkStringTable::DeleteAllStrings");
 }
 
 void CStringTableModule::Think(bool bSimulating)
