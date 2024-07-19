@@ -24,10 +24,8 @@ IModule* pSourceTVLibModule = &g_pSourceTVLibModule;
 CHLTVServer* hltv;
 LUA_FUNCTION_STATIC(sourcetv_IsActive)
 {
-	if(hltv)
-		LUA->PushBool(hltv->IsActive());
-	else
-		LUA->PushBool(false);
+	// ToDo: Hook into CHLTVServer::CHLTVServer tomorrow and then set hltv from there. Also hook into the deconstructor to unset it.  
+	LUA->PushBool(false);
 	
 	return 1;
 }
@@ -82,10 +80,6 @@ void CSourceTVLibModule::InitDetour(bool bPreServer)
 		engine_loader.GetModule(), Symbols::CHLTVClient_ProcessGMod_ClientToServerSym,
 		(void*)hook_CHLTVClient_ProcessGMod_ClientToServer, m_pID
 	);
-
-	SourceSDK::FactoryLoader fengine_loader("engine_srv");
-	hltv = ResolveSymbol<CHLTVServer>(fengine_loader, Symbols::hltvSym);
-	Detour::CheckValue("get class", "hltv", hltv != NULL);
 }
 
 void CSourceTVLibModule::Think(bool simulating)
