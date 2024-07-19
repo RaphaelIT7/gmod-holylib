@@ -54,8 +54,10 @@ This is a huge speed improvement for adding searchpaths / mounting legacy addons
 > NOTE: This requires the `ghostinj.dll` to be installed!
 
 ## precachefix
-This module removes the host error when the model or generic precache stringtable overflows. Instead it will throw a warning.  
-If these stringtables overflow, expect the models that failed to precache to be errors.  
+This module removes the host error when the model or generic precache stringtable overflows.  
+Instead it will throw a warning.  
+
+If these stringtables overflow, expect the models that failed to precache to be an error.  
 
 ### Hooks
 This module calls these hooks from (`hook.Run`)  
