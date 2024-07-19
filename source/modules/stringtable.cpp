@@ -202,6 +202,23 @@ LUA_FUNCTION_STATIC(INetworkStringTable_DeleteAllStrings)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(INetworkStringTable_SetMaxEntries)
+{
+	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(1);
+	if (!table)
+		LUA->ArgError(1, "INetworkStringTable");
+
+	int maxEntries = LUA->CheckNumber(2);
+	int maxEntryBits = Q_log2(maxEntries);
+	if ((1 << maxEntryBits) != maxEntries)
+		LUA->ThrowError("String tables must be powers of two in size!");
+
+	table->m_nMaxEntries = maxEntries;
+	table->m_nEntryBits = maxEntryBits;
+
+	return 0;
+}
+
 LUA_FUNCTION_STATIC(stringtable_CreateStringTable)
 {
 	const char* name = LUA->CheckString(1);
@@ -339,6 +356,7 @@ void CStringTableModule::LuaInit(bool bServerInit) // ToDo: Implement a INetwork
 			Util::AddFunc(INetworkStringTable_GetString, "GetString");
 			Util::AddFunc(INetworkStringTable_FindStringIndex, "FindStringIndex");
 			Util::AddFunc(INetworkStringTable_DeleteAllStrings, "DeleteAllStrings");
+			Util::AddFunc(INetworkStringTable_SetMaxEntries, "SetMaxEntries");
 		g_Lua->Pop(1); // ToDo: Add a IsValid function.
 
 		if (g_Lua->PushMetaTable(INetworkStringTable_TypeID))
@@ -359,12 +377,13 @@ void CStringTableModule::LuaInit(bool bServerInit) // ToDo: Implement a INetwork
 			Util::AddFunc(stringtable_IsCreationAllowed, "IsCreationAllowed");
 			Util::AddFunc(stringtable_IsLocked, "IsLocked");
 			Util::AddFunc(stringtable_AllowCreation, "AllowCreation");
+			Util::AddFunc(stringtable_RemoveTable, "RemoveTable");
 
 			g_Lua->PushNumber(INVALID_STRING_INDEX);
 			g_Lua->SetField(-2, "INVALID_STRING_INDEX");
 		Util::FinishTable("stringtable");
 	} else {
-		if (Lua::PushHook("HolyLib:OnStringtableCreation")) // Use this hook to create / modify the stringtables.
+		if (Lua::PushHook("HolyLib:OnStringTableCreation")) // Use this hook to create / modify the stringtables.
 		{
 			networkStringTableContainerServer->m_bAllowCreation = true; // Will this work? We'll see.
 			g_Lua->CallFunctionProtected(1, 0, true);

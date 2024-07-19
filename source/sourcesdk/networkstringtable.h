@@ -106,7 +106,7 @@ public:
 	void SetAllowClientSideAddString( bool state );
 	pfnStringChanged	GetCallback();
 
-protected:
+public:
 	void			DataChanged( int stringNumber, CNetworkStringTableItem *item );
 
 	// Destroy string table

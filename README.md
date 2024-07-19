@@ -117,7 +117,26 @@ bool bIsFilenames(default `false`) - If the stringtable will contain filenames.
 INetworkStringTable table - The table to set it on  
 bool bAllowClientSideAddString - If clients should be able to modify the stringtable.  
 
-Returns `nil` or the `INetworkStringTable`  
+#### bool stringtable.IsCreationAllowed()
+Returns whether you're allowed to create stringtables.  
+
+#### stringtable.IsLocked()
+Returns if the stringtable is locked or not.  
+
+#### stringtable.AllowCreation(bool bAllowCreation)
+Sets whether you're allowed to create stringtable.  
+
+Example:  
+```lua
+stringtable.AllowCreation(true)
+stringtable.CreateStringTable("example", 8192)
+stringtable.AllowCreation(false)
+```
+
+> NOTE: Please use the `HolyLib:OnStringTableCreation` hook to add custom stringtables.  
+
+#### stringtable.RemoveTable(INetworkStringTable table)
+Deletes that specific stringtable.  
 
 ### INetworkStringTable
 This is a metatable that is pushed by this module. It contains the functions listed below  
@@ -166,6 +185,14 @@ Returns the index of the given string.
 #### INetworkStringTable:DeleteAllStrings()
 Deletes all strings from the stringtable.  
 
+#### INetworkStringTable:SetMaxEntries(number maxEntries)
+number maxEntries - The new limit for entries.  
+
+Sets the new Entry limit for that stringtable.  
+
+> NOTE: If there are already more entries than the new limit, they won't be removed.  
+> (This could cause issues, so make sure you know what you're doing.)  
+
 ### Enums
 This module adds these enums  
 
@@ -175,9 +202,9 @@ This value is returned if the index of a string is invalid, like if INetworkStri
 ### Hooks
 This module calls these hooks from (`hook.Run`)  
 
-#### HolyLib:OnStringtableCreation()
-NOTE: This is currently broken, since it's actually called before Lua :/
-
+#### HolyLib:OnStringTableCreation()
+You can create stringtables inside this hook.  
+If you want to create stringtables outside this hook, use `stringtable.AllowCreation`  
 
 ## pvs
 This adds a bunch of PVS related functions.  
