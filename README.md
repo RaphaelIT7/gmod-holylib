@@ -1,6 +1,6 @@
 # Holylib
 
-A library that will contain some functions and optimizations for gmod.  
+A library that contains some functions and optimizations for gmod.  
 If you need any function, make an issue for it, and I'll look into it.  
 
 # How to Install
