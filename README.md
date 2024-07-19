@@ -60,11 +60,19 @@ If these stringtables overflow, expect the models that failed to precache to be 
 ### Hooks
 This module calls these hooks from (`hook.Run`)  
 
+#### HolyLib:OnModelPrecache(string model, number idx)
+string model - The model that failed to precache.  
+number idx - The index the model was precache in.  
+
 #### HolyLib:OnModelPrecacheFail(string model)
 string model - The model that failed to precache.  
 
-#### HolyLib:OnGenericPrecacheFail(string model)
-string model - The model that failed to precache.  
+#### HolyLib:OnGenericPrecache(string file, number idx)
+string file - The file that failed to precache.  
+number idx - The index the file was precache in.  
+
+#### HolyLib:OnGenericPrecacheFail(string file)
+string file - The file that failed to precache.  
 
 ## stringtable
 This module adds a new library called `stringtable`, which will contain all functions to handle stringtables,  

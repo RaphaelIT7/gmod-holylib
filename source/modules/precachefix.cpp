@@ -33,11 +33,18 @@ Symbols::SV_FindOrAddModel func_SV_FindOrAddModel;
 Detouring::Hook detour_CVEngineServer_PrecacheModel;
 int hook_CVEngineServer_PrecacheModel(IVEngineServer* eengine, const char* mdl, bool preload)
 {
-	PR_CheckEmptyString( mdl );
-	int i = func_SV_FindOrAddModel( mdl, preload );
-	if ( i >= 0 )
+	PR_CheckEmptyString(mdl);
+	int idx = func_SV_FindOrAddModel(mdl, preload);
+	if (idx >= 0)
 	{
-		return i;
+		if (Lua::PushHook("HolyLib:OnModelPrecache"))
+		{
+			g_Lua->PushString(mdl);
+			g_Lua->PushNumber(idx);
+			g_Lua->CallFunctionProtected(3, 0, true);
+		}
+
+		return idx;
 	}
 
 	if (Lua::PushHook("HolyLib:OnModelPrecacheFail"))
@@ -46,7 +53,7 @@ int hook_CVEngineServer_PrecacheModel(IVEngineServer* eengine, const char* mdl, 
 		g_Lua->CallFunctionProtected(2, 0, true);
 	}
 		
-	Warning( "CVEngineServer::PrecacheModel: '%s' overflow, too many models\n", mdl );
+	Warning("CVEngineServer::PrecacheModel: '%s' overflow, too many models\n", mdl);
 	return 0; // The engine already handles 0 cases, so this shouldn't cause other issues, that models that failed to precache being an error model for the client or the entity may not spawn.
 }
 
@@ -54,11 +61,18 @@ Symbols::SV_FindOrAddGeneric func_SV_FindOrAddGeneric;
 Detouring::Hook detour_CVEngineServer_PrecacheGeneric;
 int hook_CVEngineServer_PrecacheGeneric(IVEngineServer* eengine, const char* mdl, bool preload)
 {		
-	PR_CheckEmptyString( mdl );
-	int i = func_SV_FindOrAddGeneric( mdl, preload );
-	if ( i >= 0 )
+	PR_CheckEmptyString(mdl);
+	int idx = func_SV_FindOrAddGeneric(mdl, preload);
+	if (idx >= 0)
 	{
-		return i;
+		if (Lua::PushHook("HolyLib:OnGenericPrecache"))
+		{
+			g_Lua->PushString(mdl);
+			g_Lua->PushNumber(idx);
+			g_Lua->CallFunctionProtected(3, 0, true);
+		}
+
+		return idx;
 	}
 
 	if (Lua::PushHook("HolyLib:OnGenericPrecacheFail"))
@@ -67,7 +81,7 @@ int hook_CVEngineServer_PrecacheGeneric(IVEngineServer* eengine, const char* mdl
 		g_Lua->CallFunctionProtected(2, 0, true);
 	}
 		
-	Warning( "CVEngineServer::PrecacheGeneric: '%s' overflow\n", mdl );
+	Warning("CVEngineServer::PrecacheGeneric: '%s' overflow\n", mdl);
 	return 0; // ToDo: Find out, what happens when we hit the limit and verify that everything that calls this, handles a case like 0 properly.
 }
 
