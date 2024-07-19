@@ -199,6 +199,7 @@ Deletes the given string at the given index.
 Returns `true` if the string was deleted.  
 
 > NOTE: Currently this deletes all strings and readds all except the one at the given index. This is slow and I need to improve it later.  
+> BUG: It doesn't readd the userdata the strings.  
 
 ### Enums
 This module adds these enums  
