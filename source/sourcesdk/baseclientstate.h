@@ -87,6 +87,7 @@ public: // INetMsgHandler interface:
 	virtual void FileRequested( const char *fileName, unsigned int transferID );
 	virtual void FileDenied( const char *fileName, unsigned int transferID );
 	virtual void FileSent( const char *fileName, unsigned int transferID );
+	virtual bool ShouldAcceptFile( const char *fileName, unsigned int transferID ) { return true; };
 
 public: // IServerMessageHandlers
 	

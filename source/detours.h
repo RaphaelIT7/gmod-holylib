@@ -55,8 +55,8 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: sourcetv Symbols
 	//---------------------------------------------------------------------------------
-	typedef void* (*CGameClient_ProcessGMod_ClientToServer)(IClient*, void*);
-	const Symbol CGameClient_ProcessGMod_ClientToServerSym = Symbol::FromName("_ZN11CGameClient26ProcessGMod_ClientToServerEP23CLC_GMod_ClientToServer");
+	typedef void* (*CHLTVClient_ProcessGMod_ClientToServer)(IClient*, void*);
+	const Symbol CHLTVClient_ProcessGMod_ClientToServerSym = Symbol::FromName("_ZN11CHLTVClient26ProcessGMod_ClientToServerEP23CLC_GMod_ClientToServer");
 
 	const Symbol hltvSym = Symbol::FromName("hltv");
 

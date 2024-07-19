@@ -1,7 +1,8 @@
 #include "module.h"
 #include <GarrysMod/Lua/Interface.h>
 #include "lua.h"
-#include "sourcesdk/baseserver.h"
+#include "sourcesdk/hltvserver.h"
+#include "sourcesdk/gmod_netmessages.h"
 
 class CSourceTVLibModule : public IModule
 {
@@ -20,7 +21,7 @@ ConVar sourcetv_allownetworking("holylib_sourcetv_allownetworking", "0", 0, "All
 CSourceTVLibModule g_pSourceTVLibModule;
 IModule* pSourceTVLibModule = &g_pSourceTVLibModule;
 
-CBaseServer* hltv;
+CHLTVServer* hltv;
 LUA_FUNCTION_STATIC(sourcetv_IsActive)
 {
 	if(hltv)
@@ -29,6 +30,24 @@ LUA_FUNCTION_STATIC(sourcetv_IsActive)
 		LUA->PushBool(false);
 	
 	return 1;
+}
+
+Detouring::Hook detour_CHLTVClient_ProcessGMod_ClientToServer;
+bool hook_CHLTVClient_ProcessGMod_ClientToServer(CHLTVClient* hltvclient, CLC_GMod_ClientToServer* bf)
+{
+	if (!sourcetv_allownetworking.GetBool())
+		return true;
+
+	bf->m_DataIn.Seek(0);
+	int type = bf->m_DataIn.ReadBitLong(4, false);
+	if ( type != 2 ) // Only handle type 2 -> Lua net message.
+		return true;
+
+	bf->m_DataIn.ReadBitLong(8, false);
+	bf->m_DataIn.ReadBitLong(22, false); // Skiping to the header
+	//bf->m_DataIn.ReadBitLong(16, false); // The header -> the string. Why not an 12 bits? (This will be read by net.ReadHeader())
+
+	// ToDo: Add the Lua call.
 }
 
 void CSourceTVLibModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
@@ -57,8 +76,15 @@ void CSourceTVLibModule::InitDetour(bool bPreServer)
 {
 	if ( bPreServer ) { return; }
 
-	SourceSDK::FactoryLoader engine_loader("engine_srv");
-	hltv = ResolveSymbol<CBaseServer>(engine_loader, Symbols::hltvSym);
+	SourceSDK::ModuleLoader engine_loader("engine_srv");
+	Detour::Create(
+		&detour_CHLTVClient_ProcessGMod_ClientToServer, "CHLTVClient::ProcessGMod_ClientToServer",
+		engine_loader.GetModule(), Symbols::CHLTVClient_ProcessGMod_ClientToServerSym,
+		(void*)hook_CHLTVClient_ProcessGMod_ClientToServer, m_pID
+	);
+
+	SourceSDK::FactoryLoader fengine_loader("engine_srv");
+	hltv = ResolveSymbol<CHLTVServer>(fengine_loader, Symbols::hltvSym);
 	Detour::CheckValue("get class", "hltv", hltv != NULL);
 }
 
