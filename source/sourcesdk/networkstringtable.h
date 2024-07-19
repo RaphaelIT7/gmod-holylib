@@ -11,7 +11,7 @@
 #endif
 
 #include "networkstringtabledefs.h"
-#include "networkstringtableitem.h"
+//#include "networkstringtableitem.h"
 
 #include <utldict.h>
 #include <utlbuffer.h>
@@ -19,6 +19,7 @@
 
 class SVC_CreateStringTable;
 class CBaseClient;
+class CNetworkStringTableItem;
 
 abstract_class INetworkStringDict
 {

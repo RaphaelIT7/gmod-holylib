@@ -116,7 +116,7 @@ ConCommand dumpsearchcache("holylib_filesystem_dumpsearchcache", DumpSearchcache
 
 void GetPathFromIDCmd(const CCommand &args)
 {
-	if ( args.ArgC() < 1 || args.Arg(1) == "" )
+	if ( args.ArgC() < 1 || V_stricmp(args.Arg(1), "") == 0 )
 	{
 		Msg("Usage: holylib_filesystem_getpathfromid <id>\n");
 		return;
