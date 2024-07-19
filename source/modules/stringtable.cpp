@@ -4,6 +4,7 @@
 #include "networkstringtabledefs.h"
 #include "detours.h"
 #include "lua.h"
+#include <sourcesdk/networkstringtable.h>
 
 class CStringTableModule : public IModule
 {
@@ -20,13 +21,14 @@ public:
 CStringTableModule g_pStringTableFixModule;
 IModule* pStringTableModule = &g_pStringTableFixModule;
 
-INetworkStringTableContainer* networkStringTableContainerServer = NULL;
+CNetworkStringTableContainer* networkStringTableContainerServer = NULL;
 void CStringTableModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
-	networkStringTableContainerServer = (INetworkStringTableContainer*)appfn[0](INTERFACENAME_NETWORKSTRINGTABLESERVER, NULL);
+	networkStringTableContainerServer = (CNetworkStringTableContainer*)appfn[0](INTERFACENAME_NETWORKSTRINGTABLESERVER, NULL);
 	Detour::CheckValue("get interface", "networkStringTableContainerServer", networkStringTableContainerServer != NULL);
 }
 
+int registryIdx = 0;
 int INetworkStringTable_TypeID = -1;
 void Push_INetworkStringTable(INetworkStringTable* tbl)
 {
@@ -36,7 +38,14 @@ void Push_INetworkStringTable(INetworkStringTable* tbl)
 		return;
 	}
 
-	g_Lua->PushUserType( tbl, INetworkStringTable_TypeID );
+	g_Lua->PushUserType(tbl, INetworkStringTable_TypeID);
+
+	/*++registryIdx;
+	g_Lua->GetField(GarrysMod::Lua::INDEX_REGISTRY, "inetworkstringtable_objects");
+	g_Lua->Push(-2);
+	g_Lua->PushNumber(registryIdx);
+	g_Lua->SetTable(-3);
+	g_Lua->Pop(1);*/
 }
 
 INetworkStringTable* Get_INetworkStringTable(int iStackPos)
@@ -260,6 +269,9 @@ LUA_FUNCTION_STATIC(stringtable_CreateStringTableEx)
 LUA_FUNCTION_STATIC(stringtable_SetAllowClientSideAddString)
 {
 	INetworkStringTable* table = Get_INetworkStringTable(1);
+	if (!table)
+		LUA->ArgError(1, "INetworkStringTable");
+
 	bool bAllowClientSideAddString = LUA->GetBool(2);
 
 	networkStringTableContainerServer->SetAllowClientSideAddString(table, bAllowClientSideAddString);
@@ -267,15 +279,38 @@ LUA_FUNCTION_STATIC(stringtable_SetAllowClientSideAddString)
 	return 0;
 }
 
-Detouring::Hook detour_CServerGameDLL_CreateNetworkStringTables;
-void hook_CServerGameDLL_CreateNetworkStringTables(void* servergamedll)
+LUA_FUNCTION_STATIC(stringtable_IsCreationAllowed)
 {
-	detour_CServerGameDLL_CreateNetworkStringTables.GetTrampoline<Symbols::CServerGameDLL_CreateNetworkStringTables>()(servergamedll);
+	LUA->PushBool(networkStringTableContainerServer->m_bAllowCreation);
 
-	//if (Lua::PushHook("HolyLib:OnStringtableCreation")) // Use this hook to create / modify the stringtables.
-	{
-	//	g_Lua->CallFunctionProtected(1, 0, true);
-	}
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(stringtable_IsLocked)
+{
+	LUA->PushBool(networkStringTableContainerServer->m_bLocked);
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(stringtable_AllowCreation)
+{
+	networkStringTableContainerServer->m_bAllowCreation = LUA->GetBool(1);
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(stringtable_RemoveTable)
+{
+	INetworkStringTable* table = Get_INetworkStringTable(1);
+	if (!table)
+		LUA->ArgError(1, "INetworkStringTable");
+
+	networkStringTableContainerServer->m_Tables.Remove(table->GetTableId());
+	delete table;
+	g_Lua->SetUserType(1, NULL); // Invalidate the INetworkStringTable.
+
+	return 0;
 }
 
 void CStringTableModule::LuaInit(bool bServerInit) // ToDo: Implement a INetworkStringTable class, a full table and call a hook when SV_CreateNetworkStringTables -> CreateNetworkStringTables is called.
@@ -283,41 +318,59 @@ void CStringTableModule::LuaInit(bool bServerInit) // ToDo: Implement a INetwork
 	if (!networkStringTableContainerServer)
 		return;
 
-	INetworkStringTable_TypeID = g_Lua->CreateMetaTable("INetworkStringTable");
-		Util::AddFunc(INetworkStringTable__tostring, "__tostring");
-		Util::AddFunc(INetworkStringTable__index, "__index");
-		Util::AddFunc(INetworkStringTable_GetTableName, "GetTableName");
-		Util::AddFunc(INetworkStringTable_GetTableId, "GetTableId");
-		Util::AddFunc(INetworkStringTable_GetNumStrings, "GetNumStrings");
-		Util::AddFunc(INetworkStringTable_GetMaxStrings, "GetMaxStrings");
-		Util::AddFunc(INetworkStringTable_GetEntryBits, "GetEntryBits");
-		Util::AddFunc(INetworkStringTable_SetTick, "SetTick");
-		Util::AddFunc(INetworkStringTable_ChangedSinceTick, "ChangedSinceTick");
-		Util::AddFunc(INetworkStringTable_AddString, "AddString");
-		Util::AddFunc(INetworkStringTable_GetString, "GetString");
-		Util::AddFunc(INetworkStringTable_FindStringIndex, "FindStringIndex");
-		Util::AddFunc(INetworkStringTable_DeleteAllStrings, "DeleteAllStrings");
-	g_Lua->Pop(1);
-
-	if (g_Lua->PushMetaTable(INetworkStringTable_TypeID))
+	if (!bServerInit)
 	{
-		g_Lua->Pop(1);
+		/*g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_REG);
+			g_Lua->CreateTable();
+			g_Lua->SetField(-2, "inetworkstringtable_objects");
+		g_Lua->Pop(1);*/
+
+		INetworkStringTable_TypeID = g_Lua->CreateMetaTable("INetworkStringTable");
+			Util::AddFunc(INetworkStringTable__tostring, "__tostring");
+			Util::AddFunc(INetworkStringTable__index, "__index");
+			Util::AddFunc(INetworkStringTable_GetTableName, "GetTableName");
+			Util::AddFunc(INetworkStringTable_GetTableId, "GetTableId");
+			Util::AddFunc(INetworkStringTable_GetNumStrings, "GetNumStrings");
+			Util::AddFunc(INetworkStringTable_GetMaxStrings, "GetMaxStrings");
+			Util::AddFunc(INetworkStringTable_GetEntryBits, "GetEntryBits");
+			Util::AddFunc(INetworkStringTable_SetTick, "SetTick");
+			Util::AddFunc(INetworkStringTable_ChangedSinceTick, "ChangedSinceTick");
+			Util::AddFunc(INetworkStringTable_AddString, "AddString");
+			Util::AddFunc(INetworkStringTable_GetString, "GetString");
+			Util::AddFunc(INetworkStringTable_FindStringIndex, "FindStringIndex");
+			Util::AddFunc(INetworkStringTable_DeleteAllStrings, "DeleteAllStrings");
+		g_Lua->Pop(1); // ToDo: Add a IsValid function.
+
+		if (g_Lua->PushMetaTable(INetworkStringTable_TypeID))
+		{
+			g_Lua->Pop(1);
+		} else {
+			Warning("HolyLib: g_Lua->PushMetaTable fails to push INetworkStringTable!\n");
+		}
+
+		Util::StartTable();
+			Util::AddFunc(stringtable_CreateStringTable, "CreateStringTable");
+			Util::AddFunc(stringtable_RemoveAllTables, "RemoveAllTables"); // ToDo: Invalidate all pushed stringtables.
+			Util::AddFunc(stringtable_FindTable, "FindTable");
+			Util::AddFunc(stringtable_GetTable, "GetTable");
+			Util::AddFunc(stringtable_GetNumTables, "GetNumTables");
+			Util::AddFunc(stringtable_CreateStringTableEx, "CreateStringTableEx");
+			Util::AddFunc(stringtable_SetAllowClientSideAddString, "SetAllowClientSideAddString");
+			Util::AddFunc(stringtable_IsCreationAllowed, "IsCreationAllowed");
+			Util::AddFunc(stringtable_IsLocked, "IsLocked");
+			Util::AddFunc(stringtable_AllowCreation, "AllowCreation");
+
+			g_Lua->PushNumber(INVALID_STRING_INDEX);
+			g_Lua->SetField(-2, "INVALID_STRING_INDEX");
+		Util::FinishTable("stringtable");
 	} else {
-		Warning("HolyLib: g_Lua->PushMetaTable fails to push INetworkStringTable!\n");
+		if (Lua::PushHook("HolyLib:OnStringtableCreation")) // Use this hook to create / modify the stringtables.
+		{
+			networkStringTableContainerServer->m_bAllowCreation = true; // Will this work? We'll see.
+			g_Lua->CallFunctionProtected(1, 0, true);
+			networkStringTableContainerServer->m_bAllowCreation = false;
+		}
 	}
-
-	Util::StartTable();
-		Util::AddFunc(stringtable_CreateStringTable, "CreateStringTable");
-		Util::AddFunc(stringtable_RemoveAllTables, "RemoveAllTables");
-		Util::AddFunc(stringtable_FindTable, "FindTable");
-		Util::AddFunc(stringtable_GetTable, "GetTable");
-		Util::AddFunc(stringtable_GetNumTables, "GetNumTables");
-		Util::AddFunc(stringtable_CreateStringTableEx, "CreateStringTableEx");
-		Util::AddFunc(stringtable_SetAllowClientSideAddString, "SetAllowClientSideAddString");
-
-		g_Lua->PushNumber(INVALID_STRING_INDEX);
-		g_Lua->SetField(-2, "INVALID_STRING_INDEX");
-	Util::FinishTable("stringtable");
 }
 
 void CStringTableModule::LuaShutdown() // ToDo: Can we remove the metatable?
@@ -331,13 +384,6 @@ void CStringTableModule::LuaShutdown() // ToDo: Can we remove the metatable?
 void CStringTableModule::InitDetour(bool bPreServer)
 {
 	if ( bPreServer ) { return; }
-
-	SourceSDK::ModuleLoader server_loader("server");
-	Detour::Create(
-		&detour_CServerGameDLL_CreateNetworkStringTables, "CServerGameDLL::CreateNetworkStringTables",
-		server_loader.GetModule(), Symbols::CServerGameDLL_CreateNetworkStringTablesSym,
-		(void*)hook_CServerGameDLL_CreateNetworkStringTables, m_pID
-	);
 
 	SourceSDK::ModuleLoader engine_loader("engine");
 	func_CNetworkStringTable_DeleteAllStrings = (Symbols::CNetworkStringTable_DeleteAllStrings)Detour::GetFunction(engine_loader.GetModule(), Symbols::CNetworkStringTable_DeleteAllStringsSym);
