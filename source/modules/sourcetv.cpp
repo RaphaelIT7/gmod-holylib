@@ -23,7 +23,10 @@ IModule* pSourceTVLibModule = &g_pSourceTVLibModule;
 CBaseServer* hltv;
 LUA_FUNCTION_STATIC(sourcetv_IsActive)
 {
-	LUA->PushBool(hltv->IsActive());
+	if(hltv)
+		LUA->PushBool(hltv->IsActive());
+	else
+		LUA->PushBool(false);
 	
 	return 1;
 }
