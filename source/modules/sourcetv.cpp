@@ -21,11 +21,25 @@ ConVar sourcetv_allownetworking("holylib_sourcetv_allownetworking", "0", 0, "All
 CSourceTVLibModule g_pSourceTVLibModule;
 IModule* pSourceTVLibModule = &g_pSourceTVLibModule;
 
-CHLTVServer* hltv;
+CHLTVServer* hltv = NULL;
+Detouring::Hook detour_CHLTVServer_CHLTVServer;
+void hook_CHLTVServer_CHLTVServer(CHLTVServer* srv)
+{
+	hltv = srv;
+}
+
+Detouring::Hook detour_CHLTVServer_DestroyCHLTVServer;
+void hook_CHLTVServer_DestroyCHLTVServer(CHLTVServer* srv)
+{
+	hltv = NULL;
+}
+
 LUA_FUNCTION_STATIC(sourcetv_IsActive)
 {
-	// ToDo: Hook into CHLTVServer::CHLTVServer tomorrow and then set hltv from there. Also hook into the deconstructor to unset it.  
-	LUA->PushBool(false);
+	if (hltv)
+		LUA->PushBool(hltv->IsActive());
+	else
+		LUA->PushBool(false);
 	
 	return 1;
 }
@@ -79,6 +93,18 @@ void CSourceTVLibModule::InitDetour(bool bPreServer)
 		&detour_CHLTVClient_ProcessGMod_ClientToServer, "CHLTVClient::ProcessGMod_ClientToServer",
 		engine_loader.GetModule(), Symbols::CHLTVClient_ProcessGMod_ClientToServerSym,
 		(void*)hook_CHLTVClient_ProcessGMod_ClientToServer, m_pID
+	);
+
+	Detour::Create(
+		&detour_CHLTVServer_CHLTVServer, "CHLTVServer::CHLTVServer",
+		engine_loader.GetModule(), Symbols::CHLTVServer_CHLTVServerSym,
+		(void*)hook_CHLTVServer_CHLTVServer, m_pID
+	);
+
+	Detour::Create(
+		&detour_CHLTVServer_DestroyCHLTVServer, "CHLTVServer::~CHLTVServer",
+		engine_loader.GetModule(), Symbols::CHLTVServer_DestroyCHLTVServerSym,
+		(void*)hook_CHLTVServer_DestroyCHLTVServer, m_pID
 	);
 }
 

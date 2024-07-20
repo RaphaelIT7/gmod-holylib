@@ -58,6 +58,12 @@ namespace Symbols
 	typedef void* (*CHLTVClient_ProcessGMod_ClientToServer)(IClient*, void*);
 	const Symbol CHLTVClient_ProcessGMod_ClientToServerSym = Symbol::FromName("_ZN11CHLTVClient26ProcessGMod_ClientToServerEP23CLC_GMod_ClientToServer");
 
+	typedef void (*CHLTVServer_CHLTVServer)(void*);
+	const Symbol CHLTVServer_CHLTVServerSym = Symbol::FromName("_ZN11CHLTVServerC2Ev");
+
+	typedef void (*CHLTVServer_DestroyCHLTVServer)(void*);
+	const Symbol CHLTVServer_DestroyCHLTVServerSym = Symbol::FromName("_ZN11CHLTVServerD2Ev");
+
 	//---------------------------------------------------------------------------------
 	// Purpose: threadpoolfix Symbols
 	//---------------------------------------------------------------------------------
