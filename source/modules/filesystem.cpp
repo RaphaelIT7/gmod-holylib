@@ -445,7 +445,9 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 
 				if (holylib_filesystem_predictexistance.GetBool())
 				{
-					Msg("OpenForRead: predicted path failed. Let's say it doesn't exist.\n");
+					if (holylib_filesystem_debug.GetBool())
+						Msg("OpenForRead: predicted path failed. Let's say it doesn't exist.\n");
+
 					return NULL;
 				}
 			}
