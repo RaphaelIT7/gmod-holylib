@@ -26,18 +26,50 @@ Detouring::Hook detour_CHLTVServer_CHLTVServer;
 void hook_CHLTVServer_CHLTVServer(CHLTVServer* srv)
 {
 	hltv = srv;
+	detour_CHLTVServer_CHLTVServer.GetTrampoline<Symbols::CHLTVServer_CHLTVServer>()(srv);
 }
 
 Detouring::Hook detour_CHLTVServer_DestroyCHLTVServer;
 void hook_CHLTVServer_DestroyCHLTVServer(CHLTVServer* srv)
 {
 	hltv = NULL;
+	detour_CHLTVServer_DestroyCHLTVServer.GetTrampoline<Symbols::CHLTVServer_DestroyCHLTVServer>()(srv);
 }
 
 LUA_FUNCTION_STATIC(sourcetv_IsActive)
 {
 	if (hltv)
 		LUA->PushBool(hltv->IsActive());
+	else
+		LUA->PushBool(false);
+	
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(sourcetv_IsRecording)
+{
+	if (hltv)
+		LUA->PushBool(hltv->m_DemoRecorder.IsRecording());
+	else
+		LUA->PushBool(false);
+	
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(sourcetv_IsMasterProxy)
+{
+	if (hltv)
+		LUA->PushBool(hltv->IsMasterProxy());
+	else
+		LUA->PushBool(false);
+	
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(sourcetv_IsRelay)
+{
+	if (hltv)
+		LUA->PushBool(hltv->IsTVRelay());
 	else
 		LUA->PushBool(false);
 	
@@ -72,6 +104,9 @@ void CSourceTVLibModule::LuaInit(bool bServerInit)
 	{
 		Util::StartTable();
 			Util::AddFunc(sourcetv_IsActive, "IsActive");
+			Util::AddFunc(sourcetv_IsRecording, "IsRecording");
+			Util::AddFunc(sourcetv_IsMasterProxy, "IsMasterProxy");
+			Util::AddFunc(sourcetv_IsRelay, "IsRelay");
 		Util::FinishTable("sourcetv");
 	}
 }
