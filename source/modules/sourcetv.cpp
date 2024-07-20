@@ -21,6 +21,16 @@ ConVar sourcetv_allownetworking("holylib_sourcetv_allownetworking", "0", 0, "All
 CSourceTVLibModule g_pSourceTVLibModule;
 IModule* pSourceTVLibModule = &g_pSourceTVLibModule;
 
+bool CHLTVDemoRecorder::IsRecording()
+{
+	return m_bIsRecording;
+}
+
+bool CHLTVServer::IsTVRelay()
+{
+	return !IsMasterProxy();
+}
+
 CHLTVServer* hltv = NULL;
 Detouring::Hook detour_CHLTVServer_CHLTVServer;
 void hook_CHLTVServer_CHLTVServer(CHLTVServer* srv)
