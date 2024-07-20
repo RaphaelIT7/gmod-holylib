@@ -502,6 +502,52 @@ Returns `true` if sourcetv server is the master proxy.
 #### bool sourcetv.IsRelay()
 Returns `true` if the sourcetv server is a relay.  
 
+#### number sourcetv.GetClientCount()
+Returns the number of sourctv clients connected.  
+
+#### number sourcetv.GetHLTVSlot()  
+Returns the slot of the sourcetv client/bot.  
+
+#### number sourcetv.StartRecord(string fileName)
+string fileName - The name for the recording.  
+
+Returns one of the `RECORD_` enums.  
+
+#### string sourcetv.GetRecordingFile()
+Returns the filename of the current recording. or `nil`.  
+
+#### number sourcetv.StopRecord()  
+Stops the active record.  
+
+Returns one of the `RECORD_` enums.  
+If successfully stopped, it will return `sourcetv.RECORD_OK`.
+
+
+### Enums
+
+#### sourcetv.RECORD_OK = 0
+The recording was started.  
+
+#### sourcetv.RECORD_NOSOURCETV = -1  
+SourceTV is not active!  
+
+#### sourcetv.RECORD_NOTMASTER = -2  
+the sourcetv server is not the master!  
+
+#### sourcetv.RECORD_ACTIVE = -3  
+there already is an active record!  
+
+> NOTE: Should we allow multiple active record? I think I could implement it. If wanted, make a request for it.  
+
+#### sourcetv.RECORD_NOTACTIVE = -4  
+there is no active recording to stop!  
+
+#### sourcetv.RECORD_INVALIDPATH = -5  
+The filepath for the recording is invalid!  
+
+#### sourcetv.RECORD_FILEEXISTS = -6  
+A file with that name already exists!  
+
 # Unfinished Modules
 
 ## serverplugins
@@ -531,10 +577,10 @@ It now throws a warning instead of crashing -> https://github.com/Facepunch/garr
 `concommand` module -> https://github.com/Facepunch/garrysmod-requests/issues/1534  
 `vprof` module -> https://github.com/Facepunch/garrysmod-requests/issues/2374  
 `cvars.GetAll` -> https://github.com/Facepunch/garrysmod-requests/issues/341  
+`sourcetv` module -> https://github.com/Facepunch/garrysmod-requests/issues/2298  
 
 # Things planned to add:
 https://github.com/Facepunch/garrysmod-requests/issues/1884  
-https://github.com/Facepunch/garrysmod-requests/issues/2298  
 https://github.com/Facepunch/garrysmod-requests/issues/2237  
 (Maybe)https://github.com/Facepunch/garrysmod-requests/issues/132  
 https://github.com/Facepunch/garrysmod-requests/issues/77  

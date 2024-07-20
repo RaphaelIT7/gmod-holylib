@@ -64,6 +64,15 @@ namespace Symbols
 	typedef void (*CHLTVServer_DestroyCHLTVServer)(void*);
 	const Symbol CHLTVServer_DestroyCHLTVServerSym = Symbol::FromName("_ZN11CHLTVServerD2Ev");
 
+	typedef bool (*COM_IsValidPath)(const char*);
+	const Symbol COM_IsValidPathSym = Symbol::FromName("_Z15COM_IsValidPathPKc");
+
+	typedef void (*CHLTVDemoRecorder_StartRecording)(void*, const char*, bool);
+	const Symbol CHLTVDemoRecorder_StartRecordingSym = Symbol::FromName("_ZN17CHLTVDemoRecorder14StartRecordingEPKcb");
+
+	typedef void (*CHLTVDemoRecorder_StopRecording)(void*);
+	const Symbol CHLTVDemoRecorder_StopRecordingSym = Symbol::FromName("_Z15COM_IsValidPathPKc");
+
 	//---------------------------------------------------------------------------------
 	// Purpose: threadpoolfix Symbols
 	//---------------------------------------------------------------------------------
