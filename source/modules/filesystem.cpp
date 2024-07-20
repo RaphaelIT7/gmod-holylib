@@ -33,10 +33,14 @@ ConVar holylib_filesystem_forcepath("holylib_filesystem_forcepath", "1", 0,
 	"If enabled, it will change the paths of some specific files");
 ConVar holylib_filesystem_predictpath("holylib_filesystem_predictpath", "1", 0, 
 	"If enabled, it will try to predict the path of a file");
+ConVar holylib_filesystem_predictexistance("holylib_filesystem_predictexistance", "0", 0, 
+	"If enabled, it will try to predict the path of a file, but if the file doesn't exist in the predicted path, we'll just say it doesn't exist.");
 ConVar holylib_filesystem_splitgamepath("holylib_filesystem_splitgamepath", "1", 0, 
 	"If enabled, it will create for each content type like models/, materials/ a game path which will be used to find that content.");
 ConVar holylib_filesystem_splitluapath("holylib_filesystem_splitluapath", "0", 0, 
 	"If enabled, it will do the same thing holylib_filesystem_splitgamepath does but with lsv. Currently it breaks workshop addons.");
+ConVar holylib_filesystem_splitfallback("holylib_filesystem_splitfallback", "1", 0, 
+	"If enabled, it will fallback to the original searchpath if the split path failed.");
 
 ConVar holylib_filesystem_debug("holylib_filesystem_debug", "0", 0, 
 	"If enabled, it will show any change to the search cache.");
@@ -407,7 +411,7 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 		}
 	}
 
-	if (holylib_filesystem_predictpath.GetBool())
+	if (holylib_filesystem_predictpath.GetBool() || holylib_filesystem_predictexistance.GetBool())
 	{
 		CSearchPath* path = NULL;
 		std::string strFileName = pFileNameT;
@@ -438,6 +442,12 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 			} else {
 				if (holylib_filesystem_debug.GetBool())
 					Msg("OpenForRead: Failed to predict file path! (%s, %s)\n", pFileNameT, pathID);
+
+				if (holylib_filesystem_predictexistance.GetBool())
+				{
+					Msg("OpenForRead: predicted path failed. Let's say it doesn't exist.\n");
+					return NULL;
+				}
 			}
 		} else {
 			if (holylib_filesystem_debug.GetBool())
@@ -470,7 +480,7 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 			Msg("OpenForRead: Failed to find cachePath! (%s)\n", pFileName);
 	}
 	
-	if (splitPath)
+	if (splitPath && holylib_filesystem_splitfallback.GetBool())
 	{
 		FileHandle_t file = detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
 		if (file)
@@ -984,6 +994,12 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 
 	std::string workshopDir = pBaseDir;
 		workshopDir = workshopDir + "garrysmod/workshop";
+
+	if (!detour_CBaseFileSystem_AddSearchPath.IsValid())
+	{
+		Msg("holylib: CBaseFileSystem::AddSearchPath detour is invalid?\n");
+		return;
+	}
 
 	// NOTE: Check the thing below again
 	if (g_pFullFileSystem->IsDirectory("materials/", "workshop"))

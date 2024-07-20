@@ -412,6 +412,16 @@ Lua paths:
 - `matproxy/` -> `LUA_MATPROXY`  
 - `autorun/` -> `LUA_AUTORUN`  
 
+#### holylib_filesystem_splitfallback (default `1`)
+If enabled, it will fallback to the original searchpath if it failed to find something in the split path.  
+This is quite slow, so disabling this will improve performance to find files that doesn't exist.  
+
+#### holylib_filesystem_predictexistance (default `0`)
+If enabled, it will try to predict the path of a file, but if the file doesn't exist in the predicted path, we'll just say it doesn't exist. 
+
+#### holylib_filesystem_debug (default `0`)
+If enabled, it will print all filesyste suff.  
+
 ### ConCommands
 
 #### holylib_filesystem_dumpsearchcache
@@ -466,15 +476,29 @@ This module adds one function to the `cvars` library.
 ##### table cvars.GetAll()
 Returns a sequential table with all ConVar's that exist.  
 
+## sourcetv
+This module plans to add a new `sourcetv` library and a new class `HLTVPlayer` will allow a SourceTV client to send net messages to the server.  
+
+### Functions
+
+#### bool sourcetv.IsActive()
+Returns `true` if sourcetv is active.
+
+#### bool sourcetv.IsRecording()
+Returns `true` if sourcetv is recording.  
+
+#### bool sourcetv.IsMasterProxy()
+Returns `true` if sourcetv server is the master proxy.  
+
+#### bool sourcetv.IsRelay()
+Returns `true` if the sourcetv server is a relay.  
+
 # Unfinished Modules
 
 ## serverplugins
 This module adds two new `IServerPluginCallbacks` functions:  
 `virtual void OnLuaInit( GarrysMod::Lua::ILuaInterface* LUA )`  
 `virtual void OnLuaShutdown( GarrysMod::Lua::ILuaInterface* LUA )`  
-
-## sourcetv
-This module plans to add a new `sourcetv` library and a new class `HLTVPlayer` will allow a SourceTV client to send net messages to the server.  
 
 ## pas
 This module plans to add a few PAS related functions like `table pas.FindInPAS(Vector pos or Entity ent)`.  
