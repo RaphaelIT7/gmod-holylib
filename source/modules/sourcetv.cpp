@@ -21,6 +21,13 @@ ConVar sourcetv_allownetworking("holylib_sourcetv_allownetworking", "0", 0, "All
 CSourceTVLibModule g_pSourceTVLibModule;
 IModule* pSourceTVLibModule = &g_pSourceTVLibModule;
 
+// NOTE: If in the future, Rubat changes the CHLTVServer class, just get the symbols instead of recreating the functions. 
+// Using the original function is in most cases better and easier.
+CDemoFile *CHLTVDemoRecorder::GetDemoFile()
+{
+	return &m_DemoFile;
+}
+
 bool CHLTVDemoRecorder::IsRecording()
 {
 	return m_bIsRecording;
