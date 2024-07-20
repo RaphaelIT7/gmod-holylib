@@ -192,6 +192,14 @@ number maxEntries - The new limit for entries.
 
 Sets the new Entry limit for that stringtable.  
 
+The new limit will work but for some stringtables, it might cause issues, where the limits are hardcoded clientside.  
+A list of known stringtables with hardcoded limits:  
+- `modelprecache` -> Limited by `CClientState::model_precache`  
+- `genericprecache` -> Limited by `CClientState::generic_precache`  
+- `soundprecache` -> Limited by `CClientState::sound_precache`  
+- `decalprecache` -> Limited by `CClientState::decal_precache`  
+- `networkvars` -> Limited by the internal net message used.  
+
 > NOTE: If there are already more entries than the new limit, they won't be removed.  
 > (This could cause issues, so make sure you know what you're doing.)  
 
@@ -417,7 +425,8 @@ If enabled, it will fallback to the original searchpath if it failed to find som
 This is quite slow, so disabling this will improve performance to find files that doesn't exist.  
 
 #### holylib_filesystem_predictexistance (default `0`)
-If enabled, it will try to predict the path of a file, but if the file doesn't exist in the predicted path, we'll just say it doesn't exist. 
+If enabled, it will try to predict the path of a file, but if the file doesn't exist in the predicted path, we'll just say it doesn't exist.  
+Doesn't rely on `holylib_filesystem_predictpath` but it also works with it together.  
 
 #### holylib_filesystem_debug (default `0`)
 If enabled, it will print all filesyste suff.  
@@ -542,3 +551,24 @@ https://github.com/Facepunch/garrysmod-requests/issues/1472
 # ToDo
 - Fix the CBaseEntity class having variables that don't exist and add Gmod's variables to it.  
 - Make this readme better.  
+
+# Some things for later
+
+## NW Networking  
+NW uses a usermessage `NetworkedVar`  
+Write order:  
+- WriteLong -> Entity handle  
+- Char -> Type ID  
+- String -> Var name  
+- (Value) -> Var value. (Depends on what type it is)  
+
+## NW2 Networking  
+NW2 writes it to the baseline.  
+Write order:  
+- 12 bits - Number of net messages networked.  
+- 1 bit - Magic bool. Idk if true, it wil call `GM:EntityNetworkedVarChanged` (Verify)  
+
+loop:  
+- 12 bits - var key index  
+- 3 bits - var type  
+- x bits -var value  
