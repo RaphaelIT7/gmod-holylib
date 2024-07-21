@@ -81,6 +81,7 @@ CModuleManager::CModuleManager() // ToDo: Look into how IGameSystem works and us
 	RegisterModule(pConCommandModule);
 	RegisterModule(pVProfModule);
 	RegisterModule(pCVarsModule);
+	RegisterModule(pBitBufModule);
 }
 
 int g_pIDs = 0;

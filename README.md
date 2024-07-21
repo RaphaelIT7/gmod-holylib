@@ -581,6 +581,131 @@ The filepath for the recording is invalid!
 #### sourcetv.RECORD_FILEEXISTS = -6  
 A file with that name already exists!  
 
+### Hooks
+
+#### HolyLib:OnSourceTVNetMessage(bf_read buffer)
+Called when a HLTVClient sends a net message to the server.  
+
+### ConVars
+
+#### holylib_sourcetv_allownetworking (default `0`)
+If enabled, HLTV Clients can send net messages to the server and `HolyLib:OnSourceTVNetMessage` will be called.  
+
+## bitbuf
+This module adds a `bf_read` and later `bf_write` class.  
+
+### bf_read
+This class will later be used to read net messages from HLTV clients.  
+> ToDo: Finish the documentation below and make it more detailed.  
+
+#### string bf_read:\_\_tostring__()
+Returns the a formated string.  
+Format: `bf_read [%i]`  
+`%i` -> size of data in bits.  
+
+#### bf_read:\_\_gc()
+Deletes the buffer internally.  
+
+#### number bf_read:GetNumBitsLeft()
+Returns the number of bits left.  
+
+#### number bf_read:GetNumBitsRead()
+Returns the number of bits read.  
+
+#### number bf_read:GetNumBits()
+Returns the size of the data in bits.  
+
+#### number bf_read:GetNumBytesLeft()
+Returns the number of bytes left.  
+
+#### number bf_read:GetNumBytesRead()
+Returns the number of bytes read.  
+
+#### number bf_read:GetNumBytes()
+Returns the size of the data in bytes.  
+
+#### number bf_read:GetCurrentBit()
+Returns the current position/bit.  
+
+#### bool bf_read:IsOverflowed()
+Returns `true` if the buffer is overflowed.  
+
+#### number bf_read:PeekUBitLong(number numBits)
+
+#### number bf_read:ReadBitAngle(number numBits)
+
+#### angle bf_read:ReadBitAngles()
+Reads and Angle.  
+
+#### number bf_read:ReadBitCoord()
+
+#### number bf_read:ReadBitCoordBits()
+
+#### number bf_read:ReadBitCoordMP(bool bIntegral, bool bLowPrecision)
+
+#### number bf_read:ReadBitCoordMPBits(bool bIntegral, bool bLowPrecision)
+
+#### number bf_read:ReadBitFloat()
+
+#### number bf_read:ReadBitLong(number numBits, bool bSigned)
+Reads a number with the given number of bits.  
+
+#### number bf_read:ReadBitNormal()
+
+#### string bf_read:ReadBits(number numBits)
+Reads the given number of bits.  
+
+#### vector bf_read:ReadBitVec3Coord()
+Reads a Vector.  
+
+#### vector bf_read:ReadBitVec3Normal()
+Reads a normalizted Vector.
+
+#### number bf_read:ReadByte()
+Reads a byte.  
+
+#### string bf_read:ReadBytes(number numBytes)
+Reads the given number of bytes.  
+
+#### number bf_read:ReadChar()
+Reads a char.  
+
+#### number bf_read:ReadFloat()
+Reads a float.  
+
+#### number bf_read:ReadLong()
+Reads a long.  
+
+#### number bf_read:ReadLongLong()
+Reads a long long.  
+
+#### bool bf_read:ReadOneBit()
+Reads one bit.  
+
+#### number bf_read:ReadSBitLong(number numBits)
+Reads a number with the given amout of bits.  
+
+#### number bf_read:ReadShort()
+Reads a short.  
+
+#### number bf_read:ReadSignedVarInt32()
+
+#### number bf_read:ReadSignedVarInt64()
+
+#### string bf_read:ReadString()
+Reads a string.  
+
+#### number bf_read:ReadUBitLong(number numBits)
+Read a number with the given amount of bits.  
+
+#### number bf_read:ReadUBitVar()
+
+#### number bf_read:ReadVarInt32()
+
+#### number bf_read:ReadVarInt64()
+
+#### number bf_read:ReadWord()
+
 # Unfinished Modules
 
 ## serverplugins
@@ -611,6 +736,7 @@ It now throws a warning instead of crashing -> https://github.com/Facepunch/garr
 `vprof` module -> https://github.com/Facepunch/garrysmod-requests/issues/2374  
 `cvars.GetAll` -> https://github.com/Facepunch/garrysmod-requests/issues/341  
 `sourcetv` module -> https://github.com/Facepunch/garrysmod-requests/issues/2298  
+`bitbuf` module(unfinished) -> https://github.com/Facepunch/garrysmod-requests/issues/594  
 
 # Things planned to add:
 https://github.com/Facepunch/garrysmod-requests/issues/1884  

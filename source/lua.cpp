@@ -14,6 +14,12 @@ bool Lua::PushHook(const char* hook)
 		return false;
 	}
 
+	if (!ThreadInMainThread())
+	{
+		Warning("HolyLib: Lua::PushHook was called ouside of the main thread! (%s)\n", hook);
+		return false;
+	}
+
 	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
 		g_Lua->GetField(-1, "hook");
 		if (g_Lua->GetType(-1) != GarrysMod::Lua::Type::Table)

@@ -29,6 +29,10 @@ namespace Util
 	extern void AddDetour(); // We load Gmod's functions in there.
 }
 
+// Push functions from modules: 
+// ToDo: move this at a later point into a seperate file. Maybe into _modules?
+extern void Push_bf_read(bf_read* tbl);
+
 #include <scanning/symbolfinder.hpp>
 static SymbolFinder symbol_finder;
 template<class T>

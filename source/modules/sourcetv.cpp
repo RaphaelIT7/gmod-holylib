@@ -318,6 +318,16 @@ bool hook_CHLTVClient_ProcessGMod_ClientToServer(CHLTVClient* hltvclient, CLC_GM
 	if (!sourcetv_allownetworking.GetBool())
 		return true;
 
+	CModule* module = g_pModuleManager.FindModuleByName("bitbuf");
+	if (!module)
+	{
+		Warning("HolyLib (sourcetv): Failed to find bitbuf module?\n");
+		return true;
+	}
+
+	if (!module->IsEnabled()) // This relies on the bitbuf module.
+		return true;
+
 	bf->m_DataIn.Seek(0);
 	int type = bf->m_DataIn.ReadBitLong(4, false);
 	if ( type != 2 ) // Only handle type 2 -> Lua net message.
@@ -327,7 +337,13 @@ bool hook_CHLTVClient_ProcessGMod_ClientToServer(CHLTVClient* hltvclient, CLC_GM
 	bf->m_DataIn.ReadBitLong(22, false); // Skiping to the header
 	//bf->m_DataIn.ReadBitLong(16, false); // The header -> the string. Why not an 12 bits? (This will be read by net.ReadHeader())
 
-	// ToDo: Add the Lua call.
+	if (Lua::PushHook("HolyLib:OnSourceTVNetMessage")) // Maybe change the name? I don't have a better one rn :/
+	{
+		Push_bf_read(&bf->m_DataIn);
+		g_Lua->CallFunctionProtected(2, 0, true);
+	}
+
+	return true;
 }
 
 void CSourceTVLibModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
