@@ -6,3 +6,4 @@ Bootil/projects/release_x32_windows/
 Bootil/projects/release_x64_linux/
 Bootil/projects/release_x32_linux/
 **/.vs/
+source/modules/template.c++
