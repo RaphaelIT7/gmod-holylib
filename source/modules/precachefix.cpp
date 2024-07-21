@@ -48,13 +48,16 @@ int hook_CVEngineServer_PrecacheModel(IVEngineServer* eengine, const char* mdl, 
 	}
 
 	int idx = func_SV_FindOrAddModel(mdl, preload);
-	if (idx >= 0 && bNewModel)
+	if (idx >= 0)
 	{
-		if (Lua::PushHook("HolyLib:OnModelPrecache"))
+		if (bNewModel)
 		{
-			g_Lua->PushString(mdl);
-			g_Lua->PushNumber(idx);
-			g_Lua->CallFunctionProtected(3, 0, true);
+			if (Lua::PushHook("HolyLib:OnModelPrecache"))
+			{
+				g_Lua->PushString(mdl);
+				g_Lua->PushNumber(idx);
+				g_Lua->CallFunctionProtected(3, 0, true);
+			}
 		}
 
 		return idx;
@@ -86,13 +89,16 @@ int hook_CVEngineServer_PrecacheGeneric(IVEngineServer* eengine, const char* mdl
 	}
 
 	int idx = func_SV_FindOrAddGeneric(mdl, preload);
-	if (idx >= 0 && bNewFile)
+	if (idx >= 0)
 	{
-		if (Lua::PushHook("HolyLib:OnGenericPrecache"))
+		if (bNewFile)
 		{
-			g_Lua->PushString(mdl);
-			g_Lua->PushNumber(idx);
-			g_Lua->CallFunctionProtected(3, 0, true);
+			if (Lua::PushHook("HolyLib:OnGenericPrecache"))
+			{
+				g_Lua->PushString(mdl);
+				g_Lua->PushNumber(idx);
+				g_Lua->CallFunctionProtected(3, 0, true);
+			}
 		}
 
 		return idx;
