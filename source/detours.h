@@ -73,6 +73,9 @@ namespace Symbols
 	typedef void (*CHLTVDemoRecorder_StopRecording)(void*);
 	const Symbol CHLTVDemoRecorder_StopRecordingSym = Symbol::FromName("_ZN17CHLTVDemoRecorder13StopRecordingEv");
 
+	typedef bool (*CHLTVClient_ExecuteStringCommand)(void*);
+	const Symbol CHLTVClient_ExecuteStringCommandSym = Symbol::FromName("_ZN11CHLTVClient20ExecuteStringCommandEPKc");
+
 	//---------------------------------------------------------------------------------
 	// Purpose: threadpoolfix Symbols
 	//---------------------------------------------------------------------------------

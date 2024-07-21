@@ -528,6 +528,33 @@ Stops the active record.
 Returns one of the `RECORD_` enums.  
 If successfully stopped, it will return `sourcetv.RECORD_OK`.
 
+#### table sourcetv.GetAll()
+Returns a table that contains all HLTV clients. It will return `nil` on failure.  
+
+#### HLTVClient sourcetv.GetClient(number slot)
+Returns the HLTVClient at that slot or `nil` on failure.  
+
+### HLTVClient
+This is a metatable that is pushed by this module. It contains the functions listed below  
+
+#### string HLTVClient:\_\_tostring__()
+Returns the a formated string.  
+Format: `HLTVClient [%i][%s]`  
+`%i` -> UserID  
+`%s` -> ClientName  
+
+
+#### string HLTVClient:GetName()
+Returns the name of the client.  
+
+#### string HLTVClient:GetSteamID()
+Returns the steamid of the client.  
+
+#### number HLTVClient:GetUserID()
+Returns the userid of the client.  
+
+#### number HLTVClient:GetSlot()
+Returns the slot of the client. Use this for `sourcetv.GetClient`.  
 
 ### Enums
 

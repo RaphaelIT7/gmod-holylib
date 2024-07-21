@@ -105,6 +105,17 @@ CModule* CModuleManager::FindModuleByConVar(ConVar* convar)
 	return NULL;
 }
 
+CModule* CModuleManager::FindModuleByName(const char* name)
+{
+	for (CModule* module : m_pModules)
+	{
+		if (V_stricmp(module->GetModule()->Name(), name) == 0)
+			return module;
+	}
+
+	return NULL;
+}
+
 void CModuleManager::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	m_pAppFactory = appfn;

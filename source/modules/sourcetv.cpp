@@ -58,6 +58,78 @@ void hook_CHLTVServer_DestroyCHLTVServer(CHLTVServer* srv)
 	detour_CHLTVServer_DestroyCHLTVServer.GetTrampoline<Symbols::CHLTVServer_DestroyCHLTVServer>()(srv);
 }
 
+int CHLTVClient_TypeID = -1;
+void Push_HLTVClient(CHLTVClient* tbl)
+{
+	if ( !tbl )
+	{
+		g_Lua->PushNil();
+		return;
+	}
+
+	g_Lua->PushUserType(tbl, CHLTVClient_TypeID);
+}
+
+CHLTVClient* Get_HLTVClient(int iStackPos)
+{
+	if (!g_Lua->IsType(iStackPos, CHLTVClient_TypeID))
+		return NULL;
+
+	return g_Lua->GetUserType<CHLTVClient>(iStackPos, CHLTVClient_TypeID);
+}
+
+LUA_FUNCTION_STATIC(HLTVClient__tostring)
+{
+	CHLTVClient* client = Get_HLTVClient(1);
+	if (!client)
+		LUA->ArgError(1, "HLTVClient");
+
+	char szBuf[128] = {};
+	V_snprintf(szBuf, sizeof(szBuf),"HLTVClient [%i][%s]", client->GetPlayerSlot(), client->GetClientName()); 
+	LUA->PushString(szBuf);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(HLTVClient_GetSlot)
+{
+	CHLTVClient* client = Get_HLTVClient(1);
+	if (!client)
+		LUA->ArgError(1, "HLTVClient");
+
+	LUA->PushNumber(client->GetPlayerSlot());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(HLTVClient_GetUserID)
+{
+	CHLTVClient* client = Get_HLTVClient(1);
+	if (!client)
+		LUA->ArgError(1, "HLTVClient");
+
+	LUA->PushNumber(client->GetUserID());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(HLTVClient_GetName)
+{
+	CHLTVClient* client = Get_HLTVClient(1);
+	if (!client)
+		LUA->ArgError(1, "HLTVClient");
+
+	LUA->PushString(client->GetClientName());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(HLTVClient_GetSteamID)
+{
+	CHLTVClient* client = Get_HLTVClient(1);
+	if (!client)
+		LUA->ArgError(1, "HLTVClient");
+
+	LUA->PushString(client->GetNetworkIDString());
+	return 1;
+}
+
 #define LUA_RECORD_OK 0
 #define LUA_RECORD_NOSOURCETV -1
 #define LUA_RECORD_NOTMASTER -2
@@ -208,6 +280,38 @@ LUA_FUNCTION_STATIC(sourcetv_StopRecord)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(sourcetv_GetAll)
+{
+	LUA->CreateTable();
+		if (!hltv || !hltv->IsActive())
+			return 1;
+
+		for (int i=0; i< hltv->GetClientCount(); i++ )
+		{
+			CHLTVClient* client = hltv->Client(i);
+			LUA->PushNumber(i+1);
+			Push_HLTVClient(client);
+			LUA->SetTable(-3);
+		}
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(sourcetv_GetClient)
+{
+	if (!hltv || !hltv->IsActive())
+		return 0;
+
+	int idx = LUA->CheckNumber(1);
+	if (idx > hltv->GetClientCount())
+		return 0;
+
+	CHLTVClient* client = hltv->Client(idx);
+	Push_HLTVClient(client);
+
+	return 1;
+}
+
 Detouring::Hook detour_CHLTVClient_ProcessGMod_ClientToServer;
 bool hook_CHLTVClient_ProcessGMod_ClientToServer(CHLTVClient* hltvclient, CLC_GMod_ClientToServer* bf)
 {
@@ -234,6 +338,14 @@ void CSourceTVLibModule::LuaInit(bool bServerInit)
 {
 	if (!bServerInit)
 	{
+		CHLTVClient_TypeID = g_Lua->CreateMetaTable("HLTVClient");
+			Util::AddFunc(HLTVClient__tostring, "__tostring");
+			Util::AddFunc(HLTVClient_GetName, "GetName");
+			Util::AddFunc(HLTVClient_GetSlot, "GetSlot");
+			Util::AddFunc(HLTVClient_GetSteamID, "GetSteamID");
+			Util::AddFunc(HLTVClient_GetUserID, "GetUserID");
+		g_Lua->Pop(1); // ToDo: Add a IsValid function.
+
 		Util::StartTable();
 			Util::AddFunc(sourcetv_IsActive, "IsActive");
 			Util::AddFunc(sourcetv_IsRecording, "IsRecording");
@@ -244,6 +356,10 @@ void CSourceTVLibModule::LuaInit(bool bServerInit)
 			Util::AddFunc(sourcetv_StartRecord, "StartRecord");
 			Util::AddFunc(sourcetv_GetRecordingFile, "GetRecordingFile");
 			Util::AddFunc(sourcetv_StopRecord, "StopRecord");
+
+			// Client Functions
+			Util::AddFunc(sourcetv_GetAll, "GetAll");
+			Util::AddFunc(sourcetv_GetClient, "GetClient");
 
 			g_Lua->PushNumber(LUA_RECORD_OK);
 			g_Lua->SetField(-2, "RECORD_OK");

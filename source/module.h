@@ -48,6 +48,7 @@ public:
 	CModuleManager();
 	void RegisterModule(IModule* mdl);
 	CModule* FindModuleByConVar(ConVar* convar);
+	CModule* FindModuleByName(const char* name);
 	inline int GetStatus() { return m_pStatus; };
 	inline CreateInterfaceFn* GetAppFactory() { return m_pAppFactory; };
 	inline CreateInterfaceFn* GetGameFactory() { return m_pGameFactory; };
