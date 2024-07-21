@@ -5,6 +5,7 @@
 #include "util.h"
 #include "lua.h"
 #include <vstdlib/jobthread.h>
+#include <networkstringtabledefs.h>
 
 class CPrecacheFixModule : public IModule
 {
@@ -29,13 +30,25 @@ static void PR_CheckEmptyString( const char *s )
 
 // NOTE: CVEngineServer::PrecacheDecal doesn't have this engine error. Why?
 
+INetworkStringTableContainer* networkStringTableContainerServer = NULL;
 Symbols::SV_FindOrAddModel func_SV_FindOrAddModel;
 Detouring::Hook detour_CVEngineServer_PrecacheModel;
 int hook_CVEngineServer_PrecacheModel(IVEngineServer* eengine, const char* mdl, bool preload)
 {
 	PR_CheckEmptyString(mdl);
+
+	bool bNewModel = false;
+	if (networkStringTableContainerServer)
+	{
+		INetworkStringTable* tbl = networkStringTableContainerServer->FindTable("modelprecache"); // ToDo: Maybe cache it and reuse it? (Gonna need a LevelShutdown function for modules :/)
+		if (tbl)
+		{
+			bNewModel = tbl->FindStringIndex(mdl) == INVALID_STRING_INDEX;
+		}
+	}
+
 	int idx = func_SV_FindOrAddModel(mdl, preload);
-	if (idx >= 0)
+	if (idx >= 0 && bNewModel)
 	{
 		if (Lua::PushHook("HolyLib:OnModelPrecache"))
 		{
@@ -62,8 +75,18 @@ Detouring::Hook detour_CVEngineServer_PrecacheGeneric;
 int hook_CVEngineServer_PrecacheGeneric(IVEngineServer* eengine, const char* mdl, bool preload)
 {		
 	PR_CheckEmptyString(mdl);
+	bool bNewFile = false;
+	if (networkStringTableContainerServer)
+	{
+		INetworkStringTable* tbl = networkStringTableContainerServer->FindTable("genericprecache"); // ToDo: Maybe cache it and reuse it? (Gonna need a LevelShutdown function for modules :/)
+		if (tbl)
+		{
+			bNewFile = tbl->FindStringIndex(mdl) == INVALID_STRING_INDEX;
+		}
+	}
+
 	int idx = func_SV_FindOrAddGeneric(mdl, preload);
-	if (idx >= 0)
+	if (idx >= 0 && bNewFile)
 	{
 		if (Lua::PushHook("HolyLib:OnGenericPrecache"))
 		{
@@ -87,6 +110,8 @@ int hook_CVEngineServer_PrecacheGeneric(IVEngineServer* eengine, const char* mdl
 
 void CPrecacheFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
+	networkStringTableContainerServer = (INetworkStringTableContainer*)appfn[0](INTERFACENAME_NETWORKSTRINGTABLESERVER, NULL);
+	Detour::CheckValue("get interface", "INetworkStringTableContainer", networkStringTableContainerServer != NULL);
 }
 
 void CPrecacheFixModule::LuaInit(bool bServerInit)
