@@ -30,7 +30,7 @@ static void PR_CheckEmptyString( const char *s )
 
 // NOTE: CVEngineServer::PrecacheDecal doesn't have this engine error. Why?
 
-INetworkStringTableContainer* networkStringTableContainerServer = NULL;
+static INetworkStringTableContainer* networkStringTableContainerServer = NULL;
 Symbols::SV_FindOrAddModel func_SV_FindOrAddModel;
 Detouring::Hook detour_CVEngineServer_PrecacheModel;
 int hook_CVEngineServer_PrecacheModel(IVEngineServer* eengine, const char* mdl, bool preload)
