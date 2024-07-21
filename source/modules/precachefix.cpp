@@ -6,6 +6,7 @@
 #include "lua.h"
 #include <vstdlib/jobthread.h>
 #include <networkstringtabledefs.h>
+#include <vprof.h>
 
 class CPrecacheFixModule : public IModule
 {
@@ -35,6 +36,8 @@ Symbols::SV_FindOrAddModel func_SV_FindOrAddModel;
 Detouring::Hook detour_CVEngineServer_PrecacheModel;
 int hook_CVEngineServer_PrecacheModel(IVEngineServer* eengine, const char* mdl, bool preload)
 {
+	VPROF_BUDGET("HolyLib - CVEngineServer::PrecacheModel", VPROF_BUDGETGROUP_GAME);
+
 	PR_CheckEmptyString(mdl);
 
 	bool bNewModel = false;
@@ -77,6 +80,8 @@ Symbols::SV_FindOrAddGeneric func_SV_FindOrAddGeneric;
 Detouring::Hook detour_CVEngineServer_PrecacheGeneric;
 int hook_CVEngineServer_PrecacheGeneric(IVEngineServer* eengine, const char* mdl, bool preload)
 {		
+	VPROF_BUDGET("HolyLib - CVEngineServer::PrecacheGeneric", VPROF_BUDGETGROUP_GAME);
+
 	PR_CheckEmptyString(mdl);
 	bool bNewFile = false;
 	if (networkStringTableContainerServer)
