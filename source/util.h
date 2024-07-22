@@ -10,9 +10,6 @@
 
 extern IVEngineServer* engine;
 
-extern CreateInterfaceFn g_interfaceFactory;
-extern CreateInterfaceFn g_gameServerFactory;
-
 extern GarrysMod::Lua::IUpdatedLuaInterface* g_Lua;
 
 namespace Util

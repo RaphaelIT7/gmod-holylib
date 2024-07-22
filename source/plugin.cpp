@@ -44,9 +44,6 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 	ConnectTier2Libraries(&interfaceFactory, 1);
 	ConnectTier3Libraries(&interfaceFactory, 1);
 
-	g_interfaceFactory = interfaceFactory;
-	g_gameServerFactory = gameServerFactory;
-
 	Lua::AddDetour();
 	Util::AddDetour();
 	g_pModuleManager.Init(&interfaceFactory, &gameServerFactory);

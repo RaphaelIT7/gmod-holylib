@@ -5,9 +5,6 @@
 GarrysMod::Lua::IUpdatedLuaInterface* g_Lua;
 IVEngineServer* engine;
 
-CreateInterfaceFn g_interfaceFactory;
-CreateInterfaceFn g_gameServerFactory;
-
 void Util::StartTable() {
 	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
 	g_Lua->CreateTable();
