@@ -29,7 +29,7 @@ void CStringTableModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamef
 	Detour::CheckValue("get interface", "networkStringTableContainerServer", networkStringTableContainerServer != NULL);
 }
 
-static int registryIdx = 0;
+//static int registryIdx = 0;
 static int INetworkStringTable_TypeID = -1;
 static void Push_INetworkStringTable(INetworkStringTable* tbl)
 {

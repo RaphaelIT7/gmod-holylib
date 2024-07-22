@@ -110,9 +110,9 @@ inline void HolyLib_UTIL_TraceRay(const Ray_t &ray, unsigned int mask, const IHa
 	//}
 }
 
-static CGlobalVars *gpGlobals = NULL;
-static IEngineTrace *enginetrace = NULL;
-static CBaseEntityList *g_pEntityList = NULL;
+CGlobalVars *gpGlobals = NULL;
+IEngineTrace *enginetrace = NULL;
+CBaseEntityList *g_pEntityList = NULL;
 static Detouring::Hook detour_CGameMovement_TryPlayerMove;
 static int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector* pFirstDest, trace_t* pFirstTrace) // Raphael: We still need to support player->m_surfaceFriction or what it's name was. I removed it since I currently can't get it.
 {
