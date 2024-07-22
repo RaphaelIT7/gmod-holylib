@@ -14,13 +14,13 @@ public:
 	virtual const char* Name() { return "concommand"; };
 };
 
-ConVar holylib_concommand_disableblacklist("holylib_concommand_disableblacklist", "0", 0, "If enabled, it will allow you to run use RunConsoleCommand with any command/convar.");
+static ConVar holylib_concommand_disableblacklist("holylib_concommand_disableblacklist", "0", 0, "If enabled, it will allow you to run use RunConsoleCommand with any command/convar.");
 
-CConCommandModule g_pConCommandModule;
+static CConCommandModule g_pConCommandModule;
 IModule* pConCommandModule = &g_pConCommandModule;
 
-Detouring::Hook detour_ConCommand_IsBlocked;
-bool hook_ConCommand_IsBlocked(const char* cmd)
+static Detouring::Hook detour_ConCommand_IsBlocked;
+static bool hook_ConCommand_IsBlocked(const char* cmd)
 {
 	if (holylib_concommand_disableblacklist.GetBool())
 		return false;

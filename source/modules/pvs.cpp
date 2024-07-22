@@ -20,10 +20,10 @@ public:
 	virtual const char* Name() { return "pvs"; };
 };
 
-CPVSModule g_pPVSModule;
+static CPVSModule g_pPVSModule;
 IModule* pPVSModule = &g_pPVSModule;
 
-ConVar pvs_postchecktransmit("holylib_pvs_postchecktransmit", "0", 0, "If enabled, it will add the HolyLib:PostCheckTransmit hook.");
+static ConVar pvs_postchecktransmit("holylib_pvs_postchecktransmit", "0", 0, "If enabled, it will add the HolyLib:PostCheckTransmit hook.");
 
 static int currentPVSSize = -1;
 static unsigned char* currentPVS = NULL;
@@ -106,7 +106,7 @@ Vector* Get_Vector(int iStackPos)
 	return g_Lua->GetUserType<Vector>(iStackPos, GarrysMod::Lua::Type::Vector);
 }
 
-edict_t* GetEdictOfEnt(CBaseEntity* ent)
+static edict_t* GetEdictOfEnt(CBaseEntity* ent)
 {
 	return servergameents->BaseEntityToEdict(ent);
 }

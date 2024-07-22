@@ -16,9 +16,9 @@ public:
 	virtual const char* Name() { return "sourcetv"; };
 };
 
-ConVar sourcetv_allownetworking("holylib_sourcetv_allownetworking", "0", 0, "Allows HLTV Clients to send net messages to the server.");
+static ConVar sourcetv_allownetworking("holylib_sourcetv_allownetworking", "0", 0, "Allows HLTV Clients to send net messages to the server.");
 
-CSourceTVLibModule g_pSourceTVLibModule;
+static CSourceTVLibModule g_pSourceTVLibModule;
 IModule* pSourceTVLibModule = &g_pSourceTVLibModule;
 
 // NOTE: If in the future, Rubat changes the CHLTVServer class, just get the symbols instead of recreating the functions. 
@@ -43,23 +43,23 @@ int CHLTVServer::GetHLTVSlot()
 	return m_nPlayerSlot;
 }
 
-CHLTVServer* hltv = NULL;
-Detouring::Hook detour_CHLTVServer_CHLTVServer;
-void hook_CHLTVServer_CHLTVServer(CHLTVServer* srv)
+static CHLTVServer* hltv = NULL;
+static Detouring::Hook detour_CHLTVServer_CHLTVServer;
+static void hook_CHLTVServer_CHLTVServer(CHLTVServer* srv)
 {
 	hltv = srv;
 	detour_CHLTVServer_CHLTVServer.GetTrampoline<Symbols::CHLTVServer_CHLTVServer>()(srv);
 }
 
-Detouring::Hook detour_CHLTVServer_DestroyCHLTVServer;
-void hook_CHLTVServer_DestroyCHLTVServer(CHLTVServer* srv)
+static Detouring::Hook detour_CHLTVServer_DestroyCHLTVServer;
+static void hook_CHLTVServer_DestroyCHLTVServer(CHLTVServer* srv)
 {
 	hltv = NULL;
 	detour_CHLTVServer_DestroyCHLTVServer.GetTrampoline<Symbols::CHLTVServer_DestroyCHLTVServer>()(srv);
 }
 
-int CHLTVClient_TypeID = -1;
-void Push_HLTVClient(CHLTVClient* tbl)
+static int CHLTVClient_TypeID = -1;
+static void Push_HLTVClient(CHLTVClient* tbl)
 {
 	if ( !tbl )
 	{
@@ -70,7 +70,7 @@ void Push_HLTVClient(CHLTVClient* tbl)
 	g_Lua->PushUserType(tbl, CHLTVClient_TypeID);
 }
 
-CHLTVClient* Get_HLTVClient(int iStackPos)
+static CHLTVClient* Get_HLTVClient(int iStackPos)
 {
 	if (!g_Lua->IsType(iStackPos, CHLTVClient_TypeID))
 		return NULL;
@@ -197,8 +197,8 @@ LUA_FUNCTION_STATIC(sourcetv_GetHLTVSlot)
 	return 1;
 }
 
-Symbols::COM_IsValidPath func_COM_IsValidPath;
-Symbols::CHLTVDemoRecorder_StartRecording func_CHLTVDemoRecorder_StartRecording;
+static Symbols::COM_IsValidPath func_COM_IsValidPath;
+static Symbols::CHLTVDemoRecorder_StartRecording func_CHLTVDemoRecorder_StartRecording;
 LUA_FUNCTION_STATIC(sourcetv_StartRecord)
 {
 	const char* pFileName = LUA->CheckString(1);
@@ -253,7 +253,7 @@ LUA_FUNCTION_STATIC(sourcetv_GetRecordingFile)
 	return 1;
 }
 
-Symbols::CHLTVDemoRecorder_StopRecording func_CHLTVDemoRecorder_StopRecording;
+static Symbols::CHLTVDemoRecorder_StopRecording func_CHLTVDemoRecorder_StopRecording;
 LUA_FUNCTION_STATIC(sourcetv_StopRecord)
 {
 	if (!hltv || !hltv->IsActive())
@@ -312,8 +312,8 @@ LUA_FUNCTION_STATIC(sourcetv_GetClient)
 	return 1;
 }
 
-Detouring::Hook detour_CHLTVClient_ProcessGMod_ClientToServer;
-bool hook_CHLTVClient_ProcessGMod_ClientToServer(CHLTVClient* hltvclient, CLC_GMod_ClientToServer* bf)
+static Detouring::Hook detour_CHLTVClient_ProcessGMod_ClientToServer;
+static bool hook_CHLTVClient_ProcessGMod_ClientToServer(CHLTVClient* hltvclient, CLC_GMod_ClientToServer* bf)
 {
 	if (!sourcetv_allownetworking.GetBool())
 		return true;

@@ -16,7 +16,7 @@ public:
 	virtual const char* Name() { return "serverplugin"; };
 };
 
-CServerPluginLibModule g_pServerPluginLibModule;
+static CServerPluginLibModule g_pServerPluginLibModule;
 IModule* pServerPluginLibModule = &g_pServerPluginLibModule;
 
 void CPlugin::SetName( const char *name )
@@ -47,7 +47,7 @@ IServerPluginCallbacks *CPlugin::GetCallback()
 
 // Source: engine/sv_plugins.cpp
 // helper macro to stop this being typed for every passthrough
-CServerPlugin* g_pServerPluginHandler;
+static CServerPlugin* g_pServerPluginHandler;
 #define FORALL_PLUGINS	for( int i = 0; i < g_pServerPluginHandler->m_Plugins.Count(); i++ ) 
 #define CALL_PLUGIN_IF_ENABLED(call) \
 	do { \
@@ -62,8 +62,8 @@ CServerPlugin* g_pServerPluginHandler;
 		} \
 	} while (0)
 
-Detouring::Hook detour_CPlugin_Load;
-bool hook_CPlugin_Load(CPlugin* pPlugin, const char* fileName)
+static Detouring::Hook detour_CPlugin_Load;
+static bool hook_CPlugin_Load(CPlugin* pPlugin, const char* fileName)
 {
 	char fixedFileName[MAX_PATH];
 	Q_strncpy(fixedFileName, fileName, sizeof(fixedFileName));

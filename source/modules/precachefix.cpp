@@ -20,7 +20,7 @@ public:
 	virtual const char* Name() { return "precachefix"; };
 };
 
-CPrecacheFixModule g_pPrecacheFixModule;
+static CPrecacheFixModule g_pPrecacheFixModule;
 IModule* pPrecacheFixModule = &g_pPrecacheFixModule;
 
 static void PR_CheckEmptyString( const char *s )
@@ -32,9 +32,9 @@ static void PR_CheckEmptyString( const char *s )
 // NOTE: CVEngineServer::PrecacheDecal doesn't have this engine error. Why?
 
 static INetworkStringTableContainer* networkStringTableContainerServer = NULL;
-Symbols::SV_FindOrAddModel func_SV_FindOrAddModel;
-Detouring::Hook detour_CVEngineServer_PrecacheModel;
-int hook_CVEngineServer_PrecacheModel(IVEngineServer* eengine, const char* mdl, bool preload)
+static Symbols::SV_FindOrAddModel func_SV_FindOrAddModel;
+static Detouring::Hook detour_CVEngineServer_PrecacheModel;
+static int hook_CVEngineServer_PrecacheModel(IVEngineServer* eengine, const char* mdl, bool preload)
 {
 	VPROF_BUDGET("HolyLib - CVEngineServer::PrecacheModel", VPROF_BUDGETGROUP_GAME);
 
@@ -76,9 +76,9 @@ int hook_CVEngineServer_PrecacheModel(IVEngineServer* eengine, const char* mdl, 
 	return 0; // The engine already handles 0 cases, so this shouldn't cause other issues, that models that failed to precache being an error model for the client or the entity may not spawn.
 }
 
-Symbols::SV_FindOrAddGeneric func_SV_FindOrAddGeneric;
-Detouring::Hook detour_CVEngineServer_PrecacheGeneric;
-int hook_CVEngineServer_PrecacheGeneric(IVEngineServer* eengine, const char* mdl, bool preload)
+static Symbols::SV_FindOrAddGeneric func_SV_FindOrAddGeneric;
+static Detouring::Hook detour_CVEngineServer_PrecacheGeneric;
+static int hook_CVEngineServer_PrecacheGeneric(IVEngineServer* eengine, const char* mdl, bool preload)
 {		
 	VPROF_BUDGET("HolyLib - CVEngineServer::PrecacheGeneric", VPROF_BUDGETGROUP_GAME);
 

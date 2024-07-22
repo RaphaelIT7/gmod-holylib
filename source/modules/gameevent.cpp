@@ -18,7 +18,7 @@ public:
 	virtual const char* Name() { return "gameevent"; };
 };
 
-CGameeventLibModule g_pGameeventLibModule;
+static CGameeventLibModule g_pGameeventLibModule;
 IModule* pGameeventLibModule = &g_pGameeventLibModule;
 
 CGameEventDescriptor *CGameEventManager::GetEventDescriptor(const char * name)
@@ -37,7 +37,7 @@ CGameEventDescriptor *CGameEventManager::GetEventDescriptor(const char * name)
 	return NULL;
 }
 
-CGameEventManager* pManager;
+static CGameEventManager* pManager;
 LUA_FUNCTION_STATIC(gameevent_GetListeners)
 {
 	if (LUA->IsType(1, GarrysMod::Lua::Type::String))
@@ -57,7 +57,7 @@ LUA_FUNCTION_STATIC(gameevent_GetListeners)
 	return 1;
 }
 
-CUtlVector<IGameSystem*>* s_GameSystems;
+static CUtlVector<IGameSystem*>* s_GameSystems;
 LUA_FUNCTION_STATIC(gameevent_RemoveListener)
 {
 	const char* strEvent = LUA->CheckString(1);

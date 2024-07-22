@@ -14,10 +14,10 @@ public:
 	virtual const char* Name() { return "bitbuf"; };
 };
 
-CBitBufModule g_pBitBufModule;
+static CBitBufModule g_pBitBufModule;
 IModule* pBitBufModule = &g_pBitBufModule;
 
-int bf_read_TypeID = -1;
+static int bf_read_TypeID = -1;
 void Push_bf_read(bf_read* tbl)
 {
 	if ( !tbl )
@@ -59,7 +59,7 @@ bf_read* Get_bf_read(int iStackPos)
 	return g_Lua->GetUserType<bf_read>(iStackPos, bf_read_TypeID);
 }
 
-int bf_write_TypeID = -1;
+static int bf_write_TypeID = -1;
 void Push_bf_write(bf_write* tbl)
 {
 	if ( !tbl )

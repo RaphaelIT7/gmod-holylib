@@ -31,13 +31,13 @@ static void OnSV_StressBotsChange(IConVar* var, const char *pOldValue, float flO
 	sv_stressbots->SetValue(holylib_sv_stressbots.GetString());
 }
 
-ConVar holylib_sv_stressbots("holylib_sv_stressbots", "0", 0, "Sets sv_stressbots. (sv_stressbots will be available in the next update)", OnSV_StressBotsChange);
-ConVar holylib_vprof_exportreport("holylib_vprof_exportreport", "1", 0, "If enabled, vprof results will be dumped into a file in the vprof/ folder");
+static ConVar holylib_sv_stressbots("holylib_sv_stressbots", "0", 0, "Sets sv_stressbots. (sv_stressbots will be available in the next update)", OnSV_StressBotsChange);
+static ConVar holylib_vprof_exportreport("holylib_vprof_exportreport", "1", 0, "If enabled, vprof results will be dumped into a file in the vprof/ folder");
 
-CVProfModule g_pVProfModule;
+static CVProfModule g_pVProfModule;
 IModule* pVProfModule = &g_pVProfModule;
 
-std::string GetCurrentTime() { // Yoink from vprof module
+static std::string GetCurrentTime() { // Yoink from vprof module
     auto now = std::chrono::system_clock::now();
     std::time_t now_time = std::chrono::system_clock::to_time_t(now);
 
@@ -47,7 +47,7 @@ std::string GetCurrentTime() { // Yoink from vprof module
     return ss.str();
 }
 
-std::stringstream ss;
+static std::stringstream ss;
 static SpewRetval_t VProf_Spew(SpewType_t type, const char *msg)
 {
 	ss << msg;
@@ -55,8 +55,8 @@ static SpewRetval_t VProf_Spew(SpewType_t type, const char *msg)
 	return SPEW_CONTINUE;
 }
 
-Detouring::Hook detour_CVProfile_OutputReport;
-void hook_CVProfile_OutputReport(void* fancy, int type, const tchar* pszStartMode, int budgetGroupID)
+static Detouring::Hook detour_CVProfile_OutputReport;
+static void hook_CVProfile_OutputReport(void* fancy, int type, const tchar* pszStartMode, int budgetGroupID)
 {
 	if (!holylib_vprof_exportreport.GetBool())
 	{
@@ -97,9 +97,9 @@ void hook_CVProfile_OutputReport(void* fancy, int type, const tchar* pszStartMod
 	ss.str("");
 }
 
-std::map<int, std::string> CallFinish_strs;
-Detouring::Hook detour_CLuaGamemode_CallFinish;
-void* hook_CLuaGamemode_CallFinish(void* funky_srv, int pool)
+static std::map<int, std::string> CallFinish_strs;
+static Detouring::Hook detour_CLuaGamemode_CallFinish;
+static void* hook_CLuaGamemode_CallFinish(void* funky_srv, int pool)
 {
 	if (!g_Lua)
 		return detour_CLuaGamemode_CallFinish.GetTrampoline<Symbols::CLuaGamemode_CallFinish>()(funky_srv, pool);
@@ -114,9 +114,9 @@ void* hook_CLuaGamemode_CallFinish(void* funky_srv, int pool)
 	return detour_CLuaGamemode_CallFinish.GetTrampoline<Symbols::CLuaGamemode_CallFinish>()(funky_srv, pool);
 }
 
-std::map<int, std::string> CallWithArgs_strs;
-Detouring::Hook detour_CLuaGamemode_CallWithArgs;
-void* hook_CLuaGamemode_CallWithArgs(void* funky_srv, int pool)
+static std::map<int, std::string> CallWithArgs_strs;
+static Detouring::Hook detour_CLuaGamemode_CallWithArgs;
+static void* hook_CLuaGamemode_CallWithArgs(void* funky_srv, int pool)
 {
 	if (!g_Lua)
 		return detour_CLuaGamemode_CallWithArgs.GetTrampoline<Symbols::CLuaGamemode_CallWithArgs>()(funky_srv, pool);
@@ -131,9 +131,9 @@ void* hook_CLuaGamemode_CallWithArgs(void* funky_srv, int pool)
 	return detour_CLuaGamemode_CallWithArgs.GetTrampoline<Symbols::CLuaGamemode_CallWithArgs>()(funky_srv, pool);
 }
 
-std::map<int, std::string> Call_strs;
-Detouring::Hook detour_CLuaGamemode_Call;
-void* hook_CLuaGamemode_Call(void* funky_srv, int pool)
+static std::map<int, std::string> Call_strs;
+static Detouring::Hook detour_CLuaGamemode_Call;
+static void* hook_CLuaGamemode_Call(void* funky_srv, int pool)
 {
 	if (!g_Lua)
 		return detour_CLuaGamemode_Call.GetTrampoline<Symbols::CLuaGamemode_Call>()(funky_srv, pool);

@@ -12,8 +12,8 @@
 #include "vstdlib/jobthread.h"
 
 // The plugin is a static singleton that is exported as an interface
-CServerPlugin g_EmtpyServerPlugin;
-EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CServerPlugin, IServerPluginCallbacks, INTERFACEVERSION_ISERVERPLUGINCALLBACKS, g_EmtpyServerPlugin);
+CServerPlugin g_HolyLibServerPlugin;
+EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CServerPlugin, IServerPluginCallbacks, INTERFACEVERSION_ISERVERPLUGINCALLBACKS, g_HolyLibServerPlugin);
 
 
 //---------------------------------------------------------------------------------

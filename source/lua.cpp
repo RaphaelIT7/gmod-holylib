@@ -69,16 +69,16 @@ void Lua::Shutdown()
 	g_Lua = NULL;
 }
 
-Detouring::Hook detour_InitLuaClasses;
-void hook_InitLuaClasses(GarrysMod::Lua::ILuaInterface* LUA)
+static Detouring::Hook detour_InitLuaClasses;
+static void hook_InitLuaClasses(GarrysMod::Lua::ILuaInterface* LUA)
 {
 	detour_InitLuaClasses.GetTrampoline<Symbols::InitLuaClasses>()(LUA);
 
 	Lua::Init(LUA);
 }
 
-Detouring::Hook detour_CLuaInterface_Shutdown;
-void hook_CLuaInterface_Shutdown(GarrysMod::Lua::ILuaInterface* LUA)
+static Detouring::Hook detour_CLuaInterface_Shutdown;
+static void hook_CLuaInterface_Shutdown(GarrysMod::Lua::ILuaInterface* LUA)
 {
 	if ((void*)LUA == (void*)g_Lua)
 		Lua::Shutdown();

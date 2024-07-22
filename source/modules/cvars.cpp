@@ -14,7 +14,7 @@ public:
 	virtual const char* Name() { return "cvars"; };
 };
 
-CCVarsModule g_pCVarsModule;
+static CCVarsModule g_pCVarsModule;
 IModule* pCVarsModule = &g_pCVarsModule;
 
 LUA_FUNCTION_STATIC(cvars_GetAll)

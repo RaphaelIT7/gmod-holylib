@@ -18,38 +18,38 @@ public:
 	virtual const char* Name() { return "filesystem"; };
 };
 
-CFileSystemModule g_pFileSystemModule;
+static CFileSystemModule g_pFileSystemModule;
 IModule* pFileSystemModule = &g_pFileSystemModule;
 
-ConVar holylib_filesystem_easydircheck("holylib_filesystem_easydircheck", "0", 0, 
+static ConVar holylib_filesystem_easydircheck("holylib_filesystem_easydircheck", "0", 0, 
 	"Checks if the folder CBaseFileSystem::IsDirectory checks has a . in the name after the last /. if so assume it's a file extension.");
-ConVar holylib_filesystem_searchcache("holylib_filesystem_searchcache", "1", 0, 
+static ConVar holylib_filesystem_searchcache("holylib_filesystem_searchcache", "1", 0, 
 	"If enabled, it will cache the search path a file was located in and if the same file is requested, it will use that search path directly.");
-ConVar holylib_filesystem_optimizedfixpath("holylib_filesystem_optimizedfixpath", "1", 0, 
+static ConVar holylib_filesystem_optimizedfixpath("holylib_filesystem_optimizedfixpath", "1", 0, 
 	"If enabled, it will optimize CBaseFilesystem::FixUpPath by caching the BASE_PATH search cache.");
-ConVar holylib_filesystem_earlysearchcache("holylib_filesystem_earlysearchcache", "1", 0, 
+static ConVar holylib_filesystem_earlysearchcache("holylib_filesystem_earlysearchcache", "1", 0, 
 	"If enabled, it will check early in CBaseFilesystem::OpenForRead if the file is in the search cache.");
-ConVar holylib_filesystem_forcepath("holylib_filesystem_forcepath", "1", 0, 
+static ConVar holylib_filesystem_forcepath("holylib_filesystem_forcepath", "1", 0, 
 	"If enabled, it will change the paths of some specific files");
-ConVar holylib_filesystem_predictpath("holylib_filesystem_predictpath", "1", 0, 
+static ConVar holylib_filesystem_predictpath("holylib_filesystem_predictpath", "1", 0, 
 	"If enabled, it will try to predict the path of a file");
-ConVar holylib_filesystem_predictexistance("holylib_filesystem_predictexistance", "0", 0, 
+static ConVar holylib_filesystem_predictexistance("holylib_filesystem_predictexistance", "0", 0, 
 	"If enabled, it will try to predict the path of a file, but if the file doesn't exist in the predicted path, we'll just say it doesn't exist.");
-ConVar holylib_filesystem_splitgamepath("holylib_filesystem_splitgamepath", "1", 0, 
+static ConVar holylib_filesystem_splitgamepath("holylib_filesystem_splitgamepath", "1", 0, 
 	"If enabled, it will create for each content type like models/, materials/ a game path which will be used to find that content.");
-ConVar holylib_filesystem_splitluapath("holylib_filesystem_splitluapath", "0", 0, 
+static ConVar holylib_filesystem_splitluapath("holylib_filesystem_splitluapath", "0", 0, 
 	"If enabled, it will do the same thing holylib_filesystem_splitgamepath does but with lsv. Currently it breaks workshop addons.");
-ConVar holylib_filesystem_splitfallback("holylib_filesystem_splitfallback", "1", 0, 
+static ConVar holylib_filesystem_splitfallback("holylib_filesystem_splitfallback", "1", 0, 
 	"If enabled, it will fallback to the original searchpath if the split path failed.");
 
-ConVar holylib_filesystem_debug("holylib_filesystem_debug", "0", 0, 
+static ConVar holylib_filesystem_debug("holylib_filesystem_debug", "0", 0, 
 	"If enabled, it will show any change to the search cache.");
 
 
 static const char* nullPath = "NULL_PATH";
-Symbols::CBaseFileSystem_FindSearchPathByStoreId func_CBaseFileSystem_FindSearchPathByStoreId;
-std::unordered_map<std::string, std::unordered_map<std::string, int>> m_SearchCache;
-void AddFileToSearchCache(const char* pFileName, int path, const char* pathID)
+static Symbols::CBaseFileSystem_FindSearchPathByStoreId func_CBaseFileSystem_FindSearchPathByStoreId;
+static std::unordered_map<std::string, std::unordered_map<std::string, int>> m_SearchCache;
+static void AddFileToSearchCache(const char* pFileName, int path, const char* pathID)
 {
 	if (!pathID)
 		pathID = nullPath;
@@ -61,7 +61,7 @@ void AddFileToSearchCache(const char* pFileName, int path, const char* pathID)
 }
 
 
-void RemoveFileFromSearchCache(const char* pFileName, const char* pathID)
+static void RemoveFileFromSearchCache(const char* pFileName, const char* pathID)
 {
 	if (!pathID)
 		pathID = nullPath;
@@ -72,7 +72,7 @@ void RemoveFileFromSearchCache(const char* pFileName, const char* pathID)
 	m_SearchCache[pathID].erase(pFileName);
 }
 
-CSearchPath* GetPathFromSearchCache(const char* pFileName, const char* pathID)
+static CSearchPath* GetPathFromSearchCache(const char* pFileName, const char* pathID)
 {
 	if (!pathID)
 		pathID = nullPath;
@@ -87,7 +87,7 @@ CSearchPath* GetPathFromSearchCache(const char* pFileName, const char* pathID)
 	return func_CBaseFileSystem_FindSearchPathByStoreId(g_pFullFileSystem, it->second);
 }
 
-void NukeSearchCache() // NOTE: We actually never nuke it :D
+static void NukeSearchCache() // NOTE: We actually never nuke it :D
 {
 	if (holylib_filesystem_debug.GetBool())
 		Msg("Search cache got nuked\n");
@@ -95,7 +95,7 @@ void NukeSearchCache() // NOTE: We actually never nuke it :D
 	m_SearchCache.clear();
 }
 
-void DumpSearchcacheCmd(const CCommand &args)
+static void DumpSearchcacheCmd(const CCommand &args)
 {
 	//if (args.ArgC() < 1)
 	{
@@ -116,9 +116,9 @@ void DumpSearchcacheCmd(const CCommand &args)
 	//	}
 	}
 }
-ConCommand dumpsearchcache("holylib_filesystem_dumpsearchcache", DumpSearchcacheCmd, "Dumps the searchcache", 0);
+static ConCommand dumpsearchcache("holylib_filesystem_dumpsearchcache", DumpSearchcacheCmd, "Dumps the searchcache", 0);
 
-void GetPathFromIDCmd(const CCommand &args)
+static void GetPathFromIDCmd(const CCommand &args)
 {
 	if ( args.ArgC() < 1 || V_stricmp(args.Arg(1), "") == 0 )
 	{
@@ -136,16 +136,16 @@ void GetPathFromIDCmd(const CCommand &args)
 	Msg("Id: &%s\n", args.Arg(1));
 	Msg("Path %s\n", path->GetPathString());
 }
-ConCommand getpathfromid("holylib_filesystem_getpathfromid", GetPathFromIDCmd, "prints the path of the given searchpath id", 0);
+static ConCommand getpathfromid("holylib_filesystem_getpathfromid", GetPathFromIDCmd, "prints the path of the given searchpath id", 0);
 
-void NukeSearchcacheCmd(const CCommand &args)
+static void NukeSearchcacheCmd(const CCommand &args)
 {
 	NukeSearchCache();
 }
-ConCommand nukesearchcache("holylib_filesystem_nukesearchcache", NukeSearchcacheCmd, "Nukes the searchcache", 0);
+static ConCommand nukesearchcache("holylib_filesystem_nukesearchcache", NukeSearchcacheCmd, "Nukes the searchcache", 0);
 
-Detouring::Hook detour_CBaseFileSystem_FindFileInSearchPath;
-FileHandle_t* hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, CFileOpenInfo &openInfo)
+static Detouring::Hook detour_CBaseFileSystem_FindFileInSearchPath;
+static FileHandle_t* hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, CFileOpenInfo &openInfo)
 {
 	if (!holylib_filesystem_searchcache.GetBool())
 		return detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
@@ -181,8 +181,8 @@ FileHandle_t* hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, CFileO
 	return file;
 }
 
-Detouring::Hook detour_CBaseFileSystem_FastFileTime;
-long hook_CBaseFileSystem_FastFileTime(void* filesystem, const CSearchPath* path, const char* pFileName)
+static Detouring::Hook detour_CBaseFileSystem_FastFileTime;
+static long hook_CBaseFileSystem_FastFileTime(void* filesystem, const CSearchPath* path, const char* pFileName)
 {
 	if (!holylib_filesystem_searchcache.GetBool())
 		return detour_CBaseFileSystem_FastFileTime.GetTrampoline<Symbols::CBaseFileSystem_FastFileTime>()(filesystem, path, pFileName);
@@ -215,15 +215,15 @@ long hook_CBaseFileSystem_FastFileTime(void* filesystem, const CSearchPath* path
 	return time;
 }
 
-bool is_file(const char *path) {
+static bool is_file(const char *path) {
 	const char *last_slash = strrchr(path, '/');
 	const char *last_dot = strrchr(path, '.');
 
 	return last_dot != NULL && (last_slash == NULL || last_dot > last_slash);
 }
 
-Detouring::Hook detour_CBaseFileSystem_IsDirectory;
-bool hook_CBaseFileSystem_IsDirectory(void* filesystem, const char* pFileName, const char* pPathID)
+static Detouring::Hook detour_CBaseFileSystem_IsDirectory;
+static bool hook_CBaseFileSystem_IsDirectory(void* filesystem, const char* pFileName, const char* pPathID)
 {
 	if (holylib_filesystem_easydircheck.GetBool() && is_file(pFileName))
 		return false;
@@ -231,10 +231,10 @@ bool hook_CBaseFileSystem_IsDirectory(void* filesystem, const char* pFileName, c
 	return detour_CBaseFileSystem_IsDirectory.GetTrampoline<Symbols::CBaseFileSystem_IsDirectory>()(filesystem, pFileName, pPathID);
 }
 
-int pBaseLength = 0;
-char pBaseDir[MAX_PATH];
-Detouring::Hook detour_CBaseFileSystem_FixUpPath;
-bool hook_CBaseFileSystem_FixUpPath(IFileSystem* filesystem, const char *pFileName, char *pFixedUpFileName, int sizeFixedUpFileName)
+static int pBaseLength = 0;
+static char pBaseDir[MAX_PATH];
+static Detouring::Hook detour_CBaseFileSystem_FixUpPath;
+static bool hook_CBaseFileSystem_FixUpPath(IFileSystem* filesystem, const char *pFileName, char *pFixedUpFileName, int sizeFixedUpFileName)
 {
 	if (!holylib_filesystem_optimizedfixpath.GetBool())
 		return detour_CBaseFileSystem_FixUpPath.GetTrampoline<Symbols::CBaseFileSystem_FixUpPath>()(filesystem, pFileName, pFixedUpFileName, sizeFixedUpFileName);
@@ -275,7 +275,7 @@ bool hook_CBaseFileSystem_FixUpPath(IFileSystem* filesystem, const char *pFileNa
 	return true;
 }
 
-std::string nukeFileExtension(const std::string& fileName) {
+static std::string nukeFileExtension(const std::string& fileName) {
 	size_t lastDotPos = fileName.find_last_of('.');
 	if (lastDotPos == std::string::npos) 
 		return fileName;
@@ -283,7 +283,7 @@ std::string nukeFileExtension(const std::string& fileName) {
 	return fileName.substr(0, lastDotPos);
 }
 
-std::string getFileExtension(const std::string& fileName) {
+static std::string getFileExtension(const std::string& fileName) {
 	size_t lastDotPos = fileName.find_last_of('.');
 	if (lastDotPos == std::string::npos || lastDotPos == fileName.length() - 1)
 		return "";
@@ -291,7 +291,7 @@ std::string getFileExtension(const std::string& fileName) {
 	return fileName.substr(lastDotPos + 1);
 }
 
-const char* GetOverridePath(const char* pFileName, const char* pathID)
+static const char* GetOverridePath(const char* pFileName, const char* pathID)
 {
 	if (!holylib_filesystem_splitgamepath.GetBool())
 		return NULL;
@@ -362,9 +362,10 @@ const char* GetOverridePath(const char* pFileName, const char* pathID)
 
 	return NULL;
 }
-std::unordered_map<std::string, std::string> g_pOverridePaths;
-Detouring::Hook detour_CBaseFileSystem_OpenForRead;
-FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const char *pFileNameT, const char *pOptions, unsigned flags, const char *pathID, char **ppszResolvedFilename)
+
+static std::unordered_map<std::string, std::string> g_pOverridePaths;
+static Detouring::Hook detour_CBaseFileSystem_OpenForRead;
+static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const char *pFileNameT, const char *pOptions, unsigned flags, const char *pathID, char **ppszResolvedFilename)
 {
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::OpenForRead", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
@@ -684,7 +685,7 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
  * GMOD first calls GetFileTime and then OpenForRead, so we need to make changes for lua in GetFileTime.
  */
 
-std::string replaceString(std::string str, const std::string& from, const std::string& to)
+static std::string replaceString(std::string str, const std::string& from, const std::string& to)
 {
 	size_t startPos = str.find(from);
 	if (startPos != std::string::npos)
@@ -693,8 +694,8 @@ std::string replaceString(std::string str, const std::string& from, const std::s
 	return str;
 }
 
-Detouring::Hook detour_CBaseFileSystem_GetFileTime;
-long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char *pFileName, const char *pPathID)
+static Detouring::Hook detour_CBaseFileSystem_GetFileTime;
+static long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char *pFileName, const char *pPathID)
 {
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::GetFileTime", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 	
@@ -787,8 +788,8 @@ long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char *pFile
 }
 
 static bool gBlockRemoveAllMapPaths = false;
-Detouring::Hook detour_CBaseFileSystem_RemoveAllMapSearchPaths;
-void hook_CBaseFileSystem_RemoveAllMapSearchPaths(IFileSystem* filesystem)
+static Detouring::Hook detour_CBaseFileSystem_RemoveAllMapSearchPaths;
+static void hook_CBaseFileSystem_RemoveAllMapSearchPaths(IFileSystem* filesystem)
 {
 	if (gBlockRemoveAllMapPaths)
 		return;
@@ -796,15 +797,15 @@ void hook_CBaseFileSystem_RemoveAllMapSearchPaths(IFileSystem* filesystem)
 	detour_CBaseFileSystem_RemoveAllMapSearchPaths.GetTrampoline<Symbols::CBaseFileSystem_RemoveAllMapSearchPaths>()(filesystem);
 }
 
-std::string getVPKFile(const std::string& fileName) {
+static std::string getVPKFile(const std::string& fileName) {
 	size_t lastThingyPos = fileName.find_last_of('/');
 	size_t lastDotPos = fileName.find_last_of('.');
 
 	return fileName.substr(lastThingyPos + 1, lastDotPos - lastThingyPos - 1);
 }
 
-Detouring::Hook detour_CBaseFileSystem_AddSearchPath;
-void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const char *pPath, const char *pathID, SearchPathAdd_t addType)
+static Detouring::Hook detour_CBaseFileSystem_AddSearchPath;
+static void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const char *pPath, const char *pathID, SearchPathAdd_t addType)
 {
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::AddSearchPath", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
@@ -912,8 +913,8 @@ void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const char *pPa
 		Msg("Added Searchpath: %s %s %i\n", pPath, pathID, (int)addType);
 }
 
-Detouring::Hook detour_CBaseFileSystem_AddVPKFile;
-void hook_CBaseFileSystem_AddVPKFile(IFileSystem* filesystem, const char *pPath, const char *pathID, SearchPathAdd_t addType)
+static Detouring::Hook detour_CBaseFileSystem_AddVPKFile;
+static void hook_CBaseFileSystem_AddVPKFile(IFileSystem* filesystem, const char *pPath, const char *pathID, SearchPathAdd_t addType)
 {
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::AddVPKFile", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
@@ -1068,7 +1069,7 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 		Msg("Updated workshop path. (%s)\n", workshopDir.c_str());
 }
 
-CUtlSymbolTableMT* g_pPathIDTable;
+static CUtlSymbolTableMT* g_pPathIDTable;
 inline const char* CPathIDInfo::GetPathIDString() const
 {
 	return g_pPathIDTable->String( m_PathID );

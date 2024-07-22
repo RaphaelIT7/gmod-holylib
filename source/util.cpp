@@ -24,9 +24,9 @@ void Util::FinishTable(const char* Name) {
 }
 
 
-Symbols::Get_Player func_GetPlayer;
-Symbols::Push_Entity func_PushEntity;
-Symbols::Get_Entity func_GetEntity;
+static Symbols::Get_Player func_GetPlayer;
+static Symbols::Push_Entity func_PushEntity;
+static Symbols::Get_Entity func_GetEntity;
 CBasePlayer* Util::Get_Player(int iStackPos, bool unknown)
 {
 	if (func_GetPlayer)

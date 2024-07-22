@@ -19,17 +19,17 @@ public:
 	virtual const char* Name() { return "surffix"; };
 };
 
-CSurfFixModule g_pSurfFixModule;
+static CSurfFixModule g_pSurfFixModule;
 IModule* pSurfFixModule = &g_pSurfFixModule;
 
 // Ported over from https://github.com/RaphaelIT7/obsolete-source-engine/commit/b9e4bc91086f893f4bab0decb0d358da6ada428d
-ConVar sv_slope_fix("sv_slope_fix", "1");
-ConVar sv_ramp_fix("sv_ramp_fix", "1");
-ConVar sv_ramp_initial_retrace_length("sv_ramp_initial_retrace_length", "0.2", 0,
+static ConVar sv_slope_fix("sv_slope_fix", "1");
+static ConVar sv_ramp_fix("sv_ramp_fix", "1");
+static ConVar sv_ramp_initial_retrace_length("sv_ramp_initial_retrace_length", "0.2", 0,
                                       "Amount of units used in offset for retraces", true, 0.2f, true, 5.f);
-ConVar sv_ramp_bumpcount("sv_ramp_bumpcount", "8", 0, "Helps with fixing surf/ramp bugs", true, 4, true, 16);
+static ConVar sv_ramp_bumpcount("sv_ramp_bumpcount", "8", 0, "Helps with fixing surf/ramp bugs", true, 4, true, 16);
 
-bool CGameMovement_IsValidMovementTrace(CGameMovement* gamemovement, trace_t &tr)
+static bool CGameMovement_IsValidMovementTrace(CGameMovement* gamemovement, trace_t &tr)
 {
     trace_t stuck;
 
@@ -67,10 +67,10 @@ bool CGameMovement_IsValidMovementTrace(CGameMovement* gamemovement, trace_t &tr
 }
 
 #define	MAX_CLIP_PLANES		5
-Symbols::MoveHelperServer func_MoveHelperServer = NULL;
-Symbols::CGameMovement_ClipVelocity func_CGameMovement_ClipVelocity = NULL;
-Symbols::CBaseEntity_GetGroundEntity func_CBaseEntity_GetGroundEntity = NULL;
-Symbols::CTraceFilterSimple_ShouldHitEntity func_CTraceFilterSimple_ShouldHitEntity = NULL;
+static Symbols::MoveHelperServer func_MoveHelperServer = NULL;
+static Symbols::CGameMovement_ClipVelocity func_CGameMovement_ClipVelocity = NULL;
+static Symbols::CBaseEntity_GetGroundEntity func_CBaseEntity_GetGroundEntity = NULL;
+static Symbols::CTraceFilterSimple_ShouldHitEntity func_CTraceFilterSimple_ShouldHitEntity = NULL;
 inline IMoveHelper* HolyLib_MoveHelper()
 {
 	return (IMoveHelper*)func_MoveHelperServer();
@@ -110,11 +110,11 @@ inline void HolyLib_UTIL_TraceRay(const Ray_t &ray, unsigned int mask, const IHa
 	//}
 }
 
-CGlobalVars *gpGlobals = NULL;
-IEngineTrace *enginetrace = NULL;
-CBaseEntityList *g_pEntityList = NULL;
-Detouring::Hook detour_CGameMovement_TryPlayerMove;
-int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector* pFirstDest, trace_t* pFirstTrace) // Raphael: We still need to support player->m_surfaceFriction or what it's name was. I removed it since I currently can't get it.
+static CGlobalVars *gpGlobals = NULL;
+static IEngineTrace *enginetrace = NULL;
+static CBaseEntityList *g_pEntityList = NULL;
+static Detouring::Hook detour_CGameMovement_TryPlayerMove;
+static int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector* pFirstDest, trace_t* pFirstTrace) // Raphael: We still need to support player->m_surfaceFriction or what it's name was. I removed it since I currently can't get it.
 {
 	int			bumpcount, numbumps;
 	Vector		dir;

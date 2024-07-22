@@ -20,10 +20,10 @@ public:
 	virtual const char* Name() { return "holylib"; };
 };
 
-CHolyLibModule g_pHolyLibModule;
+static CHolyLibModule g_pHolyLibModule;
 IModule* pHolyLibModule = &g_pHolyLibModule;
 
-IServer* pServer;
+static IServer* pServer;
 LUA_FUNCTION_STATIC(Reconnect)
 {
 	CBasePlayer* ent = Util::Get_Player(1, true);
@@ -43,7 +43,7 @@ LUA_FUNCTION_STATIC(Reconnect)
 	return 1;
 }
 
-bool g_bHideServer = false;
+static bool g_bHideServer = false;
 LUA_FUNCTION_STATIC(HideServer)
 {
 	LUA->CheckType(1, GarrysMod::Lua::Type::Bool);
@@ -52,8 +52,8 @@ LUA_FUNCTION_STATIC(HideServer)
 	return 0;
 }
 
-Detouring::Hook detour_CServerGameDLL_ShouldHideServer;
-bool hook_CServerGameDLL_ShouldHideServer()
+static Detouring::Hook detour_CServerGameDLL_ShouldHideServer;
+static bool hook_CServerGameDLL_ShouldHideServer()
 {
 	if (g_bHideServer)
 		return true;

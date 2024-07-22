@@ -18,10 +18,10 @@ public:
 	virtual const char* Name() { return "threadpoolfix"; };
 };
 
-CThreadPoolFixModule g_pThreadPoolFixModule;
+static CThreadPoolFixModule g_pThreadPoolFixModule;
 IModule* pThreadPoolFixModule = &g_pThreadPoolFixModule;
 
-Detouring::Hook detour_CThreadPool_ExecuteToPriority;
+static Detouring::Hook detour_CThreadPool_ExecuteToPriority;
 int hook_CThreadPool_ExecuteToPriority(IThreadPool* pool, void* idx, void* idx2)
 {
 	if (pool->GetJobCount() <= 0)

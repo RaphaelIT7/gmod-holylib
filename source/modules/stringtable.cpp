@@ -19,7 +19,7 @@ public:
 	virtual const char* Name() { return "stringtable"; };
 };
 
-CStringTableModule g_pStringTableFixModule;
+static CStringTableModule g_pStringTableFixModule;
 IModule* pStringTableModule = &g_pStringTableFixModule;
 
 static CNetworkStringTableContainer* networkStringTableContainerServer = NULL;
@@ -29,9 +29,9 @@ void CStringTableModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamef
 	Detour::CheckValue("get interface", "networkStringTableContainerServer", networkStringTableContainerServer != NULL);
 }
 
-int registryIdx = 0;
-int INetworkStringTable_TypeID = -1;
-void Push_INetworkStringTable(INetworkStringTable* tbl)
+static int registryIdx = 0;
+static int INetworkStringTable_TypeID = -1;
+static void Push_INetworkStringTable(INetworkStringTable* tbl)
 {
 	if ( !tbl )
 	{
@@ -49,7 +49,7 @@ void Push_INetworkStringTable(INetworkStringTable* tbl)
 	g_Lua->Pop(1);*/
 }
 
-INetworkStringTable* Get_INetworkStringTable(int iStackPos)
+static INetworkStringTable* Get_INetworkStringTable(int iStackPos)
 {
 	if (!g_Lua->IsType(iStackPos, INetworkStringTable_TypeID))
 		return NULL;
@@ -188,7 +188,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_FindStringIndex)
 	return 1;
 }
 
-Symbols::CNetworkStringTable_DeleteAllStrings func_CNetworkStringTable_DeleteAllStrings;
+static Symbols::CNetworkStringTable_DeleteAllStrings func_CNetworkStringTable_DeleteAllStrings;
 LUA_FUNCTION_STATIC(INetworkStringTable_DeleteAllStrings)
 {
 	INetworkStringTable* table = Get_INetworkStringTable(1);
