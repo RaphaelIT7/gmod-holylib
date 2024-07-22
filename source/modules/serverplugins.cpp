@@ -47,7 +47,7 @@ IServerPluginCallbacks *CPlugin::GetCallback()
 
 // Source: engine/sv_plugins.cpp
 // helper macro to stop this being typed for every passthrough
-static CServerPlugin* g_pServerPluginHandler;
+CServerPlugin* g_pServerPluginHandler;
 #define FORALL_PLUGINS	for( int i = 0; i < g_pServerPluginHandler->m_Plugins.Count(); i++ ) 
 #define CALL_PLUGIN_IF_ENABLED(call) \
 	do { \
