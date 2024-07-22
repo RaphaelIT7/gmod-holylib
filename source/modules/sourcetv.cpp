@@ -43,7 +43,7 @@ int CHLTVServer::GetHLTVSlot()
 	return m_nPlayerSlot;
 }
 
-static CHLTVServer* hltv = NULL;
+CHLTVServer* hltv = NULL;
 static Detouring::Hook detour_CHLTVServer_CHLTVServer;
 static void hook_CHLTVServer_CHLTVServer(CHLTVServer* srv)
 {
