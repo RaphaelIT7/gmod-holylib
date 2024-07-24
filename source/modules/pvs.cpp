@@ -306,11 +306,11 @@ LUA_FUNCTION_STATIC(pvs_OverrideStateFlags)
 static void SetStateFlags(CBaseEntity* ent, int flags, bool force)
 {
 	if (!ent)
-		LUA->ThrowError("Tried to use a NULL Entity!");
+		g_Lua->ThrowError("Tried to use a NULL Entity!");
 
 	edict_t* edict = GetEdictOfEnt(ent);
 	if (!edict)
-		LUA->ThrowError("Failed to get edict?");
+		g_Lua->ThrowError("Failed to get edict?");
 
 	int newFlags = flags;
 	if (!force)
@@ -454,10 +454,10 @@ LUA_FUNCTION_STATIC(pvs_RemoveAllEntityFromTransmit)
 static void AddEntityToTransmit(CBaseEntity* ent, bool force)
 {
 	if (!ent)
-		LUA->ThrowError("Tried to use a NULL Entity!");
+		g_Lua->ThrowError("Tried to use a NULL Entity!");
 
 	if (!g_pCurrentTransmitInfo)
-		LUA->ThrowError("Tried to use pvs.RemoveEntityFromTransmit while not in a CheckTransmit call!");
+		g_Lua->ThrowError("Tried to use pvs.RemoveEntityFromTransmit while not in a CheckTransmit call!");
 
 	ent->SetTransmit(g_pCurrentTransmitInfo, force);
 }
