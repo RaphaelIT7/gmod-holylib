@@ -52,15 +52,16 @@ CBaseEntity* Util::Get_Entity(int iStackPos, bool unknown)
 CBaseServer* server;
 CBaseClient* Util::GetClientByEdict(edict_t* edict)
 {
-	for ( int i = 0; i < server->GetClientCount(); i++ )
+	for (int i = 0; i < server->GetClientCount(); i++)
 	{
-		CGameClient *pClient = static_cast<CGameClient*>(server->GetClient(i));
-			
-		if ( pClient->edict == edict )
+		CGameClient *pClient = static_cast<CGameClient*>(server->Client(i));
+		if ( pClient && pClient->edict == edict )
 		{
 			return pClient;
 		}
 	}
+
+	return NULL;
 }
 
 void Util::AddDetour()

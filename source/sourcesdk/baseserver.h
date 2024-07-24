@@ -151,6 +151,8 @@ public: // IConnectionlessPacketHandler implementation
 
 	void	SetPausedForced( bool bPaused, float flDuration = -1.f );
 
+	CBaseClient* Client(int index) { return static_cast<CBaseClient*>(m_Clients[index]); };
+
 protected:
 
 	virtual IClient *ConnectClient ( netadr_t &adr, int protocol, int challenge, int clientChallenge, int authProtocol, 
