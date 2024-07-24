@@ -306,12 +306,12 @@ Adds the given Entity to be transmitted.
 
 > NOTE: Only use this function inside the `HolyLib:CheckTransmit` hook!  
 
-#### pvs.IsEmptyBaseline()
+#### (REMOVED AGAIN) pvs.IsEmptyBaseline()
 Returns `true` if the baseline is empty.  
 This should always be the case after a full update.  
-> Warning: This function currently causes a crash!
 
 > NOTE: Only use this function inside the `HolyLib:CheckTransmit` hook!  
+> REMOVED: This function was removed since I can't get it to work / It would be a bit more complicated than first anticipated.  
 
 ### Enums
 

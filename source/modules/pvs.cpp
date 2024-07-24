@@ -491,30 +491,6 @@ LUA_FUNCTION_STATIC(pvs_AddEntityToTransmit)
 	return 0;
 }
 
-static IServer* srv;
-LUA_FUNCTION_STATIC(pvs_IsEmptyBaseline)
-{
-	if (!g_pCurrentTransmitInfo)
-		LUA->ThrowError("Tried to use pvs.IsEmptyBaseline while not in a CheckTransmit call!");
-
-	if (!srv)
-		LUA->ThrowError("Tried to use pvs.IsEmptyBaseline with no active server?");
-
-	CBaseClient* client = Util::GetClientByUserID(engineserver->GetPlayerUserId(g_pCurrentTransmitInfo->m_pClientEnt)); // This is slow :/
-	if (!client)
-		LUA->ThrowError("Failed to get client!");
-
-	if (!client->m_pBaseline) // Should never happen
-	{
-		LUA->PushBool(false);
-		return 1;
-	}
-
-	LUA->PushBool(client->m_pBaseline->m_pValidEntities == NULL);
-	
-	return 1;
-}
-
 void CPVSModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	engineserver = (IVEngineServer*)appfn[0](INTERFACEVERSION_VENGINESERVER, NULL);
@@ -552,7 +528,6 @@ void CPVSModule::LuaInit(bool bServerInit)
 		Util::AddFunc(pvs_RemoveEntityFromTransmit, "RemoveEntityFromTransmit");
 		Util::AddFunc(pvs_RemoveAllEntityFromTransmit, "RemoveAllEntityFromTransmit");
 		Util::AddFunc(pvs_AddEntityToTransmit, "AddEntityToTransmit");
-		Util::AddFunc(pvs_IsEmptyBaseline, "IsEmptyBaseline");
 
 		g_Lua->PushNumber(LUA_FL_EDICT_DONTSEND);
 		g_Lua->SetField(-2, "FL_EDICT_DONTSEND");

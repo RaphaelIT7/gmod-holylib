@@ -2,8 +2,8 @@
 #include <string>
 #include "edict.h"
 #include "GarrysMod/InterfacePointers.hpp"
-#include "sourcesdk/sv_client.h"
-#include "sourcesdk/baseserver.h"
+#include "iclient.h"
+#include "iserver.h"
 
 GarrysMod::Lua::IUpdatedLuaInterface* g_Lua;
 IVEngineServer* engine;
@@ -49,7 +49,7 @@ CBaseEntity* Util::Get_Entity(int iStackPos, bool unknown)
 	return NULL;
 }
 
-CBaseServer* server;
+IServer* server;
 CBaseClient* Util::GetClientByUserID(int userid)
 {
 	for (int i = 0; i < server->GetClientCount(); i++)
@@ -66,7 +66,7 @@ CBaseClient* Util::GetClientByUserID(int userid)
 
 void Util::AddDetour()
 {
-	server = (CBaseServer*)InterfacePointers::Server();
+	server = InterfacePointers::Server();
 
 	SourceSDK::ModuleLoader server_loader("server_srv");
 	func_GetPlayer = (Symbols::Get_Player)Detour::GetFunction(server_loader.GetModule(), Symbols::Get_PlayerSym);
