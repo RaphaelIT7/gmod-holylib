@@ -500,7 +500,7 @@ LUA_FUNCTION_STATIC(pvs_IsEmptyBaseline)
 	if (!srv)
 		LUA->ThrowError("Tried to use pvs.IsEmptyBaseline with no active server?");
 
-	CBaseClient* client = Util::GetClientByEdict(g_pCurrentTransmitInfo->m_pClientEnt);
+	CBaseClient* client = Util::GetClientByUserID(engineserver->GetPlayerUserId(g_pCurrentTransmitInfo->m_pClientEnt)); // This is slow :/
 	if (!client)
 		LUA->ThrowError("Failed to get client!");
 

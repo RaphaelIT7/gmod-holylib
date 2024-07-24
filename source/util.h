@@ -24,7 +24,7 @@ namespace Util
 	extern CBaseEntity* Get_Entity(int iStackPos, bool unknown);
 	extern void Push_Entity(CBaseEntity* pEnt);
 
-	CBaseClient* GetClientByEdict(edict_t* edict);
+	CBaseClient* GetClientByUserID(int userid);
 
 	extern void AddDetour(); // We load Gmod's functions in there.
 }

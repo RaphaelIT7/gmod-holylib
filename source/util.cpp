@@ -50,12 +50,12 @@ CBaseEntity* Util::Get_Entity(int iStackPos, bool unknown)
 }
 
 CBaseServer* server;
-CBaseClient* Util::GetClientByEdict(edict_t* edict)
+CBaseClient* Util::GetClientByUserID(int userid)
 {
 	for (int i = 0; i < server->GetClientCount(); i++)
 	{
-		CGameClient *pClient = static_cast<CGameClient*>(server->Client(i));
-		if ( pClient && pClient->edict == edict )
+		IClient* pClient = server->GetClient(i);
+		if ( pClient && pClient->GetUserID() == userid)
 		{
 			return pClient;
 		}
