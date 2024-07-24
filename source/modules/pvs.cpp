@@ -417,7 +417,7 @@ static bool RemoveEntityFromTransmit(CBaseEntity* ent)
 		return false;
 
 	g_pCurrentTransmitInfo->m_pTransmitEdict->Clear(edict->m_EdictIndex);
-	if (g_pCurrentTransmitInfo->m_pTransmitAlways->Get(edict->m_EdictIndex))
+	if (g_pCurrentTransmitInfo->m_pTransmitAlways && g_pCurrentTransmitInfo->m_pTransmitAlways->Get(edict->m_EdictIndex))
 		g_pCurrentTransmitInfo->m_pTransmitAlways->Clear(edict->m_EdictIndex);
 
 	return true;
@@ -452,7 +452,8 @@ LUA_FUNCTION_STATIC(pvs_RemoveAllEntityFromTransmit)
 		LUA->ThrowError("Tried to use pvs.RemoveEntityFromTransmit while not in a CheckTransmit call!");
 
 	g_pCurrentTransmitInfo->m_pTransmitEdict->ClearAll();
-	g_pCurrentTransmitInfo->m_pTransmitAlways->ClearAll();
+	if (g_pCurrentTransmitInfo->m_pTransmitAlways)
+		g_pCurrentTransmitInfo->m_pTransmitAlways->ClearAll();
 
 	return 1;
 }
@@ -504,7 +505,10 @@ LUA_FUNCTION_STATIC(pvs_IsEmptyBaseline)
 		LUA->ThrowError("Failed to get client!");
 
 	if (!client->m_pBaseline) // Should never happen
+	{
 		LUA->PushBool(false);
+		return 1;
+	}
 
 	LUA->PushBool(client->m_pBaseline->m_pValidEntities == NULL);
 	
