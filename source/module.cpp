@@ -29,7 +29,7 @@ void CModule::SetModule(IModule* module)
 	m_strName = "holylib_enable_";
 	m_strName = m_strName + module->Name();
 	m_pCVar = new ConVar(m_strName.c_str(), "1", FCVAR_ARCHIVE, "Whether this module should be active or not", OnModuleConVarChange);
-	m_bEnabled = V_stricmp(CommandLine()->ParmValue(m_strName.c_str(), "1"), "1") == 1;
+	m_bEnabled = V_stricmp(CommandLine()->ParmValue(m_strName.c_str(), "1"), "1") == 0;
 }
 
 void CModule::SetEnabled(bool bEnabled)
