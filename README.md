@@ -270,12 +270,14 @@ Returns whether or not the given box is inside the PVS.
 Adds the given entity index to the PVS  
 
 #### pvs.OverrideStateFlags(Entity ent or table ents, number flags, bool force)
+table ents - A sequential table containing all the entities which states flags should be overridden.  
 bool force - Allows you to set the flags directly. It won't make sure that the value is correct!  
 Overrides the StateFlag for this Snapshot.  
 The value will be reset in the next one.  
 NOTE: If you use force, you should know what your doing or else it might cause a crash.  
 
 #### pvs.SetStateFlags(Entity ent or table ents, number flags, bool force)
+table ents - A sequential table containing all the entities which states should be set.  
 bool force - Allows you to set the flags directly. It won't make sure that the value is correct!  
 Sets the State flag for this entity.  
 Unlike `OverrideStateFlag`, this won't be reset after the snapshot.  
@@ -286,7 +288,8 @@ bool force - Allows you to get all flags instead of only the ones for networking
 Returns the state flags for this entity.  
 
 #### bool pvs.RemoveEntityFromTransmit(Entity ent or table ents)
-Returns true if the entity was removed from being transmitted.  
+table ents - A sequential table containing all the entities that should be removed from being transmitted.  
+Returns true if the entity or all entities were successfully removed from being transmitted.  
 
 > NOTE: Only use this function inside the `HolyLib:CheckTransmit` hook!  
 
@@ -296,6 +299,7 @@ Removes all Entities from being transmitted.
 > NOTE: Only use this function inside the `HolyLib:CheckTransmit` hook!  
 
 #### pvs.AddEntityToTransmit(Entity ent or table ents, bool always)
+table ents - A sequential table containing all the entities that should be transmitted.  
 bool always - If the entity should always be transmitted? (Verify)  
 
 Adds the given Entity to be transmitted.
@@ -305,6 +309,8 @@ Adds the given Entity to be transmitted.
 #### pvs.IsEmptyBaseline()
 Returns `true` if the baseline is empty.  
 This should always be the case after a full update.  
+
+> NOTE: Only use this function inside the `HolyLib:CheckTransmit` hook!  
 
 ### Enums
 
@@ -322,15 +328,17 @@ The Entity's `ShouldTransmit` function will be called, and its return value will
 
 ### Hooks
 
-#### HolyLib:CheckTransmit(table entities)
-table enitites - The Entities that get transmitted.  
+#### HolyLib:CheckTransmit(Entity ply, table entities)
+entity ply - The player that everything is transmitted to.  
+table enitites - The Entities that get transmitted. Only available if `holylib_pvs_postchecktransmit` is set to `2` or higher.  
 
 > NOTE: This hook is only called when `holylib_pvs_postchecktransmit` is enabled!
 
 ### ConVars
 
 #### holylib_pvs_postchecktransmit (default `0`)
-If enabled, it will add/call the `HolyLib:CheckTransmit` hook.
+If enabled, it will add/call the `HolyLib:CheckTransmit` hook.  
+If set to `2` it will also pass a table containing all entitites to the hook (The second argument)  
 
 ## filesystem
 This module currently only contains two optimizations for the filesystem.  

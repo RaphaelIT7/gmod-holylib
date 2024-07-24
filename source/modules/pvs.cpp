@@ -74,24 +74,30 @@ static void hook_CServerGameEnts_CheckTransmit(void* gameents, CCheckTransmitInf
 	{
 		if(Lua::PushHook("HolyLib:PostCheckTransmit"))
 		{
-			g_Lua->CreateTable();
-			int idx = 0;
-			edict_t *pBaseEdict = engineserver->PEntityOfEntIndex(0);
-			for (int i=0; i<nEdicts; ++i)
+			Util::Push_Entity(servergameents->EdictToBaseEntity(pInfo->m_pClientEnt));
+			int pushed = 2;
+			if (pvs_postchecktransmit.GetInt() >= 2)
 			{
-				int iEdict = pEdictIndices[i];
-				edict_t *pEdict = &pBaseEdict[iEdict];
+				++pushed;
+				g_Lua->CreateTable();
+				int idx = 0;
+				edict_t *pBaseEdict = engineserver->PEntityOfEntIndex(0);
+				for (int i=0; i<nEdicts; ++i)
+				{
+					int iEdict = pEdictIndices[i];
+					edict_t *pEdict = &pBaseEdict[iEdict];
 
-				if (!pInfo->m_pTransmitEdict->Get(i))
-					continue;
+					if (!pInfo->m_pTransmitEdict->Get(i))
+						continue;
 
-				++idx;
-				g_Lua->PushNumber(idx);
-				Util::Push_Entity(servergameents->EdictToBaseEntity(pEdict));
-				g_Lua->SetTable(-3);
+					++idx;
+					g_Lua->PushNumber(idx);
+					Util::Push_Entity(servergameents->EdictToBaseEntity(pEdict));
+					g_Lua->SetTable(-3);
+				}
 			}
 
-			g_Lua->CallFunctionProtected(2, 0, true);
+			g_Lua->CallFunctionProtected(pushed, 0, true);
 		}
 	}
 
