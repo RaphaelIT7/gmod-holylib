@@ -752,10 +752,10 @@ It now throws a warning instead of crashing -> https://github.com/Facepunch/garr
 `cvars.GetAll` -> https://github.com/Facepunch/garrysmod-requests/issues/341  
 `sourcetv` module -> https://github.com/Facepunch/garrysmod-requests/issues/2298  
 `bitbuf` module(unfinished) -> https://github.com/Facepunch/garrysmod-requests/issues/594  
+`HLTV` class / `sourcetv` module -> https://github.com/Facepunch/garrysmod-requests/issues/2237  
 
 # Things planned to add:
 https://github.com/Facepunch/garrysmod-requests/issues/1884  
-https://github.com/Facepunch/garrysmod-requests/issues/2237  
 (Maybe)https://github.com/Facepunch/garrysmod-requests/issues/132  
 https://github.com/Facepunch/garrysmod-requests/issues/77  
 (Maybe)https://github.com/Facepunch/garrysmod-requests/issues/603  

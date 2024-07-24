@@ -498,9 +498,6 @@ void CPVSModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 
 	servergameents = (IServerGameEnts*)gamefn[0](INTERFACEVERSION_SERVERGAMEENTS, NULL);
 	Detour::CheckValue("get interface", "IServerGameEnts", servergameents != NULL);
-
-	srv = InterfacePointers::Server();
-	Detour::CheckValue("get interface", "IServer", srv != NULL);
 }
 
 void CPVSModule::LuaInit(bool bServerInit)
