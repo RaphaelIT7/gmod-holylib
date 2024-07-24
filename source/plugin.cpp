@@ -46,7 +46,7 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 
 	Lua::AddDetour();
 	Util::AddDetour();
-	g_pModuleManager.Init(&interfaceFactory, &gameServerFactory);
+	g_pModuleManager.Init(interfaceFactory, gameServerFactory);
 	g_pModuleManager.InitDetour(false);
 
 	ConVar_Register();

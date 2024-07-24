@@ -38,7 +38,7 @@ struct CompressData
 	std::vector<CompressEntry*> pFinished;
 	CThreadFastMutex pMutex;
 };
-unsigned CompressThread(void* data)
+static unsigned CompressThread(void* data)
 {
 	CompressData* cData = (CompressData*)data;
 	while (cData->bRun)
@@ -91,8 +91,8 @@ unsigned CompressThread(void* data)
 	return 0;
 }
 
-ThreadHandle_t threadhandle;
-CompressData threaddata;
+static ThreadHandle_t threadhandle;
+static CompressData threaddata;
 LUA_FUNCTION_STATIC(util_AsyncCompress)
 {
 	const char* pData = LUA->CheckString(1);

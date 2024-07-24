@@ -29,7 +29,9 @@ void CModule::SetModule(IModule* module)
 	m_strName = "holylib_enable_";
 	m_strName = m_strName + module->Name();
 	m_pCVar = new ConVar(m_strName.c_str(), "1", FCVAR_ARCHIVE, "Whether this module should be active or not", OnModuleConVarChange);
-	m_bEnabled = V_stricmp(CommandLine()->ParmValue(m_strName.c_str(), "1"), "1") == 0;
+	std::string cmdStr = "-";
+	cmdStr.append(m_strName);
+	m_bEnabled = CommandLine()->ParmValue(cmdStr.c_str(), 1) == 1; // Doesn't seem to work :<
 }
 
 void CModule::SetEnabled(bool bEnabled)
@@ -40,7 +42,7 @@ void CModule::SetEnabled(bool bEnabled)
 		{
 			int status = g_pModuleManager.GetStatus();
 			if (status & LoadStatus_Init)
-				m_pModule->Init(g_pModuleManager.GetAppFactory(), g_pModuleManager.GetGameFactory());
+				m_pModule->Init(&g_pModuleManager.GetAppFactory(), &g_pModuleManager.GetGameFactory());
 
 			if (status & LoadStatus_DetourInit)
 			{
@@ -92,6 +94,7 @@ void CModuleManager::RegisterModule(IModule* pModule)
 	pModule->m_pID = g_pIDs;
 	CModule* module = new CModule();
 	module->SetModule(pModule);
+	Msg("Registered module %s (Enabled: %s)\n", module->GetModule()->Name(), module->IsEnabled() ? "true" : "false");
 
 	m_pModules.push_back(module);
 }
@@ -118,7 +121,7 @@ CModule* CModuleManager::FindModuleByName(const char* name)
 	return NULL;
 }
 
-void CModuleManager::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
+void CModuleManager::Init(CreateInterfaceFn appfn, CreateInterfaceFn gamefn)
 {
 	m_pAppFactory = appfn;
 	m_pGameFactory = gamefn;
@@ -126,7 +129,7 @@ void CModuleManager::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 	for (CModule* pModule : m_pModules)
 	{
 		if ( !pModule->IsEnabled() ) { continue; }
-		pModule->GetModule()->Init(appfn, gamefn);
+		pModule->GetModule()->Init(&appfn, &gamefn);
 	}
 }
 

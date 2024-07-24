@@ -99,7 +99,7 @@ static bool hook_CPlugin_Load(CPlugin* pPlugin, const char* fileName)
 				}
 			}
 
-			if (!pPlugin->m_pPlugin->Load(*g_pModuleManager.GetAppFactory(),  *g_pModuleManager.GetGameFactory()))
+			if (!pPlugin->m_pPlugin->Load(g_pModuleManager.GetAppFactory(),  g_pModuleManager.GetGameFactory()))
 			{
 				Warning("Failed to load plugin \"%s\"\n", fileName);
 				return false;

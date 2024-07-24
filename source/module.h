@@ -50,10 +50,10 @@ public:
 	CModule* FindModuleByConVar(ConVar* convar);
 	CModule* FindModuleByName(const char* name);
 	inline int GetStatus() { return m_pStatus; };
-	inline CreateInterfaceFn* GetAppFactory() { return m_pAppFactory; };
-	inline CreateInterfaceFn* GetGameFactory() { return m_pGameFactory; };
+	inline CreateInterfaceFn GetAppFactory() { return m_pAppFactory; };
+	inline CreateInterfaceFn GetGameFactory() { return m_pGameFactory; };
 
-	void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
+	void Init(CreateInterfaceFn appfn, CreateInterfaceFn gamefn);
 	void LuaInit(bool bServerInit);
 	void LuaShutdown();
 	void InitDetour(bool bPreServer);
@@ -63,7 +63,7 @@ public:
 private:
 	std::vector<CModule*> m_pModules;
 	int m_pStatus = 0;
-	CreateInterfaceFn* m_pAppFactory = NULL;
-	CreateInterfaceFn* m_pGameFactory = NULL;
+	CreateInterfaceFn m_pAppFactory = NULL;
+	CreateInterfaceFn m_pGameFactory = NULL;
 };
 extern CModuleManager g_pModuleManager;
