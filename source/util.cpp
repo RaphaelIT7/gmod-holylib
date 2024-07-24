@@ -57,7 +57,7 @@ CBaseClient* Util::GetClientByUserID(int userid)
 		IClient* pClient = server->GetClient(i);
 		if ( pClient && pClient->GetUserID() == userid)
 		{
-			return pClient;
+			return (CBaseClient*)pClient;
 		}
 	}
 
