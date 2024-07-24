@@ -500,7 +500,7 @@ LUA_FUNCTION_STATIC(pvs_IsEmptyBaseline)
 	if (!srv)
 		LUA->ThrowError("Tried to use pvs.IsEmptyBaseline with no active server?");
 
-	CBaseClient* client = ((CBaseClient*)srv->GetClient(g_pCurrentTransmitInfo->m_pClientEnt->m_EdictIndex));
+	CBaseClient* client = Util::GetClientByEdict(g_pCurrentTransmitInfo->m_pClientEnt);
 	if (!client)
 		LUA->ThrowError("Failed to get client!");
 

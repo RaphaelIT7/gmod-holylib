@@ -44,6 +44,8 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 	ConnectTier2Libraries(&interfaceFactory, 1);
 	ConnectTier3Libraries(&interfaceFactory, 1);
 
+	engine = (IVEngineServer*)interfaceFactory(INTERFACEVERSION_VENGINESERVER, NULL);
+
 	Lua::AddDetour();
 	Util::AddDetour();
 	g_pModuleManager.Init(interfaceFactory, gameServerFactory);

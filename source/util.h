@@ -12,6 +12,7 @@ extern IVEngineServer* engine;
 
 extern GarrysMod::Lua::IUpdatedLuaInterface* g_Lua;
 
+class CBaseClient;
 namespace Util
 {
 	extern void StartTable();
@@ -22,6 +23,8 @@ namespace Util
 	extern CBasePlayer* Get_Player(int iStackPos, bool unknown);
 	extern CBaseEntity* Get_Entity(int iStackPos, bool unknown);
 	extern void Push_Entity(CBaseEntity* pEnt);
+
+	CBaseClient* GetClientByEdict(edict_t* edict);
 
 	extern void AddDetour(); // We load Gmod's functions in there.
 }

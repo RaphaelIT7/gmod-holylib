@@ -1,6 +1,9 @@
 #include "util.h"
 #include <string>
 #include "edict.h"
+#include "GarrysMod/InterfacePointers.hpp"
+#include "sourcesdk/sv_client.h"
+#include "sourcesdk/baseserver.h"
 
 GarrysMod::Lua::IUpdatedLuaInterface* g_Lua;
 IVEngineServer* engine;
@@ -46,8 +49,24 @@ CBaseEntity* Util::Get_Entity(int iStackPos, bool unknown)
 	return NULL;
 }
 
+CBaseServer* server;
+CBaseClient* Util::GetClientByEdict(edict_t* edict)
+{
+	for ( int i = 0; i < server->GetClientCount(); i++ )
+	{
+		CGameClient *pClient = static_cast<CGameClient*>(server->GetClient(i));
+			
+		if ( pClient->edict == edict )
+		{
+			return pClient;
+		}
+	}
+}
+
 void Util::AddDetour()
 {
+	server = (CBaseServer*)InterfacePointers::Server();
+
 	SourceSDK::ModuleLoader server_loader("server_srv");
 	func_GetPlayer = (Symbols::Get_Player)Detour::GetFunction(server_loader.GetModule(), Symbols::Get_PlayerSym);
 	func_PushEntity = (Symbols::Push_Entity)Detour::GetFunction(server_loader.GetModule(), Symbols::Push_EntitySym);
