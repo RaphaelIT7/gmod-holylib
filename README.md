@@ -15,7 +15,6 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 
 # Next things
 - HLTV Client (New Lua class)  
-- Add table support to all pvs functions  
 - Add `pvs.SetPreventTransmitBulk`  
 - Start getting windows symbols for everything. This will take a bit  
 

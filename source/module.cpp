@@ -3,6 +3,7 @@
 #include <tier2/tier2.h>
 #include "modules/_modules.h"
 #include "convar.h"
+#include "tier0/icommandline.h"
 
 CModule::~CModule()
 {
@@ -28,7 +29,7 @@ void CModule::SetModule(IModule* module)
 	m_strName = "holylib_enable_";
 	m_strName = m_strName + module->Name();
 	m_pCVar = new ConVar(m_strName.c_str(), "1", FCVAR_ARCHIVE, "Whether this module should be active or not", OnModuleConVarChange);
-	m_bEnabled = true;
+	m_bEnabled = V_stricmp(CommandLine()->ParmValue(m_strName.c_str(), "1"), "1") == 1;
 }
 
 void CModule::SetEnabled(bool bEnabled)
