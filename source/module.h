@@ -50,8 +50,8 @@ public:
 	CModule* FindModuleByConVar(ConVar* convar);
 	CModule* FindModuleByName(const char* name);
 	inline int GetStatus() { return m_pStatus; };
-	inline CreateInterfaceFn GetAppFactory() { return m_pAppFactory; };
-	inline CreateInterfaceFn GetGameFactory() { return m_pGameFactory; };
+	inline CreateInterfaceFn& GetAppFactory() { return m_pAppFactory; };
+	inline CreateInterfaceFn& GetGameFactory() { return m_pGameFactory; };
 
 	void Init(CreateInterfaceFn appfn, CreateInterfaceFn gamefn);
 	void LuaInit(bool bServerInit);
