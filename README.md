@@ -13,13 +13,16 @@ If you use a panel like Pterodactyl or something similar, you can use the gamemo
 
 If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it will be loaded by holylib's ghostinj.  
 
-# Next things
-- HLTV Client (New Lua class)  
+# Next Release (ToDo)
+
+## Things to Add
 - Add `pvs.SetPreventTransmitBulk`  
 - Start getting windows symbols for everything. This will take a bit  
+- Maybe extent HLTV Client?
 
 # Modules
 Each module has its own convar `holylib_enable_[module name]` which allows you to enable/disable specific modules.  
+You can add `-holylib_enable_[module name] 0` to the startup to disable modules on startup.  
 
 ## holylib
 This module contains the HolyLib library.   

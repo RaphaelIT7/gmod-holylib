@@ -31,7 +31,7 @@ void CModule::SetModule(IModule* module)
 	m_pCVar = new ConVar(m_strName.c_str(), "1", FCVAR_ARCHIVE, "Whether this module should be active or not", OnModuleConVarChange);
 	std::string cmdStr = "-";
 	cmdStr.append(m_strName);
-	m_bEnabled = CommandLine()->ParmValue(cmdStr.c_str(), 1) == 1; // Doesn't seem to work :<
+	m_bEnabled = CommandLine()->ParmValue(cmdStr.c_str(), 1) == 1;
 }
 
 void CModule::SetEnabled(bool bEnabled)
@@ -55,6 +55,8 @@ void CModule::SetEnabled(bool bEnabled)
 
 			if (status & LoadStatus_LuaServerInit)
 				m_pModule->LuaInit(true);
+
+			Msg("Enabled module %s\n", m_pModule->Name());
 		} else {
 			int status = g_pModuleManager.GetStatus();
 			if (status & LoadStatus_Init)
@@ -62,6 +64,8 @@ void CModule::SetEnabled(bool bEnabled)
 
 			if (status & LoadStatus_LuaInit)
 				m_pModule->LuaShutdown();
+
+			Msg("Disabled module %s\n", m_pModule->Name());
 		}
 	}
 

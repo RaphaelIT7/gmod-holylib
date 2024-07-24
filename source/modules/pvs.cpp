@@ -76,7 +76,7 @@ static void hook_CServerGameEnts_CheckTransmit(void* gameents, CCheckTransmitInf
 		{
 			g_Lua->CreateTable();
 			int idx = 0;
-			edict_t *pBaseEdict = engine->PEntityOfEntIndex(0);
+			edict_t *pBaseEdict = engineserver->PEntityOfEntIndex(0);
 			for (int i=0; i<nEdicts; ++i)
 			{
 				int iEdict = pEdictIndices[i];
