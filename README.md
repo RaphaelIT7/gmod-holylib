@@ -16,7 +16,6 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 # Next Release (ToDo)
 
 ## Things to Add
-- Add `pvs.SetPreventTransmitBulk`  
 - Start getting windows symbols for everything. This will take a bit  
 - Maybe extent HLTV Client?
 
@@ -312,6 +311,15 @@ This should always be the case after a full update.
 
 > NOTE: Only use this function inside the `HolyLib:CheckTransmit` hook!  
 > REMOVED: This function was removed since I can't get it to work / It would be a bit more complicated than first anticipated.  
+
+#### pvs.SetPreventTransmitBulk(Entity ent or table ents, Player ply or table plys or RecipientFilter filter, bool notransmit)
+table ents - A sequential table containing all the entities that should be affected.  
+table plys - A sequential table containing all the players that it should set it for.  
+bool notransmit - If the entity should stop being transmitted.  
+
+Adds the given Entity to be transmitted.
+
+> NOTE: Only use this function inside the `HolyLib:CheckTransmit` hook!  
 
 ### Enums
 

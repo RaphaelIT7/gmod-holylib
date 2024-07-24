@@ -301,6 +301,7 @@ LUA_FUNCTION_STATIC(pvs_OverrideStateFlags)
 
 			LUA->Pop(1);
 		}
+		LUA->Pop(1);
 	} else {
 		CBaseEntity* ent = Util::Get_Entity(1, false);
 		SetOverrideStateFlags(ent, flags, force);
@@ -359,6 +360,7 @@ LUA_FUNCTION_STATIC(pvs_SetStateFlags)
 
 			LUA->Pop(1);
 		}
+		LUA->Pop(1);
 	} else {
 		CBaseEntity* ent = Util::Get_Entity(1, false);
 		SetStateFlags(ent, flags, force);
@@ -436,6 +438,7 @@ LUA_FUNCTION_STATIC(pvs_RemoveEntityFromTransmit)
 
 			LUA->Pop(1);
 		}
+		LUA->Pop(1);
 
 		LUA->PushBool(true);
 	} else {
@@ -483,6 +486,7 @@ LUA_FUNCTION_STATIC(pvs_AddEntityToTransmit)
 
 			LUA->Pop(1);
 		}
+		LUA->Pop(1);
 	} else {
 		CBaseEntity* ent = Util::Get_Entity(1, false);
 		AddEntityToTransmit(ent, force);
@@ -491,6 +495,82 @@ LUA_FUNCTION_STATIC(pvs_AddEntityToTransmit)
 	return 0;
 }
 
+CBasePlayer *UTIL_PlayerByIndex(int playerIndex)
+{
+	CBasePlayer *pPlayer = NULL;
+
+	if (playerIndex > 0 && playerIndex <= gpGlobals->maxClients)
+	{
+		edict_t *pPlayerEdict = INDEXENT(playerIndex);
+		if (pPlayerEdict && !pPlayerEdict->IsFree())
+		{
+			pPlayer = (CBasePlayer*)servergameents->EdictToBaseEntity(pPlayerEdict);
+		}
+	}
+	
+	return pPlayer;
+}
+
+LUA_FUNCTION_STATIC(pvs_SetPreventTransmitBulk)
+{
+	CBasePlayer* ply = NULL;
+	std::vector<CBasePlayer*> filterplys;
+	if (LUA->IsType(2, GarrysMod::Lua::Type::RecipientFilter))
+	{
+		CRecipientFilter* filter = LUA->GetUserType<CRecipientFilter>(2, GarrysMod::Lua::Type::RecipientFilter);
+		for (int i=0; i<gpGlobals->maxClients; ++i)
+		{
+			if (filter->GetRecipientIndex(i) != -1)
+			{
+				filterplys.push_back(UTIL_PlayerByIndex(i));
+			}
+		}
+	}
+	else if (LUA->IsType(2, GarrysMod::Lua::Type::Table))
+	{
+		LUA->Push(2);
+		LUA->PushNil();
+		while (LUA->Next(-2))
+		{
+			CBasePlayer* pply = Util::Get_Player(-1, false);
+			filterplys.push_back(pply);
+
+			LUA->Pop(1);
+		}
+		LUA->Pop(1);
+	}
+	else
+		ply = Util::Get_Player(2, false);
+
+	bool notransmit = LUA->GetBool(3);
+	if (LUA->IsType(1, GarrysMod::Lua::Type::Table))
+	{
+		LUA->Push(1);
+		LUA->PushNil();
+		while (LUA->Next(-2))
+		{
+			CBaseEntity* ent = Util::Get_Entity(-1, false);
+			if (filterplys.size() > 0)
+			{
+				for (CBasePlayer* pply : filterplys)
+				{
+					ent->GMOD_SetShouldPreventTransmitToPlayer(pply, notransmit);
+				}
+			} else {
+				ent->GMOD_SetShouldPreventTransmitToPlayer(ply, notransmit);
+			}
+
+			LUA->Pop(1);
+		}
+	} else {
+		CBaseEntity* ent = Util::Get_Entity(1, false);
+		ent->GMOD_SetShouldPreventTransmitToPlayer(ply, notransmit);
+	}
+	
+	return 0;
+}
+
+
 void CPVSModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	engineserver = (IVEngineServer*)appfn[0](INTERFACEVERSION_VENGINESERVER, NULL);
@@ -498,6 +578,14 @@ void CPVSModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 
 	servergameents = (IServerGameEnts*)gamefn[0](INTERFACEVERSION_SERVERGAMEENTS, NULL);
 	Detour::CheckValue("get interface", "IServerGameEnts", servergameents != NULL);
+
+	IPlayerInfoManager* playerinfomanager = (IPlayerInfoManager*)gamefn[0](INTERFACEVERSION_PLAYERINFOMANAGER, NULL);
+	Detour::CheckValue("get interface", "playerinfomanager", playerinfomanager != NULL);
+
+	if ( playerinfomanager )
+	{
+		gpGlobals = playerinfomanager->GetGlobalVars();
+	}
 }
 
 void CPVSModule::LuaInit(bool bServerInit)
@@ -520,6 +608,7 @@ void CPVSModule::LuaInit(bool bServerInit)
 		Util::AddFunc(pvs_OverrideStateFlags, "OverrideStateFlags");
 		Util::AddFunc(pvs_SetStateFlags, "SetStateFlags");
 		Util::AddFunc(pvs_GetStateFlags, "GetStateFlags");
+		Util::AddFunc(pvs_SetPreventTransmitBulk, "SetPreventTransmitBulk");
 
 		// Use the functions below only inside the HolyLib:PostCheckTransmit hook.  
 		Util::AddFunc(pvs_RemoveEntityFromTransmit, "RemoveEntityFromTransmit");
