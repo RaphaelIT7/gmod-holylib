@@ -7,6 +7,10 @@
 #include "eiface.h"
 #include "unordered_map"
 #include "player.h"
+#include "iserver.h"
+#include "sourcesdk/baseclient.h"
+#include "sourcesdk/framesnapshot.h"
+#include "vprof.h"
 
 class CPVSModule : public IModule
 {
@@ -48,6 +52,7 @@ static CCheckTransmitInfo* g_pCurrentTransmitInfo = NULL;
 static Detouring::Hook detour_CServerGameEnts_CheckTransmit;
 static void hook_CServerGameEnts_CheckTransmit(void* gameents, CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts)
 {
+	VPROF_BUDGET("HolyLib - CServerGameEnts::CheckTransmit", VPROF_BUDGETGROUP_OTHER_NETWORKING);
 	g_pCurrentTransmitInfo = pInfo;
 
 	for (edict_t* ent : g_pAddEntityToPVS)
@@ -203,17 +208,35 @@ LUA_FUNCTION_STATIC(pvs_CheckBoxInPVS)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(pvs_AddEntityToPVS)
+static void AddEntityToPVS(CBaseEntity* ent)
 {
-	CBaseEntity* ent = Util::Get_Entity(1, false);
 	if (!ent)
-		LUA->ThrowError("Tried to use a NULL Entity!");
+		g_Lua->ThrowError("Tried to use a NULL Entity!");
 
 	edict_t* edict = GetEdictOfEnt(ent);
 	if (edict)
 		g_pAddEntityToPVS.push_back(edict);
 	else
-		LUA->ThrowError("Failed to get edict?");
+		g_Lua->ThrowError("Failed to get edict?");
+}
+
+LUA_FUNCTION_STATIC(pvs_AddEntityToPVS)
+{
+	if (LUA->IsType(1, GarrysMod::Lua::Type::Table))
+	{
+		LUA->Push(1);
+		LUA->PushNil();
+		while (LUA->Next(-2))
+		{
+			CBaseEntity* ent = Util::Get_Entity(-1, false);
+			AddEntityToPVS(ent);
+
+			LUA->Pop(1);
+		}
+	} else {
+		CBaseEntity* ent = Util::Get_Entity(1, false);
+		AddEntityToPVS(ent);
+	}
 
 	return 0;
 }
@@ -222,18 +245,15 @@ LUA_FUNCTION_STATIC(pvs_AddEntityToPVS)
 #define LUA_FL_EDICT_ALWAYS 1 << 2
 #define LUA_FL_EDICT_PVSCHECK 1 << 3
 #define LUA_FL_EDICT_FULLCHECK 1 << 4
-LUA_FUNCTION_STATIC(pvs_OverrideStateFlags)
+static void SetOverrideStateFlags(CBaseEntity* ent, int flags, bool force)
 {
-	CBaseEntity* ent = Util::Get_Entity(1, false);
 	if (!ent)
-		LUA->ThrowError("Tried to use a NULL Entity!");
+		g_Lua->ThrowError("Tried to use a NULL Entity!");
 
 	edict_t* edict = GetEdictOfEnt(ent);
 	if (!edict)
-		LUA->ThrowError("Failed to get edict?");
+		g_Lua->ThrowError("Failed to get edict?");
 
-	int flags = LUA->CheckNumber(2);
-	bool force = LUA->GetBool(3);
 	int newFlags = flags;
 	if (!force)
 	{
@@ -257,13 +277,34 @@ LUA_FUNCTION_STATIC(pvs_OverrideStateFlags)
 	}
 
 	g_pOverrideStateFlag[edict] = newFlags;
+}
+
+LUA_FUNCTION_STATIC(pvs_OverrideStateFlags)
+{
+	int flags = LUA->CheckNumber(2);
+	bool force = LUA->GetBool(3);
+
+	if (LUA->IsType(1, GarrysMod::Lua::Type::Table))
+	{
+		LUA->Push(1);
+		LUA->PushNil();
+		while (LUA->Next(-2))
+		{
+			CBaseEntity* ent = Util::Get_Entity(-1, false);
+			SetOverrideStateFlags(ent, flags, force);
+
+			LUA->Pop(1);
+		}
+	} else {
+		CBaseEntity* ent = Util::Get_Entity(1, false);
+		SetOverrideStateFlags(ent, flags, force);
+	}
 
 	return 0;
 }
 
-LUA_FUNCTION_STATIC(pvs_SetStateFlags)
+static void SetStateFlags(CBaseEntity* ent, int flags, bool force)
 {
-	CBaseEntity* ent = Util::Get_Entity(1, false);
 	if (!ent)
 		LUA->ThrowError("Tried to use a NULL Entity!");
 
@@ -271,8 +312,6 @@ LUA_FUNCTION_STATIC(pvs_SetStateFlags)
 	if (!edict)
 		LUA->ThrowError("Failed to get edict?");
 
-	int flags = LUA->CheckNumber(2);
-	bool force = LUA->GetBool(3);
 	int newFlags = flags;
 	if (!force)
 	{
@@ -296,6 +335,28 @@ LUA_FUNCTION_STATIC(pvs_SetStateFlags)
 	}
 
 	edict->m_fStateFlags = newFlags;
+}
+
+LUA_FUNCTION_STATIC(pvs_SetStateFlags)
+{
+	int flags = LUA->CheckNumber(2);
+	bool force = LUA->GetBool(3);
+
+	if (LUA->IsType(1, GarrysMod::Lua::Type::Table))
+	{
+		LUA->Push(1);
+		LUA->PushNil();
+		while (LUA->Next(-2))
+		{
+			CBaseEntity* ent = Util::Get_Entity(-1, false);
+			SetStateFlags(ent, flags, force);
+
+			LUA->Pop(1);
+		}
+	} else {
+		CBaseEntity* ent = Util::Get_Entity(1, false);
+		SetStateFlags(ent, flags, force);
+	}
 
 	return 0;
 }
@@ -334,29 +395,47 @@ LUA_FUNCTION_STATIC(pvs_GetStateFlags)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(pvs_RemoveEntityFromTransmit)
+static bool RemoveEntityFromTransmit(CBaseEntity* ent)
 {
-	CBaseEntity* ent = Util::Get_Entity(1, false);
 	if (!ent)
-		LUA->ThrowError("Tried to use a NULL Entity!");
+		g_Lua->ThrowError("Tried to use a NULL Entity!");
 
 	edict_t* edict = GetEdictOfEnt(ent);
 	if (!edict)
-		LUA->ThrowError("Failed to get edict?");
+		g_Lua->ThrowError("Failed to get edict?");
 
 	if (!g_pCurrentTransmitInfo)
-		LUA->ThrowError("Tried to use pvs.RemoveEntityFromTransmit while not in a CheckTransmit call!");
+		g_Lua->ThrowError("Tried to use pvs.RemoveEntityFromTransmit while not in a CheckTransmit call!");
 
-	if (!g_pCurrentTransmitInfo->m_pTransmitEdict->Get(edict->m_EdictIndex)) {
-		LUA->PushBool(false);
-		return 1;
-	}
+	if (!g_pCurrentTransmitInfo->m_pTransmitEdict->Get(edict->m_EdictIndex))
+		return false;
 
 	g_pCurrentTransmitInfo->m_pTransmitEdict->Clear(edict->m_EdictIndex);
 	if (g_pCurrentTransmitInfo->m_pTransmitAlways->Get(edict->m_EdictIndex))
 		g_pCurrentTransmitInfo->m_pTransmitAlways->Clear(edict->m_EdictIndex);
 
-	LUA->PushBool(true);
+	return true;
+}
+
+LUA_FUNCTION_STATIC(pvs_RemoveEntityFromTransmit)
+{
+	if (LUA->IsType(1, GarrysMod::Lua::Type::Table))
+	{
+		LUA->Push(1);
+		LUA->PushNil();
+		while (LUA->Next(-2))
+		{
+			CBaseEntity* ent = Util::Get_Entity(-1, false);
+			RemoveEntityFromTransmit(ent);
+
+			LUA->Pop(1);
+		}
+
+		LUA->PushBool(true);
+	} else {
+		CBaseEntity* ent = Util::Get_Entity(1, false);
+		LUA->PushBool(RemoveEntityFromTransmit(ent));
+	}
 
 	return 1;
 }
@@ -372,16 +451,56 @@ LUA_FUNCTION_STATIC(pvs_RemoveAllEntityFromTransmit)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(pvs_AddEntityToTransmit)
+static void AddEntityToTransmit(CBaseEntity* ent, bool force)
 {
-	CBaseEntity* ent = Util::Get_Entity(1, false);
 	if (!ent)
 		LUA->ThrowError("Tried to use a NULL Entity!");
 
 	if (!g_pCurrentTransmitInfo)
 		LUA->ThrowError("Tried to use pvs.RemoveEntityFromTransmit while not in a CheckTransmit call!");
 
-	ent->SetTransmit(g_pCurrentTransmitInfo, LUA->GetBool(2));
+	ent->SetTransmit(g_pCurrentTransmitInfo, force);
+}
+
+LUA_FUNCTION_STATIC(pvs_AddEntityToTransmit)
+{
+	bool force = LUA->GetBool(2);
+	if (LUA->IsType(1, GarrysMod::Lua::Type::Table))
+	{
+		LUA->Push(1);
+		LUA->PushNil();
+		while (LUA->Next(-2))
+		{
+			CBaseEntity* ent = Util::Get_Entity(-1, false);
+			AddEntityToTransmit(ent, force);
+
+			LUA->Pop(1);
+		}
+	} else {
+		CBaseEntity* ent = Util::Get_Entity(1, false);
+		AddEntityToTransmit(ent, force);
+	}
+	
+	return 0;
+}
+
+static IServer* srv;
+LUA_FUNCTION_STATIC(pvs_IsEmptyBaseline)
+{
+	if (!g_pCurrentTransmitInfo)
+		LUA->ThrowError("Tried to use pvs.IsEmptyBaseline while not in a CheckTransmit call!");
+
+	if (!srv)
+		LUA->ThrowError("Tried to use pvs.IsEmptyBaseline with no active server?");
+
+	CBaseClient* client = ((CBaseClient*)srv->GetClient(g_pCurrentTransmitInfo->m_pClientEnt->m_EdictIndex));
+	if (!client)
+		LUA->ThrowError("Failed to get client!");
+
+	if (!client->m_pBaseline) // Should never happen
+		LUA->PushBool(false);
+
+	LUA->PushBool(client->m_pBaseline->m_pValidEntities == NULL);
 	
 	return 1;
 }
@@ -393,6 +512,9 @@ void CPVSModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 
 	servergameents = (IServerGameEnts*)gamefn[0](INTERFACEVERSION_SERVERGAMEENTS, NULL);
 	Detour::CheckValue("get interface", "IServerGameEnts", servergameents != NULL);
+
+	srv = InterfacePointers::Server();
+	Detour::CheckValue("get interface", "IServer", srv != NULL);
 }
 
 void CPVSModule::LuaInit(bool bServerInit)
@@ -420,6 +542,7 @@ void CPVSModule::LuaInit(bool bServerInit)
 		Util::AddFunc(pvs_RemoveEntityFromTransmit, "RemoveEntityFromTransmit");
 		Util::AddFunc(pvs_RemoveAllEntityFromTransmit, "RemoveAllEntityFromTransmit");
 		Util::AddFunc(pvs_AddEntityToTransmit, "AddEntityToTransmit");
+		Util::AddFunc(pvs_IsEmptyBaseline, "IsEmptyBaseline");
 
 		g_Lua->PushNumber(LUA_FL_EDICT_DONTSEND);
 		g_Lua->SetField(-2, "FL_EDICT_DONTSEND");

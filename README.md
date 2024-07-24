@@ -264,16 +264,16 @@ We don't validate if the passed cluster id is valid!
 #### bool pvs.CheckBoxInPVS(Vector mins, Vector maxs)
 Returns whether or not the given box is inside the PVS.  
 
-#### pvs.AddEntityToPVS(Entity ent)
+#### pvs.AddEntityToPVS(Entity ent or table ents)
 Adds the given entity index to the PVS  
 
-#### pvs.OverrideStateFlags(Entity ent, number flags, bool force)
+#### pvs.OverrideStateFlags(Entity ent or table ents, number flags, bool force)
 bool force - Allows you to set the flags directly. It won't make sure that the value is correct!  
 Overrides the StateFlag for this Snapshot.  
 The value will be reset in the next one.  
 NOTE: If you use force, you should know what your doing or else it might cause a crash.  
 
-#### pvs.SetStateFlags(Entity ent, number flags, bool force)
+#### pvs.SetStateFlags(Entity ent or table ents, number flags, bool force)
 bool force - Allows you to set the flags directly. It won't make sure that the value is correct!  
 Sets the State flag for this entity.  
 Unlike `OverrideStateFlag`, this won't be reset after the snapshot.  
@@ -283,7 +283,7 @@ NOTE: If you use force, you should know what your doing or else it might cause a
 bool force - Allows you to get all flags instead of only the ones for networking.  
 Returns the state flags for this entity.  
 
-#### bool pvs.RemoveEntityFromTransmit(Entity ent)
+#### bool pvs.RemoveEntityFromTransmit(Entity ent or table ents)
 Returns true if the entity was removed from being transmitted.  
 
 > NOTE: Only use this function inside the `HolyLib:CheckTransmit` hook!  
@@ -293,12 +293,16 @@ Removes all Entities from being transmitted.
 
 > NOTE: Only use this function inside the `HolyLib:CheckTransmit` hook!  
 
-#### pvs.AddEntityToTransmit(Entity ent, bool always)
+#### pvs.AddEntityToTransmit(Entity ent or table ents, bool always)
 bool always - If the entity should always be transmitted? (Verify)  
 
 Adds the given Entity to be transmitted.
 
 > NOTE: Only use this function inside the `HolyLib:CheckTransmit` hook!  
+
+#### pvs.IsEmptyBaseline()
+Returns `true` if the baseline is empty.  
+This should always be the case after a full update.  
 
 ### Enums
 
