@@ -3,6 +3,11 @@
 A library that contains some functions and optimizations for gmod.  
 If you need any function, make an issue for it, and I'll look into it.  
 
+## Windows
+So currently to get it working on Windows, I would have to redo most of the hooks, and It would also take a good while.  
+Because of this, I'm not going to make it currently. I'm gonna slowly start adding all symbols and then someday I'm going to redo most hooks.  
+But for now there won't be a release.   
+
 # How to Install
 1. Download the `ghostinj.dll`, `holylib.vdf` and `gmsv_holylib_linux.so` from the latest release.  
 2. Put the `ghostinj.dll` into the main directory where `srcds_linux` is located.  
@@ -16,7 +21,6 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 # Next Release (ToDo)
 
 ## Things to Add
-- Start getting windows symbols for everything. This will take a bit  
 - Maybe extent HLTV Client?
 
 # Modules
