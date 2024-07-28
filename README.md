@@ -18,10 +18,16 @@ If you use a panel like Pterodactyl or something similar, you can use the gamemo
 
 If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it will be loaded by holylib's ghostinj.  
 
-# Next Release (ToDo)
+# Next Release (Final ToDo)
 
-## Things to Add
-- Maybe extent HLTV Client?
+## Testing ToDo
+- Test SourceTV library  
+- Test bf_read class  
+- Test util module to be sure that the Async functions don't break stuff  
+
+## Things to do
+- Add two commands to ConVar blacklist(`holylib_concommand_disableblacklist` and another one I forgot)  
+- Add one or two final optimizations that I've been testing.  
 
 # Modules
 Each module has its own convar `holylib_enable_[module name]` which allows you to enable/disable specific modules.  
