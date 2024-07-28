@@ -27,7 +27,7 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 
 ## Things to do
 - Add two commands to ConVar blacklist(`holylib_concommand_disableblacklist` and another one I forgot)  
-- Add one or two final optimizations that I've been testing.  
+- Add one final optimizations that I've been testing.  
 
 # Modules
 Each module has its own convar `holylib_enable_[module name]` which allows you to enable/disable specific modules.  
@@ -744,6 +744,10 @@ Read a number with the given amount of bits.
 #### number bf_read:ReadVarInt64()
 
 #### number bf_read:ReadWord()
+
+## Networking
+This module tries to optimize anything related to networking.  
+Currently, this only has one optimization which was ported from [sigsegv-mvm](https://github.com/rafradek/sigsegv-mvm/blob/910b92456c7578a3eb5dff2a7e7bf4bc906677f7/src/mod/perf/sendprop_optimize.cpp#L35-L144) into here.  
 
 # Unfinished Modules
 

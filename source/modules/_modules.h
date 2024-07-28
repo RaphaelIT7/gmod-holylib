@@ -15,3 +15,4 @@ extern IModule* pConCommandModule;
 extern IModule* pVProfModule;
 extern IModule* pCVarsModule;
 extern IModule* pBitBufModule;
+extern IModule* pNetworkingModule;

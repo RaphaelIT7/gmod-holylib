@@ -187,6 +187,12 @@ namespace Symbols
 
 	typedef void (*CVProfile_OutputReport)(void*, int, const tchar*, int);
 	const Symbol CVProfile_OutputReportSym = Symbol::FromName("_ZN9CVProfile12OutputReportEiPKci");
+
+	//---------------------------------------------------------------------------------
+	// Purpose: concommand Symbols
+	//---------------------------------------------------------------------------------
+	typedef void* (*AllocChangeFrameList)(int, int);
+	const Symbol AllocChangeFrameListSym = Symbol::FromName("_Z20AllocChangeFrameListii");
 }
 
 //---------------------------------------------------------------------------------
