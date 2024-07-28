@@ -459,7 +459,7 @@ Lua paths:
 - `matproxy/` -> `LUA_MATPROXY`  
 - `autorun/` -> `LUA_AUTORUN`  
 
-#### holylib_filesystem_splitfallback (default `0`)
+#### holylib_filesystem_splitfallback (default `1`)
 If enabled, it will fallback to the original searchpath if it failed to find something in the split path.  
 This is quite slow, so disabling this will improve performance to find files that doesn't exist.  
 
