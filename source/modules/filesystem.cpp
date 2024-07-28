@@ -696,13 +696,36 @@ static std::string replaceString(std::string str, const std::string& from, const
 	return str;
 }
 
+namespace IGamemodeSystem
+{
+	struct UpdatedInformation
+	{
+		bool exists;
+		bool menusystem;
+#ifndef WIN32
+		const char* title;
+		const char* name;
+		const char* maps;
+		const char* basename;
+		const char* category;
+#else
+		std::string title;
+		std::string name;
+		std::string maps;
+		std::string basename;
+		std::string category;
+#endif
+		uint64_t workshopid;
+	};
+}
+
 /*
  * GMOD Likes to use paths like "sandbox/gamemode/spawnmenu/sandbox/gamemode/spawnmenu/".
  * This wastes performance, so we fix them up to be "sandbox/gamemode/spawnmenu/"
  */
 static std::string fixGamemodePath(IFileSystem* filesystem, std::string path)
 {
-	std::string activeGamemode = filesystem->Gamemodes()->Active().name;
+	std::string activeGamemode = ((const IGamemodeSystem::UpdatedInformation&)filesystem->Gamemodes()->Active()).name;
 	if (activeGamemode.empty())
 		return path;
 
@@ -712,6 +735,9 @@ static std::string fixGamemodePath(IFileSystem* filesystem, std::string path)
 	size_t pos = path.find(searchStr);
 	if (pos == std::string::npos)
 		return path;
+
+	if (holylib_filesystem_debug.GetBool())
+		Msg("fixGamemodePath: Fixed up path. (%s -> %s)\n", path.c_str(), path.substr(pos + 1).c_str());
 
 	return path.substr(pos + 1);
 }
