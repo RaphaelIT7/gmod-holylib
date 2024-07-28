@@ -33,14 +33,16 @@ static ConVar holylib_filesystem_forcepath("holylib_filesystem_forcepath", "1", 
 	"If enabled, it will change the paths of some specific files");
 static ConVar holylib_filesystem_predictpath("holylib_filesystem_predictpath", "1", 0, 
 	"If enabled, it will try to predict the path of a file");
-static ConVar holylib_filesystem_predictexistance("holylib_filesystem_predictexistance", "0", 0, 
+static ConVar holylib_filesystem_predictexistance("holylib_filesystem_predictexistance", "1", 0, 
 	"If enabled, it will try to predict the path of a file, but if the file doesn't exist in the predicted path, we'll just say it doesn't exist.");
 static ConVar holylib_filesystem_splitgamepath("holylib_filesystem_splitgamepath", "1", 0, 
 	"If enabled, it will create for each content type like models/, materials/ a game path which will be used to find that content.");
 static ConVar holylib_filesystem_splitluapath("holylib_filesystem_splitluapath", "0", 0, 
 	"If enabled, it will do the same thing holylib_filesystem_splitgamepath does but with lsv. Currently it breaks workshop addons.");
-static ConVar holylib_filesystem_splitfallback("holylib_filesystem_splitfallback", "1", 0, 
+static ConVar holylib_filesystem_splitfallback("holylib_filesystem_splitfallback", "0", 0, 
 	"If enabled, it will fallback to the original searchpath if the split path failed.");
+static ConVar holylib_filesystem_fixgmodpath("holylib_filesystem_fixgmodpath", "1", 0, 
+	"If enabled, it will fix up weird gamemode paths like sandbox/gamemode/sandbox/gamemode which gmod likes to use.");
 
 static ConVar holylib_filesystem_debug("holylib_filesystem_debug", "0", 0, 
 	"If enabled, it will show any change to the search cache.");
@@ -694,6 +696,26 @@ static std::string replaceString(std::string str, const std::string& from, const
 	return str;
 }
 
+/*
+ * GMOD Likes to use paths like "sandbox/gamemode/spawnmenu/sandbox/gamemode/spawnmenu/".
+ * This wastes performance, so we fix them up to be "sandbox/gamemode/spawnmenu/"
+ */
+static std::string fixGamemodePath(IFileSystem* filesystem, std::string path)
+{
+	std::string activeGamemode = filesystem->Gamemodes()->Active().name;
+	if (activeGamemode.empty())
+		return path;
+
+	std::string searchStr = "/";
+	searchStr.append(activeGamemode);
+	searchStr.append("/gamemode/"); // Final string should be /[Active Gamemode]/gamemode/
+	size_t pos = path.find(searchStr);
+	if (pos == std::string::npos)
+		return path;
+
+	return path.substr(pos + 1);
+}
+
 static Detouring::Hook detour_CBaseFileSystem_GetFileTime;
 static long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char *pFileName, const char *pPathID)
 {
@@ -710,9 +732,9 @@ static long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char
 	}
 
 	std::string strFileName = pFileName; // Workaround for now.
-	if (origPath && V_stricmp(origPath, "lsv") == 0) // Some weird things happen in the lsv path.  
+	if (origPath && V_stricmp(origPath, "lsv") == 0 && holylib_filesystem_fixgmodpath.GetBool()) // Some weird things happen in the lsv path.  
 	{
-		strFileName = replaceString(strFileName, "sandbox/gamemode/spawnmenu/sandbox/gamemode/spawnmenu", "sandbox/gamemode/spawnmenu/");
+		strFileName = fixGamemodePath(filesystem, strFileName);
 		strFileName = replaceString(strFileName, "includes/includes/", "includes/"); // What causes this?
 	}
 	pFileName = strFileName.c_str();

@@ -459,13 +459,19 @@ Lua paths:
 - `matproxy/` -> `LUA_MATPROXY`  
 - `autorun/` -> `LUA_AUTORUN`  
 
-#### holylib_filesystem_splitfallback (default `1`)
+#### holylib_filesystem_splitfallback (default `0`)
 If enabled, it will fallback to the original searchpath if it failed to find something in the split path.  
 This is quite slow, so disabling this will improve performance to find files that doesn't exist.  
 
-#### holylib_filesystem_predictexistance (default `0`)
+#### holylib_filesystem_predictexistance (default `1`)
 If enabled, it will try to predict the path of a file, but if the file doesn't exist in the predicted path, we'll just say it doesn't exist.  
 Doesn't rely on `holylib_filesystem_predictpath` but it also works with it together.  
+
+#### holylib_filesystem_fixgmodpath (default `1`)
+If enabled, it will fix up weird gamemode paths like sandbox/gamemode/sandbox/gamemode which gmod likes to use.  
+Currently it fixes these paths:  
+- `[Active gamemode]/gamemode/[anything]/[active gamemode]/gamemode/` -> (Example: `sandbox/gamemode/spawnmenu/sandbox/gamemode/spawnmenu/`)  
+- `include/include/`  
 
 #### holylib_filesystem_debug (default `0`)
 If enabled, it will print all filesyste suff.  
