@@ -69,9 +69,9 @@ static unsigned CompressThread(void* data)
 			else
 				Bootil::Compression::LZMA::Extract(entry->pData, entry->iLength, entry->buffer);
 
-			//cData->pMutex.Lock();
+			cData->pMutex.Lock();
 			cData->pFinished.push_back(entry);
-			//cData->pMutex.Unlock();
+			cData->pMutex.Unlock();
 		}
 
 		if(cData->bInvalidEverything)
@@ -212,6 +212,10 @@ void CUtilModule::Think(bool simulating)
 	if (threaddata.bInvalidEverything) // Wait for the Thread to be ready again
 		return;
 
+	if (threaddata.pFinished.size() == 0)
+		return;
+
+	threaddata.pMutex.Lock();
 	for(CompressEntry* entry : threaddata.pFinished)
 	{
 		g_Lua->ReferencePush(entry->iCallback);
@@ -220,6 +224,7 @@ void CUtilModule::Think(bool simulating)
 		delete entry;
 	}
 	threaddata.pFinished.clear();
+	threaddata.pMutex.Unlock();
 }
 
 void CUtilModule::Shutdown()
