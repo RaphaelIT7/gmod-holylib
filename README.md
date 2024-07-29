@@ -23,10 +23,8 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 ## Testing ToDo
 - Test SourceTV library  
 - Test bf_read class  
-- Test util module to be sure that the Async functions don't break stuff  
 
 ## Things to do
-- Add two commands to ConVar blacklist(`holylib_concommand_disableblacklist` and another one I forgot)  
 - Add one final optimizations that I've been testing.  
 
 # Modules

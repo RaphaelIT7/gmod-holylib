@@ -32,6 +32,9 @@ static bool hook_ConCommand_IsBlocked(const char* cmd)
 	if (V_stricmp(cmd, "exit") == 0)
 		return false;
 
+	if (V_stricmp(cmd, "holylib_concommand_disableblacklist") == 0)
+		return true;
+
 	return detour_ConCommand_IsBlocked.GetTrampoline<Symbols::ConCommand_IsBlocked>()(cmd);
 }
 
