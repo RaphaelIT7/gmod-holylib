@@ -499,6 +499,9 @@ Works like util.Compress but it's async and allows you to set the level and dict
 The defaults for level and dictSize are the same as gmod's util.Compress.  
 Both AsyncCompress and AsyncDecompress use the same thread.  
 
+#### util.AsyncCompress(string data, function callback)
+Same as above, but uses the default values for level and dictSize.  
+
 #### util.AsyncDecompress(string data, function callback)
 Works like util.Decompress but it's async.  
 

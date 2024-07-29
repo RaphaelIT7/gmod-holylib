@@ -97,11 +97,21 @@ LUA_FUNCTION_STATIC(util_AsyncCompress)
 {
 	const char* pData = LUA->CheckString(1);
 	int iLength = LUA->ObjLen(1);
-	int iLevel = g_Lua->CheckNumberOpt(2, 5);
-	int iDictSize = g_Lua->CheckNumberOpt(3, 65536);
-	LUA->CheckType(4, GarrysMod::Lua::Type::Function);
-	LUA->Push(4);
-	int iCallback = LUA->ReferenceCreate();
+	int iLevel = 5;
+	int iDictSize = 65536;
+	int iCallback = -1;
+	if (LUA->IsType(2, GarrysMod::Lua::Type::Function))
+	{
+		LUA->CheckType(2, GarrysMod::Lua::Type::Function);
+		LUA->Push(2);
+		iCallback = LUA->ReferenceCreate();
+	} else {
+		iLevel = g_Lua->CheckNumberOpt(2, 5);
+		iDictSize = g_Lua->CheckNumberOpt(3, 65536);
+		LUA->CheckType(4, GarrysMod::Lua::Type::Function);
+		LUA->Push(4);
+		iCallback = LUA->ReferenceCreate();
+	}
 
 	CompressEntry* entry = new CompressEntry;
 	entry->iCallback = iCallback;
