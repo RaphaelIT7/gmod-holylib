@@ -20,6 +20,14 @@ IModule* pUtilModule = &g_pUtilModule;
 
 struct CompressEntry
 {
+	~CompressEntry() {
+		if (pData)
+		{
+			delete pData;
+			pData = NULL;
+		}
+	}
+
 	int iCallback = -1;
 	bool bCompress = true;
 
@@ -113,12 +121,15 @@ LUA_FUNCTION_STATIC(util_AsyncCompress)
 		iCallback = LUA->ReferenceCreate();
 	}
 
+	char* cData = new char[iLength + 1]; // This fixes a crash that occurs, if the string that we're actively using gets deleted by gc.
+	strcpy(cData, pData);
+
 	CompressEntry* entry = new CompressEntry;
 	entry->iCallback = iCallback;
 	entry->iDictSize = iDictSize;
 	entry->iLength = iLength;
 	entry->iLevel = iLevel;
-	entry->pData = pData;
+	entry->pData = cData;
 
 	threaddata.pQueue.push_back(entry);
 
@@ -133,11 +144,14 @@ LUA_FUNCTION_STATIC(util_AsyncDecompress)
 	LUA->Push(2);
 	int iCallback = LUA->ReferenceCreate();
 
+	char* cData = new char[iLength + 1];
+	strcpy(cData, pData);
+
 	CompressEntry* entry = new CompressEntry;
 	entry->bCompress = false;
 	entry->iCallback = iCallback;
 	entry->iLength = iLength;
-	entry->pData = pData;
+	entry->pData = cData;
 
 	threaddata.pQueue.push_back(entry);
 
