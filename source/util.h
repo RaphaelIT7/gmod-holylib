@@ -5,7 +5,6 @@
 #include <string>
 #include "detours.h"
 #include "eiface.h"
-#include <GarrysMod/FactoryLoader.hpp>
 #include <tier3/tier3.h>
 
 extern IVEngineServer* engine;
@@ -31,47 +30,5 @@ namespace Util
 
 // Push functions from modules: 
 // ToDo: move this at a later point into a seperate file. Maybe into _modules?
+class bf_read;
 extern void Push_bf_read(bf_read* tbl);
-
-#include <scanning/symbolfinder.hpp>
-static SymbolFinder symbol_finder;
-template<class T>
-static inline T* ResolveSymbol(
-	SourceSDK::FactoryLoader& loader, const Symbol& symbol
-)
-{
-	if (symbol.type == Symbol::Type::None)
-		return nullptr;
-
-#if defined SYSTEM_WINDOWS
-
-	auto iface = reinterpret_cast<T**>(symbol_finder.Resolve(
-		loader.GetModule(), symbol.name.c_str(), symbol.length
-	));
-	return iface != nullptr ? *iface : nullptr;
-
-#elif defined SYSTEM_POSIX
-
-	return reinterpret_cast<T*>(symbol_finder.Resolve(
-		loader.GetModule(), symbol.name.c_str(), symbol.length
-	));
-
-#endif
-
-}
-
-template<class T>
-static inline T* ResolveSymbols(
-	SourceSDK::FactoryLoader& loader, const std::vector<Symbol>& symbols
-)
-{
-	T* iface_pointer = nullptr;
-	for (const auto& symbol : symbols)
-	{
-		iface_pointer = ResolveSymbol<T>(loader, symbol);
-		if (iface_pointer != nullptr)
-			break;
-	}
-
-	return iface_pointer;
-}

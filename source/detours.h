@@ -4,6 +4,7 @@
 #include <GarrysMod/Symbol.hpp>
 #include <detouring/hook.hpp>
 #include <scanning/symbolfinder.hpp>
+#include <GarrysMod/FactoryLoader.hpp>
 #include <vector>
 #include "filesystem.h"
 
@@ -78,6 +79,8 @@ namespace Symbols
 
 	typedef void (*CHLTVClient_Deconstructor)(void*);
 	const Symbol CHLTVClient_DeconstructorSym = Symbol::FromName("_ZN11CHLTVClientD1Ev");
+
+	const Symbol UsermessagesSym = Symbol::FromName("usermessages");
 
 	//---------------------------------------------------------------------------------
 	// Purpose: threadpoolfix Symbols
@@ -231,4 +234,41 @@ namespace Detour
 	extern void Create(Detouring::Hook* hook, const char* name, void* module, Symbol symbol, void* func, unsigned int category);
 	extern void Remove(unsigned int category); // 0 = All
 	extern unsigned int g_pCurrentCategory;
+
+	static SymbolFinder symbol_finder;
+	template<class T>
+	static inline T* ResolveSymbol(
+		SourceSDK::FactoryLoader& loader, const Symbol& symbol
+	)
+	{
+		if (symbol.type == Symbol::Type::None)
+			return nullptr;
+
+	#if defined SYSTEM_WINDOWS
+		auto iface = reinterpret_cast<T**>(symbol_finder.Resolve(
+			loader.GetModule(), symbol.name.c_str(), symbol.length
+		));
+		return iface != nullptr ? *iface : nullptr;
+	#elif defined SYSTEM_POSIX
+		return reinterpret_cast<T*>(symbol_finder.Resolve(
+			loader.GetModule(), symbol.name.c_str(), symbol.length
+		));
+	#endif
+	}
+
+	template<class T>
+	static inline T* ResolveSymbols(
+		SourceSDK::FactoryLoader& loader, const std::vector<Symbol>& symbols
+	)
+	{
+		T* iface_pointer = nullptr;
+		for (const auto& symbol : symbols)
+		{
+			iface_pointer = ResolveSymbol<T>(loader, symbol);
+			if (iface_pointer != nullptr)
+				break;
+		}
+
+		return iface_pointer;
+	}
 }

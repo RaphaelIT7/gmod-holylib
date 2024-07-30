@@ -4,6 +4,7 @@
 #include "sourcesdk/hltvserver.h"
 #include "sourcesdk/gmod_netmessages.h"
 #include <unordered_map>
+#include "usermessages.h"
 
 class CSourceTVLibModule : public IModule
 {
@@ -191,6 +192,27 @@ LUA_FUNCTION_STATIC(HLTVClient_IsValid)
 	return 1;
 }
 
+static CUserMessages* pUserMessages;
+LUA_FUNCTION_STATIC(HLTVClient_SendLua)
+{
+	CHLTVClient* client = Get_HLTVClient(1);
+	if (!client)
+		LUA->ArgError(1, "HLTVClient");
+
+	const char* str = LUA->CheckString(2);
+
+	SVC_UserMessage msg;
+	msg.m_nMsgType = pUserMessages->LookupUserMessage("LuaCmd");
+	if (msg.m_nMsgType == -1)
+		return 0;
+
+	msg.m_DataOut.Reset();
+	msg.m_DataOut.WriteString(str);
+
+	client->SendNetMsg(msg);
+
+	return 0;
+}
 
 #define LUA_RECORD_OK 0
 #define LUA_RECORD_NOSOURCETV -1
@@ -461,6 +483,7 @@ void CSourceTVLibModule::LuaInit(bool bServerInit)
 			Util::AddFunc(HLTVClient_GetUserID, "GetUserID");
 			Util::AddFunc(HLTVClient_Reconnect, "Reconnect");
 			Util::AddFunc(HLTVClient_IsValid, "IsValid");
+			Util::AddFunc(HLTVClient_SendLua, "SendLua");
 		g_Lua->Pop(1);
 
 		Util::StartTable();
@@ -544,6 +567,10 @@ void CSourceTVLibModule::InitDetour(bool bPreServer)
 		engine_loader.GetModule(), Symbols::CHLTVClient_DeconstructorSym,
 		(void*)hook_CHLTVClient_Deconstructor, m_pID
 	);
+
+	SourceSDK::FactoryLoader server_loader("server_srv");
+	pUserMessages = Detour::ResolveSymbol<CUserMessages>(server_loader, Symbols::UsermessagesSym);
+	Detour::CheckValue("get class", "usermessages", pUserMessages != NULL);
 
 	func_CHLTVDemoRecorder_StartRecording = (Symbols::CHLTVDemoRecorder_StartRecording)Detour::GetFunction(engine_loader.GetModule(), Symbols::CHLTVDemoRecorder_StartRecordingSym);
 	func_CHLTVDemoRecorder_StopRecording = (Symbols::CHLTVDemoRecorder_StopRecording)Detour::GetFunction(engine_loader.GetModule(), Symbols::CHLTVDemoRecorder_StopRecordingSym);

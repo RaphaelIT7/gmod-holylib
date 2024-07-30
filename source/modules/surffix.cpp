@@ -563,7 +563,7 @@ void CSurfFixModule::InitDetour(bool bPreServer)
 	Detour::CheckFunction(func_CTraceFilterSimple_ShouldHitEntity, "CTraceFilterSimple::ShouldHitEntitySym");
 
 	SourceSDK::FactoryLoader server_loaderfactory("server_srv");
-	g_pEntityList = ResolveSymbol<CBaseEntityList>(server_loaderfactory, Symbols::g_pEntityListSym);
+	g_pEntityList = Detour::ResolveSymbol<CBaseEntityList>(server_loaderfactory, Symbols::g_pEntityListSym);
 	Detour::CheckValue("get class", "g_pEntityList", g_pEntityList != NULL);
 }
 
