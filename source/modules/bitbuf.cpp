@@ -18,20 +18,20 @@ static CBitBufModule g_pBitBufModule;
 IModule* pBitBufModule = &g_pBitBufModule;
 
 static int bf_read_TypeID = -1;
-void Push_bf_read(bf_read* tbl)
+void Push_bf_read(bf_read* buf)
 {
-	if ( !tbl )
+	if (!buf)
 	{
 		g_Lua->PushNil();
 		return;
 	}
 
-	g_Lua->PushUserType(tbl, bf_read_TypeID);
+	g_Lua->PushUserType(buf, bf_read_TypeID);
 }
 
 void Push_Angle(QAngle* ang)
 {
-	if ( !ang )
+	if (!ang)
 	{
 		g_Lua->PushNil();
 		return;
@@ -42,7 +42,7 @@ void Push_Angle(QAngle* ang)
 
 void Push_Vector(Vector* vec)
 {
-	if ( !vec )
+	if (!vec)
 	{
 		g_Lua->PushNil();
 		return;

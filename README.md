@@ -226,6 +226,9 @@ Returns `true` if the string was deleted.
 > NOTE: Currently this deletes all strings and readds all except the one at the given index. This is slow and I need to improve it later.  
 > BUG: It doesn't readd the userdata the strings.  
 
+#### bool INetworkStringTable:IsValid()
+Returns `true` if the stringtable is still valid.  
+
 ### Enums
 This module adds these enums  
 
@@ -599,6 +602,12 @@ Returns the slot of the client. Use this for `sourcetv.GetClient`.
 #### void HLTVClient:Reconnect()
 Reconnects the HLTV client.  
 
+#### void HLTVClient:ClientPrint(string message)
+Prints the given message into the client's console.  
+
+#### bool HLTVClient:IsValid()
+Returns `true` if the client is still valid.  
+
 ### Enums
 
 #### sourcetv.RECORD_OK = 0
@@ -629,10 +638,42 @@ A file with that name already exists!
 #### HolyLib:OnSourceTVNetMessage(HLTVClient client, bf_read buffer)
 Called when a HLTVClient sends a net message to the server.  
 
+Example:  
+```lua
+util.AddNetworkString("Example")
+hook.Add("HolyLib:OnSourceTVNetMessage", "Example", function(client, bf)
+	local name = util.NetworkIDToString(bf:ReadShort())) -- Reads the header
+	print(name, bf:ReadString())
+end)
+
+---- Client
+
+net.Start("Example")
+	net.WriteString("Hello World from HLTVClient");
+net.SendToServer()
+```
+
+#### HolyLib:OnSourceTVCommand(HLTVClient client, string cmd, table args, string argumentString)
+Called when a HLTVClient sends a command.  
+return `true` to tell it that the command was handled in Lua.  
+
+Example:  
+```lua
+hook.Add("HolyLib:OnSourceTVCommand", "Example", function(client, name, args, argString)
+	if name == "Example" then
+		client:ClientPrint("Hello World from HLTVServer")
+		return true
+	end
+end)
+```
+
 ### ConVars
 
 #### holylib_sourcetv_allownetworking (default `0`)
 If enabled, HLTV Clients can send net messages to the server and `HolyLib:OnSourceTVNetMessage` will be called.  
+
+#### holylib_sourcetv_allowcommands (default `0`)
+If enabled, HLTV Clients can send commands to the server and `HolyLib:OnSourceTVCommand` will be called.  
 
 ## bitbuf
 This module adds a `bf_read` and later `bf_write` class.  

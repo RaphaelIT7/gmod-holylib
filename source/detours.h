@@ -73,8 +73,11 @@ namespace Symbols
 	typedef void (*CHLTVDemoRecorder_StopRecording)(void*);
 	const Symbol CHLTVDemoRecorder_StopRecordingSym = Symbol::FromName("_ZN17CHLTVDemoRecorder13StopRecordingEv");
 
-	typedef bool (*CHLTVClient_ExecuteStringCommand)(void*);
+	typedef bool (*CHLTVClient_ExecuteStringCommand)(void*, const char*);
 	const Symbol CHLTVClient_ExecuteStringCommandSym = Symbol::FromName("_ZN11CHLTVClient20ExecuteStringCommandEPKc");
+
+	typedef void (*CHLTVClient_Deconstructor)(void*);
+	const Symbol CHLTVClient_DeconstructorSym = Symbol::FromName("_ZN11CHLTVClientD1Ev");
 
 	//---------------------------------------------------------------------------------
 	// Purpose: threadpoolfix Symbols
@@ -102,6 +105,9 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	typedef void (*CNetworkStringTable_DeleteAllStrings)(void* table);
 	const Symbol CNetworkStringTable_DeleteAllStringsSym = Symbol::FromName("_ZN19CNetworkStringTable16DeleteAllStringsEv");
+
+	typedef void (*CNetworkStringTable_Deconstructor)(void* table);
+	const Symbol CNetworkStringTable_DeconstructorSym = Symbol::FromName("_ZN19CNetworkStringTableD0Ev");
 
 	//---------------------------------------------------------------------------------
 	// Purpose: surffix Symbols

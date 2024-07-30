@@ -3,6 +3,7 @@
 #include "lua.h"
 #include "sourcesdk/hltvserver.h"
 #include "sourcesdk/gmod_netmessages.h"
+#include <unordered_map>
 
 class CSourceTVLibModule : public IModule
 {
@@ -17,6 +18,7 @@ public:
 };
 
 static ConVar sourcetv_allownetworking("holylib_sourcetv_allownetworking", "0", 0, "Allows HLTV Clients to send net messages to the server.");
+static ConVar sourcetv_allowcommands("holylib_sourcetv_allowcommands", "0", 0, "Allows HLTV Clients to send commands to the server.");
 
 static CSourceTVLibModule g_pSourceTVLibModule;
 IModule* pSourceTVLibModule = &g_pSourceTVLibModule;
@@ -59,6 +61,7 @@ static void hook_CHLTVServer_DestroyCHLTVServer(CHLTVServer* srv)
 }
 
 static int CHLTVClient_TypeID = -1;
+static std::unordered_map<CHLTVClient*, int> g_pPushedHLTVClients;
 static void Push_HLTVClient(CHLTVClient* client)
 {
 	if (!client)
@@ -67,7 +70,15 @@ static void Push_HLTVClient(CHLTVClient* client)
 		return;
 	}
 
-	g_Lua->PushUserType(client, CHLTVClient_TypeID);
+	auto it = g_pPushedHLTVClients.find(client);
+	if (it != g_pPushedHLTVClients.end())
+	{
+		g_Lua->ReferencePush(it->second);
+	} else {
+		g_Lua->PushUserType(client, CHLTVClient_TypeID);
+		g_Lua->Push(-1);
+		g_pPushedHLTVClients[client] = g_Lua->ReferenceCreate();
+	}
 }
 
 static CHLTVClient* Get_HLTVClient(int iStackPos)
@@ -76,6 +87,20 @@ static CHLTVClient* Get_HLTVClient(int iStackPos)
 		return NULL;
 
 	return g_Lua->GetUserType<CHLTVClient>(iStackPos, CHLTVClient_TypeID);
+}
+
+static Detouring::Hook detour_CHLTVClient_Deconstructor;
+static void hook_CHLTVClient_Deconstructor(CHLTVClient* client)
+{
+	auto it = g_pPushedHLTVClients.find(client);
+	if (it != g_pPushedHLTVClients.end())
+	{
+		g_Lua->ReferencePush(it->second);
+		g_Lua->SetUserType(-1, NULL);
+		g_Lua->Pop(1);
+		g_Lua->ReferenceFree(it->second);
+		g_pPushedHLTVClients.erase(it);
+	}
 }
 
 LUA_FUNCTION_STATIC(HLTVClient__tostring)
@@ -147,6 +172,25 @@ LUA_FUNCTION_STATIC(HLTVClient_Reconnect)
 	client->Reconnect();
 	return 0;
 }
+
+LUA_FUNCTION_STATIC(HLTVClient_ClientPrint)
+{
+	CHLTVClient* client = Get_HLTVClient(1);
+	if (!client)
+		LUA->ArgError(1, "HLTVClient");
+
+	client->ClientPrintf(LUA->CheckString(1));
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(HLTVClient_IsValid)
+{
+	CHLTVClient* client = Get_HLTVClient(1);
+	
+	LUA->PushBool(client != NULL);
+	return 1;
+}
+
 
 #define LUA_RECORD_OK 0
 #define LUA_RECORD_NOSOURCETV -1
@@ -365,6 +409,41 @@ static bool hook_CHLTVClient_ProcessGMod_ClientToServer(CHLTVClient* hltvclient,
 	return true;
 }
 
+static Detouring::Hook detour_CHLTVClient_ExecuteStringCommand;
+static bool hook_CHLTVClient_ExecuteStringCommand(CHLTVClient* hltvclient, const char* pCommandString)
+{
+	if (!sourcetv_allowcommands.GetBool())
+		return detour_CHLTVClient_ExecuteStringCommand.GetTrampoline<Symbols::CHLTVClient_ExecuteStringCommand>()(hltvclient, pCommandString);
+
+	CCommand args;
+	if ( !args.Tokenize( pCommandString ) )
+		return true;
+
+	if (Lua::PushHook("HolyLib:OnSourceTVCommand")) // Maybe change the name? I don't have a better one rn :/
+	{
+		Push_HLTVClient(hltvclient);
+		g_Lua->PushString(args[0]); // cmd
+		g_Lua->PreCreateTable(args.ArgC(), 0);
+			for (int i=1; i<args.ArgC(); ++i) // skip cmd -> 0
+			{
+				g_Lua->PushNumber(i);
+				g_Lua->PushString(args.Arg(i));
+				g_Lua->SetTable(-3);
+			}
+		g_Lua->PushString(args.ArgS());
+		g_Lua->CallFunctionProtected(5, 1, true);
+
+		if (g_Lua->GetBool(-1)) // If true was returned, the command was handled.
+		{
+			g_Lua->Pop(1);
+			return true;
+		}
+	}
+
+	// Fallback.
+	return detour_CHLTVClient_ExecuteStringCommand.GetTrampoline<Symbols::CHLTVClient_ExecuteStringCommand>()(hltvclient, pCommandString);
+}
+
 void CSourceTVLibModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 }
@@ -381,7 +460,8 @@ void CSourceTVLibModule::LuaInit(bool bServerInit)
 			Util::AddFunc(HLTVClient_GetSteamID, "GetSteamID");
 			Util::AddFunc(HLTVClient_GetUserID, "GetUserID");
 			Util::AddFunc(HLTVClient_Reconnect, "Reconnect");
-		g_Lua->Pop(1); // ToDo: Add a IsValid function.
+			Util::AddFunc(HLTVClient_IsValid, "IsValid");
+		g_Lua->Pop(1);
 
 		Util::StartTable();
 			Util::AddFunc(sourcetv_IsActive, "IsActive");
@@ -442,6 +522,12 @@ void CSourceTVLibModule::InitDetour(bool bPreServer)
 	);
 
 	Detour::Create(
+		&detour_CHLTVClient_ExecuteStringCommand, "CHLTVClient::ExecuteStringCommand",
+		engine_loader.GetModule(), Symbols::CHLTVClient_ExecuteStringCommandSym,
+		(void*)hook_CHLTVClient_ExecuteStringCommand, m_pID
+	);
+
+	Detour::Create(
 		&detour_CHLTVServer_CHLTVServer, "CHLTVServer::CHLTVServer",
 		engine_loader.GetModule(), Symbols::CHLTVServer_CHLTVServerSym,
 		(void*)hook_CHLTVServer_CHLTVServer, m_pID
@@ -451,6 +537,12 @@ void CSourceTVLibModule::InitDetour(bool bPreServer)
 		&detour_CHLTVServer_DestroyCHLTVServer, "CHLTVServer::~CHLTVServer",
 		engine_loader.GetModule(), Symbols::CHLTVServer_DestroyCHLTVServerSym,
 		(void*)hook_CHLTVServer_DestroyCHLTVServer, m_pID
+	);
+
+	Detour::Create(
+		&detour_CHLTVClient_Deconstructor, "CHLTVClient::~CHLTVClient",
+		engine_loader.GetModule(), Symbols::CHLTVClient_DeconstructorSym,
+		(void*)hook_CHLTVClient_Deconstructor, m_pID
 	);
 
 	func_CHLTVDemoRecorder_StartRecording = (Symbols::CHLTVDemoRecorder_StartRecording)Detour::GetFunction(engine_loader.GetModule(), Symbols::CHLTVDemoRecorder_StartRecordingSym);
