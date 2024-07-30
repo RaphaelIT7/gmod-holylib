@@ -82,6 +82,9 @@ namespace Symbols
 
 	const Symbol UsermessagesSym = Symbol::FromName("usermessages");
 
+	typedef int (*CUserMessages_LookupUserMessage)(void*, const char*);
+	const Symbol CUserMessages_LookupUserMessageSym = Symbol::FromName("_ZN13CUserMessages17LookupUserMessageEPKc");
+
 	//---------------------------------------------------------------------------------
 	// Purpose: threadpoolfix Symbols
 	//---------------------------------------------------------------------------------
