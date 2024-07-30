@@ -91,6 +91,14 @@ LUA_FUNCTION_STATIC(bf_read__tostring)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(bf_read__index)
+{
+	if (!g_Lua->FindOnObjectsMetaTable(1, 2))
+		LUA->PushNil();
+
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(bf_read__gc)
 {
 	bf_read* bf = Get_bf_read(1);
@@ -538,6 +546,7 @@ void CBitBufModule::LuaInit(bool bServerInit)
 	{
 		bf_read_TypeID = g_Lua->CreateMetaTable("bf_read");
 			Util::AddFunc(bf_read__tostring, "__tostring");
+			Util::AddFunc(bf_read__index, "__index");
 			Util::AddFunc(bf_read__gc, "__gc");
 			Util::AddFunc(bf_read_GetNumBitsLeft, "GetNumBitsLeft");
 			Util::AddFunc(bf_read_GetNumBitsRead, "GetNumBitsRead");

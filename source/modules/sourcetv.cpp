@@ -59,15 +59,15 @@ static void hook_CHLTVServer_DestroyCHLTVServer(CHLTVServer* srv)
 }
 
 static int CHLTVClient_TypeID = -1;
-static void Push_HLTVClient(CHLTVClient* tbl)
+static void Push_HLTVClient(CHLTVClient* client)
 {
-	if ( !tbl )
+	if (!client)
 	{
 		g_Lua->PushNil();
 		return;
 	}
 
-	g_Lua->PushUserType(tbl, CHLTVClient_TypeID);
+	g_Lua->PushUserType(client, CHLTVClient_TypeID);
 }
 
 static CHLTVClient* Get_HLTVClient(int iStackPos)
@@ -87,6 +87,14 @@ LUA_FUNCTION_STATIC(HLTVClient__tostring)
 	char szBuf[128] = {};
 	V_snprintf(szBuf, sizeof(szBuf),"HLTVClient [%i][%s]", client->GetPlayerSlot(), client->GetClientName()); 
 	LUA->PushString(szBuf);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(HLTVClient__index)
+{
+	if (!g_Lua->FindOnObjectsMetaTable(1, 2))
+		LUA->PushNil();
+
 	return 1;
 }
 
@@ -120,7 +128,7 @@ LUA_FUNCTION_STATIC(HLTVClient_GetName)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(HLTVClient_GetSteamID)
+LUA_FUNCTION_STATIC(HLTVClient_GetSteamID) // Broken -> "STEAM_ID_PENDING"
 {
 	CHLTVClient* client = Get_HLTVClient(1);
 	if (!client)
@@ -128,6 +136,16 @@ LUA_FUNCTION_STATIC(HLTVClient_GetSteamID)
 
 	LUA->PushString(client->GetNetworkIDString());
 	return 1;
+}
+
+LUA_FUNCTION_STATIC(HLTVClient_Reconnect)
+{
+	CHLTVClient* client = Get_HLTVClient(1);
+	if (!client)
+		LUA->ArgError(1, "HLTVClient");
+
+	client->Reconnect();
+	return 0;
 }
 
 #define LUA_RECORD_OK 0
@@ -339,8 +357,9 @@ static bool hook_CHLTVClient_ProcessGMod_ClientToServer(CHLTVClient* hltvclient,
 
 	if (Lua::PushHook("HolyLib:OnSourceTVNetMessage")) // Maybe change the name? I don't have a better one rn :/
 	{
+		Push_HLTVClient(hltvclient);
 		Push_bf_read(&bf->m_DataIn);
-		g_Lua->CallFunctionProtected(2, 0, true);
+		g_Lua->CallFunctionProtected(3, 0, true);
 	}
 
 	return true;
@@ -356,10 +375,12 @@ void CSourceTVLibModule::LuaInit(bool bServerInit)
 	{
 		CHLTVClient_TypeID = g_Lua->CreateMetaTable("HLTVClient");
 			Util::AddFunc(HLTVClient__tostring, "__tostring");
+			Util::AddFunc(HLTVClient__index, "__index");
 			Util::AddFunc(HLTVClient_GetName, "GetName");
 			Util::AddFunc(HLTVClient_GetSlot, "GetSlot");
 			Util::AddFunc(HLTVClient_GetSteamID, "GetSteamID");
 			Util::AddFunc(HLTVClient_GetUserID, "GetUserID");
+			Util::AddFunc(HLTVClient_Reconnect, "Reconnect");
 		g_Lua->Pop(1); // ToDo: Add a IsValid function.
 
 		Util::StartTable();

@@ -588,11 +588,16 @@ Returns the name of the client.
 #### string HLTVClient:GetSteamID()
 Returns the steamid of the client.  
 
+> NOTE: Currently broken / will return `STEAM_ID_PENDING`
+
 #### number HLTVClient:GetUserID()
 Returns the userid of the client.  
 
 #### number HLTVClient:GetSlot()
 Returns the slot of the client. Use this for `sourcetv.GetClient`.  
+
+#### void HLTVClient:Reconnect()
+Reconnects the HLTV client.  
 
 ### Enums
 
@@ -621,7 +626,7 @@ A file with that name already exists!
 
 ### Hooks
 
-#### HolyLib:OnSourceTVNetMessage(bf_read buffer)
+#### HolyLib:OnSourceTVNetMessage(HLTVClient client, bf_read buffer)
 Called when a HLTVClient sends a net message to the server.  
 
 ### ConVars
