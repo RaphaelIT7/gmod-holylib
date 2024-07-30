@@ -327,8 +327,6 @@ bool notransmit - If the entity should stop being transmitted.
 
 Adds the given Entity to be transmitted.
 
-> NOTE: Only use this function inside the `HolyLib:CheckTransmit` hook!  
-
 ### Enums
 
 #### pvs.FL_EDICT_DONTSEND  
