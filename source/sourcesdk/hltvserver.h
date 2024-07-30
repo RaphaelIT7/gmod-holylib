@@ -191,7 +191,7 @@ public:
 	bf_write *GetBuffer( int nBuffer);
 	CClientFrame *GetDeltaFrame( int nTick );
 		
-	inline  CHLTVClient* Client( int i ) { return static_cast<CHLTVClient*>(m_Clients[i]); }
+	inline  CHLTVClient* Client( int i ) { return static_cast<CHLTVClient*>(GetClient(i)); }
 
 
 protected:
