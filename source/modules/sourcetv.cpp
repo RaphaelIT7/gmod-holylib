@@ -204,14 +204,17 @@ LUA_FUNCTION_STATIC(HLTVClient_SendLua)
 	SVC_UserMessage msg;
 	msg.m_nMsgType = pUserMessages->LookupUserMessage("LuaCmd");
 	if (msg.m_nMsgType == -1)
-		return 0;
+	{
+		LUA->PushBool(false);
+		return 1;
+	}
 
-	msg.m_DataOut.Reset();
 	msg.m_DataOut.WriteString(str);
 
 	client->SendNetMsg(msg);
 
-	return 0;
+	LUA->PushBool(true);
+	return 1;
 }
 
 #define LUA_RECORD_OK 0
