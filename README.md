@@ -608,9 +608,11 @@ Prints the given message into the client's console.
 #### bool HLTVClient:IsValid()
 Returns `true` if the client is still valid.  
 
-#### bool HLTVClient:SendLua(string code)
+#### bool (REMOVED) HLTVClient:SendLua(string code)
 Sends the given code to the client to be executed.  
 Returns `true` on success.  
+
+> NOTE: This function is currently broken and will be readded when it's fixed.  
 
 ### Enums
 

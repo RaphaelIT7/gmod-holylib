@@ -193,7 +193,6 @@ LUA_FUNCTION_STATIC(HLTVClient_IsValid)
 }
 
 static CUserMessages* pUserMessages;
-static Symbols::CUserMessages_LookupUserMessage func_CUserMessages_LookupUserMessage;
 LUA_FUNCTION_STATIC(HLTVClient_SendLua)
 {
 	CHLTVClient* client = Get_HLTVClient(1);
@@ -203,7 +202,7 @@ LUA_FUNCTION_STATIC(HLTVClient_SendLua)
 	const char* str = LUA->CheckString(2);
 
 	SVC_UserMessage msg;
-	msg.m_nMsgType = func_CUserMessages_LookupUserMessage(pUserMessages, "LuaCmd");
+	msg.m_nMsgType = pUserMessages->LookupUserMessage("LuaCmd");
 	if (msg.m_nMsgType == -1)
 	{
 		LUA->PushBool(false);
@@ -487,7 +486,8 @@ void CSourceTVLibModule::LuaInit(bool bServerInit)
 			Util::AddFunc(HLTVClient_GetUserID, "GetUserID");
 			Util::AddFunc(HLTVClient_Reconnect, "Reconnect");
 			Util::AddFunc(HLTVClient_IsValid, "IsValid");
-			Util::AddFunc(HLTVClient_SendLua, "SendLua");
+			Util::AddFunc(HLTVClient_ClientPrint, "ClientPrint");
+			//Util::AddFunc(HLTVClient_SendLua, "SendLua");
 		g_Lua->Pop(1);
 
 		Util::StartTable();
@@ -572,12 +572,9 @@ void CSourceTVLibModule::InitDetour(bool bPreServer)
 		(void*)hook_CHLTVClient_Deconstructor, m_pID
 	);
 
-	SourceSDK::FactoryLoader server_loaderf("server_srv");
-	pUserMessages = Detour::ResolveSymbol<CUserMessages>(server_loaderf, Symbols::UsermessagesSym);
+	SourceSDK::FactoryLoader server_loader("server_srv");
+	pUserMessages = Detour::ResolveSymbol<CUserMessages>(server_loader, Symbols::UsermessagesSym);
 	Detour::CheckValue("get class", "usermessages", pUserMessages != NULL);
-
-	SourceSDK::ModuleLoader server_loader("server_srv");
-	func_CUserMessages_LookupUserMessage = (Symbols::CUserMessages_LookupUserMessage)Detour::GetFunction(server_loader.GetModule(), Symbols::CUserMessages_LookupUserMessageSym);
 
 	func_CHLTVDemoRecorder_StartRecording = (Symbols::CHLTVDemoRecorder_StartRecording)Detour::GetFunction(engine_loader.GetModule(), Symbols::CHLTVDemoRecorder_StartRecordingSym);
 	func_CHLTVDemoRecorder_StopRecording = (Symbols::CHLTVDemoRecorder_StopRecording)Detour::GetFunction(engine_loader.GetModule(), Symbols::CHLTVDemoRecorder_StopRecordingSym);
