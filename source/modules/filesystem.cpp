@@ -1211,7 +1211,7 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 	Detour::CheckFunction(func_CBaseFileSystem_FindSearchPathByStoreId, "CBaseFileSystem::FindSearchPathByStoreId");
 
 	SourceSDK::FactoryLoader dedicated_factory("dedicated_srv");
-	g_pPathIDTable = ResolveSymbol<CUtlSymbolTableMT>(dedicated_factory, Symbols::g_PathIDTableSym);
+	g_pPathIDTable = Detour::ResolveSymbol<CUtlSymbolTableMT>(dedicated_factory, Symbols::g_PathIDTableSym);
 	Detour::CheckValue("get class", "g_PathIDTable", g_pPathIDTable != NULL);
 }
 
