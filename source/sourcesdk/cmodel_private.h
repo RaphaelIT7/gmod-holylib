@@ -266,7 +266,7 @@ public:
 		{
 			MEM_ALLOC_CREDIT();
 
-			if ( !g_pFileSystem->ReadFile( m_pFilename, NULL, m_buf, sizeof(T) * m_nCount, m_nOffset ) )
+			if ( !g_pFullFileSystem->ReadFile( m_pFilename, NULL, m_buf, sizeof(T) * m_nCount, m_nOffset ) )
 			{
 				return NULL;
 			}
