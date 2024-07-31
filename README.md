@@ -18,15 +18,6 @@ If you use a panel like Pterodactyl or something similar, you can use the gamemo
 
 If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it will be loaded by holylib's ghostinj.  
 
-# Next Release (Final ToDo)
-
-## Testing ToDo
-- Test SourceTV library  
-- Test bf_read class  
-
-## Things to do
-- Add one final optimizations that I've been testing.  
-
 # Modules
 Each module has its own convar `holylib_enable_[module name]` which allows you to enable/disable specific modules.  
 You can add `-holylib_enable_[module name] 0` to the startup to disable modules on startup.  
@@ -605,6 +596,8 @@ Reconnects the HLTV client.
 #### void HLTVClient:ClientPrint(string message)
 Prints the given message into the client's console.  
 
+> NOTE: It won't add `\n` at the end of the message, so you will need to add it yourself.  
+
 #### bool HLTVClient:IsValid()
 Returns `true` if the client is still valid.  
 
@@ -667,7 +660,7 @@ Example:
 ```lua
 hook.Add("HolyLib:OnSourceTVCommand", "Example", function(client, name, args, argString)
 	if name == "Example" then
-		client:ClientPrint("Hello World from HLTVServer")
+		client:ClientPrint("Hello World from HLTVServer\n")
 		return true
 	end
 end)
