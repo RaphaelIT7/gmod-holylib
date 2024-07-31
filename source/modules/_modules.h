@@ -16,3 +16,4 @@ extern IModule* pVProfModule;
 extern IModule* pCVarsModule;
 extern IModule* pBitBufModule;
 extern IModule* pNetworkingModule;
+extern IModule* pSteamWorksModule;

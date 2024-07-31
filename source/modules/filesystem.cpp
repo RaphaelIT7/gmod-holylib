@@ -86,6 +86,12 @@ static CSearchPath* GetPathFromSearchCache(const char* pFileName, const char* pa
 	if (holylib_filesystem_debug.GetBool())
 		Msg("Getting search path for file %s from cache!\n", pFileName);
 
+	if (!func_CBaseFileSystem_FindSearchPathByStoreId)
+	{
+		Warning("HolyLib: Failed to get CBaseFileSystem::FindSearchPathByStoreId!\n");
+		return NULL;
+	}
+
 	return func_CBaseFileSystem_FindSearchPathByStoreId(g_pFullFileSystem, it->second);
 }
 

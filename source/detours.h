@@ -7,6 +7,7 @@
 #include <GarrysMod/FactoryLoader.hpp>
 #include <vector>
 #include "filesystem.h"
+#include <steam/isteamuser.h>
 
 class CBaseEntity;
 class CBasePlayer;
@@ -15,6 +16,7 @@ class IHandleEntity;
 class CCheckTransmitInfo;
 class CFileOpenInfo;
 class CSearchPath;
+class CSteam3Server;
 
 namespace Symbols
 {
@@ -198,10 +200,28 @@ namespace Symbols
 	const Symbol CVProfile_OutputReportSym = Symbol::FromName("_ZN9CVProfile12OutputReportEiPKci");
 
 	//---------------------------------------------------------------------------------
-	// Purpose: concommand Symbols
+	// Purpose: networking Symbols
 	//---------------------------------------------------------------------------------
 	typedef void* (*AllocChangeFrameList)(int, int);
 	const Symbol AllocChangeFrameListSym = Symbol::FromName("_Z20AllocChangeFrameListii");
+
+	//---------------------------------------------------------------------------------
+	// Purpose: steamworks Symbols
+	//---------------------------------------------------------------------------------
+	typedef void (*CSteam3Server_OnLoggedOff)(void*, SteamServersDisconnected_t*);
+	const Symbol CSteam3Server_OnLoggedOffSym = Symbol::FromName("_ZN13CSteam3Server11OnLoggedOffEP26SteamServersDisconnected_t");
+
+	typedef void (*CSteam3Server_OnLogonSuccess)(void*, SteamServersConnected_t*);
+	const Symbol CSteam3Server_OnLogonSuccessSym = Symbol::FromName("_ZN13CSteam3Server14OnLogonSuccessEP23SteamServersConnected_t");
+
+	typedef void (*CSteam3Server_Shutdown)(void*);
+	const Symbol CSteam3Server_ShutdownSym = Symbol::FromName("_ZN13CSteam3Server8ShutdownEv");
+
+	typedef void (*CSteam3Server_Activate)(void*, int);
+	const Symbol CSteam3Server_ActivateSym = Symbol::FromName("_ZN13CSteam3Server8ActivateENS_11EServerTypeE");
+
+	typedef CSteam3Server& (*Steam3ServerT)();
+	const Symbol Steam3ServerSym = Symbol::FromName("_Z12Steam3Serverv");
 }
 
 //---------------------------------------------------------------------------------

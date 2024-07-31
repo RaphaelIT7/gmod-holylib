@@ -800,6 +800,28 @@ Read a number with the given amount of bits.
 This module tries to optimize anything related to networking.  
 Currently, this only has one optimization which was ported from [sigsegv-mvm](https://github.com/rafradek/sigsegv-mvm/blob/910b92456c7578a3eb5dff2a7e7bf4bc906677f7/src/mod/perf/sendprop_optimize.cpp#L35-L144) into here.  
 
+## steamworks
+This module adds a few functions related to steam.  
+
+### Functions
+
+#### steamworks.Shutdown()
+Shutdowns the Steam Server.  
+
+#### steamworks.Activate()
+Starts/Activates the Steam Server.  
+
+#### steamworks.IsConnected()
+Returns `true` if the Steam Server is connected.  
+
+### Hooks
+
+#### HolyLib::OnSteamDisconnect(number result)  
+Called when our Steam server loses connection to steams servers.  
+
+#### HolyLib::OnSteamConnect()  
+Called when our Steam server successfully connected to steams servers.  
+
 # Unfinished Modules
 
 ## serverplugins

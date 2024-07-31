@@ -324,6 +324,9 @@ LUA_FUNCTION_STATIC(sourcetv_StartRecord)
 		return 1;
 	}
 
+	if (!func_CHLTVDemoRecorder_StartRecording)
+		LUA->ThrowError("Failed to get CHLTVDemoRecorder::StartRecording!");
+
 	func_CHLTVDemoRecorder_StartRecording(&hltv->m_DemoRecorder, name, false);
 	LUA->PushNumber(LUA_RECORD_OK);
 
@@ -360,6 +363,9 @@ LUA_FUNCTION_STATIC(sourcetv_StopRecord)
 		LUA->PushNumber(LUA_RECORD_NOTACTIVE);
 		return 1;
 	}
+
+	if (!func_CHLTVDemoRecorder_StopRecording)
+		LUA->ThrowError("Failed to get CHLTVDemoRecorder::StopRecording!");
 
 	func_CHLTVDemoRecorder_StopRecording(&hltv->m_DemoRecorder);
 	LUA->PushNumber(LUA_RECORD_OK);
