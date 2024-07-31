@@ -1,6 +1,6 @@
 -- Defines which version of the project generator to use, by default
 -- (can be overriden by the environment variable PROJECT_GENERATOR_VERSION)
-PROJECT_GENERATOR_VERSION = 2
+PROJECT_GENERATOR_VERSION = 3
 
 newoption({
 	trigger = "gmcommon",
