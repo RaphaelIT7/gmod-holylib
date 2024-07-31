@@ -464,11 +464,10 @@ static bool hook_CHLTVClient_ExecuteStringCommand(CHLTVClient* hltvclient, const
 		g_Lua->PushString(args.ArgS());
 		g_Lua->CallFunctionProtected(5, 1, true);
 
-		if (g_Lua->GetBool(-1)) // If true was returned, the command was handled.
-		{
-			g_Lua->Pop(1);
+		bool handled = g_Lua->GetBool(-1); // If true was returned, the command was handled.
+		g_Lua->Pop(1);
+		if (handled)
 			return true;
-		}
 	}
 
 	// Fallback.
