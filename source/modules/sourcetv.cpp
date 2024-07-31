@@ -180,7 +180,7 @@ LUA_FUNCTION_STATIC(HLTVClient_ClientPrint)
 	if (!client)
 		LUA->ArgError(1, "HLTVClient");
 
-	client->ClientPrintf(LUA->CheckString(1));
+	client->ClientPrintf(LUA->CheckString(2));
 	return 0;
 }
 
