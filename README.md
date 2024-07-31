@@ -816,10 +816,10 @@ Returns `true` if the Steam Server is connected.
 
 ### Hooks
 
-#### HolyLib::OnSteamDisconnect(number result)  
+#### HolyLib:OnSteamDisconnect(number result)  
 Called when our Steam server loses connection to steams servers.  
 
-#### HolyLib::OnSteamConnect()  
+#### HolyLib:OnSteamConnect()  
 Called when our Steam server successfully connected to steams servers.  
 
 # Unfinished Modules

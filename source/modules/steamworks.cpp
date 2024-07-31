@@ -27,7 +27,7 @@ static void hook_CSteam3Server_OnLoggedOff(CSteam3Server* srv, SteamServersDisco
 {		
 	detour_CSteam3Server_OnLoggedOff.GetTrampoline<Symbols::CSteam3Server_OnLoggedOff>()(srv, info);
 
-	if (Lua::PushHook("HolyLib::OnSteamDisconnect"))
+	if (Lua::PushHook("HolyLib:OnSteamDisconnect"))
 	{
 		g_Lua->PushNumber(info->m_eResult);
 		g_Lua->CallFunctionProtected(2, 0, true);
@@ -39,7 +39,7 @@ static void hook_CSteam3Server_OnLogonSuccess(CSteam3Server* srv, SteamServersCo
 {		
 	detour_CSteam3Server_OnLogonSuccess.GetTrampoline<Symbols::CSteam3Server_OnLogonSuccess>()(srv, info);
 
-	if (Lua::PushHook("HolyLib::OnSteamConnect"))
+	if (Lua::PushHook("HolyLib:OnSteamConnect"))
 	{
 		g_Lua->CallFunctionProtected(1, 0, true);
 	}
