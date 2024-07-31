@@ -140,4 +140,5 @@ void CSteamWorksModule::Think(bool simulating)
 
 void CSteamWorksModule::Shutdown()
 {
+	Detour::Remove(m_pID);
 }
