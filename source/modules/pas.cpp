@@ -194,7 +194,7 @@ LUA_FUNCTION_STATIC(pas_TestPAS) // This is based off SV_DetermineMulticastRecip
 
 	int iBitNumber = CM_LeafCluster(CM_PointLeafnum(*hearPos));
 
-	LUA->PushBool(!(pMask[iBitNumber>>3] & (1<<(iBitNumber&7))));
+	LUA->PushBool(!(pMask[iBitNumber>>3] & (1<<(iBitNumber&7)))); // I think something is wrong here.
 	return 1;
 }
 
@@ -209,14 +209,14 @@ void CPASModule::LuaInit(bool bServerInit)
 
 	Util::StartTable();
 		Util::AddFunc(pas_TestPAS, "TestPAS");
-	Util::FinishTable("stringtable");
+	Util::FinishTable("pas");
 }
 
 void CPASModule::LuaShutdown()
 {
 	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
 		g_Lua->PushNil();
-		g_Lua->SetField(-2, "stringtable");
+		g_Lua->SetField(-2, "pas");
 	g_Lua->Pop(1);
 }
 
