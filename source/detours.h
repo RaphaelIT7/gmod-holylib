@@ -222,6 +222,11 @@ namespace Symbols
 
 	typedef CSteam3Server& (*Steam3ServerT)();
 	const Symbol Steam3ServerSym = Symbol::FromName("_Z12Steam3Serverv");
+
+	//---------------------------------------------------------------------------------
+	// Purpose: pas Symbols
+	//---------------------------------------------------------------------------------
+	const Symbol g_BSPDataSym = Symbol::FromName("g_BSPData");
 }
 
 //---------------------------------------------------------------------------------

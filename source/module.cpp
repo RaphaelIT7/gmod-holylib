@@ -91,6 +91,7 @@ CModuleManager::CModuleManager() // ToDo: Look into how IGameSystem works and us
 	RegisterModule(pBitBufModule);
 	RegisterModule(pNetworkingModule);
 	RegisterModule(pSteamWorksModule);
+	RegisterModule(pPASModule);
 }
 
 int g_pIDs = 0;
