@@ -11,7 +11,7 @@
 #endif
 
 #include <inetmsghandler.h>
-#include <protocol.h>
+#include <sourcesdk/protocol.h>
 #include <client_class.h>
 #include <cdll_int.h>
 #include <netadr.h>

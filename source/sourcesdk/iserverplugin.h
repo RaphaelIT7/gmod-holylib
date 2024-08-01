@@ -13,9 +13,15 @@
 #pragma once
 #endif
 
+#include "Platform.hpp"
+
 #include "edict.h"
 #include "tier1/interface.h"
-#include "tier1/KeyValues.h"
+#ifdef ARCHITECTURE_IS_X86_64
+#include <keyvalues.h>
+#else
+#include <KeyValues.h>
+#endif
 
 class CCommand;
 

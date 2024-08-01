@@ -10,13 +10,19 @@
 #pragma once
 #endif
 
+#include "Platform.hpp"
+
 #include <const.h>
 #include <checksum_crc.h>
 #include <iclient.h>
-#include <protocol.h>
+#include <sourcesdk/protocol.h>
 #include <iservernetworkable.h>
 #include <bspfile.h>
+#ifdef ARCHITECTURE_IS_X86_64
+#include <keyvalues.h>
+#else
 #include <KeyValues.h>
+#endif
 #include <bitvec.h>
 #include <igameevents.h>
 #include "smartptr.h"

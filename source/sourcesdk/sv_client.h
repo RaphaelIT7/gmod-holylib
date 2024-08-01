@@ -18,7 +18,7 @@
 //#include "event_system.h"
 #include "utlvector.h"
 #include "bitvec.h"
-#include "protocol.h"
+#include "sourcesdk/protocol.h"
 #include <inetmsghandler.h>
 #include "baseclient.h"
 #include "clientframe.h"
