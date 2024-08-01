@@ -1,5 +1,4 @@
 #include "detours.h"
-#include "KeyValues.h"
 #include <tier2/tier2.h>
 #include "modules/_modules.h"
 #include "convar.h"
