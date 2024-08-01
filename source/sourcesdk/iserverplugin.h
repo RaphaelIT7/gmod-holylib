@@ -13,6 +13,7 @@
 #pragma once
 #endif
 
+#undef ARCHITECTURE_IS_X86_64 // What is causing this :<
 #include "Platform.hpp"
 
 #include "edict.h"
