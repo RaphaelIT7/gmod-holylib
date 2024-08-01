@@ -222,13 +222,18 @@ LUA_FUNCTION_STATIC(bf_read_ReadBitAngles)
 	return 1;
 }
 
+
 LUA_FUNCTION_STATIC(bf_read_ReadBitCoord)
 {
 	bf_read* bf = Get_bf_read(1);
 	if (!bf)
 		LUA->ArgError(1, "bf_read");
 
+#ifdef ARCHITECTURE_IS_X86_64
+	LUA->ThrowError("This is 32x only.");
+#else
 	LUA->PushNumber(bf->ReadBitCoord());
+#endif
 	return 1;
 }
 
@@ -250,7 +255,11 @@ LUA_FUNCTION_STATIC(bf_read_ReadBitCoordMP)
 
 	bool bIntegral = LUA->GetBool(2);
 	bool bLowPrecision = LUA->GetBool(3);
+#ifdef ARCHITECTURE_IS_X86_64
+	LUA->ThrowError("This is 32x only.");
+#else
 	LUA->PushNumber(bf->ReadBitCoordMP(bIntegral, bLowPrecision));
+#endif
 	return 1;
 }
 
@@ -262,7 +271,11 @@ LUA_FUNCTION_STATIC(bf_read_ReadBitCoordMPBits)
 
 	bool bIntegral = LUA->GetBool(2);
 	bool bLowPrecision = LUA->GetBool(3);
+#ifdef ARCHITECTURE_IS_X86_64
+	LUA->ThrowError("This is 32x only.");
+#else
 	LUA->PushNumber(bf->ReadBitCoordMPBits(bIntegral, bLowPrecision));
+#endif
 	return 1;
 }
 
@@ -284,7 +297,11 @@ LUA_FUNCTION_STATIC(bf_read_ReadBitLong)
 
 	int numBits = LUA->CheckNumber(2);
 	bool bSigned = LUA->GetBool(3);
+#ifdef ARCHITECTURE_IS_X86_64
+	LUA->ThrowError("This is 32x only.");
+#else
 	LUA->PushNumber(bf->ReadBitLong(numBits, bSigned));
+#endif
 	return 1;
 }
 
