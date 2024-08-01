@@ -1,5 +1,4 @@
 #include "interface.h"
-#include "Platform.hpp"
 #include <scanning/symbolfinder.hpp>
 #include <vector>
 #include <string>

@@ -1,6 +1,8 @@
 #include "module.h"
 #include <GarrysMod/Lua/Interface.h>
 #include "lua.h"
+#undef ARCHITECTURE_IS_X86_64 // WHY
+#include "Platform.hpp"
 
 class CBitBufModule : public IModule
 {
