@@ -16,15 +16,8 @@
 #include "edict.h"
 #include "tier1/interface.h"
 
-#undef ARCHITECTURE_IS_X86_64 // What is causing this :<
-#include "Platform.hpp"
-#ifdef ARCHITECTURE_IS_X86_64
-#include <keyvalues.h>
-#else
-#include <KeyValues.h>
-#endif
-
 class CCommand;
+class KeyValues;
 
 namespace GarrysMod::Lua
 {
