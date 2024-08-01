@@ -13,11 +13,11 @@
 #pragma once
 #endif
 
-#undef ARCHITECTURE_IS_X86_64 // What is causing this :<
-#include "Platform.hpp"
-
 #include "edict.h"
 #include "tier1/interface.h"
+
+#undef ARCHITECTURE_IS_X86_64 // What is causing this :<
+#include "Platform.hpp"
 #ifdef ARCHITECTURE_IS_X86_64
 #include <keyvalues.h>
 #else
