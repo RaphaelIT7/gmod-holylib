@@ -17,6 +17,7 @@
 #include "p4lib/ip4.h"
 #include "mdllib/mdllib.h"
 #include "filesystem/IQueuedLoader.h"
+#include "Platform.hpp"
 
 
 //-----------------------------------------------------------------------------
@@ -25,6 +26,7 @@
 // It is hoped that setting this, and using this library will be the common mechanism for
 // allowing link libraries to access tier2 library interfaces
 //-----------------------------------------------------------------------------
+#ifndef ARCHITECTURE_X86_64
 IFileSystem *g_pFullFileSystem = 0;
 IMaterialSystem *materials = 0;
 IMaterialSystem *g_pMaterialSystem = 0;
@@ -34,9 +36,10 @@ IMaterialSystemHardwareConfig *g_pMaterialSystemHardwareConfig = 0;
 IDebugTextureInfo *g_pMaterialSystemDebugTextureInfo = 0;
 IVBAllocTracker *g_VBAllocTracker = 0;
 IColorCorrectionSystem *colorcorrection = 0;
-IP4 *p4 = 0;
 IMdlLib *mdllib = 0;
 IQueuedLoader *g_pQueuedLoader = 0;
+#endif
+IP4 *p4 = 0;
 
 
 //-----------------------------------------------------------------------------
