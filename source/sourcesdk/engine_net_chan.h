@@ -5,7 +5,7 @@
 // $NoKeywords: $
 //===========================================================================//
 
-#include "quakedef.h" // for MAX_OSPATH
+#include "sourcesdk/engine_quakedef.h" // for MAX_OSPATH
 #include <stdlib.h>
 #include <assert.h>
 #include <malloc.h>
