@@ -1,7 +1,6 @@
 #include "module.h"
 #include <GarrysMod/Lua/Interface.h>
 #include "lua.h"
-#undef ARCHITECTURE_IS_X86_64 // WHY
 #include "Platform.hpp"
 
 class CBitBufModule : public IModule
@@ -235,7 +234,7 @@ LUA_FUNCTION_STATIC(bf_read_ReadBitCoord)
 	if (!bf)
 		LUA->ArgError(1, "bf_read");
 
-#ifdef ARCHITECTURE_IS_X86_64
+#ifdef ARCHITECTURE_X86_64
 	LUA->ThrowError("This is 32x only.");
 #else
 	LUA->PushNumber(bf->ReadBitCoord());
@@ -249,7 +248,7 @@ LUA_FUNCTION_STATIC(bf_read_ReadBitCoordBits)
 	if (!bf)
 		LUA->ArgError(1, "bf_read");
 
-#ifdef ARCHITECTURE_IS_X86_64
+#ifdef ARCHITECTURE_X86_64
 	LUA->ThrowError("This is 32x only.");
 #else
 	LUA->PushNumber(bf->ReadBitCoordBits());
@@ -263,7 +262,7 @@ LUA_FUNCTION_STATIC(bf_read_ReadBitCoordMP)
 	if (!bf)
 		LUA->ArgError(1, "bf_read");
 
-#ifdef ARCHITECTURE_IS_X86_64
+#ifdef ARCHITECTURE_X86_64
 	LUA->ThrowError("This is 32x only.");
 #else
 	bool bIntegral = LUA->GetBool(2);
@@ -279,7 +278,7 @@ LUA_FUNCTION_STATIC(bf_read_ReadBitCoordMPBits)
 	if (!bf)
 		LUA->ArgError(1, "bf_read");
 
-#ifdef ARCHITECTURE_IS_X86_64
+#ifdef ARCHITECTURE_X86_64
 	LUA->ThrowError("This is 32x only.");
 #else
 	bool bIntegral = LUA->GetBool(2);
@@ -305,7 +304,7 @@ LUA_FUNCTION_STATIC(bf_read_ReadBitLong)
 	if (!bf)
 		LUA->ArgError(1, "bf_read");
 
-#ifdef ARCHITECTURE_IS_X86_64
+#ifdef ARCHITECTURE_X86_64
 	LUA->ThrowError("This is 32x only.");
 #else
 	int numBits = LUA->CheckNumber(2);
