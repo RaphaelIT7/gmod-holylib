@@ -161,7 +161,7 @@ LUA_FUNCTION_STATIC(util_AsyncDecompress)
 void CUtilModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	threaddata.bRun = true;
-	threadhandle = CreateSimpleThread(CompressThread, &threaddata);
+	threadhandle = CreateSimpleThread((ThreadFunc_t)CompressThread, &threaddata);
 }
 
 void CUtilModule::LuaInit(bool bServerInit)

@@ -15,7 +15,7 @@
 
 #include <igameevents.h>
 #include <utlvector.h>
-#include <KeyValues.h>
+#include <keyvalues.h>
 #include <networkstringtabledefs.h>
 #include <utlsymbol.h>
 
