@@ -68,6 +68,7 @@ namespace Symbols
 	typedef bool (*CServerGameDLL_ShouldHideServer)();
 	const std::vector<Symbol> CServerGameDLL_ShouldHideServerSym = {
 		Symbol::FromName("_ZN14CServerGameDLL16ShouldHideServerEv"),
+		Symbol::FromSignature("\x48\x8B\x3D\xC1\x9B\x18\x01\x55\x48\x89\xE5"), // 48 8B 3D C1 9B 18 01 55 48 89 E5
 	};
 
 	//---------------------------------------------------------------------------------
@@ -83,6 +84,7 @@ namespace Symbols
 	typedef void* (*CPlugin_Load)(void*, const char*);
 	const std::vector<Symbol> CPlugin_LoadSym = {
 		Symbol::FromName("_ZN7CPlugin4LoadEPKc"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x56\x49\x89\xFE\x41\x55\x41\x54\x89\xF4\xBE\x2E"), // 55 48 89 E5 41 56 49 89 FE 41 55 41 54 49 89 F4 BE 2E
 	};
 
 	//---------------------------------------------------------------------------------
@@ -169,11 +171,13 @@ namespace Symbols
 	typedef void (*CNetworkStringTable_DeleteAllStrings)(void* table);
 	const std::vector<Symbol> CNetworkStringTable_DeleteAllStringsSym = {
 		Symbol::FromName("_ZN19CNetworkStringTable16DeleteAllStringsEv"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x89\xFB\x48\x83\xEC\x08\x48\x8B\x7F\x50"), // 55 48 89 E5 53 48 89 FB 48 83 EC 08 48 8B 7F 50
 	};
 
 	typedef void (*CNetworkStringTable_Deconstructor)(void* table);
 	const std::vector<Symbol> CNetworkStringTable_DeconstructorSym = {
 		Symbol::FromName("_ZN19CNetworkStringTableD0Ev"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x89\xFB\x48\x83\xEC\x08\xE8\x8F\xFF\xFF\xFF\x48\x83\xC4\x08\x48\x89\xDF\x5B\x5D\xE9\x71\x96\xEE\xFF"), // 55 48 89 E5 53 48 89 FB 48 83 EC 08 E8 8F FF FF FF 48 83 C4 08 48 89 DF 5B 5D E9 71 96 EE FF
 	};
 
 	//---------------------------------------------------------------------------------
@@ -315,6 +319,7 @@ namespace Symbols
 	typedef void* (*AllocChangeFrameList)(int, int);
 	const std::vector<Symbol> AllocChangeFrameListSym = {
 		Symbol::FromName("_Z20AllocChangeFrameListii"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x55\x41\x54\x41\x89\xFC\xBF\x28"), // 55 48 89 E5 41 55 41 54 41 89 FC BF 28
 	};
 
 	//---------------------------------------------------------------------------------
@@ -323,26 +328,31 @@ namespace Symbols
 	typedef void (*CSteam3Server_OnLoggedOff)(void*, SteamServersDisconnected_t*);
 	const std::vector<Symbol> CSteam3Server_OnLoggedOffSym = {
 		Symbol::FromName("_ZN13CSteam3Server11OnLoggedOffEP26SteamServersDisconnected_t"),
+		Symbol::FromSignature("\x83\xBF\x30****\x0F\x84\x7C***\x55\x48\x89\xE5"), // 83 BF 30 ?? ?? ?? ?? 0F 84 7C ?? ?? ?? 55 48 89 E5
 	};
 
 	typedef void (*CSteam3Server_OnLogonSuccess)(void*, SteamServersConnected_t*);
 	const std::vector<Symbol> CSteam3Server_OnLogonSuccessSym = {
 		Symbol::FromName("_ZN13CSteam3Server14OnLogonSuccessEP23SteamServersConnected_t"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x89\xFB\x48\x83\xEC\x28\x64\x48\x8B"), // 55 48 89 E5 53 48 89 FB 48 83 EC 28 64 48 8B
 	};
 
 	typedef void (*CSteam3Server_Shutdown)(void*);
 	const std::vector<Symbol> CSteam3Server_ShutdownSym = {
 		Symbol::FromName("_ZN13CSteam3Server8ShutdownEv"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x89\xFB\x48\x83\xEC\x08\x48\x83\x7F**\x74\x5A"), // 55 48 89 E5 53 48 89 FB 48 83 EC 08 48 83 7F ?? ?? 74 5A
 	};
 
 	typedef void (*CSteam3Server_Activate)(void*, int);
 	const std::vector<Symbol> CSteam3Server_ActivateSym = {
 		Symbol::FromName("_ZN13CSteam3Server8ActivateENS_11EServerTypeE"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x41\x89\xF4\x53\x48\x89\xFB\x48\x81\xEC") // 55 48 89 E5 41 57 41 56 41 55 41 54 41 89 F4 53 48 89 FB 48 81 EC
 	};
 
 	typedef CSteam3Server& (*Steam3ServerT)();
 	const std::vector<Symbol> Steam3ServerSym = {
 		Symbol::FromName("_Z12Steam3Serverv"),
+		Symbol::FromSignature("\x55\x48\x8D\x05\x18\x8B\x4C\x00\x48\x89\xE5\x5D\xC3"), // 55 48 8D 05 18 8B 4C 00 48 89 E5 5D C3
 	};
 
 	//---------------------------------------------------------------------------------
