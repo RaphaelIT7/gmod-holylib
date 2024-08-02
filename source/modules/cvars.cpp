@@ -24,8 +24,8 @@ LUA_FUNCTION_STATIC(cvars_GetAll)
 #ifdef ARCHITECTURE_X86_64
 		ICvar::Iterator it(g_pCVar);
 		it.SetFirst();
-		const ConCommandBase *var = it->Get();
-		for ( ; var ; it->Next())
+		const ConCommandBase *var = it.Get();
+		for ( ; var ; it.Next())
 		{
 			var = it.Get();
 #else
