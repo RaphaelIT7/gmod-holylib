@@ -8,6 +8,7 @@
 #include <vector>
 #include "filesystem.h"
 #include <steam/isteamuser.h>
+#include "Platform.hpp"
 
 class CBaseEntity;
 class CBasePlayer;

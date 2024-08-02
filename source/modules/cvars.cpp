@@ -1,7 +1,6 @@
 #include "module.h"
 #include <GarrysMod/Lua/Interface.h>
 #include "lua.h"
-#include "Platform.hpp"
 
 class CCVarsModule : public IModule
 {
