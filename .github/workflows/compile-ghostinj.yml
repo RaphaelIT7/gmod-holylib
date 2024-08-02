@@ -3,6 +3,7 @@ name: Build GhostInj
 on: 
   push:
     paths:
+      - '.github/workflows/compile-ghostinj.yml'
       - 'ghostinj-dll/source/**'
       - 'ghostinj-dll/premake5.lua'
   pull_request:
@@ -14,7 +15,7 @@ jobs:
     with:
       PROJECT_PATH: "ghostinj-dll/"
       PROJECT_NAME: "ghostinj"
-      BUILD_64x: "false"
+      BUILD_64x: "true"
       LINUX_FILEEXTENTION: "dll"
       BUILD_WINDOWS: "false"
       USE_PREFIX: "false"

@@ -3,6 +3,7 @@ name: Build Plugin
 on: 
   push:
     paths:
+      - '.github/workflows/compile.yml'
       - 'source/**'
       - 'premake5.lua'
   pull_request:
