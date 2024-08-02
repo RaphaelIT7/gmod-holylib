@@ -16,6 +16,8 @@
 #ifndef CMD_H
 #define CMD_H
 
+#include "Platform.hpp"
+
 #ifdef _WIN32
 #pragma once
 #endif
@@ -112,6 +114,7 @@ not apropriate.
 
 */
 
+#ifdef ARCHITECTURE_X86_64
 enum cmd_source_t
 {
 	src_client,		// came in over a net connection as a clc_stringcmd
@@ -122,6 +125,7 @@ enum cmd_source_t
 
 // FIXME: Move these into a field of CCommand?
 extern cmd_source_t cmd_source;
+#endif
 extern int			cmd_clientslot;
 
 
@@ -135,7 +139,9 @@ void Cmd_Shutdown( void );
 //-----------------------------------------------------------------------------
 // Executes a command given a CCommand argument structure
 //-----------------------------------------------------------------------------
+#ifdef ARCHITECTURE_X86_64
 const ConCommandBase *Cmd_ExecuteCommand( const CCommand &command, cmd_source_t src, int nClientSlot = -1 );
+#endif
 
 
 //-----------------------------------------------------------------------------

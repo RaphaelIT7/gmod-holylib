@@ -114,13 +114,13 @@ FORCEINLINE unsigned int CDeltaBitsReader::ReadNextPropIndex()
 			uint delta = bits >> 3;
 			if ( bits & 6 )
 			{
-				delta = m_pBuf->ReadUBitVarInternal( (bits & 6) >> 1 );
+				//delta = m_pBuf->ReadUBitVarInternal( (bits & 6) >> 1 );
 			}
 			m_iLastProp = m_iLastProp + 1 + delta;
 			Assert( m_iLastProp < MAX_DATATABLE_PROPS );
 			return m_iLastProp;
 		}
-		m_pBuf->m_iCurBit -= 6; // Unread six bits we shouldn't have looked at
+		//m_pBuf->m_iCurBit -= 6; // Unread six bits we shouldn't have looked at
 	}
 	else
 	{
