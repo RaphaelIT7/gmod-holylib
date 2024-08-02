@@ -27,7 +27,7 @@
 #include <igameevents.h>
 #include <bitvec.h>
 #include <engine/iserverplugin.h>
-#include <Color.h>
+#include <color.h>
 #include "proto_version.h"
 
 #if !defined( _X360 )
