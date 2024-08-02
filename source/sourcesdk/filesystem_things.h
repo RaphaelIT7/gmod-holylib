@@ -617,7 +617,7 @@ public:
 		CPackFile *GetPackFile() const { return m_pPackFile; }
 
 		#ifdef SUPPORT_PACKED_STORE
-		void SetPackedStore( CPackedStoreRefCount *pPackedStore ) { m_pPackedStore = pPackedStore; }
+		void SetPackedStore( CPackedStoreRefCount *pPackedStore ) { /*m_pPackedStore = pPackedStore;*/ }
 		#endif
 		CPackedStoreRefCount *GetPackedStore() const { return m_pPackedStore; }
 
