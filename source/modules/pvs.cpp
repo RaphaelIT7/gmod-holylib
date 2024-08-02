@@ -216,9 +216,6 @@ LUA_FUNCTION_STATIC(pvs_CheckBoxInPVS)
 
 static void AddEntityToPVS(CBaseEntity* ent)
 {
-	if (!ent)
-		g_Lua->ThrowError("Tried to use a NULL Entity!");
-
 	edict_t* edict = GetEdictOfEnt(ent);
 	if (edict)
 		g_pAddEntityToPVS.push_back(edict);
@@ -234,13 +231,13 @@ LUA_FUNCTION_STATIC(pvs_AddEntityToPVS)
 		LUA->PushNil();
 		while (LUA->Next(-2))
 		{
-			CBaseEntity* ent = Util::Get_Entity(-1, false);
+			CBaseEntity* ent = Util::Get_Entity(-1, true);
 			AddEntityToPVS(ent);
 
 			LUA->Pop(1);
 		}
 	} else {
-		CBaseEntity* ent = Util::Get_Entity(1, false);
+		CBaseEntity* ent = Util::Get_Entity(1, true);
 		AddEntityToPVS(ent);
 	}
 
@@ -253,9 +250,6 @@ LUA_FUNCTION_STATIC(pvs_AddEntityToPVS)
 #define LUA_FL_EDICT_FULLCHECK 1 << 4
 static void SetOverrideStateFlags(CBaseEntity* ent, int flags, bool force)
 {
-	if (!ent)
-		g_Lua->ThrowError("Tried to use a NULL Entity!");
-
 	edict_t* edict = GetEdictOfEnt(ent);
 	if (!edict)
 		g_Lua->ThrowError("Failed to get edict?");
@@ -296,14 +290,14 @@ LUA_FUNCTION_STATIC(pvs_OverrideStateFlags)
 		LUA->PushNil();
 		while (LUA->Next(-2))
 		{
-			CBaseEntity* ent = Util::Get_Entity(-1, false);
+			CBaseEntity* ent = Util::Get_Entity(-1, true);
 			SetOverrideStateFlags(ent, flags, force);
 
 			LUA->Pop(1);
 		}
 		LUA->Pop(1);
 	} else {
-		CBaseEntity* ent = Util::Get_Entity(1, false);
+		CBaseEntity* ent = Util::Get_Entity(1, true);
 		SetOverrideStateFlags(ent, flags, force);
 	}
 
@@ -355,14 +349,14 @@ LUA_FUNCTION_STATIC(pvs_SetStateFlags)
 		LUA->PushNil();
 		while (LUA->Next(-2))
 		{
-			CBaseEntity* ent = Util::Get_Entity(-1, false);
+			CBaseEntity* ent = Util::Get_Entity(-1, true);
 			SetStateFlags(ent, flags, force);
 
 			LUA->Pop(1);
 		}
 		LUA->Pop(1);
 	} else {
-		CBaseEntity* ent = Util::Get_Entity(1, false);
+		CBaseEntity* ent = Util::Get_Entity(1, true);
 		SetStateFlags(ent, flags, force);
 	}
 
@@ -371,10 +365,7 @@ LUA_FUNCTION_STATIC(pvs_SetStateFlags)
 
 LUA_FUNCTION_STATIC(pvs_GetStateFlags)
 {
-	CBaseEntity* ent = Util::Get_Entity(1, false);
-	if (!ent)
-		LUA->ThrowError("Tried to use a NULL Entity!");
-
+	CBaseEntity* ent = Util::Get_Entity(1, true);
 	edict_t* edict = GetEdictOfEnt(ent);
 	if (!edict)
 		LUA->ThrowError("Failed to get edict?");
@@ -405,9 +396,6 @@ LUA_FUNCTION_STATIC(pvs_GetStateFlags)
 
 static bool RemoveEntityFromTransmit(CBaseEntity* ent)
 {
-	if (!ent)
-		g_Lua->ThrowError("Tried to use a NULL Entity!");
-
 	edict_t* edict = GetEdictOfEnt(ent);
 	if (!edict)
 		g_Lua->ThrowError("Failed to get edict?");
@@ -433,7 +421,7 @@ LUA_FUNCTION_STATIC(pvs_RemoveEntityFromTransmit)
 		LUA->PushNil();
 		while (LUA->Next(-2))
 		{
-			CBaseEntity* ent = Util::Get_Entity(-1, false);
+			CBaseEntity* ent = Util::Get_Entity(-1, true);
 			RemoveEntityFromTransmit(ent);
 
 			LUA->Pop(1);
@@ -442,7 +430,7 @@ LUA_FUNCTION_STATIC(pvs_RemoveEntityFromTransmit)
 
 		LUA->PushBool(true);
 	} else {
-		CBaseEntity* ent = Util::Get_Entity(1, false);
+		CBaseEntity* ent = Util::Get_Entity(1, true);
 		LUA->PushBool(RemoveEntityFromTransmit(ent));
 	}
 
@@ -463,9 +451,6 @@ LUA_FUNCTION_STATIC(pvs_RemoveAllEntityFromTransmit)
 
 static void AddEntityToTransmit(CBaseEntity* ent, bool force)
 {
-	if (!ent)
-		g_Lua->ThrowError("Tried to use a NULL Entity!");
-
 	if (!g_pCurrentTransmitInfo)
 		g_Lua->ThrowError("Tried to use pvs.RemoveEntityFromTransmit while not in a CheckTransmit call!");
 
@@ -481,14 +466,14 @@ LUA_FUNCTION_STATIC(pvs_AddEntityToTransmit)
 		LUA->PushNil();
 		while (LUA->Next(-2))
 		{
-			CBaseEntity* ent = Util::Get_Entity(-1, false);
+			CBaseEntity* ent = Util::Get_Entity(-1, true);
 			AddEntityToTransmit(ent, force);
 
 			LUA->Pop(1);
 		}
 		LUA->Pop(1);
 	} else {
-		CBaseEntity* ent = Util::Get_Entity(1, false);
+		CBaseEntity* ent = Util::Get_Entity(1, true);
 		AddEntityToTransmit(ent, force);
 	}
 	
@@ -532,7 +517,7 @@ LUA_FUNCTION_STATIC(pvs_SetPreventTransmitBulk)
 		LUA->PushNil();
 		while (LUA->Next(-2))
 		{
-			CBasePlayer* pply = Util::Get_Player(-1, false);
+			CBasePlayer* pply = Util::Get_Player(-1, true);
 			filterplys.push_back(pply);
 
 			LUA->Pop(1);
@@ -549,7 +534,7 @@ LUA_FUNCTION_STATIC(pvs_SetPreventTransmitBulk)
 		LUA->PushNil();
 		while (LUA->Next(-2))
 		{
-			CBaseEntity* ent = Util::Get_Entity(-1, false);
+			CBaseEntity* ent = Util::Get_Entity(-1, true);
 			if (filterplys.size() > 0)
 			{
 				for (CBasePlayer* pply : filterplys)
@@ -563,7 +548,7 @@ LUA_FUNCTION_STATIC(pvs_SetPreventTransmitBulk)
 			LUA->Pop(1);
 		}
 	} else {
-		CBaseEntity* ent = Util::Get_Entity(1, false);
+		CBaseEntity* ent = Util::Get_Entity(1, true);
 		ent->GMOD_SetShouldPreventTransmitToPlayer(ply, notransmit);
 	}
 	
