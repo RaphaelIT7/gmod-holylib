@@ -13,8 +13,8 @@
 
 
 #include "dt_common.h"
-#include "sourcesdk/engine_dt_recv_eng.h"
-#include "sourcesdk/engine_dt_send_eng.h"
+#include "dt_recv_eng.h"
+#include "dt_send_eng.h"
 #include "utlvector.h"
 #include "dt_encode.h"
 #include "utlmap.h"
