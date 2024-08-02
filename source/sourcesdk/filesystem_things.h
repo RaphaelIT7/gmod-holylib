@@ -4,6 +4,7 @@
 #include <utlhashtable.h>
 #include <utldict.h>
 
+class CPackedStoreRefCount;
 extern CUtlSymbolTableMT* g_PathIDTable;
 class CPathIDInfo
 	{
@@ -143,7 +144,71 @@ typedef struct
 } FIND_DATA;
 
 #define WIN32_FIND_DATA FIND_DATA
-class CPackedStoreFileHandle;
+class CPackedStore;
+class CPackedStoreFileHandle
+{
+public:
+	int m_nFileNumber;
+	int m_nFileOffset;
+	int m_nFileSize;
+	int m_nCurrentFileOffset;
+	void const *m_pMetaData;
+	uint16 m_nMetaDataSize;
+	CPackedStore *m_pOwner;
+	struct CFileHeaderFixedData *m_pHeaderData;
+	uint8 *m_pDirFileNamePtr;								// pointer to basename in dir block
+
+	FORCEINLINE operator bool( void ) const
+	{
+		return ( m_nFileNumber != -1 );
+	}
+
+	FORCEINLINE int Read( void *pOutData, int nNumBytes );
+
+	CPackedStoreFileHandle( void )
+	{
+		m_nFileNumber = -1;
+		m_nFileOffset = -1;
+		m_nFileSize = -1;
+		m_nCurrentFileOffset = -1;
+		m_pMetaData = nullptr;
+		m_nMetaDataSize = 0;
+		m_pOwner = nullptr;
+		m_pHeaderData = nullptr;
+		m_pDirFileNamePtr = nullptr;
+	}
+
+	int Seek( int nOffset, int nWhence )
+	{
+		switch( nWhence )
+		{
+			case SEEK_CUR:
+				nOffset = m_nFileOffset + nOffset ;
+				break;
+
+			case SEEK_END:
+				nOffset = m_nFileSize + nOffset;
+				break;
+		}
+		m_nCurrentFileOffset = MAX( 0, MIN( m_nFileSize, nOffset ) );
+		return m_nCurrentFileOffset;
+	}
+
+	int Tell( void ) const
+	{
+		return m_nCurrentFileOffset;
+	}
+
+	uint32 GetFileCRCFromHeaderData() const
+	{
+		uint32 *pCRC = (uint32 *)m_pHeaderData;
+		return *pCRC;
+	}
+
+	FORCEINLINE void GetPackFileName( char *pchFileNameOut, int cchFileNameOut );
+
+};
+
 class CFileTracker2 : IThreadedFileMD5Processor
 {
 public:
@@ -175,7 +240,6 @@ public:
 
 class CPackFile;
 class CPackFileHandle;
-class CPackedStoreRefCount;
 class CCompiledKeyValuesReader;
 class CFileAsyncReadJob;
 class CFileHandle
