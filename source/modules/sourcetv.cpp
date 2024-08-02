@@ -2,7 +2,6 @@
 #include <GarrysMod/Lua/Interface.h>
 #include "lua.h"
 #include "sourcesdk/hltvserver.h"
-#include "sourcesdk/gmod_netmessages.h"
 #include <unordered_map>
 #include "usermessages.h"
 
