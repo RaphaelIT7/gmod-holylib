@@ -1,4 +1,6 @@
 #include "interface.h"
+#define min MIN
+#define max MAX
 #include <scanning/symbolfinder.hpp>
 #include <vector>
 #include <string>
