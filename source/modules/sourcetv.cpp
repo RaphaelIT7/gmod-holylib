@@ -421,12 +421,12 @@ static bool hook_CHLTVClient_ProcessGMod_ClientToServer(CHLTVClient* hltvclient,
 		return true;
 
 	bf->m_DataIn.Seek(0);
-	int type = bf->m_DataIn.ReadBitLong(4, false);
+	int type = bf->m_DataIn.ReadUBitLong(4);
 	if ( type != 2 ) // Only handle type 2 -> Lua net message.
 		return true;
 
-	bf->m_DataIn.ReadBitLong(8, false);
-	bf->m_DataIn.ReadBitLong(22, false); // Skiping to the header
+	bf->m_DataIn.ReadUBitLong(8);
+	bf->m_DataIn.ReadUBitLong(22); // Skiping to the header
 	//bf->m_DataIn.ReadBitLong(16, false); // The header -> the string. Why not an 12 bits? (This will be read by net.ReadHeader())
 
 	if (Lua::PushHook("HolyLib:OnSourceTVNetMessage")) // Maybe change the name? I don't have a better one rn :/
