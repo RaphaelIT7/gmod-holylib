@@ -1,6 +1,7 @@
 #include "module.h"
 #include <GarrysMod/Lua/Interface.h>
 #include "lua.h"
+#include "Platform.hpp"
 
 class CCVarsModule : public IModule
 {
@@ -21,8 +22,17 @@ LUA_FUNCTION_STATIC(cvars_GetAll)
 {
 	LUA->CreateTable();
 		int idx = 0;
+#ifdef ARCHITECTURE_X86_64
+		ICvar::Iterator it(g_pCVar);
+		it.SetFirst();
+		const ConCommandBase *var = it->Get();
+		for ( ; var ; it->Next())
+		{
+			var = it.Get();
+#else
 		for ( const ConCommandBase *var = g_pCVar->GetCommands() ; var ; var = var->GetNext())
 		{
+#endif
 			if ( var->IsCommand() )
 				continue;
 
