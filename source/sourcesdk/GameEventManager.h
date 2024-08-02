@@ -15,11 +15,7 @@
 
 #include <igameevents.h>
 #include <utlvector.h>
-#ifdef ARCHITECTURE_IS_X86_64
-#include <keyvalues.h>
-#else
 #include <KeyValues.h>
-#endif
 #include <networkstringtabledefs.h>
 #include <utlsymbol.h>
 
