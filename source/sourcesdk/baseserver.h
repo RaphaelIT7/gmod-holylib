@@ -15,7 +15,7 @@
 #include <bitbuf.h>
 #include <utlvector.h>
 #include "baseclient.h"
-#include "netmessages.h"
+#include "sourcesdk/netmessages.h"
 #include "net.h"
 
 class CNetworkStringTableContainer;
