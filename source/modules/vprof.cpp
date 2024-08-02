@@ -48,16 +48,21 @@ static std::string GetCurrentTime() { // Yoink from vprof module
 }
 
 static std::stringstream ss;
+#ifndef ARCHITECTURE_X86_64
 static SpewRetval_t VProf_Spew(SpewType_t type, const char *msg)
 {
 	ss << msg;
 
 	return SPEW_CONTINUE;
 }
+#endif
 
 static Detouring::Hook detour_CVProfile_OutputReport;
 static void hook_CVProfile_OutputReport(void* fancy, int type, const tchar* pszStartMode, int budgetGroupID)
 {
+#ifdef ARCHITECTURE_X86_64
+	detour_CVProfile_OutputReport.GetTrampoline<Symbols::CVProfile_OutputReport>()(fancy, type, pszStartMode, budgetGroupID);
+#else
 	if (!holylib_vprof_exportreport.GetBool())
 	{
 		detour_CVProfile_OutputReport.GetTrampoline<Symbols::CVProfile_OutputReport>()(fancy, type, pszStartMode, budgetGroupID);
@@ -95,6 +100,7 @@ static void hook_CVProfile_OutputReport(void* fancy, int type, const tchar* pszS
 	}
 
 	ss.str("");
+#endif
 }
 
 static std::map<int, std::string> CallFinish_strs;
