@@ -45,7 +45,8 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 		})
 
 		includedirs({
-			[[Bootil/include/]]
+			[[Bootil/include/]],
+			[[source/sourcesdk/]]
 		})
 
 		libdirs("libs")
