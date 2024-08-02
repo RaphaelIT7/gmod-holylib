@@ -356,6 +356,22 @@ public:
 	explicit SVC_CmdKeyValues( KeyValues *pKeyValues = NULL );	// takes ownership
 };
 
+class CLC_GMod_ClientToServer : public CNetMessage
+{
+public:
+	bool			ReadFromBuffer( bf_read &buffer );
+	bool			WriteToBuffer( bf_write &buffer );
+	const char		*ToString() const; // boobies xd
+	int				GetType() const { return clc_GMod_ClientToServer; }
+		const char* GetName() const { return "GMod_ClientToServer"; }
+
+	//IClientMessageHandler2 *m_pMessageHandler;
+	//bool Process() { return m_pMessageHandler->ProcessGMod_ClientToServer( this ); }
+
+	int magic; // offset
+	bf_read		m_DataIn;
+};
+
 ///////////////////////////////////////////////////////////////////////////////////////
 // server messages:
 ///////////////////////////////////////////////////////////////////////////////////////
@@ -767,6 +783,8 @@ public:
 	bf_read		m_DataIn;
 	bf_write	m_DataOut;
 };
+
+class SVC_GMod_ServerToClient; // Never tried to get it sooo idk
 
 ///////////////////////////////////////////////////////////////////////////////////////
 // Matchmaking messages:

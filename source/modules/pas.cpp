@@ -189,8 +189,8 @@ LUA_FUNCTION_STATIC(pas_TestPAS) // This is based off SV_DetermineMulticastRecip
 	}*/
 
 	int cluster = CM_LeafCluster(CM_PointLeafnum(*orig));
-	byte pvs[MAX_MAP_LEAFS/8];
-	const byte *pMask = CM_Vis(pvs, sizeof(pvs), cluster, DVIS_PAS);
+	byte pas[MAX_MAP_LEAFS/8];
+	const byte *pMask = CM_Vis(pas, sizeof(pas), cluster, DVIS_PAS);
 
 	int iBitNumber = CM_LeafCluster(CM_PointLeafnum(*hearPos));
 
