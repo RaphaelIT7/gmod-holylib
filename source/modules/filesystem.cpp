@@ -214,7 +214,7 @@ static ConCommand nukesearchcache("holylib_filesystem_nukesearchcache", NukeSear
 static void DumpFilecacheCmd(const CCommand &args)
 {
 	Msg("---- FileHandle cache ----\n");
-	for (auto&[strPath, cache] : m_FileCache)
+	for (auto&[strPath, handle] : m_FileCache)
 	{
 		Msg("	\"%s\"\n", strPath.c_str());
 	}
@@ -502,6 +502,7 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 			if (handle) {
 				if (holylib_filesystem_debug.GetBool())
 					Msg("OpenForRead: Found file in forced path! (%s, %s, %s)\n", pFileNameT, pathID, newPath);
+
 				return handle;
 			} else {
 				if (holylib_filesystem_debug.GetBool())
@@ -540,6 +541,10 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 			if (file) {
 				if (holylib_filesystem_debug.GetBool())
 					Msg("OpenForRead: Found file in predicted path! (%s, %s)\n", pFileNameT, pathID);
+
+				if (holylib_filesystem_cachefilehandle.GetBool())
+					AddFileHandleToCache(GetFullPath(openInfo.m_pSearchPath, openInfo.m_pFileName), file);
+
 				return file;
 			} else {
 				if (holylib_filesystem_debug.GetBool())
@@ -583,7 +588,12 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 		openInfo.m_pSearchPath = cachePath;
 		FileHandle_t file = detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
 		if (file)
+		{
+			if (holylib_filesystem_cachefilehandle.GetBool())
+				AddFileHandleToCache(GetFullPath(openInfo.m_pSearchPath, openInfo.m_pFileName), file);
+
 			return file;
+		}
 
 		//RemoveFileFromSearchCache(pFileNameT);
 	} else {
