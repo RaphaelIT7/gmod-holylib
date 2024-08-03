@@ -62,6 +62,14 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 	{
 		if (bEnabled && !m_bEnabled)
 		{
+			if (!m_bCompatible)
+			{
+				Warning("module %s is not compatible with this platform!", m_strName.c_str());
+
+				if (!bForced)
+					return;
+			}
+
 			int status = g_pModuleManager.GetStatus();
 			if (status & LoadStatus_Init)
 				m_pModule->Init(&g_pModuleManager.GetAppFactory(), &g_pModuleManager.GetGameFactory());
@@ -78,8 +86,7 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 			if (status & LoadStatus_LuaServerInit)
 				m_pModule->LuaInit(true);
 
-			if (bForced)
-				Msg("Enabled module %s\n", m_pModule->Name());
+			Msg("Enabled module %s\n", m_pModule->Name());
 		} else {
 			int status = g_pModuleManager.GetStatus();
 			if (status & LoadStatus_Init)
@@ -88,8 +95,7 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 			if (status & LoadStatus_LuaInit)
 				m_pModule->LuaShutdown();
 
-			if (bForced)
-				Msg("Disabled module %s\n", m_pModule->Name());
+			Msg("Disabled module %s\n", m_pModule->Name());
 		}
 	}
 
