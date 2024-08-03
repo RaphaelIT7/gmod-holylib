@@ -946,7 +946,10 @@ static unsigned FileHandleThread(void* data)
 	while (cData->bRun)
 	{
 		if (!holylib_filesystem_cachefilehandle.GetBool())
+		{
+			ThreadSleep(THREAD_SLEEPTIME);
 			continue;
+		}
 
 		std::vector<FileHandle_t> pDeletionList;
 		for (auto& [file, time] : cData->pFileDeletionList)
