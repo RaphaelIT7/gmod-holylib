@@ -107,7 +107,7 @@ inline void HolyLib_UTIL_TraceRay(const Ray_t &ray, unsigned int mask, const IHa
 	//}
 }
 
-static CGlobalVars *gpGlobals = NULL;
+CGlobalVars *gpGlobals = NULL;
 IEngineTrace *enginetrace = NULL;
 CBaseEntityList *g_pEntityList = NULL;
 static Detouring::Hook detour_CGameMovement_TryPlayerMove;
