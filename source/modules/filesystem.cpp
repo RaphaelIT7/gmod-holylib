@@ -579,188 +579,6 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 	}
 
 	return detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
-
-	/*VPROF("HolyLib - CBaseFileSystem::OpenForRead");
-
-	char pFileNameBuff[MAX_PATH];
-	const char *pFileName = pFileNameBuff;
-
-	hook_CBaseFileSystem_FixUpPath(fileSystem, pFileNameT, pFileNameBuff, sizeof(pFileNameBuff));		
-
-	if (!pathID || Q_stricmp( pathID, "GAME" ) == 0)
-	{
-		CMemoryFileBacking* pBacking = NULL;
-		{
-			AUTO_LOCK( fileSystem->m_MemoryFileMutex );
-			CUtlHashtable< const char*, CMemoryFileBacking* >& table = fileSystem->m_MemoryFileHash;
-			UtlHashHandle_t idx = table.Find( pFileName );
-			if ( idx != table.InvalidHandle() )
-			{
-				pBacking = table[idx];
-				pBacking->AddRef();
-			}
-		}
-		if ( pBacking )
-		{
-			if ( pBacking->m_nLength != -1 )
-			{
-				CFileHandle* pFile = new CMemoryFileHandle( fileSystem, pBacking );
-				pFile->m_type = strchr( pOptions, 'b' ) ? FT_MEMORY_BINARY : FT_MEMORY_TEXT;
-				return ( FileHandle_t )pFile;
-			}
-			else
-			{
-				return ( FileHandle_t )NULL;
-			}
-		}
-	}
-
-	CFileOpenInfo openInfo( fileSystem, pFileName, NULL, pOptions, flags, ppszResolvedFilename );
-
-	if ( V_IsAbsolutePath( pFileName ) )
-	{
-		openInfo.SetAbsolutePath( "%s", pFileName );
-
-		char *pZipExt = V_stristr( openInfo.m_AbsolutePath, ".zip" CORRECT_PATH_SEPARATOR_S );
-		if ( !pZipExt )
-			pZipExt = V_stristr( openInfo.m_AbsolutePath, ".bsp" CORRECT_PATH_SEPARATOR_S );
-		if ( !pZipExt )
-			pZipExt = V_stristr( openInfo.m_AbsolutePath, ".vpk" CORRECT_PATH_SEPARATOR_S );
-	
-		if ( pZipExt && pZipExt[5] )
-		{
-			char *pSlash = pZipExt + 4;
-			Assert( *pSlash == CORRECT_PATH_SEPARATOR );
-			*pSlash = '\0';
-
-			char *pRelativeFileName = pSlash + 1;
-			for ( int i = 0; i < fileSystem->m_SearchPaths.Count(); i++ )
-			{
-				CPackedStore *pVPK = fileSystem->m_SearchPaths[i].GetPackedStore();
-				if ( pVPK )
-				{
-					if ( V_stricmp( pVPK->FullPathName(), openInfo.m_AbsolutePath ) == 0 )
-					{
-						CPackedStoreFileHandle fHandle = pVPK->OpenFile( pRelativeFileName );
-						if ( fHandle )
-						{
-							openInfo.m_pSearchPath = &m_SearchPaths[i];
-							openInfo.SetFromPackedStoredFileHandle( fHandle, this );
-						}
-						break;
-					}
-					continue;
-				}
-
-				// In .zip?
-				CPackFile *pPackFile = fileSystem->m_SearchPaths[i].GetPackFile();
-				if ( pPackFile )
-				{
-					if ( Q_stricmp( pPackFile->m_ZipName.Get(), openInfo.m_AbsolutePath ) == 0 )
-					{
-						openInfo.m_pSearchPath = &m_SearchPaths[i];
-						openInfo.m_pFileHandle = pPackFile->OpenFile( pRelativeFileName, openInfo.m_pOptions );
-						openInfo.m_pPackFile = pPackFile;
-						break;
-					}
-				}
-			}
-
-			if ( openInfo.m_pFileHandle )
-			{
-				openInfo.SetResolvedFilename( openInfo.m_pFileName );
-				openInfo.HandleFileCRCTracking( pRelativeFileName );
-			}
-			return (FileHandle_t)openInfo.m_pFileHandle;
-		}
-
-		// Otherwise, it must be a regular file, specified by absolute filename
-		HandleOpenRegularFile( openInfo, true );
-
-		// !FIXME! We probably need to deal with CRC tracking, right?
-
-		return (FileHandle_t)openInfo.m_pFileHandle;
-	}
-
-	// Run through all the search paths.
-	PathTypeFilter_t pathFilter = FILTER_NONE;
-	if ( IsX360() )
-	{
-		if ( flags & FSOPEN_NEVERINPACK )
-		{
-			pathFilter = FILTER_CULLPACK;
-		}
-		else if ( m_DVDMode == DVDMODE_STRICT )
-		{
-			// most all files on the dvd are expected to be in the pack
-			// don't allow disk paths to be searched, which is very expensive on the dvd
-			pathFilter = FILTER_CULLNONPACK;
-		}
-	}
-
-	const CBaseFileSystem::CSearchPath* cache_path = GetPathFromSearchCache( pFileName, pathID );
-	if ( cache_path )
-	{
-		openInfo.m_pSearchPath = cache_path;
-		FileHandle_t filehandle = FindFileInSearchPath( openInfo );
-		if ( filehandle )
-		{
-			if ( !openInfo.m_pSearchPath->m_bIsTrustedForPureServer && openInfo.m_ePureFileClass == ePureServerFileClass_AnyTrusted )
-			{
-				#ifdef PURE_SERVER_DEBUG_SPEW
-					Msg( "Ignoring %s from %s for pure server operation\n", openInfo.m_pFileName, openInfo.m_pSearchPath->GetDebugString() );
-				#endif
-
-				m_FileTracker2.NoteFileIgnoredForPureServer( openInfo.m_pFileName, pathID, openInfo.m_pSearchPath->m_storeId );
-				Close( filehandle );
-				openInfo.m_pFileHandle = NULL;
-				if ( ppszResolvedFilename && *ppszResolvedFilename )
-				{
-					free( *ppszResolvedFilename );
-					*ppszResolvedFilename = NULL;
-				}
-			} else {
-				openInfo.HandleFileCRCTracking( openInfo.m_pFileName );
-				return filehandle;
-			}
-		} else {
-			RemoveFileFromSearchCache( pFileName, pathID ); // Somehow the file was not found? It probably was deleted
-		}
-	}
-
-	CSearchPathsIterator iter( fileSystem, &pFileName, pathID, pathFilter );
-	for ( CSearchPath* path = iter.GetFirst(); path != NULL; path = iter.GetNext() )
-	{
-		openInfo.m_pSearchPath = path;
-		FileHandle_t filehandle = hook_CBaseFileSystem_FindFileInSearchPath( fileSystem, openInfo );
-		if ( filehandle )
-		{
-			// Check if search path is excluded due to pure server white list,
-			// then we should make a note of this fact, and keep searching
-			if ( !openInfo.m_pSearchPath->m_bIsTrustedForPureServer && openInfo.m_ePureFileClass == ePureServerFileClass_AnyTrusted )
-			{
-				#ifdef PURE_SERVER_DEBUG_SPEW
-					Msg( "Ignoring %s from %s for pure server operation\n", openInfo.m_pFileName, openInfo.m_pSearchPath->GetDebugString() );
-				#endif
-
-				m_FileTracker2.NoteFileIgnoredForPureServer( openInfo.m_pFileName, pathID, openInfo.m_pSearchPath->m_storeId );
-				fileSystem->Close( filehandle );
-				openInfo.m_pFileHandle = NULL;
-				if ( ppszResolvedFilename && *ppszResolvedFilename )
-				{
-					free( *ppszResolvedFilename );
-					*ppszResolvedFilename = NULL;
-				}
-				continue;
-			}
-
-			openInfo.HandleFileCRCTracking( openInfo.m_pFileName );
-			return filehandle;
-		}
-	}
-
-	LogFileOpen( "[Failed]", pFileName, "" );
-	return ( FileHandle_t )0;*/
 }
 
 /*
@@ -876,44 +694,6 @@ static long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char
 				Msg("GetFileTime: File is not in overridePaths (%s, %s)\n", pFileName, pPathID);
 		}
 	}
-
-	/*if (holylib_filesystem_predictpath.GetBool())
-	{
-		CSearchPath* path = NULL;
-		std::string strFileName = pFileNameT;
-		const char* extension = V_GetFileExtension(pFileNameT);
-
-		bool isModel = false;
-		if (V_stricmp(extension, "vvd") == 0)
-			isModel = true;
-
-		if (!isModel && V_stricmp(extension, "vtx") == 0) // ToDo: find out which one to keep
-			isModel = true;
-
-		if (!isModel && V_stricmp(extension, "phy") == 0)
-			isModel = true;
-
-		if (isModel)
-		{
-			std::string mdlPath = nukeFileExtension(strFileName) + ".mdl";
-			path = GetPathFromSearchCache(mdlPath.c_str());
-		}
-
-		if (path)
-		{
-			long time = detour_CBaseFileSystem_GetFileTime.GetTrampoline<Symbols::CBaseFileSystem_GetFileTime>()(filesystem, pFileName, pPathID);
-			if (time != 0L) {
-				if (holylib_filesystem_debug.GetBool())
-					Msg("OpenForRead: Found file in predicted path! (%s, %s)\n", pFileName, pPathID);
-				return time;
-			} else
-				if (holylib_filesystem_debug.GetBool())
-					Msg("OpenForRead: Failed to predict file path! (%s, %s)\n", pFileName, pPathID);
-		} else {
-			if (holylib_filesystem_debug.GetBool())
-				Msg("OpenForRead: Not predicting it! (%s, %s, %s)\n", pFileName, pPathID, extension);
-		}
-	}*/
 
 	return detour_CBaseFileSystem_GetFileTime.GetTrampoline<Symbols::CBaseFileSystem_GetFileTime>()(filesystem, pFileName, pPathID);
 }
@@ -1281,10 +1061,10 @@ inline const char* CSearchPath::GetPathIDString() const
 	return m_pPathIDInfo->GetPathIDString();
 }
 
-static CUtlSymbolTableMT* g_pPathIDTable;
+static Symbols::CBaseFileSystem_CSearchPath_GetDebugString func_CBaseFileSystem_CSearchPath_GetDebugString;
 inline const char* CSearchPath::GetPathString() const
 {
-	return g_pPathIDTable->String( m_Path );
+	return func_CBaseFileSystem_CSearchPath_GetDebugString((void*)this);
 }
 
 void CFileSystemModule::InitDetour(bool bPreServer)
@@ -1355,9 +1135,8 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 	func_CBaseFileSystem_FindSearchPathByStoreId = (Symbols::CBaseFileSystem_FindSearchPathByStoreId)Detour::GetFunction(dedicated_loader.GetModule(), Symbols::CBaseFileSystem_FindSearchPathByStoreIdSym);
 	Detour::CheckFunction(func_CBaseFileSystem_FindSearchPathByStoreId, "CBaseFileSystem::FindSearchPathByStoreId");
 
-	SourceSDK::FactoryLoader dedicated_factory("dedicated_srv");
-	g_pPathIDTable = Detour::ResolveSymbol<CUtlSymbolTableMT>(dedicated_factory, Symbols::g_PathIDTableSym);
-	Detour::CheckValue("get class", "g_PathIDTable", g_pPathIDTable != NULL);
+	func_CBaseFileSystem_CSearchPath_GetDebugString = (Symbols::CBaseFileSystem_CSearchPath_GetDebugString)Detour::GetFunction(dedicated_loader.GetModule(), Symbols::CBaseFileSystem_CSearchPath_GetDebugStringSym);
+	Detour::CheckFunction(func_CBaseFileSystem_CSearchPath_GetDebugString, "CBaseFileSystem::CSearchPath::GetDebugString");
 }
 
 void CFileSystemModule::Shutdown()
