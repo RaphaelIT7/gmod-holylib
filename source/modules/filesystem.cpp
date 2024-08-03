@@ -956,7 +956,11 @@ static unsigned FileHandleThread(void* data)
 		{
 			time -= THREAD_SLEEPTIME;
 			if (time <= 0)
+			{
 				pDeletionList.push_back(file);
+				if (holylib_filesystem_debug.GetBool())
+					Msg("FileThread: Preparing filehandle for deletion! (%p, %i)\n", file, time);
+			}
 		}
 
 		if (pDeletionList.size() > 0)
@@ -986,6 +990,7 @@ static unsigned FileHandleThread(void* data)
 
 				DeleteFileHandle(handle);
 			}
+			pDeletionList.clear();
 		}
 
 		ThreadSleep(THREAD_SLEEPTIME);
