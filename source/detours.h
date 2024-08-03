@@ -434,28 +434,28 @@ namespace Detour
 		SourceSDK::FactoryLoader& loader, const std::vector<Symbol>& symbols
 	)
 	{
-		if ((symbol.size()-1) < DETOUR_SYMBOL_ID)
+		if ((symbols.size()-1) < DETOUR_SYMBOL_ID)
 			return NULL;
 
 		return ResolveSymbol<T>(loader, symbols[DETOUR_SYMBOL_ID]);
 	}
 
-	inline void* GetFunction(void* module, std::vector<Symbol> symbol)
+	inline void* GetFunction(void* module, std::vector<Symbol> symbols)
 	{
-		if ((symbol.size()-1) < DETOUR_SYMBOL_ID)
+		if ((symbols.size()-1) < DETOUR_SYMBOL_ID)
 			return NULL;
 
-		return GetFunction(module, symbol[DETOUR_SYMBOL_ID]);
+		return GetFunction(module, symbols[DETOUR_SYMBOL_ID]);
 	}
 
-	inline void Create(Detouring::Hook* hook, const char* name, void* module, std::vector<Symbol> symbol, void* func, unsigned int category)
+	inline void Create(Detouring::Hook* hook, const char* name, void* module, std::vector<Symbol> symbols, void* func, unsigned int category)
 	{
-		if ((symbol.size()-1) < DETOUR_SYMBOL_ID)
+		if ((symbols.size()-1) < DETOUR_SYMBOL_ID)
 		{
 			CheckFunction(nullptr, name);
 			return;
 		}
 
-		Create(hook, name, module, symbol[DETOUR_SYMBOL_ID], func, category);
+		Create(hook, name, module, symbols[DETOUR_SYMBOL_ID], func, category);
 	}
 }
