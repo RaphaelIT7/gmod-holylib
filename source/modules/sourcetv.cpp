@@ -190,6 +190,7 @@ LUA_FUNCTION_STATIC(HLTVClient_IsValid)
 }
 
 static CUserMessages* pUserMessages;
+#if 0
 LUA_FUNCTION_STATIC(HLTVClient_SendLua)
 {
 	CHLTVClient* client = Get_HLTVClient(1);
@@ -213,6 +214,7 @@ LUA_FUNCTION_STATIC(HLTVClient_SendLua)
 	LUA->PushBool(true);
 	return 1;
 }
+#endif
 
 #define LUA_RECORD_OK 0
 #define LUA_RECORD_NOSOURCETV -1
