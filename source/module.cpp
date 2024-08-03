@@ -24,6 +24,7 @@ void OnModuleConVarChange(IConVar* convar, const char* pOldValue, float flOldVal
 
 void CModule::SetModule(IModule* module)
 {
+	m_bStartup = true;
 	m_pModule = module;
 #ifdef SYSTEM_LINUX // Welcome to ifdef hell
 #ifdef ARCHITECTURE_X86
@@ -54,6 +55,7 @@ void CModule::SetModule(IModule* module)
 		m_bEnabled = m_bCompatible;
 
 	m_pCVar = new ConVar(m_strName.c_str(), m_bEnabled ? "1" : "0", FCVAR_ARCHIVE, "Whether this module should be active or not", OnModuleConVarChange);
+	m_bStartup = false;
 }
 
 void CModule::SetEnabled(bool bEnabled, bool bForced)
@@ -86,7 +88,8 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 			if (status & LoadStatus_LuaServerInit)
 				m_pModule->LuaInit(true);
 
-			Msg("Enabled module %s\n", m_pModule->Name());
+			if (!m_bStartup)
+				Msg("Enabled module %s\n", m_pModule->Name());
 		} else {
 			int status = g_pModuleManager.GetStatus();
 			if (status & LoadStatus_Init)
@@ -95,7 +98,8 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 			if (status & LoadStatus_LuaInit)
 				m_pModule->LuaShutdown();
 
-			Msg("Disabled module %s\n", m_pModule->Name());
+			if (!m_bStartup)
+				Msg("Disabled module %s\n", m_pModule->Name());
 		}
 	}
 

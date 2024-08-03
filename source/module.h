@@ -48,6 +48,7 @@ protected:
 	std::string m_strName;
 	bool m_bEnabled = false;
 	bool m_bCompatible = false;
+	bool m_bStartup = false;
 };
 
 #define LoadStatus_Init (1<<1)
