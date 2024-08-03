@@ -57,11 +57,17 @@ void* holylib = NULL;
 typedef void ( *plugin_main )();
 void Load()
 {
-	Msg( "--- Holylib Loading ---\n" );
+	Msg( "--- Holylib-GhostInj Loading ---\n" );
 
+#ifdef ARCHITECTURE_X86
 	holylib = dlopen( "garrysmod/lua/bin/gmsv_holylib_linux.so", RTLD_NOW );
 	if ( !holylib )
 		Msg( "Failed to open gmsv_holylib_linux.so (%s)\n", dlerror() );
+#else
+	holylib = dlopen( "garrysmod/lua/bin/gmsv_holylib_linux64.so", RTLD_NOW );
+	if ( !holylib )
+		Msg( "Failed to open gmsv_holylib_linux64.so (%s)\n", dlerror() );
+#endif
 
 	plugin_main plugin = reinterpret_cast< plugin_main >( dlsym( holylib, "HolyLib_PreLoad" ) );
 	if ( !plugin ) {
@@ -74,12 +80,12 @@ void Load()
 	if ( ghostinj2 )
 		Msg( "Found and loaded ghostinj2.dll\n" );
 
-	Msg( "--- Holylib loaded ---\n" );
+	Msg( "--- Holylib-GhostInj loaded ---\n" );
 }
 
 void Unload()
 {
-	Msg( "--- Holylib unloading ---\n" );
+	Msg( "--- Holylib-GhostInj unloading ---\n" );
 
 	if ( holylib )
 		dlclose( holylib );
@@ -87,7 +93,7 @@ void Unload()
 	if ( ghostinj2 )
 		dlclose( ghostinj2 );
 
-	Msg( "--- Holylib unloaded ---\n" );
+	Msg( "--- Holylib-GhostInj unloaded ---\n" );
 }
 
 #if SYSTEM_WINDOWS

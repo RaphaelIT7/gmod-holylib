@@ -525,7 +525,7 @@ LUA_FUNCTION_STATIC(pvs_SetPreventTransmitBulk)
 		LUA->Pop(1);
 	}
 	else
-		ply = Util::Get_Player(2, false);
+		ply = Util::Get_Player(2, true);
 
 	bool notransmit = LUA->GetBool(3);
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Table))
