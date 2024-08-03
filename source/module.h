@@ -1,8 +1,11 @@
 #include "interface.h"
-#include "detours.h"
-#include <scanning/symbolfinder.hpp>
 #include <vector>
 #include <string>
+
+namespace Detour
+{
+	extern void Remove(unsigned int category);
+}
 
 enum Module_Compatibility
 {
