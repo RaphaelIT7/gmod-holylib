@@ -139,7 +139,7 @@ void CModuleManager::RegisterModule(IModule* pModule)
 		15,
 		module->GetModule()->Name(), 
 		module->IsEnabled() ? "true, " : "false,", 
-		module->IsCompatible() ? "true, " : "false,"
+		module->IsCompatible() ? "true " : "false"
 	);
 
 	m_pModules.push_back(module);
