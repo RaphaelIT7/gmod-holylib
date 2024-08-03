@@ -380,7 +380,7 @@ static bool hook_CBaseFileSystem_FixUpPath(IFileSystem* filesystem, const char *
 	return true;
 }
 
-static std::string nukeFileExtension(const std::string& fileName) {
+static std::string_view nukeFileExtension(const std::string_view& fileName) {
 	size_t lastDotPos = fileName.find_last_of('.');
 	if (lastDotPos == std::string::npos) 
 		return fileName;
@@ -388,7 +388,7 @@ static std::string nukeFileExtension(const std::string& fileName) {
 	return fileName.substr(0, lastDotPos);
 }
 
-static std::string getFileExtension(const std::string& fileName) {
+static std::string_view getFileExtension(const std::string_view& fileName) {
 	size_t lastDotPos = fileName.find_last_of('.');
 	if (lastDotPos == std::string::npos || lastDotPos == fileName.length() - 1)
 		return "";
@@ -521,8 +521,8 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 	if (holylib_filesystem_predictpath.GetBool() || holylib_filesystem_predictexistance.GetBool())
 	{
 		CSearchPath* path = NULL;
-		std::string strFileName = pFileNameT;
-		std::string extension = getFileExtension(strFileName);
+		std::string_view strFileName = pFileNameT;
+		std::string_view extension = getFileExtension(strFileName);
 
 		bool isModel = false;
 		if (extension == "vvd" || extension == "vtx" || extension == "phy" || extension == "ani")
@@ -530,7 +530,7 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 
 		if (isModel)
 		{
-			std::string mdlPath = nukeFileExtension(strFileName);
+			std::string mdlPath = nukeFileExtension(strFileName).data();
 			if (extension == "vtx")
 				mdlPath = nukeFileExtension(mdlPath); // "dx90.vtx" -> "dx90" -> ""
 
@@ -564,7 +564,7 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 			}
 		} else {
 			if (holylib_filesystem_debug.GetBool())
-				Msg("OpenForRead: Not predicting it! (%s, %s, %s)\n", pFileNameT, pathID, extension.c_str());
+				Msg("OpenForRead: Not predicting it! (%s, %s, %s)\n", pFileNameT, pathID, extension.data());
 		}
 	}
 
@@ -748,7 +748,7 @@ static void hook_CBaseFileSystem_RemoveAllMapSearchPaths(IFileSystem* filesystem
 	detour_CBaseFileSystem_RemoveAllMapSearchPaths.GetTrampoline<Symbols::CBaseFileSystem_RemoveAllMapSearchPaths>()(filesystem);
 }
 
-static std::string getVPKFile(const std::string& fileName) {
+static std::string_view getVPKFile(const std::string_view& fileName) {
 	size_t lastThingyPos = fileName.find_last_of('/');
 	size_t lastDotPos = fileName.find_last_of('.');
 
@@ -762,7 +762,7 @@ static void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const ch
 
 	detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, pathID, addType);
 
-	std::string extension = getFileExtension(pPath);
+	std::string_view extension = getFileExtension(pPath);
 	/*if (extension == "bsp") {
 		const char* pPathID = "__TEMP_MAP_PATH";
 		gBlockRemoveAllMapPaths = true;
@@ -873,38 +873,38 @@ static void hook_CBaseFileSystem_AddVPKFile(IFileSystem* filesystem, const char 
 
 	if (V_stricmp(pathID, "GAME") == 0)
 	{
-		std::string vpkPath = getVPKFile(pPath);
-		detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, vpkPath.c_str(), addType);
+		std::string_view vpkPath = getVPKFile(pPath);
+		detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, vpkPath.data(), addType);
 
 		std::string strPath = pPath;
-		if (filesystem->IsDirectory("materials/"), vpkPath.c_str())
+		if (filesystem->IsDirectory("materials/"), vpkPath.data())
 			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_MATERIALS", addType);
 
-		if (filesystem->IsDirectory("models/"), vpkPath.c_str())
+		if (filesystem->IsDirectory("models/"), vpkPath.data())
 			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_MODELS", addType);
 	
-		if (filesystem->IsDirectory("sound/"), vpkPath.c_str())
+		if (filesystem->IsDirectory("sound/"), vpkPath.data())
 			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_SOUNDS", addType);
 	
-		if (filesystem->IsDirectory("maps/"), vpkPath.c_str())
+		if (filesystem->IsDirectory("maps/"), vpkPath.data())
 			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_MAPS", addType);
 	
-		if (filesystem->IsDirectory("resource/"), vpkPath.c_str())
+		if (filesystem->IsDirectory("resource/"), vpkPath.data())
 			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_RESOURCE", addType);
 
-		if (filesystem->IsDirectory("scripts/"), vpkPath.c_str())
+		if (filesystem->IsDirectory("scripts/"), vpkPath.data())
 			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_SCRIPTS", addType);
 
-		if (filesystem->IsDirectory("cfg/"), vpkPath.c_str())
+		if (filesystem->IsDirectory("cfg/"), vpkPath.data())
 			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_CONFIGS", addType);
 
-		if (filesystem->IsDirectory("gamemodes/"), vpkPath.c_str())
+		if (filesystem->IsDirectory("gamemodes/"), vpkPath.data())
 			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "LUA_GAMEMODES", addType);
 
-		if (filesystem->IsDirectory("lua/includes/"), vpkPath.c_str())
+		if (filesystem->IsDirectory("lua/includes/"), vpkPath.data())
 			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "LUA_INCLUDES", addType);
 	
-		filesystem->RemoveSearchPath(pPath, vpkPath.c_str());
+		filesystem->RemoveSearchPath(pPath, vpkPath.data());
 	}
 
 	if (holylib_filesystem_debug.GetBool())
@@ -925,7 +925,12 @@ static void hook_CBaseFileSystem_Close(IFileSystem* filesystem, FileHandle_t fil
 	if (holylib_filesystem_cachefilehandle.GetBool())
 	{
 		pDeletionData.pMutex.Lock();
-		pDeletionData.pFileDeletionList[file] = FILE_HANDLE_DELETION_DELAY;
+		auto it = pDeletionData.pFileDeletionList.find(file);
+		if (it == pDeletionData.pFileDeletionList.end()) // File is being used again.
+			pDeletionData.pFileDeletionList[file] = FILE_HANDLE_DELETION_DELAY;
+		else
+			it->second = FILE_HANDLE_DELETION_DELAY;
+
 		if (holylib_filesystem_debug.GetBool())
 			Msg("CBaseFileSystem::Close: Marked handle for deletion! (%p)\n", file);
 		pDeletionData.pMutex.Unlock();
@@ -935,7 +940,7 @@ static void hook_CBaseFileSystem_Close(IFileSystem* filesystem, FileHandle_t fil
 	detour_CBaseFileSystem_Close.GetTrampoline<Symbols::CBaseFileSystem_Close>()(filesystem, file);
 }
 
-#define THREAD_SLEEPTIME 50 // Sleep time in ms
+#define THREAD_SLEEPTIME 500 // Sleep time in ms
 static unsigned FileHandleThread(void* data)
 {
 	DeletionData* cData = (DeletionData*)data;
