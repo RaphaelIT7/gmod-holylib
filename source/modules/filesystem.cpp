@@ -56,6 +56,9 @@ void AddFileHandleToCache(std::string strFilePath, FileHandle_t pHandle)
 {
 	m_FileCache[strFilePath] = pHandle;
 	m_FileStringCache[pHandle] = strFilePath;
+
+	if (holylib_filesystem_debug.GetBool())
+		Msg("Added file %s to filehandle cache\n", strFilePath.c_str());
 }
 
 struct DeletionData
@@ -70,7 +73,12 @@ FileHandle_t GetFileHandleFromCache(std::string strFilePath)
 {
 	auto it = m_FileCache.find(strFilePath);
 	if (it == m_FileCache.end())
+	{
+		if (holylib_filesystem_debug.GetBool())
+			Msg("Failed to find %s in filehandle cache\n", strFilePath.c_str());
+
 		return NULL;
+	}
 
 	pDeletionData.pMutex.Lock();
 	auto it2 = pDeletionData.pFileDeletionList.find(it->second);
@@ -202,6 +210,17 @@ static void NukeSearchcacheCmd(const CCommand &args)
 	NukeSearchCache();
 }
 static ConCommand nukesearchcache("holylib_filesystem_nukesearchcache", NukeSearchcacheCmd, "Nukes the searchcache", 0);
+
+static void DumpFilecacheCmd(const CCommand &args)
+{
+	Msg("---- FileHandle cache ----\n");
+	for (auto&[strPath, cache] : m_FileCache)
+	{
+		Msg("	\"%s\"\n", strPath.c_str());
+	}
+	Msg("---- End of Search cache ----\n");
+}
+static ConCommand dumpfilecache("holylib_filesystem_dumpfilecache", DumpFilecacheCmd, "Dumps the filecache", 0);
 
 static Detouring::Hook detour_CBaseFileSystem_FindFileInSearchPath;
 static FileHandle_t hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, CFileOpenInfo &openInfo)
