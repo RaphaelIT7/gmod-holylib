@@ -83,7 +83,11 @@ FileHandle_t GetFileHandleFromCache(std::string strFilePath)
 	pDeletionData.pMutex.Lock();
 	auto it2 = pDeletionData.pFileDeletionList.find(it->second);
 	if (it2 != pDeletionData.pFileDeletionList.end())
+	{
 		pDeletionData.pFileDeletionList.erase(it2);
+		if (holylib_filesystem_debug.GetBool())
+			Msg("GetFileHandleFromCache: Removed handle for deletion! (%p)\n", it->second);
+	}
 	pDeletionData.pMutex.Unlock();
 
 	g_pFullFileSystem->Seek(it->second, 0, FILESYSTEM_SEEK_HEAD);
@@ -922,6 +926,8 @@ static void hook_CBaseFileSystem_Close(IFileSystem* filesystem, FileHandle_t fil
 	{
 		pDeletionData.pMutex.Lock();
 		pDeletionData.pFileDeletionList[file] = FILE_HANDLE_DELETION_DELAY;
+		if (holylib_filesystem_debug.GetBool())
+			Msg("CBaseFileSystem::Close: Marked handle for deletion! (%p)\n", file);
 		pDeletionData.pMutex.Unlock();
 		return;
 	}
@@ -968,6 +974,9 @@ static unsigned FileHandleThread(void* data)
 
 			for (FileHandle_t handle : pDeletionList) // We delete them outside the mutex to not block the main thread.
 			{
+				if (holylib_filesystem_debug.GetBool())
+					Msg("FileThread: Deleted handle! (%p)\n", handle);
+
 				DeleteFileHandle(handle);
 			}
 		}
