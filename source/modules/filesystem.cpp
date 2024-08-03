@@ -401,7 +401,7 @@ static const char* GetOverridePath(const char* pFileName, const char* pathID)
 	if (!holylib_filesystem_splitgamepath.GetBool())
 		return NULL;
 
-	std::string strFileName = pFileName;
+	std::string_view strFileName = pFileName;
 	if (strFileName.rfind("materials/") == 0)
 		return "CONTENT_MATERIALS";
 
@@ -625,7 +625,7 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
  * GMOD first calls GetFileTime and then OpenForRead, so we need to make changes for lua in GetFileTime.
  */
 
-static std::string replaceString(std::string str, const std::string& from, const std::string& to)
+static std::string replaceString(std::string str, const std::string_view& from, const std::string_view& to)
 {
 	size_t startPos = str.find(from);
 	if (startPos != std::string::npos)
@@ -661,7 +661,7 @@ namespace IGamemodeSystem
  * GMOD Likes to use paths like "sandbox/gamemode/spawnmenu/sandbox/gamemode/spawnmenu/".
  * This wastes performance, so we fix them up to be "sandbox/gamemode/spawnmenu/"
  */
-static std::string fixGamemodePath(IFileSystem* filesystem, std::string path)
+static std::string_view fixGamemodePath(IFileSystem* filesystem, std::string_view path)
 {
 	std::string activeGamemode = ((const IGamemodeSystem::UpdatedInformation&)filesystem->Gamemodes()->Active()).name;
 	if (activeGamemode.empty())
@@ -678,7 +678,7 @@ static std::string fixGamemodePath(IFileSystem* filesystem, std::string path)
 		return path;
 
 	if (holylib_filesystem_debug.GetBool())
-		Msg("fixGamemodePath: Fixed up path. (%s -> %s)\n", path.c_str(), path.substr(pos + 1).c_str());
+		Msg("fixGamemodePath: Fixed up path. (%s -> %s)\n", path.data(), path.substr(pos + 1).data());
 
 	return path.substr(pos + 1);
 }
@@ -698,13 +698,13 @@ static long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char
 		pPathID = newPath;
 	}
 
-	std::string strFileName = pFileName; // Workaround for now.
+	std::string_view strFileName = pFileName; // Workaround for now.
 	if (origPath && V_stricmp(origPath, "lsv") == 0 && holylib_filesystem_fixgmodpath.GetBool()) // Some weird things happen in the lsv path.  
 	{
 		strFileName = fixGamemodePath(filesystem, strFileName);
-		strFileName = replaceString(strFileName, "includes/includes/", "includes/"); // What causes this?
+		//strFileName = replaceString(strFileName, "includes/includes/", "includes/"); // What causes this?
 	}
-	pFileName = strFileName.c_str();
+	pFileName = strFileName.data();
 
 	if (holylib_filesystem_forcepath.GetBool())
 	{
@@ -876,7 +876,6 @@ static void hook_CBaseFileSystem_AddVPKFile(IFileSystem* filesystem, const char 
 		std::string_view vpkPath = getVPKFile(pPath);
 		detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, vpkPath.data(), addType);
 
-		std::string strPath = pPath;
 		if (filesystem->IsDirectory("materials/"), vpkPath.data())
 			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_MATERIALS", addType);
 
