@@ -220,7 +220,7 @@ static void DumpFilecacheCmd(const CCommand &args)
 	Msg("---- FileHandle cache ----\n");
 	for (auto&[strPath, handle] : m_FileCache)
 	{
-		Msg("	\"%s\"\n", strPath.c_str());
+		Msg("	\"%s\": %p\n", strPath.c_str(), handle);
 	}
 	Msg("---- End of Search cache ----\n");
 }
