@@ -34,11 +34,13 @@ struct TraceVisits_t
 typedef uint32 TraceCounter_t;
 typedef CUtlVector<TraceCounter_t> CTraceCounterVec;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wclass-memaccess"
 struct TraceInfo_t
 {
 	TraceInfo_t()
 	{
-		memset( this, 0, offsetof( TraceInfo_t, m_BrushCounters ) );
+		memset( this, 0, offsetof( TraceInfo_t, m_BrushCounters ) ); // This causes a warning
 		m_nCheckDepth = -1;
 	}
 
@@ -81,6 +83,7 @@ struct TraceInfo_t
 	bool Visit( cbrush_t *pBrush, int ndxBrush, TraceCounter_t cachedCount, TraceCounter_t *pCachedCounters );
 	bool Visit( int dispIndex, TraceCounter_t cachedCount, TraceCounter_t *pCachedCounters );
 };
+#pragma GCC diagnostic pop
 
 extern TraceInfo_t g_PrimaryTraceInfo;
 
