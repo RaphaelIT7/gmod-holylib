@@ -68,6 +68,11 @@ void CServerPlugin::Unload(void)
 	g_pModuleManager.Shutdown();
 	Detour::Remove(0);
 	ConVar_Unregister();
+	DisconnectTier1Libraries();
+	DisconnectTier2Libraries();
+#ifndef ARCHITECTURE_X86_64
+	DisconnectTier3Libraries();
+#endif
 }
 
 //---------------------------------------------------------------------------------
