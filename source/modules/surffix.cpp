@@ -107,7 +107,6 @@ inline void HolyLib_UTIL_TraceRay(const Ray_t &ray, unsigned int mask, const IHa
 	//}
 }
 
-CGlobalVars *gpGlobals = NULL;
 IEngineTrace *enginetrace = NULL;
 CBaseEntityList *g_pEntityList = NULL;
 static Detouring::Hook detour_CGameMovement_TryPlayerMove;
@@ -515,14 +514,6 @@ static int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector*
 
 void CSurfFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
-	IPlayerInfoManager* playerinfomanager = (IPlayerInfoManager*)gamefn[0](INTERFACEVERSION_PLAYERINFOMANAGER, NULL);
-	Detour::CheckValue("get interface", "playerinfomanager", playerinfomanager != NULL);
-
-	if ( playerinfomanager )
-	{
-		gpGlobals = playerinfomanager->GetGlobalVars();
-	}
-
 	enginetrace = (IEngineTrace*)appfn[0](INTERFACEVERSION_ENGINETRACE_SERVER, NULL);
 	Detour::CheckValue("get interface", "enginetrace", enginetrace != NULL);
 }
@@ -530,7 +521,7 @@ void CSurfFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 void CSurfFixModule::InitDetour(bool bPreServer)
 {
 	if ( bPreServer ) { return; }
-	if ( gpGlobals ) { return; }
+	if ( !gpGlobals ) { return; }
 
 	SourceSDK::ModuleLoader server_loader("server_srv");
 	Detour::Create(

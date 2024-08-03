@@ -5,7 +5,6 @@
 #include <sourcesdk/filesystem_things.h>
 #include <unordered_map>
 #include <vprof.h>
-#include "player.h"
 
 class CFileSystemModule : public IModule
 {
@@ -909,7 +908,6 @@ void DeleteFileHandle(FileHandle_t handle)
 	detour_CBaseFileSystem_Close.GetTrampoline<Symbols::CBaseFileSystem_Close>()(g_pFullFileSystem, handle);
 }
 
-static CGlobalVars *gpGlobals = NULL;
 static void hook_CBaseFileSystem_Close(IFileSystem* filesystem, FileHandle_t file)
 {
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::Close", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
@@ -978,14 +976,6 @@ void CFileSystemModule::Think(bool bSimulating)
 
 void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
-	IPlayerInfoManager* playerinfomanager = (IPlayerInfoManager*)gamefn[0](INTERFACEVERSION_PLAYERINFOMANAGER, NULL);
-	Detour::CheckValue("get interface", "playerinfomanager", playerinfomanager != NULL);
-
-	if ( playerinfomanager )
-	{
-		gpGlobals = playerinfomanager->GetGlobalVars();
-	}
-
 	// We use MOD_WRITE because it doesn't have additional junk search paths.
 	g_pOverridePaths["cfg/server.cfg"] = "MOD_WRITE";
 	g_pOverridePaths["cfg/banned_ip.cfg"] = "MOD_WRITE";

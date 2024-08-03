@@ -7,6 +7,7 @@
 #include <GarrysMod/Symbols.hpp>
 #include <GarrysMod/Lua/LuaShared.h>
 #include "module.h"
+#include "player.h"
 
 #define DEDICATED
 #include "vstdlib/jobthread.h"
@@ -36,6 +37,7 @@ DLL_EXPORT void HolyLib_PreLoad() // ToDo: Make this a CServerPlugin member late
 //---------------------------------------------------------------------------------
 // Purpose: called when the plugin is loaded, load the interface we need from the engine
 //---------------------------------------------------------------------------------
+CGlobalVars *gpGlobals = NULL;
 bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServerFactory)
 {
 	Msg("--- HolyLib Plugin loading ---\n");
@@ -47,6 +49,12 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 #endif
 
 	engine = (IVEngineServer*)interfaceFactory(INTERFACEVERSION_VENGINESERVER, NULL);
+
+	IPlayerInfoManager* playerinfomanager = (IPlayerInfoManager*)gameServerFactory(INTERFACEVERSION_PLAYERINFOMANAGER, NULL);
+	Detour::CheckValue("get interface", "playerinfomanager", playerinfomanager != NULL);
+
+	if ( playerinfomanager )
+		gpGlobals = playerinfomanager->GetGlobalVars();
 
 	Lua::AddDetour();
 	Util::AddDetour();
