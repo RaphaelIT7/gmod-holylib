@@ -51,8 +51,8 @@ static ConVar holylib_filesystem_debug("holylib_filesystem_debug", "0", 0,
 static const char* nullPath = "NULL_PATH";
 extern void DeleteFileHandle(FileHandle_t handle);
 static std::unordered_map<FileHandle_t, std::string> m_FileStringCache;
-static std::unordered_map<std::string, FileHandle_t*> m_FileCache;
-void AddFileHandleToCache(std::string strFilePath, FileHandle_t* pHandle)
+static std::unordered_map<std::string, FileHandle_t> m_FileCache;
+void AddFileHandleToCache(std::string strFilePath, FileHandle_t pHandle)
 {
 	m_FileCache[strFilePath] = pHandle;
 	m_FileStringCache[pHandle] = strFilePath;
@@ -66,19 +66,19 @@ struct DeletionData
 };
 
 static DeletionData pDeletionData;
-FileHandle_t* GetFileHandleFromCache(std::string strFilePath)
+FileHandle_t GetFileHandleFromCache(std::string strFilePath)
 {
 	auto it = m_FileCache.find(strFilePath);
 	if (it == m_FileCache.end())
 		return NULL;
 
 	pDeletionData.pMutex.Lock();
-	auto it2 = pDeletionData.pFileDeletionList.find(*it->second);
+	auto it2 = pDeletionData.pFileDeletionList.find(it->second);
 	if (it2 != pDeletionData.pFileDeletionList.end())
 		pDeletionData.pFileDeletionList.erase(it2);
 	pDeletionData.pMutex.Unlock();
 
-	g_pFullFileSystem->Seek(*it->second, 0, FILESYSTEM_SEEK_HEAD);
+	g_pFullFileSystem->Seek(it->second, 0, FILESYSTEM_SEEK_HEAD);
 
 	return it->second;
 }
@@ -204,7 +204,7 @@ static void NukeSearchcacheCmd(const CCommand &args)
 static ConCommand nukesearchcache("holylib_filesystem_nukesearchcache", NukeSearchcacheCmd, "Nukes the searchcache", 0);
 
 static Detouring::Hook detour_CBaseFileSystem_FindFileInSearchPath;
-static FileHandle_t* hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, CFileOpenInfo &openInfo)
+static FileHandle_t hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, CFileOpenInfo &openInfo)
 {
 	if (!holylib_filesystem_searchcache.GetBool())
 		return detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
@@ -221,14 +221,14 @@ static FileHandle_t* hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem,
 
 		if (holylib_filesystem_cachefilehandle.GetBool())
 		{
-			FileHandle_t* cacheFile = GetFileHandleFromCache(GetFullPath(cachePath, openInfo.m_pFileName));
+			FileHandle_t cacheFile = GetFileHandleFromCache(GetFullPath(cachePath, openInfo.m_pFileName));
 			if (cacheFile)
 				return cacheFile;
 		}
 
 		const CSearchPath* origPath = openInfo.m_pSearchPath;
 		openInfo.m_pSearchPath = cachePath;
-		FileHandle_t* file = detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
+		FileHandle_t file = detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
 		if (file)
 		{
 			if (holylib_filesystem_cachefilehandle.GetBool())
@@ -242,7 +242,7 @@ static FileHandle_t* hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem,
 	} else {
 		if (holylib_filesystem_cachefilehandle.GetBool())
 		{
-			FileHandle_t* cacheFile = GetFileHandleFromCache(GetFullPath(openInfo.m_pSearchPath, openInfo.m_pFileName));
+			FileHandle_t cacheFile = GetFileHandleFromCache(GetFullPath(openInfo.m_pSearchPath, openInfo.m_pFileName));
 			if (cacheFile)
 				return cacheFile;
 		}
@@ -251,7 +251,7 @@ static FileHandle_t* hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem,
 			Msg("FindFileInSearchPath: Failed to find cachePath! (%s)\n", openInfo.m_pFileName);
 	}
 
-	FileHandle_t* file = detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
+	FileHandle_t file = detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
 
 	if (file)
 	{
@@ -517,7 +517,7 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 		{
 			CFileOpenInfo openInfo( filesystem, pFileName, NULL, pOptions, flags, ppszResolvedFilename );
 			openInfo.m_pSearchPath = path;
-			FileHandle_t* file = hook_CBaseFileSystem_FindFileInSearchPath(filesystem, openInfo);
+			FileHandle_t file = hook_CBaseFileSystem_FindFileInSearchPath(filesystem, openInfo);
 			if (file) {
 				if (holylib_filesystem_debug.GetBool())
 					Msg("OpenForRead: Found file in predicted path! (%s, %s)\n", pFileNameT, pathID);
@@ -555,7 +555,7 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 
 		CFileOpenInfo openInfo( filesystem, pFileName, NULL, pOptions, flags, ppszResolvedFilename );
 		openInfo.m_pSearchPath = cachePath;
-		FileHandle_t* file = detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
+		FileHandle_t file = detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
 		if (file)
 			return file;
 
