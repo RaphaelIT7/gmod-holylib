@@ -1126,12 +1126,10 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 		Msg("Updated workshop path. (%s)\n", workshopDir.c_str());
 }
 
-static CUtlSymbolTableMT* g_pPathIDTable;
 inline const char* CPathIDInfo::GetPathIDString() const
 {
-	return g_pPathIDTable->String( m_PathID );
+	return m_pDebugPathID; // This should remove the requirement for g_pPathIDTable.
 }
-
 
 inline const char* CSearchPath::GetPathIDString() const
 {
@@ -1140,7 +1138,7 @@ inline const char* CSearchPath::GetPathIDString() const
 
 inline const char* CSearchPath::GetPathString() const
 {
-	return g_pPathIDTable->String( m_Path );
+	return m_pDebugPath;
 }
 
 void CFileSystemModule::LuaInit(bool bServerInit)
@@ -1215,10 +1213,6 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 
 	func_CBaseFileSystem_FindSearchPathByStoreId = (Symbols::CBaseFileSystem_FindSearchPathByStoreId)Detour::GetFunction(dedicated_loader.GetModule(), Symbols::CBaseFileSystem_FindSearchPathByStoreIdSym);
 	Detour::CheckFunction(func_CBaseFileSystem_FindSearchPathByStoreId, "CBaseFileSystem::FindSearchPathByStoreId");
-
-	SourceSDK::FactoryLoader dedicated_factory("dedicated_srv");
-	g_pPathIDTable = Detour::ResolveSymbol<CUtlSymbolTableMT>(dedicated_factory, Symbols::g_PathIDTableSym);
-	Detour::CheckValue("get class", "g_PathIDTable", g_pPathIDTable != NULL);
 }
 
 void CFileSystemModule::Think(bool simulating)
