@@ -5,13 +5,14 @@
 #include <sourcesdk/filesystem_things.h>
 #include <unordered_map>
 #include <vprof.h>
+#include "player.h"
 
 class CFileSystemModule : public IModule
 {
 public:
 	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
-	virtual void Shutdown() OVERRIDE;
+	virtual void Think(bool bSimulating) OVERRIDE;
 	virtual const char* Name() { return "filesystem"; };
 	virtual int Compatibility() { return LINUX32; };
 };
@@ -52,6 +53,7 @@ static const char* nullPath = "NULL_PATH";
 extern void DeleteFileHandle(FileHandle_t handle);
 static std::unordered_map<FileHandle_t, std::string> m_FileStringCache;
 static std::unordered_map<std::string, FileHandle_t> m_FileCache;
+std::unordered_map<FileHandle_t, int> pFileDeletionList;
 void AddFileHandleToCache(std::string strFilePath, FileHandle_t pHandle)
 {
 	m_FileCache[strFilePath] = pHandle;
@@ -61,14 +63,6 @@ void AddFileHandleToCache(std::string strFilePath, FileHandle_t pHandle)
 		Msg("Added file %s to filehandle cache\n", strFilePath.c_str());
 }
 
-struct DeletionData
-{
-	bool bRun = true;
-	std::unordered_map<FileHandle_t, int> pFileDeletionList;
-	CThreadFastMutex pMutex;
-};
-
-static DeletionData pDeletionData;
 FileHandle_t GetFileHandleFromCache(std::string strFilePath)
 {
 	auto it = m_FileCache.find(strFilePath);
@@ -80,15 +74,13 @@ FileHandle_t GetFileHandleFromCache(std::string strFilePath)
 		return NULL;
 	}
 
-	pDeletionData.pMutex.Lock();
-	auto it2 = pDeletionData.pFileDeletionList.find(it->second);
-	if (it2 != pDeletionData.pFileDeletionList.end())
+	auto it2 = pFileDeletionList.find(it->second);
+	if (it2 != pFileDeletionList.end())
 	{
-		pDeletionData.pFileDeletionList.erase(it2);
+		pFileDeletionList.erase(it2);
 		if (holylib_filesystem_debug.GetBool())
 			Msg("GetFileHandleFromCache: Removed handle for deletion! (%p)\n", it->second);
 	}
-	pDeletionData.pMutex.Unlock();
 
 	g_pFullFileSystem->Seek(it->second, 0, FILESYSTEM_SEEK_HEAD);
 
@@ -917,92 +909,82 @@ void DeleteFileHandle(FileHandle_t handle)
 	detour_CBaseFileSystem_Close.GetTrampoline<Symbols::CBaseFileSystem_Close>()(g_pFullFileSystem, handle);
 }
 
+static CGlobalVars *gpGlobals = NULL;
 static void hook_CBaseFileSystem_Close(IFileSystem* filesystem, FileHandle_t file)
 {
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::Close", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
 	if (holylib_filesystem_cachefilehandle.GetBool())
 	{
-		pDeletionData.pMutex.Lock();
-		auto it = pDeletionData.pFileDeletionList.find(file);
-		if (it == pDeletionData.pFileDeletionList.end()) // File is being used again.
-			pDeletionData.pFileDeletionList[file] = FILE_HANDLE_DELETION_DELAY;
+		auto it = pFileDeletionList.find(file);
+		if (it == pFileDeletionList.end()) // File is being used again.
+			pFileDeletionList[file] = FILE_HANDLE_DELETION_DELAY;
 		else
 			it->second = FILE_HANDLE_DELETION_DELAY;
 
 		if (holylib_filesystem_debug.GetBool())
 			Msg("CBaseFileSystem::Close: Marked handle for deletion! (%p)\n", file);
-		pDeletionData.pMutex.Unlock();
+
 		return;
 	}
 
 	detour_CBaseFileSystem_Close.GetTrampoline<Symbols::CBaseFileSystem_Close>()(filesystem, file);
 }
 
-#define THREAD_SLEEPTIME 500 // Sleep time in ms
-static unsigned FileHandleThread(void* data)
+void CFileSystemModule::Think(bool bSimulating)
 {
-	DeletionData* cData = (DeletionData*)data;
-	while (cData->bRun)
+	if (!holylib_filesystem_cachefilehandle.GetBool())
+		return;
+
+	std::vector<FileHandle_t> pDeletionList;
+	for (auto& [file, time] : pFileDeletionList)
 	{
-		if (!holylib_filesystem_cachefilehandle.GetBool())
+		if (time <= 0)
 		{
-			ThreadSleep(THREAD_SLEEPTIME);
-			continue;
+			pDeletionList.push_back(file);
+			if (holylib_filesystem_debug.GetBool())
+				Msg("FileThread: Preparing filehandle for deletion! (%p, %i)\n", file, time);
 		}
-
-		std::vector<FileHandle_t> pDeletionList;
-		for (auto& [file, time] : cData->pFileDeletionList)
-		{
-			time -= THREAD_SLEEPTIME;
-			if (time <= 0)
-			{
-				pDeletionList.push_back(file);
-				if (holylib_filesystem_debug.GetBool())
-					Msg("FileThread: Preparing filehandle for deletion! (%p, %i)\n", file, time);
-			}
-		}
-
-		if (pDeletionList.size() > 0)
-		{
-			cData->pMutex.Lock();
-			for (FileHandle_t handle : pDeletionList)
-			{
-				auto it = cData->pFileDeletionList.find(handle);
-				if (it == cData->pFileDeletionList.end()) // File is being used again.
-					continue;
-
-				cData->pFileDeletionList.erase(it);
-				
-				auto it2 = m_FileStringCache.find(handle);
-				if (it2 == m_FileStringCache.end()) // Something broke?
-					continue;
-
-				m_FileCache.erase(it2->second);
-				m_FileStringCache.erase(it2);
-			}
-			cData->pMutex.Unlock();
-
-			for (FileHandle_t handle : pDeletionList) // We delete them outside the mutex to not block the main thread.
-			{
-				if (holylib_filesystem_debug.GetBool())
-					Msg("FileThread: Deleted handle! (%p)\n", handle);
-
-				DeleteFileHandle(handle);
-			}
-			pDeletionList.clear();
-		}
-
-		ThreadSleep(THREAD_SLEEPTIME);
 	}
 
-	return 0;
+	if (pDeletionList.size() > 0)
+	{
+		for (FileHandle_t handle : pDeletionList)
+		{
+			auto it = pFileDeletionList.find(handle);
+			if (it == pFileDeletionList.end()) // File is being used again.
+				continue;
+
+			pFileDeletionList.erase(it);
+				
+			auto it2 = m_FileStringCache.find(handle);
+			if (it2 == m_FileStringCache.end()) // Something broke?
+				continue;
+
+			m_FileCache.erase(it2->second);
+			m_FileStringCache.erase(it2);
+		}
+
+		for (FileHandle_t handle : pDeletionList) // We delete them outside the mutex to not block the main thread.
+		{
+			if (holylib_filesystem_debug.GetBool())
+				Msg("FileThread: Deleted handle! (%p)\n", handle);
+
+			DeleteFileHandle(handle);
+		}
+		pDeletionList.clear();
+	}
 }
 
 void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
-	pDeletionData.bRun = true;
-	CreateSimpleThread((ThreadFunc_t)FileHandleThread, &pDeletionData);
+	IPlayerInfoManager* playerinfomanager = (IPlayerInfoManager*)gamefn[0](INTERFACEVERSION_PLAYERINFOMANAGER, NULL);
+	Detour::CheckValue("get interface", "playerinfomanager", playerinfomanager != NULL);
+
+	if ( playerinfomanager )
+	{
+		gpGlobals = playerinfomanager->GetGlobalVars();
+	}
 
 	// We use MOD_WRITE because it doesn't have additional junk search paths.
 	g_pOverridePaths["cfg/server.cfg"] = "MOD_WRITE";
@@ -1197,10 +1179,4 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 
 	func_CBaseFileSystem_CSearchPath_GetDebugString = (Symbols::CBaseFileSystem_CSearchPath_GetDebugString)Detour::GetFunction(dedicated_loader.GetModule(), Symbols::CBaseFileSystem_CSearchPath_GetDebugStringSym);
 	Detour::CheckFunction(func_CBaseFileSystem_CSearchPath_GetDebugString, "CBaseFileSystem::CSearchPath::GetDebugString");
-}
-
-void CFileSystemModule::Shutdown()
-{
-	Detour::Remove(m_pID);
-	pDeletionData.bRun = false;
 }
