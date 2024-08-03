@@ -11,13 +11,12 @@
 class CHolyLibModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
-	virtual void LuaInit(bool bServerInit);
-	virtual void LuaShutdown();
-	virtual void InitDetour(bool bPreServer);
-	virtual void Think(bool simulating);
-	virtual void Shutdown();
+	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
+	virtual void LuaInit(bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown() OVERRIDE;
+	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "holylib"; };
+	virtual int Compatibility() { return LINUX32 | LINUX64; };
 };
 
 static CHolyLibModule g_pHolyLibModule;
@@ -103,13 +102,4 @@ void CHolyLibModule::InitDetour(bool bPreServer)
 		server_loader.GetModule(), Symbols::CServerGameDLL_ShouldHideServerSym,
 		(void*)hook_CServerGameDLL_ShouldHideServer, m_pID
 	);
-}
-
-void CHolyLibModule::Think(bool bSimulating)
-{
-}
-
-void CHolyLibModule::Shutdown()
-{
-	Detour::Remove(m_pID);
 }

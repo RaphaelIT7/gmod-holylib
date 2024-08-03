@@ -6,13 +6,9 @@
 class CNetworkingModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
-	virtual void LuaInit(bool bServerInit);
-	virtual void LuaShutdown();
-	virtual void InitDetour(bool bPreServer);
-	virtual void Think(bool bSimulating);
-	virtual void Shutdown();
+	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "networking"; };
+	virtual int Compatibility() { return LINUX32 | LINUX64; };
 };
 
 CNetworkingModule g_pNetworkingModule;
@@ -146,22 +142,6 @@ IChangeFrameList* hook_AllocChangeFrameList(int nProperties, int iCurTick)
 	return pRet;
 }
 
-void CNetworkingModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
-{
-}
-
-void CNetworkingModule::LuaInit(bool bServerInit)
-{
-	if (!bServerInit)
-	{
-
-	}
-}
-
-void CNetworkingModule::LuaShutdown()
-{
-}
-
 void CNetworkingModule::InitDetour(bool bPreServer)
 {
 	if ( bPreServer ) { return; }
@@ -172,13 +152,4 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 		engine_loader.GetModule(), Symbols::AllocChangeFrameListSym,
 		(void*)hook_AllocChangeFrameList, m_pID
 	);
-}
-
-void CNetworkingModule::Think(bool simulating)
-{
-}
-
-void CNetworkingModule::Shutdown()
-{
-	Detour::Remove(m_pID);
 }

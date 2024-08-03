@@ -9,13 +9,10 @@
 class CFileSystemModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
-	virtual void LuaInit(bool bServerInit);
-	virtual void LuaShutdown();
-	virtual void InitDetour(bool bPreServer);
-	virtual void Think(bool bSimulating);
-	virtual void Shutdown();
+	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
+	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "filesystem"; };
+	virtual int Compatibility() { return LINUX32; };
 };
 
 static CFileSystemModule g_pFileSystemModule;
@@ -134,6 +131,12 @@ static void GetPathFromIDCmd(const CCommand &args)
 		return;
 	}
 
+	if (!func_CBaseFileSystem_FindSearchPathByStoreId)
+	{
+		Warning("HolyLib: Failed to get CBaseFileSystem::FindSearchPathByStoreId!\n");
+		return;
+	}
+
 	CSearchPath* path = func_CBaseFileSystem_FindSearchPathByStoreId(g_pFullFileSystem, atoi(args.Arg(1)));
 	if (!path)
 	{
@@ -141,8 +144,8 @@ static void GetPathFromIDCmd(const CCommand &args)
 		return;
 	}
 
-	Msg("Id: &%s\n", args.Arg(1));
-	Msg("Path %s\n", path->GetPathString());
+	Msg("Id: %s\n", args.Arg(1));
+	Msg("Path %s\n", path->GetPathString()); // Does this crash? idk.
 }
 static ConCommand getpathfromid("holylib_filesystem_getpathfromid", GetPathFromIDCmd, "prints the path of the given searchpath id", 0);
 
@@ -1141,17 +1144,6 @@ inline const char* CSearchPath::GetPathString() const
 	return m_pDebugPath;
 }
 
-void CFileSystemModule::LuaInit(bool bServerInit)
-{
-	if (!bServerInit)
-	{
-	}
-}
-
-void CFileSystemModule::LuaShutdown()
-{
-}
-
 void CFileSystemModule::InitDetour(bool bPreServer)
 {
 	if ( !bPreServer ) { return; }
@@ -1213,13 +1205,4 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 
 	func_CBaseFileSystem_FindSearchPathByStoreId = (Symbols::CBaseFileSystem_FindSearchPathByStoreId)Detour::GetFunction(dedicated_loader.GetModule(), Symbols::CBaseFileSystem_FindSearchPathByStoreIdSym);
 	Detour::CheckFunction(func_CBaseFileSystem_FindSearchPathByStoreId, "CBaseFileSystem::FindSearchPathByStoreId");
-}
-
-void CFileSystemModule::Think(bool simulating)
-{
-}
-
-void CFileSystemModule::Shutdown()
-{
-	Detour::Remove(m_pID);
 }

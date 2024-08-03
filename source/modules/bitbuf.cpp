@@ -5,13 +5,9 @@
 class CBitBufModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
-	virtual void LuaInit(bool bServerInit);
-	virtual void LuaShutdown();
-	virtual void InitDetour(bool bPreServer);
-	virtual void Think(bool bSimulating);
-	virtual void Shutdown();
+	virtual void LuaInit(bool bServerInit) OVERRIDE;
 	virtual const char* Name() { return "bitbuf"; };
+	virtual int Compatibility() { return LINUX32 | LINUX64; };
 };
 
 static CBitBufModule g_pBitBufModule;
@@ -561,10 +557,6 @@ LUA_FUNCTION_STATIC(bf_read_ReadWord)
 	return 1;
 }
 
-void CBitBufModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
-{
-}
-
 void CBitBufModule::LuaInit(bool bServerInit)
 {
 	if (!bServerInit)
@@ -613,22 +605,4 @@ void CBitBufModule::LuaInit(bool bServerInit)
 			Util::AddFunc(bf_read_ReadWord, "ReadWord");
 		g_Lua->Pop(1); // ToDo: Add a IsValid function and maybe seek?
 	}
-}
-
-void CBitBufModule::LuaShutdown()
-{
-}
-
-void CBitBufModule::InitDetour(bool bPreServer)
-{
-	if ( bPreServer ) { return; }
-
-}
-
-void CBitBufModule::Think(bool simulating)
-{
-}
-
-void CBitBufModule::Shutdown()
-{
 }

@@ -11,13 +11,10 @@
 class CPrecacheFixModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
-	virtual void LuaInit(bool bServerInit);
-	virtual void LuaShutdown();
-	virtual void InitDetour(bool bPreServer);
-	virtual void Think(bool simulating);
-	virtual void Shutdown();
+	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
+	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "precachefix"; };
+	virtual int Compatibility() { return LINUX32; };
 };
 
 static CPrecacheFixModule g_pPrecacheFixModule;
@@ -125,14 +122,6 @@ void CPrecacheFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamef
 	Detour::CheckValue("get interface", "INetworkStringTableContainer", networkStringTableContainerServer != NULL);
 }
 
-void CPrecacheFixModule::LuaInit(bool bServerInit)
-{
-}
-
-void CPrecacheFixModule::LuaShutdown()
-{
-}
-
 void CPrecacheFixModule::InitDetour(bool bPreServer)
 {
 	if ( bPreServer ) { return; }
@@ -152,13 +141,4 @@ void CPrecacheFixModule::InitDetour(bool bPreServer)
 
 	func_SV_FindOrAddModel = (Symbols::SV_FindOrAddModel)Detour::GetFunction(engine_loader.GetModule(), Symbols::SV_FindOrAddModelSym);
 	func_SV_FindOrAddGeneric = (Symbols::SV_FindOrAddGeneric)Detour::GetFunction(engine_loader.GetModule(), Symbols::SV_FindOrAddGenericSym);
-}
-
-void CPrecacheFixModule::Think(bool bSimulating)
-{
-}
-
-void CPrecacheFixModule::Shutdown()
-{
-	Detour::Remove(m_pID);
 }

@@ -9,13 +9,9 @@
 class CThreadPoolFixModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
-	virtual void LuaInit(bool bServerInit);
-	virtual void LuaShutdown();
-	virtual void InitDetour(bool bPreServer);
-	virtual void Think(bool simulating);
-	virtual void Shutdown();
+	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "threadpoolfix"; };
+	virtual int Compatibility() { return LINUX32; };
 };
 
 static CThreadPoolFixModule g_pThreadPoolFixModule;
@@ -30,18 +26,6 @@ int hook_CThreadPool_ExecuteToPriority(IThreadPool* pool, void* idx, void* idx2)
 	return detour_CThreadPool_ExecuteToPriority.GetTrampoline<Symbols::CThreadPool_ExecuteToPriority>()(pool, idx, idx2);
 }
 
-void CThreadPoolFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
-{
-}
-
-void CThreadPoolFixModule::LuaInit(bool bServerInit)
-{
-}
-
-void CThreadPoolFixModule::LuaShutdown()
-{
-}
-
 void CThreadPoolFixModule::InitDetour(bool bPreServer)
 {
 	if ( !bPreServer ) { return; }
@@ -52,13 +36,4 @@ void CThreadPoolFixModule::InitDetour(bool bPreServer)
 		libvstdlib_loader.GetModule(), Symbols::CThreadPool_ExecuteToPrioritySym,
 		(void*)hook_CThreadPool_ExecuteToPriority, m_pID
 	);
-}
-
-void CThreadPoolFixModule::Think(bool bSimulating)
-{
-}
-
-void CThreadPoolFixModule::Shutdown()
-{
-	Detour::Remove(m_pID);
 }

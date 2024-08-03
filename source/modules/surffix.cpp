@@ -10,13 +10,10 @@
 class CSurfFixModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
-	virtual void LuaInit(bool bServerInit);
-	virtual void LuaShutdown();
-	virtual void InitDetour(bool bPreServer);
-	virtual void Think(bool simulating);
-	virtual void Shutdown();
+	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
+	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "surffix"; };
+	virtual int Compatibility() { return LINUX32; };
 };
 
 static CSurfFixModule g_pSurfFixModule;
@@ -530,14 +527,6 @@ void CSurfFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 	Detour::CheckValue("get interface", "enginetrace", enginetrace != NULL);
 }
 
-void CSurfFixModule::LuaInit(bool bServerInit)
-{
-}
-
-void CSurfFixModule::LuaShutdown()
-{
-}
-
 void CSurfFixModule::InitDetour(bool bPreServer)
 {
 	if ( bPreServer ) { return; }
@@ -565,13 +554,4 @@ void CSurfFixModule::InitDetour(bool bPreServer)
 	SourceSDK::FactoryLoader server_loaderfactory("server_srv");
 	g_pEntityList = Detour::ResolveSymbol<CBaseEntityList>(server_loaderfactory, Symbols::g_pEntityListSym);
 	Detour::CheckValue("get class", "g_pEntityList", g_pEntityList != NULL);
-}
-
-void CSurfFixModule::Think(bool bSimulating)
-{
-}
-
-void CSurfFixModule::Shutdown()
-{
-	Detour::Remove(m_pID);
 }

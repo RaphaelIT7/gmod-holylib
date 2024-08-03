@@ -10,13 +10,9 @@
 class CVProfModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
-	virtual void LuaInit(bool bServerInit);
-	virtual void LuaShutdown();
-	virtual void InitDetour(bool bPreServer);
-	virtual void Think(bool bSimulating);
-	virtual void Shutdown();
+	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "vprof"; };
+	virtual int Compatibility() { return LINUX32; };
 };
 
 extern ConVar holylib_sv_stressbots;
@@ -154,19 +150,6 @@ static void* hook_CLuaGamemode_Call(void* funky_srv, int pool)
 	return detour_CLuaGamemode_Call.GetTrampoline<Symbols::CLuaGamemode_Call>()(funky_srv, pool);
 }
 
-void CVProfModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
-{
-}
-
-void CVProfModule::LuaInit(bool bServerInit)
-{
-	if (bServerInit) { return; }
-}
-
-void CVProfModule::LuaShutdown()
-{
-}
-
 void CVProfModule::InitDetour(bool bPreServer)
 {
 	if ( bPreServer ) { return; }
@@ -196,13 +179,4 @@ void CVProfModule::InitDetour(bool bPreServer)
 		server_loader.GetModule(), Symbols::CLuaGamemode_CallWithArgsSym,
 		(void*)hook_CLuaGamemode_CallWithArgs, m_pID
 	);
-}
-
-void CVProfModule::Think(bool simulating)
-{
-}
-
-void CVProfModule::Shutdown()
-{
-	Detour::Remove(m_pID);
 }

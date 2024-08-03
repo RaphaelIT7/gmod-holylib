@@ -10,13 +10,12 @@
 class CStringTableModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
-	virtual void LuaInit(bool bServerInit);
-	virtual void LuaShutdown();
-	virtual void InitDetour(bool bPreServer);
-	virtual void Think(bool simulating);
-	virtual void Shutdown();
+	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
+	virtual void LuaInit(bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown() OVERRIDE;
+	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "stringtable"; };
+	virtual int Compatibility() { return LINUX32 | LINUX64; };
 };
 
 static CStringTableModule g_pStringTableFixModule;
@@ -478,13 +477,4 @@ void CStringTableModule::InitDetour(bool bPreServer)
 
 	func_CNetworkStringTable_DeleteAllStrings = (Symbols::CNetworkStringTable_DeleteAllStrings)Detour::GetFunction(engine_loader.GetModule(), Symbols::CNetworkStringTable_DeleteAllStringsSym);
 	Detour::CheckFunction(func_CNetworkStringTable_DeleteAllStrings, "CNetworkStringTable::DeleteAllStrings");
-}
-
-void CStringTableModule::Think(bool bSimulating)
-{
-}
-
-void CStringTableModule::Shutdown()
-{
-	Detour::Remove(m_pID);
 }

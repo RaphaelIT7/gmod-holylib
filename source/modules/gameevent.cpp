@@ -9,13 +9,12 @@ class CUserCmd; // Fixes an error in igamesystem.h
 class CGameeventLibModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
-	virtual void LuaInit(bool bServerInit);
-	virtual void LuaShutdown();
-	virtual void InitDetour(bool bPreServer);
-	virtual void Think(bool bSimulating);
-	virtual void Shutdown();
+	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
+	virtual void LuaInit(bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown() OVERRIDE;
+	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "gameevent"; };
+	virtual int Compatibility() { return LINUX32; };
 };
 
 static CGameeventLibModule g_pGameeventLibModule;
@@ -139,12 +138,4 @@ void CGameeventLibModule::InitDetour(bool bPreServer)
 	SourceSDK::FactoryLoader server_loader("server_srv");
 	s_GameSystems = Detour::ResolveSymbol<CUtlVector<IGameSystem*>>(server_loader, Symbols::s_GameSystemsSym);
 	Detour::CheckValue("get class", "s_GameSystems", s_GameSystems != NULL);
-}
-
-void CGameeventLibModule::Think(bool simulating)
-{
-}
-
-void CGameeventLibModule::Shutdown()
-{
 }

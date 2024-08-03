@@ -6,13 +6,13 @@
 class CUtilModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
-	virtual void LuaInit(bool bServerInit);
-	virtual void LuaShutdown();
-	virtual void InitDetour(bool bPreServer);
-	virtual void Think(bool bSimulating);
-	virtual void Shutdown();
+	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
+	virtual void LuaInit(bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown() OVERRIDE;
+	virtual void Think(bool bSimulating) OVERRIDE;
+	virtual void Shutdown() OVERRIDE;
 	virtual const char* Name() { return "util"; };
+	virtual int Compatibility() { return LINUX32 | LINUX64; };
 };
 
 static CUtilModule g_pUtilModule;
@@ -200,11 +200,6 @@ void CUtilModule::LuaShutdown()
 				g_Lua->SetField(-2, "AsyncDecompress");
 			}
 	g_Lua->Pop(2);
-}
-
-void CUtilModule::InitDetour(bool bPreServer)
-{
-	if ( bPreServer ) { return; }
 }
 
 void CUtilModule::Think(bool simulating)

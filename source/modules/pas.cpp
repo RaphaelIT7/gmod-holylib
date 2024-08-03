@@ -7,13 +7,11 @@
 class CPASModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
-	virtual void LuaInit(bool bServerInit);
-	virtual void LuaShutdown();
-	virtual void InitDetour(bool bPreServer);
-	virtual void Think(bool bSimulating);
-	virtual void Shutdown();
+	virtual void LuaInit(bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown() OVERRIDE;
+	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "pas"; };
+	virtual int Compatibility() { return LINUX32 | LINUX64; };
 };
 
 extern Vector* Get_Vector(int iStackPos);
@@ -198,10 +196,6 @@ LUA_FUNCTION_STATIC(pas_TestPAS) // This is based off SV_DetermineMulticastRecip
 	return 1;
 }
 
-void CPASModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
-{
-}
-
 void CPASModule::LuaInit(bool bServerInit)
 {
 	if (bServerInit)
@@ -227,12 +221,4 @@ void CPASModule::InitDetour(bool bPreServer)
 	SourceSDK::FactoryLoader engine_loader("engine_srv");
 	gBSPData = Detour::ResolveSymbol<CCollisionBSPData>(engine_loader, Symbols::g_BSPDataSym);
 	Detour::CheckValue("get class", "CCollisionBSPData", gBSPData != NULL);
-}
-
-void CPASModule::Think(bool simulating)
-{
-}
-
-void CPASModule::Shutdown()
-{
 }

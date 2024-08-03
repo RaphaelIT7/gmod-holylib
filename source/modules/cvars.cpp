@@ -5,13 +5,10 @@
 class CCVarsModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
-	virtual void LuaInit(bool bServerInit);
-	virtual void LuaShutdown();
-	virtual void InitDetour(bool bPreServer);
-	virtual void Think(bool bSimulating);
-	virtual void Shutdown();
+	virtual void LuaInit(bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown() OVERRIDE;
 	virtual const char* Name() { return "cvars"; };
+	virtual int Compatibility() { return LINUX32 | LINUX64; };
 };
 
 static CCVarsModule g_pCVarsModule;
@@ -44,10 +41,6 @@ LUA_FUNCTION_STATIC(cvars_GetAll)
 	return 1;
 }
 
-void CCVarsModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
-{
-}
-
 void CCVarsModule::LuaInit(bool bServerInit)
 {
 	if (!bServerInit)
@@ -72,17 +65,4 @@ void CCVarsModule::LuaShutdown()
 				g_Lua->SetField(-2, "GetAll");
 			}
 	g_Lua->Pop(2);
-}
-
-void CCVarsModule::InitDetour(bool bPreServer)
-{
-	if ( bPreServer ) { return; }
-}
-
-void CCVarsModule::Think(bool simulating)
-{
-}
-
-void CCVarsModule::Shutdown()
-{
 }

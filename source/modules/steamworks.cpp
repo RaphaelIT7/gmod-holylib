@@ -6,13 +6,11 @@
 class CSteamWorksModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
-	virtual void LuaInit(bool bServerInit);
-	virtual void LuaShutdown();
-	virtual void InitDetour(bool bPreServer);
-	virtual void Think(bool bSimulating);
-	virtual void Shutdown();
+	virtual void LuaInit(bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown() OVERRIDE;
+	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "steamworks"; };
+	virtual int Compatibility() { return LINUX32 | LINUX64; };
 };
 
 CSteamWorksModule g_pSteamWorksModule;
@@ -74,10 +72,6 @@ LUA_FUNCTION_STATIC(steamworks_IsConnected)
 	return 1;
 }
 
-void CSteamWorksModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
-{
-}
-
 void CSteamWorksModule::LuaInit(bool bServerInit)
 {
 	if (bServerInit)
@@ -132,13 +126,4 @@ void CSteamWorksModule::InitDetour(bool bPreServer)
 	func_Steam3Server = (Symbols::Steam3ServerT)Detour::GetFunction(engine_loader.GetModule(), Symbols::Steam3ServerSym);
 	func_CSteam3Server_Shutdown = (Symbols::CSteam3Server_Shutdown)Detour::GetFunction(engine_loader.GetModule(), Symbols::CSteam3Server_ShutdownSym);
 	func_CSteam3Server_Activate = (Symbols::CSteam3Server_Activate)Detour::GetFunction(engine_loader.GetModule(), Symbols::CSteam3Server_ActivateSym);
-}
-
-void CSteamWorksModule::Think(bool simulating)
-{
-}
-
-void CSteamWorksModule::Shutdown()
-{
-	Detour::Remove(m_pID);
 }

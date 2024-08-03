@@ -15,13 +15,12 @@
 class CPVSModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
-	virtual void LuaInit(bool bServerInit);
-	virtual void LuaShutdown();
-	virtual void InitDetour(bool bPreServer);
-	virtual void Think(bool simulating);
-	virtual void Shutdown();
+	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
+	virtual void LuaInit(bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown() OVERRIDE;
+	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "pvs"; };
+	virtual int Compatibility() { return LINUX32; };
 };
 
 static CPVSModule g_pPVSModule;
@@ -638,13 +637,4 @@ void CPVSModule::InitDetour(bool bPreServer)
 		server_loader.GetModule(), Symbols::CServerGameEnts_CheckTransmitSym,
 		(void*)hook_CServerGameEnts_CheckTransmit, m_pID
 	);
-}
-
-void CPVSModule::Think(bool bSimulating)
-{
-}
-
-void CPVSModule::Shutdown()
-{
-	Detour::Remove(m_pID);
 }

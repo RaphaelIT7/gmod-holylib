@@ -5,13 +5,9 @@
 class CConCommandModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
-	virtual void LuaInit(bool bServerInit);
-	virtual void LuaShutdown();
-	virtual void InitDetour(bool bPreServer);
-	virtual void Think(bool bSimulating);
-	virtual void Shutdown();
+	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "concommand"; };
+	virtual int Compatibility() { return LINUX32 | LINUX64; };
 };
 
 static ConVar holylib_concommand_disableblacklist("holylib_concommand_disableblacklist", "0", 0, "If enabled, it will allow you to run use RunConsoleCommand with any command/convar.");
@@ -38,19 +34,6 @@ static bool hook_ConCommand_IsBlocked(const char* cmd)
 	return detour_ConCommand_IsBlocked.GetTrampoline<Symbols::ConCommand_IsBlocked>()(cmd);
 }
 
-void CConCommandModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
-{
-}
-
-void CConCommandModule::LuaInit(bool bServerInit)
-{
-	if (bServerInit) { return; }
-}
-
-void CConCommandModule::LuaShutdown()
-{
-}
-
 void CConCommandModule::InitDetour(bool bPreServer)
 {
 	if ( bPreServer ) { return; }
@@ -61,13 +44,4 @@ void CConCommandModule::InitDetour(bool bPreServer)
 		server_loader.GetModule(), Symbols::ConCommand_IsBlockedSym,
 		(void*)hook_ConCommand_IsBlocked, m_pID
 	);
-}
-
-void CConCommandModule::Think(bool simulating)
-{
-}
-
-void CConCommandModule::Shutdown()
-{
-	Detour::Remove(m_pID);
 }

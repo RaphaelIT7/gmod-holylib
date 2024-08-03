@@ -231,11 +231,13 @@ namespace Symbols
 	typedef FileHandle_t* (*CBaseFileSystem_FindFileInSearchPath)(void* filesystem, CFileOpenInfo &);
 	const std::vector<Symbol> CBaseFileSystem_FindFileInSearchPathSym = {
 		Symbol::FromName("_ZN15CBaseFileSystem20FindFileInSearchPathER13CFileOpenInfo"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x49\x89\xFF\x41\x56\x41\x55\x41\x54\x53\x48\x89\xF3"), // 55 48 89 E5 41 57 49 89 FF 41 56 41 55 41 54 53 48 89 F3
 	};
 
 	typedef bool (*CBaseFileSystem_IsDirectory)(void* filesystem, const char* pFileName, const char* pathID);
 	const std::vector<Symbol> CBaseFileSystem_IsDirectorySym = {
 		Symbol::FromName("_ZN15CBaseFileSystem11IsDirectoryEPKcS1_"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x4C\x8D\xAD\x38***\x41\x54"), // 55 48 89 E5 41 57 41 56 41 55 4C 8D AD 38 ?? ?? ?? 41 54
 	};
 
 	typedef CSearchPath* (*CBaseFileSystem_FindSearchPathByStoreId)(void* filesystem, int);
@@ -256,11 +258,13 @@ namespace Symbols
 	typedef FileHandle_t (*CBaseFileSystem_OpenForRead)(void* filesystem, const char *pFileNameT, const char *pOptions, unsigned flags, const char *pathID, char **ppszResolvedFilename);
 	const std::vector<Symbol> CBaseFileSystem_OpenForReadSym = {
 		Symbol::FromName("_ZN15CBaseFileSystem11OpenForReadEPKcS1_jS1_PPc"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x49\x89\xD7\x41\x56\x4D\x89\xC6\x41\x55\x4D\x89\xCD\x41\x54"), // 55 48 89 E5 41 57 49 89 D7 41 56 4D 89 C6 41 55 4D 89 CD 41 54
 	};
 
 	typedef long (*CBaseFileSystem_GetFileTime)(void* filesystem, const char *pFileName, const char *pPathID);
 	const std::vector<Symbol> CBaseFileSystem_GetFileTimeSym = {
 		Symbol::FromName("_ZN15CBaseFileSystem11GetFileTimeEPKcS1_"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x49\x89\xFE\x41\x55\x41\x54\x53\x48\x89\xD3"), // 55 48 89 E5 41 57 41 56 49 89 FE 41 55 41 54 53 48 89 D3
 	};
 
 	typedef void (*CBaseFileSystem_AddSearchPath)(void* filesystem, const char *pPath, const char *pathID, SearchPathAdd_t addType);
@@ -276,10 +280,6 @@ namespace Symbols
 	typedef void (*CBaseFileSystem_RemoveAllMapSearchPaths)(void* filesystem);
 	const std::vector<Symbol> CBaseFileSystem_RemoveAllMapSearchPathsSym = {
 		Symbol::FromName("_ZN15CBaseFileSystem23RemoveAllMapSearchPathsEv"),
-	};
-
-	const std::vector<Symbol> g_PathIDTableSym = {
-		Symbol::FromName("g_PathIDTable"),
 	};
 
 	//---------------------------------------------------------------------------------

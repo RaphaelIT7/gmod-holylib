@@ -7,13 +7,12 @@
 class CServerPluginLibModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
-	virtual void LuaInit(bool bServerInit);
-	virtual void LuaShutdown();
-	virtual void InitDetour(bool bPreServer);
-	virtual void Think(bool bSimulating);
-	virtual void Shutdown();
+	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
+	virtual void LuaInit(bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown() OVERRIDE;
+	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "serverplugin"; };
+	virtual int Compatibility() { return LINUX32 | LINUX64; };
 };
 
 static CServerPluginLibModule g_pServerPluginLibModule;
@@ -160,12 +159,4 @@ void CServerPluginLibModule::InitDetour(bool bPreServer)
 		&detour_CPlugin_Load, "CPlugin::Load", engine_loader.GetModule(),
 		Symbols::CPlugin_LoadSym, (void*)hook_CPlugin_Load, m_pID
 	);
-}
-
-void CServerPluginLibModule::Think(bool simulating)
-{
-}
-
-void CServerPluginLibModule::Shutdown()
-{
 }

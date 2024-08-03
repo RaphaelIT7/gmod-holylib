@@ -19,21 +19,44 @@ void OnModuleConVarChange(IConVar* convar, const char* pOldValue, float flOldVal
 		return;
 	}
 
-	module->SetEnabled(((ConVar*)convar)->GetBool());
+	module->SetEnabled(((ConVar*)convar)->GetBool(), true);
 }
 
 void CModule::SetModule(IModule* module)
 {
 	m_pModule = module;
+#ifdef SYSTEM_LINUX // Welcome to ifdef hell
+#ifdef ARCHITECTURE_X86
+	if (module->Compatibility() & LINUX32)
+		m_bCompatible = true;
+#else
+	if (module->Compatibility() & LINUX64)
+		m_bCompatible = true;
+#endif
+#else
+#ifdef ARCHITECTURE_X86
+	if (module->Compatibility() & WINDOWS32)
+		m_bCompatible = true;
+#else
+	if (module->Compatibility() & WINDOWS64)
+		m_bCompatible = true;
+#endif
+#endif
+
 	m_strName = "holylib_enable_";
 	m_strName = m_strName + module->Name();
-	m_pCVar = new ConVar(m_strName.c_str(), "1", FCVAR_ARCHIVE, "Whether this module should be active or not", OnModuleConVarChange);
 	std::string cmdStr = "-";
 	cmdStr.append(m_strName);
-	m_bEnabled = CommandLine()->ParmValue(cmdStr.c_str(), 1) == 1;
+	int cmd = CommandLine()->ParmValue(cmdStr.c_str(), 1);
+	if (cmd > -1)
+		SetEnabled(cmd == 1, true);
+	else
+		m_bEnabled = m_bCompatible;
+
+	m_pCVar = new ConVar(m_strName.c_str(), m_bEnabled ? "1" : "0", FCVAR_ARCHIVE, "Whether this module should be active or not", OnModuleConVarChange);
 }
 
-void CModule::SetEnabled(bool bEnabled)
+void CModule::SetEnabled(bool bEnabled, bool bForced)
 {
 	if (m_bEnabled != bEnabled)
 	{
@@ -55,7 +78,8 @@ void CModule::SetEnabled(bool bEnabled)
 			if (status & LoadStatus_LuaServerInit)
 				m_pModule->LuaInit(true);
 
-			Msg("Enabled module %s\n", m_pModule->Name());
+			if (bForced)
+				Msg("Enabled module %s\n", m_pModule->Name());
 		} else {
 			int status = g_pModuleManager.GetStatus();
 			if (status & LoadStatus_Init)
@@ -64,7 +88,8 @@ void CModule::SetEnabled(bool bEnabled)
 			if (status & LoadStatus_LuaInit)
 				m_pModule->LuaShutdown();
 
-			Msg("Disabled module %s\n", m_pModule->Name());
+			if (bForced)
+				Msg("Disabled module %s\n", m_pModule->Name());
 		}
 	}
 
@@ -100,7 +125,11 @@ void CModuleManager::RegisterModule(IModule* pModule)
 	pModule->m_pID = g_pIDs;
 	CModule* module = new CModule();
 	module->SetModule(pModule);
-	Msg("Registered module %s (Enabled: %s)\n", module->GetModule()->Name(), module->IsEnabled() ? "true" : "false");
+	Msg("Registered module %s (Enabled: %s, Compatible: %s)\n", 
+		module->GetModule()->Name(), 
+		module->IsEnabled() ? "true" : "false", 
+		module->IsCompatible() ? "true" : "false"
+	);
 
 	m_pModules.push_back(module);
 }
