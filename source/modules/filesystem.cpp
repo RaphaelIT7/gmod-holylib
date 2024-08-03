@@ -11,6 +11,7 @@ class CFileSystemModule : public IModule
 public:
 	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
+	virtual void Shutdown() OVERRIDE;
 	virtual const char* Name() { return "filesystem"; };
 	virtual int Compatibility() { return LINUX32; };
 };
@@ -40,12 +41,59 @@ static ConVar holylib_filesystem_splitfallback("holylib_filesystem_splitfallback
 	"If enabled, it will fallback to the original searchpath if the split path failed.");
 static ConVar holylib_filesystem_fixgmodpath("holylib_filesystem_fixgmodpath", "1", 0, 
 	"If enabled, it will fix up weird gamemode paths like sandbox/gamemode/sandbox/gamemode which gmod likes to use.");
+static ConVar holylib_filesystem_cachefilehandle("holylib_filesystem_cachefilehandle", "0", 0, 
+	"If enabled, it will cache the file handle and return it if needed. This will probably cause issues if you open the same file multiple times.");
 
 static ConVar holylib_filesystem_debug("holylib_filesystem_debug", "0", 0, 
 	"If enabled, it will show any change to the search cache.");
 
 
 static const char* nullPath = "NULL_PATH";
+extern void DeleteFileHandle(FileHandle_t handle);
+static std::unordered_map<FileHandle_t, std::string> m_FileStringCache;
+static std::unordered_map<std::string, FileHandle_t*> m_FileCache;
+void AddFileHandleToCache(std::string strFilePath, FileHandle_t* pHandle)
+{
+	m_FileCache[strFilePath] = pHandle;
+	m_FileStringCache[pHandle] = strFilePath;
+}
+
+struct DeletionData
+{
+	bool bRun = true;
+	std::unordered_map<FileHandle_t, int> pFileDeletionList;
+	CThreadFastMutex pMutex;
+};
+
+static DeletionData pDeletionData;
+FileHandle_t* GetFileHandleFromCache(std::string strFilePath)
+{
+	auto it = m_FileCache.find(strFilePath);
+	if (it == m_FileCache.end())
+		return NULL;
+
+	pDeletionData.pMutex.Lock();
+	auto& it2 = pDeletionData.pFileDeletionList.find(*it->second);
+	if (it2 != pDeletionData.pFileDeletionList.end())
+		pDeletionData.pFileDeletionList.erase(it2);
+	pDeletionData.pMutex.Unlock();
+
+	g_pFullFileSystem->Seek(*it->second, 0, FILESYSTEM_SEEK_HEAD);
+
+	return it->second;
+}
+
+std::string GetFullPath(CSearchPath* pSearchPath, const char* strFileName)
+{
+	char szLowercaseFilename[MAX_PATH];
+	V_strcpy_safe(szLowercaseFilename, strFileName);
+	V_strlower(szLowercaseFilename);
+
+	std::string pPath = pSearchPath->GetPathString();
+	pPath.append(szLowercaseFilename);
+	return pPath;
+}
+
 static Symbols::CBaseFileSystem_FindSearchPathByStoreId func_CBaseFileSystem_FindSearchPathByStoreId;
 static std::unordered_map<std::string, std::unordered_map<std::string, int>> m_SearchCache;
 static void AddFileToSearchCache(const char* pFileName, int path, const char* pathID)
@@ -171,15 +219,32 @@ static FileHandle_t* hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem,
 	{
 		VPROF_BUDGET("HolyLib - CBaseFileSystem::FindFile - Cache", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
+		if (holylib_filesystem_cachefilehandle.GetBool())
+		{
+			FileHandle_t* cacheFile = GetFileHandleFromCache(GetFullPath(cachePath, openInfo.m_pFileName));
+			if (cacheFile)
+				return cacheFile;
+		}
+
 		const CSearchPath* origPath = openInfo.m_pSearchPath;
 		openInfo.m_pSearchPath = cachePath;
 		FileHandle_t* file = detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
 		if (file)
+		{
+			AddFileHandleToCache(GetFullPath((CSearchPath*)openInfo.m_pSearchPath, openInfo.m_pFileName), file);
 			return file;
+		}
 
 		openInfo.m_pSearchPath = origPath;
 		RemoveFileFromSearchCache(openInfo.m_pFileName, openInfo.m_pSearchPath->GetPathIDString());
 	} else {
+		if (holylib_filesystem_cachefilehandle.GetBool())
+		{
+			FileHandle_t* cacheFile = GetFileHandleFromCache(GetFullPath((CSearchPath*)openInfo.m_pSearchPath, openInfo.m_pFileName));
+			if (cacheFile)
+				return cacheFile;
+		}
+
 		if (holylib_filesystem_debug.GetBool())
 			Msg("FindFileInSearchPath: Failed to find cachePath! (%s)\n", openInfo.m_pFileName);
 	}
@@ -187,7 +252,10 @@ static FileHandle_t* hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem,
 	FileHandle_t* file = detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
 
 	if (file)
+	{
 		AddFileToSearchCache(openInfo.m_pFileName, openInfo.m_pSearchPath->m_storeId, openInfo.m_pSearchPath->GetPathIDString());
+		AddFileHandleToCache(GetFullPath((CSearchPath*)openInfo.m_pSearchPath, openInfo.m_pFileName), file);
+	}
 
 	return file;
 }
@@ -1020,8 +1088,79 @@ static void hook_CBaseFileSystem_AddVPKFile(IFileSystem* filesystem, const char 
 		Msg("Added vpk: %s %s %i\n", pPath, pathID, (int)addType);
 }
 
+#define FILE_HANDLE_DELETION_DELAY 5000 // 5 sec
+static Detouring::Hook detour_CBaseFileSystem_Close;
+void DeleteFileHandle(FileHandle_t handle)
+{
+	detour_CBaseFileSystem_Close.GetTrampoline<Symbols::CBaseFileSystem_Close>()(g_pFullFileSystem, handle);
+}
+
+static void hook_CBaseFileSystem_Close(IFileSystem* filesystem, FileHandle_t file)
+{
+	VPROF_BUDGET("HolyLib - CBaseFileSystem::Close", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
+
+	if (holylib_filesystem_cachefilehandle.GetBool())
+	{
+		pDeletionData.pMutex.Lock();
+		pDeletionData.pFileDeletionList[file] = FILE_HANDLE_DELETION_DELAY;
+		pDeletionData.pMutex.Unlock();
+		return;
+	}
+
+	detour_CBaseFileSystem_Close.GetTrampoline<Symbols::CBaseFileSystem_Close>()(filesystem, file);
+}
+
+#define THREAD_SLEEPTIME 50 // Sleep time in ms
+static unsigned FileHandleThread(void* data)
+{
+	DeletionData* cData = (DeletionData*)data;
+	while (cData->bRun)
+	{
+		std::vector<FileHandle_t> pDeletionList;
+		for (auto& [file, time] : cData->pFileDeletionList)
+		{
+			time -= THREAD_SLEEPTIME;
+			if (time <= 0)
+				pDeletionList.push_back(file);
+		}
+
+		if (pDeletionList.size() > 0)
+		{
+			cData->pMutex.Lock();
+			for (FileHandle_t handle : pDeletionList)
+			{
+				auto& it = cData->pFileDeletionList.find(handle);
+				if (it == cData->pFileDeletionList.end()) // File is being used again.
+					continue;
+
+				cData->pFileDeletionList.erase(it);
+				
+				auto& it2 = m_FileStringCache.find(handle);
+				if (it2 == m_FileStringCache.end()) // Something broke?
+					continue;
+
+				m_FileCache.erase(it2->second);
+				m_FileStringCache.erase(it2);
+			}
+			cData->pMutex.Unlock();
+
+			for (FileHandle_t handle : pDeletionList) // We delete them outside the mutex to not block the main thread.
+			{
+				DeleteFileHandle(handle);
+			}
+		}
+
+		ThreadSleep(THREAD_SLEEPTIME);
+	}
+
+	return 0;
+}
+
 void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
+	pDeletionData.bRun = true;
+	CreateSimpleThread((ThreadFunc_t)FileHandleThread, &pDeletionData);
+
 	// We use MOD_WRITE because it doesn't have additional junk search paths.
 	g_pOverridePaths["cfg/server.cfg"] = "MOD_WRITE";
 	g_pOverridePaths["cfg/banned_ip.cfg"] = "MOD_WRITE";
@@ -1203,6 +1342,18 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 		(void*)hook_CBaseFileSystem_RemoveAllMapSearchPaths, m_pID
 	);
 
+	Detour::Create(
+		&detour_CBaseFileSystem_Close, "CBaseFileSystem::Close",
+		dedicated_loader.GetModule(), Symbols::CBaseFileSystem_CloseSym,
+		(void*)hook_CBaseFileSystem_Close, m_pID
+	);
+
 	func_CBaseFileSystem_FindSearchPathByStoreId = (Symbols::CBaseFileSystem_FindSearchPathByStoreId)Detour::GetFunction(dedicated_loader.GetModule(), Symbols::CBaseFileSystem_FindSearchPathByStoreIdSym);
 	Detour::CheckFunction(func_CBaseFileSystem_FindSearchPathByStoreId, "CBaseFileSystem::FindSearchPathByStoreId");
+}
+
+void CFileSystemModule::Shutdown()
+{
+	Detour::Remove(m_pID);
+	pDeletionData.bRun = false;
 }

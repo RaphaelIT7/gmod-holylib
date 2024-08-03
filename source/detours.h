@@ -282,6 +282,11 @@ namespace Symbols
 		Symbol::FromName("_ZN15CBaseFileSystem23RemoveAllMapSearchPathsEv"),
 	};
 
+	typedef void (*CBaseFileSystem_Close)(void* filesystem, FileHandle_t);
+	const std::vector<Symbol> CBaseFileSystem_CloseSym = {
+		Symbol::FromName("_ZN15CBaseFileSystem5CloseEPv"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: concommand Symbols
 	//---------------------------------------------------------------------------------
