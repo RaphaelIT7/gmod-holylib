@@ -38,7 +38,6 @@ public:
 	virtual Vector	GetPlayerMins( bool ducked ) const;
 	virtual Vector	GetPlayerMaxs( bool ducked ) const;
 	virtual Vector	GetPlayerViewOffset( bool ducked ) const;
-	virtual void	_OffsetFunction(); // It's some pure virtual function . . .
 
 // For sanity checking getting stuck on CMoveData::SetAbsOrigin
 	virtual void	TracePlayerBBox( const Vector& start, const Vector& end, unsigned int fMask, int collisionGroup, trace_t& pm );
