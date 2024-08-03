@@ -572,6 +572,13 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 	{
 		VPROF_BUDGET("HolyLib - SearchCache::OpenForRead", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
+		if (holylib_filesystem_cachefilehandle.GetBool())
+		{
+			FileHandle_t cacheFile = GetFileHandleFromCache(GetFullPath(cachePath, pFileName));
+			if (cacheFile)
+				return cacheFile;
+		}
+
 		CFileOpenInfo openInfo( filesystem, pFileName, NULL, pOptions, flags, ppszResolvedFilename );
 		openInfo.m_pSearchPath = cachePath;
 		FileHandle_t file = detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
