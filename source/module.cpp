@@ -48,7 +48,7 @@ void CModule::SetModule(IModule* module)
 	m_strName = m_strName + module->Name();
 	std::string cmdStr = "-";
 	cmdStr.append(m_strName);
-	int cmd = CommandLine()->ParmValue(cmdStr.c_str(), 1);
+	int cmd = CommandLine()->ParmValue(cmdStr.c_str(), -1);
 	if (cmd > -1)
 		SetEnabled(cmd == 1, true);
 	else
@@ -66,7 +66,7 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 		{
 			if (!m_bCompatible)
 			{
-				Warning("module %s is not compatible with this platform!", m_strName.c_str());
+				Warning("module %s is not compatible with this platform!\n", m_strName.c_str());
 
 				if (!bForced)
 					return;
