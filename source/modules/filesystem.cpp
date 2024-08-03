@@ -73,7 +73,7 @@ FileHandle_t* GetFileHandleFromCache(std::string strFilePath)
 		return NULL;
 
 	pDeletionData.pMutex.Lock();
-	auto& it2 = pDeletionData.pFileDeletionList.find(*it->second);
+	auto it2 = pDeletionData.pFileDeletionList.find(*it->second);
 	if (it2 != pDeletionData.pFileDeletionList.end())
 		pDeletionData.pFileDeletionList.erase(it2);
 	pDeletionData.pMutex.Unlock();
@@ -1129,13 +1129,13 @@ static unsigned FileHandleThread(void* data)
 			cData->pMutex.Lock();
 			for (FileHandle_t handle : pDeletionList)
 			{
-				auto& it = cData->pFileDeletionList.find(handle);
+				auto it = cData->pFileDeletionList.find(handle);
 				if (it == cData->pFileDeletionList.end()) // File is being used again.
 					continue;
 
 				cData->pFileDeletionList.erase(it);
 				
-				auto& it2 = m_FileStringCache.find(handle);
+				auto it2 = m_FileStringCache.find(handle);
 				if (it2 == m_FileStringCache.end()) // Something broke?
 					continue;
 
