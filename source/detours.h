@@ -287,6 +287,11 @@ namespace Symbols
 		Symbol::FromName("_ZN15CBaseFileSystem5CloseEPv"),
 	};
 
+	const std::vector<Symbol> g_PathIDTableSym = { // Remove it later or find out how to get Symbols for global vars like that
+		Symbol::FromName("g_PathIDTable"),
+	};
+
+
 	//---------------------------------------------------------------------------------
 	// Purpose: concommand Symbols
 	//---------------------------------------------------------------------------------

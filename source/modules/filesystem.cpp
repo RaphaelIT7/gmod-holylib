@@ -83,7 +83,7 @@ FileHandle_t* GetFileHandleFromCache(std::string strFilePath)
 	return it->second;
 }
 
-std::string GetFullPath(CSearchPath* pSearchPath, const char* strFileName)
+std::string GetFullPath(const CSearchPath* pSearchPath, const char* strFileName)
 {
 	char szLowercaseFilename[MAX_PATH];
 	V_strcpy_safe(szLowercaseFilename, strFileName);
@@ -231,7 +231,9 @@ static FileHandle_t* hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem,
 		FileHandle_t* file = detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
 		if (file)
 		{
-			AddFileHandleToCache(GetFullPath((CSearchPath*)openInfo.m_pSearchPath, openInfo.m_pFileName), file);
+			if (holylib_filesystem_cachefilehandle.GetBool())
+				AddFileHandleToCache(GetFullPath(openInfo.m_pSearchPath, openInfo.m_pFileName), file);
+
 			return file;
 		}
 
@@ -240,7 +242,7 @@ static FileHandle_t* hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem,
 	} else {
 		if (holylib_filesystem_cachefilehandle.GetBool())
 		{
-			FileHandle_t* cacheFile = GetFileHandleFromCache(GetFullPath((CSearchPath*)openInfo.m_pSearchPath, openInfo.m_pFileName));
+			FileHandle_t* cacheFile = GetFileHandleFromCache(GetFullPath(openInfo.m_pSearchPath, openInfo.m_pFileName));
 			if (cacheFile)
 				return cacheFile;
 		}
@@ -254,7 +256,8 @@ static FileHandle_t* hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem,
 	if (file)
 	{
 		AddFileToSearchCache(openInfo.m_pFileName, openInfo.m_pSearchPath->m_storeId, openInfo.m_pSearchPath->GetPathIDString());
-		AddFileHandleToCache(GetFullPath((CSearchPath*)openInfo.m_pSearchPath, openInfo.m_pFileName), file);
+		if (holylib_filesystem_cachefilehandle.GetBool())
+			AddFileHandleToCache(GetFullPath(openInfo.m_pSearchPath, openInfo.m_pFileName), file);
 	}
 
 	return file;
@@ -1278,9 +1281,10 @@ inline const char* CSearchPath::GetPathIDString() const
 	return m_pPathIDInfo->GetPathIDString();
 }
 
+static CUtlSymbolTableMT* g_pPathIDTable;
 inline const char* CSearchPath::GetPathString() const
 {
-	return m_pDebugPath;
+	return g_pPathIDTable->String( m_Path );
 }
 
 void CFileSystemModule::InitDetour(bool bPreServer)
@@ -1350,6 +1354,10 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 
 	func_CBaseFileSystem_FindSearchPathByStoreId = (Symbols::CBaseFileSystem_FindSearchPathByStoreId)Detour::GetFunction(dedicated_loader.GetModule(), Symbols::CBaseFileSystem_FindSearchPathByStoreIdSym);
 	Detour::CheckFunction(func_CBaseFileSystem_FindSearchPathByStoreId, "CBaseFileSystem::FindSearchPathByStoreId");
+
+	SourceSDK::FactoryLoader dedicated_factory("dedicated_srv");
+	g_pPathIDTable = Detour::ResolveSymbol<CUtlSymbolTableMT>(dedicated_factory, Symbols::g_PathIDTableSym);
+	Detour::CheckValue("get class", "g_PathIDTable", g_pPathIDTable != NULL);
 }
 
 void CFileSystemModule::Shutdown()
