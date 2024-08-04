@@ -41,7 +41,8 @@ Modules that aren't compatible are disabled by default.
 I forgot to pass the first argument to Gmod which caused this issue.  
 
 - [#] Future improved the filesystem my reducing the usage of `std::string`.  
-- [#] Fixed up the sourcesdk to not have all these file name differences and fixed a few things -> (32x)`keyvalues.h` | (64x)`KeyValues.h`  
+- [#] Fixed up the sourcesdk to not have all these file name differences and fixed a few things  
+-> (32x)`keyvalues.h` | (64x)`KeyValues.h`  
 - [#] Fixed `serverplugins` module not removing all detours on shutdown.  
 
 You can see all changes here:  

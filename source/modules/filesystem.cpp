@@ -101,6 +101,8 @@ FileHandle_t GetFileHandleFromCache(std::string_view strFilePath)
 		pFileDeletionList.erase(it2);
 		if (holylib_filesystem_debug.GetBool())
 			Msg("GetFileHandleFromCache: Removed handle for deletion! (%p)\n", it->second);
+	} else {
+		Msg("GetFileHandleFromCache: File wasn't marked for deletion? (%p)\n", it->second); // This could mean that were actively using it.
 	}
 
 	g_pFullFileSystem->Seek(it->second, 0, FILESYSTEM_SEEK_HEAD);
