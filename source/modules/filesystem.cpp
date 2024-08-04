@@ -1426,8 +1426,8 @@ namespace Lua
 {
 	struct File
 	{
-		void* idk = NULL;
-		FileHandle_t handle;
+		FileHandle_t handle = NULL;
+		int idk = 1; // If it's 0 the file is said to be NULL.
 	};
 }
 
