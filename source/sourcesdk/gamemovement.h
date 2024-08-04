@@ -28,7 +28,7 @@ public:
 	DECLARE_CLASS_NOBASE( CGameMovement );
 	
 	CGameMovement( void );
-	virtual			~CGameMovement( void );
+	//virtual			~CGameMovement( void );
 
 	virtual void	ProcessMovement( CBasePlayer *pPlayer, CMoveData *pMove );
 
