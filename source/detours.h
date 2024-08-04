@@ -263,8 +263,7 @@ namespace Detour
 		return CheckValue("get function", name, ret);
 	}
 
-	template<class T>
-	inline bool CheckFunction(T func, const char* name)
+	inline bool CheckFunction(void* func, const char* name)
 	{
 		return CheckValue("get function", name, func != nullptr);
 	}
@@ -314,12 +313,21 @@ namespace Detour
 		SourceSDK::FactoryLoader& loader, const std::vector<Symbol>& symbols
 	)
 	{
-#if DETOUR_SYMBOL_ID != 0
+	#if DETOUR_SYMBOL_ID != 0
 		if ((symbols.size()-1) < DETOUR_SYMBOL_ID)
 			return NULL;
-#endif
+	#endif
 
-		return ResolveSymbol<T>(loader, symbols[DETOUR_SYMBOL_ID]);
+	#if defined SYSTEM_WINDOWS
+		auto iface = reinterpret_cast<T**>(symfinder.Resolve(
+			loader.GetModule(), symbols[DETOUR_SYMBOL_ID].name.c_str(), symbols[DETOUR_SYMBOL_ID].length
+		));
+		return iface != nullptr ? *iface : nullptr;
+	#elif defined SYSTEM_POSIX
+		return reinterpret_cast<T*>(symfinder.Resolve(
+			loader.GetModule(), symbols[DETOUR_SYMBOL_ID].name.c_str(), symbols[DETOUR_SYMBOL_ID].length
+		));
+	#endif
 	}
 
 	inline void* GetFunction(void* module, std::vector<Symbol> symbols)
