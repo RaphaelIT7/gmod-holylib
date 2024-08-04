@@ -271,6 +271,7 @@ namespace Symbols
 	typedef bool (*ConCommand_IsBlocked)(const char* cmd);
 	const std::vector<Symbol> ConCommand_IsBlockedSym = {
 		Symbol::FromName("_Z20ConCommand_IsBlockedPKc"),
+		Symbol::FromSignature("\x48\x8B\x05\x01\x95\xD5\x00\x55\x48\x89"), // 48 8B 05 01 95 D5 00 55 48 89
 	};
 
 	//---------------------------------------------------------------------------------

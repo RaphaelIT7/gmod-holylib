@@ -20,7 +20,20 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 
 ## Next Update
 - [+] Added partial Linux 64x support.  
+- - `bitbuf`  
+- - `concommand`  
+- - `cvars`  
+- - `holylib`  
+- - `networking`  
+- - `serverplugin`  
+- - `steamworks`  
+- - `stringtable`  
+- - `util`  
+
 - [+] Added a compatibility system for all modules.  
+Modules that aren't compatible are disabled by default.  
+> NOTE: If some of their functions work, you can still force enable them with their ConVar or with the commandline.
+
 - [#] Fixed `surffix` module not actually working  
 - [#] Future improved the filesystem my reducing the usage of `std::string`.  
 - [#] Fixed up the sourcesdk to not have all these file name differences and fixed a few things -> (32x)`keyvalues.h` | (64x)`KeyValues.h`  
