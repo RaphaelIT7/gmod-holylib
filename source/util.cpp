@@ -71,7 +71,7 @@ void Util::AddDetour()
 	func_GetPlayer = (Symbols::Get_Player)Detour::GetFunction(server_loader.GetModule(), Symbols::Get_PlayerSym);
 	func_PushEntity = (Symbols::Push_Entity)Detour::GetFunction(server_loader.GetModule(), Symbols::Push_EntitySym);
 	func_GetEntity = (Symbols::Get_Entity)Detour::GetFunction(server_loader.GetModule(), Symbols::Get_EntitySym);
-	Detour::CheckFunction(func_GetPlayer, "Get_Player");
-	Detour::CheckFunction(func_PushEntity, "Push_Entity");
-	Detour::CheckFunction(func_GetEntity, "Get_Entity");
+	Detour::CheckFunction((void*)func_GetPlayer, "Get_Player");
+	Detour::CheckFunction((void*)func_PushEntity, "Push_Entity");
+	Detour::CheckFunction((void*)func_GetEntity, "Get_Entity");
 }
