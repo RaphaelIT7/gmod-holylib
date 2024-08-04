@@ -398,8 +398,8 @@ If enabled, it will enable additional checks to make sure that the player is not
 
 #### sv_ramp_bumpcount (default `8`)
 
-## filesystem
-This module currently only contains two optimizations for the filesystem.  
+## filesystemopt
+This module contains multiple optimizations for the filesystem.  
 
 ### ConVars
 
@@ -511,6 +511,10 @@ If enabled, it will fix up weird gamemode paths like sandbox/gamemode/sandbox/ga
 Currently it fixes these paths:  
 - `[Active gamemode]/gamemode/[anything]/[active gamemode]/gamemode/` -> (Example: `sandbox/gamemode/spawnmenu/sandbox/gamemode/spawnmenu/`)  
 - `include/include/`  
+
+#### (EXPERIMENTAL) holylib_filesystem_cachefilehandle (default `0`)
+If enabled, it will cache the file handle and return it if needed.  
+> NOTE: This will probably cause issues if you open the same file multiple times.  
 
 #### holylib_filesystem_debug (default `0`)
 If enabled, it will print all filesyste suff.  
