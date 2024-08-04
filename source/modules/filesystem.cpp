@@ -50,25 +50,43 @@ static ConVar holylib_filesystem_debug("holylib_filesystem_debug", "0", 0,
 
 static const char* nullPath = "NULL_PATH";
 extern void DeleteFileHandle(FileHandle_t handle);
-static std::unordered_map<FileHandle_t, std::string> m_FileStringCache;
-static std::unordered_map<std::string, FileHandle_t> m_FileCache;
-std::unordered_map<FileHandle_t, int> pFileDeletionList;
-void AddFileHandleToCache(std::string strFilePath, FileHandle_t pHandle)
+static std::unordered_map<FileHandle_t, std::string_view> m_FileStringCache;
+static std::unordered_map<std::string_view, FileHandle_t> m_FileCache;
+std::unordered_map<FileHandle_t, float> pFileDeletionList;
+void AddFileHandleToCache(std::string_view strFilePath, FileHandle_t pHandle)
 {
-	m_FileCache[strFilePath] = pHandle;
-	m_FileStringCache[pHandle] = strFilePath;
+	char* pFilePath = new char[MAX_PATH];
+	V_strncpy(pFilePath, strFilePath.data(), MAX_PATH);
+
+	m_FileCache[pFilePath] = pHandle;
+	m_FileStringCache[pHandle] = pFilePath;
 
 	if (holylib_filesystem_debug.GetBool())
-		Msg("Added file %s to filehandle cache\n", strFilePath.c_str());
+		Msg("Added file %s to filehandle cache\n", pFilePath);
 }
 
-FileHandle_t GetFileHandleFromCache(std::string strFilePath)
+void RemoveFileHandleFromCache(FileHandle_t pHandle)
+{
+	auto it = m_FileStringCache.find(pHandle);
+	if (it == m_FileStringCache.end())
+		return;
+
+	m_FileCache.erase(it->second);
+	m_FileStringCache.erase(it);
+
+	if (holylib_filesystem_debug.GetBool())
+		Msg("Removed file %s from filehandle cache\n", it->second.data());
+
+	delete it->second.data();
+}
+
+FileHandle_t GetFileHandleFromCache(std::string_view strFilePath)
 {
 	auto it = m_FileCache.find(strFilePath);
 	if (it == m_FileCache.end())
 	{
 		if (holylib_filesystem_debug.GetBool())
-			Msg("Failed to find %s in filehandle cache\n", strFilePath.c_str());
+			Msg("Failed to find %s in filehandle cache\n", strFilePath.data());
 
 		return NULL;
 	}
@@ -98,8 +116,8 @@ std::string GetFullPath(const CSearchPath* pSearchPath, const char* strFileName)
 }
 
 static Symbols::CBaseFileSystem_FindSearchPathByStoreId func_CBaseFileSystem_FindSearchPathByStoreId;
-static std::unordered_map<std::string, std::unordered_map<std::string, int>> m_SearchCache;
-static void AddFileToSearchCache(const char* pFileName, int path, const char* pathID)
+static std::unordered_map<std::string_view, std::unordered_map<std::string_view, int>> m_SearchCache;
+static void AddFileToSearchCache(const char* pFileName, int path, const char* pathID) // pathID should never be deleted so we don't need to manage that memory.
 {
 	if (!pathID)
 		pathID = nullPath;
@@ -107,7 +125,10 @@ static void AddFileToSearchCache(const char* pFileName, int path, const char* pa
 	if (holylib_filesystem_debug.GetBool())
 		Msg("Added file %s to seach cache (%i, %s)\n", pFileName, path, pathID);
 
-	m_SearchCache[pathID][pFileName] = path;
+	char* cFileName = new char[MAX_PATH];
+	V_strncpy(cFileName, pFileName, MAX_PATH);
+
+	m_SearchCache[pathID][cFileName] = path;
 }
 
 
@@ -119,7 +140,13 @@ static void RemoveFileFromSearchCache(const char* pFileName, const char* pathID)
 	if (holylib_filesystem_debug.GetBool())
 		Msg("Removed file %s from seach cache! (%s)\n", pFileName, pathID);
 
-	m_SearchCache[pathID].erase(pFileName);
+	auto& map = m_SearchCache[pathID];
+	auto it = map.find(pFileName);
+	if (it == map.end())
+		return;
+
+	map.erase(it);
+	delete[] it->first.data(); // Allocated in AddFileToSearchCache
 }
 
 static CSearchPath* GetPathFromSearchCache(const char* pFileName, const char* pathID)
@@ -127,8 +154,9 @@ static CSearchPath* GetPathFromSearchCache(const char* pFileName, const char* pa
 	if (!pathID)
 		pathID = nullPath;
 
-	auto it = m_SearchCache[pathID].find(pFileName);
-	if (it == m_SearchCache[pathID].end())
+	auto& map = m_SearchCache[pathID];
+	auto it = map.find(pFileName);
+	if (it == map.end())
 		return NULL;
 
 	if (holylib_filesystem_debug.GetBool())
@@ -148,7 +176,7 @@ static void NukeSearchCache() // NOTE: We actually never nuke it :D
 	if (holylib_filesystem_debug.GetBool())
 		Msg("Search cache got nuked\n");
 
-	m_SearchCache.clear();
+	m_SearchCache.clear(); // Now causes a memory leak :<
 }
 
 static void DumpSearchcacheCmd(const CCommand &args)
@@ -158,10 +186,10 @@ static void DumpSearchcacheCmd(const CCommand &args)
 		Msg("---- Search cache ----\n");
 		for (auto&[strPath, cache] : m_SearchCache)
 		{
-			Msg("	\"%s\":\n", strPath.c_str());
+			Msg("	\"%s\":\n", strPath.data());
 			for (auto&[entry, storeID] : cache)
 			{
-				Msg("		\"%s\": %i\n", entry.c_str(), storeID);
+				Msg("		\"%s\": %i\n", entry.data(), storeID);
 			}
 		}
 		Msg("---- End of Search cache ----\n");
@@ -211,7 +239,7 @@ static void DumpFilecacheCmd(const CCommand &args)
 	Msg("---- FileHandle cache ----\n");
 	for (auto&[strPath, handle] : m_FileCache)
 	{
-		Msg("	\"%s\": %p\n", strPath.c_str(), handle);
+		Msg("	\"%s\": %p\n", strPath.data(), handle);
 	}
 	Msg("---- End of Search cache ----\n");
 }
@@ -459,7 +487,18 @@ static const char* GetOverridePath(const char* pFileName, const char* pathID)
 	return NULL;
 }
 
-static std::unordered_map<std::string, std::string> g_pOverridePaths;
+static std::unordered_map<std::string_view, std::string_view> g_pOverridePaths;
+void AddOveridePath(const char* pFileName, const char* pPathID)
+{
+	char* cFileName = new char[MAX_PATH];
+	V_strncpy(cFileName, pFileName, MAX_PATH);
+
+	char* cPathID = new char[MAX_PATH];
+	V_strncpy(cPathID, pPathID, MAX_PATH);
+
+	g_pOverridePaths[cFileName] = cPathID;
+}
+
 static Detouring::Hook detour_CBaseFileSystem_OpenForRead;
 static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const char *pFileNameT, const char *pOptions, unsigned flags, const char *pathID, char **ppszResolvedFilename)
 {
@@ -485,11 +524,11 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 	if (holylib_filesystem_forcepath.GetBool())
 	{
 		newPath = NULL;
-		std::string strFileName = pFileName;
+		std::string_view strFileName = pFileName;
 
 		auto it = g_pOverridePaths.find(strFileName);
 		if (it != g_pOverridePaths.end())
-			newPath = it->second.c_str();
+			newPath = it->second.data();
 
 		if (newPath)
 		{
@@ -521,7 +560,7 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 
 		if (isModel)
 		{
-			std::string mdlPath = nukeFileExtension(strFileName).data();
+			std::string mdlPath = nukeFileExtension(strFileName).data(); // Since we modify the string, I don't think we need to switch to std::string_view
 			if (extension == "vtx")
 				mdlPath = nukeFileExtension(mdlPath); // "dx90.vtx" -> "dx90" -> ""
 
@@ -616,6 +655,7 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
  * GMOD first calls GetFileTime and then OpenForRead, so we need to make changes for lua in GetFileTime.
  */
 
+#if 0
 static std::string replaceString(std::string str, const std::string_view& from, const std::string_view& to)
 {
 	size_t startPos = str.find(from);
@@ -624,6 +664,7 @@ static std::string replaceString(std::string str, const std::string_view& from, 
 
 	return str;
 }
+#endif
 
 namespace IGamemodeSystem
 {
@@ -654,7 +695,7 @@ namespace IGamemodeSystem
  */
 static std::string_view fixGamemodePath(IFileSystem* filesystem, std::string_view path)
 {
-	std::string activeGamemode = ((const IGamemodeSystem::UpdatedInformation&)filesystem->Gamemodes()->Active()).name;
+	std::string_view activeGamemode = ((const IGamemodeSystem::UpdatedInformation&)filesystem->Gamemodes()->Active()).name;
 	if (activeGamemode.empty())
 		return path;
 
@@ -901,13 +942,14 @@ static void hook_CBaseFileSystem_AddVPKFile(IFileSystem* filesystem, const char 
 		Msg("Added vpk: %s %s %i\n", pPath, pathID, (int)addType);
 }
 
-#define FILE_HANDLE_DELETION_DELAY 5000 // 5 sec
+#define FILE_HANDLE_DELETION_DELAY 5 // 5 sec
 static Detouring::Hook detour_CBaseFileSystem_Close;
 void DeleteFileHandle(FileHandle_t handle)
 {
 	detour_CBaseFileSystem_Close.GetTrampoline<Symbols::CBaseFileSystem_Close>()(g_pFullFileSystem, handle);
 }
 
+extern CGlobalVars* gpGlobals;
 static void hook_CBaseFileSystem_Close(IFileSystem* filesystem, FileHandle_t file)
 {
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::Close", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
@@ -916,7 +958,7 @@ static void hook_CBaseFileSystem_Close(IFileSystem* filesystem, FileHandle_t fil
 	{
 		auto it = pFileDeletionList.find(file);
 		if (it == pFileDeletionList.end()) // File is being used again.
-			pFileDeletionList[file] = FILE_HANDLE_DELETION_DELAY;
+			pFileDeletionList[file] = gpGlobals->curtime + FILE_HANDLE_DELETION_DELAY;
 		else
 			it->second = FILE_HANDLE_DELETION_DELAY;
 
@@ -937,11 +979,11 @@ void CFileSystemModule::Think(bool bSimulating)
 	std::vector<FileHandle_t> pDeletionList;
 	for (auto& [file, time] : pFileDeletionList)
 	{
-		if (time <= 0)
+		if (gpGlobals->curtime > time)
 		{
 			pDeletionList.push_back(file);
 			if (holylib_filesystem_debug.GetBool())
-				Msg("FileThread: Preparing filehandle for deletion! (%p, %i)\n", file, time);
+				Msg("FileThread: Preparing filehandle for deletion! (%p, %f)\n", file, time);
 		}
 	}
 
@@ -954,13 +996,8 @@ void CFileSystemModule::Think(bool bSimulating)
 				continue;
 
 			pFileDeletionList.erase(it);
-				
-			auto it2 = m_FileStringCache.find(handle);
-			if (it2 == m_FileStringCache.end()) // Something broke?
-				continue;
 
-			m_FileCache.erase(it2->second);
-			m_FileStringCache.erase(it2);
+			RemoveFileHandleFromCache(handle); // Remove & Free the memory of the string.
 		}
 
 		for (FileHandle_t handle : pDeletionList) // We delete them outside the mutex to not block the main thread.
@@ -977,34 +1014,34 @@ void CFileSystemModule::Think(bool bSimulating)
 void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	// We use MOD_WRITE because it doesn't have additional junk search paths.
-	g_pOverridePaths["cfg/server.cfg"] = "MOD_WRITE";
-	g_pOverridePaths["cfg/banned_ip.cfg"] = "MOD_WRITE";
-	g_pOverridePaths["cfg/banned_user.cfg"] = "MOD_WRITE";
-	g_pOverridePaths["cfg/skill2.cfg"] = "MOD_WRITE";
-	g_pOverridePaths["cfg/game.cfg"] = "MOD_WRITE";
-	g_pOverridePaths["cfg/trusted_keys_base.txt"] = "MOD_WRITE";
-	g_pOverridePaths["cfg/pure_server_minimal.txt"] = "MOD_WRITE";
-	g_pOverridePaths["cfg/skill_manifest.cfg"] = "MOD_WRITE";
-	g_pOverridePaths["cfg/skill.cfg"] = "MOD_WRITE";
-	g_pOverridePaths["cfg/mapcycle.txt"] = "MOD_WRITE";
+	AddOveridePath("cfg/server.cfg", "MOD_WRITE");
+	AddOveridePath("cfg/banned_ip.cfg", "MOD_WRITE");
+	AddOveridePath("cfg/banned_user.cfg", "MOD_WRITE");
+	AddOveridePath("cfg/skill2.cfg", "MOD_WRITE");
+	AddOveridePath("cfg/game.cfg", "MOD_WRITE");
+	AddOveridePath("cfg/trusted_keys_base.txt", "MOD_WRITE");
+	AddOveridePath("cfg/pure_server_minimal.txt", "MOD_WRITE");
+	AddOveridePath("cfg/skill_manifest.cfg", "MOD_WRITE");
+	AddOveridePath("cfg/skill.cfg", "MOD_WRITE");
+	AddOveridePath("cfg/mapcycle.txt", "MOD_WRITE");
 
-	g_pOverridePaths["stale.txt"] = "MOD_WRITE";
-	g_pOverridePaths["garrysmod.ver"] = "MOD_WRITE";
-	g_pOverridePaths["scripts/actbusy.txt"] = "MOD_WRITE";
-	g_pOverridePaths["modelsounds.cache"] = "MOD_WRITE";
-	g_pOverridePaths["lua/send.txt"] = "MOD_WRITE";
+	AddOveridePath("stale.txt", "MOD_WRITE");
+	AddOveridePath("garrysmod.ver", "MOD_WRITE");
+	AddOveridePath("scripts/actbusy.txt", "MOD_WRITE");
+	AddOveridePath("modelsounds.cache", "MOD_WRITE");
+	AddOveridePath("lua/send.txt", "MOD_WRITE");
 
-	g_pOverridePaths["resource/serverevents.res"] = "MOD_WRITE";
-	g_pOverridePaths["resource/gameevents.res"] = "MOD_WRITE";
-	g_pOverridePaths["resource/modevents.res"] = "MOD_WRITE";
-	g_pOverridePaths["resource/hltvevents.res"] = "MOD_WRITE";
+	AddOveridePath("resource/serverevents.res", "MOD_WRITE");
+	AddOveridePath("resource/gameevents.res", "MOD_WRITE");
+	AddOveridePath("resource/modevents.res", "MOD_WRITE");
+	AddOveridePath("resource/hltvevents.res", "MOD_WRITE");
 
-	//g_pOverridePaths["scripts/voicecommands.txt"] = "MOD_WRITE";
-	//g_pOverridePaths["scripts/propdata.txt"] = "MOD_WRITE";
-	//g_pOverridePaths["scripts/propdata/base.txt"] = "MOD_WRITE";
-	//g_pOverridePaths["scripts/propdata/cs.txt"] = "MOD_WRITE";
-	//g_pOverridePaths["scripts/propdata/l4d.txt"] = "MOD_WRITE";
-	//g_pOverridePaths["scripts/propdata/phx.txt"] = "MOD_WRITE";
+	//AddOveridePath("scripts/voicecommands.txt", "MOD_WRITE");
+	//AddOveridePath("scripts/propdata.txt", "MOD_WRITE");
+	//AddOveridePath("scripts/propdata/base.txt", "MOD_WRITE");
+	//AddOveridePath("scripts/propdata/cs.txt", "MOD_WRITE");
+	//AddOveridePath("scripts/propdata/l4d.txt", "MOD_WRITE");
+	//AddOveridePath("scripts/propdata/phx.txt", "MOD_WRITE");
 
 	if ( pBaseLength < 3 )
 		pBaseLength = g_pFullFileSystem->GetSearchPath( "BASE_PATH", true, pBaseDir, sizeof( pBaseDir ) );
