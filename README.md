@@ -533,6 +533,40 @@ The id is the one listed with each file in the dumped searchcache.
 #### holylib_filesystem_nukesearchcache
 Nukes the searchcache.  
 
+### Functions
+This module also adds a `filesystem` library which should generally be faster than gmod's functions, because gmod has some weird / slow things in them.  
+It also gives you full access to the filesystem and doesn't restrict you to specific directories.  
+
+#### (FSASYNC Enum) filesystem.AsyncRead(string fileName, string gamePath, function callBack(string fileName, string gamePath, FSASYNC status, string content), bool sync)
+Reads a file async and calls the callback with the contents.  
+
+#### filesystem.CreateDir(string dirName, string gamePath = "DATA")
+Creates a directory in the given path.  
+
+#### filesystem.Delete(string fileName, string gamePath = "DATA")
+Deletes the given file.  
+
+#### bool filesystem.Exists(string fileName, string gamePath)
+Returns `true` if the given file exists.  
+
+#### table(Files), table(Folders) filesystem.Find(string filePath, string gamePath, string sorting = "nameasc")
+Finds and returns a table containing all files and folders in the given path.  
+
+#### bool filesystem.IsDir(string fileName, string gamePath)
+Returns `true` if the given file is a directory.  
+
+#### File filesystem.Open(string fileName, string fileMode, string gamePath = "GAME")
+Opens the given file or returns `nil` on failure.  
+
+#### bool filesystem.Rename(string origFileName, string newFileName, string gamePath = "DATA")
+Renames the given file and returns `true` on success.  
+
+#### number filesystem.Sizestring fileName, string gamePath = "GAME")
+Returns the size of the given file.  
+
+#### number fileystem.Time(string fileName, string gamePath = "GAME")
+Returns the unix time of the last modification of the given file / folder.  
+
 ## util
 This module adds two new functions to the `util` library.  
 

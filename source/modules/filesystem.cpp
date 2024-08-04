@@ -1300,14 +1300,14 @@ void FileAsyncReadThink()
 
 LUA_FUNCTION_STATIC(filesystem_CreateDir)
 {
-	g_pFullFileSystem->CreateDirHierarchy(LUA->CheckString(1), "DATA");
+	g_pFullFileSystem->CreateDirHierarchy(LUA->CheckString(1), g_Lua->CheckStringOpt(2, "DATA"));
 
 	return 0;
 }
 
 LUA_FUNCTION_STATIC(filesystem_Delete)
 {
-	g_pFullFileSystem->RemoveFile(LUA->CheckString(1), "DATA");
+	g_pFullFileSystem->RemoveFile(LUA->CheckString(1), g_Lua->CheckStringOpt(2, "DATA"));
 
 	return 0;
 }
@@ -1454,30 +1454,23 @@ LUA_FUNCTION_STATIC(filesystem_Rename)
 {
 	const char* original = LUA->CheckString(1);
 	const char* newname = LUA->CheckString(2);
+	const char* gamePath = g_Lua->CheckStringOpt(3, "DATA");
 
-	LUA->PushBool(g_pFullFileSystem->RenameFile(original, newname, "DATA"));
+	LUA->PushBool(g_pFullFileSystem->RenameFile(original, newname, gamePath));
 
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(filesystem_Size)
 {
-	const char* path = LUA->GetString(2);
-	if (path == NULL)
-		path = "GAME";
-
-	LUA->PushNumber(g_pFullFileSystem->Size(LUA->CheckString(1), path));
+	LUA->PushNumber(g_pFullFileSystem->Size(LUA->CheckString(1), g_Lua->CheckStringOpt(2, "GAME")));
 
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(filesystem_Time)
 {
-	const char* path = LUA->GetString(2);
-	if (path == NULL)
-		path = "GAME";
-
-	LUA->PushNumber(g_pFullFileSystem->GetFileTime(LUA->CheckString(1), path));
+	LUA->PushNumber(g_pFullFileSystem->GetFileTime(LUA->CheckString(1), g_Lua->CheckStringOpt(2, "GAME")));
 
 	return 1;
 }
