@@ -531,16 +531,16 @@ void CSurfFixModule::InitDetour(bool bPreServer)
 	);
 
 	func_MoveHelperServer = (Symbols::MoveHelperServer)Detour::GetFunction(server_loader.GetModule(), Symbols::MoveHelperServerSym);
-	Detour::CheckFunction(func_MoveHelperServer, "MoveHelperServer");
+	Detour::CheckFunction((void*)func_MoveHelperServer, "MoveHelperServer");
 
 	func_CGameMovement_ClipVelocity = (Symbols::CGameMovement_ClipVelocity)Detour::GetFunction(server_loader.GetModule(), Symbols::CGameMovement_ClipVelocitySym);
-	Detour::CheckFunction(func_CGameMovement_ClipVelocity, "CGameMovement:ClipVelocity");
+	Detour::CheckFunction((void*)func_CGameMovement_ClipVelocity, "CGameMovement:ClipVelocity");
 
 	func_CBaseEntity_GetGroundEntity = (Symbols::CBaseEntity_GetGroundEntity)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseEntity_GetGroundEntitySym);
-	Detour::CheckFunction(func_CBaseEntity_GetGroundEntity, "CBaseEntity::GetGroundEntity");
+	Detour::CheckFunction((void*)func_CBaseEntity_GetGroundEntity, "CBaseEntity::GetGroundEntity");
 
 	func_CTraceFilterSimple_ShouldHitEntity = (Symbols::CTraceFilterSimple_ShouldHitEntity)Detour::GetFunction(server_loader.GetModule(), Symbols::CTraceFilterSimple_ShouldHitEntitySym);
-	Detour::CheckFunction(func_CTraceFilterSimple_ShouldHitEntity, "CTraceFilterSimple::ShouldHitEntitySym");
+	Detour::CheckFunction((void*)func_CTraceFilterSimple_ShouldHitEntity, "CTraceFilterSimple::ShouldHitEntitySym");
 
 	SourceSDK::FactoryLoader server_loaderfactory("server_srv");
 	g_pEntityList = Detour::ResolveSymbol<CBaseEntityList>(server_loaderfactory, Symbols::g_pEntityListSym);

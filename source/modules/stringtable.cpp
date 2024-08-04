@@ -476,5 +476,5 @@ void CStringTableModule::InitDetour(bool bPreServer)
 	);
 
 	func_CNetworkStringTable_DeleteAllStrings = (Symbols::CNetworkStringTable_DeleteAllStrings)Detour::GetFunction(engine_loader.GetModule(), Symbols::CNetworkStringTable_DeleteAllStringsSym);
-	Detour::CheckFunction(func_CNetworkStringTable_DeleteAllStrings, "CNetworkStringTable::DeleteAllStrings");
+	Detour::CheckFunction((void*)func_CNetworkStringTable_DeleteAllStrings, "CNetworkStringTable::DeleteAllStrings");
 }
