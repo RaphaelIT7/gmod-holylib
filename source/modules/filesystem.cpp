@@ -1475,6 +1475,67 @@ LUA_FUNCTION_STATIC(filesystem_Time)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(filesystem_AddSearchPath)
+{
+	const char* folderPath = LUA->CheckString(1);
+	const char* gamePath = LUA->CheckString(2);
+	SearchPathAdd_t addType = g_Lua->GetBool() ? SearchPathAdd_t::PATH_ADD_TO_TAIL : SearchPathAdd_t::PATH_ADD_TO_HEAD;
+	g_pFullFileSystem->AddSearchPath(folderPath, gamePath, addType);
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(filesystem_RemoveSearchPath)
+{
+	const char* folderPath = LUA->CheckString(1);
+	const char* gamePath = LUA->CheckString(2);
+	LUA->PushBool(g_pFullFileSystem->RemoveSearchPath(folderPath, gamePath));
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(filesystem_RemoveSearchPaths)
+{
+	const char* gamePath = LUA->CheckString(1);
+	g_pFullFileSystem->RemoveSearchPaths(gamePath);
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(filesystem_RemoveAllSearchPaths)
+{
+	g_pFullFileSystem->RemoveAllSearchPaths();
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(filesystem_RelativePathToFullPath)
+{
+	const char* filePath = LUA->CheckString(1);
+	const char* gamePath = LUA->CheckString(2);
+
+	char* outStr = new char[MAX_PATH];
+	g_pFullFileSystem->RelativePathToFullPath(filePath, gamePath, outStr, MAX_PATH);
+
+	LUA->PushString(outStr);
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(filesystem_FullPathToRelativePath)
+{
+	const char* fullPath = LUA->CheckString(1);
+	const char* gamePath = g_Lua->CheckStringOpt(2, NULL);
+
+	char* outStr = new char[MAX_PATH];
+	if (g_pFullFileSystem->FullPathToRelativePathEx(fullPath, gamePath, outStr, MAX_PATH))
+		LUA->PushString(outStr);
+	else
+		LUA->PushNil();
+
+	return 1;
+}
+
 // Gmod's filesystem functions have some weird stuff in them that makes them noticeably slower :/
 void CFileSystemModule::LuaInit(bool bServerInit)
 {
@@ -1492,6 +1553,14 @@ void CFileSystemModule::LuaInit(bool bServerInit)
 		Util::AddFunc(filesystem_Rename, "Rename");
 		Util::AddFunc(filesystem_Size, "Size");
 		Util::AddFunc(filesystem_Time, "Time");
+
+		// Custom functions
+		Util::AddFunc(filesystem_AddSearchPath, "AddSearchPath");
+		Util::AddFunc(filesystem_RemoveSearchPath, "RemoveSearchPath");
+		Util::AddFunc(filesystem_RemoveSearchPaths, "RemoveSearchPaths");
+		Util::AddFunc(filesystem_RemoveAllSearchPaths, "RemoveAllSearchPaths");
+		Util::AddFunc(filesystem_RelativePathToFullPath, "RelativePathToFullPath");
+		Util::AddFunc(filesystem_FullPathToRelativePath, "FullPathToRelativePath");
 	Util::FinishTable("filesystem");
 }
 

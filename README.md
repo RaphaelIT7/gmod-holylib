@@ -32,7 +32,9 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 
 - [+] Added a compatibility system for all modules.  
 Modules that aren't compatible are disabled by default.  
-> NOTE: If some of their functions work, you can still force enable them with their ConVar or with the commandline.
+> NOTE: If some of their functions work, you can still force enable them with their ConVar or with the commandline.  
+
+- [+] Added `filesystem` lua library.  
 
 - [#] Fixed `surffix` module not actually working  
 - [#] Fixed a crash in the `surffix` module when noclipping thru a player.  
@@ -566,6 +568,27 @@ Returns the size of the given file.
 
 #### number fileystem.Time(string fileName, string gamePath = "GAME")
 Returns the unix time of the last modification of the given file / folder.  
+
+#### filesystem.AddSearchPath(string folderPath, string gamePath, bool addToTail = false)
+Adds the given folderPath to the gamePath searchpaths.  
+
+#### bool filesystem.RemoveSearchPath(string folderPath, string gamePath)
+Removes the given searchpath and returns `true` on success.  
+
+#### filesystem.RemoveSearchPaths(string gamePath)
+Removes all searchpaths with that gamePath  
+
+Example:  
+`filesystem.RemoveSearchPaths("GAME")` -- Removes all `GAME` searchpaths.  
+
+#### filesystem.RemoveAllSearchPaths()
+Removes all searchpaths.  
+
+#### string filesystem.RelativePathToFullPath(string filePath, string gamePath)
+Returns the full path for the given file or `nil` on failure.  
+
+#### string filesystem.FullPathToRelativePath(string fullPath, string gamePath = nil)
+Returns the relative path for the given file.  
 
 ## util
 This module adds two new functions to the `util` library.  
