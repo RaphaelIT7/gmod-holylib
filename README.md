@@ -398,7 +398,7 @@ If enabled, it will enable additional checks to make sure that the player is not
 
 #### sv_ramp_bumpcount (default `8`)
 
-## filesystemopt
+## filesystem
 This module contains multiple optimizations for the filesystem.  
 
 ### ConVars

@@ -122,7 +122,7 @@ CModuleManager::CModuleManager() // ToDo: Look into how IGameSystem works and us
 	RegisterModule(pPrecacheFixModule);
 	RegisterModule(pPVSModule);
 	RegisterModule(pSurfFixModule);
-	RegisterModule(pFileSystemOptModule);
+	RegisterModule(pFileSystemModule);
 	RegisterModule(pUtilModule);
 	RegisterModule(pConCommandModule);
 	RegisterModule(pVProfModule);

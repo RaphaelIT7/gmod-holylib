@@ -6,18 +6,18 @@
 #include <unordered_map>
 #include <vprof.h>
 
-class CFileSystemOptModule : public IModule
+class CFileSystemModule : public IModule
 {
 public:
 	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual void Think(bool bSimulating) OVERRIDE;
-	virtual const char* Name() { return "filesystemopt"; };
+	virtual const char* Name() { return "filesystem"; };
 	virtual int Compatibility() { return LINUX32; };
 };
 
-static CFileSystemOptModule g_pFileSystemOptModule;
-IModule* pFileSystemOptModule = &g_pFileSystemOptModule;
+static CFileSystemModule g_pFileSystemModule;
+IModule* pFileSystemModule = &g_pFileSystemModule;
 
 static ConVar holylib_filesystem_easydircheck("holylib_filesystem_easydircheck", "0", 0, 
 	"Checks if the folder CBaseFileSystem::IsDirectory checks has a . in the name after the last /. if so assume it's a file extension.");
@@ -971,7 +971,7 @@ static void hook_CBaseFileSystem_Close(IFileSystem* filesystem, FileHandle_t fil
 	detour_CBaseFileSystem_Close.GetTrampoline<Symbols::CBaseFileSystem_Close>()(filesystem, file);
 }
 
-void CFileSystemOptModule::Think(bool bSimulating)
+void CFileSystemModule::Think(bool bSimulating)
 {
 	if (!holylib_filesystem_cachefilehandle.GetBool())
 		return;
@@ -1011,7 +1011,7 @@ void CFileSystemOptModule::Think(bool bSimulating)
 	}
 }
 
-void CFileSystemOptModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
+void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	// We use MOD_WRITE because it doesn't have additional junk search paths.
 	AddOveridePath("cfg/server.cfg", "MOD_WRITE");
@@ -1136,7 +1136,7 @@ inline const char* CSearchPath::GetPathString() const
 	return func_CBaseFileSystem_CSearchPath_GetDebugString((void*)this);
 }
 
-void CFileSystemOptModule::InitDetour(bool bPreServer)
+void CFileSystemModule::InitDetour(bool bPreServer)
 {
 	if ( !bPreServer ) { return; }
 

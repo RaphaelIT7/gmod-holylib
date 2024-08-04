@@ -9,7 +9,7 @@ extern IModule* pStringTableModule;
 extern IModule* pPrecacheFixModule;
 extern IModule* pPVSModule;
 extern IModule* pSurfFixModule;
-extern IModule* pFileSystemOptModule;
+extern IModule* pFileSystemModule;
 extern IModule* pUtilModule;
 extern IModule* pConCommandModule;
 extern IModule* pVProfModule;
