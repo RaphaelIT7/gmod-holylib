@@ -44,17 +44,17 @@ void CModule::SetModule(IModule* module)
 #endif
 #endif
 
-	m_strName = "holylib_enable_";
-	m_strName = m_strName + module->Name();
+	std::string pStrName = "holylib_enable_";
+	pStrName = pStrName + module->Name();
 	std::string cmdStr = "-";
-	cmdStr.append(m_strName);
+	cmdStr.append(pStrName);
 	int cmd = CommandLine()->ParmValue(cmdStr.c_str(), -1);
 	if (cmd > -1)
 		SetEnabled(cmd == 1, true);
 	else
 		m_bEnabled = m_bCompatible;
 
-	m_pCVar = new ConVar(m_strName.c_str(), m_bEnabled ? "1" : "0", FCVAR_ARCHIVE, "Whether this module should be active or not", OnModuleConVarChange);
+	m_pCVar = new ConVar(pStrName.c_str(), m_bEnabled ? "1" : "0", FCVAR_ARCHIVE, "Whether this module should be active or not", OnModuleConVarChange);
 	m_bStartup = false;
 }
 
@@ -66,7 +66,7 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 		{
 			if (!m_bCompatible)
 			{
-				Warning("module %s is not compatible with this platform!\n", m_strName.c_str());
+				Warning("module %s is not compatible with this platform!\n", m_pModule->Name());
 
 				if (!bForced)
 					return;

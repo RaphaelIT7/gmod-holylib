@@ -6,7 +6,7 @@
 
 unsigned int g_pCurrentCategory = 0;
 
-SymbolFinder symfinder;
+SymbolFinder Detour::symfinder;
 void* Detour::GetFunction(void* module, Symbol symbol)
 {
 	return symfinder.Resolve(module, symbol.name.c_str(), symbol.length);

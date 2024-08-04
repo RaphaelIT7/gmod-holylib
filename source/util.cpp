@@ -1,6 +1,5 @@
 #include "util.h"
 #include <string>
-#include "edict.h"
 #include "GarrysMod/InterfacePointers.hpp"
 #include "iclient.h"
 #include "iserver.h"

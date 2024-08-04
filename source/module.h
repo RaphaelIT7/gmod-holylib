@@ -1,11 +1,6 @@
 #include "interface.h"
 #include <vector>
-#include <string>
-
-namespace Detour
-{
-	extern void Remove(unsigned int category);
-}
+#include "detours.h"
 
 enum Module_Compatibility
 {
@@ -48,7 +43,6 @@ public:
 protected:
 	IModule* m_pModule;
 	ConVar* m_pCVar;
-	std::string m_strName;
 	bool m_bEnabled = false;
 	bool m_bCompatible = false;
 	bool m_bStartup = false;

@@ -1,12 +1,11 @@
 #pragma once
 
 #include <sourcesdk/ILuaInterface.h>
-#include "GarrysMod/Lua/Interface.h"
-#include <string>
 #include "detours.h"
 #include "eiface.h"
 #include <tier3/tier3.h>
 
+class IVEngineServer;
 extern IVEngineServer* engine;
 
 extern GarrysMod::Lua::IUpdatedLuaInterface* g_Lua;
@@ -23,7 +22,7 @@ namespace Util
 	extern CBaseEntity* Get_Entity(int iStackPos, bool unknown);
 	extern void Push_Entity(CBaseEntity* pEnt);
 
-	CBaseClient* GetClientByUserID(int userid);
+	extern CBaseClient* GetClientByUserID(int userid);
 
 	extern void AddDetour(); // We load Gmod's functions in there.
 }
