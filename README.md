@@ -8,7 +8,7 @@ So currently to get it working on Windows, I would have to redo most of the hook
 Because of this, I'm not going to make it currently. I'm gonna slowly start adding all symbols and then someday I'm going to redo most hooks.  
 But for now there won't be a release.   
 
-# How to Install
+## How to Install
 1. Download the `ghostinj.dll`, `holylib.vdf` and `gmsv_holylib_linux.so` from the latest release.  
 2. Put the `ghostinj.dll` into the main directory where `srcds_linux` is located.  
 3. Put the `holylib.vdf` into the `garrysmod/addons/` directory.  
@@ -17,6 +17,27 @@ But for now there won't be a release.
 If you use a panel like Pterodactyl or something similar, you can use the gamemode field(in most cases) like this: `sandbox -usegh`  
 
 If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it will be loaded by holylib's ghostinj.  
+
+## Next Update
+- [+] Added partial Linux 64x support.  
+- [+] Added a compatibility system for all modules.  
+- [#] Fixed `surffix` module not actually working  
+- [#] Future improved the filesystem my reducing the usage of `std::string`.  
+- [#] Fixed up the sourcesdk to not have all these file name differences and fixed a few things -> (32x)`keyvalues.h` | (64x)`KeyValues.h`  
+- [#] Fixed `serverplugins` module not removing all detours on shutdown.  
+
+You can see all changes here:  
+https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.3...main
+
+### QoL updates
+- [#] Reduced file size by ~1MB  
+- [#] Changed print formatting  
+```txt
+Registered module holylib         (Enabled: true,  Compatible: true )
+Registered module gameevent       (Enabled: true,  Compatible: true )
+[...]
+```
+
 
 # Modules
 Each module has its own convar `holylib_enable_[module name]` which allows you to enable/disable specific modules.  
@@ -348,6 +369,18 @@ table enitites - The Entities that get transmitted. Only available if `holylib_p
 #### holylib_pvs_postchecktransmit (default `0`)
 If enabled, it will add/call the `HolyLib:CheckTransmit` hook.  
 If set to `2` it will also pass a table containing all entitites to the hook (The second argument)  
+
+## surffix
+This module ports over [Momentum Mod's](https://github.com/momentum-mod/game/blob/develop/mp/src/game/shared/momentum/mom_gamemovement.cpp#L2393-L2993) surf fixes.  
+
+### ConVars
+
+#### sv_ramp_fix (default `1`)
+If enabled, it will enable additional checks to make sure that the player is not stuck in a ramp.  
+
+#### sv_ramp_initial_retrace_length (default `0.2`)
+
+#### sv_ramp_bumpcount (default `8`)
 
 ## filesystem
 This module currently only contains two optimizations for the filesystem.  
@@ -835,7 +868,7 @@ Entity ent - The Entity which should be used to find all entities.
 # Issues implemented / fixed
 `gameevent.GetListeners` -> https://github.com/Facepunch/garrysmod-requests/issues/2377  
 `stringtable.FindTable("modelprecache"):GetNumStrings()` -> https://github.com/Facepunch/garrysmod-requests/issues/82  
-https://github.com/Facepunch/garrysmod-issues/issues/5932  
+`threadpoolfix` -> https://github.com/Facepunch/garrysmod-issues/issues/5932  
 `HolyLib.Reconnect(ply)` -> https://github.com/Facepunch/garrysmod-requests/issues/2089  
 `pvs.AddEntityToPVS(ent)` -> https://github.com/Facepunch/garrysmod-requests/issues/245  
 `util.AsyncCompress(data, nil, nil, callback)` -> https://github.com/Facepunch/garrysmod-requests/issues/2165   
@@ -847,6 +880,7 @@ It now throws a warning instead of crashing -> https://github.com/Facepunch/garr
 `sourcetv` module -> https://github.com/Facepunch/garrysmod-requests/issues/2298  
 `bitbuf` module(unfinished) -> https://github.com/Facepunch/garrysmod-requests/issues/594  
 `HLTV` class / `sourcetv` module -> https://github.com/Facepunch/garrysmod-requests/issues/2237  
+`surffix` module -> https://github.com/Facepunch/garrysmod-requests/issues/2306
 
 # Things planned to add:
 https://github.com/Facepunch/garrysmod-requests/issues/1884  

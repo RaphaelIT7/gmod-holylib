@@ -20,17 +20,11 @@ static CSurfFixModule g_pSurfFixModule;
 IModule* pSurfFixModule = &g_pSurfFixModule;
 
 // Ported over from https://github.com/RaphaelIT7/obsolete-source-engine/commit/b9e4bc91086f893f4bab0decb0d358da6ada428d
-static ConVar sv_slope_fix("sv_slope_fix", "1");
+// static ConVar sv_slope_fix("sv_slope_fix", "1");
 static ConVar sv_ramp_fix("sv_ramp_fix", "1");
 static ConVar sv_ramp_initial_retrace_length("sv_ramp_initial_retrace_length", "0.2", 0,
                                       "Amount of units used in offset for retraces", true, 0.2f, true, 5.f);
 static ConVar sv_ramp_bumpcount("sv_ramp_bumpcount", "8", 0, "Helps with fixing surf/ramp bugs", true, 4, true, 16);
-
-Symbols::CGameMovement_TracePlayerBBox func_CGameMovement_TracePlayerBBox;
-inline void HolyLib_CGameMovement_TracePlayerBBox(CGameMovement* gamemovement, const Vector& start, const Vector& end, unsigned int fMask, int collisionGroup, trace_t& pm)
-{
-	func_CGameMovement_TracePlayerBBox(gamemovement, start, end, fMask, collisionGroup, pm);
-}
 
 static bool CGameMovement_IsValidMovementTrace(CGameMovement* gamemovement, trace_t &tr)
 {
@@ -60,7 +54,7 @@ static bool CGameMovement_IsValidMovementTrace(CGameMovement* gamemovement, trac
         return false;
     }
 
-	HolyLib_CGameMovement_TracePlayerBBox(gamemovement, tr.endpos, tr.endpos, gamemovement->PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, stuck);
+    gamemovement->TracePlayerBBox(tr.endpos, tr.endpos, gamemovement->PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, stuck);
     if (stuck.startsolid || !CloseEnough(stuck.fraction, 1.0f, FLT_EPSILON))
     {
         return false;
@@ -279,7 +273,7 @@ static int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector*
 		{
 #if defined(PLAYER_GETTING_STUCK_TESTING)
 			trace_t foo;
-			HolyLib_CGameMovement_TracePlayerBBox(gamemovement, mv->GetAbsOrigin(), mv->GetAbsOrigin(), PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT,
+			TracePlayerBBox(mv->GetAbsOrigin(), mv->GetAbsOrigin(), PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT,
 							foo);
 			if (foo.startsolid || foo.fraction != 1.0f)
 			{
@@ -288,12 +282,12 @@ static int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector*
 #endif
 			if (stuck_on_ramp && has_valid_plane && sv_ramp_fix.GetBool())
 			{
-				HolyLib_CGameMovement_TracePlayerBBox(gamemovement, fixed_origin, end, gamemovement->PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, pm);
+				gamemovement->TracePlayerBBox(fixed_origin, end, gamemovement->PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, pm);
 				pm.plane.normal = valid_plane;
 			}
 			else
 			{
-				HolyLib_CGameMovement_TracePlayerBBox(gamemovement, gamemovement->mv->GetAbsOrigin(), end, gamemovement->PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, pm);
+				gamemovement->TracePlayerBBox(gamemovement->mv->GetAbsOrigin(), end, gamemovement->PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, pm);
 			}
 		}
 
@@ -326,7 +320,7 @@ static int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector*
 				// case until the bug is fixed.
 				// If we detect getting stuck, don't allow the movement
 				trace_t stuck;
-				HolyLib_CGameMovement_TracePlayerBBox(gamemovement, pm.endpos, pm.endpos, gamemovement->PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, stuck);
+				gamemovement->TracePlayerBBox(pm.endpos, pm.endpos, gamemovement->PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, stuck);
 
 				if ((stuck.startsolid || stuck.fraction != 1.0f) && !bumpcount && sv_ramp_fix.GetBool())
 				{
@@ -346,7 +340,7 @@ static int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector*
 
 #if defined(PLAYER_GETTING_STUCK_TESTING)
 			trace_t foo;
-			HolyLib_CGameMovement_TracePlayerBBox(gamemovement, pm.endpos, pm.endpos, PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, foo);
+			TracePlayerBBox(pm.endpos, pm.endpos, PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, foo);
 			if (foo.startsolid || foo.fraction != 1.0f)
 			{
 				Msg("Player will become stuck!!!\n");
@@ -547,9 +541,6 @@ void CSurfFixModule::InitDetour(bool bPreServer)
 
 	func_CTraceFilterSimple_ShouldHitEntity = (Symbols::CTraceFilterSimple_ShouldHitEntity)Detour::GetFunction(server_loader.GetModule(), Symbols::CTraceFilterSimple_ShouldHitEntitySym);
 	Detour::CheckFunction((void*)func_CTraceFilterSimple_ShouldHitEntity, "CTraceFilterSimple::ShouldHitEntitySym");
-
-	func_CGameMovement_TracePlayerBBox = (Symbols::CGameMovement_TracePlayerBBox)Detour::GetFunction(server_loader.GetModule(), Symbols::CGameMovement_TracePlayerBBoxSym);
-	Detour::CheckFunction((void*)func_CGameMovement_TracePlayerBBox, "CGameMovement::TracePlayerBBox");
 
 	SourceSDK::FactoryLoader server_loaderfactory("server_srv");
 	g_pEntityList = Detour::ResolveSymbol<CBaseEntityList>(server_loaderfactory, Symbols::g_pEntityListSym);

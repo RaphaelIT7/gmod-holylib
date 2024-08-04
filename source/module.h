@@ -41,8 +41,9 @@ public:
 	inline bool IsCompatible() { return m_bCompatible; };
 
 protected:
-	IModule* m_pModule;
-	ConVar* m_pCVar;
+	IModule* m_pModule = NULL;
+	ConVar* m_pCVar = NULL;
+	char* m_pCVarName = NULL;
 	bool m_bEnabled = false;
 	bool m_bCompatible = false;
 	bool m_bStartup = false;

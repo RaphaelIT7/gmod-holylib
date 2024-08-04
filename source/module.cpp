@@ -8,6 +8,9 @@ CModule::~CModule()
 {
 	if ( m_pCVar )
 		delete m_pCVar; // Could this cause a crash? idk.
+
+	if ( m_pCVarName )
+		delete[] m_pCVarName;
 }
 
 void OnModuleConVarChange(IConVar* convar, const char* pOldValue, float flOldValue)
@@ -54,7 +57,9 @@ void CModule::SetModule(IModule* module)
 	else
 		m_bEnabled = m_bCompatible;
 
-	m_pCVar = new ConVar(pStrName.c_str(), m_bEnabled ? "1" : "0", FCVAR_ARCHIVE, "Whether this module should be active or not", OnModuleConVarChange);
+	m_pCVarName = new char[255];
+	V_strncpy(m_pCVarName, pStrName.c_str(), 255);
+	m_pCVar = new ConVar(m_pCVarName, m_bEnabled ? "1" : "0", FCVAR_ARCHIVE, "Whether this module should be active or not", OnModuleConVarChange);
 	m_bStartup = false;
 }
 

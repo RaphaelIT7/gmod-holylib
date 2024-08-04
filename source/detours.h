@@ -18,7 +18,6 @@ class CCheckTransmitInfo;
 class CFileOpenInfo;
 class CSearchPath;
 class CSteam3Server;
-class CGameTrace;
 
 /*
  * The symbols will have this order:
@@ -141,9 +140,6 @@ namespace Symbols
 
 	typedef void* (*MoveHelperServer)();
 	extern const std::vector<Symbol> MoveHelperServerSym;
-
-	typedef void (*CGameMovement_TracePlayerBBox)(void* gamemovement, const Vector&, const Vector&, unsigned int, int, CGameTrace&);
-	extern const std::vector<Symbol> CGameMovement_TracePlayerBBoxSym;
 
 	extern const std::vector<Symbol> g_pEntityListSym;
 
