@@ -180,6 +180,10 @@ namespace Symbols
 		Symbol::FromName("_Z16MoveHelperServerv"),
 	};
 
+	const std::vector<Symbol> CGameMovement_TracePlayerBBoxSym = {
+		Symbol::FromName("_ZN13CGameMovement15TracePlayerBBoxERK6VectorS2_jiR10CGameTrace"),
+	};
+
 	const std::vector<Symbol> g_pEntityListSym = {
 		Symbol::FromName("g_pEntityList"),
 	};
