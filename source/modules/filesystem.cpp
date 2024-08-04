@@ -1331,7 +1331,7 @@ std::string extractDirectoryPath(const std::string& filepath) {
 std::vector<std::string> SortByDate(std::vector<std::string> files, const char* filepath, const char* path, bool ascending)
 {
 	std::string str_filepath = extractDirectoryPath((std::string)filepath);
-	std::unordered_map<std::string, long> dates;
+	std::unordered_map<std::string_view, long> dates;
 	for (std::string file : files) {
 		dates[file] = g_pFullFileSystem->GetFileTime((str_filepath + file).c_str(), path);
 	}
@@ -1422,6 +1422,15 @@ LUA_FUNCTION_STATIC(filesystem_IsDir)
 	return 1;
 }
 
+namespace Lua
+{
+	struct File
+	{
+		void* idk = NULL;
+		FileHandle_t handle;
+	};
+}
+
 LUA_FUNCTION_STATIC(filesystem_Open)
 {
 	const char* filename = LUA->CheckString(1);
@@ -1430,7 +1439,11 @@ LUA_FUNCTION_STATIC(filesystem_Open)
 
 	FileHandle_t fh = g_pFullFileSystem->Open(filename, fileMode, path);
 	if (fh)
-		g_Lua->PushUserType(fh, GarrysMod::Lua::Type::File); // Gmod uses a class Lua::File which it pushes. What does it contain?
+	{
+		Lua::File* file = new Lua::File;
+		file->handle = fh;
+		g_Lua->PushUserType(file, GarrysMod::Lua::Type::File); // Gmod uses a class Lua::File which it pushes. What does it contain?
+	}
 	else
 		g_Lua->PushNil();
 
