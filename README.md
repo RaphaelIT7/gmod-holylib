@@ -35,6 +35,9 @@ Modules that aren't compatible are disabled by default.
 > NOTE: If some of their functions work, you can still force enable them with their ConVar or with the commandline.
 
 - [#] Fixed `surffix` module not actually working  
+- [#] Fixed a crash in the `surffix` module when noclipping thru a player.  
+I forgot to pass the first argument to Gmod which caused this issue.  
+
 - [#] Future improved the filesystem my reducing the usage of `std::string`.  
 - [#] Fixed up the sourcesdk to not have all these file name differences and fixed a few things -> (32x)`keyvalues.h` | (64x)`KeyValues.h`  
 - [#] Fixed `serverplugins` module not removing all detours on shutdown.  
