@@ -5,6 +5,8 @@
 #include <sourcesdk/filesystem_things.h>
 #include <unordered_map>
 #include <vprof.h>
+#include <algorithm>
+#include <cstring>
 
 class CFileSystemModule : public IModule
 {
@@ -12,6 +14,8 @@ public:
 	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual void Think(bool bSimulating) OVERRIDE;
+	virtual void LuaInit(bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown() OVERRIDE;
 	virtual const char* Name() { return "filesystem"; };
 	virtual int Compatibility() { return LINUX32; };
 };
@@ -971,8 +975,11 @@ static void hook_CBaseFileSystem_Close(IFileSystem* filesystem, FileHandle_t fil
 	detour_CBaseFileSystem_Close.GetTrampoline<Symbols::CBaseFileSystem_Close>()(filesystem, file);
 }
 
+extern void FileAsyncReadThink();
 void CFileSystemModule::Think(bool bSimulating)
 {
+	FileAsyncReadThink();
+
 	if (!holylib_filesystem_cachefilehandle.GetBool())
 		return;
 
@@ -1206,4 +1213,286 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 
 	func_CBaseFileSystem_CSearchPath_GetDebugString = (Symbols::CBaseFileSystem_CSearchPath_GetDebugString)Detour::GetFunction(dedicated_loader.GetModule(), Symbols::CBaseFileSystem_CSearchPath_GetDebugStringSym);
 	Detour::CheckFunction((void*)func_CBaseFileSystem_CSearchPath_GetDebugString, "CBaseFileSystem::CSearchPath::GetDebugString");
+}
+
+/*
+ *
+ *	LUA API
+ *
+ */
+
+struct IAsyncFile
+{
+	~IAsyncFile()
+	{
+		if ( content )
+			delete[] content;
+	}
+
+	FileAsyncRequest_t* req;
+	int callback;
+	int nBytesRead;
+	int status;
+	const char* content = NULL;
+};
+
+std::vector<IAsyncFile*> asyncCallback;
+void AsyncCallback(const FileAsyncRequest_t &request, int nBytesRead, FSAsyncStatus_t err)
+{
+	IAsyncFile* async = (IAsyncFile*)request.pContext;
+	if (async)
+	{
+		async->nBytesRead = nBytesRead;
+		async->status = err;
+		char* content = new char[nBytesRead + 1];
+		std::memcpy(static_cast<void*>(content), request.pData, nBytesRead);
+		content[nBytesRead] = '\0';
+		async->content = content;
+		asyncCallback.push_back(async);
+	} else {
+		Msg("[Luathreaded] file.AsyncRead Invalid request? (%s, %s)\n", request.pszFilename, request.pszPathID);
+	}
+}
+
+LUA_FUNCTION_STATIC(filesystem_AsyncRead)
+{
+	const char* fileName = LUA->CheckString(1);
+	const char* gamePath = LUA->CheckString(2);
+	LUA->CheckType(3, GarrysMod::Lua::Type::Function);
+	LUA->Push(3);
+	int reference = LUA->ReferenceCreate();
+	LUA->Pop();
+	bool sync = LUA->GetBool(4);
+
+	FileAsyncRequest_t* request = new FileAsyncRequest_t;
+	request->pszFilename = fileName;
+	request->pszPathID = gamePath;
+	request->pfnCallback = AsyncCallback;
+	request->flags = sync ? FSASYNC_FLAGS_SYNC : 0;
+
+	IAsyncFile* file = new IAsyncFile;
+	file->callback = reference;
+	file->req = request;
+
+	request->pContext = file;
+
+	LUA->PushNumber(g_pFullFileSystem->AsyncReadMultiple(request, 1));
+
+	return 1;
+}
+
+void FileAsyncReadThink()
+{
+	std::vector<IAsyncFile*> files;
+	for(IAsyncFile* file : asyncCallback) {
+		g_Lua->ReferencePush(file->callback);
+		g_Lua->PushString(file->req->pszFilename);
+		g_Lua->PushString(file->req->pszPathID);
+		g_Lua->PushNumber(file->status);
+		g_Lua->PushString(file->content);
+		g_Lua->CallFunctionProtected(4, 0, true);
+		g_Lua->ReferenceFree(file->callback);
+		files.push_back(file);
+	}
+
+	asyncCallback.clear();
+}
+
+LUA_FUNCTION_STATIC(filesystem_CreateDir)
+{
+	g_pFullFileSystem->CreateDirHierarchy(LUA->CheckString(1), "DATA");
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(filesystem_Delete)
+{
+	g_pFullFileSystem->RemoveFile(LUA->CheckString(1), "DATA");
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(filesystem_Exists)
+{
+	LUA->PushBool(g_pFullFileSystem->FileExists(LUA->CheckString(1), LUA->CheckString(2)));
+
+	return 1;
+}
+
+std::string extractDirectoryPath(const std::string& filepath) {
+    size_t lastSlashPos = filepath.find_last_of('/');
+    if (lastSlashPos != std::string::npos) {
+        return filepath.substr(0, lastSlashPos + 1);
+    } else {
+        return "";
+    }
+}
+
+std::vector<std::string> SortByDate(std::vector<std::string> files, const char* filepath, const char* path, bool ascending)
+{
+	std::string str_filepath = extractDirectoryPath((std::string)filepath);
+	std::unordered_map<std::string, long> dates;
+	for (std::string file : files) {
+		dates[file] = g_pFullFileSystem->GetFileTime((str_filepath + file).c_str(), path);
+	}
+
+	std::sort(files.begin(), files.end(), [&dates](const std::string& a, const std::string& b) {
+        return dates[a] < dates[b];
+    });
+
+	if (!ascending) {
+        std::reverse(files.begin(), files.end());
+    }
+
+	return files;
+}
+
+LUA_FUNCTION_STATIC(filesystem_Find)
+{
+	std::vector<std::string> files;
+	std::vector<std::string> folders;
+
+	const char* filepath = LUA->CheckString(1);
+	const char* path = LUA->CheckString(2);
+	const char* sorting = LUA->CheckString(3);
+
+	FileFindHandle_t findHandle;
+	const char *pFilename = g_pFullFileSystem->FindFirstEx(filepath, path, &findHandle);
+	while (pFilename)
+	{
+		if (g_pFullFileSystem->IsDirectory(((std::string)filepath + pFilename).c_str(), path)) {
+			folders.push_back(pFilename);
+		} else {
+			files.push_back(pFilename);
+		}
+
+		pFilename = g_pFullFileSystem->FindNext(findHandle);
+	}
+	g_pFullFileSystem->FindClose(findHandle);
+
+	if (files.size() > 0) {
+		if (strcmp(sorting, "namedesc") == 0) { // sort the files descending by name.
+			std::sort(files.begin(), files.end(), std::greater<std::string>());
+			std::sort(folders.begin(), folders.end(), std::greater<std::string>());
+		} else if (strcmp(sorting, "dateasc") == 0) { // sort the files ascending by date.
+			SortByDate(files, filepath, path, true);
+			SortByDate(folders, filepath, path, true);
+		} else if (strcmp(sorting, "datedesc") == 0) { // sort the files descending by date.
+			SortByDate(files, filepath, path, false);
+			SortByDate(folders, filepath, path, false);
+		} else { // Fallback to default: nameasc | sort the files ascending by name.
+			std::sort(files.begin(), files.end());
+			std::sort(folders.begin(), folders.end());
+		}
+
+		LUA->CreateTable();
+
+		int i = 0;
+		for (std::string file : files)
+		{
+			++i;
+			LUA->PushString(file.c_str());
+			LUA->SetField(-2, std::to_string(i).c_str());
+		}
+	} else {
+		LUA->PushNil();
+	}
+
+	if (folders.size() > 0) {
+		LUA->CreateTable();
+
+		int i = 0;
+		for (std::string folder : folders)
+		{
+			++i;
+			LUA->PushString(folder.c_str());
+			LUA->SetField(-2, std::to_string(i).c_str());
+		}
+	} else {
+		LUA->PushNil();
+	}
+
+	return 2;
+}
+
+LUA_FUNCTION_STATIC(filesystem_IsDir)
+{
+	LUA->PushBool(g_pFullFileSystem->IsDirectory(LUA->CheckString(1), LUA->CheckString(2)));
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(filesystem_Open)
+{
+	const char* filename = LUA->CheckString(1);
+	const char* fileMode = LUA->CheckString(2);
+	const char* path = g_Lua->CheckStringOpt(3, "GAME");
+
+	FileHandle_t fh = g_pFullFileSystem->Open(filename, fileMode, path);
+	if (fh)
+		g_Lua->PushUserType(fh, GarrysMod::Lua::Type::File); // Gmod uses a class Lua::File which it pushes. What does it contain?
+	else
+		g_Lua->PushNil();
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(filesystem_Rename)
+{
+	const char* original = LUA->CheckString(1);
+	const char* newname = LUA->CheckString(2);
+
+	LUA->PushBool(g_pFullFileSystem->RenameFile(original, newname, "DATA"));
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(filesystem_Size)
+{
+	const char* path = LUA->GetString(2);
+	if (path == NULL)
+		path = "GAME";
+
+	LUA->PushNumber(g_pFullFileSystem->Size(LUA->CheckString(1), path));
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(filesystem_Time)
+{
+	const char* path = LUA->GetString(2);
+	if (path == NULL)
+		path = "GAME";
+
+	LUA->PushNumber(g_pFullFileSystem->GetFileTime(LUA->CheckString(1), path));
+
+	return 1;
+}
+
+// Gmod's filesystem functions have some weird stuff in them that makes them noticeably slower :/
+void CFileSystemModule::LuaInit(bool bServerInit)
+{
+	if (bServerInit)
+		return;
+
+	Util::StartTable();
+		Util::AddFunc(filesystem_AsyncRead, "AsyncRead");
+		Util::AddFunc(filesystem_CreateDir, "CreateDir");
+		Util::AddFunc(filesystem_Delete, "Delete");
+		Util::AddFunc(filesystem_Exists, "Exists");
+		Util::AddFunc(filesystem_Find, "Find");
+		Util::AddFunc(filesystem_IsDir, "IsDir");
+		Util::AddFunc(filesystem_Open, "Open");
+		Util::AddFunc(filesystem_Rename, "Rename");
+		Util::AddFunc(filesystem_Size, "Size");
+		Util::AddFunc(filesystem_Time, "Time");
+	Util::FinishTable("filesystem");
+}
+
+void CFileSystemModule::LuaShutdown()
+{
+	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
+		g_Lua->PushNil();
+		g_Lua->SetField(-2, "filesystem");
+	g_Lua->Pop(1);
 }
