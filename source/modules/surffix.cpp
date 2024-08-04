@@ -92,7 +92,7 @@ CTraceFilterSimple::CTraceFilterSimple(const IHandleEntity *passedict, int colli
 
 bool CTraceFilterSimple::ShouldHitEntity(IHandleEntity *pHandleEntity, int contentsMask)
 {
-	return func_CTraceFilterSimple_ShouldHitEntity(pHandleEntity, contentsMask);
+	return func_CTraceFilterSimple_ShouldHitEntity(this, pHandleEntity, contentsMask);
 }
 
 inline void HolyLib_UTIL_TraceRay(const Ray_t &ray, unsigned int mask, const IHandleEntity *ignore, int collisionGroup, trace_t *ptr, ShouldHitFunc_t pExtraShouldHitCheckFn = NULL)

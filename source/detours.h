@@ -135,7 +135,7 @@ namespace Symbols
 	typedef void* (*CBaseEntity_GetGroundEntity)(void* ent);
 	extern const std::vector<Symbol> CBaseEntity_GetGroundEntitySym;
 
-	typedef bool (*CTraceFilterSimple_ShouldHitEntity)(IHandleEntity*, int);
+	typedef bool (*CTraceFilterSimple_ShouldHitEntity)(void* tr, IHandleEntity*, int);
 	extern const std::vector<Symbol> CTraceFilterSimple_ShouldHitEntitySym;
 
 	typedef void* (*MoveHelperServer)();
