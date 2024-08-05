@@ -92,7 +92,7 @@ static void hook_CVProfile_OutputReport(void* fancy, int type, const tchar* pszS
 	{
 		std::string str = ss.str();
 		g_pFullFileSystem->Write(str.c_str(), str.length(), fh);  
-		Msg("Wrote vprof report into %s\n", filename.c_str());
+		Msg("holylib: Wrote vprof report into %s\n", filename.c_str());
 
 		g_pFullFileSystem->Close(fh);
 	}
