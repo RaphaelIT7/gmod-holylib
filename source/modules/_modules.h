@@ -18,3 +18,4 @@ extern IModule* pBitBufModule;
 extern IModule* pNetworkingModule;
 extern IModule* pSteamWorksModule;
 extern IModule* pPASModule;
+extern IModule* pBassModule;
