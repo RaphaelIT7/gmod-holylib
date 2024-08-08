@@ -389,9 +389,9 @@ CGModAudioChannel::CGModAudioChannel( DWORD handle, bool isfile )
 
 void CGModAudioChannel::Destroy()
 {
- 	if (BASS_ChannelIsActive(m_pHandle) == 1) {
-		BASS_ChannelFree(m_pHandle);
-	} else {
+ 	if (BASS_ChannelIsActive(m_pHandle) != 1) {
+		//BASS_ChannelDestroy(m_pHandle);
+	//} else {
 		int streamFlags = BASS_ChannelFlags(m_pHandle, 0, 0);
 		if (!(streamFlags & BASS_STREAM_DECODE)) {
 			BASS_StreamFree(m_pHandle);
