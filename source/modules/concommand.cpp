@@ -38,7 +38,7 @@ void CConCommandModule::InitDetour(bool bPreServer)
 {
 	if ( bPreServer ) { return; }
 
-	SourceSDK::ModuleLoader server_loader("server_srv");
+	SourceSDK::ModuleLoader server_loader("server");
 	Detour::Create(
 		&detour_ConCommand_IsBlocked, "ConCommand_IsBlocked",
 		server_loader.GetModule(), Symbols::ConCommand_IsBlockedSym,

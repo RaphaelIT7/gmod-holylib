@@ -88,7 +88,7 @@ static void hook_CLuaInterface_Shutdown(GarrysMod::Lua::ILuaInterface* LUA)
 
 void Lua::AddDetour() // Our Lua Loader.
 {
-	SourceSDK::ModuleLoader server_loader("server_srv");
+	SourceSDK::ModuleLoader server_loader("server");
 	Detour::Create(
 		&detour_InitLuaClasses, "InitLuaClasses",
 		server_loader.GetModule(), Symbols::InitLuaClassesSym,
@@ -104,7 +104,7 @@ void Lua::AddDetour() // Our Lua Loader.
 }
 
 GarrysMod::Lua::ILuaInterface* Lua::GetRealm(unsigned char realm) {
-	SourceSDK::FactoryLoader luashared_loader("lua_shared_srv");
+	SourceSDK::FactoryLoader luashared_loader("lua_shared");
 	GarrysMod::Lua::ILuaShared* LuaShared = (GarrysMod::Lua::ILuaShared*)luashared_loader.GetFactory()(GMOD_LUASHARED_INTERFACE, nullptr);
 	if (LuaShared == nullptr) {
 		Msg("failed to get ILuaShared!\n");
@@ -115,7 +115,7 @@ GarrysMod::Lua::ILuaInterface* Lua::GetRealm(unsigned char realm) {
 }
 
 GarrysMod::Lua::ILuaShared* Lua::GetShared() {
-	SourceSDK::FactoryLoader luashared_loader("lua_shared_srv");
+	SourceSDK::FactoryLoader luashared_loader("lua_shared");
 	if ( !luashared_loader.GetFactory() )
 		Msg("About to crash!\n");
 

@@ -218,7 +218,7 @@ void CPASModule::InitDetour(bool bPreServer)
 {
 	if ( bPreServer ) { return; }
 
-	SourceSDK::FactoryLoader engine_loader("engine_srv");
+	SourceSDK::FactoryLoader engine_loader("engine");
 	gBSPData = Detour::ResolveSymbol<CCollisionBSPData>(engine_loader, Symbols::g_BSPDataSym);
 	Detour::CheckValue("get class", "CCollisionBSPData", gBSPData != NULL);
 }

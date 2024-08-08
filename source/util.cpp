@@ -67,7 +67,7 @@ void Util::AddDetour()
 {
 	server = InterfacePointers::Server();
 
-	SourceSDK::ModuleLoader server_loader("server_srv");
+	SourceSDK::ModuleLoader server_loader("server");
 	func_GetPlayer = (Symbols::Get_Player)Detour::GetFunction(server_loader.GetModule(), Symbols::Get_PlayerSym);
 	func_PushEntity = (Symbols::Push_Entity)Detour::GetFunction(server_loader.GetModule(), Symbols::Push_EntitySym);
 	func_GetEntity = (Symbols::Get_Entity)Detour::GetFunction(server_loader.GetModule(), Symbols::Get_EntitySym);

@@ -96,7 +96,7 @@ void CHolyLibModule::InitDetour(bool bPreServer)
 {
 	if ( bPreServer ) { return; }
 
-	SourceSDK::ModuleLoader server_loader("server_srv");
+	SourceSDK::ModuleLoader server_loader("server");
 	Detour::Create(
 		&detour_CServerGameDLL_ShouldHideServer, "CServerGameDLL::ShouldHideServer",
 		server_loader.GetModule(), Symbols::CServerGameDLL_ShouldHideServerSym,

@@ -110,7 +110,7 @@ void CSteamWorksModule::InitDetour(bool bPreServer)
 {
 	if ( bPreServer ) { return; }
 
-	SourceSDK::ModuleLoader engine_loader("engine_srv");
+	SourceSDK::ModuleLoader engine_loader("engine");
 	Detour::Create(
 		&detour_CSteam3Server_OnLoggedOff, "CSteam3Server::OnLoggedOff",
 		engine_loader.GetModule(), Symbols::CSteam3Server_OnLoggedOffSym,

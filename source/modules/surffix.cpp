@@ -523,7 +523,7 @@ void CSurfFixModule::InitDetour(bool bPreServer)
 	if ( bPreServer ) { return; }
 	if ( !gpGlobals ) { return; }
 
-	SourceSDK::ModuleLoader server_loader("server_srv");
+	SourceSDK::ModuleLoader server_loader("server");
 	Detour::Create(
 		&detour_CGameMovement_TryPlayerMove, "CGameMovement::TryPlayerMove",
 		server_loader.GetModule(), Symbols::CGameMovement_TryPlayerMoveSym,
@@ -542,7 +542,7 @@ void CSurfFixModule::InitDetour(bool bPreServer)
 	func_CTraceFilterSimple_ShouldHitEntity = (Symbols::CTraceFilterSimple_ShouldHitEntity)Detour::GetFunction(server_loader.GetModule(), Symbols::CTraceFilterSimple_ShouldHitEntitySym);
 	Detour::CheckFunction((void*)func_CTraceFilterSimple_ShouldHitEntity, "CTraceFilterSimple::ShouldHitEntitySym");
 
-	SourceSDK::FactoryLoader server_loaderfactory("server_srv");
+	SourceSDK::FactoryLoader server_loaderfactory("server");
 	g_pEntityList = Detour::ResolveSymbol<CBaseEntityList>(server_loaderfactory, Symbols::g_pEntityListSym);
 	Detour::CheckValue("get class", "g_pEntityList", g_pEntityList != NULL);
 }

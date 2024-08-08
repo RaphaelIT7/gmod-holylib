@@ -154,7 +154,7 @@ void CServerPluginLibModule::InitDetour(bool bPreServer)
 {
 	if ( bPreServer ) { return; }
 
-	SourceSDK::ModuleLoader engine_loader("engine_srv");
+	SourceSDK::ModuleLoader engine_loader("engine");
 	Detour::Create(
 		&detour_CPlugin_Load, "CPlugin::Load", engine_loader.GetModule(),
 		Symbols::CPlugin_LoadSym, (void*)hook_CPlugin_Load, m_pID

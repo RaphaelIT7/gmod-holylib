@@ -1149,7 +1149,7 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 {
 	if ( !bPreServer ) { return; }
 
-	SourceSDK::ModuleLoader dedicated_loader("dedicated_srv");
+	SourceSDK::ModuleLoader dedicated_loader("dedicated");
 	Detour::Create(
 		&detour_CBaseFileSystem_FindFileInSearchPath, "CBaseFileSystem::FindFileInSearchPath",
 		dedicated_loader.GetModule(), Symbols::CBaseFileSystem_FindFileInSearchPathSym,

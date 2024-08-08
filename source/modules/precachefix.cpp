@@ -126,7 +126,7 @@ void CPrecacheFixModule::InitDetour(bool bPreServer)
 {
 	if ( bPreServer ) { return; }
 
-	SourceSDK::ModuleLoader engine_loader("engine_srv");
+	SourceSDK::ModuleLoader engine_loader("engine");
 	Detour::Create(
 		&detour_CVEngineServer_PrecacheModel, "CVEngineServer::PrecacheModel",
 		engine_loader.GetModule(), Symbols::CVEngineServer_PrecacheModelSym,

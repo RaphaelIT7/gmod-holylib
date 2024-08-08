@@ -163,7 +163,7 @@ void CVProfModule::InitDetour(bool bPreServer)
 		(void*)hook_CVProfile_OutputReport, m_pID
 	);
 
-	SourceSDK::ModuleLoader server_loader("server_srv");
+	SourceSDK::ModuleLoader server_loader("server");
 	Detour::Create(
 		&detour_CLuaGamemode_Call, "CLuaGamemode::Call",
 		server_loader.GetModule(), Symbols::CLuaGamemode_CallSym,

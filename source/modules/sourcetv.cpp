@@ -542,7 +542,7 @@ void CSourceTVLibModule::InitDetour(bool bPreServer)
 {
 	if ( bPreServer ) { return; }
 
-	SourceSDK::ModuleLoader engine_loader("engine_srv");
+	SourceSDK::ModuleLoader engine_loader("engine");
 	Detour::Create(
 		&detour_CHLTVClient_ProcessGMod_ClientToServer, "CHLTVClient::ProcessGMod_ClientToServer",
 		engine_loader.GetModule(), Symbols::CHLTVClient_ProcessGMod_ClientToServerSym,
@@ -573,7 +573,7 @@ void CSourceTVLibModule::InitDetour(bool bPreServer)
 		(void*)hook_CHLTVClient_Deconstructor, m_pID
 	);
 
-	SourceSDK::FactoryLoader server_loader("server_srv");
+	SourceSDK::FactoryLoader server_loader("server");
 	pUserMessages = Detour::ResolveSymbol<CUserMessages>(server_loader, Symbols::UsermessagesSym);
 	Detour::CheckValue("get class", "usermessages", pUserMessages != NULL);
 

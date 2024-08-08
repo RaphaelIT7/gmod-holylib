@@ -135,7 +135,7 @@ void CGameeventLibModule::InitDetour(bool bPreServer)
 {
 	if ( bPreServer ) { return; }
 
-	SourceSDK::FactoryLoader server_loader("server_srv");
+	SourceSDK::FactoryLoader server_loader("server");
 	s_GameSystems = Detour::ResolveSymbol<CUtlVector<IGameSystem*>>(server_loader, Symbols::s_GameSystemsSym);
 	Detour::CheckValue("get class", "s_GameSystems", s_GameSystems != NULL);
 }

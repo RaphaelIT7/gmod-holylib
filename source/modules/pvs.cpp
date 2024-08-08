@@ -625,7 +625,7 @@ void CPVSModule::InitDetour(bool bPreServer)
 {
 	if ( bPreServer ) { return; }
 
-	SourceSDK::ModuleLoader server_loader("server_srv");
+	SourceSDK::ModuleLoader server_loader("server");
 	Detour::Create(
 		&detour_CGMOD_Player_SetupVisibility, "CGMOD_Player::SetupVisibility",
 		server_loader.GetModule(), Symbols::CGMOD_Player_SetupVisibilitySym,
