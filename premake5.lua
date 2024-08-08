@@ -49,21 +49,22 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			[[source/sourcesdk/]]
 		})
 
-		libdirs("libs")
 		filter("system:windows")
 			files({"source/win32/*.cpp", "source/win32/*.hpp"})
+			links({"bootil_static.lib"})
+			links({"bass.lib"})
 
 		filter("system:windows", "platforms:x86_64")
-			links({"bootil_static_64.lib"})
+			libdirs("libs/win64")
 
 		filter("system:windows", "platforms:x86")
-			links({"bootil_static_32.lib"})
+			libdirs("libs/win32")
 
 		filter({"system:linux", "platforms:x86_64"})
-			links("bootil_static_64")
+			libdirs("libs/linux64")
 
 		filter({"system:linux", "platforms:x86"})
-			links("bootil_static_32")
+			libdirs("libs/linux32")
 
 		filter("system:linux")
 			targetextension(".so")
@@ -71,7 +72,9 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 				{
 					"dl",
 					"tier0",
-					"pthread"
+					"pthread",
+					"bass",
+					"bootil_static"
 				}
 
 		filter("system:linux or macosx")

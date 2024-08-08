@@ -16,10 +16,10 @@ project "bootil_static"
 	runtime "Release"
 
 	filter { "platforms:x32" }
-        targetname "bootil_static_32"
+        targetname "bootil_static"
 
     filter { "platforms:x64" }
-        targetname "bootil_static_64"
+        targetname "bootil_static"
 
 	if os.is( "linux" ) or os.is( "macosx" ) then
 		targetextension(".a")
