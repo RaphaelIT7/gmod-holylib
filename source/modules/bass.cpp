@@ -464,9 +464,6 @@ LUA_FUNCTION_STATIC(bass_PlayURL)
 
 void CBassModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
-	if (true)
-		return;
-
 	// ToDo: Find out why it crashes. It can't find the factory, but why?
 	SourceSDK::FactoryLoader gmod_audio_loader("gmod_audio");
 	gGModAudio = (IGMod_Audio*)gmod_audio_loader.GetFactory()(INTERFACEVERSION_GMODAUDIO, NULL); // Engine should Initialize it. If not, we need to do it.
@@ -475,9 +472,6 @@ void CBassModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 
 void CBassModule::LuaInit(bool bServerInit)
 {
-	if (true)
-		return;
-
 	if (bServerInit)
 		return;
 
@@ -524,9 +518,6 @@ void CBassModule::LuaInit(bool bServerInit)
 
 void CBassModule::LuaShutdown()
 {
-	if (true)
-		return;
-
 	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
 		g_Lua->PushNil();
 		g_Lua->SetField(-2, "bass");
