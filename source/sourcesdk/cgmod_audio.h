@@ -1,6 +1,6 @@
 #include <string>
 #include "vaudio/ivaudio.h"
-#include "igmod_audio.h"
+#include "IGmod_Audio.h"
 #include "bass.h"
 
 class CBassAudioStream : IBassAudioStream
