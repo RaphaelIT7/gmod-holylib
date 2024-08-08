@@ -91,7 +91,7 @@ unsigned long CALLBACK CBassAudioStream::MyFileReadProc(void *buffer, unsigned i
 #endif
 }
 
-bool CALLBACK CBassAudioStream::MyFileSeekProc(QWORD offset, void* user)
+bool CALLBACK CBassAudioStream::MyFileSeekProc(unsigned long long offset, void* user)
 {
 #ifdef SYSTEM_WINDOWS
 	return !fseek((FILE*)user, offset, SEEK_SET);
@@ -104,9 +104,11 @@ unsigned int CBassAudioStream::Decode(void* data, unsigned int size)
 {
 	unsigned int result = 0;
 
+#ifdef SYSTEM_WINDOWS
 	if (data != nullptr) {
 		result = BASS_ChannelGetData(reinterpret_cast<HSTREAM>(data), data, size);
 	}
+#endif
 
 	return result;
 }
