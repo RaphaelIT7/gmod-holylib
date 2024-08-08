@@ -260,6 +260,12 @@ Returns `true` if the string was deleted.
 #### bool INetworkStringTable:IsValid()
 Returns `true` if the stringtable is still valid.  
 
+#### INetworkStringTable:SetStringUserData(number index, string data)
+Sets the UserData for the given index.  
+
+#### string INetworkStringTable:GetStringUserData(number index)
+Returns the userdata of the given index.  
+
 ### Enums
 This module adds these enums  
 
