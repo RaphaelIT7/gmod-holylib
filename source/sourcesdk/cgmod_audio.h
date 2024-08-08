@@ -71,8 +71,8 @@ public:
 	CGModAudioChannel( DWORD handle, bool isfile );
 
 private:
-	DWORD handle;
-	bool isfile;
+	DWORD m_pHandle;
+	bool m_bIsFile;
 };
 
 extern IGMod_Audio* g_pGModAudio;
