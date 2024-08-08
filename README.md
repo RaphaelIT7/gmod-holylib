@@ -929,6 +929,10 @@ Called when our Steam server successfully connected to steams servers.
 
 # Unfinished Modules
 
+## bass
+This module will add functions related to the bass dll.  
+Does someone have the bass libs for `2.4.15`? I can't find them :<  
+
 ## serverplugins
 This module adds two new `IServerPluginCallbacks` functions:  
 `virtual void OnLuaInit( GarrysMod::Lua::ILuaInterface* LUA )`  
