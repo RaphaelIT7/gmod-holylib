@@ -417,6 +417,9 @@ LUA_FUNCTION_STATIC(bass_PlayFile)
 	LUA->Push(3);
 	int callback = LUA->ReferenceCreate();
 
+	if (!gGModAudio)
+		LUA->ThrowError("We don't have gGModAudio!");
+
 	int errorCode = 0;
 	IGModAudioChannel* audioChannel = gGModAudio->PlayFile(filePath, flags, &errorCode);
 	
@@ -443,6 +446,9 @@ LUA_FUNCTION_STATIC(bass_PlayURL)
 	LUA->CheckType(3, GarrysMod::Lua::Type::Function);
 	LUA->Push(3);
 	int callback = LUA->ReferenceCreate();
+
+	if (!gGModAudio)
+		LUA->ThrowError("We don't have gGModAudio!");
 
 	int errorCode = 0;
 	IGModAudioChannel* audioChannel = gGModAudio->PlayURL(url, flags, &errorCode);
