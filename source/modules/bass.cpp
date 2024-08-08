@@ -1,7 +1,7 @@
 #include "module.h"
 #include <GarrysMod/Lua/Interface.h>
 #include "lua.h"
-#include "sourcesdk/IGmod_Audio.h"
+#include "sourcesdk/cgmod_audio.h"
 
 class CBassModule : public IModule
 {
@@ -468,6 +468,12 @@ void CBassModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 	SourceSDK::FactoryLoader gmod_audio_loader("gmod_audio"); // Probably a broken dll/so file.
 	if (!gmod_audio_loader.GetFactory())
 	{
+		if (g_pGModAudio)
+		{
+			gGModAudio = g_pGModAudio;
+			return;
+		}
+
 		Warning("Failed to get Factory for gmod_audio file\n");
 		return;
 	}
