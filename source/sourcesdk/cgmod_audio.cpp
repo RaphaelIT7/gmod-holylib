@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <tier2/tier2.h>
 #include <filesystem.h>
+#include "Platform.hpp"
 
 const char* BassErrorToString(int errorCode) {
     if (g_BASSErrorStrings[errorCode]) {
@@ -26,6 +27,7 @@ CBassAudioStream::~CBassAudioStream()
 	// IDK
 }
 
+#ifdef SYSTEM_WINDOWS
 void CALLBACK MyFileCloseProcc(void *user)
 {
 	fclose((FILE*)user);
@@ -47,9 +49,11 @@ BOOL CALLBACK MyFileSeekProcc(QWORD offset, void* user)
 {
 	return !fseek((FILE*)user, offset, SEEK_SET);
 }
+#endif
 
 void CBassAudioStream::Init(IAudioStreamEvent* event)
 {
+#ifdef SYSTEM_WINDOWS
 	BASS_FILEPROCS fileprocs={MyFileCloseProcc, MyFileLenProcc, MyFileReadProcc, MyFileSeekProcc};
 
 	m_hStream = BASS_StreamCreateFileUser(STREAMFILE_NOBUFFER, BASS_STREAM_AUTOFREE, &fileprocs, event); // ToDo: FIX THIS. event should be a FILE* not a IAudioStreamEvent* -> Crash
@@ -57,6 +61,7 @@ void CBassAudioStream::Init(IAudioStreamEvent* event)
 	if (m_hStream == 0) {
 		Warning("Couldn't create BASS audio stream (%s)", BassErrorToString(BASS_ErrorGetCode()));
 	}
+#endif
 }
 
 void CALLBACK CBassAudioStream::MyFileCloseProc(void* user)
@@ -267,7 +272,8 @@ void CGMod_Audio::SetEar(Vector* earPosition, Vector* earVelocity, Vector* earFr
 	BASS_Apply3D();
 }
 
-DWORD BASSFlagsFromString(const std::string& flagsString, bool* autoplay) // autoplay arg doesn't exist in gmod.
+#define BASS_NOPLAY (1 << 9)
+DWORD BASSFlagsFromString(const std::string& flagsString)
 {
 	DWORD flags = 0;
 	if (flagsString.empty())
@@ -288,7 +294,7 @@ DWORD BASSFlagsFromString(const std::string& flagsString, bool* autoplay) // aut
 
 	if (flagsString.find("noplay") != std::string::npos)
 	{
-		autoplay = false;
+		flags |= BASS_NOPLAY; // Temp thing for now.
 	}
 
 	if (flagsString.find("noblock") == std::string::npos)
@@ -307,8 +313,7 @@ IGModAudioChannel* CGMod_Audio::PlayURL(const char* url, const char* flags, int*
 		return NULL;
 	}
 
-	bool autoplay = true;
-	DWORD bassFlags = BASSFlagsFromString(flags, &autoplay);
+	DWORD bassFlags = BASSFlagsFromString(flags);
 	HSTREAM stream = BASS_StreamCreateURL(url, 0, bassFlags, nullptr, nullptr);
 
 	if (stream == 0) {
@@ -316,7 +321,7 @@ IGModAudioChannel* CGMod_Audio::PlayURL(const char* url, const char* flags, int*
 		return NULL;
 	}
 
-	if (autoplay && !BASS_ChannelPlay(stream, TRUE)) {
+	if (!(bassFlags & BASS_NOPLAY) && !BASS_ChannelPlay(stream, TRUE)) {
 		*errorCode = BASS_ErrorGetCode();
 		BASS_StreamFree(stream);
 		return NULL;
@@ -337,8 +342,7 @@ IGModAudioChannel* CGMod_Audio::PlayFile(const char* filePath, const char* flags
 	char fullPath[MAX_PATH];
 	g_pFullFileSystem->RelativePathToFullPath(filePath, "GAME", fullPath, sizeof(fullPath));
 
-	bool autoplay = true;
-	DWORD bassFlags = BASSFlagsFromString(flags, &autoplay);
+	DWORD bassFlags = BASSFlagsFromString(flags);
 	HSTREAM stream = BASS_StreamCreateFile(FALSE, fullPath, 0, 0, bassFlags);
 	//delete[] fullPath; // Causes a crash
 
@@ -347,7 +351,7 @@ IGModAudioChannel* CGMod_Audio::PlayFile(const char* filePath, const char* flags
 		return NULL;
 	}
 
-	if (autoplay && !BASS_ChannelPlay(stream, TRUE)) {
+	if (!(bassFlags & BASS_NOPLAY) && !BASS_ChannelPlay(stream, TRUE)) {
 		*errorCode = BASS_ErrorGetCode();
 		BASS_StreamFree(stream);
 		return NULL;
