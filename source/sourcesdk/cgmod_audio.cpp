@@ -66,24 +66,38 @@ void CBassAudioStream::Init(IAudioStreamEvent* event)
 
 void CALLBACK CBassAudioStream::MyFileCloseProc(void* user)
 {
+#ifdef SYSTEM_WINDOWS
 	fclose((FILE*)user);
+#endif
 }
 
 QWORD CALLBACK CBassAudioStream::MyFileLenProc(void* user)
 {
+#ifdef SYSTEM_WINDOWS
 	struct stat finfo;
 	fstat(fileno((FILE*)user), &finfo);
 	return finfo.st_size;
+#else
+	return 0;
+#endif
 }
 
 DWORD CALLBACK CBassAudioStream::MyFileReadProc(void *buffer, unsigned int length, void* user)
 {
+#ifdef SYSTEM_WINDOWS
 	return fread(buffer, 1, length, (FILE*)user);
+#else
+	return 0;
+#endif
 }
 
 BOOL CALLBACK CBassAudioStream::MyFileSeekProc(QWORD offset, void* user)
 {
+#ifdef SYSTEM_WINDOWS
 	return !fseek((FILE*)user, offset, SEEK_SET);
+#else
+	return false;
+#endif
 }
 
 unsigned int CBassAudioStream::Decode(void* data, unsigned int size)
