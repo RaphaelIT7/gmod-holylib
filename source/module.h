@@ -24,6 +24,7 @@ public:
 	virtual void Shutdown() { Detour::Remove(m_pID); };
 	virtual const char* Name() = 0;
 	virtual int Compatibility() = 0; // Idk give it a better name later.
+	virtual bool IsEnabledByDefault() { return true; };
 
 public:
 	unsigned int m_pID = 0; // Set by the CModuleManager!

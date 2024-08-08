@@ -41,7 +41,9 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			[[source/modules/*.h]],
 			[[source/modules/*.cpp]],
 			[[source/sourcesdk/*.h]],
-			[[source/sourcesdk/*.cpp]],
+			[[source/sourcesdk/netmessages.cpp]],
+			[[source/sourcesdk/tier2.cpp]],
+			[[source/sourcesdk/usermessages.cpp]],
 		})
 
 		includedirs({

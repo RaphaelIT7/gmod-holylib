@@ -11,6 +11,7 @@ public:
 	virtual void LuaShutdown();
 	virtual const char* Name() { return "bass"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
+	virtual bool IsEnabledByDefault() { return false; };
 };
 
 CBassModule g_pBassModule;
@@ -464,8 +465,13 @@ LUA_FUNCTION_STATIC(bass_PlayURL)
 
 void CBassModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
-	// ToDo: Find out why it crashes. It can't find the factory, but why?
-	SourceSDK::FactoryLoader gmod_audio_loader("gmod_audio");
+	SourceSDK::FactoryLoader gmod_audio_loader("gmod_audio"); // Probably a broken dll/so file.
+	if (!gmod_audio_loader.GetFactory())
+	{
+		Warning("Failed to get Factory for gmod_audio file\n");
+		return;
+	}
+
 	gGModAudio = (IGMod_Audio*)gmod_audio_loader.GetFactory()(INTERFACEVERSION_GMODAUDIO, NULL); // Engine should Initialize it. If not, we need to do it.
 	Detour::CheckValue("get interface", "IGMod_Audio", gGModAudio != NULL);
 }

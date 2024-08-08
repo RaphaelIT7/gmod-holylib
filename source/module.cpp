@@ -55,7 +55,7 @@ void CModule::SetModule(IModule* module)
 	if (cmd > -1)
 		SetEnabled(cmd == 1, true);
 	else
-		m_bEnabled = m_bCompatible;
+		m_bEnabled = m_pModule->IsEnabledByDefault() ? m_bCompatible : false;
 
 	m_pCVarName = new char[255];
 	V_strncpy(m_pCVarName, pStrName.c_str(), 255);
