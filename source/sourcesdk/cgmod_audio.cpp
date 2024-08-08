@@ -33,19 +33,19 @@ void CALLBACK MyFileCloseProcc(void *user)
 	fclose((FILE*)user);
 }
 
-QWORD CALLBACK MyFileLenProcc(void *user)
+unsigned long long CALLBACK MyFileLenProcc(void *user)
 {
 	struct stat finfo;
 	fstat(fileno((FILE*)user), &finfo); // Crash: It crashes here because we fucked up in CBassAudioStream::Init
 	return finfo.st_size;
 }
 
-DWORD CALLBACK MyFileReadProcc(void *buffer, DWORD length, void *user)
+unsigned long CALLBACK MyFileReadProcc(void *buffer, DWORD length, void *user)
 {
 	return fread(buffer, 1, length, (FILE*)user);
 }
 
-BOOL CALLBACK MyFileSeekProcc(QWORD offset, void* user)
+bool CALLBACK MyFileSeekProcc(QWORD offset, void* user)
 {
 	return !fseek((FILE*)user, offset, SEEK_SET);
 }
@@ -71,7 +71,7 @@ void CALLBACK CBassAudioStream::MyFileCloseProc(void* user)
 #endif
 }
 
-QWORD CALLBACK CBassAudioStream::MyFileLenProc(void* user)
+unsigned long long CALLBACK CBassAudioStream::MyFileLenProc(void* user)
 {
 #ifdef SYSTEM_WINDOWS
 	struct stat finfo;
@@ -82,7 +82,7 @@ QWORD CALLBACK CBassAudioStream::MyFileLenProc(void* user)
 #endif
 }
 
-DWORD CALLBACK CBassAudioStream::MyFileReadProc(void *buffer, unsigned int length, void* user)
+unsigned long CALLBACK CBassAudioStream::MyFileReadProc(void *buffer, unsigned int length, void* user)
 {
 #ifdef SYSTEM_WINDOWS
 	return fread(buffer, 1, length, (FILE*)user);
@@ -91,7 +91,7 @@ DWORD CALLBACK CBassAudioStream::MyFileReadProc(void *buffer, unsigned int lengt
 #endif
 }
 
-BOOL CALLBACK CBassAudioStream::MyFileSeekProc(QWORD offset, void* user)
+bool CALLBACK CBassAudioStream::MyFileSeekProc(QWORD offset, void* user)
 {
 #ifdef SYSTEM_WINDOWS
 	return !fseek((FILE*)user, offset, SEEK_SET);

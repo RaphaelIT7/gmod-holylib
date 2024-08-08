@@ -79,7 +79,7 @@ public:
 	virtual void CALLBACK MyFileCloseProc( void* ) = 0;
 	virtual unsigned long long CALLBACK MyFileLenProc( void* ) = 0; // unsigned long long -> QWORD
 	virtual unsigned long CALLBACK MyFileReadProc( void*, uint, void* ) = 0; // unsigned long -> DWORD
-	virtual BOOL CALLBACK MyFileSeekProc( unsigned long long, void* ) = 0;
+	virtual bool CALLBACK MyFileSeekProc( unsigned long long, void* ) = 0;
 };
 
 abstract_class IGMod_Audio

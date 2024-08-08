@@ -13,11 +13,11 @@ public:
 	virtual int GetOutputChannels();
 	virtual uint GetPosition();
 	virtual void SetPosition( uint distance );
-	virtual HSTREAM GetHandle();
+	virtual unsigned long GetHandle();
 	virtual void CALLBACK MyFileCloseProc( void* );
-	virtual QWORD CALLBACK MyFileLenProc( void* );
-	virtual DWORD CALLBACK MyFileReadProc( void*, uint, void* );
-	virtual BOOL CALLBACK MyFileSeekProc( unsigned long long, void* );
+	virtual unsigned long long CALLBACK MyFileLenProc( void* );
+	virtual unsigned long CALLBACK MyFileReadProc( void*, uint, void* );
+	virtual bool CALLBACK MyFileSeekProc( unsigned long long, void* );
 
 public:
 	CBassAudioStream();
