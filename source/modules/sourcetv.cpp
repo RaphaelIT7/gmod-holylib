@@ -535,6 +535,7 @@ void CSourceTVLibModule::LuaShutdown()
 		g_Lua->PushNil();
 		g_Lua->SetField(-2, "sourcetv");
 	g_Lua->Pop(1);
+	g_pPushedHLTVClients.clear();
 }
 
 void CSourceTVLibModule::InitDetour(bool bPreServer)

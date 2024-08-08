@@ -483,6 +483,7 @@ void CStringTableModule::LuaShutdown() // ToDo: Can we remove the metatable?
 		g_Lua->PushNil();
 		g_Lua->SetField(-2, "stringtable");
 	g_Lua->Pop(1);
+	g_pPushedStringTables.clear();
 }
 
 void CStringTableModule::InitDetour(bool bPreServer)
