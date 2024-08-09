@@ -61,7 +61,9 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 	g_pModuleManager.Init(interfaceFactory, gameServerFactory);
 	g_pModuleManager.InitDetour(false);
 
-	//ConVar_Register();
+#ifndef ARCHITECTURE_X86_64
+	ConVar_Register(); // ConVars currently cause a crash on level shutdown. I probably need to find some hidden vtable function AGAIN.
+#endif
 
 	Msg("--- HolyLib Plugin finished loading ---\n");
 
@@ -75,7 +77,9 @@ void CServerPlugin::Unload(void)
 {
 	g_pModuleManager.Shutdown();
 	Detour::Remove(0);
-	//ConVar_Unregister();
+#ifndef ARCHITECTURE_X86_64
+	ConVar_Unregister();
+#endif
 	DisconnectTier1Libraries();
 	DisconnectTier2Libraries();
 #ifndef ARCHITECTURE_X86_64

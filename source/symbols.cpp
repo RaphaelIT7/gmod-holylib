@@ -229,7 +229,7 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	const std::vector<Symbol> ConCommand_IsBlockedSym = {
 		Symbol::FromName("_Z20ConCommand_IsBlockedPKc"),
-		Symbol::FromSignature("\x48\x8B\x05\x01\x95\xD5\x00\x55\x48\x89"), // 48 8B 05 01 95 D5 00 55 48 89
+		Symbol::FromSignature("\x48\x8B\x05****\x55\x48\x89\xE5\x41\x54\x49\x89\xFC\x53\x48\x8B*\x80\x78\x70\x00"), // 48 8B 05 ?? ?? ?? ?? 55 48 89 E5 41 54 49 89 FC 53 48 8B ?? 80 78 70 00
 	};
 
 	//---------------------------------------------------------------------------------

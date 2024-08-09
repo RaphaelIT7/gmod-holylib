@@ -8,7 +8,7 @@ So currently to get it working on Windows, I would have to redo most of the hook
 Because of this, I'm not going to make it currently. I'm gonna slowly start adding all symbols and then someday I'm going to redo most hooks.  
 But for now there won't be a release.   
 
-## How to Install
+## How to Install (Linux 32x)
 1. Download the `ghostinj.dll`, `holylib.vdf` and `gmsv_holylib_linux.so` from the latest release.  
 2. Put the `ghostinj.dll` into the main directory where `srcds_linux` is located.  
 3. Put the `holylib.vdf` into the `garrysmod/addons/` directory.  
@@ -17,6 +17,11 @@ But for now there won't be a release.
 If you use a panel like Pterodactyl or something similar, you can use the gamemode field(in most cases) like this: `sandbox -usegh`  
 
 If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it will be loaded by holylib's ghostinj.  
+
+## How to Install (Linux 64x)
+1. Download the `ghostinj.dll`, `holylib.vdf` and `gmsv_holylib_linux.so` from the latest release.  
+2. Put the `holylib.vdf` into the `garrysmod/addons/` directory.  
+3. Put the `gmsv_holylib_linux.so` into the `garrysmod/lua/bin/` directory.  
 
 ## Next Update
 - [+] Added partial Linux 64x support.  
@@ -285,6 +290,7 @@ client_lua_files:SetStringUserData(0, table.concat(dataTablePaths, ";")) -- Set 
 -- Reducing the amount of paths will improve clientside filesystem performance
 -- You can see all datapack paths by running "datapack_paths" clientside or printing it like this:
 -- print(client_lua_files:GetStringUserData(0))
+-- NOTE: Changes to the datatable path will only affect the lcl search path clientside.
 ```
 
 #### string INetworkStringTable:GetStringUserData(number index)

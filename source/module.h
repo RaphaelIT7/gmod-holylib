@@ -10,7 +10,6 @@ enum Module_Compatibility
 	WINDOWS64,
 };
 
-
 class ConVar;
 class KeyValues;
 class IModule
@@ -50,10 +49,11 @@ protected:
 	bool m_bStartup = false;
 };
 
-#define LoadStatus_Init (1<<1)
-#define LoadStatus_DetourInit (1<<2)
-#define LoadStatus_LuaInit (1<<3)
-#define LoadStatus_LuaServerInit (1<<4)
+#define LoadStatus_PreDetourInit (1<<1)
+#define LoadStatus_Init (1<<2)
+#define LoadStatus_DetourInit (1<<3)
+#define LoadStatus_LuaInit (1<<4)
+#define LoadStatus_LuaServerInit (1<<5)
 
 class CModuleManager
 {

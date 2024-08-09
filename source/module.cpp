@@ -175,6 +175,12 @@ CModule* CModuleManager::FindModuleByName(const char* name)
 
 void CModuleManager::Init(CreateInterfaceFn appfn, CreateInterfaceFn gamefn)
 {
+	if (!(m_pStatus & LoadStatus_PreDetourInit))
+	{
+		Warning("ghostinj didn't call InitDetour! Calling it now\n");
+		InitDetour(true);
+	}
+
 	m_pAppFactory = appfn;
 	m_pGameFactory = gamefn;
 	m_pStatus |= LoadStatus_Init;
@@ -210,7 +216,11 @@ void CModuleManager::LuaShutdown()
 
 void CModuleManager::InitDetour(bool bPreServer)
 {
-	m_pStatus |= LoadStatus_DetourInit;
+	if (bPreServer)
+		m_pStatus |= LoadStatus_PreDetourInit;
+	else
+		m_pStatus |= LoadStatus_DetourInit;
+
 	for (CModule* pModule : m_pModules)
 	{
 		if ( !pModule->IsEnabled() ) { continue; }
