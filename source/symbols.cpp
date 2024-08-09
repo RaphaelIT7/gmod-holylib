@@ -49,7 +49,7 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	const std::vector<Symbol> CPlugin_LoadSym = {
 		Symbol::FromName("_ZN7CPlugin4LoadEPKc"),
-		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x56\x49\x89\xFE\x41\x55\x41\x54\x89\xF4\xBE\x2E"), // 55 48 89 E5 41 56 49 89 FE 41 55 41 54 49 89 F4 BE 2E
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x56\x49\x89\xFE\x41\x55\x41\x54\x49\x89\xF4\xBE\x2E"), // 55 48 89 E5 41 56 49 89 FE 41 55 41 54 49 89 F4 BE 2E
 	};
 
 	//---------------------------------------------------------------------------------
