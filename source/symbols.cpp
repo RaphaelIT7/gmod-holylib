@@ -103,18 +103,22 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	const std::vector<Symbol> CVEngineServer_PrecacheModelSym = {
 		Symbol::FromName("_ZN14CVEngineServer13PrecacheModelEPKcb"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x54\x44\x0F\xB6\xE2\x53\x48\x89\xF3\x44\x89\xE6\x48\x89\xDF"), // 55 48 89 E5 41 54 44 0F B6 E2 53 48 89 F3 44 89 E6 48 89
 	};
 
 	const std::vector<Symbol> CVEngineServer_PrecacheGenericSym = {
 		Symbol::FromName("_ZN14CVEngineServer15PrecacheGenericEPKcb"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x89\xF3\x48\x83\xEC\x08\x0F\xB6\xF2\x48\x89\xDF"), // 55 48 89 E5 53 48 89 F3 48 83 EC 08 0F B6 F2 48 89 DF
 	};
 
 	const std::vector<Symbol> SV_FindOrAddModelSym = {
 		Symbol::FromName("_Z17SV_FindOrAddModelPKcb"),
+		Symbol::FromSignature("\x55\x40\x80\xFE\x01\x48\x89\xFE\x48\x89\xE5\x48\x8B\x3D\x??\x??\x??\x??\x19\xD2\x5D\x83\xE2\xFE\x31\xC9\x83\xC2\x03"), // 55 40 80 FE 01 48 89 FE 48 89 E5 48 8B 3D ?? ?? ?? ?? 19 D2 5D 83 E2 FE 31 C9 83 C2 03
 	};
 
 	const std::vector<Symbol> SV_FindOrAddGenericSym = {
 		Symbol::FromName("_Z19SV_FindOrAddGenericPKcb"),
+		Symbol::FromSignature("\x55\x40\x80\xFE\x01\x48\x89\xFE\x48\x89\xE5\x48\x8B\x3D\xC6***\x19\xD2"), // 55 40 80 FE 01 48 89 FE 48 89 E5 48 8B 3D C6 ?? ?? ?? 19 D2
 	};
 
 	//---------------------------------------------------------------------------------

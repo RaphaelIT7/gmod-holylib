@@ -14,7 +14,7 @@ public:
 	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "precachefix"; };
-	virtual int Compatibility() { return LINUX32; };
+	virtual int Compatibility() { return LINUX32 | LINUX64; };
 };
 
 static CPrecacheFixModule g_pPrecacheFixModule;
