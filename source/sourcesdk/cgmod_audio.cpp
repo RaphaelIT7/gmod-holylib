@@ -451,7 +451,7 @@ void CGModAudioChannel::Destroy()
 		}
 	}
 
-	delete (CGModAudioChannel*)this;
+	delete this;
 }
 
 void CGModAudioChannel::Stop()
