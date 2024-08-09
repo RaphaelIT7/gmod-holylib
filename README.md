@@ -263,6 +263,30 @@ Returns `true` if the stringtable is still valid.
 #### INetworkStringTable:SetStringUserData(number index, string data)
 Sets the UserData for the given index.  
 
+How this could be useful:  
+```lua
+local dataTablePaths = {
+	"/lua/", -- The order is also important!
+	-- Add paths that are frequently used to the top so there the first one to be checked for a file.  
+	-- This will improve the performance because it will reduce the number of paths it checks for a file.
+
+	"/addons/exampleaddon/lua/", -- Each legacy addon that has a lua folder has it's path.  
+	"/workshop/lua/",
+	"/workshop/gamemode/",
+	"/gamemode/",
+	"/workshop/gamemodes/base/entities/",
+	"/gamemodes/base/entities/",
+	"/workshop/gamemodes/sandbox/entities/",
+	"/gamemodes/sandbox/entities/",
+}
+
+local client_lua_files = stringtable.FindTable("client_lua_files")
+client_lua_files:SetStringUserData(0, table.concat(dataTablePaths, ";")) -- Set our new datatable paths.
+-- Reducing the amount of paths will improve clientside filesystem performance
+-- You can see all datapack paths by running "datapack_paths" clientside or printing it like this:
+-- print(client_lua_files:GetStringUserData(0))
+```
+
 #### string INetworkStringTable:GetStringUserData(number index)
 Returns the userdata of the given index.  
 
