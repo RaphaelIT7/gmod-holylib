@@ -800,8 +800,8 @@ static void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const ch
 
 	detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, pathID, addType);
 
-	std::string_view extension = getFileExtension(pPath);
-	/*if (extension == "bsp") {
+	/*std::string_view extension = getFileExtension(pPath);
+	if (extension == "bsp") {
 		const char* pPathID = "__TEMP_MAP_PATH";
 		gBlockRemoveAllMapPaths = true;
 		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, pPathID, addType);

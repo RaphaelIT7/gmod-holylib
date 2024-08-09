@@ -46,7 +46,11 @@ struct CompressData
 	std::vector<CompressEntry*> pFinished;
 	CThreadFastMutex pMutex;
 };
+#ifdef ARCHITECTURE_X86_64
+static long long unsigned CompressThread(void* data)
+#else
 static unsigned CompressThread(void* data)
+#endif
 {
 	CompressData* cData = (CompressData*)data;
 	while (cData->bRun)
