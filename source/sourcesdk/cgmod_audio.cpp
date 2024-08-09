@@ -451,7 +451,10 @@ void CGModAudioChannel::Destroy()
 		}
 	}
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdelete-non-virtual-dtor"
 	delete this;
+#pragma GCC diagnostic pop
 }
 
 void CGModAudioChannel::Stop()
