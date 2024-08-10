@@ -11,7 +11,8 @@ class CThreadPoolFixModule : public IModule
 public:
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "threadpoolfix"; };
-	virtual int Compatibility() { return LINUX32; };
+	virtual int Compatibility() { return LINUX32; }; 
+	// NOTE: This is only an issue specific to Linux 32x DS so this doesn't need to support anything else.
 };
 
 static CThreadPoolFixModule g_pThreadPoolFixModule;
