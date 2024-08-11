@@ -12,7 +12,7 @@ class CVProfModule : public IModule
 public:
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "vprof"; };
-	virtual int Compatibility() { return LINUX32; };
+	virtual int Compatibility() { return LINUX32 | LINUX64; };
 };
 
 extern ConVar holylib_sv_stressbots;
@@ -53,26 +53,72 @@ static SpewRetval_t VProf_Spew(SpewType_t type, const char *msg)
 
 	return SPEW_CONTINUE;
 }
+
+static SpewOutputFunc_t originalSpew = NULL;
+static void StartSpew()
+{
+	originalSpew = GetSpewOutputFunc();
+	SpewOutputFunc(VProf_Spew);
+}
+
+static void FinishSpew()
+{
+	SpewOutputFunc(originalSpew);
+	originalSpew = NULL;
+}
+#else
+Detouring::Hook detour_Msg; // Yes. I don't like this.
+void hook_Msg(PRINTF_FORMAT_STRING const tchar* pMsg, ...)
+{
+	va_list args;
+	va_start(args, pMsg);
+
+	int size = vsnprintf(NULL, 0, pMsg, args);
+	if (size < 0) {
+		va_end(args);
+		return;
+	}
+
+	char* buffer = new char[size + 1];
+	vsnprintf(buffer, size + 1, pMsg, args);
+
+	ss << buffer;
+
+	delete[] buffer;
+	va_end(args);
+}
+
+static void StartSpew() // Only enable the hook if we're dumping vprof. We don't want to permanently check for vprof. This would waste performance.
+{
+	if (!detour_Msg.IsValid())
+		return;
+
+	detour_Msg.Enable();
+}
+
+static void FinishSpew()
+{
+	if (!detour_Msg.IsEnabled())
+		return;
+
+	detour_Msg.Disable();
+}
 #endif
 
 static Detouring::Hook detour_CVProfile_OutputReport;
 static void hook_CVProfile_OutputReport(void* fancy, int type, const tchar* pszStartMode, int budgetGroupID)
 {
-#ifdef ARCHITECTURE_X86_64
-	detour_CVProfile_OutputReport.GetTrampoline<Symbols::CVProfile_OutputReport>()(fancy, type, pszStartMode, budgetGroupID);
-#else
 	if (!holylib_vprof_exportreport.GetBool())
 	{
 		detour_CVProfile_OutputReport.GetTrampoline<Symbols::CVProfile_OutputReport>()(fancy, type, pszStartMode, budgetGroupID);
 		return;
 	}
 
-	SpewOutputFunc_t originalSpew = GetSpewOutputFunc();
-	SpewOutputFunc(VProf_Spew);
+	StartSpew();
 
 	detour_CVProfile_OutputReport.GetTrampoline<Symbols::CVProfile_OutputReport>()(fancy, type, pszStartMode, budgetGroupID);
 
-	SpewOutputFunc(originalSpew);
+	FinishSpew();
 
 	if (!g_pFullFileSystem->IsDirectory("vprof", "MOD"))
 	{
@@ -98,10 +144,9 @@ static void hook_CVProfile_OutputReport(void* fancy, int type, const tchar* pszS
 	}
 
 	ss.str("");
-#endif
 }
 
-static std::map<int, std::string> CallFinish_strs;
+/*static std::map<int, std::string> CallFinish_strs;
 static Detouring::Hook detour_CLuaGamemode_CallFinish;
 static void* hook_CLuaGamemode_CallFinish(void* funky_srv, int pool)
 {
@@ -116,7 +161,7 @@ static void* hook_CLuaGamemode_CallFinish(void* funky_srv, int pool)
 	VPROF_BUDGET(CallFinish_strs[pool].c_str(), "GMOD");
 
 	return detour_CLuaGamemode_CallFinish.GetTrampoline<Symbols::CLuaGamemode_CallFinish>()(funky_srv, pool);
-}
+}*/
 
 static std::map<int, std::string> CallWithArgs_strs;
 static Detouring::Hook detour_CLuaGamemode_CallWithArgs;
@@ -170,15 +215,24 @@ void CVProfModule::InitDetour(bool bPreServer)
 		(void*)hook_CLuaGamemode_Call, m_pID
 	);
 
-	Detour::Create(
+	/*Detour::Create(
 		&detour_CLuaGamemode_CallFinish, "CLuaGamemode::CallFinish",
 		server_loader.GetModule(), Symbols::CLuaGamemode_CallFinishSym,
 		(void*)hook_CLuaGamemode_CallFinish, m_pID
-	);
+	);*/
 
 	Detour::Create(
 		&detour_CLuaGamemode_CallWithArgs, "CLuaGamemode::CallWithArgs",
 		server_loader.GetModule(), Symbols::CLuaGamemode_CallWithArgsSym,
 		(void*)hook_CLuaGamemode_CallWithArgs, m_pID
 	);
+
+#ifdef ARCHITECTURE_X86_64
+	SourceSDK::ModuleLoader tier0_loader("tier0");
+	Detour::Create(
+		&detour_Msg, "Msg",
+		tier0_loader.GetModule(), Symbol::FromName("Msg"),
+		(void*)hook_Msg, m_pID
+	);
+#endif
 }

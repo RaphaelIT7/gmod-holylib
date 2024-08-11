@@ -240,16 +240,18 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: vprof Symbols
 	//---------------------------------------------------------------------------------
-	const std::vector<Symbol> CLuaGamemode_CallFinishSym = {
+	/*const std::vector<Symbol> CLuaGamemode_CallFinishSym = {
 		Symbol::FromName("_ZN12CLuaGamemode10CallFinishEi"),
-	};
+	};*/
 
 	const std::vector<Symbol> CLuaGamemode_CallWithArgsSym = {
 		Symbol::FromName("_ZN12CLuaGamemode12CallWithArgsEi"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x49\x89\xF7\x41\x56\x41\x55\x49\x89\xFD"), // 55 48 89 E5 41 57 49 89 F7 41 56 41 55 49 89 FD
 	};
 
 	const std::vector<Symbol> CLuaGamemode_CallSym = {
 		Symbol::FromName("_ZN12CLuaGamemode4CallEi"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x89\xF6\x41\x55\x41\x54\x49\x89\xFC\x53\x48\x83\xEC\x08"), // 55 48 89 E5 41 57 41 56 41 89 F6 41 55 41 54 49 89 FC 53 48 83 EC 08
 	};
 
 	const std::vector<Symbol> CVProfile_OutputReportSym = {
