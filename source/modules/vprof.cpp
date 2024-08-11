@@ -33,7 +33,6 @@ static ConVar holylib_vprof_exportreport("holylib_vprof_exportreport", "1", 0, "
 
 static CVProfModule g_pVProfModule;
 IModule* pVProfModule = &g_pVProfModule;
-#ifndef ARCHITECTURE_X86_64
 static std::string GetCurrentTime() { // Yoink from vprof module
     auto now = std::chrono::system_clock::now();
     std::time_t now_time = std::chrono::system_clock::to_time_t(now);
@@ -43,7 +42,6 @@ static std::string GetCurrentTime() { // Yoink from vprof module
 
     return ss.str();
 }
-#endif
 
 static std::stringstream ss;
 #ifndef ARCHITECTURE_X86_64
@@ -228,7 +226,6 @@ void CVProfModule::InitDetour(bool bPreServer)
 	);
 
 #ifdef ARCHITECTURE_X86_64
-	SourceSDK::ModuleLoader tier0_loader("tier0");
 	Detour::Create(
 		&detour_Msg, "Msg",
 		tier0_loader.GetModule(), Symbol::FromName("Msg"),
