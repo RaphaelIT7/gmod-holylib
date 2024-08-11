@@ -77,6 +77,8 @@ void hook_Msg(PRINTF_FORMAT_STRING const tchar* pMsg, ...)
 		return;
 	}
 
+	va_end(args);
+	va_start(args, pMsg);
 	char* buffer = new char[size + 1];
 	vsnprintf(buffer, size + 1, pMsg, args);
 
@@ -231,5 +233,8 @@ void CVProfModule::InitDetour(bool bPreServer)
 		tier0_loader.GetModule(), Symbol::FromName("Msg"),
 		(void*)hook_Msg, m_pID
 	);
+
+	if (detour_Msg.IsEnabled())
+		detour_Msg.Disable();
 #endif
 }
