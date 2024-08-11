@@ -300,5 +300,6 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	const std::vector<Symbol> g_BSPDataSym = {
 		Symbol::FromName("g_BSPData"),
+		Symbol::FromSignature("\x48\x8B\x1D\x2A\x2A\x2A\x2A\x8B\x83\x78"), // 48 8B 1D 2A 2A 2A 2A 8B 83 78 | 2A -> ??
 	};
 }
