@@ -177,7 +177,7 @@ void CModuleManager::Init(CreateInterfaceFn appfn, CreateInterfaceFn gamefn)
 {
 	if (!(m_pStatus & LoadStatus_PreDetourInit))
 	{
-		Warning("ghostinj didn't call InitDetour! Calling it now\n");
+		DevMsg("ghostinj didn't call InitDetour! Calling it now\n");
 		InitDetour(true);
 	}
 

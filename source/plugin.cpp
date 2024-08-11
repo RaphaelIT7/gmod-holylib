@@ -8,6 +8,7 @@
 #include <GarrysMod/Lua/LuaShared.h>
 #include "module.h"
 #include "player.h"
+#include "tier0/icommandline.h"
 
 #define DEDICATED
 #include "vstdlib/jobthread.h"
@@ -61,9 +62,21 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 	g_pModuleManager.Init(interfaceFactory, gameServerFactory);
 	g_pModuleManager.InitDetour(false);
 
-//#ifndef ARCHITECTURE_X86_64
-	ConVar_Register(); // ConVars currently cause a crash on level shutdown. I probably need to find some hidden vtable function AGAIN.
-//#endif
+#ifdef ARCHITECTURE_X86_64
+	if (CommandLine()->FindParm("-holylib_debug_forceregister"))
+#endif
+	{
+		ConVar_Register(); // ConVars currently cause a crash on level shutdown. I probably need to find some hidden vtable function AGAIN.
+	}
+	/*
+	 * Debug info about the crash from what I could find(could be wrong):
+	 * - Where: engine.so
+	 * - Offset: 0x106316
+	 * - Manifest: 8648260017074424678
+	 * - Which function: CUtlLinkedList<T,S,ML,I,M>::AllocInternal( bool multilist )
+	 * - Which line (Verify): typename M::Iterator_t it = m_Memory.IsValidIterator( m_LastAlloc ) ? m_Memory.Next( m_LastAlloc ) : m_Memory.First();
+	 * - Why: I have no Idea. Maybe the class is different in our sdk?
+	 */
 
 	Msg("--- HolyLib Plugin finished loading ---\n");
 
@@ -77,9 +90,14 @@ void CServerPlugin::Unload(void)
 {
 	g_pModuleManager.Shutdown();
 	Detour::Remove(0);
-#ifndef ARCHITECTURE_X86_64
-	ConVar_Unregister();
+
+#ifdef ARCHITECTURE_X86_64
+	if (CommandLine()->FindParm("-holylib_debug_forceregister"))
 #endif
+	{
+		ConVar_Unregister();
+	}
+
 	DisconnectTier1Libraries();
 	DisconnectTier2Libraries();
 #ifndef ARCHITECTURE_X86_64
@@ -114,9 +132,7 @@ const char * CServerPlugin::GetPluginDescription(void)
 //---------------------------------------------------------------------------------
 void CServerPlugin::LevelInit(char const *pMapName)
 {
-#ifndef ARCHITECTURE_X86_64
-	ConVar_Register(); // Trying to workaround these convar crashes on 64x
-#endif
+
 }
 
 //---------------------------------------------------------------------------------
@@ -169,9 +185,6 @@ void CServerPlugin::GameFrame(bool simulating)
 //---------------------------------------------------------------------------------
 void CServerPlugin::LevelShutdown(void) // !!!!this can get called multiple times per map change
 {
-#ifndef ARCHITECTURE_X86_64
-	ConVar_Unregister();
-#endif
 }
 
 //---------------------------------------------------------------------------------
