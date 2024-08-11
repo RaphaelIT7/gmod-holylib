@@ -77,9 +77,9 @@ void CServerPlugin::Unload(void)
 {
 	g_pModuleManager.Shutdown();
 	Detour::Remove(0);
-//#ifndef ARCHITECTURE_X86_64
+#ifndef ARCHITECTURE_X86_64
 	ConVar_Unregister();
-//#endif
+#endif
 	DisconnectTier1Libraries();
 	DisconnectTier2Libraries();
 #ifndef ARCHITECTURE_X86_64
@@ -114,7 +114,9 @@ const char * CServerPlugin::GetPluginDescription(void)
 //---------------------------------------------------------------------------------
 void CServerPlugin::LevelInit(char const *pMapName)
 {
-
+#ifndef ARCHITECTURE_X86_64
+	ConVar_Register(); // Trying to workaround these convar crashes on 64x
+#endif
 }
 
 //---------------------------------------------------------------------------------
@@ -167,6 +169,9 @@ void CServerPlugin::GameFrame(bool simulating)
 //---------------------------------------------------------------------------------
 void CServerPlugin::LevelShutdown(void) // !!!!this can get called multiple times per map change
 {
+#ifndef ARCHITECTURE_X86_64
+	ConVar_Unregister();
+#endif
 }
 
 //---------------------------------------------------------------------------------
