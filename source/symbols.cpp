@@ -256,7 +256,7 @@ namespace Symbols
 
 	const std::vector<Symbol> CVProfile_OutputReportSym = {
 		Symbol::FromName("_ZN9CVProfile12OutputReportEiPKci"),
-		Symbol::FromSignature("\x55\x31\xC0\x48\x89\xE5\x41\x57\x41\x89\xCF\x41\x56\x41\x55\x49\x89\xD5"), // 55 31 C0 48 89 E5 41 57 41 89 CF 41 56 41 55 49 89 D5
+		Symbol::FromName("_ZN9CVProfile12OutputReportEiPKci"),
 	};
 
 	//---------------------------------------------------------------------------------
