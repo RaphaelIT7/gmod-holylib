@@ -21,6 +21,7 @@ public:
 	virtual int Compatibility() { return LINUX32; };
 };
 
+static ConVar gameevent_debug("holylib_gameevent_debug", "0", 0, "If enabled, it prints fancy debug stuff");
 static ConVar gameevent_callhook("holylib_gameevent_callhook", "1", 0, "If enabled, the HolyLib:Pre/PostListenGameEvent hooks get called");
 
 static CGameeventLibModule g_pGameeventLibModule;
@@ -80,7 +81,9 @@ LUA_FUNCTION_STATIC(gameevent_RemoveListener)
 				continue;
 
 			IGameEventListener2* listener = (IGameEventListener2*)callback->m_pCallback;
-			//Msg("Pointer 1: %hhu\nPointer 2: %hhu\n", (uint8_t*)listener, (uint8_t*)pLuaGameEventListener + LUA_OFFSET);
+			if (gameevent_debug.GetBool())
+				Msg("Pointer 1: %hhu\nPointer 2: %hhu\n", *((uint8_t*)listener), *((uint8_t*)pLuaGameEventListener + LUA_OFFSET));
+
 			if ( (uint8_t*)listener == ((uint8_t*)pLuaGameEventListener + LUA_OFFSET) ) // WHY is pLuaGameEventListener always off by 12 bytes? I HATE THAT THIS WORKS
 			{
 				desciptor->listeners.Remove(i); // ToDo: Verify that this doesn't cause a memory leak because CGameEventCallback isn't deleted.
@@ -116,7 +119,9 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 					continue;
 
 				IGameEventListener2* listener = (IGameEventListener2*)callback->m_pCallback;
-				Msg("Pointer 1: %hhu\nPointer 2: %hhu\n", (uint8_t*)listener, (uint8_t*)pClient + CLIENT_OFFSET);
+				if (gameevent_debug.GetBool())
+					Msg("Pointer 1: %hhu\nPointer 2: %hhu\n", *((uint8_t*)listener), *((uint8_t*)pClient + CLIENT_OFFSET));
+
 				if ( (uint8_t*)listener == ((uint8_t*)pClient + CLIENT_OFFSET) )
 				{
 					++idx;
@@ -147,7 +152,9 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 						continue;
 
 					IGameEventListener2* listener = (IGameEventListener2*)callback->m_pCallback;
-					Msg("Pointer 1: %hhu\nPointer 2: %hhu\n", (uint8_t*)listener, (uint8_t*)pClient + CLIENT_OFFSET);
+					if (gameevent_debug.GetBool())
+						Msg("Pointer 1: %hhu\nPointer 2: %hhu\n", *((uint8_t*)listener), *((uint8_t*)pClient + CLIENT_OFFSET));
+
 					if ( (uint8_t*)listener == ((uint8_t*)pClient + CLIENT_OFFSET) )
 					{
 						++idx;
@@ -180,7 +187,9 @@ LUA_FUNCTION_STATIC(gameevent_RemoveClientListener)
 				continue;
 
 			IGameEventListener2* listener = (IGameEventListener2*)callback->m_pCallback;
-			Msg("Pointer 1: %hhu\nPointer 2: %hhu\n", (uint8_t*)listener, (uint8_t*)pEntity + CLIENT_OFFSET);
+			if (gameevent_debug.GetBool())
+				Msg("Pointer 1: %hhu\nPointer 2: %hhu\n", *((uint8_t*)listener), *((uint8_t*)pEntity + CLIENT_OFFSET));
+
 			if ( (uint8_t*)listener == ((uint8_t*)pEntity + CLIENT_OFFSET) )
 			{
 				desciptor->listeners.Remove(i); // ToDo: Verify that this doesn't cause a memory leak because CGameEventCallback isn't deleted.
@@ -198,13 +207,17 @@ LUA_FUNCTION_STATIC(gameevent_RemoveClientListener)
 	return 1;
 }
 
+Symbols::CGameEventManager_AddListener func_CGameEventManager_AddListener;
 LUA_FUNCTION_STATIC(gameevent_AddClientListener)
 {
 	CBasePlayer* pEntity = Util::Get_Player(1, true);
-	const char* strEvent = g_Lua->CheckStringOpt(2, NULL);
+	const char* strEvent = g_Lua->CheckString(2);
+
+	if (!func_CGameEventManager_AddListener)
+		LUA->ThrowError("Failed to get CGameEventManager::AddListener");
 
 	CGameEventDescriptor* desciptor = pManager->GetEventDescriptor(strEvent);
-	pManager->AddListener(Util::GetClientByPlayer(pEntity), desciptor, CGameEventManager::CLIENTSTUB);
+	func_CGameEventManager_AddListener(pManager, Util::GetClientByPlayer(pEntity), desciptor, CGameEventManager::CLIENTSTUB);
 
 	return 0;
 }
@@ -237,14 +250,14 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 		}
 
 	int iReference = g_Lua->ReferenceCreate();
-	if (Lua::PushHook("HolyLib::PreProcessGameEvent"))
+	if (Lua::PushHook("HolyLib:PreProcessGameEvent"))
 	{
 		Util::Push_Entity((CBaseEntity*)pPlayer);
 		g_Lua->ReferencePush(iReference);
 		g_Lua->CallFunctionProtected(3, 1, true);
 
 		bool pCancel = g_Lua->GetBool(-1);
-		g_Lua->Pop(-1);
+		g_Lua->Pop(1);
 		if (pCancel)
 		{
 			g_Lua->ReferenceFree(iReference);
@@ -254,7 +267,7 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 
 	detour_CBaseClient_ProcessListenEvents.GetTrampoline<Symbols::CBaseClient_ProcessListenEvents>()(client, msg);
 
-	if (Lua::PushHook("HolyLib::PostProcessGameEvent"))
+	if (Lua::PushHook("HolyLib:PostProcessGameEvent"))
 	{
 		Util::Push_Entity((CBaseEntity*)pPlayer);
 		g_Lua->ReferencePush(iReference);
@@ -325,6 +338,9 @@ void CGameeventLibModule::InitDetour(bool bPreServer)
 		engine_loader.GetModule(), Symbols::CBaseClient_ProcessListenEventsSym,
 		(void*)hook_CBaseClient_ProcessListenEvents, m_pID
 	);
+
+	func_CGameEventManager_AddListener = (Symbols::CGameEventManager_AddListener)Detour::GetFunction(engine_loader.GetModule(), Symbols::CGameEventManager_AddListenerSym);
+	Detour::CheckFunction(func_CGameEventManager_AddListener, "CGameEventManager::AddListener");
 
 	SourceSDK::FactoryLoader server_loader("server");
 	s_GameSystems = Detour::ResolveSymbol<CUtlVector<IGameSystem*>>(server_loader, Symbols::s_GameSystemsSym);
