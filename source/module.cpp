@@ -173,7 +173,13 @@ CModule* CModuleManager::FindModuleByName(const char* name)
 	return NULL;
 }
 
-void CModuleManager::Init(CreateInterfaceFn appfn, CreateInterfaceFn gamefn)
+void CModuleManager::Setup(CreateInterfaceFn appfn, CreateInterfaceFn gamefn)
+{
+	m_pAppFactory = appfn;
+	m_pGameFactory = gamefn;
+}
+
+void CModuleManager::Init()
 {
 	if (!(m_pStatus & LoadStatus_PreDetourInit))
 	{
@@ -181,13 +187,11 @@ void CModuleManager::Init(CreateInterfaceFn appfn, CreateInterfaceFn gamefn)
 		InitDetour(true);
 	}
 
-	m_pAppFactory = appfn;
-	m_pGameFactory = gamefn;
 	m_pStatus |= LoadStatus_Init;
 	for (CModule* pModule : m_pModules)
 	{
 		if ( !pModule->IsEnabled() ) { continue; }
-		pModule->GetModule()->Init(&appfn, &gamefn);
+		pModule->GetModule()->Init(&GetAppFactory(), &GetGameFactory());
 	}
 }
 

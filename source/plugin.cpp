@@ -57,9 +57,10 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 	if ( playerinfomanager )
 		gpGlobals = playerinfomanager->GetGlobalVars();
 
+	g_pModuleManager.Setup(interfaceFactory, gameServerFactory); // Setup so that Util won't cause issues
 	Lua::AddDetour();
 	Util::AddDetour();
-	g_pModuleManager.Init(interfaceFactory, gameServerFactory);
+	g_pModuleManager.Init();
 	g_pModuleManager.InitDetour(false);
 
 #ifdef ARCHITECTURE_X86_64

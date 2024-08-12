@@ -25,6 +25,25 @@ namespace Util
 	extern CBaseClient* GetClientByUserID(int userid);
 
 	extern void AddDetour(); // We load Gmod's functions in there.
+	
+	extern IVEngineServer* engineserver;
+	extern IServerGameEnts* servergameents;
+	extern IServer* server;
+
+	inline CBaseEntity* GetCBaseEntityFromEdict(edict_t* edict)
+	{
+		return servergameents->EdictToBaseEntity(edict);
+	}
+
+	inline edict_t* GetEdictOfEnt(CBaseEntity* entity)
+	{
+		return servergameents->BaseEntityToEdict(entity);
+	}
+
+	extern CBaseClient* GetClientByPlayer(CBasePlayer* ply);
+	extern CBaseClient* GetClientByIndex(int index);
+	extern std::vector<CBaseClient*> GetClients();
+	extern CBasePlayer*	GetPlayerByClient(CBaseClient* client);
 }
 
 // Push functions from modules: 

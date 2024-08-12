@@ -31,7 +31,6 @@ static ConVar pvs_postchecktransmit("holylib_pvs_postchecktransmit", "0", 0, "If
 static int currentPVSSize = -1;
 static unsigned char* currentPVS = NULL;
 static int mapPVSSize = -1;
-static IVEngineServer* engineserver = NULL;
 static Detouring::Hook detour_CGMOD_Player_SetupVisibility;
 static void hook_CGMOD_Player_SetupVisibility(void* ent, unsigned char* pvs, int pvssize)
 {
@@ -44,7 +43,6 @@ static void hook_CGMOD_Player_SetupVisibility(void* ent, unsigned char* pvs, int
 	currentPVSSize = -1;
 }
 
-static IServerGameEnts* servergameents = NULL;
 static std::vector<edict_t*> g_pAddEntityToPVS;
 static std::unordered_map<edict_t*, int> g_pOverrideStateFlag;
 static CCheckTransmitInfo* g_pCurrentTransmitInfo = NULL;
@@ -56,7 +54,7 @@ static void hook_CServerGameEnts_CheckTransmit(void* gameents, CCheckTransmitInf
 
 	for (edict_t* ent : g_pAddEntityToPVS)
 	{
-		servergameents->EdictToBaseEntity(ent)->SetTransmit(pInfo, true);
+		Util::servergameents->EdictToBaseEntity(ent)->SetTransmit(pInfo, true);
 	}
 	
 	static std::unordered_map<edict_t*, int> pOriginalFlags;
@@ -73,14 +71,14 @@ static void hook_CServerGameEnts_CheckTransmit(void* gameents, CCheckTransmitInf
 	{
 		if(Lua::PushHook("HolyLib:PostCheckTransmit"))
 		{
-			Util::Push_Entity(servergameents->EdictToBaseEntity(pInfo->m_pClientEnt));
+			Util::Push_Entity(Util::servergameents->EdictToBaseEntity(pInfo->m_pClientEnt));
 			int pushed = 2;
 			if (pvs_postchecktransmit.GetInt() >= 2)
 			{
 				++pushed;
 				g_Lua->CreateTable();
 				int idx = 0;
-				edict_t *pBaseEdict = engineserver->PEntityOfEntIndex(0);
+				edict_t *pBaseEdict = Util::engineserver->PEntityOfEntIndex(0);
 				for (int i=0; i<nEdicts; ++i)
 				{
 					int iEdict = pEdictIndices[i];
@@ -91,7 +89,7 @@ static void hook_CServerGameEnts_CheckTransmit(void* gameents, CCheckTransmitInf
 
 					++idx;
 					g_Lua->PushNumber(idx);
-					Util::Push_Entity(servergameents->EdictToBaseEntity(pEdict));
+					Util::Push_Entity(Util::servergameents->EdictToBaseEntity(pEdict));
 					g_Lua->SetTable(-3);
 				}
 			}
@@ -116,17 +114,12 @@ Vector* Get_Vector(int iStackPos)
 	return g_Lua->GetUserType<Vector>(iStackPos, GarrysMod::Lua::Type::Vector);
 }
 
-static edict_t* GetEdictOfEnt(CBaseEntity* ent)
-{
-	return servergameents->BaseEntityToEdict(ent);
-}
-
 LUA_FUNCTION_STATIC(pvs_ResetPVS)
 {
 	if (!currentPVS)
 		LUA->ThrowError("pvs: tried to call pvs.ResetPVS with no active PVS!");
 
-	engineserver->ResetPVS(currentPVS, currentPVSSize);
+	Util::engineserver->ResetPVS(currentPVS, currentPVSSize);
 
 	return 0;
 }
@@ -138,7 +131,7 @@ LUA_FUNCTION_STATIC(pvs_CheckOriginInPVS)
 	if (!currentPVS)
 		LUA->ThrowError("pvs: tried to call pvs.CheckOriginInPVS with no active PVS!");
 
-	LUA->PushBool(engineserver->CheckOriginInPVS(*vec, currentPVS, currentPVSSize));
+	LUA->PushBool(Util::engineserver->CheckOriginInPVS(*vec, currentPVS, currentPVSSize));
 
 	return 1;
 }
@@ -150,14 +143,14 @@ LUA_FUNCTION_STATIC(pvs_AddOriginToPVS)
 	if (!currentPVS)
 		LUA->ThrowError("pvs: tried to call pvs.AddOriginToPVS with no active PVS!");
 
-	engineserver->AddOriginToPVS(*vec);
+	Util::engineserver->AddOriginToPVS(*vec);
 
 	return 0;
 }
 
 LUA_FUNCTION_STATIC(pvs_GetClusterCount)
 {
-	LUA->PushNumber(engineserver->GetClusterCount());
+	LUA->PushNumber(Util::engineserver->GetClusterCount());
 
 	return 1;
 }
@@ -166,7 +159,7 @@ LUA_FUNCTION_STATIC(pvs_GetClusterForOrigin)
 {
 	Vector* vec = Get_Vector(1);
 
-	LUA->PushNumber(engineserver->GetClusterForOrigin(*vec));
+	LUA->PushNumber(Util::engineserver->GetClusterForOrigin(*vec));
 
 	return 1;
 }
@@ -176,7 +169,7 @@ LUA_FUNCTION_STATIC(pvs_CheckAreasConnected)
 	int area1 = LUA->CheckNumber(1);
 	int area2 = LUA->CheckNumber(2);
 
-	LUA->PushBool(engineserver->CheckAreasConnected(area1, area2));
+	LUA->PushBool(Util::engineserver->CheckAreasConnected(area1, area2));
 
 	return 1;
 }
@@ -185,7 +178,7 @@ LUA_FUNCTION_STATIC(pvs_GetArea)
 {
 	Vector* vec = Get_Vector(1);
 
-	LUA->PushNumber(engineserver->GetArea(*vec));
+	LUA->PushNumber(Util::engineserver->GetArea(*vec));
 
 	return 1;
 }
@@ -197,8 +190,8 @@ LUA_FUNCTION_STATIC(pvs_GetPVSForCluster)
 	if (!currentPVS)
 		LUA->ThrowError("pvs: tried to call pvs.GetPVSForCluster with no active PVS!");
 
-	engineserver->ResetPVS(currentPVS, currentPVSSize);
-	engineserver->GetPVSForCluster(cluster, currentPVSSize, currentPVS);
+	Util::engineserver->ResetPVS(currentPVS, currentPVSSize);
+	Util::engineserver->GetPVSForCluster(cluster, currentPVSSize, currentPVS);
 
 	return 0;
 }
@@ -215,7 +208,7 @@ LUA_FUNCTION_STATIC(pvs_CheckBoxInPVS)
 
 static void AddEntityToPVS(CBaseEntity* ent)
 {
-	edict_t* edict = GetEdictOfEnt(ent);
+	edict_t* edict = Util::GetEdictOfEnt(ent);
 	if (edict)
 		g_pAddEntityToPVS.push_back(edict);
 	else
@@ -249,7 +242,7 @@ LUA_FUNCTION_STATIC(pvs_AddEntityToPVS)
 #define LUA_FL_EDICT_FULLCHECK 1 << 4
 static void SetOverrideStateFlags(CBaseEntity* ent, int flags, bool force)
 {
-	edict_t* edict = GetEdictOfEnt(ent);
+	edict_t* edict = Util::GetEdictOfEnt(ent);
 	if (!edict)
 		g_Lua->ThrowError("Failed to get edict?");
 
@@ -308,7 +301,7 @@ static void SetStateFlags(CBaseEntity* ent, int flags, bool force)
 	if (!ent)
 		g_Lua->ThrowError("Tried to use a NULL Entity!");
 
-	edict_t* edict = GetEdictOfEnt(ent);
+	edict_t* edict = Util::GetEdictOfEnt(ent);
 	if (!edict)
 		g_Lua->ThrowError("Failed to get edict?");
 
@@ -365,7 +358,7 @@ LUA_FUNCTION_STATIC(pvs_SetStateFlags)
 LUA_FUNCTION_STATIC(pvs_GetStateFlags)
 {
 	CBaseEntity* ent = Util::Get_Entity(1, true);
-	edict_t* edict = GetEdictOfEnt(ent);
+	edict_t* edict = Util::GetEdictOfEnt(ent);
 	if (!edict)
 		LUA->ThrowError("Failed to get edict?");
 
@@ -395,7 +388,7 @@ LUA_FUNCTION_STATIC(pvs_GetStateFlags)
 
 static bool RemoveEntityFromTransmit(CBaseEntity* ent)
 {
-	edict_t* edict = GetEdictOfEnt(ent);
+	edict_t* edict = Util::GetEdictOfEnt(ent);
 	if (!edict)
 		g_Lua->ThrowError("Failed to get edict?");
 
@@ -488,7 +481,7 @@ CBasePlayer *UTIL_PlayerByIndex(int playerIndex)
 		edict_t *pPlayerEdict = INDEXENT(playerIndex);
 		if (pPlayerEdict && !pPlayerEdict->IsFree())
 		{
-			pPlayer = (CBasePlayer*)servergameents->EdictToBaseEntity(pPlayerEdict);
+			pPlayer = (CBasePlayer*)Util::GetCBaseEntityFromEdict(pPlayerEdict);
 		}
 	}
 	
@@ -557,12 +550,6 @@ LUA_FUNCTION_STATIC(pvs_SetPreventTransmitBulk)
 
 void CPVSModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
-	engineserver = (IVEngineServer*)appfn[0](INTERFACEVERSION_VENGINESERVER, NULL);
-	Detour::CheckValue("get interface", "IVEngineServer", engineserver != NULL);
-
-	servergameents = (IServerGameEnts*)gamefn[0](INTERFACEVERSION_SERVERGAMEENTS, NULL);
-	Detour::CheckValue("get interface", "IServerGameEnts", servergameents != NULL);
-
 	IPlayerInfoManager* playerinfomanager = (IPlayerInfoManager*)gamefn[0](INTERFACEVERSION_PLAYERINFOMANAGER, NULL);
 	Detour::CheckValue("get interface", "playerinfomanager", playerinfomanager != NULL);
 
@@ -576,7 +563,7 @@ void CPVSModule::LuaInit(bool bServerInit)
 {
 	if ( bServerInit ) { return; }
 
-	mapPVSSize = ceil(engineserver->GetClusterCount() / 8.0f);
+	mapPVSSize = ceil(Util::engineserver->GetClusterCount() / 8.0f);
 
 	Util::StartTable();
 		Util::AddFunc(pvs_ResetPVS, "ResetPVS");

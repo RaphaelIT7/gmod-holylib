@@ -58,6 +58,9 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	extern const std::vector<Symbol> s_GameSystemsSym;
 
+	typedef bool (*CBaseClient_ProcessListenEvents)(void* client, void* msg);
+	extern const std::vector<Symbol> CBaseClient_ProcessListenEventsSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: serverplugin Symbols
 	//---------------------------------------------------------------------------------

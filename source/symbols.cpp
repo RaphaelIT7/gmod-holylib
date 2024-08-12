@@ -45,6 +45,11 @@ namespace Symbols
 		Symbol::FromSignature("\x48\x8B\x15\x2A\x2A\x2A\x2A\x48\x3B\x1A"),
 	};
 
+	const std::vector<Symbol> CBaseClient_ProcessListenEventsSym = {
+		Symbol::FromName("_ZN16CBaseClientState20ProcessGameEventListEP17SVC_GameEventList"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x56\x41\x55\x41\x54\x49\x89\xF4\x53\x48\x8B\x1D****\x8B\x93\x0C\x10\x00\x00\x85\xD2\x41\x0F\x95\xC5\x0F\x85\x99\x00\x00\x00"), // 55 48 89 E5 41 56 41 55 41 54 49 89 F4 53 48 8B 1D ?? ?? ?? ?? 8B 93 0C 10 00 00 85 D2 41 0F 95 C5 0F 85 99 00 00 00
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: serverplugin Symbols
 	//---------------------------------------------------------------------------------

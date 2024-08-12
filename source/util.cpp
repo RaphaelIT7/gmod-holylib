@@ -3,6 +3,7 @@
 #include "GarrysMod/InterfacePointers.hpp"
 #include "iclient.h"
 #include "iserver.h"
+#include "module.h"
 
 GarrysMod::Lua::IUpdatedLuaInterface* g_Lua;
 IVEngineServer* engine;
@@ -48,12 +49,12 @@ CBaseEntity* Util::Get_Entity(int iStackPos, bool unknown)
 	return NULL;
 }
 
-IServer* server;
+IServer* Util::server;
 CBaseClient* Util::GetClientByUserID(int userid)
 {
-	for (int i = 0; i < server->GetClientCount(); i++)
+	for (int i = 0; i < Util::server->GetClientCount(); i++)
 	{
-		IClient* pClient = server->GetClient(i);
+		IClient* pClient = Util::server->GetClient(i);
 		if ( pClient && pClient->GetUserID() == userid)
 		{
 			return (CBaseClient*)pClient;
@@ -63,8 +64,58 @@ CBaseClient* Util::GetClientByUserID(int userid)
 	return NULL;
 }
 
+IVEngineServer* Util::engineserver = NULL;
+IServerGameEnts* Util::servergameents = NULL;
+CBaseClient* Util::GetClientByPlayer(CBasePlayer* ply)
+{
+	return Util::GetClientByUserID(Util::engineserver->GetPlayerUserId(Util::GetEdictOfEnt((CBaseEntity*)ply)));
+}
+
+CBaseClient* Util::GetClientByIndex(int index)
+{
+	if (server->GetClientCount() > index)
+		return NULL;
+
+	return (CBaseClient*)server->GetClient(index);
+}
+
+std::vector<CBaseClient*> Util::GetClients()
+{
+	std::vector<CBaseClient*> pClients;
+
+	for (int i = 0; i < server->GetClientCount(); i++)
+	{
+		IClient* pClient = server->GetClient(i);
+		pClients.push_back((CBaseClient*)pClient);
+	}
+
+	return pClients;
+}
+
+CBasePlayer* Util::GetPlayerByClient(CBaseClient* client)
+{
+	int userID = ((IClient*)client)->GetUserID();
+	for (int i = 0; i < Util::server->GetMaxClients(); i++)
+	{
+		edict_t* edict = Util::engineserver->PEntityOfEntIndex(i);
+		if (!edict)
+			continue;
+
+		if (userID == Util::engineserver->GetPlayerUserId(edict))
+			return (CBasePlayer*)Util::GetCBaseEntityFromEdict(edict);
+	}
+
+	return NULL;
+}
+
 void Util::AddDetour()
 {
+	engineserver = (IVEngineServer*)g_pModuleManager.GetAppFactory()(INTERFACEVERSION_VENGINESERVER, NULL);
+	Detour::CheckValue("get interface", "IVEngineServer", engineserver != NULL);
+
+	servergameents = (IServerGameEnts*)g_pModuleManager.GetGameFactory()(INTERFACEVERSION_SERVERGAMEENTS, NULL);
+	Detour::CheckValue("get interface", "IServerGameEnts", servergameents != NULL);
+
 	server = InterfacePointers::Server();
 
 	SourceSDK::ModuleLoader server_loader("server");

@@ -66,7 +66,8 @@ public:
 	inline CreateInterfaceFn& GetAppFactory() { return m_pAppFactory; };
 	inline CreateInterfaceFn& GetGameFactory() { return m_pGameFactory; };
 
-	void Init(CreateInterfaceFn appfn, CreateInterfaceFn gamefn);
+	void Setup(CreateInterfaceFn appfn, CreateInterfaceFn gamefn);
+	void Init();
 	void LuaInit(bool bServerInit);
 	void LuaShutdown();
 	void InitDetour(bool bPreServer);
