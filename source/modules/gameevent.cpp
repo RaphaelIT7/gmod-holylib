@@ -18,13 +18,21 @@ public:
 	virtual void LuaShutdown() OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "gameevent"; };
-	virtual int Compatibility() { return LINUX32 | LINUX64; };
+	virtual int Compatibility() { return LINUX32; };
 };
 
 static ConVar gameevent_callhook("holylib_gameevent_callhook", "1", 0, "If enabled, the HolyLib:Pre/PostListenGameEvent hooks get called");
 
 static CGameeventLibModule g_pGameeventLibModule;
 IModule* pGameeventLibModule = &g_pGameeventLibModule;
+
+#ifndef ARCHITECTURE_X86_64
+#define CLIENT_OFFSET -4
+#define LUA_OFFSET 12
+#else
+#define CLIENT_OFFSET -8
+#define LUA_OFFSET 24
+#endif
 
 static CGameEventManager* pManager;
 LUA_FUNCTION_STATIC(gameevent_GetListeners)
@@ -72,8 +80,8 @@ LUA_FUNCTION_STATIC(gameevent_RemoveListener)
 				continue;
 
 			IGameEventListener2* listener = (IGameEventListener2*)callback->m_pCallback;
-			//Msg("Pointer 1: %hhu\nPointer 2: %hhu\n", (uint8_t*)listener, (uint8_t*)pLuaGameEventListener + 12);
-			if ( (uint8_t*)listener == ((uint8_t*)pLuaGameEventListener + 12) ) // WHY is pLuaGameEventListener always off by 12 bytes? I HATE THAT THIS WORKS
+			//Msg("Pointer 1: %hhu\nPointer 2: %hhu\n", (uint8_t*)listener, (uint8_t*)pLuaGameEventListener + LUA_OFFSET);
+			if ( (uint8_t*)listener == ((uint8_t*)pLuaGameEventListener + LUA_OFFSET) ) // WHY is pLuaGameEventListener always off by 12 bytes? I HATE THAT THIS WORKS
 			{
 				desciptor->listeners.Remove(i); // ToDo: Verify that this doesn't cause a memory leak because CGameEventCallback isn't deleted.
 				bSuccess = true;
@@ -108,8 +116,8 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 					continue;
 
 				IGameEventListener2* listener = (IGameEventListener2*)callback->m_pCallback;
-				Msg("Pointer 1: %hhu\nPointer 2: %hhu\n", (uint8_t*)listener, (uint8_t*)pClient + 12);
-				if ( (uint8_t*)listener == ((uint8_t*)pClient + 12) ) // WHY is pLuaGameEventListener always off by 12 bytes? I HATE THAT THIS WORKS
+				Msg("Pointer 1: %hhu\nPointer 2: %hhu\n", (uint8_t*)listener, (uint8_t*)pClient + CLIENT_OFFSET);
+				if ( (uint8_t*)listener == ((uint8_t*)pClient + CLIENT_OFFSET) )
 				{
 					++idx;
 					LUA->PushNumber(idx);
@@ -139,8 +147,8 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 						continue;
 
 					IGameEventListener2* listener = (IGameEventListener2*)callback->m_pCallback;
-					Msg("Pointer 1: %hhu\nPointer 2: %hhu\n", (uint8_t*)listener, (uint8_t*)pClient + 12);
-					if ( (uint8_t*)listener == ((uint8_t*)pClient + 12) ) // WHY is pLuaGameEventListener always off by 12 bytes? I HATE THAT THIS WORKS
+					Msg("Pointer 1: %hhu\nPointer 2: %hhu\n", (uint8_t*)listener, (uint8_t*)pClient + CLIENT_OFFSET);
+					if ( (uint8_t*)listener == ((uint8_t*)pClient + CLIENT_OFFSET) )
 					{
 						++idx;
 						LUA->PushNumber(idx);
@@ -172,8 +180,8 @@ LUA_FUNCTION_STATIC(gameevent_RemoveClientListener)
 				continue;
 
 			IGameEventListener2* listener = (IGameEventListener2*)callback->m_pCallback;
-			Msg("Pointer 1: %hhu\nPointer 2: %hhu\n", (uint8_t*)listener, (uint8_t*)pEntity + 12);
-			if ( (uint8_t*)listener == ((uint8_t*)pEntity + 12) ) // WHY is pLuaGameEventListener always off by 12 bytes? I HATE THAT THIS WORKS
+			Msg("Pointer 1: %hhu\nPointer 2: %hhu\n", (uint8_t*)listener, (uint8_t*)pEntity + CLIENT_OFFSET);
+			if ( (uint8_t*)listener == ((uint8_t*)pEntity + CLIENT_OFFSET) )
 			{
 				desciptor->listeners.Remove(i); // ToDo: Verify that this doesn't cause a memory leak because CGameEventCallback isn't deleted.
 				bSuccess = true;
