@@ -104,7 +104,10 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 {
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Entity))
 	{
-		CBasePlayer* pEntity = Util::Get_Player(1, true);
+		CBasePlayer* pEntity = Util::Get_Player(1, false);
+		if (!pEntity)
+			LUA->ThrowError("Tried to use a NULL Player!\n");
+
 		CBaseClient* pClient = Util::GetClientByPlayer(pEntity);
 
 		LUA->CreateTable();
@@ -172,7 +175,10 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 
 LUA_FUNCTION_STATIC(gameevent_RemoveClientListener)
 {
-	CBasePlayer* pEntity = Util::Get_Player(1, true);
+	CBasePlayer* pEntity = Util::Get_Player(1, false);
+	if (!pEntity)
+		LUA->ThrowError("Tried to use a NULL Player!\n");
+
 	const char* strEvent = g_Lua->CheckStringOpt(2, NULL);
 
 	bool bSuccess = false;
@@ -210,6 +216,9 @@ Symbols::CGameEventManager_AddListener func_CGameEventManager_AddListener;
 LUA_FUNCTION_STATIC(gameevent_AddClientListener)
 {
 	CBasePlayer* pEntity = Util::Get_Player(1, true);
+	if (!pEntity)
+		LUA->ThrowError("Tried to use a NULL Player!\n");
+
 	const char* strEvent = g_Lua->CheckString(2);
 
 	if (!func_CGameEventManager_AddListener)
