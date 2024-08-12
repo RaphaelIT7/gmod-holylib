@@ -26,22 +26,6 @@ static ConVar gameevent_callhook("holylib_gameevent_callhook", "1", 0, "If enabl
 static CGameeventLibModule g_pGameeventLibModule;
 IModule* pGameeventLibModule = &g_pGameeventLibModule;
 
-CGameEventDescriptor *CGameEventManager::GetEventDescriptor(const char * name)
-{
-	if ( !name || !name[0] )
-		return NULL;
-
-	for (int i=0; i < m_GameEvents.Count(); i++ )
-	{
-		CGameEventDescriptor *descriptor = &m_GameEvents[i];
-
-		if ( Q_strcmp( descriptor->name, name ) == 0 )
-			return descriptor;
-	}
-
-	return NULL;
-}
-
 static CGameEventManager* pManager;
 LUA_FUNCTION_STATIC(gameevent_GetListeners)
 {
@@ -213,6 +197,8 @@ LUA_FUNCTION_STATIC(gameevent_AddClientListener)
 
 	CGameEventDescriptor* desciptor = pManager->GetEventDescriptor(strEvent);
 	pManager->AddListener(Util::GetClientByPlayer(pEntity), desciptor, CGameEventManager::CLIENTSTUB);
+
+	return 0;
 }
 
 Detouring::Hook detour_CBaseClient_ProcessListenEvents;
@@ -230,7 +216,7 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 		{
 			if (msg->m_EventArray.Get(i))
 			{
-				CGameEventDescriptor *descriptor = g_GameEventManager.GetEventDescriptor(i);
+				CGameEventDescriptor *descriptor = pManager->GetEventDescriptor(i);
 
 				if (descriptor)
 				{
