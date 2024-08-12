@@ -32,6 +32,21 @@ CGameEventDescriptor *CGameEventManager::GetEventDescriptor(int eventid) // retu
 	return NULL;
 }
 
+CGameEventCallback* CGameEventManager::FindEventListener( void* pCallback )
+{
+	for (int i=0; i < m_Listeners.Count(); i++ )
+	{
+		CGameEventCallback *listener = m_Listeners.Element(i);
+
+		if ( listener->m_pCallback == pCallback )
+		{
+			return listener;
+		}
+	}
+
+	return NULL;
+}
+
 bool CGameEventManager::AddListener( void *listener, CGameEventDescriptor *descriptor,  int nListenerType )
 {
 	if ( !listener || !descriptor )
