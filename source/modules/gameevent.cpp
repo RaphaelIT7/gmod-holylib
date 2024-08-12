@@ -112,9 +112,9 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 		FOR_EACH_VEC(pManager->m_GameEvents, i)
 		{
 			CGameEventDescriptor* desciptor = pManager->GetEventDescriptor(i);
-			FOR_EACH_VEC(desciptor->listeners, i)
+			FOR_EACH_VEC(desciptor->listeners, j)
 			{
-				CGameEventCallback* callback = desciptor->listeners[i];
+				CGameEventCallback* callback = desciptor->listeners[j];
 				if (callback->m_nListenerType != CGameEventManager::CLIENTSTUB)
 					continue;
 
@@ -134,7 +134,6 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 		}
 	} else {
 		LUA->CreateTable();
-		int iClient = 0;
 		for (int iClient = 0; iClient<Util::server->GetMaxClients(); ++iClient)
 		{
 			Util::Push_Entity(Util::GetCBaseEntityFromEdict(Util::engineserver->PEntityOfEntIndex(iClient)));
@@ -145,9 +144,9 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 			FOR_EACH_VEC(pManager->m_GameEvents, i)
 			{
 				CGameEventDescriptor* desciptor = pManager->GetEventDescriptor(i);
-				FOR_EACH_VEC(desciptor->listeners, i)
+				FOR_EACH_VEC(desciptor->listeners, j)
 				{
-					CGameEventCallback* callback = desciptor->listeners[i];
+					CGameEventCallback* callback = desciptor->listeners[j];
 					if (callback->m_nListenerType != CGameEventManager::CLIENTSTUB)
 						continue;
 
@@ -340,7 +339,7 @@ void CGameeventLibModule::InitDetour(bool bPreServer)
 	);
 
 	func_CGameEventManager_AddListener = (Symbols::CGameEventManager_AddListener)Detour::GetFunction(engine_loader.GetModule(), Symbols::CGameEventManager_AddListenerSym);
-	Detour::CheckFunction(func_CGameEventManager_AddListener, "CGameEventManager::AddListener");
+	Detour::CheckFunction((void*)func_CGameEventManager_AddListener, "CGameEventManager::AddListener");
 
 	SourceSDK::FactoryLoader server_loader("server");
 	s_GameSystems = Detour::ResolveSymbol<CUtlVector<IGameSystem*>>(server_loader, Symbols::s_GameSystemsSym);
