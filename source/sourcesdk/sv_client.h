@@ -11,6 +11,7 @@
 #pragma once
 #endif
 
+#include "sourcesdk/netmessages.h"
 #include "const.h"
 #include "bitbuf.h"
 #include "net.h"
