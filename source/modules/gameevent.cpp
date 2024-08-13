@@ -2,7 +2,7 @@
 #include <GarrysMod/Lua/Interface.h>
 #include "sourcesdk/GameEventManager.h"
 #include "lua.h"
-#include "sourcesdk/baseclient.h"
+#include "sourcesdk/sv_client.h"
 #include "iserver.h"
 #include "vprof.h"
 #include "sourcesdk/netmessages.h"
@@ -225,7 +225,7 @@ LUA_FUNCTION_STATIC(gameevent_AddClientListener)
 		LUA->ThrowError("Failed to get CGameEventManager::AddListener");
 
 	CGameEventDescriptor* desciptor = pManager->GetEventDescriptor(strEvent);
-	func_CGameEventManager_AddListener(pManager, Util::GetClientByPlayer(pEntity), desciptor, CGameEventManager::CLIENTSTUB);
+	func_CGameEventManager_AddListener(pManager, (CGameClient*)Util::GetClientByPlayer(pEntity), desciptor, CGameEventManager::CLIENTSTUB);
 
 	return 0;
 }
@@ -238,8 +238,8 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 	if (!gameevent_callhook.GetBool())
 		return detour_CBaseClient_ProcessListenEvents.GetTrampoline<Symbols::CBaseClient_ProcessListenEvents>()(client, msg);
 
-	CBasePlayer* pPlayer = Util::GetPlayerByClient(client);
 	int idx = 0;
+	CBasePlayer* pPlayer = Util::GetPlayerByClient(client);
 	g_Lua->CreateTable();
 		for (int i=0; i < MAX_EVENT_NUMBER; i++)
 		{
@@ -273,7 +273,7 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 		}
 	}
 
-	detour_CBaseClient_ProcessListenEvents.GetTrampoline<Symbols::CBaseClient_ProcessListenEvents>()(client, msg);
+	bool bRet = detour_CBaseClient_ProcessListenEvents.GetTrampoline<Symbols::CBaseClient_ProcessListenEvents>()(client, msg);
 
 	if (Lua::PushHook("HolyLib:PostProcessGameEvent"))
 	{
@@ -284,7 +284,7 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 
 	g_Lua->ReferenceFree(iReference);
 
-	return true;
+	return bRet;
 }
 
 void CGameeventLibModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
