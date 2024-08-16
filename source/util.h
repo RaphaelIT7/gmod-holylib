@@ -44,6 +44,8 @@ namespace Util
 	extern CBaseClient* GetClientByIndex(int index);
 	extern std::vector<CBaseClient*> GetClients();
 	extern CBasePlayer*	GetPlayerByClient(CBaseClient* client);
+
+	extern bool ShouldLoad();
 }
 
 // Push functions from modules: 

@@ -32,6 +32,12 @@ CServerPlugin::~CServerPlugin()
 
 DLL_EXPORT void HolyLib_PreLoad() // ToDo: Make this a CServerPlugin member later!
 {
+	if (!Util::ShouldLoad())
+	{
+		Msg("HolyLib already exists? Stopping.\n");
+		return;
+	}
+
 	g_pModuleManager.InitDetour(true);
 }
 
@@ -42,6 +48,12 @@ CGlobalVars *gpGlobals = NULL;
 bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServerFactory)
 {
 	Msg("--- HolyLib Plugin loading ---\n");
+
+	if (!Util::ShouldLoad())
+	{
+		Msg("HolyLib already exists? Stopping.\n");
+		return;
+	}
 	 
 	ConnectTier1Libraries(&interfaceFactory, 1);
 	ConnectTier2Libraries(&interfaceFactory, 1);

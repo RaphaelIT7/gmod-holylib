@@ -4,6 +4,7 @@
 #include "iclient.h"
 #include "iserver.h"
 #include "module.h"
+#include "icommandline.h"
 
 GarrysMod::Lua::IUpdatedLuaInterface* g_Lua;
 IVEngineServer* engine;
@@ -125,4 +126,19 @@ void Util::AddDetour()
 	Detour::CheckFunction((void*)func_GetPlayer, "Get_Player");
 	Detour::CheckFunction((void*)func_PushEntity, "Push_Entity");
 	Detour::CheckFunction((void*)func_GetEntity, "Get_Entity");
+}
+
+static bool g_pShouldLoad = false;
+bool Util::ShouldLoad()
+{
+	if (CommandLine()->FindParm("-holylibexists") && !g_pShouldLoad) // Don't set this manually!
+		return false;
+
+	if (g_pShouldLoad)
+		return true;
+
+	g_pShouldLoad = true;
+	CommandLine()->AppendParm("-holylibexists", "true");
+
+	return true;
 }
