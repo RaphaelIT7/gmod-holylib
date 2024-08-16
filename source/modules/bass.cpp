@@ -426,7 +426,7 @@ LUA_FUNCTION_STATIC(bass_PlayFile)
 	LUA->ReferencePush(callback);
 	LUA->ReferenceFree(callback);
 		if (errorCode == 0)
-			LUA->PushUserType(audioChannel, GarrysMod::Lua::Type::SOUNDHANDLE);
+			LUA->PushUserType(audioChannel, GarrysMod::Lua::Type::SoundHandle);
 		else
 			LUA->PushNil();
 		LUA->PushNumber(errorCode);
@@ -456,7 +456,7 @@ LUA_FUNCTION_STATIC(bass_PlayURL)
 	LUA->ReferencePush(callback);
 	LUA->ReferenceFree(callback);
 		if (errorCode == 0)
-			LUA->PushUserType(audioChannel, GarrysMod::Lua::Type::SOUNDHANDLE);
+			LUA->PushUserType(audioChannel, GarrysMod::Lua::Type::SoundHandle);
 		else
 			LUA->PushNil();
 		LUA->PushNumber(errorCode);
