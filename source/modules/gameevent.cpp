@@ -146,22 +146,24 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 		}
 	} else {
 		LUA->CreateTable();
-		for (int iClient = 0; iClient<Util::server->GetMaxClients(); ++iClient)
+		for (int iClient = 1; iClient<=Util::server->GetMaxClients(); ++iClient)
 		{
-			Util::Push_Entity(Util::GetCBaseEntityFromEdict(Util::engineserver->PEntityOfEntIndex(iClient)));
+			CBaseEntity* ent = Util::GetCBaseEntityFromEdict(Util::engineserver->PEntityOfEntIndex(iClient));
+			if (!ent)
+				continue;
+
+			Util::Push_Entity(ent);
 			LUA->CreateTable();
 
 			CBaseClient* pClient = Util::GetClientByIndex(iClient);
 			int idx = 0;
 			FOR_EACH_VEC(pManager->m_GameEvents, i)
 			{
-				CGameEventDescriptor* desciptor = pManager->GetEventDescriptor(i);
-				if (!desciptor)
-					continue;
+				CGameEventDescriptor& desciptor = pManager->m_GameEvents[i];
 
-				FOR_EACH_VEC(desciptor->listeners, j)
+				FOR_EACH_VEC(desciptor.listeners, j)
 				{
-					CGameEventCallback* callback = desciptor->listeners[j];
+					CGameEventCallback* callback = desciptor.listeners[j];
 					if (callback->m_nListenerType != CGameEventManager::CLIENTSTUB)
 						continue;
 
@@ -173,7 +175,7 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 					{
 						++idx;
 						LUA->PushNumber(idx);
-						LUA->PushString(desciptor->name);
+						LUA->PushString(desciptor.name);
 						LUA->SetTable(-3);
 						break;
 					}
@@ -251,7 +253,7 @@ LUA_FUNCTION_STATIC(gameevent_AddClientListener)
 		return 1;
 	}
 
-	func_CGameEventManager_AddListener(pManager, (CGameClient*)Util::GetClientByPlayer(pEntity), desciptor, CGameEventManager::CLIENTSTUB);
+	func_CGameEventManager_AddListener(pManager, (IClient*)Util::GetClientByPlayer(pEntity), desciptor, CGameEventManager::CLIENTSTUB);
 
 	LUA->PushBool(true);
 	return 1;
