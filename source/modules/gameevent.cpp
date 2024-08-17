@@ -130,7 +130,7 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 				if (callback->m_nListenerType != CGameEventManager::CLIENTSTUB)
 					continue;
 
-				IGameEventListener2* listener = (IGameEventListener2*)callback->m_pCallback;
+				CBaseClient* listener = (CBaseClient*)callback->m_pCallback;
 				if (gameevent_debug.GetBool())
 					Msg("Pointer 1: %hhu\nPointer 2: %hhu\n", *((uint8_t*)listener), *((uint8_t*)pClient + CLIENT_OFFSET));
 
@@ -167,7 +167,7 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 					if (callback->m_nListenerType != CGameEventManager::CLIENTSTUB)
 						continue;
 
-					IGameEventListener2* listener = (IGameEventListener2*)callback->m_pCallback;
+					CBaseClient* listener = (CBaseClient*)callback->m_pCallback;
 					if (gameevent_debug.GetBool())
 						Msg("Pointer 1: %hhu\nPointer 2: %hhu\n", *((uint8_t*)listener), *((uint8_t*)pClient + CLIENT_OFFSET));
 
@@ -214,7 +214,7 @@ LUA_FUNCTION_STATIC(gameevent_RemoveClientListener)
 			if (callback->m_nListenerType != CGameEventManager::CLIENTSTUB)
 				continue;
 
-			IGameEventListener2* listener = (IGameEventListener2*)callback->m_pCallback;
+			CBaseClient* listener = (CBaseClient*)callback->m_pCallback;
 			if (gameevent_debug.GetBool())
 				Msg("Pointer 1: %hhu\nPointer 2: %hhu\n", *((uint8_t*)listener), *((uint8_t*)pClient + CLIENT_OFFSET));
 
