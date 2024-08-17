@@ -123,10 +123,10 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 		int idx = 0;
 		FOR_EACH_VEC(pManager->m_GameEvents, i)
 		{
-			CGameEventDescriptor* desciptor = pManager->GetEventDescriptor(i);
-			FOR_EACH_VEC(desciptor->listeners, j)
+			CGameEventDescriptor& descriptor = pManager->m_GameEvents[i];
+			FOR_EACH_VEC(descriptor.listeners, j)
 			{
-				CGameEventCallback* callback = desciptor->listeners[j];
+				CGameEventCallback* callback = descriptor.listeners[j];
 				if (callback->m_nListenerType != CGameEventManager::CLIENTSTUB)
 					continue;
 
@@ -138,7 +138,7 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 				{
 					++idx;
 					LUA->PushNumber(idx);
-					LUA->PushString(desciptor->name);
+					LUA->PushString(descriptor.name);
 					LUA->SetTable(-3);
 					break;
 				}
@@ -159,11 +159,11 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 			int idx = 0;
 			FOR_EACH_VEC(pManager->m_GameEvents, i)
 			{
-				CGameEventDescriptor& desciptor = pManager->m_GameEvents[i];
+				CGameEventDescriptor& descriptor = pManager->m_GameEvents[i];
 
-				FOR_EACH_VEC(desciptor.listeners, j)
+				FOR_EACH_VEC(descriptor.listeners, j)
 				{
-					CGameEventCallback* callback = desciptor.listeners[j];
+					CGameEventCallback* callback = descriptor.listeners[j];
 					if (callback->m_nListenerType != CGameEventManager::CLIENTSTUB)
 						continue;
 
@@ -175,7 +175,7 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 					{
 						++idx;
 						LUA->PushNumber(idx);
-						LUA->PushString(desciptor.name);
+						LUA->PushString(descriptor.name);
 						LUA->SetTable(-3);
 						break;
 					}
@@ -195,6 +195,7 @@ LUA_FUNCTION_STATIC(gameevent_RemoveClientListener)
 	if (!pEntity)
 		LUA->ThrowError("Tried to use a NULL Player!\n");
 
+	CBaseClient* pClient = Util::GetClientByPlayer(pEntity);
 	const char* strEvent = g_Lua->CheckStringOpt(2, NULL);
 
 	bool bSuccess = false;
@@ -215,9 +216,9 @@ LUA_FUNCTION_STATIC(gameevent_RemoveClientListener)
 
 			IGameEventListener2* listener = (IGameEventListener2*)callback->m_pCallback;
 			if (gameevent_debug.GetBool())
-				Msg("Pointer 1: %hhu\nPointer 2: %hhu\n", *((uint8_t*)listener), *((uint8_t*)pEntity + CLIENT_OFFSET));
+				Msg("Pointer 1: %hhu\nPointer 2: %hhu\n", *((uint8_t*)listener), *((uint8_t*)pClient + CLIENT_OFFSET));
 
-			if ( (uint8_t*)listener == ((uint8_t*)pEntity + CLIENT_OFFSET) || (uint8_t*)listener == (uint8_t*)pEntity )
+			if ( (uint8_t*)listener == ((uint8_t*)pClient + CLIENT_OFFSET) || (uint8_t*)listener == (uint8_t*)pClient )
 			{
 				desciptor->listeners.Remove(i); // ToDo: Verify that this doesn't cause a memory leak because CGameEventCallback isn't deleted.
 				bSuccess = true;
@@ -225,7 +226,7 @@ LUA_FUNCTION_STATIC(gameevent_RemoveClientListener)
 			}
 		}
 	} else {
-		pManager->RemoveListener(Util::GetClientByPlayer(pEntity));
+		pManager->RemoveListener(pClient);
 		bSuccess = true; // Always true?
 	}
 
