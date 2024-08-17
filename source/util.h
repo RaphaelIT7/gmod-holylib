@@ -43,7 +43,7 @@ namespace Util
 	extern CBaseClient* GetClientByPlayer(CBasePlayer* ply);
 	extern CBaseClient* GetClientByIndex(int index);
 	extern std::vector<CBaseClient*> GetClients();
-	extern CBasePlayer*	GetPlayerByClient(CBaseClient* client);
+	extern CBasePlayer* GetPlayerByClient(CBaseClient* client);
 
 	extern bool ShouldLoad();
 }

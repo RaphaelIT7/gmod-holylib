@@ -895,7 +895,9 @@ Returns the number of bytes read.
 Returns the size of the data in bytes.  
 
 #### number bf_read:GetCurrentBit()
-Returns the current position/bit.  
+Returns the current position/bit.
+
+> NOTE: This is only available for the 32x!    
 
 #### bool bf_read:IsOverflowed()
 Returns `true` if the buffer is overflowed.  
@@ -909,16 +911,26 @@ Reads and Angle.
 
 #### number bf_read:ReadBitCoord()
 
+> NOTE: This is only available for the 32x!    
+
 #### number bf_read:ReadBitCoordBits()
+
+> NOTE: This is only available for the 32x!    
 
 #### number bf_read:ReadBitCoordMP(bool bIntegral, bool bLowPrecision)
 
+> NOTE: This is only available for the 32x!    
+
 #### number bf_read:ReadBitCoordMPBits(bool bIntegral, bool bLowPrecision)
+
+> NOTE: This is only available for the 32x!    
 
 #### number bf_read:ReadBitFloat()
 
 #### number bf_read:ReadBitLong(number numBits, bool bSigned)
 Reads a number with the given number of bits.  
+
+> NOTE: This is only available for the 32x!    
 
 #### number bf_read:ReadBitNormal()
 
