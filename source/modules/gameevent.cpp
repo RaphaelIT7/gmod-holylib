@@ -41,6 +41,9 @@ LUA_FUNCTION_STATIC(gameevent_GetListeners)
 	if (LUA->IsType(1, GarrysMod::Lua::Type::String))
 	{
 		CGameEventDescriptor* desciptor = pManager->GetEventDescriptor(LUA->GetString(1));
+		if (!desciptor)
+			return 0; // Return nothing -> nil on failure
+
 		LUA->PushNumber(desciptor->listeners.Count());
 	} else {
 		LUA->CreateTable();
@@ -74,6 +77,12 @@ LUA_FUNCTION_STATIC(gameevent_RemoveListener)
 	if (pLuaGameEventListener)
 	{
 		CGameEventDescriptor* desciptor = pManager->GetEventDescriptor(strEvent);
+		if (!desciptor)
+		{
+			LUA->PushBool(false);
+			return 1;
+		}
+
 		FOR_EACH_VEC(desciptor->listeners, i)
 		{
 			CGameEventCallback* callback = desciptor->listeners[i];
@@ -147,6 +156,9 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 			FOR_EACH_VEC(pManager->m_GameEvents, i)
 			{
 				CGameEventDescriptor* desciptor = pManager->GetEventDescriptor(i);
+				if (!desciptor)
+					continue;
+
 				FOR_EACH_VEC(desciptor->listeners, j)
 				{
 					CGameEventCallback* callback = desciptor->listeners[j];
@@ -185,6 +197,12 @@ LUA_FUNCTION_STATIC(gameevent_RemoveClientListener)
 	if (strEvent)
 	{
 		CGameEventDescriptor* desciptor = pManager->GetEventDescriptor(strEvent);
+		if (!desciptor)
+		{
+			LUA->PushBool(false);
+			return 1;
+		}
+
 		FOR_EACH_VEC(desciptor->listeners, i)
 		{
 			CGameEventCallback* callback = desciptor->listeners[i];
@@ -225,7 +243,8 @@ LUA_FUNCTION_STATIC(gameevent_AddClientListener)
 		LUA->ThrowError("Failed to get CGameEventManager::AddListener");
 
 	CGameEventDescriptor* desciptor = pManager->GetEventDescriptor(strEvent);
-	func_CGameEventManager_AddListener(pManager, (CGameClient*)Util::GetClientByPlayer(pEntity), desciptor, CGameEventManager::CLIENTSTUB);
+	if (desciptor)
+		func_CGameEventManager_AddListener(pManager, (CGameClient*)Util::GetClientByPlayer(pEntity), desciptor, CGameEventManager::CLIENTSTUB);
 
 	return 0;
 }
