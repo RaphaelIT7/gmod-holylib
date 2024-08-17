@@ -49,13 +49,13 @@ I forgot to pass the first argument to Gmod which caused this issue.
 - [#] Fixed up the sourcesdk to not have all these file name differences and fixed a few things  
 -> (32x)`keyvalues.h` | (64x)`KeyValues.h`  
 - [#] Fixed `serverplugins` module not removing all detours on shutdown.  
-- [#] Extented `vprof` to also include calls from `CScriptedEntity` -> SWEPs, Entity, Nextbot and probably more.  
+- [#] Fixed a few crashes with `gameevent` module when given invalid input.  
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.3...main
 
 ### QoL updates
-- [#] Reduced file size by ~1MB  
+- [#] Extented `vprof` to also include calls from `CScriptedEntity` -> SWEPs, Entity, Nextbot and probably more.  
 - [#] Changed print formatting  
 ```txt
 Registered module holylib         (Enabled: true,  Compatible: true )
@@ -86,6 +86,7 @@ bool hide - `true` to hide the server from the serverlist.
 
 ## gameevent
 This module contains additional functions for the gameevent library.  
+With the Add/Get/RemoveClient* functions you can control the gameevents that are networked to a client which can be useful.  
 
 ### Functions
 
@@ -98,10 +99,44 @@ If name is not a string, it will return a table containing all events and their 
 }
 ```
 
+> NOTE: Can return `nil` on failure.  
+
 #### bool gameevent.RemoveListener(string name)
 string name - The event to remove the Lua gameevent listener from.  
 
 Returns `true` if the listener was successfully removed from the given event.
+
+#### table gameevent.GetClientListeners(Player ply or nil)
+Returns a table containing all gameevents the given client is listening to.  
+If not given a player, it will return a table containing all players and the gameevent they're listening to.  
+
+#### bool gameevent.RemoveClientListener(Player ply, string eventName or nil)
+Removes the player from listening to the given gameevent.  
+If the given gameevent is `nil` it will remove the player from all gameevents.  
+
+Returns `true` on success.  
+
+#### bool gameevent.AddClientListener(Player ply, String eventName)
+Adds the given player to listen to the given event.  
+
+Returns `true` on success.  
+
+### Hooks
+
+#### bool HolyLib:PreProcessGameEvent(Player ply, table gameEvents)
+Called when the client sends the gameevent list it wants to listen to.  
+Return `true` to stop the engine from future processing this list.  
+
+#### HolyLib:PostProcessGameEvent(Player ply, table gameEvents)
+Called after the engine processed the received gameevent list.  
+
+### ConVars
+
+#### holylib_gameevent_callhook (default `1`)
+If enabled, it will call the gameevent hooks.  
+
+#### holylib_gameevent_debug (default `0`)
+My debug stuff :> It'll never be important for you.  
 
 ## threadpoolfix
 This module modifies `CThreadPool::ExecuteToPriority` to not call `CThreadPool::SuspendExecution` when it doesn't have any jobs.  
