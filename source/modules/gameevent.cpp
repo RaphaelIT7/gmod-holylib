@@ -244,6 +244,9 @@ LUA_FUNCTION_STATIC(gameevent_AddClientListener)
 
 	const char* strEvent = g_Lua->CheckString(2);
 
+	if (!func_CGameEventManager_AddListener)
+		LUA->ThrowError("Failed to get CGameEventManager::AddListener");
+
 	CGameEventDescriptor* desciptor = pManager->GetEventDescriptor(strEvent);
 	if (!desciptor)
 	{
@@ -251,7 +254,7 @@ LUA_FUNCTION_STATIC(gameevent_AddClientListener)
 		return 1;
 	}
 
-	pManager->AddListener(Util::GetClientByPlayer(pEntity), desciptor, CGameEventManager::CLIENTSTUB);
+	func_CGameEventManager_AddListener(pManager, Util::GetClientByPlayer(pEntity), desciptor, CGameEventManager::CLIENTSTUB);
 
 	LUA->PushBool(true);
 	return 1;
