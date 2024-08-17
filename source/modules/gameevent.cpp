@@ -243,10 +243,16 @@ LUA_FUNCTION_STATIC(gameevent_AddClientListener)
 		LUA->ThrowError("Failed to get CGameEventManager::AddListener");
 
 	CGameEventDescriptor* desciptor = pManager->GetEventDescriptor(strEvent);
-	if (desciptor)
-		func_CGameEventManager_AddListener(pManager, (CGameClient*)Util::GetClientByPlayer(pEntity), desciptor, CGameEventManager::CLIENTSTUB);
+	if (!desciptor)
+	{
+		LUA->PushBool(false);
+		return 1;
+	}
 
-	return 0;
+	func_CGameEventManager_AddListener(pManager, (CGameClient*)Util::GetClientByPlayer(pEntity), desciptor, CGameEventManager::CLIENTSTUB);
+
+	LUA->PushBool(true);
+	return 1;
 }
 
 Detouring::Hook detour_CBaseClient_ProcessListenEvents;
