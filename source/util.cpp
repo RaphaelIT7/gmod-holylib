@@ -95,18 +95,7 @@ std::vector<CBaseClient*> Util::GetClients()
 
 CBasePlayer* Util::GetPlayerByClient(CBaseClient* client)
 {
-	int userID = ((IClient*)client)->GetUserID();
-	for (int i = 0; i < Util::server->GetMaxClients(); i++)
-	{
-		edict_t* edict = Util::engineserver->PEntityOfEntIndex(i);
-		if (!edict)
-			continue;
-
-		if (userID == Util::engineserver->GetPlayerUserId(edict))
-			return (CBasePlayer*)Util::GetCBaseEntityFromEdict(edict);
-	}
-
-	return NULL;
+	return (CBasePlayer*)servergameents->EdictToBaseEntity(engineserver->PEntityOfEntIndex(((IClient*)client)->GetPlayerSlot() + 1));
 }
 
 void Util::AddDetour()
