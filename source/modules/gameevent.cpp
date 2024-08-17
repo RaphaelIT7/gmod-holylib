@@ -171,7 +171,7 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 					if (gameevent_debug.GetBool())
 						Msg("Pointer 1: %hhu\nPointer 2: %hhu\n", *((uint8_t*)listener), *((uint8_t*)pClient + CLIENT_OFFSET));
 
-					if ( (uint8_t*)listener == ((uint8_t*)pClient + CLIENT_OFFSET) )
+					if ( (uint8_t*)listener == ((uint8_t*)pClient + CLIENT_OFFSET) || listener == pClient )
 					{
 						++idx;
 						LUA->PushNumber(idx);
@@ -217,7 +217,7 @@ LUA_FUNCTION_STATIC(gameevent_RemoveClientListener)
 			if (gameevent_debug.GetBool())
 				Msg("Pointer 1: %hhu\nPointer 2: %hhu\n", *((uint8_t*)listener), *((uint8_t*)pEntity + CLIENT_OFFSET));
 
-			if ( (uint8_t*)listener == ((uint8_t*)pEntity + CLIENT_OFFSET) )
+			if ( (uint8_t*)listener == ((uint8_t*)pEntity + CLIENT_OFFSET) || (uint8_t*)listener == (uint8_t*)pEntity )
 			{
 				desciptor->listeners.Remove(i); // ToDo: Verify that this doesn't cause a memory leak because CGameEventCallback isn't deleted.
 				bSuccess = true;
@@ -253,7 +253,7 @@ LUA_FUNCTION_STATIC(gameevent_AddClientListener)
 		return 1;
 	}
 
-	func_CGameEventManager_AddListener(pManager, (IClient*)Util::GetClientByPlayer(pEntity), desciptor, CGameEventManager::CLIENTSTUB);
+	func_CGameEventManager_AddListener(pManager, Util::GetClientByPlayer(pEntity), desciptor, CGameEventManager::CLIENTSTUB);
 
 	LUA->PushBool(true);
 	return 1;
