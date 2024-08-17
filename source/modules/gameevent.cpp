@@ -287,6 +287,9 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 			}
 		}
 
+	if (gameevent_debug.GetBool())
+		Msg("Player: %p\nIndex: %i\n", pPlayer, client->GetPlayerSlot());
+
 	int iReference = g_Lua->ReferenceCreate();
 	if (Lua::PushHook("HolyLib:PreProcessGameEvent"))
 	{
