@@ -11,6 +11,13 @@ public:
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
 };
 
+/*
+ * This module can't be disabled at runtime!
+ * 
+ * This is because of it replacing the entire CChangeFrameList class which is used & stored in the engine.
+ * We would have to add a check to the Copy function to then slowly switch to the original until it's not used anymore.
+ */
+
 CNetworkingModule g_pNetworkingModule;
 IModule* pNetworkingModule = &g_pNetworkingModule;
 

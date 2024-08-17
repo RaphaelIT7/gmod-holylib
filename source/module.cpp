@@ -141,9 +141,11 @@ void CModuleManager::RegisterModule(IModule* pModule)
 	pModule->m_pID = g_pIDs;
 	CModule* module = new CModule();
 	module->SetModule(pModule);
-	Msg("Registered module %-*s (Enabled: %s Compatible: %s)\n", 
+	Msg("Registered module %-*s (%-*i Enabled: %s Compatible: %s)\n", 
 		15,
 		module->GetModule()->Name(), 
+		2,
+		g_pIDs,
 		module->IsEnabled() ? "true, " : "false,", 
 		module->IsCompatible() ? "true " : "false"
 	);

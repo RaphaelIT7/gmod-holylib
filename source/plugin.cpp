@@ -103,6 +103,7 @@ void CServerPlugin::Unload(void)
 {
 	g_pModuleManager.Shutdown();
 	Detour::Remove(0);
+	Detour::ReportLeak();
 
 #ifdef ARCHITECTURE_X86_64
 	if (CommandLine()->FindParm("-holylib_debug_forceregister"))

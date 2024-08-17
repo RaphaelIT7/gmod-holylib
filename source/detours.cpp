@@ -40,3 +40,13 @@ void Detour::Remove(unsigned int category) // NOTE: Do we need to check if the p
 	}
 	g_pDetours[category].clear();
 }
+
+void Detour::ReportLeak()
+{
+	for (auto& [id, hooks]: g_pDetours) {
+		if (hooks.size() > 0)
+		{
+			Msg("ID: %d failed to shutdown it's detours!\n", id);
+		}
+	}
+}
