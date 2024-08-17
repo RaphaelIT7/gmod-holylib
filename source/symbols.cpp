@@ -268,6 +268,26 @@ namespace Symbols
 		Symbol::FromName("_ZN9CVProfile12OutputReportEiPKci"),
 	};
 
+	const std::vector<Symbol> CScriptedEntity_StartFunction1Sym = {
+		Symbol::FromName("_ZN15CScriptedEntity13StartFunctionEPKc"),
+	};
+
+	const std::vector<Symbol> CScriptedEntity_StartFunction2Sym = {
+		Symbol::FromName("_ZN15CScriptedEntity13StartFunctionEi"),
+	};
+
+	const std::vector<Symbol> CScriptedEntity_CallSym = {
+		Symbol::FromName("_ZN15CScriptedEntity4CallEii"),
+	};
+
+	const std::vector<Symbol> CScriptedEntity_CallFunction1Sym = {
+		Symbol::FromName("_ZN15CScriptedEntity12CallFunctionEPKc"),
+	};
+
+	const std::vector<Symbol> CScriptedEntity_CallFunction2Sym = {
+		Symbol::FromName("_ZN15CScriptedEntity12CallFunctionEi"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: networking Symbols
 	//---------------------------------------------------------------------------------

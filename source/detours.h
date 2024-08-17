@@ -219,6 +219,21 @@ namespace Symbols
 	typedef void (*CVProfile_OutputReport)(void*, int, const tchar*, int);
 	extern const std::vector<Symbol> CVProfile_OutputReportSym;
 
+	typedef void* (*CScriptedEntity_StartFunction1)(void*, const char*);
+	extern const std::vector<Symbol> CScriptedEntity_StartFunction1Sym;
+
+	typedef void* (*CScriptedEntity_StartFunction2)(void*, int);
+	extern const std::vector<Symbol> CScriptedEntity_StartFunction2Sym;
+
+	typedef void* (*CScriptedEntity_Call)(void*, int, int);
+	extern const std::vector<Symbol> CScriptedEntity_CallSym;
+
+	typedef void* (*CScriptedEntity_CallFunction1)(void*, const char*);
+	extern const std::vector<Symbol> CScriptedEntity_CallFunction1Sym;
+
+	typedef void* (*CScriptedEntity_CallFunction2)(void*, int);
+	extern const std::vector<Symbol> CScriptedEntity_CallFunction2Sym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: networking Symbols
 	//---------------------------------------------------------------------------------
