@@ -179,6 +179,8 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 					}
 				}
 			}
+
+			LUA->SetTable(-3);
 		}
 	}
 
