@@ -49,6 +49,7 @@ I forgot to pass the first argument to Gmod which caused this issue.
 - [#] Fixed up the sourcesdk to not have all these file name differences and fixed a few things  
 -> (32x)`keyvalues.h` | (64x)`KeyValues.h`  
 - [#] Fixed `serverplugins` module not removing all detours on shutdown.  
+- [#] Extented `vprof` to also include calls from `CScriptedEntity` -> SWEPs, Entity, Nextbot and probably more.  
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.3...main
