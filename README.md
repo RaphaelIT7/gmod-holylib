@@ -116,7 +116,7 @@ If the given gameevent is `nil` it will remove the player from all gameevents.
 
 Returns `true` on success.  
 
-#### bool gameevent.AddClientListener(Player ply, String eventName)
+#### bool (**Disabled**)gameevent.AddClientListener(Player ply, String eventName)
 Adds the given player to listen to the given event.  
 
 Returns `true` on success.  

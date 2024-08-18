@@ -238,6 +238,12 @@ LUA_FUNCTION_STATIC(gameevent_RemoveClientListener)
 Symbols::CGameEventManager_AddListener func_CGameEventManager_AddListener;
 LUA_FUNCTION_STATIC(gameevent_AddClientListener)
 {
+	if (!gameevent_debug.GetBool())
+	{
+		LUA->ThrowError("This function is currently disabled.");
+		return 0;
+	}
+
 	CBasePlayer* pEntity = Util::Get_Player(1, true);
 	if (!pEntity)
 		LUA->ThrowError("Tried to use a NULL Player!\n");
