@@ -59,7 +59,7 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 	if (!Util::ShouldLoad())
 	{
 		Msg("HolyLib already exists? Stopping.\n");
-		return true; // What if we return false?
+		return false; // What if we return false?
 	}
 	 
 	ConnectTier1Libraries(&interfaceFactory, 1);
