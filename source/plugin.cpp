@@ -15,7 +15,14 @@
 
 // The plugin is a static singleton that is exported as an interface
 CServerPlugin g_HolyLibServerPlugin;
+#ifdef LIB_HOLYLIB
+IServerPluginCallbacks* GetHolyLibPlugin()
+{
+	return &g_HolyLibServerPlugin;
+}
+#else
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CServerPlugin, IServerPluginCallbacks, INTERFACEVERSION_ISERVERPLUGINCALLBACKS, g_HolyLibServerPlugin);
+#endif
 
 
 //---------------------------------------------------------------------------------
