@@ -348,6 +348,7 @@ void CGameeventLibModule::LuaInit(bool bServerInit)
 					}
 					if (!pLuaGameEventListener)
 						Warning("holylib: Failed to find pLuaGameEventListener!\n");
+				}
 		g_Lua->Pop(2);
 	}
 }
