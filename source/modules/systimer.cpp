@@ -52,7 +52,7 @@ ILuaTimer* FindTimer(const char* name)
 void RemoveTimers()
 {
 	std::vector<ILuaTimer*> timers;
-	for (auto& [_, timer]: g_pLuaTimers)
+	for (ILuaTimer* timer : g_pLuaTimers)
 	{
 		if (timer->markdelete)
 		{
@@ -151,7 +151,7 @@ LUA_FUNCTION_STATIC(timer_Remove)
 	ILuaTimer* timer = FindTimer(name);
 	if (timer) {
 		timer->markdelete = true;
-		RemoveTimers(thread);
+		RemoveTimers();
 	}
 
 	return 0;
