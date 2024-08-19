@@ -1538,7 +1538,7 @@ LUA_FUNCTION_STATIC(filesystem_FullPathToRelativePath)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(filesystem_Creation)
+LUA_FUNCTION_STATIC(filesystem_TimeCreated)
 {
 	const char* filePath = LUA->CheckString(1);
 	const char* gamePath = g_Lua->CheckStringOpt(2, "GAME");
@@ -1555,7 +1555,7 @@ LUA_FUNCTION_STATIC(filesystem_Creation)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(filesystem_Access)
+LUA_FUNCTION_STATIC(filesystem_TimeAccessed)
 {
 	const char* filePath = LUA->CheckString(1);
 	const char* gamePath = g_Lua->CheckStringOpt(2, "GAME");
@@ -1597,8 +1597,8 @@ void CFileSystemModule::LuaInit(bool bServerInit)
 		Util::AddFunc(filesystem_RemoveAllSearchPaths, "RemoveAllSearchPaths");
 		Util::AddFunc(filesystem_RelativePathToFullPath, "RelativePathToFullPath");
 		Util::AddFunc(filesystem_FullPathToRelativePath, "FullPathToRelativePath");
-		Util::AddFunc(filesystem_Creation, "Creation");
-		Util::AddFunc(filesystem_Access, "Access");
+		Util::AddFunc(filesystem_TimeCreated, "TimeCreated");
+		Util::AddFunc(filesystem_TimeAccessed, "TimeAccessed");
 	Util::FinishTable("filesystem");
 }
 

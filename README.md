@@ -24,41 +24,44 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 3. Put the `gmsv_holylib_linux.so` into the `garrysmod/lua/bin/` directory.  
 
 ## Next Update
-- [+] Added `systimer` module
-- [+] Added partial Linux 64x support.  
-- - `bitbuf`  
-- - `concommand`  
-- - `cvars`  
-- - `holylib`  
-- - `networking`  
-- - `serverplugin`  
-- - `steamworks`  
-- - `stringtable`  
-- - `util`  
-- - `systimer`
+\- [+] Added `systimer` module
+\- [+] Added two new filesystem functions.
+\- \- `filesystem.Create`  
+\- \- `filesystem.Access`  
+\- [+] Added partial Linux 64x support.  
+\- \- `bitbuf`  
+\- \- `concommand`  
+\- \- `cvars`  
+\- \- `holylib`  
+\- \- `networking`  
+\- \- `serverplugin`  
+\- \- `steamworks`  
+\- \- `stringtable`  
+\- \- `util`  
+\- \- `systimer`
 
-- [+] Added a compatibility system for all modules.  
+\- [+] Added a compatibility system for all modules.  
 Modules that aren't compatible are disabled by default.  
 > NOTE: If some of their functions work, you can still force enable them with their ConVar or with the commandline.  
 
-- [+] Added `filesystem` lua library.  
+\- [+] Added `filesystem` lua library.  
 
-- [#] Fixed `surffix` module not actually working  
-- [#] Fixed a crash in the `surffix` module when noclipping thru a player.  
+\- [#] Fixed `surffix` module not actually working  
+\- [#] Fixed a crash in the `surffix` module when noclipping thru a player.  
 I forgot to pass the first argument to Gmod which caused this issue.  
 
-- [#] Future improved the filesystem my reducing the usage of `std::string`.  
-- [#] Fixed up the sourcesdk to not have all these file name differences and fixed a few things  
+\- [#] Future improved the filesystem my reducing the usage of `std::string`.  
+\- [#] Fixed up the sourcesdk to not have all these file name differences and fixed a few things  
 -> (32x)`keyvalues.h` | (64x)`KeyValues.h`  
-- [#] Fixed `serverplugins` module not removing all detours on shutdown.  
-- [#] Fixed a few crashes with `gameevent` module when given invalid input.  
+\- [#] Fixed `serverplugins` module not removing all detours on shutdown.  
+\- [#] Fixed a few crashes with `gameevent` module when given invalid input.  
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.3...main
 
 ### QoL updates
-- [#] Extented `vprof` to also include calls from `CScriptedEntity` -> SWEPs, Entity, Nextbot and probably more.  
-- [#] Changed print formatting  
+\- [#] Extented `vprof` to also include calls from `CScriptedEntity` -> SWEPs, Entity, Nextbot and probably more.  
+\- [#] Changed print formatting  
 ```txt
 Registered module holylib         (Enabled: true,  Compatible: true )
 Registered module gameevent       (Enabled: true,  Compatible: true )
@@ -66,7 +69,7 @@ Registered module gameevent       (Enabled: true,  Compatible: true )
 ```
 
 ## ToDo
-- Finish 64x  
+\- Finish 64x  
 
 # The Navigator  
 [Modules](https://github.com/RaphaelIT7/gmod-holylib#modules)  
@@ -697,11 +700,11 @@ Returns the full path for the given file or `nil` on failure.
 #### string filesystem.FullPathToRelativePath(string fullPath, string gamePath = nil)
 Returns the relative path for the given file.  
 
-#### number filesystem.Creation(string fileName, string gamePath = "GAME")
+#### number filesystem.TimeCreated(string fileName, string gamePath = "GAME")
 Returns the time the given file was created.  
 Will return `nil` if the file wasn't found.  
 
-#### number filesystem.Access(string fileName, string gamePath = "GAME")
+#### number filesystem.TimeAccessed(string fileName, string gamePath = "GAME")
 Returns the time the given file was last accessed.  
 Will return `nil` if the file wasn't found.  
 
@@ -1151,7 +1154,7 @@ It now throws a warning instead of crashing -> https://github.com/Facepunch/garr
 `bitbuf` module(unfinished) -> https://github.com/Facepunch/garrysmod-requests/issues/594  
 `HLTV` class / `sourcetv` module -> https://github.com/Facepunch/garrysmod-requests/issues/2237  
 `surffix` module -> https://github.com/Facepunch/garrysmod-requests/issues/2306
-`filesystem.Creation` & `filesystem.Access` -> https://github.com/Facepunch/garrysmod-requests/issues/1633  
+`filesystem.TimeCreated` & `filesystem.TimeAccessed` -> https://github.com/Facepunch/garrysmod-requests/issues/1633  
 `systimer` module -> https://github.com/Facepunch/garrysmod-requests/issues/1671  
 
 # Things planned to add:
