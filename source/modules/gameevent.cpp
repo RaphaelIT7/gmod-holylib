@@ -18,7 +18,7 @@ public:
 	virtual void LuaShutdown() OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "gameevent"; };
-	virtual int Compatibility() { return LINUX32; };
+	virtual int Compatibility() { return LINUX32 | LINUX64; };
 };
 
 static ConVar gameevent_debug("holylib_gameevent_debug", "0", 0, "If enabled, it prints fancy debug stuff");
