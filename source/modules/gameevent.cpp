@@ -67,6 +67,9 @@ LUA_FUNCTION_STATIC(gameevent_RemoveListener)
 	IGameEventListener2* pLuaGameEventListener = NULL;
 	FOR_EACH_VEC(*s_GameSystems, i)
 	{
+		if (gameevent_debug.GetBool())
+			Msg("GameSystem: %s\n", (*s_GameSystems)[i]->Name());
+
 		if (V_stricmp((*s_GameSystems)[i]->Name(), "LuaGameEventListener") == 0)
 		{
 			pLuaGameEventListener = (IGameEventListener2*)(*s_GameSystems)[i];
@@ -138,7 +141,7 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 				{
 					++idx;
 					LUA->PushNumber(idx);
-					LUA->PushString(descriptor.name);
+					LUA->PushString(descriptor.name, 32);
 					LUA->SetTable(-3);
 					break;
 				}
