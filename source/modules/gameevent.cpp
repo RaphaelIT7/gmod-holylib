@@ -135,7 +135,7 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 
 				CBaseClient* listener = (CBaseClient*)callback->m_pCallback;
 				if (gameevent_debug.GetBool())
-					Msg("Pointer 1: %hhu\nPointer 2: %hhu\n", *((uint8_t*)listener), *((uint8_t*)pClient + CLIENT_OFFSET));
+					Msg("Pointer 1: %p\nPointer 2: %p\n", listener, pClient);
 
 				if ( (uint8_t*)listener == ((uint8_t*)pClient + CLIENT_OFFSET) )
 				{
@@ -172,7 +172,7 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 
 					CBaseClient* listener = (CBaseClient*)callback->m_pCallback;
 					if (gameevent_debug.GetBool())
-						Msg("Pointer 1: %hhu\nPointer 2: %hhu\n", *((uint8_t*)listener), *((uint8_t*)pClient + CLIENT_OFFSET));
+						Msg("Pointer 1: %p\nPointer 2: %p\n", listener, pClient);
 
 					if ( (uint8_t*)listener == ((uint8_t*)pClient + CLIENT_OFFSET) || listener == pClient )
 					{
