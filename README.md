@@ -667,10 +667,10 @@ Opens the given file or returns `nil` on failure.
 #### bool filesystem.Rename(string origFileName, string newFileName, string gamePath = "DATA")
 Renames the given file and returns `true` on success.  
 
-#### number filesystem.Sizestring fileName, string gamePath = "GAME")
+#### number filesystem.Size(string fileName, string gamePath = "GAME")
 Returns the size of the given file.  
 
-#### number fileystem.Time(string fileName, string gamePath = "GAME")
+#### number filesystem.Time(string fileName, string gamePath = "GAME")
 Returns the unix time of the last modification of the given file / folder.  
 
 #### filesystem.AddSearchPath(string folderPath, string gamePath, bool addToTail = false)
@@ -693,6 +693,14 @@ Returns the full path for the given file or `nil` on failure.
 
 #### string filesystem.FullPathToRelativePath(string fullPath, string gamePath = nil)
 Returns the relative path for the given file.  
+
+#### number filesystem.Creation(string fileName, string gamePath = "GAME")
+Returns the time the given file was created.  
+Will return `nil` if the file wasn't found.  
+
+#### number filesystem.Access(string fileName, string gamePath = "GAME")
+Returns the time the given file was last accessed.  
+Will return `nil` if the file wasn't found.  
 
 ## util
 This module adds two new functions to the `util` library.  
@@ -1048,6 +1056,16 @@ Called when our Steam server successfully connected to steams servers.
 This module will add functions related to the bass dll.  
 Does someone have the bass libs for `2.4.15`? I can't find them :<  
 
+### Functions
+
+#### bass.PlayFile(string filePath, string flags, function callback)
+callback - function(IGMODAudioChannel channel, int errorCode, string error)  
+Creates a IGMODAudioChannel for the given file.  
+
+#### bass.PlayURL(string URL, string flags, function callback)
+callback - function(IGMODAudioChannel channel, int errorCode, string error)  
+Creates a IGMODAudioChannel for the given url.  
+
 ## serverplugins
 This module adds two new `IServerPluginCallbacks` functions:  
 `virtual void OnLuaInit( GarrysMod::Lua::ILuaInterface* LUA )`  
@@ -1079,6 +1097,7 @@ It now throws a warning instead of crashing -> https://github.com/Facepunch/garr
 `bitbuf` module(unfinished) -> https://github.com/Facepunch/garrysmod-requests/issues/594  
 `HLTV` class / `sourcetv` module -> https://github.com/Facepunch/garrysmod-requests/issues/2237  
 `surffix` module -> https://github.com/Facepunch/garrysmod-requests/issues/2306
+`filesystem.Creation` & `filesystem.Access` -> https://github.com/Facepunch/garrysmod-requests/issues/1633  
 
 # Things planned to add:
 https://github.com/Facepunch/garrysmod-requests/issues/1884  
@@ -1090,7 +1109,6 @@ https://github.com/Facepunch/garrysmod-requests/issues/140
 https://github.com/Facepunch/garrysmod-requests/issues/1323  
 (Should be possible?)https://github.com/Facepunch/garrysmod-requests/issues/756  
 (Gonna make a seperate ConVar for it)https://github.com/Facepunch/garrysmod-requests/issues/2120  
-(Maybe)https://github.com/Facepunch/garrysmod-requests/issues/1633  
 https://github.com/Facepunch/garrysmod-requests/issues/1472  
 (Maybe)https://github.com/Facepunch/garrysmod-requests/issues/1671  
 

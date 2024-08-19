@@ -742,7 +742,7 @@ public:
 
 	CFileTracker2	m_FileTracker2;
 
-protected:
+public:
 	//----------------------------------------------------------------------------
 	// Purpose: Functions implementing basic file system behavior.
 	//----------------------------------------------------------------------------
