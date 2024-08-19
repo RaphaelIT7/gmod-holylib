@@ -162,19 +162,6 @@ enum FileType_t
 	FT_MEMORY_TEXT
 };
 
-typedef struct 
-{
-	// public data
-	int dwFileAttributes;
-	char cFileName[MAX_PATH]; // the file name returned from the call
-	char cBaseDir[MAX_PATH]; // the root dir for this find
-
-	int numMatches;
-	int curMatch;
-	struct dirent **namelist;  
-} FIND_DATA;
-
-#define WIN32_FIND_DATA FIND_DATA
 class CPackedStore;
 class CPackedStoreFileHandle
 {
