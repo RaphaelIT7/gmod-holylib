@@ -1545,7 +1545,7 @@ LUA_FUNCTION_STATIC(filesystem_Creation)
 
 	struct _stat buf;
 	char* pTmpFileName = new char[MAX_PATH];
-	if (g_pFullFileSystem->RelativePathToFullPathEx(fullPath, gamePath, pTmpFileName, MAX_PATH))
+	if (g_pFullFileSystem->RelativePathToFullPath(filePath, gamePath, pTmpFileName, MAX_PATH))
 		if(((CBaseFileSystem*)g_pFullFileSystem)->FS_stat(pTmpFileName, &buf) != -1) {
 			LUA->PushNumber(buf.st_ctime);
 			return 1;
@@ -1562,7 +1562,7 @@ LUA_FUNCTION_STATIC(filesystem_Access)
 
 	struct _stat buf;
 	char* pTmpFileName = new char[MAX_PATH];
-	if (g_pFullFileSystem->RelativePathToFullPathEx(fullPath, gamePath, pTmpFileName, MAX_PATH))
+	if (g_pFullFileSystem->RelativePathToFullPath(filePath, gamePath, pTmpFileName, MAX_PATH))
 		if(((CBaseFileSystem*)g_pFullFileSystem)->FS_stat(pTmpFileName, &buf) != -1) {
 			LUA->PushNumber(buf.st_atime);
 			return 1;

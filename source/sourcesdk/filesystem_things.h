@@ -4,6 +4,37 @@
 #include <utlhashtable.h>
 #include <utldict.h>
 
+#if defined( _WIN32 )
+
+#if !defined( _X360 )
+	#include <io.h>
+	#include <direct.h>
+	#include "winlite.h"
+#endif
+#undef GetCurrentDirectory
+#undef GetJob
+#undef AddJob
+
+#include "tier0/threadtools.h"
+#include <stdio.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <malloc.h>
+#include <string.h>
+#include "tier1/utldict.h"
+
+#elif defined(POSIX)
+	#include <unistd.h> // unlink
+	#include "linux_support.h"
+	#define INVALID_HANDLE_VALUE (void *)-1
+
+	// undo the prepended "_" 's
+	#define _chmod chmod
+	#define _stat stat
+	#define _alloca alloca
+	#define _S_IFDIR S_IFDIR
+#endif
+
 class CPackedStoreRefCount;
 extern CUtlSymbolTableMT* g_PathIDTable;
 class CPathIDInfo

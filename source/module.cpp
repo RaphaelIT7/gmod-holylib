@@ -132,6 +132,7 @@ CModuleManager::CModuleManager() // ToDo: Look into how IGameSystem works and us
 	RegisterModule(pSteamWorksModule);
 	RegisterModule(pPASModule);
 	RegisterModule(pBassModule);
+	RegisterModule(pSysTimerModule);
 }
 
 int g_pIDs = 0;

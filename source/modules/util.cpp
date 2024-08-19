@@ -31,7 +31,7 @@ struct CompressEntry
 	int iCallback = -1;
 	bool bCompress = true;
 
-	const char* pData;
+	const char* pData; // Test: Try to save a reference of the Data instead of copying it. That should solve the issue with gc deleting it while we use it.
 	int iLength;
 	int iLevel;
 	int iDictSize;
