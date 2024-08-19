@@ -6,7 +6,6 @@
 #include <iomanip>
 #include <map>
 #include <vprof.h>
-#include "sourcesdk/PooledStrings.h"
 
 class CVProfModule : public IModule
 {
@@ -181,7 +180,7 @@ static void* hook_CLuaGamemode_CallFinish(void* funky_srv, int pArgs)
 
 	if (CallFinish_strs.find(pCurrentGamemodeFunction) == CallFinish_strs.end())
 	{
-		CallFinish_strs[pool] = "CLuaGamemode::CallFinish (" + (std::string)g_Lua->GetPooledString(pCurrentGamemodeFunction) + ")";
+		CallFinish_strs[pCurrentGamemodeFunction] = "CLuaGamemode::CallFinish (" + (std::string)g_Lua->GetPooledString(pCurrentGamemodeFunction) + ")";
 	}
 
 	VPROF_BUDGET(CallFinish_strs[pCurrentGamemodeFunction].c_str(), "GMOD");
