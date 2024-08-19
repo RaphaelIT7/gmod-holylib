@@ -3,7 +3,7 @@ name: Build Plugin for my TestArea
 on: 
   push:
     paths:
-      - '.github/workflows/compile.yml'
+      - '.github/workflows/compile_testserver.yml'
       - 'source/**'
       - 'premake5.lua'
   pull_request:
@@ -12,6 +12,7 @@ on:
 jobs:
   build:
     uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
+    secrets: inherit
     with:
       PROJECT_NAME: "holylib"
       BUILD_64x: "true"
