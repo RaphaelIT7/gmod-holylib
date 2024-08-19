@@ -66,6 +66,34 @@ Registered module gameevent       (Enabled: true,  Compatible: true )
 ## ToDo
 - Finish 64x  
 
+# The Navigator  
+[Modules](https://github.com/RaphaelIT7/gmod-holylib#modules)  
+- [holylib](https://github.com/RaphaelIT7/gmod-holylib#holylib-1)  
+- [gameevent](https://github.com/RaphaelIT7/gmod-holylib#gameevent)  
+- [threadpoolfix](https://github.com/RaphaelIT7/gmod-holylib#threadpoolfix)  
+- [precachefix](https://github.com/RaphaelIT7/gmod-holylib#precachefix)  
+- [stringtable](https://github.com/RaphaelIT7/gmod-holylib#stringtable)  
+- - [INetworkStringTable](https://github.com/RaphaelIT7/gmod-holylib#inetworkstringtable)  
+- [pvs](https://github.com/RaphaelIT7/gmod-holylib#pvs)  
+- [surffix](https://github.com/RaphaelIT7/gmod-holylib#surffix)  
+- [filesystem](https://github.com/RaphaelIT7/gmod-holylib#filesystem)  
+- [util](https://github.com/RaphaelIT7/gmod-holylib#util)  
+- [concommand](https://github.com/RaphaelIT7/gmod-holylib#concommand)  
+- [vprof](https://github.com/RaphaelIT7/gmod-holylib#vprof)  
+- [sourcetv](https://github.com/RaphaelIT7/gmod-holylib#sourcetv)  
+- - [HLTVClient](https://github.com/RaphaelIT7/gmod-holylib#hltvclient)  
+- [bitbuf](https://github.com/RaphaelIT7/gmod-holylib#bitbuf)  
+- - [bf_read](https://github.com/RaphaelIT7/gmod-holylib#bf_read)  
+- [networking](https://github.com/RaphaelIT7/gmod-holylib#networking)  
+- [steamworks](https://github.com/RaphaelIT7/gmod-holylib#steamworks)  
+
+[Unfinished Modules](https://github.com/RaphaelIT7/gmod-holylib#unfinished-modules)  
+- [bass](https://github.com/RaphaelIT7/gmod-holylib#bass)  
+- [serverplugins](https://github.com/RaphaelIT7/gmod-holylib#serverplugins)  
+- [pas](https://github.com/RaphaelIT7/gmod-holylib#pas)  
+
+[Issues implemented / fixed](https://github.com/RaphaelIT7/gmod-holylib/edit/main/README.md#issues-implemented--fixed)  
+[Some things for later](https://github.com/RaphaelIT7/gmod-holylib/edit/main/README.md#some-things-for-later)  
 
 # Modules
 Each module has its own convar `holylib_enable_[module name]` which allows you to enable/disable specific modules.  
@@ -1065,10 +1093,6 @@ https://github.com/Facepunch/garrysmod-requests/issues/1323
 (Maybe)https://github.com/Facepunch/garrysmod-requests/issues/1633  
 https://github.com/Facepunch/garrysmod-requests/issues/1472  
 (Maybe)https://github.com/Facepunch/garrysmod-requests/issues/1671  
-
-# ToDo
-- Fix the CBaseEntity class having variables that don't exist and add Gmod's variables to it.  
-- Make this readme better.  
 
 # Some things for later
 
