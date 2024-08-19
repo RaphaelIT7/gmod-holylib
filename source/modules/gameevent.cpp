@@ -21,7 +21,7 @@ public:
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
 };
 
-static ConVar gameevent_debug("holylib_gameevent_debug", "0", 0, "If enabled, it prints fancy debug stuff");
+static ConVar gameevent_debug("holylib_gameevent_debug", "1", 0, "If enabled, it prints fancy debug stuff");
 static ConVar gameevent_callhook("holylib_gameevent_callhook", "1", 0, "If enabled, the HolyLib:Pre/PostListenGameEvent hooks get called");
 
 static CGameeventLibModule g_pGameeventLibModule;
