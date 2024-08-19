@@ -136,9 +136,9 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 		}
 	} else {
 		LUA->CreateTable();
-		for (int iClient = 1; iClient<=Util::server->GetMaxClients(); ++iClient)
+		for (int iClient = 0; iClient<=Util::server->GetMaxClients(); ++iClient)
 		{
-			CBaseEntity* ent = Util::GetCBaseEntityFromEdict(Util::engineserver->PEntityOfEntIndex(iClient));
+			CBaseEntity* ent = Util::GetCBaseEntityFromEdict(Util::engineserver->PEntityOfEntIndex(iClient+1));
 			if (!ent)
 				continue;
 

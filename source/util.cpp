@@ -74,7 +74,7 @@ CBaseClient* Util::GetClientByPlayer(CBasePlayer* ply)
 
 CBaseClient* Util::GetClientByIndex(int index)
 {
-	if (server->GetClientCount() < index)
+	if (server->GetClientCount() <= index)
 		return NULL;
 
 	return (CBaseClient*)server->GetClient(index);
