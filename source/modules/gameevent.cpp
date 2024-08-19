@@ -83,7 +83,7 @@ LUA_FUNCTION_STATIC(gameevent_RemoveListener)
 			if (gameevent_debug.GetBool())
 				Msg("Pointer 1: %p\nPointer 2: %p\n", listener, pLuaGameEventListener);
 
-			if ( (uint8_t*)listener == ((uint8_t*)pLuaGameEventListener + LUA_OFFSET) ) // WHY is pLuaGameEventListener always off by 12 bytes? I HATE THAT THIS WORKS
+			if ( listener == pLuaGameEventListener )
 			{
 				desciptor->listeners.Remove(i); // ToDo: Verify that this doesn't cause a memory leak because CGameEventCallback isn't deleted.
 				bSuccess = true;
