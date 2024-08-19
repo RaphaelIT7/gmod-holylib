@@ -42,7 +42,7 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	const std::vector<Symbol> s_GameSystemsSym = {
 		Symbol::FromName("_ZL13s_GameSystems"),
-		Symbol::FromSignature("\x8B\x0D****\x85\xC9**\x48\x8B\x15****\x48\x3B\x1A******\x48\x83\xC2\x08\x31\xC0**\x83\xC0\x01\x39\xC8"), // 8B 0D ?? ?? ?? ?? 85 C9 ?? ?? 48 8B 15 ?? ?? ?? ?? 48 3B 1A ?? ?? ?? ?? ?? ?? 48 83 C2 08 31 C0 ?? ?? 83 C0 01 39 C8
+		Symbol::FromSignature("\x2A\x2A\x2A\x2A\x85\xC9**\x48\x8B\x15****\x48\x3B\x1A******\x48\x83\xC2\x08\x31\xC0**"), // 2A 2A 2A 2A 85 C9 ?? ?? 48 8B 15 ?? ?? ?? ?? 48 3B 1A ?? ?? ?? ?? ?? ?? 48 83 C2 08 31 C0 ?? ??
 	};
 
 	const std::vector<Symbol> CBaseClient_ProcessListenEventsSym = {

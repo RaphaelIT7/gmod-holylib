@@ -386,8 +386,10 @@ void CGameeventLibModule::InitDetour(bool bPreServer)
 		(void*)hook_CBaseClient_ProcessListenEvents, m_pID
 	);
 
+#ifndef ARCHITECTURE_X86_64
 	func_CGameEventManager_AddListener = (Symbols::CGameEventManager_AddListener)Detour::GetFunction(engine_loader.GetModule(), Symbols::CGameEventManager_AddListenerSym);
 	Detour::CheckFunction((void*)func_CGameEventManager_AddListener, "CGameEventManager::AddListener");
+#endif
 
 	SourceSDK::FactoryLoader server_loader("server");
 	s_GameSystems = Detour::ResolveSymbol<CUtlVector<IGameSystem*>>(server_loader, Symbols::s_GameSystemsSym);
