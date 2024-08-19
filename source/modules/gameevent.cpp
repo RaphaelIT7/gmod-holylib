@@ -58,25 +58,12 @@ LUA_FUNCTION_STATIC(gameevent_GetListeners)
 	return 1;
 }
 
-static CUtlVector<IGameSystem*>* s_GameSystems;
+static IGameEventListener2* pLuaGameEventListener;
 LUA_FUNCTION_STATIC(gameevent_RemoveListener)
 {
 	const char* strEvent = LUA->CheckString(1);
 
 	bool bSuccess = false;
-	IGameEventListener2* pLuaGameEventListener = NULL;
-	FOR_EACH_VEC(*s_GameSystems, i)
-	{
-		if (gameevent_debug.GetBool())
-			Msg("GameSystem: %s\n", (*s_GameSystems)[i]->Name());
-
-		if (V_stricmp((*s_GameSystems)[i]->Name(), "LuaGameEventListener") == 0)
-		{
-			pLuaGameEventListener = (IGameEventListener2*)(*s_GameSystems)[i];
-			break;
-		}
-	}
-
 	if (pLuaGameEventListener)
 	{
 		CGameEventDescriptor* desciptor = pManager->GetEventDescriptor(strEvent);
@@ -349,7 +336,18 @@ void CGameeventLibModule::LuaInit(bool bServerInit)
 					Util::AddFunc(gameevent_GetClientListeners, "GetClientListeners");
 					Util::AddFunc(gameevent_RemoveClientListener, "RemoveClientListener");
 					Util::AddFunc(gameevent_AddClientListener, "AddClientListener");
-				}
+
+					g_Lua->GetField(-1, "Listen");
+					g_Lua->PushString("vote_cast"); // Yes this is a valid gameevent.
+					g_Lua->CallFunctionProtected(1, 0, true);
+					CGameEventDescriptor* descriptor = pManager->GetEventDescriptor("vote_cast");
+					FOR_EACH_VEC(descriptor->listeners, i)
+					{
+						pLuaGameEventListener = (IGameEventListener2*)descriptor->listeners[i]->m_pCallback;
+						break;
+					}
+					if (!pLuaGameEventListener)
+						Warning("holylib: Failed to find pLuaGameEventListener!\n");
 		g_Lua->Pop(2);
 	}
 }
@@ -393,8 +391,4 @@ void CGameeventLibModule::InitDetour(bool bPreServer)
 	func_CGameEventManager_AddListener = (Symbols::CGameEventManager_AddListener)Detour::GetFunction(engine_loader.GetModule(), Symbols::CGameEventManager_AddListenerSym);
 	Detour::CheckFunction((void*)func_CGameEventManager_AddListener, "CGameEventManager::AddListener");
 #endif
-
-	SourceSDK::FactoryLoader server_loader("server");
-	s_GameSystems = Detour::ResolveSymbol<CUtlVector<IGameSystem*>>(server_loader, Symbols::s_GameSystemsSym);
-	Detour::CheckValue("get class", "s_GameSystems", s_GameSystems != NULL);
 }
