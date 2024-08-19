@@ -81,7 +81,7 @@ LUA_FUNCTION_STATIC(gameevent_RemoveListener)
 
 			IGameEventListener2* listener = (IGameEventListener2*)callback->m_pCallback;
 			if (gameevent_debug.GetBool())
-				Msg("Pointer 1: %hhu\nPointer 2: %hhu\n", *((uint8_t*)listener), *((uint8_t*)pLuaGameEventListener + LUA_OFFSET));
+				Msg("Pointer 1: %p\nPointer 2: %p\n", listener, pLuaGameEventListener);
 
 			if ( (uint8_t*)listener == ((uint8_t*)pLuaGameEventListener + LUA_OFFSET) ) // WHY is pLuaGameEventListener always off by 12 bytes? I HATE THAT THIS WORKS
 			{
