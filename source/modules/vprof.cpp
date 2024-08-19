@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <map>
 #include <vprof.h>
+#include "sourcesdk/PooledStrings.h"
 
 class CVProfModule : public IModule
 {
@@ -146,23 +147,7 @@ static void hook_CVProfile_OutputReport(void* fancy, int type, const tchar* pszS
 	ss.str("");
 }
 
-/*static std::map<int, std::string> CallFinish_strs;
-static Detouring::Hook detour_CLuaGamemode_CallFinish;
-static void* hook_CLuaGamemode_CallFinish(void* funky_srv, int pool)
-{
-	if (!g_Lua)
-		return detour_CLuaGamemode_CallFinish.GetTrampoline<Symbols::CLuaGamemode_CallFinish>()(funky_srv, pool);
-
-	if (CallFinish_strs.find(pool) == CallFinish_strs.end())
-	{
-		CallFinish_strs[pool] = "CLuaGamemode::CallFinish (" + (std::string)g_Lua->GetPooledString(pool) + ")";
-	}
-
-	VPROF_BUDGET(CallFinish_strs[pool].c_str(), "GMOD");
-
-	return detour_CLuaGamemode_CallFinish.GetTrampoline<Symbols::CLuaGamemode_CallFinish>()(funky_srv, pool);
-}*/
-
+static int pCurrentGamemodeFunction = -1;
 static std::map<int, std::string> CallWithArgs_strs;
 static Detouring::Hook detour_CLuaGamemode_CallWithArgs;
 static void* hook_CLuaGamemode_CallWithArgs(void* funky_srv, int pool)
@@ -180,9 +165,29 @@ static void* hook_CLuaGamemode_CallWithArgs(void* funky_srv, int pool)
 		pStr = it->second.c_str();
 	}
 
+	pCurrentGamemodeFunction = pool;
+
 	VPROF_BUDGET(pStr, "GMOD");
 
 	return detour_CLuaGamemode_CallWithArgs.GetTrampoline<Symbols::CLuaGamemode_CallWithArgs>()(funky_srv, pool);
+}
+
+static std::map<int, std::string> CallFinish_strs;
+static Detouring::Hook detour_CLuaGamemode_CallFinish;
+static void* hook_CLuaGamemode_CallFinish(void* funky_srv, int pArgs)
+{
+	if (!g_Lua || pCurrentGamemodeFunction == -1)
+		return detour_CLuaGamemode_CallFinish.GetTrampoline<Symbols::CLuaGamemode_CallFinish>()(funky_srv, pArgs);
+
+	if (CallFinish_strs.find(pCurrentGamemodeFunction) == CallFinish_strs.end())
+	{
+		CallFinish_strs[pool] = "CLuaGamemode::CallFinish (" + (std::string)g_Lua->GetPooledString(pCurrentGamemodeFunction) + ")";
+	}
+
+	VPROF_BUDGET(CallFinish_strs[pCurrentGamemodeFunction].c_str(), "GMOD");
+	pCurrentGamemodeFunction = -1;
+
+	return detour_CLuaGamemode_CallFinish.GetTrampoline<Symbols::CLuaGamemode_CallFinish>()(funky_srv, pArgs);
 }
 
 static std::map<int, std::string> Call_strs;
@@ -215,7 +220,7 @@ static void* hook_CLuaGamemode_Call(void* funky_srv, int pool)
  * - CScriptedEntity::Call(int iPooledString) - Unlike the function above, we call a function that has no args & return values like Think.
  */
 static const char* pCurrentScriptFunction = nullptr;
-static std::map<std::string, std::string> ScriptedEntity_StartFunction1_strs;
+static std::map<std::string_view, std::string> ScriptedEntity_StartFunction1_strs;
 static Detouring::Hook detour_CScriptedEntity_StartFunction1;
 static void* hook_CScriptedEntity_StartFunction1(void* funky_srv, const char* str) // Only used by GetSoundInterests
 {
@@ -266,15 +271,12 @@ static void* hook_CScriptedEntity_Call(void* funky_srv, int iArgs, int iRets)
 		return detour_CScriptedEntity_Call.GetTrampoline<Symbols::CScriptedEntity_Call>()(funky_srv, iArgs, iRets);
 
 	VPROF_BUDGET(pCurrentScriptFunction, "GMOD");
-
-	void* pRet = detour_CScriptedEntity_Call.GetTrampoline<Symbols::CScriptedEntity_Call>()(funky_srv, iArgs, iRets);
-
 	pCurrentScriptFunction = nullptr;
 
-	return pRet;
+	return detour_CScriptedEntity_Call.GetTrampoline<Symbols::CScriptedEntity_Call>()(funky_srv, iArgs, iRets);
 }
 
-static std::map<std::string, std::string> CScriptedEntity_CallFunction1_strs;
+static std::map<std::string_view, std::string> CScriptedEntity_CallFunction1_strs;
 static Detouring::Hook detour_CScriptedEntity_CallFunction1;
 static void* hook_CScriptedEntity_CallFunction1(void* funky_srv, const char* str)
 {
@@ -336,11 +338,11 @@ void CVProfModule::InitDetour(bool bPreServer)
 		(void*)hook_CLuaGamemode_Call, m_pID
 	);
 
-	/*Detour::Create(
+	Detour::Create(
 		&detour_CLuaGamemode_CallFinish, "CLuaGamemode::CallFinish",
 		server_loader.GetModule(), Symbols::CLuaGamemode_CallFinishSym,
 		(void*)hook_CLuaGamemode_CallFinish, m_pID
-	);*/
+	);
 
 	Detour::Create(
 		&detour_CLuaGamemode_CallWithArgs, "CLuaGamemode::CallWithArgs",

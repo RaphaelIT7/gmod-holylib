@@ -207,8 +207,8 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: vprof Symbols
 	//---------------------------------------------------------------------------------
-	//typedef void* (*CLuaGamemode_CallFinish)(void*, int);
-	//extern const std::vector<Symbol> CLuaGamemode_CallFinishSym;
+	typedef void* (*CLuaGamemode_CallFinish)(void*, int);
+	extern const std::vector<Symbol> CLuaGamemode_CallFinishSym;
 
 	typedef void* (*CLuaGamemode_CallWithArgs)(void*, int);
 	extern const std::vector<Symbol> CLuaGamemode_CallWithArgsSym;

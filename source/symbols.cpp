@@ -249,9 +249,9 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: vprof Symbols
 	//---------------------------------------------------------------------------------
-	/*const std::vector<Symbol> CLuaGamemode_CallFinishSym = {
+	const std::vector<Symbol> CLuaGamemode_CallFinishSym = {
 		Symbol::FromName("_ZN12CLuaGamemode10CallFinishEi"),
-	};*/
+	};
 
 	const std::vector<Symbol> CLuaGamemode_CallWithArgsSym = {
 		Symbol::FromName("_ZN12CLuaGamemode12CallWithArgsEi"),
