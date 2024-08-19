@@ -200,7 +200,7 @@ LUA_FUNCTION_STATIC(timer_Start)
 	ILuaTimer* timer = FindTimer(name);
 	if (timer) {
 		if (!timer->active) {
-			timer->active = false;
+			timer->active = true;
 			timer->next_run_time = GetTime() + timer->delay;
 			LUA->PushBool(true);
 		} else

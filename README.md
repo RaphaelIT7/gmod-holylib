@@ -24,6 +24,7 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 3. Put the `gmsv_holylib_linux.so` into the `garrysmod/lua/bin/` directory.  
 
 ## Next Update
+- [+] Added `systimer` module
 - [+] Added partial Linux 64x support.  
 - - `bitbuf`  
 - - `concommand`  
@@ -34,6 +35,7 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 - - `steamworks`  
 - - `stringtable`  
 - - `util`  
+- - `systimer`
 
 - [+] Added a compatibility system for all modules.  
 Modules that aren't compatible are disabled by default.  
@@ -86,6 +88,7 @@ Registered module gameevent       (Enabled: true,  Compatible: true )
 \- \- [bf_read](https://github.com/RaphaelIT7/gmod-holylib#bf_read)  
 \- [networking](https://github.com/RaphaelIT7/gmod-holylib#networking)  
 \- [steamworks](https://github.com/RaphaelIT7/gmod-holylib#steamworks)  
+\- [systimer](https://github.com/RaphaelIT7/gmod-holylib#systimer)
 
 [Unfinished Modules](https://github.com/RaphaelIT7/gmod-holylib#unfinished-modules)  
 \- [bass](https://github.com/RaphaelIT7/gmod-holylib#bass)  
@@ -1050,7 +1053,58 @@ Called when our Steam server loses connection to steams servers.
 #### HolyLib:OnSteamConnect()  
 Called when our Steam server successfully connected to steams servers.  
 
+## systimer
+This module is just the timer library, but it doesn't use CurTime.  
+
+### Functions
+
+#### bool systimer.Adjust(string name, number delay, number reps = nil, function callback = nil)  
+Adjusts the timer with the given name with the new values.  
+Returns `true` if the timer was successfully adjusted.  
+
+#### systimer.Check()  
+Does nothing / deprecated.  
+
+#### systimer.Create(string name, number delay, number reps, function callback)  
+Creates a timer with the given name.  
+
+#### bool systimer.Exists(string name)  
+Returns `true` if the given timer exists.  
+
+#### systimer.Remove(string name)  
+Removes the given timer.  
+
+#### number systimer.RepsLeft(string name)  
+Returns the number of reps left for the given timer.  
+Returns `0` if the timer wasn't found or the reps are below `0`.  
+
+#### systimer.Simple(number delay, function callback)  
+Creates a simple timer.  
+
+#### bool systimer.Start(string name)  
+Returns `true` if the given timer was successfully started again.  
+
+#### bool systimer.Stop(string name)  
+Returns `true` if the given timer was successfully stopped.  
+
+#### number systimer.TimeLeft(string name)  
+Returns the time left until the given timer is executed again.  
+Returns `0` if the timer wasn't found.  
+
+#### bool systimer.Toggle(string name)  
+Toggles the given timer.  
+Returns `true` if the timer was activated/started again.  
+
+#### bool systimer.Pause(string name)  
+Returns `true` if the given timer was successfully paused.  
+
+#### bool systimer.UnPause(string name)  
+Unpauses the given timer.  
+Unlike systimer.Start this won't reset the time left until it executes again.  
+
 # Unfinished Modules
+
+#### 
 
 ## bass
 This module will add functions related to the bass dll.  
@@ -1098,6 +1152,7 @@ It now throws a warning instead of crashing -> https://github.com/Facepunch/garr
 `HLTV` class / `sourcetv` module -> https://github.com/Facepunch/garrysmod-requests/issues/2237  
 `surffix` module -> https://github.com/Facepunch/garrysmod-requests/issues/2306
 `filesystem.Creation` & `filesystem.Access` -> https://github.com/Facepunch/garrysmod-requests/issues/1633  
+`systimer` module -> https://github.com/Facepunch/garrysmod-requests/issues/1671  
 
 # Things planned to add:
 https://github.com/Facepunch/garrysmod-requests/issues/1884  
@@ -1110,7 +1165,6 @@ https://github.com/Facepunch/garrysmod-requests/issues/1323
 (Should be possible?)https://github.com/Facepunch/garrysmod-requests/issues/756  
 (Gonna make a seperate ConVar for it)https://github.com/Facepunch/garrysmod-requests/issues/2120  
 https://github.com/Facepunch/garrysmod-requests/issues/1472  
-(Maybe)https://github.com/Facepunch/garrysmod-requests/issues/1671  
 
 # Some things for later
 
