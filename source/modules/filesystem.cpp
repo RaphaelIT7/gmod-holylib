@@ -1078,7 +1078,7 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 		for (std::string pSearchPath : pSearchPaths)
 		{
 			if (getFileExtension(pSearchPath) == "vpk")
-				hook_CBaseFileSystem_AddVPKFile(g_pFullFileSystem, pSearchPath.c_str(), "GAME", SearchPathAdd_t::PATH_ADD_TO_TAIL)
+				hook_CBaseFileSystem_AddVPKFile(g_pFullFileSystem, pSearchPath.c_str(), "GAME", SearchPathAdd_t::PATH_ADD_TO_TAIL);
 			else
 				g_pFullFileSystem->AddSearchPath(pSearchPath.c_str(), "GAME", SearchPathAdd_t::PATH_ADD_TO_TAIL);
 			
