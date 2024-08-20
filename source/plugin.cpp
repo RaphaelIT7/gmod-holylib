@@ -45,6 +45,7 @@ DLL_EXPORT void HolyLib_PreLoad() // ToDo: Make this a CServerPlugin member late
 		return;
 	}
 
+	g_pModuleManager.SetGhostInj();
 	g_pModuleManager.InitDetour(true);
 }
 

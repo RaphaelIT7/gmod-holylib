@@ -1036,8 +1036,51 @@ void CFileSystemModule::Think(bool bSimulating)
 	}
 }
 
+std::vector<std::string> splitString(std::string str, std::string_view delimiter)
+{
+	std::vector<std::string> v;
+	if (!str.empty()) {
+		int start = 0;
+		while (true)
+		{
+			int idx = str.find(delimiter, start);
+			if (idx == sstd::tring::npos) {
+				break;
+			}
+
+			int length = idx - start;
+			v.push_back(str.substr(start, length));
+			start += (length + delimiter.size());
+		}
+		v.push_back(str.substr(start));
+	}
+
+	return v;
+}
+
 void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
+	/*
+	 * Why do we do this below?
+	 * Because if our Detours weren't added by the GhostInj, they were added after SearchPaths were created.
+	 * This will cause the splitgamepath stuff to fail since we didn't add our custom paths.
+	 * So now we get all GAME paths, remove them and reaplly them so that our detour can handle them.
+	 */
+	if (!g_pModuleManager.IsUsingGhostInj())
+	{
+		char* pChar = new char[32768];
+		int iLength = g_pFullFileSystem->GetSearchPath("GAME", true, pChar, sizeof(pChar));
+		std::string_view pStr = pChar;
+		pStr = pStr.substr(0, iLength);
+		std::vector<std::string> pSearchPaths = splitString(pStr);
+		g_pFullFileSystem->RemoveSearchPaths("GAME"); // Yes. Were gonna reapply them
+		for (std::string pSearchPath : pSearchPaths)
+			g_pFullFileSystem->AddSearchPath(pSearchPath.c_str(), "GAME", SearchPathAdd_t::PATH_ADD_TO_TAIL);
+
+		delete[] pChar;
+	}
+
+
 	// We use MOD_WRITE because it doesn't have additional junk search paths.
 	AddOveridePath("cfg/server.cfg", "MOD_WRITE");
 	AddOveridePath("cfg/banned_ip.cfg", "MOD_WRITE");
@@ -1501,7 +1544,7 @@ LUA_FUNCTION_STATIC(filesystem_AddSearchPath)
 {
 	const char* folderPath = LUA->CheckString(1);
 	const char* gamePath = LUA->CheckString(2);
-	SearchPathAdd_t addType = g_Lua->GetBool() ? SearchPathAdd_t::PATH_ADD_TO_TAIL : SearchPathAdd_t::PATH_ADD_TO_HEAD;
+	SearchPathAdd_t addType = g_Lua->GetBool(-1) ? SearchPathAdd_t::PATH_ADD_TO_HEAD : SearchPathAdd_t::PATH_ADD_TO_TAIL;
 	g_pFullFileSystem->AddSearchPath(folderPath, gamePath, addType);
 
 	return 0;
