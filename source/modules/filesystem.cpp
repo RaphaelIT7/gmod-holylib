@@ -47,6 +47,7 @@ static ConVar holylib_filesystem_fixgmodpath("holylib_filesystem_fixgmodpath", "
 	"If enabled, it will fix up weird gamemode paths like sandbox/gamemode/sandbox/gamemode which gmod likes to use.");
 static ConVar holylib_filesystem_cachefilehandle("holylib_filesystem_cachefilehandle", "0", 0, 
 	"If enabled, it will cache the file handle and return it if needed. This will probably cause issues if you open the same file multiple times.");
+// Optimization Idea: When Gmod calls GetFileTime, we could try to get the filehandle in parallel to have it ready when gmod calls it.
 
 static ConVar holylib_filesystem_debug("holylib_filesystem_debug", "0", 0, 
 	"If enabled, it will show any change to the search cache.");
@@ -106,11 +107,12 @@ FileHandle_t GetFileHandleFromCache(std::string_view strFilePath)
 	}
 
 	g_pFullFileSystem->Seek(it->second, 0, FILESYSTEM_SEEK_HEAD);
+	// BUG: .bsp files seem to have funny behavior :/
 
 	return it->second;
 }
 
-std::string GetFullPath(const CSearchPath* pSearchPath, const char* strFileName)
+std::string GetFullPath(const CSearchPath* pSearchPath, const char* strFileName) // ToDo: Possibly switch to string_view?
 {
 	char szLowercaseFilename[MAX_PATH];
 	V_strcpy_safe(szLowercaseFilename, strFileName);
@@ -1125,7 +1127,7 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 		pBaseLength = g_pFullFileSystem->GetSearchPath( "BASE_PATH", true, pBaseDir, sizeof( pBaseDir ) );
 
 	std::string workshopDir = pBaseDir;
-		workshopDir = workshopDir + "garrysmod/workshop";
+	workshopDir.append("garrysmod/workshop");
 
 	if (!detour_CBaseFileSystem_AddSearchPath.IsValid())
 	{
