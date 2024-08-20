@@ -1069,7 +1069,7 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 	if (!g_pModuleManager.IsUsingGhostInj())
 	{
 		char* pChar = new char[32768];
-		int iLength = g_pFullFileSystem->GetSearchPath("GAME", true, pChar, sizeof(pChar));
+		int iLength = g_pFullFileSystem->GetSearchPath("GAME", true, pChar, 32768);
 		std::string pStr = pChar;
 		pStr = pStr.substr(0, iLength);
 		std::vector<std::string> pSearchPaths = splitString(pStr, ";");
