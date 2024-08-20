@@ -59,6 +59,7 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 	if (!Util::ShouldLoad())
 	{
 		Msg("HolyLib already exists? Stopping.\n");
+		Msg("--- HolyLib Plugin finished loading ---\n");
 		return false; // What if we return false?
 	}
 	 
