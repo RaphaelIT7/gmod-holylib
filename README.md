@@ -70,9 +70,12 @@ Registered module gameevent       (Enabled: true,  Compatible: true )
 
 ## ToDo
 \- Finish 64x  
-\- Find out what breaks the filesystem.  
-Something break it and it seems to be related to `holylib_filesystem_splitgamepath`  
 \- Find out why ConVars are so broken. (Serverside commands break)  
+\- Look into filesystem handle optimization  
+\- Fix PAS Module  
+\- Allow one to create/copy a bf_read at any time.  
+\- Look into NW System to possibly replace it with a better version.  
+\- Try to fix that one complex NW2 bug. NOTE: It's related to baseline updates (Entity Creation/Deletion)
 
 # The Navigator  
 [Modules](https://github.com/RaphaelIT7/gmod-holylib#modules)  
