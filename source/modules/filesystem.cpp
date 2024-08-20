@@ -1044,14 +1044,14 @@ std::vector<std::string> splitString(std::string str, std::string_view delimiter
 		while (true)
 		{
 			int idx = str.find(delimiter, start);
-			if (idx == std::tring::npos) {
+			if (idx == std::string::npos)
 				break;
-			}
 
 			int length = idx - start;
 			v.push_back(str.substr(start, length));
 			start += (length + delimiter.size());
 		}
+
 		v.push_back(str.substr(start));
 	}
 
