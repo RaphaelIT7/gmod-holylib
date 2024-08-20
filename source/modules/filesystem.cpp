@@ -1036,9 +1036,9 @@ void CFileSystemModule::Think(bool bSimulating)
 	}
 }
 
-std::vector<std::string> splitString(std::string str, std::string_view delimiter)
+std::vector<std::string_view> splitString(std::string_view str, std::string_view delimiter)
 {
-	std::vector<std::string> v;
+	std::vector<std::string_view> v;
 	if (!str.empty()) {
 		int start = 0;
 		while (true)
@@ -1075,16 +1075,16 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 		if (iSize <= iLength)
 			Warning("holylib: Not enouth space for search paths! please report this.\n");
 
-		std::string pStr = pChar;
+		std::string_view pStr = pChar;
 		pStr = pStr.substr(0, iLength);
-		std::vector<std::string> pSearchPaths = splitString(pStr, ";");
+		std::vector<std::string_view> pSearchPaths = splitString(pStr, ";");
 		g_pFullFileSystem->RemoveSearchPaths("GAME"); // Yes. Were gonna reapply them. Should we also do it for lsv?
-		for (std::string pSearchPath : pSearchPaths)
+		for (std::string_view pSearchPath : pSearchPaths)
 		{
-			g_pFullFileSystem->AddSearchPath(pSearchPath.c_str(), "GAME", SearchPathAdd_t::PATH_ADD_TO_TAIL);
+			g_pFullFileSystem->AddSearchPath(pSearchPath.data(), "GAME", SearchPathAdd_t::PATH_ADD_TO_TAIL);
 			
 			if (holylib_filesystem_debug.GetBool())
-				Msg("Recreate Path: %s\n", pSearchPath.c_str());
+				Msg("Recreate Path: %s\n", pSearchPath.data());
 		}
 
 		delete[] pChar;
