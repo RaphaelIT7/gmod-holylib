@@ -728,7 +728,7 @@ static long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char
 {
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::GetFileTime", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 	
-	bool bSpitPath = false;
+	bool bSplitPath = false;
 	const char* origPath = pPathID;
 	const char* newPath = GetOverridePath(pFileName, pPathID);
 	if (newPath)
@@ -737,7 +737,7 @@ static long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char
 			Msg("holylib - GetFileTime: Found split path! switching (%s, %s)\n", pPathID, newPath);
 
 		pPathID = newPath;
-		bSpitPath = true;
+		bSplitPath = true;
 	}
 
 	std::string_view strFileName = pFileName; // Workaround for now.
