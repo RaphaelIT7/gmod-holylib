@@ -18,8 +18,8 @@ IModule* pNWModule = &g_pNWModule;
 
 struct LuaNetworkedVar_t // This is Gmod's current version
 {
-	CLuaObject m_pLuaValue; // Holds the last set Value
-	CLuaObject m_pLuaProxy; // Holds the set NWProxy
+	GarrysMod::Lua::ILuaObject& m_pLuaValue; // Holds the last set Value
+	GarrysMod::Lua::ILuaObject& m_pLuaProxy; // Holds the set NWProxy
 	float m_flLastUpdate = -1.0f;
 	int m_iNetworkStringID = -1;
 };
