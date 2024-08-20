@@ -1078,8 +1078,7 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 		std::string pStr = pChar;
 		pStr = pStr.substr(0, iLength);
 		std::vector<std::string> pSearchPaths = splitString(pStr, ";");
-		g_pFullFileSystem->RemoveSearchPaths("GAME"); // Yes. Were gonna reapply them
-		//Msg("%s\n", pChar);
+		g_pFullFileSystem->RemoveSearchPaths("GAME"); // Yes. Were gonna reapply them. Should we also do it for lsv?
 		for (std::string pSearchPath : pSearchPaths)
 		{
 			g_pFullFileSystem->AddSearchPath(pSearchPath.c_str(), "GAME", SearchPathAdd_t::PATH_ADD_TO_TAIL);
