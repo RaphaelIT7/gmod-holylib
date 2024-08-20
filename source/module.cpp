@@ -18,7 +18,7 @@ void OnModuleConVarChange(IConVar* convar, const char* pOldValue, float flOldVal
 	CModule* module = g_pModuleManager.FindModuleByConVar((ConVar*)convar);
 	if (!module)
 	{
-		Warning("Failed to find CModule for convar %s!\n", convar->GetName());
+		Warning("holylib: Failed to find CModule for convar %s!\n", convar->GetName());
 		return;
 	}
 
@@ -55,7 +55,8 @@ void CModule::SetModule(IModule* module)
 	if (cmd > -1)
 		SetEnabled(cmd == 1, true);
 	else
-		m_bEnabled = m_pModule->IsEnabledByDefault() ? m_bCompatible : false;
+		if (CommandLine()->ParmValue("-holylib_startdisabled", -1) == -1)
+			m_bEnabled = m_pModule->IsEnabledByDefault() ? m_bCompatible : false;
 
 	m_pCVarName = new char[255];
 	V_strncpy(m_pCVarName, pStrName.c_str(), 255);
@@ -71,7 +72,7 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 		{
 			if (!m_bCompatible)
 			{
-				Warning("module %s is not compatible with this platform!\n", m_pModule->Name());
+				Warning("holylib: module %s is not compatible with this platform!\n", m_pModule->Name());
 
 				if (!bForced)
 					return;
@@ -94,7 +95,7 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 				m_pModule->LuaInit(true);
 
 			if (!m_bStartup)
-				Msg("Enabled module %s\n", m_pModule->Name());
+				Msg("holylib: Enabled module %s\n", m_pModule->Name());
 		} else {
 			int status = g_pModuleManager.GetStatus();
 			if (status & LoadStatus_Init)
@@ -104,7 +105,7 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 				m_pModule->LuaShutdown();
 
 			if (!m_bStartup)
-				Msg("Disabled module %s\n", m_pModule->Name());
+				Msg("holylib: Disabled module %s\n", m_pModule->Name());
 		}
 	}
 
@@ -142,7 +143,7 @@ void CModuleManager::RegisterModule(IModule* pModule)
 	pModule->m_pID = g_pIDs;
 	CModule* module = new CModule();
 	module->SetModule(pModule);
-	Msg("Registered module %-*s (%-*i Enabled: %s Compatible: %s)\n", 
+	Msg("holylib: Registered module %-*s (%-*i Enabled: %s Compatible: %s)\n", 
 		15,
 		module->GetModule()->Name(), 
 		2,
@@ -186,7 +187,7 @@ void CModuleManager::Init()
 {
 	if (!(m_pStatus & LoadStatus_PreDetourInit))
 	{
-		DevMsg("ghostinj didn't call InitDetour! Calling it now\n");
+		DevMsg("holylib: ghostinj didn't call InitDetour! Calling it now\n");
 		InitDetour(true);
 	}
 
