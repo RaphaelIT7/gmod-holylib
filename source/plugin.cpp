@@ -77,17 +77,17 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 	if ( playerinfomanager )
 		gpGlobals = playerinfomanager->GetGlobalVars();
 
-	/*g_pModuleManager.Setup(interfaceFactory, gameServerFactory); // Setup so that Util won't cause issues
+	g_pModuleManager.Setup(interfaceFactory, gameServerFactory); // Setup so that Util won't cause issues
 	Lua::AddDetour();
 	Util::AddDetour();
 	g_pModuleManager.Init();
 	g_pModuleManager.InitDetour(false);
-	*/
+
 #ifdef ARCHITECTURE_X86_64
 	if (CommandLine()->FindParm("-holylib_debug_forceregister"))
 #endif
 	{
-		ConVar_Register(); // ConVars currently cause a crash on level shutdown. I probably need to find some hidden vtable function AGAIN.
+		//ConVar_Register(); // ConVars currently cause a crash on level shutdown. I probably need to find some hidden vtable function AGAIN.
 	}
 	/*
 	 * Debug info about the crash from what I could find(could be wrong):
