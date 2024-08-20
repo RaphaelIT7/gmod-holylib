@@ -571,9 +571,7 @@ LUA_FUNCTION_STATIC(bitbuf_CopyReadBuffer)
 	memcpy(pData, bf->m_pData, bf->m_nDataBytes);
 
 	bf_read* newbf = new bf_read;
-	newbf->m_pData = pData;
-	newbf->m_nDataBits = bf->m_nDataBits;
-	newbf->m_nDataBytes = bf->m_nDataBytes;
+	newbf->StartReading(pData, bf->GetNumBytesRead() + bf->GetNumBytesLeft());
 
 	Push_bf_read(newbf);
 
