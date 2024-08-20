@@ -1068,21 +1068,24 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 	 */
 	if (!g_pModuleManager.IsUsingGhostInj())
 	{
-		char* pChar = new char[32768];
-		int iLength = g_pFullFileSystem->GetSearchPath("GAME", true, pChar, 32768);
+		// Humongus size because you can have a huge amount of searchpaths.
+		int iSize = 1 << 16;
+		char* pChar = new char[iSize];
+		int iLength = g_pFullFileSystem->GetSearchPath("GAME", true, pChar, iSize);
+		if (iSize <= iLength)
+			Warning("holylib: Not enouth space for search paths! please report this.\n");
+
 		std::string pStr = pChar;
 		pStr = pStr.substr(0, iLength);
 		std::vector<std::string> pSearchPaths = splitString(pStr, ";");
 		g_pFullFileSystem->RemoveSearchPaths("GAME"); // Yes. Were gonna reapply them
-		Msg("%s\n", pChar);
+		//Msg("%s\n", pChar);
 		for (std::string pSearchPath : pSearchPaths)
 		{
-			if (getFileExtension(pSearchPath) == "vpk")
-				hook_CBaseFileSystem_AddVPKFile(g_pFullFileSystem, pSearchPath.c_str(), "GAME", SearchPathAdd_t::PATH_ADD_TO_TAIL);
-			else
-				g_pFullFileSystem->AddSearchPath(pSearchPath.c_str(), "GAME", SearchPathAdd_t::PATH_ADD_TO_TAIL);
+			g_pFullFileSystem->AddSearchPath(pSearchPath.c_str(), "GAME", SearchPathAdd_t::PATH_ADD_TO_TAIL);
 			
-			Msg("Path: %s\n", pSearchPath.c_str());
+			if (holylib_filesystem_debug.GetBool())
+				Msg("Recreate Path: %s\n", pSearchPath.c_str());
 		}
 
 		delete[] pChar;
