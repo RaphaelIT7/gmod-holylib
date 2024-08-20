@@ -567,8 +567,9 @@ LUA_FUNCTION_STATIC(bitbuf_CopyReadBuffer)
 	if (!bf)
 		LUA->ArgError(1, "bf_read");
 
-	unsigned char* pData = new unsigned char[bf->m_nDataBytes + 1];
-	memcpy(pData, bf->m_pData, bf->m_nDataBytes);
+	int iSize = bf->GetNumBytesRead() + bf->GetNumBytesLeft();
+	unsigned char* pData = new unsigned char[iSize + 1];
+	memcpy(pData, bf->GetBasePointer(), iSize);
 
 	bf_read* newbf = new bf_read;
 	newbf->StartReading(pData, bf->GetNumBytesRead() + bf->GetNumBytesLeft());
