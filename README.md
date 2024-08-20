@@ -912,6 +912,12 @@ If enabled, HLTV Clients can send commands to the server and `HolyLib:OnSourceTV
 ## bitbuf
 This module adds a `bf_read` and later `bf_write` class.  
 
+### Functions
+
+#### bf_read bitbuf.CopyReadBuffer(bf_read buffer)
+Copies the given buffer into a new one.  
+Useful if you want to save the data received by a client.  
+
 ### bf_read
 This class will later be used to read net messages from HLTV clients.  
 > ToDo: Finish the documentation below and make it more detailed.  

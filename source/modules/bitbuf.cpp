@@ -6,6 +6,7 @@ class CBitBufModule : public IModule
 {
 public:
 	virtual void LuaInit(bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown() OVERRIDE;
 	virtual const char* Name() { return "bitbuf"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
 };
@@ -99,7 +100,10 @@ LUA_FUNCTION_STATIC(bf_read__gc)
 {
 	bf_read* bf = Get_bf_read(1);
 	if (bf)
+	{
+		delete[] bf->m_pData;
 		delete bf;
+	}
 
 	return 0;
 }
@@ -557,52 +561,83 @@ LUA_FUNCTION_STATIC(bf_read_ReadWord)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(bitbuf_CopyReadBuffer)
+{
+	bf_read* bf = Get_bf_read(1);
+	if (!bf)
+		LUA->ArgError(1, "bf_read");
+
+	unsigned char* pData = new unsigned char[bf->m_nDataBytes + 1];
+	memcpy(pData, bf->m_pData, bf->m_nDataBytes);
+
+	bf_read* newbf = new bf_read;
+	newbf->m_pData = pData;
+	newbf->m_nDataBits = bf->m_nDataBits;
+	newbf->m_nDataBytes = bf->m_nDataBytes;
+
+	Push_bf_read(newbf);
+
+	return 1;
+}
+
 void CBitBufModule::LuaInit(bool bServerInit)
 {
-	if (!bServerInit)
-	{
-		bf_read_TypeID = g_Lua->CreateMetaTable("bf_read");
-			Util::AddFunc(bf_read__tostring, "__tostring");
-			Util::AddFunc(bf_read__index, "__index");
-			Util::AddFunc(bf_read__gc, "__gc");
-			Util::AddFunc(bf_read_GetNumBitsLeft, "GetNumBitsLeft");
-			Util::AddFunc(bf_read_GetNumBitsRead, "GetNumBitsRead");
-			Util::AddFunc(bf_read_GetNumBits, "GetNumBits");
-			Util::AddFunc(bf_read_GetNumBytesLeft, "GetNumBytesLeft");
-			Util::AddFunc(bf_read_GetNumBytesRead, "GetNumBytesRead");
-			Util::AddFunc(bf_read_GetNumBytes, "GetNumBytes");
-			Util::AddFunc(bf_read_GetCurrentBit, "GetCurrentBit");
-			Util::AddFunc(bf_read_IsOverflowed, "IsOverflowed");
-			Util::AddFunc(bf_read_PeekUBitLong, "PeekUBitLong");
-			Util::AddFunc(bf_read_ReadBitAngle, "ReadBitAngle");
-			Util::AddFunc(bf_read_ReadBitAngles, "ReadBitAngles");
-			Util::AddFunc(bf_read_ReadBitCoord, "ReadBitCoord");
-			Util::AddFunc(bf_read_ReadBitCoordBits, "ReadBitCoordBits");
-			Util::AddFunc(bf_read_ReadBitCoordMP, "ReadBitCoordMP");
-			Util::AddFunc(bf_read_ReadBitCoordMPBits, "ReadBitCoordMPBits");
-			Util::AddFunc(bf_read_ReadBitFloat, "ReadBitFloat");
-			Util::AddFunc(bf_read_ReadBitLong, "ReadBitLong");
-			Util::AddFunc(bf_read_ReadBitNormal, "ReadBitNormal");
-			Util::AddFunc(bf_read_ReadBits, "ReadBits");
-			Util::AddFunc(bf_read_ReadBitVec3Coord, "ReadBitVec3Coord");
-			Util::AddFunc(bf_read_ReadBitVec3Normal, "ReadBitVec3Normal");
-			Util::AddFunc(bf_read_ReadByte, "ReadByte");
-			Util::AddFunc(bf_read_ReadBytes, "ReadBytes");
-			Util::AddFunc(bf_read_ReadChar, "ReadChar");
-			Util::AddFunc(bf_read_ReadFloat, "ReadFloat");
-			Util::AddFunc(bf_read_ReadLong, "ReadLong");
-			Util::AddFunc(bf_read_ReadLongLong, "ReadLongLong");
-			Util::AddFunc(bf_read_ReadOneBit, "ReadOneBit");
-			Util::AddFunc(bf_read_ReadSBitLong, "ReadSBitLong");
-			Util::AddFunc(bf_read_ReadShort, "ReadShort");
-			Util::AddFunc(bf_read_ReadSignedVarInt32, "ReadSignedVarInt32");
-			Util::AddFunc(bf_read_ReadSignedVarInt64, "ReadSignedVarInt64");
-			Util::AddFunc(bf_read_ReadString, "ReadString");
-			Util::AddFunc(bf_read_ReadUBitLong, "ReadUBitLong");
-			Util::AddFunc(bf_read_ReadUBitVar, "ReadUBitVar");
-			Util::AddFunc(bf_read_ReadVarInt32, "ReadVarInt32");
-			Util::AddFunc(bf_read_ReadVarInt64, "ReadVarInt64");
-			Util::AddFunc(bf_read_ReadWord, "ReadWord");
-		g_Lua->Pop(1); // ToDo: Add a IsValid function and maybe seek?
-	}
+	if (bServerInit)
+		return;
+
+	bf_read_TypeID = g_Lua->CreateMetaTable("bf_read");
+		Util::AddFunc(bf_read__tostring, "__tostring");
+		Util::AddFunc(bf_read__index, "__index");
+		Util::AddFunc(bf_read__gc, "__gc");
+		Util::AddFunc(bf_read_GetNumBitsLeft, "GetNumBitsLeft");
+		Util::AddFunc(bf_read_GetNumBitsRead, "GetNumBitsRead");
+		Util::AddFunc(bf_read_GetNumBits, "GetNumBits");
+		Util::AddFunc(bf_read_GetNumBytesLeft, "GetNumBytesLeft");
+		Util::AddFunc(bf_read_GetNumBytesRead, "GetNumBytesRead");
+		Util::AddFunc(bf_read_GetNumBytes, "GetNumBytes");
+		Util::AddFunc(bf_read_GetCurrentBit, "GetCurrentBit");
+		Util::AddFunc(bf_read_IsOverflowed, "IsOverflowed");
+		Util::AddFunc(bf_read_PeekUBitLong, "PeekUBitLong");
+		Util::AddFunc(bf_read_ReadBitAngle, "ReadBitAngle");
+		Util::AddFunc(bf_read_ReadBitAngles, "ReadBitAngles");
+		Util::AddFunc(bf_read_ReadBitCoord, "ReadBitCoord");
+		Util::AddFunc(bf_read_ReadBitCoordBits, "ReadBitCoordBits");
+		Util::AddFunc(bf_read_ReadBitCoordMP, "ReadBitCoordMP");
+		Util::AddFunc(bf_read_ReadBitCoordMPBits, "ReadBitCoordMPBits");
+		Util::AddFunc(bf_read_ReadBitFloat, "ReadBitFloat");
+		Util::AddFunc(bf_read_ReadBitLong, "ReadBitLong");
+		Util::AddFunc(bf_read_ReadBitNormal, "ReadBitNormal");
+		Util::AddFunc(bf_read_ReadBits, "ReadBits");
+		Util::AddFunc(bf_read_ReadBitVec3Coord, "ReadBitVec3Coord");
+		Util::AddFunc(bf_read_ReadBitVec3Normal, "ReadBitVec3Normal");
+		Util::AddFunc(bf_read_ReadByte, "ReadByte");
+		Util::AddFunc(bf_read_ReadBytes, "ReadBytes");
+		Util::AddFunc(bf_read_ReadChar, "ReadChar");
+		Util::AddFunc(bf_read_ReadFloat, "ReadFloat");
+		Util::AddFunc(bf_read_ReadLong, "ReadLong");
+		Util::AddFunc(bf_read_ReadLongLong, "ReadLongLong");
+		Util::AddFunc(bf_read_ReadOneBit, "ReadOneBit");
+		Util::AddFunc(bf_read_ReadSBitLong, "ReadSBitLong");
+		Util::AddFunc(bf_read_ReadShort, "ReadShort");
+		Util::AddFunc(bf_read_ReadSignedVarInt32, "ReadSignedVarInt32");
+		Util::AddFunc(bf_read_ReadSignedVarInt64, "ReadSignedVarInt64");
+		Util::AddFunc(bf_read_ReadString, "ReadString");
+		Util::AddFunc(bf_read_ReadUBitLong, "ReadUBitLong");
+		Util::AddFunc(bf_read_ReadUBitVar, "ReadUBitVar");
+		Util::AddFunc(bf_read_ReadVarInt32, "ReadVarInt32");
+		Util::AddFunc(bf_read_ReadVarInt64, "ReadVarInt64");
+		Util::AddFunc(bf_read_ReadWord, "ReadWord");
+	g_Lua->Pop(1); // ToDo: Add a IsValid function and maybe seek?
+
+	Util::StartTable();
+		Util::AddFunc(bitbuf_CopyReadBuffer, "CopyReadBuffer");
+	Util::FinishTable("bitbuf");
+}
+
+void CBitBufModule::LuaShutdown()
+{
+	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
+		g_Lua->PushNil();
+		g_Lua->SetField(-2, "bitbuf");
+	g_Lua->Pop(1);
 }

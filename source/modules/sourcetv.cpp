@@ -433,7 +433,13 @@ static bool hook_CHLTVClient_ProcessGMod_ClientToServer(CHLTVClient* hltvclient,
 	{
 		Push_HLTVClient(hltvclient);
 		Push_bf_read(&bf->m_DataIn);
+		g_Lua->Push(-1);
+		int iReference = g_Lua->ReferenceCreate();
 		g_Lua->CallFunctionProtected(3, 0, true);
+		g_Lua->ReferencePush(iReference);
+		g_Lua->SetUserType(-1, NULL); // Make sure that the we don't keep the buffer.
+		g_Lua->Pop(1);
+		g_Lua->ReferenceFree(iReference);
 	}
 
 	return true;
