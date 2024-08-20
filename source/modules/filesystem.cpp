@@ -1044,7 +1044,7 @@ std::vector<std::string> splitString(std::string str, std::string_view delimiter
 		while (true)
 		{
 			int idx = str.find(delimiter, start);
-			if (idx == sstd::tring::npos) {
+			if (idx == std::tring::npos) {
 				break;
 			}
 
@@ -1072,7 +1072,7 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 		int iLength = g_pFullFileSystem->GetSearchPath("GAME", true, pChar, sizeof(pChar));
 		std::string pStr = pChar;
 		pStr = pStr.substr(0, iLength);
-		std::vector<std::string> pSearchPaths = splitString(pStr);
+		std::vector<std::string> pSearchPaths = splitString(pStr, ";");
 		g_pFullFileSystem->RemoveSearchPaths("GAME"); // Yes. Were gonna reapply them
 		for (std::string pSearchPath : pSearchPaths)
 			g_pFullFileSystem->AddSearchPath(pSearchPath.c_str(), "GAME", SearchPathAdd_t::PATH_ADD_TO_TAIL);
