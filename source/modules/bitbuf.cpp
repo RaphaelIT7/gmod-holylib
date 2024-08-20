@@ -101,7 +101,7 @@ LUA_FUNCTION_STATIC(bf_read__gc)
 	bf_read* bf = Get_bf_read(1);
 	if (bf)
 	{
-		delete[] bf->m_pData;
+		delete[] bf->GetBasePointer();
 		delete bf;
 	}
 
