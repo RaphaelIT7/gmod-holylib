@@ -65,7 +65,7 @@ public:
 	inline int GetStatus() { return m_pStatus; };
 	inline CreateInterfaceFn& GetAppFactory() { return m_pAppFactory; };
 	inline CreateInterfaceFn& GetGameFactory() { return m_pGameFactory; };
-	inline bool SetGhostInj() { m_bGhostInj = true; };
+	inline void SetGhostInj() { m_bGhostInj = true; };
 	inline bool IsUsingGhostInj() { return m_bGhostInj; };
 
 	void Setup(CreateInterfaceFn appfn, CreateInterfaceFn gamefn);
