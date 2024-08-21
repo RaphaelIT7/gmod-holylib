@@ -24,8 +24,8 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 3. Put the `gmsv_holylib_linux.so` into the `garrysmod/lua/bin/` directory.  
 
 ## Next Update
-\- [+] Added `systimer` module
-\- [+] Added two new filesystem functions.
+\- [+] Added `systimer` module. 
+\- [+] Added two new filesystem functions.  
 \- \- `filesystem.Create`  
 \- \- `filesystem.Access`  
 \- [+] Added partial Linux 64x support.  
