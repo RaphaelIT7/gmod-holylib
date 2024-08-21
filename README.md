@@ -19,12 +19,12 @@ If you use a panel like Pterodactyl or something similar, you can use the gamemo
 If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it will be loaded by holylib's ghostinj.  
 
 ## How to Install (Linux 64x)
-1. Download the `ghostinj.dll`, `holylib.vdf` and `gmsv_holylib_linux.so` from the latest release.  
+1. Download the `holylib.vdf` and `gmsv_holylib_linux.so` from the latest release.  
 2. Put the `holylib.vdf` into the `garrysmod/addons/` directory.  
 3. Put the `gmsv_holylib_linux.so` into the `garrysmod/lua/bin/` directory.  
 
 ## Next Update
-\- [+] Added `systimer` module. 
+\- [+] Added `systimer` module.  
 \- [+] Added two new filesystem functions.  
 \- \- `filesystem.Create`  
 \- \- `filesystem.Access`  
