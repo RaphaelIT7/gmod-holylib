@@ -95,10 +95,10 @@ void CSteamWorksModule::LuaShutdown()
 			if (g_Lua->IsType(-1, GarrysMod::Lua::Type::Table))
 			{
 				g_Lua->PushNil();
-				g_Lua->SetField(-2, "Disconnect");
+				g_Lua->SetField(-2, "Shutdown");
 
 				g_Lua->PushNil();
-				g_Lua->SetField(-2, "Connect");
+				g_Lua->SetField(-2, "Activate");
 
 				g_Lua->PushNil();
 				g_Lua->SetField(-2, "IsConnected");
