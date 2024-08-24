@@ -45,6 +45,8 @@ Modules that aren't compatible are disabled by default.
 > NOTE: If some of their functions work, you can still force enable them with their ConVar or with the commandline.  
 
 \- [+] Added `filesystem` lua library.  
+\- [+] Added `INetworkStringTable:Set/GetNumberUserData`.  
+\- [+] Added `steamworks.ForceActivate` to mimic the engine.  
 
 \- [#] Fixed `surffix` module not actually working  
 \- [#] Fixed a crash in the `surffix` module when noclipping thru a player.  

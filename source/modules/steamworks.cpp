@@ -81,11 +81,8 @@ LUA_FUNCTION_STATIC(steamworks_IsConnected)
 
 LUA_FUNCTION_STATIC(steamworks_ForceActivate)
 {
-	if (!func_CSteam3Server_Activate)
-		LUA->ThrowError("Failed to load CSteam3Server::Activate!\n");
-
-	if (!func_Steam3Server)
-		LUA->ThrowError("Failed to load Steam3Server!\n");
+	if (!func_SV_InitGameServerSteam)
+		LUA->ThrowError("Failed to load SV_InitGameServerSteam!\n");
 
 	func_SV_InitGameServerSteam();
 	LUA->PushBool(true);
@@ -150,4 +147,5 @@ void CSteamWorksModule::InitDetour(bool bPreServer)
 	func_Steam3Server = (Symbols::Steam3ServerT)Detour::GetFunction(engine_loader.GetModule(), Symbols::Steam3ServerSym);
 	func_CSteam3Server_Shutdown = (Symbols::CSteam3Server_Shutdown)Detour::GetFunction(engine_loader.GetModule(), Symbols::CSteam3Server_ShutdownSym);
 	func_CSteam3Server_Activate = (Symbols::CSteam3Server_Activate)Detour::GetFunction(engine_loader.GetModule(), Symbols::CSteam3Server_ActivateSym);
+	func_SV_InitGameServerSteam = (Symbols::SV_InitGameServerSteam)Detour::GetFunction(engine_loader.GetModule(), Symbols::SV_InitGameServerSteamSym);
 }
