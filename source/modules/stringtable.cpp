@@ -301,6 +301,31 @@ LUA_FUNCTION_STATIC(INetworkStringTable_GetStringUserData)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(INetworkStringTable_SetNumberUserData)
+{
+	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(1);
+	int idx = LUA->CheckNumber(2);
+	int pUserData = LUA->CheckNumber(3);
+
+	table->SetStringUserData(idx, sizeof(int), &pUserData);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(INetworkStringTable_GetNumberUserData)
+{
+	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(1);
+	int idx = LUA->CheckNumber(2);
+
+	int dataLen; 
+	const void *pData = table->GetStringUserData(idx, &dataLen);
+	if (pData && dataLen == sizeof(int))
+		LUA->PushNumber(*((const int*)table->GetStringUserData(idx, 0)));
+	else
+		LUA->PushNil();
+
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(stringtable_CreateStringTable)
 {
 	const char* name = LUA->CheckString(1);
@@ -442,6 +467,8 @@ void CStringTableModule::LuaInit(bool bServerInit) // ToDo: Implement a INetwork
 			Util::AddFunc(INetworkStringTable_IsValid, "IsValid");
 			Util::AddFunc(INetworkStringTable_SetStringUserData, "SetStringUserData");
 			Util::AddFunc(INetworkStringTable_GetStringUserData, "GetStringUserData");
+			Util::AddFunc(INetworkStringTable_SetNumberUserData, "SetNumberUserData");
+			Util::AddFunc(INetworkStringTable_GetNumberUserData, "GetNumberUserData");
 		g_Lua->Pop(1);
 
 		if (g_Lua->PushMetaTable(INetworkStringTable_TypeID))
