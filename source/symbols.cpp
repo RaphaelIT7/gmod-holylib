@@ -320,6 +320,11 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x48\x8D\x05\x18\x8B\x4C\x00\x48\x89\xE5\x5D\xC3"), // 55 48 8D 05 18 8B 4C 00 48 89 E5 5D C3
 	};
 
+	const std::vector<Symbol> SV_InitGameServerSteamSym = {
+		Symbol::FromName("_Z22SV_InitGameServerSteamv"),
+		Symbol::FromSignature(""), // ToDo
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: pas Symbols
 	//---------------------------------------------------------------------------------

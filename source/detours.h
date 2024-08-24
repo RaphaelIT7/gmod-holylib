@@ -256,6 +256,9 @@ namespace Symbols
 	typedef CSteam3Server& (*Steam3ServerT)();
 	extern const std::vector<Symbol> Steam3ServerSym;
 
+	typedef void (*SV_InitGameServerSteam)();
+	extern const std::vector<Symbol> SV_InitGameServerSteamSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: pas Symbols
 	//---------------------------------------------------------------------------------

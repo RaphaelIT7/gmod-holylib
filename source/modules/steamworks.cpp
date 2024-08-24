@@ -19,6 +19,7 @@ IModule* pSteamWorksModule = &g_pSteamWorksModule;
 static Symbols::Steam3ServerT func_Steam3Server;
 static Symbols::CSteam3Server_Shutdown func_CSteam3Server_Shutdown;
 static Symbols::CSteam3Server_Activate func_CSteam3Server_Activate;
+static Symbols::SV_InitGameServerSteam func_SV_InitGameServerSteam;
 
 static Detouring::Hook detour_CSteam3Server_OnLoggedOff;
 static void hook_CSteam3Server_OnLoggedOff(CSteam3Server* srv, SteamServersDisconnected_t* info)
@@ -78,6 +79,19 @@ LUA_FUNCTION_STATIC(steamworks_IsConnected)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(steamworks_ForceActivate)
+{
+	if (!func_CSteam3Server_Activate)
+		LUA->ThrowError("Failed to load CSteam3Server::Activate!\n");
+
+	if (!func_Steam3Server)
+		LUA->ThrowError("Failed to load Steam3Server!\n");
+
+	func_SV_InitGameServerSteam();
+	LUA->PushBool(true);
+	return 1;
+}
+
 void CSteamWorksModule::LuaInit(bool bServerInit)
 {
 	if (bServerInit)
@@ -90,6 +104,7 @@ void CSteamWorksModule::LuaInit(bool bServerInit)
 			Util::AddFunc(steamworks_Shutdown, "Shutdown");
 			Util::AddFunc(steamworks_Activate, "Activate");
 			Util::AddFunc(steamworks_IsConnected, "IsConnected");
+			Util::AddFunc(steamworks_ForceActivate, "ForceActivate");
 		}
 	g_Lua->Pop(2);
 }
@@ -108,6 +123,9 @@ void CSteamWorksModule::LuaShutdown()
 
 				g_Lua->PushNil();
 				g_Lua->SetField(-2, "IsConnected");
+
+				g_Lua->PushNil();
+				g_Lua->SetField(-2, "ForceActivate");
 			}
 	g_Lua->Pop(2);
 }
