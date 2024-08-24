@@ -375,6 +375,12 @@ client_lua_files:SetStringUserData(0, table.concat(dataTablePaths, ";")) -- Set 
 #### string INetworkStringTable:GetStringUserData(number index)
 Returns the userdata of the given index.  
 
+#### INetworkStringTable:SetNumberUserData(number index, number value)
+Sets the number as userdata for the given string.  
+
+#### number INetworkStringTable:GetNumberUserData(number index)
+Returns the userdata of the given index. It needs to be a int!  
+
 ### Enums
 This module adds these enums  
 
@@ -1059,6 +1065,9 @@ Starts/Activates the Steam Server.
 
 #### steamworks.IsConnected()
 Returns `true` if the Steam Server is connected.  
+
+#### steamworks.ForceActivate()
+Calls the `SV_InitGameServerSteam` function to activate the steam server exactly like the engine does it.  
 
 ### Hooks
 
