@@ -45,8 +45,11 @@ static void hook_CSteam3Server_OnLogonSuccess(CSteam3Server* srv, SteamServersCo
 
 LUA_FUNCTION_STATIC(steamworks_Shutdown)
 {
-	if (!func_CSteam3Server_Shutdown || !func_Steam3Server)
-		return 0;
+	if (!func_CSteam3Server_Shutdown)
+		LUA->ThrowError("Failed to load CSteam3Server::Shutdown!\n");
+
+	if (!func_Steam3Server)
+		LUA->ThrowError("Failed to load Steam3Server!\n");
 
 	func_CSteam3Server_Shutdown(&func_Steam3Server());
 	LUA->PushBool(true);
@@ -55,8 +58,11 @@ LUA_FUNCTION_STATIC(steamworks_Shutdown)
 
 LUA_FUNCTION_STATIC(steamworks_Activate)
 {
-	if (!func_CSteam3Server_Activate || !func_Steam3Server)
-		return 0;
+	if (!func_CSteam3Server_Activate)
+		LUA->ThrowError("Failed to load CSteam3Server::Activate!\n");
+
+	if (!func_Steam3Server)
+		LUA->ThrowError("Failed to load Steam3Server!\n");
 
 	func_CSteam3Server_Activate(&func_Steam3Server(), CSteam3Server::EServerType::eServerTypeNormal);
 	LUA->PushBool(true);
@@ -66,7 +72,7 @@ LUA_FUNCTION_STATIC(steamworks_Activate)
 LUA_FUNCTION_STATIC(steamworks_IsConnected)
 {
 	if (!func_Steam3Server)
-		return 0;
+		LUA->ThrowError("Failed to load Steam3Server!\n");
 
 	LUA->PushBool(func_Steam3Server().BLoggedOn());
 	return 1;
