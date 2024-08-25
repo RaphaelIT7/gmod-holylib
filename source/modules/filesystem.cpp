@@ -107,6 +107,7 @@ FileHandle_t GetFileHandleFromCache(std::string_view strFilePath)
 	}
 
 	g_pFullFileSystem->Seek(it->second, 0, FILESYSTEM_SEEK_HEAD);
+	Msg("Pos: %u\n", g_pFullFileSystem->Tell(it->second));
 	// BUG: .bsp files seem to have funny behavior :/
 
 	return it->second;
