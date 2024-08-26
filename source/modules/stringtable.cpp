@@ -211,7 +211,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_GetAllStrings)
 		++idx;
 		LUA->PushNumber(idx);
 		LUA->PushString(pStr);
-		LUA->SetTable(-3);
+		LUA->RawSet(-3);
 	}
 
 	return 1;
