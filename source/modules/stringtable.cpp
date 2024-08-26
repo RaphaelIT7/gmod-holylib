@@ -194,7 +194,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_GetString)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(INetworkStringTable_GetAllString)
+LUA_FUNCTION_STATIC(INetworkStringTable_GetAllStrings)
 {
 	INetworkStringTable* table = Get_INetworkStringTable(1);
 	if (!table)
@@ -483,7 +483,7 @@ void CStringTableModule::LuaInit(bool bServerInit) // ToDo: Implement a INetwork
 			Util::AddFunc(INetworkStringTable_ChangedSinceTick, "ChangedSinceTick");
 			Util::AddFunc(INetworkStringTable_AddString, "AddString");
 			Util::AddFunc(INetworkStringTable_GetString, "GetString");
-			Util::AddFunc(INetworkStringTable_GetAllString, "GetAllStrings");
+			Util::AddFunc(INetworkStringTable_GetAllStrings, "GetAllStrings");
 			Util::AddFunc(INetworkStringTable_FindStringIndex, "FindStringIndex");
 			Util::AddFunc(INetworkStringTable_DeleteAllStrings, "DeleteAllStrings");
 			Util::AddFunc(INetworkStringTable_SetMaxEntries, "SetMaxEntries");

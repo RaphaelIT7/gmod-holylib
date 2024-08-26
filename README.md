@@ -77,8 +77,7 @@ Registered module gameevent       (Enabled: true,  Compatible: true )
 \- Fix PAS Module  
 \- Allow one to create/copy a bf_read at any time.  
 \- Look into NW System to possibly replace it with a better version.  
-\- Try to fix that one complex NW2 bug. NOTE: It's related to baseline updates (Entity Creation/Deletion)
-\- Add a way to get all strings of a stringtable.  
+\- Try to fix that one complex NW2 bug. NOTE: It's related to baseline updates (Entity Creation/Deletion)  
 
 # The Navigator  
 [Modules](https://github.com/RaphaelIT7/gmod-holylib#modules)  
@@ -311,6 +310,9 @@ Returns the index of the added string.
 number index - The index to get the string from  
 
 Returns the string from that index  
+
+#### table INetworkStringTable:GetAllStrings() 
+Returns a table containing all the strings.  
 
 #### number INetworkStringTable:FindStringIndex(string pStr) 
 string pStr - The string to find the index of  
