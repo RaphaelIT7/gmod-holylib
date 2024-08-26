@@ -48,6 +48,7 @@ static ConVar holylib_filesystem_fixgmodpath("holylib_filesystem_fixgmodpath", "
 static ConVar holylib_filesystem_cachefilehandle("holylib_filesystem_cachefilehandle", "0", 0, 
 	"If enabled, it will cache the file handle and return it if needed. This will probably cause issues if you open the same file multiple times.");
 // Optimization Idea: When Gmod calls GetFileTime, we could try to get the filehandle in parallel to have it ready when gmod calls it.
+// We could also cache every FULL searchpath to not have to look up a file every time.  
 
 static ConVar holylib_filesystem_debug("holylib_filesystem_debug", "0", 0, 
 	"If enabled, it will show any change to the search cache.");
@@ -371,6 +372,7 @@ static char pBaseDir[MAX_PATH];
 static Detouring::Hook detour_CBaseFileSystem_FixUpPath;
 static bool hook_CBaseFileSystem_FixUpPath(IFileSystem* filesystem, const char *pFileName, char *pFixedUpFileName, int sizeFixedUpFileName)
 {
+	// NOTE for future me: 64x doesn't see to have this function anymore.
 	if (!holylib_filesystem_optimizedfixpath.GetBool())
 		return detour_CBaseFileSystem_FixUpPath.GetTrampoline<Symbols::CBaseFileSystem_FixUpPath>()(filesystem, pFileName, pFixedUpFileName, sizeFixedUpFileName);
 
