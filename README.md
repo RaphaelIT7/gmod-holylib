@@ -78,6 +78,7 @@ Registered module gameevent       (Enabled: true,  Compatible: true )
 \- Allow one to create/copy a bf_read at any time.  
 \- Look into NW System to possibly replace it with a better version.  
 \- Try to fix that one complex NW2 bug. NOTE: It's related to baseline updates (Entity Creation/Deletion)
+\- Add a way to get all strings of a stringtable.  
 
 # The Navigator  
 [Modules](https://github.com/RaphaelIT7/gmod-holylib#modules)  
