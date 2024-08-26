@@ -194,6 +194,29 @@ LUA_FUNCTION_STATIC(INetworkStringTable_GetString)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(INetworkStringTable_GetAllString)
+{
+	INetworkStringTable* table = Get_INetworkStringTable(1);
+	if (!table)
+		LUA->ArgError(1, "INetworkStringTable");
+
+	int idx = 0;
+	g_Lua->PreCreateTable(table->GetMaxStrings(), 0);
+	for (int i = 0; i < table->GetMaxStrings(); ++i)
+	{
+		const char* pStr = table->GetString(i);
+		if (!pStr)
+			continue;
+
+		++idx;
+		LUA->PushNumber(idx);
+		LUA->PushString(pStr);
+		LUA->SetTable(-3);
+	}
+
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(INetworkStringTable_FindStringIndex)
 {
 	INetworkStringTable* table = Get_INetworkStringTable(1);
@@ -460,6 +483,7 @@ void CStringTableModule::LuaInit(bool bServerInit) // ToDo: Implement a INetwork
 			Util::AddFunc(INetworkStringTable_ChangedSinceTick, "ChangedSinceTick");
 			Util::AddFunc(INetworkStringTable_AddString, "AddString");
 			Util::AddFunc(INetworkStringTable_GetString, "GetString");
+			Util::AddFunc(INetworkStringTable_GetAllString, "GetAllStrings");
 			Util::AddFunc(INetworkStringTable_FindStringIndex, "FindStringIndex");
 			Util::AddFunc(INetworkStringTable_DeleteAllStrings, "DeleteAllStrings");
 			Util::AddFunc(INetworkStringTable_SetMaxEntries, "SetMaxEntries");
