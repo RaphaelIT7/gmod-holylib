@@ -151,8 +151,10 @@ const char* CServerPlugin::GetPluginDescription(void)
 	pName.append(")");
 #endif
 
-#pragma warning( disable : 26816 ) // Should probably use "once" instead of "disable"
-	return pName.c_str(); // A warning but I don't care about it :^
+	char pOut[64];
+	V_strncpy(pOut, pName.c_str(), 64);
+
+	return pOut;
 }
 
 //---------------------------------------------------------------------------------
