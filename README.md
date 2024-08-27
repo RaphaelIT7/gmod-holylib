@@ -1131,6 +1131,24 @@ Returns `true` if the given timer was successfully paused.
 Unpauses the given timer.  
 Unlike systimer.Start this won't reset the time left until it executes again.  
 
+## pas
+This module plans to add a few PAS related functions like `table pas.FindInPAS(Vector pos or Entity ent)`.  
+If you got an Idea for a function to add, feel free to comment it into [its issue](https://github.com/RaphaelIT7/gmod-holylib/issues/1).
+
+### Functions
+
+#### (Planned) table pas.FindInPAS(Vector vec / Entity ent)
+Vector vec - The position to find all entities in.  
+Entity ent - The Entity which should be used to find all entities.  
+
+#### bool pas.TestPAS(Vector pas, Vector hearPos)
+Tests if the give hear position is inside the given pas.  
+Returns `true` if it is.  
+
+#### bool pas.CheckBoxInPAS(Vector mins, Vector maxs, Vector pas)
+Checks if the given pox is inside the PAS.  
+Returns `true` if it is.  
+
 # Unfinished Modules
 
 #### 
@@ -1153,16 +1171,6 @@ Creates a IGMODAudioChannel for the given url.
 This module adds two new `IServerPluginCallbacks` functions:  
 `virtual void OnLuaInit( GarrysMod::Lua::ILuaInterface* LUA )`  
 `virtual void OnLuaShutdown( GarrysMod::Lua::ILuaInterface* LUA )`  
-
-## pas
-This module plans to add a few PAS related functions like `table pas.FindInPAS(Vector pos or Entity ent)`.  
-If you got an Idea for a function to add, feel free to comment it into [its issue](https://github.com/RaphaelIT7/gmod-holylib/issues/1).
-
-### Functions
-
-#### (Planned) table pas.FindInPAS(Vector vec / Entity ent)
-Vector vec - The position to find all entities in.  
-Entity ent - The Entity which should be used to find all entities.  
 
 # Issues implemented / fixed
 `gameevent.GetListeners` -> https://github.com/Facepunch/garrysmod-requests/issues/2377  
