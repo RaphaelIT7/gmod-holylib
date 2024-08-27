@@ -190,7 +190,17 @@ LUA_FUNCTION_STATIC(pas_TestPAS) // This is based off SV_DetermineMulticastRecip
 	byte pas[MAX_MAP_LEAFS/8];
 	const byte *pMask = CM_Vis(pas, sizeof(pas), cluster, DVIS_PAS);
 
-	LUA->PushBool(Util::engineserver->CheckOriginInPVS(*hearPos, pas, sizeof(pas)));
+	int clusterIndex = CM_LeafCluster(CM_PointLeafnum(*hearPos));
+	int offset = clusterIndex >> 3;
+	if (offset > sizeof(pas))
+	{
+		Warning("invalid offset? cluster would read past end of data");
+		LUA->PushBool(false);
+		return 1;
+	}
+
+#pragma warning(disable:6385) // We won't be reading junk, so stop telling me that I do.
+	LUA->PushBool(!(pas[offset] & (1 << (clusterIndex & 7)))); // What was broken in my version? I used mask instead of pvs and I didn't use the offset.
 	return 1;
 }
 
