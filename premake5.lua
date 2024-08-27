@@ -44,8 +44,8 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 		IncludeScanning()
 
 		-- I don't care about the ID.
-		defines("GITHUB_RUN_NUMBER=" .. run_number)
-		defines("GITHUB_RUN_BRANCH=" .. branch)
+		defines("GITHUB_RUN_NUMBER=\"" .. run_number .. "\"")
+		defines("GITHUB_RUN_BRANCH=\"" .. branch .. "\"")
 		defines("GITHUB_RUN_DATA=" .. additional)
 
 		files({

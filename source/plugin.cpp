@@ -143,18 +143,11 @@ void CServerPlugin::UnPause(void)
 //---------------------------------------------------------------------------------
 const char* CServerPlugin::GetPluginDescription(void)
 {
-	std::string pName = "HolyLib Serverplugin V0.4";
-
 #if GITHUB_RUN_DATA == 0 // DATA should always fallback to 0. We will set it to 1 in releases.
-	pName.append("DEV (Run: ");
-	pName.append(std::to_string(GITHUB_RUN_NUMBER));
-	pName.append(")");
+	return "HolyLib Serverplugin V0.4 DEV (Workflow: " GITHUB_RUN_NUMBER ")";
+#else
+	return "HolyLib Serverplugin V0.4";
 #endif
-
-	char pOut[64];
-	V_strncpy(pOut, pName.c_str(), 64);
-
-	return pOut;
 }
 
 //---------------------------------------------------------------------------------
