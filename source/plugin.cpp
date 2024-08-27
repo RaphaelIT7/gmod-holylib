@@ -141,9 +141,18 @@ void CServerPlugin::UnPause(void)
 //---------------------------------------------------------------------------------
 // Purpose: the name of this plugin, returned in "plugin_print" command
 //---------------------------------------------------------------------------------
-const char * CServerPlugin::GetPluginDescription(void)
+const char* CServerPlugin::GetPluginDescription(void)
 {
-	return "HolyLib Serverplugin V0.4";
+	std::string pName = "HolyLib Serverplugin V0.4";
+
+#if GITHUB_RUN_DATA == 0 // DATA should always fallback to 0. We will set it to 1 in releases.
+	pName.append("DEV (Run: ");
+	pName.append(std::to_string(GITHUB_RUN_NUMBER));
+	pName.append(")");
+#endif
+
+#pragma warning( disable : 26816 ) // Should probably use "once" instead of "disable"
+	return pName.c_str(); // A warning but I don't care about it :^
 }
 
 //---------------------------------------------------------------------------------

@@ -12,6 +12,12 @@ local gmcommon = assert(_OPTIONS.gmcommon or os.getenv("GARRYSMOD_COMMON"),
 	"you didn't provide a path to your garrysmod_common (https://github.com/danielga/garrysmod_common) directory")
 include(gmcommon)
 
+local file = io.open("workflow_info.txt", "r") -- Added this file to the workflow so it could also be useful for others.
+local run_id = file:read("*l")
+local run_number = file:read("*l")
+local branch = file:read("*l")
+local additional = file:read("*l") -- We set it to 1 for releases.
+
 CreateWorkspace({name = "holylib", abi_compatible = false})
 	-- Serverside module (gmsv prefix)
 	-- Can define "source_path", where the source files are located
@@ -36,6 +42,11 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 		--IncludeSteamAPI()
 		IncludeDetouring()
 		IncludeScanning()
+
+		-- I don't care about the ID.
+		defines("GITHUB_RUN_NUMBER=" .. run_number)
+		defines("GITHUB_RUN_BRANCH=" .. branch)
+		defines("GITHUB_RUN_DATA=" .. additional)
 
 		files({
 			[[source/modules/*.h]],
