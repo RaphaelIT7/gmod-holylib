@@ -190,9 +190,7 @@ LUA_FUNCTION_STATIC(pas_TestPAS) // This is based off SV_DetermineMulticastRecip
 	byte pas[MAX_MAP_LEAFS/8];
 	const byte *pMask = CM_Vis(pas, sizeof(pas), cluster, DVIS_PAS);
 
-	int iBitNumber = CM_LeafCluster(CM_PointLeafnum(*hearPos));
-
-	LUA->PushBool(!(pMask[iBitNumber>>3] & (1<<(iBitNumber&7)))); // I think something is wrong here.
+	LUA->PushBool(Util::engineserver->CheckOriginInPVS(*hearPos, pas, sizeof(pas)));
 	return 1;
 }
 
