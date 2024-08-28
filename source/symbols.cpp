@@ -322,7 +322,7 @@ namespace Symbols
 
 	const std::vector<Symbol> SV_InitGameServerSteamSym = {
 		Symbol::FromName("_Z22SV_InitGameServerSteamv"),
-		Symbol::FromSignature(""), // ToDo
+		Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x83\xEC\x08\x48\x8B\x1D********\x00\x00\x01"), // 55 48 89 E5 53 48 83 EC 08 48 8B 1D ?? ?? ?? ?? ?? ?? ?? ?? 00 00 01
 	};
 
 	//---------------------------------------------------------------------------------
