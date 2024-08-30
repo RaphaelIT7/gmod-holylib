@@ -326,30 +326,29 @@ void CGameeventLibModule::LuaInit(bool bServerInit)
 {
 	if (!bServerInit)
 	{
-		g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-			g_Lua->GetField(-1, "gameevent");
-				if (g_Lua->IsType(-1, GarrysMod::Lua::Type::Table)) // Maybe add a hook that allows one to block the networking of a gameevent?
-				{
-					Util::AddFunc(gameevent_GetListeners, "GetListeners");
-					Util::AddFunc(gameevent_RemoveListener, "RemoveListener");
+		if (Util::PushTable("gameevent"))
+		{
+			Util::AddFunc(gameevent_GetListeners, "GetListeners");
+			Util::AddFunc(gameevent_RemoveListener, "RemoveListener");
 
-					Util::AddFunc(gameevent_GetClientListeners, "GetClientListeners");
-					Util::AddFunc(gameevent_RemoveClientListener, "RemoveClientListener");
-					Util::AddFunc(gameevent_AddClientListener, "AddClientListener");
+			Util::AddFunc(gameevent_GetClientListeners, "GetClientListeners");
+			Util::AddFunc(gameevent_RemoveClientListener, "RemoveClientListener");
+			Util::AddFunc(gameevent_AddClientListener, "AddClientListener");
 
-					g_Lua->GetField(-1, "Listen");
-					g_Lua->PushString("vote_cast"); // Yes this is a valid gameevent.
-					g_Lua->CallFunctionProtected(1, 0, true);
-					CGameEventDescriptor* descriptor = pManager->GetEventDescriptor("vote_cast");
-					FOR_EACH_VEC(descriptor->listeners, i)
-					{
-						pLuaGameEventListener = (IGameEventListener2*)descriptor->listeners[i]->m_pCallback;
-						break;
-					}
-					if (!pLuaGameEventListener)
-						Warning("holylib: Failed to find pLuaGameEventListener!\n");
-				}
-		g_Lua->Pop(2);
+			g_Lua->GetField(-1, "Listen");
+			g_Lua->PushString("vote_cast"); // Yes this is a valid gameevent.
+			g_Lua->CallFunctionProtected(1, 0, true);
+			CGameEventDescriptor* descriptor = pManager->GetEventDescriptor("vote_cast");
+			FOR_EACH_VEC(descriptor->listeners, i)
+			{
+				pLuaGameEventListener = (IGameEventListener2*)descriptor->listeners[i]->m_pCallback;
+				descriptor->listeners.Remove(i); // We also remove the listener again
+				break;
+			}
+			if (!pLuaGameEventListener)
+				Warning("holylib: Failed to find pLuaGameEventListener!\n");
+		}
+		Util::PopTable();
 	}
 }
 

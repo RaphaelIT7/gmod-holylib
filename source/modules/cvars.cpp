@@ -41,17 +41,28 @@ LUA_FUNCTION_STATIC(cvars_GetAll)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(cvars_SetValue)
+{
+	const char* pName = LUA->CheckString(1);
+	ConVar* pConVar = g_pCVar->FindVar(pName);
+	if (!pConVar)
+		return 0;
+
+	pConVar->SetValue(LUA->CheckString(2));
+	LUA->PushBool(true);
+	return 1;
+}
+
 void CCVarsModule::LuaInit(bool bServerInit)
 {
 	if (!bServerInit)
 	{
-		g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-			g_Lua->GetField(-1, "cvars");
-				if (g_Lua->IsType(-1, GarrysMod::Lua::Type::Table))
-				{
-					Util::AddFunc(cvars_GetAll, "GetAll");
-				}
-		g_Lua->Pop(2);
+		if (Util::PushTable("cvar"))
+		{
+			Util::AddFunc(cvars_GetAll, "GetAll");
+			Util::AddFunc(cvars_SetValue, "SetValue");
+		}
+		Util::PopTable();
 	}
 }
 

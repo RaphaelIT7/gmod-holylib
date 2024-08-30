@@ -163,14 +163,12 @@ void CUtilModule::LuaInit(bool bServerInit)
 {
 	if (!bServerInit)
 	{
-		g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-			g_Lua->GetField(-1, "util");
-			if (g_Lua->IsType(-1, GarrysMod::Lua::Type::Table))
-			{
-				Util::AddFunc(util_AsyncCompress, "AsyncCompress");
-				Util::AddFunc(util_AsyncDecompress, "AsyncDecompress");
-			}
-		g_Lua->Pop(2);
+		if (Util::PushTable("util"))
+		{
+			Util::AddFunc(util_AsyncCompress, "AsyncCompress");
+			Util::AddFunc(util_AsyncDecompress, "AsyncDecompress");
+		}
+		Util::PopTable();
 	}
 }
 
