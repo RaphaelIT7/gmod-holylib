@@ -31,9 +31,9 @@ struct ILuaTimer
 	}
 
 	// Should we try to make this struct smaller?
-	double delay = 0;
+	float delay = 0;
 	double next_run_time = 0;
-	unsigned long repetitions = 0;
+	unsigned int repetitions = 0;
 	int function = -1;
 	int identifierreference = -1;
 	const char* identifier = nullptr;

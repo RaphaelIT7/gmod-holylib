@@ -774,7 +774,7 @@ Sets the value of `sv_stressbots`.
 ### cvars
 This module adds one function to the `cvars` library.  
 
-> NOTE: The lua library is named `cvar` because the `cvars` library is fully declared in Lua and were running before it even exists.  
+> NOTE: The lua library is named `cvar` because the `cvars` library is fully declared in Lua and were running before it even exists.   
 
 #### Functions
 
@@ -1109,7 +1109,8 @@ Called when our Steam server loses connection to steams servers.
 Called when our Steam server successfully connected to steams servers.  
 
 ## systimer
-This module is just the timer library, but it doesn't use CurTime.  
+This module is just the timer library, but it doesn't use CurTime.  
+> NOTE: Timer repetitions are limited to an unsigned int.  
 
 ### Functions
 
