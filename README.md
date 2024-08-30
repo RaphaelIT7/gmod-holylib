@@ -58,6 +58,7 @@ I forgot to pass the first argument to Gmod which caused this issue.
 \- [#] Fixed `serverplugins` module not removing all detours on shutdown.  
 \- [#] Fixed a few crashes with `gameevent` module when given invalid input.  
 \- [#] Fixed a potential bug with `util.AsyncCompress`/`util.AsyncDecompress` not returning the expected output.  
+\- [#] Fixed Filesystem prediction always failing.  
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.3...main

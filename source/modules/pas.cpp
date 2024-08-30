@@ -198,7 +198,7 @@ LUA_FUNCTION_STATIC(pas_TestPAS) // This is based off SV_DetermineMulticastRecip
 
 	int clusterIndex = CM_LeafCluster(CM_PointLeafnum(*hearPos));
 	int offset = clusterIndex >> 3;
-	if (offset > sizeof(g_pCurrentPAS))
+	if (offset > (int)sizeof(g_pCurrentPAS))
 	{
 		Warning("invalid offset? cluster would read past end of data");
 		LUA->PushBool(false);

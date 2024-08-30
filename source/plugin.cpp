@@ -87,7 +87,9 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 	g_pModuleManager.Init();
 	g_pModuleManager.InitDetour(false);
 
+#ifdef ARCHITECTURE_X86_64
 	if (CommandLine()->FindParm("-holylib_debug_forceregister"))
+#endif
 	{
 		ConVar_Register(); // ConVars currently cause a crash on level shutdown. I probably need to find some hidden vtable function AGAIN.
 	}
@@ -117,7 +119,9 @@ void CServerPlugin::Unload(void)
 	Detour::Remove(0);
 	Detour::ReportLeak();
 
+#ifdef ARCHITECTURE_X86_64
 	if (CommandLine()->FindParm("-holylib_debug_forceregister"))
+#endif
 	{
 		ConVar_Unregister();
 	}
