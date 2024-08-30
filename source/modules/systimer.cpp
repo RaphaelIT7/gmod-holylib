@@ -14,6 +14,8 @@ public:
 	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 };
 
+ConVar systimer_debug("holylib_systimer_debug", "0", 0);
+
 static CSysTimerModule g_pSysTimerModule;
 IModule* pSysTimerModule = &g_pSysTimerModule;
 
@@ -42,7 +44,7 @@ struct ILuaTimer
 
 double GetTime()
 {
-	return std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count() / 1000 / 1000;
+	return std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count() / 1000 / 1000 / 1000;
 }
 
 std::vector<ILuaTimer*> g_pLuaTimers;
@@ -332,7 +334,10 @@ void CSysTimerModule::Think(bool simulating) // Should also be called while hibe
 			continue;
 		
 		timer->next_run = timer->next_run_time - time;
-		Msg("Time: %f\nNext: %f\nRun Time: %f\n", time, timer->next_run, timer->next_run_time);
+
+		if (systimer_debug.GetBool())
+			Msg("Time: %f\nNext: %f\nRun Time: %f\n", time, timer->next_run, timer->next_run_time);
+		
 		if (timer->next_run <= 0)
 		{
 			timer->next_run_time = time + timer->delay;
