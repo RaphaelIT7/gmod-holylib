@@ -187,29 +187,21 @@ static void NukeSearchCache() // NOTE: We actually never nuke it :D
 	if (holylib_filesystem_debug.GetBool())
 		Msg("holylib - NukeSearchCache: Search cache got nuked\n");
 
-	m_SearchCache.clear(); // Now causes a memory leak :< (Should I try to solve it? naaaaaa)
+	m_SearchCache.clear(); // Now causes a memory leak :D (Should I try to solve it? naaaaaa :^)
 }
 
 static void DumpSearchcacheCmd(const CCommand &args)
 {
-	//if (args.ArgC() < 1)
+	Msg("---- Search cache ----\n");
+	for (auto&[strPath, cache] : m_SearchCache)
 	{
-		Msg("---- Search cache ----\n");
-		for (auto&[strPath, cache] : m_SearchCache)
+		Msg("	\"%s\":\n", strPath.data());
+		for (auto&[entry, storeID] : cache)
 		{
-			Msg("	\"%s\":\n", strPath.data());
-			for (auto&[entry, storeID] : cache)
-			{
-				Msg("		\"%s\": %i\n", entry.data(), storeID);
-			}
+			Msg("		\"%s\": %i\n", entry.data(), storeID);
 		}
-		Msg("---- End of Search cache ----\n");
-	//} else {
-	//	if (V_stricmp(args.Arg(1), "file") == 0)
-	//	{
-			// ToDo: Dump it into a file and print the filename, like with vprof.
-	//	}
 	}
+	Msg("---- End of Search cache ----\n");
 }
 static ConCommand dumpsearchcache("holylib_filesystem_dumpsearchcache", DumpSearchcacheCmd, "Dumps the searchcache", 0);
 
@@ -384,7 +376,6 @@ static bool hook_CBaseFileSystem_FixUpPath(IFileSystem* filesystem, const char *
 
 	V_strncpy( pFixedUpFileName, pFileName, sizeFixedUpFileName );
 	V_FixSlashes( pFixedUpFileName, CORRECT_PATH_SEPARATOR );
-//	V_RemoveDotSlashes( pFixedUpFileName, CORRECT_PATH_SEPARATOR, true );
 	V_FixDoubleSlashes( pFixedUpFileName );
 
 	if ( !V_IsAbsolutePath( pFixedUpFileName ) )
@@ -393,9 +384,11 @@ static bool hook_CBaseFileSystem_FixUpPath(IFileSystem* filesystem, const char *
 	}
 	else 
 	{
-		// What changed here?
-		// Gmod calls GetSearchPath every time FixUpPath is called.
-		// Now, we only call it once and then reuse the value, since the BASE_PATH shouldn't change at runtime.
+		/*
+		 * What changed here ?
+		 * Gmod calls GetSearchPath every time FixUpPath is called.
+		 * Now, we only call it once and then reuse the value, since the BASE_PATH shouldn't change at runtime.
+		 */
 
 		if ( pBaseLength < 3 )
 			pBaseLength = filesystem->GetSearchPath( "BASE_PATH", true, pBaseDir, sizeof( pBaseDir ) );
@@ -574,6 +567,17 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 		}
 	}
 
+	/*
+	 * The Prediction
+	 * --------------
+	 * 
+	 * I predict that all files are inside the same search paths.
+	 * With this prediction I can now get the search path of the .mdl file
+	 * and search in that one to find a file. If It's not found we say it doesn't exist.
+	 * 
+	 * The prediction currently is only implemented for models 
+	 * -> .mdl .vdd .vtx .phy .ani and the other fancy formats.
+	 */
 	if (holylib_filesystem_predictpath.GetBool() || holylib_filesystem_predictexistance.GetBool())
 	{
 		CSearchPath* path = NULL;
@@ -600,6 +604,21 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 			} else
 				if (holylib_filesystem_debug.GetBool())
 					Msg("holylib - Prediction: We decided to not care about this specific file! (%s)\n", strFileName.data());
+		}
+
+		if (extension == "lmp") // .lmp -> map lump
+		{
+			// ToDo
+		}
+
+		if (extension == "vmt")
+		{
+			// ToDo. I got no plan how but I'll come up with one hopefully
+		}
+
+		if (extension == "lua")
+		{
+			// ToDo. Time to predict lua. We actually need to do this in FastFileTime or so
 		}
 
 		if (path)
@@ -644,7 +663,7 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 	if (!holylib_filesystem_earlysearchcache.GetBool())
 		return detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
 
-	if ( V_IsAbsolutePath( pFileName ) )
+	if (V_IsAbsolutePath(pFileName))
 		return detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
 
 	// So we now got the issue that CBaseFileSystem::CSearchPathsIterator::CSearchPathsIterator is way too slow.
@@ -671,8 +690,6 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 
 			return file;
 		}
-
-		//RemoveFileFromSearchCache(pFileNameT);
 	} else {
 		if (holylib_filesystem_debug.GetBool())
 			Msg("holylib - OpenForRead: Failed to find cachePath! (%s)\n", pFileName);
@@ -697,17 +714,6 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 /*
  * GMOD first calls GetFileTime and then OpenForRead, so we need to make changes for lua in GetFileTime.
  */
-
-#if 0
-static std::string replaceString(std::string str, const std::string_view& from, const std::string_view& to)
-{
-	size_t startPos = str.find(from);
-	if (startPos != std::string::npos)
-		str.replace(startPos, from.length(), to);
-
-	return str;
-}
-#endif
 
 namespace IGamemodeSystem
 {
@@ -779,7 +785,6 @@ static long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char
 	if (origPath && V_stricmp(origPath, "lsv") == 0 && holylib_filesystem_fixgmodpath.GetBool()) // Some weird things happen in the lsv path.  
 	{
 		strFileName = fixGamemodePath(filesystem, strFileName);
-		//strFileName = replaceString(strFileName, "includes/includes/", "includes/"); // What causes this?
 	}
 	pFileName = strFileName.data();
 
@@ -851,6 +856,7 @@ static void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const ch
 
 	detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, pathID, addType);
 
+	// Below is not dead code. It's code to try to solve the map contents but it currently doesn't work.
 	/*std::string_view extension = getFileExtension(pPath);
 	if (extension == "bsp") {
 		const char* pPathID = "__TEMP_MAP_PATH";
@@ -1148,13 +1154,6 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 	AddOveridePath("resource/gameevents.res", "MOD_WRITE");
 	AddOveridePath("resource/modevents.res", "MOD_WRITE");
 	AddOveridePath("resource/hltvevents.res", "MOD_WRITE");
-
-	//AddOveridePath("scripts/voicecommands.txt", "MOD_WRITE");
-	//AddOveridePath("scripts/propdata.txt", "MOD_WRITE");
-	//AddOveridePath("scripts/propdata/base.txt", "MOD_WRITE");
-	//AddOveridePath("scripts/propdata/cs.txt", "MOD_WRITE");
-	//AddOveridePath("scripts/propdata/l4d.txt", "MOD_WRITE");
-	//AddOveridePath("scripts/propdata/phx.txt", "MOD_WRITE");
 
 	if ( pBaseLength < 3 )
 		pBaseLength = g_pFullFileSystem->GetSearchPath( "BASE_PATH", true, pBaseDir, sizeof( pBaseDir ) );
