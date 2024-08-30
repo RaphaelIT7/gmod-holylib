@@ -8,7 +8,7 @@
 class IVEngineServer;
 extern IVEngineServer* engine;
 
-#define VPROF_BUDGETGROUP_HOLYLIB
+#define VPROF_BUDGETGROUP_HOLYLIB _T("HolyLib")
 
 extern GarrysMod::Lua::IUpdatedLuaInterface* g_Lua;
 
