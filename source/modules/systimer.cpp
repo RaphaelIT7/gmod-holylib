@@ -332,7 +332,7 @@ void CSysTimerModule::Think(bool simulating) // Should also be called while hibe
 			continue;
 		
 		timer->next_run = timer->next_run_time - time;
-		Msg("Time: %d\nNext: %d\nRun Time: %d\n", time, timer->next_run, timer->next_run_time);
+		Msg("Time: %f\nNext: %f\nRun Time: %f\n", time, timer->next_run, timer->next_run_time);
 		if (timer->next_run <= 0)
 		{
 			timer->next_run_time = time + timer->delay;
