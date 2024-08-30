@@ -74,9 +74,7 @@ void RemoveTimers()
 		}
 	}
 	timers.clear();
-
-	if (g_pLuaTimers.capacity() > (g_pLuaTimers.size() + 1000))
-		g_pLuaTimers.shrink_to_fit(); // If there was a wave of timers, we now got a high capacity but we don't want to permanently have it.
+	g_pLuaTimers.shrink_to_fit();
 }
 
 LUA_FUNCTION_STATIC(timer_Adjust)
