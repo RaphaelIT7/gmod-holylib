@@ -1048,7 +1048,7 @@ std::vector<std::string> splitString(std::string str, std::string_view delimiter
 		int start = 0;
 		while (true)
 		{
-			int idx = str.find(delimiter, start);
+			size_t idx = str.find(delimiter, start);
 			if (idx == std::string::npos)
 				break;
 

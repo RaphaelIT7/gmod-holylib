@@ -194,7 +194,7 @@ LUA_FUNCTION_STATIC(pas_TestPAS) // This is based off SV_DetermineMulticastRecip
 
 	ResetPAS();
 	int cluster = CM_LeafCluster(CM_PointLeafnum(*orig));
-	const byte* pMask = CM_Vis(g_pCurrentPAS, sizeof(g_pCurrentPAS), cluster, DVIS_PAS);
+	CM_Vis(g_pCurrentPAS, sizeof(g_pCurrentPAS), cluster, DVIS_PAS);
 
 	int clusterIndex = CM_LeafCluster(CM_PointLeafnum(*hearPos));
 	int offset = clusterIndex >> 3;
@@ -222,7 +222,7 @@ LUA_FUNCTION_STATIC(pas_CheckBoxInPAS) // This is based off SV_DetermineMulticas
 
 	ResetPAS();
 	int cluster = CM_LeafCluster(CM_PointLeafnum(*orig));
-	const byte* pMask = CM_Vis(g_pCurrentPAS, sizeof(g_pCurrentPAS), cluster, DVIS_PAS);
+	CM_Vis(g_pCurrentPAS, sizeof(g_pCurrentPAS), cluster, DVIS_PAS);
 
 	LUA->PushBool(Util::engineserver->CheckBoxInPVS(*mins, *maxs, g_pCurrentPAS, sizeof(g_pCurrentPAS)));
 	return 1;
