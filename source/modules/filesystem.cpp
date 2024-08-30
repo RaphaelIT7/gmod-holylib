@@ -431,6 +431,18 @@ static std::string_view getFileExtension(const std::string_view& fileName) {
 	return fileName.substr(lastDotPos + 1);
 }
 
+static bool shouldWeCare(const std::string_view& fileName) { // Skip models like models/airboat.mdl
+	size_t firstSlash = fileName.find_first_of('/');
+	if (firstSlash == std::string::npos)
+		return false;
+
+	size_t lastSlash = fileName.find_last_of('/');
+	if (lastSlash == std::string::npos || firstSlash == lastSlash)
+		return false;
+
+	return true;
+}
+
 static const char* GetOverridePath(const char* pFileName, const char* pathID)
 {
 	if (!holylib_filesystem_splitgamepath.GetBool())
@@ -574,7 +586,7 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 		if (extension == "vvd" || extension == "vtx" || extension == "phy" || extension == "ani")
 			isModel = true;
 
-		if (isModel)
+		if (isModel && shouldWeCare(strFileName))
 		{
 			auto it = m_SkipPrediction.find(strFileName);
 			if (it == m_SkipPrediction.end()) // Skip prediction for specific files.
