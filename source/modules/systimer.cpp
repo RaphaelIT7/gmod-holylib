@@ -67,7 +67,8 @@ void RemoveTimers()
 	{
 		if (timer->markdelete)
 		{
-			//delete timer;
+			Msg("Deleted Timer: %p\n", timer);
+			delete timer;
 		} else {
 			g_pLuaTimers.push_back(timer);
 		}
