@@ -23,10 +23,14 @@ struct ILuaTimer
 	{
 		if (function > 0)
 			g_Lua->ReferenceFree(function);
+
+		if (identifierreference > 0)
+			g_Lua->ReferenceFree(identifierreference);
 	}
 
-	int function;
+	int function = -1;
 	const char* identifier; // Verify: Do we need to keep a reference so that gc won't collect it?
+	int identifierreference = -1;
 	double delay = 0;
 	double repetitions = 0;
 	bool active = true;
@@ -67,6 +71,7 @@ void RemoveTimers()
 			timers.push_back(timer);
 		}
 	}
+	g_pLuaTimers = timers; // Actually update them to not read freed memory!
 }
 
 LUA_FUNCTION_STATIC(timer_Adjust)
@@ -113,6 +118,8 @@ LUA_FUNCTION_STATIC(timer_Create)
 	timer->function = LUA->ReferenceCreate();
 
 	timer->identifier = name;
+	LUA->Push(1);
+	timer->identifierreference = LUA->ReferenceCreate();
 	timer->delay = delay;
 	timer->repetitions = repetitions;
 	timer->next_run = delay;
