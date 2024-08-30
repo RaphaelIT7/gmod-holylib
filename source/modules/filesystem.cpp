@@ -56,8 +56,6 @@ static ConVar holylib_filesystem_debug("holylib_filesystem_debug", "0", 0,
 
 
 static const char* nullPath = "NULL_PATH";
-static std::unordered_set<std::string_view> m_SkipPrediction;
-
 extern void DeleteFileHandle(FileHandle_t handle);
 static std::unordered_map<FileHandle_t, std::string_view> m_FileStringCache;
 static std::unordered_map<std::string_view, FileHandle_t> m_FileCache;
@@ -586,10 +584,9 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 		if (extension == "vvd" || extension == "vtx" || extension == "phy" || extension == "ani")
 			isModel = true;
 
-		if (isModel && shouldWeCare(strFileName))
+		if (isModel)
 		{
-			auto it = m_SkipPrediction.find(strFileName);
-			if (it == m_SkipPrediction.end()) // Skip prediction for specific files.
+			if (shouldWeCare(strFileName)) // Skip shitty files. I had enouth
 			{
 				std::string_view mdlPath = nukeFileExtension(strFileName);
 				if (extension == "vtx")
@@ -600,7 +597,9 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 				if (!path)
 					if (holylib_filesystem_debug.GetBool())
 						Msg("holylib - Prediction failed to build a path? (%s, %s, %s)\n", finalMDLPath.c_str(), pathID, strFileName.data());
-			}
+			} else
+				if (holylib_filesystem_debug.GetBool())
+					Msg("holylib - Prediction: We decided to not care about this specific file! (%s)\n", strFileName.data());
 		}
 
 		if (path)
@@ -1156,14 +1155,6 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 	//AddOveridePath("scripts/propdata/cs.txt", "MOD_WRITE");
 	//AddOveridePath("scripts/propdata/l4d.txt", "MOD_WRITE");
 	//AddOveridePath("scripts/propdata/phx.txt", "MOD_WRITE");
-
-	// We could just say models/airboat but I want the other files to also load faster
-	m_SkipPrediction.insert("models/airboat.vvd"); // One of the few models that break because it doesn't have all it's files in one place
-	m_SkipPrediction.insert("models/airboat.vtx");
-	m_SkipPrediction.insert("models/airboat.dx90.vtx");
-
-	m_SkipPrediction.insert("models/alyx.vvd");
-	m_SkipPrediction.insert("models/alyx.vtx");
 
 	if ( pBaseLength < 3 )
 		pBaseLength = g_pFullFileSystem->GetSearchPath( "BASE_PATH", true, pBaseDir, sizeof( pBaseDir ) );
