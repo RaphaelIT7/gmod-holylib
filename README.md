@@ -57,6 +57,7 @@ I forgot to pass the first argument to Gmod which caused this issue.
 -> (32x)`keyvalues.h` | (64x)`KeyValues.h`  
 \- [#] Fixed `serverplugins` module not removing all detours on shutdown.  
 \- [#] Fixed a few crashes with `gameevent` module when given invalid input.  
+\- [#] Fixed a potential bug with `util.AsyncCompress`/`util.AsyncDecompress` not returning the expected output.  
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.3...main
@@ -736,6 +737,9 @@ This module adds two new functions to the `util` library.
 Works like util.Compress but it's async and allows you to set the level and dictSize.  
 The defaults for level and dictSize are the same as gmod's util.Compress.  
 Both AsyncCompress and AsyncDecompress use the same thread.  
+
+Instead of making a copy of the data, we keep a reference to it and use it raw!  
+So please don't modify it while were compressing / decompressing it or else something might break.  
 
 #### util.AsyncCompress(string data, function callback)
 Same as above, but uses the default values for level and dictSize.  
