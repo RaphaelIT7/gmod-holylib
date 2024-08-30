@@ -596,7 +596,7 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 				path = GetPathFromSearchCache(finalMDLPath.c_str(), pathID);
 				if (!path)
 					if (holylib_filesystem_debug.GetBool())
-						Msg("holylib - Prediction failed to build a path? (%s, %s, %s)\n", finalMDLPath.c_str(), pathID, strFileName.data());
+						Msg("holylib - Prediction: failed to build a path? (%s, %s, %s)\n", finalMDLPath.c_str(), pathID, strFileName.data());
 			} else
 				if (holylib_filesystem_debug.GetBool())
 					Msg("holylib - Prediction: We decided to not care about this specific file! (%s)\n", strFileName.data());
@@ -609,7 +609,7 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 			FileHandle_t file = hook_CBaseFileSystem_FindFileInSearchPath(filesystem, openInfo);
 			if (file) {
 				if (holylib_filesystem_debug.GetBool())
-					Msg("holylib - OpenForRead: Found file in predicted path! (%s, %s)\n", pFileNameT, pathID);
+					Msg("holylib - Prediction: Found file in predicted path! (%s, %s)\n", pFileNameT, pathID);
 
 				if (holylib_filesystem_cachefilehandle.GetBool())
 					AddFileHandleToCache(GetFullPath(openInfo.m_pSearchPath, openInfo.m_pFileName), file);
@@ -617,13 +617,13 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 				return file;
 			} else {
 				if (holylib_filesystem_debug.GetBool())
-					Msg("holylib - OpenForRead: Failed to predict file path! (%s, %s)\n", pFileNameT, pathID);
+					Msg("holylib - Prediction: Failed to predict file path! (%s, %s)\n", pFileNameT, pathID);
 
 				if (holylib_filesystem_predictexistance.GetBool())
 				{
 					if (holylib_filesystem_debug.GetBool())
 					{
-						Msg("holylib - OpenForRead: predicted path failed. Let's say it doesn't exist.\n");
+						Msg("holylib - Prediction: predicted path failed. Let's say it doesn't exist.\n");
 						FileHandle_t file = detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
 						if (file)
 						{
@@ -637,7 +637,7 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 			}
 		} else {
 			if (holylib_filesystem_debug.GetBool())
-				Msg("holylib - OpenForRead: Not predicting it! (%s, %s, %s)\n", pFileNameT, pathID, extension.data());
+				Msg("holylib - Prediction: Not predicting it! (%s, %s, %s)\n", pFileNameT, pathID, extension.data());
 		}
 	}
 

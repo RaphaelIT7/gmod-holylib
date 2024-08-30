@@ -59,6 +59,9 @@ I forgot to pass the first argument to Gmod which caused this issue.
 \- [#] Fixed a few crashes with `gameevent` module when given invalid input.  
 \- [#] Fixed a potential bug with `util.AsyncCompress`/`util.AsyncDecompress` not returning the expected output.  
 \- [#] Fixed Filesystem prediction always failing.  
+\- [#] Fixed Filesystem prediction predicing models like alyx and airboat as missing.  
+models like `models/airboat.mdl` and `models/alyx.mdl` were broken because they aren't organied unlike ANY other file.  
+They seem to be located in multiple search paths which causes this issue.  
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.3...main
@@ -776,6 +779,10 @@ This module adds one function to the `cvars` library.
 ##### table cvars.GetAll()
 Returns a sequential table with all ConVar's that exist.  
 
+##### bool cvars.SetValue(string name, string value)
+Set the convat to the given value.
+Returns `true` on success.
+
 ## sourcetv
 This module plans to add a new `sourcetv` library and a new class `HLTVPlayer` will allow a SourceTV client to send net messages to the server.  
 
@@ -935,6 +942,10 @@ This module adds a `bf_read` and later `bf_write` class.
 #### bf_read bitbuf.CopyReadBuffer(bf_read buffer)
 Copies the given buffer into a new one.  
 Useful if you want to save the data received by a client.  
+
+#### bf_read bibuf.CreateReadBuffer(string data)
+Creates a read buffer from the given data.  
+Useful if you want to read the userdata of the instancebaseline stringtable.  
 
 ### bf_read
 This class will later be used to read net messages from HLTV clients.  
