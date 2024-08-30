@@ -573,14 +573,15 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 
 		if (isModel)
 		{
-			std::string_view mdlPath = nukeFileExtension(strFileName); // Since we modify the string, I don't think we need to switch to std::string_view
+			std::string_view mdlPath = nukeFileExtension(strFileName);
 			if (extension == "vtx")
 				mdlPath = nukeFileExtension(mdlPath); // "dx90.vtx" -> "dx90" -> ""
 
-			path = GetPathFromSearchCache(((std::string)mdlPath.data() + ".mdl").c_str(), pathID);
+			std::string finalMDLPath = (std::string)mdlPath + ".mdl";
+			path = GetPathFromSearchCache(finalMDLPath.c_str(), pathID);
 			if (!path)
 				if (holylib_filesystem_debug.GetBool())
-					Msg("holylib - Prediction failed to build a path? (%s, %s, %s)\n", ((std::string)mdlPath + ".mdl").c_str(), pathID, strFileName.data());
+					Msg("holylib - Prediction failed to build a path? (%s, %s, %s)\n", finalMDLPath.c_str(), pathID, strFileName.data());
 		}
 
 		if (path)
