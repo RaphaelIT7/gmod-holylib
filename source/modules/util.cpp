@@ -20,18 +20,12 @@ IModule* pUtilModule = &g_pUtilModule;
 
 struct CompressEntry
 {
-	~CompressEntry() {
-		if (pData)
-		{
-			delete pData;
-			pData = NULL;
-		}
-	}
-
 	int iCallback = -1;
 	bool bCompress = true;
 
-	const char* pData; // Test: Try to save a reference of the Data instead of copying it. That should solve the issue with gc deleting it while we use it.
+	const char* pData;
+	int iDataReference = -1; // Keeping a reference to stop GC from potentially nuking it.
+
 	int iLength;
 	int iLevel;
 	int iDictSize;
@@ -78,7 +72,7 @@ static unsigned CompressThread(void* data)
 			cData->pMutex.Unlock();
 		}
 
-		if(cData->bInvalidEverything)
+		if(cData->bInvalidEverything) // Should me make a lock? Idk.
 		{
 			for (CompressEntry* entry : batch)
 			{
@@ -114,7 +108,6 @@ LUA_FUNCTION_STATIC(util_AsyncCompress)
 	int iCallback = -1;
 	if (LUA->IsType(2, GarrysMod::Lua::Type::Function))
 	{
-		LUA->CheckType(2, GarrysMod::Lua::Type::Function);
 		LUA->Push(2);
 		iCallback = LUA->ReferenceCreate();
 	} else {
@@ -125,15 +118,14 @@ LUA_FUNCTION_STATIC(util_AsyncCompress)
 		iCallback = LUA->ReferenceCreate();
 	}
 
-	char* cData = new char[iLength + 1]; // This fixes a crash that occurs, if the string that we're actively using gets deleted by gc.
-	strcpy(cData, pData);
-
 	CompressEntry* entry = new CompressEntry;
 	entry->iCallback = iCallback;
 	entry->iDictSize = iDictSize;
 	entry->iLength = iLength;
 	entry->iLevel = iLevel;
-	entry->pData = cData;
+	entry->pData = pData;
+	LUA->Push(1);
+	entry->iDataReference = LUA->ReferenceCreate();
 
 	threaddata.pQueue.push_back(entry);
 
@@ -148,14 +140,13 @@ LUA_FUNCTION_STATIC(util_AsyncDecompress)
 	LUA->Push(2);
 	int iCallback = LUA->ReferenceCreate();
 
-	char* cData = new char[iLength + 1];
-	strcpy(cData, pData);
-
 	CompressEntry* entry = new CompressEntry;
 	entry->bCompress = false;
 	entry->iCallback = iCallback;
 	entry->iLength = iLength;
-	entry->pData = cData;
+	entry->pData = pData;
+	LUA->Push(1);
+	entry->iDataReference = LUA->ReferenceCreate();
 
 	threaddata.pQueue.push_back(entry);
 
@@ -219,6 +210,7 @@ void CUtilModule::Think(bool simulating)
 	{
 		g_Lua->ReferencePush(entry->iCallback);
 			g_Lua->PushString((const char*)entry->buffer.GetBase(), entry->buffer.GetWritten());
+			g_Lua->ReferenceFree(entry->iDataReference); // Free our data
 		g_Lua->CallFunctionProtected(1, 0, true);
 		delete entry;
 	}
