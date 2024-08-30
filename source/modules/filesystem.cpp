@@ -611,7 +611,15 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 				if (holylib_filesystem_predictexistance.GetBool())
 				{
 					if (holylib_filesystem_debug.GetBool())
+					{
 						Msg("holylib - OpenForRead: predicted path failed. Let's say it doesn't exist.\n");
+						FileHandle_t file = detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
+						if (file)
+						{
+							Msg("holylib - Prediction Error!: We predicted it to not exist, but it exists\n");
+							g_pFullFileSystem->Close(file); // We still return NULL!
+						}
+					}
 
 					return NULL;
 				}
@@ -1137,8 +1145,13 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 	//AddOveridePath("scripts/propdata/l4d.txt", "MOD_WRITE");
 	//AddOveridePath("scripts/propdata/phx.txt", "MOD_WRITE");
 
+	// We could just say models/airboat but I want the other files to also load faster
 	m_SkipPrediction.insert("models/airboat.vvd"); // One of the few models that break because it doesn't have all it's files in one place
 	m_SkipPrediction.insert("models/airboat.vtx");
+	m_SkipPrediction.insert("models/airboat.dx90.vtx");
+
+	m_SkipPrediction.insert("models/alyx.vvd");
+	m_SkipPrediction.insert("models/alyx.vtx");
 
 	if ( pBaseLength < 3 )
 		pBaseLength = g_pFullFileSystem->GetSearchPath( "BASE_PATH", true, pBaseDir, sizeof( pBaseDir ) );
