@@ -32,7 +32,6 @@ struct ILuaTimer
 
 	// Should we try to make this struct smaller?
 	double delay = 0;
-	double next_run = 0;
 	double next_run_time = 0;
 	unsigned long repetitions = 0;
 	int function = -1;
@@ -133,7 +132,6 @@ LUA_FUNCTION_STATIC(timer_Create)
 	timer->identifierreference = LUA->ReferenceCreate();
 	timer->delay = delay;
 	timer->repetitions = repetitions;
-	timer->next_run = delay;
 	timer->next_run_time = GetTime() + delay;
 
 	if (bNewTimer)
@@ -208,7 +206,6 @@ LUA_FUNCTION_STATIC(timer_Simple)
 
 	timer->delay = delay;
 	timer->repetitions = 1;
-	timer->next_run = delay;
 	timer->next_run_time = GetTime() + delay;
 	g_pLuaTimers.push_back(timer);
 
@@ -223,7 +220,7 @@ LUA_FUNCTION_STATIC(timer_Start)
 	if (timer) {
 		if (!timer->active) {
 			timer->active = true;
-			timer->next_run_time = GetTime() + timer->delay;
+			timer->next_run_time = GetTime() + timer->next_run_time;
 			LUA->PushBool(true);
 		} else
 			LUA->PushBool(false);
@@ -241,7 +238,7 @@ LUA_FUNCTION_STATIC(timer_Stop)
 	if (timer) {
 		if (timer->active) {
 			timer->active = false;
-			timer->next_run = timer->delay;
+			timer->next_run_time = timer->next_run_time - GetTime();
 			LUA->PushBool(true);
 		} else
 			LUA->PushBool(false);
@@ -257,7 +254,10 @@ LUA_FUNCTION_STATIC(timer_TimeLeft)
 
 	ILuaTimer* timer = FindTimer(name);
 	if (timer)
-		LUA->PushNumber(timer->next_run);
+		if (timer->active)
+			LUA->PushNumber(timer->next_run_time - GetTime());
+		else
+			LUA->PushNumber(timer->next_run_time);
 	else
 		LUA->PushNumber(0);
 
@@ -271,7 +271,7 @@ LUA_FUNCTION_STATIC(timer_Toggle)
 	ILuaTimer* timer = FindTimer(name);
 	if (timer) {
 		timer->active = !timer->active;
-		timer->next_run_time = GetTime() + timer->next_run;
+		timer->next_run_time = GetTime() + timer->next_run_time;
 		LUA->PushBool(timer->active);
 	} else
 		LUA->PushBool(false);
@@ -286,7 +286,7 @@ LUA_FUNCTION_STATIC(timer_UnPause)
 	ILuaTimer* timer = FindTimer(name);
 	if (timer) {
 		timer->active = true;
-		timer->next_run_time = GetTime() + timer->next_run;
+		timer->next_run_time = GetTime() + timer->delay;
 		LUA->PushBool(true);
 	} else
 		LUA->PushBool(false);
@@ -335,13 +335,11 @@ void CSysTimerModule::Think(bool simulating) // Should also be called while hibe
 	{
 		if (!timer->active)
 			continue;
-		
-		timer->next_run = timer->next_run_time - time;
 
 		if (systimer_debug.GetBool())
-			Msg("Time: %f\nNext: %f\nRun Time: %f\n", time, timer->next_run, timer->next_run_time);
+			Msg("Time: %f\nNext: %f\nRun Time: %f\n", time, timer->next_run_time - GetTime(), timer->next_run_time);
 		
-		if (timer->next_run <= 0)
+		if ((timer->next_run_time - GetTime()) <= 0)
 		{
 			timer->next_run_time = time + timer->delay;
 
