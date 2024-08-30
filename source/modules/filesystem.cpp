@@ -167,7 +167,7 @@ static CSearchPath* GetPathFromSearchCache(const char* pFileName, const char* pa
 	auto& map = m_SearchCache[pathID];
 	auto it = map.find(pFileName);
 	if (it == map.end())
-		return NULL;
+		return NULL; // We should add a debug print to see if we make a mistake somewhere
 
 	if (holylib_filesystem_debug.GetBool())
 		Msg("holylib - GetPathFromSearchCache: Getting search path for file %s from cache!\n", pFileName);
@@ -578,6 +578,9 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 				mdlPath = nukeFileExtension(mdlPath); // "dx90.vtx" -> "dx90" -> ""
 
 			path = GetPathFromSearchCache((mdlPath + ".mdl").c_str(), pathID);
+			if (!path)
+				if (holylib_filesystem_debug.GetBool())
+					Msg("holylib - Prediction failed to build a path? (%s, %s)\n", (mdlPath + ".mdl").c_str(), pathID);
 		}
 
 		if (path)
