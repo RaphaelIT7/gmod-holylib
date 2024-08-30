@@ -530,10 +530,7 @@ void CStringTableModule::LuaInit(bool bServerInit) // ToDo: Implement a INetwork
 
 void CStringTableModule::LuaShutdown() // ToDo: Can we remove the metatable?
 {
-	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-		g_Lua->PushNil();
-		g_Lua->SetField(-2, "stringtable");
-	g_Lua->Pop(1);
+	Util::NukeTable("stringtable");
 	g_pPushedStringTables.clear();
 }
 

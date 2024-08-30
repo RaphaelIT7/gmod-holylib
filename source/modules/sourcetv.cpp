@@ -537,10 +537,7 @@ void CSourceTVLibModule::LuaInit(bool bServerInit)
 
 void CSourceTVLibModule::LuaShutdown()
 {
-	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-		g_Lua->PushNil();
-		g_Lua->SetField(-2, "sourcetv");
-	g_Lua->Pop(1);
+	Util::NukeTable("sourcetv");
 	g_pPushedHLTVClients.clear();
 }
 

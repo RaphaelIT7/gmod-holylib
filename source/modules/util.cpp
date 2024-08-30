@@ -184,17 +184,12 @@ void CUtilModule::LuaShutdown()
 	}
 	threaddata.pQueue.clear();
 
-	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-		g_Lua->GetField(-1, "util");
-			if (g_Lua->IsType(-1, GarrysMod::Lua::Type::Table))
-			{
-				g_Lua->PushNil();
-				g_Lua->SetField(-2, "AsyncCompress");
-
-				g_Lua->PushNil();
-				g_Lua->SetField(-2, "AsyncDecompress");
-			}
-	g_Lua->Pop(2);
+	if (Util::PushTable("util"))
+	{
+		Util::RemoveFunc("AsyncCompress");
+		Util::RemoveFunc("AsyncDecompress");
+	}
+	Util::PopTable();
 }
 
 void CUtilModule::Think(bool simulating)

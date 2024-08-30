@@ -536,8 +536,5 @@ void CBassModule::LuaInit(bool bServerInit)
 
 void CBassModule::LuaShutdown()
 {
-	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-		g_Lua->PushNil();
-		g_Lua->SetField(-2, "bass");
-	g_Lua->Pop(1);
+	Util::NukeTable("bass");
 }

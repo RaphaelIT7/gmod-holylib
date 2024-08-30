@@ -355,26 +355,15 @@ void CGameeventLibModule::LuaInit(bool bServerInit)
 
 void CGameeventLibModule::LuaShutdown()
 {
-	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-		g_Lua->GetField(-1, "gameevent");
-			if (g_Lua->IsType(-1, GarrysMod::Lua::Type::Table))
-			{
-				g_Lua->PushNil();
-				g_Lua->SetField(-2, "GetListeners");
-
-				g_Lua->PushNil();
-				g_Lua->SetField(-2, "RemoveListener");
-
-				g_Lua->PushNil();
-				g_Lua->SetField(-2, "GetClientListeners");
-
-				g_Lua->PushNil();
-				g_Lua->SetField(-2, "RemoveClientListener");
-
-				g_Lua->PushNil();
-				g_Lua->SetField(-2, "AddClientListener");
-			}
-	g_Lua->Pop(2);
+	if (Util::PushTable("gameevent"))
+	{
+		Util::RemoveFunc("GetListeners");
+		Util::RemoveFunc("RemoveListener");
+		Util::RemoveFunc("GetClientListeners");
+		Util::RemoveFunc("RemoveClientListener");
+		Util::RemoveFunc("AddClientListener");
+	}
+	Util::PopTable();
 }
 
 void CGameeventLibModule::InitDetour(bool bPreServer)

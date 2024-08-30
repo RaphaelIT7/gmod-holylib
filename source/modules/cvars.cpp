@@ -57,12 +57,9 @@ void CCVarsModule::LuaInit(bool bServerInit)
 
 void CCVarsModule::LuaShutdown()
 {
-	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-		g_Lua->GetField(-1, "cvars");
-			if (g_Lua->IsType(-1, GarrysMod::Lua::Type::Table))
-			{
-				g_Lua->PushNil();
-				g_Lua->SetField(-2, "GetAll");
-			}
-	g_Lua->Pop(2);
+	if (Util::PushTable("cvar"))
+	{
+		Util::RemoveFunc("GetAll");
+	}
+	Util::PopTable();
 }

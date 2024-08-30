@@ -24,6 +24,33 @@ void Util::FinishTable(const char* Name) {
 	g_Lua->Pop();
 }
 
+void Util::NukeTable(const char* pName)
+{
+	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
+		g_Lua->PushNil();
+		g_Lua->SetField(-2, pName);
+	g_Lua->Pop(1);
+}
+
+bool Util::PushTable(const char* pName)
+{
+	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
+		g_Lua->GetField(-1, pName);
+		g_Lua->Remove(-2);
+		return g_Lua->IsType(-1, GarrysMod::Lua::Type::Table);
+}
+
+void Util::PopTable()
+{
+	g_Lua->Pop(1);
+}
+
+void Util::RemoveFunc(const char* pName)
+{
+	g_Lua->PushNil();
+	g_Lua->SetField(-2, pName);
+}
+
 
 static Symbols::Get_Player func_GetPlayer;
 static Symbols::Push_Entity func_PushEntity;

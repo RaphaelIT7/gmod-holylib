@@ -241,10 +241,7 @@ void CPASModule::LuaInit(bool bServerInit)
 
 void CPASModule::LuaShutdown()
 {
-	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-		g_Lua->PushNil();
-		g_Lua->SetField(-2, "pas");
-	g_Lua->Pop(1);
+	Util::NukeTable("pas");
 }
 
 void CPASModule::InitDetour(bool bPreServer)

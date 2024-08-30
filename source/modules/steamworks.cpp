@@ -108,23 +108,14 @@ void CSteamWorksModule::LuaInit(bool bServerInit)
 
 void CSteamWorksModule::LuaShutdown()
 {
-	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-		g_Lua->GetField(-1, "steamworks");
-			if (g_Lua->IsType(-1, GarrysMod::Lua::Type::Table))
-			{
-				g_Lua->PushNil();
-				g_Lua->SetField(-2, "Shutdown");
-
-				g_Lua->PushNil();
-				g_Lua->SetField(-2, "Activate");
-
-				g_Lua->PushNil();
-				g_Lua->SetField(-2, "IsConnected");
-
-				g_Lua->PushNil();
-				g_Lua->SetField(-2, "ForceActivate");
-			}
-	g_Lua->Pop(2);
+	if (Util::PushTable("steamworks"))
+	{
+		Util::RemoveFunc("Shutdown");
+		Util::RemoveFunc("Activate");
+		Util::RemoveFunc("IsConnected");
+		Util::RemoveFunc("ForceActivate");
+	}
+	Util::PopTable();
 }
 
 void CSteamWorksModule::InitDetour(bool bPreServer)

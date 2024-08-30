@@ -579,6 +579,20 @@ LUA_FUNCTION_STATIC(bitbuf_CopyReadBuffer)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(bitbuf_CreateReadBuffer)
+{
+	const char* pData = LUA->CheckString(1);
+	int iLength = LUA->ObjLen(1);
+
+	unsigned char* cData = new unsigned char[iLength + 1];
+	memcpy(cData, pData, iLength);
+
+	bf_read* newbf = new bf_read;
+	newbf->StartReading(cData, iLength);
+
+	return 1;
+}
+
 void CBitBufModule::LuaInit(bool bServerInit)
 {
 	if (bServerInit)
@@ -630,13 +644,11 @@ void CBitBufModule::LuaInit(bool bServerInit)
 
 	Util::StartTable();
 		Util::AddFunc(bitbuf_CopyReadBuffer, "CopyReadBuffer");
+		Util::AddFunc(bitbuf_CreateReadBuffer, "CreateReadBuffer");
 	Util::FinishTable("bitbuf");
 }
 
 void CBitBufModule::LuaShutdown()
 {
-	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-		g_Lua->PushNil();
-		g_Lua->SetField(-2, "bitbuf");
-	g_Lua->Pop(1);
+	Util::NukeTable("bitbuf");
 }

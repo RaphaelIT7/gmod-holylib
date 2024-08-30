@@ -302,10 +302,7 @@ void CSysTimerModule::LuaShutdown()
 
 	g_pLuaTimers.clear(),
 
-	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-		g_Lua->PushNil();
-		g_Lua->SetField(-2, "systimer");
-	g_Lua->Pop(1);
+		Util::NukeTable("systimer");
 }
 
 void CSysTimerModule::Think(bool simulating) // Should also be called while hibernating so we should be fine.

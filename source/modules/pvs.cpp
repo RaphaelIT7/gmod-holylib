@@ -602,10 +602,7 @@ void CPVSModule::LuaInit(bool bServerInit)
 
 void CPVSModule::LuaShutdown()
 {
-	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-		g_Lua->PushNil();
-		g_Lua->SetField(-2, "pvs");
-	g_Lua->Pop(1);
+	Util::NukeTable("pvs");
 }
 
 void CPVSModule::InitDetour(bool bPreServer)
