@@ -42,7 +42,7 @@ struct ILuaTimer
 
 double GetTime()
 {
-	return std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count() / 1000;
+	return std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count() / 1000 / 1000;
 }
 
 std::vector<ILuaTimer*> g_pLuaTimers;
