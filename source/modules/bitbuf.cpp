@@ -108,6 +108,14 @@ LUA_FUNCTION_STATIC(bf_read__gc)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(bf_read_IsValid)
+{
+	bf_read* bf = Get_bf_read(1);
+	
+	LUA->PushBool(bf != nullptr);
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(bf_read_GetNumBitsLeft)
 {
 	bf_read* bf = Get_bf_read(1);
@@ -567,7 +575,11 @@ LUA_FUNCTION_STATIC(bf_read_Reset)
 	if (!bf)
 		LUA->ArgError(1, "bf_read");
 
+#ifdef ARCHITECTURE_X86_64
+	LUA->ThrowError("This is 32x only.");
+#else
 	bf->Reset();
+#endif
 
 	return 0;
 }
@@ -637,6 +649,7 @@ void CBitBufModule::LuaInit(bool bServerInit)
 		Util::AddFunc(bf_read__tostring, "__tostring");
 		Util::AddFunc(bf_read__index, "__index");
 		Util::AddFunc(bf_read__gc, "__gc");
+		Util::AddFunc(bf_read_IsValid, "IsValid");
 		Util::AddFunc(bf_read_GetNumBitsLeft, "GetNumBitsLeft");
 		Util::AddFunc(bf_read_GetNumBitsRead, "GetNumBitsRead");
 		Util::AddFunc(bf_read_GetNumBits, "GetNumBits");
@@ -680,7 +693,7 @@ void CBitBufModule::LuaInit(bool bServerInit)
 		Util::AddFunc(bf_read_Reset, "Reset");
 		Util::AddFunc(bf_read_Seek, "Seek");
 		Util::AddFunc(bf_read_SeekRelative, "SeekRelative");
-	g_Lua->Pop(1); // ToDo: Add a IsValid function and maybe seek?
+	g_Lua->Pop(1);
 
 	Util::StartTable();
 		Util::AddFunc(bitbuf_CopyReadBuffer, "CopyReadBuffer");
