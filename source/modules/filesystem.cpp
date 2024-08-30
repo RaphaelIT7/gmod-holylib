@@ -1137,7 +1137,8 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 	//AddOveridePath("scripts/propdata/l4d.txt", "MOD_WRITE");
 	//AddOveridePath("scripts/propdata/phx.txt", "MOD_WRITE");
 
-	m_SkipPrediction.insert("models/airboat.vvd"); // A signle file that isn't in the same search path as the rest of the models.
+	m_SkipPrediction.insert("models/airboat.vvd"); // One of the few models that break because it doesn't have all it's files in one place
+	m_SkipPrediction.insert("models/airboat.vtx");
 
 	if ( pBaseLength < 3 )
 		pBaseLength = g_pFullFileSystem->GetSearchPath( "BASE_PATH", true, pBaseDir, sizeof( pBaseDir ) );
