@@ -57,7 +57,7 @@ void CCVarsModule::LuaInit(bool bServerInit)
 {
 	if (!bServerInit)
 	{
-		if (Util::PushTable("cvar"))
+		if (Util::PushTable("cvars"))
 		{
 			Util::AddFunc(cvars_GetAll, "GetAll");
 			Util::AddFunc(cvars_SetValue, "SetValue");
@@ -68,7 +68,7 @@ void CCVarsModule::LuaInit(bool bServerInit)
 
 void CCVarsModule::LuaShutdown()
 {
-	if (Util::PushTable("cvar"))
+	if (Util::PushTable("cvars"))
 	{
 		Util::RemoveFunc("GetAll");
 	}
