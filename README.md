@@ -1059,6 +1059,12 @@ Read a number with the given amount of bits.
 
 #### number bf_read:ReadWord()
 
+#### bf_read:Reset()
+
+#### bool bf_read:Seek(number iPos)
+
+#### bool bf_read:SeekRelative(number iPos)
+
 ## Networking
 This module tries to optimize anything related to networking.  
 Currently, this only has one optimization which was ported from [sigsegv-mvm](https://github.com/rafradek/sigsegv-mvm/blob/910b92456c7578a3eb5dff2a7e7bf4bc906677f7/src/mod/perf/sendprop_optimize.cpp#L35-L144) into here.  

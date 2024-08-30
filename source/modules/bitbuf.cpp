@@ -561,6 +561,39 @@ LUA_FUNCTION_STATIC(bf_read_ReadWord)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(bf_read_Reset)
+{
+	bf_read* bf = Get_bf_read(1);
+	if (!bf)
+		LUA->ArgError(1, "bf_read");
+
+	bf->Reset();
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(bf_read_Seek)
+{
+	bf_read* bf = Get_bf_read(1);
+	if (!bf)
+		LUA->ArgError(1, "bf_read");
+
+	LUA->PushBool(bf->Seek(LUA->CheckNumber(2)));
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(bf_read_SeekRelative)
+{
+	bf_read* bf = Get_bf_read(1);
+	if (!bf)
+		LUA->ArgError(1, "bf_read");
+
+	LUA->PushBool(bf->SeekRelative(LUA->CheckNumber(2)));
+
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(bitbuf_CopyReadBuffer)
 {
 	bf_read* pBf = Get_bf_read(1);
@@ -642,6 +675,11 @@ void CBitBufModule::LuaInit(bool bServerInit)
 		Util::AddFunc(bf_read_ReadVarInt32, "ReadVarInt32");
 		Util::AddFunc(bf_read_ReadVarInt64, "ReadVarInt64");
 		Util::AddFunc(bf_read_ReadWord, "ReadWord");
+
+		// Functions to change the current bit
+		Util::AddFunc(bf_read_Reset, "Reset");
+		Util::AddFunc(bf_read_Seek, "Seek");
+		Util::AddFunc(bf_read_SeekRelative, "SeekRelative");
 	g_Lua->Pop(1); // ToDo: Add a IsValid function and maybe seek?
 
 	Util::StartTable();
