@@ -563,18 +563,18 @@ LUA_FUNCTION_STATIC(bf_read_ReadWord)
 
 LUA_FUNCTION_STATIC(bitbuf_CopyReadBuffer)
 {
-	bf_read* bf = Get_bf_read(1);
-	if (!bf)
+	bf_read* pBf = Get_bf_read(1);
+	if (!pBf)
 		LUA->ArgError(1, "bf_read");
 
-	int iSize = bf->GetNumBytesRead() + bf->GetNumBytesLeft();
+	int iSize = pBf->GetNumBytesRead() + pBf->GetNumBytesLeft();
 	unsigned char* pData = new unsigned char[iSize + 1];
-	memcpy(pData, bf->GetBasePointer(), iSize);
+	memcpy(pData, pBf->GetBasePointer(), iSize);
 
-	bf_read* newbf = new bf_read;
-	newbf->StartReading(pData, bf->GetNumBytesRead() + bf->GetNumBytesLeft());
+	bf_read* pNewBf = new bf_read;
+	pNewBf->StartReading(pData, iSize);
 
-	Push_bf_read(newbf);
+	Push_bf_read(pNewBf);
 
 	return 1;
 }
@@ -587,8 +587,10 @@ LUA_FUNCTION_STATIC(bitbuf_CreateReadBuffer)
 	unsigned char* cData = new unsigned char[iLength + 1];
 	memcpy(cData, pData, iLength);
 
-	bf_read* newbf = new bf_read;
-	newbf->StartReading(cData, iLength);
+	bf_read* pNewBf = new bf_read;
+	pNewBf->StartReading(cData, iLength);
+
+	Push_bf_read(pNewBf);
 
 	return 1;
 }
