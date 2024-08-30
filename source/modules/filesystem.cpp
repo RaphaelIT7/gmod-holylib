@@ -580,7 +580,7 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 			path = GetPathFromSearchCache(((std::string)mdlPath.data() + ".mdl").c_str(), pathID);
 			if (!path)
 				if (holylib_filesystem_debug.GetBool())
-					Msg("holylib - Prediction failed to build a path? (%s, %s, %s)\n", ((std::string)mdlPath + ".mdl").c_str(), pathID, strFileName);
+					Msg("holylib - Prediction failed to build a path? (%s, %s, %s)\n", ((std::string)mdlPath + ".mdl").c_str(), pathID, strFileName.data());
 		}
 
 		if (path)
