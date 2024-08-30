@@ -30,15 +30,15 @@ struct ILuaTimer
 			g_Lua->ReferenceFree(identifierreference);
 	}
 
-	int function = -1;
-	const char* identifier; // Verify: Do we need to keep a reference so that gc won't collect it?
-	int identifierreference = -1;
+	// Should we try to make this struct smaller?
 	double delay = 0;
-	double repetitions = 0;
-	bool active = true;
-	bool simple = false; // true if it's a timer.Simple. Do I even use it? :|
 	double next_run = 0;
 	double next_run_time = 0;
+	unsigned long repetitions = 0;
+	int function = -1;
+	int identifierreference = -1;
+	const char* identifier = nullptr;
+	bool active = true;
 	bool markdelete = false;
 };
 
@@ -52,7 +52,7 @@ ILuaTimer* FindTimer(const char* name)
 {
 	for (ILuaTimer* timer : g_pLuaTimers)
 	{
-		if (!timer->simple && strcmp(name, timer->identifier) == 0)
+		if (timer->identifier != nullptr && strcmp(name, timer->identifier) == 0)
 		{
 			return timer;
 		}
@@ -206,7 +206,6 @@ LUA_FUNCTION_STATIC(timer_Simple)
 	LUA->Push(2);
 	timer->function = LUA->ReferenceCreate();
 
-	timer->simple = true;
 	timer->delay = delay;
 	timer->repetitions = 1;
 	timer->next_run = delay;
