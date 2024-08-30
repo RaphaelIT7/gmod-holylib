@@ -7,6 +7,7 @@
 #include <vprof.h>
 #include <algorithm>
 #include <cstring>
+#include <unordered_set>
 
 class CFileSystemModule : public IModule
 {
@@ -55,6 +56,8 @@ static ConVar holylib_filesystem_debug("holylib_filesystem_debug", "0", 0,
 
 
 static const char* nullPath = "NULL_PATH";
+static std::unordered_set<std::string_view> m_SkipPrediction;
+
 extern void DeleteFileHandle(FileHandle_t handle);
 static std::unordered_map<FileHandle_t, std::string_view> m_FileStringCache;
 static std::unordered_map<std::string_view, FileHandle_t> m_FileCache;
@@ -573,15 +576,19 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 
 		if (isModel)
 		{
-			std::string_view mdlPath = nukeFileExtension(strFileName);
-			if (extension == "vtx")
-				mdlPath = nukeFileExtension(mdlPath); // "dx90.vtx" -> "dx90" -> ""
+			auto it = m_SkipPrediction.find(strFileName);
+			if (it == m_SkipPrediction.end()) // Skip prediction for specific files.
+			{
+				std::string_view mdlPath = nukeFileExtension(strFileName);
+				if (extension == "vtx")
+					mdlPath = nukeFileExtension(mdlPath); // "dx90.vtx" -> "dx90" -> ""
 
-			std::string finalMDLPath = (std::string)mdlPath + ".mdl";
-			path = GetPathFromSearchCache(finalMDLPath.c_str(), pathID);
-			if (!path)
-				if (holylib_filesystem_debug.GetBool())
-					Msg("holylib - Prediction failed to build a path? (%s, %s, %s)\n", finalMDLPath.c_str(), pathID, strFileName.data());
+				std::string finalMDLPath = (std::string)mdlPath + ".mdl";
+				path = GetPathFromSearchCache(finalMDLPath.c_str(), pathID);
+				if (!path)
+					if (holylib_filesystem_debug.GetBool())
+						Msg("holylib - Prediction failed to build a path? (%s, %s, %s)\n", finalMDLPath.c_str(), pathID, strFileName.data());
+			}
 		}
 
 		if (path)
@@ -1129,6 +1136,8 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 	//AddOveridePath("scripts/propdata/cs.txt", "MOD_WRITE");
 	//AddOveridePath("scripts/propdata/l4d.txt", "MOD_WRITE");
 	//AddOveridePath("scripts/propdata/phx.txt", "MOD_WRITE");
+
+	m_SkipPrediction.insert("models/airboat.vvd"); // A signle file that isn't in the same search path as the rest of the models.
 
 	if ( pBaseLength < 3 )
 		pBaseLength = g_pFullFileSystem->GetSearchPath( "BASE_PATH", true, pBaseDir, sizeof( pBaseDir ) );
