@@ -774,12 +774,14 @@ Sets the value of `sv_stressbots`.
 ### cvars
 This module adds one function to the `cvars` library.  
 
+> NOTE: The lua library is named `cvar` because the `cvars` library is fully declared in Lua and were running before it even exists.  
+
 #### Functions
 
-##### table cvars.GetAll()
+##### table cvar.GetAll()
 Returns a sequential table with all ConVar's that exist.  
 
-##### bool cvars.SetValue(string name, string value)
+##### bool cvar.SetValue(string name, string value)
 Set the convat to the given value.
 Returns `true` on success.
 
@@ -1207,7 +1209,7 @@ It now throws a warning instead of crashing -> https://github.com/Facepunch/garr
 `HolyLib.Reconnect(ply)` -> https://github.com/Facepunch/garrysmod-requests/issues/2089  
 `concommand` module -> https://github.com/Facepunch/garrysmod-requests/issues/1534  
 `vprof` module -> https://github.com/Facepunch/garrysmod-requests/issues/2374  
-`cvars.GetAll` -> https://github.com/Facepunch/garrysmod-requests/issues/341  
+`cvar.GetAll` -> https://github.com/Facepunch/garrysmod-requests/issues/341  
 `sourcetv` module -> https://github.com/Facepunch/garrysmod-requests/issues/2298  
 `bitbuf` module(unfinished) -> https://github.com/Facepunch/garrysmod-requests/issues/594  
 `HLTV` class / `sourcetv` module -> https://github.com/Facepunch/garrysmod-requests/issues/2237  

@@ -60,19 +60,13 @@ void CCVarsModule::LuaInit(bool bServerInit)
 	if (bServerInit)
 		return;
 
-	if (Util::PushTable("cvars"))
-	{
+	Util::StartTable();
 		Util::AddFunc(cvars_GetAll, "GetAll");
 		Util::AddFunc(cvars_SetValue, "SetValue");
-	}
-	Util::PopTable();
+	Util::FinishTable("cvar");
 }
 
 void CCVarsModule::LuaShutdown()
 {
-	if (Util::PushTable("cvars"))
-	{
-		Util::RemoveFunc("GetAll");
-	}
-	Util::PopTable();
+	Util::NukeTable("cvar");
 }
