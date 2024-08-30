@@ -44,7 +44,7 @@ struct ILuaTimer
 
 double GetTime()
 {
-	return std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count() / 1000 / 1000 / 1000;
+	return std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count() / 1000 /;
 }
 
 std::vector<ILuaTimer*> g_pLuaTimers;
@@ -80,7 +80,7 @@ void RemoveTimers()
 LUA_FUNCTION_STATIC(timer_Adjust)
 {
 	const char* name = LUA->CheckString(1);
-	double delay = LUA->CheckNumber(2);
+	double delay = LUA->CheckNumber(2) * 1000 * 1000;
 
 	ILuaTimer* timer = FindTimer(name);
 	if (timer) {
@@ -109,7 +109,7 @@ LUA_FUNCTION_STATIC(timer_Check)
 LUA_FUNCTION_STATIC(timer_Create)
 {
 	const char* name = LUA->CheckString(1);
-	double delay = LUA->CheckNumber(2);
+	double delay = LUA->CheckNumber(2) * 1000 * 1000;
 	double repetitions = LUA->CheckNumber(3);
 	LUA->CheckType(4, GarrysMod::Lua::Type::Function);
 
@@ -195,7 +195,7 @@ LUA_FUNCTION_STATIC(timer_RepsLeft)
 
 LUA_FUNCTION_STATIC(timer_Simple)
 {
-	double delay = LUA->CheckNumber(1);
+	double delay = LUA->CheckNumber(1) * 1000 * 1000;
 	LUA->CheckType(2, GarrysMod::Lua::Type::Function);
 
 	ILuaTimer* timer = new ILuaTimer;
