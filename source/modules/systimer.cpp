@@ -19,6 +19,12 @@ IModule* pSysTimerModule = &g_pSysTimerModule;
 
 struct ILuaTimer
 {
+	~ILuaTimer()
+	{
+		if (function > 0)
+			g_Lua->ReferenceFree(function);
+	}
+
 	int function;
 	const char* identifier; // Verify: Do we need to keep a reference so that gc won't collect it?
 	double delay = 0;
@@ -78,7 +84,6 @@ LUA_FUNCTION_STATIC(timer_Adjust)
 			LUA->ReferenceFree(timer->function);
 			LUA->Push(4);
 			timer->function = LUA->ReferenceCreate();
-			LUA->Pop();
 		}
 
 		LUA->PushBool(true);
@@ -106,7 +111,6 @@ LUA_FUNCTION_STATIC(timer_Create)
 
 	LUA->Push(4);
 	timer->function = LUA->ReferenceCreate();
-	LUA->Pop();
 
 	timer->identifier = name;
 	timer->delay = delay;
@@ -181,7 +185,6 @@ LUA_FUNCTION_STATIC(timer_Simple)
 	ILuaTimer* timer = new ILuaTimer;
 	LUA->Push(2);
 	timer->function = LUA->ReferenceCreate();
-	LUA->Pop();
 
 	timer->simple = true;
 	timer->delay = delay;
@@ -307,6 +310,8 @@ void CSysTimerModule::LuaShutdown()
 
 void CSysTimerModule::Think(bool simulating) // Should also be called while hibernating so we should be fine.
 {
+	VPROF_BUDGET("HolyLib - CSysTimerModule::Think", VPROF_BUDGETGROUP_HOLYLIB);
+
 	double time = GetTime();
 	for (ILuaTimer* timer : g_pLuaTimers)
 	{
@@ -319,7 +324,7 @@ void CSysTimerModule::Think(bool simulating) // Should also be called while hibe
 			timer->next_run_time = time + timer->delay;
 
 			g_Lua->ReferencePush(timer->function);
-			g_Lua->PCall(0, 0, 0);
+			g_Lua->CallFunctionProtected(0, 0, true);
 
 			if (timer->repetitions == 1)
 				timer->markdelete = true;

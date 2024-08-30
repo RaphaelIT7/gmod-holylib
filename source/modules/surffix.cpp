@@ -28,6 +28,8 @@ static ConVar sv_ramp_bumpcount("sv_ramp_bumpcount", "8", 0, "Helps with fixing 
 
 static bool CGameMovement_IsValidMovementTrace(CGameMovement* gamemovement, trace_t &tr)
 {
+	VPROF_BUDGET("HolyLib - CGameMovement::IsValidMovementTrace", VPROF_BUDGETGROUP_HOLYLIB);
+
     trace_t stuck;
 
     // Apparently we can be stuck with pm.allsolid without having valid plane info ok..
@@ -75,6 +77,7 @@ inline IMoveHelper* HolyLib_MoveHelper()
 
 int CGameMovement::ClipVelocity(Vector& a, Vector& b, Vector& c, float d)
 {
+	VPROF_BUDGET("HolyLib - CGameMovement::ClipVelocity", VPROF_BUDGETGROUP_HOLYLIB);
 	return func_CGameMovement_ClipVelocity(this, a, b, c, d);
 }
 
@@ -97,6 +100,7 @@ bool CTraceFilterSimple::ShouldHitEntity(IHandleEntity *pHandleEntity, int conte
 
 inline void HolyLib_UTIL_TraceRay(const Ray_t &ray, unsigned int mask, const IHandleEntity *ignore, int collisionGroup, trace_t *ptr, ShouldHitFunc_t pExtraShouldHitCheckFn = NULL)
 {
+	VPROF_BUDGET("HolyLib - UTIL_TraceRay", VPROF_BUDGETGROUP_HOLYLIB);
 	CTraceFilterSimple traceFilter(ignore, collisionGroup, pExtraShouldHitCheckFn);
 
 	enginetrace->TraceRay(ray, mask, &traceFilter, ptr);
@@ -146,6 +150,8 @@ static int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector*
 
 	new_velocity.Init();
 	valid_plane.Init();
+
+	VPROF_BUDGET("HolyLib - CGameMovement::TryPlayerMove", VPROF_BUDGETGROUP_HOLYLIB);
 
 	for (bumpcount=0 ; bumpcount < numbumps; bumpcount++)
 	{

@@ -16,6 +16,8 @@ IModule* pCVarsModule = &g_pCVarsModule;
 
 LUA_FUNCTION_STATIC(cvars_GetAll)
 {
+	VPROF_BUDGET("HolyLib(LUA) - cvars.GetAll", VPROF_BUDGETGROUP_HOLYLIB);
+
 	LUA->CreateTable();
 		int idx = 0;
 #ifdef ARCHITECTURE_X86_64

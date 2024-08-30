@@ -192,6 +192,8 @@ void CUtilModule::LuaShutdown()
 
 void CUtilModule::Think(bool simulating)
 {
+	VPROF_BUDGET("HolyLib - CUtilModule::Think", VPROF_BUDGETGROUP_HOLYLIB);
+
 	if (threaddata.bInvalidEverything) // Wait for the Thread to be ready again
 		return;
 

@@ -407,6 +407,8 @@ LUA_FUNCTION_STATIC(sourcetv_GetClient)
 static Detouring::Hook detour_CHLTVClient_ProcessGMod_ClientToServer;
 static bool hook_CHLTVClient_ProcessGMod_ClientToServer(CHLTVClient* hltvclient, CLC_GMod_ClientToServer* bf)
 {
+	VPROF_BUDGET("HolyLib - CHLTVClient::ProcessGMod_ClientToServer", VPROF_BUDGETGROUP_HOLYLIB);
+
 	if (!sourcetv_allownetworking.GetBool())
 		return true;
 
@@ -448,6 +450,8 @@ static bool hook_CHLTVClient_ProcessGMod_ClientToServer(CHLTVClient* hltvclient,
 static Detouring::Hook detour_CHLTVClient_ExecuteStringCommand;
 static bool hook_CHLTVClient_ExecuteStringCommand(CHLTVClient* hltvclient, const char* pCommandString)
 {
+	VPROF_BUDGET("HolyLib - CHLTVClient::ExecuteStringCommand", VPROF_BUDGETGROUP_HOLYLIB);
+
 	if (!sourcetv_allowcommands.GetBool())
 		return detour_CHLTVClient_ExecuteStringCommand.GetTrampoline<Symbols::CHLTVClient_ExecuteStringCommand>()(hltvclient, pCommandString);
 

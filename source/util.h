@@ -4,6 +4,7 @@
 #include "detours.h"
 #include "eiface.h"
 #include <tier3/tier3.h>
+#include "vprof.h"
 
 class IVEngineServer;
 extern IVEngineServer* engine;

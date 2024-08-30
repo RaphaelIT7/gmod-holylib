@@ -96,6 +96,7 @@ public:
 
 	virtual int GetPropsChangedAfterTick(int iTick, int *iOutProps, int nMaxOutProps)
 	{
+		// Should we remove vprof here? It could slow this entire thing down since it's called so often
 		VPROF_BUDGET("CChangeFrameList::GetPropsChangedAfterTick", VPROF_BUDGETGROUP_OTHER_NETWORKING);
 		int nOutProps = 0;
 		if (iTick + 1 >= m_LastSameTickNum)
