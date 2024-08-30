@@ -8,6 +8,8 @@
 class IVEngineServer;
 extern IVEngineServer* engine;
 
+#define VPROF_BUDGETGROUP_HOLYLIB
+
 extern GarrysMod::Lua::IUpdatedLuaInterface* g_Lua;
 
 class CBaseClient;

@@ -324,32 +324,32 @@ void CGameeventLibModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* game
 
 void CGameeventLibModule::LuaInit(bool bServerInit)
 {
-	if (!bServerInit)
+	if (bServerInit)
+		return;
+
+	if (Util::PushTable("gameevent"))
 	{
-		if (Util::PushTable("gameevent"))
+		Util::AddFunc(gameevent_GetListeners, "GetListeners");
+		Util::AddFunc(gameevent_RemoveListener, "RemoveListener");
+
+		Util::AddFunc(gameevent_GetClientListeners, "GetClientListeners");
+		Util::AddFunc(gameevent_RemoveClientListener, "RemoveClientListener");
+		Util::AddFunc(gameevent_AddClientListener, "AddClientListener");
+
+		g_Lua->GetField(-1, "Listen");
+		g_Lua->PushString("vote_cast"); // Yes this is a valid gameevent.
+		g_Lua->CallFunctionProtected(1, 0, true);
+		CGameEventDescriptor* descriptor = pManager->GetEventDescriptor("vote_cast");
+		FOR_EACH_VEC(descriptor->listeners, i)
 		{
-			Util::AddFunc(gameevent_GetListeners, "GetListeners");
-			Util::AddFunc(gameevent_RemoveListener, "RemoveListener");
-
-			Util::AddFunc(gameevent_GetClientListeners, "GetClientListeners");
-			Util::AddFunc(gameevent_RemoveClientListener, "RemoveClientListener");
-			Util::AddFunc(gameevent_AddClientListener, "AddClientListener");
-
-			g_Lua->GetField(-1, "Listen");
-			g_Lua->PushString("vote_cast"); // Yes this is a valid gameevent.
-			g_Lua->CallFunctionProtected(1, 0, true);
-			CGameEventDescriptor* descriptor = pManager->GetEventDescriptor("vote_cast");
-			FOR_EACH_VEC(descriptor->listeners, i)
-			{
-				pLuaGameEventListener = (IGameEventListener2*)descriptor->listeners[i]->m_pCallback;
-				descriptor->listeners.Remove(i); // We also remove the listener again
-				break;
-			}
-			if (!pLuaGameEventListener)
-				Warning("holylib: Failed to find pLuaGameEventListener!\n");
+			pLuaGameEventListener = (IGameEventListener2*)descriptor->listeners[i]->m_pCallback;
+			descriptor->listeners.Remove(i); // We also remove the listener again
+			break;
 		}
-		Util::PopTable();
+		if (!pLuaGameEventListener)
+			Warning("holylib: Failed to find pLuaGameEventListener!\n");
 	}
+	Util::PopTable();
 }
 
 void CGameeventLibModule::LuaShutdown()

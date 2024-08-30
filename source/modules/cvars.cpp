@@ -55,15 +55,15 @@ LUA_FUNCTION_STATIC(cvars_SetValue)
 
 void CCVarsModule::LuaInit(bool bServerInit)
 {
-	if (!bServerInit)
+	if (bServerInit)
+		return;
+
+	if (Util::PushTable("cvars"))
 	{
-		if (Util::PushTable("cvars"))
-		{
-			Util::AddFunc(cvars_GetAll, "GetAll");
-			Util::AddFunc(cvars_SetValue, "SetValue");
-		}
-		Util::PopTable();
+		Util::AddFunc(cvars_GetAll, "GetAll");
+		Util::AddFunc(cvars_SetValue, "SetValue");
 	}
+	Util::PopTable();
 }
 
 void CCVarsModule::LuaShutdown()

@@ -274,25 +274,25 @@ LUA_FUNCTION_STATIC(timer_UnPause)
 
 void CSysTimerModule::LuaInit(bool bServerInit)
 {
-	if (!bServerInit)
-	{
-		Util::StartTable();
-			Util::AddFunc(timer_Adjust, "Adjust");
-			Util::AddFunc(timer_Check, "Check");
-			Util::AddFunc(timer_Create, "Create");
-			Util::AddFunc(timer_Remove, "Destroy");
-			Util::AddFunc(timer_Exists, "Exists");
-			Util::AddFunc(timer_Pause, "Pause");
-			Util::AddFunc(timer_Remove, "Remove");
-			Util::AddFunc(timer_RepsLeft, "RepsLeft");
-			Util::AddFunc(timer_Simple, "Simple");
-			Util::AddFunc(timer_Start, "Start");
-			Util::AddFunc(timer_Stop, "Stop");
-			Util::AddFunc(timer_TimeLeft, "TimeLeft");
-			Util::AddFunc(timer_Toggle, "Toggle");
-			Util::AddFunc(timer_UnPause, "UnPause");
-		Util::FinishTable("systimer");
-	}
+	if (bServerInit)
+		return;
+
+	Util::StartTable();
+		Util::AddFunc(timer_Adjust, "Adjust");
+		Util::AddFunc(timer_Check, "Check");
+		Util::AddFunc(timer_Create, "Create");
+		Util::AddFunc(timer_Remove, "Destroy");
+		Util::AddFunc(timer_Exists, "Exists");
+		Util::AddFunc(timer_Pause, "Pause");
+		Util::AddFunc(timer_Remove, "Remove");
+		Util::AddFunc(timer_RepsLeft, "RepsLeft");
+		Util::AddFunc(timer_Simple, "Simple");
+		Util::AddFunc(timer_Start, "Start");
+		Util::AddFunc(timer_Stop, "Stop");
+		Util::AddFunc(timer_TimeLeft, "TimeLeft");
+		Util::AddFunc(timer_Toggle, "Toggle");
+		Util::AddFunc(timer_UnPause, "UnPause");
+	Util::FinishTable("systimer");
 }
 
 void CSysTimerModule::LuaShutdown()

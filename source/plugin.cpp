@@ -9,6 +9,7 @@
 #include "module.h"
 #include "player.h"
 #include "tier0/icommandline.h"
+#include "vprof.h"
 
 #define DEDICATED
 #include "vstdlib/jobthread.h"
@@ -55,6 +56,8 @@ DLL_EXPORT void HolyLib_PreLoad() // ToDo: Make this a CServerPlugin member late
 CGlobalVars *gpGlobals = NULL;
 bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServerFactory)
 {
+	VPROF_BUDGET("HolyLib - CServerPlugin::Load", VPROF_BUDGETGROUP_HOLYLIB);
+
 	Msg("--- HolyLib Plugin loading ---\n");
 
 	if (!Util::ShouldLoad())
@@ -108,6 +111,8 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 //---------------------------------------------------------------------------------
 void CServerPlugin::Unload(void)
 {
+	VPROF_BUDGET("HolyLib - CServerPlugin::Unload", VPROF_BUDGETGROUP_HOLYLIB);
+
 	g_pModuleManager.Shutdown();
 	Detour::Remove(0);
 	Detour::ReportLeak();
@@ -163,6 +168,7 @@ void CServerPlugin::LevelInit(char const *pMapName)
 //---------------------------------------------------------------------------------
 bool CServerPlugin::LuaInit()
 {
+	VPROF_BUDGET("HolyLib - CServerPlugin::LuaInit", VPROF_BUDGETGROUP_HOLYLIB);
 	GarrysMod::Lua::ILuaInterface* LUA = Lua::GetRealm(GarrysMod::Lua::State::SERVER);
 	if (LUA == nullptr) {
 		Msg("Failed to get ILuaInterface! (Realm: Server)\n");
@@ -179,6 +185,7 @@ bool CServerPlugin::LuaInit()
 //---------------------------------------------------------------------------------
 void CServerPlugin::LuaShutdown()
 {
+	VPROF_BUDGET("HolyLib - CServerPlugin::LuaShutdown", VPROF_BUDGETGROUP_HOLYLIB);
 	Lua::Shutdown();
 }
 
@@ -188,6 +195,7 @@ void CServerPlugin::LuaShutdown()
 //---------------------------------------------------------------------------------
 void CServerPlugin::ServerActivate(edict_t *pEdictList, int edictCount, int clientMax)
 {
+	VPROF_BUDGET("HolyLib - CServerPlugin::ServerActivate", VPROF_BUDGETGROUP_HOLYLIB);
 	if (!g_Lua) {
 		LuaInit();
 	}
@@ -200,6 +208,7 @@ void CServerPlugin::ServerActivate(edict_t *pEdictList, int edictCount, int clie
 //---------------------------------------------------------------------------------
 void CServerPlugin::GameFrame(bool simulating)
 {
+	VPROF_BUDGET("HolyLib - CServerPlugin::GameFrame", VPROF_BUDGETGROUP_HOLYLIB);
 	g_pModuleManager.Think(simulating);
 }
 
