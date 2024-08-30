@@ -61,17 +61,18 @@ ILuaTimer* FindTimer(const char* name)
 
 void RemoveTimers()
 {
-	std::vector<ILuaTimer*> timers;
-	for (ILuaTimer* timer : g_pLuaTimers)
+	std::vector<ILuaTimer*> timers = g_pLuaTimers;
+	g_pLuaTimers.clear();
+	for (ILuaTimer* timer : timers)
 	{
 		if (timer->markdelete)
 		{
-			delete timer;
+			//delete timer;
 		} else {
-			timers.push_back(timer);
+			g_pLuaTimers.push_back(timer);
 		}
 	}
-	g_pLuaTimers = timers; // Actually update them to not read freed memory!
+	timers.clear();
 }
 
 LUA_FUNCTION_STATIC(timer_Adjust)
@@ -307,12 +308,11 @@ void CSysTimerModule::LuaInit(bool bServerInit)
 
 void CSysTimerModule::LuaShutdown()
 {
-	for (ILuaTimer* timer : g_pLuaTimers)
-		delete timer;
+	//for (ILuaTimer* timer : g_pLuaTimers)
+		//delete timer;
 
 	g_pLuaTimers.clear(),
-
-		Util::NukeTable("systimer");
+	Util::NukeTable("systimer");
 }
 
 void CSysTimerModule::Think(bool simulating) // Should also be called while hibernating so we should be fine.
