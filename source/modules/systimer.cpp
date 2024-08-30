@@ -42,7 +42,7 @@ struct ILuaTimer
 
 double GetTime()
 {
-	return std::chrono::time_point_cast<std::chrono::milliseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count() / 1000;
+	return std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count() / 1000;
 }
 
 std::vector<ILuaTimer*> g_pLuaTimers;
@@ -67,7 +67,6 @@ void RemoveTimers()
 	{
 		if (timer->markdelete)
 		{
-			Msg("Deleted Timer: %p\n", timer);
 			delete timer;
 		} else {
 			g_pLuaTimers.push_back(timer);
@@ -112,9 +111,13 @@ LUA_FUNCTION_STATIC(timer_Create)
 	double repetitions = LUA->CheckNumber(3);
 	LUA->CheckType(4, GarrysMod::Lua::Type::Function);
 
+	bool bNewTimer = false;
 	ILuaTimer* timer = FindTimer(name); // Reuse existing timer
 	if (!timer)
+	{
 		timer = new ILuaTimer;
+		bNewTimer = true;
+	}
 
 	LUA->Push(4);
 	timer->function = LUA->ReferenceCreate();
@@ -126,7 +129,9 @@ LUA_FUNCTION_STATIC(timer_Create)
 	timer->repetitions = repetitions;
 	timer->next_run = delay;
 	timer->next_run_time = GetTime() + delay;
-	g_pLuaTimers.push_back(timer);
+
+	if (bNewTimer)
+		g_pLuaTimers.push_back(timer);
 
 	return 0;
 }
@@ -309,8 +314,8 @@ void CSysTimerModule::LuaInit(bool bServerInit)
 
 void CSysTimerModule::LuaShutdown()
 {
-	//for (ILuaTimer* timer : g_pLuaTimers)
-		//delete timer;
+	for (ILuaTimer* timer : g_pLuaTimers)
+		delete timer;
 
 	g_pLuaTimers.clear(),
 	Util::NukeTable("systimer");
@@ -327,6 +332,7 @@ void CSysTimerModule::Think(bool simulating) // Should also be called while hibe
 			continue;
 		
 		timer->next_run = timer->next_run_time - time;
+		Msg("Time: %d\nNext: %d\nRun Time: %d\n", time, timer->next_run, timer->next_run_time);
 		if (timer->next_run <= 0)
 		{
 			timer->next_run_time = time + timer->delay;
