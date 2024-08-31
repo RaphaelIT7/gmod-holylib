@@ -484,7 +484,7 @@ void CVProfModule::InitDetour(bool bPreServer)
 {
 	if ( bPreServer ) { return; }
 
-	SourceSDK::ModuleLoader tier0_loader("libtier0");
+	SourceSDK::ModuleLoader tier0_loader("tier0");
 	Detour::Create(
 		&detour_CVProfile_OutputReport, "CVProfile::OutputReport",
 		tier0_loader.GetModule(), Symbols::CVProfile_OutputReportSym,

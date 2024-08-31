@@ -27,6 +27,23 @@ class CSteam3Server;
  * 3 - Windows 64x
  */
 
+#if defined SYSTEM_WINDOWS
+#if defined ARCHITECTURE_X86_64
+#define GMCOMMON_CALLING_CONVENTION __fastcall
+#else
+#define GMCOMMON_CALLING_CONVENTION __thiscall
+#endif
+#else
+#define GMCOMMON_CALLING_CONVENTION
+#endif
+
+/*
+ * I need to figure out how to hook into shit without breaking it on windows.
+ * Currently every single hook seems to break gmod and every call to a hook seems broken.
+ * It's probably some shit with calling convention or so but I have no fking Idea how to solve that :<
+ * If someone knows how I could fix this, please let me know.
+ */
+
 namespace Symbols
 {
 	//---------------------------------------------------------------------------------
@@ -35,7 +52,7 @@ namespace Symbols
 	typedef bool (*InitLuaClasses)(GarrysMod::Lua::ILuaInterface*);
 	extern const std::vector<Symbol> InitLuaClassesSym;
 
-	typedef bool (*CLuaInterface_Shutdown)(GarrysMod::Lua::ILuaInterface*);
+	typedef bool (GMCOMMON_CALLING_CONVENTION* CLuaInterface_Shutdown)(GarrysMod::Lua::ILuaInterface*);
 	extern const std::vector<Symbol> CLuaInterface_ShutdownSym;
 
 	typedef CBasePlayer* (*Get_Player)(int iStackPos, bool shouldError);
@@ -50,49 +67,49 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: holylib Symbols
 	//---------------------------------------------------------------------------------
-	typedef bool (*CServerGameDLL_ShouldHideServer)();
+	typedef bool (GMCOMMON_CALLING_CONVENTION* CServerGameDLL_ShouldHideServer)();
 	extern const std::vector<Symbol> CServerGameDLL_ShouldHideServerSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: gameevent Symbols
 	//---------------------------------------------------------------------------------
-	typedef bool (*CBaseClient_ProcessListenEvents)(void* client, void* msg);
+	typedef bool (GMCOMMON_CALLING_CONVENTION* CBaseClient_ProcessListenEvents)(void* client, void* msg);
 	extern const std::vector<Symbol> CBaseClient_ProcessListenEventsSym;
 
-	typedef bool (*CGameEventManager_AddListener)(void* manager, void* listener, void* descriptor, int);
+	typedef bool (GMCOMMON_CALLING_CONVENTION* CGameEventManager_AddListener)(void* manager, void* listener, void* descriptor, int);
 	extern const std::vector<Symbol> CGameEventManager_AddListenerSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: serverplugin Symbols
 	//---------------------------------------------------------------------------------
-	typedef void* (*CPlugin_Load)(void*, const char*);
+	typedef void* (GMCOMMON_CALLING_CONVENTION* CPlugin_Load)(void*, const char*);
 	extern const std::vector<Symbol> CPlugin_LoadSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: sourcetv Symbols
 	//---------------------------------------------------------------------------------
-	typedef void* (*CHLTVClient_ProcessGMod_ClientToServer)(IClient*, void*);
+	typedef void* (GMCOMMON_CALLING_CONVENTION* CHLTVClient_ProcessGMod_ClientToServer)(IClient*, void*);
 	extern const std::vector<Symbol> CHLTVClient_ProcessGMod_ClientToServerSym;
 
-	typedef void (*CHLTVServer_CHLTVServer)(void*);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CHLTVServer_CHLTVServer)(void*);
 	extern const std::vector<Symbol> CHLTVServer_CHLTVServerSym;
 
-	typedef void (*CHLTVServer_DestroyCHLTVServer)(void*);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CHLTVServer_DestroyCHLTVServer)(void*);
 	extern const std::vector<Symbol> CHLTVServer_DestroyCHLTVServerSym;
 
-	typedef bool (*COM_IsValidPath)(const char*);
+	typedef bool (GMCOMMON_CALLING_CONVENTION* COM_IsValidPath)(const char*);
 	extern const std::vector<Symbol> COM_IsValidPathSym;
 
-	typedef void (*CHLTVDemoRecorder_StartRecording)(void*, const char*, bool);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CHLTVDemoRecorder_StartRecording)(void*, const char*, bool);
 	extern const std::vector<Symbol> CHLTVDemoRecorder_StartRecordingSym;
 
-	typedef void (*CHLTVDemoRecorder_StopRecording)(void*);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CHLTVDemoRecorder_StopRecording)(void*);
 	extern const std::vector<Symbol> CHLTVDemoRecorder_StopRecordingSym;
 
-	typedef bool (*CHLTVClient_ExecuteStringCommand)(void*, const char*);
+	typedef bool (GMCOMMON_CALLING_CONVENTION* CHLTVClient_ExecuteStringCommand)(void*, const char*);
 	extern const std::vector<Symbol> CHLTVClient_ExecuteStringCommandSym;
 
-	typedef void (*CHLTVClient_Deconstructor)(void*);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CHLTVClient_Deconstructor)(void*);
 	extern const std::vector<Symbol> CHLTVClient_DeconstructorSym;
 
 	extern const std::vector<Symbol> UsermessagesSym;
@@ -100,16 +117,16 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: threadpoolfix Symbols
 	//---------------------------------------------------------------------------------
-	typedef int (*CThreadPool_ExecuteToPriority)(void* pool, void* idk, void* idk2);
+	typedef int (GMCOMMON_CALLING_CONVENTION* CThreadPool_ExecuteToPriority)(void* pool, void* idk, void* idk2);
 	extern const std::vector<Symbol> CThreadPool_ExecuteToPrioritySym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: precachefix Symbols
 	//---------------------------------------------------------------------------------
-	typedef int (*CVEngineServer_PrecacheModel)(void* engine, const char* mdl, bool preload);
+	typedef int (GMCOMMON_CALLING_CONVENTION* CVEngineServer_PrecacheModel)(void* engine, const char* mdl, bool preload);
 	extern const std::vector<Symbol> CVEngineServer_PrecacheModelSym;
 
-	typedef int (*CVEngineServer_PrecacheGeneric)(void* engine, const char* mdl, bool preload);
+	typedef int (GMCOMMON_CALLING_CONVENTION* CVEngineServer_PrecacheGeneric)(void* engine, const char* mdl, bool preload);
 	extern const std::vector<Symbol> CVEngineServer_PrecacheGenericSym;
 
 	typedef int (*SV_FindOrAddModel)(const char* mdl, bool preload);
@@ -121,25 +138,25 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: stringtable Symbols
 	//---------------------------------------------------------------------------------
-	typedef void (*CNetworkStringTable_DeleteAllStrings)(void* table);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CNetworkStringTable_DeleteAllStrings)(void* table);
 	extern const std::vector<Symbol> CNetworkStringTable_DeleteAllStringsSym;
 
-	typedef void (*CNetworkStringTable_Deconstructor)(void* table);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CNetworkStringTable_Deconstructor)(void* table);
 	extern const std::vector<Symbol> CNetworkStringTable_DeconstructorSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: surffix Symbols
 	//---------------------------------------------------------------------------------
-	typedef int (*CGameMovement_TryPlayerMove)(void* gamemovement, Vector*, void*);
+	typedef int (GMCOMMON_CALLING_CONVENTION* CGameMovement_TryPlayerMove)(void* gamemovement, Vector*, void*);
 	extern const std::vector<Symbol> CGameMovement_TryPlayerMoveSym;
 
-	typedef int (*CGameMovement_ClipVelocity)(void* gamemovement, Vector&, Vector&, Vector&, float);
+	typedef int (GMCOMMON_CALLING_CONVENTION* CGameMovement_ClipVelocity)(void* gamemovement, Vector&, Vector&, Vector&, float);
 	extern const std::vector<Symbol> CGameMovement_ClipVelocitySym;
 
-	typedef void* (*CBaseEntity_GetGroundEntity)(void* ent);
+	typedef void* (GMCOMMON_CALLING_CONVENTION* CBaseEntity_GetGroundEntity)(void* ent);
 	extern const std::vector<Symbol> CBaseEntity_GetGroundEntitySym;
 
-	typedef bool (*CTraceFilterSimple_ShouldHitEntity)(void* tr, IHandleEntity*, int);
+	typedef bool (GMCOMMON_CALLING_CONVENTION* CTraceFilterSimple_ShouldHitEntity)(void* tr, IHandleEntity*, int);
 	extern const std::vector<Symbol> CTraceFilterSimple_ShouldHitEntitySym;
 
 	typedef void* (*MoveHelperServer)();
@@ -150,49 +167,49 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: pvs Symbols
 	//---------------------------------------------------------------------------------
-	typedef int (*CGMOD_Player_SetupVisibility)(void* ent, unsigned char* pvs, int pvssize);
+	typedef int (GMCOMMON_CALLING_CONVENTION* CGMOD_Player_SetupVisibility)(void* ent, unsigned char* pvs, int pvssize);
 	extern const std::vector<Symbol> CGMOD_Player_SetupVisibilitySym;
 
-	typedef void (*CServerGameEnts_CheckTransmit)(void* gameents, CCheckTransmitInfo*, const unsigned short*, int);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CServerGameEnts_CheckTransmit)(void* gameents, CCheckTransmitInfo*, const unsigned short*, int);
 	extern const std::vector<Symbol> CServerGameEnts_CheckTransmitSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: filesystem Symbols
 	//---------------------------------------------------------------------------------
-	typedef FileHandle_t* (*CBaseFileSystem_FindFileInSearchPath)(void* filesystem, CFileOpenInfo &);
+	typedef FileHandle_t* (GMCOMMON_CALLING_CONVENTION* CBaseFileSystem_FindFileInSearchPath)(void* filesystem, CFileOpenInfo &);
 	extern const std::vector<Symbol> CBaseFileSystem_FindFileInSearchPathSym;
 
-	typedef bool (*CBaseFileSystem_IsDirectory)(void* filesystem, const char* pFileName, const char* pathID);
+	typedef bool (GMCOMMON_CALLING_CONVENTION* CBaseFileSystem_IsDirectory)(void* filesystem, const char* pFileName, const char* pathID);
 	extern const std::vector<Symbol> CBaseFileSystem_IsDirectorySym;
 
-	typedef CSearchPath* (*CBaseFileSystem_FindSearchPathByStoreId)(void* filesystem, int);
+	typedef CSearchPath* (GMCOMMON_CALLING_CONVENTION* CBaseFileSystem_FindSearchPathByStoreId)(void* filesystem, int);
 	extern const std::vector<Symbol> CBaseFileSystem_FindSearchPathByStoreIdSym;
 
-	typedef long (*CBaseFileSystem_FastFileTime)(void* filesystem, const CSearchPath* path, const char* pFileName);
+	typedef long (GMCOMMON_CALLING_CONVENTION* CBaseFileSystem_FastFileTime)(void* filesystem, const CSearchPath* path, const char* pFileName);
 	extern const std::vector<Symbol> CBaseFileSystem_FastFileTimeSym;
 
-	typedef bool (*CBaseFileSystem_FixUpPath)(void* filesystem, const char *pFileName, char *pFixedUpFileName, int sizeFixedUpFileName);
+	typedef bool (GMCOMMON_CALLING_CONVENTION* CBaseFileSystem_FixUpPath)(void* filesystem, const char *pFileName, char *pFixedUpFileName, int sizeFixedUpFileName);
 	extern const std::vector<Symbol> CBaseFileSystem_FixUpPathSym;
 
-	typedef FileHandle_t (*CBaseFileSystem_OpenForRead)(void* filesystem, const char *pFileNameT, const char *pOptions, unsigned flags, const char *pathID, char **ppszResolvedFilename);
+	typedef FileHandle_t (GMCOMMON_CALLING_CONVENTION* CBaseFileSystem_OpenForRead)(void* filesystem, const char *pFileNameT, const char *pOptions, unsigned flags, const char *pathID, char **ppszResolvedFilename);
 	extern std::vector<Symbol> CBaseFileSystem_OpenForReadSym;
 
-	typedef long (*CBaseFileSystem_GetFileTime)(void* filesystem, const char *pFileName, const char *pPathID);
+	typedef long (GMCOMMON_CALLING_CONVENTION* CBaseFileSystem_GetFileTime)(void* filesystem, const char *pFileName, const char *pPathID);
 	extern const std::vector<Symbol> CBaseFileSystem_GetFileTimeSym;
 
-	typedef void (*CBaseFileSystem_AddSearchPath)(void* filesystem, const char *pPath, const char *pathID, SearchPathAdd_t addType);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CBaseFileSystem_AddSearchPath)(void* filesystem, const char *pPath, const char *pathID, SearchPathAdd_t addType);
 	extern const std::vector<Symbol> CBaseFileSystem_AddSearchPathSym;
 
-	typedef void (*CBaseFileSystem_AddVPKFile)(void* filesystem, const char *pPath, const char *pathID, SearchPathAdd_t addType);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CBaseFileSystem_AddVPKFile)(void* filesystem, const char *pPath, const char *pathID, SearchPathAdd_t addType);
 	extern const std::vector<Symbol> CBaseFileSystem_AddVPKFileSym;
 
-	typedef void (*CBaseFileSystem_RemoveAllMapSearchPaths)(void* filesystem);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CBaseFileSystem_RemoveAllMapSearchPaths)(void* filesystem);
 	extern const std::vector<Symbol> CBaseFileSystem_RemoveAllMapSearchPathsSym;
 
-	typedef void (*CBaseFileSystem_Close)(void* filesystem, FileHandle_t);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CBaseFileSystem_Close)(void* filesystem, FileHandle_t);
 	extern const std::vector<Symbol> CBaseFileSystem_CloseSym;
 
-	typedef const char* (*CBaseFileSystem_CSearchPath_GetDebugString)(void* searchpath);
+	typedef const char* (GMCOMMON_CALLING_CONVENTION* CBaseFileSystem_CSearchPath_GetDebugString)(void* searchpath);
 	extern const std::vector<Symbol> CBaseFileSystem_CSearchPath_GetDebugStringSym;
 
 
@@ -205,31 +222,31 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: vprof Symbols
 	//---------------------------------------------------------------------------------
-	typedef void* (*CLuaGamemode_CallFinish)(void*, int);
+	typedef void* (GMCOMMON_CALLING_CONVENTION* CLuaGamemode_CallFinish)(void*, int);
 	extern const std::vector<Symbol> CLuaGamemode_CallFinishSym;
 
-	typedef void* (*CLuaGamemode_CallWithArgs)(void*, int);
+	typedef void* (GMCOMMON_CALLING_CONVENTION* CLuaGamemode_CallWithArgs)(int);
 	extern const std::vector<Symbol> CLuaGamemode_CallWithArgsSym;
 
-	typedef void* (*CLuaGamemode_Call)(void*, int);
+	typedef void* (GMCOMMON_CALLING_CONVENTION* CLuaGamemode_Call)(void*, int);
 	extern const std::vector<Symbol> CLuaGamemode_CallSym;
 
-	typedef void (*CVProfile_OutputReport)(void*, int, const tchar*, int);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CVProfile_OutputReport)(void*, int, const tchar*, int);
 	extern const std::vector<Symbol> CVProfile_OutputReportSym;
 
-	typedef void* (*CScriptedEntity_StartFunction1)(void*, const char*);
+	typedef void* (GMCOMMON_CALLING_CONVENTION* CScriptedEntity_StartFunction1)(void*, const char*);
 	extern const std::vector<Symbol> CScriptedEntity_StartFunction1Sym;
 
-	typedef void* (*CScriptedEntity_StartFunction2)(void*, int);
+	typedef void* (GMCOMMON_CALLING_CONVENTION* CScriptedEntity_StartFunction2)(void*, int);
 	extern const std::vector<Symbol> CScriptedEntity_StartFunction2Sym;
 
-	typedef void* (*CScriptedEntity_Call)(void*, int, int);
+	typedef void* (GMCOMMON_CALLING_CONVENTION* CScriptedEntity_Call)(void*, int, int);
 	extern const std::vector<Symbol> CScriptedEntity_CallSym;
 
-	typedef void* (*CScriptedEntity_CallFunction1)(void*, const char*);
+	typedef void* (GMCOMMON_CALLING_CONVENTION* CScriptedEntity_CallFunction1)(void*, const char*);
 	extern const std::vector<Symbol> CScriptedEntity_CallFunction1Sym;
 
-	typedef void* (*CScriptedEntity_CallFunction2)(void*, int);
+	typedef void* (GMCOMMON_CALLING_CONVENTION* CScriptedEntity_CallFunction2)(void*, int);
 	extern const std::vector<Symbol> CScriptedEntity_CallFunction2Sym;
 
 #ifdef SYSTEM_WINDOWS
@@ -252,16 +269,16 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: steamworks Symbols
 	//---------------------------------------------------------------------------------
-	typedef void (*CSteam3Server_OnLoggedOff)(void*, SteamServersDisconnected_t*);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CSteam3Server_OnLoggedOff)(void*, SteamServersDisconnected_t*);
 	extern const std::vector<Symbol> CSteam3Server_OnLoggedOffSym;
 
-	typedef void (*CSteam3Server_OnLogonSuccess)(void*, SteamServersConnected_t*);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CSteam3Server_OnLogonSuccess)(void*, SteamServersConnected_t*);
 	extern const std::vector<Symbol> CSteam3Server_OnLogonSuccessSym;
 
-	typedef void (*CSteam3Server_Shutdown)(void*);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CSteam3Server_Shutdown)(void*);
 	extern const std::vector<Symbol> CSteam3Server_ShutdownSym;
 
-	typedef void (*CSteam3Server_Activate)(void*, int);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CSteam3Server_Activate)(void*, int);
 	extern const std::vector<Symbol> CSteam3Server_ActivateSym;
 
 	typedef CSteam3Server& (*Steam3ServerT)();
@@ -328,7 +345,7 @@ namespace Detour
 	#endif
 	}
 
-#ifdef SYSTEM_IS_LINUX
+#ifdef SYSTEM_LINUX
 #ifndef ARCHITECTURE_X86_64
 #define DETOUR_SYMBOL_ID 0
 #else
