@@ -225,7 +225,7 @@ namespace Symbols
 	typedef void* (GMCOMMON_CALLING_CONVENTION* CLuaGamemode_CallFinish)(void*, int);
 	extern const std::vector<Symbol> CLuaGamemode_CallFinishSym;
 
-	typedef void* (GMCOMMON_CALLING_CONVENTION* CLuaGamemode_CallWithArgs)(int);
+	typedef void* (GMCOMMON_CALLING_CONVENTION* CLuaGamemode_CallWithArgs)(void*, int);
 	extern const std::vector<Symbol> CLuaGamemode_CallWithArgsSym;
 
 	typedef void* (GMCOMMON_CALLING_CONVENTION* CLuaGamemode_Call)(void*, int);
