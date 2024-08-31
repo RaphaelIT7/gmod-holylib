@@ -143,6 +143,14 @@ void Util::AddDetour()
 
 	server = InterfacePointers::Server();
 
+	/*
+	 * IMPORTANT TODO
+	 * 
+	 * We now will run in the menu state so if we try to push an entity or so, we may push it in the wrong realm!
+	 * How will we handle multiple realms?
+	 */
+
+#ifndef SYSTEM_WINDOWS
 	SourceSDK::ModuleLoader server_loader("server");
 	func_GetPlayer = (Symbols::Get_Player)Detour::GetFunction(server_loader.GetModule(), Symbols::Get_PlayerSym);
 	func_PushEntity = (Symbols::Push_Entity)Detour::GetFunction(server_loader.GetModule(), Symbols::Push_EntitySym);
@@ -150,6 +158,7 @@ void Util::AddDetour()
 	Detour::CheckFunction((void*)func_GetPlayer, "Get_Player");
 	Detour::CheckFunction((void*)func_PushEntity, "Push_Entity");
 	Detour::CheckFunction((void*)func_GetEntity, "Get_Entity");
+#endif
 }
 
 static bool g_pShouldLoad = false;

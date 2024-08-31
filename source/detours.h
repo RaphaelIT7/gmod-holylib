@@ -232,6 +232,17 @@ namespace Symbols
 	typedef void* (*CScriptedEntity_CallFunction2)(void*, int);
 	extern const std::vector<Symbol> CScriptedEntity_CallFunction2Sym;
 
+#ifdef SYSTEM_WINDOWS
+	extern const std::vector<Symbol> Client_CLuaGamemode_CallFinishSym;
+	extern const std::vector<Symbol> Client_CLuaGamemode_CallWithArgsSym;
+	extern const std::vector<Symbol> Client_CLuaGamemode_CallSym;
+	extern const std::vector<Symbol> Client_CScriptedEntity_StartFunction1Sym;
+	extern const std::vector<Symbol> Client_CScriptedEntity_StartFunction2Sym;
+	extern const std::vector<Symbol> Client_CScriptedEntity_CallSym;
+	extern const std::vector<Symbol> Client_CScriptedEntity_CallFunction1Sym;
+	extern const std::vector<Symbol> Client_CScriptedEntity_CallFunction2Sym;
+#endif
+
 	//---------------------------------------------------------------------------------
 	// Purpose: networking Symbols
 	//---------------------------------------------------------------------------------
