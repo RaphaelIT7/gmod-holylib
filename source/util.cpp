@@ -127,10 +127,18 @@ CBasePlayer* Util::GetPlayerByClient(CBaseClient* client)
 
 void Util::AddDetour()
 {
-	engineserver = (IVEngineServer*)g_pModuleManager.GetAppFactory()(INTERFACEVERSION_VENGINESERVER, NULL);
+	if (g_pModuleManager.GetAppFactory())
+		engineserver = (IVEngineServer*)g_pModuleManager.GetAppFactory()(INTERFACEVERSION_VENGINESERVER, NULL);
+	else
+		engineserver = InterfacePointers::VEngineServer();
 	Detour::CheckValue("get interface", "IVEngineServer", engineserver != NULL);
 
-	servergameents = (IServerGameEnts*)g_pModuleManager.GetGameFactory()(INTERFACEVERSION_SERVERGAMEENTS, NULL);
+	if (g_pModuleManager.GetAppFactory())
+		servergameents = (IServerGameEnts*)g_pModuleManager.GetGameFactory()(INTERFACEVERSION_SERVERGAMEENTS, NULL);
+	else {
+		SourceSDK::FactoryLoader server_loader("server");
+		servergameents = server_loader.GetInterface<IServerGameEnts>(INTERFACEVERSION_SERVERGAMEENTS);
+	}
 	Detour::CheckValue("get interface", "IServerGameEnts", servergameents != NULL);
 
 	server = InterfacePointers::Server();

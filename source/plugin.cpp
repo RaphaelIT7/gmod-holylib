@@ -1,4 +1,5 @@
 #include <GarrysMod/FactoryLoader.hpp>
+#include <GarrysMod/Lua/Interface.h>
 #include "filesystem.h"
 #include "plugin.h"
 #include "lua.h"
@@ -67,15 +68,28 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 		return false; // What if we return false?
 	}
 	 
-	ConnectTier1Libraries(&interfaceFactory, 1);
-	ConnectTier2Libraries(&interfaceFactory, 1);
-#ifndef ARCHITECTURE_X86_64
-	ConnectTier3Libraries(&interfaceFactory, 1);
-#endif
+	if (interfaceFactory)
+	{
+		ConnectTier1Libraries(&interfaceFactory, 1);
+		ConnectTier2Libraries(&interfaceFactory, 1);
+	#ifndef ARCHITECTURE_X86_64
+		ConnectTier3Libraries(&interfaceFactory, 1);
+	#endif
 
-	engine = (IVEngineServer*)interfaceFactory(INTERFACEVERSION_VENGINESERVER, NULL);
+		engine = (IVEngineServer*)interfaceFactory(INTERFACEVERSION_VENGINESERVER, NULL);
+	} else {
+		engine = InterfacePointers::VEngineServer();
+		g_pFullFileSystem = InterfacePointers::FileSystemServer();
+		g_pCVar = InterfacePointers::Cvar();
+	}
 
-	IPlayerInfoManager* playerinfomanager = (IPlayerInfoManager*)gameServerFactory(INTERFACEVERSION_PLAYERINFOMANAGER, NULL);
+	IPlayerInfoManager* playerinfomanager = NULL;
+	if (gameServerFactory)
+		playerinfomanager = (IPlayerInfoManager*)gameServerFactory(INTERFACEVERSION_PLAYERINFOMANAGER, NULL);
+	else {
+		SourceSDK::FactoryLoader server_loader("server");
+		playerinfomanager = server_loader.GetInterface<IPlayerInfoManager>(INTERFACEVERSION_PLAYERINFOMANAGER);
+	}
 	Detour::CheckValue("get interface", "playerinfomanager", playerinfomanager != NULL);
 
 	if ( playerinfomanager )
@@ -296,4 +310,18 @@ void CServerPlugin::OnEdictAllocated(edict_t *edict)
 
 void CServerPlugin::OnEdictFreed(const edict_t *edict)
 {
+}
+
+GMOD_MODULE_OPEN()
+{
+	g_HolyLibServerPlugin.Load(NULL, NULL); // Yes. I don't like it but I can't get thoes fancy interfaces.
+
+	return 0;
+}
+
+GMOD_MODULE_CLOSE()
+{
+	g_HolyLibServerPlugin.Unload();
+
+	return 0;
 }

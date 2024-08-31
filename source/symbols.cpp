@@ -247,6 +247,7 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	const std::vector<Symbol> CLuaGamemode_CallFinishSym = {
 		Symbol::FromName("_ZN12CLuaGamemode10CallFinishEi"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x56\x41\x55\x41\x54\x41\x89\xF4\x53\x48\x8B\x1D****\x8B\x93\x0C\x10\x00\x00"), // 55 48 89 E5 41 56 41 55 41 54 41 89 F4 53 48 8B 1D ?? ?? ?? ?? 8B 93 0C 10 00 00
 	};
 
 	const std::vector<Symbol> CLuaGamemode_CallWithArgsSym = {
@@ -264,24 +265,29 @@ namespace Symbols
 		Symbol::FromName("_ZN9CVProfile12OutputReportEiPKci"),
 	};
 
-	const std::vector<Symbol> CScriptedEntity_StartFunction1Sym = {
+	const std::vector<Symbol> CScriptedEntity_StartFunction1Sym = { // const char* version - GetSoundInterests
 		Symbol::FromName("_ZN15CScriptedEntity13StartFunctionEPKc"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x56\x49\x89\xF6\x41\x55\x41\x54\x49\x89\xFC\x53\xE8****\x84\xC0"), // 55 48 89 E5 41 56 49 89 F6 41 55 41 54 49 89 FC 53 E8 ?? ?? ?? ?? 84 C0
 	};
 
-	const std::vector<Symbol> CScriptedEntity_StartFunction2Sym = {
-		Symbol::FromName("_ZN15CScriptedEntity13StartFunctionEi"),
+	const std::vector<Symbol> CScriptedEntity_StartFunction2Sym = { // int version - SENT:AcceptInput
+		Symbol::FromName("_ZN15CScriptedEntity13StartFunctionEi"), 
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x56\x41\x89\xF6\x41\x55\x41\x54\x49\x89\xFC\x53\xE8****"), // 55 48 89 E5 41 56 41 89 F6 41 55 41 54 49 89 FC 53 E8 ?? ?? ?? ??
 	};
 
-	const std::vector<Symbol> CScriptedEntity_CallSym = {
+	const std::vector<Symbol> CScriptedEntity_CallSym = { // SENT:AcceptInput
 		Symbol::FromName("_ZN15CScriptedEntity4CallEii"),
+		Symbol::FromSignature("\x48\x8B*****\x55\x83\xC6\x01\x85\xD2\x48\x89\xE5"), // 48 8B ?? ?? ?? ?? ?? 55 83 C6 01 85 D2 48 89 E5
 	};
 
-	const std::vector<Symbol> CScriptedEntity_CallFunction1Sym = {
+	const std::vector<Symbol> CScriptedEntity_CallFunction1Sym = { // const char* version - SetupDataTables
 		Symbol::FromName("_ZN15CScriptedEntity12CallFunctionEPKc"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x55\x41\x54\x53\x48\x89\xFB\x48\x83\xEC\x38\x0F\xB6\x47\x08\x84\xC0"), // 55 48 89 E5 41 55 41 54 53 48 89 FB 48 83 EC 38 0F B6 47 08 84 C0
 	};
 
-	const std::vector<Symbol> CScriptedEntity_CallFunction2Sym = {
+	const std::vector<Symbol> CScriptedEntity_CallFunction2Sym = { // int version. - Found no good identifyer to find it. Guessed it.
 		Symbol::FromName("_ZN15CScriptedEntity12CallFunctionEi"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x54\x53\x48\x89\xFB\x48\x83\xEC\x10\x80\x7F\x08\x00"), //  55 48 89 E5 41 54 53 48 89 FB 48 83 EC 10 80 7F 08 00
 	};
 
 	//---------------------------------------------------------------------------------

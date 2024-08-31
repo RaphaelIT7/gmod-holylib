@@ -5,9 +5,9 @@
 enum Module_Compatibility
 {
 	LINUX32 = 1,
-	LINUX64,
-	WINDOWS32,
-	WINDOWS64,
+	LINUX64 = 2,
+	WINDOWS32 = 4,
+	WINDOWS64 = 8,
 };
 
 class ConVar;
