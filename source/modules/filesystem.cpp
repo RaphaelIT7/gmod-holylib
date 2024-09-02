@@ -664,11 +664,11 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 					if (holylib_filesystem_debug.GetBool())
 					{
 						Msg("holylib - Prediction: predicted path failed. Let's say it doesn't exist.\n");
-						FileHandle_t file = detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
-						if (file)
+						FileHandle_t file2 = detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
+						if (file2) // Verify in debug that the predictions we make are correct.
 						{
 							Msg("holylib - Prediction Error!: We predicted it to not exist, but it exists\n");
-							g_pFullFileSystem->Close(file); // We still return NULL!
+							g_pFullFileSystem->Close(file2); // We still return NULL!
 						}
 					}
 
