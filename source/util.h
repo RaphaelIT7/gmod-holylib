@@ -23,7 +23,6 @@ namespace Util
 	extern bool PushTable(const char*);
 	extern void PopTable();
 	extern void RemoveFunc(const char*);
-	extern void RunVersionCheck();
 
 	// Gmod's functions:
 	extern CBasePlayer* Get_Player(int iStackPos, bool unknown);

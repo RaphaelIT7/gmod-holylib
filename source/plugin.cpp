@@ -67,8 +67,6 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 		Msg("--- HolyLib Plugin finished loading ---\n");
 		return false; // What if we return false?
 	}
-
-	Util::RunVersionCheck();
 	 
 	if (interfaceFactory)
 	{
