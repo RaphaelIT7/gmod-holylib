@@ -108,7 +108,8 @@ FileHandle_t GetFileHandleFromCache(std::string_view strFilePath)
 		Msg("holylib - GetFileHandleFromCache: File wasn't marked for deletion? (%p)\n", it->second); // This could mean that were actively using it.
 	}
 
-	g_pFullFileSystem->Seek(it->second, 0, FILESYSTEM_SEEK_HEAD);
+	Msg("Orig Pos: %u\n", g_pFullFileSystem->Tell(it->second));
+	g_pFullFileSystem->Seek(it->second, 0, FILESYSTEM_SEEK_HEAD); // Why doesn't it reset?
 	Msg("Pos: %u\n", g_pFullFileSystem->Tell(it->second));
 	// BUG: .bsp files seem to have funny behavior :/
 
