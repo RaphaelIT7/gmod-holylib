@@ -5,6 +5,7 @@
 #include "iserver.h"
 #include "module.h"
 #include "icommandline.h"
+#include "httplib.h"
 
 GarrysMod::Lua::IUpdatedLuaInterface* g_Lua;
 IVEngineServer* engine;
@@ -174,4 +175,13 @@ bool Util::ShouldLoad()
 	CommandLine()->AppendParm("-holylibexists", "true");
 
 	return true;
+}
+
+void Util::RunVersionCheck()
+{
+	httplib::Client cli("https://raw.githubusercontent.com");
+
+	auto res = cli.Get("/RaphaelIT7/gmod-holylib/main/latest_version.txt");
+	double version = std::atoi(res->body.c_str());
+	Msg("Github newest Version: %f\n", version);
 }
