@@ -207,12 +207,6 @@ class CSearchPathsIterator
 		bool						m_bExcluded;
 	};
 
-enum FileMode_t
-{
-	FM_BINARY,
-	FM_TEXT
-};
-
 enum FileType_t
 {
 	FT_NORMAL,
