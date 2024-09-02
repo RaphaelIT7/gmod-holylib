@@ -115,7 +115,7 @@ FileHandle_t GetFileHandleFromCache(std::string_view strFilePath)
 		Msg("Orig Pos: %u\n", iPos);
 		g_pFullFileSystem->Seek(it->second, 0, FILESYSTEM_SEEK_HEAD); // Why doesn't it reset?
 		CFileHandle* fh1 = (CFileHandle*)it->second;
-		Msg("FileHandle: %p\n", fh1);
+		Msg("FileHandle: %p (%s)\n", fh1, fh1->m_pszTrueFileName);
 		CStdioFile* fh2 = (CStdioFile*)fh1->m_pFile;
 		Msg("Studio File: %p\n", fh2);
 		FILE* fh = fh2->m_pFile; // Crash. Why?
