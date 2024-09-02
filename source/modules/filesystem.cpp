@@ -123,7 +123,7 @@ FileHandle_t GetFileHandleFromCache(std::string_view strFilePath)
 		{
 			if (holylib_filesystem_debug.GetBool())
 				Msg("holylib - GetFileHandleFromCache: Failed to reset pointer!\n");
-			pFileDeletionList[it->second] = gpGlobals->curtime; // Force delete. it's broken
+			//pFileDeletionList[it->second] = gpGlobals->curtime; // Force delete. it's broken
 			return NULL;
 		}
 		// BUG: .bsp files seem to have funny behavior :/
