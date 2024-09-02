@@ -124,6 +124,8 @@ public:
 	virtual int FS_GetSectorSize() { return 1; }
 };
 
+//---------------------------------------------------------
+
 class CStdioFile : public CStdFilesystemFile
 {
 public:
@@ -142,9 +144,8 @@ public:
 	virtual int FS_fflush();
 	virtual char* FS_fgets(char* dest, int destSize);
 
-#ifdef POSIX
-	static CUtlMap< ino_t, CThreadMutex* > m_LockedFDMap;
-	static CThreadMutex	m_MutexLockedFD;
+#if defined( POSIX ) && !defined( _PS3 )
+	static CUtlMap< int, CInterlockedInt > m_LockedFDMap;
 #endif
 public:
 	CStdioFile(FILE* pFile, bool bWriteable)
