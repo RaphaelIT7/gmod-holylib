@@ -114,9 +114,12 @@ FileHandle_t GetFileHandleFromCache(std::string_view strFilePath)
 	{
 		Msg("Orig Pos: %u\n", iPos);
 		g_pFullFileSystem->Seek(it->second, 0, FILESYSTEM_SEEK_HEAD); // Why doesn't it reset?
-		Msg("File: %p\n", ((CFileHandle*)it->second)->m_pFile);
+		CFileHandle* fh1 = (CFileHandle*)it->second;
+		CStdioFile* fh2 = (CStdioFile*)fh1->m_pFile;
+		FILE* fh = fh2->m_pFile;
+		Msg("File: %p\n", fh);
 		Msg("Pos: %u\n", g_pFullFileSystem->Tell(it->second));
-		rewind(((CFileHandle*)it->second)->m_pFile);
+		rewind(fh);
 		Msg("Rewind pos: %u\n", g_pFullFileSystem->Tell(it->second));
 		// BUG: .bsp files seem to have funny behavior :/
 		// BUG2: We need to account for rb and wb since wb can't read and rb can't write.  

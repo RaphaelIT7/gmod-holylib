@@ -97,6 +97,63 @@ class CSearchPath
 		void* *m_pPackedStore;
 	};
 
+//-----------------------------------------------------------------------------
+// Per-file worker classes
+//-----------------------------------------------------------------------------
+abstract_class CStdFilesystemFile
+{
+public:
+	virtual ~CStdFilesystemFile() {}
+	virtual void FS_setbufsize(unsigned nBytes) = 0;
+	virtual void FS_fclose() = 0;
+	virtual void FS_fseek(int64 pos, int seekType) = 0;
+	virtual long FS_ftell() = 0;
+	virtual int FS_feof() = 0;
+	virtual size_t FS_fread(void* dest, size_t destSize, size_t size) = 0;
+	virtual size_t FS_fwrite(const void* src, size_t size) = 0;
+	virtual bool FS_setmode(FileMode_t mode) = 0;
+	virtual size_t FS_vfprintf(const char* fmt, va_list list) = 0;
+	virtual int FS_ferror() = 0;
+	virtual int FS_fflush() = 0;
+	virtual char* FS_fgets(char* dest, int destSize) = 0;
+	virtual int FS_GetSectorSize() { return 1; }
+};
+
+//---------------------------------------------------------
+
+class CStdioFile : public CStdFilesystemFile
+{
+public:
+	static CStdioFile* FS_fopen(const char* filename, const char* options, int64* size);
+
+	virtual void FS_setbufsize(unsigned nBytes);
+	virtual void FS_fclose();
+	virtual void FS_fseek(int64 pos, int seekType);
+	virtual long FS_ftell();
+	virtual int FS_feof();
+	virtual size_t FS_fread(void* dest, size_t destSize, size_t size);
+	virtual size_t FS_fwrite(const void* src, size_t size);
+	virtual bool FS_setmode(FileMode_t mode);
+	virtual size_t FS_vfprintf(const char* fmt, va_list list);
+	virtual int FS_ferror();
+	virtual int FS_fflush();
+	virtual char* FS_fgets(char* dest, int destSize);
+
+#ifdef POSIX
+	static CUtlMap< ino_t, CThreadMutex* > m_LockedFDMap;
+	static CThreadMutex	m_MutexLockedFD;
+#endif
+public:
+	CStdioFile(FILE* pFile, bool bWriteable)
+		: m_pFile(pFile), m_bWriteable(bWriteable)
+	{
+	}
+
+	FILE* m_pFile;
+	bool m_bWriteable;
+};
+
+
 #define MAX_FILEPATH 512
 class CBaseFileSystem;
 class CSearchPathsVisits
