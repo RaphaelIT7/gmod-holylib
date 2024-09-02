@@ -5,7 +5,9 @@
 #include "iserver.h"
 #include "module.h"
 #include "icommandline.h"
+#ifndef ARCHITECTURE_X86_64
 #include "httplib.h"
+#endif
 
 GarrysMod::Lua::IUpdatedLuaInterface* g_Lua;
 IVEngineServer* engine;
@@ -179,9 +181,11 @@ bool Util::ShouldLoad()
 
 void Util::RunVersionCheck()
 {
+#ifndef ARCHITECTURE_X86_64
 	httplib::Client cli("https://raw.githubusercontent.com");
 
 	auto res = cli.Get("/RaphaelIT7/gmod-holylib/main/latest_version.txt");
 	double version = std::atoi(res->body.c_str());
 	Msg("Github newest Version: %f\n", version);
+#endif
 }
