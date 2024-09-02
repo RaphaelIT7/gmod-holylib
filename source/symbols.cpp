@@ -1,6 +1,6 @@
 #include "detours.h"
 
-#define NULL_SIGNATURE Symbol::FromSignature("")
+static Symbol NULL_SIGNATURE = Symbol::FromSignature("");
 
 namespace Symbols
 {
