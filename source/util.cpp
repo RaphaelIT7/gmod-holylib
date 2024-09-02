@@ -185,7 +185,6 @@ void Util::RunVersionCheck()
 	httplib::Client cli("http://raw.githubusercontent.com");
 
 	auto res = cli.Get("/RaphaelIT7/gmod-holylib/main/latest_version.txt");
-	double version = std::atoi(res->body.c_str());
-	Msg("Github newest Version: %f\n", version);
+	Msg("Github newest Version: %s\n", res->body.c_str());
 #endif
 }
