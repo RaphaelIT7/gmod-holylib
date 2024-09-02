@@ -59,6 +59,7 @@ static const char* nullPath = "NULL_PATH";
 extern void DeleteFileHandle(FileHandle_t handle);
 static std::unordered_map<FileHandle_t, std::string_view> m_FileStringCache;
 static std::unordered_map<std::string_view, FileHandle_t> m_FileCache;
+static std::unordered_set<FileHandle_t> m_WriteFileHandle;
 std::unordered_map<FileHandle_t, float> pFileDeletionList;
 void AddFileHandleToCache(std::string_view strFilePath, FileHandle_t pHandle)
 {
@@ -112,6 +113,8 @@ FileHandle_t GetFileHandleFromCache(std::string_view strFilePath)
 	g_pFullFileSystem->Seek(it->second, 0, FILESYSTEM_SEEK_HEAD); // Why doesn't it reset?
 	Msg("Pos: %u\n", g_pFullFileSystem->Tell(it->second));
 	// BUG: .bsp files seem to have funny behavior :/
+	// BUG2: We need to account for rb and wb since wb can't read and rb can't write.  
+	// How will we account for that? were gonna need to get the CFileHandle class
 
 	return it->second;
 }
@@ -249,6 +252,14 @@ static void DumpFilecacheCmd(const CCommand &args)
 }
 static ConCommand dumpfilecache("holylib_filesystem_dumpfilecache", DumpFilecacheCmd, "Dumps the filecache", 0);
 
+inline void OnFileHandleOpen(FileHandle_t handle, const char* pFileMode)
+{
+	if (pFileMode[0] == 'r')
+		return;
+
+	m_WriteFileHandle.insert(handle);
+}
+
 static Detouring::Hook detour_CBaseFileSystem_FindFileInSearchPath;
 static FileHandle_t hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, CFileOpenInfo &openInfo)
 {
@@ -269,7 +280,10 @@ static FileHandle_t hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, 
 		{
 			FileHandle_t cacheFile = GetFileHandleFromCache(GetFullPath(cachePath, openInfo.m_pFileName));
 			if (cacheFile)
+			{
+				OnFileHandleOpen(cacheFile, openInfo.m_pOptions);
 				return cacheFile;
+			}
 		}
 
 		const CSearchPath* origPath = openInfo.m_pSearchPath;
@@ -280,6 +294,7 @@ static FileHandle_t hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, 
 			if (holylib_filesystem_cachefilehandle.GetBool())
 				AddFileHandleToCache(GetFullPath(openInfo.m_pSearchPath, openInfo.m_pFileName), file);
 
+			OnFileHandleOpen(file, openInfo.m_pOptions);
 			return file;
 		}
 
@@ -290,7 +305,10 @@ static FileHandle_t hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, 
 		{
 			FileHandle_t cacheFile = GetFileHandleFromCache(GetFullPath(openInfo.m_pSearchPath, openInfo.m_pFileName));
 			if (cacheFile)
+			{
+				OnFileHandleOpen(cacheFile, openInfo.m_pOptions);
 				return cacheFile;
+			}
 		}
 
 		if (holylib_filesystem_debug.GetBool())
@@ -304,6 +322,8 @@ static FileHandle_t hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, 
 		AddFileToSearchCache(openInfo.m_pFileName, openInfo.m_pSearchPath->m_storeId, openInfo.m_pSearchPath->GetPathIDString());
 		if (holylib_filesystem_cachefilehandle.GetBool())
 			AddFileHandleToCache(GetFullPath(openInfo.m_pSearchPath, openInfo.m_pFileName), file);
+	
+		OnFileHandleOpen(file, openInfo.m_pOptions);
 	}
 
 	return file;
@@ -1020,6 +1040,14 @@ static void hook_CBaseFileSystem_Close(IFileSystem* filesystem, FileHandle_t fil
 
 	if (holylib_filesystem_cachefilehandle.GetBool())
 	{
+		auto it2 = m_WriteFileHandle.find(file);
+		if (it2 != m_WriteFileHandle.end())
+		{
+			m_WriteFileHandle.erase(it2);
+			detour_CBaseFileSystem_Close.GetTrampoline<Symbols::CBaseFileSystem_Close>()(filesystem, file);
+			return;
+		}
+
 		auto it = pFileDeletionList.find(file);
 		if (it == pFileDeletionList.end()) // File is being used again.
 			pFileDeletionList[file] = gpGlobals->curtime + FILE_HANDLE_DELETION_DELAY;
