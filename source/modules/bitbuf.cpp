@@ -606,6 +606,16 @@ LUA_FUNCTION_STATIC(bf_read_SeekRelative)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(bf_read_GetData)
+{
+	bf_read* bf = Get_bf_read(1);
+	if (!bf)
+		LUA->ArgError(1, "bf_read");
+
+	LUA->PushString((const char*)bf->GetBasePointer(), bf->GetNumBytesLeft() + bf->GetNumBytesRead());
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(bitbuf_CopyReadBuffer)
 {
 	bf_read* pBf = Get_bf_read(1);
@@ -693,6 +703,9 @@ void CBitBufModule::LuaInit(bool bServerInit)
 		Util::AddFunc(bf_read_Reset, "Reset");
 		Util::AddFunc(bf_read_Seek, "Seek");
 		Util::AddFunc(bf_read_SeekRelative, "SeekRelative");
+
+		// Other functions
+		Util::AddFunc(bf_read_GetData, "GetData");
 	g_Lua->Pop(1);
 
 	Util::StartTable();
