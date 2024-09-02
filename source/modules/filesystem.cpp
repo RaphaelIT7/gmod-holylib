@@ -1033,10 +1033,13 @@ void DeleteFileHandle(FileHandle_t handle)
 	detour_CBaseFileSystem_Close.GetTrampoline<Symbols::CBaseFileSystem_Close>()(g_pFullFileSystem, handle);
 }
 
+static bool m_bInDeletion = false;
 extern CGlobalVars* gpGlobals;
 static void hook_CBaseFileSystem_Close(IFileSystem* filesystem, FileHandle_t file)
 {
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::Close", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
+	if (m_bInDeletion)
+		return;
 
 	if (holylib_filesystem_cachefilehandle.GetBool())
 	{
@@ -1054,9 +1057,11 @@ static void hook_CBaseFileSystem_Close(IFileSystem* filesystem, FileHandle_t fil
 		else
 			it->second = FILE_HANDLE_DELETION_DELAY;
 
+		m_bInDeletion = true;
 		Msg("Orig Pos: %u\n", g_pFullFileSystem->Tell(file));
 		g_pFullFileSystem->Seek(file, 0, FILESYSTEM_SEEK_HEAD); // Why doesn't it reset?
 		Msg("Pos: %u\n", g_pFullFileSystem->Tell(file));
+		m_bInDeletion = false;
 
 		if (holylib_filesystem_debug.GetBool())
 			Msg("holylib - CBaseFileSystem::Close: Marked handle for deletion! (%p)\n", file);
