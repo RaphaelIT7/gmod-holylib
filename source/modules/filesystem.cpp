@@ -112,17 +112,19 @@ FileHandle_t GetFileHandleFromCache(std::string_view strFilePath)
 	int iPos = g_pFullFileSystem->Tell(it->second);
 	if (iPos != 0)
 	{
-		Msg("Orig Pos: %u\n", iPos);
+		if (holylib_filesystem_debug.GetBool())
+			Msg("holylib - GetFileHandleFromCache: Pos: %u\n", g_pFullFileSystem->Tell(it->second));
 		g_pFullFileSystem->Seek(it->second, 0, FILESYSTEM_SEEK_HEAD); // Why doesn't it reset?
-		CFileHandle* fh1 = (CFileHandle*)it->second;
-		Msg("FileHandle: %p (%s)\n", fh1, fh1->m_pszTrueFileName);
-		CStdioFile* fh2 = (CStdioFile*)fh1->m_pFile;
-		Msg("Studio File: %p\n", fh2);
-		FILE* fh = fh2->m_pFile; // Crash. Why?
-		Msg("File: %p\n", fh);
-		Msg("Pos: %u\n", g_pFullFileSystem->Tell(it->second));
-		rewind(fh);
-		Msg("Rewind pos: %u\n", g_pFullFileSystem->Tell(it->second));
+		if (holylib_filesystem_debug.GetBool())
+			Msg("holylib - GetFileHandleFromCache: Rewind pos: %u\n", g_pFullFileSystem->Tell(it->second));
+		int iNewPos = g_pFullFileSystem->Tell(it->second);
+		if (iNewPos != 0)
+		{
+			if (holylib_filesystem_debug.GetBool())
+				Msg("holylib - GetFileHandleFromCache: Failed to reset pointer!\n");
+			pFileDeletionList[it->second] = gpGlobals->curtime; // Force delete. it's broken
+			return NULL;
+		}
 		// BUG: .bsp files seem to have funny behavior :/
 		// BUG2: We need to account for rb and wb since wb can't read and rb can't write.  
 		// How will we account for that? were gonna need to get the CFileHandle class
