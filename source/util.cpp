@@ -6,6 +6,7 @@
 #include "module.h"
 #include "icommandline.h"
 #ifndef ARCHITECTURE_X86_64
+#define CPPHTTPLIB_OPENSSL_SUPPORT
 #include "httplib.h"
 #endif
 
