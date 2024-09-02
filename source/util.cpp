@@ -6,7 +6,6 @@
 #include "module.h"
 #include "icommandline.h"
 #ifndef ARCHITECTURE_X86_64
-#define CPPHTTPLIB_OPENSSL_SUPPORT
 #include "httplib.h"
 #endif
 
@@ -183,7 +182,7 @@ bool Util::ShouldLoad()
 void Util::RunVersionCheck()
 {
 #ifndef ARCHITECTURE_X86_64
-	httplib::Client cli("https://raw.githubusercontent.com");
+	httplib::Client cli("http://raw.githubusercontent.com");
 
 	auto res = cli.Get("/RaphaelIT7/gmod-holylib/main/latest_version.txt");
 	double version = std::atoi(res->body.c_str());
