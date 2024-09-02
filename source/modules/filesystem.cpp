@@ -254,7 +254,7 @@ static ConCommand dumpfilecache("holylib_filesystem_dumpfilecache", DumpFilecach
 
 inline void OnFileHandleOpen(FileHandle_t handle, const char* pFileMode)
 {
-	if (pFileMode[0] == 'r')
+	if (pFileMode[0] == 'r') // I see a potential crash, but this should never happen.
 		return;
 
 	m_WriteFileHandle.insert(handle);
@@ -1053,6 +1053,10 @@ static void hook_CBaseFileSystem_Close(IFileSystem* filesystem, FileHandle_t fil
 			pFileDeletionList[file] = gpGlobals->curtime + FILE_HANDLE_DELETION_DELAY;
 		else
 			it->second = FILE_HANDLE_DELETION_DELAY;
+
+		Msg("Orig Pos: %u\n", g_pFullFileSystem->Tell(file));
+		g_pFullFileSystem->Seek(file, 0, FILESYSTEM_SEEK_HEAD); // Why doesn't it reset?
+		Msg("Pos: %u\n", g_pFullFileSystem->Tell(file));
 
 		if (holylib_filesystem_debug.GetBool())
 			Msg("holylib - CBaseFileSystem::Close: Marked handle for deletion! (%p)\n", file);
