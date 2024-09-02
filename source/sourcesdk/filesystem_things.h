@@ -97,9 +97,14 @@ class CSearchPath
 		void* *m_pPackedStore;
 	};
 
-//-----------------------------------------------------------------------------
-// Per-file worker classes
-//-----------------------------------------------------------------------------
+//---------------------------------------------------------
+
+enum FileMode_t
+{
+	FM_BINARY,
+	FM_TEXT
+};
+
 abstract_class CStdFilesystemFile
 {
 public:
@@ -118,8 +123,6 @@ public:
 	virtual char* FS_fgets(char* dest, int destSize) = 0;
 	virtual int FS_GetSectorSize() { return 1; }
 };
-
-//---------------------------------------------------------
 
 class CStdioFile : public CStdFilesystemFile
 {
