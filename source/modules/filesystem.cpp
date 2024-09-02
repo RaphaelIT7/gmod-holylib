@@ -88,6 +88,7 @@ void RemoveFileHandleFromCache(FileHandle_t pHandle)
 	delete it->second.data();
 }
 
+extern CGlobalVars* gpGlobals;
 FileHandle_t GetFileHandleFromCache(std::string_view strFilePath)
 {
 	auto it = m_FileCache.find(strFilePath);
@@ -1047,7 +1048,6 @@ void DeleteFileHandle(FileHandle_t handle)
 	detour_CBaseFileSystem_Close.GetTrampoline<Symbols::CBaseFileSystem_Close>()(g_pFullFileSystem, handle);
 }
 
-extern CGlobalVars* gpGlobals;
 static void hook_CBaseFileSystem_Close(IFileSystem* filesystem, FileHandle_t file)
 {
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::Close", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
