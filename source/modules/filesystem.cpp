@@ -115,15 +115,19 @@ FileHandle_t GetFileHandleFromCache(std::string_view strFilePath)
 	{
 		if (holylib_filesystem_debug.GetBool())
 			Msg("holylib - GetFileHandleFromCache: Pos: %u\n", g_pFullFileSystem->Tell(it->second));
+		
 		g_pFullFileSystem->Seek(it->second, 0, FILESYSTEM_SEEK_HEAD); // Why doesn't it reset?
+		
 		if (holylib_filesystem_debug.GetBool())
 			Msg("holylib - GetFileHandleFromCache: Rewind pos: %u\n", g_pFullFileSystem->Tell(it->second));
+		
 		int iNewPos = g_pFullFileSystem->Tell(it->second);
 		if (iNewPos != 0)
 		{
 			if (holylib_filesystem_debug.GetBool())
 				Msg("holylib - GetFileHandleFromCache: Failed to reset pointer!\n");
-			//pFileDeletionList[it->second] = gpGlobals->curtime; // Force delete. it's broken
+			
+			pFileDeletionList[it->second] = gpGlobals->curtime; // Force delete. it's broken
 			return NULL;
 		}
 		// BUG: .bsp files seem to have funny behavior :/
@@ -1114,7 +1118,14 @@ void CFileSystemModule::Think(bool bSimulating)
 			if (holylib_filesystem_debug.GetBool())
 				Msg("holylib - FileThread: Deleted handle! (%p)\n", handle);
 
-			DeleteFileHandle(handle);
+			CFileHandle* fh = (CFileHandle*)handle;
+			if (!fh->m_pFile)
+			{
+				Msg("holylib - filesystem think: Tried to delete an already deleted handle!\n");
+				continue;
+			}
+
+			DeleteFileHandle(handle); // BUG! We somehow delete the same handle twice :/
 		}
 		pDeletionList.clear();
 	}
