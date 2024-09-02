@@ -114,6 +114,7 @@ FileHandle_t GetFileHandleFromCache(std::string_view strFilePath)
 	{
 		Msg("Orig Pos: %u\n", iPos);
 		g_pFullFileSystem->Seek(it->second, 0, FILESYSTEM_SEEK_HEAD); // Why doesn't it reset?
+		Msg("File: %p\n", ((CFileHandle*)it->second)->m_pFile);
 		Msg("Pos: %u\n", g_pFullFileSystem->Tell(it->second));
 		rewind(((CFileHandle*)it->second)->m_pFile);
 		Msg("Rewind pos: %u\n", g_pFullFileSystem->Tell(it->second));
