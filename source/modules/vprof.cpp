@@ -485,6 +485,7 @@ Detouring::Hook detour_lj_BC_FUNC;
 void* hook_lj_BC_FUNC() // Find out the luajit function later.
 {
 	// ToDo
+	return NULL;
 }
 
 void CVProfModule::InitDetour(bool bPreServer)

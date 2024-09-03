@@ -820,7 +820,7 @@ LUA_FUNCTION_STATIC(bf_write_WriteLongLong)
 	return 0;
 }
 
-LUA_FUNCTION_STATIC(bf_write_WriteFloat)
+LUA_FUNCTION_STATIC(bf_write_WriteBytes)
 {
 	bf_write* pBF = Get_bf_write(1);
 	if (!pBF)
@@ -1192,7 +1192,7 @@ void CBitBufModule::LuaInit(bool bServerInit)
 		Util::AddFunc(bf_write_WriteByte, "WriteByte");
 		Util::AddFunc(bf_write_WriteLong, "WriteLong");
 		Util::AddFunc(bf_write_WriteLongLong, "WriteLongLong");
-		Util::AddFunc(bf_write_WriteFloat, "WriteFloat");
+		Util::AddFunc(bf_write_WriteBytes, "WriteBytes");
 		Util::AddFunc(bf_write_WriteOneBit, "WriteOneBit");
 		Util::AddFunc(bf_write_WriteOneBitAt, "WriteOneBitAt");
 		Util::AddFunc(bf_write_WriteShort, "WriteShort");
