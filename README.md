@@ -173,11 +173,15 @@ Returns `true` on success.
 
 ### Hooks
 
-#### bool HolyLib:PreProcessGameEvent(Player ply, table gameEvents)
+#### bool HolyLib:PreProcessGameEvent(Player ply, table gameEvents, number plyIndex)
 Called when the client sends the gameevent list it wants to listen to.  
 Return `true` to stop the engine from future processing this list.  
 
-#### HolyLib:PostProcessGameEvent(Player ply, table gameEvents)
+NOTE: This and the hook below may be called with a NULL player.  
+it is caused by the player registering the gameevents before he spawned/got an entity.  
+Because of this, the third argument was added.  
+
+#### HolyLib:PostProcessGameEvent(Player ply, table gameEvents, number plyIndex)
 Called after the engine processed the received gameevent list.  
 
 ### ConVars
