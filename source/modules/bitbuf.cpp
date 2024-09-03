@@ -616,6 +616,442 @@ LUA_FUNCTION_STATIC(bf_read_GetData)
 	return 1;
 }
 
+/*
+ * bf_write
+ */
+
+LUA_FUNCTION_STATIC(bf_write__tostring)
+{
+	bf_write* bf = Get_bf_write(1);
+	if (!bf)
+		LUA->ArgError(1, "bf_write");
+
+	char szBuf[128] = {};
+	V_snprintf(szBuf, sizeof(szBuf), "bf_write [%i]", bf->m_nDataBits);
+	LUA->PushString(szBuf);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(bf_write__index)
+{
+	if (!g_Lua->FindOnObjectsMetaTable(1, 2))
+		LUA->PushNil();
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(bf_write__gc)
+{
+	bf_write* bf = Get_bf_write(1);
+	if (bf)
+	{
+		delete[] bf->GetBasePointer();
+		delete bf;
+	}
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(bf_write_IsValid)
+{
+	bf_write* bf = Get_bf_write(1);
+
+	LUA->PushBool(bf != nullptr);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(bf_write_GetData)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	LUA->PushString((const char*)pBF->GetBasePointer(), pBF->GetNumBytesWritten());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(bf_write_GetNumBytesWritten)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	LUA->PushNumber(pBF->GetNumBytesWritten());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(bf_write_GetNumBytesLeft)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	LUA->PushNumber(pBF->GetNumBytesLeft());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(bf_write_GetNumBitsWritten)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	LUA->PushNumber(pBF->GetNumBitsWritten());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(bf_write_GetNumBitsLeft)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	LUA->PushNumber(pBF->GetNumBitsLeft());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(bf_write_GetMaxNumBits)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	LUA->PushNumber(pBF->GetMaxNumBits());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(bf_write_IsOverflowed)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	LUA->PushBool(pBF->IsOverflowed());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(bf_write_Reset)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	pBF->Reset();
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(bf_write_GetDebugName)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	LUA->PushString(pBF->GetDebugName());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(bf_write_SetDebugName)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	pBF->SetDebugName(LUA->CheckString(2)); // BUG: Do we need to keep a reference?
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(bf_write_SeekToBit)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	pBF->SeekToBit(LUA->CheckNumber(2));
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(bf_write_WriteFloat)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	pBF->WriteFloat(LUA->CheckNumber(2));
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(bf_write_WriteChar)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	pBF->WriteChar(LUA->CheckNumber(2));
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(bf_write_WriteByte)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	pBF->WriteByte(LUA->CheckNumber(2));
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(bf_write_WriteLong)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	pBF->WriteLong(LUA->CheckNumber(2));
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(bf_write_WriteLongLong)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	pBF->WriteLongLong(LUA->CheckNumber(2));
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(bf_write_WriteFloat)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	const char* pData = LUA->CheckString(2);
+	int iLength = LUA->ObjLen(2);
+	pBF->WriteBytes(pData, iLength);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(bf_write_WriteOneBit)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	pBF->WriteOneBit(LUA->GetBool(2));
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(bf_write_WriteOneBitAt)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	pBF->WriteOneBitAt(LUA->CheckNumber(2), LUA->GetBool(3));
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(bf_write_WriteShort)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	pBF->WriteShort(LUA->CheckNumber(2));
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(bf_write_WriteWord)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	pBF->WriteWord(LUA->CheckNumber(2));
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(bf_write_WriteSignedVarInt32)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	pBF->WriteSignedVarInt32(LUA->CheckNumber(2));
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(bf_write_WriteSignedVarInt64)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	pBF->WriteSignedVarInt64(LUA->CheckNumber(2));
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(bf_write_WriteVarInt32)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	pBF->WriteVarInt32(LUA->CheckNumber(2));
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(bf_write_WriteVarInt64)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	pBF->WriteVarInt64(LUA->CheckNumber(2));
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(bf_write_WriteUBitVar)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	pBF->WriteUBitVar(LUA->CheckNumber(2));
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(bf_write_WriteUBitLong)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	pBF->WriteUBitLong(LUA->CheckNumber(2), LUA->CheckNumber(3), LUA->GetBool(4));
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(bf_write_WriteBitAngle)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	pBF->WriteBitAngle(LUA->CheckNumber(2), LUA->CheckNumber(3));
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(bf_write_WriteBitAngles)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	QAngle* ang = LUA->GetUserType<QAngle>(2, GarrysMod::Lua::Type::Angle);
+	pBF->WriteBitAngles(*ang);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(bf_write_WriteBitVec3Coord)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	Vector* vec = LUA->GetUserType<Vector>(2, GarrysMod::Lua::Type::Vector );
+	pBF->WriteBitVec3Coord(*vec);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(bf_write_WriteBitVec3Normal)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	Vector* vec = LUA->GetUserType<Vector>(2, GarrysMod::Lua::Type::Vector);
+	pBF->WriteBitVec3Normal(*vec);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(bf_write_WriteBits)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	const char* pData = LUA->CheckString(2);
+	int iBits = LUA->CheckNumber(3);
+	LUA->PushBool(pBF->WriteBits(pData, iBits));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(bf_write_WriteBitsFromBuffer)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	bf_read* pBFRead = Get_bf_read(2);
+	if (!pBFRead)
+		LUA->ArgError(2, "bf_read");
+
+	int iBits = LUA->CheckNumber(3);
+	LUA->PushBool(pBF->WriteBitsFromBuffer(pBFRead, iBits));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(bf_write_WriteBitNormal)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	pBF->WriteBitNormal(LUA->CheckNumber(2));
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(bf_write_WriteBitLong)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	pBF->WriteBitLong(LUA->CheckNumber(2), LUA->CheckNumber(3), LUA->GetBool(4));
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(bf_write_WriteBitFloat)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	pBF->WriteBitFloat(LUA->CheckNumber(2));
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(bf_write_WriteBitCoord)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	pBF->WriteBitCoord(LUA->CheckNumber(2));
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(bf_write_WriteBitCoordMP)
+{
+	bf_write* pBF = Get_bf_write(1);
+	if (!pBF)
+		LUA->ArgError(1, "bf_write");
+
+	pBF->WriteBitCoordMP(LUA->CheckNumber(2), LUA->GetBool(3), LUA->GetBool(4));
+	return 0;
+}
+
 LUA_FUNCTION_STATIC(bitbuf_CopyReadBuffer)
 {
 	bf_read* pBf = Get_bf_read(1);
@@ -646,6 +1082,33 @@ LUA_FUNCTION_STATIC(bitbuf_CreateReadBuffer)
 	pNewBf->StartReading(cData, iLength);
 
 	Push_bf_read(pNewBf);
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(bitbuf_CreateWriteBuffer)
+{
+	if (LUA->IsType(1, GarrysMod::Lua::Type::Number))
+	{
+		int iSize = LUA->CheckNumber(1);
+		unsigned char* cData = new unsigned char[iSize];
+
+		bf_write* pNewBf = new bf_write;
+		pNewBf->StartWriting(cData, iSize);
+
+		Push_bf_write(pNewBf);
+	} else {
+		const char* pData = LUA->CheckString(1);
+		int iLength = LUA->ObjLen(1);
+
+		unsigned char* cData = new unsigned char[iLength + 1];
+		memcpy(cData, pData, iLength);
+
+		bf_write* pNewBf = new bf_write;
+		pNewBf->StartWriting(cData, iLength);
+
+		Push_bf_write(pNewBf);
+	}
 
 	return 1;
 }
@@ -708,9 +1171,56 @@ void CBitBufModule::LuaInit(bool bServerInit)
 		Util::AddFunc(bf_read_GetData, "GetData");
 	g_Lua->Pop(1);
 
+	bf_write_TypeID = g_Lua->CreateMetaTable("bf_write");
+		Util::AddFunc(bf_write__tostring, "__tostring");
+		Util::AddFunc(bf_write__index, "__index");
+		Util::AddFunc(bf_write__gc, "__gc");
+		Util::AddFunc(bf_write_IsValid, "IsValid");
+		Util::AddFunc(bf_write_GetData, "GetData");
+		Util::AddFunc(bf_write_GetNumBytesWritten, "GetNumBytesWritten");
+		Util::AddFunc(bf_write_GetNumBytesLeft, "GetNumBytesLeft");
+		Util::AddFunc(bf_write_GetNumBitsWritten, "GetNumBitsWritten");
+		Util::AddFunc(bf_write_GetNumBitsLeft, "GetNumBitsLeft");
+		Util::AddFunc(bf_write_GetMaxNumBits, "GetMaxNumBits");
+		Util::AddFunc(bf_write_IsOverflowed, "IsOverflowed");
+		Util::AddFunc(bf_write_Reset, "Reset");
+		Util::AddFunc(bf_write_GetDebugName, "GetDebugName");
+		Util::AddFunc(bf_write_SetDebugName, "SetDebugName");
+		Util::AddFunc(bf_write_SeekToBit, "SeekToBit");
+		Util::AddFunc(bf_write_WriteFloat, "WriteFloat");
+		Util::AddFunc(bf_write_WriteChar, "WriteChar");
+		Util::AddFunc(bf_write_WriteByte, "WriteByte");
+		Util::AddFunc(bf_write_WriteLong, "WriteLong");
+		Util::AddFunc(bf_write_WriteLongLong, "WriteLongLong");
+		Util::AddFunc(bf_write_WriteFloat, "WriteFloat");
+		Util::AddFunc(bf_write_WriteOneBit, "WriteOneBit");
+		Util::AddFunc(bf_write_WriteOneBitAt, "WriteOneBitAt");
+		Util::AddFunc(bf_write_WriteShort, "WriteShort");
+		Util::AddFunc(bf_write_WriteWord, "WriteWord");
+		Util::AddFunc(bf_write_WriteSignedVarInt32, "WriteSignedVarInt32");
+		Util::AddFunc(bf_write_WriteSignedVarInt64, "WriteSignedVarInt64");
+		Util::AddFunc(bf_write_WriteVarInt32, "WriteVarInt32");
+		Util::AddFunc(bf_write_WriteVarInt64, "WriteVarInt64");
+		Util::AddFunc(bf_write_WriteUBitVar, "WriteUBitVar");
+		Util::AddFunc(bf_write_WriteUBitLong, "WriteUBitLong");
+		Util::AddFunc(bf_write_WriteBitAngle, "WriteBitAngle");
+		Util::AddFunc(bf_write_WriteBitAngles, "WriteBitAngles");
+		Util::AddFunc(bf_write_WriteBitVec3Coord, "WriteBitVec3Coord");
+		Util::AddFunc(bf_write_WriteBitVec3Normal, "WriteBitVec3normal");
+		Util::AddFunc(bf_write_WriteBits, "WriteBits");
+		Util::AddFunc(bf_write_WriteBitsFromBuffer, "WriteBitsFromBuffer");
+		Util::AddFunc(bf_write_WriteBitNormal, "WriteBitNormal");
+		Util::AddFunc(bf_write_WriteBitLong, "WriteBitLong");
+		Util::AddFunc(bf_write_WriteBitFloat, "WriteBitFloat");
+		Util::AddFunc(bf_write_WriteBitCoord, "WriteBitCoord");
+		Util::AddFunc(bf_write_WriteBitCoordMP, "WriteBitCoordMP");
+		
+	g_Lua->Pop(1);
+
 	Util::StartTable();
 		Util::AddFunc(bitbuf_CopyReadBuffer, "CopyReadBuffer");
 		Util::AddFunc(bitbuf_CreateReadBuffer, "CreateReadBuffer");
+		Util::AddFunc(bitbuf_CreateWriteBuffer, "CreateWriteBuffer");
 	Util::FinishTable("bitbuf");
 }
 

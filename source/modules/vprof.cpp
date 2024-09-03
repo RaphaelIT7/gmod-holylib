@@ -30,6 +30,7 @@ static void OnSV_StressBotsChange(IConVar* var, const char *pOldValue, float flO
 // Reminder: Look UP before adding static.
 ConVar holylib_sv_stressbots("holylib_sv_stressbots", "0", 0, "Sets sv_stressbots. (sv_stressbots will be available in the next update)", OnSV_StressBotsChange);
 static ConVar holylib_vprof_exportreport("holylib_vprof_exportreport", "1", 0, "If enabled, vprof results will be dumped into a file in the vprof/ folder");
+static ConVar holylib_vprof_profilelua("holylib_vprof_profilelua", "0", 0);
 
 static CVProfModule g_pVProfModule;
 IModule* pVProfModule = &g_pVProfModule;
@@ -479,6 +480,12 @@ static void* hook_Client_CScriptedEntity_CallFunction2(void* funky_srv, int pool
 	return detour_Client_CScriptedEntity_CallFunction2.GetTrampoline<Symbols::CScriptedEntity_CallFunction2>()(funky_srv, pool);
 }
 #endif
+
+Detouring::Hook detour_lj_BC_FUNC;
+void* hook_lj_BC_FUNC() // Find out the luajit function later.
+{
+	// ToDo
+}
 
 void CVProfModule::InitDetour(bool bPreServer)
 {
