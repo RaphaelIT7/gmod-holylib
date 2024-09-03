@@ -266,6 +266,15 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 
 	int idx = 0;
 	CBasePlayer* pPlayer = Util::GetPlayerByClient(client);
+	if (gameevent_debug.GetBool())
+	{
+		Msg("Player: %p\n", pPlayer);
+		Msg("Client: %p\n", client);
+		Msg("Index: %i\n", ((IClient*)client)->GetPlayerSlot() + 1);
+		Msg("Index2: %i\n", client->GetPlayerSlot());
+		Msg("Index3: %i\n", client->m_nClientSlot);
+	}
+
 	g_Lua->CreateTable();
 		for (int i=0; i < MAX_EVENT_NUMBER; i++)
 		{
