@@ -398,6 +398,6 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	const std::vector<Symbol> g_BSPDataSym = { // 64x -> CM_Vis
 		Symbol::FromName("g_BSPData"), 
-		Symbol::FromSignature("\x4C\x8B\x25\x2A\x2A\x2A\x2A\x41\x8B\x84\x24\x98\x02\x00\x00\x8D\x50\x07"), // 4C 8B ?? ?? ?? ?? ?? 41 8B 84 24 98 02 00 00 8D 50 07 | 2A -> ?? 
+		Symbol::FromSignature("\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x41\x8B\x84\x24\x98\x02\x00\x00\x8D\x50\x07"), // ?? ?? ?? ?? ?? ?? ?? 41 8B 84 24 98 02 00 00 8D 50 07 | 2A -> ?? 
 	};
 }
