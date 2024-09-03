@@ -937,7 +937,7 @@ If enabled, HLTV Clients can send net messages to the server and `HolyLib:OnSour
 If enabled, HLTV Clients can send commands to the server and `HolyLib:OnSourceTVCommand` will be called.  
 
 ## bitbuf
-This module adds a `bf_read` and later `bf_write` class.  
+This module adds a `bf_read` and `bf_write` class.  
 
 ### Functions
 
@@ -948,6 +948,9 @@ Useful if you want to save the data received by a client.
 #### bf_read bibuf.CreateReadBuffer(string data)
 Creates a read buffer from the given data.  
 Useful if you want to read the userdata of the instancebaseline stringtable.  
+
+#### bf_write bitbuf.CreateWriteBuffer(number size or string data)
+Create a write buffer with the given size or with the given data.  
 
 ### bf_read
 This class will later be used to read net messages from HLTV clients.  
@@ -1078,6 +1081,116 @@ Read a number with the given amount of bits.
 #### bool bf_read:Seek(number iPos)
 
 #### bool bf_read:SeekRelative(number iPos)
+
+### bf_write  
+
+#### string bf_write:\_\_tostring__()
+Returns the a formated string.  
+Format: `bf_write [%i]`  
+`%i` -> size of data in bits.  
+
+#### bf_write:\_\_gc()
+Deletes the buffer internally.  
+
+#### bool bf_write:IsValid()
+returns `true` if the buffer is still valid.  
+
+#### string bf_write:GetData()
+Returns the written data.  
+
+#### number bf_write:GetNumBytesWritten()
+Returns the number of bytes written.  
+
+#### number bf_write:GetNumBytesLeft()  
+Returns the number of bytes that are unwritten.  
+
+#### number bf_write:GetNumBitsWritten()
+Returns the number of bits written.  
+
+#### number bf_write:GetNumBitsLeft()
+Returns the number of bits left.  
+
+#### number bf_write:GetMaxNumBits()
+Returns the maximum number of bits that can be written.  
+#### bool bf_write:IsOverflowed()
+Returns `true` if the buffer is overflowed.  
+
+#### bf_write:Reset()
+Resets the buffer.  
+
+#### string bf_write:GetDebugName()
+Returns the debug name.  
+
+#### bf_write:SetDebugName(string debugName)
+Sets the debug name.  
+You should keep a reference to the string.  
+
+#### bf_write:SeekToBit(number bit)
+Seeks to the given bit.  
+
+#### bf_write:WriteFloat(number value)
+Writes a float.  
+
+#### bf_write:WriteChar(number value)
+Writes a char.  
+
+#### bf_write:WriteByte(number value)
+Writes a byte.  
+
+#### bf_write:WriteLong(number value)
+Writes a long.  
+
+#### bf_write:WriteLongLong(number value)
+Writes a long long.  
+
+#### bf_write:WriteBytes(string data)
+Writes the given bytes to the buffer.  
+
+#### bf_write:WriteOneBit(bool value)
+Writes one bit.  
+
+#### bf_write:WriteOneBitAt(number bit, bool value)
+Sets the given bit to the given value.  
+
+#### bf_write:WriteShort(number value)
+Writes a short.  
+
+#### bf_write:WriteWord(number value)
+Writes a word.  
+
+#### bf_write:WriteSignedVarInt32(number value)
+
+#### bf_write:WriteSignedVarInt64(number value)
+
+#### bf_write:WriteVarInt32(number value)
+
+#### bf_write:WriteVarInt64(number value)
+
+#### bf_write:WriteUBitVar(number value)
+
+#### bf_write:WriteUBitLong(number value, number bits, bool signed)
+
+#### bf_write:WriteBitAngle(number value, number bits)
+
+#### bf_write:WriteBitAngles(Angle ang)
+
+#### bf_write:WriteBitVec3Coord(Vector vec)
+
+#### bf_write:WriteBitVec3Normal(Vector vec)
+
+#### bf_write:WriteBits(string data, number bits)
+
+#### bf_write:WriteBitsFromBuffer(bf_read buffer, number bits)
+
+#### bf_write:WriteBitNormal(number value)
+
+#### bf_write:WriteBitLong(number value)
+
+#### bf_write:WriteBitFloat(number value)
+
+#### bf_write:WriteBitCoord(number value)
+
+#### bf_write:WriteBitCoordMP(number value, bool bIntegral, bool bLowPrecision)
 
 ## Networking
 This module tries to optimize anything related to networking.  
