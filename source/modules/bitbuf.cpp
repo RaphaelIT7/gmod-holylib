@@ -1049,10 +1049,19 @@ LUA_FUNCTION_STATIC(bf_write_WriteBitCoordMP)
 		LUA->ArgError(1, "bf_write");
 
 
+	bool bIntegral = LUA->GetBool(2);
+	bool bLowPrecision = LUA->GetBool(3);
 #ifdef ARCHITECTURE_X86_64
-	LUA->ThrowError("This is 32x only.");
+	EBitCoordType pType = kCW_None;
+	if (bIntegral)
+		pType = EBitCoordType::kCW_Integral;
+
+	if (bLowPrecision)
+		pType = EBitCoordType::kCW_LowPrecision;
+
+	pBF->WriteBitCoordMP(LUA->CheckNumber(2), pType);
 #else
-	pBF->WriteBitCoordMP(LUA->CheckNumber(2), LUA->GetBool(3), LUA->GetBool(4));
+	pBF->WriteBitCoordMP(LUA->CheckNumber(2), bIntegral, bLowPrecision);
 #endif
 	return 0;
 }
