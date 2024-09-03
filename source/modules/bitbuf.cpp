@@ -1048,7 +1048,12 @@ LUA_FUNCTION_STATIC(bf_write_WriteBitCoordMP)
 	if (!pBF)
 		LUA->ArgError(1, "bf_write");
 
+
+#ifdef ARCHITECTURE_X86_64
+	LUA->ThrowError("This is 32x only.");
+#else
 	pBF->WriteBitCoordMP(LUA->CheckNumber(2), LUA->GetBool(3), LUA->GetBool(4));
+#endif
 	return 0;
 }
 
