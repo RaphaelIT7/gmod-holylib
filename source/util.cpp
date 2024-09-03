@@ -1,7 +1,7 @@
 #include "util.h"
 #include <string>
 #include "GarrysMod/InterfacePointers.hpp"
-#include "iclient.h"
+#include "sourcesdk/baseclient.h"
 #include "iserver.h"
 #include "module.h"
 #include "icommandline.h"
@@ -122,7 +122,7 @@ std::vector<CBaseClient*> Util::GetClients()
 
 CBasePlayer* Util::GetPlayerByClient(CBaseClient* client)
 {
-	return (CBasePlayer*)servergameents->EdictToBaseEntity(engineserver->PEntityOfEntIndex(((IClient*)client)->GetPlayerSlot() + 1));
+	return (CBasePlayer*)servergameents->EdictToBaseEntity(engineserver->PEntityOfEntIndex(client->GetPlayerSlot() + 1));
 }
 
 void Util::AddDetour()

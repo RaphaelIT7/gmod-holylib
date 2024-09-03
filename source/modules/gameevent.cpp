@@ -273,6 +273,9 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 		Msg("Index: %i\n", ((IClient*)client)->GetPlayerSlot() + 1);
 		Msg("Index2: %i\n", client->GetPlayerSlot());
 		Msg("Index3: %i\n", client->m_nClientSlot);
+		Msg("Edict: %i\n", Util::engineserver->PEntityOfEntIndex(client->GetPlayerSlot() + 1)->m_EdictIndex);
+		Msg("Edict Class: %s\n", Util::engineserver->PEntityOfEntIndex(client->GetPlayerSlot() + 1)->GetClassName());
+		Msg("Edict Ent: %p\n", Util::servergameents->EdictToBaseEntity(Util::engineserver->PEntityOfEntIndex(client->GetPlayerSlot() + 1)));
 	}
 
 	g_Lua->CreateTable();
