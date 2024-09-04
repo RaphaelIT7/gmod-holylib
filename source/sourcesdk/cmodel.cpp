@@ -444,9 +444,6 @@ int CM_PointLeafnum_r( CCollisionBSPData *pBSPData, const Vector& p, int num)
 	{
 		node = pBSPData->map_rootnode + num;
 		plane = node->plane;
-		
-		if (plane == NULL) // Can apparently happen
-			break;
 
 		if (plane->type < 3)
 			d = p[plane->type] - plane->dist;
