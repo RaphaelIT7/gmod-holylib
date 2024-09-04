@@ -9,9 +9,11 @@
 class CPASModule : public IModule
 {
 public:
+	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
 	virtual void LuaInit(bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown() OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
+	virtual void Shutdown() OVERRIDE;
 	virtual const char* Name() { return "pas"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
 };
@@ -93,6 +95,14 @@ LUA_FUNCTION_STATIC(pas_CheckBoxInPAS) // This is based off SV_DetermineMulticas
 	return 1;
 }
 
+void CPASModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
+{
+#ifdef ARCHITECTURE_X86_64
+	CollisionBSPData_LinkPhysics();
+	Memory_Init();
+#endif
+}
+
 void CPASModule::LuaInit(bool bServerInit)
 {
 	if (bServerInit)
@@ -108,7 +118,6 @@ void CPASModule::LuaInit(bool bServerInit)
 	pMapName.append(STRING(gpGlobals->mapname));
 	pMapName.append(".bsp");
 
-	Memory_Init();
 	unsigned int checksum;
 	CM_LoadMap(pMapName.c_str(), false, &checksum);
 	// This will eat more memory since we need to also load the map while gmod already did this
@@ -119,10 +128,6 @@ void CPASModule::LuaInit(bool bServerInit)
 void CPASModule::LuaShutdown()
 {
 	Util::NukeTable("pas");
-
-#ifdef ARCHITECTURE_X86_64
-	Memory_Shutdown(); // We should do this when this module is loaded and not on lua shutdown / init.
-#endif
 }
 
 extern CCollisionBSPData g_BSPData;
@@ -136,5 +141,14 @@ void CPASModule::InitDetour(bool bPreServer)
 	CCollisionBSPData* gBSPData = Detour::ResolveSymbol<CCollisionBSPData>(engine_loader, Symbols::g_BSPDataSym);
 	Detour::CheckValue("get class", "CCollisionBSPData", gBSPData != NULL);
 	g_BSPData = *gBSPData;
+#endif
+}
+
+void CPASModule::Shutdown()
+{
+	Detour::Remove(m_pID);
+
+#ifdef ARCHITECTURE_X86_64
+	Memory_Shutdown();
 #endif
 }
