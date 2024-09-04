@@ -102,7 +102,7 @@ void CPASModule::LuaInit(bool bServerInit)
 		Util::AddFunc(pas_CheckBoxInPAS, "CheckBoxInPAS");
 	Util::FinishTable("pas");
 
-#ifndef ARCHITECTURE_X86_64
+#ifdef ARCHITECTURE_X86_64
 	std::string pMapName = "maps/";
 	pMapName.append(STRING(gpGlobals->mapname));
 	pMapName.append(".bsp");
