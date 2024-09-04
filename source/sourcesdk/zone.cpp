@@ -209,12 +209,14 @@ __sync_bool_compare_and_swap_16(__int128_t* ptr,
 		: "cc"
 	);
 
+#if 0
 	if (!result) {
 		debug_printf("%s: failed (ptr = %p, oldval = [%lx, %lx], "
 			"newval = [%lx, %lx])\n",
 			__FUNCTION__, (void*)ptr,
 			old.s.l, old.s.h, neww.s.l, neww.s.h);
 	}
+#endif
 
 	return result;
 }
