@@ -79,7 +79,10 @@ struct mtexinfo_t
 	mtexinfo_t( mtexinfo_t const& src )
 	{
 		// copy constructor needed since Vector4D has no copy constructor
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wclass-memaccess"
 		memcpy( this, &src, sizeof(mtexinfo_t) );
+#pragma GCC diagnostic pop
 	}
 };
 

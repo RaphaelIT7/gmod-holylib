@@ -30,7 +30,6 @@ extern IMaterialSystem *materials;
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-extern int g_iServerGameDLLVersion;
 IPhysicsSurfaceProps *physprop = NULL;
 IPhysicsCollision	 *physcollision = NULL;
 

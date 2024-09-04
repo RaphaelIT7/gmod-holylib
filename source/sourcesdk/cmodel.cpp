@@ -1987,7 +1987,10 @@ void FASTCALL CM_RecursiveHullCheck ( TraceInfo_t *pTraceInfo, int num, const fl
 
 void CM_ClearTrace( trace_t *trace )
 {
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wclass-memaccess"
 	memset( trace, 0, sizeof(*trace));
+#pragma GCC diagnostic pop
 	trace->fraction = 1.f;
 	trace->fractionleftsolid = 0;
 	trace->surface = CCollisionBSPData::nullsurface;
