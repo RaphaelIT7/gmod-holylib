@@ -47,6 +47,7 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 		defines("GITHUB_RUN_NUMBER=\"" .. run_number .. "\"")
 		defines("GITHUB_RUN_BRANCH=\"" .. branch .. "\"")
 		defines("GITHUB_RUN_DATA=" .. additional)
+		defines("SWDS=1")
 
 		files({
 			[[source/modules/*.h]],
