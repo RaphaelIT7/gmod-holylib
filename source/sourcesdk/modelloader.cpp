@@ -174,15 +174,16 @@ CMapLoadHelper::CMapLoadHelper(int lumpToLoad)
 	if (lump->uncompressedSize != 0)
 	{
 		// Handle compressed lump -- users of the class see the uncompressed data
-		AssertMsg(CLZMA::IsCompressed(m_pData),
+		CLZMA lzma;
+		AssertMsg(lzma.IsCompressed(m_pData),
 			"Lump claims to be compressed but is not recognized as LZMA");
 
-		m_nLumpSize = CLZMA::GetActualSize(m_pData);
+		m_nLumpSize = lzma.GetActualSize(m_pData);
 		AssertMsg(lump->uncompressedSize == m_nLumpSize,
 			"Lump header disagrees with lzma header for compressed lump");
 
 		m_pUncompressedData = (unsigned char*)malloc(m_nLumpSize);
-		CLZMA::Uncompress(m_pData, m_pUncompressedData);
+		lzma.Uncompress(m_pData, m_pUncompressedData);
 
 		m_pData = m_pUncompressedData;
 	}
