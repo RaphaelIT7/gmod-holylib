@@ -174,3 +174,48 @@ void Memory_Shutdown( void )
 	// This disconnects the engine data cache
 	//g_pDataCache->SetSize( 0 );
 }
+
+#ifdef ARCHITECTURE_X86_64
+bool
+__sync_bool_compare_and_swap_16(__int128_t* ptr,
+	__int128_t oldval,
+	__int128_t newval)
+{
+	bool result;
+
+	union par128
+	{
+		__int128_t f;
+		struct {
+			uint64_t l;
+			uint64_t h;
+		} s;
+	};
+	union par128 old;
+	union par128 new;
+	old.f = oldval;
+	new.f = newval;
+
+	__asm__ __volatile__
+	(
+		"lock cmpxchg16b %1\n\t"
+		"setz %0"
+		: "=q" (result),
+		"+m" (*ptr),
+		"+d" (old.s.h),
+		"+a" (old.s.l)
+		: "c"  (new.s.h),
+		"b"  (new.s.l)
+		: "cc"
+	);
+
+	if (!result) {
+		debug_printf("%s: failed (ptr = %p, oldval = [%lx, %lx], "
+			"newval = [%lx, %lx])\n",
+			__FUNCTION__, (void*)ptr,
+			old.s.l, old.s.h, new.s.l, new.s.h);
+	}
+
+	return result;
+}
+#endif
