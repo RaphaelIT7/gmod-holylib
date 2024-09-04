@@ -176,10 +176,7 @@ void Memory_Shutdown( void )
 }
 
 #ifdef ARCHITECTURE_X86_64
-bool
-__sync_bool_compare_and_swap_16(__int128_t* ptr,
-	__int128_t oldval,
-	__int128_t newval)
+bool __sync_bool_compare_and_swap_16(volatile __int128_t* ptr, __int128_t oldval, __int128_t newval)
 {
 	bool result;
 
