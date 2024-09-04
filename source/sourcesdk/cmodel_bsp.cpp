@@ -249,7 +249,7 @@ bool CollisionBSPData_Load( const char *pName, CCollisionBSPData *pBSPData )
 	//
 	// load bsp file data
 	//
-	/*COM_TimestampedLog( "  CollisionBSPData_LoadTextures" );
+	COM_TimestampedLog( "  CollisionBSPData_LoadTextures" );
 	CollisionBSPData_LoadTextures( pBSPData );
 
 	COM_TimestampedLog( "  CollisionBSPData_LoadTexinfo" );
@@ -274,7 +274,7 @@ bool CollisionBSPData_Load( const char *pName, CCollisionBSPData *pBSPData )
 	CollisionBSPData_LoadSubmodels( pBSPData );
 
 	COM_TimestampedLog( "  CollisionBSPData_LoadPlanes" );
-	CollisionBSPData_LoadNodes( pBSPData );*/
+	CollisionBSPData_LoadNodes( pBSPData );
 
 	COM_TimestampedLog( "  CollisionBSPData_LoadAreas" );
 	CollisionBSPData_LoadAreas( pBSPData );
