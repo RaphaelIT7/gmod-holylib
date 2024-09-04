@@ -291,8 +291,8 @@ bool CollisionBSPData_Load( const char *pName, CCollisionBSPData *pBSPData )
 	COM_TimestampedLog( "  CollisionBSPData_LoadPhysics" );
 	CollisionBSPData_LoadPhysics( pBSPData );
 
-	COM_TimestampedLog( "  CollisionBSPData_LoadDispInfo" );
-    CollisionBSPData_LoadDispInfo( pBSPData );
+	//COM_TimestampedLog( "  CollisionBSPData_LoadDispInfo" );
+    //CollisionBSPData_LoadDispInfo( pBSPData );
 
 	return true;
 }
