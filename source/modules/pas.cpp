@@ -102,9 +102,13 @@ void CPASModule::LuaInit(bool bServerInit)
 		Util::AddFunc(pas_CheckBoxInPAS, "CheckBoxInPAS");
 	Util::FinishTable("pas");
 
-#ifdef ARCHITECTURE_X86_64
+#ifndef ARCHITECTURE_X86_64
+	std::string pMapName = "maps/";
+	pMapName.append(STRING(gpGlobals->mapname));
+	pMapName.append(".bsp");
+
 	unsigned int checksum;
-	CM_LoadMap(STRING(gpGlobals->mapname), false, &checksum);
+	CM_LoadMap(pMapName.c_str(), false, &checksum);
 	// This will eat more memory since we need to also load the map while gmod already did this
 	// which I hate, but It's easier than trying to find any way to get g_BSPData since it's not exposed anywhere :/
 #endif
