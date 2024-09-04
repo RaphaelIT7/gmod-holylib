@@ -192,9 +192,9 @@ __sync_bool_compare_and_swap_16(__int128_t* ptr,
 		} s;
 	};
 	union par128 old;
-	union par128 new;
+	union par128 neww;
 	old.f = oldval;
-	new.f = newval;
+	neww.f = newval;
 
 	__asm__ __volatile__
 	(
@@ -204,8 +204,8 @@ __sync_bool_compare_and_swap_16(__int128_t* ptr,
 		"+m" (*ptr),
 		"+d" (old.s.h),
 		"+a" (old.s.l)
-		: "c"  (new.s.h),
-		"b"  (new.s.l)
+		: "c"  (neww.s.h),
+		"b"  (neww.s.l)
 		: "cc"
 	);
 
@@ -213,7 +213,7 @@ __sync_bool_compare_and_swap_16(__int128_t* ptr,
 		debug_printf("%s: failed (ptr = %p, oldval = [%lx, %lx], "
 			"newval = [%lx, %lx])\n",
 			__FUNCTION__, (void*)ptr,
-			old.s.l, old.s.h, new.s.l, new.s.h);
+			old.s.l, old.s.h, neww.s.l, neww.s.h);
 	}
 
 	return result;
