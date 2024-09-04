@@ -356,10 +356,12 @@ void CMapLoadHelper::Init(model_t* pMapModel, const char* loadname)
 	if (!s_szMapName)
 		Msg("CMapLoadHelper::Init, missing s_szMapName!\n");
 
-	s_MapFileHandle = g_pFullFileSystem->OpenEx(s_szMapName, "rb", 0, NULL);
+	std::string pMapName = "maps/";
+	pMapName.append(s_szMapName);
+	s_MapFileHandle = g_pFullFileSystem->OpenEx(pMapName.c_str(), "rb", 0, NULL);
 	if (s_MapFileHandle == FILESYSTEM_INVALID_HANDLE)
 	{
-		Error("CMapLoadHelper::Init, unable to open %s\n", s_szMapName);
+		Error("CMapLoadHelper::Init, unable to open %s\n", pMapName.c_str());
 		return;
 	}
 
