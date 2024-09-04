@@ -350,7 +350,13 @@ void CMapLoadHelper::Init(model_t* pMapModel, const char* loadname)
 		V_strcpy_safe(s_szMapName, pMapModel->strName);
 	}
 
-	s_MapFileHandle = g_pFullFileSystem->OpenEx(s_szMapName, "rb", IsX360() ? FSOPEN_NEVERINPACK : 0, IsX360() ? "GAME" : NULL);
+	if (!g_pFullFileSystem)
+		Msg("CMapLoadHelper::Init, missing filesystem!\n");
+
+	if (!s_szMapName)
+		Msg("CMapLoadHelper::Init, missing s_szMapName!\n");
+
+	s_MapFileHandle = g_pFullFileSystem->OpenEx(s_szMapName, "rb", 0, NULL);
 	if (s_MapFileHandle == FILESYSTEM_INVALID_HANDLE)
 	{
 		Error("CMapLoadHelper::Init, unable to open %s\n", s_szMapName);
