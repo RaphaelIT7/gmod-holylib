@@ -21,6 +21,7 @@
 #include "memstack.h"
 #include "datacache/idatacache.h"
 //#include "sys_dll.h"
+#include "Platform.hpp"
 #include "tier0/memalloc.h"
 
 #define MINIMUM_WIN_MEMORY			0x03000000	// FIXME: copy from sys_dll.cpp, find a common header at some point
@@ -139,7 +140,11 @@ void Memory_Init( void )
 	const int nMinCommitBytes = 0x8000;
 #ifndef HUNK_USE_16MB_PAGE
 	const int nInitialCommit = 0x280000;
-	while ( !g_HunkMemoryStack.Init( nMaxBytes, nMinCommitBytes, nInitialCommit ) )	 
+#ifdef ARCHITECTURE_X86_64
+	while (!g_HunkMemoryStack.Init("g_HunkMemoryStack", nMaxBytes, nMinCommitBytes, nInitialCommit))
+#else
+	while (!g_HunkMemoryStack.Init(nMaxBytes, nMinCommitBytes, nInitialCommit))
+#endif
 	{
 		Warning( "Unable to allocate %d MB of memory, trying %d MB instead\n", nMaxBytes, nMaxBytes/2 );
 		nMaxBytes /= 2;
