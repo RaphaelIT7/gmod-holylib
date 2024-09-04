@@ -1027,7 +1027,7 @@ void CollisionBSPData_LoadPhysics( CCollisionBSPData *pBSPData )
 	// backwards compat support for older game dlls
 	// they crash if they don't have vcollide data for terrain 
 	// even though the new engine ignores it
-	if ( g_iServerGameDLLVersion >= 5 )
+	// if ( g_iServerGameDLLVersion >= 5 )
 	{
 		// if there's a linux lump present, go ahead and load it
 		// otherwise, the win32 lump will work as long as it doesn't have any
@@ -1134,8 +1134,10 @@ void CollisionBSPData_LoadDispInfo( CCollisionBSPData *pBSPData )
     //
  	CMapLoadHelper lhti( LUMP_TEXINFO );
     texinfo_t *pTexinfoList = ( texinfo_t* )lhti.LumpBase();
-    if ( lhti.LumpSize() % sizeof( texinfo_t ) )
-        Error( "CMod_LoadDispInfo: bad texinfo lump size!" );
+	if (lhti.LumpSize() % sizeof(texinfo_t))
+	{
+		Error("CMod_LoadDispInfo: bad texinfo lump size!");
+	}
 
 	// allocate displacement collision trees
 	g_DispCollTreeCount = coreDispCount;
