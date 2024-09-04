@@ -92,6 +92,13 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 	}
 	Detour::CheckValue("get interface", "playerinfomanager", playerinfomanager != NULL);
 
+	if (gameServerFactory)
+		g_pFullFileSystem = (IFileSystem*)interfaceFactory(FILESYSTEM_INTERFACE_VERSION, NULL);
+	else {
+		SourceSDK::FactoryLoader filesystem_loader("filesystem_stdio");
+		g_pFullFileSystem = filesystem_loader.GetInterface<IFileSystem>(FILESYSTEM_INTERFACE_VERSION);
+	}
+
 	if ( playerinfomanager )
 		gpGlobals = playerinfomanager->GetGlobalVars();
 
