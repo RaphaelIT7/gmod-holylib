@@ -1202,6 +1202,13 @@ void CollisionBSPData_LoadDispInfo( CCollisionBSPData *pBSPData )
 		CCoreDispSurface *pDispSurf = coreDisp.GetSurface();
 		pDispSurf->SetPointStart( dispInfo.startPosition );
 		pDispSurf->SetContents( dispInfo.contents );
+
+		Msg("dispInfo.power: %i\n", dispInfo.power);
+		Msg("dispInfo.contents: %i\n", dispInfo.contents);
+		Msg("dispInfo.minTess: %i\n", dispInfo.minTess);
+		Msg("dispInfo.smoothingAngle: %f\n", dispInfo.smoothingAngle);
+		Msg("dispInfo.m_AllowedVerts: %d\n", dispInfo.m_AllowedVerts);
+		Msg("dispInfo.m_iMapFace: %i\n", dispInfo.m_iMapFace);
 	
 		coreDisp.InitDispInfo( dispInfo.power, dispInfo.minTess, dispInfo.smoothingAngle, tempVerts, tempTris );
 
