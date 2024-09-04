@@ -102,7 +102,7 @@ void CPASModule::LuaInit(bool bServerInit)
 		Util::AddFunc(pas_CheckBoxInPAS, "CheckBoxInPAS");
 	Util::FinishTable("pas");
 
-#ifndef ARCHITECTURE_X86_64
+#ifdef ARCHITECTURE_X86_64
 	unsigned int checksum;
 	CM_LoadMap(gpGlobals->mapname.ToCStr(), false, &checksum);
 	// This will eat more memory since we need to also load the map while gmod already did this

@@ -385,6 +385,8 @@ vcollide_t* CM_VCollideForModel( int modelindex, const model_t* pModel )
 		case mod_studio:
 			Assert( modelloader->IsLoaded( pModel ) );
 			return g_pMDLCache->GetVCollide( pModel->studio );
+		default:
+			return 0;
 		}
 	}
 
@@ -816,7 +818,9 @@ bool IntersectRayWithBoxBrush( TraceInfo_t *pTraceInfo, const cbrush_t *pBrush, 
 	// Suppress floating-point exceptions in this function because invDelta's
 	// components can get arbitrarily large -- up to FLT_MAX -- and overflow
 	// when multiplied. Only applicable when FP_EXCEPTIONS_ENABLED is defined.
+#ifndef ARCHITECTURE_X86_64
 	FPExceptionDisabler hideExceptions;
+#endif
 
 	// Load the unaligned ray/box parameters into SIMD registers
 	fltx4 start = LoadUnaligned3SIMD(pTraceInfo->m_start.Base());
