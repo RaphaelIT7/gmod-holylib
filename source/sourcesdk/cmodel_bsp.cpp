@@ -809,7 +809,7 @@ void CollisionBSPData_LoadBrushSides( CCollisionBSPData *pBSPData, CUtlVector<un
 				dbrushside_t * RESTRICT pInputSide = in + firstInputSide + j;
 				pSide->plane = &pBSPData->map_planes[pInputSide->planenum];
 				int t = pInputSide->texinfo;
-				if (t >= map_texinfo.Size())
+				if (t >= map_texinfo.Count())
 				{
 					Error( "Bad brushside texinfo");
 				}
