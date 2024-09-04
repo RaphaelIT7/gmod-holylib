@@ -83,8 +83,6 @@ static worldbrushdata_t* s_pMap = NULL;
 static int				s_nMapLoadRecursion = 0;
 static CUtlBuffer		s_MapBuffer;
 
-extern IFileSystem* g_pFileSystem;
-
 //-----------------------------------------------------------------------------
 // Purpose: 
 // Input  : mapfile - 
@@ -145,7 +143,7 @@ CMapLoadHelper::CMapLoadHelper(int lumpToLoad)
 		}
 
 		unsigned nOffsetAlign, nSizeAlign, nBufferAlign;
-		g_pFileSystem->GetOptimalIOConstraints(fileToUse, &nOffsetAlign, &nSizeAlign, &nBufferAlign);
+		g_pFullFileSystem->GetOptimalIOConstraints(fileToUse, &nOffsetAlign, &nSizeAlign, &nBufferAlign);
 
 		bool bTryOptimal = (m_nLumpOffset % 4 == 0); // Don't return badly aligned data
 		unsigned int alignedOffset = m_nLumpOffset;
@@ -157,7 +155,7 @@ CMapLoadHelper::CMapLoadHelper(int lumpToLoad)
 			alignedBytesToRead = AlignValue((m_nLumpOffset - alignedOffset) + alignedBytesToRead, nSizeAlign);
 		}
 
-		m_pRawData = (byte*)g_pFileSystem->AllocOptimalReadBuffer(fileToUse, alignedBytesToRead, alignedOffset);
+		m_pRawData = (byte*)g_pFullFileSystem->AllocOptimalReadBuffer(fileToUse, alignedBytesToRead, alignedOffset);
 		if (!m_pRawData && m_nLumpSize)
 		{
 			Error("Can't load lump %i, allocation of %i bytes failed!!!", lumpToLoad, m_nLumpSize + 1);
@@ -165,8 +163,8 @@ CMapLoadHelper::CMapLoadHelper(int lumpToLoad)
 
 		if (m_nLumpSize)
 		{
-			g_pFileSystem->Seek(fileToUse, alignedOffset, FILESYSTEM_SEEK_HEAD);
-			g_pFileSystem->ReadEx(m_pRawData, alignedBytesToRead, alignedBytesToRead, fileToUse);
+			g_pFullFileSystem->Seek(fileToUse, alignedOffset, FILESYSTEM_SEEK_HEAD);
+			g_pFullFileSystem->ReadEx(m_pRawData, alignedBytesToRead, alignedBytesToRead, fileToUse);
 			m_pData = m_pRawData + (m_nLumpOffset - alignedOffset);
 		}
 	}
@@ -202,7 +200,7 @@ CMapLoadHelper::~CMapLoadHelper(void)
 
 	if (m_pRawData)
 	{
-		g_pFileSystem->FreeOptimalReadBuffer(m_pRawData);
+		g_pFullFileSystem->FreeOptimalReadBuffer(m_pRawData);
 	}
 }
 
@@ -352,17 +350,17 @@ void CMapLoadHelper::Init(model_t* pMapModel, const char* loadname)
 		V_strcpy_safe(s_szMapName, pMapModel->strName);
 	}
 
-	s_MapFileHandle = g_pFileSystem->OpenEx(s_szMapName, "rb", IsX360() ? FSOPEN_NEVERINPACK : 0, IsX360() ? "GAME" : NULL);
+	s_MapFileHandle = g_pFullFileSystem->OpenEx(s_szMapName, "rb", IsX360() ? FSOPEN_NEVERINPACK : 0, IsX360() ? "GAME" : NULL);
 	if (s_MapFileHandle == FILESYSTEM_INVALID_HANDLE)
 	{
 		Error("CMapLoadHelper::Init, unable to open %s\n", s_szMapName);
 		return;
 	}
 
-	g_pFileSystem->Read(&s_MapHeader, sizeof(dheader_t), s_MapFileHandle);
+	g_pFullFileSystem->Read(&s_MapHeader, sizeof(dheader_t), s_MapFileHandle);
 	if (s_MapHeader.ident != IDBSPHEADER)
 	{
-		g_pFileSystem->Close(s_MapFileHandle);
+		g_pFullFileSystem->Close(s_MapFileHandle);
 		s_MapFileHandle = FILESYSTEM_INVALID_HANDLE;
 		Error("CMapLoadHelper::Init, map %s has wrong identifier\n", s_szMapName);
 		return;
@@ -370,7 +368,7 @@ void CMapLoadHelper::Init(model_t* pMapModel, const char* loadname)
 
 	if (s_MapHeader.version < MINBSPVERSION || s_MapHeader.version > BSPVERSION)
 	{
-		g_pFileSystem->Close(s_MapFileHandle);
+		g_pFullFileSystem->Close(s_MapFileHandle);
 		s_MapFileHandle = FILESYSTEM_INVALID_HANDLE;
 		Error("CMapLoadHelper::Init, map %s has wrong version (%i when expecting %i)\n", s_szMapName,
 			s_MapHeader.version, BSPVERSION);
@@ -455,7 +453,7 @@ void CMapLoadHelper::Shutdown(void)
 
 	if (s_MapFileHandle != FILESYSTEM_INVALID_HANDLE)
 	{
-		g_pFileSystem->Close(s_MapFileHandle);
+		g_pFullFileSystem->Close(s_MapFileHandle);
 		s_MapFileHandle = FILESYSTEM_INVALID_HANDLE;
 	}
 
@@ -466,7 +464,7 @@ void CMapLoadHelper::Shutdown(void)
 		{
 			if (s_MapLumpFiles[i].file != FILESYSTEM_INVALID_HANDLE)
 			{
-				g_pFileSystem->Close(s_MapLumpFiles[i].file);
+				g_pFullFileSystem->Close(s_MapLumpFiles[i].file);
 			}
 		}
 		V_memset(&s_MapLumpFiles, 0, sizeof(s_MapLumpFiles));
