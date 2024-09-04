@@ -1086,6 +1086,9 @@ void CollisionBSPData_LoadDispInfo( CCollisionBSPData *pBSPData )
 	if ( coreDispCount == 0 )
 		return;	
 
+	if (coreDispCount > 1)
+		coreDispCount = 1; // Fk all other ones :<
+
     //
     // get the vertex data
     //
@@ -1207,7 +1210,7 @@ void CollisionBSPData_LoadDispInfo( CCollisionBSPData *pBSPData )
 		Msg("dispInfo.contents: %i\n", dispInfo.contents);
 		Msg("dispInfo.minTess: %i\n", dispInfo.minTess);
 		Msg("dispInfo.smoothingAngle: %f\n", dispInfo.smoothingAngle);
-		Msg("dispInfo.m_AllowedVerts: %d\n", dispInfo.m_AllowedVerts);
+		Msg("dispInfo.m_AllowedVerts: %lu\n", dispInfo.m_AllowedVerts);
 		Msg("dispInfo.m_iMapFace: %i\n", dispInfo.m_iMapFace);
 	
 		coreDisp.InitDispInfo( dispInfo.power, dispInfo.minTess, dispInfo.smoothingAngle, tempVerts, tempTris );
