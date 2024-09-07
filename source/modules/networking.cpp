@@ -203,7 +203,8 @@ void CNetworkingModule::Shutdown()
 		}
 	}
 
-	for (int i=0; i<MAX_EDICTS; ++i)
+	// ToDo: Fix this crash. pPackedEntity will be invalid and it crashes when trying to access it's member.
+	/*for (int i=0; i<MAX_EDICTS; ++i)
 	{
 		PackedEntity* pPackedEntity = reinterpret_cast<PackedEntity*>(framesnapshotmanager->m_pPackedData[i]);
 		if (!pPackedEntity || !pPackedEntity->m_pChangeFrameList)
@@ -211,5 +212,5 @@ void CNetworkingModule::Shutdown()
 
 		pPackedEntity->m_pChangeFrameList->Release();
 		pPackedEntity->m_pChangeFrameList = detour_AllocChangeFrameList.GetTrampoline<Symbols::AllocChangeFrameList>()(pPackedEntity->m_pServerClass->m_pTable->m_pPrecalc->m_Props.Count(), gpGlobals->tickcount);
-	}
+	}*/
 }
