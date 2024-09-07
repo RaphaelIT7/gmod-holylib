@@ -15,7 +15,7 @@ public:
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual void Shutdown() OVERRIDE;
 	virtual const char* Name() { return "pas"; };
-	virtual int Compatibility() { return LINUX32 | LINUX64; };
+	virtual int Compatibility() { return LINUX32; };
 };
 
 extern Vector* Get_Vector(int iStackPos);
