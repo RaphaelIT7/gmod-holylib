@@ -186,7 +186,7 @@ void CNetworkingModule::Shutdown()
 	 * The code below to unload also belongs to sigsegv
 	 * Source: https://github.com/rafradek/sigsegv-mvm/blob/e6a6cee305023f36e5b914872500ef8319317d71/src/mod/perf/sendprop_optimize.cpp#L1981-L2002
 	 */
-	for (CFrameSnapshot* pSnapshot : framesnapshotmanager->m_FrameSnapshots)
+	/*for (CFrameSnapshot* pSnapshot : framesnapshotmanager->m_FrameSnapshots)
 	{
 		for (int i=0; i<pSnapshot->m_nNumEntities; ++i)
 		{
