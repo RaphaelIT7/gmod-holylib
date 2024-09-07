@@ -362,7 +362,7 @@ namespace Symbols
 
 	const std::vector<Symbol> g_FrameSnapshotManagerSym = {
 		Symbol::FromName("framesnapshotmanager"),
-		Symbol::FromSignature("\x48\x8B\x2A\x2A\x2A\x2A\x2A\x48\x8B\x38\x48\x8B\x07*\x50\x10\x48\x8D\x43\x15"), // "framesnapshotmanager->LevelChanged()" || "sv.Clear()"
+		Symbol::FromSignature("\x48\x8B\x2A\x2A\x2A\x2A\x2A\x48\x8B\x38\x48\x8B\x07*\x50\x10\x48\x8D\x43\x15"), // 48 8B ?? ?? ?? ?? ?? 48 8B 38 48 8B 07 ?? 50 10 48 8D 43 15 || "framesnapshotmanager->LevelChanged()" || "sv.Clear()"
 	};
 
 	//---------------------------------------------------------------------------------
