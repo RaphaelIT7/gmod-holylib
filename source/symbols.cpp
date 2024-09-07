@@ -360,6 +360,11 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x55\x41\x54\x41\x89\xFC\xBF\x28"), // 55 48 89 E5 41 55 41 54 41 89 FC BF 28
 	};
 
+	const std::vector<Symbol> g_FrameSnapshotManagerSym = {
+		Symbol::FromName("framesnapshotmanager"),
+		Symbol::FromSignature("\x48\x8B\x2A\x2A\x2A\x2A\x2A\x48\x8B\x38\x48\x8B\x07*\x50\x10\x48\x8D\x43\x15"), // "framesnapshotmanager->LevelChanged()" || "sv.Clear()"
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: steamworks Symbols
 	//---------------------------------------------------------------------------------

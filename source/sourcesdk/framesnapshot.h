@@ -163,7 +163,7 @@ public:
 	// List of entities to explicitly delete
 	void			AddExplicitDelete( int iSlot );
 
-private:
+public: // Nothing shall be private
 	void	DeleteFrameSnapshot( CFrameSnapshot* pSnapshot );
 
 	CThreadFastMutex									m_FrameSnapshotsWriteMutex;

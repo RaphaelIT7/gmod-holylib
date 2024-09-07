@@ -18,6 +18,7 @@ class CCheckTransmitInfo;
 class CFileOpenInfo;
 class CSearchPath;
 class CSteam3Server;
+class IChangeFrameList;
 
 /*
  * The symbols will have this order:
@@ -263,8 +264,10 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: networking Symbols
 	//---------------------------------------------------------------------------------
-	typedef void* (*AllocChangeFrameList)(int, int);
+	typedef IChangeFrameList* (*AllocChangeFrameList)(int, int);
 	extern const std::vector<Symbol> AllocChangeFrameListSym;
+
+	extern const std::vector<Symbol> g_FrameSnapshotManagerSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: steamworks Symbols

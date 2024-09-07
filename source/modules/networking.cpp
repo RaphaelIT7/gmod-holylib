@@ -2,11 +2,16 @@
 #include <GarrysMod/Lua/Interface.h>
 #include "lua.h"
 #include "vprof.h"
+#include "framesnapshot.h"
+#include "packed_entity.h"
+#include "server_class.h"
+#include "dt.h"
 
 class CNetworkingModule : public IModule
 {
 public:
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
+	virtual void Shutdown() OVERRIDE;
 	virtual const char* Name() { return "networking"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
 };
@@ -97,7 +102,7 @@ public:
 	virtual int GetPropsChangedAfterTick(int iTick, int *iOutProps, int nMaxOutProps)
 	{
 		// Should we remove vprof here? It could slow this entire thing down since it's called so often
-		VPROF_BUDGET("CChangeFrameList::GetPropsChangedAfterTick", VPROF_BUDGETGROUP_OTHER_NETWORKING);
+		// VPROF_BUDGET("CChangeFrameList::GetPropsChangedAfterTick", VPROF_BUDGETGROUP_OTHER_NETWORKING);
 		int nOutProps = 0;
 		if (iTick + 1 >= m_LastSameTickNum)
 		{
@@ -150,14 +155,61 @@ IChangeFrameList* hook_AllocChangeFrameList(int nProperties, int iCurTick)
 	return pRet;
 }
 
+CFrameSnapshotManager* framesnapshotmanager = NULL;
 void CNetworkingModule::InitDetour(bool bPreServer)
 {
 	if ( bPreServer ) { return; }
 
-	SourceSDK::ModuleLoader engine_loader("engine");
+	SourceSDK::FactoryLoader engine_loader("engine");
 	Detour::Create(
 		&detour_AllocChangeFrameList, "AllocChangeFrameList",
 		engine_loader.GetModule(), Symbols::AllocChangeFrameListSym,
 		(void*)hook_AllocChangeFrameList, m_pID
 	);
+
+	framesnapshotmanager = Detour::ResolveSymbol<CFrameSnapshotManager>(engine_loader, Symbols::g_FrameSnapshotManagerSym);
+	Detour::CheckValue("get class", "framesnapshotmanager", framesnapshotmanager != NULL);
+}
+
+extern CGlobalVars *gpGlobals;
+void CNetworkingModule::Shutdown()
+{
+	Detour::Remove(m_pID);
+
+	if (!framesnapshotmanager) // If we failed, we failed
+	{
+		Msg("[holylib] Failed to find framesnapshotmanager. Unable to fully unload!\n");
+		return;
+	}
+
+	/*
+	 * The code below to unload also belongs to sigsegv
+	 * Source: https://github.com/rafradek/sigsegv-mvm/blob/e6a6cee305023f36e5b914872500ef8319317d71/src/mod/perf/sendprop_optimize.cpp#L1981-L2002
+	 */
+	for (CFrameSnapshot* pSnapshot : framesnapshotmanager->m_FrameSnapshots)
+	{
+		for (int i=0; i<pSnapshot->m_nNumEntities; ++i)
+		{
+			CFrameSnapshotEntry* pSnapshotEntry = pSnapshot->m_pEntities + i;
+			if (!pSnapshotEntry)
+				continue;
+
+			PackedEntity* pPackedEntity = reinterpret_cast<PackedEntity*>(pSnapshotEntry->m_pPackedData);
+			if (!pPackedEntity || !pPackedEntity->m_pChangeFrameList)
+				continue;
+
+			pPackedEntity->m_pChangeFrameList->Release();
+			pPackedEntity->m_pChangeFrameList = detour_AllocChangeFrameList.GetTrampoline<Symbols::AllocChangeFrameList>()(pPackedEntity->m_pServerClass->m_pTable->m_pPrecalc->m_Props.Count(), gpGlobals->tickcount);
+		}
+	}
+
+	for (int i=0; i<MAX_EDICTS; ++i)
+	{
+		PackedEntity* pPackedEntity = reinterpret_cast<PackedEntity*>(framesnapshotmanager->m_pPackedData[i]);
+		if (!pPackedEntity || !pPackedEntity->m_pChangeFrameList)
+			continue;
+
+		pPackedEntity->m_pChangeFrameList->Release();
+		pPackedEntity->m_pChangeFrameList = detour_AllocChangeFrameList.GetTrampoline<Symbols::AllocChangeFrameList>()(pPackedEntity->m_pServerClass->m_pTable->m_pPrecalc->m_Props.Count(), gpGlobals->tickcount);
+	}
 }
