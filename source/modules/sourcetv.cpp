@@ -412,7 +412,7 @@ static bool hook_CHLTVClient_ProcessGMod_ClientToServer(CHLTVClient* hltvclient,
 	if (!sourcetv_allownetworking.GetBool())
 		return true;
 
-	CModule* module = g_pModuleManager.FindModuleByName("bitbuf");
+	CModule* module = (CModule*)g_pModuleManager.FindModuleByName("bitbuf");
 	if (!module)
 	{
 		Warning("HolyLib (sourcetv): Failed to find bitbuf module?\n");

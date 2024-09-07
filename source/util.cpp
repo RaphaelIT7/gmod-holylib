@@ -55,10 +55,10 @@ void Util::RemoveFunc(const char* pName)
 static Symbols::Get_Player func_GetPlayer;
 static Symbols::Push_Entity func_PushEntity;
 static Symbols::Get_Entity func_GetEntity;
-CBasePlayer* Util::Get_Player(int iStackPos, bool unknown)
+CBasePlayer* Util::Get_Player(int iStackPos, bool bError) // bError = error if not a valid player
 {
 	if (func_GetPlayer)
-		return func_GetPlayer(iStackPos, unknown);
+		return func_GetPlayer(iStackPos, bError);
 
 	return NULL;
 }
@@ -69,10 +69,10 @@ void Util::Push_Entity(CBaseEntity* pEnt)
 		func_PushEntity(pEnt);
 }
 
-CBaseEntity* Util::Get_Entity(int iStackPos, bool unknown)
+CBaseEntity* Util::Get_Entity(int iStackPos, bool bError)
 {
 	if (func_GetEntity)
-		return func_GetEntity(iStackPos, unknown);
+		return func_GetEntity(iStackPos, bError);
 
 	return NULL;
 }
@@ -142,6 +142,7 @@ void Util::AddDetour()
 	Detour::CheckValue("get interface", "IServerGameEnts", servergameents != NULL);
 
 	server = InterfacePointers::Server();
+	Detour::CheckValue("get class", "IServer", server != NULL);
 
 	/*
 	 * IMPORTANT TODO

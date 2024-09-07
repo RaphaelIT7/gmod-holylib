@@ -146,8 +146,6 @@ void CPASModule::InitDetour(bool bPreServer)
 
 void CPASModule::Shutdown()
 {
-	Detour::Remove(m_pID);
-
 #ifdef ARCHITECTURE_X86_64
 	Memory_Shutdown();
 #endif

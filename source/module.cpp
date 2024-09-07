@@ -15,7 +15,7 @@ CModule::~CModule()
 
 void OnModuleConVarChange(IConVar* convar, const char* pOldValue, float flOldValue)
 {
-	CModule* module = g_pModuleManager.FindModuleByConVar((ConVar*)convar);
+	CModule* module = (CModule*)g_pModuleManager.FindModuleByConVar((ConVar*)convar);
 	if (!module)
 	{
 		Warning("holylib: Failed to find CModule for convar %s!\n", convar->GetName());
@@ -98,11 +98,11 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 				Msg("holylib: Enabled module %s\n", m_pModule->Name());
 		} else {
 			int status = g_pModuleManager.GetStatus();
-			if (status & LoadStatus_Init)
-				m_pModule->Shutdown();
-
 			if (status & LoadStatus_LuaInit)
 				m_pModule->LuaShutdown();
+
+			if (status & LoadStatus_Init)
+				Shutdown();
 
 			if (!m_bStartup)
 				Msg("holylib: Disabled module %s\n", m_pModule->Name());
@@ -110,6 +110,12 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 	}
 
 	m_bEnabled = bEnabled;
+}
+
+void CModule::Shutdown()
+{
+	Detour::Remove(m_pModule->m_pID);
+	m_pModule->Shutdown();
 }
 
 CModuleManager::CModuleManager() // ToDo: Look into how IGameSystem works and use something similar. I don't like to add each one manually
@@ -140,9 +146,9 @@ int g_pIDs = 0;
 void CModuleManager::RegisterModule(IModule* pModule)
 {
 	++g_pIDs;
-	pModule->m_pID = g_pIDs;
 	CModule* module = new CModule();
 	module->SetModule(pModule);
+	module->SetID(g_pIDs);
 	Msg("holylib: Registered module %-*s (%-*i Enabled: %s Compatible: %s)\n", 
 		15,
 		module->GetModule()->Name(), 
@@ -155,7 +161,7 @@ void CModuleManager::RegisterModule(IModule* pModule)
 	m_pModules.push_back(module);
 }
 
-CModule* CModuleManager::FindModuleByConVar(ConVar* convar)
+IModuleWrapper* CModuleManager::FindModuleByConVar(ConVar* convar)
 {
 	for (CModule* module : m_pModules)
 	{
@@ -166,7 +172,7 @@ CModule* CModuleManager::FindModuleByConVar(ConVar* convar)
 	return NULL;
 }
 
-CModule* CModuleManager::FindModuleByName(const char* name)
+IModuleWrapper* CModuleManager::FindModuleByName(const char* name)
 {
 	for (CModule* module : m_pModules)
 	{
@@ -251,7 +257,7 @@ void CModuleManager::Shutdown()
 	for (CModule* pModule : m_pModules)
 	{
 		if ( !pModule->IsEnabled() ) { continue; }
-		pModule->GetModule()->Shutdown();
+		pModule->Shutdown();
 	}
 }
 

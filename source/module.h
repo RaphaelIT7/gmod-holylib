@@ -1,44 +1,20 @@
 #include "interface.h"
 #include <vector>
 #include "detours.h"
+#include "public/imodule.h"
 
-enum Module_Compatibility
-{
-	LINUX32 = 1,
-	LINUX64 = 2,
-	WINDOWS32 = 4,
-	WINDOWS64 = 8,
-};
-
-class ConVar;
-class KeyValues;
-class IModule
-{
-public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) {};
-	virtual void LuaInit(bool bServerInit) {};
-	virtual void LuaShutdown() {};
-	virtual void InitDetour(bool bPreServer) {}; // bPreServer = Called before the Dedicated Server was started
-	virtual void Think(bool bSimulating) {};
-	virtual void Shutdown() { Detour::Remove(m_pID); };
-	virtual const char* Name() = 0;
-	virtual int Compatibility() = 0; // Idk give it a better name later.
-	virtual bool IsEnabledByDefault() { return true; };
-
-public:
-	unsigned int m_pID = 0; // Set by the CModuleManager!
-};
-
-class CModule
+class CModule : public IModuleWrapper
 {
 public:
 	~CModule();
-	void SetModule(IModule* module);
-	void SetEnabled(bool bEnabled, bool bForced = false);
+	virtual void SetModule(IModule* module);
+	virtual void SetEnabled(bool bEnabled, bool bForced = false);
+	virtual void Shutdown();
 	inline IModule* GetModule() { return m_pModule; };
 	inline bool IsEnabled() { return m_bEnabled; };
 	inline ConVar* GetConVar() { return m_pCVar; };
 	inline bool IsCompatible() { return m_bCompatible; };
+	inline void SetID(unsigned int pID) { m_pModule->m_pID = pID; };
 
 protected:
 	IModule* m_pModule = NULL;
@@ -49,33 +25,28 @@ protected:
 	bool m_bStartup = false;
 };
 
-#define LoadStatus_PreDetourInit (1<<1)
-#define LoadStatus_Init (1<<2)
-#define LoadStatus_DetourInit (1<<3)
-#define LoadStatus_LuaInit (1<<4)
-#define LoadStatus_LuaServerInit (1<<5)
-
-class CModuleManager
+class CModuleManager : public IModuleManager
 {
 public:
 	CModuleManager();
-	void RegisterModule(IModule* mdl);
-	CModule* FindModuleByConVar(ConVar* convar);
-	CModule* FindModuleByName(const char* name);
+	virtual void RegisterModule(IModule* mdl);
+	virtual IModuleWrapper* FindModuleByConVar(ConVar* convar);
+	virtual IModuleWrapper* FindModuleByName(const char* name);
+
+	virtual void SetGhostInj() { m_bGhostInj = true; };
+	virtual bool IsUsingGhostInj() { return m_bGhostInj; };
+
+	virtual void Setup(CreateInterfaceFn appfn, CreateInterfaceFn gamefn);
+	virtual void Init();
+	virtual void LuaInit(bool bServerInit);
+	virtual void LuaShutdown();
+	virtual void InitDetour(bool bPreServer);
+	virtual void Think(bool bSimulating);
+	virtual void Shutdown();
+
 	inline int GetStatus() { return m_pStatus; };
 	inline CreateInterfaceFn& GetAppFactory() { return m_pAppFactory; };
 	inline CreateInterfaceFn& GetGameFactory() { return m_pGameFactory; };
-	inline void SetGhostInj() { m_bGhostInj = true; };
-	inline bool IsUsingGhostInj() { return m_bGhostInj; };
-
-	void Setup(CreateInterfaceFn appfn, CreateInterfaceFn gamefn);
-	void Init();
-	void LuaInit(bool bServerInit);
-	void LuaShutdown();
-	void InitDetour(bool bPreServer);
-	void Think(bool bSimulating);
-	void Shutdown();
-
 private:
 	std::vector<CModule*> m_pModules;
 	int m_pStatus = 0;

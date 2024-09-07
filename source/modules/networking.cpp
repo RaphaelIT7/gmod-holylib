@@ -174,8 +174,6 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 extern CGlobalVars *gpGlobals;
 void CNetworkingModule::Shutdown()
 {
-	Detour::Remove(m_pID);
-
 	if (!framesnapshotmanager) // If we failed, we failed
 	{
 		Msg("[holylib] Failed to find framesnapshotmanager. Unable to fully unload!\n");
