@@ -35,7 +35,7 @@ void CThreadPoolFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gam
 #ifdef ARCHITECTURE_X86_64
 	if (g_pThreadPool->NumThreads() > 0)
 	{
-		DevMsg("holylib: Threadpool is already running? Skipping our fix.");
+		DevMsg("holylib: Threadpool is already running? Skipping our fix.\n"); // Seems to currently work again in gmod but I'll just leave it in
 		return;
 	}
 

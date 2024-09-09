@@ -304,7 +304,7 @@ namespace Detour
 	inline bool CheckValue(const char* msg, const char* name, bool ret)
 	{
 		if (!ret) {
-			Msg("[holylib] Failed to %s %s!\n", msg, name);
+			Msg("holylib: Failed to %s %s!\n", msg, name);
 			return false;
 		}
 
