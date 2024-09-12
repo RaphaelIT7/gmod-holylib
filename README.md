@@ -24,57 +24,11 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 3. Put the `gmsv_holylib_linux.so` into the `garrysmod/lua/bin/` directory.  
 
 ## Next Update
-\- [+] Added `systimer` module.  
-\- [+] Added two new filesystem functions.  
-\- \- `filesystem.Create`  
-\- \- `filesystem.Access`  
-\- [+] Added partial Linux 64x support.  
-\- \- `bitbuf`  
-\- \- `concommand`  
-\- \- `cvars`  
-\- \- `holylib`  
-\- \- `networking`  
-\- \- `serverplugin`  
-\- \- `steamworks`  
-\- \- `stringtable`  
-\- \- `util`  
-\- \- `systimer`
-
-\- [+] Added a compatibility system for all modules.  
-Modules that aren't compatible are disabled by default.  
-> NOTE: If some of their functions work, you can still force enable them with their ConVar or with the commandline.  
-
-\- [+] Added `filesystem` lua library.  
-\- [+] Added `INetworkStringTable:Set/GetNumberUserData`.  
-\- [+] Added `steamworks.ForceActivate` to mimic the engine.  
-
-\- [#] Fixed `surffix` module not actually working  
-\- [#] Fixed a crash in the `surffix` module when noclipping thru a player.  
-I forgot to pass the first argument to Gmod which caused this issue.  
-
-\- [#] Future improved the filesystem my reducing the usage of `std::string`.  
-\- [#] Fixed up the sourcesdk to not have all these file name differences and fixed a few things  
--> (32x)`keyvalues.h` | (64x)`KeyValues.h`  
-\- [#] Fixed `serverplugins` module not removing all detours on shutdown.  
-\- [#] Fixed a few crashes with `gameevent` module when given invalid input.  
-\- [#] Fixed a potential bug with `util.AsyncCompress`/`util.AsyncDecompress` not returning the expected output.  
-\- [#] Fixed Filesystem prediction always failing.  
-\- [#] Fixed Filesystem prediction predicing models like alyx and airboat as missing.  
-models like `models/airboat.mdl` and `models/alyx.mdl` were broken because they aren't organied unlike ANY other file.  
-They seem to be located in multiple search paths which causes this issue.  
-\- [#] Fixed `path` command being broken by convars. (I's currently just a workaround)  
 
 You can see all changes here:  
-https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.3...main
+https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.4...main
 
 ### QoL updates
-\- [#] Extented `vprof` to also include calls from `CScriptedEntity` -> SWEPs, Entity, Nextbot and probably more.  
-\- [#] Changed print formatting  
-```txt
-Registered module holylib         (Enabled: true,  Compatible: true )
-Registered module gameevent       (Enabled: true,  Compatible: true )
-[...]
-```
 
 ## ToDo
 \- Finish 64x (`pas`, `pvs`, `sourcetv`, `surffix`)  
