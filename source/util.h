@@ -14,6 +14,7 @@ extern IVEngineServer* engine;
 extern GarrysMod::Lua::IUpdatedLuaInterface* g_Lua;
 
 class CBaseClient;
+class CGlobalEntityList;
 namespace Util
 {
 	extern void StartTable();
@@ -36,6 +37,7 @@ namespace Util
 	extern IVEngineServer* engineserver;
 	extern IServerGameEnts* servergameents;
 	extern IServer* server;
+	extern CGlobalEntityList* entitylist;
 
 	inline CBaseEntity* GetCBaseEntityFromEdict(edict_t* edict)
 	{

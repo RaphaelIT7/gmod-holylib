@@ -8,6 +8,7 @@
 
 GarrysMod::Lua::IUpdatedLuaInterface* g_Lua;
 IVEngineServer* engine;
+CGlobalEntityList* Util::entitylist = NULL;
 
 void Util::StartTable() {
 	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
@@ -125,6 +126,7 @@ CBasePlayer* Util::GetPlayerByClient(CBaseClient* client)
 	return (CBasePlayer*)servergameents->EdictToBaseEntity(engineserver->PEntityOfEntIndex(client->GetPlayerSlot() + 1));
 }
 
+CBaseEntityList* g_pEntityList = NULL;
 void Util::AddDetour()
 {
 	if (g_pModuleManager.GetAppFactory())
@@ -133,16 +135,19 @@ void Util::AddDetour()
 		engineserver = InterfacePointers::VEngineServer();
 	Detour::CheckValue("get interface", "IVEngineServer", engineserver != NULL);
 
+	SourceSDK::FactoryLoader server_loader("server");
 	if (g_pModuleManager.GetAppFactory())
 		servergameents = (IServerGameEnts*)g_pModuleManager.GetGameFactory()(INTERFACEVERSION_SERVERGAMEENTS, NULL);
-	else {
-		SourceSDK::FactoryLoader server_loader("server");
+	else
 		servergameents = server_loader.GetInterface<IServerGameEnts>(INTERFACEVERSION_SERVERGAMEENTS);
-	}
 	Detour::CheckValue("get interface", "IServerGameEnts", servergameents != NULL);
 
 	server = InterfacePointers::Server();
 	Detour::CheckValue("get class", "IServer", server != NULL);
+
+	g_pEntityList = Detour::ResolveSymbol<CBaseEntityList>(server_loader, Symbols::g_pEntityListSym);
+	Detour::CheckValue("get class", "g_pEntityList", g_pEntityList != NULL);
+	entitylist = (CGlobalEntityList*)g_pEntityList;
 
 	/*
 	 * IMPORTANT TODO

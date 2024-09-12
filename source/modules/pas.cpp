@@ -95,6 +95,54 @@ LUA_FUNCTION_STATIC(pas_CheckBoxInPAS) // This is based off SV_DetermineMulticas
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(pas_FindInPAS)
+{
+	Vector* orig;
+	LUA->CheckType(1, GarrysMod::Lua::Type::Vector);
+	if (LUA->IsType(1, GarrysMod::Lua::Type::Vector))
+	{
+		orig = Get_Vector(1);
+	}
+	else {
+		LUA->CheckType(1, GarrysMod::Lua::Type::Entity);
+		CBaseEntity* ent = Util::Get_Entity(1, false);
+		if (!ent)
+			LUA->ArgError(1, "Tried to use a NULL entity");
+
+		orig = (Vector*)&ent->GetAbsOrigin(); // ToDo: This currently breaks the compile.
+	}
+
+	ResetPAS();
+	int cluster = CM_LeafCluster(CM_PointLeafnum(*orig));
+	CM_Vis(g_pCurrentPAS, sizeof(g_pCurrentPAS), cluster, DVIS_PAS);
+
+	LUA->CreateTable();
+	int idx = 0;
+	CBaseEntity* pEnt = Util::entitylist->FirstEnt();
+	while (pEnt != NULL)
+	{
+		int clusterIndex = CM_LeafCluster(CM_PointLeafnum(pEnt->GetAbsOrigin()));
+		int offset = clusterIndex >> 3;
+		if (offset > (int)sizeof(g_pCurrentPAS))
+		{
+			Warning("invalid offset? cluster would read past end of data");
+			break;
+		}
+
+		if (!(g_pCurrentPAS[offset] & (1 << (clusterIndex & 7))))
+		{
+			++idx;
+			LUA->PushNumber(idx);
+			Util::Push_Entity(pEnt);
+			LUA->SetTable(-3);
+		}
+
+		pEnt = Util::entitylist->NextEnt(pEnt);
+	}
+
+	return 1;
+}
+
 void CPASModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 #ifdef ARCHITECTURE_X86_64
