@@ -202,7 +202,7 @@ void CNetworkingModule::Shutdown()
 	}
 
 	// ToDo: Fix this crash. pPackedEntity will be invalid and it crashes when trying to access it's member.
-	/*for (int i=0; i<MAX_EDICTS; ++i)
+	for (int i=0; i<MAX_EDICTS; ++i)
 	{
 		PackedEntity* pPackedEntity = reinterpret_cast<PackedEntity*>(framesnapshotmanager->m_pPackedData[i]);
 		if (!pPackedEntity || !pPackedEntity->m_pChangeFrameList)
