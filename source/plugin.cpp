@@ -106,7 +106,22 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 	if (CommandLine()->FindParm("-holylib_debug_forceregister"))
 #endif
 	{
+		ConVar* pPath = cvar->FindVar("path");
+		if (pPath)
+		{
+			cvar->UnregisterConCommand(pPath);
+		}
+
 		ConVar_Register(); // ConVars currently cause a crash on level shutdown. I probably need to find some hidden vtable function AGAIN.
+	
+		if (pPath)
+		{
+			ConVar* pNewPath = cvar->FindVar("path");
+			if (pNewPath)
+				cvar->UnregisterConCommand(pNewPath);
+
+			cvar->RegisterConCommand(pPath);
+		}
 	}
 	/*
 	 * Debug info about the crash from what I could find(could be wrong):
