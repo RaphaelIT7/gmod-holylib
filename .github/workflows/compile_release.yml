@@ -1,0 +1,29 @@
+name: Build Release
+
+on: 
+  workflow_dispatch:
+
+jobs:
+  build_holylib:
+    uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
+    with:
+      PROJECT_NAME: "holylib"
+      BUILD_64x: "true"
+      REALM: "sv"
+      LINUX_FILEEXTENTION: "so"
+      BUILD_WINDOWS: "false"
+      ARTIFACT_EXPIRE: "1"
+      SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
+      SOURCESDK_MINIMAL_BRANCH: "patch-5"
+      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-1"
+
+  build_ghoszinj:
+    uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
+    with:
+      PROJECT_PATH: "ghostinj-dll/"
+      PROJECT_NAME: "ghostinj"
+      BUILD_64x: "true"
+      LINUX_FILEEXTENTION: "dll"
+      BUILD_WINDOWS: "false"
+      USE_PREFIX: "false"
+      ARTIFACT_EXPIRE: "1"
