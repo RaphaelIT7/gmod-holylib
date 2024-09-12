@@ -157,7 +157,6 @@ void Util::AddDetour()
 	 */
 
 #ifndef SYSTEM_WINDOWS
-	SourceSDK::ModuleLoader server_loader("server");
 	func_GetPlayer = (Symbols::Get_Player)Detour::GetFunction(server_loader.GetModule(), Symbols::Get_PlayerSym);
 	func_PushEntity = (Symbols::Push_Entity)Detour::GetFunction(server_loader.GetModule(), Symbols::Push_EntitySym);
 	func_GetEntity = (Symbols::Get_Entity)Detour::GetFunction(server_loader.GetModule(), Symbols::Get_EntitySym);
