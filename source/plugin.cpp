@@ -27,6 +27,12 @@ IServerPluginCallbacks* GetHolyLibPlugin()
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CServerPlugin, IServerPluginCallbacks, INTERFACEVERSION_ISERVERPLUGINCALLBACKS, g_HolyLibServerPlugin);
 #endif
 
+static void DumpSearchpaths(const CCommand& args)
+{
+	g_pFullFileSystem->PrintSearchPaths();
+}
+static ConCommand path("path", DumpSearchpaths, "Dumps the searchpaths", 0); 
+// Trying to workaround this one command breaking :/
 
 //---------------------------------------------------------------------------------
 // Purpose: constructor/destructor
@@ -108,20 +114,9 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 	{
 		ConVar* pPath = cvar->FindVar("path");
 		if (pPath)
-		{
 			cvar->UnregisterConCommand(pPath);
-		}
 
 		ConVar_Register(); // ConVars currently cause a crash on level shutdown. I probably need to find some hidden vtable function AGAIN.
-	
-		if (pPath)
-		{
-			ConVar* pNewPath = cvar->FindVar("path");
-			if (pNewPath)
-				cvar->UnregisterConCommand(pNewPath);
-
-			cvar->RegisterConCommand(pPath);
-		}
 	}
 	/*
 	 * Debug info about the crash from what I could find(could be wrong):
