@@ -159,6 +159,7 @@ void CPASModule::LuaInit(bool bServerInit)
 	Util::StartTable();
 		Util::AddFunc(pas_TestPAS, "TestPAS");
 		Util::AddFunc(pas_CheckBoxInPAS, "CheckBoxInPAS");
+		Util::AddFunc(pas_FindInPAS, "FindInPAS");
 	Util::FinishTable("pas");
 
 #ifdef ARCHITECTURE_X86_64
