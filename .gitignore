@@ -11,3 +11,4 @@ source/modules/32x/**
 source/modules/64x/**
 source/sourcesdk/tempshit
 workflow_info.txt
+!development/module/premake5.lua

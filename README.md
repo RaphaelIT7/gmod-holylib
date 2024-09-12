@@ -77,14 +77,10 @@ Registered module gameevent       (Enabled: true,  Compatible: true )
 
 ## ToDo
 \- Finish 64x  
-\- Find out why ConVars are so broken. (Serverside commands break)  
+\- Find out why ConVars are so broken. (Serverside `path` command breaks :<)  
 \- Look into filesystem handle optimization  
-\- Allow one to create/copy a bf_read at any time.  
 \- Look into NW System to possibly replace it with a better version.  
 \- Try to fix that one complex NW2 bug. NOTE: It's related to baseline updates (Entity Creation/Deletion)  
-\- Fix Filesystem module breaking vehicles like airboarts :/  
-\- Allow one to make a bf_read out of a string.  
-\- Add bf_write to allow one to manipulate the `instancedbaseline` stringtable (The funny stuff).  
 
 # The Navigator  
 [Modules](https://github.com/RaphaelIT7/gmod-holylib#modules)  
