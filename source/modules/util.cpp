@@ -153,6 +153,49 @@ LUA_FUNCTION_STATIC(util_AsyncDecompress)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(util_TableToJSON)
+{
+	LUA->CheckType(1, GarrysMod::Lua::Type::Table);
+	bool bPretty = LUA->GetBool(2);
+
+	Bootil::Data::Tree pTree;
+	LUA->Push(1);
+	LUA->PushNil();
+
+	while (LUA->Next(-2)) {
+		LUA->Push(-2);
+
+		const char* key = LUA->GetString(-1); // In JSON a key is ALWAYS a string
+		switch (LUA->GetType(-2))
+		{
+			case GarrysMod::Lua::Type::String:
+				pTree.SetChildVar(key, LUA->GetString(-2));
+				break;
+			case GarrysMod::Lua::Type::Number:
+				pTree.SetChildVar(key, LUA->GetNumber(-2));
+				break;
+			case GarrysMod::Lua::Type::Bool:
+				pTree.SetChildVar(key, LUA->GetBool(-2));
+				break;
+			case GarrysMod::Lua::Type::Table: // now make it recursive >:D
+				break;
+			default:
+				break; // We should fallback to nil
+		}
+
+		LUA->Pop(2);
+	}
+
+	LUA->Pop();
+
+	Bootil::BString pOut;
+	Bootil::Data::Json::Export(pTree, pOut, bPretty);
+
+	LUA->PushString(pOut.c_str());
+
+	return 1;
+}
+
 void CUtilModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	threaddata.bRun = true;
@@ -167,6 +210,7 @@ void CUtilModule::LuaInit(bool bServerInit)
 		{
 			Util::AddFunc(util_AsyncCompress, "AsyncCompress");
 			Util::AddFunc(util_AsyncDecompress, "AsyncDecompress");
+			Util::AddFunc(util_TableToJSON, "FancyTableToJSON");
 		}
 		Util::PopTable();
 	}
