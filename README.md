@@ -62,6 +62,7 @@ I forgot to pass the first argument to Gmod which caused this issue.
 \- [#] Fixed Filesystem prediction predicing models like alyx and airboat as missing.  
 models like `models/airboat.mdl` and `models/alyx.mdl` were broken because they aren't organied unlike ANY other file.  
 They seem to be located in multiple search paths which causes this issue.  
+\- [#] Fixed `path` command being broken by convars. (I's currently just a workaround)  
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.3...main
@@ -80,7 +81,7 @@ Registered module gameevent       (Enabled: true,  Compatible: true )
 \- Find out why ConVars are so broken. (Serverside `path` command breaks :<)  
 \- Look into filesystem handle optimization  
 \- Look into NW System to possibly replace it with a better version.  
-\- Try to fix that one complex NW2 bug. NOTE: It's related to baseline updates (Entity Creation/Deletion)  
+\- Try to fix that one complex NW2 bug. NOTE: It seems to be related to baseline updates (Entity Creation/Deletion)  
 
 # The Navigator  
 [Modules](https://github.com/RaphaelIT7/gmod-holylib#modules)  

@@ -31,7 +31,7 @@ static void DumpSearchpaths(const CCommand& args)
 {
 	g_pFullFileSystem->PrintSearchPaths();
 }
-static ConCommand path("path", DumpSearchpaths, "Dumps the searchpaths", 0); 
+static ConCommand path("path", DumpSearchpaths, "Dumps the searchpaths", 0);
 // Trying to workaround this one command breaking :/
 
 //---------------------------------------------------------------------------------
