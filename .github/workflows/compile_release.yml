@@ -16,6 +16,7 @@ jobs:
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_BRANCH: "patch-5"
       SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-1"
+      ADDITIONAL_DATA: "1"
 
   build_ghoszinj:
     uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
@@ -27,3 +28,4 @@ jobs:
       BUILD_WINDOWS: "false"
       USE_PREFIX: "false"
       ARTIFACT_EXPIRE: "1"
+      ADDITIONAL_DATA: "1"
