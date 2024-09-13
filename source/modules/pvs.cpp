@@ -43,7 +43,6 @@ static void hook_CGMOD_Player_SetupVisibility(void* ent, unsigned char* pvs, int
 	currentPVSSize = -1;
 }
 
-#define HOLYLIB_MANUALNETWORKING
 #ifdef HOLYLIB_MANUALNETWORKING
 static std::unordered_map<edict_t*, int> pOriginalFlags;
 #endif
