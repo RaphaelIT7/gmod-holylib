@@ -12,7 +12,7 @@ class CVProfModule : public IModule
 public:
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "vprof"; };
-	virtual int Compatibility() { return LINUX32 | WINDOWS32; };
+	virtual int Compatibility() { return LINUX32 | WINDOWS32; }; // NOTE for myself: Linux64 seemingly doesn't have vprof enabled! so don't suppositly add compatbility!
 };
 
 extern ConVar holylib_sv_stressbots;

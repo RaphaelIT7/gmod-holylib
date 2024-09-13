@@ -24,7 +24,7 @@ IModule* pSurfFixModule = &g_pSurfFixModule;
 static ConVar sv_ramp_fix("sv_ramp_fix", "1");
 static ConVar sv_ramp_initial_retrace_length("sv_ramp_initial_retrace_length", "0.2", 0,
                                       "Amount of units used in offset for retraces", true, 0.2f, true, 5.f);
-static ConVar sv_ramp_bumpcount("sv_ramp_bumpcount", "8", 0, "Helps with fixing surf/ramp bugs", true, 4, true, 16);
+static ConVar sv_ramp_bumpcount("sv_ramp_bumpcount", "8", 0, "Helps with fixing surf/ramp bugs", true, 4, true, 32);
 
 static bool CGameMovement_IsValidMovementTrace(CGameMovement* gamemovement, trace_t &tr)
 {

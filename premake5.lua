@@ -13,10 +13,10 @@ local gmcommon = assert(_OPTIONS.gmcommon or os.getenv("GARRYSMOD_COMMON"),
 include(gmcommon)
 
 local file = io.open("workflow_info.txt", "r") -- Added this file to the workflow so it could also be useful for others.
-local run_id = file:read("*l")
-local run_number = file:read("*l")
-local branch = file:read("*l")
-local additional = file:read("*l") -- We set it to 1 for releases.
+local run_id = file:read("*l") -- First like = workflow run id
+local run_number = file:read("*l") --- Second line = workflow run number
+local branch = file:read("*l") -- Third line = branch -> "main"
+local additional = file:read("*l") -- Fouth line = Additional data. We set it to 1 for releases.
 
 CreateWorkspace({name = "holylib", abi_compatible = false})
 	-- Serverside module (gmsv prefix)

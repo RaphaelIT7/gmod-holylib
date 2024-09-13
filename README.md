@@ -34,8 +34,9 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.4...main
 \- Finish 64x (`pas`, `pvs`, `sourcetv`, `surffix`)  
 \- Find out why ConVars are so broken. (Serverside `path` command breaks :<)  
 \- Look into filesystem handle optimization  
-\- Look into NW System to possibly replace it with a better version.  
 \- Try to fix that one complex NW2 bug. NOTE: It seems to be related to baseline updates (Entity Creation/Deletion)  
+\- Fix `pas` module  
+\- Cleanup SDK to remove unused files.  
 
 # The Navigator  
 [Modules](https://github.com/RaphaelIT7/gmod-holylib#modules)  
@@ -486,9 +487,9 @@ This module ports over [Momentum Mod's](https://github.com/momentum-mod/game/blo
 #### sv_ramp_fix (default `1`)
 If enabled, it will enable additional checks to make sure that the player is not stuck in a ramp.  
 
-#### sv_ramp_initial_retrace_length (default `0.2`)
+#### sv_ramp_initial_retrace_length (default `0.2`, max `5`)
 
-#### sv_ramp_bumpcount (default `8`)
+#### sv_ramp_bumpcount (default `8`, max `32`)
 
 ## filesystem
 This module contains multiple optimizations for the filesystem.  

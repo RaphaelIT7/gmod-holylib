@@ -204,16 +204,15 @@ void CUtilModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 
 void CUtilModule::LuaInit(bool bServerInit)
 {
-	if (!bServerInit)
+	if (bServerInit) { return; }
+
+	if (Util::PushTable("util"))
 	{
-		if (Util::PushTable("util"))
-		{
-			Util::AddFunc(util_AsyncCompress, "AsyncCompress");
-			Util::AddFunc(util_AsyncDecompress, "AsyncDecompress");
-			Util::AddFunc(util_TableToJSON, "FancyTableToJSON");
-		}
-		Util::PopTable();
+		Util::AddFunc(util_AsyncCompress, "AsyncCompress");
+		Util::AddFunc(util_AsyncDecompress, "AsyncDecompress");
+		Util::AddFunc(util_TableToJSON, "FancyTableToJSON");
 	}
+	Util::PopTable();
 }
 
 void CUtilModule::LuaShutdown()

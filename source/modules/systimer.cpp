@@ -35,6 +35,8 @@ struct ILuaTimer
 	double next_run_time = 0;
 	unsigned int repetitions = 0;
 	int function = -1;
+
+	//We could make a seperate struct for timer simple :^
 	int identifierreference = -1;
 	const char* identifier = nullptr;
 	bool active = true;
@@ -47,7 +49,7 @@ double GetTime()
 }
 
 std::vector<ILuaTimer*> g_pLuaTimers;
-ILuaTimer* FindTimer(const char* name)
+ILuaTimer* FindTimer(const char* name) // We should pobably use a set or so to have faster look up. But my precious memory :(
 {
 	for (ILuaTimer* timer : g_pLuaTimers)
 	{
@@ -239,7 +241,7 @@ LUA_FUNCTION_STATIC(timer_Stop)
 	if (timer) {
 		if (timer->active) {
 			timer->active = false;
-			timer->next_run_time = timer->next_run_time - GetTime();
+			timer->next_run_time = timer->next_run_time - GetTime(); // Do we care if it becomes possibly negative?
 			LUA->PushBool(true);
 		} else
 			LUA->PushBool(false);
@@ -345,7 +347,7 @@ void CSysTimerModule::Think(bool simulating) // Should also be called while hibe
 			timer->next_run_time = time + timer->delay;
 
 			g_Lua->ReferencePush(timer->function);
-			g_Lua->CallFunctionProtected(0, 0, true);
+			g_Lua->CallFunctionProtected(0, 0, true); // We should add a custom error handler to not have errors with no stack (Which somehow can happen but only observed in gmod clients)
 
 			if (timer->repetitions == 1)
 				timer->markdelete = true;
