@@ -51,9 +51,6 @@ static ConVar holylib_filesystem_cachefilehandle("holylib_filesystem_cachefileha
 // Optimization Idea: When Gmod calls GetFileTime, we could try to get the filehandle in parallel to have it ready when gmod calls it.
 // We could also cache every FULL searchpath to not have to look up a file every time.  
 
-static ConVar holylib_filesystem_debug("holylib_filesystem_debug", "0", 0, 
-	"If enabled, it will show any change to the search cache.");
-
 
 static const char* nullPath = "NULL_PATH";
 extern void DeleteFileHandle(FileHandle_t handle);
@@ -69,7 +66,7 @@ void AddFileHandleToCache(std::string_view strFilePath, FileHandle_t pHandle)
 	m_FileCache[pFilePath] = pHandle;
 	m_FileStringCache[pHandle] = pFilePath;
 
-	if (holylib_filesystem_debug.GetBool())
+	if (g_pFileSystemModule.InDebug())
 		Msg("holylib - AddFileHandleToCache: Added file %s to filehandle cache\n", pFilePath);
 }
 
@@ -82,7 +79,7 @@ void RemoveFileHandleFromCache(FileHandle_t pHandle)
 	m_FileCache.erase(it->second);
 	m_FileStringCache.erase(it);
 
-	if (holylib_filesystem_debug.GetBool())
+	if (g_pFileSystemModule.InDebug())
 		Msg("holylib - RemoveFileHandleFromCache: Removed file %s from filehandle cache\n", it->second.data());
 
 	delete it->second.data();
@@ -94,7 +91,7 @@ FileHandle_t GetFileHandleFromCache(std::string_view strFilePath)
 	auto it = m_FileCache.find(strFilePath);
 	if (it == m_FileCache.end())
 	{
-		if (holylib_filesystem_debug.GetBool())
+		if (g_pFileSystemModule.InDebug())
 			Msg("holylib - GetFileHandleFromCache: Failed to find %s in filehandle cache\n", strFilePath.data());
 
 		return NULL;
@@ -104,7 +101,7 @@ FileHandle_t GetFileHandleFromCache(std::string_view strFilePath)
 	if (it2 != pFileDeletionList.end())
 	{
 		pFileDeletionList.erase(it2);
-		if (holylib_filesystem_debug.GetBool())
+		if (g_pFileSystemModule.InDebug())
 			Msg("holylib - GetFileHandleFromCache: Removed handle for deletion! (%p)\n", it->second);
 	} else {
 		Msg("holylib - GetFileHandleFromCache: File wasn't marked for deletion? (%p)\n", it->second); // This could mean that were actively using it.
@@ -113,18 +110,18 @@ FileHandle_t GetFileHandleFromCache(std::string_view strFilePath)
 	int iPos = g_pFullFileSystem->Tell(it->second);
 	if (iPos != 0)
 	{
-		if (holylib_filesystem_debug.GetBool())
+		if (g_pFileSystemModule.InDebug())
 			Msg("holylib - GetFileHandleFromCache: Pos: %u\n", g_pFullFileSystem->Tell(it->second));
 		
 		g_pFullFileSystem->Seek(it->second, 0, FILESYSTEM_SEEK_HEAD); // Why doesn't it reset?
 		
-		if (holylib_filesystem_debug.GetBool())
+		if (g_pFileSystemModule.InDebug())
 			Msg("holylib - GetFileHandleFromCache: Rewind pos: %u\n", g_pFullFileSystem->Tell(it->second));
 		
 		int iNewPos = g_pFullFileSystem->Tell(it->second);
 		if (iNewPos != 0)
 		{
-			if (holylib_filesystem_debug.GetBool())
+			if (g_pFileSystemModule.InDebug())
 				Msg("holylib - GetFileHandleFromCache: Failed to reset pointer!\n");
 			
 			pFileDeletionList[it->second] = gpGlobals->curtime; // Force delete. it's broken
@@ -156,7 +153,7 @@ static void AddFileToSearchCache(const char* pFileName, int path, const char* pa
 	if (!pathID)
 		pathID = nullPath;
 
-	if (holylib_filesystem_debug.GetBool())
+	if (g_pFileSystemModule.InDebug())
 		Msg("holylib - AddFileToSearchCache: Added file %s to seach cache (%i, %s)\n", pFileName, path, pathID);
 
 	char* cFileName = new char[MAX_PATH];
@@ -171,7 +168,7 @@ static void RemoveFileFromSearchCache(const char* pFileName, const char* pathID)
 	if (!pathID)
 		pathID = nullPath;
 
-	if (holylib_filesystem_debug.GetBool())
+	if (g_pFileSystemModule.InDebug())
 		Msg("holylib - RemoveFileFromSearchCache: Removed file %s from seach cache! (%s)\n", pFileName, pathID);
 
 	auto& map = m_SearchCache[pathID];
@@ -193,7 +190,7 @@ static CSearchPath* GetPathFromSearchCache(const char* pFileName, const char* pa
 	if (it == map.end())
 		return NULL; // We should add a debug print to see if we make a mistake somewhere
 
-	if (holylib_filesystem_debug.GetBool())
+	if (g_pFileSystemModule.InDebug())
 		Msg("holylib - GetPathFromSearchCache: Getting search path for file %s from cache!\n", pFileName);
 
 	if (!func_CBaseFileSystem_FindSearchPathByStoreId)
@@ -207,7 +204,7 @@ static CSearchPath* GetPathFromSearchCache(const char* pFileName, const char* pa
 
 static void NukeSearchCache() // NOTE: We actually never nuke it :D
 {
-	if (holylib_filesystem_debug.GetBool())
+	if (g_pFileSystemModule.InDebug())
 		Msg("holylib - NukeSearchCache: Search cache got nuked\n");
 
 	m_SearchCache.clear(); // Now causes a memory leak :D (Should I try to solve it? naaaaaa :^)
@@ -330,7 +327,7 @@ static FileHandle_t hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, 
 			}
 		}
 
-		if (holylib_filesystem_debug.GetBool())
+		if (g_pFileSystemModule.InDebug())
 			Msg("FindFileInSearchPath: Failed to find cachePath! (%s)\n", openInfo.m_pFileName);
 	}
 
@@ -370,7 +367,7 @@ static long hook_CBaseFileSystem_FastFileTime(void* filesystem, const CSearchPat
 
 		RemoveFileFromSearchCache(pFileName, path->GetPathIDString());
 	} else {
-		if (holylib_filesystem_debug.GetBool())
+		if (g_pFileSystemModule.InDebug())
 			Msg("holylib - FastFileTime: Failed to find cachePath! (%s)\n", pFileName);
 	}
 
@@ -573,7 +570,7 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 	const char* newPath = GetOverridePath(pFileName, pathID);
 	if (newPath)
 	{
-		if (holylib_filesystem_debug.GetBool())
+		if (g_pFileSystemModule.InDebug())
 			Msg("holylib - OpenForRead: Found split path! switching (%s, %s)\n", pathID, newPath);
 
 		pathID = newPath;
@@ -593,16 +590,16 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 		{
 			FileHandle_t handle = detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
 			if (handle) {
-				if (holylib_filesystem_debug.GetBool())
+				if (g_pFileSystemModule.InDebug())
 					Msg("holylib - OpenForRead: Found file in forced path! (%s, %s, %s)\n", pFileNameT, pathID, newPath);
 
 				return handle;
 			} else {
-				if (holylib_filesystem_debug.GetBool())
+				if (g_pFileSystemModule.InDebug())
 					Msg("holylib - OpenForRead: Failed to find file in forced path! (%s, %s, %s)\n", pFileNameT, pathID, newPath);
 			}
 		} else {
-			if (holylib_filesystem_debug.GetBool())
+			if (g_pFileSystemModule.InDebug())
 				Msg("holylib - OpenForRead: File is not in overridePaths (%s, %s)\n", pFileNameT, pathID);
 		}
 	}
@@ -639,10 +636,10 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 				std::string finalMDLPath = (std::string)mdlPath + ".mdl";
 				path = GetPathFromSearchCache(finalMDLPath.c_str(), pathID);
 				if (!path)
-					if (holylib_filesystem_debug.GetBool())
+					if (g_pFileSystemModule.InDebug())
 						Msg("holylib - Prediction: failed to build a path? (%s, %s, %s)\n", finalMDLPath.c_str(), pathID, strFileName.data());
 			} else
-				if (holylib_filesystem_debug.GetBool())
+				if (g_pFileSystemModule.InDebug())
 					Msg("holylib - Prediction: We decided to not care about this specific file! (%s)\n", strFileName.data());
 		}
 
@@ -667,7 +664,7 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 			openInfo.m_pSearchPath = path;
 			FileHandle_t file = hook_CBaseFileSystem_FindFileInSearchPath(filesystem, openInfo);
 			if (file) {
-				if (holylib_filesystem_debug.GetBool())
+				if (g_pFileSystemModule.InDebug())
 					Msg("holylib - Prediction: Found file in predicted path! (%s, %s)\n", pFileNameT, pathID);
 
 				if (holylib_filesystem_cachefilehandle.GetBool())
@@ -675,12 +672,12 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 
 				return file;
 			} else {
-				if (holylib_filesystem_debug.GetBool())
+				if (g_pFileSystemModule.InDebug())
 					Msg("holylib - Prediction: Failed to predict file path! (%s, %s)\n", pFileNameT, pathID);
 
 				if (holylib_filesystem_predictexistance.GetBool())
 				{
-					if (holylib_filesystem_debug.GetBool())
+					if (g_pFileSystemModule.InDebug())
 					{
 						Msg("holylib - Prediction: predicted path failed. Let's say it doesn't exist.\n");
 						FileHandle_t file2 = detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
@@ -695,7 +692,7 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 				}
 			}
 		} else {
-			if (holylib_filesystem_debug.GetBool())
+			if (g_pFileSystemModule.InDebug())
 				Msg("holylib - Prediction: Not predicting it! (%s, %s, %s)\n", pFileNameT, pathID, extension.data());
 		}
 	}
@@ -731,7 +728,7 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 			return file;
 		}
 	} else {
-		if (holylib_filesystem_debug.GetBool())
+		if (g_pFileSystemModule.InDebug())
 			Msg("holylib - OpenForRead: Failed to find cachePath! (%s)\n", pFileName);
 	}
 	
@@ -742,7 +739,7 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 			return file;
 
 		// ToDo: Find out why map content isn't found properly.
-		if (holylib_filesystem_debug.GetBool())
+		if (g_pFileSystemModule.InDebug())
 			Msg("holylib - OpenForRead: Failed to find file in splitPath! Failling back to original. This is slow! (%s)\n", pFileName);
 
 		pathID = origPath;
@@ -798,7 +795,7 @@ static std::string_view fixGamemodePath(IFileSystem* filesystem, std::string_vie
 	if (pos == std::string::npos)
 		return path;
 
-	if (holylib_filesystem_debug.GetBool())
+	if (g_pFileSystemModule.InDebug())
 		Msg("fixGamemodePath: Fixed up path. (%s -> %s)\n", path.data(), path.substr(pos + 1).data());
 
 	return path.substr(pos + 1);
@@ -814,7 +811,7 @@ static long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char
 	const char* newPath = GetOverridePath(pFileName, pPathID);
 	if (newPath)
 	{
-		if (holylib_filesystem_debug.GetBool())
+		if (g_pFileSystemModule.InDebug())
 			Msg("holylib - GetFileTime: Found split path! switching (%s, %s)\n", pPathID, newPath);
 
 		pPathID = newPath;
@@ -845,14 +842,14 @@ static long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char
 		{
 			long time = detour_CBaseFileSystem_GetFileTime.GetTrampoline<Symbols::CBaseFileSystem_GetFileTime>()(filesystem, pFileName, pPathID);
 			if (time != 0L) {
-				if (holylib_filesystem_debug.GetBool())
+				if (g_pFileSystemModule.InDebug())
 					Msg("holylib - GetFileTime: Found file in forced path! (%s, %s, %s)\n", pFileName, pPathID, newPath);
 				return time;
 			} else
-				if (holylib_filesystem_debug.GetBool())
+				if (g_pFileSystemModule.InDebug())
 					Msg("holylib - GetFileTime: Failed to find file in forced path! (%s, %s, %s)\n", pFileName, pPathID, newPath);
 		} else {
-			if (holylib_filesystem_debug.GetBool())
+			if (g_pFileSystemModule.InDebug())
 				Msg("holylib - GetFileTime: File is not in overridePaths (%s, %s)\n", pFileName, pPathID);
 		}
 	}
@@ -863,7 +860,7 @@ static long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char
 		if (pTime != 0L)
 			return pTime;
 
-		if (holylib_filesystem_debug.GetBool())
+		if (g_pFileSystemModule.InDebug())
 			Msg("holylib - GetFileTime: Splitpath failed! (%s, %s, %s)\n", pFileName, pPathID, origPath);
 
 		pPathID = origPath;
@@ -995,7 +992,7 @@ static void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const ch
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_AUTORUN", addType);
 	}
 
-	if (holylib_filesystem_debug.GetBool())
+	if (g_pFileSystemModule.InDebug())
 		Msg("holylib - Added Searchpath: %s %s %i\n", pPath, pathID, (int)addType);
 }
 
@@ -1041,7 +1038,7 @@ static void hook_CBaseFileSystem_AddVPKFile(IFileSystem* filesystem, const char 
 		filesystem->RemoveSearchPath(pPath, vpkPath.data());
 	}
 
-	if (holylib_filesystem_debug.GetBool())
+	if (g_pFileSystemModule.InDebug())
 		Msg("holylib - Added vpk: %s %s %i\n", pPath, pathID, (int)addType);
 }
 
@@ -1072,7 +1069,7 @@ static void hook_CBaseFileSystem_Close(IFileSystem* filesystem, FileHandle_t fil
 		else
 			it->second = FILE_HANDLE_DELETION_DELAY;
 
-		if (holylib_filesystem_debug.GetBool())
+		if (g_pFileSystemModule.InDebug())
 			Msg("holylib - CBaseFileSystem::Close: Marked handle for deletion! (%p)\n", file);
 
 		return;
@@ -1095,7 +1092,7 @@ void CFileSystemModule::Think(bool bSimulating)
 		if (gpGlobals->curtime > time)
 		{
 			pDeletionList.push_back(file);
-			if (holylib_filesystem_debug.GetBool())
+			if (g_pFileSystemModule.InDebug())
 				Msg("holylib - FileThread: Preparing filehandle for deletion! (%p, %f)\n", file, time);
 		}
 	}
@@ -1115,7 +1112,7 @@ void CFileSystemModule::Think(bool bSimulating)
 
 		for (FileHandle_t handle : pDeletionList) // We delete them outside the mutex to not block the main thread.
 		{
-			if (holylib_filesystem_debug.GetBool())
+			if (g_pFileSystemModule.InDebug())
 				Msg("holylib - FileThread: Deleted handle! (%p)\n", handle);
 
 			CFileHandle* fh = (CFileHandle*)handle;
@@ -1178,7 +1175,7 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 		{
 			g_pFullFileSystem->AddSearchPath(pSearchPath.c_str(), "GAME", SearchPathAdd_t::PATH_ADD_TO_TAIL);
 			
-			if (holylib_filesystem_debug.GetBool())
+			if (g_pFileSystemModule.InDebug())
 				Msg("Recreate Path: %s\n", pSearchPath.c_str());
 		}
 
@@ -1282,7 +1279,7 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 	if (g_pFullFileSystem->IsDirectory("autorun/", "workshop"))
 		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "LUA_AUTORUN", SearchPathAdd_t::PATH_ADD_TO_TAIL);
 	
-	if (holylib_filesystem_debug.GetBool())
+	if (g_pFileSystemModule.InDebug())
 		Msg("Updated workshop path. (%s)\n", workshopDir.c_str());
 }
 

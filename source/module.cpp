@@ -11,6 +11,12 @@ CModule::~CModule()
 
 	if ( m_pCVarName )
 		delete[] m_pCVarName;
+
+	if ( m_pDebugCVar )
+		delete m_pDebugCVar; // Could this cause a crash? idk.
+
+	if ( m_pDebugCVarName )
+		delete[] m_pDebugCVarName;
 }
 
 void OnModuleConVarChange(IConVar* convar, const char* pOldValue, float flOldValue)
@@ -23,6 +29,18 @@ void OnModuleConVarChange(IConVar* convar, const char* pOldValue, float flOldVal
 	}
 
 	module->SetEnabled(((ConVar*)convar)->GetBool(), true);
+}
+
+void OnModuleDebugConVarChange(IConVar* convar, const char* pOldValue, float flOldValue)
+{
+	CModule* module = (CModule*)g_pModuleManager.FindModuleByConVar((ConVar*)convar);
+	if (!module)
+	{
+		Warning("holylib: Failed to find CModule for convar %s!\n", convar->GetName());
+		return;
+	}
+
+	module->GetModule()->SetDebug(((ConVar*)convar)->GetBool());
 }
 
 void CModule::SetModule(IModule* module)
@@ -48,7 +66,7 @@ void CModule::SetModule(IModule* module)
 #endif
 
 	std::string pStrName = "holylib_enable_";
-	pStrName = pStrName + module->Name();
+	pStrName.append(module->Name());
 	std::string cmdStr = "-";
 	cmdStr.append(pStrName);
 	int cmd = CommandLine()->ParmValue(cmdStr.c_str(), -1);
@@ -61,6 +79,18 @@ void CModule::SetModule(IModule* module)
 	m_pCVarName = new char[255];
 	V_strncpy(m_pCVarName, pStrName.c_str(), 255);
 	m_pCVar = new ConVar(m_pCVarName, m_bEnabled ? "1" : "0", FCVAR_ARCHIVE, "Whether this module should be active or not", OnModuleConVarChange);
+
+	std::string pDebugStrName = "holylib_debug_";
+	pDebugStrName.append(module->Name());
+
+	m_pDebugCVarName = new char[255];
+	V_strncpy(m_pDebugCVarName, pDebugStrName.c_str(), 255);
+	m_pDebugCVar = new ConVar(m_pDebugCVarName, m_bEnabled ? "1" : "0", FCVAR_ARCHIVE, "Whether this module should be in debug", OnModuleDebugConVarChange);
+
+	int cmd = CommandLine()->ParmValue(((std::string)"-" + pDebugStrName).c_str(), -1);
+	if (cmd > -1)
+		m_pModule->SetDebug(cmd == 1);
+
 	m_bStartup = false;
 }
 

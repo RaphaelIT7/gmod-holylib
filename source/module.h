@@ -20,6 +20,8 @@ protected:
 	IModule* m_pModule = NULL;
 	ConVar* m_pCVar = NULL;
 	char* m_pCVarName = NULL;
+	ConVar* m_pDebugCVar = NULL;
+	char* m_pDebugCVarName = NULL;
 	bool m_bEnabled = false;
 	bool m_bCompatible = false;
 	bool m_bStartup = false;

@@ -141,7 +141,7 @@ Called after the engine processed the received gameevent list.
 #### holylib_gameevent_callhook (default `1`)
 If enabled, it will call the gameevent hooks.  
 
-#### holylib_gameevent_debug (default `0`)
+#### holylib_debug_gameevent (default `0`)
 My debug stuff :> It'll never be important for you.  
 
 ## threadpoolfix
@@ -610,7 +610,7 @@ If enabled, it will cache the file handle and return it if needed.
 > NOTE: This will probably cause issues if you open the same file multiple times.  
 > WARNING: This is a noticeable improvement, but it seems to break .bsp files :/  
 
-#### holylib_filesystem_debug (default `0`)
+#### holylib_debug_filesystem (default `0`)
 If enabled, it will print all filesyste suff.  
 
 ### ConCommands

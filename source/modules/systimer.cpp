@@ -14,8 +14,6 @@ public:
 	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 };
 
-ConVar systimer_debug("holylib_systimer_debug", "0", 0);
-
 static CSysTimerModule g_pSysTimerModule;
 IModule* pSysTimerModule = &g_pSysTimerModule;
 
@@ -339,7 +337,7 @@ void CSysTimerModule::Think(bool simulating) // Should also be called while hibe
 		if (!timer->active)
 			continue;
 
-		if (systimer_debug.GetBool())
+		if (g_pSysTimerModule.InDebug())
 			Msg("Time: %f\nNext: %f\nRun Time: %f\n", time, timer->next_run_time - GetTime(), timer->next_run_time);
 		
 		if ((timer->next_run_time - GetTime()) <= 0)

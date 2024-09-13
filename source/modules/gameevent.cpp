@@ -21,7 +21,6 @@ public:
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
 };
 
-static ConVar gameevent_debug("holylib_gameevent_debug", "0", 0, "If enabled, it prints fancy debug stuff");
 static ConVar gameevent_callhook("holylib_gameevent_callhook", "1", 0, "If enabled, the HolyLib:Pre/PostListenGameEvent hooks get called");
 
 static CGameeventLibModule g_pGameeventLibModule;
@@ -80,7 +79,7 @@ LUA_FUNCTION_STATIC(gameevent_RemoveListener)
 				continue;
 
 			IGameEventListener2* listener = (IGameEventListener2*)callback->m_pCallback;
-			if (gameevent_debug.GetBool())
+			if (g_pGameeventLibModule.InDebug())
 				Msg("Pointer 1: %p\nPointer 2: %p\n", listener, pLuaGameEventListener);
 
 			if ( listener == pLuaGameEventListener )
@@ -121,7 +120,7 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 					continue;
 
 				CBaseClient* listener = (CBaseClient*)callback->m_pCallback;
-				if (gameevent_debug.GetBool())
+				if (g_pGameeventLibModule.InDebug())
 					Msg("Pointer 1: %p\nPointer 2: %p\n", listener, pClient);
 
 				if ( (uint8_t*)listener == ((uint8_t*)pClient + CLIENT_OFFSET) )
@@ -158,7 +157,7 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 						continue;
 
 					CBaseClient* listener = (CBaseClient*)callback->m_pCallback;
-					if (gameevent_debug.GetBool())
+					if (g_pGameeventLibModule.InDebug())
 						Msg("Pointer 1: %p\nPointer 2: %p\n", listener, pClient);
 
 					if ( (uint8_t*)listener == ((uint8_t*)pClient + CLIENT_OFFSET) || listener == pClient )
@@ -205,7 +204,7 @@ LUA_FUNCTION_STATIC(gameevent_RemoveClientListener)
 				continue;
 
 			CBaseClient* listener = (CBaseClient*)callback->m_pCallback;
-			if (gameevent_debug.GetBool())
+			if (g_pGameeventLibModule.InDebug())
 				Msg("Pointer 1: %hhu\nPointer 2: %hhu\n", *((uint8_t*)listener), *((uint8_t*)pClient + CLIENT_OFFSET));
 
 			if ( (uint8_t*)listener == ((uint8_t*)pClient + CLIENT_OFFSET) || (uint8_t*)listener == (uint8_t*)pClient )
@@ -228,7 +227,7 @@ LUA_FUNCTION_STATIC(gameevent_RemoveClientListener)
 Symbols::CGameEventManager_AddListener func_CGameEventManager_AddListener;
 LUA_FUNCTION_STATIC(gameevent_AddClientListener)
 {
-	if (!gameevent_debug.GetBool())
+	if (!g_pGameeventLibModule.InDebug())
 	{
 		LUA->ThrowError("This function is currently disabled.");
 		return 0;
@@ -266,7 +265,7 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 
 	int idx = 0;
 	CBasePlayer* pPlayer = Util::GetPlayerByClient(client);
-	if (gameevent_debug.GetBool())
+	if (g_pGameeventLibModule.InDebug())
 	{
 		Msg("Player: %p\n", pPlayer);
 		Msg("Client: %p\n", client);
@@ -295,7 +294,7 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 			}
 		}
 
-	if (gameevent_debug.GetBool())
+	if (g_pGameeventLibModule.InDebug())
 		Msg("Player: %p\nIndex: %i\n", pPlayer, client->GetPlayerSlot());
 
 	int iReference = g_Lua->ReferenceCreate();
