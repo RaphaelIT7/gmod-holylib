@@ -179,6 +179,7 @@ void CPASModule::LuaShutdown()
 	Util::NukeTable("pas");
 }
 
+CCollisionBSPData* g_HolyBSPData;
 extern CCollisionBSPData g_BSPData;
 void CPASModule::InitDetour(bool bPreServer)
 {
@@ -187,9 +188,11 @@ void CPASModule::InitDetour(bool bPreServer)
 
 #ifndef ARCHITECTURE_X86_64
 	SourceSDK::FactoryLoader engine_loader("engine");
-	CCollisionBSPData* gBSPData = Detour::ResolveSymbol<CCollisionBSPData>(engine_loader, Symbols::g_BSPDataSym);
-	Detour::CheckValue("get class", "CCollisionBSPData", gBSPData != NULL);
-	g_BSPData = *gBSPData;
+	g_HolyBSPData = Detour::ResolveSymbol<CCollisionBSPData>(engine_loader, Symbols::g_BSPDataSym);
+	Detour::CheckValue("get class", "CCollisionBSPData", g_HolyBSPData != NULL);
+
+	if (g_HolyBSPData)
+		g_BSPData = *g_HolyBSPData;
 #endif
 }
 
