@@ -67,7 +67,8 @@ static void hook_CServerGameEnts_CheckTransmit(void* gameents, CCheckTransmitInf
 	for (auto&[ent, flag] : g_pOverrideStateFlag)
 	{
 		pOriginalFlags[ent] = ent->m_fStateFlags;
-		Msg("Overriding ent(%i) flags for snapshot (%i -> %i)\n", ent->m_EdictIndex, ent->m_fStateFlags, flag);
+		if (g_pPVSModule.InDebug())
+			Msg("Overriding ent(%i) flags for snapshot (%i -> %i)\n", ent->m_EdictIndex, ent->m_fStateFlags, flag);
 		ent->m_fStateFlags = flag;
 	}
 
