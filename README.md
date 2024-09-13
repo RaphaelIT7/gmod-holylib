@@ -73,6 +73,9 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.4...main
 Each module has its own convar `holylib_enable_[module name]` which allows you to enable/disable specific modules.  
 You can add `-holylib_enable_[module name] 0` to the startup to disable modules on startup.  
 
+Every module also has his `holylib_debug_[module name]` version and command line option like above, but not all modules use it.  
+The modules that use that convar have it listed in their ConVars chapter.  
+
 ## holylib
 This module contains the HolyLib library.   
 
