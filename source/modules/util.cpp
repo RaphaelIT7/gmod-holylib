@@ -158,7 +158,7 @@ LUA_FUNCTION_STATIC(util_TableToJSON)
 	LUA->CheckType(1, GarrysMod::Lua::Type::Table);
 	bool bPretty = LUA->GetBool(2);
 
-	Bootil::Data::Tree pTree;
+	//Bootil::Data::Tree pTree;
 	LUA->Push(1);
 	LUA->PushNil();
 
@@ -169,13 +169,13 @@ LUA_FUNCTION_STATIC(util_TableToJSON)
 		switch (LUA->GetType(-2))
 		{
 			case GarrysMod::Lua::Type::String:
-				pTree.SetChildVar(key, LUA->GetString(-2));
+				//pTree.SetChildVar(key, LUA->GetString(-2));
 				break;
 			case GarrysMod::Lua::Type::Number:
-				pTree.SetChildVar(key, LUA->GetNumber(-2));
+				//pTree.SetChildVar(key, LUA->GetNumber(-2));
 				break;
 			case GarrysMod::Lua::Type::Bool:
-				pTree.SetChildVar(key, LUA->GetBool(-2));
+				//pTree.SetChildVar(key, LUA->GetBool(-2));
 				break;
 			case GarrysMod::Lua::Type::Table: // now make it recursive >:D
 				break;
@@ -189,7 +189,7 @@ LUA_FUNCTION_STATIC(util_TableToJSON)
 	LUA->Pop();
 
 	Bootil::BString pOut;
-	Bootil::Data::Json::Export(pTree, pOut, bPretty);
+	//Bootil::Data::Json::Export(pTree, pOut, bPretty);
 
 	LUA->PushString(pOut.c_str());
 
