@@ -422,12 +422,12 @@ Returns the state flags for this entity.
 table ents - A sequential table containing all the entities that should be removed from being transmitted.  
 Returns true if the entity or all entities were successfully removed from being transmitted.  
 
-> NOTE: Only use this function inside the `HolyLib:CheckTransmit` hook!  
+> NOTE: Only use this function inside the `HolyLib:PostCheckTransmit` hook!  
 
 #### pvs.RemoveAllEntityFromTransmit()
 Removes all Entities from being transmitted.  
 
-> NOTE: Only use this function inside the `HolyLib:CheckTransmit` hook!  
+> NOTE: Only use this function inside the `HolyLib:PostCheckTransmit` hook!  
 
 #### pvs.AddEntityToTransmit(Entity ent or table ents, bool always)
 table ents - A sequential table containing all the entities that should be transmitted.  
@@ -435,13 +435,13 @@ bool always - If the entity should always be transmitted? (Verify)
 
 Adds the given Entity to be transmitted.
 
-> NOTE: Only use this function inside the `HolyLib:CheckTransmit` hook!  
+> NOTE: Only use this function inside the `HolyLib:PostCheckTransmit` hook!  
 
 #### (REMOVED AGAIN) pvs.IsEmptyBaseline()
 Returns `true` if the baseline is empty.  
 This should always be the case after a full update.  
 
-> NOTE: Only use this function inside the `HolyLib:CheckTransmit` hook!  
+> NOTE: Only use this function inside the `HolyLib:PostCheckTransmit` hook!  
 > REMOVED: This function was removed since I can't get it to work / It would be a bit more complicated than first anticipated.  
 
 #### pvs.SetPreventTransmitBulk(Entity ent or table ents, Player ply or table plys or RecipientFilter filter, bool notransmit)
@@ -467,7 +467,7 @@ The Entity's `ShouldTransmit` function will be called, and its return value will
 
 ### Hooks
 
-#### HolyLib:CheckTransmit(Entity ply, table entities)
+#### HolyLib:PostCheckTransmit(Entity ply, table entities)
 entity ply - The player that everything is transmitted to.  
 table enitites - The Entities that get transmitted. Only available if `holylib_pvs_postchecktransmit` is set to `2` or higher.  
 
@@ -476,7 +476,7 @@ table enitites - The Entities that get transmitted. Only available if `holylib_p
 ### ConVars
 
 #### holylib_pvs_postchecktransmit (default `0`)
-If enabled, it will add/call the `HolyLib:CheckTransmit` hook.  
+If enabled, it will add/call the `HolyLib:PostCheckTransmit` hook.  
 If set to `2` it will also pass a table containing all entitites to the hook (The second argument)  
 
 ## surffix

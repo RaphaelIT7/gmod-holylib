@@ -43,10 +43,15 @@ static void hook_CGMOD_Player_SetupVisibility(void* ent, unsigned char* pvs, int
 	currentPVSSize = -1;
 }
 
+#define HOLYLIB_MANUALNETWORKING
+#ifdef HOLYLIB_MANUALNETWORKING
+static std::unordered_map<edict_t*, int> pOriginalFlags;
+#endif
 static std::vector<edict_t*> g_pAddEntityToPVS;
 static std::unordered_map<edict_t*, int> g_pOverrideStateFlag;
 static CCheckTransmitInfo* g_pCurrentTransmitInfo = NULL;
 static Detouring::Hook detour_CServerGameEnts_CheckTransmit;
+#ifndef HOLYLIB_MANUALNETWORKING
 static void hook_CServerGameEnts_CheckTransmit(void* gameents, CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts)
 {
 	VPROF_BUDGET("HolyLib - CServerGameEnts::CheckTransmit", VPROF_BUDGETGROUP_OTHER_NETWORKING);
@@ -108,6 +113,67 @@ static void hook_CServerGameEnts_CheckTransmit(void* gameents, CCheckTransmitInf
 
 	g_pCurrentTransmitInfo = NULL;
 }
+#else
+void PreCheckTransmit(void* gameents, CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts)
+{
+	for (edict_t* ent : g_pAddEntityToPVS)
+	{
+		Util::servergameents->EdictToBaseEntity(ent)->SetTransmit(pInfo, true);
+	}
+	
+	static std::unordered_map<edict_t*, int> pOriginalFlags;
+	for (auto&[ent, flag] : g_pOverrideStateFlag)
+	{
+		pOriginalFlags[ent] = ent->m_fStateFlags;
+		Msg("Overriding ent(%i) flags for snapshot (%i -> %i)\n", ent->m_EdictIndex, ent->m_fStateFlags, flag);
+		ent->m_fStateFlags = flag;
+	}
+}
+
+void PostCheckTransmit(void* gameents, CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts)
+{
+	if (pvs_postchecktransmit.GetBool())
+	{
+		g_pCurrentTransmitInfo = pInfo;
+		if(Lua::PushHook("HolyLib:PostCheckTransmit"))
+		{
+			Util::Push_Entity(Util::servergameents->EdictToBaseEntity(pInfo->m_pClientEnt));
+			int pushed = 2;
+			if (pvs_postchecktransmit.GetInt() >= 2)
+			{
+				++pushed;
+				g_Lua->CreateTable();
+				int idx = 0;
+				edict_t *pBaseEdict = Util::engineserver->PEntityOfEntIndex(0);
+				for (int i=0; i<nEdicts; ++i)
+				{
+					int iEdict = pEdictIndices[i];
+					edict_t *pEdict = &pBaseEdict[iEdict];
+
+					if (!pInfo->m_pTransmitEdict->Get(i))
+						continue;
+
+					++idx;
+					g_Lua->PushNumber(idx);
+					Util::Push_Entity(Util::servergameents->EdictToBaseEntity(pEdict));
+					g_Lua->SetTable(-3);
+				}
+			}
+
+			g_Lua->CallFunctionProtected(pushed, 0, true);
+		}
+		g_pCurrentTransmitInfo = NULL;
+	}
+
+	for (auto&[ent, flag] : pOriginalFlags)
+	{
+		ent->m_fStateFlags = flag;
+	}
+	pOriginalFlags.clear();
+	g_pAddEntityToPVS.clear();
+	g_pOverrideStateFlag.clear();
+}
+#endif
 
 Vector* Get_Vector(int iStackPos)
 {
@@ -616,9 +682,11 @@ void CPVSModule::InitDetour(bool bPreServer)
 		(void*)hook_CGMOD_Player_SetupVisibility, m_pID
 	);
 
+#ifndef HOLYLIB_MANUALNETWORKING
 	Detour::Create(
 		&detour_CServerGameEnts_CheckTransmit, "CServerGameEnts::CheckTransmit",
 		server_loader.GetModule(), Symbols::CServerGameEnts_CheckTransmitSym,
 		(void*)hook_CServerGameEnts_CheckTransmit, m_pID
 	);
+#endif
 }
