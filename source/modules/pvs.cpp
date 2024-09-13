@@ -31,6 +31,7 @@ static ConVar pvs_postchecktransmit("holylib_pvs_postchecktransmit", "0", 0, "If
 static int currentPVSSize = -1;
 static unsigned char* currentPVS = NULL;
 static int mapPVSSize = -1;
+#ifndef HOLYLIB_MANUALNETWORKING
 static Detouring::Hook detour_CGMOD_Player_SetupVisibility;
 static void hook_CGMOD_Player_SetupVisibility(void* ent, unsigned char* pvs, int pvssize)
 {
@@ -42,6 +43,7 @@ static void hook_CGMOD_Player_SetupVisibility(void* ent, unsigned char* pvs, int
 	currentPVS = NULL;
 	currentPVSSize = -1;
 }
+#endif
 
 #ifdef HOLYLIB_MANUALNETWORKING
 static std::unordered_map<edict_t*, int> pOriginalFlags;
@@ -113,6 +115,18 @@ static void hook_CServerGameEnts_CheckTransmit(void* gameents, CCheckTransmitInf
 	g_pCurrentTransmitInfo = NULL;
 }
 #else
+void PreSetupVisibility(unsigned char* pvs, int pvssize)
+{
+	currentPVS = pvs;
+	currentPVSSize = pvssize;
+}
+
+void PostSetupVisibility()
+{
+	currentPVS = NULL;
+	currentPVSSize = -1;
+}
+
 void PreCheckTransmit(void* gameents, CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts)
 {
 	for (edict_t* ent : g_pAddEntityToPVS)
@@ -674,6 +688,7 @@ void CPVSModule::InitDetour(bool bPreServer)
 {
 	if ( bPreServer ) { return; }
 
+#ifndef HOLYLIB_MANUALNETWORKING
 	SourceSDK::ModuleLoader server_loader("server");
 	Detour::Create(
 		&detour_CGMOD_Player_SetupVisibility, "CGMOD_Player::SetupVisibility",
@@ -681,7 +696,6 @@ void CPVSModule::InitDetour(bool bPreServer)
 		(void*)hook_CGMOD_Player_SetupVisibility, m_pID
 	);
 
-#ifndef HOLYLIB_MANUALNETWORKING
 	Detour::Create(
 		&detour_CServerGameEnts_CheckTransmit, "CServerGameEnts::CheckTransmit",
 		server_loader.GetModule(), Symbols::CServerGameEnts_CheckTransmitSym,
