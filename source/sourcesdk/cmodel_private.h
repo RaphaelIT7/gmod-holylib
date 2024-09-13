@@ -397,8 +397,8 @@ CDispCollTree* CollisionBSPData_GetCollisionTree( int i );
 //-----------------------------------------------------------------------------
 inline CCollisionBSPData *GetCollisionBSPData( void /*int ndxBSP*/ )
 {
-	extern CCollisionBSPData* g_HolyBSPData;								// the global collision bsp
-	return g_HolyBSPData;
+	extern CCollisionBSPData* gBSPData;								// the global collision bsp
+	return gBSPData;
 }
 
 //=============================================================================
