@@ -276,15 +276,17 @@ static int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector*
 			pm = *pFirstTrace;
 		else
 		{
-#if defined(PLAYER_GETTING_STUCK_TESTING)
-			trace_t foo;
-			TracePlayerBBox(mv->GetAbsOrigin(), mv->GetAbsOrigin(), PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT,
-							foo);
-			if (foo.startsolid || foo.fraction != 1.0f)
+			if (g_pSurfFixModule.InDebug())
 			{
-				Msg("bah\n");
+				trace_t foo;
+				gamemovement->TracePlayerBBox(gamemovement->mv->GetAbsOrigin(), gamemovement->mv->GetAbsOrigin(), gamemovement->PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT,
+								foo);
+				if (foo.startsolid || foo.fraction != 1.0f)
+				{
+					Msg("bah\n");
+				}
 			}
-#endif
+
 			if (stuck_on_ramp && has_valid_plane && sv_ramp_fix.GetBool())
 			{
 				gamemovement->TracePlayerBBox(fixed_origin, end, gamemovement->PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, pm);
@@ -335,22 +337,27 @@ static int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector*
 				}
 				else if (stuck.startsolid || stuck.fraction != 1.0f)
 				{
-					Msg("Player will become stuck!!! allfrac: %f pm: %i, %f, %f, %f vs stuck: %i, %f, %f\n",
-						allFraction, pm.startsolid, pm.fraction, pm.plane.normal.z, pm.fractionleftsolid,
-						stuck.startsolid, stuck.fraction, stuck.plane.normal.z);
+					if (g_pSurfFixModule.InDebug())
+					{
+						Msg("Player will become stuck!!! allfrac: %f pm: %i, %f, %f, %f vs stuck: %i, %f, %f\n",
+							allFraction, pm.startsolid, pm.fraction, pm.plane.normal.z, pm.fractionleftsolid,
+							stuck.startsolid, stuck.fraction, stuck.plane.normal.z);
+					}
 					VectorCopy(vec3_origin, gamemovement->mv->m_vecVelocity);
 					break;
 				}
 			}
 
-#if defined(PLAYER_GETTING_STUCK_TESTING)
-			trace_t foo;
-			TracePlayerBBox(pm.endpos, pm.endpos, PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, foo);
-			if (foo.startsolid || foo.fraction != 1.0f)
+			if (g_pSurfFixModule.InDebug())
 			{
-				Msg("Player will become stuck!!!\n");
+				trace_t foo;
+				gamemovement->TracePlayerBBox(pm.endpos, pm.endpos, gamemovement->PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, foo);
+				if (foo.startsolid || foo.fraction != 1.0f)
+				{
+					Msg("Player will become stuck!!!\n");
+				}
 			}
-#endif
+
 			if (sv_ramp_fix.GetBool())
 			{
 				has_valid_plane = false;
@@ -367,11 +374,7 @@ static int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector*
 
 		// If we covered the entire distance, we are done
 		//  and can return.
-#ifdef BUILD_GMOD
 		if (CloseEnough(pm.fraction, 1.0f, FLT_EPSILON))
-#else
-		if (pm.fraction == 1)
-#endif
 		{
 			 break;		// moved the entire distance
 		}
