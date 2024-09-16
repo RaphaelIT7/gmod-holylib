@@ -1369,6 +1369,7 @@ https://github.com/Facepunch/garrysmod-requests/issues/1323
 (Should be possible?)https://github.com/Facepunch/garrysmod-requests/issues/756  
 (Gonna make a seperate ConVar for it)https://github.com/Facepunch/garrysmod-requests/issues/2120  
 https://github.com/Facepunch/garrysmod-requests/issues/1472  
+https://github.com/Facepunch/garrysmod-requests/issues/2440  
 
 # Some things for later
 
@@ -1377,7 +1378,7 @@ NW uses a usermessage `NetworkedVar`
 Write order:  
 - WriteLong -> Entity handle  
 - Char -> Type ID  
-- String -> Var name  
+- String -> Var name (Planned to change to 12bits key index in next net compact)  
 - (Value) -> Var value. (Depends on what type it is)  
 
 ## NW2 Networking  
