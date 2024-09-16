@@ -79,12 +79,24 @@ static void Push_HLTVClient(CHLTVClient* client)
 	}
 }
 
-static CHLTVClient* Get_HLTVClient(int iStackPos)
+static CHLTVClient* Get_HLTVClient(int iStackPos, bool bError)
 {
-	if (!g_Lua->IsType(iStackPos, CHLTVClient_TypeID))
-		return NULL;
+	if (bError)
+	{
+		if (!g_Lua->IsType(iStackPos, CHLTVClient_TypeID))
+			g_Lua->ThrowError("Tried to use something that wasn't HLTVClient!");
 
-	return g_Lua->GetUserType<CHLTVClient>(iStackPos, CHLTVClient_TypeID);
+		CHLTVClient* pClient = g_Lua->GetUserType<CHLTVClient>(iStackPos, CHLTVClient_TypeID);
+		if (!pClient)
+			g_Lua->ThrowError("Tried to use a NULL HLTVClient!");
+
+		return pClient;
+	} else {
+		if (!g_Lua->IsType(iStackPos, CHLTVClient_TypeID))
+			return NULL;
+
+		return g_Lua->GetUserType<CHLTVClient>(iStackPos, CHLTVClient_TypeID);
+	}
 }
 
 static Detouring::Hook detour_CHLTVClient_Deconstructor;
@@ -103,13 +115,16 @@ static void hook_CHLTVClient_Deconstructor(CHLTVClient* client)
 
 LUA_FUNCTION_STATIC(HLTVClient__tostring)
 {
-	CHLTVClient* client = Get_HLTVClient(1);
+	CHLTVClient* client = Get_HLTVClient(1, false);
 	if (!client)
-		LUA->ArgError(1, "HLTVClient");
+	{
+		LUA->PushString("HLTVClient [NULL]");
+	} else {
+		char szBuf[128] = {};
+		V_snprintf(szBuf, sizeof(szBuf),"HLTVClient [%i][%s]", client->GetPlayerSlot(), client->GetClientName()); 
+		LUA->PushString(szBuf);
+	}
 
-	char szBuf[128] = {};
-	V_snprintf(szBuf, sizeof(szBuf),"HLTVClient [%i][%s]", client->GetPlayerSlot(), client->GetClientName()); 
-	LUA->PushString(szBuf);
 	return 1;
 }
 
@@ -123,9 +138,7 @@ LUA_FUNCTION_STATIC(HLTVClient__index)
 
 LUA_FUNCTION_STATIC(HLTVClient_GetSlot)
 {
-	CHLTVClient* client = Get_HLTVClient(1);
-	if (!client)
-		LUA->ArgError(1, "HLTVClient");
+	CHLTVClient* client = Get_HLTVClient(1, true);
 
 	LUA->PushNumber(client->GetPlayerSlot());
 	return 1;
@@ -133,9 +146,7 @@ LUA_FUNCTION_STATIC(HLTVClient_GetSlot)
 
 LUA_FUNCTION_STATIC(HLTVClient_GetUserID)
 {
-	CHLTVClient* client = Get_HLTVClient(1);
-	if (!client)
-		LUA->ArgError(1, "HLTVClient");
+	CHLTVClient* client = Get_HLTVClient(1, true);
 
 	LUA->PushNumber(client->GetUserID());
 	return 1;
@@ -143,9 +154,7 @@ LUA_FUNCTION_STATIC(HLTVClient_GetUserID)
 
 LUA_FUNCTION_STATIC(HLTVClient_GetName)
 {
-	CHLTVClient* client = Get_HLTVClient(1);
-	if (!client)
-		LUA->ArgError(1, "HLTVClient");
+	CHLTVClient* client = Get_HLTVClient(1, true);
 
 	LUA->PushString(client->GetClientName());
 	return 1;
@@ -153,9 +162,7 @@ LUA_FUNCTION_STATIC(HLTVClient_GetName)
 
 LUA_FUNCTION_STATIC(HLTVClient_GetSteamID) // Broken -> "STEAM_ID_PENDING"
 {
-	CHLTVClient* client = Get_HLTVClient(1);
-	if (!client)
-		LUA->ArgError(1, "HLTVClient");
+	CHLTVClient* client = Get_HLTVClient(1, true);
 
 	LUA->PushString(client->GetNetworkIDString());
 	return 1;
@@ -163,9 +170,7 @@ LUA_FUNCTION_STATIC(HLTVClient_GetSteamID) // Broken -> "STEAM_ID_PENDING"
 
 LUA_FUNCTION_STATIC(HLTVClient_Reconnect)
 {
-	CHLTVClient* client = Get_HLTVClient(1);
-	if (!client)
-		LUA->ArgError(1, "HLTVClient");
+	CHLTVClient* client = Get_HLTVClient(1, true);
 
 	client->Reconnect();
 	return 0;
@@ -173,9 +178,7 @@ LUA_FUNCTION_STATIC(HLTVClient_Reconnect)
 
 LUA_FUNCTION_STATIC(HLTVClient_ClientPrint)
 {
-	CHLTVClient* client = Get_HLTVClient(1);
-	if (!client)
-		LUA->ArgError(1, "HLTVClient");
+	CHLTVClient* client = Get_HLTVClient(1, true);
 
 	client->ClientPrintf(LUA->CheckString(2));
 	return 0;
@@ -183,7 +186,7 @@ LUA_FUNCTION_STATIC(HLTVClient_ClientPrint)
 
 LUA_FUNCTION_STATIC(HLTVClient_IsValid)
 {
-	CHLTVClient* client = Get_HLTVClient(1);
+	CHLTVClient* client = Get_HLTVClient(1, false);
 	
 	LUA->PushBool(client != NULL);
 	return 1;
@@ -193,10 +196,7 @@ static CUserMessages* pUserMessages;
 #if 0
 LUA_FUNCTION_STATIC(HLTVClient_SendLua)
 {
-	CHLTVClient* client = Get_HLTVClient(1);
-	if (!client)
-		LUA->ArgError(1, "HLTVClient");
-
+	CHLTVClient* client = Get_HLTVClient(1, true);
 	const char* str = LUA->CheckString(2);
 
 	SVC_UserMessage msg;
