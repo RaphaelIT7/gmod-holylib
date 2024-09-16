@@ -1357,6 +1357,7 @@ It now throws a warning instead of crashing -> https://github.com/Facepunch/garr
 `surffix` module -> https://github.com/Facepunch/garrysmod-requests/issues/2306
 `filesystem.TimeCreated` & `filesystem.TimeAccessed` -> https://github.com/Facepunch/garrysmod-requests/issues/1633  
 `systimer` module -> https://github.com/Facepunch/garrysmod-requests/issues/1671  
+`pas` module -> https://github.com/Facepunch/garrysmod-requests/issues/140  
 
 # Things planned to add:
 https://github.com/Facepunch/garrysmod-requests/issues/1884  
@@ -1364,7 +1365,6 @@ https://github.com/Facepunch/garrysmod-requests/issues/1884
 https://github.com/Facepunch/garrysmod-requests/issues/77  
 (Maybe)https://github.com/Facepunch/garrysmod-requests/issues/603  
 https://github.com/Facepunch/garrysmod-requests/issues/439  
-https://github.com/Facepunch/garrysmod-requests/issues/140  
 https://github.com/Facepunch/garrysmod-requests/issues/1323  
 (Should be possible?)https://github.com/Facepunch/garrysmod-requests/issues/756  
 (Gonna make a seperate ConVar for it)https://github.com/Facepunch/garrysmod-requests/issues/2120  

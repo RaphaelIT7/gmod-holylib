@@ -401,8 +401,9 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: pas Symbols
 	//---------------------------------------------------------------------------------
-	const std::vector<Symbol> g_BSPDataSym = { // Fk 64x. Were gonna get the function instead of the var.
-		Symbol::FromName("g_BSPData"),
+	const std::vector<Symbol> CM_VisSym = { // CM_Vis:
+		Symbol::FromName("_Z6CM_VisPhiii"),
+		Symbol::FromSignature("\x55\x83\xF9\x02\x48\x89\xE5\x41\x54\x53\x48\x89\xFB\x89\xD7\x89\xCA"), // 55 83 F9 02 48 89 E5 41 54 53 48 89 FB 89 D7 89 CA
 	};
 
 	//---------------------------------------------------------------------------------

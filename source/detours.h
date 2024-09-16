@@ -293,7 +293,8 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: pas Symbols
 	//---------------------------------------------------------------------------------
-	extern const std::vector<Symbol> g_BSPDataSym;
+	typedef const byte *(*CM_Vis)(byte *dest, int destlen, int cluster, int visType);
+	extern const std::vector<Symbol> CM_VisSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: pas Symbols
