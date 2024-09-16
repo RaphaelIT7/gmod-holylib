@@ -11,7 +11,7 @@ public:
 	virtual void LuaShutdown() OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "pas"; };
-	virtual int Compatibility() { return LINUX32; };
+	virtual int Compatibility() { return LINUX32 | LINUX64; };
 };
 
 extern Vector* Get_Vector(int iStackPos);
@@ -107,22 +107,15 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 	}
 
 	ResetPAS();
-	func_CM_Vis(g_pCurrentPAS, sizeof(g_pCurrentPAS), engine->GetClusterForOrigin(*orig), DVIS_PAS);
+	func_CM_Vis(g_pCurrentPAS, sizeof(g_pCurrentPAS), Util::engineserver->GetClusterForOrigin(*orig), DVIS_PAS);
 
 	LUA->CreateTable();
 	int idx = 0;
+#ifdef ARCHITECTURE_X86
 	CBaseEntity* pEnt = Util::entitylist->FirstEnt();
 	while (pEnt != NULL)
 	{
-		int clusterIndex = engine->GetClusterForOrigin(pEnt->GetAbsOrigin());
-		int offset = clusterIndex >> 3;
-		if (offset > (int)sizeof(g_pCurrentPAS))
-		{
-			Warning("invalid offset? cluster would read past end of data");
-			break;
-		}
-
-		if (!(g_pCurrentPAS[offset] & (1 << (clusterIndex & 7))))
+		if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), g_pCurrentPAS, sizeof(g_pCurrentPAS)))
 		{
 			++idx;
 			LUA->PushNumber(idx);
@@ -132,6 +125,24 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 
 		pEnt = Util::entitylist->NextEnt(pEnt);
 	}
+#else
+	edict_t* pWorldEdict = Util::engineserver->PEntityOfEntIndex(0);
+	for(int i=0; i<MAX_EDICTS; ++i)
+	{
+		edict_t* pEdict = &pWorldEdict[i]; // Let's hope this works.... It's used in CServerGameEnts::CheckTransmit as an optimization.
+		CBaseEntity* pEnt = Util::GetCBaseEntityFromEdict(pEdict);
+		if (!pEnt)
+			continue;
+
+		if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), g_pCurrentPAS, sizeof(g_pCurrentPAS)))
+		{
+			++idx;
+			LUA->PushNumber(idx);
+			Util::Push_Entity(pEnt);
+			LUA->SetTable(-3);
+		}
+	}
+#endif
 
 	return 1;
 }

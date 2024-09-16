@@ -32,6 +32,10 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x55\x41\x89\xF5\x41\x54\x41\x89\xFC\x53"), // 55 48 89 E5 41 55 41 89 F5 41 54 41 89 FC 53
 	};
 
+	const std::vector<Symbol> g_pEntityListSym = { // 64x = ents.GetAll
+		Symbol::FromName("g_pEntityList"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: holylib Symbols
 	//---------------------------------------------------------------------------------
@@ -164,10 +168,6 @@ namespace Symbols
 
 	const std::vector<Symbol> MoveHelperServerSym = {
 		Symbol::FromName("_Z16MoveHelperServerv"),
-	};
-
-	const std::vector<Symbol> g_pEntityListSym = {
-		Symbol::FromName("g_pEntityList"),
 	};
 
 	//---------------------------------------------------------------------------------
