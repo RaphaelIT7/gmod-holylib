@@ -330,14 +330,12 @@ void CVoiceChatModule::LuaInit(bool bServerInit)
 		Util::AddFunc(VoiceData_GetUncompressedData, "GetUncompressedData");
 	g_Lua->Pop(1);
 
-	if (Util::PushTable("voicechat"))
-	{
+	Util::StartTable();
 		Util::AddFunc(voicechat_SendEmptyData, "SendEmptyData");
 		Util::AddFunc(voicechat_SendVoiceData, "SendVoiceData");
 		Util::AddFunc(voicechat_ProcessVoiceData, "ProcessVoiceData");
 		Util::AddFunc(voicechat_CreateVoiceData, "CreateVoiceData");
-	}
-	Util::PopTable();
+	Util::FinishTable("voicechat");
 }
 
 void CVoiceChatModule::LuaShutdown()
