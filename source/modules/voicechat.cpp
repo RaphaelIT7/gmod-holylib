@@ -59,7 +59,10 @@ LUA_FUNCTION_STATIC(VoiceData__tostring)
 {
 	VoiceData* pData = Get_VoiceData(1, false);
 	if (!pData)
-		LUA->ArgError(1, "bf_read");
+	{
+		LUA->PushString("VoiceData [NULL]");
+		return 1;
+	}
 
 	char szBuf[64] = {};
 	V_snprintf(szBuf, sizeof(szBuf), "VoiceData [%i][%i]", pData->iPlayerSlot, pData->iLength);
@@ -79,7 +82,10 @@ LUA_FUNCTION_STATIC(VoiceData__gc)
 {
 	VoiceData* pData = Get_VoiceData(1, false);
 	if (pData)
+	{
+		LUA->SetUserType(1, NULL);
 		delete pData;
+	}
 
 	return 0;
 }
