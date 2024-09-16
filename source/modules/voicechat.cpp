@@ -15,7 +15,7 @@ public:
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual void Shutdown() OVERRIDE;
 	virtual const char* Name() { return "voicechat"; };
-	virtual int Compatibility() { return LINUX32; };
+	virtual int Compatibility() { return LINUX32 | LINUX64; };
 };
 
 static ConVar voicechat_hooks("holylib_voicechat_hooks", "1", 0);

@@ -409,7 +409,8 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: pas Symbols
 	//---------------------------------------------------------------------------------
-	const std::vector<Symbol> SV_BroadcastVoiceDataSym = {
+	const std::vector<Symbol> SV_BroadcastVoiceDataSym = { // Sending voice from: %s
 		Symbol::FromName("_Z21SV_BroadcastVoiceDataP7IClientiPcx"),
+		Symbol::FromSignature("\x55\x48******\x48\x89\xE5\x41\x57\x41\x56\x41\x89\xF6\x41\x55\x49\x89\xFD\x41\x54"), // 55 48 ?? ?? ?? ?? ?? ?? 48 89 E5 41 57 41 56 41 89 F6 41 55 49 89 FD 41 54
 	};
 }
