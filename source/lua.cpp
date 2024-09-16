@@ -66,6 +66,10 @@ void Lua::ServerInit()
 void Lua::Shutdown()
 {
 	g_pModuleManager.LuaShutdown();
+}
+
+void Lua::FinalShutdown()
+{
 	g_Lua = NULL;
 }
 
@@ -83,7 +87,10 @@ static void hook_CLuaInterface_Shutdown(GarrysMod::Lua::ILuaInterface* LUA)
 	if ((void*)LUA == (void*)g_Lua)
 		Lua::Shutdown();
 
-	detour_CLuaInterface_Shutdown.GetTrampoline<Symbols::CLuaInterface_Shutdown>()(LUA);
+	detour_CLuaInterface_Shutdown.GetTrampoline<Symbols::CLuaInterface_Shutdown>()(LUA); 
+	// Garbage collection will kick in so our remaining objects could call theirs __gc function so g_Lua still needs to be valid.
+
+	Lua::FinalShutdown();
 }
 
 void Lua::AddDetour() // Our Lua Loader.

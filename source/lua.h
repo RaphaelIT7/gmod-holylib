@@ -11,6 +11,7 @@ namespace Lua
 {
 	extern void Init(GarrysMod::Lua::ILuaInterface* LUA);
 	extern void Shutdown();
+	extern void FinalShutdown();
 	extern void ServerInit();
 	extern bool PushHook(const char* pName);
 	extern void AddDetour();

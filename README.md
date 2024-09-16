@@ -1262,6 +1262,8 @@ Sends an empty voice packet.
 Sends the given VoiceData to the given player.  
 It won't do any processing, it will just send it as it is.  
 
+> WARNING: This is really unstable and can easily crash a client. Use ProcessVoiceData for now.  
+
 #### voicedata.ProcessVoiceData(Player ply, VoiceData data)
 Let's the server process the VoiceData like it was received from the client.  
 This can be a bit performance intense.  
@@ -1312,6 +1314,55 @@ Returns the uncompressed voice data.
 #### HolyLib::PreProcessVoiceChat(Player ply, VoiceData data)
 Called before the voicedata is processed.  
 Return `true` to stop the engine from processing it.  
+
+Example to record and play back voices.  
+```lua
+concommand.Add("record_me", function()
+	hook.Remove("Think", "VoiceChat_Example") -- Doesn't like to play back while recording :^
+	voiceTbl = {}
+	voiceStartTick=engine.TickCount()
+	hook.Add("HolyLib:PreProcessVoiceChat", "VoiceChat_Example", function(ply, voiceData)
+		if !voiceTbl[ply] then
+			voiceTbl[ply] = {}
+		end
+
+		voiceTbl[ply][engine.TickCount() - voiceStartTick] = voiceData 
+		-- We save the tick delays since the voice data isn't sent every frame and has random delays.
+	end)
+end)
+
+concommand.Add("stop_record", function()
+	hook.Remove("HolyLib:PreProcessVoiceChat", "VoiceChat_Example")
+end)
+
+concommand.Add("play_me", function(ply)
+	if !voiceTbl[ply] then
+		ply:ChatPrint("You first need to record.")
+		return
+	end
+
+	if !player.GetBots()[1] then
+		RunConsoleCommand("bot")
+	end
+
+	hook.Remove("HolyLib:PreProcessVoiceChat", "VoiceChat_Example")
+
+	voiceIdx = 0
+	hook.Add("Think", "VoiceChat_Example", function()
+		if !IsValid(ply) then
+			hook.Remove("Think", "VoiceChat_Example")
+			return
+		end
+
+		voiceIdx = voiceIdx + 1 
+		local voiceData = voiceTbl[ply][voiceIdx]
+		-- We play it back in the exact same tick delays we received it in to not speed it up affect it in any way.
+		if voiceData then 
+			voicechat.ProcessVoiceData(player.GetBots()[1], voiceData)
+		end 
+	end)
+end)
+```
 
 ### ConVars
 
