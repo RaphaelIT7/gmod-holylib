@@ -91,7 +91,7 @@ LUA_FUNCTION_STATIC(VoiceData_GetPlayerSlot)
 {
 	VoiceData* pData = Get_VoiceData(1);
 	if (!pData)
-		LUA->ArgError(1, "VoiceData");
+		LUA->TypeError(1, "VoiceData");
 
 	LUA->PushNumber(pData->iPlayerSlot);
 
@@ -102,7 +102,7 @@ LUA_FUNCTION_STATIC(VoiceData_GetLength)
 {
 	VoiceData* pData = Get_VoiceData(1);
 	if (!pData)
-		LUA->ArgError(1, "VoiceData");
+		LUA->TypeError(1, "VoiceData");
 
 	LUA->PushNumber(pData->iLength);
 
@@ -113,7 +113,7 @@ LUA_FUNCTION_STATIC(VoiceData_GetData)
 {
 	VoiceData* pData = Get_VoiceData(1);
 	if (!pData)
-		LUA->ArgError(1, "VoiceData");
+		LUA->TypeError(1, "VoiceData");
 
 	LUA->PushString(pData->pData, pData->iLength);
 
@@ -124,7 +124,7 @@ LUA_FUNCTION_STATIC(VoiceData_GetUncompressedData)
 {
 	VoiceData* pData = Get_VoiceData(1);
 	if (!pData)
-		LUA->ArgError(1, "VoiceData");
+		LUA->TypeError(1, "VoiceData");
 
 	if (!SteamUser())
 		LUA->ThrowError("Failed to get SteamUser!\n");
@@ -146,7 +146,7 @@ LUA_FUNCTION_STATIC(VoiceData_SetPlayerSlot)
 {
 	VoiceData* pData = Get_VoiceData(1);
 	if (!pData)
-		LUA->ArgError(1, "VoiceData");
+		LUA->TypeError(1, "VoiceData");
 
 	pData->iPlayerSlot = LUA->CheckNumber(2);
 
@@ -157,7 +157,7 @@ LUA_FUNCTION_STATIC(VoiceData_SetLength)
 {
 	VoiceData* pData = Get_VoiceData(1);
 	if (!pData)
-		LUA->ArgError(1, "VoiceData");
+		LUA->TypeError(1, "VoiceData");
 
 	pData->iLength = LUA->CheckNumber(2);
 	if (pData->iLength > (int)sizeof(pData->pData))
@@ -170,7 +170,7 @@ LUA_FUNCTION_STATIC(VoiceData_SetData)
 {
 	VoiceData* pData = Get_VoiceData(1);
 	if (!pData)
-		LUA->ArgError(1, "VoiceData");
+		LUA->TypeError(1, "VoiceData");
 
 	const char* pStr = LUA->CheckString(2);
 	int iLength = LUA->ObjLen(2);
@@ -248,7 +248,7 @@ LUA_FUNCTION_STATIC(voicechat_SendVoiceData)
 
 	VoiceData* pData = Get_VoiceData(2);
 	if (!pData)
-		LUA->ArgError(2, "VoiceData");
+		LUA->TypeError(2, "VoiceData");
 
 	SVC_VoiceData voiceData;
 	voiceData.m_nFromClient = pData->iPlayerSlot;
@@ -270,7 +270,7 @@ LUA_FUNCTION_STATIC(voicechat_ProcessVoiceData)
 
 	VoiceData* pData = Get_VoiceData(2);
 	if (!pData)
-		LUA->ArgError(2, "VoiceData");
+		LUA->TypeError(2, "VoiceData");
 
 	if (!detour_SV_BroadcastVoiceData.IsValid())
 		LUA->ThrowError("Missing valid detour for SV_BroadcastVoiceData!\n");
