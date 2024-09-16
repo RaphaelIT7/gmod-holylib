@@ -424,7 +424,7 @@ static bool hook_CHLTVClient_ProcessGMod_ClientToServer(CHLTVClient* hltvclient,
 
 	bf->m_DataIn.Seek(0);
 	int type = bf->m_DataIn.ReadUBitLong(4);
-	if ( type != 2 ) // Only handle type 2 -> Lua net message.
+	if (type != 2) // Only handle type 2 -> Lua net message.
 		return true;
 
 	bf->m_DataIn.ReadUBitLong(8);
@@ -471,12 +471,13 @@ static bool hook_CHLTVClient_ExecuteStringCommand(CHLTVClient* hltvclient, const
 				g_Lua->SetTable(-3);
 			}
 		g_Lua->PushString(args.ArgS());
-		g_Lua->CallFunctionProtected(5, 1, true);
-
-		bool handled = g_Lua->GetBool(-1); // If true was returned, the command was handled.
-		g_Lua->Pop(1);
-		if (handled)
-			return true;
+		if (g_Lua->CallFunctionProtected(5, 1, true))
+		{
+			bool handled = g_Lua->GetBool(-1); // If true was returned, the command was handled.
+			g_Lua->Pop(1);
+			if (handled)
+				return true;
+		}
 	}
 
 	// Fallback.

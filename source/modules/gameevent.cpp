@@ -303,14 +303,15 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 		Util::Push_Entity((CBaseEntity*)pPlayer);
 		g_Lua->ReferencePush(iReference);
 		g_Lua->PushNumber(client->GetPlayerSlot() + 1);
-		g_Lua->CallFunctionProtected(4, 1, true);
-
-		bool pCancel = g_Lua->GetBool(-1);
-		g_Lua->Pop(1);
-		if (pCancel)
+		if (g_Lua->CallFunctionProtected(4, 1, true))
 		{
-			g_Lua->ReferenceFree(iReference);
-			return true;
+			bool pCancel = g_Lua->GetBool(-1);
+			g_Lua->Pop(1);
+			if (pCancel)
+			{
+				g_Lua->ReferenceFree(iReference);
+				return true;
+			}
 		}
 	}
 

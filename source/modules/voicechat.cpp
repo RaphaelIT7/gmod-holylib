@@ -209,13 +209,13 @@ void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data, int64 
 
 		Util::Push_Entity((CBaseEntity*)Util::GetPlayerByClient((CBaseClient*)pClient));
 		Push_VoiceData(pVoiceData);
-		g_Lua->CallFunctionProtected(3, 1, true);
-		if (g_Lua->GetBool(-1))
+		if (g_Lua->CallFunctionProtected(3, 1, true))
 		{
+			bool bHandled = g_Lua->GetBool(-1);
 			g_Lua->Pop(1);
-			return;
+			if (bHandled)
+				return;
 		}
-		g_Lua->Pop(1);
 	}
 
 	detour_SV_BroadcastVoiceData.GetTrampoline<Symbols::SV_BroadcastVoiceData>()(pClient, nBytes, data, xuid);
