@@ -24,6 +24,8 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 3. Put the `gmsv_holylib_linux.so` into the `garrysmod/lua/bin/` directory.  
 
 ## Next Update
+\- [+] Added `voicechat` module  
+\- [+] Made `pas` work on 64x  
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.4...main
@@ -31,12 +33,10 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.4...main
 ### QoL updates
 
 ## ToDo
-\- Finish 64x (`pas`, `pvs`, `sourcetv`, `surffix`)  
+\- Finish 64x (`pvs`, `sourcetv`, `surffix`)  
 \- Find out why ConVars are so broken. (Serverside `path` command breaks :<)  
 \- Look into filesystem handle optimization  
 \- Try to fix that one complex NW2 bug. NOTE: It seems to be related to baseline updates (Entity Creation/Deletion)  
-\- Fix `pas` module  
-\- Cleanup SDK to remove unused files.  
 
 # The Navigator  
 [Modules](https://github.com/RaphaelIT7/gmod-holylib#modules)  

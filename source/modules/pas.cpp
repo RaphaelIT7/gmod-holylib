@@ -91,6 +91,8 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 	if (!func_CM_Vis)
 		LUA->ThrowError("Failed to load CM_Vis!");
 
+	VPROF_BUDGET("pas.FindInPAS", VPROF_BUDGETGROUP_HOLYLIB);
+
 	Vector* orig;
 	LUA->CheckType(1, GarrysMod::Lua::Type::Vector);
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Vector))
