@@ -161,7 +161,7 @@ static int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector*
 		{
 			if (!has_valid_plane)
 			{
-				if (!CloseEnough(pm.plane.normal, Vector(0.0f, 0.0f, 0.0f), FLT_EPSILON) &&
+				if (!CloseEnough(pm.plane.normal, Vector(0.0f, 0.0f, 0.0f), FLT_EPSILON) && // Why do we create a vector each time?
 					valid_plane != pm.plane.normal)
 				{
 					valid_plane = pm.plane.normal;

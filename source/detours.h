@@ -294,6 +294,12 @@ namespace Symbols
 	// Purpose: pas Symbols
 	//---------------------------------------------------------------------------------
 	extern const std::vector<Symbol> g_BSPDataSym;
+
+	//---------------------------------------------------------------------------------
+	// Purpose: pas Symbols
+	//---------------------------------------------------------------------------------
+	typedef void(*SV_BroadcastVoiceData)(IClient*, int nBytes, char* data, int64 xuid);
+	extern const std::vector<Symbol> SV_BroadcastVoiceDataSym;
 }
 
 //---------------------------------------------------------------------------------

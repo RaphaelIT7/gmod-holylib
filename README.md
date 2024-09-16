@@ -1249,9 +1249,76 @@ Returns `true` if it is.
 Checks if the given pox is inside the PAS.  
 Returns `true` if it is.  
 
-# Unfinished Modules
+## voicechat
+This module contains a few things to control the voicechat.  
+You could probably completly rework the voicechat with this since you could completly handle it in lua.  
 
-#### 
+### Functions
+
+#### voicechat.SendEmptyData(Player ply)
+Sends an empty voice packet.  
+
+#### voicechat.SendVoiceData(Player ply, VoiceData data)
+Sends the given VoiceData to the given player.  
+It won't do any processing, it will just send it as it is.  
+
+#### voicedata.ProcessVoiceData(Player ply, VoiceData data)
+Let's the server process the VoiceData like it was received from the client.  
+This can be a bit performance intense.  
+NOTE: This will ignore the set player slot!  
+
+#### VoiceData voicedata.CreateVoiceData(number playerSlot = 0, string data = NULL, number dataLength = NULL)
+Creates a new VoiceData object.  
+> NOTE: All Arguments are optional!
+
+### VoiceData
+VoiceData is a userdata value that is used to manage the voicedata.  
+
+#### string VoiceData:\_\_tostring()
+Returns `VoiceData [%i(Player Slot)][%i(Length/Size)]`.  
+
+#### VoiceData:\_\_gc()
+Garbage collection. Deletes the voice data internally.  
+
+#### var VoiceData:\_\_index()
+Index.  
+
+#### bool VoiceData:IsValid()
+Returns `true` if the VoiceData is still valid.  
+
+#### string VoiceData:GetData()
+Returns the raw compressed voice data.  
+
+#### number VoiceData:GetLength()
+Returns the length of the data.  
+
+#### number VoiceData:GetPlayerSlot()
+Returns the slot of the player this voicedata is originally from.  
+
+#### VoiceData:SetData(string data, (optional)number length)
+Sets the new voice data.  
+
+#### VoiceData:SetLength(number length)
+Sets the new length of the data.  
+
+#### VoiceData:SetPlayerSlot(number slot)
+Sets the new player slot.  
+
+#### string VoiceData:GetUncompressedData()
+Returns the uncompressed voice data.  
+
+### Hooks
+
+#### HolyLib::PreProcessVoiceChat(Player ply, VoiceData data)
+Called before the voicedata is processed.  
+Return `true` to stop the engine from processing it.  
+
+### ConVars
+
+#### holylib_voicechat_hooks(default `1`)
+If enabled, the VoiceChat hooks will be called.  
+
+# Unfinished Modules
 
 ## bass
 This module will add functions related to the bass dll.  

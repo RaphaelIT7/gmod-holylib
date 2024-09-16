@@ -39,7 +39,7 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 		--IncludeSDKRaytrace()
 		--IncludeSDKBitmap()
 		--IncludeSDKVTF()
-		--IncludeSteamAPI()
+		IncludeSteamAPI()
 		IncludeDetouring()
 		IncludeScanning()
 
