@@ -42,17 +42,22 @@ void Push_VoiceData(VoiceData* buf)
 
 VoiceData* Get_VoiceData(int iStackPos, bool bError)
 {
-	if (!g_Lua->IsType(iStackPos, VoiceData_TypeID))
-		return NULL;
+	if (bError)
+	{
+		if (!g_Lua->IsType(iStackPos, VoiceData_TypeID))
+			g_Lua->ThrowError("Tried to use something that wasn't VoiceData!");
 
-	if (!bError)
+		VoiceData* pData = g_Lua->GetUserType<VoiceData>(iStackPos, VoiceData_TypeID);
+		if (!pData)
+			g_Lua->ThrowError("Tried to use a NULL VoiceData!");
+
+		return pData;
+	} else {
+		if (!g_Lua->IsType(iStackPos, VoiceData_TypeID))
+			return NULL;
+
 		return g_Lua->GetUserType<VoiceData>(iStackPos, VoiceData_TypeID);
-
-	VoiceData* pData = g_Lua->GetUserType<VoiceData>(iStackPos, VoiceData_TypeID);
-	if (!pData)
-		g_Lua->ThrowError("Tried to use a NULL VoiceData!");
-
-	return pData;
+	}
 }
 
 LUA_FUNCTION_STATIC(VoiceData__tostring)
