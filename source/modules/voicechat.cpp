@@ -162,7 +162,7 @@ LUA_FUNCTION_STATIC(VoiceData_SetLength)
 		LUA->ArgError(1, "VoiceData");
 
 	pData->iLength = LUA->CheckNumber(2);
-	if (pData->iLength > sizeof(pData->pData))
+	if (pData->iLength > (int)sizeof(pData->pData))
 		pData->iLength = sizeof(pData->pData);
 
 	return 0;
@@ -182,7 +182,7 @@ LUA_FUNCTION_STATIC(VoiceData_SetData)
 		iLength = MIN(iNewLength, iLength); // Don't allow one to go beyond the strength length
 	}
 
-	if (iLength > sizeof(pData->pData))
+	if (iLength > (int)sizeof(pData->pData))
 		iLength = sizeof(pData->pData); // Don't allow one to copy too much.
 
 	memcpy(pData->pData, pStr, iLength);

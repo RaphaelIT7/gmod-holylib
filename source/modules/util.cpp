@@ -156,7 +156,7 @@ LUA_FUNCTION_STATIC(util_AsyncDecompress)
 LUA_FUNCTION_STATIC(util_TableToJSON)
 {
 	LUA->CheckType(1, GarrysMod::Lua::Type::Table);
-	bool bPretty = LUA->GetBool(2);
+	//bool bPretty = LUA->GetBool(2);
 
 	//Bootil::Data::Tree pTree;
 	LUA->Push(1);
@@ -165,7 +165,7 @@ LUA_FUNCTION_STATIC(util_TableToJSON)
 	while (LUA->Next(-2)) {
 		LUA->Push(-2);
 
-		const char* key = LUA->GetString(-1); // In JSON a key is ALWAYS a string
+		//const char* key = LUA->GetString(-1); // In JSON a key is ALWAYS a string
 		switch (LUA->GetType(-2))
 		{
 			case GarrysMod::Lua::Type::String:
