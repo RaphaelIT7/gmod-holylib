@@ -37,6 +37,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.4...main
 \- Find out why ConVars are so broken. (Serverside `path` command breaks :<)  
 \- Look into filesystem handle optimization  
 \- Try to fix that one complex NW2 bug. NOTE: It seems to be related to baseline updates (Entity Creation/Deletion)  
+\- Edit all Arg errors and make them proper errors!  
 
 # The Navigator  
 [Modules](https://github.com/RaphaelIT7/gmod-holylib#modules)  
