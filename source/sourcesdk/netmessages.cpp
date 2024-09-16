@@ -46,3 +46,41 @@ const char *SVC_UserMessage::ToString(void) const
 	Q_snprintf(s_text, sizeof(s_text), "%s: type %i, bytes %i", GetName(), m_nMsgType, Bits2Bytes(m_nLength) );
 	return s_text;
 }
+
+bool SVC_VoiceData::WriteToBuffer(bf_write& buffer)
+{
+	buffer.WriteUBitLong(GetType(), NETMSG_TYPE_BITS);
+	buffer.WriteByte(m_nFromClient);
+	buffer.WriteByte(m_bProximity);
+	buffer.WriteWord(m_nLength);
+
+	if (IsX360())
+	{
+		buffer.WriteLongLong(m_xuid);
+	}
+
+	return buffer.WriteBits(m_DataOut, m_nLength);
+}
+
+bool SVC_VoiceData::ReadFromBuffer(bf_read& buffer)
+{
+	VPROF("SVC_VoiceData::ReadFromBuffer");
+
+	m_nFromClient = buffer.ReadByte();
+	m_bProximity = !!buffer.ReadByte();
+	m_nLength = buffer.ReadWord();
+
+	if (IsX360())
+	{
+		m_xuid = buffer.ReadLongLong();
+	}
+
+	m_DataIn = buffer;
+	return buffer.SeekRelative(m_nLength);
+}
+
+const char* SVC_VoiceData::ToString(void) const
+{
+	Q_snprintf(s_text, sizeof(s_text), "%s: client %i, bytes %i", GetName(), m_nFromClient, Bits2Bytes(m_nLength));
+	return s_text;
+}
