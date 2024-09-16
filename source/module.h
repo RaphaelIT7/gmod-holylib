@@ -13,6 +13,7 @@ public:
 	inline IModule* GetModule() { return m_pModule; };
 	inline bool IsEnabled() { return m_bEnabled; };
 	inline ConVar* GetConVar() { return m_pCVar; };
+	inline ConVar* GetDebugConVar() { return m_pDebugCVar; };
 	inline bool IsCompatible() { return m_bCompatible; };
 	inline void SetID(unsigned int pID) { m_pModule->m_pID = pID; };
 

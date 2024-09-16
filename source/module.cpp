@@ -85,11 +85,14 @@ void CModule::SetModule(IModule* module)
 
 	m_pDebugCVarName = new char[255];
 	V_strncpy(m_pDebugCVarName, pDebugStrName.c_str(), 255);
-	m_pDebugCVar = new ConVar(m_pDebugCVarName, m_bEnabled ? "1" : "0", FCVAR_ARCHIVE, "Whether this module will show debug stuff", OnModuleDebugConVarChange);
+	m_pDebugCVar = new ConVar(m_pDebugCVarName, "0", FCVAR_ARCHIVE, "Whether this module will show debug stuff", OnModuleDebugConVarChange);
 
 	int cmdDebug = CommandLine()->ParmValue(((std::string)"-" + pDebugStrName).c_str(), -1);
 	if (cmdDebug > -1)
+	{
 		m_pModule->SetDebug(cmdDebug == 1);
+		m_pDebugCVar->SetValue(cmdDebug == 1);
+	}
 
 	m_bStartup = false;
 }
@@ -197,6 +200,9 @@ IModuleWrapper* CModuleManager::FindModuleByConVar(ConVar* convar)
 	for (CModule* module : m_pModules)
 	{
 		if (convar == module->GetConVar())
+			return module;
+
+		if (convar == module->GetDebugConVar())
 			return module;
 	}
 
