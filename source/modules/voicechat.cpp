@@ -193,13 +193,16 @@ LUA_FUNCTION_STATIC(VoiceData_SetData)
 Detouring::Hook detour_SV_BroadcastVoiceData;
 void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data, int64 xuid)
 {
+	if (g_pVoiceChatModule.InDebug())
+		Msg("cl: %p\nbytes: %i\ndata: %p\n", pClient, nBytes, data);
+
 	if (!voicechat_hooks.GetBool())
 	{
 		detour_SV_BroadcastVoiceData.GetTrampoline<Symbols::SV_BroadcastVoiceData>()(pClient, nBytes, data, xuid);
 		return;
 	}
 
-	if (Lua::PushHook("HolyLib::PreProcessVoiceChat"))
+	if (Lua::PushHook("HolyLib:PreProcessVoiceChat"))
 	{
 		VoiceData* pVoiceData = new VoiceData;
 		pVoiceData->iLength = nBytes;
@@ -350,6 +353,9 @@ void CVoiceChatModule::Shutdown()
 
 void CVoiceChatModule::InitDetour(bool bPreServer)
 {
+	if (bPreServer)
+		return;
+
 	SourceSDK::ModuleLoader engine_loader("engine");
 	Detour::Create(
 		&detour_SV_BroadcastVoiceData, "SV_BroadcastVoiceData",
