@@ -252,7 +252,7 @@ LUA_FUNCTION_STATIC(voicechat_SendVoiceData)
 
 	SVC_VoiceData voiceData;
 	voiceData.m_nFromClient = pData->iPlayerSlot;
-	voiceData.m_nLength = pData->iLength;
+	voiceData.m_nLength = pData->iLength * 8; // In Bits...
 	voiceData.m_DataOut = pData->pData;
 	voiceData.m_xuid = 0;
 
