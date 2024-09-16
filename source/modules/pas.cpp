@@ -63,7 +63,7 @@ LUA_FUNCTION_STATIC(pas_TestPAS) // This is based off SV_DetermineMulticastRecip
 	func_CM_Vis(g_pCurrentPAS, sizeof(g_pCurrentPAS), engine->GetClusterForOrigin(*hearPos), DVIS_PAS);
 
 	LUA->PushBool(Util::engineserver->CheckOriginInPVS(*hearPos, g_pCurrentPAS, sizeof(g_pCurrentPAS)));
-	return 2;
+	return 1;
 }
 
 LUA_FUNCTION_STATIC(pas_CheckBoxInPAS) // This is based off SV_DetermineMulticastRecipients
