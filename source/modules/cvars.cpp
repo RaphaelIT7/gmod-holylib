@@ -20,7 +20,7 @@ LUA_FUNCTION_STATIC(cvars_GetAll)
 
 	LUA->CreateTable();
 		int idx = 0;
-#ifdef ARCHITECTURE_X86_64
+#if ARCHITECTURE_IS_X86_64
 		ICvar::Iterator it(g_pCVar);
 		it.SetFirst();
 		const ConCommandBase *var = it.Get();

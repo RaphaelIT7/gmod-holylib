@@ -356,13 +356,13 @@ namespace Detour
 	}
 
 #ifdef SYSTEM_LINUX
-#ifndef ARCHITECTURE_X86_64
+#if ARCHITECTURE_IS_X86
 #define DETOUR_SYMBOL_ID 0
 #else
 #define DETOUR_SYMBOL_ID 1
 #endif
 #else
-#ifndef ARCHITECTURE_X86_64
+#if ARCHITECTURE_IS_X86
 #define DETOUR_SYMBOL_ID 2
 #else
 #define DETOUR_SYMBOL_ID 3

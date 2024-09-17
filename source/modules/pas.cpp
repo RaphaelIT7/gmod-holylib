@@ -113,7 +113,7 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 
 	LUA->CreateTable();
 	int idx = 0;
-#ifdef ARCHITECTURE_X86
+#if ARCHITECTURE_IS_X86
 	CBaseEntity* pEnt = Util::entitylist->FirstEnt();
 	while (pEnt != NULL)
 	{

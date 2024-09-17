@@ -48,7 +48,7 @@ void CModule::SetModule(IModule* module)
 	m_bStartup = true;
 	m_pModule = module;
 #ifdef SYSTEM_LINUX // Welcome to ifdef hell
-#ifdef ARCHITECTURE_X86
+#if ARCHITECTURE_IS_X86
 	if (module->Compatibility() & LINUX32)
 		m_bCompatible = true;
 #else
@@ -56,7 +56,7 @@ void CModule::SetModule(IModule* module)
 		m_bCompatible = true;
 #endif
 #else
-#ifdef ARCHITECTURE_X86
+#if ARCHITECTURE_IS_X86
 	if (module->Compatibility() & WINDOWS32)
 		m_bCompatible = true;
 #else

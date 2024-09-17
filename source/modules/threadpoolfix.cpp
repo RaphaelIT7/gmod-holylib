@@ -32,7 +32,7 @@ int hook_CThreadPool_ExecuteToPriority(IThreadPool* pool, void* idx, void* idx2)
 
 void CThreadPoolFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
-#ifdef ARCHITECTURE_X86_64
+#if ARCHITECTURE_IS_X86_64
 	if (g_pThreadPool->NumThreads() > 0)
 	{
 		DevMsg("holylib: Threadpool is already running? Skipping our fix.\n"); // Seems to currently work again in gmod but I'll just leave it in
@@ -49,7 +49,7 @@ void CThreadPoolFixModule::InitDetour(bool bPreServer)
 {
 	if ( !bPreServer ) { return; }
 
-#ifndef ARCHITECTURE_X86_64
+#if ARCHITECTURE_IS_X86
 	SourceSDK::ModuleLoader libvstdlib_loader("libvstdlib_srv");
 	Detour::Create(
 		&detour_CThreadPool_ExecuteToPriority, "CThreadPool::ExecuteToPriority",

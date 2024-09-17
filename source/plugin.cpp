@@ -80,7 +80,7 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 	{
 		ConnectTier1Libraries(&interfaceFactory, 1);
 		ConnectTier2Libraries(&interfaceFactory, 1);
-	#ifndef ARCHITECTURE_X86_64
+	#if ARCHITECTURE_IS_X86
 		ConnectTier3Libraries(&interfaceFactory, 1);
 	#endif
 
@@ -109,11 +109,11 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 	g_pModuleManager.Init();
 	g_pModuleManager.InitDetour(false);
 
-#ifdef ARCHITECTURE_X86_64
+#if ARCHITECTURE_IS_X86_64
 	if (CommandLine()->FindParm("-holylib_debug_forceregister"))
 #endif
 	{
-#ifdef ARCHITECTURE_X86
+#if ARCHITECTURE_IS_X86
 		ConVar* pPath = cvar->FindVar("path");
 		if (pPath)
 			cvar->UnregisterConCommand(pPath);
@@ -147,7 +147,7 @@ void CServerPlugin::Unload(void)
 	Detour::Remove(0);
 	Detour::ReportLeak();
 
-#ifdef ARCHITECTURE_X86_64
+#if ARCHITECTURE_IS_X86_64
 	if (CommandLine()->FindParm("-holylib_debug_forceregister"))
 #endif
 	{
@@ -156,7 +156,7 @@ void CServerPlugin::Unload(void)
 
 	DisconnectTier1Libraries();
 	DisconnectTier2Libraries();
-#ifndef ARCHITECTURE_X86_64
+#if ARCHITECTURE_IS_X86
 	DisconnectTier3Libraries();
 #endif
 }

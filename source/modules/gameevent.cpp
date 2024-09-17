@@ -26,7 +26,7 @@ static ConVar gameevent_callhook("holylib_gameevent_callhook", "1", 0, "If enabl
 static CGameeventLibModule g_pGameeventLibModule;
 IModule* pGameeventLibModule = &g_pGameeventLibModule;
 
-#ifndef ARCHITECTURE_X86_64
+#if ARCHITECTURE_IS_X86
 #define CLIENT_OFFSET -4
 #define LUA_OFFSET 12
 #else
@@ -390,7 +390,7 @@ void CGameeventLibModule::InitDetour(bool bPreServer)
 		(void*)hook_CBaseClient_ProcessListenEvents, m_pID
 	);
 
-#ifndef ARCHITECTURE_X86_64
+#if ARCHITECTURE_IS_X86
 	func_CGameEventManager_AddListener = (Symbols::CGameEventManager_AddListener)Detour::GetFunction(engine_loader.GetModule(), Symbols::CGameEventManager_AddListenerSym);
 	Detour::CheckFunction((void*)func_CGameEventManager_AddListener, "CGameEventManager::AddListener");
 #endif
