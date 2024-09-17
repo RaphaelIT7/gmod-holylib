@@ -296,6 +296,41 @@ LUA_FUNCTION_STATIC(voicechat_SendVoiceData)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(voicechat_BroadcastVoiceData)
+{
+	VoiceData* pData = Get_VoiceData(1, true);
+
+	SVC_VoiceData voiceData;
+	voiceData.m_nFromClient = pData->iPlayerSlot;
+	voiceData.m_nLength = pData->iLength * 8; // In Bits...
+	voiceData.m_DataOut = pData->pData;
+	voiceData.m_bProximity = pData->bProximity;
+	voiceData.m_xuid = 0;
+
+	if (LUA->IsType(2, GarrysMod::Lua::Type::Table))
+	{
+		LUA->Push(1);
+		LUA->PushNil();
+		while (LUA->Next(-2))
+		{
+			CBasePlayer* pPlayer = Util::Get_Player(-1, true);
+			CBaseClient* pClient = Util::GetClientByPlayer(pPlayer);
+			if (!pClient)
+				LUA->ThrowError("Failed to get CBaseClient!\n");
+
+			pClient->SendNetMsg(voiceData);
+
+			LUA->Pop(1);
+		}
+		LUA->Pop(1);
+	} else {
+		for(CBaseClient* pClient : Util::GetClients())
+			pClient->SendNetMsg(voiceData);
+	}
+
+	return 0;
+}
+
 LUA_FUNCTION_STATIC(voicechat_ProcessVoiceData)
 {
 	CBasePlayer* pPlayer = Util::Get_Player(1, true); // Should error if given invalid player.
@@ -398,6 +433,7 @@ void CVoiceChatModule::LuaInit(bool bServerInit)
 	Util::StartTable();
 		Util::AddFunc(voicechat_SendEmptyData, "SendEmptyData");
 		Util::AddFunc(voicechat_SendVoiceData, "SendVoiceData");
+		Util::AddFunc(voicechat_BroadcastVoiceData, "BroadcastVoiceData");
 		Util::AddFunc(voicechat_ProcessVoiceData, "ProcessVoiceData");
 		Util::AddFunc(voicechat_CreateVoiceData, "CreateVoiceData");
 		Util::AddFunc(voicechat_IsHearingClient, "IsHearingClient");
