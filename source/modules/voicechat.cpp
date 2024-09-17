@@ -23,8 +23,26 @@ IModule* pVoiceChatModule = &g_pVoiceChatModule;
 
 struct VoiceData
 {
+	~VoiceData() {
+		if (pData)
+			delete[] pData;
+	}
+
+	inline void AllocData()
+	{
+		if (pData)
+			delete[] pData;
+
+		pData = new char[iLength + 1];
+	}
+
+	inline void SetData(const char* pNewData)
+	{
+		memcpy(pData, pNewData, iLength);
+	}
+
 	int iPlayerSlot = 0; // What if it's an invalid one ;D
-	char pData[4096]; // Same as the engine
+	char* pData = NULL; // Same as the engine
 	int iLength = 0;
 };
 
@@ -185,7 +203,9 @@ LUA_FUNCTION_STATIC(VoiceData_SetData)
 	if (iLength > (int)sizeof(pData->pData))
 		iLength = sizeof(pData->pData); // Don't allow one to copy too much.
 
-	memcpy(pData->pData, pStr, iLength);
+	pData->iLength = iLength;
+	pData->AllocData();
+	pData->SetData(pStr);
 
 	return 0;
 }
@@ -206,7 +226,8 @@ void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data, int64 
 	{
 		VoiceData* pVoiceData = new VoiceData;
 		pVoiceData->iLength = nBytes;
-		memcpy(pVoiceData->pData, data, nBytes); // Is this safe? :^
+		pVoiceData->AllocData();
+		pVoiceData->SetData(data);
 		pVoiceData->iPlayerSlot = pClient->GetPlayerSlot();
 
 		Util::Push_Entity((CBaseEntity*)Util::GetPlayerByClient((CBaseClient*)pClient));
@@ -299,7 +320,8 @@ LUA_FUNCTION_STATIC(voicechat_CreateVoiceData)
 			iLength = iStrLength;
 
 		pData->iLength = iLength;
-		memcpy(pData->pData, pStr, sizeof(pData->pData)); // Should we use V_strncpy? probably not
+		pData->AllocData();
+		pData->SetData(pStr);
 	}
 
 	Push_VoiceData(pData);
