@@ -1316,7 +1316,7 @@ Returns the uncompressed voice data.
 
 ### Hooks
 
-#### HolyLib::PreProcessVoiceChat(Player ply, VoiceData data)
+#### HolyLib:PreProcessVoiceChat(Player ply, VoiceData data)
 Called before the voicedata is processed.  
 Return `true` to stop the engine from processing it.  
 
