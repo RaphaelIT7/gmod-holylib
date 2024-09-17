@@ -146,9 +146,11 @@ void Util::AddDetour()
 	server = InterfacePointers::Server();
 	Detour::CheckValue("get class", "IServer", server != NULL);
 
+#ifdef ARCHITECTURE_X86 // We don't use it on 64x, do we. Look into pas_FindInPAS to see how we do it ^^
 	g_pEntityList = Detour::ResolveSymbol<CBaseEntityList>(server_loader, Symbols::g_pEntityListSym);
 	Detour::CheckValue("get class", "g_pEntityList", g_pEntityList != NULL);
 	entitylist = (CGlobalEntityList*)g_pEntityList;
+#endif
 
 	/*
 	 * IMPORTANT TODO

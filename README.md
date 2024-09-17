@@ -35,6 +35,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.4...main
 \- [#] Fixed error handling being unstable in some cases  
 \- [#] Fixed Custom Userdata having no proper arg errors.  
 \- [#] Hid the `Player will be stuck` message from `surffix` behind debug mode.  
+\- [-] Removed useless SDK files / small cleanup.  
 
 ## ToDo
 \- Finish 64x (`pvs`, `sourcetv`, `surffix`)  
