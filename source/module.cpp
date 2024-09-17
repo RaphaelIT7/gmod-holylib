@@ -13,7 +13,7 @@ CModule::~CModule()
 		delete[] m_pCVarName;
 
 	if ( m_pDebugCVar )
-		delete m_pDebugCVar; // Could this cause a crash? idk.
+		delete m_pDebugCVar; // Could this cause a crash? idk either. But it didn't. Yet. Or has it.
 
 	if ( m_pDebugCVarName )
 		delete[] m_pDebugCVarName;
