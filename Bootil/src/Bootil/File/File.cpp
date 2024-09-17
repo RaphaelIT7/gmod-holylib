@@ -239,7 +239,7 @@ namespace Bootil
 		{
 			BString fn = GetTempDir();
 			char cTempName[L_tmpnam];
-			tmpnam( cTempName );
+			tmpnam_s( cTempName, sizeof(cTempName) );
 			BString name = cTempName;
 			String::Util::Trim( name, "/\\." );
 			name = fn + "/" + name;

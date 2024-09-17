@@ -1,0 +1,103 @@
+name: Build Bootil
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - '.github/workflows/buildbootil.yml'
+      - 'Bootil/**'
+
+env:
+  PROJECT_PATH: "Bootil/projects/"
+
+jobs:
+  build-windows:
+    runs-on: windows-2019
+    if: false
+    steps:
+      - uses: actions/checkout@v4
+        name: Checkout
+
+      - name: Install Premake
+        run: |
+          cd ${{env.PROJECT_PATH}}
+          curl -L https://github.com/danielga/garrysmod_common/releases/download/premake-build%2F5.0.0-beta2/premake-5.0.0-beta2-windows.zip -o premake.zip
+          tar -xf premake.zip
+
+      - name: Generate Project
+        run: |
+          cd ${{env.PROJECT_PATH}}
+          ./premake5.exe vs2019
+
+      - name: Build 32x
+        run: |
+          cd ${{env.PROJECT_PATH}}
+          & "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\MSBuild\Current\Bin\msbuild.exe" /p:Configuration=Release /p:Platform=Win32 Bootil.sln
+
+      - name: Build 64x
+        run: |
+          cd ${{env.PROJECT_PATH}}
+          & "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\MSBuild\Current\Bin\msbuild.exe" /p:Configuration=Release /p:Platform=x64 Bootil.sln
+
+      - uses: actions/upload-artifact@v4
+        name: Upload lua51.lib
+        with:
+          name: lua51.lib
+          path: LuaJIT-2.1/src/lua51.lib
+          retention-days: 1
+
+      - uses: actions/upload-artifact@v4
+        name: Upload bootil_static_32.lib
+        with:
+          name: bootil_static_32.lib
+          path: Bootil/projects/release_x32_windows/bootil_static_32.lib
+          retention-days: 1
+
+      - uses: actions/upload-artifact@v4
+        name: Upload bootil_static_64.lib
+        with:
+          name: bootil_static_64.lib
+          path: Bootil/projects/release_x64_windows/bootil_static_64.lib
+          retention-days: 1
+
+  build-linux:
+    runs-on: ubuntu-latest
+    container: debian:bullseye
+    steps:
+      - name: Install Dependencies
+        run: |
+          dpkg --add-architecture i386
+          apt update
+          apt install -y build-essential git libstdc++6:i386 gcc-multilib g++-multilib wget
+
+      - uses: actions/checkout@v4
+        name: Checkout
+
+      - name: Install Premake
+        run: |
+          cd ${{env.PROJECT_PATH}}
+          wget https://github.com/danielga/garrysmod_common/releases/download/premake-build%2F5.0.0-beta2/premake-5.0.0-beta2-linux.tar.gz -O premake.tar.gz
+          tar -xvf premake.tar.gz --directory=/usr/bin
+          gcc --version
+
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Generate libs
+        run: |
+          cd ${{env.PROJECT_PATH}}
+          premake5 gmake
+          make config=release_x32
+          make config=release_x64
+
+      - uses: actions/upload-artifact@v4
+        name: Upload libbootil_static_32.a
+        with:
+          name: libbootil_static_32.a
+          path: Bootil/projects/release_x32_linux/libbootil_static_32.a
+          retention-days: 1
+
+      - uses: actions/upload-artifact@v4
+        name: Upload libbootil_static_64.a
+        with:
+          name: libbootil_static_64.a
+          path: Bootil/projects/release_x64_linux/libbootil_static_64.a
+          retention-days: 1
