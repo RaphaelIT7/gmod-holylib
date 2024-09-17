@@ -36,8 +36,10 @@ struct VoiceData
 		pData = new char[iLength + 1];
 	}
 
-	inline void SetData(const char* pNewData)
+	inline void SetData(const char* pNewData, int iNewLength)
 	{
+		iLength = iNewLength;
+		AllocData();
 		memcpy(pData, pNewData, iLength);
 	}
 
@@ -203,9 +205,7 @@ LUA_FUNCTION_STATIC(VoiceData_SetData)
 	if (iLength > (int)sizeof(pData->pData))
 		iLength = sizeof(pData->pData); // Don't allow one to copy too much.
 
-	pData->iLength = iLength;
-	pData->AllocData();
-	pData->SetData(pStr);
+	pData->SetData(pStr, iLength);
 
 	return 0;
 }
@@ -225,9 +225,7 @@ void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data, int64 
 	if (Lua::PushHook("HolyLib:PreProcessVoiceChat"))
 	{
 		VoiceData* pVoiceData = new VoiceData;
-		pVoiceData->iLength = nBytes;
-		pVoiceData->AllocData();
-		pVoiceData->SetData(data);
+		pVoiceData->SetData(data, nBytes);
 		pVoiceData->iPlayerSlot = pClient->GetPlayerSlot();
 
 		Util::Push_Entity((CBaseEntity*)Util::GetPlayerByClient((CBaseClient*)pClient));
@@ -319,9 +317,7 @@ LUA_FUNCTION_STATIC(voicechat_CreateVoiceData)
 		if (!iLength)
 			iLength = iStrLength;
 
-		pData->iLength = iLength;
-		pData->AllocData();
-		pData->SetData(pStr);
+		pData->SetData(pStr, iLength);
 	}
 
 	Push_VoiceData(pData);
