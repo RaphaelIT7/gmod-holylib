@@ -1267,12 +1267,16 @@ Sends an empty voice packet.
 Sends the given VoiceData to the given player.  
 It won't do any processing, it will just send it as it is.  
 
-> WARNING: This is really unstable and can easily crash a client. Use ProcessVoiceData for now.  
-
-#### voicedata.ProcessVoiceData(Player ply, VoiceData data)
+#### voicechat.ProcessVoiceData(Player ply, VoiceData data)
 Let's the server process the VoiceData like it was received from the client.  
 This can be a bit performance intense.  
 NOTE: This will ignore the set player slot!  
+
+#### bool voicechat.IsHearingClient(Player ply, Player targetPly)
+Returns `true` if `ply` can hear the `targetPly`.  
+
+#### bool voicechat.IsProximityHearingClient(Player ply, Player targetPly)
+Returns `true` if `ply` can hear the `targetPly` in it's proximity.  
 
 #### VoiceData voicedata.CreateVoiceData(number playerSlot = 0, string data = NULL, number dataLength = NULL)
 Creates a new VoiceData object.  
@@ -1302,6 +1306,12 @@ Returns the length of the data.
 #### number VoiceData:GetPlayerSlot()
 Returns the slot of the player this voicedata is originally from.  
 
+#### string VoiceData:GetUncompressedData()
+Returns the uncompressed voice data.  
+
+#### bool VoiceData:GetProximity()
+Returns if the VoiceData is in proximity.  
+
 #### VoiceData:SetData(string data, (optional)number length)
 Sets the new voice data.  
 
@@ -1311,8 +1321,8 @@ Sets the new length of the data.
 #### VoiceData:SetPlayerSlot(number slot)
 Sets the new player slot.  
 
-#### string VoiceData:GetUncompressedData()
-Returns the uncompressed voice data.  
+#### VoiceData:SetProximity(bool bProximity)
+Sets if the VoiceData is in proximity.  
 
 ### Hooks
 
