@@ -43,8 +43,8 @@ struct VoiceData
 		memcpy(pData, pNewData, iLength);
 	}
 
-	int iPlayerSlot = 0; // What if it's an invalid one ;D
-	char* pData = NULL; // Same as the engine
+	int iPlayerSlot = 0; // What if it's an invalid one ;D (It doesn't care.......)
+	char* pData = NULL;
 	int iLength = 0;
 	bool bProximity = true;
 };

@@ -12,7 +12,7 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-#define NETMSG_TYPE_BITS	5	// should be 5 bits in gmod
+#define NETMSG_TYPE_BITS	6	// should be 5? or 6? bits in gmod
 #define NETMSG_LENGTH_BITS	16	// should be 16 bits
 
 static char s_text[1024];
@@ -49,7 +49,7 @@ const char *SVC_UserMessage::ToString(void) const
 
 bool SVC_VoiceData::WriteToBuffer(bf_write& buffer)
 {
-	buffer.WriteUBitLong(GetType(), NETMSG_TYPE_BITS);
+	buffer.WriteUBitLong(GetType(), NETMSG_TYPE_BITS); // Something is different.... But what.....
 	buffer.WriteByte(m_nFromClient);
 	buffer.WriteByte(m_bProximity);
 	buffer.WriteWord(m_nLength);
