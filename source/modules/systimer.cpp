@@ -46,11 +46,12 @@ double GetTime()
 	return std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count() / 1000;
 }
 
-std::vector<ILuaTimer*> g_pLuaTimers;
+CUtlVector<ILuaTimer*> g_pLuaTimers;
 ILuaTimer* FindTimer(const char* name) // We should pobably use a set or so to have faster look up. But my precious memory :(
 {
-	for (ILuaTimer* timer : g_pLuaTimers)
+	FOR_EACH_VEC(g_pLuaTimers, i)
 	{
+		ILuaTimer* timer = g_pLuaTimers[i];
 		if (timer->identifier != nullptr && strcmp(name, timer->identifier) == 0)
 		{
 			return timer;
@@ -62,19 +63,20 @@ ILuaTimer* FindTimer(const char* name) // We should pobably use a set or so to h
 
 void RemoveTimers()
 {
-	std::vector<ILuaTimer*> timers = g_pLuaTimers;
-	g_pLuaTimers.clear();
-	for (ILuaTimer* timer : timers)
+	bool bDeleted = false;
+	FOR_EACH_VEC(g_pLuaTimers, i)
 	{
-		if (timer->markdelete)
-		{
-			delete timer;
-		} else {
-			g_pLuaTimers.push_back(timer);
-		}
+		ILuaTimer* timer = g_pLuaTimers[i];
+		if (!timer->markdelete)
+			continue;
+
+		g_pLuaTimers.FastRemove(i); // Is this safe?
+		bDeleted = true;
+		delete timer;
 	}
-	timers.clear();
-	g_pLuaTimers.shrink_to_fit();
+
+	if (bDeleted)
+		g_pLuaTimers.Compact();
 }
 
 LUA_FUNCTION_STATIC(timer_Adjust)
@@ -136,7 +138,7 @@ LUA_FUNCTION_STATIC(timer_Create)
 	timer->next_run_time = GetTime() + delay;
 
 	if (bNewTimer)
-		g_pLuaTimers.push_back(timer);
+		g_pLuaTimers.AddToTail(timer);
 
 	return 0;
 }
@@ -208,7 +210,7 @@ LUA_FUNCTION_STATIC(timer_Simple)
 	timer->delay = delay;
 	timer->repetitions = 1;
 	timer->next_run_time = GetTime() + delay;
-	g_pLuaTimers.push_back(timer);
+	g_pLuaTimers.AddToTail(timer);
 
 	return 0;
 }
@@ -320,10 +322,10 @@ void CSysTimerModule::LuaInit(bool bServerInit)
 
 void CSysTimerModule::LuaShutdown()
 {
-	for (ILuaTimer* timer : g_pLuaTimers)
-		delete timer;
+	FOR_EACH_VEC(g_pLuaTimers, i)
+		delete g_pLuaTimers[i];
 
-	g_pLuaTimers.clear(),
+	g_pLuaTimers.RemoveAll(),
 	Util::NukeTable("systimer");
 }
 
