@@ -239,7 +239,10 @@ namespace Bootil
 		{
 			BString fn = GetTempDir();
 			char cTempName[L_tmpnam];
-			tmpnam_s( cTempName, sizeof(cTempName) );
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wno-deprecated-declarations"
+			tmpnam( cTempName );
+#pragma GCC diagnostic pop
 			BString name = cTempName;
 			String::Util::Trim( name, "/\\." );
 			name = fn + "/" + name;
