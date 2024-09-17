@@ -76,14 +76,14 @@ void CModule::SetModule(IModule* module)
 		if (CommandLine()->ParmValue("-holylib_startdisabled", -1) == -1)
 			m_bEnabled = m_pModule->IsEnabledByDefault() ? m_bCompatible : false;
 
-	m_pCVarName = new char[255];
+	m_pCVarName = new char[48];
 	V_strncpy(m_pCVarName, pStrName.c_str(), 255);
 	m_pCVar = new ConVar(m_pCVarName, m_bEnabled ? "1" : "0", FCVAR_ARCHIVE, "Whether this module should be active or not", OnModuleConVarChange);
 
 	std::string pDebugStrName = "holylib_debug_";
 	pDebugStrName.append(module->Name());
 
-	m_pDebugCVarName = new char[255];
+	m_pDebugCVarName = new char[48];
 	V_strncpy(m_pDebugCVarName, pDebugStrName.c_str(), 255);
 	m_pDebugCVar = new ConVar(m_pDebugCVarName, "0", FCVAR_ARCHIVE, "Whether this module will show debug stuff", OnModuleDebugConVarChange);
 
