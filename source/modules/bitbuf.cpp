@@ -194,7 +194,9 @@ LUA_FUNCTION_STATIC(bf_read_GetNumBytes)
 
 LUA_FUNCTION_STATIC(bf_read_GetCurrentBit)
 {
+#ifdef ARCHITECTURE_IS_X86
 	bf_read* bf = Get_bf_read(1, true);
+#endif
 
 #ifdef ARCHITECTURE_IS_X86_64
 	LUA->ThrowError("This is 32x only.");
@@ -243,7 +245,9 @@ LUA_FUNCTION_STATIC(bf_read_ReadBitAngles)
 
 LUA_FUNCTION_STATIC(bf_read_ReadBitCoord)
 {
+#ifdef ARCHITECTURE_IS_X86
 	bf_read* bf = Get_bf_read(1, true);
+#endif
 
 #ifdef ARCHITECTURE_X86_64
 	LUA->ThrowError("This is 32x only.");
@@ -255,7 +259,9 @@ LUA_FUNCTION_STATIC(bf_read_ReadBitCoord)
 
 LUA_FUNCTION_STATIC(bf_read_ReadBitCoordBits)
 {
+#ifdef ARCHITECTURE_IS_X86
 	bf_read* bf = Get_bf_read(1, true);
+#endif
 
 #ifdef ARCHITECTURE_X86_64
 	LUA->ThrowError("This is 32x only.");
@@ -267,7 +273,9 @@ LUA_FUNCTION_STATIC(bf_read_ReadBitCoordBits)
 
 LUA_FUNCTION_STATIC(bf_read_ReadBitCoordMP)
 {
+#ifdef ARCHITECTURE_IS_X86
 	bf_read* bf = Get_bf_read(1, true);
+#endif
 
 #ifdef ARCHITECTURE_X86_64
 	LUA->ThrowError("This is 32x only.");
@@ -281,7 +289,9 @@ LUA_FUNCTION_STATIC(bf_read_ReadBitCoordMP)
 
 LUA_FUNCTION_STATIC(bf_read_ReadBitCoordMPBits)
 {
+#ifdef ARCHITECTURE_IS_X86
 	bf_read* bf = Get_bf_read(1, true);
+#endif
 
 #ifdef ARCHITECTURE_X86_64
 	LUA->ThrowError("This is 32x only.");
@@ -303,7 +313,9 @@ LUA_FUNCTION_STATIC(bf_read_ReadBitFloat)
 
 LUA_FUNCTION_STATIC(bf_read_ReadBitLong)
 {
+#ifdef ARCHITECTURE_IS_X86
 	bf_read* bf = Get_bf_read(1, true);
+#endif
 
 #ifdef ARCHITECTURE_X86_64
 	LUA->ThrowError("This is 32x only.");
@@ -466,9 +478,10 @@ LUA_FUNCTION_STATIC(bf_read_ReadString)
 {
 	bf_read* bf = Get_bf_read(1, true);
 
-	char str[1<<16]; // 1 << 16 is 64kb which is the max net message size.
-	if (bf->ReadString(str, sizeof(str)))
-		LUA->PushString(str);
+	int iSize = 1 << 16;
+	char* pStr = new char[iSize]; // 1 << 16 is 64kb which is the max net message size.
+	if (bf->ReadString(pStr, iSize))
+		LUA->PushString(pStr);
 	else
 		LUA->PushNil();
 
@@ -523,7 +536,9 @@ LUA_FUNCTION_STATIC(bf_read_ReadWord)
 
 LUA_FUNCTION_STATIC(bf_read_Reset)
 {
+#ifdef ARCHITECTURE_IS_X86
 	bf_read* bf = Get_bf_read(1, true);
+#endif
 
 #ifdef ARCHITECTURE_X86_64
 	LUA->ThrowError("This is 32x only.");
