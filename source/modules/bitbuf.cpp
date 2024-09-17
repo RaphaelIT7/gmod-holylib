@@ -485,6 +485,8 @@ LUA_FUNCTION_STATIC(bf_read_ReadString)
 	else
 		LUA->PushNil();
 
+	delete[] pStr;
+
 	return 1;
 }
 
