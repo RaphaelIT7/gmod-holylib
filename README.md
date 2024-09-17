@@ -26,11 +26,15 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 ## Next Update
 \- [+] Added `voicechat` module  
 \- [+] Made `pas` work on 64x  
+\- [#] Fixed my debug system not working as expected.  
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.4...main
 
 ### QoL updates
+\- [#] Fixed error handling being unstable in some cases  
+\- [#] Fixed Custom Userdata having no proper arg errors.  
+\- [#] Hid the `Player will be stuck` message from `surffix` behind debug mode.  
 
 ## ToDo
 \- Finish 64x (`pvs`, `sourcetv`, `surffix`)  

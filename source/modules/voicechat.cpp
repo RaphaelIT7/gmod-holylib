@@ -158,14 +158,15 @@ LUA_FUNCTION_STATIC(VoiceData_GetUncompressedData)
 		LUA->ThrowError("Failed to get SteamUser!\n");
 
 	uint32 pDecompressedLength;
-	char pDecompressed[20000];
+	char* pDecompressed = new char[20000];
 	SteamUser()->DecompressVoice(
 		pData->pData, pData->iLength,
-		pDecompressed, sizeof(pDecompressed),
+		pDecompressed, 20000,
 		&pDecompressedLength, 44100
 	);
 
 	LUA->PushString(pDecompressed, pDecompressedLength);
+	delete[] pDecompressed; // Lua will already have a copy of it.
 
 	return 1;
 }
@@ -184,8 +185,6 @@ LUA_FUNCTION_STATIC(VoiceData_SetLength)
 	VoiceData* pData = Get_VoiceData(1, true);
 
 	pData->iLength = LUA->CheckNumber(2);
-	if (pData->iLength > (int)sizeof(pData->pData))
-		pData->iLength = sizeof(pData->pData);
 
 	return 0;
 }
@@ -201,9 +200,6 @@ LUA_FUNCTION_STATIC(VoiceData_SetData)
 		int iNewLength = LUA->GetNumber(3);
 		iLength = MIN(iNewLength, iLength); // Don't allow one to go beyond the strength length
 	}
-
-	if (iLength > (int)sizeof(pData->pData))
-		iLength = sizeof(pData->pData); // Don't allow one to copy too much.
 
 	pData->SetData(pStr, iLength);
 
