@@ -33,7 +33,7 @@ struct VoiceData
 		if (pData)
 			delete[] pData;
 
-		pData = new char[iLength + 1];
+		pData = new char[iLength]; // We won't need additional space right?
 	}
 
 	inline void SetData(const char* pNewData, int iNewLength)

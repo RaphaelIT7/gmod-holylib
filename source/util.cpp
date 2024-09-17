@@ -157,6 +157,10 @@ void Util::AddDetour()
 	 * 
 	 * We now will run in the menu state so if we try to push an entity or so, we may push it in the wrong realm!
 	 * How will we handle multiple realms?
+	 * 
+	 * Idea: Fk menu, if there is a server realm, we'll use it. If not, we wait for one to start.
+	 *		We also could introduce a Lua Flag so that modules can register for Menu/Client realm if wanted.
+	 *		But I won't really support client. At best only menu.
 	 */
 
 #ifndef SYSTEM_WINDOWS
