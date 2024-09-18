@@ -67,6 +67,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.4...main
 \- [systimer](https://github.com/RaphaelIT7/gmod-holylib#systimer)  
 \- [pas](https://github.com/RaphaelIT7/gmod-holylib#pas)  
 \- [voicechat](https://github.com/RaphaelIT7/gmod-holylib#voicechat)  
+\- \- [VoiceData](https://github.com/RaphaelIT7/gmod-holylib#voicedata)  
 
 [Unfinished Modules](https://github.com/RaphaelIT7/gmod-holylib#unfinished-modules)  
 \- [bass](https://github.com/RaphaelIT7/gmod-holylib#bass)  
