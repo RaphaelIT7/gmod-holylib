@@ -65,11 +65,12 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.4...main
 \- [networking](https://github.com/RaphaelIT7/gmod-holylib#networking)  
 \- [steamworks](https://github.com/RaphaelIT7/gmod-holylib#steamworks)  
 \- [systimer](https://github.com/RaphaelIT7/gmod-holylib#systimer)
+\- [pas](https://github.com/RaphaelIT7/gmod-holylib#pas)  
+\- [voicechat](https://github.com/RaphaelIT7/gmod-holylib#voicechat)
 
 [Unfinished Modules](https://github.com/RaphaelIT7/gmod-holylib#unfinished-modules)  
 \- [bass](https://github.com/RaphaelIT7/gmod-holylib#bass)  
 \- [serverplugins](https://github.com/RaphaelIT7/gmod-holylib#serverplugins)  
-\- [pas](https://github.com/RaphaelIT7/gmod-holylib#pas)  
 
 [Issues implemented / fixed](https://github.com/RaphaelIT7/gmod-holylib/edit/main/README.md#issues-implemented--fixed)  
 [Some things for later](https://github.com/RaphaelIT7/gmod-holylib/edit/main/README.md#some-things-for-later)  
@@ -1042,10 +1043,16 @@ Read a number with the given amount of bits.
 #### number bf_read:ReadWord()
 
 #### bf_read:Reset()
+Resets the current position and resets the overflow flag.  
 
 #### bool bf_read:Seek(number iPos)
+Sets the current position to the given position.  
+Returns `true` on success.  
 
 #### bool bf_read:SeekRelative(number iPos)
+Sets the current position to the given position relative to the current position.
+Basicly `newPosition = currentPosition + iPos`    
+Returns `true` on success.  
 
 ### bf_write  
 
@@ -1138,14 +1145,22 @@ Writes a word.
 #### bf_write:WriteBitAngle(number value, number bits)
 
 #### bf_write:WriteBitAngles(Angle ang)
+Writes an Angle. (`QAngle` internally).  
 
 #### bf_write:WriteBitVec3Coord(Vector vec)
+Writes a Vector.  
 
 #### bf_write:WriteBitVec3Normal(Vector vec)
 
-#### bf_write:WriteBits(string data, number bits)
+#### bool bf_write:WriteBits(string data, number bits)
+Writes the given number of bits from the data into this buffer.  
+Returns `true` on success.  
 
-#### bf_write:WriteBitsFromBuffer(bf_read buffer, number bits)
+#### bool bf_write:WriteBitsFromBuffer(bf_read buffer, number bits)
+Writes the given number of bits from the given buffer into this buffer.  
+Returns `true` on success.  
+
+> NOTE: The current position for the given buffer will change as we internally read from it!
 
 #### bf_write:WriteBitNormal(number value)
 
@@ -1242,7 +1257,7 @@ If you got an Idea for a function to add, feel free to comment it into [its issu
 
 ### Functions
 
-#### (Planned) table pas.FindInPAS(Vector vec / Entity ent)
+#### table pas.FindInPAS(Vector vec / Entity ent)
 Vector vec - The position to find all entities in.  
 Entity ent - The Entity which should be used to find all entities.  
 

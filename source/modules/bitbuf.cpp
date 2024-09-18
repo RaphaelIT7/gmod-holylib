@@ -376,7 +376,6 @@ LUA_FUNCTION_STATIC(bf_read_ReadByte)
 	bf_read* bf = Get_bf_read(1, true);
 
 	LUA->PushNumber(bf->ReadByte());
-
 	return 1;
 }
 
@@ -397,7 +396,6 @@ LUA_FUNCTION_STATIC(bf_read_ReadChar)
 	bf_read* bf = Get_bf_read(1, true);
 
 	LUA->PushNumber(bf->ReadChar());
-
 	return 1;
 }
 
@@ -406,7 +404,6 @@ LUA_FUNCTION_STATIC(bf_read_ReadFloat)
 	bf_read* bf = Get_bf_read(1, true);
 
 	LUA->PushNumber(bf->ReadFloat());
-
 	return 1;
 }
 
@@ -415,7 +412,6 @@ LUA_FUNCTION_STATIC(bf_read_ReadLong)
 	bf_read* bf = Get_bf_read(1, true);
 
 	LUA->PushNumber(bf->ReadLong());
-
 	return 1;
 }
 
@@ -424,7 +420,6 @@ LUA_FUNCTION_STATIC(bf_read_ReadLongLong)
 	bf_read* bf = Get_bf_read(1, true);
 
 	LUA->PushNumber(bf->ReadLongLong());
-
 	return 1;
 }
 
@@ -433,7 +428,6 @@ LUA_FUNCTION_STATIC(bf_read_ReadOneBit)
 	bf_read* bf = Get_bf_read(1, true);
 
 	LUA->PushBool(bf->ReadOneBit());
-
 	return 1;
 }
 
@@ -443,7 +437,6 @@ LUA_FUNCTION_STATIC(bf_read_ReadSBitLong)
 
 	int numBits = LUA->CheckNumber(2);
 	LUA->PushNumber(bf->ReadSBitLong(numBits));
-
 	return 1;
 }
 
@@ -452,7 +445,6 @@ LUA_FUNCTION_STATIC(bf_read_ReadShort)
 	bf_read* bf = Get_bf_read(1, true);
 
 	LUA->PushNumber(bf->ReadShort());
-
 	return 1;
 }
 
@@ -461,7 +453,6 @@ LUA_FUNCTION_STATIC(bf_read_ReadSignedVarInt32)
 	bf_read* bf = Get_bf_read(1, true);
 
 	LUA->PushNumber(bf->ReadSignedVarInt32());
-
 	return 1;
 }
 
@@ -470,7 +461,6 @@ LUA_FUNCTION_STATIC(bf_read_ReadSignedVarInt64)
 	bf_read* bf = Get_bf_read(1, true);
 
 	LUA->PushNumber(bf->ReadSignedVarInt64());
-
 	return 1;
 }
 
@@ -496,7 +486,6 @@ LUA_FUNCTION_STATIC(bf_read_ReadUBitLong)
 
 	int numBits = LUA->CheckNumber(2);
 	LUA->PushNumber(bf->ReadUBitLong(numBits));
-
 	return 1;
 }
 
@@ -505,7 +494,6 @@ LUA_FUNCTION_STATIC(bf_read_ReadUBitVar)
 	bf_read* bf = Get_bf_read(1, true);
 
 	LUA->PushNumber(bf->ReadUBitVar());
-
 	return 1;
 }
 
@@ -514,7 +502,6 @@ LUA_FUNCTION_STATIC(bf_read_ReadVarInt32)
 	bf_read* bf = Get_bf_read(1, true);
 
 	LUA->PushNumber(bf->ReadVarInt32());
-
 	return 1;
 }
 
@@ -523,7 +510,6 @@ LUA_FUNCTION_STATIC(bf_read_ReadVarInt64)
 	bf_read* bf = Get_bf_read(1, true);
 
 	LUA->PushNumber(bf->ReadVarInt64());
-
 	return 1;
 }
 
@@ -532,7 +518,6 @@ LUA_FUNCTION_STATIC(bf_read_ReadWord)
 	bf_read* bf = Get_bf_read(1, true);
 
 	LUA->PushNumber(bf->ReadWord());
-
 	return 1;
 }
 
@@ -556,7 +541,6 @@ LUA_FUNCTION_STATIC(bf_read_Seek)
 	bf_read* bf = Get_bf_read(1, true);
 
 	LUA->PushBool(bf->Seek(LUA->CheckNumber(2)));
-
 	return 1;
 }
 
@@ -565,7 +549,6 @@ LUA_FUNCTION_STATIC(bf_read_SeekRelative)
 	bf_read* bf = Get_bf_read(1, true);
 
 	LUA->PushBool(bf->SeekRelative(LUA->CheckNumber(2)));
-
 	return 1;
 }
 
@@ -1106,7 +1089,6 @@ void CBitBufModule::LuaInit(bool bServerInit)
 		Util::AddFunc(bf_write_WriteBitFloat, "WriteBitFloat");
 		Util::AddFunc(bf_write_WriteBitCoord, "WriteBitCoord");
 		Util::AddFunc(bf_write_WriteBitCoordMP, "WriteBitCoordMP");
-		
 	g_Lua->Pop(1);
 
 	Util::StartTable();

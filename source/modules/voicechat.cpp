@@ -237,6 +237,8 @@ void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data, int64 
 		return;
 	}
 
+	VPROF_BUDGET("HolyLib - SV_BroadcastVoiceData", VPROF_BUDGETGROUP_HOLYLIB);
+
 	if (Lua::PushHook("HolyLib:PreProcessVoiceChat"))
 	{
 		VoiceData* pVoiceData = new VoiceData;
