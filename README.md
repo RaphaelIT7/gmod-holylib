@@ -64,9 +64,9 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.4...main
 \- \- [bf_write](https://github.com/RaphaelIT7/gmod-holylib#bf_write)  
 \- [networking](https://github.com/RaphaelIT7/gmod-holylib#networking)  
 \- [steamworks](https://github.com/RaphaelIT7/gmod-holylib#steamworks)  
-\- [systimer](https://github.com/RaphaelIT7/gmod-holylib#systimer)
+\- [systimer](https://github.com/RaphaelIT7/gmod-holylib#systimer)  
 \- [pas](https://github.com/RaphaelIT7/gmod-holylib#pas)  
-\- [voicechat](https://github.com/RaphaelIT7/gmod-holylib#voicechat)
+\- [voicechat](https://github.com/RaphaelIT7/gmod-holylib#voicechat)  
 
 [Unfinished Modules](https://github.com/RaphaelIT7/gmod-holylib#unfinished-modules)  
 \- [bass](https://github.com/RaphaelIT7/gmod-holylib#bass)  
