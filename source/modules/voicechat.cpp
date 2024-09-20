@@ -267,7 +267,7 @@ LUA_FUNCTION_STATIC(voicechat_SendEmptyData)
 		LUA->ThrowError("Failed to get CBaseClient!\n");
 
 	SVC_VoiceData voiceData;
-	voiceData.m_nFromClient = pClient->GetPlayerSlot();
+	voiceData.m_nFromClient = g_Lua->CheckNumberOpt(2, pClient->GetPlayerSlot());
 	voiceData.m_nLength = 0;
 	voiceData.m_DataOut = NULL; // Will possibly crash?
 	voiceData.m_xuid = 0;

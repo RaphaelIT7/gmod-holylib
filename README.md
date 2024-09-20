@@ -1276,8 +1276,9 @@ You could probably completly rework the voicechat with this since you could comp
 
 ### Functions
 
-#### voicechat.SendEmptyData(Player ply)
+#### voicechat.SendEmptyData(Player ply, number playerSlot = ply:EntIndex()-1)
 Sends an empty voice packet.  
+If `playerSlot` isn't specified it will use the player slot of the given player.  
 
 #### voicechat.SendVoiceData(Player ply, VoiceData data)
 Sends the given VoiceData to the given player.  
@@ -1332,7 +1333,7 @@ Returns the uncompressed voice data.
 #### bool VoiceData:GetProximity()
 Returns if the VoiceData is in proximity.  
 
-#### VoiceData:SetData(string data, (optional)number length)
+#### VoiceData:SetData(string data, number length = nil)
 Sets the new voice data.  
 
 #### VoiceData:SetLength(number length)
