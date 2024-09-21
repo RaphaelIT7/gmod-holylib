@@ -17,6 +17,7 @@ public:
 	virtual void Think(bool bSimulating) OVERRIDE;
 	virtual void LuaInit(bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown() OVERRIDE;
+	virtual void Shutdown() OVERRIDE;
 	virtual const char* Name() { return "filesystem"; };
 	virtual int Compatibility() { return LINUX32; };
 };
@@ -36,7 +37,7 @@ static ConVar holylib_filesystem_forcepath("holylib_filesystem_forcepath", "1", 
 	"If enabled, it will change the paths of some specific files");
 static ConVar holylib_filesystem_predictpath("holylib_filesystem_predictpath", "1", 0, 
 	"If enabled, it will try to predict the path of a file");
-static ConVar holylib_filesystem_predictexistance("holylib_filesystem_predictexistance", "1", 0, 
+static ConVar holylib_filesystem_predictexistance("holylib_filesystem_predictexistance", "0", 0, 
 	"If enabled, it will try to predict the path of a file, but if the file doesn't exist in the predicted path, we'll just say it doesn't exist.");
 static ConVar holylib_filesystem_splitgamepath("holylib_filesystem_splitgamepath", "1", 0, 
 	"If enabled, it will create for each content type like models/, materials/ a game path which will be used to find that content.");
@@ -57,6 +58,7 @@ extern void DeleteFileHandle(FileHandle_t handle);
 static std::unordered_map<FileHandle_t, std::string_view> m_FileStringCache;
 static std::unordered_map<std::string_view, FileHandle_t> m_FileCache;
 static std::unordered_set<FileHandle_t> m_WriteFileHandle;
+static std::unordered_set<std::string> m_PredictionCheck;
 std::unordered_map<FileHandle_t, float> pFileDeletionList;
 void AddFileHandleToCache(std::string_view strFilePath, FileHandle_t pHandle)
 {
@@ -267,6 +269,17 @@ static void DumpFilecacheCmd(const CCommand &args)
 	Msg("---- End of Search cache ----\n");
 }
 static ConCommand dumpfilecache("holylib_filesystem_dumpfilecache", DumpFilecacheCmd, "Dumps the filecache", 0);
+
+static void ShowPredictionErrosCmd(const CCommand &args)
+{
+	Msg("---- Prediction Errors ----\n");
+	for (const std::string& strFileName : m_PredictionCheck)
+	{
+		Msg("- \"%s\"", strFileName.c_str());
+	}
+	Msg("---- End of Prediction Errors ----\n");
+}
+static ConCommand nukesearchcache("holylib_filesystem_showpredictionerrors", ShowPredictionErrosCmd, "Nukes the searchcache", 0);
 
 inline void OnFileHandleOpen(FileHandle_t handle, const char* pFileMode)
 {
@@ -687,6 +700,13 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 							g_pFullFileSystem->Close(file2); // We still return NULL!
 						}
 					}
+
+					std::string realStrFileName = strFileName.data();
+					auto it = m_PredictionCheck.find(realStrFileName); // This could cause additional slowdown :/
+					if (it != m_PredictionCheck.end())
+						return NULL;
+
+					m_PredictionCheck.insert(realStrFileName);
 
 					return NULL;
 				}
@@ -1763,4 +1783,10 @@ void CFileSystemModule::LuaInit(bool bServerInit)
 void CFileSystemModule::LuaShutdown()
 {
 	Util::NukeTable("filesystem");
+}
+
+void CFileSystemModule::Shutdown()
+{
+	m_PredictionCheck.clear();
+	// ToDo: Also clear there other shit.
 }

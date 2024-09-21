@@ -76,6 +76,14 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.4...main
 [Issues implemented / fixed](https://github.com/RaphaelIT7/gmod-holylib/edit/main/README.md#issues-implemented--fixed)  
 [Some things for later](https://github.com/RaphaelIT7/gmod-holylib/edit/main/README.md#some-things-for-later)  
 
+# Possible Issues
+
+## Models have prediction errors/don't load properly
+This is most likely cause by the filesystem prediction.  
+You can use `holylib_filesystem_showpredictionerrors` to see any predictions that failed.  
+You can solve this by setting `holylib_filesystem_predictexistance 0`.  
+The convar was disabled by default now because of this.  
+
 # Modules
 Each module has its own convar `holylib_enable_[module name]` which allows you to enable/disable specific modules.  
 You can add `-holylib_enable_[module name] 0` to the startup to disable modules on startup.  
@@ -605,7 +613,7 @@ Lua paths:
 If enabled, it will fallback to the original searchpath if it failed to find something in the split path.  
 This is quite slow, so disabling this will improve performance to find files that doesn't exist.  
 
-#### holylib_filesystem_predictexistance (default `1`)
+#### holylib_filesystem_predictexistance (default `0`)
 If enabled, it will try to predict the path of a file, but if the file doesn't exist in the predicted path, we'll just say it doesn't exist.  
 Doesn't rely on `holylib_filesystem_predictpath` but it also works with it together.  
 
@@ -635,6 +643,9 @@ The id is the one listed with each file in the dumped searchcache.
 
 #### holylib_filesystem_nukesearchcache
 Nukes the searchcache.  
+
+#### holylib_filesystem_showpredictionerrors
+Shows all files that were predicted to not exist.  
 
 ### Functions
 This module also adds a `filesystem` library which should generally be faster than gmod's functions, because gmod has some weird / slow things in them.  

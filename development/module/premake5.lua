@@ -54,6 +54,7 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			[[../../source/modules/*.cpp]],
 			[[../../source/sourcesdk/*.h]],
 			[[../../source/sourcesdk/*.cpp]],
+			[[../../source/public/*.h]],
 			[[../../README.md]],
 		})
 
