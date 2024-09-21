@@ -27,6 +27,7 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- [+] Added `voicechat` module  
 \- [+] Made `pas` work on 64x  
 \- [#] Fixed my debug system not working as expected.  
+\- [#] `holylib_filesystem_predictexistance` is now disabled by default. (Enable it if you know that your content is managed properly)
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.4...main
@@ -556,17 +557,6 @@ If enabled, it will check the searchcache inside `CBaseFileSystem::OpenForRead`.
 #### holylib_filesystem_forcepath (default `1`)
 If enabled, it will force the pathID for specific files.  
 
-#### holylib_filesystem_predictpath (default `1`)
-If enabled, it will try to predict the path for a file.  
-
-Example:  
-Your loading a model.  
-First you load the `example.mdl` file.  
-Then you load the `example.phy` file.   
-Here we can check if the `example.mdl` file is in the searchcache.  
-If so, we try to use the searchpath of that file for the `.phy` file and since all model files should be in the same folder, this will work for most cases.  
-If we fail to predict a path, it will end up using one additional search path.  
-
 #### holylib_filesystem_splitgamepath (default `1`)
 If enabled, it will split each `GAME` path into multiple search paths, depending on it's contents.  
 Then when you try to find a file with the `GAME` search path, it will change the pathID to the content path.  
@@ -613,9 +603,22 @@ Lua paths:
 If enabled, it will fallback to the original searchpath if it failed to find something in the split path.  
 This is quite slow, so disabling this will improve performance to find files that doesn't exist.  
 
+#### holylib_filesystem_predictpath (default `1`)
+If enabled, it will try to predict the path for a file.  
+
+Example:  
+Your loading a model.  
+First you load the `example.mdl` file.  
+Then you load the `example.phy` file.   
+Here we can check if the `example.mdl` file is in the searchcache.  
+If so, we try to use the searchpath of that file for the `.phy` file and since all model files should be in the same folder, this will work for most cases.  
+If we fail to predict a path, it will end up using one additional search path.  
+
 #### holylib_filesystem_predictexistance (default `0`)
 If enabled, it will try to predict the path of a file, but if the file doesn't exist in the predicted path, we'll just say it doesn't exist.  
 Doesn't rely on `holylib_filesystem_predictpath` but it also works with it together.  
+
+The logic for prediction is exactly the same as `holylib_filesystem_predictpath` but it will just stop checking if it doesn't find a file in the predicted path instead of checking then all other searchpaths.  
 
 #### holylib_filesystem_fixgmodpath (default `1`)
 If enabled, it will fix up weird gamemode paths like sandbox/gamemode/sandbox/gamemode which gmod likes to use.  
