@@ -279,7 +279,7 @@ static void ShowPredictionErrosCmd(const CCommand &args)
 	}
 	Msg("---- End of Prediction Errors ----\n");
 }
-static ConCommand nukesearchcache("holylib_filesystem_showpredictionerrors", ShowPredictionErrosCmd, "Nukes the searchcache", 0);
+static ConCommand showpredictionerrors("holylib_filesystem_showpredictionerrors", ShowPredictionErrosCmd, "Nukes the searchcache", 0);
 
 inline void OnFileHandleOpen(FileHandle_t handle, const char* pFileMode)
 {
