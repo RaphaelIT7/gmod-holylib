@@ -230,7 +230,7 @@ public: // Gimme that access
     //some PSI grid dependent constants
     IVP_DOUBLE integrated_energy_damp;
     IVP_DOUBLE get_integrated_energy_damp() { return integrated_energy_damp; };
-    /***********************************************************************************
+    \/***********************************************************************************
      *			Internal public functions, handle with care:
      ***********************************************************************************\/
 public:
@@ -289,7 +289,7 @@ public:
 
 
 
-    /***********************************************************************************
+    \/***********************************************************************************
      *			real public functions:
      ***********************************************************************************\/
 
@@ -321,7 +321,7 @@ public:
     void merge_objects(IVP_U_Vector<IVP_Real_Object> *obj_to_merge);
 
 
-    /********************************************************************************
+    \/********************************************************************************
      *	Name:	  	create_polygon /    create_ball 	
      *	Description:	Creates objects
      *	Note:		Objects are not collision detection enabled:

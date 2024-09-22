@@ -51,7 +51,7 @@ public:
     inline void set(const IVP_U_Point *p);
 #endif
     inline void set(const IVP_FLOAT p[3]);
-    inline void set(const IVP_U_Float_Point *p);
+    //inline void set(const IVP_U_Float_Point *p);
     inline void set(IVP_FLOAT k0, IVP_FLOAT k1, IVP_FLOAT k2);			
 
     inline void set_negative(const IVP_U_Float_Point *p_source);	// this = p_source * -1.0
@@ -132,7 +132,7 @@ public:
 #if !defined(IVP_VECTOR_UNIT_FLOAT)
     IVP_FLOAT hesse_val;
 #endif
-    void set4(const IVP_U_Float_Hesse *h){ this->set(h); this->hesse_val = h->hesse_val;};
+    //void set4(const IVP_U_Float_Hesse *h){ this->set(h); this->hesse_val = h->hesse_val;};
     void calc_hesse(const IVP_U_Float_Point *p0,const IVP_U_Float_Point *p1,const IVP_U_Float_Point *p2);
     void calc_hesse_val(const IVP_U_Float_Point *p0);
     void proj_on_plane(const IVP_U_Float_Point *p, IVP_U_Float_Point *result) const;	// sets result to a point on the plane and nearest to p

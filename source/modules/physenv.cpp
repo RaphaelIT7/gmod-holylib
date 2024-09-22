@@ -43,7 +43,7 @@ enum IVP_SkipType {
 	IVP_SkipSimulation,
 };
 
-std::chrono::steady_clock::time_point pCurrentTime;
+auto pCurrentTime = std::chrono::high_resolution_clock::now();
 IVP_SkipType pCurrentSkipType = IVP_None;
 double pCurrentLagThreadshold = 100; // 100 ms
 Detouring::Hook detour_IVP_Event_Manager_Standard_simulate_time_events;

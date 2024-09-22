@@ -30,7 +30,7 @@ protected:
     
 public:
     IVP_U_Vector(int size = 0){
-	IVP_ASSERT (size >= 0 && size <= 0xFFFFU);
+	//IVP_ASSERT (size >= 0 && size <= 0xFFFFU);
 	memsize = (unsigned short)size;
 	n_elems = 0;
 	if (size){		// will be optimized by most compilers
@@ -42,7 +42,7 @@ public:
     
     void clear(){
 	if ( elems != (void **) (this+1)){
-	    void *dummy=(void *)elems;
+	    //void *dummy=(void *)elems;
 	    //P_FREE( dummy);
 	    elems=0;
 	    memsize = 0;
@@ -87,8 +87,8 @@ public:
     };
 
     void swap_elems(int index1, int index2){
-	IVP_ASSERT((index1>=0)&&(index1<n_elems));
-	IVP_ASSERT((index2>=0)&&(index2<n_elems));
+	//IVP_ASSERT((index1>=0)&&(index1<n_elems));
+	//IVP_ASSERT((index2>=0)&&(index2<n_elems));
 	void *buffer = elems[index1];
 	elems[index1] = elems[index2];
 	elems[index2] = buffer;
@@ -96,7 +96,7 @@ public:
     }     
     
     void insert_after(int index, T *elem){
-	IVP_ASSERT((index>=0)&&(index<n_elems));
+	//IVP_ASSERT((index>=0)&&(index<n_elems));
 	index++;
 	ensure_capacity();
 	int j = n_elems;
@@ -110,7 +110,7 @@ public:
 
     
     void remove_at(int index){
-	IVP_ASSERT((index>=0)&&(index<n_elems));
+	//IVP_ASSERT((index>=0)&&(index<n_elems));
 	int j = index;
 	while(j<n_elems-1){
 	    elems[j] = elems[j+1];
@@ -127,21 +127,21 @@ public:
     }
 
     void remove_at_and_allow_resort(int index){
-	IVP_ASSERT((index>=0)&&(index<n_elems));
+	//IVP_ASSERT((index>=0)&&(index<n_elems));
 	n_elems--;
 	elems[ index ] = elems[ n_elems ];
     };
 
     void remove_allow_resort(T *elem){
 	int index = this->index_of(elem);
-	IVP_ASSERT(index>=0);
+	//IVP_ASSERT(index>=0);
 	n_elems--;
 	elems[ index ] = elems[ n_elems ];
     };
     
     void remove(T *elem){
 	int index = this->index_of(elem);
-	IVP_ASSERT(index>=0);
+	//IVP_ASSERT(index>=0);
 	n_elems--;
 	while (index < n_elems){
 	    elems[index] = (elems+1)[index];
@@ -150,7 +150,7 @@ public:
     };
 
     T* element_at(int index) const {
-	IVP_ASSERT(index>=0 && index < n_elems);
+	//IVP_ASSERT(index>=0 && index < n_elems);
 	return (T *)elems[index];
     };
 };
