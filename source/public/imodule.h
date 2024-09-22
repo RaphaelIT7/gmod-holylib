@@ -23,11 +23,11 @@ public:
 	virtual const char* Name() = 0;
 	virtual int Compatibility() = 0;
 	virtual bool IsEnabledByDefault() { return true; };
-	inline void SetDebug(bool bDebug) { m_bIsDebug = bDebug; };
-	inline bool InDebug() { return m_bIsDebug; };
+	inline void SetDebug(int iDebug) { m_iIsDebug = iDebug; };
+	inline int InDebug() { return m_iIsDebug; };
 public:
 	unsigned int m_pID = 0; // Set by the CModuleManager when registering it! Don't touch it.
-	bool m_bIsDebug = false;
+	int m_iIsDebug = false;
 };
 
 class IModuleWrapper

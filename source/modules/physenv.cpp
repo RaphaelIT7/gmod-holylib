@@ -15,6 +15,7 @@ public:
 	virtual void InitDetour(bool bPreServer);
 	virtual const char* Name() { return "physenv"; };
 	virtual int Compatibility() { return LINUX32; };
+	virtual bool IsEnabledByDefault() OVERRIDE { return false; };
 };
 
 CPhysEnvModule g_pPhysEnvModule;

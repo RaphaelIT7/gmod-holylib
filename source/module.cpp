@@ -40,7 +40,7 @@ void OnModuleDebugConVarChange(IConVar* convar, const char* pOldValue, float flO
 		return;
 	}
 
-	module->GetModule()->SetDebug(((ConVar*)convar)->GetBool());
+	module->GetModule()->SetDebug(((ConVar*)convar)->GetInt());
 }
 
 void CModule::SetModule(IModule* module)
@@ -90,8 +90,8 @@ void CModule::SetModule(IModule* module)
 	int cmdDebug = CommandLine()->ParmValue(((std::string)"-" + pDebugStrName).c_str(), -1);
 	if (cmdDebug > -1)
 	{
-		m_pModule->SetDebug(cmdDebug == 1);
-		m_pDebugCVar->SetValue(cmdDebug == 1);
+		m_pModule->SetDebug(cmdDebug);
+		m_pDebugCVar->SetValue(cmdDebug);
 	}
 
 	m_bStartup = false;
