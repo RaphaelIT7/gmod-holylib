@@ -174,6 +174,7 @@ CModuleManager::CModuleManager() // ToDo: Look into how IGameSystem works and us
 	RegisterModule(pBassModule);
 	RegisterModule(pSysTimerModule);
 	RegisterModule(pVoiceChatModule);
+	RegisterModule(pPhysEnvModule);
 }
 
 int g_pIDs = 0;

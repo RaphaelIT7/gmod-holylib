@@ -21,3 +21,4 @@ extern IModule* pPASModule;
 extern IModule* pBassModule;
 extern IModule* pSysTimerModule;
 extern IModule* pVoiceChatModule;
+extern IModule* pPhysEnvModule;

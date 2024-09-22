@@ -48,6 +48,10 @@ LUA_FUNCTION_STATIC(HideServer)
 	LUA->CheckType(1, GarrysMod::Lua::Type::Bool);
 	g_bHideServer = LUA->GetBool(1);
 
+	ConVarRef hide_server("hide_server");
+	if (hide_server.IsValid())
+		hide_server.SetValue(g_bHideServer); // Remove our hook with the next gmod update. I should start to reduce the amount of Symbols I use.
+
 	return 0;
 }
 
