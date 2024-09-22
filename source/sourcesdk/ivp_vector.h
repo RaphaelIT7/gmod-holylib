@@ -31,13 +31,13 @@ protected:
 public:
     IVP_U_Vector(int size = 0){
 	//IVP_ASSERT (size >= 0 && size <= 0xFFFFU);
-	memsize = (unsigned short)size;
+	/*memsize = (unsigned short)size;
 	n_elems = 0;
 	if (size){		// will be optimized by most compilers
 	    elems = (void **)p_malloc(size*sizeof(void *));
 	}else{	
 	    elems = (void **)NULL;
-	}
+	}*/
     };
     
     void clear(){

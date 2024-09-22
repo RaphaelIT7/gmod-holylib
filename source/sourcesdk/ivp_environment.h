@@ -230,9 +230,9 @@ public: // Gimme that access
     //some PSI grid dependent constants
     IVP_DOUBLE integrated_energy_damp;
     IVP_DOUBLE get_integrated_energy_damp() { return integrated_energy_damp; };
-    \/***********************************************************************************
+     ***********************************************************************************
      *			Internal public functions, handle with care:
-     ***********************************************************************************\/
+     ***********************************************************************************
 public:
     void set_event_function();
     IVP_U_Vector<IVP_Listener_Object> global_object_listeners;
@@ -289,9 +289,9 @@ public:
 
 
 
-    \/***********************************************************************************
+     ***********************************************************************************
      *			real public functions:
-     ***********************************************************************************\/
+     ***********************************************************************************
 
     //////////// public managers
     IVP_Range_Manager		 *get_range_manager() const 			{ return range_manager; };
@@ -321,7 +321,7 @@ public:
     void merge_objects(IVP_U_Vector<IVP_Real_Object> *obj_to_merge);
 
 
-    \/********************************************************************************
+     ********************************************************************************
      *	Name:	  	create_polygon /    create_ball 	
      *	Description:	Creates objects
      *	Note:		Objects are not collision detection enabled:
@@ -329,7 +329,7 @@ public:
      *				IVP_Real_Object::enable_collision_detection
      *			Objects are not simulated when created. Simulation is started
      *			when objects collide or IVP_Real_Object::ensure_in_simulation() is called
-     ********************************************************************************\/
+     ********************************************************************************
     IVP_Polygon *create_polygon(IVP_SurfaceManager *surface_manager,	// a surface_manager manager
 				const IVP_Template_Real_Object *templ_obj,	// used to set mass center and rotation inertia directly (no automatism)
 				const IVP_U_Quat *quat_world_f_object,	// the rotation of the object
