@@ -52,6 +52,9 @@ void hook_IVP_Event_Manager_Standard_simulate_time_events(void* timemanager, voi
 	pCurrentTime = std::chrono::high_resolution_clock::now();
 	pCurrentSkipType = IVP_None; // Idk if it can happen that something else sets it in the mean time but let's just be sure...
 
+	if (g_pPhysEnvModule.InDebug())
+		Msg("physenv: IVP_Event_Manager_Standart::simulate_time_events called!\n");
+
 	detour_IVP_Event_Manager_Standard_simulate_time_events.GetTrampoline<Symbols::IVP_Event_Manager_Standard_simulate_time_events>()(timemanager, environment, time);
 
 	pCurrentSkipType = IVP_NoCall; // Reset it.
@@ -60,6 +63,9 @@ void hook_IVP_Event_Manager_Standard_simulate_time_events(void* timemanager, voi
 Detouring::Hook detour_IVP_Mindist_do_impact;
 void hook_IVP_Mindist_do_impact(IVP_Mindist* mindist)
 {
+	if (g_pPhysEnvModule.InDebug())
+		Msg("physenv: IVP_Mindist::do_impact called! (%i)\n", (int)pCurrentSkipType);
+
 	if (pCurrentSkipType == IVP_SkipImpact)
 		return;
 
@@ -111,6 +117,9 @@ void hook_IVP_Mindist_do_impact(IVP_Mindist* mindist)
 Detouring::Hook detour_IVP_Mindist_simulate_time_event;
 void hook_IVP_Mindist_simulate_time_event(void* mindist, void* environment)
 {
+	if (g_pPhysEnvModule.InDebug())
+		Msg("physenv: IVP_Mindist::simulate_time_event called! (%i)\n", (int)pCurrentSkipType);
+
 	if (pCurrentSkipType == IVP_SkipSimulation)
 		return;
 
@@ -128,6 +137,12 @@ void hook_IVP_Mindist_simulate_time_event(void* mindist, void* environment)
 					pType = 0; // Invalid value. So we won't do shit.
 
 				pCurrentSkipType = (IVP_SkipType)pType;
+
+				if (g_pPhysEnvModule.InDebug())
+					Msg("physenv: Lua hook called\n", (int)pCurrentSkipType);
+
+				if (pCurrentSkipType == IVP_SkipSimulation)
+					return;
 			}
 		}
 	}
