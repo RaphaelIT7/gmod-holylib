@@ -110,6 +110,8 @@ void hook_IVP_Mindist_do_impact(IVP_Mindist* mindist)
 		// Raphael:
 		// Calling recheck_collision_filter should fix it and stop it from breaking the entire engine. (Never call "delete this;" here). 
 		// In most cases, this IVP_Mindist will also be deleted from recheck_collision_filter.
+		Warning("physenv: Someone didn't call Entity:CollisionRulesChanged()!\n"); // Let the world know.
+
 		for (int i = 0;i<2;i++)
 			func_IVP_Real_Object_recheck_collision_filter(objects[i]);
 	}
@@ -140,7 +142,7 @@ void hook_IVP_Mindist_simulate_time_event(void* mindist, void* environment)
 				pCurrentSkipType = (IVP_SkipType)pType;
 
 				if (g_pPhysEnvModule.InDebug())
-					Msg("physenv: Lua hook called\n", (int)pCurrentSkipType);
+					Msg("physenv: Lua hook called (%i)\n", (int)pCurrentSkipType);
 
 				if (pCurrentSkipType == IVP_SkipSimulation)
 					return;
@@ -201,17 +203,20 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 		(void*)hook_IVP_Mindist_do_impact, m_pID
 	);
 
-	Detour::Create(
-		&detour_IVP_Event_Manager_Standard_simulate_time_events, "IVP_Event_Manager_Standard::simulate_time_events",
-		vphysics_loader.GetModule(), Symbols::IVP_Event_Manager_Standard_simulate_time_eventsSym,
-		(void*)hook_IVP_Event_Manager_Standard_simulate_time_events, m_pID
-	);
+	if (g_pPhysEnvModule.InDebug() != 2)
+	{
+		Detour::Create(
+			&detour_IVP_Event_Manager_Standard_simulate_time_events, "IVP_Event_Manager_Standard::simulate_time_events",
+			vphysics_loader.GetModule(), Symbols::IVP_Event_Manager_Standard_simulate_time_eventsSym,
+			(void*)hook_IVP_Event_Manager_Standard_simulate_time_events, m_pID
+		);
 
-	Detour::Create(
-		&detour_IVP_Mindist_simulate_time_event, "IVP_Mindist::simulate_time_event",
-		vphysics_loader.GetModule(), Symbols::IVP_Mindist_simulate_time_eventSym,
-		(void*)hook_IVP_Mindist_simulate_time_event, m_pID
-	);
+		Detour::Create(
+			&detour_IVP_Mindist_simulate_time_event, "IVP_Mindist::simulate_time_event",
+			vphysics_loader.GetModule(), Symbols::IVP_Mindist_simulate_time_eventSym,
+			(void*)hook_IVP_Mindist_simulate_time_event, m_pID
+		);
+	}
 
 	func_IVP_Mindist_get_environment = (Symbols::IVP_Mindist_get_environment)Detour::GetFunction(vphysics_loader.GetModule(), Symbols::IVP_Mindist_get_environmentSym);
 	Detour::CheckFunction((void*)func_IVP_Mindist_get_environment, "IVP_Mindist::get_environment");
