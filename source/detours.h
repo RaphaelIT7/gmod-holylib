@@ -10,6 +10,7 @@
 #include "Platform.hpp"
 #include <scanning/symbolfinder.hpp>
 #include "sourcesdk/ivp_time.h"
+#include "sourcesdk/ivp_friction.h"
 
 class CBaseEntity;
 class CBasePlayer;
@@ -334,7 +335,7 @@ namespace Symbols
 	typedef void (*IVP_Real_Object_recheck_collision_filter)(void* object);
 	extern const std::vector<Symbol> IVP_Real_Object_recheck_collision_filterSym;
 
-	typedef void (*IVP_Impact_Solver_Long_Term_do_impact_of_two_objects)(void* solver, IVP_Mindist *mindist, IVP_Real_Object *obj0, IVP_Real_Object *obj1);
+	typedef void (*IVP_Impact_Solver_Long_Term_do_impact_of_two_objects)(IVP_Impact_Solver_Long_Term solver, IVP_Mindist *mindist, IVP_Real_Object *obj0, IVP_Real_Object *obj1);
 	extern const std::vector<Symbol> IVP_Impact_Solver_Long_Term_do_impact_of_two_objectsSym;
 
 	typedef IVP_Core* (*IVP_Real_Object_get_core)(void* object);

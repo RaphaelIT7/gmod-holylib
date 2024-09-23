@@ -5,13 +5,16 @@ class IVP_Hull_Manager;
 class IVP_Real_Object;
 class IVP_Compact_Edge;
 class IVP_Environment;
-class IVP_U_Float_Point;
 
-using IVP_BOOL = bool;
 using IVP_FLOAT = float;
 using IVP_DOUBLE = double;
 using IVP_Time_CODE = int;
 using IVP_HTIME = IVP_FLOAT;
+
+enum IVP_BOOL {
+    IVP_FALSE = 0,
+    IVP_TRUE = 1
+};
 
 #define IVP_ALIGN_16
 

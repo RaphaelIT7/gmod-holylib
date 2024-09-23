@@ -15,7 +15,7 @@ enum IVP_COORDINATE_INDEX {
     IVP_INDEX_Z = 2   // never be changed.
 };
 
-void ivp_byte_swap4(uint& fourbytes)
+inline void ivp_byte_swap4(uint& fourbytes)
 {
 #ifdef _WIN32
 	fourbytes = _byteswap_ulong(fourbytes);
