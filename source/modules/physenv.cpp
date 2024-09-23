@@ -100,7 +100,7 @@ void hook_IVP_Mindist_do_impact(IVP_Mindist* mindist)
 	
 	env->mindist_event_timestamp_reference++;
 
-	func_IVP_Impact_Solver_Long_Term_do_impact_of_two_objects(mindist, objects[0], objects[1]); // It's a static function, but it could be that we still need to make a IVP_Impact_Solver_Long_Term.
+	func_IVP_Impact_Solver_Long_Term_do_impact_of_two_objects(NULL, mindist, objects[0], objects[1]); // It's a static function, but it could be that we still need to make a IVP_Impact_Solver_Long_Term.
 	func_IVP_U_Memory_end_memory_transaction(env->sim_unit_mem);
 
 	if (*g_fDeferDeleteMindist)
