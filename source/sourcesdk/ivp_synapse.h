@@ -22,7 +22,7 @@ public:
   IVP_Real_Object  *l_obj;                     // back link to object
   const IVP_Compact_Edge 	*edge;		// Note: all balls share one dummy edge
 
-protected:
+public:
     short mindist_offset;             // back link to my controlling mindist
     short status;                     // IVP_SYNAPSE_POLYGON_STATUS point, edge, tri, ball ....
 /*public:

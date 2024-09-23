@@ -81,7 +81,8 @@ void hook_IVP_Mindist_do_impact(IVP_Mindist* mindist)
 	
 	for (int i = 0;i<2;i++){
 		IVP_Synapse *syn = func_IVP_Mindist_get_synapse(mindist, i);
-		IVP_Real_Object  *obj= syn->l_obj;
+		IVP_Real_Object *obj= syn->l_obj;
+		Msg("%p %i %i\n", syn, (int)syn->mindist_offset, (int)syn->status);
 		objects[i] = obj;
 		func_IVP_Real_Object_revive_object_for_simulation(obj);
 	}
