@@ -34,12 +34,16 @@ void Util::NukeTable(const char* pName)
 	g_Lua->Pop(1);
 }
 
-bool Util::PushTable(const char* pName) // ToDo: Make this return if it was pushed and if the value that was pushed is a table and if we return false, don't expect PopTable to be called.
+bool Util::PushTable(const char* pName)
 {
 	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
 		g_Lua->GetField(-1, pName);
 		g_Lua->Remove(-2);
-		return g_Lua->IsType(-1, GarrysMod::Lua::Type::Table);
+		if (g_Lua->IsType(-1, GarrysMod::Lua::Type::Table))
+			return true;
+
+	g_Lua->Pop(1);
+	return false;
 }
 
 void Util::PopTable()

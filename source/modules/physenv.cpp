@@ -177,8 +177,8 @@ void CPhysEnvModule::LuaInit(bool bServerInit)
 	{
 		Util::AddFunc(physenv_SetLagThreshold, "SetLagThreshold");
 		Util::AddFunc(physenv_GetLagThreshold, "GetLagThreshold");
+		Util::PopTable();
 	}
-	Util::PopTable();
 }
 
 void CPhysEnvModule::LuaShutdown()
@@ -187,8 +187,8 @@ void CPhysEnvModule::LuaShutdown()
 	{
 		Util::RemoveFunc("SetLagThreshold");
 		Util::RemoveFunc("GetLagThreshold");
+		Util::PopTable();
 	}
-	Util::PopTable();
 }
 
 void CPhysEnvModule::InitDetour(bool bPreServer)

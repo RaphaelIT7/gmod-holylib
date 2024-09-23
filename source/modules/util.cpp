@@ -211,8 +211,8 @@ void CUtilModule::LuaInit(bool bServerInit)
 		Util::AddFunc(util_AsyncCompress, "AsyncCompress");
 		Util::AddFunc(util_AsyncDecompress, "AsyncDecompress");
 		Util::AddFunc(util_TableToJSON, "FancyTableToJSON");
+		Util::PopTable();
 	}
-	Util::PopTable();
 }
 
 void CUtilModule::LuaShutdown()
@@ -229,8 +229,9 @@ void CUtilModule::LuaShutdown()
 	{
 		Util::RemoveFunc("AsyncCompress");
 		Util::RemoveFunc("AsyncDecompress");
+		Util::RemoveFunc("FancyTableToJSON");
+		Util::PopTable();
 	}
-	Util::PopTable();
 }
 
 void CUtilModule::Think(bool simulating)
