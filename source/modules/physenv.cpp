@@ -82,7 +82,8 @@ void hook_IVP_Mindist_do_impact(IVP_Mindist* mindist)
 	for (int i = 0;i<2;i++){
 		IVP_Synapse *syn = func_IVP_Mindist_get_synapse(mindist, i);
 		IVP_Real_Object *obj= syn->l_obj;
-		Msg("%p %i %i\n", syn, (int)syn->mindist_offset, (int)syn->status);
+		if (g_pPhysEnvModule.InDebug())
+			Msg("%p %p %p %p %p %i %i\n", syn, syn->next, syn->prev, syn->l_obj, syn->edge, (int)syn->mindist_offset, (int)syn->status);
 		objects[i] = obj;
 		func_IVP_Real_Object_revive_object_for_simulation(obj);
 	}
@@ -101,7 +102,8 @@ void hook_IVP_Mindist_do_impact(IVP_Mindist* mindist)
 	
 	env->mindist_event_timestamp_reference++;
 
-	Msg("Dump: %p %p %p\n", mindist, objects[0], objects[1]);
+	if (g_pPhysEnvModule.InDebug())
+		Msg("Dump: %p %p %p\n", mindist, objects[0], objects[1]);
 	func_IVP_Impact_Solver_Long_Term_do_impact_of_two_objects(mindist, objects[0], objects[1]); // It's a static function, but it could be that we still need to make a IVP_Impact_Solver_Long_Term.
 	func_IVP_U_Memory_end_memory_transaction(env->sim_unit_mem);
 
