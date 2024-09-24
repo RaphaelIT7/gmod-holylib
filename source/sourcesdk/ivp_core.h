@@ -101,7 +101,7 @@ public:
     short               impacts_since_last_PSI;
     IVP_Time     	time_of_last_psi;		// Indicates point in simulation time the last matrizes are valid at.    
 
-    \/********************************************************************************
+     ********************************************************************************
      *	type:		private, public READ ONLY
      *	section:	basic simulation part, redundant part, calculated by calc_next_PSI_matrix
      ********************************************************************************
@@ -120,7 +120,7 @@ public:
     IVP_U_Quat	q_world_f_core_last_psi;	// Rotation of core using quaternions (see m_world_f_core_x_PSI)
     IVP_U_Quat 	q_world_f_core_next_psi;	// is is the quat to use at a psi
 
-    IVP_U_Matrix	m_world_f_core_last_psi;	\/* The core matrix valid at PSI (rotation part is redundant, see q_world_f_core_last_psi),							 * use get_m_world_f_core_PSI() to get a valid pointer to this matrix */
+    IVP_U_Matrix	m_world_f_core_last_psi;	* The core matrix valid at PSI (rotation part is redundant, see q_world_f_core_last_psi),							 * use get_m_world_f_core_PSI() to get a valid pointer to this matrix */
 };
 
 class IVP_Core_Fast : public IVP_Core_Fast_PSI {
