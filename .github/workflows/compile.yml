@@ -5,7 +5,9 @@ on:
     paths:
       - '.github/workflows/compile.yml'
       - 'source/**'
+      - 'libs/**'
       - 'premake5.lua'
+      - '!source/public/README.md'
   pull_request:
   workflow_dispatch:
 
