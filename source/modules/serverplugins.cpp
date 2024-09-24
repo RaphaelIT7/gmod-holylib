@@ -18,9 +18,9 @@ public:
 static CServerPluginLibModule g_pServerPluginLibModule;
 IModule* pServerPluginLibModule = &g_pServerPluginLibModule;
 
-void CPlugin::SetName( const char *name )
+void CPlugin::SetName(const char *name)
 {
-	Q_strncpy( m_szName, name, sizeof(m_szName) );
+	Q_strncpy(m_szName, name, sizeof(m_szName));
 }
 
 const char *CPlugin::GetName()
@@ -31,15 +31,15 @@ const char *CPlugin::GetName()
 
 IServerPluginCallbacks *CPlugin::GetCallback()
 {
-	Assert( m_pPlugin );
-	if ( m_pPlugin ) 
+	Assert(m_pPlugin);
+	if (m_pPlugin) 
 	{	
 		return m_pPlugin;
 	}
 	else
 	{
-		Assert( !"Unable to get plugin callback interface" );
-		Warning( "Unable to get callback interface for \"%s\"\n", GetName() );
+		Assert(!"Unable to get plugin callback interface" );
+		Warning("Unable to get callback interface for \"%s\"\n", GetName());
 		return NULL;
 	}
 }
@@ -47,14 +47,14 @@ IServerPluginCallbacks *CPlugin::GetCallback()
 // Source: engine/sv_plugins.cpp
 // helper macro to stop this being typed for every passthrough
 CServerPlugin* g_pServerPluginHandler;
-#define FORALL_PLUGINS	for( int i = 0; i < g_pServerPluginHandler->m_Plugins.Count(); i++ ) 
+#define FORALL_PLUGINS	for(int i = 0; i < g_pServerPluginHandler->m_Plugins.Count(); ++i) 
 #define CALL_PLUGIN_IF_ENABLED(call) \
 	do { \
 		CPlugin *plugin = g_pServerPluginHandler->m_Plugins[i]; \
-		if ( ! plugin->IsDisabled() ) \
+		if (! plugin->IsDisabled()) \
 		{ \
 			IServerPluginCallbacks *callbacks = plugin->GetCallback(); \
-			if ( callbacks ) \
+			if (callbacks) \
 			{ \
 				callbacks-> call ; \
 			} \
@@ -125,15 +125,15 @@ void CServerPluginLibModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* g
 
 void CServerPluginLibModule::LuaInit(bool bServerInit)
 {
-	if (!bServerInit)
+	if (bServerInit)
+		return;
+
+	FORALL_PLUGINS
 	{
-		FORALL_PLUGINS
+		CPlugin * p = g_pServerPluginHandler->m_Plugins[i];
+		if (!p->IsDisabled() && p->GetPluginInterfaceVersion() >= 4)
 		{
-			CPlugin *p = g_pServerPluginHandler->m_Plugins[i];
-			if ( !p->IsDisabled() && p->GetPluginInterfaceVersion() >= 4 )
-			{
-				p->GetCallback()->OnLuaInit((GarrysMod::Lua::ILuaInterface*)g_Lua);
-			}
+			p->GetCallback()->OnLuaInit((GarrysMod::Lua::ILuaInterface*)g_Lua);
 		}
 	}
 }
@@ -152,7 +152,8 @@ void CServerPluginLibModule::LuaShutdown() // ToDo: Change this to be called whe
 
 void CServerPluginLibModule::InitDetour(bool bPreServer)
 {
-	if ( bPreServer ) { return; }
+	if (bPreServer)
+		return;
 
 	SourceSDK::ModuleLoader engine_loader("engine");
 	Detour::Create(

@@ -11,7 +11,6 @@
 class CHolyLibModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
 	virtual void LuaInit(bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown() OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
@@ -22,7 +21,6 @@ public:
 static CHolyLibModule g_pHolyLibModule;
 IModule* pHolyLibModule = &g_pHolyLibModule;
 
-static IServer* pServer;
 LUA_FUNCTION_STATIC(Reconnect)
 {
 	CBasePlayer* ent = Util::Get_Player(1, true);
@@ -31,7 +29,7 @@ LUA_FUNCTION_STATIC(Reconnect)
 		return 1;
 	}
 
-	IClient* client = pServer->GetClient(ent->GetClientIndex());
+	IClient* client = Util::server->GetClient(ent->GetClientIndex());
 	if (!client->IsFakeClient()) { // ToDo: Verify that this 100% works. If it can crash here, we add a workaround.
 		client->Reconnect();
 		LUA->PushBool(true);
@@ -65,14 +63,9 @@ static bool hook_CServerGameDLL_ShouldHideServer()
 	return detour_CServerGameDLL_ShouldHideServer.GetTrampoline<Symbols::CServerGameDLL_ShouldHideServer>()(); // "commentary 1" will also hide it.
 }
 
-void CHolyLibModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
-{
-	pServer = InterfacePointers::Server();
-}
-
 void CHolyLibModule::LuaInit(bool bServerInit)
 {
-	if ( !bServerInit )
+	if (!bServerInit)
 	{
 		Util::StartTable();
 			Util::AddFunc(HideServer, "HideServer");
@@ -95,7 +88,8 @@ void CHolyLibModule::LuaShutdown()
 
 void CHolyLibModule::InitDetour(bool bPreServer)
 {
-	if ( bPreServer ) { return; }
+	if (bPreServer)
+		return;
 
 	SourceSDK::ModuleLoader server_loader("server");
 	Detour::Create(

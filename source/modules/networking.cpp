@@ -158,7 +158,8 @@ IChangeFrameList* hook_AllocChangeFrameList(int nProperties, int iCurTick)
 CFrameSnapshotManager* framesnapshotmanager = NULL;
 void CNetworkingModule::InitDetour(bool bPreServer)
 {
-	if ( bPreServer ) { return; }
+	if (bPreServer)
+		return;
 
 	SourceSDK::FactoryLoader engine_loader("engine");
 	Detour::Create(

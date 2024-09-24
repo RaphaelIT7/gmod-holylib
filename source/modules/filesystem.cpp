@@ -1321,7 +1321,8 @@ inline const char* CSearchPath::GetPathString() const
 
 void CFileSystemModule::InitDetour(bool bPreServer)
 {
-	if ( !bPreServer ) { return; }
+	if (!bPreServer)
+		return;
 
 	// ToDo: Redo EVERY Hook so that we'll abuse the vtable instead of symbols.  
 	// Use the ClassProxy or so which should also allow me to port this to windows.  

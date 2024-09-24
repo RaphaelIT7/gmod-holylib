@@ -47,7 +47,8 @@ void CThreadPoolFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gam
 
 void CThreadPoolFixModule::InitDetour(bool bPreServer)
 {
-	if ( !bPreServer ) { return; }
+	if (!bPreServer)
+		return;
 
 #if ARCHITECTURE_IS_X86
 	SourceSDK::ModuleLoader libvstdlib_loader("libvstdlib_srv");

@@ -528,8 +528,8 @@ void CSurfFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 
 void CSurfFixModule::InitDetour(bool bPreServer)
 {
-	if ( bPreServer ) { return; }
-	if ( !gpGlobals ) { return; }
+	if (bPreServer || !gpGlobals)
+		return;
 
 	SourceSDK::FactoryLoader server_loader("server");
 	Detour::Create(

@@ -515,7 +515,8 @@ void CStringTableModule::LuaShutdown() // ToDo: Can we remove the metatable?
 
 void CStringTableModule::InitDetour(bool bPreServer)
 {
-	if ( bPreServer ) { return; }
+	if (bPreServer)
+		return;
 
 	SourceSDK::ModuleLoader engine_loader("engine");
 	Detour::Create(

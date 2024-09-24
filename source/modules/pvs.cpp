@@ -641,7 +641,8 @@ void CPVSModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 
 void CPVSModule::LuaInit(bool bServerInit)
 {
-	if ( bServerInit ) { return; }
+	if (bServerInit)
+		return;
 
 	mapPVSSize = ceil(Util::engineserver->GetClusterCount() / 8.0f);
 
@@ -687,7 +688,8 @@ void CPVSModule::LuaShutdown()
 
 void CPVSModule::InitDetour(bool bPreServer)
 {
-	if ( bPreServer ) { return; }
+	if (bPreServer)
+		return;
 
 #ifndef HOLYLIB_MANUALNETWORKING
 	SourceSDK::ModuleLoader server_loader("server");

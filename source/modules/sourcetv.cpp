@@ -486,58 +486,58 @@ static bool hook_CHLTVClient_ExecuteStringCommand(CHLTVClient* hltvclient, const
 
 void CSourceTVLibModule::LuaInit(bool bServerInit)
 {
-	if (!bServerInit)
-	{
-		CHLTVClient_TypeID = g_Lua->CreateMetaTable("HLTVClient");
-			Util::AddFunc(HLTVClient__tostring, "__tostring");
-			Util::AddFunc(HLTVClient__index, "__index");
-			Util::AddFunc(HLTVClient_GetName, "GetName");
-			Util::AddFunc(HLTVClient_GetSlot, "GetSlot");
-			Util::AddFunc(HLTVClient_GetSteamID, "GetSteamID");
-			Util::AddFunc(HLTVClient_GetUserID, "GetUserID");
-			Util::AddFunc(HLTVClient_Reconnect, "Reconnect");
-			Util::AddFunc(HLTVClient_IsValid, "IsValid");
-			Util::AddFunc(HLTVClient_ClientPrint, "ClientPrint");
-			//Util::AddFunc(HLTVClient_SendLua, "SendLua");
-		g_Lua->Pop(1);
+	if (bServerInit)
+		return;
 
-		Util::StartTable();
-			Util::AddFunc(sourcetv_IsActive, "IsActive");
-			Util::AddFunc(sourcetv_IsRecording, "IsRecording");
-			Util::AddFunc(sourcetv_IsMasterProxy, "IsMasterProxy");
-			Util::AddFunc(sourcetv_IsRelay, "IsRelay");
-			Util::AddFunc(sourcetv_GetClientCount, "GetClientCount");
-			Util::AddFunc(sourcetv_GetHLTVSlot, "GetHLTVSlot");
-			Util::AddFunc(sourcetv_StartRecord, "StartRecord");
-			Util::AddFunc(sourcetv_GetRecordingFile, "GetRecordingFile");
-			Util::AddFunc(sourcetv_StopRecord, "StopRecord");
+	CHLTVClient_TypeID = g_Lua->CreateMetaTable("HLTVClient");
+		Util::AddFunc(HLTVClient__tostring, "__tostring");
+		Util::AddFunc(HLTVClient__index, "__index");
+		Util::AddFunc(HLTVClient_GetName, "GetName");
+		Util::AddFunc(HLTVClient_GetSlot, "GetSlot");
+		Util::AddFunc(HLTVClient_GetSteamID, "GetSteamID");
+		Util::AddFunc(HLTVClient_GetUserID, "GetUserID");
+		Util::AddFunc(HLTVClient_Reconnect, "Reconnect");
+		Util::AddFunc(HLTVClient_IsValid, "IsValid");
+		Util::AddFunc(HLTVClient_ClientPrint, "ClientPrint");
+		//Util::AddFunc(HLTVClient_SendLua, "SendLua");
+	g_Lua->Pop(1);
 
-			// Client Functions
-			Util::AddFunc(sourcetv_GetAll, "GetAll");
-			Util::AddFunc(sourcetv_GetClient, "GetClient");
+	Util::StartTable();
+		Util::AddFunc(sourcetv_IsActive, "IsActive");
+		Util::AddFunc(sourcetv_IsRecording, "IsRecording");
+		Util::AddFunc(sourcetv_IsMasterProxy, "IsMasterProxy");
+		Util::AddFunc(sourcetv_IsRelay, "IsRelay");
+		Util::AddFunc(sourcetv_GetClientCount, "GetClientCount");
+		Util::AddFunc(sourcetv_GetHLTVSlot, "GetHLTVSlot");
+		Util::AddFunc(sourcetv_StartRecord, "StartRecord");
+		Util::AddFunc(sourcetv_GetRecordingFile, "GetRecordingFile");
+		Util::AddFunc(sourcetv_StopRecord, "StopRecord");
 
-			g_Lua->PushNumber(LUA_RECORD_OK);
-			g_Lua->SetField(-2, "RECORD_OK");
+		// Client Functions
+		Util::AddFunc(sourcetv_GetAll, "GetAll");
+		Util::AddFunc(sourcetv_GetClient, "GetClient");
 
-			g_Lua->PushNumber(LUA_RECORD_NOSOURCETV);
-			g_Lua->SetField(-2, "RECORD_NOSOURCETV");
+		g_Lua->PushNumber(LUA_RECORD_OK);
+		g_Lua->SetField(-2, "RECORD_OK");
 
-			g_Lua->PushNumber(LUA_RECORD_NOTMASTER);
-			g_Lua->SetField(-2, "RECORD_NOTMASTER");
+		g_Lua->PushNumber(LUA_RECORD_NOSOURCETV);
+		g_Lua->SetField(-2, "RECORD_NOSOURCETV");
 
-			g_Lua->PushNumber(LUA_RECORD_ACTIVE);
-			g_Lua->SetField(-2, "RECORD_ACTIVE");
+		g_Lua->PushNumber(LUA_RECORD_NOTMASTER);
+		g_Lua->SetField(-2, "RECORD_NOTMASTER");
 
-			g_Lua->PushNumber(LUA_RECORD_NOTACTIVE);
-			g_Lua->SetField(-2, "RECORD_NOTACTIVE");
+		g_Lua->PushNumber(LUA_RECORD_ACTIVE);
+		g_Lua->SetField(-2, "RECORD_ACTIVE");
 
-			g_Lua->PushNumber(LUA_RECORD_INVALIDPATH);
-			g_Lua->SetField(-2, "RECORD_INVALIDPATH");
+		g_Lua->PushNumber(LUA_RECORD_NOTACTIVE);
+		g_Lua->SetField(-2, "RECORD_NOTACTIVE");
 
-			g_Lua->PushNumber(LUA_RECORD_FILEEXISTS);
-			g_Lua->SetField(-2, "RECORD_FILEEXISTS");
-		Util::FinishTable("sourcetv");
-	}
+		g_Lua->PushNumber(LUA_RECORD_INVALIDPATH);
+		g_Lua->SetField(-2, "RECORD_INVALIDPATH");
+
+		g_Lua->PushNumber(LUA_RECORD_FILEEXISTS);
+		g_Lua->SetField(-2, "RECORD_FILEEXISTS");
+	Util::FinishTable("sourcetv");
 }
 
 void CSourceTVLibModule::LuaShutdown()
@@ -548,7 +548,8 @@ void CSourceTVLibModule::LuaShutdown()
 
 void CSourceTVLibModule::InitDetour(bool bPreServer)
 {
-	if ( bPreServer ) { return; }
+	if (bPreServer)
+		return;
 
 	SourceSDK::ModuleLoader engine_loader("engine");
 	Detour::Create(

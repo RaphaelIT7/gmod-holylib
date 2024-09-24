@@ -414,7 +414,8 @@ LUA_FUNCTION_STATIC(voicechat_IsProximityHearingClient)
 
 void CVoiceChatModule::LuaInit(bool bServerInit)
 {
-	if (bServerInit) { return; }
+	if (bServerInit)
+		return;
 
 	VoiceData_TypeID = g_Lua->CreateMetaTable("VoiceData");
 		Util::AddFunc(VoiceData__tostring, "__tostring");

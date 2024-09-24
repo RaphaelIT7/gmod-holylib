@@ -20,10 +20,10 @@ public:
 static CPrecacheFixModule g_pPrecacheFixModule;
 IModule* pPrecacheFixModule = &g_pPrecacheFixModule;
 
-static void PR_CheckEmptyString( const char *s )
+static void PR_CheckEmptyString(const char *s)
 {
-	if ( s[0] <= ' ' )
-		Warning ( "Bad string: %s", s ); // This should be a Host_Error.
+	if (s[0] <= ' ')
+		Warning ("Bad string: %s", s); // This should be a Host_Error.
 }
 
 // NOTE: CVEngineServer::PrecacheDecal doesn't have this engine error. Why?
@@ -124,7 +124,8 @@ void CPrecacheFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamef
 
 void CPrecacheFixModule::InitDetour(bool bPreServer)
 {
-	if ( bPreServer ) { return; }
+	if (bPreServer)
+		return;
 
 	SourceSDK::ModuleLoader engine_loader("engine");
 	Detour::Create(

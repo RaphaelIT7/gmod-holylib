@@ -204,7 +204,8 @@ void CUtilModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 
 void CUtilModule::LuaInit(bool bServerInit)
 {
-	if (bServerInit) { return; }
+	if (bServerInit)
+		return;
 
 	if (Util::PushTable("util"))
 	{

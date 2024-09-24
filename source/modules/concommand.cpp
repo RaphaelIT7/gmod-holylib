@@ -36,7 +36,8 @@ static bool hook_ConCommand_IsBlocked(const char* cmd)
 
 void CConCommandModule::InitDetour(bool bPreServer)
 {
-	if ( bPreServer ) { return; }
+	if (bPreServer)
+		return;
 
 	SourceSDK::ModuleLoader server_loader("server");
 	Detour::Create(

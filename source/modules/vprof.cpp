@@ -490,7 +490,8 @@ void* hook_lj_BC_FUNC() // Find out the luajit function later.
 
 void CVProfModule::InitDetour(bool bPreServer)
 {
-	if ( bPreServer ) { return; }
+	if (bPreServer)
+		return;
 
 	SourceSDK::ModuleLoader tier0_loader("tier0");
 	Detour::Create(
