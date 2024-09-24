@@ -61,3 +61,6 @@ namespace Util
 // ToDo: move this at a later point into a seperate file. Maybe into _modules?
 class bf_read;
 extern void Push_bf_read(bf_read* tbl);
+
+class IGameEvent;
+extern IGameEvent* Get_IGameEvent(int iStackPos, bool bError);

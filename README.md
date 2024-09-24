@@ -142,6 +142,67 @@ Adds the given player to listen to the given event.
 
 Returns `true` on success.  
 
+#### IGameEvent gameevent.Create(String eventName, bool force = false)
+Creates the given gameevent.  
+Can return `nil` on failure.  
+
+#### bool gameevent.FireEvent(IGameEvent event, bool bDontBroadcast = false)
+Fires the given gameevent.  
+If `bDontBroadcast` is specified, it won't be networked to players.  
+
+#### bool gameevent.FireClientEvent(IGameEvent event, Player ply)
+Fires the given event for only the given player.  
+
+### IGameEvent
+
+#### string IGameEvent:\_\_tostring__()
+Returns the a formated string.  
+Format: `IGameEvent [%s]`  
+`%s` -> Gameevent name
+
+#### IGameEvent:\_\_gc()
+Deletes the gameevent internally.  
+
+#### bool IGameEvent:IsValid()
+Returns `true` if the gameevent is valid.  
+
+#### bool IGameEvent:IsEmpty()
+Returns `true` if the gameevent is empty.  
+
+#### bool IGameEvent:IsReliable()
+Returns `true` if the gameevent is reliable.  
+
+#### bool IGameEvent:IsLocal()
+Returns `true` if the gameevent is only local/serverside.  
+This means it won't be networked to players.  
+
+#### string IGameEvent:GetName()
+Returns the gameevent name.  
+
+#### bool IGameEvent:GetBool(string key, bool fallback)
+Returns the bool for the given key and if not found it returns the fallback.  
+
+#### number IGameEvent:GetInt(string key, number fallback)
+Returns the int for the given key and if not found it returns the fallback.  
+
+#### number IGameEvent:GetFloat(string key, number fallback)
+Returns the float for the given key and if not found it returns the fallback.  
+
+#### string IGameEvent:GetString(string key, string fallback)
+Returns the string for the given key and if not found it returns the fallback.  
+
+#### IGameEvent:SetBool(string key, bool value)
+Sets the bool for the given key.  
+
+#### IGameEvent:SetInt(string key, number value)
+Sets the int for the given key.  
+
+#### IGameEvent:SetFloat(string key, number value)
+Sets the float for the given key.  
+
+#### IGameEvent:SetString(string key, string value)
+Sets the string for the given key.  
+
 ### Hooks
 
 #### bool HolyLib:PreProcessGameEvent(Player ply, table gameEvents, number plyIndex)
@@ -809,6 +870,9 @@ Returns a table that contains all HLTV clients. It will return `nil` on failure.
 #### HLTVClient sourcetv.GetClient(number slot)
 Returns the HLTVClient at that slot or `nil` on failure.  
 
+#### sourcetv.FireEvent(IGameEvent event)
+Fires the gameevent for all hltv clients / broadcasts it.  
+
 ### HLTVClient
 This is a metatable that is pushed by this module. It contains the functions listed below  
 
@@ -847,6 +911,9 @@ Returns `true` if the client is still valid.
 #### bool (REMOVED) HLTVClient:SendLua(string code)
 Sends the given code to the client to be executed.  
 Returns `true` on success.  
+
+#### HLTVClient:FireEvent(IGameEvent event)  
+Fires/sends the gameevent to this specific client.  
 
 > NOTE: This function is currently broken and will be readded when it's fixed.  
 

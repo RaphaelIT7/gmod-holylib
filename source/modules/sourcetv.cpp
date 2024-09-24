@@ -216,6 +216,15 @@ LUA_FUNCTION_STATIC(HLTVClient_SendLua)
 }
 #endif
 
+LUA_FUNCTION_STATIC(HLTVClient_FireEvent)
+{
+	CHLTVClient* client = Get_HLTVClient(1, true);
+	IGameEvent* pEvent = Get_IGameEvent(2, true);
+
+	client->FireGameEvent(pEvent);
+	return 0;
+}
+
 #define LUA_RECORD_OK 0
 #define LUA_RECORD_NOSOURCETV -1
 #define LUA_RECORD_NOTMASTER -2
@@ -404,6 +413,17 @@ LUA_FUNCTION_STATIC(sourcetv_GetClient)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(sourcetv_FireEvent)
+{
+	if (!hltv || !hltv->IsActive())
+		return 0;
+
+	IGameEvent* pEvent = Get_IGameEvent(1, true);
+	hltv->FireGameEvent(pEvent);
+
+	return 0;
+}
+
 static Detouring::Hook detour_CHLTVClient_ProcessGMod_ClientToServer;
 static bool hook_CHLTVClient_ProcessGMod_ClientToServer(CHLTVClient* hltvclient, CLC_GMod_ClientToServer* bf)
 {
@@ -500,6 +520,7 @@ void CSourceTVLibModule::LuaInit(bool bServerInit)
 		Util::AddFunc(HLTVClient_IsValid, "IsValid");
 		Util::AddFunc(HLTVClient_ClientPrint, "ClientPrint");
 		//Util::AddFunc(HLTVClient_SendLua, "SendLua");
+		Util::AddFunc(HLTVClient_FireEvent, "FireEvent");
 	g_Lua->Pop(1);
 
 	Util::StartTable();
@@ -512,6 +533,7 @@ void CSourceTVLibModule::LuaInit(bool bServerInit)
 		Util::AddFunc(sourcetv_StartRecord, "StartRecord");
 		Util::AddFunc(sourcetv_GetRecordingFile, "GetRecordingFile");
 		Util::AddFunc(sourcetv_StopRecord, "StopRecord");
+		Util::AddFunc(sourcetv_FireEvent, "FireEvent");
 
 		// Client Functions
 		Util::AddFunc(sourcetv_GetAll, "GetAll");

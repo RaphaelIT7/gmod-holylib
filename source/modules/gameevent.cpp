@@ -330,6 +330,231 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 	return bRet;
 }
 
+static int IGameEvent_TypeID = -1;
+void Push_IGameEvent(IGameEvent* event)
+{
+	if (!event)
+	{
+		g_Lua->PushNil();
+		return;
+	}
+
+	g_Lua->PushUserType(event, IGameEvent_TypeID);
+}
+
+IGameEvent* Get_IGameEvent(int iStackPos, bool bError)
+{
+	if (bError)
+	{
+		if (!g_Lua->IsType(iStackPos, IGameEvent_TypeID))
+			g_Lua->ThrowError("Tried to use something that wasn't IGameEvent!");
+
+		IGameEvent* pEvent = g_Lua->GetUserType<IGameEvent>(iStackPos, IGameEvent_TypeID);
+		if (!pEvent)
+			g_Lua->ThrowError("Tried to use a NULL IGameEvent!");
+
+		return pEvent;
+	}
+	else {
+		if (!g_Lua->IsType(iStackPos, IGameEvent_TypeID))
+			return NULL;
+
+		return g_Lua->GetUserType<IGameEvent>(iStackPos, IGameEvent_TypeID);
+	}
+}
+
+LUA_FUNCTION_STATIC(IGameEvent__tostring)
+{
+	IGameEvent* pEvent = Get_IGameEvent(1, false);
+	if (!pEvent)
+	{
+		LUA->PushString("IGameEvent [NULL]");
+		return 1;
+	}
+
+	char szBuf[64] = {};
+	V_snprintf(szBuf, sizeof(szBuf), "IGameEvent [%s]", pEvent->GetName());
+	LUA->PushString(szBuf);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IGameEvent__index)
+{
+	if (!g_Lua->FindOnObjectsMetaTable(1, 2))
+		LUA->PushNil();
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IGameEvent__gc)
+{
+	IGameEvent* pEvent = Get_IGameEvent(1, false);
+	if (pEvent)
+	{
+		LUA->SetUserType(1, NULL);
+		pManager->FreeEvent(pEvent);
+	}
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(IGameEvent_IsValid)
+{
+	IGameEvent* pEvent = Get_IGameEvent(1, false);
+
+	LUA->PushBool(pEvent != nullptr);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IGameEvent_IsEmpty)
+{
+	IGameEvent* pEvent = Get_IGameEvent(1, true);
+
+	LUA->PushBool(pEvent->IsEmpty());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IGameEvent_IsReliable)
+{
+	IGameEvent* pEvent = Get_IGameEvent(1, true);
+
+	LUA->PushBool(pEvent->IsReliable());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IGameEvent_IsLocal)
+{
+	IGameEvent* pEvent = Get_IGameEvent(1, true);
+
+	LUA->PushBool(pEvent->IsLocal());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IGameEvent_GetName)
+{
+	IGameEvent* pEvent = Get_IGameEvent(1, true);
+	
+	LUA->PushString(pEvent->GetName());
+	return 1;
+}
+
+
+LUA_FUNCTION_STATIC(IGameEvent_GetBool)
+{
+	IGameEvent* pEvent = Get_IGameEvent(1, true);
+	const char* pName = LUA->CheckString(2);
+	bool pFallback = LUA->GetBool(3);
+
+	LUA->PushBool(pEvent->GetBool(pName, pFallback));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IGameEvent_GetFloat)
+{
+	IGameEvent* pEvent = Get_IGameEvent(1, true);
+	const char* pName = LUA->CheckString(2);
+	double pFallback = LUA->GetNumber(3);
+
+	LUA->PushNumber(pEvent->GetFloat(pName, pFallback));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IGameEvent_GetInt)
+{
+	IGameEvent* pEvent = Get_IGameEvent(1, true);
+	const char* pName = LUA->CheckString(2);
+	double pFallback = LUA->GetNumber(3);
+
+	LUA->PushNumber(pEvent->GetInt(pName, pFallback));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IGameEvent_GetString)
+{
+	IGameEvent* pEvent = Get_IGameEvent(1, true);
+	const char* pName = LUA->CheckString(2);
+	const char* pFallback = LUA->GetString(3);
+	if (!pFallback)
+		pFallback = "";
+
+	LUA->PushString(pEvent->GetString(pName, pFallback));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IGameEvent_SetBool)
+{
+	IGameEvent* pEvent = Get_IGameEvent(1, true);
+	const char* pName = LUA->CheckString(2);
+	bool pValue = LUA->GetBool(3);
+
+	pEvent->SetBool(pName, pValue);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(IGameEvent_SetFloat)
+{
+	IGameEvent* pEvent = Get_IGameEvent(1, true);
+	const char* pName = LUA->CheckString(2);
+	double pValue = LUA->CheckNumber(3);
+
+	pEvent->SetFloat(pName, pValue);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(IGameEvent_SetInt)
+{
+	IGameEvent* pEvent = Get_IGameEvent(1, true);
+	const char* pName = LUA->CheckString(2);
+	double pValue = LUA->CheckNumber(3);
+
+	pEvent->SetInt(pName, pValue);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(IGameEvent_SetString)
+{
+	IGameEvent* pEvent = Get_IGameEvent(1, true);
+	const char* pName = LUA->CheckString(2);
+	const char* pValue = LUA->CheckString(3);
+
+	pEvent->SetString(pName, pValue);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(gameevent_Create)
+{
+	const char* pName = LUA->CheckString(1); // Let's hope that gc won't break something
+	bool bForce = LUA->GetBool(2);
+
+	IGameEvent* pEvent = pManager->CreateEvent(pName, bForce);
+	Push_IGameEvent(pEvent);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(gameevent_FireEvent)
+{
+	IGameEvent* pEvent = Get_IGameEvent(1, true);
+	bool bDontBroadcast = LUA->GetBool(2);
+
+	LUA->PushBool(pManager->FireEvent(pEvent, bDontBroadcast));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(gameevent_FireClientEvent)
+{
+	IGameEvent* pEvent = Get_IGameEvent(1, true);
+	CBasePlayer* pPlayer = Util::Get_Player(2, true);
+	if (!pPlayer)
+		LUA->ArgError(2, "Tried to use a NULL player!");
+
+	CBaseClient* pClient = Util::GetClientByPlayer(pPlayer);
+	if (!pClient)
+		LUA->ThrowError("Failed to get CBaseClient from player!");
+
+	pClient->FireGameEvent(pEvent);
+	return 0;
+}
+
 void CGameeventLibModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	pManager = (CGameEventManager*)appfn[0](INTERFACEVERSION_GAMEEVENTSMANAGER2, NULL);
@@ -341,6 +566,25 @@ void CGameeventLibModule::LuaInit(bool bServerInit)
 	if (bServerInit)
 		return;
 
+	IGameEvent_TypeID = g_Lua->CreateMetaTable("IGameEvent");
+		Util::AddFunc(IGameEvent__tostring, "__tostring");
+		Util::AddFunc(IGameEvent__index, "__index");
+		Util::AddFunc(IGameEvent__gc, "__gc");
+		Util::AddFunc(IGameEvent_IsValid, "IsValid");
+		Util::AddFunc(IGameEvent_IsEmpty, "IsEmpty");
+		Util::AddFunc(IGameEvent_IsReliable, "IsReliable");
+		Util::AddFunc(IGameEvent_IsLocal, "IsLocal");
+		Util::AddFunc(IGameEvent_GetName, "GetName");
+		Util::AddFunc(IGameEvent_GetBool, "GetBool");
+		Util::AddFunc(IGameEvent_GetInt, "GetInt");
+		Util::AddFunc(IGameEvent_GetFloat, "GetFloat");
+		Util::AddFunc(IGameEvent_GetString, "GetString");
+		Util::AddFunc(IGameEvent_SetBool, "SetBool");
+		Util::AddFunc(IGameEvent_SetInt, "SetInt");
+		Util::AddFunc(IGameEvent_SetFloat, "SetFloat");
+		Util::AddFunc(IGameEvent_SetString, "SetString");
+	g_Lua->Pop(1);
+
 	if (Util::PushTable("gameevent"))
 	{
 		Util::AddFunc(gameevent_GetListeners, "GetListeners");
@@ -349,6 +593,10 @@ void CGameeventLibModule::LuaInit(bool bServerInit)
 		Util::AddFunc(gameevent_GetClientListeners, "GetClientListeners");
 		Util::AddFunc(gameevent_RemoveClientListener, "RemoveClientListener");
 		Util::AddFunc(gameevent_AddClientListener, "AddClientListener");
+
+		Util::AddFunc(gameevent_Create, "Create");
+		Util::AddFunc(gameevent_FireEvent, "FireEvent");
+		Util::AddFunc(gameevent_FireClientEvent, "FireClientEvent");
 
 		g_Lua->GetField(-1, "Listen");
 		g_Lua->PushString("vote_cast"); // Yes this is a valid gameevent.
