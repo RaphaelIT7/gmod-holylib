@@ -26,7 +26,7 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 ## Next Update
 \- [+] Added `voicechat` module  
 \- [+] Made `pas` work on 64x  
-\- [+] Added `IGameEvent` class and `gameevent.Create`, `gameevent.FireEvent`, `gameevent.FireClient` functions.  
+\- [+] Added `IGameEvent` class and `gameevent.Create`, `gameevent.FireEvent`, `gameevent.FireClient`, `gameevent.DuplicateEvent` functions.  
 \- [+] Also added `sourcetv.FireEvent` and `HLTVClient:FireEvent`.  
 \- [#] Fixed my debug system not working as expected.  
 \- [#] `holylib_filesystem_predictexistance` is now disabled by default. (Enable it if you know that your content is managed properly)
@@ -154,6 +154,9 @@ If `bDontBroadcast` is specified, it won't be networked to players.
 
 #### bool gameevent.FireClientEvent(IGameEvent event, Player ply)
 Fires the given event for only the given player.  
+
+#### IGameEvent gameevent.DuplicateEvent(IGameEvent event)
+Duplicates the given event.  
 
 ### IGameEvent
 

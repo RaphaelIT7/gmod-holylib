@@ -531,6 +531,15 @@ LUA_FUNCTION_STATIC(gameevent_Create)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(gameevent_DuplicateEvent)
+{
+	IGameEvent* pEvent = Get_IGameEvent(1, true);
+
+	IGameEvent* pNewEvent = pManager->DuplicateEvent(pEvent);
+	Push_IGameEvent(pNewEvent);
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(gameevent_FireEvent)
 {
 	IGameEvent* pEvent = Get_IGameEvent(1, true);
@@ -597,6 +606,7 @@ void CGameeventLibModule::LuaInit(bool bServerInit)
 		Util::AddFunc(gameevent_Create, "Create");
 		Util::AddFunc(gameevent_FireEvent, "FireEvent");
 		Util::AddFunc(gameevent_FireClientEvent, "FireClientEvent");
+		Util::AddFunc(gameevent_DuplicateEvent, "DuplicateEvent");
 
 		g_Lua->GetField(-1, "Listen");
 		g_Lua->PushString("vote_cast"); // Yes this is a valid gameevent.
