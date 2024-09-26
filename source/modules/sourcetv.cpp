@@ -207,6 +207,8 @@ LUA_FUNCTION_STATIC(HLTVClient_SendLua)
 		return 1;
 	}
 
+	byte userdata[PAD_NUMBER(MAX_USER_MSG_DATA, 4)];	
+	msg.m_DataOut.StartWriting(userdata, sizeof(userdata));
 	msg.m_DataOut.WriteString(str);
 
 	client->SendNetMsg(msg);
