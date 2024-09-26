@@ -196,6 +196,7 @@ LUA_FUNCTION_STATIC(HLTVClient_SendLua)
 {
 	CHLTVClient* client = Get_HLTVClient(1, true);
 	const char* str = LUA->CheckString(2);
+	bool bForceReliable = LUA->GetBool(3);
 
 	// NOTE: Original bug was that we had the wrong bitcount for the net messages type which broke every netmessage we created including this one.
 	// It should work now, so let's test it later.
@@ -207,13 +208,11 @@ LUA_FUNCTION_STATIC(HLTVClient_SendLua)
 		return 1;
 	}
 
-	byte userdata[PAD_NUMBER(MAX_USER_MSG_DATA, 4)];	
+	byte userdata[PAD_NUMBER(MAX_USER_MSG_DATA, 4)];
 	msg.m_DataOut.StartWriting(userdata, sizeof(userdata));
 	msg.m_DataOut.WriteString(str);
 
-	client->SendNetMsg(msg);
-
-	LUA->PushBool(true);
+	LUA->PushBool(client->SendNetMsg(msg, bForceReliable));
 	return 1;
 }
 
