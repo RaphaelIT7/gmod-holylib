@@ -302,6 +302,10 @@ LUA_FUNCTION_STATIC(INetworkStringTable_SetStringUserData)
 	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(1, true);
 	int idx = LUA->CheckNumber(2);
 	const char* pUserData = LUA->GetString(3);
+
+	if (idx >= table->GetNumStrings())
+		return 0;
+
 	if (!pUserData)
 	{
 		table->SetStringUserData(idx, 0, NULL);
@@ -327,6 +331,9 @@ LUA_FUNCTION_STATIC(INetworkStringTable_SetNumberUserData)
 	int idx = LUA->CheckNumber(2);
 	int pUserData = LUA->CheckNumber(3);
 
+	if (idx >= table->GetNumStrings())
+		return 0;
+
 	table->SetStringUserData(idx, sizeof(int), &pUserData);
 	return 0;
 }
@@ -351,6 +358,9 @@ LUA_FUNCTION_STATIC(INetworkStringTable_SetPrecacheUserData)
 	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(1, true);
 	int idx = LUA->CheckNumber(2);
 	int pFlags = LUA->CheckNumber(3);
+
+	if (idx >= table->GetNumStrings())
+		return 0;
 
 	CPrecacheUserData p;
 	p.flags = pFlags;
