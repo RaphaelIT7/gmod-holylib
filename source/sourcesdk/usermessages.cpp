@@ -10,6 +10,7 @@ int CUserMessages::LookupUserMessage( const char *name )
 	int idx = m_UserMessages.Find( name );
 	if ( idx == m_UserMessages.InvalidIndex() )
 	{
+		Msg("Failed to find anything. FK.\n");
 		return -1;
 	}
 

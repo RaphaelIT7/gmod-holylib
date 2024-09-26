@@ -403,7 +403,7 @@ LUA_FUNCTION_STATIC(sourcetv_GetClient)
 		return 0;
 
 	int idx = LUA->CheckNumber(1);
-	if (idx > hltv->GetClientCount())
+	if (idx >= hltv->GetClientCount())
 		return 0;
 
 	CHLTVClient* client = hltv->Client(idx);
