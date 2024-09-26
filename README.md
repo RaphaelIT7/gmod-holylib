@@ -187,7 +187,7 @@ Duplicates the given event.
 
 ### IGameEvent
 
-#### string IGameEvent:\_\_tostring__()
+#### string IGameEvent:\_\_tostring()
 Returns the a formated string.  
 Format: `IGameEvent [%s]`  
 `%s` -> Gameevent name
@@ -908,7 +908,7 @@ Fires the gameevent for all hltv clients / broadcasts it.
 ### HLTVClient
 This is a metatable that is pushed by this module. It contains the functions listed below  
 
-#### string HLTVClient:\_\_tostring__()
+#### string HLTVClient:\_\_tostring()
 Returns the a formated string.  
 Format: `HLTVClient [%i][%s]`  
 `%i` -> UserID  
@@ -1038,7 +1038,7 @@ Create a write buffer with the given size or with the given data.
 This class will later be used to read net messages from HLTV clients.  
 > ToDo: Finish the documentation below and make it more detailed.  
 
-#### string bf_read:\_\_tostring__()
+#### string bf_read:\_\_tostring()
 Returns the a formated string.  
 Format: `bf_read [%i]`  
 `%i` -> size of data in bits.  
@@ -1172,7 +1172,7 @@ Returns `true` on success.
 
 ### bf_write  
 
-#### string bf_write:\_\_tostring__()
+#### string bf_write:\_\_tostring()
 Returns the a formated string.  
 Format: `bf_write [%i]`  
 `%i` -> size of data in bits.  
