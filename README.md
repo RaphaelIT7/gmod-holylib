@@ -26,12 +26,23 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 ## Next Update
 \- [+] Added `voicechat` module  
 \- [+] Made `pas` work on 64x  
-\- [+] Added `IGameEvent` class and `gameevent.Create`, `gameevent.FireEvent`, `gameevent.FireClient`, `gameevent.DuplicateEvent` functions.  
+\- [+] Added `IGameEvent` class and a few new functions to the `gameevent` library.  
+\- \- `gameevent.Create`  
+\- \- `gameevent.FireEvent`  
+\- \- `gameevent.FireClient`  
+\- \- `gameevent.DuplicateEvent`  
 \- [+] Also added `sourcetv.FireEvent` and `HLTVClient:FireEvent`.  
-\- [+] Added `HolyLib.FadeClientVolume`, `HolyLib.ServerExecute`, `HolyLib.IsMapValid`, `HolyLib.EntityMessageBegin`, `HolyLib.UserMessageBegin` and `HolyLib.MessageEnd` functions.  
+\- [+] Added a few new functions to the `holylib` library.  
+\- \- `HolyLib.FadeClientVolume`  
+\- \- `HolyLib.ServerExecute`  
+\- \- `HolyLib.IsMapValid`  
+\- \- `HolyLib.EntityMessageBegin`  
+\- \- `HolyLib.UserMessageBegin`  
+\- \- `HolyLib.MessageEnd`  
 \- [#] Fixed my debug system not working as expected.  
-\- [#] `holylib_filesystem_predictexistance` is now disabled by default. (Enable it if you know that your content is managed properly)
-\- [#] Experimentally readded `HLTVClient:SendLua`
+\- [#] `holylib_filesystem_predictexistance` is now disabled by default.  
+(Enable it if you know that your content is managed properly)  
+\- [#] Experimentally readded `HLTVClient:SendLua`  
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.4...main
@@ -1540,6 +1551,10 @@ Creates a IGMODAudioChannel for the given url.
 This module adds two new `IServerPluginCallbacks` functions:  
 `virtual void OnLuaInit( GarrysMod::Lua::ILuaInterface* LUA )`  
 `virtual void OnLuaShutdown( GarrysMod::Lua::ILuaInterface* LUA )`  
+
+For a plugin to be loaded by HolyLib, you need to expose HolyLib's Interface.  
+You can expose both HolyLib's and the normal interface since the order of the virtual functions are the same.  
+This should already work but I never tested it completly yet (Or I forgot that I did test it).  
 
 # Issues implemented / fixed
 `gameevent.GetListeners` -> https://github.com/Facepunch/garrysmod-requests/issues/2377  
