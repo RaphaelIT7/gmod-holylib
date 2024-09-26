@@ -301,7 +301,12 @@ LUA_FUNCTION_STATIC(INetworkStringTable_SetStringUserData)
 {
 	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(1, true);
 	int idx = LUA->CheckNumber(2);
-	const char* pUserData = LUA->CheckString(3);
+	const char* pUserData = LUA->GetString(3);
+	if (!pUserData)
+	{
+		table->SetStringUserData(idx, 0, NULL);
+		return 0;
+	}
 
 	table->SetStringUserData(idx, LUA->ObjLen(3), pUserData);
 	return 0;
