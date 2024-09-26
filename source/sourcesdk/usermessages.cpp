@@ -11,6 +11,11 @@ int CUserMessages::LookupUserMessage( const char *name )
 	if ( idx == m_UserMessages.InvalidIndex() )
 	{
 		Msg("Failed to find anything. FK.\n");
+		FOR_EACH_DICT( m_UserMessages, i )
+		{
+			Msg("Entry: %s, %i\n", m_UserMessages[i]->name, i);
+		}
+
 		return -1;
 	}
 
