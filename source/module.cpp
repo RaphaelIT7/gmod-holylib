@@ -7,13 +7,19 @@
 CModule::~CModule()
 {
 	if ( m_pCVar )
+	{
+		g_pCVar->UnregisterConCommand(m_pCVar);
 		delete m_pCVar; // Could this cause a crash? idk.
+	}
 
 	if ( m_pCVarName )
 		delete[] m_pCVarName;
 
 	if ( m_pDebugCVar )
+	{
+		g_pCVar->UnregisterConCommand(m_pDebugCVar);
 		delete m_pDebugCVar; // Could this cause a crash? idk either. But it didn't. Yet. Or has it.
+	}
 
 	if ( m_pDebugCVarName )
 		delete[] m_pDebugCVarName;
