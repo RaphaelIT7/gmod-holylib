@@ -7,19 +7,13 @@
 CModule::~CModule()
 {
 	if ( m_pCVar )
-	{
-		g_pCVar->UnregisterConCommand(m_pCVar);
 		delete m_pCVar; // Could this cause a crash? idk.
-	}
 
 	if ( m_pCVarName )
 		delete[] m_pCVarName;
 
 	if ( m_pDebugCVar )
-	{
-		g_pCVar->UnregisterConCommand(m_pDebugCVar);
 		delete m_pDebugCVar; // Could this cause a crash? idk either. But it didn't. Yet. Or has it.
-	}
 
 	if ( m_pDebugCVarName )
 		delete[] m_pDebugCVarName;
@@ -27,53 +21,52 @@ CModule::~CModule()
 
 void OnModuleConVarChange(IConVar* convar, const char* pOldValue, float flOldValue)
 {
-	CModule* pModule = (CModule*)g_pModuleManager.FindModuleByConVar((ConVar*)convar);
-	if (!pModule)
+	CModule* module = (CModule*)g_pModuleManager.FindModuleByConVar((ConVar*)convar);
+	if (!module)
 	{
 		Warning("holylib: Failed to find CModule for convar %s!\n", convar->GetName());
 		return;
 	}
 
-	pModule->SetEnabled(((ConVar*)convar)->GetBool(), true);
+	module->SetEnabled(((ConVar*)convar)->GetBool(), true);
 }
 
 void OnModuleDebugConVarChange(IConVar* convar, const char* pOldValue, float flOldValue)
 {
-	CModule* pModule = (CModule*)g_pModuleManager.FindModuleByConVar((ConVar*)convar);
-	if (!pModule)
+	CModule* module = (CModule*)g_pModuleManager.FindModuleByConVar((ConVar*)convar);
+	if (!module)
 	{
 		Warning("holylib: Failed to find CModule for convar %s!\n", convar->GetName());
 		return;
 	}
 
-	pModule->GetModule()->SetDebug(((ConVar*)convar)->GetInt());
+	module->GetModule()->SetDebug(((ConVar*)convar)->GetInt());
 }
 
-void CModule::SetModule(IModule* pModule)
+void CModule::SetModule(IModule* module)
 {
 	m_bStartup = true;
-	m_pModule = pModule;
-	m_pModule->SetWrapper(this);
+	m_pModule = module;
 #ifdef SYSTEM_LINUX // Welcome to ifdef hell
 #if ARCHITECTURE_IS_X86
-	if (pModule->Compatibility() & LINUX32)
+	if (module->Compatibility() & LINUX32)
 		m_bCompatible = true;
 #else
-	if (pModule->Compatibility() & LINUX64)
+	if (module->Compatibility() & LINUX64)
 		m_bCompatible = true;
 #endif
 #else
 #if ARCHITECTURE_IS_X86
-	if (pModule->Compatibility() & WINDOWS32)
+	if (module->Compatibility() & WINDOWS32)
 		m_bCompatible = true;
 #else
-	if (pModule->Compatibility() & WINDOWS64)
+	if (module->Compatibility() & WINDOWS64)
 		m_bCompatible = true;
 #endif
 #endif
 
 	std::string pStrName = "holylib_enable_";
-	pStrName.append(pModule->Name());
+	pStrName.append(module->Name());
 	std::string cmdStr = "-";
 	cmdStr.append(pStrName);
 	int cmd = CommandLine()->ParmValue(cmdStr.c_str(), -1);
@@ -88,7 +81,7 @@ void CModule::SetModule(IModule* pModule)
 	m_pCVar = new ConVar(m_pCVarName, m_bEnabled ? "1" : "0", FCVAR_ARCHIVE, "Whether this module should be active or not", OnModuleConVarChange);
 
 	std::string pDebugStrName = "holylib_debug_";
-	pDebugStrName.append(pModule->Name());
+	pDebugStrName.append(module->Name());
 
 	m_pDebugCVarName = new char[48];
 	V_strncpy(m_pDebugCVarName, pDebugStrName.c_str(), 48);
@@ -193,10 +186,10 @@ void CModuleManager::RegisterModule(IModule* pModule)
 	module->SetID(g_pIDs);
 	Msg("holylib: Registered module %-*s (%-*i Enabled: %s Compatible: %s)\n", 
 		15,
-		module->FastGetModule()->Name(), 
+		module->GetModule()->Name(), 
 		2,
 		g_pIDs,
-		module->FastIsEnabled() ? "true, " : "false,",
+		module->IsEnabled() ? "true, " : "false,", 
 		module->IsCompatible() ? "true " : "false"
 	);
 
@@ -205,13 +198,13 @@ void CModuleManager::RegisterModule(IModule* pModule)
 
 IModuleWrapper* CModuleManager::FindModuleByConVar(ConVar* convar)
 {
-	for (CModule* pModule : m_pModules)
+	for (CModule* module : m_pModules)
 	{
-		if (convar == pModule->GetConVar())
-			return pModule;
+		if (convar == module->GetConVar())
+			return module;
 
-		if (convar == pModule->GetDebugConVar())
-			return pModule;
+		if (convar == module->GetDebugConVar())
+			return module;
 	}
 
 	return NULL;
@@ -219,21 +212,10 @@ IModuleWrapper* CModuleManager::FindModuleByConVar(ConVar* convar)
 
 IModuleWrapper* CModuleManager::FindModuleByName(const char* name)
 {
-	for (CModule* pModule : m_pModules)
+	for (CModule* module : m_pModules)
 	{
-		if (V_stricmp(pModule->FastGetModule()->Name(), name) == 0)
-			return pModule;
-	}
-
-	return NULL;
-}
-
-IModuleWrapper* CModuleManager::FindModuleByModule(IModule* pTargetModule)
-{
-	for (CModule* pModule : m_pModules)
-	{
-		if (pModule->FastGetModule() == pTargetModule)
-			return pModule;
+		if (V_stricmp(module->GetModule()->Name(), name) == 0)
+			return module;
 	}
 
 	return NULL;
@@ -256,8 +238,8 @@ void CModuleManager::Init()
 	m_pStatus |= LoadStatus_Init;
 	for (CModule* pModule : m_pModules)
 	{
-		if ( !pModule->FastIsEnabled() ) { continue; }
-		pModule->FastGetModule()->Init(&GetAppFactory(), &GetGameFactory());
+		if ( !pModule->IsEnabled() ) { continue; }
+		pModule->GetModule()->Init(&GetAppFactory(), &GetGameFactory());
 	}
 }
 
@@ -270,8 +252,8 @@ void CModuleManager::LuaInit(bool bServerInit)
 
 	for (CModule* pModule : m_pModules)
 	{
-		if ( !pModule->FastIsEnabled() ) { continue; }
-		pModule->FastGetModule()->LuaInit(bServerInit);
+		if ( !pModule->IsEnabled() ) { continue; }
+		pModule->GetModule()->LuaInit(bServerInit);
 	}
 }
 
@@ -279,8 +261,8 @@ void CModuleManager::LuaShutdown()
 {
 	for (CModule* pModule : m_pModules)
 	{
-		if ( !pModule->FastIsEnabled() ) { continue; }
-		pModule->FastGetModule()->LuaShutdown();
+		if ( !pModule->IsEnabled() ) { continue; }
+		pModule->GetModule()->LuaShutdown();
 	}
 }
 
@@ -293,8 +275,8 @@ void CModuleManager::InitDetour(bool bPreServer)
 
 	for (CModule* pModule : m_pModules)
 	{
-		if ( !pModule->FastIsEnabled() ) { continue; }
-		pModule->FastGetModule()->InitDetour(bPreServer);
+		if ( !pModule->IsEnabled() ) { continue; }
+		pModule->GetModule()->InitDetour(bPreServer);
 	}
 }
 
@@ -302,8 +284,8 @@ void CModuleManager::Think(bool bSimulating)
 {
 	for (CModule* pModule : m_pModules)
 	{
-		if ( !pModule->FastIsEnabled() ) { continue; }
-		pModule->FastGetModule()->Think(bSimulating);
+		if ( !pModule->IsEnabled() ) { continue; }
+		pModule->GetModule()->Think(bSimulating);
 	}
 }
 
@@ -312,7 +294,7 @@ void CModuleManager::Shutdown()
 	m_pStatus = 0;
 	for (CModule* pModule : m_pModules)
 	{
-		if ( !pModule->FastIsEnabled() ) { continue; }
+		if ( !pModule->IsEnabled() ) { continue; }
 		pModule->Shutdown();
 	}
 }

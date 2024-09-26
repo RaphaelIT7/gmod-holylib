@@ -1,4 +1,3 @@
-#include "_modules.h"
 #include "module.h"
 #include <GarrysMod/Lua/Interface.h>
 #include <GarrysMod/InterfacePointers.hpp>
@@ -96,8 +95,8 @@ LUA_FUNCTION_STATIC(_EntityMessageBegin)
 
 	bool bReliable = LUA->GetBool(2);
 
-	if (!pBitBufModule->m_pWrapper->IsEnabled())
-		g_Lua->ThrowError("This won't work when the bitbuf library is disabled!");
+	//if (!pBitBufModule->m_pWrapper->IsEnabled())
+	//	g_Lua->ThrowError("This won't work when the bitbuf library is disabled!");
 
 	EntityMessageBegin(pEnt, bReliable);
 	Push_bf_write(GetActiveMessage());
@@ -109,8 +108,8 @@ LUA_FUNCTION_STATIC(_UserMessageBegin)
 	IRecipientFilter* pFilter = Get_IRecipientFilter(1, true);
 	const char* pName = LUA->CheckString(2);
 
-	if (!pBitBufModule->m_pWrapper->IsEnabled())
-		g_Lua->ThrowError("This won't work when the bitbuf library is disabled!");
+	//if (!pBitBufModule->m_pWrapper->IsEnabled())
+	//	g_Lua->ThrowError("This won't work when the bitbuf library is disabled!");
 
 	UserMessageBegin(*pFilter, pName);
 	Push_bf_write(GetActiveMessage());

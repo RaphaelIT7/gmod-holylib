@@ -1,27 +1,17 @@
-#ifndef _MODULE
-#define _MODULE
-
 #include "interface.h"
 #include <vector>
 #include "detours.h"
 #include "public/imodule.h"
 
-class CModuleManager;
 class CModule : public IModuleWrapper
 {
 public:
 	~CModule();
-	virtual void SetModule(IModule* pModule);
-	virtual IModule* GetModule() { return m_pModule; };
+	virtual void SetModule(IModule* module);
 	virtual void SetEnabled(bool bEnabled, bool bForced = false);
-	virtual bool IsEnabled() { return m_bEnabled; };
 	virtual void Shutdown();
-
-protected:
-	friend class CModuleManager;
-
-	inline IModule* FastGetModule() { return m_pModule; };
-	inline bool FastIsEnabled() { return m_bEnabled; }; // It's not a virtual one
+	inline IModule* GetModule() { return m_pModule; };
+	inline bool IsEnabled() { return m_bEnabled; };
 	inline ConVar* GetConVar() { return m_pCVar; };
 	inline ConVar* GetDebugConVar() { return m_pDebugCVar; };
 	inline bool IsCompatible() { return m_bCompatible; };
@@ -45,7 +35,6 @@ public:
 	virtual void RegisterModule(IModule* mdl);
 	virtual IModuleWrapper* FindModuleByConVar(ConVar* convar);
 	virtual IModuleWrapper* FindModuleByName(const char* name);
-	virtual IModuleWrapper* FindModuleByModule(IModule* module);
 
 	virtual void SetGhostInj() { m_bGhostInj = true; };
 	virtual bool IsUsingGhostInj() { return m_bGhostInj; };
@@ -69,5 +58,3 @@ private:
 	bool m_bGhostInj = false;
 };
 extern CModuleManager g_pModuleManager;
-
-#endif

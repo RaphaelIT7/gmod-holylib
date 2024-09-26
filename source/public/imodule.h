@@ -1,6 +1,3 @@
-#ifndef _IMODULE
-#define _IMODULE
-
 #include "interface.h"
 #include <vector>
 
@@ -14,7 +11,6 @@ enum Module_Compatibility
 
 class ConVar;
 class KeyValues;
-class IModuleWrapper;
 class IModule
 {
 public:
@@ -29,20 +25,16 @@ public:
 	virtual bool IsEnabledByDefault() { return true; };
 	inline void SetDebug(int iDebug) { m_iIsDebug = iDebug; };
 	inline int InDebug() { return m_iIsDebug; };
-	inline void SetWrapper(IModuleWrapper* wrapper) { m_pWrapper = wrapper; }
 public:
 	unsigned int m_pID = 0; // Set by the CModuleManager when registering it! Don't touch it.
 	int m_iIsDebug = false;
-	IModuleWrapper* m_pWrapper;
 };
 
 class IModuleWrapper
 {
 public:
 	virtual void SetModule(IModule* module) = 0;
-	virtual IModule* GetModule() = 0;
 	virtual void SetEnabled(bool bEnabled, bool bForced = false) = 0;
-	virtual bool IsEnabled() = 0;
 	virtual void Shutdown() = 0;
 };
 
@@ -58,7 +50,6 @@ public:
 	virtual void RegisterModule(IModule* mdl) = 0;
 	virtual IModuleWrapper* FindModuleByConVar(ConVar* convar) = 0;
 	virtual IModuleWrapper* FindModuleByName(const char* name) = 0;
-	virtual IModuleWrapper* FindModuleByModule(IModule* name) = 0;
 
 	virtual void SetGhostInj() = 0;
 	virtual bool IsUsingGhostInj() = 0;
@@ -71,5 +62,3 @@ public:
 	virtual void Think(bool bSimulating) = 0;
 	virtual void Shutdown() = 0;
 };
-
-#endif
