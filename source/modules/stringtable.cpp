@@ -21,6 +21,14 @@ public:
 static CStringTableModule g_pStringTableFixModule;
 IModule* pStringTableModule = &g_pStringTableFixModule;
 
+#define PRECACHE_USER_DATA_NUMBITS		2
+#pragma pack(1)
+struct CPrecacheUserData
+{
+	unsigned char flags : PRECACHE_USER_DATA_NUMBITS;
+};
+#pragma pack()
+
 static CNetworkStringTableContainer* networkStringTableContainerServer = NULL;
 void CStringTableModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
@@ -333,6 +341,34 @@ LUA_FUNCTION_STATIC(INetworkStringTable_GetNumberUserData)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(INetworkStringTable_SetPrecacheUserData)
+{
+	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(1, true);
+	int idx = LUA->CheckNumber(2);
+	int pFlags = LUA->CheckNumber(3);
+
+	CPrecacheUserData p;
+	p.flags = pFlags;
+
+	table->SetStringUserData(idx, sizeof(p), &p);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(INetworkStringTable_GetPrecacheUserData)
+{
+	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(1, true);
+	int idx = LUA->CheckNumber(2);
+
+	int dataLen; 
+	const void *pData = table->GetStringUserData(idx, &dataLen);
+	if (pData && dataLen == sizeof(CPrecacheUserData))
+		LUA->PushNumber(((const CPrecacheUserData*)table->GetStringUserData(idx, 0))->flags);
+	else
+		LUA->PushNil();
+
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(stringtable_CreateStringTable)
 {
 	const char* name = LUA->CheckString(1);
@@ -472,6 +508,8 @@ void CStringTableModule::LuaInit(bool bServerInit) // ToDo: Implement a INetwork
 			Util::AddFunc(INetworkStringTable_GetStringUserData, "GetStringUserData");
 			Util::AddFunc(INetworkStringTable_SetNumberUserData, "SetNumberUserData");
 			Util::AddFunc(INetworkStringTable_GetNumberUserData, "GetNumberUserData");
+			Util::AddFunc(INetworkStringTable_SetPrecacheUserData, "SetPrecacheUserData");
+			Util::AddFunc(INetworkStringTable_GetPrecacheUserData, "GetPrecacheUserData");
 		g_Lua->Pop(1);
 
 		if (g_Lua->PushMetaTable(INetworkStringTable_TypeID))
