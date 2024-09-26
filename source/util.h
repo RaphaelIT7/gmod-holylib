@@ -15,6 +15,7 @@ extern GarrysMod::Lua::IUpdatedLuaInterface* g_Lua;
 
 class CBaseClient;
 class CGlobalEntityList;
+class CUserMessages;
 namespace Util
 {
 	extern void StartTable();
@@ -38,6 +39,7 @@ namespace Util
 	extern IServerGameEnts* servergameents;
 	extern IServer* server;
 	extern CGlobalEntityList* entitylist;
+	extern CUserMessages* pUserMessages;
 
 	inline CBaseEntity* GetCBaseEntityFromEdict(edict_t* edict)
 	{
@@ -62,5 +64,11 @@ namespace Util
 class bf_read;
 extern void Push_bf_read(bf_read* tbl);
 
+class bf_write;
+extern void Push_bf_write(bf_write* tbl);
+
 class IGameEvent;
 extern IGameEvent* Get_IGameEvent(int iStackPos, bool bError);
+
+class IRecipientFilter;
+extern IRecipientFilter* Get_IRecipientFilter(int iStackPos, bool bError);

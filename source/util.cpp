@@ -10,6 +10,7 @@
 GarrysMod::Lua::IUpdatedLuaInterface* g_Lua;
 IVEngineServer* engine;
 CGlobalEntityList* Util::entitylist = NULL;
+CUserMessages* Util::pUserMessages;
 
 void Util::StartTable() {
 	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
@@ -141,6 +142,9 @@ void Util::AddDetour()
 	Detour::CheckValue("get interface", "IVEngineServer", engineserver != NULL);
 
 	SourceSDK::FactoryLoader server_loader("server");
+	pUserMessages = Detour::ResolveSymbol<CUserMessages>(server_loader, Symbols::UsermessagesSym);
+	Detour::CheckValue("get class", "usermessages", pUserMessages != NULL);
+
 	if (g_pModuleManager.GetAppFactory())
 		servergameents = (IServerGameEnts*)g_pModuleManager.GetGameFactory()(INTERFACEVERSION_SERVERGAMEENTS, NULL);
 	else
@@ -190,4 +194,24 @@ bool Util::ShouldLoad()
 	CommandLine()->AppendParm("-holylibexists", "true");
 
 	return true;
+}
+
+IRecipientFilter* Get_IRecipientFilter(int iStackPos, bool bError)
+{
+	if (bError)
+	{
+		if (!g_Lua->IsType(iStackPos, GarrysMod::Lua::Type::RecipientFilter))
+			g_Lua->ThrowError("Tried to use something that wasn't a RecipientFilter!");
+
+		IRecipientFilter* pFilter = g_Lua->GetUserType<IRecipientFilter>(iStackPos, GarrysMod::Lua::Type::RecipientFilter);
+		if (!pFilter)
+			g_Lua->ThrowError("Tried to use a NULL RecipientFilter!");
+
+		return pFilter;
+	} else {
+		if (!g_Lua->IsType(iStackPos, GarrysMod::Lua::Type::RecipientFilter))
+			return NULL;
+
+		return g_Lua->GetUserType<IRecipientFilter>(iStackPos, GarrysMod::Lua::Type::RecipientFilter);
+	}
 }

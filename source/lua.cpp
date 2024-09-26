@@ -74,7 +74,7 @@ void Lua::FinalShutdown()
 }
 
 static Detouring::Hook detour_InitLuaClasses;
-static void hook_InitLuaClasses(GarrysMod::Lua::ILuaInterface* LUA)
+static void hook_InitLuaClasses(GarrysMod::Lua::ILuaInterface* LUA) // ToDo: Add a hook to Lua::Startup or whatever it's name was and use that for the ServerInit.
 {
 	detour_InitLuaClasses.GetTrampoline<Symbols::InitLuaClasses>()(LUA);
 

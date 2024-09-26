@@ -1,3 +1,4 @@
+#include "_modules.h"
 #include "module.h"
 #include <GarrysMod/Lua/Interface.h>
 #include <GarrysMod/InterfacePointers.hpp>
@@ -24,10 +25,8 @@ IModule* pHolyLibModule = &g_pHolyLibModule;
 LUA_FUNCTION_STATIC(Reconnect)
 {
 	CBasePlayer* ent = Util::Get_Player(1, true);
-	if (!ent || strcmp(ent->GetClassname(), "player") != 0) {
-		LUA->PushBool(false);
-		return 1;
-	}
+	if (!ent)
+		LUA->ArgError(1, "Tried to use a NULL player!");
 
 	IClient* client = Util::server->GetClient(ent->GetClientIndex());
 	if (!client->IsFakeClient()) { // ToDo: Verify that this 100% works. If it can crash here, we add a workaround.
@@ -53,6 +52,77 @@ LUA_FUNCTION_STATIC(HideServer)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(FadeClientVolume)
+{
+	CBasePlayer* ent = Util::Get_Player(1, true);
+	if (!ent)
+		LUA->ArgError(1, "Tried to use a NULL player!");
+
+	edict_t* pEdict = Util::GetEdictOfEnt(ent);
+	if (!pEdict)
+		LUA->ThrowError("How....");
+
+	float fadePercent = LUA->CheckNumber(2);
+	float fadeOutSeconds = LUA->CheckNumber(3);
+	float holdTime = LUA->CheckNumber(4);
+	float fadeInSeconds = LUA->CheckNumber(5);
+
+	// It basicly just runs a command clientside.
+	Util::engineserver->FadeClientVolume(pEdict, fadePercent, fadeOutSeconds, holdTime, fadeInSeconds);
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(ServerExecute)
+{
+	Util::engineserver->ServerExecute();
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(IsMapValid)
+{
+	const char* pMapName = LUA->CheckString(1);
+
+	LUA->PushBool(Util::engineserver->IsMapValid(pMapName));
+	return 1;
+}
+
+extern bf_write* GetActiveMessage();
+LUA_FUNCTION_STATIC(_EntityMessageBegin)
+{
+	CBaseEntity* pEnt = Util::Get_Entity(1, true);
+	if (!pEnt)
+		LUA->ArgError(1, "Tried to use a NULL entity!");
+
+	bool bReliable = LUA->GetBool(2);
+
+	if (!pBitBufModule->m_pWrapper->IsEnabled())
+		g_Lua->ThrowError("This won't work when the bitbuf library is disabled!");
+
+	EntityMessageBegin(pEnt, bReliable);
+	Push_bf_write(GetActiveMessage());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(_UserMessageBegin)
+{
+	IRecipientFilter* pFilter = Get_IRecipientFilter(1, true);
+	const char* pName = LUA->CheckString(2);
+
+	if (!pBitBufModule->m_pWrapper->IsEnabled())
+		g_Lua->ThrowError("This won't work when the bitbuf library is disabled!");
+
+	UserMessageBegin(*pFilter, pName);
+	Push_bf_write(GetActiveMessage());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(_MessageEnd)
+{
+	MessageEnd();
+	return 0;
+}
+
 static Detouring::Hook detour_CServerGameDLL_ShouldHideServer;
 static bool hook_CServerGameDLL_ShouldHideServer()
 {
@@ -70,6 +140,13 @@ void CHolyLibModule::LuaInit(bool bServerInit)
 		Util::StartTable();
 			Util::AddFunc(HideServer, "HideServer");
 			Util::AddFunc(Reconnect, "Reconnect");
+			Util::AddFunc(FadeClientVolume, "FadeClientVolume");
+			Util::AddFunc(ServerExecute, "ServerExecute");
+			Util::AddFunc(IsMapValid, "IsMapValid");
+
+			Util::AddFunc(_EntityMessageBegin, "EntityMessageBegin");
+			Util::AddFunc(_UserMessageBegin, "UserMessageBegin");
+			Util::AddFunc(_MessageEnd, "MessageEnd");
 		Util::FinishTable("HolyLib");
 	} else {
 		if (Lua::PushHook("HolyLib:Initialize"))

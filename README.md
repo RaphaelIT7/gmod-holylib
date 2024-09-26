@@ -28,8 +28,10 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- [+] Made `pas` work on 64x  
 \- [+] Added `IGameEvent` class and `gameevent.Create`, `gameevent.FireEvent`, `gameevent.FireClient`, `gameevent.DuplicateEvent` functions.  
 \- [+] Also added `sourcetv.FireEvent` and `HLTVClient:FireEvent`.  
+\- [+] Added `HolyLib.FadeClientVolume`, `HolyLib.ServerExecute`, `HolyLib.IsMapValid`, `HolyLib.EntityMessageBegin`, `HolyLib.UserMessageBegin` and `HolyLib.MessageEnd` functions.  
 \- [#] Fixed my debug system not working as expected.  
 \- [#] `holylib_filesystem_predictexistance` is now disabled by default. (Enable it if you know that your content is managed properly)
+\- [#] Experimentally readded `HLTVClient:SendLua`
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.4...main
@@ -104,8 +106,33 @@ Player ply - The Player to reconnect.
 
 Returns `true` if the player was successfully reconnected.  
 
-#### void HolyLib.HideServer(bool hide)
+#### HolyLib.HideServer(bool hide)
 bool hide - `true` to hide the server from the serverlist.  
+Will just set the `hide_server` convar in the future.  
+
+#### HolyLib.FadeClientVolume(Player ply, number fadePercent, number fadeOutSeconds, number holdTime, number fadeInSeconds)
+Fades out the clients volume.  
+Internally just runs `soundfade` with the given settings on the client.  
+
+#### HolyLib.ServerExecute()
+Forces all queried commands to be executed/processed.  
+
+#### bool HolyLib.IsMapValid(string mapName)
+Returns `true` if the given map is valid.  
+
+#### bf_write HolyLib.EntityMessageBegin(Entity ent, bool reliable)
+Allows you to create an entity message.  
+
+NOTE: If the `bitbuf` module is disabled, it will throw a lua error!
+
+#### bf_write HolyLib.UserMessageBegin(IRecipientFilter filter, string usermsg)
+Allows you to create any registered usermessage.  
+
+NOTE: If the `bitbuf` module is disabled, it will throw a lua error!
+
+#### HolyLib.MessageEnd()
+Finishes the active Entity/Usermessage.  
+If you don't call this, the message won't be sent! (And the engine might throw a tantrum)
 
 ## gameevent
 This module contains additional functions for the gameevent library.  
@@ -913,9 +940,11 @@ Prints the given message into the client's console.
 #### bool HLTVClient:IsValid()
 Returns `true` if the client is still valid.  
 
-#### bool (REMOVED) HLTVClient:SendLua(string code)
+#### bool (Experimental) HLTVClient:SendLua(string code)
 Sends the given code to the client to be executed.  
 Returns `true` on success.  
+
+NOTE: This function was readded back experimentally. It wasn't tested yet.  
 
 #### HLTVClient:FireEvent(IGameEvent event)  
 Fires/sends the gameevent to this specific client.  

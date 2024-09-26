@@ -192,15 +192,15 @@ LUA_FUNCTION_STATIC(HLTVClient_IsValid)
 	return 1;
 }
 
-static CUserMessages* pUserMessages;
-#if 0
 LUA_FUNCTION_STATIC(HLTVClient_SendLua)
 {
 	CHLTVClient* client = Get_HLTVClient(1, true);
 	const char* str = LUA->CheckString(2);
 
+	// NOTE: Original bug was that we had the wrong bitcount for the net messages type which broke every netmessage we created including this one.
+	// It should work now, so let's test it later.
 	SVC_UserMessage msg;
-	msg.m_nMsgType = pUserMessages->LookupUserMessage("LuaCmd");
+	msg.m_nMsgType = Util::pUserMessages->LookupUserMessage("LuaCmd");
 	if (msg.m_nMsgType == -1)
 	{
 		LUA->PushBool(false);
@@ -214,7 +214,6 @@ LUA_FUNCTION_STATIC(HLTVClient_SendLua)
 	LUA->PushBool(true);
 	return 1;
 }
-#endif
 
 LUA_FUNCTION_STATIC(HLTVClient_FireEvent)
 {
@@ -519,7 +518,7 @@ void CSourceTVLibModule::LuaInit(bool bServerInit)
 		Util::AddFunc(HLTVClient_Reconnect, "Reconnect");
 		Util::AddFunc(HLTVClient_IsValid, "IsValid");
 		Util::AddFunc(HLTVClient_ClientPrint, "ClientPrint");
-		//Util::AddFunc(HLTVClient_SendLua, "SendLua");
+		Util::AddFunc(HLTVClient_SendLua, "SendLua");
 		Util::AddFunc(HLTVClient_FireEvent, "FireEvent");
 	g_Lua->Pop(1);
 
@@ -603,10 +602,6 @@ void CSourceTVLibModule::InitDetour(bool bPreServer)
 		engine_loader.GetModule(), Symbols::CHLTVClient_DeconstructorSym,
 		(void*)hook_CHLTVClient_Deconstructor, m_pID
 	);
-
-	SourceSDK::FactoryLoader server_loader("server");
-	pUserMessages = Detour::ResolveSymbol<CUserMessages>(server_loader, Symbols::UsermessagesSym);
-	Detour::CheckValue("get class", "usermessages", pUserMessages != NULL);
 
 	func_CHLTVDemoRecorder_StartRecording = (Symbols::CHLTVDemoRecorder_StartRecording)Detour::GetFunction(engine_loader.GetModule(), Symbols::CHLTVDemoRecorder_StartRecordingSym);
 	func_CHLTVDemoRecorder_StopRecording = (Symbols::CHLTVDemoRecorder_StopRecording)Detour::GetFunction(engine_loader.GetModule(), Symbols::CHLTVDemoRecorder_StopRecordingSym);

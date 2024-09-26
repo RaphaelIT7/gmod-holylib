@@ -189,7 +189,7 @@ void CModuleManager::RegisterModule(IModule* pModule)
 		module->GetModule()->Name(), 
 		2,
 		g_pIDs,
-		module->IsEnabled() ? "true, " : "false,", 
+		module->FastIsEnabled() ? "true, " : "false,",
 		module->IsCompatible() ? "true " : "false"
 	);
 
@@ -198,13 +198,13 @@ void CModuleManager::RegisterModule(IModule* pModule)
 
 IModuleWrapper* CModuleManager::FindModuleByConVar(ConVar* convar)
 {
-	for (CModule* module : m_pModules)
+	for (CModule* pModule : m_pModules)
 	{
-		if (convar == module->GetConVar())
-			return module;
+		if (convar == pModule->GetConVar())
+			return pModule;
 
-		if (convar == module->GetDebugConVar())
-			return module;
+		if (convar == pModule->GetDebugConVar())
+			return pModule;
 	}
 
 	return NULL;
@@ -212,10 +212,21 @@ IModuleWrapper* CModuleManager::FindModuleByConVar(ConVar* convar)
 
 IModuleWrapper* CModuleManager::FindModuleByName(const char* name)
 {
-	for (CModule* module : m_pModules)
+	for (CModule* pModule : m_pModules)
 	{
-		if (V_stricmp(module->GetModule()->Name(), name) == 0)
-			return module;
+		if (V_stricmp(pModule->GetModule()->Name(), name) == 0)
+			return pModule;
+	}
+
+	return NULL;
+}
+
+IModuleWrapper* CModuleManager::FindModuleByModule(IModule* module)
+{
+	for (CModule* pModule : m_pModules)
+	{
+		if (pModule->GetModule() == module)
+			return pModule;
 	}
 
 	return NULL;
@@ -238,7 +249,7 @@ void CModuleManager::Init()
 	m_pStatus |= LoadStatus_Init;
 	for (CModule* pModule : m_pModules)
 	{
-		if ( !pModule->IsEnabled() ) { continue; }
+		if ( !pModule->FastIsEnabled() ) { continue; }
 		pModule->GetModule()->Init(&GetAppFactory(), &GetGameFactory());
 	}
 }
@@ -252,7 +263,7 @@ void CModuleManager::LuaInit(bool bServerInit)
 
 	for (CModule* pModule : m_pModules)
 	{
-		if ( !pModule->IsEnabled() ) { continue; }
+		if ( !pModule->FastIsEnabled() ) { continue; }
 		pModule->GetModule()->LuaInit(bServerInit);
 	}
 }
@@ -261,7 +272,7 @@ void CModuleManager::LuaShutdown()
 {
 	for (CModule* pModule : m_pModules)
 	{
-		if ( !pModule->IsEnabled() ) { continue; }
+		if ( !pModule->FastIsEnabled() ) { continue; }
 		pModule->GetModule()->LuaShutdown();
 	}
 }
@@ -275,7 +286,7 @@ void CModuleManager::InitDetour(bool bPreServer)
 
 	for (CModule* pModule : m_pModules)
 	{
-		if ( !pModule->IsEnabled() ) { continue; }
+		if ( !pModule->FastIsEnabled() ) { continue; }
 		pModule->GetModule()->InitDetour(bPreServer);
 	}
 }
@@ -284,7 +295,7 @@ void CModuleManager::Think(bool bSimulating)
 {
 	for (CModule* pModule : m_pModules)
 	{
-		if ( !pModule->IsEnabled() ) { continue; }
+		if ( !pModule->FastIsEnabled() ) { continue; }
 		pModule->GetModule()->Think(bSimulating);
 	}
 }
@@ -294,7 +305,7 @@ void CModuleManager::Shutdown()
 	m_pStatus = 0;
 	for (CModule* pModule : m_pModules)
 	{
-		if ( !pModule->IsEnabled() ) { continue; }
+		if ( !pModule->FastIsEnabled() ) { continue; }
 		pModule->Shutdown();
 	}
 }

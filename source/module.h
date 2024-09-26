@@ -1,3 +1,6 @@
+#ifndef _MODULE
+#define _MODULE
+
 #include "interface.h"
 #include <vector>
 #include "detours.h"
@@ -9,9 +12,10 @@ public:
 	~CModule();
 	virtual void SetModule(IModule* module);
 	virtual void SetEnabled(bool bEnabled, bool bForced = false);
+	virtual bool IsEnabled() { return m_bEnabled; };
 	virtual void Shutdown();
 	inline IModule* GetModule() { return m_pModule; };
-	inline bool IsEnabled() { return m_bEnabled; };
+	inline bool FastIsEnabled() { return m_bEnabled; }; // It's not a virtual one
 	inline ConVar* GetConVar() { return m_pCVar; };
 	inline ConVar* GetDebugConVar() { return m_pDebugCVar; };
 	inline bool IsCompatible() { return m_bCompatible; };
@@ -35,6 +39,7 @@ public:
 	virtual void RegisterModule(IModule* mdl);
 	virtual IModuleWrapper* FindModuleByConVar(ConVar* convar);
 	virtual IModuleWrapper* FindModuleByName(const char* name);
+	virtual IModuleWrapper* FindModuleByModule(IModule* module);
 
 	virtual void SetGhostInj() { m_bGhostInj = true; };
 	virtual bool IsUsingGhostInj() { return m_bGhostInj; };
@@ -58,3 +63,5 @@ private:
 	bool m_bGhostInj = false;
 };
 extern CModuleManager g_pModuleManager;
+
+#endif
