@@ -21,52 +21,53 @@ CModule::~CModule()
 
 void OnModuleConVarChange(IConVar* convar, const char* pOldValue, float flOldValue)
 {
-	CModule* module = (CModule*)g_pModuleManager.FindModuleByConVar((ConVar*)convar);
-	if (!module)
+	CModule* pModule = (CModule*)g_pModuleManager.FindModuleByConVar((ConVar*)convar);
+	if (!pModule)
 	{
 		Warning("holylib: Failed to find CModule for convar %s!\n", convar->GetName());
 		return;
 	}
 
-	module->SetEnabled(((ConVar*)convar)->GetBool(), true);
+	pModule->SetEnabled(((ConVar*)convar)->GetBool(), true);
 }
 
 void OnModuleDebugConVarChange(IConVar* convar, const char* pOldValue, float flOldValue)
 {
-	CModule* module = (CModule*)g_pModuleManager.FindModuleByConVar((ConVar*)convar);
-	if (!module)
+	CModule* pModule = (CModule*)g_pModuleManager.FindModuleByConVar((ConVar*)convar);
+	if (!pModule)
 	{
 		Warning("holylib: Failed to find CModule for convar %s!\n", convar->GetName());
 		return;
 	}
 
-	module->GetModule()->SetDebug(((ConVar*)convar)->GetInt());
+	pModule->GetModule()->SetDebug(((ConVar*)convar)->GetInt());
 }
 
-void CModule::SetModule(IModule* module)
+void CModule::SetModule(IModule* pModule)
 {
 	m_bStartup = true;
-	m_pModule = module;
+	m_pModule = pModule;
+	m_pModule->SetWrapper(this);
 #ifdef SYSTEM_LINUX // Welcome to ifdef hell
 #if ARCHITECTURE_IS_X86
-	if (module->Compatibility() & LINUX32)
+	if (pModule->Compatibility() & LINUX32)
 		m_bCompatible = true;
 #else
-	if (module->Compatibility() & LINUX64)
+	if (pModule->Compatibility() & LINUX64)
 		m_bCompatible = true;
 #endif
 #else
 #if ARCHITECTURE_IS_X86
-	if (module->Compatibility() & WINDOWS32)
+	if (pModule->Compatibility() & WINDOWS32)
 		m_bCompatible = true;
 #else
-	if (module->Compatibility() & WINDOWS64)
+	if (pModule->Compatibility() & WINDOWS64)
 		m_bCompatible = true;
 #endif
 #endif
 
 	std::string pStrName = "holylib_enable_";
-	pStrName.append(module->Name());
+	pStrName.append(pModule->Name());
 	std::string cmdStr = "-";
 	cmdStr.append(pStrName);
 	int cmd = CommandLine()->ParmValue(cmdStr.c_str(), -1);
@@ -81,7 +82,7 @@ void CModule::SetModule(IModule* module)
 	m_pCVar = new ConVar(m_pCVarName, m_bEnabled ? "1" : "0", FCVAR_ARCHIVE, "Whether this module should be active or not", OnModuleConVarChange);
 
 	std::string pDebugStrName = "holylib_debug_";
-	pDebugStrName.append(module->Name());
+	pDebugStrName.append(pModule->Name());
 
 	m_pDebugCVarName = new char[48];
 	V_strncpy(m_pDebugCVarName, pDebugStrName.c_str(), 48);
@@ -186,7 +187,7 @@ void CModuleManager::RegisterModule(IModule* pModule)
 	module->SetID(g_pIDs);
 	Msg("holylib: Registered module %-*s (%-*i Enabled: %s Compatible: %s)\n", 
 		15,
-		module->GetModule()->Name(), 
+		module->FastGetModule()->Name(), 
 		2,
 		g_pIDs,
 		module->FastIsEnabled() ? "true, " : "false,",
@@ -214,18 +215,18 @@ IModuleWrapper* CModuleManager::FindModuleByName(const char* name)
 {
 	for (CModule* pModule : m_pModules)
 	{
-		if (V_stricmp(pModule->GetModule()->Name(), name) == 0)
+		if (V_stricmp(pModule->FastGetModule()->Name(), name) == 0)
 			return pModule;
 	}
 
 	return NULL;
 }
 
-IModuleWrapper* CModuleManager::FindModuleByModule(IModule* module)
+IModuleWrapper* CModuleManager::FindModuleByModule(IModule* pTargetModule)
 {
 	for (CModule* pModule : m_pModules)
 	{
-		if (pModule->GetModule() == module)
+		if (pModule->FastGetModule() == pTargetModule)
 			return pModule;
 	}
 
@@ -250,7 +251,7 @@ void CModuleManager::Init()
 	for (CModule* pModule : m_pModules)
 	{
 		if ( !pModule->FastIsEnabled() ) { continue; }
-		pModule->GetModule()->Init(&GetAppFactory(), &GetGameFactory());
+		pModule->FastGetModule()->Init(&GetAppFactory(), &GetGameFactory());
 	}
 }
 
@@ -264,7 +265,7 @@ void CModuleManager::LuaInit(bool bServerInit)
 	for (CModule* pModule : m_pModules)
 	{
 		if ( !pModule->FastIsEnabled() ) { continue; }
-		pModule->GetModule()->LuaInit(bServerInit);
+		pModule->FastGetModule()->LuaInit(bServerInit);
 	}
 }
 
@@ -273,7 +274,7 @@ void CModuleManager::LuaShutdown()
 	for (CModule* pModule : m_pModules)
 	{
 		if ( !pModule->FastIsEnabled() ) { continue; }
-		pModule->GetModule()->LuaShutdown();
+		pModule->FastGetModule()->LuaShutdown();
 	}
 }
 
@@ -287,7 +288,7 @@ void CModuleManager::InitDetour(bool bPreServer)
 	for (CModule* pModule : m_pModules)
 	{
 		if ( !pModule->FastIsEnabled() ) { continue; }
-		pModule->GetModule()->InitDetour(bPreServer);
+		pModule->FastGetModule()->InitDetour(bPreServer);
 	}
 }
 
@@ -296,7 +297,7 @@ void CModuleManager::Think(bool bSimulating)
 	for (CModule* pModule : m_pModules)
 	{
 		if ( !pModule->FastIsEnabled() ) { continue; }
-		pModule->GetModule()->Think(bSimulating);
+		pModule->FastGetModule()->Think(bSimulating);
 	}
 }
 

@@ -40,6 +40,7 @@ class IModuleWrapper
 {
 public:
 	virtual void SetModule(IModule* module) = 0;
+	virtual IModule* GetModule() = 0;
 	virtual void SetEnabled(bool bEnabled, bool bForced = false) = 0;
 	virtual bool IsEnabled() = 0;
 	virtual void Shutdown() = 0;

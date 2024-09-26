@@ -6,15 +6,21 @@
 #include "detours.h"
 #include "public/imodule.h"
 
+class CModuleManager;
 class CModule : public IModuleWrapper
 {
 public:
 	~CModule();
-	virtual void SetModule(IModule* module);
+	virtual void SetModule(IModule* pModule);
+	virtual IModule* GetModule() { return m_pModule; };
 	virtual void SetEnabled(bool bEnabled, bool bForced = false);
 	virtual bool IsEnabled() { return m_bEnabled; };
 	virtual void Shutdown();
-	inline IModule* GetModule() { return m_pModule; };
+
+protected:
+	friend class CModuleManager;
+
+	inline IModule* FastGetModule() { return m_pModule; };
 	inline bool FastIsEnabled() { return m_bEnabled; }; // It's not a virtual one
 	inline ConVar* GetConVar() { return m_pCVar; };
 	inline ConVar* GetDebugConVar() { return m_pDebugCVar; };
