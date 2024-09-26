@@ -3,6 +3,7 @@
 #include "detours.h"
 #include "public/imodule.h"
 
+class CModuleManager;
 class CModule : public IModuleWrapper
 {
 public:
@@ -10,11 +11,17 @@ public:
 	virtual void SetModule(IModule* module);
 	virtual void SetEnabled(bool bEnabled, bool bForced = false);
 	virtual void Shutdown();
+	virtual bool IsEnabled();
+
+public:
 	inline IModule* GetModule() { return m_pModule; };
-	inline bool IsEnabled() { return m_bEnabled; };
+	inline bool FastIsEnabled() { return m_bEnabled; };
 	inline ConVar* GetConVar() { return m_pCVar; };
 	inline ConVar* GetDebugConVar() { return m_pDebugCVar; };
 	inline bool IsCompatible() { return m_bCompatible; };
+
+protected:
+	friend class CModuleManager;
 	inline void SetID(unsigned int pID) { m_pModule->m_pID = pID; };
 
 protected:

@@ -36,6 +36,7 @@ public:
 	virtual void SetModule(IModule* module) = 0;
 	virtual void SetEnabled(bool bEnabled, bool bForced = false) = 0;
 	virtual void Shutdown() = 0;
+	virtual bool IsEnabled() = 0;
 };
 
 #define LoadStatus_PreDetourInit (1<<1)

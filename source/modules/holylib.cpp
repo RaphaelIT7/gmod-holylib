@@ -86,6 +86,7 @@ LUA_FUNCTION_STATIC(IsMapValid)
 	return 1;
 }
 
+static IModuleWrapper* pBitBufWrapper = NULL;
 extern bf_write* GetActiveMessage();
 LUA_FUNCTION_STATIC(_EntityMessageBegin)
 {
@@ -95,8 +96,8 @@ LUA_FUNCTION_STATIC(_EntityMessageBegin)
 
 	bool bReliable = LUA->GetBool(2);
 
-	//if (!pBitBufModule->m_pWrapper->IsEnabled())
-	//	g_Lua->ThrowError("This won't work when the bitbuf library is disabled!");
+	if (!pBitBufWrapper->IsEnabled())
+		g_Lua->ThrowError("This won't work when the bitbuf library is disabled!");
 
 	EntityMessageBegin(pEnt, bReliable);
 	Push_bf_write(GetActiveMessage());
@@ -108,8 +109,8 @@ LUA_FUNCTION_STATIC(_UserMessageBegin)
 	IRecipientFilter* pFilter = Get_IRecipientFilter(1, true);
 	const char* pName = LUA->CheckString(2);
 
-	//if (!pBitBufModule->m_pWrapper->IsEnabled())
-	//	g_Lua->ThrowError("This won't work when the bitbuf library is disabled!");
+	if (!pBitBufWrapper->IsEnabled())
+		g_Lua->ThrowError("This won't work when the bitbuf library is disabled!");
 
 	UserMessageBegin(*pFilter, pName);
 	Push_bf_write(GetActiveMessage());
@@ -136,6 +137,8 @@ void CHolyLibModule::LuaInit(bool bServerInit)
 {
 	if (!bServerInit)
 	{
+		pBitBufWrapper = g_pModuleManager.FindModuleByName("bitbuf");
+
 		Util::StartTable();
 			Util::AddFunc(HideServer, "HideServer");
 			Util::AddFunc(Reconnect, "Reconnect");

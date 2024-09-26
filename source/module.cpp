@@ -7,13 +7,19 @@
 CModule::~CModule()
 {
 	if ( m_pCVar )
+	{
+		g_pCVar->UnregisterConCommand(m_pCVar);
 		delete m_pCVar; // Could this cause a crash? idk.
+	}
 
 	if ( m_pCVarName )
 		delete[] m_pCVarName;
 
 	if ( m_pDebugCVar )
+	{
+		g_pCVar->UnregisterConCommand(m_pDebugCVar);
 		delete m_pDebugCVar; // Could this cause a crash? idk either. But it didn't. Yet. Or has it.
+	}
 
 	if ( m_pDebugCVarName )
 		delete[] m_pDebugCVarName;
@@ -41,6 +47,11 @@ void OnModuleDebugConVarChange(IConVar* convar, const char* pOldValue, float flO
 	}
 
 	module->GetModule()->SetDebug(((ConVar*)convar)->GetInt());
+}
+
+bool CModule::IsEnabled()
+{
+	return m_bEnabled;
 }
 
 void CModule::SetModule(IModule* module)
@@ -238,7 +249,7 @@ void CModuleManager::Init()
 	m_pStatus |= LoadStatus_Init;
 	for (CModule* pModule : m_pModules)
 	{
-		if ( !pModule->IsEnabled() ) { continue; }
+		if ( !pModule->FastIsEnabled() ) { continue; }
 		pModule->GetModule()->Init(&GetAppFactory(), &GetGameFactory());
 	}
 }
@@ -252,7 +263,7 @@ void CModuleManager::LuaInit(bool bServerInit)
 
 	for (CModule* pModule : m_pModules)
 	{
-		if ( !pModule->IsEnabled() ) { continue; }
+		if ( !pModule->FastIsEnabled() ) { continue; }
 		pModule->GetModule()->LuaInit(bServerInit);
 	}
 }
@@ -261,7 +272,7 @@ void CModuleManager::LuaShutdown()
 {
 	for (CModule* pModule : m_pModules)
 	{
-		if ( !pModule->IsEnabled() ) { continue; }
+		if ( !pModule->FastIsEnabled() ) { continue; }
 		pModule->GetModule()->LuaShutdown();
 	}
 }
@@ -275,7 +286,7 @@ void CModuleManager::InitDetour(bool bPreServer)
 
 	for (CModule* pModule : m_pModules)
 	{
-		if ( !pModule->IsEnabled() ) { continue; }
+		if ( !pModule->FastIsEnabled() ) { continue; }
 		pModule->GetModule()->InitDetour(bPreServer);
 	}
 }
@@ -284,7 +295,7 @@ void CModuleManager::Think(bool bSimulating)
 {
 	for (CModule* pModule : m_pModules)
 	{
-		if ( !pModule->IsEnabled() ) { continue; }
+		if ( !pModule->FastIsEnabled() ) { continue; }
 		pModule->GetModule()->Think(bSimulating);
 	}
 }
@@ -294,7 +305,7 @@ void CModuleManager::Shutdown()
 	m_pStatus = 0;
 	for (CModule* pModule : m_pModules)
 	{
-		if ( !pModule->IsEnabled() ) { continue; }
+		if ( !pModule->FastIsEnabled() ) { continue; }
 		pModule->Shutdown();
 	}
 }
