@@ -36,6 +36,10 @@ namespace Symbols
 		Symbol::FromName("g_pEntityList"),
 	};
 
+	const std::vector<Symbol> UsermessagesSym = {
+		Symbol::FromName("_ZL14g_UserMessages"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: holylib Symbols
 	//---------------------------------------------------------------------------------
@@ -98,10 +102,6 @@ namespace Symbols
 
 	const std::vector<Symbol> CHLTVClient_DeconstructorSym = {
 		Symbol::FromName("_ZN11CHLTVClientD1Ev"),
-	};
-
-	const std::vector<Symbol> UsermessagesSym = {
-		Symbol::FromName("usermessages"),
 	};
 
 	//---------------------------------------------------------------------------------
