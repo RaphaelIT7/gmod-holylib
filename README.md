@@ -39,10 +39,15 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- \- `HolyLib.EntityMessageBegin`  
 \- \- `HolyLib.UserMessageBegin`  
 \- \- `HolyLib.MessageEnd`  
+\- [+] Added two new functions to the `stringtable` library.  
+\- \- `stringtable.SetPrecacheUserData`  
+\- \- `stringtable.GetPrecacheUserData`  
 \- [#] Fixed my debug system not working as expected.  
 \- [#] `holylib_filesystem_predictexistance` is now disabled by default.  
 (Enable it if you know that your content is managed properly)  
-\- [#] Experimentally readded `HLTVClient:SendLua`  
+\- [#] Experimentally readded `HLTVClient:SendLua` (Doesn't crash anymore but also doesn't work clientside yet)  
+\- [#] `INetworkStringTable:SetStringUserData` now has a length argument. Be careful if you should use it.  
+\- [#] `INetworkStringTable:GetStringUserData` has a second return value. It now also returns the length.  
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.4...main
@@ -431,7 +436,6 @@ Deletes the given string at the given index.
 Returns `true` if the string was deleted.  
 
 > NOTE: Currently this deletes all strings and readds all except the one at the given index. This is slow and I need to improve it later.  
-> BUG: It doesn't readd the userdata the strings.  
 
 #### bool INetworkStringTable:IsValid()
 Returns `true` if the stringtable is still valid.  
@@ -474,6 +478,12 @@ Sets the number as userdata for the given string.
 
 #### number INetworkStringTable:GetNumberUserData(number index)
 Returns the userdata of the given index. It needs to be a int!  
+
+#### INetworkStringTable:SetPrecacheUserData(number index, number value)
+Sets the `CPrecacheUserData` and sets the flags of it to the given value.  
+
+#### number INetworkStringTable:GetPrecacheUserData(number index)
+Returns the flags of `CPrecacheUserData`.  
 
 ### Enums
 This module adds these enums  
