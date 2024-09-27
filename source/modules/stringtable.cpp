@@ -266,7 +266,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_DeleteString)
 		return 1;
 	}
 
-	if (!Q_stricmp(MODEL_PRECACHE_TABLENAME, table->GetTableName()) && pStringTableModule->InDebug() == 1)
+	if (!Q_stricmp(MODEL_PRECACHE_TABLENAME, table->GetTableName()))
 	{
 		CGameServer* pServer = (CGameServer*)Util::server;
 		CPrecacheItem item = pServer->model_precache[strIndex];
