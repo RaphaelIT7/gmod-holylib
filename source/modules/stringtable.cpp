@@ -266,7 +266,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_DeleteString)
 		return 1;
 	}
 
-	if (Q_stricmp(table->GetTableName(), MODEL_PRECACHE_TABLENAME) == 0)
+	if (!Q_stricmp(MODEL_PRECACHE_TABLENAME, table->GetTableName()) && pStringTableModule->InDebug() == 1)
 	{
 		CGameServer* pServer = (CGameServer*)Util::server;
 		CPrecacheItem item = pServer->model_precache[strIndex];
@@ -286,7 +286,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_DeleteString)
 			continue;
 
 		StringTableEntry* pEntry = new StringTableEntry;
-		pEntry->pName = new char[strlen(str)];
+		pEntry->pName = new char[strlen(str) + 1];
 		strcpy(pEntry->pName, str);
 
 		pEntry->pUserData = (void*)table->GetStringUserData(i, &pEntry->iUserDataLength);
@@ -303,6 +303,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_DeleteString)
 		delete[] pEntry->pName; // Apparently the stringtable itself will make a copy of it and manage it? So Yeet our string.
 		delete pEntry;
 	}
+	pElements.clear();
 
 	LUA->PushBool(true);
 	return 1;
