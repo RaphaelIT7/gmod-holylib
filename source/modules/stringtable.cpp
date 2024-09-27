@@ -5,6 +5,7 @@
 #include "detours.h"
 #include "lua.h"
 #include <sourcesdk/networkstringtable.h>
+#include <sourcesdk/server.h>
 #include <unordered_map>
 
 class CStringTableModule : public IModule
@@ -20,14 +21,6 @@ public:
 
 static CStringTableModule g_pStringTableFixModule;
 IModule* pStringTableModule = &g_pStringTableFixModule;
-
-#define PRECACHE_USER_DATA_NUMBITS		2
-#pragma pack(1)
-struct CPrecacheUserData
-{
-	unsigned char flags : PRECACHE_USER_DATA_NUMBITS;
-};
-#pragma pack()
 
 static CNetworkStringTableContainer* networkStringTableContainerServer = NULL;
 void CStringTableModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
@@ -271,6 +264,14 @@ LUA_FUNCTION_STATIC(INetworkStringTable_DeleteString)
 	{
 		LUA->PushBool(false);
 		return 1;
+	}
+
+	if (Q_stricmp(table->GetTableName(), MODEL_PRECACHE_TABLENAME) == 0)
+	{
+		CGameServer* pServer = (CGameServer*)Util::server;
+		CPrecacheItem item = pServer->model_precache[strIndex];
+		if (item.GetModel())
+			item.SetModel(NULL);
 	}
 
 	int iLength;
