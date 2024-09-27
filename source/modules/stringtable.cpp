@@ -257,7 +257,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_SetMaxEntries)
 
 struct StringTableEntry
 {
-	const char* pName = NULL;
+	char* pName = NULL;
 	void* pUserData = NULL;
 	int iUserDataLength = 0;
 };
@@ -285,7 +285,9 @@ LUA_FUNCTION_STATIC(INetworkStringTable_DeleteString)
 			continue;
 
 		StringTableEntry* pEntry = new StringTableEntry;
-		pEntry->pName = str;
+		pEntry->pName = new char[strlen(str)];
+		strcpy(pEntry->pName, str);
+
 		pEntry->pUserData = (void*)table->GetStringUserData(i, &pEntry->iUserDataLength);
 
 		pElements.push_back(pEntry);
@@ -295,9 +297,10 @@ LUA_FUNCTION_STATIC(INetworkStringTable_DeleteString)
 
 	for (StringTableEntry* pEntry : pElements)
 	{
-		int idx = table->AddString(true, pEntry->pName);
-		if (pEntry->iUserDataLength > 0 && idx > 0)
-			table->SetStringUserData(idx, pEntry->iUserDataLength, pEntry->pUserData);
+		table->AddString(true, pEntry->pName, pEntry->iUserDataLength, pEntry->pUserData);
+
+		delete[] pEntry->pName; // Apparently the stringtable itself will make a copy of it and manage it? So Yeet our string.
+		delete pEntry;
 	}
 
 	LUA->PushBool(true);
