@@ -436,8 +436,9 @@ Returns `true` if the string was deleted.
 #### bool INetworkStringTable:IsValid()
 Returns `true` if the stringtable is still valid.  
 
-#### INetworkStringTable:SetStringUserData(number index, string data)
+#### INetworkStringTable:SetStringUserData(number index, string data, number length = NULL)
 Sets the UserData for the given index.  
+`length` is optional and should normally not be used. It could cause crashes is not used correctly!  
 
 How this could be useful:  
 ```lua
@@ -464,8 +465,9 @@ client_lua_files:SetStringUserData(0, table.concat(dataTablePaths, ";")) -- Set 
 -- NOTE: Changes to the datatable path will only affect the lcl search path clientside.
 ```
 
-#### string INetworkStringTable:GetStringUserData(number index)
+#### string, number INetworkStringTable:GetStringUserData(number index)
 Returns the userdata of the given index.  
+Second return value is the length/size of the data.  
 
 #### INetworkStringTable:SetNumberUserData(number index, number value)
 Sets the number as userdata for the given string.  

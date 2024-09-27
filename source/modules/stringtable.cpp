@@ -255,6 +255,13 @@ LUA_FUNCTION_STATIC(INetworkStringTable_SetMaxEntries)
 	return 0;
 }
 
+struct StringTableEntry
+{
+	const char* pName = NULL;
+	void* pUserData = NULL;
+	int iUserDataLength = 0;
+};
+
 LUA_FUNCTION_STATIC(INetworkStringTable_DeleteString)
 {
 	INetworkStringTable* table = Get_INetworkStringTable(1, true);
@@ -266,23 +273,31 @@ LUA_FUNCTION_STATIC(INetworkStringTable_DeleteString)
 		return 1;
 	}
 
-	std::vector<std::string> pElements;
+	int iLength;
+	std::vector<StringTableEntry*> pElements;
 	for (int i=0; i<table->GetNumStrings(); ++i)
 	{
 		if (i == strIndex)
 			continue;
 
 		const char* str = table->GetString(i);
-		if (str)
-			pElements.push_back(str);
-		// ToDo: Save and restore userdata. Maybe I could also try later to not use a std::string above?
+		if (!str)
+			continue;
+
+		StringTableEntry* pEntry = new StringTableEntry;
+		pEntry->pName = str;
+		pEntry->pUserData = (void*)table->GetStringUserData(i, &pEntry->iUserDataLength);
+
+		pElements.push_back(pEntry);
 	}
 
 	func_CNetworkStringTable_DeleteAllStrings(table); // If this deletes the UserData that we got, were gonna have a problem.
 
-	for (std::string key : pElements)
+	for (StringTableEntry* pEntry : pElements)
 	{
-		table->AddString(true, key.c_str());
+		int idx = table->AddString(true, pEntry->pName);
+		if (pEntry->iUserDataLength > 0 && idx > 0)
+			table->SetStringUserData(idx, pEntry->iUserDataLength, pEntry->pUserData);
 	}
 
 	LUA->PushBool(true);
@@ -302,6 +317,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_SetStringUserData)
 	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(1, true);
 	int idx = LUA->CheckNumber(2);
 	const char* pUserData = LUA->GetString(3);
+	int iLength = g_Lua->CheckNumberOpt(4, NULL);
 
 	if (idx >= table->GetNumStrings())
 		return 0;
@@ -312,7 +328,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_SetStringUserData)
 		return 0;
 	}
 
-	table->SetStringUserData(idx, LUA->ObjLen(3), pUserData);
+	table->SetStringUserData(idx, iLength ? iLength : LUA->ObjLen(3), pUserData);
 	return 0;
 }
 
@@ -321,8 +337,10 @@ LUA_FUNCTION_STATIC(INetworkStringTable_GetStringUserData)
 	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(1, true);
 	int idx = LUA->CheckNumber(2);
 
-	LUA->PushString((const char*)table->GetStringUserData(idx, 0));
-	return 1;
+	int iLength = 0;
+	LUA->PushString((const char*)table->GetStringUserData(idx, &iLength));
+	LUA->PushNumber(iLength);
+	return 2;
 }
 
 LUA_FUNCTION_STATIC(INetworkStringTable_SetNumberUserData)
