@@ -12,9 +12,6 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-#define NETMSG_TYPE_BITS	6	// is 6 bits in gmod
-#define NETMSG_LENGTH_BITS	16	// should be 16 bits
-
 static char s_text[1024];
 
 bool SVC_UserMessage::WriteToBuffer( bf_write &buffer )

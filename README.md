@@ -150,6 +150,15 @@ NOTE: If the `bitbuf` module is disabled, it will throw a lua error!
 Finishes the active Entity/Usermessage.  
 If you don't call this, the message won't be sent! (And the engine might throw a tantrum)
 
+#### HolyLib.BroadcastCustomMessage(number type, string name, bf_write buffer)
+Sends a custom net message to all clients.  
+This function allows you send any netmessage you want.  
+You should know what your doing since this function doesn't validate anything.  
+You can find all valid types in the [protocol.h](https://github.com/RaphaelIT7/gmod-holylib/blob/main/source/sourcesdk/protocol.h#L86-L145)  
+
+#### HolyLib.SendCustomMessage(number type, string name, bf_write buffer, Player ply)
+Same as BroadcastCustomMessage but it only sends it to the specific player.  
+
 ## gameevent
 This module contains additional functions for the gameevent library.  
 With the Add/Get/RemoveClient* functions you can control the gameevents that are networked to a client which can be useful.  

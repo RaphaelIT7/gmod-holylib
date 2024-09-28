@@ -66,6 +66,7 @@ extern void Push_bf_read(bf_read* tbl);
 
 class bf_write;
 extern void Push_bf_write(bf_write* tbl);
+extern bf_write* Get_bf_write(int iStackPos, bool bError);
 
 class IGameEvent;
 extern IGameEvent* Get_IGameEvent(int iStackPos, bool bError);
