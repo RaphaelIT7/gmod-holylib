@@ -683,6 +683,12 @@ void CGameeventLibModule::InitDetour(bool bPreServer)
 		(void*)hook_CBaseClient_ProcessListenEvents, m_pID
 	);
 
+	Detour::Create(
+		&detour_CGameEventManager_CreateEvent, "CGameEventManager::CreateEvent",
+		engine_loader.GetModule(), Symbols::CGameEventManager_CreateEventSym,
+		(void*)hook_CGameEventManager_CreateEvent, m_pID
+	);
+
 #if ARCHITECTURE_IS_X86
 	func_CGameEventManager_AddListener = (Symbols::CGameEventManager_AddListener)Detour::GetFunction(engine_loader.GetModule(), Symbols::CGameEventManager_AddListenerSym);
 	Detour::CheckFunction((void*)func_CGameEventManager_AddListener, "CGameEventManager::AddListener");
