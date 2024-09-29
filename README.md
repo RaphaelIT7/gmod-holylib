@@ -210,6 +210,9 @@ Fires the given event for only the given player.
 #### IGameEvent gameevent.DuplicateEvent(IGameEvent event)
 Duplicates the given event.  
 
+#### gameevent.BlockCreation(string name, bool block)
+Blocks/Unblocks the creation of the given gameevent.   
+
 ### IGameEvent
 
 #### string IGameEvent:\_\_tostring()

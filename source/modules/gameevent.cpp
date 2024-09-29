@@ -6,6 +6,7 @@
 #include "iserver.h"
 #include "vprof.h"
 #include "sourcesdk/netmessages.h"
+#include <unordered_set>
 
 class CUserCmd; // Fixes an error in igamesystem.h
 #include <igamesystem.h>
@@ -564,6 +565,39 @@ LUA_FUNCTION_STATIC(gameevent_FireClientEvent)
 	return 0;
 }
 
+std::unordered_set<std::string> pBlockedEvents;
+Detouring::Hook detour_CGameEventManager_CreateEvent;
+IGameEvent* hook_CGameEventManager_CreateEvent(void* manager, const char* name, bool bForce)
+{
+	auto it = pBlockedEvents.find(name);
+	if (it != pBlockedEvents.end())
+		return NULL;
+
+	return detour_CGameEventManager_CreateEvent.GetTrampoline<Symbols::CGameEventManager_CreateEvent>()(manager, name, bForce);
+}
+
+LUA_FUNCTION_STATIC(gameevent_BlockCreation)
+{
+	const char* pName = LUA->CheckString(1);
+	bool bBlock = LUA->GetBool(2);
+
+	auto it = pBlockedEvents.find(pName);
+	if (bBlock)
+	{
+		if (it == pBlockedEvents.end())
+			return 0;
+
+		pBlockedEvents.erase(it);
+	} else {
+		if (it != pBlockedEvents.end())
+			return 0;
+
+		pBlockedEvents.insert(pName);
+	}
+
+	return 0;
+}
+
 void CGameeventLibModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	pManager = (CGameEventManager*)appfn[0](INTERFACEVERSION_GAMEEVENTSMANAGER2, NULL);
@@ -607,6 +641,7 @@ void CGameeventLibModule::LuaInit(bool bServerInit)
 		Util::AddFunc(gameevent_FireEvent, "FireEvent");
 		Util::AddFunc(gameevent_FireClientEvent, "FireClientEvent");
 		Util::AddFunc(gameevent_DuplicateEvent, "DuplicateEvent");
+		Util::AddFunc(gameevent_BlockCreation, "BlockCreation");
 
 		g_Lua->GetField(-1, "Listen");
 		g_Lua->PushString("vote_cast"); // Yes this is a valid gameevent.
