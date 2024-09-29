@@ -25,7 +25,7 @@ IModule* pHolyLibModule = &g_pHolyLibModule;
 class SVC_CustomMessage: public CNetMessage
 {
 public:
-	bool			ReadFromBuffer( bf_read &buffer ) {};
+	bool			ReadFromBuffer( bf_read &buffer ) { return true; };
 	bool			WriteToBuffer( bf_write &buffer ) {
 		buffer.WriteUBitLong(GetType(), NETMSG_TYPE_BITS);
 		return buffer.WriteBits(m_DataOut.GetData(), m_DataOut.GetNumBitsWritten());
@@ -35,7 +35,7 @@ public:
 	const char		*GetName() const { return m_strName;}
 
 	INetMessageHandler *m_pMessageHandler = NULL;
-	bool Process() { Warning("holylib: Tried to process this message? This should never happen!\n"); };
+	bool Process() { Warning("holylib: Tried to process this message? This should never happen!\n"); return true; };
 
 	SVC_CustomMessage() { m_bReliable = false; }
 

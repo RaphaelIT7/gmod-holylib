@@ -20,6 +20,7 @@ class CFileOpenInfo;
 class CSearchPath;
 class CSteam3Server;
 class IChangeFrameList;
+class IGameEvent;
 
 class IVP_Mindist;
 class IVP_Real_Object;
@@ -86,6 +87,9 @@ namespace Symbols
 
 	typedef bool (GMCOMMON_CALLING_CONVENTION* CGameEventManager_AddListener)(void* manager, void* listener, void* descriptor, int);
 	extern const std::vector<Symbol> CGameEventManager_AddListenerSym;
+
+	typedef IGameEvent* (GMCOMMON_CALLING_CONVENTION* CGameEventManager_CreateEvent)(void* manager, const char* name, bool bForce);
+	extern const std::vector<Symbol> CGameEventManager_CreateEventSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: serverplugin Symbols

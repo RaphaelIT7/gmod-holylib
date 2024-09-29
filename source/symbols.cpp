@@ -61,6 +61,10 @@ namespace Symbols
 		Symbol::FromName("_ZN17CGameEventManager11AddListenerEPvP20CGameEventDescriptori"),
 	};
 
+	const std::vector<Symbol> CGameEventManager_CreateEventSym = { // Fk this. No 64x aswell
+		Symbol::FromName("_ZN17CGameEventManager11CreateEventEPKcb"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: serverplugin Symbols
 	//---------------------------------------------------------------------------------
