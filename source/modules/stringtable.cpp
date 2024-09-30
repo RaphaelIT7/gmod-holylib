@@ -334,7 +334,6 @@ LUA_FUNCTION_STATIC(INetworkStringTable_DeleteString)
 			item.SetGeneric(NULL);
 	}
 
-	int iLength;
 	std::vector<StringTableEntry*> pElements;
 	for (int i=0; i<table->GetNumStrings(); ++i)
 	{
