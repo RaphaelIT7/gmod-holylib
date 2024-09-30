@@ -171,7 +171,7 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 			++idx;
 		}
 
-		const char* key = g_Lua->GetString(-1); // In JSON a key is ALWAYS a string
+		const char* key = isSequential ? NULL : g_Lua->GetString(-1); // In JSON a key is ALWAYS a string
 		//Msg("Key: %s (%s)\n", key, g_Lua->GetActualTypeName(iKeyType));
 		switch (g_Lua->GetType(-1))
 		{
@@ -209,7 +209,10 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 			case GarrysMod::Lua::Type::Table: // now make it recursive >:D
 				g_Lua->Push(-2);
 				g_Lua->PushNil();
-				TableToJSONRecursive(pTree.AddChild(key));
+				if (isSequential)
+					TableToJSONRecursive(pTree.AddChild());
+				else
+					TableToJSONRecursive(pTree.AddChild(key));
 				break;
 			default:
 				break; // We should fallback to nil
