@@ -584,15 +584,15 @@ LUA_FUNCTION_STATIC(gameevent_BlockCreation)
 	auto it = pBlockedEvents.find(pName);
 	if (bBlock)
 	{
-		if (it == pBlockedEvents.end())
-			return 0;
-
-		pBlockedEvents.erase(it);
-	} else {
 		if (it != pBlockedEvents.end())
 			return 0;
 
 		pBlockedEvents.insert(pName);
+	} else {
+		if (it == pBlockedEvents.end())
+			return 0;
+
+		pBlockedEvents.erase(it);
 	}
 
 	return 0;
