@@ -73,7 +73,7 @@ namespace Bootil
 					{
 						if ( strKey.empty() )
 						{
-							writer.String( Bootil::String::Format::Print( "_%i_", iUniqueKey ).c_str() );
+							writer.String( Bootil::String::Format::Print( "%i", iUniqueKey ).c_str() );
 							iUniqueKey++;
 						}
 						else
