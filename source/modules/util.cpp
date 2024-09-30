@@ -158,33 +158,41 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 {
 	int idx = 1;
 	while (g_Lua->Next(-2)) {
-		g_Lua->Push(-2);
-
 		// In bootil, you just don't give a child a name to indicate that it's sequentail. 
 		// so we need to support that.
 		bool isSequential = false; 
-		int iKeyType = g_Lua->GetType(-1);
-		double iKey = iKeyType == GarrysMod::Lua::Type::Number ? g_Lua->GetNumber(-1) : 0;
+		int iKeyType = g_Lua->GetType(-2);
+		double iKey = iKeyType == GarrysMod::Lua::Type::Number ? g_Lua->GetNumber(-2) : 0;
 		if (iKey != 0 && iKey == idx)
 		{
 			isSequential = true;
 			++idx;
 		}
 
-		const char* key = isSequential ? NULL : g_Lua->GetString(-1); // In JSON a key is ALWAYS a string
+		const char* key = NULL; // In JSON a key is ALWAYS a string
+		if (!isSequential)
+		{
+			if (iKeyType == GarrysMod::Lua::Type::String)
+				key = g_Lua->GetString(-2); // lua_next won't nuke itself since we don't convert the value
+			else {
+				g_Lua->Push(-2);
+				key = g_Lua->GetString(-1); // lua_next nukes itself when the key isn't an actual string
+				g_Lua->Pop(1);
+			}
+		}
 		//Msg("Key: %s (%s)\n", key, g_Lua->GetActualTypeName(iKeyType));
-		switch (g_Lua->GetType(-2))
+		switch (g_Lua->GetType(-1))
 		{
 			case GarrysMod::Lua::Type::String:
 				if (isSequential)
-					pTree.AddChild().Value(g_Lua->GetString(-2));
+					pTree.AddChild().Value(g_Lua->GetString(-1));
 				else
-					pTree.SetChild(key, g_Lua->GetString(-2));
-				//Msg("Value: %s\n", g_Lua->GetString(-2));
+					pTree.SetChild(key, g_Lua->GetString(-1));
+				//Msg("Value: %s\n", g_Lua->GetString(-1));
 				break;
 			case GarrysMod::Lua::Type::Number:
 				{
-					double pNumber = g_Lua->GetNumber(-2);
+					double pNumber = g_Lua->GetNumber(-1);
 					if (floor(pNumber) == pNumber && INT32_MAX >= pNumber && pNumber >= INT32_MIN)
 						if (isSequential)
 							pTree.AddChild().Var(static_cast<int>(pNumber));
@@ -201,13 +209,13 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 				break;
 			case GarrysMod::Lua::Type::Bool:
 				if (isSequential)
-					pTree.AddChild().Var(g_Lua->GetBool(-2));
+					pTree.AddChild().Var(g_Lua->GetBool(-1));
 				else
-					pTree.SetChildVar(key, g_Lua->GetBool(-2));
-				//Msg("Value: %s\n", g_Lua->GetBool(-2) ? "true" : "false");
+					pTree.SetChildVar(key, g_Lua->GetBool(-1));
+				//Msg("Value: %s\n", g_Lua->GetBool(-1) ? "true" : "false");
 				break;
 			case GarrysMod::Lua::Type::Table: // now make it recursive >:D
-				g_Lua->Push(-2);
+				g_Lua->Push(-1);
 				g_Lua->PushNil();
 				//Msg("Value: Table recursive start\n");
 				if (isSequential)
@@ -220,7 +228,7 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 				break; // We should fallback to nil
 		}
 
-		g_Lua->Pop(2);
+		g_Lua->Pop(1);
 	}
 
 	g_Lua->Pop(1);
