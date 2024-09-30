@@ -241,6 +241,46 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 					TableToJSONRecursive(pTree.AddChild(key));
 				//Msg("Value: Table recursive end\n");
 				break;
+			case GarrysMod::Lua::Type::Vector:
+				{
+					Vector* vec = Get_Vector(-1, true);
+					if (!vec)
+						break;
+
+					std::string str = "[";
+					str.append(std::to_string(vec->x));
+					str.append(" ");
+					str.append(std::to_string(vec->y));
+					str.append(" ");
+					str.append(std::to_string(vec->z));
+					str.append("]");
+					if (isSequential)
+						pTree.AddChild().Value(str);
+					else
+						pTree.SetChild(key, str);
+					//Msg("Value: %s\n", str.c_str());
+				}
+				break;
+			case GarrysMod::Lua::Type::Angle:
+				{
+					QAngle* ang = Get_Angle(-1, true);
+					if (!ang)
+						break;
+
+					std::string str = "{"; // There probably is a faster way to make a string....
+					str.append(std::to_string(ang->x));
+					str.append(" ");
+					str.append(std::to_string(ang->y));
+					str.append(" ");
+					str.append(std::to_string(ang->z));
+					str.append("}");
+					if (isSequential)
+						pTree.AddChild().Value(str);
+					else
+						pTree.SetChild(key, str);
+					//Msg("Value: %s\n", str.c_str());
+				}
+				break;
 			default:
 				break; // We should fallback to nil
 		}

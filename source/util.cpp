@@ -237,3 +237,20 @@ Vector* Get_Vector(int iStackPos, bool bError)
 
 	return vec;
 }
+
+QAngle* Get_Angle(int iStackPos, bool bError)
+{
+	if (!g_Lua->IsType(iStackPos, GarrysMod::Lua::Type::Angle))
+	{
+		if (bError)
+			g_Lua->ArgError(iStackPos, "expected angle got something else");
+
+		return NULL;
+	}
+
+	QAngle* ang = g_Lua->GetUserType<QAngle>(iStackPos, GarrysMod::Lua::Type::Angle);
+	if (!ang && bError)
+		g_Lua->ThrowError("Tried to use a NULL Angle");
+
+	return ang;
+}
