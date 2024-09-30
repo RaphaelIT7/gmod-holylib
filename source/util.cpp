@@ -177,7 +177,7 @@ void Util::AddDetour()
 	 *		But I won't really support client. At best only menu.
 	 */
 
-#ifdef SYSTEM_WINDOWS
+#ifndef SYSTEM_WINDOWS
 	func_GetPlayer = (Symbols::Get_Player)Detour::GetFunction(server_loader.GetModule(), Symbols::Get_PlayerSym);
 	func_PushEntity = (Symbols::Push_Entity)Detour::GetFunction(server_loader.GetModule(), Symbols::Push_EntitySym);
 	func_GetEntity = (Symbols::Get_Entity)Detour::GetFunction(server_loader.GetModule(), Symbols::Get_EntitySym);
