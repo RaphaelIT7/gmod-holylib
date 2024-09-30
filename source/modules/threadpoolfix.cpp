@@ -21,6 +21,7 @@ public:
 static CThreadPoolFixModule g_pThreadPoolFixModule;
 IModule* pThreadPoolFixModule = &g_pThreadPoolFixModule;
 
+#if ARCHITECTURE_IS_X86
 static Detouring::Hook detour_CThreadPool_ExecuteToPriority;
 static int hook_CThreadPool_ExecuteToPriority(IThreadPool* pool, void* idx, void* idx2)
 {
@@ -29,6 +30,7 @@ static int hook_CThreadPool_ExecuteToPriority(IThreadPool* pool, void* idx, void
 
 	return detour_CThreadPool_ExecuteToPriority.GetTrampoline<Symbols::CThreadPool_ExecuteToPriority>()(pool, idx, idx2);
 }
+#endif
 
 void CThreadPoolFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
