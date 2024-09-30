@@ -8,6 +8,7 @@
 #include "player.h"
 #include "iclient.h"
 #include "netmessages.h"
+#include "net.h"
 
 class CHolyLibModule : public IModule
 {
