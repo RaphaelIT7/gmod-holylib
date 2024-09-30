@@ -165,6 +165,7 @@ void TableToJSONRecursive(Bootil::Data::Tree pTree)
 		{
 			case GarrysMod::Lua::Type::String:
 				pTree.SetChild(key, g_Lua->GetString(-2));
+				Msg("Value: %s\n", g_Lua->GetString(-2));
 				break;
 			case GarrysMod::Lua::Type::Number:
 				{
@@ -173,10 +174,13 @@ void TableToJSONRecursive(Bootil::Data::Tree pTree)
 						pTree.SetChildVar(key, static_cast<int>(pNumber));
 					else
 						pTree.SetChildVar(key, pNumber);
+
+					Msg("Value: %f\n", pNumber);
 				}
 				break;
 			case GarrysMod::Lua::Type::Bool:
 				pTree.SetChildVar(key, g_Lua->GetBool(-2));
+				Msg("Value: %s\n", g_Lua->GetBool(-2) ? "true" : "false");
 				break;
 			case GarrysMod::Lua::Type::Table: // now make it recursive >:D
 				g_Lua->Push(-2);
