@@ -156,31 +156,52 @@ LUA_FUNCTION_STATIC(util_AsyncDecompress)
 extern void TableToJSONRecursive(Bootil::Data::Tree& pTree);
 void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 {
+	int idx = 1;
 	while (g_Lua->Next(-2)) {
 		g_Lua->Push(-2);
 
-		Msg("Key Type: %s\n", g_Lua->GetActualTypeName(g_Lua->GetType(-1)));
+		bool isSequential = false;
+		int iKeyType = g_Lua->GetType(-1);
+		double iKey = iKeyType == GarrysMod::Lua::Type::Number ? g_Lua->GetNumber(-1) : 0;
+		if (iKey != 0 && iKey == idx)
+		{
+			isSequential = true;
+			++idx;
+		}
+
 		const char* key = g_Lua->GetString(-1); // In JSON a key is ALWAYS a string
-		Msg("Key: %s\n", key);
+		Msg("Key: %s (%s)\n", key, g_Lua->GetActualTypeName(iKeyType));
 		switch (g_Lua->GetType(-1))
 		{
 			case GarrysMod::Lua::Type::String:
-				pTree.SetChild(key, g_Lua->GetString(-2));
+				if (isSequential)
+					pTree.AddChild().Value(g_Lua->GetString(-2));
+				else
+					pTree.SetChild(key, g_Lua->GetString(-2));
 				Msg("Value: %s\n", g_Lua->GetString(-2));
 				break;
 			case GarrysMod::Lua::Type::Number:
 				{
 					double pNumber = g_Lua->GetNumber(-2);
 					if (floor(pNumber) == pNumber && INT32_MAX >= pNumber && pNumber >= INT32_MIN)
-						pTree.SetChildVar(key, static_cast<int>(pNumber));
+						if (isSequential)
+							pTree.AddChild().Var(static_cast<int>(pNumber));
+						else
+							pTree.SetChildVar(key, static_cast<int>(pNumber));
 					else
-						pTree.SetChildVar(key, pNumber);
+						if (isSequential)
+							pTree.AddChild().Var(pNumber);
+						else
+							pTree.SetChildVar(key, pNumber);
 
 					Msg("Value: %f\n", pNumber);
 				}
 				break;
 			case GarrysMod::Lua::Type::Bool:
-				pTree.SetChildVar(key, g_Lua->GetBool(-2));
+				if (isSequential)
+					pTree.AddChild().Var(g_Lua->GetBool(-2));
+				else
+					pTree.SetChildVar(key, g_Lua->GetBool(-2));
 				Msg("Value: %s\n", g_Lua->GetBool(-2) ? "true" : "false");
 				break;
 			case GarrysMod::Lua::Type::Table: // now make it recursive >:D
