@@ -257,7 +257,7 @@ LUA_FUNCTION_STATIC(gameevent_AddClientListener)
 }
 
 static Detouring::Hook detour_CBaseClient_ProcessListenEvents;
-static bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents* msg)
+bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents* msg)
 {
 	VPROF_BUDGET("HolyLib - ProcessGameEventList", VPROF_BUDGETGROUP_OTHER_NETWORKING);
 
@@ -304,7 +304,7 @@ static bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_Listen
 		Util::Push_Entity((CBaseEntity*)pPlayer);
 		g_Lua->ReferencePush(iReference);
 		g_Lua->PushNumber(client->GetPlayerSlot() + 1);
-		if (g_Lua->CallFunctionProtected(4, 1, true))
+		if (g_Lua->CallFunctionProtected(4, 1, false))
 		{
 			bool pCancel = g_Lua->GetBool(-1);
 			g_Lua->Pop(1);
@@ -323,7 +323,7 @@ static bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_Listen
 		Util::Push_Entity((CBaseEntity*)pPlayer);
 		g_Lua->ReferencePush(iReference);
 		g_Lua->PushNumber(client->GetPlayerSlot() + 1);
-		g_Lua->CallFunctionProtected(4, 0, true);
+		g_Lua->CallFunctionProtected(4, 0, false);
 	}
 
 	g_Lua->ReferenceFree(iReference);
