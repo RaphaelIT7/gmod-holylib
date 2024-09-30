@@ -46,6 +46,7 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- \- `stringtable.SetPrecacheUserData`  
 \- \- `stringtable.GetPrecacheUserData`  
 \- [+] Added the `HolyLib:GetGModTags` hook.  
+\- [+] Added/Finished `util.FancyTableToJSON` function.  
 \- [#] Fixed my debug system not working as expected.  
 \- [#] `holylib_filesystem_predictexistance` is now disabled by default.  
 (Enable it if you know that your content is managed properly)  
@@ -54,6 +55,7 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- [#] `INetworkStringTable:GetStringUserData` has a second return value. It now also returns the length.  
 \- [#] `pas.TestPAS` now supports Entities as arguments.  
 \- [#] `stringtable.DeleteAllStrings` now has a second argument.  
+\- [#] The thread used for `util.AsyncCompress/Decompress` is now only started if thoes functions are actually called.  
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.4...main
@@ -871,6 +873,10 @@ Same as above, but uses the default values for level and dictSize.
 
 #### util.AsyncDecompress(string data, function callback)
 Works like util.Decompress but it's async.  
+
+#### string util.FancyTableToJSON(table tbl, bool pretty)
+Convers the given table to json.  
+Unlike Gmod's version, this function will turn the numbers to an integer if they are one/fit one.  
 
 ## concommand
 This module unblocks `quit` and `exit` for `RunConsoleCommand`.  
