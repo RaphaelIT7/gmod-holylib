@@ -153,43 +153,52 @@ LUA_FUNCTION_STATIC(util_AsyncDecompress)
 	return 0;
 }
 
+extern void TableToJSONRecursive(Bootil::Data::Tree pTree);
+void TableToJSONRecursive(Bootil::Data::Tree pTree)
+{
+	while (g_Lua->Next(-2)) {
+		g_Lua->Push(-2);
+
+		const char* key = g_Lua->GetString(-1); // In JSON a key is ALWAYS a string
+		switch (g_Lua->GetType(-2))
+		{
+		case GarrysMod::Lua::Type::String:
+			pTree.SetChild(key, g_Lua->GetString(-2));
+			break;
+		case GarrysMod::Lua::Type::Number:
+			pTree.SetChildVar(key, g_Lua->GetNumber(-2));
+			break;
+		case GarrysMod::Lua::Type::Bool:
+			pTree.SetChildVar(key, g_Lua->GetBool(-2));
+			break;
+		case GarrysMod::Lua::Type::Table: // now make it recursive >:D
+			g_Lua->Push(-2);
+			g_Lua->PushNil();
+			TableToJSONRecursive(pTree.AddChild(key));
+			break;
+		default:
+			break; // We should fallback to nil
+		}
+
+		g_Lua->Pop(2);
+	}
+
+	g_Lua->Pop(1);
+}
+
 LUA_FUNCTION_STATIC(util_TableToJSON)
 {
 	LUA->CheckType(1, GarrysMod::Lua::Type::Table);
-	//bool bPretty = LUA->GetBool(2);
+	bool bPretty = LUA->GetBool(2);
 
-	//Bootil::Data::Tree pTree;
+	Bootil::Data::Tree pTree;
 	LUA->Push(1);
 	LUA->PushNil();
 
-	while (LUA->Next(-2)) {
-		LUA->Push(-2);
-
-		//const char* key = LUA->GetString(-1); // In JSON a key is ALWAYS a string
-		switch (LUA->GetType(-2))
-		{
-			case GarrysMod::Lua::Type::String:
-				//pTree.SetChildVar(key, LUA->GetString(-2));
-				break;
-			case GarrysMod::Lua::Type::Number:
-				//pTree.SetChildVar(key, LUA->GetNumber(-2));
-				break;
-			case GarrysMod::Lua::Type::Bool:
-				//pTree.SetChildVar(key, LUA->GetBool(-2));
-				break;
-			case GarrysMod::Lua::Type::Table: // now make it recursive >:D
-				break;
-			default:
-				break; // We should fallback to nil
-		}
-
-		LUA->Pop(2);
-	}
-
-	LUA->Pop();
+	TableToJSONRecursive(pTree);
 
 	Bootil::BString pOut;
-	//Bootil::Data::Json::Export(pTree, pOut, bPretty);
+	Bootil::Data::Json::Export(pTree, pOut, bPretty);
 
 	LUA->PushString(pOut.c_str());
 
