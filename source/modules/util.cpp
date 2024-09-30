@@ -173,7 +173,7 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 
 		const char* key = isSequential ? NULL : g_Lua->GetString(-1); // In JSON a key is ALWAYS a string
 		Msg("Key: %s (%s)\n", key, g_Lua->GetActualTypeName(iKeyType));
-		switch (g_Lua->GetType(-1))
+		switch (g_Lua->GetType(-2))
 		{
 			case GarrysMod::Lua::Type::String:
 				if (isSequential)
