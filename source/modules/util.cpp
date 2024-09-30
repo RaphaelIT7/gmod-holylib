@@ -153,8 +153,8 @@ LUA_FUNCTION_STATIC(util_AsyncDecompress)
 	return 0;
 }
 
-extern void TableToJSONRecursive(Bootil::Data::Tree pTree);
-void TableToJSONRecursive(Bootil::Data::Tree pTree)
+extern void TableToJSONRecursive(Bootil::Data::Tree& pTree);
+void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 {
 	while (g_Lua->Next(-2)) {
 		g_Lua->Push(-2);
@@ -207,6 +207,12 @@ LUA_FUNCTION_STATIC(util_TableToJSON)
 	LUA->PushNil();
 
 	TableToJSONRecursive(pTree);
+
+	for (const Bootil::Data::Tree& pChild : pTree.Children())
+	{
+		Msg("Name: %s\n", pChild.Name().c_str());
+		Msg("Value: %s\n", pChild.Value().c_str());
+	}
 
 	Bootil::BString pOut;
 	Bootil::Data::Json::Export(pTree, pOut, bPretty);
