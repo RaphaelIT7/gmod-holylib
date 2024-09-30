@@ -97,8 +97,21 @@ static unsigned CompressThread(void* data)
 	return 0;
 }
 
-static ThreadHandle_t threadhandle;
+static ThreadHandle_t threadHandle;
 static CompressData threaddata;
+/*
+ * If the Async function's arent used. We simply won't create a thread.
+ * This should save a bit of CPU usage since we won't have a thread that is permantly in a while loop,
+ * calling ThreadSleep every 10 milliseconds or so.
+ */
+inline void StartThread()
+{
+	if (threadHandle)
+		return;
+
+	threadHandle = CreateSimpleThread((ThreadFunc_t)CompressThread, &threaddata);
+}
+
 LUA_FUNCTION_STATIC(util_AsyncCompress)
 {
 	const char* pData = LUA->CheckString(1);
@@ -129,6 +142,8 @@ LUA_FUNCTION_STATIC(util_AsyncCompress)
 
 	threaddata.pQueue.push_back(entry);
 
+	StartThread();
+
 	return 0;
 }
 
@@ -149,6 +164,8 @@ LUA_FUNCTION_STATIC(util_AsyncDecompress)
 	entry->iDataReference = LUA->ReferenceCreate();
 
 	threaddata.pQueue.push_back(entry);
+
+	StartThread();
 
 	return 0;
 }
@@ -262,7 +279,6 @@ LUA_FUNCTION_STATIC(util_TableToJSON)
 void CUtilModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	threaddata.bRun = true;
-	threadhandle = CreateSimpleThread((ThreadFunc_t)CompressThread, &threaddata);
 }
 
 void CUtilModule::LuaInit(bool bServerInit)
