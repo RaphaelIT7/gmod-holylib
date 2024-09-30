@@ -157,8 +157,9 @@ extern void TableToJSONRecursive(Bootil::Data::Tree& pTree);
 void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 {
 	while (g_Lua->Next(-2)) {
+		Msg("Key Type: %s\n", g_Lua->GetActualTypeName(g_Lua->GetType(-2)));
 		const char* key = g_Lua->GetString(-2); // In JSON a key is ALWAYS a string
-		Msg("Key: %s (%s)\n", key, g_Lua->GetActualTypeName(g_Lua->GetType(-2)));
+		Msg("Key: %s\n", key);
 		switch (g_Lua->GetType(-1))
 		{
 			case GarrysMod::Lua::Type::String:
