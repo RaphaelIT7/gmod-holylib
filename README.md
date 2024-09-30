@@ -997,7 +997,7 @@ Returns `true` if the client is still valid.
 Sends the given code to the client to be executed.  
 Returns `true` on success.  
 
-NOTE: This function was readded back experimentally. It wasn't tested yet.  
+NOTE: This function was readded back experimentally. It wasn't tested yet. It's still broken but doesn't crash  
 
 #### HLTVClient:FireEvent(IGameEvent event)  
 Fires/sends the gameevent to this specific client.  
