@@ -61,6 +61,8 @@ namespace Util
 
 // Push functions from modules: 
 // ToDo: move this at a later point into a seperate file. Maybe into _modules?
+Vector* Get_Vector(int iStackPos, bool bError = true);
+
 class bf_read;
 extern void Push_bf_read(bf_read* tbl);
 

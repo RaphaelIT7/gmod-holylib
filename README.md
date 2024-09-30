@@ -159,6 +159,10 @@ You can find all valid types in the [protocol.h](https://github.com/RaphaelIT7/g
 #### HolyLib.SendCustomMessage(number type, string name, bf_write buffer, Player ply)
 Same as BroadcastCustomMessage but it only sends it to the specific player.  
 
+### string HolyLib:GetGModTags()
+Allows you to override the server tags.  
+Return nothing / nil to not override them.
+
 ## gameevent
 This module contains additional functions for the gameevent library.  
 With the Add/Get/RemoveClient* functions you can control the gameevents that are networked to a client which can be useful.  

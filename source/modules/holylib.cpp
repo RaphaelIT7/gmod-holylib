@@ -192,6 +192,30 @@ static bool hook_CServerGameDLL_ShouldHideServer()
 	return detour_CServerGameDLL_ShouldHideServer.GetTrampoline<Symbols::CServerGameDLL_ShouldHideServer>()(); // "commentary 1" will also hide it.
 }
 
+static Detouring::Hook detour_GetGModServerTags;
+static void hook_GetGModServerTags(char* pDest, int iMaxLength, bool bUnknown)
+{
+	if (Lua::PushHook("HolyLib:GetGModTags"))
+	{
+		if (g_Lua->CallFunctionProtected(1, 1, true))
+		{
+			if (g_Lua->IsType(-1, GarrysMod::Lua::Type::String))
+			{
+				const char* pTags = g_Lua->GetString(-1);
+
+				V_strncpy(pDest, pTags, iMaxLength);
+			} else {
+				detour_GetGModServerTags.GetTrampoline<Symbols::GetGModServerTags>()(pDest, iMaxLength, bUnknown);
+			}
+
+			g_Lua->Pop(1);
+			return;
+		}
+	}
+
+	detour_GetGModServerTags.GetTrampoline<Symbols::GetGModServerTags>()(pDest, iMaxLength, bUnknown);
+}
+
 void CHolyLibModule::LuaInit(bool bServerInit)
 {
 	if (!bServerInit)
@@ -236,5 +260,12 @@ void CHolyLibModule::InitDetour(bool bPreServer)
 		&detour_CServerGameDLL_ShouldHideServer, "CServerGameDLL::ShouldHideServer",
 		server_loader.GetModule(), Symbols::CServerGameDLL_ShouldHideServerSym,
 		(void*)hook_CServerGameDLL_ShouldHideServer, m_pID
+	);
+
+	SourceSDK::ModuleLoader engine_loader("engine");
+	Detour::Create(
+		&detour_GetGModServerTags, "GetGModServerTags",
+		engine_loader.GetModule(), Symbols::GetGModServerTagsSym,
+		(void*)hook_GetGModServerTags, m_pID
 	);
 }

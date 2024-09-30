@@ -130,6 +130,8 @@ void PostSetupVisibility()
 
 void PreCheckTransmit(void* gameents, CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts)
 {
+	VPROF_BUDGET("HolyLib - CServerGameEnts::(Pre)CheckTransmit", VPROF_BUDGETGROUP_OTHER_NETWORKING);
+
 	for (edict_t* ent : g_pAddEntityToPVS)
 	{
 		Util::servergameents->EdictToBaseEntity(ent)->SetTransmit(pInfo, true);
@@ -146,6 +148,8 @@ void PreCheckTransmit(void* gameents, CCheckTransmitInfo *pInfo, const unsigned 
 
 void PostCheckTransmit(void* gameents, CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts)
 {
+	VPROF_BUDGET("HolyLib - CServerGameEnts::(Post)CheckTransmit", VPROF_BUDGETGROUP_OTHER_NETWORKING);
+
 	if (pvs_postchecktransmit.GetBool())
 	{
 		g_pCurrentTransmitInfo = pInfo;
@@ -188,11 +192,6 @@ void PostCheckTransmit(void* gameents, CCheckTransmitInfo *pInfo, const unsigned
 	g_pOverrideStateFlag.clear();
 }
 #endif
-
-Vector* Get_Vector(int iStackPos)
-{
-	return g_Lua->GetUserType<Vector>(iStackPos, GarrysMod::Lua::Type::Vector);
-}
 
 LUA_FUNCTION_STATIC(pvs_ResetPVS)
 {

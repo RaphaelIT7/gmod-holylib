@@ -198,20 +198,34 @@ bool Util::ShouldLoad()
 
 IRecipientFilter* Get_IRecipientFilter(int iStackPos, bool bError)
 {
-	if (bError)
+	if (!g_Lua->IsType(iStackPos, GarrysMod::Lua::Type::RecipientFilter))
 	{
-		if (!g_Lua->IsType(iStackPos, GarrysMod::Lua::Type::RecipientFilter))
+		if (bError)
 			g_Lua->ThrowError("Tried to use something that wasn't a RecipientFilter!");
 
-		IRecipientFilter* pFilter = g_Lua->GetUserType<IRecipientFilter>(iStackPos, GarrysMod::Lua::Type::RecipientFilter);
-		if (!pFilter)
-			g_Lua->ThrowError("Tried to use a NULL RecipientFilter!");
-
-		return pFilter;
-	} else {
-		if (!g_Lua->IsType(iStackPos, GarrysMod::Lua::Type::RecipientFilter))
-			return NULL;
-
-		return g_Lua->GetUserType<IRecipientFilter>(iStackPos, GarrysMod::Lua::Type::RecipientFilter);
+		return NULL;
 	}
+
+	IRecipientFilter* pFilter = g_Lua->GetUserType<IRecipientFilter>(iStackPos, GarrysMod::Lua::Type::RecipientFilter);
+	if (!pFilter && bError)
+		g_Lua->ThrowError("Tried to use a NULL RecipientFilter!");
+
+	return pFilter;
+}
+
+Vector* Get_Vector(int iStackPos, bool bError)
+{
+	if (!g_Lua->IsType(iStackPos, GarrysMod::Lua::Type::Vector))
+	{
+		if (bError)
+			g_Lua->ArgError(iStackPos, "expected vector got something else"); // ToDo: Check how ArgError works again
+
+		return NULL;
+	}
+
+	Vector* vec = g_Lua->GetUserType<Vector>(iStackPos, GarrysMod::Lua::Type::Vector);
+	if (!vec && bError)
+		g_Lua->ThrowError("Tried to use a NULL Vector");
+
+	return vec;
 }

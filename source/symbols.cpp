@@ -48,6 +48,10 @@ namespace Symbols
 		Symbol::FromSignature("\x48\x8B\x3D\xC1\x9B\x18\x01\x55\x48\x89\xE5"), // 48 8B 3D C1 9B 18 01 55 48 89 E5
 	};
 
+	const std::vector<Symbol> GetGModServerTagsSym = {
+		Symbol::FromName("_Z17GetGModServerTagsPcjb"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: gameevent Symbols
 	//---------------------------------------------------------------------------------

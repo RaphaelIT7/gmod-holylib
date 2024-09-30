@@ -78,6 +78,9 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	typedef bool (GMCOMMON_CALLING_CONVENTION* CServerGameDLL_ShouldHideServer)();
 	extern const std::vector<Symbol> CServerGameDLL_ShouldHideServerSym;
+	
+	typedef void (GMCOMMON_CALLING_CONVENTION* GetGModServerTags)(char* pDest, int iMaxSize, bool unknown);
+	extern const std::vector<Symbol> GetGModServerTagsSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: gameevent Symbols

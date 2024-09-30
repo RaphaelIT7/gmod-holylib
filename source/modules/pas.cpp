@@ -14,8 +14,6 @@ public:
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
 };
 
-extern Vector* Get_Vector(int iStackPos);
-
 CPASModule g_pPASModule;
 IModule* pPASModule = &g_pPASModule;
 
