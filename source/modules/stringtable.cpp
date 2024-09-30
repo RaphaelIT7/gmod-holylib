@@ -224,11 +224,53 @@ static Symbols::CNetworkStringTable_DeleteAllStrings func_CNetworkStringTable_De
 LUA_FUNCTION_STATIC(INetworkStringTable_DeleteAllStrings)
 {
 	INetworkStringTable* table = Get_INetworkStringTable(1, true);
+	bool bNukePrecache = LUA->GetBool(2);
 
 	if (!func_CNetworkStringTable_DeleteAllStrings)
 		LUA->ThrowError("Failed to get CNetworkStringTable::DeleteAllStrings");
 
 	func_CNetworkStringTable_DeleteAllStrings(table);
+
+	if (!bNukePrecache)
+		return 0;
+
+	if (!Q_stricmp(MODEL_PRECACHE_TABLENAME, table->GetTableName()))
+	{
+		CGameServer* pServer = (CGameServer*)Util::server;
+		for (int i = 0; i < MAX_MODELS; ++i)
+		{
+			CPrecacheItem item = pServer->model_precache[i];
+			if (item.GetModel())
+				item.SetModel(NULL);
+		}
+	} else if (!Q_stricmp(SOUND_PRECACHE_TABLENAME, table->GetTableName()))
+	{
+		CGameServer* pServer = (CGameServer*)Util::server;
+		for (int i = 0; i < MAX_SOUNDS; ++i)
+		{
+			CPrecacheItem item = pServer->sound_precache[i];
+			if (item.GetSound())
+				item.SetSound(NULL);
+		}
+	} else if (!Q_stricmp(DECAL_PRECACHE_TABLENAME, table->GetTableName()))
+	{
+		CGameServer* pServer = (CGameServer*)Util::server;
+		for (int i = 0; i < MAX_BASE_DECALS; ++i)
+		{
+			CPrecacheItem item = pServer->decal_precache[i];
+			if (item.GetDecal())
+				item.SetDecal(NULL);
+		}
+	} else if (!Q_stricmp(GENERIC_PRECACHE_TABLENAME, table->GetTableName()))
+	{
+		CGameServer* pServer = (CGameServer*)Util::server;
+		for (int i = 0; i < MAX_GENERIC; ++i)
+		{
+			CPrecacheItem item = pServer->generic_precache[i];
+			if (item.GetGeneric())
+				item.SetGeneric(NULL);
+		}
+	}
 
 	return 0;
 }
@@ -272,6 +314,24 @@ LUA_FUNCTION_STATIC(INetworkStringTable_DeleteString)
 		CPrecacheItem item = pServer->model_precache[strIndex];
 		if (item.GetModel())
 			item.SetModel(NULL);
+	} else if (!Q_stricmp(SOUND_PRECACHE_TABLENAME, table->GetTableName()))
+	{
+		CGameServer* pServer = (CGameServer*)Util::server;
+		CPrecacheItem item = pServer->sound_precache[strIndex];
+		if (item.GetSound())
+			item.SetSound(NULL);
+	} else if (!Q_stricmp(DECAL_PRECACHE_TABLENAME, table->GetTableName()))
+	{
+		CGameServer* pServer = (CGameServer*)Util::server;
+		CPrecacheItem item = pServer->decal_precache[strIndex];
+		if (item.GetDecal())
+			item.SetDecal(NULL);
+	} else if (!Q_stricmp(GENERIC_PRECACHE_TABLENAME, table->GetTableName()))
+	{
+		CGameServer* pServer = (CGameServer*)Util::server;
+		CPrecacheItem item = pServer->generic_precache[strIndex];
+		if (item.GetGeneric())
+			item.SetGeneric(NULL);
 	}
 
 	int iLength;

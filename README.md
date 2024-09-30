@@ -31,6 +31,7 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- \- `gameevent.FireEvent`  
 \- \- `gameevent.FireClient`  
 \- \- `gameevent.DuplicateEvent`  
+\- \- `gameevent.BlockCreation`  
 \- [+] Also added `sourcetv.FireEvent` and `HLTVClient:FireEvent`.  
 \- [+] Added a few new functions to the `holylib` library.  
 \- \- `HolyLib.FadeClientVolume`  
@@ -39,15 +40,20 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- \- `HolyLib.EntityMessageBegin`  
 \- \- `HolyLib.UserMessageBegin`  
 \- \- `HolyLib.MessageEnd`  
+\- \- `HolyLib.BroadcastCustomMessage`  
+\- \- `HolyLib.SendCustomMessage`  
 \- [+] Added two new functions to the `stringtable` library.  
 \- \- `stringtable.SetPrecacheUserData`  
 \- \- `stringtable.GetPrecacheUserData`  
+\- [+] Added the `HolyLib:GetGModTags` hook.  
 \- [#] Fixed my debug system not working as expected.  
 \- [#] `holylib_filesystem_predictexistance` is now disabled by default.  
 (Enable it if you know that your content is managed properly)  
 \- [#] Experimentally readded `HLTVClient:SendLua` (Doesn't crash anymore but also doesn't work clientside yet)  
 \- [#] `INetworkStringTable:SetStringUserData` now has a length argument. Be careful if you should use it.  
 \- [#] `INetworkStringTable:GetStringUserData` has a second return value. It now also returns the length.  
+\- [#] `pas.TestPAS` now supports Entities as arguments.  
+\- [#] `stringtable.DeleteAllStrings` now has a second argument.  
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.4...main
@@ -427,8 +433,9 @@ string pStr - The string to find the index of
 
 Returns the index of the given string.  
 
-#### INetworkStringTable:DeleteAllStrings()
+#### INetworkStringTable:DeleteAllStrings(bool nukePrecache = false)
 Deletes all strings from the stringtable.  
+If `nukePrecache` is `true`, it will remove all precache data for the given stringtable.  
 
 #### INetworkStringTable:SetMaxEntries(number maxEntries)
 number maxEntries - The new limit for entries.  
@@ -452,6 +459,7 @@ Deletes the given string at the given index.
 Returns `true` if the string was deleted.  
 
 > NOTE: Currently this deletes all strings and readds all except the one at the given index. This is slow and I need to improve it later.  
+> NOTE: This also removes the precache data if you delete something from `modelprecache` or so.  
 
 #### bool INetworkStringTable:IsValid()
 Returns `true` if the stringtable is still valid.  
@@ -1412,11 +1420,10 @@ If you got an Idea for a function to add, feel free to comment it into [its issu
 
 ### Functions
 
-#### table pas.FindInPAS(Vector vec / Entity ent)
-Vector vec - The position to find all entities in.  
-Entity ent - The Entity which should be used to find all entities.  
+#### table pas.FindInPAS(Entity/Vector vec)
+Returns a sequential table containing all entities in that PAS.  
 
-#### bool pas.TestPAS(Vector pas, Vector hearPos)
+#### bool pas.TestPAS(Entity/Vector pas, Entity/Vector hearPos)
 Tests if the give hear position is inside the given pas.  
 Returns `true` if it is.  
 
