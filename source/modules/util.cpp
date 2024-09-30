@@ -97,7 +97,7 @@ static unsigned CompressThread(void* data)
 	return 0;
 }
 
-static ThreadHandle_t threadHandle;
+static ThreadHandle_t threadHandle = NULL;
 static CompressData threaddata;
 /*
  * If the Async function's arent used. We simply won't create a thread.

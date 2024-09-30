@@ -169,7 +169,23 @@ Same as BroadcastCustomMessage but it only sends it to the specific player.
 
 ### string HolyLib:GetGModTags()
 Allows you to override the server tags.  
-Return nothing / nil to not override them.
+Return nothing / nil to not override them.  
+
+Example:
+```lua
+hook.Add("HolyLib:GetGModTags", "Example", function()
+	local tags = {
+		"gm:sandbox", -- Gamemode name. (Not title!)
+		"gmc:sandbox", -- Gamemode category
+		"ver:"..VERSION, -- Server version
+		"loc:de", -- server location
+		"hltv:1", -- mark the server as a hltv server.
+		"gmws:123456789", -- Gamemode workshop id (Do collectons work? idk)
+	}
+
+	return table.concat(tags, " ")
+end)
+```
 
 ## gameevent
 This module contains additional functions for the gameevent library.  
