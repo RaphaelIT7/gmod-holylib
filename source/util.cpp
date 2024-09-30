@@ -132,6 +132,12 @@ CBasePlayer* Util::GetPlayerByClient(CBaseClient* client)
 	return (CBasePlayer*)servergameents->EdictToBaseEntity(engineserver->PEntityOfEntIndex(client->GetPlayerSlot() + 1));
 }
 
+static Symbols::CBaseEntity_CalcAbsolutePosition func_CBaseEntity_CalcAbsolutePosition;
+void CBaseEntity::CalcAbsolutePosition(void)
+{
+	func_CBaseEntity_CalcAbsolutePosition(this);
+}
+
 CBaseEntityList* g_pEntityList = NULL;
 void Util::AddDetour()
 {
@@ -171,10 +177,12 @@ void Util::AddDetour()
 	 *		But I won't really support client. At best only menu.
 	 */
 
-#ifndef SYSTEM_WINDOWS
+#ifdef SYSTEM_WINDOWS
 	func_GetPlayer = (Symbols::Get_Player)Detour::GetFunction(server_loader.GetModule(), Symbols::Get_PlayerSym);
 	func_PushEntity = (Symbols::Push_Entity)Detour::GetFunction(server_loader.GetModule(), Symbols::Push_EntitySym);
 	func_GetEntity = (Symbols::Get_Entity)Detour::GetFunction(server_loader.GetModule(), Symbols::Get_EntitySym);
+	func_CBaseEntity_CalcAbsolutePosition = (Symbols::CBaseEntity_CalcAbsolutePosition)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseEntity_CalcAbsolutePositionSym);
+	Detour::CheckFunction((void*)func_CBaseEntity_CalcAbsolutePosition, "CBaseEntity::CalcAbsolutePosition");
 	Detour::CheckFunction((void*)func_GetPlayer, "Get_Player");
 	Detour::CheckFunction((void*)func_PushEntity, "Push_Entity");
 	Detour::CheckFunction((void*)func_GetEntity, "Get_Entity");

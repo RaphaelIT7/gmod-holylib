@@ -30,8 +30,8 @@ struct LuaNetworkedEntity_t // ToDo: Get Gmod's current version
 	CUtlRBTree<CUtlMap<char const*, LuaNetworkedVar_t, unsigned short>::Node_t, unsigned short, CUtlMap<char const*, LuaNetworkedVar_t, unsigned short>::CKeyLess, CUtlMemory<UtlRBTreeNode_t<CUtlMap<char const*, LuaNetworkedVar_t, unsigned short>::Node_t, unsigned short>, unsigned short>> m_pVars;
 };
 
-Detouring::Hook detour_CLuaNetworkedVars_UpdateEntityVar;
-void hook_CLuaNetworkedVars_UpdateEntityVar(void* unimportantclass, LuaNetworkedEntity_t& unknown1, LuaNetworkedVar_t& unknown2, float unknown3, CRecipientFilter&, bool unknown4)
+static Detouring::Hook detour_CLuaNetworkedVars_UpdateEntityVar;
+static void hook_CLuaNetworkedVars_UpdateEntityVar(void* unimportantclass, LuaNetworkedEntity_t& unknown1, LuaNetworkedVar_t& unknown2, float unknown3, CRecipientFilter&, bool unknown4)
 {
 	/*
 	 * We can now send our own usermessage.

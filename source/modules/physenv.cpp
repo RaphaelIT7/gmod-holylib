@@ -47,8 +47,8 @@ enum IVP_SkipType {
 auto pCurrentTime = std::chrono::high_resolution_clock::now();
 IVP_SkipType pCurrentSkipType = IVP_None;
 double pCurrentLagThreadshold = 100; // 100 ms
-Detouring::Hook detour_IVP_Event_Manager_Standard_simulate_time_events;
-void hook_IVP_Event_Manager_Standard_simulate_time_events(void* timemanager, void* environment, IVP_Time time)
+static Detouring::Hook detour_IVP_Event_Manager_Standard_simulate_time_events;
+static void hook_IVP_Event_Manager_Standard_simulate_time_events(void* timemanager, void* environment, IVP_Time time)
 {
 	pCurrentTime = std::chrono::high_resolution_clock::now();
 	pCurrentSkipType = IVP_None; // Idk if it can happen that something else sets it in the mean time but let's just be sure...
@@ -61,8 +61,8 @@ void hook_IVP_Event_Manager_Standard_simulate_time_events(void* timemanager, voi
 	pCurrentSkipType = IVP_NoCall; // Reset it.
 }
 
-Detouring::Hook detour_IVP_Mindist_do_impact;
-void hook_IVP_Mindist_do_impact(IVP_Mindist* mindist)
+static Detouring::Hook detour_IVP_Mindist_do_impact;
+static void hook_IVP_Mindist_do_impact(IVP_Mindist* mindist)
 {
 	if (g_pPhysEnvModule.InDebug())
 		Msg("physenv: IVP_Mindist::do_impact called! (%i)\n", (int)pCurrentSkipType);
@@ -121,8 +121,8 @@ void hook_IVP_Mindist_do_impact(IVP_Mindist* mindist)
 	}
 }
 
-Detouring::Hook detour_IVP_Mindist_simulate_time_event;
-void hook_IVP_Mindist_simulate_time_event(void* mindist, void* environment)
+static Detouring::Hook detour_IVP_Mindist_simulate_time_event;
+static void hook_IVP_Mindist_simulate_time_event(void* mindist, void* environment)
 {
 	if (g_pPhysEnvModule.InDebug())
 		Msg("physenv: IVP_Mindist::simulate_time_event called! (%i)\n", (int)pCurrentSkipType);

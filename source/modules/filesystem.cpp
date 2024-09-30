@@ -1064,7 +1064,7 @@ static void hook_CBaseFileSystem_AddVPKFile(IFileSystem* filesystem, const char 
 
 #define FILE_HANDLE_DELETION_DELAY 5 // 5 sec
 static Detouring::Hook detour_CBaseFileSystem_Close;
-void DeleteFileHandle(FileHandle_t handle)
+static void DeleteFileHandle(FileHandle_t handle)
 {
 	detour_CBaseFileSystem_Close.GetTrampoline<Symbols::CBaseFileSystem_Close>()(g_pFullFileSystem, handle);
 }

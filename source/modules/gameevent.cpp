@@ -256,8 +256,8 @@ LUA_FUNCTION_STATIC(gameevent_AddClientListener)
 	return 1;
 }
 
-Detouring::Hook detour_CBaseClient_ProcessListenEvents;
-bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents* msg)
+static Detouring::Hook detour_CBaseClient_ProcessListenEvents;
+static bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents* msg)
 {
 	VPROF_BUDGET("HolyLib - ProcessGameEventList", VPROF_BUDGETGROUP_OTHER_NETWORKING);
 
@@ -565,9 +565,9 @@ LUA_FUNCTION_STATIC(gameevent_FireClientEvent)
 	return 0;
 }
 
-std::unordered_set<std::string> pBlockedEvents;
-Detouring::Hook detour_CGameEventManager_CreateEvent;
-IGameEvent* hook_CGameEventManager_CreateEvent(void* manager, const char* name, bool bForce)
+static std::unordered_set<std::string> pBlockedEvents;
+static Detouring::Hook detour_CGameEventManager_CreateEvent;
+static IGameEvent* hook_CGameEventManager_CreateEvent(void* manager, const char* name, bool bForce)
 {
 	auto it = pBlockedEvents.find(name);
 	if (it != pBlockedEvents.end())

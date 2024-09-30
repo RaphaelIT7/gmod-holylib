@@ -31,31 +31,31 @@ LUA_FUNCTION_STATIC(pas_TestPAS) // This is based off SV_DetermineMulticastRecip
 
 	Vector* orig;
 	LUA->CheckType(1, GarrysMod::Lua::Type::Vector);
-	//if (LUA->IsType(1, GarrysMod::Lua::Type::Vector))
-	//{
-	orig = Get_Vector(1);
-	/*} else {
+	if (LUA->IsType(1, GarrysMod::Lua::Type::Vector))
+	{
+		orig = Get_Vector(1);
+	} else {
 		LUA->CheckType(1, GarrysMod::Lua::Type::Entity);
 		CBaseEntity* ent = Util::Get_Entity(1, false);
 		if (!ent)
 			LUA->ArgError(1, "Tried to use a NULL entity");
 
 		orig = (Vector*)&ent->GetAbsOrigin(); // ToDo: This currently breaks the compile.
-	}*/
+	}
 
 	Vector* hearPos;
 	LUA->CheckType(2, GarrysMod::Lua::Type::Vector);
-	//if (LUA->IsType(2, GarrysMod::Lua::Type::Vector))
-	//{
-	hearPos = Get_Vector(2);
-	/*} else {
+	if (LUA->IsType(2, GarrysMod::Lua::Type::Vector))
+	{
+		hearPos = Get_Vector(2);
+	} else {
 		LUA->CheckType(2, GarrysMod::Lua::Type::Entity);
 		CBaseEntity* ent = Util::Get_Entity(2, false);
 		if (!ent)
 			LUA->ArgError(2, "Tried to use a NULL entity");
 
 		hearPos = (Vector*)&ent->GetAbsOrigin();
-	}*/
+	}
 
 	ResetPAS();
 	func_CM_Vis(g_pCurrentPAS, sizeof(g_pCurrentPAS), engine->GetClusterForOrigin(*orig), DVIS_PAS);

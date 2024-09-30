@@ -40,6 +40,10 @@ namespace Symbols
 		Symbol::FromName("_ZL14g_UserMessages"),
 	};
 
+	const std::vector<Symbol> CBaseEntity_CalcAbsolutePositionSym = {
+		Symbol::FromName("_ZN11CBaseEntity20CalcAbsolutePositionEv"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: holylib Symbols
 	//---------------------------------------------------------------------------------

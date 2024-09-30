@@ -73,6 +73,9 @@ namespace Symbols
 	typedef CBaseEntity* (*Get_Entity)(int iStackPos, bool shouldError);
 	extern const std::vector<Symbol> Get_EntitySym;
 
+	typedef void (*CBaseEntity_CalcAbsolutePosition)(void* ent);
+	extern const std::vector<Symbol> CBaseEntity_CalcAbsolutePositionSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: holylib Symbols
 	//---------------------------------------------------------------------------------

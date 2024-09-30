@@ -66,8 +66,8 @@ static void FinishSpew()
 	originalSpew = NULL;
 }
 #else
-Detouring::Hook detour_Msg; // Yes. I don't like this.
-void hook_Msg(PRINTF_FORMAT_STRING const tchar* pMsg, ...)
+static Detouring::Hook detour_Msg; // Yes. I don't like this.
+static void hook_Msg(PRINTF_FORMAT_STRING const tchar* pMsg, ...)
 {
 	va_list args;
 	va_start(args, pMsg);
@@ -481,8 +481,8 @@ static void* hook_Client_CScriptedEntity_CallFunction2(void* funky_srv, int pool
 }
 #endif
 
-Detouring::Hook detour_lj_BC_FUNC;
-void* hook_lj_BC_FUNC() // Find out the luajit function later.
+static Detouring::Hook detour_lj_BC_FUNC;
+static void* hook_lj_BC_FUNC() // Find out the luajit function later.
 {
 	// ToDo
 	return NULL;

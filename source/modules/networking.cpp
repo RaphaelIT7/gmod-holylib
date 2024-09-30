@@ -145,8 +145,8 @@ private:
 
 // -------------------------------------------------------------------------------------------------
 
-Detouring::Hook detour_AllocChangeFrameList;
-IChangeFrameList* hook_AllocChangeFrameList(int nProperties, int iCurTick)
+static Detouring::Hook detour_AllocChangeFrameList;
+static IChangeFrameList* hook_AllocChangeFrameList(int nProperties, int iCurTick)
 {
 	VPROF_BUDGET("AllocChangeFrameList", VPROF_BUDGETGROUP_OTHER_NETWORKING);
 	CChangeFrameList* pRet = new CChangeFrameList;

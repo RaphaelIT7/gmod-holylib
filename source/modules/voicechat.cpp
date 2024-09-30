@@ -225,8 +225,8 @@ LUA_FUNCTION_STATIC(VoiceData_SetProximity)
 	return 0;
 }
 
-Detouring::Hook detour_SV_BroadcastVoiceData;
-void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data, int64 xuid)
+static Detouring::Hook detour_SV_BroadcastVoiceData;
+static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data, int64 xuid)
 {
 	if (g_pVoiceChatModule.InDebug())
 		Msg("cl: %p\nbytes: %i\ndata: %p\n", pClient, nBytes, data);

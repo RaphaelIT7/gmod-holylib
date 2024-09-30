@@ -22,7 +22,7 @@ static CThreadPoolFixModule g_pThreadPoolFixModule;
 IModule* pThreadPoolFixModule = &g_pThreadPoolFixModule;
 
 static Detouring::Hook detour_CThreadPool_ExecuteToPriority;
-int hook_CThreadPool_ExecuteToPriority(IThreadPool* pool, void* idx, void* idx2)
+static int hook_CThreadPool_ExecuteToPriority(IThreadPool* pool, void* idx, void* idx2)
 {
 	if (pool->GetJobCount() <= 0)
 		return 0;
