@@ -160,24 +160,31 @@ void TableToJSONRecursive(Bootil::Data::Tree pTree)
 		g_Lua->Push(-2);
 
 		const char* key = g_Lua->GetString(-1); // In JSON a key is ALWAYS a string
+		Msg("Key: %s\n", key);
 		switch (g_Lua->GetType(-2))
 		{
-		case GarrysMod::Lua::Type::String:
-			pTree.SetChild(key, g_Lua->GetString(-2));
-			break;
-		case GarrysMod::Lua::Type::Number:
-			pTree.SetChildVar(key, g_Lua->GetNumber(-2));
-			break;
-		case GarrysMod::Lua::Type::Bool:
-			pTree.SetChildVar(key, g_Lua->GetBool(-2));
-			break;
-		case GarrysMod::Lua::Type::Table: // now make it recursive >:D
-			g_Lua->Push(-2);
-			g_Lua->PushNil();
-			TableToJSONRecursive(pTree.AddChild(key));
-			break;
-		default:
-			break; // We should fallback to nil
+			case GarrysMod::Lua::Type::String:
+				pTree.SetChild(key, g_Lua->GetString(-2));
+				break;
+			case GarrysMod::Lua::Type::Number:
+				{
+					double pNumber = g_Lua->GetNumber(-2);
+					if (floor(pNumber) == pNumber && INT32_MAX >= pNumber && pNumber >= INT32_MIN)
+						pTree.SetChildVar(key, static_cast<int>(pNumber));
+					else
+						pTree.SetChildVar(key, pNumber);
+				}
+				break;
+			case GarrysMod::Lua::Type::Bool:
+				pTree.SetChildVar(key, g_Lua->GetBool(-2));
+				break;
+			case GarrysMod::Lua::Type::Table: // now make it recursive >:D
+				g_Lua->Push(-2);
+				g_Lua->PushNil();
+				TableToJSONRecursive(pTree.AddChild(key));
+				break;
+			default:
+				break; // We should fallback to nil
 		}
 
 		g_Lua->Pop(2);
