@@ -50,14 +50,14 @@ jobs:
         name: Upload bootil_static_32.lib
         with:
           name: bootil_static_32.lib
-          path: Bootil/projects/release_x32_windows/bootil_static_32.lib
+          path: Bootil/projects/release_x32_windows/bootil_static.lib
           retention-days: 1
 
       - uses: actions/upload-artifact@v4
         name: Upload bootil_static_64.lib
         with:
           name: bootil_static_64.lib
-          path: Bootil/projects/release_x64_windows/bootil_static_64.lib
+          path: Bootil/projects/release_x64_windows/bootil_static.lib
           retention-days: 1
 
   build-linux:
@@ -92,12 +92,12 @@ jobs:
         name: Upload libbootil_static_32.a
         with:
           name: libbootil_static_32.a
-          path: Bootil/projects/release_x32_linux/libbootil_static_32.a
+          path: Bootil/projects/release_x32_linux/libbootil_static.a
           retention-days: 1
 
       - uses: actions/upload-artifact@v4
         name: Upload libbootil_static_64.a
         with:
           name: libbootil_static_64.a
-          path: Bootil/projects/release_x64_linux/libbootil_static_64.a
+          path: Bootil/projects/release_x64_linux/libbootil_static.a
           retention-days: 1
