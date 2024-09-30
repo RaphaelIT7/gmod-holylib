@@ -34,9 +34,6 @@
 #include "xbox/xboxstubs.h"
 #endif
 
-#define NETMSG_TYPE_BITS	6	// is 6 bits in gmod
-#define NETMSG_LENGTH_BITS	16	// should be 16 bits
-
 class SendTable;
 class KeyValue;
 class KeyValues;
