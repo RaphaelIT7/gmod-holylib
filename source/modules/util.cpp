@@ -170,6 +170,16 @@ LUA_FUNCTION_STATIC(util_AsyncDecompress)
 	return 0;
 }
 
+inline bool IsInt(double pNumber)
+{
+	return static_cast<int>(pNumber) == pNumber && INT32_MAX >= pNumber && pNumber >= INT32_MIN;
+}
+
+inline bool IsInt(float pNumber)
+{
+	return static_cast<int>(pNumber) == pNumber && INT32_MAX >= pNumber && pNumber >= INT32_MIN;
+}
+
 extern void TableToJSONRecursive(Bootil::Data::Tree& pTree);
 void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 {
@@ -210,7 +220,7 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 			case GarrysMod::Lua::Type::Number:
 				{
 					double pNumber = g_Lua->GetNumber(-1);
-					if (floor(pNumber) == pNumber && INT32_MAX >= pNumber && pNumber >= INT32_MIN)
+					if (IsInt(pNumber))
 						if (isSequential)
 							pTree.AddChild().Var(static_cast<int>(pNumber));
 						else
@@ -247,18 +257,13 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 					if (!vec)
 						break;
 
-					std::string str = "[";
-					str.append(std::to_string(vec->x));
-					str.append(" ");
-					str.append(std::to_string(vec->y));
-					str.append(" ");
-					str.append(std::to_string(vec->z));
-					str.append("]");
+					char buffer[56];
+					snprintf(buffer, sizeof(buffer), "[%.16g %.16g %.16g]", vec->x, vec->y, vec->z); // Do we even need to be this percice?
 					if (isSequential)
-						pTree.AddChild().Value(str);
+						pTree.AddChild().Value(buffer);
 					else
-						pTree.SetChild(key, str);
-					//Msg("Value: %s\n", str.c_str());
+						pTree.SetChild(key, buffer);
+					//Msg("Value: %s\n", buffer);
 				}
 				break;
 			case GarrysMod::Lua::Type::Angle:
@@ -267,18 +272,13 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 					if (!ang)
 						break;
 
-					std::string str = "{"; // There probably is a faster way to make a string....
-					str.append(std::to_string(ang->x));
-					str.append(" ");
-					str.append(std::to_string(ang->y));
-					str.append(" ");
-					str.append(std::to_string(ang->z));
-					str.append("}");
+					char buffer[48];
+					snprintf(buffer, sizeof(buffer), "{%.12g %.12g %.12g}", ang->x, ang->y, ang->z);
 					if (isSequential)
-						pTree.AddChild().Value(str);
+						pTree.AddChild().Value(buffer);
 					else
-						pTree.SetChild(key, str);
-					//Msg("Value: %s\n", str.c_str());
+						pTree.SetChild(key, buffer);
+					//Msg("Value: %s\n", buffer);
 				}
 				break;
 			default:
