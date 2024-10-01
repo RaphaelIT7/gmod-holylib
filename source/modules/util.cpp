@@ -180,9 +180,33 @@ inline bool IsInt(float pNumber)
 	return static_cast<int>(pNumber) == pNumber && INT32_MAX >= pNumber && pNumber >= INT32_MIN;
 }
 
+std::vector<int> pCurrentTableScope;
 extern void TableToJSONRecursive(Bootil::Data::Tree& pTree);
 void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 {
+	g_Lua->Push(-2);
+	bool bEqual = false;
+	for (int iReference : pCurrentTableScope)
+	{
+		g_Lua->ReferencePush(iReference);
+		if (g_Lua->Equal(-1, -2))
+		{
+			bEqual = true;
+			g_Lua->Pop(1);
+			break;
+		}
+
+		g_Lua->Pop(1);
+	}
+
+	if (bEqual) {
+		DevMsg(1, "holylib: Tried to give util.FancyTableToJSON a recursive table!");
+		g_Lua->Pop(3); // table, nil, table
+		return;
+	}
+
+	pCurrentTableScope.push_back(g_Lua->ReferenceCreate());
+
 	int idx = 1;
 	while (g_Lua->Next(-2)) {
 		// In bootil, you just don't give a child a name to indicate that it's sequentail. 
@@ -289,6 +313,9 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 	}
 
 	g_Lua->Pop(1);
+
+	g_Lua->ReferenceFree(pCurrentTableScope.back());
+	pCurrentTableScope.pop_back();
 }
 
 LUA_FUNCTION_STATIC(util_TableToJSON)
