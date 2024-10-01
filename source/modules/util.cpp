@@ -247,7 +247,10 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 			}
 
 			if (!key)
+			{
+				g_Lua->Pop(1); // Pop the value off the stack for lua_next to work
 				continue;
+			}
 		}
 		//Msg("Key: %s (%s)\n", key, g_Lua->GetActualTypeName(iKeyType));
 		switch (g_Lua->GetType(-1))
