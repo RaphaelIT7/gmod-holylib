@@ -180,14 +180,14 @@ inline bool IsInt(float pNumber)
 	return static_cast<int>(pNumber) == pNumber && INT32_MAX >= pNumber && pNumber >= INT32_MIN;
 }
 
-int iStartTop = -1;
-bool bNoError = false;
-std::vector<int> pCurrentTableScope;
+int iRecursiveStartTop = -1;
+bool bRecursiveNoError = false;
+std::vector<int> pRecursiveTableScope;
 extern void TableToJSONRecursive(Bootil::Data::Tree& pTree);
 void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 {
 	bool bEqual = false;
-	for (int iReference : pCurrentTableScope)
+	for (int iReference : pRecursiveTableScope)
 	{
 		g_Lua->ReferencePush(iReference);
 		if (g_Lua->Equal(-1, -3))
@@ -201,15 +201,18 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 	}
 
 	if (bEqual) {
-		if (bNoError)
+		if (bRecursiveNoError)
+		{
+			g_Lua->Pop(2); // Don't forget to cleanup
 			return;
+		}
 
-		g_Lua->Pop(g_Lua->Top() - iStartTop); // Since we added a unknown amount to the stack, we need to throw everything back out
+		g_Lua->Pop(g_Lua->Top() - iRecursiveStartTop); // Since we added a unknown amount to the stack, we need to throw everything back out
 		g_Lua->ThrowError("attempt to serialize structure with cyclic reference");
 	}
 
 	g_Lua->Push(-2);
-	pCurrentTableScope.push_back(g_Lua->ReferenceCreate());
+	pRecursiveTableScope.push_back(g_Lua->ReferenceCreate());
 
 	int idx = 1;
 	while (g_Lua->Next(-2)) {
@@ -335,17 +338,17 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 
 	g_Lua->Pop(1);
 
-	g_Lua->ReferenceFree(pCurrentTableScope.back());
-	pCurrentTableScope.pop_back();
+	g_Lua->ReferenceFree(pRecursiveTableScope.back());
+	pRecursiveTableScope.pop_back();
 }
 
 LUA_FUNCTION_STATIC(util_TableToJSON)
 {
 	LUA->CheckType(1, GarrysMod::Lua::Type::Table);
 	bool bPretty = LUA->GetBool(2);
-	bNoError = LUA->GetBool(3);
+	bRecursiveNoError = LUA->GetBool(3);
 
-	iStartTop = LUA->Top();
+	iRecursiveStartTop = LUA->Top();
 	Bootil::Data::Tree pTree;
 	LUA->Push(1);
 	LUA->PushNil();
