@@ -233,6 +233,8 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 				g_Lua->Push(-2);
 				key = g_Lua->GetString(-1); // lua_next nukes itself when the key isn't an actual string
 				g_Lua->Pop(1);
+				if (!key)
+					continue;
 			}
 		}
 		//Msg("Key: %s (%s)\n", key, g_Lua->GetActualTypeName(iKeyType));
