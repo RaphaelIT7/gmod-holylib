@@ -180,6 +180,8 @@ inline bool IsInt(float pNumber)
 	return static_cast<int>(pNumber) == pNumber && INT32_MAX >= pNumber && pNumber >= INT32_MIN;
 }
 
+int iStartTop = -1;
+bool bNoError = false;
 std::vector<int> pCurrentTableScope;
 extern void TableToJSONRecursive(Bootil::Data::Tree& pTree);
 void TableToJSONRecursive(Bootil::Data::Tree& pTree)
@@ -200,9 +202,11 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 	}
 
 	if (bEqual) {
-		DevMsg(1, "holylib: Tried to give util.FancyTableToJSON a recursive table!");
-		g_Lua->Pop(3); // table, nil, table
-		return;
+		if (bNoError)
+			return;
+
+		g_Lua->Pop(g_Lua->Top() - iStartTop); // Since we added a unknown amount to the stack, we need to throw everything back out
+		g_Lua->ThrowError("attempt to serialize structure with cyclic reference");
 	}
 
 	pCurrentTableScope.push_back(g_Lua->ReferenceCreate());
@@ -322,7 +326,9 @@ LUA_FUNCTION_STATIC(util_TableToJSON)
 {
 	LUA->CheckType(1, GarrysMod::Lua::Type::Table);
 	bool bPretty = LUA->GetBool(2);
+	bNoError = LUA->GetBool(3);
 
+	iStartTop = LUA->Top();
 	Bootil::Data::Tree pTree;
 	LUA->Push(1);
 	LUA->PushNil();

@@ -890,7 +890,9 @@ Same as above, but uses the default values for level and dictSize.
 #### util.AsyncDecompress(string data, function callback)
 Works like util.Decompress but it's async.  
 
-#### string util.FancyTableToJSON(table tbl, bool pretty)
+#### string util.FancyTableToJSON(table tbl, bool pretty, bool ignorecycle)
+ignorecycle - If `true` it won't throw a lua error when you have a table that is recursive/cycle.  
+
 Convers the given table to json.  
 Unlike Gmod's version, this function will turn the numbers to an integer if they are one/fit one.  
 
