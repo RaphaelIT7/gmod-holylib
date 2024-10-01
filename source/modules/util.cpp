@@ -186,12 +186,11 @@ std::vector<int> pCurrentTableScope;
 extern void TableToJSONRecursive(Bootil::Data::Tree& pTree);
 void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 {
-	g_Lua->Push(-2);
 	bool bEqual = false;
 	for (int iReference : pCurrentTableScope)
 	{
 		g_Lua->ReferencePush(iReference);
-		if (g_Lua->Equal(-1, -2))
+		if (g_Lua->Equal(-1, -3))
 		{
 			bEqual = true;
 			g_Lua->Pop(1);
@@ -209,6 +208,7 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 		g_Lua->ThrowError("attempt to serialize structure with cyclic reference");
 	}
 
+	g_Lua->Push(-2);
 	pCurrentTableScope.push_back(g_Lua->ReferenceCreate());
 
 	int idx = 1;
@@ -227,15 +227,27 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 		const char* key = NULL; // In JSON a key is ALWAYS a string
 		if (!isSequential)
 		{
-			if (iKeyType == GarrysMod::Lua::Type::String)
-				key = g_Lua->GetString(-2); // lua_next won't nuke itself since we don't convert the value
-			else {
-				g_Lua->Push(-2);
-				key = g_Lua->GetString(-1); // lua_next nukes itself when the key isn't an actual string
-				g_Lua->Pop(1);
-				if (!key)
-					continue;
+			switch (iKeyType)
+			{
+				case GarrysMod::Lua::Type::STRING:
+					key = g_Lua->GetString(-2); // lua_next won't nuke itself since we don't convert the value
+					break;
+				case GarrysMod::Lua::Type::Number:
+					g_Lua->Push(-2);
+					key = g_Lua->GetString(-1); // lua_next nukes itself when the key isn't an actual string
+					g_Lua->Pop(1);
+					break;
+				case GarrysMod::Lua::Type::Bool:
+					g_Lua->Push(-2);
+					key = g_Lua->GetString(-1); // lua_next nukes itself when the key isn't an actual string
+					g_Lua->Pop(1);
+					break;
+				default:
+					break;
 			}
+
+			if (!key)
+				continue;
 		}
 		//Msg("Key: %s (%s)\n", key, g_Lua->GetActualTypeName(iKeyType));
 		switch (g_Lua->GetType(-1))
