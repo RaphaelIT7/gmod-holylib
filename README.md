@@ -38,6 +38,12 @@ Nothing yet.
 \- Find out why ConVars are so broken. (Serverside `path` command breaks :<)  
 \- Look into filesystem handle optimization  
 \- Try to fix that one complex NW2 bug. NOTE: It seems to be related to baseline updates (Entity Creation/Deletion)  
+\- Also fix `physenv` module.  
+\- \- Add a hook for physics simulation & possibly stopping it.  
+\- extent `vprof` module to add a vprof lua object. Should allow one to use vprof in lua.  
+\- Look into StaticPropMgr stuff. May be interresting.  
+\- Add a bind to `CAI_NetworkManager::BuildNetworkGraph` or `StartRebuild`  
+\- Possibly allow on to force workshop download on next level change.  
 
 # The Navigator  
 [Modules](https://github.com/RaphaelIT7/gmod-holylib#modules)  
@@ -1623,6 +1629,10 @@ https://github.com/Facepunch/garrysmod-requests/issues/1323
 (Gonna make a seperate ConVar for it)https://github.com/Facepunch/garrysmod-requests/issues/2120  
 https://github.com/Facepunch/garrysmod-requests/issues/1472  
 https://github.com/Facepunch/garrysmod-requests/issues/2440  
+(Maybe)https://github.com/Facepunch/garrysmod-requests/issues/2129  
+(Maybe)https://github.com/Facepunch/garrysmod-requests/issues/1962
+https://github.com/Facepunch/garrysmod-requests/issues/1920  
+(Maybe)https://github.com/Facepunch/garrysmod-requests/issues/1699    
 
 # Some things for later
 
