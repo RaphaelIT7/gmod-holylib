@@ -2,11 +2,12 @@
 #include <GarrysMod/Lua/Interface.h>
 #include "lua.h"
 #include "Bootil/Bootil.h"
+#define DEDICATED
+#include "vstdlib/jobthread.h"
 
 class CUtilModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
 	virtual void LuaInit(bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown() OVERRIDE;
 	virtual void Think(bool bSimulating) OVERRIDE;
@@ -17,6 +18,37 @@ public:
 
 static CUtilModule g_pUtilModule;
 IModule* pUtilModule = &g_pUtilModule;
+
+inline void StartThreadPool(IThreadPool* pool, int iThreads)
+{
+	ThreadPoolStartParams_t startParams;
+	startParams.nThreads = iThreads;
+	startParams.nThreadsMax = startParams.nThreads;
+#if ARCHITECTURE_IS_X86_64
+	startParams.bEnableOnLinuxDedicatedServer = true;
+#endif
+	pool->Start(startParams);
+}
+
+IThreadPool* pCompressPool = NULL;
+IThreadPool* pDecompressPool = NULL;
+void OnCompressThreadsChange(IConVar* convar, const char* pOldValue, float flOldValue)
+{
+	pCompressPool->ExecuteAll(); // ToDo: Do we need to do this?
+	pCompressPool->Stop();
+	StartThreadPool(pCompressPool, ((ConVar*)convar)->GetInt());
+}
+
+void OnDecompressThreadsChange(IConVar* convar, const char* pOldValue, float flOldValue)
+{
+	pDecompressPool->ExecuteAll();
+	pDecompressPool->Stop();
+	StartThreadPool(pDecompressPool, ((ConVar*)convar)->GetInt());
+}
+
+ConVar compressthreads("holylib_util_compressthreads", "1", 0, "The number of threads to use for util.AsyncCompress", OnCompressThreadsChange);
+ConVar decompressthreads("holylib_util_decompressthreads", "1", 0, "The number of threads to use for util.AsyncDecompress", OnDecompressThreadsChange);
+
 
 struct CompressEntry
 {
@@ -32,84 +64,38 @@ struct CompressEntry
 	Bootil::AutoBuffer buffer;
 };
 
-struct CompressData
+static bool bInvalidateEverything = false;
+static std::vector<CompressEntry*> pFinishedEntries;
+static CThreadFastMutex pFinishMutex;
+static void CompressJob(CompressEntry*& entry)
 {
-	bool bRun = true;
-	bool bInvalidEverything = false;
-	std::vector<CompressEntry*> pQueue;
-	std::vector<CompressEntry*> pFinished;
-	CThreadFastMutex pMutex;
-};
-#if ARCHITECTURE_IS_X86_64
-static long long unsigned CompressThread(void* data)
-#else
-static unsigned CompressThread(void* data)
-#endif
-{
-	CompressData* cData = (CompressData*)data;
-	while (cData->bRun)
-	{
-		cData->pMutex.Lock();
-		std::vector<CompressEntry*> batch;
-		for (CompressEntry* entry : cData->pQueue)
-		{
-			batch.push_back(entry);
-		}
-		cData->pQueue.clear();
-		cData->pMutex.Unlock();
+	if (bInvalidateEverything) { return; }
 
-		for (CompressEntry* entry : batch)
-		{
-			if (cData->bInvalidEverything) { continue; }
+	if (entry->bCompress)
+		Bootil::Compression::LZMA::Compress(entry->pData, entry->iLength, entry->buffer, entry->iLevel, entry->iDictSize);
+	else
+		Bootil::Compression::LZMA::Extract(entry->pData, entry->iLength, entry->buffer);
 
-			if (entry->bCompress)
-				Bootil::Compression::LZMA::Compress(entry->pData, entry->iLength, entry->buffer, entry->iLevel, entry->iDictSize);
-			else
-				Bootil::Compression::LZMA::Extract(entry->pData, entry->iLength, entry->buffer);
-
-			cData->pMutex.Lock();
-			cData->pFinished.push_back(entry);
-			cData->pMutex.Unlock();
-		}
-
-		if(cData->bInvalidEverything) // Should me make a lock? Idk.
-		{
-			for (CompressEntry* entry : batch)
-			{
-				delete entry;
-			}
-
-			for (CompressEntry* entry : cData->pFinished)
-			{
-				delete entry;
-			}
-			cData->pFinished.clear();
-		}
-
-		batch.clear();
-
-		if (cData->bInvalidEverything)
-			cData->bInvalidEverything = false;
-
-		ThreadSleep(10);
-	}
-
-	return 0;
+	pFinishMutex.Lock();
+	pFinishedEntries.push_back(entry);
+	pFinishMutex.Unlock();
 }
 
-static ThreadHandle_t threadHandle = NULL;
-static CompressData threaddata;
 /*
- * If the Async function's arent used. We simply won't create a thread.
+ * If the Async function's arent used. We simply won't create the threadpools.
  * This should save a bit of CPU usage since we won't have a thread that is permantly in a while loop,
  * calling ThreadSleep every 10 milliseconds or so.
  */
 inline void StartThread()
 {
-	if (threadHandle)
+	if (pCompressPool)
 		return;
 
-	threadHandle = CreateSimpleThread((ThreadFunc_t)CompressThread, &threaddata);
+	pCompressPool = V_CreateThreadPool();
+	StartThreadPool(pCompressPool, compressthreads.GetInt());
+
+	pDecompressPool = V_CreateThreadPool();
+	StartThreadPool(pDecompressPool, decompressthreads.GetInt());
 }
 
 LUA_FUNCTION_STATIC(util_AsyncCompress)
@@ -140,9 +126,9 @@ LUA_FUNCTION_STATIC(util_AsyncCompress)
 	LUA->Push(1);
 	entry->iDataReference = LUA->ReferenceCreate();
 
-	threaddata.pQueue.push_back(entry);
-
 	StartThread();
+
+	pCompressPool->QueueCall(CompressJob, entry);
 
 	return 0;
 }
@@ -163,9 +149,9 @@ LUA_FUNCTION_STATIC(util_AsyncDecompress)
 	LUA->Push(1);
 	entry->iDataReference = LUA->ReferenceCreate();
 
-	threaddata.pQueue.push_back(entry);
-
 	StartThread();
+
+	pDecompressPool->QueueCall(CompressJob, entry);
 
 	return 0;
 }
@@ -369,11 +355,6 @@ LUA_FUNCTION_STATIC(util_TableToJSON)
 	return 1;
 }
 
-void CUtilModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
-{
-	threaddata.bRun = true;
-}
-
 void CUtilModule::LuaInit(bool bServerInit)
 {
 	if (bServerInit)
@@ -390,13 +371,15 @@ void CUtilModule::LuaInit(bool bServerInit)
 
 void CUtilModule::LuaShutdown()
 {
-	threaddata.bInvalidEverything = true;
+	bInvalidateEverything = true;
+	pCompressPool->ExecuteAll();
+	pDecompressPool->ExecuteAll();
 
-	for (CompressEntry* entry : threaddata.pQueue)
+	for (CompressEntry* entry : pFinishedEntries)
 	{
 		delete entry;
 	}
-	threaddata.pQueue.clear();
+	pFinishedEntries.clear();
 
 	if (Util::PushTable("util"))
 	{
@@ -411,14 +394,14 @@ void CUtilModule::Think(bool simulating)
 {
 	VPROF_BUDGET("HolyLib - CUtilModule::Think", VPROF_BUDGETGROUP_HOLYLIB);
 
-	if (threaddata.bInvalidEverything) // Wait for the Thread to be ready again
+	if (bInvalidateEverything) // Wait for the Thread to be ready again
 		return;
 
-	if (threaddata.pFinished.size() == 0)
+	if (pFinishedEntries.size() == 0)
 		return;
 
-	threaddata.pMutex.Lock();
-	for(CompressEntry* entry : threaddata.pFinished)
+	pFinishMutex.Lock();
+	for(CompressEntry* entry : pFinishedEntries)
 	{
 		g_Lua->ReferencePush(entry->iCallback);
 			g_Lua->PushString((const char*)entry->buffer.GetBase(), entry->buffer.GetWritten());
@@ -426,11 +409,17 @@ void CUtilModule::Think(bool simulating)
 		g_Lua->CallFunctionProtected(1, 0, true);
 		delete entry;
 	}
-	threaddata.pFinished.clear();
-	threaddata.pMutex.Unlock();
+	pFinishedEntries.clear();
+	pFinishMutex.Unlock();
 }
 
 void CUtilModule::Shutdown()
 {
-	threaddata.bRun = false;
+	if (pCompressPool)
+	{
+		V_DestroyThreadPool(pCompressPool);
+		V_DestroyThreadPool(pDecompressPool);
+		pCompressPool = NULL;
+		pDecompressPool = NULL;
+	}
 }
