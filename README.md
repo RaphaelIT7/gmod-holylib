@@ -24,7 +24,8 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 3. Put the `gmsv_holylib_linux.so` into the `garrysmod/lua/bin/` directory.  
 
 ## Next Update
-Nothing yet.  
+\- [#] `util.AsyncCompress/Decompress` now use two seperate threadpools(You can change their size with the new convars).  
+\- [#] Fixed a small reference leak in `util.AsyncCompress/Decompress`. The function was leaked so it's not too big.  
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.5...main
@@ -845,7 +846,6 @@ This module adds two new functions to the `util` library.
 #### util.AsyncCompress(string data, number level = 5, number dictSize = 65536, function callback)
 Works like util.Compress but it's async and allows you to set the level and dictSize.  
 The defaults for level and dictSize are the same as gmod's util.Compress.  
-Both AsyncCompress and AsyncDecompress use the same thread.  
 
 Instead of making a copy of the data, we keep a reference to it and use it raw!  
 So please don't modify it while were compressing / decompressing it or else something might break.  
@@ -861,6 +861,17 @@ ignorecycle - If `true` it won't throw a lua error when you have a table that is
 
 Convers the given table to json.  
 Unlike Gmod's version, this function will turn the numbers to an integer if they are one/fit one.  
+
+## ConVars
+
+### holylib_util_compressthreads(default `1`)
+The number of threads to use for `util.AsyncCompress`.  
+When changing it, it will wait for all queried jobs to first finish before changing the size.  
+
+### holylib_util_decompressthreads(default `1`)
+The number of threads to use for `util.AsyncDecompress`.  
+
+> NOTE: Decompressing seems to be far faster than compressing so it doesn't need as many threads.  
 
 ## concommand
 This module unblocks `quit` and `exit` for `RunConsoleCommand`.  
