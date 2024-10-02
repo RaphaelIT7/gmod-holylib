@@ -24,47 +24,13 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 3. Put the `gmsv_holylib_linux.so` into the `garrysmod/lua/bin/` directory.  
 
 ## Next Update
-\- [+] Added `voicechat` module  
-\- [+] Made `pas` work on 64x  
-\- [+] Added `IGameEvent` class and a few new functions to the `gameevent` library.  
-\- \- `gameevent.Create`  
-\- \- `gameevent.FireEvent`  
-\- \- `gameevent.FireClient`  
-\- \- `gameevent.DuplicateEvent`  
-\- \- `gameevent.BlockCreation`  
-\- [+] Also added `sourcetv.FireEvent` and `HLTVClient:FireEvent`.  
-\- [+] Added a few new functions to the `holylib` library.  
-\- \- `HolyLib.FadeClientVolume`  
-\- \- `HolyLib.ServerExecute`  
-\- \- `HolyLib.IsMapValid`  
-\- \- `HolyLib.EntityMessageBegin`  
-\- \- `HolyLib.UserMessageBegin`  
-\- \- `HolyLib.MessageEnd`  
-\- \- `HolyLib.BroadcastCustomMessage`  
-\- \- `HolyLib.SendCustomMessage`  
-\- [+] Added two new functions to the `stringtable` library.  
-\- \- `stringtable.SetPrecacheUserData`  
-\- \- `stringtable.GetPrecacheUserData`  
-\- [+] Added the `HolyLib:GetGModTags` hook.  
-\- [+] Added/Finished `util.FancyTableToJSON` function.  
-\- [#] Fixed my debug system not working as expected.  
-\- [#] `holylib_filesystem_predictexistance` is now disabled by default.  
-(Enable it if you know that your content is managed properly)  
-\- [#] Experimentally readded `HLTVClient:SendLua` (Doesn't crash anymore but also doesn't work clientside yet)  
-\- [#] `INetworkStringTable:SetStringUserData` now has a length argument. Be careful if you should use it.  
-\- [#] `INetworkStringTable:GetStringUserData` has a second return value. It now also returns the length.  
-\- [#] `pas.TestPAS` now supports Entities as arguments.  
-\- [#] `stringtable.DeleteAllStrings` now has a second argument.  
-\- [#] The thread used for `util.AsyncCompress/Decompress` is now only started if thoes functions are actually called.  
+Nothing yet.  
 
 You can see all changes here:  
-https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.4...main
+https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.5...main
 
 ### QoL updates
-\- [#] Fixed error handling being unstable in some cases  
-\- [#] Fixed Custom Userdata having no proper arg errors.  
-\- [#] Hid the `Player will be stuck` message from `surffix` behind debug mode.  
-\- [-] Removed useless SDK files / small cleanup.  
+Nothing yet.  
 
 ## ToDo
 \- Finish 64x (`pvs`, `sourcetv`, `surffix`)  
