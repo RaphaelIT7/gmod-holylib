@@ -52,6 +52,15 @@ ConVar decompressthreads("holylib_util_decompressthreads", "1", 0, "The number o
 
 struct CompressEntry
 {
+	~CompressEntry()
+	{
+		if (iDataReference != -1)
+			g_Lua->ReferenceFree(iDataReference);
+
+		if (iCallback != -1)
+			g_Lua->ReferenceFree(iCallback);
+	}
+
 	int iCallback = -1;
 	bool bCompress = true;
 
@@ -406,8 +415,6 @@ void CUtilModule::Think(bool simulating)
 		g_Lua->ReferencePush(entry->iCallback);
 			g_Lua->PushString((const char*)entry->buffer.GetBase(), entry->buffer.GetWritten());
 		g_Lua->CallFunctionProtected(1, 0, true);
-		g_Lua->ReferenceFree(entry->iDataReference); // Free our data
-		g_Lua->ReferenceFree(entry->iCallback);
 		delete entry;
 	}
 	pFinishedEntries.clear();
