@@ -250,7 +250,7 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 				continue;
 			}
 		}
-		//Msg("Key: %s (%s)\n", key, g_Lua->GetActualTypeName(iKeyType));
+
 		switch (g_Lua->GetType(-1))
 		{
 			case GarrysMod::Lua::Type::String:
@@ -258,7 +258,6 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 					pTree.AddChild().Value(g_Lua->GetString(-1));
 				else
 					pTree.SetChild(key, g_Lua->GetString(-1));
-				//Msg("Value: %s\n", g_Lua->GetString(-1));
 				break;
 			case GarrysMod::Lua::Type::Number:
 				{
@@ -273,8 +272,6 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 							pTree.AddChild().Var(pNumber);
 						else
 							pTree.SetChildVar(key, pNumber);
-
-					//Msg("Value: %f\n", pNumber);
 				}
 				break;
 			case GarrysMod::Lua::Type::Bool:
@@ -282,17 +279,14 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 					pTree.AddChild().Var(g_Lua->GetBool(-1));
 				else
 					pTree.SetChildVar(key, g_Lua->GetBool(-1));
-				//Msg("Value: %s\n", g_Lua->GetBool(-1) ? "true" : "false");
 				break;
 			case GarrysMod::Lua::Type::Table: // now make it recursive >:D
 				g_Lua->Push(-1);
 				g_Lua->PushNil();
-				//Msg("Value: Table recursive start\n");
 				if (isSequential)
 					TableToJSONRecursive(pTree.AddChild());
 				else
 					TableToJSONRecursive(pTree.AddChild(key));
-				//Msg("Value: Table recursive end\n");
 				break;
 			case GarrysMod::Lua::Type::Vector:
 				{
@@ -306,7 +300,6 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 						pTree.AddChild().Value(buffer);
 					else
 						pTree.SetChild(key, buffer);
-					//Msg("Value: %s\n", buffer);
 				}
 				break;
 			case GarrysMod::Lua::Type::Angle:
@@ -321,7 +314,6 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 						pTree.AddChild().Value(buffer);
 					else
 						pTree.SetChild(key, buffer);
-					//Msg("Value: %s\n", buffer);
 				}
 				break;
 			default:
@@ -349,12 +341,6 @@ LUA_FUNCTION_STATIC(util_TableToJSON)
 	LUA->PushNil();
 
 	TableToJSONRecursive(pTree);
-
-	/*for (const Bootil::Data::Tree& pChild : pTree.Children())
-	{
-		Msg("Name: %s\n", pChild.Name().c_str());
-		Msg("Value: %s\n", pChild.Value().c_str());
-	}*/
 
 	Bootil::BString pOut;
 	Bootil::Data::Json::Export(pTree, pOut, bPretty);
