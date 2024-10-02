@@ -405,8 +405,9 @@ void CUtilModule::Think(bool simulating)
 	{
 		g_Lua->ReferencePush(entry->iCallback);
 			g_Lua->PushString((const char*)entry->buffer.GetBase(), entry->buffer.GetWritten());
-			g_Lua->ReferenceFree(entry->iDataReference); // Free our data
 		g_Lua->CallFunctionProtected(1, 0, true);
+		g_Lua->ReferenceFree(entry->iDataReference); // Free our data
+		g_Lua->ReferenceFree(entry->iCallback);
 		delete entry;
 	}
 	pFinishedEntries.clear();
