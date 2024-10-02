@@ -19,6 +19,11 @@ public:
 static CUtilModule g_pUtilModule;
 IModule* pUtilModule = &g_pUtilModule;
 
+#if ARCHITECTURE_IS_X86_64
+#define V_CreateThreadPool CreateThreadPool
+#define V_DestroyThreadPool DestroyThreadPool
+#endif
+
 inline void StartThreadPool(IThreadPool* pool, int iThreads)
 {
 	ThreadPoolStartParams_t startParams;
