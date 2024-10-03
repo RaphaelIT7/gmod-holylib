@@ -48,6 +48,10 @@ namespace Symbols
 		Symbol::FromName("_ZN14CBaseAnimating19InvalidateBoneCacheEv"),
 	};
 
+	const std::vector<Symbol> CBaseEntity_PostConstructorSym = {
+		Symbol::FromName("_ZN11CBaseEntity15PostConstructorEPKc"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: holylib Symbols
 	//---------------------------------------------------------------------------------

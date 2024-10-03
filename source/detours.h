@@ -67,7 +67,7 @@ namespace Symbols
 	typedef CBasePlayer* (*Get_Player)(int iStackPos, bool shouldError);
 	extern const std::vector<Symbol> Get_PlayerSym;
 
-	typedef void (*Push_Entity)(CBaseEntity*);
+	typedef void (*Push_Entity)(CBaseEntity* ent);
 	extern const std::vector<Symbol> Push_EntitySym;
 
 	typedef CBaseEntity* (*Get_Entity)(int iStackPos, bool shouldError);
@@ -78,6 +78,9 @@ namespace Symbols
 
 	typedef void (*CBaseAnimating_InvalidateBoneCache)(void* ent);
 	extern const std::vector<Symbol> CBaseAnimating_InvalidateBoneCacheSym;
+
+	typedef void (*CBaseEntity_PostConstructor)(void* ent, const char* szClassname);
+	extern const std::vector<Symbol> CBaseEntity_PostConstructorSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: holylib Symbols

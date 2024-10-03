@@ -235,6 +235,19 @@ LUA_FUNCTION_STATIC(InvalidateBoneCache)
 	return 0;
 }
 
+static Detouring::Hook detour_CBaseEntity_PostConstructor;
+static void hook_CBaseEntity_PostConstructor(CBaseEntity* pEnt, const char* szClassname)
+{
+	if (Lua::PushHook("HolyLib:PostEntityConstructor"))
+	{
+		Util::Push_Entity(pEnt);
+		g_Lua->PushString(szClassname);
+		g_Lua->CallFunctionProtected(3, 0, true);
+	}
+
+	detour_CBaseEntity_PostConstructor.GetTrampoline<Symbols::CBaseEntity_PostConstructor>()(pEnt, szClassname);
+}
+
 void CHolyLibModule::LuaInit(bool bServerInit)
 {
 	if (!bServerInit)
@@ -281,6 +294,12 @@ void CHolyLibModule::InitDetour(bool bPreServer)
 		&detour_CServerGameDLL_ShouldHideServer, "CServerGameDLL::ShouldHideServer",
 		server_loader.GetModule(), Symbols::CServerGameDLL_ShouldHideServerSym,
 		(void*)hook_CServerGameDLL_ShouldHideServer, m_pID
+	);
+
+	Detour::Create(
+		&detour_CBaseEntity_PostConstructor, "CBaseEntity::PostConstructor",
+		server_loader.GetModule(), Symbols::CBaseEntity_PostConstructorSym,
+		(void*)hook_CBaseEntity_PostConstructor, m_pID
 	);
 
 	SourceSDK::ModuleLoader engine_loader("engine");

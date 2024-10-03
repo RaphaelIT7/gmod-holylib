@@ -24,6 +24,7 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 3. Put the `gmsv_holylib_linux.so` into the `garrysmod/lua/bin/` directory.  
 
 ## Next Update
+\- [+] Added `HolyLib.InvalidateBoneCache` function and the `HolyLib:PostEntityConstructor` hook.  
 \- [#] `util.AsyncCompress/Decompress` now use two seperate threadpools(You can change their size with the new convars).  
 \- [#] Fixed a small reference leak in `util.AsyncCompress/Decompress`. The function was leaked so it's not too big.  
 
@@ -166,6 +167,10 @@ hook.Add("HolyLib:GetGModTags", "Example", function()
 	return table.concat(tags, " ")
 end)
 ```
+
+#### HolyLib:PostEntityConstructor(Entity ent, String className)
+Called before `CBaseEntity::PostConstructor` is called.  
+This should allow you to set the `EFL_SERVER_ONLY` flag properly.  
 
 ## gameevent
 This module contains additional functions for the gameevent library.  
@@ -1624,7 +1629,8 @@ It now throws a warning instead of crashing -> https://github.com/Facepunch/garr
 `filesystem.TimeCreated` & `filesystem.TimeAccessed` -> https://github.com/Facepunch/garrysmod-requests/issues/1633  
 `systimer` module -> https://github.com/Facepunch/garrysmod-requests/issues/1671  
 `pas` module -> https://github.com/Facepunch/garrysmod-requests/issues/140  
-`HolyLib.InvalidateBoneCache` -> `https://github.com/Facepunch/garrysmod-requests/issues/1920`  
+`HolyLib.InvalidateBoneCache` -> https://github.com/Facepunch/garrysmod-requests/issues/1920  
+`HolyLib:PostEntityConstructor` -> https://github.com/Facepunch/garrysmod-requests/issues/2440  
 
 # Things planned to add:
 https://github.com/Facepunch/garrysmod-requests/issues/1884  
@@ -1636,7 +1642,6 @@ https://github.com/Facepunch/garrysmod-requests/issues/1323
 (Should be possible?)https://github.com/Facepunch/garrysmod-requests/issues/756  
 (Gonna make a seperate ConVar for it)https://github.com/Facepunch/garrysmod-requests/issues/2120  
 https://github.com/Facepunch/garrysmod-requests/issues/1472  
-https://github.com/Facepunch/garrysmod-requests/issues/2440  
 (Maybe)https://github.com/Facepunch/garrysmod-requests/issues/2129  
 (Maybe)https://github.com/Facepunch/garrysmod-requests/issues/1962  
 (Maybe)https://github.com/Facepunch/garrysmod-requests/issues/1699    
