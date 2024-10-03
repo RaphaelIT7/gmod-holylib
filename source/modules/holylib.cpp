@@ -217,6 +217,24 @@ static void hook_GetGModServerTags(char* pDest, int iMaxLength, bool bUnknown)
 	detour_GetGModServerTags.GetTrampoline<Symbols::GetGModServerTags>()(pDest, iMaxLength, bUnknown);
 }
 
+Symbols::CBaseAnimating_InvalidateBoneCache func_CBaseAnimating_InvalidateBoneCache;
+LUA_FUNCTION_STATIC(InvalidateBoneCache)
+{
+	CBaseEntity* pEnt = Util::Get_Entity(1, true);
+	if (!pEnt)
+		LUA->ArgError(1, "Tried to use a NULL entity");
+
+	if (!func_CBaseAnimating_InvalidateBoneCache)
+		LUA->ThrowError("Failed to get CBaseAnimating::InvalidateBoneCache");
+
+	CBaseAnimating* pAnimating = pEnt->GetBaseAnimating();
+	if (!pAnimating)
+		LUA->ThrowError("Tried use use an Entity that isn't a CBaseAnimating");
+
+	func_CBaseAnimating_InvalidateBoneCache(pAnimating);
+	return 0;
+}
+
 void CHolyLibModule::LuaInit(bool bServerInit)
 {
 	if (!bServerInit)
@@ -229,7 +247,9 @@ void CHolyLibModule::LuaInit(bool bServerInit)
 			Util::AddFunc(FadeClientVolume, "FadeClientVolume");
 			Util::AddFunc(ServerExecute, "ServerExecute");
 			Util::AddFunc(IsMapValid, "IsMapValid");
+			Util::AddFunc(InvalidateBoneCache, "InvalidateBoneCache");
 
+			// Networking stuff
 			Util::AddFunc(_EntityMessageBegin, "EntityMessageBegin");
 			Util::AddFunc(_UserMessageBegin, "UserMessageBegin");
 			Util::AddFunc(_MessageEnd, "MessageEnd");
@@ -269,4 +289,7 @@ void CHolyLibModule::InitDetour(bool bPreServer)
 		engine_loader.GetModule(), Symbols::GetGModServerTagsSym,
 		(void*)hook_GetGModServerTags, m_pID
 	);
+
+	func_CBaseAnimating_InvalidateBoneCache = (Symbols::CBaseAnimating_InvalidateBoneCache)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseAnimating_InvalidateBoneCacheSym);
+	Detour::CheckFunction((void*)func_CBaseAnimating_InvalidateBoneCache, "CBaseAnimating::InvalidateBoneCache");
 }

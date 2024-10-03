@@ -140,7 +140,14 @@ You can find all valid types in the [protocol.h](https://github.com/RaphaelIT7/g
 #### HolyLib.SendCustomMessage(number type, string name, bf_write buffer, Player ply)
 Same as BroadcastCustomMessage but it only sends it to the specific player.  
 
-### string HolyLib:GetGModTags()
+#### HolyLib.InvalidateBoneCache(Entity ent)
+Invalidates the bone cache of the given entity.  
+
+> NOTE: Only uses this on Entities that are Animated / Inherit the CBaseAnimating class. Or else it will throw a Lua error.  
+
+### Hooks
+
+#### string HolyLib:GetGModTags()
 Allows you to override the server tags.  
 Return nothing / nil to not override them.  
 
@@ -1617,6 +1624,7 @@ It now throws a warning instead of crashing -> https://github.com/Facepunch/garr
 `filesystem.TimeCreated` & `filesystem.TimeAccessed` -> https://github.com/Facepunch/garrysmod-requests/issues/1633  
 `systimer` module -> https://github.com/Facepunch/garrysmod-requests/issues/1671  
 `pas` module -> https://github.com/Facepunch/garrysmod-requests/issues/140  
+`HolyLib.InvalidateBoneCache` -> `https://github.com/Facepunch/garrysmod-requests/issues/1920`  
 
 # Things planned to add:
 https://github.com/Facepunch/garrysmod-requests/issues/1884  
@@ -1630,8 +1638,7 @@ https://github.com/Facepunch/garrysmod-requests/issues/1323
 https://github.com/Facepunch/garrysmod-requests/issues/1472  
 https://github.com/Facepunch/garrysmod-requests/issues/2440  
 (Maybe)https://github.com/Facepunch/garrysmod-requests/issues/2129  
-(Maybe)https://github.com/Facepunch/garrysmod-requests/issues/1962
-https://github.com/Facepunch/garrysmod-requests/issues/1920  
+(Maybe)https://github.com/Facepunch/garrysmod-requests/issues/1962  
 (Maybe)https://github.com/Facepunch/garrysmod-requests/issues/1699    
 
 # Some things for later

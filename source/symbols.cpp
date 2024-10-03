@@ -44,6 +44,10 @@ namespace Symbols
 		Symbol::FromName("_ZN11CBaseEntity20CalcAbsolutePositionEv"),
 	};
 
+	const std::vector<Symbol> CBaseAnimating_InvalidateBoneCacheSym = {
+		Symbol::FromName("_ZN14CBaseAnimating19InvalidateBoneCacheEv"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: holylib Symbols
 	//---------------------------------------------------------------------------------

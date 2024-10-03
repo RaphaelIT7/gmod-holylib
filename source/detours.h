@@ -76,6 +76,9 @@ namespace Symbols
 	typedef void (*CBaseEntity_CalcAbsolutePosition)(void* ent);
 	extern const std::vector<Symbol> CBaseEntity_CalcAbsolutePositionSym;
 
+	typedef void (*CBaseAnimating_InvalidateBoneCache)(void* ent);
+	extern const std::vector<Symbol> CBaseAnimating_InvalidateBoneCacheSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: holylib Symbols
 	//---------------------------------------------------------------------------------
