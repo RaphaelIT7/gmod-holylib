@@ -372,8 +372,11 @@ void CUtilModule::LuaInit(bool bServerInit)
 void CUtilModule::LuaShutdown()
 {
 	bInvalidateEverything = true;
-	pCompressPool->ExecuteAll();
-	pDecompressPool->ExecuteAll();
+	if (pCompressPool)
+		pCompressPool->ExecuteAll();
+
+	if (pDecompressPool) // Apparently can be NULL?
+		pDecompressPool->ExecuteAll();
 
 	for (CompressEntry* entry : pFinishedEntries)
 	{

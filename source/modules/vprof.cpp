@@ -703,13 +703,52 @@ public:
 	int			m_GroupIDStackDepth;
 #endif
 	int 		m_enabled;
+	bool		m_fAtRoot; // tracked for efficiency of the "not profiling" case
+	CVProfNode *m_pCurNode;
+	CVProfNode	m_Root;
+	int			m_nFrames;
+	int			m_ProfileDetailLevel;
+	int			m_pausedEnabledDepth;
+
+	class CBudgetGroup
+	{
+	public:
+		tchar *m_pName;
+		int m_BudgetFlags;
+	};
+	
+	CBudgetGroup	*m_pBudgetGroups;
+	int			m_nBudgetGroupNamesAllocated;
+	int			m_nBudgetGroupNames;
+	void		(*m_pNumBudgetGroupsChangedCallBack)(void);
+
+	// Performance monitoring events.
+	bool		m_bPMEInit;
+	bool		m_bPMEEnabled;
+
+	int64 m_Counters[MAXCOUNTERS];
+	char m_CounterGroups[MAXCOUNTERS]; // (These are CounterGroup_t's).
+	tchar *m_CounterNames[MAXCOUNTERS];
+	int m_NumCounters;
+
+	unsigned m_TargetThreadId;
 };
 
 void CVProfModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	Msg("Is Vprof On: %s\n", g_VProfCurrentProfile.IsEnabled() ? "true" : "false");
-	((CCVProfile*)&g_VProfCurrentProfile)->m_enabled = true;
+	CCVProfile* prof = (CCVProfile*)&g_VProfCurrentProfile;
+	prof->m_enabled = true;
 	Msg("Is Vprof now On: %s\n", g_VProfCurrentProfile.IsEnabled() ? "true" : "false");
+	Msg("m_fAtRoot: %s\n", prof->m_fAtRoot ? "true" : "false");
+	Msg("m_nFrames: %i\n", prof->m_nFrames);
+	Msg("m_ProfileDetailLevel: %i\n", prof->m_ProfileDetailLevel);
+	Msg("m_pausedEnabledDepth: %i\n", prof->m_pausedEnabledDepth);
+	Msg("m_nBudgetGroupNamesAllocated: %i\n", prof->m_nBudgetGroupNamesAllocated);
+	Msg("m_nBudgetGroupNames: %i\n", prof->m_nBudgetGroupNames);
+	Msg("m_bPMEInit: %s\n", prof->m_bPMEInit ? "true" : "false");
+	Msg("m_bPMEEnabled: %s\n", prof->m_bPMEEnabled ? "true" : "false");
+	Msg("m_NumCounters: %i\n", prof->m_NumCounters);
 }
 
 void CVProfModule::Shutdown()
