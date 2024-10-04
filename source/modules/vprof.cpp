@@ -10,6 +10,10 @@
 class CVProfModule : public IModule
 {
 public:
+#ifdef ARCHITECTURE_X86_64
+	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
+	virtual void Shutdown() OVERRIDE;
+#endif
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "vprof"; };
 	virtual int Compatibility() { return LINUX32 | WINDOWS32; }; // NOTE for myself: Linux64 seemingly doesn't have vprof enabled! so don't suppositly add compatbility!
@@ -146,6 +150,11 @@ static void hook_CVProfile_OutputReport(void* fancy, int type, const tchar* pszS
 
 	ss.str("");
 }
+/*
+ * There is no point in adding VPROF to CallWithArgs since it's useless.  
+ * It isn't performance intensive since it only pushes the gamemode.Call thingy with the given hook.  
+ * The real performance will be shown in CLuaGamemode::CallFinish which should be the focus.  
+ */
 
 static const char* pCurrentGamemodeFunction = NULL;
 //static std::map<int, std::string> CallWithArgs_strs;
@@ -682,3 +691,29 @@ void CVProfModule::InitDetour(bool bPreServer)
 		detour_Msg.Disable();
 #endif
 }
+
+#ifdef ARCHITECTURE_X86_64
+class PLATFORM_CLASS CCVProfile 
+{
+public:
+#ifdef VPROF_VTUNE_GROUP
+	bool		m_bVTuneGroupEnabled;
+	int			m_nVTuneGroupID;
+	int			m_GroupIDStack[MAX_GROUP_STACK_DEPTH];
+	int			m_GroupIDStackDepth;
+#endif
+	int 		m_enabled;
+};
+
+void CVProfModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
+{
+	Msg("Is Vprof On: %s\n", g_VProfCurrentProfile.IsEnabled() ? "true" : "false");
+	((CCVProfile*)&g_VProfCurrentProfile)->m_enabled = true;
+	Msg("Is Vprof now On: %s\n", g_VProfCurrentProfile.IsEnabled() ? "true" : "false");
+}
+
+void CVProfModule::Shutdown()
+{
+	((CCVProfile*)&g_VProfCurrentProfile)->m_enabled = false;
+}
+#endif
