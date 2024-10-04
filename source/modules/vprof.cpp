@@ -157,6 +157,7 @@ static void* hook_CLuaGamemode_CallWithArgs(void* funky_srv, int pool)
 
 #if ARCHITECTURE_IS_X86_64
 	Msg("Value: %p\n", (void*)pool);
+	Msg("Value Int: %i\n", pool);
 	Msg("Value Str: %s\n", (const char*)pool); // Verify: Did we get the symbol for the const char* version?
 #endif
 
