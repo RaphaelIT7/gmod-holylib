@@ -155,6 +155,11 @@ static void* hook_CLuaGamemode_CallWithArgs(void* funky_srv, int pool)
 	if (!g_Lua)
 		return detour_CLuaGamemode_CallWithArgs.GetTrampoline<Symbols::CLuaGamemode_CallWithArgs>()(funky_srv, pool);
 
+#if ARCHITECTURE_IS_X86_64
+	Msg("Value: %p\n", (void*)pool);
+	Msg("Value Str: %s\n", (const char*)pool); // Verify: Did we get the symbol for the const char* version?
+#endif
+
 	const char* pStr = nullptr;
 	auto it = CallWithArgs_strs.find(pool);
 	if (it == CallWithArgs_strs.end())
