@@ -252,36 +252,42 @@ namespace Symbols
 	typedef void* (GMCOMMON_CALLING_CONVENTION* CLuaGamemode_CallWithArgs)(void*, int);
 	extern const std::vector<Symbol> CLuaGamemode_CallWithArgsSym;
 
+	typedef void* (GMCOMMON_CALLING_CONVENTION* CLuaGamemode_CallWithArgsStr)(void*, const char*);
+	extern const std::vector<Symbol> CLuaGamemode_CallWithArgsStrSym;
+
+	typedef void* (GMCOMMON_CALLING_CONVENTION* CLuaGamemode_CallStr)(void*, const char*);
+	extern const std::vector<Symbol> CLuaGamemode_CallStrSym;
+
 	typedef void* (GMCOMMON_CALLING_CONVENTION* CLuaGamemode_Call)(void*, int);
 	extern const std::vector<Symbol> CLuaGamemode_CallSym;
 
 	typedef void (GMCOMMON_CALLING_CONVENTION* CVProfile_OutputReport)(void*, int, const tchar*, int);
 	extern const std::vector<Symbol> CVProfile_OutputReportSym;
 
-	typedef void* (GMCOMMON_CALLING_CONVENTION* CScriptedEntity_StartFunction1)(void*, const char*);
-	extern const std::vector<Symbol> CScriptedEntity_StartFunction1Sym;
+	typedef void* (GMCOMMON_CALLING_CONVENTION* CScriptedEntity_StartFunctionStr)(void*, const char*);
+	extern const std::vector<Symbol> CScriptedEntity_StartFunctionStrSym;
 
-	typedef void* (GMCOMMON_CALLING_CONVENTION* CScriptedEntity_StartFunction2)(void*, int);
-	extern const std::vector<Symbol> CScriptedEntity_StartFunction2Sym;
+	typedef void* (GMCOMMON_CALLING_CONVENTION* CScriptedEntity_StartFunction)(void*, int);
+	extern const std::vector<Symbol> CScriptedEntity_StartFunctionSym;
 
 	typedef void* (GMCOMMON_CALLING_CONVENTION* CScriptedEntity_Call)(void*, int, int);
 	extern const std::vector<Symbol> CScriptedEntity_CallSym;
 
-	typedef void* (GMCOMMON_CALLING_CONVENTION* CScriptedEntity_CallFunction1)(void*, const char*);
-	extern const std::vector<Symbol> CScriptedEntity_CallFunction1Sym;
+	typedef void* (GMCOMMON_CALLING_CONVENTION* CScriptedEntity_CallFunctionStr)(void*, const char*);
+	extern const std::vector<Symbol> CScriptedEntity_CallFunctionStrSym;
 
-	typedef void* (GMCOMMON_CALLING_CONVENTION* CScriptedEntity_CallFunction2)(void*, int);
-	extern const std::vector<Symbol> CScriptedEntity_CallFunction2Sym;
+	typedef void* (GMCOMMON_CALLING_CONVENTION* CScriptedEntity_CallFunction)(void*, int);
+	extern const std::vector<Symbol> CScriptedEntity_CallFunctionSym;
 
 #ifdef SYSTEM_WINDOWS
 	extern const std::vector<Symbol> Client_CLuaGamemode_CallFinishSym;
 	extern const std::vector<Symbol> Client_CLuaGamemode_CallWithArgsSym;
 	extern const std::vector<Symbol> Client_CLuaGamemode_CallSym;
-	extern const std::vector<Symbol> Client_CScriptedEntity_StartFunction1Sym;
-	extern const std::vector<Symbol> Client_CScriptedEntity_StartFunction2Sym;
+	extern const std::vector<Symbol> Client_CScriptedEntity_StartFunctionStrSym;
+	extern const std::vector<Symbol> Client_CScriptedEntity_StartFunctionSym;
 	extern const std::vector<Symbol> Client_CScriptedEntity_CallSym;
-	extern const std::vector<Symbol> Client_CScriptedEntity_CallFunction1Sym;
-	extern const std::vector<Symbol> Client_CScriptedEntity_CallFunction2Sym;
+	extern const std::vector<Symbol> Client_CScriptedEntity_CallFunctionStrSym;
+	extern const std::vector<Symbol> Client_CScriptedEntity_CallFunctionSym;
 #endif
 
 	//---------------------------------------------------------------------------------

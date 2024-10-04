@@ -226,48 +226,48 @@ static void* hook_CLuaGamemode_Call(void* funky_srv, int pool)
  * - CScriptedEntity::Call(int iPooledString) - Unlike the function above, we call a function that has no args & return values like Think.
  */
 static const char* pCurrentScriptFunction = nullptr;
-static std::map<std::string_view, std::string> ScriptedEntity_StartFunction1_strs;
-static Detouring::Hook detour_CScriptedEntity_StartFunction1;
-static void* hook_CScriptedEntity_StartFunction1(void* funky_srv, const char* str) // Only used by GetSoundInterests
+static std::map<std::string_view, std::string> ScriptedEntity_StartFunctionStr_strs;
+static Detouring::Hook detour_CScriptedEntity_StartFunctionStr;
+static void* hook_CScriptedEntity_StartFunctionStr(void* funky_srv, const char* str) // Only used by GetSoundInterests
 {
 	if (!g_Lua)
-		return detour_CScriptedEntity_StartFunction1.GetTrampoline<Symbols::CScriptedEntity_StartFunction1>()(funky_srv, str);
+		return detour_CScriptedEntity_StartFunctionStr.GetTrampoline<Symbols::CScriptedEntity_StartFunctionStr>()(funky_srv, str);
 
 	const char* pStr = nullptr;
-	auto it = ScriptedEntity_StartFunction1_strs.find(str);
-	if (it == ScriptedEntity_StartFunction1_strs.end())
+	auto it = ScriptedEntity_StartFunctionStr_strs.find(str);
+	if (it == ScriptedEntity_StartFunctionStr_strs.end())
 	{
-		ScriptedEntity_StartFunction1_strs[str] = "CScriptedEntity::Call (" + (std::string)str + ")"; // Vprof is added in CScriptedEntity::Call(int, int)
-		pStr = ScriptedEntity_StartFunction1_strs[str].c_str();
+		ScriptedEntity_StartFunctionStr_strs[str] = "CScriptedEntity::Call (" + (std::string)str + ")"; // Vprof is added in CScriptedEntity::Call(int, int)
+		pStr = ScriptedEntity_StartFunctionStr_strs[str].c_str();
 	} else {
 		pStr = it->second.c_str();
 	}
 
 	pCurrentScriptFunction = pStr;
 
-	return detour_CScriptedEntity_StartFunction1.GetTrampoline<Symbols::CScriptedEntity_StartFunction1>()(funky_srv, str);
+	return detour_CScriptedEntity_StartFunctionStr.GetTrampoline<Symbols::CScriptedEntity_StartFunctionStr>()(funky_srv, str);
 }
 
-static std::map<int, std::string> CScriptedEntity_StartFunction2_strs;
-static Detouring::Hook detour_CScriptedEntity_StartFunction2;
-static void* hook_CScriptedEntity_StartFunction2(void* funky_srv, int pool)
+static std::map<int, std::string> CScriptedEntity_StartFunction_strs;
+static Detouring::Hook detour_CScriptedEntity_StartFunction;
+static void* hook_CScriptedEntity_StartFunction(void* funky_srv, int pool)
 {
 	if (!g_Lua)
-		return detour_CScriptedEntity_StartFunction2.GetTrampoline<Symbols::CScriptedEntity_StartFunction2>()(funky_srv, pool);
+		return detour_CScriptedEntity_StartFunction.GetTrampoline<Symbols::CScriptedEntity_StartFunction>()(funky_srv, pool);
 
 	const char* pStr = nullptr;
-	auto it = CScriptedEntity_StartFunction2_strs.find(pool);
-	if (it == CScriptedEntity_StartFunction2_strs.end())
+	auto it = CScriptedEntity_StartFunction_strs.find(pool);
+	if (it == CScriptedEntity_StartFunction_strs.end())
 	{
-		CScriptedEntity_StartFunction2_strs[pool] = "CScriptedEntity::Call (" + (std::string)g_Lua->GetPooledString(pool) + ")";
-		pStr = CScriptedEntity_StartFunction2_strs[pool].c_str();
+		CScriptedEntity_StartFunction_strs[pool] = "CScriptedEntity::Call (" + (std::string)g_Lua->GetPooledString(pool) + ")";
+		pStr = CScriptedEntity_StartFunction_strs[pool].c_str();
 	} else {
 		pStr = it->second.c_str();
 	}
 
 	pCurrentScriptFunction = pStr;
 
-	return detour_CScriptedEntity_StartFunction2.GetTrampoline<Symbols::CScriptedEntity_StartFunction2>()(funky_srv, pool);
+	return detour_CScriptedEntity_StartFunction.GetTrampoline<Symbols::CScriptedEntity_StartFunction>()(funky_srv, pool);
 }
 
 static Detouring::Hook detour_CScriptedEntity_Call;
@@ -282,48 +282,48 @@ static void* hook_CScriptedEntity_Call(void* funky_srv, int iArgs, int iRets)
 	return detour_CScriptedEntity_Call.GetTrampoline<Symbols::CScriptedEntity_Call>()(funky_srv, iArgs, iRets);
 }
 
-static std::map<std::string_view, std::string> CScriptedEntity_CallFunction1_strs;
-static Detouring::Hook detour_CScriptedEntity_CallFunction1;
-static void* hook_CScriptedEntity_CallFunction1(void* funky_srv, const char* str)
+static std::map<std::string_view, std::string> CScriptedEntity_CallFunctionStr_strs;
+static Detouring::Hook detour_CScriptedEntity_CallFunctionStr;
+static void* hook_CScriptedEntity_CallFunctionStr(void* funky_srv, const char* str)
 {
 	if (!g_Lua)
-		return detour_CScriptedEntity_CallFunction1.GetTrampoline<Symbols::CScriptedEntity_CallFunction1>()(funky_srv, str);
+		return detour_CScriptedEntity_CallFunctionStr.GetTrampoline<Symbols::CScriptedEntity_CallFunctionStr>()(funky_srv, str);
 
 	const char* pStr = nullptr;
-	auto it = CScriptedEntity_CallFunction1_strs.find(str);
-	if (it == CScriptedEntity_CallFunction1_strs.end())
+	auto it = CScriptedEntity_CallFunctionStr_strs.find(str);
+	if (it == CScriptedEntity_CallFunctionStr_strs.end())
 	{
-		CScriptedEntity_CallFunction1_strs[str] = "CScriptedEntity::CallFunction (" + (std::string)str + ")";
-		pStr = CScriptedEntity_CallFunction1_strs[str].c_str();
+		CScriptedEntity_CallFunctionStr_strs[str] = "CScriptedEntity::CallFunction (" + (std::string)str + ")";
+		pStr = CScriptedEntity_CallFunctionStr_strs[str].c_str();
 	} else {
 		pStr = it->second.c_str();
 	}
 
 	VPROF_BUDGET(pStr, "GMOD");
 
-	return detour_CScriptedEntity_CallFunction1.GetTrampoline<Symbols::CScriptedEntity_CallFunction1>()(funky_srv, str);
+	return detour_CScriptedEntity_CallFunctionStr.GetTrampoline<Symbols::CScriptedEntity_CallFunctionStr>()(funky_srv, str);
 }
 
-static std::map<int, std::string> CScriptedEntity_CallFunction2_strs;
-static Detouring::Hook detour_CScriptedEntity_CallFunction2;
-static void* hook_CScriptedEntity_CallFunction2(void* funky_srv, int pool)
+static std::map<int, std::string> CScriptedEntity_CallFunction_strs;
+static Detouring::Hook detour_CScriptedEntity_CallFunction;
+static void* hook_CScriptedEntity_CallFunction(void* funky_srv, int pool)
 {
 	if (!g_Lua)
-		return detour_CScriptedEntity_CallFunction2.GetTrampoline<Symbols::CScriptedEntity_CallFunction2>()(funky_srv, pool);
+		return detour_CScriptedEntity_CallFunction.GetTrampoline<Symbols::CScriptedEntity_CallFunction>()(funky_srv, pool);
 
 	const char* pStr = nullptr;
-	auto it = CScriptedEntity_CallFunction2_strs.find(pool);
-	if (it == CScriptedEntity_CallFunction2_strs.end())
+	auto it = CScriptedEntity_CallFunction_strs.find(pool);
+	if (it == CScriptedEntity_CallFunction_strs.end())
 	{
-		CScriptedEntity_CallFunction2_strs[pool] = "CScriptedEntity::CallFunction (" + (std::string)g_Lua->GetPooledString(pool) + ")";
-		pStr = CScriptedEntity_CallFunction2_strs[pool].c_str();
+		CScriptedEntity_CallFunction_strs[pool] = "CScriptedEntity::CallFunction (" + (std::string)g_Lua->GetPooledString(pool) + ")";
+		pStr = CScriptedEntity_CallFunction_strs[pool].c_str();
 	} else {
 		pStr = it->second.c_str();
 	}
 
 	VPROF_BUDGET(pStr, "GMOD");
 
-	return detour_CScriptedEntity_CallFunction2.GetTrampoline<Symbols::CScriptedEntity_CallFunction2>()(funky_srv, pool);
+	return detour_CScriptedEntity_CallFunction.GetTrampoline<Symbols::CScriptedEntity_CallFunction>()(funky_srv, pool);
 }
 
 #ifdef SYSTEM_WINDOWS
@@ -390,46 +390,46 @@ static void* hook_Client_CLuaGamemode_Call(void* funky_srv, int pool)
 }
 
 static const char* pClient_CurrentScriptFunction = nullptr;
-static Detouring::Hook detour_Client_CScriptedEntity_StartFunction1;
-static void* hook_Client_CScriptedEntity_StartFunction1(void* funky_srv, const char* str) // Only used by GetSoundInterests
+static Detouring::Hook detour_Client_CScriptedEntity_StartFunctionStr;
+static void* hook_Client_CScriptedEntity_StartFunctionStr(void* funky_srv, const char* str) // Only used by GetSoundInterests
 {
 	if (!g_Lua)
-		return detour_Client_CScriptedEntity_StartFunction1.GetTrampoline<Symbols::CScriptedEntity_StartFunction1>()(funky_srv, str);
+		return detour_Client_CScriptedEntity_StartFunctionStr.GetTrampoline<Symbols::CScriptedEntity_StartFunctionStr>()(funky_srv, str);
 
 	const char* pStr = nullptr;
-	auto it = ScriptedEntity_StartFunction1_strs.find(str);
-	if (it == ScriptedEntity_StartFunction1_strs.end())
+	auto it = ScriptedEntity_StartFunctionStr_strs.find(str);
+	if (it == ScriptedEntity_StartFunctionStr_strs.end())
 	{
-		ScriptedEntity_StartFunction1_strs[str] = "CScriptedEntity::Call (" + (std::string)str + ")"; // Vprof is added in CScriptedEntity::Call(int, int)
-		pStr = ScriptedEntity_StartFunction1_strs[str].c_str();
+		ScriptedEntity_StartFunctionStr_strs[str] = "CScriptedEntity::Call (" + (std::string)str + ")"; // Vprof is added in CScriptedEntity::Call(int, int)
+		pStr = ScriptedEntity_StartFunctionStr_strs[str].c_str();
 	} else {
 		pStr = it->second.c_str();
 	}
 
 	pClient_CurrentScriptFunction = pStr;
 
-	return detour_Client_CScriptedEntity_StartFunction1.GetTrampoline<Symbols::CScriptedEntity_StartFunction1>()(funky_srv, str);
+	return detour_Client_CScriptedEntity_StartFunctionStr.GetTrampoline<Symbols::CScriptedEntity_StartFunctionStr>()(funky_srv, str);
 }
 
-static Detouring::Hook detour_Client_CScriptedEntity_StartFunction2;
-static void* hook_Client_CScriptedEntity_StartFunction2(void* funky_srv, int pool)
+static Detouring::Hook detour_Client_CScriptedEntity_StartFunction;
+static void* hook_Client_CScriptedEntity_StartFunction(void* funky_srv, int pool)
 {
 	if (!g_Lua)
-		return detour_Client_CScriptedEntity_StartFunction2.GetTrampoline<Symbols::CScriptedEntity_StartFunction2>()(funky_srv, pool);
+		return detour_Client_CScriptedEntity_StartFunction.GetTrampoline<Symbols::CScriptedEntity_StartFunction>()(funky_srv, pool);
 
 	const char* pStr = nullptr;
-	auto it = CScriptedEntity_StartFunction2_strs.find(pool);
-	if (it == CScriptedEntity_StartFunction2_strs.end())
+	auto it = CScriptedEntity_StartFunction_strs.find(pool);
+	if (it == CScriptedEntity_StartFunction_strs.end())
 	{
-		CScriptedEntity_StartFunction2_strs[pool] = "CScriptedEntity::Call (" + (std::string)g_Lua->GetPooledString(pool) + ")";
-		pStr = CScriptedEntity_StartFunction2_strs[pool].c_str();
+		CScriptedEntity_StartFunction_strs[pool] = "CScriptedEntity::Call (" + (std::string)g_Lua->GetPooledString(pool) + ")";
+		pStr = CScriptedEntity_StartFunction_strs[pool].c_str();
 	} else {
 		pStr = it->second.c_str();
 	}
 
 	pClient_CurrentScriptFunction = pStr;
 
-	return detour_Client_CScriptedEntity_StartFunction2.GetTrampoline<Symbols::CScriptedEntity_StartFunction2>()(funky_srv, pool);
+	return detour_Client_CScriptedEntity_StartFunction.GetTrampoline<Symbols::CScriptedEntity_StartFunction>()(funky_srv, pool);
 }
 
 static Detouring::Hook detour_Client_CScriptedEntity_Call;
@@ -444,46 +444,46 @@ static void* hook_Client_CScriptedEntity_Call(void* funky_srv, int iArgs, int iR
 	return detour_Client_CScriptedEntity_Call.GetTrampoline<Symbols::CScriptedEntity_Call>()(funky_srv, iArgs, iRets);
 }
 
-static Detouring::Hook detour_Client_CScriptedEntity_CallFunction1;
-static void* hook_Client_CScriptedEntity_CallFunction1(void* funky_srv, const char* str)
+static Detouring::Hook detour_Client_CScriptedEntity_CallFunctionStr;
+static void* hook_Client_CScriptedEntity_CallFunctionStr(void* funky_srv, const char* str)
 {
 	if (!g_Lua)
-		return detour_Client_CScriptedEntity_CallFunction1.GetTrampoline<Symbols::CScriptedEntity_CallFunction1>()(funky_srv, str);
+		return detour_Client_CScriptedEntity_CallFunctionStr.GetTrampoline<Symbols::CScriptedEntity_CallFunctionStr>()(funky_srv, str);
 
 	const char* pStr = nullptr;
-	auto it = CScriptedEntity_CallFunction1_strs.find(str);
-	if (it == CScriptedEntity_CallFunction1_strs.end())
+	auto it = CScriptedEntity_CallFunctionStr_strs.find(str);
+	if (it == CScriptedEntity_CallFunctionStr_strs.end())
 	{
-		CScriptedEntity_CallFunction1_strs[str] = "CScriptedEntity::CallFunction (" + (std::string)str + ")";
-		pStr = CScriptedEntity_CallFunction1_strs[str].c_str();
+		CScriptedEntity_CallFunctionStr_strs[str] = "CScriptedEntity::CallFunction (" + (std::string)str + ")";
+		pStr = CScriptedEntity_CallFunctionStr_strs[str].c_str();
 	} else {
 		pStr = it->second.c_str();
 	}
 
 	VPROF_BUDGET(pStr, "GMOD");
 
-	return detour_Client_CScriptedEntity_CallFunction1.GetTrampoline<Symbols::CScriptedEntity_CallFunction1>()(funky_srv, str);
+	return detour_Client_CScriptedEntity_CallFunctionStr.GetTrampoline<Symbols::CScriptedEntity_CallFunctionStr>()(funky_srv, str);
 }
 
-static Detouring::Hook detour_Client_CScriptedEntity_CallFunction2;
-static void* hook_Client_CScriptedEntity_CallFunction2(void* funky_srv, int pool)
+static Detouring::Hook detour_Client_CScriptedEntity_CallFunction;
+static void* hook_Client_CScriptedEntity_CallFunction(void* funky_srv, int pool)
 {
 	if (!g_Lua)
-		return detour_Client_CScriptedEntity_CallFunction2.GetTrampoline<Symbols::CScriptedEntity_CallFunction2>()(funky_srv, pool);
+		return detour_Client_CScriptedEntity_CallFunction.GetTrampoline<Symbols::CScriptedEntity_CallFunction>()(funky_srv, pool);
 
 	const char* pStr = nullptr;
-	auto it = CScriptedEntity_CallFunction2_strs.find(pool);
-	if (it == CScriptedEntity_CallFunction2_strs.end())
+	auto it = CScriptedEntity_CallFunction_strs.find(pool);
+	if (it == CScriptedEntity_CallFunction_strs.end())
 	{
-		CScriptedEntity_CallFunction2_strs[pool] = "CScriptedEntity::CallFunction (" + (std::string)g_Lua->GetPooledString(pool) + ")";
-		pStr = CScriptedEntity_CallFunction2_strs[pool].c_str();
+		CScriptedEntity_CallFunction_strs[pool] = "CScriptedEntity::CallFunction (" + (std::string)g_Lua->GetPooledString(pool) + ")";
+		pStr = CScriptedEntity_CallFunction_strs[pool].c_str();
 	} else {
 		pStr = it->second.c_str();
 	}
 
 	VPROF_BUDGET(pStr, "GMOD");
 
-	return detour_Client_CScriptedEntity_CallFunction2.GetTrampoline<Symbols::CScriptedEntity_CallFunction2>()(funky_srv, pool);
+	return detour_Client_CScriptedEntity_CallFunction.GetTrampoline<Symbols::CScriptedEntity_CallFunction>()(funky_srv, pool);
 }
 #endif
 
@@ -526,15 +526,15 @@ void CVProfModule::InitDetour(bool bPreServer)
 	);
 
 	Detour::Create(
-		&detour_CScriptedEntity_StartFunction1, "CScriptedEntity::StartFunction1",
-		server_loader.GetModule(), Symbols::CScriptedEntity_StartFunction1Sym,
-		(void*)hook_CScriptedEntity_StartFunction1, m_pID
+		&detour_CScriptedEntity_StartFunctionStr, "CScriptedEntity::StartFunction(const char*)",
+		server_loader.GetModule(), Symbols::CScriptedEntity_StartFunctionStrSym,
+		(void*)hook_CScriptedEntity_StartFunctionStr, m_pID
 	);
 
 	Detour::Create(
-		&detour_CScriptedEntity_StartFunction2, "CScriptedEntity::StartFunction2",
-		server_loader.GetModule(), Symbols::CScriptedEntity_StartFunction2Sym,
-		(void*)hook_CScriptedEntity_StartFunction2, m_pID
+		&detour_CScriptedEntity_StartFunction, "CScriptedEntity::StartFunction(int)",
+		server_loader.GetModule(), Symbols::CScriptedEntity_StartFunctionSym,
+		(void*)hook_CScriptedEntity_StartFunction, m_pID
 	);
 
 	Detour::Create(
@@ -544,15 +544,15 @@ void CVProfModule::InitDetour(bool bPreServer)
 	);
 
 	Detour::Create(
-		&detour_CScriptedEntity_CallFunction1, "CScriptedEntity::CallFunction1",
-		server_loader.GetModule(), Symbols::CScriptedEntity_CallFunction1Sym,
-		(void*)hook_CScriptedEntity_CallFunction1, m_pID
+		&detour_CScriptedEntity_CallFunctionStr, "CScriptedEntity::CallFunction(const char*)",
+		server_loader.GetModule(), Symbols::CScriptedEntity_CallFunctionStrSym,
+		(void*)hook_CScriptedEntity_CallFunctionStr, m_pID
 	);
 
 	Detour::Create(
-		&detour_CScriptedEntity_CallFunction2, "CScriptedEntity::CallFunction2",
-		server_loader.GetModule(), Symbols::CScriptedEntity_CallFunction2Sym,
-		(void*)hook_CScriptedEntity_CallFunction2, m_pID
+		&detour_CScriptedEntity_CallFunction, "CScriptedEntity::CallFunction(int)",
+		server_loader.GetModule(), Symbols::CScriptedEntity_CallFunctionSym,
+		(void*)hook_CScriptedEntity_CallFunction, m_pID
 	);
 
 #ifdef SYSTEM_WINDOWS
@@ -579,15 +579,15 @@ void CVProfModule::InitDetour(bool bPreServer)
 	);
 
 	Detour::Create(
-		&detour_Client_CScriptedEntity_StartFunction1, "Client - CScriptedEntity::StartFunction1",
-		client_loader.GetModule(), Symbols::Client_CScriptedEntity_StartFunction1Sym,
-		(void*)hook_Client_CScriptedEntity_StartFunction1, m_pID
+		&detour_Client_CScriptedEntity_StartFunctionStr, "Client - CScriptedEntity::StartFunction1(const char*)",
+		client_loader.GetModule(), Symbols::Client_CScriptedEntity_StartFunctionStrSym,
+		(void*)hook_Client_CScriptedEntity_StartFunctionStr, m_pID
 	);
 
 	Detour::Create(
-		&detour_Client_CScriptedEntity_StartFunction2, "Client - CScriptedEntity::StartFunction2",
-		client_loader.GetModule(), Symbols::Client_CScriptedEntity_StartFunction2Sym,
-		(void*)hook_Client_CScriptedEntity_StartFunction2, m_pID
+		&detour_Client_CScriptedEntity_StartFunction, "Client - CScriptedEntity::StartFunction2(int)",
+		client_loader.GetModule(), Symbols::Client_CScriptedEntity_StartFunctionSym,
+		(void*)hook_Client_CScriptedEntity_StartFunction, m_pID
 	);
 
 	Detour::Create(
@@ -597,15 +597,15 @@ void CVProfModule::InitDetour(bool bPreServer)
 	);
 
 	Detour::Create(
-		&detour_Client_CScriptedEntity_CallFunction1, "Client - CScriptedEntity::CallFunction1",
-		client_loader.GetModule(), Symbols::Client_CScriptedEntity_CallFunction1Sym,
-		(void*)hook_Client_CScriptedEntity_CallFunction1, m_pID
+		&detour_Client_CScriptedEntity_CallFunctionStr, "Client - CScriptedEntity::CallFunction(const char*)",
+		client_loader.GetModule(), Symbols::Client_CScriptedEntity_CallFunctionStrSym,
+		(void*)hook_Client_CScriptedEntity_CallFunctionStr, m_pID
 	);
 
 	Detour::Create(
-		&detour_Client_CScriptedEntity_CallFunction2, "Client - CScriptedEntity::CallFunction2",
-		client_loader.GetModule(), Symbols::Client_CScriptedEntity_CallFunction2Sym,
-		(void*)hook_Client_CScriptedEntity_CallFunction2, m_pID
+		&detour_Client_CScriptedEntity_CallFunction, "Client - CScriptedEntity::CallFunction2(int)",
+		client_loader.GetModule(), Symbols::Client_CScriptedEntity_CallFunctionSym,
+		(void*)hook_Client_CScriptedEntity_CallFunction, m_pID
 	);
 #endif
 
