@@ -726,9 +726,9 @@ public:
 	bool		m_bPMEInit;
 	bool		m_bPMEEnabled;
 
-	int64 m_Counters[MAXCOUNTERS];
-	char m_CounterGroups[MAXCOUNTERS]; // (These are CounterGroup_t's).
-	tchar *m_CounterNames[MAXCOUNTERS];
+	int64 m_Counters[512];
+	char m_CounterGroups[512]; // (These are CounterGroup_t's).
+	tchar *m_CounterNames[512];
 	int m_NumCounters;
 
 	unsigned m_TargetThreadId;
@@ -736,10 +736,7 @@ public:
 
 void CVProfModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
-	Msg("Is Vprof On: %s\n", g_VProfCurrentProfile.IsEnabled() ? "true" : "false");
 	CCVProfile* prof = (CCVProfile*)&g_VProfCurrentProfile;
-	prof->m_enabled = true;
-	Msg("Is Vprof now On: %s\n", g_VProfCurrentProfile.IsEnabled() ? "true" : "false");
 	Msg("m_fAtRoot: %s\n", prof->m_fAtRoot ? "true" : "false");
 	Msg("m_nFrames: %i\n", prof->m_nFrames);
 	Msg("m_ProfileDetailLevel: %i\n", prof->m_ProfileDetailLevel);
@@ -749,10 +746,11 @@ void CVProfModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 	Msg("m_bPMEInit: %s\n", prof->m_bPMEInit ? "true" : "false");
 	Msg("m_bPMEEnabled: %s\n", prof->m_bPMEEnabled ? "true" : "false");
 	Msg("m_NumCounters: %i\n", prof->m_NumCounters);
+	g_VProfCurrentProfile.Start();
 }
 
 void CVProfModule::Shutdown()
 {
-	((CCVProfile*)&g_VProfCurrentProfile)->m_enabled = false;
+	g_VProfCurrentProfile.Stop();
 }
 #endif
