@@ -147,19 +147,13 @@ static void hook_CVProfile_OutputReport(void* fancy, int type, const tchar* pszS
 	ss.str("");
 }
 
-static int pCurrentGamemodeFunction = -1;
+static const char* pCurrentGamemodeFunction = NULL;
 static std::map<int, std::string> CallWithArgs_strs;
 static Detouring::Hook detour_CLuaGamemode_CallWithArgs;
 static void* hook_CLuaGamemode_CallWithArgs(void* funky_srv, int pool)
 {
 	if (!g_Lua)
 		return detour_CLuaGamemode_CallWithArgs.GetTrampoline<Symbols::CLuaGamemode_CallWithArgs>()(funky_srv, pool);
-
-#if ARCHITECTURE_IS_X86_64
-	Msg("Value: %p\n", (void*)pool);
-	Msg("Value Int: %i\n", pool);
-	Msg("Value Str: %s\n", (const char*)pool); // Verify: Did we get the symbol for the const char* version?
-#endif
 
 	const char* pStr = nullptr;
 	auto it = CallWithArgs_strs.find(pool);
@@ -171,27 +165,56 @@ static void* hook_CLuaGamemode_CallWithArgs(void* funky_srv, int pool)
 		pStr = it->second.c_str();
 	}
 
-	pCurrentGamemodeFunction = pool;
+	pCurrentGamemodeFunction = g_Lua->GetPooledString(pool);
 
 	VPROF_BUDGET(pStr, "GMOD");
 
 	return detour_CLuaGamemode_CallWithArgs.GetTrampoline<Symbols::CLuaGamemode_CallWithArgs>()(funky_srv, pool);
 }
 
-static std::map<int, std::string> CallFinish_strs;
+static std::map<std::string_view, std::string> CallWithArgsStr_strs;
+static Detouring::Hook detour_CLuaGamemode_CallWithArgsStr;
+static void* hook_CLuaGamemode_CallWithArgsStr(void* funky_srv, const char* str)
+{
+	if (!g_Lua)
+		return detour_CLuaGamemode_CallWithArgs.GetTrampoline<Symbols::CLuaGamemode_CallWithArgsStr>()(funky_srv, str);
+
+	const char* pStr = nullptr;
+	auto it = CallWithArgsStr_strs.find(str);
+	if (it == CallWithArgsStr_strs.end())
+	{
+		CallWithArgsStr_strs[str] = "CLuaGamemode::CallWithArgs (" + (std::string)str + ")";
+		pStr = CallWithArgsStr_strs[str].c_str();
+	} else {
+		pStr = it->second.c_str();
+	}
+
+	pCurrentGamemodeFunction = str;
+
+	VPROF_BUDGET(pStr, "GMOD");
+
+	return detour_CLuaGamemode_CallWithArgs.GetTrampoline<Symbols::CLuaGamemode_CallWithArgsStr>()(funky_srv, str);
+}
+
+static std::map<std::string_view, std::string> CallFinish_strs;
 static Detouring::Hook detour_CLuaGamemode_CallFinish;
 static void* hook_CLuaGamemode_CallFinish(void* funky_srv, int pArgs)
 {
-	if (!g_Lua || pCurrentGamemodeFunction == -1)
+	if (!g_Lua || !pCurrentGamemodeFunction)
 		return detour_CLuaGamemode_CallFinish.GetTrampoline<Symbols::CLuaGamemode_CallFinish>()(funky_srv, pArgs);
 
-	if (CallFinish_strs.find(pCurrentGamemodeFunction) == CallFinish_strs.end())
+	const char* pStr = nullptr;
+	auto it = CallFinish_strs.find(pCurrentGamemodeFunction);
+	if (it == CallFinish_strs.end())
 	{
-		CallFinish_strs[pCurrentGamemodeFunction] = "CLuaGamemode::CallFinish (" + (std::string)g_Lua->GetPooledString(pCurrentGamemodeFunction) + ")";
+		CallFinish_strs[pCurrentGamemodeFunction] = "CLuaGamemode::CallFinish (" + (std::string)pCurrentGamemodeFunction + ")";
+		pStr = CallFinish_strs[pCurrentGamemodeFunction].c_str();
+	} else {
+		pStr = it->second.c_str();
 	}
 
-	VPROF_BUDGET(CallFinish_strs[pCurrentGamemodeFunction].c_str(), "GMOD");
-	pCurrentGamemodeFunction = -1;
+	VPROF_BUDGET(pStr, "GMOD");
+	pCurrentGamemodeFunction = NULL;
 
 	return detour_CLuaGamemode_CallFinish.GetTrampoline<Symbols::CLuaGamemode_CallFinish>()(funky_srv, pArgs);
 }
@@ -216,6 +239,28 @@ static void* hook_CLuaGamemode_Call(void* funky_srv, int pool)
 	VPROF_BUDGET(pStr, "GMOD");
 
 	return detour_CLuaGamemode_Call.GetTrampoline<Symbols::CLuaGamemode_Call>()(funky_srv, pool);
+}
+
+static std::map<std::string_view, std::string> CallStr_strs;
+static Detouring::Hook detour_CLuaGamemode_CallStr;
+static void* hook_CLuaGamemode_CallStr(void* funky_srv, const char* str)
+{
+	if (!g_Lua)
+		return detour_CLuaGamemode_CallStr.GetTrampoline<Symbols::CLuaGamemode_CallStr>()(funky_srv, str);
+
+	const char* pStr = nullptr;
+	auto it = CallStr_strs.find(str);
+	if (it == CallStr_strs.end())
+	{
+		CallStr_strs[str] = "CLuaGamemode::Call (" + (std::string)str + ")";
+		pStr = CallStr_strs[str].c_str();
+	} else {
+		pStr = it->second.c_str();
+	}
+
+	VPROF_BUDGET(pStr, "GMOD");
+
+	return detour_CLuaGamemode_CallStr.GetTrampoline<Symbols::CLuaGamemode_CallStr>()(funky_srv, str);
 }
 
 /*
@@ -354,16 +399,21 @@ static void* hook_Client_CLuaGamemode_CallWithArgs(void* funky_srv, int pool)
 static Detouring::Hook detour_Client_CLuaGamemode_CallFinish;
 static void* hook_Client_CLuaGamemode_CallFinish(void* funky_srv, int pArgs)
 {
-	if (!g_Lua || pClient_CurrentGamemodeFunction == -1)
-		return detour_CLuaGamemode_CallFinish.GetTrampoline<Symbols::CLuaGamemode_CallFinish>()(funky_srv, pArgs);
+	if (!g_Lua || !pCurrentGamemodeFunction)
+		return detour_Client_CLuaGamemode_CallFinish.GetTrampoline<Symbols::CLuaGamemode_CallFinish>()(funky_srv, pArgs);
 
-	if (CallFinish_strs.find(pClient_CurrentGamemodeFunction) == CallFinish_strs.end())
+	const char* pStr = nullptr;
+	auto it = CallFinish_strs.find(pCurrentGamemodeFunction);
+	if (it == CallFinish_strs.end())
 	{
-		CallFinish_strs[pClient_CurrentGamemodeFunction] = "CLuaGamemode::CallFinish (" + (std::string)g_Lua->GetPooledString(pClient_CurrentGamemodeFunction) + ")";
+		CallFinish_strs[pCurrentGamemodeFunction] = "CLuaGamemode::CallFinish (" + (std::string)pCurrentGamemodeFunction + ")";
+		pStr = CallFinish_strs[pCurrentGamemodeFunction].c_str();
+	} else {
+		pStr = it->second.c_str();
 	}
 
-	VPROF_BUDGET(CallFinish_strs[pClient_CurrentGamemodeFunction].c_str(), "GMOD");
-	pClient_CurrentGamemodeFunction = -1;
+	VPROF_BUDGET(pStr, "GMOD");
+	pCurrentGamemodeFunction = NULL;
 
 	return detour_Client_CLuaGamemode_CallFinish.GetTrampoline<Symbols::CLuaGamemode_CallFinish>()(funky_srv, pArgs);
 }
@@ -508,7 +558,13 @@ void CVProfModule::InitDetour(bool bPreServer)
 
 	SourceSDK::ModuleLoader server_loader("server");
 	Detour::Create(
-		&detour_CLuaGamemode_Call, "CLuaGamemode::Call",
+		&detour_CLuaGamemode_CallStr, "CLuaGamemode::Call(const char*)",
+		server_loader.GetModule(), Symbols::CLuaGamemode_CallStrSym,
+		(void*)hook_CLuaGamemode_CallStr, m_pID
+	);
+
+	Detour::Create(
+		&detour_CLuaGamemode_Call, "CLuaGamemode::Call(int)",
 		server_loader.GetModule(), Symbols::CLuaGamemode_CallSym,
 		(void*)hook_CLuaGamemode_Call, m_pID
 	);
@@ -520,7 +576,13 @@ void CVProfModule::InitDetour(bool bPreServer)
 	);
 
 	Detour::Create(
-		&detour_CLuaGamemode_CallWithArgs, "CLuaGamemode::CallWithArgs",
+		&detour_CLuaGamemode_CallWithArgsStr, "CLuaGamemode::CallWithArgs(const char*)",
+		server_loader.GetModule(), Symbols::CLuaGamemode_CallWithArgsStrSym,
+		(void*)hook_CLuaGamemode_CallWithArgsStr, m_pID
+	);
+
+	Detour::Create(
+		&detour_CLuaGamemode_CallWithArgs, "CLuaGamemode::CallWithArgs(int)",
 		server_loader.GetModule(), Symbols::CLuaGamemode_CallWithArgsSym,
 		(void*)hook_CLuaGamemode_CallWithArgs, m_pID
 	);
