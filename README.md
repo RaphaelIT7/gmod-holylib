@@ -27,6 +27,8 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- [+] Added `HolyLib.InvalidateBoneCache` function and the `HolyLib:PostEntityConstructor` hook.  
 \- [#] `util.AsyncCompress/Decompress` now use two seperate threadpools(You can change their size with the new convars).  
 \- [#] Fixed a small reference leak in `util.AsyncCompress/Decompress`. The function was leaked so it's not too big.  
+\- [#] Extented vprof to include two more functions that call hooks. (`gameevent.Listen` callbacks and Gamemode startup hooks should now also show up).  
+\- [#] Fixed a bug in `vprof` that caused CallWithArgs to show up. (shouldn't be a thing since `CallFinish` should always be called after it).  
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.5...main
