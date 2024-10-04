@@ -174,7 +174,7 @@ static void* hook_CLuaGamemode_CallWithArgs(void* funky_srv, int pool)
 
 //static std::map<std::string_view, std::string> CallWithArgsStr_strs;
 static Detouring::Hook detour_CLuaGamemode_CallWithArgsStr;
-static void* hook_CLuaGamemode_CallWithArgsStr(void* funky_srv, const char* str)
+static void* hook_CLuaGamemode_CallWithArgsStr(void* funky_srv, const char* str) // NOTE: Only used by gameevent.Listen -> CLuaGameEventListener::FireGameEvent
 {
 	if (!g_Lua)
 		return detour_CLuaGamemode_CallWithArgs.GetTrampoline<Symbols::CLuaGamemode_CallWithArgsStr>()(funky_srv, str);

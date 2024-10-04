@@ -28,6 +28,7 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- [#] `util.AsyncCompress/Decompress` now use two seperate threadpools(You can change their size with the new convars).  
 \- [#] Fixed a small reference leak in `util.AsyncCompress/Decompress`. The function was leaked so it's not too big.  
 \- [#] Extented vprof to include two more functions that call hooks. (`gameevent.Listen` callbacks and Gamemode startup hooks should now also show up).  
+\- \- Gamemode startup hooks that are now included are: `GM:CreateTeams`, `GM:PreGamemodeLoaded`, `GM:OnGamemodeLoaded`, `GM:PostGamemodeLoaded` and `GM:Initialize`.  
 \- [#] Fixed a bug in `vprof` that caused CallWithArgs to show up. (shouldn't be a thing since `CallFinish` should always be called after it).  
 
 You can see all changes here:  
