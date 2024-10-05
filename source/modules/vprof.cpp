@@ -726,9 +726,9 @@ public:
 	bool		m_bPMEInit;
 	bool		m_bPMEEnabled;
 
-	int64 m_Counters[512];
-	char m_CounterGroups[512]; // (These are CounterGroup_t's).
-	tchar *m_CounterNames[512];
+	int64 m_Counters[MAXCOUNTERS];
+	char m_CounterGroups[MAXCOUNTERS]; // (These are CounterGroup_t's).
+	tchar *m_CounterNames[MAXCOUNTERS];
 	int m_NumCounters;
 
 	unsigned m_TargetThreadId;
@@ -746,7 +746,7 @@ void CVProfModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 	Msg("m_bPMEInit: %s\n", prof->m_bPMEInit ? "true" : "false");
 	Msg("m_bPMEEnabled: %s\n", prof->m_bPMEEnabled ? "true" : "false");
 	Msg("m_NumCounters: %i\n", prof->m_NumCounters);
-	g_VProfCurrentProfile.Start();
+	prof->m_ProfileDetailLevel = 4;
 }
 
 void CVProfModule::Shutdown()
