@@ -746,6 +746,12 @@ void CVProfModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 	Msg("m_bPMEInit: %s\n", prof->m_bPMEInit ? "true" : "false");
 	Msg("m_bPMEEnabled: %s\n", prof->m_bPMEEnabled ? "true" : "false");
 	Msg("m_NumCounters: %i\n", prof->m_NumCounters);
+
+	if (!g_VProfCurrentProfile.InTargetThread())
+	{
+		Msg("Setting new targeted Thread\n");
+		g_VProfCurrentProfile.SetTargetThreadId(ThreadGetCurrentId());
+	}
 	
 	Msg("Entering Scope (%s %s %s)\n", (prof->m_enabled != 0) ? "true" : "false", prof->m_fAtRoot ? "true" : "false", g_VProfCurrentProfile.InTargetThread() ? "true" : "false");
 	g_VProfCurrentProfile.EnterScope(_T("HolyLib_Test"), 0, "HolyLib", false);
