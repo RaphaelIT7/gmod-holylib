@@ -38,17 +38,20 @@ namespace Symbols
 
 	const std::vector<Symbol> UsermessagesSym = {
 		Symbol::FromName("_ZL14g_UserMessages"),
+		Symbol::FromSignature("\x55\x48\x8D*****\xBA\x01\x00\x00\x00\x48\x89\xE5\x53\x48\x83\xEC\x08\x2A\x2A\x2A\x2A"), // 55 48 8D ?? ?? ?? ?? ?? BA 01 00 00 00 48 89 E5 53 48 83 EC 08 2A 2A 2A 2A
 	};
 
-	const std::vector<Symbol> CBaseEntity_CalcAbsolutePositionSym = {
+	const std::vector<Symbol> CBaseEntity_CalcAbsolutePositionSym = { // Can't find a 64x symbol yet....
 		Symbol::FromName("_ZN11CBaseEntity20CalcAbsolutePositionEv"),
 	};
 
 	const std::vector<Symbol> CBaseAnimating_InvalidateBoneCacheSym = {
 		Symbol::FromName("_ZN14CBaseAnimating19InvalidateBoneCacheEv"),
+		Symbol::FromSignature(""), // 
+		// How to hopefully find it(Still a pain): Search for "%5.2f : %s : %s : %5.3f\n" -> CBaseAnimating::StudioFrameAdvance() -> StudioFrameAdvanceInternal() -> Studio_InvalidateBoneCacheIfNotMatching() -> Find CBaseAnimating::InvalidateBoneCache by checking which function calls it with -1.0f
 	};
 
-	const std::vector<Symbol> CBaseEntity_PostConstructorSym = {
+	const std::vector<Symbol> CBaseEntity_PostConstructorSym = { // ToDo: 64x
 		Symbol::FromName("_ZN11CBaseEntity15PostConstructorEPKc"),
 	};
 
