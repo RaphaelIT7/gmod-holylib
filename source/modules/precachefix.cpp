@@ -17,6 +17,9 @@ public:
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
 };
 
+ConVar model_fallback("holylib_precache_modelfallback", "-1", 0, "The model index to fallback to if the precache failed");
+ConVar generic_fallback("holylib_precache_genericfallback", "-1", 0, "The generic index to fallback to if the precache failed");
+
 static CPrecacheFixModule g_pPrecacheFixModule;
 IModule* pPrecacheFixModule = &g_pPrecacheFixModule;
 
@@ -70,7 +73,7 @@ static int hook_CVEngineServer_PrecacheModel(IVEngineServer* eengine, const char
 	}
 		
 	Warning("CVEngineServer::PrecacheModel: '%s' overflow, too many models\n", mdl);
-	return 0; // The engine already handles 0 cases, so this shouldn't cause other issues, that models that failed to precache being an error model for the client or the entity may not spawn.
+	return model_fallback.GetInt(); // The engine already handles -1 cases, so this shouldn't cause other issues, that models that failed to precache being an error model for the client or the entity may not spawn.
 }
 
 static Symbols::SV_FindOrAddGeneric func_SV_FindOrAddGeneric;
@@ -113,7 +116,7 @@ static int hook_CVEngineServer_PrecacheGeneric(IVEngineServer* eengine, const ch
 	}
 		
 	Warning("CVEngineServer::PrecacheGeneric: '%s' overflow\n", mdl);
-	return 0; // ToDo: Find out, what happens when we hit the limit and verify that everything that calls this, handles a case like 0 properly.
+	return generic_fallback.GetInt(); // ToDo: Find out, what happens when we hit the limit and verify that everything that calls this, handles a case like 0 properly.
 }
 
 void CPrecacheFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)

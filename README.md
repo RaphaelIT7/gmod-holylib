@@ -31,6 +31,8 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- [#] Extented vprof to include two more functions that call hooks. (`gameevent.Listen` callbacks and Gamemode startup hooks should now also show up).  
 \- \- Gamemode startup hooks that are now included are: `GM:CreateTeams`, `GM:PreGamemodeLoaded`, `GM:OnGamemodeLoaded`, `GM:PostGamemodeLoaded` and `GM:Initialize`.  
 \- [#] Fixed a bug in `vprof` that caused CallWithArgs to show up. (shouldn't be a thing since `CallFinish` should always be called after it).  
+\- [#] Model and Generic precache now fallsback to `-1` instead of `0` by default. Models now will be errors if they fail to precache.
+\- \- [+] Added `holylib_precache_[model/generic]fallback` to change the fallback if wanted.  
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.5...main
@@ -328,6 +330,16 @@ number idx - The index the file was precache in.
 
 #### HolyLib:OnGenericPrecacheFail(string file)
 string file - The file that failed to precache.  
+
+### ConVars
+
+#### holylib_precache_modelfallback(default `-1`)
+The fallback index if a model fails to precache.  
+`-1` = Error Model  
+`0` = Invisible Model  
+
+#### holylib_precache_genericfallback(default `-1`)
+The fallback index if a generic fails to precache.  
 
 ## stringtable
 This module adds a new library called `stringtable`, which will contain all functions to handle stringtables,  
