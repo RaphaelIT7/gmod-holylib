@@ -696,6 +696,10 @@ void CVProfModule::InitDetour(bool bPreServer)
 class PLATFORM_CLASS CCVProfile 
 {
 public:
+	void EnterScope( const tchar *pszName, int detailLevel, const tchar *pBudgetGroupName, bool bAssertAccounted, int budgetFlags = BUDGETFLAG_OTHER );
+
+	bool InTargetThread() const { return ( m_TargetThreadId == (uint)ThreadGetCurrentId() ); } // <----- This function is fked. ThreadGetCurrentId doesn't return an uint! so comparing will break
+
 #ifdef VPROF_VTUNE_GROUP
 	bool		m_bVTuneGroupEnabled;
 	int			m_nVTuneGroupID;
@@ -734,6 +738,37 @@ public:
 	unsigned m_TargetThreadId;
 };
 
+inline void CCVProfile::EnterScope( const tchar *pszName, int detailLevel, const tchar *pBudgetGroupName, bool bAssertAccounted, int budgetFlags )
+{
+	if ( ( m_enabled != 0 || !m_fAtRoot ) && InTargetThread() ) // if became disabled, need to unwind back to root before stopping
+	{
+		// Only account for vprof stuff on the primary thread.
+		//if( !Plat_IsPrimaryThread() )
+		//	return;
+
+		if ( pszName != m_pCurNode->GetName() ) 
+		{
+			m_pCurNode = m_pCurNode->GetSubNode( pszName, detailLevel, pBudgetGroupName, budgetFlags );
+		}
+		m_pBudgetGroups[m_pCurNode->GetBudgetGroupID()].m_BudgetFlags |= budgetFlags;
+
+#if defined( _DEBUG ) && !defined( _X360 )
+		// 360 doesn't want this to allow tier0 debug/release .def files to match
+		if ( bAssertAccounted )
+		{
+			// FIXME
+			AssertOnce( m_pCurNode->GetBudgetGroupID() != 0 );
+		}
+#endif
+		m_pCurNode->EnterScope();
+		m_fAtRoot = false;
+	}
+#if defined(_X360) && defined(VPROF_PIX)
+	if ( m_pCurNode->GetBudgetGroupID() != VPROF_BUDGET_GROUP_ID_UNACCOUNTED )
+		PIXBeginNamedEvent( 0, pszName );
+#endif
+}
+
 void CVProfModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	CCVProfile* prof = (CCVProfile*)&g_VProfCurrentProfile;
@@ -749,12 +784,18 @@ void CVProfModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 
 	if (!g_VProfCurrentProfile.InTargetThread())
 	{
-		Msg("Setting new targeted Thread\n");
-		g_VProfCurrentProfile.SetTargetThreadId(ThreadGetCurrentId());
+		Msg("Setting new targeted Thread (%u, %u)\n", (uint)ThreadGetCurrentId(), g_VProfCurrentProfile.GetTargetThreadId());
+		g_VProfCurrentProfile.SetTargetThreadId((uint)ThreadGetCurrentId());
+		Msg("new targeted Thread (%s, %u, %u % s)\n", 
+			prof->InTargetThread() ? "true" : "false", 
+			g_VProfCurrentProfile.GetTargetThreadId(), 
+			(uint)ThreadGetCurrentId(),
+			((uint)ThreadGetCurrentId() == g_VProfCurrentProfile.GetTargetThreadId()) ? "true" : "false"
+		);
 	}
 	
-	Msg("Entering Scope (%s %s %s)\n", (prof->m_enabled != 0) ? "true" : "false", prof->m_fAtRoot ? "true" : "false", g_VProfCurrentProfile.InTargetThread() ? "true" : "false");
-	g_VProfCurrentProfile.EnterScope(_T("HolyLib_Test"), 0, "HolyLib", false);
+	Msg("Entering Scope (%s %s %s)\n", (prof->m_enabled != 0) ? "true" : "false", prof->m_fAtRoot ? "true" : "false", prof->InTargetThread() ? "true" : "false");
+	prof->EnterScope(_T("HolyLib_Test"), 0, "HolyLib", false);
 	Msg("m_fAtRoot: %s\n", prof->m_fAtRoot ? "true" : "false");
 	g_VProfCurrentProfile.ExitScope();
 	Msg("Exiting Scope\n");
