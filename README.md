@@ -24,6 +24,7 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 3. Put the `gmsv_holylib_linux.so` into the `garrysmod/lua/bin/` directory.  
 
 ## Next Update
+\- [+] `vprof` now works on 64x  
 \- [+] Added `HolyLib.InvalidateBoneCache` function and the `HolyLib:PostEntityConstructor` hook.  
 \- [#] `util.AsyncCompress/Decompress` now use two seperate threadpools(You can change their size with the new convars).  
 \- [#] Fixed a small reference leak in `util.AsyncCompress/Decompress`. The function was leaked so it's not too big.  

@@ -10,13 +10,9 @@
 class CVProfModule : public IModule
 {
 public:
-#ifdef ARCHITECTURE_X86_64
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
-	virtual void Shutdown() OVERRIDE;
-#endif
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "vprof"; };
-	virtual int Compatibility() { return LINUX32 | WINDOWS32; }; // NOTE for myself: Linux64 seemingly doesn't have vprof enabled! so don't suppositly add compatbility!
+	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32; }; // NOTE for myself: Linux64 seemingly doesn't have vprof enabled! so don't suppositly add compatbility!
 };
 
 extern ConVar holylib_sv_stressbots;
@@ -691,118 +687,3 @@ void CVProfModule::InitDetour(bool bPreServer)
 		detour_Msg.Disable();
 #endif
 }
-
-#ifdef ARCHITECTURE_X86_64
-class PLATFORM_CLASS CCVProfile 
-{
-public:
-	void EnterScope( const tchar *pszName, int detailLevel, const tchar *pBudgetGroupName, bool bAssertAccounted, int budgetFlags = BUDGETFLAG_OTHER );
-
-	bool InTargetThread() const { return ( m_TargetThreadId == (uint)ThreadGetCurrentId() ); } // <----- This function is fked. ThreadGetCurrentId doesn't return an uint! so comparing will break
-
-#ifdef VPROF_VTUNE_GROUP
-	bool		m_bVTuneGroupEnabled;
-	int			m_nVTuneGroupID;
-	int			m_GroupIDStack[MAX_GROUP_STACK_DEPTH];
-	int			m_GroupIDStackDepth;
-#endif
-	int 		m_enabled;
-	bool		m_fAtRoot; // tracked for efficiency of the "not profiling" case
-	CVProfNode *m_pCurNode;
-	CVProfNode	m_Root;
-	int			m_nFrames;
-	int			m_ProfileDetailLevel;
-	int			m_pausedEnabledDepth;
-
-	class CBudgetGroup
-	{
-	public:
-		tchar *m_pName;
-		int m_BudgetFlags;
-	};
-	
-	CBudgetGroup	*m_pBudgetGroups;
-	int			m_nBudgetGroupNamesAllocated;
-	int			m_nBudgetGroupNames;
-	void		(*m_pNumBudgetGroupsChangedCallBack)(void);
-
-	// Performance monitoring events.
-	bool		m_bPMEInit;
-	bool		m_bPMEEnabled;
-
-	int64 m_Counters[MAXCOUNTERS];
-	char m_CounterGroups[MAXCOUNTERS]; // (These are CounterGroup_t's).
-	tchar *m_CounterNames[MAXCOUNTERS];
-	int m_NumCounters;
-
-	unsigned m_TargetThreadId;
-};
-
-inline void CCVProfile::EnterScope( const tchar *pszName, int detailLevel, const tchar *pBudgetGroupName, bool bAssertAccounted, int budgetFlags )
-{
-	if ( ( m_enabled != 0 || !m_fAtRoot ) && InTargetThread() ) // if became disabled, need to unwind back to root before stopping
-	{
-		// Only account for vprof stuff on the primary thread.
-		//if( !Plat_IsPrimaryThread() )
-		//	return;
-
-		if ( pszName != m_pCurNode->GetName() ) 
-		{
-			m_pCurNode = m_pCurNode->GetSubNode( pszName, detailLevel, pBudgetGroupName, budgetFlags );
-		}
-		m_pBudgetGroups[m_pCurNode->GetBudgetGroupID()].m_BudgetFlags |= budgetFlags;
-
-#if defined( _DEBUG ) && !defined( _X360 )
-		// 360 doesn't want this to allow tier0 debug/release .def files to match
-		if ( bAssertAccounted )
-		{
-			// FIXME
-			AssertOnce( m_pCurNode->GetBudgetGroupID() != 0 );
-		}
-#endif
-		m_pCurNode->EnterScope();
-		m_fAtRoot = false;
-	}
-#if defined(_X360) && defined(VPROF_PIX)
-	if ( m_pCurNode->GetBudgetGroupID() != VPROF_BUDGET_GROUP_ID_UNACCOUNTED )
-		PIXBeginNamedEvent( 0, pszName );
-#endif
-}
-
-void CVProfModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
-{
-	CCVProfile* prof = (CCVProfile*)&g_VProfCurrentProfile;
-	Msg("m_fAtRoot: %s\n", prof->m_fAtRoot ? "true" : "false");
-	Msg("m_nFrames: %i\n", prof->m_nFrames);
-	Msg("m_ProfileDetailLevel: %i\n", prof->m_ProfileDetailLevel);
-	Msg("m_pausedEnabledDepth: %i\n", prof->m_pausedEnabledDepth);
-	Msg("m_nBudgetGroupNamesAllocated: %i\n", prof->m_nBudgetGroupNamesAllocated);
-	Msg("m_nBudgetGroupNames: %i\n", prof->m_nBudgetGroupNames);
-	Msg("m_bPMEInit: %s\n", prof->m_bPMEInit ? "true" : "false");
-	Msg("m_bPMEEnabled: %s\n", prof->m_bPMEEnabled ? "true" : "false");
-	Msg("m_NumCounters: %i\n", prof->m_NumCounters);
-
-	if (!g_VProfCurrentProfile.InTargetThread())
-	{
-		Msg("Setting new targeted Thread (%u, %u)\n", (uint)ThreadGetCurrentId(), g_VProfCurrentProfile.GetTargetThreadId());
-		g_VProfCurrentProfile.SetTargetThreadId((uint)ThreadGetCurrentId());
-		Msg("new targeted Thread (%s, %u, %u % s)\n", 
-			prof->InTargetThread() ? "true" : "false", 
-			g_VProfCurrentProfile.GetTargetThreadId(), 
-			(uint)ThreadGetCurrentId(),
-			((uint)ThreadGetCurrentId() == g_VProfCurrentProfile.GetTargetThreadId()) ? "true" : "false"
-		);
-	}
-	
-	Msg("Entering Scope (%s %s %s)\n", (prof->m_enabled != 0) ? "true" : "false", prof->m_fAtRoot ? "true" : "false", prof->InTargetThread() ? "true" : "false");
-	prof->EnterScope(_T("HolyLib_Test"), 0, "HolyLib", false);
-	Msg("m_fAtRoot: %s\n", prof->m_fAtRoot ? "true" : "false");
-	g_VProfCurrentProfile.ExitScope();
-	Msg("Exiting Scope\n");
-}
-
-void CVProfModule::Shutdown()
-{
-	g_VProfCurrentProfile.Stop();
-}
-#endif
