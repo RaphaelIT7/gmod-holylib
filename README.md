@@ -31,7 +31,7 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- [#] Extented vprof to include two more functions that call hooks. (`gameevent.Listen` callbacks and Gamemode startup hooks should now also show up).  
 \- \- Gamemode startup hooks that are now included are: `GM:CreateTeams`, `GM:PreGamemodeLoaded`, `GM:OnGamemodeLoaded`, `GM:PostGamemodeLoaded` and `GM:Initialize`.  
 \- [#] Fixed a bug in `vprof` that caused CallWithArgs to show up. (shouldn't be a thing since `CallFinish` should always be called after it).  
-\- [#] Model and Generic precache now fallsback to `-1` instead of `0` by default. Models now will be errors if they fail to precache.
+\- [#] Model and Generic precache now fallsback to `-1` instead of `0` by default. Models now will be errors if they fail to precache.  
 \- \- [+] Added `holylib_precache_[model/generic]fallback` to change the fallback if wanted.  
 
 You can see all changes here:  
