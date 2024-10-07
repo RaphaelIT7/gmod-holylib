@@ -667,13 +667,12 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 		if (extension == "vvd" || extension == "vtx" || extension == "phy" || extension == "ani")
 			isModel = true;
 
-		if (extension == "mdl" && !GetPathFromSearchCache(pFileNameT, pathID) && holylib_filesystem_threaded.GetBool())
+		if (extension == "mdl" && !GetPathFromSearchCache(pFileNameT, pathID) && holylib_filesystem_threaded.GetBool() && pathID)
 		{
 			std::string_view rawFile = nukeFileExtension(strFileName);
 
 			std::string vtxFile = rawFile.data();
 			vtxFile.append(".vtx");
-			Msg("Vtx: %s, %s\n", vtxFile.data(), pathID);
 			if (!GetPathFromSearchCache(vtxFile.data(), pathID))
 			{
 				FilesystemJob* job = new FilesystemJob;
