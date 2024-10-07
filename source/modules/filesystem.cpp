@@ -667,51 +667,6 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 		if (extension == "vvd" || extension == "vtx" || extension == "phy" || extension == "ani")
 			isModel = true;
 
-		if (extension == "mdl" && !GetPathFromSearchCache(pFileNameT, pathID) && holylib_filesystem_threaded.GetBool() && pathID)
-		{
-			std::string_view rawFile = nukeFileExtension(strFileName);
-
-			std::string vtxFile = rawFile.data();
-			vtxFile.append(".vtx");
-			if (!GetPathFromSearchCache(vtxFile.data(), pathID))
-			{
-				FilesystemJob* job = new FilesystemJob;
-				job->fileName = vtxFile;
-				job->gamePath = pathID;
-				pFileSystemPool->QueueCall(AsyncFileExists, job);
-			}
-
-			std::string vvdFile = rawFile.data();
-			vvdFile.append(".vvd");
-			if (!GetPathFromSearchCache(vvdFile.data(), pathID))
-			{
-				FilesystemJob* job = new FilesystemJob;
-				job->fileName = vvdFile;
-				job->gamePath = pathID;
-				pFileSystemPool->QueueCall(AsyncFileExists, job);
-			}
-
-			std::string phyFile = rawFile.data();
-			phyFile.append(".phy");
-			if (!GetPathFromSearchCache(phyFile.data(), pathID))
-			{
-				FilesystemJob* job = new FilesystemJob;
-				job->fileName = phyFile;
-				job->gamePath = pathID;
-				pFileSystemPool->QueueCall(AsyncFileExists, job);
-			}
-
-			std::string aniFile = rawFile.data();
-			aniFile.append(".ani");
-			if (!GetPathFromSearchCache(aniFile.data(), pathID))
-			{
-				FilesystemJob* job = new FilesystemJob;
-				job->fileName = aniFile;
-				job->gamePath = pathID;
-				pFileSystemPool->QueueCall(AsyncFileExists, job);
-			}
-		}
-
 		if (isModel)
 		{
 			if (shouldWeCare(strFileName)) // Skip shitty files. I had enouth
@@ -1176,6 +1131,16 @@ extern void FileAsyncReadThink();
 void CFileSystemModule::Think(bool bSimulating)
 {
 	FileAsyncReadThink();
+
+	if (pFinishedEntries.size() > 0)
+	{
+		pFinishMutex.Lock();
+		for (FilesystemJob* pJob : pFinishedEntries)
+			delete pJob;
+
+		pFinishedEntries.clear();
+		pFinishMutex.Unlock();
+	}
 
 	if (!holylib_filesystem_cachefilehandle.GetBool())
 		return;
@@ -1859,6 +1824,10 @@ void CFileSystemModule::LuaShutdown()
 
 void CFileSystemModule::Shutdown()
 {
+	pFileSystemPool->ExecuteAll();
+	V_DestroyThreadPool(pFileSystemPool);
+	pFileSystemPool = NULL;
+
 	m_PredictionCheck.clear();
 	// ToDo: Also clear there other shit.
 }
