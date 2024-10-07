@@ -673,6 +673,7 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 
 			std::string vtxFile = rawFile.data();
 			vtxFile.append(".vtx");
+			Msg("Vtx: %s, %s\n", vtxFile.data(), pathID);
 			if (!GetPathFromSearchCache(vtxFile.data(), pathID))
 			{
 				FilesystemJob* job = new FilesystemJob;
