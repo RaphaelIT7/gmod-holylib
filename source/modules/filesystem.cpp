@@ -49,9 +49,34 @@ static ConVar holylib_filesystem_fixgmodpath("holylib_filesystem_fixgmodpath", "
 	"If enabled, it will fix up weird gamemode paths like sandbox/gamemode/sandbox/gamemode which gmod likes to use.");
 static ConVar holylib_filesystem_cachefilehandle("holylib_filesystem_cachefilehandle", "0", 0, 
 	"If enabled, it will cache the file handle and return it if needed. This will probably cause issues if you open the same file multiple times.");
+
 // Optimization Idea: When Gmod calls GetFileTime, we could try to get the filehandle in parallel to have it ready when gmod calls it.
 // We could also cache every FULL searchpath to not have to look up a file every time.  
 
+IThreadPool* pFileSystemPool = NULL;
+
+static void OnThreadsChange(IConVar* convar, const char* pOldValue, float flOldValue)
+{
+	pFileSystemPool->ExecuteAll();
+	pFileSystemPool->Stop();
+	Util::StartThreadPool(pFileSystemPool, ((ConVar*)convar)->GetInt());
+}
+
+static ConVar holylib_filesystem_threaded("holylib_filesystem_threaded", "1", 0, "If enabled the filesysten will use a threadpool to improve speed");
+static ConVar holylib_filesystem_threads("holylib_filesystem_threads", "5", 0, "The number of threads the filesystem is allowed to use.", OnThreadsChange);
+
+struct FilesystemJob
+{
+	std::string fileName;
+	std::string gamePath;
+};
+
+static std::vector<FilesystemJob*> pFinishedEntries;
+static CThreadFastMutex pFinishMutex;
+static void AsyncFileExists(FilesystemJob*& entry)
+{
+	g_pFullFileSystem->FileExists(entry->fileName.c_str(), entry->gamePath.c_str());
+}
 
 static const char* nullPath = "NULL_PATH";
 extern void DeleteFileHandle(FileHandle_t handle);
@@ -637,6 +662,52 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 		bool isModel = false;
 		if (extension == "vvd" || extension == "vtx" || extension == "phy" || extension == "ani")
 			isModel = true;
+
+		if (extension == "mdl" && !GetPathFromSearchCache(strFileName.data(), pathID) && holylib_filesystem_threaded.GetBool())
+		{
+			std::string_view rawFile = nukeFileExtension(strFileName);
+
+			std::string vtxFile = rawFile.data();
+			vtxFile.append(".vtx");
+			if (!GetPathFromSearchCache(vtxFile.data(), pathID))
+			{
+				FilesystemJob* job = new FilesystemJob;
+				job->fileName = vtxFile;
+				job->gamePath = pathID;
+				pFileSystemPool->QueueCall(AsyncFileExists, job);
+			}
+
+			std::string vvdFile = rawFile.data();
+			vvdFile.append(".vvd");
+			if (!GetPathFromSearchCache(vvdFile.data(), pathID))
+			{
+				FilesystemJob* job = new FilesystemJob;
+				job->fileName = vvdFile;
+				job->gamePath = pathID;
+				job->gamePath = pathID;
+				pFileSystemPool->QueueCall(AsyncFileExists, job);
+			}
+
+			std::string phyFile = rawFile.data();
+			phyFile.append(".phy");
+			if (!GetPathFromSearchCache(phyFile.data(), pathID))
+			{
+				FilesystemJob* job = new FilesystemJob;
+				job->fileName = phyFile;
+				job->gamePath = pathID;
+				pFileSystemPool->QueueCall(AsyncFileExists, job);
+			}
+
+			std::string aniFile = rawFile.data();
+			aniFile.append(".ani");
+			if (!GetPathFromSearchCache(aniFile.data(), pathID))
+			{
+				FilesystemJob* job = new FilesystemJob;
+				job->fileName = aniFile;
+				job->gamePath = pathID;
+				pFileSystemPool->QueueCall(AsyncFileExists, job);
+			}
+		}
 
 		if (isModel)
 		{
@@ -1323,6 +1394,9 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 {
 	if (!bPreServer)
 		return;
+
+	pFileSystemPool = V_CreateThreadPool();
+	Util::StartThreadPool(pFileSystemPool, holylib_filesystem_threads.GetInt());
 
 	// ToDo: Redo EVERY Hook so that we'll abuse the vtable instead of symbols.  
 	// Use the ClassProxy or so which should also allow me to port this to windows.  

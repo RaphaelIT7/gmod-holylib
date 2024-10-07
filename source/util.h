@@ -5,11 +5,18 @@
 #include "eiface.h"
 #include <tier3/tier3.h>
 #include "vprof.h"
+#define DEDICATED
+#include "vstdlib/jobthread.h"
 
 class IVEngineServer;
 extern IVEngineServer* engine;
 
 #define VPROF_BUDGETGROUP_HOLYLIB _T("HolyLib")
+
+#if ARCHITECTURE_IS_X86_64
+#define V_CreateThreadPool CreateNewThreadPool
+#define V_DestroyThreadPool DestroyThreadPool
+#endif
 
 extern GarrysMod::Lua::IUpdatedLuaInterface* g_Lua;
 
@@ -57,6 +64,17 @@ namespace Util
 	extern CBasePlayer* GetPlayerByClient(CBaseClient* client);
 
 	extern bool ShouldLoad();
+
+	inline void StartThreadPool(IThreadPool* pool, int iThreads)
+	{
+		ThreadPoolStartParams_t startParams;
+		startParams.nThreads = iThreads;
+		startParams.nThreadsMax = startParams.nThreads;
+#if ARCHITECTURE_IS_X86_64
+		startParams.bEnableOnLinuxDedicatedServer = true;
+#endif
+		pool->Start(startParams);
+	}
 }
 
 // Push functions from modules: 

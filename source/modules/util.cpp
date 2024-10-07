@@ -2,8 +2,6 @@
 #include <GarrysMod/Lua/Interface.h>
 #include "lua.h"
 #include "Bootil/Bootil.h"
-#define DEDICATED
-#include "vstdlib/jobthread.h"
 
 class CUtilModule : public IModule
 {
@@ -19,40 +17,24 @@ public:
 static CUtilModule g_pUtilModule;
 IModule* pUtilModule = &g_pUtilModule;
 
-#if ARCHITECTURE_IS_X86_64
-#define V_CreateThreadPool CreateNewThreadPool
-#define V_DestroyThreadPool DestroyThreadPool
-#endif
-
-inline void StartThreadPool(IThreadPool* pool, int iThreads)
-{
-	ThreadPoolStartParams_t startParams;
-	startParams.nThreads = iThreads;
-	startParams.nThreadsMax = startParams.nThreads;
-#if ARCHITECTURE_IS_X86_64
-	startParams.bEnableOnLinuxDedicatedServer = true;
-#endif
-	pool->Start(startParams);
-}
-
-IThreadPool* pCompressPool = NULL;
-IThreadPool* pDecompressPool = NULL;
-void OnCompressThreadsChange(IConVar* convar, const char* pOldValue, float flOldValue)
+static IThreadPool* pCompressPool = NULL;
+static IThreadPool* pDecompressPool = NULL;
+static void OnCompressThreadsChange(IConVar* convar, const char* pOldValue, float flOldValue)
 {
 	pCompressPool->ExecuteAll(); // ToDo: Do we need to do this?
 	pCompressPool->Stop();
-	StartThreadPool(pCompressPool, ((ConVar*)convar)->GetInt());
+	Util::StartThreadPool(pCompressPool, ((ConVar*)convar)->GetInt());
 }
 
-void OnDecompressThreadsChange(IConVar* convar, const char* pOldValue, float flOldValue)
+static void OnDecompressThreadsChange(IConVar* convar, const char* pOldValue, float flOldValue)
 {
 	pDecompressPool->ExecuteAll();
 	pDecompressPool->Stop();
-	StartThreadPool(pDecompressPool, ((ConVar*)convar)->GetInt());
+	Util::StartThreadPool(pDecompressPool, ((ConVar*)convar)->GetInt());
 }
 
-ConVar compressthreads("holylib_util_compressthreads", "1", 0, "The number of threads to use for util.AsyncCompress", OnCompressThreadsChange);
-ConVar decompressthreads("holylib_util_decompressthreads", "1", 0, "The number of threads to use for util.AsyncDecompress", OnDecompressThreadsChange);
+static ConVar compressthreads("holylib_util_compressthreads", "1", 0, "The number of threads to use for util.AsyncCompress", OnCompressThreadsChange);
+static ConVar decompressthreads("holylib_util_decompressthreads", "1", 0, "The number of threads to use for util.AsyncDecompress", OnDecompressThreadsChange);
 
 
 struct CompressEntry
@@ -106,10 +88,10 @@ inline void StartThread()
 		return;
 
 	pCompressPool = V_CreateThreadPool();
-	StartThreadPool(pCompressPool, compressthreads.GetInt());
+	Util::StartThreadPool(pCompressPool, compressthreads.GetInt());
 
 	pDecompressPool = V_CreateThreadPool();
-	StartThreadPool(pDecompressPool, decompressthreads.GetInt());
+	Util::StartThreadPool(pDecompressPool, decompressthreads.GetInt());
 }
 
 LUA_FUNCTION_STATIC(util_AsyncCompress)
