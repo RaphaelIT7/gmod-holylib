@@ -1628,6 +1628,7 @@ LUA_FUNCTION_STATIC(filesystem_Find)
 	}
 	g_pFullFileSystem->FindClose(findHandle);
 
+	LUA->CreateTable();
 	if (files.size() > 0) {
 		if (strcmp(sorting, "namedesc") == 0) { // sort the files descending by name.
 			std::sort(files.begin(), files.end(), std::greater<std::string>());
@@ -1643,8 +1644,6 @@ LUA_FUNCTION_STATIC(filesystem_Find)
 			std::sort(folders.begin(), folders.end());
 		}
 
-		LUA->CreateTable();
-
 		int i = 0;
 		for (std::string file : files)
 		{
@@ -1652,13 +1651,10 @@ LUA_FUNCTION_STATIC(filesystem_Find)
 			LUA->PushString(file.c_str());
 			LUA->SetField(-2, std::to_string(i).c_str());
 		}
-	} else {
-		LUA->PushNil();
 	}
 
+	LUA->CreateTable();
 	if (folders.size() > 0) {
-		LUA->CreateTable();
-
 		int i = 0;
 		for (std::string folder : folders)
 		{
@@ -1666,8 +1662,6 @@ LUA_FUNCTION_STATIC(filesystem_Find)
 			LUA->PushString(folder.c_str());
 			LUA->SetField(-2, std::to_string(i).c_str());
 		}
-	} else {
-		LUA->PushNil();
 	}
 
 	return 2;
