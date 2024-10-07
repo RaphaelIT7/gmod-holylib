@@ -103,6 +103,7 @@ You can add `-holylib_enable_[module name] 0` to the startup to disable modules 
 
 Every module also has his `holylib_debug_[module name]` version and command line option like above, but not all modules use it.  
 The modules that use that convar have it listed in their ConVars chapter.  
+All hooks that get called use `hook.Run`. Gmod calls `gamemode.Call`.  
 
 ## holylib
 This module contains the HolyLib library.   
@@ -319,7 +320,6 @@ Instead it will throw a warning.
 If these stringtables overflow, expect the models that failed to precache to be an error.  
 
 ### Hooks
-This module calls these hooks from (`hook.Run`)  
 
 #### HolyLib:OnModelPrecache(string model, number idx)
 string model - The model that failed to precache.  

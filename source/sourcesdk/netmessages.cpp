@@ -26,7 +26,6 @@ bool SVC_UserMessage::WriteToBuffer( bf_write &buffer )
 	buffer.WriteUBitLong( GetType(), NETMSG_TYPE_BITS );
 	buffer.WriteByte( m_nMsgType );
 	buffer.WriteUBitLong( m_nLength, NETMSG_LENGTH_BITS );  // max 256 * 8 bits, see MAX_USER_MSG_DATA
-	Msg("SVC_UserMessage Length: %i\n", m_nLength);
 
 	return buffer.WriteBits( m_DataOut.GetData(), m_nLength );
 }
@@ -73,6 +72,7 @@ bool SVC_VoiceData::ReadFromBuffer(bf_read& buffer)
 	{
 		m_xuid = buffer.ReadLongLong();
 	}
+
 
 	m_DataIn = buffer;
 	return buffer.SeekRelative(m_nLength);
