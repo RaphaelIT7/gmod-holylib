@@ -76,6 +76,10 @@ static CThreadFastMutex pFinishMutex;
 static void AsyncFileExists(FilesystemJob*& entry)
 {
 	g_pFullFileSystem->FileExists(entry->fileName.c_str(), entry->gamePath.c_str());
+
+	pFinishMutex.Lock();
+	pFinishedEntries.push_back(entry);
+	pFinishMutex.Unlock();
 }
 
 static const char* nullPath = "NULL_PATH";
@@ -663,7 +667,7 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 		if (extension == "vvd" || extension == "vtx" || extension == "phy" || extension == "ani")
 			isModel = true;
 
-		if (extension == "mdl" && !GetPathFromSearchCache(strFileName.data(), pathID) && holylib_filesystem_threaded.GetBool())
+		if (extension == "mdl" && !GetPathFromSearchCache(pFileNameT, pathID) && holylib_filesystem_threaded.GetBool())
 		{
 			std::string_view rawFile = nukeFileExtension(strFileName);
 
