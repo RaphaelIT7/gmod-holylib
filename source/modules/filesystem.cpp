@@ -688,7 +688,6 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 				FilesystemJob* job = new FilesystemJob;
 				job->fileName = vvdFile;
 				job->gamePath = pathID;
-				job->gamePath = pathID;
 				pFileSystemPool->QueueCall(AsyncFileExists, job);
 			}
 
@@ -1613,7 +1612,7 @@ LUA_FUNCTION_STATIC(filesystem_Find)
 
 	const char* filepath = LUA->CheckString(1);
 	const char* path = LUA->CheckString(2);
-	const char* sorting = LUA->CheckString(3);
+	const char* sorting = g_Lua->CheckStringOpt(3, "");
 
 	FileFindHandle_t findHandle;
 	const char *pFilename = g_pFullFileSystem->FindFirstEx(filepath, path, &findHandle);
