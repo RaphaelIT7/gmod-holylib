@@ -28,11 +28,15 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- [+] Added `HolyLib.InvalidateBoneCache` function and the `HolyLib:PostEntityConstructor` hook.  
 \- [#] `util.AsyncCompress/Decompress` now use two seperate threadpools(You can change their size with the new convars).  
 \- [#] Fixed a small reference leak in `util.AsyncCompress/Decompress`. The function was leaked so it's not too big.  
-\- [#] Extented vprof to include two more functions that call hooks. (`gameevent.Listen` callbacks and Gamemode startup hooks should now also show up).  
+\- [#] Extented vprof to include two more functions that call hooks.  
+\- \- `gameevent.Listen` callbacks and Gamemode startup hooks should now also show up.  
 \- \- Gamemode startup hooks that are now included are: `GM:CreateTeams`, `GM:PreGamemodeLoaded`, `GM:OnGamemodeLoaded`, `GM:PostGamemodeLoaded` and `GM:Initialize`.  
-\- [#] Fixed a bug in `vprof` that caused CallWithArgs to show up. (shouldn't be a thing since `CallFinish` should always be called after it).  
-\- [#] Model and Generic precache now fallsback to `-1` instead of `0` by default. Models now will be errors if they fail to precache.  
+\- [#] Fixed a bug in `vprof` that caused CallWithArgs to show up.  
+\- \- shouldn't be a thing since `CallFinish` should always be called after it.  
+\- [#] Model and Generic precache now fallsback to `-1` instead of `0` by default.  
 \- \- [+] Added `holylib_precache_[model/generic]fallback` to change the fallback if wanted.  
+\- \- [#] Models now will be errors if they fail to precache.  
+\- [+] `HolyLib:On[Generic/Model]PrecacheFail` hooks now also allow you to change the fallback.  
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.5...main
@@ -321,15 +325,18 @@ This module calls these hooks from (`hook.Run`)
 string model - The model that failed to precache.  
 number idx - The index the model was precache in.  
 
-#### HolyLib:OnModelPrecacheFail(string model)
+#### number HolyLib:OnModelPrecacheFail(string model)
 string model - The model that failed to precache.  
+Return a index number to let the engine fallback to that model or return `nil` to just let it become an error model.  
 
 #### HolyLib:OnGenericPrecache(string file, number idx)
 string file - The file that failed to precache.  
 number idx - The index the file was precache in.  
 
-#### HolyLib:OnGenericPrecacheFail(string file)
+#### number HolyLib:OnGenericPrecacheFail(string file)
 string file - The file that failed to precache.  
+Return a index number to let the engine fallback to that generic or return `nil` to just let it be.  
+Idk if it's a good Idea to play with it's fallback.  
 
 ### ConVars
 

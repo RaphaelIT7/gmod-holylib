@@ -66,14 +66,19 @@ static int hook_CVEngineServer_PrecacheModel(IVEngineServer* eengine, const char
 		return idx;
 	}
 
+	int iModelFallback = model_fallback.GetInt();
 	if (Lua::PushHook("HolyLib:OnModelPrecacheFail"))
 	{
 		g_Lua->PushString(mdl);
-		g_Lua->CallFunctionProtected(2, 0, true);
+		if (g_Lua->CallFunctionProtected(2, 1, true))
+		{
+			iModelFallback = g_Lua->CheckNumberOpt(-1, iModelFallback);
+			g_Lua->Pop(1);
+		}
 	}
 		
 	Warning("CVEngineServer::PrecacheModel: '%s' overflow, too many models\n", mdl);
-	return model_fallback.GetInt(); // The engine already handles -1 cases, so this shouldn't cause other issues, that models that failed to precache being an error model for the client or the entity may not spawn.
+	return iModelFallback; // The engine already handles -1 cases, so this shouldn't cause other issues, that models that failed to precache being an error model for the client or the entity may not spawn.
 }
 
 static Symbols::SV_FindOrAddGeneric func_SV_FindOrAddGeneric;
@@ -109,14 +114,19 @@ static int hook_CVEngineServer_PrecacheGeneric(IVEngineServer* eengine, const ch
 		return idx;
 	}
 
+	int iGenericFallback = generic_fallback.GetInt();
 	if (Lua::PushHook("HolyLib:OnGenericPrecacheFail"))
 	{
 		g_Lua->PushString(mdl);
-		g_Lua->CallFunctionProtected(2, 0, true);
+		if (g_Lua->CallFunctionProtected(2, 1, true))
+		{
+			iGenericFallback = g_Lua->CheckNumberOpt(-1, iGenericFallback);
+			g_Lua->Pop(1);
+		}
 	}
 		
 	Warning("CVEngineServer::PrecacheGeneric: '%s' overflow\n", mdl);
-	return generic_fallback.GetInt(); // ToDo: Find out, what happens when we hit the limit and verify that everything that calls this, handles a case like 0 properly.
+	return iGenericFallback; // ToDo: Find out, what happens when we hit the limit and verify that everything that calls this, handles a case like 0 properly.
 }
 
 void CPrecacheFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
