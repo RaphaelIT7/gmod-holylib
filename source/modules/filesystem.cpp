@@ -48,7 +48,8 @@ static ConVar holylib_filesystem_splitfallback("holylib_filesystem_splitfallback
 static ConVar holylib_filesystem_fixgmodpath("holylib_filesystem_fixgmodpath", "1", 0, 
 	"If enabled, it will fix up weird gamemode paths like sandbox/gamemode/sandbox/gamemode which gmod likes to use.");
 static ConVar holylib_filesystem_cachefilehandle("holylib_filesystem_cachefilehandle", "0", 0, 
-	"If enabled, it will cache the file handle and return it if needed. This will probably cause issues if you open the same file multiple times.");
+	"If enabled, it will cache the file handle and return it if needed. This will probably cause issues if you open the same file multiple times.");;
+
 
 // Optimization Idea: When Gmod calls GetFileTime, we could try to get the filehandle in parallel to have it ready when gmod calls it.
 // We could also cache every FULL searchpath to not have to look up a file every time.  
@@ -62,8 +63,10 @@ static void OnThreadsChange(IConVar* convar, const char* pOldValue, float flOldV
 	Util::StartThreadPool(pFileSystemPool, ((ConVar*)convar)->GetInt());
 }
 
-static ConVar holylib_filesystem_threaded("holylib_filesystem_threaded", "1", 0, "If enabled the filesysten will use a threadpool to improve speed");
-static ConVar holylib_filesystem_threads("holylib_filesystem_threads", "5", 0, "The number of threads the filesystem is allowed to use.", OnThreadsChange);
+static ConVar holylib_filesystem_threaded("holylib_filesystem_threaded", "1", 0,
+	"If enabled the filesysten will use a threadpool to improve speed");
+static ConVar holylib_filesystem_threads("holylib_filesystem_threads", "5", 0,
+	"The number of threads the filesystem is allowed to use.", OnThreadsChange);
 
 struct FilesystemJob
 {
@@ -73,14 +76,6 @@ struct FilesystemJob
 
 static std::vector<FilesystemJob*> pFinishedEntries;
 static CThreadFastMutex pFinishMutex;
-static void AsyncFileExists(FilesystemJob*& entry)
-{
-	g_pFullFileSystem->FileExists(entry->fileName.c_str(), entry->gamePath.c_str());
-
-	pFinishMutex.Lock();
-	pFinishedEntries.push_back(entry);
-	pFinishMutex.Unlock();
-}
 
 static const char* nullPath = "NULL_PATH";
 extern void DeleteFileHandle(FileHandle_t handle);
@@ -239,6 +234,15 @@ static void NukeSearchCache() // NOTE: We actually never nuke it :D
 		Msg("holylib - NukeSearchCache: Search cache got nuked\n");
 
 	m_SearchCache.clear(); // Now causes a memory leak :D (Should I try to solve it? naaaaaa :^)
+}
+
+static void AsyncFileExists(FilesystemJob*& entry)
+{
+	g_pFullFileSystem->FileExists(entry->fileName.c_str(), entry->gamePath.c_str());
+
+	pFinishMutex.Lock();
+	pFinishedEntries.push_back(entry);
+	pFinishMutex.Unlock();
 }
 
 static void DumpSearchcacheCmd(const CCommand &args)
@@ -1220,7 +1224,7 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 	if (!g_pModuleManager.IsUsingGhostInj())
 	{
 		// Humongus size because you can have a huge amount of searchpaths.
-		int iSize = 1 << 16;
+		constexpr int iSize = 1 << 16;
 		char* pChar = new char[iSize];
 		int iLength = g_pFullFileSystem->GetSearchPath("GAME", true, pChar, iSize);
 		if (iSize <= iLength)
@@ -1349,7 +1353,7 @@ inline const char* CPathIDInfo::GetPathIDString() const
 
 inline const char* CSearchPath::GetPathIDString() const
 {
-	return m_pPathIDInfo->GetPathIDString();
+	return m_pPathIDInfo->GetPathIDString(); // When can we nuke it :>
 }
 
 static Symbols::CBaseFileSystem_CSearchPath_GetDebugString func_CBaseFileSystem_CSearchPath_GetDebugString;
