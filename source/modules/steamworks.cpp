@@ -2,6 +2,8 @@
 #include <GarrysMod/Lua/Interface.h>
 #include "lua.h"
 #include "sourcesdk/sv_steamauth.h"
+#include "steam/isteamclient.h"
+#include "steam/steamclientpublic.h"
 
 class CSteamWorksModule : public IModule
 {
@@ -9,6 +11,7 @@ public:
 	virtual void LuaInit(bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown() OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
+	virtual void Shutdown() OVERRIDE;
 	virtual const char* Name() { return "steamworks"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
 };
@@ -37,6 +40,18 @@ static Detouring::Hook detour_CSteam3Server_OnLogonSuccess;
 static void hook_CSteam3Server_OnLogonSuccess(CSteam3Server* srv, SteamServersConnected_t* info)
 {		
 	detour_CSteam3Server_OnLogonSuccess.GetTrampoline<Symbols::CSteam3Server_OnLogonSuccess>()(srv, info);
+
+	if (!g_pSteamUser)
+	{
+		ISteamClient* pSteamClient = SteamGameServerClient();
+
+		if (pSteamClient)
+		{
+			HSteamPipe hSteamPipe = pSteamClient->CreateSteamPipe();
+			HSteamUser hSteamUser = pSteamClient->CreateLocalUser(&hSteamPipe, k_EAccountTypeAnonUser);
+			g_pSteamUser = pSteamClient->GetISteamUser(hSteamUser, hSteamPipe, "SteamUser023");
+		}
+	}
 
 	if (Lua::PushHook("HolyLib:OnSteamConnect"))
 	{
@@ -137,4 +152,9 @@ void CSteamWorksModule::InitDetour(bool bPreServer)
 	func_CSteam3Server_Shutdown = (Symbols::CSteam3Server_Shutdown)Detour::GetFunction(engine_loader.GetModule(), Symbols::CSteam3Server_ShutdownSym);
 	func_CSteam3Server_Activate = (Symbols::CSteam3Server_Activate)Detour::GetFunction(engine_loader.GetModule(), Symbols::CSteam3Server_ActivateSym);
 	func_SV_InitGameServerSteam = (Symbols::SV_InitGameServerSteam)Detour::GetFunction(engine_loader.GetModule(), Symbols::SV_InitGameServerSteamSym);
+}
+
+void CSteamWorksModule::Shutdown()
+{
+	g_pSteamUser = nullptr;
 }

@@ -9,6 +9,7 @@
 
 GarrysMod::Lua::IUpdatedLuaInterface* g_Lua;
 IVEngineServer* engine;
+ISteamUser* g_pSteamUser;
 CGlobalEntityList* Util::entitylist = NULL;
 CUserMessages* Util::pUserMessages;
 
