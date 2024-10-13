@@ -4,7 +4,6 @@
 #include "Bootil/Bootil.h"
 #include <netmessages.h>
 #include "sourcesdk/baseclient.h"
-#include "steam/isteamuser.h"
 
 class CVoiceChatModule : public IModule
 {
@@ -155,12 +154,12 @@ LUA_FUNCTION_STATIC(VoiceData_GetUncompressedData)
 {
 	VoiceData* pData = Get_VoiceData(1, true);
 
-	if (!SteamUser())
+	if (!g_pSteamUser)
 		LUA->ThrowError("Failed to get SteamUser!\n");
 
 	uint32 pDecompressedLength;
 	char* pDecompressed = new char[20000];
-	SteamUser()->DecompressVoice(
+	g_pSteamUser->DecompressVoice(
 		pData->pData, pData->iLength,
 		pDecompressed, 20000,
 		&pDecompressedLength, 44100
