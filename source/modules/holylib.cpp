@@ -9,6 +9,7 @@
 #include "iclient.h"
 #include "netmessages.h"
 #include "net.h"
+#include "sourcesdk/baseclient.h"
 
 class CHolyLibModule : public IModule
 {
@@ -248,6 +249,29 @@ static void hook_CBaseEntity_PostConstructor(CBaseEntity* pEnt, const char* szCl
 	detour_CBaseEntity_PostConstructor.GetTrampoline<Symbols::CBaseEntity_PostConstructor>()(pEnt, szClassname);
 }
 
+LUA_FUNCTION_STATIC(SetSignOnState)
+{
+	CBaseClient* pClient = NULL;
+	if (LUA->IsType(1, GarrysMod::Lua::Type::Entity))
+	{
+		pClient = Util::GetClientByPlayer(Util::Get_Player(1, true));
+	} else {
+		pClient = Util::GetClientByUserID(LUA->CheckNumber(1));
+	}
+
+	int iSignOnState = LUA->CheckNumber(2);
+	int iSpawnCount = LUA->CheckNumber(3);
+
+	if (!pClient)
+	{
+		LUA->PushBool(false);
+		return 1;
+	}
+
+	LUA->PushBool(pClient->SetSignonState(iSignOnState, iSpawnCount));
+	return 1;
+}
+
 void CHolyLibModule::LuaInit(bool bServerInit)
 {
 	if (!bServerInit)
@@ -261,6 +285,7 @@ void CHolyLibModule::LuaInit(bool bServerInit)
 			Util::AddFunc(ServerExecute, "ServerExecute");
 			Util::AddFunc(IsMapValid, "IsMapValid");
 			Util::AddFunc(InvalidateBoneCache, "InvalidateBoneCache");
+			Util::AddFunc(SetSignOnState, "SetSignOnState");
 
 			// Networking stuff
 			Util::AddFunc(_EntityMessageBegin, "EntityMessageBegin");

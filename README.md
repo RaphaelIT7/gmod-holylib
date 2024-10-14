@@ -158,6 +158,10 @@ Invalidates the bone cache of the given entity.
 
 > NOTE: Only uses this on Entities that are Animated / Inherit the CBaseAnimating class. Or else it will throw a Lua error.  
 
+#### bool HolyLib.SetSignonState(Player/number ply/userid, number signOnState, number spawnCount)
+Sets the SignOnState for the given client.  
+Returns `true` on success.  
+
 ### Hooks
 
 #### string HolyLib:GetGModTags()
