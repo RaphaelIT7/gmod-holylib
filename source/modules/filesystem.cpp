@@ -48,7 +48,9 @@ static ConVar holylib_filesystem_splitfallback("holylib_filesystem_splitfallback
 static ConVar holylib_filesystem_fixgmodpath("holylib_filesystem_fixgmodpath", "1", 0, 
 	"If enabled, it will fix up weird gamemode paths like sandbox/gamemode/sandbox/gamemode which gmod likes to use.");
 static ConVar holylib_filesystem_cachefilehandle("holylib_filesystem_cachefilehandle", "0", 0, 
-	"If enabled, it will cache the file handle and return it if needed. This will probably cause issues if you open the same file multiple times.");;
+	"If enabled, it will cache the file handle and return it if needed. This will probably cause issues if you open the same file multiple times.");
+static ConVar holylib_filesystem_fastopenread("holylib_filesystem_fastopenread", "0", 0,
+	"If enabled, it will use a different way to iterate over the searchpaths to reduce the overhead they cause.");
 
 
 // Optimization Idea: When Gmod calls GetFileTime, we could try to get the filehandle in parallel to have it ready when gmod calls it.
@@ -312,7 +314,19 @@ static void ShowPredictionErrosCmd(const CCommand &args)
 	}
 	Msg("---- End of Prediction Errors ----\n");
 }
-static ConCommand showpredictionerrors("holylib_filesystem_showpredictionerrors", ShowPredictionErrosCmd, "Nukes the searchcache", 0);
+static ConCommand showpredictionerrors("holylib_filesystem_showpredictionerrors", ShowPredictionErrosCmd, "Shows all prediction errors that ocurred", 0);
+
+static void DumpSearchPaths()
+{
+	Msg("---- Searchpaths ----\n");
+	CBaseFileSystem* filesystem = (CBaseFileSystem*)g_pFullFileSystem;
+	FOR_EACH_VEC(filesystem->m_SearchPaths, i)
+	{
+		Msg("- %i \"%s\" | \"%s\"\n", i, filesystem->m_SearchPaths[i].GetPathIDString(), filesystem->m_SearchPaths[i].GetPathString());
+	}
+	Msg("---- End of Searchpaths ----\n");
+}
+static ConCommand dumpsearchpaths("holylib_filesystem_dumpsearchpaths", DumpSearchPaths, "", 0);
 
 inline void OnFileHandleOpen(FileHandle_t handle, const char* pFileMode)
 {
@@ -601,7 +615,109 @@ void AddOveridePath(const char* pFileName, const char* pPathID)
 	g_pOverridePaths[cFileName] = cPathID;
 }
 
+/*
+ * This is the OpenForRead implementation but faster.
+ */
 static Detouring::Hook detour_CBaseFileSystem_OpenForRead;
+FileHandle_t Fast_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const char* pFileNameT, const char* pOptions, unsigned flags, const char* pathID, char** ppszResolvedFilename)
+{
+	if (!holylib_filesystem_fastopenread.GetBool())
+		return detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
+
+	char pFileNameBuff[MAX_PATH];
+	const char* pFileName = pFileNameBuff;
+
+	filesystem->FixUpPath(pFileNameT, pFileNameBuff, sizeof(pFileNameBuff));
+
+	// Try the memory cache for un-restricted searches or "GAME" items.
+	if (!pathID || Q_stricmp(pathID, "GAME") == 0)
+	{
+		CMemoryFileBacking* pBacking = NULL;
+		{
+			AUTO_LOCK(filesystem->m_MemoryFileMutex);
+			CUtlHashtable< const char*, CMemoryFileBacking* >& table = filesystem->m_MemoryFileHash;
+			UtlHashHandle_t idx = table.Find(pFileName);
+			if (idx != table.InvalidHandle())
+			{
+				pBacking = table[idx];
+				pBacking->AddRef();
+			}
+		}
+		if (pBacking)
+		{
+			if (pBacking->m_nLength != -1)
+			{
+				CFileHandle* pFile = new CMemoryFileHandle(filesystem, pBacking);
+				pFile->m_type = strchr(pOptions, 'b') ? FT_MEMORY_BINARY : FT_MEMORY_TEXT;
+				return (FileHandle_t)pFile;
+			}
+			else
+			{
+				// length -1 == cached failure to read
+				return (FileHandle_t)NULL;
+			}
+		}
+		/*else if (ThreadInMainThread() && fs_report_sync_opens.GetInt() > 0)
+		{
+			DevWarning("blocking load %s\n", pFileName);
+		}*/
+	}
+
+	CFileOpenInfo openInfo(filesystem, pFileName, NULL, pOptions, flags, ppszResolvedFilename);
+
+	// Already have an absolute path?
+	// If so, don't bother iterating search paths.
+	if (V_IsAbsolutePath(pFileName))
+	{
+		VPROF_BUDGET("HolyLib - CBaseFileSystem::OpenForRead - Absolute", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
+		return detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
+	}
+
+	// Run through all the search paths.
+	PathTypeFilter_t pathFilter = FILTER_NONE;
+	if (IsX360())
+	{
+		if (flags & FSOPEN_NEVERINPACK)
+		{
+			pathFilter = FILTER_CULLPACK;
+		}
+	}
+
+	
+	//for (openInfo.m_pSearchPath = iter.GetFirst(); openInfo.m_pSearchPath != NULL; openInfo.m_pSearchPath = iter.GetNext())
+	/* {
+		FileHandle_t filehandle = hook_CBaseFileSystem_FindFileInSearchPath(filesystem, openInfo);
+		if (filehandle)
+		{
+			// Check if search path is excluded due to pure server white list,
+			// then we should make a note of this fact, and keep searching
+			if (!openInfo.m_pSearchPath->m_bIsTrustedForPureServer && openInfo.m_ePureFileClass == ePureServerFileClass_AnyTrusted)
+			{
+#ifdef PURE_SERVER_DEBUG_SPEW
+				Msg("Ignoring %s from %s for pure server operation\n", openInfo.m_pFileName, openInfo.m_pSearchPath->GetDebugString());
+#endif
+
+				filesystem->m_FileTracker2.NoteFileIgnoredForPureServer(openInfo.m_pFileName, pathID, openInfo.m_pSearchPath->m_storeId);
+				filesystem->Close(filehandle);
+				openInfo.m_pFileHandle = NULL;
+				if (ppszResolvedFilename && *ppszResolvedFilename)
+				{
+					free(*ppszResolvedFilename);
+					*ppszResolvedFilename = NULL;
+				}
+				continue;
+			}
+
+			// 
+			openInfo.HandleFileCRCTracking(openInfo.m_pFileName);
+			return filehandle;
+		}
+	}*/
+
+	//filesystem->LogFileOpen("[Failed]", pFileName, "");
+	return (FileHandle_t)0;
+}
+
 static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const char *pFileNameT, const char *pOptions, unsigned flags, const char *pathID, char **ppszResolvedFilename)
 {
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::OpenForRead", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
@@ -634,7 +750,7 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 
 		if (newPath)
 		{
-			FileHandle_t handle = detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
+			FileHandle_t handle = Fast_CBaseFileSystem_OpenForRead(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
 			if (handle) {
 				if (g_pFileSystemModule.InDebug())
 					Msg("holylib - OpenForRead: Found file in forced path! (%s, %s, %s)\n", pFileNameT, pathID, newPath);
@@ -726,7 +842,7 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 					if (g_pFileSystemModule.InDebug())
 					{
 						Msg("holylib - Prediction: predicted path failed. Let's say it doesn't exist.\n");
-						FileHandle_t file2 = detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
+						FileHandle_t file2 = Fast_CBaseFileSystem_OpenForRead(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
 						if (file2) // Verify in debug that the predictions we make are correct.
 						{
 							Msg("holylib - Prediction Error!: We predicted it to not exist, but it exists\n");
@@ -751,10 +867,10 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 	}
 
 	if (!holylib_filesystem_earlysearchcache.GetBool())
-		return detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
+		return Fast_CBaseFileSystem_OpenForRead(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
 
 	if (V_IsAbsolutePath(pFileName))
-		return detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
+		return Fast_CBaseFileSystem_OpenForRead(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
 
 	// So we now got the issue that CBaseFileSystem::CSearchPathsIterator::CSearchPathsIterator is way too slow.
 	// so we need to skip it. We do this by checking if we got the file in the search cache before we call the OpenForRead function.
@@ -787,7 +903,7 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 	
 	if (splitPath && holylib_filesystem_splitfallback.GetBool())
 	{
-		FileHandle_t file = detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
+		FileHandle_t file = Fast_CBaseFileSystem_OpenForRead(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
 		if (file)
 			return file;
 
@@ -798,7 +914,7 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 		pathID = origPath;
 	}
 
-	return detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
+	return Fast_CBaseFileSystem_OpenForRead(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
 }
 
 /*
