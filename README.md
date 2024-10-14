@@ -26,6 +26,10 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 ## Next Update
 \- [+] `vprof` now works on 64x  
 \- [+] Added `HolyLib.InvalidateBoneCache` function and the `HolyLib:PostEntityConstructor` hook.  
+\- [+] `HolyLib:On[Generic/Model]PrecacheFail` hooks now also allow you to change the fallback.  
+\- [#] Model and Generic precache now fallsback to `-1` instead of `0` by default.  
+\- \- [+] Added `holylib_precache_[model/generic]fallback` to change the fallback if wanted.  
+\- \- [#] Models now will be errors if they fail to precache.  
 \- [#] `util.AsyncCompress/Decompress` now use two seperate threadpools(You can change their size with the new convars).  
 \- [#] Fixed a small reference leak in `util.AsyncCompress/Decompress`. The function was leaked so it's not too big.  
 \- [#] Extented vprof to include two more functions that call hooks.  
@@ -33,10 +37,7 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- \- Gamemode startup hooks that are now included are: `GM:CreateTeams`, `GM:PreGamemodeLoaded`, `GM:OnGamemodeLoaded`, `GM:PostGamemodeLoaded` and `GM:Initialize`.  
 \- [#] Fixed a bug in `vprof` that caused CallWithArgs to show up.  
 \- \- shouldn't be a thing since `CallFinish` should always be called after it.  
-\- [#] Model and Generic precache now fallsback to `-1` instead of `0` by default.  
-\- \- [+] Added `holylib_precache_[model/generic]fallback` to change the fallback if wanted.  
-\- \- [#] Models now will be errors if they fail to precache.  
-\- [+] `HolyLib:On[Generic/Model]PrecacheFail` hooks now also allow you to change the fallback.  
+\- [#] `VoiceData:GetUncompressedData` got the `decompressSize` argument.
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.5...main
@@ -1530,7 +1531,9 @@ Returns the length of the data.
 #### number VoiceData:GetPlayerSlot()
 Returns the slot of the player this voicedata is originally from.  
 
-#### string VoiceData:GetUncompressedData()
+#### string VoiceData:GetUncompressedData(number decompressSize = 20000)
+number decompressSize - The number of bytes to allocate for decompression.  
+
 Returns the uncompressed voice data.  
 
 #### bool VoiceData:GetProximity()

@@ -10,9 +10,9 @@
 #include "steam/isteamuser.h"
 
 class IVEngineServer;
-extern IVEngineServer* engine;
 
-extern ISteamUser* g_pSteamUser;
+// Added to not break some sourcesdk things. Use Util::engineserver!
+extern IVEngineServer* engine;
 
 #define VPROF_BUDGETGROUP_HOLYLIB _T("HolyLib")
 

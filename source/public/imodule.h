@@ -11,7 +11,7 @@ enum Module_Compatibility
 
 class ConVar;
 class KeyValues;
-class edict_t;
+struct edict_t;
 class IModule
 {
 public:

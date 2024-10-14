@@ -4,6 +4,8 @@
 #include "Bootil/Bootil.h"
 #include <netmessages.h>
 #include "sourcesdk/baseclient.h"
+#include "steam/isteamclient.h"
+#include "steam/steamclientpublic.h"
 
 class CVoiceChatModule : public IModule
 {
@@ -11,6 +13,8 @@ public:
 	virtual void LuaInit(bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown() OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
+	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) OVERRIDE;
+	virtual void Shutdown() OVERRIDE;
 	virtual const char* Name() { return "voicechat"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
 };
@@ -150,18 +154,20 @@ LUA_FUNCTION_STATIC(VoiceData_GetData)
 	return 1;
 }
 
+ISteamUser* g_pSteamUser;
 LUA_FUNCTION_STATIC(VoiceData_GetUncompressedData)
 {
 	VoiceData* pData = Get_VoiceData(1, true);
+	int iSize = g_Lua->CheckNumberOpt(2, 20000); // How many bytes to allocate for the decompressed version. 20000 is default
 
 	if (!g_pSteamUser)
 		LUA->ThrowError("Failed to get SteamUser!\n");
 
 	uint32 pDecompressedLength;
-	char* pDecompressed = new char[20000];
+	char* pDecompressed = new char[iSize];
 	g_pSteamUser->DecompressVoice(
 		pData->pData, pData->iLength,
-		pDecompressed, 20000,
+		pDecompressed, iSize,
 		&pDecompressedLength, 44100
 	);
 
@@ -459,4 +465,24 @@ void CVoiceChatModule::InitDetour(bool bPreServer)
 		engine_loader.GetModule(), Symbols::SV_BroadcastVoiceDataSym,
 		(void*)hook_SV_BroadcastVoiceData, m_pID
 	);
+}
+
+void CVoiceChatModule::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
+{
+	if (!g_pSteamUser)
+	{
+		ISteamClient* pSteamClient = SteamGameServerClient();
+
+		if (pSteamClient)
+		{
+			HSteamPipe hSteamPipe = pSteamClient->CreateSteamPipe();
+			HSteamUser hSteamUser = pSteamClient->CreateLocalUser(&hSteamPipe, k_EAccountTypeAnonUser);
+			g_pSteamUser = pSteamClient->GetISteamUser(hSteamUser, hSteamPipe, "SteamUser023");
+		}
+	}
+}
+
+void CVoiceChatModule::Shutdown()
+{
+	g_pSteamUser = NULL;
 }
