@@ -1606,6 +1606,37 @@ concommand.Add("play_me", function(ply)
 end)
 ```
 
+The Engine's voicechat but in Lua:
+```lua
+hook.Add("HolyLib:PreProcessVoiceChat", "VoiceCHat_Engine", function(pClient, voiceData)
+	if GetConVar("voice_debugfeedbackfrom"):GetBool() then
+		print(string.format("Sending voice from: %s - playerslot: %d", pClient:Name(), pClient:EntIndex()))
+	end
+
+	local iLength = voiceData:GetLength()
+	for _, pDestClient in player.Iterator() do
+		local bSelf = pDestClient == pClient
+		local bHearsPlayer = voicechat.IsHearingClient(pDestClient, pClient)
+
+		voiceData:SetProximity(voicechat.IsProximityHearingClient(pDestClient, pClient))
+
+		if !bHearsPlayer && !bSelf then continue end
+
+		voiceData:SetLength(iLength)
+
+		if !bHearsPlayer then
+			-- Still send something, just zero length (this is so the client
+			-- can display something that shows knows the server knows it's talking).
+			voiceData:SetLength(0)
+		end
+
+		voicechat.SendVoiceData(pDestClient, voiceData)
+	end
+
+	return true -- Stop Engine handling since we fully handled it
+end)
+```
+
 ### ConVars
 
 #### holylib_voicechat_hooks(default `1`)
