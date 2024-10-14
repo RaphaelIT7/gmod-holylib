@@ -51,6 +51,8 @@ static ConVar holylib_filesystem_cachefilehandle("holylib_filesystem_cachefileha
 	"If enabled, it will cache the file handle and return it if needed. This will probably cause issues if you open the same file multiple times.");
 static ConVar holylib_filesystem_fastopenread("holylib_filesystem_fastopenread", "0", 0,
 	"If enabled, it will use a different way to iterate over the searchpaths to reduce the overhead they cause.");
+static ConVar holylib_filesystem_usesearchpathcache("holylib_filesystem_usesearchpathcache", "1", 0,
+	"If enabled, it will cache all searchpaths to not have to always loop thru all to find a single one.");
 
 
 // Optimization Idea: When Gmod calls GetFileTime, we could try to get the filehandle in parallel to have it ready when gmod calls it.
@@ -163,6 +165,62 @@ FileHandle_t GetFileHandleFromCache(std::string_view strFilePath)
 	return it->second;
 }
 
+static Symbols::CBaseFileSystem_FindSearchPathByStoreId func_CBaseFileSystem_FindSearchPathByStoreId;
+std::unordered_map<int, CSearchPath*> pSearchPaths;
+inline void ValidateSearchPathCache()
+{
+	std::vector<int> pInvalidPaths;
+	for (auto it = pSearchPaths.begin(); it != pSearchPaths.end(); ++it)
+	{
+		if (!func_CBaseFileSystem_FindSearchPathByStoreId(g_pFullFileSystem, it->first))
+			pInvalidPaths.push_back(it->first);
+	}
+
+	for (int iStoreID : pInvalidPaths)
+		pSearchPaths.erase(iStoreID);
+}
+
+void UpdateSearchPathCache(bool smallIncrement)
+{
+	VPROF_BUDGET("HolyLib(FileSystem) - UpdateSearchPathCache", VPROF_BUDGETGROUP_HOLYLIB);
+
+	int i = 0;
+	for (auto it = pSearchPaths.begin(); it != pSearchPaths.end(); ++it)
+	{
+		if (it->first > i)
+			i = it->first;
+	}
+
+	for (int j = i; j < (i + (smallIncrement ? 40 : 150)); ++j)
+	{
+		CSearchPath* pPath = func_CBaseFileSystem_FindSearchPathByStoreId(g_pFullFileSystem, j);
+		if (pPath)
+			pSearchPaths[j] = pPath;
+	}
+
+	ValidateSearchPathCache();
+}
+
+inline CSearchPath* FindSearchPathByStoreId(int iStoreID)
+{
+	if (!holylib_filesystem_usesearchpathcache.GetBool())
+	{
+		if (!func_CBaseFileSystem_FindSearchPathByStoreId)
+		{
+			Warning("HolyLib: Failed to get CBaseFileSystem::FindSearchPathByStoreId!\n");
+			return NULL;
+		}
+
+		return func_CBaseFileSystem_FindSearchPathByStoreId(g_pFullFileSystem, iStoreID);
+	}
+
+	auto it = pSearchPaths.find(iStoreID);
+	if (it == pSearchPaths.end())
+		return NULL;
+
+	return it->second;
+}
+
 std::string GetFullPath(const CSearchPath* pSearchPath, const char* strFileName) // ToDo: Possibly switch to string_view?
 {
 	char szLowercaseFilename[MAX_PATH];
@@ -174,7 +232,6 @@ std::string GetFullPath(const CSearchPath* pSearchPath, const char* strFileName)
 	return pPath;
 }
 
-static Symbols::CBaseFileSystem_FindSearchPathByStoreId func_CBaseFileSystem_FindSearchPathByStoreId;
 static std::unordered_map<std::string_view, std::unordered_map<std::string_view, int>> m_SearchCache;
 static void AddFileToSearchCache(const char* pFileName, int path, const char* pathID) // pathID should never be deleted so we don't need to manage that memory.
 {
@@ -221,13 +278,7 @@ static CSearchPath* GetPathFromSearchCache(const char* pFileName, const char* pa
 	if (g_pFileSystemModule.InDebug())
 		Msg("holylib - GetPathFromSearchCache: Getting search path for file %s from cache!\n", pFileName);
 
-	if (!func_CBaseFileSystem_FindSearchPathByStoreId)
-	{
-		Warning("HolyLib: Failed to get CBaseFileSystem::FindSearchPathByStoreId!\n");
-		return NULL;
-	}
-
-	return func_CBaseFileSystem_FindSearchPathByStoreId(g_pFullFileSystem, it->second);
+	return FindSearchPathByStoreId(it->second);
 }
 
 static void NukeSearchCache() // NOTE: We actually never nuke it :D
@@ -270,13 +321,7 @@ static void GetPathFromIDCmd(const CCommand &args)
 		return;
 	}
 
-	if (!func_CBaseFileSystem_FindSearchPathByStoreId)
-	{
-		Warning("HolyLib: Failed to get CBaseFileSystem::FindSearchPathByStoreId!\n");
-		return;
-	}
-
-	CSearchPath* path = func_CBaseFileSystem_FindSearchPathByStoreId(g_pFullFileSystem, atoi(args.Arg(1)));
+	CSearchPath* path = FindSearchPathByStoreId(atoi(args.Arg(1)));
 	if (!path)
 	{
 		Msg("Failed to find CSearchPath :/\n");
@@ -318,11 +363,11 @@ static ConCommand showpredictionerrors("holylib_filesystem_showpredictionerrors"
 
 static void DumpSearchPaths()
 {
+	ValidateSearchPathCache();
 	Msg("---- Searchpaths ----\n");
-	CBaseFileSystem* filesystem = (CBaseFileSystem*)g_pFullFileSystem;
-	FOR_EACH_VEC(filesystem->m_SearchPaths, i)
+	for(auto&[key, val] : pSearchPaths)
 	{
-		Msg("- %i \"%s\" | \"%s\"\n", i, filesystem->m_SearchPaths[i].GetPathIDString(), filesystem->m_SearchPaths[i].GetPathString());
+		Msg("- %i \"%s\" | \"%s\"\n", key, val->GetPathIDString(), val->GetPathString());
 	}
 	Msg("---- End of Searchpaths ----\n");
 }
@@ -1046,6 +1091,7 @@ static void hook_CBaseFileSystem_RemoveAllMapSearchPaths(IFileSystem* filesystem
 		return;
 
 	detour_CBaseFileSystem_RemoveAllMapSearchPaths.GetTrampoline<Symbols::CBaseFileSystem_RemoveAllMapSearchPaths>()(filesystem);
+	ValidateSearchPathCache();
 }
 
 static std::string_view getVPKFile(const std::string_view& fileName) {
@@ -1163,6 +1209,8 @@ static void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const ch
 
 	if (g_pFileSystemModule.InDebug())
 		Msg("holylib - Added Searchpath: %s %s %i\n", pPath, pathID, (int)addType);
+
+	UpdateSearchPathCache(true);
 }
 
 static Detouring::Hook detour_CBaseFileSystem_AddVPKFile;
@@ -1209,6 +1257,8 @@ static void hook_CBaseFileSystem_AddVPKFile(IFileSystem* filesystem, const char 
 
 	if (g_pFileSystemModule.InDebug())
 		Msg("holylib - Added vpk: %s %s %i\n", pPath, pathID, (int)addType);
+
+	UpdateSearchPathCache(true);
 }
 
 #define FILE_HANDLE_DELETION_DELAY 5 // 5 sec
@@ -1460,6 +1510,8 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 	
 	if (g_pFileSystemModule.InDebug())
 		Msg("Updated workshop path. (%s)\n", workshopDir.c_str());
+
+	UpdateSearchPathCache(false);
 }
 
 inline const char* CPathIDInfo::GetPathIDString() const
@@ -1834,6 +1886,8 @@ LUA_FUNCTION_STATIC(filesystem_AddSearchPath)
 	SearchPathAdd_t addType = g_Lua->GetBool(-1) ? SearchPathAdd_t::PATH_ADD_TO_HEAD : SearchPathAdd_t::PATH_ADD_TO_TAIL;
 	g_pFullFileSystem->AddSearchPath(folderPath, gamePath, addType);
 
+	UpdateSearchPathCache(true);
+
 	return 0;
 }
 
@@ -1842,6 +1896,8 @@ LUA_FUNCTION_STATIC(filesystem_RemoveSearchPath)
 	const char* folderPath = LUA->CheckString(1);
 	const char* gamePath = LUA->CheckString(2);
 	LUA->PushBool(g_pFullFileSystem->RemoveSearchPath(folderPath, gamePath));
+
+	ValidateSearchPathCache();
 
 	return 1;
 }
@@ -1857,6 +1913,7 @@ LUA_FUNCTION_STATIC(filesystem_RemoveSearchPaths)
 LUA_FUNCTION_STATIC(filesystem_RemoveAllSearchPaths)
 {
 	g_pFullFileSystem->RemoveAllSearchPaths();
+	ValidateSearchPathCache();
 
 	return 0;
 }
