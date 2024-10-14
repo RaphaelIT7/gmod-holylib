@@ -51,7 +51,7 @@ static ConVar holylib_filesystem_cachefilehandle("holylib_filesystem_cachefileha
 	"If enabled, it will cache the file handle and return it if needed. This will probably cause issues if you open the same file multiple times.");
 static ConVar holylib_filesystem_fastopenread("holylib_filesystem_fastopenread", "0", 0,
 	"If enabled, it will use a different way to iterate over the searchpaths to reduce the overhead they cause.");
-static ConVar holylib_filesystem_usesearchpathcache("holylib_filesystem_usesearchpathcache", "1", 0,
+static ConVar holylib_filesystem_usesearchpathcache("holylib_filesystem_usesearchpathcache", "0", 0,
 	"If enabled, it will cache all searchpaths to not have to always loop thru all to find a single one.");
 
 
@@ -219,6 +219,28 @@ inline CSearchPath* FindSearchPathByStoreId(int iStoreID)
 		return NULL;
 
 	return it->second;
+}
+
+std::vector<CSearchPath*> GetAllSearchPaths()
+{
+	std::vector<CSearchPath*> pPaths;
+	if (!holylib_filesystem_usesearchpathcache.GetBool())
+	{
+		for (int i=0; 1000; ++i)
+		{
+			CSearchPath* pPath = func_CBaseFileSystem_FindSearchPathByStoreId(g_pFullFileSystem, i); // Slow.....
+			if (pPath)
+				pPaths.push_back(pPath);
+		}
+		return pPaths;
+	}
+
+	for (auto it = pSearchPaths.begin(); it != pSearchPaths.end(); ++it)
+	{
+		pPaths.push_back(it->second);
+	}
+
+	return pPaths;
 }
 
 std::string GetFullPath(const CSearchPath* pSearchPath, const char* strFileName) // ToDo: Possibly switch to string_view?
@@ -729,8 +751,9 @@ FileHandle_t Fast_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 	}
 
 	
-	//for (openInfo.m_pSearchPath = iter.GetFirst(); openInfo.m_pSearchPath != NULL; openInfo.m_pSearchPath = iter.GetNext())
-	/* {
+	for (CSearchPath* pPath : GetAllSearchPaths())
+	{
+		openInfo.m_pSearchPath = pPath;
 		FileHandle_t filehandle = hook_CBaseFileSystem_FindFileInSearchPath(filesystem, openInfo);
 		if (filehandle)
 		{
@@ -757,7 +780,7 @@ FileHandle_t Fast_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 			openInfo.HandleFileCRCTracking(openInfo.m_pFileName);
 			return filehandle;
 		}
-	}*/
+	}
 
 	//filesystem->LogFileOpen("[Failed]", pFileName, "");
 	return (FileHandle_t)0;
