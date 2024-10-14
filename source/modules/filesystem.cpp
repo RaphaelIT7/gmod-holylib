@@ -232,6 +232,7 @@ std::vector<CSearchPath*> GetAllSearchPaths()
 			if (pPath)
 				pPaths.push_back(pPath);
 		}
+
 		return pPaths;
 	}
 
@@ -753,6 +754,9 @@ FileHandle_t Fast_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 	
 	for (CSearchPath* pPath : GetAllSearchPaths())
 	{
+		if (V_stricmp(pPath->GetPathIDString(), pathID) != 0)
+			continue;
+
 		openInfo.m_pSearchPath = pPath;
 		FileHandle_t filehandle = hook_CBaseFileSystem_FindFileInSearchPath(filesystem, openInfo);
 		if (filehandle)
