@@ -233,6 +233,7 @@ void CServerPlugin::ServerActivate(edict_t *pEdictList, int edictCount, int clie
 	}
 
 	Lua::ServerInit();
+	g_pModuleManager.ServerActivate(pEdictList, edictCount, clientMax);
 }
 
 //---------------------------------------------------------------------------------

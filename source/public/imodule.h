@@ -11,6 +11,7 @@ enum Module_Compatibility
 
 class ConVar;
 class KeyValues;
+class edict_t;
 class IModule
 {
 public:
@@ -23,8 +24,12 @@ public:
 	virtual const char* Name() = 0;
 	virtual int Compatibility() = 0;
 	virtual bool IsEnabledByDefault() { return true; };
+	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) {};
+
+public:
 	inline void SetDebug(int iDebug) { m_iIsDebug = iDebug; };
 	inline int InDebug() { return m_iIsDebug; };
+
 public:
 	unsigned int m_pID = 0; // Set by the CModuleManager when registering it! Don't touch it.
 	int m_iIsDebug = false;
@@ -62,4 +67,5 @@ public:
 	virtual void InitDetour(bool bPreServer) = 0;
 	virtual void Think(bool bSimulating) = 0;
 	virtual void Shutdown() = 0;
+	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) = 0;
 };

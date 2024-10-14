@@ -53,6 +53,7 @@ public:
 	virtual void InitDetour(bool bPreServer);
 	virtual void Think(bool bSimulating);
 	virtual void Shutdown();
+	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax);
 
 	inline int GetStatus() { return m_pStatus; };
 	inline CreateInterfaceFn& GetAppFactory() { return m_pAppFactory; };

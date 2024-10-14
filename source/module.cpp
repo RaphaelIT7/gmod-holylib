@@ -238,6 +238,13 @@ void CModuleManager::Setup(CreateInterfaceFn appfn, CreateInterfaceFn gamefn)
 	m_pGameFactory = gamefn;
 }
 
+#define VCALL_ENABLED_MODULES(call) \
+	for (CModule* pModule : m_pModules) { \
+		if ( !pModule->FastIsEnabled() ) { continue; } \
+		pModule->GetModule()-> call; \
+	}
+
+
 void CModuleManager::Init()
 {
 	if (!(m_pStatus & LoadStatus_PreDetourInit))
@@ -247,11 +254,7 @@ void CModuleManager::Init()
 	}
 
 	m_pStatus |= LoadStatus_Init;
-	for (CModule* pModule : m_pModules)
-	{
-		if ( !pModule->FastIsEnabled() ) { continue; }
-		pModule->GetModule()->Init(&GetAppFactory(), &GetGameFactory());
-	}
+	VCALL_ENABLED_MODULES(Init(& GetAppFactory(), &GetGameFactory()));
 }
 
 void CModuleManager::LuaInit(bool bServerInit)
@@ -261,20 +264,12 @@ void CModuleManager::LuaInit(bool bServerInit)
 	else
 		m_pStatus |= LoadStatus_LuaInit;
 
-	for (CModule* pModule : m_pModules)
-	{
-		if ( !pModule->FastIsEnabled() ) { continue; }
-		pModule->GetModule()->LuaInit(bServerInit);
-	}
+	VCALL_ENABLED_MODULES(LuaInit(bServerInit));
 }
 
 void CModuleManager::LuaShutdown()
 {
-	for (CModule* pModule : m_pModules)
-	{
-		if ( !pModule->FastIsEnabled() ) { continue; }
-		pModule->GetModule()->LuaShutdown();
-	}
+	VCALL_ENABLED_MODULES(LuaShutdown());
 }
 
 void CModuleManager::InitDetour(bool bPreServer)
@@ -284,30 +279,24 @@ void CModuleManager::InitDetour(bool bPreServer)
 	else
 		m_pStatus |= LoadStatus_DetourInit;
 
-	for (CModule* pModule : m_pModules)
-	{
-		if ( !pModule->FastIsEnabled() ) { continue; }
-		pModule->GetModule()->InitDetour(bPreServer);
-	}
+	VCALL_ENABLED_MODULES(InitDetour(bPreServer));
 }
 
 void CModuleManager::Think(bool bSimulating)
 {
-	for (CModule* pModule : m_pModules)
-	{
-		if ( !pModule->FastIsEnabled() ) { continue; }
-		pModule->GetModule()->Think(bSimulating);
-	}
+	VCALL_ENABLED_MODULES(Think(bSimulating));
 }
 
 void CModuleManager::Shutdown()
 {
 	m_pStatus = 0;
-	for (CModule* pModule : m_pModules)
-	{
-		if ( !pModule->FastIsEnabled() ) { continue; }
-		pModule->Shutdown();
-	}
+	VCALL_ENABLED_MODULES(Shutdown());
+}
+
+
+void CModuleManager::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
+{
+	VCALL_ENABLED_MODULES(ServerActivate(pEdictList, edictCount, clientMax));
 }
 
 CModuleManager g_pModuleManager;
