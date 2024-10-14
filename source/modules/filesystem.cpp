@@ -751,6 +751,11 @@ FileHandle_t Fast_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 		}
 	}
 
+	static bool bInFastThingy;
+	if (bInFastThingy)
+		Error("LOOP");
+
+	bInFastThingy = true;
 	
 	for (CSearchPath* pPath : GetAllSearchPaths())
 	{
