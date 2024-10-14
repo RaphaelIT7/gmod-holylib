@@ -16,9 +16,10 @@ jobs:
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_BRANCH: "patch-5"
       SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-1"
+      GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
       ADDITIONAL_DATA: "1"
 
-  build_ghoszinj:
+  build_ghostinj:
     uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
     with:
       PROJECT_PATH: "ghostinj-dll/"
