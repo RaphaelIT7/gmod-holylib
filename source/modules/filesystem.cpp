@@ -630,7 +630,7 @@ FileHandle_t Fast_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 	filesystem->FixUpPath(pFileNameT, pFileNameBuff, sizeof(pFileNameBuff));
 
 	// Try the memory cache for un-restricted searches or "GAME" items.
-	if (!pathID || Q_stricmp(pathID, "GAME") == 0)
+	/*if (!pathID || Q_stricmp(pathID, "GAME") == 0)
 	{
 		CMemoryFileBacking* pBacking = NULL;
 		{
@@ -657,11 +657,11 @@ FileHandle_t Fast_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 				return (FileHandle_t)NULL;
 			}
 		}
-		/*else if (ThreadInMainThread() && fs_report_sync_opens.GetInt() > 0)
+		/else if (ThreadInMainThread() && fs_report_sync_opens.GetInt() > 0)
 		{
 			DevWarning("blocking load %s\n", pFileName);
-		}*/
-	}
+		}/
+	}*/
 
 	CFileOpenInfo openInfo(filesystem, pFileName, NULL, pOptions, flags, ppszResolvedFilename);
 
@@ -1474,6 +1474,21 @@ inline const char* CSearchPath::GetPathIDString() const
 
 static Symbols::CBaseFileSystem_CSearchPath_GetDebugString func_CBaseFileSystem_CSearchPath_GetDebugString;
 inline const char* CSearchPath::GetPathString() const
+{
+	return func_CBaseFileSystem_CSearchPath_GetDebugString((void*)this); // Look into this to possibly remove the GetDebugString function.
+}
+
+inline const char* CBaseFileSystem::CPathIDInfo::GetPathIDString() const
+{
+	return m_pDebugPathID; // This should remove the requirement for g_pPathIDTable.
+}
+
+inline const char* CBaseFileSystem::CSearchPath::GetPathIDString() const // Remove this duplicate later :<
+{
+	return m_pPathIDInfo->GetPathIDString(); // When can we nuke it :>
+}
+
+inline const char* CBaseFileSystem::CSearchPath::GetPathString() const
 {
 	return func_CBaseFileSystem_CSearchPath_GetDebugString((void*)this); // Look into this to possibly remove the GetDebugString function.
 }
