@@ -46,6 +46,7 @@ namespace Util
 	extern void AddDetour(); // We load Gmod's functions in there.
 	
 	extern IVEngineServer* engineserver;
+	extern IServerGameClients* servergameclients;
 	extern IServerGameEnts* servergameents;
 	extern IServer* server;
 	extern CGlobalEntityList* entitylist;
@@ -68,15 +69,20 @@ namespace Util
 
 	extern bool ShouldLoad();
 
+	inline void StartThreadPool(IThreadPool* pool, ThreadPoolStartParams_t& startParams)
+	{
+#if ARCHITECTURE_IS_X86_64
+		startParams.bEnableOnLinuxDedicatedServer = true;
+#endif
+		pool->Start(startParams);
+	}
+
 	inline void StartThreadPool(IThreadPool* pool, int iThreads)
 	{
 		ThreadPoolStartParams_t startParams;
 		startParams.nThreads = iThreads;
 		startParams.nThreadsMax = startParams.nThreads;
-#if ARCHITECTURE_IS_X86_64
-		startParams.bEnableOnLinuxDedicatedServer = true;
-#endif
-		pool->Start(startParams);
+		Util::StartThreadPool(pool, startParams);
 	}
 }
 

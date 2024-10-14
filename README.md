@@ -37,7 +37,7 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- \- Gamemode startup hooks that are now included are: `GM:CreateTeams`, `GM:PreGamemodeLoaded`, `GM:OnGamemodeLoaded`, `GM:PostGamemodeLoaded` and `GM:Initialize`.  
 \- [#] Fixed a bug in `vprof` that caused CallWithArgs to show up.  
 \- \- shouldn't be a thing since `CallFinish` should always be called after it.  
-\- [#] `VoiceData:GetUncompressedData` got the `decompressSize` argument.
+\- [#] `VoiceData:GetUncompressedData` got the `decompressSize` argument.  
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.5...main
@@ -1398,6 +1398,9 @@ Returns `true` if the Steam Server is connected.
 
 #### steamworks.ForceActivate()
 Calls the `SV_InitGameServerSteam` function to activate the steam server exactly like the engine does it.  
+
+#### bool steamworks.ForceAuthenticate(number userID)
+Marks the given client as Authenticated even if they aren't.  
 
 ### Hooks
 

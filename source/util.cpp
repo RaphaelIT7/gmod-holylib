@@ -101,6 +101,7 @@ CBaseClient* Util::GetClientByUserID(int userid)
 
 IVEngineServer* Util::engineserver = NULL;
 IServerGameEnts* Util::servergameents = NULL;
+IServerGameClients* Util::servergameclients = NULL;
 CBaseClient* Util::GetClientByPlayer(CBasePlayer* ply)
 {
 	return Util::GetClientByUserID(Util::engineserver->GetPlayerUserId(Util::GetEdictOfEnt((CBaseEntity*)ply)));
@@ -156,6 +157,12 @@ void Util::AddDetour()
 	else
 		servergameents = server_loader.GetInterface<IServerGameEnts>(INTERFACEVERSION_SERVERGAMEENTS);
 	Detour::CheckValue("get interface", "IServerGameEnts", servergameents != NULL);
+
+	if (g_pModuleManager.GetAppFactory())
+		servergameclients = (IServerGameClients*)g_pModuleManager.GetGameFactory()(INTERFACEVERSION_SERVERGAMECLIENTS, NULL);
+	else
+		servergameclients = server_loader.GetInterface<IServerGameClients>(INTERFACEVERSION_SERVERGAMECLIENTS);
+	Detour::CheckValue("get interface", "IServerGameClients", servergameclients != NULL);
 
 	server = InterfacePointers::Server();
 	Detour::CheckValue("get class", "IServer", server != NULL);

@@ -2,6 +2,7 @@
 #include <GarrysMod/Lua/Interface.h>
 #include "lua.h"
 #include "sourcesdk/sv_steamauth.h"
+#include <sv_plugin.h>
 
 class CSteamWorksModule : public IModule
 {
@@ -89,6 +90,26 @@ LUA_FUNCTION_STATIC(steamworks_ForceActivate)
 	return 1;
 }
 
+extern CServerPlugin* g_pServerPluginHandler;
+LUA_FUNCTION_STATIC(steamworks_ForceAuthenticate)
+{
+	int iClient = LUA->CheckNumber(1);
+	CBaseClient* pClient = Util::GetClientByUserID(iClient);
+	if (!pClient || !g_pServerPluginHandler)
+	{
+		LUA->PushBool(false);
+		return 1;
+	}
+
+	g_pServerPluginHandler->NetworkIDValidated(pClient->GetClientName(), pClient->GetNetworkIDString());
+	Util::servergameclients->NetworkIDValidated(pClient->GetClientName(), pClient->GetNetworkIDString());
+
+	// Verify: Do we need to forcefully change the signonstate?
+	pClient->SetFullyAuthenticated();
+	LUA->PushBool(true);
+	return 1;
+}
+
 void CSteamWorksModule::LuaInit(bool bServerInit)
 {
 	if (bServerInit)
@@ -100,6 +121,7 @@ void CSteamWorksModule::LuaInit(bool bServerInit)
 		Util::AddFunc(steamworks_Activate, "Activate");
 		Util::AddFunc(steamworks_IsConnected, "IsConnected");
 		Util::AddFunc(steamworks_ForceActivate, "ForceActivate");
+		Util::AddFunc(steamworks_ForceAuthenticate, "ForceAuthenticate");
 		Util::PopTable();
 	}
 }

@@ -42,9 +42,10 @@ void CThreadPoolFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gam
 	}
 
 	ThreadPoolStartParams_t startParams;
-	startParams.bEnableOnLinuxDedicatedServer = true;
-	g_pThreadPool->Start(startParams);
+	Util::StartThreadPool(g_pThreadPool, startParams);
 #endif
+
+	// NOTE: Check Filesystem threadpool of 64x, I have a feeling that it is broken. AsyncRead always seems to run the next tick / seems to never actually use any threads.
 }
 
 void CThreadPoolFixModule::InitDetour(bool bPreServer)
