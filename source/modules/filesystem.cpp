@@ -333,6 +333,11 @@ namespace HandlePrecache
 		delete entry;
 	}
 
+	inline bool IsFilePrecached(const char* pFileName, bool bWait = true)
+	{
+		return pCachedHandles.find(pFileName) != pCachedHandles.end();
+	}
+
 	static void PrecacheHandle(std::string pFileName, std::string pGamePath)
 	{
 		if (IsFilePrecached(pFileName.c_str(), false))
@@ -369,11 +374,6 @@ namespace HandlePrecache
 		}
 
 		return NULL;
-	}
-
-	inline bool IsFilePrecached(const char* pFileName, bool bWait = true)
-	{
-		return pCachedHandles.find(pFileName) != pCachedHandles.end();
 	}
 }
 
