@@ -325,7 +325,7 @@ namespace HandlePrecache
 	static std::unordered_map<std::string, FileInfo_t*> pCachedHandles;
 	static void AsyncFilePrecache(FilesystemJob*& entry)
 	{
-		FileHandle_t handle = g_pFullFileSystem->Open(entry->fileName.c_str(), entry->gamePath.c_str());
+		FileHandle_t handle = g_pFullFileSystem->Open(entry->fileName.c_str(), "rb", entry->gamePath.c_str());
 
 		FileInfo_t* info = (FileInfo_t*)entry->pData;
 		info->pHandle = handle;
@@ -333,14 +333,14 @@ namespace HandlePrecache
 		delete entry;
 	}
 
-	inline bool IsFilePrecached(const char* pFileName, bool bWait = true)
+	inline bool IsFilePrecached(const char* pFileName)
 	{
 		return pCachedHandles.find(pFileName) != pCachedHandles.end();
 	}
 
 	static void PrecacheHandle(std::string pFileName, std::string pGamePath)
 	{
-		if (IsFilePrecached(pFileName.c_str(), false))
+		if (IsFilePrecached(pFileName.c_str()))
 			return;
 
 		FileInfo_t* info = new FileInfo_t;
@@ -356,6 +356,9 @@ namespace HandlePrecache
 
 	static FileHandle_t GetPrecachedHandle(const char* pFileName)
 	{
+		if (!ThreadInMainThread()) // Don't even think about locking all threads up...
+			return NULL;
+
 		auto it = pCachedHandles.find(pFileName);
 		if (it != pCachedHandles.end()) // It's actively being loaded. Wait for it to finish since it's probably about to be done
 		{
