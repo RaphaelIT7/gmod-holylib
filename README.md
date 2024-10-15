@@ -25,7 +25,8 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 
 ## Next Update
 \- [+] `vprof` now works on 64x  
-\- [+] Added `HolyLib.InvalidateBoneCache` function and the `HolyLib:PostEntityConstructor` hook.  
+\- [+] Added `HolyLib.SetSignonState`, `HolyLib.InvalidateBoneCache` function and the `HolyLib:PostEntityConstructor` hook.
+\- [+] Added `steamworks.ForceAuthenticate` to steamworks module.  
 \- [+] `HolyLib:On[Generic/Model]PrecacheFail` hooks now also allow you to change the fallback.  
 \- [#] Model and Generic precache now fallsback to `-1` instead of `0` by default.  
 \- \- [+] Added `holylib_precache_[model/generic]fallback` to change the fallback if wanted.  
@@ -38,12 +39,13 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- [#] Fixed a bug in `vprof` that caused CallWithArgs to show up.  
 \- \- shouldn't be a thing since `CallFinish` should always be called after it.  
 \- [#] `VoiceData:GetUncompressedData` got the `decompressSize` argument.  
+\- [#] Fixed `VoiceData:GetUncompressedData` always erroring (https://github.com/RaphaelIT7/gmod-holylib/pull/11)  
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.5...main
 
 ### QoL updates
-Nothing yet.  
+- [#] Cleaned up module code a bit.  
 
 ## ToDo
 \- Finish 64x (`pvs`, `sourcetv`, `surffix`)  
