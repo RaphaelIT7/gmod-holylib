@@ -330,6 +330,9 @@ namespace HandlePrecache
 		FileInfo_t* info = (FileInfo_t*)entry->pData;
 		info->pHandle = handle;
 		info->bFinished = true; // Mark it after setting everything
+		if (g_pFileSystemModule.InDebug())
+			Msg("holylib - AsyncFilePrecache: Finished Precache (%s, %s)\n", entry->fileName.c_str(), entry->gamePath.c_str());
+
 		delete entry;
 	}
 
@@ -342,6 +345,9 @@ namespace HandlePrecache
 	{
 		if (IsFilePrecached(pFileName.c_str()))
 			return;
+
+		if (g_pFileSystemModule.InDebug())
+			Msg("holylib - PrecacheHandle: Started Precache (%s, %s)\n", pFileName.c_str(), pGamePath.c_str());
 
 		FileInfo_t* info = new FileInfo_t;
 		FilesystemJob* job = new FilesystemJob;
@@ -372,6 +378,9 @@ namespace HandlePrecache
 
 			FileHandle_t handle = info->pHandle;
 			delete info;
+
+			if (g_pFileSystemModule.InDebug())
+				Msg("holylib - GetPrecachedHandle: Returned Precached handle (%s)\n", pFileName);
 
 			return handle;
 		}
