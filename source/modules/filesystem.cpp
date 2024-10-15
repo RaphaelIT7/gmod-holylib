@@ -884,6 +884,15 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 		splitPath = true;
 	}
 
+	std::string_view strFileName = pFileNameT;
+	std::string_view extension = getFileExtension(strFileName);
+	if (holylib_filesystem_precachehandle.GetBool())
+	{
+		FileHandle_t handle = HandlePrecache::GetPrecachedHandle(pFileNameT);
+		if (handle)
+			return handle;
+	}
+
 	if (holylib_filesystem_forcepath.GetBool())
 	{
 		newPath = NULL;
@@ -909,15 +918,6 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 			if (g_pFileSystemModule.InDebug())
 				Msg("holylib - OpenForRead: File is not in overridePaths (%s, %s)\n", pFileNameT, pathID);
 		}
-	}
-
-	std::string_view strFileName = pFileNameT;
-	std::string_view extension = getFileExtension(strFileName);
-	if (holylib_filesystem_precachehandle.GetBool())
-	{
-		FileHandle_t handle = HandlePrecache::GetPrecachedHandle(pFileNameT);
-		if (handle)
-			return handle;
 	}
 
 	/*
