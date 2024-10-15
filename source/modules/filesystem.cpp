@@ -906,20 +906,9 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 	std::string_view extension = getFileExtension(strFileName);
 	if (holylib_filesystem_precachehandle.GetBool())
 	{
-		if (extension == "mdl")
-		{
-			std::string mdlFile = (std::string)nukeFileExtension(strFileName);
-			HandlePrecache::PrecacheHandle(mdlFile + ".vvd", pathID);
-			HandlePrecache::PrecacheHandle(mdlFile + ".ani", pathID);
-			HandlePrecache::PrecacheHandle(mdlFile + ".dx90.vtx", pathID);
-			HandlePrecache::PrecacheHandle(mdlFile + ".phy", pathID);
-		}
-		else if (extension == "vvd" || extension == "vtx" || extension == "phy" || extension == "ani")
-		{
-			FileHandle_t handle = HandlePrecache::GetPrecachedHandle(pFileNameT);
-			if (handle)
-				return handle;
-		}
+		FileHandle_t handle = HandlePrecache::GetPrecachedHandle(pFileNameT);
+		if (handle)
+			return handle;
 	}
 
 	/*
@@ -2077,6 +2066,15 @@ LUA_FUNCTION_STATIC(filesystem_TimeAccessed)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(filesystem_PrecacheHandle)
+{
+	const char* filePath = LUA->CheckString(1);
+	const char* gamePath = g_Lua->CheckStringOpt(2, "GAME");
+
+	HandlePrecache::PrecacheHandle(filePath, gamePath);
+	return 0;
+}
+
 // Gmod's filesystem functions have some weird stuff in them that makes them noticeably slower :/
 void CFileSystemModule::LuaInit(bool bServerInit)
 {
@@ -2104,6 +2102,7 @@ void CFileSystemModule::LuaInit(bool bServerInit)
 		Util::AddFunc(filesystem_FullPathToRelativePath, "FullPathToRelativePath");
 		Util::AddFunc(filesystem_TimeCreated, "TimeCreated");
 		Util::AddFunc(filesystem_TimeAccessed, "TimeAccessed");
+		Util::AddFunc(filesystem_PrecacheHandle, "PrecacheHandle");
 	Util::FinishTable("filesystem");
 }
 
