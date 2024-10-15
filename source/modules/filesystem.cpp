@@ -49,10 +49,14 @@ static ConVar holylib_filesystem_fixgmodpath("holylib_filesystem_fixgmodpath", "
 	"If enabled, it will fix up weird gamemode paths like sandbox/gamemode/sandbox/gamemode which gmod likes to use.");
 static ConVar holylib_filesystem_cachefilehandle("holylib_filesystem_cachefilehandle", "0", 0, 
 	"If enabled, it will cache the file handle and return it if needed. This will probably cause issues if you open the same file multiple times.");
+
 static ConVar holylib_filesystem_fastopenread("holylib_filesystem_fastopenread", "0", 0,
 	"If enabled, it will use a different way to iterate over the searchpaths to reduce the overhead they cause.");
 static ConVar holylib_filesystem_usesearchpathcache("holylib_filesystem_usesearchpathcache", "0", 0,
 	"If enabled, it will cache all searchpaths to not have to always loop thru all to find a single one.");
+
+static ConVar holylib_filesystem_precachehandle("holylib_filesystem_precachehandle", "1", 0,
+	"If enabled, it will try to predict which file it will open next and open the file to keep a handle ready to be opened.");
 
 
 // Optimization Idea: When Gmod calls GetFileTime, we could try to get the filehandle in parallel to have it ready when gmod calls it.
@@ -76,10 +80,8 @@ struct FilesystemJob
 {
 	std::string fileName;
 	std::string gamePath;
+	void* pData = NULL;
 };
-
-static std::vector<FilesystemJob*> pFinishedEntries;
-static CThreadFastMutex pFinishMutex;
 
 static const char* nullPath = "NULL_PATH";
 extern void DeleteFileHandle(FileHandle_t handle);
@@ -312,13 +314,67 @@ static void NukeSearchCache() // NOTE: We actually never nuke it :D
 	m_SearchCache.clear(); // Now causes a memory leak :D (Should I try to solve it? naaaaaa :^)
 }
 
-static void AsyncFileExists(FilesystemJob*& entry)
+namespace HandlePrecache
 {
-	g_pFullFileSystem->FileExists(entry->fileName.c_str(), entry->gamePath.c_str());
+	struct FileInfo_t
+	{
+		bool bFinished = false;
+		FileHandle_t pHandle;
+	};
 
-	pFinishMutex.Lock();
-	pFinishedEntries.push_back(entry);
-	pFinishMutex.Unlock();
+	static std::unordered_map<std::string, FileInfo_t*> pCachedHandles;
+	static void AsyncFilePrecache(FilesystemJob*& entry)
+	{
+		FileHandle_t handle = g_pFullFileSystem->Open(entry->fileName.c_str(), entry->gamePath.c_str());
+
+		FileInfo_t* info = (FileInfo_t*)entry->pData;
+		info->pHandle = handle;
+		info->bFinished = true; // Mark it after setting everything
+		delete entry;
+	}
+
+	static void PrecacheHandle(std::string pFileName, std::string pGamePath)
+	{
+		if (IsFilePrecached(pFileName.c_str(), false))
+			return;
+
+		FileInfo_t* info = new FileInfo_t;
+		FilesystemJob* job = new FilesystemJob;
+		job->fileName = pFileName;
+		job->gamePath = pGamePath;
+		job->pData = info;
+
+		pFileSystemPool->QueueCall(AsyncFilePrecache, job);
+
+		pCachedHandles[pFileName] = info;
+	}
+
+	static FileHandle_t GetPrecachedHandle(const char* pFileName)
+	{
+		auto it = pCachedHandles.find(pFileName);
+		if (it != pCachedHandles.end()) // It's actively being loaded. Wait for it to finish since it's probably about to be done
+		{
+			VPROF_BUDGET("HolyLib - IsFilePrecached(wait)", VPROF_BUDGETGROUP_HOLYLIB);
+
+			FileInfo_t* info = it->second;
+			pCachedHandles.erase(it); // Erase it before we idle since it's more productive.
+			while (!info->bFinished)
+			{
+			}
+
+			FileHandle_t handle = info->pHandle;
+			delete info;
+
+			return handle;
+		}
+
+		return NULL;
+	}
+
+	inline bool IsFilePrecached(const char* pFileName, bool bWait = true)
+	{
+		return pCachedHandles.find(pFileName) != pCachedHandles.end();
+	}
 }
 
 static void DumpSearchcacheCmd(const CCommand &args)
@@ -843,6 +899,26 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 		}
 	}
 
+	std::string_view strFileName = pFileNameT;
+	std::string_view extension = getFileExtension(strFileName);
+	if (holylib_filesystem_precachehandle.GetBool())
+	{
+		if (extension == "mdl")
+		{
+			std::string mdlFile = (std::string)nukeFileExtension(strFileName);
+			HandlePrecache::PrecacheHandle(mdlFile + ".vvd", pathID);
+			HandlePrecache::PrecacheHandle(mdlFile + ".ani", pathID);
+			HandlePrecache::PrecacheHandle(mdlFile + ".dx90.vtx", pathID);
+			HandlePrecache::PrecacheHandle(mdlFile + ".phy", pathID);
+		}
+		else if (extension == "vvd" || extension == "vtx" || extension == "phy" || extension == "ani")
+		{
+			FileHandle_t handle = HandlePrecache::GetPrecachedHandle(pFileNameT);
+			if (handle)
+				return handle;
+		}
+	}
+
 	/*
 	 * The Prediction
 	 * --------------
@@ -857,9 +933,6 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 	if (holylib_filesystem_predictpath.GetBool() || holylib_filesystem_predictexistance.GetBool())
 	{
 		CSearchPath* path = NULL;
-		std::string_view strFileName = pFileNameT;
-		std::string_view extension = getFileExtension(strFileName);
-
 		bool isModel = false;
 		if (extension == "vvd" || extension == "vtx" || extension == "phy" || extension == "ani")
 			isModel = true;
@@ -1333,16 +1406,6 @@ extern void FileAsyncReadThink();
 void CFileSystemModule::Think(bool bSimulating)
 {
 	FileAsyncReadThink();
-
-	if (pFinishedEntries.size() > 0)
-	{
-		pFinishMutex.Lock();
-		for (FilesystemJob* pJob : pFinishedEntries)
-			delete pJob;
-
-		pFinishedEntries.clear();
-		pFinishMutex.Unlock();
-	}
 
 	if (!holylib_filesystem_cachefilehandle.GetBool())
 		return;
