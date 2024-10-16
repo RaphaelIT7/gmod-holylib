@@ -362,6 +362,9 @@ namespace HandlePrecache
 
 	static FileHandle_t GetPrecachedHandle(const char* pFileName)
 	{
+		if (g_pFileSystemModule.InDebug() && !ThreadInMainThread())
+				Msg("holylib - GetPrecachedHandle: Not in main thread! (%s)\n", pFileName);
+
 		if (!ThreadInMainThread()) // Don't even think about locking all threads up...
 			return NULL;
 
@@ -384,6 +387,9 @@ namespace HandlePrecache
 
 			return handle;
 		}
+
+		if (g_pFileSystemModule.InDebug())
+				Msg("holylib - GetPrecachedHandle: Failed to find handle! (%s)\n", pFileName);
 
 		return NULL;
 	}
@@ -895,9 +901,15 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 		splitPath = true;
 	}
 
+	if (g_pFileSystemModule.InDebug())
+		Msg("holylib - OpenForRead: Is precache on? (%s)\n", holylib_filesystem_precachehandle.GetBool() ? "true" : "false");
+
 	if (holylib_filesystem_precachehandle.GetBool())
 	{
 		FileHandle_t handle = HandlePrecache::GetPrecachedHandle(pFileNameT);
+		if (g_pFileSystemModule.InDebug())
+			Msg("holylib - OpenForRead: Precache handle (%p)\n", handle);
+
 		if (handle)
 			return handle;
 	}
