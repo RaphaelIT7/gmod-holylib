@@ -30,7 +30,7 @@ static void OnSV_StressBotsChange(IConVar* var, const char *pOldValue, float flO
 // Reminder: Look UP before adding static.
 ConVar holylib_sv_stressbots("holylib_sv_stressbots", "0", 0, "Sets sv_stressbots. (sv_stressbots will be available in the next update)", OnSV_StressBotsChange);
 static ConVar holylib_vprof_exportreport("holylib_vprof_exportreport", "1", 0, "If enabled, vprof results will be dumped into a file in the vprof/ folder");
-static ConVar holylib_vprof_profilelua("holylib_vprof_profilelua", "0", 0);
+static ConVar holylib_vprof_profilelua("holylib_vprof_profilelua", "0", 0, "If enabled, Lua will also be profiled.");
 
 static CVProfModule g_pVProfModule;
 IModule* pVProfModule = &g_pVProfModule;
