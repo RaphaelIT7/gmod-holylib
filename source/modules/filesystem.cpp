@@ -387,6 +387,17 @@ namespace HandlePrecache
 
 		return NULL;
 	}
+
+	static void DumpPrecache(const CCommand &args)
+	{
+		Msg("---- Precache ----\n");
+		for (auto&[strPath, cache] : pCachedHandles)
+		{
+			Msg("	\"%s\" - %s\n", strPath.c_str(), cache->bFinished ? "true" : "false");
+		}
+		Msg("---- End of Precache ----\n");
+	}
+	static ConCommand dumpsearchcache("holylib_filesystem_dumpprecache", DumpPrecache, "Dumps the precache list", 0);
 }
 
 static void DumpSearchcacheCmd(const CCommand &args)
@@ -884,8 +895,6 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 		splitPath = true;
 	}
 
-	std::string_view strFileName = pFileNameT;
-	std::string_view extension = getFileExtension(strFileName);
 	if (holylib_filesystem_precachehandle.GetBool())
 	{
 		FileHandle_t handle = HandlePrecache::GetPrecachedHandle(pFileNameT);
@@ -933,6 +942,8 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 	 */
 	if (holylib_filesystem_predictpath.GetBool() || holylib_filesystem_predictexistance.GetBool())
 	{
+		std::string_view strFileName = pFileNameT;
+		std::string_view extension = getFileExtension(strFileName);
 		CSearchPath* path = NULL;
 		bool isModel = false;
 		if (extension == "vvd" || extension == "vtx" || extension == "phy" || extension == "ani")
