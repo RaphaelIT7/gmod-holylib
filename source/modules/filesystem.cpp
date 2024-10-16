@@ -519,31 +519,29 @@ static const char* GetOverridePath(const char* pFileName, const char* pathID)
 		return NULL;
 
 	std::string_view strFileName = pFileName;
-	if (strFileName.rfind("materials/") == 0)
-		return "CONTENT_MATERIALS";
+	std::size_t pos = strFileName.find_first_of("/");
+	if (pos == std::string::npos)
+		return NULL;
 
-	if (strFileName.rfind("models/") == 0)
-		return "CONTENT_MODELS";
+	std::string_view strStart = strFileName.substr(0, pos);
+	static const std::unordered_map<std::string_view, std::string_view> pOverridePaths = {
+        {"materials",	"CONTENT_MATERIALS"},
+        {"models",		"CONTENT_MODELS"},
+        {"sound",		"CONTENT_SOUNDS"},
+        {"maps",		"CONTENT_MAPS"},
+        {"resource",	"CONTENT_RESOURCE"},
+        {"scripts",		"CONTENT_SCRIPTS"},
+        {"cfg",			"CONTENT_CONFIGS"},
+        {"gamemodes",	"LUA_GAMEMODES"}
+    };
 
-	if (strFileName.rfind("sound/") == 0)
-		return "CONTENT_SOUNDS";
+	auto it = pOverridePaths.find(strStart);
+	if (it != pOverridePaths.end())
+		return it->second.data();
 
-	if (strFileName.rfind("maps/") == 0)
-		return "CONTENT_MAPS";
+	return NULL;
 
-	if (strFileName.rfind("resource/") == 0)
-		return "CONTENT_RESOURCE";
-
-	if (strFileName.rfind("scripts/") == 0)
-		return "CONTENT_SCRIPTS";
-
-	if (strFileName.rfind("cfg/") == 0)
-		return "CONTENT_CONFIGS";
-
-	if (strFileName.rfind("gamemodes/") == 0)
-		return "LUA_GAMEMODES";
-
-	if (pathID && (V_stricmp(pathID, "lsv") == 0 || V_stricmp(pathID, "GAME") == 0) && holylib_filesystem_splitluapath.GetBool())
+	/*if (pathID && (V_stricmp(pathID, "lsv") == 0 || V_stricmp(pathID, "GAME") == 0) && holylib_filesystem_splitluapath.GetBool())
 	{
 		if (strFileName.rfind("lua/includes/") == 0)
 			return "LUA_INCLUDES";
@@ -580,7 +578,7 @@ static const char* GetOverridePath(const char* pFileName, const char* pathID)
 
 		if (strFileName.rfind("autorun/") == 0)
 			return "LUA_AUTORUN";
-	}
+	}*/
 
 	return NULL;
 }
