@@ -11,6 +11,7 @@ public:
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "net"; };
 	virtual int Compatibility() { return LINUX32; };
+	virtual bool IsEnabledByDefault() OVERRIDE { return false; }; // Still Experimental
 };
 
 static CNetModule g_pNetModule;
@@ -26,10 +27,10 @@ LUA_FUNCTION_STATIC(net_WriteSeek)
 		LUA->ArgError(1, "Number is not allowed to be below 0!");
 
 	bf_write* pBF = *pWriteBF;
-	if (!pBF)
+	if (!pBF || !*bStarted)
 		LUA->ThrowError("Tried to use net.WriteSeek with no active net message!");
 
-	pBF->SeekToBit(24 + iPos);
+	pBF->SeekToBit(24 + iPos); // Why not working :<
 	return 0;
 }
 
