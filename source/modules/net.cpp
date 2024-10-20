@@ -29,7 +29,7 @@ LUA_FUNCTION_STATIC(net_WriteSeek)
 	if (!pBF)
 		LUA->ThrowError("Tried to use net.WriteSeek with no active net message!");
 
-	pBF->SeekToBit(46 + iPos);
+	pBF->SeekToBit(24 + iPos);
 	return 0;
 }
 
