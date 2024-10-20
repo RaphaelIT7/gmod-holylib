@@ -507,4 +507,19 @@ namespace Symbols
 	const std::vector<Symbol> g_fDeferDeleteMindistSym = {
 		Symbol::FromName("g_fDeferDeleteMindist"),
 	};
+
+	//---------------------------------------------------------------------------------
+	// Purpose: net Symbols
+	//---------------------------------------------------------------------------------
+	const std::vector<Symbol> g_NetIncomingSym = {
+		Symbol::FromName("g_NetIncoming"),
+	};
+
+	const std::vector<Symbol> g_WriteSym = {
+		Symbol::FromName("_ZL7g_Write"),
+	};
+
+	const std::vector<Symbol> g_StartedSym = {
+		Symbol::FromName("_ZL9g_Started"),
+	};
 }

@@ -326,7 +326,7 @@ namespace Symbols
 	extern const std::vector<Symbol> CM_VisSym;
 
 	//---------------------------------------------------------------------------------
-	// Purpose: pas Symbols
+	// Purpose: voicechat Symbols
 	//---------------------------------------------------------------------------------
 	typedef void (*SV_BroadcastVoiceData)(IClient*, int nBytes, char* data, int64 xuid);
 	extern const std::vector<Symbol> SV_BroadcastVoiceDataSym;
@@ -373,6 +373,13 @@ namespace Symbols
 
 	extern const std::vector<Symbol> g_pCurrentMindistSym;
 	extern const std::vector<Symbol> g_fDeferDeleteMindistSym;
+
+	//---------------------------------------------------------------------------------
+	// Purpose: net Symbols
+	//---------------------------------------------------------------------------------
+	extern const std::vector<Symbol> g_NetIncomingSym; // bf_read*
+	extern const std::vector<Symbol> g_WriteSym; // bf_write*
+	extern const std::vector<Symbol> g_StartedSym; // bool
 }
 
 //---------------------------------------------------------------------------------
