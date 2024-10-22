@@ -9,7 +9,7 @@
 #include "player.h"
 #include "iserver.h"
 #include "baseclient.h"
-#include "sourcesdk/framesnapshot.h"
+#include "framesnapshot.h"
 #include "vprof.h"
 
 class CPVSModule : public IModule
