@@ -1,7 +1,7 @@
 #include "util.h"
 #include <string>
 #include "GarrysMod/InterfacePointers.hpp"
-#include "sourcesdk/baseclient.h"
+#include "baseclient.h"
 #include "iserver.h"
 #include "module.h"
 #include "icommandline.h"

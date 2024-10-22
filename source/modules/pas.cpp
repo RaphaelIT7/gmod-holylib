@@ -1,7 +1,7 @@
 #include "module.h"
 #include <GarrysMod/Lua/Interface.h>
 #include "lua.h"
-#include <sourcesdk/cmodel_private.h>
+#include <cmodel_private.h>
 #include "player.h"
 
 class CPASModule : public IModule
