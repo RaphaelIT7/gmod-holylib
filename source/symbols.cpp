@@ -423,9 +423,9 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x41\x89\xF4\x53\x48\x89\xFB\x48\x81\xEC") // 55 48 89 E5 41 57 41 56 41 55 41 54 41 89 F4 53 48 89 FB 48 81 EC
 	};
 
-	const std::vector<Symbol> Steam3ServerSym = {
+	const std::vector<Symbol> Steam3ServerSym = { // 64x = Found with "Warning: sv_steamgroup is not applicabl" and then find the unk_[xyz], search for it's usage and find a small function.
 		Symbol::FromName("_Z12Steam3Serverv"),
-		Symbol::FromSignature("\x55\x48\x8D\x05\x18\x8B\x4C\x00\x48\x89\xE5\x5D\xC3"), // 55 48 8D 05 18 8B 4C 00 48 89 E5 5D C3
+		Symbol::FromSignature("\x55\x48\x8D\x05****\x48\x89\xE5\x5D\xC3\x90\x66\x90\x55\x31\xC0\xB9\x08"), // 55 48 8D 05 ?? ?? ?? ?? 48 89 E5 5D C3 90 66 90 55 31 C0 B9 08
 	};
 
 	const std::vector<Symbol> SV_InitGameServerSteamSym = {
