@@ -8,9 +8,10 @@
 #include "player.h"
 
 GarrysMod::Lua::IUpdatedLuaInterface* g_Lua;
-IVEngineServer* engine;
+IVEngineServer* engine = NULL;
 CGlobalEntityList* Util::entitylist = NULL;
-CUserMessages* Util::pUserMessages;
+CUserMessages* Util::pUserMessages = NULL;
+CUserMessages* usermessages = NULL;
 
 void Util::StartTable() {
 	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
@@ -147,10 +148,12 @@ void Util::AddDetour()
 	else
 		engineserver = InterfacePointers::VEngineServer();
 	Detour::CheckValue("get interface", "IVEngineServer", engineserver != NULL);
+	engine = engineserver; // SourceSDK stuff.
 
 	SourceSDK::FactoryLoader server_loader("server");
 	pUserMessages = Detour::ResolveSymbol<CUserMessages>(server_loader, Symbols::UsermessagesSym);
 	Detour::CheckValue("get class", "usermessages", pUserMessages != NULL);
+	usermessages = pUserMessages; // SourceSDK stuff.
 
 	if (g_pModuleManager.GetAppFactory())
 		servergameents = (IServerGameEnts*)g_pModuleManager.GetGameFactory()(INTERFACEVERSION_SERVERGAMEENTS, NULL);
