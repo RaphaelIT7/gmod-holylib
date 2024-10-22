@@ -1,7 +1,7 @@
 #include "module.h"
 #include <GarrysMod/Lua/Interface.h>
 #include "lua.h"
-#include "sourcesdk/hltvserver.h"
+#include "hltvserver.h"
 #include <unordered_map>
 #include "usermessages.h"
 
