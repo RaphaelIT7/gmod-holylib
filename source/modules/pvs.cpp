@@ -8,8 +8,8 @@
 #include "unordered_map"
 #include "player.h"
 #include "iserver.h"
-#include "baseclient.h"
-#include "framesnapshot.h"
+#include "sourcesdk/baseclient.h"
+#include "sourcesdk/framesnapshot.h"
 #include "vprof.h"
 
 class CPVSModule : public IModule

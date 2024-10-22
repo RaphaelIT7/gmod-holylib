@@ -1,4 +1,4 @@
-#include "sv_plugin.h"
+#include "sourcesdk/sv_plugin.h"
 #include "module.h"
 #include <GarrysMod/Lua/Interface.h>
 #include "lua.h"

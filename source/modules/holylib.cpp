@@ -9,7 +9,7 @@
 #include "iclient.h"
 #include "netmessages.h"
 #include "net.h"
-#include "baseclient.h"
+#include "sourcesdk/baseclient.h"
 
 class CHolyLibModule : public IModule
 {

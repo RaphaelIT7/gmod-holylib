@@ -3,7 +3,7 @@
 #include "lua.h"
 #include "Bootil/Bootil.h"
 #include <netmessages.h>
-#include "baseclient.h"
+#include "sourcesdk/baseclient.h"
 #include "steam/isteamclient.h"
 #include "steam/steamclientpublic.h"
 

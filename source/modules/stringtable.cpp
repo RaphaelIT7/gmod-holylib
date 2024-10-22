@@ -4,8 +4,8 @@
 #include "networkstringtabledefs.h"
 #include "detours.h"
 #include "lua.h"
-#include <networkstringtable.h>
-#include <server.h>
+#include <sourcesdk/networkstringtable.h>
+#include <sourcesdk/server.h>
 #include <unordered_map>
 
 class CStringTableModule : public IModule

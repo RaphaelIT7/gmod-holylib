@@ -1,11 +1,11 @@
 #include "module.h"
 #include <GarrysMod/Lua/Interface.h>
-#include "gameeventmanager.h"
+#include "sourcesdk/GameEventManager.h"
 #include "lua.h"
-#include "sv_client.h"
+#include "sourcesdk/sv_client.h"
 #include "iserver.h"
 #include "vprof.h"
-#include "netmessages.h"
+#include "sourcesdk/netmessages.h"
 #include <unordered_set>
 
 class CUserCmd; // Fixes an error in igamesystem.h
