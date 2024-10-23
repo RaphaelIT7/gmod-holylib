@@ -646,7 +646,8 @@ void CVProfModule::InitDetour(bool bPreServer)
 
 	unsigned m_TargetThreadId = ThreadGetCurrentId();
     unsigned long int pthread_Id = ThreadGetCurrentId();
-    Msg("%u %lu %s!\n", m_TargetThreadId, pthread_Id, m_TargetThreadId == pthread_Id ? "true" : "false");
+	if (m_TargetThreadId != pthread_Id)
+		Warning("[holylib - vprof] Failed to fix ThreadGetCurrentId! (vprof most likely won't work)\n");
 #endif
 
 #ifdef SYSTEM_WINDOWS
