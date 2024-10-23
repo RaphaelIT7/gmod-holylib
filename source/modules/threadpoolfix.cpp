@@ -34,8 +34,8 @@ static int hook_CThreadPool_ExecuteToPriority(IThreadPool* pool, void* idx, void
 
 #if ARCHITECTURE_IS_X86_64
 static Detouring::Hook detour_CThreadPool_Start;
-static Symbols::CBaseFileSystem_InitAsync func_CBaseFileSystem_InitAsync;
-static Symbols::CBaseFileSystem_ShutdownAsync func_CBaseFileSystem_ShutdownAsync;
+Symbols::CBaseFileSystem_InitAsync func_CBaseFileSystem_InitAsync = NULL;
+Symbols::CBaseFileSystem_ShutdownAsync func_CBaseFileSystem_ShutdownAsync = NULL;
 static bool hook_CThreadPool_Start(IThreadPool* pool, /*const*/ ThreadPoolStartParams_t& params, const char* pszName)
 {
 	if (V_stricmp(pszName, "FsAsyncIO") && !params.bEnableOnLinuxDedicatedServer)
@@ -105,6 +105,9 @@ void CThreadPoolFixModule::InitDetour(bool bPreServer)
 
 	func_CBaseFileSystem_ShutdownAsync = (Symbols::CBaseFileSystem_ShutdownAsync)Detour::GetFunction(dedicated_loader.GetModule(), Symbols::CBaseFileSystem_ShutdownAsyncSym);
 	Detour::CheckFunction((void*)func_CBaseFileSystem_ShutdownAsync, "CBaseFileSystem::ShutdownAsync");
-	Msg("InitDetour called! (%s)\n", bPreServer ? "true" : "false");
+	if (!func_CBaseFileSystem_ShutdownAsync)
+		Error("What TF!\n");
+
+	Msg("InitDetour called! (%s, %p, %p)\n", bPreServer ? "true" : "false", func_CBaseFileSystem_InitAsync, func_CBaseFileSystem_ShutdownAsync);
 #endif
 }
