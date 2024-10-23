@@ -38,16 +38,13 @@ Symbols::CBaseFileSystem_InitAsync func_CBaseFileSystem_InitAsync = NULL;
 Symbols::CBaseFileSystem_ShutdownAsync func_CBaseFileSystem_ShutdownAsync = NULL;
 static bool hook_CThreadPool_Start(IThreadPool* pool, /*const*/ ThreadPoolStartParams_t& params, const char* pszName)
 {
-	if (V_stricmp(pszName, "FsAsyncIO") && !params.bEnableOnLinuxDedicatedServer)
+	if (!params.bEnableOnLinuxDedicatedServer)
 	{
 		params.bEnableOnLinuxDedicatedServer = true;
 
 		if (g_pThreadPoolFixModule.InDebug())
-			Msg("holylib - threadpoolfix: Manually fixed Filesystem threadpool! (%s)\n", pszName);
+			Msg("holylib - threadpoolfix: Manually fixed threadpool! (%s)\n", pszName);
 	}
-
-	if (!params.bEnableOnLinuxDedicatedServer && g_pThreadPoolFixModule.InDebug())
-		Msg("holylib - threadpoolfix: Threadpool will fail to start! (%s)\n", pszName != NULL ? pszName : "NULL"); // Just want to make sure
 
 	return detour_CThreadPool_Start.GetTrampoline<Symbols::CThreadPool_Start>()(pool, params, pszName);
 }
