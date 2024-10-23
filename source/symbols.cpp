@@ -136,6 +136,11 @@ namespace Symbols
 		Symbol::FromName("_ZN11CThreadPool17ExecuteToPriorityE13JobPriority_tPFbP4CJobE"),
 	};
 
+	const std::vector<Symbol> CThreadPool_StartSym = { // Defaulting to limit of 3 worker threads
+		NULL_SIGNATURE,
+		Symbol::FromSignature("\x55\x48\x89\xF1\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54"), // 55 48 89 F1 48 89 E5 41 57 41 56 41 55 41 54
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: precachefix Symbols
 	//---------------------------------------------------------------------------------

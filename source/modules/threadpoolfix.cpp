@@ -15,7 +15,7 @@ public:
 	virtual const char* Name() { return "threadpoolfix"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; }; 
 	// NOTE: This is only an issue specific to Linux 32x DS so this doesn't need to support anything else.
-	// NOTE2: 64x has a different issue: https://github.com/Facepunch/garrysmod-issues/issues/5310
+	// NOTE2: 64x has different issues: https://github.com/Facepunch/garrysmod-issues/issues/5310 & https://github.com/Facepunch/garrysmod-issues/issues/6031
 };
 
 static CThreadPoolFixModule g_pThreadPoolFixModule;
@@ -29,6 +29,23 @@ static int hook_CThreadPool_ExecuteToPriority(IThreadPool* pool, void* idx, void
 		return 0;
 
 	return detour_CThreadPool_ExecuteToPriority.GetTrampoline<Symbols::CThreadPool_ExecuteToPriority>()(pool, idx, idx2);
+}
+#endif
+
+#if ARCHITECTURE_IS_X86_64
+static Detouring::Hook detour_CThreadPool_Start;
+static bool hook_CThreadPool_Start(IThreadPool* pool, /*const*/ ThreadPoolStartParams_t& params, const char* pszName)
+{
+	if (V_stricmp(pszName, "FsAsyncIO") && !params.bEnableOnLinuxDedicatedServer)
+	{
+		params.bEnableOnLinuxDedicatedServer = true;
+		DevMsg("[holylib - threadpoolfix] Manually fixed Filesystem threadpool! (%s)\n", pszName);
+	}
+
+	if (!params.bEnableOnLinuxDedicatedServer)
+		DevMsg("[holylib - threadpoolfix] Threadpool will fail to start! (%s)\n", pszName != NULL ? pszName : "NULL"); // Just want to make sure
+
+	return detour_CThreadPool_Start.GetTrampoline<Symbols::CThreadPool_Start>()(pool, params, pszName);
 }
 #endif
 
@@ -53,12 +70,20 @@ void CThreadPoolFixModule::InitDetour(bool bPreServer)
 	if (!bPreServer)
 		return;
 
+	SourceSDK::ModuleLoader libvstdlib_loader("vstdlib");
 #if ARCHITECTURE_IS_X86
-	SourceSDK::ModuleLoader libvstdlib_loader("libvstdlib_srv");
 	Detour::Create(
 		&detour_CThreadPool_ExecuteToPriority, "CThreadPool::ExecuteToPriority",
 		libvstdlib_loader.GetModule(), Symbols::CThreadPool_ExecuteToPrioritySym,
 		(void*)hook_CThreadPool_ExecuteToPriority, m_pID
+	);
+#endif
+
+#if ARCHITECTURE_IS_X86_64
+	Detour::Create(
+		&detour_CThreadPool_Start, "CThreadPool::Start",
+		libvstdlib_loader.GetModule(), Symbols::CThreadPool_StartSym,
+		(void*)hook_CThreadPool_Start, m_pID
 	);
 #endif
 }

@@ -28,6 +28,8 @@ class IVP_Synapse;
 class IVP_Environment;
 class IVP_Core;
 
+struct ThreadPoolStartParams_t;
+
 /*
  * The symbols will have this order:
  * 0 - Linux 32x
@@ -143,6 +145,9 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	typedef int (GMCOMMON_CALLING_CONVENTION* CThreadPool_ExecuteToPriority)(void* pool, void* idk, void* idk2);
 	extern const std::vector<Symbol> CThreadPool_ExecuteToPrioritySym;
+
+	typedef bool (GMCOMMON_CALLING_CONVENTION* CThreadPool_Start)(void* pool, const ThreadPoolStartParams_t& params, const char* pszName);
+	extern const std::vector<Symbol> CThreadPool_StartSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: precachefix Symbols
