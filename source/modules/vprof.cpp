@@ -641,6 +641,10 @@ void CVProfModule::InitDetour(bool bPreServer)
 		tier0_loader.GetModule(), Symbols::pthread_selfSym,
 		(void*)hook_pthread_self, m_pID
 	);
+
+	unsigned m_TargetThreadId = ThreadGetCurrentId();
+    unsigned long int pthread_Id = ThreadGetCurrentId();
+    Msg("%u %lu %s!\n", m_TargetThreadId, pthread_Id, m_TargetThreadId == pthread_Id ? "true" : "false");
 #endif
 
 #ifdef SYSTEM_WINDOWS
