@@ -149,6 +149,12 @@ namespace Symbols
 	typedef bool (GMCOMMON_CALLING_CONVENTION* CThreadPool_Start)(void* pool, const ThreadPoolStartParams_t& params, const char* pszName);
 	extern const std::vector<Symbol> CThreadPool_StartSym;
 
+	typedef void (GMCOMMON_CALLING_CONVENTION* CBaseFileSystem_InitAsync)(void* filesystem);
+	extern const std::vector<Symbol> CBaseFileSystem_InitAsyncSym;
+
+	typedef void (GMCOMMON_CALLING_CONVENTION* CBaseFileSystem_ShutdownAsync)(void* filesystem);
+	extern const std::vector<Symbol> CBaseFileSystem_ShutdownAsyncSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: precachefix Symbols
 	//---------------------------------------------------------------------------------

@@ -141,6 +141,16 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x48\x89\xF1\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54"), // 55 48 89 F1 48 89 E5 41 57 41 56 41 55 41 54
 	};
 
+	const std::vector<Symbol> CBaseFileSystem_InitAsyncSym = { // Async I/O disabled from command line\n
+		NULL_SIGNATURE,
+		Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x89\xFB\x48\x81\xEC\x28\x01\x00\x00"), // 55 48 89 E5 53 48 89 FB 48 81 EC 28 01 00 00
+	};
+
+	const std::vector<Symbol> CBaseFileSystem_ShutdownAsyncSym = {
+		NULL_SIGNATURE,
+		Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x89\xFB\x48\x83\xEC\x08\x48\x83\xBF\x48\x01\x00\x00\x00**\x48\x8B\x07"), // 55 48 89 E5 53 48 89 FB 48 83 EC 08 48 83 BF 48 01 00 00 00 ?? ?? 48 8B 07
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: precachefix Symbols
 	//---------------------------------------------------------------------------------

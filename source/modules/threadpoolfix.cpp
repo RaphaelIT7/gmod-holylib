@@ -34,16 +34,19 @@ static int hook_CThreadPool_ExecuteToPriority(IThreadPool* pool, void* idx, void
 
 #if ARCHITECTURE_IS_X86_64
 static Detouring::Hook detour_CThreadPool_Start;
+static Symbols::CBaseFileSystem_InitAsync func_CBaseFileSystem_InitAsync;
+static Symbols::CBaseFileSystem_ShutdownAsync func_CBaseFileSystem_ShutdownAsync;
 static bool hook_CThreadPool_Start(IThreadPool* pool, /*const*/ ThreadPoolStartParams_t& params, const char* pszName)
 {
 	if (V_stricmp(pszName, "FsAsyncIO") && !params.bEnableOnLinuxDedicatedServer)
 	{
 		params.bEnableOnLinuxDedicatedServer = true;
-		DevMsg("[holylib - threadpoolfix] Manually fixed Filesystem threadpool! (%s)\n", pszName);
+		if (g_pThreadPoolFixModule.InDebug())
+			Msg("holylib - threadpoolfix: Manually fixed Filesystem threadpool! (%s)\n", pszName);
 	}
 
-	if (!params.bEnableOnLinuxDedicatedServer)
-		DevMsg("[holylib - threadpoolfix] Threadpool will fail to start! (%s)\n", pszName != NULL ? pszName : "NULL"); // Just want to make sure
+	if (!params.bEnableOnLinuxDedicatedServer && g_pThreadPoolFixModule.InDebug())
+		Msg("holylib - threadpoolfix: Threadpool will fail to start! (%s)\n", pszName != NULL ? pszName : "NULL"); // Just want to make sure
 
 	return detour_CThreadPool_Start.GetTrampoline<Symbols::CThreadPool_Start>()(pool, params, pszName);
 }
@@ -54,15 +57,23 @@ void CThreadPoolFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gam
 #if ARCHITECTURE_IS_X86_64
 	if (g_pThreadPool->NumThreads() > 0)
 	{
-		DevMsg("holylib: Threadpool is already running? Skipping our fix.\n"); // Seems to currently work again in gmod but I'll just leave it in
+		if (g_pThreadPoolFixModule.InDebug())
+			Msg("holylib - threadpoolfix: Threadpool is already running? Skipping our fix.\n"); // Seems to currently work again in gmod but I'll just leave it in
 		return;
 	}
 
 	ThreadPoolStartParams_t startParams;
 	Util::StartThreadPool(g_pThreadPool, startParams);
-#endif
 
-	// NOTE: Check Filesystem threadpool of 64x, I have a feeling that it is broken. AsyncRead always seems to run the next tick / seems to never actually use any threads.
+	if (func_CBaseFileSystem_InitAsync && func_CBaseFileSystem_ShutdownAsync && !g_pModuleManager.IsUsingGhostInj()) // Restart the threadpool to fix it.
+	{
+		if (g_pThreadPoolFixModule.InDebug())
+			Msg("holylib - threadpoolfix: Restarting filesystem threadpool.\n");
+
+		func_CBaseFileSystem_ShutdownAsync(g_pFullFileSystem);
+		func_CBaseFileSystem_InitAsync(g_pFullFileSystem);
+	}
+#endif
 }
 
 void CThreadPoolFixModule::InitDetour(bool bPreServer)
@@ -85,5 +96,12 @@ void CThreadPoolFixModule::InitDetour(bool bPreServer)
 		libvstdlib_loader.GetModule(), Symbols::CThreadPool_StartSym,
 		(void*)hook_CThreadPool_Start, m_pID
 	);
+
+	SourceSDK::ModuleLoader dedicated_loader("dedicated");
+	func_CBaseFileSystem_InitAsync = (Symbols::CBaseFileSystem_InitAsync)Detour::GetFunction(dedicated_loader.GetModule(), Symbols::CBaseFileSystem_InitAsyncSym);
+	Detour::CheckFunction((void*)func_CBaseFileSystem_InitAsync, "CBaseFileSystem::InitAsync");
+
+	func_CBaseFileSystem_ShutdownAsync = (Symbols::CBaseFileSystem_ShutdownAsync)Detour::GetFunction(dedicated_loader.GetModule(), Symbols::CBaseFileSystem_ShutdownAsyncSym);
+	Detour::CheckFunction((void*)func_CBaseFileSystem_ShutdownAsync, "CBaseFileSystem::ShutdownAsync");
 #endif
 }

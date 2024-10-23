@@ -25,7 +25,7 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 
 ## Next Update
 \- [+] `vprof` module now works on 64x  
-\- \- [#] Also fixed `vprof` itself on 64x / Solved [issue 6019](https://github.com/Facepunch/garrysmod-issues/issues/6019)  
+\- \- [#] Also fixed `vprof` itself on 64x / Solved https://github.com/Facepunch/garrysmod-issues/issues/6019  
 \- [+] Added `HolyLib.SetSignonState`, `HolyLib.InvalidateBoneCache` function and the `HolyLib:PostEntityConstructor` hook.
 \- [+] Added `steamworks.ForceAuthenticate` to steamworks module.  
 \- [+] `HolyLib:On[Generic/Model]PrecacheFail` hooks now also allow you to change the fallback.  
@@ -42,6 +42,8 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- [#] `VoiceData:GetUncompressedData` got the `decompressSize` argument.  
 \- [#] Fixed `VoiceData:GetUncompressedData` always erroring (https://github.com/RaphaelIT7/gmod-holylib/pull/11)  
 \- [#] Fixed `Steam3Server` symbol.  
+\- [#] Fixed ghostinj crashing on shutdown on 64x.  
+\- [#] Implemented a fix for https://github.com/Facepunch/garrysmod-issues/issues/6031  
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.5...main
