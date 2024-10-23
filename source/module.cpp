@@ -123,6 +123,7 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 			}
 
 			int status = g_pModuleManager.GetStatus();
+			Msg("Status: %i\n", status);
 			if (status & LoadStatus_Init)
 				m_pModule->Init(&g_pModuleManager.GetAppFactory(), &g_pModuleManager.GetGameFactory());
 

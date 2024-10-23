@@ -105,5 +105,6 @@ void CThreadPoolFixModule::InitDetour(bool bPreServer)
 
 	func_CBaseFileSystem_ShutdownAsync = (Symbols::CBaseFileSystem_ShutdownAsync)Detour::GetFunction(dedicated_loader.GetModule(), Symbols::CBaseFileSystem_ShutdownAsyncSym);
 	Detour::CheckFunction((void*)func_CBaseFileSystem_ShutdownAsync, "CBaseFileSystem::ShutdownAsync");
+	Msg("InitDetour called! (%s)\n", bPreServer ? "true" : "false");
 #endif
 }
