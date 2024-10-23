@@ -12,7 +12,9 @@ class CVProfModule : public IModule
 public:
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "vprof"; };
-	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32; }; // NOTE for myself: Linux64 seemingly doesn't have vprof enabled! so don't suppositly add compatbility!
+	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32; };
+	// NOTE for myself: Linux64 seemingly doesn't have vprof enabled! so don't suppositly add compatbility!
+	// Update: Fk my old self, Linux64 is just broken and it crashed because I had the wrong symbols.
 };
 
 extern ConVar holylib_sv_stressbots;
@@ -549,6 +551,17 @@ static void* hook_lj_BC_FUNC() // Find out the luajit function later.
 	return NULL;
 }*/
 
+#if ARCHITECTURE_IS_X86_64
+Detouring::Hook detour_ThreadGetCurrentId;
+ThreadId_t hook_ThreadGetCurrentId()
+{
+	// Downcasting it to a unsigned int to allow this line to work:
+	// bool InTargetThread() { return ( m_TargetThreadId == ThreadGetCurrentId() ); }
+	// The bug: unsigned int == unsigned long -> This will always return false
+	return (unsigned int)detour_ThreadGetCurrentId.GetTrampoline<Symbols::ThreadGetCurrentId_t>()();
+}
+#endif
+
 void CVProfModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
@@ -621,6 +634,14 @@ void CVProfModule::InitDetour(bool bPreServer)
 		server_loader.GetModule(), Symbols::CScriptedEntity_CallFunctionSym,
 		(void*)hook_CScriptedEntity_CallFunction, m_pID
 	);
+
+#if ARCHITECTURE_IS_X86_64
+	Detour::Create(
+		&detour_ThreadGetCurrentId, "ThreadGetCurrentId",
+		tier0_loader.GetModule(), Symbols::ThreadGetCurrentIdSym,
+		(void*)hook_ThreadGetCurrentId, m_pID
+	);
+#endif
 
 #ifdef SYSTEM_WINDOWS
 	// We also add detours for the Client version of thoes functions.

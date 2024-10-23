@@ -279,6 +279,9 @@ namespace Symbols
 	typedef void* (GMCOMMON_CALLING_CONVENTION* CScriptedEntity_CallFunction)(void*, int);
 	extern const std::vector<Symbol> CScriptedEntity_CallFunctionSym;
 
+	typedef ThreadId_t (GMCOMMON_CALLING_CONVENTION* ThreadGetCurrentId_t)();
+	extern const std::vector<Symbol> ThreadGetCurrentIdSym;
+
 #ifdef SYSTEM_WINDOWS
 	extern const std::vector<Symbol> Client_CLuaGamemode_CallFinishSym;
 	extern const std::vector<Symbol> Client_CLuaGamemode_CallWithArgsSym;
