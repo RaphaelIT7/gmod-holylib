@@ -80,11 +80,11 @@ void CModule::SetModule(IModule* module)
 	pStrName.append(module->Name());
 	std::string cmdStr = "-";
 	cmdStr.append(pStrName);
-	int cmd = CommandLine()->ParmValue(cmdStr.c_str(), -1);
+	int cmd = CommandLine()->ParmValue(cmdStr.c_str(), -1); // checks for "-holylib_enable_[module name] [1 / 0]"
 	if (cmd > -1)
 		SetEnabled(cmd == 1, true);
 	else
-		if (CommandLine()->ParmValue("-holylib_startdisabled", -1) == -1)
+		if (!CommandLine()->FindParm("-holylib_startdisabled"))
 			m_bEnabled = m_pModule->IsEnabledByDefault() ? m_bCompatible : false;
 
 	m_pCVarName = new char[48];

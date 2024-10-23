@@ -41,6 +41,8 @@ static bool hook_CThreadPool_Start(IThreadPool* pool, /*const*/ ThreadPoolStartP
 	if (V_stricmp(pszName, "FsAsyncIO") && !params.bEnableOnLinuxDedicatedServer)
 	{
 		params.bEnableOnLinuxDedicatedServer = true;
+		Msg("Crash!\n");
+		*((char*)NULL) = 0;
 		if (g_pThreadPoolFixModule.InDebug())
 			Msg("holylib - threadpoolfix: Manually fixed Filesystem threadpool! (%s)\n", pszName);
 	}
