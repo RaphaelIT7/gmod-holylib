@@ -66,6 +66,7 @@ void CThreadPoolFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gam
 		Util::StartThreadPool(g_pThreadPool, startParams);
 	}
 
+	Msg("%s, %s, %s\n", func_CBaseFileSystem_InitAsync != NULL ? "true" : "false", func_CBaseFileSystem_ShutdownAsync != NULL ? "true" : "false", !g_pModuleManager.IsUsingGhostInj() ? "true" : "false");
 	if (func_CBaseFileSystem_InitAsync && func_CBaseFileSystem_ShutdownAsync && !g_pModuleManager.IsUsingGhostInj()) // Restart the threadpool to fix it.
 	{
 		if (g_pThreadPoolFixModule.InDebug())
