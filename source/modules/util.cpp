@@ -166,6 +166,7 @@ int iRecursiveStartTop = -1;
 bool bRecursiveNoError = false;
 std::vector<int> pRecursiveTableScope;
 extern void TableToJSONRecursive(Bootil::Data::Tree& pTree);
+static char buffer[128];
 void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 {
 	bool bEqual = false;
@@ -281,7 +282,6 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 					if (!vec)
 						break;
 
-					char buffer[56];
 					snprintf(buffer, sizeof(buffer), "[%.16g %.16g %.16g]", vec->x, vec->y, vec->z); // Do we even need to be this percice?
 					if (isSequential)
 						pTree.AddChild().Value(buffer);
@@ -295,7 +295,6 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 					if (!ang)
 						break;
 
-					char buffer[48];
 					snprintf(buffer, sizeof(buffer), "{%.12g %.12g %.12g}", ang->x, ang->y, ang->z);
 					if (isSequential)
 						pTree.AddChild().Value(buffer);
