@@ -552,13 +552,13 @@ static void* hook_lj_BC_FUNC() // Find out the luajit function later.
 }*/
 
 #if ARCHITECTURE_IS_X86_64
-Detouring::Hook detour_ThreadGetCurrentId;
-ThreadId_t hook_ThreadGetCurrentId()
+Detouring::Hook detour_pthread_self;
+ThreadId_t hook_pthread_self()
 {
 	// Downcasting it to a unsigned int to allow this line to work:
 	// bool InTargetThread() { return ( m_TargetThreadId == ThreadGetCurrentId() ); }
 	// The bug: unsigned int == unsigned long -> This will always return false
-	return (unsigned int)detour_ThreadGetCurrentId.GetTrampoline<Symbols::ThreadGetCurrentId_t>()();
+	return (unsigned int)detour_pthread_self.GetTrampoline<Symbols::pthread_self_t>()();
 }
 #endif
 
@@ -637,9 +637,9 @@ void CVProfModule::InitDetour(bool bPreServer)
 
 #if ARCHITECTURE_IS_X86_64
 	Detour::Create(
-		&detour_ThreadGetCurrentId, "ThreadGetCurrentId",
-		tier0_loader.GetModule(), Symbols::ThreadGetCurrentIdSym,
-		(void*)hook_ThreadGetCurrentId, m_pID
+		&detour_pthread_self, "pthread_self",
+		tier0_loader.GetModule(), Symbols::pthread_selfSym,
+		(void*)hook_pthread_self, m_pID
 	);
 #endif
 

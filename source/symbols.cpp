@@ -337,9 +337,9 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x8B\xEC\x56\x8B\xF1\x80\x7E\x04\x00**\x8B\x4E\x0C\x8B"), // 55 8B EC 56 8B F1 80 7E 04 00 ?? ?? 8B 4E 0C 8B
 	};
 
-	const std::vector<Symbol> ThreadGetCurrentIdSym = {
+	const std::vector<Symbol> pthread_selfSym = {
 		NULL_SIGNATURE,
-		Symbol::FromName("ThreadGetCurrentId"), // Trying to fix 64x Vprof
+		Symbol::FromName("pthread_self"), // Trying to fix 64x Vprof
 	};
 
 #ifdef SYSTEM_WINDOWS
