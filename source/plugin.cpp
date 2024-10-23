@@ -63,6 +63,7 @@ DLL_EXPORT void HolyLib_PreLoad() // ToDo: Make this a CServerPlugin member late
 // Purpose: called when the plugin is loaded, load the interface we need from the engine
 //---------------------------------------------------------------------------------
 CGlobalVars *gpGlobals = NULL;
+static bool bIgnoreNextUnload = false;
 bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServerFactory)
 {
 	VPROF_BUDGET("HolyLib - CServerPlugin::Load", VPROF_BUDGETGROUP_HOLYLIB);
@@ -73,6 +74,7 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 	{
 		Msg("HolyLib already exists? Stopping.\n");
 		Msg("--- HolyLib Plugin finished loading ---\n");
+		bIgnoreNextUnload = true;
 		return false; // What if we return false?
 	}
 	 
@@ -142,6 +144,12 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 void CServerPlugin::Unload(void)
 {
 	VPROF_BUDGET("HolyLib - CServerPlugin::Unload", VPROF_BUDGETGROUP_HOLYLIB);
+
+	if (bIgnoreNextUnload)
+	{
+		bIgnoreNextUnload = false;
+		return;
+	}
 
 	g_pModuleManager.Shutdown();
 	Detour::Remove(0);
