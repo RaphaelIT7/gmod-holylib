@@ -123,15 +123,14 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 			}
 
 			int status = g_pModuleManager.GetStatus();
-			Msg("Status: %i\n", status);
+			if (status & LoadStatus_PreDetourInit)
+				m_pModule->InitDetour(true); // I want every module to be able to be disabled/enabled properly
+
 			if (status & LoadStatus_Init)
 				m_pModule->Init(&g_pModuleManager.GetAppFactory(), &g_pModuleManager.GetGameFactory());
 
 			if (status & LoadStatus_DetourInit)
-			{
-				m_pModule->InitDetour(true); // I want every module to be able to be disabled/enabled properly
 				m_pModule->InitDetour(false);
-			}
 
 			if (status & LoadStatus_LuaInit)
 				m_pModule->LuaInit(false);

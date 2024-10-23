@@ -41,8 +41,7 @@ static bool hook_CThreadPool_Start(IThreadPool* pool, /*const*/ ThreadPoolStartP
 	if (V_stricmp(pszName, "FsAsyncIO") && !params.bEnableOnLinuxDedicatedServer)
 	{
 		params.bEnableOnLinuxDedicatedServer = true;
-		Msg("Crash!\n");
-		*((char*)NULL) = 0;
+
 		if (g_pThreadPoolFixModule.InDebug())
 			Msg("holylib - threadpoolfix: Manually fixed Filesystem threadpool! (%s)\n", pszName);
 	}
@@ -66,7 +65,6 @@ void CThreadPoolFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gam
 		Util::StartThreadPool(g_pThreadPool, startParams);
 	}
 
-	Msg("%s, %s, %s\n", func_CBaseFileSystem_InitAsync != NULL ? "true" : "false", func_CBaseFileSystem_ShutdownAsync != NULL ? "true" : "false", !g_pModuleManager.IsUsingGhostInj() ? "true" : "false");
 	if (func_CBaseFileSystem_InitAsync && func_CBaseFileSystem_ShutdownAsync && !g_pModuleManager.IsUsingGhostInj()) // Restart the threadpool to fix it.
 	{
 		if (g_pThreadPoolFixModule.InDebug())
@@ -80,18 +78,9 @@ void CThreadPoolFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gam
 
 void CThreadPoolFixModule::InitDetour(bool bPreServer)
 {
-	if (!bPreServer)
-		return;
-
 	SourceSDK::ModuleLoader libvstdlib_loader("vstdlib");
-#if ARCHITECTURE_IS_X86
-	Detour::Create(
-		&detour_CThreadPool_ExecuteToPriority, "CThreadPool::ExecuteToPriority",
-		libvstdlib_loader.GetModule(), Symbols::CThreadPool_ExecuteToPrioritySym,
-		(void*)hook_CThreadPool_ExecuteToPriority, m_pID
-	);
-#endif
-
+	if (bPreServer)
+	{
 #if ARCHITECTURE_IS_X86_64
 	Detour::Create(
 		&detour_CThreadPool_Start, "CThreadPool::Start",
@@ -105,9 +94,15 @@ void CThreadPoolFixModule::InitDetour(bool bPreServer)
 
 	func_CBaseFileSystem_ShutdownAsync = (Symbols::CBaseFileSystem_ShutdownAsync)Detour::GetFunction(dedicated_loader.GetModule(), Symbols::CBaseFileSystem_ShutdownAsyncSym);
 	Detour::CheckFunction((void*)func_CBaseFileSystem_ShutdownAsync, "CBaseFileSystem::ShutdownAsync");
-	if (!func_CBaseFileSystem_ShutdownAsync)
-		Error("What TF!\n");
+#endif
+		return;
+	}
 
-	Msg("InitDetour called! (%s, %p, %p)\n", bPreServer ? "true" : "false", func_CBaseFileSystem_InitAsync, func_CBaseFileSystem_ShutdownAsync);
+#if ARCHITECTURE_IS_X86
+	Detour::Create(
+		&detour_CThreadPool_ExecuteToPriority, "CThreadPool::ExecuteToPriority",
+		libvstdlib_loader.GetModule(), Symbols::CThreadPool_ExecuteToPrioritySym,
+		(void*)hook_CThreadPool_ExecuteToPriority, m_pID
+	);
 #endif
 }
