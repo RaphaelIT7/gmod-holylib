@@ -59,11 +59,10 @@ void CThreadPoolFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gam
 	{
 		if (g_pThreadPoolFixModule.InDebug())
 			Msg("holylib - threadpoolfix: Threadpool is already running? Skipping our fix.\n"); // Seems to currently work again in gmod but I'll just leave it in
-		return;
+	} else {
+		ThreadPoolStartParams_t startParams;
+		Util::StartThreadPool(g_pThreadPool, startParams);
 	}
-
-	ThreadPoolStartParams_t startParams;
-	Util::StartThreadPool(g_pThreadPool, startParams);
 
 	if (func_CBaseFileSystem_InitAsync && func_CBaseFileSystem_ShutdownAsync && !g_pModuleManager.IsUsingGhostInj()) // Restart the threadpool to fix it.
 	{
