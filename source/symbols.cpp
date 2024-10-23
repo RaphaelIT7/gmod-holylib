@@ -339,7 +339,7 @@ namespace Symbols
 
 	const std::vector<Symbol> pthread_selfSym = {
 		NULL_SIGNATURE,
-		Symbol::FromName("pthread_self"), // Trying to fix 64x Vprof
+		Symbol::FromName("_pthread_self"), // Trying to fix 64x Vprof
 	};
 
 #ifdef SYSTEM_WINDOWS
