@@ -85,7 +85,7 @@ void Load()
 
 void Unload()
 {
-	Msg( "--- Holylib-GhostInj unloading ---\n" );
+	printf( "--- Holylib-GhostInj unloading ---\n" );
 
 	if ( holylib )
 		dlclose( holylib );
@@ -93,7 +93,7 @@ void Unload()
 	if ( ghostinj2 )
 		dlclose( ghostinj2 );
 
-	Msg( "--- Holylib-GhostInj unloaded ---\n" );
+	printf( "--- Holylib-GhostInj unloaded ---\n" );
 }
 
 #if SYSTEM_WINDOWS
