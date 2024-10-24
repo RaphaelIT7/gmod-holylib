@@ -245,6 +245,12 @@ void CModuleManager::Setup(CreateInterfaceFn appfn, CreateInterfaceFn gamefn)
 		pModule->GetModule()-> call; \
 	}
 
+#define CALL_ENABLED_MODULES(call) \
+	for (CModule* pModule : m_pModules) { \
+		if ( !pModule->FastIsEnabled() ) { continue; } \
+		pModule-> call; \
+	}
+
 
 void CModuleManager::Init()
 {
@@ -291,7 +297,7 @@ void CModuleManager::Think(bool bSimulating)
 void CModuleManager::Shutdown()
 {
 	m_pStatus = 0;
-	VCALL_ENABLED_MODULES(Shutdown());
+	CALL_ENABLED_MODULES(Shutdown());
 }
 
 
