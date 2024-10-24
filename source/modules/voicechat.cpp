@@ -475,10 +475,16 @@ void CVoiceChatModule::ServerActivate(edict_t* pEdictList, int edictCount, int c
 
 		if (pSteamClient)
 		{
+#if ARCHITECTURE_IS_X86 // BUG: This makes 64x unstable for some reason..... fk....
 			HSteamPipe hSteamPipe = pSteamClient->CreateSteamPipe();
 			HSteamUser hSteamUser = pSteamClient->CreateLocalUser(&hSteamPipe, k_EAccountTypeAnonUser);
 			g_pSteamUser = pSteamClient->GetISteamUser(hSteamUser, hSteamPipe, "SteamUser023");
+#endif
 		}
+
+#if ARCHITECTURE_IS_X86_64
+		g_pSteamUser = SteamUser(); // Hope.
+#endif
 	}
 }
 
