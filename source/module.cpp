@@ -138,6 +138,9 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 			if (status & LoadStatus_LuaServerInit)
 				m_pModule->LuaInit(true);
 
+			if (status & LoadStatus_ServerActivate)
+				m_pModule->ServerActivate(g_pModuleManager.GetEdictList(), g_pModuleManager.GetEdictCount(), g_pModuleManager.GetClientMax());
+
 			if (!m_bStartup)
 				Msg("holylib: Enabled module %s\n", m_pModule->Name());
 		} else {
@@ -300,9 +303,13 @@ void CModuleManager::Shutdown()
 	CALL_ENABLED_MODULES(Shutdown());
 }
 
-
 void CModuleManager::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
 {
+	m_pEdictList = pEdictList;
+	m_iEdictCount = edictCount;
+	m_iClientMax = clientMax;
+
+	m_pStatus |= LoadStatus_ServerActivate;
 	VCALL_ENABLED_MODULES(ServerActivate(pEdictList, edictCount, clientMax));
 }
 

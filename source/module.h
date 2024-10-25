@@ -58,11 +58,19 @@ public:
 	inline int GetStatus() { return m_pStatus; };
 	inline CreateInterfaceFn& GetAppFactory() { return m_pAppFactory; };
 	inline CreateInterfaceFn& GetGameFactory() { return m_pGameFactory; };
+	inline edict_t* GetEdictList() { return m_pEdictList; };
+	inline int GetEdictCount() { return m_iEdictCount; };
+	inline int GetClientMax() { return m_iClientMax; };
 private:
 	std::vector<CModule*> m_pModules;
 	int m_pStatus = 0;
 	CreateInterfaceFn m_pAppFactory = NULL;
 	CreateInterfaceFn m_pGameFactory = NULL;
 	bool m_bGhostInj = false;
+
+private: // ServerActivate stuff
+	edict_t* m_pEdictList = NULL;
+	int m_iEdictCount = 0;
+	int m_iClientMax = 0;
 };
 extern CModuleManager g_pModuleManager;

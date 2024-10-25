@@ -49,6 +49,7 @@ public:
 #define LoadStatus_DetourInit (1<<2)
 #define LoadStatus_LuaInit (1<<3)
 #define LoadStatus_LuaServerInit (1<<4)
+#define LoadStatus_ServerActivate (1<<5)
 
 class IModuleManager
 {
