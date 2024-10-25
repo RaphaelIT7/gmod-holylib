@@ -105,6 +105,8 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 	if ( playerinfomanager )
 		gpGlobals = playerinfomanager->GetGlobalVars();
 
+	SteamAPI_Init(); // Crash any% speedrun :D
+
 	g_pModuleManager.Setup(interfaceFactory, gameServerFactory); // Setup so that Util won't cause issues
 	Lua::AddDetour();
 	Util::AddDetour();
