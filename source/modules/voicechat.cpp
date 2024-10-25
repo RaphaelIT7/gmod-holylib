@@ -471,6 +471,14 @@ void CVoiceChatModule::ServerActivate(edict_t* pEdictList, int edictCount, int c
 {
 	if (!g_pSteamUser)
 	{
+		if (SteamUser())
+		{
+			g_pSteamUser = SteamUser();
+			if (g_pVoiceChatModule.InDebug())
+				Msg("SteamUser returned valid stuff?\n");
+			return;
+		}
+
 		ISteamClient* pSteamClient = SteamGameServerClient();
 
 		if (pSteamClient)
@@ -481,10 +489,6 @@ void CVoiceChatModule::ServerActivate(edict_t* pEdictList, int edictCount, int c
 			g_pSteamUser = pSteamClient->GetISteamUser(hSteamUser, hSteamPipe, "SteamUser023");
 #endif
 		}
-
-#if ARCHITECTURE_IS_X86_64
-		g_pSteamUser = SteamUser(); // Hope.
-#endif
 	}
 }
 
