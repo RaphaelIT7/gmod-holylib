@@ -24,7 +24,7 @@ void Detour::Create(Detouring::Hook* hook, const char* name, void* module, Symbo
 
 	g_pDetours[category].push_back(hook);
 
-	if (!hook->IsValid()) {
+	if (!DETOUR_ISVALID((*hook))) {
 		Msg("Failed to detour %s!\n", name);
 	}
 }

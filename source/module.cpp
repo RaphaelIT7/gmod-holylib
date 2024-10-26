@@ -167,6 +167,13 @@ void CModule::Shutdown()
 
 CModuleManager::CModuleManager() // ToDo: Look into how IGameSystem works and use something similar. I don't like to add each one manually
 {
+#ifndef LIB_HOLYLIB
+	LoadModules();
+#endif
+}
+
+void CModuleManager::LoadModules()
+{
 	RegisterModule(pHolyLibModule);
 	RegisterModule(pGameeventLibModule);
 	RegisterModule(pServerPluginLibModule);

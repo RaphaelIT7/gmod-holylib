@@ -93,18 +93,18 @@ static void hook_Msg(PRINTF_FORMAT_STRING const tchar* pMsg, ...)
 
 static void StartSpew() // Only enable the hook if we're dumping vprof. We don't want to permanently check for vprof. This would waste performance.
 {
-	if (!detour_Msg.IsValid())
+	if (!DETOUR_ISVALID(detour_Msg))
 		return;
 
-	detour_Msg.Enable();
+	DETOUR_ENABLE(detour_Msg);
 }
 
 static void FinishSpew()
 {
-	if (!detour_Msg.IsEnabled())
+	if (!DETOUR_ISENABLED(detour_Msg))
 		return;
 
-	detour_Msg.Disable();
+	DETOUR_DISABLE(detour_Msg);
 }
 #endif
 
@@ -711,7 +711,7 @@ void CVProfModule::InitDetour(bool bPreServer)
 		(void*)hook_Msg, m_pID
 	);
 
-	if (detour_Msg.IsEnabled())
-		detour_Msg.Disable();
+	if (DETOUR_ISENABLED(detour_Msg))
+		DETOUR_DISABLE(detour_Msg);
 #endif
 }

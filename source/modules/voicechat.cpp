@@ -347,7 +347,7 @@ LUA_FUNCTION_STATIC(voicechat_ProcessVoiceData)
 
 	VoiceData* pData = Get_VoiceData(2, true);
 
-	if (!detour_SV_BroadcastVoiceData.IsValid())
+	if (!DETOUR_ISVALID(detour_SV_BroadcastVoiceData))
 		LUA->ThrowError("Missing valid detour for SV_BroadcastVoiceData!\n");
 
 	detour_SV_BroadcastVoiceData.GetTrampoline<Symbols::SV_BroadcastVoiceData>()(
@@ -482,7 +482,7 @@ void CVoiceChatModule::ServerActivate(edict_t* pEdictList, int edictCount, int c
 		ISteamClient* pSteamClient = SteamGameServerClient();
 
 		if (pSteamClient)
-		{
+		{ // BUG: This also seems to do some weird stuff on x86? What is happening with steam....
 #if ARCHITECTURE_IS_X86 // BUG: This makes 64x unstable for some reason..... fk....
 			HSteamPipe hSteamPipe = pSteamClient->CreateSteamPipe();
 			HSteamUser hSteamUser = pSteamClient->CreateLocalUser(&hSteamPipe, k_EAccountTypeAnonUser);

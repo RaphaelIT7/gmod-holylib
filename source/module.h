@@ -39,6 +39,7 @@ class CModuleManager : public IModuleManager
 {
 public:
 	CModuleManager();
+	virtual void LoadModules();
 	virtual void RegisterModule(IModule* mdl);
 	virtual IModuleWrapper* FindModuleByConVar(ConVar* convar);
 	virtual IModuleWrapper* FindModuleByName(const char* name);

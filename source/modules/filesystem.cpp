@@ -1261,7 +1261,7 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 	std::string workshopDir = pBaseDir;
 	workshopDir.append("garrysmod/workshop");
 
-	if (!detour_CBaseFileSystem_AddSearchPath.IsValid())
+	if (!DETOUR_ISVALID(detour_CBaseFileSystem_AddSearchPath))
 	{
 		Msg("holylib: CBaseFileSystem::AddSearchPath detour is invalid?\n");
 		return;

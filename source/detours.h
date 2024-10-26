@@ -401,6 +401,22 @@ namespace Symbols
 //---------------------------------------------------------------------------------
 namespace Detour
 {
+#define DETOUR_ISVALID( detour ) \
+	detour .IsValid()
+
+#define DETOUR_ISENABLED( detour ) \
+	detour .IsEnabled()
+
+#define DETOUR_ENABLE( detour ) \
+	detour .Enable()
+
+#define DETOUR_DISABLE( detour ) \
+	detour .Disable()
+
+// Below one is unused for now.
+#define DETOUR_GETFUNC( detour, type ) \
+	detour .GetTrampoline< type >()
+
 	inline bool CheckValue(const char* msg, const char* name, bool ret)
 	{
 		if (!ret) {
