@@ -12,7 +12,6 @@ public:
 	virtual void InitDetour(bool bPreServer);
 	virtual const char* Name() { return "physenv"; };
 	virtual int Compatibility() { return LINUX32; };
-	virtual bool IsEnabledByDefault() OVERRIDE { return false; };
 };
 
 CPhysEnvModule g_pPhysEnvModule;
@@ -79,6 +78,9 @@ static void hook_IVP_Event_Manager_Standard_simulate_time_events(void* eventmana
 
 void CheckPhysicsLag()
 {
+	if (pCurrentSkipType != IVP_None) // We already have a skip type.
+		return;
+
 	auto pTime = std::chrono::high_resolution_clock::now();
 	auto pSimulationTime = std::chrono::duration_cast<std::chrono::milliseconds>(pTime - pCurrentTime).count();
 	if (pSimulationTime > pCurrentLagThreadshold)
