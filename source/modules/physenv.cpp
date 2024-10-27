@@ -38,8 +38,10 @@ IVP_SkipType pCurrentSkipType = IVP_None;
 static Detouring::Hook detour_IVP_Mindist_D2;
 static void hook_IVP_Mindist_D2(IVP_Mindist* mindist)
 {
-	Msg("%s %s %s\n", TOSTRING(g_bInImpactCall), TOSTRING(*g_fDeferDeleteMindist), TOSTRING(g_pCurrentMindist == NULL));
-	if (g_bInImpactCall && *g_fDeferDeleteMindist && g_pCurrentMindist == NULL)
+	if (g_bInImpactCall)
+		Msg("%s %s %s\n", TOSTRING(g_bInImpactCall), TOSTRING(*g_fDeferDeleteMindist), TOSTRING(*g_pCurrentMindist == NULL));
+
+	if (g_bInImpactCall && *g_fDeferDeleteMindist && *g_pCurrentMindist == NULL)
 	{
 		*g_fDeferDeleteMindist = false; // The single thing missing in the physics engine that causes it to break.....
 		Warning("holylib: Someone forgot to call Entity:CollisionRulesChanged!\n");
