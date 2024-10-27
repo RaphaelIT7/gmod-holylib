@@ -103,6 +103,7 @@ static void hook_IVP_Mindist_simulate_time_event(void* mindist, void* environmen
 					pType = 0; // Invalid value. So we won't do shit.
 
 				pCurrentSkipType = (IVP_SkipType)pType;
+				g_Lua->Pop(1);
 
 				if (g_pPhysEnvModule.InDebug())
 					Msg("physenv: Lua hook called (%i)\n", (int)pCurrentSkipType);
