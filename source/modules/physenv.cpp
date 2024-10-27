@@ -33,9 +33,12 @@ enum IVP_SkipType {
 };
 IVP_SkipType pCurrentSkipType = IVP_None;
 
+#define TOSTRING( var ) var ? "true" : "false"
+
 static Detouring::Hook detour_IVP_Mindist_D2;
 static void hook_IVP_Mindist_D2(IVP_Mindist* mindist)
 {
+	Msg("%s %s %s\n", TOSTRING(g_bInImpactCall), TOSTRING(*g_fDeferDeleteMindist), TOSTRING(g_pCurrentMindist == NULL));
 	if (g_bInImpactCall && *g_fDeferDeleteMindist && g_pCurrentMindist == NULL)
 	{
 		*g_fDeferDeleteMindist = false; // The single thing missing in the physics engine that causes it to break.....
@@ -167,7 +170,7 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 		(void*)hook_IVP_Mindist_D2, m_pID
 	);
 
-	if (g_pPhysEnvModule.InDebug() != 2)
+	if (g_pPhysEnvModule.InDebug() == 2) // Only add these detours if where in debug
 	{
 		Detour::Create(
 			&detour_IVP_Event_Manager_Standard_simulate_time_events, "IVP_Event_Manager_Standard::simulate_time_events",
