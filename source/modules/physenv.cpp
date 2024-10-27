@@ -65,7 +65,7 @@ static void hook_IVP_Mindist_do_impact(IVP_Mindist* mindist)
 auto pCurrentTime = std::chrono::high_resolution_clock::now();
 double pCurrentLagThreadshold = 100; // 100 ms
 static Detouring::Hook detour_IVP_Event_Manager_Standard_simulate_time_events;
-static void hook_IVP_Event_Manager_Standard_simulate_time_events(void* timemanager, void* environment, IVP_Time time)
+static void hook_IVP_Event_Manager_Standard_simulate_time_events(void* eventmanager, void* timemanager, void* environment, IVP_Time time)
 {
 	pCurrentTime = std::chrono::high_resolution_clock::now();
 	pCurrentSkipType = IVP_None; // Idk if it can happen that something else sets it in the mean time but let's just be sure...
@@ -73,7 +73,7 @@ static void hook_IVP_Event_Manager_Standard_simulate_time_events(void* timemanag
 	if (g_pPhysEnvModule.InDebug())
 		Msg("physenv: IVP_Event_Manager_Standart::simulate_time_events called!\n");
 
-	detour_IVP_Event_Manager_Standard_simulate_time_events.GetTrampoline<Symbols::IVP_Event_Manager_Standard_simulate_time_events>()(timemanager, environment, time);
+	detour_IVP_Event_Manager_Standard_simulate_time_events.GetTrampoline<Symbols::IVP_Event_Manager_Standard_simulate_time_events>()(eventmanager, timemanager, environment, time);
 
 	pCurrentSkipType = IVP_NoCall; // Reset it.
 }

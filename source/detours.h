@@ -351,7 +351,7 @@ namespace Symbols
 	typedef void (*IVP_Mindist_do_impact)(void* mindlist);
 	extern const std::vector<Symbol> IVP_Mindist_do_impactSym;
 
-	typedef void (*IVP_Event_Manager_Standard_simulate_time_events)(void* timemanager, void* environment, IVP_Time time);
+	typedef void (*IVP_Event_Manager_Standard_simulate_time_events)(void* eventmanager, void* timemanager, void* environment, IVP_Time time);
 	extern const std::vector<Symbol> IVP_Event_Manager_Standard_simulate_time_eventsSym;
 
 	typedef void (*IVP_Mindist_simulate_time_event)(void* mindlist, void* environment);
