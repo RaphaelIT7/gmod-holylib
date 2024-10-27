@@ -1,11 +1,8 @@
 #include "module.h"
 #include <GarrysMod/Lua/Interface.h>
-#include "sourcesdk/ivp_synapse.h"
-#include "sourcesdk/ivp_core.h"
-#include "sourcesdk/ivp_environment.h"
 #include "lua.h"
 #include <chrono>
-#include <ivp_friction.h>
+#include "sourcesdk/ivp_time.h"
 
 class CPhysEnvModule : public IModule
 {
@@ -24,6 +21,17 @@ IModule* pPhysEnvModule = &g_pPhysEnvModule;
 static bool g_bInImpactCall = false;
 IVP_Mindist** g_pCurrentMindist;
 bool* g_fDeferDeleteMindist;
+
+enum IVP_SkipType {
+	IVP_NoCall = -2, // Were not in our expected simulation, so don't handle anything.
+	IVP_None, // We didn't ask lua yet. So make the lua call.
+
+	// Lua Enums
+	IVP_NoSkip,
+	IVP_SkipImpact,
+	IVP_SkipSimulation,
+};
+IVP_SkipType pCurrentSkipType = IVP_None;
 
 static Detouring::Hook detour_IVP_Mindist_D2;
 static void hook_IVP_Mindist_D2(IVP_Mindist* mindist)
@@ -51,18 +59,7 @@ static void hook_IVP_Mindist_do_impact(IVP_Mindist* mindist)
 	g_bInImpactCall = false;
 }
 
-enum IVP_SkipType {
-	IVP_NoCall = -2, // Were not in our expected simulation, so don't handle anything.
-	IVP_None, // We didn't ask lua yet. So make the lua call.
-
-	// Lua Enums
-	IVP_NoSkip,
-	IVP_SkipImpact,
-	IVP_SkipSimulation,
-};
-
 auto pCurrentTime = std::chrono::high_resolution_clock::now();
-IVP_SkipType pCurrentSkipType = IVP_None;
 double pCurrentLagThreadshold = 100; // 100 ms
 static Detouring::Hook detour_IVP_Event_Manager_Standard_simulate_time_events;
 static void hook_IVP_Event_Manager_Standard_simulate_time_events(void* timemanager, void* environment, IVP_Time time)
