@@ -117,6 +117,18 @@ static void hook_IVP_Mindist_simulate_time_event(void* mindist, void* environmen
 	detour_IVP_Mindist_simulate_time_event.GetTrampoline<Symbols::IVP_Mindist_simulate_time_event>()(mindist, environment);
 }
 
+static Detouring::Hook detour_IVP_Mindist_update_exact_mindist_events;
+static void hook_IVP_Mindist_update_exact_mindist_events(void* mindist, IVP_BOOL allow_hull_conversion, IVP_MINDIST_EVENT_HINT event_hint)
+{
+	if (g_pPhysEnvModule.InDebug())
+		Msg("physenv: IVP_Mindist::update_exact_mindist_events called! (%i)\n", (int)pCurrentSkipType);
+
+	if (pCurrentSkipType == IVP_SkipImpact)
+		return;
+
+	detour_IVP_Mindist_update_exact_mindist_events.GetTrampoline<Symbols::IVP_Mindist_update_exact_mindist_events>()(mindist, allow_hull_conversion, event_hint);
+}
+
 LUA_FUNCTION_STATIC(physenv_SetLagThreshold)
 {
 	pCurrentLagThreadshold = LUA->CheckNumber(1);
@@ -192,6 +204,12 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 		&detour_IVP_Mindist_simulate_time_event, "IVP_Mindist::simulate_time_event",
 		vphysics_loader.GetModule(), Symbols::IVP_Mindist_simulate_time_eventSym,
 		(void*)hook_IVP_Mindist_simulate_time_event, m_pID
+	);
+
+	Detour::Create(
+		&detour_IVP_Mindist_update_exact_mindist_events, "IVP_Mindist::update_exact_mindist_events",
+		vphysics_loader.GetModule(), Symbols::IVP_Mindist_update_exact_mindist_eventsSym,
+		(void*)hook_IVP_Mindist_update_exact_mindist_events, m_pID
 	);
 
 	g_pCurrentMindist = Detour::ResolveSymbol<IVP_Mindist*>(vphysics_loader, Symbols::g_pCurrentMindistSym);
