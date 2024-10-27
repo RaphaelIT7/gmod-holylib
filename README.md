@@ -1695,7 +1695,7 @@ It now throws a warning instead of crashing -> https://github.com/Facepunch/garr
 `sourcetv` module -> https://github.com/Facepunch/garrysmod-requests/issues/2298  
 `bitbuf` module(unfinished) -> https://github.com/Facepunch/garrysmod-requests/issues/594  
 `HLTV` class / `sourcetv` module -> https://github.com/Facepunch/garrysmod-requests/issues/2237  
-`surffix` module -> https://github.com/Facepunch/garrysmod-requests/issues/2306
+`surffix` module -> https://github.com/Facepunch/garrysmod-requests/issues/2306  
 `filesystem.TimeCreated` & `filesystem.TimeAccessed` -> https://github.com/Facepunch/garrysmod-requests/issues/1633  
 `systimer` module -> https://github.com/Facepunch/garrysmod-requests/issues/1671  
 `pas` module -> https://github.com/Facepunch/garrysmod-requests/issues/140  
