@@ -52,7 +52,7 @@ static void hook_IVP_Mindist_do_impact(IVP_Mindist* mindist)
 	if (g_pPhysEnvModule.InDebug())
 		Msg("physenv: IVP_Mindist::do_impact called! (%i)\n", (int)pCurrentSkipType);
 
-	if (pCurrentSkipType >= IVP_SkipImpact)
+	if (pCurrentSkipType == IVP_SkipImpact)
 		return;
 
 	g_bInImpactCall = true; // Verify: Do we actually need this?
