@@ -44,6 +44,7 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- [#] Fixed `Steam3Server` symbol.  
 \- [#] Fixed ghostinj crashing on shutdown on 64x.  
 \- [#] Implemented a fix for https://github.com/Facepunch/garrysmod-issues/issues/6031  
+\- [#] Implemented a fix for https://github.com/Facepunch/garrysmod-issues/issues/642  
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.5...main
@@ -1701,6 +1702,7 @@ It now throws a warning instead of crashing -> https://github.com/Facepunch/garr
 `pas` module -> https://github.com/Facepunch/garrysmod-requests/issues/140  
 `HolyLib.InvalidateBoneCache` -> https://github.com/Facepunch/garrysmod-requests/issues/1920  
 `HolyLib:PostEntityConstructor` -> https://github.com/Facepunch/garrysmod-requests/issues/2440  
+`physenv` module -> https://github.com/Facepunch/garrysmod-issues/issues/642  
 
 # Things planned to add:
 https://github.com/Facepunch/garrysmod-requests/issues/1884  
