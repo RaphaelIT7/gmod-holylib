@@ -47,7 +47,11 @@ CServerPlugin::~CServerPlugin()
 {
 }
 
+#ifdef LIB_HOLYLIB
+void HolyLib_PreLoad()
+#else
 DLL_EXPORT void HolyLib_PreLoad() // ToDo: Make this a CServerPlugin member later!
+#endif
 {
 	if (!Util::ShouldLoad())
 	{

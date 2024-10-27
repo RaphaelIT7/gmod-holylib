@@ -215,7 +215,7 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 		{
 			switch (iKeyType)
 			{
-				case GarrysMod::Lua::Type::STRING:
+				case GarrysMod::Lua::Type::String:
 					key = g_Lua->GetString(-2); // lua_next won't nuke itself since we don't convert the value
 					break;
 				case GarrysMod::Lua::Type::Number:
