@@ -358,32 +358,8 @@ namespace Symbols
 	extern const std::vector<Symbol> IVP_Mindist_simulate_time_eventSym;
 
 	// Stuff for our do_impact replacement
-	typedef IVP_Environment* (*IVP_Mindist_get_environment)(void* mindlist);
-	extern const std::vector<Symbol> IVP_Mindist_get_environmentSym;
-
-	typedef IVP_Synapse* (*IVP_Mindist_get_synapse)(void* mindlist, int idx);
-	extern const std::vector<Symbol> IVP_Mindist_get_synapseSym;
-
-	typedef void (*IVP_Real_Object_revive_object_for_simulation)(void* object);
-	extern const std::vector<Symbol> IVP_Real_Object_revive_object_for_simulationSym;
-
-	typedef void (*IVP_Real_Object_recheck_collision_filter)(void* object);
-	extern const std::vector<Symbol> IVP_Real_Object_recheck_collision_filterSym;
-
-	typedef void (*IVP_Impact_Solver_Long_Term_do_impact_of_two_objects)(IVP_Mindist *mindist, IVP_Real_Object *obj0, IVP_Real_Object *obj1);
-	extern const std::vector<Symbol> IVP_Impact_Solver_Long_Term_do_impact_of_two_objectsSym;
-
-	typedef IVP_Core* (*IVP_Real_Object_get_core)(void* object);
-	extern const std::vector<Symbol> IVP_Real_Object_get_coreSym;
-
-	typedef void (*IVP_Core_synchronize_with_rot_z)(void* core);
-	extern const std::vector<Symbol> IVP_Core_synchronize_with_rot_zSym;
-
-	typedef void (*IVP_U_Memory_start_memory_transaction)(void* memory);
-	extern const std::vector<Symbol> IVP_U_Memory_start_memory_transactionSym;
-
-	typedef void (*IVP_U_Memory_end_memory_transaction)(void* memory);
-	extern const std::vector<Symbol> IVP_U_Memory_end_memory_transactionSym;
+	typedef void (*IVP_Mindist_D2)(void* mindlist);
+	extern const std::vector<Symbol> IVP_Mindist_D2Sym;
 
 	extern const std::vector<Symbol> g_pCurrentMindistSym;
 	extern const std::vector<Symbol> g_fDeferDeleteMindistSym;

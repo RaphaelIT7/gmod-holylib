@@ -484,40 +484,8 @@ namespace Symbols
 		Symbol::FromName("_ZN11IVP_Mindist19simulate_time_eventEP15IVP_Environment"),
 	};
 
-	const std::vector<Symbol> IVP_Mindist_get_environmentSym = {
-		Symbol::FromName("_ZN11IVP_Mindist15get_environmentEv"),
-	};
-
-	const std::vector<Symbol> IVP_Mindist_get_synapseSym = {
-		Symbol::FromName("_ZNK11IVP_Mindist11get_synapseEi"),
-	};
-
-	const std::vector<Symbol> IVP_Real_Object_revive_object_for_simulationSym = {
-		Symbol::FromName("_ZN15IVP_Real_Object28revive_object_for_simulationEv"),
-	};
-
-	const std::vector<Symbol> IVP_Real_Object_recheck_collision_filterSym = {
-		Symbol::FromName("_ZN15IVP_Real_Object24recheck_collision_filterEv"),
-	};
-
-	const std::vector<Symbol> IVP_Impact_Solver_Long_Term_do_impact_of_two_objectsSym = {
-		Symbol::FromName("_ZN27IVP_Impact_Solver_Long_Term24do_impact_of_two_objectsEP11IVP_MindistP15IVP_Real_ObjectS3_"),
-	};
-
-	const std::vector<Symbol> IVP_Real_Object_get_coreSym = {
-		Symbol::FromName("_ZNK15IVP_Real_Object8get_coreEv"),
-	};
-
-	const std::vector<Symbol> IVP_Core_synchronize_with_rot_zSym = {
-		Symbol::FromName("_ZN8IVP_Core22synchronize_with_rot_zEv"),
-	};
-
-	const std::vector<Symbol> IVP_U_Memory_start_memory_transactionSym = {
-		Symbol::FromName("_ZN12IVP_U_Memory24start_memory_transactionEv"),
-	};
-
-	const std::vector<Symbol> IVP_U_Memory_end_memory_transactionSym = {
-		Symbol::FromName("_ZN12IVP_U_Memory22end_memory_transactionEv"),
+	const std::vector<Symbol> IVP_Mindist_D2Sym = {
+		Symbol::FromName("_ZN11IVP_MindistD2Ev"),
 	};
 
 	const std::vector<Symbol> g_pCurrentMindistSym = {
