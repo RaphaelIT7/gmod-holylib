@@ -1658,6 +1658,7 @@ end)
 If enabled, the VoiceChat hooks will be called.  
 
 ## physenv
+This module fixes https://github.com/Facepunch/garrysmod-issues/issues/642 and adds a few small things.  
 
 ### Functions
 
