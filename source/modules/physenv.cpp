@@ -123,7 +123,7 @@ static void hook_IVP_Mindist_update_exact_mindist_events(void* mindist, IVP_BOOL
 	if (g_pPhysEnvModule.InDebug())
 		Msg("physenv: IVP_Mindist::update_exact_mindist_events called! (%i)\n", (int)pCurrentSkipType);
 
-	if (pCurrentSkipType == IVP_SkipImpact)
+	if (pCurrentSkipType == IVP_SkipSimulation)
 		return;
 
 	detour_IVP_Mindist_update_exact_mindist_events.GetTrampoline<Symbols::IVP_Mindist_update_exact_mindist_events>()(mindist, allow_hull_conversion, event_hint);
