@@ -663,11 +663,11 @@ void CGameeventLibModule::LuaShutdown()
 {
 	if (Util::PushTable("gameevent"))
 	{
-		Util::RemoveFunc("GetListeners");
-		Util::RemoveFunc("RemoveListener");
-		Util::RemoveFunc("GetClientListeners");
-		Util::RemoveFunc("RemoveClientListener");
-		Util::RemoveFunc("AddClientListener");
+		Util::RemoveField("GetListeners");
+		Util::RemoveField("RemoveListener");
+		Util::RemoveField("GetClientListeners");
+		Util::RemoveField("RemoveClientListener");
+		Util::RemoveField("AddClientListener");
 	}
 	Util::PopTable();
 }

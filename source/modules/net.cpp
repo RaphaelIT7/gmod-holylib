@@ -65,8 +65,8 @@ void CNetModule::LuaShutdown()
 {
 	if (Util::PushTable("net"))
 	{
-		Util::RemoveFunc("WriteSeek");
-		Util::RemoveFunc("ReadSeek");
+		Util::RemoveField("WriteSeek");
+		Util::RemoveField("ReadSeek");
 		Util::PopTable();
 	}
 }

@@ -22,6 +22,11 @@ void Util::AddFunc(GarrysMod::Lua::CFunc Func, const char* Name) {
 	g_Lua->SetField(-2, Name);
 }
 
+void Util::AddValue(int value, const char* Name) {
+	g_Lua->PushNumber(value);
+	g_Lua->SetField(-2, Name);
+}
+
 void Util::FinishTable(const char* Name) {
 	g_Lua->SetField(-2, Name);
 	g_Lua->Pop();
@@ -52,7 +57,7 @@ void Util::PopTable()
 	g_Lua->Pop(1);
 }
 
-void Util::RemoveFunc(const char* pName)
+void Util::RemoveField(const char* pName)
 {
 	g_Lua->PushNil();
 	g_Lua->SetField(-2, pName);

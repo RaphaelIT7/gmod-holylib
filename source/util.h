@@ -29,12 +29,13 @@ class CUserMessages;
 namespace Util
 {
 	extern void StartTable();
+	extern void AddValue(int, const char*);
 	extern void AddFunc(GarrysMod::Lua::CFunc, const char*);
 	extern void FinishTable(const char*);
 	extern void NukeTable(const char*);
 	extern bool PushTable(const char*);
 	extern void PopTable();
-	extern void RemoveFunc(const char*);
+	extern void RemoveField(const char*);
 
 	// Gmod's functions:
 	extern CBasePlayer* Get_Player(int iStackPos, bool unknown);

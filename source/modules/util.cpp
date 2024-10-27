@@ -367,9 +367,9 @@ void CUtilModule::LuaShutdown()
 
 	if (Util::PushTable("util"))
 	{
-		Util::RemoveFunc("AsyncCompress");
-		Util::RemoveFunc("AsyncDecompress");
-		Util::RemoveFunc("FancyTableToJSON");
+		Util::RemoveField("AsyncCompress");
+		Util::RemoveField("AsyncDecompress");
+		Util::RemoveField("FancyTableToJSON");
 		Util::PopTable();
 	}
 }

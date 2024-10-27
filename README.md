@@ -28,6 +28,8 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- \- [#] Also fixed `vprof` itself on 64x / Solved https://github.com/Facepunch/garrysmod-issues/issues/6019  
 \- [+] Added `HolyLib.SetSignonState`, `HolyLib.InvalidateBoneCache` function and the `HolyLib:PostEntityConstructor` hook.
 \- [+] Added `steamworks.ForceAuthenticate` to steamworks module.  
+\- [+] Added `physenv` module.
+\- \- [#] Implemented a fix for https://github.com/Facepunch/garrysmod-issues/issues/642  
 \- [+] `HolyLib:On[Generic/Model]PrecacheFail` hooks now also allow you to change the fallback.  
 \- [#] Model and Generic precache now fallsback to `-1` instead of `0` by default.  
 \- \- [+] Added `holylib_precache_[model/generic]fallback` to change the fallback if wanted.  
@@ -44,7 +46,6 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- [#] Fixed `Steam3Server` symbol.  
 \- [#] Fixed ghostinj crashing on shutdown on 64x.  
 \- [#] Implemented a fix for https://github.com/Facepunch/garrysmod-issues/issues/6031  
-\- [#] Implemented a fix for https://github.com/Facepunch/garrysmod-issues/issues/642  
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.5...main
@@ -1655,6 +1656,40 @@ end)
 
 #### holylib_voicechat_hooks(default `1`)
 If enabled, the VoiceChat hooks will be called.  
+
+## physenv
+
+### Functions
+
+#### physenv.SetLagThreshold(number ms)
+The lag threshold(time in ms) which if exceeded will cause it to call the `HolyLib:PhysicsLag` hook.  
+
+#### number physenv.GetLagThreshold()
+Returns the lag threshold in ms.  
+
+#### physenv.SetPhysSkipType(IVP_SkipType type)
+Sets the skiptype for the current simulation.  
+This is reset after the simulation ended.  
+
+### Enums
+Theses are the IVP_SkipType enums.  
+
+#### physenv.IVP_NoSkip = 0
+Let the simulation run normally.  
+
+#### physenv.IVP_SkipImpact = 1
+Skip all impact calls.  
+
+#### physenv.IVP_SkipSimulation = 2
+Skip the entire simulation.  
+NOTE: Players that collide with props will be randomly teleported!  
+
+### Hooks
+
+#### IVP_SkipType HolyLib:PhysicsLag(number simulationTime)
+Called when the physics simulaton is taking longer than the set lag threshold.  
+
+You can freeze all props here and then return `physenv.IVP_SkipSimulation` to skip the simulation for this tick if someone is trying to crash the server.  
 
 # Unfinished Modules
 

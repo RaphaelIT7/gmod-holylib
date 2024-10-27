@@ -66,9 +66,6 @@ double pCurrentLagThreadshold = 100; // 100 ms
 static Detouring::Hook detour_IVP_Event_Manager_Standard_simulate_time_events;
 static void hook_IVP_Event_Manager_Standard_simulate_time_events(void* eventmanager, void* timemanager, void* environment, IVP_Time time)
 {
-	if (pCurrentSkipType == IVP_SkipSimulation)
-		return;
-
 	pCurrentTime = std::chrono::high_resolution_clock::now();
 	pCurrentSkipType = IVP_None; // Idk if it can happen that something else sets it in the mean time but let's just be sure...
 
@@ -77,18 +74,11 @@ static void hook_IVP_Event_Manager_Standard_simulate_time_events(void* eventmana
 
 	detour_IVP_Event_Manager_Standard_simulate_time_events.GetTrampoline<Symbols::IVP_Event_Manager_Standard_simulate_time_events>()(eventmanager, timemanager, environment, time);
 
-	//pCurrentSkipType = IVP_NoCall; // Reset it.
+	pCurrentSkipType = IVP_NoCall; // Reset it.
 }
 
-static Detouring::Hook detour_IVP_Mindist_simulate_time_event;
-static void hook_IVP_Mindist_simulate_time_event(void* mindist, void* environment)
+void CheckPhysicsLag()
 {
-	if (g_pPhysEnvModule.InDebug())
-		Msg("physenv: IVP_Mindist::simulate_time_event called! (%i)\n", (int)pCurrentSkipType);
-
-	if (pCurrentSkipType == IVP_SkipSimulation)
-		return;
-
 	auto pTime = std::chrono::high_resolution_clock::now();
 	auto pSimulationTime = std::chrono::duration_cast<std::chrono::milliseconds>(pTime - pCurrentTime).count();
 	if (pSimulationTime > pCurrentLagThreadshold)
@@ -107,13 +97,20 @@ static void hook_IVP_Mindist_simulate_time_event(void* mindist, void* environmen
 
 				if (g_pPhysEnvModule.InDebug())
 					Msg("physenv: Lua hook called (%i)\n", (int)pCurrentSkipType);
-
-				if (pCurrentSkipType == IVP_SkipSimulation)
-					return;
 			}
 		}
 	}
+}
 
+static Detouring::Hook detour_IVP_Mindist_simulate_time_event;
+static void hook_IVP_Mindist_simulate_time_event(void* mindist, void* environment)
+{
+	if (g_pPhysEnvModule.InDebug())
+		Msg("physenv: IVP_Mindist::simulate_time_event called! (%i)\n", (int)pCurrentSkipType);
+
+	CheckPhysicsLag();
+	if (pCurrentSkipType == IVP_SkipSimulation)
+		return;
 
 	detour_IVP_Mindist_simulate_time_event.GetTrampoline<Symbols::IVP_Mindist_simulate_time_event>()(mindist, environment);
 }
@@ -124,6 +121,7 @@ static void hook_IVP_Mindist_update_exact_mindist_events(void* mindist, IVP_BOOL
 	if (g_pPhysEnvModule.InDebug())
 		Msg("physenv: IVP_Mindist::update_exact_mindist_events called! (%i)\n", (int)pCurrentSkipType);
 
+	CheckPhysicsLag();
 	if (pCurrentSkipType == IVP_SkipSimulation)
 		return;
 
@@ -162,6 +160,10 @@ void CPhysEnvModule::LuaInit(bool bServerInit)
 		Util::AddFunc(physenv_SetLagThreshold, "SetLagThreshold");
 		Util::AddFunc(physenv_GetLagThreshold, "GetLagThreshold");
 		Util::AddFunc(physenv_SetPhysSkipType, "SetPhysSkipType");
+
+		Util::AddValue(IVP_NoSkip, "IVP_NoSkip");
+		Util::AddValue(IVP_SkipImpact, "IVP_SkipImpact");
+		Util::AddValue(IVP_SkipSimulation, "IVP_SkipSimulation");
 		Util::PopTable();
 	}
 }
@@ -170,9 +172,13 @@ void CPhysEnvModule::LuaShutdown()
 {
 	if (Util::PushTable("physenv"))
 	{
-		Util::RemoveFunc("SetLagThreshold");
-		Util::RemoveFunc("GetLagThreshold");
-		Util::RemoveFunc("SetPhysSkipType");
+		Util::RemoveField("SetLagThreshold");
+		Util::RemoveField("GetLagThreshold");
+		Util::RemoveField("SetPhysSkipType");
+
+		Util::RemoveField("IVP_NoSkip");
+		Util::RemoveField("IVP_SkipImpact");
+		Util::RemoveField("IVP_SkipSimulation");
 		Util::PopTable();
 	}
 }

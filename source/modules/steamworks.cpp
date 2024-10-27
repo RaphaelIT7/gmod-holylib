@@ -130,10 +130,10 @@ void CSteamWorksModule::LuaShutdown()
 {
 	if (Util::PushTable("steamworks"))
 	{
-		Util::RemoveFunc("Shutdown");
-		Util::RemoveFunc("Activate");
-		Util::RemoveFunc("IsConnected");
-		Util::RemoveFunc("ForceActivate");
+		Util::RemoveField("Shutdown");
+		Util::RemoveField("Activate");
+		Util::RemoveField("IsConnected");
+		Util::RemoveField("ForceActivate");
 		Util::PopTable();
 	}
 }
