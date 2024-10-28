@@ -3,7 +3,7 @@
 
 const Vector vec3_origin(0, 0, 0);
 
-int Q_log2(unsigned int val) // I hate 64x
+size_t Q_log2(unsigned int val) // I hate 64x
 {
 	int answer = 0;
 	while (val >>= 1)
