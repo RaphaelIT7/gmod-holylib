@@ -1,7 +1,8 @@
-#include "module.h"
 #include <GarrysMod/Lua/Interface.h>
-#include "sourcesdk/GameEventManager.h"
+#include "detours.h"
+#include "module.h"
 #include "lua.h"
+#include "sourcesdk/GameEventManager.h"
 #include "sourcesdk/sv_client.h"
 #include "iserver.h"
 #include "vprof.h"

@@ -1,5 +1,6 @@
-#include "module.h"
 #include <GarrysMod/Lua/Interface.h>
+#include "detours.h"
+#include "module.h"
 #include "lua.h"
 #include <chrono>
 #include "sourcesdk/ivp_time.h"
@@ -17,6 +18,7 @@ public:
 CPhysEnvModule g_pPhysEnvModule;
 IModule* pPhysEnvModule = &g_pPhysEnvModule;
 
+class IVP_Mindist;
 static bool g_bInImpactCall = false;
 IVP_Mindist** g_pCurrentMindist;
 bool* g_fDeferDeleteMindist;

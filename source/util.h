@@ -1,13 +1,11 @@
 #pragma once
 
 #include <sourcesdk/ILuaInterface.h>
-#include "detours.h"
 #include "eiface.h"
-#include <tier3/tier3.h>
 #include "vprof.h"
+
 #define DEDICATED
 #include "vstdlib/jobthread.h"
-#include "steam/isteamuser.h"
 
 class IVEngineServer;
 
@@ -23,6 +21,7 @@ extern IVEngineServer* engine;
 
 extern GarrysMod::Lua::IUpdatedLuaInterface* g_Lua;
 
+class CBasePlayer;
 class CBaseClient;
 class CGlobalEntityList;
 class CUserMessages;

@@ -1,9 +1,8 @@
-#include "module.h"
-#include "util.h"
 #include <GarrysMod/Lua/Interface.h>
-#include "networkstringtabledefs.h"
 #include "detours.h"
+#include "module.h"
 #include "lua.h"
+#include "networkstringtabledefs.h"
 #include <sourcesdk/networkstringtable.h>
 #include <sourcesdk/server.h>
 #include <unordered_map>

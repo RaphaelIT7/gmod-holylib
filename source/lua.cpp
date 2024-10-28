@@ -4,6 +4,7 @@
 #include <GarrysMod/Lua/LuaShared.h>
 #include <GarrysMod/InterfacePointers.hpp>
 #include "filesystem.h"
+#include "detours.h"
 #include "module.h"
 
 bool Lua::PushHook(const char* hook)

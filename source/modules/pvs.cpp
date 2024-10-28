@@ -1,15 +1,11 @@
-#include "module.h"
 #include <GarrysMod/Lua/Interface.h>
-#include <GarrysMod/InterfacePointers.hpp>
 #include "detours.h"
-#include "util.h"
+#include "module.h"
 #include "lua.h"
-#include "eiface.h"
 #include "unordered_map"
 #include "player.h"
 #include "iserver.h"
 #include "sourcesdk/baseclient.h"
-#include "sourcesdk/framesnapshot.h"
 #include "vprof.h"
 
 class CPVSModule : public IModule

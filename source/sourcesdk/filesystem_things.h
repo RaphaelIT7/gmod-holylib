@@ -1,4 +1,3 @@
-#include <GarrysMod/FactoryLoader.hpp>
 #include <utlsymbol.h>
 #include <filesystem.h>
 #include <utlhashtable.h>
@@ -15,13 +14,12 @@
 #undef GetJob
 #undef AddJob
 
-#include "tier0/threadtools.h"
+#include "tier1/tier1.h"
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <malloc.h>
 #include <string.h>
-#include "tier1/utldict.h"
 
 #elif defined(POSIX)
 	#include <unistd.h> // unlink

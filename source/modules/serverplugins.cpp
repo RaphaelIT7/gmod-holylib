@@ -1,6 +1,7 @@
-#include "sourcesdk/sv_plugin.h"
-#include "module.h"
+#include "sourcesdk/sv_plugin.h" // Has to be the first include
 #include <GarrysMod/Lua/Interface.h>
+#include "detours.h"
+#include "module.h"
 #include "lua.h"
 #include "filesystem.h"
 

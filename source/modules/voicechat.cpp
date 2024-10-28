@@ -1,11 +1,10 @@
-#include "module.h"
 #include <GarrysMod/Lua/Interface.h>
+#include "detours.h"
+#include "module.h"
 #include "lua.h"
-#include "Bootil/Bootil.h"
 #include <netmessages.h>
 #include "sourcesdk/baseclient.h"
 #include "steam/isteamclient.h"
-#include "steam/steamclientpublic.h"
 
 class CVoiceChatModule : public IModule
 {

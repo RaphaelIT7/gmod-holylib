@@ -22,12 +22,6 @@ class CSteam3Server;
 class IChangeFrameList;
 class IGameEvent;
 
-class IVP_Mindist;
-class IVP_Real_Object;
-class IVP_Synapse;
-class IVP_Environment;
-class IVP_Core;
-
 struct ThreadPoolStartParams_t;
 
 /*

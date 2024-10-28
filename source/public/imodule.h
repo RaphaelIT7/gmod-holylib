@@ -1,5 +1,4 @@
 #include "interface.h"
-#include <vector>
 
 enum Module_Compatibility
 {

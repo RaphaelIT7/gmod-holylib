@@ -6,6 +6,7 @@
 #include "module.h"
 #include "icommandline.h"
 #include "player.h"
+#include "detours.h"
 
 GarrysMod::Lua::IUpdatedLuaInterface* g_Lua;
 IVEngineServer* engine;

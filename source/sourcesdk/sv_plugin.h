@@ -15,7 +15,6 @@
 
 #include "sourcesdk/iserverplugin.h"
 #include "eiface.h"
-//#include "engine/iserverplugin.h"
 
 //---------------------------------------------------------------------------------
 // Purpose: a single plugin

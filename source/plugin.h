@@ -1,7 +1,5 @@
 #pragma once
 
-#include <GarrysMod/InterfacePointers.hpp>
-#include <GarrysMod/Lua/LuaInterface.h>
 #include "engine/iserverplugin.h"
 #include "memalloc.h"
 

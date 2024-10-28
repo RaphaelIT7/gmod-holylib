@@ -3,11 +3,7 @@
 #include "const.h"
 #include "net_chan.h"
 #include "mathlib/mathlib.h"
-#include "networkstringtabledefs.h"
-#include "event_system.h"
-#include "dt.h"
 #include "tier0/vprof.h"
-#include "convar.h"
 #include "net.h"
 
 // memdbgon must be the last include file in a .cpp file!!!

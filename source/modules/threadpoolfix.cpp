@@ -1,9 +1,8 @@
-#include "module.h"
 #include <GarrysMod/Lua/Interface.h>
-#include <GarrysMod/InterfacePointers.hpp>
 #include "detours.h"
-#include "util.h"
+#include "module.h"
 #include "lua.h"
+
 #define DEDICATED
 #include "vstdlib/jobthread.h"
 

@@ -1,10 +1,9 @@
-#include "module.h"
 #include <GarrysMod/Lua/Interface.h>
-#include <GarrysMod/InterfacePointers.hpp>
 #include "detours.h"
+#include "module.h"
+#include "lua.h"
 #include "util.h"
 #include "lua.h"
-#include <vstdlib/jobthread.h>
 #include <networkstringtabledefs.h>
 #include <vprof.h>
 

@@ -1,16 +1,18 @@
+#include <GarrysMod/InterfacePointers.hpp>
 #include <GarrysMod/FactoryLoader.hpp>
 #include <GarrysMod/Lua/Interface.h>
-#include "filesystem.h"
-#include "plugin.h"
-#include "lua.h"
-#include <tier1.h>
-#include <tier2/tier2.h>
-#include <GarrysMod/Symbols.hpp>
 #include <GarrysMod/Lua/LuaShared.h>
+#include "filesystem.h"
+#include "detours.h"
+#include <tier2/tier2.h>
+#include <tier1.h>
 #include "module.h"
-#include "player.h"
-#include "tier0/icommandline.h"
+#include "plugin.h"
 #include "vprof.h"
+#include "lua.h"
+
+struct edict_t;
+#include "playerinfomanager.h"
 
 #define DEDICATED
 #include "vstdlib/jobthread.h"
@@ -90,9 +92,6 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 	{
 		ConnectTier1Libraries(&interfaceFactory, 1);
 		ConnectTier2Libraries(&interfaceFactory, 1);
-	#if ARCHITECTURE_IS_X86
-		ConnectTier3Libraries(&interfaceFactory, 1);
-	#endif
 
 		engine = (IVEngineServer*)interfaceFactory(INTERFACEVERSION_VENGINESERVER, NULL);
 	} else {
@@ -172,9 +171,6 @@ void CServerPlugin::Unload(void)
 
 	DisconnectTier1Libraries();
 	DisconnectTier2Libraries();
-#if ARCHITECTURE_IS_X86
-	DisconnectTier3Libraries();
-#endif
 }
 
 //---------------------------------------------------------------------------------

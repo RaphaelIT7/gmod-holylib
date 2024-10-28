@@ -1,10 +1,10 @@
-#include "module.h"
 #include <GarrysMod/Lua/Interface.h>
+#include "detours.h"
+#include "module.h"
+#include "lua.h"
 #include <GarrysMod/InterfacePointers.hpp>
 #include "iserver.h"
-#include "detours.h"
 #include "util.h"
-#include "lua.h"
 #include "player.h"
 #include "iclient.h"
 #include "netmessages.h"

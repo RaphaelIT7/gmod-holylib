@@ -1,5 +1,6 @@
-#include "module.h"
 #include <GarrysMod/Lua/Interface.h>
+#include "detours.h"
+#include "module.h"
 #include "lua.h"
 #include <chrono>
 #include <sstream>

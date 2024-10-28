@@ -1,7 +1,6 @@
-#include "module.h"
 #include <GarrysMod/Lua/Interface.h>
+#include "module.h"
 #include "lua.h"
-#include "Bootil/Bootil.h"
 #include <chrono>
 
 class CSysTimerModule : public IModule

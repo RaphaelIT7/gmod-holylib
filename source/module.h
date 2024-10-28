@@ -1,7 +1,5 @@
-#include "interface.h"
-#include <vector>
-#include "detours.h"
 #include "public/imodule.h"
+#include <vector>
 
 class CModuleManager;
 class CModule : public IModuleWrapper
