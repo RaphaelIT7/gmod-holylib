@@ -4,7 +4,6 @@
 #include "detours.h"
 #include "module.h"
 #include "lua.h"
-#include <sourcesdk/cmodel_private.h>
 #include "player.h"
 
 class CPASModule : public IModule
