@@ -122,7 +122,7 @@ void Push_##className(className* var) \
 
 // This one is special
 #define PushReferenced_LuaClass( className, luaType ) \
-static std::unordered_map<##className*, int> g_pPushed##className; \
+static std::unordered_map<className*, int> g_pPushed##className; \
 static void Push_##className(className* var) \
 { \
 	if (!var) \
@@ -141,7 +141,6 @@ static void Push_##className(className* var) \
 		g_pPushed##className[var] = g_Lua->ReferenceCreate(); \
 	} \
 }
-
 
 // Push functions from modules: 
 // ToDo: move this at a later point into a seperate file. Maybe into _modules?
