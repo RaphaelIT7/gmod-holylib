@@ -291,7 +291,7 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 				break;
 			case GarrysMod::Lua::Type::Angle:
 				{
-					QAngle* ang = Get_Angle(-1, true);
+					QAngle* ang = Get_QAngle(-1, true);
 					if (!ang)
 						break;
 

@@ -217,53 +217,28 @@ bool Util::ShouldLoad()
 	return true;
 }
 
-IRecipientFilter* Get_IRecipientFilter(int iStackPos, bool bError)
-{
-	if (!g_Lua->IsType(iStackPos, GarrysMod::Lua::Type::RecipientFilter))
-	{
-		if (bError)
-			g_Lua->ThrowError("Tried to use something that wasn't a RecipientFilter!");
+#define MakeString( str1, str2, str3 ) ((std::string)str1).append(str2).append(str3)
 
-		return NULL;
-	}
-
-	IRecipientFilter* pFilter = g_Lua->GetUserType<IRecipientFilter>(iStackPos, GarrysMod::Lua::Type::RecipientFilter);
-	if (!pFilter && bError)
-		g_Lua->ThrowError("Tried to use a NULL RecipientFilter!");
-
-	return pFilter;
+#define Get_LuaClass( className, luaType, strName ) \
+static std::string invalidType_##className = MakeString("Tried to use something that wasn't a ", strName, "!"); \
+static std::string triedNull_##className = MakeString("Tried to use a NULL ", strName, "!"); \
+className* Get_##className(int iStackPos, bool bError) \
+{ \
+	if (!g_Lua->IsType(iStackPos, GarrysMod::Lua::Type::luaType)) \
+	{ \
+		if (bError) \
+			g_Lua->ThrowError(invalidType_##className.c_str()); \
+\
+		return NULL; \
+	} \
+\
+	className* pVar = g_Lua->GetUserType<className>(iStackPos, GarrysMod::Lua::Type::luaType); \
+	if (!pVar && bError) \
+		g_Lua->ThrowError(triedNull_##className.c_str()); \
+\
+	return pVar; \
 }
 
-Vector* Get_Vector(int iStackPos, bool bError)
-{
-	if (!g_Lua->IsType(iStackPos, GarrysMod::Lua::Type::Vector))
-	{
-		if (bError)
-			g_Lua->ArgError(iStackPos, "expected vector got something else"); // ToDo: Check how ArgError works again
-
-		return NULL;
-	}
-
-	Vector* vec = g_Lua->GetUserType<Vector>(iStackPos, GarrysMod::Lua::Type::Vector);
-	if (!vec && bError)
-		g_Lua->ThrowError("Tried to use a NULL Vector");
-
-	return vec;
-}
-
-QAngle* Get_Angle(int iStackPos, bool bError)
-{
-	if (!g_Lua->IsType(iStackPos, GarrysMod::Lua::Type::Angle))
-	{
-		if (bError)
-			g_Lua->ArgError(iStackPos, "expected angle got something else");
-
-		return NULL;
-	}
-
-	QAngle* ang = g_Lua->GetUserType<QAngle>(iStackPos, GarrysMod::Lua::Type::Angle);
-	if (!ang && bError)
-		g_Lua->ThrowError("Tried to use a NULL Angle");
-
-	return ang;
-}
+Get_LuaClass(IRecipientFilter, RecipientFilter, "RecipientFilter")
+Get_LuaClass(Vector, Vector, "Vector")
+Get_LuaClass(QAngle, Angle, "Angle")
