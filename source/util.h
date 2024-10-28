@@ -2,7 +2,6 @@
 
 #include <sourcesdk/ILuaInterface.h>
 #include "Platform.hpp"
-#include "eiface.h"
 #include "vprof.h"
 
 #define DEDICATED
@@ -22,10 +21,14 @@ extern IVEngineServer* engine;
 
 extern GarrysMod::Lua::IUpdatedLuaInterface* g_Lua;
 
+struct edict_t;
 class CBasePlayer;
 class CBaseClient;
 class CGlobalEntityList;
 class CUserMessages;
+class IServerGameClients;
+class IServerGameEnts;
+class IServer;
 namespace Util
 {
 	extern void StartTable();
@@ -53,15 +56,8 @@ namespace Util
 	extern CGlobalEntityList* entitylist;
 	extern CUserMessages* pUserMessages;
 
-	inline CBaseEntity* GetCBaseEntityFromEdict(edict_t* edict)
-	{
-		return servergameents->EdictToBaseEntity(edict);
-	}
-
-	inline edict_t* GetEdictOfEnt(CBaseEntity* entity)
-	{
-		return servergameents->BaseEntityToEdict(entity);
-	}
+	extern CBaseEntity* GetCBaseEntityFromEdict(edict_t* edict);
+	extern edict_t* GetEdictOfEnt(CBaseEntity* entity);
 
 	extern CBaseClient* GetClientByPlayer(CBasePlayer* ply);
 	extern CBaseClient* GetClientByIndex(int index);

@@ -1,15 +1,15 @@
-#include "filesystem.h"  // Has to be before symbols.h
+#include <sourcesdk/filesystem_things.h>
+#undef Yield
 #include <GarrysMod/Lua/Interface.h>
 #include "symbols.h"
 #include "detours.h"
 #include "module.h"
 #include "lua.h"
-#include <sourcesdk/filesystem_things.h>
 #include <unordered_map>
-#include <vprof.h>
 #include <algorithm>
 #include <cstring>
 #include <unordered_set>
+#include "edict.h"
 
 class CFileSystemModule : public IModule
 {

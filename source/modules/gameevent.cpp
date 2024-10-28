@@ -9,6 +9,7 @@
 #include "vprof.h"
 #include "sourcesdk/netmessages.h"
 #include <unordered_set>
+#include "eiface.h"
 
 class CUserCmd; // Fixes an error in igamesystem.h
 #include <igamesystem.h>

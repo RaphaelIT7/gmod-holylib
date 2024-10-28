@@ -12,6 +12,7 @@
 
 #include <mempool.h>
 #include <utllinkedlist.h>
+#include <const.h>
 
 
 class PackedEntity;

@@ -18,6 +18,7 @@
 //#include "filesystem_engine.h"
 
 #include "dispcoll_common.h"
+#include <gametrace.h>
 
 class CDispCollTree;
 class CCollisionBSPData;

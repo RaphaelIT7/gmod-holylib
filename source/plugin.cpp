@@ -16,6 +16,7 @@ struct edict_t;
 
 #define DEDICATED
 #include "vstdlib/jobthread.h"
+#include <eiface.h>
 
 // The plugin is a static singleton that is exported as an interface
 CServerPlugin g_HolyLibServerPlugin;

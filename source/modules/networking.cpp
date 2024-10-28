@@ -9,6 +9,7 @@
 #include "packed_entity.h"
 #include "server_class.h"
 #include "dt.h"
+#include "edict.h"
 
 class CNetworkingModule : public IModule
 {

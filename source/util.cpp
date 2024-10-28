@@ -146,6 +146,16 @@ void CBaseEntity::CalcAbsolutePosition(void)
 	func_CBaseEntity_CalcAbsolutePosition(this);
 }
 
+CBaseEntity* Util::GetCBaseEntityFromEdict(edict_t* edict)
+{
+	return Util::servergameents->EdictToBaseEntity(edict);
+}
+
+edict_t* Util::GetEdictOfEnt(CBaseEntity* entity)
+{
+	return Util::servergameents->BaseEntityToEdict(entity);
+}
+
 CBaseEntityList* g_pEntityList = NULL;
 void Util::AddDetour()
 {
