@@ -2,6 +2,7 @@
 #include <filesystem.h>
 #include <utlhashtable.h>
 #include <utldict.h>
+#include "tier1/tier1.h"
 
 #if defined( _WIN32 )
 
@@ -14,7 +15,6 @@
 #undef GetJob
 #undef AddJob
 
-#include "tier1/tier1.h"
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
