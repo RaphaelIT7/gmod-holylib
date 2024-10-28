@@ -159,3 +159,6 @@ extern IGameEvent* Get_IGameEvent(int iStackPos, bool bError);
 
 class IRecipientFilter;
 extern IRecipientFilter* Get_IRecipientFilter(int iStackPos, bool bError);
+
+class ConVar;
+extern ConVar* Get_ConVar(int iStackPos, bool bError);

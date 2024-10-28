@@ -23,7 +23,7 @@ bf_write** pWriteBF = NULL;
 bool* bStarted = NULL;
 LUA_FUNCTION_STATIC(net_WriteSeek)
 {
-	int iPos = LUA->CheckNumber(1);
+	int iPos = (int)LUA->CheckNumber(1);
 	if (iPos < 0)
 		LUA->ArgError(1, "Number is not allowed to be below 0!");
 
@@ -37,7 +37,7 @@ LUA_FUNCTION_STATIC(net_WriteSeek)
 
 LUA_FUNCTION_STATIC(net_ReadSeek)
 {
-	int iPos = LUA->CheckNumber(1);
+	int iPos = (int)LUA->CheckNumber(1);
 	if (iPos < 0)
 		LUA->ArgError(1, "Number is not allowed to be below 0!");
 

@@ -59,10 +59,12 @@ public:
 };
 
 class IAudioStreamEvent;
+#ifndef CALLBACK
 #ifdef _WIN32
 #define CALLBACK _stdcall
 #else
 #define CALLBACK
+#endif
 #endif
 
 abstract_class IBassAudioStream

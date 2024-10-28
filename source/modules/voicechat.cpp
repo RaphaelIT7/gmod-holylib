@@ -129,7 +129,7 @@ ISteamUser* g_pSteamUser;
 LUA_FUNCTION_STATIC(VoiceData_GetUncompressedData)
 {
 	VoiceData* pData = Get_VoiceData(1, true);
-	int iSize = g_Lua->CheckNumberOpt(2, 20000); // How many bytes to allocate for the decompressed version. 20000 is default
+	int iSize = (int)g_Lua->CheckNumberOpt(2, 20000); // How many bytes to allocate for the decompressed version. 20000 is default
 
 	if (!g_pSteamUser)
 		LUA->ThrowError("Failed to get SteamUser!\n");
@@ -161,7 +161,7 @@ LUA_FUNCTION_STATIC(VoiceData_SetPlayerSlot)
 {
 	VoiceData* pData = Get_VoiceData(1, true);
 
-	pData->iPlayerSlot = LUA->CheckNumber(2);
+	pData->iPlayerSlot = (int)LUA->CheckNumber(2);
 
 	return 0;
 }
@@ -170,7 +170,7 @@ LUA_FUNCTION_STATIC(VoiceData_SetLength)
 {
 	VoiceData* pData = Get_VoiceData(1, true);
 
-	pData->iLength = LUA->CheckNumber(2);
+	pData->iLength = (int)LUA->CheckNumber(2);
 
 	return 0;
 }
@@ -183,7 +183,7 @@ LUA_FUNCTION_STATIC(VoiceData_SetData)
 	int iLength = LUA->ObjLen(2);
 	if (LUA->IsType(3, GarrysMod::Lua::Type::Number))
 	{
-		int iNewLength = LUA->GetNumber(3);
+		int iNewLength = (int)LUA->GetNumber(3);
 		iLength = MIN(iNewLength, iLength); // Don't allow one to go beyond the strength length
 	}
 
@@ -243,7 +243,7 @@ LUA_FUNCTION_STATIC(voicechat_SendEmptyData)
 		LUA->ThrowError("Failed to get CBaseClient!\n");
 
 	SVC_VoiceData voiceData;
-	voiceData.m_nFromClient = g_Lua->CheckNumberOpt(2, pClient->GetPlayerSlot());
+	voiceData.m_nFromClient = (int)g_Lua->CheckNumberOpt(2, pClient->GetPlayerSlot());
 	voiceData.m_nLength = 0;
 	voiceData.m_DataOut = NULL; // Will possibly crash?
 	voiceData.m_xuid = 0;
@@ -330,9 +330,9 @@ LUA_FUNCTION_STATIC(voicechat_ProcessVoiceData)
 
 LUA_FUNCTION_STATIC(voicechat_CreateVoiceData)
 {
-	int iPlayerSlot = g_Lua->CheckNumberOpt(1, 0);
+	int iPlayerSlot = (int)g_Lua->CheckNumberOpt(1, 0);
 	const char* pStr = g_Lua->CheckStringOpt(2, NULL);
-	int iLength = g_Lua->CheckNumberOpt(3, NULL);
+	int iLength = (int)g_Lua->CheckNumberOpt(3, NULL);
 
 	VoiceData* pData = new VoiceData;
 	pData->iPlayerSlot = iPlayerSlot;

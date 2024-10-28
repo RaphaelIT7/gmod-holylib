@@ -71,7 +71,7 @@ static int hook_CVEngineServer_PrecacheModel(IVEngineServer* eengine, const char
 		g_Lua->PushString(mdl);
 		if (g_Lua->CallFunctionProtected(2, 1, true))
 		{
-			iModelFallback = g_Lua->CheckNumberOpt(-1, iModelFallback);
+			iModelFallback = (int)g_Lua->CheckNumberOpt(-1, iModelFallback);
 			g_Lua->Pop(1);
 		}
 	}
@@ -119,7 +119,7 @@ static int hook_CVEngineServer_PrecacheGeneric(IVEngineServer* eengine, const ch
 		g_Lua->PushString(mdl);
 		if (g_Lua->CallFunctionProtected(2, 1, true))
 		{
-			iGenericFallback = g_Lua->CheckNumberOpt(-1, iGenericFallback);
+			iGenericFallback = (int)g_Lua->CheckNumberOpt(-1, iGenericFallback);
 			g_Lua->Pop(1);
 		}
 	}

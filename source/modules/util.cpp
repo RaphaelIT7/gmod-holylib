@@ -106,8 +106,8 @@ LUA_FUNCTION_STATIC(util_AsyncCompress)
 		LUA->Push(2);
 		iCallback = LUA->ReferenceCreate();
 	} else {
-		iLevel = g_Lua->CheckNumberOpt(2, 5);
-		iDictSize = g_Lua->CheckNumberOpt(3, 65536);
+		iLevel = (int)g_Lua->CheckNumberOpt(2, 5);
+		iDictSize = (int)g_Lua->CheckNumberOpt(3, 65536);
 		LUA->CheckType(4, GarrysMod::Lua::Type::Function);
 		LUA->Push(4);
 		iCallback = LUA->ReferenceCreate();

@@ -367,7 +367,7 @@ LUA_FUNCTION_STATIC(sourcetv_GetClient)
 	if (!hltv || !hltv->IsActive())
 		return 0;
 
-	int idx = LUA->CheckNumber(1);
+	int idx = (int)LUA->CheckNumber(1);
 	if (idx >= hltv->GetClientCount())
 		return 0;
 

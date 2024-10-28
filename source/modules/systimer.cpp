@@ -42,7 +42,7 @@ struct ILuaTimer
 
 double GetTime()
 {
-	return std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count() / 1000;
+	return (double)std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count() / 1000;
 }
 
 CUtlVector<ILuaTimer*> g_pLuaTimers;
@@ -85,9 +85,9 @@ LUA_FUNCTION_STATIC(timer_Adjust)
 
 	ILuaTimer* timer = FindTimer(name);
 	if (timer) {
-		timer->delay = delay;
+		timer->delay = (float)delay;
 		if (LUA->IsType(3, GarrysMod::Lua::Type::Number))
-			timer->repetitions = LUA->GetNumber(3);
+			timer->repetitions = (int)LUA->GetNumber(3);
 
 		if (LUA->IsType(4, GarrysMod::Lua::Type::Function)) {
 			LUA->ReferenceFree(timer->function);
@@ -132,8 +132,8 @@ LUA_FUNCTION_STATIC(timer_Create)
 	timer->identifier = name;
 	LUA->Push(1);
 	timer->identifierreference = LUA->ReferenceCreate();
-	timer->delay = delay;
-	timer->repetitions = repetitions;
+	timer->delay = (float)delay;
+	timer->repetitions = (int)repetitions;
 	timer->next_run_time = GetTime() + delay;
 
 	if (bNewTimer)
@@ -206,7 +206,7 @@ LUA_FUNCTION_STATIC(timer_Simple)
 	LUA->Push(2);
 	timer->function = LUA->ReferenceCreate();
 
-	timer->delay = delay;
+	timer->delay = (float)delay;
 	timer->repetitions = 1;
 	timer->next_run_time = GetTime() + delay;
 	g_pLuaTimers.AddToTail(timer);

@@ -114,7 +114,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_SetTick)
 {
 	INetworkStringTable* table = Get_INetworkStringTable(1, true);
 
-	int tick = LUA->CheckNumber(2);
+	int tick = (int)LUA->CheckNumber(2);
 
 	table->SetTick(tick);
 	return 0;
@@ -124,7 +124,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_ChangedSinceTick)
 {
 	INetworkStringTable* table = Get_INetworkStringTable(1, true);
 
-	int tick = LUA->CheckNumber(2);
+	int tick = (int)LUA->CheckNumber(2);
 	LUA->PushBool(table->ChangedSinceTick(tick));
 	return 1;
 }
@@ -145,7 +145,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_GetString)
 {
 	INetworkStringTable* table = Get_INetworkStringTable(1, true);
 
-	int idx = LUA->CheckNumber(2);
+	int idx = (int)LUA->CheckNumber(2);
 
 	LUA->PushString(table->GetString(idx));
 	return 1;
@@ -241,7 +241,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_SetMaxEntries)
 {
 	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(1, true);
 
-	int maxEntries = LUA->CheckNumber(2);
+	int maxEntries = (int)LUA->CheckNumber(2);
 	int maxEntryBits = Q_log2(maxEntries);
 	if ((1 << maxEntryBits) != maxEntries)
 		LUA->ThrowError("String tables must be powers of two in size!");
@@ -263,7 +263,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_DeleteString)
 {
 	INetworkStringTable* table = Get_INetworkStringTable(1, true);
 
-	int strIndex = LUA->CheckNumber(2);
+	int strIndex = (int)LUA->CheckNumber(2);
 	if (!table->GetString(strIndex))
 	{
 		LUA->PushBool(false);
@@ -341,9 +341,9 @@ LUA_FUNCTION_STATIC(INetworkStringTable_IsValid)
 LUA_FUNCTION_STATIC(INetworkStringTable_SetStringUserData)
 {
 	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(1, true);
-	int idx = LUA->CheckNumber(2);
+	int idx = (int)LUA->CheckNumber(2);
 	const char* pUserData = LUA->GetString(3);
-	int iLength = g_Lua->CheckNumberOpt(4, NULL);
+	int iLength = (int)g_Lua->CheckNumberOpt(4, NULL);
 
 	if (idx >= table->GetNumStrings())
 		return 0;
@@ -361,7 +361,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_SetStringUserData)
 LUA_FUNCTION_STATIC(INetworkStringTable_GetStringUserData)
 {
 	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(1, true);
-	int idx = LUA->CheckNumber(2);
+	int idx = (int)LUA->CheckNumber(2);
 
 	int iLength = 0;
 	LUA->PushString((const char*)table->GetStringUserData(idx, &iLength));
@@ -372,8 +372,8 @@ LUA_FUNCTION_STATIC(INetworkStringTable_GetStringUserData)
 LUA_FUNCTION_STATIC(INetworkStringTable_SetNumberUserData)
 {
 	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(1, true);
-	int idx = LUA->CheckNumber(2);
-	int pUserData = LUA->CheckNumber(3);
+	int idx = (int)LUA->CheckNumber(2);
+	int pUserData = (int)LUA->CheckNumber(3);
 
 	if (idx >= table->GetNumStrings())
 		return 0;
@@ -385,7 +385,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_SetNumberUserData)
 LUA_FUNCTION_STATIC(INetworkStringTable_GetNumberUserData)
 {
 	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(1, true);
-	int idx = LUA->CheckNumber(2);
+	int idx = (int)LUA->CheckNumber(2);
 
 	int dataLen; 
 	const void *pData = table->GetStringUserData(idx, &dataLen);
@@ -400,8 +400,8 @@ LUA_FUNCTION_STATIC(INetworkStringTable_GetNumberUserData)
 LUA_FUNCTION_STATIC(INetworkStringTable_SetPrecacheUserData)
 {
 	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(1, true);
-	int idx = LUA->CheckNumber(2);
-	int pFlags = LUA->CheckNumber(3);
+	int idx = (int)LUA->CheckNumber(2);
+	int pFlags = (int)LUA->CheckNumber(3);
 
 	if (idx >= table->GetNumStrings())
 		return 0;
@@ -416,7 +416,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_SetPrecacheUserData)
 LUA_FUNCTION_STATIC(INetworkStringTable_GetPrecacheUserData)
 {
 	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(1, true);
-	int idx = LUA->CheckNumber(2);
+	int idx = (int)LUA->CheckNumber(2);
 
 	int dataLen; 
 	const void *pData = table->GetStringUserData(idx, &dataLen);
@@ -431,9 +431,9 @@ LUA_FUNCTION_STATIC(INetworkStringTable_GetPrecacheUserData)
 LUA_FUNCTION_STATIC(stringtable_CreateStringTable)
 {
 	const char* name = LUA->CheckString(1);
-	int maxentries = LUA->CheckNumber(2);
-	int userdatafixedsize = g_Lua->CheckNumberOpt(3, 0);
-	int userdatanetworkbits = g_Lua->CheckNumberOpt(4, 0);
+	int maxentries = (int)LUA->CheckNumber(2);
+	int userdatafixedsize = (int)g_Lua->CheckNumberOpt(3, 0);
+	int userdatanetworkbits = (int)g_Lua->CheckNumberOpt(4, 0);
 
 	Push_INetworkStringTable(networkStringTableContainerServer->CreateStringTable(name, maxentries, userdatafixedsize, userdatanetworkbits));
 	return 1;
@@ -462,7 +462,7 @@ LUA_FUNCTION_STATIC(stringtable_FindTable)
 
 LUA_FUNCTION_STATIC(stringtable_GetTable)
 {
-	int stringTable = LUA->CheckNumber(1);
+	int stringTable = (int)LUA->CheckNumber(1);
 
 	INetworkStringTable* table = networkStringTableContainerServer->GetTable(stringTable);
 	if (table)
@@ -483,9 +483,9 @@ LUA_FUNCTION_STATIC(stringtable_GetNumTables)
 LUA_FUNCTION_STATIC(stringtable_CreateStringTableEx)
 {
 	const char* name = LUA->CheckString(1);
-	int maxentries = LUA->CheckNumber(2);
-	int userdatafixedsize = g_Lua->CheckNumberOpt(3, 0);
-	int userdatanetworkbits = g_Lua->CheckNumberOpt(4, 0);
+	int maxentries = (int)LUA->CheckNumber(2);
+	int userdatafixedsize = (int)g_Lua->CheckNumberOpt(3, 0);
+	int userdatanetworkbits = (int)g_Lua->CheckNumberOpt(4, 0);
 	bool bIsFilenames = g_Lua->GetBool(5);
 
 	Push_INetworkStringTable(networkStringTableContainerServer->CreateStringTableEx(name, maxentries, userdatafixedsize, userdatanetworkbits, bIsFilenames));

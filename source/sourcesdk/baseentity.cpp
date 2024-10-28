@@ -30,7 +30,6 @@ CBaseEntity* CGlobalEntityList::NextEnt(CBaseEntity* pCurrentEnt)
 #else
 		return (CBaseEntity*)pList->m_pEntity;
 #endif
-		pList = pList->m_pNext;
 	}
 
 	return NULL;

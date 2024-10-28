@@ -144,7 +144,7 @@ LUA_FUNCTION_STATIC(bf_read_PeekUBitLong)
 {
 	bf_read* bf = Get_bf_read(1, true);
 
-	int numbits = LUA->CheckNumber(2);
+	int numbits = (int)LUA->CheckNumber(2);
 	LUA->PushNumber(bf->PeekUBitLong(numbits));
 	return 1;
 }
@@ -153,7 +153,7 @@ LUA_FUNCTION_STATIC(bf_read_ReadBitAngle)
 {
 	bf_read* bf = Get_bf_read(1, true);
 
-	int numbits = LUA->CheckNumber(2);
+	int numbits = (int)LUA->CheckNumber(2);
 	LUA->PushNumber(bf->ReadBitAngle(numbits));
 	return 1;
 }
@@ -246,7 +246,7 @@ LUA_FUNCTION_STATIC(bf_read_ReadBitLong)
 #if ARCHITECTURE_IS_X86_64
 	LUA->ThrowError("This is 32x only.");
 #else
-	int numBits = LUA->CheckNumber(2);
+	int numBits = (int)LUA->CheckNumber(2);
 	bool bSigned = LUA->GetBool(3);
 	LUA->PushNumber(bf->ReadBitLong(numBits, bSigned));
 #endif
@@ -266,7 +266,7 @@ LUA_FUNCTION_STATIC(bf_read_ReadBits)
 {
 	bf_read* bf = Get_bf_read(1, true);
 
-	int numBits = LUA->CheckNumber(2);
+	int numBits = (int)LUA->CheckNumber(2);
 	int size = PAD_NUMBER( Bits2Bytes(numBits), 4);
 	byte* buffer = (byte*)stackalloc( size );
 	bf->ReadBits(buffer, numBits);
@@ -309,7 +309,7 @@ LUA_FUNCTION_STATIC(bf_read_ReadBytes)
 {
 	bf_read* bf = Get_bf_read(1, true);
 
-	int numBytes = LUA->CheckNumber(2);
+	int numBytes = (int)LUA->CheckNumber(2);
 	byte* buffer = (byte*)stackalloc( numBytes );
 	bf->ReadBytes(buffer, numBytes);
 	LUA->PushString((const char*)buffer);
@@ -345,7 +345,7 @@ LUA_FUNCTION_STATIC(bf_read_ReadLongLong)
 {
 	bf_read* bf = Get_bf_read(1, true);
 
-	LUA->PushNumber(bf->ReadLongLong());
+	LUA->PushNumber((double)bf->ReadLongLong());
 	return 1;
 }
 
@@ -361,7 +361,7 @@ LUA_FUNCTION_STATIC(bf_read_ReadSBitLong)
 {
 	bf_read* bf = Get_bf_read(1, true);
 
-	int numBits = LUA->CheckNumber(2);
+	int numBits = (int)LUA->CheckNumber(2);
 	LUA->PushNumber(bf->ReadSBitLong(numBits));
 	return 1;
 }
@@ -386,7 +386,7 @@ LUA_FUNCTION_STATIC(bf_read_ReadSignedVarInt64)
 {
 	bf_read* bf = Get_bf_read(1, true);
 
-	LUA->PushNumber(bf->ReadSignedVarInt64());
+	LUA->PushNumber((double)bf->ReadSignedVarInt64());
 	return 1;
 }
 
@@ -410,7 +410,7 @@ LUA_FUNCTION_STATIC(bf_read_ReadUBitLong)
 {
 	bf_read* bf = Get_bf_read(1, true);
 
-	int numBits = LUA->CheckNumber(2);
+	int numBits = (int)LUA->CheckNumber(2);
 	LUA->PushNumber(bf->ReadUBitLong(numBits));
 	return 1;
 }
@@ -435,7 +435,7 @@ LUA_FUNCTION_STATIC(bf_read_ReadVarInt64)
 {
 	bf_read* bf = Get_bf_read(1, true);
 
-	LUA->PushNumber(bf->ReadVarInt64());
+	LUA->PushNumber((double)bf->ReadVarInt64());
 	return 1;
 }
 
@@ -466,7 +466,7 @@ LUA_FUNCTION_STATIC(bf_read_Seek)
 {
 	bf_read* bf = Get_bf_read(1, true);
 
-	LUA->PushBool(bf->Seek(LUA->CheckNumber(2)));
+	LUA->PushBool(bf->Seek((int)LUA->CheckNumber(2)));
 	return 1;
 }
 
@@ -474,7 +474,7 @@ LUA_FUNCTION_STATIC(bf_read_SeekRelative)
 {
 	bf_read* bf = Get_bf_read(1, true);
 
-	LUA->PushBool(bf->SeekRelative(LUA->CheckNumber(2)));
+	LUA->PushBool(bf->SeekRelative((int)LUA->CheckNumber(2)));
 	return 1;
 }
 
@@ -613,7 +613,7 @@ LUA_FUNCTION_STATIC(bf_write_SeekToBit)
 {
 	bf_write* pBF = Get_bf_write(1, true);
 
-	pBF->SeekToBit(LUA->CheckNumber(2));
+	pBF->SeekToBit((int)LUA->CheckNumber(2));
 	return 0;
 }
 
@@ -621,7 +621,7 @@ LUA_FUNCTION_STATIC(bf_write_WriteFloat)
 {
 	bf_write* pBF = Get_bf_write(1, true);
 
-	pBF->WriteFloat(LUA->CheckNumber(2));
+	pBF->WriteFloat((float)LUA->CheckNumber(2));
 	return 0;
 }
 
@@ -629,7 +629,7 @@ LUA_FUNCTION_STATIC(bf_write_WriteChar)
 {
 	bf_write* pBF = Get_bf_write(1, true);
 
-	pBF->WriteChar(LUA->CheckNumber(2));
+	pBF->WriteChar((int)LUA->CheckNumber(2));
 	return 0;
 }
 
@@ -637,7 +637,7 @@ LUA_FUNCTION_STATIC(bf_write_WriteByte)
 {
 	bf_write* pBF = Get_bf_write(1, true);
 
-	pBF->WriteByte(LUA->CheckNumber(2));
+	pBF->WriteByte((int)LUA->CheckNumber(2));
 	return 0;
 }
 
@@ -645,7 +645,7 @@ LUA_FUNCTION_STATIC(bf_write_WriteLong)
 {
 	bf_write* pBF = Get_bf_write(1, true);
 
-	pBF->WriteLong(LUA->CheckNumber(2));
+	pBF->WriteLong((long)LUA->CheckNumber(2));
 	return 0;
 }
 
@@ -653,7 +653,7 @@ LUA_FUNCTION_STATIC(bf_write_WriteLongLong)
 {
 	bf_write* pBF = Get_bf_write(1, true);
 
-	pBF->WriteLongLong(LUA->CheckNumber(2));
+	pBF->WriteLongLong((int64)LUA->CheckNumber(2));
 	return 0;
 }
 
@@ -679,7 +679,7 @@ LUA_FUNCTION_STATIC(bf_write_WriteOneBitAt)
 {
 	bf_write* pBF = Get_bf_write(1, true);
 
-	pBF->WriteOneBitAt(LUA->CheckNumber(2), LUA->GetBool(3));
+	pBF->WriteOneBitAt((int)LUA->CheckNumber(2), LUA->GetBool(3));
 	return 0;
 }
 
@@ -687,7 +687,7 @@ LUA_FUNCTION_STATIC(bf_write_WriteShort)
 {
 	bf_write* pBF = Get_bf_write(1, true);
 
-	pBF->WriteShort(LUA->CheckNumber(2));
+	pBF->WriteShort((int)LUA->CheckNumber(2));
 	return 0;
 }
 
@@ -695,7 +695,7 @@ LUA_FUNCTION_STATIC(bf_write_WriteWord)
 {
 	bf_write* pBF = Get_bf_write(1, true);
 
-	pBF->WriteWord(LUA->CheckNumber(2));
+	pBF->WriteWord((int)LUA->CheckNumber(2));
 	return 0;
 }
 
@@ -703,7 +703,7 @@ LUA_FUNCTION_STATIC(bf_write_WriteSignedVarInt32)
 {
 	bf_write* pBF = Get_bf_write(1, true);
 
-	pBF->WriteSignedVarInt32(LUA->CheckNumber(2));
+	pBF->WriteSignedVarInt32((int32)LUA->CheckNumber(2));
 	return 0;
 }
 
@@ -711,7 +711,7 @@ LUA_FUNCTION_STATIC(bf_write_WriteSignedVarInt64)
 {
 	bf_write* pBF = Get_bf_write(1, true);
 
-	pBF->WriteSignedVarInt64(LUA->CheckNumber(2));
+	pBF->WriteSignedVarInt64((int64)LUA->CheckNumber(2));
 	return 0;
 }
 
@@ -719,7 +719,7 @@ LUA_FUNCTION_STATIC(bf_write_WriteVarInt32)
 {
 	bf_write* pBF = Get_bf_write(1, true);
 
-	pBF->WriteVarInt32(LUA->CheckNumber(2));
+	pBF->WriteVarInt32((uint32)LUA->CheckNumber(2));
 	return 0;
 }
 
@@ -727,7 +727,7 @@ LUA_FUNCTION_STATIC(bf_write_WriteVarInt64)
 {
 	bf_write* pBF = Get_bf_write(1, true);
 
-	pBF->WriteVarInt64(LUA->CheckNumber(2));
+	pBF->WriteVarInt64((uint64)LUA->CheckNumber(2));
 	return 0;
 }
 
@@ -735,7 +735,7 @@ LUA_FUNCTION_STATIC(bf_write_WriteUBitVar)
 {
 	bf_write* pBF = Get_bf_write(1, true);
 
-	pBF->WriteUBitVar(LUA->CheckNumber(2));
+	pBF->WriteUBitVar((unsigned int)LUA->CheckNumber(2));
 	return 0;
 }
 
@@ -743,7 +743,7 @@ LUA_FUNCTION_STATIC(bf_write_WriteUBitLong)
 {
 	bf_write* pBF = Get_bf_write(1, true);
 
-	pBF->WriteUBitLong(LUA->CheckNumber(2), LUA->CheckNumber(3), LUA->GetBool(4));
+	pBF->WriteUBitLong((unsigned int)LUA->CheckNumber(2), (int)LUA->CheckNumber(3), LUA->GetBool(4));
 	return 0;
 }
 
@@ -751,7 +751,7 @@ LUA_FUNCTION_STATIC(bf_write_WriteBitAngle)
 {
 	bf_write* pBF = Get_bf_write(1, true);
 
-	pBF->WriteBitAngle(LUA->CheckNumber(2), LUA->CheckNumber(3));
+	pBF->WriteBitAngle((float)LUA->CheckNumber(2), (int)LUA->CheckNumber(3));
 	return 0;
 }
 
@@ -787,7 +787,7 @@ LUA_FUNCTION_STATIC(bf_write_WriteBits)
 	bf_write* pBF = Get_bf_write(1, true);
 
 	const char* pData = LUA->CheckString(2);
-	int iBits = LUA->CheckNumber(3);
+	int iBits = (int)LUA->CheckNumber(3);
 	LUA->PushBool(pBF->WriteBits(pData, iBits));
 	return 1;
 }
@@ -797,7 +797,7 @@ LUA_FUNCTION_STATIC(bf_write_WriteBitsFromBuffer)
 	bf_write* pBF = Get_bf_write(1, true);
 	bf_read* pBFRead = Get_bf_read(2, true);
 
-	int iBits = LUA->CheckNumber(3);
+	int iBits = (int)LUA->CheckNumber(3);
 	LUA->PushBool(pBF->WriteBitsFromBuffer(pBFRead, iBits));
 	return 1;
 }
@@ -806,7 +806,7 @@ LUA_FUNCTION_STATIC(bf_write_WriteBitNormal)
 {
 	bf_write* pBF = Get_bf_write(1, true);
 
-	pBF->WriteBitNormal(LUA->CheckNumber(2));
+	pBF->WriteBitNormal((float)LUA->CheckNumber(2));
 	return 0;
 }
 
@@ -814,7 +814,7 @@ LUA_FUNCTION_STATIC(bf_write_WriteBitLong)
 {
 	bf_write* pBF = Get_bf_write(1, true);
 
-	pBF->WriteBitLong(LUA->CheckNumber(2), LUA->CheckNumber(3), LUA->GetBool(4));
+	pBF->WriteBitLong((unsigned int)LUA->CheckNumber(2), (int)LUA->CheckNumber(3), LUA->GetBool(4));
 	return 0;
 }
 
@@ -822,7 +822,7 @@ LUA_FUNCTION_STATIC(bf_write_WriteBitFloat)
 {
 	bf_write* pBF = Get_bf_write(1, true);
 
-	pBF->WriteBitFloat(LUA->CheckNumber(2));
+	pBF->WriteBitFloat((float)LUA->CheckNumber(2));
 	return 0;
 }
 
@@ -830,7 +830,7 @@ LUA_FUNCTION_STATIC(bf_write_WriteBitCoord)
 {
 	bf_write* pBF = Get_bf_write(1, true);
 
-	pBF->WriteBitCoord(LUA->CheckNumber(2));
+	pBF->WriteBitCoord((float)LUA->CheckNumber(2));
 	return 0;
 }
 
@@ -848,9 +848,9 @@ LUA_FUNCTION_STATIC(bf_write_WriteBitCoordMP)
 	if (bLowPrecision)
 		pType = EBitCoordType::kCW_LowPrecision;
 
-	pBF->WriteBitCoordMP(LUA->CheckNumber(2), pType);
+	pBF->WriteBitCoordMP((float)LUA->CheckNumber(2), pType);
 #else
-	pBF->WriteBitCoordMP(LUA->CheckNumber(2), bIntegral, bLowPrecision);
+	pBF->WriteBitCoordMP((float)LUA->CheckNumber(2), bIntegral, bLowPrecision);
 #endif
 	return 0;
 }
@@ -891,7 +891,7 @@ LUA_FUNCTION_STATIC(bitbuf_CreateWriteBuffer)
 {
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Number))
 	{
-		int iSize = LUA->CheckNumber(1);
+		int iSize = (int)LUA->CheckNumber(1);
 		unsigned char* cData = new unsigned char[iSize];
 
 		bf_write* pNewBf = new bf_write;

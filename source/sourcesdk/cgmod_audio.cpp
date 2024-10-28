@@ -98,7 +98,7 @@ unsigned long CALLBACK MyFileReadProcc(void *buffer, DWORD length, void *user)
 
 BOOL CALLBACK MyFileSeekProcc(QWORD offset, void* user)
 {
-	return !fseek((FILE*)user, offset, SEEK_SET);
+	return !fseek((FILE*)user, (long)offset, SEEK_SET);
 }
 #endif
 
@@ -145,7 +145,7 @@ unsigned long CALLBACK CBassAudioStream::MyFileReadProc(void *buffer, unsigned i
 bool CALLBACK CBassAudioStream::MyFileSeekProc(unsigned long long offset, void* user)
 {
 #ifdef SYSTEM_WINDOWS
-	return !fseek((FILE*)user, offset, SEEK_SET);
+	return !fseek((FILE*)user, (long)offset, SEEK_SET);
 #else
 	return false;
 #endif
@@ -167,7 +167,6 @@ unsigned int CBassAudioStream::Decode(void* data, unsigned int size)
 int CBassAudioStream::GetOutputBits()
 {
 	Error("Not used");
-	return 0;
 }
 
 int CBassAudioStream::GetOutputRate()
@@ -200,7 +199,7 @@ uint CBassAudioStream::GetPosition()
 		position = BASS_StreamGetFilePosition(m_hStream, BASS_FILEPOS_CURRENT);
 	}
 
-	return position;
+	return (uint)position;
 }
 
 void CBassAudioStream::SetPosition(unsigned int pos)
@@ -262,7 +261,7 @@ bool CGMod_Audio::Init(CreateInterfaceFn interfaceFactory)
 	BASS_SetConfig(BASS_CONFIG_BUFFER, 36);
 	BASS_SetConfig(BASS_CONFIG_NET_BUFFER, 1048576);
 	BASS_SetConfig(BASS_CONFIG_UPDATETHREADS, 0);
-	BASS_Set3DFactors(0.0680416, 7.0, 5.2);
+	BASS_Set3DFactors(0.0680416f, 7.0f, 5.2f);
 
 	return 1;
 }
@@ -334,7 +333,7 @@ void CGMod_Audio::SetEar(Vector* earPosition, Vector* earVelocity, Vector* earFr
 	earT.z = -earTop->z;
 
 	BASS_Set3DPosition(&earPos, &earVel, &earFr, &earT);
-	BASS_Set3DFactors(0.0680416, 7.0, 5.2);
+	BASS_Set3DFactors(0.0680416f, 7.0f, 5.2f);
 
 	BASS_Apply3D();
 }
@@ -545,11 +544,11 @@ void CGModAudioChannel::GetPos(Vector* earPosition, Vector* earForward, Vector* 
 
 void CGModAudioChannel::SetTime(double time, bool dont_decode)
 {
-	double pos = BASS_ChannelBytes2Seconds(m_pHandle, time);
+	double pos = BASS_ChannelBytes2Seconds(m_pHandle, (QWORD)time);
 	//double currentPos = BASS_ChannelGetPosition(handle, BASS_POS_BYTE);
 
 	DWORD mode = dont_decode ? BASS_POS_DECODE : BASS_POS_BYTE;
-	BASS_ChannelSetPosition(m_pHandle, pos, mode);
+	BASS_ChannelSetPosition(m_pHandle, (QWORD)pos, mode);
 }
 
 double CGModAudioChannel::GetTime()

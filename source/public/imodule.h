@@ -14,16 +14,16 @@ struct edict_t;
 class IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) {};
-	virtual void LuaInit(bool bServerInit) {};
+	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) { (void)appfn; (void)gamefn; };
+	virtual void LuaInit(bool bServerInit) { (void)bServerInit; };
 	virtual void LuaShutdown() {};
-	virtual void InitDetour(bool bPreServer) {};
-	virtual void Think(bool bSimulating) {};
+	virtual void InitDetour(bool bPreServer) { (void)bPreServer; };
+	virtual void Think(bool bSimulating) { (void)bSimulating; };
 	virtual void Shutdown() {};
 	virtual const char* Name() = 0;
 	virtual int Compatibility() = 0;
 	virtual bool IsEnabledByDefault() { return true; };
-	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) {};
+	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) { (void)pEdictList; (void)edictCount; (void)clientMax; };
 
 public:
 	inline void SetDebug(int iDebug) { m_iIsDebug = iDebug; };

@@ -94,7 +94,7 @@ LUA_FUNCTION_STATIC(steamworks_ForceActivate)
 extern CServerPlugin* g_pServerPluginHandler;
 LUA_FUNCTION_STATIC(steamworks_ForceAuthenticate)
 {
-	int iClient = LUA->CheckNumber(1);
+	int iClient = (int)LUA->CheckNumber(1);
 	CBaseClient* pClient = Util::GetClientByUserID(iClient);
 	if (!pClient || !g_pServerPluginHandler)
 	{

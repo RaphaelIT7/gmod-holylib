@@ -28,6 +28,7 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- \- [#] Also fixed `vprof` itself on 64x / Solved https://github.com/Facepunch/garrysmod-issues/issues/6019  
 \- [+] Added `HolyLib.SetSignonState`, `HolyLib.InvalidateBoneCache` function and the `HolyLib:PostEntityConstructor` hook.
 \- [+] Added `steamworks.ForceAuthenticate` to steamworks module.  
+\- [+] Added `cvar.Unregister` to cvars module.  
 \- [+] Added `physenv` module.
 \- \- [#] Implemented a fix for https://github.com/Facepunch/garrysmod-issues/issues/642  
 \- [+] `HolyLib:On[Generic/Model]PrecacheFail` hooks now also allow you to change the fallback.  
@@ -52,6 +53,8 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.5...main
 
 ### QoL updates
 - [#] Cleaned up module code a bit.  
+- [#] Replaced duplicate code with macros.  
+- [#] Fixed many warnings.  
 
 ## ToDo
 \- Finish 64x (`pvs`, `sourcetv`, `surffix`)  
@@ -958,8 +961,11 @@ This module adds one function to the `cvars` library.
 Returns a sequential table with all ConVar's that exist.  
 
 ##### bool cvar.SetValue(string name, string value)
-Set the convat to the given value.
-Returns `true` on success.
+Set the convat to the given value.  
+Returns `true` on success.  
+
+##### cvar.Unregister(ConVar cvar)
+Unregisters the given convar.  
 
 ## sourcetv
 This module plans to add a new `sourcetv` library and a new class `HLTVPlayer` will allow a SourceTV client to send net messages to the server.  

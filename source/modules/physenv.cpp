@@ -89,10 +89,10 @@ void CheckPhysicsLag()
 	{
 		if (Lua::PushHook("HolyLib:PhysicsLag"))
 		{
-			g_Lua->PushNumber(pSimulationTime);
+			g_Lua->PushNumber((double)pSimulationTime);
 			if (g_Lua->CallFunctionProtected(2, 1, true))
 			{
-				int pType = g_Lua->GetNumber();
+				int pType = (int)g_Lua->GetNumber();
 				if (pType > 2 || pType < 0)
 					pType = 0; // Invalid value. So we won't do shit.
 
@@ -148,7 +148,7 @@ LUA_FUNCTION_STATIC(physenv_GetLagThreshold)
 
 LUA_FUNCTION_STATIC(physenv_SetPhysSkipType)
 {
-	int pType = g_Lua->CheckNumber(1);
+	int pType = (int)g_Lua->CheckNumber(1);
 	pCurrentSkipType = (IVP_SkipType)pType;
 
 	return 0;

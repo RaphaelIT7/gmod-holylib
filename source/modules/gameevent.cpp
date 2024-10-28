@@ -426,7 +426,7 @@ LUA_FUNCTION_STATIC(IGameEvent_GetFloat)
 {
 	IGameEvent* pEvent = Get_IGameEvent(1, true);
 	const char* pName = LUA->CheckString(2);
-	double pFallback = LUA->GetNumber(3);
+	float pFallback = (float)LUA->GetNumber(3);
 
 	LUA->PushNumber(pEvent->GetFloat(pName, pFallback));
 	return 1;
@@ -436,7 +436,7 @@ LUA_FUNCTION_STATIC(IGameEvent_GetInt)
 {
 	IGameEvent* pEvent = Get_IGameEvent(1, true);
 	const char* pName = LUA->CheckString(2);
-	double pFallback = LUA->GetNumber(3);
+	int pFallback = (int)LUA->GetNumber(3);
 
 	LUA->PushNumber(pEvent->GetInt(pName, pFallback));
 	return 1;
@@ -468,9 +468,9 @@ LUA_FUNCTION_STATIC(IGameEvent_SetFloat)
 {
 	IGameEvent* pEvent = Get_IGameEvent(1, true);
 	const char* pName = LUA->CheckString(2);
-	double pValue = LUA->CheckNumber(3);
+	float pValue = (float)LUA->CheckNumber(3);
 
-	pEvent->SetFloat(pName, pValue);
+	pEvent->SetFloat(pName, (pValue);
 	return 0;
 }
 
@@ -478,7 +478,7 @@ LUA_FUNCTION_STATIC(IGameEvent_SetInt)
 {
 	IGameEvent* pEvent = Get_IGameEvent(1, true);
 	const char* pName = LUA->CheckString(2);
-	double pValue = LUA->CheckNumber(3);
+	int pValue = (int)LUA->CheckNumber(3);
 
 	pEvent->SetInt(pName, pValue);
 	return 0;

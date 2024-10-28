@@ -55,6 +55,14 @@ LUA_FUNCTION_STATIC(cvars_SetValue)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(cvars_Unregister)
+{
+	ConVar* convar = Get_ConVar(1, true);
+
+	g_pCVar->UnregisterConCommand(convar);
+	return 0;
+}
+
 void CCVarsModule::LuaInit(bool bServerInit)
 {
 	if (bServerInit)
@@ -63,6 +71,7 @@ void CCVarsModule::LuaInit(bool bServerInit)
 	Util::StartTable();
 		Util::AddFunc(cvars_GetAll, "GetAll");
 		Util::AddFunc(cvars_SetValue, "SetValue");
+		Util::AddFunc(cvars_Unregister, "Unregister");
 	Util::FinishTable("cvar");
 }
 

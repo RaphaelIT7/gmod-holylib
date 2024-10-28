@@ -1768,7 +1768,7 @@ LUA_FUNCTION_STATIC(filesystem_TimeCreated)
 	char* pTmpFileName = new char[MAX_PATH];
 	if (g_pFullFileSystem->RelativePathToFullPath(filePath, gamePath, pTmpFileName, MAX_PATH))
 		if(((CBaseFileSystem*)g_pFullFileSystem)->FS_stat(pTmpFileName, &buf) != -1) {
-			LUA->PushNumber(buf.st_ctime);
+			LUA->PushNumber((double)buf.st_ctime);
 			return 1;
 		}
 	
@@ -1785,7 +1785,7 @@ LUA_FUNCTION_STATIC(filesystem_TimeAccessed)
 	char* pTmpFileName = new char[MAX_PATH];
 	if (g_pFullFileSystem->RelativePathToFullPath(filePath, gamePath, pTmpFileName, MAX_PATH))
 		if(((CBaseFileSystem*)g_pFullFileSystem)->FS_stat(pTmpFileName, &buf) != -1) {
-			LUA->PushNumber(buf.st_atime);
+			LUA->PushNumber((double)buf.st_atime);
 			return 1;
 		}
 	

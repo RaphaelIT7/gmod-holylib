@@ -95,7 +95,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_SetVolume)
 	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
 
 	double volume = LUA->CheckNumber(2);
-	channel->SetVolume(volume);
+	channel->SetVolume((float)volume);
 
 	return 0;
 }
@@ -114,7 +114,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_SetPlaybackRate)
 	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
 
 	double rate = LUA->CheckNumber(2);
-	channel->SetPlaybackRate(rate);
+	channel->SetPlaybackRate((float)rate);
 
 	return 0;
 }
@@ -300,7 +300,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_SetChannelPan)
 {
 	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
 
-	float pan = LUA->CheckNumber(2);
+	float pan = (float)LUA->CheckNumber(2);
 	channel->SetChannelPan(pan);
 
 	return 0;
@@ -319,7 +319,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetTags)
 {
 	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
 
-	int unknown = LUA->CheckNumber(2);
+	int unknown = (int)LUA->CheckNumber(2);
 	LUA->PushString(channel->GetTags(unknown));
 
 	return 1;
