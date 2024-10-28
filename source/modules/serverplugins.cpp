@@ -1,9 +1,10 @@
 #include "sourcesdk/sv_plugin.h" // Has to be the first include
+#include "filesystem_base.h" // Has to be before symbols.h
 #include <GarrysMod/Lua/Interface.h>
+#include "symbols.h"
 #include "detours.h"
 #include "module.h"
 #include "lua.h"
-#include "filesystem.h"
 
 class CServerPluginLibModule : public IModule
 {

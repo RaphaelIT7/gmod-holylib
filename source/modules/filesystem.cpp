@@ -1,8 +1,9 @@
+#include "filesystem.h"  // Has to be before symbols.h
 #include <GarrysMod/Lua/Interface.h>
+#include "symbols.h"
 #include "detours.h"
 #include "module.h"
 #include "lua.h"
-#include "filesystem.h"
 #include <sourcesdk/filesystem_things.h>
 #include <unordered_map>
 #include <vprof.h>

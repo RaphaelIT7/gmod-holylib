@@ -1,4 +1,6 @@
+#include "filesystem_base.h" // Has to be before symbols.h
 #include <GarrysMod/Lua/Interface.h>
+#include "symbols.h"
 #include "detours.h"
 #include "module.h"
 #include "lua.h"

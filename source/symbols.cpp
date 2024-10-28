@@ -1,4 +1,4 @@
-#include "detours.h"
+#include "symbols.h"
 
 static Symbol NULL_SIGNATURE = Symbol::FromSignature("");
 

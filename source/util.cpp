@@ -1,4 +1,5 @@
 #include "util.h"
+#include "symbols.h"
 #include <string>
 #include "GarrysMod/InterfacePointers.hpp"
 #include "sourcesdk/baseclient.h"

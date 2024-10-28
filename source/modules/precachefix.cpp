@@ -1,9 +1,9 @@
 #include <GarrysMod/Lua/Interface.h>
+#include "symbols.h"
 #include "detours.h"
 #include "module.h"
 #include "lua.h"
 #include "util.h"
-#include "lua.h"
 #include <networkstringtabledefs.h>
 #include <vprof.h>
 

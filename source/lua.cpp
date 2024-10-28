@@ -4,6 +4,7 @@
 #include <GarrysMod/Lua/LuaShared.h>
 #include <GarrysMod/InterfacePointers.hpp>
 #include "filesystem.h"
+#include "symbols.h"
 #include "detours.h"
 #include "module.h"
 
