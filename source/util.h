@@ -109,7 +109,7 @@ className* Get_##className(int iStackPos, bool bError) \
 }
 
 #define Push_LuaClass( className, luaType ) \
-void Push_##className(##className* var) \
+void Push_##className(className* var) \
 { \
 	if (!var) \
 	{ \
@@ -123,7 +123,7 @@ void Push_##className(##className* var) \
 // This one is special
 #define PushReferenced_LuaClass( className, luaType ) \
 static std::unordered_map<##className*, int> g_pPushed##className; \
-static void Push_##className(##className* var) \
+static void Push_##className(className* var) \
 { \
 	if (!var) \
 	{ \
