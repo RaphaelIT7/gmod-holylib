@@ -167,6 +167,7 @@ unsigned int CBassAudioStream::Decode(void* data, unsigned int size)
 int CBassAudioStream::GetOutputBits()
 {
 	Error("Not used");
+	return 0; // Make linux happy but windows angry
 }
 
 int CBassAudioStream::GetOutputRate()
