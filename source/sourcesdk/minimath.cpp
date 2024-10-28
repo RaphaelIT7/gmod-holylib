@@ -1,8 +1,9 @@
 #include "mathlib/mathlib.h"
+#include "Platform.hpp"
 
 const Vector vec3_origin(0, 0, 0);
 
-int Q_log2(int val)
+int Q_log2(unsigned int val) // I hate 64x
 {
 	int answer = 0;
 	while (val >>= 1)
@@ -10,6 +11,12 @@ int Q_log2(int val)
 	return answer;
 }
 
+int Q_log2(int val)
+{
+	return Q_log2((unsigned int)val);
+}
+
+#if ARCHITECTURE_IS_X86_64
 #ifndef PLATFORM_PPC
 float VectorNormalize(Vector& vec)
 {
@@ -28,4 +35,5 @@ float VectorNormalize(Vector& vec)
 
 	return radius;
 }
+#endif
 #endif
