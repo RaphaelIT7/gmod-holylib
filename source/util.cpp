@@ -217,28 +217,6 @@ bool Util::ShouldLoad()
 	return true;
 }
 
-#define MakeString( str1, str2, str3 ) ((std::string)str1).append(str2).append(str3)
-
-#define Get_LuaClass( className, luaType, strName ) \
-static std::string invalidType_##className = MakeString("Tried to use something that wasn't a ", strName, "!"); \
-static std::string triedNull_##className = MakeString("Tried to use a NULL ", strName, "!"); \
-className* Get_##className(int iStackPos, bool bError) \
-{ \
-	if (!g_Lua->IsType(iStackPos, GarrysMod::Lua::Type::luaType)) \
-	{ \
-		if (bError) \
-			g_Lua->ThrowError(invalidType_##className.c_str()); \
-\
-		return NULL; \
-	} \
-\
-	className* pVar = g_Lua->GetUserType<className>(iStackPos, GarrysMod::Lua::Type::luaType); \
-	if (!pVar && bError) \
-		g_Lua->ThrowError(triedNull_##className.c_str()); \
-\
-	return pVar; \
-}
-
-Get_LuaClass(IRecipientFilter, RecipientFilter, "RecipientFilter")
-Get_LuaClass(Vector, Vector, "Vector")
-Get_LuaClass(QAngle, Angle, "Angle")
+Get_LuaClass(IRecipientFilter, GarrysMod::Lua::Type::RecipientFilter, "RecipientFilter")
+Get_LuaClass(Vector, GarrysMod::Lua::Type::Vector, "Vector")
+Get_LuaClass(QAngle, GarrysMod::Lua::Type::Angle, "Angle")

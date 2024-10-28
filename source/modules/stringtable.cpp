@@ -30,57 +30,20 @@ void CStringTableModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamef
 
 //static int registryIdx = 0;
 static int INetworkStringTable_TypeID = -1;
-static std::unordered_map<INetworkStringTable*, int> g_pPushedStringTables;
-static void Push_INetworkStringTable(INetworkStringTable* tbl)
-{
-	if (!tbl)
-	{
-		g_Lua->PushNil();
-		return;
-	}
-
-	auto it = g_pPushedStringTables.find(tbl);
-	if (it != g_pPushedStringTables.end())
-	{
-		g_Lua->ReferencePush(it->second);
-	} else {
-		g_Lua->PushUserType(tbl, INetworkStringTable_TypeID);
-		g_Lua->Push(-1);
-		g_pPushedStringTables[tbl] = g_Lua->ReferenceCreate();
-	}
-}
-
-static INetworkStringTable* Get_INetworkStringTable(int iStackPos, bool bError)
-{
-	if (bError)
-	{
-		if (!g_Lua->IsType(iStackPos, INetworkStringTable_TypeID))
-			g_Lua->ThrowError("Tried to use something that wasn't INetworkStringTable!");
-
-		INetworkStringTable* pTable = g_Lua->GetUserType<INetworkStringTable>(iStackPos, INetworkStringTable_TypeID);
-		if (!pTable)
-			g_Lua->ThrowError("Tried to use a NULL INetworkStringTable!");
-
-		return pTable;
-	} else {
-		if (!g_Lua->IsType(iStackPos, INetworkStringTable_TypeID))
-			return NULL;
-
-		return g_Lua->GetUserType<INetworkStringTable>(iStackPos, INetworkStringTable_TypeID);
-	}
-}
+PushReferenced_LuaClass(INetworkStringTable, INetworkStringTable_TypeID)
+Get_LuaClass(INetworkStringTable, INetworkStringTable_TypeID, "INetworkStringTable")
 
 static Detouring::Hook detour_CNetworkStringTable_Deconstructor;
 static void hook_CNetworkStringTable_Deconstructor(INetworkStringTable* tbl)
 {
-	auto it = g_pPushedStringTables.find(tbl);
-	if (it != g_pPushedStringTables.end())
+	auto it = g_pPushedINetworkStringTable.find(tbl);
+	if (it != g_pPushedINetworkStringTable.end())
 	{
 		g_Lua->ReferencePush(it->second);
 		g_Lua->SetUserType(-1, NULL);
 		g_Lua->Pop(1);
 		g_Lua->ReferenceFree(it->second);
-		g_pPushedStringTables.erase(it);
+		g_pPushedINetworkStringTable.erase(it);
 	}
 }
 
@@ -644,7 +607,7 @@ void CStringTableModule::LuaInit(bool bServerInit) // ToDo: Implement a INetwork
 void CStringTableModule::LuaShutdown() // ToDo: Can we remove the metatable?
 {
 	Util::NukeTable("stringtable");
-	g_pPushedStringTables.clear();
+	g_pPushedINetworkStringTable.clear();
 }
 
 void CStringTableModule::InitDetour(bool bPreServer)

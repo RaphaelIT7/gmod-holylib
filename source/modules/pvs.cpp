@@ -569,7 +569,7 @@ LUA_FUNCTION_STATIC(pvs_SetPreventTransmitBulk)
 	std::vector<CBasePlayer*> filterplys;
 	if (LUA->IsType(2, GarrysMod::Lua::Type::RecipientFilter))
 	{
-		CRecipientFilter* filter = LUA->GetUserType<CRecipientFilter>(2, GarrysMod::Lua::Type::RecipientFilter);
+		CRecipientFilter* filter = (CRecipientFilter*)Get_IRecipientFilter(2, true);
 		for (int i=0; i<gpGlobals->maxClients; ++i)
 		{
 			if (filter->GetRecipientIndex(i) != -1)

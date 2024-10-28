@@ -52,36 +52,8 @@ struct VoiceData
 };
 
 static int VoiceData_TypeID = -1;
-void Push_VoiceData(VoiceData* buf)
-{
-	if (!buf)
-	{
-		g_Lua->PushNil();
-		return;
-	}
-
-	g_Lua->PushUserType(buf, VoiceData_TypeID);
-}
-
-VoiceData* Get_VoiceData(int iStackPos, bool bError)
-{
-	if (bError)
-	{
-		if (!g_Lua->IsType(iStackPos, VoiceData_TypeID))
-			g_Lua->ThrowError("Tried to use something that wasn't VoiceData!");
-
-		VoiceData* pData = g_Lua->GetUserType<VoiceData>(iStackPos, VoiceData_TypeID);
-		if (!pData)
-			g_Lua->ThrowError("Tried to use a NULL VoiceData!");
-
-		return pData;
-	} else {
-		if (!g_Lua->IsType(iStackPos, VoiceData_TypeID))
-			return NULL;
-
-		return g_Lua->GetUserType<VoiceData>(iStackPos, VoiceData_TypeID);
-	}
-}
+Push_LuaClass(VoiceData, VoiceData_TypeID)
+Get_LuaClass(VoiceData, VoiceData_TypeID, "VoiceData")
 
 LUA_FUNCTION_STATIC(VoiceData__tostring)
 {

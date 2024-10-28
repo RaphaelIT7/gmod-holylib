@@ -86,6 +86,62 @@ namespace Util
 	}
 }
 
+#define MakeString( str1, str2, str3 ) ((std::string)str1).append(str2).append(str3)
+#define Get_LuaClass( className, luaType, strName ) \
+static std::string invalidType_##className = MakeString("Tried to use something that wasn't a ", strName, "!"); \
+static std::string triedNull_##className = MakeString("Tried to use a NULL ", strName, "!"); \
+className* Get_##className(int iStackPos, bool bError) \
+{ \
+	if (!g_Lua->IsType(iStackPos, luaType)) \
+	{ \
+		if (bError) \
+			g_Lua->ThrowError(invalidType_##className.c_str()); \
+\
+		return NULL; \
+	} \
+\
+	className* pVar = g_Lua->GetUserType<className>(iStackPos, luaType); \
+	if (!pVar && bError) \
+		g_Lua->ThrowError(triedNull_##className.c_str()); \
+\
+	return pVar; \
+}
+
+#define Push_LuaClass( className, luaType ) \
+void Push_##className(##className* var) \
+{ \
+	if (!var) \
+	{ \
+		g_Lua->PushNil(); \
+		return; \
+	} \
+\
+	g_Lua->PushUserType(var, luaType); \
+}
+
+// This one is special
+#define PushReferenced_LuaClass( className, luaType ) \
+static std::unordered_map<##className*, int> g_pPushed##className; \
+static void Push_##className(##className* var) \
+{ \
+	if (!var) \
+	{ \
+		g_Lua->PushNil(); \
+		return; \
+	} \
+\
+	auto it = g_pPushed##className.find(var); \
+	if (it != g_pPushed##className.end()) \
+	{ \
+		g_Lua->ReferencePush(it->second); \
+	} else { \
+		g_Lua->PushUserType(var, luaType); \
+		g_Lua->Push(-1); \
+		g_pPushed##className[var] = g_Lua->ReferenceCreate(); \
+	} \
+}
+
+
 // Push functions from modules: 
 // ToDo: move this at a later point into a seperate file. Maybe into _modules?
 Vector* Get_Vector(int iStackPos, bool bError = true);

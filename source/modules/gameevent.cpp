@@ -333,37 +333,8 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 }
 
 static int IGameEvent_TypeID = -1;
-void Push_IGameEvent(IGameEvent* event)
-{
-	if (!event)
-	{
-		g_Lua->PushNil();
-		return;
-	}
-
-	g_Lua->PushUserType(event, IGameEvent_TypeID);
-}
-
-IGameEvent* Get_IGameEvent(int iStackPos, bool bError)
-{
-	if (bError)
-	{
-		if (!g_Lua->IsType(iStackPos, IGameEvent_TypeID))
-			g_Lua->ThrowError("Tried to use something that wasn't IGameEvent!");
-
-		IGameEvent* pEvent = g_Lua->GetUserType<IGameEvent>(iStackPos, IGameEvent_TypeID);
-		if (!pEvent)
-			g_Lua->ThrowError("Tried to use a NULL IGameEvent!");
-
-		return pEvent;
-	}
-	else {
-		if (!g_Lua->IsType(iStackPos, IGameEvent_TypeID))
-			return NULL;
-
-		return g_Lua->GetUserType<IGameEvent>(iStackPos, IGameEvent_TypeID);
-	}
-}
+Push_LuaClass(IGameEvent, IGameEvent_TypeID)
+Get_LuaClass(IGameEvent, IGameEvent_TypeID, "IGameEvent")
 
 LUA_FUNCTION_STATIC(IGameEvent__tostring)
 {

@@ -15,91 +15,16 @@ public:
 static CBitBufModule g_pBitBufModule;
 IModule* pBitBufModule = &g_pBitBufModule;
 
+Push_LuaClass(QAngle, GarrysMod::Lua::Type::Angle)
+Push_LuaClass(Vector, GarrysMod::Lua::Type::Vector)
+
 static int bf_read_TypeID = -1;
-void Push_bf_read(bf_read* buf)
-{
-	if (!buf)
-	{
-		g_Lua->PushNil();
-		return;
-	}
-
-	g_Lua->PushUserType(buf, bf_read_TypeID);
-}
-
-void Push_Angle(QAngle* ang)
-{
-	if (!ang)
-	{
-		g_Lua->PushNil();
-		return;
-	}
-
-	g_Lua->PushUserType(ang, GarrysMod::Lua::Type::Angle);
-}
-
-void Push_Vector(Vector* vec)
-{
-	if (!vec)
-	{
-		g_Lua->PushNil();
-		return;
-	}
-
-	g_Lua->PushUserType(vec, GarrysMod::Lua::Type::Vector);
-}
-
-bf_read* Get_bf_read(int iStackPos, bool bError)
-{
-	if (bError)
-	{
-		if (!g_Lua->IsType(iStackPos, bf_read_TypeID))
-			g_Lua->ThrowError("Tried to use something that wasn't bf_read!");
-
-		bf_read* pBF = g_Lua->GetUserType<bf_read>(iStackPos, bf_read_TypeID);
-		if (!pBF)
-			g_Lua->ThrowError("Tried to use a NULL bf_read!");
-
-		return pBF;
-	} else {
-		if (!g_Lua->IsType(iStackPos, bf_read_TypeID))
-			return NULL;
-
-		return g_Lua->GetUserType<bf_read>(iStackPos, bf_read_TypeID);
-	}
-}
+Push_LuaClass(bf_read, bf_read_TypeID)
+Get_LuaClass(bf_read, bf_read_TypeID, "bf_read")
 
 static int bf_write_TypeID = -1;
-void Push_bf_write(bf_write* tbl)
-{
-	if ( !tbl )
-	{
-		g_Lua->PushNil();
-		return;
-	}
-
-	g_Lua->PushUserType(tbl, bf_write_TypeID);
-}
-
-bf_write* Get_bf_write(int iStackPos, bool bError)
-{
-	if (bError)
-	{
-		if (!g_Lua->IsType(iStackPos, bf_write_TypeID))
-			return NULL;
-
-		bf_write* pBF = g_Lua->GetUserType<bf_write>(iStackPos, bf_write_TypeID);
-		if (!pBF)
-			g_Lua->ThrowError("Tried to use a NULL bf_write!");
-
-		return pBF;
-	} else {
-		if (!g_Lua->IsType(iStackPos, bf_write_TypeID))
-			return NULL;
-
-		return g_Lua->GetUserType<bf_write>(iStackPos, bf_write_TypeID);
-	}
-}
+Push_LuaClass(bf_write, bf_write_TypeID)
+Get_LuaClass(bf_write, bf_write_TypeID, "bf_write")
 
 LUA_FUNCTION_STATIC(bf_read__tostring)
 {
@@ -239,7 +164,7 @@ LUA_FUNCTION_STATIC(bf_read_ReadBitAngles)
 
 	QAngle ang;
 	bf->ReadBitAngles(ang);
-	Push_Angle(&ang);
+	Push_QAngle(&ang);
 	return 1;
 }
 
@@ -834,7 +759,7 @@ LUA_FUNCTION_STATIC(bf_write_WriteBitAngles)
 {
 	bf_write* pBF = Get_bf_write(1, true);
 
-	QAngle* ang = LUA->GetUserType<QAngle>(2, GarrysMod::Lua::Type::Angle);
+	QAngle* ang = Get_QAngle(2);
 	pBF->WriteBitAngles(*ang);
 	return 0;
 }
@@ -843,7 +768,7 @@ LUA_FUNCTION_STATIC(bf_write_WriteBitVec3Coord)
 {
 	bf_write* pBF = Get_bf_write(1, true);
 
-	Vector* vec = LUA->GetUserType<Vector>(2, GarrysMod::Lua::Type::Vector );
+	Vector* vec = Get_Vector(2);
 	pBF->WriteBitVec3Coord(*vec);
 	return 0;
 }
@@ -852,7 +777,7 @@ LUA_FUNCTION_STATIC(bf_write_WriteBitVec3Normal)
 {
 	bf_write* pBF = Get_bf_write(1, true);
 
-	Vector* vec = LUA->GetUserType<Vector>(2, GarrysMod::Lua::Type::Vector);
+	Vector* vec = Get_Vector(2);
 	pBF->WriteBitVec3Normal(*vec);
 	return 0;
 }

@@ -20,36 +20,8 @@ IModule* pBassModule = &g_pBassModule;
 
 IGMod_Audio* gGModAudio;
 int IGModAudioChannel_TypeID;
-void Push_IGModAudioChannel(IGModAudioChannel* channel)
-{
-	if ( !channel )
-	{
-		g_Lua->PushNil();
-		return;
-	}
-
-	g_Lua->PushUserType(channel, IGModAudioChannel_TypeID);
-}
-
-IGModAudioChannel* Get_IGModAudioChannel(int iStackPos, bool bError)
-{
-	if (bError)
-	{
-		if (!g_Lua->IsType(iStackPos, IGModAudioChannel_TypeID))
-			g_Lua->ThrowError("Tried to use something that wasn't IGModAudioChannel!");
-
-		IGModAudioChannel* pChannel = g_Lua->GetUserType<IGModAudioChannel>(iStackPos, IGModAudioChannel_TypeID);
-		if (!pChannel)
-			g_Lua->ThrowError("Tried to use a NULL IGModAudioChannel!");
-
-		return pChannel;
-	} else {
-		if (!g_Lua->IsType(iStackPos, IGModAudioChannel_TypeID))
-			return NULL;
-
-		return g_Lua->GetUserType<IGModAudioChannel>(iStackPos, IGModAudioChannel_TypeID);
-	}
-}
+Push_LuaClass(IGModAudioChannel, IGModAudioChannel_TypeID)
+Get_LuaClass(IGModAudioChannel, IGModAudioChannel_TypeID, "IGModAudioChannel")
 
 LUA_FUNCTION_STATIC(IGModAudioChannel__tostring)
 {
