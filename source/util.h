@@ -1,6 +1,7 @@
 #pragma once
 
 #include <sourcesdk/ILuaInterface.h>
+#include "Platform.hpp"
 #include "eiface.h"
 #include "vprof.h"
 

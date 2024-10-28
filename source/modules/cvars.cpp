@@ -1,5 +1,4 @@
 #include <GarrysMod/Lua/Interface.h>
-#include "Platform.hpp"
 #include "module.h"
 #include "lua.h"
 
