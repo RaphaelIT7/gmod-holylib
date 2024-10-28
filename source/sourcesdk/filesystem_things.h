@@ -372,6 +372,62 @@ protected:
 	bool IsValid();
 };
 
+class CFileOpenInfo
+{
+public:
+	CFileOpenInfo(CBaseFileSystem* pFileSystem, const char* pFileName, const CSearchPath* path, const char* pOptions, int flags, char** ppszResolvedFilename) :
+		m_pFileSystem(pFileSystem), m_ppszResolvedFilename(ppszResolvedFilename), m_pFileName(pFileName), m_pSearchPath(path), m_pOptions(pOptions), m_Flags(flags)
+	{
+		m_pFileHandle = NULL;
+		m_ePureFileClass = ePureServerFileClass_Any;
+		/*if (m_pFileSystem->m_pPureServerWhitelist)
+		{
+			m_ePureFileClass = m_pFileSystem->m_pPureServerWhitelist->GetFileClass(pFileName);
+		}*/
+
+		if (m_ppszResolvedFilename)
+			*m_ppszResolvedFilename = NULL;
+		m_pPackFile = NULL;
+		m_pVPKFile = NULL;
+		m_AbsolutePath[0] = '\0';
+	}
+
+	~CFileOpenInfo()
+	{
+	}
+
+	void SetAbsolutePath(const char* pFormat, ...)
+	{
+	}
+
+	void SetResolvedFilename(const char* pStr)
+	{
+	}
+
+	void HandleFileCRCTracking(const char* pRelativeFileName)
+	{
+	}
+
+public:
+	CBaseFileSystem* m_pFileSystem;
+
+	// These are output parameters.
+	void* m_pFileHandle;
+	char** m_ppszResolvedFilename;
+
+	void* m_pPackFile;
+	void* m_pVPKFile;
+
+	const char* m_pFileName;
+	const CSearchPath* m_pSearchPath;
+	const char* m_pOptions;
+	int m_Flags;
+
+	EPureServerFileClass m_ePureFileClass;
+
+	char m_AbsolutePath[MAX_FILEPATH];	// This is set 
+};
+
 class CMemoryFileHandle : public CFileHandle
 {
 public:
@@ -981,60 +1037,4 @@ public:
 
 	char m_pBaseDir[MAX_PATH];
 	int m_pBaseLength;
-};
-
-class CFileOpenInfo
-{
-public:
-	CFileOpenInfo( CBaseFileSystem *pFileSystem, const char *pFileName, const CSearchPath *path, const char *pOptions, int flags, char **ppszResolvedFilename ) : 
-		m_pFileSystem( pFileSystem ), m_ppszResolvedFilename( ppszResolvedFilename ), m_pFileName( pFileName ), m_pSearchPath( path ), m_pOptions( pOptions ), m_Flags( flags )
-	{
-		m_pFileHandle = NULL;
-		m_ePureFileClass = ePureServerFileClass_Any;
-		if ( m_pFileSystem->m_pPureServerWhitelist )
-		{
-			m_ePureFileClass = m_pFileSystem->m_pPureServerWhitelist->GetFileClass( pFileName );
-		}
-
-		if ( m_ppszResolvedFilename )
-			*m_ppszResolvedFilename = NULL;
-		m_pPackFile = NULL;
-		m_pVPKFile = NULL;
-		m_AbsolutePath[0] = '\0';
-	}
-	
-	~CFileOpenInfo()
-	{
-	}
-	
-	void SetAbsolutePath( const char *pFormat, ... )
-	{
-	}
-	
-	void SetResolvedFilename( const char *pStr )
-	{
-	}
-
-	void HandleFileCRCTracking( const char *pRelativeFileName )
-	{
-	}
-
-public:
-	CBaseFileSystem* m_pFileSystem;
-
-	// These are output parameters.
-	void *m_pFileHandle;
-	char **m_ppszResolvedFilename;
-
-	void *m_pPackFile;
-	void *m_pVPKFile;
-
-	const char *m_pFileName;
-	const CSearchPath *m_pSearchPath;
-	const char *m_pOptions;
-	int m_Flags;
-
-	EPureServerFileClass m_ePureFileClass;
-
-	char m_AbsolutePath[MAX_FILEPATH];	// This is set 
 };
