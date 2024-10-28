@@ -470,7 +470,7 @@ LUA_FUNCTION_STATIC(IGameEvent_SetFloat)
 	const char* pName = LUA->CheckString(2);
 	float pValue = (float)LUA->CheckNumber(3);
 
-	pEvent->SetFloat(pName, (pValue);
+	pEvent->SetFloat(pName, pValue);
 	return 0;
 }
 
