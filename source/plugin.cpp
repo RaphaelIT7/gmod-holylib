@@ -194,9 +194,9 @@ void CServerPlugin::UnPause(void)
 const char* CServerPlugin::GetPluginDescription(void)
 {
 #if GITHUB_RUN_DATA == 0 // DATA should always fallback to 0. We will set it to 1 in releases.
-	return "HolyLib Serverplugin V0.7 DEV (Workflow: " GITHUB_RUN_NUMBER ")";
+	return "HolyLib Serverplugin V0.6.1 DEV (Workflow: " GITHUB_RUN_NUMBER ")";
 #else
-	return "HolyLib Serverplugin V0.7";
+	return "HolyLib Serverplugin V0.6.1";
 #endif
 }
 
