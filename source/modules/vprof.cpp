@@ -9,10 +9,15 @@
 #include <iomanip>
 #include <map>
 #include <vprof.h>
+#include <unordered_set>
+#include <unordered_map>
+#include "color.h"
 
 class CVProfModule : public IModule
 {
 public:
+	virtual void LuaInit(bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown() OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "vprof"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32; };
@@ -717,4 +722,688 @@ void CVProfModule::InitDetour(bool bPreServer)
 	if (DETOUR_ISENABLED(detour_Msg))
 		DETOUR_DISABLE(detour_Msg);
 #endif
+}
+
+std::unordered_set<std::string> pLuaStrings; // Theses will almost never be freed!
+// VPROF doesn't manage the memory of the strings that are used in scopes!
+// So we need to make sure that they will always be valid.
+// It does manage the strings of counters and budget groups
+const char* AddOrGetString(const char* pString)
+{
+	std::string strValue = pString;
+	auto it = pLuaStrings.find(strValue);
+	if (it != pLuaStrings.end())
+		return it->c_str();
+
+	pLuaStrings.insert(strValue);
+	auto it2 = pLuaStrings.find(strValue); // Get the new std::string to return
+
+	return it2->c_str();
+}
+
+// ------------- VProf Counter --------------
+
+struct VProfCounter
+{
+	const char* strName;
+	int64* iValue;
+};
+static int VProfCounter_TypeID = -1;
+Push_LuaClass(VProfCounter, VProfCounter_TypeID)
+Get_LuaClass(VProfCounter, VProfCounter_TypeID, "VProfCounter")
+
+LUA_FUNCTION_STATIC(VProfCounter__tostring)
+{
+	VProfCounter* pData = Get_VProfCounter(1, false);
+	if (!pData)
+	{
+		LUA->PushString("VProfCounter [NULL]");
+		return 1;
+	}
+
+	char szBuf[64] = {};
+	V_snprintf(szBuf, sizeof(szBuf), "VProfCounter [%s][%lld]", pData->strName, (long long)(*pData->iValue));
+	LUA->PushString(szBuf);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VProfCounter__index)
+{
+	if (!g_Lua->FindOnObjectsMetaTable(1, 2))
+		LUA->PushNil();
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VProfCounter_Name)
+{
+	VProfCounter* counter = Get_VProfCounter(1, true);
+
+	LUA->PushString(counter->strName);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VProfCounter_Set)
+{
+	VProfCounter* counter = Get_VProfCounter(1, true);
+	(*counter->iValue) = (int64)LUA->CheckNumber(2);
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(VProfCounter_Get)
+{
+	VProfCounter* counter = Get_VProfCounter(1, true);
+	
+	LUA->PushNumber((double)*counter->iValue);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VProfCounter_Increment)
+{
+	VProfCounter* counter = Get_VProfCounter(1, true);
+
+	++(*counter->iValue);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(VProfCounter_Decrement)
+{
+	VProfCounter* counter = Get_VProfCounter(1, true);
+
+	--(*counter->iValue);
+	return 0;
+}
+
+// --------------------------
+
+// ------------- VProf Node --------------
+
+static int VProfNode_TypeID = -1;
+Push_LuaClass(CVProfNode, VProfNode_TypeID)
+Get_LuaClass(CVProfNode, VProfNode_TypeID, "VProfNode")
+
+LUA_FUNCTION_STATIC(VProfNode__tostring)
+{
+	CVProfNode* pData = Get_CVProfNode(1, false);
+	if (!pData)
+	{
+		LUA->PushString("VProfNode [NULL]");
+		return 1;
+	}
+
+	char szBuf[64] = {};
+	V_snprintf(szBuf, sizeof(szBuf), "VProfNode [%s]", pData->GetName());
+	LUA->PushString(szBuf);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VProfNode__index)
+{
+	if (!g_Lua->FindOnObjectsMetaTable(1, 2))
+		LUA->PushNil();
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VProfNode_GetName)
+{
+	CVProfNode* node = Get_CVProfNode(1, true);
+
+	LUA->PushString(node->GetName());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VProfNode_GetBudgetGroupID)
+{
+	CVProfNode* node = Get_CVProfNode(1, true);
+
+	LUA->PushNumber(node->GetBudgetGroupID());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VProfNode_GetCurTime)
+{
+	CVProfNode* node = Get_CVProfNode(1, true);
+
+	LUA->PushNumber(node->GetCurTime());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VProfNode_GetCurTimeLessChildren)
+{
+	CVProfNode* node = Get_CVProfNode(1, true);
+
+	LUA->PushNumber(node->GetCurTimeLessChildren());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VProfNode_GetPeakTime)
+{
+	CVProfNode* node = Get_CVProfNode(1, true);
+
+	LUA->PushNumber(node->GetPeakTime());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VProfNode_GetPrevTime)
+{
+	CVProfNode* node = Get_CVProfNode(1, true);
+
+	LUA->PushNumber(node->GetPrevTime());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VProfNode_GetPrevTimeLessChildren)
+{
+	CVProfNode* node = Get_CVProfNode(1, true);
+
+	LUA->PushNumber(node->GetPrevTimeLessChildren());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VProfNode_GetTotalTime)
+{
+	CVProfNode* node = Get_CVProfNode(1, true);
+
+	LUA->PushNumber(node->GetTotalTime());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VProfNode_GetTotalTimeLessChildren)
+{
+	CVProfNode* node = Get_CVProfNode(1, true);
+
+	LUA->PushNumber(node->GetTotalTimeLessChildren());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VProfNode_GetCurCalls)
+{
+	CVProfNode* node = Get_CVProfNode(1, true);
+
+	LUA->PushNumber(node->GetCurCalls());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VProfNode_GetChild)
+{
+	CVProfNode* node = Get_CVProfNode(1, true);
+
+	Push_CVProfNode(node->GetChild());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VProfNode_GetParent)
+{
+	CVProfNode* node = Get_CVProfNode(1, true);
+
+	Push_CVProfNode(node->GetParent());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VProfNode_GetSibling)
+{
+	CVProfNode* node = Get_CVProfNode(1, true);
+
+	Push_CVProfNode(node->GetSibling());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VProfNode_GetPrevSibling)
+{
+	CVProfNode* node = Get_CVProfNode(1, true);
+
+	Push_CVProfNode(node->GetPrevSibling());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VProfNode_GetL2CacheMisses)
+{
+	CVProfNode* node = Get_CVProfNode(1, true);
+
+	LUA->PushNumber(node->GetL2CacheMisses());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VProfNode_GetPrevL2CacheMissLessChildren)
+{
+	CVProfNode* node = Get_CVProfNode(1, true);
+
+	LUA->PushNumber(node->GetPrevL2CacheMissLessChildren());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VProfNode_GetPrevLoadHitStoreLessChildren)
+{
+	CVProfNode* node = Get_CVProfNode(1, true);
+
+	LUA->PushNumber(node->GetPrevLoadHitStoreLessChildren());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VProfNode_GetTotalCalls)
+{
+	CVProfNode* node = Get_CVProfNode(1, true);
+
+	LUA->PushNumber(node->GetTotalCalls());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VProfNode_GetSubNode)
+{
+	CVProfNode* node = Get_CVProfNode(1, true);
+	const char* pName = AddOrGetString(LUA->CheckString(2));
+	int iDetailLevel = (int)LUA->CheckNumber(3);
+	const char* pBudgetGroup = LUA->CheckString(4);
+
+	Push_CVProfNode(node->GetSubNode(pName, iDetailLevel, pBudgetGroup));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VProfNode_GetClientData)
+{
+	CVProfNode* node = Get_CVProfNode(1, true);
+
+	LUA->PushNumber(node->GetClientData());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VProfNode_MarkFrame)
+{
+	CVProfNode* node = Get_CVProfNode(1, true);
+	node->MarkFrame();
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(VProfNode_ClearPrevTime)
+{
+	CVProfNode* node = Get_CVProfNode(1, true);
+	node->ClearPrevTime();
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(VProfNode_Pause)
+{
+	CVProfNode* node = Get_CVProfNode(1, true);
+	node->Pause();
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(VProfNode_Reset)
+{
+	CVProfNode* node = Get_CVProfNode(1, true);
+	node->Reset();
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(VProfNode_ResetPeak)
+{
+	CVProfNode* node = Get_CVProfNode(1, true);
+	node->ResetPeak();
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(VProfNode_Resume)
+{
+	CVProfNode* node = Get_CVProfNode(1, true);
+	node->Resume();
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(VProfNode_SetBudgetGroupID)
+{
+	CVProfNode* node = Get_CVProfNode(1, true);
+	node->SetBudgetGroupID((int)LUA->CheckNumber(2));
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(VProfNode_SetCurFrameTime)
+{
+	CVProfNode* node = Get_CVProfNode(1, true);
+	node->SetCurFrameTime((unsigned long)LUA->CheckNumber(2));
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(VProfNode_SetClientData)
+{
+	CVProfNode* node = Get_CVProfNode(1, true);
+	node->SetClientData((int)LUA->CheckNumber(2));
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(VProfNode_EnterScope)
+{
+	CVProfNode* node = Get_CVProfNode(1, true);
+	node->EnterScope();
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(VProfNode_ExitScope)
+{
+	CVProfNode* node = Get_CVProfNode(1, true);
+	node->ExitScope();
+
+	return 0;
+}
+
+// --------------------------
+
+LUA_FUNCTION_STATIC(vprof_Start)
+{
+	g_VProfCurrentProfile.Start();
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(vprof_Stop)
+{
+	g_VProfCurrentProfile.Stop();
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(vprof_AtRoot)
+{
+	LUA->PushBool(g_VProfCurrentProfile.AtRoot());
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(vprof_FindOrCreateCounter)
+{
+	const char* pName = AddOrGetString(LUA->CheckString(1)); // Just to make sure
+	CounterGroup_t group = (CounterGroup_t)g_Lua->CheckNumberOpt(2, COUNTER_GROUP_DEFAULT);
+
+	VProfCounter* counter = new VProfCounter;
+	counter->strName = pName;
+	counter->iValue = g_VProfCurrentProfile.FindOrCreateCounter(pName, group);
+
+	Push_VProfCounter(counter);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(vprof_GetCounter)
+{
+	int index = (int)LUA->CheckNumber(1);
+
+	VProfCounter* counter = new VProfCounter;
+	counter->strName = g_VProfCurrentProfile.GetCounterName(index);
+	if (!counter->strName)
+		return 0; // Not a valid counter. LIAR
+	
+	counter->iValue = g_VProfCurrentProfile.FindOrCreateCounter(counter->strName);
+
+	Push_VProfCounter(counter);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(vprof_GetNumCounters)
+{
+	LUA->PushNumber(g_VProfCurrentProfile.GetNumCounters());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(vprof_ResetCounters)
+{
+	CounterGroup_t group = (CounterGroup_t)g_Lua->CheckNumberOpt(2, COUNTER_GROUP_DEFAULT);
+
+	g_VProfCurrentProfile.ResetCounters(group);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(vprof_GetTimeLastFrame)
+{
+	LUA->PushNumber(g_VProfCurrentProfile.GetTimeLastFrame());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(vprof_GetPeakFrameTime)
+{
+	LUA->PushNumber(g_VProfCurrentProfile.GetPeakFrameTime());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(vprof_GetTotalTimeSampled)
+{
+	LUA->PushNumber(g_VProfCurrentProfile.GetTotalTimeSampled());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(vprof_GetDetailLevel)
+{
+	LUA->PushNumber(g_VProfCurrentProfile.GetDetailLevel());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(vprof_NumFramesSampled)
+{
+	LUA->PushNumber(g_VProfCurrentProfile.NumFramesSampled());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(vprof_HideBudgetGroup)
+{
+	const char* pName = AddOrGetString(LUA->CheckString(1));
+	bool bHide = LUA->GetBool(2);
+	g_VProfCurrentProfile.HideBudgetGroup(pName, bHide);
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(vprof_GetNumBudgetGroups)
+{
+	LUA->PushNumber(g_VProfCurrentProfile.GetNumBudgetGroups());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(vprof_BudgetGroupNameToBudgetGroupID)
+{
+	const char* pName = LUA->CheckString(1);
+
+	LUA->PushNumber(g_VProfCurrentProfile.BudgetGroupNameToBudgetGroupID(pName));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(vprof_GetBudgetGroupName)
+{
+	int index = (int)LUA->CheckNumber(1);
+
+	LUA->PushString(g_VProfCurrentProfile.GetBudgetGroupName(index));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(vprof_GetBudgetGroupFlags)
+{
+	int index = (int)LUA->CheckNumber(1);
+
+	LUA->PushNumber(g_VProfCurrentProfile.GetBudgetGroupFlags(index));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(vprof_GetBudgetGroupColor)
+{
+	int index = (int)LUA->CheckNumber(1);
+
+	int r, g, b, a;
+	g_VProfCurrentProfile.GetBudgetGroupColor(index,r, g, b, a);
+
+	g_Lua->PushColor(Color(r, g, b, a));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(vprof_GetRoot)
+{
+	Push_CVProfNode(g_VProfCurrentProfile.GetRoot());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(vprof_GetCurrentNode)
+{
+	Push_CVProfNode(g_VProfCurrentProfile.GetCurrentNode());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(vprof_IsEnabled)
+{
+	LUA->PushBool(g_VProfCurrentProfile.IsEnabled());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(vprof_MarkFrame)
+{
+	g_VProfCurrentProfile.MarkFrame();
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(vprof_EnterScope)
+{
+	const char* pName = AddOrGetString(LUA->CheckString(1));
+	int iDetailLevel = (int)LUA->CheckNumber(2);
+	const char* pBudgetGroupName = LUA->CheckString(3);
+
+	g_VProfCurrentProfile.EnterScope(pName, iDetailLevel, pBudgetGroupName, false);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(vprof_ExitScope)
+{
+	g_VProfCurrentProfile.ExitScope();
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(vprof_Pause)
+{
+	g_VProfCurrentProfile.Pause();
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(vprof_Resume)
+{
+	g_VProfCurrentProfile.Resume();
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(vprof_Reset)
+{
+	g_VProfCurrentProfile.Reset();
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(vprof_ResetPeaks)
+{
+	g_VProfCurrentProfile.ResetPeaks();
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(vprof_Term)
+{
+	pLuaStrings.clear(); // The only time we clear it.
+	g_VProfCurrentProfile.Term();
+	return 0;
+}
+
+void CVProfModule::LuaInit(bool bServerInit)
+{
+	if (bServerInit)
+		return;
+
+	VProfCounter_TypeID = g_Lua->CreateMetaTable("VProfCounter");
+		Util::AddFunc(VProfCounter__tostring, "__tostring");
+		Util::AddFunc(VProfCounter__index, "__index");
+		Util::AddFunc(VProfCounter_Set, "Set");
+		Util::AddFunc(VProfCounter_Get, "Get");
+		Util::AddFunc(VProfCounter_Increment, "Increment");
+		Util::AddFunc(VProfCounter_Decrement, "Decrement");
+		Util::AddFunc(VProfCounter_Name, "Name");
+	g_Lua->Pop(1);
+
+	VProfNode_TypeID = g_Lua->CreateMetaTable("VProfNode");
+		Util::AddFunc(VProfNode__tostring, "__tostring");
+		Util::AddFunc(VProfNode__index, "__index");
+		Util::AddFunc(VProfNode_GetName, "GetName");
+		Util::AddFunc(VProfNode_GetBudgetGroupID, "GetBudgetGroupID");
+		Util::AddFunc(VProfNode_GetCurTime, "GetCurTime");
+		Util::AddFunc(VProfNode_GetCurTimeLessChildren, "GetCurTimeLessChildren");
+		Util::AddFunc(VProfNode_GetPeakTime, "GetPeakTime");
+		Util::AddFunc(VProfNode_GetPrevTime, "GetPrevTime");
+		Util::AddFunc(VProfNode_GetPrevTimeLessChildren, "GetPrevTimeLessChildren");
+		Util::AddFunc(VProfNode_GetTotalTime, "GetTotalTime");
+		Util::AddFunc(VProfNode_GetTotalTimeLessChildren, "GetTotalTimeLessChildren");
+		Util::AddFunc(VProfNode_GetCurCalls, "GetCurCalls");
+		Util::AddFunc(VProfNode_GetChild, "GetChild");
+		Util::AddFunc(VProfNode_GetParent, "GetParent");
+		Util::AddFunc(VProfNode_GetSibling, "GetSibling");
+		Util::AddFunc(VProfNode_GetPrevSibling, "GetPrevSibling");
+		Util::AddFunc(VProfNode_GetL2CacheMisses, "GetL2CacheMisses");
+		Util::AddFunc(VProfNode_GetPrevL2CacheMissLessChildren, "GetPrevL2CacheMissLessChildren");
+		Util::AddFunc(VProfNode_GetPrevLoadHitStoreLessChildren, "GetPrevLoadHitStoreLessChildren");
+		Util::AddFunc(VProfNode_GetTotalCalls, "GetTotalCalls");
+		Util::AddFunc(VProfNode_GetSubNode, "GetSubNode");
+		Util::AddFunc(VProfNode_GetClientData, "GetClientData");
+		Util::AddFunc(VProfNode_MarkFrame, "MarkFrame");
+		Util::AddFunc(VProfNode_ClearPrevTime, "ClearPrevTime");
+		Util::AddFunc(VProfNode_Pause, "Pause");
+		Util::AddFunc(VProfNode_Reset, "Reset");
+		Util::AddFunc(VProfNode_ResetPeak, "ResetPeak");
+		Util::AddFunc(VProfNode_Resume, "Resume");
+		Util::AddFunc(VProfNode_SetBudgetGroupID, "SetBudgetGroupID");
+		Util::AddFunc(VProfNode_SetCurFrameTime, "SetCurFrameTime");
+		Util::AddFunc(VProfNode_SetClientData, "SetClientData");
+		Util::AddFunc(VProfNode_EnterScope, "EnterScope");
+		Util::AddFunc(VProfNode_ExitScope, "ExitScope");
+	g_Lua->Pop(1);
+
+	Util::StartTable();
+		Util::AddFunc(vprof_Start, "Start");
+		Util::AddFunc(vprof_Stop, "Stop");
+		Util::AddFunc(vprof_AtRoot, "AtRoot");
+		Util::AddFunc(vprof_FindOrCreateCounter, "FindOrCreateCounter");
+		Util::AddFunc(vprof_GetCounter, "GetCounter");
+		Util::AddFunc(vprof_GetNumCounters, "GetNumCounters");
+		Util::AddFunc(vprof_ResetCounters, "ResetCounters");
+		Util::AddFunc(vprof_GetTimeLastFrame, "GetTimeLastFrame");
+		Util::AddFunc(vprof_GetPeakFrameTime, "GetPeakFrameTime");
+		Util::AddFunc(vprof_GetTotalTimeSampled, "GetTotalTimeSampled");
+		Util::AddFunc(vprof_GetDetailLevel, "GetDetailLevel");
+		Util::AddFunc(vprof_NumFramesSampled, "NumFramesSampled");
+		Util::AddFunc(vprof_HideBudgetGroup, "HideBudgetGroup");
+		Util::AddFunc(vprof_GetNumBudgetGroups, "GetNumBudgetGroups");
+		Util::AddFunc(vprof_BudgetGroupNameToBudgetGroupID, "BudgetGroupNameToBudgetGroupID");
+		Util::AddFunc(vprof_GetBudgetGroupName, "GetBudgetGroupName");
+		Util::AddFunc(vprof_GetBudgetGroupFlags, "GetBudgetGroupFlags");
+		Util::AddFunc(vprof_GetBudgetGroupColor, "GetBudgetGroupColor");
+		Util::AddFunc(vprof_GetRoot, "GetRoot");
+		Util::AddFunc(vprof_GetCurrentNode, "GetCurrentNode");
+		Util::AddFunc(vprof_IsEnabled, "IsEnabled");
+		Util::AddFunc(vprof_MarkFrame, "MarkFrame");
+		Util::AddFunc(vprof_EnterScope, "EnterScope");
+		Util::AddFunc(vprof_ExitScope, "ExitScope");
+		Util::AddFunc(vprof_Pause, "Pause");
+		Util::AddFunc(vprof_Resume, "Resume");
+		Util::AddFunc(vprof_Reset, "Reset");
+		Util::AddFunc(vprof_ResetPeaks, "ResetPeaks");
+		Util::AddFunc(vprof_Term, "Term");
+
+		Util::AddValue(COUNTER_GROUP_DEFAULT, "COUNTER_GROUP_DEFAULT");
+		Util::AddValue(COUNTER_GROUP_NO_RESET, "COUNTER_GROUP_NO_RESET");
+		Util::AddValue(COUNTER_GROUP_TEXTURE_GLOBAL, "COUNTER_GROUP_TEXTURE_GLOBAL");
+		Util::AddValue(COUNTER_GROUP_TEXTURE_PER_FRAME, "COUNTER_GROUP_TEXTURE_PER_FRAME");
+		Util::AddValue(COUNTER_GROUP_TELEMETRY, "COUNTER_GROUP_TELEMETRY");
+	Util::FinishTable("vprof");
+}
+
+void CVProfModule::LuaShutdown()
+{
+	Util::NukeTable("vprof");
 }

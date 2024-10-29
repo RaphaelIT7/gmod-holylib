@@ -29,8 +29,9 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- [+] Added `HolyLib.SetSignonState`, `HolyLib.InvalidateBoneCache` function and the `HolyLib:PostEntityConstructor` hook.
 \- [+] Added `steamworks.ForceAuthenticate` to steamworks module.  
 \- [+] Added `cvar.Unregister` to cvars module.  
-\- [+] Added `physenv` module.
+\- [+] Added `physenv` module.  
 \- \- [#] Implemented a fix for https://github.com/Facepunch/garrysmod-issues/issues/642  
+\- [+] Added `vprof` library to `vprof` module.  
 \- [+] `HolyLib:On[Generic/Model]PrecacheFail` hooks now also allow you to change the fallback.  
 \- [#] Model and Generic precache now fallsback to `-1` instead of `0` by default.  
 \- \- [+] Added `holylib_precache_[model/generic]fallback` to change the fallback if wanted.  
@@ -61,9 +62,6 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.5...main
 \- Find out why ConVars are so broken. (Serverside `path` command breaks :<)  
 \- Look into filesystem handle optimization  
 \- Try to fix that one complex NW2 bug. NOTE: It seems to be related to baseline updates (Entity Creation/Deletion)  
-\- Also fix `physenv` module.  
-\- \- Add a hook for physics simulation & possibly stopping it.  
-\- extent `vprof` module to add a vprof lua object. Should allow one to use vprof in lua.  
 \- Look into StaticPropMgr stuff. May be interresting.  
 \- Add a bind to `CAI_NetworkManager::BuildNetworkGraph` or `StartRebuild`  
 \- Possibly allow on to force workshop download on next level change.  
@@ -82,6 +80,8 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.5...main
 \- [util](https://github.com/RaphaelIT7/gmod-holylib#util)  
 \- [concommand](https://github.com/RaphaelIT7/gmod-holylib#concommand)  
 \- [vprof](https://github.com/RaphaelIT7/gmod-holylib#vprof)  
+\- \- [VProfCounter](https://github.com/RaphaelIT7/gmod-holylib#vprofcounter)  
+\- \- [VProfNode](https://github.com/RaphaelIT7/gmod-holylib#vprofnode)  
 \- [sourcetv](https://github.com/RaphaelIT7/gmod-holylib#sourcetv)  
 \- \- [HLTVClient](https://github.com/RaphaelIT7/gmod-holylib#hltvclient)  
 \- [bitbuf](https://github.com/RaphaelIT7/gmod-holylib#bitbuf)  
@@ -93,6 +93,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.5...main
 \- [pas](https://github.com/RaphaelIT7/gmod-holylib#pas)  
 \- [voicechat](https://github.com/RaphaelIT7/gmod-holylib#voicechat)  
 \- \- [VoiceData](https://github.com/RaphaelIT7/gmod-holylib#voicedata)  
+\- [physenv](https://github.com/RaphaelIT7/gmod-holylib#physenv)  
 
 [Unfinished Modules](https://github.com/RaphaelIT7/gmod-holylib#unfinished-modules)  
 \- [bass](https://github.com/RaphaelIT7/gmod-holylib#bass)  
@@ -939,7 +940,241 @@ This module unblocks `quit` and `exit` for `RunConsoleCommand`.
 If enabled, it completely disables the concommand/convar blacklist.  
 
 ## vprof
-This module adds VProf to gamemode calls and adds two convars.
+This module adds VProf to gamemode calls, adds two convars and an entire library.
+
+### Functions
+
+#### vprof.Start()
+Starts vprof.  
+
+#### vprof.Stop()
+Stops vprof.  
+
+#### bool vprof.AtRoot()
+Returns `true` if vprof currently is at it's root node.  
+
+#### VProfCounter vprof.FindOrCreateCounter(string name, CounterGroup_t group)
+Returns the given vprof counter or creates it if it's missing.  
+
+#### VProfCounter vprof.GetCounter(number index)
+Returns the counter by it's index.  
+Returns nothing if the counter doesn't exist.  
+
+#### number vprof.GetNumCounters()
+Returns the number of counters that exist.  
+There is a limit on how many counters there can be.  
+
+#### vprof.ResetCounters()
+Resets all counters back to `0`.  
+
+#### number vprof.GetTimeLastFrame()
+Returns the time the last frame took.  
+
+#### number vprof.GetPeakFrameTime()
+Returns the peak time of the root node.  
+
+#### number vprof.GetTotalTimeSampled()
+Returns the total time of the root node.  
+
+#### number vprof.GetDetailLevel()
+Returns the current detail level.  
+
+#### number vprof.NumFramesSampled()
+Returns the number of frames it sampled.  
+
+#### vprof.HideBudgetGroup(string name, bool hide = false)
+Hides/Unhides the given budget group.  
+
+#### number vprof.GetNumBudgetGroups()
+Returns the number of budget groups.  
+There is a limit on how many there can be.  
+
+#### number vprof.BudgetGroupNameToBudgetGroupID(string name)
+Returns the budget group id by the given name.  
+
+#### string vprof.GetBudgetGroupName(number index)
+Returns the name of the budget group by the given index.  
+
+#### number vprof.GetBudgetGroupFlags(number index)
+Returns the budget group flags by the index.  
+
+#### Color vprof.GetBudgetGroupColor(number index)
+Returns the color of the given budget group.  
+
+#### VProfNode vprof.GetRoot()
+Returns the root node.  
+
+#### VProfNode vprof.GetCurrentNode()
+Returns the current node.  
+
+#### bool vprof.IsEnabled()
+Returns `true` if vprof is enabled.  
+
+#### vprof.MarkFrame()
+If vprof is enabled, it will call MarkFrame on the root node.  
+
+#### vprof.EnterScope(string name, number detailLevel, string budgetGroup)
+Enters a new scope.  
+
+#### vprof.ExitScope()
+Leaves the current scope.  
+
+#### vprof.Pause()
+Pauses vprof.  
+
+#### vprof.Resume()
+Resumes vprof.  
+
+#### vprof.Reset()
+Resets vprof.  
+
+#### vprof.ResetPeaks()
+Resets all peaks.  
+
+#### vprof.Term()
+Terminates vprof and frees the memory of everything.
+This will invalidate all `VProfCounter` and `VProfNode`.  
+This means that if you try to use one that you stored in lua, it could crash!  
+
+NOTE: This should probably never be used.  
+
+### VProfCounter
+This object represents a vprof counter.  
+It internally only contains a string and a pointer to the counter value.  
+
+#### string VProfCounter:\_\_tostring()
+If called on a invalid object, it will return `VProfCounter [NULL]`.  
+Normally returns `VProfCounter [name][value]`.  
+
+#### string VProfCounter:Name()
+Returns the name of the counter.  
+
+#### VProfCounter:Set(number value)
+Sets the counter to the given value.  
+
+#### number VProfCounter:Get()
+Returns the current value of the counter.  
+
+#### VProfCounter:Increment()
+Increments the counter by one.  
+
+#### VProfCounter:Decrement()
+Decrements the counter by one.  
+
+### VProfNode
+This object basicly fully exposes the `CVProfNode` class.  
+
+#### string VProfNode:\_\_tostring()
+If called on a invalid object, it will return `VProfNode [NULL]`.  
+Normally returns `VProfNode [name]`.  
+
+#### string VProfNode:GetName()
+Returns the name of this node.  
+
+#### number VProfNode:GetBudgetGroupID()
+Returns the budget group id of the node.  
+
+#### number VProfNode:GetCurTime()
+Returns the current time of this node.  
+
+#### number VProfNode:GetCurTimeLessChildren()
+Returns the current time of this node but without it's children.  
+
+#### number VProfNode:GetPeakTime()
+Returns the peak time of this node.  
+
+#### number VProfNode:GetPrevTime()
+Returns the previous time of this node.  
+
+#### number VProfNode:GetPrevTimeLessChildren()
+Returns the previous time of this node but without it's children.  
+
+#### number VProfNode:GetTotalTime()
+Returns the total time of this node.  
+
+#### number VProfNode:GetTotalTimeLessChildren()
+Returns the total time of this node but without it's children.  
+
+#### number VProfNode:GetCurCalls()
+Returns the amount of times this node was in scope in this frame.  
+
+#### VProfNode VProfNode:GetChild()
+Returns the child node of this node.  
+
+#### VProfNode VProfNode:GetParent()
+Returns the parent node of this node.  
+
+#### VProfNode VProfNode:GetSibling()
+Returns the next sibling of this node.  
+
+#### VProfNode VProfNode:GetPrevSibling()
+Returns the previous silbling of this node.  
+
+#### number VProfNode:GetL2CacheMisses()
+Returns the number of L2 cache misses. Does this even work?  
+
+#### number VProfNode:GetPrevL2CacheMissLessChildren()
+Returns the previous number of L2 cache misses without the children.  
+
+#### number VProfNode:GetPrevLoadHitStoreLessChildren()
+I have no Idea. (ToDo)  
+
+#### number VProfNode:GetTotalCalls()
+Returns how often this node was in scope.  
+
+#### VProfNode VProfNode:GetSubNode(string name, number detailLevel, string budgetGroup)
+Returns the subnode? (Verify)  
+
+#### number VProfNode:GetClientData()
+Returns the set client data.  
+
+#### VProfNode:MarkFrame()
+Marks the frame.  
+It will move all current times into their previous variants and reset them to `0`.  
+It will also call MarkFrame on any children or sibling.  
+
+#### VProfNode:ClearPrevTime()
+Clears the previous time.  
+
+#### VProfNode:Pause()
+Pauses this node.  
+
+#### VProfNode:Resume()
+Resumes this node.  
+
+#### VProfNode:Reset()
+Resets this node.  
+
+#### VProfNode:ResetPeak()
+Resets the peak of this node.  
+
+#### VProfNode:SetBudgetGroupID(number budgetGroupID)
+Sets the new budget group by it's id.  
+
+#### VProfNode:SetCurFrameTime(number frameTime)
+Sets the current frametime.  
+
+#### VProfNode:SetClientData(number data)
+Sets the client data...  
+
+#### VProfNode:EnterScope()
+Enters the scope.  
+
+#### VProfNode:ExitScope()
+Exists the scope.  
+
+### Enums
+Theses are the CounterGroup_t enums.  
+
+#### vprof.COUNTER_GROUP_DEFAULT = 0
+
+#### vprof.COUNTER_GROUP_NO_RESET = 1
+
+#### vprof.COUNTER_GROUP_TEXTURE_GLOBAL = 2
+
+#### vprof.COUNTER_GROUP_TEXTURE_PER_FRAME = 3
+
+#### vprof.COUNTER_GROUP_TELEMETRY
 
 ### ConVars
 
