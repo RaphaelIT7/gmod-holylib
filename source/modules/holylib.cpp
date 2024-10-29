@@ -102,7 +102,9 @@ LUA_FUNCTION_STATIC(FadeClientVolume)
 
 LUA_FUNCTION_STATIC(ServerExecute)
 {
+	VPROF_BUDGET("HolyLib(Lua) - HolyLib.ServerExecute", VPROF_BUDGETGROUP_HOLYLIB);
 	Util::engineserver->ServerExecute();
+
 	return 0;
 }
 
