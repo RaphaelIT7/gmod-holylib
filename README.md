@@ -24,38 +24,13 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 3. Put the `gmsv_holylib_linux.so` into the `garrysmod/lua/bin/` directory.  
 
 ## Next Update
-\- [+] `vprof` module now works on 64x  
-\- \- [#] Also fixed `vprof` itself on 64x / Solved https://github.com/Facepunch/garrysmod-issues/issues/6019  
-\- [+] Added `HolyLib.SetSignonState`, `HolyLib.InvalidateBoneCache` function and the `HolyLib:PostEntityConstructor` hook.
-\- [+] Added `steamworks.ForceAuthenticate` to steamworks module.  
-\- [+] Added `cvar.Unregister` to cvars module.  
-\- [+] Added `physenv` module.  
-\- \- [#] Implemented a fix for https://github.com/Facepunch/garrysmod-issues/issues/642  
-\- [+] Added `vprof` library to `vprof` module.  
-\- [+] `HolyLib:On[Generic/Model]PrecacheFail` hooks now also allow you to change the fallback.  
-\- [#] Model and Generic precache now fallsback to `-1` instead of `0` by default.  
-\- \- [+] Added `holylib_precache_[model/generic]fallback` to change the fallback if wanted.  
-\- \- [#] Models now will be errors if they fail to precache.  
-\- [#] `util.AsyncCompress/Decompress` now use two seperate threadpools(You can change their size with the new convars).  
-\- [#] Fixed a small reference leak in `util.AsyncCompress/Decompress`. The function was leaked so it's not too big.  
-\- [#] Extented vprof to include two more functions that call hooks.  
-\- \- `gameevent.Listen` callbacks and Gamemode startup hooks should now also show up.  
-\- \- Gamemode startup hooks that are now included are: `GM:CreateTeams`, `GM:PreGamemodeLoaded`, `GM:OnGamemodeLoaded`, `GM:PostGamemodeLoaded` and `GM:Initialize`.  
-\- [#] Fixed a bug in `vprof` that caused CallWithArgs to show up.  
-\- \- shouldn't be a thing since `CallFinish` should always be called after it.  
-\- [#] `VoiceData:GetUncompressedData` got the `decompressSize` argument.  
-\- [#] Fixed `VoiceData:GetUncompressedData` always erroring (https://github.com/RaphaelIT7/gmod-holylib/pull/11)  
-\- [#] Fixed `Steam3Server` symbol.  
-\- [#] Fixed ghostinj crashing on shutdown on 64x.  
-\- [#] Implemented a fix for https://github.com/Facepunch/garrysmod-issues/issues/6031  
+None
 
 You can see all changes here:  
-https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.5...main
+https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
 
 ### QoL updates
-- [#] Cleaned up module code a bit.  
-- [#] Replaced duplicate code with macros.  
-- [#] Fixed many warnings.  
+None
 
 ## ToDo
 \- Finish 64x (`pvs`, `sourcetv`, `surffix`)  
