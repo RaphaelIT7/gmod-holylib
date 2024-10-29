@@ -321,3 +321,12 @@ void CModuleManager::ServerActivate(edict_t* pEdictList, int edictCount, int cli
 }
 
 CModuleManager g_pModuleManager;
+
+static void NukeModules(const CCommand &args)
+{
+	for (IModuleWrapper* module : g_pModuleManager.GetModules())
+	{
+		module->SetEnabled(false, true);
+	}
+}
+static ConCommand nukemodules("holylib_nukemodules", NukeModules, "Debug command. Disables all modules.", 0);

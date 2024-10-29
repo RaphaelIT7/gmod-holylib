@@ -60,6 +60,8 @@ public:
 	inline edict_t* GetEdictList() { return m_pEdictList; };
 	inline int GetEdictCount() { return m_iEdictCount; };
 	inline int GetClientMax() { return m_iClientMax; };
+	inline std::vector<CModule*>& GetModules() { return m_pModules; };
+
 private:
 	std::vector<CModule*> m_pModules;
 	int m_pStatus = 0;

@@ -648,7 +648,8 @@ void CGameeventLibModule::LuaShutdown()
 
 void CGameeventLibModule::InitDetour(bool bPreServer)
 {
-	if ( bPreServer ) { return; }
+	if (bPreServer)
+		return;
 
 	SourceSDK::ModuleLoader engine_loader("engine");
 	Detour::Create(

@@ -643,7 +643,7 @@ void CVProfModule::InitDetour(bool bPreServer)
 		(void*)hook_CScriptedEntity_CallFunction, m_pID
 	);
 
-#if ARCHITECTURE_IS_X86_64
+#ifdef ARCHITECTURE_X86_64
 	Detour::Create(
 		&detour_ThreadGetCurrentId, "ThreadGetCurrentId",
 		tier0_loader.GetModule(), Symbols::ThreadGetCurrentIdSym,
@@ -656,6 +656,8 @@ void CVProfModule::InitDetour(bool bPreServer)
     unsigned long int pthread_Id = ThreadGetCurrentId();
 	if (m_TargetThreadId != pthread_Id)
 		Warning("[holylib - vprof] Failed to fix ThreadGetCurrentId! (vprof most likely won't work)\n");
+	else
+		Msg("[holylib] Applied vprof workaround.\n");
 #endif
 
 #ifdef SYSTEM_WINDOWS
