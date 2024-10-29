@@ -1117,13 +1117,13 @@ Returns the number of L2 cache misses. Does this even work?
 Returns the previous number of L2 cache misses without the children.  
 
 #### number VProfNode:GetPrevLoadHitStoreLessChildren()
-I have no Idea. (ToDo)  
+Does nothing / returns always 0.  
 
 #### number VProfNode:GetTotalCalls()
 Returns how often this node was in scope.  
 
 #### VProfNode VProfNode:GetSubNode(string name, number detailLevel, string budgetGroup)
-Returns the subnode? (Verify)  
+Returns or creates the VProfNode by the given name.  
 
 #### number VProfNode:GetClientData()
 Returns the set client data.  
