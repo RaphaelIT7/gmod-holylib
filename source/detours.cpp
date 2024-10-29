@@ -15,6 +15,8 @@ void* Detour::GetFunction(void* module, Symbol symbol)
 std::map<unsigned int, std::vector<Detouring::Hook*>> g_pDetours = {};
 void Detour::Create(Detouring::Hook* hook, const char* name, void* module, Symbol symbol, void* hook_func, unsigned int category)
 {
+	// ToDo: Allow one to block creation of detours for better debugging.
+
 	void* func = Detour::GetFunction(module, symbol);
 	if (!CheckFunction(func, name))
 		return;

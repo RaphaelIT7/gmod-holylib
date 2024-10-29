@@ -170,19 +170,7 @@ static void* hook_CLuaGamemode_CallWithArgs(void* funky_srv, int pool)
 	if (!g_Lua)
 		return detour_CLuaGamemode_CallWithArgs.GetTrampoline<Symbols::CLuaGamemode_CallWithArgs>()(funky_srv, pool);
 
-	/*const char* pStr = nullptr;
-	auto it = CallWithArgs_strs.find(pool);
-	if (it == CallWithArgs_strs.end())
-	{
-		CallWithArgs_strs[pool] = "CLuaGamemode::CallWithArgs (" + (std::string)g_Lua->GetPooledString(pool) + ")";
-		pStr = CallWithArgs_strs[pool].c_str();
-	} else {
-		pStr = it->second.c_str();
-	}*/
-
 	pCurrentGamemodeFunction = g_Lua->GetPooledString(pool);
-
-	//VPROF_BUDGET(pStr, "GMOD");
 
 	return detour_CLuaGamemode_CallWithArgs.GetTrampoline<Symbols::CLuaGamemode_CallWithArgs>()(funky_srv, pool);
 }
@@ -192,23 +180,11 @@ static Detouring::Hook detour_CLuaGamemode_CallWithArgsStr;
 static void* hook_CLuaGamemode_CallWithArgsStr(void* funky_srv, const char* str) // NOTE: Only used by gameevent.Listen -> CLuaGameEventListener::FireGameEvent
 {
 	if (!g_Lua)
-		return detour_CLuaGamemode_CallWithArgs.GetTrampoline<Symbols::CLuaGamemode_CallWithArgsStr>()(funky_srv, str);
-
-	/*const char* pStr = nullptr;
-	auto it = CallWithArgsStr_strs.find(str);
-	if (it == CallWithArgsStr_strs.end())
-	{
-		CallWithArgsStr_strs[str] = "CLuaGamemode::CallWithArgs (" + (std::string)str + ")";
-		pStr = CallWithArgsStr_strs[str].c_str();
-	} else {
-		pStr = it->second.c_str();
-	}*/
+		return detour_CLuaGamemode_CallWithArgsStr.GetTrampoline<Symbols::CLuaGamemode_CallWithArgsStr>()(funky_srv, str);
 
 	pCurrentGamemodeFunction = str;
 
-	//VPROF_BUDGET(pStr, "GMOD");
-
-	return detour_CLuaGamemode_CallWithArgs.GetTrampoline<Symbols::CLuaGamemode_CallWithArgsStr>()(funky_srv, str);
+	return detour_CLuaGamemode_CallWithArgsStr.GetTrampoline<Symbols::CLuaGamemode_CallWithArgsStr>()(funky_srv, str);
 }
 
 static std::map<std::string_view, std::string> CallFinish_strs;
@@ -559,7 +535,7 @@ static void* hook_lj_BC_FUNC() // Find out the luajit function later.
 	return NULL;
 }*/
 
-#if ARCHITECTURE_IS_X86_64
+#ifdef ARCHITECTURE_X86_64
 Detouring::Hook detour_ThreadGetCurrentId;
 ThreadId_t hook_ThreadGetCurrentId()
 {
@@ -643,23 +619,6 @@ void CVProfModule::InitDetour(bool bPreServer)
 		(void*)hook_CScriptedEntity_CallFunction, m_pID
 	);
 
-#ifdef ARCHITECTURE_X86_64
-	Detour::Create(
-		&detour_ThreadGetCurrentId, "ThreadGetCurrentId",
-		tier0_loader.GetModule(), Symbols::ThreadGetCurrentIdSym,
-		(void*)hook_ThreadGetCurrentId, m_pID
-	);
-
-	DeclareCurrentThreadIsMainThread(); // Update g_ThreadMainThreadID to fix ThreadInMainThread breaking
-
-	unsigned m_TargetThreadId = ThreadGetCurrentId();
-    unsigned long int pthread_Id = ThreadGetCurrentId();
-	if (m_TargetThreadId != pthread_Id)
-		Warning("[holylib - vprof] Failed to fix ThreadGetCurrentId! (vprof most likely won't work)\n");
-	else
-		Msg("[holylib] Applied vprof workaround.\n");
-#endif
-
 #ifdef SYSTEM_WINDOWS
 	// We also add detours for the Client version of thoes functions.
 	// Finally we got some sort of lua profiling clientside and new we can know which hook eats all the frames
@@ -715,6 +674,19 @@ void CVProfModule::InitDetour(bool bPreServer)
 #endif
 
 #ifdef ARCHITECTURE_X86_64
+	Detour::Create(
+		&detour_ThreadGetCurrentId, "ThreadGetCurrentId",
+		tier0_loader.GetModule(), Symbols::ThreadGetCurrentIdSym,
+		(void*)hook_ThreadGetCurrentId, m_pID
+	);
+
+	DeclareCurrentThreadIsMainThread(); // Update g_ThreadMainThreadID to fix ThreadInMainThread breaking
+
+	unsigned m_TargetThreadId = ThreadGetCurrentId();
+    unsigned long int pthread_Id = ThreadGetCurrentId();
+	if (m_TargetThreadId != pthread_Id)
+		Warning("[holylib - vprof] Failed to fix ThreadGetCurrentId! (vprof most likely won't work)\n");
+
 	Detour::Create(
 		&detour_Msg, "Msg",
 		tier0_loader.GetModule(), Symbol::FromName("Msg"),
