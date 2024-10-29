@@ -21,7 +21,7 @@ public:
 static CThreadPoolFixModule g_pThreadPoolFixModule;
 IModule* pThreadPoolFixModule = &g_pThreadPoolFixModule;
 
-#if ARCHITECTURE_IS_X86
+#if ARCHITECTURE_IS_X86 && 0 // This fix was added to Gmod -> https://github.com/Facepunch/garrysmod-issues/issues/5932#issuecomment-2420392562
 static Detouring::Hook detour_CThreadPool_ExecuteToPriority;
 static int hook_CThreadPool_ExecuteToPriority(IThreadPool* pool, void* idx, void* idx2)
 {
@@ -95,7 +95,7 @@ void CThreadPoolFixModule::InitDetour(bool bPreServer)
 		return;
 	}
 
-#if ARCHITECTURE_IS_X86
+#if ARCHITECTURE_IS_X86 && 0
 	Detour::Create(
 		&detour_CThreadPool_ExecuteToPriority, "CThreadPool::ExecuteToPriority",
 		libvstdlib_loader.GetModule(), Symbols::CThreadPool_ExecuteToPrioritySym,
