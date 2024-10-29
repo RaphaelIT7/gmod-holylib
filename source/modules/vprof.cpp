@@ -724,11 +724,11 @@ void CVProfModule::InitDetour(bool bPreServer)
 #endif
 }
 
-std::unordered_set<std::string> pLuaStrings; // Theses will almost never be freed!
+static std::unordered_set<std::string> pLuaStrings; // Theses will almost never be freed!
 // VPROF doesn't manage the memory of the strings that are used in scopes!
 // So we need to make sure that they will always be valid.
 // It does manage the strings of counters and budget groups
-const char* AddOrGetString(const char* pString)
+static const char* AddOrGetString(const char* pString)
 {
 	std::string strValue = pString;
 	auto it = pLuaStrings.find(strValue);
