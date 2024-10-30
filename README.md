@@ -24,13 +24,14 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 3. Put the `gmsv_holylib_linux.so` into the `garrysmod/lua/bin/` directory.  
 
 ## Next Update
-None
+- [#] Fixed many issues with the `bass` module. It is acutally usable.    
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
 
 ### QoL updates
-None
+- [#] Cleaned up code a bit  
+- [#] Switched away from the ILuaBase. All Lua functions now use ILuaInterface.  
 
 ## ToDo
 \- Finish 64x (`pvs`, `sourcetv`, `surffix`)  
@@ -69,9 +70,10 @@ None
 \- [voicechat](https://github.com/RaphaelIT7/gmod-holylib#voicechat)  
 \- \- [VoiceData](https://github.com/RaphaelIT7/gmod-holylib#voicedata)  
 \- [physenv](https://github.com/RaphaelIT7/gmod-holylib#physenv)  
+\- [bass](https://github.com/RaphaelIT7/gmod-holylib#bass)  
+\- \- [IGModAudioChannel](https://github.com/RaphaelIT7/gmod-holylib#igmodaudiochannel)  
 
 [Unfinished Modules](https://github.com/RaphaelIT7/gmod-holylib#unfinished-modules)  
-\- [bass](https://github.com/RaphaelIT7/gmod-holylib#bass)  
 \- [serverplugins](https://github.com/RaphaelIT7/gmod-holylib#serverplugins)  
 
 [Issues implemented / fixed](https://github.com/RaphaelIT7/gmod-holylib/edit/main/README.md#issues-implemented--fixed)  

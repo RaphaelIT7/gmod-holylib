@@ -53,7 +53,7 @@ void Detour::ReportLeak()
 {
 	for (auto& [id, hooks]: g_pDetours)
 		if (hooks.size() > 0)
-			Msg("holylib: ID: %d failed to shutdown it's detours!\n", id);
+			Msg("holylib: ID %d failed to shutdown it's detours!\n", id);
 }
 
 static void ToggleDetour(const CCommand& args)

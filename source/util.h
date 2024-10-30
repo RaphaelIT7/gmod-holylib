@@ -22,6 +22,7 @@ extern IVEngineServer* engine;
 extern GarrysMod::Lua::ILuaInterface* g_Lua;
 
 struct edict_t;
+class CBaseEntity;
 class CBasePlayer;
 class CBaseClient;
 class CGlobalEntityList;
