@@ -7,9 +7,10 @@
 class CBassModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
-	virtual void LuaInit(bool bServerInit);
-	virtual void LuaShutdown();
+	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
+	virtual void LuaInit(bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown() OVERRIDE;
+	virtual void Shutdown() OVERRIDE;
 	virtual const char* Name() { return "bass"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
 	virtual bool IsEnabledByDefault() { return false; };
@@ -413,6 +414,8 @@ void CBassModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 
 	gGModAudio = (IGMod_Audio*)gmod_audio_loader.GetFactory()(INTERFACEVERSION_GMODAUDIO, NULL); // Engine should Initialize it. If not, we need to do it.
 	Detour::CheckValue("get interface", "IGMod_Audio", gGModAudio != NULL);
+
+	gGModAudio->Init(*appfn); // The engine didn't...
 }
 
 void CBassModule::LuaInit(bool bServerInit)
@@ -464,4 +467,9 @@ void CBassModule::LuaInit(bool bServerInit)
 void CBassModule::LuaShutdown()
 {
 	Util::NukeTable("bass");
+}
+
+void CBassModule::Shutdown()
+{
+	gGModAudio->Shutdown(); // If the engine didn't call Init, it most likely won't call shutdown.
 }
