@@ -661,7 +661,7 @@ void CVProfModule::InitDetour(bool bPreServer)
 		(void*)hook_CScriptedEntity_CallFunction, m_pID
 	);
 
-#ifdef ARCHITECTURE_X86
+#if defined(ARCHITECTURE_X86) && 0
 	Detour::Create(
 		&detour_lj_BC_FUNCC, "lj_BC_FUNCC",
 		server_loader.GetModule(), Symbols::lj_BC_FUNCCSym,
