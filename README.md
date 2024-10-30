@@ -1913,6 +1913,7 @@ You can freeze all props here and then return `physenv.IVP_SkipSimulation` to sk
 ## bass
 This module will add functions related to the bass dll.  
 Does someone have the bass libs for `2.4.15`? I can't find them :<  
+`.mp3` files most likely won't work.  
 
 ### Functions
 

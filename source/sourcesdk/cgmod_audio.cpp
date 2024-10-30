@@ -224,6 +224,7 @@ CGMod_Audio::~CGMod_Audio()
 
 }
 
+#define DEDICATED // ToDo: Change this later.
 bool CGMod_Audio::Init(CreateInterfaceFn interfaceFactory)
 {
 	ConnectTier1Libraries( &interfaceFactory, 1 );
@@ -231,6 +232,11 @@ bool CGMod_Audio::Init(CreateInterfaceFn interfaceFactory)
 
 	BASS_SetConfig(BASS_CONFIG_UPDATEPERIOD, 36);
 
+#ifdef DEDICATED
+	if (!BASS_Init(0, 44100, 0, 0, NULL)) {
+		Warning("holylib: Couldn't Init Bass (%i)!", BASS_ErrorGetCode());
+	}
+#else
 	if(!BASS_Init(-1, 44100, 0, 0, NULL)) {
 		Warning("holylib: BASS_Init failed(%i)! Attempt 1.\n", BASS_ErrorGetCode());
 
@@ -258,6 +264,7 @@ bool CGMod_Audio::Init(CreateInterfaceFn interfaceFactory)
 			}
 		}
 	}
+#endif
 
 	BASS_SetConfig(BASS_CONFIG_BUFFER, 36);
 	BASS_SetConfig(BASS_CONFIG_NET_BUFFER, 1048576);
