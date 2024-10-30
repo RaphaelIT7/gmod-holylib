@@ -23,6 +23,7 @@ public:
 static CPVSModule g_pPVSModule;
 IModule* pPVSModule = &g_pPVSModule;
 
+static ConVar pvs_prechecktransmit("holylib_pvs_prechecktransmit", "0", 0, "If enabled, it will add the HolyLib:PreCheckTransmit hook.");
 static ConVar pvs_postchecktransmit("holylib_pvs_postchecktransmit", "0", 0, "If enabled, it will add the HolyLib:PostCheckTransmit hook.");
 
 static int currentPVSSize = -1;
@@ -54,6 +55,28 @@ static void hook_CServerGameEnts_CheckTransmit(void* gameents, CCheckTransmitInf
 {
 	VPROF_BUDGET("HolyLib - CServerGameEnts::CheckTransmit", VPROF_BUDGETGROUP_OTHER_NETWORKING);
 	g_pCurrentTransmitInfo = pInfo;
+
+	if (pvs_postchecktransmit.GetBool())
+	{
+		if(Lua::PushHook("HolyLib:PreCheckTransmit"))
+		{
+			Util::Push_Entity(Util::servergameents->EdictToBaseEntity(pInfo->m_pClientEnt));
+			if (g_Lua->CallFunctionProtected(2, 1, true))
+			{
+				bool bCancel = g_Lua->GetBool(-1);
+				g_Lua->Pop(1);
+
+				if (bCancel)
+				{
+					g_pAddEntityToPVS.clear();
+					g_pOverrideStateFlag.clear();
+
+					g_pCurrentTransmitInfo = NULL;
+					return;
+				}
+			}
+		}
+	}
 
 	for (edict_t* ent : g_pAddEntityToPVS)
 	{
@@ -128,6 +151,30 @@ void PostSetupVisibility()
 void PreCheckTransmit(void* gameents, CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts)
 {
 	VPROF_BUDGET("HolyLib - CServerGameEnts::(Pre)CheckTransmit", VPROF_BUDGETGROUP_OTHER_NETWORKING);
+
+	if (pvs_postchecktransmit.GetBool())
+	{
+		if(Lua::PushHook("HolyLib:PreCheckTransmit"))
+		{
+			Util::Push_Entity(Util::servergameents->EdictToBaseEntity(pInfo->m_pClientEnt));
+			g_pCurrentTransmitInfo = pInfo;
+			if (g_Lua->CallFunctionProtected(2, 1, true))
+			{
+				bool bCancel = g_Lua->GetBool(-1);
+				g_Lua->Pop(1);
+
+				if (bCancel)
+				{
+					g_pAddEntityToPVS.clear();
+					g_pOverrideStateFlag.clear();
+
+					g_pCurrentTransmitInfo = NULL;
+					return;
+				}
+			}
+			g_pCurrentTransmitInfo = NULL;
+		}
+	}
 
 	for (edict_t* ent : g_pAddEntityToPVS)
 	{

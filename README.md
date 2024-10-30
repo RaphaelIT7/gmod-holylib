@@ -24,6 +24,7 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 3. Put the `gmsv_holylib_linux.so` into the `garrysmod/lua/bin/` directory.  
 
 ## Next Update
+- [+] Added the `HolyLib:PreCheckTransmit` hook.  
 - [#] Fixed many issues with the `bass` module. It is acutally usable.  
 - [#] All `pvs.FL_EDICT_` enums changed.  
 
@@ -606,12 +607,12 @@ Returns the state flags for this entity.
 table ents - A sequential table containing all the entities that should be removed from being transmitted.  
 Returns true if the entity or all entities were successfully removed from being transmitted.  
 
-> NOTE: Only use this function inside the `HolyLib:PostCheckTransmit` hook!  
+> NOTE: Only use this function inside the `HolyLib:[Pre/Post]CheckTransmit` hook!  
 
 #### pvs.RemoveAllEntityFromTransmit()
 Removes all Entities from being transmitted.  
 
-> NOTE: Only use this function inside the `HolyLib:PostCheckTransmit` hook!  
+> NOTE: Only use this function inside the `HolyLib:[Pre/Post]CheckTransmit` hook!  
 
 #### pvs.AddEntityToTransmit(Entity ent or table ents, bool always)
 table ents - A sequential table containing all the entities that should be transmitted.  
@@ -619,13 +620,13 @@ bool always - If the entity should always be transmitted? (Verify)
 
 Adds the given Entity to be transmitted.
 
-> NOTE: Only use this function inside the `HolyLib:PostCheckTransmit` hook!  
+> NOTE: Only use this function inside the `HolyLib:[Pre/Post]CheckTransmit` hook!  
 
 #### (REMOVED AGAIN) pvs.IsEmptyBaseline()
 Returns `true` if the baseline is empty.  
 This should always be the case after a full update.  
 
-> NOTE: Only use this function inside the `HolyLib:PostCheckTransmit` hook!  
+> NOTE: Only use this function inside the `HolyLib:[Pre/Post]CheckTransmit` hook!  
 > REMOVED: This function was removed since I can't get it to work / It would be a bit more complicated than first anticipated.  
 
 #### pvs.SetPreventTransmitBulk(Entity ent or table ents, Player ply or table plys or RecipientFilter filter, bool notransmit)
@@ -651,13 +652,24 @@ The Entity's `ShouldTransmit` function will be called, and its return value will
 
 ### Hooks
 
+#### bool HolyLib:PreCheckTransmit(Entity ply)
+Called before the transmit checks are done.  
+Return `true` to cancel it.  
+
+You could do the transmit stuff yourself inside this hook.  
+
+> NOTE: This hook is only called when `holylib_pvs_prechecktransmit` is enabled!  
+
 #### HolyLib:PostCheckTransmit(Entity ply, table entities)
 entity ply - The player that everything is transmitted to.  
 table enitites - The Entities that get transmitted. Only available if `holylib_pvs_postchecktransmit` is set to `2` or higher.  
 
-> NOTE: This hook is only called when `holylib_pvs_postchecktransmit` is enabled!
+> NOTE: This hook is only called when `holylib_pvs_postchecktransmit` is enabled!  
 
 ### ConVars
+
+#### holylib_pvs_prechecktransmit (default `0`)
+If enabled, it will add/call the `HolyLib:PreCheckTransmit` hook.  
 
 #### holylib_pvs_postchecktransmit (default `0`)
 If enabled, it will add/call the `HolyLib:PostCheckTransmit` hook.  
