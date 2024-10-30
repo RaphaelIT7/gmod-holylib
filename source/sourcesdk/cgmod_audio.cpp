@@ -552,7 +552,7 @@ void CGModAudioChannel::GetPos(Vector* earPosition, Vector* earForward, Vector* 
 
 void CGModAudioChannel::SetTime(double time, bool dont_decode)
 {
-	double pos = BASS_ChannelBytes2Seconds(m_pHandle, (QWORD)time);
+	double pos = BASS_ChannelSeconds2Bytes(m_pHandle, (QWORD)time);
 	//double currentPos = BASS_ChannelGetPosition(handle, BASS_POS_BYTE);
 
 	DWORD mode = dont_decode ? BASS_POS_DECODE : BASS_POS_BYTE;
