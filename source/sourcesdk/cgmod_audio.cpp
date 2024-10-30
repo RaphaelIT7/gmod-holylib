@@ -110,7 +110,7 @@ void CBassAudioStream::Init(IAudioStreamEvent* event)
 	m_hStream = BASS_StreamCreateFileUser(STREAMFILE_NOBUFFER, BASS_STREAM_AUTOFREE, &fileprocs, event); // ToDo: FIX THIS. event should be a FILE* not a IAudioStreamEvent* -> Crash
 
 	if (m_hStream == 0) {
-		Warning("Couldn't create BASS audio stream (%s)", BassErrorToString(BASS_ErrorGetCode()));
+		Warning("holylib: Couldn't create BASS audio stream (%s)", BassErrorToString(BASS_ErrorGetCode()));
 	}
 #endif
 }
@@ -166,7 +166,7 @@ unsigned int CBassAudioStream::Decode(void* data, unsigned int size)
 
 int CBassAudioStream::GetOutputBits()
 {
-	Error("Not used");
+	Error("holylib: CBassAudioStream::GetOutputBits is Not used");
 	return 0; // Make linux happy but windows angry
 }
 
@@ -232,25 +232,25 @@ bool CGMod_Audio::Init(CreateInterfaceFn interfaceFactory)
 	BASS_SetConfig(BASS_CONFIG_UPDATEPERIOD, 36);
 
 	if(!BASS_Init(-1, 44100, 0, 0, NULL)) {
-		Warning("BASS_Init failed(%i)! Attempt 1.\n", BASS_ErrorGetCode());
+		Warning("holylib: BASS_Init failed(%i)! Attempt 1.\n", BASS_ErrorGetCode());
 
 		if(!BASS_Init(1, 44100, BASS_DEVICE_DEFAULT, 0, NULL)) {
-			Warning("BASS_Init failed(%i)! Attempt 2.\n", BASS_ErrorGetCode());
+			Warning("holylib: BASS_Init failed(%i)! Attempt 2.\n", BASS_ErrorGetCode());
 
 			if(!BASS_Init(-1, 44100, BASS_DEVICE_3D | BASS_DEVICE_DEFAULT, 0, NULL)) {
-				Warning("BASS_Init failed(%i)! Attempt 3.\n", BASS_ErrorGetCode());
+				Warning("holylib: BASS_Init failed(%i)! Attempt 3.\n", BASS_ErrorGetCode());
 
 				if(!BASS_Init(1, 44100, BASS_DEVICE_3D | BASS_DEVICE_DEFAULT, 0, NULL)) {
-					Warning("BASS_Init failed(%i)! Attempt 4.\n", BASS_ErrorGetCode());
+					Warning("holylib: BASS_Init failed(%i)! Attempt 4.\n", BASS_ErrorGetCode());
 
 					if(!BASS_Init(-1 , 44100, 0, 0, NULL)) {
-						Warning("BASS_Init failed(%i)! Attempt 5.\n", BASS_ErrorGetCode());
+						Warning("holylib: BASS_Init failed(%i)! Attempt 5.\n", BASS_ErrorGetCode());
 
 						if(!BASS_Init(1, 44100, 0, 0, NULL)) {
-							Warning("BASS_Init failed(%i)! Attempt 6.\n", BASS_ErrorGetCode());
+							Warning("holylib: BASS_Init failed(%i)! Attempt 6.\n", BASS_ErrorGetCode());
 
 							if(!BASS_Init(0, 44100, 0, 0, NULL)) {
-								//Error("Couldn't Init Bass (%i)!", BASS_ErrorGetCode());
+								Warning("holylib: Couldn't Init Bass (%i)!", BASS_ErrorGetCode());
 							}
 						}
 					}
