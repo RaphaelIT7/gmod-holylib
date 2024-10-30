@@ -303,6 +303,9 @@ namespace Symbols
 	typedef ThreadId_t (GMCOMMON_CALLING_CONVENTION* ThreadGetCurrentId_t)();
 	extern const std::vector<Symbol> ThreadGetCurrentIdSym;
 
+	typedef void* (GMCOMMON_CALLING_CONVENTION* lj_BC_FUNCC)(void* idk);
+	extern const std::vector<Symbol> lj_BC_FUNCCSym;
+
 //#ifdef SYSTEM_WINDOWS
 	extern const std::vector<Symbol> Client_CLuaGamemode_CallFinishSym;
 	extern const std::vector<Symbol> Client_CLuaGamemode_CallWithArgsSym;

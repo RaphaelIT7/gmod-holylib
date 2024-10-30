@@ -357,6 +357,10 @@ namespace Symbols
 		Symbol::FromName("ThreadGetCurrentId"), // Trying to fix 64x Vprof
 	};
 
+	const std::vector<Symbol> lj_BC_FUNCCSym = {
+		Symbol::FromSignature("\x8B\x6A\xF8\x8B\x7D\x14\x8B\x6C\x24\x30\x8D\x44\xC2\xF8\x89\x55\x10\x8D\x88\xA0\x00\x00\x00\x3B\x4D\x18\x89\x45\x14\x89\x2C\x24"), // 8B 6A F8 8B 7D 14 8B 6C 24 30 8D 44 C2 F8 89 55 10 8D 88 A0 00 00 00 3B 4D 18 89 45 14 89 2C 24
+	};
+
 #ifdef SYSTEM_WINDOWS
 	const std::vector<Symbol> Client_CLuaGamemode_CallFinishSym = {
 		NULL_SIGNATURE,

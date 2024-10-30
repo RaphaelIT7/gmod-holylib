@@ -40,7 +40,7 @@ static void OnSV_StressBotsChange(IConVar* var, const char *pOldValue, float flO
 // Reminder: Look UP before adding static.
 ConVar holylib_sv_stressbots("holylib_sv_stressbots", "0", 0, "Sets sv_stressbots. (sv_stressbots will be available in the next update)", OnSV_StressBotsChange);
 static ConVar holylib_vprof_exportreport("holylib_vprof_exportreport", "1", 0, "If enabled, vprof results will be dumped into a file in the vprof/ folder");
-static ConVar holylib_vprof_profilelua("holylib_vprof_profilelua", "0", 0, "If enabled, Lua will also be profiled.");
+static ConVar holylib_vprof_profilecfunc("holylib_vprof_profilecfunc", "0", 0, "If enabled, Lua->C calls will also be profiled.");
 
 static CVProfModule g_pVProfModule;
 IModule* pVProfModule = &g_pVProfModule;
@@ -528,12 +528,54 @@ static void* hook_Client_CScriptedEntity_CallFunction(void* funky_srv, int pool)
 }
 #endif
 
-/*static Detouring::Hook detour_lj_BC_FUNC;
-static void* hook_lj_BC_FUNC() // Find out the luajit function later.
+static std::unordered_set<std::string> pLuaStrings; // Theses will almost never be freed!
+// VPROF doesn't manage the memory of the strings that are used in scopes!
+// So we need to make sure that they will always be valid.
+// It does manage the strings of counters and budget groups
+static const char* AddOrGetString(const char* pString)
 {
-	// ToDo
-	return NULL;
-}*/
+	std::string strValue = pString;
+	auto it = pLuaStrings.find(strValue);
+	if (it != pLuaStrings.end())
+		return it->c_str();
+
+	pLuaStrings.insert(strValue);
+	auto it2 = pLuaStrings.find(strValue); // Get the new std::string to return
+
+	return it2->c_str();
+}
+
+typedef struct lua_Debug {
+  int event;
+  const char *name;
+  const char *namewhat;
+  const char *what;
+  const char *source;
+  int currentline;
+  int nups;
+  int linedefined;
+  int lastlinedefined;
+  char short_src[60];
+  int i_ci;
+  int nparams;
+  int isvararg;
+};
+
+static Detouring::Hook detour_lj_BC_FUNCC;
+static std::map<int, std::string> lj_strs;
+static void* hook_lj_BC_FUNCC(void* arg) // Find out the luajit function later.
+{
+	lua_Debug debug;
+	g_Lua->GetInfo("Sn", &debug);
+
+	if (!debug.name)
+		return detour_lj_BC_FUNCC.GetTrampoline<Symbols::lj_BC_FUNCC>()(arg);
+
+	VPROF_BUDGET( AddOrGetString(debug.name), VPROF_BUDGETGROUP_HOLYLIB );
+
+	void* ret = detour_lj_BC_FUNCC.GetTrampoline<Symbols::lj_BC_FUNCC>()(arg);
+	return ret;
+}
 
 #ifdef ARCHITECTURE_X86_64
 Detouring::Hook detour_ThreadGetCurrentId;
@@ -619,6 +661,14 @@ void CVProfModule::InitDetour(bool bPreServer)
 		(void*)hook_CScriptedEntity_CallFunction, m_pID
 	);
 
+#ifdef ARCHITECTURE_X86
+	Detour::Create(
+		&detour_lj_BC_FUNCC, "lj_BC_FUNCC",
+		server_loader.GetModule(), Symbols::lj_BC_FUNCCSym,
+		(void*)hook_lj_BC_FUNCC, m_pID
+	);
+#endif
+
 #ifdef SYSTEM_WINDOWS
 	// We also add detours for the Client version of thoes functions.
 	// Finally we got some sort of lua profiling clientside and new we can know which hook eats all the frames
@@ -696,23 +746,6 @@ void CVProfModule::InitDetour(bool bPreServer)
 	if (DETOUR_ISENABLED(detour_Msg))
 		DETOUR_DISABLE(detour_Msg);
 #endif
-}
-
-static std::unordered_set<std::string> pLuaStrings; // Theses will almost never be freed!
-// VPROF doesn't manage the memory of the strings that are used in scopes!
-// So we need to make sure that they will always be valid.
-// It does manage the strings of counters and budget groups
-static const char* AddOrGetString(const char* pString)
-{
-	std::string strValue = pString;
-	auto it = pLuaStrings.find(strValue);
-	if (it != pLuaStrings.end())
-		return it->c_str();
-
-	pLuaStrings.insert(strValue);
-	auto it2 = pLuaStrings.find(strValue); // Get the new std::string to return
-
-	return it2->c_str();
 }
 
 // ------------- VProf Counter --------------
