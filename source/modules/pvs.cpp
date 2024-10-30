@@ -312,10 +312,10 @@ LUA_FUNCTION_STATIC(pvs_AddEntityToPVS)
 	return 0;
 }
 
-#define LUA_FL_EDICT_DONTSEND 1 << 1
-#define LUA_FL_EDICT_ALWAYS 1 << 2
-#define LUA_FL_EDICT_PVSCHECK 1 << 3
-#define LUA_FL_EDICT_FULLCHECK 1 << 4
+#define LUA_FL_EDICT_DONTSEND 1 << 0
+#define LUA_FL_EDICT_ALWAYS 1 << 1
+#define LUA_FL_EDICT_PVSCHECK 1 << 2
+#define LUA_FL_EDICT_FULLCHECK 1 << 3
 static void SetOverrideStateFlags(CBaseEntity* ent, int flags, bool force)
 {
 	edict_t* edict = Util::GetEdictOfEnt(ent);

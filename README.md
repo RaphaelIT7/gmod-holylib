@@ -24,7 +24,8 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 3. Put the `gmsv_holylib_linux.so` into the `garrysmod/lua/bin/` directory.  
 
 ## Next Update
-- [#] Fixed many issues with the `bass` module. It is acutally usable.    
+- [#] Fixed many issues with the `bass` module. It is acutally usable.  
+- [#] All `pvs.FL_EDICT_` enums changed.  
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
@@ -94,6 +95,10 @@ You can add `-holylib_enable_[module name] 0` to the startup to disable modules 
 Every module also has his `holylib_debug_[module name]` version and command line option like above, but not all modules use it.  
 The modules that use that convar have it listed in their ConVars chapter.  
 All hooks that get called use `hook.Run`. Gmod calls `gamemode.Call`.  
+
+## Debug Stuff
+There is `-holylib_startdisabled` which will cause all modules to be disabled on startup.  
+And with `holylib_toggledetour` you can block specific detours from being created.  
 
 ## holylib
 This module contains the HolyLib library.   
@@ -632,16 +637,16 @@ Adds the given Entity to be transmitted.
 
 ### Enums
 
-#### pvs.FL_EDICT_DONTSEND  
+#### pvs.FL_EDICT_DONTSEND = 2 (Next update: 1)  
 The Entity won't be networked.  
 
-#### pvs.FL_EDICT_ALWAYS  
+#### pvs.FL_EDICT_ALWAYS = 4 (Next update: 2)
 The Entity will always be networked.  
 
-#### pvs.FL_EDICT_PVSCHECK  
+#### pvs.FL_EDICT_PVSCHECK = 8 (Next update: 4)
 The Entity will only be networked if it's inside the PVS.  
 
-#### pvs.FL_EDICT_FULLCHECK  
+#### pvs.FL_EDICT_FULLCHECK = 16 (Next update: 8)
 The Entity's `ShouldTransmit` function will be called, and its return value will be used.  
 
 ### Hooks
