@@ -1908,12 +1908,13 @@ Called when the physics simulaton is taking longer than the set lag threshold.
 
 You can freeze all props here and then return `physenv.IVP_SkipSimulation` to skip the simulation for this tick if someone is trying to crash the server.  
 
-# Unfinished Modules
-
-## bass
+## (Experimental) bass
 This module will add functions related to the bass dll.  
 Does someone have the bass libs for `2.4.15`? I can't find them :<  
 `.mp3` files most likely won't work.  
+
+Since this module is experimental, it's disabled by default.  
+You can enable it with `holylib_enable_bass 1`  
 
 ### Functions
 
@@ -1924,6 +1925,106 @@ Creates a IGMODAudioChannel for the given file.
 #### bass.PlayURL(string URL, string flags, function callback)
 callback - function(IGMODAudioChannel channel, int errorCode, string error)  
 Creates a IGMODAudioChannel for the given url.  
+
+### IGModAudioChannel
+
+#### string IGModAudioChannel:\_\_tostring()
+Returns `IGModAudioChannel [NULL]` if invalid.  
+Else it returns `IGModAudioChannel [FileName/URL]`.  
+
+#### IGModAudioChannel:\_\_gc()
+ToDo / Doesn nothing yet.  
+
+#### IGModAudioChannel:Destory()
+Destorys the audio channel.  
+
+#### IGModAudioChannel:Stop()
+Stops the channel.  
+
+#### IGModAudioChannel:Pause()
+Pauses the channel.  
+
+#### IGModAudioChannel:Play()
+Plays the channel.  
+
+#### IGModAudioChannel:SetVolume(number volume)
+Sets the volume of the channel.  
+(It's serverside... how does volume even play a role)  
+
+#### number IGModAudioChannel:GetVolume()
+Returns the volume of the channel.  
+
+#### IGModAudioChannel:SetPlaybackRate(number playbackRate)
+Sets the playback rate of the channel.  
+
+#### number IGModAudioChannel:GetPlaybackRate()
+Returns the playback rate of the channel.  
+
+#### IGModAudioChannel:SetTime(number time)
+Sets the time of the channel.  
+
+#### number IGModAudioChannel:GetTime()
+Returns the time of the channel.  
+
+#### number IGModAudioChannel:GetBufferedTime()
+Returns the buffered time of the channel.  
+NOTE: If it's playing a file, it will just return the length of it.  
+
+#### number IGModAudioChannel:GetState()
+Returns the state of the channel.  
+
+#### IGModAudioChannel:SetLooping(bool looping)
+Sets looping for the channel.  
+
+#### bool IGModAudioChannel:IsLooping()
+Returns `true` if the channel will loop.  
+
+#### bool IGModAudioChannel:IsOnline()
+Returns `true` if were playing a URL.  
+
+#### bool IGModAudioChannel:Is3D()
+Returns `true` if the channel is a 3D one.  
+
+#### bool IGModAudioChannel:IsBlockStreamed()
+Returns `true` if the sound is received in chunks.  
+
+#### bool IGModAudioChannel:IsValid()
+Returns `true` if the channel is valid.  
+
+#### string IGModAudioChannel:GetFileName()
+Returns the filename or URL the channel is playing.  
+
+#### number IGModAudioChannel:GetSampleRate()
+Returns the samplerate of the channel.  
+
+#### number IGModAudioChannel:GetBitsPerSample()
+Returns the bits per sample.  
+
+#### number IGModAudioChannel:GetAverageBitRate()
+Returns the average bit rate.  
+
+#### number, number IGModAudioChannel:GetLevel()
+Returns the level of the channel.  
+First value is left, second is right.  
+
+#### IGModAudioChannel:SetChannelPan(number pan)
+Sets the channel pan.  
+
+#### number IGModAudioChannel:GetChannelPan()
+Returns the channel pan.  
+
+#### string IGModAudioChannel:GetTags()
+Returns the tag of the channel.  
+
+#### IGModAudioChannel:Restart()
+Restarts the channel.  
+
+#### (Soon)IGModAudioChannel:FFT(table output, number fft)
+Computes the DFT of the sound channel.  
+What even is that.  
+
+
+# Unfinished Modules
 
 ## serverplugins
 This module adds two new `IServerPluginCallbacks` functions:  

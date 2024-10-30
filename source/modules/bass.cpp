@@ -69,7 +69,6 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_Destroy)
 LUA_FUNCTION_STATIC(IGModAudioChannel_Stop)
 {
 	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
-
 	channel->Stop();
 
 	return 0;
@@ -78,7 +77,6 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_Stop)
 LUA_FUNCTION_STATIC(IGModAudioChannel_Pause)
 {
 	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
-
 	channel->Pause();
 
 	return 0;
@@ -87,7 +85,6 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_Pause)
 LUA_FUNCTION_STATIC(IGModAudioChannel_Play)
 {
 	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
-
 	channel->Play();
 
 	return 0;
@@ -108,7 +105,6 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetVolume)
 	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
 
 	LUA->PushNumber(channel->GetVolume());
-
 	return 1;
 }
 
@@ -127,7 +123,6 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetPlaybackRate)
 	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
 
 	LUA->PushNumber(channel->GetPlaybackRate());
-
 	return 1;
 }
 
@@ -149,7 +144,6 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetTime)
 	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
 
 	LUA->PushNumber(channel->GetTime());
-
 	return 1;
 }
 
@@ -158,7 +152,6 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetBufferedTime)
 	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
 
 	LUA->PushNumber(channel->GetBufferedTime());
-
 	return 1;
 }
 
@@ -169,14 +162,12 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetState)
 	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
 
 	LUA->PushNumber(channel->GetState());
-
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_SetLooping)
 {
 	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
-
 	channel->SetLooping(LUA->GetBool(2));
 
 	return 0;
@@ -187,7 +178,6 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_IsLooping)
 	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
 
 	LUA->PushBool(channel->IsLooping());
-
 	return 1;
 }
 
@@ -196,7 +186,6 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_IsOnline)
 	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
 
 	LUA->PushBool(channel->IsOnline());
-
 	return 1;
 }
 
@@ -214,7 +203,6 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_IsBlockStreamed)
 	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
 
 	LUA->PushBool(channel->IsBlockStreamed());
-
 	return 1;
 }
 
@@ -223,7 +211,6 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_IsValid)
 	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
 
 	LUA->PushBool(channel->IsValid());
-
 	return 1;
 }
 
@@ -232,7 +219,6 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetLength)
 	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
 
 	LUA->PushNumber(channel->GetLength());
-
 	return 1;
 }
 
@@ -241,7 +227,6 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetFileName)
 	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
 
 	LUA->PushString(channel->GetFileName());
-
 	return 1;
 }
 
@@ -250,7 +235,6 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetSamplingRate)
 	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
 
 	LUA->PushNumber(channel->GetSamplingRate());
-
 	return 1;
 }
 
@@ -259,7 +243,6 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetBitsPerSample)
 	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
 
 	LUA->PushNumber(channel->GetBitsPerSample());
-
 	return 1;
 }
 
@@ -268,7 +251,6 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetAverageBitRate)
 	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
 
 	LUA->PushNumber(channel->GetAverageBitRate());
-
 	return 1;
 }
 
@@ -278,9 +260,9 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetLevel)
 
 	float left, right = 0;
 	channel->GetLevel(&left, &right);
+
 	LUA->PushNumber(left);
 	LUA->PushNumber(right);
-
 	return 2;
 }
 
@@ -314,17 +296,15 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetChannelPan)
 	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
 
 	LUA->PushNumber(channel->GetChannelPan());
-
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_GetTags)
 {
 	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
-
 	int unknown = (int)LUA->CheckNumber(2);
-	LUA->PushString(channel->GetTags(unknown));
 
+	LUA->PushString(channel->GetTags(unknown));
 	return 1;
 }
 
@@ -333,7 +313,6 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetTags)
 LUA_FUNCTION_STATIC(IGModAudioChannel_Restart)
 {
 	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
-
 	channel->Restart();
 
 	return 0;
