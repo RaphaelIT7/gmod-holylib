@@ -235,10 +235,8 @@ IModuleWrapper* CModuleManager::FindModuleByConVar(ConVar* convar)
 IModuleWrapper* CModuleManager::FindModuleByName(const char* name)
 {
 	for (CModule* module : m_pModules)
-	{
 		if (V_stricmp(module->GetModule()->Name(), name) == 0)
 			return module;
-	}
 
 	return NULL;
 }
@@ -325,8 +323,6 @@ CModuleManager g_pModuleManager;
 static void NukeModules(const CCommand &args)
 {
 	for (IModuleWrapper* module : g_pModuleManager.GetModules())
-	{
 		module->SetEnabled(false, true);
-	}
 }
 static ConCommand nukemodules("holylib_nukemodules", NukeModules, "Debug command. Disables all modules.", 0);

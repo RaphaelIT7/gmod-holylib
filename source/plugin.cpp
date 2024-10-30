@@ -216,7 +216,7 @@ bool CServerPlugin::LuaInit()
 	VPROF_BUDGET("HolyLib - CServerPlugin::LuaInit", VPROF_BUDGETGROUP_HOLYLIB);
 	GarrysMod::Lua::ILuaInterface* LUA = Lua::GetRealm(GarrysMod::Lua::State::SERVER);
 	if (LUA == nullptr) {
-		Msg("Failed to get ILuaInterface! (Realm: Server)\n");
+		Warning("holylib: Failed to get ILuaInterface! (Realm: Server)\n");
 		return false;
 	}
 

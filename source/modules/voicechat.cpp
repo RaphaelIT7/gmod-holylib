@@ -447,7 +447,7 @@ void CVoiceChatModule::ServerActivate(edict_t* pEdictList, int edictCount, int c
 		{
 			g_pSteamUser = SteamUser();
 			if (g_pVoiceChatModule.InDebug())
-				Msg("SteamUser returned valid stuff?\n");
+				Msg("holylib: SteamUser returned valid stuff?\n");
 			return;
 		}
 

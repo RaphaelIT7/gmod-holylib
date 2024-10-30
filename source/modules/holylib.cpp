@@ -302,7 +302,7 @@ void CHolyLibModule::LuaInit(bool bServerInit)
 		{
 			g_Lua->CallFunctionProtected(1, 0, true);
 		} else {
-			DevMsg(1, "Failed to call HolyLib:Initialize!\n");
+			DevMsg(1, "holylib: Failed to call HolyLib:Initialize!\n");
 		}
 	}
 }

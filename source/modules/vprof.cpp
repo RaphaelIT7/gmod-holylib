@@ -135,7 +135,7 @@ static void hook_CVProfile_OutputReport(void* fancy, int type, const tchar* pszS
 	{
 		if (g_pFullFileSystem->FileExists("vprof", "MOD"))
 		{
-			Msg("vprof/ is a file? Please delete it or disable vprof_exportreport.\n");
+			Msg("holylib: vprof/ is a file? Please delete it or disable vprof_exportreport.\n");
 			return;
 		}
 
