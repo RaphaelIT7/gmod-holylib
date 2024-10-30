@@ -1,4 +1,4 @@
-#include <GarrysMod/Lua/Interface.h>
+#include "LuaInterface.h"
 #include "detours.h"
 #include "module.h"
 #include "lua.h"
@@ -44,7 +44,7 @@ LUA_FUNCTION_STATIC(bf_read__tostring)
 
 LUA_FUNCTION_STATIC(bf_read__index)
 {
-	if (!g_Lua->FindOnObjectsMetaTable(1, 2))
+	if (!LUA->FindOnObjectsMetaTable(1, 2))
 		LUA->PushNil();
 
 	return 1;
@@ -503,7 +503,7 @@ LUA_FUNCTION_STATIC(bf_write__tostring)
 
 LUA_FUNCTION_STATIC(bf_write__index)
 {
-	if (!g_Lua->FindOnObjectsMetaTable(1, 2))
+	if (!LUA->FindOnObjectsMetaTable(1, 2))
 		LUA->PushNil();
 
 	return 1;

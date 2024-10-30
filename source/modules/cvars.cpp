@@ -1,4 +1,4 @@
-#include <GarrysMod/Lua/Interface.h>
+#include "LuaInterface.h"
 #include "module.h"
 #include "lua.h"
 
@@ -35,9 +35,9 @@ LUA_FUNCTION_STATIC(cvars_GetAll)
 				continue;
 
 			++idx;
-			g_Lua->PushNumber(idx);
-			g_Lua->PushUserType((ConVar*)var, GarrysMod::Lua::Type::ConVar);
-			g_Lua->RawSet(-3);
+			LUA->PushNumber(idx);
+			LUA->PushUserType((ConVar*)var, GarrysMod::Lua::Type::ConVar);
+			LUA->RawSet(-3);
 		}
 
 	return 1;

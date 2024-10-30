@@ -1,4 +1,4 @@
-#include <GarrysMod/Lua/Interface.h>
+#include "LuaInterface.h"
 #include "symbols.h"
 #include "detours.h"
 #include "module.h"
@@ -65,7 +65,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable__tostring)
 
 LUA_FUNCTION_STATIC(INetworkStringTable__index)
 {
-	if (!g_Lua->FindOnObjectsMetaTable(1, 2))
+	if (!LUA->FindOnObjectsMetaTable(1, 2))
 		LUA->PushNil();
 
 	return 1;
@@ -136,7 +136,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_AddString)
 
 	bool bIsServer = LUA->GetBool(2);
 	const char* pStr = LUA->CheckString(3);
-	//int length = g_Lua->CheckNumberOpt(4, -1);
+	//int length = LUA->CheckNumberOpt(4, -1);
 
 	LUA->PushNumber(table->AddString(bIsServer, pStr));
 	return 1;
@@ -157,7 +157,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_GetAllStrings)
 	INetworkStringTable* table = Get_INetworkStringTable(1, true);
 
 	int idx = 0;
-	g_Lua->PreCreateTable(table->GetMaxStrings(), 0);
+	LUA->PreCreateTable(table->GetMaxStrings(), 0);
 	for (int i = 0; i < table->GetMaxStrings(); ++i)
 	{
 		const char* pStr = table->GetString(i);
@@ -344,7 +344,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_SetStringUserData)
 	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(1, true);
 	int idx = (int)LUA->CheckNumber(2);
 	const char* pUserData = LUA->GetString(3);
-	int iLength = (int)g_Lua->CheckNumberOpt(4, NULL);
+	int iLength = (int)LUA->CheckNumberOpt(4, NULL);
 
 	if (idx >= table->GetNumStrings())
 		return 0;
@@ -433,8 +433,8 @@ LUA_FUNCTION_STATIC(stringtable_CreateStringTable)
 {
 	const char* name = LUA->CheckString(1);
 	int maxentries = (int)LUA->CheckNumber(2);
-	int userdatafixedsize = (int)g_Lua->CheckNumberOpt(3, 0);
-	int userdatanetworkbits = (int)g_Lua->CheckNumberOpt(4, 0);
+	int userdatafixedsize = (int)LUA->CheckNumberOpt(3, 0);
+	int userdatanetworkbits = (int)LUA->CheckNumberOpt(4, 0);
 
 	Push_INetworkStringTable(networkStringTableContainerServer->CreateStringTable(name, maxentries, userdatafixedsize, userdatanetworkbits));
 	return 1;
@@ -485,9 +485,9 @@ LUA_FUNCTION_STATIC(stringtable_CreateStringTableEx)
 {
 	const char* name = LUA->CheckString(1);
 	int maxentries = (int)LUA->CheckNumber(2);
-	int userdatafixedsize = (int)g_Lua->CheckNumberOpt(3, 0);
-	int userdatanetworkbits = (int)g_Lua->CheckNumberOpt(4, 0);
-	bool bIsFilenames = g_Lua->GetBool(5);
+	int userdatafixedsize = (int)LUA->CheckNumberOpt(3, 0);
+	int userdatanetworkbits = (int)LUA->CheckNumberOpt(4, 0);
+	bool bIsFilenames = LUA->GetBool(5);
 
 	Push_INetworkStringTable(networkStringTableContainerServer->CreateStringTableEx(name, maxentries, userdatafixedsize, userdatanetworkbits, bIsFilenames));
 	return 1;
@@ -541,11 +541,6 @@ void CStringTableModule::LuaInit(bool bServerInit) // ToDo: Implement a INetwork
 
 	if (!bServerInit)
 	{
-		/*g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_REG);
-			g_Lua->CreateTable();
-			g_Lua->SetField(-2, "inetworkstringtable_objects");
-		g_Lua->Pop(1);*/
-
 		INetworkStringTable_TypeID = g_Lua->CreateMetaTable("INetworkStringTable");
 			Util::AddFunc(INetworkStringTable__tostring, "__tostring");
 			Util::AddFunc(INetworkStringTable__index, "__index");
@@ -592,8 +587,7 @@ void CStringTableModule::LuaInit(bool bServerInit) // ToDo: Implement a INetwork
 			Util::AddFunc(stringtable_AllowCreation, "AllowCreation");
 			Util::AddFunc(stringtable_RemoveTable, "RemoveTable");
 
-			g_Lua->PushNumber(INVALID_STRING_INDEX);
-			g_Lua->SetField(-2, "INVALID_STRING_INDEX");
+			Util::AddValue(INVALID_STRING_INDEX, "INVALID_STRING_INDEX");
 		Util::FinishTable("stringtable");
 	} else {
 		if (Lua::PushHook("HolyLib:OnStringTableCreation")) // Use this hook to create / modify the stringtables.

@@ -1,4 +1,4 @@
-#include <GarrysMod/Lua/Interface.h>
+#include "LuaInterface.h"
 #include "module.h"
 #include "lua.h"
 #include "Bootil/Bootil.h"
@@ -41,6 +41,12 @@ struct CompressEntry
 {
 	~CompressEntry()
 	{
+		if (!ThreadInMainThread())
+		{
+			Warning("holylib: A CompressEntry was deleted on a random thread! This should never happen!\n");
+			return; // This will be a memory, but we would never want to potentially break the Lua state.
+		}
+
 		if (iDataReference != -1)
 			g_Lua->ReferenceFree(iDataReference);
 
@@ -106,8 +112,8 @@ LUA_FUNCTION_STATIC(util_AsyncCompress)
 		LUA->Push(2);
 		iCallback = LUA->ReferenceCreate();
 	} else {
-		iLevel = (int)g_Lua->CheckNumberOpt(2, 5);
-		iDictSize = (int)g_Lua->CheckNumberOpt(3, 65536);
+		iLevel = (int)LUA->CheckNumberOpt(2, 5);
+		iDictSize = (int)LUA->CheckNumberOpt(3, 65536);
 		LUA->CheckType(4, GarrysMod::Lua::Type::Function);
 		LUA->Push(4);
 		iCallback = LUA->ReferenceCreate();

@@ -1,4 +1,4 @@
-#include <GarrysMod/Lua/Interface.h>
+#include "LuaInterface.h"
 #include "symbols.h"
 #include "detours.h"
 #include "module.h"
@@ -663,17 +663,10 @@ void CPVSModule::LuaInit(bool bServerInit)
 		Util::AddFunc(pvs_RemoveAllEntityFromTransmit, "RemoveAllEntityFromTransmit");
 		Util::AddFunc(pvs_AddEntityToTransmit, "AddEntityToTransmit");
 
-		g_Lua->PushNumber(LUA_FL_EDICT_DONTSEND);
-		g_Lua->SetField(-2, "FL_EDICT_DONTSEND");
-
-		g_Lua->PushNumber(LUA_FL_EDICT_ALWAYS);
-		g_Lua->SetField(-2, "FL_EDICT_ALWAYS");
-
-		g_Lua->PushNumber(LUA_FL_EDICT_PVSCHECK);
-		g_Lua->SetField(-2, "FL_EDICT_PVSCHECK");
-
-		g_Lua->PushNumber(LUA_FL_EDICT_FULLCHECK);
-		g_Lua->SetField(-2, "FL_EDICT_FULLCHECK");
+		Util::AddValue(LUA_FL_EDICT_DONTSEND, "FL_EDICT_DONTSEND");
+		Util::AddValue(LUA_FL_EDICT_ALWAYS, "FL_EDICT_ALWAYS");
+		Util::AddValue(LUA_FL_EDICT_PVSCHECK, "FL_EDICT_PVSCHECK");
+		Util::AddValue(LUA_FL_EDICT_FULLCHECK, "FL_EDICT_FULLCHECK");
 	Util::FinishTable("pvs");
 }
 

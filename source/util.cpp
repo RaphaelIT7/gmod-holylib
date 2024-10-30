@@ -9,62 +9,10 @@
 #include "player.h"
 #include "detours.h"
 
-GarrysMod::Lua::IUpdatedLuaInterface* g_Lua;
+GarrysMod::Lua::ILuaInterface* g_Lua;
 IVEngineServer* engine;
 CGlobalEntityList* Util::entitylist = NULL;
 CUserMessages* Util::pUserMessages;
-
-void Util::StartTable() {
-	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-	g_Lua->CreateTable();
-}
-
-void Util::AddFunc(GarrysMod::Lua::CFunc Func, const char* Name) {
-	g_Lua->PushCFunction(Func);
-	g_Lua->SetField(-2, Name);
-}
-
-void Util::AddValue(int value, const char* Name) {
-	g_Lua->PushNumber(value);
-	g_Lua->SetField(-2, Name);
-}
-
-void Util::FinishTable(const char* Name) {
-	g_Lua->SetField(-2, Name);
-	g_Lua->Pop();
-}
-
-void Util::NukeTable(const char* pName)
-{
-	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-		g_Lua->PushNil();
-		g_Lua->SetField(-2, pName);
-	g_Lua->Pop(1);
-}
-
-bool Util::PushTable(const char* pName)
-{
-	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-		g_Lua->GetField(-1, pName);
-		g_Lua->Remove(-2);
-		if (g_Lua->IsType(-1, GarrysMod::Lua::Type::Table))
-			return true;
-
-	g_Lua->Pop(1);
-	return false;
-}
-
-void Util::PopTable()
-{
-	g_Lua->Pop(1);
-}
-
-void Util::RemoveField(const char* pName)
-{
-	g_Lua->PushNil();
-	g_Lua->SetField(-2, pName);
-}
-
 
 static Symbols::Get_Player func_GetPlayer;
 static Symbols::Push_Entity func_PushEntity;

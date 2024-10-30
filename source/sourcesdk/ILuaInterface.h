@@ -23,10 +23,10 @@ namespace Bootil
 
 namespace GarrysMod::Lua
 {
-	class IUpdatedLuaInterface;
+	class ILuaInterface;
 };
 
-class GarrysMod::Lua::IUpdatedLuaInterface : public GarrysMod::Lua::ILuaBase
+class GarrysMod::Lua::ILuaInterface : public GarrysMod::Lua::ILuaBase
 {
 public:
 	virtual bool Init( GarrysMod::Lua::ILuaGameCallback *, bool ) = 0;

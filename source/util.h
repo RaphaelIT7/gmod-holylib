@@ -19,7 +19,7 @@ extern IVEngineServer* engine;
 #define V_DestroyThreadPool DestroyThreadPool
 #endif
 
-extern GarrysMod::Lua::IUpdatedLuaInterface* g_Lua;
+extern GarrysMod::Lua::ILuaInterface* g_Lua;
 
 struct edict_t;
 class CBasePlayer;
@@ -31,14 +31,56 @@ class IServerGameEnts;
 class IServer;
 namespace Util
 {
-	extern void StartTable();
-	extern void AddValue(int, const char*);
-	extern void AddFunc(GarrysMod::Lua::CFunc, const char*);
-	extern void FinishTable(const char*);
-	extern void NukeTable(const char*);
-	extern bool PushTable(const char*);
-	extern void PopTable();
-	extern void RemoveField(const char*);
+	inline void StartTable() {
+		g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
+		g_Lua->CreateTable();
+	}
+
+	inline void AddFunc(GarrysMod::Lua::CFunc Func, const char* Name) {
+		g_Lua->PushCFunction(Func);
+		g_Lua->SetField(-2, Name);
+	}
+
+	inline void AddValue(int value, const char* Name) {
+		g_Lua->PushNumber(value);
+		g_Lua->SetField(-2, Name);
+	}
+
+	inline void FinishTable(const char* Name) {
+		g_Lua->SetField(-2, Name);
+		g_Lua->Pop();
+	}
+
+	inline void NukeTable(const char* pName)
+	{
+		g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
+		g_Lua->PushNil();
+		g_Lua->SetField(-2, pName);
+		g_Lua->Pop(1);
+	}
+
+	inline bool PushTable(const char* pName)
+	{
+		g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
+		g_Lua->GetField(-1, pName);
+		g_Lua->Remove(-2);
+		if (g_Lua->IsType(-1, GarrysMod::Lua::Type::Table))
+			return true;
+
+		g_Lua->Pop(1);
+		return false;
+	}
+
+	inline void PopTable()
+	{
+		g_Lua->Pop(1);
+	}
+
+	inline void RemoveField(const char* pName)
+	{
+		g_Lua->PushNil();
+		g_Lua->SetField(-2, pName);
+	}
 
 	// Gmod's functions:
 	extern CBasePlayer* Get_Player(int iStackPos, bool unknown);

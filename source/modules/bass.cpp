@@ -1,4 +1,4 @@
-#include <GarrysMod/Lua/Interface.h>
+#include "LuaInterface.h"
 #include "detours.h"
 #include "module.h"
 #include "lua.h"

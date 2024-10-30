@@ -1,4 +1,4 @@
-#include <GarrysMod/Lua/Interface.h>
+#include "LuaInterface.h"
 #include "symbols.h"
 #include "detours.h"
 #include "module.h"
@@ -73,7 +73,7 @@ LUA_FUNCTION_STATIC(VoiceData__tostring)
 
 LUA_FUNCTION_STATIC(VoiceData__index)
 {
-	if (!g_Lua->FindOnObjectsMetaTable(1, 2))
+	if (!LUA->FindOnObjectsMetaTable(1, 2))
 		LUA->PushNil();
 
 	return 1;
@@ -130,7 +130,7 @@ ISteamUser* g_pSteamUser;
 LUA_FUNCTION_STATIC(VoiceData_GetUncompressedData)
 {
 	VoiceData* pData = Get_VoiceData(1, true);
-	int iSize = (int)g_Lua->CheckNumberOpt(2, 20000); // How many bytes to allocate for the decompressed version. 20000 is default
+	int iSize = (int)LUA->CheckNumberOpt(2, 20000); // How many bytes to allocate for the decompressed version. 20000 is default
 
 	if (!g_pSteamUser)
 		LUA->ThrowError("Failed to get SteamUser!\n");
@@ -244,7 +244,7 @@ LUA_FUNCTION_STATIC(voicechat_SendEmptyData)
 		LUA->ThrowError("Failed to get CBaseClient!\n");
 
 	SVC_VoiceData voiceData;
-	voiceData.m_nFromClient = (int)g_Lua->CheckNumberOpt(2, pClient->GetPlayerSlot());
+	voiceData.m_nFromClient = (int)LUA->CheckNumberOpt(2, pClient->GetPlayerSlot());
 	voiceData.m_nLength = 0;
 	voiceData.m_DataOut = NULL; // Will possibly crash?
 	voiceData.m_xuid = 0;
@@ -331,9 +331,9 @@ LUA_FUNCTION_STATIC(voicechat_ProcessVoiceData)
 
 LUA_FUNCTION_STATIC(voicechat_CreateVoiceData)
 {
-	int iPlayerSlot = (int)g_Lua->CheckNumberOpt(1, 0);
-	const char* pStr = g_Lua->CheckStringOpt(2, NULL);
-	int iLength = (int)g_Lua->CheckNumberOpt(3, NULL);
+	int iPlayerSlot = (int)LUA->CheckNumberOpt(1, 0);
+	const char* pStr = LUA->CheckStringOpt(2, NULL);
+	int iLength = (int)LUA->CheckNumberOpt(3, NULL);
 
 	VoiceData* pData = new VoiceData;
 	pData->iPlayerSlot = iPlayerSlot;

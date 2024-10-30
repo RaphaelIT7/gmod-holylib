@@ -1,4 +1,4 @@
-#include <GarrysMod/Lua/Interface.h>
+#include "LuaInterface.h"
 #include "symbols.h"
 #include "detours.h"
 #include "module.h"
@@ -149,7 +149,7 @@ LUA_FUNCTION_STATIC(physenv_GetLagThreshold)
 
 LUA_FUNCTION_STATIC(physenv_SetPhysSkipType)
 {
-	int pType = (int)g_Lua->CheckNumber(1);
+	int pType = (int)LUA->CheckNumber(1);
 	pCurrentSkipType = (IVP_SkipType)pType;
 
 	return 0;

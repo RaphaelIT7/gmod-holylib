@@ -1,6 +1,6 @@
 #include <sourcesdk/filesystem_things.h>
 #undef Yield
-#include <GarrysMod/Lua/Interface.h>
+#include "LuaInterface.h"
 #include "symbols.h"
 #include "detours.h"
 #include "module.h"
@@ -1530,14 +1530,14 @@ void FileAsyncReadThink()
 
 LUA_FUNCTION_STATIC(filesystem_CreateDir)
 {
-	g_pFullFileSystem->CreateDirHierarchy(LUA->CheckString(1), g_Lua->CheckStringOpt(2, "DATA"));
+	g_pFullFileSystem->CreateDirHierarchy(LUA->CheckString(1), LUA->CheckStringOpt(2, "DATA"));
 
 	return 0;
 }
 
 LUA_FUNCTION_STATIC(filesystem_Delete)
 {
-	g_pFullFileSystem->RemoveFile(LUA->CheckString(1), g_Lua->CheckStringOpt(2, "DATA"));
+	g_pFullFileSystem->RemoveFile(LUA->CheckString(1), LUA->CheckStringOpt(2, "DATA"));
 
 	return 0;
 }
@@ -1584,7 +1584,7 @@ LUA_FUNCTION_STATIC(filesystem_Find)
 
 	const char* filepath = LUA->CheckString(1);
 	const char* path = LUA->CheckString(2);
-	const char* sorting = g_Lua->CheckStringOpt(3, "");
+	const char* sorting = LUA->CheckStringOpt(3, "");
 
 	FileFindHandle_t findHandle;
 	const char *pFilename = g_pFullFileSystem->FindFirstEx(filepath, path, &findHandle);
@@ -1659,17 +1659,17 @@ LUA_FUNCTION_STATIC(filesystem_Open)
 {
 	const char* filename = LUA->CheckString(1);
 	const char* fileMode = LUA->CheckString(2);
-	const char* path = g_Lua->CheckStringOpt(3, "GAME");
+	const char* path = LUA->CheckStringOpt(3, "GAME");
 
 	FileHandle_t fh = g_pFullFileSystem->Open(filename, fileMode, path);
 	if (fh)
 	{
 		Lua::File* file = new Lua::File;
 		file->handle = fh;
-		g_Lua->PushUserType(file, GarrysMod::Lua::Type::File); // Gmod uses a class Lua::File which it pushes. What does it contain?
+		LUA->PushUserType(file, GarrysMod::Lua::Type::File); // Gmod uses a class Lua::File which it pushes. What does it contain?
 	}
 	else
-		g_Lua->PushNil();
+		LUA->PushNil();
 
 	return 1;
 }
@@ -1678,7 +1678,7 @@ LUA_FUNCTION_STATIC(filesystem_Rename)
 {
 	const char* original = LUA->CheckString(1);
 	const char* newname = LUA->CheckString(2);
-	const char* gamePath = g_Lua->CheckStringOpt(3, "DATA");
+	const char* gamePath = LUA->CheckStringOpt(3, "DATA");
 
 	LUA->PushBool(g_pFullFileSystem->RenameFile(original, newname, gamePath));
 
@@ -1687,14 +1687,14 @@ LUA_FUNCTION_STATIC(filesystem_Rename)
 
 LUA_FUNCTION_STATIC(filesystem_Size)
 {
-	LUA->PushNumber(g_pFullFileSystem->Size(LUA->CheckString(1), g_Lua->CheckStringOpt(2, "GAME")));
+	LUA->PushNumber(g_pFullFileSystem->Size(LUA->CheckString(1), LUA->CheckStringOpt(2, "GAME")));
 
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(filesystem_Time)
 {
-	LUA->PushNumber(g_pFullFileSystem->GetFileTime(LUA->CheckString(1), g_Lua->CheckStringOpt(2, "GAME")));
+	LUA->PushNumber(g_pFullFileSystem->GetFileTime(LUA->CheckString(1), LUA->CheckStringOpt(2, "GAME")));
 
 	return 1;
 }
@@ -1703,7 +1703,7 @@ LUA_FUNCTION_STATIC(filesystem_AddSearchPath)
 {
 	const char* folderPath = LUA->CheckString(1);
 	const char* gamePath = LUA->CheckString(2);
-	SearchPathAdd_t addType = g_Lua->GetBool(-1) ? SearchPathAdd_t::PATH_ADD_TO_HEAD : SearchPathAdd_t::PATH_ADD_TO_TAIL;
+	SearchPathAdd_t addType = LUA->GetBool(-1) ? SearchPathAdd_t::PATH_ADD_TO_HEAD : SearchPathAdd_t::PATH_ADD_TO_TAIL;
 	g_pFullFileSystem->AddSearchPath(folderPath, gamePath, addType);
 
 	return 0;
@@ -1749,7 +1749,7 @@ LUA_FUNCTION_STATIC(filesystem_RelativePathToFullPath)
 LUA_FUNCTION_STATIC(filesystem_FullPathToRelativePath)
 {
 	const char* fullPath = LUA->CheckString(1);
-	const char* gamePath = g_Lua->CheckStringOpt(2, NULL);
+	const char* gamePath = LUA->CheckStringOpt(2, NULL);
 
 	char* outStr = new char[MAX_PATH];
 	if (g_pFullFileSystem->FullPathToRelativePathEx(fullPath, gamePath, outStr, MAX_PATH))
@@ -1763,7 +1763,7 @@ LUA_FUNCTION_STATIC(filesystem_FullPathToRelativePath)
 LUA_FUNCTION_STATIC(filesystem_TimeCreated)
 {
 	const char* filePath = LUA->CheckString(1);
-	const char* gamePath = g_Lua->CheckStringOpt(2, "GAME");
+	const char* gamePath = LUA->CheckStringOpt(2, "GAME");
 
 	struct _stat buf;
 	char* pTmpFileName = new char[MAX_PATH];
@@ -1780,7 +1780,7 @@ LUA_FUNCTION_STATIC(filesystem_TimeCreated)
 LUA_FUNCTION_STATIC(filesystem_TimeAccessed)
 {
 	const char* filePath = LUA->CheckString(1);
-	const char* gamePath = g_Lua->CheckStringOpt(2, "GAME");
+	const char* gamePath = LUA->CheckStringOpt(2, "GAME");
 
 	struct _stat buf;
 	char* pTmpFileName = new char[MAX_PATH];

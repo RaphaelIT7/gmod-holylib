@@ -1,5 +1,5 @@
 #include "filesystem_base.h" // Has to be before symbols.h
-#include <GarrysMod/Lua/Interface.h>
+#include "LuaInterface.h"
 #include "symbols.h"
 #include "detours.h"
 #include "module.h"
@@ -96,7 +96,7 @@ LUA_FUNCTION_STATIC(HLTVClient__tostring)
 
 LUA_FUNCTION_STATIC(HLTVClient__index)
 {
-	if (!g_Lua->FindOnObjectsMetaTable(1, 2))
+	if (!LUA->FindOnObjectsMetaTable(1, 2))
 		LUA->PushNil();
 
 	return 1;
@@ -505,26 +505,14 @@ void CSourceTVLibModule::LuaInit(bool bServerInit)
 		Util::AddFunc(sourcetv_GetAll, "GetAll");
 		Util::AddFunc(sourcetv_GetClient, "GetClient");
 
-		g_Lua->PushNumber(LUA_RECORD_OK);
-		g_Lua->SetField(-2, "RECORD_OK");
+		Util::AddValue(LUA_RECORD_OK, "RECORD_OK");
 
-		g_Lua->PushNumber(LUA_RECORD_NOSOURCETV);
-		g_Lua->SetField(-2, "RECORD_NOSOURCETV");
-
-		g_Lua->PushNumber(LUA_RECORD_NOTMASTER);
-		g_Lua->SetField(-2, "RECORD_NOTMASTER");
-
-		g_Lua->PushNumber(LUA_RECORD_ACTIVE);
-		g_Lua->SetField(-2, "RECORD_ACTIVE");
-
-		g_Lua->PushNumber(LUA_RECORD_NOTACTIVE);
-		g_Lua->SetField(-2, "RECORD_NOTACTIVE");
-
-		g_Lua->PushNumber(LUA_RECORD_INVALIDPATH);
-		g_Lua->SetField(-2, "RECORD_INVALIDPATH");
-
-		g_Lua->PushNumber(LUA_RECORD_FILEEXISTS);
-		g_Lua->SetField(-2, "RECORD_FILEEXISTS");
+		Util::AddValue(LUA_RECORD_NOSOURCETV, "RECORD_NOSOURCETV");
+		Util::AddValue(LUA_RECORD_NOTMASTER, "RECORD_NOTMASTER");
+		Util::AddValue(LUA_RECORD_ACTIVE, "RECORD_ACTIVE");
+		Util::AddValue(LUA_RECORD_NOTACTIVE, "RECORD_NOTACTIVE");
+		Util::AddValue(LUA_RECORD_INVALIDPATH, "RECORD_INVALIDPATH");
+		Util::AddValue(LUA_RECORD_FILEEXISTS, "RECORD_FILEEXISTS");
 	Util::FinishTable("sourcetv");
 }
 

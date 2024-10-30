@@ -1,4 +1,4 @@
-#include <GarrysMod/Lua/LuaInterface.h>
+#include <LuaInterface.h>
 #include <GarrysMod/FactoryLoader.hpp>
 #include "lua.h"
 #include <GarrysMod/Lua/LuaShared.h>
@@ -50,7 +50,7 @@ bool Lua::PushHook(const char* hook)
 
 void Lua::Init(GarrysMod::Lua::ILuaInterface* LUA)
 {
-	g_Lua = (GarrysMod::Lua::IUpdatedLuaInterface*)LUA;
+	g_Lua = LUA;
 
 	g_pModuleManager.LuaInit(false);
 }

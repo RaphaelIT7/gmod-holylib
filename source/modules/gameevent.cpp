@@ -1,4 +1,4 @@
-#include <GarrysMod/Lua/Interface.h>
+#include "LuaInterface.h"
 #include "symbols.h"
 #include "detours.h"
 #include "module.h"
@@ -187,7 +187,7 @@ LUA_FUNCTION_STATIC(gameevent_RemoveClientListener)
 		LUA->ThrowError("Tried to use a NULL Player!\n");
 
 	CBaseClient* pClient = Util::GetClientByPlayer(pEntity);
-	const char* strEvent = g_Lua->CheckStringOpt(2, NULL);
+	const char* strEvent = LUA->CheckStringOpt(2, NULL);
 
 	bool bSuccess = false;
 	if (strEvent)
@@ -239,7 +239,7 @@ LUA_FUNCTION_STATIC(gameevent_AddClientListener)
 	if (!pEntity)
 		LUA->ThrowError("Tried to use a NULL Player!\n");
 
-	const char* strEvent = g_Lua->CheckString(2);
+	const char* strEvent = LUA->CheckString(2);
 
 	if (!func_CGameEventManager_AddListener)
 		LUA->ThrowError("Failed to get CGameEventManager::AddListener");
@@ -353,7 +353,7 @@ LUA_FUNCTION_STATIC(IGameEvent__tostring)
 
 LUA_FUNCTION_STATIC(IGameEvent__index)
 {
-	if (!g_Lua->FindOnObjectsMetaTable(1, 2))
+	if (!LUA->FindOnObjectsMetaTable(1, 2))
 		LUA->PushNil();
 
 	return 1;

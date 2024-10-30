@@ -1,5 +1,5 @@
 #include "filesystem_base.h" // Has to be before symbols.h
-#include <GarrysMod/Lua/Interface.h>
+#include "LuaInterface.h"
 #include "symbols.h"
 #include "detours.h"
 #include "module.h"
@@ -743,7 +743,7 @@ LUA_FUNCTION_STATIC(VProfCounter__tostring)
 
 LUA_FUNCTION_STATIC(VProfCounter__index)
 {
-	if (!g_Lua->FindOnObjectsMetaTable(1, 2))
+	if (!LUA->FindOnObjectsMetaTable(1, 2))
 		LUA->PushNil();
 
 	return 1;
@@ -814,7 +814,7 @@ LUA_FUNCTION_STATIC(VProfNode__tostring)
 
 LUA_FUNCTION_STATIC(VProfNode__index)
 {
-	if (!g_Lua->FindOnObjectsMetaTable(1, 2))
+	if (!LUA->FindOnObjectsMetaTable(1, 2))
 		LUA->PushNil();
 
 	return 1;
@@ -1097,7 +1097,7 @@ LUA_FUNCTION_STATIC(vprof_AtRoot)
 LUA_FUNCTION_STATIC(vprof_FindOrCreateCounter)
 {
 	const char* pName = AddOrGetString(LUA->CheckString(1)); // Just to make sure
-	CounterGroup_t group = (CounterGroup_t)g_Lua->CheckNumberOpt(2, COUNTER_GROUP_DEFAULT);
+	CounterGroup_t group = (CounterGroup_t)LUA->CheckNumberOpt(2, COUNTER_GROUP_DEFAULT);
 
 	VProfCounter* counter = new VProfCounter;
 	counter->strName = pName;
@@ -1130,7 +1130,7 @@ LUA_FUNCTION_STATIC(vprof_GetNumCounters)
 
 LUA_FUNCTION_STATIC(vprof_ResetCounters)
 {
-	CounterGroup_t group = (CounterGroup_t)g_Lua->CheckNumberOpt(2, COUNTER_GROUP_DEFAULT);
+	CounterGroup_t group = (CounterGroup_t)LUA->CheckNumberOpt(2, COUNTER_GROUP_DEFAULT);
 
 	g_VProfCurrentProfile.ResetCounters(group);
 	return 0;
@@ -1212,7 +1212,7 @@ LUA_FUNCTION_STATIC(vprof_GetBudgetGroupColor)
 	int r, g, b, a;
 	g_VProfCurrentProfile.GetBudgetGroupColor(index,r, g, b, a);
 
-	g_Lua->PushColor(Color(r, g, b, a));
+	LUA->PushColor(Color(r, g, b, a));
 	return 1;
 }
 
