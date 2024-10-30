@@ -3,6 +3,7 @@
 #include "module.h"
 #include "lua.h"
 #include "sourcesdk/cgmod_audio.h"
+#include "edict.h"
 
 class CBassModule : public IModule
 {
@@ -11,6 +12,7 @@ public:
 	virtual void LuaInit(bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown() OVERRIDE;
 	virtual void Shutdown() OVERRIDE;
+	virtual void Think(bool bSimulating) OVERRIDE;
 	virtual const char* Name() { return "bass"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
 	virtual bool IsEnabledByDefault() { return false; };
@@ -474,4 +476,10 @@ void CBassModule::LuaShutdown()
 void CBassModule::Shutdown()
 {
 	gGModAudio->Shutdown(); // If the engine didn't call Init, it most likely won't call shutdown.
+}
+
+extern CGlobalVars* gpGlobals;
+void CBassModule::Think(bool bSimulating)
+{
+	gGModAudio->Update(gpGlobals->absoluteframetime * 1000); // gpGlobals->absoluteframetime should be in seconds so we need to turn it to ms.
 }
