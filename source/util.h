@@ -4,6 +4,7 @@
 #include "Platform.hpp"
 #include "vprof.h"
 #include <unordered_map>
+#include <algorithm>
 
 #define DEDICATED
 #include "vstdlib/jobthread.h"
