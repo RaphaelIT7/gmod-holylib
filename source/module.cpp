@@ -197,6 +197,7 @@ void CModuleManager::LoadModules()
 	RegisterModule(pVoiceChatModule);
 	RegisterModule(pPhysEnvModule);
 	RegisterModule(pNetModule);
+	RegisterModule(pEntListModule);
 }
 
 int g_pIDs = 0;
@@ -316,6 +317,16 @@ void CModuleManager::ServerActivate(edict_t* pEdictList, int edictCount, int cli
 
 	m_pStatus |= LoadStatus_ServerActivate;
 	VCALL_ENABLED_MODULES(ServerActivate(pEdictList, edictCount, clientMax));
+}
+
+void CModuleManager::OnEdictAllocated(edict_t* pEdict)
+{
+	VCALL_ENABLED_MODULES(OnEdictAllocated(pEdict));
+}
+
+void CModuleManager::OnEdictFreed(const edict_t* pEdict)
+{
+	VCALL_ENABLED_MODULES(OnEdictFreed(pEdict));
 }
 
 CModuleManager g_pModuleManager;

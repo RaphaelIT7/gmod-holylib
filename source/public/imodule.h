@@ -24,14 +24,15 @@ public:
 	virtual int Compatibility() = 0;
 	virtual bool IsEnabledByDefault() { return true; };
 	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) { (void)pEdictList; (void)edictCount; (void)clientMax; };
-
-public:
-	inline void SetDebug(int iDebug) { m_iIsDebug = iDebug; };
-	inline int InDebug() { return m_iIsDebug; };
+	virtual void OnEdictAllocated(edict_t* pEdict) { (void)pEdict; };
+	virtual void OnEdictFreed(const edict_t* pEdict) { (void)pEdict; };
 
 public:
 	unsigned int m_pID = 0; // Set by the CModuleManager when registering it! Don't touch it.
 	int m_iIsDebug = false;
+
+	inline void SetDebug(int iDebug) { m_iIsDebug = iDebug; };
+	inline int InDebug() { return m_iIsDebug; };
 };
 
 class IModuleWrapper
@@ -69,4 +70,6 @@ public:
 	virtual void Think(bool bSimulating) = 0;
 	virtual void Shutdown() = 0;
 	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) = 0;
+	virtual void OnEdictAllocated(edict_t* pEdict) = 0;
+	virtual void OnEdictFreed(const edict_t* pEdict) = 0;
 };

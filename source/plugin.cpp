@@ -334,10 +334,12 @@ void CServerPlugin::OnQueryCvarValueFinished(QueryCvarCookie_t iCookie, edict_t 
 
 void CServerPlugin::OnEdictAllocated(edict_t *edict)
 {
+	g_pModuleManager.OnEdictAllocated(edict);
 }
 
 void CServerPlugin::OnEdictFreed(const edict_t *edict)
 {
+	g_pModuleManager.OnEdictFreed(edict);
 }
 
 GMOD_MODULE_OPEN()

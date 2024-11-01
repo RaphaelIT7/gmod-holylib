@@ -24,6 +24,7 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 3. Put the `gmsv_holylib_linux.so` into the `garrysmod/lua/bin/` directory.  
 
 ## Next Update
+- [+] Added entitylist module.  
 - [+] Added the `HolyLib:PreCheckTransmit` hook.  
 - [#] Fixed many issues with the `bass` module. It is acutally usable.  
 - [#] All `pvs.FL_EDICT_` enums changed.  
@@ -74,6 +75,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
 \- [physenv](https://github.com/RaphaelIT7/gmod-holylib#physenv)  
 \- [bass](https://github.com/RaphaelIT7/gmod-holylib#bass)  
 \- \- [IGModAudioChannel](https://github.com/RaphaelIT7/gmod-holylib#igmodaudiochannel)  
+\- [entitylist](https://github.com/RaphaelIT7/gmod-holylib#entitylist)  
 
 [Unfinished Modules](https://github.com/RaphaelIT7/gmod-holylib#unfinished-modules)  
 \- [serverplugins](https://github.com/RaphaelIT7/gmod-holylib#serverplugins)  
@@ -585,14 +587,14 @@ Returns whether or not the given box is inside the PVS.
 #### pvs.AddEntityToPVS(Entity ent or table ents)
 Adds the given entity index to the PVS  
 
-#### pvs.OverrideStateFlags(Entity ent or table ents, number flags, bool force)
+#### pvs.OverrideStateFlags(Entity ent / table ents / EntityList list, number flags, bool force)
 table ents - A sequential table containing all the entities which states flags should be overridden.  
 bool force - Allows you to set the flags directly. It won't make sure that the value is correct!  
 Overrides the StateFlag for this Snapshot.  
 The value will be reset in the next one.  
 NOTE: If you use force, you should know what your doing or else it might cause a crash.  
 
-#### pvs.SetStateFlags(Entity ent or table ents, number flags, bool force)
+#### pvs.SetStateFlags(Entity ent / table ents / EntityList list, number flags, bool force)
 table ents - A sequential table containing all the entities which states should be set.  
 bool force - Allows you to set the flags directly. It won't make sure that the value is correct!  
 Sets the State flag for this entity.  
@@ -603,7 +605,7 @@ NOTE: If you use force, you should know what your doing or else it might cause a
 bool force - Allows you to get all flags instead of only the ones for networking.  
 Returns the state flags for this entity.  
 
-#### bool pvs.RemoveEntityFromTransmit(Entity ent or table ents)
+#### bool pvs.RemoveEntityFromTransmit(Entity ent / table ents / EntityList list)
 table ents - A sequential table containing all the entities that should be removed from being transmitted.  
 Returns true if the entity or all entities were successfully removed from being transmitted.  
 
@@ -614,7 +616,7 @@ Removes all Entities from being transmitted.
 
 > NOTE: Only use this function inside the `HolyLib:[Pre/Post]CheckTransmit` hook!  
 
-#### pvs.AddEntityToTransmit(Entity ent or table ents, bool always)
+#### pvs.AddEntityToTransmit(Entity ent / table ents / EntityList list, bool always)
 table ents - A sequential table containing all the entities that should be transmitted.  
 bool always - If the entity should always be transmitted? (Verify)  
 
@@ -629,7 +631,7 @@ This should always be the case after a full update.
 > NOTE: Only use this function inside the `HolyLib:[Pre/Post]CheckTransmit` hook!  
 > REMOVED: This function was removed since I can't get it to work / It would be a bit more complicated than first anticipated.  
 
-#### pvs.SetPreventTransmitBulk(Entity ent or table ents, Player ply or table plys or RecipientFilter filter, bool notransmit)
+#### pvs.SetPreventTransmitBulk(Entity ent / table ents / EntityList list, Player ply or table plys or RecipientFilter filter, bool notransmit)
 table ents - A sequential table containing all the entities that should be affected.  
 table plys - A sequential table containing all the players that it should set it for.  
 bool notransmit - If the entity should stop being transmitted.  
@@ -2042,6 +2044,41 @@ Restarts the channel.
 Computes the DFT of the sound channel.  
 What even is that.  
 
+## entitiylist
+This module just adds a lua class.
+
+### Functions
+
+#### EntityList CreateEntityList()
+Creates a new EntityList
+
+### EntityList
+
+#### string EntityList:\_\_tostring()
+Returns `EntityList [NULL]` if given invalid list.  
+Normally returns `EntityList [Entity number]`.  
+
+#### EntityList:\_\_gc()
+If called, it will free and nuke the entity list.  
+You should never use it after this was called.  
+
+#### table EntityList:GetTable()
+Returns a table with all the entities.  
+
+#### EntityList:SetTable(table entities)
+Sets the EntityList from the given table.  
+
+#### EntityList:AddTable(table entities)
+Adds the entities from the given table to the Entity list.  
+
+#### EntityList:RemoveTable(table entities)
+Removes the entities that are in the table from the Entity list.  
+
+#### EntityList:Add(Entity ent)
+Adds the given entity to the list.  
+
+#### EntityList:Remove(Entity ent)
+Removes the given entity from the list.  
 
 # Unfinished Modules
 

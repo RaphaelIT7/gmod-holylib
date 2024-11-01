@@ -351,6 +351,12 @@ LUA_FUNCTION_STATIC(pvs_AddEntityToPVS)
 
 			LUA->Pop(1);
 		}
+	} else if (Is_EntityList(1)) {
+		EntityList* entList = Get_EntityList(1, true);
+		for (CBaseEntity* ent : entList->pEntities)
+		{
+			AddEntityToPVS(ent);
+		}
 	} else {
 		CBaseEntity* ent = Util::Get_Entity(1, true);
 		AddEntityToPVS(ent);
@@ -411,6 +417,12 @@ LUA_FUNCTION_STATIC(pvs_OverrideStateFlags)
 			LUA->Pop(1);
 		}
 		LUA->Pop(1);
+	} else if (Is_EntityList(1)) {
+		EntityList* entList = Get_EntityList(1, true);
+		for (CBaseEntity* ent : entList->pEntities)
+		{
+			SetOverrideStateFlags(ent, flags, force);
+		}
 	} else {
 		CBaseEntity* ent = Util::Get_Entity(1, true);
 		SetOverrideStateFlags(ent, flags, force);
@@ -470,6 +482,12 @@ LUA_FUNCTION_STATIC(pvs_SetStateFlags)
 			LUA->Pop(1);
 		}
 		LUA->Pop(1);
+	} else if (Is_EntityList(1)) {
+		EntityList* entList = Get_EntityList(1, true);
+		for (CBaseEntity* ent : entList->pEntities)
+		{
+			SetStateFlags(ent, flags, force);
+		}
 	} else {
 		CBaseEntity* ent = Util::Get_Entity(1, true);
 		SetStateFlags(ent, flags, force);
@@ -544,6 +562,12 @@ LUA_FUNCTION_STATIC(pvs_RemoveEntityFromTransmit)
 		LUA->Pop(1);
 
 		LUA->PushBool(true);
+	} else if (Is_EntityList(1)) {
+		EntityList* entList = Get_EntityList(1, true);
+		for (CBaseEntity* ent : entList->pEntities)
+		{
+			RemoveEntityFromTransmit(ent);
+		}
 	} else {
 		CBaseEntity* ent = Util::Get_Entity(1, true);
 		LUA->PushBool(RemoveEntityFromTransmit(ent));
@@ -587,6 +611,12 @@ LUA_FUNCTION_STATIC(pvs_AddEntityToTransmit)
 			LUA->Pop(1);
 		}
 		LUA->Pop(1);
+	} else if (Is_EntityList(1)) {
+		EntityList* entList = Get_EntityList(1, true);
+		for (CBaseEntity* ent : entList->pEntities)
+		{
+			AddEntityToTransmit(ent, true);
+		}
 	} else {
 		CBaseEntity* ent = Util::Get_Entity(1, true);
 		AddEntityToTransmit(ent, force);
@@ -661,6 +691,20 @@ LUA_FUNCTION_STATIC(pvs_SetPreventTransmitBulk)
 			}
 
 			LUA->Pop(1);
+		}
+	} else if (Is_EntityList(1)) {
+		EntityList* entList = Get_EntityList(1, true);
+		for (CBaseEntity* ent : entList->pEntities)
+		{
+			if (filterplys.size() > 0)
+			{
+				for (CBasePlayer* pply : filterplys)
+				{
+					ent->GMOD_SetShouldPreventTransmitToPlayer(pply, notransmit);
+				}
+			} else {
+				ent->GMOD_SetShouldPreventTransmitToPlayer(ply, notransmit);
+			}
 		}
 	} else {
 		CBaseEntity* ent = Util::Get_Entity(1, true);

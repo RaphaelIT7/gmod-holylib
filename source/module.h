@@ -53,6 +53,8 @@ public:
 	virtual void Think(bool bSimulating);
 	virtual void Shutdown();
 	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax);
+	virtual void OnEdictAllocated(edict_t* pEdict);
+	virtual void OnEdictFreed(const edict_t* pEdict);
 
 	inline int GetStatus() { return m_pStatus; };
 	inline CreateInterfaceFn& GetAppFactory() { return m_pAppFactory; };

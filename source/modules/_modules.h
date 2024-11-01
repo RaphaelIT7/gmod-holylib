@@ -23,3 +23,4 @@ extern IModule* pSysTimerModule;
 extern IModule* pVoiceChatModule;
 extern IModule* pPhysEnvModule;
 extern IModule* pNetModule;
+extern IModule* pEntListModule;

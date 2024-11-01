@@ -3,6 +3,7 @@
 #include <sourcesdk/ILuaInterface.h>
 #include "Platform.hpp"
 #include "vprof.h"
+#include <unordered_map>
 
 #define DEDICATED
 #include "vstdlib/jobthread.h"
@@ -201,3 +202,11 @@ extern IRecipientFilter* Get_IRecipientFilter(int iStackPos, bool bError);
 
 class ConVar;
 extern ConVar* Get_ConVar(int iStackPos, bool bError);
+
+struct EntityList // entitylist module.
+{
+	std::vector<CBaseEntity*> pEntities;
+	std::unordered_map<int, CBaseEntity*> pEdictHash;
+};
+extern bool Is_EntityList(int iStackPos);
+extern EntityList* Get_EntityList(int iStackPos, bool bError);
