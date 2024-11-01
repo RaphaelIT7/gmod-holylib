@@ -182,6 +182,13 @@ static void Push_##className(className* var) \
 	} \
 }
 
+#define Vector_RemoveElement(vec, element) \
+{ \
+    auto _it = std::find((vec).begin(), (vec).end(), (element)); \
+    if (_it != (vec).end()) \
+        (vec).erase(_it); \
+}
+
 // Push functions from modules: 
 // ToDo: move this at a later point into a seperate file. Maybe into _modules?
 Vector* Get_Vector(int iStackPos, bool bError = true);

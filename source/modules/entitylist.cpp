@@ -10,7 +10,7 @@ public:
 	virtual void LuaShutdown() OVERRIDE;
 	virtual void OnEdictFreed(const edict_t* pEdict) OVERRIDE;
 	virtual const char* Name() { return "entitylist"; };
-	virtual int Compatibility() { return LINUX32 || LINUX64 || WINDOWS32 || WINDOWS64; };
+	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 };
 
 CEntListModule g_pEntListModule;
@@ -47,7 +47,7 @@ LUA_FUNCTION_STATIC(EntityList__gc)
 	if (pData)
 	{
 		pData->pEntities.clear();
-		pEntityLists.erase(std::remove(pEntityLists.begin(), pEntityLists.end(), pData), pEntityLists.end());
+		Vector_RemoveElement(pEntityLists, pData)
 	}
 
 	return 0;
@@ -147,7 +147,7 @@ LUA_FUNCTION_STATIC(EntityList_RemoveTable)
 		if (it == data->pEdictHash.end())
 			continue;
 
-		data->pEntities.erase(std::remove(data->pEntities.begin(), data->pEntities.end(), ent), data->pEntities.end());
+		Vector_RemoveElement(data->pEntities, ent)
 		data->pEdictHash.erase(it);
 
 		LUA->Pop(1);
@@ -182,7 +182,7 @@ LUA_FUNCTION_STATIC(EntityList_Remove)
 	if (it == data->pEdictHash.end())
 		return 0;
 
-	data->pEntities.erase(std::remove(data->pEntities.begin(), data->pEntities.end(), ent), data->pEntities.end());
+	Vector_RemoveElement(data->pEntities, ent)
 	data->pEdictHash.erase(serialNumber);
 
 	return 0;
@@ -204,7 +204,7 @@ void CEntListModule::OnEdictFreed(const edict_t* edict) // We want to remove inv
 		if (it == pList->pEdictHash.end())
 			continue;
 
-		pList->pEntities.erase(std::remove(pList->pEntities.begin(), pList->pEntities.end(), it->second), pList->pEntities.end());
+		Vector_RemoveElement(pList->pEntities, it->second)
 		pList->pEdictHash.erase(it);
 	}
 }

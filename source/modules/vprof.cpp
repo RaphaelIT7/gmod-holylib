@@ -545,6 +545,7 @@ static const char* AddOrGetString(const char* pString)
 	return it2->c_str();
 }
 
+#if 0
 typedef struct lua_Debug {
   int event;
   const char *name;
@@ -576,6 +577,7 @@ static void* hook_lj_BC_FUNCC(void* arg) // Find out the luajit function later.
 	void* ret = detour_lj_BC_FUNCC.GetTrampoline<Symbols::lj_BC_FUNCC>()(arg);
 	return ret;
 }
+#endif
 
 #ifdef ARCHITECTURE_X86_64
 Detouring::Hook detour_ThreadGetCurrentId;
