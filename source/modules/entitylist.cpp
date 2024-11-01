@@ -73,6 +73,7 @@ LUA_FUNCTION_STATIC(EntityList_GetTable)
 			if (!ent)
 				continue;
 
+			++idx;
 			LUA->PushNumber(idx);
 			Util::Push_Entity(ent);
 			LUA->SetTable(-3);
