@@ -740,15 +740,11 @@ LUA_FUNCTION_STATIC(pvs_FindInPVS) // Copy from pas.FindInPAS
 	VPROF_BUDGET("pvs.FindInPVS", VPROF_BUDGETGROUP_HOLYLIB);
 
 	Vector* orig;
-	LUA->CheckType(1, GarrysMod::Lua::Type::Vector);
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Vector))
 	{
 		orig = Get_Vector(1);
-	}
-	else {
-		LUA->CheckType(1, GarrysMod::Lua::Type::Entity);
-		CBaseEntity* ent = Util::Get_Entity(1, false);
-
+	} else {
+		CBaseEntity* ent = Util::Get_Entity(1, true);
 		orig = (Vector*)&ent->GetAbsOrigin(); // ToDo: This currently breaks the compile.
 	}
 
