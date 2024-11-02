@@ -534,9 +534,9 @@ LUA_FUNCTION_STATIC(pvs_GetStateFlags)
 	} else if (Is_EntityList(1)) {
 		LUA->CreateTable();
 		EntityList* entList = Get_EntityList(1, true);
-		for (CBaseEntity*& ent : entList->pEntities)
+		for (auto& [ent, ref] : entList->pEntReferences)
 		{
-			Util::Push_Entity(ent);
+			LUA->ReferencePush(ref);
 			LUA->PushNumber(GetStateFlags(ent, force));
 			LUA->RawSet(-3);
 		}
@@ -759,13 +759,13 @@ LUA_FUNCTION_STATIC(pvs_FindInPVS) // Copy from pas.FindInPAS
 	if (Util::pEntityList->IsEnabled())
 	{
 		UpdateGlobalEntityList();
-		for (CBaseEntity*& pEnt : g_pGlobalEntityList.pEntities)
+		for (auto& [pEnt, ref] : g_pGlobalEntityList.pEntReferences)
 		{
 			if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), Util::g_pCurrentCluster, sizeof(Util::g_pCurrentCluster)))
 			{
 				++idx;
 				LUA->PushNumber(idx);
-				Util::Push_Entity(pEnt);
+				LUA->ReferencePush(ref);
 				LUA->RawSet(-3);
 			}
 		}
@@ -835,9 +835,9 @@ LUA_FUNCTION_STATIC(pvs_TestPVS)
 	} else if (Is_EntityList(2)) {
 		EntityList* entList = Get_EntityList(2, true);
 		LUA->PreCreateTable(0, entList->pEntities.size());
-		for (CBaseEntity*& ent : entList->pEntities)
+		for (auto& [ent, ref] : entList->pEntReferences)
 		{
-			Util::Push_Entity(ent);
+			LUA->ReferencePush(ref);
 			LUA->PushBool(TestPVS(ent->GetAbsOrigin()));
 			LUA->RawSet(-3);
 		}

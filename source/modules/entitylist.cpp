@@ -89,11 +89,11 @@ LUA_FUNCTION_STATIC(EntityList_GetTable)
 
 	LUA->PreCreateTable(data->pEntities.size(), 0);
 		int idx = 0;
-		for (auto& pEnt : data->pEntities)
+		for (auto& [_, ref] : data->pEntReferences)
 		{
 			++idx;
 			LUA->PushNumber(idx);
-			Util::Push_Entity(pEnt);
+			LUA->ReferencePush(ref);
 			LUA->RawSet(-3);
 		}
 	return 1;
@@ -259,11 +259,19 @@ LUA_FUNCTION_STATIC(CreateEntityList)
 	return 1;
 }
 
+static bool bFirstInit = true;
 static std::unordered_set<edict_t*> pQueriedGlobalEdicts;
 void UpdateGlobalEntityList() // Should always be called before using the g_pGlobalEntityList. 
 {
 	if (pQueriedGlobalEdicts.size() > 0)
 	{
+		if (bFirstInit)
+		{
+			pQueriedGlobalEdicts.insert(Util::engineserver->PEntityOfEntIndex(0));
+			UpdateGlobalEntityList();
+			bFirstInit = false;
+		}
+
 		for (edict_t* edict : pQueriedGlobalEdicts)
 		{
 			CBaseEntity* ent = Util::GetCBaseEntityFromEdict(edict);
@@ -282,51 +290,6 @@ void UpdateGlobalEntityList() // Should always be called before using the g_pGlo
 LUA_FUNCTION_STATIC(GetGlobalEntityList)
 {
 	UpdateGlobalEntityList();
-	LUA->PreCreateTable(g_pGlobalEntityList.pEntities.size(), 0);
-		int idx = 0;
-		for (auto& pEnt : g_pGlobalEntityList.pEntities)
-		{
-			++idx;
-			LUA->PushNumber(idx);
-			Util::Push_Entity(pEnt);
-			LUA->RawSet(-3);
-		}
-	return 1;
-}
-
-LUA_FUNCTION_STATIC(GetGlobalEntityListRef)
-{
-	UpdateGlobalEntityList();
-	LUA->PreCreateTable(g_pGlobalEntityList.pEntities.size(), 0);
-		int idx = 0;
-		for (auto& pEnt : g_pGlobalEntityList.pEntities)
-		{
-			++idx;
-			LUA->PushNumber(idx);
-			LUA->ReferencePush(g_pGlobalEntityList.pEntReferences[pEnt]);
-			LUA->RawSet(-3);
-		}
-	return 1;
-}
-
-LUA_FUNCTION_STATIC(GetGlobalEntityListRef2)
-{
-	UpdateGlobalEntityList();
-	if (pQueriedGlobalEdicts.size() > 0)
-	{
-		for (edict_t* edict : pQueriedGlobalEdicts)
-		{
-			CBaseEntity* ent = Util::GetCBaseEntityFromEdict(edict);
-			if (!ent)
-				continue;
-
-			Util::Push_Entity(ent);
-			g_pGlobalEntityList.pEntReferences[ent] = g_Lua->ReferenceCreate();
-			g_pGlobalEntityList.pEntities.push_back(ent);
-			g_pGlobalEntityList.pEdictHash[edict->m_EdictIndex] = ent;
-		}
-	}
-
 	LUA->PreCreateTable(g_pGlobalEntityList.pEntities.size(), 0);
 		int idx = 0;
 		for (auto& [_, ref] : g_pGlobalEntityList.pEntReferences)
@@ -365,9 +328,6 @@ void CEntListModule::LuaInit(bool bServerInit)
 	if (bServerInit)
 		return;
 
-	pQueriedGlobalEdicts.insert(Util::engineserver->PEntityOfEntIndex(0));
-	UpdateGlobalEntityList();
-
 	EntityList_TypeID = g_Lua->CreateMetaTable("EntityList");
 		Util::AddFunc(EntityList__tostring, "__tostring");
 		Util::AddFunc(EntityList__index, "__index");
@@ -383,9 +343,6 @@ void CEntListModule::LuaInit(bool bServerInit)
 	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
 		Util::AddFunc(CreateEntityList, "CreateEntityList");
 		Util::AddFunc(GetGlobalEntityList, "GetGlobalEntityList");
-
-		Util::AddFunc(GetGlobalEntityListRef, "GetGlobalEntityListRef"); // Two test functions to test something.
-		Util::AddFunc(GetGlobalEntityListRef2, "GetGlobalEntityListRef2");
 	g_Lua->Pop(1);
 }
 
@@ -393,6 +350,7 @@ void CEntListModule::LuaShutdown()
 {
 	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
 		Util::RemoveField("CreateEntityList");
+		Util::RemoveField("GetGlobalEntityList");
 	g_Lua->Pop(1);
 	g_pGlobalEntityList.Clear();
 }

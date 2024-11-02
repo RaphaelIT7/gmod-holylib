@@ -31,8 +31,19 @@ CBasePlayer* Util::Get_Player(int iStackPos, bool bError) // bError = error if n
 	return NULL;
 }
 
+IModuleWrapper* Util::pEntityList;
 void Util::Push_Entity(CBaseEntity* pEnt)
 {
+	if (Util::pEntityList->IsEnabled()) // Push_Entity is quiet slow since it has so much overhead.
+	{
+		auto it = g_pGlobalEntityList.pEntReferences.find(pEnt);
+		if (it != g_pGlobalEntityList.pEntReferences.end()) // It should never happen that we don't have a reference... but just in case.
+		{
+			g_Lua->ReferencePush(it->second);
+			return;
+		}
+	}
+
 	if (func_PushEntity)
 		func_PushEntity(pEnt);
 }
@@ -127,7 +138,6 @@ CBaseEntity* Util::GetCBaseEntityFromEdict(edict_t* edict)
 }
 
 CBaseEntityList* g_pEntityList = NULL;
-IModuleWrapper* Util::pEntityList;
 void Util::AddDetour()
 {
 	if (g_pModuleManager.GetAppFactory())
