@@ -121,9 +121,6 @@ extern bf_write* GetActiveMessage();
 LUA_FUNCTION_STATIC(_EntityMessageBegin)
 {
 	CBaseEntity* pEnt = Util::Get_Entity(1, true);
-	if (!pEnt)
-		LUA->ArgError(1, "Tried to use a NULL entity!");
-
 	bool bReliable = LUA->GetBool(2);
 
 	if (!pBitBufWrapper->IsEnabled())
@@ -225,8 +222,6 @@ Symbols::CBaseAnimating_InvalidateBoneCache func_CBaseAnimating_InvalidateBoneCa
 LUA_FUNCTION_STATIC(InvalidateBoneCache)
 {
 	CBaseEntity* pEnt = Util::Get_Entity(1, true);
-	if (!pEnt)
-		LUA->ArgError(1, "Tried to use a NULL entity");
 
 	if (!func_CBaseAnimating_InvalidateBoneCache)
 		LUA->ThrowError("Failed to get CBaseAnimating::InvalidateBoneCache");

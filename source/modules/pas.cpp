@@ -39,8 +39,6 @@ LUA_FUNCTION_STATIC(pas_TestPAS) // This is based off SV_DetermineMulticastRecip
 	} else {
 		LUA->CheckType(1, GarrysMod::Lua::Type::Entity);
 		CBaseEntity* ent = Util::Get_Entity(1, false);
-		if (!ent)
-			LUA->ArgError(1, "Tried to use a NULL entity");
 
 		orig = (Vector*)&ent->GetAbsOrigin(); // ToDo: This currently breaks the compile.
 	}
@@ -53,8 +51,6 @@ LUA_FUNCTION_STATIC(pas_TestPAS) // This is based off SV_DetermineMulticastRecip
 	} else {
 		LUA->CheckType(2, GarrysMod::Lua::Type::Entity);
 		CBaseEntity* ent = Util::Get_Entity(2, false);
-		if (!ent)
-			LUA->ArgError(2, "Tried to use a NULL entity");
 
 		hearPos = (Vector*)&ent->GetAbsOrigin();
 	}

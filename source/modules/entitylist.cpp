@@ -97,12 +97,6 @@ LUA_FUNCTION_STATIC(EntityList_SetTable)
 	while (LUA->Next(-2))
 	{
 		CBaseEntity* ent = Util::Get_Entity(-1, true);
-		if (!ent) // I don't trust it yet.
-		{
-			LUA->Pop(1);
-			continue;
-		}
-
 		edict_t* edict = ent->edict();
 		if (!edict) // Not a networkable entity?
 		{
@@ -129,12 +123,6 @@ LUA_FUNCTION_STATIC(EntityList_AddTable)
 	while (LUA->Next(-2))
 	{
 		CBaseEntity* ent = Util::Get_Entity(-1, true);
-		if (!ent) // I don't trust it yet.
-		{
-			LUA->Pop(1);
-			continue;
-		}
-
 		edict_t* edict = ent->edict();
 		if (!edict) // Not a networkable entity?
 		{
@@ -168,12 +156,6 @@ LUA_FUNCTION_STATIC(EntityList_RemoveTable)
 	while (LUA->Next(-2))
 	{
 		CBaseEntity* ent = Util::Get_Entity(-1, true);
-		if (!ent) // I don't trust it yet.
-		{
-			LUA->Pop(1);
-			continue;
-		}
-
 		edict_t* edict = ent->edict();
 		if (!edict) // Not a networkable entity?
 		{
