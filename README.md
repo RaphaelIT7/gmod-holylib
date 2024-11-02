@@ -2054,7 +2054,6 @@ Creates a new EntityList.
 
 ### EntityList
 This class should remove some overhead since you can pass it to some functions.  
-> NOTE: You should never add serverside only entities since if they get deleted they will remain and cause issues/crashes.  
 
 #### string EntityList:\_\_tostring()
 Returns `EntityList [NULL]` if given invalid list.  

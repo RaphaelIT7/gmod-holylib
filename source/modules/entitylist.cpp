@@ -96,7 +96,17 @@ LUA_FUNCTION_STATIC(EntityList_SetTable)
 	{
 		CBaseEntity* ent = Util::Get_Entity(-1, true);
 		if (!ent) // I don't trust it yet.
-			continue; 
+		{
+			LUA->Pop(1);
+			continue;
+		}
+
+		edict_t* edict = ent->edict();
+		if (!edict) // Not a networkable entity?
+		{
+			LUA->Pop(1);
+			continue;
+		}
 
 		int serialNumber = ent->edict()->m_NetworkSerialNumber;
 		data->pEntities.push_back(ent);
@@ -118,12 +128,18 @@ LUA_FUNCTION_STATIC(EntityList_AddTable)
 	{
 		CBaseEntity* ent = Util::Get_Entity(-1, true);
 		if (!ent) // I don't trust it yet.
-			continue; 
+		{
+			LUA->Pop(1);
+			continue;
+		}
 
 		int serialNumber = ent->edict()->m_NetworkSerialNumber;
 		auto it = data->pEdictHash.find(serialNumber);
 		if (it != data->pEdictHash.end())
+		{
+			LUA->Pop(1);
 			continue;
+		}
 
 		data->pEntities.push_back(ent);
 		data->pEdictHash[serialNumber] = ent;
@@ -144,12 +160,18 @@ LUA_FUNCTION_STATIC(EntityList_RemoveTable)
 	{
 		CBaseEntity* ent = Util::Get_Entity(-1, true);
 		if (!ent) // I don't trust it yet.
-			continue; 
+		{
+			LUA->Pop(1);
+			continue;
+		}
 
 		int serialNumber = ent->edict()->m_NetworkSerialNumber;
 		auto it = data->pEdictHash.find(serialNumber);
 		if (it == data->pEdictHash.end())
+		{
+			LUA->Pop(1);
 			continue;
+		}
 
 		Vector_RemoveElement(data->pEntities, ent)
 		data->pEdictHash.erase(it);
@@ -164,8 +186,12 @@ LUA_FUNCTION_STATIC(EntityList_Add)
 {
 	EntityList* data = Get_EntityList(1, true);
 	CBaseEntity* ent = Util::Get_Entity(2, true);
+	edict_t* edict = ent->edict();
 
-	int serialNumber = ent->edict()->m_NetworkSerialNumber;
+	if (!edict)
+		return 0;
+
+	int serialNumber = edict->m_NetworkSerialNumber;
 	auto it = data->pEdictHash.find(serialNumber);
 	if (it == data->pEdictHash.end())
 		return 0;
@@ -180,8 +206,12 @@ LUA_FUNCTION_STATIC(EntityList_Remove)
 {
 	EntityList* data = Get_EntityList(1, true);
 	CBaseEntity* ent = Util::Get_Entity(2, true);
+	edict_t* edict = ent->edict();
 
-	int serialNumber = ent->edict()->m_NetworkSerialNumber;
+	if (!edict)
+		return 0;
+
+	int serialNumber = edict->m_NetworkSerialNumber;
 	auto it = data->pEdictHash.find(serialNumber);
 	if (it == data->pEdictHash.end())
 		return 0;
