@@ -110,7 +110,7 @@ LUA_FUNCTION_STATIC(EntityList_SetTable)
 			continue;
 		}
 
-		short edictIndex = ent->edict()->m_EdictIndex;
+		short edictIndex = edict->m_EdictIndex;
 		data->pEntities.push_back(ent);
 		data->pEdictHash[edictIndex] = ent;
 
@@ -135,7 +135,14 @@ LUA_FUNCTION_STATIC(EntityList_AddTable)
 			continue;
 		}
 
-		short edictIndex = ent->edict()->m_EdictIndex;
+		edict_t* edict = ent->edict();
+		if (!edict) // Not a networkable entity?
+		{
+			LUA->Pop(1);
+			continue;
+		}
+
+		short edictIndex = edict->m_EdictIndex;
 		auto it = data->pEdictHash.find(edictIndex);
 		if (it != data->pEdictHash.end())
 		{
@@ -167,7 +174,14 @@ LUA_FUNCTION_STATIC(EntityList_RemoveTable)
 			continue;
 		}
 
-		short edictIndex = ent->edict()->m_EdictIndex;
+		edict_t* edict = ent->edict();
+		if (!edict) // Not a networkable entity?
+		{
+			LUA->Pop(1);
+			continue;
+		}
+
+		short edictIndex = edict->m_EdictIndex;
 		auto it = data->pEdictHash.find(edictIndex);
 		if (it == data->pEdictHash.end())
 		{
