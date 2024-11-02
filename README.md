@@ -2066,6 +2066,7 @@ Creates a new EntityList.
 
 #### table GetGlobalEntityList()
 Returns all entities that are in the global entity list.  
+> NOTE: This will only contain networkable / networked entities.  
 
 ### EntityList
 This class should remove some overhead to improve performance since you can pass it to some functions.  
