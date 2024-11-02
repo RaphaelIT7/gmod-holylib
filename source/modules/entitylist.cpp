@@ -267,8 +267,13 @@ void UpdateGlobalEntityList() // Should always be called before using the g_pGlo
 	{
 		if (bFirstInit)
 		{
-			pQueriedGlobalEdicts.insert(Util::engineserver->PEntityOfEntIndex(0));
-			bFirstInit = false;
+			edict_t* edict = Util::engineserver->PEntityOfEntIndex(0);
+			CBaseEntity* ent = Util::GetCBaseEntityFromEdict(edict);
+			if (ent) // Verify that the world is valid. Only then we know that all Entities were hopefully created.
+			{
+				pQueriedGlobalEdicts.insert(edict);
+				bFirstInit = false;
+			}
 		}
 
 		for (edict_t* edict : pQueriedGlobalEdicts)

@@ -2056,7 +2056,8 @@ Computes the DFT of the sound channel.
 What even is that.  
 
 ## entitiylist
-This module just adds a lua class.
+This module just adds a lua class.  
+Only use their functions after entities were created or you might be missing entities in the returned tables!  
 
 ### Functions
 
