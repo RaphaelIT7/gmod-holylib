@@ -24,17 +24,22 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 3. Put the `gmsv_holylib_linux.so` into the `garrysmod/lua/bin/` directory.  
 
 ## Next Update
-- [+] Added entitylist module.  
-- [+] Added the `HolyLib:PreCheckTransmit` hook.  
-- [#] Fixed many issues with the `bass` module. It is acutally usable.  
-- [#] All `pvs.FL_EDICT_` enums changed.  
+\- [+] Added `entitylist` module.  
+\- \- [+] Many `pvs.*` function accept now a `EntityList`.  
+\- \- [+] `pas.TestPAS` accepts a `EntityList`.  
+\- \- [#] Improved `pas.FindInPAS` performance by using it internally if it's enabled.  
+\- [+] Added the `HolyLib:PreCheckTransmit` hook.  
+\- [+] Added `pvs.TestPVS` and `pvs.FindInPVS` functions to `pvs` module.  
+\- [#] Fixed many issues with the `bass` module. It is acutally usable.  
+\- [#] All `pvs.FL_EDICT_` enums changed.  
+\- [#] Improved performance by replacing SetTable with RawSet.  
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
 
 ### QoL updates
-- [#] Cleaned up code a bit  
-- [#] Switched away from the ILuaBase. All Lua functions now use ILuaInterface.  
+\- [#] Cleaned up code a bit  
+\- [#] Switched away from the ILuaBase. All Lua functions now use ILuaInterface.  
 
 ## ToDo
 \- Finish 64x (`pvs`, `sourcetv`, `surffix`)  
@@ -636,7 +641,15 @@ table ents - A sequential table containing all the entities that should be affec
 table plys - A sequential table containing all the players that it should set it for.  
 bool notransmit - If the entity should stop being transmitted.  
 
-Adds the given Entity to be transmitted.
+Adds the given Entity to be transmitted.  
+
+#### bool / table pvs.TestPVS(Vector origin, Entity ent / Vector pos / EntityList list)
+Returns `true` if the given entity / position is inside the PVS of the given origin.  
+If given a EntityList, it will return a table wich contains the result for each entity.  
+The key will be the entity and the value is the result.  
+
+#### table pvs.FindInPVS(Vector origin, Entity ent / Vector pos)
+Returns a table containing all entities that are inside the pvs.  
 
 ### Enums
 
@@ -660,8 +673,6 @@ Return `true` to cancel it.
 
 You could do the transmit stuff yourself inside this hook.  
 
-> NOTE: This hook is only called when `holylib_pvs_prechecktransmit` is enabled!  
-
 #### HolyLib:PostCheckTransmit(Entity ply, table entities)
 entity ply - The player that everything is transmitted to.  
 table enitites - The Entities that get transmitted. Only available if `holylib_pvs_postchecktransmit` is set to `2` or higher.  
@@ -669,9 +680,6 @@ table enitites - The Entities that get transmitted. Only available if `holylib_p
 > NOTE: This hook is only called when `holylib_pvs_postchecktransmit` is enabled!  
 
 ### ConVars
-
-#### holylib_pvs_prechecktransmit (default `0`)
-If enabled, it will add/call the `HolyLib:PreCheckTransmit` hook.  
 
 #### holylib_pvs_postchecktransmit (default `0`)
 If enabled, it will add/call the `HolyLib:PostCheckTransmit` hook.  
@@ -1715,12 +1723,15 @@ If you got an Idea for a function to add, feel free to comment it into [its issu
 
 ### Functions
 
-#### table pas.FindInPAS(Entity/Vector vec)
+#### table pas.FindInPAS(Entity ent / Vector vec)
 Returns a sequential table containing all entities in that PAS.  
 
-#### bool pas.TestPAS(Entity/Vector pas, Entity/Vector hearPos)
+#### bool / table pas.TestPAS(Entity ent / Vector pas / EntityList list, Entity / Vector hearPos)
 Tests if the give hear position is inside the given pas.  
 Returns `true` if it is.  
+
+If given a EntityList, it will return a table wich contains the result for each entity.  
+The key will be the entity and the value is the result.  
 
 #### bool pas.CheckBoxInPAS(Vector mins, Vector maxs, Vector pas)
 Checks if the given pox is inside the PAS.  
@@ -2052,8 +2063,12 @@ This module just adds a lua class.
 #### EntityList CreateEntityList()
 Creates a new EntityList.
 
+#### table GetGlobalEntityList()
+Returns all entities that are in the global entity list.  
+
 ### EntityList
-This class should remove some overhead since you can pass it to some functions.  
+This class should remove some overhead to improve performance since you can pass it to some functions.  
+It is also used by other modules to improve their performance if they have to loop thru all entities or push entities to lua.  
 
 #### string EntityList:\_\_tostring()
 Returns `EntityList [NULL]` if given invalid list.  

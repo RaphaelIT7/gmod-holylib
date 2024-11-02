@@ -11,7 +11,6 @@ class CPASModule : public IModule
 public:
 	virtual void LuaInit(bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown() OVERRIDE;
-	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "pas"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
 };
@@ -19,74 +18,63 @@ public:
 CPASModule g_pPASModule;
 IModule* pPASModule = &g_pPASModule;
 
-byte g_pCurrentPAS[MAX_MAP_LEAFS / 8];
-inline void ResetPAS()
+inline bool TestPAS(const Vector& hearPos)
 {
-	Q_memset(g_pCurrentPAS, 0, sizeof(g_pCurrentPAS));
+	return Util::engineserver->CheckOriginInPVS(hearPos, Util::g_pCurrentCluster, sizeof(Util::g_pCurrentCluster));
 }
 
-Symbols::CM_Vis func_CM_Vis = NULL;
-LUA_FUNCTION_STATIC(pas_TestPAS) // This is based off SV_DetermineMulticastRecipients
+LUA_FUNCTION_STATIC(pas_TestPAS)
 {
-	if (!func_CM_Vis)
-		LUA->ThrowError("Failed to load CM_Vis!");
-
 	Vector* orig;
 	LUA->CheckType(1, GarrysMod::Lua::Type::Vector);
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Vector))
 	{
 		orig = Get_Vector(1);
 	} else {
-		LUA->CheckType(1, GarrysMod::Lua::Type::Entity);
 		CBaseEntity* ent = Util::Get_Entity(1, false);
 
 		orig = (Vector*)&ent->GetAbsOrigin(); // ToDo: This currently breaks the compile.
 	}
 
-	Vector* hearPos;
+	Util::CM_Vis(*orig, DVIS_PAS);
+
 	LUA->CheckType(2, GarrysMod::Lua::Type::Vector);
 	if (LUA->IsType(2, GarrysMod::Lua::Type::Vector))
 	{
-		hearPos = Get_Vector(2);
+		LUA->PushBool(TestPAS(*Get_Vector(2)));
+	} else if (Is_EntityList(2)) {
+		LUA->CreateTable();
+		EntityList* entList = Get_EntityList(2, true);
+		for (CBaseEntity*& ent : entList->pEntities)
+		{
+			Util::Push_Entity(ent);
+			LUA->PushBool(TestPAS(ent->GetAbsOrigin()));
+			LUA->RawSet(-3);
+		}
 	} else {
 		LUA->CheckType(2, GarrysMod::Lua::Type::Entity);
 		CBaseEntity* ent = Util::Get_Entity(2, false);
 
-		hearPos = (Vector*)&ent->GetAbsOrigin();
+		LUA->PushBool(TestPAS(ent->GetAbsOrigin()));
 	}
 
-	ResetPAS();
-	func_CM_Vis(g_pCurrentPAS, sizeof(g_pCurrentPAS), engine->GetClusterForOrigin(*orig), DVIS_PAS);
-
-	LUA->PushBool(Util::engineserver->CheckOriginInPVS(*hearPos, g_pCurrentPAS, sizeof(g_pCurrentPAS)));
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(pas_CheckBoxInPAS) // This is based off SV_DetermineMulticastRecipients
+LUA_FUNCTION_STATIC(pas_CheckBoxInPAS)
 {
-	if (!func_CM_Vis)
-		LUA->ThrowError("Failed to load CM_Vis!");
+	Vector* mins = Get_Vector(1, true);
+	Vector* maxs = Get_Vector(2, true);
+	Vector* orig = Get_Vector(3, true);
 
-	LUA->CheckType(1, GarrysMod::Lua::Type::Vector);
-	LUA->CheckType(2, GarrysMod::Lua::Type::Vector);
-	LUA->CheckType(3, GarrysMod::Lua::Type::Vector);
+	Util::CM_Vis(*orig, DVIS_PAS);
 
-	Vector* mins = Get_Vector(1);
-	Vector* maxs = Get_Vector(2);
-	Vector* orig = Get_Vector(3);
-
-	ResetPAS();
-	func_CM_Vis(g_pCurrentPAS, sizeof(g_pCurrentPAS), engine->GetClusterForOrigin(*orig), DVIS_PAS);
-
-	LUA->PushBool(Util::engineserver->CheckBoxInPVS(*mins, *maxs, g_pCurrentPAS, sizeof(g_pCurrentPAS)));
+	LUA->PushBool(Util::engineserver->CheckBoxInPVS(*mins, *maxs, Util::g_pCurrentCluster, sizeof(Util::g_pCurrentCluster)));
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(pas_FindInPAS)
 {
-	if (!func_CM_Vis)
-		LUA->ThrowError("Failed to load CM_Vis!");
-
 	VPROF_BUDGET("pas.FindInPAS", VPROF_BUDGETGROUP_HOLYLIB);
 
 	Vector* orig;
@@ -98,27 +86,40 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 	else {
 		LUA->CheckType(1, GarrysMod::Lua::Type::Entity);
 		CBaseEntity* ent = Util::Get_Entity(1, false);
-		if (!ent)
-			LUA->ArgError(1, "Tried to use a NULL entity");
 
 		orig = (Vector*)&ent->GetAbsOrigin(); // ToDo: This currently breaks the compile.
 	}
 
-	ResetPAS();
-	func_CM_Vis(g_pCurrentPAS, sizeof(g_pCurrentPAS), Util::engineserver->GetClusterForOrigin(*orig), DVIS_PAS);
+	Util::CM_Vis(*orig, DVIS_PAS);
 
 	LUA->CreateTable();
 	int idx = 0;
+	if (Util::pEntityList->IsEnabled())
+	{
+		for (CBaseEntity*& pEnt : g_pGlobalEntityList.pEntities)
+		{
+			if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), Util::g_pCurrentCluster, sizeof(Util::g_pCurrentCluster)))
+			{
+				++idx;
+				LUA->PushNumber(idx);
+				// Since it should be a bit more rare that ALL entities are pushed we don't directly loop thru the map itself to benefit from the vector's performance.
+				Util::Push_Entity(pEnt);
+				LUA->RawSet(-3);
+			}
+		}
+		return 1;
+	}
+
 #if ARCHITECTURE_IS_X86
 	CBaseEntity* pEnt = Util::entitylist->FirstEnt();
 	while (pEnt != NULL)
 	{
-		if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), g_pCurrentPAS, sizeof(g_pCurrentPAS)))
+		if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), Util::g_pCurrentCluster, sizeof(Util::g_pCurrentCluster)))
 		{
 			++idx;
 			LUA->PushNumber(idx);
 			Util::Push_Entity(pEnt);
-			LUA->SetTable(-3);
+			LUA->RawSet(-3);
 		}
 
 		pEnt = Util::entitylist->NextEnt(pEnt);
@@ -132,12 +133,12 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 		if (!pEnt)
 			continue;
 
-		if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), g_pCurrentPAS, sizeof(g_pCurrentPAS)))
+		if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), Util::g_pCurrentCluster, sizeof(Util::g_pCurrentCluster)))
 		{
 			++idx;
 			LUA->PushNumber(idx);
 			Util::Push_Entity(pEnt);
-			LUA->SetTable(-3);
+			LUA->RawSet(-3);
 		}
 	}
 #endif
@@ -160,14 +161,4 @@ void CPASModule::LuaInit(bool bServerInit)
 void CPASModule::LuaShutdown()
 {
 	Util::NukeTable("pas");
-}
-
-void CPASModule::InitDetour(bool bPreServer)
-{
-	if (bPreServer)
-		return;
-
-	SourceSDK::FactoryLoader engine_loader("engine");
-	func_CM_Vis = (Symbols::CM_Vis)Detour::GetFunction(engine_loader.GetModule(), Symbols::CM_VisSym);
-	Detour::CheckFunction((void*)func_CM_Vis, "CM_Vis");
 }

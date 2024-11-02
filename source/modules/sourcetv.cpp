@@ -358,7 +358,7 @@ LUA_FUNCTION_STATIC(sourcetv_GetAll)
 			CHLTVClient* client = hltv->Client(i);
 			LUA->PushNumber(i+1);
 			Push_CHLTVClient(client);
-			LUA->SetTable(-3);
+			LUA->RawSet(-3);
 		}
 
 	return 1;
@@ -454,7 +454,7 @@ static bool hook_CHLTVClient_ExecuteStringCommand(CHLTVClient* hltvclient, const
 			{
 				g_Lua->PushNumber(i);
 				g_Lua->PushString(args.Arg(i));
-				g_Lua->SetTable(-3);
+				g_Lua->RawSet(-3);
 			}
 		g_Lua->PushString(args.ArgS());
 		if (g_Lua->CallFunctionProtected(5, 1, true))

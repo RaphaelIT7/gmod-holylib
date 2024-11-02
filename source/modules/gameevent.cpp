@@ -130,7 +130,7 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 					++idx;
 					LUA->PushNumber(idx);
 					LUA->PushString(descriptor.name, 32);
-					LUA->SetTable(-3);
+					LUA->RawSet(-3);
 					break;
 				}
 			}
@@ -167,13 +167,13 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 						++idx;
 						LUA->PushNumber(idx);
 						LUA->PushString(descriptor.name);
-						LUA->SetTable(-3);
+						LUA->RawSet(-3);
 						break;
 					}
 				}
 			}
 
-			LUA->SetTable(-3);
+			LUA->RawSet(-3);
 		}
 	}
 
@@ -291,7 +291,7 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 					++idx;
 					g_Lua->PushNumber(idx);
 					g_Lua->PushString(descriptor->name);
-					g_Lua->SetTable(-3);
+					g_Lua->RawSet(-3);
 				}
 			}
 		}

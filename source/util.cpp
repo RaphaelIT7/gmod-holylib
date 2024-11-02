@@ -69,7 +69,7 @@ CBaseClient* Util::GetClientByUserID(int userid)
 IVEngineServer* Util::engineserver = NULL;
 IServerGameEnts* Util::servergameents = NULL;
 IServerGameClients* Util::servergameclients = NULL;
-CBaseClient* Util::GetClientByPlayer(CBasePlayer* ply)
+CBaseClient* Util::GetClientByPlayer(const CBasePlayer* ply)
 {
 	return Util::GetClientByUserID(Util::engineserver->GetPlayerUserId(((CBaseEntity*)ply)->edict()));
 }
@@ -100,6 +100,21 @@ CBasePlayer* Util::GetPlayerByClient(CBaseClient* client)
 	return (CBasePlayer*)servergameents->EdictToBaseEntity(engineserver->PEntityOfEntIndex(client->GetPlayerSlot() + 1));
 }
 
+byte Util::g_pCurrentCluster[MAX_MAP_LEAFS / 8];
+void Util::ResetClusers()
+{
+	Q_memset(Util::g_pCurrentCluster, 0, sizeof(Util::g_pCurrentCluster));
+}
+
+Symbols::CM_Vis func_CM_Vis = NULL;
+void Util::CM_Vis(const Vector& orig, int type)
+{
+	Util::ResetClusers();
+
+	if (func_CM_Vis)
+		func_CM_Vis(Util::g_pCurrentCluster, sizeof(Util::g_pCurrentCluster), engine->GetClusterForOrigin(orig), type);
+}
+
 static Symbols::CBaseEntity_CalcAbsolutePosition func_CBaseEntity_CalcAbsolutePosition;
 void CBaseEntity::CalcAbsolutePosition(void)
 {
@@ -112,6 +127,7 @@ CBaseEntity* Util::GetCBaseEntityFromEdict(edict_t* edict)
 }
 
 CBaseEntityList* g_pEntityList = NULL;
+IModuleWrapper* Util::pEntityList;
 void Util::AddDetour()
 {
 	if (g_pModuleManager.GetAppFactory())
@@ -144,6 +160,12 @@ void Util::AddDetour()
 	Detour::CheckValue("get class", "g_pEntityList", g_pEntityList != NULL);
 	entitylist = (CGlobalEntityList*)g_pEntityList;
 #endif
+
+	SourceSDK::FactoryLoader engine_loader("engine");
+	func_CM_Vis = (Symbols::CM_Vis)Detour::GetFunction(engine_loader.GetModule(), Symbols::CM_VisSym);
+	Detour::CheckFunction((void*)func_CM_Vis, "CM_Vis");
+
+	pEntityList = g_pModuleManager.FindModuleByName("entitylist");
 
 	/*
 	 * IMPORTANT TODO

@@ -31,6 +31,7 @@ class CGlobalEntityList;
 class CUserMessages;
 class IServerGameClients;
 class IServerGameEnts;
+class IModuleWrapper;
 class IServer;
 namespace Util
 {
@@ -100,15 +101,19 @@ namespace Util
 	extern IServer* server;
 	extern CGlobalEntityList* entitylist;
 	extern CUserMessages* pUserMessages;
+	extern IModuleWrapper* pEntityList; // Other rely on this module.
 
 	extern CBaseEntity* GetCBaseEntityFromEdict(edict_t* edict);
 
-	extern CBaseClient* GetClientByPlayer(CBasePlayer* ply);
+	extern CBaseClient* GetClientByPlayer(const CBasePlayer* ply);
 	extern CBaseClient* GetClientByIndex(int index);
 	extern std::vector<CBaseClient*> GetClients();
 	extern CBasePlayer* GetPlayerByClient(CBaseClient* client);
-
+	extern void CM_Vis(const Vector& orig, int type);
+	extern void ResetClusers();
 	extern bool ShouldLoad();
+	#define MAX_MAP_LEAFS 65536
+	extern byte g_pCurrentCluster[MAX_MAP_LEAFS / 8];
 
 	inline void StartThreadPool(IThreadPool* pool, ThreadPoolStartParams_t& startParams)
 	{
@@ -212,8 +217,14 @@ extern ConVar* Get_ConVar(int iStackPos, bool bError);
 
 struct EntityList // entitylist module.
 {
+	EntityList();
+	~EntityList();
+	void Clear();
+	std::unordered_map<CBaseEntity*, int> pEntReferences;
 	std::vector<CBaseEntity*> pEntities;
 	std::unordered_map<short, CBaseEntity*> pEdictHash;
 };
+extern EntityList g_pGlobalEntityList;
+
 extern bool Is_EntityList(int iStackPos);
 extern EntityList* Get_EntityList(int iStackPos, bool bError);
