@@ -214,7 +214,7 @@ extern ConVar* Get_ConVar(int iStackPos, bool bError);
 struct EntityList // entitylist module.
 {
 	std::vector<CBaseEntity*> pEntities;
-	std::unordered_map<int, CBaseEntity*> pEdictHash;
+	std::unordered_map<short, CBaseEntity*> pEdictHash;
 };
 extern bool Is_EntityList(int iStackPos);
 extern EntityList* Get_EntityList(int iStackPos, bool bError);

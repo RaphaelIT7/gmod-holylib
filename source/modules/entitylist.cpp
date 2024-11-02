@@ -79,7 +79,7 @@ LUA_FUNCTION_STATIC(EntityList_GetTable)
 			LUA->SetTable(-3);
 
 			if (g_pEntListModule.InDebug())
-				Msg("holylib: NetworkSerialNumber_: %i, Index: %i\n", idx, ent->edict()->m_NetworkSerialNumber);
+				Msg("holylib: NetworkSerialNumber_: %i, Index: %h (%h)\n", idx, ent->edict()->m_NetworkSerialNumber, ent->edict()->GetChangeInfoSerialNumber());
 		}
 	return 1;
 }
@@ -108,7 +108,7 @@ LUA_FUNCTION_STATIC(EntityList_SetTable)
 			continue;
 		}
 
-		int serialNumber = ent->edict()->m_NetworkSerialNumber;
+		short serialNumber = ent->edict()->m_NetworkSerialNumber;
 		data->pEntities.push_back(ent);
 		data->pEdictHash[serialNumber] = ent;
 
@@ -133,7 +133,7 @@ LUA_FUNCTION_STATIC(EntityList_AddTable)
 			continue;
 		}
 
-		int serialNumber = ent->edict()->m_NetworkSerialNumber;
+		short serialNumber = ent->edict()->m_NetworkSerialNumber;
 		auto it = data->pEdictHash.find(serialNumber);
 		if (it != data->pEdictHash.end())
 		{
@@ -165,7 +165,7 @@ LUA_FUNCTION_STATIC(EntityList_RemoveTable)
 			continue;
 		}
 
-		int serialNumber = ent->edict()->m_NetworkSerialNumber;
+		short serialNumber = ent->edict()->m_NetworkSerialNumber;
 		auto it = data->pEdictHash.find(serialNumber);
 		if (it == data->pEdictHash.end())
 		{
@@ -191,7 +191,7 @@ LUA_FUNCTION_STATIC(EntityList_Add)
 	if (!edict)
 		return 0;
 
-	int serialNumber = edict->m_NetworkSerialNumber;
+	short serialNumber = edict->m_NetworkSerialNumber;
 	auto it = data->pEdictHash.find(serialNumber);
 	if (it == data->pEdictHash.end())
 		return 0;
@@ -211,7 +211,7 @@ LUA_FUNCTION_STATIC(EntityList_Remove)
 	if (!edict)
 		return 0;
 
-	int serialNumber = edict->m_NetworkSerialNumber;
+	short serialNumber = edict->m_NetworkSerialNumber;
 	auto it = data->pEdictHash.find(serialNumber);
 	if (it == data->pEdictHash.end())
 		return 0;
@@ -235,7 +235,7 @@ void CEntListModule::OnEdictFreed(const edict_t* edict) // We want to remove inv
 	for (EntityList* pList : pEntityLists)
 	{
 		if (g_pEntListModule.InDebug())
-			Msg("holylib: NetworkSerialNumber %i\n", edict->m_NetworkSerialNumber);
+			Msg("holylib: NetworkSerialNumber %h\n", edict->m_NetworkSerialNumber, edict->GetChangeInfoSerialNumber());
 
 		auto it = pList->pEdictHash.find(edict->m_NetworkSerialNumber);
 		if (it == pList->pEdictHash.end())
