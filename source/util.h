@@ -102,7 +102,6 @@ namespace Util
 	extern CUserMessages* pUserMessages;
 
 	extern CBaseEntity* GetCBaseEntityFromEdict(edict_t* edict);
-	extern edict_t* GetEdictOfEnt(CBaseEntity* entity);
 
 	extern CBaseClient* GetClientByPlayer(CBasePlayer* ply);
 	extern CBaseClient* GetClientByIndex(int index);

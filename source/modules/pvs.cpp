@@ -331,7 +331,7 @@ LUA_FUNCTION_STATIC(pvs_CheckBoxInPVS)
 
 static void AddEntityToPVS(CBaseEntity* ent)
 {
-	edict_t* edict = Util::GetEdictOfEnt(ent);
+	edict_t* edict = ent->edict();
 	if (edict)
 		g_pAddEntityToPVS.push_back(edict);
 	else
@@ -371,7 +371,7 @@ LUA_FUNCTION_STATIC(pvs_AddEntityToPVS)
 #define LUA_FL_EDICT_FULLCHECK 1 << 3
 static void SetOverrideStateFlags(CBaseEntity* ent, int flags, bool force)
 {
-	edict_t* edict = Util::GetEdictOfEnt(ent);
+	edict_t* edict = ent->edict();
 	if (!edict)
 		g_Lua->ThrowError("Failed to get edict?");
 
@@ -436,7 +436,7 @@ static void SetStateFlags(CBaseEntity* ent, int flags, bool force)
 	if (!ent)
 		g_Lua->ThrowError("Tried to use a NULL Entity!");
 
-	edict_t* edict = Util::GetEdictOfEnt(ent);
+	edict_t* edict = ent->edict();
 	if (!edict)
 		g_Lua->ThrowError("Failed to get edict?");
 
@@ -499,7 +499,7 @@ LUA_FUNCTION_STATIC(pvs_SetStateFlags)
 LUA_FUNCTION_STATIC(pvs_GetStateFlags)
 {
 	CBaseEntity* ent = Util::Get_Entity(1, true);
-	edict_t* edict = Util::GetEdictOfEnt(ent);
+	edict_t* edict = ent->edict();
 	if (!edict)
 		LUA->ThrowError("Failed to get edict?");
 
@@ -529,7 +529,7 @@ LUA_FUNCTION_STATIC(pvs_GetStateFlags)
 
 static bool RemoveEntityFromTransmit(CBaseEntity* ent)
 {
-	edict_t* edict = Util::GetEdictOfEnt(ent);
+	edict_t* edict = ent->edict();
 	if (!edict)
 		g_Lua->ThrowError("Failed to get edict?");
 

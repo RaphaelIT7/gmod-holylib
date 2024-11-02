@@ -85,7 +85,7 @@ LUA_FUNCTION_STATIC(FadeClientVolume)
 	if (!ent)
 		LUA->ArgError(1, "Tried to use a NULL player!");
 
-	edict_t* pEdict = Util::GetEdictOfEnt(ent);
+	edict_t* pEdict = ent->edict();
 	if (!pEdict)
 		LUA->ThrowError("How....");
 

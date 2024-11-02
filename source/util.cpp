@@ -59,7 +59,7 @@ IServerGameEnts* Util::servergameents = NULL;
 IServerGameClients* Util::servergameclients = NULL;
 CBaseClient* Util::GetClientByPlayer(CBasePlayer* ply)
 {
-	return Util::GetClientByUserID(Util::engineserver->GetPlayerUserId(Util::GetEdictOfEnt((CBaseEntity*)ply)));
+	return Util::GetClientByUserID(Util::engineserver->GetPlayerUserId(((CBaseEntity*)ply)->edict()));
 }
 
 CBaseClient* Util::GetClientByIndex(int index)
@@ -97,11 +97,6 @@ void CBaseEntity::CalcAbsolutePosition(void)
 CBaseEntity* Util::GetCBaseEntityFromEdict(edict_t* edict)
 {
 	return Util::servergameents->EdictToBaseEntity(edict);
-}
-
-edict_t* Util::GetEdictOfEnt(CBaseEntity* entity)
-{
-	return Util::servergameents->BaseEntityToEdict(entity);
 }
 
 CBaseEntityList* g_pEntityList = NULL;
