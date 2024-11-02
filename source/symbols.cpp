@@ -518,4 +518,11 @@ namespace Symbols
 	const std::vector<Symbol> g_StartedSym = {
 		Symbol::FromName("_ZL9g_Started"),
 	};
+
+	//---------------------------------------------------------------------------------
+	// Purpose: entitylist Symbols
+	//---------------------------------------------------------------------------------
+	const std::vector<Symbol> CBaseEntityList_RemoveEntitySym = {
+		Symbol::FromName("_ZN15CBaseEntityList12RemoveEntityE11CBaseHandle"),
+	};
 }

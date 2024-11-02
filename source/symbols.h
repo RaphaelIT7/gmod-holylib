@@ -32,6 +32,7 @@ class CSearchPath;
 class CSteam3Server;
 class IChangeFrameList;
 class IGameEvent;
+class CBaseHandle;
 
 namespace GarrysMod::Lua
 {
@@ -386,4 +387,10 @@ namespace Symbols
 	extern const std::vector<Symbol> g_NetIncomingSym; // bf_read*
 	extern const std::vector<Symbol> g_WriteSym; // bf_write*
 	extern const std::vector<Symbol> g_StartedSym; // bool
+
+	//---------------------------------------------------------------------------------
+	// Purpose: entitylist Symbols
+	//---------------------------------------------------------------------------------
+	typedef void (*CBaseEntityList_RemoveEntity)(void* basentlist, CBaseHandle handle);
+	extern const std::vector<Symbol> CBaseEntityList_RemoveEntitySym;
 }

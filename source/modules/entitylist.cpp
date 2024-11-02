@@ -1,4 +1,6 @@
 #include "LuaInterface.h"
+#include "detours.h"
+#include "symbols.h"
 #include "module.h"
 #include "lua.h"
 #include "player.h"
@@ -8,9 +10,9 @@ class CEntListModule : public IModule
 public:
 	virtual void LuaInit(bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown() OVERRIDE;
-	virtual void OnEdictFreed(const edict_t* pEdict) OVERRIDE;
+	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "entitylist"; };
-	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
+	virtual int Compatibility() { return LINUX32; };
 };
 
 CEntListModule g_pEntListModule;
@@ -79,7 +81,7 @@ LUA_FUNCTION_STATIC(EntityList_GetTable)
 			LUA->SetTable(-3);
 
 			if (g_pEntListModule.InDebug())
-				Msg("holylib: NetworkSerialNumber_: %i, Index: %i (%i)\n", idx, (int)ent->edict()->m_NetworkSerialNumber, (int)ent->edict()->GetChangeInfoSerialNumber());
+				Msg("holylib: NetworkSerialNumber_: %i, Index: %i\n", idx, (int)ent->edict()->m_NetworkSerialNumber);
 		}
 	return 1;
 }
@@ -230,20 +232,31 @@ LUA_FUNCTION_STATIC(EntitiyList_Create)
 	return 1;
 }
 
-void CEntListModule::OnEdictFreed(const edict_t* edict) // We want to remove invalid entities so that we can always safely use these lists.
+Detouring::Hook detour_CBaseEntityList_RemoveEntity; // We need this hook since our OnEdictFreed is called after the serialnumber was set to the invalid index.
+void hook_CBaseEntityList_RemoveEntity(void* pEntList, CBaseHandle handle) // We want to remove invalid entities so that we can always safely use these lists.
 {
+	CBaseEntity* ent = (CBaseEntity*)handle.Get();
+	if (!ent)
+	{
+		detour_CBaseEntityList_RemoveEntity.GetTrampoline<Symbols::CBaseEntityList_RemoveEntity>()(pEntList, handle);
+		return;
+	}
+
+	if (g_pEntListModule.InDebug())
+		Msg("holylib: Removing entity (%i)\n", ent->edict()->m_NetworkSerialNumber);
+
+	short serialNumber = ent->edict()->m_NetworkSerialNumber;
 	for (EntityList* pList : pEntityLists)
 	{
-		if (g_pEntListModule.InDebug())
-			Msg("holylib: NetworkSerialNumber %i %i\n", (int)edict->m_NetworkSerialNumber, (int)edict->GetChangeInfoSerialNumber());
-
-		auto it = pList->pEdictHash.find(edict->m_NetworkSerialNumber);
+		auto it = pList->pEdictHash.find(serialNumber);
 		if (it == pList->pEdictHash.end())
 			continue;
 
 		Vector_RemoveElement(pList->pEntities, it->second)
 		pList->pEdictHash.erase(it);
 	}
+
+	detour_CBaseEntityList_RemoveEntity.GetTrampoline<Symbols::CBaseEntityList_RemoveEntity>()(pEntList, handle);
 }
 
 void CEntListModule::LuaInit(bool bServerInit)
@@ -273,4 +286,17 @@ void CEntListModule::LuaShutdown()
 	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
 		Util::RemoveField("CreateEntityList");
 	g_Lua->Pop(1);
+}
+
+void CEntListModule::InitDetour(bool bPreServer)
+{
+	if (bPreServer)
+		return;
+
+	SourceSDK::ModuleLoader server_loader("server");
+	Detour::Create(
+		&detour_CBaseEntityList_RemoveEntity, "CBaseEntityList::RemoveEntity",
+		server_loader.GetModule(), Symbols::CBaseEntityList_RemoveEntitySym,
+		(void*)hook_CBaseEntityList_RemoveEntity, m_pID
+	);
 }
