@@ -268,7 +268,6 @@ void UpdateGlobalEntityList() // Should always be called before using the g_pGlo
 		if (bFirstInit)
 		{
 			pQueriedGlobalEdicts.insert(Util::engineserver->PEntityOfEntIndex(0));
-			UpdateGlobalEntityList();
 			bFirstInit = false;
 		}
 
