@@ -77,6 +77,9 @@ LUA_FUNCTION_STATIC(EntityList_GetTable)
 			LUA->PushNumber(idx);
 			Util::Push_Entity(ent);
 			LUA->SetTable(-3);
+
+			if (g_pEntListModule.InDebug())
+				Msg("holylib: NetworkSerialNumber_: %i, Index: %i\n", idx, ent->edict()->m_NetworkSerialNumber);
 		}
 	return 1;
 }
@@ -95,7 +98,7 @@ LUA_FUNCTION_STATIC(EntityList_SetTable)
 		if (!ent) // I don't trust it yet.
 			continue; 
 
-		int serialNumber = ent->GetRefEHandle().GetSerialNumber();
+		int serialNumber = ent->edict()->m_NetworkSerialNumber;
 		data->pEntities.push_back(ent);
 		data->pEdictHash[serialNumber] = ent;
 
@@ -117,7 +120,7 @@ LUA_FUNCTION_STATIC(EntityList_AddTable)
 		if (!ent) // I don't trust it yet.
 			continue; 
 
-		int serialNumber = ent->GetRefEHandle().GetSerialNumber();
+		int serialNumber = ent->edict()->m_NetworkSerialNumber;
 		auto it = data->pEdictHash.find(serialNumber);
 		if (it != data->pEdictHash.end())
 			continue;
@@ -143,7 +146,7 @@ LUA_FUNCTION_STATIC(EntityList_RemoveTable)
 		if (!ent) // I don't trust it yet.
 			continue; 
 
-		int serialNumber = ent->GetRefEHandle().GetSerialNumber();
+		int serialNumber = ent->edict()->m_NetworkSerialNumber;
 		auto it = data->pEdictHash.find(serialNumber);
 		if (it == data->pEdictHash.end())
 			continue;
@@ -162,7 +165,7 @@ LUA_FUNCTION_STATIC(EntityList_Add)
 	EntityList* data = Get_EntityList(1, true);
 	CBaseEntity* ent = Util::Get_Entity(2, true);
 
-	int serialNumber = ent->GetRefEHandle().GetSerialNumber();
+	int serialNumber = ent->edict()->m_NetworkSerialNumber;
 	auto it = data->pEdictHash.find(serialNumber);
 	if (it == data->pEdictHash.end())
 		return 0;
@@ -178,7 +181,7 @@ LUA_FUNCTION_STATIC(EntityList_Remove)
 	EntityList* data = Get_EntityList(1, true);
 	CBaseEntity* ent = Util::Get_Entity(2, true);
 
-	int serialNumber = ent->GetRefEHandle().GetSerialNumber();
+	int serialNumber = ent->edict()->m_NetworkSerialNumber;
 	auto it = data->pEdictHash.find(serialNumber);
 	if (it == data->pEdictHash.end())
 		return 0;
@@ -201,6 +204,9 @@ void CEntListModule::OnEdictFreed(const edict_t* edict) // We want to remove inv
 {
 	for (EntityList* pList : pEntityLists)
 	{
+		if (g_pEntListModule.InDebug())
+			Msg("holylib: NetworkSerialNumber %i\n", edict->m_NetworkSerialNumber);
+
 		auto it = pList->pEdictHash.find(edict->m_NetworkSerialNumber);
 		if (it == pList->pEdictHash.end())
 			continue;
