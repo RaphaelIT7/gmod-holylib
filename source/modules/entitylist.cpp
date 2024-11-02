@@ -11,6 +11,7 @@ public:
 	virtual void LuaInit(bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown() OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
+	virtual void OnEdictFreed(const edict_t* pEdict) OVERRIDE;
 	virtual const char* Name() { return "entitylist"; };
 	virtual int Compatibility() { return LINUX32; };
 };
@@ -81,7 +82,7 @@ LUA_FUNCTION_STATIC(EntityList_GetTable)
 			LUA->SetTable(-3);
 
 			if (g_pEntListModule.InDebug())
-				Msg("holylib: NetworkSerialNumber_: %i, Index: %i\n", idx, (int)ent->edict()->m_NetworkSerialNumber);
+				Msg("holylib: NetworkSerialNumber_: %i, Index: %i\n", idx, (int)ent->edict()->m_EdictIndex);
 		}
 	return 1;
 }
@@ -110,9 +111,9 @@ LUA_FUNCTION_STATIC(EntityList_SetTable)
 			continue;
 		}
 
-		short serialNumber = ent->edict()->m_NetworkSerialNumber;
+		short edictIndex = ent->edict()->m_EdictIndex;
 		data->pEntities.push_back(ent);
-		data->pEdictHash[serialNumber] = ent;
+		data->pEdictHash[edictIndex] = ent;
 
 		LUA->Pop(1);
 	}
@@ -135,8 +136,8 @@ LUA_FUNCTION_STATIC(EntityList_AddTable)
 			continue;
 		}
 
-		short serialNumber = ent->edict()->m_NetworkSerialNumber;
-		auto it = data->pEdictHash.find(serialNumber);
+		short edictIndex = ent->edict()->m_EdictIndex;
+		auto it = data->pEdictHash.find(edictIndex);
 		if (it != data->pEdictHash.end())
 		{
 			LUA->Pop(1);
@@ -144,7 +145,7 @@ LUA_FUNCTION_STATIC(EntityList_AddTable)
 		}
 
 		data->pEntities.push_back(ent);
-		data->pEdictHash[serialNumber] = ent;
+		data->pEdictHash[edictIndex] = ent;
 
 		LUA->Pop(1);
 	}
@@ -167,8 +168,8 @@ LUA_FUNCTION_STATIC(EntityList_RemoveTable)
 			continue;
 		}
 
-		short serialNumber = ent->edict()->m_NetworkSerialNumber;
-		auto it = data->pEdictHash.find(serialNumber);
+		short edictIndex = ent->edict()->m_EdictIndex;
+		auto it = data->pEdictHash.find(edictIndex);
 		if (it == data->pEdictHash.end())
 		{
 			LUA->Pop(1);
@@ -193,13 +194,13 @@ LUA_FUNCTION_STATIC(EntityList_Add)
 	if (!edict)
 		return 0;
 
-	short serialNumber = edict->m_NetworkSerialNumber;
-	auto it = data->pEdictHash.find(serialNumber);
+	short edictIndex = edict->m_EdictIndex;
+	auto it = data->pEdictHash.find(edictIndex);
 	if (it == data->pEdictHash.end())
 		return 0;
 
 	data->pEntities.push_back(ent);
-	data->pEdictHash[serialNumber] = ent;
+	data->pEdictHash[edictIndex] = ent;
 
 	return 0;
 }
@@ -213,13 +214,13 @@ LUA_FUNCTION_STATIC(EntityList_Remove)
 	if (!edict)
 		return 0;
 
-	short serialNumber = edict->m_NetworkSerialNumber;
-	auto it = data->pEdictHash.find(serialNumber);
+	short edictIndex = edict->m_EdictIndex;
+	auto it = data->pEdictHash.find(edictIndex);
 	if (it == data->pEdictHash.end())
 		return 0;
 
 	Vector_RemoveElement(data->pEntities, ent)
-	data->pEdictHash.erase(serialNumber);
+	data->pEdictHash.erase(edictIndex);
 
 	return 0;
 }
@@ -235,17 +236,10 @@ LUA_FUNCTION_STATIC(EntitiyList_Create)
 Detouring::Hook detour_CBaseEntityList_RemoveEntity; // We need this hook since our OnEdictFreed is called after the serialnumber was set to the invalid index.
 void hook_CBaseEntityList_RemoveEntity(void* pEntList, CBaseHandle handle) // We want to remove invalid entities so that we can always safely use these lists.
 {
-	CBaseEntity* ent = (CBaseEntity*)handle.Get();
-	if (!ent)
-	{
-		detour_CBaseEntityList_RemoveEntity.GetTrampoline<Symbols::CBaseEntityList_RemoveEntity>()(pEntList, handle);
-		return;
-	}
-
 	if (g_pEntListModule.InDebug())
-		Msg("holylib: Removing entity (%i)\n", ent->edict()->m_NetworkSerialNumber);
+		Msg("holylib: Removing entity (%i)\n", handle.GetEntryIndex());
 
-	short serialNumber = ent->edict()->m_NetworkSerialNumber;
+	short serialNumber = handle.GetEntryIndex();
 	for (EntityList* pList : pEntityLists)
 	{
 		auto it = pList->pEdictHash.find(serialNumber);
@@ -257,6 +251,12 @@ void hook_CBaseEntityList_RemoveEntity(void* pEntList, CBaseHandle handle) // We
 	}
 
 	detour_CBaseEntityList_RemoveEntity.GetTrampoline<Symbols::CBaseEntityList_RemoveEntity>()(pEntList, handle);
+}
+
+void CEntListModule::OnEdictFreed(const edict_t* edict)
+{
+	if (g_pEntListModule.InDebug())
+		Msg("holylib: Removing edict (%i)\n", edict->m_EdictIndex);
 }
 
 void CEntListModule::LuaInit(bool bServerInit)
