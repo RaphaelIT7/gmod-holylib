@@ -96,6 +96,7 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 	int idx = 0;
 	if (Util::pEntityList->IsEnabled())
 	{
+		UpdateGlobalEntityList();
 		for (CBaseEntity*& pEnt : g_pGlobalEntityList.pEntities)
 		{
 			if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), Util::g_pCurrentCluster, sizeof(Util::g_pCurrentCluster)))

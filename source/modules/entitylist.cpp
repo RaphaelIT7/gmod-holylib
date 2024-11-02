@@ -4,6 +4,7 @@
 #include "module.h"
 #include "lua.h"
 #include "player.h"
+#include "unordered_set"
 
 class CEntListModule : public IModule
 {
@@ -258,8 +259,29 @@ LUA_FUNCTION_STATIC(CreateEntityList)
 	return 1;
 }
 
+static std::unordered_set<edict_t*> pQueriedGlobalEdicts;
+void UpdateGlobalEntityList() // Should always be called before using the g_pGlobalEntityList. 
+{
+	if (pQueriedGlobalEdicts.size() > 0)
+	{
+		for (edict_t* edict : pQueriedGlobalEdicts)
+		{
+			CBaseEntity* ent = Util::GetCBaseEntityFromEdict(edict);
+			if (!ent)
+				continue;
+
+			Util::Push_Entity(ent);
+			g_pGlobalEntityList.pEntReferences[ent] = g_Lua->ReferenceCreate();
+			g_pGlobalEntityList.pEntities.push_back(ent);
+			g_pGlobalEntityList.pEdictHash[edict->m_EdictIndex] = ent;
+		}
+		pQueriedGlobalEdicts.clear();
+	}
+}
+
 LUA_FUNCTION_STATIC(GetGlobalEntityList)
 {
+	UpdateGlobalEntityList();
 	LUA->PreCreateTable(g_pGlobalEntityList.pEntities.size(), 0);
 		int idx = 0;
 		for (auto& pEnt : g_pGlobalEntityList.pEntities)
@@ -274,6 +296,7 @@ LUA_FUNCTION_STATIC(GetGlobalEntityList)
 
 LUA_FUNCTION_STATIC(GetGlobalEntityListRef)
 {
+	UpdateGlobalEntityList();
 	LUA->PreCreateTable(g_pGlobalEntityList.pEntities.size(), 0);
 		int idx = 0;
 		for (auto& pEnt : g_pGlobalEntityList.pEntities)
@@ -288,6 +311,22 @@ LUA_FUNCTION_STATIC(GetGlobalEntityListRef)
 
 LUA_FUNCTION_STATIC(GetGlobalEntityListRef2)
 {
+	UpdateGlobalEntityList();
+	if (pQueriedGlobalEdicts.size() > 0)
+	{
+		for (edict_t* edict : pQueriedGlobalEdicts)
+		{
+			CBaseEntity* ent = Util::GetCBaseEntityFromEdict(edict);
+			if (!ent)
+				continue;
+
+			Util::Push_Entity(ent);
+			g_pGlobalEntityList.pEntReferences[ent] = g_Lua->ReferenceCreate();
+			g_pGlobalEntityList.pEntities.push_back(ent);
+			g_pGlobalEntityList.pEdictHash[edict->m_EdictIndex] = ent;
+		}
+	}
+
 	LUA->PreCreateTable(g_pGlobalEntityList.pEntities.size(), 0);
 		int idx = 0;
 		for (auto& [_, ref] : g_pGlobalEntityList.pEntReferences)
@@ -312,24 +351,22 @@ void CEntListModule::OnEdictFreed(const edict_t* edict)
 		Vector_RemoveElement(pList->pEntities, it->second)
 		pList->pEdictHash.erase(it);
 	}
+
+	pQueriedGlobalEdicts.erase((edict_t*)edict);
 }
 
 void CEntListModule::OnEdictAllocated(edict_t* edict)
 {
-	CBaseEntity* ent = Util::GetCBaseEntityFromEdict(edict);
-	if (!ent)
-		return;
-
-	Util::Push_Entity(ent);
-	g_pGlobalEntityList.pEntReferences[ent] = g_Lua->ReferenceCreate();
-	g_pGlobalEntityList.pEntities.push_back(ent);
-	g_pGlobalEntityList.pEdictHash[edict->m_EdictIndex] = ent;
+	pQueriedGlobalEdicts.insert(edict); // The CBaseEntity wasn't linked yet to the edict_t. so we need to add it later.
 }
 
 void CEntListModule::LuaInit(bool bServerInit)
 {
 	if (bServerInit)
 		return;
+
+	pQueriedGlobalEdicts.insert(Util::engineserver->PEntityOfEntIndex(0));
+	UpdateGlobalEntityList();
 
 	EntityList_TypeID = g_Lua->CreateMetaTable("EntityList");
 		Util::AddFunc(EntityList__tostring, "__tostring");
