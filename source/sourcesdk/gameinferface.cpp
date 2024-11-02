@@ -204,3 +204,13 @@ void MessageWriteBits(const void* pIn, int nBits)
 
 	g_pMsgBuffer->WriteBits(pIn, nBits);
 }
+
+IChangeInfoAccessor *CBaseEdict::GetChangeAccessor()
+{
+	return engine->GetChangeAccessor( (const edict_t *)this );
+}
+
+const IChangeInfoAccessor *CBaseEdict::GetChangeAccessor() const
+{
+	return engine->GetChangeAccessor( (const edict_t *)this );
+}

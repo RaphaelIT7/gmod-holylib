@@ -79,7 +79,7 @@ LUA_FUNCTION_STATIC(EntityList_GetTable)
 			LUA->SetTable(-3);
 
 			if (g_pEntListModule.InDebug())
-				Msg("holylib: NetworkSerialNumber_: %i, Index: %h (%h)\n", idx, ent->edict()->m_NetworkSerialNumber, ent->edict()->GetChangeInfoSerialNumber());
+				Msg("holylib: NetworkSerialNumber_: %i, Index: %i (%i)\n", idx, (int)ent->edict()->m_NetworkSerialNumber, (int)ent->edict()->GetChangeInfoSerialNumber());
 		}
 	return 1;
 }
@@ -235,7 +235,7 @@ void CEntListModule::OnEdictFreed(const edict_t* edict) // We want to remove inv
 	for (EntityList* pList : pEntityLists)
 	{
 		if (g_pEntListModule.InDebug())
-			Msg("holylib: NetworkSerialNumber %h\n", edict->m_NetworkSerialNumber, edict->GetChangeInfoSerialNumber());
+			Msg("holylib: NetworkSerialNumber %i %i\n", (int)edict->m_NetworkSerialNumber, (int)edict->GetChangeInfoSerialNumber());
 
 		auto it = pList->pEdictHash.find(edict->m_NetworkSerialNumber);
 		if (it == pList->pEdictHash.end())
