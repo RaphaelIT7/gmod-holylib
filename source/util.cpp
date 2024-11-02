@@ -20,7 +20,13 @@ static Symbols::Get_Entity func_GetEntity;
 CBasePlayer* Util::Get_Player(int iStackPos, bool bError) // bError = error if not a valid player
 {
 	if (func_GetPlayer)
-		return func_GetPlayer(iStackPos, bError);
+	{
+		CBasePlayer* ply = func_GetPlayer(iStackPos, bError);
+		if (!ply && bError)
+			g_Lua->ThrowError("Tried to use a NULL Entity!");
+		
+		return ply;
+	}
 
 	return NULL;
 }
@@ -34,7 +40,13 @@ void Util::Push_Entity(CBaseEntity* pEnt)
 CBaseEntity* Util::Get_Entity(int iStackPos, bool bError)
 {
 	if (func_GetEntity)
-		return func_GetEntity(iStackPos, bError);
+	{
+		CBaseEntity* ent = func_GetEntity(iStackPos, bError);
+		if (!ent && bError)
+			g_Lua->ThrowError("Tried to use a NULL Entity!");
+		
+		return ent;
+	}
 
 	return NULL;
 }
