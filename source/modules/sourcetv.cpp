@@ -76,7 +76,17 @@ static void hook_CHLTVClient_Deconstructor(CHLTVClient* client)
 		g_Lua->Pop(1);
 		g_Lua->ReferenceFree(it->second);
 		g_pPushedCHLTVClient.erase(it);
+	} else {
+		if (g_pSourceTVLibModule.InDebug())
+		{
+			Msg("holylib: Failed to find CHLTVClient in map! (%p)\n", client);
+			Msg("Map: ");
+			for (auto& [pClient, _] : g_pPushedCHLTVClient)
+				Msg("%p ", pClient);
+			Msg("\n");
+		}
 	}
+
 	detour_CHLTVClient_Deconstructor.GetTrampoline<Symbols::CHLTVClient_Deconstructor>()(client);
 }
 
