@@ -46,6 +46,7 @@ static void hook_CNetworkStringTable_Deconstructor(INetworkStringTable* tbl)
 		g_Lua->ReferenceFree(it->second);
 		g_pPushedINetworkStringTable.erase(it);
 	}
+	detour_CNetworkStringTable_Deconstructor.GetTrampoline<Symbols::CNetworkStringTable_Deconstructor>()(tbl);
 }
 
 LUA_FUNCTION_STATIC(INetworkStringTable__tostring)

@@ -129,6 +129,10 @@ namespace Symbols
 		Symbol::FromName("_ZN11CHLTVClientD1Ev"),
 	};
 
+	const std::vector<Symbol> CHLTVDirector_StartNewShotSym = {
+		Symbol::FromName("_ZN13CHLTVDirector12StartNewShotEv"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: threadpoolfix Symbols
 	//---------------------------------------------------------------------------------

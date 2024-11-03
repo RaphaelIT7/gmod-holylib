@@ -33,6 +33,8 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- [#] Fixed many issues with the `bass` module. It is acutally usable.  
 \- [#] All `pvs.FL_EDICT_` enums changed.  
 \- [#] Improved performance by replacing SetTable with RawSet.  
+\- [#] Added missing calls to the deconstructors for `CHLTVClient` and `CNetworkStringTable`.  
+\- \- These missing calls could have caused some bugs or memory leaks.  
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main

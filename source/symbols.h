@@ -149,6 +149,9 @@ namespace Symbols
 	typedef void (GMCOMMON_CALLING_CONVENTION* CHLTVClient_Deconstructor)(void*);
 	extern const std::vector<Symbol> CHLTVClient_DeconstructorSym;
 
+	typedef void (GMCOMMON_CALLING_CONVENTION* CHLTVDirector_StartNewShot)(void* director);
+	extern const std::vector<Symbol> CHLTVDirector_StartNewShotSym;
+
 	extern const std::vector<Symbol> UsermessagesSym;
 
 	//---------------------------------------------------------------------------------

@@ -77,6 +77,7 @@ static void hook_CHLTVClient_Deconstructor(CHLTVClient* client)
 		g_Lua->ReferenceFree(it->second);
 		g_pPushedCHLTVClient.erase(it);
 	}
+	detour_CHLTVClient_Deconstructor.GetTrampoline<Symbols::CHLTVClient_Deconstructor>()(client);
 }
 
 LUA_FUNCTION_STATIC(HLTVClient__tostring)
