@@ -104,6 +104,12 @@ namespace Symbols
 	typedef void (GMCOMMON_CALLING_CONVENTION* GetGModServerTags)(char* pDest, int iMaxSize, bool unknown);
 	extern const std::vector<Symbol> GetGModServerTagsSym;
 
+	typedef void (GMCOMMON_CALLING_CONVENTION* CFuncLadder_PlayerGotOn)(void* ladder, void* ply);
+	extern const std::vector<Symbol> CFuncLadder_PlayerGotOnSym;
+
+	typedef void (GMCOMMON_CALLING_CONVENTION* CFuncLadder_PlayerGotOff)(void* ladder, void* ply);
+	extern const std::vector<Symbol> CFuncLadder_PlayerGotOffSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: gameevent Symbols
 	//---------------------------------------------------------------------------------

@@ -68,6 +68,16 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x4C\x8D\xAD\x30\xFF\xFF\xFF"), // 55 48 89 E5 41 57 41 56 41 55 4C 8D AD 30 FF FF FF
 	};
 
+	const std::vector<Symbol> CFuncLadder_PlayerGotOnSym = { // "reserved_spot" -> Find function -> Find Caller
+		Symbol::FromName("_ZN11CFuncLadder11PlayerGotOnEP11CBasePlayer"),
+		Symbol::FromSignature("\x55\x48\x89\xF2\x0F\x57\xC0\x48\x89\xE5"), // 55 48 89 F2 0F 57 C0 48 89 E5
+	};
+
+	const std::vector<Symbol> CFuncLadder_PlayerGotOffSym = { // "reserved_spot" -> Find function -> Find Caller
+		Symbol::FromName("_ZN11CFuncLadder12PlayerGotOffEP11CBasePlayer"),
+		Symbol::FromSignature("\x55\x48\x89\xF8\x48\x89\xF2\x48\x8D\xBF"), // 55 48 89 F8 48 89 F2 48 8D BF
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: gameevent Symbols
 	//---------------------------------------------------------------------------------

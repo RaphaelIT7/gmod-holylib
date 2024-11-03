@@ -28,7 +28,7 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- \- [+] Many `pvs.*` function accept now a `EntityList`.  
 \- \- [+] `pas.TestPAS` accepts a `EntityList`.  
 \- \- [#] Improved `pas.FindInPAS` performance by using it internally if it's enabled.  
-\- [+] Added the `HolyLib:PreCheckTransmit` hook.  
+\- [+] Added the `HolyLib:PreCheckTransmit`, `HolyLib:OnPlayerGot[On/Off]Ladder` hook.  
 \- [+] Added `pvs.TestPVS` and `pvs.FindInPVS` functions to `pvs` module.  
 \- [+] Added `HolyLib:OnSourceTVStartNewShot` hook to `sourcetv` module.  
 \- [#] Fixed many issues with the `bass` module. It is acutally usable.  
@@ -193,6 +193,12 @@ end)
 #### HolyLib:PostEntityConstructor(Entity ent, String className)
 Called before `CBaseEntity::PostConstructor` is called.  
 This should allow you to set the `EFL_SERVER_ONLY` flag properly.  
+
+#### HolyLib:OnPlayerGotOnLadder(Entity ladder, Entity ply)
+Called when a gets onto a ladder -> Direct bind to `CFuncLadder::PlayerGotOn`  
+
+#### HolyLib:OnPlayerGotOffLadder(Entity ladder, Entity ply)
+Called when a gets off a ladder -> Direct bind to `CFuncLadder::PlayerGotOff`  
 
 ## gameevent
 This module contains additional functions for the gameevent library.  

@@ -270,6 +270,32 @@ LUA_FUNCTION_STATIC(SetSignOnState)
 	return 1;
 }
 
+static Detouring::Hook detour_CFuncLadder_PlayerGotOn;
+static void hook_CFuncLadder_PlayerGotOn(CBaseEntity* pLadder, CBasePlayer* pPly)
+{
+	if (Lua::PushHook("HolyLib:OnPlayerGotOnLadder"))
+	{
+		Util::Push_Entity(pLadder);
+		Util::Push_Entity(pPly);
+		g_Lua->CallFunctionProtected(3, 0, true);
+	}
+
+	detour_CFuncLadder_PlayerGotOn.GetTrampoline<Symbols::CFuncLadder_PlayerGotOn>()(pLadder, pPly);
+}
+
+static Detouring::Hook detour_CFuncLadder_PlayerGotOff;
+static void hook_CFuncLadder_PlayerGotOff(CBaseEntity* pLadder, CBasePlayer* pPly)
+{
+	if (Lua::PushHook("HolyLib:OnPlayerGotOffLadder"))
+	{
+		Util::Push_Entity(pLadder);
+		Util::Push_Entity(pPly);
+		g_Lua->CallFunctionProtected(3, 0, true);
+	}
+
+	detour_CFuncLadder_PlayerGotOff.GetTrampoline<Symbols::CFuncLadder_PlayerGotOff>()(pLadder, pPly);
+}
+
 void CHolyLibModule::LuaInit(bool bServerInit)
 {
 	if (!bServerInit)
@@ -323,6 +349,18 @@ void CHolyLibModule::InitDetour(bool bPreServer)
 		&detour_CBaseEntity_PostConstructor, "CBaseEntity::PostConstructor",
 		server_loader.GetModule(), Symbols::CBaseEntity_PostConstructorSym,
 		(void*)hook_CBaseEntity_PostConstructor, m_pID
+	);
+
+	Detour::Create(
+		&detour_CFuncLadder_PlayerGotOn, "CFuncLadder::PlayerGotOn",
+		server_loader.GetModule(), Symbols::CFuncLadder_PlayerGotOnSym,
+		(void*)hook_CFuncLadder_PlayerGotOn, m_pID
+	);
+
+	Detour::Create(
+		&detour_CFuncLadder_PlayerGotOff, "CFuncLadder::PlayerGotOff",
+		server_loader.GetModule(), Symbols::CFuncLadder_PlayerGotOffSym,
+		(void*)hook_CFuncLadder_PlayerGotOff, m_pID
 	);
 
 	SourceSDK::ModuleLoader engine_loader("engine");
