@@ -167,7 +167,7 @@ LUA_FUNCTION_STATIC(HLTVClient_IsValid)
 {
 	CHLTVClient* client = Get_CHLTVClient(1, false);
 	
-	LUA->PushBool(client != NULL);
+	LUA->PushBool(client != NULL && client->IsConnected());
 	return 1;
 }
 
@@ -366,10 +366,14 @@ LUA_FUNCTION_STATIC(sourcetv_GetAll)
 		if (!hltv || !hltv->IsActive())
 			return 1;
 
-		for (int i=0; i< hltv->GetClientCount(); i++ )
+		int idx = 0;
+		for (int i=0; i< hltv->GetClientCount(); ++i)
 		{
 			CHLTVClient* client = hltv->Client(i);
-			LUA->PushNumber(i+1);
+			if (!client->IsConnected())
+				continue;
+
+			LUA->PushNumber(++idx);
 			Push_CHLTVClient(client);
 			LUA->RawSet(-3);
 		}
@@ -387,6 +391,9 @@ LUA_FUNCTION_STATIC(sourcetv_GetClient)
 		return 0;
 
 	CHLTVClient* client = hltv->Client(idx);
+	if (client && !client->IsConnected())
+		client = NULL;
+
 	Push_CHLTVClient(client);
 
 	return 1;
