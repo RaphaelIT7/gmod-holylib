@@ -7,6 +7,8 @@
 #include "sourcesdk/hltvserver.h"
 #include <unordered_map>
 #include "usermessages.h"
+class CUserCmd;
+#include "sourcesdk/hltvdirector.h"
 
 class CSourceTVLibModule : public IModule
 {
@@ -481,6 +483,34 @@ static bool hook_CHLTVClient_ExecuteStringCommand(CHLTVClient* hltvclient, const
 	return detour_CHLTVClient_ExecuteStringCommand.GetTrampoline<Symbols::CHLTVClient_ExecuteStringCommand>()(hltvclient, pCommandString);
 }
 
+extern CGlobalVars* gpGlobals;
+static Detouring::Hook detour_CHLTVDirector_StartNewShot;
+static void hook_CHLTVDirector_StartNewShot(CHLTVDirector* director)
+{
+	VPROF_BUDGET("HolyLib - CHLTVDirector::StartNewShot", VPROF_BUDGETGROUP_HOLYLIB);
+
+	if (Lua::PushHook("HolyLib:OnHLTVStartNewShot"))
+	{
+		if (g_Lua->CallFunctionProtected(1, 1, true))
+		{
+			bool bCancel = g_Lua->GetBool(-1);
+			g_Lua->Pop(1);
+
+			if (bCancel)
+			{
+				int smallestTick = MAX(0, gpGlobals->tickcount - TIME_TO_TICKS(HLTV_MAX_DELAY));
+				director->RemoveEventsFromHistory(smallestTick);
+
+				director->m_nNextShotTick = director->m_nBroadcastTick + TIME_TO_TICKS(MAX_SHOT_LENGTH);
+
+				return;
+			}
+		}
+	}
+
+	detour_CHLTVDirector_StartNewShot.GetTrampoline<Symbols::CHLTVDirector_StartNewShot>()(director);
+}
+
 void CSourceTVLibModule::LuaInit(bool bServerInit)
 {
 	if (bServerInit)
@@ -567,6 +597,13 @@ void CSourceTVLibModule::InitDetour(bool bPreServer)
 		&detour_CHLTVClient_Deconstructor, "CHLTVClient::~CHLTVClient",
 		engine_loader.GetModule(), Symbols::CHLTVClient_DeconstructorSym,
 		(void*)hook_CHLTVClient_Deconstructor, m_pID
+	);
+
+	SourceSDK::ModuleLoader server_loader("server");
+	Detour::Create(
+		&detour_CHLTVDirector_StartNewShot, "CHLTVDirector::StartNewShot",
+		server_loader.GetModule(), Symbols::CHLTVDirector_StartNewShotSym,
+		(void*)hook_CHLTVDirector_StartNewShot, m_pID
 	);
 
 	func_CHLTVDemoRecorder_StartRecording = (Symbols::CHLTVDemoRecorder_StartRecording)Detour::GetFunction(engine_loader.GetModule(), Symbols::CHLTVDemoRecorder_StartRecordingSym);
