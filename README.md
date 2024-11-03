@@ -30,11 +30,13 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- \- [#] Improved `pas.FindInPAS` performance by using it internally if it's enabled.  
 \- [+] Added the `HolyLib:PreCheckTransmit` hook.  
 \- [+] Added `pvs.TestPVS` and `pvs.FindInPVS` functions to `pvs` module.  
+\- [+] Added `HolyLib:OnSourceTVStartNewShot` hook to `sourcetv` module.  
 \- [#] Fixed many issues with the `bass` module. It is acutally usable.  
 \- [#] All `pvs.FL_EDICT_` enums changed.  
 \- [#] Improved performance by replacing SetTable with RawSet.  
 \- [#] Added missing calls to the deconstructors for `CHLTVClient` and `CNetworkStringTable`.  
 \- \- These missing calls could have caused some bugs or memory leaks.  
+\- [#] Fixed a bug with sourcetv where `CHLTVClients` could be NULL while being valid (#15)  1
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
@@ -1345,7 +1347,7 @@ net.Start("Example")
 net.SendToServer()
 ```
 
-#### HolyLib:OnSourceTVCommand(HLTVClient client, string cmd, table args, string argumentString)
+#### bool HolyLib:OnSourceTVCommand(HLTVClient client, string cmd, table args, string argumentString)
 Called when a HLTVClient sends a command.  
 return `true` to tell it that the command was handled in Lua.  
 
@@ -1358,6 +1360,10 @@ hook.Add("HolyLib:OnSourceTVCommand", "Example", function(client, name, args, ar
 	end
 end)
 ```
+
+#### bool HolyLib:OnSourceTVStartNewShot()
+Called when SourceTV tries to start a new shot.  
+Return `true` to cancel it.  
 
 ### ConVars
 

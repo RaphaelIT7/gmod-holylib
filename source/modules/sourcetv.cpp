@@ -94,7 +94,7 @@ static void hook_CHLTVClient_Deconstructor(CHLTVClient* client)
 LUA_FUNCTION_STATIC(HLTVClient__tostring)
 {
 	CHLTVClient* client = Get_CHLTVClient(1, false);
-	if (!client)
+	if (!client || client->IsConnected())
 	{
 		LUA->PushString("HLTVClient [NULL]");
 	} else {
@@ -495,7 +495,7 @@ static void hook_CHLTVDirector_StartNewShot(CHLTVDirector* director)
 {
 	VPROF_BUDGET("HolyLib - CHLTVDirector::StartNewShot", VPROF_BUDGETGROUP_HOLYLIB);
 
-	if (Lua::PushHook("HolyLib:OnHLTVStartNewShot"))
+	if (Lua::PushHook("HolyLib:OnSourceTVStartNewShot"))
 	{
 		if (g_Lua->CallFunctionProtected(1, 1, true))
 		{
