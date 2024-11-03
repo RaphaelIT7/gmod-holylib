@@ -32,6 +32,7 @@ class CUserMessages;
 class IServerGameClients;
 class IServerGameEnts;
 class IModuleWrapper;
+class IGameEventManager2;
 class IServer;
 namespace Util
 {
@@ -102,6 +103,7 @@ namespace Util
 	extern CGlobalEntityList* entitylist;
 	extern CUserMessages* pUserMessages;
 	extern IModuleWrapper* pEntityList; // Other rely on this module.
+	extern IGameEventManager2* gameeventmanager;
 
 	extern CBaseEntity* GetCBaseEntityFromEdict(edict_t* edict);
 

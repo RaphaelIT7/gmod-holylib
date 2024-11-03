@@ -7,7 +7,6 @@
 #include "sourcesdk/hltvserver.h"
 #include <unordered_map>
 #include "usermessages.h"
-class CUserCmd;
 #include "sourcesdk/hltvdirector.h"
 
 class CSourceTVLibModule : public IModule

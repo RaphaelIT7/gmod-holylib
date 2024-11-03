@@ -11,6 +11,7 @@
 #pragma once
 #endif
 
+class CUserCmd;
 #include "GameEventListener.h"
 #include <igamesystem.h>
 #include <ihltvdirector.h>

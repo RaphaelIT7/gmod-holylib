@@ -138,6 +138,7 @@ CBaseEntity* Util::GetCBaseEntityFromEdict(edict_t* edict)
 }
 
 CBaseEntityList* g_pEntityList = NULL;
+IGameEventManager2* Util::gameeventmanager;
 void Util::AddDetour()
 {
 	if (g_pModuleManager.GetAppFactory())
@@ -145,6 +146,9 @@ void Util::AddDetour()
 	else
 		engineserver = InterfacePointers::VEngineServer();
 	Detour::CheckValue("get interface", "IVEngineServer", engineserver != NULL);
+
+	gameeventmanager = (IGameEventManager2*)g_pModuleManager.GetAppFactory()(INTERFACEVERSION_GAMEEVENTSMANAGER2, NULL);
+	Detour::CheckValue("get interface", "IGameEventManager", gameeventmanager != NULL);
 
 	SourceSDK::FactoryLoader server_loader("server");
 	pUserMessages = Detour::ResolveSymbol<CUserMessages>(server_loader, Symbols::UsermessagesSym);
