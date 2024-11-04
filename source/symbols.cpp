@@ -79,7 +79,7 @@ namespace Symbols
 	};
 
 	const std::vector<Symbol> CHL2_Player_ExitLadderSym = {
-		Symbol::FromName("_ZN11CFuncLadder12PlayerGotOffEP11CBasePlayer"),
+		Symbol::FromName("_ZN11CHL2_Player10ExitLadderEv"),
 		NULL_SIGNATURE, // ToDo
 	};
 
