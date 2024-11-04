@@ -330,13 +330,15 @@ static bool bInMoveTypeCall = false; // If someone calls SetMoveType inside the 
 static Detouring::Hook detour_CBaseEntity_SetMoveType;
 static void hook_CBaseEntity_SetMoveType(CBaseEntity* pEnt, int iMoveType, int iMoveCollide)
 {
-	if (!bInMoveTypeCall && pEnt->GetMoveType() != iMoveType && Lua::PushHook("HolyLib:OnMoveTypeChange"))
+	int iCurrentMoveType = pEnt->GetMoveType();
+	if (!bInMoveTypeCall && iCurrentMoveType != iMoveType && Lua::PushHook("HolyLib:OnMoveTypeChange"))
 	{
 		Util::Push_Entity(pEnt);
+		g_Lua->PushNumber(iCurrentMoveType);
 		g_Lua->PushNumber(iMoveType);
 		g_Lua->PushNumber(iMoveCollide);
 		bInMoveTypeCall = true;
-		g_Lua->CallFunctionProtected(4, 0, true);
+		g_Lua->CallFunctionProtected(5, 0, true);
 		bInMoveTypeCall = false;
 	}
 
