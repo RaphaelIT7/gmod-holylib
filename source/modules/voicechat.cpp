@@ -6,7 +6,7 @@
 #include <netmessages.h>
 #include "sourcesdk/baseclient.h"
 #include "steam/isteamclient.h"
-#include "steam/isteamgameserver.h"
+#include <isteamutils.h>
 
 class CVoiceChatModule : public IModule
 {
@@ -14,7 +14,7 @@ public:
 	virtual void LuaInit(bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown() OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
-	virtual void Think(bool bSimulating) OVERRIDE;
+	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) OVERRIDE;
 	virtual void Shutdown() OVERRIDE;
 	virtual const char* Name() { return "voicechat"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
@@ -440,13 +440,32 @@ void CVoiceChatModule::InitDetour(bool bPreServer)
 	);
 }
 
-void CVoiceChatModule::Think(bool bSimulating)
+void TestMessageHook(int severity, const char *msg)
 {
-	if (!g_pSteamUser && SteamGameServer() && SteamGameServer()->BLoggedOn())
+	Msg("holylib - steamtest: %s (%i)", msg, severity);
+}
+
+void CVoiceChatModule::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
+{
+	if (!g_pSteamUser)
 	{
-		g_pSteamUser = SteamUser();
-		if (g_pSteamUser && g_pVoiceChatModule.InDebug())
-			Msg("holylib: SteamUser returned valid stuff?\n");
+		if (SteamUser())
+		{
+			g_pSteamUser = SteamUser();
+			if (g_pVoiceChatModule.InDebug())
+				Msg("holylib: SteamUser returned valid stuff?\n");
+			return;
+		}
+
+		ISteamClient* pSteamClient = SteamGameServerClient();
+
+		if (pSteamClient)
+		{
+			HSteamPipe hSteamPipe = pSteamClient->CreateSteamPipe();
+			HSteamUser hSteamUser = pSteamClient->CreateLocalUser(&hSteamPipe, k_EAccountTypeAnonUser);
+			g_pSteamUser = pSteamClient->GetISteamUser(hSteamUser, hSteamPipe, "SteamUser023");
+			SteamUtils()->SetWarningMessageHook(TestMessageHook);
+		}
 	}
 }
 
