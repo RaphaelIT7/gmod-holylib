@@ -78,6 +78,11 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x48\x89\xF8\x48\x89\xF2\x48\x8D\xBF"), // 55 48 89 F8 48 89 F2 48 8D BF
 	};
 
+	const std::vector<Symbol> CHL2_Player_ExitLadderSym = {
+		Symbol::FromName("_ZN11CFuncLadder12PlayerGotOffEP11CBasePlayer"),
+		NULL_SIGNATURE, // ToDo
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: gameevent Symbols
 	//---------------------------------------------------------------------------------

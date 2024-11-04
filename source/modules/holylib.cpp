@@ -11,6 +11,7 @@
 #include "netmessages.h"
 #include "net.h"
 #include "sourcesdk/baseclient.h"
+#include "hl2/hl2_player.h"
 
 class CHolyLibModule : public IModule
 {
@@ -296,6 +297,35 @@ static void hook_CFuncLadder_PlayerGotOff(CBaseEntity* pLadder, CBasePlayer* pPl
 	detour_CFuncLadder_PlayerGotOff.GetTrampoline<Symbols::CFuncLadder_PlayerGotOff>()(pLadder, pPly);
 }
 
+Symbols::CHL2_Player_ExitLadder func_CHL2_Player_ExitLadder;
+LUA_FUNCTION_STATIC(ExitLadder)
+{
+	CBasePlayer* pPly = Util::Get_Player(1, true);
+
+	if (!func_CHL2_Player_ExitLadder)
+		LUA->ThrowError("Failed to get CHL2_Player::ExitLadder");
+
+	func_CHL2_Player_ExitLadder(pPly);
+	return 0;
+}
+
+class CHL2GameMovement // Workaround to make the compiler happy since were not allowed to acces it but this is a friend class.
+{
+public:
+	static CBaseEntity* GetLadder(CHL2_Player* ply)
+	{
+		return ply->m_HL2Local.m_hLadder.Get();
+	}
+};
+
+LUA_FUNCTION_STATIC(GetLadder)
+{
+	CHL2_Player* pPly = (CHL2_Player*)Util::Get_Player(1, true);
+
+	Util::Push_Entity(CHL2GameMovement::GetLadder(pPly));
+	return 1;
+}
+
 void CHolyLibModule::LuaInit(bool bServerInit)
 {
 	if (!bServerInit)
@@ -310,6 +340,8 @@ void CHolyLibModule::LuaInit(bool bServerInit)
 			Util::AddFunc(IsMapValid, "IsMapValid");
 			Util::AddFunc(InvalidateBoneCache, "InvalidateBoneCache");
 			Util::AddFunc(SetSignOnState, "SetSignOnState");
+			Util::AddFunc(ExitLadder, "ExitLadder");
+			Util::AddFunc(GetLadder, "GetLadder");
 
 			// Networking stuff
 			Util::AddFunc(_EntityMessageBegin, "EntityMessageBegin");
@@ -372,4 +404,7 @@ void CHolyLibModule::InitDetour(bool bPreServer)
 
 	func_CBaseAnimating_InvalidateBoneCache = (Symbols::CBaseAnimating_InvalidateBoneCache)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseAnimating_InvalidateBoneCacheSym);
 	Detour::CheckFunction((void*)func_CBaseAnimating_InvalidateBoneCache, "CBaseAnimating::InvalidateBoneCache");
+
+	func_CHL2_Player_ExitLadder = (Symbols::CHL2_Player_ExitLadder)Detour::GetFunction(server_loader.GetModule(), Symbols::CHL2_Player_ExitLadderSym);
+	Detour::CheckFunction((void*)func_CHL2_Player_ExitLadder, "CHL2_Player::ExitLadder");
 }

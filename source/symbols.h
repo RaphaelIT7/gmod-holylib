@@ -110,6 +110,9 @@ namespace Symbols
 	typedef void (GMCOMMON_CALLING_CONVENTION* CFuncLadder_PlayerGotOff)(void* ladder, void* ply);
 	extern const std::vector<Symbol> CFuncLadder_PlayerGotOffSym;
 
+	typedef void (GMCOMMON_CALLING_CONVENTION* CHL2_Player_ExitLadder)(void* ply);
+	extern const std::vector<Symbol> CHL2_Player_ExitLadderSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: gameevent Symbols
 	//---------------------------------------------------------------------------------

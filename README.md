@@ -29,8 +29,9 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- \- [+] `pas.TestPAS` accepts a `EntityList`.  
 \- \- [#] Improved `pas.FindInPAS` performance by using it internally if it's enabled.  
 \- [+] Added the `HolyLib:PreCheckTransmit`, `HolyLib:OnPlayerGot[On/Off]Ladder` hook.  
-\- [+] Added `pvs.TestPVS` and `pvs.FindInPVS` functions to `pvs` module.  
 \- [+] Added `HolyLib:OnSourceTVStartNewShot` hook to `sourcetv` module.  
+\- [+] Added `pvs.TestPVS` and `pvs.FindInPVS` functions to `pvs` module.  
+\- [+] Added `HolyLib.ExitLadder` and `HolyLib.GetLadder` to `holylib` module.  
 \- [#] Fixed many issues with the `bass` module. It is acutally usable.  
 \- [#] All `pvs.FL_EDICT_` enums changed.  
 \- [#] Improved performance by replacing SetTable with RawSet.  
@@ -167,6 +168,12 @@ Invalidates the bone cache of the given entity.
 #### bool HolyLib.SetSignonState(Player/number ply/userid, number signOnState, number spawnCount)
 Sets the SignOnState for the given client.  
 Returns `true` on success.  
+
+#### (Experimental) HolyLib.ExitLadder(Player ply)
+Forces the player off the ladder.  
+
+#### (Experimental) Entity HolyLib.GetLadder(Player ply)
+Returns the Ladder the player is currently on.  
 
 ### Hooks
 
