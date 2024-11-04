@@ -219,7 +219,7 @@ static void hook_GetGModServerTags(char* pDest, int iMaxLength, bool bUnknown)
 	detour_GetGModServerTags.GetTrampoline<Symbols::GetGModServerTags>()(pDest, iMaxLength, bUnknown);
 }
 
-Symbols::CBaseAnimating_InvalidateBoneCache func_CBaseAnimating_InvalidateBoneCache;
+static Symbols::CBaseAnimating_InvalidateBoneCache func_CBaseAnimating_InvalidateBoneCache;
 LUA_FUNCTION_STATIC(InvalidateBoneCache)
 {
 	CBaseEntity* pEnt = Util::Get_Entity(1, true);
@@ -297,7 +297,7 @@ static void hook_CFuncLadder_PlayerGotOff(CBaseEntity* pLadder, CBasePlayer* pPl
 	detour_CFuncLadder_PlayerGotOff.GetTrampoline<Symbols::CFuncLadder_PlayerGotOff>()(pLadder, pPly);
 }
 
-Symbols::CHL2_Player_ExitLadder func_CHL2_Player_ExitLadder;
+static Symbols::CHL2_Player_ExitLadder func_CHL2_Player_ExitLadder;
 LUA_FUNCTION_STATIC(ExitLadder)
 {
 	CBasePlayer* pPly = Util::Get_Player(1, true);
@@ -314,7 +314,7 @@ class CHL2GameMovement // Workaround to make the compiler happy since were not a
 public:
 	static CBaseEntity* GetLadder(CHL2_Player* ply)
 	{
-		return ply->m_HL2Local.m_hLadder.Get(); // Make m_HL2Local a public member and verify that the var offset is right on 64x.  
+		return ply->m_HL2Local.m_hLadder.Get(); // Make m_HL2Local a public member and verify that the var offset is right on 64x.  BUG: Seems to be not workling? Verify the offsets °---°
 	}
 };
 
