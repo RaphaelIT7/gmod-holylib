@@ -87,6 +87,11 @@ namespace Symbols
 		NULL_SIGNATURE, // ToDo
 	};
 
+	const std::vector<Symbol> CBaseEntity_SetMoveTypeSym = {
+		Symbol::FromName("_ZN11CBaseEntity11SetMoveTypeE10MoveType_t13MoveCollide_t"),
+		NULL_SIGNATURE, // ToDo
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: gameevent Symbols
 	//---------------------------------------------------------------------------------

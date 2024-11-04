@@ -115,6 +115,9 @@ namespace Symbols
 	typedef void (GMCOMMON_CALLING_CONVENTION* CHL2_Player_ExitLadder)(void* ply);
 	extern const std::vector<Symbol> CHL2_Player_ExitLadderSym;
 
+	typedef void (GMCOMMON_CALLING_CONVENTION* CBaseEntity_SetMoveType)(void* ent, int, int);
+	extern const std::vector<Symbol> CBaseEntity_SetMoveTypeSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: gameevent Symbols
 	//---------------------------------------------------------------------------------

@@ -28,7 +28,7 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- \- [+] Many `pvs.*` function accept now a `EntityList`.  
 \- \- [+] `pas.TestPAS` accepts a `EntityList`.  
 \- \- [#] Improved `pas.FindInPAS` performance by using it internally if it's enabled.  
-\- [+] Added the `HolyLib:PreCheckTransmit`, `HolyLib:OnPlayerGot[On/Off]Ladder` hook.  
+\- [+] Added the `HolyLib:PreCheckTransmit`, `HolyLib:OnPlayerGot[On/Off]Ladder`, `HolyLib:OnMoveTypeChange` hook.  
 \- [+] Added `HolyLib:OnSourceTVStartNewShot` hook to `sourcetv` module.  
 \- [+] Added `pvs.TestPVS` and `pvs.FindInPVS` functions to `pvs` module.  
 \- [+] Added `HolyLib.ExitLadder` and `HolyLib.GetLadder` to `holylib` module.  
@@ -206,6 +206,10 @@ Called when a gets onto a ladder -> Direct bind to `CFuncLadder::PlayerGotOn`
 
 #### HolyLib:OnPlayerGotOffLadder(Entity ladder, Entity ply)
 Called when a gets off a ladder -> Direct bind to `CFuncLadder::PlayerGotOff`  
+
+#### HolyLib:OnMoveTypeChange(Entity ent, int moveType, int moveCollide)
+Called when the movetype is about to change.  
+If you call `Entity:SetMoveType` on the current entity inside this hook, it would have no effect.  
 
 ## gameevent
 This module contains additional functions for the gameevent library.  

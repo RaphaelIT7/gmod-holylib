@@ -326,6 +326,23 @@ LUA_FUNCTION_STATIC(GetLadder)
 	return 1;
 }
 
+static bool bInMoveTypeCall = false; // If someone calls SetMoveType inside the hook, we don't want a black hole to form.
+static Detouring::Hook detour_CBaseEntity_SetMoveType;
+static void hook_CBaseEntity_SetMoveType(CBaseEntity* pEnt, int iMoveType, int iMoveCollide)
+{
+	if (!bInMoveTypeCall && pEnt->GetMoveType() != iMoveType && Lua::PushHook("HolyLib:OnMoveTypeChange"))
+	{
+		Util::Push_Entity(pEnt);
+		g_Lua->PushNumber(iMoveType);
+		g_Lua->PushNumber(iMoveCollide);
+		bInMoveTypeCall = true;
+		g_Lua->CallFunctionProtected(4, 0, true);
+		bInMoveTypeCall = false;
+	}
+
+	detour_CBaseEntity_SetMoveType.GetTrampoline<Symbols::CBaseEntity_SetMoveType>()(pEnt, iMoveType, iMoveCollide);
+}
+
 void CHolyLibModule::LuaInit(bool bServerInit)
 {
 	if (!bServerInit)
@@ -393,6 +410,12 @@ void CHolyLibModule::InitDetour(bool bPreServer)
 		&detour_CFuncLadder_PlayerGotOff, "CFuncLadder::PlayerGotOff",
 		server_loader.GetModule(), Symbols::CFuncLadder_PlayerGotOffSym,
 		(void*)hook_CFuncLadder_PlayerGotOff, m_pID
+	);
+
+	Detour::Create(
+		&detour_CBaseEntity_SetMoveType, "CBaseEntity::SetMoveType",
+		server_loader.GetModule(), Symbols::CBaseEntity_SetMoveTypeSym,
+		(void*)hook_CBaseEntity_SetMoveType, m_pID
 	);
 
 	SourceSDK::ModuleLoader engine_loader("engine");
