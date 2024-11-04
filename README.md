@@ -207,7 +207,7 @@ Called when a gets onto a ladder -> Direct bind to `CFuncLadder::PlayerGotOn`
 #### HolyLib:OnPlayerGotOffLadder(Entity ladder, Entity ply)
 Called when a gets off a ladder -> Direct bind to `CFuncLadder::PlayerGotOff`  
 
-#### HolyLib:OnMoveTypeChange(Entity ent, number old_MoveType, number new_moveType, number moveCollide)
+#### HolyLib:OnMoveTypeChange(Entity ent, number old_moveType, number new_moveType, number moveCollide)
 Called when the movetype is about to change.  
 If you call `Entity:SetMoveType` on the current entity inside this hook, it would have no effect.  
 
