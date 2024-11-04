@@ -6,6 +6,7 @@
 #include <netmessages.h>
 #include "sourcesdk/baseclient.h"
 #include "steam/isteamclient.h"
+#include "steam/isteamgameserver.h"
 
 class CVoiceChatModule : public IModule
 {
@@ -13,7 +14,7 @@ public:
 	virtual void LuaInit(bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown() OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
-	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) OVERRIDE;
+	virtual void Think(bool bSimulating) OVERRIDE;
 	virtual void Shutdown() OVERRIDE;
 	virtual const char* Name() { return "voicechat"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
@@ -126,7 +127,7 @@ LUA_FUNCTION_STATIC(VoiceData_GetData)
 	return 1;
 }
 
-ISteamUser* g_pSteamUser;
+static ISteamUser* g_pSteamUser;
 LUA_FUNCTION_STATIC(VoiceData_GetUncompressedData)
 {
 	VoiceData* pData = Get_VoiceData(1, true);
@@ -439,28 +440,13 @@ void CVoiceChatModule::InitDetour(bool bPreServer)
 	);
 }
 
-void CVoiceChatModule::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
+void CVoiceChatModule::Think(bool bSimulating)
 {
-	if (!g_pSteamUser)
+	if (!g_pSteamUser && SteamGameServer() && SteamGameServer()->BLoggedOn())
 	{
-		if (SteamUser())
-		{
-			g_pSteamUser = SteamUser();
-			if (g_pVoiceChatModule.InDebug())
-				Msg("holylib: SteamUser returned valid stuff?\n");
-			return;
-		}
-
-		ISteamClient* pSteamClient = SteamGameServerClient();
-
-		if (pSteamClient)
-		{ // BUG: This also seems to do some weird stuff on x86? What is happening with steam....
-#if ARCHITECTURE_IS_X86 // BUG: This makes 64x unstable for some reason..... fk....
-			HSteamPipe hSteamPipe = pSteamClient->CreateSteamPipe();
-			HSteamUser hSteamUser = pSteamClient->CreateLocalUser(&hSteamPipe, k_EAccountTypeAnonUser);
-			g_pSteamUser = pSteamClient->GetISteamUser(hSteamUser, hSteamPipe, "SteamUser023");
-#endif
-		}
+		g_pSteamUser = SteamUser();
+		if (g_pSteamUser && g_pVoiceChatModule.InDebug())
+			Msg("holylib: SteamUser returned valid stuff?\n");
 	}
 }
 
