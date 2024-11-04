@@ -95,6 +95,8 @@ namespace Symbols
 	typedef void (*CBaseEntity_PostConstructor)(void* ent, const char* szClassname);
 	extern const std::vector<Symbol> CBaseEntity_PostConstructorSym;
 
+	extern const std::vector<Symbol> CGetSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: holylib Symbols
 	//---------------------------------------------------------------------------------

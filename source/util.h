@@ -24,6 +24,7 @@ extern IVEngineServer* engine;
 extern GarrysMod::Lua::ILuaInterface* g_Lua;
 
 struct edict_t;
+class IGet;
 class CBaseEntity;
 class CBasePlayer;
 class CBaseClient;
@@ -104,6 +105,7 @@ namespace Util
 	extern CUserMessages* pUserMessages;
 	extern IModuleWrapper* pEntityList; // Other rely on this module.
 	extern IGameEventManager2* gameeventmanager;
+	extern IGet* get;
 
 	extern CBaseEntity* GetCBaseEntityFromEdict(edict_t* edict);
 

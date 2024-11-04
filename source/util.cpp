@@ -137,6 +137,7 @@ CBaseEntity* Util::GetCBaseEntityFromEdict(edict_t* edict)
 	return Util::servergameents->EdictToBaseEntity(edict);
 }
 
+IGet* Util::get;
 CBaseEntityList* g_pEntityList = NULL;
 IGameEventManager2* Util::gameeventmanager;
 void Util::AddDetour()
@@ -173,6 +174,9 @@ void Util::AddDetour()
 	g_pEntityList = Detour::ResolveSymbol<CBaseEntityList>(server_loader, Symbols::g_pEntityListSym);
 	Detour::CheckValue("get class", "g_pEntityList", g_pEntityList != NULL);
 	entitylist = (CGlobalEntityList*)g_pEntityList;
+
+	get = Detour::ResolveSymbol<IGet>(server_loader, Symbols::CGetSym);
+	Detour::CheckValue("get class", "IGet", get != NULL);
 #endif
 
 	SourceSDK::FactoryLoader engine_loader("engine");

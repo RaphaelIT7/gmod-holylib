@@ -6,7 +6,7 @@
 #include <netmessages.h>
 #include "sourcesdk/baseclient.h"
 #include "steam/isteamclient.h"
-#include <isteamutils.h>
+#include "GarrysMod/IGet.h"
 
 class CVoiceChatModule : public IModule
 {
@@ -440,11 +440,6 @@ void CVoiceChatModule::InitDetour(bool bPreServer)
 	);
 }
 
-void TestMessageHook(int severity, const char *msg)
-{
-	Msg("holylib - steamtest: %s (%i)", msg, severity);
-}
-
 void CVoiceChatModule::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
 {
 	if (!g_pSteamUser)
@@ -457,15 +452,8 @@ void CVoiceChatModule::ServerActivate(edict_t* pEdictList, int edictCount, int c
 			return;
 		}
 
-		ISteamClient* pSteamClient = SteamGameServerClient();
-
-		if (pSteamClient)
-		{
-			HSteamPipe hSteamPipe = pSteamClient->CreateSteamPipe();
-			HSteamUser hSteamUser = pSteamClient->CreateLocalUser(&hSteamPipe, k_EAccountTypeAnonUser);
-			g_pSteamUser = pSteamClient->GetISteamUser(hSteamUser, hSteamPipe, "SteamUser023");
-			SteamUtils()->SetWarningMessageHook(TestMessageHook);
-		}
+		if (Util::get)
+			g_pSteamUser = Util::get->SteamUser();
 	}
 }
 
