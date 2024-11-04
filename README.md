@@ -169,10 +169,10 @@ Invalidates the bone cache of the given entity.
 Sets the SignOnState for the given client.  
 Returns `true` on success.  
 
-#### (Experimental) HolyLib.ExitLadder(Player ply)
+#### (Experimental - 32x safe only) HolyLib.ExitLadder(Player ply)
 Forces the player off the ladder.  
 
-#### (Experimental) Entity HolyLib.GetLadder(Player ply)
+#### (Experimental - 32x safe only) Entity HolyLib.GetLadder(Player ply)
 Returns the Ladder the player is currently on.  
 
 ### Hooks
