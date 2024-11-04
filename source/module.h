@@ -31,6 +31,7 @@ protected:
 	bool m_bEnabled = false;
 	bool m_bCompatible = false;
 	bool m_bStartup = false;
+	char* m_strDebugValue; // Workaround for a crash.
 };
 
 class CModuleManager : public IModuleManager

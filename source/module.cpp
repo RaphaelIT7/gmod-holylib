@@ -37,8 +37,12 @@ void OnModuleConVarChange(IConVar* convar, const char* pOldValue, float flOldVal
 	module->SetEnabled(((ConVar*)convar)->GetBool(), true);
 }
 
+static bool bIgnoreCallback = false;
 void OnModuleDebugConVarChange(IConVar* convar, const char* pOldValue, float flOldValue)
 {
+	if (bIgnoreCallback)
+		return;
+
 	CModule* module = (CModule*)g_pModuleManager.FindModuleByConVar((ConVar*)convar);
 	if (!module)
 	{
@@ -94,16 +98,16 @@ void CModule::SetModule(IModule* module)
 	std::string pDebugStrName = "holylib_debug_";
 	pDebugStrName.append(module->Name());
 
-	m_pDebugCVarName = new char[48];
-	V_strncpy(m_pDebugCVarName, pDebugStrName.c_str(), 48);
-	m_pDebugCVar = new ConVar(m_pDebugCVarName, "0", FCVAR_ARCHIVE, "Whether this module will show debug stuff", OnModuleDebugConVarChange);
-
 	int cmdDebug = CommandLine()->ParmValue(((std::string)"-" + pDebugStrName).c_str(), -1);
 	if (cmdDebug > -1)
-	{
 		m_pModule->SetDebug(cmdDebug);
-		m_pDebugCVar->SetValue(cmdDebug);
-	}
+
+	m_strDebugValue = new char[4];
+	V_strncpy(m_strDebugValue, std::to_string(m_pModule->InDebug()).c_str(), 4); // I dislike this :/
+
+	m_pDebugCVarName = new char[48];
+	V_strncpy(m_pDebugCVarName, pDebugStrName.c_str(), 48);
+	m_pDebugCVar = new ConVar(m_pDebugCVarName, m_strDebugValue, FCVAR_ARCHIVE, "Whether this module will show debug stuff", OnModuleDebugConVarChange);
 
 	m_bStartup = false;
 }
@@ -205,6 +209,7 @@ void CModuleManager::RegisterModule(IModule* pModule)
 {
 	++g_pIDs;
 	CModule* module = new CModule();
+	m_pModules.push_back(module); // Add it first in case any ConVar callbacks get called in SetModule.
 	module->SetModule(pModule);
 	module->SetID(g_pIDs);
 	Msg("holylib: Registered module %-*s (%-*i Enabled: %s Compatible: %s)\n", 
@@ -215,8 +220,6 @@ void CModuleManager::RegisterModule(IModule* pModule)
 		module->IsEnabled() ? "true, " : "false,", 
 		module->IsCompatible() ? "true " : "false"
 	);
-
-	m_pModules.push_back(module);
 }
 
 IModuleWrapper* CModuleManager::FindModuleByConVar(ConVar* convar)
