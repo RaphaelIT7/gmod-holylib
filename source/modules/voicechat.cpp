@@ -452,8 +452,8 @@ void CVoiceChatModule::ServerActivate(edict_t* pEdictList, int edictCount, int c
 			return;
 		}
 
-		if (Util::get != NULL)
-			g_pSteamUser = Util::get->SteamUser();
+		//if (Util::get != NULL)
+		//	g_pSteamUser = Util::get->SteamUser();
 	}
 }
 
