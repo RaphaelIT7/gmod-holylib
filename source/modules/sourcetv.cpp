@@ -657,10 +657,9 @@ static void hook_CHLTVServer_BroadcastEvent(CBaseServer* pServer, IGameEvent* pE
 	// Below is the implementation of BroadcastMessage that we will adjust as needed.
 	bool bReliable = false;
 	bool bOnlyActive = true;
-	for (int i=0; i < pServer->GetClientCount(); ++i)
+	for (int iClientIndex=0; iClientIndex<hltv->GetClientCount(); ++iClientIndex)
 	{
-		CBaseClient* pClient = (CBaseClient*)pServer->GetClient(i);
-		Msg("%i %p - %i %p\n", pServer->GetClientCount(), pClient, pServer->m_Clients.Count(), pServer->m_Clients[i]);
+		CHLTVClient* pClient = hltv->Client(iClientIndex);
 
 		if ((bOnlyActive && !pClient->IsActive()) || !pClient->IsSpawned())
 			continue;
