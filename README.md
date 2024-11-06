@@ -37,7 +37,7 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- [#] Improved performance by replacing SetTable with RawSet.  
 \- [#] Added missing calls to the deconstructors for `CHLTVClient` and `CNetworkStringTable`.  
 \- \- These missing calls could have caused some bugs or memory leaks.  
-\- [#] Fixed a bug with sourcetv where `CHLTVClients` could be NULL while being valid (#15)  1
+\- [#] Fixed a bug with sourcetv where `CHLTVClients` could be NULL while being valid (#15)  
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
