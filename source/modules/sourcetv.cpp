@@ -93,11 +93,12 @@ static void hook_CSteam3Server_NotifyClientDisconnect(void* pServer, IClient* pC
 	{
 		if (Lua::PushHook("HolyLib:OnSourceTVClientDisconnect"))
 		{
-			Push_CHLTVClient(hltv->Client(pClient->GetPlayerSlot()));
+			Msg("%p, %p\n", pClient, hltv->Client(0));
+			Push_CHLTVClient(hltv->Client(0));
 			g_Lua->CallFunctionProtected(2, 0, true);
 		}
 
-		auto it = g_pPushedCHLTVClient.find(hltv->Client(pClient->GetPlayerSlot()));
+		auto it = g_pPushedCHLTVClient.find(hltv->Client(0));
 		if (it != g_pPushedCHLTVClient.end())
 		{
 			g_Lua->ReferenceFree(it->second->iTableReference);
