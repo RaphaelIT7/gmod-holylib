@@ -314,7 +314,7 @@ class CHL2GameMovement // Workaround to make the compiler happy since were not a
 public:
 	static CBaseEntity* GetLadder(CHL2_Player* ply)
 	{
-		return ply->m_HL2Local.m_hLadder.Get().Get(); // Make m_HL2Local a public member and verify that the var offset is right on 64x.  BUG: Seems to be not workling? Verify the offsets °---°
+		return ply->m_HL2Local.m_hLadder.Get().Get(); // Make m_HL2Local a public member and verify that the var offset is right on 64x.
 	}
 };
 
