@@ -84,27 +84,29 @@ static void hook_CHLTVClient_Deconstructor(CHLTVClient* pClient)
 	detour_CHLTVClient_Deconstructor.GetTrampoline<Symbols::CHLTVClient_Deconstructor>()(pClient);
 }
 
-static Detouring::Hook detour_CBaseServer_RemoveClientFromGame;
-static void hook_CBaseServer_RemoveClientFromGame(IServer* pServer, CHLTVClient* pClient)
+static Detouring::Hook detour_CSteam3Server_NotifyClientDisconnect;
+static void hook_CSteam3Server_NotifyClientDisconnect(void* pServer, IClient* pClient)
 {
-	VPROF_BUDGET("HolyLib - CBaseServer::RemoveClientFromGame", VPROF_BUDGETGROUP_HOLYLIB);
+	VPROF_BUDGET("HolyLib - CSteam3Server::NotifyClientDisconnect", VPROF_BUDGETGROUP_HOLYLIB);
 
-	//if (pServer != hltv)
-	//	return;
-
-	if (Lua::PushHook("HolyLib:OnSourceTVClientDisconnect"))
+	if (pClient->GetServer() != hltv)
 	{
-		Push_CHLTVClient(pClient);
-		g_Lua->CallFunctionProtected(2, 0, true);
+		if (Lua::PushHook("HolyLib:OnSourceTVClientDisconnect"))
+		{
+			Push_CHLTVClient(hltv->Client(pClient->GetPlayerSlot()));
+			g_Lua->CallFunctionProtected(2, 0, true);
+		}
+
+		auto it = g_pPushedCHLTVClient.find(hltv->Client(pClient->GetPlayerSlot()));
+		if (it != g_pPushedCHLTVClient.end())
+		{
+			g_Lua->ReferenceFree(it->second->iTableReference);
+			g_Lua->CreateTable();
+			it->second->iTableReference = g_Lua->ReferenceCreate(); // Create a new empty Lua table for the next client.
+		}
 	}
 
-	auto it = g_pPushedCHLTVClient.find(pClient);
-	if (it != g_pPushedCHLTVClient.end())
-	{
-		g_Lua->ReferenceFree(it->second->iTableReference);
-		g_Lua->CreateTable();
-		it->second->iTableReference = g_Lua->ReferenceCreate(); // Create a new empty Lua table for the next client.
-	}
+	detour_CSteam3Server_NotifyClientDisconnect.GetTrampoline<Symbols::CSteam3Server_NotifyClientDisconnect>()(pServer, pClient);
 }
 
 LUA_FUNCTION_STATIC(HLTVClient__tostring)
@@ -781,9 +783,9 @@ void CSourceTVLibModule::InitDetour(bool bPreServer)
 	);
 
 	Detour::Create(
-		&detour_CBaseServer_RemoveClientFromGame, "CBaseServer::RemoveClientFromGameSym",
-		engine_loader.GetModule(), Symbols::CBaseServer_RemoveClientFromGameSym,
-		(void*)hook_CBaseServer_RemoveClientFromGame, m_pID
+		&detour_CSteam3Server_NotifyClientDisconnect, "CSteam3Server::NotifyClientDisconnect",
+		engine_loader.GetModule(), Symbols::CSteam3Server_NotifyClientDisconnectSym,
+		(void*)hook_CSteam3Server_NotifyClientDisconnect, m_pID
 	);
 
 	SourceSDK::ModuleLoader server_loader("server");

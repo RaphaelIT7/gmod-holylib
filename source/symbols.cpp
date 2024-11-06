@@ -161,8 +161,8 @@ namespace Symbols
 		Symbol::FromName("_ZN11CHLTVServer14BroadcastEventEP10IGameEvent"),
 	};
 
-	const std::vector<Symbol> CBaseServer_RemoveClientFromGameSym = {
-		Symbol::FromName("_ZN11CBaseServer20RemoveClientFromGameEP11CBaseClient"),
+	const std::vector<Symbol> CSteam3Server_NotifyClientDisconnectSym = {
+		Symbol::FromName("_ZN13CSteam3Server22NotifyClientDisconnectEP11CBaseClient"),
 	};
 
 	//---------------------------------------------------------------------------------
