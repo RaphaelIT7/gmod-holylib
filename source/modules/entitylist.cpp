@@ -5,7 +5,6 @@
 #include "lua.h"
 #include "player.h"
 #include "unordered_set"
-#include "GarrysMod/Lua/LuaObject.h"
 
 class CEntListModule : public IModule
 {
@@ -307,21 +306,6 @@ LUA_FUNCTION_STATIC(GetGlobalEntityList)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(GetGlobalEntityList2)
-{
-	UpdateGlobalEntityList();
-	LUA->PreCreateTable(g_pGlobalEntityList.pEntities.size(), 0);
-	int idx = 0;
-	for (CBaseEntity* pEnt : g_pGlobalEntityList.pEntities)
-	{
-		++idx;
-		LUA->PushNumber(idx);
-		LUA->ReferencePush(((GarrysMod::Lua::CLuaObject*)pEnt->GetLuaEntity())->GetReference());
-		LUA->RawSet(-3);
-	}
-	return 1;
-}
-
 void CEntListModule::OnEdictFreed(const edict_t* edict)
 {
 	short serialNumber = edict->m_EdictIndex;
@@ -363,7 +347,6 @@ void CEntListModule::LuaInit(bool bServerInit)
 	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
 		Util::AddFunc(CreateEntityList, "CreateEntityList");
 		Util::AddFunc(GetGlobalEntityList, "GetGlobalEntityList");
-		Util::AddFunc(GetGlobalEntityList2, "GetGlobalEntityList2"); // Test version to see if calling PushEntity is faster
 	g_Lua->Pop(1);
 }
 
