@@ -58,7 +58,7 @@ LUA_FUNCTION_STATIC(EntityList__tostring)
 	}
 
 	char szBuf[64] = {};
-	V_snprintf(szBuf, sizeof(szBuf), "EntityList [%i]", data->pEntities.size());
+	V_snprintf(szBuf, sizeof(szBuf), "EntityList [%i]", (int)data->pEntities.size());
 	LUA->PushString(szBuf);
 	return 1;
 }

@@ -58,7 +58,7 @@ void Detour::ReportLeak()
 
 static void ToggleDetour(const CCommand& args)
 {
-	if (args.ArgC() < 1 || args.Arg(1) == "")
+	if (args.ArgC() < 1 || V_stricmp(args.Arg(1), "") == 0)
 	{
 		Msg("Disabled Detours:\n");
 		for (auto it = pDisabledDetours.begin(); it != pDisabledDetours.end(); ++it)
