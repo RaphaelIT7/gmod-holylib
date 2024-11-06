@@ -527,10 +527,10 @@ static void hook_CHLTVServer_BroadcastEvent(CBaseServer* server, IGameEvent* eve
 	// Now we can control which gameevents are sent and to which clients.
 	// We can use this to block the CHLTVDirector from manipulating specific clients where we want manual control.
 
-	// Below is the implementation of BroadcastMessage that we will adjust later.
+	// Below is the implementation of BroadcastMessage that we will adjust as needed.
 	bool bReliable = false;
 	bool bOnlyActive = true;
-	for (int i = 0; i < server->m_Clients.Count(); i++)
+	for (int i = 0; i < server->m_Clients.Count(); i++) // we shouldn't directly acces m_Clients.... this will break so much later on if the var offsets are wrong...
 	{
 		CBaseClient* cl = server->m_Clients[i];
 
