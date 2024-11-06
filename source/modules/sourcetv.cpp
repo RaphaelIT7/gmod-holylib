@@ -660,6 +660,7 @@ static void hook_CHLTVServer_BroadcastEvent(CBaseServer* pServer, IGameEvent* pE
 	for (int i=0; i < pServer->GetClientCount(); ++i)
 	{
 		CBaseClient* pClient = (CBaseClient*)pServer->GetClient(i);
+		Msg("%i %p - %i %p\n", pServer->GetClientCount(), pClient, pServer->m_Clients.Count(), pServer->m_Clients[i]);
 
 		if ((bOnlyActive && !pClient->IsActive()) || !pClient->IsSpawned())
 			continue;
