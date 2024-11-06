@@ -1271,8 +1271,15 @@ Returns a table that contains all HLTV clients. It will return `nil` on failure.
 #### HLTVClient sourcetv.GetClient(number slot)
 Returns the HLTVClient at that slot or `nil` on failure.  
 
-#### sourcetv.FireEvent(IGameEvent event)
+#### sourcetv.FireEvent(IGameEvent event, bool allowOverride)
 Fires the gameevent for all hltv clients / broadcasts it.  
+If `allowOverride` is set to true, it internally won't block any events like `hltv_cameraman`, `hltv_chase` and `hltv_fixed`.  
+
+#### sourcetv.SetCameraMan(number entIndex / Entity ent)  
+Sends the `hltv_cameraman` event aall clients and blocks the `HLTVDirector` from changing the view.  
+Call it with `0` / `NULL` to reset it and let the `HLTVDirector` take control again.  
+
+> NOTE: This won't set it for new clients. You have to call it again for thoes.  
 
 ### HLTVClient
 This is a metatable that is pushed by this module. It contains the functions listed below  
@@ -1315,10 +1322,12 @@ Returns `true` on success.
 
 NOTE: This function was readded back experimentally. It wasn't tested yet. It's still broken but doesn't crash  
 
-#### HLTVClient:FireEvent(IGameEvent event)  
+#### (Experimental) HLTVClient:FireEvent(IGameEvent event)  
 Fires/sends the gameevent to this specific client.  
 
-> NOTE: This function is currently broken and will be readded when it's fixed.  
+#### HLTVClient:SetCameraMan(number entIndex / Entity ent)  
+Sends the `hltv_cameraman` event to the specific client and blocks the `HLTVDirector` from changing the view.  
+Call it with `0` / `NULL` to reset it and let the `HLTVDirector` take control again.  
 
 ### Enums
 

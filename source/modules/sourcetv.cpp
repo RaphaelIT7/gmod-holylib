@@ -4,8 +4,10 @@
 #include "detours.h"
 #include "module.h"
 #include "lua.h"
+#include "player.h"
 #include "sourcesdk/hltvserver.h"
 #include <unordered_map>
+#include <unordered_set>
 #include "usermessages.h"
 #include "sourcesdk/hltvdirector.h"
 
@@ -191,6 +193,38 @@ LUA_FUNCTION_STATIC(HLTVClient_FireEvent)
 	IGameEvent* pEvent = Get_IGameEvent(2, true);
 
 	client->FireGameEvent(pEvent);
+	return 0;
+}
+
+/*
+ * Yes, this will be a memory leak.
+ * But it's the easiest way and the leak is only for each new client connection
+ * and it'll only leak like 20 bytes or so(idk the amount).
+ * 
+ * We can clear it later by looping thru all clients and then nuking and recreating it with only the current clients values.
+ */
+static std::unordered_map<int, int> g_iTarget;
+LUA_FUNCTION_STATIC(HLTVClient_SetCameraMan)
+{
+	CHLTVClient* pClient = Get_CHLTVClient(1, true);
+
+	int iTarget = 0;
+	if (LUA->IsType(2, GarrysMod::Lua::Type::Number))
+		iTarget = LUA->GetNumber(2);
+	else {
+		CBaseEntity* pEnt = Util::Get_Entity(2, false);
+		iTarget = pEnt ? pEnt->edict()->m_EdictIndex : 0; // If given NULL, set it to 0.
+	}
+	g_iTarget[pClient->GetUserID()] = iTarget;
+
+	IGameEvent* pEvent = Util::gameeventmanager->CreateEvent("hltv_cameraman");
+	if (pEvent)
+	{
+		pEvent->SetInt("index", iTarget);
+		pClient->FireGameEvent(pEvent);
+		Util::gameeventmanager->FreeEvent(pEvent);
+	}
+
 	return 0;
 }
 
@@ -389,13 +423,46 @@ LUA_FUNCTION_STATIC(sourcetv_GetClient)
 	return 1;
 }
 
+static bool g_bLuaGameEvent = false; // Set to true if you call FireGameEvent on the hltv server if you don't want your event to be potentially blocked / not sent to specific clients.
 LUA_FUNCTION_STATIC(sourcetv_FireEvent)
 {
 	if (!hltv || !hltv->IsActive())
 		return 0;
 
 	IGameEvent* pEvent = Get_IGameEvent(1, true);
+	g_bLuaGameEvent = LUA->GetBool(2);
 	hltv->FireGameEvent(pEvent);
+	g_bLuaGameEvent = false;
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(sourcetv_SetCameraMan)
+{
+	int iTarget = 0;
+	if (LUA->IsType(1, GarrysMod::Lua::Type::Number))
+		iTarget = LUA->GetNumber(1);
+	else {
+		CBaseEntity* pEnt = Util::Get_Entity(1, false);
+		iTarget = pEnt ? pEnt->edict()->m_EdictIndex : 0; // If given NULL, set it to 0.
+	}
+
+	for (int i = 0; i < hltv->GetClientCount(); ++i)
+	{
+		CHLTVClient* pClient = hltv->Client(i);
+		if (!pClient->IsConnected())
+			continue;
+
+		g_iTarget[pClient->GetUserID()] = iTarget;
+	}
+
+	IGameEvent* pEvent = Util::gameeventmanager->CreateEvent("hltv_cameraman");
+	if (pEvent)
+	{
+		pEvent->SetInt("index", iTarget);
+		hltv->BroadcastEvent(pEvent);
+		Util::gameeventmanager->FreeEvent(pEvent);
+	}
 
 	return 0;
 }
@@ -508,6 +575,11 @@ static void hook_CHLTVDirector_StartNewShot(CHLTVDirector* director)
 
 static ConVar* ref_tv_debug;
 static Detouring::Hook detour_CHLTVServer_BroadcastEvent;
+/*static std::unordered_set<std::string> g_pShotEvents = {
+	"hltv_fixed",
+	"hltv_chase",
+	"hltv_cameraman",
+};*/
 static void hook_CHLTVServer_BroadcastEvent(CBaseServer* pServer, IGameEvent* pEvent) // NOTE: We fully detour this one. We never call the original function.
 {
 	VPROF_BUDGET("HolyLib - CHLTVServer::BroadcastEvent", VPROF_BUDGETGROUP_HOLYLIB);
@@ -522,6 +594,11 @@ static void hook_CHLTVServer_BroadcastEvent(CBaseServer* pServer, IGameEvent* pE
 		return;
 	}
 
+	const char* pEventName = pEvent->GetName();
+	bool bIsShotEvent =	V_stricmp(pEventName, "hltv_fixed") == 0 ||
+				V_stricmp(pEventName, "hltv_chase") == 0 ||
+				V_stricmp(pEventName, "hltv_cameraman") == 0; // Is it faster to use the unordered_set?
+
 	// Now we can control which gameevents are sent and to which clients.
 	// We can use this to block the CHLTVDirector from manipulating specific clients where we want manual control.
 
@@ -534,6 +611,13 @@ static void hook_CHLTVServer_BroadcastEvent(CBaseServer* pServer, IGameEvent* pE
 
 		if ((bOnlyActive && !pClient->IsActive()) || !pClient->IsSpawned())
 			continue;
+
+		if (!g_bLuaGameEvent && bIsShotEvent) // If you fire lua gameevents, they can take control.
+		{
+			auto it = g_iTarget.find(pClient->GetUserID());
+			if (it != g_iTarget.end() && it->second != 0) // target id is not 0 so this client has an active target.
+				continue;
+		}
 
 		if (!pClient->SendNetMsg(eventMsg, bReliable) && (eventMsg.IsReliable() || bReliable))
 			DevMsg("BroadcastMessage: Reliable broadcast message overflow for client %s", pClient->GetClientName());
@@ -562,6 +646,7 @@ void CSourceTVLibModule::LuaInit(bool bServerInit)
 		Util::AddFunc(HLTVClient_ClientPrint, "ClientPrint");
 		Util::AddFunc(HLTVClient_SendLua, "SendLua");
 		Util::AddFunc(HLTVClient_FireEvent, "FireEvent");
+		Util::AddFunc(HLTVClient_SetCameraMan, "SetCameraMan");
 	g_Lua->Pop(1);
 
 	Util::StartTable();
@@ -575,6 +660,7 @@ void CSourceTVLibModule::LuaInit(bool bServerInit)
 		Util::AddFunc(sourcetv_GetRecordingFile, "GetRecordingFile");
 		Util::AddFunc(sourcetv_StopRecord, "StopRecord");
 		Util::AddFunc(sourcetv_FireEvent, "FireEvent");
+		Util::AddFunc(sourcetv_SetCameraMan, "SetCameraMan");
 
 		// Client Functions
 		Util::AddFunc(sourcetv_GetAll, "GetAll");
