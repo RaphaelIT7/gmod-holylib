@@ -6,7 +6,6 @@
 #include <netmessages.h>
 #include "sourcesdk/baseclient.h"
 #include "steam/isteamclient.h"
-#include "GarrysMod/IGet.h"
 #include <isteamutils.h>
 
 class CVoiceChatModule : public IModule
