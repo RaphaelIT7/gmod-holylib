@@ -89,8 +89,8 @@ static void hook_CBaseServer_RemoveClientFromGame(IServer* pServer, CHLTVClient*
 {
 	VPROF_BUDGET("HolyLib - CBaseServer::RemoveClientFromGame", VPROF_BUDGETGROUP_HOLYLIB);
 
-	if (pServer != hltv)
-		return;
+	//if (pServer != hltv)
+	//	return;
 
 	if (Lua::PushHook("HolyLib:OnSourceTVClientDisconnect"))
 	{
