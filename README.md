@@ -29,7 +29,8 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- \- [+] `pas.TestPAS` accepts a `EntityList`.  
 \- \- [#] Improved `pas.FindInPAS` performance by using it internally if it's enabled.  
 \- [+] Added the `HolyLib:PreCheckTransmit`, `HolyLib:OnPlayerGot[On/Off]Ladder`, `HolyLib:OnMoveTypeChange` hook.  
-\- [+] Added `HolyLib:OnSourceTVStartNewShot` hook to `sourcetv` module.  
+\- [+] Added `HolyLib:OnSourceTVStartNewShot`, `HolyLib:OnSourceTVClientDisconnect` hook to `sourcetv` module.  
+\- [+] Added `INetworkStringTable:GetTable` and `HLTVClient:GetTable` functions to `sourcetv` and `stringtable` module.  
 \- [+] Added `pvs.TestPVS` and `pvs.FindInPVS` functions to `pvs` module.  
 \- [+] Added `HolyLib.ExitLadder` and `HolyLib.GetLadder` to `holylib` module.  
 \- [#] Fixed many issues with the `bass` module. It is acutally usable.  
@@ -443,6 +444,22 @@ Deletes that specific stringtable.
 
 ### INetworkStringTable
 This is a metatable that is pushed by this module. It contains the functions listed below  
+
+#### string INetworkStringTable:\_\_tostring()
+Returns `INetworkStringTable [NULL]` if given a invalid table.  
+Normally returns `INetworkStringTable [tableName]`.  
+
+#### INetworkStringTable:\_\_newindex(string key, any value)
+Internally implemented and will set the values into the lua table.  
+
+#### any INetworkStringTable:\_\_index(string key)
+Internally seaches first in the metatable table for the key.  
+If it fails to find it, it will search in the lua table before returning.  
+If you try to get multiple values from the lua table, just use `INetworkStringTable:GetTable()`.  
+
+#### table INetworkStringTable:GetTable()
+Returns the lua table of this object.  
+You can store variables into it.  
 
 #### string INetworkStringTable:GetTableName() 
 Returns the name of the stringtable  
@@ -1290,6 +1307,17 @@ Format: `HLTVClient [%i][%s]`
 `%i` -> UserID  
 `%s` -> ClientName  
 
+#### HLTVClient:\_\_newindex(string key, any value)
+Internally implemented and will set the values into the lua table.  
+
+#### any HLTVClient:\_\_index(string key)
+Internally seaches first in the metatable table for the key.  
+If it fails to find it, it will search in the lua table before returning.  
+If you try to get multiple values from the lua table, just use `HLTVClient:GetTable()`.  
+
+#### table HLTVClient:GetTable()
+Returns the lua table of this object.  
+You can store variables into it.  
 
 #### string HLTVClient:GetName()
 Returns the name of the client.  
@@ -1391,6 +1419,9 @@ end)
 #### bool HolyLib:OnSourceTVStartNewShot()
 Called when SourceTV tries to start a new shot.  
 Return `true` to cancel it.  
+
+#### bool HolyLib:OnSourceTVClientDisconnect(HLTVClient client)
+Called when a client disconnects from the sourcetv server.  
 
 ### ConVars
 

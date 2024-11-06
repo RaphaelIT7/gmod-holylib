@@ -40,10 +40,10 @@ static void hook_CNetworkStringTable_Deconstructor(INetworkStringTable* tbl)
 	auto it = g_pPushedINetworkStringTable.find(tbl);
 	if (it != g_pPushedINetworkStringTable.end())
 	{
-		g_Lua->ReferencePush(it->second);
+		g_Lua->ReferencePush(it->second->iReference);
 		g_Lua->SetUserType(-1, NULL);
 		g_Lua->Pop(1);
-		g_Lua->ReferenceFree(it->second);
+		delete it->second;
 		g_pPushedINetworkStringTable.erase(it);
 	}
 	detour_CNetworkStringTable_Deconstructor.GetTrampoline<Symbols::CNetworkStringTable_Deconstructor>()(tbl);
@@ -66,8 +66,33 @@ LUA_FUNCTION_STATIC(INetworkStringTable__tostring)
 
 LUA_FUNCTION_STATIC(INetworkStringTable__index)
 {
-	if (!LUA->FindOnObjectsMetaTable(1, 2))
+	if (LUA->FindOnObjectsMetaTable(1, 2))
+		return 1;
+
+	LUA->Pop(1);
+	LUA->ReferencePush(g_pPushedINetworkStringTable[Get_INetworkStringTable(1, true)]->iTableReference); // This should never crash so no safety checks.
+	if (!LUA->FindObjectOnTable(-1, 2))
 		LUA->PushNil();
+
+	LUA->Remove(-2);
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(INetworkStringTable__newindex)
+{
+	LUA->ReferencePush(g_pPushedINetworkStringTable[Get_INetworkStringTable(1, true)]->iTableReference); // This should never crash so no safety checks.
+	LUA->Push(2);
+	LUA->Push(3);
+	LUA->RawSet(-3);
+	LUA->Pop(1);
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(INetworkStringTable_GetTable)
+{
+	LUA->ReferencePush(g_pPushedINetworkStringTable[Get_INetworkStringTable(1, true)]->iTableReference); // This should never crash so no safety checks.
 
 	return 1;
 }
@@ -544,7 +569,10 @@ void CStringTableModule::LuaInit(bool bServerInit) // ToDo: Implement a INetwork
 	{
 		INetworkStringTable_TypeID = g_Lua->CreateMetaTable("INetworkStringTable");
 			Util::AddFunc(INetworkStringTable__tostring, "__tostring");
+			Util::AddFunc(INetworkStringTable__newindex, "__newindex");
 			Util::AddFunc(INetworkStringTable__index, "__index");
+			Util::AddFunc(INetworkStringTable_GetTable, "GetTable");
+
 			Util::AddFunc(INetworkStringTable_GetTableName, "GetTableName");
 			Util::AddFunc(INetworkStringTable_GetTableId, "GetTableId");
 			Util::AddFunc(INetworkStringTable_GetNumStrings, "GetNumStrings");

@@ -169,9 +169,28 @@ void Push_##className(className* var) \
 	g_Lua->PushUserType(var, luaType); \
 }
 
+struct LuaUserData { // ToDo: Maybe implement this also for other things?
+	~LuaUserData() {
+		if (iReference != -1)
+		{
+			g_Lua->ReferenceFree(iReference);
+			iReference = -1;
+		}
+
+		if (iTableReference != -1)
+		{
+			g_Lua->ReferenceFree(iTableReference);
+			iTableReference = -1;
+		}
+	}
+
+	int iReference = -1;
+	int iTableReference = -1;
+};
+
 // This one is special
 #define PushReferenced_LuaClass( className, luaType ) \
-static std::unordered_map<className*, int> g_pPushed##className; \
+static std::unordered_map<className*, LuaUserData*> g_pPushed##className; \
 static void Push_##className(className* var) \
 { \
 	if (!var) \
@@ -183,11 +202,15 @@ static void Push_##className(className* var) \
 	auto it = g_pPushed##className.find(var); \
 	if (it != g_pPushed##className.end()) \
 	{ \
-		g_Lua->ReferencePush(it->second); \
+		g_Lua->ReferencePush(it->second->iReference); \
 	} else { \
 		g_Lua->PushUserType(var, luaType); \
 		g_Lua->Push(-1); \
-		g_pPushed##className[var] = g_Lua->ReferenceCreate(); \
+		LuaUserData* userData = new LuaUserData; \
+		userData->iReference = g_Lua->ReferenceCreate(); \
+		g_Lua->CreateTable(); \
+		userData->iTableReference = g_Lua->ReferenceCreate(); \
+		g_pPushed##className[var] = userData; \
 	} \
 }
 

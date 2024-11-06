@@ -170,6 +170,9 @@ namespace Symbols
 	typedef void (GMCOMMON_CALLING_CONVENTION* CHLTVServer_BroadcastEvent)(IServer* server, IGameEvent* event);
 	extern const std::vector<Symbol> CHLTVServer_BroadcastEventSym;
 
+	typedef void (GMCOMMON_CALLING_CONVENTION* CBaseServer_RemoveClientFromGame)(IServer* server, IClient* client);
+	extern const std::vector<Symbol> CBaseServer_RemoveClientFromGameSym;
+
 	extern const std::vector<Symbol> UsermessagesSym;
 
 	//---------------------------------------------------------------------------------

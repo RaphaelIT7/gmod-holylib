@@ -74,14 +74,37 @@ static void hook_CHLTVClient_Deconstructor(CHLTVClient* pClient)
 	auto it = g_pPushedCHLTVClient.find(pClient);
 	if (it != g_pPushedCHLTVClient.end())
 	{
-		g_Lua->ReferencePush(it->second);
+		g_Lua->ReferencePush(it->second->iReference);
 		g_Lua->SetUserType(-1, NULL);
 		g_Lua->Pop(1);
-		g_Lua->ReferenceFree(it->second);
+		delete it->second;
 		g_pPushedCHLTVClient.erase(it);
 	}
 
 	detour_CHLTVClient_Deconstructor.GetTrampoline<Symbols::CHLTVClient_Deconstructor>()(pClient);
+}
+
+static Detouring::Hook detour_CBaseServer_RemoveClientFromGame;
+static void hook_CBaseServer_RemoveClientFromGame(IServer* pServer, CHLTVClient* pClient)
+{
+	VPROF_BUDGET("HolyLib - CBaseServer::RemoveClientFromGame", VPROF_BUDGETGROUP_HOLYLIB);
+
+	if (pServer != hltv)
+		return;
+
+	if (Lua::PushHook("HolyLib:OnSourceTVClientDisconnect"))
+	{
+		Push_CHLTVClient(pClient);
+		g_Lua->CallFunctionProtected(2, 0, true);
+	}
+
+	auto it = g_pPushedCHLTVClient.find(pClient);
+	if (it != g_pPushedCHLTVClient.end())
+	{
+		g_Lua->ReferenceFree(it->second->iTableReference);
+		g_Lua->CreateTable();
+		it->second->iTableReference = g_Lua->ReferenceCreate(); // Create a new empty Lua table for the next client.
+	}
 }
 
 LUA_FUNCTION_STATIC(HLTVClient__tostring)
@@ -101,8 +124,33 @@ LUA_FUNCTION_STATIC(HLTVClient__tostring)
 
 LUA_FUNCTION_STATIC(HLTVClient__index)
 {
-	if (!LUA->FindOnObjectsMetaTable(1, 2))
+	if (LUA->FindOnObjectsMetaTable(1, 2))
+		return 1;
+
+	LUA->Pop(1);
+	LUA->ReferencePush(g_pPushedCHLTVClient[Get_CHLTVClient(1, true)]->iTableReference); // This should never crash so no safety checks.
+	if (!LUA->FindObjectOnTable(-1, 2))
 		LUA->PushNil();
+
+	LUA->Remove(-2);
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(HLTVClient__newindex)
+{
+	LUA->ReferencePush(g_pPushedCHLTVClient[Get_CHLTVClient(1, true)]->iTableReference); // This should never crash so no safety checks.
+	LUA->Push(2);
+	LUA->Push(3);
+	LUA->RawSet(-3);
+	LUA->Pop(1);
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(HLTVClient_GetTable)
+{
+	LUA->ReferencePush(g_pPushedCHLTVClient[Get_CHLTVClient(1, true)]->iTableReference); // This should never crash so no safety checks.
 
 	return 1;
 }
@@ -640,7 +688,10 @@ void CSourceTVLibModule::LuaInit(bool bServerInit)
 
 	CHLTVClient_TypeID = g_Lua->CreateMetaTable("HLTVClient");
 		Util::AddFunc(HLTVClient__tostring, "__tostring");
+		Util::AddFunc(HLTVClient__newindex, "__newindex");
 		Util::AddFunc(HLTVClient__index, "__index");
+		Util::AddFunc(HLTVClient_GetTable, "GetTable");
+
 		Util::AddFunc(HLTVClient_GetName, "GetName");
 		Util::AddFunc(HLTVClient_GetSlot, "GetSlot");
 		Util::AddFunc(HLTVClient_GetSteamID, "GetSteamID");
@@ -727,6 +778,12 @@ void CSourceTVLibModule::InitDetour(bool bPreServer)
 		&detour_CHLTVServer_BroadcastEvent, "CHLTVServer::BroadcastEvent",
 		engine_loader.GetModule(), Symbols::CHLTVServer_BroadcastEventSym,
 		(void*)hook_CHLTVServer_BroadcastEvent, m_pID
+	);
+
+	Detour::Create(
+		&detour_CBaseServer_RemoveClientFromGame, "CBaseServer::RemoveClientFromGameSym",
+		engine_loader.GetModule(), Symbols::CBaseServer_RemoveClientFromGameSym,
+		(void*)hook_CBaseServer_RemoveClientFromGame, m_pID
 	);
 
 	SourceSDK::ModuleLoader server_loader("server");

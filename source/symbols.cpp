@@ -158,7 +158,11 @@ namespace Symbols
 	};
 
 	const std::vector<Symbol> CHLTVServer_BroadcastEventSym = {
-		NULL_SIGNATURE, // Not home / can't get the symbol yet.
+		Symbol::FromName("_ZN11CHLTVServer14BroadcastEventEP10IGameEvent"),
+	};
+
+	const std::vector<Symbol> CBaseServer_RemoveClientFromGameSym = {
+		Symbol::FromName("_ZN11CBaseServer20RemoveClientFromGameEP11CBaseClient"),
 	};
 
 	//---------------------------------------------------------------------------------
