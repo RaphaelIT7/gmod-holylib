@@ -89,7 +89,7 @@ static void hook_CSteam3Server_NotifyClientDisconnect(void* pServer, IClient* pC
 {
 	VPROF_BUDGET("HolyLib - CSteam3Server::NotifyClientDisconnect", VPROF_BUDGETGROUP_HOLYLIB);
 
-	if (pClient->GetServer() != hltv)
+	if (pClient->GetServer()->IsHLTV())
 	{
 		if (Lua::PushHook("HolyLib:OnSourceTVClientDisconnect"))
 		{
