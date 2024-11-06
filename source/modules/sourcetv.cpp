@@ -452,7 +452,7 @@ static bool hook_CHLTVClient_ExecuteStringCommand(CHLTVClient* hltvclient, const
 		return detour_CHLTVClient_ExecuteStringCommand.GetTrampoline<Symbols::CHLTVClient_ExecuteStringCommand>()(hltvclient, pCommandString);
 
 	CCommand args;
-	if ( !args.Tokenize( pCommandString ) )
+	if (!args.Tokenize(pCommandString))
 		return true;
 
 	if (Lua::PushHook("HolyLib:OnSourceTVCommand")) // Maybe change the name? I don't have a better one rn :/
@@ -497,9 +497,7 @@ static void hook_CHLTVDirector_StartNewShot(CHLTVDirector* director)
 			{
 				int smallestTick = MAX(0, gpGlobals->tickcount - TIME_TO_TICKS(HLTV_MAX_DELAY));
 				director->RemoveEventsFromHistory(smallestTick);
-
 				director->m_nNextShotTick = director->m_nBroadcastTick + TIME_TO_TICKS(MAX_SHOT_LENGTH);
-
 				return;
 			}
 		}
@@ -510,7 +508,7 @@ static void hook_CHLTVDirector_StartNewShot(CHLTVDirector* director)
 
 static ConVar* ref_tv_debug;
 static Detouring::Hook detour_CHLTVServer_BroadcastEvent;
-static void hook_CHLTVServer_BroadcastEvent(CBaseServer* server, IGameEvent* event)
+static void hook_CHLTVServer_BroadcastEvent(CBaseServer* pServer, IGameEvent* pEvent) // NOTE: We fully detour this one. We never call the original function.
 {
 	VPROF_BUDGET("HolyLib - CHLTVServer::BroadcastEvent", VPROF_BUDGETGROUP_HOLYLIB);
 
@@ -518,9 +516,9 @@ static void hook_CHLTVServer_BroadcastEvent(CBaseServer* server, IGameEvent* eve
 	SVC_GameEvent eventMsg;
 	eventMsg.m_DataOut.StartWriting(buffer_data, sizeof(buffer_data));
 
-	if (!Util::gameeventmanager->SerializeEvent(event, &eventMsg.m_DataOut))
+	if (!Util::gameeventmanager->SerializeEvent(pEvent, &eventMsg.m_DataOut))
 	{
-		DevMsg("CHLTVServer: failed to serialize event '%s'.\n", event->GetName());
+		DevMsg("CHLTVServer: failed to serialize event '%s'.\n", pEvent->GetName());
 		return;
 	}
 
@@ -530,26 +528,19 @@ static void hook_CHLTVServer_BroadcastEvent(CBaseServer* server, IGameEvent* eve
 	// Below is the implementation of BroadcastMessage that we will adjust as needed.
 	bool bReliable = false;
 	bool bOnlyActive = true;
-	for (int i = 0; i < server->m_Clients.Count(); i++) // we shouldn't directly acces m_Clients.... this will break so much later on if the var offsets are wrong...
+	for (int i=0; i < pServer->GetClientCount(); ++i)
 	{
-		CBaseClient* cl = server->m_Clients[i];
+		CBaseClient* pClient = (CBaseClient*)pServer->GetClient(i);
 
-		if ((bOnlyActive && !cl->IsActive()) || !cl->IsSpawned())
-		{
+		if ((bOnlyActive && !pClient->IsActive()) || !pClient->IsSpawned())
 			continue;
-		}
 
-		if (!cl->SendNetMsg(eventMsg, bReliable))
-		{
-			if (eventMsg.IsReliable() || bReliable)
-			{
-				DevMsg("BroadcastMessage: Reliable broadcast message overflow for client %s", cl->GetClientName());
-			}
-		}
+		if (!pClient->SendNetMsg(eventMsg, bReliable) && (eventMsg.IsReliable() || bReliable))
+			DevMsg("BroadcastMessage: Reliable broadcast message overflow for client %s", pClient->GetClientName());
 	}
 
 	if (ref_tv_debug && ref_tv_debug->GetBool())
-		Msg("SourceTV broadcast event: %s\n", event->GetName());
+		Msg("SourceTV broadcast event: %s\n", pEvent->GetName());
 }
 
 void CSourceTVLibModule::LuaInit(bool bServerInit)
