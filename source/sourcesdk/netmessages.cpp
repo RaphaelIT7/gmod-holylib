@@ -79,3 +79,31 @@ const char* SVC_VoiceData::ToString(void) const
 	Q_snprintf(s_text, sizeof(s_text), "%s: client %i, bytes %i", GetName(), m_nFromClient, Bits2Bytes(m_nLength));
 	return s_text;
 }
+
+bool SVC_GameEvent::WriteToBuffer(bf_write& buffer)
+{
+	m_nLength = m_DataOut.GetNumBitsWritten();
+	Assert(m_nLength < (1 << NETMSG_LENGTH_BITS));
+	if (m_nLength >= (1 << NETMSG_LENGTH_BITS))
+		return false;
+
+	buffer.WriteUBitLong(GetType(), NETMSG_TYPE_BITS);
+	buffer.WriteUBitLong(m_nLength, NETMSG_LENGTH_BITS);  // max 8 * 256 bits
+	return buffer.WriteBits(m_DataOut.GetData(), m_nLength);
+
+}
+
+bool SVC_GameEvent::ReadFromBuffer(bf_read& buffer)
+{
+	VPROF("SVC_GameEvent::ReadFromBuffer");
+
+	m_nLength = buffer.ReadUBitLong(NETMSG_LENGTH_BITS); // max 8 * 256 bits
+	m_DataIn = buffer;
+	return buffer.SeekRelative(m_nLength);
+}
+
+const char* SVC_GameEvent::ToString(void) const
+{
+	Q_snprintf(s_text, sizeof(s_text), "%s: bytes %i", GetName(), Bits2Bytes(m_nLength));
+	return s_text;
+}
