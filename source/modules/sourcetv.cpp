@@ -110,7 +110,7 @@ static void hook_CBaseServer_RemoveClientFromGame(IServer* pServer, CHLTVClient*
 LUA_FUNCTION_STATIC(HLTVClient__tostring)
 {
 	CHLTVClient* pClient = Get_CHLTVClient(1, false);
-	if (!pClient || pClient->IsConnected())
+	if (!pClient || !pClient->IsConnected())
 	{
 		LUA->PushString("HLTVClient [NULL]");
 	} else {
