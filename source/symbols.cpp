@@ -157,6 +157,10 @@ namespace Symbols
 		Symbol::FromName("_ZN13CHLTVDirector12StartNewShotEv"),
 	};
 
+	const std::vector<Symbol> CHLTVServer_BroadcastEventSym = {
+		NULL_SIGNATURE, // Not home / can't get the symbol yet.
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: threadpoolfix Symbols
 	//---------------------------------------------------------------------------------

@@ -508,10 +508,56 @@ static void hook_CHLTVDirector_StartNewShot(CHLTVDirector* director)
 	detour_CHLTVDirector_StartNewShot.GetTrampoline<Symbols::CHLTVDirector_StartNewShot>()(director);
 }
 
+static ConVar* ref_tv_debug;
+static Detouring::Hook detour_CHLTVServer_BroadcastEvent;
+static void hook_CHLTVServer_BroadcastEvent(CBaseServer* server, IGameEvent* event)
+{
+	VPROF_BUDGET("HolyLib - CHLTVServer::BroadcastEvent", VPROF_BUDGETGROUP_HOLYLIB);
+
+	char buffer_data[MAX_EVENT_BYTES];
+	SVC_GameEvent eventMsg;
+	eventMsg.m_DataOut.StartWriting(buffer_data, sizeof(buffer_data));
+
+	if (!Util::gameeventmanager->SerializeEvent(event, &eventMsg.m_DataOut))
+	{
+		DevMsg("CHLTVServer: failed to serialize event '%s'.\n", event->GetName());
+		return;
+	}
+
+	// Now we can control which gameevents are sent and to which clients.
+	// We can use this to block the CHLTVDirector from manipulating specific clients where we want manual control.
+
+	// Below is the implementation of BroadcastMessage that we will adjust later.
+	bool bReliable = false;
+	bool bOnlyActive = true;
+	for (int i = 0; i < server->m_Clients.Count(); i++)
+	{
+		CBaseClient* cl = server->m_Clients[i];
+
+		if ((bOnlyActive && !cl->IsActive()) || !cl->IsSpawned())
+		{
+			continue;
+		}
+
+		if (!cl->SendNetMsg(eventMsg, bReliable))
+		{
+			if (eventMsg.IsReliable() || bReliable)
+			{
+				DevMsg("BroadcastMessage: Reliable broadcast message overflow for client %s", cl->GetClientName());
+			}
+		}
+	}
+
+	if (ref_tv_debug && ref_tv_debug->GetBool())
+		Msg("SourceTV broadcast event: %s\n", event->GetName());
+}
+
 void CSourceTVLibModule::LuaInit(bool bServerInit)
 {
 	if (bServerInit)
 		return;
+
+	ref_tv_debug = cvar->FindVar("tv_debug"); // We only search for it once. Verify: ConVarRef would always search for it in it's constructor/Init if I remember correctly.
 
 	CHLTVClient_TypeID = g_Lua->CreateMetaTable("HLTVClient");
 		Util::AddFunc(HLTVClient__tostring, "__tostring");
@@ -594,6 +640,12 @@ void CSourceTVLibModule::InitDetour(bool bPreServer)
 		&detour_CHLTVClient_Deconstructor, "CHLTVClient::~CHLTVClient",
 		engine_loader.GetModule(), Symbols::CHLTVClient_DeconstructorSym,
 		(void*)hook_CHLTVClient_Deconstructor, m_pID
+	);
+
+	Detour::Create(
+		&detour_CHLTVServer_BroadcastEvent, "CHLTVServer::BroadcastEvent",
+		engine_loader.GetModule(), Symbols::CHLTVServer_BroadcastEventSym,
+		(void*)hook_CHLTVServer_BroadcastEvent, m_pID
 	);
 
 	SourceSDK::ModuleLoader server_loader("server");

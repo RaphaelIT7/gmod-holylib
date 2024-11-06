@@ -231,7 +231,7 @@ private:
 	int			m_nUserid;			// increases by one with every new client
 
 
-protected:
+public: // Gimme that access
 
 	int			m_nMaxclients;         // Current max #
 	int			m_nSpawnCount;			// Number of servers spawned since start,

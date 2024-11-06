@@ -33,6 +33,7 @@ class CSteam3Server;
 class IChangeFrameList;
 class IGameEvent;
 class CBaseHandle;
+class IServer;
 
 namespace GarrysMod::Lua
 {
@@ -165,6 +166,9 @@ namespace Symbols
 
 	typedef void (GMCOMMON_CALLING_CONVENTION* CHLTVDirector_StartNewShot)(void* director);
 	extern const std::vector<Symbol> CHLTVDirector_StartNewShotSym;
+
+	typedef void (GMCOMMON_CALLING_CONVENTION* CHLTVServer_BroadcastEvent)(IServer* server, IGameEvent* event);
+	extern const std::vector<Symbol> CHLTVServer_BroadcastEventSym;
 
 	extern const std::vector<Symbol> UsermessagesSym;
 
