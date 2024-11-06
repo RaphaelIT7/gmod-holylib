@@ -54,6 +54,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
 \- Look into StaticPropMgr stuff. May be interresting.  
 \- Add a bind to `CAI_NetworkManager::BuildNetworkGraph` or `StartRebuild`  
 \- Possibly allow on to force workshop download on next level change.  
+\- GO thru everything and use a more consistant codestyle. I created quiet the mess.  
 
 # The Navigator  
 [Modules](https://github.com/RaphaelIT7/gmod-holylib#modules)  
