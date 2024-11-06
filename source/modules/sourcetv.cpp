@@ -69,9 +69,9 @@ PushReferenced_LuaClass(CHLTVClient, CHLTVClient_TypeID)
 Get_LuaClass(CHLTVClient, CHLTVClient_TypeID, "HLTVClient")
 
 static Detouring::Hook detour_CHLTVClient_Deconstructor;
-static void hook_CHLTVClient_Deconstructor(CHLTVClient* client)
+static void hook_CHLTVClient_Deconstructor(CHLTVClient* pClient)
 {
-	auto it = g_pPushedCHLTVClient.find(client);
+	auto it = g_pPushedCHLTVClient.find(pClient);
 	if (it != g_pPushedCHLTVClient.end())
 	{
 		g_Lua->ReferencePush(it->second);
@@ -81,18 +81,18 @@ static void hook_CHLTVClient_Deconstructor(CHLTVClient* client)
 		g_pPushedCHLTVClient.erase(it);
 	}
 
-	detour_CHLTVClient_Deconstructor.GetTrampoline<Symbols::CHLTVClient_Deconstructor>()(client);
+	detour_CHLTVClient_Deconstructor.GetTrampoline<Symbols::CHLTVClient_Deconstructor>()(pClient);
 }
 
 LUA_FUNCTION_STATIC(HLTVClient__tostring)
 {
-	CHLTVClient* client = Get_CHLTVClient(1, false);
-	if (!client || client->IsConnected())
+	CHLTVClient* pClient = Get_CHLTVClient(1, false);
+	if (!pClient || pClient->IsConnected())
 	{
 		LUA->PushString("HLTVClient [NULL]");
 	} else {
 		char szBuf[128] = {};
-		V_snprintf(szBuf, sizeof(szBuf),"HLTVClient [%i][%s]", client->GetPlayerSlot(), client->GetClientName()); 
+		V_snprintf(szBuf, sizeof(szBuf),"HLTVClient [%i][%s]", pClient->GetPlayerSlot(), pClient->GetClientName());
 		LUA->PushString(szBuf);
 	}
 
@@ -109,64 +109,64 @@ LUA_FUNCTION_STATIC(HLTVClient__index)
 
 LUA_FUNCTION_STATIC(HLTVClient_GetSlot)
 {
-	CHLTVClient* client = Get_CHLTVClient(1, true);
+	CHLTVClient* pClient = Get_CHLTVClient(1, true);
 
-	LUA->PushNumber(client->GetPlayerSlot());
+	LUA->PushNumber(pClient->GetPlayerSlot());
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(HLTVClient_GetUserID)
 {
-	CHLTVClient* client = Get_CHLTVClient(1, true);
+	CHLTVClient* pClient = Get_CHLTVClient(1, true);
 
-	LUA->PushNumber(client->GetUserID());
+	LUA->PushNumber(pClient->GetUserID());
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(HLTVClient_GetName)
 {
-	CHLTVClient* client = Get_CHLTVClient(1, true);
+	CHLTVClient* pClient = Get_CHLTVClient(1, true);
 
-	LUA->PushString(client->GetClientName());
+	LUA->PushString(pClient->GetClientName());
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(HLTVClient_GetSteamID) // Broken -> "STEAM_ID_PENDING"
 {
-	CHLTVClient* client = Get_CHLTVClient(1, true);
+	CHLTVClient* pClient = Get_CHLTVClient(1, true);
 
-	LUA->PushString(client->GetNetworkIDString());
+	LUA->PushString(pClient->GetNetworkIDString());
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(HLTVClient_Reconnect)
 {
-	CHLTVClient* client = Get_CHLTVClient(1, true);
+	CHLTVClient* pClient = Get_CHLTVClient(1, true);
 
-	client->Reconnect();
+	pClient->Reconnect();
 	return 0;
 }
 
 LUA_FUNCTION_STATIC(HLTVClient_ClientPrint)
 {
-	CHLTVClient* client = Get_CHLTVClient(1, true);
+	CHLTVClient* pClient = Get_CHLTVClient(1, true);
 
-	client->ClientPrintf(LUA->CheckString(2));
+	pClient->ClientPrintf(LUA->CheckString(2));
 	return 0;
 }
 
 LUA_FUNCTION_STATIC(HLTVClient_IsValid)
 {
-	CHLTVClient* client = Get_CHLTVClient(1, false);
+	CHLTVClient* pClient = Get_CHLTVClient(1, false);
 	
-	LUA->PushBool(client != NULL && client->IsConnected());
+	LUA->PushBool(pClient != NULL && pClient->IsConnected());
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(HLTVClient_SendLua)
 {
-	CHLTVClient* client = Get_CHLTVClient(1, true);
-	const char* str = LUA->CheckString(2);
+	CHLTVClient* pClient = Get_CHLTVClient(1, true);
+	const char* strLuaCode = LUA->CheckString(2);
 	bool bForceReliable = LUA->GetBool(3);
 
 	// NOTE: Original bug was that we had the wrong bitcount for the net messages type which broke every netmessage we created including this one.
@@ -179,20 +179,20 @@ LUA_FUNCTION_STATIC(HLTVClient_SendLua)
 		return 1;
 	}
 
-	byte userdata[PAD_NUMBER(MAX_USER_MSG_DATA, 4)];
-	msg.m_DataOut.StartWriting(userdata, sizeof(userdata));
-	msg.m_DataOut.WriteString(str);
+	byte pUserData[PAD_NUMBER(MAX_USER_MSG_DATA, 4)];
+	msg.m_DataOut.StartWriting(pUserData, sizeof(pUserData));
+	msg.m_DataOut.WriteString(strLuaCode);
 
-	LUA->PushBool(client->SendNetMsg(msg, bForceReliable));
+	LUA->PushBool(pClient->SendNetMsg(msg, bForceReliable));
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(HLTVClient_FireEvent)
 {
-	CHLTVClient* client = Get_CHLTVClient(1, true);
+	CHLTVClient* pClient = Get_CHLTVClient(1, true);
 	IGameEvent* pEvent = Get_IGameEvent(2, true);
 
-	client->FireGameEvent(pEvent);
+	pClient->FireGameEvent(pEvent);
 	return 0;
 }
 
@@ -299,7 +299,7 @@ static Symbols::COM_IsValidPath func_COM_IsValidPath;
 static Symbols::CHLTVDemoRecorder_StartRecording func_CHLTVDemoRecorder_StartRecording;
 LUA_FUNCTION_STATIC(sourcetv_StartRecord)
 {
-	const char* pFileName = LUA->CheckString(1);
+	const char* strFileName = LUA->CheckString(1);
 
 	if (!hltv || !hltv->IsActive())
 	{
@@ -319,17 +319,17 @@ LUA_FUNCTION_STATIC(sourcetv_StartRecord)
 		return 1;
 	}
 
-	if (!func_COM_IsValidPath(pFileName))
+	if (!func_COM_IsValidPath(strFileName))
 	{
 		LUA->PushNumber(LUA_RECORD_INVALIDPATH);
 		return 1;
 	}
  
-	char name[MAX_OSPATH];
-	Q_strncpy(name, pFileName, sizeof(name));
-	Q_DefaultExtension(name, ".dem", sizeof(name));
+	char strName[MAX_OSPATH];
+	Q_strncpy(strName, strFileName, sizeof(strName));
+	Q_DefaultExtension(strName, ".dem", sizeof(strName));
 
-	if (g_pFullFileSystem->FileExists(name))
+	if (g_pFullFileSystem->FileExists(strName))
 	{
 		LUA->PushNumber(LUA_RECORD_FILEEXISTS);
 		return 1;
@@ -338,7 +338,7 @@ LUA_FUNCTION_STATIC(sourcetv_StartRecord)
 	if (!func_CHLTVDemoRecorder_StartRecording)
 		LUA->ThrowError("Failed to get CHLTVDemoRecorder::StartRecording!");
 
-	func_CHLTVDemoRecorder_StartRecording(&hltv->m_DemoRecorder, name, false);
+	func_CHLTVDemoRecorder_StartRecording(&hltv->m_DemoRecorder, strName, false);
 	LUA->PushNumber(LUA_RECORD_OK);
 
 	return 1;
@@ -390,15 +390,15 @@ LUA_FUNCTION_STATIC(sourcetv_GetAll)
 		if (!hltv || !hltv->IsActive())
 			return 1;
 
-		int idx = 0;
-		for (int i=0; i< hltv->GetClientCount(); ++i)
+		int iTableIndex = 0;
+		for (int iClientIndex=0; iClientIndex<hltv->GetClientCount(); ++iClientIndex)
 		{
-			CHLTVClient* client = hltv->Client(i);
-			if (!client->IsConnected())
+			CHLTVClient* pClient = hltv->Client(iClientIndex);
+			if (!pClient->IsConnected())
 				continue;
 
-			LUA->PushNumber(++idx);
-			Push_CHLTVClient(client);
+			LUA->PushNumber(++iTableIndex);
+			Push_CHLTVClient(pClient);
 			LUA->RawSet(-3);
 		}
 
@@ -410,15 +410,15 @@ LUA_FUNCTION_STATIC(sourcetv_GetClient)
 	if (!hltv || !hltv->IsActive())
 		return 0;
 
-	int idx = (int)LUA->CheckNumber(1);
-	if (idx >= hltv->GetClientCount())
+	int iClientIndex = (int)LUA->CheckNumber(1);
+	if (iClientIndex >= hltv->GetClientCount())
 		return 0;
 
-	CHLTVClient* client = hltv->Client(idx);
-	if (client && !client->IsConnected())
-		client = NULL;
+	CHLTVClient* pClient = hltv->Client(iClientIndex);
+	if (pClient && !pClient->IsConnected())
+		pClient = NULL;
 
-	Push_CHLTVClient(client);
+	Push_CHLTVClient(pClient);
 
 	return 1;
 }
@@ -467,37 +467,41 @@ LUA_FUNCTION_STATIC(sourcetv_SetCameraMan)
 	return 0;
 }
 
+static CModule* g_pBitBufModule;
 static Detouring::Hook detour_CHLTVClient_ProcessGMod_ClientToServer;
-static bool hook_CHLTVClient_ProcessGMod_ClientToServer(CHLTVClient* hltvclient, CLC_GMod_ClientToServer* bf)
+static bool hook_CHLTVClient_ProcessGMod_ClientToServer(CHLTVClient* pClient, CLC_GMod_ClientToServer* pBf)
 {
 	VPROF_BUDGET("HolyLib - CHLTVClient::ProcessGMod_ClientToServer", VPROF_BUDGETGROUP_HOLYLIB);
 
 	if (!sourcetv_allownetworking.GetBool())
 		return true;
 
-	CModule* module = (CModule*)g_pModuleManager.FindModuleByName("bitbuf");
-	if (!module)
+	if (!g_pBitBufModule)
 	{
-		Warning("HolyLib (sourcetv): Failed to find bitbuf module?\n");
-		return true;
+		g_pBitBufModule = (CModule*)g_pModuleManager.FindModuleByName("bitbuf");
+		if (!g_pBitBufModule)
+		{
+			Warning("HolyLib (sourcetv): Failed to find bitbuf module?\n");
+			return true;
+		}
 	}
 
-	if (!module->IsEnabled()) // This relies on the bitbuf module.
+	if (!g_pBitBufModule->IsEnabled()) // This relies on the bitbuf module.
 		return true;
 
-	bf->m_DataIn.Seek(0);
-	int type = bf->m_DataIn.ReadUBitLong(4);
-	if (type != 2) // Only handle type 2 -> Lua net message.
+	pBf->m_DataIn.Seek(0);
+	int iType = pBf->m_DataIn.ReadUBitLong(4);
+	if (iType != 2) // Only handle type 2 -> Lua net message.
 		return true;
 
-	bf->m_DataIn.ReadUBitLong(8);
-	bf->m_DataIn.ReadUBitLong(22); // Skiping to the header
-	//bf->m_DataIn.ReadBitLong(16, false); // The header -> the string. Why not an 12 bits? (This will be read by net.ReadHeader())
+	pBf->m_DataIn.ReadUBitLong(8);
+	pBf->m_DataIn.ReadUBitLong(22); // Skiping to the header
+	//pBf->m_DataIn.ReadBitLong(16, false); // The header -> the string. Why not an 12 bits? (This will be read by net.ReadHeader())
 
 	if (Lua::PushHook("HolyLib:OnSourceTVNetMessage")) // Maybe change the name? I don't have a better one rn :/
 	{
-		Push_CHLTVClient(hltvclient);
-		Push_bf_read(&bf->m_DataIn);
+		Push_CHLTVClient(pClient);
+		Push_bf_read(&pBf->m_DataIn);
 		g_Lua->Push(-1);
 		int iReference = g_Lua->ReferenceCreate();
 		g_Lua->CallFunctionProtected(3, 0, true);
@@ -511,29 +515,29 @@ static bool hook_CHLTVClient_ProcessGMod_ClientToServer(CHLTVClient* hltvclient,
 }
 
 static Detouring::Hook detour_CHLTVClient_ExecuteStringCommand;
-static bool hook_CHLTVClient_ExecuteStringCommand(CHLTVClient* hltvclient, const char* pCommandString)
+static bool hook_CHLTVClient_ExecuteStringCommand(CHLTVClient* pClient, const char* pCommandString)
 {
 	VPROF_BUDGET("HolyLib - CHLTVClient::ExecuteStringCommand", VPROF_BUDGETGROUP_HOLYLIB);
 
 	if (!sourcetv_allowcommands.GetBool())
-		return detour_CHLTVClient_ExecuteStringCommand.GetTrampoline<Symbols::CHLTVClient_ExecuteStringCommand>()(hltvclient, pCommandString);
+		return detour_CHLTVClient_ExecuteStringCommand.GetTrampoline<Symbols::CHLTVClient_ExecuteStringCommand>()(pClient, pCommandString);
 
-	CCommand args;
-	if (!args.Tokenize(pCommandString))
+	CCommand pCommandArgs;
+	if (!pCommandArgs.Tokenize(pCommandString))
 		return true;
 
 	if (Lua::PushHook("HolyLib:OnSourceTVCommand")) // Maybe change the name? I don't have a better one rn :/
 	{
-		Push_CHLTVClient(hltvclient);
-		g_Lua->PushString(args[0]); // cmd
-		g_Lua->PreCreateTable(args.ArgC(), 0);
-			for (int i=1; i<args.ArgC(); ++i) // skip cmd -> 0
+		Push_CHLTVClient(pClient);
+		g_Lua->PushString(pCommandArgs[0]); // cmd
+		g_Lua->PreCreateTable(pCommandArgs.ArgC(), 0);
+			for (int i=1; i< pCommandArgs.ArgC(); ++i) // skip cmd -> 0
 			{
 				g_Lua->PushNumber(i);
-				g_Lua->PushString(args.Arg(i));
+				g_Lua->PushString(pCommandArgs.Arg(i));
 				g_Lua->RawSet(-3);
 			}
-		g_Lua->PushString(args.ArgS());
+		g_Lua->PushString(pCommandArgs.ArgS());
 		if (g_Lua->CallFunctionProtected(5, 1, true))
 		{
 			bool handled = g_Lua->GetBool(-1); // If true was returned, the command was handled.
@@ -544,7 +548,7 @@ static bool hook_CHLTVClient_ExecuteStringCommand(CHLTVClient* hltvclient, const
 	}
 
 	// Fallback.
-	return detour_CHLTVClient_ExecuteStringCommand.GetTrampoline<Symbols::CHLTVClient_ExecuteStringCommand>()(hltvclient, pCommandString);
+	return detour_CHLTVClient_ExecuteStringCommand.GetTrampoline<Symbols::CHLTVClient_ExecuteStringCommand>()(pClient, pCommandString);
 }
 
 extern CGlobalVars* gpGlobals;
@@ -562,8 +566,8 @@ static void hook_CHLTVDirector_StartNewShot(CHLTVDirector* director)
 
 			if (bCancel)
 			{
-				int smallestTick = MAX(0, gpGlobals->tickcount - TIME_TO_TICKS(HLTV_MAX_DELAY));
-				director->RemoveEventsFromHistory(smallestTick);
+				int iSmallestTick = MAX(0, gpGlobals->tickcount - TIME_TO_TICKS(HLTV_MAX_DELAY));
+				director->RemoveEventsFromHistory(iSmallestTick);
 				director->m_nNextShotTick = director->m_nBroadcastTick + TIME_TO_TICKS(MAX_SHOT_LENGTH);
 				return;
 			}
