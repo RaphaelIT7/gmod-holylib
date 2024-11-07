@@ -182,10 +182,13 @@ struct LuaUserData { // ToDo: Maybe implement this also for other things?
 			g_Lua->ReferenceFree(iTableReference);
 			iTableReference = -1;
 		}
+
+		pAdditionalData = NULL;
 	}
 
 	int iReference = -1;
 	int iTableReference = -1;
+	int pAdditionalData = -1; // Used by HLTVClient.
 };
 
 // This one is special

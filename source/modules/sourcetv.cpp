@@ -93,18 +93,21 @@ static void hook_CSteam3Server_NotifyClientDisconnect(void* pServer, IClient* pC
 	{
 		if (Lua::PushHook("HolyLib:OnSourceTVClientDisconnect"))
 		{
-			Msg("%p, %p\n", pClient, hltv->Client(0));
-			Push_CHLTVClient(hltv->Client(0));
+			if (g_pSourceTVLibModule.InDebug())
+				Push_CHLTVClient((CHLTVClient*)pClient); // In debug we try to push the HLTVClient.
+			else
+				g_Lua->PushNumber(pClient->GetPlayerSlot());
 			g_Lua->CallFunctionProtected(2, 0, true);
 		}
 
-		auto it = g_pPushedCHLTVClient.find(hltv->Client(0));
+		// The code below is broken? Idk why.
+		/*auto it = g_pPushedCHLTVClient.find(hltv->Client(0));
 		if (it != g_pPushedCHLTVClient.end())
 		{
 			g_Lua->ReferenceFree(it->second->iTableReference);
 			g_Lua->CreateTable();
 			it->second->iTableReference = g_Lua->ReferenceCreate(); // Create a new empty Lua table for the next client.
-		}
+		}*/
 	}
 
 	detour_CSteam3Server_NotifyClientDisconnect.GetTrampoline<Symbols::CSteam3Server_NotifyClientDisconnect>()(pServer, pClient);
@@ -127,20 +130,21 @@ LUA_FUNCTION_STATIC(HLTVClient__tostring)
 
 LUA_FUNCTION_STATIC(HLTVClient__index)
 {
-	if (LUA->FindOnObjectsMetaTable(1, 2))
-		return 1;
+	if (!LUA->FindOnObjectsMetaTable(1, 2))
+		LUA->PushNil();
+		//return 1;
 
-	LUA->Pop(1);
+	/*LUA->Pop(1);
 	LUA->ReferencePush(g_pPushedCHLTVClient[Get_CHLTVClient(1, true)]->iTableReference); // This should never crash so no safety checks.
 	if (!LUA->FindObjectOnTable(-1, 2))
 		LUA->PushNil();
 
-	LUA->Remove(-2);
+	LUA->Remove(-2);*/
 
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(HLTVClient__newindex)
+/*LUA_FUNCTION_STATIC(HLTVClient__newindex)
 {
 	LUA->ReferencePush(g_pPushedCHLTVClient[Get_CHLTVClient(1, true)]->iTableReference); // This should never crash so no safety checks.
 	LUA->Push(2);
@@ -149,11 +153,21 @@ LUA_FUNCTION_STATIC(HLTVClient__newindex)
 	LUA->Pop(1);
 
 	return 0;
-}
+}*/
 
 LUA_FUNCTION_STATIC(HLTVClient_GetTable)
 {
-	LUA->ReferencePush(g_pPushedCHLTVClient[Get_CHLTVClient(1, true)]->iTableReference); // This should never crash so no safety checks.
+	CHLTVClient* pClient = Get_CHLTVClient(1, true);
+	LuaUserData* data = g_pPushedCHLTVClient[pClient];
+	if (data->pAdditionalData != pClient->GetUserID())
+	{
+		data->pAdditionalData = pClient->GetUserID();
+		LUA->ReferenceFree(data->iTableReference);
+		LUA->CreateTable();
+		data->iTableReference = LUA->ReferenceCreate();
+	}
+
+	LUA->ReferencePush(data->iTableReference); // This should never crash so no safety checks.
 
 	return 1;
 }
@@ -691,7 +705,7 @@ void CSourceTVLibModule::LuaInit(bool bServerInit)
 
 	CHLTVClient_TypeID = g_Lua->CreateMetaTable("HLTVClient");
 		Util::AddFunc(HLTVClient__tostring, "__tostring");
-		Util::AddFunc(HLTVClient__newindex, "__newindex");
+		//Util::AddFunc(HLTVClient__newindex, "__newindex");
 		Util::AddFunc(HLTVClient__index, "__index");
 		Util::AddFunc(HLTVClient_GetTable, "GetTable");
 

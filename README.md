@@ -1307,17 +1307,14 @@ Format: `HLTVClient [%i][%s]`
 `%i` -> UserID  
 `%s` -> ClientName  
 
-#### HLTVClient:\_\_newindex(string key, any value)
-Internally implemented and will set the values into the lua table.  
-
 #### any HLTVClient:\_\_index(string key)
-Internally seaches first in the metatable table for the key.  
-If it fails to find it, it will search in the lua table before returning.  
-If you try to get multiple values from the lua table, just use `HLTVClient:GetTable()`.  
+Internally seaches in the metatable table for the key.  
 
 #### table HLTVClient:GetTable()
 Returns the lua table of this object.  
 You can store variables into it.  
+
+> NOTE: There is no \_\_newindex function since we can't properly reset the LuaTable.  
 
 #### string HLTVClient:GetName()
 Returns the name of the client.  
@@ -1420,8 +1417,10 @@ end)
 Called when SourceTV tries to start a new shot.  
 Return `true` to cancel it.  
 
-#### bool HolyLib:OnSourceTVClientDisconnect(HLTVClient client)
+#### bool HolyLib:OnSourceTVClientDisconnect(number playerSlot)
 Called when a client disconnects from the sourcetv server.  
+
+> NOTE: We pass the playerSlot since passing the HLTVClient object causes weird issues I couldn't fix yet.  
 
 ### ConVars
 
