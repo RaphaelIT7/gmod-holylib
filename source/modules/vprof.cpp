@@ -579,7 +579,7 @@ static void* hook_lj_BC_FUNCC(void* arg) // Find out the luajit function later.
 }
 #endif
 
-#ifdef ARCHITECTURE_X86_64
+#if defined(ARCHITECTURE_X86_64) && 0
 Detouring::Hook detour_ThreadGetCurrentId;
 ThreadId_t hook_ThreadGetCurrentId()
 {
@@ -726,6 +726,7 @@ void CVProfModule::InitDetour(bool bPreServer)
 #endif
 
 #ifdef ARCHITECTURE_X86_64
+#if 0 // This bug was fixed in Gmod itself -> https://github.com/Facepunch/garrysmod-issues/issues/6019
 	Detour::Create(
 		&detour_ThreadGetCurrentId, "ThreadGetCurrentId",
 		tier0_loader.GetModule(), Symbols::ThreadGetCurrentIdSym,
@@ -738,6 +739,7 @@ void CVProfModule::InitDetour(bool bPreServer)
     unsigned long int pthread_Id = ThreadGetCurrentId();
 	if (m_TargetThreadId != pthread_Id)
 		Warning("[holylib - vprof] Failed to fix ThreadGetCurrentId! (vprof most likely won't work)\n");
+#endif
 
 	Detour::Create(
 		&detour_Msg, "Msg",

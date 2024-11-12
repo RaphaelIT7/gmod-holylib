@@ -32,7 +32,8 @@ static int hook_CThreadPool_ExecuteToPriority(IThreadPool* pool, void* idx, void
 }
 #endif
 
-#if ARCHITECTURE_IS_X86_64
+#define FILESYSTEM_FIX 0 // This fix was added to Gmod -> https://github.com/Facepunch/garrysmod-issues/issues/6031
+#if ARCHITECTURE_IS_X86_64 && FILESYSTEM_FIX
 static Detouring::Hook detour_CThreadPool_Start;
 Symbols::CBaseFileSystem_InitAsync func_CBaseFileSystem_InitAsync = NULL;
 Symbols::CBaseFileSystem_ShutdownAsync func_CBaseFileSystem_ShutdownAsync = NULL;
@@ -62,6 +63,7 @@ void CThreadPoolFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gam
 		Util::StartThreadPool(g_pThreadPool, startParams);
 	}
 
+#if FILESYSTEM_FIX
 	if (func_CBaseFileSystem_InitAsync && func_CBaseFileSystem_ShutdownAsync && !g_pModuleManager.IsUsingGhostInj()) // Restart the threadpool to fix it.
 	{
 		if (g_pThreadPoolFixModule.InDebug())
@@ -71,6 +73,7 @@ void CThreadPoolFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gam
 		func_CBaseFileSystem_InitAsync(g_pFullFileSystem);
 	}
 #endif
+#endif
 }
 
 void CThreadPoolFixModule::InitDetour(bool bPreServer)
@@ -78,7 +81,7 @@ void CThreadPoolFixModule::InitDetour(bool bPreServer)
 	SourceSDK::ModuleLoader libvstdlib_loader("vstdlib");
 	if (bPreServer)
 	{
-#if ARCHITECTURE_IS_X86_64
+#if ARCHITECTURE_IS_X86_64 && FILESYSTEM_FIX
 	Detour::Create(
 		&detour_CThreadPool_Start, "CThreadPool::Start",
 		libvstdlib_loader.GetModule(), Symbols::CThreadPool_StartSym,
