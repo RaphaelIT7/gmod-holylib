@@ -34,6 +34,7 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- [+] Added `INetworkStringTable:GetTable` and `HLTVClient:GetTable` functions to `sourcetv` and `stringtable` module.  
 \- [+] Added `pvs.TestPVS` and `pvs.FindInPVS` functions to `pvs` module.  
 \- [+] Added `HolyLib.ExitLadder` and `HolyLib.GetLadder` to `holylib` module.  
+\- [+] Exposed `IHolyUtil` interface and added `IHolyLib::PreLoad` and `IHolyLib:GetHolyUtil`.  
 \- [#] Fixed many issues with the `bass` module. It is acutally usable.  
 \- [#] All `pvs.FL_EDICT_` enums changed.  
 \- [#] Improved performance by replacing SetTable with RawSet.  
