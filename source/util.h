@@ -92,32 +92,19 @@ namespace Util
 	extern CBasePlayer* Get_Player(int iStackPos, bool unknown);
 	extern CBaseEntity* Get_Entity(int iStackPos, bool unknown);
 	extern void Push_Entity(CBaseEntity* pEnt);
-
-	extern CBaseClient* GetClientByUserID(int userid);
-
-	extern void AddDetour(); // We load Gmod's functions in there.
-	
-	extern IVEngineServer* engineserver;
-	extern IServerGameClients* servergameclients;
-	extern IServerGameEnts* servergameents;
-	extern IServer* server;
-	extern CGlobalEntityList* entitylist;
-	extern CUserMessages* pUserMessages;
-	extern IModuleWrapper* pEntityList; // Other rely on this module.
-	extern IGameEventManager2* gameeventmanager;
-	extern IGet* get;
-
 	extern CBaseEntity* GetCBaseEntityFromEdict(edict_t* edict);
 
+	extern void AddDetour(); // We load Gmod's functions in there.
+
+	extern CBaseClient* GetClientByUserID(int userID);
 	extern CBaseClient* GetClientByPlayer(const CBasePlayer* ply);
 	extern CBaseClient* GetClientByIndex(int index);
 	extern std::vector<CBaseClient*> GetClients();
 	extern CBasePlayer* GetPlayerByClient(CBaseClient* client);
 	extern void CM_Vis(const Vector& orig, int type);
+	extern bool CM_Vis(byte* cluster, int clusterSize, int cluserID, int type);
 	extern void ResetClusers();
 	extern bool ShouldLoad();
-	#define MAX_MAP_LEAFS 65536
-	extern byte g_pCurrentCluster[MAX_MAP_LEAFS / 8];
 
 	inline void StartThreadPool(IThreadPool* pool, ThreadPoolStartParams_t& startParams)
 	{
@@ -134,6 +121,18 @@ namespace Util
 		startParams.nThreadsMax = startParams.nThreads;
 		Util::StartThreadPool(pool, startParams);
 	}
+
+	extern IVEngineServer* engineserver;
+	extern IServerGameClients* servergameclients;
+	extern IServerGameEnts* servergameents;
+	extern IServer* server;
+	extern CGlobalEntityList* entitylist;
+	extern CUserMessages* pUserMessages;
+	extern IModuleWrapper* pEntityList; // Other rely on this module.
+	extern IGameEventManager2* gameeventmanager;
+	extern IGet* get;
+	#define MAX_MAP_LEAFS 65536
+	extern byte g_pCurrentCluster[MAX_MAP_LEAFS / 8];
 }
 
 #define MakeString( str1, str2, str3 ) ((std::string)str1).append(str2).append(str3)

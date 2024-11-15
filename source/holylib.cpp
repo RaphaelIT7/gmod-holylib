@@ -1,18 +1,50 @@
 #include "public/iholylib.h"
 #include "module.h"
 #include "util.h"
+#include "plugin.h"
 
+extern IHolyUtil* g_pHolyUtil;
+extern CServerPlugin* g_pHolyLibServerPlugin;
 class CHolyLib : public IHolyLib
 {
 public:
-	virtual IServerPluginCallbacks* GetPlugin();
-	virtual CreateInterfaceFn GetGameFactory();
-	virtual CreateInterfaceFn GetAppFactory();
-	virtual IModuleManager* GetModuleManager();
-	virtual GarrysMod::Lua::ILuaInterface* GetLuaInterface();
+	virtual IServerPluginCallbacks* GetPlugin()
+	{
+		return g_pHolyLibServerPlugin;
+	}
+
+	virtual CreateInterfaceFn GetGameFactory()
+	{
+		return g_pModuleManager.GetGameFactory();
+	}
+
+	virtual CreateInterfaceFn GetAppFactory()
+	{
+		return g_pModuleManager.GetAppFactory();
+	}
+
+	virtual IModuleManager* GetModuleManager()
+	{
+		return &g_pModuleManager;
+	}
+
+	virtual GarrysMod::Lua::ILuaInterface* GetLuaInterface()
+	{
+		return g_Lua;
+	}
+
+	virtual void PreLoad()
+	{
+		g_pHolyLibServerPlugin->GhostInj();
+	}
+
+	virtual IHolyUtil* GetHolyUtil()
+	{
+		return g_pHolyUtil;
+	}
 };
 
-CHolyLib s_HolyLib;
+static CHolyLib s_HolyLib;
 IHolyLib *g_pHolyLib = &s_HolyLib;
 
 #ifdef LIB_HOLYLIB
@@ -23,29 +55,3 @@ IHolyLib* GetHolyLib()
 #else
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CHolyLib, IHolyLib, INTERFACEVERSION_HOLYLIB, s_HolyLib);
 #endif
-
-extern IServerPluginCallbacks* g_pHolyLibServerPlugin;
-IServerPluginCallbacks* CHolyLib::GetPlugin()
-{
-	return g_pHolyLibServerPlugin;
-}
-
-CreateInterfaceFn CHolyLib::GetGameFactory()
-{
-	return g_pModuleManager.GetGameFactory();
-}
-
-CreateInterfaceFn CHolyLib::GetAppFactory()
-{
-	return g_pModuleManager.GetAppFactory();
-}
-
-IModuleManager* CHolyLib::GetModuleManager()
-{
-	return &g_pModuleManager;
-}
-
-GarrysMod::Lua::ILuaInterface* CHolyLib::GetLuaInterface()
-{
-	return (GarrysMod::Lua::ILuaInterface*)g_Lua;
-}

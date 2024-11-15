@@ -45,6 +45,9 @@ public:
 	virtual void			LuaShutdown();
 
 	virtual int GetCommandIndex() { return m_iClientCommandIndex; }
+public:
+	virtual void GhostInj(); // Making this virtual is such a bad Idea... Anyways.
+
 private:
 	int m_iClientCommandIndex;
 };

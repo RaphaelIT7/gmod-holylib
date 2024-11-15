@@ -205,7 +205,7 @@ void CModuleManager::LoadModules()
 }
 
 int g_pIDs = 0;
-void CModuleManager::RegisterModule(IModule* pModule)
+IModuleWrapper* CModuleManager::RegisterModule(IModule* pModule)
 {
 	++g_pIDs;
 	CModule* module = new CModule();

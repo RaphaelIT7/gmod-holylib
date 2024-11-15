@@ -19,8 +19,8 @@ struct edict_t;
 #include <eiface.h>
 
 // The plugin is a static singleton that is exported as an interface
-CServerPlugin g_HolyLibServerPlugin;
-IServerPluginCallbacks* g_pHolyLibServerPlugin = &g_HolyLibServerPlugin;
+static CServerPlugin g_HolyLibServerPlugin;
+CServerPlugin* g_pHolyLibServerPlugin = &g_HolyLibServerPlugin;
 #ifdef LIB_HOLYLIB
 IServerPluginCallbacks* GetHolyLibPlugin()
 {
@@ -50,11 +50,7 @@ CServerPlugin::~CServerPlugin()
 {
 }
 
-#ifdef LIB_HOLYLIB
-void HolyLib_PreLoad()
-#else
-DLL_EXPORT void HolyLib_PreLoad() // ToDo: Make this a CServerPlugin member later!
-#endif
+void CServerPlugin::GhostInj()
 {
 	if (!Util::ShouldLoad())
 	{
@@ -68,6 +64,15 @@ DLL_EXPORT void HolyLib_PreLoad() // ToDo: Make this a CServerPlugin member late
 
 	g_pModuleManager.SetGhostInj();
 	g_pModuleManager.InitDetour(true);
+}
+
+#ifdef LIB_HOLYLIB
+void HolyLib_PreLoad()
+#else
+DLL_EXPORT void HolyLib_PreLoad()
+#endif
+{
+	g_HolyLibServerPlugin.GhostInj();
 }
 
 //---------------------------------------------------------------------------------

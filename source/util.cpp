@@ -87,7 +87,7 @@ CBaseClient* Util::GetClientByPlayer(const CBasePlayer* ply)
 
 CBaseClient* Util::GetClientByIndex(int index)
 {
-	if (server->GetClientCount() <= index)
+	if (server->GetClientCount() <= index || index < 0)
 		return NULL;
 
 	return (CBaseClient*)server->GetClient(index);
@@ -125,6 +125,17 @@ void Util::CM_Vis(const Vector& orig, int type)
 	if (func_CM_Vis)
 		func_CM_Vis(Util::g_pCurrentCluster, sizeof(Util::g_pCurrentCluster), engine->GetClusterForOrigin(orig), type);
 }
+
+bool Util::CM_Vis(byte* cluster, int clusterSize, int clusterID, int type)
+{
+	if (func_CM_Vis)
+		func_CM_Vis(cluster, clusterSize, clusterID, type);
+	else
+		return false;
+
+	return true;
+}
+
 
 static Symbols::CBaseEntity_CalcAbsolutePosition func_CBaseEntity_CalcAbsolutePosition;
 void CBaseEntity::CalcAbsolutePosition(void)

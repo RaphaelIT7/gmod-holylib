@@ -345,6 +345,13 @@ static void hook_CBaseEntity_SetMoveType(CBaseEntity* pEnt, int iMoveType, int i
 	detour_CBaseEntity_SetMoveType.GetTrampoline<Symbols::CBaseEntity_SetMoveType>()(pEnt, iMoveType, iMoveCollide);
 }
 
+std::vector<std::string> g_pHideMsg;
+LUA_FUNCTION_STATIC(HideMsg)
+{
+	const char* pRegex = LUA->CheckString(1);
+	return 0;
+}
+
 void CHolyLibModule::LuaInit(bool bServerInit)
 {
 	if (!bServerInit)
