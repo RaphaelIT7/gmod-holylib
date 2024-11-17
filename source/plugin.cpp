@@ -124,6 +124,10 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 	g_pModuleManager.Init();
 	g_pModuleManager.InitDetour(false);
 
+	GarrysMod::Lua::ILuaInterface* LUA = Lua::GetRealm(GarrysMod::Lua::State::SERVER);
+	if (LUA) // If we got loaded by plugin_load we need to manually call Lua::Init
+		Lua::Init(LUA);
+
 #if ARCHITECTURE_IS_X86_64
 	if (CommandLine()->FindParm("-holylib_debug_forceregister"))
 #endif
