@@ -46,8 +46,10 @@ You can see all changes here:
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
 
 ### QoL updates
+\- [+] Added comments to some interfaces.  
 \- [#] Cleaned up code a bit  
 \- [#] Switched away from the ILuaBase. All Lua functions now use ILuaInterface.  
+\- [#] Fixed `plugin_load` causing holylib to load improperly.  
 
 ## ToDo
 \- Finish 64x (`pvs`, `sourcetv`, `surffix`)  

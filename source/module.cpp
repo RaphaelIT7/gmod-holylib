@@ -208,7 +208,7 @@ int g_pIDs = 0;
 IModuleWrapper* CModuleManager::RegisterModule(IModule* pModule)
 {
 	++g_pIDs;
-	CModule* module = new CModule();
+	CModule* module = new CModule;
 	m_pModules.push_back(module); // Add it first in case any ConVar callbacks get called in SetModule.
 	module->SetModule(pModule);
 	module->SetID(g_pIDs);
@@ -220,6 +220,8 @@ IModuleWrapper* CModuleManager::RegisterModule(IModule* pModule)
 		module->IsEnabled() ? "true, " : "false,", 
 		module->IsCompatible() ? "true " : "false"
 	);
+
+	return module;
 }
 
 IModuleWrapper* CModuleManager::FindModuleByConVar(ConVar* convar)
