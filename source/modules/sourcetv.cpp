@@ -649,7 +649,7 @@ static Detouring::Hook detour_CHLTVServer_BroadcastEvent;
 	"hltv_chase",
 	"hltv_cameraman",
 };*/
-static void hook_CHLTVServer_BroadcastEvent(CBaseServer* pServer, IGameEvent* pEvent) // NOTE: We fully detour this one. We never call the original function.
+static void hook_CHLTVServer_BroadcastEvent(CHLTVServer* pServer, IGameEvent* pEvent) // NOTE: We fully detour this one. We never call the original function.
 {
 	VPROF_BUDGET("HolyLib - CHLTVServer::BroadcastEvent", VPROF_BUDGETGROUP_HOLYLIB);
 
@@ -674,9 +674,9 @@ static void hook_CHLTVServer_BroadcastEvent(CBaseServer* pServer, IGameEvent* pE
 	// Below is the implementation of BroadcastMessage that we will adjust as needed.
 	bool bReliable = false;
 	bool bOnlyActive = true;
-	for (int iClientIndex=0; iClientIndex<hltv->GetClientCount(); ++iClientIndex)
+	for (int iClientIndex=0; iClientIndex<pServer->GetClientCount(); ++iClientIndex)
 	{
-		CHLTVClient* pClient = hltv->Client(iClientIndex);
+		CHLTVClient* pClient = pServer->Client(iClientIndex);
 
 		if ((bOnlyActive && !pClient->IsActive()) || !pClient->IsSpawned())
 			continue;
