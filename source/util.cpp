@@ -143,6 +143,12 @@ void CBaseEntity::CalcAbsolutePosition(void)
 	func_CBaseEntity_CalcAbsolutePosition(this);
 }
 
+static Symbols::CCollisionProperty_MarkSurroundingBoundsDirty func_CCollisionProperty_MarkSurroundingBoundsDirty;
+void CCollisionProperty::MarkSurroundingBoundsDirty()
+{
+	func_CCollisionProperty_MarkSurroundingBoundsDirty(this);
+}
+
 CBaseEntity* Util::GetCBaseEntityFromEdict(edict_t* edict)
 {
 	return Util::servergameents->EdictToBaseEntity(edict);
@@ -216,6 +222,9 @@ void Util::AddDetour()
 	Detour::CheckFunction((void*)func_GetPlayer, "Get_Player");
 	Detour::CheckFunction((void*)func_PushEntity, "Push_Entity");
 	Detour::CheckFunction((void*)func_GetEntity, "Get_Entity");
+
+	func_CCollisionProperty_MarkSurroundingBoundsDirty = (Symbols::CCollisionProperty_MarkSurroundingBoundsDirty)Detour::GetFunction(server_loader.GetModule(), Symbols::CCollisionProperty_MarkSurroundingBoundsDirtySym);
+	Detour::CheckFunction((void*)func_CCollisionProperty_MarkSurroundingBoundsDirty, "CCollisionProperty::MarkSurroundingBoundsDirty");
 #endif
 }
 

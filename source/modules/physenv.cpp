@@ -10,6 +10,7 @@
 #include <vphysics/performance.h>
 #include "sourcesdk/cphysicsobject.h"
 #include "sourcesdk/cphysicsenvironment.h"
+#include "player.h"
 
 class CPhysEnvModule : public IModule
 {
@@ -161,7 +162,7 @@ LUA_FUNCTION_STATIC(physenv_SetPhysSkipType)
 	return 0;
 }
 
-static IPhysics* physics = NULL;
+IPhysics* physics = NULL;
 static IPhysicsCollision* physcollide = NULL;
 void CPhysEnvModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
@@ -726,6 +727,45 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_Simulate)
 	ILuaPhysicsEnvironment* pOldEnvironment = g_pCurrentEnvironment; // Simulating a environment in a already simulating environment? sounds fun :^
 	g_pCurrentEnvironment = pLuaEnv;
 	pEnvironment->Simulate(deltaTime);
+
+	int activeCount = pEnvironment->GetActiveObjectCount();
+	IPhysicsObject **pActiveList = NULL;
+	if ( activeCount )
+	{
+		pActiveList = (IPhysicsObject **)stackalloc( sizeof(IPhysicsObject *)*activeCount );
+		pEnvironment->GetActiveObjects( pActiveList );
+
+		for ( int i = 0; i < activeCount; i++ )
+		{
+			CBaseEntity *pEntity = reinterpret_cast<CBaseEntity *>(pActiveList[i]->GetGameData());
+			if ( pEntity )
+			{
+				if ( pEntity->CollisionProp()->DoesVPhysicsInvalidateSurroundingBox() )
+				{
+					pEntity->CollisionProp()->MarkSurroundingBoundsDirty();
+				}
+				pEntity->VPhysicsUpdate( pActiveList[i] );
+			}
+		}
+		stackfree( pActiveList );
+	}
+
+	/*for ( entitem_t* pItem = g_pShadowEntities->m_pItemList; pItem; pItem = pItem->pNext )
+	{
+		CBaseEntity *pEntity = pItem->hEnt.Get();
+		if ( !pEntity )
+		{
+			Msg( "Dangling pointer to physics entity!!!\n" );
+			continue;
+		}
+
+		IPhysicsObject *pPhysics = pEntity->VPhysicsGetObject();
+		if ( pPhysics && !pPhysics->IsAsleep() )
+		{
+			pEntity->VPhysicsShadowUpdate( pPhysics );
+		}
+	}*/
+
 	g_pCurrentEnvironment = pOldEnvironment;
 	return 0;
 }

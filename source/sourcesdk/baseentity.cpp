@@ -35,3 +35,29 @@ CBaseEntity* CGlobalEntityList::NextEnt(CBaseEntity* pCurrentEnt)
 	return NULL;
 
 }
+
+bool CCollisionProperty::DoesVPhysicsInvalidateSurroundingBox( ) const
+{
+	switch ( m_nSurroundType )
+	{
+	case USE_BEST_COLLISION_BOUNDS:
+		return true;
+
+	case USE_OBB_COLLISION_BOUNDS:
+		return (GetSolid() == SOLID_VPHYSICS) && (GetOuter()->GetMoveType() == MOVETYPE_VPHYSICS) && GetOuter()->VPhysicsGetObject();
+
+	// In the case of game code, we don't really know, so we have to assume it does
+	case USE_GAME_CODE:
+		return true;
+
+	case USE_COLLISION_BOUNDS_NEVER_VPHYSICS:
+	case USE_HITBOXES:
+	case USE_ROTATION_EXPANDED_BOUNDS:
+	case USE_SPECIFIED_BOUNDS:
+		return false;
+
+	default:
+		Assert(0);
+		return true;
+	}
+}

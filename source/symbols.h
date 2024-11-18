@@ -97,6 +97,9 @@ namespace Symbols
 	typedef void (*CBaseEntity_PostConstructor)(void* ent, const char* szClassname);
 	extern const std::vector<Symbol> CBaseEntity_PostConstructorSym;
 
+	typedef void (*CCollisionProperty_MarkSurroundingBoundsDirty)(void* fancy_class);
+	extern const std::vector<Symbol> CCollisionProperty_MarkSurroundingBoundsDirtySym;
+
 	extern const std::vector<Symbol> CGetSym;
 
 	//---------------------------------------------------------------------------------
