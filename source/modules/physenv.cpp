@@ -8,6 +8,8 @@
 #include <vphysics_interface.h>
 #include <vphysics/collision_set.h>
 #include <vphysics/performance.h>
+#include "sourcesdk/cphysicsobject.h"
+#include "sourcesdk/cphysicsenvironment.h"
 
 class CPhysEnvModule : public IModule
 {
@@ -291,7 +293,54 @@ LUA_FUNCTION_STATIC(physenv_CreateEnvironment)
 	if (!physics)
 		LUA->ThrowError("Failed to get IPhysics!");
 
-	Push_ILuaPhysicsEnvironment(new ILuaPhysicsEnvironment(physics->CreateEnvironment()));
+	ILuaPhysicsEnvironment* pLua = new ILuaPhysicsEnvironment(physics->CreateEnvironment());
+	IPhysicsEnvironment* pEnvironment = pLua->pEnvironment;
+	CPhysicsEnvironment* pMainEnvironment = (CPhysicsEnvironment*)physics->GetActiveEnvironmentByIndex(0);
+
+	if (pMainEnvironment)
+	{
+		physics_performanceparams_t params;
+		pMainEnvironment->GetPerformanceSettings(&params);
+		pEnvironment->SetPerformanceSettings(&params);
+
+		Vector vec;
+		pMainEnvironment->GetGravity(&vec);
+		pEnvironment->SetGravity(vec);
+
+		pEnvironment->EnableDeleteQueue(true);
+		pEnvironment->SetSimulationTimestep(pMainEnvironment->GetSimulationTimestep());
+
+		CCollisionEvent* g_Collisions = (CCollisionEvent*)pMainEnvironment->m_pCollisionSolver->m_pSolver; // Raw access is always fun :D
+
+		pEnvironment->SetCollisionSolver(g_Collisions);
+		pEnvironment->SetCollisionEventHandler(g_Collisions);
+
+		pEnvironment->SetConstraintEventHandler(pMainEnvironment->m_pConstraintListener->m_pCallback);
+		pEnvironment->EnableConstraintNotify(true);
+
+		pEnvironment->SetObjectEventHandler(g_Collisions);
+	} else {
+		physics_performanceparams_t params;
+		params.Defaults();
+		params.maxCollisionsPerObjectPerTimestep = 10;
+		pEnvironment->SetPerformanceSettings(&params);
+		pEnvironment->EnableDeleteQueue(true);
+
+		//physenv->SetCollisionSolver(&g_Collisions);
+		//physenv->SetCollisionEventHandler(&g_Collisions);
+		//physenv->SetConstraintEventHandler(g_pConstraintEvents);
+		//physenv->EnableConstraintNotify(true);
+
+		//physenv->SetObjectEventHandler(&g_Collisions);
+	
+		//pEnvironment->SetSimulationTimestep(gpGlobals->interval_per_tick);
+
+		ConVarRef gravity("sv_gravity");
+		if (gravity.IsValid())
+			pEnvironment->SetGravity( Vector( 0, 0, -gravity.GetFloat() ) );
+	}
+
+	Push_ILuaPhysicsEnvironment(pLua);
 	return 1;
 }
 
@@ -836,6 +885,31 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetObjectEventHandler)
 	pLuaEnv->pObjectEvent = new CLuaPhysicsObjectEvent(LUA->ReferenceCreate(), LUA->ReferenceCreate());
 	pEnvironment->SetObjectEventHandler(pLuaEnv->pObjectEvent);
 	return 0;
+}
+
+LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreateCopy)
+{
+	ILuaPhysicsEnvironment* pLuaEnv = Get_ILuaPhysicsEnvironment(1, true);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
+	CPhysicsObject* pObject = (CPhysicsObject*)Get_IPhysicsObject(2, true);
+
+	Vector pos;
+	QAngle ang;
+	pObject->GetPosition(&pos, &ang);
+
+	objectparams_t params;
+	pObject->GetDamping(&params.damping, &params.rotdamping);
+	params.mass = pObject->GetMass();
+	params.enableCollisions = pObject->IsCollisionEnabled();
+	params.pGameData = pObject->GetGameData();
+	Vector vec = pObject->GetMassCenterLocalSpace();
+	params.massCenterOverride = &vec;
+	params.volume = pObject->m_volume;
+	params.pName = pObject->GetName();
+	params.dragCoefficient = pObject->m_dragCoefficient;
+
+	Push_IPhysicsObject(pEnvironment->CreatePolyObject(pObject->m_pCollide, pObject->m_materialIndex, pos, ang, &params));
+	return 1;
 }
 
 LUA_FUNCTION_STATIC(CPhysCollide__tostring)
@@ -1413,6 +1487,7 @@ void CPhysEnvModule::LuaInit(bool bServerInit)
 		Util::AddFunc(IPhysicsEnvironment_DestroyObject, "DestroyObject");
 		Util::AddFunc(IPhysicsEnvironment_IsCollisionModelUsed, "IsCollisionModelUsed");
 		Util::AddFunc(IPhysicsEnvironment_SetObjectEventHandler, "SetObjectEventHandler");
+		Util::AddFunc(IPhysicsEnvironment_CreateCopy, "CreateCopy");
 	g_Lua->Pop(1);
 
 	if (Util::PushTable("physenv"))
