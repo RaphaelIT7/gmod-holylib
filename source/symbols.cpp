@@ -540,6 +540,10 @@ namespace Symbols
 		Symbol::FromName("g_fDeferDeleteMindist"),
 	};
 
+	const std::vector<Symbol> GMod_Util_IsPhysicsObjectValidSym = {
+		Symbol::FromName("_ZN4GMod4Util20IsPhysicsObjectValidEP14IPhysicsObject"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: net Symbols
 	//---------------------------------------------------------------------------------

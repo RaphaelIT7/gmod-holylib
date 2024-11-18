@@ -1323,6 +1323,22 @@ LUA_FUNCTION_STATIC(physcollide_DestroyCollide)
 	return 0;
 }
 
+/*
+ * BUG: In GMOD, this function checks the main IPhysicsEnvironment to see if the IPhysicsObject exists in it?
+ * This causes all IPhysicsObject from other environments to be marked as invalid.
+ */
+Detouring::Hook detour_GMod_Util_IsPhysicsObjectValid;
+bool hook_GMod_Util_IsPhysicsObjectValid(IPhysicsObject* obj)
+{
+	if (!obj)
+		return false;
+
+	// Are there cases where they somehow can be without environment?
+	// Verify this later to make sure that we didn't break anything.
+
+	return true;
+}
+
 void CPhysEnvModule::LuaInit(bool bServerInit)
 {
 	if (bServerInit)
@@ -1508,6 +1524,13 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 		&detour_IVP_Mindist_update_exact_mindist_events, "IVP_Mindist::update_exact_mindist_events",
 		vphysics_loader.GetModule(), Symbols::IVP_Mindist_update_exact_mindist_eventsSym,
 		(void*)hook_IVP_Mindist_update_exact_mindist_events, m_pID
+	);
+
+	SourceSDK::FactoryLoader server_loader("server");
+	Detour::Create(
+		&detour_GMod_Util_IsPhysicsObjectValid, "GMod::Util::IsPhysicsObjectValid",
+		server_loader.GetModule(), Symbols::GMod_Util_IsPhysicsObjectValidSym,
+		(void*)hook_GMod_Util_IsPhysicsObjectValid, m_pID
 	);
 
 	g_pCurrentMindist = Detour::ResolveSymbol<IVP_Mindist*>(vphysics_loader, Symbols::g_pCurrentMindistSym);

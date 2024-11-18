@@ -34,6 +34,7 @@ class IChangeFrameList;
 class IGameEvent;
 class CBaseHandle;
 class IServer;
+class IPhysicsObject;
 
 namespace GarrysMod::Lua
 {
@@ -404,6 +405,9 @@ namespace Symbols
 
 	extern const std::vector<Symbol> g_pCurrentMindistSym;
 	extern const std::vector<Symbol> g_fDeferDeleteMindistSym;
+
+	typedef bool (*GMod_Util_IsPhysicsObjectValid)(IPhysicsObject* obj);
+	extern const std::vector<Symbol> GMod_Util_IsPhysicsObjectValidSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: net Symbols
