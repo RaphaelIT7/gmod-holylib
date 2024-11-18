@@ -344,6 +344,14 @@ LUA_FUNCTION_STATIC(physenv_DestroyAllCollisionSets)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(Default__Index)
+{
+	if (!LUA->FindOnObjectsMetaTable(1, 2))
+		LUA->PushNil();
+
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(IPhysicsCollisionSet__tostring)
 {
 	IPhysicsCollisionSet* pCollideSet = Get_IPhysicsCollisionSet(1, false);
@@ -1261,18 +1269,22 @@ void CPhysEnvModule::LuaInit(bool bServerInit)
 
 	CPhysCollide_TypeID = g_Lua->CreateMetaTable("CPhysCollide");
 		Util::AddFunc(CPhysCollide__tostring, "__tostring");
+		Util::AddFunc(Default__Index, "__index");
 	g_Lua->Pop(1);
 
 	CPhysPolysoup_TypeID = g_Lua->CreateMetaTable("CPhysPolysoup");
 		Util::AddFunc(CPhysPolysoup__tostring, "__tostring");
+		Util::AddFunc(Default__Index, "__index");
 	g_Lua->Pop(1);
 
 	CPhysConvex_TypeID = g_Lua->CreateMetaTable("CPhysCollide");
 		Util::AddFunc(CPhysConvex__tostring, "__tostring");
+		Util::AddFunc(Default__Index, "__index");
 	g_Lua->Pop(1);
 
 	ICollisionQuery_TypeID = g_Lua->CreateMetaTable("ICollisionQuery");
 		Util::AddFunc(ICollisionQuery__tostring, "__tostring");
+		Util::AddFunc(Default__Index, "__index");
 		Util::AddFunc(ICollisionQuery_ConvexCount, "ConvexCount");
 		Util::AddFunc(ICollisionQuery_TriangleCount, "TriangleCount");
 		Util::AddFunc(ICollisionQuery_GetTriangleMaterialIndex, "GetTriangleMaterialIndex");
@@ -1283,6 +1295,7 @@ void CPhysEnvModule::LuaInit(bool bServerInit)
 
 	IPhysicsCollisionSet_TypeID = g_Lua->CreateMetaTable("IPhysicsCollisionSet");
 		Util::AddFunc(IPhysicsCollisionSet__tostring, "__tostring");
+		Util::AddFunc(Default__Index, "__index");
 		Util::AddFunc(IPhysicsCollisionSet_EnableCollisions, "EnableCollisions");
 		Util::AddFunc(IPhysicsCollisionSet_DisableCollisions, "DisableCollisions");
 		Util::AddFunc(IPhysicsCollisionSet_ShouldCollide, "ShouldCollide");
@@ -1290,6 +1303,7 @@ void CPhysEnvModule::LuaInit(bool bServerInit)
 
 	IPhysicsEnvironment_TypeID = g_Lua->CreateMetaTable("IPhysicsEnvironment");
 		Util::AddFunc(IPhysicsEnvironment__tostring, "__tostring");
+		Util::AddFunc(Default__Index, "__index");
 		Util::AddFunc(IPhysicsEnvironment_TransferObject, "TransferObject");
 		Util::AddFunc(IPhysicsEnvironment_SetGravity, "SetGravity");
 		Util::AddFunc(IPhysicsEnvironment_GetGravity, "GetGravity");
