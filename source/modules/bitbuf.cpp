@@ -16,8 +16,8 @@ public:
 static CBitBufModule g_pBitBufModule;
 IModule* pBitBufModule = &g_pBitBufModule;
 
-Push_LuaClass(QAngle, GarrysMod::Lua::Type::Angle)
-Push_LuaClass(Vector, GarrysMod::Lua::Type::Vector)
+static Push_LuaClass(QAngle, GarrysMod::Lua::Type::Angle)
+static Push_LuaClass(Vector, GarrysMod::Lua::Type::Vector)
 
 static int bf_read_TypeID = -1;
 Push_LuaClass(bf_read, bf_read_TypeID)

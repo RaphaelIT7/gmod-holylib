@@ -47,7 +47,7 @@ namespace Util
 		g_Lua->SetField(-2, Name);
 	}
 
-	inline void AddValue(int value, const char* Name) {
+	inline void AddValue(double value, const char* Name) {
 		g_Lua->PushNumber(value);
 		g_Lua->SetField(-2, Name);
 	}

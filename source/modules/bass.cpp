@@ -460,5 +460,5 @@ void CBassModule::Shutdown()
 extern CGlobalVars* gpGlobals;
 void CBassModule::Think(bool bSimulating)
 {
-	gGModAudio->Update(gpGlobals->absoluteframetime * 1000); // gpGlobals->absoluteframetime should be in seconds so we need to turn it to ms.
+	gGModAudio->Update((int)(gpGlobals->absoluteframetime * 1000)); // gpGlobals->absoluteframetime should be in seconds so we need to turn it to ms.
 }
