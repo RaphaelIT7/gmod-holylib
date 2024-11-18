@@ -5,10 +5,14 @@
 #include "lua.h"
 #include <chrono>
 #include "sourcesdk/ivp_time.h"
+#include <vphysics_interface.h>
+#include <vphysics/collision_set.h>
+#include <vphysics/performance.h>
 
 class CPhysEnvModule : public IModule
 {
 public:
+	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
 	virtual void LuaInit(bool bServerInit);
 	virtual void LuaShutdown();
 	virtual void InitDetour(bool bPreServer);
@@ -155,13 +159,1176 @@ LUA_FUNCTION_STATIC(physenv_SetPhysSkipType)
 	return 0;
 }
 
+static IPhysics* physics = NULL;
+static IPhysicsCollision* physcollide = NULL;
+void CPhysEnvModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
+{
+	physics = (IPhysics*)appfn[0](VPHYSICS_INTERFACE_VERSION, NULL);
+	Detour::CheckValue("get interface", "physics", physics != NULL);
+
+	physcollide = (IPhysicsCollision*)appfn[0](VPHYSICS_COLLISION_INTERFACE_VERSION, NULL);
+	Detour::CheckValue("get interface", "physcollide", physcollide != NULL);
+}
+
+PushReferenced_LuaClass(IPhysicsObject, GarrysMod::Lua::Type::PhysObj) // This will later cause so much pain when they become Invalid XD
+Get_LuaClass(IPhysicsObject, GarrysMod::Lua::Type::PhysObj, "IPhysicsObject")
+
+class CLuaPhysicsObjectEvent : public IPhysicsObjectEvent
+{
+public:
+	virtual void ObjectWake(IPhysicsObject* obj)
+	{
+		if (!g_Lua || m_iObjectWakeFunction == -1)
+			return;
+
+		g_Lua->ReferencePush(m_iObjectWakeFunction);
+		Push_IPhysicsObject(obj);
+		g_Lua->CallFunctionProtected(1, 0, true);
+	}
+
+	virtual void ObjectSleep(IPhysicsObject* obj)
+	{
+		if (!g_Lua || m_iObjectSleepFunction == -1)
+			return;
+
+		g_Lua->ReferencePush(m_iObjectSleepFunction);
+		Push_IPhysicsObject(obj);
+		g_Lua->CallFunctionProtected(1, 0, true);
+	}
+
+public:
+	virtual ~CLuaPhysicsObjectEvent()
+	{
+		if (!g_Lua)
+			return;
+
+		if (m_iObjectWakeFunction != -1)
+		{
+			g_Lua->ReferenceFree(m_iObjectWakeFunction);
+			m_iObjectWakeFunction = -1;
+		}
+
+		if (m_iObjectSleepFunction != -1)
+		{
+			g_Lua->ReferenceFree(m_iObjectSleepFunction);
+			m_iObjectSleepFunction = -1;
+		}
+	}
+
+	CLuaPhysicsObjectEvent(int iObjectWakeFunction, int iObjectSleepFunction)
+	{
+		m_iObjectWakeFunction = iObjectWakeFunction;
+		m_iObjectSleepFunction = iObjectSleepFunction;
+	}
+
+private:
+	int m_iObjectWakeFunction;
+	int m_iObjectSleepFunction;
+};
+
+struct ILuaPhysicsEnvironment
+{
+	ILuaPhysicsEnvironment(IPhysicsEnvironment* env)
+	{
+		pEnvironment = env;
+	}
+
+	~ILuaPhysicsEnvironment()
+	{
+		if (pObjectEvent)
+			delete pObjectEvent;
+
+		//if (pCollisionSolver)
+		//	delete pCollisionSolver;
+
+		//if (pCollisionEvent)
+		//	delete pCollisionEvent;
+	}
+
+	IPhysicsEnvironment* pEnvironment = NULL;
+	CLuaPhysicsObjectEvent* pObjectEvent = NULL;
+	//CLuaPhysicsCollisionSolver* pCollisionSolver = NULL;
+	//CLuaPhysicsCollisionEvent* pCollisionEvent = NULL;
+};
+
+static int IPhysicsEnvironment_TypeID = -1;
+PushReferenced_LuaClass(ILuaPhysicsEnvironment, IPhysicsEnvironment_TypeID)
+Get_LuaClass(ILuaPhysicsEnvironment, IPhysicsEnvironment_TypeID, "IPhysicsEnvironment")
+
+static int IPhysicsCollisionSet_TypeID = -1;
+PushReferenced_LuaClass(IPhysicsCollisionSet, IPhysicsCollisionSet_TypeID)
+Get_LuaClass(IPhysicsCollisionSet, IPhysicsCollisionSet_TypeID, "IPhysicsCollisionSet")
+
+static int CPhysCollide_TypeID = -1;
+PushReferenced_LuaClass(CPhysCollide, CPhysCollide_TypeID)
+Get_LuaClass(CPhysCollide, CPhysCollide_TypeID, "CPhysCollide")
+
+static int CPhysPolysoup_TypeID = -1;
+PushReferenced_LuaClass(CPhysPolysoup, CPhysPolysoup_TypeID)
+Get_LuaClass(CPhysPolysoup, CPhysPolysoup_TypeID, "CPhysPolysoup")
+
+static int CPhysConvex_TypeID = -1;
+PushReferenced_LuaClass(CPhysConvex, CPhysConvex_TypeID)
+Get_LuaClass(CPhysConvex, CPhysConvex_TypeID, "CPhysConvex")
+
+static int ICollisionQuery_TypeID = -1;
+PushReferenced_LuaClass(ICollisionQuery, ICollisionQuery_TypeID)
+Get_LuaClass(ICollisionQuery, ICollisionQuery_TypeID, "ICollisionQuery")
+
+static Push_LuaClass(Vector, GarrysMod::Lua::Type::Vector)
+
+LUA_FUNCTION_STATIC(physenv_CreateEnvironment)
+{
+	if (!physics)
+		LUA->ThrowError("Failed to get IPhysics!");
+
+	Push_ILuaPhysicsEnvironment(new ILuaPhysicsEnvironment(physics->CreateEnvironment()));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(physenv_GetActiveEnvironmentByIndex)
+{
+	if (!physics)
+		LUA->ThrowError("Failed to get IPhysics!");
+
+	int index = (int)LUA->CheckNumber(1);
+	Push_ILuaPhysicsEnvironment(new ILuaPhysicsEnvironment(physics->GetActiveEnvironmentByIndex(index)));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(physenv_DestroyEnvironment)
+{
+	if (!physics)
+		LUA->ThrowError("Failed to get IPhysics!");
+
+	ILuaPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true);
+
+	physics->DestroyEnvironment(pEnvironment->pEnvironment);
+	Delete_ILuaPhysicsEnvironment(pEnvironment);
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(physenv_FindCollisionSet)
+{
+	if (!physics)
+		LUA->ThrowError("Failed to get IPhysics!");
+
+	unsigned int index = (int)LUA->CheckNumber(1);
+	Push_IPhysicsCollisionSet(physics->FindCollisionSet(index));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(physenv_FindOrCreateCollisionSet)
+{
+	if (!physics)
+		LUA->ThrowError("Failed to get IPhysics!");
+
+	unsigned int index = (int)LUA->CheckNumber(1);
+	int maxElements = (int)LUA->CheckNumber(2);
+	Push_IPhysicsCollisionSet(physics->FindOrCreateCollisionSet(index, maxElements));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(physenv_DestroyAllCollisionSets)
+{
+	if (!physics)
+		LUA->ThrowError("Failed to get IPhysics!");
+
+	physics->DestroyAllCollisionSets();
+	for (auto& [key, val] : g_pPushedIPhysicsCollisionSet)
+	{
+		delete val;
+	}
+	g_pPushedIPhysicsCollisionSet.clear();
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(IPhysicsCollisionSet__tostring)
+{
+	IPhysicsCollisionSet* pCollideSet = Get_IPhysicsCollisionSet(1, false);
+	if (!pCollideSet)
+		LUA->PushString("IPhysicsCollisionSet [NULL]");
+	else
+		LUA->PushString("IPhysicsCollisionSet");
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IPhysicsCollisionSet_EnableCollisions)
+{
+	IPhysicsCollisionSet* pCollideSet = Get_IPhysicsCollisionSet(1, true);
+
+	int index1 = (int)LUA->CheckNumber(2);
+	int index2 = (int)LUA->CheckNumber(3);
+	pCollideSet->EnableCollisions(index1, index2);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(IPhysicsCollisionSet_DisableCollisions)
+{
+	IPhysicsCollisionSet* pCollideSet = Get_IPhysicsCollisionSet(1, true);
+
+	int index1 = (int)LUA->CheckNumber(2);
+	int index2 = (int)LUA->CheckNumber(3);
+	pCollideSet->DisableCollisions(index1, index2);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(IPhysicsCollisionSet_ShouldCollide)
+{
+	IPhysicsCollisionSet* pCollideSet = Get_IPhysicsCollisionSet(1, true);
+
+	int index1 = (int)LUA->CheckNumber(2);
+	int index2 = (int)LUA->CheckNumber(3);
+	LUA->PushBool(pCollideSet->ShouldCollide(index1, index2));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IPhysicsEnvironment__tostring)
+{
+	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, false)->pEnvironment;
+	if (!pEnvironment)
+		LUA->PushString("IPhysicsEnvironment [NULL]");
+	else
+		LUA->PushString("IPhysicsEnvironment");
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IPhysicsEnvironment_TransferObject)
+{
+	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	IPhysicsObject* pObject = Get_IPhysicsObject(2, true);
+	IPhysicsEnvironment* pTargetEnvironment = Get_ILuaPhysicsEnvironment(3, true)->pEnvironment;
+
+	LUA->PushBool(pEnvironment->TransferObject(pObject, pTargetEnvironment));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetGravity)
+{
+	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	Vector* pVec = Get_Vector(2, true);
+
+	pEnvironment->SetGravity(*pVec);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetGravity)
+{
+	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+
+	Vector vec;
+	pEnvironment->GetGravity(&vec);
+	Push_Vector(&vec);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetAirDensity)
+{
+	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	float airDensity = (float)LUA->CheckNumber(2);
+
+	pEnvironment->SetAirDensity(airDensity);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetAirDensity)
+{
+	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+
+	LUA->PushNumber(pEnvironment->GetAirDensity());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetPerformanceSettings)
+{
+	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	LUA->CheckType(2, GarrysMod::Lua::Type::Table);
+
+	physics_performanceparams_t params;
+	LUA->Push(2);
+		if (Util::HasField("LookAheadTimeObjectsVsObject", GarrysMod::Lua::Type::Number))
+			params.lookAheadTimeObjectsVsObject = (float)LUA->GetNumber(-1);
+		LUA->Pop(1);
+
+		if (Util::HasField("LookAheadTimeObjectsVsWorld", GarrysMod::Lua::Type::Number))
+			params.lookAheadTimeObjectsVsWorld = (float)LUA->GetNumber(-1);
+		LUA->Pop(1);
+
+		if (Util::HasField("MaxCollisionChecksPerTimestep", GarrysMod::Lua::Type::Number))
+			params.maxCollisionChecksPerTimestep = (int)LUA->GetNumber(-1);
+		LUA->Pop(1);
+
+		if (Util::HasField("MaxCollisionsPerObjectPerTimestep", GarrysMod::Lua::Type::Number))
+			params.maxCollisionsPerObjectPerTimestep = (int)LUA->GetNumber(-1);
+		LUA->Pop(1);
+
+		if (Util::HasField("MaxVelocity", GarrysMod::Lua::Type::Number))
+			params.maxVelocity = (float)LUA->GetNumber(-1);
+		LUA->Pop(1);
+
+		if (Util::HasField("MaxAngularVelocity", GarrysMod::Lua::Type::Number))
+			params.maxAngularVelocity = (float)LUA->GetNumber(-1);
+		LUA->Pop(1);
+
+		if (Util::HasField("MinFrictionMass", GarrysMod::Lua::Type::Number))
+			params.minFrictionMass = (float)LUA->GetNumber(-1);
+		LUA->Pop(1);
+
+		if (Util::HasField("MaxFrictionMass", GarrysMod::Lua::Type::Number))
+			params.maxFrictionMass = (float)LUA->GetNumber(-1);
+		LUA->Pop(1);
+	LUA->Pop(1);
+
+	pEnvironment->SetPerformanceSettings(&params);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetPerformanceSettings)
+{
+	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+
+	physics_performanceparams_t params;
+	pEnvironment->GetPerformanceSettings(&params);
+	LUA->CreateTable();
+		Util::AddValue(params.lookAheadTimeObjectsVsObject, "LookAheadTimeObjectsVsObject");
+		Util::AddValue(params.lookAheadTimeObjectsVsWorld, "LookAheadTimeObjectsVsWorld");
+		Util::AddValue(params.maxCollisionChecksPerTimestep, "MaxCollisionChecksPerTimestep");
+		Util::AddValue(params.maxCollisionsPerObjectPerTimestep, "MaxCollisionsPerObjectPerTimestep");
+		Util::AddValue(params.maxVelocity, "MaxVelocity");
+		Util::AddValue(params.maxAngularVelocity, "MaxAngularVelocity");
+		Util::AddValue(params.minFrictionMass, "MinFrictionMass");
+		Util::AddValue(params.maxFrictionMass, "MaxFrictionMass");
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetNextFrameTime)
+{
+	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+
+	LUA->PushNumber(pEnvironment->GetNextFrameTime());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetSimulationTime)
+{
+	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+
+	LUA->PushNumber(pEnvironment->GetSimulationTime());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetSimulationTimestep)
+{
+	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	float timeStep = (float)LUA->CheckNumber(2);
+
+	pEnvironment->SetSimulationTimestep(timeStep);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetSimulationTimestep)
+{
+	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+
+	LUA->PushNumber(pEnvironment->GetSimulationTimestep());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetActiveObjectCount)
+{
+	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+
+	LUA->PushNumber(pEnvironment->GetActiveObjectCount());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetActiveObjects)
+{
+	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+
+	int activeCount = pEnvironment->GetActiveObjectCount();
+	IPhysicsObject** pActiveList = NULL;
+	if (!activeCount)
+		return 0;
+
+	pActiveList = (IPhysicsObject**)stackalloc(sizeof(IPhysicsObject*) * activeCount);
+	pEnvironment->GetActiveObjects(pActiveList);
+	LUA->PreCreateTable(activeCount, 0);
+	int idx = 0;
+	for (int i=0; i<activeCount; ++i)
+	{
+		++idx;
+		LUA->PushNumber(idx);
+		Push_IPhysicsObject(pActiveList[i]);
+		LUA->RawSet(-3);
+	}
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetObjectList)
+{
+	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+
+	int iCount = 0;
+	IPhysicsObject** pList = (IPhysicsObject**)pEnvironment->GetObjectList(&iCount);
+	LUA->PreCreateTable(iCount, 0);
+	int idx = 0;
+	for (int i = 0; i < iCount; ++i)
+	{
+		++idx;
+		LUA->PushNumber(idx);
+		Push_IPhysicsObject(pList[i]);
+		LUA->RawSet(-3);
+	}
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IPhysicsEnvironment_IsInSimulation)
+{
+	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+
+	LUA->PushBool(pEnvironment->IsInSimulation());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IPhysicsEnvironment_ResetSimulationClock)
+{
+	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+
+	pEnvironment->ResetSimulationClock();
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(IPhysicsEnvironment_CleanupDeleteList)
+{
+	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+
+	pEnvironment->CleanupDeleteList();
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetQuickDelete)
+{
+	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	bool quickDelete = LUA->GetBool(2);
+
+	pEnvironment->SetQuickDelete(quickDelete);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(IPhysicsEnvironment_EnableDeleteQueue)
+{
+	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	bool deleteQueue = LUA->GetBool(2);
+
+	pEnvironment->EnableDeleteQueue(deleteQueue);
+	return 0;
+}
+
+ILuaPhysicsEnvironment* g_pCurrentEnvironment = NULL;
+LUA_FUNCTION_STATIC(IPhysicsEnvironment_Simulate)
+{
+	ILuaPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true);
+	float deltaTime = (float)LUA->CheckNumber(2);
+
+	VPROF_BUDGET("HolyLib(Lua) - IPhysicsEnvironment::Simulate", VPROF_BUDGETGROUP_HOLYLIB);
+	ILuaPhysicsEnvironment* pOldEnvironment = g_pCurrentEnvironment; // Simulating a environment in a already simulating environment? sounds fun :^
+	g_pCurrentEnvironment = pEnvironment;
+	pEnvironment->pEnvironment->Simulate(deltaTime);
+	g_pCurrentEnvironment = pOldEnvironment;
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(physenv_GetCurrentEnvironment)
+{
+	Push_ILuaPhysicsEnvironment(g_pCurrentEnvironment);
+	return 1;
+}
+
+const objectparams_t g_PhysDefaultObjectParams =
+{
+	NULL,
+	1.0, //mass
+	1.0, // inertia
+	0.1f, // damping
+	0.1f, // rotdamping
+	0.05f, // rotIntertiaLimit
+	"DEFAULT",
+	NULL,// game data
+	0.f, // volume (leave 0 if you don't have one or call physcollision->CollideVolume() to compute it)
+	1.0f, // drag coefficient
+	true,// enable collisions?
+};
+
+static void FillObjectParams(objectparams_t& params, int iStackPos, GarrysMod::Lua::ILuaInterface* LUA)
+{
+	params = g_PhysDefaultObjectParams;
+	if (!LUA->IsType(iStackPos, GarrysMod::Lua::Type::Table))
+		return;
+
+	LUA->Push(iStackPos);
+		if (Util::HasField("damping", GarrysMod::Lua::Type::Number))
+			params.damping = (float)LUA->GetNumber(-1);
+		LUA->Pop(1);
+
+		if (Util::HasField("dragCoefficient", GarrysMod::Lua::Type::Number))
+			params.dragCoefficient = (float)LUA->GetNumber(-1);
+		LUA->Pop(1);
+
+		if (Util::HasField("enableCollisions", GarrysMod::Lua::Type::Bool))
+			params.enableCollisions = LUA->GetBool(-1);
+		LUA->Pop(1);
+
+		if (Util::HasField("inertia", GarrysMod::Lua::Type::Number))
+			params.inertia = (float)LUA->GetNumber(-1);
+		LUA->Pop(1);
+
+		if (Util::HasField("mass", GarrysMod::Lua::Type::Number))
+			params.mass = (float)LUA->GetNumber(-1);
+		LUA->Pop(1);
+
+		if (Util::HasField("massCenterOverride", GarrysMod::Lua::Type::Vector))
+			params.massCenterOverride = Get_Vector(-1, true);
+		LUA->Pop(1);
+
+		if (Util::HasField("name", GarrysMod::Lua::Type::Number))
+			params.pName = LUA->GetString(-1);
+		LUA->Pop(1);
+
+		if (Util::HasField("rotdamping", GarrysMod::Lua::Type::Number))
+			params.rotdamping = (float)LUA->GetNumber(-1);
+		LUA->Pop(1);
+
+		if (Util::HasField("rotInertiaLimit", GarrysMod::Lua::Type::Number))
+			params.rotInertiaLimit = (float)LUA->GetNumber(-1);
+		LUA->Pop(1);
+
+		if (Util::HasField("volume", GarrysMod::Lua::Type::Number))
+			params.volume = (float)LUA->GetNumber(-1);
+		LUA->Pop(1);
+	LUA->Pop(1);
+}
+
+LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreatePolyObject)
+{
+	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	CPhysCollide* pCollide = Get_CPhysCollide(2, true);
+	int materialIndex = (int)LUA->CheckNumber(3);
+	Vector* pOrigin = Get_Vector(4, true);
+	QAngle* pAngles = Get_QAngle(5, true);
+
+	objectparams_t params;
+	FillObjectParams(params, 6, LUA);
+	Push_IPhysicsObject(pEnvironment->CreatePolyObject(pCollide, materialIndex, *pOrigin, *pAngles, &params));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreatePolyObjectStatic)
+{
+	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	CPhysCollide* pCollide = Get_CPhysCollide(2, true);
+	int materialIndex = (int)LUA->CheckNumber(3);
+	Vector* pOrigin = Get_Vector(4, true);
+	QAngle* pAngles = Get_QAngle(5, true);
+
+	objectparams_t params;
+	FillObjectParams(params, 6, LUA);
+	Push_IPhysicsObject(pEnvironment->CreatePolyObjectStatic(pCollide, materialIndex, *pOrigin, *pAngles, &params));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreateSphereObject)
+{
+	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	float radius = (float)LUA->CheckNumber(2);
+	int materialIndex = (int)LUA->CheckNumber(3);
+	Vector* pOrigin = Get_Vector(4, true);
+	QAngle* pAngles = Get_QAngle(5, true);
+	bool bStatic = LUA->GetBool(6);
+
+	objectparams_t params;
+	FillObjectParams(params, 6, LUA);
+	Push_IPhysicsObject(pEnvironment->CreateSphereObject(radius, materialIndex, *pOrigin, *pAngles, &params, bStatic));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IPhysicsEnvironment_DestroyObject)
+{
+	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	IPhysicsObject* pObject = Get_IPhysicsObject(2, true);
+
+	pEnvironment->DestroyObject(pObject);
+	Delete_IPhysicsObject(pObject);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(IPhysicsEnvironment_IsCollisionModelUsed)
+{
+	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	CPhysCollide* pCollide = Get_CPhysCollide(2, true);
+
+	LUA->PushBool(pEnvironment->IsCollisionModelUsed(pCollide));
+	return 1;
+}
+
+/*LUA_FUNCTION_STATIC(IPhysicsEnvironment_SweepCollideable)
+{
+	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+
+	pEnvironment->SweepCollideable // This function seems to be fully empty???
+	return 1;
+}*/
+
+LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetObjectEventHandler)
+{
+	ILuaPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true);
+	LUA->CheckType(2, GarrysMod::Lua::Type::Function);
+	LUA->CheckType(3, GarrysMod::Lua::Type::Function);
+
+	LUA->Push(3);
+	LUA->Push(2);
+	if (pEnvironment->pObjectEvent)
+		delete pEnvironment->pObjectEvent; // Free the old one
+
+	pEnvironment->pObjectEvent = new CLuaPhysicsObjectEvent(LUA->ReferenceCreate(), LUA->ReferenceCreate());
+	pEnvironment->pEnvironment->SetObjectEventHandler(pEnvironment->pObjectEvent);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(CPhysCollide__tostring)
+{
+	CPhysCollide* pCollide = Get_CPhysCollide(1, false);
+	if (!pCollide)
+		LUA->PushString("CPhysCollide [NULL]");
+	else
+		LUA->PushString("CPhysCollide");
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CPhysPolysoup__tostring)
+{
+	CPhysPolysoup* pPolySoup = Get_CPhysPolysoup(1, false);
+	if (!pPolySoup)
+		LUA->PushString("CPhysPolysoup [NULL]");
+	else
+		LUA->PushString("CPhysPolysoup");
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CPhysConvex__tostring)
+{
+	CPhysConvex* pConvex = Get_CPhysConvex(1, false);
+	if (!pConvex)
+		LUA->PushString("CPhysConvex [NULL]");
+	else
+		LUA->PushString("CPhysConvex");
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(ICollisionQuery__tostring)
+{
+	ICollisionQuery* pQuery = Get_ICollisionQuery(1, false);
+	if (!pQuery)
+		LUA->PushString("ICollisionQuery [NULL]");
+	else
+		LUA->PushString("ICollisionQuery");
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(ICollisionQuery_ConvexCount)
+{
+	ICollisionQuery* pQuery = Get_ICollisionQuery(1, true);
+	
+	LUA->PushNumber(pQuery->ConvexCount());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(ICollisionQuery_TriangleCount)
+{
+	ICollisionQuery* pQuery = Get_ICollisionQuery(1, true);
+	int convexIndex = (int)LUA->CheckNumber(2);
+
+	LUA->PushNumber(pQuery->TriangleCount(convexIndex));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(ICollisionQuery_GetTriangleMaterialIndex)
+{
+	ICollisionQuery* pQuery = Get_ICollisionQuery(1, true);
+	int convexIndex = (int)LUA->CheckNumber(2);
+	int triangleIndex = (int)LUA->CheckNumber(3);
+
+	LUA->PushNumber(pQuery->GetTriangleMaterialIndex(convexIndex, triangleIndex));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(ICollisionQuery_SetTriangleMaterialIndex)
+{
+	ICollisionQuery* pQuery = Get_ICollisionQuery(1, true);
+	int convexIndex = (int)LUA->CheckNumber(2);
+	int triangleIndex = (int)LUA->CheckNumber(3);
+	int materialIndex = (int)LUA->CheckNumber(4);
+
+	pQuery->SetTriangleMaterialIndex(convexIndex, triangleIndex, materialIndex);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(ICollisionQuery_GetTriangleVerts)
+{
+	ICollisionQuery* pQuery = Get_ICollisionQuery(1, true);
+	int convexIndex = (int)LUA->CheckNumber(2);
+	int triangleIndex = (int)LUA->CheckNumber(3);
+
+	Vector verts[3];
+	pQuery->GetTriangleVerts(convexIndex, triangleIndex, verts);
+	Push_Vector(&verts[0]);
+	Push_Vector(&verts[1]);
+	Push_Vector(&verts[2]);
+	return 3;
+}
+
+LUA_FUNCTION_STATIC(ICollisionQuery_SetTriangleVerts)
+{
+	ICollisionQuery* pQuery = Get_ICollisionQuery(1, true);
+	int convexIndex = (int)LUA->CheckNumber(2);
+	int triangleIndex = (int)LUA->CheckNumber(3);
+	Vector verts[3];
+	verts[0] = *Get_Vector(4, true);
+	verts[1] = *Get_Vector(5, true);
+	verts[2] = *Get_Vector(6, true);
+
+	pQuery->SetTriangleVerts(convexIndex, triangleIndex, verts);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(physcollide_BBoxToCollide)
+{
+	Vector* mins = Get_Vector(1, true);
+	Vector* maxs = Get_Vector(2, true);
+
+	if (!physcollide)
+		LUA->ThrowError("Failed to get IPhysicsCollision!");
+
+	Push_CPhysCollide(physcollide->BBoxToCollide(*mins, *maxs));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(physcollide_BBoxToConvex)
+{
+	Vector* mins = Get_Vector(1, true);
+	Vector* maxs = Get_Vector(2, true);
+
+	if (!physcollide)
+		LUA->ThrowError("Failed to get IPhysicsCollision!");
+
+	Push_CPhysConvex(physcollide->BBoxToConvex(*mins, *maxs));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(physcollide_ConvertConvexToCollide)
+{
+	CPhysConvex* pConvex = Get_CPhysConvex(1, true);
+
+	if (!physcollide)
+		LUA->ThrowError("Failed to get IPhysicsCollision!");
+
+	Push_CPhysCollide(physcollide->ConvertConvexToCollide(&pConvex, 1));
+	Delete_CPhysConvex(pConvex);
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(physcollide_ConvertPolysoupToCollide)
+{
+	CPhysPolysoup* pPolySoup = Get_CPhysPolysoup(1, true);
+	bool bUseMOPP = LUA->GetBool(2);
+
+	if (!physcollide)
+		LUA->ThrowError("Failed to get IPhysicsCollision!");
+
+	Push_CPhysCollide(physcollide->ConvertPolysoupToCollide(pPolySoup, bUseMOPP));
+	Delete_CPhysPolysoup(pPolySoup);
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(physcollide_ConvexFree)
+{
+	CPhysConvex* pConvex = Get_CPhysConvex(1, true);
+
+	if (!physcollide)
+		LUA->ThrowError("Failed to get IPhysicsCollision!");
+
+	physcollide->ConvexFree(pConvex);
+	Delete_CPhysConvex(pConvex);
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(physcollide_PolysoupCreate)
+{
+	if (!physcollide)
+		LUA->ThrowError("Failed to get IPhysicsCollision!");
+
+	Push_CPhysPolysoup(physcollide->PolysoupCreate());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(physcollide_PolysoupAddTriangle)
+{
+	CPhysPolysoup* pPolySoup = Get_CPhysPolysoup(1, true);
+	Vector* a = Get_Vector(2, true);
+	Vector* b = Get_Vector(3, true);
+	Vector* c = Get_Vector(4, true);
+	int materialIndex = (int)LUA->CheckNumber(5);
+
+	if (!physcollide)
+		LUA->ThrowError("Failed to get IPhysicsCollision!");
+
+	physcollide->PolysoupAddTriangle(pPolySoup, *a, *b, *c, materialIndex);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(physcollide_PolysoupDestroy)
+{
+	CPhysPolysoup* pPolySoup = Get_CPhysPolysoup(1, true);
+
+	if (!physcollide)
+		LUA->ThrowError("Failed to get IPhysicsCollision!");
+
+	physcollide->PolysoupDestroy(pPolySoup);
+	Delete_CPhysPolysoup(pPolySoup);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(physcollide_CollideGetAABB)
+{
+	CPhysCollide* pCollide = Get_CPhysCollide(1, true);
+	Vector* pOrigin = Get_Vector(2, true);
+	QAngle* pRotation = Get_QAngle(3, true);
+
+	if (!physcollide)
+		LUA->ThrowError("Failed to get IPhysicsCollision!");
+
+	Vector mins, maxs;
+	physcollide->CollideGetAABB(&mins, &maxs, pCollide, *pOrigin, *pRotation);
+	Push_Vector(&mins);
+	Push_Vector(&maxs);
+	return 2;
+}
+
+LUA_FUNCTION_STATIC(physcollide_CollideGetExtent)
+{
+	CPhysCollide* pCollide = Get_CPhysCollide(1, true);
+	Vector* pOrigin = Get_Vector(2, true);
+	QAngle* pRotation = Get_QAngle(3, true);
+	Vector* pDirection = Get_Vector(4, true);
+
+	if (!physcollide)
+		LUA->ThrowError("Failed to get IPhysicsCollision!");
+
+	Vector vec = physcollide->CollideGetExtent(pCollide, *pOrigin, *pRotation, *pDirection);
+	Push_Vector(&vec);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(physcollide_CollideGetMassCenter)
+{
+	CPhysCollide* pCollide = Get_CPhysCollide(1, true);
+
+	if (!physcollide)
+		LUA->ThrowError("Failed to get IPhysicsCollision!");
+
+	Vector pMassCenter;
+	physcollide->CollideGetMassCenter(pCollide, &pMassCenter);
+	Push_Vector(&pMassCenter);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(physcollide_CollideGetOrthographicAreas)
+{
+	CPhysCollide* pCollide = Get_CPhysCollide(1, true);
+
+	if (!physcollide)
+		LUA->ThrowError("Failed to get IPhysicsCollision!");
+
+	Vector vec = physcollide->CollideGetOrthographicAreas(pCollide);
+	Push_Vector(&vec);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(physcollide_CollideIndex)
+{
+	CPhysCollide* pCollide = Get_CPhysCollide(1, true);
+
+	if (!physcollide)
+		LUA->ThrowError("Failed to get IPhysicsCollision!");
+
+	LUA->PushNumber(physcollide->CollideIndex(pCollide));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(physcollide_CollideSetMassCenter)
+{
+	CPhysCollide* pCollide = Get_CPhysCollide(1, true);
+	Vector* pMassCenter = Get_Vector(2, true);
+
+	if (!physcollide)
+		LUA->ThrowError("Failed to get IPhysicsCollision!");
+
+	physcollide->CollideSetMassCenter(pCollide, *pMassCenter);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(physcollide_CollideSetOrthographicAreas)
+{
+	CPhysCollide* pCollide = Get_CPhysCollide(1, true);
+	Vector* pArea = Get_Vector(2, true);
+
+	if (!physcollide)
+		LUA->ThrowError("Failed to get IPhysicsCollision!");
+
+	physcollide->CollideSetOrthographicAreas(pCollide, *pArea);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(physcollide_CollideSize)
+{
+	CPhysCollide* pCollide = Get_CPhysCollide(1, true);
+
+	if (!physcollide)
+		LUA->ThrowError("Failed to get IPhysicsCollision!");
+
+	LUA->PushNumber(physcollide->CollideSize(pCollide));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(physcollide_CollideSurfaceArea)
+{
+	CPhysCollide* pCollide = Get_CPhysCollide(1, true);
+
+	if (!physcollide)
+		LUA->ThrowError("Failed to get IPhysicsCollision!");
+
+	LUA->PushNumber(physcollide->CollideSurfaceArea(pCollide));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(physcollide_CollideVolume)
+{
+	CPhysCollide* pCollide = Get_CPhysCollide(1, true);
+
+	if (!physcollide)
+		LUA->ThrowError("Failed to get IPhysicsCollision!");
+
+	LUA->PushNumber(physcollide->CollideVolume(pCollide));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(physcollide_CollideWrite)
+{
+	CPhysCollide* pCollide = Get_CPhysCollide(1, true);
+	bool bSwap = LUA->GetBool(2);
+
+	if (!physcollide)
+		LUA->ThrowError("Failed to get IPhysicsCollision!");
+
+	int iSize = physcollide->CollideSize(pCollide);
+	char* pData = (char*)stackalloc(iSize);
+	physcollide->CollideWrite(pData, pCollide, bSwap);
+	LUA->PushString(pData, iSize);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(physcollide_UnserializeCollide)
+{
+	Get_CPhysCollide(1, true);
+	const char* pData = LUA->CheckString(2);
+	int iSize = LUA->ObjLen(2);
+	int index = LUA->CheckNumber(3);
+
+	if (!physcollide)
+		LUA->ThrowError("Failed to get IPhysicsCollision!");
+
+	Push_CPhysCollide(physcollide->UnserializeCollide((char*)pData, iSize, index));
+	return 1;
+}
+
+/*LUA_FUNCTION_STATIC(physcollide_ConvexFromVerts)
+{
+	CPhysCollide* pCollide = Get_CPhysCollide(1, true);
+
+	if (!physcollide)
+		LUA->ThrowError("Failed to get IPhysicsCollision!");
+
+	physcollide->ConvexFromVerts(pData, pCollide, bSwap);
+	return 1;
+}*/
+
+/*LUA_FUNCTION_STATIC(physcollide_ConvexFromVerts)
+{
+	CPhysCollide* pCollide = Get_CPhysCollide(1, true);
+
+	if (!physcollide)
+		LUA->ThrowError("Failed to get IPhysicsCollision!");
+
+	physcollide->ConvexFromPlanes(pData, pCollide, bSwap);
+	return 1;
+}*/
+
+LUA_FUNCTION_STATIC(physcollide_ConvexSurfaceArea)
+{
+	CPhysConvex* pConvex = Get_CPhysConvex(1, true);
+
+	if (!physcollide)
+		LUA->ThrowError("Failed to get IPhysicsCollision!");
+
+	LUA->PushNumber(physcollide->ConvexSurfaceArea(pConvex));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(physcollide_ConvexVolume)
+{
+	CPhysConvex* pConvex = Get_CPhysConvex(1, true);
+
+	if (!physcollide)
+		LUA->ThrowError("Failed to get IPhysicsCollision!");
+
+	LUA->PushNumber(physcollide->ConvexVolume(pConvex));
+	return 1;
+}
+
+/*LUA_FUNCTION_STATIC(physcollide_CreateDebugMesh)
+{
+	CPhysConvex* pConvex = Get_CPhysConvex(1, true);
+
+	if (!physcollide)
+		LUA->ThrowError("Failed to get IPhysicsCollision!");
+
+	LUA->PushNumber(physcollide->CreateDebugMesh(pConvex));
+	return 1;
+}*/
+
+LUA_FUNCTION_STATIC(physcollide_CreateQueryModel)
+{
+	CPhysCollide* pCollide = Get_CPhysCollide(1, true);
+
+	if (!physcollide)
+		LUA->ThrowError("Failed to get IPhysicsCollision!");
+
+	Push_ICollisionQuery(physcollide->CreateQueryModel(pCollide));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(physcollide_DestroyQueryModel)
+{
+	ICollisionQuery* pQuery = Get_ICollisionQuery(1, true);
+
+	if (!physcollide)
+		LUA->ThrowError("Failed to get IPhysicsCollision!");
+
+	physcollide->DestroyQueryModel(pQuery);
+	Delete_ICollisionQuery(pQuery);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(physcollide_DestroyCollide)
+{
+	CPhysCollide* pCollide = Get_CPhysCollide(1, true);
+
+	if (!physcollide)
+		LUA->ThrowError("Failed to get IPhysicsCollision!");
+
+	physcollide->DestroyCollide(pCollide);
+	Delete_CPhysCollide(pCollide);
+	return 0;
+}
+
 void CPhysEnvModule::LuaInit(bool bServerInit)
 {
 	if (bServerInit)
 		return;
 
+	CPhysCollide_TypeID = g_Lua->CreateMetaTable("CPhysCollide");
+		Util::AddFunc(CPhysCollide__tostring, "__tostring");
+	g_Lua->Pop(1);
+
+	CPhysPolysoup_TypeID = g_Lua->CreateMetaTable("CPhysPolysoup");
+		Util::AddFunc(CPhysPolysoup__tostring, "__tostring");
+	g_Lua->Pop(1);
+
+	CPhysConvex_TypeID = g_Lua->CreateMetaTable("CPhysCollide");
+		Util::AddFunc(CPhysConvex__tostring, "__tostring");
+	g_Lua->Pop(1);
+
+	ICollisionQuery_TypeID = g_Lua->CreateMetaTable("ICollisionQuery");
+		Util::AddFunc(ICollisionQuery__tostring, "__tostring");
+		Util::AddFunc(ICollisionQuery_ConvexCount, "ConvexCount");
+		Util::AddFunc(ICollisionQuery_TriangleCount, "TriangleCount");
+		Util::AddFunc(ICollisionQuery_GetTriangleMaterialIndex, "GetTriangleMaterialIndex");
+		Util::AddFunc(ICollisionQuery_SetTriangleMaterialIndex, "SetTriangleMaterialIndex");
+		Util::AddFunc(ICollisionQuery_GetTriangleVerts, "GetTriangleVerts");
+		Util::AddFunc(ICollisionQuery_SetTriangleVerts, "SetTriangleVerts");
+	g_Lua->Pop(1);
+
+	IPhysicsCollisionSet_TypeID = g_Lua->CreateMetaTable("IPhysicsCollisionSet");
+		Util::AddFunc(IPhysicsCollisionSet__tostring, "__tostring");
+		Util::AddFunc(IPhysicsCollisionSet_EnableCollisions, "EnableCollisions");
+		Util::AddFunc(IPhysicsCollisionSet_DisableCollisions, "DisableCollisions");
+		Util::AddFunc(IPhysicsCollisionSet_ShouldCollide, "ShouldCollide");
+	g_Lua->Pop(1);
+
+	IPhysicsEnvironment_TypeID = g_Lua->CreateMetaTable("IPhysicsEnvironment");
+		Util::AddFunc(IPhysicsEnvironment__tostring, "__tostring");
+		Util::AddFunc(IPhysicsEnvironment_TransferObject, "TransferObject");
+		Util::AddFunc(IPhysicsEnvironment_SetGravity, "SetGravity");
+		Util::AddFunc(IPhysicsEnvironment_GetGravity, "GetGravity");
+		Util::AddFunc(IPhysicsEnvironment_SetAirDensity, "SetAirDensity");
+		Util::AddFunc(IPhysicsEnvironment_GetAirDensity, "GetAirDensity");
+		Util::AddFunc(IPhysicsEnvironment_SetPerformanceSettings, "SetPerformanceSettings");
+		Util::AddFunc(IPhysicsEnvironment_GetPerformanceSettings, "GetPerformanceSettings");
+		Util::AddFunc(IPhysicsEnvironment_GetNextFrameTime, "GetNextFrameTime");
+		Util::AddFunc(IPhysicsEnvironment_GetSimulationTime, "GetSimulationTime");
+		Util::AddFunc(IPhysicsEnvironment_SetSimulationTimestep, "SetSimulationTimestep");
+		Util::AddFunc(IPhysicsEnvironment_GetSimulationTimestep, "GetSimulationTimestep");
+		Util::AddFunc(IPhysicsEnvironment_GetActiveObjectCount, "GetActiveObjectCount");
+		Util::AddFunc(IPhysicsEnvironment_GetActiveObjects, "GetActiveObjects");
+		Util::AddFunc(IPhysicsEnvironment_GetObjectList, "GetObjectList");
+		Util::AddFunc(IPhysicsEnvironment_IsInSimulation, "IsInSimulation");
+		Util::AddFunc(IPhysicsEnvironment_ResetSimulationClock, "ResetSimulationClock");
+		Util::AddFunc(IPhysicsEnvironment_CleanupDeleteList, "CleanupDeleteList");
+		Util::AddFunc(IPhysicsEnvironment_SetQuickDelete, "SetQuickDelete");
+		Util::AddFunc(IPhysicsEnvironment_EnableDeleteQueue, "EnableDeleteQueue");
+		Util::AddFunc(IPhysicsEnvironment_Simulate, "Simulate");
+		Util::AddFunc(IPhysicsEnvironment_CreatePolyObject, "CreatePolyObject");
+		Util::AddFunc(IPhysicsEnvironment_CreatePolyObjectStatic, "CreatePolyObjectStatic");
+		Util::AddFunc(IPhysicsEnvironment_CreateSphereObject, "CreateSphereObject");
+		Util::AddFunc(IPhysicsEnvironment_DestroyObject, "DestroyObject");
+		Util::AddFunc(IPhysicsEnvironment_IsCollisionModelUsed, "IsCollisionModelUsed");
+		Util::AddFunc(IPhysicsEnvironment_SetObjectEventHandler, "SetObjectEventHandler");
+	g_Lua->Pop(1);
+
 	if (Util::PushTable("physenv"))
 	{
+		Util::AddFunc(physenv_CreateEnvironment, "CreateEnvironment");
+		Util::AddFunc(physenv_GetActiveEnvironmentByIndex, "GetActiveEnvironmentByIndex");
+		Util::AddFunc(physenv_DestroyEnvironment, "DestroyEnvironment");
+		Util::AddFunc(physenv_GetCurrentEnvironment, "GetCurrentEnvironment");
+
+		Util::AddFunc(physenv_FindCollisionSet, "FindCollisionSet");
+		Util::AddFunc(physenv_FindOrCreateCollisionSet, "FindOrCreateCollisionSet");
+		Util::AddFunc(physenv_DestroyAllCollisionSets, "DestroyAllCollisionSets");
+
 		Util::AddFunc(physenv_SetLagThreshold, "SetLagThreshold");
 		Util::AddFunc(physenv_GetLagThreshold, "GetLagThreshold");
 		Util::AddFunc(physenv_SetPhysSkipType, "SetPhysSkipType");
@@ -171,12 +1338,48 @@ void CPhysEnvModule::LuaInit(bool bServerInit)
 		Util::AddValue(IVP_SkipSimulation, "IVP_SkipSimulation");
 		Util::PopTable();
 	}
+
+	Util::StartTable();
+		Util::AddFunc(physcollide_BBoxToCollide, "BBoxToCollide");
+		Util::AddFunc(physcollide_BBoxToConvex, "BBoxToConvex");
+		Util::AddFunc(physcollide_ConvertConvexToCollide, "ConvertConvexToCollide");
+		Util::AddFunc(physcollide_ConvertPolysoupToCollide, "ConvertPolysoupToCollide");
+		Util::AddFunc(physcollide_ConvexFree, "ConvexFree");
+		Util::AddFunc(physcollide_PolysoupCreate, "PolysoupCreate");
+		Util::AddFunc(physcollide_PolysoupAddTriangle, "PolysoupAddTriangle");
+		Util::AddFunc(physcollide_PolysoupDestroy, "PolysoupDestroy");
+		Util::AddFunc(physcollide_CollideGetAABB, "CollideGetAABB");
+		Util::AddFunc(physcollide_CollideGetExtent, "CollideGetExtent");
+		Util::AddFunc(physcollide_CollideGetMassCenter, "CollideGetMassCenter");
+		Util::AddFunc(physcollide_CollideGetOrthographicAreas, "CollideGetOrthographicAreas");
+		Util::AddFunc(physcollide_CollideIndex, "CollideIndex");
+		Util::AddFunc(physcollide_CollideSetMassCenter, "CollideSetMassCenter");
+		Util::AddFunc(physcollide_CollideSetOrthographicAreas, "CollideSetOrthographicAreas");
+		Util::AddFunc(physcollide_CollideSize, "CollideSize");
+		Util::AddFunc(physcollide_CollideSurfaceArea, "CollideSurfaceArea"); 
+		Util::AddFunc(physcollide_CollideVolume, "CollideVolume");
+		Util::AddFunc(physcollide_CollideWrite, "CollideWrite");
+		Util::AddFunc(physcollide_UnserializeCollide, "UnserializeCollide");
+		Util::AddFunc(physcollide_ConvexSurfaceArea, "ConvexSurfaceArea");
+		Util::AddFunc(physcollide_ConvexVolume, "ConvexVolume");
+		Util::AddFunc(physcollide_CreateQueryModel, "CreateQueryModel");
+		Util::AddFunc(physcollide_DestroyQueryModel, "DestroyQueryModel");
+		Util::AddFunc(physcollide_DestroyCollide, "DestroyCollide");
+	Util::FinishTable("physcollide");
 }
 
 void CPhysEnvModule::LuaShutdown()
 {
 	if (Util::PushTable("physenv"))
 	{
+		Util::RemoveField("CreateEnvironment");
+		Util::RemoveField("GetActiveEnvironmentByIndex");
+		Util::RemoveField("DestroyEnvironment");
+
+		Util::RemoveField("FindCollisionSet");
+		Util::RemoveField("FindOrCreateCollisionSet");
+		Util::RemoveField("DestroyAllCollisionSets");
+
 		Util::RemoveField("SetLagThreshold");
 		Util::RemoveField("GetLagThreshold");
 		Util::RemoveField("SetPhysSkipType");
@@ -186,6 +1389,8 @@ void CPhysEnvModule::LuaShutdown()
 		Util::RemoveField("IVP_SkipSimulation");
 		Util::PopTable();
 	}
+
+	Util::NukeTable("physcollide");
 }
 
 void CPhysEnvModule::InitDetour(bool bPreServer)

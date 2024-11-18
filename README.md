@@ -28,7 +28,9 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- \- [+] Many `pvs.*` function accept now a `EntityList`.  
 \- \- [+] `pas.TestPAS` accepts a `EntityList`.  
 \- \- [#] Improved `pas.FindInPAS` performance by using it internally if it's enabled.  
-\- [+] Added many new functions to `physenv` module.  
+\- [+] Added many things to `physenv` module.  
+\- \- [+] Added `physcollide` library.  
+\- \- [+] Added more functions to `physenv` to create physic environments.  
 \- [+] Added the `HolyLib:PreCheckTransmit`, `HolyLib:OnPlayerGot[On/Off]Ladder`, `HolyLib:OnMoveTypeChange` hook.  
 \- [+] Added `HolyLib:OnSourceTVStartNewShot`, `HolyLib:OnSourceTVClientDisconnect` hook to `sourcetv` module.  
 \- [+] Added `HLTVClient:SetCameraMan` and `sourcetv.SetCameraMan` to `sourcetv` module.  
@@ -2032,6 +2034,279 @@ Returns the lag threshold in ms.
 Sets the skiptype for the current simulation.  
 This is reset after the simulation ended.  
 
+#### IPhysicsEnvironment physenv.CreateEnvironment()
+Creates a new physics environment.  
+
+#### IPhysicsEnvironment physenv.GetActiveEnvironmentByIndex(number index)
+Returns the physics environment by the given index.  
+
+#### physenv.DestroyEnvironment(IPhysicsEnvironment environment)
+Destroys the given physics environment.  
+
+#### IPhysicsEnvironment physenv.GetCurrentEnvironment()
+Returns the currently simulating environment.  
+
+#### IPhysicsCollisionSet physenv.FindCollisionSet(number index)
+Returns the collision set by the given index.  
+
+> [!NOTE]
+> Only 32 collision sets can exist at the same time!   
+
+#### IPhysicsCollisionSet physenv.FindOrCreateCollisionSet(number index)
+Returns the collision set by the given index or creates it if needed.  
+
+> [!NOTE]
+> Only 32 collision sets can exist at the same time!  
+
+#### physenv.DestroyAllCollisionSets()
+Destroys all collision sets.  
+
+### Functions (physcollide)
+
+#### CPhysCollide physcollide.BBoxToCollide(Vector mins, Vector maxs)
+Creates a CPhysCollide from the given mins & maxs.  
+
+#### CPhysConvex physcollide.BBoxToConvex(Vector minx, Vector maxs)
+Creates a CPhysConvex from the given mins & maxs.  
+
+#### CPhysCollide physcollide.ConvertConvexToCollide(CPhysConvex convex)
+Converts the given convex to a CPhysCollide and deletes it.  
+
+#### CPhysCollide physcollide.ConvertPolysoupToCollide(CPhysPolySoup soup)
+Converts the given polysoup to a CPhysCollide and deletes it.  
+
+#### physcollide.ConvexFree(CPhysConvex convex)
+Frees the given CPhysConvex if it wan't used/converted.  
+
+#### CPhysPolySoup physcollide.PolysoupCreate()
+Creates a CPhysPolySoup.  
+
+#### physcollide.PolysoupAddTriangle(CPhysPolySoup soup, Vector a, Vector b, Vector c, number materialIndex)
+Adds a triangle to the polysoup.  
+
+#### physcollide.PolysoupDestroy(CPhysPolySoup soup)
+Frees the given CPhysPolySoup if it wasn't used/converted.  
+
+#### Vector(mins), Vector(maxs) physcollide.CollideGetAABB(CPhysCollide collide, Vector origin, Angle rotation)
+Returns the AABB of the given CPhysCollide.  
+
+#### Vector physcollide.CollideGetExtent(CPhysCollide collide, Vector origin, Angle rotation, Vector direction)
+Get the support map for a collide in the given direction.  
+
+#### Vector physcollide.CollideGetMassCenter(CPhysCollide collide)
+Gets the mass center of the CPhysCollide.  
+
+#### Vector physcollide.CollideGetOrthographicAreas(CPhysCollide collide)
+get the approximate cross-sectional area projected orthographically on the bbox of the collide
+
+> [!NOTE]
+> These are fractional areas - unitless.  Basically this is the fraction of the OBB on each axis that  
+> would be visible if the object were rendered orthographically.  
+> This has been precomputed when the collide was built or this function will return 1,1,1
+
+#### number physcollide.CollideIndex(CPhysCollide collide)
+Returns the index of the physics model.  
+
+#### physcollide.CollideSetMassCenter(CPhysCollide collide, Vector massCenter)
+Sets the new mass center of the CPhysCollide.  
+
+#### physcollide.CollideSetOrthographicAreas(CPhysCollide collide, Vector area)
+I have no Idea....   
+
+#### number physcollide.CollideSize(CPhysCollide collide)
+Returns the memory size of the CPhysCollide.  
+
+#### number physcollide.CollideSurfaceArea(CPhysCollide collide)
+Computes the surface area of the CPhysCollide.  
+
+#### number physcollide.CollideVolume(CPhysCollide collide)
+Computes the volume of the CPhysCollide.  
+
+#### string physcollide.CollideWrite(CPhysCollide collide, bool swap)
+Serializes the CPhysCollide and returns the data containing it.  
+
+### CPhysCollide physcollide.UnserializeCollide(string data, number index)
+Unserializes the given data into a CPhysCollide.  
+
+#### number physcollide.ConvexSurfaceArea(CPhysConvex convex)
+Computes the surface area of the convex.  
+
+#### number physcollide.ConvexVolume(CPhysConvex convex)
+Computes the volume of the convex.  
+
+#### ICollisionQuery physcollide.CreateQueryModel(CPhysCollide collide)
+Creates a ICollisionQuery from the given CPhysCollide.  
+
+#### physcollide.DestroyQueryModel(ICollisionQuery query)
+Destroys the given ICollisionQuery.  
+
+#### physcollide.DestroyCollide(CPhysCollide collide)
+Destroys the given CPhysCollide.  
+
+### objectparams_t table structure.
+This table structure is used by a few functions.  
+
+> [!NOTE]
+> You don't need to set all fields.
+> Every single field has a default.  
+
+#### number damping = 0.1
+#### number dragCoefficient = 1.0
+#### bool enableCollisions = true
+#### number inertia = 1.0
+#### number mass = 1.0
+#### Vector massCenterOverride = nil
+#### string name = "DEFAULT"
+#### number rotdamping = 0.1
+#### number rotInertiaLimit = 0.05
+#### number volume = 0.0
+
+### CPhysCollide
+
+#### CPhysCollide:\_\_tostring()
+Returns `CPhysCollide [NULL]` if invalid.  
+Else it returns `CPhysCollide`.  
+
+### CPhysPolySoup
+
+#### CPhysPolySoup:\_\_tostring()
+Returns `CPhysPolySoup [NULL]` if invalid.  
+Else it returns `CPhysPolySoup`.  
+
+### CPhysConvex
+
+#### CPhysConvex:\_\_tostring()
+Returns `CPhysConvex [NULL]` if invalid.  
+Else it returns `CPhysConvex`.  
+
+### ICollisionQuery
+
+#### ICollisionQuery:\_\_tostring()
+Returns `ICollisionQuery [NULL]` if invalid.  
+Else it returns `ICollisionQuery`.  
+
+#### number ICollisionQuery:ConvexCount()
+Returns the number of Convexes.  
+
+#### number ICollisionQuery:TriangleCount(number convexIndex)
+Returns the number of triangles for the given convex index.  
+
+#### number ICollisionQuery:GetTriangleMaterialIndex(number convexIndex, number triangleIndex)
+Returns the material index for the given triangle.  
+
+#### ICollisionQuery:SetTriangleMaterialIndex(number convexIndex, number triangleIndex, number materialIndex)
+Sets the material index of the given triangle index.
+
+#### Vector, Vector, Vector ICollisionQuery:GetTriangleVerts(number convexIndex, number triangleIndex)
+Returns the three vectors that bukd the triangle at the given index.  
+
+#### ICollisonQuery:SetTriangleVerts(number convexIndex, number triangleIndex, Vector a, Vector b, Vector c)
+Sets the three Vectors that build the triangle at the given index.  
+
+### IPhysicsCollisionSet
+
+#### IPhysicsCollisionSet:\_\_tostring()
+Returns `IPhysicsCollisionSet [NULL]` if invalid.  
+Else it returns `IPhysicsCollisionSet`.  
+
+#### IPhysicsCollisionSet:EnableCollisions(number index1, number index2)
+Marks collisions to be enabled for the two indexes.  
+
+#### IPhysicsCollisionSet:DisableCollisions(number index1, number index2)
+Marks collisions to be disabled for the two indexes.  
+
+#### bool IPhysicsCollisionSet:ShouldCollide(number index1, number index2)
+Returns `true` if the collision between the two objects are enabled.  
+
+### IPhysicsEnvironment
+
+#### IPhysicsEnvironment:\_\_tostring()
+Returns `IPhysicsEnvironment [NULL]` if invalid.  
+Else it returns `IPhysicsEnvironment`.  
+
+#### bool IPhysicsEnvironment:TransferObject(IPhysicsObject obj, IPhysicsEnvironment newEnvironment)
+Transfers the physics object from this environment to the new environment.  
+
+#### IPhysicsEnvironment:SetGravity(Vector newGravity)
+Sets the new gravity in `source_unit/s^2`  
+
+#### Vector IPhysicsEnvironment:GetGravity()
+Returns the current gravity in  `source_unit/s^2`  
+
+#### IPhysicsEnvironment:SetAirDensity(number airdensity)
+Sets the new air density.  
+
+#### number IPhysicsEnvironment:GetAirDensity()
+Returns the current air density.  
+
+#### IPhysicsEnvironment:SetPerformanceSettings(PhysEnvPerformanceSettings settings)
+Sets the new performance settings.  
+Use the [PhysEnvPerformanceSettings](https://wiki.facepunch.com/gmod/Structures/PhysEnvPerformanceSettings) structure.  
+
+#### table IPhysicsEnvironment:GetPerformanceSettings()
+Returns the current performance settings.  
+The table will use the [PhysEnvPerformanceSettings](https://wiki.facepunch.com/gmod/Structures/PhysEnvPerformanceSettings) structure.  
+
+#### number IPhysicsEnvironment:GetNextFrameTime()
+returns the current simulation clock's value at the next frame.  
+This is an absolute time.  
+
+#### number IPhysicsEnvironment:GetSimulationTime()
+returns the current simulation clock's value.  
+This is an absolute time.  
+
+#### IPhysicsEnvironment:SetSimulationTimestep(number timeStep)
+Sets the next simulation timestep.  
+
+#### number IPhysicsEnvironment:SetSimulationTimestep()
+returns the next simulation timestep.  
+
+#### number IPhysicsEnvironment:GetActiveObjectCount()
+returns the number of active physics objects.  
+
+#### table IPhysicsEnvironment:GetActiveObjects()
+returns a table containing all active physics objects.  
+
+#### table IPhysicsEnvironment:GetObjectList()
+returns a table containing all physics objects.  
+
+#### bool IPhysicsEnvironment:IsInSimulation()
+returns true if the current physics environment is in simulation.  
+
+#### IPhysicsEnvironment:ResetSimulationClock()
+resets the simulation clock.  
+
+#### IPhysicsEnvironment:CleanupDeleteList()
+cleans the delete list?  
+
+#### IPhysicsEnvironment:SetQuickDelete(bool quickDelete)
+Sets quick delete?  
+
+#### IPhysicsEnvironment:EnableDeleteQueue(bool deleteQueue)
+Enables/Disables the delete queue.  
+
+#### IPhysicsEnvironment:Simulate(number deltaTime)
+Simulates the given delta time in the environment.  
+
+#### IPhysicsObject IPhysicsEnvironment:CreatePolyObject(CPhysCollide collide, number materialIndex, Vector origin, Angle angles, table objectparams_t)
+Creates a new IPhysicsObject in the environment.  
+
+#### IPhysicsObject IPhysicsEnvironment:CreatePolyObjectStatic(CPhysCollide collide, number materialIndex, Vector origin, Angle angles, table objectparams_t)
+Creates a new static IPhysicsObject in the environment.  
+
+#### IPhysicsObject IPhysicsEnvironment:CreateSphereObject(number radius, number materialIndex, Vector origin, Angle angles, table objectparams_t, bool static = false)
+Creates a new perfect sphere IPhysicsObject in the environment.  
+
+#### IPhysicsEnvironment:DestroyObject(IPhysicsObject object)
+Destroys the given physics object.  
+
+#### bool IPhysicsEnvironment:IsCollisionModelUsed(CPhysCollide collide)
+Returns true if it uses a collision model.  
+This function is internally use for debugging?  
+
+#### IPhysicsEnvironment:SetObjectEventHandler(function onObjectWake(IPhysicsObject obj), function onObjectSleep(IPhysicsObject obj))
+Allows you to add callbacks when physics objects wake up or go to sleep in the environment.  
+
 ### Enums
 Theses are the IVP_SkipType enums.  
 
@@ -2248,6 +2523,7 @@ It now throws a warning instead of crashing -> https://github.com/Facepunch/garr
 `HolyLib.InvalidateBoneCache` -> https://github.com/Facepunch/garrysmod-requests/issues/1920  
 `HolyLib:PostEntityConstructor` -> https://github.com/Facepunch/garrysmod-requests/issues/2440  
 `physenv` module -> https://github.com/Facepunch/garrysmod-issues/issues/642  
+`physenv` module -> https://github.com/Facepunch/garrysmod-requests/issues/2522  
 
 # Things planned to add:
 https://github.com/Facepunch/garrysmod-requests/issues/1884  
