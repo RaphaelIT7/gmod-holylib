@@ -973,6 +973,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetObjectEventHandler)
  * ToDo: Move the code below somewhere else. 
  */
 
+#if ARCHITECTURE_IS_X86
 void CSolidSetDefaults::ParseKeyValue( void *pData, const char *pKey, const char *pValue )
 {
 	if ( !Q_stricmp( pKey, "contents" ) )
@@ -1134,12 +1135,15 @@ IPhysicsObject *PhysCreateWorld(IPhysicsEnvironment* pEnvironment, CBaseEntity* 
 	staticpropmgr->CreateVPhysicsRepresentations(pEnvironment, &g_SolidSetup, pWorld);
 	return PhysCreateWorld_Shared(pEnvironment, pWorld, modelinfo->GetVCollide(1), g_PhysDefaultObjectParams);
 }
+#endif
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreateWorldPhysics)
 {
 	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 	
+#if ARCHITECTURE_IS_X86
 	Push_IPhysicsObject(PhysCreateWorld(pEnvironment, Util::GetCBaseEntityFromEdict(Util::engineserver->PEntityOfEntIndex(0))));
+#endif
 	return 1;
 }
 
