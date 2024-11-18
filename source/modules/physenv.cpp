@@ -5,6 +5,8 @@
 #include "lua.h"
 #include <chrono>
 #include "sourcesdk/ivp_time.h"
+#include "vcollide_parse.h"
+#include "solidsetdefaults.h"
 #include <vphysics_interface.h>
 #include <vphysics/collision_set.h>
 #include <vphysics/performance.h>
@@ -162,15 +164,27 @@ LUA_FUNCTION_STATIC(physenv_SetPhysSkipType)
 	return 0;
 }
 
+IVModelInfo* modelinfo;
+IStaticPropMgrServer* staticpropmgr;
 IPhysics* physics = NULL;
 static IPhysicsCollision* physcollide = NULL;
+IPhysicsSurfaceProps* physprops;
 void CPhysEnvModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	physics = (IPhysics*)appfn[0](VPHYSICS_INTERFACE_VERSION, NULL);
 	Detour::CheckValue("get interface", "physics", physics != NULL);
 
+	physprops = (IPhysicsSurfaceProps*)appfn[0](VPHYSICS_SURFACEPROPS_INTERFACE_VERSION, NULL);
+	Detour::CheckValue("get interface", "physprops", physprops != NULL);
+
 	physcollide = (IPhysicsCollision*)appfn[0](VPHYSICS_COLLISION_INTERFACE_VERSION, NULL);
 	Detour::CheckValue("get interface", "physcollide", physcollide != NULL);
+
+	staticpropmgr = (IStaticPropMgrServer*)appfn[0](INTERFACEVERSION_STATICPROPMGR_SERVER, NULL);
+	Detour::CheckValue("get interface", "staticpropmgr", staticpropmgr != NULL);
+
+	modelinfo = (IVModelInfo*)appfn[0](VMODELINFO_SERVER_INTERFACE_VERSION, NULL);
+	Detour::CheckValue("get interface", "modelinfo", modelinfo != NULL);
 }
 
 PushReferenced_LuaClass(IPhysicsObject, GarrysMod::Lua::Type::PhysObj) // This will later cause so much pain when they become Invalid XD
@@ -930,7 +944,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetObjectEventHandler)
 	return 0;
 }
 
-LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreateCopy)
+/*LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreateCopy)
 {
 	ILuaPhysicsEnvironment* pLuaEnv = Get_ILuaPhysicsEnvironment(1, true);
 	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
@@ -952,6 +966,180 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreateCopy)
 	params.dragCoefficient = pObject->m_dragCoefficient;
 
 	Push_IPhysicsObject(pEnvironment->CreatePolyObject(pObject->m_pCollide, pObject->m_materialIndex, pos, ang, &params));
+	return 1;
+}*/
+
+/*
+ * ToDo: Move the code below somewhere else. 
+ */
+
+void CSolidSetDefaults::ParseKeyValue( void *pData, const char *pKey, const char *pValue )
+{
+	if ( !Q_stricmp( pKey, "contents" ) )
+	{
+		m_contentsMask = atoi( pValue );
+	}
+}
+
+void CSolidSetDefaults::SetDefaults( void *pData )
+{
+	solid_t *pSolid = (solid_t *)pData;
+	pSolid->params = g_PhysDefaultObjectParams;
+	m_contentsMask = CONTENTS_SOLID;
+}
+
+CSolidSetDefaults g_SolidSetup;
+
+void PhysCreateVirtualTerrain( IPhysicsEnvironment* pEnvironment, CBaseEntity *pWorld, const objectparams_t &defaultParams )
+{
+	if ( !pEnvironment )
+		return;
+
+	char nameBuf[1024];
+	for ( int i = 0; i < MAX_MAP_DISPINFO; i++ )
+	{
+		CPhysCollide *pCollide = modelinfo->GetCollideForVirtualTerrain( i );
+		if ( pCollide )
+		{
+			solid_t solid;
+			solid.params = defaultParams;
+			solid.params.enableCollisions = true;
+			solid.params.pGameData = static_cast<void *>(pWorld);
+			Q_snprintf(nameBuf, sizeof(nameBuf), "vdisp_%04d", i );
+			solid.params.pName = nameBuf;
+			int surfaceData = physprops->GetSurfaceIndex( "default" );
+			// create this as part of the world
+			IPhysicsObject *pObject = pEnvironment->CreatePolyObjectStatic( pCollide, surfaceData, vec3_origin, vec3_angle, &solid.params );
+			pObject->SetCallbackFlags( pObject->GetCallbackFlags() | CALLBACK_NEVER_DELETED );
+		}
+	}
+}
+
+IPhysicsObject *PhysCreateWorld_Shared( IPhysicsEnvironment* pEnvironment, CBaseEntity *pWorld, vcollide_t *pWorldCollide, const objectparams_t &defaultParams )
+{
+	solid_t solid;
+	fluid_t fluid;
+
+	if ( !pEnvironment )
+		return NULL;
+
+	int surfaceData = physprops->GetSurfaceIndex( "default" );
+
+	objectparams_t params = defaultParams;
+	params.pGameData = static_cast<void *>(pWorld);
+	params.pName = "world";
+
+	IPhysicsObject *pWorldPhysics = pEnvironment->CreatePolyObjectStatic( 
+		pWorldCollide->solids[0], surfaceData, vec3_origin, vec3_angle, &params );
+
+	// hint - saves vphysics some work
+	pWorldPhysics->SetCallbackFlags( pWorldPhysics->GetCallbackFlags() | CALLBACK_NEVER_DELETED );
+
+	//PhysCheckAdd( world, "World" );
+	// walk the world keys in case there are some fluid volumes to create
+	IVPhysicsKeyParser *pParse = physcollide->VPhysicsKeyParserCreate( pWorldCollide->pKeyValues );
+
+	bool bCreateVirtualTerrain = false;
+	while ( !pParse->Finished() )
+	{
+		const char *pBlock = pParse->GetCurrentBlockName();
+
+		if ( !strcmpi( pBlock, "solid" ) || !strcmpi( pBlock, "staticsolid" ) )
+		{
+			solid.params = defaultParams;
+			pParse->ParseSolid( &solid, &g_SolidSetup );
+			solid.params.enableCollisions = true;
+			solid.params.pGameData = static_cast<void *>(pWorld);
+			solid.params.pName = "world";
+			surfaceData = physprops->GetSurfaceIndex( "default" );
+
+			// already created world above
+			if ( solid.index == 0 )
+				continue;
+
+			if ( !pWorldCollide->solids[solid.index] )
+			{
+				// this implies that the collision model is a mopp and the physics DLL doesn't support that.
+				bCreateVirtualTerrain = true;
+				continue;
+			}
+			// create this as part of the world
+			IPhysicsObject *pObject = pEnvironment->CreatePolyObjectStatic( pWorldCollide->solids[solid.index], 
+				surfaceData, vec3_origin, vec3_angle, &solid.params );
+
+			// invalid collision model or can't create, ignore
+			if (!pObject)
+				continue;
+
+			pObject->SetCallbackFlags( pObject->GetCallbackFlags() | CALLBACK_NEVER_DELETED );
+			Assert( g_SolidSetup.GetContentsMask() != 0 );
+			pObject->SetContents( g_SolidSetup.GetContentsMask() );
+
+			if ( !pWorldPhysics )
+			{
+				pWorldPhysics = pObject;
+			}
+		}
+		else if ( !strcmpi( pBlock, "fluid" ) )
+		{
+			pParse->ParseFluid( &fluid, NULL );
+
+			// create a fluid for floating
+			if ( fluid.index > 0 )
+			{
+				solid.params = defaultParams;	// copy world's params
+				solid.params.enableCollisions = true;
+				solid.params.pName = "fluid";
+				solid.params.pGameData = static_cast<void *>(pWorld);
+				fluid.params.pGameData = static_cast<void *>(pWorld);
+				surfaceData = physprops->GetSurfaceIndex( fluid.surfaceprop );
+				// create this as part of the world
+				IPhysicsObject *pWater = pEnvironment->CreatePolyObjectStatic( pWorldCollide->solids[fluid.index], 
+					surfaceData, vec3_origin, vec3_angle, &solid.params );
+
+				pWater->SetCallbackFlags( pWater->GetCallbackFlags() | CALLBACK_NEVER_DELETED );
+				pEnvironment->CreateFluidController( pWater, &fluid.params );
+			}
+		}
+		else if ( !strcmpi( pBlock, "materialtable" ) )
+		{
+			intp surfaceTable[128];
+			memset( surfaceTable, 0, sizeof(surfaceTable) );
+
+			pParse->ParseSurfaceTable( surfaceTable, NULL );
+			physprops->SetWorldMaterialIndexTable( surfaceTable, 128 );
+		}
+		else if ( !strcmpi(pBlock, "virtualterrain" ) )
+		{
+			bCreateVirtualTerrain = true;
+			pParse->SkipBlock();
+		}
+		else
+		{
+			// unknown chunk???
+			pParse->SkipBlock();
+		}
+	}
+	physcollide->VPhysicsKeyParserDestroy( pParse );
+
+	if ( bCreateVirtualTerrain && physcollide->SupportsVirtualMesh() )
+	{
+		PhysCreateVirtualTerrain( pEnvironment, pWorld, defaultParams );
+	}
+	return pWorldPhysics;
+}
+
+IPhysicsObject *PhysCreateWorld(IPhysicsEnvironment* pEnvironment, CBaseEntity* pWorld)
+{
+	staticpropmgr->CreateVPhysicsRepresentations(pEnvironment, &g_SolidSetup, pWorld);
+	return PhysCreateWorld_Shared(pEnvironment, pWorld, modelinfo->GetVCollide(1), g_PhysDefaultObjectParams);
+}
+
+LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreateWorldPhysics)
+{
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
+	
+	Push_IPhysicsObject(PhysCreateWorld(pEnvironment, Util::GetCBaseEntityFromEdict(Util::engineserver->PEntityOfEntIndex(0))));
 	return 1;
 }
 
@@ -1530,7 +1718,8 @@ void CPhysEnvModule::LuaInit(bool bServerInit)
 		Util::AddFunc(IPhysicsEnvironment_DestroyObject, "DestroyObject");
 		Util::AddFunc(IPhysicsEnvironment_IsCollisionModelUsed, "IsCollisionModelUsed");
 		Util::AddFunc(IPhysicsEnvironment_SetObjectEventHandler, "SetObjectEventHandler");
-		Util::AddFunc(IPhysicsEnvironment_CreateCopy, "CreateCopy");
+		//Util::AddFunc(IPhysicsEnvironment_CreateCopy, "CreateCopy");
+		Util::AddFunc(IPhysicsEnvironment_CreateWorldPhysics, "CreateWorldPhysics");
 	g_Lua->Pop(1);
 
 	if (Util::PushTable("physenv"))

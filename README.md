@@ -2307,6 +2307,9 @@ This function is internally use for debugging?
 #### IPhysicsEnvironment:SetObjectEventHandler(function onObjectWake(IPhysicsObject obj), function onObjectSleep(IPhysicsObject obj))
 Allows you to add callbacks when physics objects wake up or go to sleep in the environment.  
 
+#### IPhysicsObject IPhysicsEnvironment:CreateWorldPhysics()
+Creates the world physics object and also adds all static props.  
+
 ### Enums
 Theses are the IVP_SkipType enums.  
 

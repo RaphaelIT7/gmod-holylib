@@ -2,6 +2,7 @@
 #include "Platform.hpp"
 
 const Vector vec3_origin(0, 0, 0);
+const QAngle vec3_angle(0, 0, 0);
 
 size_t Q_log2(unsigned int val) // I hate 64x
 {
