@@ -1652,9 +1652,12 @@ bool hook_GMod_Util_IsPhysicsObjectValid(IPhysicsObject* obj)
  * BUG: This causes weird crashes. WHY.
  */
 Detouring::Hook detour_CBaseEntity_GMOD_VPhysicsTest;
-void hook_CBaseEntity_GMOD_VPhysicsTest(IPhysicsObject* obj)
+void* hook_CBaseEntity_GMOD_VPhysicsTest(CBaseEntity* pEnt, IPhysicsObject* obj)
 {
 	// NUKE THE FUNCTION for now.
+	void* ret = detour_CBaseEntity_GMOD_VPhysicsTest.GetTrampoline<Symbols::CBaseEntity_GMOD_VPhysicsTest>()(pEnt, obj);
+	Msg("%p\n", ret);
+	return ret;
 }
 
 void CPhysEnvModule::LuaInit(bool bServerInit)
