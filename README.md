@@ -2037,6 +2037,15 @@ This is reset after the simulation ended.
 #### IPhysicsEnvironment physenv.CreateEnvironment()
 Creates a new physics environment.  
 
+> [!NOTE]
+> Creating and using a custom IPhysicsEnvironment currently requires you to also remove the physics objects yourself.
+> Example:
+```lua
+ent:CallOnRemove("RemoveObject", function()
+	newEnv:DestoryObject(physObj) -- You have to call DestoryObject when a entity is deleted or else it might remain... which is not good
+end)
+```
+
 #### IPhysicsEnvironment physenv.GetActiveEnvironmentByIndex(number index)
 Returns the physics environment by the given index.  
 
@@ -2045,6 +2054,7 @@ Destroys the given physics environment.
 
 > [!WARNING]
 > Delete all Physics objects first or transfer them into a different one or else it might crash randomly.  
+> I don't know why it likes to crash but it seems to be caused by this.
 
 #### IPhysicsEnvironment physenv.GetCurrentEnvironment()
 Returns the currently simulating environment.  
