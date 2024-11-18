@@ -1648,6 +1648,15 @@ bool hook_GMod_Util_IsPhysicsObjectValid(IPhysicsObject* obj)
 	return true;
 }
 
+/*
+ * BUG: This causes weird crashes. WHY.
+ */
+Detouring::Hook detour_CBaseEntity_GMOD_VPhysicsTest;
+void hook_CBaseEntity_GMOD_VPhysicsTest(IPhysicsObject* obj)
+{
+	// NUKE THE FUNCTION for now.
+}
+
 void CPhysEnvModule::LuaInit(bool bServerInit)
 {
 	if (bServerInit)
@@ -1842,6 +1851,12 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 		&detour_GMod_Util_IsPhysicsObjectValid, "GMod::Util::IsPhysicsObjectValid",
 		server_loader.GetModule(), Symbols::GMod_Util_IsPhysicsObjectValidSym,
 		(void*)hook_GMod_Util_IsPhysicsObjectValid, m_pID
+	);
+
+	Detour::Create(
+		&detour_CBaseEntity_GMOD_VPhysicsTest, "CBaseEntity::GMOD_VPhysicsTest",
+		server_loader.GetModule(), Symbols::CBaseEntity_GMOD_VPhysicsTestSym,
+		(void*)hook_CBaseEntity_GMOD_VPhysicsTest, m_pID
 	);
 
 	g_pCurrentMindist = Detour::ResolveSymbol<IVP_Mindist*>(vphysics_loader, Symbols::g_pCurrentMindistSym);
