@@ -88,6 +88,12 @@ namespace Util
 		g_Lua->SetField(-2, pName);
 	}
 
+	inline bool HasField(const char* pName, int iType)
+	{
+		g_Lua->GetField(-1, pName);
+		return g_Lua->IsType(-1, iType);
+	}
+
 	// Gmod's functions:
 	extern CBasePlayer* Get_Player(int iStackPos, bool unknown);
 	extern CBaseEntity* Get_Entity(int iStackPos, bool unknown);
@@ -172,6 +178,9 @@ struct LuaUserData { // ToDo: Maybe implement this also for other things?
 	~LuaUserData() {
 		if (iReference != -1)
 		{
+			g_Lua->ReferencePush(iReference);
+			g_Lua->SetUserType(-1, NULL);
+			g_Lua->Pop(1);
 			g_Lua->ReferenceFree(iReference);
 			iReference = -1;
 		}
@@ -213,6 +222,16 @@ static void Push_##className(className* var) \
 		g_Lua->CreateTable(); \
 		userData->iTableReference = g_Lua->ReferenceCreate(); \
 		g_pPushed##className[var] = userData; \
+	} \
+} \
+\
+static void Delete_##className(className* var) \
+{ \
+	auto it = g_pPushed##className.find(var); \
+	if (it != g_pPushed##className.end()) \
+	{ \
+		delete it->second; \
+		g_pPushed##className.erase(it); \
 	} \
 }
 

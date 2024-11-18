@@ -71,16 +71,7 @@ Get_LuaClass(CHLTVClient, CHLTVClient_TypeID, "HLTVClient")
 static Detouring::Hook detour_CHLTVClient_Deconstructor;
 static void hook_CHLTVClient_Deconstructor(CHLTVClient* pClient)
 {
-	auto it = g_pPushedCHLTVClient.find(pClient);
-	if (it != g_pPushedCHLTVClient.end())
-	{
-		g_Lua->ReferencePush(it->second->iReference);
-		g_Lua->SetUserType(-1, NULL);
-		g_Lua->Pop(1);
-		delete it->second;
-		g_pPushedCHLTVClient.erase(it);
-	}
-
+	Delete_CHLTVClient(pClient);
 	detour_CHLTVClient_Deconstructor.GetTrampoline<Symbols::CHLTVClient_Deconstructor>()(pClient);
 }
 

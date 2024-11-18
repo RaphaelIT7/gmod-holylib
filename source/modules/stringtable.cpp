@@ -37,15 +37,7 @@ Get_LuaClass(INetworkStringTable, INetworkStringTable_TypeID, "INetworkStringTab
 static Detouring::Hook detour_CNetworkStringTable_Deconstructor;
 static void hook_CNetworkStringTable_Deconstructor(INetworkStringTable* tbl)
 {
-	auto it = g_pPushedINetworkStringTable.find(tbl);
-	if (it != g_pPushedINetworkStringTable.end())
-	{
-		g_Lua->ReferencePush(it->second->iReference);
-		g_Lua->SetUserType(-1, NULL);
-		g_Lua->Pop(1);
-		delete it->second;
-		g_pPushedINetworkStringTable.erase(it);
-	}
+	Delete_INetworkStringTable(tbl);
 	detour_CNetworkStringTable_Deconstructor.GetTrampoline<Symbols::CNetworkStringTable_Deconstructor>()(tbl);
 }
 
