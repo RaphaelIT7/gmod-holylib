@@ -28,6 +28,7 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- \- [+] Many `pvs.*` function accept now a `EntityList`.  
 \- \- [+] `pas.TestPAS` accepts a `EntityList`.  
 \- \- [#] Improved `pas.FindInPAS` performance by using it internally if it's enabled.  
+\- [+] Added many new functions to `physenv` module.  
 \- [+] Added the `HolyLib:PreCheckTransmit`, `HolyLib:OnPlayerGot[On/Off]Ladder`, `HolyLib:OnMoveTypeChange` hook.  
 \- [+] Added `HolyLib:OnSourceTVStartNewShot`, `HolyLib:OnSourceTVClientDisconnect` hook to `sourcetv` module.  
 \- [+] Added `HLTVClient:SetCameraMan` and `sourcetv.SetCameraMan` to `sourcetv` module.  
@@ -146,12 +147,14 @@ Returns `true` if the given map is valid.
 #### bf_write HolyLib.EntityMessageBegin(Entity ent, bool reliable)
 Allows you to create an entity message.  
 
-NOTE: If the `bitbuf` module is disabled, it will throw a lua error!
+> [!NOTE]
+> If the `bitbuf` module is disabled, it will throw a lua error!
 
 #### bf_write HolyLib.UserMessageBegin(IRecipientFilter filter, string usermsg)
 Allows you to create any registered usermessage.  
 
-NOTE: If the `bitbuf` module is disabled, it will throw a lua error!
+> [!NOTE]
+> If the `bitbuf` module is disabled, it will throw a lua error!
 
 #### HolyLib.MessageEnd()
 Finishes the active Entity/Usermessage.  
@@ -169,7 +172,8 @@ Same as BroadcastCustomMessage but it only sends it to the specific player.
 #### HolyLib.InvalidateBoneCache(Entity ent)
 Invalidates the bone cache of the given entity.  
 
-> NOTE: Only uses this on Entities that are Animated / Inherit the CBaseAnimating class. Or else it will throw a Lua error.  
+> [!NOTE]
+> Only uses this on Entities that are Animated / Inherit the CBaseAnimating class. Or else it will throw a Lua error.  
 
 #### bool HolyLib.SetSignonState(Player/number ply/userid, number signOnState, number spawnCount)
 Sets the SignOnState for the given client.  
@@ -232,7 +236,8 @@ If name is not a string, it will return a table containing all events and their 
 }
 ```
 
-> NOTE: Can return `nil` on failure.  
+> [!NOTE]
+> Can return `nil` on failure.  
 
 #### bool gameevent.RemoveListener(string name)
 string name - The event to remove the Lua gameevent listener from.  
@@ -327,9 +332,10 @@ Sets the string for the given key.
 Called when the client sends the gameevent list it wants to listen to.  
 Return `true` to stop the engine from future processing this list.  
 
-NOTE: This and the hook below may be called with a NULL player.  
-it is caused by the player registering the gameevents before he spawned/got an entity.  
-Because of this, the third argument was added.  
+> [!NOTE]
+> This and the hook below may be called with a NULL player.  
+> it is caused by the player registering the gameevents before he spawned/got an entity.  
+> Because of this, the third argument was added.  
 
 #### HolyLib:PostProcessGameEvent(Player ply, table gameEvents, number plyIndex)
 Called after the engine processed the received gameevent list.  
@@ -345,7 +351,8 @@ My debug stuff :> It'll never be important for you.
 ## threadpoolfix
 This module modifies `CThreadPool::ExecuteToPriority` to not call `CThreadPool::SuspendExecution` when it doesn't have any jobs.  
 This is a huge speed improvement for adding searchpaths / mounting legacy addons.  
-> NOTE: This requires the `ghostinj.dll` to be installed!
+> [!NOTE]
+> This requires the `ghostinj.dll` to be installed!
 
 ## precachefix
 This module removes the host error when the model or generic precache stringtable overflows.  
@@ -386,7 +393,8 @@ The fallback index if a generic fails to precache.
 This module adds a new library called `stringtable`, which will contain all functions to handle stringtables,  
 and it will a hook for when the stringtables are created, since they are created while Lua was already loaded.  
 
-NOTE: For now, all functions below are just a bind to their C++ versions -> [INetworkStringTable](https://github.com/RaphaelIT7/obsolete-source-engine/blob/gmod/public/networkstringtabledefs.h#L32)  
+> [!NOTE]
+> For now, all functions below are just a bind to their C++ versions -> [INetworkStringTable](https://github.com/RaphaelIT7/obsolete-source-engine/blob/gmod/public/networkstringtabledefs.h#L32)  
 
 ### Functions
 
@@ -441,7 +449,8 @@ stringtable.CreateStringTable("example", 8192)
 stringtable.AllowCreation(false)
 ```
 
-> NOTE: Please use the `HolyLib:OnStringTableCreation` hook to add custom stringtables.  
+> [!NOTE]
+> Please use the `HolyLib:OnStringTableCreation` hook to add custom stringtables.  
 
 #### stringtable.RemoveTable(INetworkStringTable table)
 Deletes that specific stringtable.  
@@ -526,7 +535,8 @@ A list of known stringtables with hardcoded limits:
 - `decalprecache` -> Limited by `CClientState::decal_precache`  
 - `networkvars` -> Limited by the internal net message used.  
 
-> NOTE: If there are already more entries than the new limit, they won't be removed.  
+> [!NOTE]
+> If there are already more entries than the new limit, they won't be removed.  
 > (This could cause issues, so make sure you know what you're doing.)  
 
 #### bool INetworkStringTable:DeleteString(number index)
@@ -534,8 +544,9 @@ Deletes the given string at the given index.
 
 Returns `true` if the string was deleted.  
 
-> NOTE: Currently this deletes all strings and readds all except the one at the given index. This is slow and I need to improve it later.  
-> NOTE: This also removes the precache data if you delete something from `modelprecache` or so.  
+> [!NOTE]
+> Currently this deletes all strings and readds all except the one at the given index. This is slow and I need to improve it later.  
+> This also removes the precache data if you delete something from `modelprecache` or so.  
 
 #### bool INetworkStringTable:IsValid()
 Returns `true` if the stringtable is still valid.  
@@ -640,14 +651,16 @@ table ents - A sequential table containing all the entities which states flags s
 bool force - Allows you to set the flags directly. It won't make sure that the value is correct!  
 Overrides the StateFlag for this Snapshot.  
 The value will be reset in the next one.  
-NOTE: If you use force, you should know what your doing or else it might cause a crash.  
+> [!NOTE]
+> If you use force, you should know what your doing or else it might cause a crash.  
 
 #### pvs.SetStateFlags(Entity ent / table ents / EntityList list, number flags, bool force)
 table ents - A sequential table containing all the entities which states should be set.  
 bool force - Allows you to set the flags directly. It won't make sure that the value is correct!  
 Sets the State flag for this entity.  
 Unlike `OverrideStateFlag`, this won't be reset after the snapshot.  
-NOTE: If you use force, you should know what your doing or else it might cause a crash.  
+> [!NOTE]
+> If you use force, you should know what your doing or else it might cause a crash.  
 
 #### number pvs.GetStateFlags(Entity ent, bool force)
 bool force - Allows you to get all flags instead of only the ones for networking.  
@@ -657,12 +670,14 @@ Returns the state flags for this entity.
 table ents - A sequential table containing all the entities that should be removed from being transmitted.  
 Returns true if the entity or all entities were successfully removed from being transmitted.  
 
-> NOTE: Only use this function inside the `HolyLib:[Pre/Post]CheckTransmit` hook!  
+> [!NOTE]
+> Only use this function inside the `HolyLib:[Pre/Post]CheckTransmit` hook!  
 
 #### pvs.RemoveAllEntityFromTransmit()
 Removes all Entities from being transmitted.  
 
-> NOTE: Only use this function inside the `HolyLib:[Pre/Post]CheckTransmit` hook!  
+> [!NOTE]
+> Only use this function inside the `HolyLib:[Pre/Post]CheckTransmit` hook!  
 
 #### pvs.AddEntityToTransmit(Entity ent / table ents / EntityList list, bool always)
 table ents - A sequential table containing all the entities that should be transmitted.  
@@ -670,14 +685,18 @@ bool always - If the entity should always be transmitted? (Verify)
 
 Adds the given Entity to be transmitted.
 
-> NOTE: Only use this function inside the `HolyLib:[Pre/Post]CheckTransmit` hook!  
+> [!NOTE]
+> Only use this function inside the `HolyLib:[Pre/Post]CheckTransmit` hook!  
 
 #### (REMOVED AGAIN) pvs.IsEmptyBaseline()
 Returns `true` if the baseline is empty.  
 This should always be the case after a full update.  
 
-> NOTE: Only use this function inside the `HolyLib:[Pre/Post]CheckTransmit` hook!  
-> REMOVED: This function was removed since I can't get it to work / It would be a bit more complicated than first anticipated.  
+> [!NOTE]
+> Only use this function inside the `HolyLib:[Pre/Post]CheckTransmit` hook!  
+
+> [!IMPORTANT] 
+> This function was removed since I can't get it to work / It would be a bit more complicated than first anticipated.  
 
 #### pvs.SetPreventTransmitBulk(Entity ent / table ents / EntityList list, Player ply or table plys or RecipientFilter filter, bool notransmit)
 table ents - A sequential table containing all the entities that should be affected.  
@@ -720,7 +739,8 @@ You could do the transmit stuff yourself inside this hook.
 entity ply - The player that everything is transmitted to.  
 table enitites - The Entities that get transmitted. Only available if `holylib_pvs_postchecktransmit` is set to `2` or higher.  
 
-> NOTE: This hook is only called when `holylib_pvs_postchecktransmit` is enabled!  
+> [!NOTE]
+> This hook is only called when `holylib_pvs_postchecktransmit` is enabled!  
 
 ### ConVars
 
@@ -858,8 +878,11 @@ Currently it fixes these paths:
 
 #### (EXPERIMENTAL) holylib_filesystem_cachefilehandle (default `0`)
 If enabled, it will cache the file handle and return it if needed.  
-> NOTE: This will probably cause issues if you open the same file multiple times.  
-> WARNING: This is a noticeable improvement, but it seems to break .bsp files :/  
+> [!NOTE]
+> This will probably cause issues if you open the same file multiple times.  
+
+> [!WARNING]
+> This is a noticeable improvement, but it seems to break .bsp files :/  
 
 #### holylib_debug_filesystem (default `0`)
 If enabled, it will print all filesyste suff.  
@@ -976,7 +999,8 @@ When changing it, it will wait for all queried jobs to first finish before chang
 ### holylib_util_decompressthreads(default `1`)
 The number of threads to use for `util.AsyncDecompress`.  
 
-> NOTE: Decompressing seems to be far faster than compressing so it doesn't need as many threads.  
+> [!NOTE]
+> Decompressing seems to be far faster than compressing so it doesn't need as many threads.  
 
 ## concommand
 This module unblocks `quit` and `exit` for `RunConsoleCommand`.  
@@ -1083,7 +1107,8 @@ Terminates vprof and frees the memory of everything.
 This will invalidate all `VProfCounter` and `VProfNode`.  
 This means that if you try to use one that you stored in lua, it could crash!  
 
-NOTE: This should probably never be used.  
+> [!NOTE]
+> This should probably never be used.  
 
 ### VProfCounter
 This object represents a vprof counter.  
@@ -1235,7 +1260,8 @@ Sets the value of `sv_stressbots`.
 ### cvars
 This module adds one function to the `cvars` library.  
 
-> NOTE: The lua library is named `cvar` because the `cvars` library is fully declared in Lua and were running before it even exists.   
+> [!NOTE]
+> The lua library is named `cvar` because the `cvars` library is fully declared in Lua and were running before it even exists.   
 
 #### Functions
 
@@ -1300,7 +1326,8 @@ If `allowOverride` is set to true, it internally won't block any events like `hl
 Sends the `hltv_cameraman` event aall clients and blocks the `HLTVDirector` from changing the view.  
 Call it with `0` / `NULL` to reset it and let the `HLTVDirector` take control again.  
 
-> NOTE: This won't set it for new clients. You have to call it again for thoes.  
+> [!NOTE]
+> This won't set it for new clients. You have to call it again for thoes.  
 
 ### HLTVClient
 This is a metatable that is pushed by this module. It contains the functions listed below  
@@ -1318,7 +1345,8 @@ Internally seaches in the metatable table for the key.
 Returns the lua table of this object.  
 You can store variables into it.  
 
-> NOTE: There is no \_\_newindex function since we can't properly reset the LuaTable.  
+> [!NOTE]
+> There is no \_\_newindex function since we can't properly reset the LuaTable.  
 
 #### string HLTVClient:GetName()
 Returns the name of the client.  
@@ -1326,7 +1354,8 @@ Returns the name of the client.
 #### string HLTVClient:GetSteamID()
 Returns the steamid of the client.  
 
-> NOTE: Currently broken / will return `STEAM_ID_PENDING`
+> [!NOTE]
+> Currently broken / will return `STEAM_ID_PENDING`
 
 #### number HLTVClient:GetUserID()
 Returns the userid of the client.  
@@ -1340,7 +1369,8 @@ Reconnects the HLTV client.
 #### void HLTVClient:ClientPrint(string message)
 Prints the given message into the client's console.  
 
-> NOTE: It won't add `\n` at the end of the message, so you will need to add it yourself.  
+> [!NOTE]
+> It won't add `\n` at the end of the message, so you will need to add it yourself.  
 
 #### bool HLTVClient:IsValid()
 Returns `true` if the client is still valid.  
@@ -1349,7 +1379,8 @@ Returns `true` if the client is still valid.
 Sends the given code to the client to be executed.  
 Returns `true` on success.  
 
-NOTE: This function was readded back experimentally. It wasn't tested yet. It's still broken but doesn't crash  
+> [!NOTE]
+> This function was readded back experimentally. It wasn't tested yet. It's still broken but doesn't crash  
 
 #### (Experimental) HLTVClient:FireEvent(IGameEvent event)  
 Fires/sends the gameevent to this specific client.  
@@ -1372,7 +1403,8 @@ the sourcetv server is not the master!
 #### sourcetv.RECORD_ACTIVE = -3  
 there already is an active record!  
 
-> NOTE: Should we allow multiple active record? I think I could implement it. If wanted, make a request for it.  
+> [!NOTE]
+> Should we allow multiple active record? I think I could implement it. If wanted, make a request for it.  
 
 #### sourcetv.RECORD_NOTACTIVE = -4  
 there is no active recording to stop!  
@@ -1424,7 +1456,8 @@ Return `true` to cancel it.
 #### bool HolyLib:OnSourceTVClientDisconnect(number playerSlot)
 Called when a client disconnects from the sourcetv server.  
 
-> NOTE: We pass the playerSlot since passing the HLTVClient object causes weird issues I couldn't fix yet.  
+> [!NOTE]
+> We pass the playerSlot since passing the HLTVClient object causes weird issues I couldn't fix yet.  
 
 ### ConVars
 
@@ -1483,7 +1516,8 @@ Returns the size of the data in bytes.
 #### number bf_read:GetCurrentBit()
 Returns the current position/bit.
 
-> NOTE: This is only available for the 32x!    
+> [!NOTE]
+> This is only available for the 32x!    
 
 #### bool bf_read:IsOverflowed()
 Returns `true` if the buffer is overflowed.  
@@ -1497,26 +1531,31 @@ Reads and Angle.
 
 #### number bf_read:ReadBitCoord()
 
-> NOTE: This is only available for the 32x!    
+> [!NOTE]
+> This is only available for the 32x!    
 
 #### number bf_read:ReadBitCoordBits()
 
-> NOTE: This is only available for the 32x!    
+> [!NOTE]
+> This is only available for the 32x!    
 
 #### number bf_read:ReadBitCoordMP(bool bIntegral, bool bLowPrecision)
 
-> NOTE: This is only available for the 32x!    
+> [!NOTE]
+> This is only available for the 32x!    
 
 #### number bf_read:ReadBitCoordMPBits(bool bIntegral, bool bLowPrecision)
 
-> NOTE: This is only available for the 32x!    
+> [!NOTE]
+> This is only available for the 32x!    
 
 #### number bf_read:ReadBitFloat()
 
 #### number bf_read:ReadBitLong(number numBits, bool bSigned)
 Reads a number with the given number of bits.  
 
-> NOTE: This is only available for the 32x!    
+> [!NOTE]
+> This is only available for the 32x!    
 
 #### number bf_read:ReadBitNormal()
 
@@ -1692,7 +1731,8 @@ Returns `true` on success.
 Writes the given number of bits from the given buffer into this buffer.  
 Returns `true` on success.  
 
-> NOTE: The current position for the given buffer will change as we internally read from it!
+> [!NOTE]
+> The current position for the given buffer will change as we internally read from it!
 
 #### bf_write:WriteBitNormal(number value)
 
@@ -1738,7 +1778,8 @@ Called when our Steam server successfully connected to steams servers.
 
 ## systimer
 This module is just the timer library, but it doesn't use CurTime.  
-> NOTE: Timer repetitions are limited to an unsigned int.  
+> [!NOTE]
+> Timer repetitions are limited to an unsigned int.  
 
 ### Functions
 
@@ -1827,7 +1868,8 @@ If given a table it will only send it to thoes players.
 #### voicechat.ProcessVoiceData(Player ply, VoiceData data)
 Let's the server process the VoiceData like it was received from the client.  
 This can be a bit performance intense.  
-NOTE: This will ignore the set player slot!  
+> [!NOTE]
+> This will ignore the set player slot!  
 
 #### bool voicechat.IsHearingClient(Player ply, Player targetPly)
 Returns `true` if `ply` can hear the `targetPly`.  
@@ -1837,7 +1879,8 @@ Returns `true` if `ply` can hear the `targetPly` in it's proximity.
 
 #### VoiceData voicedata.CreateVoiceData(number playerSlot = 0, string data = NULL, number dataLength = NULL)
 Creates a new VoiceData object.  
-> NOTE: All Arguments are optional!
+> [!NOTE]
+> All Arguments are optional!
 
 ### VoiceData
 VoiceData is a userdata value that is used to manage the voicedata.  
@@ -2000,7 +2043,9 @@ Skip all impact calls.
 
 #### physenv.IVP_SkipSimulation = 2
 Skip the entire simulation.  
-NOTE: Players that collide with props will be randomly teleported!  
+
+> [!NOTE]
+> Players that collide with props will be randomly teleported!  
 
 ### Hooks
 
@@ -2069,7 +2114,9 @@ Returns the time of the channel.
 
 #### number IGModAudioChannel:GetBufferedTime()
 Returns the buffered time of the channel.  
-NOTE: If it's playing a file, it will just return the length of it.  
+
+> [!NOTE]
+> If it's playing a file, it will just return the length of it.  
 
 #### number IGModAudioChannel:GetState()
 Returns the state of the channel.  
@@ -2135,7 +2182,8 @@ Creates a new EntityList.
 
 #### table GetGlobalEntityList()
 Returns all entities that are in the global entity list.  
-> NOTE: This will only contain networkable / networked entities.  
+> [!NOTE]
+> This will only contain networkable / networked entities.  
 
 ### EntityList
 This class should remove some overhead to improve performance since you can pass it to some functions.  
