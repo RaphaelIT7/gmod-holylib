@@ -1649,16 +1649,17 @@ bool hook_GMod_Util_IsPhysicsObjectValid(IPhysicsObject* obj)
 }
 
 /*
- * BUG: This causes weird crashes. WHY.
+ * BUG: This causes weird crashes. WHY. 
+ * NOTE: This only ocurrs when you delete a Environment that still has objects?
  */
-Detouring::Hook detour_CBaseEntity_GMOD_VPhysicsTest;
+/*Detouring::Hook detour_CBaseEntity_GMOD_VPhysicsTest;
 void* hook_CBaseEntity_GMOD_VPhysicsTest(CBaseEntity* pEnt, IPhysicsObject* obj)
 {
 	// NUKE THE FUNCTION for now.
 	void* ret = detour_CBaseEntity_GMOD_VPhysicsTest.GetTrampoline<Symbols::CBaseEntity_GMOD_VPhysicsTest>()(pEnt, obj);
 	Msg("%p\n", ret);
 	return ret;
-}
+}*/
 
 void CPhysEnvModule::LuaInit(bool bServerInit)
 {
@@ -1856,11 +1857,11 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 		(void*)hook_GMod_Util_IsPhysicsObjectValid, m_pID
 	);
 
-	Detour::Create(
+	/*Detour::Create(
 		&detour_CBaseEntity_GMOD_VPhysicsTest, "CBaseEntity::GMOD_VPhysicsTest",
 		server_loader.GetModule(), Symbols::CBaseEntity_GMOD_VPhysicsTestSym,
 		(void*)hook_CBaseEntity_GMOD_VPhysicsTest, m_pID
-	);
+	);*/
 
 	g_pCurrentMindist = Detour::ResolveSymbol<IVP_Mindist*>(vphysics_loader, Symbols::g_pCurrentMindistSym);
 	Detour::CheckValue("get class", "g_pCurrentMindist", g_pCurrentMindist != NULL);
