@@ -59,6 +59,10 @@ namespace Symbols
 		Symbol::FromName("_ZN18CCollisionProperty24MarkPartitionHandleDirtyEv"),
 	};
 
+	const std::vector<Symbol> CBaseEntity_VPhysicsUpdateSym = {
+		Symbol::FromName("_ZN11CBaseEntity14VPhysicsUpdateEP14IPhysicsObject"),
+	};
+
 	const std::vector<Symbol> CGetSym = { // 64x ToDo
 		Symbol::FromName("get"),
 	};

@@ -59,7 +59,7 @@ static void hook_IVP_Mindist_D2(IVP_Mindist* mindist)
 static Detouring::Hook detour_IVP_Mindist_do_impact;
 static void hook_IVP_Mindist_do_impact(IVP_Mindist* mindist)
 {
-	if (g_pPhysEnvModule.InDebug())
+	if (g_pPhysEnvModule.InDebug() > 2)
 		Msg("physenv: IVP_Mindist::do_impact called! (%i)\n", (int)pCurrentSkipType);
 
 	if (pCurrentSkipType == IVP_SkipImpact)
@@ -78,7 +78,7 @@ static void hook_IVP_Event_Manager_Standard_simulate_time_events(void* eventmana
 	pCurrentTime = std::chrono::high_resolution_clock::now();
 	pCurrentSkipType = IVP_None; // Idk if it can happen that something else sets it in the mean time but let's just be sure...
 
-	if (g_pPhysEnvModule.InDebug())
+	if (g_pPhysEnvModule.InDebug() > 2)
 		Msg("physenv: IVP_Event_Manager_Standart::simulate_time_events called!\n");
 
 	detour_IVP_Event_Manager_Standard_simulate_time_events.GetTrampoline<Symbols::IVP_Event_Manager_Standard_simulate_time_events>()(eventmanager, timemanager, environment, time);
@@ -107,7 +107,7 @@ void CheckPhysicsLag()
 				pCurrentSkipType = (IVP_SkipType)pType;
 				g_Lua->Pop(1);
 
-				if (g_pPhysEnvModule.InDebug())
+				if (g_pPhysEnvModule.InDebug() > 2)
 					Msg("physenv: Lua hook called (%i)\n", (int)pCurrentSkipType);
 			}
 		}
@@ -117,7 +117,7 @@ void CheckPhysicsLag()
 static Detouring::Hook detour_IVP_Mindist_simulate_time_event;
 static void hook_IVP_Mindist_simulate_time_event(void* mindist, void* environment)
 {
-	if (g_pPhysEnvModule.InDebug())
+	if (g_pPhysEnvModule.InDebug() > 2)
 		Msg("physenv: IVP_Mindist::simulate_time_event called! (%i)\n", (int)pCurrentSkipType);
 
 	CheckPhysicsLag();
@@ -130,7 +130,7 @@ static void hook_IVP_Mindist_simulate_time_event(void* mindist, void* environmen
 static Detouring::Hook detour_IVP_Mindist_update_exact_mindist_events;
 static void hook_IVP_Mindist_update_exact_mindist_events(void* mindist, IVP_BOOL allow_hull_conversion, IVP_MINDIST_EVENT_HINT event_hint)
 {
-	if (g_pPhysEnvModule.InDebug())
+	if (g_pPhysEnvModule.InDebug() > 2)
 		Msg("physenv: IVP_Mindist::update_exact_mindist_events called! (%i)\n", (int)pCurrentSkipType);
 
 	CheckPhysicsLag();
@@ -715,6 +715,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_EnableDeleteQueue)
 	return 0;
 }
 
+Symbols::CBaseEntity_VPhysicsUpdate func_CBaseEntity_VPhysicsUpdate;
 ILuaPhysicsEnvironment* g_pCurrentEnvironment = NULL;
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_Simulate)
 {
@@ -744,7 +745,9 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_Simulate)
 				{
 					pEntity->CollisionProp()->MarkSurroundingBoundsDirty();
 				}
-				pEntity->VPhysicsUpdate( pActiveList[i] );
+
+				//pEntity->VPhysicsUpdate( pActiveList[i] ); // BUG: The VTABLE IS BROKEN AGAIN. NOOOOOO
+				func_CBaseEntity_VPhysicsUpdate(pEntity, pActiveList[i]);
 			}
 		}
 		stackfree( pActiveList );
@@ -1653,4 +1656,7 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 
 	g_fDeferDeleteMindist = Detour::ResolveSymbol<bool>(vphysics_loader, Symbols::g_fDeferDeleteMindistSym);
 	Detour::CheckValue("get class", "g_fDeferDeleteMindist", g_fDeferDeleteMindist != NULL);
+
+	func_CBaseEntity_VPhysicsUpdate = (Symbols::CBaseEntity_VPhysicsUpdate)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseEntity_VPhysicsUpdateSym);
+	Detour::CheckValue("get function", "CBaseEntity::VPhysicsUpdate", func_CBaseEntity_VPhysicsUpdate != NULL);
 }

@@ -100,6 +100,9 @@ namespace Symbols
 	typedef void (*CCollisionProperty_MarkSurroundingBoundsDirty)(void* fancy_class);
 	extern const std::vector<Symbol> CCollisionProperty_MarkSurroundingBoundsDirtySym;
 
+	typedef void (*CBaseEntity_VPhysicsUpdate)(void* fancy_class, void* obj);
+	extern const std::vector<Symbol> CBaseEntity_VPhysicsUpdateSym;
+
 	extern const std::vector<Symbol> CGetSym;
 
 	//---------------------------------------------------------------------------------
