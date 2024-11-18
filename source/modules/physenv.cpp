@@ -277,6 +277,15 @@ Get_LuaClass(ICollisionQuery, ICollisionQuery_TypeID, "ICollisionQuery")
 
 static Push_LuaClass(Vector, GarrysMod::Lua::Type::Vector)
 
+inline IPhysicsEnvironment* GetPhysicsEnvironment(int iStackPos, bool bError)
+{
+	ILuaPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true);
+	if (!pEnvironment->pEnvironment && bError)
+		g_Lua->ThrowError(triedNull_ILuaPhysicsEnvironment.c_str());
+
+	return pEnvironment->pEnvironment;
+}
+
 LUA_FUNCTION_STATIC(physenv_CreateEnvironment)
 {
 	if (!physics)
@@ -302,8 +311,9 @@ LUA_FUNCTION_STATIC(physenv_DestroyEnvironment)
 		LUA->ThrowError("Failed to get IPhysics!");
 
 	ILuaPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true);
+	if (pEnvironment->pEnvironment)
+		physics->DestroyEnvironment(pEnvironment->pEnvironment);
 
-	physics->DestroyEnvironment(pEnvironment->pEnvironment);
 	Delete_ILuaPhysicsEnvironment(pEnvironment);
 
 	return 0;
@@ -395,7 +405,7 @@ LUA_FUNCTION_STATIC(IPhysicsCollisionSet_ShouldCollide)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment__tostring)
 {
-	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, false)->pEnvironment;
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, false);
 	if (!pEnvironment)
 		LUA->PushString("IPhysicsEnvironment [NULL]");
 	else
@@ -406,9 +416,9 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment__tostring)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_TransferObject)
 {
-	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 	IPhysicsObject* pObject = Get_IPhysicsObject(2, true);
-	IPhysicsEnvironment* pTargetEnvironment = Get_ILuaPhysicsEnvironment(3, true)->pEnvironment;
+	IPhysicsEnvironment* pTargetEnvironment = GetPhysicsEnvironment(3, true);
 
 	LUA->PushBool(pEnvironment->TransferObject(pObject, pTargetEnvironment));
 	return 1;
@@ -416,7 +426,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_TransferObject)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetGravity)
 {
-	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 	Vector* pVec = Get_Vector(2, true);
 
 	pEnvironment->SetGravity(*pVec);
@@ -425,7 +435,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetGravity)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetGravity)
 {
-	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 
 	Vector vec;
 	pEnvironment->GetGravity(&vec);
@@ -435,7 +445,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetGravity)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetAirDensity)
 {
-	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 	float airDensity = (float)LUA->CheckNumber(2);
 
 	pEnvironment->SetAirDensity(airDensity);
@@ -444,7 +454,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetAirDensity)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetAirDensity)
 {
-	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 
 	LUA->PushNumber(pEnvironment->GetAirDensity());
 	return 1;
@@ -452,7 +462,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetAirDensity)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetPerformanceSettings)
 {
-	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 	LUA->CheckType(2, GarrysMod::Lua::Type::Table);
 
 	physics_performanceparams_t params;
@@ -496,7 +506,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetPerformanceSettings)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetPerformanceSettings)
 {
-	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 
 	physics_performanceparams_t params;
 	pEnvironment->GetPerformanceSettings(&params);
@@ -515,7 +525,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetPerformanceSettings)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetNextFrameTime)
 {
-	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 
 	LUA->PushNumber(pEnvironment->GetNextFrameTime());
 	return 1;
@@ -523,7 +533,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetNextFrameTime)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetSimulationTime)
 {
-	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 
 	LUA->PushNumber(pEnvironment->GetSimulationTime());
 	return 1;
@@ -531,7 +541,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetSimulationTime)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetSimulationTimestep)
 {
-	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 	float timeStep = (float)LUA->CheckNumber(2);
 
 	pEnvironment->SetSimulationTimestep(timeStep);
@@ -540,7 +550,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetSimulationTimestep)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetSimulationTimestep)
 {
-	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 
 	LUA->PushNumber(pEnvironment->GetSimulationTimestep());
 	return 1;
@@ -548,7 +558,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetSimulationTimestep)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetActiveObjectCount)
 {
-	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 
 	LUA->PushNumber(pEnvironment->GetActiveObjectCount());
 	return 1;
@@ -556,7 +566,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetActiveObjectCount)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetActiveObjects)
 {
-	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 
 	int activeCount = pEnvironment->GetActiveObjectCount();
 	IPhysicsObject** pActiveList = NULL;
@@ -580,7 +590,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetActiveObjects)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetObjectList)
 {
-	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 
 	int iCount = 0;
 	IPhysicsObject** pList = (IPhysicsObject**)pEnvironment->GetObjectList(&iCount);
@@ -599,7 +609,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetObjectList)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_IsInSimulation)
 {
-	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 
 	LUA->PushBool(pEnvironment->IsInSimulation());
 	return 1;
@@ -607,7 +617,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_IsInSimulation)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_ResetSimulationClock)
 {
-	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 
 	pEnvironment->ResetSimulationClock();
 	return 0;
@@ -615,7 +625,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_ResetSimulationClock)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_CleanupDeleteList)
 {
-	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 
 	pEnvironment->CleanupDeleteList();
 	return 0;
@@ -623,7 +633,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_CleanupDeleteList)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetQuickDelete)
 {
-	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 	bool quickDelete = LUA->GetBool(2);
 
 	pEnvironment->SetQuickDelete(quickDelete);
@@ -632,7 +642,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetQuickDelete)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_EnableDeleteQueue)
 {
-	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 	bool deleteQueue = LUA->GetBool(2);
 
 	pEnvironment->EnableDeleteQueue(deleteQueue);
@@ -642,13 +652,15 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_EnableDeleteQueue)
 ILuaPhysicsEnvironment* g_pCurrentEnvironment = NULL;
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_Simulate)
 {
-	ILuaPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true);
+	ILuaPhysicsEnvironment* pLuaEnv = Get_ILuaPhysicsEnvironment(1, true);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
+
 	float deltaTime = (float)LUA->CheckNumber(2);
 
 	VPROF_BUDGET("HolyLib(Lua) - IPhysicsEnvironment::Simulate", VPROF_BUDGETGROUP_HOLYLIB);
 	ILuaPhysicsEnvironment* pOldEnvironment = g_pCurrentEnvironment; // Simulating a environment in a already simulating environment? sounds fun :^
-	g_pCurrentEnvironment = pEnvironment;
-	pEnvironment->pEnvironment->Simulate(deltaTime);
+	g_pCurrentEnvironment = pLuaEnv;
+	pEnvironment->Simulate(deltaTime);
 	g_pCurrentEnvironment = pOldEnvironment;
 	return 0;
 }
@@ -725,7 +737,7 @@ static void FillObjectParams(objectparams_t& params, int iStackPos, GarrysMod::L
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreatePolyObject)
 {
-	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 	CPhysCollide* pCollide = Get_CPhysCollide(2, true);
 	int materialIndex = (int)LUA->CheckNumber(3);
 	Vector* pOrigin = Get_Vector(4, true);
@@ -739,7 +751,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreatePolyObject)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreatePolyObjectStatic)
 {
-	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 	CPhysCollide* pCollide = Get_CPhysCollide(2, true);
 	int materialIndex = (int)LUA->CheckNumber(3);
 	Vector* pOrigin = Get_Vector(4, true);
@@ -753,7 +765,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreatePolyObjectStatic)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreateSphereObject)
 {
-	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 	float radius = (float)LUA->CheckNumber(2);
 	int materialIndex = (int)LUA->CheckNumber(3);
 	Vector* pOrigin = Get_Vector(4, true);
@@ -768,7 +780,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreateSphereObject)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_DestroyObject)
 {
-	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 	IPhysicsObject* pObject = Get_IPhysicsObject(2, true);
 
 	pEnvironment->DestroyObject(pObject);
@@ -778,7 +790,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_DestroyObject)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_IsCollisionModelUsed)
 {
-	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 	CPhysCollide* pCollide = Get_CPhysCollide(2, true);
 
 	LUA->PushBool(pEnvironment->IsCollisionModelUsed(pCollide));
@@ -787,7 +799,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_IsCollisionModelUsed)
 
 /*LUA_FUNCTION_STATIC(IPhysicsEnvironment_SweepCollideable)
 {
-	IPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true)->pEnvironment;
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 
 	pEnvironment->SweepCollideable // This function seems to be fully empty???
 	return 1;
@@ -795,17 +807,18 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_IsCollisionModelUsed)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetObjectEventHandler)
 {
-	ILuaPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true);
+	ILuaPhysicsEnvironment* pLuaEnv = Get_ILuaPhysicsEnvironment(1, true);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 	LUA->CheckType(2, GarrysMod::Lua::Type::Function);
 	LUA->CheckType(3, GarrysMod::Lua::Type::Function);
 
 	LUA->Push(3);
 	LUA->Push(2);
-	if (pEnvironment->pObjectEvent)
-		delete pEnvironment->pObjectEvent; // Free the old one
+	if (pLuaEnv->pObjectEvent)
+		delete pLuaEnv->pObjectEvent; // Free the old one
 
-	pEnvironment->pObjectEvent = new CLuaPhysicsObjectEvent(LUA->ReferenceCreate(), LUA->ReferenceCreate());
-	pEnvironment->pEnvironment->SetObjectEventHandler(pEnvironment->pObjectEvent);
+	pLuaEnv->pObjectEvent = new CLuaPhysicsObjectEvent(LUA->ReferenceCreate(), LUA->ReferenceCreate());
+	pEnvironment->SetObjectEventHandler(pLuaEnv->pObjectEvent);
 	return 0;
 }
 
