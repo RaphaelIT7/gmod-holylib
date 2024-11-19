@@ -737,11 +737,13 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_Simulate)
 	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 
 	float deltaTime = (float)LUA->CheckNumber(2);
+	bool onlyEntities = LUA->GetBool(3);
 
 	VPROF_BUDGET("HolyLib(Lua) - IPhysicsEnvironment::Simulate", VPROF_BUDGETGROUP_HOLYLIB);
 	ILuaPhysicsEnvironment* pOldEnvironment = g_pCurrentEnvironment; // Simulating a environment in a already simulating environment? sounds fun :^
 	g_pCurrentEnvironment = pLuaEnv;
-	pEnvironment->Simulate(deltaTime);
+	if (!onlyEntities)
+		pEnvironment->Simulate(deltaTime);
 
 	int activeCount = pEnvironment->GetActiveObjectCount();
 	IPhysicsObject **pActiveList = NULL;

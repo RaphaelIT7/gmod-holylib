@@ -2298,8 +2298,9 @@ Sets quick delete?
 #### IPhysicsEnvironment:EnableDeleteQueue(bool deleteQueue)
 Enables/Disables the delete queue.  
 
-#### IPhysicsEnvironment:Simulate(number deltaTime)
+#### IPhysicsEnvironment:Simulate(number deltaTime, bool onlyEntities = false)
 Simulates the given delta time in the environment.  
+If `onlyEntities` is set, it will only update the Entities, without simulating the physics environment.  
 
 #### IPhysicsObject IPhysicsEnvironment:CreatePolyObject(CPhysCollide collide, number materialIndex, Vector origin, Angle angles, table objectparams_t)
 Creates a new IPhysicsObject in the environment.  
