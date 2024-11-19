@@ -1712,48 +1712,50 @@ static void hook_CPhysicsEnvironment_DestroyObject(CPhysicsEnvironment* pEnviron
 			foundIndex = index;
 			pEnvironment->m_objects.FastRemove(index);
 			pFoundEnvironment = pEnvironment;
-			return;
 		} else {
 			Warning("holylib - physenv: Failed to find a PhysicsObject in our environment?!?\n");
 			// We somehow failed to find it in this environment.... time to loop thru ALL.
 		}
 	}
 
-	int envirnmentIndex = 0;
-	CPhysicsEnvironment* pEnv = pEnvironment;
-	while (pEnv != NULL)
+	if (!pFoundEnvironment)
 	{
-		int index = -1;
-		for (int i = pEnv->m_objects.Count(); --i >= 0; )
+		int envirnmentIndex = 0;
+		CPhysicsEnvironment* pEnv = pEnvironment;
+		while (pEnv != NULL)
 		{
-			if (pEnv->m_objects[i] == pObject)
+			int index = -1;
+			for (int i = pEnv->m_objects.Count(); --i >= 0; )
 			{
-				index = i;
+				if (pEnv->m_objects[i] == pObject)
+				{
+					index = i;
+					break;
+				}
+			}
+
+			if (index != -1)
+			{
+				foundIndex = index;
+				pEnv->m_objects.FastRemove(index);
+				pFoundEnvironment = pEnv;
+				pEnv = NULL;
+				if (envirnmentIndex != 0 && g_pPhysEnvModule.InDebug())
+					Msg("holylib - physenv: Found right environment(%i) for physics object\n", envirnmentIndex);
+
 				break;
 			}
-		}
 
-		if (index != -1)
-		{
-			foundIndex = index;
-			pEnv->m_objects.FastRemove(index);
-			pFoundEnvironment = pEnv;
-			pEnv = NULL;
-			if (envirnmentIndex != 0 && g_pPhysEnvModule.InDebug())
-				Msg("holylib - physenv: Found right environment(%i) for physics object\n", envirnmentIndex);
+			if (envirnmentIndex == 0 && g_pPhysEnvModule.InDebug())
+				Msg("holylib - physenv: Engine tried to delete a Object in the wrong environment\n");
 
-			break;
-		}
+			for (int i = 0; i < 5; ++i) // We check for any gaps like 0 -> 1 -> 5 -> 14 but thoes shouldn't be huge so at max we'll check the next 5 for now.
+			{
+				pEnv = (CPhysicsEnvironment*)physics->GetActiveEnvironmentByIndex(++envirnmentIndex);
 
-		if (envirnmentIndex == 0 && g_pPhysEnvModule.InDebug())
-			Msg("holylib - physenv: Engine tried to delete a Object in the wrong environment\n");
-
-		for (int i = 0; i < 5; ++i) // We check for any gaps like 0 -> 1 -> 5 -> 14 but thoes shouldn't be huge so at max we'll check the next 5 for now.
-		{
-			pEnv = (CPhysicsEnvironment*)physics->GetActiveEnvironmentByIndex(++envirnmentIndex);
-
-			if (pEnv)
-				break;
+				if (pEnv)
+					break;
+			}
 		}
 	}
 
