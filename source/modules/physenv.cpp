@@ -1671,6 +1671,10 @@ void* hook_CBaseEntity_GMOD_VPhysicsTest(CBaseEntity* pEnt, IPhysicsObject* obj)
 /*
  * BUG: The engine likes to use PhysDestroyObject which will call DestroyObject on the wrong environment now.
  * Solution: If it was called on the main Environment, we loop thru all environments until we find our object and delete it.
+ * 
+ * Real Solution: The real soulution would be to let the IPhysicsObject store it's environment and have a method ::GetEnvironment and use that inside PhysDestroyObject to delete it properly.
+ *                It would most likely require one to edit the vphysics dll for a clean and proper solution.
+ *                Inside the engine there most likely would also be a CPhysicsObject::SetEnvironment method that would need to be added and called at all points, were it uses m_objects.AddToTail()
  */
 static Detouring::Hook detour_CPhysicsEnvironment_DestroyObject;
 static void hook_CPhysicsEnvironment_DestroyObject(CPhysicsEnvironment* pEnvironment, IPhysicsObject* pObject)
