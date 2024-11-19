@@ -94,14 +94,13 @@ static void hook_CSteam3Server_NotifyClientDisconnect(void* pServer, CBaseClient
 			g_Lua->CallFunctionProtected(2, 0, true);
 		}
 
-		// The code below is broken? Idk why.
-		/*auto it = g_pPushedCHLTVClient.find(hltv->Client(0));
+		auto it = g_pPushedCHLTVClient.find((CHLTVClient*)pClient);
 		if (it != g_pPushedCHLTVClient.end())
 		{
 			g_Lua->ReferenceFree(it->second->iTableReference);
 			g_Lua->CreateTable();
 			it->second->iTableReference = g_Lua->ReferenceCreate(); // Create a new empty Lua table for the next client.
-		}*/
+		}
 	}
 
 	detour_CSteam3Server_NotifyClientDisconnect.GetTrampoline<Symbols::CSteam3Server_NotifyClientDisconnect>()(pServer, pClient);
