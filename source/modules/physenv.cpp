@@ -248,15 +248,28 @@ private:
 	int m_iObjectSleepFunction;
 };
 
+struct ILuaPhysicsEnvironment;
+static int IPhysicsEnvironment_TypeID = -1;
+PushReferenced_LuaClass(ILuaPhysicsEnvironment, IPhysicsEnvironment_TypeID)
+Get_LuaClass(ILuaPhysicsEnvironment, IPhysicsEnvironment_TypeID, "IPhysicsEnvironment")
+
+static std::unordered_map<IPhysicsEnvironment*, ILuaPhysicsEnvironment*> g_pEnvironmentToLua;
 struct ILuaPhysicsEnvironment
 {
 	ILuaPhysicsEnvironment(IPhysicsEnvironment* env)
 	{
 		pEnvironment = env;
+		g_pEnvironmentToLua[env] = this;
 	}
 
 	~ILuaPhysicsEnvironment()
 	{
+		Delete_ILuaPhysicsEnvironment(this);
+
+		g_pEnvironmentToLua.erase(g_pEnvironmentToLua.find(pEnvironment));
+		physics->DestroyEnvironment(pEnvironment);
+		pEnvironment = NULL;
+
 		if (pObjectEvent)
 			delete pObjectEvent;
 
@@ -272,10 +285,6 @@ struct ILuaPhysicsEnvironment
 	//CLuaPhysicsCollisionSolver* pCollisionSolver = NULL;
 	//CLuaPhysicsCollisionEvent* pCollisionEvent = NULL;
 };
-
-static int IPhysicsEnvironment_TypeID = -1;
-PushReferenced_LuaClass(ILuaPhysicsEnvironment, IPhysicsEnvironment_TypeID)
-Get_LuaClass(ILuaPhysicsEnvironment, IPhysicsEnvironment_TypeID, "IPhysicsEnvironment")
 
 static int IPhysicsCollisionSet_TypeID = -1;
 PushReferenced_LuaClass(IPhysicsCollisionSet, IPhysicsCollisionSet_TypeID)
@@ -299,13 +308,13 @@ Get_LuaClass(ICollisionQuery, ICollisionQuery_TypeID, "ICollisionQuery")
 
 static Push_LuaClass(Vector, GarrysMod::Lua::Type::Vector)
 
-inline IPhysicsEnvironment* GetPhysicsEnvironment(int iStackPos, bool bError)
+static IPhysicsEnvironment* GetPhysicsEnvironment(int iStackPos, bool bError)
 {
-	ILuaPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(iStackPos, bError);
-	if (!pEnvironment->pEnvironment && bError)
+	ILuaPhysicsEnvironment* pLuaEnv = Get_ILuaPhysicsEnvironment(iStackPos, bError);
+	if (bError && (!pLuaEnv || !pLuaEnv->pEnvironment))
 		g_Lua->ThrowError(triedNull_ILuaPhysicsEnvironment.c_str());
 
-	return pEnvironment->pEnvironment;
+	return pLuaEnv ? pLuaEnv->pEnvironment : NULL;
 }
 
 LUA_FUNCTION_STATIC(physenv_CreateEnvironment)
@@ -370,34 +379,58 @@ LUA_FUNCTION_STATIC(physenv_GetActiveEnvironmentByIndex)
 		LUA->ThrowError("Failed to get IPhysics!");
 
 	int index = (int)LUA->CheckNumber(1);
-	Push_ILuaPhysicsEnvironment(new ILuaPhysicsEnvironment(physics->GetActiveEnvironmentByIndex(index)));
+	IPhysicsEnvironment* pEnvironment = physics->GetActiveEnvironmentByIndex(index);
+	if (!pEnvironment)
+	{
+		Push_ILuaPhysicsEnvironment(NULL);
+		return 1;
+	}
+
+	auto it = g_pEnvironmentToLua.find(pEnvironment);
+	if (it != g_pEnvironmentToLua.end())
+	{
+		Push_ILuaPhysicsEnvironment(it->second);
+		return 1;
+	}
+
+	Push_ILuaPhysicsEnvironment(new ILuaPhysicsEnvironment(pEnvironment));
 	return 1;
 }
 
+static std::vector<ILuaPhysicsEnvironment*> g_pCurrentEnvironment;
+Symbols::CBaseEntity_VPhysicsDestroyObject func_CBaseEntity_VPhysicsDestroyObject;
 LUA_FUNCTION_STATIC(physenv_DestroyEnvironment)
 {
 	if (!physics)
 		LUA->ThrowError("Failed to get IPhysics!");
 
 	ILuaPhysicsEnvironment* pLuaEnv = Get_ILuaPhysicsEnvironment(1, true);
+	for (ILuaPhysicsEnvironment* ppLuaEnv : g_pCurrentEnvironment)
+	{
+		if (pLuaEnv == ppLuaEnv)
+			LUA->ThrowError("Tried to delete a IPhysicsEnvironment that is simulating!"); // Don't even dare.....
+	}
+
+
 	CPhysicsEnvironment* pEnvironment = (CPhysicsEnvironment*)pLuaEnv->pEnvironment;
 	if (pLuaEnv->pEnvironment)
 	{
-		int index = -1;
-		for (int i = pEnvironment->m_objects.Count(); --i >= 0; )
+		if (func_CBaseEntity_VPhysicsDestroyObject)
 		{
-			IPhysicsObject* pObject = pEnvironment->m_objects[i];
-			CBaseEntity* pEntity = (CBaseEntity*)pObject->GetGameData();
-			if (pEntity)
+			for (int i = pEnvironment->m_objects.Count(); --i >= 0; )
 			{
-
+				IPhysicsObject* pObject = pEnvironment->m_objects[i];
+				CBaseEntity* pEntity = (CBaseEntity*)pObject->GetGameData();
+				if (pEntity)
+				{
+					//pEntity->VPhysicsUpdate(NULL); // Since the vtables are broken since ~4 functions were removed, this should currently call VPhysicsDestroyObject
+					func_CBaseEntity_VPhysicsDestroyObject(pEntity); // I'm like 100% certain that the workaround above caused some unholy behavior.
+				}
 			}
 		}
-
-		physics->DestroyEnvironment(pEnvironment);
 	}
 
-	Delete_ILuaPhysicsEnvironment(pLuaEnv);
+	delete pLuaEnv;
 
 	return 0;
 }
@@ -749,7 +782,6 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_EnableDeleteQueue)
 }
 
 Symbols::CBaseEntity_VPhysicsUpdate func_CBaseEntity_VPhysicsUpdate;
-ILuaPhysicsEnvironment* g_pCurrentEnvironment = NULL;
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_Simulate)
 {
 	ILuaPhysicsEnvironment* pLuaEnv = Get_ILuaPhysicsEnvironment(1, true);
@@ -759,8 +791,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_Simulate)
 	bool onlyEntities = LUA->GetBool(3);
 
 	VPROF_BUDGET("HolyLib(Lua) - IPhysicsEnvironment::Simulate", VPROF_BUDGETGROUP_HOLYLIB);
-	ILuaPhysicsEnvironment* pOldEnvironment = g_pCurrentEnvironment; // Simulating a environment in a already simulating environment? sounds fun :^
-	g_pCurrentEnvironment = pLuaEnv;
+	g_pCurrentEnvironment.push_back(pLuaEnv);
 	if (!onlyEntities)
 		pEnvironment->Simulate(deltaTime);
 
@@ -804,13 +835,13 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_Simulate)
 		}
 	}*/
 
-	g_pCurrentEnvironment = pOldEnvironment;
+	g_pCurrentEnvironment.pop_back();
 	return 0;
 }
 
 LUA_FUNCTION_STATIC(physenv_GetCurrentEnvironment)
 {
-	Push_ILuaPhysicsEnvironment(g_pCurrentEnvironment);
+	Push_ILuaPhysicsEnvironment(g_pCurrentEnvironment.back());
 	return 1;
 }
 
@@ -1674,12 +1705,10 @@ bool hook_GMod_Util_IsPhysicsObjectValid(IPhysicsObject* obj)
  * NOTE: This only ocurrs when you delete a Environment that still has objects?
  */
 /*Detouring::Hook detour_CBaseEntity_GMOD_VPhysicsTest;
-void* hook_CBaseEntity_GMOD_VPhysicsTest(CBaseEntity* pEnt, IPhysicsObject* obj)
+void hook_CBaseEntity_GMOD_VPhysicsTest(CBaseEntity* pEnt, IPhysicsObject* obj)
 {
 	// NUKE THE FUNCTION for now.
-	void* ret = detour_CBaseEntity_GMOD_VPhysicsTest.GetTrampoline<Symbols::CBaseEntity_GMOD_VPhysicsTest>()(pEnt, obj);
-	Msg("%p\n", ret);
-	return ret;
+	// detour_CBaseEntity_GMOD_VPhysicsTest.GetTrampoline<Symbols::CBaseEntity_GMOD_VPhysicsTest>()(pEnt, obj);
 }*/
 
 /*
@@ -2003,4 +2032,7 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 
 	func_CBaseEntity_VPhysicsUpdate = (Symbols::CBaseEntity_VPhysicsUpdate)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseEntity_VPhysicsUpdateSym);
 	Detour::CheckValue("get function", "CBaseEntity::VPhysicsUpdate", func_CBaseEntity_VPhysicsUpdate != NULL);
+
+	func_CBaseEntity_VPhysicsDestroyObject = (Symbols::CBaseEntity_VPhysicsDestroyObject)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseEntity_VPhysicsDestroyObjectSym);
+	Detour::CheckValue("get function", "CBaseEntity::VPhysicsDestroyObject", func_CBaseEntity_VPhysicsDestroyObject != NULL);
 }

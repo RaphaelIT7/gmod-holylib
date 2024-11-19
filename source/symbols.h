@@ -104,8 +104,11 @@ namespace Symbols
 	typedef void (*CBaseEntity_VPhysicsUpdate)(void* fancy_class, void* obj);
 	extern const std::vector<Symbol> CBaseEntity_VPhysicsUpdateSym;
 
-	typedef void* (*CBaseEntity_GMOD_VPhysicsTest)(void* fancy_class, void* obj);
+	typedef void (*CBaseEntity_GMOD_VPhysicsTest)(void* fancy_class, void* obj);
 	extern const std::vector<Symbol> CBaseEntity_GMOD_VPhysicsTestSym;
+
+	typedef void (*CBaseEntity_VPhysicsDestroyObject)(void* fancy_class);
+	extern const std::vector<Symbol> CBaseEntity_VPhysicsDestroyObjectSym;
 
 	extern const std::vector<Symbol> CGetSym;
 

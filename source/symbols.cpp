@@ -67,6 +67,10 @@ namespace Symbols
 		Symbol::FromName("_ZN11CBaseEntity17GMOD_VPhysicsTestEP14IPhysicsObject"),
 	};
 
+	const std::vector<Symbol> CBaseEntity_VPhysicsDestroyObjectSym = {
+		Symbol::FromName("_ZN11CBaseEntity21VPhysicsDestroyObjectEv"),
+	};
+
 	const std::vector<Symbol> CGetSym = { // 64x ToDo
 		Symbol::FromName("get"),
 	};
