@@ -2039,13 +2039,8 @@ Creates a new physics environment.
 It will apply all settings from the main environment on the newly created on to match.  
 
 > [!NOTE]
-> Creating and using a custom IPhysicsEnvironment currently requires you to also remove the physics objects yourself.
-> Example:
-```lua
-ent:CallOnRemove("RemoveObject", function()
-	newEnv:DestoryObject(physObj) -- You have to call DestoryObject when a entity is deleted or else it might remain... which is not good
-end)
-```
+> If you notice Physics objects that have a invalid entity, report this. But this should normally never happen.  
+> In this case, this means that something is failing to remove physics objects and it will cause random crashes.  
 
 #### IPhysicsEnvironment physenv.GetActiveEnvironmentByIndex(number index)
 Returns the physics environment by the given index.  

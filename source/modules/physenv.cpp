@@ -1692,12 +1692,13 @@ static void hook_CPhysicsEnvironment_DestroyObject(CPhysicsEnvironment* pEnviron
 			pEnvironment->m_objects.FastRemove(index);
 			return;
 		} else {
-			Warning("holylib: Failed to find a PhysicsObject in our environment?!?\n");
+			Warning("holylib - physenv: Failed to find a PhysicsObject in our environment?!?\n");
 			// We somehow failed to find it in this environment.... time to loop thru ALL.
 		}
 	}
 
-	int envornmentIndex = 0;
+	bool bDeleted = false;
+	int envirnmentIndex = 0;
 	CPhysicsEnvironment* pEnv = pEnvironment;
 	while (pEnv != NULL)
 	{
@@ -1715,18 +1716,26 @@ static void hook_CPhysicsEnvironment_DestroyObject(CPhysicsEnvironment* pEnviron
 		{
 			pEnv->m_objects.FastRemove(index);
 			pEnv = NULL;
+			bDeleted = true;
+			if (envirnmentIndex != 0 && g_pPhysEnvModule.InDebug())
+				Msg("holylib - physenv: Found right environment(%i) for physics object\n", envirnmentIndex);
 			break;
 		}
 
+		if (envirnmentIndex == 0 && g_pPhysEnvModule.InDebug())
+			Msg("holylib - physenv: Engine tried to delete a Object in the wrong environment\n");
+
 		for (int i = 0; i < 5; ++i) // We check for any gaps like 0 -> 1 -> 5 -> 14 but thoes shouldn't be huge so at max we'll check the next 5 for now.
 		{
-			pEnv = (CPhysicsEnvironment*)physics->GetActiveEnvironmentByIndex(++envornmentIndex);
+			pEnv = (CPhysicsEnvironment*)physics->GetActiveEnvironmentByIndex(++envirnmentIndex);
 
 			if (pEnv)
 				break;
 		}
-
 	}
+
+	if (!bDeleted)
+		Warning("holylib - physenv: Failed to find environment of physics object.... How?!?\n");
 }
 
 void CPhysEnvModule::LuaInit(bool bServerInit)
