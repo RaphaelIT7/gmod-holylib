@@ -76,18 +76,21 @@ static void hook_CHLTVClient_Deconstructor(CHLTVClient* pClient)
 }
 
 static Detouring::Hook detour_CSteam3Server_NotifyClientDisconnect;
-static void hook_CSteam3Server_NotifyClientDisconnect(void* pServer, IClient* pClient)
+static void hook_CSteam3Server_NotifyClientDisconnect(void* pServer, CBaseClient* pClient)
 {
 	VPROF_BUDGET("HolyLib - CSteam3Server::NotifyClientDisconnect", VPROF_BUDGETGROUP_HOLYLIB);
 
-	if (pClient->GetServer()->IsHLTV())
+	if (!hltv)
+	{
+		detour_CSteam3Server_NotifyClientDisconnect.GetTrampoline<Symbols::CSteam3Server_NotifyClientDisconnect>()(pServer, pClient);
+		return;
+	}
+
+	if (((CHLTVServer*)pClient->GetServer()) == hltv) // pClient->GetServer()->IsHLTV() crashes... Why.
 	{
 		if (Lua::PushHook("HolyLib:OnSourceTVClientDisconnect"))
 		{
-			if (g_pSourceTVLibModule.InDebug())
-				Push_CHLTVClient((CHLTVClient*)pClient); // In debug we try to push the HLTVClient.
-			else
-				g_Lua->PushNumber(pClient->GetPlayerSlot());
+			Push_CHLTVClient((CHLTVClient*)pClient);
 			g_Lua->CallFunctionProtected(2, 0, true);
 		}
 

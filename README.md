@@ -2230,7 +2230,10 @@ Returns `IPhysicsEnvironment [NULL]` if invalid.
 Else it returns `IPhysicsEnvironment`.  
 
 #### bool IPhysicsEnvironment:TransferObject(IPhysicsObject obj, IPhysicsEnvironment newEnvironment)
-Transfers the physics object from this environment to the new environment.  
+Transfers the physics object from this environment to the new environment.  #
+
+> [!WARNING]
+> You shouldn't transfer players or vehicles.  
 
 #### IPhysicsEnvironment:SetGravity(Vector newGravity)
 Sets the new gravity in `source_unit/s^2`  
