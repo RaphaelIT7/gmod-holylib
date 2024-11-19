@@ -190,11 +190,14 @@ void CPhysEnvModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 PushReferenced_LuaClass(IPhysicsObject, GarrysMod::Lua::Type::PhysObj) // This will later cause so much pain when they become Invalid XD
 Get_LuaClass(IPhysicsObject, GarrysMod::Lua::Type::PhysObj, "IPhysicsObject")
 
+CCollisionEvent* g_Collisions = NULL;
 class CLuaPhysicsObjectEvent : public IPhysicsObjectEvent
 {
 public:
 	virtual void ObjectWake(IPhysicsObject* obj)
 	{
+		g_Collisions->ObjectWake(obj);
+
 		if (!g_Lua || m_iObjectWakeFunction == -1)
 			return;
 
@@ -205,6 +208,8 @@ public:
 
 	virtual void ObjectSleep(IPhysicsObject* obj)
 	{
+		g_Collisions->ObjectSleep(obj);
+
 		if (!g_Lua || m_iObjectSleepFunction == -1)
 			return;
 
@@ -325,7 +330,7 @@ LUA_FUNCTION_STATIC(physenv_CreateEnvironment)
 		pEnvironment->EnableDeleteQueue(true);
 		pEnvironment->SetSimulationTimestep(pMainEnvironment->GetSimulationTimestep());
 
-		CCollisionEvent* g_Collisions = (CCollisionEvent*)pMainEnvironment->m_pCollisionSolver->m_pSolver; // Raw access is always fun :D
+		g_Collisions = (CCollisionEvent*)pMainEnvironment->m_pCollisionSolver->m_pSolver; // Raw access is always fun :D
 
 		pEnvironment->SetCollisionSolver(g_Collisions);
 		pEnvironment->SetCollisionEventHandler(g_Collisions);
