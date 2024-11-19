@@ -1668,6 +1668,67 @@ void* hook_CBaseEntity_GMOD_VPhysicsTest(CBaseEntity* pEnt, IPhysicsObject* obj)
 	return ret;
 }*/
 
+/*
+ * BUG: The engine likes to use PhysDestroyObject which will call DestroyObject on the wrong environment now.
+ * Solution: If it was called on the main Environment, we loop thru all environments until we find our object and delete it.
+ */
+static Detouring::Hook detour_CPhysicsEnvironment_DestroyObject;
+static void hook_CPhysicsEnvironment_DestroyObject(CPhysicsEnvironment* pEnvironment, IPhysicsObject* pObject)
+{
+	if (pEnvironment != physics->GetActiveEnvironmentByIndex(0))
+	{
+		int index = -1;
+		for (int i = pEnvironment->m_objects.Count(); --i >= 0; )
+		{
+			if (pEnvironment->m_objects[i] == pObject)
+			{
+				index = i;
+				break;
+			}
+		}
+
+		if (index != -1)
+		{
+			pEnvironment->m_objects.FastRemove(index);
+			return;
+		} else {
+			Warning("holylib: Failed to find a PhysicsObject in our environment?!?\n");
+			// We somehow failed to find it in this environment.... time to loop thru ALL.
+		}
+	}
+
+	int envornmentIndex = 0;
+	CPhysicsEnvironment* pEnv = pEnvironment;
+	while (pEnv != NULL)
+	{
+		int index = -1;
+		for (int i = pEnv->m_objects.Count(); --i >= 0; )
+		{
+			if (pEnv->m_objects[i] == pObject)
+			{
+				index = i;
+				break;
+			}
+		}
+
+		if (index != -1)
+		{
+			pEnv->m_objects.FastRemove(index);
+			pEnv = NULL;
+			break;
+		}
+
+		for (int i = 0; i < 5; ++i) // We check for any gaps like 0 -> 1 -> 5 -> 14 but thoes shouldn't be huge so at max we'll check the next 5 for now.
+		{
+			pEnv = (CPhysicsEnvironment*)physics->GetActiveEnvironmentByIndex(++envornmentIndex);
+
+			if (pEnv)
+				break;
+		}
+
+	}
+}
+
 void CPhysEnvModule::LuaInit(bool bServerInit)
 {
 	if (bServerInit)
@@ -1855,6 +1916,12 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 		&detour_IVP_Mindist_update_exact_mindist_events, "IVP_Mindist::update_exact_mindist_events",
 		vphysics_loader.GetModule(), Symbols::IVP_Mindist_update_exact_mindist_eventsSym,
 		(void*)hook_IVP_Mindist_update_exact_mindist_events, m_pID
+	);
+
+	Detour::Create(
+		&detour_CPhysicsEnvironment_DestroyObject, "CPhysicsEnvironment::DestroyObject",
+		vphysics_loader.GetModule(), Symbols::CPhysicsEnvironment_DestroyObjectSym,
+		(void*)hook_CPhysicsEnvironment_DestroyObject, m_pID
 	);
 
 	SourceSDK::FactoryLoader server_loader("server");

@@ -35,6 +35,7 @@ class IGameEvent;
 class CBaseHandle;
 class IServer;
 class IPhysicsObject;
+class IPhysicsEnvironment;
 
 namespace GarrysMod::Lua
 {
@@ -407,6 +408,9 @@ namespace Symbols
 
 	typedef void (*IVP_Mindist_update_exact_mindist_events)(void* mindist, IVP_BOOL, IVP_MINDIST_EVENT_HINT);
 	extern const std::vector<Symbol> IVP_Mindist_update_exact_mindist_eventsSym;
+
+	typedef void (*CPhysicsEnvironment_DestroyObject)(IPhysicsEnvironment*, IPhysicsObject*);
+	extern const std::vector<Symbol> CPhysicsEnvironment_DestroyObjectSym;
 
 	// Stuff for our do_impact replacement
 	typedef void (*IVP_Mindist_D2)(void* mindist);

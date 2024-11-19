@@ -556,6 +556,10 @@ namespace Symbols
 		Symbol::FromName("_ZN4GMod4Util20IsPhysicsObjectValidEP14IPhysicsObject"),
 	};
 
+	const std::vector<Symbol> CPhysicsEnvironment_DestroyObjectSym = {
+		Symbol::FromName("_ZN19CPhysicsEnvironment13DestroyObjectEP14IPhysicsObject"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: net Symbols
 	//---------------------------------------------------------------------------------
