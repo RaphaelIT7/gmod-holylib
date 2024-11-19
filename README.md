@@ -2048,10 +2048,6 @@ Returns the physics environment by the given index.
 #### physenv.DestroyEnvironment(IPhysicsEnvironment environment)
 Destroys the given physics environment.  
 
-> [!WARNING]
-> Delete all Physics objects first or transfer them into a different one or else it might crash randomly.  
-> I don't know why it likes to crash but it seems to be caused by this.
-
 #### IPhysicsEnvironment physenv.GetCurrentEnvironment()
 Returns the currently simulating environment.  
 
