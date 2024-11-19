@@ -245,3 +245,62 @@ public:
 class CCollisionEvent : public IPhysicsCollisionEvent, public IPhysicsCollisionSolver, public IPhysicsObjectEvent
 {
 };
+
+class IVP_Event_Object;
+class IVP_Listener_Object
+{
+public:
+	virtual void event_object_deleted(IVP_Event_Object*) = 0;
+	virtual void event_object_created(IVP_Event_Object*) = 0;
+	virtual void event_object_revived(IVP_Event_Object*) = 0;
+	virtual void event_object_frozen(IVP_Event_Object*) = 0;
+
+	virtual ~IVP_Listener_Object() {};
+};
+
+class CSleepObjects : public IVP_Listener_Object
+{
+public:
+	CSleepObjects(void) : IVP_Listener_Object()
+	{
+		m_pCallback = NULL;
+		m_lastScrapeTime = 0.0f;
+	}
+
+	void SetHandler(IPhysicsObjectEvent* pListener)
+	{
+		m_pCallback = pListener;
+	}
+
+	void Remove(intp index)
+	{
+		// fast remove preserves indices except for the last element (moved into the empty spot)
+		m_activeObjects.FastRemove(index);
+		// If this isn't the last element, shift its index over
+		if (index < m_activeObjects.Count())
+		{
+			m_activeObjects[index]->SetActiveIndex(index);
+		}
+	}
+
+	void DeleteObject(CPhysicsObject* pObject)
+	{
+		int index = pObject->GetActiveIndex();
+		if (index < m_activeObjects.Count())
+		{
+			Assert(m_activeObjects[index] == pObject);
+			Remove(index);
+			pObject->SetActiveIndex(0xFFFF);
+		}
+		else
+		{
+			Assert(index == 0xFFFF);
+		}
+
+	}
+
+private:
+	CUtlVector<CPhysicsObject*>	m_activeObjects;
+	float							m_lastScrapeTime;
+	IPhysicsObjectEvent* m_pCallback;
+};

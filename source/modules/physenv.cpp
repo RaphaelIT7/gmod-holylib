@@ -379,11 +379,25 @@ LUA_FUNCTION_STATIC(physenv_DestroyEnvironment)
 	if (!physics)
 		LUA->ThrowError("Failed to get IPhysics!");
 
-	ILuaPhysicsEnvironment* pEnvironment = Get_ILuaPhysicsEnvironment(1, true);
-	if (pEnvironment->pEnvironment)
-		physics->DestroyEnvironment(pEnvironment->pEnvironment);
+	ILuaPhysicsEnvironment* pLuaEnv = Get_ILuaPhysicsEnvironment(1, true);
+	CPhysicsEnvironment* pEnvironment = (CPhysicsEnvironment*)pLuaEnv->pEnvironment;
+	if (pLuaEnv->pEnvironment)
+	{
+		int index = -1;
+		for (int i = pEnvironment->m_objects.Count(); --i >= 0; )
+		{
+			IPhysicsObject* pObject = pEnvironment->m_objects[i];
+			CBaseEntity* pEntity = (CBaseEntity*)pObject->GetGameData();
+			if (pEntity)
+			{
 
-	Delete_ILuaPhysicsEnvironment(pEnvironment);
+			}
+		}
+
+		physics->DestroyEnvironment(pEnvironment);
+	}
+
+	Delete_ILuaPhysicsEnvironment(pLuaEnv);
 
 	return 0;
 }
@@ -1679,6 +1693,8 @@ void* hook_CBaseEntity_GMOD_VPhysicsTest(CBaseEntity* pEnt, IPhysicsObject* obj)
 static Detouring::Hook detour_CPhysicsEnvironment_DestroyObject;
 static void hook_CPhysicsEnvironment_DestroyObject(CPhysicsEnvironment* pEnvironment, IPhysicsObject* pObject)
 {
+	int foundIndex = -1;
+	CPhysicsEnvironment* pFoundEnvironment = NULL;
 	if (pEnvironment != physics->GetActiveEnvironmentByIndex(0))
 	{
 		int index = -1;
@@ -1693,7 +1709,9 @@ static void hook_CPhysicsEnvironment_DestroyObject(CPhysicsEnvironment* pEnviron
 
 		if (index != -1)
 		{
+			foundIndex = index;
 			pEnvironment->m_objects.FastRemove(index);
+			pFoundEnvironment = pEnvironment;
 			return;
 		} else {
 			Warning("holylib - physenv: Failed to find a PhysicsObject in our environment?!?\n");
@@ -1701,7 +1719,6 @@ static void hook_CPhysicsEnvironment_DestroyObject(CPhysicsEnvironment* pEnviron
 		}
 	}
 
-	bool bDeleted = false;
 	int envirnmentIndex = 0;
 	CPhysicsEnvironment* pEnv = pEnvironment;
 	while (pEnv != NULL)
@@ -1718,11 +1735,13 @@ static void hook_CPhysicsEnvironment_DestroyObject(CPhysicsEnvironment* pEnviron
 
 		if (index != -1)
 		{
+			foundIndex = index;
 			pEnv->m_objects.FastRemove(index);
+			pFoundEnvironment = pEnv;
 			pEnv = NULL;
-			bDeleted = true;
 			if (envirnmentIndex != 0 && g_pPhysEnvModule.InDebug())
 				Msg("holylib - physenv: Found right environment(%i) for physics object\n", envirnmentIndex);
+
 			break;
 		}
 
@@ -1738,8 +1757,32 @@ static void hook_CPhysicsEnvironment_DestroyObject(CPhysicsEnvironment* pEnviron
 		}
 	}
 
-	if (!bDeleted)
+	if (!pFoundEnvironment)
+	{
 		Warning("holylib - physenv: Failed to find environment of physics object.... How?!?\n");
+		return;
+	}
+
+	//pFoundEnvironment->DestroyObject(pObject);
+
+	CPhysicsObject* pPhysics = static_cast<CPhysicsObject*>(pObject);
+	// add this flag so we can optimize some cases
+	pPhysics->AddCallbackFlags(CALLBACK_MARKED_FOR_DELETE);
+
+	// was created/destroyed without simulating.  No need to wake the neighbors!
+	if (foundIndex > pFoundEnvironment->m_lastObjectThisTick)
+		pPhysics->ForceSilentDelete();
+
+	if (pFoundEnvironment->m_inSimulation || pFoundEnvironment->m_queueDeleteObject)
+	{
+		// don't delete while simulating
+		pFoundEnvironment->m_deadObjects.AddToTail(pObject);
+	}
+	else
+	{
+		pFoundEnvironment->m_pSleepEvents->DeleteObject(pPhysics);
+		delete pObject;
+	}
 }
 
 void CPhysEnvModule::LuaInit(bool bServerInit)
