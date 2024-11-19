@@ -2036,6 +2036,7 @@ This is reset after the simulation ended.
 
 #### IPhysicsEnvironment physenv.CreateEnvironment()
 Creates a new physics environment.  
+It will apply all settings from the main environment on the newly created on to match.  
 
 > [!NOTE]
 > Creating and using a custom IPhysicsEnvironment currently requires you to also remove the physics objects yourself.
