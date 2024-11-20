@@ -497,6 +497,15 @@ LUA_FUNCTION_STATIC(IPhysicsCollisionSet_IsValid)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(IPhysicsCollisionSet_GetTable)
+{
+	IPhysicsCollisionSet* pCollideSet = Get_IPhysicsCollisionSet(1, true);
+	LuaUserData* pUserData = g_pPushedIPhysicsCollisionSet[pCollideSet];
+	LUA->ReferencePush(pUserData->iTableReference);
+
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(IPhysicsCollisionSet_EnableCollisions)
 {
 	IPhysicsCollisionSet* pCollideSet = Get_IPhysicsCollisionSet(1, true);
@@ -543,6 +552,15 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_IsValid)
 	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, false);
 
 	LUA->PushBool(pEnvironment != NULL);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetTable)
+{
+	ILuaPhysicsEnvironment* pLuaEnv = Get_ILuaPhysicsEnvironment(1, true);
+	LuaUserData* pUserData = g_pPushedILuaPhysicsEnvironment[pLuaEnv];
+	LUA->ReferencePush(pUserData->iTableReference);
+
 	return 1;
 }
 
@@ -1218,6 +1236,15 @@ LUA_FUNCTION_STATIC(CPhysCollide_IsValid)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(CPhysCollide_GetTable)
+{
+	CPhysCollide* pCollide = Get_CPhysCollide(1, true);
+	LuaUserData* pUserData = g_pPushedCPhysCollide[pCollide];
+	LUA->ReferencePush(pUserData->iTableReference);
+
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(CPhysPolysoup__tostring)
 {
 	CPhysPolysoup* pPolySoup = Get_CPhysPolysoup(1, false);
@@ -1234,6 +1261,15 @@ LUA_FUNCTION_STATIC(CPhysPolysoup_IsValid)
 	CPhysPolysoup* pPolySoup = Get_CPhysPolysoup(1, false);
 
 	LUA->PushBool(pPolySoup != NULL);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CPhysPolysoup_GetTable)
+{
+	CPhysPolysoup* pPolySoup = Get_CPhysPolysoup(1, true);
+	LuaUserData* pUserData = g_pPushedCPhysPolysoup[pPolySoup];
+	LUA->ReferencePush(pUserData->iTableReference);
+
 	return 1;
 }
 
@@ -1256,6 +1292,15 @@ LUA_FUNCTION_STATIC(CPhysConvex_IsValid)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(CPhysConvex_GetTable)
+{
+	CPhysConvex* pConvex = Get_CPhysConvex(1, true);
+	LuaUserData* pUserData = g_pPushedCPhysConvex[pConvex];
+	LUA->ReferencePush(pUserData->iTableReference);
+
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(ICollisionQuery__tostring)
 {
 	ICollisionQuery* pQuery = Get_ICollisionQuery(1, false);
@@ -1272,6 +1317,15 @@ LUA_FUNCTION_STATIC(ICollisionQuery_IsValid)
 	ICollisionQuery* pQuery = Get_ICollisionQuery(1, false);
 
 	LUA->PushBool(pQuery != NULL);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(ICollisionQuery_GetTable)
+{
+	ICollisionQuery* pQuery = Get_ICollisionQuery(1, true);
+	LuaUserData* pUserData = g_pPushedICollisionQuery[pQuery];
+	LUA->ReferencePush(pUserData->iTableReference);
+
 	return 1;
 }
 
@@ -1825,24 +1879,28 @@ void CPhysEnvModule::LuaInit(bool bServerInit)
 		Util::AddFunc(CPhysCollide__tostring, "__tostring");
 		Util::AddFunc(Default__Index, "__index");
 		Util::AddFunc(CPhysCollide_IsValid, "IsValid");
+		Util::AddFunc(CPhysCollide_GetTable, "GetTable");
 	g_Lua->Pop(1);
 
 	CPhysPolysoup_TypeID = g_Lua->CreateMetaTable("CPhysPolysoup");
 		Util::AddFunc(CPhysPolysoup__tostring, "__tostring");
 		Util::AddFunc(Default__Index, "__index");
 		Util::AddFunc(CPhysPolysoup_IsValid, "IsValid");
+		Util::AddFunc(CPhysPolysoup_GetTable, "GetTable");
 	g_Lua->Pop(1);
 
 	CPhysConvex_TypeID = g_Lua->CreateMetaTable("CPhysCollide");
 		Util::AddFunc(CPhysConvex__tostring, "__tostring");
 		Util::AddFunc(Default__Index, "__index");
 		Util::AddFunc(CPhysConvex_IsValid, "IsValid");
+		Util::AddFunc(CPhysConvex_GetTable, "GetTable");
 	g_Lua->Pop(1);
 
 	ICollisionQuery_TypeID = g_Lua->CreateMetaTable("ICollisionQuery");
 		Util::AddFunc(ICollisionQuery__tostring, "__tostring");
 		Util::AddFunc(Default__Index, "__index");
 		Util::AddFunc(ICollisionQuery_IsValid, "IsValid");
+		Util::AddFunc(ICollisionQuery_GetTable, "GetTable");
 		Util::AddFunc(ICollisionQuery_ConvexCount, "ConvexCount");
 		Util::AddFunc(ICollisionQuery_TriangleCount, "TriangleCount");
 		Util::AddFunc(ICollisionQuery_GetTriangleMaterialIndex, "GetTriangleMaterialIndex");
@@ -1855,6 +1913,7 @@ void CPhysEnvModule::LuaInit(bool bServerInit)
 		Util::AddFunc(IPhysicsCollisionSet__tostring, "__tostring");
 		Util::AddFunc(Default__Index, "__index");
 		Util::AddFunc(IPhysicsCollisionSet_IsValid, "IsValid");
+		Util::AddFunc(IPhysicsCollisionSet_GetTable, "GetTable");
 		Util::AddFunc(IPhysicsCollisionSet_EnableCollisions, "EnableCollisions");
 		Util::AddFunc(IPhysicsCollisionSet_DisableCollisions, "DisableCollisions");
 		Util::AddFunc(IPhysicsCollisionSet_ShouldCollide, "ShouldCollide");
@@ -1864,6 +1923,7 @@ void CPhysEnvModule::LuaInit(bool bServerInit)
 		Util::AddFunc(IPhysicsEnvironment__tostring, "__tostring");
 		Util::AddFunc(Default__Index, "__index");
 		Util::AddFunc(IPhysicsEnvironment_IsValid, "IsValid");
+		Util::AddFunc(IPhysicsEnvironment_GetTable, "GetTable");
 		Util::AddFunc(IPhysicsEnvironment_TransferObject, "TransferObject");
 		Util::AddFunc(IPhysicsEnvironment_SetGravity, "SetGravity");
 		Util::AddFunc(IPhysicsEnvironment_GetGravity, "GetGravity");

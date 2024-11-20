@@ -2172,11 +2172,25 @@ This table structure is used by a few functions.
 Returns `CPhysCollide [NULL]` if invalid.  
 Else it returns `CPhysCollide`.  
 
+#### bool CPhysCollide:IsValid()
+Returns `true` if the CPhysCollide is still valid.  
+
+#### table CPhysCollide:GetTable()
+Returns the lua table of this object.  
+You can store variables into it.  
+
 ### CPhysPolySoup
 
 #### CPhysPolySoup:\_\_tostring()
 Returns `CPhysPolySoup [NULL]` if invalid.  
 Else it returns `CPhysPolySoup`.  
+
+#### bool CPhysPolySoup:IsValid()
+Returns `true` if the CPhysPolySoup is still valid.  
+
+#### table CPhysPolySoup:GetTable()
+Returns the lua table of this object.  
+You can store variables into it.  
 
 ### CPhysConvex
 
@@ -2184,11 +2198,25 @@ Else it returns `CPhysPolySoup`.
 Returns `CPhysConvex [NULL]` if invalid.  
 Else it returns `CPhysConvex`.  
 
+#### bool CPhysConvex:IsValid()
+Returns `true` if the CPhysConvex is still valid.  
+
+#### table CPhysConvex:GetTable()
+Returns the lua table of this object.  
+You can store variables into it.  
+
 ### ICollisionQuery
 
 #### ICollisionQuery:\_\_tostring()
 Returns `ICollisionQuery [NULL]` if invalid.  
 Else it returns `ICollisionQuery`.  
+
+#### bool ICollisionQuery:IsValid()
+Returns `true` if the collision query is still valid.  
+
+#### table ICollisionQuery:GetTable()
+Returns the lua table of this object.  
+You can store variables into it.  
 
 #### number ICollisionQuery:ConvexCount()
 Returns the number of Convexes.  
@@ -2214,6 +2242,13 @@ Sets the three Vectors that build the triangle at the given index.
 Returns `IPhysicsCollisionSet [NULL]` if invalid.  
 Else it returns `IPhysicsCollisionSet`.  
 
+#### bool IPhysicsCollisionSet:IsValid()
+Returns `true` if the collisionset is still valid.  
+
+#### table IPhysicsCollisionSet:GetTable()
+Returns the lua table of this object.  
+You can store variables into it.  
+
 #### IPhysicsCollisionSet:EnableCollisions(number index1, number index2)
 Marks collisions to be enabled for the two indexes.  
 
@@ -2228,6 +2263,13 @@ Returns `true` if the collision between the two objects are enabled.
 #### IPhysicsEnvironment:\_\_tostring()
 Returns `IPhysicsEnvironment [NULL]` if invalid.  
 Else it returns `IPhysicsEnvironment`.  
+
+#### bool IPhysicsEnvironment:IsValid()
+Returns `true` if the environment is still valid.  
+
+#### table IPhysicsEnvironment:GetTable()
+Returns the lua table of this object.  
+You can store variables into it.  
 
 #### bool IPhysicsEnvironment:TransferObject(IPhysicsObject obj, IPhysicsEnvironment newEnvironment)
 Transfers the physics object from this environment to the new environment.  #
