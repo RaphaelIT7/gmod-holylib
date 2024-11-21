@@ -139,21 +139,25 @@ Will just set the `hide_server` convar in the future.
 #### HolyLib.FadeClientVolume(Player ply, number fadePercent, number fadeOutSeconds, number holdTime, number fadeInSeconds)
 Fades out the clients volume.  
 Internally just runs `soundfade` with the given settings on the client.  
+A direct engine bind to `IVEngineServer::FadeClientVolume`  
 
 #### HolyLib.ServerExecute()
 Forces all queried commands to be executed/processed.  
+A direct engine bind to `IVEngineServer::ServerExecute`  
 
 #### bool HolyLib.IsMapValid(string mapName)
 Returns `true` if the given map is valid.  
 
 #### bf_write HolyLib.EntityMessageBegin(Entity ent, bool reliable)
 Allows you to create an entity message.  
+A direct engine bind to `IVEngineServer::EntityMessageBegin`  
 
 > [!NOTE]
 > If the `bitbuf` module is disabled, it will throw a lua error!
 
 #### bf_write HolyLib.UserMessageBegin(IRecipientFilter filter, string usermsg)
 Allows you to create any registered usermessage.  
+A direct engine bind to `IVEngineServer::UserMessageBegin`  
 
 > [!NOTE]
 > If the `bitbuf` module is disabled, it will throw a lua error!
@@ -161,6 +165,7 @@ Allows you to create any registered usermessage.
 #### HolyLib.MessageEnd()
 Finishes the active Entity/Usermessage.  
 If you don't call this, the message won't be sent! (And the engine might throw a tantrum)
+A direct engine bind to `IVEngineServer::MessageEnd`  
 
 #### HolyLib.BroadcastCustomMessage(number type, string name, bf_write buffer)
 Sends a custom net message to all clients.  
