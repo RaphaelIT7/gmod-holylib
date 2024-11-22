@@ -173,7 +173,7 @@ This function allows you send any netmessage you want.
 You should know what your doing since this function doesn't validate anything.  
 You can find all valid types in the [protocol.h](https://github.com/RaphaelIT7/gmod-holylib/blob/main/source/sourcesdk/protocol.h#L86-L145)  
 
-#### HolyLib.SendCustomMessage(number type, string name, bf_write buffer, Player ply)
+#### HolyLib.SendCustomMessage(number type, string name, bf_write buffer, Player ply / number userID)
 Same as BroadcastCustomMessage but it only sends it to the specific player.  
 
 #### HolyLib.InvalidateBoneCache(Entity ent)

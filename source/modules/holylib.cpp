@@ -171,8 +171,15 @@ LUA_FUNCTION_STATIC(SendCustomMessage)
 	int iType = LUA->CheckNumber(1);
 	const char* strName = LUA->CheckString(2);
 	bf_write* bf = Get_bf_write(3, true);
-	CBasePlayer* ply = Util::Get_Player(4, true);
-	IClient* pClient = (IClient*)Util::GetClientByPlayer(ply);
+	IClient* pClient = NULL;
+	if (LUA->IsType(4, GarrysMod::Lua::Type::Number))
+	{
+		pClient = Util::GetClientByUserID(LUA->GetNumber(4));
+	} else {	
+		CBasePlayer* ply = Util::Get_Player(4, true);
+		pClient = (IClient*)Util::GetClientByPlayer(ply);
+	}
+
 	if (!pClient)
 		LUA->ThrowError("Failed to get IClient from player!");
 
