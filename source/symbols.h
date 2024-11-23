@@ -425,6 +425,9 @@ namespace Symbols
 	typedef bool (*GMod_Util_IsPhysicsObjectValid)(IPhysicsObject* obj);
 	extern const std::vector<Symbol> GMod_Util_IsPhysicsObjectValidSym;
 
+	typedef void (*PhysFrame)(float deltaTime);
+	extern const std::vector<Symbol> PhysFrameSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: net Symbols
 	//---------------------------------------------------------------------------------

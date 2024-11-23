@@ -564,6 +564,10 @@ namespace Symbols
 		Symbol::FromName("_ZN19CPhysicsEnvironment13DestroyObjectEP14IPhysicsObject"),
 	};
 
+	const std::vector<Symbol> PhysFrameSym = {
+		Symbol::FromName("_ZL9PhysFramef"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: net Symbols
 	//---------------------------------------------------------------------------------

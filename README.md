@@ -2056,6 +2056,9 @@ Destroys the given physics environment.
 #### IPhysicsEnvironment physenv.GetCurrentEnvironment()
 Returns the currently simulating environment.  
 
+#### physenv.EnablePhysHook(bool shouldCall)
+Enables/Disables the `HolyLib:OnPhysFrame` hook.  
+
 #### IPhysicsCollisionSet physenv.FindCollisionSet(number index)
 Returns the collision set by the given index.  
 
@@ -2388,6 +2391,22 @@ Called when the physics simulaton is taking longer than the set lag threshold.
 
 You can freeze all props here and then return `physenv.IVP_SkipSimulation` to skip the simulation for this tick if someone is trying to crash the server.  
 
+#### bool HolyLib:OnPhysFrame(number deltaTime)  
+Called when the physics are about to be simulated.  
+Return `true` to stop the engine from doing anything.  
+
+> [!NOTE]
+> This hook first needs to be enabled by calling `physenv.EnablePhysHook(true)`  
+
+Example of pausing the physics simulation while still allowing the entities to be updated and moved with the physgun:  
+```lua
+physenv.EnablePhysHook(true)
+local mainEnv = physenv.GetActiveEnvironmentByIndex(0)
+hook.Add("HolyLib:OnPhysFrame", "Example", function(deltaTime)
+	mainEnv:Simulate(deltaTime, true) -- the second argument will only cause the entities to update.
+end)
+```
+
 ## (Experimental) bass
 This module will add functions related to the bass dll.  
 Does someone have the bass libs for `2.4.15`? I can't find them :<  
@@ -2583,6 +2602,7 @@ It now throws a warning instead of crashing -> https://github.com/Facepunch/garr
 `HolyLib:PostEntityConstructor` -> https://github.com/Facepunch/garrysmod-requests/issues/2440  
 `physenv` module -> https://github.com/Facepunch/garrysmod-issues/issues/642  
 `physenv` module -> https://github.com/Facepunch/garrysmod-requests/issues/2522  
+`physenv.EnablePhysHook` -> https://github.com/Facepunch/garrysmod-requests/issues/2541  
 
 # Things planned to add:
 https://github.com/Facepunch/garrysmod-requests/issues/1884  

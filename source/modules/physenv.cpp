@@ -1870,6 +1870,32 @@ static void hook_CPhysicsEnvironment_DestroyObject(CPhysicsEnvironment* pEnviron
 	}
 }
 
+static bool g_bCallPhysHook = false;
+static Detouring::Hook detour_PhysFrame;
+static void hook_PhysFrame(float deltaTime)
+{
+	if (g_bCallPhysHook && Lua::PushHook("HolyLib:OnPhysFrame"))
+	{
+		g_Lua->PushNumber(deltaTime);
+		if (g_Lua->CallFunctionProtected(2, 1, true))
+		{
+			bool skipEngine = g_Lua->GetBool(-1);
+			g_Lua->Pop(1);
+			if (skipEngine)
+				return;
+		}
+	}
+
+	detour_PhysFrame.GetTrampoline<Symbols::PhysFrame>()(deltaTime);
+}
+
+LUA_FUNCTION_STATIC(physenv_EnablePhysHook)
+{
+	g_bCallPhysHook = LUA->GetBool(1);
+
+	return 0;
+}
+
 void CPhysEnvModule::LuaInit(bool bServerInit)
 {
 	if (bServerInit)
@@ -1960,6 +1986,7 @@ void CPhysEnvModule::LuaInit(bool bServerInit)
 		Util::AddFunc(physenv_GetActiveEnvironmentByIndex, "GetActiveEnvironmentByIndex");
 		Util::AddFunc(physenv_DestroyEnvironment, "DestroyEnvironment");
 		Util::AddFunc(physenv_GetCurrentEnvironment, "GetCurrentEnvironment");
+		Util::AddFunc(physenv_EnablePhysHook, "EnablePhysHook");
 
 		Util::AddFunc(physenv_FindCollisionSet, "FindCollisionSet");
 		Util::AddFunc(physenv_FindOrCreateCollisionSet, "FindOrCreateCollisionSet");
@@ -2076,6 +2103,12 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 		&detour_GMod_Util_IsPhysicsObjectValid, "GMod::Util::IsPhysicsObjectValid",
 		server_loader.GetModule(), Symbols::GMod_Util_IsPhysicsObjectValidSym,
 		(void*)hook_GMod_Util_IsPhysicsObjectValid, m_pID
+	);
+
+	Detour::Create(
+		&detour_PhysFrame, "PhysFrame",
+		server_loader.GetModule(), Symbols::PhysFrameSym,
+		(void*)hook_PhysFrame, m_pID
 	);
 
 	/*Detour::Create(
