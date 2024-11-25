@@ -20,6 +20,7 @@ public:
 	virtual void LuaInit(bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown() OVERRIDE;
 	virtual void Shutdown() OVERRIDE;
+	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) OVERRIDE;
 	virtual const char* Name() { return "filesystem"; };
 	virtual int Compatibility() { return LINUX32; };
 };
@@ -59,12 +60,14 @@ static ConVar holylib_filesystem_usesearchpathcache("holylib_filesystem_usesearc
 
 static ConVar holylib_filesystem_precachehandle("holylib_filesystem_precachehandle", "1", 0,
 	"If enabled, it will try to predict which file it will open next and open the file to keep a handle ready to be opened.");
+static ConVar holylib_filesystem_savesearchcache("holylib_filesystem_savesearchcache", "1", 0,
+	"If enabled, it will write the search cache into a file and restore it when starting, using it to improve performance.");
 
 
 // Optimization Idea: When Gmod calls GetFileTime, we could try to get the filehandle in parallel to have it ready when gmod calls it.
 // We could also cache every FULL searchpath to not have to look up a file every time.  
 
-IThreadPool* pFileSystemPool = NULL;
+static IThreadPool* pFileSystemPool = NULL;
 
 static void OnThreadsChange(IConVar* convar, const char* pOldValue, float flOldValue)
 {
@@ -249,6 +252,101 @@ static void NukeSearchCache() // NOTE: We actually never nuke it :D
 	m_SearchCache.clear(); // Now causes a memory leak :D (Should I try to solve it? naaaaaa :^)
 }
 
+struct SearchCacheEntry {
+	//char pathID[24];
+	char path[64]; // You really shouldn't exceed this.
+	char absolutePath[sizeof(path) + 32]; // Should hopefuly be enouth
+};
+
+#define MaxSearchCacheEntries (1 << 15) // 32k max files
+struct SearchCache {
+	unsigned int version = 1;
+	unsigned int usedPaths = 0;
+	SearchCacheEntry paths[MaxSearchCacheEntries];
+};
+
+static void WriteSearchCache()
+{
+	FileHandle_t handle = g_pFullFileSystem->Open("holylib_searchcache.dat", "wb", "MOD_WRITE");
+	if (handle)
+	{
+		SearchCache* searchCache = new SearchCache;
+		for (auto& [strPath, cache] : m_SearchCache)
+		{
+			for (auto& [strEntry, storeID] : cache)
+			{
+				if (searchCache->usedPaths >= MaxSearchCacheEntries) // we went above the limit....
+					break;
+
+				SearchCacheEntry& entry = searchCache->paths[searchCache->usedPaths++];
+				//V_strcpy(entry.pathID, strPath.data());
+				V_strcpy(entry.path, strEntry.data());
+				g_pFullFileSystem->RelativePathToFullPath(strEntry.data(), strPath.data(), entry.absolutePath, sizeof(entry.absolutePath));
+			}
+		}
+
+		g_pFullFileSystem->Write(searchCache, sizeof(SearchCache), handle);
+		g_pFullFileSystem->Close(handle);
+		Msg("holylib: successfully wrote searchcache file (%i)\n", searchCache->usedPaths);
+		delete searchCache;
+	}
+	else {
+		Warning("holylib: Failed to open searchcache file!\n");
+	}
+}
+
+static std::unordered_map<std::string_view, std::string_view> g_pAbsoluteSearchCache;
+inline std::string_view* GetStringFromAbsoluteCache(std::string_view fileName)
+{
+	auto it = g_pAbsoluteSearchCache.find(fileName);
+	if (it == g_pAbsoluteSearchCache.end())
+		return NULL;
+
+	return &it->second;
+}
+
+static void ReadSearchCache()
+{
+	FileHandle_t handle = g_pFullFileSystem->Open("holylib_searchcache.dat", "rb", "MOD_WRITE");
+	if (handle)
+	{
+		SearchCache* searchCache = new SearchCache;
+		g_pFullFileSystem->Read(searchCache, sizeof(SearchCache), handle);
+		g_pFullFileSystem->Close(handle);
+		for (int i = 0; i < searchCache->usedPaths; ++i)
+		{
+			SearchCacheEntry& pEntry = searchCache->paths[i];
+
+			char* path = new char[sizeof(pEntry.path)];
+			V_strncpy(path, pEntry.path, sizeof(pEntry.path));
+			std::string_view pathStr = path; // NOTE: We have to manually free it later
+
+			char* absolutePath = new char[sizeof(pEntry.absolutePath)];
+			V_strncpy(absolutePath, pEntry.absolutePath, sizeof(pEntry.absolutePath));
+			std::string_view absolutePathStr = absolutePath; // NOTE: We have to manually free it later
+			g_pAbsoluteSearchCache[pathStr] = absolutePathStr;
+		}
+
+		/*for (auto& [key, val] : g_pAbsoluteSearchCache)
+		{
+			Msg("Key: %s\nValue: %s\n", key.data(), val.data());
+		}*/
+
+		//if (g_pFileSystemModule.InDebug())
+		Msg("holylib - filesystem: Loaded searchcache file (%i)\n", searchCache->usedPaths);
+		delete searchCache;
+	}
+	else {
+		if (g_pFileSystemModule.InDebug())
+			Msg("holylib - filesystem: Failed to find searchcache file\n");
+	}
+}
+
+void CFileSystemModule::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
+{
+	WriteSearchCache();
+}
+
 static void DumpSearchcacheCmd(const CCommand &args)
 {
 	Msg("---- Search cache ----\n");
@@ -312,6 +410,45 @@ static void ShowPredictionErrosCmd(const CCommand &args)
 }
 static ConCommand showpredictionerrors("holylib_filesystem_showpredictionerrors", ShowPredictionErrosCmd, "Shows all prediction errors that ocurred", 0);
 
+static void WriteSearchCacheCmd(const CCommand& args)
+{
+	WriteSearchCache();
+}
+static ConCommand writesearchcache("holylib_filesystem_writesearchcache", WriteSearchCacheCmd, "Writes the search cache into a file", 0);
+
+static void ReadSearchCacheCmd(const CCommand& args)
+{
+	ReadSearchCache();
+}
+static ConCommand readsearchcache("holylib_filesystem_readsearchcache", ReadSearchCacheCmd, "Reads the search cache from a file", 0);
+
+static void DumpSearchCacheCmd(const CCommand& args)
+{
+	for (auto& [key, val] : g_pAbsoluteSearchCache)
+	{
+		Msg("Key: %s\nValue: %s\n", key.data(), val.data());
+	}
+}
+static ConCommand dumpabsolutesearchcache("holylib_filesystem_dumpabsolutesearchcache", DumpSearchCacheCmd, "Dumps the absolute search cache", 0);
+
+
+static bool bInit = false;
+static void InitFileSystem(IFileSystem* pFileSystem)
+{		
+	if (!pFileSystem)
+		return;
+	
+	g_pFullFileSystem = pFileSystem;
+
+	if (holylib_filesystem_savesearchcache.GetBool())
+	{
+		ReadSearchCache();
+	}
+
+	if (g_pFileSystemModule.InDebug())
+		Msg("holylib - filesystem: Initialized filesystem\n");
+}
+
 inline void OnFileHandleOpen(FileHandle_t handle, const char* pFileMode)
 {
 	if (pFileMode[0] == 'r') // I see a potential crash, but this should never happen.
@@ -327,7 +464,7 @@ static FileHandle_t hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, 
 		return detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
 
 	if (!g_pFullFileSystem)
-		g_pFullFileSystem = (IFileSystem*)filesystem;
+		InitFileSystem((IFileSystem*)filesystem);
 
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::FindFile", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
@@ -396,7 +533,7 @@ static long hook_CBaseFileSystem_FastFileTime(void* filesystem, const CSearchPat
 		return detour_CBaseFileSystem_FastFileTime.GetTrampoline<Symbols::CBaseFileSystem_FastFileTime>()(filesystem, path, pFileName);
 
 	if (!g_pFullFileSystem)
-		g_pFullFileSystem = (IFileSystem*)filesystem;
+		InitFileSystem((IFileSystem*)filesystem);
 
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::FastFileTime", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
@@ -453,7 +590,7 @@ static bool hook_CBaseFileSystem_FixUpPath(IFileSystem* filesystem, const char *
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::FixUpPath", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
 	if (!g_pFullFileSystem)
-		g_pFullFileSystem = (IFileSystem*)filesystem;
+		InitFileSystem((IFileSystem*)filesystem);
 
 	V_strncpy( pFixedUpFileName, pFileName, sizeFixedUpFileName );
 	V_FixSlashes( pFixedUpFileName, CORRECT_PATH_SEPARATOR );
@@ -610,6 +747,27 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 
 	hook_CBaseFileSystem_FixUpPath(filesystem, pFileNameT, pFileNameBuff, sizeof(pFileNameBuff));
 
+	if (holylib_filesystem_savesearchcache.GetBool())
+	{
+		std::string_view* absoluteStr = GetStringFromAbsoluteCache(pFileName);
+		if (absoluteStr)
+		{
+			if (g_pFileSystemModule.InDebug())
+				Msg("holylib - OpenForRead: Found file in absolute path (%s, %s)\n", pFileName, absoluteStr->data());
+
+			FileHandle_t handle = detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, absoluteStr->data(), pOptions, flags, pathID, ppszResolvedFilename);
+			if (handle)
+				return handle;
+
+			if (g_pFileSystemModule.InDebug())
+				Msg("holylib - OpenForRead: Invalid absolute path! (%s, %s)\n", pFileName, absoluteStr->data());
+		}
+		else {
+			if (g_pFileSystemModule.InDebug())
+				Msg("holylib - OpenForRead: Failed to find file in absolute path (%s, %s)\n", pFileName, pFileNameT);
+		}
+	}
+
 	bool splitPath = false;
 	const char* origPath = pathID;
 	const char* newPath = GetOverridePath(pFileName, pathID);
@@ -700,6 +858,26 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 		if (extension == "lua")
 		{
 			// ToDo. Time to predict lua. We actually need to do this in FastFileTime or so
+		}
+
+		if (holylib_filesystem_savesearchcache.GetBool() && holylib_filesystem_predictexistance.GetBool())
+		{
+			std::string_view* absoluteStr = GetStringFromAbsoluteCache(pFileName);
+			if (!absoluteStr) // It didn't exist in the last cache, so most likely it won't exist now.
+			{
+				if (g_pFileSystemModule.InDebug())
+				{
+					Msg("holylib - Prediction(Combo): predicting that the file doesn't exist.\n");
+					FileHandle_t file2 = detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
+					if (file2)
+					{
+						Msg("holylib - Prediction(Combo) Error!: We predicted it to not exist, but it exists\n");
+						g_pFullFileSystem->Close(file2);
+					}
+				}
+
+				return NULL;
+			}
 		}
 
 		if (path)
@@ -888,6 +1066,27 @@ static long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char
 
 		if (!newPath && strFileName.rfind("gamemodes/terrortown") == 0)
 			newPath = "MOD_WRITE";
+
+		if (holylib_filesystem_savesearchcache.GetBool())
+		{
+			std::string_view* absoluteStr = GetStringFromAbsoluteCache(pFileName);
+			if (absoluteStr)
+			{
+				if (g_pFileSystemModule.InDebug())
+					Msg("holylib - GetFileTime: Found file in absolute path (%s, %s)\n", pFileName, absoluteStr->data());
+
+				// We pass it a absolute path which will be used in ::FastFileTime
+				long time = detour_CBaseFileSystem_GetFileTime.GetTrampoline<Symbols::CBaseFileSystem_GetFileTime>()(filesystem, absoluteStr->data(), pPathID);
+				if (time != 0L)
+					return time;
+
+				if (g_pFileSystemModule.InDebug())
+					Msg("holylib - GetFileTime: Invalid absolute path? (%s, %s)\n", pFileName, absoluteStr->data());
+			} else {
+				if (g_pFileSystemModule.InDebug())
+					Msg("holylib - GetFileTime: Failed to find file in absolute path (%s)\n", pFileName);
+			}
+		}
 
 		if (newPath)
 		{
@@ -1263,6 +1462,9 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 	std::string workshopDir = pBaseDir;
 	workshopDir.append("garrysmod/workshop");
 
+	if (g_pFullFileSystem != NULL)
+		InitFileSystem(g_pFullFileSystem);
+
 	if (!DETOUR_ISVALID(detour_CBaseFileSystem_AddSearchPath))
 	{
 		Msg("holylib: CBaseFileSystem::AddSearchPath detour is invalid?\n");
@@ -1341,7 +1543,10 @@ inline const char* CPathIDInfo::GetPathIDString() const
 
 inline const char* CSearchPath::GetPathIDString() const
 {
-	return m_pPathIDInfo->GetPathIDString(); // When can we nuke it :>
+	if (m_pPathIDInfo)
+		return m_pPathIDInfo->GetPathIDString(); // When can we nuke it :>
+
+	return NULL;
 }
 
 static Symbols::CBaseFileSystem_CSearchPath_GetDebugString func_CBaseFileSystem_CSearchPath_GetDebugString;
@@ -1357,7 +1562,10 @@ inline const char* CBaseFileSystem::CPathIDInfo::GetPathIDString() const
 
 inline const char* CBaseFileSystem::CSearchPath::GetPathIDString() const // Remove this duplicate later :<
 {
-	return m_pPathIDInfo->GetPathIDString(); // When can we nuke it :>
+	if (m_pPathIDInfo)
+		return m_pPathIDInfo->GetPathIDString(); // When can we nuke it :>
+
+	return NULL;
 }
 
 inline const char* CBaseFileSystem::CSearchPath::GetPathString() const
@@ -1372,6 +1580,9 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 
 	pFileSystemPool = V_CreateThreadPool();
 	Util::StartThreadPool(pFileSystemPool, holylib_filesystem_threads.GetInt());
+
+	if (g_pFullFileSystem != NULL)
+		InitFileSystem(g_pFullFileSystem);
 
 	// ToDo: Redo EVERY Hook so that we'll abuse the vtable instead of symbols.  
 	// Use the ClassProxy or so which should also allow me to port this to windows.  

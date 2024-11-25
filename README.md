@@ -891,6 +891,9 @@ If enabled, it will cache the file handle and return it if needed.
 > [!WARNING]
 > This is a noticeable improvement, but it seems to break .bsp files :/  
 
+### (EXPERIMENTAL) holylib_filesystem_savesearchcache (default `1`)
+If enabled, the search cache will be written into a file and loaded on startup to improve startup times
+
 #### holylib_debug_filesystem (default `0`)
 If enabled, it will print all filesyste suff.  
 
@@ -909,6 +912,15 @@ Nukes the searchcache.
 
 #### holylib_filesystem_showpredictionerrors
 Shows all files that were predicted to not exist.  
+
+#### holylib_filesystem_writesearchcache
+Writes the search cache into a file.  
+
+#### holylib_filesystem_readsearchcache
+Reads the search cache from a file.  
+
+#### holylib_filesystem_dumpabsolutesearchcache
+Prints the absolute search cache.  
 
 ### Functions
 This module also adds a `filesystem` library which should generally be faster than gmod's functions, because gmod has some weird / slow things in them.  
