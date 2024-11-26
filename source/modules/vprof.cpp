@@ -759,7 +759,11 @@ void CVProfModule::InitDetour(bool bPreServer)
 struct VProfCounter
 {
 	const char* strName;
+#if ARCHITECTURE_IS_X86_64
+	int* iValue;
+#else
 	int64* iValue;
+#endif
 };
 static int VProfCounter_TypeID = -1;
 Push_LuaClass(VProfCounter, VProfCounter_TypeID)
