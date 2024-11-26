@@ -356,7 +356,7 @@ static void ReadSearchCache()
 
 void CFileSystemModule::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
 {
-	WriteSearchCache();
+	pFileSystemPool->QueueCall(WriteSearchCache);
 }
 
 static void DumpSearchcacheCmd(const CCommand &args)
@@ -424,7 +424,7 @@ static ConCommand showpredictionerrors("holylib_filesystem_showpredictionerrors"
 
 static void WriteSearchCacheCmd(const CCommand& args)
 {
-	WriteSearchCache();
+	pFileSystemPool->QueueCall(WriteSearchCache);
 }
 static ConCommand writesearchcache("holylib_filesystem_writesearchcache", WriteSearchCacheCmd, "Writes the search cache into a file", 0);
 
@@ -454,7 +454,7 @@ static void InitFileSystem(IFileSystem* pFileSystem)
 
 	if (holylib_filesystem_savesearchcache.GetBool())
 	{
-		ReadSearchCache();
+		pFileSystemPool->QueueCall(ReadSearchCache);
 	}
 
 	if (g_pFileSystemModule.InDebug())
@@ -463,7 +463,7 @@ static void InitFileSystem(IFileSystem* pFileSystem)
 
 inline void OnFileHandleOpen(FileHandle_t handle, const char* pFileMode)
 {
-	if (pFileMode[0] == 'r') // I see a potential crash, but this should never happen.
+	if (pFileMode[0] == 'r') // I see a potential crash, but this should never happen... right?
 		return;
 
 	m_WriteFileHandle.insert(handle);
