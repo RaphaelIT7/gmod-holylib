@@ -67,11 +67,11 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			links({"bootil_static.lib"})
 			links({"bass.lib"})
 
-		filter("system:windows", "platforms:x86_64")
-			libdirs("libs/win64")
-
 		filter("system:windows", "platforms:x86")
 			libdirs("libs/win32")
+
+		filter("system:windows", "platforms:x86_64")
+			libdirs("libs/win64")
 
 		filter({"system:linux", "platforms:x86_64"})
 			libdirs("libs/linux64")
