@@ -6,7 +6,10 @@ If you need any function, make an issue for it, and I'll look into it.
 ## Windows
 So currently to get it working on Windows, I would have to redo most of the hooks, and It would also take a good while.  
 Because of this, I'm not going to make it currently. I'm gonna slowly start adding all symbols and then someday I'm going to redo most hooks.  
-But for now there won't be a release.   
+There will be a release but it will only contain some parts since many things don't work yet.  
+
+> [!NOTE]
+> I'm not actively testing windows, so if I accidentally broke it, open a issue since I most likely didn't know about it.  
 
 ## How to Install (Linux 32x)
 1. Download the `ghostinj.dll`, `holylib.vdf` and `gmsv_holylib_linux.so` from the latest release.  
@@ -31,6 +34,7 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- [+] Added many things to `physenv` module.  
 \- \- [+] Added `physcollide` library.  
 \- \- [+] Added more functions to `physenv` to create physic environments.  
+\- \- [+] Added `HolyLib:OnPhysFrame` hook.  
 \- [+] Added the `HolyLib:PreCheckTransmit`, `HolyLib:OnPlayerGot[On/Off]Ladder`, `HolyLib:OnMoveTypeChange` hook.  
 \- [+] Added `HolyLib:OnSourceTVStartNewShot`, `HolyLib:OnSourceTVClientDisconnect` hook to `sourcetv` module.  
 \- [+] Added `HLTVClient:SetCameraMan` and `sourcetv.SetCameraMan` to `sourcetv` module.  
@@ -39,23 +43,28 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- [+] Added `HolyLib.ExitLadder` and `HolyLib.GetLadder` to `holylib` module.  
 \- [+] Exposed `IHolyUtil` interface and added `IHolyLib::PreLoad` and `IHolyLib:GetHolyUtil`.  
 \- [+] Added (Experimental)`holylib_filesystem_savesearchcache` optimization to filesystem module.  
+\- [+] Added Windows support for `bitbuf`, `cvars`, (partially)`filesystem`, `pas`, `util`, `voicechat` and (partially)`vprof`  
 \- [#] Fixed many issues with the `bass` module. It is acutally usable.  
 \- [#] All `pvs.FL_EDICT_` enums changed.  
 \- [#] Improved performance by replacing SetTable with RawSet.  
 \- [#] Added missing calls to the deconstructors for `CHLTVClient` and `CNetworkStringTable`.  
 \- \- These missing calls could have caused some bugs or memory leaks.  
 \- [#] Fixed a bug with sourcetv where `CHLTVClients` could be NULL while being valid (#15)  
+\- [#] Fixed many Windows crashes allowing it to start again.  
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
 
 ### QoL updates
 \- [+] Added comments to some interfaces.  
+\- [+] Added Windows 32 & 64x to workflow build.  
 \- [#] Cleaned up code a bit  
 \- [#] Switched away from the ILuaBase. All Lua functions now use ILuaInterface.  
 \- [#] Fixed `plugin_load` causing holylib to load improperly.  
 \- [#] Documented which platforms each module support.  
 \- [#] Removed unused convars.  
+\- [#] Unregistering the plugin properly so that it can also be loaded afterwards again.  
+\- [#] Fixed some memory leaks.  
 
 ## ToDo
 \- Finish 64x (`pvs`, `sourcetv`, `surffix`)  
@@ -2350,7 +2359,7 @@ Returns the lua table of this object.
 You can store variables into it.  
 
 #### bool IPhysicsEnvironment:TransferObject(IPhysicsObject obj, IPhysicsEnvironment newEnvironment)
-Transfers the physics object from this environment to the new environment.  #
+Transfers the physics object from this environment to the new environment.  
 
 > [!WARNING]
 > You shouldn't transfer players or vehicles.  

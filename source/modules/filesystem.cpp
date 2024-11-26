@@ -125,7 +125,19 @@ void RemoveFileHandleFromCache(FileHandle_t pHandle)
 	if (g_pFileSystemModule.InDebug())
 		Msg("holylib - RemoveFileHandleFromCache: Removed file %s from filehandle cache\n", it->second.data());
 
-	delete it->second.data();
+	delete[] it->second.data();
+}
+
+static void ClearFileHandleSearchCache()
+{
+	for (auto& [key, val] : m_FileCache)
+	{
+		delete[] key.data();
+		// ToDo: Also free handles
+	}
+
+	m_FileCache.clear();
+	m_FileStringCache.clear();
 }
 
 extern CGlobalVars* gpGlobals;
@@ -202,6 +214,19 @@ std::string GetFullPath(const CSearchPath* pSearchPath, const char* strFileName)
 }
 
 static std::unordered_map<std::string_view, std::unordered_map<std::string_view, int>> m_SearchCache;
+static void ClearFileSearchCache()
+{
+	for (auto& [key, valMap] : m_SearchCache)
+	{
+		for (auto& [val, _] : valMap)
+		{
+			delete[] val.data();
+		}
+	}
+
+	m_SearchCache.clear();
+}
+
 static void AddFileToSearchCache(const char* pFileName, int path, const char* pathID) // pathID should never be deleted so we don't need to manage that memory.
 {
 	if (!pathID)
@@ -326,9 +351,24 @@ inline std::string_view* GetStringFromAbsoluteCache(std::string_view fileName)
 	return &it->second;
 }
 
+static void ClearAbsoluteSearchCache()
+{
+	VPROF_BUDGET("HolyLib - ClearAbsoluteSearchCache", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
+
+	for (auto& [key, val] : g_pAbsoluteSearchCache)
+	{
+		delete[] key.data(); // Free the memory.
+		delete[] val.data();
+	}
+
+	g_pAbsoluteSearchCache.clear();
+}
+
 static void ReadSearchCache()
 {
 	VPROF_BUDGET("HolyLib - ReadSearchCache", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
+	ClearAbsoluteSearchCache();
+
 	FileHandle_t handle = g_pFullFileSystem->Open("holylib_searchcache.dat", "rb", "MOD_WRITE");
 	if (handle)
 	{
@@ -2097,6 +2137,9 @@ void CFileSystemModule::Shutdown()
 	}
 
 	WriteSearchCache();
+	ClearAbsoluteSearchCache();
+	ClearFileSearchCache();
+	ClearFileHandleSearchCache();
 
 	m_PredictionCheck.clear();
 	// ToDo: Also clear there other shit.

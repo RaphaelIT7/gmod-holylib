@@ -120,8 +120,7 @@ LUA_FUNCTION_STATIC(timer_Create)
 	{
 		timer = new ILuaTimer;
 		bNewTimer = true;
-	}
-	else {
+	} else {
 		LUA->ReferenceFree(timer->function);
 		LUA->ReferenceFree(timer->identifierreference);
 	}

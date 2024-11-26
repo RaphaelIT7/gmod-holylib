@@ -214,8 +214,7 @@ int g_pIDs = 0;
 IModuleWrapper* CModuleManager::RegisterModule(IModule* pModule)
 {
 	++g_pIDs;
-	CModule* module = new CModule;
-	m_pModules.push_back(module); // Add it first in case any ConVar callbacks get called in SetModule.
+	CModule*& module = m_pModules.emplace_back();
 	module->SetModule(pModule);
 	module->SetID(g_pIDs);
 	Msg("holylib: Registered module %-*s (%-*i Enabled: %s Compatible: %s)\n", 

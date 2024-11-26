@@ -325,13 +325,11 @@ LUA_FUNCTION_STATIC(INetworkStringTable_DeleteString)
 		if (!str)
 			continue;
 
-		StringTableEntry* pEntry = new StringTableEntry;
+		StringTableEntry* pEntry = pElements.emplace_back();
 		pEntry->pName = new char[strlen(str) + 1];
 		strcpy(pEntry->pName, str);
 
 		pEntry->pUserData = (void*)table->GetStringUserData(i, &pEntry->iUserDataLength);
-
-		pElements.push_back(pEntry);
 	}
 
 	func_CNetworkStringTable_DeleteAllStrings(table); // If this deletes the UserData that we got, were gonna have a problem.
