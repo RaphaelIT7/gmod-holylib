@@ -263,7 +263,7 @@ struct SearchCacheEntry {
 struct SearchCache {
 	unsigned int version = SearchCacheVersion;
 	unsigned int usedPaths = 0;
-	SearchCacheEntry paths[MaxSearchCacheEntries];
+	//SearchCacheEntry paths[MaxSearchCacheEntries];
 };
 
 static void WriteSearchCache()
@@ -275,27 +275,27 @@ static void WriteSearchCache()
 	FileHandle_t handle = g_pFullFileSystem->Open("holylib_searchcache.dat", "wb", "MOD_WRITE");
 	if (handle)
 	{
-		SearchCache* searchCache = new SearchCache;
+		SearchCache searchCache;
+		for (auto& [strPath, cache] : m_SearchCache)
+			searchCache.usedPaths += cache.size();
+
+		g_pFullFileSystem->Write(&searchCache, sizeof(SearchCache), handle);
+
+		SearchCacheEntry pEntry;
 		for (auto& [strPath, cache] : m_SearchCache)
 		{
 			for (auto& [strEntry, storeID] : cache)
 			{
-				if (searchCache->usedPaths >= MaxSearchCacheEntries) // we went above the limit....
-					break;
-
-				SearchCacheEntry& entry = searchCache->paths[searchCache->usedPaths++];
 				//V_strcpy(entry.pathID, strPath.data());
-				V_strcpy(entry.path, strEntry.data());
-				g_pFullFileSystem->RelativePathToFullPath(strEntry.data(), strPath.data(), entry.absolutePath, sizeof(entry.absolutePath));
+				V_strcpy(pEntry.path, strEntry.data());
+				g_pFullFileSystem->RelativePathToFullPath(strEntry.data(), strPath.data(), pEntry.absolutePath, sizeof(pEntry.absolutePath));
+				g_pFullFileSystem->Write(&pEntry, sizeof(SearchCacheEntry), handle);
 			}
 		}
 
-		g_pFullFileSystem->Write(searchCache, sizeof(SearchCache), handle);
 		g_pFullFileSystem->Close(handle);
-		Msg("holylib: successfully wrote searchcache file (%i)\n", searchCache->usedPaths);
-		delete searchCache;
-	}
-	else {
+		Msg("holylib: successfully wrote searchcache file (%i)\n", searchCache.usedPaths);
+	} else {
 		Warning("holylib: Failed to open searchcache file!\n");
 	}
 }
@@ -316,18 +316,18 @@ static void ReadSearchCache()
 	FileHandle_t handle = g_pFullFileSystem->Open("holylib_searchcache.dat", "rb", "MOD_WRITE");
 	if (handle)
 	{
-		SearchCache* searchCache = new SearchCache;
-		g_pFullFileSystem->Read(searchCache, sizeof(SearchCache), handle);
-		g_pFullFileSystem->Close(handle);
-		if (searchCache->version != SearchCacheVersion)
+		SearchCache searchCache;
+		g_pFullFileSystem->Read(&searchCache, sizeof(SearchCache), handle);
+		if (searchCache.version != SearchCacheVersion)
 		{
-			Warning("holylib - ReadSearchCache: Searchcache version didnt match  (File: %i, Current %i)\n", searchCache->version, SearchCacheVersion);
+			Warning("holylib - ReadSearchCache: Searchcache version didnt match  (File: %i, Current %i)\n", searchCache.version, SearchCacheVersion);
 			return;
 		}
 
-		for (int i = 0; i < searchCache->usedPaths; ++i)
+		SearchCacheEntry pEntry;
+		for (int i = 0; i < searchCache.usedPaths; ++i)
 		{
-			SearchCacheEntry& pEntry = searchCache->paths[i];
+			g_pFullFileSystem->Read(&pEntry, sizeof(SearchCacheEntry), handle);
 
 			char* path = new char[sizeof(pEntry.path)];
 			V_strncpy(path, pEntry.path, sizeof(pEntry.path));
@@ -339,14 +339,15 @@ static void ReadSearchCache()
 			g_pAbsoluteSearchCache[pathStr] = absolutePathStr;
 		}
 
+		g_pFullFileSystem->Close(handle);
+
 		/*for (auto& [key, val] : g_pAbsoluteSearchCache)
 		{
 			Msg("Key: %s\nValue: %s\n", key.data(), val.data());
 		}*/
 
 		//if (g_pFileSystemModule.InDebug())
-		Msg("holylib - filesystem: Loaded searchcache file (%i)\n", searchCache->usedPaths);
-		delete searchCache;
+		Msg("holylib - filesystem: Loaded searchcache file (%i)\n", searchCache.usedPaths);
 	}
 	else {
 		if (g_pFileSystemModule.InDebug())
