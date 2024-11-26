@@ -255,18 +255,23 @@ static void NukeSearchCache() // NOTE: We actually never nuke it :D
 struct SearchCacheEntry {
 	//char pathID[24];
 	char path[64]; // You really shouldn't exceed this.
-	char absolutePath[sizeof(path) + 32]; // Should hopefuly be enouth
+	char absolutePath[sizeof(path) + 32]; // Should hopefuly be enouth (Expecting a shorter base path)
 };
 
-#define MaxSearchCacheEntries (1 << 15) // 32k max files
+#define SearchCacheVersion 1
+#define MaxSearchCacheEntries (1 << 16) // 64k max files
 struct SearchCache {
-	unsigned int version = 1;
+	unsigned int version = SearchCacheVersion;
 	unsigned int usedPaths = 0;
 	SearchCacheEntry paths[MaxSearchCacheEntries];
 };
 
 static void WriteSearchCache()
 {
+	VPROF_BUDGET("HolyLib - WriteSearchCache", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
+	if (!holylib_filesystem_savesearchcache.GetBool())
+		return;
+
 	FileHandle_t handle = g_pFullFileSystem->Open("holylib_searchcache.dat", "wb", "MOD_WRITE");
 	if (handle)
 	{
@@ -307,12 +312,19 @@ inline std::string_view* GetStringFromAbsoluteCache(std::string_view fileName)
 
 static void ReadSearchCache()
 {
+	VPROF_BUDGET("HolyLib - ReadSearchCache", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 	FileHandle_t handle = g_pFullFileSystem->Open("holylib_searchcache.dat", "rb", "MOD_WRITE");
 	if (handle)
 	{
 		SearchCache* searchCache = new SearchCache;
 		g_pFullFileSystem->Read(searchCache, sizeof(SearchCache), handle);
 		g_pFullFileSystem->Close(handle);
+		if (searchCache->version != SearchCacheVersion)
+		{
+			Warning("holylib - ReadSearchCache: Searchcache version didnt match  (File: %i, Current %i)\n", searchCache->version, SearchCacheVersion);
+			return;
+		}
+
 		for (int i = 0; i < searchCache->usedPaths; ++i)
 		{
 			SearchCacheEntry& pEntry = searchCache->paths[i];
@@ -2044,6 +2056,7 @@ void CFileSystemModule::Shutdown()
 {
 	pFileSystemPool->ExecuteAll();
 	V_DestroyThreadPool(pFileSystemPool);
+	WriteSearchCache();
 	pFileSystemPool = NULL;
 
 	m_PredictionCheck.clear();
