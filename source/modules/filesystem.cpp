@@ -71,15 +71,27 @@ static IThreadPool* pFileSystemPool = NULL;
 
 static void OnThreadsChange(IConVar* convar, const char* pOldValue, float flOldValue)
 {
-	pFileSystemPool->ExecuteAll();
-	pFileSystemPool->Stop();
-	Util::StartThreadPool(pFileSystemPool, ((ConVar*)convar)->GetInt());
+	ConVar* pConVar = (ConVar*)convar;
+	if (pConVar->GetInt() > 0 && !pFileSystemPool)
+		pFileSystemPool = V_CreateThreadPool();
+
+	if (pFileSystemPool)
+	{
+		pFileSystemPool->ExecuteAll();
+		pFileSystemPool->Stop();
+
+		if (pConVar->GetInt() <= 0)
+		{
+			V_DestroyThreadPool(pFileSystemPool);
+			pFileSystemPool = NULL;
+		} else {
+			Util::StartThreadPool(pFileSystemPool, pConVar->GetInt());
+		}
+	}
 }
 
-static ConVar holylib_filesystem_threaded("holylib_filesystem_threaded", "1", 0,
-	"If enabled the filesysten will use a threadpool to improve speed");
-static ConVar holylib_filesystem_threads("holylib_filesystem_threads", "5", 0,
-	"The number of threads the filesystem is allowed to use.", OnThreadsChange);
+static ConVar holylib_filesystem_threads("holylib_filesystem_threads", "0", 0,
+	"The number of threads the filesystem is allowed to use. Set to 0 to disable it", OnThreadsChange);
 
 struct FilesystemJob
 {
@@ -252,11 +264,13 @@ static void NukeSearchCache() // NOTE: We actually never nuke it :D
 	m_SearchCache.clear(); // Now causes a memory leak :D (Should I try to solve it? naaaaaa :^)
 }
 
-struct SearchCacheEntry {
-	//char pathID[24];
-	char path[64]; // You really shouldn't exceed this.
-	char absolutePath[sizeof(path) + 32]; // Should hopefuly be enouth (Expecting a shorter base path)
-};
+/*struct SearchCacheEntry
+{
+	unsigned char pathLength;
+	char* path;
+	unsigned char absolutePathLength;
+	char* absolutePath;
+};*/
 
 #define SearchCacheVersion 1
 #define MaxSearchCacheEntries (1 << 16) // 64k max files
@@ -281,15 +295,23 @@ static void WriteSearchCache()
 
 		g_pFullFileSystem->Write(&searchCache, sizeof(SearchCache), handle);
 
-		SearchCacheEntry pEntry;
+		char absolutePath[MAX_PATH];
 		for (auto& [strPath, cache] : m_SearchCache)
 		{
 			for (auto& [strEntry, storeID] : cache)
 			{
 				//V_strcpy(entry.pathID, strPath.data());
-				V_strcpy(pEntry.path, strEntry.data());
-				g_pFullFileSystem->RelativePathToFullPath(strEntry.data(), strPath.data(), pEntry.absolutePath, sizeof(pEntry.absolutePath));
-				g_pFullFileSystem->Write(&pEntry, sizeof(SearchCacheEntry), handle);
+				unsigned char pathLength = strEntry.length();
+				const char* path = strEntry.data();
+				g_pFullFileSystem->Write(&pathLength, sizeof(pathLength), handle);
+				g_pFullFileSystem->Write(path, pathLength, handle);
+
+				memset(absolutePath, 0, sizeof(absolutePath));
+				g_pFullFileSystem->RelativePathToFullPath(path, strPath.data(), absolutePath, sizeof(absolutePath));
+
+				unsigned char absolutePathLength = strlen(absolutePath);
+				g_pFullFileSystem->Write(&absolutePathLength, sizeof(absolutePathLength), handle);
+				g_pFullFileSystem->Write(absolutePath, absolutePathLength, handle);
 			}
 		}
 
@@ -324,17 +346,23 @@ static void ReadSearchCache()
 			return;
 		}
 
-		SearchCacheEntry pEntry;
-		for (int i = 0; i < searchCache.usedPaths; ++i)
+		for (unsigned int i = 0; i < searchCache.usedPaths; ++i)
 		{
-			g_pFullFileSystem->Read(&pEntry, sizeof(SearchCacheEntry), handle);
+			unsigned char pathLength;
+			g_pFullFileSystem->Read(&pathLength, sizeof(pathLength), handle);
 
-			char* path = new char[sizeof(pEntry.path)];
-			V_strncpy(path, pEntry.path, sizeof(pEntry.path));
+			char* path = new char[pathLength + 1];
+			g_pFullFileSystem->Read(path, pathLength, handle);
+			path[pathLength] = '\0';
+
+			unsigned char absolutePathLength;
+			g_pFullFileSystem->Read(&absolutePathLength, sizeof(absolutePathLength), handle);
+
+			char* absolutePath = new char[absolutePathLength + 1];
+			g_pFullFileSystem->Read(absolutePath, absolutePathLength, handle);
+			absolutePath[absolutePathLength] = '\0';
+
 			std::string_view pathStr = path; // NOTE: We have to manually free it later
-
-			char* absolutePath = new char[sizeof(pEntry.absolutePath)];
-			V_strncpy(absolutePath, pEntry.absolutePath, sizeof(pEntry.absolutePath));
 			std::string_view absolutePathStr = absolutePath; // NOTE: We have to manually free it later
 			g_pAbsoluteSearchCache[pathStr] = absolutePathStr;
 		}
@@ -357,7 +385,10 @@ static void ReadSearchCache()
 
 void CFileSystemModule::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
 {
-	pFileSystemPool->QueueCall(WriteSearchCache);
+	if (pFileSystemPool)
+		pFileSystemPool->QueueCall(WriteSearchCache);
+	else
+		WriteSearchCache();
 }
 
 static void DumpSearchcacheCmd(const CCommand &args)
@@ -425,7 +456,10 @@ static ConCommand showpredictionerrors("holylib_filesystem_showpredictionerrors"
 
 static void WriteSearchCacheCmd(const CCommand& args)
 {
-	pFileSystemPool->QueueCall(WriteSearchCache);
+	if (pFileSystemPool)
+		pFileSystemPool->QueueCall(WriteSearchCache);
+	else
+		WriteSearchCache();
 }
 static ConCommand writesearchcache("holylib_filesystem_writesearchcache", WriteSearchCacheCmd, "Writes the search cache into a file", 0);
 
@@ -444,8 +478,6 @@ static void DumpSearchCacheCmd(const CCommand& args)
 }
 static ConCommand dumpabsolutesearchcache("holylib_filesystem_dumpabsolutesearchcache", DumpSearchCacheCmd, "Dumps the absolute search cache", 0);
 
-
-static bool bInit = false;
 static void InitFileSystem(IFileSystem* pFileSystem)
 {		
 	if (!pFileSystem)
@@ -455,7 +487,10 @@ static void InitFileSystem(IFileSystem* pFileSystem)
 
 	if (holylib_filesystem_savesearchcache.GetBool())
 	{
-		pFileSystemPool->QueueCall(ReadSearchCache);
+		if (pFileSystemPool)
+			pFileSystemPool->QueueCall(ReadSearchCache);
+		else
+			ReadSearchCache();
 	}
 
 	if (g_pFileSystemModule.InDebug())
@@ -1591,8 +1626,11 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 	if (!bPreServer)
 		return;
 
-	pFileSystemPool = V_CreateThreadPool();
-	Util::StartThreadPool(pFileSystemPool, holylib_filesystem_threads.GetInt());
+	if (holylib_filesystem_threads.GetInt() > 0)
+	{
+		pFileSystemPool = V_CreateThreadPool();
+		Util::StartThreadPool(pFileSystemPool, holylib_filesystem_threads.GetInt());
+	}
 
 	if (g_pFullFileSystem != NULL)
 		InitFileSystem(g_pFullFileSystem);
@@ -2055,10 +2093,14 @@ void CFileSystemModule::LuaShutdown()
 
 void CFileSystemModule::Shutdown()
 {
-	pFileSystemPool->ExecuteAll();
-	V_DestroyThreadPool(pFileSystemPool);
+	if (pFileSystemPool)
+	{
+		pFileSystemPool->ExecuteAll();
+		V_DestroyThreadPool(pFileSystemPool);
+		pFileSystemPool = NULL;
+	}
+
 	WriteSearchCache();
-	pFileSystemPool = NULL;
 
 	m_PredictionCheck.clear();
 	// ToDo: Also clear there other shit.
