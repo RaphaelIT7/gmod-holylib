@@ -64,8 +64,10 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 
 		filter("system:windows")
 			files({"source/win32/*.cpp", "source/win32/*.hpp"})
-			links({"bootil_static.lib"})
-			links({"bass.lib"})
+			links({"bootil_static_32.lib"})
+			links({"bootil_static_64.lib"}) -- one of these will work :^
+			links({"bass_32.lib"})
+			links({"bass_64.lib"})
 
 		filter("system:windows", "platforms:x86")
 			libdirs("libs/win32")
