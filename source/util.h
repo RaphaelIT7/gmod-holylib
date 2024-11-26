@@ -114,7 +114,7 @@ namespace Util
 
 	inline void StartThreadPool(IThreadPool* pool, ThreadPoolStartParams_t& startParams)
 	{
-#if ARCHITECTURE_IS_X86_64
+#if ARCHITECTURE_IS_X86_64 && SYSTEM_LINUX
 		startParams.bEnableOnLinuxDedicatedServer = true;
 #endif
 		pool->Start(startParams);

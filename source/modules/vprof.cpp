@@ -727,7 +727,7 @@ void CVProfModule::InitDetour(bool bPreServer)
 	);
 #endif
 
-#ifdef ARCHITECTURE_X86_64
+#if ARCHITECTURE_IS_X86_64 && SYSTEM_LINUX
 #if 0 // This bug was fixed in Gmod itself -> https://github.com/Facepunch/garrysmod-issues/issues/6019
 	Detour::Create(
 		&detour_ThreadGetCurrentId, "ThreadGetCurrentId",
