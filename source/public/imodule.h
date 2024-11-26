@@ -93,6 +93,13 @@ public:
 #define LoadStatus_LuaServerInit (1<<4)
 #define LoadStatus_ServerActivate (1<<5)
 
+enum Module_Realm
+{
+	CLIENT = 0,
+	SERVER,
+	MENU
+};
+
 class IModuleManager
 {
 public:
@@ -113,6 +120,12 @@ public:
 
 	// true if we were loaded by a ghostinj.
 	virtual bool IsUsingGhostInj() = 0;
+
+	// Sets the the realm were running in.
+	virtual void SetModuleRealm(Module_Realm realm) = 0;
+
+	// Returns the realm were running in.
+	virtual Module_Realm GetModuleRealm() = 0;
 
 	// This function is sets the internal variables.
 	virtual void Setup(CreateInterfaceFn appfn, CreateInterfaceFn gamefn) = 0;

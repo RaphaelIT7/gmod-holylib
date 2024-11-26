@@ -13,7 +13,10 @@ CModule::~CModule()
 	}
 
 	if ( m_pCVarName )
+	{
 		delete[] m_pCVarName;
+		m_pCVarName = NULL;
+	}
 
 	if ( m_pDebugCVar )
 	{
@@ -22,7 +25,10 @@ CModule::~CModule()
 	}
 
 	if ( m_pDebugCVarName )
+	{
 		delete[] m_pDebugCVarName;
+		m_pDebugCVarName = NULL;
+	}
 }
 
 void OnModuleConVarChange(IConVar* convar, const char* pOldValue, float flOldValue)

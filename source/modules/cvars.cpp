@@ -8,7 +8,7 @@ public:
 	virtual void LuaInit(bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown() OVERRIDE;
 	virtual const char* Name() { return "cvars"; };
-	virtual int Compatibility() { return LINUX32 | LINUX64; };
+	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 };
 
 static CCVarsModule g_pCVarsModule;

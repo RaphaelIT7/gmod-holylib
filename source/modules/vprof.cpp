@@ -595,6 +595,7 @@ void CVProfModule::InitDetour(bool bPreServer)
 	if (bPreServer)
 		return;
 
+#ifndef SYSTEM_WINDOWS
 	SourceSDK::ModuleLoader tier0_loader("tier0");
 	Detour::Create(
 		&detour_CVProfile_OutputReport, "CVProfile::OutputReport",
@@ -662,6 +663,7 @@ void CVProfModule::InitDetour(bool bPreServer)
 		server_loader.GetModule(), Symbols::CScriptedEntity_CallFunctionSym,
 		(void*)hook_CScriptedEntity_CallFunction, m_pID
 	);
+#endif
 
 #if defined(ARCHITECTURE_X86) && 0
 	Detour::Create(
@@ -671,7 +673,7 @@ void CVProfModule::InitDetour(bool bPreServer)
 	);
 #endif
 
-#ifdef SYSTEM_WINDOWS
+#if defined(SYSTEM_WINDOWS) && 0
 	// We also add detours for the Client version of thoes functions.
 	// Finally we got some sort of lua profiling clientside and new we can know which hook eats all the frames
 

@@ -75,6 +75,7 @@ void Lua::FinalShutdown()
 	g_Lua = NULL;
 }
 
+static bool bManualShutdown = false;
 static Detouring::Hook detour_InitLuaClasses;
 static void hook_InitLuaClasses(GarrysMod::Lua::ILuaInterface* LUA) // ToDo: Add a hook to Lua::Startup or whatever it's name was and use that for the ServerInit.
 {
@@ -97,19 +98,27 @@ static void hook_CLuaInterface_Shutdown(GarrysMod::Lua::ILuaInterface* LUA)
 
 void Lua::AddDetour() // Our Lua Loader.
 {
-	SourceSDK::ModuleLoader server_loader("server");
-	Detour::Create(
-		&detour_InitLuaClasses, "InitLuaClasses",
-		server_loader.GetModule(), Symbols::InitLuaClassesSym,
-		(void*)hook_InitLuaClasses, 0
-	);
+	if (!bManualShutdown)
+	{
+		SourceSDK::ModuleLoader server_loader("server");
+		Detour::Create(
+			&detour_InitLuaClasses, "InitLuaClasses",
+			server_loader.GetModule(), Symbols::InitLuaClassesSym,
+			(void*)hook_InitLuaClasses, 0
+		);
 
-	SourceSDK::ModuleLoader lua_shared_loader("lua_shared");
-	Detour::Create(
-		&detour_CLuaInterface_Shutdown, "CLuaInterface::Shutdown",
-		lua_shared_loader.GetModule(), Symbols::CLuaInterface_ShutdownSym,
-		(void*)hook_CLuaInterface_Shutdown, 0
-	);
+		SourceSDK::ModuleLoader lua_shared_loader("lua_shared");
+		Detour::Create(
+			&detour_CLuaInterface_Shutdown, "CLuaInterface::Shutdown",
+			lua_shared_loader.GetModule(), Symbols::CLuaInterface_ShutdownSym,
+			(void*)hook_CLuaInterface_Shutdown, 0
+		);
+	}
+}
+
+void Lua::SetManualShutdown()
+{
+	bManualShutdown = true;
 }
 
 GarrysMod::Lua::ILuaInterface* Lua::GetRealm(unsigned char realm) {

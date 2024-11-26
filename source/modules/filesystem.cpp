@@ -22,7 +22,7 @@ public:
 	virtual void Shutdown() OVERRIDE;
 	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) OVERRIDE;
 	virtual const char* Name() { return "filesystem"; };
-	virtual int Compatibility() { return LINUX32; };
+	virtual int Compatibility() { return LINUX32 | WINDOWS32; };
 };
 
 static CFileSystemModule g_pFileSystemModule;
@@ -52,12 +52,6 @@ static ConVar holylib_filesystem_fixgmodpath("holylib_filesystem_fixgmodpath", "
 	"If enabled, it will fix up weird gamemode paths like sandbox/gamemode/sandbox/gamemode which gmod likes to use.");
 static ConVar holylib_filesystem_cachefilehandle("holylib_filesystem_cachefilehandle", "0", 0, 
 	"If enabled, it will cache the file handle and return it if needed. This will probably cause issues if you open the same file multiple times.");
-
-static ConVar holylib_filesystem_fastopenread("holylib_filesystem_fastopenread", "0", 0,
-	"If enabled, it will use a different way to iterate over the searchpaths to reduce the overhead they cause.");
-static ConVar holylib_filesystem_usesearchpathcache("holylib_filesystem_usesearchpathcache", "0", 0,
-	"If enabled, it will cache all searchpaths to not have to always loop thru all to find a single one.");
-
 static ConVar holylib_filesystem_precachehandle("holylib_filesystem_precachehandle", "1", 0,
 	"If enabled, it will try to predict which file it will open next and open the file to keep a handle ready to be opened.");
 static ConVar holylib_filesystem_savesearchcache("holylib_filesystem_savesearchcache", "1", 0,
@@ -353,7 +347,7 @@ static void ReadSearchCache()
 
 			char* path = new char[pathLength + 1];
 			g_pFullFileSystem->Read(path, pathLength, handle);
-			path[pathLength] = '\0';
+			path[pathLength] = '\0'; // We null terminate it to keep it nice since things like Msg woukd print it with additional junk / random memory.
 
 			unsigned char absolutePathLength;
 			g_pFullFileSystem->Read(&absolutePathLength, sizeof(absolutePathLength), handle);
@@ -1626,6 +1620,7 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 	if (!bPreServer)
 		return;
 
+#ifndef SYSTEM_WINDOWS
 	if (holylib_filesystem_threads.GetInt() > 0)
 	{
 		pFileSystemPool = V_CreateThreadPool();
@@ -1705,6 +1700,7 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 
 	func_CBaseFileSystem_CSearchPath_GetDebugString = (Symbols::CBaseFileSystem_CSearchPath_GetDebugString)Detour::GetFunction(dedicated_loader.GetModule(), Symbols::CBaseFileSystem_CSearchPath_GetDebugStringSym);
 	Detour::CheckFunction((void*)func_CBaseFileSystem_CSearchPath_GetDebugString, "CBaseFileSystem::CSearchPath::GetDebugString");
+#endif
 }
 
 /*
@@ -2000,7 +1996,7 @@ LUA_FUNCTION_STATIC(filesystem_RelativePathToFullPath)
 	const char* filePath = LUA->CheckString(1);
 	const char* gamePath = LUA->CheckString(2);
 
-	char* outStr = new char[MAX_PATH];
+	char outStr[MAX_PATH];
 	g_pFullFileSystem->RelativePathToFullPath(filePath, gamePath, outStr, MAX_PATH);
 
 	LUA->PushString(outStr);
@@ -2013,7 +2009,7 @@ LUA_FUNCTION_STATIC(filesystem_FullPathToRelativePath)
 	const char* fullPath = LUA->CheckString(1);
 	const char* gamePath = LUA->CheckStringOpt(2, NULL);
 
-	char* outStr = new char[MAX_PATH];
+	char outStr[MAX_PATH];
 	if (g_pFullFileSystem->FullPathToRelativePathEx(fullPath, gamePath, outStr, MAX_PATH))
 		LUA->PushString(outStr);
 	else
@@ -2028,7 +2024,7 @@ LUA_FUNCTION_STATIC(filesystem_TimeCreated)
 	const char* gamePath = LUA->CheckStringOpt(2, "GAME");
 
 	struct _stat buf;
-	char* pTmpFileName = new char[MAX_PATH];
+	char pTmpFileName[MAX_PATH];
 	if (g_pFullFileSystem->RelativePathToFullPath(filePath, gamePath, pTmpFileName, MAX_PATH))
 		if(((CBaseFileSystem*)g_pFullFileSystem)->FS_stat(pTmpFileName, &buf) != -1) {
 			LUA->PushNumber((double)buf.st_ctime);
@@ -2045,7 +2041,7 @@ LUA_FUNCTION_STATIC(filesystem_TimeAccessed)
 	const char* gamePath = LUA->CheckStringOpt(2, "GAME");
 
 	struct _stat buf;
-	char* pTmpFileName = new char[MAX_PATH];
+	char pTmpFileName[MAX_PATH];
 	if (g_pFullFileSystem->RelativePathToFullPath(filePath, gamePath, pTmpFileName, MAX_PATH))
 		if(((CBaseFileSystem*)g_pFullFileSystem)->FS_stat(pTmpFileName, &buf) != -1) {
 			LUA->PushNumber((double)buf.st_atime);

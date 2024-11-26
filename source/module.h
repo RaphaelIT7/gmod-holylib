@@ -46,6 +46,9 @@ public:
 	virtual void SetGhostInj() { m_bGhostInj = true; };
 	virtual bool IsUsingGhostInj() { return m_bGhostInj; };
 
+	virtual void SetModuleRealm(Module_Realm realm) { m_pRealm = realm; };
+	virtual Module_Realm GetModuleRealm() { return m_pRealm; };
+
 	virtual void Setup(CreateInterfaceFn appfn, CreateInterfaceFn gamefn);
 	virtual void Init();
 	virtual void LuaInit(bool bServerInit);
@@ -68,6 +71,7 @@ public:
 private:
 	std::vector<CModule*> m_pModules;
 	int m_pStatus = 0;
+	Module_Realm m_pRealm = Module_Realm::SERVER;
 	CreateInterfaceFn m_pAppFactory = NULL;
 	CreateInterfaceFn m_pGameFactory = NULL;
 	bool m_bGhostInj = false;

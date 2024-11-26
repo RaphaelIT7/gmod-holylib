@@ -38,6 +38,7 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- [+] Added `pvs.TestPVS` and `pvs.FindInPVS` functions to `pvs` module.  
 \- [+] Added `HolyLib.ExitLadder` and `HolyLib.GetLadder` to `holylib` module.  
 \- [+] Exposed `IHolyUtil` interface and added `IHolyLib::PreLoad` and `IHolyLib:GetHolyUtil`.  
+\- [+] Added (Experimental)`holylib_filesystem_savesearchcache` optimization to filesystem module.  
 \- [#] Fixed many issues with the `bass` module. It is acutally usable.  
 \- [#] All `pvs.FL_EDICT_` enums changed.  
 \- [#] Improved performance by replacing SetTable with RawSet.  
@@ -53,6 +54,8 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
 \- [#] Cleaned up code a bit  
 \- [#] Switched away from the ILuaBase. All Lua functions now use ILuaInterface.  
 \- [#] Fixed `plugin_load` causing holylib to load improperly.  
+\- [#] Documented which platforms each module support.  
+\- [#] Removed unused convars.  
 
 ## ToDo
 \- Finish 64x (`pvs`, `sourcetv`, `surffix`)  
@@ -124,6 +127,8 @@ And with `holylib_toggledetour` you can block specific detours from being create
 
 ## holylib
 This module contains the HolyLib library.   
+
+Supports: Linux32 | LINUX64  
 
 ### Functions
 
@@ -231,6 +236,8 @@ If you call `Entity:SetMoveType` on the current entity inside this hook, it woul
 ## gameevent
 This module contains additional functions for the gameevent library.  
 With the Add/Get/RemoveClient* functions you can control the gameevents that are networked to a client which can be useful.  
+
+Supports: Linux32 | LINUX64  
 
 ### Functions
 
@@ -361,11 +368,18 @@ This is a huge speed improvement for adding searchpaths / mounting legacy addons
 > [!NOTE]
 > This requires the `ghostinj.dll` to be installed!
 
+Supports: Linux32 | LINUX64  
+
+> [!NOTE]
+> This currently does nothing since all fixes were added to Garry's Mod itself.  
+
 ## precachefix
 This module removes the host error when the model or generic precache stringtable overflows.  
 Instead it will throw a warning.  
 
 If these stringtables overflow, expect the models that failed to precache to be an error.  
+
+Supports: Linux32 | LINUX64  
 
 ### Hooks
 
@@ -399,6 +413,8 @@ The fallback index if a generic fails to precache.
 ## stringtable
 This module adds a new library called `stringtable`, which will contain all functions to handle stringtables,  
 and it will a hook for when the stringtables are created, since they are created while Lua was already loaded.  
+
+Supports: Linux32 | LINUX64  
 
 > [!NOTE]
 > For now, all functions below are just a bind to their C++ versions -> [INetworkStringTable](https://github.com/RaphaelIT7/obsolete-source-engine/blob/gmod/public/networkstringtabledefs.h#L32)  
@@ -618,6 +634,7 @@ If you want to create stringtables outside this hook, use `stringtable.AllowCrea
 
 ## pvs
 This adds a bunch of PVS related functions.  
+Supports: Linux32  
 
 ### Functions
 
@@ -758,6 +775,8 @@ If set to `2` it will also pass a table containing all entitites to the hook (Th
 ## surffix
 This module ports over [Momentum Mod's](https://github.com/momentum-mod/game/blob/develop/mp/src/game/shared/momentum/mom_gamemovement.cpp#L2393-L2993) surf fixes.  
 
+Supports: Linux32  
+
 ### ConVars
 
 #### sv_ramp_fix (default `1`)
@@ -768,7 +787,75 @@ If enabled, it will enable additional checks to make sure that the player is not
 #### sv_ramp_bumpcount (default `8`, max `32`)
 
 ## filesystem
-This module contains multiple optimizations for the filesystem.  
+This module contains multiple optimizations for the filesystem and a lua library.  
+Supports: Linux32 | Windows32  
+
+> [!NOTE]
+> On Windows32 it will only add the Lua functions.  
+> The optimizations aren't implemented yet.  
+
+### Functions
+This module also adds a `filesystem` library which should generally be faster than gmod's functions, because gmod has some weird / slow things in them.  
+It also gives you full access to the filesystem and doesn't restrict you to specific directories.  
+
+#### (FSASYNC Enum) filesystem.AsyncRead(string fileName, string gamePath, function callBack(string fileName, string gamePath, FSASYNC status, string content), bool sync)
+Reads a file async and calls the callback with the contents.  
+
+#### filesystem.CreateDir(string dirName, string gamePath = "DATA")
+Creates a directory in the given path.  
+
+#### filesystem.Delete(string fileName, string gamePath = "DATA")
+Deletes the given file.  
+
+#### bool filesystem.Exists(string fileName, string gamePath)
+Returns `true` if the given file exists.  
+
+#### table(Files), table(Folders) filesystem.Find(string filePath, string gamePath, string sorting = "nameasc")
+Finds and returns a table containing all files and folders in the given path.  
+
+#### bool filesystem.IsDir(string fileName, string gamePath)
+Returns `true` if the given file is a directory.  
+
+#### File filesystem.Open(string fileName, string fileMode, string gamePath = "GAME")
+Opens the given file or returns `nil` on failure.  
+
+#### bool filesystem.Rename(string origFileName, string newFileName, string gamePath = "DATA")
+Renames the given file and returns `true` on success.  
+
+#### number filesystem.Size(string fileName, string gamePath = "GAME")
+Returns the size of the given file.  
+
+#### number filesystem.Time(string fileName, string gamePath = "GAME")
+Returns the unix time of the last modification of the given file / folder.  
+
+#### filesystem.AddSearchPath(string folderPath, string gamePath, bool addToTail = false)
+Adds the given folderPath to the gamePath searchpaths.  
+
+#### bool filesystem.RemoveSearchPath(string folderPath, string gamePath)
+Removes the given searchpath and returns `true` on success.  
+
+#### filesystem.RemoveSearchPaths(string gamePath)
+Removes all searchpaths with that gamePath  
+
+Example:  
+`filesystem.RemoveSearchPaths("GAME")` -- Removes all `GAME` searchpaths.  
+
+#### filesystem.RemoveAllSearchPaths()
+Removes all searchpaths.  
+
+#### string filesystem.RelativePathToFullPath(string filePath, string gamePath)
+Returns the full path for the given file or `nil` on failure.  
+
+#### string filesystem.FullPathToRelativePath(string fullPath, string gamePath = nil)
+Returns the relative path for the given file.  
+
+#### number filesystem.TimeCreated(string fileName, string gamePath = "GAME")
+Returns the time the given file was created.  
+Will return `nil` if the file wasn't found.  
+
+#### number filesystem.TimeAccessed(string fileName, string gamePath = "GAME")
+Returns the time the given file was last accessed.  
+Will return `nil` if the file wasn't found.  
 
 ### ConVars
 
@@ -922,71 +1009,10 @@ Reads the search cache from a file.
 #### holylib_filesystem_dumpabsolutesearchcache
 Prints the absolute search cache.  
 
-### Functions
-This module also adds a `filesystem` library which should generally be faster than gmod's functions, because gmod has some weird / slow things in them.  
-It also gives you full access to the filesystem and doesn't restrict you to specific directories.  
-
-#### (FSASYNC Enum) filesystem.AsyncRead(string fileName, string gamePath, function callBack(string fileName, string gamePath, FSASYNC status, string content), bool sync)
-Reads a file async and calls the callback with the contents.  
-
-#### filesystem.CreateDir(string dirName, string gamePath = "DATA")
-Creates a directory in the given path.  
-
-#### filesystem.Delete(string fileName, string gamePath = "DATA")
-Deletes the given file.  
-
-#### bool filesystem.Exists(string fileName, string gamePath)
-Returns `true` if the given file exists.  
-
-#### table(Files), table(Folders) filesystem.Find(string filePath, string gamePath, string sorting = "nameasc")
-Finds and returns a table containing all files and folders in the given path.  
-
-#### bool filesystem.IsDir(string fileName, string gamePath)
-Returns `true` if the given file is a directory.  
-
-#### File filesystem.Open(string fileName, string fileMode, string gamePath = "GAME")
-Opens the given file or returns `nil` on failure.  
-
-#### bool filesystem.Rename(string origFileName, string newFileName, string gamePath = "DATA")
-Renames the given file and returns `true` on success.  
-
-#### number filesystem.Size(string fileName, string gamePath = "GAME")
-Returns the size of the given file.  
-
-#### number filesystem.Time(string fileName, string gamePath = "GAME")
-Returns the unix time of the last modification of the given file / folder.  
-
-#### filesystem.AddSearchPath(string folderPath, string gamePath, bool addToTail = false)
-Adds the given folderPath to the gamePath searchpaths.  
-
-#### bool filesystem.RemoveSearchPath(string folderPath, string gamePath)
-Removes the given searchpath and returns `true` on success.  
-
-#### filesystem.RemoveSearchPaths(string gamePath)
-Removes all searchpaths with that gamePath  
-
-Example:  
-`filesystem.RemoveSearchPaths("GAME")` -- Removes all `GAME` searchpaths.  
-
-#### filesystem.RemoveAllSearchPaths()
-Removes all searchpaths.  
-
-#### string filesystem.RelativePathToFullPath(string filePath, string gamePath)
-Returns the full path for the given file or `nil` on failure.  
-
-#### string filesystem.FullPathToRelativePath(string fullPath, string gamePath = nil)
-Returns the relative path for the given file.  
-
-#### number filesystem.TimeCreated(string fileName, string gamePath = "GAME")
-Returns the time the given file was created.  
-Will return `nil` if the file wasn't found.  
-
-#### number filesystem.TimeAccessed(string fileName, string gamePath = "GAME")
-Returns the time the given file was last accessed.  
-Will return `nil` if the file wasn't found.  
-
 ## util
 This module adds two new functions to the `util` library.  
+
+Supports: Linux32 | Linux64 | Windows32 | Windows64  
 
 ### Functions
 
@@ -1024,6 +1050,8 @@ The number of threads to use for `util.AsyncDecompress`.
 ## concommand
 This module unblocks `quit` and `exit` for `RunConsoleCommand`.  
 
+Supports: Linux32 | Linux64  
+
 ### ConVars
 
 #### holylib_concommand_disableblacklist (default `0`)
@@ -1031,6 +1059,12 @@ If enabled, it completely disables the concommand/convar blacklist.
 
 ## vprof
 This module adds VProf to gamemode calls, adds two convars and an entire library.
+
+Supports: Linux32 | Linux64 | Windows32  
+
+> [!NOTE]
+> On Windows this doesn't currently show the hooks in vprof itself.  
+> It only adds the functions for now.  
 
 ### Functions
 
@@ -1279,6 +1313,8 @@ Sets the value of `sv_stressbots`.
 ### cvars
 This module adds one function to the `cvars` library.  
 
+Supports: Linux32 | Linux64 | Windows32 | Windows64  
+
 > [!NOTE]
 > The lua library is named `cvar` because the `cvars` library is fully declared in Lua and were running before it even exists.   
 
@@ -1296,6 +1332,8 @@ Unregisters the given convar.
 
 ## sourcetv
 This module plans to add a new `sourcetv` library and a new class `HLTVPlayer` will allow a SourceTV client to send net messages to the server.  
+
+Supports: Linux32  
 
 ### Functions
 
@@ -1488,6 +1526,8 @@ If enabled, HLTV Clients can send commands to the server and `HolyLib:OnSourceTV
 
 ## bitbuf
 This module adds a `bf_read` and `bf_write` class.  
+
+Supports: Linux32 | Linux64 | Windows32 | Windows64  
 
 ### Functions
 
@@ -1767,8 +1807,12 @@ Returns `true` on success.
 This module tries to optimize anything related to networking.  
 Currently, this only has one optimization which was ported from [sigsegv-mvm](https://github.com/rafradek/sigsegv-mvm/blob/910b92456c7578a3eb5dff2a7e7bf4bc906677f7/src/mod/perf/sendprop_optimize.cpp#L35-L144) into here.  
 
+Supports: Linux32 | Linux64  
+
 ## steamworks
 This module adds a few functions related to steam.  
+
+Supports: Linux32 | Linux64  
 
 ### Functions
 
@@ -1799,6 +1843,8 @@ Called when our Steam server successfully connected to steams servers.
 This module is just the timer library, but it doesn't use CurTime.  
 > [!NOTE]
 > Timer repetitions are limited to an unsigned int.  
+
+Supports: Linux32 | Linux64 | Windows32 | Windows64  
 
 ### Functions
 
@@ -1850,6 +1896,8 @@ Unlike systimer.Start this won't reset the time left until it executes again.
 This module plans to add a few PAS related functions like `table pas.FindInPAS(Vector pos or Entity ent)`.  
 If you got an Idea for a function to add, feel free to comment it into [its issue](https://github.com/RaphaelIT7/gmod-holylib/issues/1).
 
+Supports: Linux32 | Linux64 | Windows32 | Windows64  
+
 ### Functions
 
 #### table pas.FindInPAS(Entity ent / Vector vec)
@@ -1869,6 +1917,11 @@ Returns `true` if it is.
 ## voicechat
 This module contains a few things to control the voicechat.  
 You could probably completly rework the voicechat with this since you could completly handle it in lua.  
+
+Supports: Linux32 | Linux64 | Windows32  
+
+> [!NOTE]
+> Will soon have Windows support.  
 
 ### Functions
 
@@ -2038,6 +2091,11 @@ If enabled, the VoiceChat hooks will be called.
 
 ## physenv
 This module fixes https://github.com/Facepunch/garrysmod-issues/issues/642 and adds a few small things.  
+
+Supports: Linux32  
+
+> [!NOTE]
+> Will soon have support for Windows & Linux64  
 
 ### Functions
 
@@ -2427,6 +2485,8 @@ Does someone have the bass libs for `2.4.15`? I can't find them :<
 Since this module is experimental, it's disabled by default.  
 You can enable it with `holylib_enable_bass 1`  
 
+Supports: Linux32 | Linux64  
+
 ### Functions
 
 #### bass.PlayFile(string filePath, string flags, function callback)
@@ -2540,6 +2600,8 @@ What even is that.
 This module just adds a lua class.  
 Only use their functions after entities were created or you might be missing entities in the returned tables!  
 
+Supports: Linux32 | Linux64 | Windows32 | Windows64  
+
 ### Functions
 
 #### EntityList CreateEntityList()
@@ -2590,6 +2652,11 @@ This module adds two new `IServerPluginCallbacks` functions:
 For a plugin to be loaded by HolyLib, you need to expose HolyLib's Interface.  
 You can expose both HolyLib's and the normal interface since the order of the virtual functions are the same.  
 This should already work but I never tested it completly yet (Or I forgot that I did test it).  
+
+Supports: Linux32 | Linux64  
+
+> [!NOTE]
+> Windows doesn't have plugins / we won't support it there.  
 
 # Issues implemented / fixed
 `gameevent.GetListeners` -> https://github.com/Facepunch/garrysmod-requests/issues/2377  

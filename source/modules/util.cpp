@@ -11,7 +11,7 @@ public:
 	virtual void Think(bool bSimulating) OVERRIDE;
 	virtual void Shutdown() OVERRIDE;
 	virtual const char* Name() { return "util"; };
-	virtual int Compatibility() { return LINUX32 | LINUX64; };
+	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 };
 
 static CUtilModule g_pUtilModule;

@@ -17,6 +17,7 @@ struct edict_t;
 #define DEDICATED
 #include "vstdlib/jobthread.h"
 #include <eiface.h>
+#include <icommandline.h>
 
 // The plugin is a static singleton that is exported as an interface
 static CServerPlugin g_HolyLibServerPlugin;
@@ -124,7 +125,7 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 	g_pModuleManager.Init();
 	g_pModuleManager.InitDetour(false);
 
-	GarrysMod::Lua::ILuaInterface* LUA = Lua::GetRealm(GarrysMod::Lua::State::SERVER);
+	GarrysMod::Lua::ILuaInterface* LUA = Lua::GetRealm(g_pModuleManager.GetModuleRealm());
 	if (LUA) // If we got loaded by plugin_load we need to manually call Lua::Init
 		Lua::Init(LUA);
 
@@ -133,9 +134,12 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 #endif
 	{
 #if ARCHITECTURE_IS_X86
-		ConVar* pPath = cvar->FindVar("path");
-		if (pPath)
-			cvar->UnregisterConCommand(pPath);
+		if (cvar) // May be NULL
+		{
+			ConVar* pPath = cvar->FindVar("path");
+			if (pPath)
+				cvar->UnregisterConCommand(pPath);
+		}
 #endif
 
 		ConVar_Register(); // ConVars currently cause a crash on level shutdown. I probably need to find some hidden vtable function AGAIN.
@@ -178,6 +182,8 @@ void CServerPlugin::Unload(void)
 	{
 		ConVar_Unregister();
 	}
+
+	CommandLine()->RemoveParm("-holylibexists"); // Allow holylib to load again since this instance is gone.
 
 	DisconnectTier1Libraries();
 	DisconnectTier2Libraries();
@@ -223,9 +229,9 @@ void CServerPlugin::LevelInit(char const *pMapName)
 bool CServerPlugin::LuaInit()
 {
 	VPROF_BUDGET("HolyLib - CServerPlugin::LuaInit", VPROF_BUDGETGROUP_HOLYLIB);
-	GarrysMod::Lua::ILuaInterface* LUA = Lua::GetRealm(GarrysMod::Lua::State::SERVER);
+	GarrysMod::Lua::ILuaInterface* LUA = Lua::GetRealm(g_pModuleManager.GetModuleRealm());
 	if (LUA == nullptr) {
-		Warning("holylib: Failed to get ILuaInterface! (Realm: Server)\n");
+		Warning("holylib: Failed to get ILuaInterface! (Realm: %i)\n", (int)g_pModuleManager.GetModuleRealm());
 		return false;
 	}
 
@@ -250,9 +256,8 @@ void CServerPlugin::LuaShutdown()
 void CServerPlugin::ServerActivate(edict_t *pEdictList, int edictCount, int clientMax)
 {
 	VPROF_BUDGET("HolyLib - CServerPlugin::ServerActivate", VPROF_BUDGETGROUP_HOLYLIB);
-	if (!g_Lua) {
+	if (!g_Lua)
 		LuaInit();
-	}
 
 	Lua::ServerInit();
 	g_pModuleManager.ServerActivate(pEdictList, edictCount, clientMax);
@@ -353,6 +358,24 @@ void CServerPlugin::OnEdictFreed(const edict_t *edict)
 
 GMOD_MODULE_OPEN()
 {
+	LUA->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
+		LUA->GetField(-1, "CLIENT");
+		bool bClient = LUA->GetBool(-1);
+		LUA->Pop(1);
+
+		LUA->GetField(-1, "SERVER");
+		bool bServer = LUA->GetBool(-1);
+		LUA->Pop(1);
+	LUA->Pop(1);
+
+	if (bClient)
+		g_pModuleManager.SetModuleRealm(Module_Realm::CLIENT);
+	else if (bServer)
+		g_pModuleManager.SetModuleRealm(Module_Realm::SERVER);
+	else
+		g_pModuleManager.SetModuleRealm(Module_Realm::MENU);
+
+	Lua::SetManualShutdown();
 	g_HolyLibServerPlugin.Load(NULL, NULL); // Yes. I don't like it but I can't get thoes fancy interfaces.
 
 	return 0;

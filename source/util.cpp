@@ -164,8 +164,12 @@ void Util::AddDetour()
 	else
 		engineserver = InterfacePointers::VEngineServer();
 	Detour::CheckValue("get interface", "IVEngineServer", engineserver != NULL);
-
-	gameeventmanager = (IGameEventManager2*)g_pModuleManager.GetAppFactory()(INTERFACEVERSION_GAMEEVENTSMANAGER2, NULL);
+	
+	SourceSDK::FactoryLoader engine_loader("engine");
+	if (g_pModuleManager.GetAppFactory())
+		gameeventmanager = (IGameEventManager2*)g_pModuleManager.GetAppFactory()(INTERFACEVERSION_GAMEEVENTSMANAGER2, NULL);
+	else
+		gameeventmanager = engine_loader.GetInterface<IGameEventManager2>(INTERFACEVERSION_GAMEEVENTSMANAGER2);
 	Detour::CheckValue("get interface", "IGameEventManager", gameeventmanager != NULL);
 
 	SourceSDK::FactoryLoader server_loader("server");
@@ -196,7 +200,6 @@ void Util::AddDetour()
 	Detour::CheckValue("get class", "IGet", get != NULL);
 #endif
 
-	SourceSDK::FactoryLoader engine_loader("engine");
 	func_CM_Vis = (Symbols::CM_Vis)Detour::GetFunction(engine_loader.GetModule(), Symbols::CM_VisSym);
 	Detour::CheckFunction((void*)func_CM_Vis, "CM_Vis");
 
