@@ -413,11 +413,11 @@ namespace Symbols
 		Symbol::FromSignature("\x8B\x6A\xF8\x8B\x7D\x14\x8B\x6C\x24\x30\x8D\x44\xC2\xF8\x89\x55\x10\x8D\x88\xA0\x00\x00\x00\x3B\x4D\x18\x89\x45\x14\x89\x2C\x24"), // 8B 6A F8 8B 7D 14 8B 6C 24 30 8D 44 C2 F8 89 55 10 8D 88 A0 00 00 00 3B 4D 18 89 45 14 89 2C 24
 	};
 
-#ifdef SYSTEM_WINDOWS
+#ifdef SYSTEM_WINDOWS // A lot of Symbols to get.....
 	const std::vector<Symbol> Client_CLuaGamemode_CallFinishSym = {
 		NULL_SIGNATURE,
 		NULL_SIGNATURE,
-		Symbol::FromSignature(""), 
+		Symbol::FromSignature(""),
 	};
 
 	const std::vector<Symbol> Client_CLuaGamemode_CallWithArgsSym = {
@@ -466,7 +466,7 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: networking Symbols
 	//---------------------------------------------------------------------------------
-	const std::vector<Symbol> AllocChangeFrameListSym = {
+	const std::vector<Symbol> AllocChangeFrameListSym = { // I'm still suprised I managed to get this one :^
 		Symbol::FromName("_Z20AllocChangeFrameListii"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x55\x41\x54\x41\x89\xFC\xBF\x28"), // 55 48 89 E5 41 55 41 54 41 89 FC BF 28
 	};
@@ -528,45 +528,66 @@ namespace Symbols
 
 	//---------------------------------------------------------------------------------
 	// Purpose: physenv Symbols
+	// ToDo: Get the Linux64 and Windows32 symbols.
 	//---------------------------------------------------------------------------------
 	const std::vector<Symbol> IVP_Mindist_do_impactSym = {
 		Symbol::FromName("_ZN11IVP_Mindist9do_impactEv"),
+		Symbol::FromSignature(""),
+		Symbol::FromSignature(""),
 	};
 
 	const std::vector<Symbol> IVP_Event_Manager_Standard_simulate_time_eventsSym = {
 		Symbol::FromName("_ZN26IVP_Event_Manager_Standard20simulate_time_eventsEP16IVP_Time_ManagerP15IVP_Environment8IVP_Time"),
+		Symbol::FromSignature(""),
+		Symbol::FromSignature(""),
 	};
 
 	const std::vector<Symbol> IVP_Mindist_simulate_time_eventSym = {
 		Symbol::FromName("_ZN11IVP_Mindist19simulate_time_eventEP15IVP_Environment"),
+		Symbol::FromSignature(""),
+		Symbol::FromSignature(""),
 	};
 
 	const std::vector<Symbol> IVP_Mindist_update_exact_mindist_eventsSym = {
 		Symbol::FromName("_ZN11IVP_Mindist27update_exact_mindist_eventsE8IVP_BOOL22IVP_MINDIST_EVENT_HINT"),
+		Symbol::FromSignature(""),
+		Symbol::FromSignature(""),
 	};
 
 	const std::vector<Symbol> IVP_Mindist_D2Sym = {
 		Symbol::FromName("_ZN11IVP_MindistD2Ev"),
+		Symbol::FromSignature(""),
+		Symbol::FromSignature(""),
 	};
 
 	const std::vector<Symbol> g_pCurrentMindistSym = {
 		Symbol::FromName("g_pCurrentMindist"),
+		Symbol::FromSignature(""),
+		Symbol::FromSignature(""),
 	};
 
 	const std::vector<Symbol> g_fDeferDeleteMindistSym = {
 		Symbol::FromName("g_fDeferDeleteMindist"),
+		Symbol::FromSignature(""),
+		Symbol::FromSignature(""),
 	};
 
 	const std::vector<Symbol> GMod_Util_IsPhysicsObjectValidSym = {
 		Symbol::FromName("_ZN4GMod4Util20IsPhysicsObjectValidEP14IPhysicsObject"),
+		Symbol::FromSignature(""),
+		Symbol::FromSignature(""),
 	};
 
 	const std::vector<Symbol> CPhysicsEnvironment_DestroyObjectSym = {
 		Symbol::FromName("_ZN19CPhysicsEnvironment13DestroyObjectEP14IPhysicsObject"),
+		Symbol::FromSignature(""),
+		Symbol::FromSignature(""),
 	};
 
 	const std::vector<Symbol> PhysFrameSym = {
 		Symbol::FromName("_ZL9PhysFramef"),
+		Symbol::FromSignature(""),
+		Symbol::FromSignature(""),
 	};
 
 	//---------------------------------------------------------------------------------

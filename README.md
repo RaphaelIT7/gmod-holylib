@@ -1929,9 +1929,6 @@ You could probably completly rework the voicechat with this since you could comp
 
 Supports: Linux32 | Linux64 | Windows32  
 
-> [!NOTE]
-> Will soon have Windows support.  
-
 ### Functions
 
 #### voicechat.SendEmptyData(Player ply, number playerSlot = ply:EntIndex()-1)

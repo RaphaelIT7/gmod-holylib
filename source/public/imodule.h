@@ -121,11 +121,20 @@ public:
 	// true if we were loaded by a ghostinj.
 	virtual bool IsUsingGhostInj() = 0;
 
-	// Sets the the realm were running in.
+	// Sets the the lua realm were running in.
 	virtual void SetModuleRealm(Module_Realm realm) = 0;
 
 	// Returns the realm were running in.
 	virtual Module_Realm GetModuleRealm() = 0;
+
+	// Marks us to be loaded as a binary module
+	// I need to find a better name for this later.
+	// This usually means we were loaded by require("holylib")
+	virtual void MarkAsBinaryModule() = 0;
+
+	// Returns true if we were marked as a binary module.
+	// This usually means we were loaded by require("holylib")
+	virtual bool IsMarkedAsBinaryModule() = 0;
 
 	// This function is sets the internal variables.
 	virtual void Setup(CreateInterfaceFn appfn, CreateInterfaceFn gamefn) = 0;

@@ -375,6 +375,7 @@ GMOD_MODULE_OPEN()
 	else
 		g_pModuleManager.SetModuleRealm(Module_Realm::MENU);
 
+	g_pModuleManager.MarkAsBinaryModule();
 	Lua::SetManualShutdown();
 	g_HolyLibServerPlugin.Load(NULL, NULL); // Yes. I don't like it but I can't get thoes fancy interfaces.
 

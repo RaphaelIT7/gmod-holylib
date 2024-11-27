@@ -49,6 +49,9 @@ public:
 	virtual void SetModuleRealm(Module_Realm realm) { m_pRealm = realm; };
 	virtual Module_Realm GetModuleRealm() { return m_pRealm; };
 
+	virtual void MarkAsBinaryModule() { m_bMarkedAsBinaryModule = true;  };
+	virtual bool IsMarkedAsBinaryModule() { return m_bMarkedAsBinaryModule; };
+
 	virtual void Setup(CreateInterfaceFn appfn, CreateInterfaceFn gamefn);
 	virtual void Init();
 	virtual void LuaInit(bool bServerInit);
@@ -75,6 +78,7 @@ private:
 	CreateInterfaceFn m_pAppFactory = NULL;
 	CreateInterfaceFn m_pGameFactory = NULL;
 	bool m_bGhostInj = false;
+	bool m_bMarkedAsBinaryModule = false;
 
 private: // ServerActivate stuff
 	edict_t* m_pEdictList = NULL;

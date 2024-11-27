@@ -676,55 +676,57 @@ void CVProfModule::InitDetour(bool bPreServer)
 #if defined(SYSTEM_WINDOWS) && 0
 	// We also add detours for the Client version of thoes functions.
 	// Finally we got some sort of lua profiling clientside and new we can know which hook eats all the frames
+	if (g_pModuleManager.IsMarkedAsBinaryModule()) // We were marked as a binary module on windows? Then were most likely running on a windows client.
+	{
+		SourceSDK::ModuleLoader client_loader("client");
+		Detour::Create(
+			&detour_Client_CLuaGamemode_Call, "Client - CLuaGamemode::Call",
+			client_loader.GetModule(), Symbols::Client_CLuaGamemode_CallSym,
+			(void*)hook_Client_CLuaGamemode_Call, m_pID
+		);
 
-	SourceSDK::ModuleLoader client_loader("client");
-	Detour::Create(
-		&detour_Client_CLuaGamemode_Call, "Client - CLuaGamemode::Call",
-		client_loader.GetModule(), Symbols::Client_CLuaGamemode_CallSym,
-		(void*)hook_Client_CLuaGamemode_Call, m_pID
-	);
+		Detour::Create(
+			&detour_Client_CLuaGamemode_CallFinish, "Client - CLuaGamemode::CallFinish",
+			client_loader.GetModule(), Symbols::Client_CLuaGamemode_CallFinishSym,
+			(void*)hook_Client_CLuaGamemode_CallFinish, m_pID
+		);
 
-	Detour::Create(
-		&detour_Client_CLuaGamemode_CallFinish, "Client - CLuaGamemode::CallFinish",
-		client_loader.GetModule(), Symbols::Client_CLuaGamemode_CallFinishSym,
-		(void*)hook_Client_CLuaGamemode_CallFinish, m_pID
-	);
+		Detour::Create(
+			&detour_Client_CLuaGamemode_CallWithArgs, "Client - CLuaGamemode::CallWithArgs",
+			client_loader.GetModule(), Symbols::Client_CLuaGamemode_CallWithArgsSym,
+			(void*)hook_Client_CLuaGamemode_CallWithArgs, m_pID
+		);
 
-	Detour::Create(
-		&detour_Client_CLuaGamemode_CallWithArgs, "Client - CLuaGamemode::CallWithArgs",
-		client_loader.GetModule(), Symbols::Client_CLuaGamemode_CallWithArgsSym,
-		(void*)hook_Client_CLuaGamemode_CallWithArgs, m_pID
-	);
+		Detour::Create(
+			&detour_Client_CScriptedEntity_StartFunctionStr, "Client - CScriptedEntity::StartFunction1(const char*)",
+			client_loader.GetModule(), Symbols::Client_CScriptedEntity_StartFunctionStrSym,
+			(void*)hook_Client_CScriptedEntity_StartFunctionStr, m_pID
+		);
 
-	Detour::Create(
-		&detour_Client_CScriptedEntity_StartFunctionStr, "Client - CScriptedEntity::StartFunction1(const char*)",
-		client_loader.GetModule(), Symbols::Client_CScriptedEntity_StartFunctionStrSym,
-		(void*)hook_Client_CScriptedEntity_StartFunctionStr, m_pID
-	);
+		Detour::Create(
+			&detour_Client_CScriptedEntity_StartFunction, "Client - CScriptedEntity::StartFunction2(int)",
+			client_loader.GetModule(), Symbols::Client_CScriptedEntity_StartFunctionSym,
+			(void*)hook_Client_CScriptedEntity_StartFunction, m_pID
+		);
 
-	Detour::Create(
-		&detour_Client_CScriptedEntity_StartFunction, "Client - CScriptedEntity::StartFunction2(int)",
-		client_loader.GetModule(), Symbols::Client_CScriptedEntity_StartFunctionSym,
-		(void*)hook_Client_CScriptedEntity_StartFunction, m_pID
-	);
+		Detour::Create(
+			&detour_Client_CScriptedEntity_Call, "Client - CScriptedEntity::Call",
+			client_loader.GetModule(), Symbols::Client_CScriptedEntity_CallSym,
+			(void*)hook_Client_CScriptedEntity_Call, m_pID
+		);
 
-	Detour::Create(
-		&detour_Client_CScriptedEntity_Call, "Client - CScriptedEntity::Call",
-		client_loader.GetModule(), Symbols::Client_CScriptedEntity_CallSym,
-		(void*)hook_Client_CScriptedEntity_Call, m_pID
-	);
+		Detour::Create(
+			&detour_Client_CScriptedEntity_CallFunctionStr, "Client - CScriptedEntity::CallFunction(const char*)",
+			client_loader.GetModule(), Symbols::Client_CScriptedEntity_CallFunctionStrSym,
+			(void*)hook_Client_CScriptedEntity_CallFunctionStr, m_pID
+		);
 
-	Detour::Create(
-		&detour_Client_CScriptedEntity_CallFunctionStr, "Client - CScriptedEntity::CallFunction(const char*)",
-		client_loader.GetModule(), Symbols::Client_CScriptedEntity_CallFunctionStrSym,
-		(void*)hook_Client_CScriptedEntity_CallFunctionStr, m_pID
-	);
-
-	Detour::Create(
-		&detour_Client_CScriptedEntity_CallFunction, "Client - CScriptedEntity::CallFunction2(int)",
-		client_loader.GetModule(), Symbols::Client_CScriptedEntity_CallFunctionSym,
-		(void*)hook_Client_CScriptedEntity_CallFunction, m_pID
-	);
+		Detour::Create(
+			&detour_Client_CScriptedEntity_CallFunction, "Client - CScriptedEntity::CallFunction2(int)",
+			client_loader.GetModule(), Symbols::Client_CScriptedEntity_CallFunctionSym,
+			(void*)hook_Client_CScriptedEntity_CallFunction, m_pID
+		);
+	}
 #endif
 
 #if ARCHITECTURE_IS_X86_64 && SYSTEM_LINUX
