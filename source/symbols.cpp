@@ -530,64 +530,51 @@ namespace Symbols
 	// Purpose: physenv Symbols
 	// ToDo: Get the Linux64 and Windows32 symbols.
 	//---------------------------------------------------------------------------------
-	const std::vector<Symbol> IVP_Mindist_do_impactSym = {
+	const std::vector<Symbol> IVP_Mindist_do_impactSym = { // NOTE: is virtual
 		Symbol::FromName("_ZN11IVP_Mindist9do_impactEv"),
-		Symbol::FromSignature(""),
 		Symbol::FromSignature(""),
 	};
 
-	const std::vector<Symbol> IVP_Event_Manager_Standard_simulate_time_eventsSym = {
+	const std::vector<Symbol> IVP_Event_Manager_Standard_simulate_time_eventsSym = { // NOTE: is virtual
 		Symbol::FromName("_ZN26IVP_Event_Manager_Standard20simulate_time_eventsEP16IVP_Time_ManagerP15IVP_Environment8IVP_Time"),
-		Symbol::FromSignature(""),
-		Symbol::FromSignature(""),
 	};
 
 	const std::vector<Symbol> IVP_Mindist_simulate_time_eventSym = {
 		Symbol::FromName("_ZN11IVP_Mindist19simulate_time_eventEP15IVP_Environment"),
-		Symbol::FromSignature(""),
-		Symbol::FromSignature(""),
 	};
 
 	const std::vector<Symbol> IVP_Mindist_update_exact_mindist_eventsSym = {
 		Symbol::FromName("_ZN11IVP_Mindist27update_exact_mindist_eventsE8IVP_BOOL22IVP_MINDIST_EVENT_HINT"),
-		Symbol::FromSignature(""),
-		Symbol::FromSignature(""),
 	};
 
 	const std::vector<Symbol> IVP_Mindist_D2Sym = {
 		Symbol::FromName("_ZN11IVP_MindistD2Ev"),
-		Symbol::FromSignature(""),
-		Symbol::FromSignature(""),
 	};
 
 	const std::vector<Symbol> g_pCurrentMindistSym = {
 		Symbol::FromName("g_pCurrentMindist"),
-		Symbol::FromSignature(""),
-		Symbol::FromSignature(""),
 	};
 
 	const std::vector<Symbol> g_fDeferDeleteMindistSym = {
 		Symbol::FromName("g_fDeferDeleteMindist"),
-		Symbol::FromSignature(""),
-		Symbol::FromSignature(""),
 	};
 
-	const std::vector<Symbol> GMod_Util_IsPhysicsObjectValidSym = {
+	const std::vector<Symbol> GMod_Util_IsPhysicsObjectValidSym = { // PhysObject [%s][Entity %d]
 		Symbol::FromName("_ZN4GMod4Util20IsPhysicsObjectValidEP14IPhysicsObject"),
 		Symbol::FromSignature(""),
-		Symbol::FromSignature(""),
+		Symbol::FromSignature("\x55\x8B\xEC\x51\x8B*****\x8D\x55\xFC\xC7\x45\xFC\x00\x00\x00\x00"), // 55 8B EC 51 8B ?? ?? ?? ?? ?? 8D 55 FC C7 45 FC 00 00 00 00
 	};
 
 	const std::vector<Symbol> CPhysicsEnvironment_DestroyObjectSym = {
 		Symbol::FromName("_ZN19CPhysicsEnvironment13DestroyObjectEP14IPhysicsObject"),
 		Symbol::FromSignature(""),
-		Symbol::FromSignature(""),
+		// On Windows we will use the vtable instead to detour it.... maybe we should do the same on linux?
 	};
 
-	const std::vector<Symbol> PhysFrameSym = {
+	const std::vector<Symbol> PhysFrameSym = { // "Reset physics clock\n"
 		Symbol::FromName("_ZL9PhysFramef"),
 		Symbol::FromSignature(""),
-		Symbol::FromSignature(""),
+		Symbol::FromSignature("\x55\x8B\xEC\x83\xEC\x1C\x83******\x53\x56\x57"), // 55 8B EC 83 EC 1C 83 ?? ?? ?? ?? ?? ?? 53 56 57
 	};
 
 	//---------------------------------------------------------------------------------

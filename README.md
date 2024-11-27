@@ -2098,22 +2098,32 @@ If enabled, the VoiceChat hooks will be called.
 ## physenv
 This module fixes https://github.com/Facepunch/garrysmod-issues/issues/642 and adds a few small things.  
 
-Supports: Linux32  
+Supports: Linux32 | Windows32  
 
 > [!NOTE]
 > Will soon have support for Windows & Linux64  
+> Windows currently likes to crash :/  
 
 ### Functions
 
 #### physenv.SetLagThreshold(number ms)
 The lag threshold(time in ms) which if exceeded will cause it to call the `HolyLib:PhysicsLag` hook.  
 
+> [!NOTE]
+> Only works on Linux32  
+
 #### number physenv.GetLagThreshold()
 Returns the lag threshold in ms.  
+
+> [!NOTE]
+> Only works on Linux32  
 
 #### physenv.SetPhysSkipType(IVP_SkipType type)
 Sets the skiptype for the current simulation.  
 This is reset after the simulation ended.  
+
+> [!NOTE]
+> Only works on Linux32  
 
 #### IPhysicsEnvironment physenv.CreateEnvironment()
 Creates a new physics environment.  
@@ -2466,6 +2476,9 @@ Skip the entire simulation.
 Called when the physics simulaton is taking longer than the set lag threshold.  
 
 You can freeze all props here and then return `physenv.IVP_SkipSimulation` to skip the simulation for this tick if someone is trying to crash the server.  
+
+> [!NOTE]
+> Only works on Linux32  
 
 #### bool HolyLib:OnPhysFrame(number deltaTime)  
 Called when the physics are about to be simulated.  

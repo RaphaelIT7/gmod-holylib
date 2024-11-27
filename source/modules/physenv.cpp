@@ -12,6 +12,7 @@
 #include <vphysics/performance.h>
 #include "sourcesdk/cphysicsobject.h"
 #include "sourcesdk/cphysicsenvironment.h"
+#include <detouring/classproxy.hpp>
 #include "player.h"
 
 class CPhysEnvModule : public IModule
@@ -171,21 +172,160 @@ static IPhysicsCollision* physcollide = NULL;
 IPhysicsSurfaceProps* physprops;
 void CPhysEnvModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
-	physics = (IPhysics*)appfn[0](VPHYSICS_INTERFACE_VERSION, NULL);
+	SourceSDK::FactoryLoader vphysics_loader("vphysics");
+	if (appfn[0])
+	{
+		physics = (IPhysics*)appfn[0](VPHYSICS_INTERFACE_VERSION, NULL);
+		physprops = (IPhysicsSurfaceProps*)appfn[0](VPHYSICS_SURFACEPROPS_INTERFACE_VERSION, NULL);
+		physcollide = (IPhysicsCollision*)appfn[0](VPHYSICS_COLLISION_INTERFACE_VERSION, NULL);
+	} else {
+		physics = vphysics_loader.GetInterface<IPhysics>(VPHYSICS_INTERFACE_VERSION);
+		physprops = vphysics_loader.GetInterface<IPhysicsSurfaceProps>(VPHYSICS_SURFACEPROPS_INTERFACE_VERSION);
+		physcollide = vphysics_loader.GetInterface<IPhysicsCollision>(VPHYSICS_COLLISION_INTERFACE_VERSION);
+	}
+
 	Detour::CheckValue("get interface", "physics", physics != NULL);
-
-	physprops = (IPhysicsSurfaceProps*)appfn[0](VPHYSICS_SURFACEPROPS_INTERFACE_VERSION, NULL);
 	Detour::CheckValue("get interface", "physprops", physprops != NULL);
-
-	physcollide = (IPhysicsCollision*)appfn[0](VPHYSICS_COLLISION_INTERFACE_VERSION, NULL);
 	Detour::CheckValue("get interface", "physcollide", physcollide != NULL);
 
-	staticpropmgr = (IStaticPropMgrServer*)appfn[0](INTERFACEVERSION_STATICPROPMGR_SERVER, NULL);
-	Detour::CheckValue("get interface", "staticpropmgr", staticpropmgr != NULL);
+	SourceSDK::FactoryLoader engine_loader("engine");
+	if (appfn[0])
+	{
+		staticpropmgr = (IStaticPropMgrServer*)appfn[0](INTERFACEVERSION_STATICPROPMGR_SERVER, NULL);
+		modelinfo = (IVModelInfo*)appfn[0](VMODELINFO_SERVER_INTERFACE_VERSION, NULL);
+	} else {
+		staticpropmgr = engine_loader.GetInterface<IStaticPropMgrServer>(INTERFACEVERSION_STATICPROPMGR_SERVER);
+		modelinfo = engine_loader.GetInterface<IVModelInfo>(VMODELINFO_SERVER_INTERFACE_VERSION);
+	}
 
-	modelinfo = (IVModelInfo*)appfn[0](VMODELINFO_SERVER_INTERFACE_VERSION, NULL);
+	Detour::CheckValue("get interface", "staticpropmgr", staticpropmgr != NULL);
 	Detour::CheckValue("get interface", "modelinfo", modelinfo != NULL);
 }
+
+/*
+ * BUG: The engine likes to use PhysDestroyObject which will call DestroyObject on the wrong environment now.
+ * Solution: If it was called on the main Environment, we loop thru all environments until we find our object and delete it.
+ * 
+ * Real Solution: The real soulution would be to let the IPhysicsObject store it's environment and have a method ::GetEnvironment and use that inside PhysDestroyObject to delete it properly.
+ *                It would most likely require one to edit the vphysics dll for a clean and proper solution.
+ *                Inside the engine there most likely would also be a CPhysicsObject::SetEnvironment method that would need to be added and called at all points, were it uses m_objects.AddToTail()
+ */
+static Detouring::Hook detour_CPhysicsEnvironment_DestroyObject;
+static void hook_CPhysicsEnvironment_DestroyObject(CPhysicsEnvironment* pEnvironment, IPhysicsObject* pObject)
+{
+	int foundIndex = -1;
+	CPhysicsEnvironment* pFoundEnvironment = NULL;
+	if (pEnvironment != physics->GetActiveEnvironmentByIndex(0))
+	{
+		int index = -1;
+		for (int i = pEnvironment->m_objects.Count(); --i >= 0; )
+		{
+			if (pEnvironment->m_objects[i] == pObject)
+			{
+				index = i;
+				break;
+			}
+		}
+
+		if (index != -1)
+		{
+			foundIndex = index;
+			pEnvironment->m_objects.FastRemove(index);
+			pFoundEnvironment = pEnvironment;
+		} else {
+			Warning("holylib - physenv: Failed to find a PhysicsObject in our environment?!?\n");
+			// We somehow failed to find it in this environment.... time to loop thru ALL.
+		}
+	}
+
+	if (!pFoundEnvironment)
+	{
+		int envirnmentIndex = 0;
+		CPhysicsEnvironment* pEnv = pEnvironment;
+		while (pEnv != NULL)
+		{
+			int index = -1;
+			for (int i = pEnv->m_objects.Count(); --i >= 0; )
+			{
+				if (pEnv->m_objects[i] == pObject)
+				{
+					index = i;
+					break;
+				}
+			}
+
+			if (index != -1)
+			{
+				foundIndex = index;
+				pEnv->m_objects.FastRemove(index);
+				pFoundEnvironment = pEnv;
+				pEnv = NULL;
+				if (envirnmentIndex != 0 && g_pPhysEnvModule.InDebug())
+					Msg("holylib - physenv: Found right environment(%i) for physics object\n", envirnmentIndex);
+
+				break;
+			}
+
+			if (envirnmentIndex == 0 && g_pPhysEnvModule.InDebug())
+				Msg("holylib - physenv: Engine tried to delete a Object in the wrong environment\n");
+
+			for (int i = 0; i < 5; ++i) // We check for any gaps like 0 -> 1 -> 5 -> 14 but thoes shouldn't be huge so at max we'll check the next 5 for now.
+			{
+				pEnv = (CPhysicsEnvironment*)physics->GetActiveEnvironmentByIndex(++envirnmentIndex);
+
+				if (pEnv)
+					break;
+			}
+		}
+	}
+
+	if (!pFoundEnvironment)
+	{
+		Warning("holylib - physenv: Failed to find environment of physics object.... How?!?\n");
+		return;
+	}
+
+	//pFoundEnvironment->DestroyObject(pObject);
+
+	CPhysicsObject* pPhysics = static_cast<CPhysicsObject*>(pObject);
+	// add this flag so we can optimize some cases
+	pPhysics->AddCallbackFlags(CALLBACK_MARKED_FOR_DELETE);
+
+	// was created/destroyed without simulating.  No need to wake the neighbors!
+	if (foundIndex > pFoundEnvironment->m_lastObjectThisTick)
+		pPhysics->ForceSilentDelete();
+
+	if (pFoundEnvironment->m_inSimulation || pFoundEnvironment->m_queueDeleteObject)
+	{
+		// don't delete while simulating
+		pFoundEnvironment->m_deadObjects.AddToTail(pObject);
+	}
+	else
+	{
+		pFoundEnvironment->m_pSleepEvents->DeleteObject(pPhysics);
+		delete pObject;
+	}
+}
+
+#ifdef SYSTEM_WINDOWS
+class CPhysicsEnvironmentProxy : public Detouring::ClassProxy<IPhysicsEnvironment, CPhysicsEnvironmentProxy> {
+public:
+	CPhysicsEnvironmentProxy(IPhysicsEnvironment* env) {
+		if (Detour::CheckValue("initialize", "CLuaInterfaceProxy", Initialize(env)))
+			Detour::CheckValue("CLuaInterface::PushPooledString", Hook(&IPhysicsEnvironment::DestroyObject, &CPhysicsEnvironmentProxy::DestroyObject));
+	}
+
+	void DeInit()
+	{
+		UnHook(&IPhysicsEnvironment::DestroyObject);
+	}
+
+	virtual void DestroyObject(IPhysicsObject* pObject)
+	{
+		hook_CPhysicsEnvironment_DestroyObject((CPhysicsEnvironment*)This(), pObject);
+	}
+};
+#endif
 
 PushReferenced_LuaClass(IPhysicsObject, GarrysMod::Lua::Type::PhysObj) // This will later cause so much pain when they become Invalid XD
 Get_LuaClass(IPhysicsObject, GarrysMod::Lua::Type::PhysObj, "IPhysicsObject")
@@ -260,6 +400,9 @@ struct ILuaPhysicsEnvironment
 	{
 		pEnvironment = env;
 		g_pEnvironmentToLua[env] = this;
+#ifdef SYSTEM_WINDOWS
+		pEnvironmentProxy = std::make_unique<CPhysicsEnvironmentProxy>(env);
+#endif
 	}
 
 	~ILuaPhysicsEnvironment()
@@ -267,6 +410,9 @@ struct ILuaPhysicsEnvironment
 		Delete_ILuaPhysicsEnvironment(this);
 
 		g_pEnvironmentToLua.erase(g_pEnvironmentToLua.find(pEnvironment));
+#ifdef SYSTEM_WINDOWS
+		pEnvironmentProxy->DeInit();
+#endif
 		physics->DestroyEnvironment(pEnvironment);
 		pEnvironment = NULL;
 
@@ -282,6 +428,9 @@ struct ILuaPhysicsEnvironment
 
 	IPhysicsEnvironment* pEnvironment = NULL;
 	CLuaPhysicsObjectEvent* pObjectEvent = NULL;
+#ifdef SYSTEM_WINDOWS
+	std::unique_ptr<CPhysicsEnvironmentProxy> pEnvironmentProxy = NULL;
+#endif
 	//CLuaPhysicsCollisionSolver* pCollisionSolver = NULL;
 	//CLuaPhysicsCollisionEvent* pCollisionEvent = NULL;
 };
@@ -398,7 +547,6 @@ LUA_FUNCTION_STATIC(physenv_GetActiveEnvironmentByIndex)
 }
 
 static std::vector<ILuaPhysicsEnvironment*> g_pCurrentEnvironment;
-Symbols::CBaseEntity_VPhysicsDestroyObject func_CBaseEntity_VPhysicsDestroyObject;
 LUA_FUNCTION_STATIC(physenv_DestroyEnvironment)
 {
 	if (!physics)
@@ -415,18 +563,12 @@ LUA_FUNCTION_STATIC(physenv_DestroyEnvironment)
 	CPhysicsEnvironment* pEnvironment = (CPhysicsEnvironment*)pLuaEnv->pEnvironment;
 	if (pLuaEnv->pEnvironment)
 	{
-		if (func_CBaseEntity_VPhysicsDestroyObject)
+		for (int i = pEnvironment->m_objects.Count(); --i >= 0; )
 		{
-			for (int i = pEnvironment->m_objects.Count(); --i >= 0; )
-			{
-				IPhysicsObject* pObject = pEnvironment->m_objects[i];
-				CBaseEntity* pEntity = (CBaseEntity*)pObject->GetGameData();
-				if (pEntity)
-				{
-					//pEntity->VPhysicsUpdate(NULL); // Since the vtables are broken since ~4 functions were removed, this should currently call VPhysicsDestroyObject
-					func_CBaseEntity_VPhysicsDestroyObject(pEntity); // I'm like 100% certain that the workaround above caused some unholy behavior.
-				}
-			}
+			IPhysicsObject* pObject = pEnvironment->m_objects[i];
+			CBaseEntity* pEntity = (CBaseEntity*)pObject->GetGameData();
+			if (pEntity)
+				pEntity->VPhysicsUpdate(NULL);
 		}
 	}
 
@@ -799,7 +941,6 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_EnableDeleteQueue)
 	return 0;
 }
 
-Symbols::CBaseEntity_VPhysicsUpdate func_CBaseEntity_VPhysicsUpdate;
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_Simulate)
 {
 	ILuaPhysicsEnvironment* pLuaEnv = Get_ILuaPhysicsEnvironment(1, true);
@@ -826,12 +967,9 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_Simulate)
 			if ( pEntity )
 			{
 				if ( pEntity->CollisionProp()->DoesVPhysicsInvalidateSurroundingBox() )
-				{
 					pEntity->CollisionProp()->MarkSurroundingBoundsDirty();
-				}
 
-				//pEntity->VPhysicsUpdate( pActiveList[i] ); // BUG: The VTABLE IS BROKEN AGAIN. NOOOOOO
-				func_CBaseEntity_VPhysicsUpdate(pEntity, pActiveList[i]);
+				pEntity->VPhysicsUpdate( pActiveList[i] );
 			}
 		}
 		stackfree( pActiveList );
@@ -1765,111 +1903,6 @@ void hook_CBaseEntity_GMOD_VPhysicsTest(CBaseEntity* pEnt, IPhysicsObject* obj)
 	// detour_CBaseEntity_GMOD_VPhysicsTest.GetTrampoline<Symbols::CBaseEntity_GMOD_VPhysicsTest>()(pEnt, obj);
 }*/
 
-/*
- * BUG: The engine likes to use PhysDestroyObject which will call DestroyObject on the wrong environment now.
- * Solution: If it was called on the main Environment, we loop thru all environments until we find our object and delete it.
- * 
- * Real Solution: The real soulution would be to let the IPhysicsObject store it's environment and have a method ::GetEnvironment and use that inside PhysDestroyObject to delete it properly.
- *                It would most likely require one to edit the vphysics dll for a clean and proper solution.
- *                Inside the engine there most likely would also be a CPhysicsObject::SetEnvironment method that would need to be added and called at all points, were it uses m_objects.AddToTail()
- */
-static Detouring::Hook detour_CPhysicsEnvironment_DestroyObject;
-static void hook_CPhysicsEnvironment_DestroyObject(CPhysicsEnvironment* pEnvironment, IPhysicsObject* pObject)
-{
-	int foundIndex = -1;
-	CPhysicsEnvironment* pFoundEnvironment = NULL;
-	if (pEnvironment != physics->GetActiveEnvironmentByIndex(0))
-	{
-		int index = -1;
-		for (int i = pEnvironment->m_objects.Count(); --i >= 0; )
-		{
-			if (pEnvironment->m_objects[i] == pObject)
-			{
-				index = i;
-				break;
-			}
-		}
-
-		if (index != -1)
-		{
-			foundIndex = index;
-			pEnvironment->m_objects.FastRemove(index);
-			pFoundEnvironment = pEnvironment;
-		} else {
-			Warning("holylib - physenv: Failed to find a PhysicsObject in our environment?!?\n");
-			// We somehow failed to find it in this environment.... time to loop thru ALL.
-		}
-	}
-
-	if (!pFoundEnvironment)
-	{
-		int envirnmentIndex = 0;
-		CPhysicsEnvironment* pEnv = pEnvironment;
-		while (pEnv != NULL)
-		{
-			int index = -1;
-			for (int i = pEnv->m_objects.Count(); --i >= 0; )
-			{
-				if (pEnv->m_objects[i] == pObject)
-				{
-					index = i;
-					break;
-				}
-			}
-
-			if (index != -1)
-			{
-				foundIndex = index;
-				pEnv->m_objects.FastRemove(index);
-				pFoundEnvironment = pEnv;
-				pEnv = NULL;
-				if (envirnmentIndex != 0 && g_pPhysEnvModule.InDebug())
-					Msg("holylib - physenv: Found right environment(%i) for physics object\n", envirnmentIndex);
-
-				break;
-			}
-
-			if (envirnmentIndex == 0 && g_pPhysEnvModule.InDebug())
-				Msg("holylib - physenv: Engine tried to delete a Object in the wrong environment\n");
-
-			for (int i = 0; i < 5; ++i) // We check for any gaps like 0 -> 1 -> 5 -> 14 but thoes shouldn't be huge so at max we'll check the next 5 for now.
-			{
-				pEnv = (CPhysicsEnvironment*)physics->GetActiveEnvironmentByIndex(++envirnmentIndex);
-
-				if (pEnv)
-					break;
-			}
-		}
-	}
-
-	if (!pFoundEnvironment)
-	{
-		Warning("holylib - physenv: Failed to find environment of physics object.... How?!?\n");
-		return;
-	}
-
-	//pFoundEnvironment->DestroyObject(pObject);
-
-	CPhysicsObject* pPhysics = static_cast<CPhysicsObject*>(pObject);
-	// add this flag so we can optimize some cases
-	pPhysics->AddCallbackFlags(CALLBACK_MARKED_FOR_DELETE);
-
-	// was created/destroyed without simulating.  No need to wake the neighbors!
-	if (foundIndex > pFoundEnvironment->m_lastObjectThisTick)
-		pPhysics->ForceSilentDelete();
-
-	if (pFoundEnvironment->m_inSimulation || pFoundEnvironment->m_queueDeleteObject)
-	{
-		// don't delete while simulating
-		pFoundEnvironment->m_deadObjects.AddToTail(pObject);
-	}
-	else
-	{
-		pFoundEnvironment->m_pSleepEvents->DeleteObject(pPhysics);
-		delete pObject;
-	}
-}
-
 static bool g_bCallPhysHook = false;
 static Detouring::Hook detour_PhysFrame;
 static void hook_PhysFrame(float deltaTime)
@@ -2061,6 +2094,7 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 	if (bPreServer)
 		return;
 
+#if !defined(SYSTEM_WINDOWS) && defined(ARCHITECTURE_X86)
 	SourceSDK::FactoryLoader vphysics_loader("vphysics");
 	Detour::Create(
 		&detour_IVP_Mindist_do_impact, "IVP_Mindist::do_impact",
@@ -2097,6 +2131,7 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 		vphysics_loader.GetModule(), Symbols::CPhysicsEnvironment_DestroyObjectSym,
 		(void*)hook_CPhysicsEnvironment_DestroyObject, m_pID
 	);
+#endif
 
 	SourceSDK::FactoryLoader server_loader("server");
 	Detour::Create(
@@ -2117,15 +2152,11 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 		(void*)hook_CBaseEntity_GMOD_VPhysicsTest, m_pID
 	);*/
 
+#if !defined(SYSTEM_WINDOWS) && defined(ARCHITECTURE_X86)
 	g_pCurrentMindist = Detour::ResolveSymbol<IVP_Mindist*>(vphysics_loader, Symbols::g_pCurrentMindistSym);
 	Detour::CheckValue("get class", "g_pCurrentMindist", g_pCurrentMindist != NULL);
 
 	g_fDeferDeleteMindist = Detour::ResolveSymbol<bool>(vphysics_loader, Symbols::g_fDeferDeleteMindistSym);
 	Detour::CheckValue("get class", "g_fDeferDeleteMindist", g_fDeferDeleteMindist != NULL);
-
-	func_CBaseEntity_VPhysicsUpdate = (Symbols::CBaseEntity_VPhysicsUpdate)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseEntity_VPhysicsUpdateSym);
-	Detour::CheckValue("get function", "CBaseEntity::VPhysicsUpdate", func_CBaseEntity_VPhysicsUpdate != NULL);
-
-	func_CBaseEntity_VPhysicsDestroyObject = (Symbols::CBaseEntity_VPhysicsDestroyObject)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseEntity_VPhysicsDestroyObjectSym);
-	Detour::CheckValue("get function", "CBaseEntity::VPhysicsDestroyObject", func_CBaseEntity_VPhysicsDestroyObject != NULL);
+#endif
 }
