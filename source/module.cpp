@@ -8,7 +8,9 @@ CModule::~CModule()
 {
 	if ( m_pCVar )
 	{
-		g_pCVar->UnregisterConCommand(m_pCVar);
+		if ( g_pCVar )
+			g_pCVar->UnregisterConCommand(m_pCVar);
+
 		delete m_pCVar; // Could this cause a crash? idk.
 	}
 
@@ -20,7 +22,9 @@ CModule::~CModule()
 
 	if ( m_pDebugCVar )
 	{
-		g_pCVar->UnregisterConCommand(m_pDebugCVar);
+		if ( g_pCVar )
+			g_pCVar->UnregisterConCommand(m_pDebugCVar);
+
 		delete m_pDebugCVar; // Could this cause a crash? idk either. But it didn't. Yet. Or has it.
 	}
 
