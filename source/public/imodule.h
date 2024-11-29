@@ -70,6 +70,8 @@ public: // I would like to remove these at some point but it's more efficient if
 class IModuleWrapper
 {
 public:
+	virtual ~IModuleWrapper() = default;
+
 	// Binds the IModuleWrapper to the IModule and Initializes itself.
 	virtual void SetModule(IModule* module) = 0;
 

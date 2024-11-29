@@ -5,7 +5,7 @@ class CModuleManager;
 class CModule : public IModuleWrapper
 {
 public:
-	~CModule();
+	virtual ~CModule();
 	virtual void SetModule(IModule* module);
 	virtual void SetEnabled(bool bEnabled, bool bForced = false);
 	virtual void Shutdown();
