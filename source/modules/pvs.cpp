@@ -847,6 +847,17 @@ LUA_FUNCTION_STATIC(pvs_TestPVS)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(pvs_ForceFullUpdate)
+{
+	CBasePlayer* ply = Util::Get_Player(1, true);
+	CBaseClient* pClient = Util::GetClientByPlayer(ply);
+	if (!pClient)
+		LUA->ThrowError("Failed to get CBaseClient!");
+
+	pClient->ForceFullUpdate();
+	return 0;
+}
+
 void CPVSModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	IPlayerInfoManager* playerinfomanager = (IPlayerInfoManager*)gamefn[0](INTERFACEVERSION_PLAYERINFOMANAGER, NULL);
@@ -882,6 +893,7 @@ void CPVSModule::LuaInit(bool bServerInit)
 		Util::AddFunc(pvs_SetPreventTransmitBulk, "SetPreventTransmitBulk");
 		Util::AddFunc(pvs_FindInPVS, "FindInPVS");
 		Util::AddFunc(pvs_TestPVS, "TestPVS");
+		Util::AddFunc(pvs_ForceFullUpdate, "ForceFullUpdate");
 
 		// Use the functions below only inside the HolyLib:PostCheckTransmit hook.  
 		Util::AddFunc(pvs_RemoveEntityFromTransmit, "RemoveEntityFromTransmit");

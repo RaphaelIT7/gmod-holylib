@@ -57,9 +57,16 @@ LUA_FUNCTION_STATIC(cvars_SetValue)
 
 LUA_FUNCTION_STATIC(cvars_Unregister)
 {
-	ConVar* convar = Get_ConVar(1, true);
+	ConCommandBase* pConVar;
+	if (LUA->IsType(1, GarrysMod::Lua::Type::String))
+		pConVar = g_pCVar->FindCommandBase(LUA->GetString(1));
+	else
+		pConVar = Get_ConVar(1, true);
 
-	g_pCVar->UnregisterConCommand(convar);
+	if (!pConVar)
+		LUA->ThrowError("Failed to find ConVar/ConCommand!");
+	
+	g_pCVar->UnregisterConCommand(pConVar);
 	return 0;
 }
 

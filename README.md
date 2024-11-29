@@ -39,7 +39,7 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 \- [+] Added `HolyLib:OnSourceTVStartNewShot`, `HolyLib:OnSourceTVClientDisconnect` hook to `sourcetv` module.  
 \- [+] Added `HLTVClient:SetCameraMan` and `sourcetv.SetCameraMan` to `sourcetv` module.  
 \- [+] Added `INetworkStringTable:GetTable` and `HLTVClient:GetTable` functions to `sourcetv` and `stringtable` module.  
-\- [+] Added `pvs.TestPVS` and `pvs.FindInPVS` functions to `pvs` module.  
+\- [+] Added `pvs.TestPVS`, `pvs.FindInPVS` and `pvs.ForceFullUpdate` functions to `pvs` module.  
 \- [+] Added `HolyLib.ExitLadder` and `HolyLib.GetLadder` to `holylib` module.  
 \- [+] Exposed `IHolyUtil` interface and added `IHolyLib::PreLoad` and `IHolyLib:GetHolyUtil`.  
 \- [+] Added (Experimental)`holylib_filesystem_savesearchcache` optimization to filesystem module.  
@@ -1336,7 +1336,7 @@ Returns a sequential table with all ConVar's that exist.
 Set the convat to the given value.  
 Returns `true` on success.  
 
-##### cvar.Unregister(ConVar cvar)
+##### cvar.Unregister(ConVar cvar / String name)
 Unregisters the given convar.  
 
 ## sourcetv
@@ -1922,6 +1922,9 @@ The key will be the entity and the value is the result.
 #### bool pas.CheckBoxInPAS(Vector mins, Vector maxs, Vector pas)
 Checks if the given pox is inside the PAS.  
 Returns `true` if it is.  
+
+#### pvs.ForceFullUpdate(Player ply)
+Forces a full update for the specific client.  
 
 ## voicechat
 This module contains a few things to control the voicechat.  
