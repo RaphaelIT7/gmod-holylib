@@ -86,7 +86,7 @@ static void hook_CSteam3Server_NotifyClientDisconnect(void* pServer, CBaseClient
 		return;
 	}
 
-	if (((CHLTVServer*)pClient->GetServer()) == hltv) // pClient->GetServer()->IsHLTV() crashes... Why.
+	if (((CHLTVServer*)pClient->GetServer()) == hltv)
 	{
 		if (Lua::PushHook("HolyLib:OnSourceTVClientDisconnect"))
 		{

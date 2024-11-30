@@ -36,6 +36,7 @@ class CBaseHandle;
 class IServer;
 class IPhysicsObject;
 class IPhysicsEnvironment;
+class CBaseClient;
 
 namespace GarrysMod::Lua
 {
@@ -184,7 +185,7 @@ namespace Symbols
 	typedef void (GMCOMMON_CALLING_CONVENTION* CHLTVServer_BroadcastEvent)(IServer* server, IGameEvent* event);
 	extern const std::vector<Symbol> CHLTVServer_BroadcastEventSym;
 
-	typedef void (GMCOMMON_CALLING_CONVENTION* CSteam3Server_NotifyClientDisconnect)(void* server, IClient* client);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CSteam3Server_NotifyClientDisconnect)(void* server, CBaseClient* client);
 	extern const std::vector<Symbol> CSteam3Server_NotifyClientDisconnectSym;
 
 	extern const std::vector<Symbol> UsermessagesSym;
