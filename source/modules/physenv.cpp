@@ -427,6 +427,7 @@ struct ILuaPhysicsEnvironment
 	}
 
 	IPhysicsEnvironment* pEnvironment = NULL;
+	bool bCreatedEnvironment = false;
 	CLuaPhysicsObjectEvent* pObjectEvent = NULL;
 #ifdef SYSTEM_WINDOWS
 	std::unique_ptr<CPhysicsEnvironmentProxy> pEnvironmentProxy = NULL;
@@ -518,6 +519,7 @@ LUA_FUNCTION_STATIC(physenv_CreateEnvironment)
 			pEnvironment->SetGravity( Vector( 0, 0, -gravity.GetFloat() ) );
 	}
 
+	pLua->bCreatedEnvironment = true; // WE created the environment.
 	Push_ILuaPhysicsEnvironment(pLua);
 	return 1;
 }
@@ -1881,13 +1883,21 @@ LUA_FUNCTION_STATIC(physcollide_DestroyCollide)
  * This causes all IPhysicsObject from other environments to be marked as invalid.
  */
 Detouring::Hook detour_GMod_Util_IsPhysicsObjectValid;
-bool hook_GMod_Util_IsPhysicsObjectValid(IPhysicsObject* obj)
+bool hook_GMod_Util_IsPhysicsObjectValid(IPhysicsObject* pObject)
 {
-	if (!obj)
+	if (!pObject)
 		return false;
 
-	// Are there cases where they somehow can be without environment?
-	// Verify this later to make sure that we didn't break anything.
+	// This is what Gmod does. Gmod loops thru all physics objects of the main environment to check if the specific IPhysicsObject is part of it.
+	/*int iCount = 0;
+	IPhysicsObject** pList = (IPhysicsObject**)physenv->GetObjectList(&iCount);
+	for (int i = 0; i < iCount; ++i)
+	{
+		if (pList[i] == pObject)
+			return true;
+	}
+
+	return false; */
 
 	return true;
 }
