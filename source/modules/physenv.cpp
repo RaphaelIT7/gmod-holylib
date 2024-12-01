@@ -13,6 +13,7 @@
 #include "sourcesdk/cphysicsobject.h"
 #include "sourcesdk/cphysicsenvironment.h"
 #include <detouring/classproxy.hpp>
+#include "unordered_set"
 #include "player.h"
 
 class CPhysEnvModule : public IModule
@@ -211,78 +212,24 @@ void CPhysEnvModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
  *                Inside the engine there most likely would also be a CPhysicsObject::SetEnvironment method that would need to be added and called at all points, were it uses m_objects.AddToTail()
  */
 static Detouring::Hook detour_CPhysicsEnvironment_DestroyObject;
+extern CPhysicsEnvironment* GetIndexOfPhysicsObject(int* objectIndex, int* environmentIndex, IPhysicsObject* pObject, CPhysicsEnvironment* pEnvironment);
 static void hook_CPhysicsEnvironment_DestroyObject(CPhysicsEnvironment* pEnvironment, IPhysicsObject* pObject)
 {
 	int foundIndex = -1;
-	CPhysicsEnvironment* pFoundEnvironment = NULL;
-	if (pEnvironment != physics->GetActiveEnvironmentByIndex(0))
-	{
-		int index = -1;
-		for (int i = pEnvironment->m_objects.Count(); --i >= 0; )
-		{
-			if (pEnvironment->m_objects[i] == pObject)
-			{
-				index = i;
-				break;
-			}
-		}
-
-		if (index != -1)
-		{
-			foundIndex = index;
-			pEnvironment->m_objects.FastRemove(index);
-			pFoundEnvironment = pEnvironment;
-		} else {
-			Warning("holylib - physenv: Failed to find a PhysicsObject in our environment?!?\n");
-			// We somehow failed to find it in this environment.... time to loop thru ALL.
-		}
-	}
-
-	if (!pFoundEnvironment)
-	{
-		int envirnmentIndex = 0;
-		CPhysicsEnvironment* pEnv = pEnvironment;
-		while (pEnv != NULL)
-		{
-			int index = -1;
-			for (int i = pEnv->m_objects.Count(); --i >= 0; )
-			{
-				if (pEnv->m_objects[i] == pObject)
-				{
-					index = i;
-					break;
-				}
-			}
-
-			if (index != -1)
-			{
-				foundIndex = index;
-				pEnv->m_objects.FastRemove(index);
-				pFoundEnvironment = pEnv;
-				pEnv = NULL;
-				if (envirnmentIndex != 0 && g_pPhysEnvModule.InDebug())
-					Msg("holylib - physenv: Found right environment(%i) for physics object\n", envirnmentIndex);
-
-				break;
-			}
-
-			if (envirnmentIndex == 0 && g_pPhysEnvModule.InDebug())
-				Msg("holylib - physenv: Engine tried to delete a Object in the wrong environment\n");
-
-			for (int i = 0; i < 5; ++i) // We check for any gaps like 0 -> 1 -> 5 -> 14 but thoes shouldn't be huge so at max we'll check the next 5 for now.
-			{
-				pEnv = (CPhysicsEnvironment*)physics->GetActiveEnvironmentByIndex(++envirnmentIndex);
-
-				if (pEnv)
-					break;
-			}
-		}
-	}
+	int foundEnvironmentIndex = -1;
+	CPhysicsEnvironment* pFoundEnvironment = GetIndexOfPhysicsObject(&foundIndex, &foundEnvironmentIndex, pObject, pEnvironment);
 
 	if (!pFoundEnvironment)
 	{
 		Warning("holylib - physenv: Failed to find environment of physics object.... How?!?\n");
 		return;
+	}
+
+	if (foundIndex != -1)
+	{
+		pFoundEnvironment->m_objects.FastRemove(foundIndex);
+		if (pFoundEnvironment != pEnvironment && g_pPhysEnvModule.InDebug())
+			Msg("holylib - physenv: Found right environment(%i) for physics object\n", foundEnvironmentIndex);
 	}
 
 	//pFoundEnvironment->DestroyObject(pObject);
@@ -426,15 +373,85 @@ struct ILuaPhysicsEnvironment
 		//	delete pCollisionEvent;
 	}
 
+	inline void RegisterObject(IPhysicsObject* pObject)
+	{
+		if (!bCreatedEnvironment)
+			return;
+
+		auto it = pObjects.find(pObject);
+		if (it == pObjects.end())
+			pObjects.insert(pObject);
+	}
+
+	inline void UnregisterObject(IPhysicsObject* pObject)
+	{
+		if (!bCreatedEnvironment)
+			return;
+
+		auto it = pObjects.find(pObject);
+		if (it != pObjects.end())
+			pObjects.erase(it);
+	}
+
+	inline bool HasObject(IPhysicsObject* pObject)
+	{
+		if (!bCreatedEnvironment)
+			return false;
+
+		auto it = pObjects.find(pObject);
+		return it != pObjects.end();
+	}
+
+	bool bCreatedEnvironment = false; // If we were the one that created the environment, we can cache the objects we have since only we will add/remove objects.
+	std::unordered_set<IPhysicsObject*> pObjects;
+	
 	IPhysicsEnvironment* pEnvironment = NULL;
-	bool bCreatedEnvironment = false;
-	CLuaPhysicsObjectEvent* pObjectEvent = NULL;
 #ifdef SYSTEM_WINDOWS
 	std::unique_ptr<CPhysicsEnvironmentProxy> pEnvironmentProxy = NULL;
 #endif
+	CLuaPhysicsObjectEvent* pObjectEvent = NULL;
 	//CLuaPhysicsCollisionSolver* pCollisionSolver = NULL;
 	//CLuaPhysicsCollisionEvent* pCollisionEvent = NULL;
 };
+
+inline void FindObjectIndex(int* objectIndex, IPhysicsObject* pObject, CPhysicsEnvironment* pEnv)
+{
+	for (int i = pEnv->m_objects.Count(); --i >= 0; )
+		if (pEnv->m_objects[i] == pObject)
+			*objectIndex = i;
+}
+
+CPhysicsEnvironment* GetIndexOfPhysicsObject(int* objectIndex, int* environmentIndex, IPhysicsObject* pObject, CPhysicsEnvironment* pEnvironment)
+{
+	*objectIndex = -1;
+	*environmentIndex = -1;
+	if (!pEnvironment)
+		pEnvironment = (CPhysicsEnvironment*)physics->GetActiveEnvironmentByIndex(++(*environmentIndex));
+
+	CPhysicsEnvironment* pEnv = pEnvironment;
+	while (pEnv != NULL)
+	{
+		auto it = g_pEnvironmentToLua.find(pEnv);
+		if (it != g_pEnvironmentToLua.end())
+			if (it->second->HasObject(pObject))
+				FindObjectIndex(objectIndex, pObject, pEnv);
+		else
+			FindObjectIndex(objectIndex, pObject, pEnv);
+		
+		if (*objectIndex != -1)
+			return pEnv;
+		
+		for (int i = 0; i < 5; ++i) // We check for any gaps like 0 -> 1 -> 5 -> 14 but thoes shouldn't be huge so at max we'll check the next 5 for now.
+		{
+			pEnv = (CPhysicsEnvironment*)physics->GetActiveEnvironmentByIndex(++(*environmentIndex));
+
+			if (pEnv)
+				break;
+		}
+	}
+
+	return NULL;
+}
 
 static int IPhysicsCollisionSet_TypeID = -1;
 PushReferenced_LuaClass(IPhysicsCollisionSet, IPhysicsCollisionSet_TypeID)
@@ -560,7 +577,6 @@ LUA_FUNCTION_STATIC(physenv_DestroyEnvironment)
 		if (pLuaEnv == ppLuaEnv)
 			LUA->ThrowError("Tried to delete a IPhysicsEnvironment that is simulating!"); // Don't even dare.....
 	}
-
 
 	CPhysicsEnvironment* pEnvironment = (CPhysicsEnvironment*)pLuaEnv->pEnvironment;
 	if (pLuaEnv->pEnvironment)
@@ -710,11 +726,20 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetTable)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_TransferObject)
 {
+	ILuaPhysicsEnvironment* pLuaEnv = Get_ILuaPhysicsEnvironment(1, true);
 	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 	IPhysicsObject* pObject = Get_IPhysicsObject(2, true);
+	ILuaPhysicsEnvironment* pTargetLuaEnv = Get_ILuaPhysicsEnvironment(3, true);
 	IPhysicsEnvironment* pTargetEnvironment = GetPhysicsEnvironment(3, true);
 
-	LUA->PushBool(pEnvironment->TransferObject(pObject, pTargetEnvironment));
+	bool bSuccess = pEnvironment->TransferObject(pObject, pTargetEnvironment);
+	if (bSuccess)
+	{
+		pLuaEnv->UnregisterObject(pObject);
+		pTargetLuaEnv->RegisterObject(pObject);
+	}
+
+	LUA->PushBool(bSuccess);
 	return 1;
 }
 
@@ -1069,6 +1094,7 @@ static void FillObjectParams(objectparams_t& params, int iStackPos, GarrysMod::L
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreatePolyObject)
 {
+	ILuaPhysicsEnvironment* pLuaEnv = Get_ILuaPhysicsEnvironment(1, true);
 	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 	CPhysCollide* pCollide = Get_CPhysCollide(2, true);
 	int materialIndex = (int)LUA->CheckNumber(3);
@@ -1077,12 +1103,15 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreatePolyObject)
 
 	objectparams_t params;
 	FillObjectParams(params, 6, LUA);
-	Push_IPhysicsObject(pEnvironment->CreatePolyObject(pCollide, materialIndex, *pOrigin, *pAngles, &params));
+	IPhysicsObject* pObject = pEnvironment->CreatePolyObject(pCollide, materialIndex, *pOrigin, *pAngles, &params);
+	pLuaEnv->RegisterObject(pObject);
+	Push_IPhysicsObject(pObject);
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreatePolyObjectStatic)
 {
+	ILuaPhysicsEnvironment* pLuaEnv = Get_ILuaPhysicsEnvironment(1, true);
 	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 	CPhysCollide* pCollide = Get_CPhysCollide(2, true);
 	int materialIndex = (int)LUA->CheckNumber(3);
@@ -1091,12 +1120,15 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreatePolyObjectStatic)
 
 	objectparams_t params;
 	FillObjectParams(params, 6, LUA);
-	Push_IPhysicsObject(pEnvironment->CreatePolyObjectStatic(pCollide, materialIndex, *pOrigin, *pAngles, &params));
+	IPhysicsObject* pObject = pEnvironment->CreatePolyObjectStatic(pCollide, materialIndex, *pOrigin, *pAngles, &params);
+	pLuaEnv->RegisterObject(pObject);
+	Push_IPhysicsObject(pObject);
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreateSphereObject)
 {
+	ILuaPhysicsEnvironment* pLuaEnv = Get_ILuaPhysicsEnvironment(1, true);
 	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 	float radius = (float)LUA->CheckNumber(2);
 	int materialIndex = (int)LUA->CheckNumber(3);
@@ -1106,15 +1138,19 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreateSphereObject)
 
 	objectparams_t params;
 	FillObjectParams(params, 6, LUA);
-	Push_IPhysicsObject(pEnvironment->CreateSphereObject(radius, materialIndex, *pOrigin, *pAngles, &params, bStatic));
+	IPhysicsObject* pObject = pEnvironment->CreateSphereObject(radius, materialIndex, *pOrigin, *pAngles, &params, bStatic);
+	pLuaEnv->RegisterObject(pObject);
+	Push_IPhysicsObject(pObject);
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_DestroyObject)
 {
+	ILuaPhysicsEnvironment* pLuaEnv = Get_ILuaPhysicsEnvironment(1, true);
 	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 	IPhysicsObject* pObject = Get_IPhysicsObject(2, true);
 
+	pLuaEnv->UnregisterObject(pObject);
 	pEnvironment->DestroyObject(pObject);
 	Delete_IPhysicsObject(pObject);
 	return 0;
@@ -1349,12 +1385,21 @@ IPhysicsObject *PhysCreateWorld(IPhysicsEnvironment* pEnvironment, CBaseEntity* 
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreateWorldPhysics)
 {
+	ILuaPhysicsEnvironment* pLuaEnv = Get_ILuaPhysicsEnvironment(1, true);
 	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 	
 #if ARCHITECTURE_IS_X86
 	Push_IPhysicsObject(PhysCreateWorld(pEnvironment, Util::GetCBaseEntityFromEdict(Util::engineserver->PEntityOfEntIndex(0))));
-#endif
+
+	int iCount = 0;
+	IPhysicsObject** pList = (IPhysicsObject**)pEnvironment->GetObjectList(&iCount);
+	for (int i = 0; i < iCount; ++i)
+		pLuaEnv->RegisterObject(pList[i]); // Make sure everything is registered properly
+
 	return 1;
+#else
+	return 0;
+#endif
 }
 
 LUA_FUNCTION_STATIC(CPhysCollide__tostring)
@@ -1895,11 +1940,12 @@ bool hook_GMod_Util_IsPhysicsObjectValid(IPhysicsObject* pObject)
 	{
 		if (pList[i] == pObject)
 			return true;
-	}
+	}*/
 
-	return false; */
+	int objectIndex, environmentIndex;
+	GetIndexOfPhysicsObject(&objectIndex, &environmentIndex, pObject, NULL);
 
-	return true;
+	return objectIndex != -1;
 }
 
 /*

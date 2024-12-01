@@ -71,7 +71,7 @@ public:
 
 	virtual IChangeFrameList* Copy()
 	{
-		VPROF_BUDGET("CChangeFrameList::Copy", VPROF_BUDGETGROUP_OTHER_NETWORKING);
+		//VPROF_BUDGET("CChangeFrameList::Copy", VPROF_BUDGETGROUP_OTHER_NETWORKING);
 		++m_CopyCounter;
 		return this;
 	}
