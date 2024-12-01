@@ -220,11 +220,11 @@ static void hook_CPhysicsEnvironment_DestroyObject(CPhysicsEnvironment* pEnviron
 {
 	int foundIndex = -1;
 	int foundEnvironmentIndex = -1;
-	CPhysicsEnvironment* pFoundEnvironment = GetIndexOfPhysicsObject(&foundIndex, &foundEnvironmentIndex, pObject, pEnvironment);
-
+	CPhysicsEnvironment* pFoundEnvironment = pEnvironment == physics->GetActiveEnvironmentByIndex(0) ? GetIndexOfPhysicsObject(&foundIndex, &foundEnvironmentIndex, pObject, pEnvironment) : pEnvironment;
 	if (!pFoundEnvironment)
 	{
-		Warning("holylib - physenv: Failed to find environment of physics object.... How?!?\n");
+		CBaseEntity* pEntity = (CBaseEntity*)pObject->GetGameData();
+		Warning("holylib - physenv: Failed to find environment of physics object.... How?!? (%p, %i, %s)\n", pEntity, pEntity ? pEntity->entindex() : -1, pEntity ? pEntity->edict()->GetClassName() : "NULL");
 		return;
 	}
 
@@ -364,6 +364,8 @@ struct ILuaPhysicsEnvironment
 		physics->DestroyEnvironment(pEnvironment);
 		pEnvironment = NULL;
 
+		pObjects.clear();
+
 		if (pObjectEvent)
 			delete pObjectEvent;
 
@@ -420,13 +422,6 @@ struct ILuaPhysicsEnvironment
 	//CLuaPhysicsCollisionEvent* pCollisionEvent = NULL;
 };
 
-inline void FindObjectIndex(int* objectIndex, IPhysicsObject* pObject, CPhysicsEnvironment* pEnv)
-{
-	for (int i = pEnv->m_objects.Count(); --i >= 0; )
-		if (pEnv->m_objects[i] == pObject)
-			*objectIndex = i;
-}
-
 CPhysicsEnvironment* GetIndexOfPhysicsObject(int* objectIndex, int* environmentIndex, IPhysicsObject* pObject, CPhysicsEnvironment* pEnvironment)
 {
 	*objectIndex = -1;
@@ -437,13 +432,15 @@ CPhysicsEnvironment* GetIndexOfPhysicsObject(int* objectIndex, int* environmentI
 	CPhysicsEnvironment* pEnv = pEnvironment;
 	while (pEnv != NULL)
 	{
-		auto it = g_pEnvironmentToLua.find(pEnv);
+		/*auto it = g_pEnvironmentToLua.find(pEnv);
 		if (it != g_pEnvironmentToLua.end() && it->second->Created())
 			if (it->second->HasObject(pObject))
 				FindObjectIndex(objectIndex, pObject, pEnv);
-		else
-			FindObjectIndex(objectIndex, pObject, pEnv);
-		
+		else*/
+		for (int i = pEnv->m_objects.Count(); --i >= 0; )
+			if (pEnv->m_objects[i] == pObject)
+				*objectIndex = i;
+
 		if (*objectIndex != -1)
 			return pEnv;
 		
