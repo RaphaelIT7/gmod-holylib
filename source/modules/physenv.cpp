@@ -203,6 +203,9 @@ void CPhysEnvModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 	Detour::CheckValue("get interface", "modelinfo", modelinfo != NULL);
 }
 
+PushReferenced_LuaClass(IPhysicsObject, GarrysMod::Lua::Type::PhysObj) // This will later cause so much pain when they become Invalid XD
+Get_LuaClass(IPhysicsObject, GarrysMod::Lua::Type::PhysObj, "IPhysicsObject")
+
 /*
  * BUG: The engine likes to use PhysDestroyObject which will call DestroyObject on the wrong environment now.
  * Solution: If it was called on the main Environment, we loop thru all environments until we find our object and delete it.
@@ -232,6 +235,7 @@ static void hook_CPhysicsEnvironment_DestroyObject(CPhysicsEnvironment* pEnviron
 			Msg("holylib - physenv: Found right environment(%i) for physics object\n", foundEnvironmentIndex);
 	}
 
+	Delete_IPhysicsObject(pObject); // Delete any reference we might hold.
 	//pFoundEnvironment->DestroyObject(pObject);
 
 	CPhysicsObject* pPhysics = static_cast<CPhysicsObject*>(pObject);
@@ -273,9 +277,6 @@ public:
 	}
 };
 #endif
-
-PushReferenced_LuaClass(IPhysicsObject, GarrysMod::Lua::Type::PhysObj) // This will later cause so much pain when they become Invalid XD
-Get_LuaClass(IPhysicsObject, GarrysMod::Lua::Type::PhysObj, "IPhysicsObject")
 
 CCollisionEvent* g_Collisions = NULL;
 class CLuaPhysicsObjectEvent : public IPhysicsObjectEvent
