@@ -403,6 +403,11 @@ struct ILuaPhysicsEnvironment
 		return it != pObjects.end();
 	}
 
+	inline bool Created()
+	{
+		return bCreatedEnvironment;
+	}
+
 	bool bCreatedEnvironment = false; // If we were the one that created the environment, we can cache the objects we have since only we will add/remove objects.
 	std::unordered_set<IPhysicsObject*> pObjects;
 	
@@ -433,7 +438,7 @@ CPhysicsEnvironment* GetIndexOfPhysicsObject(int* objectIndex, int* environmentI
 	while (pEnv != NULL)
 	{
 		auto it = g_pEnvironmentToLua.find(pEnv);
-		if (it != g_pEnvironmentToLua.end())
+		if (it != g_pEnvironmentToLua.end() && it->second->Created())
 			if (it->second->HasObject(pObject))
 				FindObjectIndex(objectIndex, pObject, pEnv);
 		else
