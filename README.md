@@ -26,6 +26,23 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 2. Put the `holylib.vdf` into the `garrysmod/addons/` directory.  
 3. Put the `gmsv_holylib_linux.so` into the `garrysmod/lua/bin/` directory.  
 
+## How to update (Newer GhostInj)
+
+> [!NOTE]
+> Don't try to use plugin_unload since it might not work because of things like the networking module which currently can't be unloaded.  
+> To update holylib you will always need to shutdown the server.  
+
+1. Append `_updated` to the new file to have a result like this `gmsv_holylib_linux_updated.so`.  
+2. Upload the file into the `lua/bin` folder
+3. Restart the server normally.  
+On the next startup the ghostinj will update holylib to use the new file.  
+
+## How to update (Older GhostInj versions)
+
+1. Shutdown the server
+2. Upload the new file
+3. Enjoy it
+
 ## Next Update
 \- [+] Added `entitylist` module.  
 \- \- [+] Many `pvs.*` function accept now a `EntityList`.  
@@ -58,6 +75,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
 ### QoL updates
 \- [+] Added comments to some interfaces.  
 \- [+] Added Windows 32 & 64x to workflow build.  
+\- [+] Updated ghostinj to allow for easier updating.  
 \- [#] Cleaned up code a bit  
 \- [#] Switched away from the ILuaBase. All Lua functions now use ILuaInterface.  
 \- [#] Fixed `plugin_load` causing holylib to load improperly.  
