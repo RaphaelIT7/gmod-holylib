@@ -1,6 +1,7 @@
 #include <tier0/dbg.h>
 #include <Platform.hpp>
 #include <stdio.h>
+#include <filesystem>
 
 #if SYSTEM_WINDOWS
 #ifndef DLFCN_H
@@ -60,10 +61,34 @@ void Load()
 	Msg( "--- Holylib-GhostInj Loading ---\n" );
 
 #ifdef ARCHITECTURE_X86
+	if ( std::filesystem::exists( "garrysmod/lua/bin/gmsv_holylib_linux_updated.so" ) )
+	{
+		Msg( "Found a updated holylib version.\n" );
+		if ( std::filesystem::remove( "garrysmod/lua/bin/gmsv_holylib_linux.so" ) )
+		{
+			std::filesystem::rename( "garrysmod/lua/bin/gmsv_holylib_linux_updated.so", "garrysmod/lua/bin/gmsv_holylib_linux.so" );
+			Msg( "Updated HolyLib\n" );
+		} else {
+			Msg( "Failed to delete old HolyLib version!\n" );
+		}
+	}
+
 	holylib = dlopen( "garrysmod/lua/bin/gmsv_holylib_linux.so", RTLD_NOW );
 	if ( !holylib )
 		Msg( "Failed to open gmsv_holylib_linux.so (%s)\n", dlerror() );
 #else
+	if ( std::filesystem::exists( "garrysmod/lua/bin/gmsv_holylib_linux64_updated.so" ) )
+	{
+		Msg( "Found a updated holylib version.\n" );
+		if ( std::filesystem::remove( "garrysmod/lua/bin/gmsv_holylib_linux64.so" ) )
+		{
+			std::filesystem::rename( "garrysmod/lua/bin/gmsv_holylib_linux64_updated.so", "garrysmod/lua/bin/gmsv_holylib_linux64.so" );
+			Msg( "Updated HolyLib\n" );
+		} else {
+			Msg( "Failed to delete old HolyLib version!\n" );
+		}
+	}
+
 	holylib = dlopen( "garrysmod/lua/bin/gmsv_holylib_linux64.so", RTLD_NOW );
 	if ( !holylib )
 		Msg( "Failed to open gmsv_holylib_linux64.so (%s)\n", dlerror() );
