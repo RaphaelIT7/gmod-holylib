@@ -586,7 +586,7 @@ LUA_FUNCTION_STATIC(physenv_DestroyEnvironment)
 			IPhysicsObject* pObject = pEnvironment->m_objects[i];
 			CBaseEntity* pEntity = (CBaseEntity*)pObject->GetGameData();
 			if (pEntity)
-				pEntity->VPhysicsUpdate(NULL);
+				pEntity->VPhysicsDestroyObject();
 		}
 	}
 
@@ -1926,6 +1926,9 @@ LUA_FUNCTION_STATIC(physcollide_DestroyCollide)
 /*
  * BUG: In GMOD, this function checks the main IPhysicsEnvironment to see if the IPhysicsObject exists in it?
  * This causes all IPhysicsObject from other environments to be marked as invalid.
+ * 
+ * Gmod does this because it can't invalidate the userdata properly which means that calling a function like PhysObj:Wake could be called on a invalid pointer.
+ * So they seem to have added this function as a workaround to check if the pointer Lua has is still valid.
  */
 Detouring::Hook detour_GMod_Util_IsPhysicsObjectValid;
 bool hook_GMod_Util_IsPhysicsObjectValid(IPhysicsObject* pObject)
