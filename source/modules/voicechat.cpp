@@ -440,6 +440,8 @@ void CVoiceChatModule::InitDetour(bool bPreServer)
 	);
 }
 
+static HSteamPipe hSteamPipe = NULL;
+static HSteamUser hSteamUser = NULL;
 void CVoiceChatModule::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
 {
 	if (!g_pSteamUser)
@@ -459,8 +461,8 @@ void CVoiceChatModule::ServerActivate(edict_t* pEdictList, int edictCount, int c
 
 		if (pSteamClient)
 		{
-			HSteamPipe hSteamPipe = pSteamClient->CreateSteamPipe();
-			HSteamUser hSteamUser = pSteamClient->CreateLocalUser(&hSteamPipe, k_EAccountTypeAnonUser);
+			hSteamPipe = pSteamClient->CreateSteamPipe();
+			hSteamUser = pSteamClient->CreateLocalUser(&hSteamPipe, k_EAccountTypeAnonUser);
 			g_pSteamUser = pSteamClient->GetISteamUser(hSteamUser, hSteamPipe, "SteamUser023");
 		}
 	}
@@ -468,5 +470,14 @@ void CVoiceChatModule::ServerActivate(edict_t* pEdictList, int edictCount, int c
 
 void CVoiceChatModule::Shutdown()
 {
+	ISteamClient* pSteamClient = SteamGameServerClient();
+	if (pSteamClient)
+	{
+		pSteamClient->ReleaseUser(hSteamPipe, hSteamUser);
+		pSteamClient->BReleaseSteamPipe(hSteamPipe);
+		hSteamPipe = NULL;
+		hSteamUser = NULL;
+	}
+
 	g_pSteamUser = NULL;
 }
