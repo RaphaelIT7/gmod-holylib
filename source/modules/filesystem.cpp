@@ -320,7 +320,7 @@ static void WriteSearchCache()
 			for (auto& [strEntry, storeID] : cache)
 			{
 				//V_strcpy(entry.pathID, strPath.data());
-				unsigned char pathLength = strEntry.length();
+				unsigned char pathLength = (unsigned char)strEntry.length();
 				const char* path = strEntry.data();
 				g_pFullFileSystem->Write(&pathLength, sizeof(pathLength), handle);
 				g_pFullFileSystem->Write(path, pathLength, handle);
@@ -328,7 +328,7 @@ static void WriteSearchCache()
 				memset(absolutePath, 0, sizeof(absolutePath));
 				g_pFullFileSystem->RelativePathToFullPath(path, strPath.data(), absolutePath, sizeof(absolutePath));
 
-				unsigned char absolutePathLength = strlen(absolutePath);
+				unsigned char absolutePathLength = (unsigned char)strlen(absolutePath);
 				g_pFullFileSystem->Write(&absolutePathLength, sizeof(absolutePathLength), handle);
 				g_pFullFileSystem->Write(absolutePath, absolutePathLength, handle);
 			}

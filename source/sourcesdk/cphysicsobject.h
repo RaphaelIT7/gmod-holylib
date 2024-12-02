@@ -132,7 +132,7 @@ public:
 	inline void		ForceSilentDelete() { m_forceSilentDelete = true; }
 
 	inline int		GetActiveIndex( void ) const { return m_activeIndex; }
-	inline void		SetActiveIndex( int index ) { m_activeIndex = index; }
+	inline void		SetActiveIndex( int index ) { m_activeIndex = (unsigned short)index; }
 	inline float	GetBuoyancyRatio( void ) const { return m_buoyancyRatio; }
 	// returns true if the mass center is set to the default for the collision model
 	bool			IsMassCenterAtDefault() const;
