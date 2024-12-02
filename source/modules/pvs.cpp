@@ -654,9 +654,7 @@ CBasePlayer *UTIL_PlayerByIndex(int playerIndex)
 	{
 		edict_t *pPlayerEdict = INDEXENT(playerIndex);
 		if (pPlayerEdict && !pPlayerEdict->IsFree())
-		{
 			pPlayer = (CBasePlayer*)Util::GetCBaseEntityFromEdict(pPlayerEdict);
-		}
 	}
 	
 	return pPlayer;
@@ -863,10 +861,8 @@ void CPVSModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 	IPlayerInfoManager* playerinfomanager = (IPlayerInfoManager*)gamefn[0](INTERFACEVERSION_PLAYERINFOMANAGER, NULL);
 	Detour::CheckValue("get interface", "playerinfomanager", playerinfomanager != NULL);
 
-	if ( playerinfomanager )
-	{
+	if (playerinfomanager)
 		gpGlobals = playerinfomanager->GetGlobalVars();
-	}
 }
 
 void CPVSModule::LuaInit(bool bServerInit)

@@ -8,6 +8,9 @@
 #include "icommandline.h"
 #include "player.h"
 #include "detours.h"
+#if 0
+#include "httplib.h"
+#endif
 
 GarrysMod::Lua::ILuaInterface* g_Lua;
 IVEngineServer* engine;
@@ -69,9 +72,7 @@ CBaseClient* Util::GetClientByUserID(int userid)
 	{
 		IClient* pClient = Util::server->GetClient(i);
 		if ( pClient && pClient->GetUserID() == userid)
-		{
 			return (CBaseClient*)pClient;
-		}
 	}
 
 	return NULL;
@@ -244,6 +245,11 @@ bool Util::ShouldLoad()
 	CommandLine()->AppendParm("-holylibexists", "true");
 
 	return true;
+}
+
+void Util::CheckVersion()
+{
+	// ToDo: Implement this someday
 }
 
 Get_LuaClass(IRecipientFilter, GarrysMod::Lua::Type::RecipientFilter, "RecipientFilter")

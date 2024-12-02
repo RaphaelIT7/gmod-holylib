@@ -43,13 +43,15 @@ namespace Util
 	}
 
 	inline void AddFunc(GarrysMod::Lua::CFunc Func, const char* Name) {
+		g_Lua->PushString(Name);
 		g_Lua->PushCFunction(Func);
-		g_Lua->SetField(-2, Name);
+		g_Lua->RawSet(-3);
 	}
 
 	inline void AddValue(double value, const char* Name) {
+		g_Lua->PushString(Name);
 		g_Lua->PushNumber(value);
-		g_Lua->SetField(-2, Name);
+		g_Lua->RawSet(-3);
 	}
 
 	inline void FinishTable(const char* Name) {
@@ -111,6 +113,7 @@ namespace Util
 	extern bool CM_Vis(byte* cluster, int clusterSize, int cluserID, int type);
 	extern void ResetClusers();
 	extern bool ShouldLoad();
+	extern void CheckVersion();
 
 	inline void StartThreadPool(IThreadPool* pool, ThreadPoolStartParams_t& startParams)
 	{

@@ -116,7 +116,7 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 	}
 	Detour::CheckValue("get interface", "playerinfomanager", playerinfomanager != NULL);
 
-	if ( playerinfomanager )
+	if (playerinfomanager)
 		gpGlobals = playerinfomanager->GetGlobalVars();
 
 	g_pModuleManager.Setup(interfaceFactory, gameServerFactory); // Setup so that Util won't cause issues
@@ -261,6 +261,7 @@ void CServerPlugin::ServerActivate(edict_t *pEdictList, int edictCount, int clie
 
 	Lua::ServerInit();
 	g_pModuleManager.ServerActivate(pEdictList, edictCount, clientMax);
+	Util::CheckVersion();
 }
 
 //---------------------------------------------------------------------------------
@@ -375,6 +376,7 @@ GMOD_MODULE_OPEN()
 	else
 		g_pModuleManager.SetModuleRealm(Module_Realm::MENU);
 
+	Util::CheckVersion();
 	g_pModuleManager.MarkAsBinaryModule();
 	Lua::SetManualShutdown();
 	g_HolyLibServerPlugin.Load(NULL, NULL); // Yes. I don't like it but I can't get thoes fancy interfaces.

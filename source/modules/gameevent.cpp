@@ -51,8 +51,9 @@ LUA_FUNCTION_STATIC(gameevent_GetListeners)
 			FOR_EACH_VEC(pManager->m_GameEvents, i)
 			{
 				CGameEventDescriptor& descriptor = pManager->m_GameEvents[i];
+				LUA->PushString((const char*)&descriptor.name);
 				LUA->PushNumber(descriptor.listeners.Count());
-				LUA->SetField(-2, (const char*)&descriptor.name); // Does it even need to be a const char* ?
+				LUA->RawSet(-3); // Does it even need to be a const char* ?
 			}
 	}
 

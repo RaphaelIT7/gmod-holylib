@@ -12,6 +12,7 @@
 #include "net.h"
 #include "sourcesdk/baseclient.h"
 #include "hl2/hl2_player.h"
+#include "unordered_set"
 
 class CHolyLibModule : public IModule
 {
@@ -352,10 +353,21 @@ static void hook_CBaseEntity_SetMoveType(CBaseEntity* pEnt, int iMoveType, int i
 	detour_CBaseEntity_SetMoveType.GetTrampoline<Symbols::CBaseEntity_SetMoveType>()(pEnt, iMoveType, iMoveCollide);
 }
 
-std::vector<std::string> g_pHideMsg;
-LUA_FUNCTION_STATIC(HideMsg)
+static std::unordered_set<std::string> g_pHideMsg;
+LUA_FUNCTION_STATIC(HideMsg) // ToDo: Final logic is still missing.
 {
-	const char* pRegex = LUA->CheckString(1);
+	std::string pRegex = LUA->CheckString(1);
+	bool bRemove = LUA->GetBool(2);
+
+	auto it = g_pHideMsg.find(pRegex);
+	if (it != g_pHideMsg.end())
+	{
+		if (bRemove)
+			g_pHideMsg.erase(it);
+	} else {
+		g_pHideMsg.insert(pRegex);
+	}
+
 	return 0;
 }
 
@@ -375,6 +387,7 @@ void CHolyLibModule::LuaInit(bool bServerInit)
 			Util::AddFunc(SetSignOnState, "SetSignOnState");
 			Util::AddFunc(ExitLadder, "ExitLadder");
 			Util::AddFunc(GetLadder, "GetLadder");
+			Util::AddFunc(HideMsg, "HideMsg");
 
 			// Networking stuff
 			Util::AddFunc(_EntityMessageBegin, "EntityMessageBegin");

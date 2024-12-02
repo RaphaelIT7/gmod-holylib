@@ -766,16 +766,16 @@ Returns a table containing all entities that are inside the pvs.
 
 ### Enums
 
-#### pvs.FL_EDICT_DONTSEND = 2 (Next update: 1)  
+#### pvs.FL_EDICT_DONTSEND = 1  
 The Entity won't be networked.  
 
-#### pvs.FL_EDICT_ALWAYS = 4 (Next update: 2)
+#### pvs.FL_EDICT_ALWAYS = 2
 The Entity will always be networked.  
 
-#### pvs.FL_EDICT_PVSCHECK = 8 (Next update: 4)
+#### pvs.FL_EDICT_PVSCHECK = 4
 The Entity will only be networked if it's inside the PVS.  
 
-#### pvs.FL_EDICT_FULLCHECK = 16 (Next update: 8)
+#### pvs.FL_EDICT_FULLCHECK = 8
 The Entity's `ShouldTransmit` function will be called, and its return value will be used.  
 
 ### Hooks

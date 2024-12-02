@@ -1918,8 +1918,9 @@ LUA_FUNCTION_STATIC(filesystem_Find)
 		for (std::string file : files)
 		{
 			++i;
+			LUA->PushNumber(i);
 			LUA->PushString(file.c_str());
-			LUA->SetField(-2, std::to_string(i).c_str());
+			LUA->RawSet(-3);
 		}
 	}
 
@@ -1929,8 +1930,9 @@ LUA_FUNCTION_STATIC(filesystem_Find)
 		for (std::string folder : folders)
 		{
 			++i;
+			LUA->PushNumber(i);
 			LUA->PushString(folder.c_str());
-			LUA->SetField(-2, std::to_string(i).c_str());
+			LUA->RawSet(-3);
 		}
 	}
 
