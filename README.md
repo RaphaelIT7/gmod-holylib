@@ -214,7 +214,7 @@ Invalidates the bone cache of the given entity.
 > [!NOTE]
 > Only uses this on Entities that are Animated / Inherit the CBaseAnimating class. Or else it will throw a Lua error.  
 
-#### bool HolyLib.SetSignonState(Player/number ply/userid, number signOnState, number spawnCount)
+#### bool HolyLib.SetSignonState(Player ply / number userid, number signOnState, number spawnCount)
 Sets the SignOnState for the given client.  
 Returns `true` on success.  
 
@@ -810,8 +810,10 @@ Supports: Linux32
 If enabled, it will enable additional checks to make sure that the player is not stuck in a ramp.  
 
 #### sv_ramp_initial_retrace_length (default `0.2`, max `5`)
+Amount of units used in offset for retraces  
 
 #### sv_ramp_bumpcount (default `8`, max `32`)
+Helps with fixing surf/ramp bugs
 
 ## filesystem
 This module contains multiple optimizations for the filesystem and a lua library.  
