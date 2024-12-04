@@ -764,6 +764,9 @@ The key will be the entity and the value is the result.
 #### table pvs.FindInPVS(Vector origin, Entity ent / Vector pos)
 Returns a table containing all entities that are inside the pvs.  
 
+#### pvs.ForceFullUpdate(Player ply)
+Forces a full update for the specific client.  
+
 ### Enums
 
 #### pvs.FL_EDICT_DONTSEND = 1  
@@ -1942,9 +1945,6 @@ The key will be the entity and the value is the result.
 #### bool pas.CheckBoxInPAS(Vector mins, Vector maxs, Vector pas)
 Checks if the given pox is inside the PAS.  
 Returns `true` if it is.  
-
-#### pvs.ForceFullUpdate(Player ply)
-Forces a full update for the specific client.  
 
 ## voicechat
 This module contains a few things to control the voicechat.  
