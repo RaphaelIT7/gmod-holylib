@@ -30,12 +30,6 @@ static ConVar gameevent_callhook("holylib_gameevent_callhook", "1", 0, "If enabl
 static CGameeventLibModule g_pGameeventLibModule;
 IModule* pGameeventLibModule = &g_pGameeventLibModule;
 
-#if ARCHITECTURE_IS_X86
-#define CLIENT_OFFSET -4
-#else
-#define CLIENT_OFFSET -8
-#endif
-
 static CGameEventManager* pManager;
 LUA_FUNCTION_STATIC(gameevent_GetListeners)
 {
@@ -126,7 +120,7 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 				if (g_pGameeventLibModule.InDebug())
 					Msg("Pointer 1: %p\nPointer 2: %p\n", listener, pClient);
 
-				if ((uint8_t*)listener == ((uint8_t*)pClient + CLIENT_OFFSET))
+				if (listener == pClient)
 				{
 					++idx;
 					LUA->PushNumber(idx);
@@ -160,10 +154,7 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 						continue;
 
 					CBaseClient* listener = (CBaseClient*)callback->m_pCallback;
-					if (g_pGameeventLibModule.InDebug())
-						Msg("Pointer 1: %p\nPointer 2: %p\n", listener, pClient);
-
-					if ((uint8_t*)listener == ((uint8_t*)pClient + CLIENT_OFFSET) || listener == pClient)
+					if (listener == pClient)
 					{
 						++idx;
 						LUA->PushNumber(idx);
@@ -207,10 +198,7 @@ LUA_FUNCTION_STATIC(gameevent_RemoveClientListener)
 				continue;
 
 			CBaseClient* listener = (CBaseClient*)callback->m_pCallback;
-			if (g_pGameeventLibModule.InDebug())
-				Msg("holylib: Pointer 1: %hhu\nPointer 2: %hhu\n", *((uint8_t*)listener), *((uint8_t*)pClient + CLIENT_OFFSET));
-
-			if ((uint8_t*)listener == ((uint8_t*)pClient + CLIENT_OFFSET) || (uint8_t*)listener == (uint8_t*)pClient)
+			if (listener == pClient)
 			{
 				desciptor->listeners.Remove(i); // ToDo: Verify that this doesn't cause a memory leak because CGameEventCallback isn't deleted.
 				bSuccess = true;
