@@ -552,7 +552,7 @@ number tick - The tick to set the stringtable to
 
 Returns whether or not the stringtable changed since that tick.  
 
-#### number INetworkStringTable:AddString(string value, bool isServer) 
+#### number INetworkStringTable:AddString(string value, bool isServer = true) 
 string value - The string to add  
 bool isServer - Weather or not the server is adding this value? (Idk, added it so you have more control.)  
 

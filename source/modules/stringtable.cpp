@@ -153,7 +153,9 @@ LUA_FUNCTION_STATIC(INetworkStringTable_AddString)
 	INetworkStringTable* table = Get_INetworkStringTable(1, true);
 
 	const char* pStr = LUA->CheckString(2);
-	bool bIsServer = LUA->GetBool(3);
+	bool bIsServer = true;
+	if (LUA->IsType(3, GarrysMod::Lua::Type::Bool))
+		bIsServer = LUA->GetBool(3);
 	//int length = LUA->CheckNumberOpt(4, -1);
 
 	LUA->PushNumber(table->AddString(bIsServer, pStr));
