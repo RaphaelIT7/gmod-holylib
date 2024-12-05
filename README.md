@@ -62,7 +62,6 @@ On the next startup the ghostinj will update holylib to use the new file.
 \- [+] Added (Experimental)`holylib_filesystem_savesearchcache` optimization to filesystem module.  
 \- [+] Added Windows support for `bitbuf`, `cvars`, (partially)`filesystem`, `pas`, `util`, `voicechat` and (partially)`vprof`  
 \- [#] Fixed many issues with the `bass` module. It is acutally usable.  
-\- [#] All `pvs.FL_EDICT_` enums changed.  
 \- [#] Improved performance by replacing SetTable with RawSet.  
 \- [#] Added missing calls to the deconstructors for `CHLTVClient` and `CNetworkStringTable`.  
 \- \- These missing calls could have caused some bugs or memory leaks.  
@@ -71,6 +70,10 @@ On the next startup the ghostinj will update holylib to use the new file.
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
+
+### Existing Lua API Changes
+\- [#] Flipped `INetworkStringTable:AddString` arguments.  
+\- [#] All `pvs.FL_EDICT_` enums changed.  
 
 ### QoL updates
 \- [+] Added comments to some interfaces.  
@@ -486,7 +489,7 @@ bool bAllowClientSideAddString - If clients should be able to modify the stringt
 #### bool stringtable.IsCreationAllowed()
 Returns whether you're allowed to create stringtables.  
 
-#### stringtable.IsLocked()
+#### bool stringtable.IsLocked()
 Returns if the stringtable is locked or not.  
 
 #### stringtable.AllowCreation(bool bAllowCreation)
@@ -542,16 +545,16 @@ ToDo: I have no idea
 #### INetworkStringTable:SetTick(number tick) 
 number tick - The tick to set the stringtable to  
 
-Returns the number of strings this stringtable has  
+The current tick to used for networking
 
 #### bool INetworkStringTable:ChangedSinceTick(number tick) 
 number tick - The tick to set the stringtable to  
 
 Returns whether or not the stringtable changed since that tick.  
 
-#### number INetworkStringTable:AddString(bool bIsServer, const char* pStr) 
-bool bIsServer - Weather or not the server is adding this value? (Idk, added it so you have more control.)  
-string pStr - The string to add  
+#### number INetworkStringTable:AddString(string value, bool isServer) 
+string value - The string to add  
+bool isServer - Weather or not the server is adding this value? (Idk, added it so you have more control.)  
 
 Returns the index of the added string.  
 
@@ -563,8 +566,8 @@ Returns the string from that index
 #### table INetworkStringTable:GetAllStrings() 
 Returns a table containing all the strings.  
 
-#### number INetworkStringTable:FindStringIndex(string pStr) 
-string pStr - The string to find the index of  
+#### number INetworkStringTable:FindStringIndex(string value) 
+string value - The string to find the index of  
 
 Returns the index of the given string.  
 
