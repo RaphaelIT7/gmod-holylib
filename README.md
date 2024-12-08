@@ -97,6 +97,11 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
 \- Possibly allow on to force workshop download on next level change.  
 \- GO thru everything and use a more consistant codestyle. I created quiet the mess.  
 
+# New Documentation
+Currently I'm working on implementing a better wiki that will replace this huge readme later.  
+It may already contain a few more details to some functions than this readme.  
+Wiki: https://holylib.raphaelit7.com/
+
 # The Navigator  
 [Modules](https://github.com/RaphaelIT7/gmod-holylib#modules)  
 \- [holylib](https://github.com/RaphaelIT7/gmod-holylib#holylib-1)  
