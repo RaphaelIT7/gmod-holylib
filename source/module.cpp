@@ -220,6 +220,7 @@ void CModuleManager::LoadModules()
 	RegisterModule(pPhysEnvModule);
 	RegisterModule(pNetModule);
 	RegisterModule(pEntListModule);
+	RegisterModule(pHttpServerModule);
 }
 
 int g_pIDs = 0;

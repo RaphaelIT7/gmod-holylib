@@ -24,3 +24,4 @@ extern IModule* pVoiceChatModule;
 extern IModule* pPhysEnvModule;
 extern IModule* pNetModule;
 extern IModule* pEntListModule;
+extern IModule* pHttpServerModule;

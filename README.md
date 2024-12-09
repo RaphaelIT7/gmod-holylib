@@ -2708,6 +2708,14 @@ Supports: Linux32 | Linux64
 > [!NOTE]
 > Windows doesn't have plugins / we won't support it there.  
 
+## httpserver
+
+This module adds a library with functions to create and run a httpserver.  
+Function documentation will be done later.
+
+> [!NOTE]
+> It's currently disabled by default and has to be enabled with `holylib_enable_httpserver 1`
+
 # Issues implemented / fixed
 `gameevent.GetListeners` -> https://github.com/Facepunch/garrysmod-requests/issues/2377  
 `stringtable.FindTable("modelprecache"):GetNumStrings()` -> https://github.com/Facepunch/garrysmod-requests/issues/82  
