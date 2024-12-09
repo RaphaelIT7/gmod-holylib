@@ -10,9 +10,6 @@
 #pragma once
 #endif
 
-#undef ARCHITECTURE_IS_X86_64 // Something is trolling me
-#include "Platform.hpp"
-
 #include <const.h>
 #include <checksum_crc.h>
 #include <iclient.h>

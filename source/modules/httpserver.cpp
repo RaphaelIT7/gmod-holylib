@@ -1,7 +1,7 @@
+#include "httplib.h"
 #include "LuaInterface.h"
 #include "module.h"
 #include "lua.h"
-#include "httplib.h"
 #include <baseclient.h>
 #include <inetchannel.h>
 #include <netadr.h>
@@ -54,7 +54,11 @@ public:
 	void Stop();
 	void Think();
 
-	static unsigned Server(void * params)
+#if ARCHITECTURE_IS_X86_64
+	static long long unsigned Server(void* params)
+#else
+	static unsigned Server(void* params)
+#endif
 	{
 		HttpServer* pServer = (HttpServer*)params;
 		pServer->GetServer().listen(pServer->GetAddress(), pServer->GetPort());
@@ -370,11 +374,11 @@ void HttpServer::Think()
 	m_bInUpdate = true;
 	for (auto it = m_pRequests.begin(); it != m_pRequests.end(); ++it) {
 		auto pEntry = (*it);
-		if (pEntry->bHandled) { return; }
+		if (pEntry->bHandled) { continue; }
 		if (pEntry->bDelete) {
 			it = m_pRequests.erase(it);
 			delete pEntry;
-			return;
+			continue;
 		}
 
 		CallFunc(pEntry->iFunction, pEntry, pEntry->pResponseData);
