@@ -2711,10 +2711,133 @@ Supports: Linux32 | Linux64
 ## httpserver
 
 This module adds a library with functions to create and run a httpserver.  
-Function documentation will be done later.
 
 > [!NOTE]
 > It's currently disabled by default and has to be enabled with `holylib_enable_httpserver 1`
+
+### Functions
+
+#### HttpServer httpserver.Create()
+Creates a new HTTPServer.  
+
+#### httpserver.Destroy(HttpServer server)
+Destroys the given http server.  
+
+### HttpServer
+This class represents a created HttpServer.
+
+#### HttpServer:Start(String IP, Number Port)
+This will start or restart the HTTP Server, and it will listen on the given address + port.  
+NOTE: If a Method function was called like HttpServer:Get after HttpServer:Start was called, you need to call HttpServer:Start again!
+#### HttpServer:Stop()
+This stops the HTTP Server.
+#### (internal function) HttpServer:Think()
+This is internally used to manage all requests and to call all functions needed.
+
+#### bool HttpServer:IsRunning()
+Returns true if the HTTPServer is running.
+
+#### HttpServer:SetTCPnodelay(bool nodelay)
+Sets whether a delay should be added to tcp or not.
+
+#### HttpServer:SetReadTimeout(int sec, int usec)
+Sets the maximum amount of time before a read times out.
+
+#### HttpServer:SetWriteTimeout(int sec, int usec)
+Sets the maximum amount of time before a write times out.
+
+#### HttpServer:SetPayloadMaxLength(int maxlength)
+Sets the maximum payload length.
+
+#### HttpServer:SetKeepAliveTimeout(int sec)
+Sets the maximum time a connection is kept alive.
+
+#### HttpServer:SetKeepAliveMaxCount(int amount)
+Sets the maximum amount of connections that can be kept alive at the same time.
+
+#### HttpServer:SetMountPoint(string path, string folder)
+This mounts the given folder to the given path.
+(You can call this multiple times for the same path to mount multiple folders to it.)
+
+#### HttpServer:RemoveMountPoint(string path)
+This removes all mounts for the given path.
+
+### Method Functions
+All Method functions add a listener for the given path and the given method, like this:
+```lua
+HttpServer:Get("/public", function(_, response)
+  print("Public GET request")
+  response.SetContent("You sent a GET request to a public site.", "text/plain")
+end, false)
+
+HttpServer:Get("/private", function(_, response)
+  print("Private GET request")
+  response.SetContent("You sent a GET request to a private site.", "text/plain")
+end, true)
+```
+
+If you enable the IP Whitelist, only requests sent by connected players are processed.
+
+#### HttpServer:Get(String path, function (Request, Response), bool ipwhitelist)
+#### HttpServer:Put(String path, function (Request, Response), bool ipwhitelist)
+#### HttpServer:Post(String path, function (Request, Response), bool ipwhitelist)
+#### HttpServer:Patch(String path, function (Request, Response), bool ipwhitelist)
+#### HttpServer:Delete(String path, function (Request, Response), bool ipwhitelist)
+#### HttpServer:Options(String path, function (Request, Response), bool ipwhitelist)
+
+### HttpRequest
+A incoming Http Request.
+
+#### bool HttpRequest.HasHeader(key)
+returns true if the client has the given key in the header.
+
+#### bool HttpRequest.HasParam(key)
+returns true if the client has the given key in the parameters.
+
+#### string HttpRequest.GetHeader(key)
+returns the value of the given key from the header.
+
+#### string HttpRequest:GetParam(key)
+returns the value of the given key from the parameters.
+
+#### string HttpRequest:GetBody()
+The body of the HTTP Request.
+
+#### string HttpRequest:GetRemoteAddr()
+the IP Address of the Person who sent the HTTP Request
+
+#### number HttpRequest:GetRemotePort()
+The Port the HTTP request was received from.
+
+#### string HttpRequest:GetLocalAddr()
+
+#### number HttpRequest:GetLocalPort()
+
+#### string HttpRequest:GetMethod()
+The HTTP Method that was used like GET or PUT.
+
+#### number HttpRequest:GetAuthorizationCount()
+
+#### number HttpRequest:GetContentLength()
+The length of the HTTP Request content.
+
+### HttpResponse
+A Http Response.
+
+#### HttpResponse:SetContent(content, content-type)
+Sets the content like this:
+```lua
+Response:SetContent("Hello World", "text/plain")
+```
+
+#### HttpResponse:SetRedirect(url, code)
+Redirects one to the given URL and returns the given code.
+
+#### HttpResponse:SetHeader(key, value)
+Sets the given value for the given key in the header.
+
+#### table HttpResponse:GetTable()
+Returns the lua table.
 
 # Issues implemented / fixed
 `gameevent.GetListeners` -> https://github.com/Facepunch/garrysmod-requests/issues/2377  
