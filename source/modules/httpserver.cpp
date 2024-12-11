@@ -50,7 +50,7 @@ enum
 class HttpServer
 {
 public:
-	void Start(const char* address, unsigned port);
+	void Start(const char* address, unsigned short port);
 	void Stop();
 	void Think();
 
@@ -175,7 +175,7 @@ LUA_FUNCTION_STATIC(HttpResponse_SetRedirect)
 	HttpResponse* pData = Get_HttpResponse(1, true);
 	pData->bSetRedirect = true;
 	pData->strRedirect = LUA->CheckString(2);
-	pData->iRedirectCode = LUA->CheckNumber(3);
+	pData->iRedirectCode = (int)LUA->CheckNumber(3);
 
 	return 0;
 }
@@ -346,7 +346,7 @@ void CallFunc(int func, HttpRequest* request, HttpResponse* response)
 	Delete_HttpResponse(response); // Destroys the Lua reference after we used it
 }
 
-void HttpServer::Start(const char* address, unsigned port)
+void HttpServer::Start(const char* address, unsigned short port)
 {
 	if (m_iStatus != HTTPSERVER_OFFLINE)
 		Stop();
@@ -604,28 +604,28 @@ LUA_FUNCTION_STATIC(HttpServer_SetTCPnodelay)
 LUA_FUNCTION_STATIC(HttpServer_SetReadTimeout)
 {
 	HttpServer* pServer = Get_HttpServer(1, true);
-	pServer->GetServer().set_read_timeout(LUA->CheckNumber(2), LUA->CheckNumber(3));
+	pServer->GetServer().set_read_timeout((time_t)LUA->CheckNumber(2), (time_t)LUA->CheckNumber(3));
 	return 0;
 }
 
 LUA_FUNCTION_STATIC(HttpServer_SetWriteTimeout)
 {
 	HttpServer* pServer = Get_HttpServer(1, true);
-	pServer->GetServer().set_write_timeout(LUA->CheckNumber(1), LUA->CheckNumber(2));
+	pServer->GetServer().set_write_timeout((time_t)LUA->CheckNumber(1), (time_t)LUA->CheckNumber(2));
 	return 0;
 }
 
 LUA_FUNCTION_STATIC(HttpServer_SetPayloadMaxLength)
 {
 	HttpServer* pServer = Get_HttpServer(1, true);
-	pServer->GetServer().set_payload_max_length(LUA->CheckNumber(2));
+	pServer->GetServer().set_payload_max_length((size_t)LUA->CheckNumber(2));
 	return 0;
 }
 
 LUA_FUNCTION_STATIC(HttpServer_SetKeepAliveTimeout)
 {
 	HttpServer* pServer = Get_HttpServer(1, true);
-	pServer->GetServer().set_keep_alive_timeout(LUA->CheckNumber(2));
+	pServer->GetServer().set_keep_alive_timeout((time_t)LUA->CheckNumber(2));
 
 	return 0;
 }
@@ -633,7 +633,7 @@ LUA_FUNCTION_STATIC(HttpServer_SetKeepAliveTimeout)
 LUA_FUNCTION_STATIC(HttpServer_SetKeepAliveMaxCount)
 {
 	HttpServer* pServer = Get_HttpServer(1, true);
-	pServer->GetServer().set_keep_alive_max_count(LUA->CheckNumber(2));
+	pServer->GetServer().set_keep_alive_max_count((size_t)LUA->CheckNumber(2));
 
 	return 0;
 }
@@ -658,7 +658,7 @@ LUA_FUNCTION_STATIC(HttpServer_Start)
 {
 	HttpServer* pServer = Get_HttpServer(1, true);
 	const char* address = LUA->CheckString(2);
-	unsigned port = LUA->CheckNumber(3);
+	unsigned short port = (unsigned short)LUA->CheckNumber(3);
 
 	pServer->Start(address, port);
 
