@@ -68,15 +68,15 @@ LUA_FUNCTION_STATIC(Reconnect)
 	return 1;
 }
 
-static bool g_bHideServer = false;
 LUA_FUNCTION_STATIC(HideServer)
 {
 	LUA->CheckType(1, GarrysMod::Lua::Type::Bool);
-	g_bHideServer = LUA->GetBool(1);
 
 	ConVarRef hide_server("hide_server");
 	if (hide_server.IsValid())
-		hide_server.SetValue(g_bHideServer); // Remove our hook with the next gmod update. I should start to reduce the amount of Symbols I use.
+		hide_server.SetValue(LUA->GetBool(1)); // Remove our hook with the next gmod update. I should start to reduce the amount of Symbols I use.
+	else
+		LUA->ThrowError("Failed to find hide_server?");
 
 	return 0;
 }
@@ -191,16 +191,6 @@ LUA_FUNCTION_STATIC(SendCustomMessage)
 
 	LUA->PushBool(pClient->SendNetMsg(msg));
 	return 1;
-}
-
-static Detouring::Hook detour_CServerGameDLL_ShouldHideServer;
-static bool hook_CServerGameDLL_ShouldHideServer()
-{
-	if (g_bHideServer)
-		return true;
-
-	// If we don't want to force the server hidden, we can fallback to the original function.
-	return detour_CServerGameDLL_ShouldHideServer.GetTrampoline<Symbols::CServerGameDLL_ShouldHideServer>()(); // "commentary 1" will also hide it.
 }
 
 static Detouring::Hook detour_GetGModServerTags;
@@ -417,12 +407,6 @@ void CHolyLibModule::InitDetour(bool bPreServer)
 		return;
 
 	SourceSDK::ModuleLoader server_loader("server");
-	Detour::Create(
-		&detour_CServerGameDLL_ShouldHideServer, "CServerGameDLL::ShouldHideServer",
-		server_loader.GetModule(), Symbols::CServerGameDLL_ShouldHideServerSym,
-		(void*)hook_CServerGameDLL_ShouldHideServer, m_pID
-	);
-
 	Detour::Create(
 		&detour_CBaseEntity_PostConstructor, "CBaseEntity::PostConstructor",
 		server_loader.GetModule(), Symbols::CBaseEntity_PostConstructorSym,
