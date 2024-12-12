@@ -17,9 +17,9 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x55\x41\x54\x49\x89\xFC\x53\x4D\x8D"), // 55 48 89 E5 41 55 41 54 49 89 FC 53 4D 8D
 	};
 
-	const std::vector<Symbol> Get_PlayerSym = {
+	const std::vector<Symbol> Get_PlayerSym = { // 64x = Player entity is NULL or not a player (!?)
 		Symbol::FromName("_Z10Get_Playerib"),
-		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x54\x41\x89\xF4\x53\x40\x0F\xB6\xF6\xE8\xED\xF3"), // 55 48 89 E5 41 54 41 89 F4 53 40 0F B6 F6 E8 ED F3
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x54\x41\x89\xF4\x53\x40\x0F\xB6\xF6\xE8****\x48\x85\xC0\x48\x89\xC3**\x48\x8B\x00\x48\x89\xDF***\x02\x00\x00"), // 55 48 89 E5 41 54 41 89 F4 53 40 0F B6 F6 E8 ?? ?? ?? ?? 48 85 C0 48 89 C3 ?? ?? 48 8B 00 48 89 DF ?? ?? ?? 02 00 00
 	};
 
 	const std::vector<Symbol> Push_EntitySym = {
@@ -41,8 +41,9 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x48\x8D*****\xBA\x01\x00\x00\x00\x48\x89\xE5\x53\x48\x83\xEC\x08\x2A\x2A\x2A\x2A"), // 55 48 8D ?? ?? ?? ?? ?? BA 01 00 00 00 48 89 E5 53 48 83 EC 08 2A 2A 2A 2A
 	};
 
-	const std::vector<Symbol> CBaseEntity_CalcAbsolutePositionSym = { // Can't find a 64x symbol yet....
+	const std::vector<Symbol> CBaseEntity_CalcAbsolutePositionSym = { // 64x = "%s[%i]:SetPos( %f %f %f ): Ignoring unreasonable position." -> Entity__SetPos -> CBaseEntity::SetAbsOrigin -> CBaseEntity::CalcAbsolutePosition
 		Symbol::FromName("_ZN11CBaseEntity20CalcAbsolutePositionEv"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x56\x41\x55\x41\x54\x53\x48\x89\xFB\x48\x83\xEC\x60\x8B\x87\xB0\x01\x00\x00"), // 55 48 89 E5 41 56 41 55 41 54 53 48 89 FB 48 83 EC 60 8B 87 B0 01 00 00
 	};
 
 	const std::vector<Symbol> CBaseAnimating_InvalidateBoneCacheSym = {
