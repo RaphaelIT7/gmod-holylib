@@ -361,6 +361,12 @@ LUA_FUNCTION_STATIC(HideMsg) // ToDo: Final logic is still missing.
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(GetRegistry)
+{
+	LUA->PushSpecial(GarrysMod::Lua::SPECIAL_REG);
+	return 1;
+}
+
 void CHolyLibModule::LuaInit(bool bServerInit)
 {
 	if (!bServerInit)
@@ -378,6 +384,7 @@ void CHolyLibModule::LuaInit(bool bServerInit)
 			Util::AddFunc(ExitLadder, "ExitLadder");
 			Util::AddFunc(GetLadder, "GetLadder");
 			Util::AddFunc(HideMsg, "HideMsg");
+			Util::AddFunc(GetRegistry, "GetRegistry");
 
 			// Networking stuff
 			Util::AddFunc(_EntityMessageBegin, "EntityMessageBegin");
