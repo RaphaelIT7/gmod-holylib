@@ -348,7 +348,11 @@ void CallFunc(int func, HttpRequest* request, HttpResponse* response)
 	Push_HttpRequest(request);
 	Push_HttpResponse(response);
 
-	g_Lua->PCall(2, 0, 0);
+	if (g_Lua->CallFunctionProtected(2, 1, true))
+	{
+		request->bHandled = !g_Lua->GetBool(-1);
+		g_Lua->Pop(1);
+	}
 
 	Delete_HttpRequest(request);
 	Delete_HttpResponse(response); // Destroys the Lua reference after we used it
@@ -390,7 +394,6 @@ void HttpServer::Think()
 		}
 
 		CallFunc(pEntry->iFunction, pEntry, &pEntry->pResponseData);
-		pEntry->bHandled = true;
 	}
 
 	m_bUpdate = false;
