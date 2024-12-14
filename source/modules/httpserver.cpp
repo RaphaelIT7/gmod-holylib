@@ -105,10 +105,12 @@ public:
 	unsigned char GetStatus() { return m_iStatus; };
 	std::string& GetAddress() { return m_strAddress; };
 	unsigned short GetPort() { return m_iPort; };
+	void SetThreadSleep(unsigned int threadSleep) { m_iThreadSleep = threadSleep; };
 
 private:
 	unsigned char m_iStatus = HTTPSERVER_OFFLINE;
 	unsigned short m_iPort;
+	unsigned int m_iThreadSleep = 5; // How long the threads sleep / wait for a request to be handled
 	bool m_bUpdate = false;
 	bool m_bInUpdate = false;
 	std::string m_strAddress;
@@ -433,7 +435,7 @@ httplib::Server::Handler HttpServer::CreateHandler(const char* path, int func, b
 		m_pRequests.push_back(request); // We should add a check here since we could write to it from multiple threads?
 		m_bUpdate = true;
 		while (!request->bHandled)
-			ThreadSleep(5);
+			ThreadSleep(m_iThreadSleep);
 
 		HttpResponse* rdata = &request->pResponseData;
 		if (rdata->bSetContent)
@@ -683,6 +685,14 @@ LUA_FUNCTION_STATIC(HttpServer_Stop)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(HttpServer_SetThreadSleep)
+{
+	HttpServer* pServer = Get_HttpServer(1, true);
+	pServer->SetThreadSleep((unsigned int)LUA->CheckNumber(2));
+
+	return 0;
+}
+
 LUA_FUNCTION_STATIC(httpserver_Create)
 {
 	Push_HttpServer(new HttpServer);
@@ -724,6 +734,7 @@ void CHTTPServerModule::LuaInit(bool bServerInit)
 		Util::AddFunc(HttpServer_SetPayloadMaxLength, "SetPayloadMaxLength");
 		Util::AddFunc(HttpServer_SetKeepAliveTimeout, "SetKeepAliveTimeout");
 		Util::AddFunc(HttpServer_SetKeepAliveMaxCount, "SetKeepAliveMaxCount");
+		Util::AddFunc(HttpServer_SetThreadSleep, "SetThreadSleep");
 
 		Util::AddFunc(HttpServer_SetMountPoint, "SetMountPoint");
 		Util::AddFunc(HttpServer_RemoveMountPoint, "RemoveMountPoint");
@@ -779,4 +790,8 @@ void CHTTPServerModule::LuaShutdown()
 
 void CHTTPServerModule::Think(bool simulating)
 {
+	VPROF_BUDGET("HolyLib - CHTTPServerModule::Think", VPROF_BUDGETGROUP_HOLYLIB);
+
+	for (auto& [httpserver, _] : g_pPushedHttpServer)
+		httpserver->Think();
 }
