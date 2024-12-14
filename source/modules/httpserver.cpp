@@ -32,8 +32,10 @@ struct HttpResponse {
 };
 
 struct HttpRequest {
+	~HttpRequest();
+
 	bool bHandled = false;
-	bool bDelete = false;
+	bool bDelete = false; // We only delete from the main thread.
 	int iFunction;
 	std::string strPath;
 	HttpResponse pResponseData;
@@ -118,6 +120,16 @@ static int HttpResponse_TypeID = -1;
 PushReferenced_LuaClass(HttpResponse, HttpResponse_TypeID)
 Get_LuaClass(HttpResponse, HttpResponse_TypeID, "HttpResponse")
 
+static int HttpRequest_TypeID = -1;
+PushReferenced_LuaClass(HttpRequest, HttpRequest_TypeID)
+Get_LuaClass(HttpRequest, HttpRequest_TypeID, "HttpRequest")
+
+HttpRequest::~HttpRequest()
+{
+	Delete_HttpRequest(this);
+	Delete_HttpResponse(&this->pResponseData);
+}
+
 LUA_FUNCTION_STATIC(HttpResponse__tostring)
 {
 	HttpResponse* pData = Get_HttpResponse(1, false);
@@ -188,10 +200,6 @@ LUA_FUNCTION_STATIC(HttpResponse_SetHeader)
 
 	return 0;
 }
-
-static int HttpRequest_TypeID = -1;
-PushReferenced_LuaClass(HttpRequest, HttpRequest_TypeID)
-Get_LuaClass(HttpRequest, HttpRequest_TypeID, "HttpRequest")
 
 LUA_FUNCTION_STATIC(HttpRequest__tostring)
 {

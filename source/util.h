@@ -179,6 +179,12 @@ void Push_##className(className* var) \
 
 struct LuaUserData { // ToDo: Maybe implement this also for other things?
 	~LuaUserData() {
+		if (!ThreadInMainThread())
+		{
+			Warning("holylib: Tried to delete usetdata from another thread!\n");
+			return;
+		}
+
 		if (iReference != -1)
 		{
 			g_Lua->ReferencePush(iReference);
