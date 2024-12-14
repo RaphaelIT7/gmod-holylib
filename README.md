@@ -96,6 +96,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
 \- Add a bind to `CAI_NetworkManager::BuildNetworkGraph` or `StartRebuild`  
 \- Possibly allow on to force workshop download on next level change.  
 \- GO thru everything and use a more consistant codestyle. I created quiet the mess.  
+\- Reduce/Remove the usage of g_Lua since our code should work later with multiple ILuaInterfaces.  
 
 # New Documentation
 Currently I'm working on implementing a better wiki that will replace this huge readme later.  
@@ -280,7 +281,7 @@ Supports: Linux32 | LINUX64
 
 ### Functions
 
-#### (int or table) gameevent.GetListeners(string name)
+#### (number or table) gameevent.GetListeners(string name)
 string name(optional) - The event to return the count of listeners for.  
 If name is not a string, it will return a table containing all events and their listener count:  
 ```lua
@@ -2733,10 +2734,15 @@ This class represents a created HttpServer.
 #### HttpServer:Start(string IP, number Port)
 This will start or restart the HTTP Server, and it will listen on the given address + port.  
 NOTE: If a Method function was called like HttpServer:Get after HttpServer:Start was called, you need to call HttpServer:Start again!
+
 #### HttpServer:Stop()
 This stops the HTTP Server.
-#### (internal function) HttpServer:Think()
-This is internally used to manage all requests and to call all functions needed.
+
+#### HttpServer:Think()
+Goes through all requests and calls their callbacks or deletes them after they were sent out.
+
+> [!NOTE]
+> This is already internally called every frame, so you don't need to call this.
 
 #### bool HttpServer:IsRunning()
 Returns true if the HTTPServer is running.
@@ -2893,7 +2899,7 @@ NW uses a usermessage `NetworkedVar`
 Write order:  
 - WriteLong -> Entity handle  
 - Char -> Type ID  
-- String -> Var name (Planned to change to 12bits key index in next net compact)  
+- String -> Var name (Planned to change to 12bits key index in next net compact. Update: This wasn't done -> https://github.com/Facepunch/garrysmod-issues/issues/5687#issuecomment-2438274430)  
 - (Value) -> Var value. (Depends on what type it is)  
 
 ## NW2 Networking  

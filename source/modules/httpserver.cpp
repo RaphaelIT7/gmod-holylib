@@ -68,37 +68,37 @@ public:
 		return 0;
 	}
 
-	void Get(const char* path, int func, bool ipwhitelist)
+	void Get(const char* path, int func, bool ipWhitelist)
 	{
-		m_pServer.Get(path, CreateHandler(path, func, ipwhitelist));
+		m_pServer.Get(path, CreateHandler(path, func, ipWhitelist));
 	}
 
-	void Post(const char* path, int func, bool ipwhitelist)
+	void Post(const char* path, int func, bool ipWhitelist)
 	{
-		m_pServer.Post(path, CreateHandler(path, func, ipwhitelist));
+		m_pServer.Post(path, CreateHandler(path, func, ipWhitelist));
 	}
 
-	void Put(const char* path, int func, bool ipwhitelist)
+	void Put(const char* path, int func, bool ipWhitelist)
 	{
-		m_pServer.Put(path, CreateHandler(path, func, ipwhitelist));
+		m_pServer.Put(path, CreateHandler(path, func, ipWhitelist));
 	}
 
-	void Patch(const char* path, int func, bool ipwhitelist)
+	void Patch(const char* path, int func, bool ipWhitelist)
 	{
-		m_pServer.Patch(path, CreateHandler(path, func, ipwhitelist));
+		m_pServer.Patch(path, CreateHandler(path, func, ipWhitelist));
 	}
 
-	void Delete(const char* path, int func, bool ipwhitelist)
+	void Delete(const char* path, int func, bool ipWhitelist)
 	{
-		m_pServer.Delete(path, CreateHandler(path, func, ipwhitelist));
+		m_pServer.Delete(path, CreateHandler(path, func, ipWhitelist));
 	}
 
-	void Options(const char* path, int func, bool ipwhitelist)
+	void Options(const char* path, int func, bool ipWhitelist)
 	{
-		m_pServer.Options(path, CreateHandler(path, func, ipwhitelist));
+		m_pServer.Options(path, CreateHandler(path, func, ipWhitelist));
 	}
 
-	httplib::Server::Handler CreateHandler(const char*, int, bool);
+	httplib::Server::Handler CreateHandler(const char* path, int func, bool ipWhitelist);
 
 public:
 	httplib::Server& GetServer() { return m_pServer; };
@@ -386,27 +386,31 @@ void HttpServer::Think()
 		return;
 
 	m_bInUpdate = true;
-	for (auto it = m_pRequests.begin(); it != m_pRequests.end(); ++it) {
+	for (auto it = m_pRequests.begin(); it != m_pRequests.end(); ++it)
+	{
 		auto pEntry = (*it);
-		if (pEntry->bHandled) { continue; }
-		if (pEntry->bDelete) {
+		if (pEntry->bDelete)
+		{
 			it = m_pRequests.erase(it);
 			delete pEntry;
 			continue;
 		}
 
-		CallFunc(pEntry->iFunction, pEntry, &pEntry->pResponseData);
+		if (!pEntry->bHandled)
+			CallFunc(pEntry->iFunction, pEntry, &pEntry->pResponseData);
 	}
 
 	m_bUpdate = false;
 	m_bInUpdate = false;
 }
 
-httplib::Server::Handler HttpServer::CreateHandler(const char* path, int func, bool ipwhitelist)
+static std::string localAddr = "127.0.0.1";
+static std::string loopBack = "loopback";
+httplib::Server::Handler HttpServer::CreateHandler(const char* path, int func, bool ipWhitelist)
 {
 	return [=](const httplib::Request& req, httplib::Response& res)
-		{
-		if (ipwhitelist)
+	{
+		if (ipWhitelist)
 		{
 			bool found = false;
 			for (auto& pClient : Util::GetClients())
@@ -417,7 +421,8 @@ httplib::Server::Handler HttpServer::CreateHandler(const char* path, int func, b
 				const netadr_s& addr = pClient->GetNetChannel()->GetRemoteAddress();
 				std::string address = addr.ToString();
 				size_t port_pos = address.find(":");
-				if (address.substr(0, port_pos) == req.remote_addr || (req.remote_addr == "127.0.0.1" && address.substr(0, port_pos) == "loopback")) {
+				if (address.substr(0, port_pos) == req.remote_addr || (req.remote_addr == localAddr && address.substr(0, port_pos) == loopBack))
+				{
 					found = true;
 					break;
 				}
@@ -617,6 +622,7 @@ LUA_FUNCTION_STATIC(HttpServer_SetReadTimeout)
 {
 	HttpServer* pServer = Get_HttpServer(1, true);
 	pServer->GetServer().set_read_timeout((time_t)LUA->CheckNumber(2), (time_t)LUA->CheckNumber(3));
+
 	return 0;
 }
 
@@ -624,6 +630,7 @@ LUA_FUNCTION_STATIC(HttpServer_SetWriteTimeout)
 {
 	HttpServer* pServer = Get_HttpServer(1, true);
 	pServer->GetServer().set_write_timeout((time_t)LUA->CheckNumber(1), (time_t)LUA->CheckNumber(2));
+
 	return 0;
 }
 
@@ -631,6 +638,7 @@ LUA_FUNCTION_STATIC(HttpServer_SetPayloadMaxLength)
 {
 	HttpServer* pServer = Get_HttpServer(1, true);
 	pServer->GetServer().set_payload_max_length((size_t)LUA->CheckNumber(2));
+
 	return 0;
 }
 
@@ -786,6 +794,7 @@ void CHTTPServerModule::LuaInit(bool bServerInit)
 
 void CHTTPServerModule::LuaShutdown()
 {
+	Util::NukeTable("httpserver");
 }
 
 void CHTTPServerModule::Think(bool simulating)
