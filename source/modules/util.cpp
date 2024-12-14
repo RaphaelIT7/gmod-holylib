@@ -6,9 +6,9 @@
 class CUtilModule : public IModule
 {
 public:
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
-	virtual void Think(bool bSimulating) OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
+	virtual void Think(GarrysMod::Lua::ILuaInterface* LUA, bool bSimulating) OVERRIDE;
 	virtual void Shutdown() OVERRIDE;
 	virtual const char* Name() { return "util"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
@@ -44,14 +44,14 @@ struct CompressEntry
 		if (!ThreadInMainThread())
 		{
 			Warning("holylib: A CompressEntry was deleted on a random thread! This should never happen!\n");
-			return; // This will be a memory, but we would never want to potentially break the Lua state.
+			return; // This will be a memory leak, but we would never want to potentially break the Lua state.
 		}
 
 		if (iDataReference != -1)
-			g_Lua->ReferenceFree(iDataReference);
+			pLua->ReferenceFree(iDataReference);
 
 		if (iCallback != -1)
-			g_Lua->ReferenceFree(iCallback);
+			pLua->ReferenceFree(iCallback);
 	}
 
 	int iCallback = -1;
@@ -64,6 +64,7 @@ struct CompressEntry
 	int iLevel;
 	int iDictSize;
 	Bootil::AutoBuffer buffer;
+	GarrysMod::Lua::ILuaInterface* pLua = NULL;
 };
 
 static bool bInvalidateEverything = false;
@@ -71,7 +72,8 @@ static std::vector<CompressEntry*> pFinishedEntries;
 static CThreadFastMutex pFinishMutex;
 static void CompressJob(CompressEntry*& entry)
 {
-	if (bInvalidateEverything) { return; }
+	if (bInvalidateEverything)
+		return;
 
 	if (entry->bCompress)
 		Bootil::Compression::LZMA::Compress(entry->pData, entry->iLength, entry->buffer, entry->iLevel, entry->iDictSize);
@@ -111,7 +113,8 @@ LUA_FUNCTION_STATIC(util_AsyncCompress)
 	{
 		LUA->Push(2);
 		iCallback = LUA->ReferenceCreate();
-	} else {
+	} else
+	{
 		iLevel = (int)LUA->CheckNumberOpt(2, 5);
 		iDictSize = (int)LUA->CheckNumberOpt(3, 65536);
 		LUA->CheckType(4, GarrysMod::Lua::Type::Function);
@@ -127,6 +130,7 @@ LUA_FUNCTION_STATIC(util_AsyncCompress)
 	entry->pData = pData;
 	LUA->Push(1);
 	entry->iDataReference = LUA->ReferenceCreate();
+	entry->pLua = LUA;
 
 	StartThread();
 
@@ -189,7 +193,8 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 		g_Lua->Pop(1);
 	}
 
-	if (bEqual) {
+	if (bEqual)
+	{
 		if (bRecursiveNoError)
 		{
 			g_Lua->Pop(2); // Don't forget to cleanup
@@ -204,7 +209,8 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 	pRecursiveTableScope.push_back(g_Lua->ReferenceCreate());
 
 	int idx = 1;
-	while (g_Lua->Next(-2)) {
+	while (g_Lua->Next(-2))
+	{
 		// In bootil, you just don't give a child a name to indicate that it's sequentail. 
 		// so we need to support that.
 		bool isSequential = false; 
@@ -321,7 +327,7 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 	pRecursiveTableScope.pop_back();
 }
 
-LUA_FUNCTION_STATIC(util_TableToJSON)
+LUA_FUNCTION_STATIC(util_TableToJSON) // Our implementation is faster that Gmod's? Funny.
 {
 	LUA->CheckType(1, GarrysMod::Lua::Type::Table);
 	bool bPretty = LUA->GetBool(2);
@@ -342,21 +348,21 @@ LUA_FUNCTION_STATIC(util_TableToJSON)
 	return 1;
 }
 
-void CUtilModule::LuaInit(bool bServerInit)
+void CUtilModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
 
-	if (Util::PushTable("util"))
+	if (Util::PushTable(pLua, "util"))
 	{
-		Util::AddFunc(util_AsyncCompress, "AsyncCompress");
-		Util::AddFunc(util_AsyncDecompress, "AsyncDecompress");
-		Util::AddFunc(util_TableToJSON, "FancyTableToJSON");
-		Util::PopTable();
+		Util::AddFunc(pLua, util_AsyncCompress, "AsyncCompress");
+		Util::AddFunc(pLua, util_AsyncDecompress, "AsyncDecompress");
+		Util::AddFunc(pLua, util_TableToJSON, "FancyTableToJSON");
+		Util::PopTable(pLua);
 	}
 }
 
-void CUtilModule::LuaShutdown()
+void CUtilModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	bInvalidateEverything = true;
 	if (pCompressPool)
@@ -366,21 +372,20 @@ void CUtilModule::LuaShutdown()
 		pDecompressPool->ExecuteAll();
 
 	for (CompressEntry* entry : pFinishedEntries)
-	{
 		delete entry;
-	}
+
 	pFinishedEntries.clear();
 
-	if (Util::PushTable("util"))
+	if (Util::PushTable(pLua, "util"))
 	{
-		Util::RemoveField("AsyncCompress");
-		Util::RemoveField("AsyncDecompress");
-		Util::RemoveField("FancyTableToJSON");
-		Util::PopTable();
+		Util::RemoveField(pLua, "AsyncCompress");
+		Util::RemoveField(pLua, "AsyncDecompress");
+		Util::RemoveField(pLua, "FancyTableToJSON");
+		Util::PopTable(pLua);
 	}
 }
 
-void CUtilModule::Think(bool simulating)
+void CUtilModule::Think(GarrysMod::Lua::ILuaInterface* LUA, bool simulating)
 {
 	VPROF_BUDGET("HolyLib - CUtilModule::Think", VPROF_BUDGETGROUP_HOLYLIB);
 
@@ -393,9 +398,9 @@ void CUtilModule::Think(bool simulating)
 	pFinishMutex.Lock();
 	for(CompressEntry* entry : pFinishedEntries)
 	{
-		g_Lua->ReferencePush(entry->iCallback);
-			g_Lua->PushString((const char*)entry->buffer.GetBase(), entry->buffer.GetWritten());
-		g_Lua->CallFunctionProtected(1, 0, true);
+		LUA->ReferencePush(entry->iCallback);
+			LUA->PushString((const char*)entry->buffer.GetBase(), entry->buffer.GetWritten());
+		LUA->CallFunctionProtected(1, 0, true);
 		delete entry;
 	}
 	pFinishedEntries.clear();

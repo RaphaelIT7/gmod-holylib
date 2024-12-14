@@ -147,10 +147,10 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 				m_pModule->InitDetour(false);
 
 			if (status & LoadStatus_LuaInit)
-				m_pModule->LuaInit(false);
+				m_pModule->LuaInit(m_pModuleManager->GetLua(), false);
 
 			if (status & LoadStatus_LuaServerInit)
-				m_pModule->LuaInit(true);
+				m_pModule->LuaInit(m_pModuleManager->GetLua(), true);
 
 			if (status & LoadStatus_ServerActivate)
 				m_pModule->ServerActivate(g_pModuleManager.GetEdictList(), g_pModuleManager.GetEdictCount(), g_pModuleManager.GetClientMax());
@@ -160,7 +160,7 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 		} else {
 			int status = g_pModuleManager.GetStatus();
 			if (status & LoadStatus_LuaInit)
-				m_pModule->LuaShutdown();
+				m_pModule->LuaShutdown(m_pModuleManager->GetLua());
 
 			if (status & LoadStatus_Init)
 				Shutdown();
@@ -227,7 +227,7 @@ int g_pIDs = 0;
 IModuleWrapper* CModuleManager::RegisterModule(IModule* pModule)
 {
 	++g_pIDs;
-	CModule* module = new CModule;
+	CModule* module = new CModule(this);
 	m_pModules.push_back(module); // Add it first in case any ConVar callbacks get called in SetModule.
 	module->SetModule(pModule);
 	module->SetID(g_pIDs);
@@ -297,19 +297,26 @@ void CModuleManager::Init()
 	VCALL_ENABLED_MODULES(Init(& GetAppFactory(), &GetGameFactory()));
 }
 
-void CModuleManager::LuaInit(bool bServerInit)
+void CModuleManager::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		m_pStatus |= LoadStatus_LuaServerInit;
 	else
 		m_pStatus |= LoadStatus_LuaInit;
 
-	VCALL_ENABLED_MODULES(LuaInit(bServerInit));
+	m_pLua = pLua;
+
+	VCALL_ENABLED_MODULES(LuaInit(pLua, bServerInit));
 }
 
 void CModuleManager::LuaShutdown()
 {
-	VCALL_ENABLED_MODULES(LuaShutdown());
+	VCALL_ENABLED_MODULES(LuaShutdown(m_pLua));
+
+	m_pStatus = m_pStatus & ~LoadStatus_LuaInit;
+	m_pStatus = m_pStatus & ~LoadStatus_LuaServerInit;
+
+	m_pLua = NULL;
 }
 
 void CModuleManager::InitDetour(bool bPreServer)
@@ -324,7 +331,7 @@ void CModuleManager::InitDetour(bool bPreServer)
 
 void CModuleManager::Think(bool bSimulating)
 {
-	VCALL_ENABLED_MODULES(Think(bSimulating));
+	VCALL_ENABLED_MODULES(Think(m_pLua, bSimulating));
 }
 
 void CModuleManager::Shutdown()

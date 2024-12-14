@@ -34,17 +34,17 @@ public: // Then all functions
 	// Bind to Gmod's Get_Player function
 	// Will return the given CBasePlayer that is at the given Stack.
 	// If bError is false, it will simply return NULL instead on failure.
-	virtual CBasePlayer* Get_Player(int iStackPos, bool bError) = 0;
+	virtual CBasePlayer* Get_Player(GarrysMod::Lua::ILuaInterface* pLua, int iStackPos, bool bError) = 0;
 
 	// Bind to Gmod's Get_Entity function
 	// Will return the given CBaseClient that is at the given Stack.
 	//  If bError is false, it will simply return NULL instead on failure.
-	virtual CBaseEntity* Get_Entity(int iStackPos, bool bError) = 0;
+	virtual CBaseEntity* Get_Entity(GarrysMod::Lua::ILuaInterface* pLua, int iStackPos, bool bError) = 0;
 
 	// Bind to Gmod's Push_Entity function
 	// Will Push the given Entity onto the lua stack.
 	// Verify: If given NULL it will push the NULL entity?
-	virtual void Push_Entity(CBaseEntity* pEntity) = 0;
+	virtual void Push_Entity(GarrysMod::Lua::ILuaInterface* pLua, CBaseEntity* pEntity) = 0;
 
 	// Returns the CBaseEntity from the given editct.
 	// Verify: This is used since some funny stuff happens if you try to do it yourself?

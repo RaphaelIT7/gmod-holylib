@@ -52,7 +52,7 @@ void Lua::Init(GarrysMod::Lua::ILuaInterface* LUA)
 {
 	g_Lua = LUA;
 
-	g_pModuleManager.LuaInit(false);
+	g_pModuleManager.LuaInit(g_Lua, false);
 }
 
 void Lua::ServerInit()
@@ -62,7 +62,7 @@ void Lua::ServerInit()
 		return;
 	}
 
-	g_pModuleManager.LuaInit(true);
+	g_pModuleManager.LuaInit(g_Lua, true);
 }
 
 void Lua::Shutdown()

@@ -9,8 +9,8 @@
 class CEntListModule : public IModule
 {
 public:
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void OnEdictFreed(const edict_t* pEdict) OVERRIDE;
 	virtual void OnEdictAllocated(edict_t* pEdict) OVERRIDE;
 	virtual const char* Name() { return "entitylist"; };
@@ -108,7 +108,7 @@ LUA_FUNCTION_STATIC(EntityList_SetTable)
 	LUA->PushNil();
 	while (LUA->Next(-2))
 	{
-		CBaseEntity* ent = Util::Get_Entity(-1, true);
+		CBaseEntity* ent = Util::Get_Entity(LUA, -1, true);
 		edict_t* edict = ent->edict();
 		if (!edict) // Not a networkable entity?
 		{
@@ -136,7 +136,7 @@ LUA_FUNCTION_STATIC(EntityList_AddTable)
 	LUA->PushNil();
 	while (LUA->Next(-2))
 	{
-		CBaseEntity* ent = Util::Get_Entity(-1, true);
+		CBaseEntity* ent = Util::Get_Entity(LUA, -1, true);
 		edict_t* edict = ent->edict();
 		if (!edict) // Not a networkable entity?
 		{
@@ -171,7 +171,7 @@ LUA_FUNCTION_STATIC(EntityList_RemoveTable)
 	LUA->PushNil();
 	while (LUA->Next(-2))
 	{
-		CBaseEntity* ent = Util::Get_Entity(-1, true);
+		CBaseEntity* ent = Util::Get_Entity(LUA, -1, true);
 		edict_t* edict = ent->edict();
 		if (!edict) // Not a networkable entity?
 		{
@@ -206,7 +206,7 @@ LUA_FUNCTION_STATIC(EntityList_RemoveTable)
 LUA_FUNCTION_STATIC(EntityList_Add)
 {
 	EntityList* data = Get_EntityList(1, true);
-	CBaseEntity* ent = Util::Get_Entity(2, true);
+	CBaseEntity* ent = Util::Get_Entity(LUA, 2, true);
 	edict_t* edict = ent->edict();
 
 	if (!edict)
@@ -228,7 +228,7 @@ LUA_FUNCTION_STATIC(EntityList_Add)
 LUA_FUNCTION_STATIC(EntityList_Remove)
 {
 	EntityList* data = Get_EntityList(1, true);
-	CBaseEntity* ent = Util::Get_Entity(2, true);
+	CBaseEntity* ent = Util::Get_Entity(LUA, 2, true);
 	edict_t* edict = ent->edict();
 
 	if (!edict)
@@ -261,7 +261,7 @@ LUA_FUNCTION_STATIC(CreateEntityList)
 
 static bool bFirstInit = true;
 static std::unordered_set<edict_t*> pQueriedGlobalEdicts;
-void UpdateGlobalEntityList() // Should always be called before using the g_pGlobalEntityList. 
+void UpdateGlobalEntityList(GarrysMod::Lua::ILuaInterface* pLua) // Should always be called before using the g_pGlobalEntityList. 
 {
 	if (pQueriedGlobalEdicts.size() > 0)
 	{
@@ -282,7 +282,7 @@ void UpdateGlobalEntityList() // Should always be called before using the g_pGlo
 			if (!ent)
 				continue;
 
-			Util::Push_Entity(ent);
+			Util::Push_Entity(pLua, ent);
 			g_pGlobalEntityList.pEntReferences[ent] = g_Lua->ReferenceCreate();
 			g_pGlobalEntityList.pEntities.push_back(ent);
 			g_pGlobalEntityList.pEdictHash[edict->m_EdictIndex] = ent;
@@ -293,7 +293,7 @@ void UpdateGlobalEntityList() // Should always be called before using the g_pGlo
 
 LUA_FUNCTION_STATIC(GetGlobalEntityList)
 {
-	UpdateGlobalEntityList();
+	UpdateGlobalEntityList(LUA);
 	LUA->PreCreateTable(g_pGlobalEntityList.pEntities.size(), 0);
 		int idx = 0;
 		for (auto& [_, ref] : g_pGlobalEntityList.pEntReferences)
@@ -327,34 +327,34 @@ void CEntListModule::OnEdictAllocated(edict_t* edict)
 	pQueriedGlobalEdicts.insert(edict); // The CBaseEntity wasn't linked yet to the edict_t. so we need to add it later.
 }
 
-void CEntListModule::LuaInit(bool bServerInit)
+void CEntListModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
 
-	EntityList_TypeID = g_Lua->CreateMetaTable("EntityList");
-		Util::AddFunc(EntityList__tostring, "__tostring");
-		Util::AddFunc(EntityList__index, "__index");
-		Util::AddFunc(EntityList__gc, "__gc");
-		Util::AddFunc(EntityList_GetTable, "GetTable");
-		Util::AddFunc(EntityList_SetTable, "SetTable");
-		Util::AddFunc(EntityList_AddTable, "AddTable");
-		Util::AddFunc(EntityList_RemoveTable, "RemoveTable");
-		Util::AddFunc(EntityList_Add, "Add");
-		Util::AddFunc(EntityList_Remove, "Remove");
-	g_Lua->Pop(1);
+	EntityList_TypeID = pLua->CreateMetaTable("EntityList");
+		Util::AddFunc(pLua, EntityList__tostring, "__tostring");
+		Util::AddFunc(pLua, EntityList__index, "__index");
+		Util::AddFunc(pLua, EntityList__gc, "__gc");
+		Util::AddFunc(pLua, EntityList_GetTable, "GetTable");
+		Util::AddFunc(pLua, EntityList_SetTable, "SetTable");
+		Util::AddFunc(pLua, EntityList_AddTable, "AddTable");
+		Util::AddFunc(pLua, EntityList_RemoveTable, "RemoveTable");
+		Util::AddFunc(pLua, EntityList_Add, "Add");
+		Util::AddFunc(pLua, EntityList_Remove, "Remove");
+	pLua->Pop(1);
 
-	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-		Util::AddFunc(CreateEntityList, "CreateEntityList");
-		Util::AddFunc(GetGlobalEntityList, "GetGlobalEntityList");
-	g_Lua->Pop(1);
+	pLua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
+		Util::AddFunc(pLua, CreateEntityList, "CreateEntityList");
+		Util::AddFunc(pLua, GetGlobalEntityList, "GetGlobalEntityList");
+	pLua->Pop(1);
 }
 
-void CEntListModule::LuaShutdown()
+void CEntListModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-		Util::RemoveField("CreateEntityList");
-		Util::RemoveField("GetGlobalEntityList");
-	g_Lua->Pop(1);
+	pLua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
+		Util::RemoveField(pLua, "CreateEntityList");
+		Util::RemoveField(pLua, "GetGlobalEntityList");
+	pLua->Pop(1);
 	g_pGlobalEntityList.Clear();
 }

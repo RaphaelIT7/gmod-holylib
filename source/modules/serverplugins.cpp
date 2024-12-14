@@ -10,8 +10,8 @@ class CServerPluginLibModule : public IModule
 {
 public:
 	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "serverplugin"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
@@ -125,7 +125,7 @@ void CServerPluginLibModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* g
 	Detour::CheckValue("get interface", "g_pServerPluginHandler", g_pServerPluginHandler != NULL);
 }
 
-void CServerPluginLibModule::LuaInit(bool bServerInit)
+void CServerPluginLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
@@ -140,7 +140,7 @@ void CServerPluginLibModule::LuaInit(bool bServerInit)
 	}
 }
 
-void CServerPluginLibModule::LuaShutdown() // ToDo: Change this to be called when the Lua Interface is actually shutdown -> Lua::Kill
+void CServerPluginLibModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) // ToDo: Change this to be called when the Lua Interface is actually shutdown -> Lua::Kill
 {
 	FORALL_PLUGINS
 	{

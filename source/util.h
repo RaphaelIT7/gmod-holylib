@@ -21,6 +21,7 @@ extern IVEngineServer* engine;
 #define V_DestroyThreadPool DestroyThreadPool
 #endif
 
+// Try to not use it. We want to move away from it.
 extern GarrysMod::Lua::ILuaInterface* g_Lua;
 
 struct edict_t;
@@ -37,69 +38,69 @@ class IGameEventManager2;
 class IServer;
 namespace Util
 {
-	inline void StartTable() {
-		g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-		g_Lua->CreateTable();
+	inline void StartTable(GarrysMod::Lua::ILuaInterface* pLua) {
+		pLua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
+		pLua->CreateTable();
 	}
 
-	inline void AddFunc(GarrysMod::Lua::CFunc Func, const char* Name) {
-		g_Lua->PushString(Name);
-		g_Lua->PushCFunction(Func);
-		g_Lua->RawSet(-3);
+	inline void AddFunc(GarrysMod::Lua::ILuaInterface* pLua, GarrysMod::Lua::CFunc Func, const char* Name) {
+		pLua->PushString(Name);
+		pLua->PushCFunction(Func);
+		pLua->RawSet(-3);
 	}
 
-	inline void AddValue(double value, const char* Name) {
-		g_Lua->PushString(Name);
-		g_Lua->PushNumber(value);
-		g_Lua->RawSet(-3);
+	inline void AddValue(GarrysMod::Lua::ILuaInterface* pLua, double value, const char* Name) {
+		pLua->PushString(Name);
+		pLua->PushNumber(value);
+		pLua->RawSet(-3);
 	}
 
-	inline void FinishTable(const char* Name) {
-		g_Lua->SetField(-2, Name);
-		g_Lua->Pop();
+	inline void FinishTable(GarrysMod::Lua::ILuaInterface* pLua, const char* Name) {
+		pLua->SetField(-2, Name);
+		pLua->Pop();
 	}
 
-	inline void NukeTable(const char* pName)
+	inline void NukeTable(GarrysMod::Lua::ILuaInterface* pLua, const char* pName)
 	{
-		g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-		g_Lua->PushNil();
-		g_Lua->SetField(-2, pName);
-		g_Lua->Pop(1);
+		pLua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
+		pLua->PushNil();
+		pLua->SetField(-2, pName);
+		pLua->Pop(1);
 	}
 
-	inline bool PushTable(const char* pName)
+	inline bool PushTable(GarrysMod::Lua::ILuaInterface* pLua, const char* pName)
 	{
-		g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-		g_Lua->GetField(-1, pName);
-		g_Lua->Remove(-2);
-		if (g_Lua->IsType(-1, GarrysMod::Lua::Type::Table))
+		pLua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
+		pLua->GetField(-1, pName);
+		pLua->Remove(-2);
+		if (pLua->IsType(-1, GarrysMod::Lua::Type::Table))
 			return true;
 
-		g_Lua->Pop(1);
+		pLua->Pop(1);
 		return false;
 	}
 
-	inline void PopTable()
+	inline void PopTable(GarrysMod::Lua::ILuaInterface* pLua)
 	{
-		g_Lua->Pop(1);
+		pLua->Pop(1);
 	}
 
-	inline void RemoveField(const char* pName)
+	inline void RemoveField(GarrysMod::Lua::ILuaInterface* pLua, const char* pName)
 	{
-		g_Lua->PushNil();
-		g_Lua->SetField(-2, pName);
+		pLua->PushNil();
+		pLua->SetField(-2, pName);
 	}
 
-	inline bool HasField(const char* pName, int iType)
+	inline bool HasField(GarrysMod::Lua::ILuaInterface* pLua, const char* pName, int iType)
 	{
-		g_Lua->GetField(-1, pName);
-		return g_Lua->IsType(-1, iType);
+		pLua->GetField(-1, pName);
+		return pLua->IsType(-1, iType);
 	}
 
 	// Gmod's functions:
-	extern CBasePlayer* Get_Player(int iStackPos, bool unknown);
-	extern CBaseEntity* Get_Entity(int iStackPos, bool unknown);
-	extern void Push_Entity(CBaseEntity* pEnt);
+	extern CBasePlayer* Get_Player(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool unknown);
+	extern CBaseEntity* Get_Entity(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool unknown);
+	extern void Push_Entity(GarrysMod::Lua::ILuaInterface* LUA, CBaseEntity* pEnt);
 	extern CBaseEntity* GetCBaseEntityFromEdict(edict_t* edict);
 
 	extern void AddDetour(); // We load Gmod's functions in there.
@@ -285,4 +286,4 @@ extern EntityList g_pGlobalEntityList;
 
 extern bool Is_EntityList(int iStackPos);
 extern EntityList* Get_EntityList(int iStackPos, bool bError);
-extern void UpdateGlobalEntityList();
+extern void UpdateGlobalEntityList(GarrysMod::Lua::ILuaInterface* pLua);

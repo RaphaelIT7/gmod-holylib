@@ -12,57 +12,64 @@
 #include "httplib.h"
 #endif
 
+// Try not to use it. We want to move away from it.
 GarrysMod::Lua::ILuaInterface* g_Lua;
+
 IVEngineServer* engine;
 CGlobalEntityList* Util::entitylist = NULL;
 CUserMessages* Util::pUserMessages;
 
-static Symbols::Get_Player func_GetPlayer;
-static Symbols::Push_Entity func_PushEntity;
-static Symbols::Get_Entity func_GetEntity;
-CBasePlayer* Util::Get_Player(int iStackPos, bool bError) // bError = error if not a valid player
+CBasePlayer* Util::Get_Player(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError) // bError = error if not a valid player
 {
-	if (func_GetPlayer)
+	CBaseEntity* pEntity = LUA->GetUserType<CBaseEntity>(iStackPos, GarrysMod::Lua::Type::Entity);
+	if (!pEntity)
 	{
-		CBasePlayer* ply = func_GetPlayer(iStackPos, bError);
-		if (!ply && bError)
-			g_Lua->ThrowError("Tried to use a NULL Entity!");
-		
-		return ply;
+		if (bError)
+			LUA->ThrowError("Tried to use a NULL Entity!");
+
+		return NULL;
 	}
 
-	return NULL;
+	if (!pEntity->IsPlayer())
+	{
+		if (bError)
+			LUA->ThrowError("Player entity is NULL or not a player (!?)");
+
+		return NULL;
+	}
+
+	return (CBasePlayer*)pEntity;
 }
 
 IModuleWrapper* Util::pEntityList;
-void Util::Push_Entity(CBaseEntity* pEnt)
+void Util::Push_Entity(GarrysMod::Lua::ILuaInterface* LUA, CBaseEntity* pEnt)
 {
 	if (Util::pEntityList->IsEnabled()) // Push_Entity is quiet slow since it has so much overhead.
 	{
 		auto it = g_pGlobalEntityList.pEntReferences.find(pEnt);
 		if (it != g_pGlobalEntityList.pEntReferences.end()) // It should never happen that we don't have a reference... but just in case.
 		{
-			g_Lua->ReferencePush(it->second);
+			LUA->ReferencePush(it->second);
 			return;
 		}
 	}
 
-	if (func_PushEntity)
-		func_PushEntity(pEnt);
-}
-
-CBaseEntity* Util::Get_Entity(int iStackPos, bool bError)
-{
-	if (func_GetEntity)
+	if (!pEnt)
 	{
-		CBaseEntity* ent = func_GetEntity(iStackPos, bError);
-		if (!ent && bError)
-			g_Lua->ThrowError("Tried to use a NULL Entity!");
-		
-		return ent;
+		LUA->GetField(GarrysMod::Lua::SPECIAL_GLOB, "NULL"); // Pushing NULL onto the stack. Does this really work? :D
+		return;
 	}
 
-	return NULL;
+	pEnt->PushEntity(); // ToDo: Change this since this internally uses g_Lua
+}
+
+CBaseEntity* Util::Get_Entity(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError)
+{
+	CBaseEntity* ent = LUA->GetUserType<CBaseEntity>(iStackPos, GarrysMod::Lua::Type::Entity);
+	if (!ent && bError)
+		LUA->ThrowError("Tried to use a NULL Entity!");
+		
+	return ent;
 }
 
 IServer* Util::server;
@@ -215,17 +222,13 @@ void Util::AddDetour()
 	 * Idea: Fk menu, if there is a server realm, we'll use it. If not, we wait for one to start.
 	 *		We also could introduce a Lua Flag so that modules can register for Menu/Client realm if wanted.
 	 *		But I won't really support client. At best only menu.
+	 * 
+	 * New Idea: I'm updating everything. The goal is to support any realm & even multiple ILuaInterfaces at the same time.
 	 */
 
 #ifndef SYSTEM_WINDOWS
-	func_GetPlayer = (Symbols::Get_Player)Detour::GetFunction(server_loader.GetModule(), Symbols::Get_PlayerSym);
-	func_PushEntity = (Symbols::Push_Entity)Detour::GetFunction(server_loader.GetModule(), Symbols::Push_EntitySym);
-	func_GetEntity = (Symbols::Get_Entity)Detour::GetFunction(server_loader.GetModule(), Symbols::Get_EntitySym);
 	func_CBaseEntity_CalcAbsolutePosition = (Symbols::CBaseEntity_CalcAbsolutePosition)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseEntity_CalcAbsolutePositionSym);
 	Detour::CheckFunction((void*)func_CBaseEntity_CalcAbsolutePosition, "CBaseEntity::CalcAbsolutePosition");
-	Detour::CheckFunction((void*)func_GetPlayer, "Get_Player");
-	Detour::CheckFunction((void*)func_PushEntity, "Push_Entity");
-	Detour::CheckFunction((void*)func_GetEntity, "Get_Entity");
 
 	func_CCollisionProperty_MarkSurroundingBoundsDirty = (Symbols::CCollisionProperty_MarkSurroundingBoundsDirty)Detour::GetFunction(server_loader.GetModule(), Symbols::CCollisionProperty_MarkSurroundingBoundsDirtySym);
 	Detour::CheckFunction((void*)func_CCollisionProperty_MarkSurroundingBoundsDirty, "CCollisionProperty::MarkSurroundingBoundsDirty");

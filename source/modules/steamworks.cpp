@@ -9,8 +9,8 @@
 class CSteamWorksModule : public IModule
 {
 public:
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "steamworks"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
@@ -112,31 +112,32 @@ LUA_FUNCTION_STATIC(steamworks_ForceAuthenticate)
 	return 1;
 }
 
-void CSteamWorksModule::LuaInit(bool bServerInit)
+void CSteamWorksModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
 
-	if (Util::PushTable("steamworks"))
+	if (Util::PushTable(pLua, "steamworks"))
 	{
-		Util::AddFunc(steamworks_Shutdown, "Shutdown");
-		Util::AddFunc(steamworks_Activate, "Activate");
-		Util::AddFunc(steamworks_IsConnected, "IsConnected");
-		Util::AddFunc(steamworks_ForceActivate, "ForceActivate");
-		Util::AddFunc(steamworks_ForceAuthenticate, "ForceAuthenticate");
-		Util::PopTable();
+		Util::AddFunc(pLua, steamworks_Shutdown, "Shutdown");
+		Util::AddFunc(pLua, steamworks_Activate, "Activate");
+		Util::AddFunc(pLua, steamworks_IsConnected, "IsConnected");
+		Util::AddFunc(pLua, steamworks_ForceActivate, "ForceActivate");
+		Util::AddFunc(pLua, steamworks_ForceAuthenticate, "ForceAuthenticate");
+		Util::PopTable(pLua);
 	}
 }
 
-void CSteamWorksModule::LuaShutdown()
+void CSteamWorksModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	if (Util::PushTable("steamworks"))
+	if (Util::PushTable(pLua, "steamworks"))
 	{
-		Util::RemoveField("Shutdown");
-		Util::RemoveField("Activate");
-		Util::RemoveField("IsConnected");
-		Util::RemoveField("ForceActivate");
-		Util::PopTable();
+		Util::RemoveField(pLua, "Shutdown");
+		Util::RemoveField(pLua, "Activate");
+		Util::RemoveField(pLua, "IsConnected");
+		Util::RemoveField(pLua, "ForceActivate");
+		Util::RemoveField(pLua, "ForceAuthenticate");
+		Util::PopTable(pLua);
 	}
 }
 

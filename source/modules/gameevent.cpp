@@ -18,8 +18,8 @@ class CGameeventLibModule : public IModule
 {
 public:
 	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "gameevent"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
@@ -99,7 +99,7 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 {
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Entity))
 	{
-		CBasePlayer* pEntity = Util::Get_Player(1, false);
+		CBasePlayer* pEntity = Util::Get_Player(LUA, 1, false);
 		if (!pEntity)
 			LUA->ThrowError("Tried to use a NULL Player!\n");
 
@@ -138,7 +138,7 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 			if (!ent)
 				continue;
 
-			Util::Push_Entity(ent);
+			Util::Push_Entity(LUA, ent);
 			LUA->CreateTable();
 
 			CBaseClient* pClient = Util::GetClientByIndex(iClient);
@@ -174,7 +174,7 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 
 LUA_FUNCTION_STATIC(gameevent_RemoveClientListener)
 {
-	CBasePlayer* pEntity = Util::Get_Player(1, false);
+	CBasePlayer* pEntity = Util::Get_Player(g_Lua, 1, false);
 	if (!pEntity)
 		LUA->ThrowError("Tried to use a NULL Player!\n");
 
@@ -224,7 +224,7 @@ LUA_FUNCTION_STATIC(gameevent_AddClientListener)
 		return 0;
 	}
 
-	CBasePlayer* pEntity = Util::Get_Player(1, true);
+	CBasePlayer* pEntity = Util::Get_Player(g_Lua, 1, true);
 	if (!pEntity)
 		LUA->ThrowError("Tried to use a NULL Player!\n");
 
@@ -291,7 +291,7 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 	int iReference = g_Lua->ReferenceCreate();
 	if (Lua::PushHook("HolyLib:PreProcessGameEvent"))
 	{
-		Util::Push_Entity((CBaseEntity*)pPlayer);
+		Util::Push_Entity(g_Lua, (CBaseEntity*)pPlayer);
 		g_Lua->ReferencePush(iReference);
 		g_Lua->PushNumber(client->GetPlayerSlot() + 1);
 		if (g_Lua->CallFunctionProtected(4, 1, false))
@@ -310,7 +310,7 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 
 	if (Lua::PushHook("HolyLib:PostProcessGameEvent"))
 	{
-		Util::Push_Entity((CBaseEntity*)pPlayer);
+		Util::Push_Entity(g_Lua, (CBaseEntity*)pPlayer);
 		g_Lua->ReferencePush(iReference);
 		g_Lua->PushNumber(client->GetPlayerSlot() + 1);
 		g_Lua->CallFunctionProtected(4, 0, false);
@@ -514,7 +514,7 @@ LUA_FUNCTION_STATIC(gameevent_FireEvent)
 LUA_FUNCTION_STATIC(gameevent_FireClientEvent)
 {
 	IGameEvent* pEvent = Get_IGameEvent(1, true);
-	CBasePlayer* pPlayer = Util::Get_Player(2, true);
+	CBasePlayer* pPlayer = Util::Get_Player(LUA, 2, true);
 	if (!pPlayer)
 		LUA->ArgError(2, "Tried to use a NULL player!");
 
@@ -565,48 +565,48 @@ void CGameeventLibModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* game
 	Detour::CheckValue("get interface", "CGameEventManager", pManager != NULL);
 }
 
-void CGameeventLibModule::LuaInit(bool bServerInit)
+void CGameeventLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
 
-	IGameEvent_TypeID = g_Lua->CreateMetaTable("IGameEvent");
-		Util::AddFunc(IGameEvent__tostring, "__tostring");
-		Util::AddFunc(IGameEvent__index, "__index");
-		Util::AddFunc(IGameEvent__gc, "__gc");
-		Util::AddFunc(IGameEvent_IsValid, "IsValid");
-		Util::AddFunc(IGameEvent_IsEmpty, "IsEmpty");
-		Util::AddFunc(IGameEvent_IsReliable, "IsReliable");
-		Util::AddFunc(IGameEvent_IsLocal, "IsLocal");
-		Util::AddFunc(IGameEvent_GetName, "GetName");
-		Util::AddFunc(IGameEvent_GetBool, "GetBool");
-		Util::AddFunc(IGameEvent_GetInt, "GetInt");
-		Util::AddFunc(IGameEvent_GetFloat, "GetFloat");
-		Util::AddFunc(IGameEvent_GetString, "GetString");
-		Util::AddFunc(IGameEvent_SetBool, "SetBool");
-		Util::AddFunc(IGameEvent_SetInt, "SetInt");
-		Util::AddFunc(IGameEvent_SetFloat, "SetFloat");
-		Util::AddFunc(IGameEvent_SetString, "SetString");
-	g_Lua->Pop(1);
+	IGameEvent_TypeID = pLua->CreateMetaTable("IGameEvent");
+		Util::AddFunc(pLua, IGameEvent__tostring, "__tostring");
+		Util::AddFunc(pLua, IGameEvent__index, "__index");
+		Util::AddFunc(pLua, IGameEvent__gc, "__gc");
+		Util::AddFunc(pLua, IGameEvent_IsValid, "IsValid");
+		Util::AddFunc(pLua, IGameEvent_IsEmpty, "IsEmpty");
+		Util::AddFunc(pLua, IGameEvent_IsReliable, "IsReliable");
+		Util::AddFunc(pLua, IGameEvent_IsLocal, "IsLocal");
+		Util::AddFunc(pLua, IGameEvent_GetName, "GetName");
+		Util::AddFunc(pLua, IGameEvent_GetBool, "GetBool");
+		Util::AddFunc(pLua, IGameEvent_GetInt, "GetInt");
+		Util::AddFunc(pLua, IGameEvent_GetFloat, "GetFloat");
+		Util::AddFunc(pLua, IGameEvent_GetString, "GetString");
+		Util::AddFunc(pLua, IGameEvent_SetBool, "SetBool");
+		Util::AddFunc(pLua, IGameEvent_SetInt, "SetInt");
+		Util::AddFunc(pLua, IGameEvent_SetFloat, "SetFloat");
+		Util::AddFunc(pLua, IGameEvent_SetString, "SetString");
+	pLua->Pop(1);
 
-	if (Util::PushTable("gameevent"))
+	if (Util::PushTable(pLua, "gameevent"))
 	{
-		Util::AddFunc(gameevent_GetListeners, "GetListeners");
-		Util::AddFunc(gameevent_RemoveListener, "RemoveListener");
+		Util::AddFunc(pLua, gameevent_GetListeners, "GetListeners");
+		Util::AddFunc(pLua, gameevent_RemoveListener, "RemoveListener");
 
-		Util::AddFunc(gameevent_GetClientListeners, "GetClientListeners");
-		Util::AddFunc(gameevent_RemoveClientListener, "RemoveClientListener");
-		Util::AddFunc(gameevent_AddClientListener, "AddClientListener");
+		Util::AddFunc(pLua, gameevent_GetClientListeners, "GetClientListeners");
+		Util::AddFunc(pLua, gameevent_RemoveClientListener, "RemoveClientListener");
+		Util::AddFunc(pLua, gameevent_AddClientListener, "AddClientListener");
 
-		Util::AddFunc(gameevent_Create, "Create");
-		Util::AddFunc(gameevent_FireEvent, "FireEvent");
-		Util::AddFunc(gameevent_FireClientEvent, "FireClientEvent");
-		Util::AddFunc(gameevent_DuplicateEvent, "DuplicateEvent");
-		Util::AddFunc(gameevent_BlockCreation, "BlockCreation");
+		Util::AddFunc(pLua, gameevent_Create, "Create");
+		Util::AddFunc(pLua, gameevent_FireEvent, "FireEvent");
+		Util::AddFunc(pLua, gameevent_FireClientEvent, "FireClientEvent");
+		Util::AddFunc(pLua, gameevent_DuplicateEvent, "DuplicateEvent");
+		Util::AddFunc(pLua, gameevent_BlockCreation, "BlockCreation");
 
-		g_Lua->GetField(-1, "Listen");
-		g_Lua->PushString("vote_cast"); // Yes this is a valid gameevent.
-		g_Lua->CallFunctionProtected(1, 0, true);
+		pLua->GetField(-1, "Listen");
+		pLua->PushString("vote_cast"); // Yes this is a valid gameevent.
+		pLua->CallFunctionProtected(1, 0, true);
 		CGameEventDescriptor* descriptor = pManager->GetEventDescriptor("vote_cast");
 		FOR_EACH_VEC(descriptor->listeners, i)
 		{
@@ -617,20 +617,20 @@ void CGameeventLibModule::LuaInit(bool bServerInit)
 		if (!pLuaGameEventListener)
 			Warning("holylib: Failed to find pLuaGameEventListener!\n");
 	}
-	Util::PopTable();
+	Util::PopTable(pLua);
 }
 
-void CGameeventLibModule::LuaShutdown()
+void CGameeventLibModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	if (Util::PushTable("gameevent"))
+	if (Util::PushTable(pLua, "gameevent"))
 	{
-		Util::RemoveField("GetListeners");
-		Util::RemoveField("RemoveListener");
-		Util::RemoveField("GetClientListeners");
-		Util::RemoveField("RemoveClientListener");
-		Util::RemoveField("AddClientListener");
+		Util::RemoveField(pLua, "GetListeners");
+		Util::RemoveField(pLua, "RemoveListener");
+		Util::RemoveField(pLua, "GetClientListeners");
+		Util::RemoveField(pLua, "RemoveClientListener");
+		Util::RemoveField(pLua, "AddClientListener");
+		Util::PopTable(pLua);
 	}
-	Util::PopTable();
 }
 
 void CGameeventLibModule::InitDetour(bool bPreServer)

@@ -8,8 +8,8 @@
 class CNetModule : public IModule
 {
 public:
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "net"; };
 	virtual int Compatibility() { return LINUX32; };
@@ -50,26 +50,26 @@ LUA_FUNCTION_STATIC(net_ReadSeek)
 	return 0;
 }
 
-void CNetModule::LuaInit(bool bServerInit)
+void CNetModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
 
-	if (Util::PushTable("net"))
+	if (Util::PushTable(pLua, "net"))
 	{
-		Util::AddFunc(net_WriteSeek, "WriteSeek");
-		Util::AddFunc(net_ReadSeek, "ReadSeek");
-		Util::PopTable();
+		Util::AddFunc(pLua, net_WriteSeek, "WriteSeek");
+		Util::AddFunc(pLua, net_ReadSeek, "ReadSeek");
+		Util::PopTable(pLua);
 	}
 }
 
-void CNetModule::LuaShutdown()
+void CNetModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	if (Util::PushTable("net"))
+	if (Util::PushTable(pLua, "net"))
 	{
-		Util::RemoveField("WriteSeek");
-		Util::RemoveField("ReadSeek");
-		Util::PopTable();
+		Util::RemoveField(pLua, "WriteSeek");
+		Util::RemoveField(pLua, "ReadSeek");
+		Util::PopTable(pLua);
 	}
 }
 

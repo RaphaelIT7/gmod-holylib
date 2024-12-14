@@ -5,7 +5,7 @@ PROJECT_GENERATOR_VERSION = 3
 newoption({
 	trigger = "gmcommon",
 	description = "Sets the path to the garrysmod_common (https://github.com/danielga/garrysmod_common) directory",
-	default = "../garrysmod_common"
+	default = "../../../fork-garrysmod_common"
 })
 
 local gmcommon = assert(_OPTIONS.gmcommon or os.getenv("GARRYSMOD_COMMON"),

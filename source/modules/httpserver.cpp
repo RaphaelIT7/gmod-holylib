@@ -9,9 +9,9 @@
 class CHTTPServerModule : public IModule
 {
 public:
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
-	virtual void Think(bool bSimulating) OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
+	virtual void Think(GarrysMod::Lua::ILuaInterface* LUA, bool bSimulating) OVERRIDE;
 	virtual const char* Name() { return "httpserver"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 	virtual bool IsEnabledByDefault() { return false; };
@@ -720,84 +720,84 @@ LUA_FUNCTION_STATIC(httpserver_Destroy)
 	return 0;
 }
 
-void CHTTPServerModule::LuaInit(bool bServerInit)
+void CHTTPServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
 
-	HttpServer_TypeID = g_Lua->CreateMetaTable("HttpServer");
-		Util::AddFunc(HttpServer__tostring, "__tostring");
-		Util::AddFunc(HttpServer__index, "__index");
-		Util::AddFunc(HttpServer__newindex, "__newindex");
-		Util::AddFunc(HttpServer_GetTable, "GetTable");
+	HttpServer_TypeID = pLua->CreateMetaTable("HttpServer");
+		Util::AddFunc(pLua, HttpServer__tostring, "__tostring");
+		Util::AddFunc(pLua, HttpServer__index, "__index");
+		Util::AddFunc(pLua, HttpServer__newindex, "__newindex");
+		Util::AddFunc(pLua, HttpServer_GetTable, "GetTable");
 
-		Util::AddFunc(HttpServer_Think, "Think");
-		Util::AddFunc(HttpServer_Start, "Start");
-		Util::AddFunc(HttpServer_Stop, "Stop");
+		Util::AddFunc(pLua, HttpServer_Think, "Think");
+		Util::AddFunc(pLua, HttpServer_Start, "Start");
+		Util::AddFunc(pLua, HttpServer_Stop, "Stop");
 
-		Util::AddFunc(HttpServer_IsRunning, "IsRunning");
-		Util::AddFunc(HttpServer_SetTCPnodelay, "SetTCPnodelay");
-		Util::AddFunc(HttpServer_SetReadTimeout, "SetReadTimeout");
-		Util::AddFunc(HttpServer_SetWriteTimeout, "SetWriteTimeout");
-		Util::AddFunc(HttpServer_SetPayloadMaxLength, "SetPayloadMaxLength");
-		Util::AddFunc(HttpServer_SetKeepAliveTimeout, "SetKeepAliveTimeout");
-		Util::AddFunc(HttpServer_SetKeepAliveMaxCount, "SetKeepAliveMaxCount");
-		Util::AddFunc(HttpServer_SetThreadSleep, "SetThreadSleep");
+		Util::AddFunc(pLua, HttpServer_IsRunning, "IsRunning");
+		Util::AddFunc(pLua, HttpServer_SetTCPnodelay, "SetTCPnodelay");
+		Util::AddFunc(pLua, HttpServer_SetReadTimeout, "SetReadTimeout");
+		Util::AddFunc(pLua, HttpServer_SetWriteTimeout, "SetWriteTimeout");
+		Util::AddFunc(pLua, HttpServer_SetPayloadMaxLength, "SetPayloadMaxLength");
+		Util::AddFunc(pLua, HttpServer_SetKeepAliveTimeout, "SetKeepAliveTimeout");
+		Util::AddFunc(pLua, HttpServer_SetKeepAliveMaxCount, "SetKeepAliveMaxCount");
+		Util::AddFunc(pLua, HttpServer_SetThreadSleep, "SetThreadSleep");
 
-		Util::AddFunc(HttpServer_SetMountPoint, "SetMountPoint");
-		Util::AddFunc(HttpServer_RemoveMountPoint, "RemoveMountPoint");
+		Util::AddFunc(pLua, HttpServer_SetMountPoint, "SetMountPoint");
+		Util::AddFunc(pLua, HttpServer_RemoveMountPoint, "RemoveMountPoint");
 
-		Util::AddFunc(HttpServer_Get, "Get");
-		Util::AddFunc(HttpServer_Post, "Post");
-		Util::AddFunc(HttpServer_Put, "Put");
-		Util::AddFunc(HttpServer_Patch, "Patch");
-		Util::AddFunc(HttpServer_Delete, "Delete");
-		Util::AddFunc(HttpServer_Options, "Options");
-	g_Lua->Pop(1);
+		Util::AddFunc(pLua, HttpServer_Get, "Get");
+		Util::AddFunc(pLua, HttpServer_Post, "Post");
+		Util::AddFunc(pLua, HttpServer_Put, "Put");
+		Util::AddFunc(pLua, HttpServer_Patch, "Patch");
+		Util::AddFunc(pLua, HttpServer_Delete, "Delete");
+		Util::AddFunc(pLua, HttpServer_Options, "Options");
+	pLua->Pop(1);
 
-	HttpResponse_TypeID = g_Lua->CreateMetaTable("HttpResponse");
-		Util::AddFunc(HttpResponse__tostring, "__tostring");
-		Util::AddFunc(HttpResponse__index, "__index");
-		Util::AddFunc(HttpResponse__newindex, "__newindex");
-		Util::AddFunc(HttpResponse_GetTable, "GetTable");
+	HttpResponse_TypeID = pLua->CreateMetaTable("HttpResponse");
+		Util::AddFunc(pLua, HttpResponse__tostring, "__tostring");
+		Util::AddFunc(pLua, HttpResponse__index, "__index");
+		Util::AddFunc(pLua, HttpResponse__newindex, "__newindex");
+		Util::AddFunc(pLua, HttpResponse_GetTable, "GetTable");
 
-		Util::AddFunc(HttpResponse_SetContent, "SetContent");
-		Util::AddFunc(HttpResponse_SetHeader, "SetHeader");
-		Util::AddFunc(HttpResponse_SetRedirect, "SetRedirect");
-	g_Lua->Pop(1);
+		Util::AddFunc(pLua, HttpResponse_SetContent, "SetContent");
+		Util::AddFunc(pLua, HttpResponse_SetHeader, "SetHeader");
+		Util::AddFunc(pLua, HttpResponse_SetRedirect, "SetRedirect");
+	pLua->Pop(1);
 
-	HttpRequest_TypeID = g_Lua->CreateMetaTable("HttpRequest");
-		Util::AddFunc(HttpRequest__tostring, "__tostring");
-		Util::AddFunc(HttpRequest__index, "__index");
-		Util::AddFunc(HttpRequest__newindex, "__newindex");
-		Util::AddFunc(HttpRequest_GetTable, "GetTable");
+	HttpRequest_TypeID = pLua->CreateMetaTable("HttpRequest");
+		Util::AddFunc(pLua, HttpRequest__tostring, "__tostring");
+		Util::AddFunc(pLua, HttpRequest__index, "__index");
+		Util::AddFunc(pLua, HttpRequest__newindex, "__newindex");
+		Util::AddFunc(pLua, HttpRequest_GetTable, "GetTable");
 
-		Util::AddFunc(HttpRequest_HasHeader, "HasHeader");
-		Util::AddFunc(HttpRequest_HasParam, "HasParam");
-		Util::AddFunc(HttpRequest_GetHeader, "GetHeader");
-		Util::AddFunc(HttpRequest_GetParam, "GetParam");
-		Util::AddFunc(HttpRequest_GetBody, "GetBody");
-		Util::AddFunc(HttpRequest_GetRemoteAddr, "GetRemoteAddr");
-		Util::AddFunc(HttpRequest_GetRemotePort, "GetRemotePort");
-		Util::AddFunc(HttpRequest_GetLocalAddr, "GetLocalAddr");
-		Util::AddFunc(HttpRequest_GetLocalPort, "GetLocalPort");
-		Util::AddFunc(HttpRequest_GetMethod, "GetMethod");
-		Util::AddFunc(HttpRequest_GetAuthorizationCount, "GetAuthorizationCount");
-		Util::AddFunc(HttpRequest_GetContentLength, "GetContentLength");
-	g_Lua->Pop(1);
+		Util::AddFunc(pLua, HttpRequest_HasHeader, "HasHeader");
+		Util::AddFunc(pLua, HttpRequest_HasParam, "HasParam");
+		Util::AddFunc(pLua, HttpRequest_GetHeader, "GetHeader");
+		Util::AddFunc(pLua, HttpRequest_GetParam, "GetParam");
+		Util::AddFunc(pLua, HttpRequest_GetBody, "GetBody");
+		Util::AddFunc(pLua, HttpRequest_GetRemoteAddr, "GetRemoteAddr");
+		Util::AddFunc(pLua, HttpRequest_GetRemotePort, "GetRemotePort");
+		Util::AddFunc(pLua, HttpRequest_GetLocalAddr, "GetLocalAddr");
+		Util::AddFunc(pLua, HttpRequest_GetLocalPort, "GetLocalPort");
+		Util::AddFunc(pLua, HttpRequest_GetMethod, "GetMethod");
+		Util::AddFunc(pLua, HttpRequest_GetAuthorizationCount, "GetAuthorizationCount");
+		Util::AddFunc(pLua, HttpRequest_GetContentLength, "GetContentLength");
+	pLua->Pop(1);
 
-	Util::StartTable();
-		Util::AddFunc(httpserver_Create, "Create");
-		Util::AddFunc(httpserver_Destroy, "Destroy");
-	Util::FinishTable("httpserver");
+	Util::StartTable(pLua);
+		Util::AddFunc(pLua, httpserver_Create, "Create");
+		Util::AddFunc(pLua, httpserver_Destroy, "Destroy");
+	Util::FinishTable(pLua, "httpserver");
 }
 
-void CHTTPServerModule::LuaShutdown()
+void CHTTPServerModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	Util::NukeTable("httpserver");
+	Util::NukeTable(pLua, "httpserver");
 }
 
-void CHTTPServerModule::Think(bool simulating)
+void CHTTPServerModule::Think(GarrysMod::Lua::ILuaInterface* pLua, bool simulating)
 {
 	VPROF_BUDGET("HolyLib - CHTTPServerModule::Think", VPROF_BUDGETGROUP_HOLYLIB);
 

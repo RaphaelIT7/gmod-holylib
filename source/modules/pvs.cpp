@@ -13,8 +13,8 @@ class CPVSModule : public IModule
 {
 public:
 	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "pvs"; };
 	virtual int Compatibility() { return LINUX32; };
@@ -57,7 +57,7 @@ static void hook_CServerGameEnts_CheckTransmit(void* gameents, CCheckTransmitInf
 
 	if(Lua::PushHook("HolyLib:PreCheckTransmit"))
 	{
-		Util::Push_Entity(Util::servergameents->EdictToBaseEntity(pInfo->m_pClientEnt));
+		Util::Push_Entity(g_Lua, Util::servergameents->EdictToBaseEntity(pInfo->m_pClientEnt));
 		if (g_Lua->CallFunctionProtected(2, 1, true))
 		{
 			bool bCancel = g_Lua->GetBool(-1);
@@ -94,7 +94,7 @@ static void hook_CServerGameEnts_CheckTransmit(void* gameents, CCheckTransmitInf
 	{
 		if(Lua::PushHook("HolyLib:PostCheckTransmit"))
 		{
-			Util::Push_Entity(Util::servergameents->EdictToBaseEntity(pInfo->m_pClientEnt));
+			Util::Push_Entity(g_Lua, Util::servergameents->EdictToBaseEntity(pInfo->m_pClientEnt));
 			int pushed = 2;
 			if (pvs_postchecktransmit.GetInt() >= 2)
 			{
@@ -112,7 +112,7 @@ static void hook_CServerGameEnts_CheckTransmit(void* gameents, CCheckTransmitInf
 
 					++idx;
 					g_Lua->PushNumber(idx);
-					Util::Push_Entity(Util::servergameents->EdictToBaseEntity(pEdict));
+					Util::Push_Entity(g_Lua, Util::servergameents->EdictToBaseEntity(pEdict));
 					g_Lua->RawSet(-3);
 				}
 			}
@@ -342,7 +342,7 @@ LUA_FUNCTION_STATIC(pvs_AddEntityToPVS)
 		LUA->PushNil();
 		while (LUA->Next(-2))
 		{
-			CBaseEntity* ent = Util::Get_Entity(-1, true);
+			CBaseEntity* ent = Util::Get_Entity(LUA, -1, true);
 			AddEntityToPVS(ent);
 
 			LUA->Pop(1);
@@ -354,7 +354,7 @@ LUA_FUNCTION_STATIC(pvs_AddEntityToPVS)
 			AddEntityToPVS(ent);
 		}
 	} else {
-		CBaseEntity* ent = Util::Get_Entity(1, true);
+		CBaseEntity* ent = Util::Get_Entity(LUA, 1, true);
 		AddEntityToPVS(ent);
 	}
 
@@ -407,7 +407,7 @@ LUA_FUNCTION_STATIC(pvs_OverrideStateFlags)
 		LUA->PushNil();
 		while (LUA->Next(-2))
 		{
-			CBaseEntity* ent = Util::Get_Entity(-1, true);
+			CBaseEntity* ent = Util::Get_Entity(LUA, -1, true);
 			SetOverrideStateFlags(ent, flags, force);
 
 			LUA->Pop(1);
@@ -420,7 +420,7 @@ LUA_FUNCTION_STATIC(pvs_OverrideStateFlags)
 			SetOverrideStateFlags(ent, flags, force);
 		}
 	} else {
-		CBaseEntity* ent = Util::Get_Entity(1, true);
+		CBaseEntity* ent = Util::Get_Entity(LUA, 1, true);
 		SetOverrideStateFlags(ent, flags, force);
 	}
 
@@ -469,7 +469,7 @@ LUA_FUNCTION_STATIC(pvs_SetStateFlags)
 		LUA->PushNil();
 		while (LUA->Next(-2))
 		{
-			CBaseEntity* ent = Util::Get_Entity(-1, true);
+			CBaseEntity* ent = Util::Get_Entity(LUA, -1, true);
 			SetStateFlags(ent, flags, force);
 
 			LUA->Pop(1);
@@ -482,7 +482,7 @@ LUA_FUNCTION_STATIC(pvs_SetStateFlags)
 			SetStateFlags(ent, flags, force);
 		}
 	} else {
-		CBaseEntity* ent = Util::Get_Entity(1, true);
+		CBaseEntity* ent = Util::Get_Entity(LUA, 1, true);
 		SetStateFlags(ent, flags, force);
 	}
 
@@ -526,7 +526,7 @@ LUA_FUNCTION_STATIC(pvs_GetStateFlags)
 		LUA->PushNil();
 		while (LUA->Next(-2))
 		{
-			CBaseEntity* ent = Util::Get_Entity(-1, true);
+			CBaseEntity* ent = Util::Get_Entity(LUA, -1, true);
 			LUA->PushNumber(GetStateFlags(ent, force));
 			LUA->RawSet(-4);
 		}
@@ -541,7 +541,7 @@ LUA_FUNCTION_STATIC(pvs_GetStateFlags)
 			LUA->RawSet(-3);
 		}
 	} else {
-		CBaseEntity* ent = Util::Get_Entity(1, true);
+		CBaseEntity* ent = Util::Get_Entity(LUA, 1, true);
 		LUA->PushNumber(GetStateFlags(ent, force));
 	}
 
@@ -575,7 +575,7 @@ LUA_FUNCTION_STATIC(pvs_RemoveEntityFromTransmit)
 		LUA->PushNil();
 		while (LUA->Next(-2))
 		{
-			CBaseEntity* ent = Util::Get_Entity(-1, true);
+			CBaseEntity* ent = Util::Get_Entity(LUA, -1, true);
 			RemoveEntityFromTransmit(ent);
 
 			LUA->Pop(1);
@@ -590,7 +590,7 @@ LUA_FUNCTION_STATIC(pvs_RemoveEntityFromTransmit)
 			RemoveEntityFromTransmit(ent);
 		}
 	} else {
-		CBaseEntity* ent = Util::Get_Entity(1, true);
+		CBaseEntity* ent = Util::Get_Entity(LUA, 1, true);
 		LUA->PushBool(RemoveEntityFromTransmit(ent));
 	}
 
@@ -626,7 +626,7 @@ LUA_FUNCTION_STATIC(pvs_AddEntityToTransmit)
 		LUA->PushNil();
 		while (LUA->Next(-2))
 		{
-			CBaseEntity* ent = Util::Get_Entity(-1, true);
+			CBaseEntity* ent = Util::Get_Entity(LUA, -1, true);
 			AddEntityToTransmit(ent, force);
 
 			LUA->Pop(1);
@@ -639,7 +639,7 @@ LUA_FUNCTION_STATIC(pvs_AddEntityToTransmit)
 			AddEntityToTransmit(ent, true);
 		}
 	} else {
-		CBaseEntity* ent = Util::Get_Entity(1, true);
+		CBaseEntity* ent = Util::Get_Entity(LUA, 1, true);
 		AddEntityToTransmit(ent, force);
 	}
 	
@@ -681,7 +681,7 @@ LUA_FUNCTION_STATIC(pvs_SetPreventTransmitBulk)
 		LUA->PushNil();
 		while (LUA->Next(-2))
 		{
-			CBasePlayer* pply = Util::Get_Player(-1, true);
+			CBasePlayer* pply = Util::Get_Player(LUA, -1, true);
 			filterplys.push_back(pply);
 
 			LUA->Pop(1);
@@ -689,7 +689,7 @@ LUA_FUNCTION_STATIC(pvs_SetPreventTransmitBulk)
 		LUA->Pop(1);
 	}
 	else
-		ply = Util::Get_Player(2, true);
+		ply = Util::Get_Player(LUA, 2, true);
 
 	bool notransmit = LUA->GetBool(3);
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Table))
@@ -698,7 +698,7 @@ LUA_FUNCTION_STATIC(pvs_SetPreventTransmitBulk)
 		LUA->PushNil();
 		while (LUA->Next(-2))
 		{
-			CBaseEntity* ent = Util::Get_Entity(-1, true);
+			CBaseEntity* ent = Util::Get_Entity(LUA, -1, true);
 			if (filterplys.size() > 0)
 			{
 				for (CBasePlayer* pply : filterplys)
@@ -726,7 +726,7 @@ LUA_FUNCTION_STATIC(pvs_SetPreventTransmitBulk)
 			}
 		}
 	} else {
-		CBaseEntity* ent = Util::Get_Entity(1, true);
+		CBaseEntity* ent = Util::Get_Entity(LUA, 1, true);
 		ent->GMOD_SetShouldPreventTransmitToPlayer(ply, notransmit);
 	}
 	
@@ -742,7 +742,7 @@ LUA_FUNCTION_STATIC(pvs_FindInPVS) // Copy from pas.FindInPAS
 	{
 		orig = Get_Vector(1);
 	} else {
-		CBaseEntity* ent = Util::Get_Entity(1, true);
+		CBaseEntity* ent = Util::Get_Entity(LUA, 1, true);
 		orig = (Vector*)&ent->GetAbsOrigin(); // ToDo: This currently breaks the compile.
 	}
 
@@ -752,7 +752,7 @@ LUA_FUNCTION_STATIC(pvs_FindInPVS) // Copy from pas.FindInPAS
 	int idx = 0;
 	if (Util::pEntityList->IsEnabled())
 	{
-		UpdateGlobalEntityList();
+		UpdateGlobalEntityList(LUA);
 		for (auto& [pEnt, ref] : g_pGlobalEntityList.pEntReferences)
 		{
 			if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), Util::g_pCurrentCluster, sizeof(Util::g_pCurrentCluster)))
@@ -774,7 +774,7 @@ LUA_FUNCTION_STATIC(pvs_FindInPVS) // Copy from pas.FindInPAS
 		{
 			++idx;
 			LUA->PushNumber(idx);
-			Util::Push_Entity(pEnt);
+			Util::Push_Entity(LUA, pEnt);
 			LUA->RawSet(-3);
 		}
 
@@ -793,7 +793,7 @@ LUA_FUNCTION_STATIC(pvs_FindInPVS) // Copy from pas.FindInPAS
 		{
 			++idx;
 			LUA->PushNumber(idx);
-			Util::Push_Entity(pEnt);
+			Util::Push_Entity(LUA, pEnt);
 			LUA->RawSet(-3);
 		}
 	}
@@ -815,7 +815,7 @@ LUA_FUNCTION_STATIC(pvs_TestPVS)
 	{
 		orig = Get_Vector(1);
 	} else {
-		CBaseEntity* ent = Util::Get_Entity(1, false);
+		CBaseEntity* ent = Util::Get_Entity(LUA, 1, false);
 
 		orig = (Vector*)&ent->GetAbsOrigin(); // ToDo: This currently breaks the compile.
 	}
@@ -837,7 +837,7 @@ LUA_FUNCTION_STATIC(pvs_TestPVS)
 		}
 	} else {
 		LUA->CheckType(2, GarrysMod::Lua::Type::Entity);
-		CBaseEntity* ent = Util::Get_Entity(2, false);
+		CBaseEntity* ent = Util::Get_Entity(LUA, 2, false);
 
 		LUA->PushBool(TestPVS(ent->GetAbsOrigin()));
 	}
@@ -847,7 +847,7 @@ LUA_FUNCTION_STATIC(pvs_TestPVS)
 
 LUA_FUNCTION_STATIC(pvs_ForceFullUpdate)
 {
-	CBasePlayer* ply = Util::Get_Player(1, true);
+	CBasePlayer* ply = Util::Get_Player(LUA, 1, true);
 	CBaseClient* pClient = Util::GetClientByPlayer(ply);
 	if (!pClient)
 		LUA->ThrowError("Failed to get CBaseClient!");
@@ -865,47 +865,47 @@ void CPVSModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 		gpGlobals = playerinfomanager->GetGlobalVars();
 }
 
-void CPVSModule::LuaInit(bool bServerInit)
+void CPVSModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
 
 	mapPVSSize = ceil(Util::engineserver->GetClusterCount() / 8.0f);
 
-	Util::StartTable();
-		Util::AddFunc(pvs_ResetPVS, "ResetPVS");
-		Util::AddFunc(pvs_CheckOriginInPVS, "CheckOriginInPVS");
-		Util::AddFunc(pvs_AddOriginToPVS, "AddOriginToPVS");
-		Util::AddFunc(pvs_GetClusterCount, "GetClusterCount");
-		Util::AddFunc(pvs_GetClusterForOrigin, "GetClusterForOrigin");
-		Util::AddFunc(pvs_CheckAreasConnected, "CheckAreasConnected");
-		Util::AddFunc(pvs_GetArea, "GetArea");
-		Util::AddFunc(pvs_GetPVSForCluster, "GetPVSForCluster");
-		Util::AddFunc(pvs_CheckBoxInPVS, "CheckBoxInPVS");
-		Util::AddFunc(pvs_AddEntityToPVS, "AddEntityToPVS");
-		Util::AddFunc(pvs_OverrideStateFlags, "OverrideStateFlags");
-		Util::AddFunc(pvs_SetStateFlags, "SetStateFlags");
-		Util::AddFunc(pvs_GetStateFlags, "GetStateFlags");
-		Util::AddFunc(pvs_SetPreventTransmitBulk, "SetPreventTransmitBulk");
-		Util::AddFunc(pvs_FindInPVS, "FindInPVS");
-		Util::AddFunc(pvs_TestPVS, "TestPVS");
-		Util::AddFunc(pvs_ForceFullUpdate, "ForceFullUpdate");
+	Util::StartTable(pLua);
+		Util::AddFunc(pLua, pvs_ResetPVS, "ResetPVS");
+		Util::AddFunc(pLua, pvs_CheckOriginInPVS, "CheckOriginInPVS");
+		Util::AddFunc(pLua, pvs_AddOriginToPVS, "AddOriginToPVS");
+		Util::AddFunc(pLua, pvs_GetClusterCount, "GetClusterCount");
+		Util::AddFunc(pLua, pvs_GetClusterForOrigin, "GetClusterForOrigin");
+		Util::AddFunc(pLua, pvs_CheckAreasConnected, "CheckAreasConnected");
+		Util::AddFunc(pLua, pvs_GetArea, "GetArea");
+		Util::AddFunc(pLua, pvs_GetPVSForCluster, "GetPVSForCluster");
+		Util::AddFunc(pLua, pvs_CheckBoxInPVS, "CheckBoxInPVS");
+		Util::AddFunc(pLua, pvs_AddEntityToPVS, "AddEntityToPVS");
+		Util::AddFunc(pLua, pvs_OverrideStateFlags, "OverrideStateFlags");
+		Util::AddFunc(pLua, pvs_SetStateFlags, "SetStateFlags");
+		Util::AddFunc(pLua, pvs_GetStateFlags, "GetStateFlags");
+		Util::AddFunc(pLua, pvs_SetPreventTransmitBulk, "SetPreventTransmitBulk");
+		Util::AddFunc(pLua, pvs_FindInPVS, "FindInPVS");
+		Util::AddFunc(pLua, pvs_TestPVS, "TestPVS");
+		Util::AddFunc(pLua, pvs_ForceFullUpdate, "ForceFullUpdate");
 
 		// Use the functions below only inside the HolyLib:PostCheckTransmit hook.  
-		Util::AddFunc(pvs_RemoveEntityFromTransmit, "RemoveEntityFromTransmit");
-		Util::AddFunc(pvs_RemoveAllEntityFromTransmit, "RemoveAllEntityFromTransmit");
-		Util::AddFunc(pvs_AddEntityToTransmit, "AddEntityToTransmit");
+		Util::AddFunc(pLua, pvs_RemoveEntityFromTransmit, "RemoveEntityFromTransmit");
+		Util::AddFunc(pLua, pvs_RemoveAllEntityFromTransmit, "RemoveAllEntityFromTransmit");
+		Util::AddFunc(pLua, pvs_AddEntityToTransmit, "AddEntityToTransmit");
 
-		Util::AddValue(LUA_FL_EDICT_DONTSEND, "FL_EDICT_DONTSEND");
-		Util::AddValue(LUA_FL_EDICT_ALWAYS, "FL_EDICT_ALWAYS");
-		Util::AddValue(LUA_FL_EDICT_PVSCHECK, "FL_EDICT_PVSCHECK");
-		Util::AddValue(LUA_FL_EDICT_FULLCHECK, "FL_EDICT_FULLCHECK");
-	Util::FinishTable("pvs");
+		Util::AddValue(pLua, LUA_FL_EDICT_DONTSEND, "FL_EDICT_DONTSEND");
+		Util::AddValue(pLua, LUA_FL_EDICT_ALWAYS, "FL_EDICT_ALWAYS");
+		Util::AddValue(pLua, LUA_FL_EDICT_PVSCHECK, "FL_EDICT_PVSCHECK");
+		Util::AddValue(pLua, LUA_FL_EDICT_FULLCHECK, "FL_EDICT_FULLCHECK");
+	Util::FinishTable(pLua, "pvs");
 }
 
-void CPVSModule::LuaShutdown()
+void CPVSModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	Util::NukeTable("pvs");
+	Util::NukeTable(pLua, "pvs");
 }
 
 void CPVSModule::InitDetour(bool bPreServer)

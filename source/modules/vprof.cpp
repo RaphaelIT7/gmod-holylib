@@ -16,8 +16,8 @@
 class CVProfModule : public IModule
 {
 public:
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "vprof"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32; };
@@ -1332,97 +1332,97 @@ LUA_FUNCTION_STATIC(vprof_Term)
 	return 0;
 }
 
-void CVProfModule::LuaInit(bool bServerInit)
+void CVProfModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
 
-	VProfCounter_TypeID = g_Lua->CreateMetaTable("VProfCounter");
-		Util::AddFunc(VProfCounter__tostring, "__tostring");
-		Util::AddFunc(VProfCounter__index, "__index");
-		Util::AddFunc(VProfCounter_Set, "Set");
-		Util::AddFunc(VProfCounter_Get, "Get");
-		Util::AddFunc(VProfCounter_Increment, "Increment");
-		Util::AddFunc(VProfCounter_Decrement, "Decrement");
-		Util::AddFunc(VProfCounter_Name, "Name");
+	VProfCounter_TypeID = pLua->CreateMetaTable("VProfCounter");
+		Util::AddFunc(pLua, VProfCounter__tostring, "__tostring");
+		Util::AddFunc(pLua, VProfCounter__index, "__index");
+		Util::AddFunc(pLua, VProfCounter_Set, "Set");
+		Util::AddFunc(pLua, VProfCounter_Get, "Get");
+		Util::AddFunc(pLua, VProfCounter_Increment, "Increment");
+		Util::AddFunc(pLua, VProfCounter_Decrement, "Decrement");
+		Util::AddFunc(pLua, VProfCounter_Name, "Name");
+	pLua->Pop(1);
+
+	VProfNode_TypeID = pLua->CreateMetaTable("VProfNode");
+		Util::AddFunc(pLua, VProfNode__tostring, "__tostring");
+		Util::AddFunc(pLua, VProfNode__index, "__index");
+		Util::AddFunc(pLua, VProfNode_GetName, "GetName");
+		Util::AddFunc(pLua, VProfNode_GetBudgetGroupID, "GetBudgetGroupID");
+		Util::AddFunc(pLua, VProfNode_GetCurTime, "GetCurTime");
+		Util::AddFunc(pLua, VProfNode_GetCurTimeLessChildren, "GetCurTimeLessChildren");
+		Util::AddFunc(pLua, VProfNode_GetPeakTime, "GetPeakTime");
+		Util::AddFunc(pLua, VProfNode_GetPrevTime, "GetPrevTime");
+		Util::AddFunc(pLua, VProfNode_GetPrevTimeLessChildren, "GetPrevTimeLessChildren");
+		Util::AddFunc(pLua, VProfNode_GetTotalTime, "GetTotalTime");
+		Util::AddFunc(pLua, VProfNode_GetTotalTimeLessChildren, "GetTotalTimeLessChildren");
+		Util::AddFunc(pLua, VProfNode_GetCurCalls, "GetCurCalls");
+		Util::AddFunc(pLua, VProfNode_GetChild, "GetChild");
+		Util::AddFunc(pLua, VProfNode_GetParent, "GetParent");
+		Util::AddFunc(pLua, VProfNode_GetSibling, "GetSibling");
+		Util::AddFunc(pLua, VProfNode_GetPrevSibling, "GetPrevSibling");
+		Util::AddFunc(pLua, VProfNode_GetL2CacheMisses, "GetL2CacheMisses");
+		Util::AddFunc(pLua, VProfNode_GetPrevL2CacheMissLessChildren, "GetPrevL2CacheMissLessChildren");
+		Util::AddFunc(pLua, VProfNode_GetPrevLoadHitStoreLessChildren, "GetPrevLoadHitStoreLessChildren");
+		Util::AddFunc(pLua, VProfNode_GetTotalCalls, "GetTotalCalls");
+		Util::AddFunc(pLua, VProfNode_GetSubNode, "GetSubNode");
+		Util::AddFunc(pLua, VProfNode_GetClientData, "GetClientData");
+		Util::AddFunc(pLua, VProfNode_MarkFrame, "MarkFrame");
+		Util::AddFunc(pLua, VProfNode_ClearPrevTime, "ClearPrevTime");
+		Util::AddFunc(pLua, VProfNode_Pause, "Pause");
+		Util::AddFunc(pLua, VProfNode_Reset, "Reset");
+		Util::AddFunc(pLua, VProfNode_ResetPeak, "ResetPeak");
+		Util::AddFunc(pLua, VProfNode_Resume, "Resume");
+		Util::AddFunc(pLua, VProfNode_SetBudgetGroupID, "SetBudgetGroupID");
+		Util::AddFunc(pLua, VProfNode_SetCurFrameTime, "SetCurFrameTime");
+		Util::AddFunc(pLua, VProfNode_SetClientData, "SetClientData");
+		Util::AddFunc(pLua, VProfNode_EnterScope, "EnterScope");
+		Util::AddFunc(pLua, VProfNode_ExitScope, "ExitScope");
 	g_Lua->Pop(1);
 
-	VProfNode_TypeID = g_Lua->CreateMetaTable("VProfNode");
-		Util::AddFunc(VProfNode__tostring, "__tostring");
-		Util::AddFunc(VProfNode__index, "__index");
-		Util::AddFunc(VProfNode_GetName, "GetName");
-		Util::AddFunc(VProfNode_GetBudgetGroupID, "GetBudgetGroupID");
-		Util::AddFunc(VProfNode_GetCurTime, "GetCurTime");
-		Util::AddFunc(VProfNode_GetCurTimeLessChildren, "GetCurTimeLessChildren");
-		Util::AddFunc(VProfNode_GetPeakTime, "GetPeakTime");
-		Util::AddFunc(VProfNode_GetPrevTime, "GetPrevTime");
-		Util::AddFunc(VProfNode_GetPrevTimeLessChildren, "GetPrevTimeLessChildren");
-		Util::AddFunc(VProfNode_GetTotalTime, "GetTotalTime");
-		Util::AddFunc(VProfNode_GetTotalTimeLessChildren, "GetTotalTimeLessChildren");
-		Util::AddFunc(VProfNode_GetCurCalls, "GetCurCalls");
-		Util::AddFunc(VProfNode_GetChild, "GetChild");
-		Util::AddFunc(VProfNode_GetParent, "GetParent");
-		Util::AddFunc(VProfNode_GetSibling, "GetSibling");
-		Util::AddFunc(VProfNode_GetPrevSibling, "GetPrevSibling");
-		Util::AddFunc(VProfNode_GetL2CacheMisses, "GetL2CacheMisses");
-		Util::AddFunc(VProfNode_GetPrevL2CacheMissLessChildren, "GetPrevL2CacheMissLessChildren");
-		Util::AddFunc(VProfNode_GetPrevLoadHitStoreLessChildren, "GetPrevLoadHitStoreLessChildren");
-		Util::AddFunc(VProfNode_GetTotalCalls, "GetTotalCalls");
-		Util::AddFunc(VProfNode_GetSubNode, "GetSubNode");
-		Util::AddFunc(VProfNode_GetClientData, "GetClientData");
-		Util::AddFunc(VProfNode_MarkFrame, "MarkFrame");
-		Util::AddFunc(VProfNode_ClearPrevTime, "ClearPrevTime");
-		Util::AddFunc(VProfNode_Pause, "Pause");
-		Util::AddFunc(VProfNode_Reset, "Reset");
-		Util::AddFunc(VProfNode_ResetPeak, "ResetPeak");
-		Util::AddFunc(VProfNode_Resume, "Resume");
-		Util::AddFunc(VProfNode_SetBudgetGroupID, "SetBudgetGroupID");
-		Util::AddFunc(VProfNode_SetCurFrameTime, "SetCurFrameTime");
-		Util::AddFunc(VProfNode_SetClientData, "SetClientData");
-		Util::AddFunc(VProfNode_EnterScope, "EnterScope");
-		Util::AddFunc(VProfNode_ExitScope, "ExitScope");
-	g_Lua->Pop(1);
+	Util::StartTable(pLua);
+		Util::AddFunc(pLua, vprof_Start, "Start");
+		Util::AddFunc(pLua, vprof_Stop, "Stop");
+		Util::AddFunc(pLua, vprof_AtRoot, "AtRoot");
+		Util::AddFunc(pLua, vprof_FindOrCreateCounter, "FindOrCreateCounter");
+		Util::AddFunc(pLua, vprof_GetCounter, "GetCounter");
+		Util::AddFunc(pLua, vprof_GetNumCounters, "GetNumCounters");
+		Util::AddFunc(pLua, vprof_ResetCounters, "ResetCounters");
+		Util::AddFunc(pLua, vprof_GetTimeLastFrame, "GetTimeLastFrame");
+		Util::AddFunc(pLua, vprof_GetPeakFrameTime, "GetPeakFrameTime");
+		Util::AddFunc(pLua, vprof_GetTotalTimeSampled, "GetTotalTimeSampled");
+		Util::AddFunc(pLua, vprof_GetDetailLevel, "GetDetailLevel");
+		Util::AddFunc(pLua, vprof_NumFramesSampled, "NumFramesSampled");
+		Util::AddFunc(pLua, vprof_HideBudgetGroup, "HideBudgetGroup");
+		Util::AddFunc(pLua, vprof_GetNumBudgetGroups, "GetNumBudgetGroups");
+		Util::AddFunc(pLua, vprof_BudgetGroupNameToBudgetGroupID, "BudgetGroupNameToBudgetGroupID");
+		Util::AddFunc(pLua, vprof_GetBudgetGroupName, "GetBudgetGroupName");
+		Util::AddFunc(pLua, vprof_GetBudgetGroupFlags, "GetBudgetGroupFlags");
+		Util::AddFunc(pLua, vprof_GetBudgetGroupColor, "GetBudgetGroupColor");
+		Util::AddFunc(pLua, vprof_GetRoot, "GetRoot");
+		Util::AddFunc(pLua, vprof_GetCurrentNode, "GetCurrentNode");
+		Util::AddFunc(pLua, vprof_IsEnabled, "IsEnabled");
+		Util::AddFunc(pLua, vprof_MarkFrame, "MarkFrame");
+		Util::AddFunc(pLua, vprof_EnterScope, "EnterScope");
+		Util::AddFunc(pLua, vprof_ExitScope, "ExitScope");
+		Util::AddFunc(pLua, vprof_Pause, "Pause");
+		Util::AddFunc(pLua, vprof_Resume, "Resume");
+		Util::AddFunc(pLua, vprof_Reset, "Reset");
+		Util::AddFunc(pLua, vprof_ResetPeaks, "ResetPeaks");
+		Util::AddFunc(pLua, vprof_Term, "Term");
 
-	Util::StartTable();
-		Util::AddFunc(vprof_Start, "Start");
-		Util::AddFunc(vprof_Stop, "Stop");
-		Util::AddFunc(vprof_AtRoot, "AtRoot");
-		Util::AddFunc(vprof_FindOrCreateCounter, "FindOrCreateCounter");
-		Util::AddFunc(vprof_GetCounter, "GetCounter");
-		Util::AddFunc(vprof_GetNumCounters, "GetNumCounters");
-		Util::AddFunc(vprof_ResetCounters, "ResetCounters");
-		Util::AddFunc(vprof_GetTimeLastFrame, "GetTimeLastFrame");
-		Util::AddFunc(vprof_GetPeakFrameTime, "GetPeakFrameTime");
-		Util::AddFunc(vprof_GetTotalTimeSampled, "GetTotalTimeSampled");
-		Util::AddFunc(vprof_GetDetailLevel, "GetDetailLevel");
-		Util::AddFunc(vprof_NumFramesSampled, "NumFramesSampled");
-		Util::AddFunc(vprof_HideBudgetGroup, "HideBudgetGroup");
-		Util::AddFunc(vprof_GetNumBudgetGroups, "GetNumBudgetGroups");
-		Util::AddFunc(vprof_BudgetGroupNameToBudgetGroupID, "BudgetGroupNameToBudgetGroupID");
-		Util::AddFunc(vprof_GetBudgetGroupName, "GetBudgetGroupName");
-		Util::AddFunc(vprof_GetBudgetGroupFlags, "GetBudgetGroupFlags");
-		Util::AddFunc(vprof_GetBudgetGroupColor, "GetBudgetGroupColor");
-		Util::AddFunc(vprof_GetRoot, "GetRoot");
-		Util::AddFunc(vprof_GetCurrentNode, "GetCurrentNode");
-		Util::AddFunc(vprof_IsEnabled, "IsEnabled");
-		Util::AddFunc(vprof_MarkFrame, "MarkFrame");
-		Util::AddFunc(vprof_EnterScope, "EnterScope");
-		Util::AddFunc(vprof_ExitScope, "ExitScope");
-		Util::AddFunc(vprof_Pause, "Pause");
-		Util::AddFunc(vprof_Resume, "Resume");
-		Util::AddFunc(vprof_Reset, "Reset");
-		Util::AddFunc(vprof_ResetPeaks, "ResetPeaks");
-		Util::AddFunc(vprof_Term, "Term");
-
-		Util::AddValue(COUNTER_GROUP_DEFAULT, "COUNTER_GROUP_DEFAULT");
-		Util::AddValue(COUNTER_GROUP_NO_RESET, "COUNTER_GROUP_NO_RESET");
-		Util::AddValue(COUNTER_GROUP_TEXTURE_GLOBAL, "COUNTER_GROUP_TEXTURE_GLOBAL");
-		Util::AddValue(COUNTER_GROUP_TEXTURE_PER_FRAME, "COUNTER_GROUP_TEXTURE_PER_FRAME");
-		Util::AddValue(COUNTER_GROUP_TELEMETRY, "COUNTER_GROUP_TELEMETRY");
-	Util::FinishTable("vprof");
+		Util::AddValue(pLua, COUNTER_GROUP_DEFAULT, "COUNTER_GROUP_DEFAULT");
+		Util::AddValue(pLua, COUNTER_GROUP_NO_RESET, "COUNTER_GROUP_NO_RESET");
+		Util::AddValue(pLua, COUNTER_GROUP_TEXTURE_GLOBAL, "COUNTER_GROUP_TEXTURE_GLOBAL");
+		Util::AddValue(pLua, COUNTER_GROUP_TEXTURE_PER_FRAME, "COUNTER_GROUP_TEXTURE_PER_FRAME");
+		Util::AddValue(pLua, COUNTER_GROUP_TELEMETRY, "COUNTER_GROUP_TELEMETRY");
+	Util::FinishTable(pLua, "vprof");
 }
 
-void CVProfModule::LuaShutdown()
+void CVProfModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	Util::NukeTable("vprof");
+	Util::NukeTable(pLua, "vprof");
 }

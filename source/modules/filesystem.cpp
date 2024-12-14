@@ -16,9 +16,9 @@ class CFileSystemModule : public IModule
 public:
 	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
-	virtual void Think(bool bSimulating) OVERRIDE;
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void Think(GarrysMod::Lua::ILuaInterface* LUA, bool bSimulating) OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void Shutdown() OVERRIDE;
 	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) OVERRIDE;
 	virtual const char* Name() { return "filesystem"; };
@@ -1411,7 +1411,7 @@ static void hook_CBaseFileSystem_Close(IFileSystem* filesystem, FileHandle_t fil
 }
 
 extern void FileAsyncReadThink();
-void CFileSystemModule::Think(bool bSimulating)
+void CFileSystemModule::Think(GarrysMod::Lua::ILuaInterface* pLua, bool bSimulating)
 {
 	FileAsyncReadThink();
 
@@ -2095,38 +2095,38 @@ LUA_FUNCTION_STATIC(filesystem_TimeAccessed)
 }
 
 // Gmod's filesystem functions have some weird stuff in them that makes them noticeably slower :/
-void CFileSystemModule::LuaInit(bool bServerInit)
+void CFileSystemModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
 
-	Util::StartTable();
-		Util::AddFunc(filesystem_AsyncRead, "AsyncRead");
-		Util::AddFunc(filesystem_CreateDir, "CreateDir");
-		Util::AddFunc(filesystem_Delete, "Delete");
-		Util::AddFunc(filesystem_Exists, "Exists");
-		Util::AddFunc(filesystem_Find, "Find");
-		Util::AddFunc(filesystem_IsDir, "IsDir");
-		Util::AddFunc(filesystem_Open, "Open");
-		Util::AddFunc(filesystem_Rename, "Rename");
-		Util::AddFunc(filesystem_Size, "Size");
-		Util::AddFunc(filesystem_Time, "Time");
+	Util::StartTable(pLua);
+		Util::AddFunc(pLua, filesystem_AsyncRead, "AsyncRead");
+		Util::AddFunc(pLua, filesystem_CreateDir, "CreateDir");
+		Util::AddFunc(pLua, filesystem_Delete, "Delete");
+		Util::AddFunc(pLua, filesystem_Exists, "Exists");
+		Util::AddFunc(pLua, filesystem_Find, "Find");
+		Util::AddFunc(pLua, filesystem_IsDir, "IsDir");
+		Util::AddFunc(pLua, filesystem_Open, "Open");
+		Util::AddFunc(pLua, filesystem_Rename, "Rename");
+		Util::AddFunc(pLua, filesystem_Size, "Size");
+		Util::AddFunc(pLua, filesystem_Time, "Time");
 
 		// Custom functions
-		Util::AddFunc(filesystem_AddSearchPath, "AddSearchPath");
-		Util::AddFunc(filesystem_RemoveSearchPath, "RemoveSearchPath");
-		Util::AddFunc(filesystem_RemoveSearchPaths, "RemoveSearchPaths");
-		Util::AddFunc(filesystem_RemoveAllSearchPaths, "RemoveAllSearchPaths");
-		Util::AddFunc(filesystem_RelativePathToFullPath, "RelativePathToFullPath");
-		Util::AddFunc(filesystem_FullPathToRelativePath, "FullPathToRelativePath");
-		Util::AddFunc(filesystem_TimeCreated, "TimeCreated");
-		Util::AddFunc(filesystem_TimeAccessed, "TimeAccessed");
-	Util::FinishTable("filesystem");
+		Util::AddFunc(pLua, filesystem_AddSearchPath, "AddSearchPath");
+		Util::AddFunc(pLua, filesystem_RemoveSearchPath, "RemoveSearchPath");
+		Util::AddFunc(pLua, filesystem_RemoveSearchPaths, "RemoveSearchPaths");
+		Util::AddFunc(pLua, filesystem_RemoveAllSearchPaths, "RemoveAllSearchPaths");
+		Util::AddFunc(pLua, filesystem_RelativePathToFullPath, "RelativePathToFullPath");
+		Util::AddFunc(pLua, filesystem_FullPathToRelativePath, "FullPathToRelativePath");
+		Util::AddFunc(pLua, filesystem_TimeCreated, "TimeCreated");
+		Util::AddFunc(pLua, filesystem_TimeAccessed, "TimeAccessed");
+	Util::FinishTable(pLua, "filesystem");
 }
 
-void CFileSystemModule::LuaShutdown()
+void CFileSystemModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	Util::NukeTable("filesystem");
+	Util::NukeTable(pLua, "filesystem");
 }
 
 void CFileSystemModule::Shutdown()
