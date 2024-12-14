@@ -402,8 +402,10 @@ void HttpServer::Think()
 
 httplib::Server::Handler HttpServer::CreateHandler(const char* path, int func, bool ipwhitelist)
 {
-	return [=](const httplib::Request& req, httplib::Response& res) {
-		if (ipwhitelist) {
+	return [=](const httplib::Request& req, httplib::Response& res)
+		{
+		if (ipwhitelist)
+		{
 			bool found = false;
 			for (auto& pClient : Util::GetClients())
 			{
@@ -419,7 +421,8 @@ httplib::Server::Handler HttpServer::CreateHandler(const char* path, int func, b
 				}
 			}
 
-			if (!found) { return; }
+			if (!found)
+				return;
 		}
 
 		HttpRequest* request = new HttpRequest;
@@ -429,23 +432,19 @@ httplib::Server::Handler HttpServer::CreateHandler(const char* path, int func, b
 		request->pResponse = res;
 		m_pRequests.push_back(request); // We should add a check here since we could write to it from multiple threads?
 		m_bUpdate = true;
-		while (!request->bHandled) {
-			ThreadSleep(1);
-		}
+		while (!request->bHandled)
+			ThreadSleep(5);
+
 		HttpResponse* rdata = &request->pResponseData;
-		if (rdata->bSetContent) {
+		if (rdata->bSetContent)
 			res.set_content(rdata->strContent, rdata->strContentType);
-		}
 
-		if (rdata->bSetRedirect) {
+		if (rdata->bSetRedirect)
 			res.set_redirect(rdata->strRedirect, rdata->iRedirectCode);
-		}
 
-		if (rdata->bSetHeader) {
-			for (auto& [key, value] : rdata->pHeaders) {
+		if (rdata->bSetHeader)
+			for (auto& [key, value] : rdata->pHeaders)
 				res.set_header(key, value);
-			}
-		}
 
 		request->bDelete = true;
 	};
