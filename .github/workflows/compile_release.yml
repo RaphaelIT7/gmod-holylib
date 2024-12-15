@@ -14,7 +14,7 @@ jobs:
       BUILD_WINDOWS: "false"
       ARTIFACT_EXPIRE: "1"
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
-      SOURCESDK_MINIMAL_BRANCH: "patch-5"
+      SOURCESDK_MINIMAL_BRANCH: "patch-6"
       SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-1"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
       ADDITIONAL_DATA: "1"
