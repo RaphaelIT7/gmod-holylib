@@ -37,8 +37,11 @@ class IGameEventManager2;
 class IServer;
 namespace Util
 {
+#define LUA_REGISTRYINDEX	(-10000)
+#define LUA_ENVIRONINDEX	(-10001)
+#define LUA_GLOBALSINDEX	(-10002)
+
 	inline void StartTable() {
-		g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
 		g_Lua->CreateTable();
 	}
 
@@ -55,23 +58,18 @@ namespace Util
 	}
 
 	inline void FinishTable(const char* Name) {
-		g_Lua->SetField(-2, Name);
-		g_Lua->Pop();
+		g_Lua->SetField(LUA_GLOBALSINDEX, Name);
 	}
 
 	inline void NukeTable(const char* pName)
 	{
-		g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
 		g_Lua->PushNil();
-		g_Lua->SetField(-2, pName);
-		g_Lua->Pop(1);
+		g_Lua->SetField(LUA_GLOBALSINDEX, pName);
 	}
 
 	inline bool PushTable(const char* pName)
 	{
-		g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-		g_Lua->GetField(-1, pName);
-		g_Lua->Remove(-2);
+		g_Lua->GetField(LUA_GLOBALSINDEX, pName);
 		if (g_Lua->IsType(-1, GarrysMod::Lua::Type::Table))
 			return true;
 

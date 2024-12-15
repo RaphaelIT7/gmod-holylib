@@ -12,26 +12,33 @@
 #include "httplib.h"
 #endif
 
+// Try not to use it. We want to move away from it.
 GarrysMod::Lua::ILuaInterface* g_Lua;
+
 IVEngineServer* engine;
 CGlobalEntityList* Util::entitylist = NULL;
 CUserMessages* Util::pUserMessages;
 
-static Symbols::Get_Player func_GetPlayer;
-static Symbols::Push_Entity func_PushEntity;
-static Symbols::Get_Entity func_GetEntity;
 CBasePlayer* Util::Get_Player(int iStackPos, bool bError) // bError = error if not a valid player
 {
-	if (func_GetPlayer)
+	CBaseEntity* pEntity = g_Lua->GetUserType<CBaseEntity>(iStackPos, GarrysMod::Lua::Type::Entity);
+	if (!pEntity)
 	{
-		CBasePlayer* ply = func_GetPlayer(iStackPos, bError);
-		if (!ply && bError)
+		if (bError)
 			g_Lua->ThrowError("Tried to use a NULL Entity!");
-		
-		return ply;
+
+		return NULL;
 	}
 
-	return NULL;
+	if (!pEntity->IsPlayer())
+	{
+		if (bError)
+			g_Lua->ThrowError("Player entity is NULL or not a player (!?)");
+
+		return NULL;
+	}
+
+	return (CBasePlayer*)pEntity;
 }
 
 IModuleWrapper* Util::pEntityList;
@@ -47,22 +54,28 @@ void Util::Push_Entity(CBaseEntity* pEnt)
 		}
 	}
 
-	if (func_PushEntity)
-		func_PushEntity(pEnt);
+	if (!pEnt)
+	{
+		g_Lua->GetField(LUA_GLOBALSINDEX, "NULL"); // Pushing NULL onto the stack. Does this really work? :D
+		return;
+	}
+
+	int top = g_Lua->Top();
+	pEnt->PushEntity(); // ToDo: Change this since this internally uses g_Lua
+	if (top == g_Lua->Top())
+	{
+		Warning("holylib: entity failed to push.... why\n");
+		g_Lua->GetField(LUA_GLOBALSINDEX, "NULL");
+	}
 }
 
 CBaseEntity* Util::Get_Entity(int iStackPos, bool bError)
 {
-	if (func_GetEntity)
-	{
-		CBaseEntity* ent = func_GetEntity(iStackPos, bError);
-		if (!ent && bError)
-			g_Lua->ThrowError("Tried to use a NULL Entity!");
+	CBaseEntity* ent = g_Lua->GetUserType<CBaseEntity>(iStackPos, GarrysMod::Lua::Type::Entity);
+	if (!ent && bError)
+		g_Lua->ThrowError("Tried to use a NULL Entity!");
 		
-		return ent;
-	}
-
-	return NULL;
+	return ent;
 }
 
 IServer* Util::server;
@@ -215,17 +228,13 @@ void Util::AddDetour()
 	 * Idea: Fk menu, if there is a server realm, we'll use it. If not, we wait for one to start.
 	 *		We also could introduce a Lua Flag so that modules can register for Menu/Client realm if wanted.
 	 *		But I won't really support client. At best only menu.
+	 * 
+	 * New Idea: I'm updating everything. The goal is to support any realm & even multiple ILuaInterfaces at the same time (Preperation for lua_threaded support).
 	 */
 
 #ifndef SYSTEM_WINDOWS
-	func_GetPlayer = (Symbols::Get_Player)Detour::GetFunction(server_loader.GetModule(), Symbols::Get_PlayerSym);
-	func_PushEntity = (Symbols::Push_Entity)Detour::GetFunction(server_loader.GetModule(), Symbols::Push_EntitySym);
-	func_GetEntity = (Symbols::Get_Entity)Detour::GetFunction(server_loader.GetModule(), Symbols::Get_EntitySym);
 	func_CBaseEntity_CalcAbsolutePosition = (Symbols::CBaseEntity_CalcAbsolutePosition)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseEntity_CalcAbsolutePositionSym);
 	Detour::CheckFunction((void*)func_CBaseEntity_CalcAbsolutePosition, "CBaseEntity::CalcAbsolutePosition");
-	Detour::CheckFunction((void*)func_GetPlayer, "Get_Player");
-	Detour::CheckFunction((void*)func_PushEntity, "Push_Entity");
-	Detour::CheckFunction((void*)func_GetEntity, "Get_Entity");
 
 	func_CCollisionProperty_MarkSurroundingBoundsDirty = (Symbols::CCollisionProperty_MarkSurroundingBoundsDirty)Detour::GetFunction(server_loader.GetModule(), Symbols::CCollisionProperty_MarkSurroundingBoundsDirtySym);
 	Detour::CheckFunction((void*)func_CCollisionProperty_MarkSurroundingBoundsDirty, "CCollisionProperty::MarkSurroundingBoundsDirty");

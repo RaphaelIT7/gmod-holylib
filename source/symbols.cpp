@@ -17,21 +17,6 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x55\x41\x54\x49\x89\xFC\x53\x4D\x8D"), // 55 48 89 E5 41 55 41 54 49 89 FC 53 4D 8D
 	};
 
-	const std::vector<Symbol> Get_PlayerSym = { // 64x = Player entity is NULL or not a player (!?)
-		Symbol::FromName("_Z10Get_Playerib"),
-		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x54\x41\x89\xF4\x53\x40\x0F\xB6\xF6\xE8****\x48\x85\xC0\x48\x89\xC3**\x48\x8B\x00\x48\x89\xDF***\x02\x00\x00"), // 55 48 89 E5 41 54 41 89 F4 53 40 0F B6 F6 E8 ?? ?? ?? ?? 48 85 C0 48 89 C3 ?? ?? 48 8B 00 48 89 DF ?? ?? ?? 02 00 00
-	};
-
-	const std::vector<Symbol> Push_EntitySym = {
-		Symbol::FromName("_Z11Push_EntityP11CBaseEntity"),
-		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x54\x53\x48\x83\xEC\x20\x48\x8B\x1D"), // 55 48 89 E5 41 54 53 48 83 EC 20 48 8B 1D
-	};
-
-	const std::vector<Symbol> Get_EntitySym = {
-		Symbol::FromName("_Z10Get_Entityib"),
-		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x55\x41\x89\xF5\x41\x54\x41\x89\xFC\x53"), // 55 48 89 E5 41 55 41 89 F5 41 54 41 89 FC 53
-	};
-
 	const std::vector<Symbol> g_pEntityListSym = { // 64x = ents.GetAll
 		Symbol::FromName("g_pEntityList"),
 	};

@@ -81,15 +81,6 @@ namespace Symbols
 	typedef bool (GMCOMMON_CALLING_CONVENTION* CLuaInterface_Shutdown)(GarrysMod::Lua::ILuaInterface*);
 	extern const std::vector<Symbol> CLuaInterface_ShutdownSym;
 
-	typedef CBasePlayer* (*Get_Player)(int iStackPos, bool shouldError);
-	extern const std::vector<Symbol> Get_PlayerSym;
-
-	typedef void (*Push_Entity)(CBaseEntity* ent);
-	extern const std::vector<Symbol> Push_EntitySym;
-
-	typedef CBaseEntity* (*Get_Entity)(int iStackPos, bool shouldError);
-	extern const std::vector<Symbol> Get_EntitySym;
-
 	typedef void (*CBaseEntity_CalcAbsolutePosition)(void* ent);
 	extern const std::vector<Symbol> CBaseEntity_CalcAbsolutePositionSym;
 

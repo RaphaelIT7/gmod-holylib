@@ -44,6 +44,7 @@ On the next startup the ghostinj will update holylib to use the new file.
 3. Enjoy it
 
 ## Next Update
+\- [+] Added `httpserver` module.  
 \- [+] Added `entitylist` module.  
 \- \- [+] Many `pvs.*` function accept now a `EntityList`.  
 \- \- [+] `pas.TestPAS` accepts a `EntityList`.  
