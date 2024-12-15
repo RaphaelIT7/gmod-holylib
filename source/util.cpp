@@ -1,3 +1,4 @@
+#include "GarrysMod/Lua/LuaObject.h"
 #include "util.h"
 #include "symbols.h"
 #include <string>
@@ -8,9 +9,6 @@
 #include "icommandline.h"
 #include "player.h"
 #include "detours.h"
-#if 0
-#include "httplib.h"
-#endif
 
 // Try not to use it. We want to move away from it.
 GarrysMod::Lua::ILuaInterface* g_Lua;
@@ -44,29 +42,20 @@ CBasePlayer* Util::Get_Player(int iStackPos, bool bError) // bError = error if n
 IModuleWrapper* Util::pEntityList;
 void Util::Push_Entity(CBaseEntity* pEnt)
 {
-	if (Util::pEntityList->IsEnabled()) // Push_Entity is quiet slow since it has so much overhead.
-	{
-		auto it = g_pGlobalEntityList.pEntReferences.find(pEnt);
-		if (it != g_pGlobalEntityList.pEntReferences.end()) // It should never happen that we don't have a reference... but just in case.
-		{
-			g_Lua->ReferencePush(it->second);
-			return;
-		}
-	}
-
 	if (!pEnt)
 	{
-		g_Lua->GetField(LUA_GLOBALSINDEX, "NULL"); // Pushing NULL onto the stack. Does this really work? :D
+		g_Lua->GetField(LUA_GLOBALSINDEX, "NULL");
 		return;
 	}
 
-	int top = g_Lua->Top();
-	pEnt->PushEntity(); // ToDo: Change this since this internally uses g_Lua
-	if (top == g_Lua->Top())
+	GarrysMod::Lua::CLuaObject* pObject = (GarrysMod::Lua::CLuaObject*)pEnt->GetLuaEntity();
+	if (!pObject)
 	{
-		Warning("holylib: entity failed to push.... why\n");
 		g_Lua->GetField(LUA_GLOBALSINDEX, "NULL");
+		return;
 	}
+
+	g_Lua->ReferencePush(pObject->GetReference()); // Assuming the reference is always right.
 }
 
 CBaseEntity* Util::Get_Entity(int iStackPos, bool bError)
