@@ -14,7 +14,6 @@ public:
 	virtual void Think(bool bSimulating) OVERRIDE;
 	virtual const char* Name() { return "httpserver"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
-	virtual bool IsEnabledByDefault() { return false; };
 };
 
 CHTTPServerModule g_pHttpServerModule;
