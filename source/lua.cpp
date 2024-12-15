@@ -22,26 +22,22 @@ bool Lua::PushHook(const char* hook)
 		return false;
 	}
 
-	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-		g_Lua->GetField(-1, "hook");
+	g_Lua->GetField(LUA_GLOBALSINDEX, "hook");
 		if (g_Lua->GetType(-1) != GarrysMod::Lua::Type::Table)
 		{
-			g_Lua->Pop(2);
+			g_Lua->Pop(1);
 			DevMsg("Missing hook table!\n");
 			return false;
 		}
 
-			g_Lua->GetField(-1, "Run");
+		g_Lua->GetField(-1, "Run");
 			if (g_Lua->GetType(-1) != GarrysMod::Lua::Type::Function)
 			{
-				g_Lua->Pop(3);
+				g_Lua->Pop(2);
 				DevMsg("Missing hook.Run function!\n");
 				return false;
 			} else {
-				int reference = g_Lua->ReferenceCreate();
-				g_Lua->Pop(2);
-				g_Lua->ReferencePush(reference);
-				g_Lua->ReferenceFree(reference);
+				g_Lua->Remove(-2);
 				g_Lua->PushString(hook);
 			}
 

@@ -359,14 +359,12 @@ void CServerPlugin::OnEdictFreed(const edict_t *edict)
 
 GMOD_MODULE_OPEN()
 {
-	LUA->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-		LUA->GetField(-1, "CLIENT");
-		bool bClient = LUA->GetBool(-1);
-		LUA->Pop(1);
+	LUA->GetField(LUA_GLOBALSINDEX, "CLIENT");
+	bool bClient = LUA->GetBool(-1);
+	LUA->Pop(1);
 
-		LUA->GetField(-1, "SERVER");
-		bool bServer = LUA->GetBool(-1);
-		LUA->Pop(1);
+	LUA->GetField(LUA_GLOBALSINDEX, "SERVER");
+	bool bServer = LUA->GetBool(-1);
 	LUA->Pop(1);
 
 	if (bClient)
