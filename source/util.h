@@ -5,6 +5,7 @@
 #include "vprof.h"
 #include <unordered_map>
 #include <algorithm>
+#include "symbols.h"
 
 #define DEDICATED
 #include "vstdlib/jobthread.h"
@@ -94,6 +95,18 @@ namespace Util
 		return g_Lua->IsType(-1, iType);
 	}
 
+	extern Symbols::lua_rawseti func_lua_rawseti;
+	inline void RawSetI(int iStackPos, int iValue)
+	{
+		func_lua_rawseti(g_Lua->GetState(), iStackPos, iValue);
+	}
+
+	extern Symbols::lua_rawgeti func_lua_rawgeti;
+	inline void RawGetI(int iStackPos, int iValue)
+	{
+		func_lua_rawgeti(g_Lua->GetState(), iStackPos, iValue);
+	}
+
 	// Gmod's functions:
 	extern CBasePlayer* Get_Player(int iStackPos, bool unknown);
 	extern CBaseEntity* Get_Entity(int iStackPos, bool unknown);
@@ -101,6 +114,7 @@ namespace Util
 	extern CBaseEntity* GetCBaseEntityFromEdict(edict_t* edict);
 
 	extern void AddDetour(); // We load Gmod's functions in there.
+	extern void RemoveDetour();
 
 	extern CBaseClient* GetClientByUserID(int userID);
 	extern CBaseClient* GetClientByPlayer(const CBasePlayer* ply);
@@ -277,10 +291,8 @@ struct EntityList // entitylist module.
 	void Clear();
 	std::unordered_map<CBaseEntity*, int> pEntReferences;
 	std::vector<CBaseEntity*> pEntities;
-	std::unordered_map<short, CBaseEntity*> pEdictHash;
 };
 extern EntityList g_pGlobalEntityList;
 
 extern bool Is_EntityList(int iStackPos);
 extern EntityList* Get_EntityList(int iStackPos, bool bError);
-extern void UpdateGlobalEntityList();

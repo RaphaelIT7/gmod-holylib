@@ -1,6 +1,5 @@
 #include "filesystem_base.h" // Has to be before symbols.h
 #include "LuaInterface.h"
-#include "symbols.h"
 #include "detours.h"
 #include "module.h"
 #include "lua.h"
@@ -92,7 +91,6 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 	int idx = 0;
 	if (Util::pEntityList->IsEnabled())
 	{
-		UpdateGlobalEntityList();
 		for (auto& [pEnt, ref] : g_pGlobalEntityList.pEntReferences)
 		{
 			if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), Util::g_pCurrentCluster, sizeof(Util::g_pCurrentCluster)))

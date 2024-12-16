@@ -17,10 +17,6 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x55\x41\x54\x49\x89\xFC\x53\x4D\x8D"), // 55 48 89 E5 41 55 41 54 49 89 FC 53 4D 8D
 	};
 
-	const std::vector<Symbol> g_pEntityListSym = { // 64x = ents.GetAll
-		Symbol::FromName("g_pEntityList"),
-	};
-
 	const std::vector<Symbol> UsermessagesSym = {
 		Symbol::FromName("_ZL14g_UserMessages"),
 		Symbol::FromSignature("\x55\x48\x8D*****\xBA\x01\x00\x00\x00\x48\x89\xE5\x53\x48\x83\xEC\x08\x2A\x2A\x2A\x2A"), // 55 48 8D ?? ?? ?? ?? ?? BA 01 00 00 00 48 89 E5 53 48 83 EC 08 2A 2A 2A 2A
@@ -57,8 +53,20 @@ namespace Symbols
 		Symbol::FromName("_ZN11CBaseEntity21VPhysicsDestroyObjectEv"),
 	};
 
+	const std::vector<Symbol> lua_rawsetiSym = {
+		Symbol::FromName("lua_rawseti"),
+	};
+
+	const std::vector<Symbol> lua_rawgetiSym = {
+		Symbol::FromName("lua_rawgeti"),
+	};
+
 	const std::vector<Symbol> CGetSym = { // 64x ToDo
 		Symbol::FromName("get"),
+	};
+
+	const std::vector<Symbol> gEntListSym = { // 64x = ents.GetAll
+		Symbol::FromName("gEntList"),
 	};
 
 	//---------------------------------------------------------------------------------

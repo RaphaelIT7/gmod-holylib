@@ -173,6 +173,7 @@ void CServerPlugin::Unload(void)
 	}
 
 	g_pModuleManager.Shutdown();
+	Util::RemoveDetour();
 	Detour::Remove(0);
 	Detour::ReportLeak();
 

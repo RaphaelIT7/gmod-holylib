@@ -1,6 +1,5 @@
 #include "GarrysMod/Lua/LuaObject.h"
 #include "util.h"
-#include "symbols.h"
 #include <string>
 #include "GarrysMod/InterfacePointers.hpp"
 #include "sourcesdk/baseclient.h"
@@ -157,8 +156,30 @@ CBaseEntity* Util::GetCBaseEntityFromEdict(edict_t* edict)
 	return Util::servergameents->EdictToBaseEntity(edict);
 }
 
+class HolyEntityListener : public IEntityListener
+{
+public:
+	virtual void OnEntityCreated(CBaseEntity* pEntity)
+	{
+		g_pModuleManager.OnEntityCreated(pEntity);
+	}
+
+	virtual void OnEntitySpawned(CBaseEntity* pEntity)
+	{
+		g_pModuleManager.OnEntitySpawned(pEntity);
+	}
+	
+	virtual void OnEntityDeleted(CBaseEntity* pEntity)
+	{
+		g_pModuleManager.OnEntityDeleted(pEntity);
+	}
+};
+static HolyEntityListener pHolyEntityListener;
+
 IGet* Util::get;
 CBaseEntityList* g_pEntityList = NULL;
+Symbols::lua_rawseti Util::func_lua_rawseti;
+Symbols::lua_rawgeti Util::func_lua_rawgeti;
 IGameEventManager2* Util::gameeventmanager;
 void Util::AddDetour()
 {
@@ -194,17 +215,26 @@ void Util::AddDetour()
 	server = InterfacePointers::Server();
 	Detour::CheckValue("get class", "IServer", server != NULL);
 
-#ifdef ARCHITECTURE_X86 // We don't use it on 64x, do we. Look into pas_FindInPAS to see how we do it ^^
-	g_pEntityList = Detour::ResolveSymbol<CBaseEntityList>(server_loader, Symbols::g_pEntityListSym);
-	Detour::CheckValue("get class", "g_pEntityList", g_pEntityList != NULL);
-	entitylist = (CGlobalEntityList*)g_pEntityList;
+	entitylist = Detour::ResolveSymbol<CGlobalEntityList>(server_loader, Symbols::gEntListSym);
+	Detour::CheckValue("get class", "gEntList", entitylist != NULL);
+	g_pEntityList = entitylist;
+	if (entitylist)
+		entitylist->AddListenerEntity(&pHolyEntityListener);
 
+#ifdef ARCHITECTURE_X86 // We don't use it on 64x, do we. Look into pas_FindInPAS to see how we do it ^^
 	get = Detour::ResolveSymbol<IGet>(server_loader, Symbols::CGetSym);
 	Detour::CheckValue("get class", "IGet", get != NULL);
 #endif
 
 	func_CM_Vis = (Symbols::CM_Vis)Detour::GetFunction(engine_loader.GetModule(), Symbols::CM_VisSym);
 	Detour::CheckFunction((void*)func_CM_Vis, "CM_Vis");
+
+	SourceSDK::FactoryLoader lua_shared_loader("lua_shared");
+	func_lua_rawseti = (Symbols::lua_rawseti)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_rawsetiSym);
+	Detour::CheckFunction((void*)func_lua_rawseti, "lua_rawseti");
+
+	func_lua_rawgeti = (Symbols::lua_rawgeti)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_rawgetiSym);
+	Detour::CheckFunction((void*)func_lua_rawgeti, "lua_rawgeti");
 
 	pEntityList = g_pModuleManager.FindModuleByName("entitylist");
 
@@ -228,6 +258,12 @@ void Util::AddDetour()
 	func_CCollisionProperty_MarkSurroundingBoundsDirty = (Symbols::CCollisionProperty_MarkSurroundingBoundsDirty)Detour::GetFunction(server_loader.GetModule(), Symbols::CCollisionProperty_MarkSurroundingBoundsDirtySym);
 	Detour::CheckFunction((void*)func_CCollisionProperty_MarkSurroundingBoundsDirty, "CCollisionProperty::MarkSurroundingBoundsDirty");
 #endif
+}
+
+void Util::RemoveDetour()
+{
+	if (Util::entitylist)
+		Util::entitylist->RemoveListenerEntity(&pHolyEntityListener);
 }
 
 static bool g_pShouldLoad = false;

@@ -36,6 +36,21 @@ CBaseEntity* CGlobalEntityList::NextEnt(CBaseEntity* pCurrentEnt)
 
 }
 
+void CGlobalEntityList::AddListenerEntity(IEntityListener* pListener)
+{
+	if (m_entityListeners.Find(pListener) >= 0)
+	{
+		AssertMsg(0, "Can't add listeners multiple times\n");
+		return;
+	}
+	m_entityListeners.AddToTail(pListener);
+}
+
+void CGlobalEntityList::RemoveListenerEntity(IEntityListener* pListener)
+{
+	m_entityListeners.FindAndRemove(pListener);
+}
+
 bool CCollisionProperty::DoesVPhysicsInvalidateSurroundingBox( ) const
 {
 	switch ( m_nSurroundType )

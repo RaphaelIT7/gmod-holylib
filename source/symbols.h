@@ -37,6 +37,7 @@ class IServer;
 class IPhysicsObject;
 class IPhysicsEnvironment;
 class CBaseClient;
+struct lua_State;
 
 namespace GarrysMod::Lua
 {
@@ -102,7 +103,14 @@ namespace Symbols
 	typedef void (*CBaseEntity_VPhysicsDestroyObject)(void* fancy_class);
 	extern const std::vector<Symbol> CBaseEntity_VPhysicsDestroyObjectSym;
 
+	typedef void (*lua_rawseti)(lua_State* L, int index, int i);
+	extern const std::vector<Symbol> lua_rawsetiSym;
+
+	typedef void (*lua_rawgeti)(lua_State* L, int index, int i);
+	extern const std::vector<Symbol> lua_rawgetiSym;
+
 	extern const std::vector<Symbol> CGetSym;
+	extern const std::vector<Symbol> gEntListSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: holylib Symbols
@@ -237,8 +245,6 @@ namespace Symbols
 
 	typedef void* (*MoveHelperServer)();
 	extern const std::vector<Symbol> MoveHelperServerSym;
-
-	extern const std::vector<Symbol> g_pEntityListSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: pvs Symbols

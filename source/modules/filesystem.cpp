@@ -1,7 +1,6 @@
 #include <sourcesdk/filesystem_things.h>
 #undef Yield
 #include "LuaInterface.h"
-#include "symbols.h"
 #include "detours.h"
 #include "module.h"
 #include "lua.h"

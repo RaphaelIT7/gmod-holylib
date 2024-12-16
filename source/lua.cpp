@@ -1,10 +1,9 @@
 #include <LuaInterface.h>
 #include <GarrysMod/FactoryLoader.hpp>
+#include "filesystem.h"
 #include "lua.h"
 #include <GarrysMod/Lua/LuaShared.h>
 #include <GarrysMod/InterfacePointers.hpp>
-#include "filesystem.h"
-#include "symbols.h"
 #include "detours.h"
 #include "module.h"
 

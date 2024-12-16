@@ -1,6 +1,5 @@
 #include "LuaInterface.h"
 #include "detours.h"
-#include "symbols.h"
 #include "module.h"
 #include "lua.h"
 #include "player.h"
@@ -11,8 +10,8 @@ class CEntListModule : public IModule
 public:
 	virtual void LuaInit(bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown() OVERRIDE;
-	virtual void OnEdictFreed(const edict_t* pEdict) OVERRIDE;
-	virtual void OnEdictAllocated(edict_t* pEdict) OVERRIDE;
+	virtual void OnEntityCreated(CBaseEntity* pEntity) OVERRIDE;
+	virtual void OnEntityDeleted(CBaseEntity* pEntity) OVERRIDE;
 	virtual const char* Name() { return "entitylist"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 };
@@ -20,11 +19,12 @@ public:
 CEntListModule g_pEntListModule;
 IModule* pEntListModule = &g_pEntListModule;
 
-EntityList g_pGlobalEntityList;
 static int EntityList_TypeID = -1;
-static std::vector<EntityList*> pEntityLists;
 PushReferenced_LuaClass(EntityList, EntityList_TypeID)
 Get_LuaClass(EntityList, EntityList_TypeID, "EntityList")
+
+static std::vector<EntityList*> pEntityLists;
+EntityList g_pGlobalEntityList; // NOTE: This needs to be after pEntityLists? (funny Constructor Behavior apparently)
 
 EntityList::EntityList()
 {
@@ -39,8 +39,11 @@ EntityList::~EntityList()
 
 void EntityList::Clear()
 {
-	pEdictHash.clear();
 	pEntities.clear();
+	for (auto& [_, iReference] : pEntReferences)
+		g_Lua->ReferenceFree(iReference);
+	
+	pEntReferences.clear();
 }
 
 bool Is_EntityList(int iStackPos)
@@ -50,26 +53,26 @@ bool Is_EntityList(int iStackPos)
 
 LUA_FUNCTION_STATIC(EntityList__tostring)
 {
-	EntityList* data = Get_EntityList(1, false);
-	if (!data)
+	EntityList* pData = Get_EntityList(1, false);
+	if (!pData)
 	{
 		LUA->PushString("EntityList [NULL]");
 		return 1;
 	}
 
 	char szBuf[64] = {};
-	V_snprintf(szBuf, sizeof(szBuf), "EntityList [%i]", (int)data->pEntities.size());
+	V_snprintf(szBuf, sizeof(szBuf), "EntityList [%i]", (int)pData->pEntities.size());
 	LUA->PushString(szBuf);
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(EntityList__gc)
 {
-	EntityList* data = Get_EntityList(1, false);
-	if (data && data != &g_pGlobalEntityList)
+	EntityList* pData = Get_EntityList(1, false);
+	if (pData && pData != &g_pGlobalEntityList)
 	{
-		Delete_EntityList(data);
-		delete data;
+		Delete_EntityList(pData);
+		delete pData;
 	}
 
 	return 0;
@@ -116,15 +119,15 @@ LUA_FUNCTION_STATIC(EntityList_IsValid)
 
 LUA_FUNCTION_STATIC(EntityList_GetTable)
 {
-	EntityList* data = Get_EntityList(1, true);
+	EntityList* pData = Get_EntityList(1, true);
 
-	LUA->PreCreateTable(data->pEntities.size(), 0);
+	LUA->PreCreateTable(pData->pEntities.size(), 0);
 		int idx = 0;
-		for (auto& [_, ref] : data->pEntReferences)
+		for (auto& [_, iReference] : pData->pEntReferences)
 		{
 			++idx;
 			LUA->PushNumber(idx);
-			LUA->ReferencePush(ref);
+			LUA->ReferencePush(iReference);
 			LUA->RawSet(-3);
 		}
 	return 1;
@@ -132,26 +135,19 @@ LUA_FUNCTION_STATIC(EntityList_GetTable)
 
 LUA_FUNCTION_STATIC(EntityList_SetTable)
 {
-	EntityList* data = Get_EntityList(1, true);
-	data->Clear();
+	EntityList* pData = Get_EntityList(1, true);
+	LUA->CheckType(2, GarrysMod::Lua::Type::Table);
+	pData->Clear();
 
 	LUA->Push(2);
 	LUA->PushNil();
 	while (LUA->Next(-2))
 	{
-		CBaseEntity* ent = Util::Get_Entity(-1, true);
-		edict_t* edict = ent->edict();
-		if (!edict) // Not a networkable entity?
-		{
-			LUA->Pop(1);
-			continue;
-		}
+		CBaseEntity* pEntity = Util::Get_Entity(-1, true);
 
 		LUA->Push(-1);
-		data->pEntReferences[ent] = LUA->ReferenceCreate();
-		short edictIndex = edict->m_EdictIndex;
-		data->pEntities.push_back(ent);
-		data->pEdictHash[edictIndex] = ent;
+		pData->pEntReferences[pEntity] = LUA->ReferenceCreate();
+		pData->pEntities.push_back(pEntity);
 
 		LUA->Pop(1);
 	}
@@ -161,32 +157,25 @@ LUA_FUNCTION_STATIC(EntityList_SetTable)
 
 LUA_FUNCTION_STATIC(EntityList_AddTable)
 {
-	EntityList* data = Get_EntityList(1, true);
+	EntityList* pData = Get_EntityList(1, true);
+	LUA->CheckType(2, GarrysMod::Lua::Type::Table);
 
 	LUA->Push(2);
 	LUA->PushNil();
 	while (LUA->Next(-2))
 	{
-		CBaseEntity* ent = Util::Get_Entity(-1, true);
-		edict_t* edict = ent->edict();
-		if (!edict) // Not a networkable entity?
-		{
-			LUA->Pop(1);
-			continue;
-		}
+		CBaseEntity* pEntity = Util::Get_Entity(-1, true);
 
-		short edictIndex = edict->m_EdictIndex;
-		auto it = data->pEdictHash.find(edictIndex);
-		if (it != data->pEdictHash.end())
+		auto it = pData->pEntReferences.find(pEntity);
+		if (it != pData->pEntReferences.end())
 		{
 			LUA->Pop(1);
 			continue;
 		}
 
 		LUA->Push(-1);
-		data->pEntReferences[ent] = LUA->ReferenceCreate();
-		data->pEntities.push_back(ent);
-		data->pEdictHash[edictIndex] = ent;
+		pData->pEntReferences[pEntity] = LUA->ReferenceCreate();
+		pData->pEntities.push_back(pEntity);
 
 		LUA->Pop(1);
 	}
@@ -196,89 +185,64 @@ LUA_FUNCTION_STATIC(EntityList_AddTable)
 
 LUA_FUNCTION_STATIC(EntityList_RemoveTable)
 {
-	EntityList* data = Get_EntityList(1, true);
+	EntityList* pData = Get_EntityList(1, true);
+	LUA->CheckType(2, GarrysMod::Lua::Type::Table);
 
 	LUA->Push(2);
 	LUA->PushNil();
 	while (LUA->Next(-2))
 	{
-		CBaseEntity* ent = Util::Get_Entity(-1, true);
-		edict_t* edict = ent->edict();
-		if (!edict) // Not a networkable entity?
+		CBaseEntity* pEntity = Util::Get_Entity(-1, true);
+
+		auto it = pData->pEntReferences.find(pEntity);
+		if (it == pData->pEntReferences.end())
 		{
 			LUA->Pop(1);
 			continue;
 		}
 
-		short edictIndex = edict->m_EdictIndex;
-		auto it = data->pEdictHash.find(edictIndex);
-		if (it == data->pEdictHash.end())
-		{
-			LUA->Pop(1);
-			continue;
-		}
+		Vector_RemoveElement(pData->pEntities, pEntity)
+		pData->pEntReferences.erase(it);
 
-		Vector_RemoveElement(data->pEntities, ent)
-		data->pEdictHash.erase(it);
-
-		auto it2 = data->pEntReferences.find(ent);
-		if (it2 != data->pEntReferences.end())
+		auto it2 = pData->pEntReferences.find(pEntity);
+		if (it2 != pData->pEntReferences.end())
 		{
 			LUA->ReferenceFree(it2->second);
-			data->pEntReferences.erase(it2);
+			pData->pEntReferences.erase(it2);
 		}
 
 		LUA->Pop(1);
 	}
 	LUA->Pop(1);
+
 	return 0;
 }
 
 LUA_FUNCTION_STATIC(EntityList_Add)
 {
-	EntityList* data = Get_EntityList(1, true);
-	CBaseEntity* ent = Util::Get_Entity(2, true);
-	edict_t* edict = ent->edict();
-
-	if (!edict)
-		return 0;
-
-	short edictIndex = edict->m_EdictIndex;
-	auto it = data->pEdictHash.find(edictIndex);
-	if (it == data->pEdictHash.end())
-		return 0;
+	EntityList* pData = Get_EntityList(1, true);
+	CBaseEntity* pEntity = Util::Get_Entity(2, true);
 
 	LUA->Push(1);
-	data->pEntReferences[ent] = LUA->ReferenceCreate();
-	data->pEntities.push_back(ent);
-	data->pEdictHash[edictIndex] = ent;
+	pData->pEntReferences[pEntity] = LUA->ReferenceCreate();
+	pData->pEntities.push_back(pEntity);
 
 	return 0;
 }
 
 LUA_FUNCTION_STATIC(EntityList_Remove)
 {
-	EntityList* data = Get_EntityList(1, true);
-	CBaseEntity* ent = Util::Get_Entity(2, true);
-	edict_t* edict = ent->edict();
+	EntityList* pData = Get_EntityList(1, true);
+	CBaseEntity* pEntity = Util::Get_Entity(2, true);
 
-	if (!edict)
+	auto it = pData->pEntReferences.find(pEntity);
+	if (it == pData->pEntReferences.end())
 		return 0;
 
-	short edictIndex = edict->m_EdictIndex;
-	auto it = data->pEdictHash.find(edictIndex);
-	if (it == data->pEdictHash.end())
-		return 0;
+	Vector_RemoveElement(pData->pEntities, pEntity)
 
-	Vector_RemoveElement(data->pEntities, ent)
-	data->pEdictHash.erase(edictIndex);
-
-	auto it2 = data->pEntReferences.find(ent);
-	if (it2 != data->pEntReferences.end())
-	{
-		LUA->ReferenceFree(it2->second);
-		data->pEntReferences.erase(it2);
-	}
+	LUA->ReferenceFree(it->second);
+	pData->pEntReferences.erase(it);
 
 	return 0;
 }
@@ -290,72 +254,68 @@ LUA_FUNCTION_STATIC(CreateEntityList)
 	return 1;
 }
 
-static bool bFirstInit = true;
-static std::unordered_set<edict_t*> pQueriedGlobalEdicts;
-void UpdateGlobalEntityList() // Should always be called before using the g_pGlobalEntityList. 
-{
-	if (pQueriedGlobalEdicts.size() > 0)
-	{
-		if (bFirstInit)
-		{
-			edict_t* edict = Util::engineserver->PEntityOfEntIndex(0);
-			CBaseEntity* ent = Util::GetCBaseEntityFromEdict(edict);
-			if (ent) // Verify that the world is valid. Only then we know that all Entities were hopefully created.
-			{
-				pQueriedGlobalEdicts.insert(edict);
-				bFirstInit = false;
-			}
-		}
-
-		for (edict_t* edict : pQueriedGlobalEdicts)
-		{
-			CBaseEntity* ent = Util::GetCBaseEntityFromEdict(edict);
-			if (!ent)
-				continue;
-
-			Util::Push_Entity(ent);
-			g_pGlobalEntityList.pEntReferences[ent] = g_Lua->ReferenceCreate();
-			g_pGlobalEntityList.pEntities.push_back(ent);
-			g_pGlobalEntityList.pEdictHash[edict->m_EdictIndex] = ent;
-		}
-		pQueriedGlobalEdicts.clear();
-	}
-}
-
 LUA_FUNCTION_STATIC(GetGlobalEntityList)
 {
-	UpdateGlobalEntityList();
 	LUA->PreCreateTable(g_pGlobalEntityList.pEntities.size(), 0);
 		int idx = 0;
-		for (auto& [_, ref] : g_pGlobalEntityList.pEntReferences)
+		for (auto& [_, iReference] : g_pGlobalEntityList.pEntReferences)
 		{
-			++idx;
-			LUA->PushNumber(idx);
-			LUA->ReferencePush(ref);
-			LUA->RawSet(-3);
+			Util::RawGetI(LUA_REGISTRYINDEX, iReference);
+			Util::RawSetI(-2, ++idx);
 		}
+
 	return 1;
 }
 
-void CEntListModule::OnEdictFreed(const edict_t* edict)
+LUA_FUNCTION_STATIC(GetGlobalEntityList2)
 {
-	short serialNumber = edict->m_EdictIndex;
-	for (EntityList* pList : pEntityLists)
-	{
-		auto it = pList->pEdictHash.find(serialNumber);
-		if (it == pList->pEdictHash.end())
-			continue;
+	LUA->PreCreateTable(g_pGlobalEntityList.pEntities.size(), 0);
+		int idx = 0;
+		for (auto& [_, iReference] : g_pGlobalEntityList.pEntReferences)
+		{
+			++idx;
+			LUA->PushNumber(idx);
+			LUA->ReferencePush(iReference);
+			LUA->RawSet(-3);
+		}
 
-		Vector_RemoveElement(pList->pEntities, it->second)
-		pList->pEdictHash.erase(it);
-	}
-
-	pQueriedGlobalEdicts.erase((edict_t*)edict);
+	return 1;
 }
 
-void CEntListModule::OnEdictAllocated(edict_t* edict)
+void CEntListModule::OnEntityDeleted(CBaseEntity* pEntity)
 {
-	pQueriedGlobalEdicts.insert(edict); // The CBaseEntity wasn't linked yet to the edict_t. so we need to add it later.
+	Msg("Deleted Entity: %p (%i)\n", pEntity, pEntityLists.size());
+
+	for (EntityList* pList : pEntityLists)
+	{
+		auto it = pList->pEntReferences.find(pEntity);
+		if (it == pList->pEntReferences.end())
+			continue;
+
+		g_Lua->ReferencePush(it->second);
+		g_Lua->SetUserType(-1, NULL);
+		g_Lua->Pop(1);
+		g_Lua->ReferenceFree(it->second);
+
+		Vector_RemoveElement(pList->pEntities, pEntity);
+		pList->pEntReferences.erase(it);
+		Msg("Deleted Entity inside %p\n", pList);
+	}
+}
+
+void CEntListModule::OnEntityCreated(CBaseEntity* pEntity)
+{
+	auto it = g_pGlobalEntityList.pEntReferences.find(pEntity);
+	if (it != g_pGlobalEntityList.pEntReferences.end())
+	{
+		Vector_RemoveElement(g_pGlobalEntityList.pEntities, pEntity);
+		g_pGlobalEntityList.pEntReferences.erase(it);
+	}
+
+	Util::Push_Entity(pEntity);
+	g_pGlobalEntityList.pEntReferences[pEntity] = g_Lua->ReferenceCreate();
+	g_pGlobalEntityList.pEntities.push_back(pEntity);
+	Msg("Created Entity %p (%p, %i)\n", pEntity, &g_pGlobalEntityList, pEntityLists.size());
 }
 
 void CEntListModule::LuaInit(bool bServerInit)
@@ -381,6 +341,7 @@ void CEntListModule::LuaInit(bool bServerInit)
 	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
 		Util::AddFunc(CreateEntityList, "CreateEntityList");
 		Util::AddFunc(GetGlobalEntityList, "GetGlobalEntityList");
+		Util::AddFunc(GetGlobalEntityList2, "GetGlobalEntityList2");
 	g_Lua->Pop(1);
 }
 

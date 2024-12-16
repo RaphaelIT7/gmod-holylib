@@ -64,6 +64,9 @@ public:
 	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax);
 	virtual void OnEdictAllocated(edict_t* pEdict);
 	virtual void OnEdictFreed(const edict_t* pEdict);
+	virtual void OnEntityCreated(CBaseEntity* pEntity);
+	virtual void OnEntitySpawned(CBaseEntity* pEntity);
+	virtual void OnEntityDeleted(CBaseEntity* pEntity);
 
 	inline int GetStatus() { return m_pStatus; };
 	inline CreateInterfaceFn& GetAppFactory() { return m_pAppFactory; };

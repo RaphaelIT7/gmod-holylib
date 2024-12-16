@@ -58,7 +58,7 @@ On the next startup the ghostinj will update holylib to use the new file.
 \- [+] Added `HLTVClient:SetCameraMan` and `sourcetv.SetCameraMan` to `sourcetv` module.  
 \- [+] Added `INetworkStringTable:GetTable`, `HLTVClient:GetTable`, `VoiceData:GetTable`, `IGameEvent:GetTable`, `bf_read:GetTable`, `bf_write:GetTable` functions.  
 \- [+] Added `pvs.TestPVS`, `pvs.FindInPVS` and `pvs.ForceFullUpdate` functions to `pvs` module.  
-\- [+] Added `HolyLib.GetRegistry()`, `HolyLib.ExitLadder` and `HolyLib.GetLadder` to `holylib` module.  
+\- [+] Added `HolyLib.GetRegistry`, `HolyLib.ExitLadder` and `HolyLib.GetLadder` to `holylib` module.  
 \- [+] Exposed `IHolyUtil` interface and added `IHolyLib::PreLoad` and `IHolyLib:GetHolyUtil`.  
 \- [+] Added (Experimental)`holylib_filesystem_savesearchcache` optimization to filesystem module.  
 \- [+] Added Windows support for `bitbuf`, `cvars`, (partially)`filesystem`, `pas`, `util`, `voicechat` and (partially)`vprof`  
