@@ -221,6 +221,7 @@ void CModuleManager::LoadModules()
 	RegisterModule(pNetModule);
 	RegisterModule(pEntListModule);
 	RegisterModule(pHttpServerModule);
+	RegisterModule(pLuaJITModule);
 }
 
 int g_pIDs = 0;

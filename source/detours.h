@@ -1,6 +1,8 @@
 #pragma once
 
+#ifndef LUAJIT
 #define TIER0_DLL_EXPORT
+#endif
 #include <GarrysMod/FactoryLoader.hpp>
 #include <scanning/symbolfinder.hpp>
 #include <GarrysMod/Symbol.hpp>
