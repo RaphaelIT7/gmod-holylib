@@ -44,6 +44,7 @@ On the next startup the ghostinj will update holylib to use the new file.
 3. Enjoy it
 
 ## Next Update
+\- [+] Added (Experimentally)`luajit` module.
 \- [+] Added `httpserver` module.  
 \- [+] Added `entitylist` module.  
 \- \- [+] Many `pvs.*` function accept now a `EntityList`.  
@@ -2805,28 +2806,8 @@ Adds the given entity to the list.
 #### EntityList:RemoveEntity(Entity ent)
 Removes the given entity from the list.  
 
-# Unfinished Modules
-
-## serverplugins
-This module adds two new `IServerPluginCallbacks` functions:  
-`virtual void OnLuaInit( GarrysMod::Lua::ILuaInterface* LUA )`  
-`virtual void OnLuaShutdown( GarrysMod::Lua::ILuaInterface* LUA )`  
-
-For a plugin to be loaded by HolyLib, you need to expose HolyLib's Interface.  
-You can expose both HolyLib's and the normal interface since the order of the virtual functions are the same.  
-This should already work but I never tested it completly yet (Or I forgot that I did test it).  
-
-Supports: Linux32 | Linux64  
-
-> [!NOTE]
-> Windows doesn't have plugins / we won't support it there.  
-
 ## httpserver
-
 This module adds a library with functions to create and run a httpserver.  
-
-> [!NOTE]
-> It's currently disabled by default and has to be enabled with `holylib_enable_httpserver 1`
 
 ### Functions
 
@@ -3014,6 +2995,29 @@ Redirects one to the given URL and returns the given code.
 
 #### HttpResponse:SetHeader(key, value)
 Sets the given value for the given key in the header.
+
+## luajit
+This module updates luajit to a newer version.
+
+> [!NOTE]
+> By default this module is disabled.
+> You can enable it by adding `-holylib_enable_luajit 1` to the command line.
+
+# Unfinished Modules
+
+## serverplugins
+This module adds two new `IServerPluginCallbacks` functions:  
+`virtual void OnLuaInit( GarrysMod::Lua::ILuaInterface* LUA )`  
+`virtual void OnLuaShutdown( GarrysMod::Lua::ILuaInterface* LUA )`  
+
+For a plugin to be loaded by HolyLib, you need to expose HolyLib's Interface.  
+You can expose both HolyLib's and the normal interface since the order of the virtual functions are the same.  
+This should already work but I never tested it completly yet (Or I forgot that I did test it).  
+
+Supports: Linux32 | Linux64  
+
+> [!NOTE]
+> Windows doesn't have plugins / we won't support it there.  
 
 # Issues implemented / fixed
 `gameevent.GetListeners` -> https://github.com/Facepunch/garrysmod-requests/issues/2377  
