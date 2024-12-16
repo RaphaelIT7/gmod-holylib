@@ -265,19 +265,6 @@ LUA_FUNCTION_STATIC(GetGlobalEntityList)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(GetGlobalEntityList2)
-{
-	LUA->PreCreateTable(g_pGlobalEntityList.pEntities.size(), 0);
-		int idx = 0;
-		for (auto& [_, iReference] : g_pGlobalEntityList.pEntReferences)
-		{
-			Util::ReferencePush(iReference);
-			Util::RawSetI(-2, ++idx);
-		}
-
-	return 1;
-}
-
 void CEntListModule::OnEntityDeleted(CBaseEntity* pEntity)
 {
 	if (g_pEntListModule.InDebug())
@@ -342,7 +329,6 @@ void CEntListModule::LuaInit(bool bServerInit)
 	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
 		Util::AddFunc(CreateEntityList, "CreateEntityList");
 		Util::AddFunc(GetGlobalEntityList, "GetGlobalEntityList");
-		Util::AddFunc(GetGlobalEntityList2, "GetGlobalEntityList2");
 	g_Lua->Pop(1);
 }
 

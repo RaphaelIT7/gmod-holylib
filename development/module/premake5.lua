@@ -55,16 +55,21 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			[[../../source/sourcesdk/*.h]],
 			[[../../source/sourcesdk/*.cpp]],
 			[[../../source/public/*.h]],
+			[[../../lua/*.h]],
+			[[../../lua/*.hpp]],
 			[[../../README.md]],
 		})
 
 		includedirs({
 			[[../../Bootil/include/]],
-			[[../../source/sourcesdk/]]
+			[[../../source/sourcesdk/]],
+			[[../../lua]]
 		})
 
 		filter("system:windows")
 			files({"source/win32/*.cpp", "source/win32/*.hpp"})
+			links({"lua51_32.lib"})
+			links({"lua51_64.lib"})
 			links({"bootil_static_32.lib"})
 			links({"bootil_static_64.lib"}) -- one of these will work :^
 			links({"bass_32.lib"})
@@ -78,9 +83,11 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 
 		filter({"system:linux", "platforms:x86_64"})
 			libdirs("../../libs/linux64")
+			links("luajit_64")
 
 		filter({"system:linux", "platforms:x86"})
 			libdirs("../../libs/linux32")
+			links("luajit_32")
 
 		filter("system:linux")
 			targetextension(".so")
