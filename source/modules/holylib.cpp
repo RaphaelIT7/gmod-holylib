@@ -241,6 +241,18 @@ static void hook_CBaseEntity_PostConstructor(CBaseEntity* pEnt, const char* szCl
 		Util::Push_Entity(pEnt);
 		g_Lua->PushString(szClassname);
 		g_Lua->CallFunctionProtected(3, 0, true);
+
+		/*g_Lua->PushUserType(pEnt, GarrysMod::Lua::Type::Entity);
+		g_Lua->Push(-1);
+		int iReference = g_Lua->ReferenceCreate();
+		g_Lua->PushString(szClassname);
+
+		g_Lua->CallFunctionProtected(3, 0, true);
+
+		g_Lua->ReferencePush(iReference);
+		g_Lua->ReferenceFree(iReference);
+		g_Lua->SetUserType(-1, NULL);
+		g_Lua->Pop(1)*/
 	}
 
 	detour_CBaseEntity_PostConstructor.GetTrampoline<Symbols::CBaseEntity_PostConstructor>()(pEnt, szClassname);

@@ -264,6 +264,9 @@ end)
 Called before `CBaseEntity::PostConstructor` is called.  
 This should allow you to set the `EFL_SERVER_ONLY` flag properly.  
 
+> [!NOTE]
+> This may currently not work.
+
 #### HolyLib:OnPlayerGotOnLadder(Entity ladder, Entity ply)
 Called when a gets onto a ladder -> Direct bind to `CFuncLadder::PlayerGotOn`  
 
