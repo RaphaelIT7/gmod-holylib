@@ -56,7 +56,7 @@ On the next startup the ghostinj will update holylib to use the new file.
 \- [+] Added the `HolyLib:PreCheckTransmit`, `HolyLib:OnPlayerGot[On/Off]Ladder`, `HolyLib:OnMoveTypeChange` hook.  
 \- [+] Added `HolyLib:OnSourceTVStartNewShot`, `HolyLib:OnSourceTVClientDisconnect` hook to `sourcetv` module.  
 \- [+] Added `HLTVClient:SetCameraMan` and `sourcetv.SetCameraMan` to `sourcetv` module.  
-\- [+] Added `INetworkStringTable:GetTable` and `HLTVClient:GetTable` functions to `sourcetv` and `stringtable` module.  
+\- [+] Added `INetworkStringTable:GetTable`, `HLTVClient:GetTable`, `VoiceData:GetTable` and `IGameEvent:GetTable` functions.  
 \- [+] Added `pvs.TestPVS`, `pvs.FindInPVS` and `pvs.ForceFullUpdate` functions to `pvs` module.  
 \- [+] Added `HolyLib.GetRegistry()`, `HolyLib.ExitLadder` and `HolyLib.GetLadder` to `holylib` module.  
 \- [+] Exposed `IHolyUtil` interface and added `IHolyLib::PreLoad` and `IHolyLib:GetHolyUtil`.  
@@ -2006,13 +2006,19 @@ Creates a new VoiceData object.
 VoiceData is a userdata value that is used to manage the voicedata.  
 
 #### string VoiceData:\_\_tostring()
-Returns `VoiceData [%i(Player Slot)][%i(Length/Size)]`.  
+Returns `VoiceData [Player Slot][Length/Size]`.  
 
 #### VoiceData:\_\_gc()
 Garbage collection. Deletes the voice data internally.  
 
 #### var VoiceData:\_\_index()
 Index.  
+
+#### VoiceData:\_\_newindex()
+Allows you to save variables on it.
+
+#### VoiceData:GetTable()
+Returns the lua table containing all saved variables.
 
 #### bool VoiceData:IsValid()
 Returns `true` if the VoiceData is still valid.  
@@ -2048,7 +2054,7 @@ Sets if the VoiceData is in proximity.
 
 ### Hooks
 
-#### HolyLib:PreProcessVoiceChat(Player ply, VoiceData data)
+#### bool HolyLib:PreProcessVoiceChat(Player ply, VoiceData data)
 Called before the voicedata is processed.  
 Return `true` to stop the engine from processing it.  
 

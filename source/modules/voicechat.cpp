@@ -54,7 +54,7 @@ struct VoiceData
 };
 
 static int VoiceData_TypeID = -1;
-Push_LuaClass(VoiceData, VoiceData_TypeID)
+PushReferenced_LuaClass(VoiceData, VoiceData_TypeID) // Why do we use PushReferenced? Because then we can save data on it.
 Get_LuaClass(VoiceData, VoiceData_TypeID, "VoiceData")
 
 LUA_FUNCTION_STATIC(VoiceData__tostring)
@@ -74,8 +74,33 @@ LUA_FUNCTION_STATIC(VoiceData__tostring)
 
 LUA_FUNCTION_STATIC(VoiceData__index)
 {
-	if (!LUA->FindOnObjectsMetaTable(1, 2))
+	if (LUA->FindOnObjectsMetaTable(1, 2))
+		return 1;
+
+	LUA->Pop(1);
+	LUA->ReferencePush(g_pPushedVoiceData[Get_VoiceData(1, true)]->iTableReference);
+	if (!LUA->FindObjectOnTable(-1, 2))
 		LUA->PushNil();
+
+	LUA->Remove(-2);
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VoiceData__newindex)
+{
+	LUA->ReferencePush(g_pPushedVoiceData[Get_VoiceData(1, true)]->iTableReference);
+	LUA->Push(2);
+	LUA->Push(3);
+	LUA->RawSet(-3);
+	LUA->Pop(1);
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(VoiceData_GetTable)
+{
+	LUA->ReferencePush(g_pPushedVoiceData[Get_VoiceData(1, true)]->iTableReference);
 
 	return 1;
 }
@@ -85,7 +110,7 @@ LUA_FUNCTION_STATIC(VoiceData__gc)
 	VoiceData* pData = Get_VoiceData(1, false);
 	if (pData)
 	{
-		LUA->SetUserType(1, NULL);
+		Delete_VoiceData(pData);
 		delete pData;
 	}
 
@@ -398,7 +423,9 @@ void CVoiceChatModule::LuaInit(bool bServerInit)
 	VoiceData_TypeID = g_Lua->CreateMetaTable("VoiceData");
 		Util::AddFunc(VoiceData__tostring, "__tostring");
 		Util::AddFunc(VoiceData__index, "__index");
+		Util::AddFunc(VoiceData__newindex, "__newindex");
 		Util::AddFunc(VoiceData__gc, "__gc");
+		Util::AddFunc(VoiceData_GetTable, "GetTable");
 		Util::AddFunc(VoiceData_IsValid, "IsValid");
 		Util::AddFunc(VoiceData_GetData, "GetData");
 		Util::AddFunc(VoiceData_GetLength, "GetLength");

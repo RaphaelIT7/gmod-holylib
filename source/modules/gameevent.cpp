@@ -322,7 +322,7 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 }
 
 static int IGameEvent_TypeID = -1;
-Push_LuaClass(IGameEvent, IGameEvent_TypeID)
+PushReferenced_LuaClass(IGameEvent, IGameEvent_TypeID)
 Get_LuaClass(IGameEvent, IGameEvent_TypeID, "IGameEvent")
 
 LUA_FUNCTION_STATIC(IGameEvent__tostring)
@@ -342,8 +342,33 @@ LUA_FUNCTION_STATIC(IGameEvent__tostring)
 
 LUA_FUNCTION_STATIC(IGameEvent__index)
 {
-	if (!LUA->FindOnObjectsMetaTable(1, 2))
+	if (LUA->FindOnObjectsMetaTable(1, 2))
+		return 1;
+
+	LUA->Pop(1);
+	LUA->ReferencePush(g_pPushedIGameEvent[Get_IGameEvent(1, true)]->iTableReference);
+	if (!LUA->FindObjectOnTable(-1, 2))
 		LUA->PushNil();
+
+	LUA->Remove(-2);
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IGameEvent__newindex)
+{
+	LUA->ReferencePush(g_pPushedIGameEvent[Get_IGameEvent(1, true)]->iTableReference);
+	LUA->Push(2);
+	LUA->Push(3);
+	LUA->RawSet(-3);
+	LUA->Pop(1);
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(IGameEvent_GetTable)
+{
+	LUA->ReferencePush(g_pPushedIGameEvent[Get_IGameEvent(1, true)]->iTableReference);
 
 	return 1;
 }
@@ -353,7 +378,7 @@ LUA_FUNCTION_STATIC(IGameEvent__gc)
 	IGameEvent* pEvent = Get_IGameEvent(1, false);
 	if (pEvent)
 	{
-		LUA->SetUserType(1, NULL);
+		Delete_IGameEvent(pEvent);
 		pManager->FreeEvent(pEvent);
 	}
 
@@ -573,8 +598,10 @@ void CGameeventLibModule::LuaInit(bool bServerInit)
 	IGameEvent_TypeID = g_Lua->CreateMetaTable("IGameEvent");
 		Util::AddFunc(IGameEvent__tostring, "__tostring");
 		Util::AddFunc(IGameEvent__index, "__index");
+		Util::AddFunc(IGameEvent__newindex, "__newindex");
 		Util::AddFunc(IGameEvent__gc, "__gc");
 		Util::AddFunc(IGameEvent_IsValid, "IsValid");
+		Util::AddFunc(IGameEvent_GetTable, "GetTable");
 		Util::AddFunc(IGameEvent_IsEmpty, "IsEmpty");
 		Util::AddFunc(IGameEvent_IsReliable, "IsReliable");
 		Util::AddFunc(IGameEvent_IsLocal, "IsLocal");
