@@ -173,6 +173,12 @@ LUA_FUNCTION_STATIC(HttpResponse_GetTable)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(HttpResponse_IsValid)
+{
+	LUA->PushBool(Get_HttpResponse(1, false) != NULL);
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(HttpResponse_SetContent)
 {
 	HttpResponse* pData = Get_HttpResponse(1, true);
@@ -241,6 +247,12 @@ LUA_FUNCTION_STATIC(HttpRequest__newindex)
 LUA_FUNCTION_STATIC(HttpRequest_GetTable)
 {
 	LUA->ReferencePush(g_pPushedHttpRequest[Get_HttpRequest(1, true)]->iTableReference); // This should never crash so no safety checks.
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(HttpRequest_IsValid)
+{
+	LUA->PushBool(Get_HttpRequest(1, false) != NULL);
 	return 1;
 }
 
@@ -529,6 +541,12 @@ LUA_FUNCTION_STATIC(HttpServer_GetTable)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(HttpServer_IsValid)
+{
+	LUA->PushBool(Get_HttpServer(1, false) != NULL);
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(HttpServer_Get)
 {
 	HttpServer* pServer = Get_HttpServer(1, true);
@@ -729,6 +747,7 @@ void CHTTPServerModule::LuaInit(bool bServerInit)
 		Util::AddFunc(HttpServer__index, "__index");
 		Util::AddFunc(HttpServer__newindex, "__newindex");
 		Util::AddFunc(HttpServer_GetTable, "GetTable");
+		Util::AddFunc(HttpServer_IsValid, "IsValid");
 
 		Util::AddFunc(HttpServer_Think, "Think");
 		Util::AddFunc(HttpServer_Start, "Start");
@@ -759,6 +778,7 @@ void CHTTPServerModule::LuaInit(bool bServerInit)
 		Util::AddFunc(HttpResponse__index, "__index");
 		Util::AddFunc(HttpResponse__newindex, "__newindex");
 		Util::AddFunc(HttpResponse_GetTable, "GetTable");
+		Util::AddFunc(HttpResponse_IsValid, "IsValid");
 
 		Util::AddFunc(HttpResponse_SetContent, "SetContent");
 		Util::AddFunc(HttpResponse_SetHeader, "SetHeader");
@@ -770,6 +790,7 @@ void CHTTPServerModule::LuaInit(bool bServerInit)
 		Util::AddFunc(HttpRequest__index, "__index");
 		Util::AddFunc(HttpRequest__newindex, "__newindex");
 		Util::AddFunc(HttpRequest_GetTable, "GetTable");
+		Util::AddFunc(HttpRequest_IsValid, "IsValid");
 
 		Util::AddFunc(HttpRequest_HasHeader, "HasHeader");
 		Util::AddFunc(HttpRequest_HasParam, "HasParam");

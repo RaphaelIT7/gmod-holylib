@@ -20,11 +20,11 @@ static Push_LuaClass(QAngle, GarrysMod::Lua::Type::Angle)
 static Push_LuaClass(Vector, GarrysMod::Lua::Type::Vector)
 
 static int bf_read_TypeID = -1;
-Push_LuaClass(bf_read, bf_read_TypeID)
+PushReferenced_LuaClass(bf_read, bf_read_TypeID)
 Get_LuaClass(bf_read, bf_read_TypeID, "bf_read")
 
 static int bf_write_TypeID = -1;
-Push_LuaClass(bf_write, bf_write_TypeID)
+PushReferenced_LuaClass(bf_write, bf_write_TypeID)
 Get_LuaClass(bf_write, bf_write_TypeID, "bf_write")
 
 LUA_FUNCTION_STATIC(bf_read__tostring)
@@ -44,8 +44,33 @@ LUA_FUNCTION_STATIC(bf_read__tostring)
 
 LUA_FUNCTION_STATIC(bf_read__index)
 {
-	if (!LUA->FindOnObjectsMetaTable(1, 2))
+	if (LUA->FindOnObjectsMetaTable(1, 2))
+		return 1;
+
+	LUA->Pop(1);
+	LUA->ReferencePush(g_pPushedbf_read[Get_bf_read(1, true)]->iTableReference);
+	if (!LUA->FindObjectOnTable(-1, 2))
 		LUA->PushNil();
+
+	LUA->Remove(-2);
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(bf_read__newindex)
+{
+	LUA->ReferencePush(g_pPushedbf_read[Get_bf_read(1, true)]->iTableReference);
+	LUA->Push(2);
+	LUA->Push(3);
+	LUA->RawSet(-3);
+	LUA->Pop(1);
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(bf_read_GetTable)
+{
+	LUA->ReferencePush(g_pPushedbf_read[Get_bf_read(1, true)]->iTableReference);
 
 	return 1;
 }
@@ -55,7 +80,7 @@ LUA_FUNCTION_STATIC(bf_read__gc)
 	bf_read* bf = Get_bf_read(1, false);
 	if (bf)
 	{
-		LUA->SetUserType(1, NULL);
+		Delete_bf_read(bf);
 		delete[] bf->GetBasePointer();
 		delete bf;
 	}
@@ -503,8 +528,33 @@ LUA_FUNCTION_STATIC(bf_write__tostring)
 
 LUA_FUNCTION_STATIC(bf_write__index)
 {
-	if (!LUA->FindOnObjectsMetaTable(1, 2))
+	if (LUA->FindOnObjectsMetaTable(1, 2))
+		return 1;
+
+	LUA->Pop(1);
+	LUA->ReferencePush(g_pPushedbf_write[Get_bf_write(1, true)]->iTableReference);
+	if (!LUA->FindObjectOnTable(-1, 2))
 		LUA->PushNil();
+
+	LUA->Remove(-2);
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(bf_write__newindex)
+{
+	LUA->ReferencePush(g_pPushedbf_write[Get_bf_write(1, true)]->iTableReference);
+	LUA->Push(2);
+	LUA->Push(3);
+	LUA->RawSet(-3);
+	LUA->Pop(1);
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(bf_write_GetTable)
+{
+	LUA->ReferencePush(g_pPushedbf_write[Get_bf_write(1, true)]->iTableReference);
 
 	return 1;
 }
@@ -514,7 +564,7 @@ LUA_FUNCTION_STATIC(bf_write__gc)
 	bf_write* bf = Get_bf_write(1, false);
 	if (bf)
 	{
-		LUA->SetUserType(1, NULL);
+		Delete_bf_write(bf);
 		delete[] bf->GetBasePointer();
 		delete bf;
 	}
@@ -923,7 +973,9 @@ void CBitBufModule::LuaInit(bool bServerInit)
 	bf_read_TypeID = g_Lua->CreateMetaTable("bf_read");
 		Util::AddFunc(bf_read__tostring, "__tostring");
 		Util::AddFunc(bf_read__index, "__index");
+		Util::AddFunc(bf_read__newindex, "__newindex");
 		Util::AddFunc(bf_read__gc, "__gc");
+		Util::AddFunc(bf_read_GetTable, "GetTable");
 		Util::AddFunc(bf_read_IsValid, "IsValid");
 		Util::AddFunc(bf_read_GetNumBitsLeft, "GetNumBitsLeft");
 		Util::AddFunc(bf_read_GetNumBitsRead, "GetNumBitsRead");
@@ -976,7 +1028,9 @@ void CBitBufModule::LuaInit(bool bServerInit)
 	bf_write_TypeID = g_Lua->CreateMetaTable("bf_write");
 		Util::AddFunc(bf_write__tostring, "__tostring");
 		Util::AddFunc(bf_write__index, "__index");
+		Util::AddFunc(bf_write__newindex, "__newindex");
 		Util::AddFunc(bf_write__gc, "__gc");
+		Util::AddFunc(bf_write_GetTable, "GetTable");
 		Util::AddFunc(bf_write_IsValid, "IsValid");
 		Util::AddFunc(bf_write_GetData, "GetData");
 		Util::AddFunc(bf_write_GetNumBytesWritten, "GetNumBytesWritten");

@@ -23,7 +23,7 @@ IModule* pEntListModule = &g_pEntListModule;
 EntityList g_pGlobalEntityList;
 static int EntityList_TypeID = -1;
 static std::vector<EntityList*> pEntityLists;
-Push_LuaClass(EntityList, EntityList_TypeID)
+PushReferenced_LuaClass(EntityList, EntityList_TypeID)
 Get_LuaClass(EntityList, EntityList_TypeID, "EntityList")
 
 EntityList::EntityList()
@@ -68,7 +68,7 @@ LUA_FUNCTION_STATIC(EntityList__gc)
 	EntityList* data = Get_EntityList(1, false);
 	if (data && data != &g_pGlobalEntityList)
 	{
-		LUA->SetUserType(1, NULL);
+		Delete_EntityList(data);
 		delete data;
 	}
 
@@ -77,9 +77,40 @@ LUA_FUNCTION_STATIC(EntityList__gc)
 
 LUA_FUNCTION_STATIC(EntityList__index)
 {
-	if (!LUA->FindOnObjectsMetaTable(1, 2))
+	if (LUA->FindOnObjectsMetaTable(1, 2))
+		return 1;
+
+	LUA->Pop(1);
+	LUA->ReferencePush(g_pPushedEntityList[Get_EntityList(1, true)]->iTableReference);
+	if (!LUA->FindObjectOnTable(-1, 2))
 		LUA->PushNil();
 
+	LUA->Remove(-2);
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(EntityList__newindex)
+{
+	LUA->ReferencePush(g_pPushedEntityList[Get_EntityList(1, true)]->iTableReference);
+	LUA->Push(2);
+	LUA->Push(3);
+	LUA->RawSet(-3);
+	LUA->Pop(1);
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(EntityList_GetLuaTable)
+{
+	LUA->ReferencePush(g_pPushedEntityList[Get_EntityList(1, true)]->iTableReference);
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(EntityList_IsValid)
+{
+	LUA->PushBool(Get_EntityList(1, false) != NULL);
 	return 1;
 }
 
@@ -335,7 +366,10 @@ void CEntListModule::LuaInit(bool bServerInit)
 	EntityList_TypeID = g_Lua->CreateMetaTable("EntityList");
 		Util::AddFunc(EntityList__tostring, "__tostring");
 		Util::AddFunc(EntityList__index, "__index");
+		Util::AddFunc(EntityList__newindex, "__newindex");
 		Util::AddFunc(EntityList__gc, "__gc");
+		Util::AddFunc(EntityList_GetLuaTable, "GetLuaTable");
+		Util::AddFunc(EntityList_IsValid, "IsValid");
 		Util::AddFunc(EntityList_GetTable, "GetTable");
 		Util::AddFunc(EntityList_SetTable, "SetTable");
 		Util::AddFunc(EntityList_AddTable, "AddTable");

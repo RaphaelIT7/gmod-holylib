@@ -56,7 +56,7 @@ On the next startup the ghostinj will update holylib to use the new file.
 \- [+] Added the `HolyLib:PreCheckTransmit`, `HolyLib:OnPlayerGot[On/Off]Ladder`, `HolyLib:OnMoveTypeChange` hook.  
 \- [+] Added `HolyLib:OnSourceTVStartNewShot`, `HolyLib:OnSourceTVClientDisconnect` hook to `sourcetv` module.  
 \- [+] Added `HLTVClient:SetCameraMan` and `sourcetv.SetCameraMan` to `sourcetv` module.  
-\- [+] Added `INetworkStringTable:GetTable`, `HLTVClient:GetTable`, `VoiceData:GetTable` and `IGameEvent:GetTable` functions.  
+\- [+] Added `INetworkStringTable:GetTable`, `HLTVClient:GetTable`, `VoiceData:GetTable`, `IGameEvent:GetTable`, `bf_read:GetTable`, `bf_write:GetTable` functions.  
 \- [+] Added `pvs.TestPVS`, `pvs.FindInPVS` and `pvs.ForceFullUpdate` functions to `pvs` module.  
 \- [+] Added `HolyLib.GetRegistry()`, `HolyLib.ExitLadder` and `HolyLib.GetLadder` to `holylib` module.  
 \- [+] Exposed `IHolyUtil` interface and added `IHolyLib::PreLoad` and `IHolyLib:GetHolyUtil`.  
@@ -1446,15 +1446,17 @@ Format: `HLTVClient [%i][%s]`
 `%i` -> UserID  
 `%s` -> ClientName  
 
+#### HLTVClient:\_\_newindex(string key, any value)
+Internally implemented and will set the values into the lua table.  
+
 #### any HLTVClient:\_\_index(string key)
-Internally seaches in the metatable table for the key.  
+Internally seaches first in the metatable table for the key.  
+If it fails to find it, it will search in the lua table before returning.  
+If you try to get multiple values from the lua table, just use `HLTVClient:GetTable()`.  
 
 #### table HLTVClient:GetTable()
 Returns the lua table of this object.  
 You can store variables into it.  
-
-> [!NOTE]
-> There is no \_\_newindex function since we can't properly reset the LuaTable.  
 
 #### string HLTVClient:GetName()
 Returns the name of the client.  
@@ -1605,6 +1607,18 @@ Format: `bf_read [%i]`
 #### bf_read:\_\_gc()
 Deletes the buffer internally.  
 
+#### bf_read:\_\_newindex(string key, any value)
+Internally implemented and will set the values into the lua table.  
+
+#### any bf_read:\_\_index(string key)
+Internally seaches first in the metatable table for the key.  
+If it fails to find it, it will search in the lua table before returning.  
+If you try to get multiple values from the lua table, just use `bf_read:GetTable()`.  
+
+#### table bf_read:GetTable()
+Returns the lua table of this object.  
+You can store variables into it.  
+
 #### number bf_read:GetNumBitsLeft()
 Returns the number of bits left.  
 
@@ -1744,6 +1758,18 @@ Format: `bf_write [%i]`
 
 #### bf_write:\_\_gc()
 Deletes the buffer internally.  
+
+#### bf_write:\_\_newindex(string key, any value)
+Internally implemented and will set the values into the lua table.  
+
+#### any bf_write:\_\_index(string key)
+Internally seaches first in the metatable table for the key.  
+If it fails to find it, it will search in the lua table before returning.  
+If you try to get multiple values from the lua table, just use `bf_write:GetTable()`.  
+
+#### table bf_write:GetTable()
+Returns the lua table of this object.  
+You can store variables into it.  
 
 #### bool bf_write:IsValid()
 returns `true` if the buffer is still valid.  
@@ -2011,14 +2037,17 @@ Returns `VoiceData [Player Slot][Length/Size]`.
 #### VoiceData:\_\_gc()
 Garbage collection. Deletes the voice data internally.  
 
-#### var VoiceData:\_\_index()
-Index.  
+#### VoiceData:\_\_newindex(string key, any value)
+Internally implemented and will set the values into the lua table.  
 
-#### VoiceData:\_\_newindex()
-Allows you to save variables on it.
+#### any VoiceData:\_\_index(string key)
+Internally seaches first in the metatable table for the key.  
+If it fails to find it, it will search in the lua table before returning.  
+If you try to get multiple values from the lua table, just use `VoiceData:GetTable()`.  
 
-#### VoiceData:GetTable()
-Returns the lua table containing all saved variables.
+#### table VoiceData:GetTable()
+Returns the lua table of this object.  
+You can store variables into it.  
 
 #### bool VoiceData:IsValid()
 Returns `true` if the VoiceData is still valid.  
@@ -2314,12 +2343,20 @@ This table structure is used by a few functions.
 Returns `CPhysCollide [NULL]` if invalid.  
 Else it returns `CPhysCollide`.  
 
-#### bool CPhysCollide:IsValid()
-Returns `true` if the CPhysCollide is still valid.  
+#### CPhysCollide:\_\_newindex(string key, any value)
+Internally implemented and will set the values into the lua table.  
+
+#### any CPhysCollide:\_\_index(string key)
+Internally seaches first in the metatable table for the key.  
+If it fails to find it, it will search in the lua table before returning.  
+If you try to get multiple values from the lua table, just use `CPhysCollide:GetTable()`.  
 
 #### table CPhysCollide:GetTable()
 Returns the lua table of this object.  
 You can store variables into it.  
+
+#### bool CPhysCollide:IsValid()
+Returns `true` if the CPhysCollide is still valid.   
 
 ### CPhysPolySoup
 
@@ -2327,12 +2364,20 @@ You can store variables into it.
 Returns `CPhysPolySoup [NULL]` if invalid.  
 Else it returns `CPhysPolySoup`.  
 
-#### bool CPhysPolySoup:IsValid()
-Returns `true` if the CPhysPolySoup is still valid.  
+#### CPhysPolySoup:\_\_newindex(string key, any value)
+Internally implemented and will set the values into the lua table.  
+
+#### any CPhysPolySoup:\_\_index(string key)
+Internally seaches first in the metatable table for the key.  
+If it fails to find it, it will search in the lua table before returning.  
+If you try to get multiple values from the lua table, just use `CPhysPolySoup:GetTable()`.  
 
 #### table CPhysPolySoup:GetTable()
 Returns the lua table of this object.  
 You can store variables into it.  
+
+#### bool CPhysPolySoup:IsValid()
+Returns `true` if the CPhysPolySoup is still valid.  
 
 ### CPhysConvex
 
@@ -2340,12 +2385,20 @@ You can store variables into it.
 Returns `CPhysConvex [NULL]` if invalid.  
 Else it returns `CPhysConvex`.  
 
-#### bool CPhysConvex:IsValid()
-Returns `true` if the CPhysConvex is still valid.  
+#### CPhysConvex:\_\_newindex(string key, any value)
+Internally implemented and will set the values into the lua table.  
+
+#### any CPhysConvex:\_\_index(string key)
+Internally seaches first in the metatable table for the key.  
+If it fails to find it, it will search in the lua table before returning.  
+If you try to get multiple values from the lua table, just use `CPhysConvex:GetTable()`.  
 
 #### table CPhysConvex:GetTable()
 Returns the lua table of this object.  
 You can store variables into it.  
+
+#### bool CPhysConvex:IsValid()
+Returns `true` if the CPhysConvex is still valid.  
 
 ### ICollisionQuery
 
@@ -2353,12 +2406,20 @@ You can store variables into it.
 Returns `ICollisionQuery [NULL]` if invalid.  
 Else it returns `ICollisionQuery`.  
 
-#### bool ICollisionQuery:IsValid()
-Returns `true` if the collision query is still valid.  
+#### ICollisionQuery:\_\_newindex(string key, any value)
+Internally implemented and will set the values into the lua table.  
+
+#### any ICollisionQuery:\_\_index(string key)
+Internally seaches first in the metatable table for the key.  
+If it fails to find it, it will search in the lua table before returning.  
+If you try to get multiple values from the lua table, just use `ICollisionQuery:GetTable()`.  
 
 #### table ICollisionQuery:GetTable()
 Returns the lua table of this object.  
 You can store variables into it.  
+
+#### bool ICollisionQuery:IsValid()
+Returns `true` if the collision query is still valid.  
 
 #### number ICollisionQuery:ConvexCount()
 Returns the number of Convexes.  
@@ -2384,12 +2445,20 @@ Sets the three Vectors that build the triangle at the given index.
 Returns `IPhysicsCollisionSet [NULL]` if invalid.  
 Else it returns `IPhysicsCollisionSet`.  
 
-#### bool IPhysicsCollisionSet:IsValid()
-Returns `true` if the collisionset is still valid.  
+#### IPhysicsCollisionSet:\_\_newindex(string key, any value)
+Internally implemented and will set the values into the lua table.  
+
+#### any IPhysicsCollisionSet:\_\_index(string key)
+Internally seaches first in the metatable table for the key.  
+If it fails to find it, it will search in the lua table before returning.  
+If you try to get multiple values from the lua table, just use `IPhysicsCollisionSet:GetTable()`.  
 
 #### table IPhysicsCollisionSet:GetTable()
 Returns the lua table of this object.  
 You can store variables into it.  
+
+#### bool IPhysicsCollisionSet:IsValid()
+Returns `true` if the collisionset is still valid.  
 
 #### IPhysicsCollisionSet:EnableCollisions(number index1, number index2)
 Marks collisions to be enabled for the two indexes.  
@@ -2406,12 +2475,20 @@ Returns `true` if the collision between the two objects are enabled.
 Returns `IPhysicsEnvironment [NULL]` if invalid.  
 Else it returns `IPhysicsEnvironment`.  
 
-#### bool IPhysicsEnvironment:IsValid()
-Returns `true` if the environment is still valid.  
+#### IPhysicsEnvironment:\_\_newindex(string key, any value)
+Internally implemented and will set the values into the lua table.  
+
+#### any IPhysicsEnvironment:\_\_index(string key)
+Internally seaches first in the metatable table for the key.  
+If it fails to find it, it will search in the lua table before returning.  
+If you try to get multiple values from the lua table, just use `IPhysicsEnvironment:GetTable()`.  
 
 #### table IPhysicsEnvironment:GetTable()
 Returns the lua table of this object.  
 You can store variables into it.  
+
+#### bool IPhysicsEnvironment:IsValid()
+Returns `true` if the environment is still valid.  
 
 #### bool IPhysicsEnvironment:TransferObject(IPhysicsObject obj, IPhysicsEnvironment newEnvironment)
 Transfers the physics object from this environment to the new environment.  
@@ -2691,22 +2768,40 @@ Normally returns `EntityList [Entity number]`.
 If called, it will free and nuke the entity list.  
 You should never use it after this was called.  
 
-#### table EntityList:GetTable()
+#### EntityList:\_\_newindex(string key, any value)
+Internally implemented and will set the values into the lua table.  
+
+#### any EntityList:\_\_index(string key)
+Internally seaches first in the metatable table for the key.  
+If it fails to find it, it will search in the lua table before returning.  
+If you try to get multiple values from the lua table, just use `EntityList:GetTable()`.  
+
+#### table EntityList:GetLuaTable()
+Returns the lua table of this object.  
+You can store variables into it.  
+
+> [!NOTE]
+> On All other Objects this is named `:GetTable`
+
+#### bool EntityList:IsValid()
+Returns `true` if the EntityList is valid.  
+
+#### table EntityList:GetEntities()
 Returns a table with all the entities.  
 
-#### EntityList:SetTable(table entities)
+#### EntityList:SetEntities(table entities)
 Sets the EntityList from the given table.  
 
-#### EntityList:AddTable(table entities)
+#### EntityList:AddEntities(table entities)
 Adds the entities from the given table to the Entity list.  
 
-#### EntityList:RemoveTable(table entities)
+#### EntityList:RemoveEntities(table entities)
 Removes the entities that are in the table from the Entity list.  
 
-#### EntityList:Add(Entity ent)
+#### EntityList:AddEntity(Entity ent)
 Adds the given entity to the list.  
 
-#### EntityList:Remove(Entity ent)
+#### EntityList:RemoveEntity(Entity ent)
 Removes the given entity from the list.  
 
 # Unfinished Modules
@@ -2742,6 +2837,25 @@ Destroys the given http server.
 
 ### HttpServer
 This class represents a created HttpServer.
+
+#### string HttpServer:\_\_tostring()
+Returns `HttpServer [NULL]` if given invalid list.  
+Normally returns `HttpServer [Address:Port]`.  
+
+#### HttpServer:\_\_newindex(string key, any value)
+Internally implemented and will set the values into the lua table.  
+
+#### any HttpServer:\_\_index(string key)
+Internally seaches first in the metatable table for the key.  
+If it fails to find it, it will search in the lua table before returning.  
+If you try to get multiple values from the lua table, just use `HttpServer:GetTable()`.  
+
+#### table HttpServer:GetTable()
+Returns the lua table of this object.  
+You can store variables into it.  
+
+#### bool HttpServer:IsValid()
+Returns `true` if the HttpServer is valid.  
 
 #### HttpServer:Start(string IP, number Port)
 This will start or restart the HTTP Server, and it will listen on the given address + port.  
@@ -2814,6 +2928,25 @@ If you enable the IP Whitelist, only requests sent by connected players are proc
 ### HttpRequest
 A incoming Http Request.
 
+#### string HttpRequest:\_\_tostring()
+Returns `HttpRequest [NULL]` if given invalid list.  
+Normally returns `HttpRequest`.  
+
+#### HttpRequest:\_\_newindex(string key, any value)
+Internally implemented and will set the values into the lua table.  
+
+#### any HttpRequest:\_\_index(string key)
+Internally seaches first in the metatable table for the key.  
+If it fails to find it, it will search in the lua table before returning.  
+If you try to get multiple values from the lua table, just use `HttpRequest:GetTable()`.  
+
+#### table HttpRequest:GetTable()
+Returns the lua table of this object.  
+You can store variables into it.  
+
+#### bool HttpRequest:IsValid()
+Returns `true` if the HttpRequest is valid.  
+
 #### bool HttpRequest.HasHeader(key)
 returns true if the client has the given key in the header.
 
@@ -2850,6 +2983,25 @@ The length of the HTTP Request content.
 ### HttpResponse
 A Http Response.
 
+#### string HttpResponse:\_\_tostring()
+Returns `HttpResponse [NULL]` if given invalid list.  
+Normally returns `HttpResponse`.  
+
+#### HttpResponse:\_\_newindex(string key, any value)
+Internally implemented and will set the values into the lua table.  
+
+#### any HttpResponse:\_\_index(string key)
+Internally seaches first in the metatable table for the key.  
+If it fails to find it, it will search in the lua table before returning.  
+If you try to get multiple values from the lua table, just use `HttpResponse:GetTable()`.  
+
+#### table HttpResponse:GetTable()
+Returns the lua table of this object.  
+You can store variables into it.  
+
+#### bool HttpResponse:IsValid()
+Returns `true` if the HttpResponse is valid.  
+
 #### HttpResponse:SetContent(content, content-type)
 Sets the content like this:
 ```lua
@@ -2861,9 +3013,6 @@ Redirects one to the given URL and returns the given code.
 
 #### HttpResponse:SetHeader(key, value)
 Sets the given value for the given key in the header.
-
-#### table HttpResponse:GetTable()
-Returns the lua table.
 
 # Issues implemented / fixed
 `gameevent.GetListeners` -> https://github.com/Facepunch/garrysmod-requests/issues/2377  

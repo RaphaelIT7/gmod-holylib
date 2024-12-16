@@ -209,7 +209,7 @@ struct LuaUserData { // ToDo: Maybe implement this also for other things?
 // This one is special
 #define PushReferenced_LuaClass( className, luaType ) \
 static std::unordered_map<className*, LuaUserData*> g_pPushed##className; \
-static void Push_##className(className* var) \
+void Push_##className(className* var) \
 { \
 	if (!var) \
 	{ \
