@@ -298,7 +298,7 @@ void CEntListModule::OnEntityCreated(CBaseEntity* pEntity)
 		g_pGlobalEntityList.pEntReferences.erase(it);
 	}
 
-	Util::Push_Entity(pEntity);
+	Util::Push_Entity(pEntity); // BUG: The Engine hates us for this. "CREATING ENTITY - ALREADY HAS A LUA TABLE! AND IT SHOULDN'T"
 	g_pGlobalEntityList.pEntReferences[pEntity] = g_Lua->ReferenceCreate();
 	g_pGlobalEntityList.pEntities.push_back(pEntity);
 
