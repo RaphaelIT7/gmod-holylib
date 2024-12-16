@@ -108,7 +108,7 @@ LUALIB_API void (luaL_setmetatable) (lua_State *L, const char *tname);
 #define luaL_checklong(L,n)	((long)luaL_checkinteger(L, (n)))
 #define luaL_optlong(L,n,d)	((long)luaL_optinteger(L, (n), (d)))
 
-#define luaL_typename(L,i)	lua_typename(L, lua_type(L,(i)))
+#define luaL_typename(L,i)	lua_typename(L, lua_type(L,(i)), i)
 
 #define luaL_dofile(L, fn) \
 	(luaL_loadfile(L, fn) || lua_pcall(L, 0, LUA_MULTRET, 0))
