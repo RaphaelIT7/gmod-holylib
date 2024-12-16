@@ -122,30 +122,29 @@ LUA_FUNCTION_STATIC(HLTVClient__tostring)
 
 LUA_FUNCTION_STATIC(HLTVClient__index)
 {
-	if (!LUA->FindOnObjectsMetaTable(1, 2))
-		LUA->PushNil();
-		//return 1;
+	if (LUA->FindOnObjectsMetaTable(1, 2))
+		return 1;
 
-	/*LUA->Pop(1);
-	LUA->ReferencePush(g_pPushedCHLTVClient[Get_CHLTVClient(1, true)]->iTableReference); // This should never crash so no safety checks.
+	LUA->Pop(1);
+	Util::ReferencePush(g_pPushedCHLTVClient[Get_CHLTVClient(1, true)]->iTableReference); // This should never crash so no safety checks.
 	if (!LUA->FindObjectOnTable(-1, 2))
 		LUA->PushNil();
 
-	LUA->Remove(-2);*/
+	LUA->Remove(-2);
 
 	return 1;
 }
 
-/*LUA_FUNCTION_STATIC(HLTVClient__newindex)
+LUA_FUNCTION_STATIC(HLTVClient__newindex)
 {
-	LUA->ReferencePush(g_pPushedCHLTVClient[Get_CHLTVClient(1, true)]->iTableReference); // This should never crash so no safety checks.
+	Util::ReferencePush(g_pPushedCHLTVClient[Get_CHLTVClient(1, true)]->iTableReference); // This should never crash so no safety checks.
 	LUA->Push(2);
 	LUA->Push(3);
 	LUA->RawSet(-3);
 	LUA->Pop(1);
 
 	return 0;
-}*/
+}
 
 LUA_FUNCTION_STATIC(HLTVClient_GetTable)
 {
@@ -159,7 +158,7 @@ LUA_FUNCTION_STATIC(HLTVClient_GetTable)
 		data->iTableReference = LUA->ReferenceCreate();
 	}
 
-	LUA->ReferencePush(data->iTableReference); // This should never crash so no safety checks.
+	Util::ReferencePush(data->iTableReference); // This should never crash so no safety checks.
 
 	return 1;
 }
@@ -454,9 +453,8 @@ LUA_FUNCTION_STATIC(sourcetv_GetAll)
 			if (!pClient->IsConnected())
 				continue;
 
-			LUA->PushNumber(++iTableIndex);
 			Push_CHLTVClient(pClient);
-			LUA->RawSet(-3);
+			Util::RawSetI(-2, ++iTableIndex);
 		}
 
 	return 1;
@@ -562,7 +560,7 @@ static bool hook_CHLTVClient_ProcessGMod_ClientToServer(CHLTVClient* pClient, CL
 		g_Lua->Push(-1);
 		int iReference = g_Lua->ReferenceCreate();
 		g_Lua->CallFunctionProtected(3, 0, true);
-		g_Lua->ReferencePush(iReference);
+		Util::ReferencePush(iReference);
 		g_Lua->SetUserType(-1, NULL); // Make sure that the we don't keep the buffer.
 		g_Lua->Pop(1);
 		g_Lua->ReferenceFree(iReference);
@@ -590,9 +588,8 @@ static bool hook_CHLTVClient_ExecuteStringCommand(CHLTVClient* pClient, const ch
 		g_Lua->PreCreateTable(pCommandArgs.ArgC(), 0);
 			for (int i=1; i< pCommandArgs.ArgC(); ++i) // skip cmd -> 0
 			{
-				g_Lua->PushNumber(i);
 				g_Lua->PushString(pCommandArgs.Arg(i));
-				g_Lua->RawSet(-3);
+				Util::RawSetI(-2, i);
 			}
 		g_Lua->PushString(pCommandArgs.ArgS());
 		if (g_Lua->CallFunctionProtected(5, 1, true))

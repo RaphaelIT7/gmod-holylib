@@ -54,7 +54,7 @@ void Util::Push_Entity(CBaseEntity* pEnt)
 		return;
 	}
 
-	g_Lua->ReferencePush(pObject->GetReference()); // Assuming the reference is always right.
+	Util::ReferencePush(pObject->GetReference()); // Assuming the reference is always right.
 }
 
 CBaseEntity* Util::Get_Entity(int iStackPos, bool bError)

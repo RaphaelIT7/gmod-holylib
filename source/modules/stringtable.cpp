@@ -61,7 +61,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable__index)
 		return 1;
 
 	LUA->Pop(1);
-	LUA->ReferencePush(g_pPushedINetworkStringTable[Get_INetworkStringTable(1, true)]->iTableReference); // This should never crash so no safety checks.
+	Util::ReferencePush(g_pPushedINetworkStringTable[Get_INetworkStringTable(1, true)]->iTableReference); // This should never crash so no safety checks.
 	if (!LUA->FindObjectOnTable(-1, 2))
 		LUA->PushNil();
 
@@ -72,7 +72,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable__index)
 
 LUA_FUNCTION_STATIC(INetworkStringTable__newindex)
 {
-	LUA->ReferencePush(g_pPushedINetworkStringTable[Get_INetworkStringTable(1, true)]->iTableReference); // This should never crash so no safety checks.
+	Util::ReferencePush(g_pPushedINetworkStringTable[Get_INetworkStringTable(1, true)]->iTableReference); // This should never crash so no safety checks.
 	LUA->Push(2);
 	LUA->Push(3);
 	LUA->RawSet(-3);
@@ -83,7 +83,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable__newindex)
 
 LUA_FUNCTION_STATIC(INetworkStringTable_GetTable)
 {
-	LUA->ReferencePush(g_pPushedINetworkStringTable[Get_INetworkStringTable(1, true)]->iTableReference); // This should never crash so no safety checks.
+	Util::ReferencePush(g_pPushedINetworkStringTable[Get_INetworkStringTable(1, true)]->iTableReference); // This should never crash so no safety checks.
 
 	return 1;
 }
@@ -183,10 +183,8 @@ LUA_FUNCTION_STATIC(INetworkStringTable_GetAllStrings)
 		if (!pStr)
 			continue;
 
-		++idx;
-		LUA->PushNumber(idx);
 		LUA->PushString(pStr);
-		LUA->RawSet(-3);
+		Util::RawSetI(-2, ++idx);
 	}
 
 	return 1;

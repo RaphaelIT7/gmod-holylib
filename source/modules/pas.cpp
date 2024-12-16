@@ -46,7 +46,7 @@ LUA_FUNCTION_STATIC(pas_TestPAS)
 		EntityList* entList = Get_EntityList(2, true);
 		for (auto& [ent, ref]: entList->pEntReferences)
 		{
-			LUA->ReferencePush(ref);
+			Util::ReferencePush(ref);
 			LUA->PushBool(TestPAS(ent->GetAbsOrigin()));
 			LUA->RawSet(-3);
 		}
@@ -95,11 +95,9 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 		{
 			if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), Util::g_pCurrentCluster, sizeof(Util::g_pCurrentCluster)))
 			{
-				++idx;
-				LUA->PushNumber(idx);
 				// Since it should be a bit more rare that ALL entities are pushed we don't directly loop thru the map itself to benefit from the vector's performance.
-				LUA->ReferencePush(ref);
-				LUA->RawSet(-3);
+				Util::ReferencePush(ref);
+				Util::RawSetI(-2, ++idx);
 			}
 		}
 		return 1;
@@ -111,10 +109,8 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 	{
 		if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), Util::g_pCurrentCluster, sizeof(Util::g_pCurrentCluster)))
 		{
-			++idx;
-			LUA->PushNumber(idx);
 			Util::Push_Entity(pEnt);
-			LUA->RawSet(-3);
+			Util::RawSetI(-2, ++idx);
 		}
 
 		pEnt = Util::entitylist->NextEnt(pEnt);
@@ -130,10 +126,8 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 
 		if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), Util::g_pCurrentCluster, sizeof(Util::g_pCurrentCluster)))
 		{
-			++idx;
-			LUA->PushNumber(idx);
 			Util::Push_Entity(pEnt);
-			LUA->RawSet(-3);
+			Util::RawSetI(-2, ++idx);
 		}
 	}
 #endif

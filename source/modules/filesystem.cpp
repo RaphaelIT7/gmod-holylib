@@ -1812,7 +1812,7 @@ void FileAsyncReadThink()
 {
 	std::vector<IAsyncFile*> files;
 	for(IAsyncFile* file : asyncCallback) {
-		g_Lua->ReferencePush(file->callback);
+		Util::ReferencePush(file->callback);
 		g_Lua->PushString(file->req->pszFilename);
 		g_Lua->PushString(file->req->pszPathID);
 		g_Lua->PushNumber(file->status);
@@ -1916,10 +1916,8 @@ LUA_FUNCTION_STATIC(filesystem_Find)
 		int i = 0;
 		for (std::string file : files)
 		{
-			++i;
-			LUA->PushNumber(i);
 			LUA->PushString(file.c_str());
-			LUA->RawSet(-3);
+			Util::RawSetI(-2, ++i);
 		}
 	}
 
@@ -1928,10 +1926,8 @@ LUA_FUNCTION_STATIC(filesystem_Find)
 		int i = 0;
 		for (std::string folder : folders)
 		{
-			++i;
-			LUA->PushNumber(i);
 			LUA->PushString(folder.c_str());
-			LUA->RawSet(-3);
+			Util::RawSetI(-2, ++i);
 		}
 	}
 

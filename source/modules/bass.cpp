@@ -332,7 +332,7 @@ LUA_FUNCTION_STATIC(bass_PlayFile)
 	int errorCode = 0;
 	IGModAudioChannel* audioChannel = gGModAudio->PlayFile(filePath, flags, &errorCode);
 	
-	LUA->ReferencePush(callback);
+	Util::ReferencePush(callback);
 	LUA->ReferenceFree(callback);
 		if (errorCode == 0)
 			Push_IGModAudioChannel(audioChannel);
@@ -362,7 +362,7 @@ LUA_FUNCTION_STATIC(bass_PlayURL)
 	int errorCode = 0;
 	IGModAudioChannel* audioChannel = gGModAudio->PlayURL(url, flags, &errorCode);
 	
-	LUA->ReferencePush(callback);
+	Util::ReferencePush(callback);
 	LUA->ReferenceFree(callback);
 		if (errorCode == 0)
 			Push_IGModAudioChannel(audioChannel);

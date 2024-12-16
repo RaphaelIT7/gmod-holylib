@@ -38,9 +38,35 @@ class IGameEventManager2;
 class IServer;
 namespace Util
 {
-#define LUA_REGISTRYINDEX	(-10000)
-#define LUA_ENVIRONINDEX	(-10001)
-#define LUA_GLOBALSINDEX	(-10002)
+	#define LUA_REGISTRYINDEX	(-10000)
+	#define LUA_ENVIRONINDEX	(-10001)
+	#define LUA_GLOBALSINDEX	(-10002)
+
+	/*
+	 * RawSetI & RawGetI are way faster but Gmod doesn't expose or even use them :(
+	 */
+	extern Symbols::lua_rawseti func_lua_rawseti;
+	inline void RawSetI(int iStackPos, int iValue)
+	{
+		func_lua_rawseti(g_Lua->GetState(), iStackPos, iValue);
+	}
+
+	extern Symbols::lua_rawgeti func_lua_rawgeti;
+	inline void RawGetI(int iStackPos, int iValue)
+	{
+		func_lua_rawgeti(g_Lua->GetState(), iStackPos, iValue);
+	}
+
+	/*
+	 * Why do we have the same code here when CLuaInterface::ReferencePush does exactly the same?
+	 * Because like this we should hopefully skip possibly funny code & the vtable call.
+	 * 
+	 * NOTE: It does seem to be faster so were going to keep this.
+	 */
+	inline void ReferencePush(int iReference)
+	{
+		func_lua_rawgeti(g_Lua->GetState(), LUA_REGISTRYINDEX, iReference);
+	}
 
 	inline void StartTable() {
 		g_Lua->CreateTable();
@@ -93,18 +119,6 @@ namespace Util
 	{
 		g_Lua->GetField(-1, pName);
 		return g_Lua->IsType(-1, iType);
-	}
-
-	extern Symbols::lua_rawseti func_lua_rawseti;
-	inline void RawSetI(int iStackPos, int iValue)
-	{
-		func_lua_rawseti(g_Lua->GetState(), iStackPos, iValue);
-	}
-
-	extern Symbols::lua_rawgeti func_lua_rawgeti;
-	inline void RawGetI(int iStackPos, int iValue)
-	{
-		func_lua_rawgeti(g_Lua->GetState(), iStackPos, iValue);
 	}
 
 	// Gmod's functions:

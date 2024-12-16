@@ -344,7 +344,7 @@ void CSysTimerModule::Think(bool simulating) // Should also be called while hibe
 		{
 			timer->next_run_time = time + timer->delay;
 
-			g_Lua->ReferencePush(timer->function);
+			Util::ReferencePush(timer->function);
 			g_Lua->CallFunctionProtected(0, 0, true); // We should add a custom error handler to not have errors with no stack (Which somehow can happen but only observed in gmod clients)
 
 			if (timer->repetitions == 1)

@@ -34,10 +34,8 @@ LUA_FUNCTION_STATIC(cvars_GetAll)
 			if ( var->IsCommand() )
 				continue;
 
-			++idx;
-			LUA->PushNumber(idx);
 			LUA->PushUserType((ConVar*)var, GarrysMod::Lua::Type::ConVar);
-			LUA->RawSet(-3);
+			Util::RawSetI(-2, ++idx);
 		}
 
 	return 1;

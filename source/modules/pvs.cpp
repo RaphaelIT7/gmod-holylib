@@ -108,10 +108,8 @@ static void hook_CServerGameEnts_CheckTransmit(void* gameents, CCheckTransmitInf
 					if (!pInfo->m_pTransmitEdict->Get(i))
 						continue;
 
-					++idx;
-					g_Lua->PushNumber(idx);
 					Util::Push_Entity(Util::servergameents->EdictToBaseEntity(pEdict));
-					g_Lua->RawSet(-3);
+					Util::RawSetI(-2, ++idx);
 				}
 			}
 
@@ -208,10 +206,8 @@ void PostCheckTransmit(void* gameents, CCheckTransmitInfo *pInfo, const unsigned
 					if (!pInfo->m_pTransmitEdict->Get(i))
 						continue;
 
-					++idx;
-					g_Lua->PushNumber(idx);
 					Util::Push_Entity(Util::servergameents->EdictToBaseEntity(pEdict));
-					g_Lua->RawSet(-3);
+					Util::RawSetI(-2, ++idx);
 				}
 			}
 
@@ -522,7 +518,7 @@ LUA_FUNCTION_STATIC(pvs_GetStateFlags)
 		EntityList* entList = Get_EntityList(1, true);
 		for (auto& [ent, ref] : entList->pEntReferences)
 		{
-			LUA->ReferencePush(ref);
+			Util::ReferencePush(ref);
 			LUA->PushNumber(GetStateFlags(ent, force));
 			LUA->RawSet(-3);
 		}
@@ -733,10 +729,8 @@ LUA_FUNCTION_STATIC(pvs_FindInPVS) // Copy from pas.FindInPAS
 		{
 			if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), Util::g_pCurrentCluster, sizeof(Util::g_pCurrentCluster)))
 			{
-				++idx;
-				LUA->PushNumber(idx);
-				LUA->ReferencePush(ref);
-				LUA->RawSet(-3);
+				Util::ReferencePush(ref);
+				Util::RawSetI(-2, ++idx);
 			}
 		}
 		return 1;
@@ -748,10 +742,8 @@ LUA_FUNCTION_STATIC(pvs_FindInPVS) // Copy from pas.FindInPAS
 	{
 		if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), Util::g_pCurrentCluster, sizeof(Util::g_pCurrentCluster)))
 		{
-			++idx;
-			LUA->PushNumber(idx);
 			Util::Push_Entity(pEnt);
-			LUA->RawSet(-3);
+			Util::RawSetI(-2, ++idx);
 		}
 
 		pEnt = Util::entitylist->NextEnt(pEnt);
@@ -767,10 +759,8 @@ LUA_FUNCTION_STATIC(pvs_FindInPVS) // Copy from pas.FindInPAS
 
 		if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), Util::g_pCurrentCluster, sizeof(Util::g_pCurrentCluster)))
 		{
-			++idx;
-			LUA->PushNumber(idx);
 			Util::Push_Entity(pEnt);
-			LUA->RawSet(-3);
+			Util::RawSetI(-2, ++idx);
 		}
 	}
 #endif
@@ -807,7 +797,7 @@ LUA_FUNCTION_STATIC(pvs_TestPVS)
 		LUA->PreCreateTable(0, entList->pEntities.size());
 		for (auto& [ent, ref] : entList->pEntReferences)
 		{
-			LUA->ReferencePush(ref);
+			Util::ReferencePush(ref);
 			LUA->PushBool(TestPVS(ent->GetAbsOrigin()));
 			LUA->RawSet(-3);
 		}

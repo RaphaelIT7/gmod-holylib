@@ -288,7 +288,7 @@ public:
 		if (!g_Lua || m_iObjectWakeFunction == -1)
 			return;
 
-		g_Lua->ReferencePush(m_iObjectWakeFunction);
+		Util::ReferencePush(m_iObjectWakeFunction);
 		Push_IPhysicsObject(obj);
 		g_Lua->CallFunctionProtected(1, 0, true);
 	}
@@ -300,7 +300,7 @@ public:
 		if (!g_Lua || m_iObjectSleepFunction == -1)
 			return;
 
-		g_Lua->ReferencePush(m_iObjectSleepFunction);
+		Util::ReferencePush(m_iObjectSleepFunction);
 		Push_IPhysicsObject(obj);
 		g_Lua->CallFunctionProtected(1, 0, true);
 	}
@@ -663,7 +663,7 @@ LUA_FUNCTION_STATIC(IPhysicsCollisionSet_GetTable)
 {
 	IPhysicsCollisionSet* pCollideSet = Get_IPhysicsCollisionSet(1, true);
 	LuaUserData* pUserData = g_pPushedIPhysicsCollisionSet[pCollideSet];
-	LUA->ReferencePush(pUserData->iTableReference);
+	Util::ReferencePush(pUserData->iTableReference);
 
 	return 1;
 }
@@ -721,7 +721,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetTable)
 {
 	ILuaPhysicsEnvironment* pLuaEnv = Get_ILuaPhysicsEnvironment(1, true);
 	LuaUserData* pUserData = g_pPushedILuaPhysicsEnvironment[pLuaEnv];
-	LUA->ReferencePush(pUserData->iTableReference);
+	Util::ReferencePush(pUserData->iTableReference);
 
 	return 1;
 }
@@ -900,10 +900,8 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetActiveObjects)
 	int idx = 0;
 	for (int i=0; i<activeCount; ++i)
 	{
-		++idx;
-		LUA->PushNumber(idx);
 		Push_IPhysicsObject(pActiveList[i]);
-		LUA->RawSet(-3);
+		Util::RawSetI(-2, ++idx);
 	}
 
 	return 1;
@@ -919,10 +917,8 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetObjectList)
 	int idx = 0;
 	for (int i = 0; i < iCount; ++i)
 	{
-		++idx;
-		LUA->PushNumber(idx);
 		Push_IPhysicsObject(pList[i]);
-		LUA->RawSet(-3);
+		Util::RawSetI(-2, ++idx);
 	}
 
 	return 1;
@@ -1427,7 +1423,7 @@ LUA_FUNCTION_STATIC(CPhysCollide_GetTable)
 {
 	CPhysCollide* pCollide = Get_CPhysCollide(1, true);
 	LuaUserData* pUserData = g_pPushedCPhysCollide[pCollide];
-	LUA->ReferencePush(pUserData->iTableReference);
+	Util::ReferencePush(pUserData->iTableReference);
 
 	return 1;
 }
@@ -1455,7 +1451,7 @@ LUA_FUNCTION_STATIC(CPhysPolysoup_GetTable)
 {
 	CPhysPolysoup* pPolySoup = Get_CPhysPolysoup(1, true);
 	LuaUserData* pUserData = g_pPushedCPhysPolysoup[pPolySoup];
-	LUA->ReferencePush(pUserData->iTableReference);
+	Util::ReferencePush(pUserData->iTableReference);
 
 	return 1;
 }
@@ -1483,7 +1479,7 @@ LUA_FUNCTION_STATIC(CPhysConvex_GetTable)
 {
 	CPhysConvex* pConvex = Get_CPhysConvex(1, true);
 	LuaUserData* pUserData = g_pPushedCPhysConvex[pConvex];
-	LUA->ReferencePush(pUserData->iTableReference);
+	Util::ReferencePush(pUserData->iTableReference);
 
 	return 1;
 }
@@ -1511,7 +1507,7 @@ LUA_FUNCTION_STATIC(ICollisionQuery_GetTable)
 {
 	ICollisionQuery* pQuery = Get_ICollisionQuery(1, true);
 	LuaUserData* pUserData = g_pPushedICollisionQuery[pQuery];
-	LUA->ReferencePush(pUserData->iTableReference);
+	Util::ReferencePush(pUserData->iTableReference);
 
 	return 1;
 }

@@ -121,10 +121,8 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 
 				if (listener == pClient)
 				{
-					++idx;
-					LUA->PushNumber(idx);
 					LUA->PushString(descriptor.name, 32);
-					LUA->RawSet(-3);
+					Util::RawSetI(-2, ++idx);
 					break;
 				}
 			}
@@ -155,10 +153,8 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 					CBaseClient* listener = (CBaseClient*)callback->m_pCallback;
 					if (listener == pClient)
 					{
-						++idx;
-						LUA->PushNumber(idx);
 						LUA->PushString(descriptor.name);
-						LUA->RawSet(-3);
+						Util::RawSetI(-2, ++idx);
 						break;
 					}
 				}
@@ -276,10 +272,8 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 
 				if (descriptor)
 				{
-					++idx;
-					g_Lua->PushNumber(idx);
 					g_Lua->PushString(descriptor->name);
-					g_Lua->RawSet(-3);
+					Util::RawSetI(-2, ++idx);
 				}
 			}
 		}
@@ -291,7 +285,7 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 	if (Lua::PushHook("HolyLib:PreProcessGameEvent"))
 	{
 		Util::Push_Entity((CBaseEntity*)pPlayer);
-		g_Lua->ReferencePush(iReference);
+		Util::ReferencePush(iReference);
 		g_Lua->PushNumber(client->GetPlayerSlot() + 1);
 		if (g_Lua->CallFunctionProtected(4, 1, false))
 		{
@@ -310,7 +304,7 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 	if (Lua::PushHook("HolyLib:PostProcessGameEvent"))
 	{
 		Util::Push_Entity((CBaseEntity*)pPlayer);
-		g_Lua->ReferencePush(iReference);
+		Util::ReferencePush(iReference);
 		g_Lua->PushNumber(client->GetPlayerSlot() + 1);
 		g_Lua->CallFunctionProtected(4, 0, false);
 	}
@@ -345,7 +339,7 @@ LUA_FUNCTION_STATIC(IGameEvent__index)
 		return 1;
 
 	LUA->Pop(1);
-	LUA->ReferencePush(g_pPushedIGameEvent[Get_IGameEvent(1, true)]->iTableReference);
+	Util::ReferencePush(g_pPushedIGameEvent[Get_IGameEvent(1, true)]->iTableReference);
 	if (!LUA->FindObjectOnTable(-1, 2))
 		LUA->PushNil();
 
@@ -356,7 +350,7 @@ LUA_FUNCTION_STATIC(IGameEvent__index)
 
 LUA_FUNCTION_STATIC(IGameEvent__newindex)
 {
-	LUA->ReferencePush(g_pPushedIGameEvent[Get_IGameEvent(1, true)]->iTableReference);
+	Util::ReferencePush(g_pPushedIGameEvent[Get_IGameEvent(1, true)]->iTableReference);
 	LUA->Push(2);
 	LUA->Push(3);
 	LUA->RawSet(-3);
@@ -367,7 +361,7 @@ LUA_FUNCTION_STATIC(IGameEvent__newindex)
 
 LUA_FUNCTION_STATIC(IGameEvent_GetTable)
 {
-	LUA->ReferencePush(g_pPushedIGameEvent[Get_IGameEvent(1, true)]->iTableReference);
+	Util::ReferencePush(g_pPushedIGameEvent[Get_IGameEvent(1, true)]->iTableReference);
 
 	return 1;
 }
