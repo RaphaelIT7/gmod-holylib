@@ -68,6 +68,8 @@ On the next startup the ghostinj will update holylib to use the new file.
 \- \- These missing calls could have caused some bugs or memory leaks.  
 \- [#] Fixed a bug with sourcetv where `CHLTVClients` could be NULL while being valid (#15)  
 \- [#] Fixed many Windows crashes allowing it to start again.  
+\- [#] Fixed Stack leak with `pvs.AddEntityToPVS` and `pvs.SetPreventTransmitBulk` when given a table.  
+\- [#] Fixed Stack issue with `pvs.RemoveEntityFromTransmit` when given a EntityList.  
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
