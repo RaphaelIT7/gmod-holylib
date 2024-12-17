@@ -8,6 +8,7 @@
 class CLuaJITModule : public IModule
 {
 public:
+	virtual void LuaInit(bool bServerInit) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "luajit"; };
 	virtual int Compatibility() { return LINUX32; };
@@ -17,13 +18,77 @@ public:
 CLuaJITModule g_pLuaJITModule;
 IModule* pLuaJITModule = &g_pLuaJITModule;
 
-#define Override(name) \
+#define ManualOverride(name, hook) \
 Detouring::Hook detour_##name; \
 Detour::Create( \
 	&detour_##name, #name, \
 	lua_shared_loader.GetModule(), Symbol::FromName(#name), \
-	(void*)(name), m_pID \
-);
+	(void*)(hook), m_pID \
+)
+
+#define Override(name) ManualOverride(name, name)
+
+void hook_luaL_openlibs(lua_State* L)
+{
+	//Msg("luaL_openlibs called!\n");
+	luaL_openlibs(L);
+
+	lua_pushcfunction(L, luaopen_ffi);
+	lua_pushstring(L, LUA_FFILIBNAME);
+	lua_call(L, 1, 1);
+	lua_setfield(L, LUA_GLOBALSINDEX, LUA_FFILIBNAME);
+
+	lua_getfield(L, LUA_GLOBALSINDEX, LUA_STRLIBNAME);
+	lua_pushcfunction(L, luaopen_string_buffer);
+	lua_pushstring(L, LUA_STRLIBNAME ".buffer");
+	lua_call(L, 1, 1);
+	lua_setfield(L, -2, "buffer");
+	lua_pop(L, 1);
+
+	/*
+	 * Save funny debug functions.
+	 */
+	lua_getfield(L, LUA_GLOBALSINDEX, "debug");
+	if (lua_istable(L, -1))
+	{
+		lua_getfield(L, -1, "setlocal");
+		lua_setfield(L, -2, "_setlocal");
+
+		lua_getfield(L, -1, "setupvalue");
+		lua_setfield(L, -2, "_setupvalue");
+
+		lua_getfield(L, -1, "upvalueid");
+		lua_setfield(L, -2, "_upvalueid");
+
+		lua_getfield(L, -1, "upvaluejoin");
+		lua_setfield(L, -2, "_upvaluejoin");
+	}
+	lua_pop(L, 1);
+}
+
+void CLuaJITModule::LuaInit(bool bServerInit)
+{
+	if (bServerInit)
+		return;
+
+	lua_State* L = g_Lua->GetState();
+	lua_getfield(L, LUA_GLOBALSINDEX, "debug");
+	if (lua_istable(L, -1))
+	{
+		lua_getfield(L, -1, "_setlocal");
+		lua_setfield(L, -2, "setlocal");
+
+		lua_getfield(L, -1, "_setupvalue");
+		lua_setfield(L, -2, "setupvalue");
+
+		lua_getfield(L, -1, "_upvalueid");
+		lua_setfield(L, -2, "upvalueid");
+
+		lua_getfield(L, -1, "_upvaluejoin");
+		lua_setfield(L, -2, "upvaluejoin");
+	}
+	lua_pop(L, 1);
+}
 
 void CLuaJITModule::InitDetour(bool bPreServer)
 {
@@ -62,7 +127,7 @@ void CLuaJITModule::InitDetour(bool bPreServer)
 	Override(luaL_newmetatable_type);
 	Override(luaL_newstate);
 	Override(luaL_openlib);
-	Override(luaL_openlibs);
+	ManualOverride(luaL_openlibs, hook_luaL_openlibs); // Gmod calls luaL_openlibs
 	Override(luaL_optinteger);
 	Override(luaL_optlstring);
 	Override(luaL_optnumber);
