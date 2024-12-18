@@ -257,7 +257,6 @@ static void hook_CPhysicsEnvironment_DestroyObject(CPhysicsEnvironment* pEnviron
 	}
 }
 
-#ifdef SYSTEM_WINDOWS
 class CPhysicsEnvironmentProxy : public Detouring::ClassProxy<IPhysicsEnvironment, CPhysicsEnvironmentProxy> {
 public:
 	CPhysicsEnvironmentProxy(IPhysicsEnvironment* env) {
@@ -275,7 +274,6 @@ public:
 		hook_CPhysicsEnvironment_DestroyObject((CPhysicsEnvironment*)This(), pObject);
 	}
 };
-#endif
 
 CCollisionEvent* g_Collisions = NULL;
 class CLuaPhysicsObjectEvent : public IPhysicsObjectEvent
@@ -347,9 +345,7 @@ struct ILuaPhysicsEnvironment
 	{
 		pEnvironment = env;
 		g_pEnvironmentToLua[env] = this;
-#ifdef SYSTEM_WINDOWS
 		pEnvironmentProxy = std::make_unique<CPhysicsEnvironmentProxy>(env);
-#endif
 	}
 
 	~ILuaPhysicsEnvironment()
@@ -357,9 +353,7 @@ struct ILuaPhysicsEnvironment
 		Delete_ILuaPhysicsEnvironment(this);
 
 		g_pEnvironmentToLua.erase(g_pEnvironmentToLua.find(pEnvironment));
-#ifdef SYSTEM_WINDOWS
 		pEnvironmentProxy->DeInit();
-#endif
 		physics->DestroyEnvironment(pEnvironment);
 		pEnvironment = NULL;
 
@@ -413,9 +407,7 @@ struct ILuaPhysicsEnvironment
 	std::unordered_set<IPhysicsObject*> pObjects;
 	
 	IPhysicsEnvironment* pEnvironment = NULL;
-#ifdef SYSTEM_WINDOWS
 	std::unique_ptr<CPhysicsEnvironmentProxy> pEnvironmentProxy = NULL;
-#endif
 	CLuaPhysicsObjectEvent* pObjectEvent = NULL;
 	//CLuaPhysicsCollisionSolver* pCollisionSolver = NULL;
 	//CLuaPhysicsCollisionEvent* pCollisionEvent = NULL;
@@ -2183,11 +2175,13 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 		(void*)hook_IVP_Mindist_update_exact_mindist_events, m_pID
 	);
 
+#if 0
 	Detour::Create(
 		&detour_CPhysicsEnvironment_DestroyObject, "CPhysicsEnvironment::DestroyObject",
 		vphysics_loader.GetModule(), Symbols::CPhysicsEnvironment_DestroyObjectSym,
 		(void*)hook_CPhysicsEnvironment_DestroyObject, m_pID
 	);
+#endif
 #endif
 
 	SourceSDK::FactoryLoader server_loader("server");
