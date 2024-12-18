@@ -511,9 +511,10 @@ static void DumpSearchCacheCmd(const CCommand& args)
 }
 static ConCommand dumpabsolutesearchcache("holylib_filesystem_dumpabsolutesearchcache", DumpSearchCacheCmd, "Dumps the absolute search cache", 0);
 
+static bool bShutdown = false;
 static void InitFileSystem(IFileSystem* pFileSystem)
 {		
-	if (!pFileSystem)
+	if (!pFileSystem || bShutdown) // We refuse to init when this is called when it shouldn't. If it crashes, then give me a stacktrace to fix it.
 		return;
 	
 	g_pFullFileSystem = pFileSystem;
@@ -1483,6 +1484,7 @@ std::vector<std::string> splitString(std::string str, std::string_view delimiter
 
 void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
+	bShutdown = false;
 	/*
 	 * Why do we do this below?
 	 * Because if our Detours weren't added by the GhostInj, they were added after SearchPaths were created.
@@ -1659,6 +1661,7 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 	if (!bPreServer)
 		return;
 
+	bShutdown = false;
 #ifndef SYSTEM_WINDOWS
 	if (holylib_filesystem_threads.GetInt() > 0)
 	{
@@ -2137,6 +2140,7 @@ void CFileSystemModule::Shutdown()
 	ClearAbsoluteSearchCache();
 	ClearFileSearchCache();
 	ClearFileHandleSearchCache();
+	bShutdown = true;
 
 	m_PredictionCheck.clear();
 	// ToDo: Also clear there other shit.

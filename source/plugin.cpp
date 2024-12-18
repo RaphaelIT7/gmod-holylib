@@ -39,6 +39,8 @@ static void DumpSearchpaths(const CCommand& args)
 static ConCommand path("path", DumpSearchpaths, "Dumps the searchpaths", 0);
 #endif // Trying to workaround this one command breaking on 32x :/
 
+static ConVar gmod_uncache_test("gmod_uncache_test", "-2", 0); // Till gmod adds this single line.
+
 //---------------------------------------------------------------------------------
 // Purpose: constructor/destructor
 //---------------------------------------------------------------------------------
