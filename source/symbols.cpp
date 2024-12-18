@@ -53,6 +53,11 @@ namespace Symbols
 		Symbol::FromName("_ZN11CBaseEntity21VPhysicsDestroyObjectEv"),
 	};
 
+	const std::vector<Symbol> Get_EntitySym = {
+		Symbol::FromName("_Z10Get_Entityib"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x55\x41\x89\xF5\x41\x54\x41\x89\xFC\x53"), // 55 48 89 E5 41 55 41 89 F5 41 54 41 89 FC 53
+	};
+
 	const std::vector<Symbol> lua_rawsetiSym = {
 		Symbol::FromName("lua_rawseti"),
 	};

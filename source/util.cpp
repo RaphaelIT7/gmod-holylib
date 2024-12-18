@@ -16,9 +16,13 @@ IVEngineServer* engine;
 CGlobalEntityList* Util::entitylist = NULL;
 CUserMessages* Util::pUserMessages;
 
+static Symbols::Get_Entity func_GetEntity;
 CBasePlayer* Util::Get_Player(int iStackPos, bool bError) // bError = error if not a valid player
 {
-	CBaseEntity* pEntity = g_Lua->GetUserType<CBaseEntity>(iStackPos, GarrysMod::Lua::Type::Entity);
+	if (!func_GetEntity)
+		g_Lua->ThrowError("Failed to get Get_Entity function!");
+
+	CBaseEntity* pEntity = func_GetEntity(iStackPos, bError); //g_Lua->GetUserType<CBaseEntity>(iStackPos, GarrysMod::Lua::Type::Entity);
 	if (!pEntity)
 	{
 		if (bError)
@@ -59,10 +63,16 @@ void Util::Push_Entity(CBaseEntity* pEnt)
 
 CBaseEntity* Util::Get_Entity(int iStackPos, bool bError)
 {
-	CBaseEntity* ent = g_Lua->GetUserType<CBaseEntity>(iStackPos, GarrysMod::Lua::Type::Entity);
+	/*EHANDLE* ehandle = g_Lua->GetUserType<EHANDLE>(iStackPos, GarrysMod::Lua::Type::Entity);
+	CBaseEntity* ent = Util::entitylist->GetBaseEntity(*ehandle);*/
+
+	if (!func_GetEntity)
+		g_Lua->ThrowError("Failed to get Get_Entity function!");
+
+	CBaseEntity* ent = func_GetEntity(iStackPos, bError);
 	if (!ent && bError)
 		g_Lua->ThrowError("Tried to use a NULL Entity!");
-		
+
 	return ent;
 }
 
@@ -252,6 +262,9 @@ void Util::AddDetour()
 	 */
 
 #ifndef SYSTEM_WINDOWS
+	func_GetEntity = (Symbols::Get_Entity)Detour::GetFunction(server_loader.GetModule(), Symbols::Get_EntitySym);
+	Detour::CheckFunction((void*)func_GetEntity, "Get_Entity");
+
 	func_CBaseEntity_CalcAbsolutePosition = (Symbols::CBaseEntity_CalcAbsolutePosition)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseEntity_CalcAbsolutePositionSym);
 	Detour::CheckFunction((void*)func_CBaseEntity_CalcAbsolutePosition, "CBaseEntity::CalcAbsolutePosition");
 
