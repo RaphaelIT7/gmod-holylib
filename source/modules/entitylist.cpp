@@ -13,7 +13,7 @@ public:
 	virtual void OnEntityCreated(CBaseEntity* pEntity) OVERRIDE;
 	virtual void OnEntityDeleted(CBaseEntity* pEntity) OVERRIDE;
 	virtual const char* Name() { return "entitylist"; };
-	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
+	virtual int Compatibility() { return LINUX32; };
 };
 
 CEntListModule g_pEntListModule;
@@ -44,6 +44,25 @@ void EntityList::Clear()
 		g_Lua->ReferenceFree(iReference);
 	
 	pEntReferences.clear();
+}
+
+void EntityList::CreateReference(CBaseEntity* pEntity)
+{
+	Util::Push_Entity(pEntity);
+	pEntReferences[pEntity] = g_Lua->ReferenceCreate();
+}
+
+void EntityList::FreeEntity(CBaseEntity* pEntity)
+{
+	auto it = pEntReferences.find(pEntity);
+	if (it != pEntReferences.end())
+	{
+		if (IsValidReference(it->second))
+			g_Lua->ReferenceFree(it->second);
+
+		Vector_RemoveElement(pEntities, pEntity);
+		pEntReferences.erase(it);
+	}
 }
 
 bool Is_EntityList(int iStackPos)
@@ -123,8 +142,11 @@ LUA_FUNCTION_STATIC(EntityList_GetTable)
 
 	LUA->PreCreateTable(pData->pEntities.size(), 0);
 		int idx = 0;
-		for (auto& [_, iReference] : pData->pEntReferences)
+		for (auto& [pEnt, iReference] : pData->pEntReferences)
 		{
+			if (!pData->IsValidReference(iReference))
+				pData->CreateReference(pEnt);
+
 			Util::ReferencePush(iReference);
 			Util::RawSetI(-2, ++idx);
 		}
@@ -143,8 +165,7 @@ LUA_FUNCTION_STATIC(EntityList_SetTable)
 	{
 		CBaseEntity* pEntity = Util::Get_Entity(-1, true);
 
-		LUA->Push(-1);
-		pData->pEntReferences[pEntity] = LUA->ReferenceCreate();
+		pData->CreateReference(pEntity);
 		pData->pEntities.push_back(pEntity);
 
 		LUA->Pop(1);
@@ -171,8 +192,7 @@ LUA_FUNCTION_STATIC(EntityList_AddTable)
 			continue;
 		}
 
-		LUA->Push(-1);
-		pData->pEntReferences[pEntity] = LUA->ReferenceCreate();
+		pData->CreateReference(pEntity);
 		pData->pEntities.push_back(pEntity);
 
 		LUA->Pop(1);
@@ -191,24 +211,7 @@ LUA_FUNCTION_STATIC(EntityList_RemoveTable)
 	while (LUA->Next(-2))
 	{
 		CBaseEntity* pEntity = Util::Get_Entity(-1, true);
-
-		auto it = pData->pEntReferences.find(pEntity);
-		if (it == pData->pEntReferences.end())
-		{
-			LUA->Pop(1);
-			continue;
-		}
-
-		Vector_RemoveElement(pData->pEntities, pEntity)
-		pData->pEntReferences.erase(it);
-
-		auto it2 = pData->pEntReferences.find(pEntity);
-		if (it2 != pData->pEntReferences.end())
-		{
-			LUA->ReferenceFree(it2->second);
-			pData->pEntReferences.erase(it2);
-		}
-
+		pData->FreeEntity(pEntity);
 		LUA->Pop(1);
 	}
 	LUA->Pop(1);
@@ -221,8 +224,7 @@ LUA_FUNCTION_STATIC(EntityList_Add)
 	EntityList* pData = Get_EntityList(1, true);
 	CBaseEntity* pEntity = Util::Get_Entity(2, true);
 
-	LUA->Push(1);
-	pData->pEntReferences[pEntity] = LUA->ReferenceCreate();
+	pData->CreateReference(pEntity);
 	pData->pEntities.push_back(pEntity);
 
 	return 0;
@@ -233,14 +235,7 @@ LUA_FUNCTION_STATIC(EntityList_Remove)
 	EntityList* pData = Get_EntityList(1, true);
 	CBaseEntity* pEntity = Util::Get_Entity(2, true);
 
-	auto it = pData->pEntReferences.find(pEntity);
-	if (it == pData->pEntReferences.end())
-		return 0;
-
-	Vector_RemoveElement(pData->pEntities, pEntity)
-
-	LUA->ReferenceFree(it->second);
-	pData->pEntReferences.erase(it);
+	pData->FreeEntity(pEntity);
 
 	return 0;
 }
@@ -256,8 +251,11 @@ LUA_FUNCTION_STATIC(GetGlobalEntityList)
 {
 	LUA->PreCreateTable(g_pGlobalEntityList.pEntities.size(), 0);
 		int idx = 0;
-		for (auto& [_, iReference] : g_pGlobalEntityList.pEntReferences)
+		for (auto& [pEnt, iReference] : g_pGlobalEntityList.pEntReferences)
 		{
+			if (!g_pGlobalEntityList.IsValidReference(iReference))
+				g_pGlobalEntityList.CreateReference(pEnt);
+
 			Util::ReferencePush(iReference);
 			Util::RawSetI(-2, ++idx);
 		}
@@ -272,17 +270,7 @@ void CEntListModule::OnEntityDeleted(CBaseEntity* pEntity)
 
 	for (EntityList* pList : pEntityLists)
 	{
-		auto it = pList->pEntReferences.find(pEntity);
-		if (it == pList->pEntReferences.end())
-			continue;
-
-		Util::ReferencePush(it->second);
-		g_Lua->SetUserType(-1, NULL);
-		g_Lua->Pop(1);
-		g_Lua->ReferenceFree(it->second);
-
-		Vector_RemoveElement(pList->pEntities, pEntity);
-		pList->pEntReferences.erase(it);
+		pList->FreeEntity(pEntity);
 
 		if (g_pEntListModule.InDebug())
 			Msg("Deleted Entity inside %p\n", pList);
@@ -291,15 +279,10 @@ void CEntListModule::OnEntityDeleted(CBaseEntity* pEntity)
 
 void CEntListModule::OnEntityCreated(CBaseEntity* pEntity)
 {
-	auto it = g_pGlobalEntityList.pEntReferences.find(pEntity);
-	if (it != g_pGlobalEntityList.pEntReferences.end())
-	{
-		Vector_RemoveElement(g_pGlobalEntityList.pEntities, pEntity);
-		g_pGlobalEntityList.pEntReferences.erase(it);
-	}
+	g_pGlobalEntityList.FreeEntity(pEntity);
 
-	Util::Push_Entity(pEntity); // BUG: The Engine hates us for this. "CREATING ENTITY - ALREADY HAS A LUA TABLE! AND IT SHOULDN'T"
-	g_pGlobalEntityList.pEntReferences[pEntity] = g_Lua->ReferenceCreate();
+	//Util::Push_Entity(pEntity); // BUG: The Engine hates us for this. "CREATING ENTITY - ALREADY HAS A LUA TABLE! AND IT SHOULDN'T"
+	g_pGlobalEntityList.pEntReferences[pEntity] = -1;
 	g_pGlobalEntityList.pEntities.push_back(pEntity);
 
 	if (g_pEntListModule.InDebug())

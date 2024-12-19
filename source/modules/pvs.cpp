@@ -516,10 +516,13 @@ LUA_FUNCTION_STATIC(pvs_GetStateFlags)
 	} else if (Is_EntityList(1)) {
 		LUA->CreateTable();
 		EntityList* entList = Get_EntityList(1, true);
-		for (auto& [ent, ref] : entList->pEntReferences)
+		for (auto& [pEnt, iReference] : entList->pEntReferences)
 		{
-			Util::ReferencePush(ref);
-			LUA->PushNumber(GetStateFlags(ent, force));
+			if (!entList->IsValidReference(iReference))
+				entList->CreateReference(pEnt);
+
+			Util::ReferencePush(iReference);
+			LUA->PushNumber(GetStateFlags(pEnt, force));
 			LUA->RawSet(-3);
 		}
 	} else {
@@ -725,11 +728,14 @@ LUA_FUNCTION_STATIC(pvs_FindInPVS) // Copy from pas.FindInPAS
 	int idx = 0;
 	if (Util::pEntityList->IsEnabled())
 	{
-		for (auto& [pEnt, ref] : g_pGlobalEntityList.pEntReferences)
+		for (auto& [pEnt, iReference] : g_pGlobalEntityList.pEntReferences)
 		{
 			if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), Util::g_pCurrentCluster, sizeof(Util::g_pCurrentCluster)))
 			{
-				Util::ReferencePush(ref);
+				if (!g_pGlobalEntityList.IsValidReference(iReference))
+					g_pGlobalEntityList.CreateReference(pEnt);
+
+				Util::ReferencePush(iReference);
 				Util::RawSetI(-2, ++idx);
 			}
 		}
@@ -795,10 +801,13 @@ LUA_FUNCTION_STATIC(pvs_TestPVS)
 	} else if (Is_EntityList(2)) {
 		EntityList* entList = Get_EntityList(2, true);
 		LUA->PreCreateTable(0, entList->pEntities.size());
-		for (auto& [ent, ref] : entList->pEntReferences)
+		for (auto& [pEnt, iReference] : entList->pEntReferences)
 		{
-			Util::ReferencePush(ref);
-			LUA->PushBool(TestPVS(ent->GetAbsOrigin()));
+			if (!entList->IsValidReference(iReference))
+				entList->CreateReference(pEnt);
+
+			Util::ReferencePush(iReference);
+			LUA->PushBool(TestPVS(pEnt->GetAbsOrigin()));
 			LUA->RawSet(-3);
 		}
 	} else {

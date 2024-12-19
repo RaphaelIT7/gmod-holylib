@@ -302,7 +302,13 @@ struct EntityList // entitylist module.
 {
 	EntityList();
 	~EntityList();
+
 	void Clear();
+	inline bool IsValidReference(int iReference) { return iReference != -1; };
+	void CreateReference(CBaseEntity* pEntity);
+	void FreeEntity(CBaseEntity* pEntity);
+
+	// NOTE: The Entity will always be valid but the reference can be -1!
 	std::unordered_map<CBaseEntity*, int> pEntReferences;
 	std::vector<CBaseEntity*> pEntities;
 };
