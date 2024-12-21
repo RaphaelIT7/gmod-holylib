@@ -715,27 +715,27 @@ We don't validate if the passed cluster id is valid!
 #### bool pvs.CheckBoxInPVS(Vector mins, Vector maxs)
 Returns whether or not the given box is inside the PVS.  
 
-#### pvs.AddEntityToPVS(Entity ent or table ents)
-Adds the given entity index to the PVS  
+#### pvs.AddEntityToPVS(Entity ent / table ents / EntityList list)
+Adds the given entity to the PVS  
 
-#### pvs.OverrideStateFlags(Entity ent / table ents / EntityList list, number flags, bool force)
+#### pvs.OverrideStateFlags(Entity ent / table ents / EntityList list, number flags, bool engine)
 table ents - A sequential table containing all the entities which states flags should be overridden.  
-bool force - Allows you to set the flags directly. It won't make sure that the value is correct!  
+bool engine - Allows you to set the edict flags directly. It won't make sure that the value is correct!  
 Overrides the StateFlag for this Snapshot.  
 The value will be reset in the next one.  
 > [!NOTE]
-> If you use force, you should know what your doing or else it might cause a crash.  
+> If you use engine, you should know what your doing or else it might cause a crash.  
 
-#### pvs.SetStateFlags(Entity ent / table ents / EntityList list, number flags, bool force)
+#### pvs.SetStateFlags(Entity ent / table ents / EntityList list, number flags, bool engine)
 table ents - A sequential table containing all the entities which states should be set.  
-bool force - Allows you to set the flags directly. It won't make sure that the value is correct!  
+bool engine - Allows you to set the edict flags directly. It won't make sure that the value is correct!  
 Sets the State flag for this entity.  
 Unlike `OverrideStateFlag`, this won't be reset after the snapshot.  
 > [!NOTE]
-> If you use force, you should know what your doing or else it might cause a crash.  
+> If you use engine, you should know what your doing or else it might cause a crash.  
 
-#### number pvs.GetStateFlags(Entity ent, bool force)
-bool force - Allows you to get all flags instead of only the ones for networking.  
+#### number/table pvs.GetStateFlags(Entity ent / table ents / EntityList list, bool engine)
+bool engine - Allows you to get all edict flags instead of only the ones for networking.  
 Returns the state flags for this entity.  
 
 #### bool pvs.RemoveEntityFromTransmit(Entity ent / table ents / EntityList list)
