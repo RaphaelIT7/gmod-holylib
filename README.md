@@ -771,19 +771,19 @@ This should always be the case after a full update.
 > [!IMPORTANT] 
 > This function was removed since I can't get it to work / It would be a bit more complicated than first anticipated.  
 
-#### pvs.SetPreventTransmitBulk(Entity ent / table ents / EntityList list, Player ply or table plys or RecipientFilter filter, bool notransmit)
+#### pvs.SetPreventTransmitBulk(Entity ent / table ents / EntityList list, Player ply / table plys / RecipientFilter filter, bool notransmit)
 table ents - A sequential table containing all the entities that should be affected.  
 table plys - A sequential table containing all the players that it should set it for.  
 bool notransmit - If the entity should stop being transmitted.  
 
 Adds the given Entity to be transmitted.  
 
-#### bool / table pvs.TestPVS(Vector origin, Entity ent / Vector pos / EntityList list)
+#### bool / table pvs.TestPVS(Entity ent / Vector origin, Entity ent / Vector pos / EntityList list)
 Returns `true` if the given entity / position is inside the PVS of the given origin.  
 If given a EntityList, it will return a table wich contains the result for each entity.  
 The key will be the entity and the value is the result.  
 
-#### table pvs.FindInPVS(Vector origin, Entity ent / Vector pos)
+#### table pvs.FindInPVS(Entity ent / Vector pos)
 Returns a table containing all entities that are inside the pvs.  
 
 #### pvs.ForceFullUpdate(Player ply)

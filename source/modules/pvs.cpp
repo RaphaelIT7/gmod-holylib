@@ -724,7 +724,7 @@ LUA_FUNCTION_STATIC(pvs_FindInPVS) // Copy from pas.FindInPAS
 
 	Util::CM_Vis(*orig, DVIS_PVS);
 
-	LUA->PreCreateTable(0, MAX_EDICTS / 16); // Should we reduce this later? (Currently: 512)
+	LUA->PreCreateTable(MAX_EDICTS / 16, 0); // Should we reduce this later? (Currently: 512)
 	int idx = 0;
 	if (Util::pEntityList->IsEnabled())
 	{
@@ -782,13 +782,11 @@ inline bool TestPVS(const Vector& hearPos)
 LUA_FUNCTION_STATIC(pvs_TestPVS)
 {
 	Vector* orig;
-	LUA->CheckType(1, GarrysMod::Lua::Type::Vector);
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Vector))
 	{
 		orig = Get_Vector(1);
 	} else {
-		CBaseEntity* ent = Util::Get_Entity(1, false);
-
+		CBaseEntity* ent = Util::Get_Entity(1, true);
 		orig = (Vector*)&ent->GetAbsOrigin(); // ToDo: This currently breaks the compile.
 	}
 

@@ -90,7 +90,7 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 
 	Util::CM_Vis(*orig, DVIS_PAS);
 
-	LUA->CreateTable();
+	LUA->PreCreateTable(MAX_EDICTS / 16, 0);
 	int idx = 0;
 	if (Util::pEntityList->IsEnabled())
 	{
