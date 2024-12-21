@@ -591,7 +591,7 @@ LUA_FUNCTION_STATIC(pvs_RemoveAllEntityFromTransmit)
 	if (g_pCurrentTransmitInfo->m_pTransmitAlways)
 		g_pCurrentTransmitInfo->m_pTransmitAlways->ClearAll();
 
-	return 1;
+	return 0;
 }
 
 static void AddEntityToTransmit(CBaseEntity* ent, bool force)

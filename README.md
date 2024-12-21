@@ -72,6 +72,7 @@ On the next startup the ghostinj will update holylib to use the new file.
 \- [#] Fixed Stack leak with `pvs.AddEntityToPVS` and `pvs.SetPreventTransmitBulk` when given a table.  
 \- [#] Fixed Stack issue with `pvs.RemoveEntityFromTransmit` when given a EntityList.  
 \- [#] Optimized `Util::Push_Entity` and replaced `LUA->Raw[Get/Set]` usage with faster `Util::Raw[GetI/SetI]`.  
+\- [#] Fixed `pvs.RemoveAllEntityFromTransmit` possibly causing stack issues.  
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
