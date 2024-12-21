@@ -80,6 +80,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
 ### Existing Lua API Changes
 \- [#] Flipped `INetworkStringTable:AddString` arguments.  
 \- [#] All `pvs.FL_EDICT_` enums changed.  
+\- [-] Removed `HolyLib:PostCheckTransmit` second argument (Use `pvs.GetEntitesFromTransmit`)  
 
 ### QoL updates
 \- [+] Added comments to some interfaces.  
@@ -789,6 +790,9 @@ Returns a table containing all entities that are inside the pvs.
 #### pvs.ForceFullUpdate(Player ply)
 Forces a full update for the specific client.  
 
+#### table pvs.GetEntitesFromTransmit()
+Returns a table containing all entities that will be networked.  
+
 ### Enums
 
 #### pvs.FL_EDICT_DONTSEND = 1  
@@ -811,18 +815,8 @@ Return `true` to cancel it.
 
 You could do the transmit stuff yourself inside this hook.  
 
-#### HolyLib:PostCheckTransmit(Entity ply, table entities)
+#### HolyLib:PostCheckTransmit(Entity ply)
 entity ply - The player that everything is transmitted to.  
-table enitites - The Entities that get transmitted. Only available if `holylib_pvs_postchecktransmit` is set to `2` or higher.  
-
-> [!NOTE]
-> This hook is only called when `holylib_pvs_postchecktransmit` is enabled!  
-
-### ConVars
-
-#### holylib_pvs_postchecktransmit (default `0`)
-If enabled, it will add/call the `HolyLib:PostCheckTransmit` hook.  
-If set to `2` it will also pass a table containing all entitites to the hook (The second argument)  
 
 ## surffix
 This module ports over [Momentum Mod's](https://github.com/momentum-mod/game/blob/develop/mp/src/game/shared/momentum/mom_gamemovement.cpp#L2393-L2993) surf fixes.  
