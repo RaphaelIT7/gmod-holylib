@@ -5,6 +5,11 @@ class CModuleManager;
 class CModule : public IModuleWrapper
 {
 public:
+	CModule(IModuleManager* pManager)
+	{
+		m_pModuleManager = pManager;
+	}
+
 	virtual ~CModule();
 	virtual void SetModule(IModule* module);
 	virtual void SetEnabled(bool bEnabled, bool bForced = false);
@@ -32,6 +37,7 @@ protected:
 	bool m_bCompatible = false;
 	bool m_bStartup = false;
 	char* m_strDebugValue; // Workaround for a crash.
+	IModuleManager* m_pModuleManager = NULL;
 };
 
 class CModuleManager : public IModuleManager
@@ -51,12 +57,14 @@ public:
 	virtual void SetModuleRealm(Module_Realm realm) { m_pRealm = realm; };
 	virtual Module_Realm GetModuleRealm() { return m_pRealm; };
 
+	virtual GarrysMod::Lua::ILuaInterface* GetLua() { return m_pLua; };
+
 	virtual void MarkAsBinaryModule() { m_bMarkedAsBinaryModule = true;  };
 	virtual bool IsMarkedAsBinaryModule() { return m_bMarkedAsBinaryModule; };
 
 	virtual void Setup(CreateInterfaceFn appfn, CreateInterfaceFn gamefn);
 	virtual void Init();
-	virtual void LuaInit(bool bServerInit);
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit);
 	virtual void LuaShutdown();
 	virtual void InitDetour(bool bPreServer);
 	virtual void Think(bool bSimulating);
@@ -84,6 +92,7 @@ private:
 	CreateInterfaceFn m_pGameFactory = NULL;
 	bool m_bGhostInj = false;
 	bool m_bMarkedAsBinaryModule = false;
+	GarrysMod::Lua::ILuaInterface* m_pLua = NULL;
 
 private: // ServerActivate stuff
 	edict_t* m_pEdictList = NULL;

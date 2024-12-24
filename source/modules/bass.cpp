@@ -9,10 +9,10 @@ class CBassModule : public IModule
 {
 public:
 	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void Shutdown() OVERRIDE;
-	virtual void Think(bool bSimulating) OVERRIDE;
+	virtual void Think(GarrysMod::Lua::ILuaInterface* LUA, bool bSimulating) OVERRIDE;
 	virtual const char* Name() { return "bass"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
 	virtual bool IsEnabledByDefault() { return false; };
@@ -401,55 +401,55 @@ void CBassModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 	gGModAudio->Init(*appfn); // The engine didn't...
 }
 
-void CBassModule::LuaInit(bool bServerInit)
+void CBassModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
 
-	IGModAudioChannel_TypeID = g_Lua->CreateMetaTable("IGModAudioChannel");
-		Util::AddFunc(IGModAudioChannel__tostring, "__tostring");
-		Util::AddFunc(IGModAudioChannel__gc, "__gc");
-		Util::AddFunc(IGModAudioChannel__index, "__index");
-		Util::AddFunc(IGModAudioChannel_Destroy, "Destroy");
-		Util::AddFunc(IGModAudioChannel_Stop, "Stop");
-		Util::AddFunc(IGModAudioChannel_Pause, "Pause");
-		Util::AddFunc(IGModAudioChannel_Play, "Play");
-		Util::AddFunc(IGModAudioChannel_SetVolume, "SetVolume");
-		Util::AddFunc(IGModAudioChannel_GetVolume, "GetVolume");
-		Util::AddFunc(IGModAudioChannel_SetPlaybackRate, "SetPlaybackRate");
-		Util::AddFunc(IGModAudioChannel_GetPlaybackRate, "GetPlaybackRate");
-		Util::AddFunc(IGModAudioChannel_SetTime, "SetTime");
-		Util::AddFunc(IGModAudioChannel_GetTime, "GetTime");
-		Util::AddFunc(IGModAudioChannel_GetBufferedTime, "GetBufferedTime");
-		Util::AddFunc(IGModAudioChannel_GetState, "GetState");
-		Util::AddFunc(IGModAudioChannel_SetLooping, "SetLooping");
-		Util::AddFunc(IGModAudioChannel_IsLooping, "IsLooping");
-		Util::AddFunc(IGModAudioChannel_IsOnline, "IsOnline");
-		Util::AddFunc(IGModAudioChannel_Is3D, "Is3D");
-		Util::AddFunc(IGModAudioChannel_IsBlockStreamed, "IsBlockStreamed");
-		Util::AddFunc(IGModAudioChannel_IsValid, "IsValid");
-		Util::AddFunc(IGModAudioChannel_GetLength, "GetLength");
-		Util::AddFunc(IGModAudioChannel_GetFileName, "GetFileName");
-		Util::AddFunc(IGModAudioChannel_GetSamplingRate, "GetSamplingRate");
-		Util::AddFunc(IGModAudioChannel_GetBitsPerSample, "GetBitsPerSample");
-		Util::AddFunc(IGModAudioChannel_GetAverageBitRate, "GetAverageBitRate");
-		Util::AddFunc(IGModAudioChannel_GetLevel, "GetLevel");
-		//Util::AddFunc(IGModAudioChannel_FFT, "FFT"); // Soon
-		Util::AddFunc(IGModAudioChannel_SetChannelPan, "SetChannelPan");
-		Util::AddFunc(IGModAudioChannel_GetChannelPan, "GetChannelPan");
-		Util::AddFunc(IGModAudioChannel_GetTags, "GetTags");
-		Util::AddFunc(IGModAudioChannel_Restart, "Restart");
-	g_Lua->Pop(1);
+	IGModAudioChannel_TypeID = pLua->CreateMetaTable("IGModAudioChannel");
+		Util::AddFunc(pLua, IGModAudioChannel__tostring, "__tostring");
+		Util::AddFunc(pLua, IGModAudioChannel__gc, "__gc");
+		Util::AddFunc(pLua, IGModAudioChannel__index, "__index");
+		Util::AddFunc(pLua, IGModAudioChannel_Destroy, "Destroy");
+		Util::AddFunc(pLua, IGModAudioChannel_Stop, "Stop");
+		Util::AddFunc(pLua, IGModAudioChannel_Pause, "Pause");
+		Util::AddFunc(pLua, IGModAudioChannel_Play, "Play");
+		Util::AddFunc(pLua, IGModAudioChannel_SetVolume, "SetVolume");
+		Util::AddFunc(pLua, IGModAudioChannel_GetVolume, "GetVolume");
+		Util::AddFunc(pLua, IGModAudioChannel_SetPlaybackRate, "SetPlaybackRate");
+		Util::AddFunc(pLua, IGModAudioChannel_GetPlaybackRate, "GetPlaybackRate");
+		Util::AddFunc(pLua, IGModAudioChannel_SetTime, "SetTime");
+		Util::AddFunc(pLua, IGModAudioChannel_GetTime, "GetTime");
+		Util::AddFunc(pLua, IGModAudioChannel_GetBufferedTime, "GetBufferedTime");
+		Util::AddFunc(pLua, IGModAudioChannel_GetState, "GetState");
+		Util::AddFunc(pLua, IGModAudioChannel_SetLooping, "SetLooping");
+		Util::AddFunc(pLua, IGModAudioChannel_IsLooping, "IsLooping");
+		Util::AddFunc(pLua, IGModAudioChannel_IsOnline, "IsOnline");
+		Util::AddFunc(pLua, IGModAudioChannel_Is3D, "Is3D");
+		Util::AddFunc(pLua, IGModAudioChannel_IsBlockStreamed, "IsBlockStreamed");
+		Util::AddFunc(pLua, IGModAudioChannel_IsValid, "IsValid");
+		Util::AddFunc(pLua, IGModAudioChannel_GetLength, "GetLength");
+		Util::AddFunc(pLua, IGModAudioChannel_GetFileName, "GetFileName");
+		Util::AddFunc(pLua, IGModAudioChannel_GetSamplingRate, "GetSamplingRate");
+		Util::AddFunc(pLua, IGModAudioChannel_GetBitsPerSample, "GetBitsPerSample");
+		Util::AddFunc(pLua, IGModAudioChannel_GetAverageBitRate, "GetAverageBitRate");
+		Util::AddFunc(pLua, IGModAudioChannel_GetLevel, "GetLevel");
+		//Util::AddFunc(pLua, IGModAudioChannel_FFT, "FFT"); // Soon
+		Util::AddFunc(pLua, IGModAudioChannel_SetChannelPan, "SetChannelPan");
+		Util::AddFunc(pLua, IGModAudioChannel_GetChannelPan, "GetChannelPan");
+		Util::AddFunc(pLua, IGModAudioChannel_GetTags, "GetTags");
+		Util::AddFunc(pLua, IGModAudioChannel_Restart, "Restart");
+	pLua->Pop(1);
 
-	Util::StartTable();
-		Util::AddFunc(bass_PlayFile, "PlayFile");
-		Util::AddFunc(bass_PlayURL, "PlayURL");
-	Util::FinishTable("bass");
+	Util::StartTable(pLua);
+		Util::AddFunc(pLua, bass_PlayFile, "PlayFile");
+		Util::AddFunc(pLua, bass_PlayURL, "PlayURL");
+	Util::FinishTable(pLua, "bass");
 }
 
-void CBassModule::LuaShutdown()
+void CBassModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	Util::NukeTable("bass");
+	Util::NukeTable(pLua, "bass");
 }
 
 void CBassModule::Shutdown()
@@ -458,7 +458,7 @@ void CBassModule::Shutdown()
 }
 
 extern CGlobalVars* gpGlobals;
-void CBassModule::Think(bool bSimulating)
+void CBassModule::Think(GarrysMod::Lua::ILuaInterface* pLua, bool bSimulating)
 {
 	gGModAudio->Update((int)(gpGlobals->absoluteframetime * 1000)); // gpGlobals->absoluteframetime should be in seconds so we need to turn it to ms.
 }

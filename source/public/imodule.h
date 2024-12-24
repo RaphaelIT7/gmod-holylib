@@ -13,6 +13,11 @@ class KeyValues;
 struct edict_t;
 class CBaseEntity;
 
+namespace GarrysMod::Lua
+{
+	class ILuaInterface;
+}
+
 class IModule
 {
 public:
@@ -22,17 +27,17 @@ public:
 
 	// Implement your Lua init logic here.
 	// NOTE: This will be before any global functions were added.
-	virtual void LuaInit(bool bServerInit) { (void)bServerInit; };
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* LUA, bool bServerInit) { (void)LUA; (void)bServerInit; };
 
 	// Implement your Lua shutdown logic here like removing your table.
-	virtual void LuaShutdown() {};
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* LUA) {};
 
 	// Called when the module should add it's detours.
 	// NOTE: This is called before Init if bPreServer is true.
 	virtual void InitDetour(bool bPreServer) { (void)bPreServer; };
 
 	// Called every frame.
-	virtual void Think(bool bSimulating) { (void)bSimulating; };
+	virtual void Think(GarrysMod::Lua::ILuaInterface* LUA, bool bSimulating) { (void)LUA; (void)bSimulating; };
 
 	// Implement your additional shutdown logic here.
 	virtual void Shutdown() {};
@@ -144,6 +149,9 @@ public:
 	// Returns the realm were running in.
 	virtual Module_Realm GetModuleRealm() = 0;
 
+	// Returns the Lua interface of the module manager.
+	virtual GarrysMod::Lua::ILuaInterface* GetLua() = 0;
+
 	// Marks us to be loaded as a binary module
 	// I need to find a better name for this later.
 	// This usually means we were loaded by require("holylib")
@@ -156,7 +164,7 @@ public:
 	// This function is sets the internal variables.
 	virtual void Setup(CreateInterfaceFn appfn, CreateInterfaceFn gamefn) = 0;
 	virtual void Init() = 0;
-	virtual void LuaInit(bool bServerInit) = 0;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) = 0;
 	virtual void LuaShutdown() = 0;
 	virtual void InitDetour(bool bPreServer) = 0;
 	virtual void Think(bool bSimulating) = 0;

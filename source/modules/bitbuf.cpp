@@ -7,8 +7,8 @@
 class CBitBufModule : public IModule
 {
 public:
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual const char* Name() { return "bitbuf"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 };
@@ -965,121 +965,121 @@ LUA_FUNCTION_STATIC(bitbuf_CreateWriteBuffer)
 	return 1;
 }
 
-void CBitBufModule::LuaInit(bool bServerInit)
+void CBitBufModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
 
-	bf_read_TypeID = g_Lua->CreateMetaTable("bf_read");
-		Util::AddFunc(bf_read__tostring, "__tostring");
-		Util::AddFunc(bf_read__index, "__index");
-		Util::AddFunc(bf_read__newindex, "__newindex");
-		Util::AddFunc(bf_read__gc, "__gc");
-		Util::AddFunc(bf_read_GetTable, "GetTable");
-		Util::AddFunc(bf_read_IsValid, "IsValid");
-		Util::AddFunc(bf_read_GetNumBitsLeft, "GetNumBitsLeft");
-		Util::AddFunc(bf_read_GetNumBitsRead, "GetNumBitsRead");
-		Util::AddFunc(bf_read_GetNumBits, "GetNumBits");
-		Util::AddFunc(bf_read_GetNumBytesLeft, "GetNumBytesLeft");
-		Util::AddFunc(bf_read_GetNumBytesRead, "GetNumBytesRead");
-		Util::AddFunc(bf_read_GetNumBytes, "GetNumBytes");
-		Util::AddFunc(bf_read_GetCurrentBit, "GetCurrentBit");
-		Util::AddFunc(bf_read_IsOverflowed, "IsOverflowed");
-		Util::AddFunc(bf_read_PeekUBitLong, "PeekUBitLong");
-		Util::AddFunc(bf_read_ReadBitAngle, "ReadBitAngle");
-		Util::AddFunc(bf_read_ReadBitAngles, "ReadBitAngles");
-		Util::AddFunc(bf_read_ReadBitCoord, "ReadBitCoord");
-		Util::AddFunc(bf_read_ReadBitCoordBits, "ReadBitCoordBits");
-		Util::AddFunc(bf_read_ReadBitCoordMP, "ReadBitCoordMP");
-		Util::AddFunc(bf_read_ReadBitCoordMPBits, "ReadBitCoordMPBits");
-		Util::AddFunc(bf_read_ReadBitFloat, "ReadBitFloat");
-		Util::AddFunc(bf_read_ReadBitLong, "ReadBitLong");
-		Util::AddFunc(bf_read_ReadBitNormal, "ReadBitNormal");
-		Util::AddFunc(bf_read_ReadBits, "ReadBits");
-		Util::AddFunc(bf_read_ReadBitVec3Coord, "ReadBitVec3Coord");
-		Util::AddFunc(bf_read_ReadBitVec3Normal, "ReadBitVec3Normal");
-		Util::AddFunc(bf_read_ReadByte, "ReadByte");
-		Util::AddFunc(bf_read_ReadBytes, "ReadBytes");
-		Util::AddFunc(bf_read_ReadChar, "ReadChar");
-		Util::AddFunc(bf_read_ReadFloat, "ReadFloat");
-		Util::AddFunc(bf_read_ReadLong, "ReadLong");
-		Util::AddFunc(bf_read_ReadLongLong, "ReadLongLong");
-		Util::AddFunc(bf_read_ReadOneBit, "ReadOneBit");
-		Util::AddFunc(bf_read_ReadSBitLong, "ReadSBitLong");
-		Util::AddFunc(bf_read_ReadShort, "ReadShort");
-		Util::AddFunc(bf_read_ReadSignedVarInt32, "ReadSignedVarInt32");
-		Util::AddFunc(bf_read_ReadSignedVarInt64, "ReadSignedVarInt64");
-		Util::AddFunc(bf_read_ReadString, "ReadString");
-		Util::AddFunc(bf_read_ReadUBitLong, "ReadUBitLong");
-		Util::AddFunc(bf_read_ReadUBitVar, "ReadUBitVar");
-		Util::AddFunc(bf_read_ReadVarInt32, "ReadVarInt32");
-		Util::AddFunc(bf_read_ReadVarInt64, "ReadVarInt64");
-		Util::AddFunc(bf_read_ReadWord, "ReadWord");
+	bf_read_TypeID = pLua->CreateMetaTable("bf_read");
+		Util::AddFunc(pLua, bf_read__tostring, "__tostring");
+		Util::AddFunc(pLua, bf_read__index, "__index");
+		Util::AddFunc(pLua, bf_read__newindex, "__newindex");
+		Util::AddFunc(pLua, bf_read__gc, "__gc");
+		Util::AddFunc(pLua, bf_read_GetTable, "GetTable");
+		Util::AddFunc(pLua, bf_read_IsValid, "IsValid");
+		Util::AddFunc(pLua, bf_read_GetNumBitsLeft, "GetNumBitsLeft");
+		Util::AddFunc(pLua, bf_read_GetNumBitsRead, "GetNumBitsRead");
+		Util::AddFunc(pLua, bf_read_GetNumBits, "GetNumBits");
+		Util::AddFunc(pLua, bf_read_GetNumBytesLeft, "GetNumBytesLeft");
+		Util::AddFunc(pLua, bf_read_GetNumBytesRead, "GetNumBytesRead");
+		Util::AddFunc(pLua, bf_read_GetNumBytes, "GetNumBytes");
+		Util::AddFunc(pLua, bf_read_GetCurrentBit, "GetCurrentBit");
+		Util::AddFunc(pLua, bf_read_IsOverflowed, "IsOverflowed");
+		Util::AddFunc(pLua, bf_read_PeekUBitLong, "PeekUBitLong");
+		Util::AddFunc(pLua, bf_read_ReadBitAngle, "ReadBitAngle");
+		Util::AddFunc(pLua, bf_read_ReadBitAngles, "ReadBitAngles");
+		Util::AddFunc(pLua, bf_read_ReadBitCoord, "ReadBitCoord");
+		Util::AddFunc(pLua, bf_read_ReadBitCoordBits, "ReadBitCoordBits");
+		Util::AddFunc(pLua, bf_read_ReadBitCoordMP, "ReadBitCoordMP");
+		Util::AddFunc(pLua, bf_read_ReadBitCoordMPBits, "ReadBitCoordMPBits");
+		Util::AddFunc(pLua, bf_read_ReadBitFloat, "ReadBitFloat");
+		Util::AddFunc(pLua, bf_read_ReadBitLong, "ReadBitLong");
+		Util::AddFunc(pLua, bf_read_ReadBitNormal, "ReadBitNormal");
+		Util::AddFunc(pLua, bf_read_ReadBits, "ReadBits");
+		Util::AddFunc(pLua, bf_read_ReadBitVec3Coord, "ReadBitVec3Coord");
+		Util::AddFunc(pLua, bf_read_ReadBitVec3Normal, "ReadBitVec3Normal");
+		Util::AddFunc(pLua, bf_read_ReadByte, "ReadByte");
+		Util::AddFunc(pLua, bf_read_ReadBytes, "ReadBytes");
+		Util::AddFunc(pLua, bf_read_ReadChar, "ReadChar");
+		Util::AddFunc(pLua, bf_read_ReadFloat, "ReadFloat");
+		Util::AddFunc(pLua, bf_read_ReadLong, "ReadLong");
+		Util::AddFunc(pLua, bf_read_ReadLongLong, "ReadLongLong");
+		Util::AddFunc(pLua, bf_read_ReadOneBit, "ReadOneBit");
+		Util::AddFunc(pLua, bf_read_ReadSBitLong, "ReadSBitLong");
+		Util::AddFunc(pLua, bf_read_ReadShort, "ReadShort");
+		Util::AddFunc(pLua, bf_read_ReadSignedVarInt32, "ReadSignedVarInt32");
+		Util::AddFunc(pLua, bf_read_ReadSignedVarInt64, "ReadSignedVarInt64");
+		Util::AddFunc(pLua, bf_read_ReadString, "ReadString");
+		Util::AddFunc(pLua, bf_read_ReadUBitLong, "ReadUBitLong");
+		Util::AddFunc(pLua, bf_read_ReadUBitVar, "ReadUBitVar");
+		Util::AddFunc(pLua, bf_read_ReadVarInt32, "ReadVarInt32");
+		Util::AddFunc(pLua, bf_read_ReadVarInt64, "ReadVarInt64");
+		Util::AddFunc(pLua, bf_read_ReadWord, "ReadWord");
 
 		// Functions to change the current bit
-		Util::AddFunc(bf_read_Reset, "Reset");
-		Util::AddFunc(bf_read_Seek, "Seek");
-		Util::AddFunc(bf_read_SeekRelative, "SeekRelative");
+		Util::AddFunc(pLua, bf_read_Reset, "Reset");
+		Util::AddFunc(pLua, bf_read_Seek, "Seek");
+		Util::AddFunc(pLua, bf_read_SeekRelative, "SeekRelative");
 
 		// Other functions
-		Util::AddFunc(bf_read_GetData, "GetData");
-	g_Lua->Pop(1);
+		Util::AddFunc(pLua, bf_read_GetData, "GetData");
+	pLua->Pop(1);
 
-	bf_write_TypeID = g_Lua->CreateMetaTable("bf_write");
-		Util::AddFunc(bf_write__tostring, "__tostring");
-		Util::AddFunc(bf_write__index, "__index");
-		Util::AddFunc(bf_write__newindex, "__newindex");
-		Util::AddFunc(bf_write__gc, "__gc");
-		Util::AddFunc(bf_write_GetTable, "GetTable");
-		Util::AddFunc(bf_write_IsValid, "IsValid");
-		Util::AddFunc(bf_write_GetData, "GetData");
-		Util::AddFunc(bf_write_GetNumBytesWritten, "GetNumBytesWritten");
-		Util::AddFunc(bf_write_GetNumBytesLeft, "GetNumBytesLeft");
-		Util::AddFunc(bf_write_GetNumBitsWritten, "GetNumBitsWritten");
-		Util::AddFunc(bf_write_GetNumBitsLeft, "GetNumBitsLeft");
-		Util::AddFunc(bf_write_GetMaxNumBits, "GetMaxNumBits");
-		Util::AddFunc(bf_write_IsOverflowed, "IsOverflowed");
-		Util::AddFunc(bf_write_Reset, "Reset");
-		Util::AddFunc(bf_write_GetDebugName, "GetDebugName");
-		Util::AddFunc(bf_write_SetDebugName, "SetDebugName");
-		Util::AddFunc(bf_write_SeekToBit, "SeekToBit");
-		Util::AddFunc(bf_write_WriteFloat, "WriteFloat");
-		Util::AddFunc(bf_write_WriteChar, "WriteChar");
-		Util::AddFunc(bf_write_WriteByte, "WriteByte");
-		Util::AddFunc(bf_write_WriteLong, "WriteLong");
-		Util::AddFunc(bf_write_WriteLongLong, "WriteLongLong");
-		Util::AddFunc(bf_write_WriteBytes, "WriteBytes");
-		Util::AddFunc(bf_write_WriteOneBit, "WriteOneBit");
-		Util::AddFunc(bf_write_WriteOneBitAt, "WriteOneBitAt");
-		Util::AddFunc(bf_write_WriteShort, "WriteShort");
-		Util::AddFunc(bf_write_WriteWord, "WriteWord");
-		Util::AddFunc(bf_write_WriteSignedVarInt32, "WriteSignedVarInt32");
-		Util::AddFunc(bf_write_WriteSignedVarInt64, "WriteSignedVarInt64");
-		Util::AddFunc(bf_write_WriteVarInt32, "WriteVarInt32");
-		Util::AddFunc(bf_write_WriteVarInt64, "WriteVarInt64");
-		Util::AddFunc(bf_write_WriteUBitVar, "WriteUBitVar");
-		Util::AddFunc(bf_write_WriteUBitLong, "WriteUBitLong");
-		Util::AddFunc(bf_write_WriteBitAngle, "WriteBitAngle");
-		Util::AddFunc(bf_write_WriteBitAngles, "WriteBitAngles");
-		Util::AddFunc(bf_write_WriteBitVec3Coord, "WriteBitVec3Coord");
-		Util::AddFunc(bf_write_WriteBitVec3Normal, "WriteBitVec3normal");
-		Util::AddFunc(bf_write_WriteBits, "WriteBits");
-		Util::AddFunc(bf_write_WriteBitsFromBuffer, "WriteBitsFromBuffer");
-		Util::AddFunc(bf_write_WriteBitNormal, "WriteBitNormal");
-		Util::AddFunc(bf_write_WriteBitLong, "WriteBitLong");
-		Util::AddFunc(bf_write_WriteBitFloat, "WriteBitFloat");
-		Util::AddFunc(bf_write_WriteBitCoord, "WriteBitCoord");
-		Util::AddFunc(bf_write_WriteBitCoordMP, "WriteBitCoordMP");
-	g_Lua->Pop(1);
+	bf_write_TypeID = pLua->CreateMetaTable("bf_write");
+		Util::AddFunc(pLua, bf_write__tostring, "__tostring");
+		Util::AddFunc(pLua, bf_write__index, "__index");
+		Util::AddFunc(pLua, bf_write__newindex, "__newindex");
+		Util::AddFunc(pLua, bf_write__gc, "__gc");
+		Util::AddFunc(pLua, bf_write_GetTable, "GetTable");
+		Util::AddFunc(pLua, bf_write_IsValid, "IsValid");
+		Util::AddFunc(pLua, bf_write_GetData, "GetData");
+		Util::AddFunc(pLua, bf_write_GetNumBytesWritten, "GetNumBytesWritten");
+		Util::AddFunc(pLua, bf_write_GetNumBytesLeft, "GetNumBytesLeft");
+		Util::AddFunc(pLua, bf_write_GetNumBitsWritten, "GetNumBitsWritten");
+		Util::AddFunc(pLua, bf_write_GetNumBitsLeft, "GetNumBitsLeft");
+		Util::AddFunc(pLua, bf_write_GetMaxNumBits, "GetMaxNumBits");
+		Util::AddFunc(pLua, bf_write_IsOverflowed, "IsOverflowed");
+		Util::AddFunc(pLua, bf_write_Reset, "Reset");
+		Util::AddFunc(pLua, bf_write_GetDebugName, "GetDebugName");
+		Util::AddFunc(pLua, bf_write_SetDebugName, "SetDebugName");
+		Util::AddFunc(pLua, bf_write_SeekToBit, "SeekToBit");
+		Util::AddFunc(pLua, bf_write_WriteFloat, "WriteFloat");
+		Util::AddFunc(pLua, bf_write_WriteChar, "WriteChar");
+		Util::AddFunc(pLua, bf_write_WriteByte, "WriteByte");
+		Util::AddFunc(pLua, bf_write_WriteLong, "WriteLong");
+		Util::AddFunc(pLua, bf_write_WriteLongLong, "WriteLongLong");
+		Util::AddFunc(pLua, bf_write_WriteBytes, "WriteBytes");
+		Util::AddFunc(pLua, bf_write_WriteOneBit, "WriteOneBit");
+		Util::AddFunc(pLua, bf_write_WriteOneBitAt, "WriteOneBitAt");
+		Util::AddFunc(pLua, bf_write_WriteShort, "WriteShort");
+		Util::AddFunc(pLua, bf_write_WriteWord, "WriteWord");
+		Util::AddFunc(pLua, bf_write_WriteSignedVarInt32, "WriteSignedVarInt32");
+		Util::AddFunc(pLua, bf_write_WriteSignedVarInt64, "WriteSignedVarInt64");
+		Util::AddFunc(pLua, bf_write_WriteVarInt32, "WriteVarInt32");
+		Util::AddFunc(pLua, bf_write_WriteVarInt64, "WriteVarInt64");
+		Util::AddFunc(pLua, bf_write_WriteUBitVar, "WriteUBitVar");
+		Util::AddFunc(pLua, bf_write_WriteUBitLong, "WriteUBitLong");
+		Util::AddFunc(pLua, bf_write_WriteBitAngle, "WriteBitAngle");
+		Util::AddFunc(pLua, bf_write_WriteBitAngles, "WriteBitAngles");
+		Util::AddFunc(pLua, bf_write_WriteBitVec3Coord, "WriteBitVec3Coord");
+		Util::AddFunc(pLua, bf_write_WriteBitVec3Normal, "WriteBitVec3normal");
+		Util::AddFunc(pLua, bf_write_WriteBits, "WriteBits");
+		Util::AddFunc(pLua, bf_write_WriteBitsFromBuffer, "WriteBitsFromBuffer");
+		Util::AddFunc(pLua, bf_write_WriteBitNormal, "WriteBitNormal");
+		Util::AddFunc(pLua, bf_write_WriteBitLong, "WriteBitLong");
+		Util::AddFunc(pLua, bf_write_WriteBitFloat, "WriteBitFloat");
+		Util::AddFunc(pLua, bf_write_WriteBitCoord, "WriteBitCoord");
+		Util::AddFunc(pLua, bf_write_WriteBitCoordMP, "WriteBitCoordMP");
+	pLua->Pop(1);
 
-	Util::StartTable();
-		Util::AddFunc(bitbuf_CopyReadBuffer, "CopyReadBuffer");
-		Util::AddFunc(bitbuf_CreateReadBuffer, "CreateReadBuffer");
-		Util::AddFunc(bitbuf_CreateWriteBuffer, "CreateWriteBuffer");
-	Util::FinishTable("bitbuf");
+	Util::StartTable(pLua);
+		Util::AddFunc(pLua, bitbuf_CopyReadBuffer, "CopyReadBuffer");
+		Util::AddFunc(pLua, bitbuf_CreateReadBuffer, "CreateReadBuffer");
+		Util::AddFunc(pLua, bitbuf_CreateWriteBuffer, "CreateWriteBuffer");
+	Util::FinishTable(pLua, "bitbuf");
 }
 
-void CBitBufModule::LuaShutdown()
+void CBitBufModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	Util::NukeTable("bitbuf");
+	Util::NukeTable(pLua, "bitbuf");
 }

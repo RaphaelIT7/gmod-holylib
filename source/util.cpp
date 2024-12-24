@@ -1,5 +1,5 @@
-#include "GarrysMod/Lua/LuaObject.h"
 #include "util.h"
+#include "GarrysMod/Lua/LuaObject.h"
 #include <string>
 #include "GarrysMod/InterfacePointers.hpp"
 #include "sourcesdk/baseclient.h"
@@ -10,6 +10,7 @@
 #include "detours.h"
 
 // Try not to use it. We want to move away from it.
+// Additionaly, we will add checks in many functions.
 GarrysMod::Lua::ILuaInterface* g_Lua;
 
 IVEngineServer* engine;

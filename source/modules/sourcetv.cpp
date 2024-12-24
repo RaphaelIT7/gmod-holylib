@@ -13,8 +13,8 @@
 class CSourceTVLibModule : public IModule
 {
 public:
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "sourcetv"; };
 	virtual int Compatibility() { return LINUX32; };
@@ -268,7 +268,7 @@ LUA_FUNCTION_STATIC(HLTVClient_SetCameraMan)
 	if (LUA->IsType(2, GarrysMod::Lua::Type::Number))
 		iTarget = LUA->GetNumber(2);
 	else {
-		CBaseEntity* pEnt = Util::Get_Entity(2, false);
+		CBaseEntity* pEnt = Util::Get_Entity(LUA, 2, false);
 		iTarget = pEnt ? pEnt->edict()->m_EdictIndex : 0; // If given NULL, set it to 0.
 	}
 	g_iTarget[pClient->GetUserID()] = iTarget;
@@ -498,7 +498,7 @@ LUA_FUNCTION_STATIC(sourcetv_SetCameraMan)
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Number))
 		iTarget = LUA->GetNumber(1);
 	else {
-		CBaseEntity* pEnt = Util::Get_Entity(1, false);
+		CBaseEntity* pEnt = Util::Get_Entity(LUA, 1, false);
 		iTarget = pEnt ? pEnt->edict()->m_EdictIndex : 0; // If given NULL, set it to 0.
 	}
 
@@ -685,62 +685,62 @@ static void hook_CHLTVServer_BroadcastEvent(CHLTVServer* pServer, IGameEvent* pE
 		Msg("SourceTV broadcast event: %s\n", pEvent->GetName());
 }
 
-void CSourceTVLibModule::LuaInit(bool bServerInit)
+void CSourceTVLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
 
 	ref_tv_debug = cvar->FindVar("tv_debug"); // We only search for it once. Verify: ConVarRef would always search for it in it's constructor/Init if I remember correctly.
 
-	CHLTVClient_TypeID = g_Lua->CreateMetaTable("HLTVClient");
-		Util::AddFunc(HLTVClient__tostring, "__tostring");
-		//Util::AddFunc(HLTVClient__newindex, "__newindex");
-		Util::AddFunc(HLTVClient__index, "__index");
-		Util::AddFunc(HLTVClient_GetTable, "GetTable");
+	CHLTVClient_TypeID = pLua->CreateMetaTable("HLTVClient");
+		Util::AddFunc(pLua, HLTVClient__tostring, "__tostring");
+		//Util::AddFunc(pLua, HLTVClient__newindex, "__newindex");
+		Util::AddFunc(pLua, HLTVClient__index, "__index");
+		Util::AddFunc(pLua, HLTVClient_GetTable, "GetTable");
 
-		Util::AddFunc(HLTVClient_GetName, "GetName");
-		Util::AddFunc(HLTVClient_GetSlot, "GetSlot");
-		Util::AddFunc(HLTVClient_GetSteamID, "GetSteamID");
-		Util::AddFunc(HLTVClient_GetUserID, "GetUserID");
-		Util::AddFunc(HLTVClient_Reconnect, "Reconnect");
-		Util::AddFunc(HLTVClient_IsValid, "IsValid");
-		Util::AddFunc(HLTVClient_ClientPrint, "ClientPrint");
-		Util::AddFunc(HLTVClient_SendLua, "SendLua");
-		Util::AddFunc(HLTVClient_FireEvent, "FireEvent");
-		Util::AddFunc(HLTVClient_SetCameraMan, "SetCameraMan");
-	g_Lua->Pop(1);
+		Util::AddFunc(pLua, HLTVClient_GetName, "GetName");
+		Util::AddFunc(pLua, HLTVClient_GetSlot, "GetSlot");
+		Util::AddFunc(pLua, HLTVClient_GetSteamID, "GetSteamID");
+		Util::AddFunc(pLua, HLTVClient_GetUserID, "GetUserID");
+		Util::AddFunc(pLua, HLTVClient_Reconnect, "Reconnect");
+		Util::AddFunc(pLua, HLTVClient_IsValid, "IsValid");
+		Util::AddFunc(pLua, HLTVClient_ClientPrint, "ClientPrint");
+		Util::AddFunc(pLua, HLTVClient_SendLua, "SendLua");
+		Util::AddFunc(pLua, HLTVClient_FireEvent, "FireEvent");
+		Util::AddFunc(pLua, HLTVClient_SetCameraMan, "SetCameraMan");
+	pLua->Pop(1);
 
-	Util::StartTable();
-		Util::AddFunc(sourcetv_IsActive, "IsActive");
-		Util::AddFunc(sourcetv_IsRecording, "IsRecording");
-		Util::AddFunc(sourcetv_IsMasterProxy, "IsMasterProxy");
-		Util::AddFunc(sourcetv_IsRelay, "IsRelay");
-		Util::AddFunc(sourcetv_GetClientCount, "GetClientCount");
-		Util::AddFunc(sourcetv_GetHLTVSlot, "GetHLTVSlot");
-		Util::AddFunc(sourcetv_StartRecord, "StartRecord");
-		Util::AddFunc(sourcetv_GetRecordingFile, "GetRecordingFile");
-		Util::AddFunc(sourcetv_StopRecord, "StopRecord");
-		Util::AddFunc(sourcetv_FireEvent, "FireEvent");
-		Util::AddFunc(sourcetv_SetCameraMan, "SetCameraMan");
+	Util::StartTable(pLua);
+		Util::AddFunc(pLua, sourcetv_IsActive, "IsActive");
+		Util::AddFunc(pLua, sourcetv_IsRecording, "IsRecording");
+		Util::AddFunc(pLua, sourcetv_IsMasterProxy, "IsMasterProxy");
+		Util::AddFunc(pLua, sourcetv_IsRelay, "IsRelay");
+		Util::AddFunc(pLua, sourcetv_GetClientCount, "GetClientCount");
+		Util::AddFunc(pLua, sourcetv_GetHLTVSlot, "GetHLTVSlot");
+		Util::AddFunc(pLua, sourcetv_StartRecord, "StartRecord");
+		Util::AddFunc(pLua, sourcetv_GetRecordingFile, "GetRecordingFile");
+		Util::AddFunc(pLua, sourcetv_StopRecord, "StopRecord");
+		Util::AddFunc(pLua, sourcetv_FireEvent, "FireEvent");
+		Util::AddFunc(pLua, sourcetv_SetCameraMan, "SetCameraMan");
 
 		// Client Functions
-		Util::AddFunc(sourcetv_GetAll, "GetAll");
-		Util::AddFunc(sourcetv_GetClient, "GetClient");
+		Util::AddFunc(pLua, sourcetv_GetAll, "GetAll");
+		Util::AddFunc(pLua, sourcetv_GetClient, "GetClient");
 
-		Util::AddValue(LUA_RECORD_OK, "RECORD_OK");
+		Util::AddValue(pLua, LUA_RECORD_OK, "RECORD_OK");
 
-		Util::AddValue(LUA_RECORD_NOSOURCETV, "RECORD_NOSOURCETV");
-		Util::AddValue(LUA_RECORD_NOTMASTER, "RECORD_NOTMASTER");
-		Util::AddValue(LUA_RECORD_ACTIVE, "RECORD_ACTIVE");
-		Util::AddValue(LUA_RECORD_NOTACTIVE, "RECORD_NOTACTIVE");
-		Util::AddValue(LUA_RECORD_INVALIDPATH, "RECORD_INVALIDPATH");
-		Util::AddValue(LUA_RECORD_FILEEXISTS, "RECORD_FILEEXISTS");
-	Util::FinishTable("sourcetv");
+		Util::AddValue(pLua, LUA_RECORD_NOSOURCETV, "RECORD_NOSOURCETV");
+		Util::AddValue(pLua, LUA_RECORD_NOTMASTER, "RECORD_NOTMASTER");
+		Util::AddValue(pLua, LUA_RECORD_ACTIVE, "RECORD_ACTIVE");
+		Util::AddValue(pLua, LUA_RECORD_NOTACTIVE, "RECORD_NOTACTIVE");
+		Util::AddValue(pLua, LUA_RECORD_INVALIDPATH, "RECORD_INVALIDPATH");
+		Util::AddValue(pLua, LUA_RECORD_FILEEXISTS, "RECORD_FILEEXISTS");
+	Util::FinishTable(pLua, "sourcetv");
 }
 
-void CSourceTVLibModule::LuaShutdown()
+void CSourceTVLibModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	Util::NukeTable("sourcetv");
+	Util::NukeTable(pLua, "sourcetv");
 	g_pPushedCHLTVClient.clear();
 }
 

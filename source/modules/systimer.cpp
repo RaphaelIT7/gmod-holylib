@@ -6,9 +6,9 @@
 class CSysTimerModule : public IModule
 {
 public:
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
-	virtual void Think(bool bSimulating) OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
+	virtual void Think(GarrysMod::Lua::ILuaInterface* LUA, bool bSimulating) OVERRIDE;
 	virtual const char* Name() { return "systimer"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 };
@@ -295,39 +295,39 @@ LUA_FUNCTION_STATIC(timer_UnPause)
 	return 1;
 }
 
-void CSysTimerModule::LuaInit(bool bServerInit)
+void CSysTimerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
 
-	Util::StartTable();
-		Util::AddFunc(timer_Adjust, "Adjust");
-		Util::AddFunc(timer_Check, "Check");
-		Util::AddFunc(timer_Create, "Create");
-		Util::AddFunc(timer_Remove, "Destroy");
-		Util::AddFunc(timer_Exists, "Exists");
-		Util::AddFunc(timer_Pause, "Pause");
-		Util::AddFunc(timer_Remove, "Remove");
-		Util::AddFunc(timer_RepsLeft, "RepsLeft");
-		Util::AddFunc(timer_Simple, "Simple");
-		Util::AddFunc(timer_Start, "Start");
-		Util::AddFunc(timer_Stop, "Stop");
-		Util::AddFunc(timer_TimeLeft, "TimeLeft");
-		Util::AddFunc(timer_Toggle, "Toggle");
-		Util::AddFunc(timer_UnPause, "UnPause");
-	Util::FinishTable("systimer");
+	Util::StartTable(pLua);
+		Util::AddFunc(pLua, timer_Adjust, "Adjust");
+		Util::AddFunc(pLua, timer_Check, "Check");
+		Util::AddFunc(pLua, timer_Create, "Create");
+		Util::AddFunc(pLua, timer_Remove, "Destroy");
+		Util::AddFunc(pLua, timer_Exists, "Exists");
+		Util::AddFunc(pLua, timer_Pause, "Pause");
+		Util::AddFunc(pLua, timer_Remove, "Remove");
+		Util::AddFunc(pLua, timer_RepsLeft, "RepsLeft");
+		Util::AddFunc(pLua, timer_Simple, "Simple");
+		Util::AddFunc(pLua, timer_Start, "Start");
+		Util::AddFunc(pLua, timer_Stop, "Stop");
+		Util::AddFunc(pLua, timer_TimeLeft, "TimeLeft");
+		Util::AddFunc(pLua, timer_Toggle, "Toggle");
+		Util::AddFunc(pLua, timer_UnPause, "UnPause");
+	Util::FinishTable(pLua, "systimer");
 }
 
-void CSysTimerModule::LuaShutdown()
+void CSysTimerModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	FOR_EACH_VEC(g_pLuaTimers, i)
 		delete g_pLuaTimers[i];
 
 	g_pLuaTimers.RemoveAll(),
-	Util::NukeTable("systimer");
+	Util::NukeTable(pLua, "systimer");
 }
 
-void CSysTimerModule::Think(bool simulating) // Should also be called while hibernating so we should be fine.
+void CSysTimerModule::Think(GarrysMod::Lua::ILuaInterface* pLua, bool simulating) // Should also be called while hibernating so we should be fine.
 {
 	VPROF_BUDGET("HolyLib - CSysTimerModule::Think", VPROF_BUDGETGROUP_HOLYLIB);
 

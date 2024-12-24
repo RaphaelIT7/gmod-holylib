@@ -7,6 +7,11 @@ namespace GarrysMod::Lua
 	class ILuaShared;
 }
 
+struct LuaState
+{
+
+};
+
 namespace Lua
 {
 	extern void Init(GarrysMod::Lua::ILuaInterface* LUA);
@@ -18,4 +23,7 @@ namespace Lua
 	extern void SetManualShutdown();
 	extern GarrysMod::Lua::ILuaInterface* GetRealm(unsigned char);
 	extern GarrysMod::Lua::ILuaShared* GetShared();
+
+	extern GarrysMod::Lua::ILuaInterface* CreateInterface();
+	extern void DestoryInterface(GarrysMod::Lua::ILuaInterface* LUA);
 }

@@ -5,8 +5,8 @@
 class CCVarsModule : public IModule
 {
 public:
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual const char* Name() { return "cvars"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 };
@@ -68,19 +68,19 @@ LUA_FUNCTION_STATIC(cvars_Unregister)
 	return 0;
 }
 
-void CCVarsModule::LuaInit(bool bServerInit)
+void CCVarsModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
 
-	Util::StartTable();
-		Util::AddFunc(cvars_GetAll, "GetAll");
-		Util::AddFunc(cvars_SetValue, "SetValue");
-		Util::AddFunc(cvars_Unregister, "Unregister");
-	Util::FinishTable("cvar");
+	Util::StartTable(pLua);
+		Util::AddFunc(pLua, cvars_GetAll, "GetAll");
+		Util::AddFunc(pLua, cvars_SetValue, "SetValue");
+		Util::AddFunc(pLua, cvars_Unregister, "Unregister");
+	Util::FinishTable(pLua, "cvar");
 }
 
-void CCVarsModule::LuaShutdown()
+void CCVarsModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	Util::NukeTable("cvar");
+	Util::NukeTable(pLua, "cvar");
 }

@@ -48,19 +48,19 @@ public:
 	}
 
 public:
-	virtual CBasePlayer* Get_Player(int iStackPos, bool bError)
+	virtual CBasePlayer* Get_Player(GarrysMod::Lua::ILuaInterface* pLua, int iStackPos, bool bError)
 	{
-		return Util::Get_Player(iStackPos, bError);
+		return Util::Get_Player(pLua, iStackPos, bError);
 	}
 
-	virtual CBaseEntity* Get_Entity(int iStackPos, bool bError)
+	virtual CBaseEntity* Get_Entity(GarrysMod::Lua::ILuaInterface* pLua, int iStackPos, bool bError)
 	{
-		return Util::Get_Entity(iStackPos, bError);
+		return Util::Get_Entity(pLua, iStackPos, bError);
 	}
 
-	virtual void Push_Entity(CBaseEntity* pEntity)
+	virtual void Push_Entity(GarrysMod::Lua::ILuaInterface* pLua, CBaseEntity* pEntity)
 	{
-		return Util::Push_Entity(pEntity);
+		return Util::Push_Entity(pLua, pEntity);
 	}
 
 	virtual CBaseEntity* GetCBaseEntityFromEdict(edict_t* edict)

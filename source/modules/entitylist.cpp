@@ -8,8 +8,8 @@
 class CEntListModule : public IModule
 {
 public:
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void OnEntityCreated(CBaseEntity* pEntity) OVERRIDE;
 	virtual void OnEntityDeleted(CBaseEntity* pEntity) OVERRIDE;
 	virtual const char* Name() { return "entitylist"; };
@@ -289,37 +289,36 @@ void CEntListModule::OnEntityCreated(CBaseEntity* pEntity)
 		Msg("Created Entity %p (%p, %i)\n", pEntity, &g_pGlobalEntityList, pEntityLists.size());
 }
 
-void CEntListModule::LuaInit(bool bServerInit)
+void CEntListModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
 
-	EntityList_TypeID = g_Lua->CreateMetaTable("EntityList");
-		Util::AddFunc(EntityList__tostring, "__tostring");
-		Util::AddFunc(EntityList__index, "__index");
-		Util::AddFunc(EntityList__newindex, "__newindex");
-		Util::AddFunc(EntityList__gc, "__gc");
-		Util::AddFunc(EntityList_GetLuaTable, "GetLuaTable");
-		Util::AddFunc(EntityList_IsValid, "IsValid");
-		Util::AddFunc(EntityList_GetTable, "GetTable");
-		Util::AddFunc(EntityList_SetTable, "SetTable");
-		Util::AddFunc(EntityList_AddTable, "AddTable");
-		Util::AddFunc(EntityList_RemoveTable, "RemoveTable");
-		Util::AddFunc(EntityList_Add, "Add");
-		Util::AddFunc(EntityList_Remove, "Remove");
-	g_Lua->Pop(1);
+	EntityList_TypeID = pLua->CreateMetaTable("EntityList");
+		Util::AddFunc(pLua, EntityList__tostring, "__tostring");
+		Util::AddFunc(pLua, EntityList__index, "__index");
+		Util::AddFunc(pLua, EntityList__newindex, "__newindex");
+		Util::AddFunc(pLua, EntityList__gc, "__gc");
+		Util::AddFunc(pLua, EntityList_GetLuaTable, "GetLuaTable");
+		Util::AddFunc(pLua, EntityList_GetTable, "GetTable");
+		Util::AddFunc(pLua, EntityList_SetTable, "SetTable");
+		Util::AddFunc(pLua, EntityList_AddTable, "AddTable");
+		Util::AddFunc(pLua, EntityList_RemoveTable, "RemoveTable");
+		Util::AddFunc(pLua, EntityList_Add, "Add");
+		Util::AddFunc(pLua, EntityList_Remove, "Remove");
+	pLua->Pop(1);
 
-	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-		Util::AddFunc(CreateEntityList, "CreateEntityList");
-		Util::AddFunc(GetGlobalEntityList, "GetGlobalEntityList");
-	g_Lua->Pop(1);
+	pLua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
+		Util::AddFunc(pLua, CreateEntityList, "CreateEntityList");
+		Util::AddFunc(pLua, GetGlobalEntityList, "GetGlobalEntityList");
+	pLua->Pop(1);
 }
 
-void CEntListModule::LuaShutdown()
+void CEntListModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-		Util::RemoveField("CreateEntityList");
-		Util::RemoveField("GetGlobalEntityList");
-	g_Lua->Pop(1);
+	pLua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
+		Util::RemoveField(pLua, "CreateEntityList");
+		Util::RemoveField(pLua, "GetGlobalEntityList");
+	pLua->Pop(1);
 	g_pGlobalEntityList.Clear();
 }
