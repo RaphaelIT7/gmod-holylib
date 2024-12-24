@@ -9,7 +9,7 @@
 #include "module.h"
 #include "plugin.h"
 #include "vprof.h"
-#include "lua.h"
+#include "holylua.h"
 
 struct edict_t;
 #include "playerinfomanager.h"
@@ -126,6 +126,7 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 	Util::AddDetour();
 	g_pModuleManager.Init();
 	g_pModuleManager.InitDetour(false);
+	HolyLua::Init();
 
 	GarrysMod::Lua::ILuaInterface* LUA = Lua::GetRealm(g_pModuleManager.GetModuleRealm());
 	if (LUA) // If we got loaded by plugin_load we need to manually call Lua::Init
@@ -174,6 +175,7 @@ void CServerPlugin::Unload(void)
 		return;
 	}
 
+	HolyLua::Shutdown();
 	g_pModuleManager.Shutdown();
 	Util::RemoveDetour();
 	Detour::Remove(0);

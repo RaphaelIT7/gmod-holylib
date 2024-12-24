@@ -2092,6 +2092,50 @@ LUA_FUNCTION_STATIC(filesystem_TimeAccessed)
 	return 1;
 }
 
+namespace Addon
+{
+	class UpdatedFileSystem // ToDo: Fix this to work on windows.
+	{
+		public:
+			virtual void Clear( ) = 0;
+			virtual void Refresh( ) = 0;
+			virtual int MountFile( const std::string &, std::vector<std::string> * ) = 0;
+			virtual bool ShouldMount( const std::string & ) = 0;
+			virtual bool ShouldMount( uint64_t ) = 0;
+#ifdef DEDICATED
+			virtual void SetShouldMount( const std::string &, bool ) = 0;
+#endif
+			virtual bool Save( ) = 0;
+			virtual const std::list<IAddonSystem::Information> &GetList( ) const = 0;
+			virtual const std::list<IAddonSystem::UGCInfo> &GetUGCList( ) const = 0;
+			virtual void ScanForSubscriptions( CSteamAPIContext *, const char * ) = 0;
+			virtual void Think( ) = 0;
+			virtual void SetDownloadNotify( IAddonDownloadNotification * ) = 0;
+			virtual int Notify( ) = 0;
+			virtual bool IsSubscribed( uint64_t ) = 0;
+			virtual const IAddonSystem::Information *FindFileOwner( const std::string & ) = 0;
+			virtual void AddAddon( const IAddonSystem::Information & ) = 0;
+			virtual void ClearUnusedGMAs( ) = 0;
+			virtual const std::string& GetAddonFilepath( uint64_t, bool ) = 0;
+			virtual void UnmountAddon( uint64_t ) = 0;
+			virtual void UnmountServerAddons( ) = 0;
+			virtual void Shutdown( ) = 0;
+			virtual void AddJob( Job::Base * ) = 0;
+			virtual const std::list<SteamUGCDetails_t> &GetSubList( ) const = 0;
+			virtual void MountFloatingAddons( ) = 0;
+			virtual void AddAddonFromSteamDetails( const SteamUGCDetails_t & ) = 0;
+			virtual void OnAddonSubscribed( const SteamUGCDetails_t & ) = 0;
+			virtual void AddUnloadedSubscription( uint64_t ) = 0;
+			virtual bool HasChanges( ) = 0;
+			virtual void MarkChanged( ) = 0;
+			virtual void OnAddonDownloaded( const IAddonSystem::Information & ) = 0;
+			virtual void OnAddonDownloadFailed( const IAddonSystem::Information & ) = 0;
+			virtual void IsAddonValidPreInstall( SteamUGCDetails_t ) = 0;
+			virtual void Load( ) = 0;
+	};
+
+}
+
 // Gmod's filesystem functions have some weird stuff in them that makes them noticeably slower :/
 void CFileSystemModule::LuaInit(bool bServerInit)
 {
@@ -2120,6 +2164,10 @@ void CFileSystemModule::LuaInit(bool bServerInit)
 		Util::AddFunc(filesystem_TimeCreated, "TimeCreated");
 		Util::AddFunc(filesystem_TimeAccessed, "TimeAccessed");
 	Util::FinishTable("filesystem");
+
+	Util::StartTable();
+		
+	Util::FinishTable("addonsystem");
 }
 
 void CFileSystemModule::LuaShutdown()

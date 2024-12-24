@@ -18,4 +18,7 @@ namespace Lua
 	extern void SetManualShutdown();
 	extern GarrysMod::Lua::ILuaInterface* GetRealm(unsigned char);
 	extern GarrysMod::Lua::ILuaShared* GetShared();
+
+	extern GarrysMod::Lua::ILuaInterface* CreateInterface();
+	extern void DestoryInterface(GarrysMod::Lua::ILuaInterface* LUA);
 }

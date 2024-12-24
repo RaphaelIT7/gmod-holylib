@@ -1,6 +1,6 @@
 #pragma once
 
-#include <sourcesdk/ILuaInterface.h>
+#include <lua/ILuaInterface.h>
 #include "Platform.hpp"
 #include "vprof.h"
 #include <unordered_map>
@@ -170,6 +170,8 @@ namespace Util
 	extern byte g_pCurrentCluster[MAX_MAP_LEAFS / 8];
 }
 
+
+// BUG: This LuaClass function and all others were made in mind to support a single Lua Instance. Now we got multiple.
 #define MakeString( str1, str2, str3 ) ((std::string)str1).append(str2).append(str3)
 #define Get_LuaClass( className, luaType, strName ) \
 static std::string invalidType_##className = MakeString("Tried to use something that wasn't a ", strName, "!"); \

@@ -6,6 +6,7 @@
 #include <GarrysMod/InterfacePointers.hpp>
 #include "detours.h"
 #include "module.h"
+#include "CLuaInterface.h"
 
 bool Lua::PushHook(const char* hook)
 {
@@ -133,4 +134,18 @@ GarrysMod::Lua::ILuaShared* Lua::GetShared() {
 		Msg("About to crash!\n");
 
 	return luashared_loader.GetInterface<GarrysMod::Lua::ILuaShared>(GMOD_LUASHARED_INTERFACE);
+}
+
+extern GarrysMod::Lua::ILuaGameCallback* g_LuaCallback;
+GarrysMod::Lua::ILuaInterface* Lua::CreateInterface()
+{
+	GarrysMod::Lua::ILuaInterface* LUA = CreateLuaInterface(true);
+	LUA->Init(g_LuaCallback, true);
+
+	return LUA;
+}
+
+void Lua::DestoryInterface(GarrysMod::Lua::ILuaInterface* LUA)
+{
+	CloseLuaInterface(LUA);
 }
