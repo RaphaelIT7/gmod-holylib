@@ -60,7 +60,8 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 		includedirs({
 			[[Bootil/include/]],
 			[[source/sourcesdk/]],
-			[[lua/]]
+			[[lua/]],
+			[[source/lua]]
 		})
 
 		filter("system:windows")

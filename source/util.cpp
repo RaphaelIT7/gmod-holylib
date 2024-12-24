@@ -1,5 +1,5 @@
-#include "GarrysMod/Lua/LuaObject.h"
 #include "util.h"
+#include "GarrysMod/Lua/LuaObject.h"
 #include <string>
 #include "GarrysMod/InterfacePointers.hpp"
 #include "sourcesdk/baseclient.h"

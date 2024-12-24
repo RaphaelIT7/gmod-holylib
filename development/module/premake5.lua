@@ -55,6 +55,7 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			[[../../source/sourcesdk/*.h]],
 			[[../../source/sourcesdk/*.cpp]],
 			[[../../source/public/*.h]],
+			[[../../source/lua/*.*]],
 			[[../../lua/*.h]],
 			[[../../lua/*.hpp]],
 			[[../../README.md]],
@@ -63,7 +64,8 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 		includedirs({
 			[[../../Bootil/include/]],
 			[[../../source/sourcesdk/]],
-			[[../../lua]]
+			[[../../lua/]],
+			[[../../source/lua/]]
 		})
 
 		filter("system:windows")

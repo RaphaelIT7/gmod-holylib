@@ -134,3 +134,12 @@ GarrysMod::Lua::ILuaShared* Lua::GetShared() {
 
 	return luashared_loader.GetInterface<GarrysMod::Lua::ILuaShared>(GMOD_LUASHARED_INTERFACE);
 }
+
+GarrysMod::Lua::ILuaInterface* Lua::CreateInterface()
+{
+	return nullptr;
+}
+
+void Lua::DestoryInterface(GarrysMod::Lua::ILuaInterface* LUA)
+{
+}
