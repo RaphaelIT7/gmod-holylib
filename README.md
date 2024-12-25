@@ -95,6 +95,8 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
 \- [#] Fixed some memory leaks.  
 
 ## ToDo
+\- **Important before next release** Fix a unknown crash on shutdown(Need to get a valid debug log but it just won't give me one).  
+
 \- Finish 64x (`pvs`, `sourcetv`, `surffix`)  
 \- Find out why ConVars are so broken. (Serverside `path` command breaks :<)  
 \- Look into filesystem handle optimization  
