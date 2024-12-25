@@ -1,6 +1,6 @@
 #pragma once
 
-#include <lua/ILuaInterface.h>
+#include <lua/CLuaInterface.h>
 #include "Platform.hpp"
 #include "vprof.h"
 #include <unordered_map>
@@ -42,19 +42,32 @@ namespace Util
 	#define LUA_ENVIRONINDEX	(-10001)
 	#define LUA_GLOBALSINDEX	(-10002)
 
+#define ToCLuaInterface(LUA) ((CLuaInterface*)LUA)
+
+	inline bool IsMainInterface(GarrysMod::Lua::ILuaInterface* LUA)
+	{
+		return LUA == g_Lua;
+	}
+
 	/*
 	 * RawSetI & RawGetI are way faster but Gmod doesn't expose or even use them :(
 	 */
 	extern Symbols::lua_rawseti func_lua_rawseti;
-	inline void RawSetI(int iStackPos, int iValue)
+	inline void RawSetI(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, int iValue)
 	{
-		func_lua_rawseti(g_Lua->GetState(), iStackPos, iValue);
+		if (IsMainInterface(LUA))
+			func_lua_rawseti(LUA->GetState(), iStackPos, iValue);
+		else
+			ToCLuaInterface(LUA)->RawSetI(iStackPos, iValue);
 	}
 
 	extern Symbols::lua_rawgeti func_lua_rawgeti;
-	inline void RawGetI(int iStackPos, int iValue)
+	inline void RawGetI(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, int iValue)
 	{
-		func_lua_rawgeti(g_Lua->GetState(), iStackPos, iValue);
+		if (IsMainInterface(LUA))
+			func_lua_rawgeti(LUA->GetState(), iStackPos, iValue);
+		else
+			ToCLuaInterface(LUA)->RawGetI(iStackPos, iValue);
 	}
 
 	/*
@@ -63,68 +76,71 @@ namespace Util
 	 * 
 	 * NOTE: It does seem to be faster so were going to keep this.
 	 */
-	inline void ReferencePush(int iReference)
+	inline void ReferencePush(GarrysMod::Lua::ILuaInterface* LUA, int iReference)
 	{
-		func_lua_rawgeti(g_Lua->GetState(), LUA_REGISTRYINDEX, iReference);
+		if (IsMainInterface(LUA))
+			func_lua_rawgeti(LUA->GetState(), LUA_REGISTRYINDEX, iReference);
+		else
+			ToCLuaInterface(LUA)->ReferencePush(iReference);
 	}
 
-	inline void StartTable() {
-		g_Lua->CreateTable();
+	inline void StartTable(GarrysMod::Lua::ILuaInterface* LUA) {
+		LUA->CreateTable();
 	}
 
-	inline void AddFunc(GarrysMod::Lua::CFunc Func, const char* Name) {
-		g_Lua->PushString(Name);
-		g_Lua->PushCFunction(Func);
-		g_Lua->RawSet(-3);
+	inline void AddFunc(GarrysMod::Lua::ILuaInterface* LUA, GarrysMod::Lua::CFunc Func, const char* Name) {
+		LUA->PushString(Name);
+		LUA->PushCFunction(Func);
+		LUA->RawSet(-3);
 	}
 
-	inline void AddValue(double value, const char* Name) {
-		g_Lua->PushString(Name);
-		g_Lua->PushNumber(value);
-		g_Lua->RawSet(-3);
+	inline void AddValue(GarrysMod::Lua::ILuaInterface* LUA, double value, const char* Name) {
+		LUA->PushString(Name);
+		LUA->PushNumber(value);
+		LUA->RawSet(-3);
 	}
 
-	inline void FinishTable(const char* Name) {
-		g_Lua->SetField(LUA_GLOBALSINDEX, Name);
+	inline void FinishTable(GarrysMod::Lua::ILuaInterface* LUA, const char* Name) {
+		LUA->SetField(LUA_GLOBALSINDEX, Name);
 	}
 
-	inline void NukeTable(const char* pName)
+	inline void NukeTable(GarrysMod::Lua::ILuaInterface* LUA, const char* pName)
 	{
-		g_Lua->PushNil();
-		g_Lua->SetField(LUA_GLOBALSINDEX, pName);
+		LUA->PushNil();
+		LUA->SetField(LUA_GLOBALSINDEX, pName);
 	}
 
-	inline bool PushTable(const char* pName)
+	inline bool PushTable(GarrysMod::Lua::ILuaInterface* LUA, const char* pName)
 	{
-		g_Lua->GetField(LUA_GLOBALSINDEX, pName);
-		if (g_Lua->IsType(-1, GarrysMod::Lua::Type::Table))
+		LUA->GetField(LUA_GLOBALSINDEX, pName);
+		if (LUA->IsType(-1, GarrysMod::Lua::Type::Table))
 			return true;
 
-		g_Lua->Pop(1);
+		LUA->Pop(1);
 		return false;
 	}
 
-	inline void PopTable()
+	inline void PopTable(GarrysMod::Lua::ILuaInterface* LUA)
 	{
-		g_Lua->Pop(1);
+		LUA->Pop(1);
 	}
 
-	inline void RemoveField(const char* pName)
+	inline void RemoveField(GarrysMod::Lua::ILuaInterface* LUA, const char* pName)
 	{
-		g_Lua->PushNil();
-		g_Lua->SetField(-2, pName);
+		LUA->PushNil();
+		LUA->SetField(-2, pName);
 	}
 
-	inline bool HasField(const char* pName, int iType)
+	inline bool HasField(GarrysMod::Lua::ILuaInterface* LUA, const char* pName, int iType)
 	{
-		g_Lua->GetField(-1, pName);
-		return g_Lua->IsType(-1, iType);
+		LUA->GetField(-1, pName);
+		return LUA->IsType(-1, iType);
 	}
 
 	// Gmod's functions:
-	extern CBasePlayer* Get_Player(int iStackPos, bool unknown);
-	extern CBaseEntity* Get_Entity(int iStackPos, bool unknown);
-	extern void Push_Entity(CBaseEntity* pEnt);
+	extern CBasePlayer* Get_Player(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool unknown);
+	extern CBaseEntity* Get_Entity(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool unknown);
+	extern void Push_Entity(GarrysMod::Lua::ILuaInterface* LUA, CBaseEntity* pEnt);
 	extern CBaseEntity* GetCBaseEntityFromEdict(edict_t* edict);
 
 	extern void AddDetour(); // We load Gmod's functions in there.
@@ -302,7 +318,7 @@ extern ConVar* Get_ConVar(int iStackPos, bool bError);
 
 struct EntityList // entitylist module.
 {
-	EntityList();
+	EntityList(GarrysMod::Lua::ILuaInterface* LUA);
 	~EntityList();
 
 	void Clear();
@@ -313,8 +329,9 @@ struct EntityList // entitylist module.
 	// NOTE: The Entity will always be valid but the reference can be -1!
 	std::unordered_map<CBaseEntity*, int> pEntReferences;
 	std::vector<CBaseEntity*> pEntities;
+	GarrysMod::Lua::ILuaInterface* pLua;
 };
 extern EntityList g_pGlobalEntityList;
 
-extern bool Is_EntityList(int iStackPos);
-extern EntityList* Get_EntityList(int iStackPos, bool bError);
+extern bool Is_EntityList(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos);
+extern EntityList* Get_EntityList(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);

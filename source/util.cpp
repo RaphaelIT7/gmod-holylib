@@ -17,13 +17,13 @@ IVEngineServer* engine;
 CGlobalEntityList* Util::entitylist = NULL;
 CUserMessages* Util::pUserMessages;
 
-CBasePlayer* Util::Get_Player(int iStackPos, bool bError) // bError = error if not a valid player
+CBasePlayer* Util::Get_Player(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError) // bError = error if not a valid player
 {
-	EHANDLE* pEntHandle = g_Lua->GetUserType<EHANDLE>(iStackPos, GarrysMod::Lua::Type::Entity);
+	EHANDLE* pEntHandle = LUA->GetUserType<EHANDLE>(iStackPos, GarrysMod::Lua::Type::Entity);
 	if (!pEntHandle)
 	{
 		if (bError)
-			g_Lua->ThrowError("Tried to use a NULL Entity!");
+			LUA->ThrowError("Tried to use a NULL Entity!");
 
 		return NULL;
 	}
@@ -32,7 +32,7 @@ CBasePlayer* Util::Get_Player(int iStackPos, bool bError) // bError = error if n
 	if (!pEntity->IsPlayer())
 	{
 		if (bError)
-			g_Lua->ThrowError("Player entity is NULL or not a player (!?)");
+			LUA->ThrowError("Player entity is NULL or not a player (!?)");
 
 		return NULL;
 	}
@@ -41,7 +41,7 @@ CBasePlayer* Util::Get_Player(int iStackPos, bool bError) // bError = error if n
 }
 
 IModuleWrapper* Util::pEntityList;
-void Util::Push_Entity(CBaseEntity* pEnt)
+void Util::Push_Entity(GarrysMod::Lua::ILuaInterface* LUA, CBaseEntity* pEnt)
 {
 	if (!pEnt)
 	{
@@ -56,18 +56,18 @@ void Util::Push_Entity(CBaseEntity* pEnt)
 		return;
 	}
 
-	Util::ReferencePush(pObject->GetReference()); // Assuming the reference is always right.
+	Util::ReferencePush(LUA, pObject->GetReference()); // Assuming the reference is always right.
 }
 
-CBaseEntity* Util::Get_Entity(int iStackPos, bool bError)
+CBaseEntity* Util::Get_Entity(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError)
 {
-	EHANDLE* pEntHandle = g_Lua->GetUserType<EHANDLE>(iStackPos, GarrysMod::Lua::Type::Entity);
+	EHANDLE* pEntHandle = LUA->GetUserType<EHANDLE>(iStackPos, GarrysMod::Lua::Type::Entity);
 	if (!pEntHandle && bError)
-		g_Lua->ThrowError("Tried to use a NULL Entity!");
+		LUA->ThrowError("Tried to use a NULL Entity!");
 
 	CBaseEntity* pEntity = Util::entitylist->GetBaseEntity(*pEntHandle);
 	if (!pEntity && bError)
-		g_Lua->ThrowError("Tried to use a NULL Entity! (The weird case?)");
+		LUA->ThrowError("Tried to use a NULL Entity! (The weird case?)");
 		
 	return pEntity;
 }

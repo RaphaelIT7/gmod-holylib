@@ -26,8 +26,9 @@ Get_LuaClass(EntityList, EntityList_TypeID, "EntityList")
 static std::vector<EntityList*> pEntityLists;
 EntityList g_pGlobalEntityList; // NOTE: This needs to be after pEntityLists? (funny Constructor Behavior apparently)
 
-EntityList::EntityList()
+EntityList::EntityList(GarrysMod::Lua::ILuaInterface* LUA)
 {
+	pLua = LUA;
 	pEntityLists.push_back(this);
 }
 
@@ -48,8 +49,8 @@ void EntityList::Clear()
 
 void EntityList::CreateReference(CBaseEntity* pEntity)
 {
-	Util::Push_Entity(pEntity);
-	pEntReferences[pEntity] = g_Lua->ReferenceCreate();
+	Util::Push_Entity(pLua, pEntity);
+	pEntReferences[pEntity] = pLua->ReferenceCreate();
 }
 
 void EntityList::FreeEntity(CBaseEntity* pEntity)
@@ -65,9 +66,9 @@ void EntityList::FreeEntity(CBaseEntity* pEntity)
 	}
 }
 
-bool Is_EntityList(int iStackPos)
+bool Is_EntityList(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos)
 {
-	return g_Lua->IsType(iStackPos, EntityList_TypeID);
+	return LUA->IsType(iStackPos, EntityList_TypeID);
 }
 
 LUA_FUNCTION_STATIC(EntityList__tostring)
@@ -103,7 +104,7 @@ LUA_FUNCTION_STATIC(EntityList__index)
 		return 1;
 
 	LUA->Pop(1);
-	Util::ReferencePush(g_pPushedEntityList[Get_EntityList(1, true)]->iTableReference);
+	Util::ReferencePush(LUA, g_pPushedEntityList[Get_EntityList(1, true)]->iTableReference);
 	if (!LUA->FindObjectOnTable(-1, 2))
 		LUA->PushNil();
 
@@ -114,7 +115,7 @@ LUA_FUNCTION_STATIC(EntityList__index)
 
 LUA_FUNCTION_STATIC(EntityList__newindex)
 {
-	Util::ReferencePush(g_pPushedEntityList[Get_EntityList(1, true)]->iTableReference);
+	Util::ReferencePush(LUA, g_pPushedEntityList[Get_EntityList(1, true)]->iTableReference);
 	LUA->Push(2);
 	LUA->Push(3);
 	LUA->RawSet(-3);
@@ -125,7 +126,7 @@ LUA_FUNCTION_STATIC(EntityList__newindex)
 
 LUA_FUNCTION_STATIC(EntityList_GetLuaTable)
 {
-	Util::ReferencePush(g_pPushedEntityList[Get_EntityList(1, true)]->iTableReference);
+	Util::ReferencePush(LUA, g_pPushedEntityList[Get_EntityList(1, true)]->iTableReference);
 
 	return 1;
 }
@@ -147,8 +148,8 @@ LUA_FUNCTION_STATIC(EntityList_GetTable)
 			if (!pData->IsValidReference(iReference))
 				pData->CreateReference(pEnt);
 
-			Util::ReferencePush(iReference);
-			Util::RawSetI(-2, ++idx);
+			Util::ReferencePush(LUA, iReference);
+			Util::RawSetI(LUA, -2, ++idx);
 		}
 	return 1;
 }
@@ -163,7 +164,7 @@ LUA_FUNCTION_STATIC(EntityList_SetTable)
 	LUA->PushNil();
 	while (LUA->Next(-2))
 	{
-		CBaseEntity* pEntity = Util::Get_Entity(-1, true);
+		CBaseEntity* pEntity = Util::Get_Entity(LUA, -1, true);
 
 		pData->CreateReference(pEntity);
 		pData->pEntities.push_back(pEntity);
@@ -183,7 +184,7 @@ LUA_FUNCTION_STATIC(EntityList_AddTable)
 	LUA->PushNil();
 	while (LUA->Next(-2))
 	{
-		CBaseEntity* pEntity = Util::Get_Entity(-1, true);
+		CBaseEntity* pEntity = Util::Get_Entity(LUA, -1, true);
 
 		auto it = pData->pEntReferences.find(pEntity);
 		if (it != pData->pEntReferences.end())
@@ -210,7 +211,7 @@ LUA_FUNCTION_STATIC(EntityList_RemoveTable)
 	LUA->PushNil();
 	while (LUA->Next(-2))
 	{
-		CBaseEntity* pEntity = Util::Get_Entity(-1, true);
+		CBaseEntity* pEntity = Util::Get_Entity(LUA, -1, true);
 		pData->FreeEntity(pEntity);
 		LUA->Pop(1);
 	}
@@ -222,7 +223,7 @@ LUA_FUNCTION_STATIC(EntityList_RemoveTable)
 LUA_FUNCTION_STATIC(EntityList_Add)
 {
 	EntityList* pData = Get_EntityList(1, true);
-	CBaseEntity* pEntity = Util::Get_Entity(2, true);
+	CBaseEntity* pEntity = Util::Get_Entity(LUA, 2, true);
 
 	pData->CreateReference(pEntity);
 	pData->pEntities.push_back(pEntity);
@@ -233,7 +234,7 @@ LUA_FUNCTION_STATIC(EntityList_Add)
 LUA_FUNCTION_STATIC(EntityList_Remove)
 {
 	EntityList* pData = Get_EntityList(1, true);
-	CBaseEntity* pEntity = Util::Get_Entity(2, true);
+	CBaseEntity* pEntity = Util::Get_Entity(LUA, 2, true);
 
 	pData->FreeEntity(pEntity);
 
@@ -242,7 +243,7 @@ LUA_FUNCTION_STATIC(EntityList_Remove)
 
 LUA_FUNCTION_STATIC(CreateEntityList)
 {
-	EntityList* pList = new EntityList;
+	EntityList* pList = new EntityList(LUA);
 	Push_EntityList(pList);
 	return 1;
 }
@@ -256,8 +257,8 @@ LUA_FUNCTION_STATIC(GetGlobalEntityList)
 			if (!g_pGlobalEntityList.IsValidReference(iReference))
 				g_pGlobalEntityList.CreateReference(pEnt);
 
-			Util::ReferencePush(iReference);
-			Util::RawSetI(-2, ++idx);
+			Util::ReferencePush(LUA, iReference);
+			Util::RawSetI(LUA, -2, ++idx);
 		}
 
 	return 1;

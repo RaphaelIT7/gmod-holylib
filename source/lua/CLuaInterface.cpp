@@ -1585,6 +1585,18 @@ void CLuaInterface::RegisterMetaTable( const char* name, GarrysMod::Lua::ILuaObj
 	Error("CLuaInterface::RegisterMetaTable NOT IMPLEMENTED!\n");
 }
 
+void CLuaInterface::RawSetI(int iStackPos, int iValue)
+{
+	::DebugPrint(5, "CLuaInterface::RawSetI (%i, %i)\n", iStackPos, iValue);
+	lua_rawseti(state, iStackPos, iValue);
+}
+
+void CLuaInterface::RawGetI(int iStackPos, int iValue)
+{
+	::DebugPrint(5, "CLuaInterface::RawGetI (%i, %i)\n", iStackPos, iValue);
+	lua_rawgeti(state, iStackPos, iValue);
+}
+
 #ifdef WIN32
 #include <Windows.h>
 #define Handle HMODULE

@@ -162,6 +162,10 @@ public:
 	virtual double CheckNumberOpt( int iStackPos, double def );
 	virtual void RegisterMetaTable( const char* name, GarrysMod::Lua::ILuaObject* obj );
 
+public: // Custom things used by holylib
+	virtual void RawSetI(int iStackPos, int iValue);
+	virtual void RawGetI(int iStackPos, int iValue);
+
 public:
 	std::string RunMacros(std::string script);
 
