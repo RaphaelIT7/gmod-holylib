@@ -252,7 +252,9 @@ Returns the Ladder the player is currently on.
 Returns the lua regirsty.  
 Same like [debug.getregistry()](https://wiki.facepunch.com/gmod/debug.getregistry) before it was nuked.  
 
-#### bool HolyLib.Disconnect(Player ply / number userid, string reason, bool silent = false)
+#### bool HolyLib.Disconnect(Player ply / number userid, string reason, bool silent = false, bool nogameevent = false)
+silent - Silently closes the net channel and sends no disconnect to the client.  
+nogameevent - Stops the `player_disconnect` event from being created.  
 Disconnects the given player from the server.  
 
 > [!NOTE]

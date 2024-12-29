@@ -398,6 +398,7 @@ LUA_FUNCTION_STATIC(Disconnect)
 
 	const char* strReason = LUA->CheckString(2);
 	bool bSilent = LUA->GetBool(3);
+	bool bNoEvent = LUA->GetBool(4);
 
 	if (!pClient)
 	{
@@ -406,14 +407,14 @@ LUA_FUNCTION_STATIC(Disconnect)
 	}
 
 	if (bSilent)
-	{
-		BlockGameEvent("player_disconnect");
 		pClient->GetNetChannel()->Shutdown(NULL); // NULL = Send no disconnect message
-	}
+
+	if (bNoEvent)
+		BlockGameEvent("player_disconnect");
 
 	pClient->Disconnect(strReason);
 
-	if (bSilent)
+	if (bNoEvent)
 		UnblockGameEvent("player_disconnect");
 
 	LUA->PushBool(true);
