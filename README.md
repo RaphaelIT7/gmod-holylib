@@ -234,9 +234,13 @@ Invalidates the bone cache of the given entity.
 > Only uses this on Entities that are Animated / Inherit the CBaseAnimating class. Or else it will throw a Lua error.  
 
 #### bool HolyLib.SetSignOnState(Player ply / number userid, number signOnState, number spawnCount = 0, bool rawSet = false)
-rawSet - Sets the signonstate directly without calling the SetSignOnState function.  
 Sets the SignOnState for the given client.  
 Returns `true` on success.  
+
+> [!NOTE]
+> This function does normally **not** directly set the SignOnState.  
+> Instead it calls the responsible function for the given SignOnState like for `SIGNONSTATE_PRESPAWN` it will call `SpawnPlayer` on the client.  
+> Set the `rawSet` to `true` if you want to **directly** set the SignOnState.    
 
 #### (Experimental - 32x safe only) HolyLib.ExitLadder(Player ply)
 Forces the player off the ladder.  
