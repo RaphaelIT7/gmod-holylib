@@ -269,10 +269,18 @@ LUA_FUNCTION_STATIC(SetSignOnState)
 
 	int iSignOnState = LUA->CheckNumber(2);
 	int iSpawnCount = LUA->CheckNumber(3);
+	bool bRawSet = LUA->GetBool(4);
 
 	if (!pClient)
 	{
 		LUA->PushBool(false);
+		return 1;
+	}
+
+	if (bRawSet)
+	{
+		pClient->m_nSignonState = iSignOnState;
+		LUA->PushBool(true);
 		return 1;
 	}
 
