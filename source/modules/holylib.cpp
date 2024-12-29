@@ -386,6 +386,40 @@ LUA_FUNCTION_STATIC(GetRegistry)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(Disconnect)
+{
+	CBaseClient* pClient = NULL;
+	if (LUA->IsType(1, GarrysMod::Lua::Type::Entity))
+	{
+		pClient = Util::GetClientByPlayer(Util::Get_Player(1, true));
+	} else {
+		pClient = Util::GetClientByUserID(LUA->CheckNumber(1));
+	}
+
+	const char* strReason = LUA->CheckStringOpt(2, NULL);
+	bool bSilent = LUA->GetBool(3);
+
+	if (!pClient)
+	{
+		LUA->PushBool(false);
+		return 1;
+	}
+
+	if (bSilent)
+	{
+		BlockGameEvent("player_disconnect");
+		pClient->GetNetChannel()->Shutdown(NULL); // NULL = Send no disconnect message
+	}
+
+	pClient->Disconnect(strReason);
+
+	if (bSilent)
+		UnblockGameEvent("player_disconnect");
+
+	LUA->PushBool(true);
+	return 1;
+}
+
 void CHolyLibModule::LuaInit(bool bServerInit)
 {
 	if (!bServerInit)
@@ -404,6 +438,7 @@ void CHolyLibModule::LuaInit(bool bServerInit)
 			Util::AddFunc(GetLadder, "GetLadder");
 			Util::AddFunc(HideMsg, "HideMsg");
 			Util::AddFunc(GetRegistry, "GetRegistry");
+			Util::AddFunc(Disconnect, "Disconnect");
 
 			// Networking stuff
 			Util::AddFunc(_EntityMessageBegin, "EntityMessageBegin");

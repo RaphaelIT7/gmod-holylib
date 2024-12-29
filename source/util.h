@@ -318,3 +318,6 @@ extern EntityList g_pGlobalEntityList;
 
 extern bool Is_EntityList(int iStackPos);
 extern EntityList* Get_EntityList(int iStackPos, bool bError);
+
+extern void BlockGameEvent(const char* pName);
+extern void UnblockGameEvent(const char* pName);

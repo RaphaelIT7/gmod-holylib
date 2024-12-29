@@ -59,7 +59,7 @@ On the next startup the ghostinj will update holylib to use the new file.
 \- [+] Added `HLTVClient:SetCameraMan` and `sourcetv.SetCameraMan` to `sourcetv` module.  
 \- [+] Added `INetworkStringTable:GetTable`, `HLTVClient:GetTable`, `VoiceData:GetTable`, `IGameEvent:GetTable`, `bf_read:GetTable`, `bf_write:GetTable` functions.  
 \- [+] Added `pvs.TestPVS`, `pvs.FindInPVS` and `pvs.ForceFullUpdate` functions to `pvs` module.  
-\- [+] Added `HolyLib.GetRegistry`, `HolyLib.ExitLadder` and `HolyLib.GetLadder` to `holylib` module.  
+\- [+] Added `HolyLib.GetRegistry`, `HolyLib.ExitLadder`, `HolyLib.GetLadder` and `HolyLib.Disconnect` to `holylib` module.  
 \- [+] Exposed `IHolyUtil` interface and added `IHolyLib::PreLoad` and `IHolyLib:GetHolyUtil`.  
 \- [+] Added (Experimental)`holylib_filesystem_savesearchcache` optimization to filesystem module.  
 \- [+] Added Windows support for `bitbuf`, `cvars`, (partially)`filesystem`, `pas`, `util`, `voicechat` and (partially)`vprof`  
@@ -251,6 +251,12 @@ Returns the Ladder the player is currently on.
 #### table HolyLib.GetRegistry()
 Returns the lua regirsty.  
 Same like [debug.getregistry()](https://wiki.facepunch.com/gmod/debug.getregistry) before it was nuked.  
+
+#### bool HolyLib.Disconnect(Player ply / number userid, string reason, bool silent = false)
+Disconnects the given player from the server.  
+
+> [!NOTE]
+> Unlike Gmod's version which internally calls the `kickid` command, we directly call the `Disconnect` function with no delay.  
 
 ### Hooks
 

@@ -555,6 +555,25 @@ static IGameEvent* hook_CGameEventManager_CreateEvent(void* manager, const char*
 	return detour_CGameEventManager_CreateEvent.GetTrampoline<Symbols::CGameEventManager_CreateEvent>()(manager, name, bForce);
 }
 
+// Exposed for other parts of HolyLib to use.
+void BlockGameEvent(const char* pName)
+{
+	auto it = pBlockedEvents.find(pName);
+	if (it != pBlockedEvents.end())
+			return;
+
+	pBlockedEvents.insert(pName);
+}
+
+void UnblockGameEvent(const char* pName)
+{
+	auto it = pBlockedEvents.find(pName);
+	if (it == pBlockedEvents.end())
+			return;
+
+	pBlockedEvents.erase(it);
+}
+
 LUA_FUNCTION_STATIC(gameevent_BlockCreation)
 {
 	const char* pName = LUA->CheckString(1);
