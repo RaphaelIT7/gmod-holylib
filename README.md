@@ -44,7 +44,7 @@ On the next startup the ghostinj will update holylib to use the new file.
 3. Enjoy it
 
 ## Next Update
-\- [+] Added (Experimentally)`luajit` module.
+\- [+] Added (Experimentally)`luajit` module.  
 \- [+] Added `httpserver` module.  
 \- [+] Added `entitylist` module.  
 \- \- [+] Many `pvs.*` function accept now a `EntityList`.  
@@ -80,6 +80,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
 ### Existing Lua API Changes
 \- [#] Flipped `INetworkStringTable:AddString` arguments.  
 \- [#] All `pvs.FL_EDICT_` enums changed.  
+\- [#] Made `HolyLib.SetSignOnState` third arg optional and added `rawSet` option.  
 \- [-] Removed `HolyLib:PostCheckTransmit` second argument (Use `pvs.GetEntitesFromTransmit`)  
 
 ### QoL updates
@@ -232,7 +233,7 @@ Invalidates the bone cache of the given entity.
 > [!NOTE]
 > Only uses this on Entities that are Animated / Inherit the CBaseAnimating class. Or else it will throw a Lua error.  
 
-#### bool HolyLib.SetSignonState(Player ply / number userid, number signOnState, number spawnCount = 0, bool rawSet = false)
+#### bool HolyLib.SetSignOnState(Player ply / number userid, number signOnState, number spawnCount = 0, bool rawSet = false)
 rawSet - Sets the signonstate directly without calling the SetSignOnState function.  
 Sets the SignOnState for the given client.  
 Returns `true` on success.  
