@@ -232,7 +232,7 @@ Invalidates the bone cache of the given entity.
 > [!NOTE]
 > Only uses this on Entities that are Animated / Inherit the CBaseAnimating class. Or else it will throw a Lua error.  
 
-#### bool HolyLib.SetSignonState(Player ply / number userid, number signOnState, number spawnCount, bool rawSet)
+#### bool HolyLib.SetSignonState(Player ply / number userid, number signOnState, number spawnCount = 0, bool rawSet = false)
 rawSet - Sets the signonstate directly without calling the SetSignOnState function.  
 Sets the SignOnState for the given client.  
 Returns `true` on success.  
