@@ -12,8 +12,9 @@ public:
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "luajit"; };
 	virtual int Compatibility() { return LINUX32; };
-	virtual bool IsEnabledByDefault() { return false; };
 };
+
+static ConVar jit_update("holylib_jit_update", "0", 0);
 
 CLuaJITModule g_pLuaJITModule;
 IModule* pLuaJITModule = &g_pLuaJITModule;
@@ -64,6 +65,11 @@ void hook_luaL_openlibs(lua_State* L)
 		lua_setfield(L, -2, "_upvaluejoin");
 	}
 	lua_pop(L, 1);
+
+	lua_getfield(L, LUA_GLOBALSINDEX, "jit");
+		lua_getfield(L, LUA_GLOBALSINDEX, "require");
+		lua_setfield(L, -2, "require");
+	lua_pop(L, 1);
 }
 
 void CLuaJITModule::LuaInit(bool bServerInit)
@@ -93,6 +99,9 @@ void CLuaJITModule::LuaInit(bool bServerInit)
 void CLuaJITModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
+		return;
+
+	if (!jit_update.GetBool())
 		return;
 
 	SourceSDK::ModuleLoader lua_shared_loader("lua_shared");

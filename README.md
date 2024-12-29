@@ -3008,14 +3008,19 @@ Redirects one to the given URL and returns the given code.
 Sets the given value for the given key in the header.
 
 ## luajit
-This module updates luajit to a newer version.
-
-> [!NOTE]
-> By default this module is disabled.
-> You can enable it by adding `-holylib_enable_luajit 1` to the command line.
+This module implement some luajit related changes.
 
 The `ffi` and `string.buffer` packages are already added when enabled.  
 It also restores `debug.setlocal`, `debug.setupvalue`, `debug.upvalueid` and `debug.upvaluejoin`.  
+
+### ConVars
+
+#### holylib_jit_update (default 0)
+Updates luajit to a newer version.  
+
+> [!NOTE]
+> By default this is disabled.
+> You can enable it by adding `+holylib_enable_luajit 1` to the command line.
 
 # Unfinished Modules
 
