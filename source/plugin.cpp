@@ -142,6 +142,10 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 			ConVar* pPath = cvar->FindVar("path");
 			if (pPath)
 				cvar->UnregisterConCommand(pPath);
+
+			ConVar* pGmod_uncache_test = cvar->FindVar("gmod_uncache_test");
+			if (pGmod_uncache_test)
+				cvar->UnregisterConCommand(pGmod_uncache_test);
 		}
 #endif
 
@@ -187,6 +191,8 @@ void CServerPlugin::Unload(void)
 	{
 		ConVar_Unregister();
 	}
+
+	g_pCVar->RegisterConCommand(&gmod_uncache_test);
 
 	CommandLine()->RemoveParm("-holylibexists"); // Allow holylib to load again since this instance is gone.
 
