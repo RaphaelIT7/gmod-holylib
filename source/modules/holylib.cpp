@@ -396,7 +396,7 @@ LUA_FUNCTION_STATIC(Disconnect)
 		pClient = Util::GetClientByUserID(LUA->CheckNumber(1));
 	}
 
-	const char* strReason = LUA->CheckStringOpt(2, NULL);
+	const char* strReason = LUA->CheckString(2);
 	bool bSilent = LUA->GetBool(3);
 
 	if (!pClient)
