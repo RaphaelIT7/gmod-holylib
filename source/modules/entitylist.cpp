@@ -40,14 +40,18 @@ EntityList::~EntityList()
 void EntityList::Clear()
 {
 	pEntities.clear();
-	for (auto& [_, iReference] : pEntReferences)
-		g_Lua->ReferenceFree(iReference);
+	if (g_Lua)
+		for (auto& [_, iReference] : pEntReferences)
+			g_Lua->ReferenceFree(iReference);
 	
 	pEntReferences.clear();
 }
 
 void EntityList::CreateReference(CBaseEntity* pEntity)
 {
+	if (!g_Lua)
+		Error("holylib: missing g_Lua!\n");
+
 	Util::Push_Entity(pEntity);
 	pEntReferences[pEntity] = g_Lua->ReferenceCreate();
 }
@@ -58,7 +62,8 @@ void EntityList::FreeEntity(CBaseEntity* pEntity)
 	if (it != pEntReferences.end())
 	{
 		if (IsValidReference(it->second))
-			g_Lua->ReferenceFree(it->second);
+			if (g_Lua)
+				g_Lua->ReferenceFree(it->second);
 
 		Vector_RemoveElement(pEntities, pEntity);
 		pEntReferences.erase(it);

@@ -16,6 +16,7 @@ namespace Lua
 	extern bool PushHook(const char* pName);
 	extern void AddDetour();
 	extern void SetManualShutdown();
+	extern void ManualShutdown();
 	extern GarrysMod::Lua::ILuaInterface* GetRealm(unsigned char);
 	extern GarrysMod::Lua::ILuaShared* GetShared();
 

@@ -176,6 +176,7 @@ void CServerPlugin::Unload(void)
 	}
 
 	HolyLua::Shutdown();
+	Lua::ManualShutdown(); // Called to make sure that everything is shut down properly in cases of plugin_unload. does nothing if g_Lua is already NULL.
 	g_pModuleManager.Shutdown();
 	Util::RemoveDetour();
 	Detour::Remove(0);

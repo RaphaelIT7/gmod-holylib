@@ -71,6 +71,15 @@ void Lua::FinalShutdown()
 	g_Lua = NULL;
 }
 
+void Lua::ManualShutdown()
+{
+	if (!g_Lua)
+		return;
+
+	Lua::Shutdown();
+	Lua::FinalShutdown();
+}
+
 static bool bManualShutdown = false;
 static Detouring::Hook detour_InitLuaClasses;
 static void hook_InitLuaClasses(GarrysMod::Lua::ILuaInterface* LUA) // ToDo: Add a hook to Lua::Startup or whatever it's name was and use that for the ServerInit.
