@@ -170,6 +170,9 @@ namespace Util
 	extern byte g_pCurrentCluster[MAX_MAP_LEAFS / 8];
 }
 
+/*
+	ToDo: Implement a proper class like gmod has with CLuaCLass/CLuaLibrary & use thoes instead for everything.
+*/
 
 // BUG: This LuaClass function and all others were made in mind to support a single Lua Instance. Now we got multiple.
 #define MakeString( str1, str2, str3 ) ((std::string)str1).append(str2).append(str3)
@@ -302,7 +305,7 @@ extern ConVar* Get_ConVar(int iStackPos, bool bError);
 
 struct EntityList // entitylist module.
 {
-	EntityList();
+	EntityList(GarrysMod::Lua::ILuaInterface* pLua);
 	~EntityList();
 
 	void Clear();
@@ -310,9 +313,47 @@ struct EntityList // entitylist module.
 	void CreateReference(CBaseEntity* pEntity);
 	void FreeEntity(CBaseEntity* pEntity);
 
+	inline void EnsureReference(CBaseEntity* pEntity, int iReference)
+	{
+		if (!IsValidReference(iReference))
+			CreateReference(pEntity);
+	}
+
+	inline void AddEntity(CBaseEntity* pEntity, bool bCreateReference = false)
+	{
+		m_pEntities.push_back(pEntity);
+		if (bCreateReference)
+			CreateReference(pEntity);
+		else
+			m_pEntReferences[pEntity] = -1;
+	}
+
+	inline const std::unordered_map<CBaseEntity*, int>& GetReferences()
+	{
+		return m_pEntReferences;
+	}
+
+	inline const std::vector<CBaseEntity*>& GetEntities()
+	{
+		return m_pEntities;
+	}
+
+	inline void Invalidate()
+	{
+		Clear();
+		m_pLua = NULL;
+	}
+
+	inline void SetLua(GarrysMod::Lua::ILuaInterface* pLua)
+	{
+		m_pLua = pLua;
+	}
+
+private:
 	// NOTE: The Entity will always be valid but the reference can be -1!
-	std::unordered_map<CBaseEntity*, int> pEntReferences;
-	std::vector<CBaseEntity*> pEntities;
+	std::unordered_map<CBaseEntity*, int> m_pEntReferences;
+	std::vector<CBaseEntity*> m_pEntities;
+	GarrysMod::Lua::ILuaInterface* m_pLua;
 };
 extern EntityList g_pGlobalEntityList;
 

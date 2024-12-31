@@ -310,7 +310,7 @@ LUA_FUNCTION_STATIC(pvs_AddEntityToPVS)
 		LUA->Pop(1);
 	} else if (Is_EntityList(1)) {
 		EntityList* entList = Get_EntityList(1, true);
-		for (CBaseEntity*& ent : entList->pEntities)
+		for (CBaseEntity* ent : entList->GetEntities())
 			AddEntityToPVS(ent);
 	} else {
 		CBaseEntity* ent = Util::Get_Entity(1, true);
@@ -374,7 +374,7 @@ LUA_FUNCTION_STATIC(pvs_OverrideStateFlags)
 		LUA->Pop(1);
 	} else if (Is_EntityList(1)) {
 		EntityList* entList = Get_EntityList(1, true);
-		for (CBaseEntity*& ent : entList->pEntities)
+		for (CBaseEntity* ent : entList->GetEntities())
 			SetOverrideStateFlags(ent, flags, force);
 	} else {
 		CBaseEntity* ent = Util::Get_Entity(1, true);
@@ -434,7 +434,7 @@ LUA_FUNCTION_STATIC(pvs_SetStateFlags)
 		LUA->Pop(1);
 	} else if (Is_EntityList(1)) {
 		EntityList* entList = Get_EntityList(1, true);
-		for (CBaseEntity*& ent : entList->pEntities)
+		for (CBaseEntity* ent : entList->GetEntities())
 			SetStateFlags(ent, flags, force);
 	} else {
 		CBaseEntity* ent = Util::Get_Entity(1, true);
@@ -489,7 +489,7 @@ LUA_FUNCTION_STATIC(pvs_GetStateFlags)
 	} else if (Is_EntityList(1)) {
 		LUA->CreateTable();
 		EntityList* entList = Get_EntityList(1, true);
-		for (auto& [pEnt, iReference] : entList->pEntReferences)
+		for (auto& [pEnt, iReference] : entList->GetReferences())
 		{
 			if (!entList->IsValidReference(iReference))
 				entList->CreateReference(pEnt);
@@ -543,7 +543,7 @@ LUA_FUNCTION_STATIC(pvs_RemoveEntityFromTransmit)
 		LUA->PushBool(true);
 	} else if (Is_EntityList(1)) {
 		EntityList* entList = Get_EntityList(1, true);
-		for (CBaseEntity*& ent : entList->pEntities)
+		for (CBaseEntity* ent : entList->GetEntities())
 			RemoveEntityFromTransmit(ent);
 
 		LUA->PushBool(true);
@@ -592,7 +592,7 @@ LUA_FUNCTION_STATIC(pvs_AddEntityToTransmit)
 		LUA->Pop(1);
 	} else if (Is_EntityList(1)) {
 		EntityList* entList = Get_EntityList(1, true);
-		for (CBaseEntity*& ent : entList->pEntities)
+		for (CBaseEntity* ent : entList->GetEntities())
 			AddEntityToTransmit(ent, true);
 	} else {
 		CBaseEntity* ent = Util::Get_Entity(1, true);
@@ -666,7 +666,7 @@ LUA_FUNCTION_STATIC(pvs_SetPreventTransmitBulk)
 		LUA->Pop(1);
 	} else if (Is_EntityList(1)) {
 		EntityList* entList = Get_EntityList(1, true);
-		for (CBaseEntity*& ent : entList->pEntities)
+		for (CBaseEntity* ent : entList->GetEntities())
 		{
 			if (filterplys.size() > 0)
 				for (CBasePlayer* pply : filterplys)
@@ -701,7 +701,7 @@ LUA_FUNCTION_STATIC(pvs_FindInPVS) // Copy from pas.FindInPAS
 	int idx = 0;
 	if (Util::pEntityList->IsEnabled())
 	{
-		for (auto& [pEnt, iReference] : g_pGlobalEntityList.pEntReferences)
+		for (auto& [pEnt, iReference] : g_pGlobalEntityList.GetReferences())
 		{
 			if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), Util::g_pCurrentCluster, sizeof(Util::g_pCurrentCluster)))
 			{
@@ -771,8 +771,8 @@ LUA_FUNCTION_STATIC(pvs_TestPVS)
 		LUA->PushBool(TestPVS(*Get_Vector(2)));
 	} else if (Is_EntityList(2)) {
 		EntityList* entList = Get_EntityList(2, true);
-		LUA->PreCreateTable(0, entList->pEntities.size());
-		for (auto& [pEnt, iReference] : entList->pEntReferences)
+		LUA->PreCreateTable(0, entList->GetEntities().size());
+		for (auto& [pEnt, iReference] : entList->GetReferences())
 		{
 			if (!entList->IsValidReference(iReference))
 				entList->CreateReference(pEnt);

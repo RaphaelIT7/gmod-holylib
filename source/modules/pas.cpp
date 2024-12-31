@@ -44,7 +44,7 @@ LUA_FUNCTION_STATIC(pas_TestPAS)
 	} else if (Is_EntityList(2)) {
 		LUA->CreateTable();
 		EntityList* entList = Get_EntityList(2, true);
-		for (auto& [pEnt, iReference]: entList->pEntReferences)
+		for (auto& [pEnt, iReference]: entList->GetReferences())
 		{
 			if (!entList->IsValidReference(iReference))
 				entList->CreateReference(pEnt);
@@ -94,7 +94,7 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 	int idx = 0;
 	if (Util::pEntityList->IsEnabled())
 	{
-		for (auto& [pEnt, iReference] : g_pGlobalEntityList.pEntReferences)
+		for (auto& [pEnt, iReference] : g_pGlobalEntityList.GetReferences())
 		{
 			if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), Util::g_pCurrentCluster, sizeof(Util::g_pCurrentCluster)))
 			{
