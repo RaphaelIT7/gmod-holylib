@@ -29,7 +29,7 @@ Get_LuaClass(bf_write, bf_write_TypeID, "bf_write")
 
 LUA_FUNCTION_STATIC(bf_read__tostring)
 {
-	bf_read* bf = Get_bf_read(1, false);
+	bf_read* bf = Get_bf_read(LUA, 1, false);
 	if (!bf)
 	{
 		LUA->PushString("bf_read [NULL]");
@@ -48,9 +48,13 @@ LUA_FUNCTION_STATIC(bf_read__index)
 		return 1;
 
 	LUA->Pop(1);
-	Util::ReferencePush(g_pPushedbf_read[Get_bf_read(1, true)]->iTableReference);
-	if (!LUA->FindObjectOnTable(-1, 2))
-		LUA->PushNil();
+	LuaUserData* pData = GetLuaInterfaceData(LUA)->FindLuaClass(Get_bf_read(LUA, 1, true));
+	if (pData)
+	{
+		pData->Push();
+		if (!LUA->FindObjectOnTable(-1, 2))
+			LUA->PushNil();
+	}
 
 	LUA->Remove(-2);
 

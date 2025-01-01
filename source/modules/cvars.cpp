@@ -59,7 +59,7 @@ LUA_FUNCTION_STATIC(cvars_Unregister)
 	if (LUA->IsType(1, GarrysMod::Lua::Type::String))
 		pConVar = g_pCVar->FindCommandBase(LUA->GetString(1));
 	else
-		pConVar = Get_ConVar(1, true);
+		pConVar = Get_ConVar(LUA, 1, true);
 
 	if (!pConVar)
 		LUA->ThrowError("Failed to find ConVar/ConCommand!");

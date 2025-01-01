@@ -172,6 +172,7 @@ namespace Util
 
 /*
 	ToDo: Implement a proper class like gmod has with CLuaCLass/CLuaLibrary & use thoes instead for everything.
+	Update: Nope, we'll do it the old way but properly this time. Time to redo most of the lua functions.
 */
 
 // BUG: This LuaClass function and all others were made in mind to support a single Lua Instance. Now we got multiple.
@@ -179,100 +180,210 @@ namespace Util
 #define Get_LuaClass( className, luaType, strName ) \
 static std::string invalidType_##className = MakeString("Tried to use something that wasn't a ", strName, "!"); \
 static std::string triedNull_##className = MakeString("Tried to use a NULL ", strName, "!"); \
-className* Get_##className(int iStackPos, bool bError) \
+className* Get_##className(GarrysMod::Lua::ILuaInterface* pLua, int iStackPos, bool bError) \
 { \
-	if (!g_Lua->IsType(iStackPos, luaType)) \
+	if (!pLua->IsType(iStackPos, luaType)) \
 	{ \
 		if (bError) \
-			g_Lua->ThrowError(invalidType_##className.c_str()); \
+			pLua->ThrowError(invalidType_##className.c_str()); \
 \
 		return NULL; \
 	} \
 \
-	className* pVar = g_Lua->GetUserType<className>(iStackPos, luaType); \
+	className* pVar = pLua->GetUserType<className>(iStackPos, luaType); \
 	if (!pVar && bError) \
-		g_Lua->ThrowError(triedNull_##className.c_str()); \
+		pLua->ThrowError(triedNull_##className.c_str()); \
 \
 	return pVar; \
 }
 
 #define Push_LuaClass( className, luaType ) \
-void Push_##className(className* var) \
+void Push_##className(GarrysMod::Lua::ILuaInterface* pLua, className* var) \
 { \
 	if (!var) \
 	{ \
-		g_Lua->PushNil(); \
+		pLua->PushNil(); \
 		return; \
 	} \
 \
-	g_Lua->PushUserType(var, luaType); \
+	pLua->PushUserType(var, luaType); \
 }
 
-struct LuaUserData { // ToDo: Maybe implement this also for other things?
+/*
+	Idea: Use the LuaUserData directly to push onto the stack instead of making a reference.
+*/
+struct LuaUserData { // ToDo: Maybe implement this also for other things? (Probably not)
+	LuaUserData(GarrysMod::Lua::ILuaInterface* pLua)
+	{
+		m_pLua = pLua;
+	}
+
 	~LuaUserData() {
-		if (!ThreadInMainThread())
+		/*if (!ThreadInMainThread())
 		{
 			Warning("holylib: Tried to delete usetdata from another thread!\n");
 			return;
-		}
+		}*/
 
-		if (iReference != -1)
+		if (m_iReference != -1)
 		{
-			g_Lua->ReferencePush(iReference);
-			g_Lua->SetUserType(-1, NULL);
-			g_Lua->Pop(1);
-			g_Lua->ReferenceFree(iReference);
-			iReference = -1;
+			m_pLua->ReferencePush(m_iReference);
+			m_pLua->SetUserType(-1, NULL);
+			m_pLua->Pop(1);
+			m_pLua->ReferenceFree(m_iReference);
+			m_iReference = -1;
 		}
 
-		if (iTableReference != -1)
+		if (m_iTableReference != -1)
 		{
-			g_Lua->ReferenceFree(iTableReference);
-			iTableReference = -1;
+			m_pLua->ReferenceFree(m_iTableReference);
+			m_iTableReference = -1;
 		}
 
-		pAdditionalData = NULL;
+		m_pAdditionalData = NULL;
 	}
 
-	int iReference = -1;
-	int iTableReference = -1;
-	int pAdditionalData = NULL; // Used by HLTVClient.
+	// Creates a reference of the object on top of the stack and pops it.
+	inline void Set()
+	{
+		m_iReference = m_pLua->ReferenceCreate();
+		
+		if (m_iTableReference != -1)
+			m_pLua->ReferenceFree(m_iTableReference);
+
+		m_pLua->CreateTable();
+		m_iTableReference = m_pLua->ReferenceCreate();
+	}
+
+	inline void Push()
+	{
+		if (m_iReference != -1)
+			m_pLua->ReferencePush(m_iReference);
+	}
+
+	inline void PushTable()
+	{
+		if (m_iTableReference != -1)
+			m_pLua->ReferencePush(m_iTableReference);
+	}
+
+	inline int GetData()
+	{
+		return m_pAdditionalData;
+	}
+
+	int m_iReference = -1;
+	int m_iTableReference = -1;
+	int m_pAdditionalData = NULL; // Used by HLTVClient.
+	GarrysMod::Lua::ILuaInterface* m_pLua = NULL;
 };
+
+struct LuaInterfaceData
+{
+public:
+	LuaInterfaceData(GarrysMod::Lua::ILuaInterface* pLua)
+	{
+		m_pLua = pLua;
+	}
+
+	~LuaInterfaceData()
+	{
+		for (auto&[_, val] : m_pLuaClasses)
+			delete val;
+	}
+
+	inline LuaUserData* AddLuaClass(void* pObject, int iType)
+	{
+		LuaUserData* userData = new LuaUserData(m_pLua);
+		m_pLuaClasses[pObject] = userData;
+		m_pLua->PushUserType(pObject, iType);
+		userData->Set();
+
+		return userData;
+	}
+
+	inline LuaUserData* FindLuaClass(void* pObject)
+	{
+		auto it = m_pLuaClasses.find(pObject);
+		if (it != m_pLuaClasses.end())
+			return it->second;
+
+		return NULL; // This should probably never happen
+	}
+
+	inline void DeleteLuaClass(void* pObject)
+	{
+		auto it = m_pLuaClasses.find(pObject);
+		if (it != m_pLuaClasses.end())
+		{
+			delete it->second;
+			m_pLuaClasses.erase(it);
+		} 
+	}
+
+private:
+	GarrysMod::Lua::ILuaInterface* m_pLua = NULL;
+
+	std::unordered_map<void*, LuaUserData*> m_pLuaClasses;
+
+	// ToDo: Add a field to store module data.
+};
+
+extern std::unordered_map<GarrysMod::Lua::ILuaInterface*, LuaInterfaceData*> g_pLuaInterfaceData;
+
+// Will NEVER return NULL.
+inline LuaInterfaceData* GetLuaInterfaceData(GarrysMod::Lua::ILuaInterface* pLua)
+{
+	auto it = g_pLuaInterfaceData.find(pLua);
+	if (it != g_pLuaInterfaceData.end())
+		return it->second;
+
+	Error("holylib: Tried to get lua interface data while it was NULL! (Should NEVER happen, report this!)\n");
+}
+
+// Should be called ONCE per interface.
+inline void CreateLuaInterfaceData(GarrysMod::Lua::ILuaInterface* pLua)
+{
+	auto it = g_pLuaInterfaceData.find(pLua);
+	if (it != g_pLuaInterfaceData.end())
+		Error("holylib: Tried to create lua interface data while it already had some! (Should NEVER happen, report this!)\n");
+
+	g_pLuaInterfaceData[pLua] = new LuaInterfaceData(pLua);
+}
+
+inline void DestroyLuaInterfaceData(GarrysMod::Lua::ILuaInterface* pLua)
+{
+	auto it = g_pLuaInterfaceData.find(pLua);
+	if (it == g_pLuaInterfaceData.end())
+		Error("holylib: Tried to destroy lua interface data while it was never created! (Should NEVER happen, report this!)\n");
+
+	delete it->second;
+	g_pLuaInterfaceData.erase(it);
+}
 
 // This one is special
 #define PushReferenced_LuaClass( className, luaType ) \
-static std::unordered_map<className*, LuaUserData*> g_pPushed##className; \
-void Push_##className(className* var) \
+void Push_##className(GarrysMod::Lua::ILuaInterface* pLua, className* var) \
 { \
 	if (!var) \
 	{ \
-		g_Lua->PushNil(); \
+		pLua->PushNil(); \
 		return; \
 	} \
 \
-	auto it = g_pPushed##className.find(var); \
-	if (it != g_pPushed##className.end()) \
+	LuaInterfaceData* pInterface = GetLuaInterfaceData(pLua); \
+	LuaUserData* pData = pInterface->FindLuaClass(var); \
+	if (pData) \
 	{ \
-		g_Lua->ReferencePush(it->second->iReference); \
+		pData->Push(); \
 	} else { \
-		g_Lua->PushUserType(var, luaType); \
-		g_Lua->Push(-1); \
-		LuaUserData* userData = new LuaUserData; \
-		userData->iReference = g_Lua->ReferenceCreate(); \
-		g_Lua->CreateTable(); \
-		userData->iTableReference = g_Lua->ReferenceCreate(); \
-		g_pPushed##className[var] = userData; \
+		pInterface->AddLuaClass(var, luaType)->Push(); \
 	} \
 } \
 \
-static void Delete_##className(className* var) \
+static void Delete_##className(GarrysMod::Lua::ILuaInterface* pLua, className* var) \
 { \
-	auto it = g_pPushed##className.find(var); \
-	if (it != g_pPushed##className.end()) \
-	{ \
-		delete it->second; \
-		g_pPushed##className.erase(it); \
-	} \
+	GetLuaInterfaceData(pLua)->DeleteLuaClass(var); \
 }
 
 #define Vector_RemoveElement(vec, element) \
@@ -284,24 +395,24 @@ static void Delete_##className(className* var) \
 
 // Push functions from modules: 
 // ToDo: move this at a later point into a seperate file. Maybe into _modules?
-Vector* Get_Vector(int iStackPos, bool bError = true);
-QAngle* Get_QAngle(int iStackPos, bool bError = true);
+Vector* Get_Vector(GarrysMod::Lua::ILuaInterface* pLua, int iStackPos, bool bError = true);
+QAngle* Get_QAngle(GarrysMod::Lua::ILuaInterface* pLua, int iStackPos, bool bError = true);
 
 class bf_read;
-extern void Push_bf_read(bf_read* tbl);
+extern void Push_bf_read(GarrysMod::Lua::ILuaInterface* pLua, bf_read* tbl);
 
 class bf_write;
-extern void Push_bf_write(bf_write* tbl);
-extern bf_write* Get_bf_write(int iStackPos, bool bError);
+extern void Push_bf_write(GarrysMod::Lua::ILuaInterface* pLua, bf_write* tbl);
+extern bf_write* Get_bf_write(GarrysMod::Lua::ILuaInterface* pLua, int iStackPos, bool bError);
 
 class IGameEvent;
-extern IGameEvent* Get_IGameEvent(int iStackPos, bool bError);
+extern IGameEvent* Get_IGameEvent(GarrysMod::Lua::ILuaInterface* pLua, int iStackPos, bool bError);
 
 class IRecipientFilter;
-extern IRecipientFilter* Get_IRecipientFilter(int iStackPos, bool bError);
+extern IRecipientFilter* Get_IRecipientFilter(GarrysMod::Lua::ILuaInterface* pLua, int iStackPos, bool bError);
 
 class ConVar;
-extern ConVar* Get_ConVar(int iStackPos, bool bError);
+extern ConVar* Get_ConVar(GarrysMod::Lua::ILuaInterface* pLua, int iStackPos, bool bError);
 
 struct EntityList // entitylist module.
 {
@@ -357,8 +468,8 @@ private:
 };
 extern EntityList g_pGlobalEntityList;
 
-extern bool Is_EntityList(int iStackPos);
-extern EntityList* Get_EntityList(int iStackPos, bool bError);
+extern bool Is_EntityList(GarrysMod::Lua::ILuaInterface* pLua, int iStackPos);
+extern EntityList* Get_EntityList(GarrysMod::Lua::ILuaInterface* pLua, int iStackPos, bool bError);
 
 extern void BlockGameEvent(const char* pName);
 extern void UnblockGameEvent(const char* pName);

@@ -9,6 +9,9 @@
 #include "player.h"
 #include "detours.h"
 
+// Holds all data related to a ILuaInterface in one place.
+std::unordered_map<GarrysMod::Lua::ILuaInterface*, LuaInterfaceData*> g_pLuaInterfaceData;
+
 // Try not to use it. We want to move away from it.
 // Additionaly, we will add checks in many functions.
 GarrysMod::Lua::ILuaInterface* g_Lua;

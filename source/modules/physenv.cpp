@@ -1748,7 +1748,7 @@ LUA_FUNCTION_STATIC(physcollide_CollideIndex)
 LUA_FUNCTION_STATIC(physcollide_CollideSetMassCenter)
 {
 	CPhysCollide* pCollide = Get_CPhysCollide(1, true);
-	Vector* pMassCenter = Get_Vector(2, true);
+	Vector* pMassCenter = Get_Vector(LUA, 2, true);
 
 	if (!physcollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
@@ -1760,7 +1760,7 @@ LUA_FUNCTION_STATIC(physcollide_CollideSetMassCenter)
 LUA_FUNCTION_STATIC(physcollide_CollideSetOrthographicAreas)
 {
 	CPhysCollide* pCollide = Get_CPhysCollide(1, true);
-	Vector* pArea = Get_Vector(2, true);
+	Vector* pArea = Get_Vector(LUA, 2, true);
 
 	if (!physcollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
@@ -1827,7 +1827,7 @@ LUA_FUNCTION_STATIC(physcollide_UnserializeCollide)
 	if (!physcollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
-	Push_CPhysCollide(physcollide->UnserializeCollide((char*)pData, iSize, index));
+	Push_CPhysCollide(LUA, physcollide->UnserializeCollide((char*)pData, iSize, index));
 	return 1;
 }
 
@@ -1893,7 +1893,7 @@ LUA_FUNCTION_STATIC(physcollide_CreateQueryModel)
 	if (!physcollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
-	Push_ICollisionQuery(physcollide->CreateQueryModel(pCollide));
+	Push_ICollisionQuery(LUA, physcollide->CreateQueryModel(pCollide));
 	return 1;
 }
 
@@ -1905,7 +1905,7 @@ LUA_FUNCTION_STATIC(physcollide_DestroyQueryModel)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
 	physcollide->DestroyQueryModel(pQuery);
-	Delete_ICollisionQuery(pQuery);
+	Delete_ICollisionQuery(LUA, pQuery);
 	return 0;
 }
 
@@ -1917,7 +1917,7 @@ LUA_FUNCTION_STATIC(physcollide_DestroyCollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
 	physcollide->DestroyCollide(pCollide);
-	Delete_CPhysCollide(pCollide);
+	Delete_CPhysCollide(LUA, pCollide);
 	return 0;
 }
 

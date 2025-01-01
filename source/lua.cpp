@@ -47,6 +47,7 @@ bool Lua::PushHook(const char* hook)
 void Lua::Init(GarrysMod::Lua::ILuaInterface* LUA)
 {
 	g_Lua = LUA;
+	CreateLuaInterfaceData(g_Lua);
 
 	g_pModuleManager.LuaInit(false);
 }
@@ -68,6 +69,7 @@ void Lua::Shutdown()
 
 void Lua::FinalShutdown()
 {
+	DestroyLuaInterfaceData(g_Lua);
 	g_Lua = NULL;
 }
 
@@ -150,6 +152,7 @@ GarrysMod::Lua::ILuaInterface* Lua::CreateInterface()
 {
 	GarrysMod::Lua::ILuaInterface* LUA = CreateLuaInterface(true);
 	LUA->Init(g_LuaCallback, true);
+	CreateLuaInterfaceData(LUA);
 
 	return LUA;
 }
@@ -157,4 +160,5 @@ GarrysMod::Lua::ILuaInterface* Lua::CreateInterface()
 void Lua::DestoryInterface(GarrysMod::Lua::ILuaInterface* LUA)
 {
 	CloseLuaInterface(LUA);
+	DestroyLuaInterfaceData(LUA);
 }
