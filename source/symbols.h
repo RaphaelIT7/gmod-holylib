@@ -38,6 +38,10 @@ class IPhysicsObject;
 class IPhysicsEnvironment;
 class CBaseClient;
 struct lua_State;
+struct physrestoreparams_t;
+class CPhysCollide;
+struct objectparams_t;
+class QAngle;
 
 namespace GarrysMod::Lua
 {
@@ -412,6 +416,30 @@ namespace Symbols
 
 	typedef void (*CPhysicsEnvironment_DestroyObject)(IPhysicsEnvironment*, IPhysicsObject*);
 	extern const std::vector<Symbol> CPhysicsEnvironment_DestroyObjectSym;
+
+	typedef bool (*CPhysicsEnvironment_Restore)(IPhysicsEnvironment*, physrestoreparams_t const&);
+	extern const std::vector<Symbol> CPhysicsEnvironment_RestoreSym;
+
+	typedef bool (*CPhysicsEnvironment_TransferObject)(IPhysicsEnvironment*, IPhysicsObject*, IPhysicsEnvironment*);
+	extern const std::vector<Symbol> CPhysicsEnvironment_TransferObjectSym;
+
+	typedef IPhysicsObject* (*CPhysicsEnvironment_CreateSphereObject)(IPhysicsEnvironment*, float radius, int materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams, bool isStatic);
+	extern const std::vector<Symbol> CPhysicsEnvironment_CreateSphereObjectSym;
+
+	typedef IPhysicsObject* (*CPhysicsEnvironment_UnserializeObjectFromBuffer)(IPhysicsEnvironment*, void *pGameData, unsigned char *pBuffer, unsigned int bufferSize, bool enableCollisions);
+	extern const std::vector<Symbol> CPhysicsEnvironment_UnserializeObjectFromBufferSym;
+
+	typedef IPhysicsObject* (*CPhysicsEnvironment_CreatePolyObjectStatic)(IPhysicsEnvironment*, const CPhysCollide *pCollisionModel, int materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams);
+	extern const std::vector<Symbol> CPhysicsEnvironment_CreatePolyObjectStaticSym;
+
+	typedef IPhysicsObject* (*CPhysicsEnvironment_CreatePolyObject)(IPhysicsEnvironment*, const CPhysCollide *pCollisionModel, int materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams);
+	extern const std::vector<Symbol> CPhysicsEnvironment_CreatePolyObjectSym;
+
+	typedef void (*CPhysicsEnvironment_D2)(IPhysicsEnvironment*); // Deconstructor
+	extern const std::vector<Symbol> CPhysicsEnvironment_D2Sym;
+
+	typedef void (*CPhysicsEnvironment_C2)(IPhysicsEnvironment*); // Constructor
+	extern const std::vector<Symbol> CPhysicsEnvironment_C2Sym;
 
 	// Stuff for our do_impact replacement
 	typedef void (*IVP_Mindist_D2)(void* mindist);

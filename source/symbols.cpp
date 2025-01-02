@@ -559,17 +559,50 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x8B\xEC\x51\x8B*****\x8D\x55\xFC\xC7\x45\xFC\x00\x00\x00\x00"), // 55 8B EC 51 8B ?? ?? ?? ?? ?? 8D 55 FC C7 45 FC 00 00 00 00
 	};
 
+	const std::vector<Symbol> PhysFrameSym = { // "Reset physics clock\n"
+		Symbol::FromName("_ZL9PhysFramef"),
+		Symbol::FromSignature(""),
+		Symbol::FromSignature("\x55\x8B\xEC\x83\xEC\x1C\x83******\x53\x56\x57"), // 55 8B EC 83 EC 1C 83 ?? ?? ?? ?? ?? ?? 53 56 57
+	};
+
 	const std::vector<Symbol> CPhysicsEnvironment_DestroyObjectSym = {
 		Symbol::FromName("_ZN19CPhysicsEnvironment13DestroyObjectEP14IPhysicsObject"),
 		Symbol::FromSignature(""),
 		// On Windows we will use the vtable instead to detour it.... maybe we should do the same on linux?
 	};
 
-	const std::vector<Symbol> PhysFrameSym = { // "Reset physics clock\n"
-		Symbol::FromName("_ZL9PhysFramef"),
-		Symbol::FromSignature(""),
-		Symbol::FromSignature("\x55\x8B\xEC\x83\xEC\x1C\x83******\x53\x56\x57"), // 55 8B EC 83 EC 1C 83 ?? ?? ?? ?? ?? ?? 53 56 57
+	const std::vector<Symbol> CPhysicsEnvironment_RestoreSym = {
+		Symbol::FromName("_ZN19CPhysicsEnvironment7RestoreERK19physrestoreparams_t"),
 	};
+
+	const std::vector<Symbol> CPhysicsEnvironment_TransferObjectSym = {
+		Symbol::FromName("_ZN19CPhysicsEnvironment14TransferObjectEP14IPhysicsObjectP19IPhysicsEnvironment"),
+	};
+
+	const std::vector<Symbol> CPhysicsEnvironment_CreateSphereObjectSym = {
+		Symbol::FromName("_ZN19CPhysicsEnvironment18CreateSphereObjectEfiRK6VectorRK6QAngleP14objectparams_tb"),
+	};
+
+	const std::vector<Symbol> CPhysicsEnvironment_UnserializeObjectFromBufferSym = {
+		Symbol::FromName("_ZN19CPhysicsEnvironment27UnserializeObjectFromBufferEPvPhjb"),
+	};
+
+	const std::vector<Symbol> CPhysicsEnvironment_CreatePolyObjectStaticSym = {
+		Symbol::FromName("_ZN19CPhysicsEnvironment22CreatePolyObjectStaticEPK12CPhysCollideiRK6VectorRK6QAngleP14objectparams_t"),
+	};
+
+	const std::vector<Symbol> CPhysicsEnvironment_CreatePolyObjectSym = {
+		Symbol::FromName("_ZN19CPhysicsEnvironment16CreatePolyObjectEPK12CPhysCollideiRK6VectorRK6QAngleP14objectparams_t"),
+	};
+
+	const std::vector<Symbol> CPhysicsEnvironment_D2Sym = {
+		Symbol::FromName("_ZN19CPhysicsEnvironmentD2Ev"),
+	};
+
+	const std::vector<Symbol> CPhysicsEnvironment_C2Sym = {
+		Symbol::FromName("_ZN19CPhysicsEnvironmentC2Ev"),
+	};
+
 
 	//---------------------------------------------------------------------------------
 	// Purpose: net Symbols
