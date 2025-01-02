@@ -71,6 +71,25 @@ void hook_luaL_openlibs(lua_State* L)
 	lua_pop(L, 1);
 }
 
+/*
+	Removes vprof.
+	Why? Because in this case, lua_type is too fast and vprof creates a huge slowdown.
+*/
+static Detouring::Hook detour_CLuaInterface_GetType;
+int hook_CLuaInterface_GetType(GarrysMod::Lua::ILuaInterface* pLua, int iStackPos)
+{
+	int type = lua_type(pLua->GetState(), iStackPos);
+
+	if (type == GarrysMod::Lua::Type::UserData)
+	{
+		GarrysMod::Lua::ILuaBase::UserData* udata = (GarrysMod::Lua::ILuaBase::UserData*)pLua->GetUserdata(iStackPos);
+		if (udata)
+			type = udata->type;
+	}
+
+	return type == -1 ? GarrysMod::Lua::Type::Nil : type;
+}
+
 void CLuaJITModule::LuaInit(bool bServerInit)
 {
 	if (bServerInit)
@@ -235,4 +254,10 @@ void CLuaJITModule::InitDetour(bool bPreServer)
 	Override(luaopen_package);
 	Override(luaopen_string);
 	Override(luaopen_table);
+
+	Detour::Create(
+		&detour_CLuaInterface_GetType, "CLuaInterface::GetType",
+		lua_shared_loader.GetModule(), Symbols::CLuaInterface_GetTypeSym,
+		(void*)hook_CLuaInterface_GetType, m_pID
+	);
 }

@@ -618,4 +618,11 @@ namespace Symbols
 	const std::vector<Symbol> g_StartedSym = {
 		Symbol::FromName("_ZL9g_Started"),
 	};
+
+	//---------------------------------------------------------------------------------
+	// Purpose: luajit Symbols
+	//---------------------------------------------------------------------------------
+	const std::vector<Symbol> CLuaInterface_GetTypeSym = {
+		Symbol::FromName("_ZN13CLuaInterface7GetTypeEi"),
+	};
 }

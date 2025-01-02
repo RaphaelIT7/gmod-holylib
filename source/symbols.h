@@ -460,4 +460,10 @@ namespace Symbols
 	extern const std::vector<Symbol> g_NetIncomingSym; // bf_read*
 	extern const std::vector<Symbol> g_WriteSym; // bf_write*
 	extern const std::vector<Symbol> g_StartedSym; // bool
+
+	//---------------------------------------------------------------------------------
+	// Purpose: luajit Symbols
+	//---------------------------------------------------------------------------------
+	typedef int (*CLuaInterface_GetType)(GarrysMod::Lua::ILuaInterface* pLua);
+	extern const std::vector<Symbol> CLuaInterface_GetTypeSym;
 }
