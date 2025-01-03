@@ -3,7 +3,7 @@
 #include "module.h"
 #include "lua.h"
 #include <GarrysMod/InterfacePointers.hpp>
-#include "iserver.h"
+#include "baseserver.h"
 #include "util.h"
 #include "player.h"
 #include "iclient.h"
@@ -26,37 +26,13 @@ public:
 static CHolyLibModule g_pHolyLibModule;
 IModule* pHolyLibModule = &g_pHolyLibModule;
 
-class SVC_CustomMessage: public CNetMessage
-{
-public:
-	bool			ReadFromBuffer( bf_read &buffer ) { return true; };
-	bool			WriteToBuffer( bf_write &buffer ) {
-		buffer.WriteUBitLong(GetType(), NETMSG_TYPE_BITS);
-		return buffer.WriteBits(m_DataOut.GetData(), m_DataOut.GetNumBitsWritten());
-	};
-	const char		*ToString() const { return "HolyLib:CustomMessage"; };
-	int				GetType() const { return m_iType; }
-	const char		*GetName() const { return m_strName;}
-
-	INetMessageHandler *m_pMessageHandler = NULL;
-	bool Process() { Warning("holylib: Tried to process this message? This should never happen!\n"); return true; };
-
-	SVC_CustomMessage() { m_bReliable = false; }
-
-	int	GetGroup() const { return INetChannelInfo::GENERIC; }
-
-	int m_iType = 0;
-	char m_strName[64] = "";
-	bf_write m_DataOut;
-};
-
 LUA_FUNCTION_STATIC(Reconnect)
 {
 	CBasePlayer* ent = Util::Get_Player(1, true);
 	if (!ent)
 		LUA->ArgError(1, "Tried to use a NULL player!");
 
-	IClient* client = Util::server->GetClient(ent->GetClientIndex());
+	CBaseClient* client = Util::GetClientByIndex(ent->GetClientIndex());
 	if (!client->IsFakeClient()) { // ToDo: Verify that this 100% works. If it can crash here, we add a workaround.
 		client->Reconnect();
 		LUA->PushBool(true);
@@ -149,47 +125,6 @@ LUA_FUNCTION_STATIC(_MessageEnd)
 {
 	MessageEnd();
 	return 0;
-}
-
-LUA_FUNCTION_STATIC(BroadcastCustomMessage)
-{
-	int iType = LUA->CheckNumber(1);
-	const char* strName = LUA->CheckString(2);
-	bf_write* bf = Get_bf_write(3, true);
-
-	SVC_CustomMessage msg;
-	msg.m_iType = iType;
-	strcpy(msg.m_strName, strName);
-	msg.m_DataOut.StartWriting(bf->GetData(), 0, 0, bf->GetMaxNumBits());
-
-	Util::server->BroadcastMessage(msg);
-	return 0;
-}
-
-LUA_FUNCTION_STATIC(SendCustomMessage)
-{
-	int iType = LUA->CheckNumber(1);
-	const char* strName = LUA->CheckString(2);
-	bf_write* bf = Get_bf_write(3, true);
-	IClient* pClient = NULL;
-	if (LUA->IsType(4, GarrysMod::Lua::Type::Number))
-	{
-		pClient = Util::GetClientByUserID(LUA->GetNumber(4));
-	} else {	
-		CBasePlayer* ply = Util::Get_Player(4, true);
-		pClient = (IClient*)Util::GetClientByPlayer(ply);
-	}
-
-	if (!pClient)
-		LUA->ThrowError("Failed to get IClient from player!");
-
-	SVC_CustomMessage msg;
-	msg.m_iType = iType;
-	strcpy(msg.m_strName, strName);
-	msg.m_DataOut.StartWriting(bf->GetData(), 0, 0, bf->GetMaxNumBits());
-
-	LUA->PushBool(pClient->SendNetMsg(msg));
-	return 1;
 }
 
 static Detouring::Hook detour_GetGModServerTags;
@@ -445,8 +380,6 @@ void CHolyLibModule::LuaInit(bool bServerInit)
 			Util::AddFunc(_EntityMessageBegin, "EntityMessageBegin");
 			Util::AddFunc(_UserMessageBegin, "UserMessageBegin");
 			Util::AddFunc(_MessageEnd, "MessageEnd");
-			Util::AddFunc(BroadcastCustomMessage, "BroadcastCustomMessage");
-			Util::AddFunc(SendCustomMessage, "SendCustomMessage");
 		Util::FinishTable("HolyLib");
 	} else {
 		if (Lua::PushHook("HolyLib:Initialize"))

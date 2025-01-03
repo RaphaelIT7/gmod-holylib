@@ -35,7 +35,7 @@ class IServerGameClients;
 class IServerGameEnts;
 class IModuleWrapper;
 class IGameEventManager2;
-class IServer;
+class CBaseServer;
 namespace Util
 {
 	#define LUA_REGISTRYINDEX	(-10000)
@@ -160,7 +160,7 @@ namespace Util
 	extern IVEngineServer* engineserver;
 	extern IServerGameClients* servergameclients;
 	extern IServerGameEnts* servergameents;
-	extern IServer* server;
+	extern CBaseServer* server;
 	extern CGlobalEntityList* entitylist;
 	extern CUserMessages* pUserMessages;
 	extern IModuleWrapper* pEntityList; // Other rely on this module.
@@ -182,6 +182,27 @@ static std::string triedNull_##className = MakeString("Tried to use a NULL ", st
 className* Get_##className(int iStackPos, bool bError) \
 { \
 	if (!g_Lua->IsType(iStackPos, luaType)) \
+	{ \
+		if (bError) \
+			g_Lua->ThrowError(invalidType_##className.c_str()); \
+\
+		return NULL; \
+	} \
+\
+	className* pVar = g_Lua->GetUserType<className>(iStackPos, luaType); \
+	if (!pVar && bError) \
+		g_Lua->ThrowError(triedNull_##className.c_str()); \
+\
+	return pVar; \
+}
+
+#define SpecialGet_LuaClass( className, luaType, luaType2, strName ) \
+static std::string invalidType_##className = MakeString("Tried to use something that wasn't a ", strName, "!"); \
+static std::string triedNull_##className = MakeString("Tried to use a NULL ", strName, "!"); \
+className* Get_##className(int iStackPos, bool bError) \
+{ \
+	int iType = g_Lua->GetType(iStackPos); \
+	if (iType != luaType && iType != luaType2) \
 	{ \
 		if (bError) \
 			g_Lua->ThrowError(invalidType_##className.c_str()); \
@@ -362,3 +383,7 @@ extern EntityList* Get_EntityList(int iStackPos, bool bError);
 
 extern void BlockGameEvent(const char* pName);
 extern void UnblockGameEvent(const char* pName);
+
+class CBaseClient;
+extern void Push_CBaseClient(CBaseClient* tbl);
+extern CBaseClient* Get_CBaseClient(int iStackPos, bool bError);

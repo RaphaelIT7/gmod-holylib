@@ -42,6 +42,8 @@ struct physrestoreparams_t;
 class CPhysCollide;
 struct objectparams_t;
 class QAngle;
+class CFrameSnapshot;
+class CClientFrame;
 
 namespace GarrysMod::Lua
 {
@@ -466,4 +468,13 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	typedef int (*CLuaInterface_GetType)(GarrysMod::Lua::ILuaInterface* pLua);
 	extern const std::vector<Symbol> CLuaInterface_GetTypeSym;
+
+	//---------------------------------------------------------------------------------
+	// Purpose: gameserver Symbols
+	//---------------------------------------------------------------------------------
+	typedef void (*CFrameSnapshot_D2)(CFrameSnapshot*);
+	extern const std::vector<Symbol> CFrameSnapshot_D2Sym;
+
+	typedef void (*CClientFrame_D2)(CClientFrame*); // WHY DOES IT HAVE THREE DECONSTRUCTORS >:(
+	extern const std::vector<Symbol> CClientFrame_D2Sym;
 }

@@ -63,14 +63,14 @@ static void hook_CHLTVServer_DestroyCHLTVServer(CHLTVServer* srv)
 	detour_CHLTVServer_DestroyCHLTVServer.GetTrampoline<Symbols::CHLTVServer_DestroyCHLTVServer>()(srv);
 }
 
-static int CHLTVClient_TypeID = -1;
+int CHLTVClient_TypeID = -1;
 PushReferenced_LuaClass(CHLTVClient, CHLTVClient_TypeID)
-Get_LuaClass(CHLTVClient, CHLTVClient_TypeID, "HLTVClient")
+Get_LuaClass(CHLTVClient, CHLTVClient_TypeID, "CHLTVClient")
 
 static Detouring::Hook detour_CHLTVClient_Deconstructor;
 static void hook_CHLTVClient_Deconstructor(CHLTVClient* pClient)
 {
-	Delete_CHLTVClient(pClient);
+	Delete_CHLTVClient(pClient); // ToDo: Remind myself to remove this since CHLTVClient's won't be deleted while the server is running. It's reusing them.
 	detour_CHLTVClient_Deconstructor.GetTrampoline<Symbols::CHLTVClient_Deconstructor>()(pClient);
 }
 
@@ -105,151 +105,19 @@ static void hook_CSteam3Server_NotifyClientDisconnect(void* pServer, CBaseClient
 	detour_CSteam3Server_NotifyClientDisconnect.GetTrampoline<Symbols::CSteam3Server_NotifyClientDisconnect>()(pServer, pClient);
 }
 
-LUA_FUNCTION_STATIC(HLTVClient__tostring)
+LUA_FUNCTION_STATIC(CHLTVClient__tostring)
 {
 	CHLTVClient* pClient = Get_CHLTVClient(1, false);
 	if (!pClient || !pClient->IsConnected())
 	{
-		LUA->PushString("HLTVClient [NULL]");
+		LUA->PushString("CHLTVClient [NULL]");
 	} else {
 		char szBuf[128] = {};
-		V_snprintf(szBuf, sizeof(szBuf),"HLTVClient [%i][%s]", pClient->GetPlayerSlot(), pClient->GetClientName());
+		V_snprintf(szBuf, sizeof(szBuf), "CHLTVClient [%i][%s]", pClient->GetPlayerSlot(), pClient->GetClientName());
 		LUA->PushString(szBuf);
 	}
 
 	return 1;
-}
-
-LUA_FUNCTION_STATIC(HLTVClient__index)
-{
-	if (LUA->FindOnObjectsMetaTable(1, 2))
-		return 1;
-
-	LUA->Pop(1);
-	Util::ReferencePush(g_pPushedCHLTVClient[Get_CHLTVClient(1, true)]->iTableReference); // This should never crash so no safety checks.
-	if (!LUA->FindObjectOnTable(-1, 2))
-		LUA->PushNil();
-
-	LUA->Remove(-2);
-
-	return 1;
-}
-
-LUA_FUNCTION_STATIC(HLTVClient__newindex)
-{
-	Util::ReferencePush(g_pPushedCHLTVClient[Get_CHLTVClient(1, true)]->iTableReference); // This should never crash so no safety checks.
-	LUA->Push(2);
-	LUA->Push(3);
-	LUA->RawSet(-3);
-	LUA->Pop(1);
-
-	return 0;
-}
-
-LUA_FUNCTION_STATIC(HLTVClient_GetTable)
-{
-	CHLTVClient* pClient = Get_CHLTVClient(1, true);
-	LuaUserData* data = g_pPushedCHLTVClient[pClient];
-	if (data->pAdditionalData != pClient->GetUserID())
-	{
-		data->pAdditionalData = pClient->GetUserID();
-		LUA->ReferenceFree(data->iTableReference);
-		LUA->CreateTable();
-		data->iTableReference = LUA->ReferenceCreate();
-	}
-
-	Util::ReferencePush(data->iTableReference); // This should never crash so no safety checks.
-
-	return 1;
-}
-
-LUA_FUNCTION_STATIC(HLTVClient_GetSlot)
-{
-	CHLTVClient* pClient = Get_CHLTVClient(1, true);
-
-	LUA->PushNumber(pClient->GetPlayerSlot());
-	return 1;
-}
-
-LUA_FUNCTION_STATIC(HLTVClient_GetUserID)
-{
-	CHLTVClient* pClient = Get_CHLTVClient(1, true);
-
-	LUA->PushNumber(pClient->GetUserID());
-	return 1;
-}
-
-LUA_FUNCTION_STATIC(HLTVClient_GetName)
-{
-	CHLTVClient* pClient = Get_CHLTVClient(1, true);
-
-	LUA->PushString(pClient->GetClientName());
-	return 1;
-}
-
-LUA_FUNCTION_STATIC(HLTVClient_GetSteamID) // Broken -> "STEAM_ID_PENDING"
-{
-	CHLTVClient* pClient = Get_CHLTVClient(1, true);
-
-	LUA->PushString(pClient->GetNetworkIDString());
-	return 1;
-}
-
-LUA_FUNCTION_STATIC(HLTVClient_Reconnect)
-{
-	CHLTVClient* pClient = Get_CHLTVClient(1, true);
-
-	pClient->Reconnect();
-	return 0;
-}
-
-LUA_FUNCTION_STATIC(HLTVClient_ClientPrint)
-{
-	CHLTVClient* pClient = Get_CHLTVClient(1, true);
-
-	pClient->ClientPrintf(LUA->CheckString(2));
-	return 0;
-}
-
-LUA_FUNCTION_STATIC(HLTVClient_IsValid)
-{
-	CHLTVClient* pClient = Get_CHLTVClient(1, false);
-	
-	LUA->PushBool(pClient != NULL && pClient->IsConnected());
-	return 1;
-}
-
-LUA_FUNCTION_STATIC(HLTVClient_SendLua)
-{
-	CHLTVClient* pClient = Get_CHLTVClient(1, true);
-	const char* strLuaCode = LUA->CheckString(2);
-	bool bForceReliable = LUA->GetBool(3);
-
-	// NOTE: Original bug was that we had the wrong bitcount for the net messages type which broke every netmessage we created including this one.
-	// It should work now, so let's test it later.
-	SVC_UserMessage msg;
-	msg.m_nMsgType = Util::pUserMessages->LookupUserMessage("LuaCmd");
-	if (msg.m_nMsgType == -1)
-	{
-		LUA->PushBool(false);
-		return 1;
-	}
-
-	byte pUserData[PAD_NUMBER(MAX_USER_MSG_DATA, 4)];
-	msg.m_DataOut.StartWriting(pUserData, sizeof(pUserData));
-	msg.m_DataOut.WriteString(strLuaCode);
-
-	LUA->PushBool(pClient->SendNetMsg(msg, bForceReliable));
-	return 1;
-}
-
-LUA_FUNCTION_STATIC(HLTVClient_FireEvent)
-{
-	CHLTVClient* pClient = Get_CHLTVClient(1, true);
-	IGameEvent* pEvent = Get_IGameEvent(2, true);
-
-	pClient->FireGameEvent(pEvent);
-	return 0;
 }
 
 /*
@@ -260,7 +128,7 @@ LUA_FUNCTION_STATIC(HLTVClient_FireEvent)
  * We can clear it later by looping thru all clients and then nuking and recreating it with only the current clients values.
  */
 static std::unordered_map<int, int> g_iTarget;
-LUA_FUNCTION_STATIC(HLTVClient_SetCameraMan)
+LUA_FUNCTION_STATIC(CHLTVClient_SetCameraMan)
 {
 	CHLTVClient* pClient = Get_CHLTVClient(1, true);
 
@@ -685,6 +553,8 @@ static void hook_CHLTVServer_BroadcastEvent(CHLTVServer* pServer, IGameEvent* pE
 		Msg("SourceTV broadcast event: %s\n", pEvent->GetName());
 }
 
+extern int CBaseClient_TypeID; // Now we need to make sure gameserevr module is loaded before sourcetv.
+extern void Push_CBaseClientMeta();
 void CSourceTVLibModule::LuaInit(bool bServerInit)
 {
 	if (bServerInit)
@@ -692,22 +562,23 @@ void CSourceTVLibModule::LuaInit(bool bServerInit)
 
 	ref_tv_debug = cvar->FindVar("tv_debug"); // We only search for it once. Verify: ConVarRef would always search for it in it's constructor/Init if I remember correctly.
 
-	CHLTVClient_TypeID = g_Lua->CreateMetaTable("HLTVClient");
-		Util::AddFunc(HLTVClient__tostring, "__tostring");
-		//Util::AddFunc(HLTVClient__newindex, "__newindex");
-		Util::AddFunc(HLTVClient__index, "__index");
-		Util::AddFunc(HLTVClient_GetTable, "GetTable");
+	if (CBaseClient_TypeID == -1)
+	{
+		IModuleWrapper* pGameServer = g_pModuleManager.FindModuleByName("gameserver");
+		if (pGameServer && !pGameServer->IsEnabled())
+			Warning("holylib: CBaseClient_TypeID is -1 because gameserver module is disabled! Disabling SourceTV module!\n");
+		else
+			Warning("holylib: CBaseClient_TypeID is -1 for some reason! Disabling SourceTV module!\n");
 
-		Util::AddFunc(HLTVClient_GetName, "GetName");
-		Util::AddFunc(HLTVClient_GetSlot, "GetSlot");
-		Util::AddFunc(HLTVClient_GetSteamID, "GetSteamID");
-		Util::AddFunc(HLTVClient_GetUserID, "GetUserID");
-		Util::AddFunc(HLTVClient_Reconnect, "Reconnect");
-		Util::AddFunc(HLTVClient_IsValid, "IsValid");
-		Util::AddFunc(HLTVClient_ClientPrint, "ClientPrint");
-		Util::AddFunc(HLTVClient_SendLua, "SendLua");
-		Util::AddFunc(HLTVClient_FireEvent, "FireEvent");
-		Util::AddFunc(HLTVClient_SetCameraMan, "SetCameraMan");
+		g_pModuleManager.FindModuleByName("sourcetv")->SetEnabled(false); // Unsafe to continue existing, so nuke ourself
+		return;
+	}
+
+	CHLTVClient_TypeID = g_Lua->CreateMetaTable("CHLTVClient");
+		Push_CBaseClientMeta();
+
+		Util::AddFunc(CHLTVClient__tostring, "__tostring");
+		Util::AddFunc(CHLTVClient_SetCameraMan, "SetCameraMan");
 	g_Lua->Pop(1);
 
 	Util::StartTable();

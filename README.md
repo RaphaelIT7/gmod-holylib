@@ -56,8 +56,8 @@ On the next startup the ghostinj will update holylib to use the new file.
 \- \- [+] Added `HolyLib:OnPhysFrame` hook.  
 \- [+] Added the `HolyLib:PreCheckTransmit`, `HolyLib:OnPlayerGot[On/Off]Ladder`, `HolyLib:OnMoveTypeChange` hook.  
 \- [+] Added `HolyLib:OnSourceTVStartNewShot`, `HolyLib:OnSourceTVClientDisconnect` hook to `sourcetv` module.  
-\- [+] Added `HLTVClient:SetCameraMan` and `sourcetv.SetCameraMan` to `sourcetv` module.  
-\- [+] Added `INetworkStringTable:GetTable`, `HLTVClient:GetTable`, `VoiceData:GetTable`, `IGameEvent:GetTable`, `bf_read:GetTable`, `bf_write:GetTable` functions.  
+\- [+] Added `CHLTVClient:SetCameraMan` and `sourcetv.SetCameraMan` to `sourcetv` module.  
+\- [+] Added `INetworkStringTable:GetTable`, `CHLTVClient:GetTable`, `VoiceData:GetTable`, `IGameEvent:GetTable`, `bf_read:GetTable`, `bf_write:GetTable` functions.  
 \- [+] Added `pvs.TestPVS`, `pvs.FindInPVS` and `pvs.ForceFullUpdate` functions to `pvs` module.  
 \- [+] Added `HolyLib.GetRegistry`, `HolyLib.ExitLadder`, `HolyLib.GetLadder` and `HolyLib.Disconnect` to `holylib` module.  
 \- [+] Exposed `IHolyUtil` interface and added `IHolyLib::PreLoad` and `IHolyLib:GetHolyUtil`.  
@@ -81,6 +81,10 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
 \- [#] Flipped `INetworkStringTable:AddString` arguments.  
 \- [#] All `pvs.FL_EDICT_` enums changed.  
 \- [#] Made `HolyLib.SetSignOnState` third arg optional and added `rawSet` option.  
+\- [#] Renamed `HLTVClient` to `CHLTVClient`.  
+\- [#] Renamed `HLTVClient:GetSlot` to `HLTVClient:GetPlayerSlot`.  
+\- [-] Removed `HolyLib.BroadcastCustomMessage` (Replaced by `gameserver.BroadcastMessage`)  
+\- [-] Removed `HolyLib.SendCustomMessage` (Replaced by `CBaseClient:SendNetMsg`)  
 \- [-] Removed `HolyLib:PostCheckTransmit` second argument (Use `pvs.GetEntitesFromTransmit`)  
 
 ### QoL updates
@@ -130,7 +134,7 @@ Wiki: https://holylib.raphaelit7.com/
 \- \- [VProfCounter](https://github.com/RaphaelIT7/gmod-holylib#vprofcounter)  
 \- \- [VProfNode](https://github.com/RaphaelIT7/gmod-holylib#vprofnode)  
 \- [sourcetv](https://github.com/RaphaelIT7/gmod-holylib#sourcetv)  
-\- \- [HLTVClient](https://github.com/RaphaelIT7/gmod-holylib#hltvclient)  
+\- \- [CHLTVClient](https://github.com/RaphaelIT7/gmod-holylib#chltvclient)  
 \- [bitbuf](https://github.com/RaphaelIT7/gmod-holylib#bitbuf)  
 \- \- [bf_read](https://github.com/RaphaelIT7/gmod-holylib#bf_read)  
 \- \- [bf_write](https://github.com/RaphaelIT7/gmod-holylib#bf_write)  
@@ -141,6 +145,11 @@ Wiki: https://holylib.raphaelit7.com/
 \- [voicechat](https://github.com/RaphaelIT7/gmod-holylib#voicechat)  
 \- \- [VoiceData](https://github.com/RaphaelIT7/gmod-holylib#voicedata)  
 \- [physenv](https://github.com/RaphaelIT7/gmod-holylib#physenv)  
+\- \- [CPhysCollide](https://github.com/RaphaelIT7/gmod-holylib#cphyscollide)  
+\- \- [CPhysPolySoup](https://github.com/RaphaelIT7/gmod-holylib#cphyspolysoup)  
+\- \- [CPhysConvex](https://github.com/RaphaelIT7/gmod-holylib#cphysconvex)  
+\- \- [IPhysicsCollisionSet](https://github.com/RaphaelIT7/gmod-holylib#iphysicscollisionset)  
+\- \- [IPhysicsEnvironment](https://github.com/RaphaelIT7/gmod-holylib#iphysicsenvironment)  
 \- [bass](https://github.com/RaphaelIT7/gmod-holylib#bass)  
 \- \- [IGModAudioChannel](https://github.com/RaphaelIT7/gmod-holylib#igmodaudiochannel)  
 \- [entitylist](https://github.com/RaphaelIT7/gmod-holylib#entitylist)  
@@ -217,15 +226,6 @@ A direct engine bind to `IVEngineServer::UserMessageBegin`
 Finishes the active Entity/Usermessage.  
 If you don't call this, the message won't be sent! (And the engine might throw a tantrum)
 A direct engine bind to `IVEngineServer::MessageEnd`  
-
-#### HolyLib.BroadcastCustomMessage(number type, string name, bf_write buffer)
-Sends a custom net message to all clients.  
-This function allows you send any netmessage you want.  
-You should know what your doing since this function doesn't validate anything.  
-You can find all valid types in the [protocol.h](https://github.com/RaphaelIT7/gmod-holylib/blob/main/source/sourcesdk/protocol.h#L86-L145)  
-
-#### HolyLib.SendCustomMessage(number type, string name, bf_write buffer, Player ply / number userID)
-Same as BroadcastCustomMessage but it only sends it to the specific player.  
 
 #### HolyLib.InvalidateBoneCache(Entity ent)
 Invalidates the bone cache of the given entity.  
@@ -1436,8 +1436,8 @@ If successfully stopped, it will return `sourcetv.RECORD_OK`.
 #### table sourcetv.GetAll()
 Returns a table that contains all HLTV clients. It will return `nil` on failure.  
 
-#### HLTVClient sourcetv.GetClient(number slot)
-Returns the HLTVClient at that slot or `nil` on failure.  
+#### CHLTVClient sourcetv.GetClient(number slot)
+Returns the CHLTVClient at that slot or `nil` on failure.  
 
 #### sourcetv.FireEvent(IGameEvent event, bool allowOverride)
 Fires the gameevent for all hltv clients / broadcasts it.  
@@ -1450,65 +1450,66 @@ Call it with `0` / `NULL` to reset it and let the `HLTVDirector` take control ag
 > [!NOTE]
 > This won't set it for new clients. You have to call it again for thoes.  
 
-### HLTVClient
+### CHLTVClient
 This is a metatable that is pushed by this module. It contains the functions listed below  
+This class is based off the `CBaseClient` class and inherits its functions.  
 
-#### string HLTVClient:\_\_tostring()
+#### string CHLTVClient:\_\_tostring()
 Returns the a formated string.  
-Format: `HLTVClient [%i][%s]`  
+Format: `CHLTVClient [%i][%s]`  
 `%i` -> UserID  
 `%s` -> ClientName  
 
-#### HLTVClient:\_\_newindex(string key, any value)
+#### CHLTVClient:\_\_newindex(string key, any value)
 Internally implemented and will set the values into the lua table.  
 
-#### any HLTVClient:\_\_index(string key)
+#### any CHLTVClient:\_\_index(string key)
 Internally seaches first in the metatable table for the key.  
 If it fails to find it, it will search in the lua table before returning.  
-If you try to get multiple values from the lua table, just use `HLTVClient:GetTable()`.  
+If you try to get multiple values from the lua table, just use `CHLTVClient:GetTable()`.  
 
-#### table HLTVClient:GetTable()
+#### table CHLTVClient:GetTable()
 Returns the lua table of this object.  
 You can store variables into it.  
 
-#### string HLTVClient:GetName()
+#### string CHLTVClient:GetName()
 Returns the name of the client.  
 
-#### string HLTVClient:GetSteamID()
+#### string CHLTVClient:GetSteamID()
 Returns the steamid of the client.  
 
 > [!NOTE]
 > Currently broken / will return `STEAM_ID_PENDING`
 
-#### number HLTVClient:GetUserID()
+#### number CHLTVClient:GetUserID()
 Returns the userid of the client.  
 
-#### number HLTVClient:GetSlot()
+#### number CHLTVClient:GetPlayerSlot()
 Returns the slot of the client. Use this for `sourcetv.GetClient`.  
 
-#### void HLTVClient:Reconnect()
+#### void CHLTVClient:Reconnect()
 Reconnects the HLTV client.  
 
-#### void HLTVClient:ClientPrint(string message)
+#### void CHLTVClient:ClientPrint(string message)
 Prints the given message into the client's console.  
 
 > [!NOTE]
 > It won't add `\n` at the end of the message, so you will need to add it yourself.  
 
-#### bool HLTVClient:IsValid()
+#### bool CHLTVClient:IsValid()
 Returns `true` if the client is still valid.  
 
-#### bool (Experimental) HLTVClient:SendLua(string code)
+#### bool (Experimental) CHLTVClient:SendLua(string code)
 Sends the given code to the client to be executed.  
 Returns `true` on success.  
 
 > [!NOTE]
 > This function was readded back experimentally. It wasn't tested yet. It's still broken but doesn't crash  
 
-#### (Experimental) HLTVClient:FireEvent(IGameEvent event)  
+#### (Experimental) CHLTVClient:FireEvent(IGameEvent event)  
 Fires/sends the gameevent to this specific client.  
 
-#### HLTVClient:SetCameraMan(number entIndex / Entity ent)  
+#### CHLTVClient:SetCameraMan(number entIndex / Entity ent)  
 Sends the `hltv_cameraman` event to the specific client and blocks the `HLTVDirector` from changing the view.  
 Call it with `0` / `NULL` to reset it and let the `HLTVDirector` take control again.  
 
@@ -1540,8 +1541,8 @@ A file with that name already exists!
 
 ### Hooks
 
-#### HolyLib:OnSourceTVNetMessage(HLTVClient client, bf_read buffer)
-Called when a HLTVClient sends a net message to the server.  
+#### HolyLib:OnSourceTVNetMessage(CHLTVClient client, bf_read buffer)
+Called when a CHLTVClient sends a net message to the server.  
 
 Example:  
 ```lua
@@ -1554,12 +1555,12 @@ end)
 ---- Client
 
 net.Start("Example")
-	net.WriteString("Hello World from HLTVClient");
+	net.WriteString("Hello World from CHLTVClient");
 net.SendToServer()
 ```
 
-#### bool HolyLib:OnSourceTVCommand(HLTVClient client, string cmd, table args, string argumentString)
-Called when a HLTVClient sends a command.  
+#### bool HolyLib:OnSourceTVCommand(CHLTVClient client, string cmd, table args, string argumentString)
+Called when a CHLTVClient sends a command.  
 return `true` to tell it that the command was handled in Lua.  
 
 Example:  
@@ -1580,7 +1581,7 @@ Return `true` to cancel it.
 Called when a client disconnects from the sourcetv server.  
 
 > [!NOTE]
-> We pass the playerSlot since passing the HLTVClient object causes weird issues I couldn't fix yet.  
+> We pass the playerSlot since passing the CHLTVClient object causes weird issues I couldn't fix yet.  
 
 ### ConVars
 
@@ -3016,6 +3017,257 @@ This module updates luajit to a newer version.
 
 The `ffi` and `string.buffer` packages are already added when enabled.  
 It also restores `debug.setlocal`, `debug.setupvalue`, `debug.upvalueid` and `debug.upvaluejoin`.  
+
+## gameserver
+This module adds a library that exposes the `CBaseServer` and `CBaseClient`.  
+
+### Functions
+
+#### number gameserver.GetNumClients()
+returns current number of clients  
+
+#### number gameserver.GetNumProxies()
+returns number of attached HLTV proxies  
+
+#### number gameserver.GetNumFakeClients()
+returns number of fake clients/bots  
+
+#### number gameserver.GetMaxClients()
+returns current client limit  
+
+#### number gameserver.GetUDPPort()
+returns the udp port the server is running on.  
+
+#### CGameClient gameserver.GetClient(number slot)
+Returns the CGameClient at that slot or `nil` on failure.  
+
+#### number gameserver.GetClientCount()
+returns client count for iteration  
+
+#### table gameserver.GetAll()
+Returns a table that contains all game clients. It will return `nil` on failure.  
+
+#### number gameserver.GetTime()
+Returns the current time/curtime  
+
+#### number gameserver.GetTick()
+Returns the current tick  
+
+#### number gameserver.GetTickInterval()
+Returns the current tick interval  
+
+#### string gameserver.GetName()
+Returns the server name? **Verify**  
+
+#### string gameserver.GetMapName()
+Returns the map name  
+
+#### number gameserver.GetSpawnCount()
+
+#### number gameserver.GetNumClasses()
+
+#### number gameserver.GetClassBits()
+
+#### bool gameserver.IsActive()
+
+#### bool gameserver.IsLoading()
+
+#### bool gameserver.IsDedicated()
+
+#### bool gameserver.IsPaused()
+
+#### bool gameserver.IsMultiplayer()
+
+#### bool gameserver.IsPausable()
+
+#### bool gameserver.IsHLTV()
+
+#### string gameserver.GetPassword()
+Returns the current server password  
+
+#### gameserver.SetMaxClients(number maxClients)
+Sets the max client count.  
+Should do nothing.  
+
+#### gameserver.SetPaused(bool paused = false)
+Pauses/Unpauses the server.  
+
+> [!NOTE]
+> Verify if this actually works
+
+#### gameserver.SetPassword(string password)
+Sets the server password.  
+
+#### gameserver.BroadcastMessage(number type, string name, bf_write buffer)
+Sends a custom net message to all clients.  
+This function allows you send any netmessage you want.  
+You should know what your doing since this function doesn't validate anything.  
+You can find all valid types in the [protocol.h](https://github.com/RaphaelIT7/gmod-holylib/blob/main/source/sourcesdk/protocol.h#L86-L145)  
+
+> [!NOTE]
+> This was formerly known as `HolyLib.BroadcastCustomMessage`
+
+### CBaseClient
+This class represents a client.
+
+#### CBaseClient:\_\_newindex(string key, any value)
+Internally implemented and will set the values into the lua table.  
+
+#### any CBaseClient:\_\_index(string key)
+Internally seaches first in the metatable table for the key.  
+If it fails to find it, it will search in the lua table before returning.  
+If you try to get multiple values from the lua table, just use `CBaseClient:GetTable()`.  
+
+#### table CBaseClient:GetTable()
+Returns the lua table of this object.  
+You can store variables into it.  
+
+#### number CBaseClient:GetPlayerSlot()
+Returns the slot of the client. Use this for `sourcetv.GetClient`.  
+
+#### number CBaseClient:GetUserID()
+Returns the userid of the client.  
+
+#### string CBaseClient:GetName()
+Returns the name of the client.  
+
+#### string CBaseClient:GetSteamID()
+Returns the steamid of the client.  
+
+#### CBaseClient:Reconnect()
+Reconnects the HLTV client.  
+
+#### CBaseClient:ClientPrint(string message)
+Prints the given message into the client's console.  
+
+> [!NOTE]
+> It won't add `\n` at the end of the message, so you will need to add it yourself.  
+
+#### bool CBaseClient:IsValid()
+Returns `true` if the client is still valid.  
+
+#### bool (Experimental) CBaseClient:SendLua(string code)
+Sends the given code to the client to be executed.  
+Returns `true` on success.  
+
+> [!NOTE]
+> This function was readded back experimentally. It wasn't tested yet. It's still broken but doesn't crash  
+
+#### (Experimental) CBaseClient:FireEvent(IGameEvent event)  
+Fires/sends the gameevent to this specific client.  
+
+#### number CBaseClient:GetFriendsID()
+Returns the friend id.   
+
+#### string CBaseClient:GetFriendsName()
+Returns the friend name.  
+
+#### number CBaseClient:GetClientChallenge()
+Returns the client challenge number.  
+
+#### CBaseClient:SetReportThisFakeClient(bool reportClient = false)
+
+#### bool CBaseClient:ShouldReportThisFakeClient()
+
+#### CBaseClient:Inactivate()
+Inactivates the client.  
+
+> [!WARNING]
+> Know what your doing when using it!
+
+#### CBaseClient:Disconnect(string reason)
+Disconnects the client.  
+
+#### CBaseClient:SetRate(name rate)
+
+#### number CBaseClient:GetRate()
+
+#### CBaseClient:SetUpdateRate(name rate)
+
+#### number CBaseClient:GetUpdateRate()
+
+#### CBaseClient:Clear()
+Clear the client/frees the CBaseClient for the next player to use.  
+
+> [!WARNING]
+> Know what your doing when using it!
+
+#### CBaseClient:DemoRestart()
+
+#### number CBaseClient:GetMaxAckTickCount()
+
+#### CBaseClient:ExecuteStringCommand(string command)
+Executes the given command as if the client himself ran it.  
+
+#### CBaseClient:SendNetMsg(number type, string name, bf_write buffer)
+Same as `gameserver.BroadcastMessage` but it only sends it to the specific player.  #
+
+> [!NOTE]
+> This function was formerly known as `HolyLib.SendCustomMessage`  
+
+#### bool CBaseClient:IsConnected()
+
+#### bool CBaseClient:IsSpawned()
+
+#### bool CBaseClient:IsActive()
+
+#### bool CBaseClient:IsFakeClient()
+
+#### bool CBaseClient:IsHLTV()
+
+#### bool CBaseClient:IsHearingClient(number playerSlot)
+Works like `voicechat.IsHearingClient` but only takes the direct player slot.  
+
+#### bool CBaseClient:IsProximityHearingClient(number playerSlot)
+Works like `voicechat.IsProximityHearingClient` but only takes the direct player slot.  
+
+#### CBaseClient:SetMaxRoutablePayloadSize(number playloadSize)
+
+#### CBaseClient:UpdateAcknowledgedFramecount(number tick)
+
+#### bool CBaseClient:ShouldSendMessages(number tick)
+
+#### CBaseClient:UpdateSendState()
+
+#### CBaseClient:UpdateUserSettings()
+
+#### bool CBaseClient:SetSignonState(number signOnState, number spawnCount = 0, bool rawSet = false)
+Sets the SignOnState for the given client.  
+Returns `true` on success.  
+
+> [!NOTE]
+> This function does normally **not** directly set the SignOnState.  
+> Instead it calls the responsible function for the given SignOnState like for `SIGNONSTATE_PRESPAWN` it will call `SpawnPlayer` on the client.  
+> Set the `rawSet` to `true` if you want to **directly** set the SignOnState.  
+
+> [!NOTE]
+> This function was formerly known as `HolyLib.SetSignOnState`
+
+#### CBaseClient:UpdateUserSettings(bf_write buffer)
+
+#### CBaseClient:SendServerInfo()
+
+#### CBaseClient:SendSignonData()
+
+#### CBaseClient:SpawnPlayer()
+
+#### CBaseClient:ActivatePlayer()
+
+#### CBaseClient:SetName(string name)
+Sets the new name of the client.  
+
+#### CBaseClient:SetUserCVar(string convar, string value)
+
+#### CBaseClient:FreeBaselines()
+
+### CGameClient
+This class inherits CBaseClient.
+
+#### string CGameClient:\_\_tostring()
+Returns the a formated string.  
+Format: `CGameClient [%i][%s]`  
+`%i` -> UserID  
+`%s` -> ClientName  
 
 # Unfinished Modules
 

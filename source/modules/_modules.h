@@ -26,3 +26,4 @@ extern IModule* pNetModule;
 extern IModule* pEntListModule;
 extern IModule* pHttpServerModule;
 extern IModule* pLuaJITModule;
+extern IModule* pGameServerModule;

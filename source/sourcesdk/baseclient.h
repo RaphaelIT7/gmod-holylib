@@ -71,7 +71,7 @@ public:
 	virtual ~CBaseClient();
 
 public:
-
+	// IClient
 	int			GetPlayerSlot() const { return m_nClientSlot; };
 	int			GetUserID() const { return m_UserID; };
 	const USERID_t	GetNetworkID() const;
@@ -80,6 +80,8 @@ public:
 	IServer			*GetServer() { return (IServer*)m_Server; };
 	const char		*GetUserSetting(const char *cvar) const;
 	const char		*GetNetworkIDString() const;
+
+	// Others
 	uint			GetFriendsID() const { return m_nFriendsID; }
 	const char		*GetFriendsName() const { return m_FriendsName; }
 	void			UpdateName( const char *pszDefault );

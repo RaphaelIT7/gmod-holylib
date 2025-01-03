@@ -21,7 +21,7 @@ public: // First all variables
 	virtual IVEngineServer* GetEngineServer() = 0;
 	virtual IServerGameClients* GetServerGameClients() = 0;
 	virtual IServerGameEnts* GetServerGameEnts() = 0;
-	virtual IServer* GetGameServer() = 0;
+	virtual CBaseServer* GetGameServer() = 0;
 	virtual CGlobalEntityList* GetGlobalEntityList() = 0;
 	virtual CUserMessages* GetUserMessages() = 0;
 	virtual IGameEventManager2* GetGameEventManager() = 0;

@@ -4,7 +4,7 @@
 #include "lua.h"
 #include "sourcesdk/GameEventManager.h"
 #include "sourcesdk/sv_client.h"
-#include "iserver.h"
+#include "baseserver.h"
 #include "vprof.h"
 #include "sourcesdk/netmessages.h"
 #include <unordered_set>

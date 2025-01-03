@@ -222,6 +222,7 @@ void CModuleManager::LoadModules()
 	RegisterModule(pEntListModule);
 	RegisterModule(pHttpServerModule);
 	RegisterModule(pLuaJITModule);
+	RegisterModule(pGameServerModule);
 }
 
 int g_pIDs = 0;
