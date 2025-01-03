@@ -1224,7 +1224,6 @@ static void FillObjectParams(objectparams_t& params, int iStackPos, GarrysMod::L
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreatePolyObject)
 {
-	ILuaPhysicsEnvironment* pLuaEnv = Get_ILuaPhysicsEnvironment(1, true);
 	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 	CPhysCollide* pCollide = Get_CPhysCollide(2, true);
 	int materialIndex = (int)LUA->CheckNumber(3);
@@ -1239,7 +1238,6 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreatePolyObject)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreatePolyObjectStatic)
 {
-	ILuaPhysicsEnvironment* pLuaEnv = Get_ILuaPhysicsEnvironment(1, true);
 	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 	CPhysCollide* pCollide = Get_CPhysCollide(2, true);
 	int materialIndex = (int)LUA->CheckNumber(3);
@@ -1254,7 +1252,6 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreatePolyObjectStatic)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreateSphereObject)
 {
-	ILuaPhysicsEnvironment* pLuaEnv = Get_ILuaPhysicsEnvironment(1, true);
 	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 	float radius = (float)LUA->CheckNumber(2);
 	int materialIndex = (int)LUA->CheckNumber(3);
@@ -1270,7 +1267,6 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreateSphereObject)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_DestroyObject)
 {
-	ILuaPhysicsEnvironment* pLuaEnv = Get_ILuaPhysicsEnvironment(1, true);
 	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(1, true);
 	IPhysicsObject* pObject = Get_IPhysicsObject(2, true);
 

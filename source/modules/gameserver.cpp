@@ -404,7 +404,6 @@ LUA_FUNCTION_STATIC(CBaseClient_UpdateAcknowledgedFramecount)
 LUA_FUNCTION_STATIC(CBaseClient_ShouldSendMessages)
 {
 	CBaseClient* pClient = Get_CBaseClient(1, true);
-	int nTick = LUA->CheckNumber(2);
 
 	LUA->PushBool(pClient->ShouldSendMessages());
 	return 1;

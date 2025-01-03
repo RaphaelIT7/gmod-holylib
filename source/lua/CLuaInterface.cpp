@@ -416,11 +416,9 @@ bool CLuaInterface::IsType(int iStackPos, int iType)
 {
 	::DebugPrint(4, "CLuaInterface::IsType %i %i\n", iStackPos, iType);
 	int actualType = lua_type(state, iStackPos);
-	bool isType = false;
 
-	if (actualType == iType) {
+	if (actualType == iType)
 		return true;
-	}
 
 	if (iType > 8)
 	{
