@@ -49,6 +49,18 @@ void Lua::Init(GarrysMod::Lua::ILuaInterface* LUA)
 	g_Lua = LUA;
 
 	g_pModuleManager.LuaInit(false);
+
+	FileHandle_t fh = g_pFullFileSystem->Open("lua/autorun/server/_holylib.lua", "rb", "GAME");
+	if (fh)
+	{
+		int length = g_pFullFileSystem->Size(fh);
+		char* buffer = new char[length + 1];
+		g_pFullFileSystem->Read(buffer, length, fh);
+		buffer[length] = 0;
+		g_Lua->RunStringEx("_holylib.lua", "", buffer, true, true, true, true);
+		delete[] buffer;
+		g_pFullFileSystem->Close(fh);
+	}
 }
 
 void Lua::ServerInit()
