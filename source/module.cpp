@@ -4,6 +4,8 @@
 #include "convar.h"
 #include "tier0/icommandline.h"
 
+static ConVar module_debug("holylib_module_debug", "0");
+
 CModule::~CModule()
 {
 	if ( m_pCVar )
@@ -277,13 +279,17 @@ void CModuleManager::Setup(CreateInterfaceFn appfn, CreateInterfaceFn gamefn)
 #define VCALL_ENABLED_MODULES(call) \
 	for (CModule* pModule : m_pModules) { \
 		if ( !pModule->FastIsEnabled() ) { continue; } \
+		if ( module_debug.GetBool() ) { Msg("holylib: Calling(V) %s on %s\n", #call, pModule->GetModule()->Name()); } \
 		pModule->GetModule()-> call; \
+		if ( module_debug.GetBool() ) { Msg("holylib: Finished calling(V) %s on %s\n", #call, pModule->GetModule()->Name()); } \
 	}
 
 #define CALL_ENABLED_MODULES(call) \
 	for (CModule* pModule : m_pModules) { \
 		if ( !pModule->FastIsEnabled() ) { continue; } \
+		if ( module_debug.GetBool() ) { Msg("holylib: Calling %s on %s\n", #call, pModule->GetModule()->Name()); } \
 		pModule-> call; \
+		if ( module_debug.GetBool() ) { Msg("holylib: Finished calling %s on %s\n", #call, pModule->GetModule()->Name()); } \
 	}
 
 
