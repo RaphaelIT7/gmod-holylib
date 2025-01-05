@@ -73,7 +73,7 @@ static void hook_CServerGameEnts_CheckTransmit(void* gameents, CCheckTransmitInf
 
 				g_pCurrentTransmitInfo = NULL;
 				g_pCurrentEdictIndices = NULL;
-				g_nCurrentEdicts - 1;
+				g_nCurrentEdicts = -1;
 				return;
 			}
 		}
@@ -109,7 +109,7 @@ static void hook_CServerGameEnts_CheckTransmit(void* gameents, CCheckTransmitInf
 
 	g_pCurrentTransmitInfo = NULL;
 	g_pCurrentEdictIndices = NULL;
-	g_nCurrentEdicts - 1;
+	g_nCurrentEdicts = -1;
 }
 #else
 void PreSetupVisibility(unsigned char* pvs, int pvssize)
@@ -147,7 +147,7 @@ void PreCheckTransmit(void* gameents, CCheckTransmitInfo *pInfo, const unsigned 
 
 				g_pCurrentTransmitInfo = NULL;
 				g_pCurrentEdictIndices = NULL;
-				g_nCurrentEdicts - 1;
+				g_nCurrentEdicts = -1;
 				return;
 			}
 		}
@@ -168,7 +168,7 @@ void PreCheckTransmit(void* gameents, CCheckTransmitInfo *pInfo, const unsigned 
 
 	g_pCurrentTransmitInfo = NULL;
 	g_pCurrentEdictIndices = NULL;
-	g_nCurrentEdicts - 1;
+	g_nCurrentEdicts = -1;
 }
 
 void PostCheckTransmit(void* gameents, CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts)

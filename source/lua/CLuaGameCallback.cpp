@@ -28,12 +28,12 @@ Color col_msg(156, 241, 255, 200);
 Color col_error(136, 221, 255, 255);
 #endif
 
-void UTLVarArgs(char* buffer, const char* format, ...) {
+/*void UTLVarArgs(char* buffer, const char* format, ...) {
 	va_list args;
 	va_start(args, format);
-	vsnprintf(buffer, sizeof(buffer), format, args);
+	vsnprintf(buffer, strlen(buffer), format, args);
 	va_end(args);
-}
+}*/
 
 GarrysMod::Lua::ILuaObject* CLuaGameCallback::CreateLuaObject()
 {
