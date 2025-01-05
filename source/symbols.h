@@ -44,6 +44,13 @@ struct objectparams_t;
 class QAngle;
 class CFrameSnapshot;
 class CClientFrame;
+class SendTable;
+class CSendProxyRecipients;
+class bf_read;
+class bf_write;
+class CBaseServer;
+class PackedEntity;
+class CEntityWriteInfo;
 
 namespace GarrysMod::Lua
 {
@@ -366,7 +373,35 @@ namespace Symbols
 	typedef IChangeFrameList* (*AllocChangeFrameList)(int, int);
 	extern const std::vector<Symbol> AllocChangeFrameListSym;
 
+	typedef int (*SendTable_CullPropsFromProxies)(const SendTable*, const int*, int, int, const CSendProxyRecipients*, int, const CSendProxyRecipients*, int, int*, int);
+	extern const std::vector<Symbol> SendTable_CullPropsFromProxiesSym;
+
+	typedef void (*SendTable_WritePropList)(const SendTable *, const void*, int, bf_write*, const int, const int*, int);
+	extern const std::vector<Symbol> SendTable_WritePropListSym;
+
+	typedef void (*CBaseServer_WriteDeltaEntities)(CBaseServer* pServer, CBaseClient *client, CClientFrame *to, CClientFrame *from, bf_write &pBuf);
+	extern const std::vector<Symbol> CBaseServer_WriteDeltaEntitiesSym;
+
+	typedef int (*SendTable_CalcDelta)(const SendTable*, const void*, const int, const void*, const int, int*, int, const int);
+	extern const std::vector<Symbol> SendTable_CalcDeltaSym;
+
+	typedef void (__cdecl* SV_DetermineUpdateType)(CEntityWriteInfo& u);
+	extern const std::vector<Symbol> SV_DetermineUpdateTypeSym;
+
+	typedef int (*PackedEntity_GetPropsChangedAfterTick)(PackedEntity*, int tick, int* iOutProps, int nMaxOutProps);
+	extern const std::vector<Symbol> PackedEntity_GetPropsChangedAfterTickSym;
+
+	typedef void (*CGameServer_SendClientMessages)(CBaseServer* pServer, bool sendSnapshots);
+	extern const std::vector<Symbol> CGameServer_SendClientMessagesSym;
+
+	typedef void (*CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer)(CBaseEntity* pEnt, CBasePlayer* pPly, bool bPreventTransmit);
+	extern const std::vector<Symbol> CBaseEntity_GMOD_SetShouldPreventTransmitToPlayerSym;
+
+	typedef bool (*CBaseEntity_GMOD_ShouldPreventTransmitToPlayer)(CBaseEntity* pEnt, CBasePlayer* pPly);
+	extern const std::vector<Symbol> CBaseEntity_GMOD_ShouldPreventTransmitToPlayerSym;
+
 	extern const std::vector<Symbol> g_FrameSnapshotManagerSym;
+	extern const std::vector<Symbol> g_PropTypeFnsSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: steamworks Symbols

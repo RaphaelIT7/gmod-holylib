@@ -36,6 +36,7 @@ class IServerGameEnts;
 class IModuleWrapper;
 class IGameEventManager2;
 class CBaseServer;
+class IServerGameDLL;
 namespace Util
 {
 	#define LUA_REGISTRYINDEX	(-10000)
@@ -160,6 +161,7 @@ namespace Util
 	extern IVEngineServer* engineserver;
 	extern IServerGameClients* servergameclients;
 	extern IServerGameEnts* servergameents;
+	extern IServerGameDLL* servergamedll;
 	extern CBaseServer* server;
 	extern CGlobalEntityList* entitylist;
 	extern CUserMessages* pUserMessages;

@@ -187,6 +187,7 @@ CBaseEntityList* g_pEntityList = NULL;
 Symbols::lua_rawseti Util::func_lua_rawseti;
 Symbols::lua_rawgeti Util::func_lua_rawgeti;
 IGameEventManager2* Util::gameeventmanager;
+IServerGameDLL* Util::servergamedll;
 void Util::AddDetour()
 {
 	if (g_pModuleManager.GetAppFactory())
@@ -217,6 +218,12 @@ void Util::AddDetour()
 	else
 		servergameclients = server_loader.GetInterface<IServerGameClients>(INTERFACEVERSION_SERVERGAMECLIENTS);
 	Detour::CheckValue("get interface", "IServerGameClients", servergameclients != NULL);
+
+	if (g_pModuleManager.GetAppFactory())
+		servergamedll = (IServerGameDLL*)g_pModuleManager.GetGameFactory()(INTERFACEVERSION_SERVERGAMEDLL, NULL);
+	else
+		servergamedll = server_loader.GetInterface<IServerGameDLL>(INTERFACEVERSION_SERVERGAMEDLL);
+	Detour::CheckValue("get interface", "IServerGameDLL", servergamedll != NULL);
 
 	server = (CBaseServer*)InterfacePointers::Server();
 	Detour::CheckValue("get class", "IServer", server != NULL);

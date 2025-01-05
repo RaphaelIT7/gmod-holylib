@@ -465,9 +465,59 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x55\x41\x54\x41\x89\xFC\xBF\x28"), // 55 48 89 E5 41 55 41 54 41 89 FC BF 28
 	};
 
+	const std::vector<Symbol> SendTable_CullPropsFromProxiesSym = { // CPropCullStack::AddProp - m_pOutProps overflowed
+		Symbol::FromName("_Z30SendTable_CullPropsFromProxiesPK9SendTablePKiiiPK20CSendProxyRecipientsiS6_iPii"),
+		Symbol::FromSignature(""), // ToDo
+	};
+
+	const std::vector<Symbol> SendTable_WritePropListSym = { // SendTable_WritePropList->inputBuffer
+		Symbol::FromName("_Z23SendTable_WritePropListPK9SendTablePKviP8bf_writeiPKii"),
+		Symbol::FromSignature(""), // ToDo
+	};
+
+	const std::vector<Symbol> CBaseServer_WriteDeltaEntitiesSym = { // CBaseServer::WriteDeltaEntities
+		Symbol::FromName("_ZN11CBaseServer18WriteDeltaEntitiesEP11CBaseClientP12CClientFrameS3_R8bf_write"),
+		Symbol::FromSignature(""), // ToDo
+	};
+
+	const std::vector<Symbol> SendTable_CalcDeltaSym = {
+		Symbol::FromName("_Z19SendTable_CalcDeltaPK9SendTablePKviS3_iPiii"),
+		Symbol::FromSignature(""), // ToDo
+	};
+
+	const std::vector<Symbol> SV_DetermineUpdateTypeSym = { // CBaseServer::WriteDeltaEntities
+		Symbol::FromName("_ZL22SV_DetermineUpdateTypeR16CEntityWriteInfo"),
+		Symbol::FromSignature(""), // ToDo
+	};
+
+	const std::vector<Symbol> PackedEntity_GetPropsChangedAfterTickSym = { //
+		Symbol::FromName("_ZN12PackedEntity24GetPropsChangedAfterTickEiPii"),
+		Symbol::FromSignature(""), // ToDo
+	};
+
+	const std::vector<Symbol> CGameServer_SendClientMessagesSym = { //
+		Symbol::FromName("_ZN11CGameServer18SendClientMessagesEb"),
+		Symbol::FromSignature(""), // ToDo
+	};
+
+	const std::vector<Symbol> CBaseEntity_GMOD_SetShouldPreventTransmitToPlayerSym = { //
+		Symbol::FromName("_ZN11CBaseEntity37GMOD_SetShouldPreventTransmitToPlayerEP11CBasePlayerb"),
+		Symbol::FromSignature(""), // ToDo
+	};
+
+	const std::vector<Symbol> CBaseEntity_GMOD_ShouldPreventTransmitToPlayerSym = { //
+		Symbol::FromName("_ZN11CBaseEntity34GMOD_ShouldPreventTransmitToPlayerEP11CBasePlayer"),
+		Symbol::FromSignature(""), // ToDo
+	};
+
 	const std::vector<Symbol> g_FrameSnapshotManagerSym = {
 		Symbol::FromName("framesnapshotmanager"),
 		Symbol::FromSignature("\x48\x8B\x2A\x2A\x2A\x2A\x2A\x48\x8B\x38\x48\x8B\x07*\x50\x10\x48\x8D\x43\x15"), // 48 8B ?? ?? ?? ?? ?? 48 8B 38 48 8B 07 ?? 50 10 48 8D 43 15 || "framesnapshotmanager->LevelChanged()" || "sv.Clear()"
+	};
+
+	const std::vector<Symbol> g_PropTypeFnsSym = {
+		Symbol::FromName("g_PropTypeFns"),
+		Symbol::FromSignature(""), // ToDo
 	};
 
 	//---------------------------------------------------------------------------------
