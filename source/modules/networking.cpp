@@ -169,40 +169,16 @@ static IChangeFrameList* hook_AllocChangeFrameList(int nProperties, int iCurTick
 // -------------------------------------------------------------------------------------------------
 
 static std::unordered_map<CBasePlayer*, std::unordered_set<CBaseEntity*>> g_pShouldPreventTransmitPlayer;
-static std::unordered_map<CBaseEntity*, std::unordered_set<CBasePlayer*>> g_pShouldPreventTransmit;
+static bool g_pShouldPrevent[MAX_EDICTS][MAX_PLAYERS];
 static Detouring::Hook detour_CBaseEntity_GMOD_ShouldPreventTransmitToPlayer;
 static bool hook_CBaseEntity_GMOD_ShouldPreventTransmitToPlayer(CBaseEntity* ent, CBasePlayer* ply)
 {
-	auto it = g_pShouldPreventTransmit.find(ent);
-	if (it == g_pShouldPreventTransmit.end())
-		return false;
-
-	auto it2 = it->second.find(ply);
-	if (it2 == it->second.end())
-		return false;
-
-	return true;
+	return g_pShouldPrevent[ent->entindex()][ply->entindex()-1];
 }
 
 static void CleanupEntity(CBaseEntity* pEnt, bool bPlyCleanup = false)
 {
-	auto it = g_pShouldPreventTransmit.find(pEnt);
-	if (it == g_pShouldPreventTransmit.end())
-		return;
-
-	for (CBasePlayer* ply : it->second)
-	{
-		auto it2 = g_pShouldPreventTransmitPlayer.find(ply);
-		if (it2 == g_pShouldPreventTransmitPlayer.end())
-			continue;
-
-		auto it3 = it2->second.find(pEnt);
-		if (it3 != it2->second.end())
-			it2->second.erase(it3);
-	}
-
-	if (!bPlyCleanup)
-		g_pShouldPreventTransmit.erase(it);
+	memset(g_pShouldPrevent[pEnt->entindex()], 0, MAX_PLAYERS);
 }
 
 static void CleaupSetPreventTransmit(CBaseEntity* ent)
@@ -213,13 +189,13 @@ static void CleaupSetPreventTransmit(CBaseEntity* ent)
 		return;
 	}
 
-	CBasePlayer* ply = (CBasePlayer*)ent;
-	auto it = g_pShouldPreventTransmitPlayer.find(ply);
+	CBasePlayer* pPly = (CBasePlayer*)ent;
+	auto it = g_pShouldPreventTransmitPlayer.find(pPly);
 	if (it == g_pShouldPreventTransmitPlayer.end())
 		return;
 
 	for (CBaseEntity* pEnt : it->second)
-		CleanupEntity(pEnt, true);
+		g_pShouldPrevent[pEnt->entindex()][pPly->entindex()-1] = false;
 
 	g_pShouldPreventTransmitPlayer.erase(it);
 }
@@ -227,14 +203,6 @@ static void CleaupSetPreventTransmit(CBaseEntity* ent)
 static Detouring::Hook detour_CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer;
 static void hook_CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer(CBaseEntity* pEnt, CBasePlayer* pPly, bool bPreventTransmit)
 {
-	auto entSet = g_pShouldPreventTransmit[pEnt];
-	auto plyIT = entSet.find(pPly);
-	if (plyIT != entSet.end() && bPreventTransmit) // Player is already being prevented
-		return;
-
-	if (plyIT == entSet.end() && !bPreventTransmit) // Player is already not being prevented.
-		return;
-
 	auto plySet = g_pShouldPreventTransmitPlayer[pPly];
 	auto entIT = plySet.find(pEnt);
 	if (bPreventTransmit)
@@ -242,12 +210,12 @@ static void hook_CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer(CBaseEntity* 
 		if (entIT == plySet.end())
 			plySet.insert(pEnt);
 
-		entSet.insert(pPly);
+		g_pShouldPrevent[pEnt->entindex()][pPly->entindex()-1] = true;
 	} else {
 		if (entIT != plySet.end())
 			plySet.erase(entIT);
 
-		entSet.erase(plyIT);
+		g_pShouldPrevent[pEnt->entindex()][pPly->entindex()-1] = false;
 	}
 }
 
