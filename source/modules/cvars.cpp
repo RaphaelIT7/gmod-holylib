@@ -20,13 +20,48 @@ static CCVarsModule g_pCVarsModule;
 IModule* pCVarsModule = &g_pCVarsModule;
 
 #if ARCHITECTURE_IS_X86
-static std::unordered_map<std::string_view, ConCommandBase*> g_pConCommandNames;
+static std::unordered_map<std::string, ConCommandBase*> g_pConCommandNames;
+
+/*
+ * BUG: The Source engine uses Q_stricmp -> V_stricmp which is case insensitive, so we need to account for that.
+ */
+inline void AddConVarName(ConCommandBase* variable)
+{
+	std::string strName = variable->GetName();
+	std::transform(strName.begin(), strName.end(), strName.begin(), ::tolower);
+
+	g_pConCommandNames.try_emplace(strName, variable);
+}
+
+inline void RemoveConVarName(const ConCommandBase* variable)
+{
+	std::string strName = variable->GetName();
+	std::transform(strName.begin(), strName.end(), strName.begin(), ::tolower);
+
+	auto it = g_pConCommandNames.find(strName);
+	if (it != g_pConCommandNames.end())
+		g_pConCommandNames.erase(it);
+}
+
+inline ConCommandBase* FindConVarName(const char* name)
+{
+	std::string strName = name;
+	std::transform(strName.begin(), strName.end(), strName.begin(), ::tolower);
+
+	auto it = g_pConCommandNames.find(strName);
+	if (it != g_pConCommandNames.end())
+		return it->second;
+
+	return NULL;
+}
+
 Detouring::Hook detour_CCvar_RegisterConCommand;
 void hook_CCvar_RegisterConCommand(ICvar* pCVar, ConCommandBase* variable)
 {
 	if (g_pCVarsModule.InDebug())
 		Msg("holylib: About to register %s convar\n", variable->GetName());
 
+	// Internally calls FindCommandBase so expect a single "Failed to find xyz" message when debugging
 	detour_CCvar_RegisterConCommand.GetTrampoline<Symbols::CCvar_RegisterConCommand>()(pCVar, variable);
 
 	if (!variable->GetNext())
@@ -37,7 +72,7 @@ void hook_CCvar_RegisterConCommand(ICvar* pCVar, ConCommandBase* variable)
 		return; // Failed to register
 	}
 
-	g_pConCommandNames[variable->GetName()] = variable;
+	AddConVarName(variable);
 
 	if (g_pCVarsModule.InDebug())
 		Msg("holylib: registered %s convar\n", variable->GetName());
@@ -56,9 +91,7 @@ void hook_CCvar_UnregisterConCommand(ICvar* pCVar, ConCommandBase* pCommandToRem
 		return; // Failed to unregister.
 	}
 
-	auto it = g_pConCommandNames.find(pCommandToRemove->GetName());
-	if (it != g_pConCommandNames.end())
-		g_pConCommandNames.erase(it);
+	RemoveConVarName(pCommandToRemove);
 
 	if (g_pCVarsModule.InDebug())
 		Msg("holylib: unregistered %s convar\n", pCommandToRemove->GetName());
@@ -80,9 +113,7 @@ void hook_CCvar_UnregisterConCommands(ICvar* pCVar, CVarDLLIdentifier_t id)
 #endif
 		if (pCommand->GetDLLIdentifier() == id)
 		{
-			auto it = g_pConCommandNames.find(pCommand->GetName());
-			if (it != g_pConCommandNames.end())
-				g_pConCommandNames.erase(it);
+			RemoveConVarName(pCommand);
 
 			if (g_pCVarsModule.InDebug())
 				Msg("holylib: Unregistered %s convars\n", pCommand->GetName());
@@ -95,27 +126,23 @@ void hook_CCvar_UnregisterConCommands(ICvar* pCVar, CVarDLLIdentifier_t id)
 Detouring::Hook detour_CCvar_FindCommandBaseConst;
 const ConCommandBase* hook_CCvar_FindCommandBaseConst(ICvar* pCVar, const char* name)
 {
-	auto it = g_pConCommandNames.find( name );
-	if (it != g_pConCommandNames.end())
-		return it->second;
+	ConCommandBase* pVar = FindConVarName(name);
 
-	if (g_pCVarsModule.InDebug())
+	if (!pVar && g_pCVarsModule.InDebug())
 		Msg("holylib: Failed to find %s convar!\n", name);
 
-	return NULL;
+	return pVar;
 }
 
 Detouring::Hook detour_CCvar_FindCommandBase;
 ConCommandBase* hook_CCvar_FindCommandBase(ICvar* pCVar, const char* name)
 {
-	auto it = g_pConCommandNames.find( name );
-	if (it != g_pConCommandNames.end())
-		return it->second;
+	ConCommandBase* pVar = FindConVarName(name);
 
-	if (g_pCVarsModule.InDebug())
+	if (!pVar && g_pCVarsModule.InDebug())
 		Msg("holylib: Failed to find %s convar!\n", name);
 
-	return NULL;
+	return pVar;
 }
 #endif
 
@@ -225,7 +252,7 @@ void CCVarsModule::InitDetour(bool bServerInit)
 
 	ICvar* pCVar = vstdlib_loader.GetInterface<ICvar>(CVAR_INTERFACE_VERSION); // g_pCVar isn't initialized yet since tiers didn't connect yet.
 	for (ConCommandBase *pCommand = pCVar->GetCommands(); pCommand; pCommand = pCommand->GetNext())
-		g_pConCommandNames.try_emplace(pCommand->GetName(), pCommand);
+		AddConVarName(pCommand);
 }
 
 void CCVarsModule::Shutdown()

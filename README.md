@@ -74,6 +74,7 @@ On the next startup the ghostinj will update holylib to use the new file.
 \- [#] Optimized `Util::Push_Entity` and replaced `LUA->Raw[Get/Set]` usage with faster `Util::Raw[GetI/SetI]`.  
 \- [#] Optimized `GMod_Util_IsPhysicsObjectValid` to solve a regression introduced by new `physenv` changes.  
 \- [#] Small networking optimizations.  
+\- [#] Optimized `CCvar::FindVar` (50x faster in average).  
 \- [#] Fixed `pvs.RemoveAllEntityFromTransmit` possibly causing stack issues.  
 
 You can see all changes here:  
