@@ -24,25 +24,44 @@ static std::unordered_map<std::string_view, ConCommandBase*> g_pConCommandNames;
 Detouring::Hook detour_CCvar_RegisterConCommand;
 void hook_CCvar_RegisterConCommand(ICvar* pCVar, ConCommandBase* variable)
 {
+	if (g_pCVarsModule.InDebug())
+		Msg("holylib: About to register %s convar\n", variable->GetName());
+
 	detour_CCvar_RegisterConCommand.GetTrampoline<Symbols::CCvar_RegisterConCommand>()(pCVar, variable);
 
 	if (!variable->GetNext())
+	{
+		if (g_pCVarsModule.InDebug())
+			Msg("holylib: failed to register %s convar\n", variable->GetName());
+
 		return; // Failed to register
+	}
 
 	g_pConCommandNames[variable->GetName()] = variable;
+
+	if (g_pCVarsModule.InDebug())
+		Msg("holylib: registered %s convar\n", variable->GetName());
 }
 
 Detouring::Hook detour_CCvar_UnregisterConCommand;
 void hook_CCvar_UnregisterConCommand(ICvar* pCVar, ConCommandBase* pCommandToRemove)
 {
-	detour_CCvar_UnregisterConCommand.GetTrampoline<Symbols::CCvar_RegisterConCommand>()(pCVar, pCommandToRemove);
+	detour_CCvar_UnregisterConCommand.GetTrampoline<Symbols::CCvar_UnregisterConCommand>()(pCVar, pCommandToRemove);
 
 	if (pCommandToRemove->GetNext())
+	{
+		if (g_pCVarsModule.InDebug())
+			Msg("holylib: failed to unregister %s convar\n", pCommandToRemove->GetName());
+
 		return; // Failed to unregister.
+	}
 
 	auto it = g_pConCommandNames.find(pCommandToRemove->GetName());
 	if (it != g_pConCommandNames.end())
 		g_pConCommandNames.erase(it);
+
+	if (g_pCVarsModule.InDebug())
+		Msg("holylib: unregistered %s convar\n", pCommandToRemove->GetName());
 }
 
 Detouring::Hook detour_CCvar_UnregisterConCommands;
@@ -64,6 +83,9 @@ void hook_CCvar_UnregisterConCommands(ICvar* pCVar, CVarDLLIdentifier_t id)
 			auto it = g_pConCommandNames.find(pCommand->GetName());
 			if (it != g_pConCommandNames.end())
 				g_pConCommandNames.erase(it);
+
+			if (g_pCVarsModule.InDebug())
+				Msg("holylib: Unregistered %s convars\n", pCommand->GetName());
 		}
 	}
 
