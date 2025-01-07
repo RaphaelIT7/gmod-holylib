@@ -675,4 +675,27 @@ namespace Symbols
 	const std::vector<Symbol> CLuaInterface_GetTypeSym = {
 		Symbol::FromName("_ZN13CLuaInterface7GetTypeEi"),
 	};
+
+	//---------------------------------------------------------------------------------
+	// Purpose: cvar Symbols
+	//---------------------------------------------------------------------------------
+	const std::vector<Symbol> CCvar_RegisterConCommandSym = {
+		Symbol::FromName("_ZN5CCvar18RegisterConCommandEP14ConCommandBase"),
+	};
+
+	const std::vector<Symbol> CCvar_UnregisterConCommandSym = {
+		Symbol::FromName("_ZN5CCvar20UnregisterConCommandEP14ConCommandBase"),
+	};
+
+	const std::vector<Symbol> CCvar_UnregisterConCommandsSym = {
+		Symbol::FromName("_ZN5CCvar21UnregisterConCommandsEi"),
+	};
+
+	const std::vector<Symbol> CCvar_FindCommandBaseConstSym = {
+		Symbol::FromName("_ZNK5CCvar15FindCommandBaseEPKc"),
+	};
+
+	const std::vector<Symbol> CCvar_FindCommandBaseSym = {
+		Symbol::FromName("_ZN5CCvar15FindCommandBaseEPKc"),
+	};
 }

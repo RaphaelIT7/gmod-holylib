@@ -51,6 +51,8 @@ class bf_write;
 class CBaseServer;
 class PackedEntity;
 class CEntityWriteInfo;
+class ICvar;
+class ConCommandBase;
 
 namespace GarrysMod::Lua
 {
@@ -82,6 +84,8 @@ struct ThreadPoolStartParams_t;
   * Currently every single hook seems to break gmod and every call to a hook seems broken.
   * It's probably some shit with calling convention or so but I have no fking Idea how to solve that :<
   * If someone knows how I could fix this, please let me know.
+  * 
+  * Update: First, class hooks, don't have "this"/the first argument meaning you require a ClassProxy
   */
 
 namespace Symbols
@@ -512,4 +516,22 @@ namespace Symbols
 
 	typedef void (*CClientFrame_D2)(CClientFrame*); // WHY DOES IT HAVE THREE DECONSTRUCTORS >:(
 	extern const std::vector<Symbol> CClientFrame_D2Sym;
+
+	//---------------------------------------------------------------------------------
+	// Purpose: cvar Symbols
+	//---------------------------------------------------------------------------------
+	typedef void (*CCvar_RegisterConCommand)(ICvar*, ConCommandBase*);
+	extern const std::vector<Symbol> CCvar_RegisterConCommandSym;
+
+	typedef void (*CCvar_UnregisterConCommand)(ICvar*, ConCommandBase*);
+	extern const std::vector<Symbol> CCvar_UnregisterConCommandSym;
+
+	typedef void (*CCvar_UnregisterConCommands)(ICvar*, int);
+	extern const std::vector<Symbol> CCvar_UnregisterConCommandsSym;
+
+	typedef const ConCommandBase* (*CCvar_FindCommandBaseConst)(ICvar*, const char* name);
+	extern const std::vector<Symbol> CCvar_FindCommandBaseConstSym;
+
+	typedef ConCommandBase* (*CCvar_FindCommandBase)(ICvar*, const char* name);
+	extern const std::vector<Symbol> CCvar_FindCommandBaseSym;
 }
