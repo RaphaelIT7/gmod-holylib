@@ -46,8 +46,10 @@ bool Lua::PushHook(const char* hook)
 
 void Lua::Init(GarrysMod::Lua::ILuaInterface* LUA)
 {
-	g_Lua = LUA;
+	if (g_Lua)
+		Error("g_Lua is already Initialized!\n");
 
+	g_Lua = LUA;
 	g_pModuleManager.LuaInit(false);
 
 	FileHandle_t fh = g_pFullFileSystem->Open("lua/autorun/server/_holylib.lua", "rb", "GAME");
