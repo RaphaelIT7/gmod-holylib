@@ -68,6 +68,7 @@ LUA_FUNCTION_STATIC(cvars_Unregister)
 	return 0;
 }
 
+// ToDo: Port over find optimization later
 void CCVarsModule::LuaInit(bool bServerInit)
 {
 	if (bServerInit)

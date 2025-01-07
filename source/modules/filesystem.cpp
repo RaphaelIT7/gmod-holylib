@@ -2092,6 +2092,7 @@ LUA_FUNCTION_STATIC(filesystem_TimeAccessed)
 	return 1;
 }
 
+// Maybe we replace the entire addon system later
 namespace Addon
 {
 	class UpdatedFileSystem // ToDo: Fix this to work on windows.
@@ -2099,7 +2100,7 @@ namespace Addon
 		public:
 			virtual void Clear( ) = 0;
 			virtual void Refresh( ) = 0;
-			virtual int MountFile( const std::string &, std::vector<std::string> * ) = 0;
+			virtual int MountFile( const std::string& gmaPath, std::vector<std::string>* files) = 0;
 			virtual bool ShouldMount( const std::string & ) = 0;
 			virtual bool ShouldMount( uint64_t ) = 0;
 #ifdef DEDICATED
@@ -2133,7 +2134,60 @@ namespace Addon
 			virtual void IsAddonValidPreInstall( SteamUGCDetails_t ) = 0;
 			virtual void Load( ) = 0;
 	};
+}
 
+inline Addon::UpdatedFileSystem* GetAddonFilesystem()
+{
+	return (Addon::UpdatedFileSystem*)g_pFullFileSystem->Addons();
+}
+
+LUA_FUNCTION_STATIC(addonsystem_Clear)
+{
+	GetAddonFilesystem()->Clear();
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(addonsystem_Refresh)
+{
+	GetAddonFilesystem()->Refresh();
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(addonsystem_MountFile)
+{
+	const char* strGMAPath = LUA->CheckString(1);
+
+	std::vector<std::string> files;
+	LUA->PushNumber(GetAddonFilesystem()->MountFile(strGMAPath, &files));
+
+	LUA->PreCreateTable(files.size(), 0);
+		int idx = 0;
+		for (const std::string& strFile : files)
+		{
+			LUA->PushString(strFile.c_str());
+			Util::RawSetI(-2, ++idx);
+		}
+
+	return 2;
+}
+
+LUA_FUNCTION_STATIC(addonsystem_ShouldMount)
+{
+	if (LUA->IsType(1, GarrysMod::Lua::Type::Number))
+		LUA->PushBool(GetAddonFilesystem()->ShouldMount(LUA->GetNumber(1)));
+	else
+		LUA->PushBool(GetAddonFilesystem()->ShouldMount(LUA->CheckString(1)));
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(addonsystem_SetShouldMount)
+{
+	const char* filePath = LUA->CheckString(1);
+	bool bMount = LUA->GetBool(2);
+	GetAddonFilesystem()->SetShouldMount(filePath, bMount);
+
+	return 0;
 }
 
 // Gmod's filesystem functions have some weird stuff in them that makes them noticeably slower :/
@@ -2166,7 +2220,11 @@ void CFileSystemModule::LuaInit(bool bServerInit)
 	Util::FinishTable("filesystem");
 
 	Util::StartTable();
-		
+		Util::AddFunc(addonsystem_Clear, "Clear");
+		Util::AddFunc(addonsystem_Refresh, "Refresh");
+		Util::AddFunc(addonsystem_MountFile, "MountFile");
+		Util::AddFunc(addonsystem_ShouldMount, "ShouldMount");
+		Util::AddFunc(addonsystem_SetShouldMount, "SetShouldMount");
 	Util::FinishTable("addonsystem");
 }
 

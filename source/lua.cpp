@@ -47,7 +47,10 @@ bool Lua::PushHook(const char* hook)
 void Lua::Init(GarrysMod::Lua::ILuaInterface* LUA)
 {
 	if (g_Lua)
-		Error("g_Lua is already Initialized!\n");
+	{
+		Warning("g_Lua is already Initialized! Skipping... (%p, %p)\n", g_Lua, LUA);
+		return;
+	}
 
 	g_Lua = LUA;
 	g_pModuleManager.LuaInit(false);
