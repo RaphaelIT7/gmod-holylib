@@ -1231,12 +1231,10 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 void CNetworkingModule::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
 {
 	// Find player class (has DT_BasePlayer as a baseclass table)
+	// We do this in ServerActivate since the engine only now hooked into the ServerClass allowing us to safely use them now.
 	g_SharedEdictChangeInfo = Util::engineserver->GetSharedEdictChangeInfo();
 	for(ServerClass *serverclass = Util::servergamedll->GetAllServerClasses(); serverclass->m_pNext != nullptr; serverclass = serverclass->m_pNext) {
 		for (int i = 0; i < serverclass->m_pTable->GetNumProps(); i++) {
-			if (serverclass->m_pTable->GetProp(i)->GetDataTable() != nullptr)
-				Msg("Name: %s (%p)\n", serverclass->m_pTable->GetProp(i)->GetDataTable()->GetName(), serverclass->m_pTable->m_pPrecalc);
-			
 			if (serverclass->m_pTable->GetProp(i)->GetDataTable() != nullptr && strcmp(serverclass->m_pTable->GetProp(i)->GetDataTable()->GetName(), "DT_BasePlayer") == 0 ) {
 				playerSendTable = serverclass->m_pTable;
 				playerServerClass = serverclass;
