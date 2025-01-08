@@ -660,7 +660,7 @@ LUA_FUNCTION_STATIC(gameserver_GetClient)
 	if (iClientIndex >= Util::server->GetClientCount())
 		return 0;
 
-	CBaseClient* pClient = Util::server->Client(iClientIndex);
+	CBaseClient* pClient = (CBaseClient*)((IServer*)Util::server)->GetClient(iClientIndex);
 	if (pClient && !pClient->IsConnected())
 		pClient = NULL;
 
@@ -687,7 +687,7 @@ LUA_FUNCTION_STATIC(gameserver_GetAll)
 		int iTableIndex = 0;
 		for (int iClientIndex=0; iClientIndex<Util::server->GetClientCount(); ++iClientIndex)
 		{
-			CBaseClient* pClient = Util::server->Client(iClientIndex);
+			CBaseClient* pClient = (CBaseClient*)((IServer*)Util::server)->GetClient(iClientIndex);
 			if (!pClient->IsConnected())
 				continue;
 
