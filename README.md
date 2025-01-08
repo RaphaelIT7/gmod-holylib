@@ -60,6 +60,7 @@ On the next startup the ghostinj will update holylib to use the new file.
 \- [+] Added `INetworkStringTable:GetTable`, `CHLTVClient:GetTable`, `VoiceData:GetTable`, `IGameEvent:GetTable`, `bf_read:GetTable`, `bf_write:GetTable` functions.  
 \- [+] Added `pvs.TestPVS`, `pvs.FindInPVS` and `pvs.ForceFullUpdate` functions to `pvs` module.  
 \- [+] Added `HolyLib.GetRegistry`, `HolyLib.ExitLadder`, `HolyLib.GetLadder` and `HolyLib.Disconnect` to `holylib` module.  
+\- [+] Added `cvar.Find` to `cvars` module.  
 \- [+] Exposed `IHolyUtil` interface and added `IHolyLib::PreLoad` and `IHolyLib:GetHolyUtil`.  
 \- [+] Added (Experimental)`holylib_filesystem_savesearchcache` optimization to filesystem module.  
 \- [+] Added Windows support for `bitbuf`, `cvars`, (partially)`filesystem`, `pas`, `util`, `voicechat` and (partially)`vprof`  
@@ -1394,8 +1395,12 @@ Returns a sequential table with all ConVar's that exist.
 Set the convat to the given value.  
 Returns `true` on success.  
 
-##### cvar.Unregister(ConVar cvar / String name)
+##### cvar.Unregister(ConVar cvar / string name)
 Unregisters the given convar.  
+
+#### ConVar cvar.Find(string name)
+Returns the found ConVar or `nil` on failure.  
+Unlike Gmod's `GetConVar_Internal` there are no restrictions placed on it.  
 
 ## sourcetv
 This module plans to add a new `sourcetv` library and a new class `HLTVPlayer` will allow a SourceTV client to send net messages to the server.  

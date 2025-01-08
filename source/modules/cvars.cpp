@@ -200,6 +200,21 @@ LUA_FUNCTION_STATIC(cvars_Unregister)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(cvars_Find)
+{
+	const char* strName = LUA->CheckString(1);
+
+	IConVar* pConVar = g_pCVar->FindVar(strName);
+	if (!pConVar)
+	{
+		LUA->PushNil();
+		return 1;
+	}
+
+	LUA->PushUserType((ConVar*)pConVar, GarrysMod::Lua::Type::ConVar);
+	return 1;
+}
+
 // ToDo: Port over find optimization later
 void CCVarsModule::LuaInit(bool bServerInit)
 {
@@ -210,6 +225,7 @@ void CCVarsModule::LuaInit(bool bServerInit)
 		Util::AddFunc(cvars_GetAll, "GetAll");
 		Util::AddFunc(cvars_SetValue, "SetValue");
 		Util::AddFunc(cvars_Unregister, "Unregister");
+		Util::AddFunc(cvars_Find, "Find");
 	Util::FinishTable("cvar");
 }
 
