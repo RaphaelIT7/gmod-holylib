@@ -562,18 +562,6 @@ void CSourceTVLibModule::LuaInit(bool bServerInit)
 
 	ref_tv_debug = cvar->FindVar("tv_debug"); // We only search for it once. Verify: ConVarRef would always search for it in it's constructor/Init if I remember correctly.
 
-	if (CBaseClient_TypeID == -1)
-	{
-		IModuleWrapper* pGameServer = g_pModuleManager.FindModuleByName("gameserver");
-		if (pGameServer && !pGameServer->IsEnabled())
-			Warning("holylib: CBaseClient_TypeID is -1 because gameserver module is disabled! Disabling SourceTV module!\n");
-		else
-			Warning("holylib: CBaseClient_TypeID is -1 for some reason! Disabling SourceTV module!\n");
-
-		g_pModuleManager.FindModuleByName("sourcetv")->SetEnabled(false); // Unsafe to continue existing, so nuke ourself
-		return;
-	}
-
 	CHLTVClient_TypeID = g_Lua->CreateMetaTable("CHLTVClient");
 		Push_CBaseClientMeta();
 
