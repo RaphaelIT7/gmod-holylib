@@ -698,4 +698,19 @@ namespace Symbols
 	const std::vector<Symbol> CCvar_FindCommandBaseSym = {
 		Symbol::FromName("_ZN5CCvar15FindCommandBaseEPKc"),
 	};
+
+	//---------------------------------------------------------------------------------
+	// Purpose: gameserver Symbols
+	//---------------------------------------------------------------------------------
+	const std::vector<Symbol> CServerGameClients_GetPlayerLimitSym = {
+		Symbol::FromName("_ZNK18CServerGameClients15GetPlayerLimitsERiS0_S0_"),
+	};
+
+	const std::vector<Symbol> CBaseServer_FillServerInfoSym = {
+		Symbol::FromName("_ZN11CBaseServer14FillServerInfoER14SVC_ServerInfo"),
+	};
+
+	const std::vector<Symbol> MD5_MapFileSym = {
+		Symbol::FromName("_Z11MD5_MapFileP10MD5Value_tPKc"),
+	};
 }

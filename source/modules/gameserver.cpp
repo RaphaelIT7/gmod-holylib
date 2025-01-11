@@ -1,6 +1,7 @@
 #include "module.h"
 #include "LuaInterface.h"
 #include "lua.h"
+#include "detours.h"
 #include "usermessages.h"
 #include "sv_client.h"
 #include "sourcesdk/baseserver.h"
@@ -11,6 +12,7 @@ public:
 	virtual void LuaInit(bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown() OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
+	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) OVERRIDE;
 	virtual const char* Name() { return "gameserver"; };
 	virtual int Compatibility() { return LINUX32; };
 };
@@ -940,9 +942,79 @@ void CGameServerModule::LuaShutdown()
 {
 }
 
+static Detouring::Hook detour_CServerGameClients_GetPlayerLimit;
+static void hook_CServerGameClients_GetPlayerLimit(void* funkyClass, int& minPlayers, int& maxPlayers, int& defaultMaxPlayers)
+{
+	minPlayers = 1;
+	maxPlayers = 255; // Allows one to go up to 255 slots.
+	defaultMaxPlayers = 255;
+}
+
+/*
+ * ToDo: Ask Rubat if were allowed to modify m_nMaxClients to clamp it between 2 and 128
+ *       Why ask? Because it could be considered breaking gmod server operator rules.
+ *       "Do not fake server information. This mostly means player count, but other data also applies."
+ */
+static MD5Value_t worldmapMD5;
+static Detouring::Hook detour_CBaseServer_FillServerInfo;
+static void hook_CBaseServer_FillServerInfo(void* srv, SVC_ServerInfo& info)
+{
+	detour_CBaseServer_FillServerInfo.GetTrampoline<Symbols::CBaseServer_FillServerInfo>()(srv, info);
+
+	// Fixes a crash("UpdatePlayerName with bogus slot 129") when joining a server which has more than 128 slots / is over MAX_PLAYERS
+	if ( info.m_nMaxClients > 128 )
+		info.m_nMaxClients = 128;
+
+	if ( info.m_nMaxClients <= 1 )
+	{
+		// Fixes clients denying the serverinfo on singleplayer games.
+		info.m_nMaxClients = 2;
+
+		// singleplayer games don't create a MD5, so we have to do it ourself.
+		V_memcpy( info.m_nMapMD5.bits, worldmapMD5.bits, MD5_DIGEST_LENGTH );
+	}
+}
+
+static Symbols::MD5_MapFile func_MD5_MapFile;
 void CGameServerModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
 		return;
 
+	SourceSDK::FactoryLoader engine_loader("engine");
+	Detour::Create(
+		&detour_CBaseServer_FillServerInfo, "CBaseServer::FillServerInfo",
+		engine_loader.GetModule(), Symbols::CBaseServer_FillServerInfoSym,
+		(void*)hook_CBaseServer_FillServerInfo, m_pID
+	);
+
+	Detour::Create(
+		&detour_CServerGameClients_GetPlayerLimit, "CServerGameClients::GetPlayerLimit",
+		engine_loader.GetModule(), Symbols::CServerGameClients_GetPlayerLimitSym,
+		(void*)hook_CServerGameClients_GetPlayerLimit, m_pID
+	);
+
+	func_MD5_MapFile = (Symbols::MD5_MapFile)Detour::GetFunction(engine_loader.GetModule(), Symbols::MD5_MapFileSym);
+	Detour::CheckFunction((void*)func_MD5_MapFile, "MD5_MapFile");
+}
+
+void CGameServerModule::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
+{
+	if (!Util::server)
+		return;
+
+	// In Singleplayer it DOESNT create a CRC meaning you can't connect "Client's map differs from Server's"
+	if (Util::server->GetMaxClients() == 1 && func_MD5_MapFile)
+	{
+		std::string map = "maps/";
+		map.append(Util::server->GetMapName());
+		map.append(".bsp");
+		V_memset( worldmapMD5.bits, 0, MD5_DIGEST_LENGTH );
+		if ( !func_MD5_MapFile( &worldmapMD5, map.c_str() ) )
+		{
+			ConMsg( "holylib: Couldn't CRC server map: %s\n", map.c_str() );
+		} else {
+			ConMsg( "holylib: Created CRC for map: %s\n", map.c_str() );
+		}
+	}
 }

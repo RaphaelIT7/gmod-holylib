@@ -53,6 +53,8 @@ class PackedEntity;
 class CEntityWriteInfo;
 class ICvar;
 class ConCommandBase;
+class SVC_ServerInfo;
+struct MD5Value_t;
 
 namespace GarrysMod::Lua
 {
@@ -516,6 +518,15 @@ namespace Symbols
 
 	typedef void (*CClientFrame_D2)(CClientFrame*); // WHY DOES IT HAVE THREE DECONSTRUCTORS >:(
 	extern const std::vector<Symbol> CClientFrame_D2Sym;
+
+	typedef void (*CServerGameClients_GetPlayerLimit)(void*, int&, int&, int&);
+	extern const std::vector<Symbol> CServerGameClients_GetPlayerLimitSym;
+
+	typedef void (*CBaseServer_FillServerInfo)(void*, SVC_ServerInfo&);
+	extern const std::vector<Symbol> CBaseServer_FillServerInfoSym;
+
+	typedef bool (*MD5_MapFile)(MD5Value_t*, const char*);
+	extern const std::vector<Symbol> MD5_MapFileSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: cvar Symbols

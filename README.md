@@ -3277,6 +3277,28 @@ Format: `CGameClient [%i][%s]`
 `%i` -> UserID  
 `%s` -> ClientName  
 
+### Singleplayer
+This module allows you to have a 1 slot / a singleplayer server.  
+Why? I don't know, but you can.  
+
+Currently the `client_lua_files` stringtable is broken in singleplayer meaning clientside lua will be utterly broken.  
+You could try fixing it like this but it most likely won't work.  
+```lua
+local client_lua_files = stringtable.FindTable("client_lua_files")
+local fileData = client_lua_files:GetStringUserData(client_lua_files:FindStringIndex("singleplayer_files0"))
+local fileTable = string.Split(fileData, ":")
+client_lua_files:SetStringUserData(1, "")
+for _, entry in ipairs(fileTable) do
+	if entry == "" then continue end
+	client_lua_files:AddString(entry)
+end
+```
+
+### 128+ Players
+Yes, with this module you can go above 128 Players **BUT** it will currently crash.  
+This is useful when you make a queue, players **can** connect and use all slots above 128 **but** they **can't** spawn when 128 players are already playing.  
+I'll later provide a hook to better controll the SignOnState which will allow one to implement a queue system.  
+
 # Unfinished Modules
 
 ## serverplugins
