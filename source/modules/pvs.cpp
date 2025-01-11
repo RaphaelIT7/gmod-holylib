@@ -11,7 +11,6 @@
 class CPVSModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
 	virtual void LuaInit(bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown() OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
@@ -823,15 +822,6 @@ LUA_FUNCTION_STATIC(pvs_GetEntitiesFromTransmit)
 	}
 
 	return 1;
-}
-
-void CPVSModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
-{
-	IPlayerInfoManager* playerinfomanager = (IPlayerInfoManager*)gamefn[0](INTERFACEVERSION_PLAYERINFOMANAGER, NULL);
-	Detour::CheckValue("get interface", "playerinfomanager", playerinfomanager != NULL);
-
-	if (playerinfomanager)
-		gpGlobals = playerinfomanager->GetGlobalVars();
 }
 
 void CPVSModule::LuaInit(bool bServerInit)

@@ -710,15 +710,15 @@ namespace Symbols
 		Symbol::FromName("_ZN11CBaseServer14FillServerInfoER14SVC_ServerInfo"),
 	};
 
-	const std::vector<Symbol> MD5_MapFileSym = {
-		Symbol::FromName("_Z11MD5_MapFileP10MD5Value_tPKc"),
-	};
-
 	const std::vector<Symbol> CBaseClient_SetSignonStateSym = {
 		Symbol::FromName("_ZN11CBaseClient14SetSignonStateEii"),
 	};
 
 	const std::vector<Symbol> CBaseServer_IsMultiplayerSym = {
 		Symbol::FromName("_ZNK11CBaseServer13IsMultiplayerEv"),
+	};
+
+	const std::vector<Symbol> GModDataPack_IsSingleplayerSym = {
+		Symbol::FromName("_ZN12GModDataPack14IsSingleplayerEv"),
 	};
 }

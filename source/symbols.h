@@ -534,6 +534,9 @@ namespace Symbols
 	typedef bool (*CBaseServer_IsMultiplayer)(void* srv);
 	extern const std::vector<Symbol> CBaseServer_IsMultiplayerSym;
 
+	typedef bool (*GModDataPack_IsSingleplayer)(void* datapack);
+	extern const std::vector<Symbol> GModDataPack_IsSingleplayerSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: cvar Symbols
 	//---------------------------------------------------------------------------------

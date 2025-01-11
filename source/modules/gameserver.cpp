@@ -894,6 +894,7 @@ LUA_FUNCTION_STATIC(gameserver_BroadcastMessage)
 	return 0;
 }
 
+extern CGlobalVars* gpGlobals;
 void CGameServerModule::LuaInit(bool bServerInit)
 {
 	if (bServerInit)
@@ -1004,6 +1005,15 @@ static bool hook_CBaseServer_IsMultiplayer(CBaseServer* srv)
 	return detour_CBaseServer_IsMultiplayer.GetTrampoline<Symbols::CBaseServer_IsMultiplayer>()(srv);
 }
 
+static Detouring::Hook detour_GModDataPack_IsSingleplayer;
+static bool hook_GModDataPack_IsSingleplayer(void* dataPack)
+{
+	if (Util::server && Util::server->IsDedicated())
+		return false;
+
+	return detour_GModDataPack_IsSingleplayer.GetTrampoline<Symbols::GModDataPack_IsSingleplayer>()(dataPack);
+}
+
 static Symbols::MD5_MapFile func_MD5_MapFile;
 void CGameServerModule::InitDetour(bool bPreServer)
 {
@@ -1018,12 +1028,6 @@ void CGameServerModule::InitDetour(bool bPreServer)
 	);
 
 	Detour::Create(
-		&detour_CServerGameClients_GetPlayerLimit, "CServerGameClients::GetPlayerLimit",
-		engine_loader.GetModule(), Symbols::CServerGameClients_GetPlayerLimitSym,
-		(void*)hook_CServerGameClients_GetPlayerLimit, m_pID
-	);
-
-	Detour::Create(
 		&detour_CBaseClient_SetSignonState, "CBaseClient::SetSignonState",
 		engine_loader.GetModule(), Symbols::CBaseClient_SetSignonStateSym,
 		(void*)hook_CBaseClient_SetSignonState, m_pID
@@ -1033,5 +1037,18 @@ void CGameServerModule::InitDetour(bool bPreServer)
 		&detour_CBaseServer_IsMultiplayer, "CBaseServer::IsMultiplayer",
 		engine_loader.GetModule(), Symbols::CBaseServer_IsMultiplayerSym,
 		(void*)hook_CBaseServer_IsMultiplayer, m_pID
+	);
+
+	SourceSDK::FactoryLoader server_loader("server");
+	Detour::Create(
+		&detour_GModDataPack_IsSingleplayer, "GModDataPack::IsSingleplayer",
+		server_loader.GetModule(), Symbols::GModDataPack_IsSingleplayerSym,
+		(void*)hook_GModDataPack_IsSingleplayer, m_pID
+	);
+
+	Detour::Create(
+		&detour_CServerGameClients_GetPlayerLimit, "CServerGameClients::GetPlayerLimit",
+		server_loader.GetModule(), Symbols::CServerGameClients_GetPlayerLimitSym,
+		(void*)hook_CServerGameClients_GetPlayerLimit, m_pID
 	);
 }
