@@ -717,4 +717,8 @@ namespace Symbols
 	const std::vector<Symbol> CBaseClient_SetSignonStateSym = {
 		Symbol::FromName("_ZN11CBaseClient14SetSignonStateEii"),
 	};
+
+	const std::vector<Symbol> CBaseServer_IsMultiplayerSym = {
+		Symbol::FromName("_ZNK11CBaseServer13IsMultiplayerEv"),
+	};
 }

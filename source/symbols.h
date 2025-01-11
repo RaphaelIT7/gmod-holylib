@@ -531,6 +531,9 @@ namespace Symbols
 	typedef bool (*CBaseClient_SetSignonState)(void* client, int state, int spawncount);
 	extern const std::vector<Symbol> CBaseClient_SetSignonStateSym;
 
+	typedef bool (*CBaseServer_IsMultiplayer)(void* srv);
+	extern const std::vector<Symbol> CBaseServer_IsMultiplayerSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: cvar Symbols
 	//---------------------------------------------------------------------------------

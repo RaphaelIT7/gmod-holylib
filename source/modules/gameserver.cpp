@@ -12,7 +12,6 @@ public:
 	virtual void LuaInit(bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown() OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
-	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) OVERRIDE;
 	virtual const char* Name() { return "gameserver"; };
 	virtual int Compatibility() { return LINUX32; };
 };
@@ -955,7 +954,7 @@ static void hook_CServerGameClients_GetPlayerLimit(void* funkyClass, int& minPla
  *       I think it "could" be considered breaking gmod server operator rules.
  *       "Do not fake server information. This mostly means player count, but other data also applies."
  */
-static MD5Value_t worldmapMD5;
+// static MD5Value_t worldmapMD5;
 static Detouring::Hook detour_CBaseServer_FillServerInfo;
 static void hook_CBaseServer_FillServerInfo(void* srv, SVC_ServerInfo& info)
 {
@@ -971,7 +970,7 @@ static void hook_CBaseServer_FillServerInfo(void* srv, SVC_ServerInfo& info)
 		info.m_nMaxClients = 2;
 
 		// singleplayer games don't create a MD5, so we have to do it ourself.
-		V_memcpy( info.m_nMapMD5.bits, worldmapMD5.bits, MD5_DIGEST_LENGTH );
+		// V_memcpy( info.m_nMapMD5.bits, worldmapMD5.bits, MD5_DIGEST_LENGTH );
 	}
 }
 
@@ -994,6 +993,15 @@ static bool hook_CBaseClient_SetSignonState(CBaseClient* cl, int state, int spaw
 	}
 
 	return detour_CBaseClient_SetSignonState.GetTrampoline<Symbols::CBaseClient_SetSignonState>()(cl, state, spawncount);
+}
+
+static Detouring::Hook detour_CBaseServer_IsMultiplayer;
+static bool hook_CBaseServer_IsMultiplayer(CBaseServer* srv)
+{
+	if (srv->IsDedicated())
+		return true;
+
+	return detour_CBaseServer_IsMultiplayer.GetTrampoline<Symbols::CBaseServer_IsMultiplayer>()(srv);
 }
 
 static Symbols::MD5_MapFile func_MD5_MapFile;
@@ -1021,27 +1029,9 @@ void CGameServerModule::InitDetour(bool bPreServer)
 		(void*)hook_CBaseClient_SetSignonState, m_pID
 	);
 
-	func_MD5_MapFile = (Symbols::MD5_MapFile)Detour::GetFunction(engine_loader.GetModule(), Symbols::MD5_MapFileSym);
-	Detour::CheckFunction((void*)func_MD5_MapFile, "MD5_MapFile");
-}
-
-void CGameServerModule::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
-{
-	if (!Util::server)
-		return;
-
-	// In Singleplayer it DOESNT create a CRC meaning you can't connect "Client's map differs from Server's"
-	if (Util::server->GetMaxClients() == 1 && func_MD5_MapFile)
-	{
-		std::string map = "maps/";
-		map.append(Util::server->GetMapName());
-		map.append(".bsp");
-		V_memset( worldmapMD5.bits, 0, MD5_DIGEST_LENGTH );
-		if ( !func_MD5_MapFile( &worldmapMD5, map.c_str() ) )
-		{
-			ConMsg( "holylib: Couldn't CRC server map: %s\n", map.c_str() );
-		} else {
-			ConMsg( "holylib: Created CRC for map: %s\n", map.c_str() );
-		}
-	}
+	Detour::Create(
+		&detour_CBaseServer_IsMultiplayer, "CBaseServer::IsMultiplayer",
+		engine_loader.GetModule(), Symbols::CBaseServer_IsMultiplayerSym,
+		(void*)hook_CBaseServer_IsMultiplayer, m_pID
+	);
 }
