@@ -951,8 +951,8 @@ static void hook_CServerGameClients_GetPlayerLimit(void* funkyClass, int& minPla
 }
 
 /*
- * ToDo: Ask Rubat if were allowed to modify m_nMaxClients to clamp it between 2 and 128
- *       Why ask? Because it could be considered breaking gmod server operator rules.
+ * ToDo: Ask Rubat if were allowed to modify SVC_ServerInfo
+ *       I think it "could" be considered breaking gmod server operator rules.
  *       "Do not fake server information. This mostly means player count, but other data also applies."
  */
 static MD5Value_t worldmapMD5;
@@ -975,6 +975,27 @@ static void hook_CBaseServer_FillServerInfo(void* srv, SVC_ServerInfo& info)
 	}
 }
 
+static Detouring::Hook detour_CBaseClient_SetSignonState;
+static bool hook_CBaseClient_SetSignonState(CBaseClient* cl, int state, int spawncount)
+{
+	if (Lua::PushHook("HolyLib:OnSetSignonState"))
+	{
+		Push_CBaseClient(cl);
+		g_Lua->PushNumber(state);
+		g_Lua->PushNumber(spawncount);
+		if (g_Lua->CallFunctionProtected(4, 1, true))
+		{
+			bool ret = g_Lua->GetBool(-1);
+			g_Lua->Pop(1);
+
+			if (ret)
+				return false;
+		}
+	}
+
+	return detour_CBaseClient_SetSignonState.GetTrampoline<Symbols::CBaseClient_SetSignonState>()(cl, state, spawncount);
+}
+
 static Symbols::MD5_MapFile func_MD5_MapFile;
 void CGameServerModule::InitDetour(bool bPreServer)
 {
@@ -992,6 +1013,12 @@ void CGameServerModule::InitDetour(bool bPreServer)
 		&detour_CServerGameClients_GetPlayerLimit, "CServerGameClients::GetPlayerLimit",
 		engine_loader.GetModule(), Symbols::CServerGameClients_GetPlayerLimitSym,
 		(void*)hook_CServerGameClients_GetPlayerLimit, m_pID
+	);
+
+	Detour::Create(
+		&detour_CBaseClient_SetSignonState, "CBaseClient::SetSignonState",
+		engine_loader.GetModule(), Symbols::CBaseClient_SetSignonStateSym,
+		(void*)hook_CBaseClient_SetSignonState, m_pID
 	);
 
 	func_MD5_MapFile = (Symbols::MD5_MapFile)Detour::GetFunction(engine_loader.GetModule(), Symbols::MD5_MapFileSym);

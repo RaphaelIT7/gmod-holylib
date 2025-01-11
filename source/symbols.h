@@ -528,6 +528,9 @@ namespace Symbols
 	typedef bool (*MD5_MapFile)(MD5Value_t*, const char*);
 	extern const std::vector<Symbol> MD5_MapFileSym;
 
+	typedef bool (*CBaseClient_SetSignonState)(void* client, int state, int spawncount);
+	extern const std::vector<Symbol> CBaseClient_SetSignonStateSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: cvar Symbols
 	//---------------------------------------------------------------------------------

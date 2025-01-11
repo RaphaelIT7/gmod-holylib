@@ -713,4 +713,8 @@ namespace Symbols
 	const std::vector<Symbol> MD5_MapFileSym = {
 		Symbol::FromName("_Z11MD5_MapFileP10MD5Value_tPKc"),
 	};
+
+	const std::vector<Symbol> CBaseClient_SetSignonStateSym = {
+		Symbol::FromName("_ZN11CBaseClient14SetSignonStateEii"),
+	};
 }

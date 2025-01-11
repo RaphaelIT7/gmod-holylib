@@ -54,6 +54,7 @@ On the next startup the ghostinj will update holylib to use the new file.
 \- \- [+] Added `physcollide` library.  
 \- \- [+] Added more functions to `physenv` to create physic environments.  
 \- \- [+] Added `HolyLib:OnPhysFrame` hook.  
+\- [+] Added `gameserver` module.  
 \- [+] Added the `HolyLib:PreCheckTransmit`, `HolyLib:OnPlayerGot[On/Off]Ladder`, `HolyLib:OnMoveTypeChange` hook.  
 \- [+] Added `HolyLib:OnSourceTVStartNewShot`, `HolyLib:OnSourceTVClientDisconnect` hook to `sourcetv` module.  
 \- [+] Added `CHLTVClient:SetCameraMan` and `sourcetv.SetCameraMan` to `sourcetv` module.  
@@ -157,6 +158,16 @@ Wiki: https://holylib.raphaelit7.com/
 \- [bass](https://github.com/RaphaelIT7/gmod-holylib#bass)  
 \- \- [IGModAudioChannel](https://github.com/RaphaelIT7/gmod-holylib#igmodaudiochannel)  
 \- [entitylist](https://github.com/RaphaelIT7/gmod-holylib#entitylist)  
+\- [httpserver](https://github.com/RaphaelIT7/gmod-holylib#httpserver)  
+\- \- [HttpServer](https://github.com/RaphaelIT7/gmod-holylib#httpserver)  
+\- \- [HttpRequest](https://github.com/RaphaelIT7/gmod-holylib#httprequest)  
+\- \- [HttpResponse](https://github.com/RaphaelIT7/gmod-holylib#httpresponse)  
+\- [luajit](https://github.com/RaphaelIT7/gmod-holylib#luajit)  
+\- [gameserver](https://github.com/RaphaelIT7/gmod-holylib#gameserver)  
+\- \- [CBaseClient](https://github.com/RaphaelIT7/gmod-holylib#cbaseclient)  
+\- \- [CGameClient](https://github.com/RaphaelIT7/gmod-holylib#cgameclient)  
+\- \- [Singleplayer](https://github.com/RaphaelIT7/gmod-holylib#singleplayer)  
+\- \- [128+ Players](https://github.com/RaphaelIT7/gmod-holylib#128-players)  
 
 [Unfinished Modules](https://github.com/RaphaelIT7/gmod-holylib#unfinished-modules)  
 \- [serverplugins](https://github.com/RaphaelIT7/gmod-holylib#serverplugins)  
@@ -3277,6 +3288,12 @@ Format: `CGameClient [%i][%s]`
 `%i` -> UserID  
 `%s` -> ClientName  
 
+### Hooks
+
+#### bool HolyLib:OnSetSignonState(CGameClient client, number state, number spawncount)
+Called when the engine is about to change the client's SignonState.  
+Return `true` to stop the engine.  
+
 ### Singleplayer
 This module allows you to have a 1 slot / a singleplayer server.  
 Why? I don't know, but you can.  
@@ -3297,7 +3314,7 @@ end
 ### 128+ Players
 Yes, with this module you can go above 128 Players **BUT** it will currently crash.  
 This is useful when you make a queue, players **can** connect and use all slots above 128 **but** they **can't** spawn when 128 players are already playing.  
-I'll later provide a hook to better controll the SignOnState which will allow one to implement a queue system.  
+Use the `HolyLib:OnSetSignonState` to keep players at the `SIGNONSTATE_NEW` until a slot is freed/one of the 128 disconnects.  
 
 # Unfinished Modules
 
