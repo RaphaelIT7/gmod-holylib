@@ -35,7 +35,7 @@ class IServerGameClients;
 class IServerGameEnts;
 class IModuleWrapper;
 class IGameEventManager2;
-class CBaseServer;
+class IServer;
 class IServerGameDLL;
 namespace Util
 {
@@ -162,7 +162,7 @@ namespace Util
 	extern IServerGameClients* servergameclients;
 	extern IServerGameEnts* servergameents;
 	extern IServerGameDLL* servergamedll;
-	extern CBaseServer* server;
+	extern IServer* server;
 	extern CGlobalEntityList* entitylist;
 	extern CUserMessages* pUserMessages;
 	extern IModuleWrapper* pEntityList; // Other rely on this module.

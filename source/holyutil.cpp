@@ -22,7 +22,7 @@ public:
 		return Util::servergameents;
 	}
 
-	virtual CBaseServer* GetGameServer()
+	virtual IServer* GetGameServer()
 	{
 		return Util::server;
 	}

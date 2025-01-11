@@ -3,7 +3,7 @@
 #include <string>
 #include "GarrysMod/InterfacePointers.hpp"
 #include "sourcesdk/baseclient.h"
-#include "baseserver.h"
+#include "iserver.h"
 #include "module.h"
 #include "icommandline.h"
 #include "player.h"
@@ -72,7 +72,7 @@ CBaseEntity* Util::Get_Entity(int iStackPos, bool bError)
 	return pEntity;
 }
 
-CBaseServer* Util::server;
+IServer* Util::server;
 CBaseClient* Util::GetClientByUserID(int userid)
 {
 	for (int i = 0; i < Util::server->GetClientCount(); i++)
@@ -225,7 +225,7 @@ void Util::AddDetour()
 		servergamedll = server_loader.GetInterface<IServerGameDLL>(INTERFACEVERSION_SERVERGAMEDLL);
 	Detour::CheckValue("get interface", "IServerGameDLL", servergamedll != NULL);
 
-	server = (CBaseServer*)InterfacePointers::Server();
+	server = InterfacePointers::Server();
 	Detour::CheckValue("get class", "IServer", server != NULL);
 
 	entitylist = Detour::ResolveSymbol<CGlobalEntityList>(server_loader, Symbols::gEntListSym);

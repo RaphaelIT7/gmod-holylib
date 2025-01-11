@@ -687,7 +687,7 @@ LUA_FUNCTION_STATIC(gameserver_GetAll)
 		int iTableIndex = 0;
 		for (int iClientIndex=0; iClientIndex<Util::server->GetClientCount(); ++iClientIndex)
 		{
-			CBaseClient* pClient = (CBaseClient*)((IServer*)Util::server)->GetClient(iClientIndex);
+			CBaseClient* pClient = (CBaseClient*)Util::server->GetClient(iClientIndex);
 			if (!pClient->IsConnected())
 				continue;
 
@@ -849,7 +849,7 @@ LUA_FUNCTION_STATIC(gameserver_SetMaxClients)
 
 	int nSlots = LUA->CheckNumber(1);
 
-	Util::server->SetMaxClients(nSlots);
+	((CBaseServer*)Util::server)->SetMaxClients(nSlots);
 	return 0;
 }
 
