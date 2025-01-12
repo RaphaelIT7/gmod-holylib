@@ -3378,3 +3378,27 @@ loop:
 - 12 bits - var key index  
 - 3 bits - var type  
 - x bits -var value  
+
+## `client_lua_files` Stringtable behavior
+Key `0` contains **always** all datapack paths(`;` is used as a seperator).  
+Example:
+```lua
+local client_lua_files = stringtable.FindTable("client_lua_files")
+local pathData = client_lua_files:GetStringUserData(0)
+local pathTable = string.Split(pathData, ";")
+PrintTable(pathTable)
+```
+
+### Multiplayer
+All other keys are a lua filename.  
+
+### Singleplayer
+The engine merges all lua files into a single/multiple keys named `singleplayer_files%i`.  
+Inside the string's userdata a long string is stored representing all files(`:` is used as a seperator).  
+Example(Won't work on a dedicated server):
+```lua
+local client_lua_files = stringtable.FindTable("client_lua_files")
+local fileData = client_lua_files:GetStringUserData(client_lua_files:FindStringIndex("singleplayer_files0"))
+local fileTable = string.Split(fileData, ":")
+PrintTable(fileTable)
+```
