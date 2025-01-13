@@ -14,6 +14,7 @@ CModule::~CModule()
 			g_pCVar->UnregisterConCommand(m_pCVar);
 
 		delete m_pCVar; // Could this cause a crash? idk.
+		m_pCVar = NULL;
 	}
 
 	if ( m_pCVarName )
@@ -28,6 +29,7 @@ CModule::~CModule()
 			g_pCVar->UnregisterConCommand(m_pDebugCVar);
 
 		delete m_pDebugCVar; // Could this cause a crash? idk either. But it didn't. Yet. Or has it.
+		m_pDebugCVar = NULL;
 	}
 
 	if ( m_pDebugCVarName )
