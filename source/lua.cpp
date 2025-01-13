@@ -2,7 +2,7 @@
 #include <GarrysMod/FactoryLoader.hpp>
 #include "filesystem.h"
 #include "lua.h"
-#include <GarrysMod/Lua/LuaShared.h>
+#include "iluashared.h"
 #include <GarrysMod/InterfacePointers.hpp>
 #include "detours.h"
 #include "module.h"
@@ -54,6 +54,13 @@ void Lua::Init(GarrysMod::Lua::ILuaInterface* LUA)
 
 	g_Lua = LUA;
 	g_pModuleManager.LuaInit(false);
+
+	std::vector<LuaFindResult> results;
+	GetShared()->FindScripts("lua/autorun/_holylib/", "GAME", results);
+	for (LuaFindResult result : results)
+	{
+		Msg("File: %s (%s)\n", result.fileName.c_str(), result.isFolder ? "true" : "false");
+	}
 
 	FileHandle_t fh = g_pFullFileSystem->Open("lua/autorun/server/_holylib.lua", "rb", "GAME");
 	if (fh)

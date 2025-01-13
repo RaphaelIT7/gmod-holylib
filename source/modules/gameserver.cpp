@@ -1033,18 +1033,21 @@ void CGameServerModule::InitDetour(bool bPreServer)
 		(void*)hook_CBaseClient_SetSignonState, m_pID
 	);
 
-	Detour::Create(
-		&detour_CBaseServer_IsMultiplayer, "CBaseServer::IsMultiplayer",
-		engine_loader.GetModule(), Symbols::CBaseServer_IsMultiplayerSym,
-		(void*)hook_CBaseServer_IsMultiplayer, m_pID
-	);
-
 	SourceSDK::FactoryLoader server_loader("server");
-	Detour::Create(
-		&detour_GModDataPack_IsSingleplayer, "GModDataPack::IsSingleplayer",
-		server_loader.GetModule(), Symbols::GModDataPack_IsSingleplayerSym,
-		(void*)hook_GModDataPack_IsSingleplayer, m_pID
-	);
+	if (!g_pModuleManager.IsMarkedAsBinaryModule()) // Loaded by require? Then we skip this.
+	{
+		Detour::Create(
+			&detour_CBaseServer_IsMultiplayer, "CBaseServer::IsMultiplayer",
+			engine_loader.GetModule(), Symbols::CBaseServer_IsMultiplayerSym,
+			(void*)hook_CBaseServer_IsMultiplayer, m_pID
+		);
+
+		Detour::Create(
+			&detour_GModDataPack_IsSingleplayer, "GModDataPack::IsSingleplayer",
+			server_loader.GetModule(), Symbols::GModDataPack_IsSingleplayerSym,
+			(void*)hook_GModDataPack_IsSingleplayer, m_pID
+		);
+	}
 
 	Detour::Create(
 		&detour_CServerGameClients_GetPlayerLimit, "CServerGameClients::GetPlayerLimit",
