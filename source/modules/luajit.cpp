@@ -255,6 +255,9 @@ void CLuaJITModule::InitDetour(bool bPreServer)
 	Override(luaopen_string);
 	Override(luaopen_table);
 
+	Util::func_lua_rawgeti = &lua_rawgeti;
+	Util::func_lua_rawseti = &lua_rawseti;
+
 	Detour::Create(
 		&detour_CLuaInterface_GetType, "CLuaInterface::GetType",
 		lua_shared_loader.GetModule(), Symbols::CLuaInterface_GetTypeSym,

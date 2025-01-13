@@ -3034,6 +3034,9 @@ This module updates luajit to a newer version.
 > By default this module is disabled.
 > You can enable it by adding `-holylib_enable_luajit 1` to the command line.
 
+> [!WARNING]
+> It's **not** recommended to enable/disable it at runtime!  
+
 The `ffi` and `string.buffer` packages are already added when enabled.  
 It also restores `debug.setlocal`, `debug.setupvalue`, `debug.upvalueid` and `debug.upvaluejoin`.  
 
