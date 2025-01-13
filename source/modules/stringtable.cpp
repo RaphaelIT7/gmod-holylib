@@ -55,38 +55,9 @@ LUA_FUNCTION_STATIC(INetworkStringTable__tostring)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(INetworkStringTable__index)
-{
-	if (LUA->FindOnObjectsMetaTable(1, 2))
-		return 1;
-
-	LUA->Pop(1);
-	Util::ReferencePush(LUA, g_pPushedINetworkStringTable[Get_INetworkStringTable(1, true)]->iTableReference); // This should never crash so no safety checks.
-	if (!LUA->FindObjectOnTable(-1, 2))
-		LUA->PushNil();
-
-	LUA->Remove(-2);
-
-	return 1;
-}
-
-LUA_FUNCTION_STATIC(INetworkStringTable__newindex)
-{
-	Util::ReferencePush(LUA, g_pPushedINetworkStringTable[Get_INetworkStringTable(1, true)]->iTableReference); // This should never crash so no safety checks.
-	LUA->Push(2);
-	LUA->Push(3);
-	LUA->RawSet(-3);
-	LUA->Pop(1);
-
-	return 0;
-}
-
-LUA_FUNCTION_STATIC(INetworkStringTable_GetTable)
-{
-	Util::ReferencePush(LUA, g_pPushedINetworkStringTable[Get_INetworkStringTable(1, true)]->iTableReference); // This should never crash so no safety checks.
-
-	return 1;
-}
+Default__index(INetworkStringTable);
+Default__newindex(INetworkStringTable);
+Default__GetTable(INetworkStringTable);
 
 LUA_FUNCTION_STATIC(INetworkStringTable_GetTableName)
 {

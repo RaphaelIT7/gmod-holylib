@@ -141,37 +141,9 @@ LUA_FUNCTION_STATIC(HttpResponse__tostring)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(HttpResponse__index)
-{
-	if (LUA->FindOnObjectsMetaTable(1, 2))
-		return 1;
-
-	LUA->Pop(1);
-	Util::ReferencePush(LUA, g_pPushedHttpResponse[Get_HttpResponse(1, true)]->iTableReference);
-	if (!LUA->FindObjectOnTable(-1, 2))
-		LUA->PushNil();
-
-	LUA->Remove(-2);
-
-	return 1;
-}
-
-LUA_FUNCTION_STATIC(HttpResponse__newindex)
-{
-	Util::ReferencePush(LUA, g_pPushedHttpResponse[Get_HttpResponse(1, true)]->iTableReference);
-	LUA->Push(2);
-	LUA->Push(3);
-	LUA->RawSet(-3);
-	LUA->Pop(1);
-
-	return 0;
-}
-
-LUA_FUNCTION_STATIC(HttpResponse_GetTable)
-{
-	Util::ReferencePush(LUA, g_pPushedHttpResponse[Get_HttpResponse(1, true)]->iTableReference); // This should never crash so no safety checks.
-	return 1;
-}
+Default__index(HttpResponse);
+Default__newindex(HttpResponse);
+Default__GetTable(HttpResponse);
 
 LUA_FUNCTION_STATIC(HttpResponse_IsValid)
 {
@@ -218,37 +190,9 @@ LUA_FUNCTION_STATIC(HttpRequest__tostring)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(HttpRequest__index)
-{
-	if (LUA->FindOnObjectsMetaTable(1, 2))
-		return 1;
-
-	LUA->Pop(1);
-	Util::ReferencePush(LUA, g_pPushedHttpRequest[Get_HttpRequest(1, true)]->iTableReference);
-	if (!LUA->FindObjectOnTable(-1, 2))
-		LUA->PushNil();
-
-	LUA->Remove(-2);
-
-	return 1;
-}
-
-LUA_FUNCTION_STATIC(HttpRequest__newindex)
-{
-	Util::ReferencePush(LUA, g_pPushedHttpRequest[Get_HttpRequest(1, true)]->iTableReference);
-	LUA->Push(2);
-	LUA->Push(3);
-	LUA->RawSet(-3);
-	LUA->Pop(1);
-
-	return 0;
-}
-
-LUA_FUNCTION_STATIC(HttpRequest_GetTable)
-{
-	Util::ReferencePush(LUA, g_pPushedHttpRequest[Get_HttpRequest(1, true)]->iTableReference); // This should never crash so no safety checks.
-	return 1;
-}
+Default__index(HttpRequest);
+Default__newindex(HttpRequest);
+Default__GetTable(HttpRequest);
 
 LUA_FUNCTION_STATIC(HttpRequest_IsValid)
 {
@@ -508,38 +452,9 @@ LUA_FUNCTION_STATIC(HttpServer__tostring)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(HttpServer__index)
-{
-	if (LUA->FindOnObjectsMetaTable(1, 2))
-		return 1;
-
-	LUA->Pop(1);
-	Util::ReferencePush(LUA, g_pPushedHttpServer[Get_HttpServer(1, true)]->iTableReference);
-	if (!LUA->FindObjectOnTable(-1, 2))
-		LUA->PushNil();
-
-	LUA->Remove(-2);
-
-	return 1;
-}
-
-LUA_FUNCTION_STATIC(HttpServer__newindex)
-{
-	Util::ReferencePush(LUA, g_pPushedHttpServer[Get_HttpServer(1, true)]->iTableReference);
-	LUA->Push(2);
-	LUA->Push(3);
-	LUA->RawSet(-3);
-	LUA->Pop(1);
-
-	return 0;
-}
-
-LUA_FUNCTION_STATIC(HttpServer_GetTable)
-{
-	Util::ReferencePush(LUA, g_pPushedHttpServer[Get_HttpServer(1, true)]->iTableReference);
-
-	return 1;
-}
+Default__index(HttpServer);
+Default__newindex(HttpServer);
+Default__GetTable(HttpServer);
 
 LUA_FUNCTION_STATIC(HttpServer_IsValid)
 {

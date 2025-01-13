@@ -105,38 +105,9 @@ LUA_FUNCTION_STATIC(EntityList__gc)
 	return 0;
 }
 
-LUA_FUNCTION_STATIC(EntityList__index)
-{
-	if (LUA->FindOnObjectsMetaTable(1, 2))
-		return 1;
-
-	LUA->Pop(1);
-	Util::ReferencePush(LUA, g_pPushedEntityList[Get_EntityList(1, true)]->iTableReference);
-	if (!LUA->FindObjectOnTable(-1, 2))
-		LUA->PushNil();
-
-	LUA->Remove(-2);
-
-	return 1;
-}
-
-LUA_FUNCTION_STATIC(EntityList__newindex)
-{
-	Util::ReferencePush(LUA, g_pPushedEntityList[Get_EntityList(1, true)]->iTableReference);
-	LUA->Push(2);
-	LUA->Push(3);
-	LUA->RawSet(-3);
-	LUA->Pop(1);
-
-	return 0;
-}
-
-LUA_FUNCTION_STATIC(EntityList_GetLuaTable)
-{
-	Util::ReferencePush(LUA, g_pPushedEntityList[Get_EntityList(1, true)]->iTableReference);
-
-	return 1;
-}
+Default__index(EntityList);
+Default__newindex(EntityList);
+Default__GetTable(EntityList);
 
 LUA_FUNCTION_STATIC(EntityList_IsValid)
 {
@@ -144,7 +115,7 @@ LUA_FUNCTION_STATIC(EntityList_IsValid)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(EntityList_GetTable)
+LUA_FUNCTION_STATIC(EntityList_GetEntTable)
 {
 	EntityList* pData = Get_EntityList(1, true);
 
@@ -303,9 +274,9 @@ void CEntListModule::LuaInit(bool bServerInit)
 		Util::AddFunc(EntityList__index, "__index");
 		Util::AddFunc(EntityList__newindex, "__newindex");
 		Util::AddFunc(EntityList__gc, "__gc");
-		Util::AddFunc(EntityList_GetLuaTable, "GetLuaTable");
+		Util::AddFunc(EntityList_GetTable, "GetLuaTable");
 		Util::AddFunc(EntityList_IsValid, "IsValid");
-		Util::AddFunc(EntityList_GetTable, "GetTable");
+		Util::AddFunc(EntityList_GetEntTable, "GetTable");
 		Util::AddFunc(EntityList_SetTable, "SetTable");
 		Util::AddFunc(EntityList_AddTable, "AddTable");
 		Util::AddFunc(EntityList_RemoveTable, "RemoveTable");

@@ -48,31 +48,8 @@ extern int CHLTVClient_TypeID;
 PushReferenced_LuaClass(CBaseClient, CBaseClient_TypeID)
 SpecialGet_LuaClass(CBaseClient, CBaseClient_TypeID, CHLTVClient_TypeID, "CBaseClient")
 
-LUA_FUNCTION_STATIC(CBaseClient__index)
-{
-	if (LUA->FindOnObjectsMetaTable(1, 2))
-		return 1;
-
-	LUA->Pop(1);
-	Util::ReferencePush(LUA, g_pPushedCBaseClient[Get_CBaseClient(1, true)]->iTableReference); // This should never crash so no safety checks.
-	if (!LUA->FindObjectOnTable(-1, 2))
-		LUA->PushNil();
-
-	LUA->Remove(-2);
-
-	return 1;
-}
-
-LUA_FUNCTION_STATIC(CBaseClient__newindex)
-{
-	Util::ReferencePush(LUA, g_pPushedCBaseClient[Get_CBaseClient(1, true)]->iTableReference); // This should never crash so no safety checks.
-	LUA->Push(2);
-	LUA->Push(3);
-	LUA->RawSet(-3);
-	LUA->Pop(1);
-
-	return 0;
-}
+Default__index(CBaseClient);
+Default__newindex(CBaseClient);
 
 LUA_FUNCTION_STATIC(CBaseClient_GetTable)
 {

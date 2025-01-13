@@ -305,6 +305,43 @@ static void Delete_##className(className* var) \
         (vec).erase(_it); \
 }
 
+#define Default__index(className) \
+LUA_FUNCTION_STATIC(className ## __index) \
+{ \
+	if (LUA->FindOnObjectsMetaTable(1, 2)) \
+		return 1; \
+\
+	LUA->Pop(1); \
+	Util::ReferencePush(LUA, g_pPushed##className[Get_##className(1, true)]->iTableReference); \
+	if (!LUA->FindObjectOnTable(-1, 2)) \
+		LUA->PushNil(); \
+\
+	LUA->Remove(-2); \
+\
+	return 1; \
+}
+
+// Helper Things
+
+#define Default__newindex(className) \
+LUA_FUNCTION_STATIC(className ## __newindex) \
+{ \
+Util::ReferencePush(LUA, g_pPushed##className[Get_##className(1, true)]->iTableReference); \
+	LUA->Push(2); \
+	LUA->Push(3); \
+	LUA->RawSet(-3); \
+	LUA->Pop(1); \
+\
+	return 0; \
+}
+
+#define Default__GetTable(className) \
+LUA_FUNCTION_STATIC(className ## _GetTable) \
+{ \
+	Util::ReferencePush(LUA, g_pPushed##className[Get_##className(1, true)]->iTableReference); \
+	return 0; \
+}
+
 // Push functions from modules: 
 // ToDo: move this at a later point into a seperate file. Maybe into _modules?
 Vector* Get_Vector(int iStackPos, bool bError = true);

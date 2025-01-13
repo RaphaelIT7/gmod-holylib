@@ -333,38 +333,9 @@ LUA_FUNCTION_STATIC(IGameEvent__tostring)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(IGameEvent__index)
-{
-	if (LUA->FindOnObjectsMetaTable(1, 2))
-		return 1;
-
-	LUA->Pop(1);
-	Util::ReferencePush(LUA, g_pPushedIGameEvent[Get_IGameEvent(1, true)]->iTableReference);
-	if (!LUA->FindObjectOnTable(-1, 2))
-		LUA->PushNil();
-
-	LUA->Remove(-2);
-
-	return 1;
-}
-
-LUA_FUNCTION_STATIC(IGameEvent__newindex)
-{
-	Util::ReferencePush(LUA, g_pPushedIGameEvent[Get_IGameEvent(1, true)]->iTableReference);
-	LUA->Push(2);
-	LUA->Push(3);
-	LUA->RawSet(-3);
-	LUA->Pop(1);
-
-	return 0;
-}
-
-LUA_FUNCTION_STATIC(IGameEvent_GetTable)
-{
-	Util::ReferencePush(LUA, g_pPushedIGameEvent[Get_IGameEvent(1, true)]->iTableReference);
-
-	return 1;
-}
+Default__index(IGameEvent);
+Default__newindex(IGameEvent);
+Default__GetTable(IGameEvent);
 
 LUA_FUNCTION_STATIC(IGameEvent__gc)
 {
