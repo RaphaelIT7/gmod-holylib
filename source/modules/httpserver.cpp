@@ -147,7 +147,7 @@ LUA_FUNCTION_STATIC(HttpResponse__index)
 		return 1;
 
 	LUA->Pop(1);
-	Util::ReferencePush(g_pPushedHttpResponse[Get_HttpResponse(1, true)]->iTableReference);
+	Util::ReferencePush(LUA, g_pPushedHttpResponse[Get_HttpResponse(1, true)]->iTableReference);
 	if (!LUA->FindObjectOnTable(-1, 2))
 		LUA->PushNil();
 
@@ -158,7 +158,7 @@ LUA_FUNCTION_STATIC(HttpResponse__index)
 
 LUA_FUNCTION_STATIC(HttpResponse__newindex)
 {
-	Util::ReferencePush(g_pPushedHttpResponse[Get_HttpResponse(1, true)]->iTableReference);
+	Util::ReferencePush(LUA, g_pPushedHttpResponse[Get_HttpResponse(1, true)]->iTableReference);
 	LUA->Push(2);
 	LUA->Push(3);
 	LUA->RawSet(-3);
@@ -169,7 +169,7 @@ LUA_FUNCTION_STATIC(HttpResponse__newindex)
 
 LUA_FUNCTION_STATIC(HttpResponse_GetTable)
 {
-	Util::ReferencePush(g_pPushedHttpResponse[Get_HttpResponse(1, true)]->iTableReference); // This should never crash so no safety checks.
+	Util::ReferencePush(LUA, g_pPushedHttpResponse[Get_HttpResponse(1, true)]->iTableReference); // This should never crash so no safety checks.
 	return 1;
 }
 
@@ -224,7 +224,7 @@ LUA_FUNCTION_STATIC(HttpRequest__index)
 		return 1;
 
 	LUA->Pop(1);
-	Util::ReferencePush(g_pPushedHttpRequest[Get_HttpRequest(1, true)]->iTableReference);
+	Util::ReferencePush(LUA, g_pPushedHttpRequest[Get_HttpRequest(1, true)]->iTableReference);
 	if (!LUA->FindObjectOnTable(-1, 2))
 		LUA->PushNil();
 
@@ -235,7 +235,7 @@ LUA_FUNCTION_STATIC(HttpRequest__index)
 
 LUA_FUNCTION_STATIC(HttpRequest__newindex)
 {
-	Util::ReferencePush(g_pPushedHttpRequest[Get_HttpRequest(1, true)]->iTableReference);
+	Util::ReferencePush(LUA, g_pPushedHttpRequest[Get_HttpRequest(1, true)]->iTableReference);
 	LUA->Push(2);
 	LUA->Push(3);
 	LUA->RawSet(-3);
@@ -246,7 +246,7 @@ LUA_FUNCTION_STATIC(HttpRequest__newindex)
 
 LUA_FUNCTION_STATIC(HttpRequest_GetTable)
 {
-	Util::ReferencePush(g_pPushedHttpRequest[Get_HttpRequest(1, true)]->iTableReference); // This should never crash so no safety checks.
+	Util::ReferencePush(LUA, g_pPushedHttpRequest[Get_HttpRequest(1, true)]->iTableReference); // This should never crash so no safety checks.
 	return 1;
 }
 
@@ -356,7 +356,7 @@ LUA_FUNCTION_STATIC(HttpRequest_GetContentLength)
 
 void CallFunc(int func, HttpRequest* request, HttpResponse* response)
 {
-	Util::ReferencePush(func);
+	Util::ReferencePush(g_Lua, func);
 
 	Push_HttpRequest(request);
 	Push_HttpResponse(response);
@@ -514,7 +514,7 @@ LUA_FUNCTION_STATIC(HttpServer__index)
 		return 1;
 
 	LUA->Pop(1);
-	Util::ReferencePush(g_pPushedHttpServer[Get_HttpServer(1, true)]->iTableReference);
+	Util::ReferencePush(LUA, g_pPushedHttpServer[Get_HttpServer(1, true)]->iTableReference);
 	if (!LUA->FindObjectOnTable(-1, 2))
 		LUA->PushNil();
 
@@ -525,7 +525,7 @@ LUA_FUNCTION_STATIC(HttpServer__index)
 
 LUA_FUNCTION_STATIC(HttpServer__newindex)
 {
-	Util::ReferencePush(g_pPushedHttpServer[Get_HttpServer(1, true)]->iTableReference);
+	Util::ReferencePush(LUA, g_pPushedHttpServer[Get_HttpServer(1, true)]->iTableReference);
 	LUA->Push(2);
 	LUA->Push(3);
 	LUA->RawSet(-3);
@@ -536,7 +536,7 @@ LUA_FUNCTION_STATIC(HttpServer__newindex)
 
 LUA_FUNCTION_STATIC(HttpServer_GetTable)
 {
-	Util::ReferencePush(g_pPushedHttpServer[Get_HttpServer(1, true)]->iTableReference);
+	Util::ReferencePush(LUA, g_pPushedHttpServer[Get_HttpServer(1, true)]->iTableReference);
 
 	return 1;
 }

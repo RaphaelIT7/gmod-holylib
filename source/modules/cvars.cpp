@@ -167,7 +167,7 @@ LUA_FUNCTION_STATIC(cvars_GetAll)
 				continue;
 
 			LUA->PushUserType((ConVar*)var, GarrysMod::Lua::Type::ConVar);
-			Util::RawSetI(-2, ++idx);
+			Util::RawSetI(LUA, -2, ++idx);
 		}
 
 	return 1;

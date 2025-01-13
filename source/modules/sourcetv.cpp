@@ -322,7 +322,7 @@ LUA_FUNCTION_STATIC(sourcetv_GetAll)
 				continue;
 
 			Push_CHLTVClient(pClient);
-			Util::RawSetI(-2, ++iTableIndex);
+			Util::RawSetI(LUA, -2, ++iTableIndex);
 		}
 
 	return 1;
@@ -428,7 +428,7 @@ static bool hook_CHLTVClient_ProcessGMod_ClientToServer(CHLTVClient* pClient, CL
 		g_Lua->Push(-1);
 		int iReference = g_Lua->ReferenceCreate();
 		g_Lua->CallFunctionProtected(3, 0, true);
-		Util::ReferencePush(iReference);
+		Util::ReferencePush(g_Lua, iReference);
 		g_Lua->SetUserType(-1, NULL); // Make sure that the we don't keep the buffer.
 		g_Lua->Pop(1);
 		g_Lua->ReferenceFree(iReference);
@@ -457,7 +457,7 @@ static bool hook_CHLTVClient_ExecuteStringCommand(CHLTVClient* pClient, const ch
 			for (int i=1; i< pCommandArgs.ArgC(); ++i) // skip cmd -> 0
 			{
 				g_Lua->PushString(pCommandArgs.Arg(i));
-				Util::RawSetI(-2, i);
+				Util::RawSetI(g_Lua, -2, i);
 			}
 		g_Lua->PushString(pCommandArgs.ArgS());
 		if (g_Lua->CallFunctionProtected(5, 1, true))

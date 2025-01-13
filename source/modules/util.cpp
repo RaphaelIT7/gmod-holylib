@@ -178,7 +178,7 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 	bool bEqual = false;
 	for (int iReference : pRecursiveTableScope)
 	{
-		Util::ReferencePush(iReference);
+		Util::ReferencePush(g_Lua, iReference);
 		if (g_Lua->Equal(-1, -3))
 		{
 			bEqual = true;
@@ -393,7 +393,7 @@ void CUtilModule::Think(bool simulating)
 	pFinishMutex.Lock();
 	for(CompressEntry* entry : pFinishedEntries)
 	{
-		Util::ReferencePush(entry->iCallback);
+		Util::ReferencePush(g_Lua, entry->iCallback);
 			g_Lua->PushString((const char*)entry->buffer.GetBase(), entry->buffer.GetWritten());
 		g_Lua->CallFunctionProtected(1, 0, true);
 		delete entry;

@@ -493,7 +493,7 @@ LUA_FUNCTION_STATIC(pvs_GetStateFlags)
 			if (!entList->IsValidReference(iReference))
 				entList->CreateReference(pEnt);
 
-			Util::ReferencePush(iReference);
+			Util::ReferencePush(LUA, iReference);
 			LUA->PushNumber(GetStateFlags(pEnt, force));
 			LUA->RawSet(-3);
 		}
@@ -707,8 +707,8 @@ LUA_FUNCTION_STATIC(pvs_FindInPVS) // Copy from pas.FindInPAS
 				if (!g_pGlobalEntityList.IsValidReference(iReference))
 					g_pGlobalEntityList.CreateReference(pEnt);
 
-				Util::ReferencePush(iReference);
-				Util::RawSetI(-2, ++idx);
+				Util::ReferencePush(LUA, iReference);
+				Util::RawSetI(LUA, -2, ++idx);
 			}
 		}
 		return 1;
@@ -721,7 +721,7 @@ LUA_FUNCTION_STATIC(pvs_FindInPVS) // Copy from pas.FindInPAS
 		if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), Util::g_pCurrentCluster, sizeof(Util::g_pCurrentCluster)))
 		{
 			Util::Push_Entity(pEnt);
-			Util::RawSetI(-2, ++idx);
+			Util::RawSetI(LUA, -2, ++idx);
 		}
 
 		pEnt = Util::entitylist->NextEnt(pEnt);
@@ -738,7 +738,7 @@ LUA_FUNCTION_STATIC(pvs_FindInPVS) // Copy from pas.FindInPAS
 		if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), Util::g_pCurrentCluster, sizeof(Util::g_pCurrentCluster)))
 		{
 			Util::Push_Entity(pEnt);
-			Util::RawSetI(-2, ++idx);
+			Util::RawSetI(LUA, 2, ++idx);
 		}
 	}
 #endif
@@ -776,7 +776,7 @@ LUA_FUNCTION_STATIC(pvs_TestPVS)
 			if (!entList->IsValidReference(iReference))
 				entList->CreateReference(pEnt);
 
-			Util::ReferencePush(iReference);
+			Util::ReferencePush(LUA, iReference);
 			LUA->PushBool(TestPVS(pEnt->GetAbsOrigin()));
 			LUA->RawSet(-3);
 		}
@@ -818,7 +818,7 @@ LUA_FUNCTION_STATIC(pvs_GetEntitiesFromTransmit)
 			continue;
 
 		Util::Push_Entity(Util::servergameents->EdictToBaseEntity(pEdict));
-		Util::RawSetI(-2, ++idx);
+		Util::RawSetI(LUA, -2, ++idx);
 	}
 
 	return 1;

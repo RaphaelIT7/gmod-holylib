@@ -111,7 +111,7 @@ LUA_FUNCTION_STATIC(EntityList__index)
 		return 1;
 
 	LUA->Pop(1);
-	Util::ReferencePush(g_pPushedEntityList[Get_EntityList(1, true)]->iTableReference);
+	Util::ReferencePush(LUA, g_pPushedEntityList[Get_EntityList(1, true)]->iTableReference);
 	if (!LUA->FindObjectOnTable(-1, 2))
 		LUA->PushNil();
 
@@ -122,7 +122,7 @@ LUA_FUNCTION_STATIC(EntityList__index)
 
 LUA_FUNCTION_STATIC(EntityList__newindex)
 {
-	Util::ReferencePush(g_pPushedEntityList[Get_EntityList(1, true)]->iTableReference);
+	Util::ReferencePush(LUA, g_pPushedEntityList[Get_EntityList(1, true)]->iTableReference);
 	LUA->Push(2);
 	LUA->Push(3);
 	LUA->RawSet(-3);
@@ -133,7 +133,7 @@ LUA_FUNCTION_STATIC(EntityList__newindex)
 
 LUA_FUNCTION_STATIC(EntityList_GetLuaTable)
 {
-	Util::ReferencePush(g_pPushedEntityList[Get_EntityList(1, true)]->iTableReference);
+	Util::ReferencePush(LUA, g_pPushedEntityList[Get_EntityList(1, true)]->iTableReference);
 
 	return 1;
 }
@@ -154,8 +154,8 @@ LUA_FUNCTION_STATIC(EntityList_GetTable)
 		{
 			pData->EnsureReference(pEnt, iReference);
 
-			Util::ReferencePush(iReference);
-			Util::RawSetI(-2, ++idx);
+			Util::ReferencePush(LUA, iReference);
+			Util::RawSetI(LUA, -2, ++idx);
 		}
 	return 1;
 }
@@ -261,8 +261,8 @@ LUA_FUNCTION_STATIC(GetGlobalEntityList)
 			if (!g_pGlobalEntityList.IsValidReference(iReference))
 				g_pGlobalEntityList.CreateReference(pEnt);
 
-			Util::ReferencePush(iReference);
-			Util::RawSetI(-2, ++idx);
+			Util::ReferencePush(LUA, iReference);
+			Util::RawSetI(LUA, -2, ++idx);
 		}
 
 	return 1;

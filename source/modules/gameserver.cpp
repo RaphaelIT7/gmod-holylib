@@ -54,7 +54,7 @@ LUA_FUNCTION_STATIC(CBaseClient__index)
 		return 1;
 
 	LUA->Pop(1);
-	Util::ReferencePush(g_pPushedCBaseClient[Get_CBaseClient(1, true)]->iTableReference); // This should never crash so no safety checks.
+	Util::ReferencePush(LUA, g_pPushedCBaseClient[Get_CBaseClient(1, true)]->iTableReference); // This should never crash so no safety checks.
 	if (!LUA->FindObjectOnTable(-1, 2))
 		LUA->PushNil();
 
@@ -65,7 +65,7 @@ LUA_FUNCTION_STATIC(CBaseClient__index)
 
 LUA_FUNCTION_STATIC(CBaseClient__newindex)
 {
-	Util::ReferencePush(g_pPushedCBaseClient[Get_CBaseClient(1, true)]->iTableReference); // This should never crash so no safety checks.
+	Util::ReferencePush(LUA, g_pPushedCBaseClient[Get_CBaseClient(1, true)]->iTableReference); // This should never crash so no safety checks.
 	LUA->Push(2);
 	LUA->Push(3);
 	LUA->RawSet(-3);
@@ -86,7 +86,7 @@ LUA_FUNCTION_STATIC(CBaseClient_GetTable)
 		data->iTableReference = LUA->ReferenceCreate();
 	}
 
-	Util::ReferencePush(data->iTableReference); // This should never crash so no safety checks.
+	Util::ReferencePush(LUA, data->iTableReference); // This should never crash so no safety checks.
 
 	return 1;
 }
@@ -693,7 +693,7 @@ LUA_FUNCTION_STATIC(gameserver_GetAll)
 				continue;
 
 			Push_CBaseClient(pClient);
-			Util::RawSetI(-2, ++iTableIndex);
+			Util::RawSetI(LUA, -2, ++iTableIndex);
 		}
 
 	return 1;

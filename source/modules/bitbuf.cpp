@@ -48,7 +48,7 @@ LUA_FUNCTION_STATIC(bf_read__index)
 		return 1;
 
 	LUA->Pop(1);
-	Util::ReferencePush(g_pPushedbf_read[Get_bf_read(1, true)]->iTableReference);
+	Util::ReferencePush(LUA, g_pPushedbf_read[Get_bf_read(1, true)]->iTableReference);
 	if (!LUA->FindObjectOnTable(-1, 2))
 		LUA->PushNil();
 
@@ -59,7 +59,7 @@ LUA_FUNCTION_STATIC(bf_read__index)
 
 LUA_FUNCTION_STATIC(bf_read__newindex)
 {
-	Util::ReferencePush(g_pPushedbf_read[Get_bf_read(1, true)]->iTableReference);
+	Util::ReferencePush(LUA, g_pPushedbf_read[Get_bf_read(1, true)]->iTableReference);
 	LUA->Push(2);
 	LUA->Push(3);
 	LUA->RawSet(-3);
@@ -70,7 +70,7 @@ LUA_FUNCTION_STATIC(bf_read__newindex)
 
 LUA_FUNCTION_STATIC(bf_read_GetTable)
 {
-	Util::ReferencePush(g_pPushedbf_read[Get_bf_read(1, true)]->iTableReference);
+	Util::ReferencePush(LUA, g_pPushedbf_read[Get_bf_read(1, true)]->iTableReference);
 
 	return 1;
 }
@@ -532,7 +532,7 @@ LUA_FUNCTION_STATIC(bf_write__index)
 		return 1;
 
 	LUA->Pop(1);
-	Util::ReferencePush(g_pPushedbf_write[Get_bf_write(1, true)]->iTableReference);
+	Util::ReferencePush(LUA, g_pPushedbf_write[Get_bf_write(1, true)]->iTableReference);
 	if (!LUA->FindObjectOnTable(-1, 2))
 		LUA->PushNil();
 
@@ -543,7 +543,7 @@ LUA_FUNCTION_STATIC(bf_write__index)
 
 LUA_FUNCTION_STATIC(bf_write__newindex)
 {
-	Util::ReferencePush(g_pPushedbf_write[Get_bf_write(1, true)]->iTableReference);
+	Util::ReferencePush(LUA, g_pPushedbf_write[Get_bf_write(1, true)]->iTableReference);
 	LUA->Push(2);
 	LUA->Push(3);
 	LUA->RawSet(-3);
@@ -554,7 +554,7 @@ LUA_FUNCTION_STATIC(bf_write__newindex)
 
 LUA_FUNCTION_STATIC(bf_write_GetTable)
 {
-	Util::ReferencePush(g_pPushedbf_write[Get_bf_write(1, true)]->iTableReference);
+	Util::ReferencePush(LUA, g_pPushedbf_write[Get_bf_write(1, true)]->iTableReference);
 
 	return 1;
 }

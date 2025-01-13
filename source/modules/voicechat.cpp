@@ -77,7 +77,7 @@ LUA_FUNCTION_STATIC(VoiceData__index)
 		return 1;
 
 	LUA->Pop(1);
-	Util::ReferencePush(g_pPushedVoiceData[Get_VoiceData(1, true)]->iTableReference);
+	Util::ReferencePush(LUA, g_pPushedVoiceData[Get_VoiceData(1, true)]->iTableReference);
 	if (!LUA->FindObjectOnTable(-1, 2))
 		LUA->PushNil();
 
@@ -88,7 +88,7 @@ LUA_FUNCTION_STATIC(VoiceData__index)
 
 LUA_FUNCTION_STATIC(VoiceData__newindex)
 {
-	Util::ReferencePush(g_pPushedVoiceData[Get_VoiceData(1, true)]->iTableReference);
+	Util::ReferencePush(LUA, g_pPushedVoiceData[Get_VoiceData(1, true)]->iTableReference);
 	LUA->Push(2);
 	LUA->Push(3);
 	LUA->RawSet(-3);
@@ -99,7 +99,7 @@ LUA_FUNCTION_STATIC(VoiceData__newindex)
 
 LUA_FUNCTION_STATIC(VoiceData_GetTable)
 {
-	Util::ReferencePush(g_pPushedVoiceData[Get_VoiceData(1, true)]->iTableReference);
+	Util::ReferencePush(LUA, g_pPushedVoiceData[Get_VoiceData(1, true)]->iTableReference);
 
 	return 1;
 }

@@ -47,15 +47,15 @@ namespace Util
 	 * RawSetI & RawGetI are way faster but Gmod doesn't expose or even use them :(
 	 */
 	extern Symbols::lua_rawseti func_lua_rawseti;
-	inline void RawSetI(int iStackPos, int iValue)
+	inline void RawSetI(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, int iValue)
 	{
-		func_lua_rawseti(g_Lua->GetState(), iStackPos, iValue);
+		func_lua_rawseti(LUA->GetState(), iStackPos, iValue);
 	}
 
 	extern Symbols::lua_rawgeti func_lua_rawgeti;
-	inline void RawGetI(int iStackPos, int iValue)
+	inline void RawGetI(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, int iValue)
 	{
-		func_lua_rawgeti(g_Lua->GetState(), iStackPos, iValue);
+		func_lua_rawgeti(LUA->GetState(), iStackPos, iValue);
 	}
 
 	/*
@@ -64,9 +64,9 @@ namespace Util
 	 * 
 	 * NOTE: It does seem to be faster so were going to keep this.
 	 */
-	inline void ReferencePush(int iReference)
+	inline void ReferencePush(GarrysMod::Lua::ILuaInterface* LUA, int iReference)
 	{
-		func_lua_rawgeti(g_Lua->GetState(), LUA_REGISTRYINDEX, iReference);
+		func_lua_rawgeti(LUA->GetState(), LUA_REGISTRYINDEX, iReference);
 	}
 
 	inline void StartTable() {
