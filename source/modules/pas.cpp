@@ -133,7 +133,7 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 		if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), Util::g_pCurrentCluster, sizeof(Util::g_pCurrentCluster)))
 		{
 			Util::Push_Entity(pEnt);
-			Util::RawSetI(-2, ++idx);
+			Util::RawSetI(LUA, -2, ++idx);
 		}
 	}
 #endif
