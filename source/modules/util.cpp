@@ -64,6 +64,7 @@ struct CompressEntry
 	int iLevel;
 	int iDictSize;
 	Bootil::AutoBuffer buffer;
+	GarrysMod::Lua::ILuaInterface* pLua = NULL;
 };
 
 static bool bInvalidateEverything = false;
@@ -127,6 +128,7 @@ LUA_FUNCTION_STATIC(util_AsyncCompress)
 	entry->pData = pData;
 	LUA->Push(1);
 	entry->iDataReference = LUA->ReferenceCreate();
+	entry->pLua = LUA;
 
 	StartThread();
 
@@ -150,6 +152,7 @@ LUA_FUNCTION_STATIC(util_AsyncDecompress)
 	entry->pData = pData;
 	LUA->Push(1);
 	entry->iDataReference = LUA->ReferenceCreate();
+	entry->pLua = LUA;
 
 	StartThread();
 
@@ -168,48 +171,48 @@ inline bool IsInt(float pNumber)
 	return static_cast<int>(pNumber) == pNumber && INT32_MAX >= pNumber && pNumber >= INT32_MIN;
 }
 
-int iRecursiveStartTop = -1;
-bool bRecursiveNoError = false;
-std::vector<int> pRecursiveTableScope;
-extern void TableToJSONRecursive(Bootil::Data::Tree& pTree);
+static int iRecursiveStartTop = -1;
+static bool bRecursiveNoError = false;
+static std::vector<int> pRecursiveTableScope;
+extern void TableToJSONRecursive(GarrysMod::Lua::ILuaInterface* pLua, Bootil::Data::Tree& pTree);
 static char buffer[128];
-void TableToJSONRecursive(Bootil::Data::Tree& pTree)
+void TableToJSONRecursive(GarrysMod::Lua::ILuaInterface* pLua, Bootil::Data::Tree& pTree)
 {
 	bool bEqual = false;
 	for (int iReference : pRecursiveTableScope)
 	{
-		Util::ReferencePush(g_Lua, iReference);
-		if (g_Lua->Equal(-1, -3))
+		Util::ReferencePush(pLua, iReference);
+		if (pLua->Equal(-1, -3))
 		{
 			bEqual = true;
-			g_Lua->Pop(1);
+			pLua->Pop(1);
 			break;
 		}
 
-		g_Lua->Pop(1);
+		pLua->Pop(1);
 	}
 
 	if (bEqual) {
 		if (bRecursiveNoError)
 		{
-			g_Lua->Pop(2); // Don't forget to cleanup
+			pLua->Pop(2); // Don't forget to cleanup
 			return;
 		}
 
-		g_Lua->Pop(g_Lua->Top() - iRecursiveStartTop); // Since we added a unknown amount to the stack, we need to throw everything back out
-		g_Lua->ThrowError("attempt to serialize structure with cyclic reference");
+		pLua->Pop(pLua->Top() - iRecursiveStartTop); // Since we added a unknown amount to the stack, we need to throw everything back out
+		pLua->ThrowError("attempt to serialize structure with cyclic reference");
 	}
 
-	g_Lua->Push(-2);
-	pRecursiveTableScope.push_back(g_Lua->ReferenceCreate());
+	pLua->Push(-2);
+	pRecursiveTableScope.push_back(pLua->ReferenceCreate());
 
 	int idx = 1;
-	while (g_Lua->Next(-2)) {
+	while (pLua->Next(-2)) {
 		// In bootil, you just don't give a child a name to indicate that it's sequentail. 
 		// so we need to support that.
 		bool isSequential = false; 
-		int iKeyType = g_Lua->GetType(-2);
-		double iKey = iKeyType == GarrysMod::Lua::Type::Number ? g_Lua->GetNumber(-2) : 0;
+		int iKeyType = pLua->GetType(-2);
+		double iKey = iKeyType == GarrysMod::Lua::Type::Number ? pLua->GetNumber(-2) : 0;
 		if (iKey != 0 && iKey == idx)
 		{
 			isSequential = true;
@@ -222,17 +225,17 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 			switch (iKeyType)
 			{
 				case GarrysMod::Lua::Type::String:
-					key = g_Lua->GetString(-2); // lua_next won't nuke itself since we don't convert the value
+					key = pLua->GetString(-2); // lua_next won't nuke itself since we don't convert the value
 					break;
 				case GarrysMod::Lua::Type::Number:
-					g_Lua->Push(-2);
-					key = g_Lua->GetString(-1); // lua_next nukes itself when the key isn't an actual string
-					g_Lua->Pop(1);
+					pLua->Push(-2);
+					key = pLua->GetString(-1); // lua_next nukes itself when the key isn't an actual string
+					pLua->Pop(1);
 					break;
 				case GarrysMod::Lua::Type::Bool:
-					g_Lua->Push(-2);
-					key = g_Lua->GetString(-1); // lua_next nukes itself when the key isn't an actual string
-					g_Lua->Pop(1);
+					pLua->Push(-2);
+					key = pLua->GetString(-1); // lua_next nukes itself when the key isn't an actual string
+					pLua->Pop(1);
 					break;
 				default:
 					break;
@@ -240,22 +243,22 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 
 			if (!key)
 			{
-				g_Lua->Pop(1); // Pop the value off the stack for lua_next to work
+				pLua->Pop(1); // Pop the value off the stack for lua_next to work
 				continue;
 			}
 		}
 
-		switch (g_Lua->GetType(-1))
+		switch (pLua->GetType(-1))
 		{
 			case GarrysMod::Lua::Type::String:
 				if (isSequential)
-					pTree.AddChild().Value(g_Lua->GetString(-1));
+					pTree.AddChild().Value(pLua->GetString(-1));
 				else
-					pTree.SetChild(key, g_Lua->GetString(-1));
+					pTree.SetChild(key, pLua->GetString(-1));
 				break;
 			case GarrysMod::Lua::Type::Number:
 				{
-					double pNumber = g_Lua->GetNumber(-1);
+					double pNumber = pLua->GetNumber(-1);
 					if (IsInt(pNumber))
 						if (isSequential)
 							pTree.AddChild().Var(static_cast<int>(pNumber));
@@ -270,17 +273,17 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 				break;
 			case GarrysMod::Lua::Type::Bool:
 				if (isSequential)
-					pTree.AddChild().Var(g_Lua->GetBool(-1));
+					pTree.AddChild().Var(pLua->GetBool(-1));
 				else
-					pTree.SetChildVar(key, g_Lua->GetBool(-1));
+					pTree.SetChildVar(key, pLua->GetBool(-1));
 				break;
 			case GarrysMod::Lua::Type::Table: // now make it recursive >:D
-				g_Lua->Push(-1);
-				g_Lua->PushNil();
+				pLua->Push(-1);
+				pLua->PushNil();
 				if (isSequential)
-					TableToJSONRecursive(pTree.AddChild());
+					TableToJSONRecursive(pLua, pTree.AddChild());
 				else
-					TableToJSONRecursive(pTree.AddChild(key));
+					TableToJSONRecursive(pLua, pTree.AddChild(key));
 				break;
 			case GarrysMod::Lua::Type::Vector:
 				{
@@ -312,12 +315,12 @@ void TableToJSONRecursive(Bootil::Data::Tree& pTree)
 				break; // We should fallback to nil
 		}
 
-		g_Lua->Pop(1);
+		pLua->Pop(1);
 	}
 
-	g_Lua->Pop(1);
+	pLua->Pop(1);
 
-	g_Lua->ReferenceFree(pRecursiveTableScope.back());
+	pLua->ReferenceFree(pRecursiveTableScope.back());
 	pRecursiveTableScope.pop_back();
 }
 
@@ -332,7 +335,7 @@ LUA_FUNCTION_STATIC(util_TableToJSON)
 	LUA->Push(1);
 	LUA->PushNil();
 
-	TableToJSONRecursive(pTree);
+	TableToJSONRecursive(LUA, pTree);
 
 	Bootil::BString pOut;
 	Bootil::Data::Json::Export(pTree, pOut, bPretty);
@@ -393,9 +396,12 @@ void CUtilModule::Think(bool simulating)
 	pFinishMutex.Lock();
 	for(CompressEntry* entry : pFinishedEntries)
 	{
-		Util::ReferencePush(g_Lua, entry->iCallback);
-			g_Lua->PushString((const char*)entry->buffer.GetBase(), entry->buffer.GetWritten());
-		g_Lua->CallFunctionProtected(1, 0, true);
+		if (entry->pLua)
+		{
+			Util::ReferencePush(entry->pLua, entry->iCallback);
+				entry->pLua->PushString((const char*)entry->buffer.GetBase(), entry->buffer.GetWritten());
+			entry->pLua->CallFunctionProtected(1, 0, true);
+		}
 		delete entry;
 	}
 	pFinishedEntries.clear();
