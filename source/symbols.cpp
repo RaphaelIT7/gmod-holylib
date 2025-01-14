@@ -520,6 +520,10 @@ namespace Symbols
 		Symbol::FromSignature(""), // ToDo
 	};
 
+	const std::vector<Symbol> g_BSPDataSym = { // 64x won't happen until I figure out how to get g_BSPData. Rubat pls expose it
+		Symbol::FromName("g_BSPData"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: steamworks Symbols
 	//---------------------------------------------------------------------------------

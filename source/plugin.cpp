@@ -18,6 +18,7 @@ struct edict_t;
 #include "vstdlib/jobthread.h"
 #include <eiface.h>
 #include <icommandline.h>
+#include <datacache/imdlcache.h>
 
 // The plugin is a static singleton that is exported as an interface
 static CServerPlugin g_HolyLibServerPlugin;
@@ -81,6 +82,9 @@ DLL_EXPORT void HolyLib_PreLoad()
 //---------------------------------------------------------------------------------
 CGlobalVars *gpGlobals = NULL;
 static bool bIgnoreNextUnload = false;
+#if ARCHITECTURE_IS_X86
+IMDLCache *mdlcache = NULL;
+#endif
 bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServerFactory)
 {
 	VPROF_BUDGET("HolyLib - CServerPlugin::Load", VPROF_BUDGETGROUP_HOLYLIB);
@@ -101,6 +105,7 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 		ConnectTier2Libraries(&interfaceFactory, 1);
 
 		engine = (IVEngineServer*)interfaceFactory(INTERFACEVERSION_VENGINESERVER, NULL);
+		mdlcache = (IMDLCache*)interfaceFactory(MDLCACHE_INTERFACE_VERSION, NULL);
 	} else {
 		engine = InterfacePointers::VEngineServer();
 		g_pFullFileSystem = InterfacePointers::FileSystemServer();

@@ -408,6 +408,7 @@ namespace Symbols
 
 	extern const std::vector<Symbol> g_FrameSnapshotManagerSym;
 	extern const std::vector<Symbol> g_PropTypeFnsSym;
+	extern const std::vector<Symbol> g_BSPDataSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: steamworks Symbols

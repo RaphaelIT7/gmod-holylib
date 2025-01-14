@@ -14,6 +14,8 @@
 #include "baseclient.h"
 #include <bitset>
 #include <unordered_set>
+#include <datacache/imdlcache.h>
+#include <cmodel_private.h>
 
 class CNetworkingModule : public IModule
 {
@@ -1129,18 +1131,372 @@ void hook_CGameServer_SendClientMessages(CBaseServer* pServer, bool sendSnapshot
 			entityHasOverride[mod->entity->entindex()] = false;
 	}
 }
+
+class CCServerNetworkProperty : public IServerNetworkable, public IEventRegisterCallback
+{
+public:
+	DECLARE_CLASS_NOBASE( CServerNetworkProperty );
+	DECLARE_DATADESC();
+
+public:
+	CCServerNetworkProperty();
+	virtual	~CCServerNetworkProperty();
+
+public:
+	inline IHandleEntity  *GetEntityHandle( );
+	inline edict_t			*GetEdict() const;
+	inline CBaseNetworkable* GetBaseNetworkable();
+	inline CBaseEntity*	GetBaseEntity();
+	inline ServerClass*	GetServerClass();
+	inline const char*		GetClassName() const;
+	inline void			Release();
+	inline int		AreaNum();
+	inline PVSInfo_t*		GetPVSInfo();
+
+public:
+	inline void Init( CBaseEntity *pEntity );
+	inline void AttachEdict( edict_t *pRequiredEdict = NULL );
+	inline int	entindex() const { return m_pPev->m_EdictIndex; };
+	inline edict_t *edict() { return m_pPev; };
+	inline const edict_t *edict() const { return m_pPev; };
+	inline void SetEdict( edict_t *pEdict );
+	inline void NetworkStateForceUpdate();
+	inline void NetworkStateChanged();
+	inline void NetworkStateChanged( unsigned short offset );
+	inline void MarkPVSInformationDirty();
+	inline void MarkForDeletion();
+	inline bool IsMarkedForDeletion() const;
+	inline void SetNetworkParent( EHANDLE hParent );
+	inline CCServerNetworkProperty* GetNetworkParent();
+	inline void			SetUpdateInterval( float N );
+	inline bool IsInPVS( const CCheckTransmitInfo *pInfo );
+	inline bool IsInPVS( const edict_t *pRecipient, const void *pvs, int pvssize );
+	inline virtual void FireEvent();
+	inline void RecomputePVSInformation();
+
+private:
+	void DetachEdict();
+	CBaseEntity *GetOuter();
+	void SetTransmit( CCheckTransmitInfo *pInfo );
+
+public:
+	CBaseEntity *m_pOuter;
+	edict_t	*m_pPev;
+	PVSInfo_t m_PVSInfo;
+	ServerClass *m_pServerClass;
+	EHANDLE m_hParent;
+	CEventRegister	m_TimerEvent;
+	bool m_bPendingStateChange : 1;
+};
+
+inline void CCServerNetworkProperty::RecomputePVSInformation()
+{
+	if ( m_pPev && ( ( m_pPev->m_fStateFlags & FL_EDICT_DIRTY_PVS_INFORMATION ) != 0 ) )
+	{
+		m_pPev->m_fStateFlags &= ~FL_EDICT_DIRTY_PVS_INFORMATION;
+		engine->BuildEntityClusterList( m_pPev, &m_PVSInfo );
+	}
+}
+
+inline int CCServerNetworkProperty::AreaNum()
+{
+	RecomputePVSInformation();
+	return m_PVSInfo.m_nAreaNum;
+}
+
+inline CCServerNetworkProperty* CCServerNetworkProperty::GetNetworkParent()
+{
+	CBaseEntity *pParent = m_hParent.Get();
+	return pParent ? (CCServerNetworkProperty*)pParent->NetworkProp() : NULL;
+}
+
+static CCollisionBSPData* g_BSPData;
+inline bool CheckAreasConnected(int area1, int area2)
+{
+	return g_BSPData->map_areas[area1].floodnum == g_BSPData->map_areas[area2].floodnum;
+}
+
+inline bool CCServerNetworkProperty::IsInPVS( const CCheckTransmitInfo *pInfo )
+{
+	// PVS data must be up to date
+	// Assert( !m_pPev || ( ( m_pPev->m_fStateFlags & FL_EDICT_DIRTY_PVS_INFORMATION ) == 0 ) );
+	
+	int i;
+
+	// Early out if the areas are connected
+	if ( !m_PVSInfo.m_nAreaNum2 )
+	{
+		for ( i=0; i< pInfo->m_AreasNetworked; i++ )
+		{
+			int clientArea = pInfo->m_Areas[i];
+			if ( clientArea == m_PVSInfo.m_nAreaNum || CheckAreasConnected( clientArea, m_PVSInfo.m_nAreaNum ) )
+				break;
+		}
+	}
+	else
+	{
+		// doors can legally straddle two areas, so
+		// we may need to check another one
+		for ( i=0; i< pInfo->m_AreasNetworked; i++ )
+		{
+			int clientArea = pInfo->m_Areas[i];
+			if ( clientArea == m_PVSInfo.m_nAreaNum || clientArea == m_PVSInfo.m_nAreaNum2 )
+				break;
+
+			if ( CheckAreasConnected( clientArea, m_PVSInfo.m_nAreaNum ) )
+				break;
+
+			if ( CheckAreasConnected( clientArea, m_PVSInfo.m_nAreaNum2 ) )
+				break;
+		}
+	}
+
+	if ( i == pInfo->m_AreasNetworked )
+	{
+		// areas not connected
+		return false;
+	}
+
+	// ignore if not touching a PV leaf
+	// negative leaf count is a node number
+	// If no pvs, add any entity
+
+	//Assert( edict() != pInfo->m_pClientEnt );
+
+	unsigned char *pPVS = ( unsigned char * )pInfo->m_PVS;
+	
+	if ( m_PVSInfo.m_nClusterCount < 0 )   // too many clusters, use headnode
+	{
+		return (engine->CheckHeadnodeVisible( m_PVSInfo.m_nHeadNode, pPVS, pInfo->m_nPVSSize ) != 0);
+	}
+	
+	for ( i = m_PVSInfo.m_nClusterCount; --i >= 0; )
+	{
+		int nCluster = m_PVSInfo.m_pClusters[i];
+		if ( ((int)(pPVS[nCluster >> 3])) & BitVec_BitInByte( nCluster ) )
+			return true;
+	}
+
+	return false;		// not visible
+}
+
+/*
+ * For now this is called from the pvs module meaning we RELY on it.
+ * What did we change? basicly nothing yet. I'm just testing around.
+ * 
+ * NOTE: It's shit & somehow were loosing performance to something. Probably us detouring it is causing our performance loss.
+ */
+extern IMDLCache* mdlcache;
+static ConVar* sv_force_transmit_ents;
+static CBaseEntity* g_pEntityCache[MAX_EDICTS];
+bool g_pReplaceCServerGameEnts_CheckTransmit = false;
+void New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts)
+{
+	// get recipient player's skybox:
+	CBaseEntity *pRecipientEntity = CBaseEntity::Instance( pInfo->m_pClientEnt );
+
+	//Assert( pRecipientEntity && pRecipientEntity->IsPlayer() );
+	if ( !pRecipientEntity )
+		return;
+	
+	MDLCACHE_CRITICAL_SECTION();
+	CBasePlayer *pRecipientPlayer = static_cast<CBasePlayer*>( pRecipientEntity );
+	const int skyBoxArea = pRecipientPlayer->m_Local.m_skybox3d.area;
+	
+	// ToDo: Bring over's CS:GO code for InitialSpawnTime
+	//const bool bIsFreshlySpawned = pRecipientPlayer->GetInitialSpawnTime()+3.0f > gpGlobals->curtime;
+
+#ifndef _X360
+	const bool bIsHLTV = pRecipientPlayer->IsHLTV();
+	//const bool bIsReplay = pRecipientPlayer->IsReplay();
+
+	// m_pTransmitAlways must be set if HLTV client
+	Assert( bIsHLTV == ( pInfo->m_pTransmitAlways != NULL) ||
+		    bIsReplay == ( pInfo->m_pTransmitAlways != NULL) );
+#endif
+
+	bool bForceTransmit = sv_force_transmit_ents->GetBool();
+	int iPlayerIndex = pInfo->m_pClientEnt->m_EdictIndex - 1;
+	for ( int i=0; i < nEdicts; i++ )
+	{
+		int iEdict = pEdictIndices[i];
+
+		edict_t *pEdict = &world_edict[iEdict]; // world_edict is already cached.
+		// Assert( pEdict == engine->PEntityOfEntIndex( iEdict ) );
+		int nFlags = pEdict->m_fStateFlags & (FL_EDICT_DONTSEND|FL_EDICT_ALWAYS|FL_EDICT_PVSCHECK|FL_EDICT_FULLCHECK);
+
+		// entity needs no transmit
+		if ( nFlags & FL_EDICT_DONTSEND )
+			continue;
+		
+		// entity is already marked for sending
+		if ( pInfo->m_pTransmitEdict->Get( iEdict ) )
+			continue;
+
+		if ( g_pShouldPrevent[i][iPlayerIndex] ) // Implements gmod's SetPreventTransmit but hopefully faster.
+			continue;
+		
+		if ( nFlags & FL_EDICT_ALWAYS )
+		{
+			// FIXME: Hey! Shouldn't this be using SetTransmit so as 
+			// to also force network down dependent entities?
+			while ( true )
+			{
+				// mark entity for sending
+				pInfo->m_pTransmitEdict->Set( iEdict );
+	
+#ifndef _X360
+				if ( bIsHLTV/* || bIsReplay*/ )
+				{
+					pInfo->m_pTransmitAlways->Set( iEdict );
+				}
+#endif	
+				CCServerNetworkProperty *pEnt = static_cast<CCServerNetworkProperty*>( pEdict->GetNetworkable() );
+				if ( !pEnt )
+					break;
+
+				CCServerNetworkProperty *pParent = pEnt->GetNetworkParent();
+				if ( !pParent )
+					break;
+
+				pEdict = pParent->edict();
+				iEdict = pEdict->m_EdictIndex;
+			}
+			continue;
+		}
+
+		// FIXME: Would like to remove all dependencies
+		CBaseEntity *pEnt = g_pEntityCache[iEdict];
+		// Assert( dynamic_cast< CBaseEntity* >( pEdict->GetUnknown() ) == pEnt );
+
+		if ( nFlags == FL_EDICT_FULLCHECK )
+		{
+			// do a full ShouldTransmit() check, may return FL_EDICT_CHECKPVS
+			nFlags = pEnt->ShouldTransmit( pInfo );
+
+			// Assert( !(nFlags & FL_EDICT_FULLCHECK) );
+
+			if ( nFlags & FL_EDICT_ALWAYS )
+			{
+				pEnt->SetTransmit( pInfo, true );
+				continue;
+			}	
+		}
+
+		// don't send this entity
+		if ( !( nFlags & FL_EDICT_PVSCHECK ) )
+			continue;
+
+		CCServerNetworkProperty *netProp = static_cast<CCServerNetworkProperty*>( pEdict->GetNetworkable() );
+
+#ifndef _X360
+		if ( bIsHLTV/* || bIsReplay*/ )
+		{
+			// for the HLTV/Replay we don't cull against PVS
+			if ( netProp->AreaNum() == skyBoxArea )
+			{
+				pEnt->SetTransmit( pInfo, true );
+			}
+			else
+			{
+				pEnt->SetTransmit( pInfo, false );
+			}
+			continue;
+		}
+#endif
+
+		// Always send entities in the player's 3d skybox.
+		// Sidenote: call of AreaNum() ensures that PVS data is up to date for this entity
+		bool bSameAreaAsSky = netProp->AreaNum() == skyBoxArea;
+		if ( bSameAreaAsSky )
+		{
+			pEnt->SetTransmit( pInfo, true );
+			continue;
+		}
+
+		bool bInPVS = netProp->IsInPVS( pInfo );
+		if ( bInPVS || bForceTransmit )
+		{
+			// only send if entity is in PVS
+			pEnt->SetTransmit( pInfo, false );
+			continue;
+		}
+
+		// If the entity is marked "check PVS" but it's in hierarchy, walk up the hierarchy looking for the
+		//  for any parent which is also in the PVS.  If none are found, then we don't need to worry about sending ourself
+		CCServerNetworkProperty *check = netProp->GetNetworkParent();
+
+		// BUG BUG:  I think it might be better to build up a list of edict indices which "depend" on other answers and then
+		// resolve them in a second pass.  Not sure what happens if an entity has two parents who both request PVS check?
+        while ( check )
+		{
+			int checkIndex = check->entindex();
+
+			// Parent already being sent
+			if ( pInfo->m_pTransmitEdict->Get( checkIndex ) )
+			{
+				pEnt->SetTransmit( pInfo, true );
+				break;
+			}
+
+			edict_t *checkEdict = check->edict();
+			int checkFlags = checkEdict->m_fStateFlags & (FL_EDICT_DONTSEND|FL_EDICT_ALWAYS|FL_EDICT_PVSCHECK|FL_EDICT_FULLCHECK);
+			if ( checkFlags & FL_EDICT_DONTSEND )
+				break;
+
+			if ( checkFlags & FL_EDICT_ALWAYS )
+			{
+				pEnt->SetTransmit( pInfo, true );
+				break;
+			}
+
+			if ( checkFlags == FL_EDICT_FULLCHECK )
+			{
+				// do a full ShouldTransmit() check, may return FL_EDICT_CHECKPVS
+				CBaseEntity *pCheckEntity = check->GetBaseEntity();
+				nFlags = pCheckEntity->ShouldTransmit( pInfo );
+				// Assert( !(nFlags & FL_EDICT_FULLCHECK) );
+				if ( nFlags & FL_EDICT_ALWAYS )
+				{
+					pCheckEntity->SetTransmit( pInfo, true );
+					pEnt->SetTransmit( pInfo, true );
+				}
+				break;
+			}
+
+			if ( checkFlags & FL_EDICT_PVSCHECK )
+			{
+				// Check pvs
+				check->RecomputePVSInformation();
+				bool bMoveParentInPVS = check->IsInPVS( pInfo );
+				if ( bMoveParentInPVS )
+				{
+					pEnt->SetTransmit( pInfo, true );
+					break;
+				}
+			}
+
+			// Continue up chain just in case the parent itself has a parent that's in the PVS...
+			check = check->GetNetworkParent();
+		}
+	}
+
+//	Msg("A:%i, N:%i, F: %i, P: %i\n", always, dontSend, fullCheck, PVS );
+}
+
 void CNetworkingModule::OnEntityDeleted(CBaseEntity* pEntity)
 {
 	CleaupSetPreventTransmit(pEntity);
 	RemoveEntityModule(pEntity);
+	g_pEntityCache[pEntity->entindex()] = NULL;
 }
 
 void CNetworkingModule::OnEntityCreated(CBaseEntity* pEntity)
 {
 	auto mod = GetOrCreateEntityModule<SendpropOverrideModule>(pEntity, "sendpropoverride");
 	//mod->AddOverride(CallbackPluginCall, precalcIndex, prop, callbacks.size() - 1);
+	g_pEntityCache[pEntity->entindex()] = pEntity;
 }
-
 
 SendTable* playerSendTable;
 ServerClass* playerServerClass;
@@ -1223,13 +1579,20 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 
 	PropTypeFns* pPropTypeFns = Detour::ResolveSymbol<PropTypeFns>(engine_loader, Symbols::g_PropTypeFnsSym);
 	Detour::CheckValue("get class", "pPropTypeFns", pPropTypeFns != NULL);
+
+	g_BSPData = Detour::ResolveSymbol<CCollisionBSPData>(engine_loader, Symbols::g_BSPDataSym);
+	Detour::CheckValue("get class", "CCollisionBSPData", g_BSPData != NULL);
 	
 	for (size_t i = 0; i < DPT_NUMSendPropTypes; ++i)
 		g_PropTypeFns[i] = pPropTypeFns[i]; // Crash any% speed run. I don't believe this will work
+
+	//g_pReplaceCServerGameEnts_CheckTransmit = true;
 }
 
 void CNetworkingModule::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
 {
+	sv_force_transmit_ents = g_pCVar->FindVar("sv_force_transmit_ents");
+
 	// Find player class (has DT_BasePlayer as a baseclass table)
 	// We do this in ServerActivate since the engine only now hooked into the ServerClass allowing us to safely use them now.
 	g_SharedEdictChangeInfo = Util::engineserver->GetSharedEdictChangeInfo();
@@ -1368,6 +1731,8 @@ void CNetworkingModule::ServerActivate(edict_t* pEdictList, int edictCount, int 
 extern CGlobalVars *gpGlobals;
 void CNetworkingModule::Shutdown()
 {
+	//g_pReplaceCServerGameEnts_CheckTransmit = false;
+
 	if (!framesnapshotmanager) // If we failed, we failed
 	{
 		Msg("holylib: Failed to find framesnapshotmanager. Unable to fully unload!\n");

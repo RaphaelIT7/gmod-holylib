@@ -38,9 +38,7 @@ static void hook_CGMOD_Player_SetupVisibility(void* ent, unsigned char* pvs, int
 }
 #endif
 
-#ifdef HOLYLIB_MANUALNETWORKING
 static std::unordered_map<edict_t*, int> pOriginalFlags;
-#endif
 static std::vector<edict_t*> g_pAddEntityToPVS;
 static std::unordered_map<edict_t*, int> g_pOverrideStateFlag;
 
@@ -50,7 +48,9 @@ static int g_nCurrentEdicts = -1;
 
 static Detouring::Hook detour_CServerGameEnts_CheckTransmit;
 #ifndef HOLYLIB_MANUALNETWORKING
-static void hook_CServerGameEnts_CheckTransmit(void* gameents, CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts)
+extern bool g_pReplaceCServerGameEnts_CheckTransmit;
+extern void New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts);
+static void hook_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts)
 {
 	VPROF_BUDGET("HolyLib - CServerGameEnts::CheckTransmit", VPROF_BUDGETGROUP_OTHER_NETWORKING);
 	g_pCurrentTransmitInfo = pInfo;
@@ -81,7 +81,6 @@ static void hook_CServerGameEnts_CheckTransmit(void* gameents, CCheckTransmitInf
 	for (edict_t* ent : g_pAddEntityToPVS)
 		Util::servergameents->EdictToBaseEntity(ent)->SetTransmit(pInfo, true);
 	
-	static std::unordered_map<edict_t*, int> pOriginalFlags;
 	for (auto&[ent, flag] : g_pOverrideStateFlag)
 	{
 		pOriginalFlags[ent] = ent->m_fStateFlags;
@@ -91,7 +90,10 @@ static void hook_CServerGameEnts_CheckTransmit(void* gameents, CCheckTransmitInf
 		ent->m_fStateFlags = flag;
 	}
 
-	detour_CServerGameEnts_CheckTransmit.GetTrampoline<Symbols::CServerGameEnts_CheckTransmit>()(gameents, pInfo, pEdictIndices, nEdicts);
+	if (g_pReplaceCServerGameEnts_CheckTransmit)
+		New_CServerGameEnts_CheckTransmit(gameents, pInfo, pEdictIndices, nEdicts);
+	else
+		detour_CServerGameEnts_CheckTransmit.GetTrampoline<Symbols::CServerGameEnts_CheckTransmit>()(gameents, pInfo, pEdictIndices, nEdicts);
 
 	if(Lua::PushHook("HolyLib:PostCheckTransmit"))
 	{
@@ -157,7 +159,6 @@ void PreCheckTransmit(void* gameents, CCheckTransmitInfo *pInfo, const unsigned 
 		Util::servergameents->EdictToBaseEntity(ent)->SetTransmit(pInfo, true);
 	}
 	
-	static std::unordered_map<edict_t*, int> pOriginalFlags;
 	for (auto&[ent, flag] : g_pOverrideStateFlag)
 	{
 		pOriginalFlags[ent] = ent->m_fStateFlags;
