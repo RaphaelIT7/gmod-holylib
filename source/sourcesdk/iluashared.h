@@ -29,7 +29,13 @@ struct LuaFile
 
 struct LuaFindResult
 {
+#ifdef WIN32
 	std::string fileName;
+	inline const char* GetFileName() { return fileName.c_str(); }
+#else
+	const char* fileName;
+	inline const char* GetFileName() { return fileName; }
+#endif
 	bool isFolder;
 };
 

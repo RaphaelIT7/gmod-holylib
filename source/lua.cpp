@@ -56,22 +56,22 @@ void Lua::Init(GarrysMod::Lua::ILuaInterface* LUA)
 	g_pModuleManager.LuaInit(false);
 
 	std::vector<LuaFindResult> results;
-	GetShared()->FindScripts("lua/autorun/_holylib/", "GAME", results);
-	for (LuaFindResult result : results)
+	GetShared()->FindScripts("lua/autorun/_holylib/*.lua", "GAME", results);
+	for (LuaFindResult& result : results)
 	{
-		Msg("File: %s (%s)\n", result.fileName.c_str(), result.isFolder ? "true" : "false");
-	}
-
-	FileHandle_t fh = g_pFullFileSystem->Open("lua/autorun/server/_holylib.lua", "rb", "GAME");
-	if (fh)
-	{
-		int length = g_pFullFileSystem->Size(fh);
-		char* buffer = new char[length + 1];
-		g_pFullFileSystem->Read(buffer, length, fh);
-		buffer[length] = 0;
-		g_Lua->RunStringEx("_holylib.lua", "", buffer, true, true, true, true);
-		delete[] buffer;
-		g_pFullFileSystem->Close(fh);
+		std::string fileName = "lua/autorun/_holylib/";
+		fileName.append(result.GetFileName());
+		FileHandle_t fh = g_pFullFileSystem->Open(fileName.c_str(), "rb", "GAME");
+		if (fh)
+		{
+			int length = g_pFullFileSystem->Size(fh);
+			char* buffer = new char[length + 1];
+			g_pFullFileSystem->Read(buffer, length, fh);
+			buffer[length] = 0;
+			g_Lua->RunStringEx(fileName.c_str(), "", buffer, true, true, true, true);
+			delete[] buffer;
+			g_pFullFileSystem->Close(fh);
+		}
 	}
 }
 
