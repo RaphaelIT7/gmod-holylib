@@ -65,6 +65,8 @@ On the next startup the ghostinj will update holylib to use the new file.
 \- [+] Exposed `IHolyUtil` interface and added `IHolyLib::PreLoad` and `IHolyLib:GetHolyUtil`.  
 \- [+] Added (Experimental)`holylib_filesystem_savesearchcache` optimization to filesystem module.  
 \- [+] Added Windows support for `bitbuf`, `cvars`, (partially)`filesystem`, `pas`, `util`, `voicechat` and (partially)`vprof`  
+\- [+] Added `lua/autorun/_holylib` folder.
+\- \- Files inside that folder are loaded and executed before **any** gmod script runs, only the c++ functions exist at this point.  
 \- [#] Fixed many issues with the `bass` module. It is acutally usable.  
 \- [#] Improved performance by replacing SetTable with RawSet.  
 \- [#] Added missing calls to the deconstructors for `CHLTVClient` and `CNetworkStringTable`.  
