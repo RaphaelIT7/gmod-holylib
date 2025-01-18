@@ -299,6 +299,7 @@ LUA_FUNCTION_STATIC(CBaseClient_SendNetMsg)
 	msg.m_iType = iType;
 	strcpy(msg.m_strName, strName);
 	msg.m_DataOut.StartWriting(bf->GetData(), 0, 0, bf->GetMaxNumBits());
+	msg.m_iLength = bf->GetNumBitsWritten();
 
 	LUA->PushBool(pClient->SendNetMsg(msg));
 	return 1;

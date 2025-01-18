@@ -3134,6 +3134,18 @@ You can find all valid types in the [protocol.h](https://github.com/RaphaelIT7/g
 > [!NOTE]
 > This was formerly known as `HolyLib.BroadcastCustomMessage`
 
+Example usage, we enable `sv_cheats` clientside while having it disabled serverside.  
+```lua
+local bf = bitbuf.CreateWriteBuffer(8) -- Create a 8 bytes / 64 bits buffer.
+
+bf:WriteByte(1) -- How many convars were sending
+bf:WriteString("sv_cheats") -- ConVar name
+bf:WriteString("1") -- ConVar value
+
+-- You can use CBaseClient:SendNetMsg to send it to specific clients.
+gameserver.BroadcastMessage(5, "NET_SetConVar", bf) -- 5 = net_SetConVar / net message type.
+```
+
 ### CBaseClient
 This class represents a client.
 
