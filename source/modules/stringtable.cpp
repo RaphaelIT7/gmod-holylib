@@ -424,6 +424,14 @@ LUA_FUNCTION_STATIC(stringtable_CreateStringTable)
 	int userdatafixedsize = (int)LUA->CheckNumberOpt(3, 0);
 	int userdatanetworkbits = (int)LUA->CheckNumberOpt(4, 0);
 
+	if (networkStringTableContainerServer->FindTable(name))
+	{
+		std::string err = "Tried to create a already existing stringtable! (";
+		err.append(name);
+		err.append(")");
+		LUA->ThrowError(err.c_str());
+	}
+
 	Push_INetworkStringTable(networkStringTableContainerServer->CreateStringTable(name, maxentries, userdatafixedsize, userdatanetworkbits));
 	return 1;
 }
@@ -476,6 +484,14 @@ LUA_FUNCTION_STATIC(stringtable_CreateStringTableEx)
 	int userdatafixedsize = (int)LUA->CheckNumberOpt(3, 0);
 	int userdatanetworkbits = (int)LUA->CheckNumberOpt(4, 0);
 	bool bIsFilenames = LUA->GetBool(5);
+
+	if (networkStringTableContainerServer->FindTable(name))
+	{
+		std::string err = "Tried to create a already existing stringtable! (";
+		err.append(name);
+		err.append(")");
+		LUA->ThrowError(err.c_str());
+	}
 
 	Push_INetworkStringTable(networkStringTableContainerServer->CreateStringTableEx(name, maxentries, userdatafixedsize, userdatanetworkbits, bIsFilenames));
 	return 1;
