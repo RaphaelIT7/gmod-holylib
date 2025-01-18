@@ -67,6 +67,7 @@ On the next startup the ghostinj will update holylib to use the new file.
 \- [+] Added Windows support for `bitbuf`, `cvars`, (partially)`filesystem`, `pas`, `util`, `voicechat` and (partially)`vprof`  
 \- [+] Added `lua/autorun/_holylib` folder.
 \- \- Files inside that folder are loaded and executed before **any** gmod script runs, only the c++ functions exist at this point.  
+\- [+] Added `bf_write:WriteString` to `bitbuf` module.  
 \- [#] Fixed many issues with the `bass` module. It is acutally usable.  
 \- [#] Improved performance by replacing SetTable with RawSet.  
 \- [#] Added missing calls to the deconstructors for `CHLTVClient` and `CNetworkStringTable`.  
@@ -1914,6 +1915,8 @@ Returns `true` on success.
 #### bf_write:WriteBitCoord(number value)
 
 #### bf_write:WriteBitCoordMP(number value, bool bIntegral, bool bLowPrecision)
+
+#### bf_write:WriteString(string value)
 
 ## Networking
 This module tries to optimize anything related to networking.  

@@ -848,6 +848,14 @@ LUA_FUNCTION_STATIC(bf_write_WriteBitCoordMP)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(bf_write_WriteString)
+{
+	bf_write* pBF = Get_bf_write(1, true);
+
+	pBF->WriteString(LUA->CheckString(2));
+	return 0;
+}
+
 LUA_FUNCTION_STATIC(bitbuf_CopyReadBuffer)
 {
 	bf_read* pBf = Get_bf_read(1, true);
@@ -1012,6 +1020,7 @@ void CBitBufModule::LuaInit(bool bServerInit)
 		Util::AddFunc(bf_write_WriteBitFloat, "WriteBitFloat");
 		Util::AddFunc(bf_write_WriteBitCoord, "WriteBitCoord");
 		Util::AddFunc(bf_write_WriteBitCoordMP, "WriteBitCoordMP");
+		Util::AddFunc(bf_write_WriteString, "WriteString");
 	g_Lua->Pop(1);
 
 	Util::StartTable();
