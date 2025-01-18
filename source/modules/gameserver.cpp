@@ -25,7 +25,7 @@ public:
 	bool			ReadFromBuffer( bf_read &buffer ) { return true; };
 	bool			WriteToBuffer( bf_write &buffer ) {
 		buffer.WriteUBitLong(GetType(), NETMSG_TYPE_BITS);
-		return buffer.WriteBits(m_DataOut.GetData(), m_DataOut.GetNumBitsWritten());
+		return buffer.WriteBits(m_DataOut.GetData(), m_iLength);
 	};
 	const char		*ToString() const { return "HolyLib:CustomMessage"; };
 	int				GetType() const { return m_iType; }
@@ -39,6 +39,7 @@ public:
 	int	GetGroup() const { return INetChannelInfo::GENERIC; }
 
 	int m_iType = 0;
+	int m_iLength = 0;
 	char m_strName[64] = "";
 	bf_write m_DataOut;
 };
@@ -866,6 +867,7 @@ LUA_FUNCTION_STATIC(gameserver_BroadcastMessage)
 	msg.m_iType = iType;
 	strcpy(msg.m_strName, strName);
 	msg.m_DataOut.StartWriting(bf->GetData(), 0, 0, bf->GetMaxNumBits());
+	msg.m_iLength = bf->GetNumBitsWritten();
 
 	Util::server->BroadcastMessage(msg);
 	return 0;
