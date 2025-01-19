@@ -65,7 +65,7 @@ On the next startup the ghostinj will update holylib to use the new file.
 \- [+] Exposed `IHolyUtil` interface and added `IHolyLib::PreLoad` and `IHolyLib:GetHolyUtil`.  
 \- [+] Added (Experimental)`holylib_filesystem_savesearchcache` optimization to filesystem module.  
 \- [+] Added Windows support for `bitbuf`, `cvars`, (partially)`filesystem`, `pas`, `util`, `voicechat` and (partially)`vprof`  
-\- [+] Added `lua/autorun/_holylib` folder.
+\- [+] Added `lua/autorun/_holylib` folder.  
 \- \- Files inside that folder are loaded and executed before **any** gmod script runs, only the c++ functions exist at this point.  
 \- [+] Added `bf_write:WriteString` to `bitbuf` module.  
 \- [#] Fixed many issues with the `bass` module. It is acutally usable.  
@@ -885,7 +885,7 @@ Supports: Linux32 | Windows32
 This module also adds a `filesystem` library which should generally be faster than gmod's functions, because gmod has some weird / slow things in them.  
 It also gives you full access to the filesystem and doesn't restrict you to specific directories.  
 
-#### (FSASYNC Enum) filesystem.AsyncRead(string fileName, string gamePath, function callBack(string fileName, string gamePath, FSASYNC status, string content), bool sync)
+#### (FSASYNC Enum) filesystem.AsyncRead(string fileName, string gamePath, function callback(string fileName, string gamePath, FSASYNC status, string content), bool sync)
 Reads a file async and calls the callback with the contents.  
 
 #### filesystem.CreateDir(string dirName, string gamePath = "DATA")
@@ -906,7 +906,7 @@ Returns `true` if the given file is a directory.
 #### File filesystem.Open(string fileName, string fileMode, string gamePath = "GAME")
 Opens the given file or returns `nil` on failure.  
 
-#### bool filesystem.Rename(string origFileName, string newFileName, string gamePath = "DATA")
+#### bool filesystem.Rename(string oldFileName, string newFileName, string gamePath = "DATA")
 Renames the given file and returns `true` on success.  
 
 #### number filesystem.Size(string fileName, string gamePath = "GAME")
@@ -1629,7 +1629,7 @@ Supports: Linux32 | Linux64 | Windows32 | Windows64
 Copies the given buffer into a new one.  
 Useful if you want to save the data received by a client.  
 
-#### bf_read bibuf.CreateReadBuffer(string data)
+#### bf_read bitbuf.CreateReadBuffer(string data)
 Creates a read buffer from the given data.  
 Useful if you want to read the userdata of the instancebaseline stringtable.  
 
