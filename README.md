@@ -562,6 +562,11 @@ stringtable.AllowCreation(false)
 #### stringtable.RemoveTable(INetworkStringTable table)
 Deletes that specific stringtable.  
 
+> [!WARNING]
+> Deleting a stringtable is **NOT** networked!  
+> In addition, it might be unsafe and result in crashes when it's a engine created stringtable.  
+> Generally, only use it when you **KNOW** what your doing.  
+
 ### INetworkStringTable
 This is a metatable that is pushed by this module. It contains the functions listed below  
 
