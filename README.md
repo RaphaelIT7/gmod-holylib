@@ -938,11 +938,11 @@ Returns the relative path for the given file.
 
 #### number filesystem.TimeCreated(string fileName, string gamePath = "GAME")
 Returns the time the given file was created.  
-Will return `nil` if the file wasn't found.  
+Will return `0` if the file wasn't found.  
 
 #### number filesystem.TimeAccessed(string fileName, string gamePath = "GAME")
 Returns the time the given file was last accessed.  
-Will return `nil` if the file wasn't found.  
+Will return `0` if the file wasn't found.  
 
 ### ConVars
 

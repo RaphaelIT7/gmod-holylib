@@ -2071,7 +2071,7 @@ LUA_FUNCTION_STATIC(filesystem_TimeCreated)
 			return 1;
 		}
 	
-	LUA->PushNil();
+	LUA->PushNumber(0);
 	return 1;
 }
 
@@ -2088,7 +2088,7 @@ LUA_FUNCTION_STATIC(filesystem_TimeAccessed)
 			return 1;
 		}
 	
-	LUA->PushNil();
+	LUA->PushNumber(0);
 	return 1;
 }
 
