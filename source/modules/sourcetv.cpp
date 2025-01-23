@@ -331,11 +331,17 @@ LUA_FUNCTION_STATIC(sourcetv_GetAll)
 LUA_FUNCTION_STATIC(sourcetv_GetClient)
 {
 	if (!hltv || !hltv->IsActive())
-		return 0;
+	{
+		LUA->PushNil();
+		return 1;
+	}
 
 	int iClientIndex = (int)LUA->CheckNumber(1);
 	if (iClientIndex >= hltv->GetClientCount())
-		return 0;
+	{
+		LUA->PushNil();
+		return 1;
+	}
 
 	CHLTVClient* pClient = hltv->Client(iClientIndex);
 	if (pClient && !pClient->IsConnected())

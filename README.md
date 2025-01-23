@@ -121,6 +121,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
 \- Possibly allow on to force workshop download on next level change.  
 \- GO thru everything and use a more consistant codestyle. I created quiet the mess.  
 \- Reduce/Remove the usage of g_Lua since our code should work later with multiple ILuaInterfaces.  
+\- test/become compatible with vphysics-jolt (I'm quite sure that the `physenv` isn't compatible).  
 
 # New Documentation
 Currently I'm working on implementing a better wiki that will replace this huge readme later.  
@@ -1425,7 +1426,7 @@ Returns the found ConVar or `nil` on failure.
 Unlike Gmod's `GetConVar_Internal` there are no restrictions placed on it.  
 
 ## sourcetv
-This module plans to add a new `sourcetv` library and a new class `HLTVPlayer` will allow a SourceTV client to send net messages to the server.  
+This module adds a new `sourcetv` library and a new class `CHLTVPlayer`.
 
 Supports: Linux32  
 
@@ -1452,6 +1453,7 @@ Returns the slot of the sourcetv client/bot.
 #### number sourcetv.StartRecord(string fileName)
 string fileName - The name for the recording.  
 
+Tries to start a new recording.  
 Returns one of the `RECORD_` enums.  
 
 #### string sourcetv.GetRecordingFile()
@@ -1469,12 +1471,12 @@ Returns a table that contains all HLTV clients. It will return `nil` on failure.
 #### CHLTVClient sourcetv.GetClient(number slot)
 Returns the CHLTVClient at that slot or `nil` on failure.  
 
-#### sourcetv.FireEvent(IGameEvent event, bool allowOverride)
+#### sourcetv.FireEvent(IGameEvent event, bool allowOverride = false)
 Fires the gameevent for all hltv clients / broadcasts it.  
 If `allowOverride` is set to true, it internally won't block any events like `hltv_cameraman`, `hltv_chase` and `hltv_fixed`.  
 
 #### sourcetv.SetCameraMan(number entIndex / Entity ent)  
-Sends the `hltv_cameraman` event aall clients and blocks the `HLTVDirector` from changing the view.  
+Sends the `hltv_cameraman` event all clients and blocks the `HLTVDirector` from changing the view.  
 Call it with `0` / `NULL` to reset it and let the `HLTVDirector` take control again.  
 
 > [!NOTE]
@@ -1501,43 +1503,6 @@ If you try to get multiple values from the lua table, just use `CHLTVClient:GetT
 #### table CHLTVClient:GetTable()
 Returns the lua table of this object.  
 You can store variables into it.  
-
-#### string CHLTVClient:GetName()
-Returns the name of the client.  
-
-#### string CHLTVClient:GetSteamID()
-Returns the steamid of the client.  
-
-> [!NOTE]
-> Currently broken / will return `STEAM_ID_PENDING`
-
-#### number CHLTVClient:GetUserID()
-Returns the userid of the client.  
-
-#### number CHLTVClient:GetPlayerSlot()
-Returns the slot of the client. Use this for `sourcetv.GetClient`.  
-
-#### void CHLTVClient:Reconnect()
-Reconnects the HLTV client.  
-
-#### void CHLTVClient:ClientPrint(string message)
-Prints the given message into the client's console.  
-
-> [!NOTE]
-> It won't add `\n` at the end of the message, so you will need to add it yourself.  
-
-#### bool CHLTVClient:IsValid()
-Returns `true` if the client is still valid.  
-
-#### bool (Experimental) CHLTVClient:SendLua(string code)
-Sends the given code to the client to be executed.  
-Returns `true` on success.  
-
-> [!NOTE]
-> This function was readded back experimentally. It wasn't tested yet. It's still broken but doesn't crash  
-
-#### (Experimental) CHLTVClient:FireEvent(IGameEvent event)  
-Fires/sends the gameevent to this specific client.  
 
 #### CHLTVClient:SetCameraMan(number entIndex / Entity ent)  
 Sends the `hltv_cameraman` event to the specific client and blocks the `HLTVDirector` from changing the view.  
@@ -1607,11 +1572,8 @@ end)
 Called when SourceTV tries to start a new shot.  
 Return `true` to cancel it.  
 
-#### bool HolyLib:OnSourceTVClientDisconnect(number playerSlot)
+#### bool HolyLib:OnSourceTVClientDisconnect(CHLTVClient client)
 Called when a client disconnects from the sourcetv server.  
-
-> [!NOTE]
-> We pass the playerSlot since passing the CHLTVClient object causes weird issues I couldn't fix yet.  
 
 ### ConVars
 
