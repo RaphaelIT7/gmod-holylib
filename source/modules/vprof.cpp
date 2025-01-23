@@ -24,22 +24,8 @@ public:
 	// Update: Fk my old self, Linux64 is just broken and it crashed because I had the wrong symbols.
 };
 
-extern ConVar holylib_sv_stressbots;
-static void OnSV_StressBotsChange(IConVar* var, const char *pOldValue, float flOldValue)
-{
-	ConVar* sv_stressbots = cvar->FindVar("sv_stressbots");
-	if (!sv_stressbots) {
-		Warning("holylib: Failed to find sv_stressbots!\n");
-		return;
-	}
-
-	sv_stressbots->SetValue(holylib_sv_stressbots.GetString());
-}
-
-// Reminder: Look UP before adding static.
-ConVar holylib_sv_stressbots("holylib_sv_stressbots", "0", 0, "Sets sv_stressbots. (sv_stressbots will be available in the next update)", OnSV_StressBotsChange);
 static ConVar holylib_vprof_exportreport("holylib_vprof_exportreport", "1", 0, "If enabled, vprof results will be dumped into a file in the vprof/ folder");
-static ConVar holylib_vprof_profilecfunc("holylib_vprof_profilecfunc", "0", 0, "If enabled, Lua->C calls will also be profiled.");
+//static ConVar holylib_vprof_profilecfunc("holylib_vprof_profilecfunc", "0", 0, "If enabled, Lua->C calls will also be profiled.");
 
 static CVProfModule g_pVProfModule;
 IModule* pVProfModule = &g_pVProfModule;
@@ -793,7 +779,7 @@ LUA_FUNCTION_STATIC(VProfCounter__index)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(VProfCounter_Name)
+LUA_FUNCTION_STATIC(VProfCounter_GetName)
 {
 	VProfCounter* counter = Get_VProfCounter(1, true);
 
@@ -1158,7 +1144,10 @@ LUA_FUNCTION_STATIC(vprof_GetCounter)
 	VProfCounter* counter = new VProfCounter;
 	counter->strName = g_VProfCurrentProfile.GetCounterName(index);
 	if (!counter->strName)
-		return 0; // Not a valid counter. LIAR
+	{
+		LUA->PushNil();
+		return 1; // Not a valid counter. LIAR
+	}
 	
 	counter->iValue = g_VProfCurrentProfile.FindOrCreateCounter(counter->strName);
 
@@ -1343,7 +1332,7 @@ void CVProfModule::LuaInit(bool bServerInit)
 		Util::AddFunc(VProfCounter_Get, "Get");
 		Util::AddFunc(VProfCounter_Increment, "Increment");
 		Util::AddFunc(VProfCounter_Decrement, "Decrement");
-		Util::AddFunc(VProfCounter_Name, "Name");
+		Util::AddFunc(VProfCounter_GetName, "GetName");
 	g_Lua->Pop(1);
 
 	VProfNode_TypeID = g_Lua->CreateMetaTable("VProfNode");

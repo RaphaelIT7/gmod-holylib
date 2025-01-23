@@ -81,6 +81,7 @@ On the next startup the ghostinj will update holylib to use the new file.
 \- [#] Small networking optimizations.  
 \- [#] Optimized `CCvar::FindVar` (50x faster in average).  
 \- [#] Fixed `pvs.RemoveAllEntityFromTransmit` possibly causing stack issues.  
+\- [-] Removed `holylib_filesystem_optimizedfixpath` since it was implemented into gmod itself.  
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
@@ -91,6 +92,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
 \- [#] Made `HolyLib.SetSignOnState` third arg optional and added `rawSet` option.  
 \- [#] Renamed `HLTVClient` to `CHLTVClient`.  
 \- [#] Renamed `HLTVClient:GetSlot` to `HLTVClient:GetPlayerSlot`.  
+\- [#] Renamed `VProfCounter:Name` to `VProfCounter:GetName`.  
 \- [-] Removed `HolyLib.BroadcastCustomMessage` (Replaced by `gameserver.BroadcastMessage`)  
 \- [-] Removed `HolyLib.SendCustomMessage` (Replaced by `CBaseClient:SendNetMsg`)  
 \- [-] Removed `HolyLib:PostCheckTransmit` second argument (Use `pvs.GetEntitesFromTransmit`)  
@@ -979,9 +981,6 @@ lua_run local a = SysTime() for k=1, 1000 do file.Exists("garrysmod.ver", "MOD")
 - I don't know if this has any bugs, but while using this for ~1 Month on a server, I didn't find any issues.  
 - It will also improve the `MOD` search path since it also has multiple search paths.  
 
-#### holylib_filesystem_optimizedfixpath (default `1`)
-If enabled, it will optimize the `CBaseFileSystem::FixPath` function by caching the `BASE_PATH`.  
-
 #### holylib_filesystem_earlysearchcache (default `1`)
 If enabled, it will check the searchcache inside `CBaseFileSystem::OpenForRead`.  
 
@@ -1132,7 +1131,7 @@ When changing it, it will wait for all queried jobs to first finish before chang
 The number of threads to use for `util.AsyncDecompress`.  
 
 > [!NOTE]
-> Decompressing seems to be far faster than compressing so it doesn't need as many threads.  
+> Decompressing seems to be far faster than compressing so it won't need as many threads.  
 
 ## concommand
 This module unblocks `quit` and `exit` for `RunConsoleCommand`.  
@@ -1162,10 +1161,13 @@ Starts vprof.
 Stops vprof.  
 
 #### bool vprof.AtRoot()
-Returns `true` if vprof currently is at it's root node.  
+Returns `true` if is vprof scope currently is at it's root node.  
 
-#### VProfCounter vprof.FindOrCreateCounter(string name, CounterGroup_t group)
+#### VProfCounter vprof.FindOrCreateCounter(string name, number group)
 Returns the given vprof counter or creates it if it's missing.  
+
+> [!NOTE]
+> If the vprof counter limit is hit, it will return a dummy vprof counter!
 
 #### VProfCounter vprof.GetCounter(number index)
 Returns the counter by it's index.  
@@ -1173,7 +1175,6 @@ Returns nothing if the counter doesn't exist.
 
 #### number vprof.GetNumCounters()
 Returns the number of counters that exist.  
-There is a limit on how many counters there can be.  
 
 #### vprof.ResetCounters()
 Resets all counters back to `0`.  
@@ -1219,7 +1220,7 @@ Returns the root node.
 Returns the current node.  
 
 #### bool vprof.IsEnabled()
-Returns `true` if vprof is enabled.  
+Returns `true` if vprof is enabled/running.  
 
 #### vprof.MarkFrame()
 If vprof is enabled, it will call MarkFrame on the root node.  
@@ -1258,6 +1259,9 @@ It internally only contains a string and a pointer to the counter value.
 If called on a invalid object, it will return `VProfCounter [NULL]`.  
 Normally returns `VProfCounter [name][value]`.  
 
+> [!NOTE]
+> A VProfCounter currently will NEVER become NULL, instead if something called vprof.Term you'll probably crash when using the class.
+
 #### string VProfCounter:Name()
 Returns the name of the counter.  
 
@@ -1279,6 +1283,9 @@ This object basicly fully exposes the `CVProfNode` class.
 #### string VProfNode:\_\_tostring()
 If called on a invalid object, it will return `VProfNode [NULL]`.  
 Normally returns `VProfNode [name]`.  
+
+> [!NOTE]
+> A VProfNode currently will NEVER become NULL, instead if something called vprof.Term you'll probably crash when using the class.
 
 #### string VProfNode:GetName()
 Returns the name of this node.  
@@ -1386,16 +1393,12 @@ Theses are the CounterGroup_t enums.
 
 #### vprof.COUNTER_GROUP_TEXTURE_PER_FRAME = 3
 
-#### vprof.COUNTER_GROUP_TELEMETRY
+#### vprof.COUNTER_GROUP_TELEMETRY = 4
 
 ### ConVars
 
 #### holylib_vprof_exportreport (default `1`)
 If enabled, vprof results will be dumped into a file in the vprof/ folder  
-
-#### holylib_sv_stressbots (default `0`)
-Sets the value of `sv_stressbots`.  
-`sv_stressbots` is a hidden convar which is very useful for performance tests with bots.  
 
 ### cvars
 This module adds one function to the `cvars` library.  
@@ -1942,7 +1945,7 @@ Shutdowns the Steam Server.
 #### steamworks.Activate()
 Starts/Activates the Steam Server.  
 
-#### steamworks.IsConnected()
+#### bool steamworks.IsConnected()
 Returns `true` if the Steam Server is connected.  
 
 #### steamworks.ForceActivate()
@@ -2796,8 +2799,6 @@ Creates a new EntityList.
 
 #### table GetGlobalEntityList()
 Returns all entities that are in the global entity list.  
-> [!NOTE]
-> This will only contain networkable / networked entities.  
 
 ### EntityList
 This class should remove some overhead to improve performance since you can pass it to some functions.  
@@ -2819,7 +2820,7 @@ Internally seaches first in the metatable table for the key.
 If it fails to find it, it will search in the lua table before returning.  
 If you try to get multiple values from the lua table, just use `EntityList:GetTable()`.  
 
-#### table EntityList:GetLuaTable()
+#### table EntityList:GetTable()
 Returns the lua table of this object.  
 You can store variables into it.  
 

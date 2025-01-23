@@ -115,7 +115,7 @@ LUA_FUNCTION_STATIC(EntityList_IsValid)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(EntityList_GetEntTable)
+LUA_FUNCTION_STATIC(EntityList_GetEntities)
 {
 	EntityList* pData = Get_EntityList(1, true);
 
@@ -131,7 +131,7 @@ LUA_FUNCTION_STATIC(EntityList_GetEntTable)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(EntityList_SetTable)
+LUA_FUNCTION_STATIC(EntityList_SetEntities)
 {
 	EntityList* pData = Get_EntityList(1, true);
 	LUA->CheckType(2, GarrysMod::Lua::Type::Table);
@@ -152,7 +152,7 @@ LUA_FUNCTION_STATIC(EntityList_SetTable)
 	return 0;
 }
 
-LUA_FUNCTION_STATIC(EntityList_AddTable)
+LUA_FUNCTION_STATIC(EntityList_AddEntities)
 {
 	EntityList* pData = Get_EntityList(1, true);
 	LUA->CheckType(2, GarrysMod::Lua::Type::Table);
@@ -178,7 +178,7 @@ LUA_FUNCTION_STATIC(EntityList_AddTable)
 	return 0;
 }
 
-LUA_FUNCTION_STATIC(EntityList_RemoveTable)
+LUA_FUNCTION_STATIC(EntityList_RemoveEntities)
 {
 	EntityList* pData = Get_EntityList(1, true);
 	LUA->CheckType(2, GarrysMod::Lua::Type::Table);
@@ -196,7 +196,7 @@ LUA_FUNCTION_STATIC(EntityList_RemoveTable)
 	return 0;
 }
 
-LUA_FUNCTION_STATIC(EntityList_Add)
+LUA_FUNCTION_STATIC(EntityList_AddEntity)
 {
 	EntityList* pData = Get_EntityList(1, true);
 	CBaseEntity* pEntity = Util::Get_Entity(2, true);
@@ -206,7 +206,7 @@ LUA_FUNCTION_STATIC(EntityList_Add)
 	return 0;
 }
 
-LUA_FUNCTION_STATIC(EntityList_Remove)
+LUA_FUNCTION_STATIC(EntityList_RemoveEntity)
 {
 	EntityList* pData = Get_EntityList(1, true);
 	CBaseEntity* pEntity = Util::Get_Entity(2, true);
@@ -274,14 +274,14 @@ void CEntListModule::LuaInit(bool bServerInit)
 		Util::AddFunc(EntityList__index, "__index");
 		Util::AddFunc(EntityList__newindex, "__newindex");
 		Util::AddFunc(EntityList__gc, "__gc");
-		Util::AddFunc(EntityList_GetTable, "GetLuaTable");
+		Util::AddFunc(EntityList_GetTable, "GetTable");
 		Util::AddFunc(EntityList_IsValid, "IsValid");
-		Util::AddFunc(EntityList_GetEntTable, "GetTable");
-		Util::AddFunc(EntityList_SetTable, "SetTable");
-		Util::AddFunc(EntityList_AddTable, "AddTable");
-		Util::AddFunc(EntityList_RemoveTable, "RemoveTable");
-		Util::AddFunc(EntityList_Add, "Add");
-		Util::AddFunc(EntityList_Remove, "Remove");
+		Util::AddFunc(EntityList_GetEntities, "GetEntities");
+		Util::AddFunc(EntityList_SetEntities, "SetEntities");
+		Util::AddFunc(EntityList_AddEntities, "AddEntities");
+		Util::AddFunc(EntityList_RemoveEntities, "RemoveEntities");
+		Util::AddFunc(EntityList_AddEntity, "AddEntity");
+		Util::AddFunc(EntityList_RemoveEntity, "RemoveEntity");
 	g_Lua->Pop(1);
 
 	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
