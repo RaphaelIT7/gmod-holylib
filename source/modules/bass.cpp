@@ -126,8 +126,6 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetPlaybackRate)
 	return 1;
 }
 
-// We don't need Set/GetPos
-
 LUA_FUNCTION_STATIC(IGModAudioChannel_SetTime)
 {
 	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
@@ -267,19 +265,34 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetLevel)
 }
 
 // ToDo: Finish the function below!
-/*LUA_FUNCTION_STATIC(IGModAudioChannel_FFT)
+LUA_FUNCTION_STATIC(IGModAudioChannel_FFT)
 {
 	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
 
 	LUA->CheckType(2, GarrysMod::Lua::Type::Table);
-	GModChannelFFT_t fft = (GModChannelFFT_t)LUA->CheckNumber(3);
+	int fft = (int)LUA->CheckNumber(3);
 
-	float fft2[1];
-	channel->FFT(fft2, fft);
-	LUA->PushNumber(channel->GetAverageBitRate());
+	if (fft > 7)
+		fft = 7;
+
+	if (fft < 0)
+		fft = 0;
+
+	int size = 1 << (10 + fft);
+	float* fft2 = new float[size];
+	channel->FFT(fft2, (GModChannelFFT_t)fft);
+	
+	LUA->PreCreateTable(size, 0);
+		for (int idx = 0; idx < size; ++idx)
+		{
+			LUA->PushNumber(fft2[idx]);
+			Util::RawSetI(LUA, -2, idx+1);
+		}
+
+	delete[] fft2;
 
 	return 1;
-}*/
+}
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_SetChannelPan)
 {
@@ -308,7 +321,11 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetTags)
 	return 1;
 }
 
-// Get/Set3DEnabled is not needed.
+LUA_FUNCTION_STATIC(IGModAudioChannel_NotImplemented)
+{
+	LUA->ThrowError("Won't be implemented!");
+	return 0;
+}
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_Restart)
 {
@@ -434,11 +451,20 @@ void CBassModule::LuaInit(bool bServerInit)
 		Util::AddFunc(IGModAudioChannel_GetBitsPerSample, "GetBitsPerSample");
 		Util::AddFunc(IGModAudioChannel_GetAverageBitRate, "GetAverageBitRate");
 		Util::AddFunc(IGModAudioChannel_GetLevel, "GetLevel");
-		//Util::AddFunc(IGModAudioChannel_FFT, "FFT"); // Soon
+		Util::AddFunc(IGModAudioChannel_FFT, "FFT");
 		Util::AddFunc(IGModAudioChannel_SetChannelPan, "SetChannelPan");
 		Util::AddFunc(IGModAudioChannel_GetChannelPan, "GetChannelPan");
 		Util::AddFunc(IGModAudioChannel_GetTags, "GetTags");
 		Util::AddFunc(IGModAudioChannel_Restart, "Restart");
+
+		Util::AddFunc(IGModAudioChannel_NotImplemented, "Get3DFadeDistance");
+		Util::AddFunc(IGModAudioChannel_NotImplemented, "Set3DFadeDistance");
+		Util::AddFunc(IGModAudioChannel_NotImplemented, "Get3DCone");
+		Util::AddFunc(IGModAudioChannel_NotImplemented, "Set3DCone");
+		Util::AddFunc(IGModAudioChannel_NotImplemented, "GetPos");
+		Util::AddFunc(IGModAudioChannel_NotImplemented, "SetPos");
+		Util::AddFunc(IGModAudioChannel_NotImplemented, "Get3DEnabled");
+		Util::AddFunc(IGModAudioChannel_NotImplemented, "Set3DEnabled");
 	g_Lua->Pop(1);
 
 	Util::StartTable();

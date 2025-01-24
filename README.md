@@ -68,6 +68,7 @@ On the next startup the ghostinj will update holylib to use the new file.
 \- [+] Added `lua/autorun/_holylib` folder.  
 \- \- Files inside that folder are loaded and executed before **any** gmod script runs, only the c++ functions exist at this point.  
 \- [+] Added `bf_write:WriteString` to `bitbuf` module.  
+\- [+] Added `IGModAudioChannel:FFT` to `bass` module.  
 \- [#] Fixed many issues with the `bass` module. It is acutally usable.  
 \- [#] Improved performance by replacing SetTable with RawSet.  
 \- [#] Added missing calls to the deconstructors for `CHLTVClient` and `CNetworkStringTable`.  
@@ -2642,11 +2643,11 @@ Supports: Linux32 | Linux64
 ### Functions
 
 #### bass.PlayFile(string filePath, string flags, function callback)
-callback - function(IGMODAudioChannel channel, int errorCode, string error)  
+callback - function(IGMODAudioChannel channel, number errorCode, string error)  
 Creates a IGMODAudioChannel for the given file.  
 
 #### bass.PlayURL(string URL, string flags, function callback)
-callback - function(IGMODAudioChannel channel, int errorCode, string error)  
+callback - function(IGMODAudioChannel channel, number errorCode, string error)  
 Creates a IGMODAudioChannel for the given url.  
 
 ### IGModAudioChannel
@@ -2871,7 +2872,7 @@ Sets the maximum amount of time before a read times out.
 #### HttpServer:SetWriteTimeout(number sec, number usec)
 Sets the maximum amount of time before a write times out.
 
-#### HttpServer:SetPayloadMaxLength(number maxlength)
+#### HttpServer:SetPayloadMaxLength(number maxLength)
 Sets the maximum payload length.
 
 #### HttpServer:SetKeepAliveTimeout(number sec)
@@ -2884,11 +2885,13 @@ Sets the maximum amount of connections that can be kept alive at the same time.
 The number of ms threads sleep before checking again if a request was handled.  
 Useful to raise it when you let requests wait for a while.
 
-#### HttpServer:SetMountPoint(string path, string folder)
+#### HttpServer:SetMountPoint(string mountPoint, string folder)
 This mounts the given folder to the given path.
-(You can call this multiple times for the same path to mount multiple folders to it.)
 
-#### HttpServer:RemoveMountPoint(string path)
+> [!NOTE]
+> You can call this multiple times for the same path to mount multiple folders to it.
+
+#### HttpServer:RemoveMountPoint(string mountPoint)
 This removes all mounts for the given path.
 
 ### Method Functions
@@ -2907,12 +2910,12 @@ end, true)
 
 If you enable the IP Whitelist, only requests sent by connected players are processed.
 
-#### HttpServer:Get(string path, function (Request, Response), bool ipWhitelist)
-#### HttpServer:Put(string path, function (Request, Response), bool ipWhitelist)
-#### HttpServer:Post(string path, function (Request, Response), bool ipWhitelist)
-#### HttpServer:Patch(string path, function (Request, Response), bool ipWhitelist)
-#### HttpServer:Delete(string path, function (Request, Response), bool ipWhitelist)
-#### HttpServer:Options(string path, function (Request, Response), bool ipWhitelist)
+#### HttpServer:Get(string path, function (HttpRequest, HttpResponse), bool ipWhitelist)
+#### HttpServer:Put(string path, function (HttpRequest, HttpResponse), bool ipWhitelist)
+#### HttpServer:Post(string path, function (HttpRequest, HttpResponse), bool ipWhitelist)
+#### HttpServer:Patch(string path, function (HttpRequest, HttpResponse), bool ipWhitelist)
+#### HttpServer:Delete(string path, function (HttpRequest, HttpResponse), bool ipWhitelist)
+#### HttpServer:Options(string path, function (HttpRequest, HttpResponse), bool ipWhitelist)
 
 ### HttpRequest
 A incoming Http Request.
