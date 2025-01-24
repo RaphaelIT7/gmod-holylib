@@ -701,9 +701,9 @@ void CGModAudioChannel::GetLevel(float* leftLevel, float* rightLevel)
 void CGModAudioChannel::FFT(float *data, GModChannelFFT_t channelFFT)
 {
 	if (BASS_ChannelIsActive(m_pHandle) == BASS_ACTIVE_PLAYING) {
-		BASS_ChannelGetData(m_pHandle, data, 2147483648 + channelFFT);
+		BASS_ChannelGetData(m_pHandle, data, BASS_DATA_FFT256 << channelFFT);
 	} else {
-		memset(data, 0, sizeof(float) * channelFFT);
+		memset(data, 0, sizeof(float) * (1 << (8 + (int)channelFFT)));
 	}
 }
 

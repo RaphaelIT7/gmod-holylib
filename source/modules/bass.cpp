@@ -278,20 +278,21 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_FFT)
 	if (fft < 0)
 		fft = 0;
 
-	int size = 1 << (10 + fft);
+	int size = 1 << (8 + fft);
 	float* fft2 = new float[size];
 	channel->FFT(fft2, (GModChannelFFT_t)fft);
 	
-	LUA->PreCreateTable(size, 0);
+	LUA->Push(2);
 		for (int idx = 0; idx < size; ++idx)
 		{
 			LUA->PushNumber(fft2[idx]);
 			Util::RawSetI(LUA, -2, idx+1);
 		}
+	LUA->Pop(1);
 
 	delete[] fft2;
 
-	return 1;
+	return 0;
 }
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_SetChannelPan)
