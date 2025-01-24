@@ -156,7 +156,7 @@ LUA_FUNCTION_STATIC(HttpResponse_SetContent)
 	HttpResponse* pData = Get_HttpResponse(1, true);
 	pData->bSetContent = true;
 	pData->strContent = LUA->CheckString(2);
-	pData->strContentType = LUA->CheckString(3);
+	pData->strContentType = LUA->CheckStringOpt(3, "text/plain");
 
 	return 0;
 }
@@ -166,7 +166,7 @@ LUA_FUNCTION_STATIC(HttpResponse_SetRedirect)
 	HttpResponse* pData = Get_HttpResponse(1, true);
 	pData->bSetRedirect = true;
 	pData->strRedirect = LUA->CheckString(2);
-	pData->iRedirectCode = (int)LUA->CheckNumber(3);
+	pData->iRedirectCode = (int)LUA->CheckNumberOpt(3, 302);
 
 	return 0;
 }
@@ -652,6 +652,19 @@ LUA_FUNCTION_STATIC(httpserver_Destroy)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(httpserver_GetAll)
+{
+	LUA->PreCreateTable(g_pPushedHttpServer.size(), 0);
+		int idx = 0;
+		for (auto& server : g_pPushedHttpServer)
+		{
+			Push_HttpServer(new HttpServer);
+			Util::RawSetI(LUA, -2, ++idx);
+		}
+
+	return 1;
+}
+
 void CHTTPServerModule::LuaInit(bool bServerInit)
 {
 	if (bServerInit)
@@ -724,6 +737,7 @@ void CHTTPServerModule::LuaInit(bool bServerInit)
 	Util::StartTable();
 		Util::AddFunc(httpserver_Create, "Create");
 		Util::AddFunc(httpserver_Destroy, "Destroy");
+		Util::AddFunc(httpserver_GetAll, "GetAll");
 	Util::FinishTable("httpserver");
 }
 

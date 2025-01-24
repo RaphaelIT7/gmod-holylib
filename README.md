@@ -2821,6 +2821,9 @@ Creates a new HTTPServer.
 #### httpserver.Destroy(HttpServer server)
 Destroys the given http server.  
 
+#### table httpserver.GetAll()
+Returns a table containing all existing HttpServer in case you lose a reference.
+
 ### HttpServer
 This class represents a created HttpServer.
 
@@ -2843,7 +2846,7 @@ You can store variables into it.
 #### bool HttpServer:IsValid()
 Returns `true` if the HttpServer is valid.  
 
-#### HttpServer:Start(string IP, number Port)
+#### HttpServer:Start(string address, number port)
 This will start or restart the HTTP Server, and it will listen on the given address + port.  
 NOTE: If a Method function was called like HttpServer:Get after HttpServer:Start was called, you need to call HttpServer:Start again!
 
@@ -2859,7 +2862,7 @@ Goes through all requests and calls their callbacks or deletes them after they w
 #### bool HttpServer:IsRunning()
 Returns true if the HTTPServer is running.
 
-#### HttpServer:SetTCPnodelay(bool nodelay)
+#### HttpServer:SetTCPnodelay(bool noDelay)
 Sets whether a delay should be added to tcp or not.
 
 #### HttpServer:SetReadTimeout(number sec, number usec)
@@ -2904,12 +2907,12 @@ end, true)
 
 If you enable the IP Whitelist, only requests sent by connected players are processed.
 
-#### HttpServer:Get(String path, function (Request, Response), bool ipwhitelist)
-#### HttpServer:Put(String path, function (Request, Response), bool ipwhitelist)
-#### HttpServer:Post(String path, function (Request, Response), bool ipwhitelist)
-#### HttpServer:Patch(String path, function (Request, Response), bool ipwhitelist)
-#### HttpServer:Delete(String path, function (Request, Response), bool ipwhitelist)
-#### HttpServer:Options(String path, function (Request, Response), bool ipwhitelist)
+#### HttpServer:Get(string path, function (Request, Response), bool ipWhitelist)
+#### HttpServer:Put(string path, function (Request, Response), bool ipWhitelist)
+#### HttpServer:Post(string path, function (Request, Response), bool ipWhitelist)
+#### HttpServer:Patch(string path, function (Request, Response), bool ipWhitelist)
+#### HttpServer:Delete(string path, function (Request, Response), bool ipWhitelist)
+#### HttpServer:Options(string path, function (Request, Response), bool ipWhitelist)
 
 ### HttpRequest
 A incoming Http Request.
@@ -2933,16 +2936,16 @@ You can store variables into it.
 #### bool HttpRequest:IsValid()
 Returns `true` if the HttpRequest is valid.  
 
-#### bool HttpRequest.HasHeader(key)
+#### bool HttpRequest.HasHeader(string key)
 returns true if the client has the given key in the header.
 
-#### bool HttpRequest.HasParam(key)
+#### bool HttpRequest.HasParam(string key)
 returns true if the client has the given key in the parameters.
 
-#### string HttpRequest.GetHeader(key)
+#### string HttpRequest.GetHeader(string key)
 returns the value of the given key from the header.
 
-#### string HttpRequest:GetParam(key)
+#### string HttpRequest:GetParam(string key)
 returns the value of the given key from the parameters.
 
 #### string HttpRequest:GetBody()
@@ -2988,16 +2991,16 @@ You can store variables into it.
 #### bool HttpResponse:IsValid()
 Returns `true` if the HttpResponse is valid.  
 
-#### HttpResponse:SetContent(content, content-type)
+#### HttpResponse:SetContent(string content, string contentType = "text/plain")
 Sets the content like this:
 ```lua
 Response:SetContent("Hello World", "text/plain")
 ```
 
-#### HttpResponse:SetRedirect(url, code)
+#### HttpResponse:SetRedirect(string url, number code = 302)
 Redirects one to the given URL and returns the given code.
 
-#### HttpResponse:SetHeader(key, value)
+#### HttpResponse:SetHeader(string key, string value)
 Sets the given value for the given key in the header.
 
 ## luajit
