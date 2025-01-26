@@ -2659,8 +2659,8 @@ Else it returns `IGModAudioChannel [FileName/URL]`.
 #### IGModAudioChannel:\_\_gc()
 ToDo / Doesn nothing yet.  
 
-#### IGModAudioChannel:Destory()
-Destorys the audio channel.  
+#### IGModAudioChannel:Destroy()
+Destroys the audio channel.  
 
 #### IGModAudioChannel:Stop()
 Stops the channel.  

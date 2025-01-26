@@ -31,6 +31,6 @@ void HolyLua::Shutdown()
 	if ( !g_HolyLua )
 		return;
 
-	Lua::DestoryInterface(g_HolyLua);
+	Lua::DestroyInterface(g_HolyLua);
 	g_HolyLua = NULL;
 }

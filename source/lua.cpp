@@ -178,7 +178,7 @@ GarrysMod::Lua::ILuaInterface* Lua::CreateInterface()
 	return LUA;
 }
 
-void Lua::DestoryInterface(GarrysMod::Lua::ILuaInterface* LUA)
+void Lua::DestroyInterface(GarrysMod::Lua::ILuaInterface* LUA)
 {
 	CloseLuaInterface(LUA);
 }

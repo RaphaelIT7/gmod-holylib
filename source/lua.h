@@ -21,5 +21,5 @@ namespace Lua
 	extern GarrysMod::Lua::ILuaShared* GetShared();
 
 	extern GarrysMod::Lua::ILuaInterface* CreateInterface();
-	extern void DestoryInterface(GarrysMod::Lua::ILuaInterface* LUA);
+	extern void DestroyInterface(GarrysMod::Lua::ILuaInterface* LUA);
 }
