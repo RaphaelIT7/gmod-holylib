@@ -130,6 +130,9 @@ Currently I'm working on implementing a better wiki that will replace this huge 
 It may already contain a few more details to some functions than this readme.  
 Wiki: https://holylib.raphaelit7.com/
 
+> [!NOTE]
+> The Wiki is still in development currently, **but** most/all of the documentation is **already** done.  
+
 # The Navigator  
 [Modules](https://github.com/RaphaelIT7/gmod-holylib#modules)  
 \- [holylib](https://github.com/RaphaelIT7/gmod-holylib#holylib-1)  
