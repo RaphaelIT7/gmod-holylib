@@ -165,12 +165,12 @@ FileHandle_t GetFileHandleFromCache(std::string_view strFilePath)
 	if (iPos != 0)
 	{
 		if (g_pFileSystemModule.InDebug())
-			Msg("holylib - GetFileHandleFromCache: Pos: %u\n", g_pFullFileSystem->Tell(it->second));
+			Msg("holylib - GetFileHandleFromCache: Pos: %llu\n", g_pFullFileSystem->Tell(it->second));
 		
 		g_pFullFileSystem->Seek(it->second, 0, FILESYSTEM_SEEK_HEAD); // Why doesn't it reset?
 		
 		if (g_pFileSystemModule.InDebug())
-			Msg("holylib - GetFileHandleFromCache: Rewind pos: %u\n", g_pFullFileSystem->Tell(it->second));
+			Msg("holylib - GetFileHandleFromCache: Rewind pos: %llu\n", g_pFullFileSystem->Tell(it->second));
 		
 		int iNewPos = g_pFullFileSystem->Tell(it->second);
 		if (iNewPos != 0)

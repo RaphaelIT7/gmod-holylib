@@ -3292,7 +3292,7 @@ Format: `CGameClient [%i][%s]`
 
 ### Hooks
 
-#### bool HolyLib:OnSetSignonState(CGameClient client, number state, number spawncount)
+#### bool HolyLib:OnSetSignonState(CGameClient client, number state, number spawnCount)
 Called when the engine is about to change the client's SignonState.  
 Return `true` to stop the engine.  
 
