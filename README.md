@@ -94,6 +94,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
 \- [#] Renamed `HLTVClient` to `CHLTVClient`.  
 \- [#] Renamed `HLTVClient:GetSlot` to `HLTVClient:GetPlayerSlot`.  
 \- [#] Renamed `VProfCounter:Name` to `VProfCounter:GetName`.  
+\- [#] Renamed `HolyLib:PhysicsLag` to `HolyLib:OnPhysicsLag`.  
 \- [-] Removed `HolyLib.BroadcastCustomMessage` (Replaced by `gameserver.BroadcastMessage`)  
 \- [-] Removed `HolyLib.SendCustomMessage` (Replaced by `CBaseClient:SendNetMsg`)  
 \- [-] Removed `HolyLib:PostCheckTransmit` second argument (Use `pvs.GetEntitesFromTransmit`)  
@@ -1630,7 +1631,7 @@ You can store variables into it.
 Returns the number of bits left.  
 
 #### number bf_read:GetNumBitsRead()
-Returns the number of bits read.  
+Returns the number of bits read.
 
 #### number bf_read:GetNumBits()
 Returns the size of the data in bits.  
@@ -1653,9 +1654,11 @@ Returns the current position/bit.
 #### bool bf_read:IsOverflowed()
 Returns `true` if the buffer is overflowed.  
 
-#### number bf_read:PeekUBitLong(number numBits)
+#### number bf_read:PeekUBitLong(number bits)
+Peaks to the given bit(doesn't change current position) and returns the value.
 
-#### number bf_read:ReadBitAngle(number numBits)
+#### number bf_read:ReadBitAngle(number bits)
+Peaks to the given bit(doesn't change current position) and returns the value.
 
 #### angle bf_read:ReadBitAngles()
 Reads and Angle.  
@@ -1670,19 +1673,19 @@ Reads and Angle.
 > [!NOTE]
 > This is only available for the 32x!    
 
-#### number bf_read:ReadBitCoordMP(bool bIntegral, bool bLowPrecision)
+#### number bf_read:ReadBitCoordMP(bool integral = false, bool lowPrecision = false)
 
 > [!NOTE]
 > This is only available for the 32x!    
 
-#### number bf_read:ReadBitCoordMPBits(bool bIntegral, bool bLowPrecision)
+#### number bf_read:ReadBitCoordMPBits(bool integral = false, bool lowPrecision = false)
 
 > [!NOTE]
 > This is only available for the 32x!    
 
 #### number bf_read:ReadBitFloat()
 
-#### number bf_read:ReadBitLong(number numBits, bool bSigned)
+#### number bf_read:ReadBitLong(number bits, bool signed = false)
 Reads a number with the given number of bits.  
 
 > [!NOTE]
@@ -1690,7 +1693,7 @@ Reads a number with the given number of bits.
 
 #### number bf_read:ReadBitNormal()
 
-#### string bf_read:ReadBits(number numBits)
+#### string bf_read:ReadBits(number bits)
 Reads the given number of bits.  
 
 #### vector bf_read:ReadBitVec3Coord()
@@ -1702,7 +1705,7 @@ Reads a normalizted Vector.
 #### number bf_read:ReadByte()
 Reads a byte.  
 
-#### string bf_read:ReadBytes(number numBytes)
+#### string bf_read:ReadBytes(number bytes)
 Reads the given number of bytes.  
 
 #### number bf_read:ReadChar()
@@ -1720,7 +1723,7 @@ Reads a long long.
 #### bool bf_read:ReadOneBit()
 Reads one bit.  
 
-#### number bf_read:ReadSBitLong(number numBits)
+#### number bf_read:ReadSBitLong(number bits)
 Reads a number with the given amout of bits.  
 
 #### number bf_read:ReadShort()
@@ -1731,9 +1734,9 @@ Reads a short.
 #### number bf_read:ReadSignedVarInt64()
 
 #### string bf_read:ReadString()
-Reads a string.  
+Reads a null terminated string.  
 
-#### number bf_read:ReadUBitLong(number numBits)
+#### number bf_read:ReadUBitLong(number bits)
 Read a number with the given amount of bits.  
 
 #### number bf_read:ReadUBitVar()
@@ -1747,11 +1750,11 @@ Read a number with the given amount of bits.
 #### bf_read:Reset()
 Resets the current position and resets the overflow flag.  
 
-#### bool bf_read:Seek(number iPos)
+#### bool bf_read:Seek(number pos)
 Sets the current position to the given position.  
 Returns `true` on success.  
 
-#### bool bf_read:SeekRelative(number iPos)
+#### bool bf_read:SeekRelative(number pos)
 Sets the current position to the given position relative to the current position.
 Basicly `newPosition = currentPosition + iPos`    
 Returns `true` on success.  
@@ -1798,6 +1801,7 @@ Returns the number of bits left.
 
 #### number bf_write:GetMaxNumBits()
 Returns the maximum number of bits that can be written.  
+
 #### bool bf_write:IsOverflowed()
 Returns `true` if the buffer is overflowed.  
 
@@ -1809,7 +1813,9 @@ Returns the debug name.
 
 #### bf_write:SetDebugName(string debugName)
 Sets the debug name.  
-You should keep a reference to the string.  
+
+> [!WARNING]
+> You should keep a reference to the string.  
 
 #### bf_write:SeekToBit(number bit)
 Seeks to the given bit.  
@@ -1830,12 +1836,12 @@ Writes a long.
 Writes a long long.  
 
 #### bf_write:WriteBytes(string data)
-Writes the given bytes to the buffer.  
+Writes the given bytes.  
 
-#### bf_write:WriteOneBit(bool value)
+#### bf_write:WriteOneBit(bool value = false)
 Writes one bit.  
 
-#### bf_write:WriteOneBitAt(number bit, bool value)
+#### bf_write:WriteOneBitAt(number bit, bool value = false)
 Sets the given bit to the given value.  
 
 #### bf_write:WriteShort(number value)
@@ -1854,17 +1860,18 @@ Writes a word.
 
 #### bf_write:WriteUBitVar(number value)
 
-#### bf_write:WriteUBitLong(number value, number bits, bool signed)
+#### bf_write:WriteUBitLong(number value, number bits, bool signed = false)
 
 #### bf_write:WriteBitAngle(number value, number bits)
 
 #### bf_write:WriteBitAngles(Angle ang)
-Writes an Angle. (`QAngle` internally).  
+Writes a Angle. (`QAngle` internally).  
 
 #### bf_write:WriteBitVec3Coord(Vector vec)
 Writes a Vector.  
 
 #### bf_write:WriteBitVec3Normal(Vector vec)
+Writes a normalized Vector
 
 #### bool bf_write:WriteBits(string data, number bits)
 Writes the given number of bits from the data into this buffer.  
@@ -1885,9 +1892,10 @@ Returns `true` on success.
 
 #### bf_write:WriteBitCoord(number value)
 
-#### bf_write:WriteBitCoordMP(number value, bool bIntegral, bool bLowPrecision)
+#### bf_write:WriteBitCoordMP(number value, bool integral = false, bool lowPrecision = false)
 
 #### bf_write:WriteString(string value)
+Writes a null terminated string
 
 ## Networking
 This module tries to optimize anything related to networking.  
@@ -2606,7 +2614,7 @@ Skip the entire simulation.
 
 ### Hooks
 
-#### IVP_SkipType HolyLib:PhysicsLag(number simulationTime)
+#### IVP_SkipType HolyLib:OnPhysicsLag(number simulationTime)
 Called when the physics simulaton is taking longer than the set lag threshold.  
 
 You can freeze all props here and then return `physenv.IVP_SkipSimulation` to skip the simulation for this tick if someone is trying to crash the server.  

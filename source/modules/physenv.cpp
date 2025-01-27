@@ -98,14 +98,14 @@ void CheckPhysicsLag()
 	auto pSimulationTime = std::chrono::duration_cast<std::chrono::milliseconds>(pTime - pCurrentTime).count();
 	if (pSimulationTime > pCurrentLagThreadshold)
 	{
-		if (Lua::PushHook("HolyLib:PhysicsLag"))
+		if (Lua::PushHook("HolyLib:OnPhysicsLag"))
 		{
 			g_Lua->PushNumber((double)pSimulationTime);
 			if (g_Lua->CallFunctionProtected(2, 1, true))
 			{
 				int pType = (int)g_Lua->GetNumber();
 				if (pType > 2 || pType < 0)
-					pType = 0; // Invalid value. So we won't do shit.
+					pType = IVP_NoSkip; // Invalid value. So we won't do shit.
 
 				pCurrentSkipType = (IVP_SkipType)pType;
 				g_Lua->Pop(1);
