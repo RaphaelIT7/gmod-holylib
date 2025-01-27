@@ -3036,10 +3036,10 @@ This module adds a library that exposes the `CBaseServer` and `CBaseClient`.
 returns current number of clients  
 
 #### number gameserver.GetNumProxies()
-returns number of attached HLTV proxies  
+returns current number of attached HLTV proxies  
 
 #### number gameserver.GetNumFakeClients()
-returns number of fake clients/bots  
+returns current number of fake clients/bots  
 
 #### number gameserver.GetMaxClients()
 returns current client limit  
@@ -3047,8 +3047,8 @@ returns current client limit
 #### number gameserver.GetUDPPort()
 returns the udp port the server is running on.  
 
-#### CGameClient gameserver.GetClient(number slot)
-Returns the CGameClient at that slot or `nil` on failure.  
+#### CGameClient gameserver.GetClient(number playerSlot)
+Returns the CGameClient at that player slot or `nil` on failure.  
 
 #### number gameserver.GetClientCount()
 returns client count for iteration  
@@ -3066,10 +3066,11 @@ Returns the current tick
 Returns the current tick interval  
 
 #### string gameserver.GetName()
-Returns the server name? **Verify**  
+Returns the current server/host name.  
+Should be the same as `GetConVar("hostname"):GetString()`
 
 #### string gameserver.GetMapName()
-Returns the map name  
+Returns the current map name  
 
 #### number gameserver.GetSpawnCount()
 
@@ -3092,7 +3093,7 @@ Returns the map name
 #### bool gameserver.IsHLTV()
 
 #### string gameserver.GetPassword()
-Returns the current server password  
+Returns the current server password.  
 
 #### gameserver.SetMaxClients(number maxClients)
 Sets the max client count.  
@@ -3150,19 +3151,19 @@ Returns the slot of the client. Use this for `sourcetv.GetClient`.
 Returns the userid of the client.  
 
 #### string CBaseClient:GetName()
-Returns the name of the client.  
+Returns the name of the client.
 
 #### string CBaseClient:GetSteamID()
-Returns the steamid of the client.  
+Returns the steamid of the client.
 
 #### CBaseClient:Reconnect()
-Reconnects the HLTV client.  
+Reconnects the client.
 
 #### CBaseClient:ClientPrint(string message)
 Prints the given message into the client's console.  
 
 > [!NOTE]
-> It won't add `\n` at the end of the message, so you will need to add it yourself.  
+> It **won't** add `\n` to the end, you have to add it yourself. 
 
 #### bool CBaseClient:IsValid()
 Returns `true` if the client is still valid.  
@@ -3178,7 +3179,7 @@ Returns `true` on success.
 Fires/sends the gameevent to this specific client.  
 
 #### number CBaseClient:GetFriendsID()
-Returns the friend id.   
+Returns the friend id.  
 
 #### string CBaseClient:GetFriendsName()
 Returns the friend name.  
@@ -3199,11 +3200,11 @@ Inactivates the client.
 #### CBaseClient:Disconnect(string reason)
 Disconnects the client.  
 
-#### CBaseClient:SetRate(name rate)
+#### CBaseClient:SetRate(number rate)
 
 #### number CBaseClient:GetRate()
 
-#### CBaseClient:SetUpdateRate(name rate)
+#### CBaseClient:SetUpdateRate(number rate)
 
 #### number CBaseClient:GetUpdateRate()
 
@@ -3221,7 +3222,7 @@ Clear the client/frees the CBaseClient for the next player to use.
 Executes the given command as if the client himself ran it.  
 
 #### CBaseClient:SendNetMsg(number type, string name, bf_write buffer)
-Same as `gameserver.BroadcastMessage` but it only sends it to the specific player.  #
+Same as `gameserver.BroadcastMessage` but it only sends it to the specific player.  
 
 > [!NOTE]
 > This function was formerly known as `HolyLib.SendCustomMessage`  
@@ -3249,8 +3250,6 @@ Works like `voicechat.IsProximityHearingClient` but only takes the direct player
 #### bool CBaseClient:ShouldSendMessages(number tick)
 
 #### CBaseClient:UpdateSendState()
-
-#### CBaseClient:UpdateUserSettings()
 
 #### bool CBaseClient:SetSignonState(number signOnState, number spawnCount = 0, bool rawSet = false)
 Sets the SignOnState for the given client.  
