@@ -22,6 +22,7 @@ public:
 	virtual void LuaInit(bool bServerInit);
 	virtual void LuaShutdown();
 	virtual void InitDetour(bool bPreServer);
+	virtual void Shutdown();
 	virtual const char* Name() { return "physenv"; };
 	virtual int Compatibility() { return LINUX32; };
 };
@@ -205,7 +206,7 @@ void CPhysEnvModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 PushReferenced_LuaClass(IPhysicsObject, GarrysMod::Lua::Type::PhysObj) // This will later cause so much pain when they become Invalid XD
 Get_LuaClass(IPhysicsObject, GarrysMod::Lua::Type::PhysObj, "IPhysicsObject")
 
-CCollisionEvent* g_Collisions = NULL;
+static CCollisionEvent* g_Collisions = NULL;
 class CLuaPhysicsObjectEvent : public IPhysicsObjectEvent
 {
 public:
@@ -239,13 +240,13 @@ public:
 		if (!g_Lua)
 			return;
 
-		if (m_iObjectWakeFunction != -1)
+		if (m_iObjectWakeFunction != -1 && g_Lua)
 		{
 			g_Lua->ReferenceFree(m_iObjectWakeFunction);
 			m_iObjectWakeFunction = -1;
 		}
 
-		if (m_iObjectSleepFunction != -1)
+		if (m_iObjectSleepFunction != -1 && g_Lua)
 		{
 			g_Lua->ReferenceFree(m_iObjectSleepFunction);
 			m_iObjectSleepFunction = -1;
@@ -2230,6 +2231,20 @@ void CPhysEnvModule::LuaShutdown()
 	}
 
 	Util::NukeTable("physcollide");
+}
+
+void CPhysEnvModule::Shutdown()
+{
+	std::vector<ILuaPhysicsEnvironment*> pEnvironments;
+	for (auto& [env, _] : g_pPushedILuaPhysicsEnvironment)
+		pEnvironments.push_back(env); // I'm unsure if it would be save to iterate over it while we modify it in the deconstructor, so we copy them
+
+	// NOTE: The IPhysicsEnvironment remains! we should probably delete that too
+	for (ILuaPhysicsEnvironment* env : pEnvironments)
+		delete env;
+
+	g_pPushedILuaPhysicsEnvironment.clear();
+	pEnvironments.clear();
 }
 
 void CPhysEnvModule::InitDetour(bool bPreServer)
