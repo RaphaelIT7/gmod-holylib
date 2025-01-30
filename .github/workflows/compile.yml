@@ -28,7 +28,10 @@ jobs:
 
   build_testingarea:
     uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
-    secrets: inherit
+    secrets:
+      PTERODACTYL_KEY: ${{ secrets.PTERODACTYL_KEY }}
+      PTERODACTYL_SERVER: ${{ secrets.PTERODACTYL_SERVER }}
+      PTERODACTYL_URL: ${{ secrets.PTERODACTYL_URL }}
     with:
       PROJECT_NAME: "holylib"
       BUILD_64x: "true"
