@@ -212,11 +212,25 @@ className* Get_##className(int iStackPos, bool bError) \
 		return NULL; \
 	} \
 \
-	className* pVar = g_Lua->GetUserType<className>(iStackPos, luaType); \
+	className* pVar; \
+	if (iType == luaType) \
+	{ \
+		pVar = g_Lua->GetUserType<className>(iStackPos, luaType); \
+		if (pVar) \
+			return pVar; \
+	} \
+\
+	if (iType == luaType2) \
+	{ \
+		pVar = g_Lua->GetUserType<className>(iStackPos, luaType2); \
+		if (pVar) \
+			return pVar; \
+	} \
+ \
 	if (!pVar && bError) \
 		g_Lua->ThrowError(triedNull_##className.c_str()); \
 \
-	return pVar; \
+	return NULL; \
 }
 
 #define Push_LuaClass( className, luaType ) \

@@ -5,133 +5,342 @@
 // $NoKeywords: $
 //===========================================================================//
 
-#include "quakedef.h" // for MAX_OSPATH
-#include <stdlib.h>
-#include <assert.h>
-#include <malloc.h>
-#include "filesystem.h"
-#include "bitmap/tgawriter.h"
-#include <tier2/tier2.h>
+#include "net.h"
+#include "netadr.h"
+#include "qlimits.h"
+#include "bitbuf.h"
+#include <inetmessage.h>
+#include <filesystem.h>
+#include "utlvector.h"
+#include "utlbuffer.h"
+#include "const.h"
+#include "inetchannel.h"
 
-// memdbgon must be the last include file in a .cpp file!!!
-#include "tier0/memdbgon.h"
+// How fast to converge flow estimates
+#define FLOW_AVG ( 3.0F / 4.0F )
+ // Don't compute more often than this
+#define FLOW_INTERVAL 0.25F
 
-IFileSystem *g_pFileSystem = NULL;
+
+#define NET_FRAMES_BACKUP	64		// must be power of 2
+#define NET_FRAMES_MASK		(NET_FRAMES_BACKUP-1)
+#define MAX_SUBCHANNELS		8		// we have 8 alternative send&wait bits
+
+#define SUBCHANNEL_FREE		0	// subchannel is free to use
+#define SUBCHANNEL_TOSEND	1	// subchannel has data, but not send yet
+#define SUBCHANNEL_WAITING	2   // sbuchannel sent data, waiting for ACK
+#define SUBCHANNEL_DIRTY	3	// subchannel is marked as dirty during changelevel
 
 
-void fs_whitelist_spew_flags_changefn( IConVar *pConVar, const char *pOldValue, float flOldValue )
+class CNetChan : public INetChannel
 {
-	if ( g_pFileSystem )
+
+private: // netchan structurs
+
+	typedef struct dataFragments_s
 	{
-		ConVarRef var( pConVar );
-		g_pFileSystem->SetWhitelistSpewFlags( var.GetInt() );
-	}
-}
+		FileHandle_t	file;			// open file handle
+		char			filename[MAX_OSPATH]; // filename
+		char*			buffer;			// if NULL it's a file
+		unsigned int	bytes;			// size in bytes
+		unsigned int	bits;			// size in bits
+		unsigned int	transferID;		// only for files
+		bool			isCompressed;	// true if data is bzip compressed
+		unsigned int	nUncompressedSize; // full size in bytes
+		bool			asTCP;			// send as TCP stream
+		int				numFragments;	// number of total fragments
+		int				ackedFragments; // number of fragments send & acknowledged
+		int				pendingFragments; // number of fragments send, but not acknowledged yet
+	} dataFragments_t;
 
-#if defined( _DEBUG )
-ConVar fs_whitelist_spew_flags( "fs_whitelist_spew_flags", "0", 0,
-	"Set whitelist spew flags to a combination of these values:\n"
-	"   0x0001 - list files as they are added to the CRC tracker\n"
-	"   0x0002 - show files the filesystem is telling the engine to reload\n"
-	"   0x0004 - show files the filesystem is NOT telling the engine to reload",
-	fs_whitelist_spew_flags_changefn );
-#endif
-
-CON_COMMAND( path, "Show the engine filesystem path." )
-{
-	if( g_pFileSystem )
+	struct subChannel_s
 	{
-		g_pFileSystem->PrintSearchPaths();
-	}
-}
+		int				startFraggment[MAX_STREAMS];
+		int				numFragments[MAX_STREAMS];
+		int				sendSeqNr;
+		int				state; // 0 = free, 1 = scheduled to send, 2 = send & waiting, 3 = dirty
+		int				index; // index in m_SubChannels[]
 
-CON_COMMAND( fs_printopenfiles, "Show all files currently opened by the engine." )
-{
-	if( g_pFileSystem )
+		void Free()
+		{
+			state = SUBCHANNEL_FREE;
+			sendSeqNr = -1;
+			for ( int i = 0; i < MAX_STREAMS; i++ )
+			{
+				numFragments[i] = 0;
+				startFraggment[i] = -1;
+			}
+		}
+	};
+
+	// Client's now store the command they sent to the server and the entire results set of
+	//  that command. 
+	typedef struct netframe_s
 	{
-		g_pFileSystem->PrintOpenedFiles();
-	}
-}
+		// Data received from server
+		float			time;			// net_time received/send
+		int				size;			// total size in bytes
+		float			latency;		// raw ping for this packet, not cleaned. set when acknowledged otherwise -1.
+		float			avg_latency;	// averaged ping for this packet
+		bool			valid;			// false if dropped, lost, flushed
+		int				choked;			// number of previously chocked packets
+		int				dropped;
+		float			m_flInterpolationAmount;
+		unsigned short	msggroups[INetChannelInfo::TOTAL];	// received bytes for each message group
+	} netframe_t;
 
-CON_COMMAND( fs_warning_level, "Set the filesystem warning level." )
-{
-	if( args.ArgC() != 2 )
+	typedef struct
 	{
-		Warning( "\"fs_warning_level n\" where n is one of:\n" );
-		Warning( "\t0:\tFILESYSTEM_WARNING_QUIET\n" );
-		Warning( "\t1:\tFILESYSTEM_WARNING_REPORTUNCLOSED\n" );
-		Warning( "\t2:\tFILESYSTEM_WARNING_REPORTUSAGE\n" );
-		Warning( "\t3:\tFILESYSTEM_WARNING_REPORTALLACCESSES\n" );
-		Warning( "\t4:\tFILESYSTEM_WARNING_REPORTALLACCESSES_READ\n" );
-		Warning( "\t5:\tFILESYSTEM_WARNING_REPORTALLACCESSES_READWRITE\n" );
-		Warning( "\t6:\tFILESYSTEM_WARNING_REPORTALLACCESSES_ASYNC\n" );
-		return;
-	}
+		float		nextcompute;	// Time when we should recompute k/sec data
+		float		avgbytespersec;	// average bytes/sec
+		float		avgpacketspersec;// average packets/sec
+		float		avgloss;		// average packet loss [0..1]
+		float		avgchoke;		// average packet choke [0..1]
+		float		avglatency;		// average ping, not cleaned
+		float		latency;		// current ping, more accurate also more jittering
+		int			totalpackets;	// total processed packets
+		int			totalbytes;		// total processed bytes
+		int			currentindex;		// current frame index
+		netframe_t	frames[ NET_FRAMES_BACKUP ]; // frame history
+		netframe_t	*currentframe;	// current frame
+	} netflow_t;
 
-	int level = atoi( args[ 1 ] );
-	switch( level )
-	{
-	case FILESYSTEM_WARNING_QUIET:
-		Warning( "fs_warning_level = FILESYSTEM_WARNING_QUIET\n" );
-		break;
-	case FILESYSTEM_WARNING_REPORTUNCLOSED:
-		Warning( "fs_warning_level = FILESYSTEM_WARNING_REPORTUNCLOSED\n" );
-		break;
-	case FILESYSTEM_WARNING_REPORTUSAGE:
-		Warning( "fs_warning_level = FILESYSTEM_WARNING_REPORTUSAGE\n" );
-		break;
-	case FILESYSTEM_WARNING_REPORTALLACCESSES:
-		Warning( "fs_warning_level = FILESYSTEM_WARNING_REPORTALLACCESSES\n" );
-		break;
-	case FILESYSTEM_WARNING_REPORTALLACCESSES_READ:
-		Warning( "fs_warning_level = FILESYSTEM_WARNING_REPORTALLACCESSES_READ\n" );
-		break;
-	case FILESYSTEM_WARNING_REPORTALLACCESSES_READWRITE:
-		Warning( "fs_warning_level = FILESYSTEM_WARNING_REPORTALLACCESSES_READWRITE\n" );
-		break;
-	case FILESYSTEM_WARNING_REPORTALLACCESSES_ASYNC:
-		Warning( "fs_warning_level = FILESYSTEM_WARNING_REPORTALLACCESSES_ASYNC\n" );
-		break;
+public: 
+	CNetChan();
+	~CNetChan();
 
-	default:
-		Warning( "fs_warning_level = UNKNOWN!!!!!!!\n" );
-		return;
-		break;
-	}
-	g_pFileSystem->SetWarningLevel( ( FileWarningLevel_t )level );
-}
-
-
-//-----------------------------------------------------------------------------
-// Purpose: Wrap Sys_LoadModule() with a filesystem GetLocalCopy() call to
-//			ensure have the file to load when running Steam.
-//-----------------------------------------------------------------------------
-CSysModule *FileSystem_LoadModule(const char *path)
-{
-	if ( g_pFileSystem )
-		return g_pFileSystem->LoadModule( path );
-	else
-		return Sys_LoadModule(path);
-}
-
-//-----------------------------------------------------------------------------
-// Purpose: Provided for symmetry sake with FileSystem_LoadModule()...
-//-----------------------------------------------------------------------------
-void FileSystem_UnloadModule(CSysModule *pModule)
-{
-	Sys_UnloadModule(pModule);
-}
-
-
-void FileSystem_SetWhitelistSpewFlags()
-{
-#if defined( _DEBUG )
-	if ( !g_pFileSystem )
-	{
-		Assert( !"FileSystem_InitSpewFlags - no filesystem." );
-		return;
-	}
+public:	// INetChannelInfo interface
 	
-	g_pFileSystem->SetWhitelistSpewFlags( fs_whitelist_spew_flags.GetInt() );
+	const char  *GetName( void ) const;
+	const char  *GetAddress( void ) const;
+	float		GetTime( void ) const;
+	float		GetTimeConnected( void ) const;
+	float		GetTimeSinceLastReceived( void ) const;
+	int			GetDataRate( void ) const;
+	int			GetBufferSize( void ) const;
+		
+	bool		IsLoopback( void ) const;
+	bool		IsNull() const; // .dem file playback channel is of type NA_NULL!!!
+	bool		IsTimingOut( void ) const;
+	bool		IsPlayback( void ) const;
+
+	float		GetLatency( int flow ) const;
+	float		GetAvgLatency( int flow ) const;
+	float		GetAvgLoss( int flow ) const;
+	float		GetAvgData( int flow ) const;
+	float		GetAvgChoke( int flow ) const;
+	float		GetAvgPackets( int flow ) const;
+	int			GetTotalData( int flow ) const;
+	int			GetSequenceNr( int flow ) const ;
+	bool		IsValidPacket( int flow, int frame_number ) const ;
+	float		GetPacketTime( int flow, int frame_number ) const ;
+	int			GetPacketBytes( int flow, int frame_number, int group ) const ; 
+	bool		GetStreamProgress( int flow, int *received, int *total ) const;
+	float		GetCommandInterpolationAmount( int flow, int frame_number ) const;
+	void		GetPacketResponseLatency( int flow, int frame_number, int *pnLatencyMsecs, int *pnChoke ) const;
+	void		GetRemoteFramerate( float *pflFrameTime, float *pflFrameTimeStdDeviation ) const;
+	float		GetTimeoutSeconds() const;
+
+public:	// INetChannel interface
+
+	void		SetDataRate(float rate);
+	bool		RegisterMessage(INetMessage *msg);
+	bool		StartStreaming( unsigned int challengeNr );
+	void		ResetStreaming( void );
+	void		SetTimeout(float seconds);
+	void		SetDemoRecorder(IDemoRecorder *recorder);
+	void		SetChallengeNr(unsigned int chnr);
+	
+	void		Reset( void );
+	void		Clear( void );
+	void		Shutdown(const char * reason);
+	
+	void		ProcessPlayback( void );
+	bool		ProcessStream( void );
+	void		ProcessPacket( netpacket_t * packet, bool bHasHeader );
+
+	void		SetCompressionMode( bool bUseCompression );
+	void		SetFileTransmissionMode(bool bBackgroundMode);
+	bool		SendNetMsg( INetMessage &msg, bool bForceReliable = false, bool bVoice = false ); // send a net message
+	bool		SendData(bf_write &msg, bool bReliable = true); // send a chunk of data
+	bool		SendFile(const char *filename, unsigned int transferID); // transmit a local file
+	void		SetChoked( void ); // choke a packet
+	int			SendDatagram(bf_write *data); // build and send datagram packet
+	unsigned int RequestFile(const char *filename); // request remote file to upload, returns request ID
+	void RequestFile_OLD(const char *filename, unsigned int transferID); // request remote file to upload, returns request ID
+	void		DenyFile(const char *filename, unsigned int transferID); // deny a file request
+	bool		Transmit(bool onlyReliable = false); // send data from buffers
+	
+	const netadr_t	&GetRemoteAddress( void ) const;
+	INetChannelHandler *GetMsgHandler( void ) const;
+	int				GetDropNumber( void ) const;
+	int				GetSocket( void ) const;
+	unsigned int	GetChallengeNr( void ) const;
+	void			GetSequenceData( int &nOutSequenceNr, int &nInSequenceNr, int &nOutSequenceNrAck );
+	void			SetSequenceData( int nOutSequenceNr, int nInSequenceNr, int nOutSequenceNrAck );
+		
+	void		UpdateMessageStats( int msggroup, int bits);
+	bool		CanPacket( void ) const;
+	bool		IsOverflowed( void ) const;
+	bool		IsTimedOut( void ) const;
+	bool		HasPendingReliableData( void );
+	void		SetMaxBufferSize(bool bReliable, int nBytes, bool bVoice = false );
+	virtual int		GetNumBitsWritten( bool bReliable );
+	virtual void	SetInterpolationAmount( float flInterpolationAmount );
+	virtual void	SetRemoteFramerate( float flFrameTime, float flFrameTimeStdDeviation );
+
+	// Max # of payload bytes before we must split/fragment the packet
+	virtual void	SetMaxRoutablePayloadSize( int nSplitSize );
+	virtual int	GetMaxRoutablePayloadSize();
+
+	virtual int		GetProtocolVersion();
+
+	int			IncrementSplitPacketSequence();
+
+public:
+
+	static bool	IsValidFileForTransfer( const char *pFilename );
+
+	void		Setup(int sock, netadr_t *adr, const char * name, INetChannelHandler * handler, int nProtocolVersion);
+	// Send queue management
+	void		IncrementQueuedPackets();
+	void		DecrementQueuedPackets();
+	bool		HasQueuedPackets() const;
+
+private:
+	
+	void	FlowReset( void );
+	void	FlowUpdate( int flow, int addbytes  );
+	void	FlowNewPacket(int flow, int seqnr, int acknr, int nChoked, int nDropped, int nSize );
+	
+	bool	ProcessMessages( bf_read &buf );
+	bool	ProcessControlMessage( int cmd, bf_read &buf);
+	bool	SendReliableViaStream( dataFragments_t *data);
+	bool	SendReliableAcknowledge( int seqnr );
+	int		ProcessPacketHeader( netpacket_t *packet );
+	void	AcknowledgeSubChannel(int seqnr, int list );
+
+	bool	CreateFragmentsFromBuffer( bf_write *buffer, int stream );
+	bool	CreateFragmentsFromFile( const char *filename, int stream, unsigned int transferID);
+
+	void	CompressFragments();
+	void	UncompressFragments( dataFragments_t *data );
+
+	bool	SendSubChannelData( bf_write &buf );
+	bool	ReadSubChannelData( bf_read &buf, int stream );
+	void	AcknowledgeSeqNr( int seqnr );
+	void	CheckWaitingList(int nList);
+	bool	CheckReceivingList(int nList);
+	void	RemoveHeadInWaitingList( int nList );
+	bool	IsFileInWaitingList( const char *filename );
+	subChannel_s *GetFreeSubChannel(); // NULL == all subchannels in use
+	void	UpdateSubChannels( void );
+	void	SendTCPData( void );
+
+	INetMessage *FindMessage(int type);
+
+	static bool HandleUpload( dataFragments_t *data, INetChannelHandler *MessageHandler );
+
+#ifdef STAGING_ONLY
+public:
+	static bool TestUpload( const char *filename );
 #endif
-}
+
+public:
+
+	bool		m_bProcessingMessages;
+	bool		m_bClearedDuringProcessing;
+	bool		m_bShouldDelete;
+
+	// last send outgoing sequence number
+	int			m_nOutSequenceNr;
+	// last received incoming sequnec number
+	int			m_nInSequenceNr;
+	// last received acknowledge outgoing sequnce number
+	int			m_nOutSequenceNrAck;
+	
+	// state of outgoing reliable data (0/1) flip flop used for loss detection
+	int			m_nOutReliableState;
+	// state of incoming reliable data
+	int			m_nInReliableState;
+
+	int			m_nChokedPackets;	//number of choked packets
+	
+		
+	// Reliable data buffer, send which each packet (or put in waiting list)
+	bf_write	m_StreamReliable;
+	CUtlMemory<byte> m_ReliableDataBuffer;
+
+	// unreliable message buffer, cleared which each packet
+	bf_write	m_StreamUnreliable;
+	CUtlMemory<byte> m_UnreliableDataBuffer;
+
+	bf_write	m_StreamVoice;
+	CUtlMemory<byte> m_VoiceDataBuffer;
+
+// don't use any vars below this (only in net_ws.cpp)
+
+	int			m_Socket;   // NS_SERVER or NS_CLIENT index, depending on channel.
+	int			m_StreamSocket;	// TCP socket handle
+
+	unsigned int m_MaxReliablePayloadSize;	// max size of reliable payload in a single packet	
+
+	// Address this channel is talking to.
+	netadr_t	remote_address;  
+	
+	// For timeouts.  Time last message was received.
+	float		last_received;		
+	// Time when channel was connected.
+	double      connect_time;       
+
+	// Bandwidth choke
+	// Bytes per second
+	int			m_Rate;				
+	// If realtime > cleartime, free to send next packet
+	double		m_fClearTime;
+
+ 	CUtlVector<dataFragments_t*>	m_WaitingList[MAX_STREAMS];	// waiting list for reliable data and file transfer
+	dataFragments_t					m_ReceiveList[MAX_STREAMS]; // receive buffers for streams
+	subChannel_s					m_SubChannels[MAX_SUBCHANNELS];
+
+	unsigned int	m_FileRequestCounter;	// increasing counter with each file request
+	bool			m_bFileBackgroundTranmission; // if true, only send 1 fragment per packet
+	bool			m_bUseCompression;	// if true, larger reliable data will be bzip compressed
+	
+	// TCP stream state maschine:
+	bool		m_StreamActive;		// true if TCP is active
+	int			m_SteamType;		// STREAM_CMD_*
+	int			m_StreamSeqNr;		// each blob send of TCP as an increasing ID
+	int			m_StreamLength;		// total length of current stream blob
+	int			m_StreamReceived;	// length of already received bytes
+	char		m_SteamFile[MAX_OSPATH];	// if receiving file, this is it's name
+	CUtlMemory<byte> m_StreamData;			// Here goes the stream data (if not file). Only allocated if we're going to use it.
+
+	// packet history
+	netflow_t		m_DataFlow[ MAX_FLOWS ];  
+	int				m_MsgStats[INetChannelInfo::TOTAL];	// total bytes for each message group
+
+
+	int				m_PacketDrop;	// packets lost before getting last update (was global net_drop)
+
+	char			m_Name[32];		// channel name
+	
+	unsigned int	m_ChallengeNr;	// unique, random challenge number 
+
+	float		m_Timeout;		// in seconds 
+
+	INetChannelHandler			*m_MessageHandler;	// who registers and processes messages
+	CUtlVector<INetMessage*>	m_NetMessages;		// list of registered message
+	IDemoRecorder				*m_DemoRecorder;			// if != NULL points to a recording/playback demo object
+	int							m_nQueuedPackets;
+
+	float						m_flInterpolationAmount;
+	float						m_flRemoteFrameTime;
+	float						m_flRemoteFrameTimeStdDeviation;
+	int							m_nMaxRoutablePayloadSize;
+
+	int							m_nSplitPacketSequence;
+	bool						m_bStreamContainsChallenge;  // true if PACKET_FLAG_CHALLENGE was set when receiving packets from the sender
+
+	int							m_nProtocolVersion;		// PROTOCOL_VERSION if we're not playing a demo - otherwise, whatever was in the demo header's networkprotocol if the CNetChan instance was created by a demo player.
+};

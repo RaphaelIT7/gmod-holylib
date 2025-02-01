@@ -4,7 +4,11 @@
 #include "detours.h"
 #include "usermessages.h"
 #include "sv_client.h"
+#include "tier0/etwprof.h"
 #include "sourcesdk/baseserver.h"
+#include "sourcesdk/net_chan.h"
+
+double		net_time;
 
 class CGameServerModule : public IModule
 {
@@ -516,6 +520,207 @@ LUA_FUNCTION_STATIC(CBaseClient_FreeBaselines)
 	return 0;
 }
 
+/*
+ * CNetChannel exposed things.
+ */
+LUA_FUNCTION_STATIC(CBaseClient_GetProcessingMessages)
+{
+	CBaseClient* pClient = Get_CBaseClient(1, true);
+	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
+	if (!pNetChannel)
+		LUA->ThrowError("Failed to get a valid net channel");
+
+	LUA->PushBool(pNetChannel->m_bProcessingMessages);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CBaseClient_GetClearedDuringProcessing)
+{
+	CBaseClient* pClient = Get_CBaseClient(1, true);
+	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
+	if (!pNetChannel)
+		LUA->ThrowError("Failed to get a valid net channel");
+
+	LUA->PushBool(pNetChannel->m_bClearedDuringProcessing);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CBaseClient_GetShouldDelete)
+{
+	CBaseClient* pClient = Get_CBaseClient(1, true);
+	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
+	if (!pNetChannel)
+		LUA->ThrowError("Failed to get a valid net channel");
+
+	LUA->PushBool(pNetChannel->m_bShouldDelete);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CBaseClient_GetOutSequenceNr)
+{
+	CBaseClient* pClient = Get_CBaseClient(1, true);
+	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
+	if (!pNetChannel)
+		LUA->ThrowError("Failed to get a valid net channel");
+
+	LUA->PushNumber(pNetChannel->m_nOutSequenceNr);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CBaseClient_GetInSequenceNr)
+{
+	CBaseClient* pClient = Get_CBaseClient(1, true);
+	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
+	if (!pNetChannel)
+		LUA->ThrowError("Failed to get a valid net channel");
+
+	LUA->PushNumber(pNetChannel->m_nInSequenceNr);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CBaseClient_GetOutSequenceNrAck)
+{
+	CBaseClient* pClient = Get_CBaseClient(1, true);
+	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
+	if (!pNetChannel)
+		LUA->ThrowError("Failed to get a valid net channel");
+
+	LUA->PushNumber(pNetChannel->m_nOutSequenceNrAck);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CBaseClient_GetOutReliableState)
+{
+	CBaseClient* pClient = Get_CBaseClient(1, true);
+	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
+	if (!pNetChannel)
+		LUA->ThrowError("Failed to get a valid net channel");
+
+	LUA->PushNumber(pNetChannel->m_nOutReliableState);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CBaseClient_GetInReliableState)
+{
+	CBaseClient* pClient = Get_CBaseClient(1, true);
+	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
+	if (!pNetChannel)
+		LUA->ThrowError("Failed to get a valid net channel");
+
+	LUA->PushNumber(pNetChannel->m_nInReliableState);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CBaseClient_GetChokedPackets)
+{
+	CBaseClient* pClient = Get_CBaseClient(1, true);
+	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
+	if (!pNetChannel)
+		LUA->ThrowError("Failed to get a valid net channel");
+
+	LUA->PushNumber(pNetChannel->m_nChokedPackets);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CBaseClient_GetStreamReliable)
+{
+	CBaseClient* pClient = Get_CBaseClient(1, true);
+	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
+	if (!pNetChannel)
+		LUA->ThrowError("Failed to get a valid net channel");
+
+	Push_bf_write(&pNetChannel->m_StreamReliable);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CBaseClient_GetStreamUnreliable)
+{
+	CBaseClient* pClient = Get_CBaseClient(1, true);
+	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
+	if (!pNetChannel)
+		LUA->ThrowError("Failed to get a valid net channel");
+
+	Push_bf_write(&pNetChannel->m_StreamUnreliable);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CBaseClient_GetStreamVoice)
+{
+	CBaseClient* pClient = Get_CBaseClient(1, true);
+	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
+	if (!pNetChannel)
+		LUA->ThrowError("Failed to get a valid net channel");
+
+	Push_bf_write(&pNetChannel->m_StreamVoice);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CBaseClient_GetStreamSocket)
+{
+	CBaseClient* pClient = Get_CBaseClient(1, true);
+	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
+	if (!pNetChannel)
+		LUA->ThrowError("Failed to get a valid net channel");
+
+	LUA->PushNumber(pNetChannel->m_StreamSocket);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CBaseClient_GetMaxReliablePayloadSize)
+{
+	CBaseClient* pClient = Get_CBaseClient(1, true);
+	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
+	if (!pNetChannel)
+		LUA->ThrowError("Failed to get a valid net channel");
+
+	LUA->PushNumber(pNetChannel->m_MaxReliablePayloadSize);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CBaseClient_GetLastReceived)
+{
+	CBaseClient* pClient = Get_CBaseClient(1, true);
+	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
+	if (!pNetChannel)
+		LUA->ThrowError("Failed to get a valid net channel");
+
+	LUA->PushNumber(pNetChannel->last_received);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CBaseClient_GetConnectTime)
+{
+	CBaseClient* pClient = Get_CBaseClient(1, true);
+	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
+	if (!pNetChannel)
+		LUA->ThrowError("Failed to get a valid net channel");
+
+	LUA->PushNumber(pNetChannel->connect_time);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CBaseClient_GetClearTime)
+{
+	CBaseClient* pClient = Get_CBaseClient(1, true);
+	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
+	if (!pNetChannel)
+		LUA->ThrowError("Failed to get a valid net channel");
+
+	LUA->PushNumber(pNetChannel->m_fClearTime);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CBaseClient_GetTimeout)
+{
+	CBaseClient* pClient = Get_CBaseClient(1, true);
+	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
+	if (!pNetChannel)
+		LUA->ThrowError("Failed to get a valid net channel");
+
+	LUA->PushNumber(pNetChannel->m_Timeout);
+	return 1;
+}
+
 // Added for CHLTVClient to inherit functions.
 void Push_CBaseClientMeta()
 {
@@ -569,6 +774,26 @@ void Push_CBaseClientMeta()
 	Util::AddFunc(CBaseClient_SetName, "SetName");
 	Util::AddFunc(CBaseClient_SetUserCVar, "SetUserCVar");
 	Util::AddFunc(CBaseClient_FreeBaselines, "FreeBaselines");
+
+	// CNetChan related functions
+	Util::AddFunc(CBaseClient_GetProcessingMessages, "GetProcessingMessages");
+	Util::AddFunc(CBaseClient_GetClearedDuringProcessing, "GetClearedDuringProcessing");
+	Util::AddFunc(CBaseClient_GetShouldDelete, "GetShouldDelete");
+	Util::AddFunc(CBaseClient_GetOutSequenceNr, "GetOutSequenceNr");
+	Util::AddFunc(CBaseClient_GetInSequenceNr, "GetInSequenceNr");
+	Util::AddFunc(CBaseClient_GetOutSequenceNrAck, "GetOutSequenceNrAck");
+	Util::AddFunc(CBaseClient_GetOutReliableState, "GetOutReliableState");
+	Util::AddFunc(CBaseClient_GetInReliableState, "GetInReliableState");
+	Util::AddFunc(CBaseClient_GetChokedPackets, "GetChokedPackets");
+	Util::AddFunc(CBaseClient_GetStreamReliable, "GetStreamReliable");
+	Util::AddFunc(CBaseClient_GetStreamUnreliable, "GetStreamUnreliable");
+	Util::AddFunc(CBaseClient_GetStreamVoice, "GetStreamVoice");
+	Util::AddFunc(CBaseClient_GetStreamSocket, "GetStreamSocket");
+	Util::AddFunc(CBaseClient_GetMaxReliablePayloadSize, "GetMaxReliablePayloadSize");
+	Util::AddFunc(CBaseClient_GetLastReceived, "GetLastReceived");
+	Util::AddFunc(CBaseClient_GetConnectTime, "GetConnectTime");
+	Util::AddFunc(CBaseClient_GetClearTime, "GetClearTime");
+	Util::AddFunc(CBaseClient_GetTimeout, "GetTimeout");
 }
 
 LUA_FUNCTION_STATIC(CGameClient__tostring)
@@ -994,6 +1219,99 @@ static bool hook_GModDataPack_IsSingleplayer(void* dataPack)
 	return detour_GModDataPack_IsSingleplayer.GetTrampoline<Symbols::GModDataPack_IsSingleplayer>()(dataPack);
 }
 
+static Detouring::Hook detour_CBaseClient_ShouldSendMessages;
+static bool hook_CBaseClient_ShouldSendMessages(CBaseClient* cl)
+{
+	if ( !cl->IsConnected() )
+		return false;
+
+	// if the reliable message overflowed, drop the client
+	if ( cl->m_NetChannel && cl->m_NetChannel->IsOverflowed() )
+	{
+		cl->m_NetChannel->Reset();
+		cl->Disconnect( "%s overflowed reliable buffer\n", cl->m_Name);
+		return false;
+	}
+
+	// check, if it's time to send the next packet
+	bool bSendMessage = cl->m_fNextMessageTime <= net_time;
+	if ( !bSendMessage && !cl->IsActive() )
+	{
+		// if we are in signon modem instantly reply if
+		// we got a answer and have reliable data waiting
+		if ( cl->m_bReceivedPacket && cl->m_NetChannel && cl->m_NetChannel->HasPendingReliableData() )
+		{
+			bSendMessage = true;
+		}
+	}
+
+	if ( bSendMessage && cl->m_NetChannel && !cl->m_NetChannel->CanPacket() )
+	{
+		// we would like to send a message, but bandwidth isn't available yet
+		// tell netchannel that we are choking a packet
+		cl->m_NetChannel->SetChoked();	
+		// Record an ETW event to indicate that we are throttling.
+#if ARCHITECTURE_IS_X86
+		ETWThrottled();
+#endif
+		bSendMessage = false;
+	}
+
+	return bSendMessage;
+}
+
+static Detouring::Hook detour_CBaseServer_CheckTimeouts;
+static void hook_CBaseServer_CheckTimeouts(CBaseServer* srv)
+{
+	VPROF_BUDGET( "CBaseServer::CheckTimeouts", VPROF_BUDGETGROUP_OTHER_NETWORKING );
+	// Don't timeout in _DEBUG builds
+	int i;
+
+#if !defined( _DEBUG )
+		
+	for (i=0 ; i< srv->m_Clients.Count() ; i++ )
+	{
+		IClient	*cl = srv->m_Clients[ i ];
+		
+		if ( cl->IsFakeClient() || !cl->IsConnected() )
+			continue;
+
+		INetChannel *netchan = cl->GetNetChannel();
+
+		if ( !netchan )
+			continue;
+
+		if ( netchan->IsTimedOut() )
+			cl->Disconnect( CLIENTNAME_TIMED_OUT, cl->GetClientName() );
+	}
+#endif
+
+	for (i=0 ; i< srv->m_Clients.Count() ; i++ )
+	{
+		IClient	*cl = srv->m_Clients[ i ];
+		
+		if ( cl->IsFakeClient() || !cl->IsConnected() )
+			continue;
+		
+		if ( cl->GetNetChannel() && cl->GetNetChannel()->IsOverflowed() )
+		{
+			if (Lua::PushHook("HolyLib:OnChannelOverflow"))
+			{
+				Push_CBaseClient((CBaseClient*)cl);
+				if (g_Lua->CallFunctionProtected(2, 1, true))
+				{
+					bool bCancel = g_Lua->GetBool(-1);
+					g_Lua->Pop(1);
+					if (bCancel)
+						continue;
+				}
+			}
+
+			cl->Disconnect( "Client %d overflowed reliable channel.", i );
+		}
+	}
+}
+
 static Symbols::MD5_MapFile func_MD5_MapFile;
 void CGameServerModule::InitDetour(bool bPreServer)
 {
@@ -1011,6 +1329,18 @@ void CGameServerModule::InitDetour(bool bPreServer)
 		&detour_CBaseClient_SetSignonState, "CBaseClient::SetSignonState",
 		engine_loader.GetModule(), Symbols::CBaseClient_SetSignonStateSym,
 		(void*)hook_CBaseClient_SetSignonState, m_pID
+	);
+
+	Detour::Create(
+		&detour_CBaseClient_ShouldSendMessages, "CBaseClient::ShouldSendMessages",
+		engine_loader.GetModule(), Symbols::CBaseClient_ShouldSendMessagesSym,
+		(void*)hook_CBaseClient_ShouldSendMessages, m_pID
+	);
+
+	Detour::Create(
+		&detour_CBaseServer_CheckTimeouts, "CBaseServer::CheckTimeouts",
+		engine_loader.GetModule(), Symbols::CBaseServer_CheckTimeoutsSym,
+		(void*)hook_CBaseServer_CheckTimeouts, m_pID
 	);
 
 	SourceSDK::FactoryLoader server_loader("server");

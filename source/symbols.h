@@ -3,6 +3,7 @@
 #include <steam/isteamuser.h>
 #include "tier0/wchartypes.h"
 #include "Platform.hpp"
+#include "filesystem.h"
 #include <vector>
 
 #if ARCHITECTURE_IS_X86_64
@@ -12,14 +13,6 @@ typedef unsigned long ThreadId_t;
 #endif
 
 typedef void* FileHandle_t;
-
-#ifndef FILESYSTEM_H
-enum SearchPathAdd_t
-{
-	PATH_ADD_TO_HEAD,		// First path searched
-	PATH_ADD_TO_TAIL,		// Last path searched
-};
-#endif
 
 class Vector;
 class CBaseEntity;
@@ -537,6 +530,12 @@ namespace Symbols
 
 	typedef bool (*GModDataPack_IsSingleplayer)(void* datapack);
 	extern const std::vector<Symbol> GModDataPack_IsSingleplayerSym;
+
+	typedef bool (*CBaseClient_ShouldSendMessages)(void* client);
+	extern const std::vector<Symbol> CBaseClient_ShouldSendMessagesSym;
+
+	typedef void (*CBaseServer_CheckTimeouts)(void* server);
+	extern const std::vector<Symbol> CBaseServer_CheckTimeoutsSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: cvar Symbols

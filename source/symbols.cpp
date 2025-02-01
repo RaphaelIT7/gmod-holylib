@@ -725,4 +725,12 @@ namespace Symbols
 	const std::vector<Symbol> GModDataPack_IsSingleplayerSym = {
 		Symbol::FromName("_ZN12GModDataPack14IsSingleplayerEv"),
 	};
+
+	const std::vector<Symbol> CBaseClient_ShouldSendMessagesSym = {
+		Symbol::FromName("_ZN11CBaseClient18ShouldSendMessagesEv"),
+	};
+
+	const std::vector<Symbol> CBaseServer_CheckTimeoutsSym = {
+		Symbol::FromName("_ZN11CBaseServer13CheckTimeoutsEv"),
+	};
 }
