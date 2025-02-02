@@ -3283,6 +3283,65 @@ Sets the new name of the client.
 
 #### CBaseClient:FreeBaselines()
 
+#### CBaseClient:OnRequestFullUpdate()
+Forces the client to go through a full update(also fires the gameevent).  
+
+---
+
+### CBaseClient (CNetChannel functions)
+Now come network channel related functions to the CBaseClient
+
+> [!NOTE]
+> All functions are dependant on the CNetChannel of their client.
+> No CNetChannel == Lua Error
+
+#### bool CBaseClient:GetProcessingMessages()
+
+#### bool CBaseClient:GetClearedDuringProcessing()
+
+#### number CBaseClient:GetOutSequenceNr()
+
+#### number CBaseClient:GetInSequenceNr()
+
+#### number CBaseClient:GetOutSequenceNrAck()
+
+#### number CBaseClient:GetOutReliableState()
+
+#### number CBaseClient:GetInReliableState()
+
+#### number CBaseClient:GetChokedPackets()
+
+#### bf_write CBaseClient:GetStreamReliable()
+Returns the reliable stream used by net messages.
+
+#### bf_write CBaseClient:GetStreamUnreliable()
+Returns the unreliable stream used by net messages.
+
+#### bf_write CBaseClient:GetStreamVoice()
+Returns the voice stream used by the voice chat.
+
+#### number CBaseClient:GetStreamSocket()
+
+#### number CBaseClient:GetMaxReliablePayloadSize()
+
+#### number CBaseClient:GetLastReceived()
+
+#### number CBaseClient:GetConnectTime()
+
+#### number CBaseClient:GetClearTime()
+
+#### number CBaseClient:GetTimeout()
+
+#### bool CBaseClient:Transmit()
+Transmit any pending data to the client.  
+Returns `true` on success.
+
+#### number CBaseClient:HasQueuedPackets()
+
+#### bool CBaseClient:ProcessStream()
+Processes all pending incoming net messages.  
+Returns `true` on success.
+
 ### CGameClient
 This class inherits CBaseClient.
 

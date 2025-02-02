@@ -536,6 +536,7 @@ LUA_FUNCTION_STATIC(CBaseClient_OnRequestFullUpdate)
 
 /*
  * CNetChannel exposed things.
+ * I should probably move it into a seperate class...
  */
 LUA_FUNCTION_STATIC(CBaseClient_GetProcessingMessages)
 {
@@ -559,7 +560,8 @@ LUA_FUNCTION_STATIC(CBaseClient_GetClearedDuringProcessing)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(CBaseClient_GetShouldDelete)
+// If anyone sees a point in having this function, open a issue and ask for it to be added.
+/*LUA_FUNCTION_STATIC(CBaseClient_GetShouldDelete)
 {
 	CBaseClient* pClient = Get_CBaseClient(1, true);
 	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
@@ -568,7 +570,7 @@ LUA_FUNCTION_STATIC(CBaseClient_GetShouldDelete)
 
 	LUA->PushBool(pNetChannel->m_bShouldDelete);
 	return 1;
-}
+}*/
 
 LUA_FUNCTION_STATIC(CBaseClient_GetOutSequenceNr)
 {
@@ -769,7 +771,8 @@ LUA_FUNCTION_STATIC(CBaseClient_ProcessStream)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(CBaseClient_GetRegisteredMessages)
+// Purely debug function, has no real use.
+/*LUA_FUNCTION_STATIC(CBaseClient_GetRegisteredMessages)
 {
 	CBaseClient* pClient = Get_CBaseClient(1, true);
 	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
@@ -786,7 +789,7 @@ LUA_FUNCTION_STATIC(CBaseClient_GetRegisteredMessages)
 		}
 
 	return 1;
-}
+}*/
 
 // Added for CHLTVClient to inherit functions.
 void Push_CBaseClientMeta()
@@ -846,7 +849,7 @@ void Push_CBaseClientMeta()
 	// CNetChan related functions
 	Util::AddFunc(CBaseClient_GetProcessingMessages, "GetProcessingMessages");
 	Util::AddFunc(CBaseClient_GetClearedDuringProcessing, "GetClearedDuringProcessing");
-	Util::AddFunc(CBaseClient_GetShouldDelete, "GetShouldDelete");
+	//Util::AddFunc(CBaseClient_GetShouldDelete, "GetShouldDelete");
 	Util::AddFunc(CBaseClient_GetOutSequenceNr, "GetOutSequenceNr");
 	Util::AddFunc(CBaseClient_GetInSequenceNr, "GetInSequenceNr");
 	Util::AddFunc(CBaseClient_GetOutSequenceNrAck, "GetOutSequenceNrAck");
@@ -864,7 +867,7 @@ void Push_CBaseClientMeta()
 	Util::AddFunc(CBaseClient_GetTimeout, "GetTimeout");
 	Util::AddFunc(CBaseClient_Transmit, "Transmit");
 	Util::AddFunc(CBaseClient_ProcessStream, "ProcessStream");
-	Util::AddFunc(CBaseClient_GetRegisteredMessages, "GetRegisteredMessages");
+	//Util::AddFunc(CBaseClient_GetRegisteredMessages, "GetRegisteredMessages");
 }
 
 LUA_FUNCTION_STATIC(CGameClient__tostring)
