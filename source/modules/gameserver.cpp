@@ -1382,6 +1382,12 @@ static bool hook_CBaseClient_ShouldSendMessages(CBaseClient* cl)
 static Detouring::Hook detour_CBaseServer_CheckTimeouts;
 static void hook_CBaseServer_CheckTimeouts(CBaseServer* srv)
 {
+	if (srv->IsHLTV())
+	{
+		detour_CBaseServer_CheckTimeouts.GetTrampoline<Symbols::CBaseServer_CheckTimeouts>()(srv);
+		return;
+	}
+
 	VPROF_BUDGET( "CBaseServer::CheckTimeouts", VPROF_BUDGETGROUP_OTHER_NETWORKING );
 	// Don't timeout in _DEBUG builds
 	int i;
