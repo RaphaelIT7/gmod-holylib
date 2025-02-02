@@ -1233,6 +1233,9 @@ static bool hook_CBaseClient_ShouldSendMessages(CBaseClient* cl)
 		return false;
 	}
 
+	if ( cl->m_NetChannel )
+		net_time = cl->m_NetChannel->GetTime(); // Required as we use net_time below.
+
 	// check, if it's time to send the next packet
 	bool bSendMessage = cl->m_fNextMessageTime <= net_time;
 	if ( !bSendMessage && !cl->IsActive() )
