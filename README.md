@@ -3332,6 +3332,9 @@ Returns the voice stream used by the voice chat.
 
 #### number CBaseClient:GetTimeout()
 
+#### CBaseClient:SetTimeout(number seconds)
+Sets the time in seconds before the client is marked as timing out.
+
 #### bool CBaseClient:Transmit(bool onlyReliable = false)
 Transmit any pending data to the client.  
 Returns `true` on success.

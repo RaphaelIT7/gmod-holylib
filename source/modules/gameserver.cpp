@@ -737,6 +737,18 @@ LUA_FUNCTION_STATIC(CBaseClient_GetTimeout)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(CBaseClient_SetTimeout)
+{
+	CBaseClient* pClient = Get_CBaseClient(1, true);
+	int seconds = LUA->CheckNumber(2);
+	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
+	if (!pNetChannel)
+		LUA->ThrowError("Failed to get a valid net channel");
+
+	pNetChannel->SetTimeout(seconds);
+	return 0;
+}
+
 LUA_FUNCTION_STATIC(CBaseClient_Transmit)
 {
 	CBaseClient* pClient = Get_CBaseClient(1, true);
@@ -879,6 +891,7 @@ void Push_CBaseClientMeta()
 	Util::AddFunc(CBaseClient_GetConnectTime, "GetConnectTime");
 	Util::AddFunc(CBaseClient_GetClearTime, "GetClearTime");
 	Util::AddFunc(CBaseClient_GetTimeout, "GetTimeout");
+	Util::AddFunc(CBaseClient_SetTimeout, "SetTimeout");
 	Util::AddFunc(CBaseClient_Transmit, "Transmit");
 	Util::AddFunc(CBaseClient_ProcessStream, "ProcessStream");
 	//Util::AddFunc(CBaseClient_GetRegisteredMessages, "GetRegisteredMessages");
