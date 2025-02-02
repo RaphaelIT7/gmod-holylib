@@ -3332,9 +3332,26 @@ Returns the voice stream used by the voice chat.
 
 #### number CBaseClient:GetTimeout()
 
-#### bool CBaseClient:Transmit()
+#### bool CBaseClient:Transmit(bool onlyReliable = false)
 Transmit any pending data to the client.  
 Returns `true` on success.
+
+Exampe usage of this function:
+```lua
+concommand.Add("nukechannel", function(ply)
+   	local string = ""
+    for k = 1, 65532 do
+        string = string .. "a"
+    end
+    util.AddNetworkString("Example")
+    for k = 1, 10 do
+        net.Start("Example", false)
+            net.WriteString(string)
+        net.Broadcast()
+        gameserver.GetClient(ply:EntIndex()-1):Transmit() -- Forces the message to be transmitted directly avoiding a overflow.
+    end 
+end)
+```
 
 #### number CBaseClient:HasQueuedPackets()
 
@@ -3356,6 +3373,20 @@ Format: `CGameClient [%i][%s]`
 #### bool HolyLib:OnSetSignonState(CGameClient client, number state, number spawnCount)
 Called when the engine is about to change the client's SignonState.  
 Return `true` to stop the engine.  
+
+#### bool HolyLib:OnChannelOverflow(CGameClient client)
+Called when the client's net channel is overflowed.
+Return `true` to stop the engine from disconnecting the client.  
+
+Example on how to handle a overflow:
+```lua
+hook.Add("HolyLib:OnChannelOverflow", "Example", function(client)
+	local bf = client:GetStreamReliable()
+	file.Write("stream.txt", bf:GetData())
+	bf:Reset() -- Reset the stream, data may get lost, but the client won't be dropped
+	return true -- Return true to stop the engine from disconnecting the client
+end)
+```
 
 ### Singleplayer
 This module allows you to have a 1 slot / a singleplayer server.  
