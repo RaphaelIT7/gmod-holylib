@@ -2192,6 +2192,12 @@ LUA_FUNCTION_STATIC(addonsystem_SetShouldMount)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(fdafda)
+{
+	LUA->PushBool(true);
+	return 1;
+}
+
 // Gmod's filesystem functions have some weird stuff in them that makes them noticeably slower :/
 void CFileSystemModule::LuaInit(bool bServerInit)
 {
@@ -2227,6 +2233,7 @@ void CFileSystemModule::LuaInit(bool bServerInit)
 		Util::AddFunc(addonsystem_MountFile, "MountFile");
 		Util::AddFunc(addonsystem_ShouldMount, "ShouldMount");
 		Util::AddFunc(addonsystem_SetShouldMount, "SetShouldMount");
+		Util::AddFunc(fdafda, "raphael");
 	Util::FinishTable("addonsystem");
 }
 
