@@ -108,3 +108,16 @@ const char* SVC_GameEvent::ToString(void) const
 	Q_snprintf(s_text, sizeof(s_text), "%s: bytes %i", GetName(), Bits2Bytes(m_nLength));
 	return s_text;
 }
+
+INetMessage *CNetChan::FindMessage(int type)
+{
+	int numtypes = m_NetMessages.Count();
+
+	for (int i=0; i<numtypes; i++ )
+	{
+		if ( m_NetMessages[i]->GetType() == type )
+			return m_NetMessages[i];
+	}
+
+	return NULL;
+}

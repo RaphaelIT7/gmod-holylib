@@ -207,7 +207,7 @@ public:
 	void		DecrementQueuedPackets();
 	bool		HasQueuedPackets() const;
 
-private:
+public: // Don't mind if I do
 	
 	void	FlowReset( void );
 	void	FlowUpdate( int flow, int addbytes  );

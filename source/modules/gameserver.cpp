@@ -769,6 +769,25 @@ LUA_FUNCTION_STATIC(CBaseClient_ProcessStream)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(CBaseClient_GetRegisteredMessages)
+{
+	CBaseClient* pClient = Get_CBaseClient(1, true);
+	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
+	if (!pNetChannel)
+		LUA->ThrowError("Failed to get a valid net channel");
+
+	LUA->PreCreateTable(pNetChannel->m_NetMessages.Count(), 0);
+		int idx = 0;
+		for (int i=0 ; i< pNetChannel->m_NetMessages.Count(); i++ )
+		{
+			INetMessage* msg = pNetChannel->m_NetMessages[ i ];
+			LUA->PushString(msg->GetName());
+			Util::RawSetI(LUA, -2, msg->GetType());
+		}
+
+	return 1;
+}
+
 // Added for CHLTVClient to inherit functions.
 void Push_CBaseClientMeta()
 {
@@ -845,6 +864,7 @@ void Push_CBaseClientMeta()
 	Util::AddFunc(CBaseClient_GetTimeout, "GetTimeout");
 	Util::AddFunc(CBaseClient_Transmit, "Transmit");
 	Util::AddFunc(CBaseClient_ProcessStream, "ProcessStream");
+	Util::AddFunc(CBaseClient_GetRegisteredMessages, "GetRegisteredMessages");
 }
 
 LUA_FUNCTION_STATIC(CGameClient__tostring)

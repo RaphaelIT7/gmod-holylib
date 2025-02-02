@@ -363,6 +363,7 @@ QAngle* Get_QAngle(int iStackPos, bool bError = true);
 
 class bf_read;
 extern void Push_bf_read(bf_read* tbl);
+extern bf_read* Get_bf_read(int iStackPos, bool bError);
 
 class bf_write;
 extern void Push_bf_write(bf_write* tbl);
