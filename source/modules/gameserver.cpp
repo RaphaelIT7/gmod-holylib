@@ -28,6 +28,9 @@ class SVC_CustomMessage: public CNetMessage
 public:
 	bool			ReadFromBuffer( bf_read &buffer ) { return true; };
 	bool			WriteToBuffer( bf_write &buffer ) {
+		if (m_iLength == -1)
+			m_iLength = m_DataOut.GetNumBitsWritten();
+
 		buffer.WriteUBitLong(GetType(), NETMSG_TYPE_BITS);
 		return buffer.WriteBits(m_DataOut.GetData(), m_iLength);
 	};
@@ -43,7 +46,7 @@ public:
 	int	GetGroup() const { return INetChannelInfo::GENERIC; }
 
 	int m_iType = 0;
-	int m_iLength = 0;
+	int m_iLength = -1;
 	char m_strName[64] = "";
 	bf_write m_DataOut;
 };
