@@ -523,6 +523,17 @@ LUA_FUNCTION_STATIC(CBaseClient_FreeBaselines)
 	return 0;
 }
 
+static Symbols::CBaseClient_OnRequestFullUpdate func_CBaseClient_OnRequestFullUpdate;
+LUA_FUNCTION_STATIC(CBaseClient_OnRequestFullUpdate)
+{
+	CBaseClient* pClient = Get_CBaseClient(1, true);
+
+	if (func_CBaseClient_OnRequestFullUpdate)
+		func_CBaseClient_OnRequestFullUpdate(pClient);
+
+	return 0;
+}
+
 /*
  * CNetChannel exposed things.
  */
@@ -724,6 +735,40 @@ LUA_FUNCTION_STATIC(CBaseClient_GetTimeout)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(CBaseClient_Transmit)
+{
+	CBaseClient* pClient = Get_CBaseClient(1, true);
+	bool bOnlyReliable = LUA->GetBool(2);
+	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
+	if (!pNetChannel)
+		LUA->ThrowError("Failed to get a valid net channel");
+
+	LUA->PushBool(pNetChannel->Transmit(bOnlyReliable));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CBaseClient_HasQueuedPackets)
+{
+	CBaseClient* pClient = Get_CBaseClient(1, true);
+	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
+	if (!pNetChannel)
+		LUA->ThrowError("Failed to get a valid net channel");
+
+	LUA->PushBool(pNetChannel->HasQueuedPackets());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CBaseClient_ProcessStream)
+{
+	CBaseClient* pClient = Get_CBaseClient(1, true);
+	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
+	if (!pNetChannel)
+		LUA->ThrowError("Failed to get a valid net channel");
+
+	LUA->PushBool(pNetChannel->ProcessStream());
+	return 1;
+}
+
 // Added for CHLTVClient to inherit functions.
 void Push_CBaseClientMeta()
 {
@@ -777,6 +822,7 @@ void Push_CBaseClientMeta()
 	Util::AddFunc(CBaseClient_SetName, "SetName");
 	Util::AddFunc(CBaseClient_SetUserCVar, "SetUserCVar");
 	Util::AddFunc(CBaseClient_FreeBaselines, "FreeBaselines");
+	Util::AddFunc(CBaseClient_OnRequestFullUpdate, "OnRequestFullUpdate");
 
 	// CNetChan related functions
 	Util::AddFunc(CBaseClient_GetProcessingMessages, "GetProcessingMessages");
@@ -797,6 +843,8 @@ void Push_CBaseClientMeta()
 	Util::AddFunc(CBaseClient_GetConnectTime, "GetConnectTime");
 	Util::AddFunc(CBaseClient_GetClearTime, "GetClearTime");
 	Util::AddFunc(CBaseClient_GetTimeout, "GetTimeout");
+	Util::AddFunc(CBaseClient_Transmit, "Transmit");
+	Util::AddFunc(CBaseClient_ProcessStream, "ProcessStream");
 }
 
 LUA_FUNCTION_STATIC(CGameClient__tostring)
@@ -1361,6 +1409,9 @@ void CGameServerModule::InitDetour(bool bPreServer)
 		engine_loader.GetModule(), Symbols::CBaseServer_CheckTimeoutsSym,
 		(void*)hook_CBaseServer_CheckTimeouts, m_pID
 	);
+
+	func_CBaseClient_OnRequestFullUpdate = (Symbols::CBaseClient_OnRequestFullUpdate)Detour::GetFunction(engine_loader.GetModule(), Symbols::CBaseClient_OnRequestFullUpdateSym);
+	Detour::CheckFunction((void*)func_CBaseClient_OnRequestFullUpdate, "CBaseClient::OnRequestFullUpdate");
 
 	SourceSDK::FactoryLoader server_loader("server");
 	if (!g_pModuleManager.IsMarkedAsBinaryModule()) // Loaded by require? Then we skip this.

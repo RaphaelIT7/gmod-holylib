@@ -733,4 +733,8 @@ namespace Symbols
 	const std::vector<Symbol> CBaseServer_CheckTimeoutsSym = {
 		Symbol::FromName("_ZN11CBaseServer13CheckTimeoutsEv"),
 	};
+
+	const std::vector<Symbol> CBaseClient_OnRequestFullUpdateSym = {
+		Symbol::FromName("_ZN11CBaseClient19OnRequestFullUpdateEv"),
+	};
 }

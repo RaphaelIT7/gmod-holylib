@@ -537,6 +537,9 @@ namespace Symbols
 	typedef void (*CBaseServer_CheckTimeouts)(void* server);
 	extern const std::vector<Symbol> CBaseServer_CheckTimeoutsSym;
 
+	typedef void (*CBaseClient_OnRequestFullUpdate)(void* client);
+	extern const std::vector<Symbol> CBaseClient_OnRequestFullUpdateSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: cvar Symbols
 	//---------------------------------------------------------------------------------

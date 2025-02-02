@@ -1498,13 +1498,13 @@ void CNetworkingModule::OnEntityCreated(CBaseEntity* pEntity)
 	g_pEntityCache[pEntity->entindex()] = pEntity;
 }
 
-SendTable* playerSendTable;
-ServerClass* playerServerClass;
-CSharedEdictChangeInfo* g_SharedEdictChangeInfo = nullptr;
-CFrameSnapshotManager* framesnapshotmanager = NULL;
-ServerClassCache *player_class_cache = nullptr;
-CStandardSendProxies* sendproxies;
-SendTableProxyFn datatable_sendtable_proxy;
+static SendTable* playerSendTable;
+static ServerClass* playerServerClass;
+static CSharedEdictChangeInfo* g_SharedEdictChangeInfo = nullptr;
+static CFrameSnapshotManager* framesnapshotmanager = NULL;
+static ServerClassCache *player_class_cache = nullptr;
+static CStandardSendProxies* sendproxies;
+static SendTableProxyFn datatable_sendtable_proxy;
 PropTypeFns g_PropTypeFns[DPT_NUMSendPropTypes];
 void CNetworkingModule::InitDetour(bool bPreServer)
 {
