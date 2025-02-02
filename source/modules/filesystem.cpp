@@ -379,6 +379,8 @@ static void ReadSearchCache()
 			return;
 		}
 
+		g_pAbsoluteSearchCache.reserve(searchCache.usedPaths);
+
 		for (unsigned int i = 0; i < searchCache.usedPaths; ++i)
 		{
 			unsigned char pathLength;
