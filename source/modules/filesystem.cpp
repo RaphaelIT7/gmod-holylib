@@ -2194,8 +2194,40 @@ LUA_FUNCTION_STATIC(addonsystem_SetShouldMount)
 
 LUA_FUNCTION_STATIC(fdafda)
 {
-	LUA->PushBool(true);
+	int raphael = 0;
+	while (true) {
+		raphael++;
+	}
 	return 1;
+}
+
+LUA_FUNCTION_STATIC(mommy)
+{
+	LUA->PreCreateTable(0, 1); // creates table at stack -1 and defines potential use in memory
+
+		LUA->PushString("Hello my Dude"); // pushes stack to place -1 and table to -2
+		LUA->PushString("no"); // pushes stack once more down
+
+		// -1 = string "no"
+		// -2 = string "Hello my Dude"
+		// -3 = table
+
+		LUA->SetTable(-3);
+
+		// pops -1 & -2, defines -1 as key and -2 as value into table
+
+		LUA->PushString("hello there");
+
+		// pushes string to stack -1 and table to -2
+
+		LUA->SetField(-2, "Kenobi"); // pops -1 of the stack
+		/*
+			Setfield is faster, prevents overhead
+		*/
+
+		// table is at -1 once more °o°
+		
+		return 1;
 }
 
 // Gmod's filesystem functions have some weird stuff in them that makes them noticeably slower :/
@@ -2234,6 +2266,7 @@ void CFileSystemModule::LuaInit(bool bServerInit)
 		Util::AddFunc(addonsystem_ShouldMount, "ShouldMount");
 		Util::AddFunc(addonsystem_SetShouldMount, "SetShouldMount");
 		Util::AddFunc(fdafda, "raphael");
+		Util::AddFunc(mommy, "mommy");
 	Util::FinishTable("addonsystem");
 }
 
