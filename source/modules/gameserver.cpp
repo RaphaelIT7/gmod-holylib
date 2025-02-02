@@ -1228,9 +1228,23 @@ static bool hook_CBaseClient_ShouldSendMessages(CBaseClient* cl)
 	// if the reliable message overflowed, drop the client
 	if ( cl->m_NetChannel && cl->m_NetChannel->IsOverflowed() )
 	{
-		cl->m_NetChannel->Reset();
-		cl->Disconnect( "%s overflowed reliable buffer\n", cl->m_Name);
-		return false;
+		bool bKick = true;
+		if (Lua::PushHook("HolyLib:OnChannelOverflow"))
+		{
+			Push_CBaseClient((CBaseClient*)cl);
+			if (g_Lua->CallFunctionProtected(2, 1, true))
+			{
+				bKick = !g_Lua->GetBool(-1);
+				g_Lua->Pop(1);
+			}
+		}
+
+		if (bKick)
+		{
+			cl->m_NetChannel->Reset();
+			cl->Disconnect( "%s overflowed reliable buffer", cl->m_Name);
+			return false;
+		}
 	}
 
 	if ( cl->m_NetChannel )
@@ -1271,7 +1285,6 @@ static void hook_CBaseServer_CheckTimeouts(CBaseServer* srv)
 	int i;
 
 #if !defined( _DEBUG )
-		
 	for (i=0 ; i< srv->m_Clients.Count() ; i++ )
 	{
 		IClient	*cl = srv->m_Clients[ i ];
