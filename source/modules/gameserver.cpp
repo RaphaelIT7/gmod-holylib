@@ -771,6 +771,20 @@ LUA_FUNCTION_STATIC(CBaseClient_ProcessStream)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(CBaseClient_SetMaxBufferSize)
+{
+	CBaseClient* pClient = Get_CBaseClient(1, true);
+	bool bReliable = LUA->GetBool(2);
+	int nBytes = LUA->CheckNumber(3);
+	bool bVoice = LUA->GetBool(4);
+	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
+	if (!pNetChannel)
+		LUA->ThrowError("Failed to get a valid net channel");
+
+	pNetChannel->SetMaxBufferSize(bReliable, nBytes, bVoice);
+	return 0;
+}
+
 // Purely debug function, has no real use.
 /*LUA_FUNCTION_STATIC(CBaseClient_GetRegisteredMessages)
 {
@@ -868,6 +882,7 @@ void Push_CBaseClientMeta()
 	Util::AddFunc(CBaseClient_Transmit, "Transmit");
 	Util::AddFunc(CBaseClient_ProcessStream, "ProcessStream");
 	//Util::AddFunc(CBaseClient_GetRegisteredMessages, "GetRegisteredMessages");
+	Util::AddFunc(CBaseClient_SetMaxBufferSize, "SetMaxBufferSize");
 }
 
 LUA_FUNCTION_STATIC(CGameClient__tostring)

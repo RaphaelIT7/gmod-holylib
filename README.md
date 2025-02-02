@@ -3359,6 +3359,21 @@ end)
 Processes all pending incoming net messages.  
 Returns `true` on success.
 
+#### CBaseClient:SetMaxBufferSize(bool reliable = false, number bytes, bool voice = false)
+Resizes the specified buffer to the given size in bytes.  
+
+> [!NOTE]
+> All data inside that stream is discarded, make sure everything was sent out.
+
+Example usage of this function.
+```lua
+concommand.Add("biggerBuffer", function(ply)
+	local client = gameserver.GetClient(ply:EntIndex()-1)
+    client:Transmit() -- Send everything out or else we lose data
+    client:SetMaxBufferSize(true, 524288) -- We resize the reliable stream
+end)
+```
+
 ### CGameClient
 This class inherits CBaseClient.
 
