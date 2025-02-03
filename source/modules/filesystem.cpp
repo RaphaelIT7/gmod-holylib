@@ -2283,6 +2283,7 @@ void CFileSystemModule::LuaInit(bool bServerInit)
 		Util::AddFunc(addonsystem_SetShouldMount, "SetShouldMount");
 		Util::AddFunc(fdafda, "raphael");
 		Util::AddFunc(mommy, "mommy");
+		Util::AddFunc(test, "test");
 	Util::FinishTable("addonsystem");
 }
 
