@@ -1311,8 +1311,7 @@ void New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	//const bool bIsReplay = pRecipientPlayer->IsReplay();
 
 	// m_pTransmitAlways must be set if HLTV client
-	Assert( bIsHLTV == ( pInfo->m_pTransmitAlways != NULL) ||
-		    bIsReplay == ( pInfo->m_pTransmitAlways != NULL) );
+	Assert(bIsHLTV == (pInfo->m_pTransmitAlways != NULL));
 #endif
 
 	bool bForceTransmit = sv_force_transmit_ents->GetBool();
