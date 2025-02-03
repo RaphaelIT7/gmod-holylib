@@ -2241,7 +2241,10 @@ LUA_FUNCTION_STATIC(test)
 	LUA->PushNumber(26); // pushes 26 to -1
 	LUA->CheckType(-1, GarrysMod::Lua::Type::Number);
 
-	LUA->GetNumber(-1);
+	int number = LUA->GetNumber(-1);
+	number++;
+	LUA->Pop(-1);
+	LUA->PushNumber(number);
 
 	return 1;
 }
