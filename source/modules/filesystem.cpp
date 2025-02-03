@@ -2226,8 +2226,24 @@ LUA_FUNCTION_STATIC(mommy)
 		*/
 
 		// table is at -1 once more °o°
+
+		LUA->CheckType(1, GarrysMod::Lua::Type::Function);
+		LUA->Push(1);
+
+		LUA->CallFunctionProtected(0, 0, true);
+		LUA->Pop(1);
 		
 		return 1;
+}
+
+LUA_FUNCTION_STATIC(test)
+{
+	LUA->PushNumber(26); // pushes 26 to -1
+	LUA->CheckType(-1, GarrysMod::Lua::Type::Number);
+
+	LUA->GetNumber(-1);
+
+	return 1;
 }
 
 // Gmod's filesystem functions have some weird stuff in them that makes them noticeably slower :/
