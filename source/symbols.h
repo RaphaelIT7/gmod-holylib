@@ -540,6 +540,12 @@ namespace Symbols
 	typedef void (*CBaseClient_OnRequestFullUpdate)(void* client);
 	extern const std::vector<Symbol> CBaseClient_OnRequestFullUpdateSym;
 
+	typedef void (*CGameClient_SpawnPlayer)(void* client);
+	extern const std::vector<Symbol> CGameClient_SpawnPlayerSym;
+
+	typedef void (*CBaseClient_SpawnPlayer)(void* client);
+	extern const std::vector<Symbol> CBaseClient_SpawnPlayerSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: cvar Symbols
 	//---------------------------------------------------------------------------------

@@ -109,6 +109,27 @@ const char* SVC_GameEvent::ToString(void) const
 	return s_text;
 }
 
+bool SVC_SetView::WriteToBuffer( bf_write &buffer )
+{
+	buffer.WriteUBitLong( GetType(), NETMSG_TYPE_BITS );
+	buffer.WriteUBitLong( m_nEntityIndex, MAX_EDICT_BITS );
+	return !buffer.IsOverflowed();
+}
+
+bool SVC_SetView::ReadFromBuffer( bf_read &buffer )
+{
+	VPROF( "SVC_SetView::ReadFromBuffer" );
+
+	m_nEntityIndex = buffer.ReadUBitLong( MAX_EDICT_BITS );
+	return !buffer.IsOverflowed();
+}
+
+const char *SVC_SetView::ToString(void) const
+{
+	Q_snprintf(s_text, sizeof(s_text), "%s: view entity %i", GetName(), m_nEntityIndex );
+	return s_text;
+}
+
 INetMessage *CNetChan::FindMessage(int type)
 {
 	int numtypes = m_NetMessages.Count();

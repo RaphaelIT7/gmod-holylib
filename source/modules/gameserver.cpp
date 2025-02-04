@@ -4,9 +4,11 @@
 #include "detours.h"
 #include "usermessages.h"
 #include "sv_client.h"
+#include "eiface.h"
 #include "tier0/etwprof.h"
 #include "sourcesdk/baseserver.h"
 #include "sourcesdk/net_chan.h"
+#include <framesnapshot.h>
 
 double		net_time;
 
@@ -1444,6 +1446,153 @@ static void hook_CBaseServer_CheckTimeouts(CBaseServer* srv)
 	}
 }
 
+/*
+ * Moving a entire CGameClient into another CGameClient to hopefully not make the engine too angry.
+ * This is required to preserve the logic of m_nEntityIndex = m_nClientSlot + 1
+ * We don't copy everything, like the baseline and such.
+ * 
+ * Current State: The engine utterly crashes when it calls InitializeEntityDLLFields on the target's edict.
+ */
+static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* target)
+{
+	target->Inactivate();
+	target->Clear();
+
+	target->Connect( origin->m_Name, origin->m_UserID, origin->m_NetChannel, origin->m_bFakePlayer, origin->m_clientChallenge );
+
+	/*
+	 * Basic CBaseClient::Connect setup
+	 */
+
+	//target->m_ConVars = origin->m_ConVars;
+	//target->m_bInitialConVarsSet = origin->m_bInitialConVarsSet;
+	//target->m_UserID = origin->m_UserID;
+	//target->SetName( origin->m_Name );
+	//target->m_bFakePlayer = origin->m_bFakePlayer;
+	//target->m_NetChannel = origin->m_NetChannel;
+	//target->m_clientChallenge = origin->m_clientChallenge;
+	target->m_nSignonState = origin->m_nSignonState;
+	//target->edict = Util::engineserver->PEntityOfEntIndex( target->m_nEntityIndex );
+	//target->m_PackInfo.m_pClientEnt = target->edict;
+	//target->m_PackInfo.m_nPVSSize = sizeof( target->m_PackInfo.m_PVS );
+
+	/*
+	 * Copy over other things
+	 */
+
+	//for (int i = 0; i < MAX_CUSTOM_FILES; ++i)
+	//	target->m_nCustomFiles[i] = origin->m_nCustomFiles[i];
+
+	//target->m_SteamID = origin->m_SteamID;
+	//target->m_nFriendsID = origin->m_nFriendsID;
+	//target->m_nFilesDownloaded = origin->m_nFilesDownloaded;
+	//target->m_nSignonTick = origin->m_nSignonTick;
+	//target->m_nStringTableAckTick = origin->m_nStringTableAckTick;
+	//target->m_nDeltaTick = origin->m_nDeltaTick;
+	//target->m_nSendtableCRC = origin->m_nSendtableCRC;
+	//target->m_fNextMessageTime = origin->m_fNextMessageTime;
+	///target->m_fSnapshotInterval = origin->m_fSnapshotInterval;
+	//target->m_nForceWaitForTick = origin->m_nForceWaitForTick;
+	//target->m_bReportFakeClient = origin->m_bReportFakeClient;
+	//target->m_bReceivedPacket = origin->m_bReceivedPacket;
+	//target->m_bFullyAuthenticated = origin->m_bFullyAuthenticated;
+
+	//memcpy(target->m_FriendsName, origin->m_FriendsName, sizeof(origin->m_FriendsName));
+	//memcpy(target->m_GUID, origin->m_GUID, sizeof(origin->m_GUID));
+
+	//target->m_fTimeLastNameChange = origin->m_fTimeLastNameChange;
+	//target->m_bPlayerNameLocked = origin->m_bPlayerNameLocked;
+	//memcpy(target->m_szPendingNameChange, origin->m_szPendingNameChange, sizeof(origin->m_szPendingNameChange));
+
+	/*
+	 * Nuke the origin client
+	 */
+
+	origin->m_NetChannel = NULL; // Nuke the net channel or else it might touch it.
+	//origin->m_ConVars = NULL; // Same here
+	origin->Inactivate();
+	origin->Clear();
+
+	target->FreeBaselines(); // Force a full update, as we don't copy the baseline.
+}
+
+void InitializeEntityDLLFields( edict_t *pEdict )
+{
+	// clear all the game variables
+	size_t sz = offsetof( edict_t, m_pUnk ) + sizeof( void* );
+	memset( ((byte*)pEdict) + sz, 0, sizeof(edict_t) - sz );
+}
+
+#define MAX_PLAYERS 128
+static CFrameSnapshotManager* framesnapshotmanager = NULL;
+static Detouring::Hook detour_CGameClient_SpawnPlayer;
+static Symbols::CBaseClient_SpawnPlayer func_CBaseClient_SpawnPlayer;
+void hook_CGameClient_SpawnPlayer(CGameClient* client)
+{
+	if (client->m_nClientSlot < MAX_PLAYERS)
+	{
+		detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(client);
+		return;
+	}
+
+	int nextFreeEntity = 255;
+	int count = Util::server->GetClientCount();
+	if (count > MAX_PLAYERS)
+		count = MAX_PLAYERS;
+
+	for (int iClientIndex=0; iClientIndex<count; ++iClientIndex)
+	{
+		CBaseClient* pClient = (CBaseClient*)Util::server->GetClient(iClientIndex);
+
+		if (pClient->m_nSignonState != SIGNONSTATE_NONE)
+			continue;
+
+		if (pClient->m_nEntityIndex < nextFreeEntity)
+			nextFreeEntity = pClient->m_nEntityIndex;
+	}
+
+	if (nextFreeEntity > MAX_PLAYERS)
+	{
+		Warning("holylib: Failed to find a valid player slot to use! Stopping client spawn! (%i, %i, %i)\n", client->m_nClientSlot, client->GetUserID(), nextFreeEntity);
+		return;
+	}
+	
+	if (g_pGameServerModule.InDebug())
+		Msg("holylib: Reassigned client to from slot %i to %i\n", client->m_nClientSlot, nextFreeEntity - 1);
+
+	CGameClient* pClient = (CGameClient*)Util::GetClientByIndex(nextFreeEntity - 1);
+	if (pClient->m_nSignonState != SIGNONSTATE_NONE)
+	{
+		// It really didn't like what we had planned.
+		Warning("holylib: Client collision! fk. Client will be refused to spawn! (%i - %s, %i - %s)\n", pClient->m_nClientSlot, pClient->GetClientName(), client->m_nClientSlot, client->GetClientName());
+		return;
+	}
+
+	MoveCGameClientIntoCGameClient(client, pClient);
+
+	detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(pClient);
+
+	// CGameClient::SpawnPlayer logic.
+	/*{
+		// set up the edict
+		Util::servergameents->FreeContainingEntity( pClient->edict );
+		InitializeEntityDLLFields( pClient->edict );
+
+		// restore default client entity and turn off replay mdoe
+		pClient->m_nEntityIndex = pClient->m_nClientSlot+1;
+		pClient->m_bIsInReplayMode = false;
+
+		// set view entity
+		SVC_SetView setView( pClient->m_nEntityIndex );
+		pClient->SendNetMsg( setView );
+
+		func_CBaseClient_SpawnPlayer(pClient);
+
+		// notify that the player is spawning
+		Util::servergameclients->ClientSpawned( pClient->edict );
+	}*/
+}
+
 static Symbols::MD5_MapFile func_MD5_MapFile;
 void CGameServerModule::InitDetour(bool bPreServer)
 {
@@ -1475,8 +1624,20 @@ void CGameServerModule::InitDetour(bool bPreServer)
 		(void*)hook_CBaseServer_CheckTimeouts, m_pID
 	);
 
+	Detour::Create(
+		&detour_CGameClient_SpawnPlayer, "CGameClient::SpawnPlayer",
+		engine_loader.GetModule(), Symbols::CGameClient_SpawnPlayerSym,
+		(void*)hook_CGameClient_SpawnPlayer, m_pID
+	);
+
 	func_CBaseClient_OnRequestFullUpdate = (Symbols::CBaseClient_OnRequestFullUpdate)Detour::GetFunction(engine_loader.GetModule(), Symbols::CBaseClient_OnRequestFullUpdateSym);
 	Detour::CheckFunction((void*)func_CBaseClient_OnRequestFullUpdate, "CBaseClient::OnRequestFullUpdate");
+
+	func_CBaseClient_SpawnPlayer = (Symbols::CBaseClient_SpawnPlayer)Detour::GetFunction(engine_loader.GetModule(), Symbols::CBaseClient_SpawnPlayerSym);
+	Detour::CheckFunction((void*)func_CBaseClient_SpawnPlayer, "CBaseClient::SpawnPlayer");
+
+	framesnapshotmanager = Detour::ResolveSymbol<CFrameSnapshotManager>(engine_loader, Symbols::g_FrameSnapshotManagerSym);
+	Detour::CheckValue("get class", "framesnapshotmanager", framesnapshotmanager != NULL);
 
 	SourceSDK::FactoryLoader server_loader("server");
 	if (!g_pModuleManager.IsMarkedAsBinaryModule()) // Loaded by require? Then we skip this.
