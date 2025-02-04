@@ -1202,10 +1202,15 @@ LUA_FUNCTION_STATIC(gameserver_BroadcastMessage)
 }
 
 extern CGlobalVars* gpGlobals;
+static ConVar* sv_stressbots;
 void CGameServerModule::LuaInit(bool bServerInit)
 {
 	if (bServerInit)
 		return;
+
+	sv_stressbots = g_pCVar->FindVar("sv_stressbots");
+	if (!sv_stressbots)
+		Warning("holylib: Failed to find sv_stressbots convar!\n");
 
 	CBaseClient_TypeID = g_Lua->CreateMetaTable("CGameClient");
 		Push_CBaseClientMeta();
@@ -1375,6 +1380,9 @@ static bool hook_CBaseClient_ShouldSendMessages(CBaseClient* cl)
 #endif
 		bSendMessage = false;
 	}
+
+	if (cl->IsFakeClient() && sv_stressbots && sv_stressbots->GetBool())
+		bSendMessage = true;
 
 	return bSendMessage;
 }
