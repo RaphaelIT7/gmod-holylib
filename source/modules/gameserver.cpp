@@ -1483,26 +1483,26 @@ static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* tar
 	//for (int i = 0; i < MAX_CUSTOM_FILES; ++i)
 	//	target->m_nCustomFiles[i] = origin->m_nCustomFiles[i];
 
-	//target->m_SteamID = origin->m_SteamID;
-	//target->m_nFriendsID = origin->m_nFriendsID;
-	//target->m_nFilesDownloaded = origin->m_nFilesDownloaded;
-	//target->m_nSignonTick = origin->m_nSignonTick;
-	//target->m_nStringTableAckTick = origin->m_nStringTableAckTick;
-	//target->m_nDeltaTick = origin->m_nDeltaTick;
-	//target->m_nSendtableCRC = origin->m_nSendtableCRC;
-	//target->m_fNextMessageTime = origin->m_fNextMessageTime;
-	///target->m_fSnapshotInterval = origin->m_fSnapshotInterval;
-	//target->m_nForceWaitForTick = origin->m_nForceWaitForTick;
-	//target->m_bReportFakeClient = origin->m_bReportFakeClient;
-	//target->m_bReceivedPacket = origin->m_bReceivedPacket;
-	//target->m_bFullyAuthenticated = origin->m_bFullyAuthenticated;
+	target->m_SteamID = origin->m_SteamID;
+	target->m_nFriendsID = origin->m_nFriendsID;
+	target->m_nFilesDownloaded = origin->m_nFilesDownloaded;
+	target->m_nSignonTick = origin->m_nSignonTick;
+	target->m_nStringTableAckTick = origin->m_nStringTableAckTick;
+	target->m_nDeltaTick = origin->m_nDeltaTick;
+	target->m_nSendtableCRC = origin->m_nSendtableCRC;
+	target->m_fNextMessageTime = origin->m_fNextMessageTime;
+	target->m_fSnapshotInterval = origin->m_fSnapshotInterval;
+	target->m_nForceWaitForTick = origin->m_nForceWaitForTick;
+	target->m_bReportFakeClient = origin->m_bReportFakeClient;
+	target->m_bReceivedPacket = origin->m_bReceivedPacket;
+	target->m_bFullyAuthenticated = origin->m_bFullyAuthenticated;
 
-	//memcpy(target->m_FriendsName, origin->m_FriendsName, sizeof(origin->m_FriendsName));
-	//memcpy(target->m_GUID, origin->m_GUID, sizeof(origin->m_GUID));
+	memcpy(target->m_FriendsName, origin->m_FriendsName, sizeof(origin->m_FriendsName));
+	memcpy(target->m_GUID, origin->m_GUID, sizeof(origin->m_GUID));
 
-	//target->m_fTimeLastNameChange = origin->m_fTimeLastNameChange;
-	//target->m_bPlayerNameLocked = origin->m_bPlayerNameLocked;
-	//memcpy(target->m_szPendingNameChange, origin->m_szPendingNameChange, sizeof(origin->m_szPendingNameChange));
+	target->m_fTimeLastNameChange = origin->m_fTimeLastNameChange;
+	target->m_bPlayerNameLocked = origin->m_bPlayerNameLocked;
+	memcpy(target->m_szPendingNameChange, origin->m_szPendingNameChange, sizeof(origin->m_szPendingNameChange));
 
 	/*
 	 * Nuke the origin client
