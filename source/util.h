@@ -193,7 +193,6 @@ struct LuaUserData {
 			iReference = -1;
 		}
 
-		Warning("Called delete %i\n", iTableReference);
 		if (iTableReference != -1)
 		{
 			g_Lua->ReferenceFree(iTableReference);
@@ -205,6 +204,11 @@ struct LuaUserData {
 
 	inline void Init(GarrysMod::Lua::ILuaInterface* LUA)
 	{
+		pData = NULL;
+		iReference = -1;
+		iTableReference = -1;
+		pAdditionalData = NULL;
+
 		if (iTableReference == -1)
 		{
 			LUA->CreateTable();
@@ -256,7 +260,7 @@ LuaUserData* Get_##className##_Data(int iStackPos, bool bError) \
 	} \
 \
 	LuaUserData* pVar = g_Lua->GetUserType<LuaUserData>(iStackPos, luaType); \
-	if (!pVar && bError) \
+	if ((!pVar || !pVar->GetData()) && bError) \
 		g_Lua->ThrowError(triedNull_##className.c_str()); \
 \
 	return pVar; \
@@ -317,8 +321,8 @@ void Push_##className(className* var) \
 \
 	LuaUserData* userData = new LuaUserData; \
 	userData->pData = var; \
-	g_Lua->PushUserType(userData, luaType); \
 	userData->Init(g_Lua); \
+	g_Lua->PushUserType(userData, luaType); \
 }
 
 // This one is special, the GC WONT free the LuaClass meaning this "could" (and did in the past) cause a memory/reference leak

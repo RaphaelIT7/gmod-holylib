@@ -840,12 +840,13 @@ LUA_FUNCTION_STATIC(bf_write_WriteString)
 	return 0;
 }
 
+static constexpr int MAX_BUFFER_SIZE = 1 << 18;
 LUA_FUNCTION_STATIC(bitbuf_CopyReadBuffer)
 {
 	bf_read* pBf = Get_bf_read(1, true);
 
 	int iSize = pBf->GetNumBytesRead() + pBf->GetNumBytesLeft();
-	unsigned char* pData = new unsigned char[iSize + 1];
+	unsigned char* pData = new unsigned char[MIN(iSize + 1, MAX_BUFFER_SIZE)];
 	memcpy(pData, pBf->GetBasePointer(), iSize);
 
 	bf_read* pNewBf = new bf_read;
@@ -861,7 +862,7 @@ LUA_FUNCTION_STATIC(bitbuf_CreateReadBuffer)
 	const char* pData = LUA->CheckString(1);
 	int iLength = LUA->ObjLen(1);
 
-	unsigned char* cData = new unsigned char[iLength + 1];
+	unsigned char* cData = new unsigned char[MIN(iLength + 1, MAX_BUFFER_SIZE)];
 	memcpy(cData, pData, iLength);
 
 	bf_read* pNewBf = new bf_read;
@@ -877,7 +878,7 @@ LUA_FUNCTION_STATIC(bitbuf_CreateWriteBuffer)
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Number))
 	{
 		int iSize = (int)LUA->CheckNumber(1);
-		unsigned char* cData = (unsigned char*)malloc(iSize);
+		unsigned char* cData = new unsigned char[MIN(iSize + 1, MAX_BUFFER_SIZE)];
 
 		bf_write* pNewBf = new bf_write;
 		pNewBf->StartWriting(cData, iSize);
@@ -887,7 +888,7 @@ LUA_FUNCTION_STATIC(bitbuf_CreateWriteBuffer)
 		const char* pData = LUA->CheckString(1);
 		int iLength = LUA->ObjLen(1);
 
-		unsigned char* cData = new unsigned char[iLength + 1];
+		unsigned char* cData = new unsigned char[MIN(iLength + 1, MAX_BUFFER_SIZE)];
 		memcpy(cData, pData, iLength);
 
 		bf_write* pNewBf = new bf_write;
