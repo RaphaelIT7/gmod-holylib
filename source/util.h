@@ -193,6 +193,7 @@ struct LuaUserData {
 			iReference = -1;
 		}
 
+		Warning("Called delete %i\n", iTableReference);
 		if (iTableReference != -1)
 		{
 			g_Lua->ReferenceFree(iTableReference);
@@ -204,17 +205,20 @@ struct LuaUserData {
 
 	inline void Init(GarrysMod::Lua::ILuaInterface* LUA)
 	{
-		if (iReference != -1)
-			Warning("holylib: something went wrong when pushing userdata! (Reference leak!)\n");
-
-		LUA->Push(-1); // When Init is called this object was already pushed onto the stack and sits at -1!
-		iReference = LUA->ReferenceCreate();
-
 		if (iTableReference == -1)
 		{
 			LUA->CreateTable();
 			iTableReference = LUA->ReferenceCreate();
 		}
+	}
+
+	inline void CreateReference()
+	{
+		if (iReference != -1)
+			Warning("holylib: something went wrong when pushing userdata! (Reference leak!)\n");
+
+		g_Lua->Push(-1); // When Init is called this object was already pushed onto the stack and sits at -1!
+		iReference = g_Lua->ReferenceCreate();
 	}
 
 	inline void* GetData()
@@ -225,10 +229,7 @@ struct LuaUserData {
 	inline void Push()
 	{
 		if (iReference == -1)
-		{
-			Warning("holylib: we have no reference to push!\n");
 			return;
-		}
 
 		Util::ReferencePush(g_Lua, iReference);
 	}
@@ -340,6 +341,7 @@ void Push_##className(className* var) \
 		userData->pData = var; \
 		g_Lua->PushUserType(userData, luaType); \
 		userData->Init(g_Lua); \
+		userData->CreateReference(); \
 		g_pPushed##className[var] = userData; \
 	} \
 } \
@@ -381,6 +383,7 @@ LUA_FUNCTION_STATIC(className ## __index) \
 LUA_FUNCTION_STATIC(className ## __gc) \
 { \
 	LuaUserData* pData = Get_##className##_Data(1, false); \
+	Warning("Called __gc %p\n", pData); \
 	if (pData) \
 	{ \
 		func \
