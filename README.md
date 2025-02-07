@@ -2101,11 +2101,17 @@ Sets the new player slot.
 #### VoiceData:SetProximity(bool bProximity)
 Sets if the VoiceData is in proximity.  
 
+#### VoiceData VoiceData:CreateCopy()
+Creates a exact copy of the voice data.  
+
 ### Hooks
 
 #### bool HolyLib:PreProcessVoiceChat(Player ply, VoiceData data)
 Called before the voicedata is processed.  
 Return `true` to stop the engine from processing it.  
+
+> [!NOTE]
+> VoiceData becomes invalid after the hook finished it's call, use `VoiceData:CreateCopy` if you want to store them!
 
 Example to record and play back voices.  
 ```lua
@@ -2118,7 +2124,7 @@ concommand.Add("record_me", function()
 			voiceTbl[ply] = {}
 		end
 
-		voiceTbl[ply][engine.TickCount() - voiceStartTick] = voiceData 
+		voiceTbl[ply][engine.TickCount() - voiceStartTick] = voiceData:CreateCopy()
 		-- We save the tick delays since the voice data isn't sent every frame and has random delays.
 	end)
 end)

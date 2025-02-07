@@ -46,6 +46,14 @@ struct VoiceData
 		memcpy(pData, pNewData, iLength);
 	}
 
+	inline VoiceData* CreateCopy()
+	{
+		VoiceData* data = new VoiceData;
+		data->bProximity = bProximity;
+		data->iPlayerSlot = iPlayerSlot;
+		data->SetData(pData, iLength);
+	}
+
 	int iPlayerSlot = 0; // What if it's an invalid one ;D (It doesn't care.......)
 	char* pData = NULL;
 	int iLength = 0;
@@ -198,6 +206,14 @@ LUA_FUNCTION_STATIC(VoiceData_SetProximity)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(VoiceData_CreateCopy)
+{
+	VoiceData* pData = Get_VoiceData(1, true);
+
+	Push_VoiceData(pData->CreateCopy());
+	return 1;
+}
+
 static Detouring::Hook detour_SV_BroadcastVoiceData;
 static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data, int64 xuid)
 {
@@ -225,8 +241,12 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 			bool bHandled = g_Lua->GetBool(-1);
 			g_Lua->Pop(1);
 			if (bHandled)
+			{
+				Delete_VoiceData(pVoiceData);
 				return;
+			}
 		}
+		Delete_VoiceData(pVoiceData);
 	}
 
 	detour_SV_BroadcastVoiceData.GetTrampoline<Symbols::SV_BroadcastVoiceData>()(pClient, nBytes, data, xuid);
@@ -406,6 +426,7 @@ void CVoiceChatModule::LuaInit(bool bServerInit)
 		Util::AddFunc(VoiceData_GetUncompressedData, "GetUncompressedData");
 		Util::AddFunc(VoiceData_GetProximity, "GetProximity");
 		Util::AddFunc(VoiceData_SetProximity, "SetProximity");
+		Util::AddFunc(VoiceData_CreateCopy, "CreateCopy");
 	g_Lua->Pop(1);
 
 	Util::StartTable();

@@ -53,6 +53,13 @@ void EntityList::CreateReference(CBaseEntity* pEntity)
 	if (!m_pLua)
 		Error("holylib: missing pLua!\n");
 
+	auto it = m_pEntReferences.find(pEntity);
+	if (it != m_pEntReferences.end())
+	{
+		Warning("holylib: fucking shit is leaking references! Report this!\n");
+		m_pLua->ReferenceFree(m_pEntReferences[pEntity]);
+	}
+
 	Util::Push_Entity(pEntity);
 	m_pEntReferences[pEntity] = m_pLua->ReferenceCreate();
 }
