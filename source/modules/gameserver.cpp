@@ -763,7 +763,7 @@ LUA_FUNCTION_STATIC(CBaseClient_Transmit)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(CBaseClient_HasQueuedPackets)
+/*LUA_FUNCTION_STATIC(CBaseClient_HasQueuedPackets)
 {
 	CBaseClient* pClient = Get_CBaseClient(1, true);
 	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
@@ -772,7 +772,7 @@ LUA_FUNCTION_STATIC(CBaseClient_HasQueuedPackets)
 
 	LUA->PushBool(pNetChannel->HasQueuedPackets());
 	return 1;
-}
+}*/
 
 LUA_FUNCTION_STATIC(CBaseClient_ProcessStream)
 {
@@ -898,6 +898,7 @@ void Push_CBaseClientMeta()
 	Util::AddFunc(CBaseClient_ProcessStream, "ProcessStream");
 	//Util::AddFunc(CBaseClient_GetRegisteredMessages, "GetRegisteredMessages");
 	Util::AddFunc(CBaseClient_SetMaxBufferSize, "SetMaxBufferSize");
+	//Util::AddFunc(CBaseClient_HasQueuedPackets, "HasQueuedPackets");
 }
 
 LUA_FUNCTION_STATIC(CGameClient__tostring)

@@ -3359,7 +3359,7 @@ concommand.Add("nukechannel", function(ply)
 end)
 ```
 
-#### number CBaseClient:HasQueuedPackets()
+#### (REMOVED) number CBaseClient:HasQueuedPackets()
 
 #### bool CBaseClient:ProcessStream()
 Processes all pending incoming net messages.  

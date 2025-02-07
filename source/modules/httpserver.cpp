@@ -656,9 +656,9 @@ LUA_FUNCTION_STATIC(httpserver_GetAll)
 {
 	LUA->PreCreateTable(g_pPushedHttpServer.size(), 0);
 		int idx = 0;
-		for (auto& server : g_pPushedHttpServer)
+		for (auto& [_, value] : g_pPushedHttpServer)
 		{
-			Push_HttpServer(new HttpServer);
+			value->Push();
 			Util::RawSetI(LUA, -2, ++idx);
 		}
 

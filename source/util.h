@@ -202,9 +202,35 @@ struct LuaUserData {
 		pAdditionalData = NULL;
 	}
 
+	inline void Init(GarrysMod::Lua::ILuaInterface* LUA)
+	{
+		if (iReference != -1)
+			Warning("holylib: something went wrong when pushing userdata! (Reference leak!)\n");
+
+		LUA->Push(-1); // When Init is called this object was already pushed onto the stack and sits at -1!
+		iReference = LUA->ReferenceCreate();
+
+		if (iTableReference == -1)
+		{
+			LUA->CreateTable();
+			iTableReference = LUA->ReferenceCreate();
+		}
+	}
+
 	inline void* GetData()
 	{
 		return pData;
+	}
+
+	inline void Push()
+	{
+		if (iReference == -1)
+		{
+			Warning("holylib: we have no reference to push!\n");
+			return;
+		}
+
+		Util::ReferencePush(g_Lua, iReference);
 	}
 
 	void* pData = NULL;
@@ -291,6 +317,7 @@ void Push_##className(className* var) \
 	LuaUserData* userData = new LuaUserData; \
 	userData->pData = var; \
 	g_Lua->PushUserType(userData, luaType); \
+	userData->Init(g_Lua); \
 }
 
 // This one is special, the GC WONT free the LuaClass meaning this "could" (and did in the past) cause a memory/reference leak
@@ -309,18 +336,15 @@ void Push_##className(className* var) \
 	{ \
 		g_Lua->ReferencePush(it->second->iReference); \
 	} else { \
-		g_Lua->PushUserType(var, luaType); \
 		LuaUserData* userData = new LuaUserData; \
 		userData->pData = var; \
-		userData->iReference = g_Lua->ReferenceCreate(); \
-		g_Lua->CreateTable(); \
-		userData->iTableReference = g_Lua->ReferenceCreate(); \
 		g_Lua->PushUserType(userData, luaType); \
+		userData->Init(g_Lua); \
 		g_pPushed##className[var] = userData; \
 	} \
 } \
 \
-static void Delete_##className(className* var) \
+static void [[maybe_unused]] Delete_##className(className* var) \
 { \
 	auto it = g_pPushed##className.find(var); \
 	if (it != g_pPushed##className.end()) \
@@ -365,8 +389,6 @@ LUA_FUNCTION_STATIC(className ## __gc) \
  \
 	return 0; \
 } \
-
-// Helper Things
 
 #define Default__newindex(className) \
 LUA_FUNCTION_STATIC(className ## __newindex) \
