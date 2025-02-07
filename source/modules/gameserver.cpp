@@ -63,8 +63,8 @@ Default__newindex(CBaseClient);
 
 LUA_FUNCTION_STATIC(CBaseClient_GetTable)
 {
-	CBaseClient* pClient = Get_CBaseClient(1, true);
-	LuaUserData* data = g_pPushedCBaseClient[pClient];
+	LuaUserData* data = Get_CBaseClient_Data(1, true);
+	CBaseClient* pClient = (CBaseClient*)data->pData;
 	if (data->pAdditionalData != pClient->GetUserID())
 	{
 		data->pAdditionalData = pClient->GetUserID();

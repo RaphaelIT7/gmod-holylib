@@ -315,7 +315,7 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 }
 
 static int IGameEvent_TypeID = -1;
-PushReferenced_LuaClass(IGameEvent, IGameEvent_TypeID)
+Push_LuaClass(IGameEvent, IGameEvent_TypeID)
 Get_LuaClass(IGameEvent, IGameEvent_TypeID, "IGameEvent")
 
 LUA_FUNCTION_STATIC(IGameEvent__tostring)
@@ -341,10 +341,7 @@ LUA_FUNCTION_STATIC(IGameEvent__gc)
 {
 	IGameEvent* pEvent = Get_IGameEvent(1, false);
 	if (pEvent)
-	{
-		Delete_IGameEvent(pEvent);
 		pManager->FreeEvent(pEvent);
-	}
 
 	return 0;
 }

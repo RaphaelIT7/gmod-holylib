@@ -20,7 +20,7 @@ CEntListModule g_pEntListModule;
 IModule* pEntListModule = &g_pEntListModule;
 
 static int EntityList_TypeID = -1;
-PushReferenced_LuaClass(EntityList, EntityList_TypeID)
+Push_LuaClass(EntityList, EntityList_TypeID)
 Get_LuaClass(EntityList, EntityList_TypeID, "EntityList")
 
 static std::vector<EntityList*> pEntityLists;
@@ -104,10 +104,7 @@ LUA_FUNCTION_STATIC(EntityList__gc)
 {
 	EntityList* pData = Get_EntityList(1, false);
 	if (pData && pData != &g_pGlobalEntityList)
-	{
-		Delete_EntityList(pData);
 		delete pData;
-	}
 
 	return 0;
 }

@@ -63,7 +63,7 @@ struct VoiceData
 };
 
 static int VoiceData_TypeID = -1;
-PushReferenced_LuaClass(VoiceData, VoiceData_TypeID) // Why do we use PushReferenced? Because then we can save data on it.
+Push_LuaClass(VoiceData, VoiceData_TypeID)
 Get_LuaClass(VoiceData, VoiceData_TypeID, "VoiceData")
 
 LUA_FUNCTION_STATIC(VoiceData__tostring)
@@ -90,7 +90,6 @@ LUA_FUNCTION_STATIC(VoiceData__gc)
 	VoiceData* pData = Get_VoiceData(1, false);
 	if (pData)
 	{
-		Delete_VoiceData(pData);
 		delete pData;
 	}
 
@@ -244,11 +243,9 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 			g_Lua->Pop(1);
 			if (bHandled)
 			{
-				Delete_VoiceData(pVoiceData);
 				return;
 			}
 		}
-		Delete_VoiceData(pVoiceData);
 	}
 
 	detour_SV_BroadcastVoiceData.GetTrampoline<Symbols::SV_BroadcastVoiceData>()(pClient, nBytes, data, xuid);

@@ -20,11 +20,11 @@ static Push_LuaClass(QAngle, GarrysMod::Lua::Type::Angle)
 static Push_LuaClass(Vector, GarrysMod::Lua::Type::Vector)
 
 static int bf_read_TypeID = -1;
-PushReferenced_LuaClass(bf_read, bf_read_TypeID)
+Push_LuaClass(bf_read, bf_read_TypeID)
 Get_LuaClass(bf_read, bf_read_TypeID, "bf_read")
 
 static int bf_write_TypeID = -1;
-PushReferenced_LuaClass(bf_write, bf_write_TypeID)
+Push_LuaClass(bf_write, bf_write_TypeID)
 Get_LuaClass(bf_write, bf_write_TypeID, "bf_write")
 
 LUA_FUNCTION_STATIC(bf_read__tostring)
@@ -51,7 +51,6 @@ LUA_FUNCTION_STATIC(bf_read__gc)
 	bf_read* bf = Get_bf_read(1, false);
 	if (bf)
 	{
-		Delete_bf_read(bf);
 		delete[] bf->GetBasePointer();
 		delete bf;
 	}
@@ -506,7 +505,6 @@ LUA_FUNCTION_STATIC(bf_write__gc)
 	bf_write* bf = Get_bf_write(1, false);
 	if (bf)
 	{
-		Delete_bf_write(bf);
 		delete[] bf->GetBasePointer();
 		delete bf;
 	}
