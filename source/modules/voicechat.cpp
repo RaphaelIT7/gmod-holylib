@@ -84,17 +84,11 @@ LUA_FUNCTION_STATIC(VoiceData__tostring)
 Default__index(VoiceData);
 Default__newindex(VoiceData);
 Default__GetTable(VoiceData);
-
-LUA_FUNCTION_STATIC(VoiceData__gc)
-{
-	VoiceData* pData = Get_VoiceData(1, false);
-	if (pData)
-	{
-		delete pData;
-	}
-
-	return 0;
-}
+Default__gc(VoiceData,
+	VoiceData* pVoiceData = (VoiceData*)pData->GetData();
+	if (pVoiceData)
+		delete pVoiceData;
+)
 
 LUA_FUNCTION_STATIC(VoiceData_IsValid)
 {

@@ -771,13 +771,14 @@ LUA_FUNCTION_STATIC(VProfCounter__tostring)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(VProfCounter__index)
-{
-	if (!LUA->FindOnObjectsMetaTable(1, 2))
-		LUA->PushNil();
-
-	return 1;
-}
+Default__index(VProfCounter);
+Default__newindex(VProfCounter);
+Default__GetTable(VProfCounter);
+Default__gc(VProfCounter,
+	VProfCounter* pCounter = (VProfCounter*)pData->GetData();
+	if (pCounter)
+		delete pCounter;
+)
 
 LUA_FUNCTION_STATIC(VProfCounter_GetName)
 {
@@ -842,13 +843,14 @@ LUA_FUNCTION_STATIC(VProfNode__tostring)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(VProfNode__index)
-{
-	if (!LUA->FindOnObjectsMetaTable(1, 2))
-		LUA->PushNil();
-
-	return 1;
-}
+Default__index(CVProfNode);
+Default__newindex(CVProfNode);
+Default__GetTable(CVProfNode);
+Default__gc(CVProfNode,
+	CVProfNode* pNode = (CVProfNode*)pData->GetData();
+	if (pNode)
+		delete pNode;
+)
 
 LUA_FUNCTION_STATIC(VProfNode_GetName)
 {
@@ -1328,6 +1330,9 @@ void CVProfModule::LuaInit(bool bServerInit)
 	VProfCounter_TypeID = g_Lua->CreateMetaTable("VProfCounter");
 		Util::AddFunc(VProfCounter__tostring, "__tostring");
 		Util::AddFunc(VProfCounter__index, "__index");
+		Util::AddFunc(VProfCounter__newindex, "__newindex");
+		Util::AddFunc(VProfCounter__gc, "__gc");
+		Util::AddFunc(VProfCounter_GetTable, "GetTable");
 		Util::AddFunc(VProfCounter_Set, "Set");
 		Util::AddFunc(VProfCounter_Get, "Get");
 		Util::AddFunc(VProfCounter_Increment, "Increment");
@@ -1337,7 +1342,10 @@ void CVProfModule::LuaInit(bool bServerInit)
 
 	VProfNode_TypeID = g_Lua->CreateMetaTable("VProfNode");
 		Util::AddFunc(VProfNode__tostring, "__tostring");
-		Util::AddFunc(VProfNode__index, "__index");
+		Util::AddFunc(CVProfNode__index, "__index");
+		Util::AddFunc(CVProfNode__newindex, "__newindex");
+		Util::AddFunc(CVProfNode__gc, "__gc");
+		Util::AddFunc(CVProfNode_GetTable, "GetTable");
 		Util::AddFunc(VProfNode_GetName, "GetName");
 		Util::AddFunc(VProfNode_GetBudgetGroupID, "GetBudgetGroupID");
 		Util::AddFunc(VProfNode_GetCurTime, "GetCurTime");

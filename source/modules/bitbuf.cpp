@@ -45,18 +45,11 @@ LUA_FUNCTION_STATIC(bf_read__tostring)
 Default__index(bf_read);
 Default__newindex(bf_read);
 Default__GetTable(bf_read);
-
-LUA_FUNCTION_STATIC(bf_read__gc)
-{
-	bf_read* bf = Get_bf_read(1, false);
+Default__gc(bf_read, 
+	bf_read* bf = (bf_read*)pData->GetData();
 	if (bf)
-	{
 		delete[] bf->GetBasePointer();
-		delete bf;
-	}
-
-	return 0;
-}
+)
 
 LUA_FUNCTION_STATIC(bf_read_IsValid)
 {
@@ -499,18 +492,11 @@ LUA_FUNCTION_STATIC(bf_write__tostring)
 Default__index(bf_write);
 Default__newindex(bf_write);
 Default__GetTable(bf_write);
-
-LUA_FUNCTION_STATIC(bf_write__gc)
-{
-	bf_write* bf = Get_bf_write(1, false);
+Default__gc(bf_write, 
+	bf_write* bf = (bf_write*)pData->GetData();
 	if (bf)
-	{
 		delete[] bf->GetBasePointer();
-		delete bf;
-	}
-
-	return 0;
-}
+)
 
 LUA_FUNCTION_STATIC(bf_write_IsValid)
 {

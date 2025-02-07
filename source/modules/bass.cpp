@@ -41,20 +41,10 @@ LUA_FUNCTION_STATIC(IGModAudioChannel__tostring)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(IGModAudioChannel__gc)
-{
-	// ToDo
-
-	return 0;
-}
-
-LUA_FUNCTION_STATIC(IGModAudioChannel__index)
-{
-	if (!g_Lua->FindOnObjectsMetaTable(1, 2))
-		LUA->PushNil();
-
-	return 1;
-}
+Default__index(IGModAudioChannel);
+Default__newindex(IGModAudioChannel);
+Default__GetTable(IGModAudioChannel);
+Default__gc(IGModAudioChannel, )
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_Destroy)
 {
@@ -428,6 +418,8 @@ void CBassModule::LuaInit(bool bServerInit)
 		Util::AddFunc(IGModAudioChannel__tostring, "__tostring");
 		Util::AddFunc(IGModAudioChannel__gc, "__gc");
 		Util::AddFunc(IGModAudioChannel__index, "__index");
+		Util::AddFunc(IGModAudioChannel__newindex, "__newindex");
+		Util::AddFunc(IGModAudioChannel_GetTable, "GetTable");
 		Util::AddFunc(IGModAudioChannel_Destroy, "Destroy");
 		Util::AddFunc(IGModAudioChannel_Stop, "Stop");
 		Util::AddFunc(IGModAudioChannel_Pause, "Pause");

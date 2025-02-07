@@ -100,18 +100,14 @@ LUA_FUNCTION_STATIC(EntityList__tostring)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(EntityList__gc)
-{
-	EntityList* pData = Get_EntityList(1, false);
-	if (pData && pData != &g_pGlobalEntityList)
-		delete pData;
-
-	return 0;
-}
-
 Default__index(EntityList);
 Default__newindex(EntityList);
 Default__GetTable(EntityList);
+Default__gc(EntityList,
+	EntityList* pList = (EntityList*)pData->GetData();
+	if (pList != &g_pGlobalEntityList)
+		delete pList;
+)
 
 LUA_FUNCTION_STATIC(EntityList_IsValid)
 {

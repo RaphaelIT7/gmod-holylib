@@ -310,12 +310,12 @@ void Push_##className(className* var) \
 		g_Lua->ReferencePush(it->second->iReference); \
 	} else { \
 		g_Lua->PushUserType(var, luaType); \
-		g_Lua->Push(-1); \
 		LuaUserData* userData = new LuaUserData; \
 		userData->pData = var; \
 		userData->iReference = g_Lua->ReferenceCreate(); \
 		g_Lua->CreateTable(); \
 		userData->iTableReference = g_Lua->ReferenceCreate(); \
+		g_Lua->PushUserType(userData, luaType); \
 		g_pPushed##className[var] = userData; \
 	} \
 } \
@@ -352,6 +352,19 @@ LUA_FUNCTION_STATIC(className ## __index) \
 \
 	return 1; \
 }
+
+#define Default__gc(className, func) \
+LUA_FUNCTION_STATIC(className ## __gc) \
+{ \
+	LuaUserData* pData = Get_##className##_Data(1, false); \
+	if (pData) \
+	{ \
+		func \
+		delete pData; \
+	} \
+ \
+	return 0; \
+} \
 
 // Helper Things
 

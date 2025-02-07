@@ -336,15 +336,9 @@ LUA_FUNCTION_STATIC(IGameEvent__tostring)
 Default__index(IGameEvent);
 Default__newindex(IGameEvent);
 Default__GetTable(IGameEvent);
-
-LUA_FUNCTION_STATIC(IGameEvent__gc)
-{
-	IGameEvent* pEvent = Get_IGameEvent(1, false);
-	if (pEvent)
-		pManager->FreeEvent(pEvent);
-
-	return 0;
-}
+Default__gc(IGameEvent, 
+	pManager->FreeEvent((IGameEvent*)pData->GetData());
+)
 
 LUA_FUNCTION_STATIC(IGameEvent_IsValid)
 {
