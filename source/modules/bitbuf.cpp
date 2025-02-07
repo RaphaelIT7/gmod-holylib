@@ -877,7 +877,7 @@ LUA_FUNCTION_STATIC(bitbuf_CreateWriteBuffer)
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Number))
 	{
 		int iSize = (int)LUA->CheckNumber(1);
-		unsigned char* cData = new unsigned char[iSize];
+		unsigned char* cData = (unsigned char*)malloc(iSize);
 
 		bf_write* pNewBf = new bf_write;
 		pNewBf->StartWriting(cData, iSize);
