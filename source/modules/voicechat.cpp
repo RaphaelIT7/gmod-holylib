@@ -52,6 +52,8 @@ struct VoiceData
 		data->bProximity = bProximity;
 		data->iPlayerSlot = iPlayerSlot;
 		data->SetData(pData, iLength);
+
+		return data;
 	}
 
 	int iPlayerSlot = 0; // What if it's an invalid one ;D (It doesn't care.......)

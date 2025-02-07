@@ -176,76 +176,7 @@ namespace Util
 	ToDo: Implement a proper class like gmod has with CLuaCLass/CLuaLibrary & use thoes instead for everything.
 */
 
-// BUG: This LuaClass function and all others were made in mind to support a single Lua Instance. Now we got multiple.
-#define MakeString( str1, str2, str3 ) ((std::string)str1).append(str2).append(str3)
-#define Get_LuaClass( className, luaType, strName ) \
-static std::string invalidType_##className = MakeString("Tried to use something that wasn't a ", strName, "!"); \
-static std::string triedNull_##className = MakeString("Tried to use a NULL ", strName, "!"); \
-className* Get_##className(int iStackPos, bool bError) \
-{ \
-	if (!g_Lua->IsType(iStackPos, luaType)) \
-	{ \
-		if (bError) \
-			g_Lua->ThrowError(invalidType_##className.c_str()); \
-\
-		return NULL; \
-	} \
-\
-	className* pVar = g_Lua->GetUserType<className>(iStackPos, luaType); \
-	if (!pVar && bError) \
-		g_Lua->ThrowError(triedNull_##className.c_str()); \
-\
-	return pVar; \
-}
-
-#define SpecialGet_LuaClass( className, luaType, luaType2, strName ) \
-static std::string invalidType_##className = MakeString("Tried to use something that wasn't a ", strName, "!"); \
-static std::string triedNull_##className = MakeString("Tried to use a NULL ", strName, "!"); \
-className* Get_##className(int iStackPos, bool bError) \
-{ \
-	int iType = g_Lua->GetType(iStackPos); \
-	if (iType != luaType && iType != luaType2) \
-	{ \
-		if (bError) \
-			g_Lua->ThrowError(invalidType_##className.c_str()); \
-\
-		return NULL; \
-	} \
-\
-	className* pVar; \
-	if (iType == luaType) \
-	{ \
-		pVar = g_Lua->GetUserType<className>(iStackPos, luaType); \
-		if (pVar) \
-			return pVar; \
-	} \
-\
-	if (iType == luaType2) \
-	{ \
-		pVar = g_Lua->GetUserType<className>(iStackPos, luaType2); \
-		if (pVar) \
-			return pVar; \
-	} \
- \
-	if (!pVar && bError) \
-		g_Lua->ThrowError(triedNull_##className.c_str()); \
-\
-	return NULL; \
-}
-
-#define Push_LuaClass( className, luaType ) \
-void Push_##className(className* var) \
-{ \
-	if (!var) \
-	{ \
-		g_Lua->PushNil(); \
-		return; \
-	} \
-\
-	g_Lua->PushUserType(var, luaType); \
-}
-
-struct LuaUserData { // ToDo: Maybe implement this also for other things?
+struct LuaUserData {
 	~LuaUserData() {
 		if (!ThreadInMainThread())
 		{
@@ -271,12 +202,98 @@ struct LuaUserData { // ToDo: Maybe implement this also for other things?
 		pAdditionalData = NULL;
 	}
 
+	inline void* GetData()
+	{
+		return pData;
+	}
+
+	void* pData = NULL;
 	int iReference = -1;
 	int iTableReference = -1;
 	int pAdditionalData = NULL; // Used by HLTVClient.
 };
 
-// This one is special
+// BUG: This LuaClass function and all others were made in mind to support a single Lua Instance. Now we got multiple.
+#define MakeString( str1, str2, str3 ) ((std::string)str1).append(str2).append(str3)
+#define Get_LuaClass( className, luaType, strName ) \
+static std::string invalidType_##className = MakeString("Tried to use something that wasn't a ", strName, "!"); \
+static std::string triedNull_##className = MakeString("Tried to use a NULL ", strName, "!"); \
+LuaUserData* Get_##className##_Data(int iStackPos, bool bError) \
+{ \
+	if (!g_Lua->IsType(iStackPos, luaType)) \
+	{ \
+		if (bError) \
+			g_Lua->ThrowError(invalidType_##className.c_str()); \
+\
+		return NULL; \
+	} \
+\
+	LuaUserData* pVar = g_Lua->GetUserType<LuaUserData>(iStackPos, luaType); \
+	if (!pVar && bError) \
+		g_Lua->ThrowError(triedNull_##className.c_str()); \
+\
+	return pVar; \
+} \
+\
+className* Get_##className(int iStackPos, bool bError) \
+{ \
+	return (className*)Get_##className##_Data(iStackPos, bError)->GetData(); \
+}
+
+#define SpecialGet_LuaClass( className, luaType, luaType2, strName ) \
+static std::string invalidType_##className = MakeString("Tried to use something that wasn't a ", strName, "!"); \
+static std::string triedNull_##className = MakeString("Tried to use a NULL ", strName, "!"); \
+LuaUserData* Get_##className##_Data(int iStackPos, bool bError) \
+{ \
+	int iType = g_Lua->GetType(iStackPos); \
+	if (iType != luaType && iType != luaType2) \
+	{ \
+		if (bError) \
+			g_Lua->ThrowError(invalidType_##className.c_str()); \
+\
+		return NULL; \
+	} \
+\
+	if (iType == luaType) \
+	{ \
+		LuaUserData* pVar = g_Lua->GetUserType<LuaUserData>(iStackPos, luaType); \
+		if (pVar) \
+			return pVar; \
+	} \
+\
+	if (iType == luaType2) \
+	{ \
+		LuaUserData* pVar = g_Lua->GetUserType<LuaUserData>(iStackPos, luaType2); \
+		if (pVar) \
+			return pVar; \
+	} \
+ \
+	if (bError) \
+		g_Lua->ThrowError(triedNull_##className.c_str()); \
+\
+	return NULL; \
+} \
+\
+className* Get_##className(int iStackPos, bool bError) \
+{ \
+	return (className*)Get_##className##_Data(iStackPos, bError)->GetData(); \
+}
+
+#define Push_LuaClass( className, luaType ) \
+void Push_##className(className* var) \
+{ \
+	if (!var) \
+	{ \
+		g_Lua->PushNil(); \
+		return; \
+	} \
+\
+	LuaUserData* userData = new LuaUserData; \
+	userData->pData = var; \
+	g_Lua->PushUserType(userData, luaType); \
+}
+
+// This one is special, the GC WONT free the LuaClass meaning this "could" (and did in the past) cause a memory/reference leak
 #define PushReferenced_LuaClass( className, luaType ) \
 static std::unordered_map<className*, LuaUserData*> g_pPushed##className; \
 void Push_##className(className* var) \
@@ -295,6 +312,7 @@ void Push_##className(className* var) \
 		g_Lua->PushUserType(var, luaType); \
 		g_Lua->Push(-1); \
 		LuaUserData* userData = new LuaUserData; \
+		userData->pData = var; \
 		userData->iReference = g_Lua->ReferenceCreate(); \
 		g_Lua->CreateTable(); \
 		userData->iTableReference = g_Lua->ReferenceCreate(); \
@@ -326,7 +344,7 @@ LUA_FUNCTION_STATIC(className ## __index) \
 		return 1; \
 \
 	LUA->Pop(1); \
-	Util::ReferencePush(LUA, g_pPushed##className[Get_##className(1, true)]->iTableReference); \
+	Util::ReferencePush(LUA, Get_##className##_Data(1, true)->iTableReference); \
 	if (!LUA->FindObjectOnTable(-1, 2)) \
 		LUA->PushNil(); \
 \
@@ -340,7 +358,7 @@ LUA_FUNCTION_STATIC(className ## __index) \
 #define Default__newindex(className) \
 LUA_FUNCTION_STATIC(className ## __newindex) \
 { \
-Util::ReferencePush(LUA, g_pPushed##className[Get_##className(1, true)]->iTableReference); \
+Util::ReferencePush(LUA, Get_##className##_Data(1, true)->iTableReference); \
 	LUA->Push(2); \
 	LUA->Push(3); \
 	LUA->RawSet(-3); \
@@ -352,8 +370,8 @@ Util::ReferencePush(LUA, g_pPushed##className[Get_##className(1, true)]->iTableR
 #define Default__GetTable(className) \
 LUA_FUNCTION_STATIC(className ## _GetTable) \
 { \
-	Util::ReferencePush(LUA, g_pPushed##className[Get_##className(1, true)]->iTableReference); \
-	return 0; \
+	Util::ReferencePush(LUA, Get_##className##_Data(1, true)->iTableReference); \
+	return 1; \
 }
 
 // Push functions from modules: 
