@@ -481,11 +481,15 @@ LUA_FUNCTION_STATIC(bf_read_GetData)
 
 LUA_FUNCTION_STATIC(bf_write__tostring)
 {
-	bf_write* bf = Get_bf_write(1, true);
-
-	char szBuf[128] = {};
-	V_snprintf(szBuf, sizeof(szBuf), "bf_write [%i]", bf->m_nDataBits);
-	LUA->PushString(szBuf);
+	bf_write* bf = Get_bf_write(1, false);
+	if (!bf)
+	{
+		LUA->PushString("bf_write [NULL]");
+	} else {
+		char szBuf[128] = {};
+		V_snprintf(szBuf, sizeof(szBuf),"bf_write [%i]", bf->m_nDataBits); 
+		LUA->PushString(szBuf);
+	}
 	return 1;
 }
 
