@@ -212,6 +212,8 @@ LUA_FUNCTION_STATIC(VoiceData_CreateCopy)
 static Detouring::Hook detour_SV_BroadcastVoiceData;
 static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data, int64 xuid)
 {
+	VPROF_BUDGET("HolyLib - SV_BroadcastVoiceData", VPROF_BUDGETGROUP_HOLYLIB);
+
 	if (g_pVoiceChatModule.InDebug())
 		Msg("cl: %p\nbytes: %i\ndata: %p\n", pClient, nBytes, data);
 
@@ -221,8 +223,6 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 		return;
 	}
 
-	VPROF_BUDGET("HolyLib - SV_BroadcastVoiceData", VPROF_BUDGETGROUP_HOLYLIB);
-
 	if (Lua::PushHook("HolyLib:PreProcessVoiceChat"))
 	{
 		VoiceData* pVoiceData = new VoiceData;
@@ -231,15 +231,15 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 
 		Util::Push_Entity((CBaseEntity*)Util::GetPlayerByClient((CBaseClient*)pClient));
 		Push_VoiceData(pVoiceData);
+		bool bHandled = false;
 		if (g_Lua->CallFunctionProtected(3, 1, true))
 		{
-			bool bHandled = g_Lua->GetBool(-1);
+			bHandled = g_Lua->GetBool(-1);
 			g_Lua->Pop(1);
-			if (bHandled)
-			{
-				return;
-			}
 		}
+
+		if (bHandled)
+			return;
 	}
 
 	detour_SV_BroadcastVoiceData.GetTrampoline<Symbols::SV_BroadcastVoiceData>()(pClient, nBytes, data, xuid);

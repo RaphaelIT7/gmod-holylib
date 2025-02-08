@@ -394,6 +394,7 @@ LUA_FUNCTION_STATIC(className ## __gc) \
 	{ \
 		func \
 		delete pData; \
+		LUA->SetUserType(1, NULL); \
 	} \
  \
 	return 0; \
