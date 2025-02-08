@@ -390,7 +390,6 @@ LUA_FUNCTION_STATIC(className ## __index) \
 LUA_FUNCTION_STATIC(className ## __gc) \
 { \
 	LuaUserData* pData = Get_##className##_Data(1, false); \
-	Warning("Called __gc %p\n", pData); \
 	if (pData) \
 	{ \
 		func \
