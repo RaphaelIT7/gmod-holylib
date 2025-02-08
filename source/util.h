@@ -204,11 +204,6 @@ struct LuaUserData {
 
 	inline void Init(GarrysMod::Lua::ILuaInterface* LUA)
 	{
-		pData = NULL;
-		iReference = -1;
-		iTableReference = -1;
-		pAdditionalData = NULL;
-
 		if (iTableReference == -1)
 		{
 			LUA->CreateTable();
