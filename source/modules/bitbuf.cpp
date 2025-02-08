@@ -845,16 +845,21 @@ LUA_FUNCTION_STATIC(bf_write_WriteString)
 }
 
 static constexpr int MAX_BUFFER_SIZE = 1 << 18;
+static constexpr int MIN_BUFFER_SIZE = 4;
+#define CLAMP_BF(val) MAX(MIN(val + 1, MAX_BUFFER_SIZE), MIN_BUFFER_SIZE)
+
 LUA_FUNCTION_STATIC(bitbuf_CopyReadBuffer)
 {
 	bf_read* pBf = Get_bf_read(1, true);
 
 	int iSize = pBf->GetNumBytesRead() + pBf->GetNumBytesLeft();
-	unsigned char* pData = new unsigned char[MIN(iSize + 1, MAX_BUFFER_SIZE)];
+	int iNewSize = CLAMP_BF(iSize);
+
+	unsigned char* pData = new unsigned char[iNewSize];
 	memcpy(pData, pBf->GetBasePointer(), iSize);
 
 	bf_read* pNewBf = new bf_read;
-	pNewBf->StartReading(pData, iSize);
+	pNewBf->StartReading(pData, iNewSize);
 
 	Push_bf_read(pNewBf);
 
@@ -865,12 +870,13 @@ LUA_FUNCTION_STATIC(bitbuf_CreateReadBuffer)
 {
 	const char* pData = LUA->CheckString(1);
 	int iLength = LUA->ObjLen(1);
+	int iNewLength = CLAMP_BF(iLength);
 
-	unsigned char* cData = new unsigned char[MIN(iLength + 1, MAX_BUFFER_SIZE)];
+	unsigned char* cData = new unsigned char[iNewLength];
 	memcpy(cData, pData, iLength);
 
 	bf_read* pNewBf = new bf_read;
-	pNewBf->StartReading(cData, iLength);
+	pNewBf->StartReading(cData, iNewLength);
 
 	Push_bf_read(pNewBf);
 
@@ -881,8 +887,8 @@ LUA_FUNCTION_STATIC(bitbuf_CreateWriteBuffer)
 {
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Number))
 	{
-		int iSize = (int)LUA->CheckNumber(1);
-		unsigned char* cData = new unsigned char[MIN(iSize + 1, MAX_BUFFER_SIZE)];
+		int iSize = CLAMP_BF((int)LUA->CheckNumber(1));
+		unsigned char* cData = new unsigned char[iSize];
 
 		bf_write* pNewBf = new bf_write;
 		pNewBf->StartWriting(cData, iSize);
@@ -891,12 +897,13 @@ LUA_FUNCTION_STATIC(bitbuf_CreateWriteBuffer)
 	} else {
 		const char* pData = LUA->CheckString(1);
 		int iLength = LUA->ObjLen(1);
+		int iNewLength = CLAMP_BF(iLength);
 
-		unsigned char* cData = new unsigned char[MIN(iLength + 1, MAX_BUFFER_SIZE)];
+		unsigned char* cData = new unsigned char[iNewLength];
 		memcpy(cData, pData, iLength);
 
 		bf_write* pNewBf = new bf_write;
-		pNewBf->StartWriting(cData, iLength);
+		pNewBf->StartWriting(cData, iNewLength);
 
 		Push_bf_write(pNewBf);
 	}
