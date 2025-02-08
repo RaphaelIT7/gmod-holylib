@@ -263,7 +263,11 @@ LuaUserData* Get_##className##_Data(int iStackPos, bool bError) \
 \
 className* Get_##className(int iStackPos, bool bError) \
 { \
-	return (className*)Get_##className##_Data(iStackPos, bError)->GetData(); \
+	LuaUserData* pLuaData = Get_##className##_Data(iStackPos, bError); \
+	if (!pLuaData) \
+		return NULL; \
+ \
+	return (className*)pLuaData->GetData(); \
 }
 
 #define SpecialGet_LuaClass( className, luaType, luaType2, strName ) \
@@ -302,7 +306,11 @@ LuaUserData* Get_##className##_Data(int iStackPos, bool bError) \
 \
 className* Get_##className(int iStackPos, bool bError) \
 { \
-	return (className*)Get_##className##_Data(iStackPos, bError)->GetData(); \
+	LuaUserData* pLuaData = Get_##className##_Data(iStackPos, bError); \
+	if (!pLuaData) \
+		return NULL; \
+ \
+	return (className*)pLuaData->GetData(); \
 }
 
 #define Push_LuaClass( className, luaType ) \
