@@ -353,7 +353,7 @@ void Push_##className(className* var) \
 	} \
 } \
 \
-static void [[maybe_unused]] Delete_##className(className* var) \
+static void Delete_##className(className* var) \
 { \
 	auto it = g_pPushed##className.find(var); \
 	if (it != g_pPushed##className.end()) \

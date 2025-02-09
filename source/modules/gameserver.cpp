@@ -1564,6 +1564,8 @@ static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* tar
 	info.m_nPlayerSlot = target->m_nClientSlot;
 
 	target->SendNetMsg(info, true);
+
+	target->Reconnect();
 }
 
 #define MAX_PLAYERS 128
@@ -1612,11 +1614,9 @@ void hook_CGameClient_SpawnPlayer(CGameClient* client)
 	}
 
 	MoveCGameClientIntoCGameClient(client, pClient);
-
-	detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(pClient);
+	//detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(pClient);
 }
 
-static Symbols::MD5_MapFile func_MD5_MapFile;
 void CGameServerModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
