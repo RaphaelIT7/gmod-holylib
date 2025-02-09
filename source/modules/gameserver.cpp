@@ -1447,6 +1447,12 @@ static void hook_CBaseServer_CheckTimeouts(CBaseServer* srv)
 	}
 }
 
+class CExtentedNetMessage : public CNetMessage
+{
+public:
+	INetMessageHandler *m_pMessageHandler;
+};
+
 /*
  * Moving a entire CGameClient into another CGameClient to hopefully not make the engine too angry.
  * This is required to preserve the logic of m_nEntityIndex = m_nClientSlot + 1
@@ -1506,6 +1512,19 @@ static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* tar
 	memcpy(target->m_szPendingNameChange, origin->m_szPendingNameChange, sizeof(origin->m_szPendingNameChange));
 
 	/*
+	 * Update CNetChan and CNetMessage's properly.
+	 */
+
+	CNetChan* chan = (CNetChan*)target->m_NetChannel;
+	chan->m_MessageHandler = target;
+
+	FOR_EACH_VEC(chan->m_NetMessages, i)
+	{
+		CExtentedNetMessage* msg = (CExtentedNetMessage*)chan->m_NetMessages[i];
+		msg->m_pMessageHandler = target;
+	}
+
+	/*
 	 * Nuke the origin client
 	 */
 
@@ -1513,8 +1532,6 @@ static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* tar
 	//origin->m_ConVars = NULL; // Same here
 	origin->Inactivate();
 	origin->Clear();
-
-	target->FreeBaselines(); // Force a full update, as we don't copy the baseline.
 }
 
 void InitializeEntityDLLFields( edict_t *pEdict )
