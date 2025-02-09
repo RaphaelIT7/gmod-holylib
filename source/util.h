@@ -186,16 +186,21 @@ struct LuaUserData {
 
 		if (iReference != -1)
 		{
-			g_Lua->ReferencePush(iReference);
-			g_Lua->SetUserType(-1, NULL);
-			g_Lua->Pop(1);
-			g_Lua->ReferenceFree(iReference);
+			if (g_Lua)
+			{
+				g_Lua->ReferencePush(iReference);
+				g_Lua->SetUserType(-1, NULL);
+				g_Lua->Pop(1);
+				g_Lua->ReferenceFree(iReference);
+			}
 			iReference = -1;
 		}
 
 		if (iTableReference != -1)
 		{
-			g_Lua->ReferenceFree(iTableReference);
+			if (g_Lua)
+				g_Lua->ReferenceFree(iTableReference);
+
 			iTableReference = -1;
 		}
 

@@ -89,7 +89,7 @@ static void hook_CSteam3Server_NotifyClientDisconnect(void* pServer, CBaseClient
 
 	if (((CHLTVServer*)pClient->GetServer()) == hltv)
 	{
-		if (Lua::PushHook("HolyLib:OnSourceTVClientDisconnect"))
+		if (g_Lua && Lua::PushHook("HolyLib:OnSourceTVClientDisconnect"))
 		{
 			Push_CHLTVClient((CHLTVClient*)pClient);
 			g_Lua->CallFunctionProtected(2, 0, true);

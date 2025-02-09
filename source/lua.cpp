@@ -12,7 +12,7 @@ bool Lua::PushHook(const char* hook)
 {
 	if ( !g_Lua )
 	{
-		Warning("HolyLib: Lua::PushHook was while g_Lua was NULL! (%s)\n", hook);
+		Warning("HolyLib: Lua::PushHook was called while g_Lua was NULL! (%s)\n", hook);
 		return false;
 	}
 

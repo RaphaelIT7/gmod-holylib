@@ -1640,7 +1640,7 @@ void GameServer_OnClientDisconnect(CBaseClient* pClient)
 	if (pClient->GetServer() != Util::server)
 		return;
 
-	if (Lua::PushHook("HolyLib:OnClientDisconnect"))
+	if (g_Lua && Lua::PushHook("HolyLib:OnClientDisconnect"))
 	{
 		Push_CBaseClient(pClient);
 		g_Lua->CallFunctionProtected(2, 0, true);
