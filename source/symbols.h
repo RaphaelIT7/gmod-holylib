@@ -507,12 +507,6 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: gameserver Symbols
 	//---------------------------------------------------------------------------------
-	typedef void (*CFrameSnapshot_D2)(CFrameSnapshot*);
-	extern const std::vector<Symbol> CFrameSnapshot_D2Sym;
-
-	typedef void (*CClientFrame_D2)(CClientFrame*); // WHY DOES IT HAVE THREE DECONSTRUCTORS >:(
-	extern const std::vector<Symbol> CClientFrame_D2Sym;
-
 	typedef void (*CServerGameClients_GetPlayerLimit)(void*, int&, int&, int&);
 	extern const std::vector<Symbol> CServerGameClients_GetPlayerLimitSym;
 
@@ -539,9 +533,6 @@ namespace Symbols
 
 	typedef void (*CGameClient_SpawnPlayer)(void* client);
 	extern const std::vector<Symbol> CGameClient_SpawnPlayerSym;
-
-	typedef void (*CBaseClient_SpawnPlayer)(void* client);
-	extern const std::vector<Symbol> CBaseClient_SpawnPlayerSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: cvar Symbols

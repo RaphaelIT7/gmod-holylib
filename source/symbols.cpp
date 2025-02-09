@@ -741,8 +741,4 @@ namespace Symbols
 	const std::vector<Symbol> CGameClient_SpawnPlayerSym = {
 		Symbol::FromName("_ZN11CGameClient11SpawnPlayerEv"),
 	};
-
-	const std::vector<Symbol> CBaseClient_SpawnPlayerSym = {
-		Symbol::FromName("_ZN11CBaseClient11SpawnPlayerEv"),
-	};
 }
