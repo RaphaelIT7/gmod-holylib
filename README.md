@@ -58,7 +58,7 @@ On the next startup the ghostinj will update holylib to use the new file.
 \- [+] Added the `HolyLib:PreCheckTransmit`, `HolyLib:OnPlayerGot[On/Off]Ladder`, `HolyLib:OnMoveTypeChange` hook.  
 \- [+] Added `HolyLib:OnSourceTVStartNewShot`, `HolyLib:OnSourceTVClientDisconnect` hook to `sourcetv` module.  
 \- [+] Added `CHLTVClient:SetCameraMan` and `sourcetv.SetCameraMan` to `sourcetv` module.  
-\- [+] Added `INetworkStringTable:GetTable`, `CHLTVClient:GetTable`, `VoiceData:GetTable`, `IGameEvent:GetTable`, `bf_read:GetTable`, `bf_write:GetTable` functions.  
+\- [+] Added `INetworkStringTable:GetTable`, `CHLTVClient:GetTable`, `VoiceData:GetTable`, `IGameEvent:GetTable`, `bf_read:GetTable`, `bf_write:GetTable`, `IGModAudioChannel:GetTable` functions.  
 \- [+] Added `pvs.TestPVS`, `pvs.FindInPVS` and `pvs.ForceFullUpdate` functions to `pvs` module.  
 \- [+] Added `HolyLib.GetRegistry`, `HolyLib.ExitLadder`, `HolyLib.GetLadder` and `HolyLib.Disconnect` to `holylib` module.  
 \- [+] Added `cvar.Find` to `cvars` module.  
@@ -2683,6 +2683,18 @@ Creates a IGMODAudioChannel for the given url.
 #### string IGModAudioChannel:\_\_tostring()
 Returns `IGModAudioChannel [NULL]` if invalid.  
 Else it returns `IGModAudioChannel [FileName/URL]`.  
+
+#### IGModAudioChannel:\_\_newindex(string key, any value)
+Internally implemented and will set the values into the lua table.  
+
+#### any IGModAudioChannel:\_\_index(string key)
+Internally seaches first in the metatable table for the key.  
+If it fails to find it, it will search in the lua table before returning.  
+If you try to get multiple values from the lua table, just use `IGModAudioChannel:GetTable()`.  
+
+#### table IGModAudioChannel:GetTable()
+Returns the lua table of this object.  
+You can store variables into it.  
 
 #### IGModAudioChannel:\_\_gc()
 ToDo / Doesn nothing yet.  
