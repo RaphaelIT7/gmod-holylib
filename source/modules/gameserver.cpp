@@ -22,6 +22,8 @@ public:
 	virtual int Compatibility() { return LINUX32; };
 };
 
+static ConVar gameserver_disablespawnsafety("holylib_gameserver_disablespawnsafety", "0", 0, "If enabled, players can spawn on slots above 128 but this WILL cause stability and many other issues!");
+
 CGameServerModule g_pGameServerModule;
 IModule* pGameServerModule = &g_pGameServerModule;
 
@@ -1609,7 +1611,7 @@ static int FindFreeClientSlot()
 static Detouring::Hook detour_CGameClient_SpawnPlayer;
 void hook_CGameClient_SpawnPlayer(CGameClient* client)
 {
-	if (client->m_nClientSlot < MAX_PLAYERS)
+	if (client->m_nClientSlot < MAX_PLAYERS && !gameserver_disablespawnsafety.GetBool())
 	{
 		detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(client);
 		return;

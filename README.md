@@ -3438,6 +3438,12 @@ Called when a client disconnects.
 > [!NOTE]
 > This **requires** the `sourcetv` module to be enabled, or else it **won't** be called.
 
+### ConVars
+
+#### holylib_gameserver_disablespawnsafety (default `0`)
+If enabled, players can spawn on slots above 128 but this WILL cause stability and many other issues!  
+Added to satisfy curiosity & test around with slots above 128.
+
 ### Singleplayer
 This module allows you to have a 1 slot / a singleplayer server.  
 Why? I don't know, but you can.  
