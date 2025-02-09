@@ -1477,7 +1477,7 @@ static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* tar
 	//target->m_ConVars = origin->m_ConVars;
 	//target->m_bInitialConVarsSet = origin->m_bInitialConVarsSet;
 	//target->m_UserID = origin->m_UserID;
-	//target->SetName( origin->m_Name );
+	target->SetName( origin->m_Name ); // Required thingy
 	//target->m_bFakePlayer = origin->m_bFakePlayer;
 	//target->m_NetChannel = origin->m_NetChannel;
 	//target->m_clientChallenge = origin->m_clientChallenge;
@@ -1525,6 +1525,16 @@ static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* tar
 	{
 		CExtentedNetMessage* msg = (CExtentedNetMessage*)chan->m_NetMessages[i];
 		msg->m_pMessageHandler = target;
+
+		if (msg->GetType() == clc_CmdKeyValues)
+		{
+			Base_CmdKeyValues* keyVal = (Base_CmdKeyValues*)msg;
+			if (keyVal->m_pKeyValues)
+			{
+				keyVal->GetKeyValues()->deleteThis();
+				keyVal->m_pKeyValues = NULL; // May leak memory.
+			}
+		}
 	}
 
 	/*
