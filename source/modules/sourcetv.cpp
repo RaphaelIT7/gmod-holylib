@@ -75,12 +75,14 @@ static void hook_CHLTVClient_Deconstructor(CHLTVClient* pClient)
 }
 
 static Detouring::Hook detour_CSteam3Server_NotifyClientDisconnect;
+extern void GameServer_OnClientDisconnect(CBaseClient* pClient);
 static void hook_CSteam3Server_NotifyClientDisconnect(void* pServer, CBaseClient* pClient)
 {
 	VPROF_BUDGET("HolyLib - CSteam3Server::NotifyClientDisconnect", VPROF_BUDGETGROUP_HOLYLIB);
 
 	if (!hltv)
 	{
+		GameServer_OnClientDisconnect(pClient);
 		detour_CSteam3Server_NotifyClientDisconnect.GetTrampoline<Symbols::CSteam3Server_NotifyClientDisconnect>()(pServer, pClient);
 		return;
 	}
@@ -102,6 +104,7 @@ static void hook_CSteam3Server_NotifyClientDisconnect(void* pServer, CBaseClient
 		}
 	}
 
+	GameServer_OnClientDisconnect(pClient);
 	detour_CSteam3Server_NotifyClientDisconnect.GetTrampoline<Symbols::CSteam3Server_NotifyClientDisconnect>()(pServer, pClient);
 }
 

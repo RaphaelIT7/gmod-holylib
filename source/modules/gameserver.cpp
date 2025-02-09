@@ -338,6 +338,14 @@ LUA_FUNCTION_STATIC(CBaseClient_IsActive)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(CBaseClient_GetSignonState)
+{
+	CBaseClient* pClient = Get_CBaseClient(1, true);
+
+	LUA->PushNumber(pClient->m_nSignonState);
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(CBaseClient_IsFakeClient)
 {
 	CBaseClient* pClient = Get_CBaseClient(1, true);
@@ -854,6 +862,7 @@ void Push_CBaseClientMeta()
 	Util::AddFunc(CBaseClient_IsConnected, "IsConnected");
 	Util::AddFunc(CBaseClient_IsSpawned, "IsSpawned");
 	Util::AddFunc(CBaseClient_IsActive, "IsActive");
+	Util::AddFunc(CBaseClient_GetSignonState, "GetSignonState");
 	Util::AddFunc(CBaseClient_IsFakeClient, "IsFakeClient");
 	Util::AddFunc(CBaseClient_IsHLTV, "IsHLTV");
 	Util::AddFunc(CBaseClient_IsHearingClient, "IsHearingClient");
@@ -1462,6 +1471,9 @@ public:
  */
 static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* target)
 {
+	if (g_pGameServerModule.InDebug())
+		Msg("holylib: Reassigned client to from slot %i to %i\n", origin->m_nClientSlot, target->m_nClientSlot);
+
 	target->Inactivate();
 	target->Clear();
 
@@ -1573,17 +1585,8 @@ static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* tar
 }
 
 #define MAX_PLAYERS 128
-static CFrameSnapshotManager* framesnapshotmanager = NULL;
-static Detouring::Hook detour_CGameClient_SpawnPlayer;
-static Symbols::CBaseClient_SpawnPlayer func_CBaseClient_SpawnPlayer;
-void hook_CGameClient_SpawnPlayer(CGameClient* client)
+static int FindFreeClientSlot()
 {
-	if (client->m_nClientSlot < MAX_PLAYERS)
-	{
-		detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(client);
-		return;
-	}
-
 	int nextFreeEntity = 255;
 	int count = Util::server->GetClientCount();
 	if (count > MAX_PLAYERS)
@@ -1600,14 +1603,24 @@ void hook_CGameClient_SpawnPlayer(CGameClient* client)
 			nextFreeEntity = pClient->m_nEntityIndex;
 	}
 
+	return nextFreeEntity;
+}
+
+static Detouring::Hook detour_CGameClient_SpawnPlayer;
+void hook_CGameClient_SpawnPlayer(CGameClient* client)
+{
+	if (client->m_nClientSlot < MAX_PLAYERS)
+	{
+		detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(client);
+		return;
+	}
+
+	int nextFreeEntity = FindFreeClientSlot();
 	if (nextFreeEntity > MAX_PLAYERS)
 	{
 		Warning("holylib: Failed to find a valid player slot to use! Stopping client spawn! (%i, %i, %i)\n", client->m_nClientSlot, client->GetUserID(), nextFreeEntity);
 		return;
 	}
-	
-	if (g_pGameServerModule.InDebug())
-		Msg("holylib: Reassigned client to from slot %i to %i\n", client->m_nClientSlot, nextFreeEntity - 1);
 
 	CGameClient* pClient = (CGameClient*)Util::GetClientByIndex(nextFreeEntity - 1);
 	if (pClient->m_nSignonState != SIGNONSTATE_NONE)
@@ -1619,6 +1632,27 @@ void hook_CGameClient_SpawnPlayer(CGameClient* client)
 
 	MoveCGameClientIntoCGameClient(client, pClient);
 	//detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(pClient);
+}
+
+// Called by SourceTV from CSteam3Server::NotifyClientDisconnect
+void GameServer_OnClientDisconnect(CBaseClient* pClient)
+{
+	if (pClient->GetServer() != Util::server)
+		return;
+
+	if (Lua::PushHook("HolyLib:OnClientDisconnect"))
+	{
+		Push_CBaseClient(pClient);
+		g_Lua->CallFunctionProtected(2, 0, true);
+	}
+
+	auto it = g_pPushedCBaseClient.find(pClient);
+	if (it != g_pPushedCBaseClient.end())
+	{
+		g_Lua->ReferenceFree(it->second->iTableReference);
+		g_Lua->CreateTable();
+		it->second->iTableReference = g_Lua->ReferenceCreate(); // Create a new empty Lua table for the next client.
+	}
 }
 
 void CGameServerModule::InitDetour(bool bPreServer)
@@ -1659,12 +1693,6 @@ void CGameServerModule::InitDetour(bool bPreServer)
 
 	func_CBaseClient_OnRequestFullUpdate = (Symbols::CBaseClient_OnRequestFullUpdate)Detour::GetFunction(engine_loader.GetModule(), Symbols::CBaseClient_OnRequestFullUpdateSym);
 	Detour::CheckFunction((void*)func_CBaseClient_OnRequestFullUpdate, "CBaseClient::OnRequestFullUpdate");
-
-	func_CBaseClient_SpawnPlayer = (Symbols::CBaseClient_SpawnPlayer)Detour::GetFunction(engine_loader.GetModule(), Symbols::CBaseClient_SpawnPlayerSym);
-	Detour::CheckFunction((void*)func_CBaseClient_SpawnPlayer, "CBaseClient::SpawnPlayer");
-
-	framesnapshotmanager = Detour::ResolveSymbol<CFrameSnapshotManager>(engine_loader, Symbols::g_FrameSnapshotManagerSym);
-	Detour::CheckValue("get class", "framesnapshotmanager", framesnapshotmanager != NULL);
 
 	SourceSDK::FactoryLoader server_loader("server");
 	if (!g_pModuleManager.IsMarkedAsBinaryModule()) // Loaded by require? Then we skip this.
