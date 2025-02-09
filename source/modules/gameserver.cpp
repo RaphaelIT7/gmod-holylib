@@ -1531,8 +1531,8 @@ static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* tar
 			Base_CmdKeyValues* keyVal = (Base_CmdKeyValues*)msg;
 			if (keyVal->m_pKeyValues)
 			{
-				keyVal->GetKeyValues()->deleteThis();
-				keyVal->m_pKeyValues = NULL; // May leak memory.
+				keyVal->m_pKeyValues = NULL; // Will leak memory but we can't safely delete it currently.
+				// ToDo: Fix this small memory leak.
 			}
 		}
 	}
