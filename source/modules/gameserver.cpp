@@ -1649,9 +1649,7 @@ void GameServer_OnClientDisconnect(CBaseClient* pClient)
 	auto it = g_pPushedCBaseClient.find(pClient);
 	if (it != g_pPushedCBaseClient.end())
 	{
-		g_Lua->ReferenceFree(it->second->iTableReference);
-		g_Lua->CreateTable();
-		it->second->iTableReference = g_Lua->ReferenceCreate(); // Create a new empty Lua table for the next client.
+		Delete_CBaseClient(it->first);
 	}
 }
 

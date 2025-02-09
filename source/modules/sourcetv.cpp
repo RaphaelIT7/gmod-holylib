@@ -95,13 +95,7 @@ static void hook_CSteam3Server_NotifyClientDisconnect(void* pServer, CBaseClient
 			g_Lua->CallFunctionProtected(2, 0, true);
 		}
 
-		auto it = g_pPushedCHLTVClient.find((CHLTVClient*)pClient);
-		if (it != g_pPushedCHLTVClient.end())
-		{
-			g_Lua->ReferenceFree(it->second->iTableReference);
-			g_Lua->CreateTable();
-			it->second->iTableReference = g_Lua->ReferenceCreate(); // Create a new empty Lua table for the next client.
-		}
+		Delete_CHLTVClient((CHLTVClient*)pClient);
 	}
 
 	GameServer_OnClientDisconnect(pClient);

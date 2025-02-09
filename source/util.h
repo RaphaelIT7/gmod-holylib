@@ -225,12 +225,13 @@ struct LuaUserData {
 		return pData;
 	}
 
-	inline void Push()
+	inline bool Push()
 	{
 		if (iReference == -1)
-			return;
+			return false;
 
 		Util::ReferencePush(g_Lua, iReference);
+		return true;
 	}
 
 	void* pData = NULL;
