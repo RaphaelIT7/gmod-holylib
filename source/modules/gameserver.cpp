@@ -1458,14 +1458,18 @@ public:
  * This is required to preserve the logic of m_nEntityIndex = m_nClientSlot + 1
  * We don't copy everything, like the baseline and such.
  * 
- * Current State: The engine utterly crashes when it calls InitializeEntityDLLFields on the target's edict.
+ * Current State: The Client's LocalPlayer is a NULL Entity.....
  */
 static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* target)
 {
 	target->Inactivate();
 	target->Clear();
 
+	BlockGameEvent("player_connect");
+	BlockGameEvent("player_connect_client");
 	target->Connect( origin->m_Name, origin->m_UserID, origin->m_NetChannel, origin->m_bFakePlayer, origin->m_clientChallenge );
+	UnblockGameEvent("player_connect");
+	UnblockGameEvent("player_connect_client");
 
 	/*
 	 * Basic CBaseClient::Connect setup
@@ -1512,7 +1516,7 @@ static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* tar
 	memcpy(target->m_szPendingNameChange, origin->m_szPendingNameChange, sizeof(origin->m_szPendingNameChange));
 
 	/*
-	 * Update CNetChan and CNetMessage's properly.
+	 * Update CNetChan and CNetMessage's properly to not crash.
 	 */
 
 	CNetChan* chan = (CNetChan*)target->m_NetChannel;
@@ -1532,6 +1536,13 @@ static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* tar
 	//origin->m_ConVars = NULL; // Same here
 	origin->Inactivate();
 	origin->Clear();
+
+	if (Lua::PushHook("HolyLib:OnPlayerChangedSlot"))
+	{
+		g_Lua->PushNumber(origin->m_nClientSlot);
+		g_Lua->PushNumber(target->m_nClientSlot);
+		g_Lua->CallFunctionProtected(3, 0, true);
+	}
 }
 
 void InitializeEntityDLLFields( edict_t *pEdict )
