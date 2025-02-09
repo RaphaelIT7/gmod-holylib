@@ -1543,13 +1543,18 @@ static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* tar
 		g_Lua->PushNumber(target->m_nClientSlot);
 		g_Lua->CallFunctionProtected(3, 0, true);
 	}
-}
 
-void InitializeEntityDLLFields( edict_t *pEdict )
-{
-	// clear all the game variables
-	size_t sz = offsetof( edict_t, m_pUnk ) + sizeof( void* );
-	memset( ((byte*)pEdict) + sz, 0, sizeof(edict_t) - sz );
+	/*
+	 * Update Client about it's playerSlot or else it will see the wrong entity as it's local player.
+	 */
+
+	SVC_ServerInfo info;
+	CBaseServer* pServer = (CBaseServer*)target->GetServer();
+	pServer->FillServerInfo(info);
+
+	info.m_nPlayerSlot = target->m_nClientSlot;
+
+	target->SendNetMsg(info, true);
 }
 
 #define MAX_PLAYERS 128
@@ -1600,26 +1605,6 @@ void hook_CGameClient_SpawnPlayer(CGameClient* client)
 	MoveCGameClientIntoCGameClient(client, pClient);
 
 	detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(pClient);
-
-	// CGameClient::SpawnPlayer logic.
-	/*{
-		// set up the edict
-		Util::servergameents->FreeContainingEntity( pClient->edict );
-		InitializeEntityDLLFields( pClient->edict );
-
-		// restore default client entity and turn off replay mdoe
-		pClient->m_nEntityIndex = pClient->m_nClientSlot+1;
-		pClient->m_bIsInReplayMode = false;
-
-		// set view entity
-		SVC_SetView setView( pClient->m_nEntityIndex );
-		pClient->SendNetMsg( setView );
-
-		func_CBaseClient_SpawnPlayer(pClient);
-
-		// notify that the player is spawning
-		Util::servergameclients->ClientSpawned( pClient->edict );
-	}*/
 }
 
 static Symbols::MD5_MapFile func_MD5_MapFile;
