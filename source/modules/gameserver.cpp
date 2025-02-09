@@ -1465,11 +1465,10 @@ static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* tar
 	target->Inactivate();
 	target->Clear();
 
-	BlockGameEvent("player_connect");
-	BlockGameEvent("player_connect_client");
+	/*
+	 * NOTE: This will fire the player_connect and player_connect_client gameevents.
+	 */
 	target->Connect( origin->m_Name, origin->m_UserID, origin->m_NetChannel, origin->m_bFakePlayer, origin->m_clientChallenge );
-	UnblockGameEvent("player_connect");
-	UnblockGameEvent("player_connect_client");
 
 	/*
 	 * Basic CBaseClient::Connect setup
