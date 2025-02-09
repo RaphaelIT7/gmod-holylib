@@ -1565,6 +1565,10 @@ static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* tar
 
 	target->SendNetMsg(info, true);
 
+	/*
+	 * Reconnecting the client to let it go through the loading process again since it became unstable when we sent the ServerInfo.
+	 */
+
 	target->Reconnect();
 }
 
