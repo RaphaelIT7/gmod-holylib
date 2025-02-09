@@ -231,12 +231,32 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 
 		Util::Push_Entity((CBaseEntity*)Util::GetPlayerByClient((CBaseClient*)pClient));
 		Push_VoiceData(pVoiceData);
+		g_Lua->Push(-1);
+		int iReference = g_Lua->ReferenceCreate();
 		bool bHandled = false;
 		if (g_Lua->CallFunctionProtected(3, 1, true))
 		{
 			bHandled = g_Lua->GetBool(-1);
 			g_Lua->Pop(1);
 		}
+
+		/*
+		 * What are we doing down there? Were calling the __gc method on the VoiceData to NULL it.
+		 * Why? because else we would inflate the debug registry(& it never shrinks) as the GC won't be fast enouth to clean all the created VoiceData.
+		 */
+
+		g_Lua->PushString("__gc");
+		g_Lua->ReferencePush(iReference);
+		g_Lua->ReferenceFree(iReference);
+		if (g_Lua->FindOnObjectsMetaTable(-1, -2))
+		{
+			g_Lua->Push(-2);
+			g_Lua->CallFunctionProtected(1, 0, true);
+		} else {
+			Warning("holylib: Failed to find VoiceData:__gc!\n");
+		}
+
+		g_Lua->Pop(2);
 
 		if (bHandled)
 			return;
