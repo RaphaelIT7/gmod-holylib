@@ -82,6 +82,7 @@ On the next startup the ghostinj will update holylib to use the new file.
 \- [#] Small networking optimizations.  
 \- [#] Optimized `CCvar::FindVar` (50x faster in average).  
 \- [#] Fixed `pvs.RemoveAllEntityFromTransmit` possibly causing stack issues.  
+\- [#] Completely changed how we Push/Manage Lua userdata to reduce memory leaks.  
 \- [-] Removed `holylib_filesystem_optimizedfixpath` since it was implemented into gmod itself.  
 
 You can see all changes here:  
@@ -95,6 +96,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
 \- [#] Renamed `HLTVClient:GetSlot` to `HLTVClient:GetPlayerSlot`.  
 \- [#] Renamed `VProfCounter:Name` to `VProfCounter:GetName`.  
 \- [#] Renamed `HolyLib:PhysicsLag` to `HolyLib:OnPhysicsLag`.  
+\- [#] VoiceData given from `HolyLib:PreProcessVoiceChat` becomes invalid after the hook call, use `VoiceData:CreateCopy()` in case you want to store it.  
 \- [-] Removed `HolyLib.BroadcastCustomMessage` (Replaced by `gameserver.BroadcastMessage`)  
 \- [-] Removed `HolyLib.SendCustomMessage` (Replaced by `CBaseClient:SendNetMsg`)  
 \- [-] Removed `HolyLib:PostCheckTransmit` second argument (Use `pvs.GetEntitesFromTransmit`)  
@@ -1599,12 +1601,21 @@ Supports: Linux32 | Linux64 | Windows32 | Windows64
 Copies the given buffer into a new one.  
 Useful if you want to save the data received by a client.  
 
+> [!NOTE]
+> The size is clamped internally between a minimum of `4` bytes and a maximum of `262144` bytes.
+
 #### bf_read bitbuf.CreateReadBuffer(string data)
 Creates a read buffer from the given data.  
 Useful if you want to read the userdata of the instancebaseline stringtable.  
 
+> [!NOTE]
+> The size is clamped internally between a minimum of `4` bytes and a maximum of `262144` bytes.
+
 #### bf_write bitbuf.CreateWriteBuffer(number size or string data)
 Create a write buffer with the given size or with the given data.  
+
+> [!NOTE]
+> The size is clamped internally between a minimum of `4` bytes and a maximum of `262144` bytes.
 
 ### bf_read
 This class will later be used to read net messages from HLTV clients.  
@@ -2110,6 +2121,9 @@ Creates a exact copy of the voice data.
 Called before the voicedata is processed.  
 Return `true` to stop the engine from processing it.  
 
+> [!NOTE]
+> After the hook the `VoiceData` becomes **invalid**, if you want to store it call `VoiceData:CreateCopy()` and use the returned VoiceData.
+
 Example to record and play back voices.  
 ```lua
 concommand.Add("record_me", function()
@@ -2121,7 +2135,7 @@ concommand.Add("record_me", function()
 			voiceTbl[ply] = {}
 		end
 
-		voiceTbl[ply][engine.TickCount() - voiceStartTick] = voiceData
+		voiceTbl[ply][engine.TickCount() - voiceStartTick] = voiceData:CreateCopy()
 		-- We save the tick delays since the voice data isn't sent every frame and has random delays.
 	end)
 end)
@@ -3239,6 +3253,8 @@ Same as `gameserver.BroadcastMessage` but it only sends it to the specific playe
 
 #### bool CBaseClient:IsActive()
 
+#### number CBaseClient:GetSignonState()
+
 #### bool CBaseClient:IsFakeClient()
 
 #### bool CBaseClient:IsHLTV()
@@ -3409,6 +3425,19 @@ hook.Add("HolyLib:OnChannelOverflow", "Example", function(client)
 end)
 ```
 
+#### HolyLib:OnPlayerChangedSlot(number oldPlayerSlot, number newPlayerSlot)
+Called **after** a player was moved to a different slot.  
+This happens when a player on a player slot above 128 tries to spawn.  
+
+Why is this done? Because any player above 128 is utterly unstable and can only stabily exist as a CGameClient.  
+if a CBasePlayer entity is created on a slot above 128 expect stability issues!
+
+#### HolyLib:OnClientDisconnect(CGameClient client)
+Called when a client disconnects.
+
+> [!NOTE]
+> This **requires** the `sourcetv` module to be enabled, or else it **won't** be called.
+
 ### Singleplayer
 This module allows you to have a 1 slot / a singleplayer server.  
 Why? I don't know, but you can.  
@@ -3417,6 +3446,53 @@ Why? I don't know, but you can.
 Yes, with this module you can go above 128 Players **BUT** it will currently crash.  
 This is useful when you make a queue, players **can** connect and use all slots above 128 **but** they **can't** spawn when 128 players are already playing.  
 Use the `HolyLib:OnSetSignonState` to keep players at the `SIGNONSTATE_NEW` until a slot is freed/one of the 128 disconnects.  
+
+### Player Queue System
+Using this module's functionality you can implement a player queue were players wait in the loading screen until they spawn when a slot gets free.
+
+Example implementation:
+```lua
+playerQueue = playerQueue or {
+	count = 0
+}
+
+hook.Add("HolyLib:OnSetSignonState", "Example", function(cl, state, c)
+	print(cl, state, c)
+
+	local fullServer = #player.GetAll() >= 128 -- Can't exceed 128 players.
+	if fullServer and state == SIGNONSTATE_PRESPAWN then -- REQUIRED to be SIGNONSTATE_PRESPAWN
+		if not playerQueue[cl] then
+			playerQueue[cl] = true
+			playerQueue.count = playerQueue.count + 1
+			playerQueue[playerQueue.count] = cl
+		end
+
+		return true -- Stop the engine from continuing/spawning the player
+	end
+end)
+
+hook.Add("HolyLib:OnClientDisconnect", "Example", function(client)
+	timer.Simple(0, function() -- Just to be sure that the client was really disconnected.
+		if playerQueue.count <= 0 then return end
+
+		if client:IsValid() then
+			print("Client isn't empty?!? client: " .. client)
+			return
+		end
+
+		local nextPlayer = playerQueue[1]
+		playerQueue[nextPlayer] = nil
+		table.remove(playerQueue, 1)
+		playerQueue.count = playerQueue.count - 1
+
+		nextPlayer:SpawnPlayer() -- Spawn the client, HolyLib handles the moving of the client.
+	end)
+end)
+
+hook.Add("HolyLib:OnPlayerChangedSlot", "Example", function(oldPlayerSlot, newPlayerSlot)
+	print("Client was moved from slot " .. oldPlayerSlot .. " to slot " .. newPlayerSlot)
+end)
+```
 
 # Unfinished Modules
 
