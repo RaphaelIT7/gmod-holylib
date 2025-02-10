@@ -182,3 +182,31 @@ void Lua::DestroyInterface(GarrysMod::Lua::ILuaInterface* LUA)
 {
 	CloseLuaInterface(LUA);
 }
+
+static std::unordered_map<GarrysMod::Lua::ILuaInterface*, Lua::StateData*> g_pLuaStateData;
+Lua::StateData* Lua::GetLuaData(GarrysMod::Lua::ILuaInterface* LUA)
+{
+	auto it = g_pLuaStateData.find(LUA);
+	if (it == g_pLuaStateData.end())
+		return NULL;
+
+	return it->second;
+}
+
+void Lua::CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA)
+{
+	if (Lua::GetLuaData(LUA))
+		return;
+
+	g_pLuaStateData[LUA] = new Lua::StateData;
+}
+
+void Lua::RemoveLuaData(GarrysMod::Lua::ILuaInterface* LUA)
+{
+	auto it = g_pLuaStateData.find(LUA);
+	if (it == g_pLuaStateData.end())
+		return;
+
+	delete it->second;
+	g_pLuaStateData.erase(it);
+}

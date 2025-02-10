@@ -20,33 +20,33 @@ struct ILuaTimer
 {
 	~ILuaTimer()
 	{
-		if (function > 0)
+		if (function != -1)
 			g_Lua->ReferenceFree(function);
 
-		if (identifierreference > 0)
-			g_Lua->ReferenceFree(identifierreference);
+		if (identifierReference != -1)
+			g_Lua->ReferenceFree(identifierReference);
 	}
 
 	// Should we try to make this struct smaller?
 	float delay = 0;
-	double next_run_time = 0;
+	double nextRunTime = 0;
 	unsigned int repetitions = 0;
 	int function = -1;
 
 	//We could make a seperate struct for timer simple :^
-	int identifierreference = -1;
+	int identifierReference = -1;
 	const char* identifier = nullptr;
 	bool active = true;
-	bool markdelete = false;
+	bool markDelete = false;
 };
 
-double GetTime()
+static double GetTime()
 {
 	return (double)std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count() / 1000;
 }
 
-CUtlVector<ILuaTimer*> g_pLuaTimers;
-ILuaTimer* FindTimer(const char* name) // We should pobably use a set or so to have faster look up. But my precious memory :(
+static CUtlVector<ILuaTimer*> g_pLuaTimers;
+static ILuaTimer* FindTimer(const char* name) // We should pobably use a set or so to have faster look up. But my precious memory :(
 {
 	FOR_EACH_VEC(g_pLuaTimers, i)
 	{
@@ -60,16 +60,16 @@ ILuaTimer* FindTimer(const char* name) // We should pobably use a set or so to h
 	return nullptr;
 }
 
-void RemoveTimers()
+static void RemoveTimers()
 {
 	bool bDeleted = false;
 	FOR_EACH_VEC(g_pLuaTimers, i)
 	{
 		ILuaTimer* timer = g_pLuaTimers[i];
-		if (!timer->markdelete)
+		if (!timer->markDelete)
 			continue;
 
-		g_pLuaTimers.FastRemove(i); // Is this safe?
+		g_pLuaTimers.FastRemove(i); // ToDo: Is this safe?
 		bDeleted = true;
 		delete timer;
 	}
@@ -122,7 +122,7 @@ LUA_FUNCTION_STATIC(timer_Create)
 		bNewTimer = true;
 	} else {
 		LUA->ReferenceFree(timer->function);
-		LUA->ReferenceFree(timer->identifierreference);
+		LUA->ReferenceFree(timer->identifierReference);
 	}
 
 	LUA->Push(4);
@@ -130,10 +130,10 @@ LUA_FUNCTION_STATIC(timer_Create)
 
 	timer->identifier = name;
 	LUA->Push(1);
-	timer->identifierreference = LUA->ReferenceCreate();
+	timer->identifierReference = LUA->ReferenceCreate();
 	timer->delay = (float)delay;
 	timer->repetitions = (int)repetitions;
-	timer->next_run_time = GetTime() + delay;
+	timer->nextRunTime = GetTime() + delay;
 
 	if (bNewTimer)
 		g_pLuaTimers.AddToTail(timer);
@@ -173,7 +173,7 @@ LUA_FUNCTION_STATIC(timer_Remove)
 
 	ILuaTimer* timer = FindTimer(name);
 	if (timer) {
-		timer->markdelete = true;
+		timer->markDelete = true;
 		RemoveTimers();
 	}
 
@@ -207,7 +207,7 @@ LUA_FUNCTION_STATIC(timer_Simple)
 
 	timer->delay = (float)delay;
 	timer->repetitions = 1;
-	timer->next_run_time = GetTime() + delay;
+	timer->nextRunTime = GetTime() + delay;
 	g_pLuaTimers.AddToTail(timer);
 
 	return 0;
@@ -221,7 +221,7 @@ LUA_FUNCTION_STATIC(timer_Start)
 	if (timer) {
 		if (!timer->active) {
 			timer->active = true;
-			timer->next_run_time = GetTime() + timer->next_run_time;
+			timer->nextRunTime = GetTime() + timer->nextRunTime;
 			LUA->PushBool(true);
 		} else
 			LUA->PushBool(false);
@@ -239,7 +239,7 @@ LUA_FUNCTION_STATIC(timer_Stop)
 	if (timer) {
 		if (timer->active) {
 			timer->active = false;
-			timer->next_run_time = timer->next_run_time - GetTime(); // Do we care if it becomes possibly negative?
+			timer->nextRunTime = timer->nextRunTime - GetTime(); // Do we care if it becomes possibly negative?
 			LUA->PushBool(true);
 		} else
 			LUA->PushBool(false);
@@ -256,9 +256,9 @@ LUA_FUNCTION_STATIC(timer_TimeLeft)
 	ILuaTimer* timer = FindTimer(name);
 	if (timer)
 		if (timer->active)
-			LUA->PushNumber(timer->next_run_time - GetTime());
+			LUA->PushNumber(timer->nextRunTime - GetTime());
 		else
-			LUA->PushNumber(timer->next_run_time);
+			LUA->PushNumber(timer->nextRunTime);
 	else
 		LUA->PushNumber(0);
 
@@ -272,7 +272,7 @@ LUA_FUNCTION_STATIC(timer_Toggle)
 	ILuaTimer* timer = FindTimer(name);
 	if (timer) {
 		timer->active = !timer->active;
-		timer->next_run_time = GetTime() + timer->next_run_time;
+		timer->nextRunTime = GetTime() + timer->nextRunTime;
 		LUA->PushBool(timer->active);
 	} else
 		LUA->PushBool(false);
@@ -287,7 +287,7 @@ LUA_FUNCTION_STATIC(timer_UnPause)
 	ILuaTimer* timer = FindTimer(name);
 	if (timer) {
 		timer->active = true;
-		timer->next_run_time = GetTime() + timer->delay;
+		timer->nextRunTime = GetTime() + timer->delay;
 		LUA->PushBool(true);
 	} else
 		LUA->PushBool(false);
@@ -338,17 +338,17 @@ void CSysTimerModule::Think(bool simulating) // Should also be called while hibe
 			continue;
 
 		if (g_pSysTimerModule.InDebug())
-			Msg("Time: %f\nNext: %f\nRun Time: %f\n", time, timer->next_run_time - GetTime(), timer->next_run_time);
+			Msg("Time: %f\nNext: %f\nRun Time: %f\n", time, timer->nextRunTime - GetTime(), timer->nextRunTime);
 		
-		if ((timer->next_run_time - GetTime()) <= 0)
+		if ((timer->nextRunTime - GetTime()) <= 0)
 		{
-			timer->next_run_time = time + timer->delay;
+			timer->nextRunTime = time + timer->delay;
 
 			Util::ReferencePush(g_Lua, timer->function);
 			g_Lua->CallFunctionProtected(0, 0, true); // We should add a custom error handler to not have errors with no stack (Which somehow can happen but only observed in gmod clients)
 
 			if (timer->repetitions == 1)
-				timer->markdelete = true;
+				timer->markDelete = true;
 			else
 				timer->repetitions--;
 		}

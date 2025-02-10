@@ -22,4 +22,15 @@ namespace Lua
 
 	extern GarrysMod::Lua::ILuaInterface* CreateInterface();
 	extern void DestroyInterface(GarrysMod::Lua::ILuaInterface* LUA);
+
+	// A structure in which modules can store data specific to a ILuaInterface.
+	// This will be required when we work with multiple ILuaInterface's
+	struct StateData
+	{
+		int iReference = -1; // Reference to this structure to stop GC
+	};
+
+	extern Lua::StateData* GetLuaData(GarrysMod::Lua::ILuaInterface* LUA);
+	extern void CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA);
+	extern void RemoveLuaData(GarrysMod::Lua::ILuaInterface* LUA);
 }
