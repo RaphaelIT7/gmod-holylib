@@ -1481,6 +1481,7 @@ static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* tar
 
 	/*
 	 * NOTE: This will fire the player_connect and player_connect_client gameevents.
+	 * BUG: Their Name will have (1) at the beginning because of some funny engine behavior.
 	 */
 	target->Connect( origin->m_Name, origin->m_UserID, origin->m_NetChannel, origin->m_bFakePlayer, origin->m_clientChallenge );
 
@@ -1491,14 +1492,15 @@ static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* tar
 	//target->m_ConVars = origin->m_ConVars;
 	//target->m_bInitialConVarsSet = origin->m_bInitialConVarsSet;
 	//target->m_UserID = origin->m_UserID;
-	target->SetName( origin->m_Name ); // Required thingy
 	//target->m_bFakePlayer = origin->m_bFakePlayer;
 	//target->m_NetChannel = origin->m_NetChannel;
 	//target->m_clientChallenge = origin->m_clientChallenge;
-	target->m_nSignonState = origin->m_nSignonState;
 	//target->edict = Util::engineserver->PEntityOfEntIndex( target->m_nEntityIndex );
 	//target->m_PackInfo.m_pClientEnt = target->edict;
 	//target->m_PackInfo.m_nPVSSize = sizeof( target->m_PackInfo.m_PVS );
+
+	target->SetName( origin->m_Name ); // Required thingy
+	target->m_nSignonState = origin->m_nSignonState;
 
 	/*
 	 * Copy over other things

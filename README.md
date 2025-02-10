@@ -3447,9 +3447,6 @@ if a CBasePlayer entity is created on a slot above 128 expect stability issues!
 #### HolyLib:OnClientDisconnect(CGameClient client)
 Called when a client disconnects.
 
-> [!NOTE]
-> This **requires** the `sourcetv` module to be enabled, or else it **won't** be called.
-
 ### ConVars
 
 #### holylib_gameserver_disablespawnsafety (default `0`)

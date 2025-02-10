@@ -74,32 +74,18 @@ static void hook_CHLTVClient_Deconstructor(CHLTVClient* pClient)
 	detour_CHLTVClient_Deconstructor.GetTrampoline<Symbols::CHLTVClient_Deconstructor>()(pClient);
 }
 
-static Detouring::Hook detour_CSteam3Server_NotifyClientDisconnect;
-extern void GameServer_OnClientDisconnect(CBaseClient* pClient);
-static void hook_CSteam3Server_NotifyClientDisconnect(void* pServer, CBaseClient* pClient)
+void SourceTV_OnClientDisconnect(CBaseClient* pClient)
 {
-	VPROF_BUDGET("HolyLib - CSteam3Server::NotifyClientDisconnect", VPROF_BUDGETGROUP_HOLYLIB);
-
-	if (!hltv)
-	{
-		GameServer_OnClientDisconnect(pClient);
-		detour_CSteam3Server_NotifyClientDisconnect.GetTrampoline<Symbols::CSteam3Server_NotifyClientDisconnect>()(pServer, pClient);
+	if (((CHLTVServer*)pClient->GetServer()) != hltv)
 		return;
-	}
 
-	if (((CHLTVServer*)pClient->GetServer()) == hltv)
+	if (g_Lua && Lua::PushHook("HolyLib:OnSourceTVClientDisconnect"))
 	{
-		if (g_Lua && Lua::PushHook("HolyLib:OnSourceTVClientDisconnect"))
-		{
-			Push_CHLTVClient((CHLTVClient*)pClient);
-			g_Lua->CallFunctionProtected(2, 0, true);
-		}
-
-		Delete_CHLTVClient((CHLTVClient*)pClient);
+		Push_CHLTVClient((CHLTVClient*)pClient);
+		g_Lua->CallFunctionProtected(2, 0, true);
 	}
 
-	GameServer_OnClientDisconnect(pClient);
-	detour_CSteam3Server_NotifyClientDisconnect.GetTrampoline<Symbols::CSteam3Server_NotifyClientDisconnect>()(pServer, pClient);
+	Delete_CHLTVClient((CHLTVClient*)pClient);
 }
 
 LUA_FUNCTION_STATIC(CHLTVClient__tostring)
@@ -646,12 +632,6 @@ void CSourceTVLibModule::InitDetour(bool bPreServer)
 		&detour_CHLTVServer_BroadcastEvent, "CHLTVServer::BroadcastEvent",
 		engine_loader.GetModule(), Symbols::CHLTVServer_BroadcastEventSym,
 		(void*)hook_CHLTVServer_BroadcastEvent, m_pID
-	);
-
-	Detour::Create(
-		&detour_CSteam3Server_NotifyClientDisconnect, "CSteam3Server::NotifyClientDisconnect",
-		engine_loader.GetModule(), Symbols::CSteam3Server_NotifyClientDisconnectSym,
-		(void*)hook_CSteam3Server_NotifyClientDisconnect, m_pID
 	);
 
 	SourceSDK::ModuleLoader server_loader("server");

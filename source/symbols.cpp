@@ -69,6 +69,10 @@ namespace Symbols
 		Symbol::FromName("gEntList"),
 	};
 
+	const std::vector<Symbol> CSteam3Server_NotifyClientDisconnectSym = {
+		Symbol::FromName("_ZN13CSteam3Server22NotifyClientDisconnectEP11CBaseClient"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: holylib Symbols
 	//---------------------------------------------------------------------------------
@@ -169,10 +173,6 @@ namespace Symbols
 
 	const std::vector<Symbol> CHLTVServer_BroadcastEventSym = {
 		Symbol::FromName("_ZN11CHLTVServer14BroadcastEventEP10IGameEvent"),
-	};
-
-	const std::vector<Symbol> CSteam3Server_NotifyClientDisconnectSym = {
-		Symbol::FromName("_ZN13CSteam3Server22NotifyClientDisconnectEP11CBaseClient"),
 	};
 
 	//---------------------------------------------------------------------------------

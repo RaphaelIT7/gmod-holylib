@@ -124,6 +124,9 @@ namespace Symbols
 	extern const std::vector<Symbol> CGetSym;
 	extern const std::vector<Symbol> gEntListSym;
 
+	typedef void (GMCOMMON_CALLING_CONVENTION* CSteam3Server_NotifyClientDisconnect)(void* server, CBaseClient* client);
+	extern const std::vector<Symbol> CSteam3Server_NotifyClientDisconnectSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: holylib Symbols
 	//---------------------------------------------------------------------------------
@@ -195,9 +198,6 @@ namespace Symbols
 
 	typedef void (GMCOMMON_CALLING_CONVENTION* CHLTVServer_BroadcastEvent)(IServer* server, IGameEvent* event);
 	extern const std::vector<Symbol> CHLTVServer_BroadcastEventSym;
-
-	typedef void (GMCOMMON_CALLING_CONVENTION* CSteam3Server_NotifyClientDisconnect)(void* server, CBaseClient* client);
-	extern const std::vector<Symbol> CSteam3Server_NotifyClientDisconnectSym;
 
 	extern const std::vector<Symbol> UsermessagesSym;
 
