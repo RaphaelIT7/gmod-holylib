@@ -39,17 +39,32 @@ CreateWorkspace({name = "ghostinj", abi_compatible = false})
         --IncludeDetouring()
         --IncludeScanning()
 
-        targetsuffix("")
-        filter("system:windows")
-            files({"source/win32/*.cpp", "source/win32/*.hpp"})
+        includedirs({
+			[[../lua/]],
+		})
 
+		filter("system:windows")
+			links({"lua51_32.lib"})
+			links({"lua51_64.lib"})
+
+		filter("system:windows", "platforms:x86")
+			libdirs("../libs/win32")
+
+		filter("system:windows", "platforms:x86_64")
+			libdirs("../libs/win64")
+
+		filter({"system:linux", "platforms:x86_64"})
+			libdirs("../libs/linux64")
+			links("luajit_64")
+
+		filter({"system:linux", "platforms:x86"})
+			libdirs("../libs/linux32")
+			links("luajit_32")
+
+        targetsuffix("")
         filter("system:linux")
             targetextension(".dll")
             links -- this fixes the undefined reference to `dlopen' errors.
                 {
                     "dl",
                 }
-
-        filter("system:linux or macosx")
-            files({"source/posix/*.cpp", "source/posix/*.hpp"})
-                filter "system:linux"

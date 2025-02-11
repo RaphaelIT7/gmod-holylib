@@ -3,7 +3,6 @@
 #include "../lua/lj_obj.h"
 #include "../lua/luajit_rolling.h"
 #include "../lua/lauxlib.h"
-#include "../lua/lj_obj.h"
 #include <regex>
 #include "color.h"
 #include <filesystem.h>
