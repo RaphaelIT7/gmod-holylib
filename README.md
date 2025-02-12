@@ -3453,6 +3453,30 @@ Called when a client disconnects.
 If enabled, players can spawn on slots above 128 but this WILL cause stability and many other issues!  
 Added to satisfy curiosity & test around with slots above 128.
 
+#### holylib_gameserver_maxfragments (default `7`)
+How many net message fragments can be networked at once, limited to 7 or else networking dies.  
+
+#### holylib_gameserver_ignoreacknowledgements (default `0`)
+A possible speed improvement yet fragments may get lost & cause issues / it's unsafe.  
+
+Example code showing off the speed difference.
+```lua
+hook.Add("Think", "Example", function()
+	local client = gameserver.GetClient(0)
+	if !c or !c:IsValid() or c:GetSignonState() != 3 then
+		return
+	end
+
+	for k=1, 20 do
+		c:Transmit() -- Causes net message fragments to be transmitted.
+	end
+end)
+```
+
+Result is visible when downloading a map from the server(no workshop, no fastdl)  
+
+https://github.com/user-attachments/assets/f700dae9-28a9-4c1f-b237-cb0547226d6a
+
 ### Singleplayer
 This module allows you to have a 1 slot / a singleplayer server.  
 Why? I don't know, but you can.  
