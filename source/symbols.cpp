@@ -771,34 +771,4 @@ namespace Symbols
 	const std::vector<Symbol> CNetChan_UpdateSubChannelsSym = {
 		Symbol::FromName("_ZN8CNetChan17UpdateSubChannelsEv"),
 	};
-
-	// More funny stuff
-
-	const std::vector<Symbol> CNetChan_D2Sym = {
-		Symbol::FromName("_ZN8CNetChanD2Ev"),
-	};
-
-	const std::vector<Symbol> CNetChan_ClearSym = {
-		Symbol::FromName("_ZN8CNetChan5ClearEv"),
-	};
-
-	const std::vector<Symbol> CNetChan_SetupSym = {
-		Symbol::FromName("_ZN8CNetChan5SetupEiP8netadr_sPKcP18INetChannelHandleri"),
-	};
-
-	const std::vector<Symbol> CNetChan_CompressFragmentsSym = {
-		Symbol::FromName("_ZN8CNetChan17CompressFragmentsEv"),
-	};
-
-	const std::vector<Symbol> CNetChan_SendReliableViaStreamSym = {
-		Symbol::FromName("_ZN8CNetChan21SendReliableViaStreamEPNS_15dataFragments_sE"),
-	};
-
-	const std::vector<Symbol> CNetChan_ProcessPacketHeaderSym = {
-		Symbol::FromName("_ZN8CNetChan19ProcessPacketHeaderEP11netpacket_s"),
-	};
-
-	const std::vector<Symbol> CNetChan_CheckWaitingListSym = {
-		Symbol::FromName("_ZN8CNetChan16CheckWaitingListEi"),
-	};
 }

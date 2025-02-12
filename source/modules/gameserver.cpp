@@ -1681,6 +1681,16 @@ inline unsigned short BufferToShortChecksum( const void *pvData, size_t nLength 
 
 #define FLIPBIT(v,b) if (v&b) v &= ~b; else v |= b;
 
+CNetChan::subChannel_s *CNetChan::GetFreeSubChannel()
+{
+	for ( int i=0; i<MAX_SUBCHANNELS; i++ )
+	{
+		if ( m_SubChannels[i].state == SUBCHANNEL_FREE )
+			return &m_SubChannels[i];
+	}
+	return NULL;
+}
+
 static ConVar gameserver_maxfragments("holylib_gameserver_maxfragments", "7", 0, "How many fragments can be networked at once, limited to 7 or else networking dies", true, 1, true, 7);
 
 static Detouring::Hook detour_CNetChan_UpdateSubChannels;
@@ -1764,8 +1774,8 @@ static Symbols::NET_SendPacket func_NET_SendPacket;
 static Symbols::CNetChan_CreateFragmentsFromBuffer func_CNetChan_CreateFragmentsFromBuffer;
 static Symbols::CNetChan_FlowNewPacket func_CNetChan_FlowNewPacket;
 static Symbols::CNetChan_FlowUpdate func_CNetChan_FlowUpdate;
+static Symbols::CNetChan_SendSubChannelData func_CNetChan_SendSubChannelData;
 static Detouring::Hook detour_CNetChan_SendDatagram;
-extern bool hook_CNetChan_SendSubChannelData(CNetChan* chan, bf_write &buf);
 int hook_CNetChan_SendDatagram(CNetChan* chan, bf_write *datagram)
 {
 	ALIGN4 byte		send_buf[ NET_MAX_MESSAGE ] ALIGN4_POST;
@@ -1849,7 +1859,7 @@ int hook_CNetChan_SendDatagram(CNetChan* chan, bf_write *datagram)
 	// append the challenge number itself right on the end
 	send.WriteLong( chan->m_ChallengeNr );
 
-	if ( hook_CNetChan_SendSubChannelData(chan, send) )
+	if ( func_CNetChan_SendSubChannelData(chan, send) )
 	{
 		flags |= PACKET_FLAG_RELIABLE;
 	}
@@ -2023,448 +2033,6 @@ int hook_CNetChan_SendDatagram(CNetChan* chan, bf_write *datagram)
 	return chan->m_nOutSequenceNr-1; // return send seq nr
 }
 
-// MAX_SUBCHANNELS detours
-
-#define NEW_MAX_SUBCHANNELS 12
-struct NetChan_Data {
-	CNetChan::subChannel_s m_SubChannels[NEW_MAX_SUBCHANNELS];
-};
-
-static std::unordered_map<CNetChan*, NetChan_Data*> g_pNetChanData;
-
-inline NetChan_Data* GetChannelData(CNetChan* chan)
-{
-	auto it = g_pNetChanData.find(chan);
-	if (it == g_pNetChanData.end())
-		return NULL;
-
-	return it->second;
-}
-
-CNetChan::subChannel_s *CNetChan::GetFreeSubChannel()
-{
-	NetChan_Data* data = GetChannelData(this);
-	for ( int i=0; i<NEW_MAX_SUBCHANNELS; i++ )
-	{
-		if ( data->m_SubChannels[i].state == SUBCHANNEL_FREE )
-			return &data->m_SubChannels[i];
-	}
-
-	return NULL;
-}
-
-static Detouring::Hook detour_CNetChan_D2;
-void hook_CNetChan_D2(CNetChan* chan)
-{
-	detour_CNetChan_D2.GetTrampoline<Symbols::CNetChan_D2>()(chan);
-
-	auto it = g_pNetChanData.find(chan);
-	if (it == g_pNetChanData.end())
-		return;
-		
-	g_pNetChanData.erase(it);
-	delete it->second;
-}
-
-static Detouring::Hook detour_CNetChan_Clear;
-void hook_CNetChan_Clear(CNetChan* chan)
-{
-	NetChan_Data* data = GetChannelData(chan);
-
-	for( int i=0; i<MAX_SUBCHANNELS; i++ )
-	{
-		if ( data->m_SubChannels[i].state == SUBCHANNEL_TOSEND )
-		{
-			int bit = 1<<i; // flip bit back since data was send yet
-			
-			FLIPBIT(chan->m_nOutReliableState, bit);
-
-			data->m_SubChannels[i].Free(); 
-		}
-		else if ( data->m_SubChannels[i].state == SUBCHANNEL_WAITING )
-		{
-			// data is already out, mark channel as dirty
-			data->m_SubChannels[i].state = SUBCHANNEL_DIRTY;
-		}
-	}
-
-	detour_CNetChan_Clear.GetTrampoline<Symbols::CNetChan_Clear>()(chan);
-}
-
-static Detouring::Hook detour_CNetChan_Setup;
-void hook_CNetChan_Setup(CNetChan* chan, int sock, netadr_t* adr, const char* name, INetChannelHandler* handler, int nProtocolVersion)
-{
-	auto it = g_pNetChanData.find(chan);
-	if (it != g_pNetChanData.end())
-	{	
-		g_pNetChanData.erase(it);
-		delete it->second;
-	}
-
-	NetChan_Data* data = new NetChan_Data;
-	g_pNetChanData[chan] = data;
-
-	// init all subchannels
-	for (int i=0; i<NEW_MAX_SUBCHANNELS; i++)
-	{
-		data->m_SubChannels[i].index = i;
-		data->m_SubChannels[i].Free();
-	}
-
-	detour_CNetChan_Setup.GetTrampoline<Symbols::CNetChan_Setup>()(chan, sock, adr, name, handler, nProtocolVersion);
-}
-
-static Symbols::CNetChan_CompressFragments func_CNetChan_CompressFragments;
-static Detouring::Hook detour_CNetChan_SendSubChannelData;
-bool hook_CNetChan_SendSubChannelData(CNetChan* chan, bf_write &buf)
-{
-	VPROF_BUDGET( "CNetChan::SendSubChannelData", VPROF_BUDGETGROUP_OTHER_NETWORKING );
-
-	CNetChan::subChannel_s *subChan = NULL;
-	int i;
-
-	func_CNetChan_CompressFragments(chan);
-
-	chan->SendTCPData();
-
-	hook_CNetChan_UpdateSubChannels(chan);
-
-	// find subchannl with data to send/resend:
-	NetChan_Data* data = GetChannelData(chan);
-	for ( i=0; i<NEW_MAX_SUBCHANNELS; i++ )
-	{
-		subChan = &data->m_SubChannels[i];
-
-		if ( subChan->state == SUBCHANNEL_TOSEND )
-			break;
-	}
-
-	if ( i == NEW_MAX_SUBCHANNELS )
-		return false; // no data to send in any subchannel
-
-	// first write subchannel index
-	buf.WriteUBitLong( i, 3 );
-
-	// write fragemnts for both streams
-	for ( i=0; i<MAX_STREAMS; i++ )
-	{
-		if ( subChan->numFragments[i] == 0 )
-		{
-			buf.WriteOneBit( 0 ); // no data for this stream
-			continue;
-		}
-
-		CNetChan::dataFragments_t *data = chan->m_WaitingList[i][0];
-
-		buf.WriteOneBit( 1 ); // data follows:
-
-		unsigned int offset = subChan->startFraggment[i]*FRAGMENT_SIZE;
-		unsigned int length = subChan->numFragments[i]*FRAGMENT_SIZE;
-
-		if ( (subChan->startFraggment[i]+subChan->numFragments[i]) == data->numFragments )
-		{
-			// we are sending the last fragment, adjust length
-			int rest = FRAGMENT_SIZE - ( data->bytes % FRAGMENT_SIZE );
-			if ( rest < FRAGMENT_SIZE )
-				length -= rest;
-		}
-
-		// if all fragments can be send within a single packet, avoid overhead (if not a file)
-		bool bSingleBlock = (subChan->numFragments[i] == data->numFragments) &&
-							 ( data->file == FILESYSTEM_INVALID_HANDLE );
-
-		if ( bSingleBlock )
-		{	
-			Assert( length == data->bytes );
-			Assert( length < NET_MAX_PAYLOAD );
-			Assert( offset == 0 );
-
-			buf.WriteOneBit( 0 );	// single block bit
-
-			// data compressed ?
-			if ( data->isCompressed )
-			{
-				buf.WriteOneBit( 1 );
-				buf.WriteUBitLong( data->nUncompressedSize, MAX_FILE_SIZE_BITS );
-			}
-			else
-			{
-				buf.WriteOneBit( 0 ); 
-			}
-
-			buf.WriteVarInt32( data->bytes );
-		}
-		else
-		{
-			buf.WriteOneBit( 1 ); // uses fragments with start fragment offset byte
-			buf.WriteUBitLong( subChan->startFraggment[i], (MAX_FILE_SIZE_BITS-FRAGMENT_BITS) ); 
-			buf.WriteUBitLong( subChan->numFragments[i], 3 ); 
-		
-			if ( offset == 0 )
-			{
-				// this is the first fragment, write header info
-				
-				if ( data->file != FILESYSTEM_INVALID_HANDLE )
-				{
-					buf.WriteOneBit( 1 ); // file transmission net message stream
-					buf.WriteUBitLong( data->transferID, 32 );
-					buf.WriteString( data->filename );
-				}
-				else
-				{
-					buf.WriteOneBit( 0 ); // normal net message stream
-				}
-
-				// data compressed ?
-				if ( data->isCompressed )
-				{
-					buf.WriteOneBit( 1 );
-					buf.WriteUBitLong( data->nUncompressedSize, MAX_FILE_SIZE_BITS );
-				}
-				else
-				{
-					buf.WriteOneBit( 0 ); 
-				}
-
-				buf.WriteUBitLong( data->bytes, MAX_FILE_SIZE_BITS ); // 4MB max for files
-			}
-		}
-
-		// write fragments to buffer
-		if ( data->buffer )
-		{
-			Assert( data->file == FILESYSTEM_INVALID_HANDLE );
-			// send from memory block
-			buf.WriteBytes( data->buffer+offset, length );
-		}
-		else // if ( data->file != FILESYSTEM_INVALID_HANDLE )
-		{
-			// send from file
-			Assert( data->file != FILESYSTEM_INVALID_HANDLE );
-			char * tmpbuf = (char*)_alloca( length ); // alloc on stack
-			g_pFullFileSystem->Seek( data->file, offset, FILESYSTEM_SEEK_HEAD );
-			g_pFullFileSystem->Read( tmpbuf, length, data->file );
-			buf.WriteBytes( tmpbuf, length );
-		}
-
-		ConVarRef net_showfragments("net_showfragments");
-		if ( net_showfragments.GetBool() )
-		{
-			ConMsg("Sending subchan %i: start %i, num %i\n", subChan->index, subChan->startFraggment[i], subChan->numFragments[i] );
-		}
-
-		subChan->sendSeqNr = chan->m_nOutSequenceNr;
-		subChan->state = SUBCHANNEL_WAITING;
-	}
-
-	return true;
-}
-
-static Symbols::CNetChan_SendReliableViaStream func_CNetChan_SendReliableViaStream;
-void CNetChan::SendTCPData( void )
-{
-	if ( m_WaitingList[FRAG_NORMAL_STREAM].Count() == 0 )
-		return; // nothing in line
-
-	dataFragments_t *data = m_WaitingList[FRAG_NORMAL_STREAM][0];
-
-	if ( !data->asTCP )
-		return; // not as TCP
-
-	if ( data->pendingFragments > 0 )
-		return; // already send, wait for ACK
-
-	// OK send it now
-	func_CNetChan_SendReliableViaStream(this, (::dataFragments_s*)data);
-}
-
-static Symbols::CNetChan_CheckWaitingList func_CNetChan_CheckWaitingList;
-static Detouring::Hook detour_CNetChan_ProcessPacketHeader;
-int hook_CNetChan_ProcessPacketHeader(CNetChan* chan, netpacket_t* packet)
-{
-	// get sequence numbers		
-	int sequence	= packet->message.ReadLong();
-	int sequence_ack= packet->message.ReadLong();
-	int flags		= packet->message.ReadByte();
-
-	//if ( ShouldChecksumPackets() )
-	{
-		unsigned short usCheckSum = (unsigned short)packet->message.ReadUBitLong( 16 );
-
-		// Checksum applies to rest of packet
-		Assert( !( packet->message.GetNumBitsRead() % 8 ) );
-		int nOffset = packet->message.GetNumBitsRead() >> 3;
-		int nCheckSumBytes = packet->message.TotalBytesAvailable() - nOffset;
-	
-		const void *pvData = packet->message.GetBasePointer() + nOffset;
-		unsigned short usDataCheckSum = BufferToShortChecksum( pvData, nCheckSumBytes );
-	
-		if ( usDataCheckSum != usCheckSum )
-		{
-			ConMsg ("%s:corrupted packet %i at %i\n"
-				, chan->remote_address.ToString ()
-				, sequence
-				, chan->m_nInSequenceNr);
-			return -1;
-		}
-	}
-
-	int relState	= packet->message.ReadByte();	// reliable state of 8 subchannels
-	int nChoked		= 0;	// read later if choked flag is set
-	int i,j;
-
-	if ( flags & PACKET_FLAG_CHOKED )
-		nChoked = packet->message.ReadByte(); 
-
-	if ( flags & PACKET_FLAG_CHALLENGE )
-	{
-		unsigned int nChallenge = packet->message.ReadLong();
-		if ( nChallenge != chan->m_ChallengeNr )
-			return -1;
-		// challenge was good, latch we saw a good one
-		chan->m_bStreamContainsChallenge = true;
-	}
-	else if ( chan->m_bStreamContainsChallenge )
-		return -1; // what, no challenge in this packet but we got them before?
-
-	// discard stale or duplicated packets
-	ConVarRef net_showdrop("net_showdrop");
-	if (sequence <= chan->m_nInSequenceNr )
-	{
-		if ( net_showdrop.GetInt() )
-		{
-			if ( sequence == chan->m_nInSequenceNr )
-			{
-				ConMsg ("%s:duplicate packet %i at %i\n"
-					, chan->remote_address.ToString ()
-					, sequence
-					, chan->m_nInSequenceNr);
-			}
-			else
-			{
-				ConMsg ("%s:out of order packet %i at %i\n"
-					, chan->remote_address.ToString ()
-					, sequence
-					, chan->m_nInSequenceNr);
-			}
-		}
-		
-		return -1;
-	}
-
-//
-// dropped packets don't keep the message from being used
-//
-	chan->m_PacketDrop = sequence - (chan->m_nInSequenceNr + nChoked + 1);
-
-	if ( chan->m_PacketDrop > 0 )
-	{
-		if ( net_showdrop.GetInt() )
-		{
-			ConMsg ("%s:Dropped %i packets at %i\n"
-			,chan->remote_address.ToString(), chan->m_PacketDrop, sequence );
-		}
-	}
-
-	ConVarRef net_maxpacketdrop("net_maxpacketdrop");
-	if ( net_maxpacketdrop.GetInt() > 0 && chan->m_PacketDrop > net_maxpacketdrop.GetInt() )
-	{
-		if ( net_showdrop.GetInt() )
-		{
-			ConMsg ("%s:Too many dropped packets (%i) at %i\n"
-				,chan->remote_address.ToString(), chan->m_PacketDrop, sequence );
-		}
-		return -1;
-	}
-
-	NetChan_Data* data = GetChannelData(chan);
-	for ( i = 0; i<NEW_MAX_SUBCHANNELS; i++ )
-	{
-		int bitmask = (1<<i);
-
-		// data of channel i has been acknowledged
-		CNetChan::subChannel_s * subchan = &data->m_SubChannels[i];
-
-		Assert( subchan->index == i);
-
-		if ( (chan->m_nOutReliableState & bitmask) == (relState & bitmask) || i >= MAX_SUBCHANNELS )
-		{
-			if ( subchan->state == SUBCHANNEL_DIRTY )
-			{
-				// subchannel was marked dirty during changelevel, waiting list is already cleared
-				subchan->Free();
-			}
-			else if ( subchan->sendSeqNr > sequence_ack && i < MAX_SUBCHANNELS )
-			{
-				ConMsg ("%s:reliable state invalid (%i).\n"	,chan->remote_address.ToString(), i );
-				Assert( 0 );
-				return -1;
-			}
-			else if ( subchan->state == SUBCHANNEL_WAITING )
-			{
-				for ( j=0; j<MAX_STREAMS; j++ )
-				{
-					if ( subchan->numFragments[j] == 0 )
-						continue;
-
-					Assert( m_WaitingList[j].Count() > 0 );
-					
-					CNetChan::dataFragments_t* data = chan->m_WaitingList[j][0];
-
-					// tell waiting list, that we received the acknowledge
-					data->ackedFragments += subchan->numFragments[j]; 
-					data->pendingFragments -= subchan->numFragments[j];
-				}
-
-				subchan->Free(); // mark subchannel as free again
-			}
-		}
-		else // subchannel doesn't match
-		{
-			if ( subchan->sendSeqNr <= sequence_ack )
-			{
-				Assert( subchan->state != SUBCHANNEL_FREE );
-
-				if ( subchan->state == SUBCHANNEL_WAITING )
-				{
-					ConVarRef net_showfragments("net_showfragments");
-					if ( net_showfragments.GetBool() )
-					{	
-						ConMsg("Resending subchan %i: start %i, num %i\n", subchan->index, subchan->startFraggment[0], subchan->numFragments[0] );
-					}
-
-					subchan->state = SUBCHANNEL_TOSEND; // schedule for resend
-				}
-				else if ( subchan->state == SUBCHANNEL_DIRTY )
-				{
-					// remote host lost dirty channel data, flip bit back
-					int bit = 1<<subchan->index; // flip bit back since data was send yet
-			
-					FLIPBIT(chan->m_nOutReliableState, bit);
-
-					subchan->Free(); 
-				}
-			}
-		}
-	}
-
-	chan->m_nInSequenceNr = sequence;
-	chan->m_nOutSequenceNrAck = sequence_ack;
-	ETWReadPacket( packet->from.ToString(), packet->wiresize, chan->m_nInSequenceNr, chan->m_nOutSequenceNr );
-
-// Update waiting list status
-	
-	for( i=0; i<MAX_STREAMS;i++)
-		func_CNetChan_CheckWaitingList(chan, i); 
-
-// Update data flow stats (use wiresize (compressed))
-	func_CNetChan_FlowNewPacket( chan, FLOW_INCOMING, chan->m_nInSequenceNr, chan->m_nOutSequenceNrAck, nChoked, chan->m_PacketDrop, packet->wiresize + UDP_HEADER_SIZE );
-
-	return flags;
-}
-
-// MAX_SUBCHANNELS detours end
-
 void CGameServerModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
@@ -2512,42 +2080,6 @@ void CGameServerModule::InitDetour(bool bPreServer)
 		(void*)hook_CNetChan_SendDatagram, m_pID
 	);
 
-	Detour::Create(
-		&detour_CNetChan_UpdateSubChannels, "CNetChan::UpdateSubChannels",
-		engine_loader.GetModule(), Symbols::CNetChan_UpdateSubChannelsSym,
-		(void*)hook_CNetChan_UpdateSubChannels, m_pID
-	);
-
-	Detour::Create(
-		&detour_CNetChan_Setup, "CNetChan::Setup",
-		engine_loader.GetModule(), Symbols::CNetChan_SetupSym,
-		(void*)hook_CNetChan_Setup, m_pID
-	);
-
-	Detour::Create(
-		&detour_CNetChan_Clear, "CNetChan::Clear",
-		engine_loader.GetModule(), Symbols::CNetChan_ClearSym,
-		(void*)hook_CNetChan_Clear, m_pID
-	);
-
-	Detour::Create(
-		&detour_CNetChan_D2, "CNetChan::~CNetChan",
-		engine_loader.GetModule(), Symbols::CNetChan_D2Sym,
-		(void*)hook_CNetChan_D2, m_pID
-	);
-
-	Detour::Create(
-		&detour_CNetChan_ProcessPacketHeader, "CNetChan::ProcessPacketHeader",
-		engine_loader.GetModule(), Symbols::CNetChan_ProcessPacketHeaderSym,
-		(void*)hook_CNetChan_ProcessPacketHeader, m_pID
-	);
-
-	Detour::Create(
-		&detour_CNetChan_SendSubChannelData, "CNetChan::SendSubChannelData",
-		engine_loader.GetModule(), Symbols::CNetChan_SendSubChannelDataSym,
-		(void*)hook_CNetChan_SendSubChannelData, m_pID
-	);
-
 	func_NET_SendPacket = (Symbols::NET_SendPacket)Detour::GetFunction(engine_loader.GetModule(), Symbols::NET_SendPacketSym);
 	Detour::CheckFunction((void*)func_NET_SendPacket, "NET_SendPacket");
 
@@ -2560,14 +2092,8 @@ void CGameServerModule::InitDetour(bool bPreServer)
 	func_CNetChan_FlowUpdate = (Symbols::CNetChan_FlowUpdate)Detour::GetFunction(engine_loader.GetModule(), Symbols::CNetChan_FlowUpdateSym);
 	Detour::CheckFunction((void*)func_CNetChan_FlowUpdate, "CNetChan::FlowUpdate");
 
-	func_CNetChan_CompressFragments = (Symbols::CNetChan_CompressFragments)Detour::GetFunction(engine_loader.GetModule(), Symbols::CNetChan_CompressFragmentsSym);
-	Detour::CheckFunction((void*)func_CNetChan_CompressFragments, "CNetChan::CompressFragments");
-
-	func_CNetChan_SendReliableViaStream = (Symbols::CNetChan_SendReliableViaStream)Detour::GetFunction(engine_loader.GetModule(), Symbols::CNetChan_SendReliableViaStreamSym);
-	Detour::CheckFunction((void*)func_CNetChan_SendReliableViaStream, "CNetChan::SendReliableViaStream");
-
-	func_CNetChan_CheckWaitingList = (Symbols::CNetChan_CheckWaitingList)Detour::GetFunction(engine_loader.GetModule(), Symbols::CNetChan_CheckWaitingListSym);
-	Detour::CheckFunction((void*)func_CNetChan_CheckWaitingList, "CNetChan::CheckWaitingList");
+	func_CNetChan_SendSubChannelData = (Symbols::CNetChan_SendSubChannelData)Detour::GetFunction(engine_loader.GetModule(), Symbols::CNetChan_SendSubChannelDataSym);
+	Detour::CheckFunction((void*)func_CNetChan_SendSubChannelData, "CNetChan::SendSubChannelData");
 
 	vcr_verbose = g_pCVar->FindVar("vcr_verbose");
 	net_maxroutable = g_pCVar->FindVar("net_maxroutable");

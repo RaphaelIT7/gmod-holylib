@@ -561,32 +561,6 @@ namespace Symbols
 	typedef void (*CNetChan_UpdateSubChannels)(CNetChan* channel);
 	extern const std::vector<Symbol> CNetChan_UpdateSubChannelsSym;
 
-	// Even more funny temp things
-
-	typedef void (*CNetChan_D2)(CNetChan* channel);
-	extern const std::vector<Symbol> CNetChan_D2Sym;
-
-	typedef void (*CNetChan_Clear)(CNetChan* channel);
-	extern const std::vector<Symbol> CNetChan_ClearSym;
-
-	typedef void (*CNetChan_Setup)(CNetChan* chan, int sock, netadr_t* adr, const char* name, INetChannelHandler* handler, int nProtocolVersion);
-	extern const std::vector<Symbol> CNetChan_SetupSym;
-
-	typedef bool (*CNetChan_SendSubChannelData)(CNetChan* chan, bf_write &buf);
-	extern const std::vector<Symbol> CNetChan_SendSubChannelDataSym;
-
-	typedef void (*CNetChan_CompressFragments)(CNetChan* channel);
-	extern const std::vector<Symbol> CNetChan_CompressFragmentsSym;
-
-	typedef void (*CNetChan_SendReliableViaStream)(CNetChan* channel, dataFragments_s* fragment);
-	extern const std::vector<Symbol> CNetChan_SendReliableViaStreamSym;
-
-	typedef void (*CNetChan_CheckWaitingList)(CNetChan* channel, int nList);
-	extern const std::vector<Symbol> CNetChan_CheckWaitingListSym;
-
-	typedef int (*CNetChan_ProcessPacketHeader)(CNetChan* chan, netpacket_t* packet);
-	extern const std::vector<Symbol> CNetChan_ProcessPacketHeaderSym;
-
 
 	//---------------------------------------------------------------------------------
 	// Purpose: cvar Symbols
