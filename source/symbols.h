@@ -4,6 +4,7 @@
 #include "tier0/wchartypes.h"
 #include "Platform.hpp"
 #include "filesystem.h"
+#include "inetchannel.h"
 #include <vector>
 
 #if ARCHITECTURE_IS_X86_64
@@ -47,7 +48,10 @@ class CEntityWriteInfo;
 class ICvar;
 class ConCommandBase;
 class SVC_ServerInfo;
+class INetChannel;
+class CNetChan;
 struct MD5Value_t;
+struct dataFragments_s;
 
 namespace GarrysMod::Lua
 {
@@ -533,6 +537,56 @@ namespace Symbols
 
 	typedef void (*CGameClient_SpawnPlayer)(void* client);
 	extern const std::vector<Symbol> CGameClient_SpawnPlayerSym;
+
+	// Temp things
+
+	typedef int (*NET_SendPacket)(INetChannel *chan, int sock,  const netadr_t &to, const unsigned char *data, int length, bf_write *pVoicePayload /* = NULL */, bool bUseCompression /*=false*/);
+	extern const std::vector<Symbol> NET_SendPacketSym;
+
+	typedef bool (*CNetChan_CreateFragmentsFromBuffer)(CNetChan* channel, bf_write *buffer, int stream);
+	extern const std::vector<Symbol> CNetChan_CreateFragmentsFromBufferSym;
+
+	typedef bool (*CNetChan_SendSubChannelData)(CNetChan* channel, bf_write &buf);
+	extern const std::vector<Symbol> CNetChan_SendSubChannelDataSym;
+
+	typedef void (*CNetChan_FlowNewPacket)(CNetChan* channel, int flow, int seqnr, int acknr, int nChoked, int nDropped, int nSize);
+	extern const std::vector<Symbol> CNetChan_FlowNewPacketSym;
+
+	typedef void (*CNetChan_FlowUpdate)(CNetChan* channel, int flow, int addbytes);
+	extern const std::vector<Symbol> CNetChan_FlowUpdateSym;
+
+	typedef int (*CNetChan_SendDatagram)(CNetChan* chan, bf_write *datagram);
+	extern const std::vector<Symbol> CNetChan_SendDatagramSym;
+
+	typedef void (*CNetChan_UpdateSubChannels)(CNetChan* channel);
+	extern const std::vector<Symbol> CNetChan_UpdateSubChannelsSym;
+
+	// Even more funny temp things
+
+	typedef void (*CNetChan_D2)(CNetChan* channel);
+	extern const std::vector<Symbol> CNetChan_D2Sym;
+
+	typedef void (*CNetChan_Clear)(CNetChan* channel);
+	extern const std::vector<Symbol> CNetChan_ClearSym;
+
+	typedef void (*CNetChan_Setup)(CNetChan* chan, int sock, netadr_t* adr, const char* name, INetChannelHandler* handler, int nProtocolVersion);
+	extern const std::vector<Symbol> CNetChan_SetupSym;
+
+	typedef bool (*CNetChan_SendSubChannelData)(CNetChan* chan, bf_write &buf);
+	extern const std::vector<Symbol> CNetChan_SendSubChannelDataSym;
+
+	typedef void (*CNetChan_CompressFragments)(CNetChan* channel);
+	extern const std::vector<Symbol> CNetChan_CompressFragmentsSym;
+
+	typedef void (*CNetChan_SendReliableViaStream)(CNetChan* channel, dataFragments_s* fragment);
+	extern const std::vector<Symbol> CNetChan_SendReliableViaStreamSym;
+
+	typedef void (*CNetChan_CheckWaitingList)(CNetChan* channel, int nList);
+	extern const std::vector<Symbol> CNetChan_CheckWaitingListSym;
+
+	typedef int (*CNetChan_ProcessPacketHeader)(CNetChan* chan, netpacket_t* packet);
+	extern const std::vector<Symbol> CNetChan_ProcessPacketHeaderSym;
+
 
 	//---------------------------------------------------------------------------------
 	// Purpose: cvar Symbols
