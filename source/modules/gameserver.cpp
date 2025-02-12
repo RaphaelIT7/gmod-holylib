@@ -1692,6 +1692,7 @@ CNetChan::subChannel_s *CNetChan::GetFreeSubChannel()
 }
 
 static ConVar gameserver_maxfragments("holylib_gameserver_maxfragments", "7", 0, "How many fragments can be networked at once, limited to 7 or else networking dies", true, 1, true, 7);
+static ConVar gameserver_ignoreacknowledgements("holylib_gameserver_ignoreacknowledgements", "0", 0, "A possible speed improvement yet fragments may get lost & cause issues / it's unsafe.");
 
 static Detouring::Hook detour_CNetChan_UpdateSubChannels;
 void hook_CNetChan_UpdateSubChannels(CNetChan* chan)
@@ -2029,6 +2030,31 @@ int hook_CNetChan_SendDatagram(CNetChan* chan, bf_write *datagram)
 	
 	chan->m_nChokedPackets = 0;
 	chan->m_nOutSequenceNr++;
+
+	if (gameserver_ignoreacknowledgements.GetBool())
+	{
+		// Just mark everything as freed >:D
+		for (int i = 0; i<MAX_SUBCHANNELS; ++i)
+		{
+			CNetChan::subChannel_s * subchan = &chan->m_SubChannels[i];
+
+			for (int j=0; j<MAX_STREAMS; ++j)
+			{
+				if (subchan->numFragments[j] == 0)
+					continue;
+
+				Assert(m_WaitingList[j].Count() > 0);
+
+				CNetChan::dataFragments_t * data = chan->m_WaitingList[j][0];
+
+				// tell waiting list, that we received the acknowledge
+				data->ackedFragments += subchan->numFragments[j]; 
+				data->pendingFragments -= subchan->numFragments[j];
+			}
+
+			subchan->Free(); // mark subchannel as free again
+		}
+	}
 
 	return chan->m_nOutSequenceNr-1; // return send seq nr
 }
