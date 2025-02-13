@@ -762,18 +762,23 @@ LUA_FUNCTION_STATIC(CBaseClient_SetTimeout)
 }
 
 static int g_pMaxFragments = -1;
+static bool g_bFreeSubChannels = false;
 LUA_FUNCTION_STATIC(CBaseClient_Transmit)
 {
 	CBaseClient* pClient = Get_CBaseClient(1, true);
 	bool bOnlyReliable = LUA->GetBool(2);
 	int maxFragments = (int)LUA->CheckNumberOpt(3, -1);
+	bool bFreeSubChannels = LUA->GetBool(4);
 	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
 	if (!pNetChannel)
 		LUA->ThrowError("Failed to get a valid net channel");
 
 	g_pMaxFragments = maxFragments;
+	g_bFreeSubChannels = bFreeSubChannels;
 	LUA->PushBool(pNetChannel->Transmit(bOnlyReliable));
+	g_bFreeSubChannels = false;
 	g_pMaxFragments = -1;
+
 	return 1;
 }
 
@@ -842,37 +847,6 @@ LUA_FUNCTION_STATIC(CBaseClient_GetMaxRoutablePayloadSize)
 
 	LUA->PushNumber(pNetChannel->GetMaxRoutablePayloadSize());
 	return 1;
-}
-
-LUA_FUNCTION_STATIC(CBaseClient_FreeSubChannel)
-{
-	CBaseClient* pClient = Get_CBaseClient(1, true);
-	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
-	if (!pNetChannel)
-		LUA->ThrowError("Failed to get a valid net channel");
-
-	// Just mark everything as freed >:D
-	for (int i = 0; i<MAX_SUBCHANNELS; ++i)
-	{
-		CNetChan::subChannel_s * subchan = &pNetChannel->m_SubChannels[i];
-
-		for (int j=0; j<MAX_STREAMS; ++j)
-		{
-			if (subchan->numFragments[j] == 0)
-				continue;
-
-			Assert(m_WaitingList[j].Count() > 0);
-
-			CNetChan::dataFragments_t * data = pNetChannel->m_WaitingList[j][0];
-
-			// tell waiting list, that we received the acknowledge
-			data->ackedFragments += subchan->numFragments[j]; 
-			data->pendingFragments -= subchan->numFragments[j];
-		}
-
-		subchan->Free(); // mark subchannel as free again
-	}
-	return 0;
 }
 
 // Added for CHLTVClient to inherit functions.
@@ -957,7 +931,6 @@ void Push_CBaseClientMeta()
 	Util::AddFunc(CBaseClient_SetMaxBufferSize, "SetMaxBufferSize");
 	//Util::AddFunc(CBaseClient_HasQueuedPackets, "HasQueuedPackets");
 	Util::AddFunc(CBaseClient_GetMaxRoutablePayloadSize, "GetMaxRoutablePayloadSize");
-	Util::AddFunc(CBaseClient_FreeSubChannel, "FreeSubChannel");
 }
 
 LUA_FUNCTION_STATIC(CGameClient__tostring)
@@ -2053,6 +2026,32 @@ int hook_CNetChan_SendDatagram(CNetChan* chan, bf_write *datagram)
 	
 	chan->m_nChokedPackets = 0;
 	chan->m_nOutSequenceNr++;
+
+	// NOTE: This code has to be here as moving it into it's own lua function breaks stuff?
+	if (g_bFreeSubChannels)
+	{
+		// Just mark everything as freed >:D
+		for (int i = 0; i<MAX_SUBCHANNELS; ++i)
+		{
+			CNetChan::subChannel_s * subchan = &chan->m_SubChannels[i];
+
+			for (int j=0; j<MAX_STREAMS; ++j)
+			{
+				if (subchan->numFragments[j] == 0)
+					continue;
+
+				Assert(m_WaitingList[j].Count() > 0);
+
+				CNetChan::dataFragments_t * data = chan->m_WaitingList[j][0];
+
+				// tell waiting list, that we received the acknowledge
+				data->ackedFragments += subchan->numFragments[j]; 
+				data->pendingFragments -= subchan->numFragments[j];
+			}
+
+			subchan->Free(); // mark subchannel as free again
+		}
+	}
 
 	return chan->m_nOutSequenceNr-1; // return send seq nr
 }
