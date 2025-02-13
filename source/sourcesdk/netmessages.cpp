@@ -224,3 +224,32 @@ INetMessage *CNetChan::FindMessage(int type)
 
 	return NULL;
 }
+
+bool CNetChan::IsFileInWaitingList( const char *filename )
+{
+	if ( !filename || !filename[0] )
+		return true;
+
+	for ( int stream=0; stream<MAX_STREAMS; stream++)
+	{
+		for ( int i = 0; i < m_WaitingList[stream].Count(); i++ )
+		{
+			dataFragments_t * data = m_WaitingList[stream][i]; 
+
+			if ( !Q_strcmp( data->filename, filename ) )
+				return true; // alread in list
+		}
+	}
+
+	return false; // file not found
+}
+
+CNetChan::subChannel_s *CNetChan::GetFreeSubChannel()
+{
+	for ( int i=0; i<MAX_SUBCHANNELS; i++ )
+	{
+		if ( m_SubChannels[i].state == SUBCHANNEL_FREE )
+			return &m_SubChannels[i];
+	}
+	return NULL;
+}

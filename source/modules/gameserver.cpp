@@ -1717,16 +1717,6 @@ inline unsigned short BufferToShortChecksum( const void *pvData, size_t nLength 
 
 #define FLIPBIT(v,b) if (v&b) v &= ~b; else v |= b;
 
-CNetChan::subChannel_s *CNetChan::GetFreeSubChannel()
-{
-	for ( int i=0; i<MAX_SUBCHANNELS; i++ )
-	{
-		if ( m_SubChannels[i].state == SUBCHANNEL_FREE )
-			return &m_SubChannels[i];
-	}
-	return NULL;
-}
-
 static Detouring::Hook detour_CNetChan_UpdateSubChannels;
 void hook_CNetChan_UpdateSubChannels(CNetChan* chan)
 {

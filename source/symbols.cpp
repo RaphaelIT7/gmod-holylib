@@ -742,8 +742,6 @@ namespace Symbols
 		Symbol::FromName("_ZN11CGameClient11SpawnPlayerEv"),
 	};
 
-	// Temp
-
 	const std::vector<Symbol> NET_SendPacketSym = {
 		Symbol::FromName("_Z14NET_SendPacketP11INetChanneliRK8netadr_sPKhiP8bf_writeb"),
 	};

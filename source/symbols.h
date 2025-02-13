@@ -538,8 +538,6 @@ namespace Symbols
 	typedef void (*CGameClient_SpawnPlayer)(void* client);
 	extern const std::vector<Symbol> CGameClient_SpawnPlayerSym;
 
-	// Temp things
-
 	typedef int (*NET_SendPacket)(INetChannel *chan, int sock,  const netadr_t &to, const unsigned char *data, int length, bf_write *pVoicePayload /* = NULL */, bool bUseCompression /*=false*/);
 	extern const std::vector<Symbol> NET_SendPacketSym;
 
