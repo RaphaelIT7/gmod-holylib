@@ -559,6 +559,11 @@ namespace Symbols
 	typedef void (*CNetChan_UpdateSubChannels)(CNetChan* channel);
 	extern const std::vector<Symbol> CNetChan_UpdateSubChannelsSym;
 
+	typedef void (*CNetChan_CheckWaitingList)(CNetChan* channel, int nList);
+	extern const std::vector<Symbol> CNetChan_CheckWaitingListSym;
+
+	typedef int (*CNetChan_ProcessPacketHeader)(CNetChan* chan, netpacket_t* packet);
+	extern const std::vector<Symbol> CNetChan_ProcessPacketHeaderSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: cvar Symbols

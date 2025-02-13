@@ -769,4 +769,12 @@ namespace Symbols
 	const std::vector<Symbol> CNetChan_UpdateSubChannelsSym = {
 		Symbol::FromName("_ZN8CNetChan17UpdateSubChannelsEv"),
 	};
+
+	const std::vector<Symbol> CNetChan_CheckWaitingListSym = {
+		Symbol::FromName("_ZN8CNetChan16CheckWaitingListEi"),
+	};
+
+	const std::vector<Symbol> CNetChan_ProcessPacketHeaderSym = {
+		Symbol::FromName("_ZN8CNetChan19ProcessPacketHeaderEP11netpacket_s"),
+	};
 }
