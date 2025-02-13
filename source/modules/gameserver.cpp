@@ -761,15 +761,19 @@ LUA_FUNCTION_STATIC(CBaseClient_SetTimeout)
 	return 0;
 }
 
+static int g_pMaxFragments = -1;
 LUA_FUNCTION_STATIC(CBaseClient_Transmit)
 {
 	CBaseClient* pClient = Get_CBaseClient(1, true);
 	bool bOnlyReliable = LUA->GetBool(2);
+	int maxFragments = (int)LUA->CheckNumberOpt(3, -1);
 	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
 	if (!pNetChannel)
 		LUA->ThrowError("Failed to get a valid net channel");
 
+	g_pMaxFragments = maxFragments;
 	LUA->PushBool(pNetChannel->Transmit(bOnlyReliable));
+	g_pMaxFragments = -1;
 	return 1;
 }
 
@@ -838,6 +842,37 @@ LUA_FUNCTION_STATIC(CBaseClient_GetMaxRoutablePayloadSize)
 
 	LUA->PushNumber(pNetChannel->GetMaxRoutablePayloadSize());
 	return 1;
+}
+
+LUA_FUNCTION_STATIC(CBaseClient_FreeSubChannel)
+{
+	CBaseClient* pClient = Get_CBaseClient(1, true);
+	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
+	if (!pNetChannel)
+		LUA->ThrowError("Failed to get a valid net channel");
+
+	// Just mark everything as freed >:D
+	for (int i = 0; i<MAX_SUBCHANNELS; ++i)
+	{
+		CNetChan::subChannel_s * subchan = &pNetChannel->m_SubChannels[i];
+
+		for (int j=0; j<MAX_STREAMS; ++j)
+		{
+			if (subchan->numFragments[j] == 0)
+				continue;
+
+			Assert(m_WaitingList[j].Count() > 0);
+
+			CNetChan::dataFragments_t * data = pNetChannel->m_WaitingList[j][0];
+
+			// tell waiting list, that we received the acknowledge
+			data->ackedFragments += subchan->numFragments[j]; 
+			data->pendingFragments -= subchan->numFragments[j];
+		}
+
+		subchan->Free(); // mark subchannel as free again
+	}
+	return 0;
 }
 
 // Added for CHLTVClient to inherit functions.
@@ -922,6 +957,7 @@ void Push_CBaseClientMeta()
 	Util::AddFunc(CBaseClient_SetMaxBufferSize, "SetMaxBufferSize");
 	//Util::AddFunc(CBaseClient_HasQueuedPackets, "HasQueuedPackets");
 	Util::AddFunc(CBaseClient_GetMaxRoutablePayloadSize, "GetMaxRoutablePayloadSize");
+	Util::AddFunc(CBaseClient_FreeSubChannel, "FreeSubChannel");
 }
 
 LUA_FUNCTION_STATIC(CGameClient__tostring)
@@ -1691,13 +1727,10 @@ CNetChan::subChannel_s *CNetChan::GetFreeSubChannel()
 	return NULL;
 }
 
-static ConVar gameserver_maxfragments("holylib_gameserver_maxfragments", "7", 0, "How many fragments can be networked at once, limited to 7 or else networking dies", true, 1, true, 7);
-static ConVar gameserver_ignoreacknowledgements("holylib_gameserver_ignoreacknowledgements", "0", 0, "A possible speed improvement yet fragments may get lost & cause issues / it's unsafe.");
-
 static Detouring::Hook detour_CNetChan_UpdateSubChannels;
 void hook_CNetChan_UpdateSubChannels(CNetChan* chan)
 {
-	if (gameserver_maxfragments.GetInt() <= 0)
+	if (g_pMaxFragments <= 0)
 	{
 		detour_CNetChan_UpdateSubChannels.GetTrampoline<Symbols::CNetChan_UpdateSubChannels>()(chan);
 		return;
@@ -1709,7 +1742,7 @@ void hook_CNetChan_UpdateSubChannels(CNetChan* chan)
 	if ( freeSubChan == NULL )
 		return; //all subchannels in use right now
 
-	int nSendMaxFragments = gameserver_maxfragments.GetInt();
+	int nSendMaxFragments = MIN(g_pMaxFragments, 7);
 
 	bool bSendData = false;
 
@@ -2030,31 +2063,6 @@ int hook_CNetChan_SendDatagram(CNetChan* chan, bf_write *datagram)
 	
 	chan->m_nChokedPackets = 0;
 	chan->m_nOutSequenceNr++;
-
-	if (gameserver_ignoreacknowledgements.GetBool())
-	{
-		// Just mark everything as freed >:D
-		for (int i = 0; i<MAX_SUBCHANNELS; ++i)
-		{
-			CNetChan::subChannel_s * subchan = &chan->m_SubChannels[i];
-
-			for (int j=0; j<MAX_STREAMS; ++j)
-			{
-				if (subchan->numFragments[j] == 0)
-					continue;
-
-				Assert(m_WaitingList[j].Count() > 0);
-
-				CNetChan::dataFragments_t * data = chan->m_WaitingList[j][0];
-
-				// tell waiting list, that we received the acknowledge
-				data->ackedFragments += subchan->numFragments[j]; 
-				data->pendingFragments -= subchan->numFragments[j];
-			}
-
-			subchan->Free(); // mark subchannel as free again
-		}
-	}
 
 	return chan->m_nOutSequenceNr-1; // return send seq nr
 }
