@@ -12,13 +12,13 @@ bool Lua::PushHook(const char* hook)
 {
 	if ( !g_Lua )
 	{
-		Warning("HolyLib: Lua::PushHook was called while g_Lua was NULL! (%s)\n", hook);
+		Warning("holylib: Lua::PushHook was called while g_Lua was NULL! (%s)\n", hook);
 		return false;
 	}
 
 	if (!ThreadInMainThread())
 	{
-		Warning("HolyLib: Lua::PushHook was called ouside of the main thread! (%s)\n", hook);
+		Warning("holylib: Lua::PushHook was called ouside of the main thread! (%s)\n", hook);
 		return false;
 	}
 
@@ -26,7 +26,7 @@ bool Lua::PushHook(const char* hook)
 		if (g_Lua->GetType(-1) != GarrysMod::Lua::Type::Table)
 		{
 			g_Lua->Pop(1);
-			DevMsg("Missing hook table!\n");
+			DevMsg("holylib: Missing hook table!\n");
 			return false;
 		}
 
@@ -34,7 +34,7 @@ bool Lua::PushHook(const char* hook)
 			if (g_Lua->GetType(-1) != GarrysMod::Lua::Type::Function)
 			{
 				g_Lua->Pop(2);
-				DevMsg("Missing hook.Run function!\n");
+				DevMsg("holylib: Missing hook.Run function!\n");
 				return false;
 			} else {
 				g_Lua->Remove(-2);
@@ -48,7 +48,7 @@ void Lua::Init(GarrysMod::Lua::ILuaInterface* LUA)
 {
 	if (g_Lua)
 	{
-		Warning("g_Lua is already Initialized! Skipping... (%p, %p)\n", g_Lua, LUA);
+		Warning("holylib: g_Lua is already Initialized! Skipping... (%p, %p)\n", g_Lua, LUA);
 		return;
 	}
 
@@ -154,7 +154,7 @@ GarrysMod::Lua::ILuaInterface* Lua::GetRealm(unsigned char realm) {
 	SourceSDK::FactoryLoader luashared_loader("lua_shared");
 	GarrysMod::Lua::ILuaShared* LuaShared = (GarrysMod::Lua::ILuaShared*)luashared_loader.GetFactory()(GMOD_LUASHARED_INTERFACE, nullptr);
 	if (LuaShared == nullptr) {
-		Msg("failed to get ILuaShared!\n");
+		Msg("holylib: failed to get ILuaShared!\n");
 		return nullptr;
 	}
 
@@ -164,7 +164,7 @@ GarrysMod::Lua::ILuaInterface* Lua::GetRealm(unsigned char realm) {
 GarrysMod::Lua::ILuaShared* Lua::GetShared() {
 	SourceSDK::FactoryLoader luashared_loader("lua_shared");
 	if ( !luashared_loader.GetFactory() )
-		Msg("About to crash!\n");
+		Msg("holylib: About to crash!\n");
 
 	return luashared_loader.GetInterface<GarrysMod::Lua::ILuaShared>(GMOD_LUASHARED_INTERFACE);
 }
