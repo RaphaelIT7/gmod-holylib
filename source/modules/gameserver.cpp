@@ -1301,6 +1301,8 @@ static void hook_CServerGameClients_GetPlayerLimit(void* funkyClass, int& minPla
  * ToDo: Ask Rubat if were allowed to modify SVC_ServerInfo
  *       I think it "could" be considered breaking gmod server operator rules.
  *       "Do not fake server information. This mostly means player count, but other data also applies."
+ * 
+ * Update: Rubat said it's fine.
  */
 // static MD5Value_t worldmapMD5;
 static Detouring::Hook detour_CBaseServer_FillServerInfo;
@@ -2280,10 +2282,30 @@ void CGameServerModule::InitDetour(bool bPreServer)
 		(void*)hook_CGameClient_SpawnPlayer, m_pID
 	);
 
+	SourceSDK::FactoryLoader server_loader("server");
+	if (!g_pModuleManager.IsMarkedAsBinaryModule()) // Loaded by require? Then we skip this.
+	{
+		Detour::Create(
+			&detour_CBaseServer_IsMultiplayer, "CBaseServer::IsMultiplayer",
+			engine_loader.GetModule(), Symbols::CBaseServer_IsMultiplayerSym,
+			(void*)hook_CBaseServer_IsMultiplayer, m_pID
+		);
+
+		Detour::Create(
+			&detour_GModDataPack_IsSingleplayer, "GModDataPack::IsSingleplayer",
+			server_loader.GetModule(), Symbols::GModDataPack_IsSingleplayerSym,
+			(void*)hook_GModDataPack_IsSingleplayer, m_pID
+		);
+	}
+
+	Detour::Create(
+		&detour_CServerGameClients_GetPlayerLimit, "CServerGameClients::GetPlayerLimit",
+		server_loader.GetModule(), Symbols::CServerGameClients_GetPlayerLimitSym,
+		(void*)hook_CServerGameClients_GetPlayerLimit, m_pID
+	);
+
 	func_CBaseClient_OnRequestFullUpdate = (Symbols::CBaseClient_OnRequestFullUpdate)Detour::GetFunction(engine_loader.GetModule(), Symbols::CBaseClient_OnRequestFullUpdateSym);
 	Detour::CheckFunction((void*)func_CBaseClient_OnRequestFullUpdate, "CBaseClient::OnRequestFullUpdate");
-
-	// Temp
 
 	Detour::Create(
 		&detour_CNetChan_SendDatagram, "CNetChan::SendDatagram",
@@ -2324,26 +2346,4 @@ void CGameServerModule::InitDetour(bool bPreServer)
 	net_showfragments = g_pCVar->FindVar("net_showfragments");
 	net_maxpacketdrop = g_pCVar->FindVar("net_maxpacketdrop");
 	net_showdrop = g_pCVar->FindVar("net_showdrop");
-
-	SourceSDK::FactoryLoader server_loader("server");
-	if (!g_pModuleManager.IsMarkedAsBinaryModule()) // Loaded by require? Then we skip this.
-	{
-		Detour::Create(
-			&detour_CBaseServer_IsMultiplayer, "CBaseServer::IsMultiplayer",
-			engine_loader.GetModule(), Symbols::CBaseServer_IsMultiplayerSym,
-			(void*)hook_CBaseServer_IsMultiplayer, m_pID
-		);
-
-		Detour::Create(
-			&detour_GModDataPack_IsSingleplayer, "GModDataPack::IsSingleplayer",
-			server_loader.GetModule(), Symbols::GModDataPack_IsSingleplayerSym,
-			(void*)hook_GModDataPack_IsSingleplayer, m_pID
-		);
-	}
-
-	Detour::Create(
-		&detour_CServerGameClients_GetPlayerLimit, "CServerGameClients::GetPlayerLimit",
-		server_loader.GetModule(), Symbols::CServerGameClients_GetPlayerLimitSym,
-		(void*)hook_CServerGameClients_GetPlayerLimit, m_pID
-	);
 }
