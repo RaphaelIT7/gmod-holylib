@@ -231,6 +231,9 @@ static void AddFileToSearchCache(const char* pFileName, int path, const char* pa
 	if (!pathID)
 		pathID = nullPath;
 
+	if (!pFileName)
+		return;
+
 	if (g_pFileSystemModule.InDebug())
 		Msg("holylib - AddFileToSearchCache: Added file %s to seach cache (%i, %s)\n", pFileName, path, pathID);
 
@@ -245,6 +248,9 @@ static void RemoveFileFromSearchCache(const char* pFileName, const char* pathID)
 {
 	if (!pathID)
 		pathID = nullPath;
+
+	if (!pFileName)
+		return;
 
 	if (g_pFileSystemModule.InDebug())
 		Msg("holylib - RemoveFileFromSearchCache: Removed file %s from seach cache! (%s)\n", pFileName, pathID);
@@ -266,6 +272,9 @@ static CSearchPath* GetPathFromSearchCache(const char* pFileName, const char* pa
 {
 	if (!pathID)
 		pathID = nullPath;
+
+	if (!pFileName)
+		return NULL; // ??? can this even happen?
 
 	auto mapIt = m_SearchCache.find(pathID);
 	if (mapIt == m_SearchCache.end())
