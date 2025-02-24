@@ -249,7 +249,11 @@ static void RemoveFileFromSearchCache(const char* pFileName, const char* pathID)
 	if (g_pFileSystemModule.InDebug())
 		Msg("holylib - RemoveFileFromSearchCache: Removed file %s from seach cache! (%s)\n", pFileName, pathID);
 
-	auto& map = m_SearchCache[pathID];
+	auto mapIt = m_SearchCache.find(pathID);
+	if (mapIt == m_SearchCache.end())
+		return;
+	
+	auto& map = mapIt->second;
 	auto it = map.find(pFileName);
 	if (it == map.end())
 		return;
@@ -263,7 +267,11 @@ static CSearchPath* GetPathFromSearchCache(const char* pFileName, const char* pa
 	if (!pathID)
 		pathID = nullPath;
 
-	auto& map = m_SearchCache[pathID];
+	auto mapIt = m_SearchCache.find(pathID);
+	if (mapIt == m_SearchCache.end())
+		return NULL;
+	
+	auto& map = mapIt->second;
 	auto it = map.find(pFileName);
 	if (it == map.end())
 		return NULL; // We should add a debug print to see if we make a mistake somewhere

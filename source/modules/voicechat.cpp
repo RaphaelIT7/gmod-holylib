@@ -209,6 +209,7 @@ LUA_FUNCTION_STATIC(VoiceData_CreateCopy)
 	return 1;
 }
 
+static int voiceDataGCReference = -1;
 static Detouring::Hook detour_SV_BroadcastVoiceData;
 static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data, int64 xuid)
 {
@@ -245,18 +246,16 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 		 * Why? because else we would inflate the debug registry(& it never shrinks) as the GC won't be fast enouth to clean all the created VoiceData.
 		 */
 
-		g_Lua->PushString("__gc");
-		g_Lua->ReferencePush(iReference);
-		g_Lua->ReferenceFree(iReference);
-		if (g_Lua->FindOnObjectsMetaTable(-1, -2))
+		if (voiceDataGCReference > 0)
 		{
-			g_Lua->Push(-2);
-			g_Lua->CallFunctionProtected(1, 0, true);
+			Util::ReferencePush(g_Lua, voiceDataGCReference);
 		} else {
-			Warning("holylib: Failed to find VoiceData:__gc!\n");
+			g_Lua->PushCFunction(VoiceData__gc);
 		}
 
-		g_Lua->Pop(2);
+		g_Lua->ReferencePush(iReference);
+		g_Lua->ReferenceFree(iReference);
+		g_Lua->CallFunctionProtected(1, 0, true);
 
 		if (bHandled)
 			return;
@@ -423,6 +422,9 @@ void CVoiceChatModule::LuaInit(bool bServerInit)
 	if (bServerInit)
 		return;
 
+	g_Lua->PushCFunction(VoiceData__gc);
+	voiceDataGCReference = g_Lua->ReferenceCreate();
+
 	VoiceData_TypeID = g_Lua->CreateMetaTable("VoiceData");
 		Util::AddFunc(VoiceData__tostring, "__tostring");
 		Util::AddFunc(VoiceData__index, "__index");
@@ -456,6 +458,12 @@ void CVoiceChatModule::LuaInit(bool bServerInit)
 void CVoiceChatModule::LuaShutdown()
 {
 	Util::NukeTable("voicechat");
+
+	if (voiceDataGCReference > 0)
+	{
+		g_Lua->ReferenceFree(voiceDataGCReference);
+		voiceDataGCReference = -1;
+	}
 }
 
 void CVoiceChatModule::InitDetour(bool bPreServer)
