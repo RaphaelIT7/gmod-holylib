@@ -47,8 +47,9 @@ class CPathIDInfo
 		// See MarkPathIDByRequestOnly.
 		bool m_bByRequestOnly;
 
-	private:
+	public:
 		CUtlSymbol m_PathID;
+		byte test[2];
 		const char *m_pDebugPathID;
 	};
 
@@ -88,7 +89,7 @@ class CSearchPath
 
 		bool				m_bIsTrustedForPureServer;
 
-	private:
+	public:
 		CUtlSymbol			m_Path;
 		const char			*m_pDebugPath;
 		void*			*m_pPackFile;
@@ -714,7 +715,7 @@ public:
 		// See MarkPathIDByRequestOnly.
 		bool m_bByRequestOnly;
 
-	private:
+	public:
 		CUtlSymbol m_PathID;
 		const char *m_pDebugPathID;
 	};

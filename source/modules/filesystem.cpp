@@ -525,7 +525,7 @@ static void DumpSearchCacheCmd(const CCommand& args)
 {
 	for (auto& [key, val] : g_pAbsoluteSearchCache)
 	{
-		Msg("Key: %s\nValue: %s\n", key.data(), val.data());
+		Msg("Key: %s (%i)\nValue: %s (%i)\n", key.data(), key.length(), val.data(), val.length());
 	}
 }
 static ConCommand dumpabsolutesearchcache("holylib_filesystem_dumpabsolutesearchcache", DumpSearchCacheCmd, "Dumps the absolute search cache", 0);
@@ -570,7 +570,31 @@ static FileHandle_t hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, 
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::FindFile", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
 	if (g_pFileSystemModule.InDebug())
+	{
+		const CSearchPath* path = openInfo.m_pSearchPath;
+		//if (((void*)path) > ((void*)pFileName)) // We probably got a Invalid Search path. How? Unknown. This is dumb, we ALWAYS load the absolute search cache before anything so pFileName will always be smaller than any search path
+		{
+			Msg("m_storeId: %i\n", path->m_storeId);
+			Msg("m_pPathIDInfo: %p\n", path->m_pPathIDInfo);
+			Msg("m_bIsRemotePath: %s\n", path->m_bIsRemotePath ? "true" : "false");
+			Msg("m_bIsTrustedForPureServer: %s\n", path->m_bIsTrustedForPureServer ? "true" : "false");
+			Msg("m_pDebugPath: %p\n", path->m_pDebugPath);
+			Msg("m_pPackFile: %p\n", path->GetPackFile());
+			Msg("m_pPackedStore: %p\n", path->GetPackedStore());
+
+			{ // Unsafe if it's really invalid
+				CPathIDInfo* info = path->m_pPathIDInfo;
+				if (info)
+				{
+					Msg("-> m_PathID: %i\n", (int)(info->m_PathID.operator unsigned short()));
+					Msg("-> m_pDebugPathID: %p\n", info->m_pDebugPathID);
+					Msg("-> m_pDebugPathID(str): %s\n", info->m_pDebugPathID);
+				}
+			}
+		}
+
 		Msg("FindFileInSearchPath: trying to find %s -> %p (%s)\n", openInfo.m_pFileName, openInfo.m_pSearchPath, openInfo.m_pSearchPath->GetPathIDString());
+	}
 
 	CSearchPath* cachePath = GetPathFromSearchCache(openInfo.m_pFileName, openInfo.m_pSearchPath->GetPathIDString());
 	if (cachePath)
@@ -643,9 +667,31 @@ static long hook_CBaseFileSystem_FastFileTime(void* filesystem, const CSearchPat
 
 	if (g_pFileSystemModule.InDebug())
 	{
-		Msg("holylib - FastFileTime: trying to find %s -> %p (%s)\n", pFileName, path, path->GetPathIDString());
+		//if (((void*)path) > ((void*)pFileName)) // We probably got a Invalid Search path. How? Unknown. This is dumb, we ALWAYS load the absolute search cache before anything so pFileName will always be smaller than any search path
+		{
+			Msg("m_storeId: %i\n", path->m_storeId);
+			Msg("m_pPathIDInfo: %p\n", path->m_pPathIDInfo);
+			Msg("m_bIsRemotePath: %s\n", path->m_bIsRemotePath ? "true" : "false");
+			Msg("m_bIsTrustedForPureServer: %s\n", path->m_bIsTrustedForPureServer ? "true" : "false");
+			Msg("m_pDebugPath: %p\n", path->m_pDebugPath);
+			Msg("m_pPackFile: %p\n", path->GetPackFile());
+			Msg("m_pPackedStore: %p\n", path->GetPackedStore());
+
+			{ // Unsafe if it's really invalid
+				CPathIDInfo* info = path->m_pPathIDInfo;
+				if (info)
+				{
+					Msg("-> m_PathID: %i\n", (int)(info->m_PathID.operator unsigned short()));
+					Msg("-> m_pDebugPathID: %p\n", info->m_pDebugPathID);
+					Msg("-> m_pDebugPathID(str): %s\n", info->m_pDebugPathID);
+				}
+			}
+		}
+
+		Msg("holylib - FastFileTime: trying to find %s -> %p\n", pFileName, path);
+		Msg("holylib - FastFileTime: searchpath %s\n", path->GetPathIDString());
 		Msg("holylib - FastFileTime: filename len %i\n", strlen(pFileName));
-		Msg("holylib - FastFileTime: filepath len %i\n", strlen(path->GetPathIDString()));
+		Msg("holylib - FastFileTime: searchpath len %i\n", strlen(path->GetPathIDString()));
 	}
 
 	CSearchPath* cachePath = GetPathFromSearchCache(pFileName, path->GetPathIDString());
@@ -1178,27 +1224,6 @@ static long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char
 		if (!newPath && strFileName.rfind("gamemodes/terrortown") == 0)
 			newPath = "MOD_WRITE";
 
-		if (holylib_filesystem_savesearchcache.GetBool())
-		{
-			std::string_view* absoluteStr = GetStringFromAbsoluteCache(pFileName);
-			if (absoluteStr)
-			{
-				if (g_pFileSystemModule.InDebug())
-					Msg("holylib - GetFileTime: Found file in absolute path (%s, %s)\n", pFileName, absoluteStr->data());
-
-				// We pass it a absolute path which will be used in ::FastFileTime
-				long time = detour_CBaseFileSystem_GetFileTime.GetTrampoline<Symbols::CBaseFileSystem_GetFileTime>()(filesystem, absoluteStr->data(), pPathID);
-				if (time != 0L)
-					return time;
-
-				if (g_pFileSystemModule.InDebug())
-					Msg("holylib - GetFileTime: Invalid absolute path? (%s, %s)\n", pFileName, absoluteStr->data());
-			} else {
-				if (g_pFileSystemModule.InDebug())
-					Msg("holylib - GetFileTime: Failed to find file in absolute path (%s)\n", pFileName);
-			}
-		}
-
 		if (newPath)
 		{
 			long time = detour_CBaseFileSystem_GetFileTime.GetTrampoline<Symbols::CBaseFileSystem_GetFileTime>()(filesystem, pFileName, pPathID);
@@ -1212,6 +1237,27 @@ static long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char
 		} else {
 			if (g_pFileSystemModule.InDebug())
 				Msg("holylib - GetFileTime: File is not in overridePaths (%s, %s)\n", pFileName, pPathID);
+		}
+	}
+
+	if (holylib_filesystem_savesearchcache.GetBool()) // why exactly was I doing this inside the forcepath check before? idk.
+	{
+		std::string_view* absoluteStr = GetStringFromAbsoluteCache(pFileName);
+		if (absoluteStr)
+		{
+			if (g_pFileSystemModule.InDebug())
+				Msg("holylib - GetFileTime: Found file in absolute path (%s, %s)\n", pFileName, absoluteStr->data());
+
+			// We pass it a absolute path which will be used in ::FastFileTime
+			long time = detour_CBaseFileSystem_GetFileTime.GetTrampoline<Symbols::CBaseFileSystem_GetFileTime>()(filesystem, absoluteStr->data(), pPathID);
+			if (time != 0L)
+				return time;
+
+			if (g_pFileSystemModule.InDebug())
+				Msg("holylib - GetFileTime: Invalid absolute path? (%s, %s)\n", pFileName, absoluteStr->data());
+		} else {
+			if (g_pFileSystemModule.InDebug())
+				Msg("holylib - GetFileTime: Failed to find file in absolute path (%s)\n", pFileName);
 		}
 	}
 
