@@ -569,6 +569,9 @@ static FileHandle_t hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, 
 
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::FindFile", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
+	if (g_pFileSystemModule.InDebug())
+		Msg("FindFileInSearchPath: trying to find %s -> %p (%s)\n", openInfo.m_pFileName, openInfo.m_pSearchPath, openInfo.m_pSearchPath->GetPathIDString());
+
 	CSearchPath* cachePath = GetPathFromSearchCache(openInfo.m_pFileName, openInfo.m_pSearchPath->GetPathIDString());
 	if (cachePath)
 	{
@@ -637,6 +640,9 @@ static long hook_CBaseFileSystem_FastFileTime(void* filesystem, const CSearchPat
 		InitFileSystem((IFileSystem*)filesystem);
 
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::FastFileTime", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
+
+	if (g_pFileSystemModule.InDebug())
+		Msg("holylib - FastFileTime: trying to find %s (%i) -> %p (%s, %i)\n", pFileName, strlen(pFileName), path, path->GetPathIDString(), strlen(path->GetPathIDString()));
 
 	CSearchPath* cachePath = GetPathFromSearchCache(pFileName, path->GetPathIDString());
 	if (cachePath)
