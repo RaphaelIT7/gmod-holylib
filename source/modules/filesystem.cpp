@@ -642,7 +642,11 @@ static long hook_CBaseFileSystem_FastFileTime(void* filesystem, const CSearchPat
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::FastFileTime", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
 	if (g_pFileSystemModule.InDebug())
-		Msg("holylib - FastFileTime: trying to find %s (%i) -> %p (%s, %i)\n", pFileName, strlen(pFileName), path, path->GetPathIDString(), strlen(path->GetPathIDString()));
+	{
+		Msg("holylib - FastFileTime: trying to find %s -> %p (%s)\n", pFileName, path, path->GetPathIDString());
+		Msg("holylib - FastFileTime: filename len %i\n", strlen(pFileName));
+		Msg("holylib - FastFileTime: filepath len %i\n", strlen(path->GetPathIDString()));
+	}
 
 	CSearchPath* cachePath = GetPathFromSearchCache(pFileName, path->GetPathIDString());
 	if (cachePath)
