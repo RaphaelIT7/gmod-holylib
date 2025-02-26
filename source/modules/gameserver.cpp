@@ -1810,15 +1810,6 @@ int hook_CNetChan_SendDatagram(CNetChan* chan, bf_write *datagram)
 	{
 		func_CNetChan_CreateFragmentsFromBuffer(chan, &chan->m_StreamReliable, FRAG_NORMAL_STREAM);
 		chan->m_StreamReliable.Reset();
-
-		for ( int i=0; i<MAX_STREAMS; i++ )
-		{
-			if ( chan->m_WaitingList[i].Count() == 0 )
-				continue;
-
-			// get the first fragments block which is send next
-			CNetChan::dataFragments_t *data = chan->m_WaitingList[i][0];
-		}
 	}
 
 	bf_write send( "CNetChan_TransmitBits->send", send_buf, sizeof(send_buf) );
@@ -2013,9 +2004,18 @@ int hook_CNetChan_SendDatagram(CNetChan* chan, bf_write *datagram)
 
 	// calculate net_time when channel will be ready for next packet (throttling)
 	// TODO:  This doesn't exactly match size sent when packet is a "split" packet (actual bytes sent is higher, etc.)
-	double fAddTime = (float)nTotalSize / (float)chan->m_Rate;
+	/*double fAddTime = (float)nTotalSize / (float)chan->m_Rate;
 
-	//chan->m_fClearTime += fAddTime;
+	chan->m_fClearTime += fAddTime;
+
+	if ( net_maxcleartime->GetFloat() > 0.0f )
+	{
+		double m_flLatestClearTime = net_time + net_maxcleartime->GetFloat();
+		if ( chan->m_fClearTime > m_flLatestClearTime )
+		{
+			chan->m_fClearTime = m_flLatestClearTime;
+		}
+	}*/
 
 	if ( net_maxcleartime->GetFloat() > 0.0f )
 	{
@@ -2306,6 +2306,10 @@ void CGameServerModule::InitDetour(bool bPreServer)
 
 	func_CBaseClient_OnRequestFullUpdate = (Symbols::CBaseClient_OnRequestFullUpdate)Detour::GetFunction(engine_loader.GetModule(), Symbols::CBaseClient_OnRequestFullUpdateSym);
 	Detour::CheckFunction((void*)func_CBaseClient_OnRequestFullUpdate, "CBaseClient::OnRequestFullUpdate");
+
+	/*
+	 * Everything below are networking related changes, when the next gmod update is out we shoulod be able to remove most of it if rubat implements https://github.com/Facepunch/garrysmod-requests/issues/2632
+	 */
 
 	Detour::Create(
 		&detour_CNetChan_SendDatagram, "CNetChan::SendDatagram",

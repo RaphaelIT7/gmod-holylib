@@ -67,6 +67,7 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 		})
 
 		filter("system:windows")
+			disablewarnings({"4101"})
 			files({"source/win32/*.cpp", "source/win32/*.hpp"})
 			links({"lua51_32.lib"})
 			links({"lua51_64.lib"})
@@ -90,6 +91,7 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			links("luajit_32")
 
 		filter("system:linux")
+			disablewarnings({"unused-variable"})
 			targetextension(".so")
 			links -- this fixes the undefined reference to `dlopen' errors.
 				{
