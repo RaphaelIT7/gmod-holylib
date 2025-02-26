@@ -83,6 +83,7 @@ On the next startup the ghostinj will update holylib to use the new file.
 \- [#] Optimized `CCvar::FindVar` (50x faster in average).  
 \- [#] Fixed `pvs.RemoveAllEntityFromTransmit` possibly causing stack issues.  
 \- [#] Completely changed how we Push/Manage Lua userdata to reduce memory leaks.  
+\- [#] Fixed a filesystem issue which could rarely result in a crash. (Issue: #23)  
 \- [-] Removed `holylib_filesystem_optimizedfixpath` since it was implemented into gmod itself.  
 
 You can see all changes here:  
