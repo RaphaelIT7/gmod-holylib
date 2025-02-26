@@ -570,31 +570,7 @@ static FileHandle_t hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, 
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::FindFile", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
 	if (g_pFileSystemModule.InDebug())
-	{
-		const CSearchPath* path = openInfo.m_pSearchPath;
-		//if (((void*)path) > ((void*)pFileName)) // We probably got a Invalid Search path. How? Unknown. This is dumb, we ALWAYS load the absolute search cache before anything so pFileName will always be smaller than any search path
-		{
-			Msg("m_storeId: %i\n", path->m_storeId);
-			Msg("m_pPathIDInfo: %p\n", path->m_pPathIDInfo);
-			Msg("m_bIsRemotePath: %s\n", path->m_bIsRemotePath ? "true" : "false");
-			Msg("m_bIsTrustedForPureServer: %s\n", path->m_bIsTrustedForPureServer ? "true" : "false");
-			Msg("m_pDebugPath: %p\n", path->m_pDebugPath);
-			Msg("m_pPackFile: %p\n", path->GetPackFile());
-			Msg("m_pPackedStore: %p\n", path->GetPackedStore());
-
-			{ // Unsafe if it's really invalid
-				CPathIDInfo* info = path->m_pPathIDInfo;
-				if (info)
-				{
-					Msg("-> m_PathID: %i\n", (int)(info->m_PathID.operator unsigned short()));
-					Msg("-> m_pDebugPathID: %p\n", info->m_pDebugPathID);
-					Msg("-> m_pDebugPathID(str): %s\n", info->m_pDebugPathID);
-				}
-			}
-		}
-
 		Msg("FindFileInSearchPath: trying to find %s -> %p (%s)\n", openInfo.m_pFileName, openInfo.m_pSearchPath, openInfo.m_pSearchPath->GetPathIDString());
-	}
 
 	CSearchPath* cachePath = GetPathFromSearchCache(openInfo.m_pFileName, openInfo.m_pSearchPath->GetPathIDString());
 	if (cachePath)
@@ -666,33 +642,7 @@ static long hook_CBaseFileSystem_FastFileTime(void* filesystem, const CSearchPat
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::FastFileTime", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
 	if (g_pFileSystemModule.InDebug())
-	{
-		//if (((void*)path) > ((void*)pFileName)) // We probably got a Invalid Search path. How? Unknown. This is dumb, we ALWAYS load the absolute search cache before anything so pFileName will always be smaller than any search path
-		{
-			Msg("m_storeId: %i\n", path->m_storeId);
-			Msg("m_pPathIDInfo: %p\n", path->m_pPathIDInfo);
-			Msg("m_bIsRemotePath: %s\n", path->m_bIsRemotePath ? "true" : "false");
-			Msg("m_bIsTrustedForPureServer: %s\n", path->m_bIsTrustedForPureServer ? "true" : "false");
-			Msg("m_pDebugPath: %p\n", path->m_pDebugPath);
-			Msg("m_pPackFile: %p\n", path->GetPackFile());
-			Msg("m_pPackedStore: %p\n", path->GetPackedStore());
-
-			{ // Unsafe if it's really invalid
-				CPathIDInfo* info = path->m_pPathIDInfo;
-				if (info)
-				{
-					Msg("-> m_PathID: %i\n", (int)(info->m_PathID.operator unsigned short()));
-					Msg("-> m_pDebugPathID: %p\n", info->m_pDebugPathID);
-					Msg("-> m_pDebugPathID(str): %s\n", info->m_pDebugPathID);
-				}
-			}
-		}
-
 		Msg("holylib - FastFileTime: trying to find %s -> %p\n", pFileName, path);
-		Msg("holylib - FastFileTime: searchpath %s\n", path->GetPathIDString());
-		Msg("holylib - FastFileTime: filename len %i\n", strlen(pFileName));
-		Msg("holylib - FastFileTime: searchpath len %i\n", strlen(path->GetPathIDString()));
-	}
 
 	CSearchPath* cachePath = GetPathFromSearchCache(pFileName, path->GetPathIDString());
 	if (cachePath)
@@ -1694,9 +1644,10 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 		Msg("Updated workshop path. (%s)\n", workshopDir.c_str());
 }
 
+static CUtlSymbolTableMT* g_pPathIDTable;
 inline const char* CPathIDInfo::GetPathIDString() const
 {
-	return m_pDebugPathID; // This should remove the requirement for g_pPathIDTable.
+	return g_pPathIDTable->String( m_PathID );
 }
 
 inline const char* CSearchPath::GetPathIDString() const
@@ -1817,6 +1768,10 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 
 	func_CBaseFileSystem_CSearchPath_GetDebugString = (Symbols::CBaseFileSystem_CSearchPath_GetDebugString)Detour::GetFunction(dedicated_loader.GetModule(), Symbols::CBaseFileSystem_CSearchPath_GetDebugStringSym);
 	Detour::CheckFunction((void*)func_CBaseFileSystem_CSearchPath_GetDebugString, "CBaseFileSystem::CSearchPath::GetDebugString");
+
+	SourceSDK::FactoryLoader dedicated_factory("dedicated_srv");
+	g_pPathIDTable = Detour::ResolveSymbol<CUtlSymbolTableMT>(dedicated_factory, Symbols::g_PathIDTableSym);
+	Detour::CheckValue("get class", "g_PathIDTable", g_pPathIDTable != NULL);
 #endif
 }
 

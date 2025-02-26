@@ -322,6 +322,9 @@ namespace Symbols
 		Symbol::FromName("_ZNK15CBaseFileSystem11CSearchPath14GetDebugStringEv"),
 	};
 
+	const std::vector<Symbol> g_PathIDTableSym = {
+		Symbol::FromName("g_PathIDTable"),
+	};
 
 	//---------------------------------------------------------------------------------
 	// Purpose: concommand Symbols

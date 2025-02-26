@@ -310,6 +310,7 @@ namespace Symbols
 	typedef const char* (GMCOMMON_CALLING_CONVENTION* CBaseFileSystem_CSearchPath_GetDebugString)(void* searchpath);
 	extern const std::vector<Symbol> CBaseFileSystem_CSearchPath_GetDebugStringSym;
 
+	extern const std::vector<Symbol> g_PathIDTableSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: concommand Symbols
