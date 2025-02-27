@@ -242,7 +242,7 @@ LUA_FUNCTION_STATIC(GetGlobalEntityList)
 void CEntListModule::OnEntityDeleted(CBaseEntity* pEntity)
 {
 	if (g_pEntListModule.InDebug())
-		Msg("Deleted Entity: %p (%i)\n", pEntity, pEntityLists.size());
+		Msg("Deleted Entity: %p (%i)\n", pEntity, (int)pEntityLists.size());
 
 	for (EntityList* pList : pEntityLists)
 	{
@@ -261,7 +261,7 @@ void CEntListModule::OnEntityCreated(CBaseEntity* pEntity)
 	g_pGlobalEntityList.AddEntity(pEntity);
 
 	if (g_pEntListModule.InDebug())
-		Msg("Created Entity %p (%p, %i)\n", pEntity, &g_pGlobalEntityList, pEntityLists.size());
+		Msg("Created Entity %p (%p, %i)\n", pEntity, &g_pGlobalEntityList, (int)pEntityLists.size());
 }
 
 void CEntListModule::LuaInit(bool bServerInit)

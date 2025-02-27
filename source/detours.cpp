@@ -20,7 +20,7 @@ void Detour::Create(Detouring::Hook* hook, const char* name, void* module, Symbo
 {
 	if (pDisabledDetours.find(name) != pDisabledDetours.end())
 	{
-		Msg("holylib: Detour %s was disabled!\n", name);
+		Msg(PROJECT_NAME ": Detour %s was disabled!\n", name);
 		return;
 	}
 
@@ -34,7 +34,7 @@ void Detour::Create(Detouring::Hook* hook, const char* name, void* module, Symbo
 	g_pDetours[category].push_back(hook);
 
 	if (!DETOUR_ISVALID((*hook)))
-		Msg("holylib: Failed to detour %s!\n", name);
+		Msg(PROJECT_NAME ": Failed to detour %s!\n", name);
 }
 
 void Detour::Remove(unsigned int category) // NOTE: Do we need to check if the provided category is valid?
@@ -53,7 +53,7 @@ void Detour::ReportLeak()
 {
 	for (auto& [id, hooks]: g_pDetours)
 		if (hooks.size() > 0)
-			Msg("holylib: ID %d failed to shutdown it's detours!\n", id);
+			Msg(PROJECT_NAME ": ID %d failed to shutdown it's detours!\n", id);
 }
 
 static void ToggleDetour(const CCommand& args)

@@ -525,7 +525,7 @@ static void DumpSearchCacheCmd(const CCommand& args)
 {
 	for (auto& [key, val] : g_pAbsoluteSearchCache)
 	{
-		Msg("Key: %s (%i)\nValue: %s (%i)\n", key.data(), key.length(), val.data(), val.length());
+		Msg("Key: %s (%i)\nValue: %s (%i)\n", key.data(), (int)key.length(), val.data(), (int)val.length());
 	}
 }
 static ConCommand dumpabsolutesearchcache("holylib_filesystem_dumpabsolutesearchcache", DumpSearchCacheCmd, "Dumps the absolute search cache", 0);
@@ -1647,6 +1647,12 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 static CUtlSymbolTableMT* g_pPathIDTable;
 inline const char* CPathIDInfo::GetPathIDString() const
 {
+	/*
+	 * Why don't we return m_pDebugPathID to not rely on g_pPathIDTable?
+	 * Because then in RARE cases it can happen that m_pDebugPathID contains a INVALID value causing random and difficult to debug crashes.
+	 * This had happen in https://github.com/RaphaelIT7/gmod-holylib/issues/23 where it would result in crashes inside strlen calls on the string.
+	 */
+
 	return g_pPathIDTable->String( m_PathID );
 }
 
@@ -1660,24 +1666,6 @@ inline const char* CSearchPath::GetPathIDString() const
 
 static Symbols::CBaseFileSystem_CSearchPath_GetDebugString func_CBaseFileSystem_CSearchPath_GetDebugString;
 inline const char* CSearchPath::GetPathString() const
-{
-	return func_CBaseFileSystem_CSearchPath_GetDebugString((void*)this); // Look into this to possibly remove the GetDebugString function.
-}
-
-inline const char* CBaseFileSystem::CPathIDInfo::GetPathIDString() const
-{
-	return m_pDebugPathID; // This should remove the requirement for g_pPathIDTable.
-}
-
-inline const char* CBaseFileSystem::CSearchPath::GetPathIDString() const // Remove this duplicate later :<
-{
-	if (m_pPathIDInfo)
-		return m_pPathIDInfo->GetPathIDString(); // When can we nuke it :>
-
-	return NULL;
-}
-
-inline const char* CBaseFileSystem::CSearchPath::GetPathString() const
 {
 	return func_CBaseFileSystem_CSearchPath_GetDebugString((void*)this); // Look into this to possibly remove the GetDebugString function.
 }
