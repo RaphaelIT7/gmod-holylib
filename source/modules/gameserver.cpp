@@ -66,16 +66,14 @@ Default__newindex(CBaseClient);
 LUA_FUNCTION_STATIC(CBaseClient_GetTable)
 {
 	LuaUserData* data = Get_CBaseClient_Data(1, true);
-	CBaseClient* pClient = (CBaseClient*)data->pData;
-	if (data->pAdditionalData != pClient->GetUserID())
+	CBaseClient* pClient = (CBaseClient*)data->GetData();
+	if (data->GetAdditionalData() != pClient->GetUserID())
 	{
-		data->pAdditionalData = pClient->GetUserID();
-		LUA->ReferenceFree(data->iTableReference);
-		LUA->CreateTable();
-		data->iTableReference = LUA->ReferenceCreate();
+		data->SetAdditionalData(pClient->GetUserID());
+		data->ClearLuaTable();
 	}
 
-	Util::ReferencePush(LUA, data->iTableReference); // This should never crash so no safety checks.
+	Util::ReferencePush(LUA, data->GetLuaTable()); // This should never crash so no safety checks.
 
 	return 1;
 }

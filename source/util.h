@@ -209,10 +209,14 @@ struct LuaUserData {
 
 	inline void Init(GarrysMod::Lua::ILuaInterface* LUA)
 	{
-		if (iTableReference == -1)
+	}
+
+	inline void EnsureLuaTable()
+	{
+		if (iTableReference == -1 && g_Lua)
 		{
-			LUA->CreateTable();
-			iTableReference = LUA->ReferenceCreate();
+			g_Lua->CreateTable();
+			iTableReference = g_Lua->ReferenceCreate();
 		}
 	}
 
@@ -230,6 +234,41 @@ struct LuaUserData {
 		return pData;
 	}
 
+	inline void SetData(void* data)
+	{
+		pData = data;
+	}
+
+	inline int GetAdditionalData()
+	{
+		return pAdditionalData;
+	}
+
+	inline void SetAdditionalData(int data)
+	{
+		pAdditionalData = data;
+	}
+
+	inline int GetLuaTable()
+	{
+		EnsureLuaTable();
+		return iTableReference;
+	}
+
+	inline void ClearLuaTable()
+	{
+		if (iTableReference != -1 && g_Lua)
+		{
+			g_Lua->ReferenceFree(iTableReference);
+			iTableReference = -1;
+		}
+	}
+
+	inline int GetReference()
+	{
+		return iReference;
+	}
+
 	inline bool Push()
 	{
 		if (iReference == -1)
@@ -239,6 +278,7 @@ struct LuaUserData {
 		return true;
 	}
 
+private:
 	void* pData = NULL;
 	int iReference = -1;
 	int iTableReference = -1;
@@ -329,7 +369,7 @@ void Push_##className(className* var) \
 	} \
 \
 	LuaUserData* userData = new LuaUserData; \
-	userData->pData = var; \
+	userData->SetData(var); \
 	userData->Init(g_Lua); \
 	g_Lua->PushUserType(userData, luaType); \
 }
@@ -348,10 +388,10 @@ void Push_##className(className* var) \
 	auto it = g_pPushed##className.find(var); \
 	if (it != g_pPushed##className.end()) \
 	{ \
-		g_Lua->ReferencePush(it->second->iReference); \
+		g_Lua->ReferencePush(it->second->GetReference()); \
 	} else { \
 		LuaUserData* userData = new LuaUserData; \
-		userData->pData = var; \
+		userData->SetData(var); \
 		g_Lua->PushUserType(userData, luaType); \
 		userData->Init(g_Lua); \
 		userData->CreateReference(); \
@@ -383,7 +423,7 @@ LUA_FUNCTION_STATIC(className ## __index) \
 		return 1; \
 \
 	LUA->Pop(1); \
-	Util::ReferencePush(LUA, Get_##className##_Data(1, true)->iTableReference); \
+	Util::ReferencePush(LUA, Get_##className##_Data(1, true)->GetLuaTable()); \
 	if (!LUA->FindObjectOnTable(-1, 2)) \
 		LUA->PushNil(); \
 \
@@ -409,7 +449,7 @@ LUA_FUNCTION_STATIC(className ## __gc) \
 #define Default__newindex(className) \
 LUA_FUNCTION_STATIC(className ## __newindex) \
 { \
-Util::ReferencePush(LUA, Get_##className##_Data(1, true)->iTableReference); \
+Util::ReferencePush(LUA, Get_##className##_Data(1, true)->GetLuaTable()); \
 	LUA->Push(2); \
 	LUA->Push(3); \
 	LUA->RawSet(-3); \
@@ -421,9 +461,16 @@ Util::ReferencePush(LUA, Get_##className##_Data(1, true)->iTableReference); \
 #define Default__GetTable(className) \
 LUA_FUNCTION_STATIC(className ## _GetTable) \
 { \
-	Util::ReferencePush(LUA, Get_##className##_Data(1, true)->iTableReference); \
+	Util::ReferencePush(LUA, Get_##className##_Data(1, true)->GetLuaTable()); \
 	return 1; \
 }
+
+/*
+ * Shouldn't we have a Default__eq?
+ * No.
+ * Because if we push the same object, we will ALWAYS use PushReferenced_LuaClass
+ * and since it's the same userdata thats reference pushed, we won't need a __eq
+ */
 
 // Push functions from modules: 
 // ToDo: move this at a later point into a seperate file. Maybe into _modules?
