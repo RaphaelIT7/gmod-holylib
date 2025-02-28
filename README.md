@@ -3307,7 +3307,10 @@ Inactivates the client.
 > [!WARNING]
 > Know what your doing when using it!
 
-#### CBaseClient:Disconnect(string reason)
+#### CBaseClient:Disconnect(string reason, bool silent = false, bool nogameevent = false)
+silent - Silently closes the net channel and sends no disconnect to the client.
+nogameevent - Stops the `player_disconnect` event from being created.
+
 Disconnects the client.  
 
 #### CBaseClient:SetRate(number rate)

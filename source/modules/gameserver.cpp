@@ -220,8 +220,20 @@ LUA_FUNCTION_STATIC(CBaseClient_Disconnect)
 {
 	CBaseClient* pClient = Get_CBaseClient(1, true);
 	const char* strReason = LUA->CheckString(2);
+	bool bSilent = LUA->GetBool(3);
+	bool bNoEvent = LUA->GetBool(4);
+
+	if (bSilent)
+		pClient->GetNetChannel()->Shutdown(NULL); // NULL = Send no disconnect message
+
+	if (bNoEvent)
+		BlockGameEvent("player_disconnect");
 
 	pClient->Disconnect(strReason);
+	
+	if (bNoEvent)
+		UnblockGameEvent("player_disconnect");
+
 	return 0;
 }
 
