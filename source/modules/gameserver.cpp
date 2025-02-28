@@ -1246,6 +1246,17 @@ LUA_FUNCTION_STATIC(gameserver_BroadcastMessage)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(gameserver_CalculateCPUUsage)
+{
+	if (!Util::server || !Util::server->IsActive())
+		return 0;
+
+	CBaseServer* pServer = (CBaseServer*)Util::server;
+	pServer->CalculateCPUUsage();
+	LUA->PushNumber(pServer->m_fCPUPercent);
+	return 1;
+}
+
 extern CGlobalVars* gpGlobals;
 static ConVar* sv_stressbots;
 void CGameServerModule::LuaInit(bool bServerInit)
@@ -1292,6 +1303,7 @@ void CGameServerModule::LuaInit(bool bServerInit)
 		Util::AddFunc(gameserver_SetPaused, "SetPaused");
 		Util::AddFunc(gameserver_SetPassword, "SetPassword");
 		Util::AddFunc(gameserver_BroadcastMessage, "BroadcastMessage");
+		Util::AddFunc(gameserver_CalculateCPUUsage, "CalculateCPUUsage");
 	Util::FinishTable("gameserver");
 }
 

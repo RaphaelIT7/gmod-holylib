@@ -3239,6 +3239,9 @@ bf:WriteString("1") -- ConVar value
 gameserver.BroadcastMessage(5, "NET_SetConVar", bf) -- 5 = net_SetConVar / net message type.
 ```
 
+#### number gameserver.CalculateCPUUsage()
+Calculates and returns the CPU Usage.
+
 ### CBaseClient
 This class represents a client.
 
