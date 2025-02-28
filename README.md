@@ -3242,6 +3242,10 @@ gameserver.BroadcastMessage(5, "NET_SetConVar", bf) -- 5 = net_SetConVar / net m
 #### number gameserver.CalculateCPUUsage()
 Calculates and returns the CPU Usage.
 
+#### number gameserver.ApproximateProcessMemoryUsage()
+Approximates the memory usage of the server in bytes.  
+It isn't really related to the gameserver itself, but since it has CalculateCPUUsage I want to keep them close.
+
 ### CBaseClient
 This class represents a client.
 
