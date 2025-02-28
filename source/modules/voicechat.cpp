@@ -6,6 +6,7 @@
 #include "sourcesdk/baseclient.h"
 #include "steam/isteamclient.h"
 #include <isteamutils.h>
+#include "unordered_set"
 
 class CVoiceChatModule : public IModule
 {
@@ -15,11 +16,22 @@ public:
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) OVERRIDE;
 	virtual void Shutdown() OVERRIDE;
+	virtual void Think(bool bSimulating) OVERRIDE;
 	virtual const char* Name() { return "voicechat"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32; };
 };
 
 static ConVar voicechat_hooks("holylib_voicechat_hooks", "1", 0);
+
+static IThreadPool* pVoiceThreadPool = NULL;
+static void OnVoiceThreadsChange(IConVar* convar, const char* pOldValue, float flOldValue)
+{
+	pVoiceThreadPool->ExecuteAll();
+	pVoiceThreadPool->Stop();
+	Util::StartThreadPool(pVoiceThreadPool, ((ConVar*)convar)->GetInt());
+}
+
+static ConVar voicechat_threads("holylib_voicechat_threads", "1", 0, "The number of threads to use for voicechat.LoadVoiceStream and voicechat.SaveVoiceStream if you specify async", OnVoiceThreadsChange);
 
 static CVoiceChatModule g_pVoiceChatModule;
 IModule* pVoiceChatModule = &g_pVoiceChatModule;
@@ -207,6 +219,227 @@ LUA_FUNCTION_STATIC(VoiceData_CreateCopy)
 
 	Push_VoiceData(pData->CreateCopy());
 	return 1;
+}
+
+struct VoiceStream {
+	~VoiceStream()
+	{
+		for (auto& [_, val] : pVoiceData)
+			delete val;
+
+		pVoiceData.clear();
+	}
+
+	/*
+	 * VoiceStream file structure:
+	 * 
+	 * 4 bytes / int - total count of VoiceData
+	 * 
+	 * each entry:
+	 * 4 bytes / int - tick number
+	 * 4 bytes / int - length of data
+	 * (length) bytes / bytes - the data
+	 */
+	void Save(FileHandle_t fh)
+	{
+		// Create a copy so that the main thread can still party on it.
+		std::unordered_map<int, VoiceData*> voiceDataEnties = pVoiceData;
+
+		int count = (int)voiceDataEnties.size();
+		g_pFullFileSystem->Write(&count, sizeof(int), fh); // First write the total number of voice data
+
+		for (auto& [tickNumber, voiceData] : voiceDataEnties)
+		{
+			g_pFullFileSystem->Write(&tickNumber, sizeof(int), fh);
+
+			int length = voiceData->iLength;
+			char* data = voiceData->pData;
+
+			g_pFullFileSystem->Write(&length, sizeof(int), fh);
+			g_pFullFileSystem->Write(data, length, fh);
+		}
+	}
+
+	static VoiceStream* Load(FileHandle_t fh)
+	{
+		VoiceStream* pStream = new VoiceStream;
+
+		int count;
+		g_pFullFileSystem->Read(&count, sizeof(int), fh);
+
+		for (int i=0; i<count; ++i)
+		{
+			int tickNumber;
+			g_pFullFileSystem->Read(&tickNumber, sizeof(int), fh);
+
+			int length;
+			g_pFullFileSystem->Read(&length, sizeof(int), fh);
+
+			char* data = new char[length];
+			g_pFullFileSystem->Read(data, length, fh);
+
+			VoiceData* voiceData = new VoiceData;
+			voiceData->iLength = length;
+			voiceData->pData = data;
+
+			pStream->SetIndex(tickNumber, voiceData);
+		}
+
+		return pStream;
+	}
+
+	/*
+	 * If you push it to Lua, call ->CreateCopy() on the VoiceData,
+	 * we CANT push the VoiceData we store as else the GC will do funnies & crash.
+	 */
+	inline VoiceData* GetIndex(int index)
+	{
+		auto it = pVoiceData.find(index);
+		if (it == pVoiceData.end())
+			return NULL;
+
+		return it->second;
+	}
+
+	/*
+	 * We assume that the given VoiceData was NEVER pushed to Lua.
+	 */
+	inline void SetIndex(int index, VoiceData* pData)
+	{
+		auto it = pVoiceData.find(index);
+		if (it != pVoiceData.end())
+		{
+			delete it->second;
+			pVoiceData.erase(it);
+		}
+
+		pVoiceData[index] = pData;
+	}
+
+	/*
+	 * We create a copy of EVERY voiceData.
+	 */
+	inline void CreateLuaTable(GarrysMod::Lua::ILuaInterface* pLua)
+	{
+		pLua->PreCreateTable(0, pVoiceData.size());
+			for (auto& [tickCount, voiceData] : pVoiceData)
+			{
+				Push_VoiceData(voiceData->CreateCopy());
+				Util::RawSetI(pLua, -2, tickCount);
+			}
+	}
+
+	inline int GetCount()
+	{
+		return (int)pVoiceData.size();
+	}
+
+private:
+	// key = tickcount
+	// value = VoiceData
+	std::unordered_map<int, VoiceData*> pVoiceData;
+};
+
+static int VoiceStream_TypeID = -1;
+Push_LuaClass(VoiceStream, VoiceStream_TypeID)
+Get_LuaClass(VoiceStream, VoiceStream_TypeID, "VoiceStream")
+
+LUA_FUNCTION_STATIC(VoiceStream__tostring)
+{
+	VoiceStream* pStream = Get_VoiceStream(1, false);
+	if (!pStream)
+	{
+		LUA->PushString("VoiceStream [NULL]");
+		return 1;
+	}
+
+	char szBuf[64] = {};
+	V_snprintf(szBuf, sizeof(szBuf), "VoiceStream [%i]", pStream->GetCount());
+	LUA->PushString(szBuf);
+	return 1;
+}
+
+Default__index(VoiceStream);
+Default__newindex(VoiceStream);
+Default__GetTable(VoiceStream);
+Default__gc(VoiceStream,
+	VoiceStream* pVoiceData = (VoiceStream*)pData->GetData();
+	if (pVoiceData)
+		delete pVoiceData;
+)
+
+LUA_FUNCTION_STATIC(VoiceStream_IsValid)
+{
+	VoiceStream* pStream = Get_VoiceStream(1, false);
+
+	LUA->PushBool(pStream != nullptr);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VoiceStream_GetData)
+{
+	VoiceStream* pStream = Get_VoiceStream(1, true);
+
+	pStream->CreateLuaTable(LUA);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VoiceStream_SetData)
+{
+	VoiceStream* pStream = Get_VoiceStream(1, true);
+	LUA->CheckType(2, GarrysMod::Lua::Type::Table);
+
+	LUA->Push(2);
+	LUA->PushNil();
+	while (LUA->Next(-2))
+	{
+		// We could remove this, but that would mean that the key could NEVER be 0
+		if (!LUA->IsType(-2, GarrysMod::Lua::Type::Number))
+		{
+			LUA->Pop(1);
+			continue;
+		}
+
+		int tick = LUA->GetNumber(-2); // key
+		VoiceData* data = Get_VoiceData(-1, false); // value
+
+		if (data)
+		{
+			pStream->SetIndex(tick, data->CreateCopy());
+		}
+
+		LUA->Pop(1);
+	}
+	LUA->Pop(1);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(VoiceStream_GetCount)
+{
+	VoiceStream* pStream = Get_VoiceStream(1, true);
+
+	LUA->PushNumber(pStream->GetCount());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VoiceStream_GetIndex)
+{
+	VoiceStream* pStream = Get_VoiceStream(1, true);
+	int index = (int)LUA->CheckNumber(2);
+
+	VoiceData* data = pStream->GetIndex(index);
+	Push_VoiceData(data ? data->CreateCopy() : NULL);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VoiceStream_SetIndex)
+{
+	VoiceStream* pStream = Get_VoiceStream(1, true);
+	int index = (int)LUA->CheckNumber(2);
+	VoiceData* pData = Get_VoiceData(3, true);
+
+	pStream->SetIndex(index, pData->CreateCopy());
+	return 0;
 }
 
 static int voiceDataGCReference = -1;
@@ -417,6 +650,182 @@ LUA_FUNCTION_STATIC(voicechat_IsProximityHearingClient)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(voicechat_CreateVoiceStream)
+{
+	Push_VoiceStream(new VoiceStream);
+	return 1;
+}
+
+enum VoiceStreamTaskStatus {
+	VoiceStreamTaskStatus_FAILED_FILE_NOT_FOUND = -2,
+	VoiceStreamTaskStatus_FAILED_INVALID_TYPE = -1,
+	VoiceStreamTaskStatus_NONE = 0,
+	VoiceStreamTaskStatus_DONE = 1
+};
+
+enum VoiceStreamTaskType {
+	VoiceStreamTask_NONE,
+	VoiceStreamTask_SAVE,
+	VoiceStreamTask_LOAD
+};
+
+struct VoiceStreamTask {
+	char pFileName[MAX_PATH];
+	char pGamePath[MAX_PATH];
+
+	VoiceStreamTaskType iType = VoiceStreamTask_NONE;
+	VoiceStreamTaskStatus iStatus = VoiceStreamTaskStatus_NONE;
+
+	VoiceStream* pStream = NULL;
+	int iReference = -1; // A reference to the pStream to stop the GC from kicking in.
+	int iCallback = -1;
+};
+
+static std::unordered_set<VoiceStreamTask*> g_pVoiceStreamTasks; // Won't need a mutex since only the main thread accesses it.
+static void VoiceStreamJob(VoiceStreamTask*& task)
+{
+	switch(task->iType)
+	{
+		case VoiceStreamTask_LOAD:
+		{
+			FileHandle_t fh = g_pFullFileSystem->Open(task->pFileName, "rb", task->pGamePath);
+			if (fh)
+			{
+				task->pStream = VoiceStream::Load(fh);
+				g_pFullFileSystem->Close(fh);
+			} else {
+				task->iStatus = VoiceStreamTaskStatus_FAILED_FILE_NOT_FOUND;
+			}
+			break;
+		}
+		case VoiceStreamTask_SAVE:
+		{
+			FileHandle_t fh = g_pFullFileSystem->Open(task->pFileName, "wb", task->pGamePath);
+			if (fh)
+			{
+				task->pStream->Save(fh);
+				g_pFullFileSystem->Close(fh);
+			} else {
+				task->iStatus = VoiceStreamTaskStatus_FAILED_FILE_NOT_FOUND;
+			}
+			break;
+		}
+		default:
+		{
+			Warning("holylib - VoiceChat(VoiceStreamJob): Managed to get a job without a type. How.\n");
+			task->iStatus = VoiceStreamTaskStatus_FAILED_INVALID_TYPE;
+			return;
+		}
+	}
+
+	if (task->iStatus == VoiceStreamTaskStatus_NONE) // Wasn't set already? then just set it to done.
+	{
+		task->iStatus = VoiceStreamTaskStatus_DONE;
+	}
+}
+
+LUA_FUNCTION_STATIC(voicechat_LoadVoiceStream)
+{
+	const char* pFileName = LUA->CheckString(1);
+	const char* pGamePath = LUA->CheckStringOpt(2, "DATA");
+	bool bAsync = LUA->GetBool(3);
+	if (bAsync)
+	{
+		LUA->CheckType(4, GarrysMod::Lua::Type::Function);
+	}
+
+	VoiceStreamTask* task = new VoiceStreamTask;
+	V_strncpy(task->pFileName, pFileName, sizeof(task->pFileName));
+	V_strncpy(task->pGamePath, pGamePath, sizeof(task->pGamePath));
+	task->iType = VoiceStreamTask_LOAD;
+
+	if (bAsync)
+	{
+		LUA->Push(4);
+		task->iCallback = LUA->ReferenceCreate();
+		g_pVoiceStreamTasks.insert(task);
+		pVoiceThreadPool->QueueCall(&VoiceStreamJob, task);
+		return 0;
+	} else {
+		VoiceStreamJob(task);
+		Push_VoiceStream(task->pStream);
+		LUA->PushNumber((int)task->iStatus);
+		delete task;
+		return 2;
+	}
+}
+
+LUA_FUNCTION_STATIC(voicechat_SaveVoiceStream)
+{
+	VoiceStream* pStream = Get_VoiceStream(1, true);
+	const char* pFileName = LUA->CheckString(2);
+	const char* pGamePath = LUA->CheckStringOpt(3, "DATA");
+	bool bAsync = LUA->GetBool(4);
+	if (bAsync)
+	{
+		LUA->CheckType(5, GarrysMod::Lua::Type::Function);
+	}
+
+	VoiceStreamTask* task = new VoiceStreamTask;
+	V_strncpy(task->pFileName, pFileName, sizeof(task->pFileName));
+	V_strncpy(task->pGamePath, pGamePath, sizeof(task->pGamePath));
+	task->iType = VoiceStreamTask_SAVE;
+	
+	LUA->Push(1);
+	task->iReference = LUA->ReferenceCreate();
+	task->pStream = pStream;
+
+	if (bAsync)
+	{
+		LUA->Push(5);
+		task->iCallback = LUA->ReferenceCreate();
+		g_pVoiceStreamTasks.insert(task);
+		pVoiceThreadPool->QueueCall(&VoiceStreamJob, task);
+		return 0;
+	} else {
+		VoiceStreamJob(task);
+		LUA->PushNumber((int)task->iStatus);
+		delete task;
+		return 1;
+	}
+}
+
+void CVoiceChatModule::Think(bool bSimulating)
+{
+	for (auto it = g_pVoiceStreamTasks.begin(); it != g_pVoiceStreamTasks.end(); )
+	{
+		VoiceStreamTask* pTask = *it;
+		if (pTask->iStatus == VoiceStreamTaskStatus_NONE)
+		{
+			it++;
+			continue;
+		}
+
+		if (pTask->iCallback == -1)
+		{
+			Warning("holylib - VoiceChat(Think): somehow managed to get a task without a callback!\n");
+			if (pTask->pStream != NULL && pTask->iType != VoiceStreamTask_SAVE)
+				delete pTask->pStream;
+
+			it = g_pVoiceStreamTasks.erase(it);
+			continue;
+		}
+
+		g_Lua->ReferencePush(pTask->iCallback);
+		Push_VoiceStream(pTask->pStream); // Lua GC will take care of deleting.
+		g_Lua->PushBool(pTask->iStatus == VoiceStreamTaskStatus_DONE);
+		g_Lua->CallFunctionProtected(2, 0, true);
+		g_Lua->ReferenceFree(pTask->iCallback);
+		if (pTask->iReference != -1)
+		{
+			g_Lua->ReferenceFree(pTask->iReference);
+		}
+		
+		delete pTask;
+		it = g_pVoiceStreamTasks.erase(it);
+	}
+}
+
 void CVoiceChatModule::LuaInit(bool bServerInit)
 {
 	if (bServerInit)
@@ -444,6 +853,20 @@ void CVoiceChatModule::LuaInit(bool bServerInit)
 		Util::AddFunc(VoiceData_CreateCopy, "CreateCopy");
 	g_Lua->Pop(1);
 
+	VoiceStream_TypeID = g_Lua->CreateMetaTable("VoiceStream");
+		Util::AddFunc(VoiceStream__tostring, "__tostring");
+		Util::AddFunc(VoiceStream__index, "__index");
+		Util::AddFunc(VoiceStream__newindex, "__newindex");
+		Util::AddFunc(VoiceStream__gc, "__gc");
+		Util::AddFunc(VoiceStream_GetTable, "GetTable");
+		Util::AddFunc(VoiceStream_IsValid, "IsValid");
+		Util::AddFunc(VoiceStream_GetData, "GetData");
+		Util::AddFunc(VoiceStream_SetData, "SetData");
+		Util::AddFunc(VoiceStream_GetCount, "GetCount");
+		Util::AddFunc(VoiceStream_GetIndex, "GetIndex");
+		Util::AddFunc(VoiceStream_SetIndex, "SetIndex");
+	g_Lua->Pop(1);
+
 	Util::StartTable();
 		Util::AddFunc(voicechat_SendEmptyData, "SendEmptyData");
 		Util::AddFunc(voicechat_SendVoiceData, "SendVoiceData");
@@ -452,6 +875,9 @@ void CVoiceChatModule::LuaInit(bool bServerInit)
 		Util::AddFunc(voicechat_CreateVoiceData, "CreateVoiceData");
 		Util::AddFunc(voicechat_IsHearingClient, "IsHearingClient");
 		Util::AddFunc(voicechat_IsProximityHearingClient, "IsProximityHearingClient");
+		Util::AddFunc(voicechat_CreateVoiceStream, "CreateVoiceStream");
+		Util::AddFunc(voicechat_LoadVoiceStream, "LoadVoiceStream");
+		Util::AddFunc(voicechat_SaveVoiceStream, "SaveVoiceStream");
 	Util::FinishTable("voicechat");
 }
 

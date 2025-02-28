@@ -69,6 +69,7 @@ On the next startup the ghostinj will update holylib to use the new file.
 \- \- Files inside that folder are loaded and executed before **any** gmod script runs, only the c++ functions exist at this point.  
 \- [+] Added `bf_write:WriteString` to `bitbuf` module.  
 \- [+] Added `IGModAudioChannel:FFT` to `bass` module.  
+\- [+] Added `VoiceStream` class and related functions to `voicechat` module.
 \- [#] Fixed many issues with the `bass` module. It is acutally usable.  
 \- [#] Improved performance by replacing SetTable with RawSet.  
 \- [#] Added missing calls to the deconstructors for `CHLTVClient` and `CNetworkStringTable`.  
@@ -2060,6 +2061,28 @@ Creates a new VoiceData object.
 > [!NOTE]
 > All Arguments are optional!
 
+#### VoiceStream voicechat.CreateVoiceStream()
+Creates a empty VoiceStream.  
+
+#### VoiceStream, number(statusCode) voicechat.LoadVoiceStream(string fileName, string gamePath = "DATA", bool async = false, function callback = nil)
+callback = `function(VoiceStream loadedStream, number statusCode)`
+statusCode = `-2 = File not found, -1 = Invalid type, 0 = None, 1 = Done`  
+
+Tries to load a VoiceStream from the given file.  
+If `async` is specified it **WONT** return **anything** and the `callback` will be **required**.  
+
+#### number(statusCode) voicechat.SaveVoiceStream(VoiceStream stream, string fileName, string gamePath = "DATA", bool async = false, function callback = nil)
+callback = `function(VoiceStream loadedStream, number statusCode)`
+statusCode = `-2 = File not found, -1 = Invalid type, 0 = None, 1 = Done`  
+
+Tries to save a VoiceStream into the given file.  
+If `async` is specified it **WONT** return **anything** and the `callback` will be **required**.  
+
+> [!NOTE]
+> It should be safe to modify/use the VoiceStream while it's saving async **BUT** you should try to avoid doing that.
+
+####
+
 ### VoiceData
 VoiceData is a userdata value that is used to manage the voicedata.  
 
@@ -2115,6 +2138,55 @@ Sets if the VoiceData is in proximity.
 
 #### VoiceData VoiceData:CreateCopy()
 Creates a exact copy of the voice data.  
+
+### VoiceStream
+VoiceStream is a userdata value that internally contains multiple VoiceData for specific ticks.  
+
+#### string VoiceStream:\_\_tostring()
+Returns `VoiceStream [entires]`.  
+
+#### VoiceStream:\_\_gc()
+Garbage collection. Deletes the voice data internally.  
+
+#### VoiceStream:\_\_newindex(string key, any value)
+Internally implemented and will set the values into the lua table.  
+
+#### any VoiceStream:\_\_index(string key)
+Internally seaches first in the metatable table for the key.  
+If it fails to find it, it will search in the lua table before returning.  
+If you try to get multiple values from the lua table, just use `VoiceStream:GetTable()`.  
+
+#### table VoiceStream:GetTable()
+Returns the lua table of this object.  
+You can store variables into it.  
+
+#### bool VoiceStream:IsValid()
+Returns `true` if the VoiceData is still valid.  
+
+#### table VoiceStream:GetData()
+Returns a table, with the tick as key and **copy** of the VoiceData as value.  
+
+> [!NOTE]
+> The returned VoiceData is just a copy,  
+> modifying them won't affect the internally stored VoiceData.
+> Call `VoiceStream:SetData` or `VoiceStream:SetIndex` after you modified it to update it.  
+
+#### VoiceStream:SetData(table data)
+Sets the VoiceStream from the given table.  
+
+#### number VoiceStream:GetCount()
+Returns the number of VoiceData it stores.  
+
+#### VoiceData VoiceStream:GetIndex(number index)
+Returns a **copy** of the VoiceData for the given index or `nil`.  
+
+> [!NOTE]
+> The returned VoiceData is just a copy,  
+> modifying them won't affect the internally stored VoiceData.
+> Call `VoiceStream:SetData` or `VoiceStream:SetIndex` after you modified it to update it.  
+
+#### VoiceStream:SetIndex(number index, VoiceData data)
+Create a copy of the given VoiceData and sets it onto the specific index and overrides any data thats already present.  
 
 ### Hooks
 
@@ -2209,6 +2281,11 @@ end)
 
 #### holylib_voicechat_hooks(default `1`)
 If enabled, the VoiceChat hooks will be called.  
+
+#### holylib_voicechat_threads(default `1`)
+The number of threads the voicechat can use for async stuff.  
+voicechat.LoadVoiceStream and voicechat.SaveVoiceStream currently use it,  
+originally I expected thoes both functions to be far slower but they turned out to be quite fast.
 
 ## physenv
 This module fixes https://github.com/Facepunch/garrysmod-issues/issues/642 and adds a few small things.  
