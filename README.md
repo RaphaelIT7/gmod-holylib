@@ -2733,6 +2733,7 @@ physenv.EnablePhysHook(true)
 local mainEnv = physenv.GetActiveEnvironmentByIndex(0)
 hook.Add("HolyLib:OnPhysFrame", "Example", function(deltaTime)
 	mainEnv:Simulate(deltaTime, true) -- the second argument will only cause the entities to update.
+    return true -- We stop the engine from running the simulation itself again as else it will result in issue like "Reset physics clock" being spammed
 end)
 ```
 
@@ -3584,7 +3585,8 @@ playerQueue = playerQueue or {
 hook.Add("HolyLib:OnSetSignonState", "Example", function(cl, state, c)
 	print(cl, state, c)
 
-	local fullServer = #player.GetAll() >= 128 -- Can't exceed 128 players.
+	local maxSlots = 128 -- Can't exceed 128 players. If you want to only have 100 players, lower it but NEVER go above 128
+	local fullServer = player.GetCount() >= maxSlots
 	if fullServer and state == SIGNONSTATE_PRESPAWN then -- REQUIRED to be SIGNONSTATE_PRESPAWN
 		if not playerQueue[cl] then
 			playerQueue[cl] = true
