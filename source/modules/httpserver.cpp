@@ -35,11 +35,12 @@ struct HttpRequest {
 
 	bool bHandled = false;
 	bool bDelete = false; // We only delete from the main thread.
-	int iFunction;
+	int iFunction = -1;
 	std::string strPath;
 	HttpResponse pResponseData;
 	httplib::Response pResponse;
 	httplib::Request pRequest;
+	int pClientUserID = -1;
 };
 
 enum
@@ -51,6 +52,23 @@ enum
 class HttpServer
 {
 public:
+	~HttpServer()
+	{
+		if (!ThreadInMainThread())
+		{
+			Warning("holylib: Something deleted a HttpServer from another thread!\n"); // Spooky leaking references.
+			return;
+		}
+
+		if (!g_Lua)
+			return;
+
+		for (auto& ref : m_pHandlerReferences)
+			g_Lua->ReferenceFree(ref);
+
+		m_pHandlerReferences.clear();
+	}
+
 	void Start(const char* address, unsigned short port);
 	void Stop();
 	void Think();
@@ -114,6 +132,7 @@ private:
 	bool m_bInUpdate = false;
 	std::string m_strAddress;
 	std::vector<HttpRequest*> m_pRequests;
+	std::vector<int> m_pHandlerReferences; // Contains the Lua references to the handler functions.
 	httplib::Server m_pServer;
 };
 
@@ -298,9 +317,29 @@ LUA_FUNCTION_STATIC(HttpRequest_GetContentLength)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(HttpRequest_GetClient)
+{
+	HttpRequest* pData = Get_HttpRequest(1, false);
+
+	Push_CBaseClient(Util::GetClientByUserID(pData->pClientUserID));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(HttpRequest_GetPlayer)
+{
+	HttpRequest* pData = Get_HttpRequest(1, false);
+	CBaseClient* pClient = Util::GetClientByUserID(pData->pClientUserID);
+
+	Util::Push_Entity((CBaseEntity*)(pClient ? Util::GetPlayerByClient(pClient) : NULL));
+	return 1;
+}
+
 void CallFunc(int func, HttpRequest* request, HttpResponse* response)
 {
 	Util::ReferencePush(g_Lua, func);
+
+	if (g_pHttpServerModule.InDebug())
+		Msg("holylib: pushed handler function %i with type %i\n", func, g_Lua->GetType(-1));
 
 	Push_HttpRequest(request);
 	Push_HttpResponse(response);
@@ -341,7 +380,7 @@ void HttpServer::Think()
 		return;
 
 	m_bInUpdate = true;
-	for (auto it = m_pRequests.begin(); it != m_pRequests.end(); ++it)
+	for (auto it = m_pRequests.begin(); it != m_pRequests.end();)
 	{
 		auto pEntry = (*it);
 		if (pEntry->bDelete)
@@ -353,6 +392,8 @@ void HttpServer::Think()
 
 		if (!pEntry->bHandled)
 			CallFunc(pEntry->iFunction, pEntry, &pEntry->pResponseData);
+
+		++it;
 	}
 
 	m_bUpdate = false;
@@ -363,35 +404,35 @@ static std::string localAddr = "127.0.0.1";
 static std::string loopBack = "loopback";
 httplib::Server::Handler HttpServer::CreateHandler(const char* path, int func, bool ipWhitelist)
 {
+	m_pHandlerReferences.push_back(func);
+
 	return [=](const httplib::Request& req, httplib::Response& res)
 	{
-		if (ipWhitelist)
+		int userID = -1;
+		for (auto& pClient : Util::GetClients())
 		{
-			bool found = false;
-			for (auto& pClient : Util::GetClients())
+			if (!pClient->IsActive())
+				continue;
+
+			const netadr_s& addr = pClient->GetNetChannel()->GetRemoteAddress();
+			std::string address = addr.ToString();
+			size_t port_pos = address.find(":");
+			if (address.substr(0, port_pos) == req.remote_addr || (req.remote_addr == localAddr && address.substr(0, port_pos) == loopBack))
 			{
-				if (!pClient->IsActive())
-					continue;
-
-				const netadr_s& addr = pClient->GetNetChannel()->GetRemoteAddress();
-				std::string address = addr.ToString();
-				size_t port_pos = address.find(":");
-				if (address.substr(0, port_pos) == req.remote_addr || (req.remote_addr == localAddr && address.substr(0, port_pos) == loopBack))
-				{
-					found = true;
-					break;
-				}
+				userID = pClient->GetUserID();
+				break;
 			}
-
-			if (!found)
-				return;
 		}
+
+		if (ipWhitelist && userID == -1)
+			return;
 
 		HttpRequest* request = new HttpRequest;
 		request->strPath = path;
 		request->pRequest = req;
 		request->iFunction = func;
 		request->pResponse = res;
+		request->pClientUserID = userID;
 		m_pRequests.push_back(request); // We should add a check here since we could write to it from multiple threads?
 		m_bUpdate = true;
 		while (!request->bHandled)
@@ -732,6 +773,9 @@ void CHTTPServerModule::LuaInit(bool bServerInit)
 		Util::AddFunc(HttpRequest_GetMethod, "GetMethod");
 		Util::AddFunc(HttpRequest_GetAuthorizationCount, "GetAuthorizationCount");
 		Util::AddFunc(HttpRequest_GetContentLength, "GetContentLength");
+
+		Util::AddFunc(HttpRequest_GetClient, "GetClient");
+		Util::AddFunc(HttpRequest_GetPlayer, "GetPlayer");
 	g_Lua->Pop(1);
 
 	Util::StartTable();
