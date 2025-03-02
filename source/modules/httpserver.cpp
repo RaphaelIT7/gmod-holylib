@@ -123,6 +123,8 @@ public:
 	std::string& GetAddress() { return m_strAddress; };
 	unsigned short GetPort() { return m_iPort; };
 	void SetThreadSleep(unsigned int threadSleep) { m_iThreadSleep = threadSleep; };
+	std::string& GetName() { return m_strName; };
+	void SetName(std::string strName) { m_strName = strName; };
 
 private:
 	unsigned char m_iStatus = HTTPSERVER_OFFLINE;
@@ -134,6 +136,7 @@ private:
 	std::vector<HttpRequest*> m_pRequests;
 	std::vector<int> m_pHandlerReferences; // Contains the Lua references to the handler functions.
 	httplib::Server m_pServer;
+	std::string m_strName = "NONAME";
 };
 
 static int HttpResponse_TypeID = -1;
@@ -492,7 +495,7 @@ LUA_FUNCTION_STATIC(HttpServer__tostring)
 	}
 
 	char szBuf[64] = {};
-	V_snprintf(szBuf, sizeof(szBuf),"HttpServer [%s]", (pServer->GetAddress() + std::to_string(pServer->GetPort())).c_str()); 
+	V_snprintf(szBuf, sizeof(szBuf),"HttpServer [%s - %s]", (pServer->GetAddress() + std::to_string(pServer->GetPort())).c_str(), pServer->GetName()); 
 	LUA->PushString(szBuf);
 	return 1;
 }
@@ -678,6 +681,38 @@ LUA_FUNCTION_STATIC(HttpServer_SetThreadSleep)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(HttpServer_GetPort)
+{
+	HttpServer* pServer = Get_HttpServer(1, true);
+
+	LUA->PushNumber(pServer->GetPort());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(HttpServer_GetAddress)
+{
+	HttpServer* pServer = Get_HttpServer(1, true);
+
+	LUA->PushString(pServer->GetAddress().c_str());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(HttpServer_GetName)
+{
+	HttpServer* pServer = Get_HttpServer(1, true);
+
+	LUA->PushString(pServer->GetName().c_str());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(HttpServer_SetName)
+{
+	HttpServer* pServer = Get_HttpServer(1, true);
+
+	pServer->SetName(LUA->CheckString(2));
+	return 0;
+}
+
 LUA_FUNCTION_STATIC(httpserver_Create)
 {
 	Push_HttpServer(new HttpServer);
@@ -706,6 +741,25 @@ LUA_FUNCTION_STATIC(httpserver_GetAll)
 			value->Push();
 			Util::RawSetI(LUA, -2, ++idx);
 		}
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(httpserver_FindByName)
+{
+	std::string strName = LUA->CheckString(1);
+	bool bPushed = false;
+	for (auto& [_, value] : g_pPushedHttpServer)
+	{
+		if (((HttpServer*)value->GetData())->GetName() == strName)
+		{
+			value->Push();
+			bPushed = true;
+		}
+	}
+
+	if (!bPushed)
+		LUA->PushNil();
 
 	return 1;
 }
@@ -744,6 +798,11 @@ void CHTTPServerModule::LuaInit(bool bServerInit)
 		Util::AddFunc(HttpServer_Patch, "Patch");
 		Util::AddFunc(HttpServer_Delete, "Delete");
 		Util::AddFunc(HttpServer_Options, "Options");
+
+		Util::AddFunc(HttpServer_GetPort, "GetPort");
+		Util::AddFunc(HttpServer_GetAddress, "GetAddress");
+		Util::AddFunc(HttpServer_GetName, "GetName");
+		Util::AddFunc(HttpServer_SetName, "SetName");
 	g_Lua->Pop(1);
 
 	HttpResponse_TypeID = g_Lua->CreateMetaTable("HttpResponse");
@@ -786,6 +845,7 @@ void CHTTPServerModule::LuaInit(bool bServerInit)
 		Util::AddFunc(httpserver_Create, "Create");
 		Util::AddFunc(httpserver_Destroy, "Destroy");
 		Util::AddFunc(httpserver_GetAll, "GetAll");
+		Util::AddFunc(httpserver_FindByName, "FindByName");
 	Util::FinishTable("httpserver");
 }
 

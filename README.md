@@ -2944,12 +2944,15 @@ Destroys the given http server.
 #### table httpserver.GetAll()
 Returns a table containing all existing HttpServer in case you lose a reference.
 
+#### HttpServer httpserver.FindByName(string name)
+Returns the HttpServer with the given name set by `HttpServer:SetName()` or returns `nil` on failure.
+
 ### HttpServer
 This class represents a created HttpServer.
 
 #### string HttpServer:\_\_tostring()
 Returns `HttpServer [NULL]` if given invalid list.  
-Normally returns `HttpServer [Address:Port]`.  
+Normally returns `HttpServer [Address:Port - Name]`.  
 
 #### HttpServer:\_\_newindex(string key, any value)
 Internally implemented and will set the values into the lua table.  
@@ -3012,6 +3015,18 @@ This mounts the given folder to the given path.
 
 #### HttpServer:RemoveMountPoint(string mountPoint)
 This removes all mounts for the given path.
+
+#### number HttpServer:GetPort()
+Returns the port that was originally passed to `HttpServer:Start()`
+
+#### string HttpServer:GetAddress()
+Returns the address that was originally passed to `HttpServer:Start()`
+
+#### string HttpServer:GetName()
+Returns the name set by `HttpServer:SetName()`, defaults to `NONAME`
+
+#### HttpServer:SetName(string name)
+Sets the name of the HttpServer.
 
 ### Method Functions
 All Method functions add a listener for the given path and the given method, like this:
