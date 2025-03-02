@@ -414,7 +414,11 @@ httplib::Server::Handler HttpServer::CreateHandler(const char* path, int func, b
 			if (!pClient->IsConnected())
 				continue;
 
-			const netadr_s& addr = pClient->GetNetChannel()->GetRemoteAddress();
+			INetChannel* pChannel = pClient->GetNetChannel();
+			if (!pChannel)
+				continue; // Probably a fake client.
+
+			const netadr_s& addr = pChannel->GetRemoteAddress();
 			std::string address = addr.ToString();
 			size_t port_pos = address.find(":");
 			if (address.substr(0, port_pos) == req.remote_addr || (req.remote_addr == localAddr && address.substr(0, port_pos) == loopBack))
