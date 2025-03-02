@@ -411,7 +411,7 @@ httplib::Server::Handler HttpServer::CreateHandler(const char* path, int func, b
 		int userID = -1;
 		for (auto& pClient : Util::GetClients())
 		{
-			if (!pClient->IsActive())
+			if (!pClient->IsConnected())
 				continue;
 
 			const netadr_s& addr = pClient->GetNetChannel()->GetRemoteAddress();
