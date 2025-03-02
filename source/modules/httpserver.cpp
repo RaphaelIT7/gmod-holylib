@@ -332,8 +332,12 @@ LUA_FUNCTION_STATIC(HttpRequest_GetPlayer)
 {
 	HttpRequest* pData = Get_HttpRequest(1, false);
 	CBaseClient* pClient = Util::GetClientByUserID(pData->pClientUserID);
+	CBasePlayer* pPlayer = pClient ? Util::GetPlayerByClient(pClient) : NULL;
 
-	Util::Push_Entity((CBaseEntity*)(pClient ? Util::GetPlayerByClient(pClient) : NULL));
+	if (pPlayer)
+		Util::Push_Entity((CBaseEntity*)pPlayer);
+	else
+		LUA->PushNil();
 	return 1;
 }
 

@@ -3107,10 +3107,10 @@ The HTTP Method that was used like GET or PUT.
 The length of the HTTP Request content.
 
 #### CBaseClient HttpRequest:GetClient()
-Returns the client who sent the HTTP Request or NULL if it didn't find it.  
+Returns the client who sent the HTTP Request or `nil` if it didn't find it.  
 
 #### Player HttpRequest:GetPlayer()
-Returns the player who sent the HTTP Request or NULL if it didn't find it.  
+Returns the player who sent the HTTP Request or `nil` if it didn't find it.  
 
 ### HttpResponse
 A Http Response.
