@@ -386,6 +386,11 @@ void HttpServer::Think()
 	if (m_iStatus == HTTPSERVER_OFFLINE || !m_bUpdate)
 		return;
 
+	/*
+	 * BUG: If for some reason a request remain unhandled, they might end up stuck until a second one comes in.
+	 * The function below should probably just always run instead, but I fear for my precious performance.
+	 */
+
 	m_bInUpdate = true;
 	for (auto it = m_pRequests.begin(); it != m_pRequests.end();)
 	{
@@ -499,7 +504,7 @@ LUA_FUNCTION_STATIC(HttpServer__tostring)
 	}
 
 	char szBuf[64] = {};
-	V_snprintf(szBuf, sizeof(szBuf),"HttpServer [%s - %s]", (pServer->GetAddress() + std::to_string(pServer->GetPort())).c_str(), pServer->GetName()); 
+	V_snprintf(szBuf, sizeof(szBuf),"HttpServer [%s - %s]", (pServer->GetAddress() + std::to_string(pServer->GetPort())).c_str(), pServer->GetName().c_str()); 
 	LUA->PushString(szBuf);
 	return 1;
 }

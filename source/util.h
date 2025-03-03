@@ -193,6 +193,7 @@ struct LuaUserData {
 				g_Lua->Pop(1);
 				g_Lua->ReferenceFree(iReference);
 			}
+
 			iReference = -1;
 		}
 
@@ -225,7 +226,7 @@ struct LuaUserData {
 		if (iReference != -1)
 			Warning("holylib: something went wrong when pushing userdata! (Reference leak!)\n");
 
-		g_Lua->Push(-1); // When Init is called this object was already pushed onto the stack and sits at -1!
+		g_Lua->Push(-1); // When CreateReference is called we expect our object to be already be on the stack at -1!
 		iReference = g_Lua->ReferenceCreate();
 	}
 
