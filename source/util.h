@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <algorithm>
 #include "symbols.h"
+#include "unordered_set"
 
 #define DEDICATED
 #include "vstdlib/jobthread.h"
@@ -67,6 +68,44 @@ namespace Util
 	inline void ReferencePush(GarrysMod::Lua::ILuaInterface* LUA, int iReference)
 	{
 		func_lua_rawgeti(LUA->GetState(), LUA_REGISTRYINDEX, iReference);
+	}
+
+	/*
+	 * Pure debugging
+	 */
+	extern std::unordered_set<int> g_pReference;
+	extern ConVar holylib_debug_mainutil;
+	inline int ReferenceCreate(const char* reason)
+	{
+		int iReference = g_Lua->ReferenceCreate();
+
+		if (holylib_debug_mainutil.GetBool())
+			Msg("holylib: Created reference %i (%s)\n", iReference, reason);
+
+		auto it = g_pReference.find(iReference);
+		if (it != g_pReference.end())
+		{
+			Error("holylib: Created a reference when we already holded it. How. Crash this shit. (%s)\n", reason); // If this happens maybe gmod does some weird shit?
+		}
+
+		g_pReference.insert(iReference);
+
+		return iReference;
+	}
+
+	inline void ReferenceFree(int iReference, const char* reason)
+	{
+		if (holylib_debug_mainutil.GetBool())
+			Msg("holylib: Freed reference %i (%s)\n", iReference, reason);
+
+		auto it = g_pReference.find(iReference);
+		if (it == g_pReference.end())
+		{
+			Error("holylib: Freed a reference when we didn't holded it. How. Crash this shit. (%s)\n", reason); // If this happens I'm happy.
+		}
+
+		g_pReference.erase(it);
+		g_Lua->ReferenceFree(iReference);
 	}
 
 	inline void StartTable() {
@@ -191,7 +230,7 @@ struct LuaUserData {
 				g_Lua->ReferencePush(iReference);
 				g_Lua->SetUserType(-1, NULL);
 				g_Lua->Pop(1);
-				g_Lua->ReferenceFree(iReference);
+				Util::ReferenceFree(iReference, "LuaUserData::~LuaUserData(UserData)");
 			}
 
 			iReference = -1;
@@ -200,7 +239,7 @@ struct LuaUserData {
 		if (iTableReference != -1)
 		{
 			if (g_Lua)
-				g_Lua->ReferenceFree(iTableReference);
+				Util::ReferenceFree(iTableReference, "LuaUserData::~LuaUserData(Table)");
 
 			iTableReference = -1;
 		}
@@ -217,7 +256,7 @@ struct LuaUserData {
 		if (iTableReference == -1 && g_Lua)
 		{
 			g_Lua->CreateTable();
-			iTableReference = g_Lua->ReferenceCreate();
+			iTableReference = Util::ReferenceCreate("LuaUserData::EnsureLuaTable");
 		}
 	}
 
@@ -227,7 +266,7 @@ struct LuaUserData {
 			Warning("holylib: something went wrong when pushing userdata! (Reference leak!)\n");
 
 		g_Lua->Push(-1); // When CreateReference is called we expect our object to be already be on the stack at -1!
-		iReference = g_Lua->ReferenceCreate();
+		iReference = Util::ReferenceCreate("LuaUserData::CreateReference");
 	}
 
 	inline void* GetData()
@@ -260,7 +299,7 @@ struct LuaUserData {
 	{
 		if (iTableReference != -1 && g_Lua)
 		{
-			g_Lua->ReferenceFree(iTableReference);
+			Util::ReferenceFree(iTableReference, "LuaUserData::ClearLuaTable");
 			iTableReference = -1;
 		}
 	}

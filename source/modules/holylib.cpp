@@ -178,13 +178,13 @@ static void hook_CBaseEntity_PostConstructor(CBaseEntity* pEnt, const char* szCl
 
 		/*g_Lua->PushUserType(pEnt, GarrysMod::Lua::Type::Entity);
 		g_Lua->Push(-1);
-		int iReference = g_Lua->ReferenceCreate();
+		int iReference = Util::ReferenceCreate();
 		g_Lua->PushString(szClassname);
 
 		g_Lua->CallFunctionProtected(3, 0, true);
 
 		Util::ReferencePush(iReference);
-		g_Lua->ReferenceFree(iReference);
+		Util::ReferenceFree(iReference);
 		g_Lua->SetUserType(-1, NULL);
 		g_Lua->Pop(1)*/
 	}

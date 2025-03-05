@@ -21,10 +21,10 @@ struct ILuaTimer
 	~ILuaTimer()
 	{
 		if (function != -1)
-			g_Lua->ReferenceFree(function);
+			Util::ReferenceFree(function, "ILuaTimer::~ILuaTimer - function");
 
 		if (identifierReference != -1)
-			g_Lua->ReferenceFree(identifierReference);
+			Util::ReferenceFree(identifierReference, "ILuaTimer::~ILuaTimer - identifyer");
 	}
 
 	// Should we try to make this struct smaller?
@@ -90,9 +90,9 @@ LUA_FUNCTION_STATIC(timer_Adjust)
 			timer->repetitions = (int)LUA->GetNumber(3);
 
 		if (LUA->IsType(4, GarrysMod::Lua::Type::Function)) {
-			LUA->ReferenceFree(timer->function);
+			Util::ReferenceFree(timer->function, "timer.Adjust - old function");
 			LUA->Push(4);
-			timer->function = LUA->ReferenceCreate();
+			timer->function = Util::ReferenceCreate("timer.Adjust - new function");
 		}
 
 		LUA->PushBool(true);
@@ -121,16 +121,16 @@ LUA_FUNCTION_STATIC(timer_Create)
 		timer = new ILuaTimer;
 		bNewTimer = true;
 	} else {
-		LUA->ReferenceFree(timer->function);
-		LUA->ReferenceFree(timer->identifierReference);
+		Util::ReferenceFree(timer->function, "timer.Create - old function");
+		Util::ReferenceFree(timer->identifierReference, "timer.Create - old identifyer");
 	}
 
 	LUA->Push(4);
-	timer->function = LUA->ReferenceCreate();
+	timer->function = Util::ReferenceCreate("timer.Create - new function");
 
 	timer->identifier = name;
 	LUA->Push(1);
-	timer->identifierReference = LUA->ReferenceCreate();
+	timer->identifierReference = Util::ReferenceCreate("timer.Create - new identifyer");
 	timer->delay = (float)delay;
 	timer->repetitions = (int)repetitions;
 	timer->nextRunTime = GetTime() + delay;
@@ -203,7 +203,7 @@ LUA_FUNCTION_STATIC(timer_Simple)
 
 	ILuaTimer* timer = new ILuaTimer;
 	LUA->Push(2);
-	timer->function = LUA->ReferenceCreate();
+	timer->function = Util::ReferenceCreate("timer.Simple - function");
 
 	timer->delay = (float)delay;
 	timer->repetitions = 1;

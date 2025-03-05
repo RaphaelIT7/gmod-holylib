@@ -415,12 +415,12 @@ static bool hook_CHLTVClient_ProcessGMod_ClientToServer(CHLTVClient* pClient, CL
 		Push_CHLTVClient(pClient);
 		Push_bf_read(&pBf->m_DataIn);
 		g_Lua->Push(-1);
-		int iReference = g_Lua->ReferenceCreate();
+		int iReference = Util::ReferenceCreate("ProcessGMod_ClientToServer - net message buffer");
 		g_Lua->CallFunctionProtected(3, 0, true);
 		Util::ReferencePush(g_Lua, iReference);
 		g_Lua->SetUserType(-1, NULL); // Make sure that the we don't keep the buffer.
 		g_Lua->Pop(1);
-		g_Lua->ReferenceFree(iReference);
+		Util::ReferenceFree(iReference, "ProcessGMod_ClientToServer - Free net message buffer");
 	}
 
 	return true;

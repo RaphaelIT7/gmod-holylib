@@ -466,7 +466,7 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 		Util::Push_Entity((CBaseEntity*)Util::GetPlayerByClient((CBaseClient*)pClient));
 		Push_VoiceData(pVoiceData);
 		g_Lua->Push(-1);
-		int iReference = g_Lua->ReferenceCreate();
+		int iReference = Util::ReferenceCreate("SV_BroadcastVoiceData");
 		bool bHandled = false;
 		if (g_Lua->CallFunctionProtected(3, 1, true))
 		{
@@ -487,7 +487,7 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 		}
 
 		g_Lua->ReferencePush(iReference);
-		g_Lua->ReferenceFree(iReference);
+		Util::ReferenceFree(iReference, "SV_BroadcastVoiceData - done");
 		g_Lua->CallFunctionProtected(1, 0, true);
 
 		if (bHandled)
@@ -742,7 +742,7 @@ LUA_FUNCTION_STATIC(voicechat_LoadVoiceStream)
 	if (bAsync)
 	{
 		LUA->Push(4);
-		task->iCallback = LUA->ReferenceCreate();
+		task->iCallback = Util::ReferenceCreate("voicechat.LoadVoiceStream - callback");
 		g_pVoiceStreamTasks.insert(task);
 		pVoiceThreadPool->QueueCall(&VoiceStreamJob, task);
 		return 0;
@@ -772,13 +772,13 @@ LUA_FUNCTION_STATIC(voicechat_SaveVoiceStream)
 	task->iType = VoiceStreamTask_SAVE;
 	
 	LUA->Push(1);
-	task->iReference = LUA->ReferenceCreate();
+	task->iReference = Util::ReferenceCreate("voicechat.SaveVoiceStream - VoiceStream");
 	task->pStream = pStream;
 
 	if (bAsync)
 	{
 		LUA->Push(5);
-		task->iCallback = LUA->ReferenceCreate();
+		task->iCallback = Util::ReferenceCreate("voicechat.SaveVoiceStream - callback");
 		g_pVoiceStreamTasks.insert(task);
 		pVoiceThreadPool->QueueCall(&VoiceStreamJob, task);
 		return 0;
@@ -815,10 +815,10 @@ void CVoiceChatModule::Think(bool bSimulating)
 		Push_VoiceStream(pTask->pStream); // Lua GC will take care of deleting.
 		g_Lua->PushBool(pTask->iStatus == VoiceStreamTaskStatus_DONE);
 		g_Lua->CallFunctionProtected(2, 0, true);
-		g_Lua->ReferenceFree(pTask->iCallback);
+		Util::ReferenceFree(pTask->iCallback, "CVoiceChatModule::Think(callback)");
 		if (pTask->iReference != -1)
 		{
-			g_Lua->ReferenceFree(pTask->iReference);
+			Util::ReferenceFree(pTask->iReference, "CVoiceChatModule::Think(VoiceStream)");
 		}
 		
 		delete pTask;
@@ -832,7 +832,7 @@ void CVoiceChatModule::LuaInit(bool bServerInit)
 		return;
 
 	g_Lua->PushCFunction(VoiceData__gc);
-	voiceDataGCReference = g_Lua->ReferenceCreate();
+	voiceDataGCReference = Util::ReferenceCreate("CVoiceChatModule::LuaInit - voiceDataGCReference");
 
 	VoiceData_TypeID = g_Lua->CreateMetaTable("VoiceData");
 		Util::AddFunc(VoiceData__tostring, "__tostring");
@@ -887,7 +887,7 @@ void CVoiceChatModule::LuaShutdown()
 
 	if (voiceDataGCReference > 0)
 	{
-		g_Lua->ReferenceFree(voiceDataGCReference);
+		Util::ReferenceFree(voiceDataGCReference, "CVoiceChatModule::LuaShutdown - voiceDataGCReference");
 		voiceDataGCReference = -1;
 	}
 }

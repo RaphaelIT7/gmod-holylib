@@ -44,7 +44,7 @@ void EntityList::Clear()
 	if (m_pLua)
 		for (auto& [_, iReference] : m_pEntReferences)
 			if (IsValidReference(iReference))
-				m_pLua->ReferenceFree(iReference);
+				Util::ReferenceFree(iReference, "EntityList::Clear");
 	
 	m_pEntReferences.clear();
 }
@@ -59,11 +59,11 @@ void EntityList::CreateReference(CBaseEntity* pEntity)
 	{
 		Warning("holylib: entitylist is leaking references! Report this!\n");
 		if (IsValidReference(it->second))
-			m_pLua->ReferenceFree(m_pEntReferences[pEntity]);
+			Util::ReferenceFree(m_pEntReferences[pEntity], "EntityList::CreateReference - Leak");
 	}
 
 	Util::Push_Entity(pEntity);
-	m_pEntReferences[pEntity] = m_pLua->ReferenceCreate();
+	m_pEntReferences[pEntity] = Util::ReferenceCreate("EntityList::CreateReference");
 }
 
 void EntityList::FreeEntity(CBaseEntity* pEntity)
@@ -72,7 +72,7 @@ void EntityList::FreeEntity(CBaseEntity* pEntity)
 	if (it != m_pEntReferences.end())
 	{
 		if (IsValidReference(it->second) && m_pLua)
-			m_pLua->ReferenceFree(it->second);
+			Util::ReferenceFree(it->second, "EntityList::FreeEntity");
 
 		Vector_RemoveElement(m_pEntities, pEntity);
 		m_pEntReferences.erase(it);

@@ -1808,7 +1808,7 @@ LUA_FUNCTION_STATIC(filesystem_AsyncRead)
 	const char* gamePath = LUA->CheckString(2);
 	LUA->CheckType(3, GarrysMod::Lua::Type::Function);
 	LUA->Push(3);
-	int reference = LUA->ReferenceCreate();
+	int reference = Util::ReferenceCreate("filesystem.AsyncRead");
 	LUA->Pop();
 	bool sync = LUA->GetBool(4);
 
@@ -1839,7 +1839,7 @@ void FileAsyncReadThink()
 		g_Lua->PushNumber(file->status);
 		g_Lua->PushString(file->content);
 		g_Lua->CallFunctionProtected(4, 0, true);
-		g_Lua->ReferenceFree(file->callback);
+		Util::ReferenceFree(file->callback, "FileAsyncReadThink");
 		files.push_back(file);
 	}
 

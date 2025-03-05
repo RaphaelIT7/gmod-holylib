@@ -281,7 +281,7 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 	if (g_pGameeventLibModule.InDebug())
 		Msg("Player: %p\nIndex: %i\n", pPlayer, client->GetPlayerSlot());
 
-	int iReference = g_Lua->ReferenceCreate();
+	int iReference = Util::ReferenceCreate("CBaseClient::ProcessListenEvents");
 	if (Lua::PushHook("HolyLib:PreProcessGameEvent"))
 	{
 		Util::Push_Entity((CBaseEntity*)pPlayer);
@@ -293,7 +293,7 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 			g_Lua->Pop(1);
 			if (pCancel)
 			{
-				g_Lua->ReferenceFree(iReference);
+				Util::ReferenceFree(iReference, "CBaseClient::ProcessListenEvents - Cancel");
 				return true;
 			}
 		}
@@ -309,7 +309,7 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 		g_Lua->CallFunctionProtected(4, 0, false);
 	}
 
-	g_Lua->ReferenceFree(iReference);
+	Util::ReferenceFree(iReference, "CBaseClient::ProcessListenEvents - Done");
 
 	return bRet;
 }

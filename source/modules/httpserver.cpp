@@ -64,7 +64,7 @@ public:
 			return;
 
 		for (auto& ref : m_pHandlerReferences)
-			g_Lua->ReferenceFree(ref);
+			Util::ReferenceFree(ref, "HttpServer::~HttpServer - Handler references");
 
 		m_pHandlerReferences.clear();
 	}
@@ -485,7 +485,7 @@ inline int CheckFunction(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos)
 {
 	LUA->CheckType(iStackPos, GarrysMod::Lua::Type::Function);
 	LUA->Push(iStackPos);
-	return LUA->ReferenceCreate();
+	return Util::ReferenceCreate("CheckFunction - HttpServer blackbox");
 }
 
 inline bool CheckBool(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos)

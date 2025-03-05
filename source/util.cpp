@@ -17,6 +17,9 @@ IVEngineServer* engine;
 CGlobalEntityList* Util::entitylist = NULL;
 CUserMessages* Util::pUserMessages;
 
+std::unordered_set<int> Util::g_pReference;
+ConVar Util::holylib_debug_mainutil("holylib_debug_mainutil", "1");
+
 CBasePlayer* Util::Get_Player(int iStackPos, bool bError) // bError = error if not a valid player
 {
 	EHANDLE* pEntHandle = g_Lua->GetUserType<EHANDLE>(iStackPos, GarrysMod::Lua::Type::Entity);
