@@ -1690,7 +1690,7 @@ void hook_CGameClient_SpawnPlayer(CGameClient* client)
 	//detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(pClient);
 }
 
-// Called by SourceTV from CSteam3Server::NotifyClientDisconnect
+// Called by Util from CSteam3Server::NotifyClientDisconnect
 void GameServer_OnClientDisconnect(CBaseClient* pClient)
 {
 	if (pClient->GetServer() != Util::server)

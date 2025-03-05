@@ -47,10 +47,10 @@ struct CompressEntry
 			return; // This will be a memory, but we would never want to potentially break the Lua state.
 		}
 
-		if (iDataReference != -1)
+		if (iDataReference != -1 && g_Lua)
 			g_Lua->ReferenceFree(iDataReference);
 
-		if (iCallback != -1)
+		if (iCallback != -1 && g_Lua)
 			g_Lua->ReferenceFree(iCallback);
 	}
 

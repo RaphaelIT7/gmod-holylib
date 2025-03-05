@@ -43,7 +43,8 @@ void EntityList::Clear()
 	m_pEntities.clear();
 	if (m_pLua)
 		for (auto& [_, iReference] : m_pEntReferences)
-			m_pLua->ReferenceFree(iReference);
+			if (IsValidReference(iReference))
+				m_pLua->ReferenceFree(iReference);
 	
 	m_pEntReferences.clear();
 }
@@ -57,7 +58,8 @@ void EntityList::CreateReference(CBaseEntity* pEntity)
 	if (it != m_pEntReferences.end())
 	{
 		Warning("holylib: entitylist is leaking references! Report this!\n");
-		m_pLua->ReferenceFree(m_pEntReferences[pEntity]);
+		if (IsValidReference(it->second))
+			m_pLua->ReferenceFree(m_pEntReferences[pEntity]);
 	}
 
 	Util::Push_Entity(pEntity);
