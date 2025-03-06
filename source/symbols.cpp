@@ -106,6 +106,16 @@ namespace Symbols
 		NULL_SIGNATURE, // ToDo
 	};
 
+	const std::vector<Symbol> CLuaInterface_ReferenceFreeSym = {
+		Symbol::FromName("_ZN13CLuaInterface13ReferenceFreeEi"),
+		NULL_SIGNATURE, // ToDo
+	};
+
+	const std::vector<Symbol> CLuaInterface_ReferenceCreateSym = {
+		Symbol::FromName("_ZN13CLuaInterface15ReferenceCreateEv"),
+		NULL_SIGNATURE, // ToDo
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: gameevent Symbols
 	//---------------------------------------------------------------------------------

@@ -73,11 +73,14 @@ namespace Util
 	/*
 	 * Pure debugging
 	 */
+	extern bool bOurReferenceCall;
 	extern std::unordered_set<int> g_pReference;
 	extern ConVar holylib_debug_mainutil;
 	inline int ReferenceCreate(const char* reason)
 	{
+		bOurReferenceCall = true;
 		int iReference = g_Lua->ReferenceCreate();
+		bOurReferenceCall = false;
 
 		if (holylib_debug_mainutil.GetBool())
 			Msg("holylib: Created reference %i (%s)\n", iReference, reason);
@@ -105,7 +108,9 @@ namespace Util
 		}
 
 		g_pReference.erase(it);
+		bOurReferenceCall = true;
 		g_Lua->ReferenceFree(iReference);
+		bOurReferenceCall = false;
 	}
 
 	inline void StartTable() {

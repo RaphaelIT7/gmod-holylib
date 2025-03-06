@@ -93,6 +93,14 @@ void Lua::Shutdown()
 void Lua::FinalShutdown()
 {
 	g_Lua = NULL;
+	
+	for (auto& ref : Util::g_pReference)
+	{
+		if (Util::holylib_debug_mainutil.GetBool())
+			Msg("holylib: Discarding of old reference %i\n", ref);
+	}
+
+	Util::g_pReference.clear();
 }
 
 void Lua::ManualShutdown()

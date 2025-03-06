@@ -152,6 +152,12 @@ namespace Symbols
 	typedef void (GMCOMMON_CALLING_CONVENTION* CBaseEntity_SetMoveType)(void* ent, int, int);
 	extern const std::vector<Symbol> CBaseEntity_SetMoveTypeSym;
 
+	typedef int (GMCOMMON_CALLING_CONVENTION* CLuaInterface_ReferenceCreate)(void* lua);
+	extern const std::vector<Symbol> CLuaInterface_ReferenceCreateSym;
+
+	typedef void (GMCOMMON_CALLING_CONVENTION* CLuaInterface_ReferenceFree)(void* lua, int ref);
+	extern const std::vector<Symbol> CLuaInterface_ReferenceFreeSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: gameevent Symbols
 	//---------------------------------------------------------------------------------
