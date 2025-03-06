@@ -462,11 +462,15 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 		VoiceData* pVoiceData = new VoiceData;
 		pVoiceData->SetData(data, nBytes);
 		pVoiceData->iPlayerSlot = pClient->GetPlayerSlot();
+		Push_VoiceData(pVoiceData);
+		g_Lua->Push(-2);
+		g_Lua->Remove(-3);
+
+		// Stack: -2 = VoiceData | -1 = Hook Name (string)
 
 		Util::Push_Entity((CBaseEntity*)Util::GetPlayerByClient((CBaseClient*)pClient));
-		Push_VoiceData(pVoiceData);
-		g_Lua->Push(-1);
-		int iReference = Util::ReferenceCreate("SV_BroadcastVoiceData");
+		g_Lua->Push(-3);
+
 		bool bHandled = false;
 		if (g_Lua->CallFunctionProtected(3, 1, true))
 		{
@@ -486,9 +490,9 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 			g_Lua->PushCFunction(VoiceData__gc);
 		}
 
-		g_Lua->ReferencePush(iReference);
-		Util::ReferenceFree(iReference, "SV_BroadcastVoiceData - done");
+		g_Lua->Push(-2);
 		g_Lua->CallFunctionProtected(1, 0, true);
+		g_Lua->Pop(1); // The voice data is still there, so now finally remove it.
 
 		if (bHandled)
 			return;
