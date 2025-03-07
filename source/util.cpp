@@ -204,7 +204,7 @@ static int hook_CLuaInterface_ReferenceCreate(void* lua)
 {
 	int ref = detour_CLuaInterface_ReferenceCreate.GetTrampoline<Symbols::CLuaInterface_ReferenceCreate>()(lua);
 
-	if (Util::holylib_debug_mainutil.GetBool())
+	if (Util::holylib_debug_mainutil.GetInt() > 1)
 		Msg("holylib - gmod: Created reference %i\n", ref);
 
 	if (Util::bOurReferenceCall)
@@ -222,7 +222,7 @@ static int hook_CLuaInterface_ReferenceCreate(void* lua)
 static Detouring::Hook detour_CLuaInterface_ReferenceFree;
 static void hook_CLuaInterface_ReferenceFree(void* lua, int ref)
 {
-	if (Util::holylib_debug_mainutil.GetBool())
+	if (Util::holylib_debug_mainutil.GetInt() > 1)
 		Msg("holylib - gmod: Freed reference %i\n", ref);
 
 	if (!Util::bOurReferenceCall)
