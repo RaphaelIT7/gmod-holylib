@@ -442,7 +442,6 @@ LUA_FUNCTION_STATIC(VoiceStream_SetIndex)
 	return 0;
 }
 
-static int voiceDataGCReference = -1;
 static Detouring::Hook detour_SV_BroadcastVoiceData;
 static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data, int64 xuid)
 {
@@ -478,20 +477,13 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 			g_Lua->Pop(1);
 		}
 
-		/*
-		 * What are we doing down there? Were calling the __gc method on the VoiceData to NULL it.
-		 * Why? because else we would inflate the debug registry(& it never shrinks) as the GC won't be fast enouth to clean all the created VoiceData.
-		 */
-
-		/*if (voiceDataGCReference > 0)
+		LuaUserData* pLuaData = Get_VoiceData_Data(-1, false);
+		if (pLuaData)
 		{
-			Util::ReferencePush(g_Lua, voiceDataGCReference);
-		} else {
-			g_Lua->PushCFunction(VoiceData__gc);
+			delete pLuaData;
+			delete pVoiceData;
 		}
-
-		g_Lua->Push(-2);
-		g_Lua->CallFunctionProtected(1, 0, true);*/
+		g_Lua->SetUserType(-1, NULL);
 		g_Lua->Pop(1); // The voice data is still there, so now finally remove it.
 
 		if (bHandled)
@@ -835,9 +827,6 @@ void CVoiceChatModule::LuaInit(bool bServerInit)
 	if (bServerInit)
 		return;
 
-	g_Lua->PushCFunction(VoiceData__gc);
-	voiceDataGCReference = Util::ReferenceCreate("CVoiceChatModule::LuaInit - voiceDataGCReference");
-
 	VoiceData_TypeID = g_Lua->CreateMetaTable("VoiceData");
 		Util::AddFunc(VoiceData__tostring, "__tostring");
 		Util::AddFunc(VoiceData__index, "__index");
@@ -888,12 +877,6 @@ void CVoiceChatModule::LuaInit(bool bServerInit)
 void CVoiceChatModule::LuaShutdown()
 {
 	Util::NukeTable("voicechat");
-
-	if (voiceDataGCReference > 0)
-	{
-		Util::ReferenceFree(voiceDataGCReference, "CVoiceChatModule::LuaShutdown - voiceDataGCReference");
-		voiceDataGCReference = -1;
-	}
 }
 
 void CVoiceChatModule::InitDetour(bool bPreServer)
