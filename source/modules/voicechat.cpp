@@ -483,7 +483,7 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 		 * Why? because else we would inflate the debug registry(& it never shrinks) as the GC won't be fast enouth to clean all the created VoiceData.
 		 */
 
-		if (voiceDataGCReference > 0)
+		/*if (voiceDataGCReference > 0)
 		{
 			Util::ReferencePush(g_Lua, voiceDataGCReference);
 		} else {
@@ -491,7 +491,7 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 		}
 
 		g_Lua->Push(-2);
-		g_Lua->CallFunctionProtected(1, 0, true);
+		g_Lua->CallFunctionProtected(1, 0, true);*/
 		g_Lua->Pop(1); // The voice data is still there, so now finally remove it.
 
 		if (bHandled)
