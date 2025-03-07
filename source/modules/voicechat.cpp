@@ -666,6 +666,21 @@ enum VoiceStreamTaskType {
 };
 
 struct VoiceStreamTask {
+	~VoiceStreamTask()
+	{
+		if (iReference != -1)
+		{
+			g_Lua->ReferenceFree(iReference);
+			iReference = -1;
+		}
+
+		if (iCallback != -1)
+		{
+			g_Lua->ReferenceFree(iCallback);
+			iCallback = -1;
+		}
+	}
+
 	char pFileName[MAX_PATH];
 	char pGamePath[MAX_PATH];
 
@@ -788,6 +803,9 @@ LUA_FUNCTION_STATIC(voicechat_SaveVoiceStream)
 
 void CVoiceChatModule::Think(bool bSimulating)
 {
+	if (g_pVoiceStreamTasks.size() <= 0)
+		return;
+
 	for (auto it = g_pVoiceStreamTasks.begin(); it != g_pVoiceStreamTasks.end(); )
 	{
 		VoiceStreamTask* pTask = *it;
@@ -803,6 +821,7 @@ void CVoiceChatModule::Think(bool bSimulating)
 			if (pTask->pStream != NULL && pTask->iType != VoiceStreamTask_SAVE)
 				delete pTask->pStream;
 
+			delete pTask;
 			it = g_pVoiceStreamTasks.erase(it);
 			continue;
 		}
@@ -810,12 +829,8 @@ void CVoiceChatModule::Think(bool bSimulating)
 		g_Lua->ReferencePush(pTask->iCallback);
 		Push_VoiceStream(pTask->pStream); // Lua GC will take care of deleting.
 		g_Lua->PushBool(pTask->iStatus == VoiceStreamTaskStatus_DONE);
+
 		g_Lua->CallFunctionProtected(2, 0, true);
-		Util::ReferenceFree(pTask->iCallback, "CVoiceChatModule::Think(callback)");
-		if (pTask->iReference != -1)
-		{
-			Util::ReferenceFree(pTask->iReference, "CVoiceChatModule::Think(VoiceStream)");
-		}
 		
 		delete pTask;
 		it = g_pVoiceStreamTasks.erase(it);
