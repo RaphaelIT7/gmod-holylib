@@ -88,18 +88,29 @@ void Lua::ServerInit()
 void Lua::Shutdown()
 {
 	g_pModuleManager.LuaShutdown();
+
+	g_pRemoveLuaUserData = false; // We are iterating over g_pLuaUserData so DON'T modify it.
+	for (auto& ref : g_pLuaUserData)
+	{
+		if (Util::holylib_debug_mainutil.GetBool())
+			Msg("holylib: Discarding of old userdata %p\n", ref);
+
+		delete ref;
+	}
+	g_pRemoveLuaUserData = true;
+	g_pLuaUserData.clear();
 }
 
 void Lua::FinalShutdown()
 {
+	// g_Lua is bad at this point / the lua_State is already gone so we CAN'T allow any calls
 	g_Lua = NULL;
-	
+
 	for (auto& ref : Util::g_pReference)
 	{
 		if (Util::holylib_debug_mainutil.GetBool())
 			Msg("holylib: Discarding of old reference %i\n", ref);
 	}
-
 	Util::g_pReference.clear();
 }
 

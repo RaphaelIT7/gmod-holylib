@@ -17,6 +17,9 @@ IVEngineServer* engine;
 CGlobalEntityList* Util::entitylist = NULL;
 CUserMessages* Util::pUserMessages;
 
+bool g_pRemoveLuaUserData = true;
+std::unordered_set<LuaUserData*> g_pLuaUserData;
+
 std::unordered_set<int> Util::g_pReference;
 ConVar Util::holylib_debug_mainutil("holylib_debug_mainutil", "1");
 

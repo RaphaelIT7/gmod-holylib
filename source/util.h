@@ -220,12 +220,29 @@ namespace Util
 	ToDo: Implement a proper class like gmod has with CLuaCLass/CLuaLibrary & use thoes instead for everything.
 */
 
+struct LuaUserData;
+extern bool g_pRemoveLuaUserData;
+extern std::unordered_set<LuaUserData*> g_pLuaUserData; // A set containing all LuaUserData that actually hold a reference.
 struct LuaUserData {
+	LuaUserData() {
+		g_pLuaUserData.insert(this);
+	}
+
 	~LuaUserData() {
 		if (!ThreadInMainThread())
 		{
 			Warning("holylib: Tried to delete usetdata from another thread!\n");
+
+			if (g_pRemoveLuaUserData)
+			{
+				g_pLuaUserData.erase(this);
+			}
 			return;
+		}
+
+		if (g_pRemoveLuaUserData)
+		{
+			g_pLuaUserData.erase(this);
 		}
 
 		if (iReference != -1)
