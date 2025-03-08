@@ -417,6 +417,8 @@ static bool hook_CHLTVClient_ProcessGMod_ClientToServer(CHLTVClient* pClient, CL
 		g_Lua->Push(-1);
 		int iReference = Util::ReferenceCreate("ProcessGMod_ClientToServer - net message buffer");
 		g_Lua->CallFunctionProtected(3, 0, true);
+
+		// I hate this. We should reduce the number of references.
 		Util::ReferencePush(g_Lua, iReference);
 		g_Lua->SetUserType(-1, NULL); // Make sure that the we don't keep the buffer.
 		g_Lua->Pop(1);

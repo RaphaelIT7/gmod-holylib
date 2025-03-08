@@ -523,10 +523,18 @@ Vector* Get_Vector(int iStackPos, bool bError = true);
 QAngle* Get_QAngle(int iStackPos, bool bError = true);
 
 class bf_read;
+/*
+ * It will be deleted by Lua GC.
+ * ensure that either you set it to NULL afterwards or push a Copy if you don't own the original.
+ */
 extern void Push_bf_read(bf_read* tbl);
 extern bf_read* Get_bf_read(int iStackPos, bool bError);
 
 class bf_write;
+/*
+ * It will be deleted by Lua GC.
+ * ensure that either you set it to NULL afterwards or push a Copy if you don't own the original.
+ */
 extern void Push_bf_write(bf_write* tbl);
 extern bf_write* Get_bf_write(int iStackPos, bool bError);
 

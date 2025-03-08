@@ -48,7 +48,10 @@ Default__GetTable(bf_read);
 Default__gc(bf_read, 
 	bf_read* bf = (bf_read*)pData->GetData();
 	if (bf)
+	{
 		delete[] bf->GetBasePointer();
+		delete bf;
+	}
 )
 
 LUA_FUNCTION_STATIC(bf_read_IsValid)
@@ -499,7 +502,10 @@ Default__GetTable(bf_write);
 Default__gc(bf_write, 
 	bf_write* bf = (bf_write*)pData->GetData();
 	if (bf)
+	{
 		delete[] bf->GetBasePointer();
+		delete bf;
+	}
 )
 
 LUA_FUNCTION_STATIC(bf_write_IsValid)
