@@ -44,7 +44,11 @@ LUA_FUNCTION_STATIC(IGModAudioChannel__tostring)
 Default__index(IGModAudioChannel);
 Default__newindex(IGModAudioChannel);
 Default__GetTable(IGModAudioChannel);
-Default__gc(IGModAudioChannel, )
+Default__gc(IGModAudioChannel,
+	IGModAudioChannel* channel = (IGModAudioChannel*)pData->GetData();
+	if (channel)
+		delete channel;
+)
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_Destroy)
 {

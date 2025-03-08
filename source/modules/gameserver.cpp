@@ -1316,6 +1316,9 @@ void CGameServerModule::LuaInit(bool bServerInit)
 
 void CGameServerModule::LuaShutdown()
 {
+	Util::NukeTable("gameserver");
+
+	DeleteAll_CBaseClient();
 }
 
 static Detouring::Hook detour_CServerGameClients_GetPlayerLimit;

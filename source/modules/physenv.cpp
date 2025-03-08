@@ -2231,6 +2231,14 @@ void CPhysEnvModule::LuaShutdown()
 	}
 
 	Util::NukeTable("physcollide");
+
+	DeleteAll_CPhysCollide();
+	DeleteAll_CPhysConvex();
+	DeleteAll_CPhysPolysoup();
+	DeleteAll_ICollisionQuery();
+	DeleteAll_ILuaPhysicsEnvironment();
+	DeleteAll_IPhysicsCollisionSet();
+	DeleteAll_IPhysicsObject();
 }
 
 void CPhysEnvModule::Shutdown()

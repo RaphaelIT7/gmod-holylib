@@ -591,7 +591,8 @@ void CSourceTVLibModule::LuaInit(bool bServerInit)
 void CSourceTVLibModule::LuaShutdown()
 {
 	Util::NukeTable("sourcetv");
-	g_pPushedCHLTVClient.clear();
+
+	DeleteAll_CHLTVClient();
 }
 
 void CSourceTVLibModule::InitDetour(bool bPreServer)

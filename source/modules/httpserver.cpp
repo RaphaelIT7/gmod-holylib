@@ -861,6 +861,11 @@ void CHTTPServerModule::LuaInit(bool bServerInit)
 void CHTTPServerModule::LuaShutdown()
 {
 	Util::NukeTable("httpserver");
+
+	// Shouls we allow HttpServers to persist across map changes? Maybe later, but if anyone wants this request it.
+	DeleteAll_HttpResponse();
+	DeleteAll_HttpRequest();
+	DeleteAll_HttpServer();
 }
 
 void CHTTPServerModule::Think(bool simulating)

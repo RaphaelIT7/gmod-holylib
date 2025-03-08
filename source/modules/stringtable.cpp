@@ -609,7 +609,8 @@ void CStringTableModule::LuaInit(bool bServerInit) // ToDo: Implement a INetwork
 void CStringTableModule::LuaShutdown() // ToDo: Can we remove the metatable?
 {
 	Util::NukeTable("stringtable");
-	g_pPushedINetworkStringTable.clear();
+
+	DeleteAll_INetworkStringTable();
 }
 
 void CStringTableModule::InitDetour(bool bPreServer)

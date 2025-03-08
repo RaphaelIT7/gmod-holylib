@@ -469,6 +469,15 @@ static void Delete_##className(className* var) \
 		delete it->second; \
 		g_pPushed##className.erase(it); \
 	} \
+} \
+\
+static void DeleteAll_##className() \
+{ \
+	for (auto& [key, val] : g_pPushed##className) \
+	{ \
+		delete val; \
+	} \
+	g_pPushed##className##.clear(); \
 }
 
 #define Vector_RemoveElement(vec, element) \
