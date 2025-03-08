@@ -57,9 +57,11 @@ void EntityList::CreateReference(CBaseEntity* pEntity)
 	auto it = m_pEntReferences.find(pEntity);
 	if (it != m_pEntReferences.end())
 	{
-		Warning("holylib: entitylist is leaking references! Report this!\n");
-		if (IsValidReference(it->second))
+		if (IsValidReference(it->second)) // We initally set it to -1
+		{
+			Warning("holylib: entitylist is leaking references! Report this!\n");
 			Util::ReferenceFree(m_pEntReferences[pEntity], "EntityList::CreateReference - Leak");
+		}
 	}
 
 	Util::Push_Entity(pEntity);
