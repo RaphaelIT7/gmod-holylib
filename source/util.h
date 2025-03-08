@@ -215,6 +215,18 @@ namespace Util
 	ToDo: Implement a proper class like gmod has with CLuaCLass/CLuaLibrary & use thoes instead for everything.
 */
 
+/*
+ * How to properly push & clean up LuaUserData.
+ * 
+ * First, use the proper function for the userdata you want to push.
+ * 
+ * Push_LuaClass - Use this macro if you want the Lua GC to free the userdata.
+ * PushReferenced_LuaClass - Use this macro if you want to manually delete the userdata, it will hold a reference of itself stopping the GC.
+ * 
+ * NOTE: If you use PushReferenced_LuaClass you should ALWAYS call DeleteAll_[YourClass] for your userdata
+ *       as else it COULD persist across lua states which is VERY BAD as the references will ALL be INVALID.
+ */
+
 struct LuaUserData;
 extern bool g_pRemoveLuaUserData;
 extern std::unordered_set<LuaUserData*> g_pLuaUserData; // A set containing all LuaUserData that actually hold a reference.
@@ -373,6 +385,7 @@ className* Get_##className(int iStackPos, bool bError) \
 	return (className*)pLuaData->GetData(); \
 }
 
+// Only used by CBaseClient & CHLTVClient as they both work with each other / a CHLTVClient can use all CBaseClient functions.
 #define SpecialGet_LuaClass( className, luaType, luaType2, strName ) \
 static std::string invalidType_##className = MakeString("Tried to use something that wasn't a ", strName, "!"); \
 static std::string triedNull_##className = MakeString("Tried to use a NULL ", strName, "!"); \
@@ -482,6 +495,9 @@ static void DeleteAll_##className() \
         (vec).erase(_it); \
 }
 
+// A default index function for userData,
+// which handles everything like finding the functions in the metatable
+// or getting vars on the object like: print(userData.value)
 #define Default__index(className) \
 LUA_FUNCTION_STATIC(className ## __index) \
 { \
@@ -498,6 +514,23 @@ LUA_FUNCTION_STATIC(className ## __index) \
 	return 1; \
 }
 
+// A default newindex function for userData,
+// handles setting vars on the object like: userData.value = true
+#define Default__newindex(className) \
+LUA_FUNCTION_STATIC(className ## __newindex) \
+{ \
+	Util::ReferencePush(LUA, Get_##className##_Data(1, true)->GetLuaTable()); \
+	LUA->Push(2); \
+	LUA->Push(3); \
+	LUA->RawSet(-3); \
+	LUA->Pop(1); \
+\
+	return 0; \
+}
+
+// A default gc function for userData,
+// handles garbage collection, inside the func argument you can use pData as a variable
+// like pData->GetData() to get your class. Just see how it's done inside the bf_read gc definition.
 #define Default__gc(className, func) \
 LUA_FUNCTION_STATIC(className ## __gc) \
 { \
@@ -512,18 +545,7 @@ LUA_FUNCTION_STATIC(className ## __gc) \
 	return 0; \
 } \
 
-#define Default__newindex(className) \
-LUA_FUNCTION_STATIC(className ## __newindex) \
-{ \
-Util::ReferencePush(LUA, Get_##className##_Data(1, true)->GetLuaTable()); \
-	LUA->Push(2); \
-	LUA->Push(3); \
-	LUA->RawSet(-3); \
-	LUA->Pop(1); \
-\
-	return 0; \
-}
-
+// Default function for GetTable. Simple.
 #define Default__GetTable(className) \
 LUA_FUNCTION_STATIC(className ## _GetTable) \
 { \
