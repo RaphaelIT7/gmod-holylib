@@ -200,46 +200,6 @@ static void hook_CSteam3Server_NotifyClientDisconnect(void* pServer, CBaseClient
 	detour_CSteam3Server_NotifyClientDisconnect.GetTrampoline<Symbols::CSteam3Server_NotifyClientDisconnect>()(pServer, pClient);
 }
 
-bool Util::bOurReferenceCall = false;
-static std::unordered_set<int> g_pGmodReference;
-static Detouring::Hook detour_CLuaInterface_ReferenceCreate;
-static int hook_CLuaInterface_ReferenceCreate(void* lua)
-{
-	int ref = detour_CLuaInterface_ReferenceCreate.GetTrampoline<Symbols::CLuaInterface_ReferenceCreate>()(lua);
-
-	if (Util::holylib_debug_mainutil.GetInt() > 1)
-		Msg("holylib - gmod: Created reference %i\n", ref);
-
-	if (Util::bOurReferenceCall)
-	{
-		auto it = Util::g_pReference.find(ref);
-		if (it != Util::g_pReference.end())
-		{
-			Error("holylib - gmod: Created a reference when we already holded it. How. Crash this shit.\n"); // If this happens maybe gmod does some weird shit?
-		}
-	}
-
-	return ref;
-}
-
-static Detouring::Hook detour_CLuaInterface_ReferenceFree;
-static void hook_CLuaInterface_ReferenceFree(void* lua, int ref)
-{
-	if (Util::holylib_debug_mainutil.GetInt() > 1)
-		Msg("holylib - gmod: Freed reference %i\n", ref);
-
-	if (!Util::bOurReferenceCall)
-	{
-		auto it = Util::g_pReference.find(ref);
-		if (it != Util::g_pReference.end())
-		{
-			Error("holylib - gmod: Freed a reference when we owned it. How. Crash this shit.\n"); // If this happens I'm very happy.
-		}
-	}
-
-	detour_CLuaInterface_ReferenceFree.GetTrampoline<Symbols::CLuaInterface_ReferenceFree>()(lua, ref);
-}
-
 IGet* Util::get;
 CBaseEntityList* g_pEntityList = NULL;
 Symbols::lua_rawseti Util::func_lua_rawseti;
@@ -312,18 +272,6 @@ void Util::AddDetour()
 
 	func_lua_rawgeti = (Symbols::lua_rawgeti)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_rawgetiSym);
 	Detour::CheckFunction((void*)func_lua_rawgeti, "lua_rawgeti");
-
-	Detour::Create(
-		&detour_CLuaInterface_ReferenceCreate, "CLuaInterface::ReferenceCreate",
-		lua_shared_loader.GetModule(), Symbols::CLuaInterface_ReferenceCreateSym,
-		(void*)hook_CLuaInterface_ReferenceCreate, 0
-	);
-
-	Detour::Create(
-		&detour_CLuaInterface_ReferenceFree, "CLuaInterface::ReferenceFree",
-		lua_shared_loader.GetModule(), Symbols::CLuaInterface_ReferenceFreeSym,
-		(void*)hook_CLuaInterface_ReferenceFree, 0
-	);
 
 	pEntityList = g_pModuleManager.FindModuleByName("entitylist");
 

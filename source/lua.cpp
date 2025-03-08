@@ -93,7 +93,7 @@ void Lua::Shutdown()
 	for (auto& ref : g_pLuaUserData)
 	{
 		if (Util::holylib_debug_mainutil.GetBool())
-			Msg("holylib: Discarding of old userdata %p\n", ref);
+			Msg("holylib: This should NEVER happen! Discarding of old userdata %p\n", ref);
 
 		delete ref;
 	}
@@ -109,7 +109,7 @@ void Lua::FinalShutdown()
 	for (auto& ref : Util::g_pReference)
 	{
 		if (Util::holylib_debug_mainutil.GetBool())
-			Msg("holylib: Discarding of old reference %i\n", ref);
+			Msg("holylib: This should NEVER happen! Discarding of old reference %i\n", ref);
 	}
 	Util::g_pReference.clear();
 }
