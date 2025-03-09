@@ -11,8 +11,8 @@ class CStringTableModule : public IModule
 {
 public:
 	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "stringtable"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
@@ -538,7 +538,7 @@ LUA_FUNCTION_STATIC(stringtable_RemoveTable)
 	return 0;
 }
 
-void CStringTableModule::LuaInit(bool bServerInit) // ToDo: Implement a INetworkStringTable class, a full table and call a hook when SV_CreateNetworkStringTables -> CreateNetworkStringTables is called.
+void CStringTableModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) // ToDo: Implement a INetworkStringTable class, a full table and call a hook when SV_CreateNetworkStringTables -> CreateNetworkStringTables is called.
 {
 	if (!networkStringTableContainerServer)
 		return;
@@ -606,7 +606,7 @@ void CStringTableModule::LuaInit(bool bServerInit) // ToDo: Implement a INetwork
 	}
 }
 
-void CStringTableModule::LuaShutdown() // ToDo: Can we remove the metatable?
+void CStringTableModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) // ToDo: Can we remove the metatable?
 {
 	Util::NukeTable("stringtable");
 

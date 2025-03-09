@@ -8,8 +8,8 @@
 class CEntListModule : public IModule
 {
 public:
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void OnEntityCreated(CBaseEntity* pEntity) OVERRIDE;
 	virtual void OnEntityDeleted(CBaseEntity* pEntity) OVERRIDE;
 	virtual const char* Name() { return "entitylist"; };
@@ -268,7 +268,7 @@ void CEntListModule::OnEntityCreated(CBaseEntity* pEntity)
 		Msg("Created Entity %p (%p, %i)\n", pEntity, &g_pGlobalEntityList, (int)pEntityLists.size());
 }
 
-void CEntListModule::LuaInit(bool bServerInit)
+void CEntListModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
@@ -296,7 +296,7 @@ void CEntListModule::LuaInit(bool bServerInit)
 	g_pGlobalEntityList.SetLua(g_Lua);
 }
 
-void CEntListModule::LuaShutdown()
+void CEntListModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
 		Util::RemoveField("CreateEntityList");

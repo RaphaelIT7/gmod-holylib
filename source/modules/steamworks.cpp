@@ -8,8 +8,8 @@
 class CSteamWorksModule : public IModule
 {
 public:
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "steamworks"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
@@ -111,7 +111,7 @@ LUA_FUNCTION_STATIC(steamworks_ForceAuthenticate)
 	return 1;
 }
 
-void CSteamWorksModule::LuaInit(bool bServerInit)
+void CSteamWorksModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
@@ -127,7 +127,7 @@ void CSteamWorksModule::LuaInit(bool bServerInit)
 	}
 }
 
-void CSteamWorksModule::LuaShutdown()
+void CSteamWorksModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	if (Util::PushTable("steamworks"))
 	{

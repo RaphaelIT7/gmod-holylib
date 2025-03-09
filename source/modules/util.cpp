@@ -6,8 +6,8 @@
 class CUtilModule : public IModule
 {
 public:
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void Think(bool bSimulating) OVERRIDE;
 	virtual void Shutdown() OVERRIDE;
 	virtual const char* Name() { return "util"; };
@@ -345,7 +345,7 @@ LUA_FUNCTION_STATIC(util_TableToJSON)
 	return 1;
 }
 
-void CUtilModule::LuaInit(bool bServerInit)
+void CUtilModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
@@ -359,7 +359,7 @@ void CUtilModule::LuaInit(bool bServerInit)
 	}
 }
 
-void CUtilModule::LuaShutdown()
+void CUtilModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	bInvalidateEverything = true;
 	if (pCompressPool)

@@ -151,10 +151,16 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 				m_pModule->InitDetour(false);
 
 			if (status & LoadStatus_LuaInit)
-				m_pModule->LuaInit(false);
+			{
+				for (auto& pLua : g_pModuleManager.GetLuaInterfaces())
+					m_pModule->LuaInit(pLua, false);
+			}
 
 			if (status & LoadStatus_LuaServerInit)
-				m_pModule->LuaInit(true);
+			{
+				for (auto& pLua : g_pModuleManager.GetLuaInterfaces())
+					m_pModule->LuaInit(pLua, true);
+			}
 
 			if (status & LoadStatus_ServerActivate)
 				m_pModule->ServerActivate(g_pModuleManager.GetEdictList(), g_pModuleManager.GetEdictCount(), g_pModuleManager.GetClientMax());
@@ -164,7 +170,10 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 		} else {
 			int status = g_pModuleManager.GetStatus();
 			if (status & LoadStatus_LuaInit)
-				m_pModule->LuaShutdown();
+			{
+				for (auto& pLua : g_pModuleManager.GetLuaInterfaces())
+					m_pModule->LuaShutdown(pLua);
+			}
 
 			if (status & LoadStatus_Init)
 				Shutdown();
@@ -308,19 +317,21 @@ void CModuleManager::Init()
 	VCALL_ENABLED_MODULES(Init(& GetAppFactory(), &GetGameFactory()));
 }
 
-void CModuleManager::LuaInit(bool bServerInit)
+void CModuleManager::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		m_pStatus |= LoadStatus_LuaServerInit;
 	else
 		m_pStatus |= LoadStatus_LuaInit;
 
-	VCALL_ENABLED_MODULES(LuaInit(bServerInit));
+	AddLuaInterface(pLua);
+	VCALL_ENABLED_MODULES(LuaInit(pLua, bServerInit));
 }
 
-void CModuleManager::LuaShutdown()
+void CModuleManager::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	VCALL_ENABLED_MODULES(LuaShutdown());
+	VCALL_ENABLED_MODULES(LuaShutdown(pLua));
+	RemoveLuaInterface(pLua);
 }
 
 void CModuleManager::InitDetour(bool bPreServer)

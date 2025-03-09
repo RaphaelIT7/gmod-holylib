@@ -6,8 +6,8 @@
 class CCVarsModule : public IModule
 {
 public:
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 #if ARCHITECTURE_IS_X86
 	virtual void InitDetour(bool bServerInit) OVERRIDE;
 	virtual void Shutdown() OVERRIDE;
@@ -216,7 +216,7 @@ LUA_FUNCTION_STATIC(cvars_Find)
 }
 
 // ToDo: Port over find optimization later
-void CCVarsModule::LuaInit(bool bServerInit)
+void CCVarsModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
@@ -277,7 +277,7 @@ void CCVarsModule::Shutdown()
 }
 #endif
 
-void CCVarsModule::LuaShutdown()
+void CCVarsModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	Util::NukeTable("cvar");
 }
