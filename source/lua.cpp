@@ -53,6 +53,7 @@ void Lua::Init(GarrysMod::Lua::ILuaInterface* LUA)
 	}
 
 	g_Lua = LUA;
+	Lua::CreateLuaData(g_Lua);
 	g_pModuleManager.LuaInit(false);
 
 	std::vector<LuaFindResult> results;
@@ -103,6 +104,8 @@ void Lua::Shutdown()
 
 void Lua::FinalShutdown()
 {
+	Lua::RemoveLuaData(g_Lua);
+
 	// g_Lua is bad at this point / the lua_State is already gone so we CAN'T allow any calls
 	g_Lua = NULL;
 
@@ -202,14 +205,15 @@ void Lua::DestroyInterface(GarrysMod::Lua::ILuaInterface* LUA)
 	CloseLuaInterface(LUA);
 }
 
-static std::unordered_map<GarrysMod::Lua::ILuaInterface*, Lua::StateData*> g_pLuaStateData;
+/*
+ * Where do we store our StateData?
+ * In the ILuaInterface itself.
+ * We abuse the GetPathID var as it's a char[32] but it'll never actually fully use it.
+ * Why? Because I didn't want to use yet another unordered_map for this, also this should be faster.
+ */
 Lua::StateData* Lua::GetLuaData(GarrysMod::Lua::ILuaInterface* LUA)
 {
-	auto it = g_pLuaStateData.find(LUA);
-	if (it == g_pLuaStateData.end())
-		return NULL;
-
-	return it->second;
+	return *reinterpret_cast<Lua::StateData**>((char*)LUA->GetPathID() + 24);
 }
 
 void Lua::CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA)
@@ -217,15 +221,29 @@ void Lua::CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA)
 	if (Lua::GetLuaData(LUA))
 		return;
 
-	g_pLuaStateData[LUA] = new Lua::StateData;
+	char* pathID = (char*)LUA->GetPathID();
+	Lua::StateData* data = new Lua::StateData;
+	*reinterpret_cast<Lua::StateData**>(pathID + 24) = data;
+	Msg("holylib - Created thread data %p\n", data);
 }
 
 void Lua::RemoveLuaData(GarrysMod::Lua::ILuaInterface* LUA)
 {
-	auto it = g_pLuaStateData.find(LUA);
-	if (it == g_pLuaStateData.end())
+	auto data = Lua::GetLuaData(LUA);
+	if (!data)
 		return;
 
-	delete it->second;
-	g_pLuaStateData.erase(it);
+	delete data;
+	*reinterpret_cast<Lua::StateData**>((char*)LUA->GetPathID() + 24) = NULL;
+	Msg("holylib - Removed thread data %p\n", data);
 }
+
+
+static void LuaCheck(const CCommand& args)
+{
+	if (!g_Lua)
+		return;
+
+	Msg("holylib - Found data %p\n", Lua::GetLuaData(g_Lua));
+}
+static ConCommand luacheck("holylib_luacheck", LuaCheck, "Temp", 0);
