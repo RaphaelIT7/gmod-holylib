@@ -25,7 +25,7 @@ static Symbols::SV_InitGameServerSteam func_SV_InitGameServerSteam;
 
 static Detouring::Hook detour_CSteam3Server_OnLoggedOff;
 static void hook_CSteam3Server_OnLoggedOff(CSteam3Server* srv, SteamServersDisconnected_t* info)
-{		
+{
 	detour_CSteam3Server_OnLoggedOff.GetTrampoline<Symbols::CSteam3Server_OnLoggedOff>()(srv, info);
 
 	if (Lua::PushHook("HolyLib:OnSteamDisconnect"))
@@ -37,7 +37,7 @@ static void hook_CSteam3Server_OnLoggedOff(CSteam3Server* srv, SteamServersDisco
 
 static Detouring::Hook detour_CSteam3Server_OnLogonSuccess;
 static void hook_CSteam3Server_OnLogonSuccess(CSteam3Server* srv, SteamServersConnected_t* info)
-{		
+{
 	detour_CSteam3Server_OnLogonSuccess.GetTrampoline<Symbols::CSteam3Server_OnLogonSuccess>()(srv, info);
 
 	if (Lua::PushHook("HolyLib:OnSteamConnect"))
@@ -139,6 +139,25 @@ void CSteamWorksModule::LuaShutdown()
 	}
 }
 
+static Detouring::Hook detour_CGet_SteamUGC;
+static void* hook_CGet_SteamUGC(IGet* pGet)
+{
+	void* pRet = detour_CGet_SteamUGC.GetTrampoline<Symbols::CGet_SteamUGC>()(pGet);
+	if (func_Steam3Server)
+	{
+		CSteam3Server& server = func_Steam3Server();
+
+		// pRet normally matches the SteamUGC but when the server was cleared like when it was Shutdown
+		// it gets apparent that CGet caches the value, which now is invalid.
+		Msg("holylib - Called CGet::SteamUGC %p - %p\n", pRet, server.SteamUGC());
+
+		if (!server.SteamUGC()) // If this is NULL then return NULL, most likely the CSteam3Server was cleared.
+			return NULL;
+	}
+
+	return pRet;
+}
+
 void CSteamWorksModule::InitDetour(bool bPreServer)
 {
 	if ( bPreServer ) { return; }
@@ -154,6 +173,12 @@ void CSteamWorksModule::InitDetour(bool bPreServer)
 		&detour_CSteam3Server_OnLogonSuccess, "CSteam3Server::OnLogonSuccess",
 		engine_loader.GetModule(), Symbols::CSteam3Server_OnLogonSuccessSym,
 		(void*)hook_CSteam3Server_OnLogonSuccess, m_pID
+	);
+
+	Detour::Create(
+		&detour_CGet_SteamUGC, "CGet::SteamUGC",
+		engine_loader.GetModule(), Symbols::CGet_SteamUGCSym,
+		(void*)hook_CGet_SteamUGC, m_pID
 	);
 
 	func_Steam3Server = (Symbols::Steam3ServerT)Detour::GetFunction(engine_loader.GetModule(), Symbols::Steam3ServerSym);

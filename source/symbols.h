@@ -429,6 +429,9 @@ namespace Symbols
 	typedef void (*SV_InitGameServerSteam)();
 	extern const std::vector<Symbol> SV_InitGameServerSteamSym;
 
+	typedef void* (*CGet_SteamUGC)(void*);
+	extern const std::vector<Symbol> CGet_SteamUGCSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: pas Symbols
 	//---------------------------------------------------------------------------------
