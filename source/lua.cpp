@@ -238,7 +238,6 @@ void Lua::RemoveLuaData(GarrysMod::Lua::ILuaInterface* LUA)
 	Msg("holylib - Removed thread data %p\n", data);
 }
 
-
 static void LuaCheck(const CCommand& args)
 {
 	if (!g_Lua)

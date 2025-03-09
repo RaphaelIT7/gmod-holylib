@@ -5,6 +5,7 @@
 #include <baseclient.h>
 #include <inetchannel.h>
 #include <netadr.h>
+#include "unordered_set"
 
 class CHTTPServerModule : public IModule
 {
@@ -16,7 +17,7 @@ public:
 	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 };
 
-CHTTPServerModule g_pHttpServerModule;
+static CHTTPServerModule g_pHttpServerModule;
 IModule* pHttpServerModule = &g_pHttpServerModule;
 
 struct HttpResponse {
@@ -49,9 +50,15 @@ enum
 	HTTPSERVER_OFFLINE
 };
 
+class HttpServer;
+static std::unordered_set<HttpServer*> g_pHttpServers;
 class HttpServer
 {
 public:
+	HttpServer() {
+		g_pHttpServers.insert(this);
+	}
+
 	~HttpServer()
 	{
 		if (!ThreadInMainThread())
@@ -67,6 +74,7 @@ public:
 			Util::ReferenceFree(ref, "HttpServer::~HttpServer - Handler references");
 
 		m_pHandlerReferences.clear();
+		g_pHttpServers.erase(this);
 	}
 
 	void Start(const char* address, unsigned short port);
@@ -128,11 +136,11 @@ public:
 
 private:
 	unsigned char m_iStatus = HTTPSERVER_OFFLINE;
-	unsigned short m_iPort;
+	unsigned short m_iPort = 0;
 	unsigned int m_iThreadSleep = 5; // How long the threads sleep / wait for a request to be handled
 	bool m_bUpdate = false;
 	bool m_bInUpdate = false;
-	std::string m_strAddress;
+	std::string m_strAddress = "";
 	std::vector<HttpRequest*> m_pRequests;
 	std::vector<int> m_pHandlerReferences; // Contains the Lua references to the handler functions.
 	httplib::Server m_pServer;
@@ -743,11 +751,11 @@ LUA_FUNCTION_STATIC(httpserver_Destroy)
 
 LUA_FUNCTION_STATIC(httpserver_GetAll)
 {
-	LUA->PreCreateTable(g_pPushedHttpServer.size(), 0);
+	LUA->PreCreateTable(g_pHttpServers.size(), 0);
 		int idx = 0;
-		for (auto& [_, value] : g_pPushedHttpServer)
+		for (auto& server : g_pHttpServers)
 		{
-			value->Push();
+			Push_HttpServer(server);
 			Util::RawSetI(LUA, -2, ++idx);
 		}
 
@@ -758,11 +766,11 @@ LUA_FUNCTION_STATIC(httpserver_FindByName)
 {
 	std::string strName = LUA->CheckString(1);
 	bool bPushed = false;
-	for (auto& [_, value] : g_pPushedHttpServer)
+	for (auto& server : g_pHttpServers)
 	{
-		if (((HttpServer*)value->GetData())->GetName() == strName)
+		if (server->GetName() == strName)
 		{
-			value->Push();
+			Push_HttpServer(server);
 			bPushed = true;
 		}
 	}
@@ -862,10 +870,17 @@ void CHTTPServerModule::LuaShutdown()
 {
 	Util::NukeTable("httpserver");
 
-	// Shouls we allow HttpServers to persist across map changes? Maybe later, but if anyone wants this request it.
+	// HttpServers WILL persist across map changes.
 	DeleteAll_HttpResponse();
 	DeleteAll_HttpRequest();
 	DeleteAll_HttpServer();
+
+	std::vector<HttpServer*> httpServers; // Copy of g_pHttpServers as when deleting we can't iterate over it.
+	for (auto server : g_pHttpServers)
+		httpServers.push_back(server);
+
+	for (auto server : httpServers)
+		delete server;
 }
 
 void CHTTPServerModule::Think(bool simulating)

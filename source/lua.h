@@ -27,7 +27,7 @@ namespace Lua
 	// This will be required when we work with multiple ILuaInterface's
 	struct StateData
 	{
-		int iReference = -1; // Reference to this structure to stop GC
+		void* pOtherData[4]; // If any other plugin wants to use this, they can.
 	};
 
 	extern Lua::StateData* GetLuaData(GarrysMod::Lua::ILuaInterface* LUA);
