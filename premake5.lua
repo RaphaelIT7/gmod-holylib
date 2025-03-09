@@ -35,7 +35,7 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 		IncludeSDKTier1()
 		--IncludeSDKTier2()
 		--IncludeSDKTier3()
-		--IncludeSDKMathlib()
+		IncludeSDKMathlib()
 		--IncludeSDKRaytrace()
 		--IncludeSDKBitmap()
 		--IncludeSDKVTF()
@@ -57,6 +57,9 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			[[source/sourcesdk/*.cpp]],
 			[[source/public/*.h]],
 			[[source/lua/*.*]],
+		})
+		removefiles({
+			[[source/modules/lagcompensation.cpp]] -- It's not finished yet.
 		})
 
 		includedirs({

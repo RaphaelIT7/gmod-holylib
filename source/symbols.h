@@ -53,6 +53,9 @@ class CNetChan;
 struct MD5Value_t;
 struct dataFragments_s;
 
+class	CGameTrace;
+typedef	CGameTrace trace_t;
+
 namespace GarrysMod::Lua
 {
 	class ILuaInterface;
@@ -586,4 +589,16 @@ namespace Symbols
 
 	typedef ConCommandBase* (*CCvar_FindCommandBase)(ICvar*, const char* name);
 	extern const std::vector<Symbol> CCvar_FindCommandBaseSym;
+
+	//---------------------------------------------------------------------------------
+	// Purpose: lagcompensation Symbols
+	//---------------------------------------------------------------------------------
+	typedef void (*UTIL_TraceEntity1)(CBaseEntity *pEntity, const Vector &vecAbsStart, const Vector &vecAbsEnd, unsigned int mask, const IHandleEntity *pIgnore, int nCollisionGroup, trace_t *ptr);
+	extern const std::vector<Symbol> UTIL_TraceEntity1Sym;
+
+	typedef void (*UTIL_TraceEntity1)(CBaseEntity *pEntity, const Vector &vecAbsStart, const Vector &vecAbsEnd, unsigned int mask, const IHandleEntity *pIgnore, int nCollisionGroup, trace_t *ptr);
+	extern const std::vector<Symbol> UTIL_TraceEntity1Sym;
+
+	typedef void (*UTIL_TraceEntity2)(CBaseEntity *pEntity, const Vector &vecAbsStart, const Vector &vecAbsEnd, unsigned int mask, trace_t *ptr);
+	extern const std::vector<Symbol> UTIL_TraceEntity2Sym;
 }
