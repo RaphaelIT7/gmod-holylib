@@ -213,10 +213,7 @@ void Lua::DestroyInterface(GarrysMod::Lua::ILuaInterface* LUA)
  */
 Lua::StateData* Lua::GetLuaData(GarrysMod::Lua::ILuaInterface* LUA)
 {
-	Lua::StateData* data = *reinterpret_cast<Lua::StateData**>((char*)LUA->GetPathID() + 24);
-	Msg("holylib - Found data at %p\n", data);
-
-	return data;
+	return *reinterpret_cast<Lua::StateData**>((char*)LUA->GetPathID() + 24);
 }
 
 void Lua::CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA, bool bNullOut)
@@ -225,16 +222,19 @@ void Lua::CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA, bool bNullOut)
 	{
 		char* pathID = (char*)LUA->GetPathID();
 		size_t usedLength = strlen(pathID);
-		memset(pathID + usedLength, 0, 32 - usedLength);
+		memset(pathID + usedLength, 0, 32 - usedLength); // Gmod doesn't NULL out m_sPathID which means it could contain junk.
 	}
 
 	if (Lua::GetLuaData(LUA))
+	{
+		Msg("holylib - Skipping thread data creation since we already found data %p\n", Lua::GetLuaData(LUA));
 		return;
+	}
 
 	char* pathID = (char*)LUA->GetPathID();
 	Lua::StateData* data = new Lua::StateData;
 	*reinterpret_cast<Lua::StateData**>(pathID + 24) = data;
-	Msg("holylib - Created thread data %p\n", data);
+	Msg("holylib - Created thread data %p (%s)\n", data, pathID);
 }
 
 void Lua::RemoveLuaData(GarrysMod::Lua::ILuaInterface* LUA)
