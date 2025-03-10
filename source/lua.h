@@ -38,6 +38,6 @@ namespace Lua
 	};
 
 	extern Lua::StateData* GetLuaData(GarrysMod::Lua::ILuaInterface* LUA);
-	extern void CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA);
+	extern void CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA, bool bNullOut = false);
 	extern void RemoveLuaData(GarrysMod::Lua::ILuaInterface* LUA);
 }

@@ -53,7 +53,7 @@ void Lua::Init(GarrysMod::Lua::ILuaInterface* LUA)
 	}
 
 	g_Lua = LUA;
-	Lua::CreateLuaData(g_Lua);
+	Lua::CreateLuaData(g_Lua, true);
 	g_pModuleManager.LuaInit(false);
 
 	std::vector<LuaFindResult> results;
@@ -219,9 +219,15 @@ Lua::StateData* Lua::GetLuaData(GarrysMod::Lua::ILuaInterface* LUA)
 	return data;
 }
 
-void Lua::CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA)
+void Lua::CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA, bool bNullOut)
 {
-	Msg("pathid: %s - %i\n", LUA->GetPathID(), strlen(LUA->GetPathID()));
+	if (bNullOut)
+	{
+		char* pathID = (char*)LUA->GetPathID();
+		size_t usedLength = strlen(pathID);
+		memset(pathID + usedLength, 0, 32 - usedLength);
+	}
+
 	if (Lua::GetLuaData(LUA))
 		return;
 
