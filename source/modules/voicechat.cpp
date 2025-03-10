@@ -462,13 +462,25 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 		pVoiceData->SetData(data, nBytes);
 		pVoiceData->iPlayerSlot = pClient->GetPlayerSlot();
 		Push_VoiceData(pVoiceData);
-		g_Lua->Push(-2);
-		g_Lua->Remove(-3);
+		// Stack: -3 = hook.Run(function) | -2 = hook name(string) | -1 = voicedata(userdata)
+		
+		g_Lua->Push(-3);
+		// Stack: -4 = hook.Run(function) | -3 = hook name(string) | -2 = voicedata(userdata) | -1 = hook.Run(function)
+		
+		g_Lua->Push(-3);
+		// Stack: -5 = hook.Run(function) | -4 = hook name(string) | -3 = voicedata(userdata) | -2 = hook.Run(function) | -1 = hook name(string)
+		
+		g_Lua->Remove(-5);
+		// Stack: -4 = hook name(string) | -3 = voicedata(userdata) | -2 = hook.Run(function) | -1 = hook name(string)
 
-		// Stack: -2 = VoiceData | -1 = Hook Name (string)
+		g_Lua->Remove(-4);
+		// Stack: -3 = voicedata(userdata) | -2 = hook.Run(function) | -1 = hook name(string)
 
 		Util::Push_Entity((CBaseEntity*)Util::GetPlayerByClient((CBaseClient*)pClient));
-		g_Lua->Push(-3);
+		// Stack: -4 = voicedata(userdata) | -3 = hook.Run(function) | -2 = hook name(string) | -1 = entity(userdata)
+
+		g_Lua->Push(-4);
+		// Stack: -5 = voicedata(userdata) | -4 = hook.Run(function) | -3 = hook name(string) | -2 = entity(userdata) | -1 = voicedata(userdata)
 
 		bool bHandled = false;
 		if (g_Lua->CallFunctionProtected(3, 1, true))
@@ -476,6 +488,8 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 			bHandled = g_Lua->GetBool(-1);
 			g_Lua->Pop(1);
 		}
+
+		// Stack: -1 = voicedata(userdata)
 
 		LuaUserData* pLuaData = Get_VoiceData_Data(-1, false);
 		if (pLuaData)

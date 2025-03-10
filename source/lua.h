@@ -13,6 +13,13 @@ namespace Lua
 	extern void Shutdown();
 	extern void FinalShutdown();
 	extern void ServerInit();
+
+	/*
+	   Tries to push hook.Run and the given string.
+	   Stack:
+	   -2 = hook.Run(function)
+	   -1 = hook name(string)
+	 */
 	extern bool PushHook(const char* pName);
 	extern void AddDetour();
 	extern void SetManualShutdown();
