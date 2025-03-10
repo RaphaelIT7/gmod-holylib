@@ -78,7 +78,7 @@ void Lua::Init(GarrysMod::Lua::ILuaInterface* LUA)
 
 void Lua::ServerInit()
 {
-	if (g_Lua == nullptr) {
+	if (g_Lua == NULL) {
 		DevMsg(1, "Lua::ServerInit failed! g_Lua is NULL\n");
 		return;
 	}
@@ -213,11 +213,15 @@ void Lua::DestroyInterface(GarrysMod::Lua::ILuaInterface* LUA)
  */
 Lua::StateData* Lua::GetLuaData(GarrysMod::Lua::ILuaInterface* LUA)
 {
-	return *reinterpret_cast<Lua::StateData**>((char*)LUA->GetPathID() + 24);
+	Lua::StateData* data = *reinterpret_cast<Lua::StateData**>((char*)LUA->GetPathID() + 24);
+	Msg("holylib - Found data at %p\n", data);
+
+	return data;
 }
 
 void Lua::CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA)
 {
+	Msg("pathid: %s - %i\n", LUA->GetPathID(), strlen(LUA->GetPathID()));
 	if (Lua::GetLuaData(LUA))
 		return;
 
