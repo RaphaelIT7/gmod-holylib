@@ -372,8 +372,10 @@ void CHolyLibModule::LuaInit(bool bServerInit)
 			Util::AddFunc(IsMapValid, "IsMapValid");
 			Util::AddFunc(InvalidateBoneCache, "InvalidateBoneCache");
 			Util::AddFunc(SetSignOnState, "SetSignOnState");
+#if ARCHITECTURE_IS_X86
 			Util::AddFunc(ExitLadder, "ExitLadder");
 			Util::AddFunc(GetLadder, "GetLadder");
+#endif
 			Util::AddFunc(HideMsg, "HideMsg");
 			Util::AddFunc(GetRegistry, "GetRegistry");
 			Util::AddFunc(Disconnect, "Disconnect");
