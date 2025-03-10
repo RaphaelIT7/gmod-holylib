@@ -50,13 +50,27 @@ namespace Util
 	extern Symbols::lua_rawseti func_lua_rawseti;
 	inline void RawSetI(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, int iValue)
 	{
-		func_lua_rawseti(LUA->GetState(), iStackPos, iValue);
+		if (func_lua_rawseti)
+		{
+			func_lua_rawseti(LUA->GetState(), iStackPos, iValue);
+		} else {
+			LUA->PushNumber(iValue);
+			LUA->Push(-2);
+			LUA->Remove(-3);
+			LUA->RawSet(iStackPos + 1);
+		}
 	}
 
 	extern Symbols::lua_rawgeti func_lua_rawgeti;
 	inline void RawGetI(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, int iValue)
 	{
-		func_lua_rawgeti(LUA->GetState(), iStackPos, iValue);
+		if (func_lua_rawgeti)
+		{
+			func_lua_rawgeti(LUA->GetState(), iStackPos, iValue);
+		} else {
+			LUA->PushNumber(iValue);
+			LUA->RawGet(iStackPos + 1);
+		}
 	}
 
 	/*
@@ -67,7 +81,12 @@ namespace Util
 	 */
 	inline void ReferencePush(GarrysMod::Lua::ILuaInterface* LUA, int iReference)
 	{
-		func_lua_rawgeti(LUA->GetState(), LUA_REGISTRYINDEX, iReference);
+		if (func_lua_rawgeti)
+		{
+			func_lua_rawgeti(LUA->GetState(), LUA_REGISTRYINDEX, iReference);
+		} else {
+			LUA->ReferencePush(iReference);
+		}
 	}
 
 	/*
