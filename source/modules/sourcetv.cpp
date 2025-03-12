@@ -13,8 +13,8 @@
 class CSourceTVLibModule : public IModule
 {
 public:
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "sourcetv"; };
 	virtual int Compatibility() { return LINUX32; };
@@ -546,7 +546,7 @@ static void hook_CHLTVServer_BroadcastEvent(CHLTVServer* pServer, IGameEvent* pE
 
 extern int CBaseClient_TypeID; // Now we need to make sure gameserevr module is loaded before sourcetv.
 extern void Push_CBaseClientMeta();
-void CSourceTVLibModule::LuaInit(bool bServerInit)
+void CSourceTVLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
@@ -588,7 +588,7 @@ void CSourceTVLibModule::LuaInit(bool bServerInit)
 	Util::FinishTable("sourcetv");
 }
 
-void CSourceTVLibModule::LuaShutdown()
+void CSourceTVLibModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	Util::NukeTable("sourcetv");
 

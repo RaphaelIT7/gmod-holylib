@@ -8,7 +8,7 @@
 class CLuaJITModule : public IModule
 {
 public:
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "luajit"; };
 	virtual int Compatibility() { return LINUX32; };
@@ -90,7 +90,7 @@ int hook_CLuaInterface_GetType(GarrysMod::Lua::ILuaInterface* pLua, int iStackPo
 	return type == -1 ? GarrysMod::Lua::Type::Nil : type;
 }
 
-void CLuaJITModule::LuaInit(bool bServerInit)
+void CLuaJITModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;

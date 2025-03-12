@@ -16,8 +16,8 @@
 class CHolyLibModule : public IModule
 {
 public:
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "holylib"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
@@ -358,7 +358,7 @@ LUA_FUNCTION_STATIC(Disconnect)
 	return 1;
 }
 
-void CHolyLibModule::LuaInit(bool bServerInit)
+void CHolyLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (!bServerInit)
 	{
@@ -395,7 +395,7 @@ void CHolyLibModule::LuaInit(bool bServerInit)
 	}
 }
 
-void CHolyLibModule::LuaShutdown()
+void CHolyLibModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	Util::NukeTable("holylib");
 }

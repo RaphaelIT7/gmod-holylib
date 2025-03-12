@@ -16,8 +16,8 @@ public:
 	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual void Think(bool bSimulating) OVERRIDE;
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void Shutdown() OVERRIDE;
 	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) OVERRIDE;
 	virtual const char* Name() { return "filesystem"; };
@@ -2209,7 +2209,7 @@ LUA_FUNCTION_STATIC(addonsystem_SetShouldMount)
 }
 
 // Gmod's filesystem functions have some weird stuff in them that makes them noticeably slower :/
-void CFileSystemModule::LuaInit(bool bServerInit)
+void CFileSystemModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
@@ -2246,7 +2246,7 @@ void CFileSystemModule::LuaInit(bool bServerInit)
 	Util::FinishTable("addonsystem");
 }
 
-void CFileSystemModule::LuaShutdown()
+void CFileSystemModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	Util::NukeTable("filesystem");
 }

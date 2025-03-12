@@ -9,8 +9,8 @@ class CBassModule : public IModule
 {
 public:
 	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void Shutdown() OVERRIDE;
 	virtual void Think(bool bSimulating) OVERRIDE;
 	virtual const char* Name() { return "bass"; };
@@ -413,7 +413,7 @@ void CBassModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 	gGModAudio->Init(*appfn); // The engine didn't...
 }
 
-void CBassModule::LuaInit(bool bServerInit)
+void CBassModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
@@ -470,7 +470,7 @@ void CBassModule::LuaInit(bool bServerInit)
 	Util::FinishTable("bass");
 }
 
-void CBassModule::LuaShutdown()
+void CBassModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	Util::NukeTable("bass");
 }

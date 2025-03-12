@@ -6,8 +6,8 @@
 class CSysTimerModule : public IModule
 {
 public:
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void Think(bool bSimulating) OVERRIDE;
 	virtual const char* Name() { return "systimer"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
@@ -295,7 +295,7 @@ LUA_FUNCTION_STATIC(timer_UnPause)
 	return 1;
 }
 
-void CSysTimerModule::LuaInit(bool bServerInit)
+void CSysTimerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
@@ -318,7 +318,7 @@ void CSysTimerModule::LuaInit(bool bServerInit)
 	Util::FinishTable("systimer");
 }
 
-void CSysTimerModule::LuaShutdown()
+void CSysTimerModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	FOR_EACH_VEC(g_pLuaTimers, i)
 		delete g_pLuaTimers[i];

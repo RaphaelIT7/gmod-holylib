@@ -9,8 +9,8 @@ class CSoundscapeModule : public IModule
 public:
 	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void Shutdown() OVERRIDE;
 	virtual const char* Name() { return "soundscape"; };
 	virtual int Compatibility() { return LINUX32; };
@@ -31,12 +31,12 @@ void CSoundscapeModule::InitDetour(bool bPreServer)
 
 }
 
-void CSoundscapeModule::LuaInit(bool bServerInit)
+void CSoundscapeModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 
 }
 
-void CSoundscapeModule::LuaShutdown()
+void CSoundscapeModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	Util::NukeTable("httpserver");
 }

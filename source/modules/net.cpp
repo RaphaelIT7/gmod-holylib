@@ -7,8 +7,8 @@
 class CNetModule : public IModule
 {
 public:
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "net"; };
 	virtual int Compatibility() { return LINUX32; };
@@ -49,7 +49,7 @@ LUA_FUNCTION_STATIC(net_ReadSeek)
 	return 0;
 }
 
-void CNetModule::LuaInit(bool bServerInit)
+void CNetModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
@@ -62,7 +62,7 @@ void CNetModule::LuaInit(bool bServerInit)
 	}
 }
 
-void CNetModule::LuaShutdown()
+void CNetModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	if (Util::PushTable("net"))
 	{

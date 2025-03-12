@@ -15,8 +15,8 @@ double		net_time;
 class CGameServerModule : public IModule
 {
 public:
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "gameserver"; };
 	virtual int Compatibility() { return LINUX32; };
@@ -1265,7 +1265,7 @@ LUA_FUNCTION_STATIC(gameserver_ApproximateProcessMemoryUsage)
 
 extern CGlobalVars* gpGlobals;
 static ConVar* sv_stressbots;
-void CGameServerModule::LuaInit(bool bServerInit)
+void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
@@ -1314,7 +1314,7 @@ void CGameServerModule::LuaInit(bool bServerInit)
 	Util::FinishTable("gameserver");
 }
 
-void CGameServerModule::LuaShutdown()
+void CGameServerModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	Util::NukeTable("gameserver");
 

@@ -54,7 +54,7 @@ void Lua::Init(GarrysMod::Lua::ILuaInterface* LUA)
 
 	g_Lua = LUA;
 	Lua::CreateLuaData(g_Lua, true);
-	g_pModuleManager.LuaInit(false);
+	g_pModuleManager.LuaInit(g_Lua, false);
 
 	std::vector<LuaFindResult> results;
 	GetShared()->FindScripts("lua/autorun/_holylib/*.lua", "GAME", results);
@@ -83,12 +83,12 @@ void Lua::ServerInit()
 		return;
 	}
 
-	g_pModuleManager.LuaInit(true);
+	g_pModuleManager.LuaInit(g_Lua, true);
 }
 
 void Lua::Shutdown()
 {
-	g_pModuleManager.LuaShutdown();
+	g_pModuleManager.LuaShutdown(g_Lua);
 
 	g_pRemoveLuaUserData = false; // We are iterating over g_pLuaUserData so DON'T modify it.
 	for (auto& ref : g_pLuaUserData)

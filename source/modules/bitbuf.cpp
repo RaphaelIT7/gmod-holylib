@@ -7,8 +7,8 @@
 class CBitBufModule : public IModule
 {
 public:
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual const char* Name() { return "bitbuf"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 };
@@ -917,7 +917,7 @@ LUA_FUNCTION_STATIC(bitbuf_CreateWriteBuffer)
 	return 1;
 }
 
-void CBitBufModule::LuaInit(bool bServerInit)
+void CBitBufModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
@@ -1032,7 +1032,7 @@ void CBitBufModule::LuaInit(bool bServerInit)
 	Util::FinishTable("bitbuf");
 }
 
-void CBitBufModule::LuaShutdown()
+void CBitBufModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	Util::NukeTable("bitbuf");
 }

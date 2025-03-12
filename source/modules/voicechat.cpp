@@ -11,8 +11,8 @@
 class CVoiceChatModule : public IModule
 {
 public:
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) OVERRIDE;
 	virtual void Shutdown() OVERRIDE;
@@ -851,7 +851,7 @@ void CVoiceChatModule::Think(bool bSimulating)
 	}
 }
 
-void CVoiceChatModule::LuaInit(bool bServerInit)
+void CVoiceChatModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
@@ -903,7 +903,7 @@ void CVoiceChatModule::LuaInit(bool bServerInit)
 	Util::FinishTable("voicechat");
 }
 
-void CVoiceChatModule::LuaShutdown()
+void CVoiceChatModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	Util::NukeTable("voicechat");
 }
