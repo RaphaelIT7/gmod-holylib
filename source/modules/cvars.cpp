@@ -174,7 +174,10 @@ LUA_FUNCTION_STATIC(cvars_SetValue)
 	const char* pName = LUA->CheckString(1);
 	ConVar* pConVar = g_pCVar->FindVar(pName);
 	if (!pConVar)
-		return 0;
+	{
+		LUA->PushBool(false);
+		return 1;
+	}
 
 	pConVar->SetValue(LUA->CheckString(2));
 	LUA->PushBool(true);
