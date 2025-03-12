@@ -267,12 +267,12 @@ void CCVarsModule::InitDetour(bool bServerInit)
 
 	ICvar* pCVar = vstdlib_loader.GetInterface<ICvar>(CVAR_INTERFACE_VERSION); // g_pCVar isn't initialized yet since tiers didn't connect yet.
 #if ARCHITECTURE_IS_X86_64
-		ICvar::Iterator iter(g_pCVar);
+		ICvar::Iterator iter(pCVar);
 		for ( iter.SetFirst() ; iter.IsValid() ; iter.Next() )
 		{
 			ConCommandBase* pCommand = iter.Get();
 #else
-		for (ConCommandBase* pCommand = g_pCVar->GetCommands(); pCommand; pCommand = pCommand->GetNext())
+		for (ConCommandBase* pCommand = pCVar->GetCommands(); pCommand; pCommand = pCommand->GetNext())
 		{
 #endif
 			AddCommandBaseName(pCommand);
