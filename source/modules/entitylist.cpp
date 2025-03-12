@@ -19,9 +19,8 @@ public:
 CEntListModule g_pEntListModule;
 IModule* pEntListModule = &g_pEntListModule;
 
-static int EntityList_TypeID = -1;
-Push_LuaClass(EntityList, EntityList_TypeID)
-Get_LuaClass(EntityList, EntityList_TypeID, "EntityList")
+Push_LuaClass(EntityList)
+Get_LuaClass(EntityList, "EntityList")
 
 static std::vector<EntityList*> pEntityLists;
 EntityList g_pGlobalEntityList(NULL); // NOTE: This needs to be after pEntityLists? (funny Constructor Behavior apparently)

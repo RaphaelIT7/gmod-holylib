@@ -191,7 +191,7 @@ LUA_FUNCTION_STATIC(cvars_Unregister)
 	if (LUA->IsType(1, GarrysMod::Lua::Type::String))
 		pConVar = g_pCVar->FindCommandBase(LUA->GetString(1));
 	else
-		pConVar = Get_ConVar(1, true);
+		pConVar = Get_ConVar(LUA, 1, true);
 
 	if (!pConVar)
 		LUA->ThrowError("Failed to find ConVar/ConCommand!");
@@ -221,12 +221,12 @@ void CCVarsModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit
 	if (bServerInit)
 		return;
 
-	Util::StartTable();
-		Util::AddFunc(cvars_GetAll, "GetAll");
-		Util::AddFunc(cvars_SetValue, "SetValue");
-		Util::AddFunc(cvars_Unregister, "Unregister");
-		Util::AddFunc(cvars_Find, "Find");
-	Util::FinishTable("cvar");
+	Util::StartTable(pLua);
+		Util::AddFunc(pLua, cvars_GetAll, "GetAll");
+		Util::AddFunc(pLua, cvars_SetValue, "SetValue");
+		Util::AddFunc(pLua, cvars_Unregister, "Unregister");
+		Util::AddFunc(pLua, cvars_Find, "Find");
+	Util::FinishTable(pLua, "cvar");
 }
 
 #if ARCHITECTURE_IS_X86
@@ -279,5 +279,5 @@ void CCVarsModule::Shutdown()
 
 void CCVarsModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	Util::NukeTable("cvar");
+	Util::NukeTable(pLua, "cvar");
 }

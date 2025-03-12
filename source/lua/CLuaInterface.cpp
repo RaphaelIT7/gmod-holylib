@@ -648,6 +648,7 @@ bool CLuaInterface::Init( GarrysMod::Lua::ILuaGameCallback* callback, bool bIsSe
 {
 	::DebugPrint(1, "CLuaInterface::Init Server: %s\n", bIsServer ? "Yes" : "No");
 	m_pGameCallback = callback;
+	memset(&m_sPathID, 0, sizeof(m_sPathID));
 
 	state = luaL_newstate();
 	luaL_openlibs(state);

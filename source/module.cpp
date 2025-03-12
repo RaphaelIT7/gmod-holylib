@@ -3,6 +3,7 @@
 #include "modules/_modules.h"
 #include "convar.h"
 #include "tier0/icommandline.h"
+#include "lua.h"
 
 static ConVar module_debug("holylib_module_debug", "0");
 
@@ -325,6 +326,12 @@ void CModuleManager::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 		m_pStatus |= LoadStatus_LuaInit;
 
 	AddLuaInterface(pLua);
+	if (!Lua::GetLuaData(pLua))
+	{
+		Warning("holylib: tried to Initialize a LuaInterface when it had no allocated StateData!\n");
+		return;
+	}
+
 	VCALL_ENABLED_MODULES(LuaInit(pLua, bServerInit));
 }
 

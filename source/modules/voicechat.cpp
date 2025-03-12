@@ -467,8 +467,16 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 
 		// Stack: -2 = VoiceData | -1 = Hook Name (string)
 
+<<<<<<< Updated upstream
 		Util::Push_Entity((CBaseEntity*)Util::GetPlayerByClient((CBaseClient*)pClient));
 		g_Lua->Push(-3);
+=======
+		Util::Push_Entity(g_Lua, (CBaseEntity*)Util::GetPlayerByClient((CBaseClient*)pClient));
+		// Stack: -4 = voicedata(userdata) | -3 = hook.Run(function) | -2 = hook name(string) | -1 = entity(userdata)
+
+		g_Lua->Push(-4);
+		// Stack: -5 = voicedata(userdata) | -4 = hook.Run(function) | -3 = hook name(string) | -2 = entity(userdata) | -1 = voicedata(userdata)
+>>>>>>> Stashed changes
 
 		bool bHandled = false;
 		if (g_Lua->CallFunctionProtected(3, 1, true))
@@ -495,7 +503,7 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 
 LUA_FUNCTION_STATIC(voicechat_SendEmptyData)
 {
-	CBasePlayer* pPlayer = Util::Get_Player(1, true); // Should error if given invalid player.
+	CBasePlayer* pPlayer = Util::Get_Player(LUA, 1, true); // Should error if given invalid player.
 	CBaseClient* pClient = Util::GetClientByPlayer(pPlayer);
 	if (!pClient)
 		LUA->ThrowError("Failed to get CBaseClient!\n");
@@ -513,7 +521,7 @@ LUA_FUNCTION_STATIC(voicechat_SendEmptyData)
 
 LUA_FUNCTION_STATIC(voicechat_SendVoiceData)
 {
-	CBasePlayer* pPlayer = Util::Get_Player(1, true); // Should error if given invalid player.
+	CBasePlayer* pPlayer = Util::Get_Player(LUA, 1, true); // Should error if given invalid player.
 	IClient* pClient = Util::GetClientByPlayer(pPlayer);
 	if (!pClient)
 		LUA->ThrowError("Failed to get CBaseClient!\n");
@@ -549,7 +557,7 @@ LUA_FUNCTION_STATIC(voicechat_BroadcastVoiceData)
 		LUA->PushNil();
 		while (LUA->Next(-2))
 		{
-			CBasePlayer* pPlayer = Util::Get_Player(-1, true);
+			CBasePlayer* pPlayer = Util::Get_Player(LUA, -1, true);
 			CBaseClient* pClient = Util::GetClientByPlayer(pPlayer);
 			if (!pClient)
 				LUA->ThrowError("Failed to get CBaseClient!\n");
@@ -569,7 +577,7 @@ LUA_FUNCTION_STATIC(voicechat_BroadcastVoiceData)
 
 LUA_FUNCTION_STATIC(voicechat_ProcessVoiceData)
 {
-	CBasePlayer* pPlayer = Util::Get_Player(1, true); // Should error if given invalid player.
+	CBasePlayer* pPlayer = Util::Get_Player(LUA, 1, true); // Should error if given invalid player.
 	CBaseClient* pClient = Util::GetClientByPlayer(pPlayer);
 	if (!pClient)
 		LUA->ThrowError("Failed to get CBaseClient!\n");
@@ -614,12 +622,12 @@ LUA_FUNCTION_STATIC(voicechat_CreateVoiceData)
 
 LUA_FUNCTION_STATIC(voicechat_IsHearingClient)
 {
-	CBasePlayer* pPlayer = Util::Get_Player(1, true);
+	CBasePlayer* pPlayer = Util::Get_Player(LUA, 1, true);
 	IClient* pClient = Util::GetClientByPlayer(pPlayer);
 	if (!pClient)
 		LUA->ThrowError("Failed to get CBaseClient!\n");
 
-	CBasePlayer* pTargetPlayer = Util::Get_Player(2, true);
+	CBasePlayer* pTargetPlayer = Util::Get_Player(LUA, 2, true);
 	IClient* pTargetClient = Util::GetClientByPlayer(pTargetPlayer);
 	if (!pTargetClient)
 		LUA->ThrowError("Failed to get CBaseClient for target player!\n");
@@ -631,12 +639,12 @@ LUA_FUNCTION_STATIC(voicechat_IsHearingClient)
 
 LUA_FUNCTION_STATIC(voicechat_IsProximityHearingClient)
 {
-	CBasePlayer* pPlayer = Util::Get_Player(1, true);
+	CBasePlayer* pPlayer = Util::Get_Player(LUA, 1, true);
 	IClient* pClient = Util::GetClientByPlayer(pPlayer);
 	if (!pClient)
 		LUA->ThrowError("Failed to get CBaseClient!\n");
 
-	CBasePlayer* pTargetPlayer = Util::Get_Player(2, true);
+	CBasePlayer* pTargetPlayer = Util::Get_Player(LUA, 2, true);
 	IClient* pTargetClient = Util::GetClientByPlayer(pTargetPlayer);
 	if (!pTargetClient)
 		LUA->ThrowError("Failed to get CBaseClient for target player!\n");
@@ -753,7 +761,7 @@ LUA_FUNCTION_STATIC(voicechat_LoadVoiceStream)
 	if (bAsync)
 	{
 		LUA->Push(4);
-		task->iCallback = Util::ReferenceCreate("voicechat.LoadVoiceStream - callback");
+		task->iCallback = Util::ReferenceCreate(LUA, "voicechat.LoadVoiceStream - callback");
 		g_pVoiceStreamTasks.insert(task);
 		pVoiceThreadPool->QueueCall(&VoiceStreamJob, task);
 		return 0;
@@ -783,13 +791,13 @@ LUA_FUNCTION_STATIC(voicechat_SaveVoiceStream)
 	task->iType = VoiceStreamTask_SAVE;
 	
 	LUA->Push(1);
-	task->iReference = Util::ReferenceCreate("voicechat.SaveVoiceStream - VoiceStream");
+	task->iReference = Util::ReferenceCreate(LUA, "voicechat.SaveVoiceStream - VoiceStream");
 	task->pStream = pStream;
 
 	if (bAsync)
 	{
 		LUA->Push(5);
-		task->iCallback = Util::ReferenceCreate("voicechat.SaveVoiceStream - callback");
+		task->iCallback = Util::ReferenceCreate(LUA, "voicechat.SaveVoiceStream - callback");
 		g_pVoiceStreamTasks.insert(task);
 		pVoiceThreadPool->QueueCall(&VoiceStreamJob, task);
 		return 0;
@@ -842,56 +850,56 @@ void CVoiceChatModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServer
 	if (bServerInit)
 		return;
 
-	VoiceData_TypeID = g_Lua->CreateMetaTable("VoiceData");
-		Util::AddFunc(VoiceData__tostring, "__tostring");
-		Util::AddFunc(VoiceData__index, "__index");
-		Util::AddFunc(VoiceData__newindex, "__newindex");
-		Util::AddFunc(VoiceData__gc, "__gc");
-		Util::AddFunc(VoiceData_GetTable, "GetTable");
-		Util::AddFunc(VoiceData_IsValid, "IsValid");
-		Util::AddFunc(VoiceData_GetData, "GetData");
-		Util::AddFunc(VoiceData_GetLength, "GetLength");
-		Util::AddFunc(VoiceData_GetPlayerSlot, "GetPlayerSlot");
-		Util::AddFunc(VoiceData_SetData, "SetData");
-		Util::AddFunc(VoiceData_SetLength, "SetLength");
-		Util::AddFunc(VoiceData_SetPlayerSlot, "SetPlayerSlot");
-		Util::AddFunc(VoiceData_GetUncompressedData, "GetUncompressedData");
-		Util::AddFunc(VoiceData_GetProximity, "GetProximity");
-		Util::AddFunc(VoiceData_SetProximity, "SetProximity");
-		Util::AddFunc(VoiceData_CreateCopy, "CreateCopy");
+	VoiceData_TypeID = pLua->CreateMetaTable("VoiceData");
+		Util::AddFunc(pLua, VoiceData__tostring, "__tostring");
+		Util::AddFunc(pLua, VoiceData__index, "__index");
+		Util::AddFunc(pLua, VoiceData__newindex, "__newindex");
+		Util::AddFunc(pLua, VoiceData__gc, "__gc");
+		Util::AddFunc(pLua, VoiceData_GetTable, "GetTable");
+		Util::AddFunc(pLua, VoiceData_IsValid, "IsValid");
+		Util::AddFunc(pLua, VoiceData_GetData, "GetData");
+		Util::AddFunc(pLua, VoiceData_GetLength, "GetLength");
+		Util::AddFunc(pLua, VoiceData_GetPlayerSlot, "GetPlayerSlot");
+		Util::AddFunc(pLua, VoiceData_SetData, "SetData");
+		Util::AddFunc(pLua, VoiceData_SetLength, "SetLength");
+		Util::AddFunc(pLua, VoiceData_SetPlayerSlot, "SetPlayerSlot");
+		Util::AddFunc(pLua, VoiceData_GetUncompressedData, "GetUncompressedData");
+		Util::AddFunc(pLua, VoiceData_GetProximity, "GetProximity");
+		Util::AddFunc(pLua, VoiceData_SetProximity, "SetProximity");
+		Util::AddFunc(pLua, VoiceData_CreateCopy, "CreateCopy");
 	g_Lua->Pop(1);
 
-	VoiceStream_TypeID = g_Lua->CreateMetaTable("VoiceStream");
-		Util::AddFunc(VoiceStream__tostring, "__tostring");
-		Util::AddFunc(VoiceStream__index, "__index");
-		Util::AddFunc(VoiceStream__newindex, "__newindex");
-		Util::AddFunc(VoiceStream__gc, "__gc");
-		Util::AddFunc(VoiceStream_GetTable, "GetTable");
-		Util::AddFunc(VoiceStream_IsValid, "IsValid");
-		Util::AddFunc(VoiceStream_GetData, "GetData");
-		Util::AddFunc(VoiceStream_SetData, "SetData");
-		Util::AddFunc(VoiceStream_GetCount, "GetCount");
-		Util::AddFunc(VoiceStream_GetIndex, "GetIndex");
-		Util::AddFunc(VoiceStream_SetIndex, "SetIndex");
+	VoiceStream_TypeID = pLua->CreateMetaTable("VoiceStream");
+		Util::AddFunc(pLua, VoiceStream__tostring, "__tostring");
+		Util::AddFunc(pLua, VoiceStream__index, "__index");
+		Util::AddFunc(pLua, VoiceStream__newindex, "__newindex");
+		Util::AddFunc(pLua, VoiceStream__gc, "__gc");
+		Util::AddFunc(pLua, VoiceStream_GetTable, "GetTable");
+		Util::AddFunc(pLua, VoiceStream_IsValid, "IsValid");
+		Util::AddFunc(pLua, VoiceStream_GetData, "GetData");
+		Util::AddFunc(pLua, VoiceStream_SetData, "SetData");
+		Util::AddFunc(pLua, VoiceStream_GetCount, "GetCount");
+		Util::AddFunc(pLua, VoiceStream_GetIndex, "GetIndex");
+		Util::AddFunc(pLua, VoiceStream_SetIndex, "SetIndex");
 	g_Lua->Pop(1);
 
-	Util::StartTable();
-		Util::AddFunc(voicechat_SendEmptyData, "SendEmptyData");
-		Util::AddFunc(voicechat_SendVoiceData, "SendVoiceData");
-		Util::AddFunc(voicechat_BroadcastVoiceData, "BroadcastVoiceData");
-		Util::AddFunc(voicechat_ProcessVoiceData, "ProcessVoiceData");
-		Util::AddFunc(voicechat_CreateVoiceData, "CreateVoiceData");
-		Util::AddFunc(voicechat_IsHearingClient, "IsHearingClient");
-		Util::AddFunc(voicechat_IsProximityHearingClient, "IsProximityHearingClient");
-		Util::AddFunc(voicechat_CreateVoiceStream, "CreateVoiceStream");
-		Util::AddFunc(voicechat_LoadVoiceStream, "LoadVoiceStream");
-		Util::AddFunc(voicechat_SaveVoiceStream, "SaveVoiceStream");
-	Util::FinishTable("voicechat");
+	Util::StartTable(pLua);
+		Util::AddFunc(pLua, voicechat_SendEmptyData, "SendEmptyData");
+		Util::AddFunc(pLua, voicechat_SendVoiceData, "SendVoiceData");
+		Util::AddFunc(pLua, voicechat_BroadcastVoiceData, "BroadcastVoiceData");
+		Util::AddFunc(pLua, voicechat_ProcessVoiceData, "ProcessVoiceData");
+		Util::AddFunc(pLua, voicechat_CreateVoiceData, "CreateVoiceData");
+		Util::AddFunc(pLua, voicechat_IsHearingClient, "IsHearingClient");
+		Util::AddFunc(pLua, voicechat_IsProximityHearingClient, "IsProximityHearingClient");
+		Util::AddFunc(pLua, voicechat_CreateVoiceStream, "CreateVoiceStream");
+		Util::AddFunc(pLua, voicechat_LoadVoiceStream, "LoadVoiceStream");
+		Util::AddFunc(pLua, voicechat_SaveVoiceStream, "SaveVoiceStream");
+	Util::FinishTable(pLua, "voicechat");
 }
 
 void CVoiceChatModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	Util::NukeTable("voicechat");
+	Util::NukeTable(pLua, "voicechat");
 }
 
 void CVoiceChatModule::InitDetour(bool bPreServer)
