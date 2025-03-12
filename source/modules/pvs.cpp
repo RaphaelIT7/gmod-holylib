@@ -692,7 +692,7 @@ LUA_FUNCTION_STATIC(pvs_FindInPVS) // Copy from pas.FindInPAS
 		orig = Get_Vector(1);
 	} else {
 		CBaseEntity* ent = Util::Get_Entity(1, true);
-		orig = (Vector*)&ent->GetAbsOrigin(); // ToDo: This currently breaks the compile.
+		orig = (Vector*)&ent->GetAbsOrigin();
 	}
 
 	Util::CM_Vis(*orig, DVIS_PVS);
@@ -760,7 +760,7 @@ LUA_FUNCTION_STATIC(pvs_TestPVS)
 		orig = Get_Vector(1);
 	} else {
 		CBaseEntity* ent = Util::Get_Entity(1, true);
-		orig = (Vector*)&ent->GetAbsOrigin(); // ToDo: This currently breaks the compile.
+		orig = (Vector*)&ent->GetAbsOrigin();
 	}
 
 	Util::CM_Vis(*orig, DVIS_PVS);

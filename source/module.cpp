@@ -192,7 +192,10 @@ void CModule::Shutdown()
 	m_pModule->Shutdown();
 }
 
-CModuleManager::CModuleManager() // ToDo: Look into how IGameSystem works and use something similar. I don't like to add each one manually
+/*
+	Initially I wanted to do it like the IGameSystem but I think the current approach is better.
+*/
+CModuleManager::CModuleManager()
 {
 #ifndef LIB_HOLYLIB
 	LoadModules();

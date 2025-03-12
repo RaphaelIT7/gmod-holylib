@@ -63,13 +63,14 @@ static ILuaTimer* FindTimer(const char* name) // We should pobably use a set or 
 static void RemoveTimers()
 {
 	bool bDeleted = false;
-	FOR_EACH_VEC(g_pLuaTimers, i)
+	int nTimer = g_pLuaTimers.Count();
+	for (int i = nTimer - 1; i >= 0; i--)
 	{
 		ILuaTimer* timer = g_pLuaTimers[i];
 		if (!timer->markDelete)
 			continue;
 
-		g_pLuaTimers.FastRemove(i); // ToDo: Is this safe?
+		g_pLuaTimers.FastRemove(nTimer);
 		bDeleted = true;
 		delete timer;
 	}
