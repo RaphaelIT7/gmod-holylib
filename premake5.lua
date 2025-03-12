@@ -58,6 +58,7 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			[[source/public/*.h]],
 			[[source/lua/*.*]],
 		})
+		
 		removefiles({
 			[[source/modules/lagcompensation.cpp]] -- It's not finished yet.
 		})

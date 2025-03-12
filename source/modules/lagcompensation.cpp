@@ -1,3 +1,11 @@
+/*
+ * This was originally intented to be implemented to possibly fix
+ * https://github.com/Facepunch/garrysmod-issues/issues/3683
+ * 
+ * but after looking more into it, gmod does set up the pose params as it uses the CS:GO version for lag compensation.
+ * This file is currently not even being compiled.
+ */
+
 #include "LuaInterface.h"
 #include "detours.h"
 #include "module.h"

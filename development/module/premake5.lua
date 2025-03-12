@@ -62,6 +62,10 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			[[../../README.md]],
 		})
 
+		removefiles({
+			[[../../source/modules/lagcompensation.cpp]] -- It's not finished yet.
+		})
+
 		includedirs({
 			[[../../Bootil/include/]],
 			[[../../source/sourcesdk/]],
