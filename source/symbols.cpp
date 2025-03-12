@@ -685,8 +685,9 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: luajit Symbols
 	//---------------------------------------------------------------------------------
-	const std::vector<Symbol> CLuaInterface_GetTypeSym = {
+	const std::vector<Symbol> CLuaInterface_GetTypeSym = { // 64x = CBaseLuaInterface::GetType (If https://github.com/Facepunch/garrysmod-requests/issues/2578 is done update this)
 		Symbol::FromName("_ZN13CLuaInterface7GetTypeEi"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x89\xF6\x41\x55\x41\x54\x49\x89\xFC"), // 55 48 89 E5 41 57 41 56 41 89 F6 41 55 41 54 49 89 FC
 	};
 
 	//---------------------------------------------------------------------------------
