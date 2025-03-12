@@ -44,6 +44,8 @@ namespace Util
 	#define LUA_ENVIRONINDEX	(-10001)
 	#define LUA_GLOBALSINDEX	(-10002)
 
+	#define SHIFT_STACK(stack, offset) (stack > 0) ? (stack + offset) : (stack - offset)
+
 	/*
 	 * RawSetI & RawGetI are way faster but Gmod doesn't expose or even use them :(
 	 */
@@ -57,7 +59,7 @@ namespace Util
 			LUA->PushNumber(iValue);
 			LUA->Push(-2);
 			LUA->Remove(-3);
-			LUA->RawSet(iStackPos + 1);
+			LUA->RawSet(SHIFT_STACK(iStackPos, 1));
 		}
 	}
 
@@ -69,7 +71,7 @@ namespace Util
 			func_lua_rawgeti(LUA->GetState(), iStackPos, iValue);
 		} else {
 			LUA->PushNumber(iValue);
-			LUA->RawGet(iStackPos + 1);
+			LUA->RawGet(SHIFT_STACK(iStackPos, 1));
 		}
 	}
 

@@ -266,7 +266,7 @@ void Util::AddDetour()
 	func_CM_Vis = (Symbols::CM_Vis)Detour::GetFunction(engine_loader.GetModule(), Symbols::CM_VisSym);
 	Detour::CheckFunction((void*)func_CM_Vis, "CM_Vis");
 
-	SourceSDK::FactoryLoader lua_shared_loader("lua_shared");
+	SourceSDK::ModuleLoader lua_shared_loader("lua_shared");
 	func_lua_rawseti = (Symbols::lua_rawseti)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_rawsetiSym);
 	Detour::CheckFunction((void*)func_lua_rawseti, "lua_rawseti");
 
