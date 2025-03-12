@@ -323,7 +323,7 @@ void Util::CheckVersion()
 	// ToDo: Implement this someday
 }
 
-Get_LuaClass(IRecipientFilter, GarrysMod::Lua::Type::RecipientFilter, "RecipientFilter")
-Get_LuaClass(Vector, GarrysMod::Lua::Type::Vector, "Vector")
-Get_LuaClass(QAngle, GarrysMod::Lua::Type::Angle, "Angle")
-Get_LuaClass(ConVar, GarrysMod::Lua::Type::ConVar, "ConVar")
+GMODGet_LuaClass(IRecipientFilter, GarrysMod::Lua::Type::RecipientFilter, "RecipientFilter")
+GMODGet_LuaClass(Vector, GarrysMod::Lua::Type::Vector, "Vector")
+GMODGet_LuaClass(QAngle, GarrysMod::Lua::Type::Angle, "Angle")
+GMODGet_LuaClass(ConVar, GarrysMod::Lua::Type::ConVar, "ConVar")

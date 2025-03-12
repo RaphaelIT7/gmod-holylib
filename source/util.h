@@ -410,6 +410,27 @@ className* Get_##className(int iStackPos, bool bError) \
 	return (className*)pLuaData->GetData(); \
 }
 
+// Use this for gmod types, as we need to account for them not using the LuaUserData structure.
+#define GMODGet_LuaClass( className, luaType, strName ) \
+static std::string invalidType_##className = MakeString("Tried to use something that wasn't a ", strName, "!"); \
+static std::string triedNull_##className = MakeString("Tried to use a NULL ", strName, "!"); \
+className* Get_##className(int iStackPos, bool bError) \
+{ \
+	if (!g_Lua->IsType(iStackPos, luaType)) \
+	{ \
+		if (bError) \
+			g_Lua->ThrowError(invalidType_##className.c_str()); \
+\
+		return NULL; \
+	} \
+\
+	className* pVar = g_Lua->GetUserType<className>(iStackPos, luaType); \
+	if (!pVar && bError) \
+		g_Lua->ThrowError(triedNull_##className.c_str()); \
+\
+	return pVar; \
+}
+
 // Only used by CBaseClient & CHLTVClient as they both work with each other / a CHLTVClient can use all CBaseClient functions.
 #define SpecialGet_LuaClass( className, luaType, luaType2, strName ) \
 static std::string invalidType_##className = MakeString("Tried to use something that wasn't a ", strName, "!"); \
