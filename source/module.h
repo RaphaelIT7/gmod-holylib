@@ -68,6 +68,7 @@ public:
 	virtual void OnEntityCreated(CBaseEntity* pEntity);
 	virtual void OnEntitySpawned(CBaseEntity* pEntity);
 	virtual void OnEntityDeleted(CBaseEntity* pEntity);
+	virtual void LevelShutdown();
 
 	inline int GetStatus() { return m_pStatus; };
 	inline CreateInterfaceFn& GetAppFactory() { return m_pAppFactory; };

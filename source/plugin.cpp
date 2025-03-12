@@ -286,6 +286,7 @@ void CServerPlugin::GameFrame(bool simulating)
 //---------------------------------------------------------------------------------
 void CServerPlugin::LevelShutdown(void) // !!!!this can get called multiple times per map change
 {
+	g_pModuleManager.LevelShutdown();
 }
 
 //---------------------------------------------------------------------------------

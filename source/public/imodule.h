@@ -77,6 +77,9 @@ public:
 	// NOTE: If we fail to load the g_pEntityList, this won't be called!
 	virtual void OnEntityDeleted(CBaseEntity* pEntity) { (void)pEntity; };
 
+	// Called on level shutdown
+	virtual void LevelShutdown() {};
+
 public: // I would like to remove these at some point but it's more efficient if the modules themself have them.
 	unsigned int m_pID = 0; // Set by the CModuleManager when registering it! Don't touch it.
 	int m_iIsDebug = false;
@@ -160,6 +163,8 @@ public:
 
 	// This function is sets the internal variables.
 	virtual void Setup(CreateInterfaceFn appfn, CreateInterfaceFn gamefn) = 0;
+
+	// All callback things.
 	virtual void Init() = 0;
 	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) = 0;
 	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) = 0;
@@ -172,4 +177,5 @@ public:
 	virtual void OnEntityCreated(CBaseEntity* pEntity) = 0;
 	virtual void OnEntitySpawned(CBaseEntity* pEntity) = 0;
 	virtual void OnEntityDeleted(CBaseEntity* pEntity) = 0;
+	virtual void LevelShutdown() = 0;
 };

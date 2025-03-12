@@ -390,6 +390,11 @@ void CModuleManager::OnEntityDeleted(CBaseEntity* pEntity)
 	VCALL_ENABLED_MODULES(OnEntityDeleted(pEntity));
 }
 
+void CModuleManager::LevelShutdown()
+{
+	VCALL_ENABLED_MODULES(LevelShutdown());
+}
+
 CModuleManager g_pModuleManager;
 
 static void NukeModules(const CCommand &args)
