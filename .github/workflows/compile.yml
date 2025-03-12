@@ -12,7 +12,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build_plugin:
+    name: "Build Plugin"
     uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
     with:
       PROJECT_NAME: "holylib"
@@ -27,6 +28,7 @@ jobs:
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
 
   build_testingarea:
+    name: "Build 32x (Testing Area)"
     uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
     secrets:
       PTERODACTYL_KEY: ${{ secrets.PTERODACTYL_KEY }}
@@ -45,6 +47,7 @@ jobs:
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
 
   build_testingarea_64x:
+    name: "Build 64x (Testing Area)"
     uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
     secrets:
       PTERODACTYL_KEY: ${{ secrets.PTERODACTYL_KEY }}
@@ -62,3 +65,114 @@ jobs:
       SOURCESDK_MINIMAL_BRANCH: "patch-6"
       SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-1"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
+
+  build_ghostinj:
+    name: "Build GhostInj"
+    uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
+    with:
+      PROJECT_PATH: "ghostinj-dll/"
+      PROJECT_NAME: "ghostinj"
+      BUILD_64x: "true"
+      LINUX_FILEEXTENTION: "dll"
+      BUILD_WINDOWS: "false"
+      USE_PREFIX: "false"
+      ARTIFACT_EXPIRE: "1"
+
+  setup_32x_artifacts:
+    name: "Setup 32x Artifact"
+    needs: [build_plugin, build_ghostinj]
+    runs-on: ubuntu-latest
+    container: debian:bullseye
+    steps:
+      - uses: actions/download-artifact@v4
+        name: "Install zip"
+        with:
+          name: "gmsv_holylib_linux.so"
+
+      - uses: actions/download-artifact@v4
+        name: "Download 32x plugin"
+        with:
+          name: "gmsv_holylib_linux.so"
+
+      - uses: actions/download-artifact@v4
+        name: "Download 32x ghostinj"
+        with:
+          name: "ghostinj.dll"
+
+      - name: "Create structure"
+        run: |
+          mkdir -p garrysmod/lua/bin
+
+          mv gmsv_holylib_linux.so garrysmod/lua/bin/
+
+          tar -czf gluatest.tar.gz ghostinj.dll garrysmod/
+
+      - uses: actions/upload-artifact@v4
+        name: "Upload tar"
+        with:
+          name: gluatest_32x
+          path: gluatest.tar.gz
+          compression-level: 9
+          retention-days: 1
+
+  setup_64x_artifacts:
+    name: "Setup 64x Artifact"
+    needs: [build_plugin, build_ghostinj]
+    runs-on: ubuntu-latest
+    container: debian:bullseye
+    steps:
+      - uses: actions/download-artifact@v4
+        name: "Download 64x plugin"
+        with:
+          name: "gmsv_holylib_linux64.so (64x)"
+
+      - uses: actions/download-artifact@v4
+        name: "Download 64x ghostinj"
+        with:
+          name: "ghostinj.dll (64x)"
+
+      - name: "Create structure"
+        run: |
+          mkdir -p garrysmod/lua/bin
+
+          mv gmsv_holylib_linux64.so garrysmod/lua/bin/
+
+          tar -czf gluatest.tar.gz ghostinj.dll garrysmod/
+
+      - uses: actions/upload-artifact@v4
+        name: "Upload tar"
+        with:
+          name: gluatest_64x
+          path: gluatest.tar.gz
+          compression-level: 9
+          retention-days: 1
+
+  test_32bit_live:
+    name: "Test live branch"
+    needs: setup_32x_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests_runnerimprovements.yml@holylib
+    with:
+      branch: live
+      gluatest-ref: "holylib"
+      extra-startup-args: "-usegh -debug"
+      download-artifact: "gluatest_32x"
+
+  test_32bit_dev:
+    name: "Test dev branch"
+    needs: setup_32x_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests_runnerimprovements.yml@holylib
+    with:
+      branch: dev
+      gluatest-ref: "holylib"
+      extra-startup-args: "-usegh -debug"
+      download-artifact: "gluatest_32x"
+
+  test_64bit:
+    name: "Test x86-64 branch"
+    needs: setup_64x_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests_runnerimprovements.yml@holylib
+    with:
+      branch: x86-64
+      gluatest-ref: "holylib"
+      extra-startup-args: "-usegh -debug"
+      download-artifact: "gluatest_64x"
