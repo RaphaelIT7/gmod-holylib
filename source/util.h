@@ -92,12 +92,14 @@ namespace Util
 	/*
 	 * Pure debugging
 	 */
+#define HOLYLIB_UTIL_DEBUG_REFERENCES 0
 	extern std::unordered_set<int> g_pReference;
 	extern ConVar holylib_debug_mainutil;
 	inline int ReferenceCreate(const char* reason)
 	{
 		int iReference = g_Lua->ReferenceCreate();
 
+#if HOLYLIB_UTIL_DEBUG_REFERENCES
 		if (holylib_debug_mainutil.GetBool())
 			Msg("holylib: Created reference %i (%s)\n", iReference, reason);
 
@@ -108,12 +110,14 @@ namespace Util
 		}
 
 		g_pReference.insert(iReference);
+#endif
 
 		return iReference;
 	}
 
 	inline void ReferenceFree(int iReference, const char* reason)
 	{
+#if HOLYLIB_UTIL_DEBUG_REFERENCES
 		if (holylib_debug_mainutil.GetBool())
 			Msg("holylib: Freed reference %i (%s)\n", iReference, reason);
 
@@ -124,6 +128,8 @@ namespace Util
 		}
 
 		g_pReference.erase(it);
+#endif
+
 		g_Lua->ReferenceFree(iReference);
 	}
 
