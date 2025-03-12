@@ -101,14 +101,12 @@ Detouring::Hook detour_CCvar_UnregisterConCommands;
 void hook_CCvar_UnregisterConCommands(ICvar* pCVar, CVarDLLIdentifier_t id)
 {
 #if ARCHITECTURE_IS_X86_64
-	ICvar::Iterator it(g_pCVar);
-	it.SetFirst();
-	const ConCommandBase *pCommand = it.Get();
-	for (; pCommand; it.Next())
-	{
-		pCommand = it.Get();
+	ICvar::Iterator iter(g_pCVar);
+		for ( iter.SetFirst() ; iter.IsValid() ; iter.Next() )
+		{
+			ConCommandBase* pCommand = iter.Get();
 #else
-	for (const ConCommandBase *pCommand = g_pCVar->GetCommands(); pCommand; pCommand = pCommand->GetNext())
+	for (const ConCommandBase* pCommand = g_pCVar->GetCommands(); pCommand; pCommand = pCommand->GetNext())
 	{
 #endif
 		if (pCommand->GetDLLIdentifier() == id)
@@ -153,14 +151,12 @@ LUA_FUNCTION_STATIC(cvars_GetAll)
 	LUA->CreateTable();
 		int idx = 0;
 #if ARCHITECTURE_IS_X86_64
-		ICvar::Iterator it(g_pCVar);
-		it.SetFirst();
-		const ConCommandBase *var = it.Get();
-		for (; var; it.Next())
+		ICvar::Iterator iter(g_pCVar);
+		for ( iter.SetFirst() ; iter.IsValid() ; iter.Next() )
 		{
-			var = it.Get();
+			ConCommandBase* var = iter.Get();
 #else
-		for (const ConCommandBase *var = g_pCVar->GetCommands(); var; var = var->GetNext())
+		for (const ConCommandBase* var = g_pCVar->GetCommands(); var; var = var->GetNext())
 		{
 #endif
 			if (var->IsCommand())
@@ -267,8 +263,17 @@ void CCVarsModule::InitDetour(bool bServerInit)
 	);
 
 	ICvar* pCVar = vstdlib_loader.GetInterface<ICvar>(CVAR_INTERFACE_VERSION); // g_pCVar isn't initialized yet since tiers didn't connect yet.
-	for (ConCommandBase *pCommand = pCVar->GetCommands(); pCommand; pCommand = pCommand->GetNext())
-		AddCommandBaseName(pCommand);
+#if ARCHITECTURE_IS_X86_64
+		ICvar::Iterator iter(g_pCVar);
+		for ( iter.SetFirst() ; iter.IsValid() ; iter.Next() )
+		{
+			ConCommandBase* pCommand = iter.Get();
+#else
+		for (ConCommandBase* pCommand = g_pCVar->GetCommands(); pCommand; pCommand = pCommand->GetNext())
+		{
+#endif
+			AddCommandBaseName(pCommand);
+		}
 }
 
 void CCVarsModule::Shutdown()
