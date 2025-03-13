@@ -52,6 +52,7 @@ class INetChannel;
 class CNetChan;
 struct MD5Value_t;
 struct dataFragments_s;
+class CBaseClient;
 
 class	CGameTrace;
 typedef	CGameTrace trace_t;
@@ -425,6 +426,12 @@ namespace Symbols
 
 	typedef void (GMCOMMON_CALLING_CONVENTION* CSteam3Server_Activate)(void*, int);
 	extern const std::vector<Symbol> CSteam3Server_ActivateSym;
+
+	typedef bool (GMCOMMON_CALLING_CONVENTION* CSteam3Server_NotifyClientConnect)(void*, CBaseClient* client, uint32 unUserID, netadr_t& adr, const void *pvCookie, uint32 ucbCookie);
+	extern const std::vector<Symbol> CSteam3Server_NotifyClientConnectSym;
+
+	typedef void (GMCOMMON_CALLING_CONVENTION* CSteam3Server_SendUpdatedServerDetails)(void*);
+	extern const std::vector<Symbol> CSteam3Server_SendUpdatedServerDetailsSym;
 
 	typedef CSteam3Server& (*Steam3ServerT)();
 	extern const std::vector<Symbol> Steam3ServerSym;

@@ -4,6 +4,7 @@
 #include "lua.h"
 #include "sourcesdk/sv_steamauth.h"
 #include <sv_plugin.h>
+#include "utlbuffer.h"
 
 class CSteamWorksModule : public IModule
 {
@@ -44,6 +45,44 @@ static void hook_CSteam3Server_OnLogonSuccess(CSteam3Server* srv, SteamServersCo
 	{
 		g_Lua->CallFunctionProtected(1, 0, true);
 	}
+}
+
+static Detouring::Hook detour_CSteam3Server_NotifyClientConnect;
+static Symbols::CSteam3Server_SendUpdatedServerDetails func_CSteam3Server_SendUpdatedServerDetails;
+static bool hook_CSteam3Server_NotifyClientConnect(CSteam3Server* srv, CBaseClient* client, uint32 unUserID, netadr_t& adr, const void *pvCookie, uint32 ucbCookie)
+{
+	bool bRet = detour_CSteam3Server_NotifyClientConnect.GetTrampoline<Symbols::CSteam3Server_NotifyClientConnect>()(srv, client, unUserID, adr, pvCookie, ucbCookie);
+
+	if (Lua::PushHook("HolyLib:OnNotifyClientConnect"))
+	{
+		CUtlBuffer buffer( pvCookie, ucbCookie, CUtlBuffer::READ_ONLY );
+		uint64 ulSteamID = buffer.GetInt64();
+		CSteamID steamID( ulSteamID );
+
+		g_Lua->PushNumber(unUserID);
+		g_Lua->PushString(adr.ToString());
+		g_Lua->PushNumber(ulSteamID);
+		if (g_Lua->CallFunctionProtected(4, 1, true))
+		{
+			if (g_Lua->IsType(-1, GarrysMod::Lua::Type::Bool))
+			{
+				bool bOverride = g_Lua->GetBool(-1);
+
+				if (!bRet && bOverride)
+				{
+					//client->SetSteamID(steamID);
+
+					func_CSteam3Server_SendUpdatedServerDetails(srv);
+				}
+
+				bRet = bOverride;
+			}
+
+			g_Lua->Pop(1);
+		}
+	}
+
+	return bRet;
 }
 
 LUA_FUNCTION_STATIC(steamworks_Shutdown)
@@ -139,25 +178,6 @@ void CSteamWorksModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 	}
 }
 
-static Detouring::Hook detour_CGet_SteamUGC;
-static void* hook_CGet_SteamUGC(IGet* pGet)
-{
-	void* pRet = detour_CGet_SteamUGC.GetTrampoline<Symbols::CGet_SteamUGC>()(pGet);
-	if (func_Steam3Server)
-	{
-		CSteam3Server& server = func_Steam3Server();
-
-		// pRet normally matches the SteamUGC but when the server was cleared like when it was Shutdown
-		// it gets apparent that CGet caches the value, which now is invalid.
-		Msg("holylib - Called CGet::SteamUGC %p - %p\n", pRet, server.SteamUGC());
-
-		if (!server.SteamUGC()) // If this is NULL then return NULL, most likely the CSteam3Server was cleared.
-			return NULL;
-	}
-
-	return pRet;
-}
-
 void CSteamWorksModule::InitDetour(bool bPreServer)
 {
 	if ( bPreServer ) { return; }
@@ -176,13 +196,14 @@ void CSteamWorksModule::InitDetour(bool bPreServer)
 	);
 
 	Detour::Create(
-		&detour_CGet_SteamUGC, "CGet::SteamUGC",
-		engine_loader.GetModule(), Symbols::CGet_SteamUGCSym,
-		(void*)hook_CGet_SteamUGC, m_pID
+		&detour_CSteam3Server_NotifyClientConnect, "CSteam3Server::NotifyClientConnect",
+		engine_loader.GetModule(), Symbols::CSteam3Server_NotifyClientConnectSym,
+		(void*)hook_CSteam3Server_NotifyClientConnect, m_pID
 	);
 
 	func_Steam3Server = (Symbols::Steam3ServerT)Detour::GetFunction(engine_loader.GetModule(), Symbols::Steam3ServerSym);
 	func_CSteam3Server_Shutdown = (Symbols::CSteam3Server_Shutdown)Detour::GetFunction(engine_loader.GetModule(), Symbols::CSteam3Server_ShutdownSym);
 	func_CSteam3Server_Activate = (Symbols::CSteam3Server_Activate)Detour::GetFunction(engine_loader.GetModule(), Symbols::CSteam3Server_ActivateSym);
 	func_SV_InitGameServerSteam = (Symbols::SV_InitGameServerSteam)Detour::GetFunction(engine_loader.GetModule(), Symbols::SV_InitGameServerSteamSym);
+	func_CSteam3Server_SendUpdatedServerDetails = (Symbols::CSteam3Server_SendUpdatedServerDetails)Detour::GetFunction(engine_loader.GetModule(), Symbols::CSteam3Server_SendUpdatedServerDetailsSym);
 }

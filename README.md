@@ -1949,6 +1949,13 @@ Called when our Steam server loses connection to steams servers.
 #### HolyLib:OnSteamConnect()  
 Called when our Steam server successfully connected to steams servers.  
 
+#### bool HolyLib:OnNotifyClientConnect(number nextUserID, string ip, number steamID64)  
+Called when a client wants to authenticate through steam.  
+
+Return `true` to forcefully authenticate his steamid.  
+Return `false` to block his authentication.
+Return nothing to let the server normally handle it.
+
 ## systimer
 This module is just the timer library, but it doesn't use CurTime.  
 > [!NOTE]
