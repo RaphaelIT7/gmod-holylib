@@ -3438,6 +3438,10 @@ Forces the client to go through a full update(also fires the gameevent).
 Sets the SteamID of the client.  
 Returns `true` on success.  
 
+> [!NOTE]
+> Gmod seamingly has some backup code inside `CBaseClient::ProcessClientInfo`,  
+> that kicks a player with `Server connection error, please try again` if they don't have a valid steamid.
+
 ---
 
 ### CBaseClient (CNetChannel functions)
