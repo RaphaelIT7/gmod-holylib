@@ -70,7 +70,7 @@ static bool hook_CSteam3Server_NotifyClientConnect(CSteam3Server* srv, CBaseClie
 
 				if (!bRet && bOverride)
 				{
-					//client->SetSteamID(steamID);
+					client->SetSteamID(steamID);
 
 					func_CSteam3Server_SendUpdatedServerDetails(srv);
 				}
