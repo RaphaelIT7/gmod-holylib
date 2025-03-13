@@ -136,7 +136,7 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 		Lua::Init(LUA);
 
 #if ARCHITECTURE_IS_X86_64
-	if (CommandLine()->FindParm("-holylib_debug_forceregister"))
+	//if (CommandLine()->FindParm("-holylib_debug_forceregister"))
 #endif
 	{
 #if ARCHITECTURE_IS_X86
@@ -186,7 +186,7 @@ void CServerPlugin::Unload(void)
 	Detour::ReportLeak();
 
 #if ARCHITECTURE_IS_X86_64
-	if (CommandLine()->FindParm("-holylib_debug_forceregister"))
+	//if (CommandLine()->FindParm("-holylib_debug_forceregister"))
 #endif
 	{
 		ConVar_Unregister();
