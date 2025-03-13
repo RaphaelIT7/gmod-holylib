@@ -11,6 +11,7 @@ class CSteamWorksModule : public IModule
 public:
 	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
+	virtual void Think(bool bSimulating) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "steamworks"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
@@ -18,6 +19,8 @@ public:
 
 CSteamWorksModule g_pSteamWorksModule;
 IModule* pSteamWorksModule = &g_pSteamWorksModule;
+
+static ConVar allow_duplicate_steamid("holylib_steamworks_allow_duplicate_steamid", "0", 0, "If enabled, the same steamid can be used multiple times.");
 
 static Symbols::Steam3ServerT func_Steam3Server;
 static Symbols::CSteam3Server_Shutdown func_CSteam3Server_Shutdown;
@@ -47,6 +50,8 @@ static void hook_CSteam3Server_OnLogonSuccess(CSteam3Server* srv, SteamServersCo
 	}
 }
 
+static std::vector<CBaseClient*> g_pApprovedClients;
+static std::unordered_set<CBaseClient*> g_pApprovedSteamIDs;
 static Detouring::Hook detour_CSteam3Server_NotifyClientConnect;
 static Symbols::CSteam3Server_SendUpdatedServerDetails func_CSteam3Server_SendUpdatedServerDetails;
 static bool hook_CSteam3Server_NotifyClientConnect(CSteam3Server* srv, CBaseClient* client, uint32 unUserID, netadr_t& adr, const void *pvCookie, uint32 ucbCookie)
@@ -59,10 +64,22 @@ static bool hook_CSteam3Server_NotifyClientConnect(CSteam3Server* srv, CBaseClie
 		uint64 ulSteamID = buffer.GetInt64();
 		CSteamID steamID( ulSteamID );
 
+		pvCookie = (uint8 *)pvCookie + sizeof( uint64 );
+		ucbCookie -= sizeof( uint64 );
+
 		g_Lua->PushNumber(unUserID);
 		g_Lua->PushString(adr.ToString());
 		g_Lua->PushString(std::to_string(ulSteamID).c_str());
-		if (g_Lua->CallFunctionProtected(4, 1, true))
+
+		int status = 0;
+		if (!bRet)
+		{
+			// Try it again so that we get the reason why it failed.
+			status = SteamGameServer()->BeginAuthSession( pvCookie, ucbCookie, steamID );
+		}
+		g_Lua->PushNumber(status);
+
+		if (g_Lua->CallFunctionProtected(5, 1, true))
 		{
 			if (g_Lua->IsType(-1, GarrysMod::Lua::Type::Bool))
 			{
@@ -73,12 +90,44 @@ static bool hook_CSteam3Server_NotifyClientConnect(CSteam3Server* srv, CBaseClie
 					client->SetSteamID(steamID);
 
 					func_CSteam3Server_SendUpdatedServerDetails(srv);
+
+					// BUG: Gmod by default refuses to send the ServerInfo since it has some additional checks in CBaseServer::SendPendingServerInfo that prevent it.
+					client->m_bSendServerInfo = true;
+					g_pApprovedClients.push_back(client);
+
+					if (status == k_EBeginAuthSessionResultDuplicateRequest)
+					{
+						g_pApprovedSteamIDs.insert(client);
+					}
 				}
 
 				bRet = bOverride;
 			}
 
 			g_Lua->Pop(1);
+		}
+	}
+
+	return bRet;
+}
+
+static Detouring::Hook detour_CSteam3Server_CheckForDuplicateSteamID;
+static bool hook_CSteam3Server_CheckForDuplicateSteamID(CSteam3Server* srv, CBaseClient* pClient)
+{
+	bool bRet = detour_CSteam3Server_CheckForDuplicateSteamID.GetTrampoline<Symbols::CSteam3Server_CheckForDuplicateSteamID>()(srv, pClient);
+
+	if (bRet)
+	{
+		if (allow_duplicate_steamid.GetBool())
+		{
+			bRet = false;
+		}
+
+		auto it = g_pApprovedSteamIDs.find(pClient);
+		if (it != g_pApprovedSteamIDs.end())
+		{
+			bRet = false;
+			g_pApprovedSteamIDs.erase(it);
 		}
 	}
 
@@ -150,6 +199,31 @@ LUA_FUNCTION_STATIC(steamworks_ForceAuthenticate)
 	return 1;
 }
 
+void CSteamWorksModule::Think(bool bSimulating)
+{
+	for (auto it = g_pApprovedClients.begin(); it != g_pApprovedClients.end(); )
+	{
+		CBaseClient* pClient = *it;
+		if (!pClient->IsConnected())
+		{
+			Msg("holylib: removed client as it wasn't connected\n");
+			it = g_pApprovedClients.erase(it);
+			continue;
+		}
+
+		if (!pClient->m_bSendServerInfo)
+		{
+			Msg("holylib: skipped client as it didn't want the serverinfo\n");
+			it++;
+			continue;
+		}
+
+		pClient->SendServerInfo();
+		Msg("holylib: sent client the server info it desired\n");
+		it = g_pApprovedClients.erase(it);
+	}
+}
+
 void CSteamWorksModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
@@ -176,6 +250,9 @@ void CSteamWorksModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 		Util::RemoveField("ForceActivate");
 		Util::PopTable();
 	}
+
+	g_pApprovedClients.clear();
+	g_pApprovedSteamIDs.clear();
 }
 
 void CSteamWorksModule::InitDetour(bool bPreServer)
@@ -199,6 +276,12 @@ void CSteamWorksModule::InitDetour(bool bPreServer)
 		&detour_CSteam3Server_NotifyClientConnect, "CSteam3Server::NotifyClientConnect",
 		engine_loader.GetModule(), Symbols::CSteam3Server_NotifyClientConnectSym,
 		(void*)hook_CSteam3Server_NotifyClientConnect, m_pID
+	);
+
+	Detour::Create(
+		&detour_CSteam3Server_CheckForDuplicateSteamID, "CSteam3Server::CheckForDuplicateSteamID",
+		engine_loader.GetModule(), Symbols::CSteam3Server_CheckForDuplicateSteamIDSym,
+		(void*)hook_CSteam3Server_CheckForDuplicateSteamID, m_pID
 	);
 
 	func_Steam3Server = (Symbols::Steam3ServerT)Detour::GetFunction(engine_loader.GetModule(), Symbols::Steam3ServerSym);

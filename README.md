@@ -1949,12 +1949,32 @@ Called when our Steam server loses connection to steams servers.
 #### HolyLib:OnSteamConnect()  
 Called when our Steam server successfully connected to steams servers.  
 
-#### bool HolyLib:OnNotifyClientConnect(number nextUserID, string ip, string steamID64)  
+#### bool HolyLib:OnNotifyClientConnect(number nextUserID, string ip, string steamID64, number authResult) 
+authResult - The steam auth result, `0` if steam accepts the client.  
+
+| authResult | Description |
+|-------|------|
+| `0` | Ticket is valid for this game and this steamID |
+| `1` | Ticket is not valid |
+| `2` | A ticket has already been submitted for this steamID |
+| `3` | Ticket is from an incompatible interface version |
+| `4` | Ticket is not for this game |
+| `5` | Ticket has expired |
+
 Called when a client wants to authenticate through steam.  
 
 Return `true` to forcefully authenticate his steamid.  
 Return `false` to block his authentication.
 Return nothing to let the server normally handle it.
+
+### ConVars
+
+#### holylib_steamworks_allow_duplicate_steamid(default `0`)
+If enabled, the same steamid can be used multiple times.
+
+> [!NOTE]
+> `HolyLib:OnNotifyClientConnect` already accounts for this,  
+> if status is `2` and you return true, it will still accept the duplicate steamid.  
 
 ## systimer
 This module is just the timer library, but it doesn't use CurTime.  

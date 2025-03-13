@@ -433,6 +433,9 @@ namespace Symbols
 	typedef void (GMCOMMON_CALLING_CONVENTION* CSteam3Server_SendUpdatedServerDetails)(void*);
 	extern const std::vector<Symbol> CSteam3Server_SendUpdatedServerDetailsSym;
 
+	typedef bool (GMCOMMON_CALLING_CONVENTION* CSteam3Server_CheckForDuplicateSteamID)(void*, void*);
+	extern const std::vector<Symbol> CSteam3Server_CheckForDuplicateSteamIDSym;
+
 	typedef CSteam3Server& (*Steam3ServerT)();
 	extern const std::vector<Symbol> Steam3ServerSym;
 
