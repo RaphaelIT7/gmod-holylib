@@ -556,6 +556,28 @@ LUA_FUNCTION_STATIC(CBaseClient_OnRequestFullUpdate)
 	return 0;
 }
 
+void CBaseClient::SetSteamID( const CSteamID &steamID )
+{
+	m_SteamID = steamID;
+}
+
+LUA_FUNCTION_STATIC(CBaseClient_SetSteamID)
+{
+	CBaseClient* pClient = Get_CBaseClient(1, true);
+	const char* steamID64 = LUA->CheckString(2);
+	uint64 steamID = strtoull(steamID64, NULL, 0);
+
+	if (steamID == 0)
+	{
+		LUA->PushBool(false);
+		return 1;
+	}
+
+	pClient->SetSteamID(CSteamID(steamID));
+	LUA->PushBool(true);
+	return 1;
+}
+
 /*
  * CNetChannel exposed things.
  * I should probably move it into a seperate class...
@@ -914,6 +936,7 @@ void Push_CBaseClientMeta()
 	Util::AddFunc(CBaseClient_SetUserCVar, "SetUserCVar");
 	Util::AddFunc(CBaseClient_FreeBaselines, "FreeBaselines");
 	Util::AddFunc(CBaseClient_OnRequestFullUpdate, "OnRequestFullUpdate");
+	Util::AddFunc(CBaseClient_SetSteamID, "SetSteamID");
 
 	// CNetChan related functions
 	Util::AddFunc(CBaseClient_GetProcessingMessages, "GetProcessingMessages");

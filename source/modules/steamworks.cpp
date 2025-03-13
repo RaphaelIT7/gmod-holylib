@@ -61,7 +61,7 @@ static bool hook_CSteam3Server_NotifyClientConnect(CSteam3Server* srv, CBaseClie
 
 		g_Lua->PushNumber(unUserID);
 		g_Lua->PushString(adr.ToString());
-		g_Lua->PushNumber(ulSteamID);
+		g_Lua->PushString(std::to_string(ulSteamID).c_str());
 		if (g_Lua->CallFunctionProtected(4, 1, true))
 		{
 			if (g_Lua->IsType(-1, GarrysMod::Lua::Type::Bool))

@@ -1949,7 +1949,7 @@ Called when our Steam server loses connection to steams servers.
 #### HolyLib:OnSteamConnect()  
 Called when our Steam server successfully connected to steams servers.  
 
-#### bool HolyLib:OnNotifyClientConnect(number nextUserID, string ip, number steamID64)  
+#### bool HolyLib:OnNotifyClientConnect(number nextUserID, string ip, string steamID64)  
 Called when a client wants to authenticate through steam.  
 
 Return `true` to forcefully authenticate his steamid.  
@@ -3433,6 +3433,10 @@ Sets the new name of the client.
 
 #### CBaseClient:OnRequestFullUpdate()
 Forces the client to go through a full update(also fires the gameevent).  
+
+### bool CBaseClient:SetSteamID(string steamID64)
+Sets the SteamID of the client.  
+Returns `true` on success.  
 
 ---
 
