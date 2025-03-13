@@ -1974,7 +1974,7 @@ If enabled, the same steamid can be used multiple times.
 
 > [!NOTE]
 > `HolyLib:OnNotifyClientConnect` already accounts for this,  
-> if status is `2` and you return true, it will still accept the duplicate steamid.  
+> if a steamid is already used when you approve a request it will still allow the player to join.
 
 ## systimer
 This module is just the timer library, but it doesn't use CurTime.  

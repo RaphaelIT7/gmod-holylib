@@ -51,7 +51,7 @@ static void hook_CSteam3Server_OnLogonSuccess(CSteam3Server* srv, SteamServersCo
 }
 
 static std::vector<CBaseClient*> g_pApprovedClients;
-static std::unordered_set<CBaseClient*> g_pApprovedSteamIDs;
+static std::unordered_set<uint64> g_pApprovedSteamIDs;
 static Detouring::Hook detour_CSteam3Server_NotifyClientConnect;
 static Symbols::CSteam3Server_SendUpdatedServerDetails func_CSteam3Server_SendUpdatedServerDetails;
 static bool hook_CSteam3Server_NotifyClientConnect(CSteam3Server* srv, CBaseClient* client, uint32 unUserID, netadr_t& adr, const void *pvCookie, uint32 ucbCookie)
@@ -94,11 +94,11 @@ static bool hook_CSteam3Server_NotifyClientConnect(CSteam3Server* srv, CBaseClie
 					// BUG: Gmod by default refuses to send the ServerInfo since it has some additional checks in CBaseServer::SendPendingServerInfo that prevent it.
 					client->m_bSendServerInfo = true;
 					g_pApprovedClients.push_back(client);
+				}
 
-					if (status == k_EBeginAuthSessionResultDuplicateRequest)
-					{
-						g_pApprovedSteamIDs.insert(client);
-					}
+				if (bOverride) // Steam may not always deny a connection but a steamID may still already be in use.
+				{
+					g_pApprovedSteamIDs.insert(ulSteamID);
 				}
 
 				bRet = bOverride;
@@ -123,7 +123,7 @@ static bool hook_CSteam3Server_CheckForDuplicateSteamID(CSteam3Server* srv, CBas
 			bRet = false;
 		}
 
-		auto it = g_pApprovedSteamIDs.find(pClient);
+		auto it = g_pApprovedSteamIDs.find(pClient->m_SteamID.ConvertToUint64());
 		if (it != g_pApprovedSteamIDs.end())
 		{
 			bRet = false;
