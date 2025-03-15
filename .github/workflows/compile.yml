@@ -154,7 +154,7 @@ jobs:
     with:
       branch: live
       gluatest-ref: "holylib"
-      extra-startup-args: "-usegh -debug"
+      extra-startup-args: "-usegh"
       download-artifact: "gluatest_32x"
 
   test_32bit_dev:
@@ -164,7 +164,7 @@ jobs:
     with:
       branch: dev
       gluatest-ref: "holylib"
-      extra-startup-args: "-usegh -debug"
+      extra-startup-args: "-usegh"
       download-artifact: "gluatest_32x"
 
   test_64bit:
@@ -174,5 +174,46 @@ jobs:
     with:
       branch: x86-64
       gluatest-ref: "holylib"
-      extra-startup-args: "-usegh -debug"
+      extra-startup-args: "-usegh"
       download-artifact: "gluatest_64x"
+
+  test_32bit_find_crash:
+    name: "Find the crash cause"
+    needs: setup_32x_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests_runnerimprovements.yml@holylib
+    strategy:
+      matrix:
+        module: 
+          - holylib
+          - gameevent
+          - serverplugin
+          - sourcetv
+          - threadpoolfix
+          - stringtable
+          - precachefix
+          - pvs
+          - surffix
+          - filesystem
+          - util
+          - concommand
+          - vprof
+          - cvars
+          - bitbuf
+          - networking
+          - steamworks
+          - pas
+          - bass
+          - systimer
+          - voicechat
+          - physenv
+          - net
+          - entitylist
+          - httpserver
+          - luajit
+          - gameserver
+          - soundscape
+    with:
+      branch: dev
+      gluatest-ref: "holylib"
+      extra-startup-args: "-usegh -holylib_startdisabled -holylib_enable_${{ matrix.module }} 1"
+      download-artifact: "gluatest_32x"
