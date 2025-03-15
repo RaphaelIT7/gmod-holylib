@@ -84,10 +84,12 @@ jobs:
     runs-on: ubuntu-latest
     container: debian:bullseye
     steps:
-      - uses: actions/download-artifact@v4
-        name: "Install zip"
+      - uses: actions/checkout@v4
+        name: "Checkout required files"
         with:
-          name: "gmsv_holylib_linux.so"
+          sparse-checkout: |
+            holylib.vdf
+            gluatests
 
       - uses: actions/download-artifact@v4
         name: "Download 32x plugin"
@@ -102,8 +104,11 @@ jobs:
       - name: "Create structure"
         run: |
           mkdir -p garrysmod/lua/bin
-
           mv gmsv_holylib_linux.so garrysmod/lua/bin/
+
+          mkdir -p garrysmod/addons
+          mv holylib.vdf garrysmod/addons
+          mv gluatests garrysmod/addons
 
           tar -czf gluatest.tar.gz ghostinj.dll garrysmod/
 
@@ -121,6 +126,13 @@ jobs:
     runs-on: ubuntu-latest
     container: debian:bullseye
     steps:
+      - uses: actions/checkout@v4
+        name: "Checkout required files"
+        with:
+          sparse-checkout: |
+            holylib_64.vdf
+            gluatests
+
       - uses: actions/download-artifact@v4
         name: "Download 64x plugin"
         with:
@@ -134,8 +146,11 @@ jobs:
       - name: "Create structure"
         run: |
           mkdir -p garrysmod/lua/bin
-
           mv gmsv_holylib_linux64.so garrysmod/lua/bin/
+
+          mkdir -p garrysmod/addons
+          mv holylib_64.vdf garrysmod/addons
+          mv gluatests garrysmod/addons
 
           tar -czf gluatest.tar.gz ghostinj.dll garrysmod/
 
