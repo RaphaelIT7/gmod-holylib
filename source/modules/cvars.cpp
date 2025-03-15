@@ -101,12 +101,12 @@ Detouring::Hook detour_CCvar_UnregisterConCommands;
 void hook_CCvar_UnregisterConCommands(ICvar* pCVar, CVarDLLIdentifier_t id)
 {
 #if ARCHITECTURE_IS_X86_64
-	ICvar::Iterator iter(g_pCVar);
-		for ( iter.SetFirst() ; iter.IsValid() ; iter.Next() )
-		{
-			ConCommandBase* pCommand = iter.Get();
+	ICvar::Iterator iter(pCVar);
+	for ( iter.SetFirst() ; iter.IsValid() ; iter.Next() )
+	{
+		ConCommandBase* pCommand = iter.Get();
 #else
-	for (const ConCommandBase* pCommand = g_pCVar->GetCommands(); pCommand; pCommand = pCommand->GetNext())
+	for (const ConCommandBase* pCommand = pCVar->GetCommands(); pCommand; pCommand = pCommand->GetNext())
 	{
 #endif
 		if (pCommand->GetDLLIdentifier() == id)
