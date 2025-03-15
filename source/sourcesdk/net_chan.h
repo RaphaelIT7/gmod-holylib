@@ -35,7 +35,7 @@
 class CNetChan : public INetChannel
 {
 
-private: // netchan structurs
+public: // netchan structurs
 
 	typedef struct dataFragments_s
 	{

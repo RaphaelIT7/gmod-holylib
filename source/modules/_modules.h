@@ -27,3 +27,4 @@ extern IModule* pEntListModule;
 extern IModule* pHttpServerModule;
 extern IModule* pLuaJITModule;
 extern IModule* pGameServerModule;
+extern IModule* pSoundscapeModule;

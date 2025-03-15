@@ -242,13 +242,13 @@ public:
 
 		if (m_iObjectWakeFunction != -1 && g_Lua)
 		{
-			g_Lua->ReferenceFree(m_iObjectWakeFunction);
+			Util::ReferenceFree(m_iObjectWakeFunction, "CLuaPhysicsObjectEvent::~CLuaPhysicsObjectEvent - old obj wake func");
 			m_iObjectWakeFunction = -1;
 		}
 
 		if (m_iObjectSleepFunction != -1 && g_Lua)
 		{
-			g_Lua->ReferenceFree(m_iObjectSleepFunction);
+			Util::ReferenceFree(m_iObjectSleepFunction, "CLuaPhysicsObjectEvent::~CLuaPhysicsObjectEvent - old obj sleep func");
 			m_iObjectSleepFunction = -1;
 		}
 	}
@@ -1286,7 +1286,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetObjectEventHandler)
 	if (pLuaEnv->pObjectEvent)
 		delete pLuaEnv->pObjectEvent; // Free the old one
 
-	pLuaEnv->pObjectEvent = new CLuaPhysicsObjectEvent(LUA->ReferenceCreate(), LUA->ReferenceCreate());
+	pLuaEnv->pObjectEvent = new CLuaPhysicsObjectEvent(Util::ReferenceCreate("IPhysicsEnvironment.SetObjectEventHandler - func1"), Util::ReferenceCreate("IPhysicsEnvironment.SetObjectEventHandler - func2"));
 	pEnvironment->SetObjectEventHandler(pLuaEnv->pObjectEvent);
 	return 0;
 }
@@ -2231,6 +2231,14 @@ void CPhysEnvModule::LuaShutdown()
 	}
 
 	Util::NukeTable("physcollide");
+
+	DeleteAll_CPhysCollide();
+	DeleteAll_CPhysConvex();
+	DeleteAll_CPhysPolysoup();
+	DeleteAll_ICollisionQuery();
+	DeleteAll_ILuaPhysicsEnvironment();
+	DeleteAll_IPhysicsCollisionSet();
+	DeleteAll_IPhysicsObject();
 }
 
 void CPhysEnvModule::Shutdown()

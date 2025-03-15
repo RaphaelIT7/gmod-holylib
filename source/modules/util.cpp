@@ -6,8 +6,8 @@
 class CUtilModule : public IModule
 {
 public:
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void Think(bool bSimulating) OVERRIDE;
 	virtual void Shutdown() OVERRIDE;
 	virtual const char* Name() { return "util"; };
@@ -47,11 +47,11 @@ struct CompressEntry
 			return; // This will be a memory, but we would never want to potentially break the Lua state.
 		}
 
-		if (iDataReference != -1)
-			g_Lua->ReferenceFree(iDataReference);
+		if (iDataReference != -1 && g_Lua)
+			Util::ReferenceFree(iDataReference, "CompressEntry::~CompressEntry - Data");
 
-		if (iCallback != -1)
-			g_Lua->ReferenceFree(iCallback);
+		if (iCallback != -1 && g_Lua)
+			Util::ReferenceFree(iCallback, "CompressEntry::~CompressEntry - Callback");
 	}
 
 	int iCallback = -1;
@@ -111,13 +111,13 @@ LUA_FUNCTION_STATIC(util_AsyncCompress)
 	if (LUA->IsType(2, GarrysMod::Lua::Type::Function))
 	{
 		LUA->Push(2);
-		iCallback = LUA->ReferenceCreate();
+		iCallback = Util::ReferenceCreate("util.AsyncCompress - Callback1");
 	} else {
 		iLevel = (int)LUA->CheckNumberOpt(2, 5);
 		iDictSize = (int)LUA->CheckNumberOpt(3, 65536);
 		LUA->CheckType(4, GarrysMod::Lua::Type::Function);
 		LUA->Push(4);
-		iCallback = LUA->ReferenceCreate();
+		iCallback = Util::ReferenceCreate("util.AsyncCompress - Callback2");
 	}
 
 	CompressEntry* entry = new CompressEntry;
@@ -127,7 +127,7 @@ LUA_FUNCTION_STATIC(util_AsyncCompress)
 	entry->iLevel = iLevel;
 	entry->pData = pData;
 	LUA->Push(1);
-	entry->iDataReference = LUA->ReferenceCreate();
+	entry->iDataReference = Util::ReferenceCreate("util.AsyncCompress - Data");
 	entry->pLua = LUA;
 
 	StartThread();
@@ -143,7 +143,7 @@ LUA_FUNCTION_STATIC(util_AsyncDecompress)
 	int iLength = LUA->ObjLen(1);
 	LUA->CheckType(2, GarrysMod::Lua::Type::Function);
 	LUA->Push(2);
-	int iCallback = LUA->ReferenceCreate();
+	int iCallback = Util::ReferenceCreate("util.AsyncDecompress - Callback");
 
 	CompressEntry* entry = new CompressEntry;
 	entry->bCompress = false;
@@ -151,7 +151,7 @@ LUA_FUNCTION_STATIC(util_AsyncDecompress)
 	entry->iLength = iLength;
 	entry->pData = pData;
 	LUA->Push(1);
-	entry->iDataReference = LUA->ReferenceCreate();
+	entry->iDataReference = Util::ReferenceCreate("util.AsyncDecompress - Data");
 	entry->pLua = LUA;
 
 	StartThread();
@@ -204,7 +204,7 @@ void TableToJSONRecursive(GarrysMod::Lua::ILuaInterface* pLua, Bootil::Data::Tre
 	}
 
 	pLua->Push(-2);
-	pRecursiveTableScope.push_back(pLua->ReferenceCreate());
+	pRecursiveTableScope.push_back(Util::ReferenceCreate("TableToJSONRecursive - Scope"));
 
 	int idx = 1;
 	while (pLua->Next(-2)) {
@@ -320,7 +320,7 @@ void TableToJSONRecursive(GarrysMod::Lua::ILuaInterface* pLua, Bootil::Data::Tre
 
 	pLua->Pop(1);
 
-	pLua->ReferenceFree(pRecursiveTableScope.back());
+	Util::ReferenceFree(pRecursiveTableScope.back(), "TableToJSONRecursive - Free scope");
 	pRecursiveTableScope.pop_back();
 }
 
@@ -345,7 +345,7 @@ LUA_FUNCTION_STATIC(util_TableToJSON)
 	return 1;
 }
 
-void CUtilModule::LuaInit(bool bServerInit)
+void CUtilModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
@@ -359,7 +359,7 @@ void CUtilModule::LuaInit(bool bServerInit)
 	}
 }
 
-void CUtilModule::LuaShutdown()
+void CUtilModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	bInvalidateEverything = true;
 	if (pCompressPool)

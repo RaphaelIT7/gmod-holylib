@@ -16,8 +16,8 @@
 class CHolyLibModule : public IModule
 {
 public:
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "holylib"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
@@ -178,13 +178,13 @@ static void hook_CBaseEntity_PostConstructor(CBaseEntity* pEnt, const char* szCl
 
 		/*g_Lua->PushUserType(pEnt, GarrysMod::Lua::Type::Entity);
 		g_Lua->Push(-1);
-		int iReference = g_Lua->ReferenceCreate();
+		int iReference = Util::ReferenceCreate();
 		g_Lua->PushString(szClassname);
 
 		g_Lua->CallFunctionProtected(3, 0, true);
 
 		Util::ReferencePush(iReference);
-		g_Lua->ReferenceFree(iReference);
+		Util::ReferenceFree(iReference);
 		g_Lua->SetUserType(-1, NULL);
 		g_Lua->Pop(1)*/
 	}
@@ -223,6 +223,7 @@ LUA_FUNCTION_STATIC(SetSignOnState)
 	return 1;
 }
 
+#if ARCHITECTURE_IS_X86
 static Detouring::Hook detour_CFuncLadder_PlayerGotOn;
 static void hook_CFuncLadder_PlayerGotOn(CBaseEntity* pLadder, CBasePlayer* pPly)
 {
@@ -277,6 +278,7 @@ LUA_FUNCTION_STATIC(GetLadder)
 	Util::Push_Entity(CHL2GameMovement::GetLadder(pPly));
 	return 1;
 }
+#endif
 
 static bool bInMoveTypeCall = false; // If someone calls SetMoveType inside the hook, we don't want a black hole to form.
 static Detouring::Hook detour_CBaseEntity_SetMoveType;
@@ -356,7 +358,7 @@ LUA_FUNCTION_STATIC(Disconnect)
 	return 1;
 }
 
-void CHolyLibModule::LuaInit(bool bServerInit)
+void CHolyLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (!bServerInit)
 	{
@@ -370,8 +372,10 @@ void CHolyLibModule::LuaInit(bool bServerInit)
 			Util::AddFunc(IsMapValid, "IsMapValid");
 			Util::AddFunc(InvalidateBoneCache, "InvalidateBoneCache");
 			Util::AddFunc(SetSignOnState, "SetSignOnState");
+#if ARCHITECTURE_IS_X86
 			Util::AddFunc(ExitLadder, "ExitLadder");
 			Util::AddFunc(GetLadder, "GetLadder");
+#endif
 			Util::AddFunc(HideMsg, "HideMsg");
 			Util::AddFunc(GetRegistry, "GetRegistry");
 			Util::AddFunc(Disconnect, "Disconnect");
@@ -391,7 +395,7 @@ void CHolyLibModule::LuaInit(bool bServerInit)
 	}
 }
 
-void CHolyLibModule::LuaShutdown()
+void CHolyLibModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	Util::NukeTable("holylib");
 }
@@ -408,6 +412,7 @@ void CHolyLibModule::InitDetour(bool bPreServer)
 		(void*)hook_CBaseEntity_PostConstructor, m_pID
 	);
 
+#if ARCHITECTURE_IS_X86
 	Detour::Create(
 		&detour_CFuncLadder_PlayerGotOn, "CFuncLadder::PlayerGotOn",
 		server_loader.GetModule(), Symbols::CFuncLadder_PlayerGotOnSym,
@@ -419,6 +424,7 @@ void CHolyLibModule::InitDetour(bool bPreServer)
 		server_loader.GetModule(), Symbols::CFuncLadder_PlayerGotOffSym,
 		(void*)hook_CFuncLadder_PlayerGotOff, m_pID
 	);
+#endif
 
 	Detour::Create(
 		&detour_CBaseEntity_SetMoveType, "CBaseEntity::SetMoveType",
@@ -436,6 +442,8 @@ void CHolyLibModule::InitDetour(bool bPreServer)
 	func_CBaseAnimating_InvalidateBoneCache = (Symbols::CBaseAnimating_InvalidateBoneCache)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseAnimating_InvalidateBoneCacheSym);
 	Detour::CheckFunction((void*)func_CBaseAnimating_InvalidateBoneCache, "CBaseAnimating::InvalidateBoneCache");
 
+#if ARCHITECTURE_IS_X86
 	func_CHL2_Player_ExitLadder = (Symbols::CHL2_Player_ExitLadder)Detour::GetFunction(server_loader.GetModule(), Symbols::CHL2_Player_ExitLadderSym);
 	Detour::CheckFunction((void*)func_CHL2_Player_ExitLadder, "CHL2_Player::ExitLadder");
+#endif
 }

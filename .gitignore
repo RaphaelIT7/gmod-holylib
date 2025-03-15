@@ -12,3 +12,9 @@ source/modules/64x/**
 source/sourcesdk/tempshit
 workflow_info.txt
 !development/module/premake5.lua
+!development/module/premake5.exe
+!development/module/build.bat
+ghostinj-dll/projects/**
+ghostinj-dll/build.bat
+ghostinj-dll/ghostinj.dll
+ghostinj-dll/premake5.exe

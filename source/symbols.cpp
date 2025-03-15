@@ -69,6 +69,11 @@ namespace Symbols
 		Symbol::FromName("gEntList"),
 	};
 
+	const std::vector<Symbol> CSteam3Server_NotifyClientDisconnectSym = { // 64x = Search for "S3" and then go through every function upwards till you find one that somewhat matches the ASM of the 32x version.
+		Symbol::FromName("_ZN13CSteam3Server22NotifyClientDisconnectEP11CBaseClient"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x54\x53\x48\x89\xF3\x48\x83\xEC\x20\x48\x85\xF6"), // 55 48 89 E5 41 54 53 48 89 F3 48 83 EC 20 48 85 F6
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: holylib Symbols
 	//---------------------------------------------------------------------------------
@@ -169,10 +174,6 @@ namespace Symbols
 
 	const std::vector<Symbol> CHLTVServer_BroadcastEventSym = {
 		Symbol::FromName("_ZN11CHLTVServer14BroadcastEventEP10IGameEvent"),
-	};
-
-	const std::vector<Symbol> CSteam3Server_NotifyClientDisconnectSym = {
-		Symbol::FromName("_ZN13CSteam3Server22NotifyClientDisconnectEP11CBaseClient"),
 	};
 
 	//---------------------------------------------------------------------------------
@@ -322,6 +323,9 @@ namespace Symbols
 		Symbol::FromName("_ZNK15CBaseFileSystem11CSearchPath14GetDebugStringEv"),
 	};
 
+	const std::vector<Symbol> g_PathIDTableSym = {
+		Symbol::FromName("g_PathIDTable"),
+	};
 
 	//---------------------------------------------------------------------------------
 	// Purpose: concommand Symbols
@@ -557,6 +561,21 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x83\xEC\x08\x48\x8B\x1D********\x00\x00\x01"), // 55 48 89 E5 53 48 83 EC 08 48 8B 1D ?? ?? ?? ?? ?? ?? ?? ?? 00 00 01
 	};
 
+	const std::vector<Symbol> CSteam3Server_NotifyClientConnectSym = { // 64x = "S3: Client"
+		Symbol::FromName("_ZN13CSteam3Server19NotifyClientConnectEP11CBaseClientjR8netadr_sPKvj"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x49\x89\xFC\x53\x48\x81\xEC\xB8\x00\x00\x00"), // 55 48 89 E5 41 57 41 56 41 55 41 54 49 89 FC 53 48 81 EC B8 00 00 00
+	};
+
+	const std::vector<Symbol> CSteam3Server_SendUpdatedServerDetailsSym = { // 64x = "steamblocking:%d"
+		Symbol::FromName("_ZN13CSteam3Server24SendUpdatedServerDetailsEv"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x49\x89\xFC\x53\x48\x83\xEC\x68\x64\x48\x8B\x04\x25\x28"), // 55 48 89 E5 41 57 41 56 41 55 41 54 49 89 FC 53 48 83 EC 68 64 48 8B 04 25 28
+	};
+
+	const std::vector<Symbol> CSteam3Server_CheckForDuplicateSteamIDSym = { // 64x = "STEAM UserID"
+		Symbol::FromName("_ZN13CSteam3Server24CheckForDuplicateSteamIDEPK11CBaseClient"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x53\x48\x83\xEC\x68\x48\x89\x75\x80"), // 55 48 89 E5 41 57 41 56 41 55 41 54 53 48 83 EC 68 48 89 75 80
+	};
+		
 	//---------------------------------------------------------------------------------
 	// Purpose: pas Symbols
 	//---------------------------------------------------------------------------------
@@ -676,8 +695,9 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: luajit Symbols
 	//---------------------------------------------------------------------------------
-	const std::vector<Symbol> CLuaInterface_GetTypeSym = {
+	const std::vector<Symbol> CLuaInterface_GetTypeSym = { // 64x = CBaseLuaInterface::GetType (If https://github.com/Facepunch/garrysmod-requests/issues/2578 is done update this)
 		Symbol::FromName("_ZN13CLuaInterface7GetTypeEi"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x89\xF6\x41\x55\x41\x54\x49\x89\xFC"), // 55 48 89 E5 41 57 41 56 41 89 F6 41 55 41 54 49 89 FC
 	};
 
 	//---------------------------------------------------------------------------------
@@ -736,5 +756,56 @@ namespace Symbols
 
 	const std::vector<Symbol> CBaseClient_OnRequestFullUpdateSym = {
 		Symbol::FromName("_ZN11CBaseClient19OnRequestFullUpdateEv"),
+	};
+
+	const std::vector<Symbol> CGameClient_SpawnPlayerSym = {
+		Symbol::FromName("_ZN11CGameClient11SpawnPlayerEv"),
+	};
+
+	const std::vector<Symbol> NET_SendPacketSym = {
+		Symbol::FromName("_Z14NET_SendPacketP11INetChanneliRK8netadr_sPKhiP8bf_writeb"),
+	};
+
+	const std::vector<Symbol> CNetChan_CreateFragmentsFromBufferSym = {
+		Symbol::FromName("_ZN8CNetChan25CreateFragmentsFromBufferEP8bf_writei"),
+	};
+
+	const std::vector<Symbol> CNetChan_SendSubChannelDataSym = {
+		Symbol::FromName("_ZN8CNetChan18SendSubChannelDataER8bf_write"),
+	};
+
+	const std::vector<Symbol> CNetChan_FlowNewPacketSym = {
+		Symbol::FromName("_ZN8CNetChan13FlowNewPacketEiiiiii"),
+	};
+
+	const std::vector<Symbol> CNetChan_FlowUpdateSym = {
+		Symbol::FromName("_ZN8CNetChan10FlowUpdateEii"),
+	};
+
+	const std::vector<Symbol> CNetChan_SendDatagramSym = {
+		Symbol::FromName("_ZN8CNetChan12SendDatagramEP8bf_write"),
+	};
+
+	const std::vector<Symbol> CNetChan_UpdateSubChannelsSym = {
+		Symbol::FromName("_ZN8CNetChan17UpdateSubChannelsEv"),
+	};
+
+	const std::vector<Symbol> CNetChan_CheckWaitingListSym = {
+		Symbol::FromName("_ZN8CNetChan16CheckWaitingListEi"),
+	};
+
+	const std::vector<Symbol> CNetChan_ProcessPacketHeaderSym = {
+		Symbol::FromName("_ZN8CNetChan19ProcessPacketHeaderEP11netpacket_s"),
+	};
+
+	//---------------------------------------------------------------------------------
+	// Purpose: lagcompensation Symbols
+	//---------------------------------------------------------------------------------
+	const std::vector<Symbol> UTIL_TraceEntity1Sym = {
+		Symbol::FromName("_Z16UTIL_TraceEntityP11CBaseEntityRK6VectorS3_jPK13IHandleEntityiP10CGameTrace"),
+	};
+
+	const std::vector<Symbol> UTIL_TraceEntity2Sym = {
+		Symbol::FromName("_Z16UTIL_TraceEntityP11CBaseEntityRK6VectorS3_jP10CGameTrace"),
 	};
 }

@@ -10,7 +10,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build_ghostinj:
+    name: "Build GhostInj"
     uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
     with:
       PROJECT_PATH: "ghostinj-dll/"

@@ -8,8 +8,8 @@
 class CPASModule : public IModule
 {
 public:
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual const char* Name() { return "pas"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 };
@@ -32,7 +32,7 @@ LUA_FUNCTION_STATIC(pas_TestPAS)
 	} else {
 		CBaseEntity* ent = Util::Get_Entity(1, false);
 
-		orig = (Vector*)&ent->GetAbsOrigin(); // ToDo: This currently breaks the compile.
+		orig = (Vector*)&ent->GetAbsOrigin();
 	}
 
 	Util::CM_Vis(*orig, DVIS_PAS);
@@ -85,7 +85,7 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 		orig = Get_Vector(1, true);
 	} else {
 		CBaseEntity* ent = Util::Get_Entity(1, true);
-		orig = (Vector*)&ent->GetAbsOrigin(); // ToDo: This currently breaks the compile.
+		orig = (Vector*)&ent->GetAbsOrigin();
 	}
 
 	Util::CM_Vis(*orig, DVIS_PAS);
@@ -141,7 +141,7 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 	return 1;
 }
 
-void CPASModule::LuaInit(bool bServerInit)
+void CPASModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
@@ -153,7 +153,7 @@ void CPASModule::LuaInit(bool bServerInit)
 	Util::FinishTable("pas");
 }
 
-void CPASModule::LuaShutdown()
+void CPASModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	Util::NukeTable("pas");
 }

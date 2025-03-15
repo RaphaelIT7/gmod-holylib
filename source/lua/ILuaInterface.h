@@ -516,7 +516,7 @@ namespace GarrysMod::Lua
 		virtual void MsgColour( const Color &col, const char *fmt, ... ) = 0;
 		virtual void GetCurrentFile( std::string &outStr ) = 0;
 		virtual void CompileString( Bootil::Buffer &dumper, const std::string &stringToCompile ) = 0;
-		virtual bool CallFunctionProtected( int, int, bool ) = 0;
+		virtual bool CallFunctionProtected( int iArgs, int iRets, bool bError ) = 0;
 		virtual void Require( const char *name ) = 0;
 		virtual const char *GetActualTypeName( int type ) = 0;
 		virtual void PreCreateTable( int arrelems, int nonarrelems ) = 0;
@@ -529,6 +529,9 @@ namespace GarrysMod::Lua
 		virtual const char* CheckStringOpt( int iStackPos, const char* def ) = 0;
 		virtual double CheckNumberOpt( int iStackPos, double def ) = 0;
 		virtual void RegisterMetaTable( const char* name, ILuaObject* obj ) = 0;
+
+		// Not in gmod? Anyways.
+		virtual ~ILuaInterface() {}
 	};
 }
 #endif

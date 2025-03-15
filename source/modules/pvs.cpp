@@ -11,8 +11,8 @@
 class CPVSModule : public IModule
 {
 public:
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "pvs"; };
 	virtual int Compatibility() { return LINUX32; };
@@ -692,7 +692,7 @@ LUA_FUNCTION_STATIC(pvs_FindInPVS) // Copy from pas.FindInPAS
 		orig = Get_Vector(1);
 	} else {
 		CBaseEntity* ent = Util::Get_Entity(1, true);
-		orig = (Vector*)&ent->GetAbsOrigin(); // ToDo: This currently breaks the compile.
+		orig = (Vector*)&ent->GetAbsOrigin();
 	}
 
 	Util::CM_Vis(*orig, DVIS_PVS);
@@ -760,7 +760,7 @@ LUA_FUNCTION_STATIC(pvs_TestPVS)
 		orig = Get_Vector(1);
 	} else {
 		CBaseEntity* ent = Util::Get_Entity(1, true);
-		orig = (Vector*)&ent->GetAbsOrigin(); // ToDo: This currently breaks the compile.
+		orig = (Vector*)&ent->GetAbsOrigin();
 	}
 
 	Util::CM_Vis(*orig, DVIS_PVS);
@@ -825,7 +825,7 @@ LUA_FUNCTION_STATIC(pvs_GetEntitiesFromTransmit)
 	return 1;
 }
 
-void CPVSModule::LuaInit(bool bServerInit)
+void CPVSModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
@@ -864,7 +864,7 @@ void CPVSModule::LuaInit(bool bServerInit)
 	Util::FinishTable("pvs");
 }
 
-void CPVSModule::LuaShutdown()
+void CPVSModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	Util::NukeTable("pvs");
 }

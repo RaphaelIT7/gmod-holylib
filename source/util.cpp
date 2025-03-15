@@ -17,6 +17,12 @@ IVEngineServer* engine;
 CGlobalEntityList* Util::entitylist = NULL;
 CUserMessages* Util::pUserMessages;
 
+bool g_pRemoveLuaUserData = true;
+std::unordered_set<LuaUserData*> g_pLuaUserData;
+
+std::unordered_set<int> Util::g_pReference;
+ConVar Util::holylib_debug_mainutil("holylib_debug_mainutil", "1");
+
 CBasePlayer* Util::Get_Player(int iStackPos, bool bError) // bError = error if not a valid player
 {
 	EHANDLE* pEntHandle = g_Lua->GetUserType<EHANDLE>(iStackPos, GarrysMod::Lua::Type::Entity);
@@ -182,6 +188,18 @@ public:
 };
 static HolyEntityListener pHolyEntityListener;
 
+static Detouring::Hook detour_CSteam3Server_NotifyClientDisconnect;
+extern void GameServer_OnClientDisconnect(CBaseClient* pClient);
+extern void SourceTV_OnClientDisconnect(CBaseClient* pClient);
+static void hook_CSteam3Server_NotifyClientDisconnect(void* pServer, CBaseClient* pClient)
+{
+	VPROF_BUDGET("HolyLib - CSteam3Server::NotifyClientDisconnect", VPROF_BUDGETGROUP_HOLYLIB);
+
+	GameServer_OnClientDisconnect(pClient);
+	SourceTV_OnClientDisconnect(pClient);
+	detour_CSteam3Server_NotifyClientDisconnect.GetTrampoline<Symbols::CSteam3Server_NotifyClientDisconnect>()(pServer, pClient);
+}
+
 IGet* Util::get;
 CBaseEntityList* g_pEntityList = NULL;
 Symbols::lua_rawseti Util::func_lua_rawseti;
@@ -225,6 +243,12 @@ void Util::AddDetour()
 		servergamedll = server_loader.GetInterface<IServerGameDLL>(INTERFACEVERSION_SERVERGAMEDLL);
 	Detour::CheckValue("get interface", "IServerGameDLL", servergamedll != NULL);
 
+	Detour::Create(
+		&detour_CSteam3Server_NotifyClientDisconnect, "CSteam3Server::NotifyClientDisconnect",
+		engine_loader.GetModule(), Symbols::CSteam3Server_NotifyClientDisconnectSym,
+		(void*)hook_CSteam3Server_NotifyClientDisconnect, 0
+	);
+
 	server = InterfacePointers::Server();
 	Detour::CheckValue("get class", "IServer", server != NULL);
 
@@ -242,7 +266,7 @@ void Util::AddDetour()
 	func_CM_Vis = (Symbols::CM_Vis)Detour::GetFunction(engine_loader.GetModule(), Symbols::CM_VisSym);
 	Detour::CheckFunction((void*)func_CM_Vis, "CM_Vis");
 
-	SourceSDK::FactoryLoader lua_shared_loader("lua_shared");
+	SourceSDK::ModuleLoader lua_shared_loader("lua_shared");
 	func_lua_rawseti = (Symbols::lua_rawseti)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_rawsetiSym);
 	Detour::CheckFunction((void*)func_lua_rawseti, "lua_rawseti");
 
@@ -299,7 +323,7 @@ void Util::CheckVersion()
 	// ToDo: Implement this someday
 }
 
-Get_LuaClass(IRecipientFilter, GarrysMod::Lua::Type::RecipientFilter, "RecipientFilter")
-Get_LuaClass(Vector, GarrysMod::Lua::Type::Vector, "Vector")
-Get_LuaClass(QAngle, GarrysMod::Lua::Type::Angle, "Angle")
-Get_LuaClass(ConVar, GarrysMod::Lua::Type::ConVar, "ConVar")
+GMODGet_LuaClass(IRecipientFilter, GarrysMod::Lua::Type::RecipientFilter, "RecipientFilter")
+GMODGet_LuaClass(Vector, GarrysMod::Lua::Type::Vector, "Vector")
+GMODGet_LuaClass(QAngle, GarrysMod::Lua::Type::Angle, "Angle")
+GMODGet_LuaClass(ConVar, GarrysMod::Lua::Type::ConVar, "ConVar")

@@ -334,7 +334,7 @@ public:
 	bool WriteToBuffer( bf_write &buffer );
 	const char * ToString() const;
 
-protected:
+public:
 	KeyValues *m_pKeyValues;
 };
 

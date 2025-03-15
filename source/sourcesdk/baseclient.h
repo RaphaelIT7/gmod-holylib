@@ -10,6 +10,8 @@
 #pragma once
 #endif
 
+#include "Platform.hpp" // 64x
+
 #include <const.h>
 #include <checksum_crc.h>
 #include <iclient.h>
@@ -187,9 +189,7 @@ public:
 	void			SetPlayerNameLocked( bool bValue ) { m_bPlayerNameLocked = bValue; }
 	bool			IsPlayerNameLocked( void ) { return m_bPlayerNameLocked; }
 
-#ifdef BUILD_GMOD
 	void			SetSignOnState( int ); // Why
-#endif
 
 private:	
 
@@ -206,6 +206,11 @@ public:
 	int				m_UserID;			// identifying number on server
 	char			m_Name[MAX_PLAYER_NAME_LENGTH];			// for printing to other people
 	char			m_GUID[SIGNED_GUID_LEN + 1]; // the clients CD key
+
+#if ARCHITECTURE_IS_X86_64
+	int _offset[23];
+	char _offset2;
+#endif
 
 	CSteamID		m_SteamID;			// This is valid when the client is authenticated
 	

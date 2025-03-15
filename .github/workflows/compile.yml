@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/compile.yml'
       - 'source/**'
+      - 'gluatests/**'
       - 'libs/**'
       - 'premake5.lua'
       - '!source/public/README.md'
@@ -12,7 +13,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  build:
+  build_plugin:
+    name: "Build Plugin"
     uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
     with:
       PROJECT_NAME: "holylib"
@@ -27,6 +29,7 @@ jobs:
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
 
   build_testingarea:
+    name: "Build 32x (Testing Area)"
     uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
     secrets:
       PTERODACTYL_KEY: ${{ secrets.PTERODACTYL_KEY }}
@@ -34,7 +37,7 @@ jobs:
       PTERODACTYL_URL: ${{ secrets.PTERODACTYL_URL }}
     with:
       PROJECT_NAME: "holylib"
-      BUILD_64x: "true"
+      BUILD_64x: "false"
       REALM: "sv"
       LINUX_FILEEXTENTION: "so"
       BUILD_WINDOWS: "false"
@@ -43,3 +46,191 @@ jobs:
       SOURCESDK_MINIMAL_BRANCH: "patch-6"
       SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-1"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
+
+  build_testingarea_64x:
+    name: "Build 64x (Testing Area)"
+    uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
+    secrets:
+      PTERODACTYL_KEY: ${{ secrets.PTERODACTYL_KEY }}
+      PTERODACTYL_SERVER: "4ef145c3"
+      PTERODACTYL_URL: ${{ secrets.PTERODACTYL_URL }}
+    with:
+      PROJECT_NAME: "holylib"
+      BUILD_64x: "true"
+      BUILD_32x: "false"
+      REALM: "sv"
+      LINUX_FILEEXTENTION: "so"
+      BUILD_WINDOWS: "false"
+      UPLOAD: "pterodactyl"
+      SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
+      SOURCESDK_MINIMAL_BRANCH: "patch-6"
+      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-1"
+      GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
+
+  build_ghostinj:
+    name: "Build GhostInj"
+    uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
+    with:
+      PROJECT_PATH: "ghostinj-dll/"
+      PROJECT_NAME: "ghostinj"
+      BUILD_64x: "true"
+      LINUX_FILEEXTENTION: "dll"
+      BUILD_WINDOWS: "false"
+      USE_PREFIX: "false"
+      ARTIFACT_EXPIRE: "1"
+
+  setup_32x_artifacts:
+    name: "Setup 32x Artifact"
+    needs: [build_plugin, build_ghostinj]
+    runs-on: ubuntu-latest
+    container: debian:bullseye
+    steps:
+      - uses: actions/checkout@v4
+        name: "Checkout required files"
+        with:
+          sparse-checkout: |
+            holylib.vdf
+            gluatests
+
+      - uses: actions/download-artifact@v4
+        name: "Download 32x plugin"
+        with:
+          name: "gmsv_holylib_linux.so"
+
+      - uses: actions/download-artifact@v4
+        name: "Download 32x ghostinj"
+        with:
+          name: "ghostinj.dll"
+
+      - name: "Create structure"
+        run: |
+          mkdir -p garrysmod/lua/bin
+          mv gmsv_holylib_linux.so garrysmod/lua/bin/
+
+          mkdir -p garrysmod/addons
+          mv holylib.vdf garrysmod/addons
+          mv gluatests garrysmod/addons
+
+          tar -czf gluatest.tar.gz ghostinj.dll garrysmod/
+
+      - uses: actions/upload-artifact@v4
+        name: "Upload tar"
+        with:
+          name: gluatest_32x
+          path: gluatest.tar.gz
+          compression-level: 9
+          retention-days: 1
+
+  setup_64x_artifacts:
+    name: "Setup 64x Artifact"
+    needs: [build_plugin, build_ghostinj]
+    runs-on: ubuntu-latest
+    container: debian:bullseye
+    steps:
+      - uses: actions/checkout@v4
+        name: "Checkout required files"
+        with:
+          sparse-checkout: |
+            holylib_64.vdf
+            gluatests
+
+      - uses: actions/download-artifact@v4
+        name: "Download 64x plugin"
+        with:
+          name: "gmsv_holylib_linux64.so (64x)"
+
+      - uses: actions/download-artifact@v4
+        name: "Download 64x ghostinj"
+        with:
+          name: "ghostinj.dll (64x)"
+
+      - name: "Create structure"
+        run: |
+          mkdir -p garrysmod/lua/bin
+          mv gmsv_holylib_linux64.so garrysmod/lua/bin/
+
+          mkdir -p garrysmod/addons
+          mv holylib_64.vdf garrysmod/addons
+          mv gluatests garrysmod/addons
+
+          tar -czf gluatest.tar.gz ghostinj.dll garrysmod/
+
+      - uses: actions/upload-artifact@v4
+        name: "Upload tar"
+        with:
+          name: gluatest_64x
+          path: gluatest.tar.gz
+          compression-level: 9
+          retention-days: 1
+
+  test_32bit_live:
+    name: "Test live branch"
+    needs: setup_32x_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests_runnerimprovements.yml@holylib
+    with:
+      branch: live
+      gluatest-ref: "holylib"
+      extra-startup-args: "-usegh"
+      download-artifact: "gluatest_32x"
+
+  test_32bit_dev:
+    name: "Test dev branch"
+    needs: setup_32x_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests_runnerimprovements.yml@holylib
+    with:
+      branch: dev
+      gluatest-ref: "holylib"
+      extra-startup-args: "-usegh"
+      download-artifact: "gluatest_32x"
+
+  test_64bit:
+    name: "Test x86-64 branch"
+    needs: setup_64x_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests_runnerimprovements.yml@holylib
+    with:
+      branch: x86-64
+      gluatest-ref: "holylib"
+      extra-startup-args: "-usegh"
+      download-artifact: "gluatest_64x"
+
+  test_32bit_find_crash:
+    if: false # Enable it if a unknown crash is happening. We'll test every single module.
+    name: "Find the crash cause"
+    needs: setup_32x_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests_runnerimprovements.yml@holylib
+    strategy:
+      matrix:
+        module: 
+          - holylib
+          - gameevent
+          - serverplugin
+          - sourcetv
+          - threadpoolfix
+          - stringtable
+          - precachefix
+          - pvs
+          - surffix
+          - filesystem
+          - util
+          - concommand
+          - vprof
+          - cvars
+          - bitbuf
+          - networking
+          - steamworks
+          - pas
+          - bass
+          - systimer
+          - voicechat
+          - physenv
+          - net
+          - entitylist
+          - httpserver
+          - luajit
+          - gameserver
+          - soundscape
+    with:
+      branch: dev
+      gluatest-ref: "holylib"
+      extra-startup-args: "-usegh -holylib_startdisabled -holylib_enable_${{ matrix.module }} 1"
+      download-artifact: "gluatest_32x"

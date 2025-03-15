@@ -11,6 +11,7 @@ class CPrecacheFixModule : public IModule
 public:
 	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
+	virtual void LevelShutdown() OVERRIDE;
 	virtual const char* Name() { return "precachefix"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
 };
@@ -30,6 +31,9 @@ static void PR_CheckEmptyString(const char *s)
 // NOTE: CVEngineServer::PrecacheDecal doesn't have this engine error. Why?
 
 static INetworkStringTableContainer* networkStringTableContainerServer = NULL;
+static INetworkStringTable* modelPrecache = NULL;
+static INetworkStringTable* genericPrecache = NULL;
+
 static Symbols::SV_FindOrAddModel func_SV_FindOrAddModel;
 static Detouring::Hook detour_CVEngineServer_PrecacheModel;
 static int hook_CVEngineServer_PrecacheModel(IVEngineServer* eengine, const char* mdl, bool preload)
@@ -41,10 +45,14 @@ static int hook_CVEngineServer_PrecacheModel(IVEngineServer* eengine, const char
 	bool bNewModel = false;
 	if (networkStringTableContainerServer)
 	{
-		INetworkStringTable* tbl = networkStringTableContainerServer->FindTable("modelprecache"); // ToDo: Maybe cache it and reuse it? (Gonna need a LevelShutdown function for modules :/)
-		if (tbl)
+		if (!modelPrecache)
 		{
-			bNewModel = tbl->FindStringIndex(mdl) == INVALID_STRING_INDEX;
+			modelPrecache = networkStringTableContainerServer->FindTable("modelprecache");
+		}
+
+		if (modelPrecache)
+		{
+			bNewModel = modelPrecache->FindStringIndex(mdl) == INVALID_STRING_INDEX;
 		}
 	}
 
@@ -89,10 +97,14 @@ static int hook_CVEngineServer_PrecacheGeneric(IVEngineServer* eengine, const ch
 	bool bNewFile = false;
 	if (networkStringTableContainerServer)
 	{
-		INetworkStringTable* tbl = networkStringTableContainerServer->FindTable("genericprecache"); // ToDo: Maybe cache it and reuse it? (Gonna need a LevelShutdown function for modules :/)
-		if (tbl)
+		if (!genericPrecache)
 		{
-			bNewFile = tbl->FindStringIndex(mdl) == INVALID_STRING_INDEX;
+			genericPrecache = networkStringTableContainerServer->FindTable("genericprecache");
+		}
+		
+		if (genericPrecache)
+		{
+			bNewFile = genericPrecache->FindStringIndex(mdl) == INVALID_STRING_INDEX;
 		}
 	}
 
@@ -153,4 +165,10 @@ void CPrecacheFixModule::InitDetour(bool bPreServer)
 
 	func_SV_FindOrAddModel = (Symbols::SV_FindOrAddModel)Detour::GetFunction(engine_loader.GetModule(), Symbols::SV_FindOrAddModelSym);
 	func_SV_FindOrAddGeneric = (Symbols::SV_FindOrAddGeneric)Detour::GetFunction(engine_loader.GetModule(), Symbols::SV_FindOrAddGenericSym);
+}
+
+void CPrecacheFixModule::LevelShutdown()
+{
+	modelPrecache = NULL;
+	genericPrecache = NULL;
 }

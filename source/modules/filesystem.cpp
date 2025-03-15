@@ -16,8 +16,8 @@ public:
 	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual void Think(bool bSimulating) OVERRIDE;
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void Shutdown() OVERRIDE;
 	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) OVERRIDE;
 	virtual const char* Name() { return "filesystem"; };
@@ -231,6 +231,9 @@ static void AddFileToSearchCache(const char* pFileName, int path, const char* pa
 	if (!pathID)
 		pathID = nullPath;
 
+	if (!pFileName)
+		return;
+
 	if (g_pFileSystemModule.InDebug())
 		Msg("holylib - AddFileToSearchCache: Added file %s to seach cache (%i, %s)\n", pFileName, path, pathID);
 
@@ -246,10 +249,17 @@ static void RemoveFileFromSearchCache(const char* pFileName, const char* pathID)
 	if (!pathID)
 		pathID = nullPath;
 
+	if (!pFileName)
+		return;
+
 	if (g_pFileSystemModule.InDebug())
 		Msg("holylib - RemoveFileFromSearchCache: Removed file %s from seach cache! (%s)\n", pFileName, pathID);
 
-	auto& map = m_SearchCache[pathID];
+	auto mapIt = m_SearchCache.find(pathID);
+	if (mapIt == m_SearchCache.end())
+		return;
+	
+	auto& map = mapIt->second;
 	auto it = map.find(pFileName);
 	if (it == map.end())
 		return;
@@ -263,7 +273,14 @@ static CSearchPath* GetPathFromSearchCache(const char* pFileName, const char* pa
 	if (!pathID)
 		pathID = nullPath;
 
-	auto& map = m_SearchCache[pathID];
+	if (!pFileName)
+		return NULL; // ??? can this even happen?
+
+	auto mapIt = m_SearchCache.find(pathID);
+	if (mapIt == m_SearchCache.end())
+		return NULL;
+	
+	auto& map = mapIt->second;
 	auto it = map.find(pFileName);
 	if (it == map.end())
 		return NULL; // We should add a debug print to see if we make a mistake somewhere
@@ -508,7 +525,7 @@ static void DumpSearchCacheCmd(const CCommand& args)
 {
 	for (auto& [key, val] : g_pAbsoluteSearchCache)
 	{
-		Msg("Key: %s\nValue: %s\n", key.data(), val.data());
+		Msg("Key: %s (%i)\nValue: %s (%i)\n", key.data(), (int)key.length(), val.data(), (int)val.length());
 	}
 }
 static ConCommand dumpabsolutesearchcache("holylib_filesystem_dumpabsolutesearchcache", DumpSearchCacheCmd, "Dumps the absolute search cache", 0);
@@ -551,6 +568,9 @@ static FileHandle_t hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, 
 		InitFileSystem((IFileSystem*)filesystem);
 
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::FindFile", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
+
+	if (g_pFileSystemModule.InDebug())
+		Msg("FindFileInSearchPath: trying to find %s -> %p (%s)\n", openInfo.m_pFileName, openInfo.m_pSearchPath, openInfo.m_pSearchPath->GetPathIDString());
 
 	CSearchPath* cachePath = GetPathFromSearchCache(openInfo.m_pFileName, openInfo.m_pSearchPath->GetPathIDString());
 	if (cachePath)
@@ -620,6 +640,9 @@ static long hook_CBaseFileSystem_FastFileTime(void* filesystem, const CSearchPat
 		InitFileSystem((IFileSystem*)filesystem);
 
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::FastFileTime", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
+
+	if (g_pFileSystemModule.InDebug())
+		Msg("holylib - FastFileTime: trying to find %s -> %p\n", pFileName, path);
 
 	CSearchPath* cachePath = GetPathFromSearchCache(pFileName, path->GetPathIDString());
 	if (cachePath)
@@ -1151,27 +1174,6 @@ static long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char
 		if (!newPath && strFileName.rfind("gamemodes/terrortown") == 0)
 			newPath = "MOD_WRITE";
 
-		if (holylib_filesystem_savesearchcache.GetBool())
-		{
-			std::string_view* absoluteStr = GetStringFromAbsoluteCache(pFileName);
-			if (absoluteStr)
-			{
-				if (g_pFileSystemModule.InDebug())
-					Msg("holylib - GetFileTime: Found file in absolute path (%s, %s)\n", pFileName, absoluteStr->data());
-
-				// We pass it a absolute path which will be used in ::FastFileTime
-				long time = detour_CBaseFileSystem_GetFileTime.GetTrampoline<Symbols::CBaseFileSystem_GetFileTime>()(filesystem, absoluteStr->data(), pPathID);
-				if (time != 0L)
-					return time;
-
-				if (g_pFileSystemModule.InDebug())
-					Msg("holylib - GetFileTime: Invalid absolute path? (%s, %s)\n", pFileName, absoluteStr->data());
-			} else {
-				if (g_pFileSystemModule.InDebug())
-					Msg("holylib - GetFileTime: Failed to find file in absolute path (%s)\n", pFileName);
-			}
-		}
-
 		if (newPath)
 		{
 			long time = detour_CBaseFileSystem_GetFileTime.GetTrampoline<Symbols::CBaseFileSystem_GetFileTime>()(filesystem, pFileName, pPathID);
@@ -1185,6 +1187,27 @@ static long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char
 		} else {
 			if (g_pFileSystemModule.InDebug())
 				Msg("holylib - GetFileTime: File is not in overridePaths (%s, %s)\n", pFileName, pPathID);
+		}
+	}
+
+	if (holylib_filesystem_savesearchcache.GetBool()) // why exactly was I doing this inside the forcepath check before? idk.
+	{
+		std::string_view* absoluteStr = GetStringFromAbsoluteCache(pFileName);
+		if (absoluteStr)
+		{
+			if (g_pFileSystemModule.InDebug())
+				Msg("holylib - GetFileTime: Found file in absolute path (%s, %s)\n", pFileName, absoluteStr->data());
+
+			// We pass it a absolute path which will be used in ::FastFileTime
+			long time = detour_CBaseFileSystem_GetFileTime.GetTrampoline<Symbols::CBaseFileSystem_GetFileTime>()(filesystem, absoluteStr->data(), pPathID);
+			if (time != 0L)
+				return time;
+
+			if (g_pFileSystemModule.InDebug())
+				Msg("holylib - GetFileTime: Invalid absolute path? (%s, %s)\n", pFileName, absoluteStr->data());
+		} else {
+			if (g_pFileSystemModule.InDebug())
+				Msg("holylib - GetFileTime: Failed to find file in absolute path (%s)\n", pFileName);
 		}
 	}
 
@@ -1621,9 +1644,16 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 		Msg("Updated workshop path. (%s)\n", workshopDir.c_str());
 }
 
+static CUtlSymbolTableMT* g_pPathIDTable;
 inline const char* CPathIDInfo::GetPathIDString() const
 {
-	return m_pDebugPathID; // This should remove the requirement for g_pPathIDTable.
+	/*
+	 * Why don't we return m_pDebugPathID to not rely on g_pPathIDTable?
+	 * Because then in RARE cases it can happen that m_pDebugPathID contains a INVALID value causing random and difficult to debug crashes.
+	 * This had happen in https://github.com/RaphaelIT7/gmod-holylib/issues/23 where it would result in crashes inside strlen calls on the string.
+	 */
+
+	return g_pPathIDTable->String( m_PathID );
 }
 
 inline const char* CSearchPath::GetPathIDString() const
@@ -1636,24 +1666,6 @@ inline const char* CSearchPath::GetPathIDString() const
 
 static Symbols::CBaseFileSystem_CSearchPath_GetDebugString func_CBaseFileSystem_CSearchPath_GetDebugString;
 inline const char* CSearchPath::GetPathString() const
-{
-	return func_CBaseFileSystem_CSearchPath_GetDebugString((void*)this); // Look into this to possibly remove the GetDebugString function.
-}
-
-inline const char* CBaseFileSystem::CPathIDInfo::GetPathIDString() const
-{
-	return m_pDebugPathID; // This should remove the requirement for g_pPathIDTable.
-}
-
-inline const char* CBaseFileSystem::CSearchPath::GetPathIDString() const // Remove this duplicate later :<
-{
-	if (m_pPathIDInfo)
-		return m_pPathIDInfo->GetPathIDString(); // When can we nuke it :>
-
-	return NULL;
-}
-
-inline const char* CBaseFileSystem::CSearchPath::GetPathString() const
 {
 	return func_CBaseFileSystem_CSearchPath_GetDebugString((void*)this); // Look into this to possibly remove the GetDebugString function.
 }
@@ -1744,6 +1756,10 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 
 	func_CBaseFileSystem_CSearchPath_GetDebugString = (Symbols::CBaseFileSystem_CSearchPath_GetDebugString)Detour::GetFunction(dedicated_loader.GetModule(), Symbols::CBaseFileSystem_CSearchPath_GetDebugStringSym);
 	Detour::CheckFunction((void*)func_CBaseFileSystem_CSearchPath_GetDebugString, "CBaseFileSystem::CSearchPath::GetDebugString");
+
+	SourceSDK::FactoryLoader dedicated_factory("dedicated_srv");
+	g_pPathIDTable = Detour::ResolveSymbol<CUtlSymbolTableMT>(dedicated_factory, Symbols::g_PathIDTableSym);
+	Detour::CheckValue("get class", "g_PathIDTable", g_pPathIDTable != NULL);
 #endif
 }
 
@@ -1792,7 +1808,7 @@ LUA_FUNCTION_STATIC(filesystem_AsyncRead)
 	const char* gamePath = LUA->CheckString(2);
 	LUA->CheckType(3, GarrysMod::Lua::Type::Function);
 	LUA->Push(3);
-	int reference = LUA->ReferenceCreate();
+	int reference = Util::ReferenceCreate("filesystem.AsyncRead");
 	LUA->Pop();
 	bool sync = LUA->GetBool(4);
 
@@ -1823,7 +1839,7 @@ void FileAsyncReadThink()
 		g_Lua->PushNumber(file->status);
 		g_Lua->PushString(file->content);
 		g_Lua->CallFunctionProtected(4, 0, true);
-		g_Lua->ReferenceFree(file->callback);
+		Util::ReferenceFree(file->callback, "FileAsyncReadThink");
 		files.push_back(file);
 	}
 
@@ -2250,7 +2266,7 @@ LUA_FUNCTION_STATIC(test)
 }
 
 // Gmod's filesystem functions have some weird stuff in them that makes them noticeably slower :/
-void CFileSystemModule::LuaInit(bool bServerInit)
+void CFileSystemModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
@@ -2290,7 +2306,7 @@ void CFileSystemModule::LuaInit(bool bServerInit)
 	Util::FinishTable("addonsystem");
 }
 
-void CFileSystemModule::LuaShutdown()
+void CFileSystemModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	Util::NukeTable("filesystem");
 }

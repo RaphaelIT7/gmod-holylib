@@ -9,8 +9,8 @@ class CBassModule : public IModule
 {
 public:
 	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void Shutdown() OVERRIDE;
 	virtual void Think(bool bSimulating) OVERRIDE;
 	virtual const char* Name() { return "bass"; };
@@ -41,20 +41,14 @@ LUA_FUNCTION_STATIC(IGModAudioChannel__tostring)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(IGModAudioChannel__gc)
-{
-	// ToDo
-
-	return 0;
-}
-
-LUA_FUNCTION_STATIC(IGModAudioChannel__index)
-{
-	if (!g_Lua->FindOnObjectsMetaTable(1, 2))
-		LUA->PushNil();
-
-	return 1;
-}
+Default__index(IGModAudioChannel);
+Default__newindex(IGModAudioChannel);
+Default__GetTable(IGModAudioChannel);
+Default__gc(IGModAudioChannel,
+	IGModAudioChannel* channel = (IGModAudioChannel*)pData->GetData();
+	if (channel)
+		delete channel;
+)
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_Destroy)
 {
@@ -341,8 +335,6 @@ LUA_FUNCTION_STATIC(bass_PlayFile)
 	const char* filePath = LUA->CheckString(1);
 	const char* flags = LUA->CheckString(2);
 	LUA->CheckType(3, GarrysMod::Lua::Type::Function);
-	LUA->Push(3);
-	int callback = LUA->ReferenceCreate();
 
 	if (!gGModAudio)
 		LUA->ThrowError("We don't have gGModAudio!");
@@ -350,8 +342,7 @@ LUA_FUNCTION_STATIC(bass_PlayFile)
 	int errorCode = 0;
 	IGModAudioChannel* audioChannel = gGModAudio->PlayFile(filePath, flags, &errorCode);
 	
-	Util::ReferencePush(LUA, callback);
-	LUA->ReferenceFree(callback);
+	LUA->Push(3);
 		if (errorCode == 0)
 			Push_IGModAudioChannel(audioChannel);
 		else
@@ -371,8 +362,6 @@ LUA_FUNCTION_STATIC(bass_PlayURL)
 	const char* url = LUA->CheckString(1);
 	const char* flags = LUA->CheckString(2);
 	LUA->CheckType(3, GarrysMod::Lua::Type::Function);
-	LUA->Push(3);
-	int callback = LUA->ReferenceCreate();
 
 	if (!gGModAudio)
 		LUA->ThrowError("We don't have gGModAudio!");
@@ -380,8 +369,7 @@ LUA_FUNCTION_STATIC(bass_PlayURL)
 	int errorCode = 0;
 	IGModAudioChannel* audioChannel = gGModAudio->PlayURL(url, flags, &errorCode);
 	
-	Util::ReferencePush(LUA, callback);
-	LUA->ReferenceFree(callback);
+	LUA->Push(3);
 		if (errorCode == 0)
 			Push_IGModAudioChannel(audioChannel);
 		else
@@ -419,7 +407,7 @@ void CBassModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 	gGModAudio->Init(*appfn); // The engine didn't...
 }
 
-void CBassModule::LuaInit(bool bServerInit)
+void CBassModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
@@ -428,6 +416,8 @@ void CBassModule::LuaInit(bool bServerInit)
 		Util::AddFunc(IGModAudioChannel__tostring, "__tostring");
 		Util::AddFunc(IGModAudioChannel__gc, "__gc");
 		Util::AddFunc(IGModAudioChannel__index, "__index");
+		Util::AddFunc(IGModAudioChannel__newindex, "__newindex");
+		Util::AddFunc(IGModAudioChannel_GetTable, "GetTable");
 		Util::AddFunc(IGModAudioChannel_Destroy, "Destroy");
 		Util::AddFunc(IGModAudioChannel_Stop, "Stop");
 		Util::AddFunc(IGModAudioChannel_Pause, "Pause");
@@ -474,7 +464,7 @@ void CBassModule::LuaInit(bool bServerInit)
 	Util::FinishTable("bass");
 }
 
-void CBassModule::LuaShutdown()
+void CBassModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	Util::NukeTable("bass");
 }

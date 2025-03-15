@@ -13,8 +13,8 @@
 class CSourceTVLibModule : public IModule
 {
 public:
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "sourcetv"; };
 	virtual int Compatibility() { return LINUX32; };
@@ -74,35 +74,18 @@ static void hook_CHLTVClient_Deconstructor(CHLTVClient* pClient)
 	detour_CHLTVClient_Deconstructor.GetTrampoline<Symbols::CHLTVClient_Deconstructor>()(pClient);
 }
 
-static Detouring::Hook detour_CSteam3Server_NotifyClientDisconnect;
-static void hook_CSteam3Server_NotifyClientDisconnect(void* pServer, CBaseClient* pClient)
+void SourceTV_OnClientDisconnect(CBaseClient* pClient)
 {
-	VPROF_BUDGET("HolyLib - CSteam3Server::NotifyClientDisconnect", VPROF_BUDGETGROUP_HOLYLIB);
-
-	if (!hltv)
-	{
-		detour_CSteam3Server_NotifyClientDisconnect.GetTrampoline<Symbols::CSteam3Server_NotifyClientDisconnect>()(pServer, pClient);
+	if (((CHLTVServer*)pClient->GetServer()) != hltv)
 		return;
-	}
 
-	if (((CHLTVServer*)pClient->GetServer()) == hltv)
+	if (g_Lua && Lua::PushHook("HolyLib:OnSourceTVClientDisconnect"))
 	{
-		if (Lua::PushHook("HolyLib:OnSourceTVClientDisconnect"))
-		{
-			Push_CHLTVClient((CHLTVClient*)pClient);
-			g_Lua->CallFunctionProtected(2, 0, true);
-		}
-
-		auto it = g_pPushedCHLTVClient.find((CHLTVClient*)pClient);
-		if (it != g_pPushedCHLTVClient.end())
-		{
-			g_Lua->ReferenceFree(it->second->iTableReference);
-			g_Lua->CreateTable();
-			it->second->iTableReference = g_Lua->ReferenceCreate(); // Create a new empty Lua table for the next client.
-		}
+		Push_CHLTVClient((CHLTVClient*)pClient);
+		g_Lua->CallFunctionProtected(2, 0, true);
 	}
 
-	detour_CSteam3Server_NotifyClientDisconnect.GetTrampoline<Symbols::CSteam3Server_NotifyClientDisconnect>()(pServer, pClient);
+	Delete_CHLTVClient((CHLTVClient*)pClient);
 }
 
 LUA_FUNCTION_STATIC(CHLTVClient__tostring)
@@ -432,12 +415,14 @@ static bool hook_CHLTVClient_ProcessGMod_ClientToServer(CHLTVClient* pClient, CL
 		Push_CHLTVClient(pClient);
 		Push_bf_read(&pBf->m_DataIn);
 		g_Lua->Push(-1);
-		int iReference = g_Lua->ReferenceCreate();
+		int iReference = Util::ReferenceCreate("ProcessGMod_ClientToServer - net message buffer");
 		g_Lua->CallFunctionProtected(3, 0, true);
+
+		// I hate this. We should reduce the number of references.
 		Util::ReferencePush(g_Lua, iReference);
 		g_Lua->SetUserType(-1, NULL); // Make sure that the we don't keep the buffer.
 		g_Lua->Pop(1);
-		g_Lua->ReferenceFree(iReference);
+		Util::ReferenceFree(iReference, "ProcessGMod_ClientToServer - Free net message buffer");
 	}
 
 	return true;
@@ -561,7 +546,7 @@ static void hook_CHLTVServer_BroadcastEvent(CHLTVServer* pServer, IGameEvent* pE
 
 extern int CBaseClient_TypeID; // Now we need to make sure gameserevr module is loaded before sourcetv.
 extern void Push_CBaseClientMeta();
-void CSourceTVLibModule::LuaInit(bool bServerInit)
+void CSourceTVLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
@@ -603,10 +588,11 @@ void CSourceTVLibModule::LuaInit(bool bServerInit)
 	Util::FinishTable("sourcetv");
 }
 
-void CSourceTVLibModule::LuaShutdown()
+void CSourceTVLibModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	Util::NukeTable("sourcetv");
-	g_pPushedCHLTVClient.clear();
+
+	DeleteAll_CHLTVClient();
 }
 
 void CSourceTVLibModule::InitDetour(bool bPreServer)
@@ -649,12 +635,6 @@ void CSourceTVLibModule::InitDetour(bool bPreServer)
 		&detour_CHLTVServer_BroadcastEvent, "CHLTVServer::BroadcastEvent",
 		engine_loader.GetModule(), Symbols::CHLTVServer_BroadcastEventSym,
 		(void*)hook_CHLTVServer_BroadcastEvent, m_pID
-	);
-
-	Detour::Create(
-		&detour_CSteam3Server_NotifyClientDisconnect, "CSteam3Server::NotifyClientDisconnect",
-		engine_loader.GetModule(), Symbols::CSteam3Server_NotifyClientDisconnectSym,
-		(void*)hook_CSteam3Server_NotifyClientDisconnect, m_pID
 	);
 
 	SourceSDK::ModuleLoader server_loader("server");

@@ -17,8 +17,8 @@ class CGameeventLibModule : public IModule
 {
 public:
 	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "gameevent"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
@@ -281,7 +281,7 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 	if (g_pGameeventLibModule.InDebug())
 		Msg("Player: %p\nIndex: %i\n", pPlayer, client->GetPlayerSlot());
 
-	int iReference = g_Lua->ReferenceCreate();
+	int iReference = Util::ReferenceCreate("CBaseClient::ProcessListenEvents");
 	if (Lua::PushHook("HolyLib:PreProcessGameEvent"))
 	{
 		Util::Push_Entity((CBaseEntity*)pPlayer);
@@ -293,7 +293,7 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 			g_Lua->Pop(1);
 			if (pCancel)
 			{
-				g_Lua->ReferenceFree(iReference);
+				Util::ReferenceFree(iReference, "CBaseClient::ProcessListenEvents - Cancel");
 				return true;
 			}
 		}
@@ -309,13 +309,13 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 		g_Lua->CallFunctionProtected(4, 0, false);
 	}
 
-	g_Lua->ReferenceFree(iReference);
+	Util::ReferenceFree(iReference, "CBaseClient::ProcessListenEvents - Done");
 
 	return bRet;
 }
 
 static int IGameEvent_TypeID = -1;
-PushReferenced_LuaClass(IGameEvent, IGameEvent_TypeID)
+Push_LuaClass(IGameEvent, IGameEvent_TypeID)
 Get_LuaClass(IGameEvent, IGameEvent_TypeID, "IGameEvent")
 
 LUA_FUNCTION_STATIC(IGameEvent__tostring)
@@ -336,18 +336,9 @@ LUA_FUNCTION_STATIC(IGameEvent__tostring)
 Default__index(IGameEvent);
 Default__newindex(IGameEvent);
 Default__GetTable(IGameEvent);
-
-LUA_FUNCTION_STATIC(IGameEvent__gc)
-{
-	IGameEvent* pEvent = Get_IGameEvent(1, false);
-	if (pEvent)
-	{
-		Delete_IGameEvent(pEvent);
-		pManager->FreeEvent(pEvent);
-	}
-
-	return 0;
-}
+Default__gc(IGameEvent, 
+	pManager->FreeEvent((IGameEvent*)pData->GetData());
+)
 
 LUA_FUNCTION_STATIC(IGameEvent_IsValid)
 {
@@ -573,7 +564,7 @@ void CGameeventLibModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* game
 	Detour::CheckValue("get interface", "CGameEventManager", pManager != NULL);
 }
 
-void CGameeventLibModule::LuaInit(bool bServerInit)
+void CGameeventLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
@@ -630,7 +621,7 @@ void CGameeventLibModule::LuaInit(bool bServerInit)
 	Util::PopTable();
 }
 
-void CGameeventLibModule::LuaShutdown()
+void CGameeventLibModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	if (Util::PushTable("gameevent"))
 	{

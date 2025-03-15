@@ -4,21 +4,25 @@
 #include "detours.h"
 #include "usermessages.h"
 #include "sv_client.h"
+#include "eiface.h"
 #include "tier0/etwprof.h"
 #include "sourcesdk/baseserver.h"
 #include "sourcesdk/net_chan.h"
+#include <framesnapshot.h>
 
 double		net_time;
 
 class CGameServerModule : public IModule
 {
 public:
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "gameserver"; };
 	virtual int Compatibility() { return LINUX32; };
 };
+
+static ConVar gameserver_disablespawnsafety("holylib_gameserver_disablespawnsafety", "0", 0, "If enabled, players can spawn on slots above 128 but this WILL cause stability and many other issues!");
 
 CGameServerModule g_pGameServerModule;
 IModule* pGameServerModule = &g_pGameServerModule;
@@ -61,17 +65,15 @@ Default__newindex(CBaseClient);
 
 LUA_FUNCTION_STATIC(CBaseClient_GetTable)
 {
-	CBaseClient* pClient = Get_CBaseClient(1, true);
-	LuaUserData* data = g_pPushedCBaseClient[pClient];
-	if (data->pAdditionalData != pClient->GetUserID())
+	LuaUserData* data = Get_CBaseClient_Data(1, true);
+	CBaseClient* pClient = (CBaseClient*)data->GetData();
+	if (data->GetAdditionalData() != pClient->GetUserID())
 	{
-		data->pAdditionalData = pClient->GetUserID();
-		LUA->ReferenceFree(data->iTableReference);
-		LUA->CreateTable();
-		data->iTableReference = LUA->ReferenceCreate();
+		data->SetAdditionalData(pClient->GetUserID());
+		data->ClearLuaTable();
 	}
 
-	Util::ReferencePush(LUA, data->iTableReference); // This should never crash so no safety checks.
+	Util::ReferencePush(LUA, data->GetLuaTable()); // This should never crash so no safety checks.
 
 	return 1;
 }
@@ -218,8 +220,20 @@ LUA_FUNCTION_STATIC(CBaseClient_Disconnect)
 {
 	CBaseClient* pClient = Get_CBaseClient(1, true);
 	const char* strReason = LUA->CheckString(2);
+	bool bSilent = LUA->GetBool(3);
+	bool bNoEvent = LUA->GetBool(4);
+
+	if (bSilent)
+		pClient->GetNetChannel()->Shutdown(NULL); // NULL = Send no disconnect message
+
+	if (bNoEvent)
+		BlockGameEvent("player_disconnect");
 
 	pClient->Disconnect(strReason);
+	
+	if (bNoEvent)
+		UnblockGameEvent("player_disconnect");
+
 	return 0;
 }
 
@@ -333,6 +347,14 @@ LUA_FUNCTION_STATIC(CBaseClient_IsActive)
 	CBaseClient* pClient = Get_CBaseClient(1, true);
 
 	LUA->PushBool(pClient->IsActive());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CBaseClient_GetSignonState)
+{
+	CBaseClient* pClient = Get_CBaseClient(1, true);
+
+	LUA->PushNumber(pClient->m_nSignonState);
 	return 1;
 }
 
@@ -532,6 +554,28 @@ LUA_FUNCTION_STATIC(CBaseClient_OnRequestFullUpdate)
 		func_CBaseClient_OnRequestFullUpdate(pClient);
 
 	return 0;
+}
+
+void CBaseClient::SetSteamID( const CSteamID &steamID )
+{
+	m_SteamID = steamID;
+}
+
+LUA_FUNCTION_STATIC(CBaseClient_SetSteamID)
+{
+	CBaseClient* pClient = Get_CBaseClient(1, true);
+	const char* steamID64 = LUA->CheckString(2);
+	uint64 steamID = strtoull(steamID64, NULL, 0);
+
+	if (steamID == 0)
+	{
+		LUA->PushBool(false);
+		return 1;
+	}
+
+	pClient->SetSteamID(CSteamID(steamID));
+	LUA->PushBool(true);
+	return 1;
 }
 
 /*
@@ -749,19 +793,28 @@ LUA_FUNCTION_STATIC(CBaseClient_SetTimeout)
 	return 0;
 }
 
+static int g_pMaxFragments = -1;
+static bool g_bFreeSubChannels = false;
 LUA_FUNCTION_STATIC(CBaseClient_Transmit)
 {
 	CBaseClient* pClient = Get_CBaseClient(1, true);
 	bool bOnlyReliable = LUA->GetBool(2);
+	int maxFragments = (int)LUA->CheckNumberOpt(3, -1);
+	bool bFreeSubChannels = LUA->GetBool(4);
 	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
 	if (!pNetChannel)
 		LUA->ThrowError("Failed to get a valid net channel");
 
+	g_pMaxFragments = maxFragments;
+	g_bFreeSubChannels = bFreeSubChannels;
 	LUA->PushBool(pNetChannel->Transmit(bOnlyReliable));
+	g_bFreeSubChannels = false;
+	g_pMaxFragments = -1;
+
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(CBaseClient_HasQueuedPackets)
+/*LUA_FUNCTION_STATIC(CBaseClient_HasQueuedPackets)
 {
 	CBaseClient* pClient = Get_CBaseClient(1, true);
 	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
@@ -770,7 +823,7 @@ LUA_FUNCTION_STATIC(CBaseClient_HasQueuedPackets)
 
 	LUA->PushBool(pNetChannel->HasQueuedPackets());
 	return 1;
-}
+}*/
 
 LUA_FUNCTION_STATIC(CBaseClient_ProcessStream)
 {
@@ -817,6 +870,17 @@ LUA_FUNCTION_STATIC(CBaseClient_SetMaxBufferSize)
 	return 1;
 }*/
 
+LUA_FUNCTION_STATIC(CBaseClient_GetMaxRoutablePayloadSize)
+{
+	CBaseClient* pClient = Get_CBaseClient(1, true);
+	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
+	if (!pNetChannel)
+		LUA->ThrowError("Failed to get a valid net channel");
+
+	LUA->PushNumber(pNetChannel->GetMaxRoutablePayloadSize());
+	return 1;
+}
+
 // Added for CHLTVClient to inherit functions.
 void Push_CBaseClientMeta()
 {
@@ -852,6 +916,7 @@ void Push_CBaseClientMeta()
 	Util::AddFunc(CBaseClient_IsConnected, "IsConnected");
 	Util::AddFunc(CBaseClient_IsSpawned, "IsSpawned");
 	Util::AddFunc(CBaseClient_IsActive, "IsActive");
+	Util::AddFunc(CBaseClient_GetSignonState, "GetSignonState");
 	Util::AddFunc(CBaseClient_IsFakeClient, "IsFakeClient");
 	Util::AddFunc(CBaseClient_IsHLTV, "IsHLTV");
 	Util::AddFunc(CBaseClient_IsHearingClient, "IsHearingClient");
@@ -871,6 +936,7 @@ void Push_CBaseClientMeta()
 	Util::AddFunc(CBaseClient_SetUserCVar, "SetUserCVar");
 	Util::AddFunc(CBaseClient_FreeBaselines, "FreeBaselines");
 	Util::AddFunc(CBaseClient_OnRequestFullUpdate, "OnRequestFullUpdate");
+	Util::AddFunc(CBaseClient_SetSteamID, "SetSteamID");
 
 	// CNetChan related functions
 	Util::AddFunc(CBaseClient_GetProcessingMessages, "GetProcessingMessages");
@@ -896,6 +962,8 @@ void Push_CBaseClientMeta()
 	Util::AddFunc(CBaseClient_ProcessStream, "ProcessStream");
 	//Util::AddFunc(CBaseClient_GetRegisteredMessages, "GetRegisteredMessages");
 	Util::AddFunc(CBaseClient_SetMaxBufferSize, "SetMaxBufferSize");
+	//Util::AddFunc(CBaseClient_HasQueuedPackets, "HasQueuedPackets");
+	Util::AddFunc(CBaseClient_GetMaxRoutablePayloadSize, "GetMaxRoutablePayloadSize");
 }
 
 LUA_FUNCTION_STATIC(CGameClient__tostring)
@@ -1201,11 +1269,33 @@ LUA_FUNCTION_STATIC(gameserver_BroadcastMessage)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(gameserver_CalculateCPUUsage)
+{
+	if (!Util::server || !Util::server->IsActive())
+		return 0;
+
+	CBaseServer* pServer = (CBaseServer*)Util::server;
+	pServer->CalculateCPUUsage();
+	LUA->PushNumber(pServer->m_fCPUPercent);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(gameserver_ApproximateProcessMemoryUsage)
+{
+	LUA->PushNumber(ApproximateProcessMemoryUsage());
+	return 1;
+}
+
 extern CGlobalVars* gpGlobals;
-void CGameServerModule::LuaInit(bool bServerInit)
+static ConVar* sv_stressbots;
+void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
+
+	sv_stressbots = g_pCVar->FindVar("sv_stressbots");
+	if (!sv_stressbots)
+		Warning("holylib: Failed to find sv_stressbots convar!\n");
 
 	CBaseClient_TypeID = g_Lua->CreateMetaTable("CGameClient");
 		Push_CBaseClientMeta();
@@ -1242,11 +1332,16 @@ void CGameServerModule::LuaInit(bool bServerInit)
 		Util::AddFunc(gameserver_SetPaused, "SetPaused");
 		Util::AddFunc(gameserver_SetPassword, "SetPassword");
 		Util::AddFunc(gameserver_BroadcastMessage, "BroadcastMessage");
+		Util::AddFunc(gameserver_CalculateCPUUsage, "CalculateCPUUsage");
+		Util::AddFunc(gameserver_ApproximateProcessMemoryUsage, "ApproximateProcessMemoryUsage");
 	Util::FinishTable("gameserver");
 }
 
-void CGameServerModule::LuaShutdown()
+void CGameServerModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
+	Util::NukeTable("gameserver");
+
+	DeleteAll_CBaseClient();
 }
 
 static Detouring::Hook detour_CServerGameClients_GetPlayerLimit;
@@ -1261,6 +1356,8 @@ static void hook_CServerGameClients_GetPlayerLimit(void* funkyClass, int& minPla
  * ToDo: Ask Rubat if were allowed to modify SVC_ServerInfo
  *       I think it "could" be considered breaking gmod server operator rules.
  *       "Do not fake server information. This mostly means player count, but other data also applies."
+ * 
+ * Update: Rubat said it's fine.
  */
 // static MD5Value_t worldmapMD5;
 static Detouring::Hook detour_CBaseServer_FillServerInfo;
@@ -1376,12 +1473,21 @@ static bool hook_CBaseClient_ShouldSendMessages(CBaseClient* cl)
 		bSendMessage = false;
 	}
 
+	if (cl->IsFakeClient() && sv_stressbots && sv_stressbots->GetBool())
+		bSendMessage = true;
+
 	return bSendMessage;
 }
 
 static Detouring::Hook detour_CBaseServer_CheckTimeouts;
 static void hook_CBaseServer_CheckTimeouts(CBaseServer* srv)
 {
+	if (srv->IsHLTV())
+	{
+		detour_CBaseServer_CheckTimeouts.GetTrampoline<Symbols::CBaseServer_CheckTimeouts>()(srv);
+		return;
+	}
+
 	VPROF_BUDGET( "CBaseServer::CheckTimeouts", VPROF_BUDGETGROUP_OTHER_NETWORKING );
 	// Don't timeout in _DEBUG builds
 	int i;
@@ -1430,7 +1536,771 @@ static void hook_CBaseServer_CheckTimeouts(CBaseServer* srv)
 	}
 }
 
-static Symbols::MD5_MapFile func_MD5_MapFile;
+class CExtentedNetMessage : public CNetMessage
+{
+public:
+	INetMessageHandler *m_pMessageHandler;
+};
+
+/*
+ * Moving a entire CGameClient into another CGameClient to hopefully not make the engine too angry.
+ * This is required to preserve the logic of m_nEntityIndex = m_nClientSlot + 1
+ * We don't copy everything, like the baseline and such.
+ * 
+ * Current State: The Client's LocalPlayer is a NULL Entity.....
+ */
+static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* target)
+{
+	if (g_pGameServerModule.InDebug())
+		Msg("holylib: Reassigned client to from slot %i to %i\n", origin->m_nClientSlot, target->m_nClientSlot);
+
+	target->Inactivate();
+	target->Clear();
+
+	/*
+	 * NOTE: This will fire the player_connect and player_connect_client gameevents.
+	 * BUG: Their Name will have (1) at the beginning because of some funny engine behavior.
+	 */
+	target->Connect( origin->m_Name, origin->m_UserID, origin->m_NetChannel, origin->m_bFakePlayer, origin->m_clientChallenge );
+
+	/*
+	 * Basic CBaseClient::Connect setup
+	 */
+
+	//target->m_ConVars = origin->m_ConVars;
+	//target->m_bInitialConVarsSet = origin->m_bInitialConVarsSet;
+	//target->m_UserID = origin->m_UserID;
+	//target->m_bFakePlayer = origin->m_bFakePlayer;
+	//target->m_NetChannel = origin->m_NetChannel;
+	//target->m_clientChallenge = origin->m_clientChallenge;
+	//target->edict = Util::engineserver->PEntityOfEntIndex( target->m_nEntityIndex );
+	//target->m_PackInfo.m_pClientEnt = target->edict;
+	//target->m_PackInfo.m_nPVSSize = sizeof( target->m_PackInfo.m_PVS );
+
+	target->SetName( origin->m_Name ); // Required thingy
+	target->m_nSignonState = origin->m_nSignonState;
+
+	/*
+	 * Copy over other things
+	 */
+
+	//for (int i = 0; i < MAX_CUSTOM_FILES; ++i)
+	//	target->m_nCustomFiles[i] = origin->m_nCustomFiles[i];
+
+	target->m_SteamID = origin->m_SteamID;
+	target->m_nFriendsID = origin->m_nFriendsID;
+	target->m_nFilesDownloaded = origin->m_nFilesDownloaded;
+	target->m_nSignonTick = origin->m_nSignonTick;
+	target->m_nStringTableAckTick = origin->m_nStringTableAckTick;
+	target->m_nDeltaTick = origin->m_nDeltaTick;
+	target->m_nSendtableCRC = origin->m_nSendtableCRC;
+	target->m_fNextMessageTime = origin->m_fNextMessageTime;
+	target->m_fSnapshotInterval = origin->m_fSnapshotInterval;
+	target->m_nForceWaitForTick = origin->m_nForceWaitForTick;
+	target->m_bReportFakeClient = origin->m_bReportFakeClient;
+	target->m_bReceivedPacket = origin->m_bReceivedPacket;
+	target->m_bFullyAuthenticated = origin->m_bFullyAuthenticated;
+
+	memcpy(target->m_FriendsName, origin->m_FriendsName, sizeof(origin->m_FriendsName));
+	memcpy(target->m_GUID, origin->m_GUID, sizeof(origin->m_GUID));
+
+	target->m_fTimeLastNameChange = origin->m_fTimeLastNameChange;
+	target->m_bPlayerNameLocked = origin->m_bPlayerNameLocked;
+	memcpy(target->m_szPendingNameChange, origin->m_szPendingNameChange, sizeof(origin->m_szPendingNameChange));
+
+	/*
+	 * Update CNetChan and CNetMessage's properly to not crash.
+	 */
+
+	CNetChan* chan = (CNetChan*)target->m_NetChannel;
+	chan->m_MessageHandler = target;
+
+	FOR_EACH_VEC(chan->m_NetMessages, i)
+	{
+		CExtentedNetMessage* msg = (CExtentedNetMessage*)chan->m_NetMessages[i];
+		msg->m_pMessageHandler = target;
+
+		if (msg->GetType() == clc_CmdKeyValues)
+		{
+			Base_CmdKeyValues* keyVal = (Base_CmdKeyValues*)msg;
+			if (keyVal->m_pKeyValues)
+			{
+				keyVal->m_pKeyValues = NULL; // Will leak memory but we can't safely delete it currently.
+				// ToDo: Fix this small memory leak.
+			}
+		}
+	}
+
+	/*
+	 * Nuke the origin client
+	 */
+
+	origin->m_NetChannel = NULL; // Nuke the net channel or else it might touch it.
+	//origin->m_ConVars = NULL; // Same here
+	origin->Inactivate();
+	origin->Clear();
+
+	if (Lua::PushHook("HolyLib:OnPlayerChangedSlot"))
+	{
+		g_Lua->PushNumber(origin->m_nClientSlot);
+		g_Lua->PushNumber(target->m_nClientSlot);
+		g_Lua->CallFunctionProtected(3, 0, true);
+	}
+
+	/*
+	 * Update Client about it's playerSlot or else it will see the wrong entity as it's local player.
+	 */
+
+	SVC_ServerInfo info;
+	CBaseServer* pServer = (CBaseServer*)target->GetServer();
+	pServer->FillServerInfo(info);
+
+	info.m_nPlayerSlot = target->m_nClientSlot;
+
+	target->SendNetMsg(info, true);
+
+	/*
+	 * Reconnecting the client to let it go through the loading process again since it became unstable when we sent the ServerInfo.
+	 */
+
+	target->Reconnect();
+}
+
+#define MAX_PLAYERS 128
+static int FindFreeClientSlot()
+{
+	int nextFreeEntity = 255;
+	int count = Util::server->GetClientCount();
+	if (count > MAX_PLAYERS)
+		count = MAX_PLAYERS;
+
+	for (int iClientIndex=0; iClientIndex<count; ++iClientIndex)
+	{
+		CBaseClient* pClient = (CBaseClient*)Util::server->GetClient(iClientIndex);
+
+		if (pClient->m_nSignonState != SIGNONSTATE_NONE)
+			continue;
+
+		if (pClient->m_nEntityIndex < nextFreeEntity)
+			nextFreeEntity = pClient->m_nEntityIndex;
+	}
+
+	return nextFreeEntity;
+}
+
+static Detouring::Hook detour_CGameClient_SpawnPlayer;
+void hook_CGameClient_SpawnPlayer(CGameClient* client)
+{
+	if (client->m_nClientSlot < MAX_PLAYERS && !gameserver_disablespawnsafety.GetBool())
+	{
+		detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(client);
+		return;
+	}
+
+	int nextFreeEntity = FindFreeClientSlot();
+	if (nextFreeEntity > MAX_PLAYERS)
+	{
+		Warning("holylib: Failed to find a valid player slot to use! Stopping client spawn! (%i, %i, %i)\n", client->m_nClientSlot, client->GetUserID(), nextFreeEntity);
+		return;
+	}
+
+	CGameClient* pClient = (CGameClient*)Util::GetClientByIndex(nextFreeEntity - 1);
+	if (pClient->m_nSignonState != SIGNONSTATE_NONE)
+	{
+		// It really didn't like what we had planned.
+		Warning("holylib: Client collision! fk. Client will be refused to spawn! (%i - %s, %i - %s)\n", pClient->m_nClientSlot, pClient->GetClientName(), client->m_nClientSlot, client->GetClientName());
+		return;
+	}
+
+	MoveCGameClientIntoCGameClient(client, pClient);
+	//detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(pClient);
+}
+
+// Called by Util from CSteam3Server::NotifyClientDisconnect
+void GameServer_OnClientDisconnect(CBaseClient* pClient)
+{
+	if (pClient->GetServer() != Util::server)
+		return;
+
+	if (g_Lua && Lua::PushHook("HolyLib:OnClientDisconnect"))
+	{
+		Push_CBaseClient(pClient);
+		g_Lua->CallFunctionProtected(2, 0, true);
+	}
+
+	auto it = g_pPushedCBaseClient.find(pClient);
+	if (it != g_pPushedCBaseClient.end())
+	{
+		Delete_CBaseClient(it->first);
+	}
+}
+
+inline unsigned short BufferToShortChecksum( const void *pvData, size_t nLength )
+{
+	CRC32_t crc = CRC32_ProcessSingleBuffer( pvData, nLength );
+
+	unsigned short lowpart = ( crc & 0xffff );
+	unsigned short highpart = ( ( crc >> 16 ) & 0xffff );
+
+	return (unsigned short)( lowpart ^ highpart );
+}
+
+#define FLIPBIT(v,b) if (v&b) v &= ~b; else v |= b;
+
+static Detouring::Hook detour_CNetChan_UpdateSubChannels;
+void hook_CNetChan_UpdateSubChannels(CNetChan* chan)
+{
+	if (g_pMaxFragments <= 0)
+	{
+		detour_CNetChan_UpdateSubChannels.GetTrampoline<Symbols::CNetChan_UpdateSubChannels>()(chan);
+		return;
+	}
+
+	// first check if there is a free subchannel
+	CNetChan::subChannel_s * freeSubChan = chan->GetFreeSubChannel();
+
+	if ( freeSubChan == NULL )
+		return; //all subchannels in use right now
+
+	int nSendMaxFragments = MIN(g_pMaxFragments, 7);
+
+	bool bSendData = false;
+
+	for ( int i = 0; i < MAX_STREAMS; i++ )
+	{
+		if ( chan->m_WaitingList[i].Count() <= 0 )
+			continue;
+
+		CNetChan::dataFragments_s *data = chan->m_WaitingList[i][0]; // get head
+
+		if ( data->asTCP )
+			continue;
+
+		int nSentFragments = data->ackedFragments + data->pendingFragments;
+
+		Assert( nSentFragments <= data->numFragments );
+
+		if ( nSentFragments == data->numFragments )
+			continue; // all fragments already send
+
+		// how many fragments can we send ?
+
+		int numFragments = MIN( nSendMaxFragments, data->numFragments - nSentFragments );
+
+		// if we are in file background transmission mode, just send one fragment per packet
+		//if ( i == FRAG_FILE_STREAM && chan->m_bFileBackgroundTranmission )
+		//	numFragments = MIN( 1, numFragments );
+
+		// copy fragment data into subchannel
+
+		freeSubChan->startFraggment[i] = nSentFragments;
+		freeSubChan->numFragments[i] = numFragments;
+		
+		data->pendingFragments += numFragments;
+
+		bSendData = true;
+
+		nSendMaxFragments -= numFragments;
+
+		if ( nSendMaxFragments <= 0 )
+			break;
+	}
+
+	if ( bSendData )
+	{
+		// flip channel bit 
+		int bit = 1<<freeSubChan->index;
+
+		FLIPBIT(chan->m_nOutReliableState, bit);
+
+		freeSubChan->state = SUBCHANNEL_TOSEND;
+		freeSubChan->sendSeqNr = 0;
+	}
+}
+
+static ConVar* vcr_verbose;
+static ConVar* net_maxroutable;
+static ConVar* net_compresspackets_minsize;
+static ConVar* net_showudp;
+static ConVar* net_compresspackets;
+static ConVar* net_maxcleartime;
+static Symbols::NET_SendPacket func_NET_SendPacket;
+static Symbols::CNetChan_CreateFragmentsFromBuffer func_CNetChan_CreateFragmentsFromBuffer;
+static Symbols::CNetChan_FlowNewPacket func_CNetChan_FlowNewPacket;
+static Symbols::CNetChan_FlowUpdate func_CNetChan_FlowUpdate;
+static Symbols::CNetChan_SendSubChannelData func_CNetChan_SendSubChannelData;
+static Detouring::Hook detour_CNetChan_SendDatagram;
+int hook_CNetChan_SendDatagram(CNetChan* chan, bf_write *datagram)
+{
+	ALIGN4 byte		send_buf[ NET_MAX_MESSAGE ] ALIGN4_POST;
+
+#if !defined(NO_VCR) && ARCHITECTURE_IS_X86
+	if ( vcr_verbose->GetInt() && datagram && datagram->GetNumBytesWritten() > 0 )
+		VCRGenericValueVerify( "datagram", datagram->GetBasePointer(), datagram->GetNumBytesWritten()-1 );
+#endif
+	
+	// first increase out sequence number
+	
+	// check, if fake client, then fake send also
+	if ( chan->remote_address.GetType() == NA_NULL )	
+	{
+		// this is a demo channel, fake sending all data
+		chan->m_fClearTime = 0.0;		// no bandwidth delay
+		chan->m_nChokedPackets = 0;	// Reset choke state
+		chan->m_StreamReliable.Reset();		// clear current reliable buffer
+		chan->m_StreamUnreliable.Reset();		// clear current unrelaible buffer
+		chan->m_nOutSequenceNr++;
+		return chan->m_nOutSequenceNr-1;
+	}
+
+	// process all new and pending reliable data, return true if reliable data should
+	// been send with this packet
+
+	if ( chan->m_StreamReliable.IsOverflowed() )
+	{
+		ConMsg ("%s:send reliable stream overflow\n", chan->remote_address.ToString());
+		return 0;
+	}
+	else if ( chan->m_StreamReliable.GetNumBitsWritten() > 0 )
+	{
+		func_CNetChan_CreateFragmentsFromBuffer(chan, &chan->m_StreamReliable, FRAG_NORMAL_STREAM);
+		chan->m_StreamReliable.Reset();
+	}
+
+	bf_write send( "CNetChan_TransmitBits->send", send_buf, sizeof(send_buf) );
+
+	// Prepare the packet header
+	// build packet flags
+	unsigned char flags = 0;
+
+	// start writing packet
+
+	send.WriteLong ( chan->m_nOutSequenceNr );
+	send.WriteLong ( chan->m_nInSequenceNr );
+
+	bf_write flagsPos = send; // remember flags byte position
+
+	send.WriteByte ( 0 ); // write correct flags value later
+	//if ( chan->ShouldChecksumPackets() )
+	{
+		send.WriteShort( 0 );  // write correct checksum later
+		Assert( !(send.GetNumBitsWritten() % 8 ) );
+	}
+
+	// Note, this only matters on the PC
+	int nCheckSumStart = send.GetNumBytesWritten();
+
+	send.WriteByte ( chan->m_nInReliableState );
+
+	if ( chan->m_nChokedPackets > 0 )
+	{
+		flags |= PACKET_FLAG_CHOKED;
+		send.WriteByte ( chan->m_nChokedPackets & 0xFF );	// send number of choked packets
+	}
+
+	// always append a challenge number
+	flags |= PACKET_FLAG_CHALLENGE ;
+
+	// append the challenge number itself right on the end
+	send.WriteLong( chan->m_ChallengeNr );
+
+	if ( func_CNetChan_SendSubChannelData(chan, send) )
+	{
+		flags |= PACKET_FLAG_RELIABLE;
+	}
+
+	// Is there room for given datagram data. the datagram data 
+	// is somewhat more important than the normal unreliable data
+	// this is done to allow some kind of snapshot behavior
+	// weather all data in datagram is transmitted or none.
+	if ( datagram )
+	{
+		if( datagram->GetNumBitsWritten() < send.GetNumBitsLeft() )
+		{
+			send.WriteBits( datagram->GetData(), datagram->GetNumBitsWritten() );
+		}
+		else
+		{
+			ConDMsg("CNetChan::SendDatagram:  data would overfow, ignoring\n");
+		}
+	}
+
+	// Is there room for the unreliable payload?
+	if ( chan->m_StreamUnreliable.GetNumBitsWritten() < send.GetNumBitsLeft() )
+	{
+		send.WriteBits(chan->m_StreamUnreliable.GetData(), chan->m_StreamUnreliable.GetNumBitsWritten() );
+	}
+	else
+	{
+		ConDMsg("CNetChan::SendDatagram:  Unreliable would overfow, ignoring\n");
+	}
+
+	chan->m_StreamUnreliable.Reset();	// clear unreliable data buffer
+
+	// On the PC the voice data is in the main packet
+	if ( !IsX360() && 
+		chan->m_StreamVoice.GetNumBitsWritten() > 0 && chan->m_StreamVoice.GetNumBitsWritten() < send.GetNumBitsLeft() )
+	{
+		send.WriteBits(chan->m_StreamVoice.GetData(), chan->m_StreamVoice.GetNumBitsWritten() );
+		chan->m_StreamVoice.Reset();
+	}
+
+	int nMinRoutablePayload = MIN_ROUTABLE_PAYLOAD;
+
+#if defined( _DEBUG ) || defined( MIN_ROUTABLE_TESTING )
+	if ( m_Socket == NS_SERVER )
+	{
+		nMinRoutablePayload = net_minroutable.GetInt();
+	}
+#endif
+
+	// Deal with packets that are too small for some networks
+	while ( send.GetNumBytesWritten() < nMinRoutablePayload )		
+	{
+		// Go ahead and pad some bits as long as needed
+		send.WriteUBitLong( net_NOP, NETMSG_TYPE_BITS );
+	}
+
+	// Make sure we have enough bits to read a final net_NOP opcode before compressing 
+	int nRemainingBits = send.GetNumBitsWritten() % 8;
+	if ( nRemainingBits > 0 &&  nRemainingBits <= (8-NETMSG_TYPE_BITS) )
+	{
+		send.WriteUBitLong( net_NOP, NETMSG_TYPE_BITS );
+	}
+
+	// if ( IsX360() )
+	{
+		// Now round up to byte boundary
+		nRemainingBits = send.GetNumBitsWritten() % 8;
+		if ( nRemainingBits > 0 )
+		{
+			int nPadBits = 8 - nRemainingBits;
+
+			flags |= ENCODE_PAD_BITS( nPadBits );
+	
+			// Pad with ones
+			if ( nPadBits > 0 )
+			{
+				unsigned int unOnes = GetBitForBitnum( nPadBits ) - 1;
+				send.WriteUBitLong( unOnes, nPadBits );
+			}
+		}
+	}
+
+
+	// FIXME:  This isn't actually correct since compression might make the main payload usage a bit smaller
+	bool bSendVoice = IsX360() && ( chan->m_StreamVoice.GetNumBitsWritten() > 0 && chan->m_StreamVoice.GetNumBitsWritten() < send.GetNumBitsLeft() );
+		
+	bool bCompress = false;
+	if ( net_compresspackets->GetBool() )
+	{
+		if ( send.GetNumBytesWritten() >= net_compresspackets_minsize->GetInt() )
+		{
+			bCompress = true;
+		}
+	}
+
+	// write correct flags value and the checksum
+	flagsPos.WriteByte( flags ); 
+
+	// Compute checksum (must be aligned to a byte boundary!!)
+	//if ( chan->ShouldChecksumPackets() ) if MultiPlayer -> always true
+	{
+		const void *pvData = send.GetData() + nCheckSumStart;
+		Assert( !(send.GetNumBitsWritten() % 8 ) );
+		int nCheckSumBytes = send.GetNumBytesWritten() - nCheckSumStart;
+		unsigned short usCheckSum = BufferToShortChecksum( pvData, nCheckSumBytes );
+		flagsPos.WriteUBitLong( usCheckSum, 16 );
+	}
+
+	// Send the datagram
+	int	bytesSent = func_NET_SendPacket( chan, chan->m_Socket, chan->remote_address, send.GetData(), send.GetNumBytesWritten(), bSendVoice ? &chan->m_StreamVoice : 0, bCompress );
+
+	if ( bSendVoice || !IsX360() )
+	{
+		chan->m_StreamVoice.Reset();
+	}
+
+	if ( net_showudp->GetInt() && net_showudp->GetInt() != 2 )
+	{
+		int mask = 63;
+		char comp[ 64 ] = { 0 };
+		if ( net_compresspackets->GetBool() && 
+			bytesSent && 
+			( bytesSent < send.GetNumBytesWritten() ) )
+		{
+			Q_snprintf( comp, sizeof( comp ), " compression=%5u [%5.2f %%]", bytesSent, 100.0f * float( bytesSent ) / float( send.GetNumBytesWritten() ) );
+		}
+	
+		ConMsg ("UDP -> %12.12s: sz=%5i seq=%5i ack=%5i rel=%1i ch=%1i tm=%f rt=%f%s\n"
+			, chan->GetName()
+			, send.GetNumBytesWritten()
+			, ( chan->m_nOutSequenceNr ) & mask
+			, chan->m_nInSequenceNr & mask
+			, (flags & PACKET_FLAG_RELIABLE) ? 1 : 0
+			, flags & PACKET_FLAG_CHALLENGE ? 1 : 0
+			, (float)net_time
+			, (float)Plat_FloatTime()
+			, comp );
+	}
+
+	// update stats
+
+	int nTotalSize = bytesSent + UDP_HEADER_SIZE;
+
+	func_CNetChan_FlowNewPacket(chan, FLOW_OUTGOING, chan->m_nOutSequenceNr, chan->m_nInSequenceNr, chan->m_nChokedPackets, 0, nTotalSize);
+
+	func_CNetChan_FlowUpdate(chan, FLOW_OUTGOING, nTotalSize);
+	
+	if ( chan->m_fClearTime < net_time )
+	{
+		chan->m_fClearTime = net_time;
+	}
+
+	// calculate net_time when channel will be ready for next packet (throttling)
+	// TODO:  This doesn't exactly match size sent when packet is a "split" packet (actual bytes sent is higher, etc.)
+	/*double fAddTime = (float)nTotalSize / (float)chan->m_Rate;
+
+	chan->m_fClearTime += fAddTime;
+
+	if ( net_maxcleartime->GetFloat() > 0.0f )
+	{
+		double m_flLatestClearTime = net_time + net_maxcleartime->GetFloat();
+		if ( chan->m_fClearTime > m_flLatestClearTime )
+		{
+			chan->m_fClearTime = m_flLatestClearTime;
+		}
+	}*/
+
+	if ( net_maxcleartime->GetFloat() > 0.0f )
+	{
+		double m_flLatestClearTime = net_time + net_maxcleartime->GetFloat();
+		if ( chan->m_fClearTime > m_flLatestClearTime )
+		{
+			chan->m_fClearTime = m_flLatestClearTime;
+		}
+	}
+	
+	chan->m_nChokedPackets = 0;
+	chan->m_nOutSequenceNr++;
+
+	// NOTE: This code has to be here as moving it into it's own lua function breaks stuff?
+	if (g_bFreeSubChannels)
+	{
+		// Just mark everything as freed >:D
+		for (int i = 0; i<MAX_SUBCHANNELS; ++i)
+		{
+			CNetChan::subChannel_s * subchan = &chan->m_SubChannels[i];
+
+			for (int j=0; j<MAX_STREAMS; ++j)
+			{
+				if (subchan->numFragments[j] == 0)
+					continue;
+
+				Assert(m_WaitingList[j].Count() > 0);
+
+				CNetChan::dataFragments_t * data = chan->m_WaitingList[j][0];
+
+				// tell waiting list, that we received the acknowledge
+				data->ackedFragments += subchan->numFragments[j]; 
+				data->pendingFragments -= subchan->numFragments[j];
+			}
+
+			subchan->Free(); // mark subchannel as free again
+		}
+	}
+
+	return chan->m_nOutSequenceNr-1; // return send seq nr
+}
+
+static ConVar* net_showfragments;
+static ConVar* net_maxpacketdrop;
+static ConVar* net_showdrop;
+static Symbols::CNetChan_CheckWaitingList func_CNetChan_CheckWaitingList;
+static Detouring::Hook detour_CNetChan_ProcessPacketHeader;
+int hook_CNetChan_ProcessPacketHeader(CNetChan* chan, netpacket_t* packet)
+{
+	// get sequence numbers		
+	int sequence	= packet->message.ReadLong();
+	int sequence_ack= packet->message.ReadLong();
+	int flags		= packet->message.ReadByte();
+
+	//if ( ShouldChecksumPackets() )
+	{
+		unsigned short usCheckSum = (unsigned short)packet->message.ReadUBitLong( 16 );
+
+		// Checksum applies to rest of packet
+		Assert( !( packet->message.GetNumBitsRead() % 8 ) );
+		int nOffset = packet->message.GetNumBitsRead() >> 3;
+		int nCheckSumBytes = packet->message.TotalBytesAvailable() - nOffset;
+	
+		const void *pvData = packet->message.GetBasePointer() + nOffset;
+		unsigned short usDataCheckSum = BufferToShortChecksum( pvData, nCheckSumBytes );
+	
+		if ( usDataCheckSum != usCheckSum )
+		{
+			ConMsg ("%s:corrupted packet %i at %i\n"
+				, chan->remote_address.ToString ()
+				, sequence
+				, chan->m_nInSequenceNr);
+			return -1;
+		}
+	}
+
+	int relState	= packet->message.ReadByte();	// reliable state of 8 subchannels
+	int nChoked		= 0;	// read later if choked flag is set
+	int i,j;
+
+	if ( flags & PACKET_FLAG_CHOKED )
+		nChoked = packet->message.ReadByte(); 
+
+	if ( flags & PACKET_FLAG_CHALLENGE )
+	{
+		unsigned int nChallenge = packet->message.ReadLong();
+		if ( nChallenge != chan->m_ChallengeNr )
+			return -1;
+		// challenge was good, latch we saw a good one
+		chan->m_bStreamContainsChallenge = true;
+	}
+	else if ( chan->m_bStreamContainsChallenge )
+		return -1; // what, no challenge in this packet but we got them before?
+
+	// discard stale or duplicated packets
+	if (sequence <= chan->m_nInSequenceNr )
+	{
+		if ( net_showdrop->GetInt() )
+		{
+			if ( sequence == chan->m_nInSequenceNr )
+			{
+				ConMsg ("%s:duplicate packet %i at %i\n"
+					, chan->remote_address.ToString ()
+					, sequence
+					, chan->m_nInSequenceNr);
+			}
+			else
+			{
+				ConMsg ("%s:out of order packet %i at %i\n"
+					, chan->remote_address.ToString ()
+					, sequence
+					, chan->m_nInSequenceNr);
+			}
+		}
+		
+		return -1;
+	}
+
+//
+// dropped packets don't keep the message from being used
+//
+	chan->m_PacketDrop = sequence - (chan->m_nInSequenceNr + nChoked + 1);
+
+	if ( chan->m_PacketDrop > 0 )
+	{
+		if ( net_showdrop->GetInt() )
+		{
+			ConMsg ("%s:Dropped %i packets at %i\n"
+			,chan->remote_address.ToString(), chan->m_PacketDrop, sequence );
+		}
+	}
+
+	if ( net_maxpacketdrop->GetInt() > 0 && chan->m_PacketDrop > net_maxpacketdrop->GetInt() )
+	{
+		if ( net_showdrop->GetInt() )
+		{
+			ConMsg ("%s:Too many dropped packets (%i) at %i\n"
+				,chan->remote_address.ToString(), chan->m_PacketDrop, sequence );
+		}
+		return -1;
+	}
+
+	for ( i = 0; i<MAX_SUBCHANNELS; i++ )
+	{
+		int bitmask = (1<<i);
+
+		// data of channel i has been acknowledged
+		CNetChan::subChannel_s * subchan = &chan->m_SubChannels[i];
+
+		Assert( subchan->index == i);
+
+		if ( (chan->m_nOutReliableState & bitmask) == (relState & bitmask) || i >= MAX_SUBCHANNELS )
+		{
+			if ( subchan->state == SUBCHANNEL_DIRTY )
+			{
+				// subchannel was marked dirty during changelevel, waiting list is already cleared
+				subchan->Free();
+			}
+			else if ( subchan->sendSeqNr > sequence_ack )
+			{
+				// Tell this to someone that would actually care >:(
+				DevMsg ("%s:reliable state invalid (%i).\n"	,chan->remote_address.ToString(), i );
+				// Assert( 0 );
+				return -1;
+			}
+			else if ( subchan->state == SUBCHANNEL_WAITING )
+			{
+				for ( j=0; j<MAX_STREAMS; j++ )
+				{
+					if ( subchan->numFragments[j] == 0 )
+						continue;
+
+					Assert( m_WaitingList[j].Count() > 0 );
+					
+					CNetChan::dataFragments_t* data = chan->m_WaitingList[j][0];
+
+					// tell waiting list, that we received the acknowledge
+					data->ackedFragments += subchan->numFragments[j]; 
+					data->pendingFragments -= subchan->numFragments[j];
+				}
+
+				subchan->Free(); // mark subchannel as free again
+			}
+		}
+		else // subchannel doesn't match
+		{
+			if ( subchan->sendSeqNr <= sequence_ack )
+			{
+				Assert( subchan->state != SUBCHANNEL_FREE );
+
+				if ( subchan->state == SUBCHANNEL_WAITING )
+				{
+					if ( net_showfragments->GetBool() )
+					{	
+						ConMsg("Resending subchan %i: start %i, num %i\n", subchan->index, subchan->startFraggment[0], subchan->numFragments[0] );
+					}
+
+					subchan->state = SUBCHANNEL_TOSEND; // schedule for resend
+				}
+				else if ( subchan->state == SUBCHANNEL_DIRTY )
+				{
+					// remote host lost dirty channel data, flip bit back
+					int bit = 1<<subchan->index; // flip bit back since data was send yet
+			
+					FLIPBIT(chan->m_nOutReliableState, bit);
+
+					subchan->Free(); 
+				}
+			}
+		}
+	}
+
+	chan->m_nInSequenceNr = sequence;
+	chan->m_nOutSequenceNrAck = sequence_ack;
+#if ARCHITECTURE_IS_X86
+	ETWReadPacket( packet->from.ToString(), packet->wiresize, chan->m_nInSequenceNr, chan->m_nOutSequenceNr );
+#endif
+
+	// Update waiting list status
+	
+	for(i=0; i<MAX_STREAMS;i++)
+		func_CNetChan_CheckWaitingList(chan, i); 
+
+	// Update data flow stats (use wiresize (compressed))
+	func_CNetChan_FlowNewPacket( chan, FLOW_INCOMING, chan->m_nInSequenceNr, chan->m_nOutSequenceNrAck, nChoked, chan->m_PacketDrop, packet->wiresize + UDP_HEADER_SIZE );
+
+	return flags;
+}
+
+
 void CGameServerModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
@@ -1461,8 +2331,11 @@ void CGameServerModule::InitDetour(bool bPreServer)
 		(void*)hook_CBaseServer_CheckTimeouts, m_pID
 	);
 
-	func_CBaseClient_OnRequestFullUpdate = (Symbols::CBaseClient_OnRequestFullUpdate)Detour::GetFunction(engine_loader.GetModule(), Symbols::CBaseClient_OnRequestFullUpdateSym);
-	Detour::CheckFunction((void*)func_CBaseClient_OnRequestFullUpdate, "CBaseClient::OnRequestFullUpdate");
+	Detour::Create(
+		&detour_CGameClient_SpawnPlayer, "CGameClient::SpawnPlayer",
+		engine_loader.GetModule(), Symbols::CGameClient_SpawnPlayerSym,
+		(void*)hook_CGameClient_SpawnPlayer, m_pID
+	);
 
 	SourceSDK::FactoryLoader server_loader("server");
 	if (!g_pModuleManager.IsMarkedAsBinaryModule()) // Loaded by require? Then we skip this.
@@ -1485,4 +2358,51 @@ void CGameServerModule::InitDetour(bool bPreServer)
 		server_loader.GetModule(), Symbols::CServerGameClients_GetPlayerLimitSym,
 		(void*)hook_CServerGameClients_GetPlayerLimit, m_pID
 	);
+
+	func_CBaseClient_OnRequestFullUpdate = (Symbols::CBaseClient_OnRequestFullUpdate)Detour::GetFunction(engine_loader.GetModule(), Symbols::CBaseClient_OnRequestFullUpdateSym);
+	Detour::CheckFunction((void*)func_CBaseClient_OnRequestFullUpdate, "CBaseClient::OnRequestFullUpdate");
+
+	/*
+	 * Everything below are networking related changes, when the next gmod update is out we shoulod be able to remove most of it if rubat implements https://github.com/Facepunch/garrysmod-requests/issues/2632
+	 */
+
+	Detour::Create(
+		&detour_CNetChan_SendDatagram, "CNetChan::SendDatagram",
+		engine_loader.GetModule(), Symbols::CNetChan_SendDatagramSym,
+		(void*)hook_CNetChan_SendDatagram, m_pID
+	);
+
+	Detour::Create(
+		&detour_CNetChan_ProcessPacketHeader, "CNetChan::ProcessPacketHeader",
+		engine_loader.GetModule(), Symbols::CNetChan_ProcessPacketHeaderSym,
+		(void*)hook_CNetChan_ProcessPacketHeader, m_pID
+	);
+
+	func_NET_SendPacket = (Symbols::NET_SendPacket)Detour::GetFunction(engine_loader.GetModule(), Symbols::NET_SendPacketSym);
+	Detour::CheckFunction((void*)func_NET_SendPacket, "NET_SendPacket");
+
+	func_CNetChan_CreateFragmentsFromBuffer = (Symbols::CNetChan_CreateFragmentsFromBuffer)Detour::GetFunction(engine_loader.GetModule(), Symbols::CNetChan_CreateFragmentsFromBufferSym);
+	Detour::CheckFunction((void*)func_CNetChan_CreateFragmentsFromBuffer, "CNetChan::CreateFragmentsFromBuffer");
+
+	func_CNetChan_FlowNewPacket = (Symbols::CNetChan_FlowNewPacket)Detour::GetFunction(engine_loader.GetModule(), Symbols::CNetChan_FlowNewPacketSym);
+	Detour::CheckFunction((void*)func_CNetChan_FlowNewPacket, "CNetChan::FlowNewPacket");
+
+	func_CNetChan_FlowUpdate = (Symbols::CNetChan_FlowUpdate)Detour::GetFunction(engine_loader.GetModule(), Symbols::CNetChan_FlowUpdateSym);
+	Detour::CheckFunction((void*)func_CNetChan_FlowUpdate, "CNetChan::FlowUpdate");
+
+	func_CNetChan_SendSubChannelData = (Symbols::CNetChan_SendSubChannelData)Detour::GetFunction(engine_loader.GetModule(), Symbols::CNetChan_SendSubChannelDataSym);
+	Detour::CheckFunction((void*)func_CNetChan_SendSubChannelData, "CNetChan::SendSubChannelData");
+
+	func_CNetChan_CheckWaitingList = (Symbols::CNetChan_CheckWaitingList)Detour::GetFunction(engine_loader.GetModule(), Symbols::CNetChan_CheckWaitingListSym);
+	Detour::CheckFunction((void*)func_CNetChan_CheckWaitingList, "CNetChan::CheckWaitingList");
+
+	vcr_verbose = g_pCVar->FindVar("vcr_verbose");
+	net_maxroutable = g_pCVar->FindVar("net_maxroutable");
+	net_compresspackets_minsize = g_pCVar->FindVar("net_compresspackets_minsize");
+	net_showudp = g_pCVar->FindVar("net_showudp");
+	net_compresspackets = g_pCVar->FindVar("net_compresspackets");
+	net_maxcleartime = g_pCVar->FindVar("net_maxcleartime");
+	net_showfragments = g_pCVar->FindVar("net_showfragments");
+	net_maxpacketdrop = g_pCVar->FindVar("net_maxpacketdrop");
+	net_showdrop = g_pCVar->FindVar("net_showdrop");
 }

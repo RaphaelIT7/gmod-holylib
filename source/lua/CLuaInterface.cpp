@@ -10,6 +10,11 @@
 #include "GarrysMod/Lua/LuaShared.h"
 #include "lua/PooledStrings.h"
 
+#if defined(__clang__) || defined(__GNUC__)
+#define POINT_UNREACHABLE   __builtin_unreachable()
+#else
+#define POINT_UNREACHABLE   __assume(false)
+#endif
 
 int g_iTypeNum = 0;
 
@@ -261,10 +266,11 @@ void* CLuaInterface::NewUserdata(unsigned int iSize)
 	return lua_newuserdata(state, iSize);
 }
 
-void CLuaInterface::ThrowError(const char* strError)
+[[noreturn]] void CLuaInterface::ThrowError(const char* strError)
 {
 	::DebugPrint(2, "CLuaInterface::ThrowError %s\n", strError);
 	luaL_error(state, "%s", strError);
+	POINT_UNREACHABLE;
 }
 
 void CLuaInterface::CheckType(int iStackPos, int iType)
@@ -279,10 +285,11 @@ void CLuaInterface::CheckType(int iStackPos, int iType)
 	}
 }
 
-void CLuaInterface::ArgError(int iArgNum, const char* strMessage)
+[[noreturn]] void CLuaInterface::ArgError(int iArgNum, const char* strMessage)
 {
 	::DebugPrint(2, "CLuaInterface::ArgError\n");
 	luaL_argerror(state, iArgNum, strMessage);
+	POINT_UNREACHABLE;
 }
 
 void CLuaInterface::RawGet(int iStackPos)

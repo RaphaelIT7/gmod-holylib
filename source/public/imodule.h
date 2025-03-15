@@ -8,6 +8,11 @@ enum Module_Compatibility
 	WINDOWS64 = 8,
 };
 
+namespace GarrysMod::Lua
+{
+	class ILuaInterface;
+}
+
 class ConVar;
 class KeyValues;
 struct edict_t;
@@ -22,10 +27,10 @@ public:
 
 	// Implement your Lua init logic here.
 	// NOTE: This will be before any global functions were added.
-	virtual void LuaInit(bool bServerInit) { (void)bServerInit; };
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) { (void)pLua; (void)bServerInit; };
 
 	// Implement your Lua shutdown logic here like removing your table.
-	virtual void LuaShutdown() {};
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) { (void)pLua; };
 
 	// Called when the module should add it's detours.
 	// NOTE: This is called before Init if bPreServer is true.
@@ -71,6 +76,9 @@ public:
 	// Called when a CBaseEntity is created
 	// NOTE: If we fail to load the g_pEntityList, this won't be called!
 	virtual void OnEntityDeleted(CBaseEntity* pEntity) { (void)pEntity; };
+
+	// Called on level shutdown
+	virtual void LevelShutdown() {};
 
 public: // I would like to remove these at some point but it's more efficient if the modules themself have them.
 	unsigned int m_pID = 0; // Set by the CModuleManager when registering it! Don't touch it.
@@ -155,9 +163,11 @@ public:
 
 	// This function is sets the internal variables.
 	virtual void Setup(CreateInterfaceFn appfn, CreateInterfaceFn gamefn) = 0;
+
+	// All callback things.
 	virtual void Init() = 0;
-	virtual void LuaInit(bool bServerInit) = 0;
-	virtual void LuaShutdown() = 0;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) = 0;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) = 0;
 	virtual void InitDetour(bool bPreServer) = 0;
 	virtual void Think(bool bSimulating) = 0;
 	virtual void Shutdown() = 0;
@@ -167,4 +177,5 @@ public:
 	virtual void OnEntityCreated(CBaseEntity* pEntity) = 0;
 	virtual void OnEntitySpawned(CBaseEntity* pEntity) = 0;
 	virtual void OnEntityDeleted(CBaseEntity* pEntity) = 0;
+	virtual void LevelShutdown() = 0;
 };

@@ -4,6 +4,7 @@
 #include "tier0/wchartypes.h"
 #include "Platform.hpp"
 #include "filesystem.h"
+#include "inetchannel.h"
 #include <vector>
 
 #if ARCHITECTURE_IS_X86_64
@@ -47,7 +48,14 @@ class CEntityWriteInfo;
 class ICvar;
 class ConCommandBase;
 class SVC_ServerInfo;
+class INetChannel;
+class CNetChan;
 struct MD5Value_t;
+struct dataFragments_s;
+class CBaseClient;
+
+class	CGameTrace;
+typedef	CGameTrace trace_t;
 
 namespace GarrysMod::Lua
 {
@@ -124,6 +132,9 @@ namespace Symbols
 	extern const std::vector<Symbol> CGetSym;
 	extern const std::vector<Symbol> gEntListSym;
 
+	typedef void (GMCOMMON_CALLING_CONVENTION* CSteam3Server_NotifyClientDisconnect)(void* server, CBaseClient* client);
+	extern const std::vector<Symbol> CSteam3Server_NotifyClientDisconnectSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: holylib Symbols
 	//---------------------------------------------------------------------------------
@@ -195,9 +206,6 @@ namespace Symbols
 
 	typedef void (GMCOMMON_CALLING_CONVENTION* CHLTVServer_BroadcastEvent)(IServer* server, IGameEvent* event);
 	extern const std::vector<Symbol> CHLTVServer_BroadcastEventSym;
-
-	typedef void (GMCOMMON_CALLING_CONVENTION* CSteam3Server_NotifyClientDisconnect)(void* server, CBaseClient* client);
-	extern const std::vector<Symbol> CSteam3Server_NotifyClientDisconnectSym;
 
 	extern const std::vector<Symbol> UsermessagesSym;
 
@@ -306,6 +314,7 @@ namespace Symbols
 	typedef const char* (GMCOMMON_CALLING_CONVENTION* CBaseFileSystem_CSearchPath_GetDebugString)(void* searchpath);
 	extern const std::vector<Symbol> CBaseFileSystem_CSearchPath_GetDebugStringSym;
 
+	extern const std::vector<Symbol> g_PathIDTableSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: concommand Symbols
@@ -418,11 +427,23 @@ namespace Symbols
 	typedef void (GMCOMMON_CALLING_CONVENTION* CSteam3Server_Activate)(void*, int);
 	extern const std::vector<Symbol> CSteam3Server_ActivateSym;
 
+	typedef bool (GMCOMMON_CALLING_CONVENTION* CSteam3Server_NotifyClientConnect)(void*, CBaseClient* client, uint32 unUserID, netadr_t& adr, const void *pvCookie, uint32 ucbCookie);
+	extern const std::vector<Symbol> CSteam3Server_NotifyClientConnectSym;
+
+	typedef void (GMCOMMON_CALLING_CONVENTION* CSteam3Server_SendUpdatedServerDetails)(void*);
+	extern const std::vector<Symbol> CSteam3Server_SendUpdatedServerDetailsSym;
+
+	typedef bool (GMCOMMON_CALLING_CONVENTION* CSteam3Server_CheckForDuplicateSteamID)(void*, void*);
+	extern const std::vector<Symbol> CSteam3Server_CheckForDuplicateSteamIDSym;
+
 	typedef CSteam3Server& (*Steam3ServerT)();
 	extern const std::vector<Symbol> Steam3ServerSym;
 
 	typedef void (*SV_InitGameServerSteam)();
 	extern const std::vector<Symbol> SV_InitGameServerSteamSym;
+
+	typedef void* (*CGet_SteamUGC)(void*);
+	extern const std::vector<Symbol> CGet_SteamUGCSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: pas Symbols
@@ -507,20 +528,11 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: gameserver Symbols
 	//---------------------------------------------------------------------------------
-	typedef void (*CFrameSnapshot_D2)(CFrameSnapshot*);
-	extern const std::vector<Symbol> CFrameSnapshot_D2Sym;
-
-	typedef void (*CClientFrame_D2)(CClientFrame*); // WHY DOES IT HAVE THREE DECONSTRUCTORS >:(
-	extern const std::vector<Symbol> CClientFrame_D2Sym;
-
 	typedef void (*CServerGameClients_GetPlayerLimit)(void*, int&, int&, int&);
 	extern const std::vector<Symbol> CServerGameClients_GetPlayerLimitSym;
 
 	typedef void (*CBaseServer_FillServerInfo)(void*, SVC_ServerInfo&);
 	extern const std::vector<Symbol> CBaseServer_FillServerInfoSym;
-
-	typedef bool (*MD5_MapFile)(MD5Value_t*, const char*);
-	extern const std::vector<Symbol> MD5_MapFileSym;
 
 	typedef bool (*CBaseClient_SetSignonState)(void* client, int state, int spawncount);
 	extern const std::vector<Symbol> CBaseClient_SetSignonStateSym;
@@ -540,6 +552,36 @@ namespace Symbols
 	typedef void (*CBaseClient_OnRequestFullUpdate)(void* client);
 	extern const std::vector<Symbol> CBaseClient_OnRequestFullUpdateSym;
 
+	typedef void (*CGameClient_SpawnPlayer)(void* client);
+	extern const std::vector<Symbol> CGameClient_SpawnPlayerSym;
+
+	typedef int (*NET_SendPacket)(INetChannel *chan, int sock,  const netadr_t &to, const unsigned char *data, int length, bf_write *pVoicePayload /* = NULL */, bool bUseCompression /*=false*/);
+	extern const std::vector<Symbol> NET_SendPacketSym;
+
+	typedef bool (*CNetChan_CreateFragmentsFromBuffer)(CNetChan* channel, bf_write *buffer, int stream);
+	extern const std::vector<Symbol> CNetChan_CreateFragmentsFromBufferSym;
+
+	typedef bool (*CNetChan_SendSubChannelData)(CNetChan* channel, bf_write &buf);
+	extern const std::vector<Symbol> CNetChan_SendSubChannelDataSym;
+
+	typedef void (*CNetChan_FlowNewPacket)(CNetChan* channel, int flow, int seqnr, int acknr, int nChoked, int nDropped, int nSize);
+	extern const std::vector<Symbol> CNetChan_FlowNewPacketSym;
+
+	typedef void (*CNetChan_FlowUpdate)(CNetChan* channel, int flow, int addbytes);
+	extern const std::vector<Symbol> CNetChan_FlowUpdateSym;
+
+	typedef int (*CNetChan_SendDatagram)(CNetChan* chan, bf_write *datagram);
+	extern const std::vector<Symbol> CNetChan_SendDatagramSym;
+
+	typedef void (*CNetChan_UpdateSubChannels)(CNetChan* channel);
+	extern const std::vector<Symbol> CNetChan_UpdateSubChannelsSym;
+
+	typedef void (*CNetChan_CheckWaitingList)(CNetChan* channel, int nList);
+	extern const std::vector<Symbol> CNetChan_CheckWaitingListSym;
+
+	typedef int (*CNetChan_ProcessPacketHeader)(CNetChan* chan, netpacket_t* packet);
+	extern const std::vector<Symbol> CNetChan_ProcessPacketHeaderSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: cvar Symbols
 	//---------------------------------------------------------------------------------
@@ -557,4 +599,16 @@ namespace Symbols
 
 	typedef ConCommandBase* (*CCvar_FindCommandBase)(ICvar*, const char* name);
 	extern const std::vector<Symbol> CCvar_FindCommandBaseSym;
+
+	//---------------------------------------------------------------------------------
+	// Purpose: lagcompensation Symbols
+	//---------------------------------------------------------------------------------
+	typedef void (*UTIL_TraceEntity1)(CBaseEntity *pEntity, const Vector &vecAbsStart, const Vector &vecAbsEnd, unsigned int mask, const IHandleEntity *pIgnore, int nCollisionGroup, trace_t *ptr);
+	extern const std::vector<Symbol> UTIL_TraceEntity1Sym;
+
+	typedef void (*UTIL_TraceEntity1)(CBaseEntity *pEntity, const Vector &vecAbsStart, const Vector &vecAbsEnd, unsigned int mask, const IHandleEntity *pIgnore, int nCollisionGroup, trace_t *ptr);
+	extern const std::vector<Symbol> UTIL_TraceEntity1Sym;
+
+	typedef void (*UTIL_TraceEntity2)(CBaseEntity *pEntity, const Vector &vecAbsStart, const Vector &vecAbsEnd, unsigned int mask, trace_t *ptr);
+	extern const std::vector<Symbol> UTIL_TraceEntity2Sym;
 }

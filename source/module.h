@@ -1,5 +1,6 @@
 #include "public/imodule.h"
 #include <vector>
+#include "unordered_set"
 
 class CModuleManager;
 class CModule : public IModuleWrapper
@@ -56,8 +57,8 @@ public:
 
 	virtual void Setup(CreateInterfaceFn appfn, CreateInterfaceFn gamefn);
 	virtual void Init();
-	virtual void LuaInit(bool bServerInit);
-	virtual void LuaShutdown();
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit);
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua);
 	virtual void InitDetour(bool bPreServer);
 	virtual void Think(bool bSimulating);
 	virtual void Shutdown();
@@ -67,6 +68,7 @@ public:
 	virtual void OnEntityCreated(CBaseEntity* pEntity);
 	virtual void OnEntitySpawned(CBaseEntity* pEntity);
 	virtual void OnEntityDeleted(CBaseEntity* pEntity);
+	virtual void LevelShutdown();
 
 	inline int GetStatus() { return m_pStatus; };
 	inline CreateInterfaceFn& GetAppFactory() { return m_pAppFactory; };
@@ -75,6 +77,7 @@ public:
 	inline int GetEdictCount() { return m_iEdictCount; };
 	inline int GetClientMax() { return m_iClientMax; };
 	inline std::vector<CModule*>& GetModules() { return m_pModules; };
+	inline std::unordered_set<GarrysMod::Lua::ILuaInterface*>& GetLuaInterfaces() { return m_pLuaInterfaces; };
 
 private:
 	std::vector<CModule*> m_pModules;
@@ -89,5 +92,27 @@ private: // ServerActivate stuff
 	edict_t* m_pEdictList = NULL;
 	int m_iEdictCount = 0;
 	int m_iClientMax = 0;
+
+private:
+	// All Lua interfaces that were loaded.
+	std::unordered_set<GarrysMod::Lua::ILuaInterface*> m_pLuaInterfaces;
+	
+	inline void AddLuaInterface(GarrysMod::Lua::ILuaInterface* pLua)
+	{
+		auto it = m_pLuaInterfaces.find(pLua);
+		if (it != m_pLuaInterfaces.end())
+			return;
+
+		m_pLuaInterfaces.insert(pLua);
+	}
+
+	inline void RemoveLuaInterface(GarrysMod::Lua::ILuaInterface* pLua)
+	{
+		auto it = m_pLuaInterfaces.find(pLua);
+		if (it == m_pLuaInterfaces.end())
+			return;
+
+		m_pLuaInterfaces.erase(it);
+	}
 };
 extern CModuleManager g_pModuleManager;

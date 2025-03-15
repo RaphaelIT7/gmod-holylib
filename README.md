@@ -58,7 +58,7 @@ On the next startup the ghostinj will update holylib to use the new file.
 \- [+] Added the `HolyLib:PreCheckTransmit`, `HolyLib:OnPlayerGot[On/Off]Ladder`, `HolyLib:OnMoveTypeChange` hook.  
 \- [+] Added `HolyLib:OnSourceTVStartNewShot`, `HolyLib:OnSourceTVClientDisconnect` hook to `sourcetv` module.  
 \- [+] Added `CHLTVClient:SetCameraMan` and `sourcetv.SetCameraMan` to `sourcetv` module.  
-\- [+] Added `INetworkStringTable:GetTable`, `CHLTVClient:GetTable`, `VoiceData:GetTable`, `IGameEvent:GetTable`, `bf_read:GetTable`, `bf_write:GetTable` functions.  
+\- [+] Added `INetworkStringTable:GetTable`, `CHLTVClient:GetTable`, `VoiceData:GetTable`, `IGameEvent:GetTable`, `bf_read:GetTable`, `bf_write:GetTable`, `IGModAudioChannel:GetTable` functions.  
 \- [+] Added `pvs.TestPVS`, `pvs.FindInPVS` and `pvs.ForceFullUpdate` functions to `pvs` module.  
 \- [+] Added `HolyLib.GetRegistry`, `HolyLib.ExitLadder`, `HolyLib.GetLadder` and `HolyLib.Disconnect` to `holylib` module.  
 \- [+] Added `cvar.Find` to `cvars` module.  
@@ -69,6 +69,7 @@ On the next startup the ghostinj will update holylib to use the new file.
 \- \- Files inside that folder are loaded and executed before **any** gmod script runs, only the c++ functions exist at this point.  
 \- [+] Added `bf_write:WriteString` to `bitbuf` module.  
 \- [+] Added `IGModAudioChannel:FFT` to `bass` module.  
+\- [+] Added `VoiceStream` class and related functions to `voicechat` module.
 \- [#] Fixed many issues with the `bass` module. It is acutally usable.  
 \- [#] Improved performance by replacing SetTable with RawSet.  
 \- [#] Added missing calls to the deconstructors for `CHLTVClient` and `CNetworkStringTable`.  
@@ -82,6 +83,8 @@ On the next startup the ghostinj will update holylib to use the new file.
 \- [#] Small networking optimizations.  
 \- [#] Optimized `CCvar::FindVar` (50x faster in average).  
 \- [#] Fixed `pvs.RemoveAllEntityFromTransmit` possibly causing stack issues.  
+\- [#] Completely changed how we Push/Manage Lua userdata to reduce memory leaks.  
+\- [#] Fixed a filesystem issue which could rarely result in a crash. (Issue: #23)  
 \- [-] Removed `holylib_filesystem_optimizedfixpath` since it was implemented into gmod itself.  
 
 You can see all changes here:  
@@ -95,6 +98,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
 \- [#] Renamed `HLTVClient:GetSlot` to `HLTVClient:GetPlayerSlot`.  
 \- [#] Renamed `VProfCounter:Name` to `VProfCounter:GetName`.  
 \- [#] Renamed `HolyLib:PhysicsLag` to `HolyLib:OnPhysicsLag`.  
+\- [#] VoiceData given from `HolyLib:PreProcessVoiceChat` becomes invalid after the hook call, use `VoiceData:CreateCopy()` in case you want to store it.  
 \- [-] Removed `HolyLib.BroadcastCustomMessage` (Replaced by `gameserver.BroadcastMessage`)  
 \- [-] Removed `HolyLib.SendCustomMessage` (Replaced by `CBaseClient:SendNetMsg`)  
 \- [-] Removed `HolyLib:PostCheckTransmit` second argument (Use `pvs.GetEntitesFromTransmit`)  
@@ -112,7 +116,6 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
 \- [#] Fixed some memory leaks.  
 
 ## ToDo
-\- **Important before next release** Fix a unknown crash on shutdown(Need to get a valid debug log but it just won't give me one).  
 
 \- Finish 64x (`pvs`, `sourcetv`, `surffix`)  
 \- Find out why ConVars are so broken. (Serverside `path` command breaks :<)  
@@ -1599,12 +1602,21 @@ Supports: Linux32 | Linux64 | Windows32 | Windows64
 Copies the given buffer into a new one.  
 Useful if you want to save the data received by a client.  
 
+> [!NOTE]
+> The size is clamped internally between a minimum of `4` bytes and a maximum of `262144` bytes.
+
 #### bf_read bitbuf.CreateReadBuffer(string data)
 Creates a read buffer from the given data.  
 Useful if you want to read the userdata of the instancebaseline stringtable.  
 
+> [!NOTE]
+> The size is clamped internally between a minimum of `4` bytes and a maximum of `262144` bytes.
+
 #### bf_write bitbuf.CreateWriteBuffer(number size or string data)
 Create a write buffer with the given size or with the given data.  
+
+> [!NOTE]
+> The size is clamped internally between a minimum of `4` bytes and a maximum of `262144` bytes.
 
 ### bf_read
 This class will later be used to read net messages from HLTV clients.  
@@ -1936,6 +1948,33 @@ Called when our Steam server loses connection to steams servers.
 #### HolyLib:OnSteamConnect()  
 Called when our Steam server successfully connected to steams servers.  
 
+#### bool HolyLib:OnNotifyClientConnect(number nextUserID, string ip, string steamID64, number authResult) 
+authResult - The steam auth result, `0` if steam accepts the client.  
+
+| authResult | Description |
+|-------|------|
+| `0` | Ticket is valid for this game and this steamID |
+| `1` | Ticket is not valid |
+| `2` | A ticket has already been submitted for this steamID |
+| `3` | Ticket is from an incompatible interface version |
+| `4` | Ticket is not for this game |
+| `5` | Ticket has expired |
+
+Called when a client wants to authenticate through steam.  
+
+Return `true` to forcefully authenticate his steamid.  
+Return `false` to block his authentication.
+Return nothing to let the server normally handle it.
+
+### ConVars
+
+#### holylib_steamworks_allow_duplicate_steamid(default `0`)
+If enabled, the same steamid can be used multiple times.
+
+> [!NOTE]
+> `HolyLib:OnNotifyClientConnect` already accounts for this,  
+> if a steamid is already used when you approve a request it will still allow the player to join.
+
 ## systimer
 This module is just the timer library, but it doesn't use CurTime.  
 > [!NOTE]
@@ -2048,6 +2087,28 @@ Creates a new VoiceData object.
 > [!NOTE]
 > All Arguments are optional!
 
+#### VoiceStream voicechat.CreateVoiceStream()
+Creates a empty VoiceStream.  
+
+#### VoiceStream, number(statusCode) voicechat.LoadVoiceStream(string fileName, string gamePath = "DATA", bool async = false, function callback = nil)
+callback = `function(VoiceStream loadedStream, number statusCode)`
+statusCode = `-2 = File not found, -1 = Invalid type, 0 = None, 1 = Done`  
+
+Tries to load a VoiceStream from the given file.  
+If `async` is specified it **WONT** return **anything** and the `callback` will be **required**.  
+
+#### number(statusCode) voicechat.SaveVoiceStream(VoiceStream stream, string fileName, string gamePath = "DATA", bool async = false, function callback = nil)
+callback = `function(VoiceStream loadedStream, number statusCode)`
+statusCode = `-2 = File not found, -1 = Invalid type, 0 = None, 1 = Done`  
+
+Tries to save a VoiceStream into the given file.  
+If `async` is specified it **WONT** return **anything** and the `callback` will be **required**.  
+
+> [!NOTE]
+> It should be safe to modify/use the VoiceStream while it's saving async **BUT** you should try to avoid doing that.
+
+####
+
 ### VoiceData
 VoiceData is a userdata value that is used to manage the voicedata.  
 
@@ -2101,11 +2162,66 @@ Sets the new player slot.
 #### VoiceData:SetProximity(bool bProximity)
 Sets if the VoiceData is in proximity.  
 
+#### VoiceData VoiceData:CreateCopy()
+Creates a exact copy of the voice data.  
+
+### VoiceStream
+VoiceStream is a userdata value that internally contains multiple VoiceData for specific ticks.  
+
+#### string VoiceStream:\_\_tostring()
+Returns `VoiceStream [entires]`.  
+
+#### VoiceStream:\_\_gc()
+Garbage collection. Deletes the voice data internally.  
+
+#### VoiceStream:\_\_newindex(string key, any value)
+Internally implemented and will set the values into the lua table.  
+
+#### any VoiceStream:\_\_index(string key)
+Internally seaches first in the metatable table for the key.  
+If it fails to find it, it will search in the lua table before returning.  
+If you try to get multiple values from the lua table, just use `VoiceStream:GetTable()`.  
+
+#### table VoiceStream:GetTable()
+Returns the lua table of this object.  
+You can store variables into it.  
+
+#### bool VoiceStream:IsValid()
+Returns `true` if the VoiceData is still valid.  
+
+#### table VoiceStream:GetData()
+Returns a table, with the tick as key and **copy** of the VoiceData as value.  
+
+> [!NOTE]
+> The returned VoiceData is just a copy,  
+> modifying them won't affect the internally stored VoiceData.
+> Call `VoiceStream:SetData` or `VoiceStream:SetIndex` after you modified it to update it.  
+
+#### VoiceStream:SetData(table data)
+Sets the VoiceStream from the given table.  
+
+#### number VoiceStream:GetCount()
+Returns the number of VoiceData it stores.  
+
+#### VoiceData VoiceStream:GetIndex(number index)
+Returns a **copy** of the VoiceData for the given index or `nil`.  
+
+> [!NOTE]
+> The returned VoiceData is just a copy,  
+> modifying them won't affect the internally stored VoiceData.
+> Call `VoiceStream:SetData` or `VoiceStream:SetIndex` after you modified it to update it.  
+
+#### VoiceStream:SetIndex(number index, VoiceData data)
+Create a copy of the given VoiceData and sets it onto the specific index and overrides any data thats already present.  
+
 ### Hooks
 
 #### bool HolyLib:PreProcessVoiceChat(Player ply, VoiceData data)
 Called before the voicedata is processed.  
 Return `true` to stop the engine from processing it.  
+
+> [!NOTE]
+> After the hook the `VoiceData` becomes **invalid**, if you want to store it call `VoiceData:CreateCopy()` and use the returned VoiceData.
 
 Example to record and play back voices.  
 ```lua
@@ -2118,7 +2234,7 @@ concommand.Add("record_me", function()
 			voiceTbl[ply] = {}
 		end
 
-		voiceTbl[ply][engine.TickCount() - voiceStartTick] = voiceData 
+		voiceTbl[ply][engine.TickCount() - voiceStartTick] = voiceData:CreateCopy()
 		-- We save the tick delays since the voice data isn't sent every frame and has random delays.
 	end)
 end)
@@ -2191,6 +2307,11 @@ end)
 
 #### holylib_voicechat_hooks(default `1`)
 If enabled, the VoiceChat hooks will be called.  
+
+#### holylib_voicechat_threads(default `1`)
+The number of threads the voicechat can use for async stuff.  
+voicechat.LoadVoiceStream and voicechat.SaveVoiceStream currently use it,  
+originally I expected thoes both functions to be far slower but they turned out to be quite fast.
 
 ## physenv
 This module fixes https://github.com/Facepunch/garrysmod-issues/issues/642 and adds a few small things.  
@@ -2638,6 +2759,7 @@ physenv.EnablePhysHook(true)
 local mainEnv = physenv.GetActiveEnvironmentByIndex(0)
 hook.Add("HolyLib:OnPhysFrame", "Example", function(deltaTime)
 	mainEnv:Simulate(deltaTime, true) -- the second argument will only cause the entities to update.
+    return true -- We stop the engine from running the simulation itself again as else it will result in issue like "Reset physics clock" being spammed
 end)
 ```
 
@@ -2666,6 +2788,18 @@ Creates a IGMODAudioChannel for the given url.
 #### string IGModAudioChannel:\_\_tostring()
 Returns `IGModAudioChannel [NULL]` if invalid.  
 Else it returns `IGModAudioChannel [FileName/URL]`.  
+
+#### IGModAudioChannel:\_\_newindex(string key, any value)
+Internally implemented and will set the values into the lua table.  
+
+#### any IGModAudioChannel:\_\_index(string key)
+Internally seaches first in the metatable table for the key.  
+If it fails to find it, it will search in the lua table before returning.  
+If you try to get multiple values from the lua table, just use `IGModAudioChannel:GetTable()`.  
+
+#### table IGModAudioChannel:GetTable()
+Returns the lua table of this object.  
+You can store variables into it.  
 
 #### IGModAudioChannel:\_\_gc()
 ToDo / Doesn nothing yet.  
@@ -2836,12 +2970,15 @@ Destroys the given http server.
 #### table httpserver.GetAll()
 Returns a table containing all existing HttpServer in case you lose a reference.
 
+#### HttpServer httpserver.FindByName(string name)
+Returns the HttpServer with the given name set by `HttpServer:SetName()` or returns `nil` on failure.
+
 ### HttpServer
 This class represents a created HttpServer.
 
 #### string HttpServer:\_\_tostring()
 Returns `HttpServer [NULL]` if given invalid list.  
-Normally returns `HttpServer [Address:Port]`.  
+Normally returns `HttpServer [Address:Port - Name]`.  
 
 #### HttpServer:\_\_newindex(string key, any value)
 Internally implemented and will set the values into the lua table.  
@@ -2904,6 +3041,18 @@ This mounts the given folder to the given path.
 
 #### HttpServer:RemoveMountPoint(string mountPoint)
 This removes all mounts for the given path.
+
+#### number HttpServer:GetPort()
+Returns the port that was originally passed to `HttpServer:Start()`
+
+#### string HttpServer:GetAddress()
+Returns the address that was originally passed to `HttpServer:Start()`
+
+#### string HttpServer:GetName()
+Returns the name set by `HttpServer:SetName()`, defaults to `NONAME`
+
+#### HttpServer:SetName(string name)
+Sets the name of the HttpServer.
 
 ### Method Functions
 All Method functions add a listener for the given path and the given method, like this:
@@ -2982,6 +3131,12 @@ The HTTP Method that was used like GET or PUT.
 
 #### number HttpRequest:GetContentLength()
 The length of the HTTP Request content.
+
+#### CBaseClient HttpRequest:GetClient()
+Returns the client who sent the HTTP Request or `nil` if it didn't find it.  
+
+#### Player HttpRequest:GetPlayer()
+Returns the player who sent the HTTP Request or `nil` if it didn't find it.  
 
 ### HttpResponse
 A Http Response.
@@ -3132,6 +3287,13 @@ bf:WriteString("1") -- ConVar value
 gameserver.BroadcastMessage(5, "NET_SetConVar", bf) -- 5 = net_SetConVar / net message type.
 ```
 
+#### number gameserver.CalculateCPUUsage()
+Calculates and returns the CPU Usage.
+
+#### number gameserver.ApproximateProcessMemoryUsage()
+Approximates the memory usage of the server in bytes.  
+It isn't really related to the gameserver itself, but since it has CalculateCPUUsage I want to keep them close.
+
 ### CBaseClient
 This class represents a client.
 
@@ -3200,7 +3362,10 @@ Inactivates the client.
 > [!WARNING]
 > Know what your doing when using it!
 
-#### CBaseClient:Disconnect(string reason)
+#### CBaseClient:Disconnect(string reason, bool silent = false, bool nogameevent = false)
+silent - Silently closes the net channel and sends no disconnect to the client.
+nogameevent - Stops the `player_disconnect` event from being created.
+
 Disconnects the client.  
 
 #### CBaseClient:SetRate(number rate)
@@ -3235,6 +3400,8 @@ Same as `gameserver.BroadcastMessage` but it only sends it to the specific playe
 #### bool CBaseClient:IsSpawned()
 
 #### bool CBaseClient:IsActive()
+
+#### number CBaseClient:GetSignonState()
 
 #### bool CBaseClient:IsFakeClient()
 
@@ -3286,6 +3453,14 @@ Sets the new name of the client.
 #### CBaseClient:OnRequestFullUpdate()
 Forces the client to go through a full update(also fires the gameevent).  
 
+### bool CBaseClient:SetSteamID(string steamID64)
+Sets the SteamID of the client.  
+Returns `true` on success.  
+
+> [!NOTE]
+> Gmod seamingly has some backup code inside `CBaseClient::ProcessClientInfo`,  
+> that kicks a player with `Server connection error, please try again` if they don't have a valid steamid.
+
 ---
 
 ### CBaseClient (CNetChannel functions)
@@ -3335,7 +3510,7 @@ Returns the voice stream used by the voice chat.
 #### CBaseClient:SetTimeout(number seconds)
 Sets the time in seconds before the client is marked as timing out.
 
-#### bool CBaseClient:Transmit(bool onlyReliable = false)
+#### bool CBaseClient:Transmit(bool onlyReliable = false, number fragments = -1, bool freeSubChannels = false)
 Transmit any pending data to the client.  
 Returns `true` on success.
 
@@ -3356,7 +3531,29 @@ concommand.Add("nukechannel", function(ply)
 end)
 ```
 
-#### number CBaseClient:HasQueuedPackets()
+##### freeSubChannels argument
+Marks all sub channel's of the client's net channel as freed allowing data to be transmitted again.  
+It's a possible speed improvement yet fragments may get lost & cause issues / it's unsafe.  
+
+Example code showing off the speed difference.
+```lua
+hook.Add("Think", "Example", function()
+	for _, client in ipairs(gameserver.GetAll()) do
+		if !client or !client:IsValid() or client:GetSignonState() != 3 then
+			continue
+		end
+
+		for k=1, 20 do
+			client:Transmit(false, 7, true) -- Causes net message fragments to be transmitted.
+		end
+	end
+end)
+```
+the result is visible when downloading a map from the server(no workshop, no fastdl)  
+
+https://github.com/user-attachments/assets/f700dae9-28a9-4c1f-b237-cb0547226d6a
+
+#### (REMOVED) number CBaseClient:HasQueuedPackets()
 
 #### bool CBaseClient:ProcessStream()
 Processes all pending incoming net messages.  
@@ -3406,6 +3603,22 @@ hook.Add("HolyLib:OnChannelOverflow", "Example", function(client)
 end)
 ```
 
+#### HolyLib:OnPlayerChangedSlot(number oldPlayerSlot, number newPlayerSlot)
+Called **after** a player was moved to a different slot.  
+This happens when a player on a player slot above 128 tries to spawn.  
+
+Why is this done? Because any player above 128 is utterly unstable and can only stabily exist as a CGameClient.  
+if a CBasePlayer entity is created on a slot above 128 expect stability issues!
+
+#### HolyLib:OnClientDisconnect(CGameClient client)
+Called when a client disconnects.
+
+### ConVars
+
+#### holylib_gameserver_disablespawnsafety (default `0`)
+If enabled, players can spawn on slots above 128 but this WILL cause stability and many other issues!  
+Added to satisfy curiosity & test around with slots above 128.
+
 ### Singleplayer
 This module allows you to have a 1 slot / a singleplayer server.  
 Why? I don't know, but you can.  
@@ -3414,6 +3627,54 @@ Why? I don't know, but you can.
 Yes, with this module you can go above 128 Players **BUT** it will currently crash.  
 This is useful when you make a queue, players **can** connect and use all slots above 128 **but** they **can't** spawn when 128 players are already playing.  
 Use the `HolyLib:OnSetSignonState` to keep players at the `SIGNONSTATE_NEW` until a slot is freed/one of the 128 disconnects.  
+
+### Player Queue System
+Using this module's functionality you can implement a player queue were players wait in the loading screen until they spawn when a slot gets free.
+
+Example implementation:
+```lua
+playerQueue = playerQueue or {
+	count = 0
+}
+
+hook.Add("HolyLib:OnSetSignonState", "Example", function(cl, state, c)
+	print(cl, state, c)
+
+	local maxSlots = 128 -- Can't exceed 128 players. If you want to only have 100 players, lower it but NEVER go above 128
+	local fullServer = player.GetCount() >= maxSlots
+	if fullServer and state == SIGNONSTATE_PRESPAWN then -- REQUIRED to be SIGNONSTATE_PRESPAWN
+		if not playerQueue[cl] then
+			playerQueue[cl] = true
+			playerQueue.count = playerQueue.count + 1
+			playerQueue[playerQueue.count] = cl
+		end
+
+		return true -- Stop the engine from continuing/spawning the player
+	end
+end)
+
+hook.Add("HolyLib:OnClientDisconnect", "Example", function(client)
+	timer.Simple(0, function() -- Just to be sure that the client was really disconnected.
+		if playerQueue.count <= 0 then return end
+
+		if client:IsValid() then
+			print("Client isn't empty?!? client: " .. client)
+			return
+		end
+
+		local nextPlayer = playerQueue[1]
+		playerQueue[nextPlayer] = nil
+		table.remove(playerQueue, 1)
+		playerQueue.count = playerQueue.count - 1
+
+		nextPlayer:SpawnPlayer() -- Spawn the client, HolyLib handles the moving of the client.
+	end)
+end)
+
+hook.Add("HolyLib:OnPlayerChangedSlot", "Example", function(oldPlayerSlot, newPlayerSlot)
+	print("Client was moved from slot " .. oldPlayerSlot .. " to slot " .. newPlayerSlot)
+end)
+```
 
 # Unfinished Modules
 

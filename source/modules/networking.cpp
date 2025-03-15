@@ -610,7 +610,7 @@ bool entityHasOverride[MAX_EDICTS] {};
 class SendpropOverrideModule : public EntityModule, public AutoList<SendpropOverrideModule>
 {
 public:
-	SendpropOverrideModule(CBaseEntity *entity) : EntityModule(entity), entity(entity) {}
+	SendpropOverrideModule(CBaseEntity *pEntity) : EntityModule(pEntity), m_pEntity(pEntity) {}
 
 	~SendpropOverrideModule();
 
@@ -619,13 +619,13 @@ public:
         
 	void RemoveOverride(int id);
         
-	CBaseEntity *entity;
+	CBaseEntity *m_pEntity;
 	std::vector<PropOverride> propOverrides;
 };
 
 SendpropOverrideModule::~SendpropOverrideModule()
 {
-	entityHasOverride[entity->entindex()] = false;
+	entityHasOverride[m_pEntity->entindex()] = false;
 }
 
 struct DatatableProxyOffset
@@ -719,14 +719,14 @@ int FindSendPropPrecalcIndex(SendTable *table, const std::string &name, int inde
 int SendpropOverrideModule::AddOverride(SendPropOverrideCallback callback, const std::string &name, int index, uintptr_t data)
 {
 	SendProp *prop = nullptr;
-	return this->AddOverride(callback, FindSendPropPrecalcIndex(entity->GetServerClass()->m_pTable, name, index, prop), prop, data);
+	return this->AddOverride(callback, FindSendPropPrecalcIndex(m_pEntity->GetServerClass()->m_pTable, name, index, prop), prop, data);
 }
 
 int SendpropOverrideModule::AddOverride(SendPropOverrideCallback callback, int indexProp, SendProp *prop, uintptr_t data)
 {
 	if (indexProp != -1) {
 		if (prop == nullptr) {
-			prop = (SendProp *) entity->GetServerClass()->m_pTable->m_pPrecalc->m_Props[indexProp];
+			prop = (SendProp *) m_pEntity->GetServerClass()->m_pTable->m_pPrecalc->m_Props[indexProp];
 		}
 		auto insertPos = propOverrides.end();
 		for (auto it = propOverrides.begin(); it != propOverrides.end(); it++) {
@@ -735,7 +735,7 @@ int SendpropOverrideModule::AddOverride(SendPropOverrideCallback callback, int i
 		PropOverride overr {++propOverrideId, callback, prop, indexProp, data};
 		propOverrides.insert(insertPos, overr);
 
-		entityHasOverride[entity->entindex()] = true;
+		entityHasOverride[m_pEntity->entindex()] = true;
 		return propOverrideId;
 	}
 	return -1;
@@ -1057,6 +1057,7 @@ int hook_SendTable_CalcDelta(
 	return count;
 }
 
+#if 0
 thread_local PackedEntity *preOldPack = nullptr;
 thread_local CEntityWriteInfo *writeInfo = nullptr;
 static Detouring::Hook detour_SV_DetermineUpdateType;
@@ -1112,6 +1113,7 @@ int hook_PackedEntity_GetPropsChangedAfterTick(PackedEntity* pPacked, int tick, 
 
 	return result;
 }
+#endif
 
 static Detouring::Hook detour_CGameServer_SendClientMessages;
 static Symbols::CGameServer_SendClientMessages CGameServer_SendClientMessages_func;
@@ -1128,7 +1130,7 @@ void hook_CGameServer_SendClientMessages(CBaseServer* pServer, bool sendSnapshot
 		}
 
 		if (mod->propOverrides.empty())
-			entityHasOverride[mod->entity->entindex()] = false;
+			entityHasOverride[mod->m_pEntity->entindex()] = false;
 	}
 }
 
@@ -1278,6 +1280,11 @@ inline bool CCServerNetworkProperty::IsInPVS( const CCheckTransmitInfo *pInfo )
 	}
 
 	return false;		// not visible
+}
+
+inline CBaseEntity* CCServerNetworkProperty::GetBaseEntity()
+{
+	return m_pOuter;
 }
 
 /*

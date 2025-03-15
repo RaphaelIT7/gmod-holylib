@@ -12,13 +12,13 @@ bool Lua::PushHook(const char* hook)
 {
 	if ( !g_Lua )
 	{
-		Warning("HolyLib: Lua::PushHook was while g_Lua was NULL! (%s)\n", hook);
+		Warning("holylib: Lua::PushHook was called while g_Lua was NULL! (%s)\n", hook);
 		return false;
 	}
 
 	if (!ThreadInMainThread())
 	{
-		Warning("HolyLib: Lua::PushHook was called ouside of the main thread! (%s)\n", hook);
+		Warning("holylib: Lua::PushHook was called ouside of the main thread! (%s)\n", hook);
 		return false;
 	}
 
@@ -26,7 +26,7 @@ bool Lua::PushHook(const char* hook)
 		if (g_Lua->GetType(-1) != GarrysMod::Lua::Type::Table)
 		{
 			g_Lua->Pop(1);
-			DevMsg("Missing hook table!\n");
+			DevMsg("holylib: Missing hook table!\n");
 			return false;
 		}
 
@@ -34,7 +34,7 @@ bool Lua::PushHook(const char* hook)
 			if (g_Lua->GetType(-1) != GarrysMod::Lua::Type::Function)
 			{
 				g_Lua->Pop(2);
-				DevMsg("Missing hook.Run function!\n");
+				DevMsg("holylib: Missing hook.Run function!\n");
 				return false;
 			} else {
 				g_Lua->Remove(-2);
@@ -48,12 +48,13 @@ void Lua::Init(GarrysMod::Lua::ILuaInterface* LUA)
 {
 	if (g_Lua)
 	{
-		Warning("g_Lua is already Initialized! Skipping... (%p, %p)\n", g_Lua, LUA);
+		Warning("holylib: g_Lua is already Initialized! Skipping... (%p, %p)\n", g_Lua, LUA);
 		return;
 	}
 
 	g_Lua = LUA;
-	g_pModuleManager.LuaInit(false);
+	Lua::CreateLuaData(g_Lua, true);
+	g_pModuleManager.LuaInit(g_Lua, false);
 
 	std::vector<LuaFindResult> results;
 	GetShared()->FindScripts("lua/autorun/_holylib/*.lua", "GAME", results);
@@ -77,22 +78,43 @@ void Lua::Init(GarrysMod::Lua::ILuaInterface* LUA)
 
 void Lua::ServerInit()
 {
-	if (g_Lua == nullptr) {
+	if (g_Lua == NULL) {
 		DevMsg(1, "Lua::ServerInit failed! g_Lua is NULL\n");
 		return;
 	}
 
-	g_pModuleManager.LuaInit(true);
+	g_pModuleManager.LuaInit(g_Lua, true);
 }
 
 void Lua::Shutdown()
 {
-	g_pModuleManager.LuaShutdown();
+	g_pModuleManager.LuaShutdown(g_Lua);
+
+	g_pRemoveLuaUserData = false; // We are iterating over g_pLuaUserData so DON'T modify it.
+	for (auto& ref : g_pLuaUserData)
+	{
+		if (Util::holylib_debug_mainutil.GetBool())
+			Msg("holylib: This should NEVER happen! Discarding of old userdata %p\n", ref);
+
+		delete ref;
+	}
+	g_pRemoveLuaUserData = true;
+	g_pLuaUserData.clear();
 }
 
 void Lua::FinalShutdown()
 {
+	Lua::RemoveLuaData(g_Lua);
+
+	// g_Lua is bad at this point / the lua_State is already gone so we CAN'T allow any calls
 	g_Lua = NULL;
+
+	for (auto& ref : Util::g_pReference)
+	{
+		if (Util::holylib_debug_mainutil.GetBool())
+			Msg("holylib: This should NEVER happen! Discarding of old reference %i\n", ref);
+	}
+	Util::g_pReference.clear();
 }
 
 void Lua::ManualShutdown()
@@ -154,7 +176,7 @@ GarrysMod::Lua::ILuaInterface* Lua::GetRealm(unsigned char realm) {
 	SourceSDK::FactoryLoader luashared_loader("lua_shared");
 	GarrysMod::Lua::ILuaShared* LuaShared = (GarrysMod::Lua::ILuaShared*)luashared_loader.GetFactory()(GMOD_LUASHARED_INTERFACE, nullptr);
 	if (LuaShared == nullptr) {
-		Msg("failed to get ILuaShared!\n");
+		Msg("holylib: failed to get ILuaShared!\n");
 		return nullptr;
 	}
 
@@ -164,7 +186,7 @@ GarrysMod::Lua::ILuaInterface* Lua::GetRealm(unsigned char realm) {
 GarrysMod::Lua::ILuaShared* Lua::GetShared() {
 	SourceSDK::FactoryLoader luashared_loader("lua_shared");
 	if ( !luashared_loader.GetFactory() )
-		Msg("About to crash!\n");
+		Msg("holylib: About to crash!\n");
 
 	return luashared_loader.GetInterface<GarrysMod::Lua::ILuaShared>(GMOD_LUASHARED_INTERFACE);
 }
@@ -182,3 +204,55 @@ void Lua::DestroyInterface(GarrysMod::Lua::ILuaInterface* LUA)
 {
 	CloseLuaInterface(LUA);
 }
+
+/*
+ * Where do we store our StateData?
+ * In the ILuaInterface itself.
+ * We abuse the GetPathID var as it's a char[32] but it'll never actually fully use it.
+ * Why? Because I didn't want to use yet another unordered_map for this, also this should be faster.
+ */
+Lua::StateData* Lua::GetLuaData(GarrysMod::Lua::ILuaInterface* LUA)
+{
+	return *reinterpret_cast<Lua::StateData**>((char*)LUA->GetPathID() + 24);
+}
+
+void Lua::CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA, bool bNullOut)
+{
+	if (bNullOut)
+	{
+		char* pathID = (char*)LUA->GetPathID();
+		size_t usedLength = strlen(pathID);
+		memset(pathID + usedLength, 0, 32 - usedLength); // Gmod doesn't NULL out m_sPathID which means it could contain junk.
+	}
+
+	if (Lua::GetLuaData(LUA))
+	{
+		Msg("holylib - Skipping thread data creation since we already found data %p\n", Lua::GetLuaData(LUA));
+		return;
+	}
+
+	char* pathID = (char*)LUA->GetPathID();
+	Lua::StateData* data = new Lua::StateData;
+	*reinterpret_cast<Lua::StateData**>(pathID + 24) = data;
+	Msg("holylib - Created thread data %p (%s)\n", data, pathID);
+}
+
+void Lua::RemoveLuaData(GarrysMod::Lua::ILuaInterface* LUA)
+{
+	auto data = Lua::GetLuaData(LUA);
+	if (!data)
+		return;
+
+	delete data;
+	*reinterpret_cast<Lua::StateData**>((char*)LUA->GetPathID() + 24) = NULL;
+	Msg("holylib - Removed thread data %p\n", data);
+}
+
+static void LuaCheck(const CCommand& args)
+{
+	if (!g_Lua)
+		return;
+
+	Msg("holylib - Found data %p\n", Lua::GetLuaData(g_Lua));
+}
+static ConCommand luacheck("holylib_luacheck", LuaCheck, "Temp", 0);

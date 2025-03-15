@@ -8,8 +8,8 @@
 class CEntListModule : public IModule
 {
 public:
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void OnEntityCreated(CBaseEntity* pEntity) OVERRIDE;
 	virtual void OnEntityDeleted(CBaseEntity* pEntity) OVERRIDE;
 	virtual const char* Name() { return "entitylist"; };
@@ -20,7 +20,7 @@ CEntListModule g_pEntListModule;
 IModule* pEntListModule = &g_pEntListModule;
 
 static int EntityList_TypeID = -1;
-PushReferenced_LuaClass(EntityList, EntityList_TypeID)
+Push_LuaClass(EntityList, EntityList_TypeID)
 Get_LuaClass(EntityList, EntityList_TypeID, "EntityList")
 
 static std::vector<EntityList*> pEntityLists;
@@ -43,7 +43,8 @@ void EntityList::Clear()
 	m_pEntities.clear();
 	if (m_pLua)
 		for (auto& [_, iReference] : m_pEntReferences)
-			m_pLua->ReferenceFree(iReference);
+			if (IsValidReference(iReference))
+				Util::ReferenceFree(iReference, "EntityList::Clear");
 	
 	m_pEntReferences.clear();
 }
@@ -53,8 +54,18 @@ void EntityList::CreateReference(CBaseEntity* pEntity)
 	if (!m_pLua)
 		Error("holylib: missing pLua!\n");
 
+	auto it = m_pEntReferences.find(pEntity);
+	if (it != m_pEntReferences.end())
+	{
+		if (IsValidReference(it->second)) // We initally set it to -1
+		{
+			Warning("holylib: entitylist is leaking references! Report this!\n");
+			Util::ReferenceFree(m_pEntReferences[pEntity], "EntityList::CreateReference - Leak");
+		}
+	}
+
 	Util::Push_Entity(pEntity);
-	m_pEntReferences[pEntity] = m_pLua->ReferenceCreate();
+	m_pEntReferences[pEntity] = Util::ReferenceCreate("EntityList::CreateReference");
 }
 
 void EntityList::FreeEntity(CBaseEntity* pEntity)
@@ -63,7 +74,7 @@ void EntityList::FreeEntity(CBaseEntity* pEntity)
 	if (it != m_pEntReferences.end())
 	{
 		if (IsValidReference(it->second) && m_pLua)
-			m_pLua->ReferenceFree(it->second);
+			Util::ReferenceFree(it->second, "EntityList::FreeEntity");
 
 		Vector_RemoveElement(m_pEntities, pEntity);
 		m_pEntReferences.erase(it);
@@ -93,21 +104,14 @@ LUA_FUNCTION_STATIC(EntityList__tostring)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(EntityList__gc)
-{
-	EntityList* pData = Get_EntityList(1, false);
-	if (pData && pData != &g_pGlobalEntityList)
-	{
-		Delete_EntityList(pData);
-		delete pData;
-	}
-
-	return 0;
-}
-
 Default__index(EntityList);
 Default__newindex(EntityList);
 Default__GetTable(EntityList);
+Default__gc(EntityList,
+	EntityList* pList = (EntityList*)pData->GetData();
+	if (pList != &g_pGlobalEntityList)
+		delete pList;
+)
 
 LUA_FUNCTION_STATIC(EntityList_IsValid)
 {
@@ -242,7 +246,7 @@ LUA_FUNCTION_STATIC(GetGlobalEntityList)
 void CEntListModule::OnEntityDeleted(CBaseEntity* pEntity)
 {
 	if (g_pEntListModule.InDebug())
-		Msg("Deleted Entity: %p (%i)\n", pEntity, pEntityLists.size());
+		Msg("Deleted Entity: %p (%i)\n", pEntity, (int)pEntityLists.size());
 
 	for (EntityList* pList : pEntityLists)
 	{
@@ -261,10 +265,10 @@ void CEntListModule::OnEntityCreated(CBaseEntity* pEntity)
 	g_pGlobalEntityList.AddEntity(pEntity);
 
 	if (g_pEntListModule.InDebug())
-		Msg("Created Entity %p (%p, %i)\n", pEntity, &g_pGlobalEntityList, pEntityLists.size());
+		Msg("Created Entity %p (%p, %i)\n", pEntity, &g_pGlobalEntityList, (int)pEntityLists.size());
 }
 
-void CEntListModule::LuaInit(bool bServerInit)
+void CEntListModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
@@ -292,7 +296,7 @@ void CEntListModule::LuaInit(bool bServerInit)
 	g_pGlobalEntityList.SetLua(g_Lua);
 }
 
-void CEntListModule::LuaShutdown()
+void CEntListModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	g_Lua->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
 		Util::RemoveField("CreateEntityList");

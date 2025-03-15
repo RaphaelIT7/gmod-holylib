@@ -7,8 +7,8 @@
 class CBitBufModule : public IModule
 {
 public:
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual const char* Name() { return "bitbuf"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 };
@@ -20,11 +20,11 @@ static Push_LuaClass(QAngle, GarrysMod::Lua::Type::Angle)
 static Push_LuaClass(Vector, GarrysMod::Lua::Type::Vector)
 
 static int bf_read_TypeID = -1;
-PushReferenced_LuaClass(bf_read, bf_read_TypeID)
+Push_LuaClass(bf_read, bf_read_TypeID)
 Get_LuaClass(bf_read, bf_read_TypeID, "bf_read")
 
 static int bf_write_TypeID = -1;
-PushReferenced_LuaClass(bf_write, bf_write_TypeID)
+Push_LuaClass(bf_write, bf_write_TypeID)
 Get_LuaClass(bf_write, bf_write_TypeID, "bf_write")
 
 LUA_FUNCTION_STATIC(bf_read__tostring)
@@ -45,19 +45,14 @@ LUA_FUNCTION_STATIC(bf_read__tostring)
 Default__index(bf_read);
 Default__newindex(bf_read);
 Default__GetTable(bf_read);
-
-LUA_FUNCTION_STATIC(bf_read__gc)
-{
-	bf_read* bf = Get_bf_read(1, false);
+Default__gc(bf_read, 
+	bf_read* bf = (bf_read*)pData->GetData();
 	if (bf)
 	{
-		Delete_bf_read(bf);
 		delete[] bf->GetBasePointer();
 		delete bf;
 	}
-
-	return 0;
-}
+)
 
 LUA_FUNCTION_STATIC(bf_read_IsValid)
 {
@@ -489,30 +484,29 @@ LUA_FUNCTION_STATIC(bf_read_GetData)
 
 LUA_FUNCTION_STATIC(bf_write__tostring)
 {
-	bf_write* bf = Get_bf_write(1, true);
-
-	char szBuf[128] = {};
-	V_snprintf(szBuf, sizeof(szBuf), "bf_write [%i]", bf->m_nDataBits);
-	LUA->PushString(szBuf);
+	bf_write* bf = Get_bf_write(1, false);
+	if (!bf)
+	{
+		LUA->PushString("bf_write [NULL]");
+	} else {
+		char szBuf[128] = {};
+		V_snprintf(szBuf, sizeof(szBuf),"bf_write [%i]", bf->m_nDataBits); 
+		LUA->PushString(szBuf);
+	}
 	return 1;
 }
 
 Default__index(bf_write);
 Default__newindex(bf_write);
 Default__GetTable(bf_write);
-
-LUA_FUNCTION_STATIC(bf_write__gc)
-{
-	bf_write* bf = Get_bf_write(1, false);
+Default__gc(bf_write, 
+	bf_write* bf = (bf_write*)pData->GetData();
 	if (bf)
 	{
-		Delete_bf_write(bf);
 		delete[] bf->GetBasePointer();
 		delete bf;
 	}
-
-	return 0;
-}
+)
 
 LUA_FUNCTION_STATIC(bf_write_IsValid)
 {
@@ -856,16 +850,22 @@ LUA_FUNCTION_STATIC(bf_write_WriteString)
 	return 0;
 }
 
+static constexpr int MAX_BUFFER_SIZE = 1 << 18;
+static constexpr int MIN_BUFFER_SIZE = 4;
+#define CLAMP_BF(val) MAX(MIN(val + 1, MAX_BUFFER_SIZE), MIN_BUFFER_SIZE)
+
 LUA_FUNCTION_STATIC(bitbuf_CopyReadBuffer)
 {
 	bf_read* pBf = Get_bf_read(1, true);
 
 	int iSize = pBf->GetNumBytesRead() + pBf->GetNumBytesLeft();
-	unsigned char* pData = new unsigned char[iSize + 1];
+	int iNewSize = CLAMP_BF(iSize);
+
+	unsigned char* pData = new unsigned char[iNewSize];
 	memcpy(pData, pBf->GetBasePointer(), iSize);
 
 	bf_read* pNewBf = new bf_read;
-	pNewBf->StartReading(pData, iSize);
+	pNewBf->StartReading(pData, iNewSize);
 
 	Push_bf_read(pNewBf);
 
@@ -876,12 +876,13 @@ LUA_FUNCTION_STATIC(bitbuf_CreateReadBuffer)
 {
 	const char* pData = LUA->CheckString(1);
 	int iLength = LUA->ObjLen(1);
+	int iNewLength = CLAMP_BF(iLength);
 
-	unsigned char* cData = new unsigned char[iLength + 1];
+	unsigned char* cData = new unsigned char[iNewLength];
 	memcpy(cData, pData, iLength);
 
 	bf_read* pNewBf = new bf_read;
-	pNewBf->StartReading(cData, iLength);
+	pNewBf->StartReading(cData, iNewLength);
 
 	Push_bf_read(pNewBf);
 
@@ -892,7 +893,7 @@ LUA_FUNCTION_STATIC(bitbuf_CreateWriteBuffer)
 {
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Number))
 	{
-		int iSize = (int)LUA->CheckNumber(1);
+		int iSize = CLAMP_BF((int)LUA->CheckNumber(1));
 		unsigned char* cData = new unsigned char[iSize];
 
 		bf_write* pNewBf = new bf_write;
@@ -902,12 +903,13 @@ LUA_FUNCTION_STATIC(bitbuf_CreateWriteBuffer)
 	} else {
 		const char* pData = LUA->CheckString(1);
 		int iLength = LUA->ObjLen(1);
+		int iNewLength = CLAMP_BF(iLength);
 
-		unsigned char* cData = new unsigned char[iLength + 1];
+		unsigned char* cData = new unsigned char[iNewLength];
 		memcpy(cData, pData, iLength);
 
 		bf_write* pNewBf = new bf_write;
-		pNewBf->StartWriting(cData, iLength);
+		pNewBf->StartWriting(cData, iNewLength);
 
 		Push_bf_write(pNewBf);
 	}
@@ -915,7 +917,7 @@ LUA_FUNCTION_STATIC(bitbuf_CreateWriteBuffer)
 	return 1;
 }
 
-void CBitBufModule::LuaInit(bool bServerInit)
+void CBitBufModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
@@ -1030,7 +1032,7 @@ void CBitBufModule::LuaInit(bool bServerInit)
 	Util::FinishTable("bitbuf");
 }
 
-void CBitBufModule::LuaShutdown()
+void CBitBufModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	Util::NukeTable("bitbuf");
 }

@@ -5,7 +5,7 @@ PROJECT_GENERATOR_VERSION = 3
 newoption({
 	trigger = "gmcommon",
 	description = "Sets the path to the garrysmod_common (https://github.com/danielga/garrysmod_common) directory",
-	default = "../../../fork-garrysmod_common"
+	default = io.open("../../../fork-garrysmod_common/license.txt", "r") and "../../../fork-garrysmod_common" or "../garrysmod_common"
 })
 
 local gmcommon = assert(_OPTIONS.gmcommon or os.getenv("GARRYSMOD_COMMON"),
@@ -35,7 +35,7 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 		IncludeSDKTier1()
 		--IncludeSDKTier2()
 		--IncludeSDKTier3()
-		--IncludeSDKMathlib()
+		IncludeSDKMathlib()
 		--IncludeSDKRaytrace()
 		--IncludeSDKBitmap()
 		--IncludeSDKVTF()
@@ -48,6 +48,7 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 		defines("GITHUB_RUN_BRANCH=\"" .. branch .. "\"")
 		defines("GITHUB_RUN_DATA=" .. additional)
 		defines("SWDS=1")
+		defines("PROJECT_NAME=\"holylib\"")
 
 		files({
 			[[../../source/modules/*.h]],
@@ -59,6 +60,10 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			[[../../lua/*.h]],
 			[[../../lua/*.hpp]],
 			[[../../README.md]],
+		})
+
+		removefiles({
+			[[../../source/modules/lagcompensation.cpp]] -- It's not finished yet.
 		})
 
 		includedirs({

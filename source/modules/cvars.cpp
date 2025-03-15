@@ -6,8 +6,8 @@
 class CCVarsModule : public IModule
 {
 public:
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 #if ARCHITECTURE_IS_X86
 	virtual void InitDetour(bool bServerInit) OVERRIDE;
 	virtual void Shutdown() OVERRIDE;
@@ -101,14 +101,12 @@ Detouring::Hook detour_CCvar_UnregisterConCommands;
 void hook_CCvar_UnregisterConCommands(ICvar* pCVar, CVarDLLIdentifier_t id)
 {
 #if ARCHITECTURE_IS_X86_64
-	ICvar::Iterator it(g_pCVar);
-	it.SetFirst();
-	const ConCommandBase *pCommand = it.Get();
-	for (; pCommand; it.Next())
+	ICvar::Iterator iter(pCVar);
+	for ( iter.SetFirst() ; iter.IsValid() ; iter.Next() )
 	{
-		pCommand = it.Get();
+		ConCommandBase* pCommand = iter.Get();
 #else
-	for (const ConCommandBase *pCommand = g_pCVar->GetCommands(); pCommand; pCommand = pCommand->GetNext())
+	for (const ConCommandBase* pCommand = pCVar->GetCommands(); pCommand; pCommand = pCommand->GetNext())
 	{
 #endif
 		if (pCommand->GetDLLIdentifier() == id)
@@ -153,14 +151,12 @@ LUA_FUNCTION_STATIC(cvars_GetAll)
 	LUA->CreateTable();
 		int idx = 0;
 #if ARCHITECTURE_IS_X86_64
-		ICvar::Iterator it(g_pCVar);
-		it.SetFirst();
-		const ConCommandBase *var = it.Get();
-		for (; var; it.Next())
+		ICvar::Iterator iter(g_pCVar);
+		for ( iter.SetFirst() ; iter.IsValid() ; iter.Next() )
 		{
-			var = it.Get();
+			ConCommandBase* var = iter.Get();
 #else
-		for (const ConCommandBase *var = g_pCVar->GetCommands(); var; var = var->GetNext())
+		for (const ConCommandBase* var = g_pCVar->GetCommands(); var; var = var->GetNext())
 		{
 #endif
 			if (var->IsCommand())
@@ -178,7 +174,10 @@ LUA_FUNCTION_STATIC(cvars_SetValue)
 	const char* pName = LUA->CheckString(1);
 	ConVar* pConVar = g_pCVar->FindVar(pName);
 	if (!pConVar)
-		return 0;
+	{
+		LUA->PushBool(false);
+		return 1;
+	}
 
 	pConVar->SetValue(LUA->CheckString(2));
 	LUA->PushBool(true);
@@ -216,7 +215,7 @@ LUA_FUNCTION_STATIC(cvars_Find)
 }
 
 // ToDo: Port over find optimization later
-void CCVarsModule::LuaInit(bool bServerInit)
+void CCVarsModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
@@ -267,8 +266,17 @@ void CCVarsModule::InitDetour(bool bServerInit)
 	);
 
 	ICvar* pCVar = vstdlib_loader.GetInterface<ICvar>(CVAR_INTERFACE_VERSION); // g_pCVar isn't initialized yet since tiers didn't connect yet.
-	for (ConCommandBase *pCommand = pCVar->GetCommands(); pCommand; pCommand = pCommand->GetNext())
-		AddCommandBaseName(pCommand);
+#if ARCHITECTURE_IS_X86_64
+		ICvar::Iterator iter(pCVar);
+		for ( iter.SetFirst() ; iter.IsValid() ; iter.Next() )
+		{
+			ConCommandBase* pCommand = iter.Get();
+#else
+		for (ConCommandBase* pCommand = pCVar->GetCommands(); pCommand; pCommand = pCommand->GetNext())
+		{
+#endif
+			AddCommandBaseName(pCommand);
+		}
 }
 
 void CCVarsModule::Shutdown()
@@ -277,7 +285,7 @@ void CCVarsModule::Shutdown()
 }
 #endif
 
-void CCVarsModule::LuaShutdown()
+void CCVarsModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	Util::NukeTable("cvar");
 }
