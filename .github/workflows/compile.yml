@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/compile.yml'
       - 'source/**'
+      - 'gluatests/**'
       - 'libs/**'
       - 'premake5.lua'
       - '!source/public/README.md'
