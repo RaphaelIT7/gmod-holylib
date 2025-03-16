@@ -23,18 +23,18 @@ static int EntityList_TypeID = -1;
 Push_LuaClass(EntityList, EntityList_TypeID)
 Get_LuaClass(EntityList, EntityList_TypeID, "EntityList")
 
-static std::vector<EntityList*> pEntityLists;
+static std::unordered_set<EntityList*> pEntityLists;
 EntityList g_pGlobalEntityList; // NOTE: This needs to be after pEntityLists? (funny Constructor Behavior apparently)
 
 EntityList::EntityList()
 {
-	pEntityLists.push_back(this);
+	pEntityLists.insert(this);
 }
 
 EntityList::~EntityList()
 {
 	Invalidate();
-	Vector_RemoveElement(pEntityLists, this)
+	pEntityLists.erase(this);
 }
 
 void EntityList::Clear()
