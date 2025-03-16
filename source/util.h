@@ -11,6 +11,12 @@
 #define DEDICATED
 #include "vstdlib/jobthread.h"
 
+#if GITHUB_RUN_DATA == 0
+#define HOLYLIB_BUILD_RELEASE 0
+#else
+#define HOLYLIB_BUILD_RELEASE 1
+#endif
+
 class IVEngineServer;
 
 // Added to not break some sourcesdk things. Use Util::engineserver!
@@ -254,12 +260,23 @@ namespace Util
  *       as else it COULD persist across lua states which is VERY BAD as the references will ALL be INVALID.
  */
 
+// This WILL slow down userData creation & deletion so we disable this in release builds.
+#if HOLYLIB_BUILD_RELEASE
+#define HOLYLIB_UTIL_DEBUG_LUAUSERDATA 0
+#else
+#define HOLYLIB_UTIL_DEBUG_LUAUSERDATA 1
+#endif
+
+#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA
 struct LuaUserData;
 extern bool g_pRemoveLuaUserData;
 extern std::unordered_set<LuaUserData*> g_pLuaUserData; // A set containing all LuaUserData that actually hold a reference.
+#endif
 struct LuaUserData {
 	LuaUserData() {
+#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA
 		g_pLuaUserData.insert(this);
+#endif
 	}
 
 	~LuaUserData() {
@@ -267,17 +284,21 @@ struct LuaUserData {
 		{
 			Warning("holylib: Tried to delete usetdata from another thread!\n");
 
+#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA
 			if (g_pRemoveLuaUserData)
 			{
 				g_pLuaUserData.erase(this);
 			}
+#endif
 			return;
 		}
 
+#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA
 		if (g_pRemoveLuaUserData)
 		{
 			g_pLuaUserData.erase(this);
 		}
+#endif
 
 		if (iReference != -1)
 		{

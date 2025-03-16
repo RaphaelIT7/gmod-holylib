@@ -90,6 +90,7 @@ void Lua::Shutdown()
 {
 	g_pModuleManager.LuaShutdown(g_Lua);
 
+#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA
 	g_pRemoveLuaUserData = false; // We are iterating over g_pLuaUserData so DON'T modify it.
 	for (auto& ref : g_pLuaUserData)
 	{
@@ -105,6 +106,7 @@ void Lua::Shutdown()
 	}
 	g_pRemoveLuaUserData = true;
 	g_pLuaUserData.clear();
+#endif
 }
 
 void Lua::FinalShutdown()
