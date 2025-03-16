@@ -12,7 +12,7 @@ return {
         },
         {
             name = "Function doesn't exists globally",
-            when = IS_64X_BRANCH,
+            when = IS_64BIT_BRANCH,
             func = function()
                 expect( GetGlobalEntityList ).to.beA( "nil" )
             end
