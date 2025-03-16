@@ -20,6 +20,10 @@ FCVAR_ACCESSIBLE_FROM_THREADS = bit.lshift( 1, 25 )
 FCVAR_AVAILABLE1 = bit.lshift( 1, 26 )
 FCVAR_AVAILABLE2 = bit.lshift( 1, 27 )
 
+function HolyLib_IsModuleEnabled(name)
+	return GetConVar("holylib_enable_" .. name):GetBool()
+end
+
 if SERVER then
     --- Makes an entity for test purposes
     --- @param class string? The class of the entity
