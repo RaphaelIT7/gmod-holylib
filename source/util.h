@@ -579,6 +579,7 @@ LUA_FUNCTION_STATIC(className ## __newindex) \
 // A default gc function for userData,
 // handles garbage collection, inside the func argument you can use pData as a variable
 // like pData->GetData() to get your class. Just see how it's done inside the bf_read gc definition.
+// NOTE: You need to manually delete the data inside the callback function -> delete pData->GetData()
 #define Default__gc(className, func) \
 LUA_FUNCTION_STATIC(className ## __gc) \
 { \
@@ -640,7 +641,7 @@ extern ConVar* Get_ConVar(int iStackPos, bool bError);
 
 struct EntityList // entitylist module.
 {
-	EntityList(GarrysMod::Lua::ILuaInterface* pLua);
+	EntityList();
 	~EntityList();
 
 	void Clear();
@@ -676,19 +677,12 @@ struct EntityList // entitylist module.
 	inline void Invalidate()
 	{
 		Clear();
-		m_pLua = NULL;
-	}
-
-	inline void SetLua(GarrysMod::Lua::ILuaInterface* pLua)
-	{
-		m_pLua = pLua;
 	}
 
 private:
 	// NOTE: The Entity will always be valid but the reference can be -1!
 	std::unordered_map<CBaseEntity*, int> m_pEntReferences;
 	std::vector<CBaseEntity*> m_pEntities;
-	GarrysMod::Lua::ILuaInterface* m_pLua;
 };
 extern EntityList g_pGlobalEntityList;
 
