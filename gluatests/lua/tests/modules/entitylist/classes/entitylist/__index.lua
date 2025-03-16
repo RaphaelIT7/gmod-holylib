@@ -1,26 +1,28 @@
 return {
-    groupName = "CreateEntityList",
+    groupName = "EntityList:__index",
     cases = {
         {
-            name = "Function exists globally",
+            name = "Function exists on meta table",
             when = HolyLib_IsModuleEnabled("entitylist"),
             func = function()
-                expect( CreateEntityList ).to.beA( "function" )
+                expect( FindMetaTable("EntityList").__index ).to.beA( "function" )
             end
         },
         {
-            name = "Function doesn't exists globally",
+            name = "Metatable doesn't exist",
             when = not HolyLib_IsModuleEnabled("entitylist"),
             func = function()
-                expect( CreateEntityList ).to.beA( "nil" )
+                expect( FindMetaTable("EntityList") ).to.beA( "nil" )
             end
         },
         {
-            name = "Returns an Table object",
+            name = "Returns the right value",
             when = HolyLib_IsModuleEnabled("entitylist"),
             func = function()
                 local entityList = CreateEntityList()
-                expect( entityList ).to.beA( "EntityList" )
+
+                entityList.test = "Hello World"
+                expect( entityList.test ).to.equal( "Hello World" )
             end
         },
     }

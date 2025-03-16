@@ -1,8 +1,6 @@
 return {
     groupName = "GetGlobalEntityList",
     cases = {
-        --[[ Function Signature ]]--
-        --#region
         {
             name = "Function exists globally",
             when = HolyLib_IsModuleEnabled("entitylist"),
