@@ -301,6 +301,7 @@ struct LuaUserData {
 		}
 
 		pAdditionalData = NULL;
+		pData = NULL;
 	}
 
 	inline void Init(GarrysMod::Lua::ILuaInterface* LUA)

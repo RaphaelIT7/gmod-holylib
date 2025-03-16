@@ -93,6 +93,11 @@ void Lua::Shutdown()
 	g_pRemoveLuaUserData = false; // We are iterating over g_pLuaUserData so DON'T modify it.
 	for (auto& ref : g_pLuaUserData)
 	{
+		// If it doesn't hold a reference of itself, the gc will take care of it & call __gc in the lua_close call.
+		// This check only focuses on LuaUserData that holds a reference to itself as thoes are never freed by the GC even when lua_close is called.
+		if (ref->GetReference() == -1)
+			continue;
+
 		if (Util::holylib_debug_mainutil.GetBool())
 			Msg("holylib: This should NEVER happen! Discarding of old userdata %p\n", ref);
 
