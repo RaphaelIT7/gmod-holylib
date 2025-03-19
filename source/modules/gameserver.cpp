@@ -1298,7 +1298,7 @@ LUA_FUNCTION_STATIC(gameserver_SendConnectionlessPacket)
 
 	if (!adr.IsValid())
 	{
-		LUA->PushBool(false);
+		LUA->PushNumber(-1);
 		return 1;
 	}
 
