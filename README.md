@@ -3630,11 +3630,20 @@ if a CBasePlayer entity is created on a slot above 128 expect stability issues!
 #### HolyLib:OnClientDisconnect(CGameClient client)
 Called when a client disconnects.
 
+#### bool HolyLib:ProcessConnectionlessPacket(bf_read buffer, string ip)
+Called when a connectionless packet is received.  
+Return `true` to mark the packet as handled.  
+
+Won't be called if `holylib_gameserver_connectionlesspackethook` is set to `0`.  
+
 ### ConVars
 
 #### holylib_gameserver_disablespawnsafety (default `0`)
 If enabled, players can spawn on slots above 128 but this WILL cause stability and many other issues!  
 Added to satisfy curiosity & test around with slots above 128.
+
+#### holylib_gameserver_connectionlesspackethook (default `1`)
+If enabled, the HolyLib:ProcessConnectionlessPacket hook is active and will be called.
 
 ### Singleplayer
 This module allows you to have a 1 slot / a singleplayer server.  

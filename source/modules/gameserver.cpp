@@ -23,6 +23,8 @@ public:
 };
 
 static ConVar gameserver_disablespawnsafety("holylib_gameserver_disablespawnsafety", "0", 0, "If enabled, players can spawn on slots above 128 but this WILL cause stability and many other issues!");
+static ConVar gameserver_connectionlesspackethook("holylib_gameserver_connectionlesspackethook", "1", 0, "If enabled, the HolyLib:ProcessConnectionlessPacket hook is active and will be called.");
+
 
 CGameServerModule g_pGameServerModule;
 IModule* pGameServerModule = &g_pGameServerModule;
@@ -1286,6 +1288,25 @@ LUA_FUNCTION_STATIC(gameserver_ApproximateProcessMemoryUsage)
 	return 1;
 }
 
+static Symbols::NET_SendPacket func_NET_SendPacket;
+LUA_FUNCTION_STATIC(gameserver_SendConnectionlessPacket)
+{
+	bf_write* msg = Get_bf_write(1, true);
+
+	netadr_t adr;
+	adr.SetFromString(LUA->CheckString(2), LUA->GetBool(3));
+
+	if (!adr.IsValid())
+	{
+		LUA->PushBool(false);
+		return 1;
+	}
+
+	CBaseServer* pServer = (CBaseServer*)Util::server;
+	LUA->PushNumber(func_NET_SendPacket(NULL, pServer->m_Socket, adr, msg->GetData(), msg->GetNumBytesWritten(), NULL, false));
+	return 1;
+}
+
 extern CGlobalVars* gpGlobals;
 static ConVar* sv_stressbots;
 void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
@@ -1334,6 +1355,7 @@ void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(gameserver_BroadcastMessage, "BroadcastMessage");
 		Util::AddFunc(gameserver_CalculateCPUUsage, "CalculateCPUUsage");
 		Util::AddFunc(gameserver_ApproximateProcessMemoryUsage, "ApproximateProcessMemoryUsage");
+		Util::AddFunc(gameserver_SendConnectionlessPacket, "SendConnectionlessPacket");
 	Util::FinishTable("gameserver");
 }
 
@@ -1350,6 +1372,45 @@ static void hook_CServerGameClients_GetPlayerLimit(void* funkyClass, int& minPla
 	minPlayers = 1;
 	maxPlayers = 255; // Allows one to go up to 255 slots.
 	defaultMaxPlayers = 255;
+}
+
+static Detouring::Hook detour_CBaseServer_ProcessConnectionlessPacket;
+static bool hook_CBaseServer_ProcessConnectionlessPacket(void* server, netpacket_s* packet)
+{
+	if (!gameserver_connectionlesspackethook.GetBool())
+	{
+		return detour_CBaseServer_ProcessConnectionlessPacket.GetTrampoline<Symbols::CBaseServer_ProcessConnectionlessPacket>()(server, packet);
+	}
+
+	int originalPos = packet->message.GetNumBitsRead();
+	if (Lua::PushHook("HolyLib:ProcessConnectionlessPacket"))
+	{
+		Push_bf_read(&packet->message);
+		g_Lua->Push(-3);
+		g_Lua->Push(-3);
+		g_Lua->Remove(-5);
+		g_Lua->Remove(-4);
+		g_Lua->Push(-3);
+
+		bool bHandled = false;
+		g_Lua->PushString(packet->from.ToString());
+		if (g_Lua->CallFunctionProtected(3, 1, true))
+		{
+			bHandled = g_Lua->GetBool(-1);
+			g_Lua->Pop(1);
+		}
+
+		g_Lua->SetUserType(-1, NULL);
+		g_Lua->Pop(1);
+
+		if (bHandled)
+		{
+			return true;
+		}
+	}
+
+	packet->message.Seek(originalPos);
+	return detour_CBaseServer_ProcessConnectionlessPacket.GetTrampoline<Symbols::CBaseServer_ProcessConnectionlessPacket>()(server, packet);
 }
 
 /*
@@ -1824,7 +1885,6 @@ static ConVar* net_compresspackets_minsize;
 static ConVar* net_showudp;
 static ConVar* net_compresspackets;
 static ConVar* net_maxcleartime;
-static Symbols::NET_SendPacket func_NET_SendPacket;
 static Symbols::CNetChan_CreateFragmentsFromBuffer func_CNetChan_CreateFragmentsFromBuffer;
 static Symbols::CNetChan_FlowNewPacket func_CNetChan_FlowNewPacket;
 static Symbols::CNetChan_FlowUpdate func_CNetChan_FlowUpdate;
@@ -2357,6 +2417,12 @@ void CGameServerModule::InitDetour(bool bPreServer)
 		&detour_CServerGameClients_GetPlayerLimit, "CServerGameClients::GetPlayerLimit",
 		server_loader.GetModule(), Symbols::CServerGameClients_GetPlayerLimitSym,
 		(void*)hook_CServerGameClients_GetPlayerLimit, m_pID
+	);
+
+	Detour::Create(
+		&detour_CBaseServer_ProcessConnectionlessPacket, "CBaseServer::ProcessConnectionlessPacket",
+		engine_loader.GetModule(), Symbols::CBaseServer_ProcessConnectionlessPacketSym,
+		(void*)hook_CBaseServer_ProcessConnectionlessPacket, m_pID
 	);
 
 	func_CBaseClient_OnRequestFullUpdate = (Symbols::CBaseClient_OnRequestFullUpdate)Detour::GetFunction(engine_loader.GetModule(), Symbols::CBaseClient_OnRequestFullUpdateSym);

@@ -762,6 +762,10 @@ namespace Symbols
 		Symbol::FromName("_ZN11CGameClient11SpawnPlayerEv"),
 	};
 
+	const std::vector<Symbol> CBaseServer_ProcessConnectionlessPacketSym = {
+		Symbol::FromName("_ZN11CBaseServer27ProcessConnectionlessPacketEP11netpacket_s"),
+	};
+
 	const std::vector<Symbol> NET_SendPacketSym = {
 		Symbol::FromName("_Z14NET_SendPacketP11INetChanneliRK8netadr_sPKhiP8bf_writeb"),
 	};

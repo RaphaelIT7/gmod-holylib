@@ -555,7 +555,10 @@ namespace Symbols
 	typedef void (*CGameClient_SpawnPlayer)(void* client);
 	extern const std::vector<Symbol> CGameClient_SpawnPlayerSym;
 
-	typedef int (*NET_SendPacket)(INetChannel *chan, int sock,  const netadr_t &to, const unsigned char *data, int length, bf_write *pVoicePayload /* = NULL */, bool bUseCompression /*=false*/);
+	typedef bool (*CBaseServer_ProcessConnectionlessPacket)(void* server, netpacket_s* packet);
+	extern const std::vector<Symbol> CBaseServer_ProcessConnectionlessPacketSym;
+
+	typedef int (*NET_SendPacket)(INetChannel *chan, int sock, const netadr_t &to, const unsigned char *data, int length, bf_write *pVoicePayload /* = NULL */, bool bUseCompression /*=false*/);
 	extern const std::vector<Symbol> NET_SendPacketSym;
 
 	typedef bool (*CNetChan_CreateFragmentsFromBuffer)(CNetChan* channel, bf_write *buffer, int stream);
