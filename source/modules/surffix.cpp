@@ -18,6 +18,7 @@ static CSurfFixModule g_pSurfFixModule;
 IModule* pSurfFixModule = &g_pSurfFixModule;
 
 // Ported over from https://github.com/RaphaelIT7/obsolete-source-engine/commit/b9e4bc91086f893f4bab0decb0d358da6ada428d
+// Code belongs to https://github.com/momentum-mod
 // static ConVar sv_slope_fix("sv_slope_fix", "1");
 static ConVar sv_ramp_fix("sv_ramp_fix", "1");
 static ConVar sv_ramp_initial_retrace_length("sv_ramp_initial_retrace_length", "0.2", 0,

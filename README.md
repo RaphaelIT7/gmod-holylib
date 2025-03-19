@@ -36,12 +36,25 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 2. Upload the file into the `lua/bin` folder
 3. Restart the server normally.  
 On the next startup the ghostinj will update holylib to use the new file.  
+This is done by first deleting the current `gmsv_holylib_linux[64].so` and then renaming the `_updated.so` essentially replacing the original file.
 
 ## How to update (Older GhostInj versions)
 
 1. Shutdown the server
 2. Upload the new file
 3. Enjoy it
+
+## What noticable things does HolyLib bring?
+\- A huge Lua API providing deep access to the engine.  
+\- Implements some bug fixes (some bug fixes were brought into gmod itself).  
+\- \- `ShouldCollide` won't break the entire physics engine and instead a warning is thrown `holylib: Someone forgot to call Entity:CollisionRulesChanged!`.  
+\- Lua Hooks are shown in vprof results (done in the `vprof` module)  
+\- Ported a networking improvement over from [sigsegv-mvm](https://github.com/rafradek/sigsegv-mvm/blob/910b92456c7578a3eb5dff2a7e7bf4bc906677f7/src/mod/perf/sendprop_optimize.cpp#L35-L144) improving performance & memory usage (done in the `networking` module)  
+\- Ported [Momentum Mod](https://github.com/momentum-mod)'s surfing improvements (done in the `surffix` module)  
+\- Heavily improved the filesystem (done in the `filesystem` module)  
+\- Greatly improved Gmod's `GMod::Util::IsPhysicsObjectValid` function improving performance especially when many physics objects exist (done in the `physenv` module)  
+\- (Disabled by default) Updated LuaJIT version (done in the `luajit` module)  
+\- Improved ConVar's find code improving performance (done in the `cvars` module)  
 
 ## Next Update
 \- [+] Added (Experimentally)`luajit` module.  
@@ -69,7 +82,7 @@ On the next startup the ghostinj will update holylib to use the new file.
 \- \- Files inside that folder are loaded and executed before **any** gmod script runs, only the c++ functions exist at this point.  
 \- [+] Added `bf_write:WriteString` to `bitbuf` module.  
 \- [+] Added `IGModAudioChannel:FFT` to `bass` module.  
-\- [+] Added `VoiceStream` class and related functions to `voicechat` module.
+\- [+] Added `VoiceStream` class and related functions to `voicechat` module.  
 \- [#] Fixed many issues with the `bass` module. It is acutally usable.  
 \- [#] Improved performance by replacing SetTable with RawSet.  
 \- [#] Added missing calls to the deconstructors for `CHLTVClient` and `CNetworkStringTable`.  
@@ -127,6 +140,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
 \- GO thru everything and use a more consistant codestyle. I created quiet the mess.  
 \- Reduce/Remove the usage of g_Lua since our code should work later with multiple ILuaInterfaces.  
 \- test/become compatible with vphysics-jolt (I'm quite sure that the `physenv` isn't compatible).  
+\- Check out `holylib_filesystem_predictexistance` as it seamingly broke, reportidly works in `0.6`.  
 
 # New Documentation
 Currently I'm working on implementing a better wiki that will replace this huge readme later.  
@@ -3513,6 +3527,9 @@ Sets the time in seconds before the client is marked as timing out.
 #### bool CBaseClient:Transmit(bool onlyReliable = false, number fragments = -1, bool freeSubChannels = false)
 Transmit any pending data to the client.  
 Returns `true` on success.
+
+> [!WARNING]
+> Transmitting data to the client causes the client's prediction to **reset and cause prediction errors!**.
 
 Exampe usage of this function:
 ```lua
