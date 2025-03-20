@@ -100,7 +100,7 @@ namespace Util
 	/*
 	 * Pure debugging
 	 */
-#define HOLYLIB_UTIL_DEBUG_REFERENCES 1
+#define HOLYLIB_UTIL_DEBUG_REFERENCES 0
 	extern std::unordered_set<int> g_pReference;
 	extern ConVar holylib_debug_mainutil;
 	inline int ReferenceCreate(const char* reason)
