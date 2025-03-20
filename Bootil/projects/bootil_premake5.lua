@@ -14,6 +14,7 @@ project "bootil_static"
 	staticruntime "On"
 	editandcontinue "Off"
 	runtime "Release"
+	characterset "MBCS"
 
 	filter { "platforms:x32" }
         targetname "bootil_static"
