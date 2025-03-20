@@ -63,6 +63,7 @@ struct CompressEntry
 	int iLength;
 	int iLevel;
 	int iDictSize;
+	double iRatio;
 	Bootil::AutoBuffer buffer;
 	GarrysMod::Lua::ILuaInterface* pLua = NULL;
 };
@@ -77,7 +78,7 @@ static void CompressJob(CompressEntry*& entry)
 	if (entry->bCompress)
 		Bootil::Compression::LZMA::Compress(entry->pData, entry->iLength, entry->buffer, entry->iLevel, entry->iDictSize);
 	else
-		Bootil::Compression::LZMA::Extract(entry->pData, entry->iLength, entry->buffer);
+		Bootil::Compression::LZMA::Extract(entry->pData, entry->iLength, entry->buffer, entry->iRatio);
 
 	pFinishMutex.Lock();
 	pFinishedEntries.push_back(entry);
@@ -145,11 +146,14 @@ LUA_FUNCTION_STATIC(util_AsyncDecompress)
 	LUA->Push(2);
 	int iCallback = Util::ReferenceCreate("util.AsyncDecompress - Callback");
 
+	double ratio = LUA->CheckNumberOpt(3, 0.98); // 98% ratio by default
+
 	CompressEntry* entry = new CompressEntry;
 	entry->bCompress = false;
 	entry->iCallback = iCallback;
 	entry->iLength = iLength;
 	entry->pData = pData;
+	entry->iRatio = ratio;
 	LUA->Push(1);
 	entry->iDataReference = Util::ReferenceCreate("util.AsyncDecompress - Data");
 	entry->pLua = LUA;

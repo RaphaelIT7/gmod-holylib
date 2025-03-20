@@ -1135,7 +1135,10 @@ So please don't modify it while were compressing / decompressing it or else some
 #### util.AsyncCompress(string data, function callback)
 Same as above, but uses the default values for level and dictSize.  
 
-#### util.AsyncDecompress(string data, function callback)
+#### util.AsyncDecompress(string data, function callback, number ratio = 0.98)
+ratio - The maximum decompression ratio allowed.  
+By default 0.98 -> 0.2MB are can be decompressed to 10MB but not further.  
+
 Works like util.Decompress but it's async.  
 
 #### string util.FancyTableToJSON(table tbl, bool pretty, bool ignorecycle)
