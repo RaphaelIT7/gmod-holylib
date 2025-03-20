@@ -13,7 +13,6 @@ env:
 jobs:
   build-windows:
     runs-on: windows-2019
-    if: false
     steps:
       - uses: actions/checkout@v4
         name: Checkout
@@ -38,13 +37,6 @@ jobs:
         run: |
           cd ${{env.PROJECT_PATH}}
           & "C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\MSBuild\Current\Bin\msbuild.exe" /p:Configuration=Release /p:Platform=x64 Bootil.sln
-
-      - uses: actions/upload-artifact@v4
-        name: Upload lua51.lib
-        with:
-          name: lua51.lib
-          path: LuaJIT-2.1/src/lua51.lib
-          retention-days: 1
 
       - uses: actions/upload-artifact@v4
         name: Upload bootil_static_32.lib
