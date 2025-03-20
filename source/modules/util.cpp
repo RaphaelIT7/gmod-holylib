@@ -79,7 +79,7 @@ static void CompressJob(CompressEntry*& entry)
 	}
 
 	if (entry->bCompress) {
-		entry->bFailed = Bootil::Compression::LZMA::Compress(entry->pData, entry->iLength, entry->buffer, entry->iLevel, entry->iDictSize))
+		entry->bFailed = Bootil::Compression::LZMA::Compress(entry->pData, entry->iLength, entry->buffer, entry->iLevel, entry->iDictSize);
 	} else {
 		entry->bFailed = Bootil::Compression::LZMA::Extract(entry->pData, entry->iLength, entry->buffer, entry->iRatio);
 	}
