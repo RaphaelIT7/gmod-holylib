@@ -104,6 +104,7 @@ You can see all changes here:
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
 
 ### Existing Lua API Changes
+\- [+] Added a third argument `ratio` to `util.AsyncDecompress`, set to `0.98` by default.
 \- [#] Flipped `INetworkStringTable:AddString` arguments.  
 \- [#] All `pvs.FL_EDICT_` enums changed.  
 \- [#] Made `HolyLib.SetSignOnState` third arg optional and added `rawSet` option.  
