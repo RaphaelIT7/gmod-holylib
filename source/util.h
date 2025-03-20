@@ -100,7 +100,7 @@ namespace Util
 	/*
 	 * Pure debugging
 	 */
-#define HOLYLIB_UTIL_DEBUG_REFERENCES 0
+#define HOLYLIB_UTIL_DEBUG_REFERENCES 1
 	extern std::unordered_set<int> g_pReference;
 	extern ConVar holylib_debug_mainutil;
 	inline int ReferenceCreate(const char* reason)
@@ -500,35 +500,37 @@ className* Get_##className(int iStackPos, bool bError) \
 }
 
 #define Push_LuaClass( className, luaType ) \
-void Push_##className(className* var) \
+LuaUserData* Push_##className(className* var) \
 { \
 	if (!var) \
 	{ \
 		g_Lua->PushNil(); \
-		return; \
+		return NULL; \
 	} \
 \
 	LuaUserData* userData = new LuaUserData; \
 	userData->SetData(var); \
 	userData->Init(g_Lua); \
 	g_Lua->PushUserType(userData, luaType); \
+	return userData; \
 }
 
 // This one is special, the GC WONT free the LuaClass meaning this "could" (and did in the past) cause a memory/reference leak
 #define PushReferenced_LuaClass( className, luaType ) \
 static std::unordered_map<className*, LuaUserData*> g_pPushed##className; \
-void Push_##className(className* var) \
+LuaUserData* Push_##className(className* var) \
 { \
 	if (!var) \
 	{ \
 		g_Lua->PushNil(); \
-		return; \
+		return NULL; \
 	} \
 \
 	auto it = g_pPushed##className.find(var); \
 	if (it != g_pPushed##className.end()) \
 	{ \
 		g_Lua->ReferencePush(it->second->GetReference()); \
+		return it->second; \
 	} else { \
 		LuaUserData* userData = new LuaUserData; \
 		userData->SetData(var); \
@@ -536,6 +538,7 @@ void Push_##className(className* var) \
 		userData->Init(g_Lua); \
 		userData->CreateReference(); \
 		g_pPushed##className[var] = userData; \
+		return userData; \
 	} \
 } \
 \
@@ -641,7 +644,7 @@ class bf_read;
  * It will be deleted by Lua GC.
  * ensure that either you set it to NULL afterwards or push a Copy if you don't own the original.
  */
-extern void Push_bf_read(bf_read* tbl);
+extern LuaUserData* Push_bf_read(bf_read* tbl);
 extern bf_read* Get_bf_read(int iStackPos, bool bError);
 
 class bf_write;
@@ -649,7 +652,7 @@ class bf_write;
  * It will be deleted by Lua GC.
  * ensure that either you set it to NULL afterwards or push a Copy if you don't own the original.
  */
-extern void Push_bf_write(bf_write* tbl);
+extern LuaUserData* Push_bf_write(bf_write* tbl);
 extern bf_write* Get_bf_write(int iStackPos, bool bError);
 
 class IGameEvent;
@@ -715,5 +718,5 @@ extern void BlockGameEvent(const char* pName);
 extern void UnblockGameEvent(const char* pName);
 
 class CBaseClient;
-extern void Push_CBaseClient(CBaseClient* tbl);
+extern LuaUserData* Push_CBaseClient(CBaseClient* tbl);
 extern CBaseClient* Get_CBaseClient(int iStackPos, bool bError);

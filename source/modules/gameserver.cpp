@@ -1385,7 +1385,7 @@ static bool hook_CBaseServer_ProcessConnectionlessPacket(void* server, netpacket
 	int originalPos = packet->message.GetNumBitsRead();
 	if (Lua::PushHook("HolyLib:ProcessConnectionlessPacket"))
 	{
-		Push_bf_read(&packet->message);
+		LuaUserData* pLuaData = Push_bf_read(&packet->message);
 		g_Lua->Push(-3);
 		g_Lua->Push(-3);
 		g_Lua->Remove(-5);
@@ -1400,6 +1400,10 @@ static bool hook_CBaseServer_ProcessConnectionlessPacket(void* server, netpacket
 			g_Lua->Pop(1);
 		}
 
+		if (pLuaData)
+		{
+			delete pLuaData;
+		}
 		g_Lua->SetUserType(-1, NULL);
 		g_Lua->Pop(1);
 

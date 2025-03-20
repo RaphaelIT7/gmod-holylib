@@ -461,7 +461,7 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 		VoiceData* pVoiceData = new VoiceData;
 		pVoiceData->SetData(data, nBytes);
 		pVoiceData->iPlayerSlot = pClient->GetPlayerSlot();
-		Push_VoiceData(pVoiceData);
+		LuaUserData* pLuaData = Push_VoiceData(pVoiceData);
 		// Stack: -3 = hook.Run(function) | -2 = hook name(string) | -1 = voicedata(userdata)
 		
 		g_Lua->Push(-3);
@@ -491,12 +491,12 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 
 		// Stack: -1 = voicedata(userdata)
 
-		LuaUserData* pLuaData = Get_VoiceData_Data(-1, false);
 		if (pLuaData)
 		{
 			delete pLuaData;
-			delete pVoiceData;
 		}
+
+		delete pVoiceData;
 		g_Lua->SetUserType(-1, NULL);
 		g_Lua->Pop(1); // The voice data is still there, so now finally remove it.
 
