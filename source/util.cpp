@@ -55,7 +55,6 @@ void Util::Push_Entity(CBaseEntity* pEnt)
 		return;
 	}
 
-#if ARCHITECTURE_IS_X86
 	GarrysMod::Lua::CLuaObject* pObject = (GarrysMod::Lua::CLuaObject*)pEnt->GetLuaEntity();
 	if (!pObject)
 	{
@@ -64,12 +63,6 @@ void Util::Push_Entity(CBaseEntity* pEnt)
 	}
 
 	Util::ReferencePush(g_Lua, pObject->GetReference()); // Assuming the reference is always right.
-#else
-	// The 64x vtables are fked :( (How tf would I even figure them out)
-	GarrysMod::Lua::ILuaObject* pObject = g_Lua->NewTemporaryObject(); // NewTemporaryObject uses preallocated objects which are reused so we don't need to free them.
-	pObject->SetEntity(pEnt);
-	pObject->Push(); // This is slower....
-#endif
 }
 
 CBaseEntity* Util::Get_Entity(int iStackPos, bool bError)
