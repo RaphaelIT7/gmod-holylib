@@ -1752,7 +1752,7 @@ Reads a float.
 #### number bf_read:ReadLong()
 Reads a long.  
 
-#### number bf_read:ReadLongLong()
+#### string bf_read:ReadLongLong()
 Reads a long long.  
 
 #### bool bf_read:ReadOneBit()
@@ -1867,7 +1867,7 @@ Writes a byte.
 #### bf_write:WriteLong(number value)
 Writes a long.  
 
-#### bf_write:WriteLongLong(number value)
+#### bf_write:WriteLongLong(number/string value)
 Writes a long long.  
 
 #### bf_write:WriteBytes(string data)
@@ -3730,18 +3730,24 @@ GetServerInfo("xxx.xxx.xxx.xxx:27015")
 Output:
 ```txt
 ["Bots"]        =       0
-["Environment"] =       108
+["Environment"] =       l
+["ExtraDataFlag"]       =       177
 ["Folder"]      =       garrysmod
 ["Game"]        =       Sandbox
-["Header"]      =       73
+["GameID"]      =       4000
+["Header"]      =       I
 ["ID"]  =       4000
 ["Map"] =       gm_flatgrass
 ["MaxPlayers"]  =       128
 ["Name"]        =       RaphaelIT7's Testing Hell
 ["Players"]     =       0
+["Port"]        =       32108
 ["Protocol"]    =       17
 ["ServerType"]  =       100
+["SteamID"]     =       9.0262878756753e+16
+["Tags"]        =        gm:sandbox gmc:other ver:250321
 ["VAC"] =       1
+["Version"]     =       2024.10.29
 ["Visibility"]  =       1
 ```
 
