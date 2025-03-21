@@ -3679,8 +3679,10 @@ function GetServerInfo(targetIP)
 			return true
 		end
 
+		if msgHeader != string.byte("I") then return end -- We didn't receive a A2S_INFO
+
 		local a2s_info = {
-			Header = msgHeader,
+			Header = string.char(msgHeader),
 			Protocol = bf:ReadByte(),
 			Name = bf:ReadString(),
 			Map = bf:ReadString(),
@@ -3720,6 +3722,7 @@ function GetServerInfo(targetIP)
 		end
 
 		PrintTable(a2s_info)
+		return true
 	end)
 end
 
@@ -3744,7 +3747,7 @@ Output:
 ["Port"]        =       32108
 ["Protocol"]    =       17
 ["ServerType"]  =       100
-["SteamID"]     =       9.0262878756753e+16
+["SteamID"]     =       [steamid]
 ["Tags"]        =        gm:sandbox gmc:other ver:250321
 ["VAC"] =       1
 ["Version"]     =       2024.10.29
@@ -3776,6 +3779,8 @@ function GetServerPlayerInfo(targetIP)
 			return true
 		end
 
+		if msgHeader != string.byte("D") then return end -- We didn't receive a A2S_PLAYER
+
 		local a2s_player = {
 			Header = string.char(msgHeader),
 			Players = bf:ReadByte(),
@@ -3792,6 +3797,7 @@ function GetServerPlayerInfo(targetIP)
 		end
 
 		PrintTable(a2s_player)
+		return true
 	end)
 end
 
