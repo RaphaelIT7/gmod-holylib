@@ -29,7 +29,7 @@ jobs:
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
 
   build_testingarea:
-    name: "Build 32x (Testing Area)"
+    name: "Build 32x (Testing Area - Dev)"
     uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
     secrets:
       PTERODACTYL_KEY: ${{ secrets.PTERODACTYL_KEY }}
@@ -47,8 +47,27 @@ jobs:
       SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-1"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
 
+  build_testingarea_dev2: # Could make this use the already created artifact but I'm too lazy rn
+    name: "Build 32x (Testing Area - Dev2)"
+    uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
+    secrets:
+      PTERODACTYL_KEY: ${{ secrets.PTERODACTYL_KEY }}
+      PTERODACTYL_SERVER: "9822c231"
+      PTERODACTYL_URL: ${{ secrets.PTERODACTYL_URL }}
+    with:
+      PROJECT_NAME: "holylib"
+      BUILD_64x: "false"
+      REALM: "sv"
+      LINUX_FILEEXTENTION: "so"
+      BUILD_WINDOWS: "false"
+      UPLOAD: "pterodactyl"
+      SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
+      SOURCESDK_MINIMAL_BRANCH: "patch-6"
+      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-1"
+      GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
+
   build_testingarea_64x:
-    name: "Build 64x (Testing Area)"
+    name: "Build 64x (Testing Area - 64x)"
     uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
     secrets:
       PTERODACTYL_KEY: ${{ secrets.PTERODACTYL_KEY }}
