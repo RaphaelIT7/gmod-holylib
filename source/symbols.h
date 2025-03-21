@@ -585,6 +585,15 @@ namespace Symbols
 	typedef int (*CNetChan_ProcessPacketHeader)(CNetChan* chan, netpacket_t* packet);
 	extern const std::vector<Symbol> CNetChan_ProcessPacketHeaderSym;
 
+	typedef void (*CNetChan_D2)(CNetChan* chan);
+	extern const std::vector<Symbol> CNetChan_D2Sym;
+
+	typedef INetChannel* (*NET_CreateNetChannel)(int socket, netadr_t* adr, const char* name, INetChannelHandler* handler, bool bForceNewCHannel, int nProtocolVersion);
+	extern const std::vector<Symbol> NET_CreateNetChannelSym;
+
+	typedef void (*NET_RemoveNetChannel)(INetChannel* chan, bool bDeleteNetChan);
+	extern const std::vector<Symbol> NET_RemoveNetChannelSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: cvar Symbols
 	//---------------------------------------------------------------------------------

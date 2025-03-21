@@ -802,6 +802,18 @@ namespace Symbols
 		Symbol::FromName("_ZN8CNetChan19ProcessPacketHeaderEP11netpacket_s"),
 	};
 
+	const std::vector<Symbol> CNetChan_D2Sym = {
+		Symbol::FromName("_ZN8CNetChanD2Ev"),
+	};
+
+	const std::vector<Symbol> NET_CreateNetChannelSym = {
+		Symbol::FromName("_Z20NET_CreateNetChanneliP8netadr_sPKcP18INetChannelHandlerbi"),
+	};
+
+	const std::vector<Symbol> NET_RemoveNetChannelSym = {
+		Symbol::FromName("_Z20NET_RemoveNetChannelP11INetChannelb"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: lagcompensation Symbols
 	//---------------------------------------------------------------------------------
