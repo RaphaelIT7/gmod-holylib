@@ -1447,7 +1447,7 @@ class NET_LuaNetChanMessage : public CNetMessage
 public:
 	bool ReadFromBuffer( bf_read &buffer )
 	{
-		Msg("NET_LuaNetChanMessage::ReadFromBuffer\n");
+		//Msg("NET_LuaNetChanMessage::ReadFromBuffer\n");
 		m_iLength = buffer.ReadUBitLong( 32 );
 		m_DataIn = buffer;
 
@@ -1456,7 +1456,7 @@ public:
 
 	bool WriteToBuffer( bf_write &buffer )
 	{
-		Msg("NET_LuaNetChanMessage::WriteToBuffer\n");
+		//Msg("NET_LuaNetChanMessage::WriteToBuffer\n");
 		if ( m_iLength == -1 )
 			m_iLength = m_DataOut.GetNumBitsWritten();
 
@@ -1498,52 +1498,52 @@ ILuaNetMessageHandler::~ILuaNetMessageHandler()
 
 void ILuaNetMessageHandler::ConnectionStart(INetChannel* chan)
 {
-	Msg("ILuaNetMessageHandler::ConnectionStart - %p\n", chan);
+	//Msg("ILuaNetMessageHandler::ConnectionStart - %p\n", chan);
 }
 
 void ILuaNetMessageHandler::ConnectionClosing(const char* reason)
 {
-	Msg("ILuaNetMessageHandler::ConnectionClosing - %s\n", reason);
+	//Msg("ILuaNetMessageHandler::ConnectionClosing - %s\n", reason);
 }
 
 void ILuaNetMessageHandler::ConnectionCrashed(const char* reason)
 {
-	Msg("ILuaNetMessageHandler::ConnectionCrashed - %s\n", reason);
+	//Msg("ILuaNetMessageHandler::ConnectionCrashed - %s\n", reason);
 }
 
 void ILuaNetMessageHandler::PacketStart(int incoming_sequence, int outgoing_acknowledged)
 {
-	Msg("ILuaNetMessageHandler::PacketStart - %i | %i\n", incoming_sequence, outgoing_acknowledged);
+	//Msg("ILuaNetMessageHandler::PacketStart - %i | %i\n", incoming_sequence, outgoing_acknowledged);
 }
 
 void ILuaNetMessageHandler::PacketEnd()
 {
-	Msg("ILuaNetMessageHandler::PacketEnd\n");
+	//Msg("ILuaNetMessageHandler::PacketEnd\n");
 }
 
 void ILuaNetMessageHandler::FileRequested(const char *fileName, unsigned int transferID)
 {
-	Msg("ILuaNetMessageHandler::FileRequested - %s | %d\n", fileName, transferID);
+	//Msg("ILuaNetMessageHandler::FileRequested - %s | %d\n", fileName, transferID);
 }
 
 void ILuaNetMessageHandler::FileReceived(const char *fileName, unsigned int transferID)
 {
-	Msg("ILuaNetMessageHandler::FileReceived - %s | %d\n", fileName, transferID);
+	//Msg("ILuaNetMessageHandler::FileReceived - %s | %d\n", fileName, transferID);
 }
 
 void ILuaNetMessageHandler::FileDenied(const char *fileName, unsigned int transferID)
 {
-	Msg("ILuaNetMessageHandler::FileDenied - %s | %d\n", fileName, transferID);
+	//Msg("ILuaNetMessageHandler::FileDenied - %s | %d\n", fileName, transferID);
 }
 
 void ILuaNetMessageHandler::FileSent(const char *fileName, unsigned int transferID)
 {
-	Msg("ILuaNetMessageHandler::FileSent - %s | %d\n", fileName, transferID);
+	//Msg("ILuaNetMessageHandler::FileSent - %s | %d\n", fileName, transferID);
 }
 
 bool ILuaNetMessageHandler::ShouldAcceptFile(const char *fileName, unsigned int transferID)
 {
-	Msg("ILuaNetMessageHandler::ShouldAcceptFile - %s | %d\n", fileName, transferID);
+	//Msg("ILuaNetMessageHandler::ShouldAcceptFile - %s | %d\n", fileName, transferID);
 	return true;
 }
 
