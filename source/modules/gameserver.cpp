@@ -1006,6 +1006,14 @@ LUA_FUNCTION_STATIC(CNetChan__tostring)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(CNetChan_IsValid)
+{
+	CNetChan* pNetChannel = Get_CNetChan(1, false);
+	
+	LUA->PushBool(pNetChannel != NULL);
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(CNetChan_GetAvgLoss)
 {
 	CNetChan* pNetChannel = Get_CNetChan(1, true);
@@ -1967,6 +1975,7 @@ void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(CNetChan__tostring, "__tostring");
 		Util::AddFunc(CNetChan__index, "__index");
 		Util::AddFunc(CNetChan__newindex, "__newindex");
+		Util::AddFunc(CNetChan_IsValid, "IsValid");
 		Util::AddFunc(CNetChan_GetTable, "GetTable");
 		Util::AddFunc(CNetChan_GetAvgLoss, "GetAvgLoss");
 		Util::AddFunc(CNetChan_GetAvgChoke, "GetAvgChoke");
