@@ -1584,12 +1584,13 @@ LUA_FUNCTION_STATIC(CNetChan_SendMessage)
 {
 	CNetChan* pNetChannel = Get_CNetChan(1, true);
 	bf_write* bf = Get_bf_write(2, true);
+	bool bReliable = LUA->GetBool(3);
 
 	NET_LuaNetChanMessage msg;
 	msg.m_DataOut.StartWriting(bf->GetData(), 0, 0, bf->GetMaxNumBits());
 	msg.m_iLength = bf->GetNumBitsWritten();
 
-	LUA->PushBool(pNetChannel->SendNetMsg(msg, true));
+	LUA->PushBool(pNetChannel->SendNetMsg(msg, bReliable));
 	return 1;
 }
 
