@@ -1447,6 +1447,7 @@ public:
 public:
 	INetChannel* chan = NULL;
 	NET_LuaNetChanMessage* luaNetChanMessage = NULL;
+	int callbackFunction = -1;
 };
 
 #define net_LuaNetChanMessage 33
@@ -1501,6 +1502,18 @@ ILuaNetMessageHandler::~ILuaNetMessageHandler()
 	{
 		delete luaNetChanMessage;
 		luaNetChanMessage = NULL;
+	}
+
+	if (!ThreadInMainThread())
+	{
+		Warning("holylib: Tried to delete a ILuaNetMessageHandler from another thread! How could you! Now were leaking a reference...\n");
+		return;
+	}
+
+	if (callbackFunction != -1)
+	{
+		Util::ReferenceFree(callbackFunction, "ILuaNetMessageHandler::~ILuaNetMessageHandler");
+		callbackFunction = -1;
 	}
 }
 
@@ -1557,25 +1570,28 @@ bool ILuaNetMessageHandler::ShouldAcceptFile(const char *fileName, unsigned int 
 
 bool ILuaNetMessageHandler::ProcessLuaNetChanMessage(NET_LuaNetChanMessage *msg)
 {
-	if (Lua::PushHook("HolyLib:OnLuaNetChannelMessage"))
+	if (!ThreadInMainThread())
 	{
-		LuaUserData* pLuaData = Push_bf_read(&msg->m_DataIn);
-		g_Lua->Push(-3);
-		g_Lua->Push(-3);
-		g_Lua->Remove(-5);
-		g_Lua->Remove(-4);
-		g_Lua->Push(-3);
-
-		g_Lua->PushNumber(msg->m_iLength);
-		g_Lua->CallFunctionProtected(3, 0, true);
-		
-		if (pLuaData)
-		{
-			delete pLuaData;
-		}
-		g_Lua->SetUserType(-1, NULL);
-		g_Lua->Pop(1);
+		Warning("holylib: Trying to process a lua net channel message outside the main thread!\n");
+		return false;
 	}
+
+	if (callbackFunction == -1) // We have no callback function set.
+		return true;
+
+	LuaUserData* pLuaData = Push_bf_read(&msg->m_DataIn);
+	g_Lua->ReferencePush(callbackFunction);
+
+	g_Lua->Push(-2);
+	g_Lua->PushNumber(msg->m_iLength);
+	g_Lua->CallFunctionProtected(2, 0, true);
+		
+	if (pLuaData)
+	{
+		delete pLuaData;
+	}
+	g_Lua->SetUserType(-1, NULL);
+	g_Lua->Pop(1);
 
 	return true;
 }
@@ -1591,6 +1607,39 @@ LUA_FUNCTION_STATIC(CNetChan_SendMessage)
 	msg.m_iLength = bf->GetNumBitsWritten();
 
 	LUA->PushBool(pNetChannel->SendNetMsg(msg, bReliable));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CNetChan_SetCallback)
+{
+	CNetChan* pNetChannel = Get_CNetChan(1, true);
+	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler;
+	LUA->CheckType(2, GarrysMod::Lua::Type::Function);
+	
+	if (!pHandler)
+		return 0;
+
+	if (pHandler->callbackFunction != -1)
+	{
+		Util::ReferenceFree(pHandler->callbackFunction, "CNetChan:SetCallback");
+	}
+
+	LUA->Push(2);
+	pHandler->callbackFunction = Util::ReferenceCreate("CNetChan:SetCallback");
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(CNetChan_GetCallback)
+{
+	CNetChan* pNetChannel = Get_CNetChan(1, true);
+	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler;
+	
+	if (pHandler && pHandler->callbackFunction != -1)
+	{
+		Util::ReferencePush(LUA, pHandler->callbackFunction);
+	} else {
+		LUA->PushNil();
+	}
 	return 1;
 }
 
@@ -2024,6 +2073,8 @@ void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(CNetChan_GetMaxRoutablePayloadSize, "GetMaxRoutablePayloadSize");
 		Util::AddFunc(CNetChan_GetRegisteredMessages, "GetRegisteredMessages");
 		Util::AddFunc(CNetChan_SendMessage, "SendMessage");
+		Util::AddFunc(CNetChan_SetCallback, "SetCallback");
+		Util::AddFunc(CNetChan_GetCallback, "GetCallback");
 	g_Lua->Pop(1);
 
 	Util::StartTable();
