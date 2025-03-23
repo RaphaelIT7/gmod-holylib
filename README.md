@@ -3353,7 +3353,7 @@ hook.Add("HolyLib:ProcessConnectionlessPacket", "ProcessResponse", function(bf, 
 	local status = bf:ReadByte()
 
 	local netChannel = gameserver.CreateNetChannel(ip)
-    netChannel:CNetChan_SetMessageCallback(function(bf, length)
+    netChannel:SetMessageCallback(function(bf, length)
     	IncomingNetMessage(netChannel, bf, length)
     end)
     table.insert(netChannels, netChannel)
