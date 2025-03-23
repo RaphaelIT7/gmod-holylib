@@ -3398,6 +3398,9 @@ BuildNetChannel("127.0.0.1:27015")
 #### CNetChan gameserver.RemoveNetChannel(CNetChan channel)
 Removes/Destroys a net channel invalidating it.
 
+#### table[CNetChan] gameserver.GetCreatedNetChannels()
+Returns a table containing all net channels created by gameserver.CreateNetChannel.  
+
 ### CBaseClient
 This class represents a client.
 

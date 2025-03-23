@@ -2156,6 +2156,21 @@ LUA_FUNCTION_STATIC(gameserver_RemoveNetChannel)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(gameserver_GetCreatedNetChannels)
+{
+	LUA->PreCreateTable(g_pPushedCNetChan.size(), 0);
+		int idx = 0;
+		for (auto& [chan, userdata] : g_pPushedCNetChan)
+		{
+			if (userdata->Push())
+			{
+				Util::RawSetI(LUA, -2, ++idx);
+			}
+		}
+
+	return 1;
+}
+
 extern CGlobalVars* gpGlobals;
 static ConVar* sv_stressbots;
 void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
@@ -2268,8 +2283,10 @@ void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(gameserver_CalculateCPUUsage, "CalculateCPUUsage");
 		Util::AddFunc(gameserver_ApproximateProcessMemoryUsage, "ApproximateProcessMemoryUsage");
 		Util::AddFunc(gameserver_SendConnectionlessPacket, "SendConnectionlessPacket");
+
 		Util::AddFunc(gameserver_CreateNetChannel, "CreateNetChannel");
 		Util::AddFunc(gameserver_RemoveNetChannel, "RemoveNetChannel");
+		Util::AddFunc(gameserver_GetCreatedNetChannels, "GetCreatedNetChannels");
 	Util::FinishTable("gameserver");
 }
 
