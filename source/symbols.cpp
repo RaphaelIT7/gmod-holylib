@@ -814,6 +814,10 @@ namespace Symbols
 		Symbol::FromName("_Z20NET_RemoveNetChannelP11INetChannelb"),
 	};
 
+	const std::vector<Symbol> Filter_SendBanSym = {
+		Symbol::FromName("_Z14Filter_SendBanRK8netadr_s"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: lagcompensation Symbols
 	//---------------------------------------------------------------------------------

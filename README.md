@@ -4070,6 +4070,9 @@ Added to satisfy curiosity & test around with slots above 128.
 #### holylib_gameserver_connectionlesspackethook (default `1`)
 If enabled, the HolyLib:ProcessConnectionlessPacket hook is active and will be called.
 
+### sv_filter_nobanresponse (default `0`)
+If enabled, a blocked ip won't be informed that its even blocked.
+
 ### Singleplayer
 This module allows you to have a 1 slot / a singleplayer server.  
 Why? I don't know, but you can.  

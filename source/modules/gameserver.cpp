@@ -24,7 +24,7 @@ public:
 
 static ConVar gameserver_disablespawnsafety("holylib_gameserver_disablespawnsafety", "0", 0, "If enabled, players can spawn on slots above 128 but this WILL cause stability and many other issues!");
 static ConVar gameserver_connectionlesspackethook("holylib_gameserver_connectionlesspackethook", "1", 0, "If enabled, the HolyLib:ProcessConnectionlessPacket hook is active and will be called.");
-
+static ConVar sv_filter_nobanresponse("sv_filter_nobanresponse", "0", 0, "If enabled, a blocked ip won't be informed that its even blocked.");
 
 CGameServerModule g_pGameServerModule;
 IModule* pGameServerModule = &g_pGameServerModule;
@@ -3296,6 +3296,14 @@ int hook_CNetChan_ProcessPacketHeader(CNetChan* chan, netpacket_t* packet)
 	return flags;
 }
 
+static Detouring::Hook detour_Filter_SendBan;
+void hook_Filter_SendBan(const netadr_t& adr)
+{
+	if (sv_filter_nobanresponse.GetBool())
+		return;
+
+	detour_Filter_SendBan.GetTrampoline<Symbols::Filter_SendBan>()(adr);
+}
 
 void CGameServerModule::InitDetour(bool bPreServer)
 {
@@ -3394,6 +3402,12 @@ void CGameServerModule::InitDetour(bool bPreServer)
 		&detour_CNetChan_ProcessPacketHeader, "CNetChan::ProcessPacketHeader",
 		engine_loader.GetModule(), Symbols::CNetChan_ProcessPacketHeaderSym,
 		(void*)hook_CNetChan_ProcessPacketHeader, m_pID
+	);
+
+	Detour::Create(
+		&detour_Filter_SendBan, "Filter_SendBan",
+		engine_loader.GetModule(), Symbols::Filter_SendBanSym,
+		(void*)hook_Filter_SendBan, m_pID
 	);
 
 	func_NET_SendPacket = (Symbols::NET_SendPacket)Detour::GetFunction(engine_loader.GetModule(), Symbols::NET_SendPacketSym);

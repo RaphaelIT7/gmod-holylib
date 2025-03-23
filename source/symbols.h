@@ -594,6 +594,9 @@ namespace Symbols
 	typedef void (*NET_RemoveNetChannel)(INetChannel* chan, bool bDeleteNetChan);
 	extern const std::vector<Symbol> NET_RemoveNetChannelSym;
 
+	typedef void (*Filter_SendBan)(const netadr_t& adr);
+	extern const std::vector<Symbol> Filter_SendBanSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: cvar Symbols
 	//---------------------------------------------------------------------------------
