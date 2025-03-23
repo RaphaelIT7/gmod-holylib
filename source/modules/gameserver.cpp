@@ -1382,26 +1382,6 @@ LUA_FUNCTION_STATIC(CNetChan_SetMaxBufferSize)
 	return 0;
 }
 
-// Purely debug function, has no real use.
-LUA_FUNCTION_STATIC(CNetChan_GetRegisteredMessages)
-{
-	CBaseClient* pClient = Get_CBaseClient(1, true);
-	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
-	if (!pNetChannel)
-		LUA->ThrowError("Failed to get a valid net channel");
-
-	LUA->PreCreateTable(pNetChannel->m_NetMessages.Count(), 0);
-		int idx = 0;
-		for (int i=0 ; i< pNetChannel->m_NetMessages.Count(); i++ )
-		{
-			INetMessage* msg = pNetChannel->m_NetMessages[ i ];
-			LUA->PushString(msg->GetName());
-			Util::RawSetI(LUA, -2, msg->GetType());
-		}
-
-	return 1;
-}
-
 LUA_FUNCTION_STATIC(CNetChan_GetMaxRoutablePayloadSize)
 {
 	CNetChan* pNetChannel = Get_CNetChan(1, true);
@@ -1454,7 +1434,7 @@ public:
 	virtual bool ProcessLuaNetChanMessage( [[maybe_unused]] NET_LuaNetChanMessage *msg );
 
 public:
-	INetChannel* chan = NULL;
+	CNetChan* chan = NULL;
 	NET_LuaNetChanMessage* luaNetChanMessage = NULL;
 	int messageCallbackFunction = -1;
 	int connectionStartFunction = -1;
@@ -1575,7 +1555,7 @@ void ILuaNetMessageHandler::ConnectionClosing(const char* reason)
 		return;
 
 	g_Lua->ReferencePush(connectionClosingFunction);
-	Push_CNetChan((CNetChan*)chan);
+	Push_CNetChan(chan);
 	g_Lua->PushString(reason);
 	g_Lua->CallFunctionProtected(2, 0, true);
 }
@@ -1592,7 +1572,7 @@ void ILuaNetMessageHandler::ConnectionCrashed(const char* reason)
 		return;
 
 	g_Lua->ReferencePush(connectionCrashedFunction);
-	Push_CNetChan((CNetChan*)chan);
+	Push_CNetChan(chan);
 	g_Lua->PushString(reason);
 	g_Lua->CallFunctionProtected(2, 0, true);
 }
@@ -1647,7 +1627,7 @@ bool ILuaNetMessageHandler::ProcessLuaNetChanMessage(NET_LuaNetChanMessage *msg)
 	LuaUserData* pLuaData = Push_bf_read(&msg->m_DataIn);
 	g_Lua->ReferencePush(messageCallbackFunction);
 
-	Push_CNetChan((CNetChan*)chan);
+	Push_CNetChan(chan);
 	g_Lua->Push(-3);
 	g_Lua->PushNumber(msg->m_iLength);
 	g_Lua->CallFunctionProtected(3, 0, true);
@@ -2153,6 +2133,7 @@ LUA_FUNCTION_STATIC(gameserver_CreateNetChannel)
 	CBaseServer* pServer = (CBaseServer*)Util::server;
 	CNetChan* pNetChannel = (CNetChan*)func_NET_CreateNetChannel(pServer->m_Socket, &adr, adr.ToString(), (INetChannelHandler*)pHandler, true, 1);
 	pNetChannel->RegisterMessage(pHandler->luaNetChanMessage);
+	pHandler->chan = pNetChannel;
 
 	Push_CNetChan(pNetChannel);
 	return 1;
@@ -2163,8 +2144,14 @@ LUA_FUNCTION_STATIC(gameserver_RemoveNetChannel)
 {
 	CNetChan* pNetChannel = Get_CNetChan(1, true);
 
+	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler;
 	func_NET_RemoveNetChannel(pNetChannel, true);
 	LUA->SetUserType(1, NULL);
+
+	if (pHandler)
+	{
+		delete pHandler;
+	}
 
 	return 0;
 }
@@ -2236,7 +2223,6 @@ void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(CNetChan_ProcessStream, "ProcessStream");
 		Util::AddFunc(CNetChan_SetMaxBufferSize, "SetMaxBufferSize");
 		Util::AddFunc(CNetChan_GetMaxRoutablePayloadSize, "GetMaxRoutablePayloadSize");
-		Util::AddFunc(CNetChan_GetRegisteredMessages, "GetRegisteredMessages");
 		Util::AddFunc(CNetChan_SendMessage, "SendMessage");
 
 		// Callbacks

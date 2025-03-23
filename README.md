@@ -3799,7 +3799,7 @@ Returns the voice stream used by the voice chat.
 #### number CNetChan:GetTimeout()
 
 #### CNetChan:SetTimeout(number seconds)
-Sets the time in seconds before the client is marked as timing out.
+Sets the time in seconds before the channel is marked as timing out.
 
 #### bool CNetChan:Transmit(bool onlyReliable = false, number fragments = -1, bool freeSubChannels = false)
 Transmit any pending data to the channel.  
