@@ -1410,6 +1410,15 @@ LUA_FUNCTION_STATIC(CNetChan_GetMaxRoutablePayloadSize)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(CNetChan_Shutdown)
+{
+	CNetChan* pNetChannel = Get_CNetChan(1, true);
+	const char* reason = LUA->CheckStringOpt(2, NULL);
+
+	pNetChannel->Shutdown(reason);
+	return 0;
+}
+
 static Detouring::Hook detour_CNetChan_D2;
 void hook_CNetChan_D2(CNetChan* pNetChan)
 {
@@ -1447,7 +1456,10 @@ public:
 public:
 	INetChannel* chan = NULL;
 	NET_LuaNetChanMessage* luaNetChanMessage = NULL;
-	int callbackFunction = -1;
+	int messageCallbackFunction = -1;
+	int connectionStartFunction = -1;
+	int connectionClosingFunction = -1;
+	int connectionCrashedFunction = -1;
 };
 
 #define net_LuaNetChanMessage 33
@@ -1510,26 +1522,79 @@ ILuaNetMessageHandler::~ILuaNetMessageHandler()
 		return;
 	}
 
-	if (callbackFunction != -1)
+	if (messageCallbackFunction != -1)
 	{
-		Util::ReferenceFree(callbackFunction, "ILuaNetMessageHandler::~ILuaNetMessageHandler");
-		callbackFunction = -1;
+		Util::ReferenceFree(messageCallbackFunction, "ILuaNetMessageHandler::~ILuaNetMessageHandler");
+		messageCallbackFunction = -1;
+	}
+
+	if (connectionStartFunction != -1)
+	{
+		Util::ReferenceFree(connectionStartFunction, "ILuaNetMessageHandler::~ILuaNetMessageHandler");
+		connectionStartFunction = -1;
+	}
+
+	if (connectionClosingFunction != -1)
+	{
+		Util::ReferenceFree(connectionClosingFunction, "ILuaNetMessageHandler::~ILuaNetMessageHandler");
+		connectionClosingFunction = -1;
+	}
+
+	if (connectionCrashedFunction != -1)
+	{
+		Util::ReferenceFree(connectionCrashedFunction, "ILuaNetMessageHandler::~ILuaNetMessageHandler");
+		connectionCrashedFunction = -1;
 	}
 }
 
 void ILuaNetMessageHandler::ConnectionStart(INetChannel* chan)
 {
-	//Msg("ILuaNetMessageHandler::ConnectionStart - %p\n", chan);
+	if (!ThreadInMainThread())
+	{
+		Warning("holylib: Trying to call ConnectionStart outside the main thread!\n");
+		return;
+	}
+
+	if (connectionStartFunction == -1) // We have no callback function set.
+		return;
+
+	g_Lua->ReferencePush(connectionStartFunction);
+	Push_CNetChan((CNetChan*)chan);
+	g_Lua->CallFunctionProtected(1, 0, true);
 }
 
 void ILuaNetMessageHandler::ConnectionClosing(const char* reason)
 {
-	//Msg("ILuaNetMessageHandler::ConnectionClosing - %s\n", reason);
+	if (!ThreadInMainThread())
+	{
+		Warning("holylib: Trying to call ConnectionStart outside the main thread!\n");
+		return;
+	}
+
+	if (connectionClosingFunction == -1) // We have no callback function set.
+		return;
+
+	g_Lua->ReferencePush(connectionClosingFunction);
+	Push_CNetChan((CNetChan*)chan);
+	g_Lua->PushString(reason);
+	g_Lua->CallFunctionProtected(2, 0, true);
 }
 
 void ILuaNetMessageHandler::ConnectionCrashed(const char* reason)
 {
-	//Msg("ILuaNetMessageHandler::ConnectionCrashed - %s\n", reason);
+	if (!ThreadInMainThread())
+	{
+		Warning("holylib: Trying to call ConnectionStart outside the main thread!\n");
+		return;
+	}
+
+	if (connectionCrashedFunction == -1) // We have no callback function set.
+		return;
+
+	g_Lua->ReferencePush(connectionCrashedFunction);
+	Push_CNetChan((CNetChan*)chan);
+	g_Lua->PushString(reason);
+	g_Lua->CallFunctionProtected(2, 0, true);
 }
 
 void ILuaNetMessageHandler::PacketStart(int incoming_sequence, int outgoing_acknowledged)
@@ -1576,15 +1641,16 @@ bool ILuaNetMessageHandler::ProcessLuaNetChanMessage(NET_LuaNetChanMessage *msg)
 		return false;
 	}
 
-	if (callbackFunction == -1) // We have no callback function set.
+	if (messageCallbackFunction == -1) // We have no callback function set.
 		return true;
 
 	LuaUserData* pLuaData = Push_bf_read(&msg->m_DataIn);
-	g_Lua->ReferencePush(callbackFunction);
+	g_Lua->ReferencePush(messageCallbackFunction);
 
-	g_Lua->Push(-2);
+	Push_CNetChan((CNetChan*)chan);
+	g_Lua->Push(-3);
 	g_Lua->PushNumber(msg->m_iLength);
-	g_Lua->CallFunctionProtected(2, 0, true);
+	g_Lua->CallFunctionProtected(3, 0, true);
 		
 	if (pLuaData)
 	{
@@ -1610,7 +1676,7 @@ LUA_FUNCTION_STATIC(CNetChan_SendMessage)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(CNetChan_SetCallback)
+LUA_FUNCTION_STATIC(CNetChan_SetMessageCallback)
 {
 	CNetChan* pNetChannel = Get_CNetChan(1, true);
 	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler;
@@ -1619,24 +1685,123 @@ LUA_FUNCTION_STATIC(CNetChan_SetCallback)
 	if (!pHandler)
 		return 0;
 
-	if (pHandler->callbackFunction != -1)
+	if (pHandler->messageCallbackFunction != -1)
 	{
-		Util::ReferenceFree(pHandler->callbackFunction, "CNetChan:SetCallback");
+		Util::ReferenceFree(pHandler->messageCallbackFunction, "CNetChan:SetCallback");
 	}
 
 	LUA->Push(2);
-	pHandler->callbackFunction = Util::ReferenceCreate("CNetChan:SetCallback");
+	pHandler->messageCallbackFunction = Util::ReferenceCreate("CNetChan:SetCallback");
 	return 0;
 }
 
-LUA_FUNCTION_STATIC(CNetChan_GetCallback)
+LUA_FUNCTION_STATIC(CNetChan_GetMessageCallback)
 {
 	CNetChan* pNetChannel = Get_CNetChan(1, true);
 	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler;
 	
-	if (pHandler && pHandler->callbackFunction != -1)
+	if (pHandler && pHandler->messageCallbackFunction != -1)
 	{
-		Util::ReferencePush(LUA, pHandler->callbackFunction);
+		Util::ReferencePush(LUA, pHandler->messageCallbackFunction);
+	} else {
+		LUA->PushNil();
+	}
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CNetChan_SetConnectionStartCallback)
+{
+	CNetChan* pNetChannel = Get_CNetChan(1, true);
+	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler;
+	LUA->CheckType(2, GarrysMod::Lua::Type::Function);
+	
+	if (!pHandler)
+		return 0;
+
+	if (pHandler->connectionStartFunction != -1)
+	{
+		Util::ReferenceFree(pHandler->connectionStartFunction, "CNetChan:SetCallback");
+	}
+
+	LUA->Push(2);
+	pHandler->connectionStartFunction = Util::ReferenceCreate("CNetChan:SetCallback");
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(CNetChan_GetConnectionStartCallback)
+{
+	CNetChan* pNetChannel = Get_CNetChan(1, true);
+	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler;
+	
+	if (pHandler && pHandler->connectionStartFunction != -1)
+	{
+		Util::ReferencePush(LUA, pHandler->connectionStartFunction);
+	} else {
+		LUA->PushNil();
+	}
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CNetChan_SetConnectionClosingCallback)
+{
+	CNetChan* pNetChannel = Get_CNetChan(1, true);
+	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler;
+	LUA->CheckType(2, GarrysMod::Lua::Type::Function);
+	
+	if (!pHandler)
+		return 0;
+
+	if (pHandler->connectionClosingFunction != -1)
+	{
+		Util::ReferenceFree(pHandler->connectionClosingFunction, "CNetChan:SetCallback");
+	}
+
+	LUA->Push(2);
+	pHandler->connectionClosingFunction = Util::ReferenceCreate("CNetChan:SetCallback");
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(CNetChan_GetConnectionClosingCallback)
+{
+	CNetChan* pNetChannel = Get_CNetChan(1, true);
+	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler;
+	
+	if (pHandler && pHandler->connectionClosingFunction != -1)
+	{
+		Util::ReferencePush(LUA, pHandler->connectionClosingFunction);
+	} else {
+		LUA->PushNil();
+	}
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CNetChan_SetConnectionCrashedCallback)
+{
+	CNetChan* pNetChannel = Get_CNetChan(1, true);
+	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler;
+	LUA->CheckType(2, GarrysMod::Lua::Type::Function);
+	
+	if (!pHandler)
+		return 0;
+
+	if (pHandler->connectionCrashedFunction != -1)
+	{
+		Util::ReferenceFree(pHandler->connectionCrashedFunction, "CNetChan:SetCallback");
+	}
+
+	LUA->Push(2);
+	pHandler->connectionCrashedFunction = Util::ReferenceCreate("CNetChan:SetCallback");
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(CNetChan_GetConnectionCrashedCallback)
+{
+	CNetChan* pNetChannel = Get_CNetChan(1, true);
+	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler;
+	
+	if (pHandler && pHandler->connectionCrashedFunction != -1)
+	{
+		Util::ReferencePush(LUA, pHandler->connectionCrashedFunction);
 	} else {
 		LUA->PushNil();
 	}
@@ -2073,8 +2238,16 @@ void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(CNetChan_GetMaxRoutablePayloadSize, "GetMaxRoutablePayloadSize");
 		Util::AddFunc(CNetChan_GetRegisteredMessages, "GetRegisteredMessages");
 		Util::AddFunc(CNetChan_SendMessage, "SendMessage");
-		Util::AddFunc(CNetChan_SetCallback, "SetCallback");
-		Util::AddFunc(CNetChan_GetCallback, "GetCallback");
+
+		// Callbacks
+		Util::AddFunc(CNetChan_SetMessageCallback, "SetMessageCallback");
+		Util::AddFunc(CNetChan_GetMessageCallback, "GetMessageCallback");
+		Util::AddFunc(CNetChan_SetConnectionStartCallback, "SetConnectionStartCallback");
+		Util::AddFunc(CNetChan_GetConnectionStartCallback, "GetConnectionStartCallback");
+		Util::AddFunc(CNetChan_SetConnectionClosingCallback, "SetConnectionClosingCallback");
+		Util::AddFunc(CNetChan_GetConnectionClosingCallback, "GetConnectionClosingCallback");
+		Util::AddFunc(CNetChan_SetConnectionCrashedCallback, "SetConnectionCrashedCallback");
+		Util::AddFunc(CNetChan_GetConnectionCrashedCallback, "GetConnectionCrashedCallback");
 	g_Lua->Pop(1);
 
 	Util::StartTable();
