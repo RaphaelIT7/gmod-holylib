@@ -32,14 +32,6 @@ IServerPluginCallbacks* GetHolyLibPlugin()
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CServerPlugin, IServerPluginCallbacks, INTERFACEVERSION_ISERVERPLUGINCALLBACKS, g_HolyLibServerPlugin);
 #endif
 
-#ifdef ARCHITECTURE_X86
-static void DumpSearchpaths(const CCommand& args)
-{
-	g_pFullFileSystem->PrintSearchPaths();
-}
-static ConCommand path("path", DumpSearchpaths, "Dumps the searchpaths", 0);
-#endif // Trying to workaround this one command breaking on 32x :/
-
 //---------------------------------------------------------------------------------
 // Purpose: constructor/destructor
 //---------------------------------------------------------------------------------
@@ -139,15 +131,6 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 	//if (CommandLine()->FindParm("-holylib_debug_forceregister"))
 #endif
 	{
-#if ARCHITECTURE_IS_X86
-		if (cvar) // May be NULL
-		{
-			ConVar* pPath = cvar->FindVar("path");
-			if (pPath)
-				cvar->UnregisterConCommand(pPath);
-		}
-#endif
-
 		ConVar_Register(); // ConVars currently cause a crash on level shutdown. I probably need to find some hidden vtable function AGAIN.
 	}
 	/*

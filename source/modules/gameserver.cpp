@@ -42,7 +42,7 @@ public:
 	};
 	const char		*ToString() const { return "HolyLib:CustomMessage"; };
 	int				GetType() const { return m_iType; }
-	const char		*GetName() const { return m_strName;}
+	const char		*GetName() const { return m_strName; }
 
 	INetMessageHandler *m_pMessageHandler = NULL;
 	bool Process() { Warning("holylib: Tried to process this message? This should never happen!\n"); return true; };
