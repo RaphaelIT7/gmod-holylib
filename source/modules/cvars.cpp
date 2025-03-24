@@ -26,6 +26,7 @@ static std::unordered_map<std::string, ConCommandBase*> g_pCommandBaseNames;
  * BUG: The Source engine uses Q_stricmp -> V_stricmp which is case insensitive, so we need to account for that.
  */
 inline void AddCommandBaseName(ConCommandBase* variable);
+inline ConCommandBase* FindCommandBaseName(const char* name);
 inline void AddCommandBaseName(ConCommandBase* variable)
 {
 	std::string strName = variable->GetName();
@@ -33,11 +34,12 @@ inline void AddCommandBaseName(ConCommandBase* variable)
 
 	g_pCommandBaseNames.try_emplace(strName, variable);
 
-	if (!g_pCVarsModule.InDebug())
-		return;
-
+	/*
+	 * BUG: For some reason, children convars are NEVER registered.
+	 * The Engine is forgetting to register them properly and seemingly relies on the logic that children convars are automatically added, which doesn't seem to be intentional?
+	 */
 	variable = variable->GetNext();
-	if (variable)
+	if (variable && FindCommandBaseName(variable->GetName()) == NULL)
 	{
 		AddCommandBaseName(variable);
 	}
