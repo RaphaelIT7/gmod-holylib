@@ -6,8 +6,8 @@ class CTemplateModule : public IModule
 {
 public:
 	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
-	virtual void LuaInit(bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown() OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual void Think(bool bSimulating) OVERRIDE;
 	virtual void Shutdown() OVERRIDE;
@@ -22,13 +22,13 @@ void CTemplateModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 }
 
-void CTemplateModule::LuaInit(bool bServerInit)
+void CTemplateModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
 }
 
-void CTemplateModule::LuaShutdown()
+void CTemplateModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 }
 
