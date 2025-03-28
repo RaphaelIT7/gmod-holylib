@@ -2110,53 +2110,9 @@ LUA_FUNCTION_STATIC(filesystem_TimeAccessed)
 	return 1;
 }
 
-// Maybe we replace the entire addon system later
-namespace Addon
+inline Addon::FileSystem* GetAddonFilesystem()
 {
-	class UpdatedFileSystem // ToDo: Fix this to work on windows.
-	{
-		public:
-			virtual void Clear( ) = 0;
-			virtual void Refresh( ) = 0;
-			virtual int MountFile( const std::string& gmaPath, std::vector<std::string>* files) = 0;
-			virtual bool ShouldMount( const std::string & ) = 0;
-			virtual bool ShouldMount( uint64_t ) = 0;
-#ifdef DEDICATED
-			virtual void SetShouldMount( const std::string &, bool ) = 0;
-#endif
-			virtual bool Save( ) = 0;
-			virtual const std::list<IAddonSystem::Information> &GetList( ) const = 0;
-			virtual const std::list<IAddonSystem::UGCInfo> &GetUGCList( ) const = 0;
-			virtual void ScanForSubscriptions( CSteamAPIContext *, const char * ) = 0;
-			virtual void Think( ) = 0;
-			virtual void SetDownloadNotify( IAddonDownloadNotification * ) = 0;
-			virtual int Notify( ) = 0;
-			virtual bool IsSubscribed( uint64_t ) = 0;
-			virtual const IAddonSystem::Information *FindFileOwner( const std::string & ) = 0;
-			virtual void AddAddon( const IAddonSystem::Information & ) = 0;
-			virtual void ClearUnusedGMAs( ) = 0;
-			virtual const std::string& GetAddonFilepath( uint64_t, bool ) = 0;
-			virtual void UnmountAddon( uint64_t ) = 0;
-			virtual void UnmountServerAddons( ) = 0;
-			virtual void Shutdown( ) = 0;
-			virtual void AddJob( Job::Base * ) = 0;
-			virtual const std::list<SteamUGCDetails_t> &GetSubList( ) const = 0;
-			virtual void MountFloatingAddons( ) = 0;
-			virtual void AddAddonFromSteamDetails( const SteamUGCDetails_t & ) = 0;
-			virtual void OnAddonSubscribed( const SteamUGCDetails_t & ) = 0;
-			virtual void AddUnloadedSubscription( uint64_t ) = 0;
-			virtual bool HasChanges( ) = 0;
-			virtual void MarkChanged( ) = 0;
-			virtual void OnAddonDownloaded( const IAddonSystem::Information & ) = 0;
-			virtual void OnAddonDownloadFailed( const IAddonSystem::Information & ) = 0;
-			virtual void IsAddonValidPreInstall( SteamUGCDetails_t ) = 0;
-			virtual void Load( ) = 0;
-	};
-}
-
-inline Addon::UpdatedFileSystem* GetAddonFilesystem()
-{
-	return (Addon::UpdatedFileSystem*)g_pFullFileSystem->Addons();
+	return g_pFullFileSystem->Addons();
 }
 
 LUA_FUNCTION_STATIC(addonsystem_Clear)
@@ -2176,7 +2132,7 @@ LUA_FUNCTION_STATIC(addonsystem_MountFile)
 	const char* strGMAPath = LUA->CheckString(1);
 
 	std::vector<std::string> files;
-	LUA->PushNumber(GetAddonFilesystem()->MountFile(strGMAPath, &files));
+	//LUA->PushNumber(GetAddonFilesystem()->MountFile(strGMAPath, &files, 0, 0, !?));
 
 	LUA->PreCreateTable(files.size(), 0);
 		int idx = 0;
@@ -2191,19 +2147,16 @@ LUA_FUNCTION_STATIC(addonsystem_MountFile)
 
 LUA_FUNCTION_STATIC(addonsystem_ShouldMount)
 {
-	if (LUA->IsType(1, GarrysMod::Lua::Type::Number))
-		LUA->PushBool(GetAddonFilesystem()->ShouldMount(LUA->GetNumber(1)));
-	else
-		LUA->PushBool(GetAddonFilesystem()->ShouldMount(LUA->CheckString(1)));
+	LUA->PushBool(GetAddonFilesystem()->ShouldMount(LUA->CheckNumber(1)));
 
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(addonsystem_SetShouldMount)
 {
-	const char* filePath = LUA->CheckString(1);
+	uint64_t workshopID = LUA->CheckNumber(1);
 	bool bMount = LUA->GetBool(2);
-	GetAddonFilesystem()->SetShouldMount(filePath, bMount);
+	GetAddonFilesystem()->SetShouldMount(workshopID, bMount);
 
 	return 0;
 }
