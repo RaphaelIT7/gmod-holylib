@@ -1,5 +1,5 @@
 #include "player.h"
-#include "hltvdirector.h"
+#include "sourcesdk/hltvdirector.h"
 #include "util.h"
 
 void CHLTVDirector::RemoveEventsFromHistory(int tick)

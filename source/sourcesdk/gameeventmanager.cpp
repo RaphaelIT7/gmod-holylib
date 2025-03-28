@@ -1,4 +1,4 @@
-#include "gameeventmanager.h"
+#include "sourcesdk/GameEventManager.h"
 
 CGameEventDescriptor *CGameEventManager::GetEventDescriptor(const char * name)
 {

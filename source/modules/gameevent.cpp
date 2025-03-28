@@ -2,11 +2,11 @@
 #include "detours.h"
 #include "module.h"
 #include "lua.h"
-#include "gameeventmanager.h"
-#include "sv_client.h"
+#include "sourcesdk/GameEventManager.h"
+#include "sourcesdk/sv_client.h"
 #include "baseserver.h"
 #include "vprof.h"
-#include "netmessages.h"
+#include "sourcesdk/netmessages.h"
 #include <unordered_set>
 #include "eiface.h"
 

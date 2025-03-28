@@ -3,7 +3,7 @@
 #include "module.h"
 #include "lua.h"
 #include <netmessages.h>
-#include "baseclient.h"
+#include "sourcesdk/baseclient.h"
 #include "steam/isteamclient.h"
 #include <isteamutils.h>
 #include "unordered_set"

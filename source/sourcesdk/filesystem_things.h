@@ -23,7 +23,7 @@
 
 #elif defined(POSIX)
 	#include <unistd.h> // unlink
-	#include "linux_support.h"
+	#include "sourcesdk/linux_support.h"
 	#define INVALID_HANDLE_VALUE (void *)-1
 
 	// undo the prepended "_" 's

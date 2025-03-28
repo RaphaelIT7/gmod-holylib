@@ -1,4 +1,4 @@
-#include "sv_plugin.h" // Has to be the first include
+#include "sourcesdk/sv_plugin.h" // Has to be the first include
 #include "filesystem_base.h" // Has to be before symbols.h
 #include "LuaInterface.h"
 #include "detours.h"

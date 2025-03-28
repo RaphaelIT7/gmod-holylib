@@ -4,11 +4,11 @@
 #include "module.h"
 #include "lua.h"
 #include "player.h"
-#include "hltvserver.h"
+#include "sourcesdk/hltvserver.h"
 #include <unordered_map>
 #include <unordered_set>
 #include "usermessages.h"
-#include "hltvdirector.h"
+#include "sourcesdk/hltvdirector.h"
 
 class CSourceTVLibModule : public IModule
 {

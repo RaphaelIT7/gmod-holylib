@@ -2,7 +2,7 @@
 #include "GarrysMod/Lua/LuaObject.h"
 #include <string>
 #include "GarrysMod/InterfacePointers.hpp"
-#include "baseclient.h"
+#include "sourcesdk/baseclient.h"
 #include "iserver.h"
 #include "module.h"
 #include "icommandline.h"
