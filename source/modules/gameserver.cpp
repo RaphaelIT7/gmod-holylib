@@ -6,8 +6,8 @@
 #include "sv_client.h"
 #include "eiface.h"
 #include "tier0/etwprof.h"
-#include "sourcesdk/baseserver.h"
-#include "sourcesdk/net_chan.h"
+#include "baseserver.h"
+#include "net_chan.h"
 #include <framesnapshot.h>
 
 double		net_time;

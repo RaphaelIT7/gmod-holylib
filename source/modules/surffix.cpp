@@ -3,7 +3,7 @@
 #include "module.h"
 #include "lua.h"
 #include "player.h"
-#include <sourcesdk/gamemovement.h>
+#include <gamemovement.h>
 
 class CSurfFixModule : public IModule
 {

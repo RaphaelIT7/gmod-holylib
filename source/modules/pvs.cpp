@@ -5,7 +5,7 @@
 #include "unordered_map"
 #include "player.h"
 #include "iserver.h"
-#include "sourcesdk/baseclient.h"
+#include "baseclient.h"
 #include "vprof.h"
 
 class CPVSModule : public IModule

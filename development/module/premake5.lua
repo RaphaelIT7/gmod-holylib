@@ -30,6 +30,7 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 		-- Remove some or all of these includes if they're not needed
 		IncludeHelpersExtended()
 		--IncludeLuaShared()
+		IncludeSDKEngine()
 		IncludeSDKCommon()
 		IncludeSDKTier0()
 		IncludeSDKTier1()

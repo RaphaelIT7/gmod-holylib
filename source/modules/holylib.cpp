@@ -9,7 +9,7 @@
 #include "iclient.h"
 #include "netmessages.h"
 #include "net.h"
-#include "sourcesdk/baseclient.h"
+#include "baseclient.h"
 #include "hl2/hl2_player.h"
 #include "unordered_set"
 

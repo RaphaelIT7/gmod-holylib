@@ -3,8 +3,8 @@
 #include "module.h"
 #include "lua.h"
 #include "networkstringtabledefs.h"
-#include <sourcesdk/networkstringtable.h>
-#include <sourcesdk/server.h>
+#include <networkstringtable.h>
+#include <server.h>
 #include <unordered_map>
 
 class CStringTableModule : public IModule
