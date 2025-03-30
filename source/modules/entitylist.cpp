@@ -42,10 +42,8 @@ void EntityList::Clear()
 	m_pEntities.clear();
 	for (auto& [_, iReference] : m_pEntReferences)
 	{
-		Msg("checking reference %i\n", iReference);
 		if (IsValidReference(iReference))
 		{
-			Msg("Freed reference %i\n", iReference);
 			Util::ReferenceFree(iReference, "EntityList::Clear");
 		}
 	}
