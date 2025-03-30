@@ -811,7 +811,7 @@ static const char* GetOverridePath(const char* pFileName, const char* pathID)
 			return "LUA_DRIVE";
 
 		if (strFileName.rfind("lua/entities/") == 0)
-			return "LUA_LUA_ENTITIES";
+			return "LUA_LUA_ENTITIES"; // Why LUA_LUA?!?
 
 		if (strFileName.rfind("vgui/") == 0)
 			return "LUA_VGUI";
