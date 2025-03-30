@@ -397,12 +397,14 @@ void HttpServer::Think()
 	/*
 	 * BUG: If for some reason a request remain unhandled, they might end up stuck until a second one comes in.
 	 * The function below should probably just always run instead, but I fear for my precious performance.
+	 * 
+	 * Verify: Is this still a thing? Probably.
 	 */
 
 	m_bInUpdate = true;
 	for (auto it = m_pRequests.begin(); it != m_pRequests.end();)
 	{
-		auto pEntry = (*it);
+		auto pEntry = *it;
 		if (pEntry->bDelete)
 		{
 			it = m_pRequests.erase(it);
@@ -449,7 +451,15 @@ httplib::Server::Handler HttpServer::CreateHandler(const char* path, int func, b
 		}
 
 		if (ipWhitelist && userID == -1)
+		{
+			if (g_pHttpServerModule.InDebug())
+				Msg("holylib - httpserver: Request was denied as the ipWhitelist is enabled and the client couldn't be found.\n");
+
 			return;
+		}
+
+		if (g_pHttpServerModule.InDebug())
+			Msg("holylib - httpserver: Waiting for Main thread to pick up request\n");
 
 		HttpRequest* request = new HttpRequest;
 		request->strPath = path;
@@ -474,6 +484,9 @@ httplib::Server::Handler HttpServer::CreateHandler(const char* path, int func, b
 				res.set_header(key, value);
 
 		request->bDelete = true;
+
+		if (g_pHttpServerModule.InDebug())
+			Msg("holylib - httpserver: Finished request\n");
 	};
 }
 
