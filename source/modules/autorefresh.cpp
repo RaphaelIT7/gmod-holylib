@@ -23,7 +23,7 @@ void CAutoRefreshModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamef
 {
 }
 
-LUA_FUNCTION_STATIC(noodles) 
+LUA_FUNCTION_STATIC(noodles)
 {
 	LUA->CheckType(1, GarrysMod::Lua::Type::Number);
 	LUA->CheckType(2, GarrysMod::Lua::Type::Number);
@@ -32,32 +32,22 @@ LUA_FUNCTION_STATIC(noodles)
 	double arg2 = LUA->GetNumber(2);
 
 	LUA->PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-		LUA->GetField(-1, "print");
-		LUA->PushNumber(arg1 + arg2);
-		LUA->Call(1, 0);
+	LUA->GetField(-1, "print");
+	LUA->PushNumber(arg1 + arg2);
+	LUA->Call(1, 0);
 	LUA->Pop();
 
 	return 0;
 }
 
-std::string __fastcall test()
-{
-	std::string xyz;
-	__asm {
-		mov xyz, edi;
-	}
-
-	return xyz;
-}
-
 static Detouring::Hook detour_CAutoRefresh_HandleLuaFileChange; //
 void hook_CAutoRefresh_HandleLuaFileChange(void* something, const std::string* filecontent)
 {
-	std::string xyz;
+	std::string* xyz = nullptr;
 	__asm {
 		mov xyz, edi;
 	}
-	Msg("Testing whatever - %s\n", xyz);
+	Msg("Testing whatever - \n", xyz->c_str());
 	Msg("Lua AutoRefresh - %s\n", filecontent->c_str());
 }
 
