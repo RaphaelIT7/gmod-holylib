@@ -56,13 +56,15 @@ struct CompressEntry
 
 	int iCallback = -1;
 	bool bCompress = true;
+	bool bFailed = false;
 
-	const char* pData;
+	const char* pData = NULL;
 	int iDataReference = -1; // Keeping a reference to stop GC from potentially nuking it.
 
 	int iLength;
 	int iLevel;
 	int iDictSize;
+	double iRatio;
 	Bootil::AutoBuffer buffer;
 	GarrysMod::Lua::ILuaInterface* pLua = NULL;
 };
@@ -72,12 +74,15 @@ static std::vector<CompressEntry*> pFinishedEntries;
 static CThreadFastMutex pFinishMutex;
 static void CompressJob(CompressEntry*& entry)
 {
-	if (bInvalidateEverything) { return; }
+	if (bInvalidateEverything) {
+		return;
+	}
 
-	if (entry->bCompress)
-		Bootil::Compression::LZMA::Compress(entry->pData, entry->iLength, entry->buffer, entry->iLevel, entry->iDictSize);
-	else
-		Bootil::Compression::LZMA::Extract(entry->pData, entry->iLength, entry->buffer);
+	if (entry->bCompress) {
+		entry->bFailed = Bootil::Compression::LZMA::Compress(entry->pData, entry->iLength, entry->buffer, entry->iLevel, entry->iDictSize);
+	} else {
+		entry->bFailed = Bootil::Compression::LZMA::Extract(entry->pData, entry->iLength, entry->buffer, entry->iRatio);
+	}
 
 	pFinishMutex.Lock();
 	pFinishedEntries.push_back(entry);
@@ -145,11 +150,14 @@ LUA_FUNCTION_STATIC(util_AsyncDecompress)
 	LUA->Push(2);
 	int iCallback = Util::ReferenceCreate("util.AsyncDecompress - Callback");
 
+	double ratio = LUA->CheckNumberOpt(3, 0.98); // 98% ratio by default
+
 	CompressEntry* entry = new CompressEntry;
 	entry->bCompress = false;
 	entry->iCallback = iCallback;
 	entry->iLength = iLength;
 	entry->pData = pData;
+	entry->iRatio = ratio;
 	LUA->Push(1);
 	entry->iDataReference = Util::ReferenceCreate("util.AsyncDecompress - Data");
 	entry->pLua = LUA;
@@ -399,7 +407,12 @@ void CUtilModule::Think(bool simulating)
 		if (entry->pLua)
 		{
 			Util::ReferencePush(entry->pLua, entry->iCallback);
+			if (entry->bFailed)
+			{
+				entry->pLua->PushNil();
+			} else {
 				entry->pLua->PushString((const char*)entry->buffer.GetBase(), entry->buffer.GetWritten());
+			}
 			entry->pLua->CallFunctionProtected(1, 0, true);
 		}
 		delete entry;

@@ -82,7 +82,7 @@ namespace Bootil
 				return true;
 			}
 
-			bool Extract( const void* pData, unsigned int iLength, Bootil::Buffer & output, ProgressCallback* pProgress )
+			bool Extract( const void* pData, unsigned int iLength, Bootil::Buffer & output, double iRatio, ProgressCallback* pProgress )
 			{
 				const unsigned char* pPropsBuf = ( unsigned char* ) pData;
 				const unsigned char* pSizeBuf = pPropsBuf + LZMA_PROPS_SIZE;
@@ -103,7 +103,17 @@ namespace Bootil
 
 				//
 				// TODO: Santity check?
+				// Nice
 				//
+
+				// Implement a limited ratio for decompression so data can't explode from 10KB to 100MB.
+				// Example: 10MB / 0.2MB = 50 > 50( 1 / 0.02( 1 - 0.98 ) )
+				// If ratio is 0 it just instantly fails
+				// If ratio is 1 it won't even bother to check. 
+				if ( iRatio <= 0 || ( iRatio < 1 && ( iDestLen / iLength ) > ( 1 / ( 1 - iRatio ) ) ) )
+				{
+					return false;
+				}
 
 				//
 				// Make sure we can accommodate this extracted size

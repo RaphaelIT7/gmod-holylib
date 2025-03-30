@@ -23,37 +23,36 @@ static int EntityList_TypeID = -1;
 Push_LuaClass(EntityList, EntityList_TypeID)
 Get_LuaClass(EntityList, EntityList_TypeID, "EntityList")
 
-static std::vector<EntityList*> pEntityLists;
-EntityList g_pGlobalEntityList(NULL); // NOTE: This needs to be after pEntityLists? (funny Constructor Behavior apparently)
+static std::unordered_set<EntityList*> pEntityLists;
+EntityList g_pGlobalEntityList; // NOTE: This needs to be after pEntityLists? (funny Constructor Behavior apparently)
 
-EntityList::EntityList(GarrysMod::Lua::ILuaInterface* pLua)
+EntityList::EntityList()
 {
-	m_pLua = pLua;
-	pEntityLists.push_back(this);
+	pEntityLists.insert(this);
 }
 
 EntityList::~EntityList()
 {
 	Invalidate();
-	Vector_RemoveElement(pEntityLists, this)
+	pEntityLists.erase(this);
 }
 
 void EntityList::Clear()
 {
 	m_pEntities.clear();
-	if (m_pLua)
-		for (auto& [_, iReference] : m_pEntReferences)
-			if (IsValidReference(iReference))
-				Util::ReferenceFree(iReference, "EntityList::Clear");
+	for (auto& [_, iReference] : m_pEntReferences)
+	{
+		if (IsValidReference(iReference))
+		{
+			Util::ReferenceFree(iReference, "EntityList::Clear");
+		}
+	}
 	
 	m_pEntReferences.clear();
 }
 
 void EntityList::CreateReference(CBaseEntity* pEntity)
 {
-	if (!m_pLua)
-		Error("holylib: missing pLua!\n");
-
 	auto it = m_pEntReferences.find(pEntity);
 	if (it != m_pEntReferences.end())
 	{
@@ -73,7 +72,7 @@ void EntityList::FreeEntity(CBaseEntity* pEntity)
 	auto it = m_pEntReferences.find(pEntity);
 	if (it != m_pEntReferences.end())
 	{
-		if (IsValidReference(it->second) && m_pLua)
+		if (IsValidReference(it->second))
 			Util::ReferenceFree(it->second, "EntityList::FreeEntity");
 
 		Vector_RemoveElement(m_pEntities, pEntity);
@@ -84,7 +83,9 @@ void EntityList::FreeEntity(CBaseEntity* pEntity)
 bool Is_EntityList(int iStackPos)
 {
 	if (g_Lua)
+	{
 		return g_Lua->IsType(iStackPos, EntityList_TypeID);
+	}
 
 	return false;
 }
@@ -222,7 +223,7 @@ LUA_FUNCTION_STATIC(EntityList_RemoveEntity)
 
 LUA_FUNCTION_STATIC(CreateEntityList)
 {
-	EntityList* pList = new EntityList(LUA);
+	EntityList* pList = new EntityList;
 	Push_EntityList(pList);
 	return 1;
 }
@@ -292,8 +293,6 @@ void CEntListModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 		Util::AddFunc(CreateEntityList, "CreateEntityList");
 		Util::AddFunc(GetGlobalEntityList, "GetGlobalEntityList");
 	g_Lua->Pop(1);
-
-	g_pGlobalEntityList.SetLua(g_Lua);
 }
 
 void CEntListModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
@@ -302,5 +301,6 @@ void CEntListModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 		Util::RemoveField("CreateEntityList");
 		Util::RemoveField("GetGlobalEntityList");
 	g_Lua->Pop(1);
+
 	g_pGlobalEntityList.Invalidate();
 }

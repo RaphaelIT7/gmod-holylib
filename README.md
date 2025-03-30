@@ -36,12 +36,25 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 2. Upload the file into the `lua/bin` folder
 3. Restart the server normally.  
 On the next startup the ghostinj will update holylib to use the new file.  
+This is done by first deleting the current `gmsv_holylib_linux[64].so` and then renaming the `_updated.so` essentially replacing the original file.
 
 ## How to update (Older GhostInj versions)
 
 1. Shutdown the server
 2. Upload the new file
 3. Enjoy it
+
+## What noticable things does HolyLib bring?
+\- A huge Lua API providing deep access to the engine.  
+\- Implements some bug fixes (some bug fixes were brought into gmod itself).  
+\- \- `ShouldCollide` won't break the entire physics engine and instead a warning is thrown `holylib: Someone forgot to call Entity:CollisionRulesChanged!`.  
+\- Lua Hooks are shown in vprof results (done in the `vprof` module)  
+\- Ported a networking improvement over from [sigsegv-mvm](https://github.com/rafradek/sigsegv-mvm/blob/910b92456c7578a3eb5dff2a7e7bf4bc906677f7/src/mod/perf/sendprop_optimize.cpp#L35-L144) improving performance & memory usage (done in the `networking` module)  
+\- Ported [Momentum Mod](https://github.com/momentum-mod)'s surfing improvements (done in the `surffix` module)  
+\- Heavily improved the filesystem (done in the `filesystem` module)  
+\- Greatly improved Gmod's `GMod::Util::IsPhysicsObjectValid` function improving performance especially when many physics objects exist (done in the `physenv` module)  
+\- (Disabled by default) Updated LuaJIT version (done in the `luajit` module)  
+\- Improved ConVar's find code improving performance (done in the `cvars` module)  
 
 ## Next Update
 \- [+] Added (Experimentally)`luajit` module.  
@@ -69,7 +82,7 @@ On the next startup the ghostinj will update holylib to use the new file.
 \- \- Files inside that folder are loaded and executed before **any** gmod script runs, only the c++ functions exist at this point.  
 \- [+] Added `bf_write:WriteString` to `bitbuf` module.  
 \- [+] Added `IGModAudioChannel:FFT` to `bass` module.  
-\- [+] Added `VoiceStream` class and related functions to `voicechat` module.
+\- [+] Added `VoiceStream` class and related functions to `voicechat` module.  
 \- [#] Fixed many issues with the `bass` module. It is acutally usable.  
 \- [#] Improved performance by replacing SetTable with RawSet.  
 \- [#] Added missing calls to the deconstructors for `CHLTVClient` and `CNetworkStringTable`.  
@@ -91,6 +104,7 @@ You can see all changes here:
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
 
 ### Existing Lua API Changes
+\- [+] Added a third argument `ratio` to `util.AsyncDecompress`, set to `0.98` by default.
 \- [#] Flipped `INetworkStringTable:AddString` arguments.  
 \- [#] All `pvs.FL_EDICT_` enums changed.  
 \- [#] Made `HolyLib.SetSignOnState` third arg optional and added `rawSet` option.  
@@ -117,6 +131,8 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
 
 ## ToDo
 
+\- **Important before next release** Fix a unknown crash on shutdown(Need to get a valid debug log but it just won't give me one).  
+
 \- Finish 64x (`pvs`, `sourcetv`, `surffix`)  
 \- Find out why ConVars are so broken. (Serverside `path` command breaks :<)  
 \- Look into filesystem handle optimization  
@@ -127,6 +143,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
 \- GO thru everything and use a more consistant codestyle. I created quiet the mess.  
 \- Reduce/Remove the usage of g_Lua since our code should work later with multiple ILuaInterfaces.  
 \- test/become compatible with vphysics-jolt (I'm quite sure that the `physenv` isn't compatible).  
+\- Check out `holylib_filesystem_predictexistance` as it seamingly broke, reportidly works in `0.6`.  
 
 # New Documentation
 Currently I'm working on implementing a better wiki that will replace this huge readme later.  
@@ -1121,7 +1138,10 @@ So please don't modify it while were compressing / decompressing it or else some
 #### util.AsyncCompress(string data, function callback)
 Same as above, but uses the default values for level and dictSize.  
 
-#### util.AsyncDecompress(string data, function callback)
+#### util.AsyncDecompress(string data, function callback, number ratio = 0.98)
+ratio - The maximum decompression ratio allowed.  
+By default 0.98 -> 0.2MB are can be decompressed to 10MB but not further.  
+
 Works like util.Decompress but it's async.  
 
 #### string util.FancyTableToJSON(table tbl, bool pretty, bool ignorecycle)
@@ -1732,7 +1752,7 @@ Reads a float.
 #### number bf_read:ReadLong()
 Reads a long.  
 
-#### number bf_read:ReadLongLong()
+#### string bf_read:ReadLongLong()
 Reads a long long.  
 
 #### bool bf_read:ReadOneBit()
@@ -1847,7 +1867,7 @@ Writes a byte.
 #### bf_write:WriteLong(number value)
 Writes a long.  
 
-#### bf_write:WriteLongLong(number value)
+#### bf_write:WriteLongLong(number/string value)
 Writes a long long.  
 
 #### bf_write:WriteBytes(string data)
@@ -3294,6 +3314,93 @@ Calculates and returns the CPU Usage.
 Approximates the memory usage of the server in bytes.  
 It isn't really related to the gameserver itself, but since it has CalculateCPUUsage I want to keep them close.
 
+#### number gameserver.SendConnectionlessPacket(bf_write bf, string ip)
+ip - The target ip. Format `ip:port`  
+Sends out a connectionless packet to the target ip.
+Returns the length of the sent data or `-1` on failure.
+
+> [!NOTE]
+> It's expected that **YOU** already added the connectionless header, this was done to not have to copy the buffer.  
+> `bf:WriteLong(-1) -- Write this as the first thing. This is the CONNECTIONLESS_HEADER`
+
+#### CNetChan gameserver.CreateNetChannel(string ip, bool useDNS = false)
+ip - The target ip. Format `ip:port`  
+Creates a net channel for the given ip.
+Returns the channel or `nil` on failure.  
+
+Example implementation of creating a working connection between two servers:
+```lua
+local REQUEST_CHANNEL = string.byte("z")
+function BuildNetChannel(target, status) -- status should not be set when called
+	local bf = bitbuf.CreateWriteBuffer(64)
+
+	bf:WriteLong(-1) -- CONNECTIONLESS_HEADER
+	bf:WriteByte(REQUEST_CHANNEL) -- Our header
+    bf:WriteByte(status or 0) -- 0 = We requested it.
+
+	gameserver.SendConnectionlessPacket(bf, target)
+end
+
+function IncomingNetMessage(channel, bf, length)
+	print("Received a message at " .. tostring(channel), bf, length)
+end
+
+netChannels = netChannels or {}
+hook.Add("HolyLib:ProcessConnectionlessPacket", "ProcessResponse", function(bf, ip)
+	local header = bf:ReadByte()
+	if header != REQUEST_CHANNEL then return end
+
+	local status = bf:ReadByte()
+
+	local netChannel = gameserver.CreateNetChannel(ip)
+    netChannel:SetMessageCallback(function(bf, length)
+    	IncomingNetMessage(netChannel, bf, length)
+    end)
+    table.insert(netChannels, netChannel)
+
+    if status == 0 then
+    	print("Created a requested net channel to " .. ip)
+
+    	BuildNetChannel(ip, 1) -- Respond to the sender to confirm creation.
+    elseif status == 1 then
+    	print("Created our net channel to " .. ip)
+    end
+    
+	return true
+end)
+
+function SendNetMessage(target, bf, reliable)
+	for _, channel in ipairs(netChannels) do
+		if not channel:IsValid() then continue end
+		if channel:GetName() != target then continue end
+
+		return channel:SendMessage(bf, reliable)
+	end
+
+	return false
+end
+
+hook.Add("Think", "UpdateNetChannels", function()
+	for _, channel in ipairs(netChannels) do
+		if not channel:IsValid() then continue end
+
+		channel:ProcessStream() -- process any incomming messages
+		channel:Transmit() -- Transmit out a update.
+	end
+end)
+
+-- Install the script on two servers.
+-- call BuildNetChannel with the target on one of the servers and on both servers a net channel is created
+
+BuildNetChannel("127.0.0.1:27015")
+```
+
+#### CNetChan gameserver.RemoveNetChannel(CNetChan channel)
+Removes/Destroys a net channel invalidating it.
+
+#### table[CNetChan] gameserver.GetCreatedNetChannels()
+Returns a table containing all net channels created by gameserver.CreateNetChannel.  
+
 ### CBaseClient
 This class represents a client.
 
@@ -3514,6 +3621,9 @@ Sets the time in seconds before the client is marked as timing out.
 Transmit any pending data to the client.  
 Returns `true` on success.
 
+> [!WARNING]
+> Transmitting data to the client causes the client's prediction to **reset and cause prediction errors!**.
+
 Exampe usage of this function:
 ```lua
 concommand.Add("nukechannel", function(ply)
@@ -3583,6 +3693,173 @@ Format: `CGameClient [%i][%s]`
 `%i` -> UserID  
 `%s` -> ClientName  
 
+### CNetChan
+This class represents a client.
+
+#### string CNetChan:\_\_tostring()
+Returns the a formated string.  
+Format: `CNetChan [%s]`  
+`%s` -> channel name[ip:port]  
+
+#### CNetChan:\_\_newindex(string key, any value)
+Internally implemented and will set the values into the lua table.  
+
+#### any CNetChan:\_\_index(string key)
+Internally seaches first in the metatable table for the key.  
+If it fails to find it, it will search in the lua table before returning.  
+If you try to get multiple values from the lua table, just use `CNetChan:GetTable()`.  
+
+#### table CNetChan:GetTable()
+Returns the lua table of this object.  
+You can store variables into it.  
+
+#### bool CNetChan:IsValid()
+Returns `true` if the channel is still valid.  
+
+#### number CNetChan:GetAvgLoss(number flow)
+
+#### number CNetChan:GetAvgChoke(number flow)
+
+#### number CNetChan:GetAvgData(number flow)
+
+#### number CNetChan:GetAvgLatency(number flow)
+
+#### number CNetChan:GetAvgPackets(number flow)
+
+#### number CNetChan:GetChallengeNr()
+
+#### string CNetChan:GetAddress()
+Returns the Address as `ip:port`
+
+#### number CNetChan:GetDataRate()
+
+#### number CNetChan:GetDropNumber()
+
+#### CNetChan:SetChoked()
+
+#### CNetChan:SetFileTransmissionMode(boolean backgroundTransmission = false)
+If `true` files will be transmitted using a single fragment.  
+
+#### CNetChan:SetCompressionMode(boolean compression = false)
+If `true` enables compression.
+
+#### CNetChan:SetDataRate(number rate)
+
+#### number CNetChan:GetTime()
+
+#### number CNetChan:GetTimeConnected()
+
+#### number CNetChan:GetTimeoutSeconds()
+
+#### number CNetChan:GetTimeSinceLastReceived()
+
+#### number CNetChan:GetTotalData(number flow)
+
+#### number CNetChan:GetBufferSize()
+
+#### number CNetChan:GetProtocolVersion()
+
+#### string CNetChan:GetName()
+Returns the name of the channel.  
+Normally `ip:port`
+
+#### boolean CNetChan:GetProcessingMessages()
+Returns `true` if it's currently processing messages.  
+
+#### boolean CNetChan:GetClearedDuringProcessing()
+
+#### number CNetChan:GetOutSequenceNr()
+
+#### number CNetChan:GetInSequenceNr()
+
+#### number CNetChan:GetOutSequenceNrAck()
+
+#### number CNetChan:GetOutReliableState()
+
+#### number CNetChan:GetInReliableState()
+
+#### number CNetChan:GetChokedPackets()
+
+#### bf_write CNetChan:GetStreamReliable()
+Returns the reliable stream used by net messages.
+
+#### bf_write CNetChan:GetStreamUnreliable()
+Returns the unreliable stream used by net messages.
+
+#### bf_write CNetChan:GetStreamVoice()
+Returns the voice stream used by the voice chat.
+
+#### number CNetChan:GetStreamSocket()
+
+#### number CNetChan:GetMaxReliablePayloadSize()
+
+#### number CNetChan:GetLastReceived()
+
+#### number CNetChan:GetConnectTime()
+
+#### number CNetChan:GetClearTime()
+
+#### number CNetChan:GetTimeout()
+
+#### CNetChan:SetTimeout(number seconds)
+Sets the time in seconds before the channel is marked as timing out.
+
+#### bool CNetChan:Transmit(bool onlyReliable = false, number fragments = -1, bool freeSubChannels = false)
+Transmit any pending data to the channel.  
+Returns `true` on success.
+
+##### freeSubChannels argument
+Marks all sub channel's of the channel as freed allowing data to be transmitted again.  
+It's a possible speed improvement yet fragments may get lost & cause issues / it's unsafe.  
+
+#### bool CNetChan:ProcessStream()
+Processes all pending incoming net messages.  
+Returns `true` on success.
+
+#### CNetChan:SetMaxBufferSize(bool reliable = false, number bytes, bool voice = false)
+Resizes the specified buffer to the given size in bytes.  
+
+> [!NOTE]
+> All data inside that stream is discarded, make sure everything was sent out.
+
+#### CNetChan:Shutdown(string reason = nil)
+Shuts down the channel.
+
+#### CNetChan:SendMessage(bf_write buffer, boolean reliable = false)
+Sends out the given buffer as a message.
+
+#### CNetChan:SetMessageCallback(function callback)
+callback -> `function(CNetChan channel/self, bf_read buffer, number length)`  
+
+Sets the callback function for any incomming messages.  
+
+#### function CNetChan:GetMessageCallback()
+Returns the current message callback function.  
+
+#### CNetChan:SetConnectionStartCallback(function callback)
+callback -> `function(CNetChan channel/self`  
+
+Sets the callback function for when the connection was established.  
+
+#### function CNetChan:GetConnectionStartCallback()
+Returns the current connection start callback function.  
+
+#### CNetChan:SetConnectionClosingCallback(function callback)
+callback -> `function(CNetChan channel/self, string reason)`  
+
+Sets the callback function for when a connection is closed.  
+
+#### function CNetChan:GetConnectionClosingCallback()
+Returns the current connection closing callback function.  
+
+#### CNetChan:SetConnectionCrashedCallback(function callback)
+callback -> `function(CNetChan channel/self, string reason)`  
+
+Sets the callback function for when a connection has crashed.  
+
+#### function CNetChan:GetConnectionCrashedCallback()
+Returns the current connection crashed callback function.  
+
 ### Hooks
 
 #### bool HolyLib:OnSetSignonState(CGameClient client, number state, number spawnCount)
@@ -3613,11 +3890,188 @@ if a CBasePlayer entity is created on a slot above 128 expect stability issues!
 #### HolyLib:OnClientDisconnect(CGameClient client)
 Called when a client disconnects.
 
+#### bool HolyLib:ProcessConnectionlessPacket(bf_read buffer, string ip)
+Called when a connectionless packet is received.  
+Return `true` to mark the packet as handled.  
+
+Won't be called if `holylib_gameserver_connectionlesspackethook` is set to `0`.  
+
+Example of retrieving the `A2S_INFO` from a Source Engine Server.
+```lua
+function AskForServerInfo(targetIP, challenge)
+	local bf = bitbuf.CreateWriteBuffer(64)
+
+	bf:WriteLong(-1) -- CONNECTIONLESS_HEADER
+	bf:WriteByte(string.byte("T")) -- A2S_INFO Header
+	bf:WriteString("Source Engine Query") -- Null terminated string
+
+	if challenge then
+		bf:WriteLong(challenge) -- Challange response if we got a S2C_CHALLENGE
+	end
+
+	gameserver.SendConnectionlessPacket(bf, targetIP)
+end
+
+function GetServerInfo(targetIP)
+	AskForServerInfo(targetIP)
+
+	hook.Add("HolyLib:ProcessConnectionlessPacket", "ProcessResponse", function(bf, ip)
+		if ip != targetIP then return end
+
+		local msgHeader = bf:ReadByte()
+		if msgHeader == string.byte("A") then -- It responded with a S2C_CHALLENGE
+			AskForServerInfo(targetIP, bf:ReadLong())
+			return true
+		end
+
+		if msgHeader != string.byte("I") then return end -- We didn't receive a A2S_INFO
+
+		local a2s_info = {
+			Header = string.char(msgHeader),
+			Protocol = bf:ReadByte(),
+			Name = bf:ReadString(),
+			Map = bf:ReadString(),
+			Folder = bf:ReadString(),
+			Game = bf:ReadString(),
+			ID = bf:ReadShort(),
+			Players = bf:ReadByte(),
+			MaxPlayers = bf:ReadByte(),
+			Bots = bf:ReadByte(),
+			ServerType = bf:ReadByte(),
+			Environment = string.char(bf:ReadByte()),
+			Visibility = bf:ReadByte(),
+			VAC = bf:ReadByte(),
+			Version = bf:ReadString(),
+			ExtraDataFlag = bf:ReadByte(),
+		}
+
+		if bit.band(a2s_info.ExtraDataFlag, 0x80) != 0 then
+			a2s_info.Port = bf:ReadShort()
+		end
+
+		if bit.band(a2s_info.ExtraDataFlag, 0x10) != 0 then
+			a2s_info.SteamID = bf:ReadLongLong()
+		end
+
+		if bit.band(a2s_info.ExtraDataFlag, 0x40) != 0 then
+			a2s_info.SourceTVPort = bf:ReadShort()
+			a2s_info.SourceTVName = bf:ReadString()
+		end
+
+		if bit.band(a2s_info.ExtraDataFlag, 0x20) != 0 then
+			a2s_info.Tags = bf:ReadString()
+		end
+
+		if bit.band(a2s_info.ExtraDataFlag, 0x01) != 0 then
+			a2s_info.GameID = bf:ReadLongLong()
+		end
+
+		PrintTable(a2s_info)
+		return true
+	end)
+end
+
+--- Example call
+GetServerInfo("xxx.xxx.xxx.xxx:27015")
+```
+
+Output:
+```txt
+["Bots"]        =       0
+["Environment"] =       l
+["ExtraDataFlag"]       =       177
+["Folder"]      =       garrysmod
+["Game"]        =       Sandbox
+["GameID"]      =       4000
+["Header"]      =       I
+["ID"]  =       4000
+["Map"] =       gm_flatgrass
+["MaxPlayers"]  =       128
+["Name"]        =       RaphaelIT7's Testing Hell
+["Players"]     =       0
+["Port"]        =       32108
+["Protocol"]    =       17
+["ServerType"]  =       100
+["SteamID"]     =       [steamid]
+["Tags"]        =        gm:sandbox gmc:other ver:250321
+["VAC"] =       1
+["Version"]     =       2024.10.29
+["Visibility"]  =       1
+```
+
+Example of retrieving the `A2S_PLAYER` from a Source Engine Server.
+```lua
+function AskForServerPlayerInfo(targetIP, challenge)
+	local bf = bitbuf.CreateWriteBuffer(64)
+
+	bf:WriteLong(-1) -- CONNECTIONLESS_HEADER
+	bf:WriteByte(string.byte("U")) -- A2S_PLAYER Header
+
+	bf:WriteUBitLong(challenge or -1, 32) -- Challange response if we got a S2C_CHALLENGE
+
+	gameserver.SendConnectionlessPacket(bf, targetIP)
+end
+
+function GetServerPlayerInfo(targetIP)
+	AskForServerPlayerInfo(targetIP)
+
+	hook.Add("HolyLib:ProcessConnectionlessPacket", "ProcessResponse", function(bf, ip)
+		if ip != targetIP then return end
+
+		local msgHeader = bf:ReadByte()
+		if msgHeader == string.byte("A") then -- It responded with a S2C_CHALLENGE
+			AskForServerPlayerInfo(targetIP, bf:ReadUBitLong(32))
+			return true
+		end
+
+		if msgHeader != string.byte("D") then return end -- We didn't receive a A2S_PLAYER
+
+		local a2s_player = {
+			Header = string.char(msgHeader),
+			Players = bf:ReadByte(),
+		}
+
+		for k=1, a2s_player.Players do
+			local entry = {}
+			a2s_player[k] = entry
+
+			entry.Index = bf:ReadByte()
+			entry.Name = bf:ReadString()
+			entry.Score = bf:ReadLong()
+			entry.Duration = bf:ReadFloat()
+		end
+
+		PrintTable(a2s_player)
+		return true
+	end)
+end
+
+--- Example call
+GetServerPlayerInfo("xxx.xxx.xxx.xxx:27015")
+```
+
+Output:
+```txt
+[1]:
+                ["Duration"]    =       40.337387084961
+                ["Index"]       =       0
+                ["Name"]        =       Raphael
+                ["Score"]       =       0
+["Header"]      =       D
+["Players"]     =       1
+```
+
 ### ConVars
 
 #### holylib_gameserver_disablespawnsafety (default `0`)
 If enabled, players can spawn on slots above 128 but this WILL cause stability and many other issues!  
 Added to satisfy curiosity & test around with slots above 128.
+
+#### holylib_gameserver_connectionlesspackethook (default `1`)
+If enabled, the HolyLib:ProcessConnectionlessPacket hook is active and will be called.
+
+### sv_filter_nobanresponse (default `0`)
+If enabled, a blocked ip won't be informed that its even blocked.
 
 ### Singleplayer
 This module allows you to have a 1 slot / a singleplayer server.  

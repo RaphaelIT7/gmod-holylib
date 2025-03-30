@@ -14,6 +14,7 @@
 #include <detouring/classproxy.hpp>
 #include "unordered_set"
 #include "player.h"
+#include "tier1/tier1.h"
 
 class CPhysEnvModule : public IModule
 {
@@ -166,6 +167,22 @@ LUA_FUNCTION_STATIC(physenv_SetPhysSkipType)
 	return 0;
 }
 
+class CPhysicsCollisionSet : public IPhysicsCollisionSet
+{
+	virtual ~CPhysicsCollisionSet() {}
+private:
+	unsigned int m_bits[32];
+};
+
+class IVP_VHash_Store;
+class CPhysicsInterface : public CTier1AppSystem<IPhysics>
+{
+public: // private? Naaaa I beg to differ
+	CUtlVector<IPhysicsEnvironment *>	m_envList;
+	CUtlVector<CPhysicsCollisionSet>	m_collisionSets;
+	IVP_VHash_Store						*m_pCollisionSetHash;
+};
+
 IVModelInfo* modelinfo;
 IStaticPropMgrServer* staticpropmgr;
 IPhysics* physics = NULL;
@@ -292,6 +309,7 @@ public:
 
 static std::unordered_map<IPhysicsEnvironment*, ILuaPhysicsEnvironment*> g_pEnvironmentToLua;
 static std::unordered_map<IPhysicsObject*, ILuaPhysicsEnvironment*> g_pObjects; // contains all IPhysicsObject that exist
+static inline void RegisterPhysicsObject(ILuaPhysicsEnvironment* pEnv, IPhysicsObject* pObject);
 struct ILuaPhysicsEnvironment
 {
 	ILuaPhysicsEnvironment(IPhysicsEnvironment* env)
@@ -301,6 +319,13 @@ struct ILuaPhysicsEnvironment
 #ifdef SYSTEM_WINDOWS
 		pEnvironmentProxy = std::make_unique<CPhysicsEnvironmentProxy>(env);
 #endif
+
+		int iCount;
+		IPhysicsObject** pList = (IPhysicsObject**)pEnvironment->GetObjectList(&iCount);
+		for (int i = 0; i < iCount; ++i)
+		{
+			RegisterPhysicsObject(this, pList[i]);
+		}
 	}
 
 	~ILuaPhysicsEnvironment()
@@ -370,6 +395,9 @@ struct ILuaPhysicsEnvironment
 	//CLuaPhysicsCollisionEvent* pCollisionEvent = NULL;
 };
 
+/*
+ * If it already exists it won't register it & just returns the existing one.
+ */
 static inline ILuaPhysicsEnvironment* RegisterPhysicsEnvironment(IPhysicsEnvironment* pEnv)
 {
 	auto it = g_pEnvironmentToLua.find(pEnv);
@@ -696,14 +724,7 @@ LUA_FUNCTION_STATIC(physenv_GetActiveEnvironmentByIndex)
 		return 1;
 	}
 
-	auto it = g_pEnvironmentToLua.find(pEnvironment);
-	if (it != g_pEnvironmentToLua.end())
-	{
-		Push_ILuaPhysicsEnvironment(it->second);
-		return 1;
-	}
-
-	Push_ILuaPhysicsEnvironment(new ILuaPhysicsEnvironment(pEnvironment));
+	Push_ILuaPhysicsEnvironment(RegisterPhysicsEnvironment(pEnvironment));
 	return 1;
 }
 
@@ -736,6 +757,20 @@ LUA_FUNCTION_STATIC(physenv_DestroyEnvironment)
 	delete pLuaEnv;
 
 	return 0;
+}
+
+LUA_FUNCTION_STATIC(physenv_GetAllEnvironments)
+{
+	CPhysicsInterface* pPhys = (CPhysicsInterface*)physics;
+	LUA->PreCreateTable(pPhys->m_envList.Count(), 0);
+		int idx = 0;
+		FOR_EACH_VEC(pPhys->m_envList, i)
+		{
+			Push_ILuaPhysicsEnvironment(RegisterPhysicsEnvironment(pPhys->m_envList[i]));
+			Util::RawSetI(LUA, -2, ++idx);	
+		}
+	
+	return 1;
 }
 
 LUA_FUNCTION_STATIC(physenv_FindCollisionSet)
@@ -2072,6 +2107,13 @@ void CPhysEnvModule::LuaInit(bool bServerInit)
 	if (bServerInit)
 		return;
 
+	CPhysicsInterface* pPhys = (CPhysicsInterface*)physics;
+	FOR_EACH_VEC(pPhys->m_envList, i)
+	{
+		// If we were enabled after the server was started, we should register all phys envs as the GMod::Util::IsPhysicsObjectValid depends on it.
+		RegisterPhysicsEnvironment(pPhys->m_envList[i]);
+	}
+
 	CPhysCollide_TypeID = g_Lua->CreateMetaTable("CPhysCollide");
 		Util::AddFunc(CPhysCollide__tostring, "__tostring");
 		Util::AddFunc(CPhysCollide__index, "__index");
@@ -2163,6 +2205,7 @@ void CPhysEnvModule::LuaInit(bool bServerInit)
 		Util::AddFunc(physenv_GetActiveEnvironmentByIndex, "GetActiveEnvironmentByIndex");
 		Util::AddFunc(physenv_DestroyEnvironment, "DestroyEnvironment");
 		Util::AddFunc(physenv_GetCurrentEnvironment, "GetCurrentEnvironment");
+		Util::AddFunc(physenv_GetAllEnvironments, "GetAllEnvironments");
 		Util::AddFunc(physenv_EnablePhysHook, "EnablePhysHook");
 
 		Util::AddFunc(physenv_FindCollisionSet, "FindCollisionSet");
@@ -2243,16 +2286,13 @@ void CPhysEnvModule::LuaShutdown()
 
 void CPhysEnvModule::Shutdown()
 {
-	std::vector<ILuaPhysicsEnvironment*> pEnvironments;
-	for (auto& [env, _] : g_pPushedILuaPhysicsEnvironment)
-		pEnvironments.push_back(env); // I'm unsure if it would be save to iterate over it while we modify it in the deconstructor, so we copy them
+	DeleteAll_ILuaPhysicsEnvironment();
 
-	// NOTE: The IPhysicsEnvironment remains! we should probably delete that too
-	for (ILuaPhysicsEnvironment* env : pEnvironments)
-		delete env;
-
-	g_pPushedILuaPhysicsEnvironment.clear();
-	pEnvironments.clear();
+	for (auto it = g_pEnvironmentToLua.begin(); it != g_pEnvironmentToLua.end(); )
+	{
+		delete it->second;
+		it = g_pEnvironmentToLua.erase(it);
+	}
 }
 
 void CPhysEnvModule::InitDetour(bool bPreServer)

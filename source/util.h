@@ -11,6 +11,12 @@
 #define DEDICATED
 #include "vstdlib/jobthread.h"
 
+#if GITHUB_RUN_DATA == 0
+#define HOLYLIB_BUILD_RELEASE 0
+#else
+#define HOLYLIB_BUILD_RELEASE 1
+#endif
+
 class IVEngineServer;
 
 // Added to not break some sourcesdk things. Use Util::engineserver!
@@ -254,12 +260,23 @@ namespace Util
  *       as else it COULD persist across lua states which is VERY BAD as the references will ALL be INVALID.
  */
 
+// This WILL slow down userData creation & deletion so we disable this in release builds.
+#if HOLYLIB_BUILD_RELEASE
+#define HOLYLIB_UTIL_DEBUG_LUAUSERDATA 0
+#else
+#define HOLYLIB_UTIL_DEBUG_LUAUSERDATA 1
+#endif
+
+#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA
 struct LuaUserData;
 extern bool g_pRemoveLuaUserData;
 extern std::unordered_set<LuaUserData*> g_pLuaUserData; // A set containing all LuaUserData that actually hold a reference.
+#endif
 struct LuaUserData {
 	LuaUserData() {
+#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA
 		g_pLuaUserData.insert(this);
+#endif
 	}
 
 	~LuaUserData() {
@@ -267,17 +284,21 @@ struct LuaUserData {
 		{
 			Warning("holylib: Tried to delete usetdata from another thread!\n");
 
+#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA
 			if (g_pRemoveLuaUserData)
 			{
 				g_pLuaUserData.erase(this);
 			}
+#endif
 			return;
 		}
 
+#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA
 		if (g_pRemoveLuaUserData)
 		{
 			g_pLuaUserData.erase(this);
 		}
+#endif
 
 		if (iReference != -1)
 		{
@@ -301,6 +322,7 @@ struct LuaUserData {
 		}
 
 		pAdditionalData = NULL;
+		pData = NULL;
 	}
 
 	inline void Init(GarrysMod::Lua::ILuaInterface* LUA)
@@ -478,35 +500,37 @@ className* Get_##className(int iStackPos, bool bError) \
 }
 
 #define Push_LuaClass( className, luaType ) \
-void Push_##className(className* var) \
+LuaUserData* Push_##className(className* var) \
 { \
 	if (!var) \
 	{ \
 		g_Lua->PushNil(); \
-		return; \
+		return NULL; \
 	} \
 \
 	LuaUserData* userData = new LuaUserData; \
 	userData->SetData(var); \
 	userData->Init(g_Lua); \
 	g_Lua->PushUserType(userData, luaType); \
+	return userData; \
 }
 
 // This one is special, the GC WONT free the LuaClass meaning this "could" (and did in the past) cause a memory/reference leak
 #define PushReferenced_LuaClass( className, luaType ) \
 static std::unordered_map<className*, LuaUserData*> g_pPushed##className; \
-void Push_##className(className* var) \
+LuaUserData* Push_##className(className* var) \
 { \
 	if (!var) \
 	{ \
 		g_Lua->PushNil(); \
-		return; \
+		return NULL; \
 	} \
 \
 	auto it = g_pPushed##className.find(var); \
 	if (it != g_pPushed##className.end()) \
 	{ \
 		g_Lua->ReferencePush(it->second->GetReference()); \
+		return it->second; \
 	} else { \
 		LuaUserData* userData = new LuaUserData; \
 		userData->SetData(var); \
@@ -514,6 +538,7 @@ void Push_##className(className* var) \
 		userData->Init(g_Lua); \
 		userData->CreateReference(); \
 		g_pPushed##className[var] = userData; \
+		return userData; \
 	} \
 } \
 \
@@ -579,6 +604,7 @@ LUA_FUNCTION_STATIC(className ## __newindex) \
 // A default gc function for userData,
 // handles garbage collection, inside the func argument you can use pData as a variable
 // like pData->GetData() to get your class. Just see how it's done inside the bf_read gc definition.
+// NOTE: You need to manually delete the data inside the callback function -> delete pData->GetData()
 #define Default__gc(className, func) \
 LUA_FUNCTION_STATIC(className ## __gc) \
 { \
@@ -618,7 +644,7 @@ class bf_read;
  * It will be deleted by Lua GC.
  * ensure that either you set it to NULL afterwards or push a Copy if you don't own the original.
  */
-extern void Push_bf_read(bf_read* tbl);
+extern LuaUserData* Push_bf_read(bf_read* tbl);
 extern bf_read* Get_bf_read(int iStackPos, bool bError);
 
 class bf_write;
@@ -626,7 +652,7 @@ class bf_write;
  * It will be deleted by Lua GC.
  * ensure that either you set it to NULL afterwards or push a Copy if you don't own the original.
  */
-extern void Push_bf_write(bf_write* tbl);
+extern LuaUserData* Push_bf_write(bf_write* tbl);
 extern bf_write* Get_bf_write(int iStackPos, bool bError);
 
 class IGameEvent;
@@ -640,7 +666,7 @@ extern ConVar* Get_ConVar(int iStackPos, bool bError);
 
 struct EntityList // entitylist module.
 {
-	EntityList(GarrysMod::Lua::ILuaInterface* pLua);
+	EntityList();
 	~EntityList();
 
 	void Clear();
@@ -676,19 +702,12 @@ struct EntityList // entitylist module.
 	inline void Invalidate()
 	{
 		Clear();
-		m_pLua = NULL;
-	}
-
-	inline void SetLua(GarrysMod::Lua::ILuaInterface* pLua)
-	{
-		m_pLua = pLua;
 	}
 
 private:
 	// NOTE: The Entity will always be valid but the reference can be -1!
 	std::unordered_map<CBaseEntity*, int> m_pEntReferences;
 	std::vector<CBaseEntity*> m_pEntities;
-	GarrysMod::Lua::ILuaInterface* m_pLua;
 };
 extern EntityList g_pGlobalEntityList;
 
@@ -699,5 +718,5 @@ extern void BlockGameEvent(const char* pName);
 extern void UnblockGameEvent(const char* pName);
 
 class CBaseClient;
-extern void Push_CBaseClient(CBaseClient* tbl);
+extern LuaUserData* Push_CBaseClient(CBaseClient* tbl);
 extern CBaseClient* Get_CBaseClient(int iStackPos, bool bError);

@@ -762,6 +762,10 @@ namespace Symbols
 		Symbol::FromName("_ZN11CGameClient11SpawnPlayerEv"),
 	};
 
+	const std::vector<Symbol> CBaseServer_ProcessConnectionlessPacketSym = {
+		Symbol::FromName("_ZN11CBaseServer27ProcessConnectionlessPacketEP11netpacket_s"),
+	};
+
 	const std::vector<Symbol> NET_SendPacketSym = {
 		Symbol::FromName("_Z14NET_SendPacketP11INetChanneliRK8netadr_sPKhiP8bf_writeb"),
 	};
@@ -796,6 +800,22 @@ namespace Symbols
 
 	const std::vector<Symbol> CNetChan_ProcessPacketHeaderSym = {
 		Symbol::FromName("_ZN8CNetChan19ProcessPacketHeaderEP11netpacket_s"),
+	};
+
+	const std::vector<Symbol> CNetChan_D2Sym = {
+		Symbol::FromName("_ZN8CNetChanD2Ev"),
+	};
+
+	const std::vector<Symbol> NET_CreateNetChannelSym = {
+		Symbol::FromName("_Z20NET_CreateNetChanneliP8netadr_sPKcP18INetChannelHandlerbi"),
+	};
+
+	const std::vector<Symbol> NET_RemoveNetChannelSym = {
+		Symbol::FromName("_Z20NET_RemoveNetChannelP11INetChannelb"),
+	};
+
+	const std::vector<Symbol> Filter_SendBanSym = {
+		Symbol::FromName("_Z14Filter_SendBanRK8netadr_s"),
 	};
 
 	//---------------------------------------------------------------------------------

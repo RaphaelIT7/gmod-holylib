@@ -555,7 +555,10 @@ namespace Symbols
 	typedef void (*CGameClient_SpawnPlayer)(void* client);
 	extern const std::vector<Symbol> CGameClient_SpawnPlayerSym;
 
-	typedef int (*NET_SendPacket)(INetChannel *chan, int sock,  const netadr_t &to, const unsigned char *data, int length, bf_write *pVoicePayload /* = NULL */, bool bUseCompression /*=false*/);
+	typedef bool (*CBaseServer_ProcessConnectionlessPacket)(void* server, netpacket_s* packet);
+	extern const std::vector<Symbol> CBaseServer_ProcessConnectionlessPacketSym;
+
+	typedef int (*NET_SendPacket)(INetChannel *chan, int sock, const netadr_t &to, const unsigned char *data, int length, bf_write *pVoicePayload /* = NULL */, bool bUseCompression /*=false*/);
 	extern const std::vector<Symbol> NET_SendPacketSym;
 
 	typedef bool (*CNetChan_CreateFragmentsFromBuffer)(CNetChan* channel, bf_write *buffer, int stream);
@@ -581,6 +584,18 @@ namespace Symbols
 
 	typedef int (*CNetChan_ProcessPacketHeader)(CNetChan* chan, netpacket_t* packet);
 	extern const std::vector<Symbol> CNetChan_ProcessPacketHeaderSym;
+
+	typedef void (*CNetChan_D2)(CNetChan* chan);
+	extern const std::vector<Symbol> CNetChan_D2Sym;
+
+	typedef INetChannel* (*NET_CreateNetChannel)(int socket, netadr_t* adr, const char* name, INetChannelHandler* handler, bool bForceNewCHannel, int nProtocolVersion);
+	extern const std::vector<Symbol> NET_CreateNetChannelSym;
+
+	typedef void (*NET_RemoveNetChannel)(INetChannel* chan, bool bDeleteNetChan);
+	extern const std::vector<Symbol> NET_RemoveNetChannelSym;
+
+	typedef void (*Filter_SendBan)(const netadr_t& adr);
+	extern const std::vector<Symbol> Filter_SendBanSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: cvar Symbols

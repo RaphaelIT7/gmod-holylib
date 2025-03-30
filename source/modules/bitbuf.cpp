@@ -337,7 +337,7 @@ LUA_FUNCTION_STATIC(bf_read_ReadLongLong)
 {
 	bf_read* bf = Get_bf_read(1, true);
 
-	LUA->PushNumber((double)bf->ReadLongLong());
+	LUA->PushString(std::to_string(bf->ReadLongLong()).c_str());
 	return 1;
 }
 
@@ -640,7 +640,12 @@ LUA_FUNCTION_STATIC(bf_write_WriteLongLong)
 {
 	bf_write* pBF = Get_bf_write(1, true);
 
-	pBF->WriteLongLong((int64)LUA->CheckNumber(2));
+	if (LUA->IsType(2, GarrysMod::Lua::Type::String))
+	{
+		pBF->WriteLongLong(strtoull(LUA->GetString(2), NULL, 0));
+	} else {
+		pBF->WriteLongLong((int64)LUA->CheckNumber(2));
+	}
 	return 0;
 }
 
