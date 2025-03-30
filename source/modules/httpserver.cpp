@@ -512,7 +512,7 @@ LUA_FUNCTION_STATIC(HttpServer__tostring)
 	}
 
 	char szBuf[64] = {};
-	V_snprintf(szBuf, sizeof(szBuf),"HttpServer [%s - %s]", (pServer->GetAddress() + std::to_string(pServer->GetPort())).c_str(), pServer->GetName().c_str()); 
+	V_snprintf(szBuf, sizeof(szBuf),"HttpServer [%s:%s - %s]", pServer->GetAddress().c_str(), std::to_string(pServer->GetPort()).c_str(), pServer->GetName().c_str()); 
 	LUA->PushString(szBuf);
 	return 1;
 }
