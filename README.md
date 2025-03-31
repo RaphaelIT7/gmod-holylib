@@ -3074,6 +3074,16 @@ Returns the name set by `HttpServer:SetName()`, defaults to `NONAME`
 #### HttpServer:SetName(string name)
 Sets the name of the HttpServer.
 
+#### (Experimental) HttpServer:AddPreparedResponse(number userID, string path, string method, table headers, function callback)
+callback - function(HttpResponse response)  
+
+Adds a prepared response for the given userID.  
+A prepared response won't make any lua call when it matches a incoming request, multiple responses can be queued as their responsed in order.  
+The callback function provides the HttpResponse object which you should use to set all return values.  
+
+> [!NOTE]
+> This is fully experimental.  
+> Currently it doesn't have any real use except to remove the Thread overhead but I plan to make it more useful later.
 ### Method Functions
 All Method functions add a listener for the given path and the given method, like this:
 ```lua
