@@ -15,7 +15,7 @@ jobs:
       ARTIFACT_EXPIRE: "1"
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_BRANCH: "patch-6"
-      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-1"
+      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-2"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
       ADDITIONAL_DATA: "1"
 
@@ -30,3 +30,7 @@ jobs:
       USE_PREFIX: "false"
       ARTIFACT_EXPIRE: "1"
       ADDITIONAL_DATA: "1"
+      SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
+      SOURCESDK_MINIMAL_BRANCH: "patch-6"
+      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-2"
+      GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"

@@ -26,7 +26,7 @@
 // It is hoped that setting this, and using this library will be the common mechanism for
 // allowing link libraries to access tier2 library interfaces
 //-----------------------------------------------------------------------------
-//#if ARCHITECTURE_IS_X86
+#if ARCHITECTURE_IS_X86
 IFileSystem *g_pFullFileSystem = 0;
 IMaterialSystem *materials = 0;
 IMaterialSystem *g_pMaterialSystem = 0;
@@ -38,7 +38,7 @@ IVBAllocTracker *g_VBAllocTracker = 0;
 IColorCorrectionSystem *colorcorrection = 0;
 IMdlLib *mdllib = 0;
 IQueuedLoader *g_pQueuedLoader = 0;
-//#endif
+#endif
 IP4 *p4 = 0;
 
 
