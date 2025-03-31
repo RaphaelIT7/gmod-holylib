@@ -23,6 +23,10 @@ jobs:
       LINUX_FILEEXTENTION: "so"
       BUILD_WINDOWS: "true"
       ARTIFACT_EXPIRE: "7"
+      SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
+      SOURCESDK_MINIMAL_BRANCH: "patch-6"
+      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-1"
+      GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
 
   build_testingarea:
     name: "Build 32x (Testing Area - Dev)"
@@ -38,6 +42,10 @@ jobs:
       LINUX_FILEEXTENTION: "so"
       BUILD_WINDOWS: "false"
       UPLOAD: "pterodactyl"
+      SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
+      SOURCESDK_MINIMAL_BRANCH: "patch-6"
+      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-1"
+      GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
 
   build_testingarea_dev2: # Could make this use the already created artifact but I'm too lazy rn
     name: "Build 32x (Testing Area - Dev2)"
@@ -53,6 +61,10 @@ jobs:
       LINUX_FILEEXTENTION: "so"
       BUILD_WINDOWS: "false"
       UPLOAD: "pterodactyl"
+      SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
+      SOURCESDK_MINIMAL_BRANCH: "patch-6"
+      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-1"
+      GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
 
   build_testingarea_64x:
     name: "Build 64x (Testing Area - 64x)"
@@ -69,6 +81,10 @@ jobs:
       LINUX_FILEEXTENTION: "so"
       BUILD_WINDOWS: "false"
       UPLOAD: "pterodactyl"
+      SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
+      SOURCESDK_MINIMAL_BRANCH: "patch-6"
+      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-1"
+      GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
 
   build_ghostinj:
     name: "Build GhostInj"
