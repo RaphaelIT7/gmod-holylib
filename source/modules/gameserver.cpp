@@ -10,6 +10,9 @@
 #include "sourcesdk/net_chan.h"
 #include <framesnapshot.h>
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 double		net_time;
 
 class CGameServerModule : public IModule

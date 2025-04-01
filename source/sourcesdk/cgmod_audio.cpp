@@ -6,6 +6,9 @@
 #include <filesystem.h>
 #include "Platform.hpp"
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 const char* g_BASSErrorStrings[] = {
 	"BASS_OK",
 	"BASS_ERROR_MEM",

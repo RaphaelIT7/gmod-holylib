@@ -7,6 +7,9 @@
 #include <sourcesdk/server.h>
 #include <unordered_map>
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 class CStringTableModule : public IModule
 {
 public:

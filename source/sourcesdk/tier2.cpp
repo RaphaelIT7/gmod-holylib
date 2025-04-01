@@ -19,6 +19,8 @@
 #include "filesystem/IQueuedLoader.h"
 #include "Platform.hpp"
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
 
 //-----------------------------------------------------------------------------
 // These tier2 libraries must be set by any users of this library.

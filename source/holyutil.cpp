@@ -4,6 +4,9 @@
 #include "plugin.h"
 #include "public/iholyutil.h"
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 class CHolyUtil : public IHolyUtil
 {
 public:

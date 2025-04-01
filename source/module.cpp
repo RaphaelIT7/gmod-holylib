@@ -4,6 +4,9 @@
 #include "convar.h"
 #include "tier0/icommandline.h"
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 static ConVar module_debug("holylib_module_debug", "0");
 
 CModule::~CModule()

@@ -12,6 +12,9 @@
 #include <unordered_map>
 #include "color.h"
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 class CVProfModule : public IModule
 {
 public:

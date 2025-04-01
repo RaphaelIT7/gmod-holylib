@@ -1,5 +1,8 @@
 #include "symbols.h"
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 static Symbol NULL_SIGNATURE = Symbol::FromSignature("");
 
 namespace Symbols

@@ -20,6 +20,9 @@ struct edict_t;
 #include <icommandline.h>
 #include <datacache/imdlcache.h>
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 // The plugin is a static singleton that is exported as an interface
 static CServerPlugin g_HolyLibServerPlugin;
 CServerPlugin* g_pHolyLibServerPlugin = &g_HolyLibServerPlugin;

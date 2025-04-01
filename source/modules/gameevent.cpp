@@ -13,6 +13,9 @@
 class CUserCmd; // Fixes an error in igamesystem.h
 #include <igamesystem.h>
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 class CGameeventLibModule : public IModule
 {
 public:

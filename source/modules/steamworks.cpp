@@ -6,6 +6,9 @@
 #include <sv_plugin.h>
 #include "utlbuffer.h"
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 class CSteamWorksModule : public IModule
 {
 public:

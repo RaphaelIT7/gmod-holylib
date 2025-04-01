@@ -17,6 +17,9 @@
 #include <datacache/imdlcache.h>
 #include <cmodel_private.h>
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 class CNetworkingModule : public IModule
 {
 public:

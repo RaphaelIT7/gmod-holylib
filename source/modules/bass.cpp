@@ -5,6 +5,9 @@
 #include "sourcesdk/cgmod_audio.h"
 #include "edict.h"
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 class CBassModule : public IModule
 {
 public:

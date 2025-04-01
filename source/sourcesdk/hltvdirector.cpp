@@ -2,6 +2,9 @@
 #include "sourcesdk/hltvdirector.h"
 #include "util.h"
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 void CHLTVDirector::RemoveEventsFromHistory(int tick)
 {
 	int index = m_EventHistory.FirstInorder();
