@@ -76,7 +76,7 @@ LUA_FUNCTION_STATIC(gameevent_RemoveListener)
 
 			IGameEventListener2* listener = (IGameEventListener2*)callback->m_pCallback;
 			if (g_pGameeventLibModule.InDebug())
-				Msg("holylib: Pointer 1: %p\nPointer 2: %p\n", listener, pLuaGameEventListener);
+				Msg(PROJECT_NAME ": Pointer 1: %p\nPointer 2: %p\n", listener, pLuaGameEventListener);
 
 			if (listener == pLuaGameEventListener)
 			{
@@ -86,7 +86,7 @@ LUA_FUNCTION_STATIC(gameevent_RemoveListener)
 			}
 		}
 	} else {
-		Warning("holylib: Failed to find LuaGameEventListener in GameSystems?\n");
+		Warning(PROJECT_NAME ": Failed to find LuaGameEventListener in GameSystems?\n");
 	}
 
 	LUA->PushBool(bSuccess);
@@ -616,7 +616,7 @@ void CGameeventLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bSer
 			break;
 		}
 		if (!pLuaGameEventListener)
-			Warning("holylib: Failed to find pLuaGameEventListener!\n");
+			Warning(PROJECT_NAME ": Failed to find pLuaGameEventListener!\n");
 	}
 	Util::PopTable();
 }

@@ -578,7 +578,7 @@ void CStringTableModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServ
 		{
 			g_Lua->Pop(1);
 		} else {
-			Warning("HolyLib: g_Lua->PushMetaTable fails to push INetworkStringTable!\n");
+			Warning(PROJECT_NAME ": g_Lua->PushMetaTable fails to push INetworkStringTable!\n");
 		}
 
 		Util::StartTable();

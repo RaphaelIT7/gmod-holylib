@@ -71,7 +71,7 @@ Detouring::Hook detour_CCvar_RegisterConCommand;
 void hook_CCvar_RegisterConCommand(ICvar* pCVar, ConCommandBase* variable)
 {
 	if (g_pCVarsModule.InDebug())
-		Msg("holylib: About to register \"%s\" convar\n", variable->GetName());
+		Msg(PROJECT_NAME ": About to register \"%s\" convar\n", variable->GetName());
 
 	// Internally calls FindCommandBase so expect a single "Failed to find xyz" message when debugging
 	detour_CCvar_RegisterConCommand.GetTrampoline<Symbols::CCvar_RegisterConCommand>()(pCVar, variable);
@@ -79,7 +79,7 @@ void hook_CCvar_RegisterConCommand(ICvar* pCVar, ConCommandBase* variable)
 	if (!variable->GetNext())
 	{
 		if (g_pCVarsModule.InDebug())
-			Msg("holylib: failed to register \"%s\" convar\n", variable->GetName());
+			Msg(PROJECT_NAME ": failed to register \"%s\" convar\n", variable->GetName());
 
 		return; // Failed to register
 	}
@@ -87,7 +87,7 @@ void hook_CCvar_RegisterConCommand(ICvar* pCVar, ConCommandBase* variable)
 	AddCommandBaseName(variable);
 
 	if (g_pCVarsModule.InDebug())
-		Msg("holylib: registered \"%s\" convar\n", variable->GetName());
+		Msg(PROJECT_NAME ": registered \"%s\" convar\n", variable->GetName());
 }
 
 Detouring::Hook detour_CCvar_UnregisterConCommand;
@@ -98,7 +98,7 @@ void hook_CCvar_UnregisterConCommand(ICvar* pCVar, ConCommandBase* pCommandToRem
 	if (pCommandToRemove->GetNext())
 	{
 		if (g_pCVarsModule.InDebug())
-			Msg("holylib: failed to unregister \"%s\" convar\n", pCommandToRemove->GetName());
+			Msg(PROJECT_NAME ": failed to unregister \"%s\" convar\n", pCommandToRemove->GetName());
 
 		return; // Failed to unregister.
 	}
@@ -106,7 +106,7 @@ void hook_CCvar_UnregisterConCommand(ICvar* pCVar, ConCommandBase* pCommandToRem
 	RemoveCommandBaseName(pCommandToRemove);
 
 	if (g_pCVarsModule.InDebug())
-		Msg("holylib: unregistered \"%s\" convar\n", pCommandToRemove->GetName());
+		Msg(PROJECT_NAME ": unregistered \"%s\" convar\n", pCommandToRemove->GetName());
 }
 
 Detouring::Hook detour_CCvar_UnregisterConCommands;
@@ -126,7 +126,7 @@ void hook_CCvar_UnregisterConCommands(ICvar* pCVar, CVarDLLIdentifier_t id)
 			RemoveCommandBaseName(pCommand);
 
 			if (g_pCVarsModule.InDebug())
-				Msg("holylib: Unregistered \"%s\" convars\n", pCommand->GetName());
+				Msg(PROJECT_NAME ": Unregistered \"%s\" convars\n", pCommand->GetName());
 		}
 	}
 
@@ -139,7 +139,7 @@ const ConCommandBase* hook_CCvar_FindCommandBaseConst(ICvar* pCVar, const char* 
 	ConCommandBase* pVar = FindCommandBaseName(name);
 
 	if (!pVar && g_pCVarsModule.InDebug())
-		Msg("holylib: Failed to find \"%s\" convar!\n", name);
+		Msg(PROJECT_NAME ": Failed to find \"%s\" convar!\n", name);
 
 	return pVar;
 }
@@ -150,7 +150,7 @@ ConCommandBase* hook_CCvar_FindCommandBase(ICvar* pCVar, const char* name)
 	ConCommandBase* pVar = FindCommandBaseName(name);
 
 	if (!pVar && g_pCVarsModule.InDebug())
-		Msg("holylib: Failed to find \"%s\" convar!\n", name);
+		Msg(PROJECT_NAME ": Failed to find \"%s\" convar!\n", name);
 
 	return pVar;
 }

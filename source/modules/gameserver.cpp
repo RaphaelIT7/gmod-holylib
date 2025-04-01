@@ -40,12 +40,12 @@ public:
 		buffer.WriteUBitLong(GetType(), NETMSG_TYPE_BITS);
 		return buffer.WriteBits(m_DataOut.GetData(), m_iLength);
 	};
-	const char		*ToString() const { return "HolyLib:CustomMessage"; };
+	const char		*ToString() const { return PROJECT_NAME ":CustomMessage"; };
 	int				GetType() const { return m_iType; }
 	const char		*GetName() const { return m_strName; }
 
 	INetMessageHandler *m_pMessageHandler = NULL;
-	bool Process() { Warning("holylib: Tried to process this message? This should never happen!\n"); return true; };
+	bool Process() { Warning(PROJECT_NAME ": Tried to process this message? This should never happen!\n"); return true; };
 
 	SVC_CustomMessage() { m_bReliable = false; }
 
@@ -1404,7 +1404,7 @@ void hook_CNetChan_D2(CNetChan* pNetChan)
 {
 	if (!ThreadInMainThread())
 	{
-		Warning("holylib: CNetChan was deleted from another thread...\n");
+		Warning(PROJECT_NAME ": CNetChan was deleted from another thread...\n");
 		return;
 	}
 
@@ -1466,7 +1466,7 @@ public:
 		return buffer.WriteBits( m_DataOut.GetData(), m_iLength );
 	};
 
-	const char *ToString() const { return "HolyLib:LuaNetChanMessage"; };
+	const char *ToString() const { return PROJECT_NAME ":LuaNetChanMessage"; };
 	int GetType() const { return net_LuaNetChanMessage; }
 	const char *GetName() const { return "NET_LuaNetChanMessage"; }
 
@@ -1498,7 +1498,7 @@ ILuaNetMessageHandler::~ILuaNetMessageHandler()
 
 	if (!ThreadInMainThread())
 	{
-		Warning("holylib: Tried to delete a ILuaNetMessageHandler from another thread! How could you! Now were leaking a reference...\n");
+		Warning(PROJECT_NAME ": Tried to delete a ILuaNetMessageHandler from another thread! How could you! Now were leaking a reference...\n");
 		return;
 	}
 
@@ -1531,7 +1531,7 @@ void ILuaNetMessageHandler::ConnectionStart(INetChannel* chan)
 {
 	if (!ThreadInMainThread())
 	{
-		Warning("holylib: Trying to call ConnectionStart outside the main thread!\n");
+		Warning(PROJECT_NAME ": Trying to call ConnectionStart outside the main thread!\n");
 		return;
 	}
 
@@ -1547,7 +1547,7 @@ void ILuaNetMessageHandler::ConnectionClosing(const char* reason)
 {
 	if (!ThreadInMainThread())
 	{
-		Warning("holylib: Trying to call ConnectionStart outside the main thread!\n");
+		Warning(PROJECT_NAME ": Trying to call ConnectionStart outside the main thread!\n");
 		return;
 	}
 
@@ -1564,7 +1564,7 @@ void ILuaNetMessageHandler::ConnectionCrashed(const char* reason)
 {
 	if (!ThreadInMainThread())
 	{
-		Warning("holylib: Trying to call ConnectionStart outside the main thread!\n");
+		Warning(PROJECT_NAME ": Trying to call ConnectionStart outside the main thread!\n");
 		return;
 	}
 
@@ -1617,7 +1617,7 @@ bool ILuaNetMessageHandler::ProcessLuaNetChanMessage(NET_LuaNetChanMessage *msg)
 {
 	if (!ThreadInMainThread())
 	{
-		Warning("holylib: Trying to process a lua net channel message outside the main thread!\n");
+		Warning(PROJECT_NAME ": Trying to process a lua net channel message outside the main thread!\n");
 		return false;
 	}
 
@@ -2180,7 +2180,7 @@ void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 
 	sv_stressbots = g_pCVar->FindVar("sv_stressbots");
 	if (!sv_stressbots)
-		Warning("holylib: Failed to find sv_stressbots convar!\n");
+		Warning(PROJECT_NAME ": Failed to find sv_stressbots convar!\n");
 
 	CBaseClient_TypeID = g_Lua->CreateMetaTable("CGameClient");
 		Push_CBaseClientMeta();
@@ -2549,7 +2549,7 @@ public:
 static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* target)
 {
 	if (g_pGameServerModule.InDebug())
-		Msg("holylib: Reassigned client to from slot %i to %i\n", origin->m_nClientSlot, target->m_nClientSlot);
+		Msg(PROJECT_NAME ": Reassigned client to from slot %i to %i\n", origin->m_nClientSlot, target->m_nClientSlot);
 
 	target->Inactivate();
 	target->Clear();
@@ -2697,7 +2697,7 @@ void hook_CGameClient_SpawnPlayer(CGameClient* client)
 	int nextFreeEntity = FindFreeClientSlot();
 	if (nextFreeEntity > MAX_PLAYERS)
 	{
-		Warning("holylib: Failed to find a valid player slot to use! Stopping client spawn! (%i, %i, %i)\n", client->m_nClientSlot, client->GetUserID(), nextFreeEntity);
+		Warning(PROJECT_NAME ": Failed to find a valid player slot to use! Stopping client spawn! (%i, %i, %i)\n", client->m_nClientSlot, client->GetUserID(), nextFreeEntity);
 		return;
 	}
 
@@ -2705,7 +2705,7 @@ void hook_CGameClient_SpawnPlayer(CGameClient* client)
 	if (pClient->m_nSignonState != SIGNONSTATE_NONE)
 	{
 		// It really didn't like what we had planned.
-		Warning("holylib: Client collision! fk. Client will be refused to spawn! (%i - %s, %i - %s)\n", pClient->m_nClientSlot, pClient->GetClientName(), client->m_nClientSlot, client->GetClientName());
+		Warning(PROJECT_NAME ": Client collision! fk. Client will be refused to spawn! (%i - %s, %i - %s)\n", pClient->m_nClientSlot, pClient->GetClientName(), client->m_nClientSlot, client->GetClientName());
 		return;
 	}
 

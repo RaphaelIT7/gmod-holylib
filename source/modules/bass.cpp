@@ -391,7 +391,7 @@ void CBassModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 	{
 		if (g_pGModAudio)
 		{
-			DevMsg(1, "holylib: Falling back to use our own IGMod_Audio\n");
+			DevMsg(1, PROJECT_NAME ": Falling back to use our own IGMod_Audio\n");
 			gGModAudio = g_pGModAudio;
 			gGModAudio->Init(*appfn); // The engine didn't...
 			return;

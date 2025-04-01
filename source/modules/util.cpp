@@ -43,7 +43,7 @@ struct CompressEntry
 	{
 		if (!ThreadInMainThread())
 		{
-			Warning("holylib: A CompressEntry was deleted on a random thread! This should never happen!\n");
+			Warning(PROJECT_NAME ": A CompressEntry was deleted on a random thread! This should never happen!\n");
 			return; // This will be a memory, but we would never want to potentially break the Lua state.
 		}
 

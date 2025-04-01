@@ -116,7 +116,7 @@ public:
 	{
 		if (!ThreadInMainThread())
 		{
-			Warning("holylib: Something deleted a HttpServer from another thread!\n"); // Spooky leaking references.
+			Warning(PROJECT_NAME ": Something deleted a HttpServer from another thread!\n"); // Spooky leaking references.
 			return;
 		}
 
@@ -455,7 +455,7 @@ void CallFunc(int func, HttpRequest* request, HttpResponse* response)
 	Util::ReferencePush(g_Lua, func);
 
 	if (g_pHttpServerModule.InDebug())
-		Msg("holylib: pushed handler function %i with type %i\n", func, g_Lua->GetType(-1));
+		Msg(PROJECT_NAME ": pushed handler function %i with type %i\n", func, g_Lua->GetType(-1));
 
 	Push_HttpRequest(request);
 	Push_HttpResponse(response);

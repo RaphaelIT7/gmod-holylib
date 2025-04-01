@@ -1742,7 +1742,7 @@ void CNetworkingModule::Shutdown()
 
 	if (!framesnapshotmanager) // If we failed, we failed
 	{
-		Msg("holylib: Failed to find framesnapshotmanager. Unable to fully unload!\n");
+		Msg(PROJECT_NAME ": Failed to find framesnapshotmanager. Unable to fully unload!\n");
 		return;
 	}
 

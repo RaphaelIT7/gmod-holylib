@@ -223,7 +223,7 @@ bool CServerPlugin::LuaInit()
 	VPROF_BUDGET("HolyLib - CServerPlugin::LuaInit", VPROF_BUDGETGROUP_HOLYLIB);
 	GarrysMod::Lua::ILuaInterface* LUA = Lua::GetRealm(g_pModuleManager.GetModuleRealm());
 	if (LUA == nullptr) {
-		Warning("holylib: Failed to get ILuaInterface! (Realm: %i)\n", (int)g_pModuleManager.GetModuleRealm());
+		Warning(PROJECT_NAME ": Failed to get ILuaInterface! (Realm: %i)\n", (int)g_pModuleManager.GetModuleRealm());
 		return false;
 	}
 

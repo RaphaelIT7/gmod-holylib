@@ -44,7 +44,7 @@ void OnModuleConVarChange(IConVar* convar, const char* pOldValue, float flOldVal
 	CModule* module = (CModule*)g_pModuleManager.FindModuleByConVar((ConVar*)convar);
 	if (!module)
 	{
-		Warning("holylib: Failed to find CModule for convar %s!\n", convar->GetName());
+		Warning(PROJECT_NAME ": Failed to find CModule for convar %s!\n", convar->GetName());
 		return;
 	}
 
@@ -60,7 +60,7 @@ void OnModuleDebugConVarChange(IConVar* convar, const char* pOldValue, float flO
 	CModule* module = (CModule*)g_pModuleManager.FindModuleByConVar((ConVar*)convar);
 	if (!module)
 	{
-		Warning("holylib: Failed to find CModule for convar %s!\n", convar->GetName());
+		Warning(PROJECT_NAME ": Failed to find CModule for convar %s!\n", convar->GetName());
 		return;
 	}
 
@@ -134,7 +134,7 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 		{
 			if (!m_bCompatible)
 			{
-				Warning("holylib: module %s is not compatible with this platform!\n", m_pModule->Name());
+				Warning(PROJECT_NAME ": module %s is not compatible with this platform!\n", m_pModule->Name());
 
 				if (!bForced)
 					return;
@@ -166,7 +166,7 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 				m_pModule->ServerActivate(g_pModuleManager.GetEdictList(), g_pModuleManager.GetEdictCount(), g_pModuleManager.GetClientMax());
 
 			if (!m_bStartup)
-				Msg("holylib: Enabled module %s\n", m_pModule->Name());
+				Msg(PROJECT_NAME ": Enabled module %s\n", m_pModule->Name());
 		} else {
 			int status = g_pModuleManager.GetStatus();
 			if (status & LoadStatus_LuaInit)
@@ -179,7 +179,7 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 				Shutdown();
 
 			if (!m_bStartup)
-				Msg("holylib: Disabled module %s\n", m_pModule->Name());
+				Msg(PROJECT_NAME ": Disabled module %s\n", m_pModule->Name());
 		}
 	}
 
@@ -250,7 +250,7 @@ IModuleWrapper* CModuleManager::RegisterModule(IModule* pModule)
 	m_pModules.push_back(module); // Add it first in case any ConVar callbacks get called in SetModule.
 	module->SetModule(pModule);
 	module->SetID(g_pIDs);
-	Msg("holylib: Registered module %-*s (%-*i Enabled: %s Compatible: %s)\n", 
+	Msg(PROJECT_NAME ": Registered module %-*s (%-*i Enabled: %s Compatible: %s)\n", 
 		15,
 		module->GetModule()->Name(), 
 		2,
@@ -294,17 +294,17 @@ void CModuleManager::Setup(CreateInterfaceFn appfn, CreateInterfaceFn gamefn)
 #define VCALL_ENABLED_MODULES(call) \
 	for (CModule* pModule : m_pModules) { \
 		if ( !pModule->FastIsEnabled() ) { continue; } \
-		if ( module_debug.GetBool() ) { Msg("holylib: Calling(V) %s on %s\n", #call, pModule->GetModule()->Name()); } \
+		if ( module_debug.GetBool() ) { Msg(PROJECT_NAME ": Calling(V) %s on %s\n", #call, pModule->GetModule()->Name()); } \
 		pModule->GetModule()-> call; \
-		if ( module_debug.GetBool() ) { Msg("holylib: Finished calling(V) %s on %s\n", #call, pModule->GetModule()->Name()); } \
+		if ( module_debug.GetBool() ) { Msg(PROJECT_NAME ": Finished calling(V) %s on %s\n", #call, pModule->GetModule()->Name()); } \
 	}
 
 #define CALL_ENABLED_MODULES(call) \
 	for (CModule* pModule : m_pModules) { \
 		if ( !pModule->FastIsEnabled() ) { continue; } \
-		if ( module_debug.GetBool() ) { Msg("holylib: Calling %s on %s\n", #call, pModule->GetModule()->Name()); } \
+		if ( module_debug.GetBool() ) { Msg(PROJECT_NAME ": Calling %s on %s\n", #call, pModule->GetModule()->Name()); } \
 		pModule-> call; \
-		if ( module_debug.GetBool() ) { Msg("holylib: Finished calling %s on %s\n", #call, pModule->GetModule()->Name()); } \
+		if ( module_debug.GetBool() ) { Msg(PROJECT_NAME ": Finished calling %s on %s\n", #call, pModule->GetModule()->Name()); } \
 	}
 
 
@@ -312,7 +312,7 @@ void CModuleManager::Init()
 {
 	if (!(m_pStatus & LoadStatus_PreDetourInit))
 	{
-		DevMsg("holylib: ghostinj didn't call InitDetour! Calling it now\n");
+		DevMsg(PROJECT_NAME ": ghostinj didn't call InitDetour! Calling it now\n");
 		InitDetour(true);
 	}
 
