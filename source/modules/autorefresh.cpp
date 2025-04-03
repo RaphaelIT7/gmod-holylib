@@ -40,17 +40,6 @@ LUA_FUNCTION_STATIC(noodles)
 	return 0;
 }
 
-<<<<<<< Updated upstream
-static Detouring::Hook detour_CAutoRefresh_HandleLuaFileChange; //
-void hook_CAutoRefresh_HandleLuaFileChange(void* something, const std::string* filecontent)
-{
-	std::string* xyz = nullptr;
-	__asm {
-		mov xyz, edi;
-	}
-	Msg("Testing whatever - \n", xyz->c_str());
-	Msg("Lua AutoRefresh - %s\n", filecontent->c_str());
-=======
 struct AutoRefresh {
 	const char *pFileName;
 
@@ -64,7 +53,6 @@ void hook_CAutoRefresh_HandleLuaFileChange(void* something, const std::string *f
 {
 	AutoRefresh whatever(*filecontent);
 	Msg("Lua AutoRefresh - %s\n", whatever.pFileName);
->>>>>>> Stashed changes
 }
 
 void CAutoRefreshModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
