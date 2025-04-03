@@ -48,7 +48,7 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 		defines("GITHUB_RUN_BRANCH=\"" .. branch .. "\"")
 		defines("GITHUB_RUN_DATA=" .. additional)
 		defines("SWDS=1")
-		defines("PROJECT_NAME=\"holyshit\"")
+		defines("PROJECT_NAME=\"holylib\"")
 		defines("NO_FRAMESNAPSHOTDEF")
 
 		files({
