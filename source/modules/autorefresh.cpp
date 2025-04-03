@@ -52,6 +52,7 @@ struct AutoRefresh {
 static Detouring::Hook detour_CAutoRefresh_HandleLuaFileChange;
 void hook_CAutoRefresh_HandleLuaFileChange(void* something, const std::string *filecontent)
 {
+	Msg("Test \n");
 	AutoRefresh whatever(*filecontent);
 	Msg("Lua AutoRefresh - %s\n", whatever.pFileName);
 }
