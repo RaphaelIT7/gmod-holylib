@@ -206,12 +206,15 @@ GarrysMod::Lua::ILuaInterface* Lua::CreateInterface()
 {
 	GarrysMod::Lua::ILuaInterface* LUA = CreateLuaInterface(true);
 	LUA->Init(g_LuaCallback, true);
+	Lua::CreateLuaData(LUA, true); // Required as everything will use the LuaStateData now.
 
 	return LUA;
 }
 
 void Lua::DestroyInterface(GarrysMod::Lua::ILuaInterface* LUA)
 {
+	LUA->Shutdown();
+	Lua::RemoveLuaData(LUA);
 	CloseLuaInterface(LUA);
 }
 

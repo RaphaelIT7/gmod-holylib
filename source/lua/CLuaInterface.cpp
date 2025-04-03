@@ -138,7 +138,7 @@ GarrysMod::Lua::ILuaInterface* CreateLuaInterface(bool bIsServer)
 void CloseLuaInterface(GarrysMod::Lua::ILuaInterface* LuaInterface)
 {
 	::DebugPrint(1, "CloseLuaInterface\n");
-	LuaInterface->Shutdown();
+	//LuaInterface->Shutdown(); // This was moved to lua.cpp in holylib
 	delete LuaInterface;
 }
 
