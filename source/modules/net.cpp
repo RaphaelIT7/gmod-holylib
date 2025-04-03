@@ -4,6 +4,9 @@
 #include "lua.h"
 #include <netmessages.h>
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 class CNetModule : public IModule
 {
 public:

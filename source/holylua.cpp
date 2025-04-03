@@ -1,6 +1,9 @@
 #include "holylua.h"
 #include "GarrysMod/Lua/LuaShared.h"
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 static GarrysMod::Lua::ILuaInterface* g_HolyLua = NULL;
 static ConVar holylib_lua("holylib_lua", "0", 0, "If enabled, it will create a new lua interface that will exist until holylib is unloaded");
 

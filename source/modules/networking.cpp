@@ -17,6 +17,9 @@
 #include <datacache/imdlcache.h>
 #include <cmodel_private.h>
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 class CNetworkingModule : public IModule
 {
 public:
@@ -1741,7 +1744,7 @@ void CNetworkingModule::Shutdown()
 
 	if (!framesnapshotmanager) // If we failed, we failed
 	{
-		Msg("holylib: Failed to find framesnapshotmanager. Unable to fully unload!\n");
+		Msg(PROJECT_NAME ": Failed to find framesnapshotmanager. Unable to fully unload!\n");
 		return;
 	}
 

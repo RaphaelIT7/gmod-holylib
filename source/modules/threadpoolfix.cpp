@@ -6,6 +6,9 @@
 #define DEDICATED
 #include "vstdlib/jobthread.h"
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 class CThreadPoolFixModule : public IModule
 {
 public:

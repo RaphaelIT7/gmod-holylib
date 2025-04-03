@@ -1,5 +1,8 @@
 #include "sourcesdk/GameEventManager.h"
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 CGameEventDescriptor *CGameEventManager::GetEventDescriptor(const char * name)
 {
 	if ( !name || !name[0] )

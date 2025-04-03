@@ -16,6 +16,9 @@
 #include "player.h"
 #include "tier1/tier1.h"
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 class CPhysEnvModule : public IModule
 {
 public:
@@ -55,7 +58,7 @@ static void hook_IVP_Mindist_D2(IVP_Mindist* mindist)
 	if (g_bInImpactCall && *g_fDeferDeleteMindist && *g_pCurrentMindist == NULL)
 	{
 		*g_fDeferDeleteMindist = false; // The single thing missing in the physics engine that causes it to break.....
-		Warning("holylib: Someone forgot to call Entity:CollisionRulesChanged!\n");
+		Warning(PROJECT_NAME " - physenv: Someone forgot to call Entity:CollisionRulesChanged!\n");
 	}
 
 	detour_IVP_Mindist_D2.GetTrampoline<Symbols::IVP_Mindist_D2>()(mindist);
@@ -65,7 +68,7 @@ static Detouring::Hook detour_IVP_Mindist_do_impact;
 static void hook_IVP_Mindist_do_impact(IVP_Mindist* mindist)
 {
 	if (g_pPhysEnvModule.InDebug() > 2)
-		Msg("physenv: IVP_Mindist::do_impact called! (%i)\n", (int)pCurrentSkipType);
+		Msg(PROJECT_NAME " - physenv: IVP_Mindist::do_impact called! (%i)\n", (int)pCurrentSkipType);
 
 	if (pCurrentSkipType == IVP_SkipImpact)
 		return;
@@ -84,7 +87,7 @@ static void hook_IVP_Event_Manager_Standard_simulate_time_events(void* eventmana
 	pCurrentSkipType = IVP_None; // Idk if it can happen that something else sets it in the mean time but let's just be sure...
 
 	if (g_pPhysEnvModule.InDebug() > 2)
-		Msg("physenv: IVP_Event_Manager_Standart::simulate_time_events called!\n");
+		Msg(PROJECT_NAME " - physenv: IVP_Event_Manager_Standart::simulate_time_events called!\n");
 
 	detour_IVP_Event_Manager_Standard_simulate_time_events.GetTrampoline<Symbols::IVP_Event_Manager_Standard_simulate_time_events>()(eventmanager, timemanager, environment, time);
 
@@ -113,7 +116,7 @@ void CheckPhysicsLag()
 				g_Lua->Pop(1);
 
 				if (g_pPhysEnvModule.InDebug() > 2)
-					Msg("physenv: Lua hook called (%i)\n", (int)pCurrentSkipType);
+					Msg(PROJECT_NAME " - physenv: Lua hook called (%i)\n", (int)pCurrentSkipType);
 			}
 		}
 	}
@@ -123,7 +126,7 @@ static Detouring::Hook detour_IVP_Mindist_simulate_time_event;
 static void hook_IVP_Mindist_simulate_time_event(void* mindist, void* environment)
 {
 	if (g_pPhysEnvModule.InDebug() > 2)
-		Msg("physenv: IVP_Mindist::simulate_time_event called! (%i)\n", (int)pCurrentSkipType);
+		Msg(PROJECT_NAME " - physenv: IVP_Mindist::simulate_time_event called! (%i)\n", (int)pCurrentSkipType);
 
 	CheckPhysicsLag();
 	if (pCurrentSkipType == IVP_SkipSimulation)
@@ -136,7 +139,7 @@ static Detouring::Hook detour_IVP_Mindist_update_exact_mindist_events;
 static void hook_IVP_Mindist_update_exact_mindist_events(void* mindist, IVP_BOOL allow_hull_conversion, IVP_MINDIST_EVENT_HINT event_hint)
 {
 	if (g_pPhysEnvModule.InDebug() > 2)
-		Msg("physenv: IVP_Mindist::update_exact_mindist_events called! (%i)\n", (int)pCurrentSkipType);
+		Msg(PROJECT_NAME " - physenv: IVP_Mindist::update_exact_mindist_events called! (%i)\n", (int)pCurrentSkipType);
 
 	CheckPhysicsLag();
 	if (pCurrentSkipType == IVP_SkipSimulation)
@@ -479,7 +482,7 @@ void hook_CPhysicsEnvironment_DestroyObject(CPhysicsEnvironment* pEnvironment, I
 	if (!pLuaEnvironment || !pLuaEnvironment->pEnvironment)
 	{
 		CBaseEntity* pEntity = (CBaseEntity*)pObject->GetGameData();
-		Warning("holylib - physenv: Failed to find environment of physics object.... How?!? (%p, %i, %s)\n", pEntity, pEntity ? pEntity->entindex() : -1, pEntity ? pEntity->edict()->GetClassName() : "NULL");
+		Warning(PROJECT_NAME " - physenv: Failed to find environment of physics object.... How?!? (%p, %i, %s)\n", pEntity, pEntity ? pEntity->entindex() : -1, pEntity ? pEntity->edict()->GetClassName() : "NULL");
 		return;
 	}
 
@@ -491,7 +494,7 @@ void hook_CPhysicsEnvironment_DestroyObject(CPhysicsEnvironment* pEnvironment, I
 	if (foundIndex == -1)
 	{
 		if (g_pPhysEnvModule.InDebug())
-			Warning("holylib - physenv: Failed to find object on environment (%p)!\n", pEnvironment);
+			Warning(PROJECT_NAME " - physenv: Failed to find object on environment (%p)!\n", pEnvironment);
 		return;
 	}
 

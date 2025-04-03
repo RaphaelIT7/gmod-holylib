@@ -5,6 +5,9 @@
 #include "lua.h"
 #include "player.h"
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 class CPASModule : public IModule
 {
 public:

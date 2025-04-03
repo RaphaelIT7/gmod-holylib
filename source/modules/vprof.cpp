@@ -12,6 +12,9 @@
 #include <unordered_map>
 #include "color.h"
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 class CVProfModule : public IModule
 {
 public:
@@ -120,7 +123,7 @@ static void hook_CVProfile_OutputReport(void* fancy, int type, const tchar* pszS
 	{
 		if (g_pFullFileSystem->FileExists("vprof", "MOD"))
 		{
-			Msg("holylib: vprof/ is a file? Please delete it or disable vprof_exportreport.\n");
+			Msg(PROJECT_NAME ": vprof/ is a file? Please delete it or disable vprof_exportreport.\n");
 			return;
 		}
 
@@ -134,7 +137,7 @@ static void hook_CVProfile_OutputReport(void* fancy, int type, const tchar* pszS
 	{
 		std::string str = ss.str();
 		g_pFullFileSystem->Write(str.c_str(), str.length(), fh);  
-		Msg("holylib: Wrote vprof report into %s\n", filename.c_str());
+		Msg(PROJECT_NAME ": Wrote vprof report into %s\n", filename.c_str());
 
 		g_pFullFileSystem->Close(fh);
 	}

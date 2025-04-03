@@ -6,6 +6,9 @@
 #include <sv_plugin.h>
 #include "utlbuffer.h"
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 class CSteamWorksModule : public IModule
 {
 public:
@@ -206,20 +209,20 @@ void CSteamWorksModule::Think(bool bSimulating)
 		CBaseClient* pClient = *it;
 		if (!pClient->IsConnected())
 		{
-			Msg("holylib: removed client as it wasn't connected\n");
+			Msg(PROJECT_NAME ": removed client as it wasn't connected\n");
 			it = g_pApprovedClients.erase(it);
 			continue;
 		}
 
 		if (!pClient->m_bSendServerInfo)
 		{
-			Msg("holylib: skipped client as it didn't want the serverinfo\n");
+			Msg(PROJECT_NAME ": skipped client as it didn't want the serverinfo\n");
 			it++;
 			continue;
 		}
 
 		pClient->SendServerInfo();
-		Msg("holylib: sent client the server info it desired\n");
+		Msg(PROJECT_NAME ": sent client the server info it desired\n");
 		it = g_pApprovedClients.erase(it);
 	}
 }

@@ -58,18 +58,18 @@ void* holylib = NULL;
 typedef void ( *plugin_main )();
 void Load()
 {
-	Msg( "--- Holylib-GhostInj Loading ---\n" );
+	Msg( "--- HolyShit-GhostInj Loading ---\n" );
 
 #ifdef ARCHITECTURE_X86
 	if ( std::filesystem::exists( "garrysmod/lua/bin/gmsv_holylib_linux_updated.so" ) )
 	{
-		Msg( "Found a updated holylib version.\n" );
+		Msg( "Found a updated holyshit version.\n" );
 		if ( std::filesystem::remove( "garrysmod/lua/bin/gmsv_holylib_linux.so" ) )
 		{
 			std::filesystem::rename( "garrysmod/lua/bin/gmsv_holylib_linux_updated.so", "garrysmod/lua/bin/gmsv_holylib_linux.so" );
-			Msg( "Updated HolyLib\n" );
+			Msg( "Updated HolyShit\n" );
 		} else {
-			Msg( "Failed to delete old HolyLib version!\n" );
+			Msg( "Failed to delete old HolyShit version!\n" );
 		}
 	}
 
@@ -83,9 +83,9 @@ void Load()
 		if ( std::filesystem::remove( "garrysmod/lua/bin/gmsv_holylib_linux64.so" ) )
 		{
 			std::filesystem::rename( "garrysmod/lua/bin/gmsv_holylib_linux64_updated.so", "garrysmod/lua/bin/gmsv_holylib_linux64.so" );
-			Msg( "Updated HolyLib\n" );
+			Msg( "Updated HolyShit\n" );
 		} else {
-			Msg( "Failed to delete old HolyLib version!\n" );
+			Msg( "Failed to delete old HolyShit version!\n" );
 		}
 	}
 
@@ -94,9 +94,9 @@ void Load()
 		Msg( "Failed to open gmsv_holylib_linux64.so (%s)\n", dlerror() );
 #endif
 
-	plugin_main plugin = reinterpret_cast< plugin_main >( dlsym( holylib, "HolyLib_PreLoad" ) );
+	plugin_main plugin = holylib ? reinterpret_cast< plugin_main >( dlsym( holylib, "HolyLib_PreLoad" ) ) : NULL;
 	if ( !plugin ) {
-		Msg( "Failed to find holylib entry point (%s)\n", dlerror() );
+		Msg( "Failed to find HolyShit entry point (%s)\n", dlerror() );
 	} else {
 		plugin();
 	}
@@ -105,12 +105,12 @@ void Load()
 	if ( ghostinj2 )
 		Msg( "Found and loaded ghostinj2.dll\n" );
 
-	Msg( "--- Holylib-GhostInj loaded ---\n" );
+	Msg( "--- HolyShit-GhostInj loaded ---\n" );
 }
 
 void Unload()
 {
-	printf( "--- Holylib-GhostInj unloading ---\n" );
+	printf( "--- HolyShit-GhostInj unloading ---\n" );
 
 	if ( holylib )
 		dlclose( holylib );
@@ -118,7 +118,7 @@ void Unload()
 	if ( ghostinj2 )
 		dlclose( ghostinj2 );
 
-	printf( "--- Holylib-GhostInj unloaded ---\n" );
+	printf( "--- HolyShit-GhostInj unloaded ---\n" );
 }
 
 #if SYSTEM_WINDOWS

@@ -109,12 +109,12 @@ namespace Util
 
 #if HOLYLIB_UTIL_DEBUG_REFERENCES
 		if (holylib_debug_mainutil.GetBool())
-			Msg("holylib: Created reference %i (%s)\n", iReference, reason);
+			Msg(PROJECT_NAME ": Created reference %i (%s)\n", iReference, reason);
 
 		auto it = g_pReference.find(iReference);
 		if (it != g_pReference.end())
 		{
-			Error("holylib: Created a reference when we already holded it. How. Crash this shit. (%s)\n", reason); // If this happens maybe gmod does some weird shit?
+			Error(PROJECT_NAME ": Created a reference when we already holded it. How. Crash this shit. (%s)\n", reason); // If this happens maybe gmod does some weird shit?
 		}
 
 		g_pReference.insert(iReference);
@@ -127,12 +127,12 @@ namespace Util
 	{
 #if HOLYLIB_UTIL_DEBUG_REFERENCES
 		if (holylib_debug_mainutil.GetBool())
-			Msg("holylib: Freed reference %i (%s)\n", iReference, reason);
+			Msg(PROJECT_NAME ": Freed reference %i (%s)\n", iReference, reason);
 
 		auto it = g_pReference.find(iReference);
 		if (it == g_pReference.end())
 		{
-			Error("holylib: Freed a reference when we didn't holded it. How. Crash this shit. (%s)\n", reason); // If this happens I'm happy.
+			Error(PROJECT_NAME ": Freed a reference when we didn't holded it. How. Crash this shit. (%s)\n", reason); // If this happens I'm happy.
 		}
 
 		g_pReference.erase(it);
@@ -282,7 +282,7 @@ struct LuaUserData {
 	~LuaUserData() {
 		if (!ThreadInMainThread())
 		{
-			Warning("holylib: Tried to delete usetdata from another thread!\n");
+			Warning(PROJECT_NAME ": Tried to delete usetdata from another thread!\n");
 
 #if HOLYLIB_UTIL_DEBUG_LUAUSERDATA
 			if (g_pRemoveLuaUserData)
@@ -341,7 +341,7 @@ struct LuaUserData {
 	inline void CreateReference()
 	{
 		if (iReference != -1)
-			Warning("holylib: something went wrong when pushing userdata! (Reference leak!)\n");
+			Warning(PROJECT_NAME ": something went wrong when pushing userdata! (Reference leak!)\n");
 
 		g_Lua->Push(-1); // When CreateReference is called we expect our object to be already be on the stack at -1!
 		iReference = Util::ReferenceCreate("LuaUserData::CreateReference");

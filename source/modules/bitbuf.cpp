@@ -4,6 +4,9 @@
 #include "lua.h"
 #include "bitbuf.h"
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 class CBitBufModule : public IModule
 {
 public:
