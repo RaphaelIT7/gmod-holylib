@@ -57,77 +57,16 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- Improved ConVar's find code improving performance (done in the `cvars` module)  
 
 ## Next Update
-\- [+] Added (Experimentally)`luajit` module.  
-\- [+] Added `httpserver` module.  
-\- [+] Added `entitylist` module.  
-\- \- [+] Many `pvs.*` function accept now a `EntityList`.  
-\- \- [+] `pas.TestPAS` accepts a `EntityList`.  
-\- \- [#] Improved `pas.FindInPAS` performance by using it internally if it's enabled.  
-\- [+] Added many things to `physenv` module.  
-\- \- [+] Added `physcollide` library.  
-\- \- [+] Added more functions to `physenv` to create physic environments.  
-\- \- [+] Added `HolyLib:OnPhysFrame` hook.  
-\- [+] Added `gameserver` module.  
-\- [+] Added the `HolyLib:PreCheckTransmit`, `HolyLib:OnPlayerGot[On/Off]Ladder`, `HolyLib:OnMoveTypeChange` hook.  
-\- [+] Added `HolyLib:OnSourceTVStartNewShot`, `HolyLib:OnSourceTVClientDisconnect` hook to `sourcetv` module.  
-\- [+] Added `CHLTVClient:SetCameraMan` and `sourcetv.SetCameraMan` to `sourcetv` module.  
-\- [+] Added `INetworkStringTable:GetTable`, `CHLTVClient:GetTable`, `VoiceData:GetTable`, `IGameEvent:GetTable`, `bf_read:GetTable`, `bf_write:GetTable`, `IGModAudioChannel:GetTable` functions.  
-\- [+] Added `pvs.TestPVS`, `pvs.FindInPVS` and `pvs.ForceFullUpdate` functions to `pvs` module.  
-\- [+] Added `HolyLib.GetRegistry`, `HolyLib.ExitLadder`, `HolyLib.GetLadder` and `HolyLib.Disconnect` to `holylib` module.  
-\- [+] Added `cvar.Find` to `cvars` module.  
-\- [+] Exposed `IHolyUtil` interface and added `IHolyLib::PreLoad` and `IHolyLib:GetHolyUtil`.  
-\- [+] Added (Experimental)`holylib_filesystem_savesearchcache` optimization to filesystem module.  
-\- [+] Added Windows support for `bitbuf`, `cvars`, (partially)`filesystem`, `pas`, `util`, `voicechat` and (partially)`vprof`  
-\- [+] Added `lua/autorun/_holylib` folder.  
-\- \- Files inside that folder are loaded and executed before **any** gmod script runs, only the c++ functions exist at this point.  
-\- [+] Added `bf_write:WriteString` to `bitbuf` module.  
-\- [+] Added `IGModAudioChannel:FFT` to `bass` module.  
-\- [+] Added `VoiceStream` class and related functions to `voicechat` module.  
-\- [#] Fixed many issues with the `bass` module. It is acutally usable.  
-\- [#] Improved performance by replacing SetTable with RawSet.  
-\- [#] Added missing calls to the deconstructors for `CHLTVClient` and `CNetworkStringTable`.  
-\- \- These missing calls could have caused some bugs or memory leaks.  
-\- [#] Fixed a bug with sourcetv where `CHLTVClients` could be NULL while being valid (#15)  
-\- [#] Fixed many Windows crashes allowing it to start again.  
-\- [#] Fixed Stack leak with `pvs.AddEntityToPVS` and `pvs.SetPreventTransmitBulk` when given a table.  
-\- [#] Fixed Stack issue with `pvs.RemoveEntityFromTransmit` when given a EntityList.  
-\- [#] Optimized `Util::Push_Entity` and replaced `LUA->Raw[Get/Set]` usage with faster `Util::Raw[GetI/SetI]`.  
-\- [#] Optimized `GMod_Util_IsPhysicsObjectValid` to solve a regression introduced by new `physenv` changes.  
-\- [#] Small networking optimizations.  
-\- [#] Optimized `CCvar::FindVar` (50x faster in average).  
-\- [#] Fixed `pvs.RemoveAllEntityFromTransmit` possibly causing stack issues.  
-\- [#] Completely changed how we Push/Manage Lua userdata to reduce memory leaks.  
-\- [#] Fixed a filesystem issue which could rarely result in a crash. (Issue: #23)  
-\- [-] Removed `holylib_filesystem_optimizedfixpath` since it was implemented into gmod itself.  
+None
 
 You can see all changes here:  
-https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.6...main
+https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 
 ### Existing Lua API Changes
-\- [+] Added a third argument `ratio` to `util.AsyncDecompress`, set to `0.98` by default.
-\- [#] Flipped `INetworkStringTable:AddString` arguments.  
-\- [#] All `pvs.FL_EDICT_` enums changed.  
-\- [#] Made `HolyLib.SetSignOnState` third arg optional and added `rawSet` option.  
-\- [#] Renamed `HLTVClient` to `CHLTVClient`.  
-\- [#] Renamed `HLTVClient:GetSlot` to `HLTVClient:GetPlayerSlot`.  
-\- [#] Renamed `VProfCounter:Name` to `VProfCounter:GetName`.  
-\- [#] Renamed `HolyLib:PhysicsLag` to `HolyLib:OnPhysicsLag`.  
-\- [#] VoiceData given from `HolyLib:PreProcessVoiceChat` becomes invalid after the hook call, use `VoiceData:CreateCopy()` in case you want to store it.  
-\- [-] Removed `HolyLib.BroadcastCustomMessage` (Replaced by `gameserver.BroadcastMessage`)  
-\- [-] Removed `HolyLib.SendCustomMessage` (Replaced by `CBaseClient:SendNetMsg`)  
-\- [-] Removed `HolyLib:PostCheckTransmit` second argument (Use `pvs.GetEntitesFromTransmit`)  
+None
 
 ### QoL updates
-\- [+] Added comments to some interfaces.  
-\- [+] Added Windows 32 & 64x to workflow build.  
-\- [+] Updated ghostinj to allow for easier updating.  
-\- [#] Cleaned up code a bit  
-\- [#] Switched away from the ILuaBase. All Lua functions now use ILuaInterface.  
-\- [#] Fixed `plugin_load` causing holylib to load improperly.  
-\- [#] Documented which platforms each module support.  
-\- [#] Removed unused convars.  
-\- [#] Unregistering the plugin properly so that it can also be loaded afterwards again.  
-\- [#] Fixed some memory leaks.  
+\- [#] Changed some console message to be more consistent.  
 
 ## ToDo
 
