@@ -391,7 +391,7 @@ struct ILuaPhysicsEnvironment
 	std::unique_ptr<CPhysicsEnvironmentProxy> pEnvironmentProxy = NULL;
 #endif
 	CLuaPhysicsObjectEvent* pObjectEvent = NULL;
-	GarrysMod::Lua::ILuaInterface* pLua;
+	GarrysMod::Lua::ILuaInterface* pLua = g_Lua;
 	//CLuaPhysicsCollisionSolver* pCollisionSolver = NULL;
 	//CLuaPhysicsCollisionEvent* pCollisionEvent = NULL;
 };
@@ -499,7 +499,7 @@ void hook_CPhysicsEnvironment_DestroyObject(CPhysicsEnvironment* pEnvironment, I
 	pEnv->m_objects.FastRemove(foundIndex);
 
 	UnregisterPhysicsObject(pLuaEnvironment, pObject);
-	Delete_IPhysicsObject(pObject); // Delete any reference we might hold.
+	Delete_IPhysicsObject(pLuaEnvironment->pLua, pObject); // Delete any reference we might hold. ToDo: This may crash?!? Were accessing a Lua state from the main thread... It'll be fiine
 	//pEnv->DestroyObject(pObject);
 
 	CPhysicsObject* pPhysics = static_cast<CPhysicsObject*>(pObject);
@@ -639,9 +639,7 @@ Get_LuaClass(CPhysConvex, "CPhysConvex")
 PushReferenced_LuaClass(ICollisionQuery)
 Get_LuaClass(ICollisionQuery, "ICollisionQuery")
 
-static Push_LuaClass(Vector, GarrysMod::Lua::Type::Vector)
-
-static IPhysicsEnvironment* GetPhysicsEnvironment(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError)
+static IPhysicsEnvironment* GetPhysicsEnvironmentFromLua(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError)
 {
 	ILuaPhysicsEnvironment* pLuaEnv = Get_ILuaPhysicsEnvironment(LUA, iStackPos, bError);
 	if (bError && (!pLuaEnv || !pLuaEnv->pEnvironment))
@@ -730,7 +728,7 @@ LUA_FUNCTION_STATIC(physenv_DestroyEnvironment)
 	if (!physics)
 		LUA->ThrowError("Failed to get IPhysics!");
 
-	ILuaPhysicsEnvironment* pLuaEnv = Get_ILuaPhysicsEnvironment(1, true);
+	ILuaPhysicsEnvironment* pLuaEnv = Get_ILuaPhysicsEnvironment(LUA, 1, true);
 	for (ILuaPhysicsEnvironment* ppLuaEnv : g_pCurrentEnvironment)
 	{
 		if (pLuaEnv == ppLuaEnv)
@@ -796,11 +794,7 @@ LUA_FUNCTION_STATIC(physenv_DestroyAllCollisionSets)
 		LUA->ThrowError("Failed to get IPhysics!");
 
 	physics->DestroyAllCollisionSets();
-	for (auto& [key, val] : g_pPushedIPhysicsCollisionSet)
-	{
-		delete val;
-	}
-	g_pPushedIPhysicsCollisionSet.clear();
+	DeleteAll_IPhysicsCollisionSet(LUA);
 	return 0;
 }
 
@@ -859,7 +853,7 @@ LUA_FUNCTION_STATIC(IPhysicsCollisionSet_ShouldCollide)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment__tostring)
 {
-	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(LUA, 1, false);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, false);
 	if (!pEnvironment)
 		LUA->PushString("IPhysicsEnvironment [NULL]");
 	else
@@ -874,7 +868,7 @@ Default__GetTable(ILuaPhysicsEnvironment);
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_IsValid)
 {
-	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(LUA, 1, false);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, false);
 
 	LUA->PushBool(pEnvironment != NULL);
 	return 1;
@@ -882,9 +876,9 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_IsValid)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_TransferObject)
 {
-	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(LUA, 1, true);
-	IPhysicsObject* pObject = Get_IPhysicsObject(2, true);
-	IPhysicsEnvironment* pTargetEnvironment = GetPhysicsEnvironment(LUA, 3, true);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, true);
+	IPhysicsObject* pObject = Get_IPhysicsObject(LUA, 2, true);
+	IPhysicsEnvironment* pTargetEnvironment = GetPhysicsEnvironmentFromLua(LUA, 3, true);
 
 
 	LUA->PushBool(pEnvironment->TransferObject(pObject, pTargetEnvironment));
@@ -893,7 +887,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_TransferObject)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetGravity)
 {
-	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(LUA, 1, true);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, true);
 	Vector* pVec = Get_Vector(LUA, 2, true);
 
 	pEnvironment->SetGravity(*pVec);
@@ -902,7 +896,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetGravity)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetGravity)
 {
-	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(LUA, 1, true);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, true);
 
 	Vector vec;
 	pEnvironment->GetGravity(&vec);
@@ -912,7 +906,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetGravity)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetAirDensity)
 {
-	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(LUA, 1, true);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, true);
 	float airDensity = (float)LUA->CheckNumber(2);
 
 	pEnvironment->SetAirDensity(airDensity);
@@ -921,7 +915,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetAirDensity)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetAirDensity)
 {
-	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(LUA, 1, true);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, true);
 
 	LUA->PushNumber(pEnvironment->GetAirDensity());
 	return 1;
@@ -929,7 +923,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetAirDensity)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetPerformanceSettings)
 {
-	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(LUA, 1, true);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, true);
 	LUA->CheckType(2, GarrysMod::Lua::Type::Table);
 
 	physics_performanceparams_t params;
@@ -973,7 +967,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetPerformanceSettings)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetPerformanceSettings)
 {
-	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(LUA, 1, true);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, true);
 
 	physics_performanceparams_t params;
 	pEnvironment->GetPerformanceSettings(&params);
@@ -992,7 +986,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetPerformanceSettings)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetNextFrameTime)
 {
-	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(LUA, 1, true);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, true);
 
 	LUA->PushNumber(pEnvironment->GetNextFrameTime());
 	return 1;
@@ -1000,7 +994,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetNextFrameTime)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetSimulationTime)
 {
-	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(LUA, 1, true);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, true);
 
 	LUA->PushNumber(pEnvironment->GetSimulationTime());
 	return 1;
@@ -1008,7 +1002,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetSimulationTime)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetSimulationTimestep)
 {
-	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(LUA, 1, true);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, true);
 	float timeStep = (float)LUA->CheckNumber(2);
 
 	pEnvironment->SetSimulationTimestep(timeStep);
@@ -1017,7 +1011,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetSimulationTimestep)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetSimulationTimestep)
 {
-	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(LUA, 1, true);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, true);
 
 	LUA->PushNumber(pEnvironment->GetSimulationTimestep());
 	return 1;
@@ -1025,7 +1019,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetSimulationTimestep)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetActiveObjectCount)
 {
-	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(LUA, 1, true);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, true);
 
 	LUA->PushNumber(pEnvironment->GetActiveObjectCount());
 	return 1;
@@ -1033,7 +1027,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetActiveObjectCount)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetActiveObjects)
 {
-	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(LUA, 1, true);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, true);
 
 	int activeCount = pEnvironment->GetActiveObjectCount();
 	IPhysicsObject** pActiveList = NULL;
@@ -1055,7 +1049,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetActiveObjects)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetObjectList)
 {
-	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(LUA, 1, true);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, true);
 
 	int iCount = 0;
 	IPhysicsObject** pList = (IPhysicsObject**)pEnvironment->GetObjectList(&iCount);
@@ -1072,7 +1066,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetObjectList)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_IsInSimulation)
 {
-	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(LUA, 1, true);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, true);
 
 	LUA->PushBool(pEnvironment->IsInSimulation());
 	return 1;
@@ -1080,7 +1074,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_IsInSimulation)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_ResetSimulationClock)
 {
-	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(LUA, 1, true);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, true);
 
 	pEnvironment->ResetSimulationClock();
 	return 0;
@@ -1088,7 +1082,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_ResetSimulationClock)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_CleanupDeleteList)
 {
-	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(LUA, 1, true);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, true);
 
 	pEnvironment->CleanupDeleteList();
 	return 0;
@@ -1096,7 +1090,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_CleanupDeleteList)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetQuickDelete)
 {
-	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(LUA, 1, true);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, true);
 	bool quickDelete = LUA->GetBool(2);
 
 	pEnvironment->SetQuickDelete(quickDelete);
@@ -1105,7 +1099,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetQuickDelete)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_EnableDeleteQueue)
 {
-	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(LUA, 1, true);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, true);
 	bool deleteQueue = LUA->GetBool(2);
 
 	pEnvironment->EnableDeleteQueue(deleteQueue);
@@ -1115,7 +1109,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_EnableDeleteQueue)
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_Simulate)
 {
 	ILuaPhysicsEnvironment* pLuaEnv = Get_ILuaPhysicsEnvironment(LUA, 1, true);
-	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(LUA, 1, true);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, true);
 
 	float deltaTime = (float)LUA->CheckNumber(2);
 	bool onlyEntities = LUA->GetBool(3);
@@ -1238,7 +1232,7 @@ static void FillObjectParams(objectparams_t& params, int iStackPos, GarrysMod::L
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreatePolyObject)
 {
-	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(LUA, 1, true);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, true);
 	CPhysCollide* pCollide = Get_CPhysCollide(LUA, 2, true);
 	int materialIndex = (int)LUA->CheckNumber(3);
 	Vector* pOrigin = Get_Vector(LUA, 4, true);
@@ -1252,7 +1246,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreatePolyObject)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreatePolyObjectStatic)
 {
-	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(LUA, 1, true);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, true);
 	CPhysCollide* pCollide = Get_CPhysCollide(LUA, 2, true);
 	int materialIndex = (int)LUA->CheckNumber(3);
 	Vector* pOrigin = Get_Vector(LUA, 4, true);
@@ -1266,7 +1260,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreatePolyObjectStatic)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreateSphereObject)
 {
-	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(LUA, 1, true);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, true);
 	float radius = (float)LUA->CheckNumber(2);
 	int materialIndex = (int)LUA->CheckNumber(3);
 	Vector* pOrigin = Get_Vector(LUA, 4, true);
@@ -1281,7 +1275,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreateSphereObject)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_DestroyObject)
 {
-	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(LUA, 1, true);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, true);
 	IPhysicsObject* pObject = Get_IPhysicsObject(LUA, 2, true);
 
 	pEnvironment->DestroyObject(pObject);
@@ -1290,7 +1284,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_DestroyObject)
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_IsCollisionModelUsed)
 {
-	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(LUA, 1, true);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, true);
 	CPhysCollide* pCollide = Get_CPhysCollide(LUA, 2, true);
 
 	LUA->PushBool(pEnvironment->IsCollisionModelUsed(pCollide));
@@ -1299,7 +1293,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_IsCollisionModelUsed)
 
 /*LUA_FUNCTION_STATIC(IPhysicsEnvironment_SweepCollideable)
 {
-	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(LUA, 1, true);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, true);
 
 	pEnvironment->SweepCollideable // This function seems to be fully empty???
 	return 1;
@@ -1308,7 +1302,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_IsCollisionModelUsed)
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetObjectEventHandler)
 {
 	ILuaPhysicsEnvironment* pLuaEnv = Get_ILuaPhysicsEnvironment(LUA, 1, true);
-	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(LUA, 1, true);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, true);
 	LUA->CheckType(2, GarrysMod::Lua::Type::Function);
 	LUA->CheckType(3, GarrysMod::Lua::Type::Function);
 
@@ -1325,7 +1319,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetObjectEventHandler)
 /*LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreateCopy)
 {
 	ILuaPhysicsEnvironment* pLuaEnv = Get_ILuaPhysicsEnvironment(LUA, 1, true);
-	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(LUA, 1, true);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, true);
 	CPhysicsObject* pObject = (CPhysicsObject*)Get_IPhysicsObject(LUA, 2, true);
 
 	Vector pos;
@@ -1518,7 +1512,7 @@ IPhysicsObject *PhysCreateWorld(IPhysicsEnvironment* pEnvironment, CBaseEntity* 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreateWorldPhysics)
 {
 	ILuaPhysicsEnvironment* pLuaEnv = Get_ILuaPhysicsEnvironment(LUA, 1, true);
-	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironment(LUA, 1, true);
+	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, true);
 	
 #if ARCHITECTURE_IS_X86
 	Push_IPhysicsObject(LUA, PhysCreateWorld(pEnvironment, Util::GetCBaseEntityFromEdict(Util::engineserver->PEntityOfEntIndex(0))));
@@ -1582,7 +1576,7 @@ Default__GetTable(CPhysPolysoup);
 
 LUA_FUNCTION_STATIC(CPhysConvex__tostring)
 {
-	CPhysConvex* pConvex = Get_CPhysConvex(LUA, LUA, 1, false);
+	CPhysConvex* pConvex = Get_CPhysConvex(LUA, 1, false);
 	if (!pConvex)
 		LUA->PushString("CPhysConvex [NULL]");
 	else
@@ -1593,7 +1587,7 @@ LUA_FUNCTION_STATIC(CPhysConvex__tostring)
 
 LUA_FUNCTION_STATIC(CPhysConvex_IsValid)
 {
-	CPhysConvex* pConvex = Get_CPhysConvex(LUA, LUA, 1, false);
+	CPhysConvex* pConvex = Get_CPhysConvex(LUA, 1, false);
 
 	LUA->PushBool(pConvex != NULL);
 	return 1;
@@ -1731,7 +1725,7 @@ LUA_FUNCTION_STATIC(physcollide_ConvertConvexToCollide)
 
 LUA_FUNCTION_STATIC(physcollide_ConvertPolysoupToCollide)
 {
-	CPhysPolysoup* pPolySoup = Get_CPhysPolysoup(1, true);
+	CPhysPolysoup* pPolySoup = Get_CPhysPolysoup(LUA, 1, true);
 	bool bUseMOPP = LUA->GetBool(2);
 
 	if (!physcollide)
@@ -1767,7 +1761,7 @@ LUA_FUNCTION_STATIC(physcollide_PolysoupCreate)
 
 LUA_FUNCTION_STATIC(physcollide_PolysoupAddTriangle)
 {
-	CPhysPolysoup* pPolySoup = Get_CPhysPolysoup(1, true);
+	CPhysPolysoup* pPolySoup = Get_CPhysPolysoup(LUA, 1, true);
 	Vector* a = Get_Vector(LUA, 2, true);
 	Vector* b = Get_Vector(LUA, 3, true);
 	Vector* c = Get_Vector(LUA, 4, true);
@@ -1782,7 +1776,7 @@ LUA_FUNCTION_STATIC(physcollide_PolysoupAddTriangle)
 
 LUA_FUNCTION_STATIC(physcollide_PolysoupDestroy)
 {
-	CPhysPolysoup* pPolySoup = Get_CPhysPolysoup(1, true);
+	CPhysPolysoup* pPolySoup = Get_CPhysPolysoup(LUA, 1, true);
 
 	if (!physcollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
@@ -1796,7 +1790,7 @@ LUA_FUNCTION_STATIC(physcollide_CollideGetAABB)
 {
 	CPhysCollide* pCollide = Get_CPhysCollide(LUA, 1, true);
 	Vector* pOrigin = Get_Vector(LUA, 2, true);
-	QAngle* pRotation = Get_QAngle(3, true);
+	QAngle* pRotation = Get_QAngle(LUA, 3, true);
 
 	if (!physcollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
@@ -1812,7 +1806,7 @@ LUA_FUNCTION_STATIC(physcollide_CollideGetExtent)
 {
 	CPhysCollide* pCollide = Get_CPhysCollide(LUA, 1, true);
 	Vector* pOrigin = Get_Vector(LUA, 2, true);
-	QAngle* pRotation = Get_QAngle(3, true);
+	QAngle* pRotation = Get_QAngle(LUA, 3, true);
 	Vector* pDirection = Get_Vector(LUA, 4, true);
 
 	if (!physcollide)
@@ -2218,7 +2212,7 @@ void CPhysEnvModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 		Util::PopTable(pLua);
 	}
 
-	Util::StartTable();
+	Util::StartTable(pLua);
 		Util::AddFunc(pLua, physcollide_BBoxToCollide, "BBoxToCollide");
 		Util::AddFunc(pLua, physcollide_BBoxToConvex, "BBoxToConvex");
 		Util::AddFunc(pLua, physcollide_ConvertConvexToCollide, "ConvertConvexToCollide");
@@ -2282,12 +2276,18 @@ void CPhysEnvModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 
 void CPhysEnvModule::Shutdown()
 {
-	DeleteAll_ILuaPhysicsEnvironment(); // >:( Why did I add it here.... ToDo: Move this to LuaShutdown after verifying that it should be fine there.
+	//DeleteAll_ILuaPhysicsEnvironment(); // >:( Why did I add it here.... ToDo: Move this to LuaShutdown after verifying that it should be fine there.
 
-	for (auto it = g_pEnvironmentToLua.begin(); it != g_pEnvironmentToLua.end(); )
+	// What tf are we even doing here....
+	/*for (auto it = g_pEnvironmentToLua.begin(); it != g_pEnvironmentToLua.end(); )
 	{
 		delete it->second;
 		it = g_pEnvironmentToLua.erase(it);
+	}*/
+
+	for (auto it = g_pEnvironmentToLua.begin(); it != g_pEnvironmentToLua.end(); ++it)
+	{
+		Msg(PROJECT_NAME " - physenv: Found remaining environment! (%p - %p)\n", it->first, it->second);
 	}
 }
 

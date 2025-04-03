@@ -27,11 +27,29 @@ Get_LuaClass(EntityList, "EntityList")
 
 static std::unordered_set<EntityList*> pEntityLists;
 
-EntityList g_pGlobalEntityList; // NOTE: This needs to be after pEntityLists? (funny Constructor Behavior apparently)
-
-EntityList::EntityList(GarrysMod::Lua::ILuaInterface* pLua)
+class LuaEntityModuleData : public Lua::ModuleData
 {
-	m_pLua = pLua;
+public:
+	EntityList pGlobalEntityList;
+};
+
+static inline LuaEntityModuleData* GetLuaData(GarrysMod::Lua::ILuaInterface* pLua)
+{
+	if (!pLua)
+		return NULL;
+
+	return (LuaEntityModuleData*)Lua::GetLuaData(pLua)->GetModuleData(g_pEntListModule.m_pID);
+}
+
+EntityList& GetGlobalEntityList(GarrysMod::Lua::ILuaInterface* pLua)
+{
+	auto pData = GetLuaData(pLua);
+	
+	return pData->pGlobalEntityList;
+}
+
+EntityList::EntityList()
+{
 	pEntityLists.insert(this);
 }
 
@@ -114,7 +132,7 @@ Default__newindex(EntityList);
 Default__GetTable(EntityList);
 Default__gc(EntityList,
 	EntityList* pList = (EntityList*)pData->GetData();
-	if (pList != &g_pGlobalEntityList)
+	if (pList)
 		delete pList;
 )
 
@@ -227,19 +245,21 @@ LUA_FUNCTION_STATIC(EntityList_RemoveEntity)
 
 LUA_FUNCTION_STATIC(CreateEntityList)
 {
-	EntityList* pList = new EntityList(LUA);
+	EntityList* pList = new EntityList();
+	pList->SetLua(LUA);
 	Push_EntityList(LUA, pList);
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(GetGlobalEntityList)
 {
-	LUA->PreCreateTable(g_pGlobalEntityList.GetEntities().size(), 0);
+	EntityList& pGlobalEntityList = GetGlobalEntityList(LUA);
+	LUA->PreCreateTable(pGlobalEntityList.GetEntities().size(), 0);
 		int idx = 0;
-		for (auto& [pEnt, iReference] : g_pGlobalEntityList.GetReferences())
+		for (auto& [pEnt, iReference] : pGlobalEntityList.GetReferences())
 		{
-			if (!g_pGlobalEntityList.IsValidReference(iReference))
-				g_pGlobalEntityList.CreateReference(pEnt);
+			if (!pGlobalEntityList.IsValidReference(iReference))
+				pGlobalEntityList.CreateReference(pEnt);
 
 			Util::ReferencePush(LUA, iReference);
 			Util::RawSetI(LUA, -2, ++idx);
@@ -264,19 +284,22 @@ void CEntListModule::OnEntityDeleted(CBaseEntity* pEntity)
 
 void CEntListModule::OnEntityCreated(CBaseEntity* pEntity)
 {
-	g_pGlobalEntityList.FreeEntity(pEntity);
+	EntityList& pGlobalEntityList = GetGlobalEntityList(g_Lua);
+	pGlobalEntityList.FreeEntity(pEntity);
 
 	//Util::Push_Entity(pEntity); // BUG: The Engine hates us for this. "CREATING ENTITY - ALREADY HAS A LUA TABLE! AND IT SHOULDN'T"
-	g_pGlobalEntityList.AddEntity(pEntity);
+	pGlobalEntityList.AddEntity(pEntity);
 
 	if (g_pEntListModule.InDebug())
-		Msg("Created Entity %p (%p, %i)\n", pEntity, &g_pGlobalEntityList, (int)pEntityLists.size());
+		Msg("Created Entity %p (%p, %i)\n", pEntity, &pGlobalEntityList, (int)pEntityLists.size());
 }
 
 void CEntListModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
+
+	Lua::GetLuaData(pLua)->SetModuleData(m_pID, new LuaEntityModuleData);
 
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::EntityList, pLua->CreateMetaTable("EntityList"));
 		Util::AddFunc(pLua, EntityList__tostring, "__tostring");
@@ -306,5 +329,6 @@ void CEntListModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 		Util::RemoveField(pLua, "GetGlobalEntityList");
 	pLua->Pop(1);
 
-	g_pGlobalEntityList.Invalidate();
+	EntityList& pGlobalEntityList = GetGlobalEntityList(pLua);
+	pGlobalEntityList.Invalidate();
 }

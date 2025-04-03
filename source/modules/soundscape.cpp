@@ -41,7 +41,7 @@ void CSoundscapeModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 
 void CSoundscapeModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	Util::NukeTable("httpserver");
+	Util::NukeTable(pLua, "soundscape");
 }
 
 void CSoundscapeModule::Shutdown()

@@ -43,7 +43,7 @@ public:
 	// NOTE: This is called before Init if bPreServer is true.
 	virtual void InitDetour(bool bPreServer) { (void)bPreServer; };
 
-	// Called every frame.
+	// Called every frame from the main thread.
 	virtual void Think(bool bSimulating) { (void)bSimulating; };
 
 	// Implement your additional shutdown logic here.

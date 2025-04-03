@@ -755,13 +755,13 @@ struct VProfCounter
 	int64* iValue;
 #endif
 };
-static int VProfCounter_TypeID = -1;
-Push_LuaClass(VProfCounter, VProfCounter_TypeID)
-Get_LuaClass(VProfCounter, VProfCounter_TypeID, "VProfCounter")
+
+Push_LuaClass(VProfCounter)
+Get_LuaClass(VProfCounter, "VProfCounter")
 
 LUA_FUNCTION_STATIC(VProfCounter__tostring)
 {
-	VProfCounter* pData = Get_VProfCounter(1, false);
+	VProfCounter* pData = Get_VProfCounter(LUA, 1, false);
 	if (!pData)
 	{
 		LUA->PushString("VProfCounter [NULL]");
@@ -785,7 +785,7 @@ Default__gc(VProfCounter,
 
 LUA_FUNCTION_STATIC(VProfCounter_GetName)
 {
-	VProfCounter* counter = Get_VProfCounter(1, true);
+	VProfCounter* counter = Get_VProfCounter(LUA, 1, true);
 
 	LUA->PushString(counter->strName);
 	return 1;
@@ -793,7 +793,7 @@ LUA_FUNCTION_STATIC(VProfCounter_GetName)
 
 LUA_FUNCTION_STATIC(VProfCounter_Set)
 {
-	VProfCounter* counter = Get_VProfCounter(1, true);
+	VProfCounter* counter = Get_VProfCounter(LUA, 1, true);
 	(*counter->iValue) = (int64)LUA->CheckNumber(2);
 
 	return 0;
@@ -801,7 +801,7 @@ LUA_FUNCTION_STATIC(VProfCounter_Set)
 
 LUA_FUNCTION_STATIC(VProfCounter_Get)
 {
-	VProfCounter* counter = Get_VProfCounter(1, true);
+	VProfCounter* counter = Get_VProfCounter(LUA, 1, true);
 	
 	LUA->PushNumber((double)*counter->iValue);
 	return 1;
@@ -809,7 +809,7 @@ LUA_FUNCTION_STATIC(VProfCounter_Get)
 
 LUA_FUNCTION_STATIC(VProfCounter_Increment)
 {
-	VProfCounter* counter = Get_VProfCounter(1, true);
+	VProfCounter* counter = Get_VProfCounter(LUA, 1, true);
 
 	++(*counter->iValue);
 	return 0;
@@ -817,7 +817,7 @@ LUA_FUNCTION_STATIC(VProfCounter_Increment)
 
 LUA_FUNCTION_STATIC(VProfCounter_Decrement)
 {
-	VProfCounter* counter = Get_VProfCounter(1, true);
+	VProfCounter* counter = Get_VProfCounter(LUA, 1, true);
 
 	--(*counter->iValue);
 	return 0;
@@ -827,13 +827,12 @@ LUA_FUNCTION_STATIC(VProfCounter_Decrement)
 
 // ------------- VProf Node --------------
 
-static int VProfNode_TypeID = -1;
-Push_LuaClass(CVProfNode, VProfNode_TypeID)
-Get_LuaClass(CVProfNode, VProfNode_TypeID, "VProfNode")
+Push_LuaClass(CVProfNode)
+Get_LuaClass(CVProfNode, "VProfNode")
 
 LUA_FUNCTION_STATIC(VProfNode__tostring)
 {
-	CVProfNode* pData = Get_CVProfNode(1, false);
+	CVProfNode* pData = Get_CVProfNode(LUA, 1, false);
 	if (!pData)
 	{
 		LUA->PushString("VProfNode [NULL]");
@@ -857,7 +856,7 @@ Default__gc(CVProfNode,
 
 LUA_FUNCTION_STATIC(VProfNode_GetName)
 {
-	CVProfNode* node = Get_CVProfNode(1, true);
+	CVProfNode* node = Get_CVProfNode(LUA, 1, true);
 
 	LUA->PushString(node->GetName());
 	return 1;
@@ -865,7 +864,7 @@ LUA_FUNCTION_STATIC(VProfNode_GetName)
 
 LUA_FUNCTION_STATIC(VProfNode_GetBudgetGroupID)
 {
-	CVProfNode* node = Get_CVProfNode(1, true);
+	CVProfNode* node = Get_CVProfNode(LUA, 1, true);
 
 	LUA->PushNumber(node->GetBudgetGroupID());
 	return 1;
@@ -873,7 +872,7 @@ LUA_FUNCTION_STATIC(VProfNode_GetBudgetGroupID)
 
 LUA_FUNCTION_STATIC(VProfNode_GetCurTime)
 {
-	CVProfNode* node = Get_CVProfNode(1, true);
+	CVProfNode* node = Get_CVProfNode(LUA, 1, true);
 
 	LUA->PushNumber(node->GetCurTime());
 	return 1;
@@ -881,7 +880,7 @@ LUA_FUNCTION_STATIC(VProfNode_GetCurTime)
 
 LUA_FUNCTION_STATIC(VProfNode_GetCurTimeLessChildren)
 {
-	CVProfNode* node = Get_CVProfNode(1, true);
+	CVProfNode* node = Get_CVProfNode(LUA, 1, true);
 
 	LUA->PushNumber(node->GetCurTimeLessChildren());
 	return 1;
@@ -889,7 +888,7 @@ LUA_FUNCTION_STATIC(VProfNode_GetCurTimeLessChildren)
 
 LUA_FUNCTION_STATIC(VProfNode_GetPeakTime)
 {
-	CVProfNode* node = Get_CVProfNode(1, true);
+	CVProfNode* node = Get_CVProfNode(LUA, 1, true);
 
 	LUA->PushNumber(node->GetPeakTime());
 	return 1;
@@ -897,7 +896,7 @@ LUA_FUNCTION_STATIC(VProfNode_GetPeakTime)
 
 LUA_FUNCTION_STATIC(VProfNode_GetPrevTime)
 {
-	CVProfNode* node = Get_CVProfNode(1, true);
+	CVProfNode* node = Get_CVProfNode(LUA, 1, true);
 
 	LUA->PushNumber(node->GetPrevTime());
 	return 1;
@@ -905,7 +904,7 @@ LUA_FUNCTION_STATIC(VProfNode_GetPrevTime)
 
 LUA_FUNCTION_STATIC(VProfNode_GetPrevTimeLessChildren)
 {
-	CVProfNode* node = Get_CVProfNode(1, true);
+	CVProfNode* node = Get_CVProfNode(LUA, 1, true);
 
 	LUA->PushNumber(node->GetPrevTimeLessChildren());
 	return 1;
@@ -913,7 +912,7 @@ LUA_FUNCTION_STATIC(VProfNode_GetPrevTimeLessChildren)
 
 LUA_FUNCTION_STATIC(VProfNode_GetTotalTime)
 {
-	CVProfNode* node = Get_CVProfNode(1, true);
+	CVProfNode* node = Get_CVProfNode(LUA, 1, true);
 
 	LUA->PushNumber(node->GetTotalTime());
 	return 1;
@@ -921,7 +920,7 @@ LUA_FUNCTION_STATIC(VProfNode_GetTotalTime)
 
 LUA_FUNCTION_STATIC(VProfNode_GetTotalTimeLessChildren)
 {
-	CVProfNode* node = Get_CVProfNode(1, true);
+	CVProfNode* node = Get_CVProfNode(LUA, 1, true);
 
 	LUA->PushNumber(node->GetTotalTimeLessChildren());
 	return 1;
@@ -929,7 +928,7 @@ LUA_FUNCTION_STATIC(VProfNode_GetTotalTimeLessChildren)
 
 LUA_FUNCTION_STATIC(VProfNode_GetCurCalls)
 {
-	CVProfNode* node = Get_CVProfNode(1, true);
+	CVProfNode* node = Get_CVProfNode(LUA, 1, true);
 
 	LUA->PushNumber(node->GetCurCalls());
 	return 1;
@@ -937,39 +936,39 @@ LUA_FUNCTION_STATIC(VProfNode_GetCurCalls)
 
 LUA_FUNCTION_STATIC(VProfNode_GetChild)
 {
-	CVProfNode* node = Get_CVProfNode(1, true);
+	CVProfNode* node = Get_CVProfNode(LUA, 1, true);
 
-	Push_CVProfNode(node->GetChild());
+	Push_CVProfNode(LUA, node->GetChild());
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(VProfNode_GetParent)
 {
-	CVProfNode* node = Get_CVProfNode(1, true);
+	CVProfNode* node = Get_CVProfNode(LUA, 1, true);
 
-	Push_CVProfNode(node->GetParent());
+	Push_CVProfNode(LUA, node->GetParent());
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(VProfNode_GetSibling)
 {
-	CVProfNode* node = Get_CVProfNode(1, true);
+	CVProfNode* node = Get_CVProfNode(LUA, 1, true);
 
-	Push_CVProfNode(node->GetSibling());
+	Push_CVProfNode(LUA, node->GetSibling());
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(VProfNode_GetPrevSibling)
 {
-	CVProfNode* node = Get_CVProfNode(1, true);
+	CVProfNode* node = Get_CVProfNode(LUA, 1, true);
 
-	Push_CVProfNode(node->GetPrevSibling());
+	Push_CVProfNode(LUA, node->GetPrevSibling());
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(VProfNode_GetL2CacheMisses)
 {
-	CVProfNode* node = Get_CVProfNode(1, true);
+	CVProfNode* node = Get_CVProfNode(LUA, 1, true);
 
 	LUA->PushNumber(node->GetL2CacheMisses());
 	return 1;
@@ -977,7 +976,7 @@ LUA_FUNCTION_STATIC(VProfNode_GetL2CacheMisses)
 
 LUA_FUNCTION_STATIC(VProfNode_GetPrevL2CacheMissLessChildren)
 {
-	CVProfNode* node = Get_CVProfNode(1, true);
+	CVProfNode* node = Get_CVProfNode(LUA, 1, true);
 
 	LUA->PushNumber(node->GetPrevL2CacheMissLessChildren());
 	return 1;
@@ -985,7 +984,7 @@ LUA_FUNCTION_STATIC(VProfNode_GetPrevL2CacheMissLessChildren)
 
 LUA_FUNCTION_STATIC(VProfNode_GetPrevLoadHitStoreLessChildren)
 {
-	CVProfNode* node = Get_CVProfNode(1, true);
+	CVProfNode* node = Get_CVProfNode(LUA, 1, true);
 
 	LUA->PushNumber(node->GetPrevLoadHitStoreLessChildren());
 	return 1;
@@ -993,7 +992,7 @@ LUA_FUNCTION_STATIC(VProfNode_GetPrevLoadHitStoreLessChildren)
 
 LUA_FUNCTION_STATIC(VProfNode_GetTotalCalls)
 {
-	CVProfNode* node = Get_CVProfNode(1, true);
+	CVProfNode* node = Get_CVProfNode(LUA, 1, true);
 
 	LUA->PushNumber(node->GetTotalCalls());
 	return 1;
@@ -1001,18 +1000,18 @@ LUA_FUNCTION_STATIC(VProfNode_GetTotalCalls)
 
 LUA_FUNCTION_STATIC(VProfNode_GetSubNode)
 {
-	CVProfNode* node = Get_CVProfNode(1, true);
+	CVProfNode* node = Get_CVProfNode(LUA, 1, true);
 	const char* pName = AddOrGetString(LUA->CheckString(2));
 	int iDetailLevel = (int)LUA->CheckNumber(3);
 	const char* pBudgetGroup = LUA->CheckString(4);
 
-	Push_CVProfNode(node->GetSubNode(pName, iDetailLevel, pBudgetGroup));
+	Push_CVProfNode(LUA, node->GetSubNode(pName, iDetailLevel, pBudgetGroup));
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(VProfNode_GetClientData)
 {
-	CVProfNode* node = Get_CVProfNode(1, true);
+	CVProfNode* node = Get_CVProfNode(LUA, 1, true);
 
 	LUA->PushNumber(node->GetClientData());
 	return 1;
@@ -1020,7 +1019,7 @@ LUA_FUNCTION_STATIC(VProfNode_GetClientData)
 
 LUA_FUNCTION_STATIC(VProfNode_MarkFrame)
 {
-	CVProfNode* node = Get_CVProfNode(1, true);
+	CVProfNode* node = Get_CVProfNode(LUA, 1, true);
 	node->MarkFrame();
 
 	return 0;
@@ -1028,7 +1027,7 @@ LUA_FUNCTION_STATIC(VProfNode_MarkFrame)
 
 LUA_FUNCTION_STATIC(VProfNode_ClearPrevTime)
 {
-	CVProfNode* node = Get_CVProfNode(1, true);
+	CVProfNode* node = Get_CVProfNode(LUA, 1, true);
 	node->ClearPrevTime();
 
 	return 0;
@@ -1036,7 +1035,7 @@ LUA_FUNCTION_STATIC(VProfNode_ClearPrevTime)
 
 LUA_FUNCTION_STATIC(VProfNode_Pause)
 {
-	CVProfNode* node = Get_CVProfNode(1, true);
+	CVProfNode* node = Get_CVProfNode(LUA, 1, true);
 	node->Pause();
 
 	return 0;
@@ -1044,7 +1043,7 @@ LUA_FUNCTION_STATIC(VProfNode_Pause)
 
 LUA_FUNCTION_STATIC(VProfNode_Reset)
 {
-	CVProfNode* node = Get_CVProfNode(1, true);
+	CVProfNode* node = Get_CVProfNode(LUA, 1, true);
 	node->Reset();
 
 	return 0;
@@ -1052,7 +1051,7 @@ LUA_FUNCTION_STATIC(VProfNode_Reset)
 
 LUA_FUNCTION_STATIC(VProfNode_ResetPeak)
 {
-	CVProfNode* node = Get_CVProfNode(1, true);
+	CVProfNode* node = Get_CVProfNode(LUA, 1, true);
 	node->ResetPeak();
 
 	return 0;
@@ -1060,7 +1059,7 @@ LUA_FUNCTION_STATIC(VProfNode_ResetPeak)
 
 LUA_FUNCTION_STATIC(VProfNode_Resume)
 {
-	CVProfNode* node = Get_CVProfNode(1, true);
+	CVProfNode* node = Get_CVProfNode(LUA, 1, true);
 	node->Resume();
 
 	return 0;
@@ -1068,7 +1067,7 @@ LUA_FUNCTION_STATIC(VProfNode_Resume)
 
 LUA_FUNCTION_STATIC(VProfNode_SetBudgetGroupID)
 {
-	CVProfNode* node = Get_CVProfNode(1, true);
+	CVProfNode* node = Get_CVProfNode(LUA, 1, true);
 	node->SetBudgetGroupID((int)LUA->CheckNumber(2));
 
 	return 0;
@@ -1076,7 +1075,7 @@ LUA_FUNCTION_STATIC(VProfNode_SetBudgetGroupID)
 
 LUA_FUNCTION_STATIC(VProfNode_SetCurFrameTime)
 {
-	CVProfNode* node = Get_CVProfNode(1, true);
+	CVProfNode* node = Get_CVProfNode(LUA, 1, true);
 	node->SetCurFrameTime((unsigned long)LUA->CheckNumber(2));
 
 	return 0;
@@ -1084,7 +1083,7 @@ LUA_FUNCTION_STATIC(VProfNode_SetCurFrameTime)
 
 LUA_FUNCTION_STATIC(VProfNode_SetClientData)
 {
-	CVProfNode* node = Get_CVProfNode(1, true);
+	CVProfNode* node = Get_CVProfNode(LUA, 1, true);
 	node->SetClientData((int)LUA->CheckNumber(2));
 
 	return 0;
@@ -1092,7 +1091,7 @@ LUA_FUNCTION_STATIC(VProfNode_SetClientData)
 
 LUA_FUNCTION_STATIC(VProfNode_EnterScope)
 {
-	CVProfNode* node = Get_CVProfNode(1, true);
+	CVProfNode* node = Get_CVProfNode(LUA, 1, true);
 	node->EnterScope();
 
 	return 0;
@@ -1100,7 +1099,7 @@ LUA_FUNCTION_STATIC(VProfNode_EnterScope)
 
 LUA_FUNCTION_STATIC(VProfNode_ExitScope)
 {
-	CVProfNode* node = Get_CVProfNode(1, true);
+	CVProfNode* node = Get_CVProfNode(LUA, 1, true);
 	node->ExitScope();
 
 	return 0;
@@ -1138,7 +1137,7 @@ LUA_FUNCTION_STATIC(vprof_FindOrCreateCounter)
 	counter->strName = pName;
 	counter->iValue = g_VProfCurrentProfile.FindOrCreateCounter(pName, group);
 
-	Push_VProfCounter(counter);
+	Push_VProfCounter(LUA, counter);
 	return 1;
 }
 
@@ -1156,7 +1155,7 @@ LUA_FUNCTION_STATIC(vprof_GetCounter)
 	
 	counter->iValue = g_VProfCurrentProfile.FindOrCreateCounter(counter->strName);
 
-	Push_VProfCounter(counter);
+	Push_VProfCounter(LUA, counter);
 	return 1;
 }
 
@@ -1256,13 +1255,13 @@ LUA_FUNCTION_STATIC(vprof_GetBudgetGroupColor)
 
 LUA_FUNCTION_STATIC(vprof_GetRoot)
 {
-	Push_CVProfNode(g_VProfCurrentProfile.GetRoot());
+	Push_CVProfNode(LUA, g_VProfCurrentProfile.GetRoot());
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(vprof_GetCurrentNode)
 {
-	Push_CVProfNode(g_VProfCurrentProfile.GetCurrentNode());
+	Push_CVProfNode(LUA, g_VProfCurrentProfile.GetCurrentNode());
 	return 1;
 }
 
@@ -1330,98 +1329,98 @@ void CVProfModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit
 	if (bServerInit)
 		return;
 
-	VProfCounter_TypeID = g_Lua->CreateMetaTable("VProfCounter");
-		Util::AddFunc(VProfCounter__tostring, "__tostring");
-		Util::AddFunc(VProfCounter__index, "__index");
-		Util::AddFunc(VProfCounter__newindex, "__newindex");
-		Util::AddFunc(VProfCounter__gc, "__gc");
-		Util::AddFunc(VProfCounter_GetTable, "GetTable");
-		Util::AddFunc(VProfCounter_Set, "Set");
-		Util::AddFunc(VProfCounter_Get, "Get");
-		Util::AddFunc(VProfCounter_Increment, "Increment");
-		Util::AddFunc(VProfCounter_Decrement, "Decrement");
-		Util::AddFunc(VProfCounter_GetName, "GetName");
-	g_Lua->Pop(1);
+	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::VProfCounter, pLua->CreateMetaTable("VProfCounter"));
+		Util::AddFunc(pLua, VProfCounter__tostring, "__tostring");
+		Util::AddFunc(pLua, VProfCounter__index, "__index");
+		Util::AddFunc(pLua, VProfCounter__newindex, "__newindex");
+		Util::AddFunc(pLua, VProfCounter__gc, "__gc");
+		Util::AddFunc(pLua, VProfCounter_GetTable, "GetTable");
+		Util::AddFunc(pLua, VProfCounter_Set, "Set");
+		Util::AddFunc(pLua, VProfCounter_Get, "Get");
+		Util::AddFunc(pLua, VProfCounter_Increment, "Increment");
+		Util::AddFunc(pLua, VProfCounter_Decrement, "Decrement");
+		Util::AddFunc(pLua, VProfCounter_GetName, "GetName");
+	pLua->Pop(1);
 
-	VProfNode_TypeID = g_Lua->CreateMetaTable("VProfNode");
-		Util::AddFunc(VProfNode__tostring, "__tostring");
-		Util::AddFunc(CVProfNode__index, "__index");
-		Util::AddFunc(CVProfNode__newindex, "__newindex");
-		Util::AddFunc(CVProfNode__gc, "__gc");
-		Util::AddFunc(CVProfNode_GetTable, "GetTable");
-		Util::AddFunc(VProfNode_GetName, "GetName");
-		Util::AddFunc(VProfNode_GetBudgetGroupID, "GetBudgetGroupID");
-		Util::AddFunc(VProfNode_GetCurTime, "GetCurTime");
-		Util::AddFunc(VProfNode_GetCurTimeLessChildren, "GetCurTimeLessChildren");
-		Util::AddFunc(VProfNode_GetPeakTime, "GetPeakTime");
-		Util::AddFunc(VProfNode_GetPrevTime, "GetPrevTime");
-		Util::AddFunc(VProfNode_GetPrevTimeLessChildren, "GetPrevTimeLessChildren");
-		Util::AddFunc(VProfNode_GetTotalTime, "GetTotalTime");
-		Util::AddFunc(VProfNode_GetTotalTimeLessChildren, "GetTotalTimeLessChildren");
-		Util::AddFunc(VProfNode_GetCurCalls, "GetCurCalls");
-		Util::AddFunc(VProfNode_GetChild, "GetChild");
-		Util::AddFunc(VProfNode_GetParent, "GetParent");
-		Util::AddFunc(VProfNode_GetSibling, "GetSibling");
-		Util::AddFunc(VProfNode_GetPrevSibling, "GetPrevSibling");
-		Util::AddFunc(VProfNode_GetL2CacheMisses, "GetL2CacheMisses");
-		Util::AddFunc(VProfNode_GetPrevL2CacheMissLessChildren, "GetPrevL2CacheMissLessChildren");
-		Util::AddFunc(VProfNode_GetPrevLoadHitStoreLessChildren, "GetPrevLoadHitStoreLessChildren");
-		Util::AddFunc(VProfNode_GetTotalCalls, "GetTotalCalls");
-		Util::AddFunc(VProfNode_GetSubNode, "GetSubNode");
-		Util::AddFunc(VProfNode_GetClientData, "GetClientData");
-		Util::AddFunc(VProfNode_MarkFrame, "MarkFrame");
-		Util::AddFunc(VProfNode_ClearPrevTime, "ClearPrevTime");
-		Util::AddFunc(VProfNode_Pause, "Pause");
-		Util::AddFunc(VProfNode_Reset, "Reset");
-		Util::AddFunc(VProfNode_ResetPeak, "ResetPeak");
-		Util::AddFunc(VProfNode_Resume, "Resume");
-		Util::AddFunc(VProfNode_SetBudgetGroupID, "SetBudgetGroupID");
-		Util::AddFunc(VProfNode_SetCurFrameTime, "SetCurFrameTime");
-		Util::AddFunc(VProfNode_SetClientData, "SetClientData");
-		Util::AddFunc(VProfNode_EnterScope, "EnterScope");
-		Util::AddFunc(VProfNode_ExitScope, "ExitScope");
-	g_Lua->Pop(1);
+	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::CVProfNode, pLua->CreateMetaTable("VProfNode"));
+		Util::AddFunc(pLua, VProfNode__tostring, "__tostring");
+		Util::AddFunc(pLua, CVProfNode__index, "__index");
+		Util::AddFunc(pLua, CVProfNode__newindex, "__newindex");
+		Util::AddFunc(pLua, CVProfNode__gc, "__gc");
+		Util::AddFunc(pLua, CVProfNode_GetTable, "GetTable");
+		Util::AddFunc(pLua, VProfNode_GetName, "GetName");
+		Util::AddFunc(pLua, VProfNode_GetBudgetGroupID, "GetBudgetGroupID");
+		Util::AddFunc(pLua, VProfNode_GetCurTime, "GetCurTime");
+		Util::AddFunc(pLua, VProfNode_GetCurTimeLessChildren, "GetCurTimeLessChildren");
+		Util::AddFunc(pLua, VProfNode_GetPeakTime, "GetPeakTime");
+		Util::AddFunc(pLua, VProfNode_GetPrevTime, "GetPrevTime");
+		Util::AddFunc(pLua, VProfNode_GetPrevTimeLessChildren, "GetPrevTimeLessChildren");
+		Util::AddFunc(pLua, VProfNode_GetTotalTime, "GetTotalTime");
+		Util::AddFunc(pLua, VProfNode_GetTotalTimeLessChildren, "GetTotalTimeLessChildren");
+		Util::AddFunc(pLua, VProfNode_GetCurCalls, "GetCurCalls");
+		Util::AddFunc(pLua, VProfNode_GetChild, "GetChild");
+		Util::AddFunc(pLua, VProfNode_GetParent, "GetParent");
+		Util::AddFunc(pLua, VProfNode_GetSibling, "GetSibling");
+		Util::AddFunc(pLua, VProfNode_GetPrevSibling, "GetPrevSibling");
+		Util::AddFunc(pLua, VProfNode_GetL2CacheMisses, "GetL2CacheMisses");
+		Util::AddFunc(pLua, VProfNode_GetPrevL2CacheMissLessChildren, "GetPrevL2CacheMissLessChildren");
+		Util::AddFunc(pLua, VProfNode_GetPrevLoadHitStoreLessChildren, "GetPrevLoadHitStoreLessChildren");
+		Util::AddFunc(pLua, VProfNode_GetTotalCalls, "GetTotalCalls");
+		Util::AddFunc(pLua, VProfNode_GetSubNode, "GetSubNode");
+		Util::AddFunc(pLua, VProfNode_GetClientData, "GetClientData");
+		Util::AddFunc(pLua, VProfNode_MarkFrame, "MarkFrame");
+		Util::AddFunc(pLua, VProfNode_ClearPrevTime, "ClearPrevTime");
+		Util::AddFunc(pLua, VProfNode_Pause, "Pause");
+		Util::AddFunc(pLua, VProfNode_Reset, "Reset");
+		Util::AddFunc(pLua, VProfNode_ResetPeak, "ResetPeak");
+		Util::AddFunc(pLua, VProfNode_Resume, "Resume");
+		Util::AddFunc(pLua, VProfNode_SetBudgetGroupID, "SetBudgetGroupID");
+		Util::AddFunc(pLua, VProfNode_SetCurFrameTime, "SetCurFrameTime");
+		Util::AddFunc(pLua, VProfNode_SetClientData, "SetClientData");
+		Util::AddFunc(pLua, VProfNode_EnterScope, "EnterScope");
+		Util::AddFunc(pLua, VProfNode_ExitScope, "ExitScope");
+	pLua->Pop(1);
 
-	Util::StartTable();
-		Util::AddFunc(vprof_Start, "Start");
-		Util::AddFunc(vprof_Stop, "Stop");
-		Util::AddFunc(vprof_AtRoot, "AtRoot");
-		Util::AddFunc(vprof_FindOrCreateCounter, "FindOrCreateCounter");
-		Util::AddFunc(vprof_GetCounter, "GetCounter");
-		Util::AddFunc(vprof_GetNumCounters, "GetNumCounters");
-		Util::AddFunc(vprof_ResetCounters, "ResetCounters");
-		Util::AddFunc(vprof_GetTimeLastFrame, "GetTimeLastFrame");
-		Util::AddFunc(vprof_GetPeakFrameTime, "GetPeakFrameTime");
-		Util::AddFunc(vprof_GetTotalTimeSampled, "GetTotalTimeSampled");
-		Util::AddFunc(vprof_GetDetailLevel, "GetDetailLevel");
-		Util::AddFunc(vprof_NumFramesSampled, "NumFramesSampled");
-		Util::AddFunc(vprof_HideBudgetGroup, "HideBudgetGroup");
-		Util::AddFunc(vprof_GetNumBudgetGroups, "GetNumBudgetGroups");
-		Util::AddFunc(vprof_BudgetGroupNameToBudgetGroupID, "BudgetGroupNameToBudgetGroupID");
-		Util::AddFunc(vprof_GetBudgetGroupName, "GetBudgetGroupName");
-		Util::AddFunc(vprof_GetBudgetGroupFlags, "GetBudgetGroupFlags");
-		Util::AddFunc(vprof_GetBudgetGroupColor, "GetBudgetGroupColor");
-		Util::AddFunc(vprof_GetRoot, "GetRoot");
-		Util::AddFunc(vprof_GetCurrentNode, "GetCurrentNode");
-		Util::AddFunc(vprof_IsEnabled, "IsEnabled");
-		Util::AddFunc(vprof_MarkFrame, "MarkFrame");
-		Util::AddFunc(vprof_EnterScope, "EnterScope");
-		Util::AddFunc(vprof_ExitScope, "ExitScope");
-		Util::AddFunc(vprof_Pause, "Pause");
-		Util::AddFunc(vprof_Resume, "Resume");
-		Util::AddFunc(vprof_Reset, "Reset");
-		Util::AddFunc(vprof_ResetPeaks, "ResetPeaks");
-		Util::AddFunc(vprof_Term, "Term");
+	Util::StartTable(pLua);
+		Util::AddFunc(pLua, vprof_Start, "Start");
+		Util::AddFunc(pLua, vprof_Stop, "Stop");
+		Util::AddFunc(pLua, vprof_AtRoot, "AtRoot");
+		Util::AddFunc(pLua, vprof_FindOrCreateCounter, "FindOrCreateCounter");
+		Util::AddFunc(pLua, vprof_GetCounter, "GetCounter");
+		Util::AddFunc(pLua, vprof_GetNumCounters, "GetNumCounters");
+		Util::AddFunc(pLua, vprof_ResetCounters, "ResetCounters");
+		Util::AddFunc(pLua, vprof_GetTimeLastFrame, "GetTimeLastFrame");
+		Util::AddFunc(pLua, vprof_GetPeakFrameTime, "GetPeakFrameTime");
+		Util::AddFunc(pLua, vprof_GetTotalTimeSampled, "GetTotalTimeSampled");
+		Util::AddFunc(pLua, vprof_GetDetailLevel, "GetDetailLevel");
+		Util::AddFunc(pLua, vprof_NumFramesSampled, "NumFramesSampled");
+		Util::AddFunc(pLua, vprof_HideBudgetGroup, "HideBudgetGroup");
+		Util::AddFunc(pLua, vprof_GetNumBudgetGroups, "GetNumBudgetGroups");
+		Util::AddFunc(pLua, vprof_BudgetGroupNameToBudgetGroupID, "BudgetGroupNameToBudgetGroupID");
+		Util::AddFunc(pLua, vprof_GetBudgetGroupName, "GetBudgetGroupName");
+		Util::AddFunc(pLua, vprof_GetBudgetGroupFlags, "GetBudgetGroupFlags");
+		Util::AddFunc(pLua, vprof_GetBudgetGroupColor, "GetBudgetGroupColor");
+		Util::AddFunc(pLua, vprof_GetRoot, "GetRoot");
+		Util::AddFunc(pLua, vprof_GetCurrentNode, "GetCurrentNode");
+		Util::AddFunc(pLua, vprof_IsEnabled, "IsEnabled");
+		Util::AddFunc(pLua, vprof_MarkFrame, "MarkFrame");
+		Util::AddFunc(pLua, vprof_EnterScope, "EnterScope");
+		Util::AddFunc(pLua, vprof_ExitScope, "ExitScope");
+		Util::AddFunc(pLua, vprof_Pause, "Pause");
+		Util::AddFunc(pLua, vprof_Resume, "Resume");
+		Util::AddFunc(pLua, vprof_Reset, "Reset");
+		Util::AddFunc(pLua, vprof_ResetPeaks, "ResetPeaks");
+		Util::AddFunc(pLua, vprof_Term, "Term");
 
-		Util::AddValue(COUNTER_GROUP_DEFAULT, "COUNTER_GROUP_DEFAULT");
-		Util::AddValue(COUNTER_GROUP_NO_RESET, "COUNTER_GROUP_NO_RESET");
-		Util::AddValue(COUNTER_GROUP_TEXTURE_GLOBAL, "COUNTER_GROUP_TEXTURE_GLOBAL");
-		Util::AddValue(COUNTER_GROUP_TEXTURE_PER_FRAME, "COUNTER_GROUP_TEXTURE_PER_FRAME");
-		Util::AddValue(COUNTER_GROUP_TELEMETRY, "COUNTER_GROUP_TELEMETRY");
-	Util::FinishTable("vprof");
+		Util::AddValue(pLua, COUNTER_GROUP_DEFAULT, "COUNTER_GROUP_DEFAULT");
+		Util::AddValue(pLua, COUNTER_GROUP_NO_RESET, "COUNTER_GROUP_NO_RESET");
+		Util::AddValue(pLua, COUNTER_GROUP_TEXTURE_GLOBAL, "COUNTER_GROUP_TEXTURE_GLOBAL");
+		Util::AddValue(pLua, COUNTER_GROUP_TEXTURE_PER_FRAME, "COUNTER_GROUP_TEXTURE_PER_FRAME");
+		Util::AddValue(pLua, COUNTER_GROUP_TELEMETRY, "COUNTER_GROUP_TELEMETRY");
+	Util::FinishTable(pLua, "vprof");
 }
 
 void CVProfModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	Util::NukeTable("vprof");
+	Util::NukeTable(pLua, "vprof");
 }

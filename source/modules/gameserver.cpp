@@ -1408,7 +1408,7 @@ void hook_CNetChan_D2(CNetChan* pNetChan)
 		return;
 	}
 
-	Delete_CNetChan(pNetChan);
+	Delete_CNetChan(g_Lua, pNetChan);
 
 	detour_CNetChan_D2.GetTrampoline<Symbols::CNetChan_D2>()(pNetChan);
 }
@@ -2130,7 +2130,7 @@ LUA_FUNCTION_STATIC(gameserver_CreateNetChannel)
 
 	if (!adr.IsValid())
 	{
-		Push_CNetChan(NULL);
+		Push_CNetChan(LUA, NULL);
 		return 1;
 	}
 
@@ -2164,14 +2164,12 @@ LUA_FUNCTION_STATIC(gameserver_RemoveNetChannel)
 
 LUA_FUNCTION_STATIC(gameserver_GetCreatedNetChannels)
 {
-	LUA->PreCreateTable(LUA, g_pPushedCNetChan.size(), 0);
+	LUA->PreCreateTable(g_pNetMessageHandlers.size(), 0);
 		int idx = 0;
-		for (auto& [chan, userdata] : g_pPushedCNetChan)
+		for (auto& handler : g_pNetMessageHandlers)
 		{
-			if (userdata->Push())
-			{
-				Util::RawSetI(LUA, -2, ++idx);
-			}
+			Push_CNetChan(LUA, handler->chan);
+			Util::RawSetI(LUA, -2, ++idx);
 		}
 
 	return 1;
@@ -2300,8 +2298,8 @@ void CGameServerModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	Util::NukeTable(pLua, "gameserver");
 
-	DeleteAll_CBaseClient();
-	DeleteAll_CNetChan();
+	DeleteAll_CBaseClient(pLua);
+	DeleteAll_CNetChan(pLua);
 }
 
 static Detouring::Hook detour_CServerGameClients_GetPlayerLimit;
@@ -2731,11 +2729,8 @@ void GameServer_OnClientDisconnect(CBaseClient* pClient)
 		g_Lua->CallFunctionProtected(2, 0, true);
 	}
 
-	auto it = g_pPushedCBaseClient.find(pClient);
-	if (it != g_pPushedCBaseClient.end())
-	{
-		Delete_CBaseClient(it->first);
-	}
+
+	Delete_CBaseClient(g_Lua, pClient);
 }
 
 inline unsigned short BufferToShortChecksum( const void *pvData, size_t nLength )

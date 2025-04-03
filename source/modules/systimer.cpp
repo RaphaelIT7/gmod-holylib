@@ -11,7 +11,7 @@ class CSysTimerModule : public IModule
 public:
 	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
-	virtual void Think(bool bSimulating) OVERRIDE;
+	virtual void LuaThink(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual const char* Name() { return "systimer"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 };
@@ -24,10 +24,10 @@ struct ILuaTimer
 	~ILuaTimer()
 	{
 		if (function != -1)
-			Util::ReferenceFree(function, "ILuaTimer::~ILuaTimer - function");
+			Util::ReferenceFree(pLua, function, "ILuaTimer::~ILuaTimer - function");
 
 		if (identifierReference != -1)
-			Util::ReferenceFree(identifierReference, "ILuaTimer::~ILuaTimer - identifyer");
+			Util::ReferenceFree(pLua, identifierReference, "ILuaTimer::~ILuaTimer - identifyer");
 	}
 
 	// Should we try to make this struct smaller?
@@ -41,6 +41,7 @@ struct ILuaTimer
 	const char* identifier = nullptr;
 	bool active = true;
 	bool markDelete = false;
+	GarrysMod::Lua::ILuaInterface* pLua;
 };
 
 static double GetTime()
@@ -48,12 +49,27 @@ static double GetTime()
 	return (double)std::chrono::time_point_cast<std::chrono::nanoseconds>(std::chrono::high_resolution_clock::now()).time_since_epoch().count() / 1000;
 }
 
-static CUtlVector<ILuaTimer*> g_pLuaTimers;
-static ILuaTimer* FindTimer(const char* name) // We should pobably use a set or so to have faster look up. But my precious memory :(
+class LuaSysTimerModuleData : public Lua::ModuleData
 {
-	FOR_EACH_VEC(g_pLuaTimers, i)
+public:
+	CUtlVector<ILuaTimer*> pLuaTimers;
+};
+
+static inline LuaSysTimerModuleData* GetLuaData(GarrysMod::Lua::ILuaInterface* pLua)
+{
+	if (!pLua)
+		return NULL;
+
+	return (LuaSysTimerModuleData*)Lua::GetLuaData(pLua)->GetModuleData(g_pSysTimerModule.m_pID);
+}
+
+static ILuaTimer* FindTimer(GarrysMod::Lua::ILuaInterface* pLua, const char* name) // We should pobably use a set or so to have faster look up. But my precious memory :(
+{
+	auto pData = GetLuaData(pLua);
+
+	FOR_EACH_VEC(pData->pLuaTimers, i)
 	{
-		ILuaTimer* timer = g_pLuaTimers[i];
+		ILuaTimer* timer = pData->pLuaTimers[i];
 		if (timer->identifier != nullptr && strcmp(name, timer->identifier) == 0)
 		{
 			return timer;
@@ -63,23 +79,25 @@ static ILuaTimer* FindTimer(const char* name) // We should pobably use a set or 
 	return nullptr;
 }
 
-static void RemoveTimers()
+static void RemoveTimers(GarrysMod::Lua::ILuaInterface* pLua)
 {
+	auto pData = GetLuaData(pLua);
+
 	bool bDeleted = false;
-	int nTimer = g_pLuaTimers.Count();
+	int nTimer = pData->pLuaTimers.Count();
 	for (int i = nTimer - 1; i >= 0; i--)
 	{
-		ILuaTimer* timer = g_pLuaTimers[i];
+		ILuaTimer* timer = pData->pLuaTimers[i];
 		if (!timer->markDelete)
 			continue;
 
-		g_pLuaTimers.FastRemove(nTimer);
+		pData->pLuaTimers.FastRemove(nTimer);
 		bDeleted = true;
 		delete timer;
 	}
 
 	if (bDeleted)
-		g_pLuaTimers.Compact();
+		pData->pLuaTimers.Compact();
 }
 
 LUA_FUNCTION_STATIC(timer_Adjust)
@@ -87,16 +105,16 @@ LUA_FUNCTION_STATIC(timer_Adjust)
 	const char* name = LUA->CheckString(1);
 	double delay = LUA->CheckNumber(2) * 1000 * 1000;
 
-	ILuaTimer* timer = FindTimer(name);
+	ILuaTimer* timer = FindTimer(LUA, name);
 	if (timer) {
 		timer->delay = (float)delay;
 		if (LUA->IsType(3, GarrysMod::Lua::Type::Number))
 			timer->repetitions = (int)LUA->GetNumber(3);
 
 		if (LUA->IsType(4, GarrysMod::Lua::Type::Function)) {
-			Util::ReferenceFree(timer->function, "timer.Adjust - old function");
+			Util::ReferenceFree(LUA, timer->function, "timer.Adjust - old function");
 			LUA->Push(4);
-			timer->function = Util::ReferenceCreate("timer.Adjust - new function");
+			timer->function = Util::ReferenceCreate(LUA, "timer.Adjust - new function");
 		}
 
 		LUA->PushBool(true);
@@ -119,28 +137,29 @@ LUA_FUNCTION_STATIC(timer_Create)
 	LUA->CheckType(4, GarrysMod::Lua::Type::Function);
 
 	bool bNewTimer = false;
-	ILuaTimer* timer = FindTimer(name); // Reuse existing timer
+	ILuaTimer* timer = FindTimer(LUA, name); // Reuse existing timer
 	if (!timer)
 	{
 		timer = new ILuaTimer;
 		bNewTimer = true;
 	} else {
-		Util::ReferenceFree(timer->function, "timer.Create - old function");
-		Util::ReferenceFree(timer->identifierReference, "timer.Create - old identifyer");
+		Util::ReferenceFree(timer->pLua, timer->function, "timer.Create - old function");
+		Util::ReferenceFree(timer->pLua, timer->identifierReference, "timer.Create - old identifyer");
 	}
 
 	LUA->Push(4);
-	timer->function = Util::ReferenceCreate("timer.Create - new function");
+	timer->function = Util::ReferenceCreate(LUA, "timer.Create - new function");
 
 	timer->identifier = name;
 	LUA->Push(1);
-	timer->identifierReference = Util::ReferenceCreate("timer.Create - new identifyer");
+	timer->identifierReference = Util::ReferenceCreate(LUA, "timer.Create - new identifyer");
 	timer->delay = (float)delay;
 	timer->repetitions = (int)repetitions;
 	timer->nextRunTime = GetTime() + delay;
+	timer->pLua = LUA;
 
 	if (bNewTimer)
-		g_pLuaTimers.AddToTail(timer);
+		GetLuaData(LUA)->pLuaTimers.AddToTail(timer);
 
 	return 0;
 }
@@ -149,7 +168,7 @@ LUA_FUNCTION_STATIC(timer_Exists)
 {
 	const char* name = LUA->CheckString(1);
 
-	LUA->PushBool(FindTimer(name) != nullptr);
+	LUA->PushBool(FindTimer(LUA, name) != nullptr);
 
 	return 1;
 }
@@ -158,7 +177,7 @@ LUA_FUNCTION_STATIC(timer_Pause)
 {
 	const char* name = LUA->CheckString(1);
 
-	ILuaTimer* timer = FindTimer(name);
+	ILuaTimer* timer = FindTimer(LUA, name);
 	if (timer) {
 		if (timer->active) {
 			timer->active = false;
@@ -175,10 +194,10 @@ LUA_FUNCTION_STATIC(timer_Remove)
 {
 	const char* name = LUA->CheckString(1);
 
-	ILuaTimer* timer = FindTimer(name);
+	ILuaTimer* timer = FindTimer(LUA, name);
 	if (timer) {
 		timer->markDelete = true;
-		RemoveTimers();
+		RemoveTimers(LUA);
 	}
 
 	return 0;
@@ -188,7 +207,7 @@ LUA_FUNCTION_STATIC(timer_RepsLeft)
 {
 	const char* name = LUA->CheckString(1);
 
-	ILuaTimer* timer = FindTimer(name);
+	ILuaTimer* timer = FindTimer(LUA, name);
 	if (timer) {
 		if (timer->repetitions > 0)
 			LUA->PushNumber(timer->repetitions);
@@ -207,12 +226,14 @@ LUA_FUNCTION_STATIC(timer_Simple)
 
 	ILuaTimer* timer = new ILuaTimer;
 	LUA->Push(2);
-	timer->function = Util::ReferenceCreate("timer.Simple - function");
+	timer->function = Util::ReferenceCreate(LUA, "timer.Simple - function");
 
 	timer->delay = (float)delay;
 	timer->repetitions = 1;
 	timer->nextRunTime = GetTime() + delay;
-	g_pLuaTimers.AddToTail(timer);
+	timer->pLua = LUA;
+
+	GetLuaData(LUA)->pLuaTimers.AddToTail(timer);
 
 	return 0;
 }
@@ -221,7 +242,7 @@ LUA_FUNCTION_STATIC(timer_Start)
 {
 	const char* name = LUA->CheckString(1);
 
-	ILuaTimer* timer = FindTimer(name);
+	ILuaTimer* timer = FindTimer(LUA, name);
 	if (timer) {
 		if (!timer->active) {
 			timer->active = true;
@@ -239,7 +260,7 @@ LUA_FUNCTION_STATIC(timer_Stop)
 {
 	const char* name = LUA->CheckString(1);
 
-	ILuaTimer* timer = FindTimer(name);
+	ILuaTimer* timer = FindTimer(LUA, name);
 	if (timer) {
 		if (timer->active) {
 			timer->active = false;
@@ -257,7 +278,7 @@ LUA_FUNCTION_STATIC(timer_TimeLeft)
 {
 	const char* name = LUA->CheckString(1);
 
-	ILuaTimer* timer = FindTimer(name);
+	ILuaTimer* timer = FindTimer(LUA, name);
 	if (timer)
 		if (timer->active)
 			LUA->PushNumber(timer->nextRunTime - GetTime());
@@ -273,7 +294,7 @@ LUA_FUNCTION_STATIC(timer_Toggle)
 {
 	const char* name = LUA->CheckString(1);
 
-	ILuaTimer* timer = FindTimer(name);
+	ILuaTimer* timer = FindTimer(LUA, name);
 	if (timer) {
 		timer->active = !timer->active;
 		timer->nextRunTime = GetTime() + timer->nextRunTime;
@@ -288,7 +309,7 @@ LUA_FUNCTION_STATIC(timer_UnPause)
 {
 	const char* name = LUA->CheckString(1);
 
-	ILuaTimer* timer = FindTimer(name);
+	ILuaTimer* timer = FindTimer(LUA, name);
 	if (timer) {
 		timer->active = true;
 		timer->nextRunTime = GetTime() + timer->delay;
@@ -304,39 +325,44 @@ void CSysTimerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerI
 	if (bServerInit)
 		return;
 
-	Util::StartTable();
-		Util::AddFunc(timer_Adjust, "Adjust");
-		Util::AddFunc(timer_Check, "Check");
-		Util::AddFunc(timer_Create, "Create");
-		Util::AddFunc(timer_Remove, "Destroy");
-		Util::AddFunc(timer_Exists, "Exists");
-		Util::AddFunc(timer_Pause, "Pause");
-		Util::AddFunc(timer_Remove, "Remove");
-		Util::AddFunc(timer_RepsLeft, "RepsLeft");
-		Util::AddFunc(timer_Simple, "Simple");
-		Util::AddFunc(timer_Start, "Start");
-		Util::AddFunc(timer_Stop, "Stop");
-		Util::AddFunc(timer_TimeLeft, "TimeLeft");
-		Util::AddFunc(timer_Toggle, "Toggle");
-		Util::AddFunc(timer_UnPause, "UnPause");
-	Util::FinishTable("systimer");
+	Lua::GetLuaData(pLua)->SetModuleData(m_pID, new LuaSysTimerModuleData);
+
+	Util::StartTable(pLua);
+		Util::AddFunc(pLua, timer_Adjust, "Adjust");
+		Util::AddFunc(pLua, timer_Check, "Check");
+		Util::AddFunc(pLua, timer_Create, "Create");
+		Util::AddFunc(pLua, timer_Remove, "Destroy");
+		Util::AddFunc(pLua, timer_Exists, "Exists");
+		Util::AddFunc(pLua, timer_Pause, "Pause");
+		Util::AddFunc(pLua, timer_Remove, "Remove");
+		Util::AddFunc(pLua, timer_RepsLeft, "RepsLeft");
+		Util::AddFunc(pLua, timer_Simple, "Simple");
+		Util::AddFunc(pLua, timer_Start, "Start");
+		Util::AddFunc(pLua, timer_Stop, "Stop");
+		Util::AddFunc(pLua, timer_TimeLeft, "TimeLeft");
+		Util::AddFunc(pLua, timer_Toggle, "Toggle");
+		Util::AddFunc(pLua, timer_UnPause, "UnPause");
+	Util::FinishTable(pLua, "systimer");
 }
 
 void CSysTimerModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	FOR_EACH_VEC(g_pLuaTimers, i)
-		delete g_pLuaTimers[i];
+	auto pData = GetLuaData(pLua);
 
-	g_pLuaTimers.RemoveAll(),
-	Util::NukeTable("systimer");
+	FOR_EACH_VEC(pData->pLuaTimers, i)
+		delete pData->pLuaTimers[i];
+
+	pData->pLuaTimers.RemoveAll(),
+	Util::NukeTable(pLua, "systimer");
 }
 
-void CSysTimerModule::Think(bool simulating) // Should also be called while hibernating so we should be fine.
+void CSysTimerModule::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	VPROF_BUDGET("HolyLib - CSysTimerModule::Think", VPROF_BUDGETGROUP_HOLYLIB);
+	VPROF_BUDGET("HolyLib - CSysTimerModule::LuaThink", VPROF_BUDGETGROUP_HOLYLIB);
 
 	double time = GetTime();
-	for (ILuaTimer* timer : g_pLuaTimers)
+	auto pData = GetLuaData(pLua);
+	for (ILuaTimer* timer : pData->pLuaTimers)
 	{
 		if (!timer->active)
 			continue;
@@ -358,5 +384,5 @@ void CSysTimerModule::Think(bool simulating) // Should also be called while hibe
 		}
 	}
 
-	RemoveTimers();
+	RemoveTimers(pLua);
 }

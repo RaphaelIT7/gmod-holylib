@@ -547,7 +547,7 @@ static void hook_CHLTVServer_BroadcastEvent(CHLTVServer* pServer, IGameEvent* pE
 }
 
 extern int CBaseClient_TypeID; // Now we need to make sure gameserevr module is loaded before sourcetv.
-extern void Push_CBaseClientMeta();
+extern void Push_CBaseClientMeta(GarrysMod::Lua::ILuaInterface* pLua);
 void CSourceTVLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
@@ -556,7 +556,7 @@ void CSourceTVLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServ
 	ref_tv_debug = cvar->FindVar("tv_debug"); // We only search for it once. Verify: ConVarRef would always search for it in it's constructor/Init if I remember correctly.
 
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::CHLTVClient, g_Lua->CreateMetaTable("CHLTVClient"));
-		Push_CBaseClientMeta();
+		Push_CBaseClientMeta(pLua);
 
 		Util::AddFunc(pLua, CHLTVClient__tostring, "__tostring");
 		Util::AddFunc(pLua, CHLTVClient_SetCameraMan, "SetCameraMan");

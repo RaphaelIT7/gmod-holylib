@@ -404,13 +404,36 @@ struct LuaUserData {
 	// - Release
 	// Reference control, see the todo above at the LuaUserData
 
+	inline void Aquire()
+	{
+		++referenceCount;
+	}
+
+	inline void Release()
+	{
+		if (referenceCount == -1)
+			return;
+
+		--referenceCount;
+		
+		if (referenceCount >= 0)
+		{
+			referenceCount = -1;
+			delete this;
+		}
+	}
+
 private:
 	void* pData = NULL;
 	int iReference = -1;
 	int iTableReference = -1;
 	int pAdditionalData = NULL; // Used by HLTVClient.
-	GarrysMod::Lua::ILuaInterface* pLua; // This should probably be a unordered_set instead.
+	GarrysMod::Lua::ILuaInterface* pLua;
+
+	int referenceCount = 0;
 };
+
+#define TO_LUA_TYPE( className ) Lua::className
 
 // BUG: This LuaClass function and all others were made in mind to support a single Lua Instance. Now we got multiple.
 #define MakeString( str1, str2, str3 ) ((std::string)str1).append(str2).append(str3)
@@ -419,7 +442,7 @@ static std::string invalidType_##className = MakeString("Tried to use something 
 static std::string triedNull_##className = MakeString("Tried to use a NULL ", strName, "!"); \
 LuaUserData* Get_##className##_Data(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError) \
 { \
-	int luaType = Lua::GetLuaData(LUA)->GetMetaTable(Lua::##className); \
+	int luaType = Lua::GetLuaData(LUA)->GetMetaTable(TO_LUA_TYPE(className)); \
 	if (!LUA->IsType(iStackPos, luaType)) \
 	{ \
 		if (bError) \
@@ -444,7 +467,19 @@ className* Get_##className(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bo
 	return (className*)pLuaData->GetData(); \
 }
 
-#define GMOD_Get_LuaClass( className, strName ) \
+#define GMODPush_LuaClass( className, luaType ) \
+void Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
+{ \
+	if (!var) \
+	{ \
+		LUA->PushNil(); \
+		return; \
+	} \
+\
+	LUA->PushUserType(var, luaType); \
+}
+
+#define GMODGet_LuaClass( className, luaType, strName ) \
 static std::string invalidType_##className = MakeString("Tried to use something that wasn't a ", strName, "!"); \
 static std::string triedNull_##className = MakeString("Tried to use a NULL ", strName, "!"); \
 className* Get_##className(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError) \
@@ -471,8 +506,8 @@ static std::string triedNull_##className = MakeString("Tried to use a NULL ", st
 LuaUserData* Get_##className##_Data(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError) \
 { \
 	Lua::StateData* LUADATA = Lua::GetLuaData(LUA); \
-	int luaType = LUADATA->GetMetaTable(Lua::##className); \
-	int luaType2 = LUADATA->GetMetaTable(Lua::##className2); \
+	int luaType = LUADATA->GetMetaTable(TO_LUA_TYPE(className)); \
+	int luaType2 = LUADATA->GetMetaTable(TO_LUA_TYPE(className2)); \
 \
 	int iType = LUA->GetType(iStackPos); \
 	if (iType != luaType && iType != luaType2) \
@@ -524,7 +559,7 @@ LuaUserData* Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var
 	LuaUserData* userData = new LuaUserData; \
 	userData->SetData(var); \
 	userData->Init(LUA); \
-	LUA->PushUserType(userData, Lua::GetLuaData(LUA)->GetMetaTable(Lua::##className)); \
+	LUA->PushUserType(userData, Lua::GetLuaData(LUA)->GetMetaTable(TO_LUA_TYPE(className))); \
 	return userData; \
 }
 
@@ -538,7 +573,7 @@ void Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
 		return; \
 	} \
 \
-	auto pushedUserData = Lua::GetLuaData(LUA)->GetPushedUserData(Lua::##className); \
+	auto pushedUserData = Lua::GetLuaData(LUA)->GetPushedUserData(TO_LUA_TYPE(className)); \
 	auto it = pushedUserData.find(var); \
 	if (it != pushedUserData.end()) \
 	{ \
@@ -546,30 +581,31 @@ void Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
 	} else { \
 		LuaUserData* userData = new LuaUserData; \
 		userData->SetData(var); \
-		LUA->PushUserType(userData, Lua::GetLuaData(LUA)->GetMetaTable(Lua::##className)); \
+		LUA->PushUserType(userData, Lua::GetLuaData(LUA)->GetMetaTable(TO_LUA_TYPE(className))); \
 		userData->Init(LUA); \
 		userData->CreateReference(); \
+		userData->Aquire(); \
 		pushedUserData[var] = userData; \
 	} \
 } \
 \
 static void Delete_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
 { \
-	auto pushedUserData = Lua::GetLuaData(LUA)->GetPushedUserData(Lua::##className); \
+	auto pushedUserData = Lua::GetLuaData(LUA)->GetPushedUserData(TO_LUA_TYPE(className)); \
 	auto it = pushedUserData.find(var); \
 	if (it != pushedUserData.end()) \
 	{ \
-		delete it->second; \
+		it->second->Release(); \
 		pushedUserData.erase(it); \
 	} \
 } \
 \
 static void DeleteAll_##className(GarrysMod::Lua::ILuaInterface* LUA) \
 { \
-	auto pushedUserData = Lua::GetLuaData(LUA)->GetPushedUserData(Lua::##className); \
+	auto pushedUserData = Lua::GetLuaData(LUA)->GetPushedUserData(TO_LUA_TYPE(className)); \
 	for (auto& [key, val] : pushedUserData) \
 	{ \
-		delete val; \
+		val->Release(); \
 	} \
 	pushedUserData.clear(); \
 }
@@ -679,7 +715,7 @@ extern ConVar* Get_ConVar(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, boo
 
 struct EntityList // entitylist module.
 {
-	EntityList(GarrysMod::Lua::ILuaInterface* pLua);
+	EntityList();
 	~EntityList();
 
 	void Clear();
@@ -729,7 +765,8 @@ private:
 	std::vector<CBaseEntity*> m_pEntities;
 	GarrysMod::Lua::ILuaInterface* m_pLua;
 };
-extern EntityList g_pGlobalEntityList;
+
+extern EntityList& GetGlobalEntityList(GarrysMod::Lua::ILuaInterface* pLua);
 
 extern bool Is_EntityList(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos);
 extern EntityList* Get_EntityList(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
@@ -738,5 +775,8 @@ extern void BlockGameEvent(const char* pName);
 extern void UnblockGameEvent(const char* pName);
 
 class CBaseClient;
-extern LuaUserData* Push_CBaseClient(GarrysMod::Lua::ILuaInterface* LUA, CBaseClient* tbl);
+extern void Push_CBaseClient(GarrysMod::Lua::ILuaInterface* LUA, CBaseClient* tbl);
 extern CBaseClient* Get_CBaseClient(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
+
+extern void Push_QAngle(GarrysMod::Lua::ILuaInterface* LUA, QAngle* var);
+extern void Push_Vector(GarrysMod::Lua::ILuaInterface* LUA, Vector* var);

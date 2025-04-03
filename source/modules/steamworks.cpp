@@ -16,6 +16,7 @@ public:
 	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void Think(bool bSimulating) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
+	virtual void LevelShutdown() OVERRIDE;
 	virtual const char* Name() { return "steamworks"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
 };
@@ -232,28 +233,31 @@ void CSteamWorksModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 	if (bServerInit)
 		return;
 
-	if (Util::PushTable("steamworks"))
+	if (Util::PushTable(pLua, "steamworks"))
 	{
-		Util::AddFunc(steamworks_Shutdown, "Shutdown");
-		Util::AddFunc(steamworks_Activate, "Activate");
-		Util::AddFunc(steamworks_IsConnected, "IsConnected");
-		Util::AddFunc(steamworks_ForceActivate, "ForceActivate");
-		Util::AddFunc(steamworks_ForceAuthenticate, "ForceAuthenticate");
-		Util::PopTable();
+		Util::AddFunc(pLua, steamworks_Shutdown, "Shutdown");
+		Util::AddFunc(pLua, steamworks_Activate, "Activate");
+		Util::AddFunc(pLua, steamworks_IsConnected, "IsConnected");
+		Util::AddFunc(pLua, steamworks_ForceActivate, "ForceActivate");
+		Util::AddFunc(pLua, steamworks_ForceAuthenticate, "ForceAuthenticate");
+		Util::PopTable(pLua);
 	}
 }
 
 void CSteamWorksModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	if (Util::PushTable("steamworks"))
+	if (Util::PushTable(pLua, "steamworks"))
 	{
-		Util::RemoveField("Shutdown");
-		Util::RemoveField("Activate");
-		Util::RemoveField("IsConnected");
-		Util::RemoveField("ForceActivate");
-		Util::PopTable();
+		Util::RemoveField(pLua, "Shutdown");
+		Util::RemoveField(pLua, "Activate");
+		Util::RemoveField(pLua, "IsConnected");
+		Util::RemoveField(pLua, "ForceActivate");
+		Util::PopTable(pLua);
 	}
+}
 
+void CSteamWorksModule::LevelShutdown()
+{
 	g_pApprovedClients.clear();
 	g_pApprovedSteamIDs.clear();
 }

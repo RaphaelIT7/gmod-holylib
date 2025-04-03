@@ -98,12 +98,13 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 	int idx = 0;
 	if (Util::pEntityList->IsEnabled())
 	{
-		for (auto& [pEnt, iReference] : g_pGlobalEntityList.GetReferences())
+		EntityList& pGlobalEntityList = GetGlobalEntityList(LUA);
+		for (auto& [pEnt, iReference] : pGlobalEntityList.GetReferences())
 		{
 			if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), Util::g_pCurrentCluster, sizeof(Util::g_pCurrentCluster)))
 			{
-				if (!g_pGlobalEntityList.IsValidReference(iReference))
-					g_pGlobalEntityList.CreateReference(pEnt);
+				if (!pGlobalEntityList.IsValidReference(iReference))
+					pGlobalEntityList.CreateReference(pEnt);
 
 				// Since it should be a bit more rare that ALL entities are pushed we don't directly loop thru the map itself to benefit from the vector's performance.
 				Util::ReferencePush(LUA, iReference);

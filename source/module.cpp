@@ -3,10 +3,12 @@
 #include "modules/_modules.h"
 #include "convar.h"
 #include "tier0/icommandline.h"
-#include "lua.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
+
+// We cannot include util.h as it breaks stuff for some magical reason.
+extern GarrysMod::Lua::ILuaInterface* g_Lua;
 
 static ConVar module_debug("holylib_module_debug", "0");
 
@@ -335,11 +337,11 @@ void CModuleManager::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 	else
 		m_pStatus |= LoadStatus_LuaInit;
 
-	if (!Lua::GetLuaData(pLua))
+	/*if (!Lua::GetLuaData(pLua))
 	{
 		Warning("holylib: tried to Initialize a LuaInterface when it had no allocated StateData!\n");
 		return;
-	}
+	}*/
 
 	AddLuaInterface(pLua);
 	VCALL_LUA_ENABLED_MODULES(LuaInit(pLua, bServerInit));

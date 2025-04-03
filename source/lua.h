@@ -67,6 +67,8 @@ namespace Lua
 		VoiceStream,
 		CNetChan,
 		INetworkStringTable,
+		CVProfNode,
+		VProfCounter,
 
 		TOTAL_TYPES,
 	};

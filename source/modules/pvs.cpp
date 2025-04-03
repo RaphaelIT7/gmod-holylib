@@ -625,7 +625,7 @@ LUA_FUNCTION_STATIC(pvs_SetPreventTransmitBulk)
 	std::vector<CBasePlayer*> filterplys;
 	if (LUA->IsType(2, GarrysMod::Lua::Type::RecipientFilter))
 	{
-		CRecipientFilter* filter = (CRecipientFilter*)Get_IRecipientFilter(2, true);
+		CRecipientFilter* filter = (CRecipientFilter*)Get_IRecipientFilter(LUA, 2, true);
 		for (int i=0; i<gpGlobals->maxClients; ++i)
 			if (filter->GetRecipientIndex(i) != -1)
 				filterplys.push_back(UTIL_PlayerByIndex(i));
@@ -704,12 +704,13 @@ LUA_FUNCTION_STATIC(pvs_FindInPVS) // Copy from pas.FindInPAS
 	int idx = 0;
 	if (Util::pEntityList->IsEnabled())
 	{
-		for (auto& [pEnt, iReference] : g_pGlobalEntityList.GetReferences())
+		EntityList& pGlobalEntityList = GetGlobalEntityList(LUA);
+		for (auto& [pEnt, iReference] : pGlobalEntityList.GetReferences())
 		{
 			if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), Util::g_pCurrentCluster, sizeof(Util::g_pCurrentCluster)))
 			{
-				if (!g_pGlobalEntityList.IsValidReference(iReference))
-					g_pGlobalEntityList.CreateReference(pEnt);
+				if (!pGlobalEntityList.IsValidReference(iReference))
+					pGlobalEntityList.CreateReference(pEnt);
 
 				Util::ReferencePush(LUA, iReference);
 				Util::RawSetI(LUA, -2, ++idx);
@@ -835,7 +836,7 @@ void CPVSModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 
 	mapPVSSize = ceil(Util::engineserver->GetClusterCount() / 8.0f);
 
-	Util::StartTable();
+	Util::StartTable(pLua);
 		Util::AddFunc(pLua, pvs_ResetPVS, "ResetPVS");
 		Util::AddFunc(pLua, pvs_CheckOriginInPVS, "CheckOriginInPVS");
 		Util::AddFunc(pLua, pvs_AddOriginToPVS, "AddOriginToPVS");

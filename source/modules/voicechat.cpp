@@ -709,7 +709,7 @@ struct VoiceStreamTask {
 	GarrysMod::Lua::ILuaInterface* pLua = NULL;
 };
 
-static class LuaModuleData : public Lua::ModuleData
+class LuaVoiceModuleData : public Lua::ModuleData
 {
 public:
 	std::unordered_set<VoiceStreamTask*> pVoiceStreamTasks;
@@ -759,7 +759,7 @@ static void VoiceStreamJob(VoiceStreamTask*& task)
 
 LUA_FUNCTION_STATIC(voicechat_LoadVoiceStream)
 {
-	LuaModuleData* pData = (LuaModuleData*)Lua::GetLuaData(LUA)->GetModuleData(g_pVoiceChatModule.m_pID);
+	LuaVoiceModuleData* pData = (LuaVoiceModuleData*)Lua::GetLuaData(LUA)->GetModuleData(g_pVoiceChatModule.m_pID);
 
 	const char* pFileName = LUA->CheckString(1);
 	const char* pGamePath = LUA->CheckStringOpt(2, "DATA");
@@ -793,7 +793,7 @@ LUA_FUNCTION_STATIC(voicechat_LoadVoiceStream)
 
 LUA_FUNCTION_STATIC(voicechat_SaveVoiceStream)
 {
-	LuaModuleData* pData = (LuaModuleData*)Lua::GetLuaData(LUA)->GetModuleData(g_pVoiceChatModule.m_pID);
+	LuaVoiceModuleData* pData = (LuaVoiceModuleData*)Lua::GetLuaData(LUA)->GetModuleData(g_pVoiceChatModule.m_pID);
 
 	VoiceStream* pStream = Get_VoiceStream(LUA, 1, true);
 	const char* pFileName = LUA->CheckString(2);
@@ -831,7 +831,7 @@ LUA_FUNCTION_STATIC(voicechat_SaveVoiceStream)
 
 void CVoiceChatModule::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	LuaModuleData* pData = (LuaModuleData*)Lua::GetLuaData(pLua)->GetModuleData(m_pID);
+	LuaVoiceModuleData* pData = (LuaVoiceModuleData*)Lua::GetLuaData(pLua)->GetModuleData(m_pID);
 
 	if (pData->pVoiceStreamTasks.size() <= 0)
 		return;
@@ -872,7 +872,7 @@ void CVoiceChatModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServer
 	if (bServerInit)
 		return;
 
-	Lua::GetLuaData(pLua)->SetModuleData(m_pID, new LuaModuleData);
+	Lua::GetLuaData(pLua)->SetModuleData(m_pID, new LuaVoiceModuleData);
 
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::VoiceData, g_Lua->CreateMetaTable("VoiceData"));
 		Util::AddFunc(pLua, VoiceData__tostring, "__tostring");
