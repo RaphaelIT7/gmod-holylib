@@ -40,6 +40,7 @@ LUA_FUNCTION_STATIC(noodles)
 	return 0;
 }
 
+// testing
 struct AutoRefresh {
 	const char *pFileName;
 
