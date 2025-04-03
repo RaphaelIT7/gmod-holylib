@@ -25,7 +25,7 @@ jobs:
       ARTIFACT_EXPIRE: "7"
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_BRANCH: "patch-6"
-      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-1"
+      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-2"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
 
   build_testingarea:
@@ -44,7 +44,7 @@ jobs:
       UPLOAD: "pterodactyl"
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_BRANCH: "patch-6"
-      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-1"
+      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-2"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
 
   build_testingarea_dev2: # Could make this use the already created artifact but I'm too lazy rn
@@ -63,7 +63,7 @@ jobs:
       UPLOAD: "pterodactyl"
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_BRANCH: "patch-6"
-      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-1"
+      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-2"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
 
   build_testingarea_64x:
@@ -83,7 +83,7 @@ jobs:
       UPLOAD: "pterodactyl"
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_BRANCH: "patch-6"
-      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-1"
+      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-2"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
 
   build_ghostinj:
@@ -97,6 +97,10 @@ jobs:
       BUILD_WINDOWS: "false"
       USE_PREFIX: "false"
       ARTIFACT_EXPIRE: "1"
+      SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
+      SOURCESDK_MINIMAL_BRANCH: "patch-6"
+      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-2"
+      GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
 
   setup_32x_artifacts:
     name: "Setup 32x Artifact"

@@ -4,6 +4,9 @@
 #include "lua.h"
 #include "recipientfilter.h"
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 class CNWModule : public IModule
 {
 public:

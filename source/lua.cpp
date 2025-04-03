@@ -8,17 +8,20 @@
 #include "module.h"
 #include "CLuaInterface.h"
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 bool Lua::PushHook(const char* hook)
 {
 	if ( !g_Lua )
 	{
-		Warning("holylib: Lua::PushHook was called while g_Lua was NULL! (%s)\n", hook);
+		Warning(PROJECT_NAME ": Lua::PushHook was called while g_Lua was NULL! (%s)\n", hook);
 		return false;
 	}
 
 	if (!ThreadInMainThread())
 	{
-		Warning("holylib: Lua::PushHook was called ouside of the main thread! (%s)\n", hook);
+		Warning(PROJECT_NAME ": Lua::PushHook was called ouside of the main thread! (%s)\n", hook);
 		return false;
 	}
 
@@ -26,7 +29,7 @@ bool Lua::PushHook(const char* hook)
 		if (g_Lua->GetType(-1) != GarrysMod::Lua::Type::Table)
 		{
 			g_Lua->Pop(1);
-			DevMsg("holylib: Missing hook table!\n");
+			DevMsg(PROJECT_NAME ": Missing hook table!\n");
 			return false;
 		}
 
@@ -34,7 +37,7 @@ bool Lua::PushHook(const char* hook)
 			if (g_Lua->GetType(-1) != GarrysMod::Lua::Type::Function)
 			{
 				g_Lua->Pop(2);
-				DevMsg("holylib: Missing hook.Run function!\n");
+				DevMsg(PROJECT_NAME ": Missing hook.Run function!\n");
 				return false;
 			} else {
 				g_Lua->Remove(-2);
@@ -48,7 +51,7 @@ void Lua::Init(GarrysMod::Lua::ILuaInterface* LUA)
 {
 	if (g_Lua)
 	{
-		Warning("holylib: g_Lua is already Initialized! Skipping... (%p, %p)\n", g_Lua, LUA);
+		Warning(PROJECT_NAME ": g_Lua is already Initialized! Skipping... (%p, %p)\n", g_Lua, LUA);
 		return;
 	}
 
@@ -100,7 +103,7 @@ void Lua::Shutdown()
 			continue;
 
 		if (Util::holylib_debug_mainutil.GetBool())
-			Msg("holylib: This should NEVER happen! Discarding of old userdata %p\n", ref);
+			Msg(PROJECT_NAME ": This should NEVER happen! Discarding of old userdata %p\n", ref);
 
 		delete ref;
 	}
@@ -119,7 +122,7 @@ void Lua::FinalShutdown()
 	for (auto& ref : Util::g_pReference)
 	{
 		if (Util::holylib_debug_mainutil.GetBool())
-			Msg("holylib: This should NEVER happen! Discarding of old reference %i\n", ref);
+			Msg(PROJECT_NAME ": This should NEVER happen! Discarding of old reference %i\n", ref);
 	}
 	Util::g_pReference.clear();
 }
@@ -183,7 +186,7 @@ GarrysMod::Lua::ILuaInterface* Lua::GetRealm(unsigned char realm) {
 	SourceSDK::FactoryLoader luashared_loader("lua_shared");
 	GarrysMod::Lua::ILuaShared* LuaShared = (GarrysMod::Lua::ILuaShared*)luashared_loader.GetFactory()(GMOD_LUASHARED_INTERFACE, nullptr);
 	if (LuaShared == nullptr) {
-		Msg("holylib: failed to get ILuaShared!\n");
+		Msg(PROJECT_NAME ": failed to get ILuaShared!\n");
 		return nullptr;
 	}
 
@@ -193,7 +196,7 @@ GarrysMod::Lua::ILuaInterface* Lua::GetRealm(unsigned char realm) {
 GarrysMod::Lua::ILuaShared* Lua::GetShared() {
 	SourceSDK::FactoryLoader luashared_loader("lua_shared");
 	if ( !luashared_loader.GetFactory() )
-		Msg("holylib: About to crash!\n");
+		Msg(PROJECT_NAME ": About to crash!\n");
 
 	return luashared_loader.GetInterface<GarrysMod::Lua::ILuaShared>(GMOD_LUASHARED_INTERFACE);
 }

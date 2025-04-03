@@ -3,6 +3,9 @@
 #include "lua.h"
 #include <chrono>
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 class CSysTimerModule : public IModule
 {
 public:

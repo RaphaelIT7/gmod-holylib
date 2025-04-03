@@ -6,6 +6,9 @@
 #include <filesystem.h>
 #include "Platform.hpp"
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 const char* g_BASSErrorStrings[] = {
 	"BASS_OK",
 	"BASS_ERROR_MEM",
@@ -110,7 +113,7 @@ void CBassAudioStream::Init(IAudioStreamEvent* event)
 	m_hStream = BASS_StreamCreateFileUser(STREAMFILE_NOBUFFER, BASS_STREAM_AUTOFREE, &fileprocs, event); // ToDo: FIX THIS. event should be a FILE* not a IAudioStreamEvent* -> Crash
 
 	if (m_hStream == 0) {
-		Warning("holylib: Couldn't create BASS audio stream (%s)", BassErrorToString(BASS_ErrorGetCode()));
+		Warning(PROJECT_NAME ": Couldn't create BASS audio stream (%s)", BassErrorToString(BASS_ErrorGetCode()));
 	}
 #endif
 }
@@ -166,7 +169,7 @@ unsigned int CBassAudioStream::Decode(void* data, unsigned int size)
 
 int CBassAudioStream::GetOutputBits()
 {
-	Error("holylib: CBassAudioStream::GetOutputBits is Not used");
+	Error(PROJECT_NAME ": CBassAudioStream::GetOutputBits is Not used");
 	return 0; // Make linux happy but windows angry
 }
 
@@ -234,29 +237,29 @@ bool CGMod_Audio::Init(CreateInterfaceFn interfaceFactory)
 
 #ifdef DEDICATED
 	if (!BASS_Init(0, 44100, 0, 0, NULL)) {
-		Warning("holylib: Couldn't Init Bass (%i)!", BASS_ErrorGetCode());
+		Warning(PROJECT_NAME ": Couldn't Init Bass (%i)!", BASS_ErrorGetCode());
 	}
 #else
 	if(!BASS_Init(-1, 44100, 0, 0, NULL)) {
-		Warning("holylib: BASS_Init failed(%i)! Attempt 1.\n", BASS_ErrorGetCode());
+		Warning(PROJECT_NAME ": BASS_Init failed(%i)! Attempt 1.\n", BASS_ErrorGetCode());
 
 		if(!BASS_Init(1, 44100, BASS_DEVICE_DEFAULT, 0, NULL)) {
-			Warning("holylib: BASS_Init failed(%i)! Attempt 2.\n", BASS_ErrorGetCode());
+			Warning(PROJECT_NAME ": BASS_Init failed(%i)! Attempt 2.\n", BASS_ErrorGetCode());
 
 			if(!BASS_Init(-1, 44100, BASS_DEVICE_3D | BASS_DEVICE_DEFAULT, 0, NULL)) {
-				Warning("holylib: BASS_Init failed(%i)! Attempt 3.\n", BASS_ErrorGetCode());
+				Warning(PROJECT_NAME ": BASS_Init failed(%i)! Attempt 3.\n", BASS_ErrorGetCode());
 
 				if(!BASS_Init(1, 44100, BASS_DEVICE_3D | BASS_DEVICE_DEFAULT, 0, NULL)) {
-					Warning("holylib: BASS_Init failed(%i)! Attempt 4.\n", BASS_ErrorGetCode());
+					Warning(PROJECT_NAME ": BASS_Init failed(%i)! Attempt 4.\n", BASS_ErrorGetCode());
 
 					if(!BASS_Init(-1 , 44100, 0, 0, NULL)) {
-						Warning("holylib: BASS_Init failed(%i)! Attempt 5.\n", BASS_ErrorGetCode());
+						Warning(PROJECT_NAME ": BASS_Init failed(%i)! Attempt 5.\n", BASS_ErrorGetCode());
 
 						if(!BASS_Init(1, 44100, 0, 0, NULL)) {
-							Warning("holylib: BASS_Init failed(%i)! Attempt 6.\n", BASS_ErrorGetCode());
+							Warning(PROJECT_NAME ": BASS_Init failed(%i)! Attempt 6.\n", BASS_ErrorGetCode());
 
 							if(!BASS_Init(0, 44100, 0, 0, NULL)) {
-								Warning("holylib: Couldn't Init Bass (%i)!", BASS_ErrorGetCode());
+								Warning(PROJECT_NAME ": Couldn't Init Bass (%i)!", BASS_ErrorGetCode());
 							}
 						}
 					}

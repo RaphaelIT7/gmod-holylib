@@ -9,6 +9,9 @@
 #include "player.h"
 #include "detours.h"
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 // Try not to use it. We want to move away from it.
 // Additionaly, we will add checks in many functions.
 GarrysMod::Lua::ILuaInterface* g_Lua;

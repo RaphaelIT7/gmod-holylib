@@ -8,6 +8,9 @@
 #include <isteamutils.h>
 #include "unordered_set"
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 class CVoiceChatModule : public IModule
 {
 public:
@@ -931,7 +934,7 @@ void CVoiceChatModule::ServerActivate(edict_t* pEdictList, int edictCount, int c
 		{
 			g_pSteamUser = SteamUser();
 			if (g_pVoiceChatModule.InDebug())
-				Msg("holylib: SteamUser returned valid stuff?\n");
+				Msg(PROJECT_NAME ": SteamUser returned valid stuff?\n");
 			return;
 		}
 

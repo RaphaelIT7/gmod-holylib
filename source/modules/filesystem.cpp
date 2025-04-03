@@ -10,6 +10,9 @@
 #include <unordered_set>
 #include "edict.h"
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 class CFileSystemModule : public IModule
 {
 public:
@@ -194,7 +197,7 @@ inline CSearchPath* FindSearchPathByStoreId(int iStoreID)
 {
 	if (!func_CBaseFileSystem_FindSearchPathByStoreId)
 	{
-		Warning("HolyLib: Failed to get CBaseFileSystem::FindSearchPathByStoreId!\n");
+		Warning(PROJECT_NAME ": Failed to get CBaseFileSystem::FindSearchPathByStoreId!\n");
 		return NULL;
 	}
 
@@ -351,9 +354,9 @@ static void WriteSearchCache()
 		}
 
 		g_pFullFileSystem->Close(handle);
-		Msg("holylib: successfully wrote searchcache file (%i)\n", searchCache.usedPaths);
+		Msg(PROJECT_NAME ": successfully wrote searchcache file (%i)\n", searchCache.usedPaths);
 	} else {
-		Warning("holylib: Failed to open searchcache file!\n");
+		Warning(PROJECT_NAME ": Failed to open searchcache file!\n");
 	}
 }
 
@@ -1523,7 +1526,7 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 		char* pChar = new char[iSize];
 		int iLength = g_pFullFileSystem->GetSearchPath("GAME", true, pChar, iSize);
 		if (iSize <= iLength)
-			Warning("holylib: Not enouth space for search paths! please report this.\n");
+			Warning(PROJECT_NAME ": Not enouth space for search paths! please report this.\n");
 
 		std::string pStr = pChar;
 		pStr = pStr.substr(0, iLength);
@@ -1575,7 +1578,7 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 
 	if (!DETOUR_ISVALID(detour_CBaseFileSystem_AddSearchPath))
 	{
-		Msg("holylib: CBaseFileSystem::AddSearchPath detour is invalid?\n");
+		Msg(PROJECT_NAME ": CBaseFileSystem::AddSearchPath detour is invalid?\n");
 		return;
 	}
 

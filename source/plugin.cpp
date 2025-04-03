@@ -20,6 +20,9 @@ struct edict_t;
 #include <icommandline.h>
 #include <datacache/imdlcache.h>
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 // The plugin is a static singleton that is exported as an interface
 static CServerPlugin g_HolyLibServerPlugin;
 CServerPlugin* g_pHolyLibServerPlugin = &g_HolyLibServerPlugin;
@@ -201,9 +204,9 @@ void CServerPlugin::UnPause(void)
 const char* CServerPlugin::GetPluginDescription(void)
 {
 #if !HOLYLIB_BUILD_RELEASE // DATA should always fallback to 0. We will set it to 1 in releases.
-	return "HolyLib Serverplugin V0.7 DEV (Workflow: " GITHUB_RUN_NUMBER ")";
+	return "HolyLib Serverplugin V0.8 DEV (Workflow: " GITHUB_RUN_NUMBER ")";
 #else
-	return "HolyLib Serverplugin V0.7";
+	return "HolyLib Serverplugin V0.8";
 #endif
 }
 
@@ -223,7 +226,7 @@ bool CServerPlugin::LuaInit()
 	VPROF_BUDGET("HolyLib - CServerPlugin::LuaInit", VPROF_BUDGETGROUP_HOLYLIB);
 	GarrysMod::Lua::ILuaInterface* LUA = Lua::GetRealm(g_pModuleManager.GetModuleRealm());
 	if (LUA == nullptr) {
-		Warning("holylib: Failed to get ILuaInterface! (Realm: %i)\n", (int)g_pModuleManager.GetModuleRealm());
+		Warning(PROJECT_NAME ": Failed to get ILuaInterface! (Realm: %i)\n", (int)g_pModuleManager.GetModuleRealm());
 		return false;
 	}
 

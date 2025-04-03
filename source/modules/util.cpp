@@ -3,6 +3,9 @@
 #include "lua.h"
 #include "Bootil/Bootil.h"
 
+// memdbgon must be the last include file in a .cpp file!!!
+#include "tier0/memdbgon.h"
+
 class CUtilModule : public IModule
 {
 public:
@@ -43,7 +46,7 @@ struct CompressEntry
 	{
 		if (!ThreadInMainThread())
 		{
-			Warning("holylib: A CompressEntry was deleted on a random thread! This should never happen!\n");
+			Warning(PROJECT_NAME ": A CompressEntry was deleted on a random thread! This should never happen!\n");
 			return; // This will be a memory, but we would never want to potentially break the Lua state.
 		}
 
