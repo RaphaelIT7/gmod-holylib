@@ -32,20 +32,19 @@ void CStringTableModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamef
 }
 
 //static int registryIdx = 0;
-static int INetworkStringTable_TypeID = -1;
-PushReferenced_LuaClass(INetworkStringTable, INetworkStringTable_TypeID)
-Get_LuaClass(INetworkStringTable, INetworkStringTable_TypeID, "INetworkStringTable")
+PushReferenced_LuaClass(INetworkStringTable)
+Get_LuaClass(INetworkStringTable, "INetworkStringTable")
 
 static Detouring::Hook detour_CNetworkStringTable_Deconstructor;
 static void hook_CNetworkStringTable_Deconstructor(INetworkStringTable* tbl)
 {
-	Delete_INetworkStringTable(tbl);
+	Delete_INetworkStringTable(g_Lua, tbl);
 	detour_CNetworkStringTable_Deconstructor.GetTrampoline<Symbols::CNetworkStringTable_Deconstructor>()(tbl);
 }
 
 LUA_FUNCTION_STATIC(INetworkStringTable__tostring)
 {
-	INetworkStringTable* table = Get_INetworkStringTable(1, false);
+	INetworkStringTable* table = Get_INetworkStringTable(LUA, 1, false);
 	if (!table)
 	{
 		LUA->PushString("INetworkStringTable [NULL]");
@@ -64,7 +63,7 @@ Default__GetTable(INetworkStringTable);
 
 LUA_FUNCTION_STATIC(INetworkStringTable_GetTableName)
 {
-	INetworkStringTable* table = Get_INetworkStringTable(1, true);
+	INetworkStringTable* table = Get_INetworkStringTable(LUA, 1, true);
 
 	LUA->PushString(table->GetTableName());
 	return 1;
@@ -72,7 +71,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_GetTableName)
 
 LUA_FUNCTION_STATIC(INetworkStringTable_GetTableId)
 {
-	INetworkStringTable* table = Get_INetworkStringTable(1, true);
+	INetworkStringTable* table = Get_INetworkStringTable(LUA, 1, true);
 
 	LUA->PushNumber(table->GetTableId());
 	return 1;
@@ -80,7 +79,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_GetTableId)
 
 LUA_FUNCTION_STATIC(INetworkStringTable_GetNumStrings)
 {
-	INetworkStringTable* table = Get_INetworkStringTable(1, true);
+	INetworkStringTable* table = Get_INetworkStringTable(LUA, 1, true);
 
 	LUA->PushNumber(table->GetNumStrings());
 	return 1;
@@ -88,7 +87,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_GetNumStrings)
 
 LUA_FUNCTION_STATIC(INetworkStringTable_GetMaxStrings)
 {
-	INetworkStringTable* table = Get_INetworkStringTable(1, true);
+	INetworkStringTable* table = Get_INetworkStringTable(LUA, 1, true);
 
 	LUA->PushNumber(table->GetMaxStrings());
 	return 1;
@@ -96,7 +95,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_GetMaxStrings)
 
 LUA_FUNCTION_STATIC(INetworkStringTable_GetEntryBits)
 {
-	INetworkStringTable* table = Get_INetworkStringTable(1, true);
+	INetworkStringTable* table = Get_INetworkStringTable(LUA, 1, true);
 
 	LUA->PushNumber(table->GetEntryBits());
 	return 1;
@@ -104,7 +103,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_GetEntryBits)
 
 LUA_FUNCTION_STATIC(INetworkStringTable_SetTick)
 {
-	INetworkStringTable* table = Get_INetworkStringTable(1, true);
+	INetworkStringTable* table = Get_INetworkStringTable(LUA, 1, true);
 
 	int tick = (int)LUA->CheckNumber(2);
 
@@ -114,7 +113,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_SetTick)
 
 LUA_FUNCTION_STATIC(INetworkStringTable_ChangedSinceTick)
 {
-	INetworkStringTable* table = Get_INetworkStringTable(1, true);
+	INetworkStringTable* table = Get_INetworkStringTable(LUA, 1, true);
 
 	int tick = (int)LUA->CheckNumber(2);
 	LUA->PushBool(table->ChangedSinceTick(tick));
@@ -123,7 +122,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_ChangedSinceTick)
 
 LUA_FUNCTION_STATIC(INetworkStringTable_AddString)
 {
-	INetworkStringTable* table = Get_INetworkStringTable(1, true);
+	INetworkStringTable* table = Get_INetworkStringTable(LUA, 1, true);
 
 	const char* pStr = LUA->CheckString(2);
 	bool bIsServer = true;
@@ -137,7 +136,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_AddString)
 
 LUA_FUNCTION_STATIC(INetworkStringTable_GetString)
 {
-	INetworkStringTable* table = Get_INetworkStringTable(1, true);
+	INetworkStringTable* table = Get_INetworkStringTable(LUA, 1, true);
 
 	int idx = (int)LUA->CheckNumber(2);
 
@@ -147,7 +146,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_GetString)
 
 LUA_FUNCTION_STATIC(INetworkStringTable_GetAllStrings)
 {
-	INetworkStringTable* table = Get_INetworkStringTable(1, true);
+	INetworkStringTable* table = Get_INetworkStringTable(LUA, 1, true);
 
 	int idx = 0;
 	LUA->PreCreateTable(table->GetMaxStrings(), 0);
@@ -166,7 +165,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_GetAllStrings)
 
 LUA_FUNCTION_STATIC(INetworkStringTable_FindStringIndex)
 {
-	INetworkStringTable* table = Get_INetworkStringTable(1, true);
+	INetworkStringTable* table = Get_INetworkStringTable(LUA, 1, true);
 
 	const char* pStr = LUA->CheckString(2);
 
@@ -177,7 +176,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_FindStringIndex)
 static Symbols::CNetworkStringTable_DeleteAllStrings func_CNetworkStringTable_DeleteAllStrings;
 LUA_FUNCTION_STATIC(INetworkStringTable_DeleteAllStrings)
 {
-	INetworkStringTable* table = Get_INetworkStringTable(1, true);
+	INetworkStringTable* table = Get_INetworkStringTable(LUA, 1, true);
 	bool bNukePrecache = LUA->GetBool(2);
 
 	if (!func_CNetworkStringTable_DeleteAllStrings)
@@ -231,7 +230,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_DeleteAllStrings)
 
 LUA_FUNCTION_STATIC(INetworkStringTable_SetMaxEntries)
 {
-	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(1, true);
+	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(LUA, 1, true);
 
 	int maxEntries = (int)LUA->CheckNumber(2);
 	int maxEntryBits = Q_log2(maxEntries);
@@ -253,7 +252,7 @@ struct StringTableEntry
 
 LUA_FUNCTION_STATIC(INetworkStringTable_DeleteString)
 {
-	INetworkStringTable* table = Get_INetworkStringTable(1, true);
+	INetworkStringTable* table = Get_INetworkStringTable(LUA, 1, true);
 
 	int strIndex = (int)LUA->CheckNumber(2);
 	if (!table->GetString(strIndex))
@@ -324,7 +323,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_DeleteString)
 
 LUA_FUNCTION_STATIC(INetworkStringTable_IsValid)
 {
-	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(1, false);
+	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(LUA, 1, false);
 	
 	LUA->PushBool(table != NULL);
 	return 1;
@@ -332,7 +331,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_IsValid)
 
 LUA_FUNCTION_STATIC(INetworkStringTable_SetStringUserData)
 {
-	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(1, true);
+	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(LUA, 1, true);
 	int idx = (int)LUA->CheckNumber(2);
 	const char* pUserData = LUA->GetString(3);
 	int iLength = (int)LUA->CheckNumberOpt(4, NULL);
@@ -352,7 +351,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_SetStringUserData)
 
 LUA_FUNCTION_STATIC(INetworkStringTable_GetStringUserData)
 {
-	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(1, true);
+	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(LUA, 1, true);
 	int idx = (int)LUA->CheckNumber(2);
 
 	int iLength = 0;
@@ -363,7 +362,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_GetStringUserData)
 
 LUA_FUNCTION_STATIC(INetworkStringTable_SetNumberUserData)
 {
-	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(1, true);
+	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(LUA, 1, true);
 	int idx = (int)LUA->CheckNumber(2);
 	int pUserData = (int)LUA->CheckNumber(3);
 
@@ -376,7 +375,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_SetNumberUserData)
 
 LUA_FUNCTION_STATIC(INetworkStringTable_GetNumberUserData)
 {
-	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(1, true);
+	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(LUA, 1, true);
 	int idx = (int)LUA->CheckNumber(2);
 
 	int dataLen; 
@@ -391,7 +390,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_GetNumberUserData)
 
 LUA_FUNCTION_STATIC(INetworkStringTable_SetPrecacheUserData)
 {
-	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(1, true);
+	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(LUA, 1, true);
 	int idx = (int)LUA->CheckNumber(2);
 	int pFlags = (int)LUA->CheckNumber(3);
 
@@ -407,7 +406,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_SetPrecacheUserData)
 
 LUA_FUNCTION_STATIC(INetworkStringTable_GetPrecacheUserData)
 {
-	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(1, true);
+	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(LUA, 1, true);
 	int idx = (int)LUA->CheckNumber(2);
 
 	int dataLen; 
@@ -435,7 +434,7 @@ LUA_FUNCTION_STATIC(stringtable_CreateStringTable)
 		LUA->ThrowError(err.c_str());
 	}
 
-	Push_INetworkStringTable(networkStringTableContainerServer->CreateStringTable(name, maxentries, userdatafixedsize, userdatanetworkbits));
+	Push_INetworkStringTable(LUA, networkStringTableContainerServer->CreateStringTable(name, maxentries, userdatafixedsize, userdatanetworkbits));
 	return 1;
 }
 
@@ -453,7 +452,7 @@ LUA_FUNCTION_STATIC(stringtable_FindTable)
 	INetworkStringTable* table = networkStringTableContainerServer->FindTable(name);
 	if (table)
 	{
-		Push_INetworkStringTable(table);
+		Push_INetworkStringTable(LUA, table);
 		return 1;
 	}
 
@@ -467,7 +466,7 @@ LUA_FUNCTION_STATIC(stringtable_GetTable)
 	INetworkStringTable* table = networkStringTableContainerServer->GetTable(stringTable);
 	if (table)
 	{
-		Push_INetworkStringTable(table);
+		Push_INetworkStringTable(LUA, table);
 		return 1;
 	}
 
@@ -496,13 +495,13 @@ LUA_FUNCTION_STATIC(stringtable_CreateStringTableEx)
 		LUA->ThrowError(err.c_str());
 	}
 
-	Push_INetworkStringTable(networkStringTableContainerServer->CreateStringTableEx(name, maxentries, userdatafixedsize, userdatanetworkbits, bIsFilenames));
+	Push_INetworkStringTable(LUA, networkStringTableContainerServer->CreateStringTableEx(name, maxentries, userdatafixedsize, userdatanetworkbits, bIsFilenames));
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(stringtable_SetAllowClientSideAddString)
 {
-	INetworkStringTable* table = Get_INetworkStringTable(1, true);
+	INetworkStringTable* table = Get_INetworkStringTable(LUA, 1, true);
 	bool bAllowClientSideAddString = LUA->GetBool(2);
 
 	networkStringTableContainerServer->SetAllowClientSideAddString(table, bAllowClientSideAddString);
@@ -533,7 +532,7 @@ LUA_FUNCTION_STATIC(stringtable_AllowCreation)
 
 LUA_FUNCTION_STATIC(stringtable_RemoveTable)
 {
-	INetworkStringTable* table = Get_INetworkStringTable(1, true);
+	INetworkStringTable* table = Get_INetworkStringTable(LUA, 1, true);
 
 	networkStringTableContainerServer->m_Tables.Remove(table->GetTableId());
 	delete table;
@@ -548,57 +547,57 @@ void CStringTableModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServ
 
 	if (!bServerInit)
 	{
-		INetworkStringTable_TypeID = g_Lua->CreateMetaTable("INetworkStringTable");
-			Util::AddFunc(INetworkStringTable__tostring, "__tostring");
-			Util::AddFunc(INetworkStringTable__newindex, "__newindex");
-			Util::AddFunc(INetworkStringTable__index, "__index");
-			Util::AddFunc(INetworkStringTable_GetTable, "GetTable");
+		Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::INetworkStringTable, g_Lua->CreateMetaTable("INetworkStringTable"));
+			Util::AddFunc(pLua, INetworkStringTable__tostring, "__tostring");
+			Util::AddFunc(pLua, INetworkStringTable__newindex, "__newindex");
+			Util::AddFunc(pLua, INetworkStringTable__index, "__index");
+			Util::AddFunc(pLua, INetworkStringTable_GetTable, "GetTable");
 
-			Util::AddFunc(INetworkStringTable_GetTableName, "GetTableName");
-			Util::AddFunc(INetworkStringTable_GetTableId, "GetTableId");
-			Util::AddFunc(INetworkStringTable_GetNumStrings, "GetNumStrings");
-			Util::AddFunc(INetworkStringTable_GetMaxStrings, "GetMaxStrings");
-			Util::AddFunc(INetworkStringTable_GetEntryBits, "GetEntryBits");
-			Util::AddFunc(INetworkStringTable_SetTick, "SetTick");
-			Util::AddFunc(INetworkStringTable_ChangedSinceTick, "ChangedSinceTick");
-			Util::AddFunc(INetworkStringTable_AddString, "AddString");
-			Util::AddFunc(INetworkStringTable_GetString, "GetString");
-			Util::AddFunc(INetworkStringTable_GetAllStrings, "GetAllStrings");
-			Util::AddFunc(INetworkStringTable_FindStringIndex, "FindStringIndex");
-			Util::AddFunc(INetworkStringTable_DeleteAllStrings, "DeleteAllStrings");
-			Util::AddFunc(INetworkStringTable_SetMaxEntries, "SetMaxEntries");
-			Util::AddFunc(INetworkStringTable_DeleteString, "DeleteString");
-			Util::AddFunc(INetworkStringTable_IsValid, "IsValid");
-			Util::AddFunc(INetworkStringTable_SetStringUserData, "SetStringUserData");
-			Util::AddFunc(INetworkStringTable_GetStringUserData, "GetStringUserData");
-			Util::AddFunc(INetworkStringTable_SetNumberUserData, "SetNumberUserData");
-			Util::AddFunc(INetworkStringTable_GetNumberUserData, "GetNumberUserData");
-			Util::AddFunc(INetworkStringTable_SetPrecacheUserData, "SetPrecacheUserData");
-			Util::AddFunc(INetworkStringTable_GetPrecacheUserData, "GetPrecacheUserData");
+			Util::AddFunc(pLua, INetworkStringTable_GetTableName, "GetTableName");
+			Util::AddFunc(pLua, INetworkStringTable_GetTableId, "GetTableId");
+			Util::AddFunc(pLua, INetworkStringTable_GetNumStrings, "GetNumStrings");
+			Util::AddFunc(pLua, INetworkStringTable_GetMaxStrings, "GetMaxStrings");
+			Util::AddFunc(pLua, INetworkStringTable_GetEntryBits, "GetEntryBits");
+			Util::AddFunc(pLua, INetworkStringTable_SetTick, "SetTick");
+			Util::AddFunc(pLua, INetworkStringTable_ChangedSinceTick, "ChangedSinceTick");
+			Util::AddFunc(pLua, INetworkStringTable_AddString, "AddString");
+			Util::AddFunc(pLua, INetworkStringTable_GetString, "GetString");
+			Util::AddFunc(pLua, INetworkStringTable_GetAllStrings, "GetAllStrings");
+			Util::AddFunc(pLua, INetworkStringTable_FindStringIndex, "FindStringIndex");
+			Util::AddFunc(pLua, INetworkStringTable_DeleteAllStrings, "DeleteAllStrings");
+			Util::AddFunc(pLua, INetworkStringTable_SetMaxEntries, "SetMaxEntries");
+			Util::AddFunc(pLua, INetworkStringTable_DeleteString, "DeleteString");
+			Util::AddFunc(pLua, INetworkStringTable_IsValid, "IsValid");
+			Util::AddFunc(pLua, INetworkStringTable_SetStringUserData, "SetStringUserData");
+			Util::AddFunc(pLua, INetworkStringTable_GetStringUserData, "GetStringUserData");
+			Util::AddFunc(pLua, INetworkStringTable_SetNumberUserData, "SetNumberUserData");
+			Util::AddFunc(pLua, INetworkStringTable_GetNumberUserData, "GetNumberUserData");
+			Util::AddFunc(pLua, INetworkStringTable_SetPrecacheUserData, "SetPrecacheUserData");
+			Util::AddFunc(pLua, INetworkStringTable_GetPrecacheUserData, "GetPrecacheUserData");
 		g_Lua->Pop(1);
 
-		if (g_Lua->PushMetaTable(INetworkStringTable_TypeID))
+		if (g_Lua->PushMetaTable(Lua::GetLuaData(pLua)->GetMetaTable(Lua::LuaTypes::INetworkStringTable)))
 		{
 			g_Lua->Pop(1);
 		} else {
 			Warning(PROJECT_NAME ": g_Lua->PushMetaTable fails to push INetworkStringTable!\n");
 		}
 
-		Util::StartTable();
-			Util::AddFunc(stringtable_CreateStringTable, "CreateStringTable");
-			Util::AddFunc(stringtable_RemoveAllTables, "RemoveAllTables"); // ToDo: Invalidate all pushed stringtables.
-			Util::AddFunc(stringtable_FindTable, "FindTable");
-			Util::AddFunc(stringtable_GetTable, "GetTable");
-			Util::AddFunc(stringtable_GetNumTables, "GetNumTables");
-			Util::AddFunc(stringtable_CreateStringTableEx, "CreateStringTableEx");
-			Util::AddFunc(stringtable_SetAllowClientSideAddString, "SetAllowClientSideAddString");
-			Util::AddFunc(stringtable_IsCreationAllowed, "IsCreationAllowed");
-			Util::AddFunc(stringtable_IsLocked, "IsLocked");
-			Util::AddFunc(stringtable_AllowCreation, "AllowCreation");
-			Util::AddFunc(stringtable_RemoveTable, "RemoveTable");
+		Util::StartTable(pLua);
+			Util::AddFunc(pLua, stringtable_CreateStringTable, "CreateStringTable");
+			Util::AddFunc(pLua, stringtable_RemoveAllTables, "RemoveAllTables"); // ToDo: Invalidate all pushed stringtables.
+			Util::AddFunc(pLua, stringtable_FindTable, "FindTable");
+			Util::AddFunc(pLua, stringtable_GetTable, "GetTable");
+			Util::AddFunc(pLua, stringtable_GetNumTables, "GetNumTables");
+			Util::AddFunc(pLua, stringtable_CreateStringTableEx, "CreateStringTableEx");
+			Util::AddFunc(pLua, stringtable_SetAllowClientSideAddString, "SetAllowClientSideAddString");
+			Util::AddFunc(pLua, stringtable_IsCreationAllowed, "IsCreationAllowed");
+			Util::AddFunc(pLua, stringtable_IsLocked, "IsLocked");
+			Util::AddFunc(pLua, stringtable_AllowCreation, "AllowCreation");
+			Util::AddFunc(pLua, stringtable_RemoveTable, "RemoveTable");
 
-			Util::AddValue(INVALID_STRING_INDEX, "INVALID_STRING_INDEX");
-		Util::FinishTable("stringtable");
+			Util::AddValue(pLua, INVALID_STRING_INDEX, "INVALID_STRING_INDEX");
+		Util::FinishTable(pLua, "stringtable");
 	} else {
 		if (Lua::PushHook("HolyLib:OnStringTableCreation")) // Use this hook to create / modify the stringtables.
 		{
@@ -611,9 +610,9 @@ void CStringTableModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServ
 
 void CStringTableModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) // ToDo: Can we remove the metatable?
 {
-	Util::NukeTable("stringtable");
+	Util::NukeTable(pLua, "stringtable");
 
-	DeleteAll_INetworkStringTable();
+	DeleteAll_INetworkStringTable(pLua);
 }
 
 void CStringTableModule::InitDetour(bool bPreServer)

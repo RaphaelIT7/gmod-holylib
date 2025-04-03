@@ -57,16 +57,6 @@ struct lua_State
             }                                                       \
             int gmod13_close__Imp( [[maybe_unused]] GarrysMod::Lua::ILuaInterface* LUA )
 
-        #define LUA_FUNCTION( FUNC )                            \
-            int FUNC##__Imp( GarrysMod::Lua::ILuaInterface* LUA );   \
-            int FUNC( lua_State* L )                            \
-            {                                                   \
-                GarrysMod::Lua::ILuaInterface* LUA = L->luabase;     \
-                LUA->SetState(L);                               \
-                return FUNC##__Imp( LUA );                      \
-            }                                                   \
-            int FUNC##__Imp( [[maybe_unused]] GarrysMod::Lua::ILuaInterface* LUA )
-
         #define LUA_FUNCTION_STATIC( FUNC )                             \
             static int FUNC##__Imp( GarrysMod::Lua::ILuaInterface* LUA );    \
             static int FUNC( lua_State* L )                             \
@@ -76,34 +66,6 @@ struct lua_State
                 return FUNC##__Imp( LUA );                              \
             }                                                           \
             static int FUNC##__Imp( [[maybe_unused]] GarrysMod::Lua::ILuaInterface* LUA )
-
-        #define LUA_FUNCTION_DECLARE( FUNC ) \
-            int FUNC( lua_State *L )
-
-        #define LUA_FUNCTION_STATIC_DECLARE( FUNC ) \
-            static int FUNC( lua_State *L )
-
-        #define LUA_FUNCTION_IMPLEMENT( FUNC )                                                  \
-            [[deprecated("Use LUA_FUNCTION_STATIC_MEMBER instead of LUA_FUNCTION_IMPLEMENT.")]] \
-            static int FUNC##__Imp( [[maybe_unused]] GarrysMod::Lua::ILuaInterface* LUA )
-
-        #define LUA_FUNCTION_WRAP( FUNC )                                                   \
-            [[deprecated("Use LUA_FUNCTION_STATIC_MEMBER instead of LUA_FUNCTION_WRAP.")]]  \
-            static int FUNC( lua_State *L )                                                 \
-            {                                                                               \
-                GarrysMod::Lua::ILuaInterface* LUA = L->luabase;                                 \
-                LUA->SetState(L);                                                           \
-                return FUNC##__Imp( LUA );                                                  \
-            }
-
-        #define LUA_FUNCTION_STATIC_MEMBER( FUNC )                  \
-            static int FUNC( lua_State* L )                         \
-            {                                                       \
-                GarrysMod::Lua::ILuaInterface* LUA = L->luabase;         \
-                LUA->SetState(L);                                   \
-                return FUNC##__Imp( LUA );                          \
-            }                                                       \
-            static int FUNC##__Imp( GarrysMod::Lua::ILuaInterface* LUA )
     #endif
 #endif
 

@@ -15,6 +15,7 @@ public:
 	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual const char* Name() { return "pas"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
+	virtual bool SupportsMultipleLuaStates() { return true; };
 };
 
 CPASModule g_pPASModule;
@@ -31,9 +32,9 @@ LUA_FUNCTION_STATIC(pas_TestPAS)
 	LUA->CheckType(1, GarrysMod::Lua::Type::Vector);
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Vector))
 	{
-		orig = Get_Vector(1);
+		orig = Get_Vector(LUA, 1);
 	} else {
-		CBaseEntity* ent = Util::Get_Entity(1, false);
+		CBaseEntity* ent = Util::Get_Entity(LUA, 1, false);
 
 		orig = (Vector*)&ent->GetAbsOrigin();
 	}
@@ -43,10 +44,10 @@ LUA_FUNCTION_STATIC(pas_TestPAS)
 	LUA->CheckType(2, GarrysMod::Lua::Type::Vector);
 	if (LUA->IsType(2, GarrysMod::Lua::Type::Vector))
 	{
-		LUA->PushBool(TestPAS(*Get_Vector(2)));
-	} else if (Is_EntityList(2)) {
+		LUA->PushBool(TestPAS(*Get_Vector(LUA, 2)));
+	} else if (Is_EntityList(LUA, 2)) {
 		LUA->CreateTable();
-		EntityList* entList = Get_EntityList(2, true);
+		EntityList* entList = Get_EntityList(LUA, 2, true);
 		for (auto& [pEnt, iReference]: entList->GetReferences())
 		{
 			if (!entList->IsValidReference(iReference))
@@ -58,7 +59,7 @@ LUA_FUNCTION_STATIC(pas_TestPAS)
 		}
 	} else {
 		LUA->CheckType(2, GarrysMod::Lua::Type::Entity);
-		CBaseEntity* ent = Util::Get_Entity(2, false);
+		CBaseEntity* ent = Util::Get_Entity(LUA, 2, false);
 
 		LUA->PushBool(TestPAS(ent->GetAbsOrigin()));
 	}
@@ -68,9 +69,9 @@ LUA_FUNCTION_STATIC(pas_TestPAS)
 
 LUA_FUNCTION_STATIC(pas_CheckBoxInPAS)
 {
-	Vector* mins = Get_Vector(1, true);
-	Vector* maxs = Get_Vector(2, true);
-	Vector* orig = Get_Vector(3, true);
+	Vector* mins = Get_Vector(LUA, 1, true);
+	Vector* maxs = Get_Vector(LUA, 2, true);
+	Vector* orig = Get_Vector(LUA, 3, true);
 
 	Util::CM_Vis(*orig, DVIS_PAS);
 
@@ -85,9 +86,9 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 	Vector* orig;
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Vector))
 	{
-		orig = Get_Vector(1, true);
+		orig = Get_Vector(LUA, 1, true);
 	} else {
-		CBaseEntity* ent = Util::Get_Entity(1, true);
+		CBaseEntity* ent = Util::Get_Entity(LUA, 1, true);
 		orig = (Vector*)&ent->GetAbsOrigin();
 	}
 
@@ -118,7 +119,7 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 	{
 		if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), Util::g_pCurrentCluster, sizeof(Util::g_pCurrentCluster)))
 		{
-			Util::Push_Entity(pEnt);
+			Util::Push_Entity(LUA, pEnt);
 			Util::RawSetI(LUA, -2, ++idx);
 		}
 
@@ -135,7 +136,7 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 
 		if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), Util::g_pCurrentCluster, sizeof(Util::g_pCurrentCluster)))
 		{
-			Util::Push_Entity(pEnt);
+			Util::Push_Entity(LUA, pEnt);
 			Util::RawSetI(LUA, -2, ++idx);
 		}
 	}
@@ -149,14 +150,14 @@ void CPASModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 	if (bServerInit)
 		return;
 
-	Util::StartTable();
-		Util::AddFunc(pas_TestPAS, "TestPAS");
-		Util::AddFunc(pas_CheckBoxInPAS, "CheckBoxInPAS");
-		Util::AddFunc(pas_FindInPAS, "FindInPAS");
-	Util::FinishTable("pas");
+	Util::StartTable(pLua);
+		Util::AddFunc(pLua, pas_TestPAS, "TestPAS");
+		Util::AddFunc(pLua, pas_CheckBoxInPAS, "CheckBoxInPAS");
+		Util::AddFunc(pLua, pas_FindInPAS, "FindInPAS");
+	Util::FinishTable(pLua, "pas");
 }
 
 void CPASModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	Util::NukeTable("pas");
+	Util::NukeTable(pLua, "pas");
 }

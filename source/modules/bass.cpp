@@ -19,19 +19,19 @@ public:
 	virtual const char* Name() { return "bass"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
 	virtual bool IsEnabledByDefault() { return false; };
+	virtual bool SupportsMultipleLuaStates() { return true; };
 };
 
 CBassModule g_pBassModule;
 IModule* pBassModule = &g_pBassModule;
 
 IGMod_Audio* gGModAudio;
-int IGModAudioChannel_TypeID;
-Push_LuaClass(IGModAudioChannel, IGModAudioChannel_TypeID)
-Get_LuaClass(IGModAudioChannel, IGModAudioChannel_TypeID, "IGModAudioChannel")
+Push_LuaClass(IGModAudioChannel)
+Get_LuaClass(IGModAudioChannel, "IGModAudioChannel")
 
 LUA_FUNCTION_STATIC(IGModAudioChannel__tostring)
 {
-	IGModAudioChannel* channel = Get_IGModAudioChannel(1, false);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, false);
 	if (!channel)
 	{
 		LUA->PushString("IGModAudioChannel [NULL]");
@@ -55,7 +55,7 @@ Default__gc(IGModAudioChannel,
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_Destroy)
 {
-	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 
 	channel->Destroy();
 	LUA->SetUserType(1, NULL);
@@ -65,7 +65,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_Destroy)
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_Stop)
 {
-	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 	channel->Stop();
 
 	return 0;
@@ -73,7 +73,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_Stop)
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_Pause)
 {
-	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 	channel->Pause();
 
 	return 0;
@@ -81,7 +81,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_Pause)
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_Play)
 {
-	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 	channel->Play();
 
 	return 0;
@@ -89,7 +89,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_Play)
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_SetVolume)
 {
-	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 
 	double volume = LUA->CheckNumber(2);
 	channel->SetVolume((float)volume);
@@ -99,7 +99,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_SetVolume)
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_GetVolume)
 {
-	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 
 	LUA->PushNumber(channel->GetVolume());
 	return 1;
@@ -107,7 +107,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetVolume)
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_SetPlaybackRate)
 {
-	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 
 	double rate = LUA->CheckNumber(2);
 	channel->SetPlaybackRate((float)rate);
@@ -117,7 +117,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_SetPlaybackRate)
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_GetPlaybackRate)
 {
-	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 
 	LUA->PushNumber(channel->GetPlaybackRate());
 	return 1;
@@ -125,7 +125,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetPlaybackRate)
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_SetTime)
 {
-	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 
 	double time = LUA->CheckNumber(2);
 	bool dontDecode = LUA->GetBool(3);
@@ -136,7 +136,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_SetTime)
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_GetTime)
 {
-	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 
 	LUA->PushNumber(channel->GetTime());
 	return 1;
@@ -144,7 +144,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetTime)
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_GetBufferedTime)
 {
-	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 
 	LUA->PushNumber(channel->GetBufferedTime());
 	return 1;
@@ -154,7 +154,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetBufferedTime)
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_GetState)
 {
-	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 
 	LUA->PushNumber(channel->GetState());
 	return 1;
@@ -162,7 +162,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetState)
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_SetLooping)
 {
-	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 	channel->SetLooping(LUA->GetBool(2));
 
 	return 0;
@@ -170,7 +170,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_SetLooping)
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_IsLooping)
 {
-	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 
 	LUA->PushBool(channel->IsLooping());
 	return 1;
@@ -178,7 +178,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_IsLooping)
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_IsOnline)
 {
-	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 
 	LUA->PushBool(channel->IsOnline());
 	return 1;
@@ -186,7 +186,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_IsOnline)
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_Is3D)
 {
-	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 
 	LUA->PushBool(channel->Is3D());
 
@@ -195,7 +195,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_Is3D)
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_IsBlockStreamed)
 {
-	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 
 	LUA->PushBool(channel->IsBlockStreamed());
 	return 1;
@@ -203,7 +203,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_IsBlockStreamed)
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_IsValid)
 {
-	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 
 	LUA->PushBool(channel->IsValid());
 	return 1;
@@ -211,7 +211,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_IsValid)
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_GetLength)
 {
-	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 
 	LUA->PushNumber(channel->GetLength());
 	return 1;
@@ -219,7 +219,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetLength)
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_GetFileName)
 {
-	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 
 	LUA->PushString(channel->GetFileName());
 	return 1;
@@ -227,7 +227,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetFileName)
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_GetSamplingRate)
 {
-	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 
 	LUA->PushNumber(channel->GetSamplingRate());
 	return 1;
@@ -235,7 +235,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetSamplingRate)
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_GetBitsPerSample)
 {
-	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 
 	LUA->PushNumber(channel->GetBitsPerSample());
 	return 1;
@@ -243,7 +243,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetBitsPerSample)
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_GetAverageBitRate)
 {
-	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 
 	LUA->PushNumber(channel->GetAverageBitRate());
 	return 1;
@@ -251,7 +251,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetAverageBitRate)
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_GetLevel)
 {
-	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 
 	float left, right = 0;
 	channel->GetLevel(&left, &right);
@@ -264,7 +264,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetLevel)
 // ToDo: Finish the function below!
 LUA_FUNCTION_STATIC(IGModAudioChannel_FFT)
 {
-	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 
 	LUA->CheckType(2, GarrysMod::Lua::Type::Table);
 	int fft = (int)LUA->CheckNumber(3);
@@ -294,7 +294,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_FFT)
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_SetChannelPan)
 {
-	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 
 	float pan = (float)LUA->CheckNumber(2);
 	channel->SetChannelPan(pan);
@@ -304,7 +304,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_SetChannelPan)
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_GetChannelPan)
 {
-	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 
 	LUA->PushNumber(channel->GetChannelPan());
 	return 1;
@@ -312,7 +312,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetChannelPan)
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_GetTags)
 {
-	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 	int unknown = (int)LUA->CheckNumber(2);
 
 	LUA->PushString(channel->GetTags(unknown));
@@ -327,7 +327,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_NotImplemented)
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_Restart)
 {
-	IGModAudioChannel* channel = Get_IGModAudioChannel(1, true);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 	channel->Restart();
 
 	return 0;
@@ -347,7 +347,7 @@ LUA_FUNCTION_STATIC(bass_PlayFile)
 	
 	LUA->Push(3);
 		if (errorCode == 0)
-			Push_IGModAudioChannel(audioChannel);
+			Push_IGModAudioChannel(LUA, audioChannel);
 		else
 			LUA->PushNil();
 		LUA->PushNumber(errorCode);
@@ -374,7 +374,7 @@ LUA_FUNCTION_STATIC(bass_PlayURL)
 	
 	LUA->Push(3);
 		if (errorCode == 0)
-			Push_IGModAudioChannel(audioChannel);
+			Push_IGModAudioChannel(LUA, audioChannel);
 		else
 			LUA->PushNil();
 		LUA->PushNumber(errorCode);
@@ -415,61 +415,61 @@ void CBassModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 	if (bServerInit)
 		return;
 
-	IGModAudioChannel_TypeID = g_Lua->CreateMetaTable("IGModAudioChannel");
-		Util::AddFunc(IGModAudioChannel__tostring, "__tostring");
-		Util::AddFunc(IGModAudioChannel__gc, "__gc");
-		Util::AddFunc(IGModAudioChannel__index, "__index");
-		Util::AddFunc(IGModAudioChannel__newindex, "__newindex");
-		Util::AddFunc(IGModAudioChannel_GetTable, "GetTable");
-		Util::AddFunc(IGModAudioChannel_Destroy, "Destroy");
-		Util::AddFunc(IGModAudioChannel_Stop, "Stop");
-		Util::AddFunc(IGModAudioChannel_Pause, "Pause");
-		Util::AddFunc(IGModAudioChannel_Play, "Play");
-		Util::AddFunc(IGModAudioChannel_SetVolume, "SetVolume");
-		Util::AddFunc(IGModAudioChannel_GetVolume, "GetVolume");
-		Util::AddFunc(IGModAudioChannel_SetPlaybackRate, "SetPlaybackRate");
-		Util::AddFunc(IGModAudioChannel_GetPlaybackRate, "GetPlaybackRate");
-		Util::AddFunc(IGModAudioChannel_SetTime, "SetTime");
-		Util::AddFunc(IGModAudioChannel_GetTime, "GetTime");
-		Util::AddFunc(IGModAudioChannel_GetBufferedTime, "GetBufferedTime");
-		Util::AddFunc(IGModAudioChannel_GetState, "GetState");
-		Util::AddFunc(IGModAudioChannel_SetLooping, "SetLooping");
-		Util::AddFunc(IGModAudioChannel_IsLooping, "IsLooping");
-		Util::AddFunc(IGModAudioChannel_IsOnline, "IsOnline");
-		Util::AddFunc(IGModAudioChannel_Is3D, "Is3D");
-		Util::AddFunc(IGModAudioChannel_IsBlockStreamed, "IsBlockStreamed");
-		Util::AddFunc(IGModAudioChannel_IsValid, "IsValid");
-		Util::AddFunc(IGModAudioChannel_GetLength, "GetLength");
-		Util::AddFunc(IGModAudioChannel_GetFileName, "GetFileName");
-		Util::AddFunc(IGModAudioChannel_GetSamplingRate, "GetSamplingRate");
-		Util::AddFunc(IGModAudioChannel_GetBitsPerSample, "GetBitsPerSample");
-		Util::AddFunc(IGModAudioChannel_GetAverageBitRate, "GetAverageBitRate");
-		Util::AddFunc(IGModAudioChannel_GetLevel, "GetLevel");
-		Util::AddFunc(IGModAudioChannel_FFT, "FFT");
-		Util::AddFunc(IGModAudioChannel_SetChannelPan, "SetChannelPan");
-		Util::AddFunc(IGModAudioChannel_GetChannelPan, "GetChannelPan");
-		Util::AddFunc(IGModAudioChannel_GetTags, "GetTags");
-		Util::AddFunc(IGModAudioChannel_Restart, "Restart");
+	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::IGModAudioChannel, pLua->CreateMetaTable("IGModAudioChannel"));
+		Util::AddFunc(pLua, IGModAudioChannel__tostring, "__tostring");
+		Util::AddFunc(pLua, IGModAudioChannel__gc, "__gc");
+		Util::AddFunc(pLua, IGModAudioChannel__index, "__index");
+		Util::AddFunc(pLua, IGModAudioChannel__newindex, "__newindex");
+		Util::AddFunc(pLua, IGModAudioChannel_GetTable, "GetTable");
+		Util::AddFunc(pLua, IGModAudioChannel_Destroy, "Destroy");
+		Util::AddFunc(pLua, IGModAudioChannel_Stop, "Stop");
+		Util::AddFunc(pLua, IGModAudioChannel_Pause, "Pause");
+		Util::AddFunc(pLua, IGModAudioChannel_Play, "Play");
+		Util::AddFunc(pLua, IGModAudioChannel_SetVolume, "SetVolume");
+		Util::AddFunc(pLua, IGModAudioChannel_GetVolume, "GetVolume");
+		Util::AddFunc(pLua, IGModAudioChannel_SetPlaybackRate, "SetPlaybackRate");
+		Util::AddFunc(pLua, IGModAudioChannel_GetPlaybackRate, "GetPlaybackRate");
+		Util::AddFunc(pLua, IGModAudioChannel_SetTime, "SetTime");
+		Util::AddFunc(pLua, IGModAudioChannel_GetTime, "GetTime");
+		Util::AddFunc(pLua, IGModAudioChannel_GetBufferedTime, "GetBufferedTime");
+		Util::AddFunc(pLua, IGModAudioChannel_GetState, "GetState");
+		Util::AddFunc(pLua, IGModAudioChannel_SetLooping, "SetLooping");
+		Util::AddFunc(pLua, IGModAudioChannel_IsLooping, "IsLooping");
+		Util::AddFunc(pLua, IGModAudioChannel_IsOnline, "IsOnline");
+		Util::AddFunc(pLua, IGModAudioChannel_Is3D, "Is3D");
+		Util::AddFunc(pLua, IGModAudioChannel_IsBlockStreamed, "IsBlockStreamed");
+		Util::AddFunc(pLua, IGModAudioChannel_IsValid, "IsValid");
+		Util::AddFunc(pLua, IGModAudioChannel_GetLength, "GetLength");
+		Util::AddFunc(pLua, IGModAudioChannel_GetFileName, "GetFileName");
+		Util::AddFunc(pLua, IGModAudioChannel_GetSamplingRate, "GetSamplingRate");
+		Util::AddFunc(pLua, IGModAudioChannel_GetBitsPerSample, "GetBitsPerSample");
+		Util::AddFunc(pLua, IGModAudioChannel_GetAverageBitRate, "GetAverageBitRate");
+		Util::AddFunc(pLua, IGModAudioChannel_GetLevel, "GetLevel");
+		Util::AddFunc(pLua, IGModAudioChannel_FFT, "FFT");
+		Util::AddFunc(pLua, IGModAudioChannel_SetChannelPan, "SetChannelPan");
+		Util::AddFunc(pLua, IGModAudioChannel_GetChannelPan, "GetChannelPan");
+		Util::AddFunc(pLua, IGModAudioChannel_GetTags, "GetTags");
+		Util::AddFunc(pLua, IGModAudioChannel_Restart, "Restart");
 
-		Util::AddFunc(IGModAudioChannel_NotImplemented, "Get3DFadeDistance");
-		Util::AddFunc(IGModAudioChannel_NotImplemented, "Set3DFadeDistance");
-		Util::AddFunc(IGModAudioChannel_NotImplemented, "Get3DCone");
-		Util::AddFunc(IGModAudioChannel_NotImplemented, "Set3DCone");
-		Util::AddFunc(IGModAudioChannel_NotImplemented, "GetPos");
-		Util::AddFunc(IGModAudioChannel_NotImplemented, "SetPos");
-		Util::AddFunc(IGModAudioChannel_NotImplemented, "Get3DEnabled");
-		Util::AddFunc(IGModAudioChannel_NotImplemented, "Set3DEnabled");
-	g_Lua->Pop(1);
+		Util::AddFunc(pLua, IGModAudioChannel_NotImplemented, "Get3DFadeDistance");
+		Util::AddFunc(pLua, IGModAudioChannel_NotImplemented, "Set3DFadeDistance");
+		Util::AddFunc(pLua, IGModAudioChannel_NotImplemented, "Get3DCone");
+		Util::AddFunc(pLua, IGModAudioChannel_NotImplemented, "Set3DCone");
+		Util::AddFunc(pLua, IGModAudioChannel_NotImplemented, "GetPos");
+		Util::AddFunc(pLua, IGModAudioChannel_NotImplemented, "SetPos");
+		Util::AddFunc(pLua, IGModAudioChannel_NotImplemented, "Get3DEnabled");
+		Util::AddFunc(pLua, IGModAudioChannel_NotImplemented, "Set3DEnabled");
+		pLua->Pop(1);
 
-	Util::StartTable();
-		Util::AddFunc(bass_PlayFile, "PlayFile");
-		Util::AddFunc(bass_PlayURL, "PlayURL");
-	Util::FinishTable("bass");
+		Util::StartTable(pLua);
+		Util::AddFunc(pLua, bass_PlayFile, "PlayFile");
+		Util::AddFunc(pLua, bass_PlayURL, "PlayURL");
+		Util::FinishTable(pLua, "bass");
 }
 
 void CBassModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	Util::NukeTable("bass");
+	Util::NukeTable(pLua, "bass");
 }
 
 void CBassModule::Shutdown()

@@ -57,21 +57,21 @@ void CNetModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 	if (bServerInit)
 		return;
 
-	if (Util::PushTable("net"))
+	if (Util::PushTable(pLua, "net"))
 	{
-		Util::AddFunc(net_WriteSeek, "WriteSeek");
-		Util::AddFunc(net_ReadSeek, "ReadSeek");
-		Util::PopTable();
+		Util::AddFunc(pLua, net_WriteSeek, "WriteSeek");
+		Util::AddFunc(pLua, net_ReadSeek, "ReadSeek");
+		Util::PopTable(pLua);
 	}
 }
 
 void CNetModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	if (Util::PushTable("net"))
+	if (Util::PushTable(pLua, "net"))
 	{
-		Util::RemoveField("WriteSeek");
-		Util::RemoveField("ReadSeek");
-		Util::PopTable();
+		Util::RemoveField(pLua, "WriteSeek");
+		Util::RemoveField(pLua, "ReadSeek");
+		Util::PopTable(pLua);
 	}
 }
 

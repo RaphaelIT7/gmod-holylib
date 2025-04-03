@@ -66,14 +66,13 @@ static void hook_CHLTVServer_DestroyCHLTVServer(CHLTVServer* srv)
 	detour_CHLTVServer_DestroyCHLTVServer.GetTrampoline<Symbols::CHLTVServer_DestroyCHLTVServer>()(srv);
 }
 
-int CHLTVClient_TypeID = -1;
-PushReferenced_LuaClass(CHLTVClient, CHLTVClient_TypeID)
-Get_LuaClass(CHLTVClient, CHLTVClient_TypeID, "CHLTVClient")
+PushReferenced_LuaClass(CHLTVClient)
+Get_LuaClass(CHLTVClient, "CHLTVClient")
 
 static Detouring::Hook detour_CHLTVClient_Deconstructor;
 static void hook_CHLTVClient_Deconstructor(CHLTVClient* pClient)
 {
-	Delete_CHLTVClient(pClient); // ToDo: Remind myself to remove this since CHLTVClient's won't be deleted while the server is running. It's reusing them.
+	Delete_CHLTVClient(g_Lua, pClient); // ToDo: Remind myself to remove this since CHLTVClient's won't be deleted while the server is running. It's reusing them.
 	detour_CHLTVClient_Deconstructor.GetTrampoline<Symbols::CHLTVClient_Deconstructor>()(pClient);
 }
 
@@ -84,16 +83,16 @@ void SourceTV_OnClientDisconnect(CBaseClient* pClient)
 
 	if (g_Lua && Lua::PushHook("HolyLib:OnSourceTVClientDisconnect"))
 	{
-		Push_CHLTVClient((CHLTVClient*)pClient);
+		Push_CHLTVClient(g_Lua, (CHLTVClient*)pClient);
 		g_Lua->CallFunctionProtected(2, 0, true);
 	}
 
-	Delete_CHLTVClient((CHLTVClient*)pClient);
+	Delete_CHLTVClient(g_Lua, (CHLTVClient*)pClient);
 }
 
 LUA_FUNCTION_STATIC(CHLTVClient__tostring)
 {
-	CHLTVClient* pClient = Get_CHLTVClient(1, false);
+	CHLTVClient* pClient = Get_CHLTVClient(LUA, 1, false);
 	if (!pClient || !pClient->IsConnected())
 	{
 		LUA->PushString("CHLTVClient [NULL]");
@@ -116,13 +115,13 @@ LUA_FUNCTION_STATIC(CHLTVClient__tostring)
 static std::unordered_map<int, int> g_iTarget;
 LUA_FUNCTION_STATIC(CHLTVClient_SetCameraMan)
 {
-	CHLTVClient* pClient = Get_CHLTVClient(1, true);
+	CHLTVClient* pClient = Get_CHLTVClient(LUA, 1, true);
 
 	int iTarget = 0;
 	if (LUA->IsType(2, GarrysMod::Lua::Type::Number))
 		iTarget = LUA->GetNumber(2);
 	else {
-		CBaseEntity* pEnt = Util::Get_Entity(2, false);
+		CBaseEntity* pEnt = Util::Get_Entity(g_Lua, 2, false);
 		iTarget = pEnt ? pEnt->edict()->m_EdictIndex : 0; // If given NULL, set it to 0.
 	}
 	g_iTarget[pClient->GetUserID()] = iTarget;
@@ -307,7 +306,7 @@ LUA_FUNCTION_STATIC(sourcetv_GetAll)
 			if (!pClient->IsConnected())
 				continue;
 
-			Push_CHLTVClient(pClient);
+			Push_CHLTVClient(LUA, pClient);
 			Util::RawSetI(LUA, -2, ++iTableIndex);
 		}
 
@@ -333,7 +332,7 @@ LUA_FUNCTION_STATIC(sourcetv_GetClient)
 	if (pClient && !pClient->IsConnected())
 		pClient = NULL;
 
-	Push_CHLTVClient(pClient);
+	Push_CHLTVClient(LUA, pClient);
 
 	return 1;
 }
@@ -344,7 +343,7 @@ LUA_FUNCTION_STATIC(sourcetv_FireEvent)
 	if (!hltv || !hltv->IsActive())
 		return 0;
 
-	IGameEvent* pEvent = Get_IGameEvent(1, true);
+	IGameEvent* pEvent = Get_IGameEvent(LUA, 1, true);
 	g_bLuaGameEvent = LUA->GetBool(2);
 	hltv->FireGameEvent(pEvent);
 	g_bLuaGameEvent = false;
@@ -358,7 +357,7 @@ LUA_FUNCTION_STATIC(sourcetv_SetCameraMan)
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Number))
 		iTarget = LUA->GetNumber(1);
 	else {
-		CBaseEntity* pEnt = Util::Get_Entity(1, false);
+		CBaseEntity* pEnt = Util::Get_Entity(g_Lua, 1, false);
 		iTarget = pEnt ? pEnt->edict()->m_EdictIndex : 0; // If given NULL, set it to 0.
 	}
 
@@ -415,17 +414,17 @@ static bool hook_CHLTVClient_ProcessGMod_ClientToServer(CHLTVClient* pClient, CL
 
 	if (Lua::PushHook("HolyLib:OnSourceTVNetMessage")) // Maybe change the name? I don't have a better one rn :/
 	{
-		Push_CHLTVClient(pClient);
-		Push_bf_read(&pBf->m_DataIn);
+		Push_CHLTVClient(g_Lua, pClient);
+		Push_bf_read(g_Lua, &pBf->m_DataIn);
 		g_Lua->Push(-1);
-		int iReference = Util::ReferenceCreate("ProcessGMod_ClientToServer - net message buffer");
+		int iReference = Util::ReferenceCreate(g_Lua, "ProcessGMod_ClientToServer - net message buffer");
 		g_Lua->CallFunctionProtected(3, 0, true);
 
 		// I hate this. We should reduce the number of references.
 		Util::ReferencePush(g_Lua, iReference);
 		g_Lua->SetUserType(-1, NULL); // Make sure that the we don't keep the buffer.
 		g_Lua->Pop(1);
-		Util::ReferenceFree(iReference, "ProcessGMod_ClientToServer - Free net message buffer");
+		Util::ReferenceFree(g_Lua, iReference, "ProcessGMod_ClientToServer - Free net message buffer");
 	}
 
 	return true;
@@ -445,7 +444,7 @@ static bool hook_CHLTVClient_ExecuteStringCommand(CHLTVClient* pClient, const ch
 
 	if (Lua::PushHook("HolyLib:OnSourceTVCommand")) // Maybe change the name? I don't have a better one rn :/
 	{
-		Push_CHLTVClient(pClient);
+		Push_CHLTVClient(g_Lua, pClient);
 		g_Lua->PushString(pCommandArgs[0]); // cmd
 		g_Lua->PreCreateTable(pCommandArgs.ArgC(), 0);
 			for (int i=1; i< pCommandArgs.ArgC(); ++i) // skip cmd -> 0
@@ -556,46 +555,46 @@ void CSourceTVLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServ
 
 	ref_tv_debug = cvar->FindVar("tv_debug"); // We only search for it once. Verify: ConVarRef would always search for it in it's constructor/Init if I remember correctly.
 
-	CHLTVClient_TypeID = g_Lua->CreateMetaTable("CHLTVClient");
+	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::CHLTVClient, g_Lua->CreateMetaTable("CHLTVClient"));
 		Push_CBaseClientMeta();
 
-		Util::AddFunc(CHLTVClient__tostring, "__tostring");
-		Util::AddFunc(CHLTVClient_SetCameraMan, "SetCameraMan");
-	g_Lua->Pop(1);
+		Util::AddFunc(pLua, CHLTVClient__tostring, "__tostring");
+		Util::AddFunc(pLua, CHLTVClient_SetCameraMan, "SetCameraMan");
+	pLua->Pop(1);
 
-	Util::StartTable();
-		Util::AddFunc(sourcetv_IsActive, "IsActive");
-		Util::AddFunc(sourcetv_IsRecording, "IsRecording");
-		Util::AddFunc(sourcetv_IsMasterProxy, "IsMasterProxy");
-		Util::AddFunc(sourcetv_IsRelay, "IsRelay");
-		Util::AddFunc(sourcetv_GetClientCount, "GetClientCount");
-		Util::AddFunc(sourcetv_GetHLTVSlot, "GetHLTVSlot");
-		Util::AddFunc(sourcetv_StartRecord, "StartRecord");
-		Util::AddFunc(sourcetv_GetRecordingFile, "GetRecordingFile");
-		Util::AddFunc(sourcetv_StopRecord, "StopRecord");
-		Util::AddFunc(sourcetv_FireEvent, "FireEvent");
-		Util::AddFunc(sourcetv_SetCameraMan, "SetCameraMan");
+	Util::StartTable(pLua);
+		Util::AddFunc(pLua, sourcetv_IsActive, "IsActive");
+		Util::AddFunc(pLua, sourcetv_IsRecording, "IsRecording");
+		Util::AddFunc(pLua, sourcetv_IsMasterProxy, "IsMasterProxy");
+		Util::AddFunc(pLua, sourcetv_IsRelay, "IsRelay");
+		Util::AddFunc(pLua, sourcetv_GetClientCount, "GetClientCount");
+		Util::AddFunc(pLua, sourcetv_GetHLTVSlot, "GetHLTVSlot");
+		Util::AddFunc(pLua, sourcetv_StartRecord, "StartRecord");
+		Util::AddFunc(pLua, sourcetv_GetRecordingFile, "GetRecordingFile");
+		Util::AddFunc(pLua, sourcetv_StopRecord, "StopRecord");
+		Util::AddFunc(pLua, sourcetv_FireEvent, "FireEvent");
+		Util::AddFunc(pLua, sourcetv_SetCameraMan, "SetCameraMan");
 
 		// Client Functions
-		Util::AddFunc(sourcetv_GetAll, "GetAll");
-		Util::AddFunc(sourcetv_GetClient, "GetClient");
+		Util::AddFunc(pLua, sourcetv_GetAll, "GetAll");
+		Util::AddFunc(pLua, sourcetv_GetClient, "GetClient");
 
-		Util::AddValue(LUA_RECORD_OK, "RECORD_OK");
+		Util::AddValue(pLua, LUA_RECORD_OK, "RECORD_OK");
 
-		Util::AddValue(LUA_RECORD_NOSOURCETV, "RECORD_NOSOURCETV");
-		Util::AddValue(LUA_RECORD_NOTMASTER, "RECORD_NOTMASTER");
-		Util::AddValue(LUA_RECORD_ACTIVE, "RECORD_ACTIVE");
-		Util::AddValue(LUA_RECORD_NOTACTIVE, "RECORD_NOTACTIVE");
-		Util::AddValue(LUA_RECORD_INVALIDPATH, "RECORD_INVALIDPATH");
-		Util::AddValue(LUA_RECORD_FILEEXISTS, "RECORD_FILEEXISTS");
-	Util::FinishTable("sourcetv");
+		Util::AddValue(pLua, LUA_RECORD_NOSOURCETV, "RECORD_NOSOURCETV");
+		Util::AddValue(pLua, LUA_RECORD_NOTMASTER, "RECORD_NOTMASTER");
+		Util::AddValue(pLua, LUA_RECORD_ACTIVE, "RECORD_ACTIVE");
+		Util::AddValue(pLua, LUA_RECORD_NOTACTIVE, "RECORD_NOTACTIVE");
+		Util::AddValue(pLua, LUA_RECORD_INVALIDPATH, "RECORD_INVALIDPATH");
+		Util::AddValue(pLua, LUA_RECORD_FILEEXISTS, "RECORD_FILEEXISTS");
+	Util::FinishTable(pLua, "sourcetv");
 }
 
 void CSourceTVLibModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	Util::NukeTable("sourcetv");
+	Util::NukeTable(pLua, "sourcetv");
 
-	DeleteAll_CHLTVClient();
+	DeleteAll_CHLTVClient(g_Lua);
 }
 
 void CSourceTVLibModule::InitDetour(bool bPreServer)

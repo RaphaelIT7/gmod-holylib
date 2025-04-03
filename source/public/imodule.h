@@ -32,6 +32,13 @@ public:
 	// Implement your Lua shutdown logic here like removing your table.
 	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) { (void)pLua; };
 
+	// Called when the given Lua interface is updated.
+	// this CAN be called from different threads!
+	virtual void LuaThink(GarrysMod::Lua::ILuaInterface* pLua) { (void)pLua; };
+
+	// returns true if this module supports multiple lua states. If not LuaInit won't be called for any other state.
+	virtual bool SupportsMultipleLuaStates() { return false; }; // By default none support it.
+
 	// Called when the module should add it's detours.
 	// NOTE: This is called before Init if bPreServer is true.
 	virtual void InitDetour(bool bPreServer) { (void)bPreServer; };

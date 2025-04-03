@@ -1438,10 +1438,10 @@ static void hook_CBaseFileSystem_Close(IFileSystem* filesystem, FileHandle_t fil
 	detour_CBaseFileSystem_Close.GetTrampoline<Symbols::CBaseFileSystem_Close>()(filesystem, file);
 }
 
-extern void FileAsyncReadThink();
+extern void FileAsyncReadThink(GarrysMod::Lua::ILuaInterface* pLua);
 void CFileSystemModule::Think(bool bSimulating)
 {
-	FileAsyncReadThink();
+	FileAsyncReadThink(g_Lua); // ToDo: Move this to LuaThink later.
 
 	if (!holylib_filesystem_cachefilehandle.GetBool())
 		return;
@@ -1811,7 +1811,7 @@ LUA_FUNCTION_STATIC(filesystem_AsyncRead)
 	const char* gamePath = LUA->CheckString(2);
 	LUA->CheckType(3, GarrysMod::Lua::Type::Function);
 	LUA->Push(3);
-	int reference = Util::ReferenceCreate("filesystem.AsyncRead");
+	int reference = Util::ReferenceCreate(LUA, "filesystem.AsyncRead");
 	LUA->Pop();
 	bool sync = LUA->GetBool(4);
 
@@ -1832,17 +1832,17 @@ LUA_FUNCTION_STATIC(filesystem_AsyncRead)
 	return 1;
 }
 
-void FileAsyncReadThink()
+void FileAsyncReadThink(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	std::vector<IAsyncFile*> files;
 	for(IAsyncFile* file : asyncCallback) {
-		Util::ReferencePush(g_Lua, file->callback);
-		g_Lua->PushString(file->req->pszFilename);
-		g_Lua->PushString(file->req->pszPathID);
-		g_Lua->PushNumber(file->status);
-		g_Lua->PushString(file->content);
-		g_Lua->CallFunctionProtected(4, 0, true);
-		Util::ReferenceFree(file->callback, "FileAsyncReadThink");
+		Util::ReferencePush(pLua, file->callback);
+		pLua->PushString(file->req->pszFilename);
+		pLua->PushString(file->req->pszPathID);
+		pLua->PushNumber(file->status);
+		pLua->PushString(file->content);
+		pLua->CallFunctionProtected(4, 0, true);
+		Util::ReferenceFree(pLua, file->callback, "FileAsyncReadThink");
 		files.push_back(file);
 	}
 
@@ -2170,41 +2170,41 @@ void CFileSystemModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 	if (bServerInit)
 		return;
 
-	Util::StartTable();
-		Util::AddFunc(filesystem_AsyncRead, "AsyncRead");
-		Util::AddFunc(filesystem_CreateDir, "CreateDir");
-		Util::AddFunc(filesystem_Delete, "Delete");
-		Util::AddFunc(filesystem_Exists, "Exists");
-		Util::AddFunc(filesystem_Find, "Find");
-		Util::AddFunc(filesystem_IsDir, "IsDir");
-		Util::AddFunc(filesystem_Open, "Open");
-		Util::AddFunc(filesystem_Rename, "Rename");
-		Util::AddFunc(filesystem_Size, "Size");
-		Util::AddFunc(filesystem_Time, "Time");
+	Util::StartTable(pLua);
+		Util::AddFunc(pLua, filesystem_AsyncRead, "AsyncRead");
+		Util::AddFunc(pLua, filesystem_CreateDir, "CreateDir");
+		Util::AddFunc(pLua, filesystem_Delete, "Delete");
+		Util::AddFunc(pLua, filesystem_Exists, "Exists");
+		Util::AddFunc(pLua, filesystem_Find, "Find");
+		Util::AddFunc(pLua, filesystem_IsDir, "IsDir");
+		Util::AddFunc(pLua, filesystem_Open, "Open");
+		Util::AddFunc(pLua, filesystem_Rename, "Rename");
+		Util::AddFunc(pLua, filesystem_Size, "Size");
+		Util::AddFunc(pLua, filesystem_Time, "Time");
 
 		// Custom functions
-		Util::AddFunc(filesystem_AddSearchPath, "AddSearchPath");
-		Util::AddFunc(filesystem_RemoveSearchPath, "RemoveSearchPath");
-		Util::AddFunc(filesystem_RemoveSearchPaths, "RemoveSearchPaths");
-		Util::AddFunc(filesystem_RemoveAllSearchPaths, "RemoveAllSearchPaths");
-		Util::AddFunc(filesystem_RelativePathToFullPath, "RelativePathToFullPath");
-		Util::AddFunc(filesystem_FullPathToRelativePath, "FullPathToRelativePath");
-		Util::AddFunc(filesystem_TimeCreated, "TimeCreated");
-		Util::AddFunc(filesystem_TimeAccessed, "TimeAccessed");
-	Util::FinishTable("filesystem");
+		Util::AddFunc(pLua, filesystem_AddSearchPath, "AddSearchPath");
+		Util::AddFunc(pLua, filesystem_RemoveSearchPath, "RemoveSearchPath");
+		Util::AddFunc(pLua, filesystem_RemoveSearchPaths, "RemoveSearchPaths");
+		Util::AddFunc(pLua, filesystem_RemoveAllSearchPaths, "RemoveAllSearchPaths");
+		Util::AddFunc(pLua, filesystem_RelativePathToFullPath, "RelativePathToFullPath");
+		Util::AddFunc(pLua, filesystem_FullPathToRelativePath, "FullPathToRelativePath");
+		Util::AddFunc(pLua, filesystem_TimeCreated, "TimeCreated");
+		Util::AddFunc(pLua, filesystem_TimeAccessed, "TimeAccessed");
+	Util::FinishTable(pLua, "filesystem");
 
-	Util::StartTable();
-		Util::AddFunc(addonsystem_Clear, "Clear");
-		Util::AddFunc(addonsystem_Refresh, "Refresh");
-		Util::AddFunc(addonsystem_MountFile, "MountFile");
-		Util::AddFunc(addonsystem_ShouldMount, "ShouldMount");
-		Util::AddFunc(addonsystem_SetShouldMount, "SetShouldMount");
-	Util::FinishTable("addonsystem");
+	Util::StartTable(pLua);
+		Util::AddFunc(pLua, addonsystem_Clear, "Clear");
+		Util::AddFunc(pLua, addonsystem_Refresh, "Refresh");
+		Util::AddFunc(pLua, addonsystem_MountFile, "MountFile");
+		Util::AddFunc(pLua, addonsystem_ShouldMount, "ShouldMount");
+		Util::AddFunc(pLua, addonsystem_SetShouldMount, "SetShouldMount");
+	Util::FinishTable(pLua, "addonsystem");
 }
 
 void CFileSystemModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	Util::NukeTable("filesystem");
+	Util::NukeTable(pLua, "filesystem");
 }
 
 void CFileSystemModule::Shutdown()

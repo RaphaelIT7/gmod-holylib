@@ -3,6 +3,7 @@
 #include "modules/_modules.h"
 #include "convar.h"
 #include "tier0/icommandline.h"
+#include "lua.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -253,13 +254,14 @@ IModuleWrapper* CModuleManager::RegisterModule(IModule* pModule)
 	m_pModules.push_back(module); // Add it first in case any ConVar callbacks get called in SetModule.
 	module->SetModule(pModule);
 	module->SetID(g_pIDs);
-	Msg(PROJECT_NAME ": Registered module %-*s (%-*i Enabled: %s Compatible: %s)\n", 
+	Msg(PROJECT_NAME ": Registered module %-*s (%-*i Enabled: %s Compatible: %s MultiLua: %s)\n", 
 		15,
 		module->GetModule()->Name(), 
 		2,
 		g_pIDs,
 		module->IsEnabled() ? "true, " : "false,", 
-		module->IsCompatible() ? "true " : "false"
+		module->IsCompatible() ? "true " : "false",
+		module->GetModule()->SupportsMultipleLuaStates() ? "true " : "false"
 	);
 
 	return module;
@@ -294,21 +296,24 @@ void CModuleManager::Setup(CreateInterfaceFn appfn, CreateInterfaceFn gamefn)
 	m_pGameFactory = gamefn;
 }
 
-#define VCALL_ENABLED_MODULES(call) \
+#define BASE_CALL_ENABLED_MODULES(call, additionalChecks) \
 	for (CModule* pModule : m_pModules) { \
 		if ( !pModule->FastIsEnabled() ) { continue; } \
+		additionalChecks; \
 		if ( module_debug.GetBool() ) { Msg(PROJECT_NAME ": Calling(V) %s on %s\n", #call, pModule->GetModule()->Name()); } \
-		pModule->GetModule()-> call; \
+		call; \
 		if ( module_debug.GetBool() ) { Msg(PROJECT_NAME ": Finished calling(V) %s on %s\n", #call, pModule->GetModule()->Name()); } \
 	}
 
+#define VCALL_ENABLED_MODULES(call) \
+	BASE_CALL_ENABLED_MODULES(pModule->GetModule()-> call, )
+
+#define VCALL_LUA_ENABLED_MODULES(call) \
+	BASE_CALL_ENABLED_MODULES(pModule->GetModule()-> call, \
+	if ( g_Lua != pLua && !pModule->GetModule()->SupportsMultipleLuaStates() ) { continue; })
+
 #define CALL_ENABLED_MODULES(call) \
-	for (CModule* pModule : m_pModules) { \
-		if ( !pModule->FastIsEnabled() ) { continue; } \
-		if ( module_debug.GetBool() ) { Msg(PROJECT_NAME ": Calling %s on %s\n", #call, pModule->GetModule()->Name()); } \
-		pModule-> call; \
-		if ( module_debug.GetBool() ) { Msg(PROJECT_NAME ": Finished calling %s on %s\n", #call, pModule->GetModule()->Name()); } \
-	}
+	BASE_CALL_ENABLED_MODULES(pModule-> call, )
 
 
 void CModuleManager::Init()
@@ -330,13 +335,19 @@ void CModuleManager::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 	else
 		m_pStatus |= LoadStatus_LuaInit;
 
+	if (!Lua::GetLuaData(pLua))
+	{
+		Warning("holylib: tried to Initialize a LuaInterface when it had no allocated StateData!\n");
+		return;
+	}
+
 	AddLuaInterface(pLua);
-	VCALL_ENABLED_MODULES(LuaInit(pLua, bServerInit));
+	VCALL_LUA_ENABLED_MODULES(LuaInit(pLua, bServerInit));
 }
 
 void CModuleManager::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	VCALL_ENABLED_MODULES(LuaShutdown(pLua));
+	VCALL_LUA_ENABLED_MODULES(LuaShutdown(pLua));
 	RemoveLuaInterface(pLua);
 }
 

@@ -24,6 +24,7 @@ public:
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "holylib"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
+	virtual bool SupportsMultipleLuaStates() { return true; };
 };
 
 static CHolyLibModule g_pHolyLibModule;
@@ -31,7 +32,7 @@ IModule* pHolyLibModule = &g_pHolyLibModule;
 
 LUA_FUNCTION_STATIC(Reconnect)
 {
-	CBasePlayer* ent = Util::Get_Player(1, true);
+	CBasePlayer* ent = Util::Get_Player(LUA, 1, true);
 	if (!ent)
 		LUA->ArgError(1, "Tried to use a NULL player!");
 
@@ -61,7 +62,7 @@ LUA_FUNCTION_STATIC(HideServer)
 
 LUA_FUNCTION_STATIC(FadeClientVolume)
 {
-	CBasePlayer* ent = Util::Get_Player(1, true);
+	CBasePlayer* ent = Util::Get_Player(LUA, 1, true);
 	if (!ent)
 		LUA->ArgError(1, "Tried to use a NULL player!");
 
@@ -100,27 +101,27 @@ static IModuleWrapper* pBitBufWrapper = NULL;
 extern bf_write* GetActiveMessage();
 LUA_FUNCTION_STATIC(_EntityMessageBegin)
 {
-	CBaseEntity* pEnt = Util::Get_Entity(1, true);
+	CBaseEntity* pEnt = Util::Get_Entity(LUA, 1, true);
 	bool bReliable = LUA->GetBool(2);
 
 	if (!pBitBufWrapper->IsEnabled())
 		LUA->ThrowError("This won't work when the bitbuf library is disabled!");
 
 	EntityMessageBegin(pEnt, bReliable);
-	Push_bf_write(GetActiveMessage());
+	Push_bf_write(LUA, GetActiveMessage());
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(_UserMessageBegin)
 {
-	IRecipientFilter* pFilter = Get_IRecipientFilter(1, true);
+	IRecipientFilter* pFilter = Get_IRecipientFilter(LUA, 1, true);
 	const char* pName = LUA->CheckString(2);
 
 	if (!pBitBufWrapper->IsEnabled())
 		LUA->ThrowError("This won't work when the bitbuf library is disabled!");
 
 	UserMessageBegin(*pFilter, pName);
-	Push_bf_write(GetActiveMessage());
+	Push_bf_write(LUA, GetActiveMessage());
 	return 1;
 }
 
@@ -157,7 +158,7 @@ static void hook_GetGModServerTags(char* pDest, int iMaxLength, bool bUnknown)
 static Symbols::CBaseAnimating_InvalidateBoneCache func_CBaseAnimating_InvalidateBoneCache;
 LUA_FUNCTION_STATIC(InvalidateBoneCache)
 {
-	CBaseEntity* pEnt = Util::Get_Entity(1, true);
+	CBaseEntity* pEnt = Util::Get_Entity(LUA, 1, true);
 
 	if (!func_CBaseAnimating_InvalidateBoneCache)
 		LUA->ThrowError("Failed to get CBaseAnimating::InvalidateBoneCache");
@@ -175,7 +176,7 @@ static void hook_CBaseEntity_PostConstructor(CBaseEntity* pEnt, const char* szCl
 {
 	if (Lua::PushHook("HolyLib:PostEntityConstructor"))
 	{
-		Util::Push_Entity(pEnt);
+		Util::Push_Entity(g_Lua, pEnt);
 		g_Lua->PushString(szClassname);
 		g_Lua->CallFunctionProtected(3, 0, true);
 
@@ -200,7 +201,7 @@ LUA_FUNCTION_STATIC(SetSignOnState)
 	CBaseClient* pClient = NULL;
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Entity))
 	{
-		pClient = Util::GetClientByPlayer(Util::Get_Player(1, true));
+		pClient = Util::GetClientByPlayer(Util::Get_Player(LUA, 1, true));
 	} else {
 		pClient = Util::GetClientByUserID(LUA->CheckNumber(1));
 	}
@@ -232,8 +233,8 @@ static void hook_CFuncLadder_PlayerGotOn(CBaseEntity* pLadder, CBasePlayer* pPly
 {
 	if (Lua::PushHook("HolyLib:OnPlayerGotOnLadder"))
 	{
-		Util::Push_Entity(pLadder);
-		Util::Push_Entity(pPly);
+		Util::Push_Entity(g_Lua, pLadder);
+		Util::Push_Entity(g_Lua, pPly);
 		g_Lua->CallFunctionProtected(3, 0, true);
 	}
 
@@ -245,8 +246,8 @@ static void hook_CFuncLadder_PlayerGotOff(CBaseEntity* pLadder, CBasePlayer* pPl
 {
 	if (Lua::PushHook("HolyLib:OnPlayerGotOffLadder"))
 	{
-		Util::Push_Entity(pLadder);
-		Util::Push_Entity(pPly);
+		Util::Push_Entity(g_Lua, pLadder);
+		Util::Push_Entity(g_Lua, pPly);
 		g_Lua->CallFunctionProtected(3, 0, true);
 	}
 
@@ -256,7 +257,7 @@ static void hook_CFuncLadder_PlayerGotOff(CBaseEntity* pLadder, CBasePlayer* pPl
 static Symbols::CHL2_Player_ExitLadder func_CHL2_Player_ExitLadder;
 LUA_FUNCTION_STATIC(ExitLadder)
 {
-	CBasePlayer* pPly = Util::Get_Player(1, true);
+	CBasePlayer* pPly = Util::Get_Player(LUA, 1, true);
 
 	if (!func_CHL2_Player_ExitLadder)
 		LUA->ThrowError("Failed to get CHL2_Player::ExitLadder");
@@ -276,9 +277,9 @@ public:
 
 LUA_FUNCTION_STATIC(GetLadder)
 {
-	CHL2_Player* pPly = (CHL2_Player*)Util::Get_Player(1, true);
+	CHL2_Player* pPly = (CHL2_Player*)Util::Get_Player(LUA, 1, true);
 
-	Util::Push_Entity(CHL2GameMovement::GetLadder(pPly));
+	Util::Push_Entity(LUA, CHL2GameMovement::GetLadder(pPly));
 	return 1;
 }
 #endif
@@ -290,7 +291,7 @@ static void hook_CBaseEntity_SetMoveType(CBaseEntity* pEnt, int iMoveType, int i
 	int iCurrentMoveType = pEnt->GetMoveType();
 	if (!bInMoveTypeCall && iCurrentMoveType != iMoveType && Lua::PushHook("HolyLib:OnMoveTypeChange"))
 	{
-		Util::Push_Entity(pEnt);
+		Util::Push_Entity(g_Lua, pEnt);
 		g_Lua->PushNumber(iCurrentMoveType);
 		g_Lua->PushNumber(iMoveType);
 		g_Lua->PushNumber(iMoveCollide);
@@ -331,7 +332,7 @@ LUA_FUNCTION_STATIC(Disconnect)
 	CBaseClient* pClient = NULL;
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Entity))
 	{
-		pClient = Util::GetClientByPlayer(Util::Get_Player(1, true));
+		pClient = Util::GetClientByPlayer(Util::Get_Player(LUA, 1, true));
 	} else {
 		pClient = Util::GetClientByUserID(LUA->CheckNumber(1));
 	}
@@ -367,27 +368,27 @@ void CHolyLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 	{
 		pBitBufWrapper = g_pModuleManager.FindModuleByName("bitbuf");
 
-		Util::StartTable();
-			Util::AddFunc(HideServer, "HideServer");
-			Util::AddFunc(Reconnect, "Reconnect");
-			Util::AddFunc(FadeClientVolume, "FadeClientVolume");
-			Util::AddFunc(ServerExecute, "ServerExecute");
-			Util::AddFunc(IsMapValid, "IsMapValid");
-			Util::AddFunc(InvalidateBoneCache, "InvalidateBoneCache");
-			Util::AddFunc(SetSignOnState, "SetSignOnState");
+		Util::StartTable(pLua);
+			Util::AddFunc(pLua, HideServer, "HideServer");
+			Util::AddFunc(pLua, Reconnect, "Reconnect");
+			Util::AddFunc(pLua, FadeClientVolume, "FadeClientVolume");
+			Util::AddFunc(pLua, ServerExecute, "ServerExecute");
+			Util::AddFunc(pLua, IsMapValid, "IsMapValid");
+			Util::AddFunc(pLua, InvalidateBoneCache, "InvalidateBoneCache");
+			Util::AddFunc(pLua, SetSignOnState, "SetSignOnState");
 #if ARCHITECTURE_IS_X86
-			Util::AddFunc(ExitLadder, "ExitLadder");
-			Util::AddFunc(GetLadder, "GetLadder");
+			Util::AddFunc(pLua, ExitLadder, "ExitLadder");
+			Util::AddFunc(pLua, GetLadder, "GetLadder");
 #endif
-			Util::AddFunc(HideMsg, "HideMsg");
-			Util::AddFunc(GetRegistry, "GetRegistry");
-			Util::AddFunc(Disconnect, "Disconnect");
+			Util::AddFunc(pLua, HideMsg, "HideMsg");
+			Util::AddFunc(pLua, GetRegistry, "GetRegistry");
+			Util::AddFunc(pLua, Disconnect, "Disconnect");
 
 			// Networking stuff
-			Util::AddFunc(_EntityMessageBegin, "EntityMessageBegin");
-			Util::AddFunc(_UserMessageBegin, "UserMessageBegin");
-			Util::AddFunc(_MessageEnd, "MessageEnd");
-		Util::FinishTable("HolyLib");
+			Util::AddFunc(pLua, _EntityMessageBegin, "EntityMessageBegin");
+			Util::AddFunc(pLua, _UserMessageBegin, "UserMessageBegin");
+			Util::AddFunc(pLua, _MessageEnd, "MessageEnd");
+		Util::FinishTable(pLua, "HolyLib");
 	} else {
 		if (Lua::PushHook("HolyLib:Initialize"))
 		{
@@ -400,7 +401,7 @@ void CHolyLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 
 void CHolyLibModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	Util::NukeTable("holylib");
+	Util::NukeTable(pLua, "holylib");
 }
 
 void CHolyLibModule::InitDetour(bool bPreServer)
