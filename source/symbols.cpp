@@ -831,4 +831,11 @@ namespace Symbols
 	const std::vector<Symbol> UTIL_TraceEntity2Sym = {
 		Symbol::FromName("_Z16UTIL_TraceEntityP11CBaseEntityRK6VectorS3_jP10CGameTrace"),
 	};
+
+	//---------------------------------------------------------------------------------
+	// AutoRefresh Symbols
+	//---------------------------------------------------------------------------------
+
+	typedef void (*GarrysMod_AutoRefresh_HandleLuaFileChange)(void* something, const std::string* filecontent);
+	extern const std::vector<Symbol> GarrysMod_AutoRefresh_HandleLuaFileChangeSym;
 }
