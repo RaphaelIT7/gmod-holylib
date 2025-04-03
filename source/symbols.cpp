@@ -835,7 +835,7 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// AutoRefresh Symbols
 	//---------------------------------------------------------------------------------
-
-	typedef void (*GarrysMod_AutoRefresh_HandleLuaFileChange)(void* something, const std::string* filecontent);
-	extern const std::vector<Symbol> GarrysMod_AutoRefresh_HandleLuaFileChangeSym;
+	const std::vector<Symbol> GarrysMod_AutoRefresh_HandleLuaFileChangeSym = {
+		Symbol::FromName("_ZN9GarrysMod11AutoRefresh19HandleLuaFileChangeERKSs"),
+	};
 }
