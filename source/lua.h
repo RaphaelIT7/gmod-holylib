@@ -34,7 +34,6 @@ namespace Lua
 	// Each new metatable has this entry.
 	struct LuaMetaEntry {
 		int iType = -1;
-		std::unordered_map<void*, LuaUserData*> g_pPushedUserData;
 	};
 
 	/*
@@ -89,6 +88,7 @@ namespace Lua
 		void* pOtherData[4]; // If any other plugin wants to use this, they can.
 		Lua::ModuleData* pModuelData[Lua::Internal::pMaxEntries] = { NULL }; // It uses the assigned module IDs
 		LuaMetaEntry pLuaTypes[LuaTypes::TOTAL_TYPES];
+		std::unordered_map<void*, LuaUserData*> pPushedUserData;
 
 		~StateData()
 		{
@@ -138,15 +138,16 @@ namespace Lua
 			pModuelData[moduleID] = moduleData;
 		}
 
-		inline std::unordered_map<void*, LuaUserData*>& GetPushedUserData(LuaTypes type)
+		inline std::unordered_map<void*, LuaUserData*>& GetPushedUserData()
 		{
-			return pLuaTypes[type].g_pPushedUserData;
+			return pPushedUserData;
 		}
 	};
 
 	extern Lua::StateData* GetLuaData(GarrysMod::Lua::ILuaInterface* LUA);
 	extern void CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA, bool bNullOut = false);
 	extern void RemoveLuaData(GarrysMod::Lua::ILuaInterface* LUA);
+	extern const std::unordered_set<Lua::StateData*>& GetAllLuaData();
 
 	// ToDo
 	// - EnterLockdown

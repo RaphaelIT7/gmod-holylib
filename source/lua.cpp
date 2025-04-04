@@ -229,6 +229,7 @@ Lua::StateData* Lua::GetLuaData(GarrysMod::Lua::ILuaInterface* LUA)
 	return *reinterpret_cast<Lua::StateData**>((char*)LUA->GetPathID() + 24);
 }
 
+static std::unordered_set<Lua::StateData*> g_pLuaStates;
 void Lua::CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA, bool bNullOut)
 {
 	if (bNullOut)
@@ -247,6 +248,7 @@ void Lua::CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA, bool bNullOut)
 	char* pathID = (char*)LUA->GetPathID();
 	Lua::StateData* data = new Lua::StateData;
 	*reinterpret_cast<Lua::StateData**>(pathID + 24) = data;
+	g_pLuaStates.insert(data);
 	Msg("holylib - Created thread data %p (%s)\n", data, pathID);
 }
 
@@ -256,9 +258,15 @@ void Lua::RemoveLuaData(GarrysMod::Lua::ILuaInterface* LUA)
 	if (!data)
 		return;
 
+	g_pLuaStates.erase(data);
 	delete data;
 	*reinterpret_cast<Lua::StateData**>((char*)LUA->GetPathID() + 24) = NULL;
 	Msg("holylib - Removed thread data %p\n", data);
+}
+
+const std::unordered_set<Lua::StateData*>& Lua::GetAllLuaData()
+{
+	return g_pLuaStates;
 }
 
 static void LuaCheck(const CCommand& args)

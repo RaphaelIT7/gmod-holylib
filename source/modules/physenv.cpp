@@ -330,7 +330,7 @@ struct ILuaPhysicsEnvironment
 
 	~ILuaPhysicsEnvironment()
 	{
-		Delete_ILuaPhysicsEnvironment(pLua, this);
+		DeleteGlobal_ILuaPhysicsEnvironment(this);
 
 		//g_pEnvironmentToLua.erase(g_pEnvironmentToLua.find(pEnvironment));
 #ifdef SYSTEM_WINDOWS
@@ -499,7 +499,7 @@ void hook_CPhysicsEnvironment_DestroyObject(CPhysicsEnvironment* pEnvironment, I
 	pEnv->m_objects.FastRemove(foundIndex);
 
 	UnregisterPhysicsObject(pLuaEnvironment, pObject);
-	Delete_IPhysicsObject(pLuaEnvironment->pLua, pObject); // Delete any reference we might hold. ToDo: This may crash?!? Were accessing a Lua state from the main thread... It'll be fiine
+	DeleteGlobal_IPhysicsObject(pObject); // Delete any reference we might hold. ToDo: This may crash?!? Were accessing a Lua state from the main thread... It'll be fiine
 	//pEnv->DestroyObject(pObject);
 
 	CPhysicsObject* pPhysics = static_cast<CPhysicsObject*>(pObject);
@@ -1718,7 +1718,7 @@ LUA_FUNCTION_STATIC(physcollide_ConvertConvexToCollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
 	Push_CPhysCollide(LUA, physcollide->ConvertConvexToCollide(&pConvex, 1));
-	Delete_CPhysConvex(LUA, pConvex);
+	DeleteGlobal_CPhysConvex(pConvex);
 
 	return 1;
 }
@@ -1732,7 +1732,7 @@ LUA_FUNCTION_STATIC(physcollide_ConvertPolysoupToCollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
 	Push_CPhysCollide(LUA, physcollide->ConvertPolysoupToCollide(pPolySoup, bUseMOPP));
-	Delete_CPhysPolysoup(LUA, pPolySoup);
+	DeleteGlobal_CPhysPolysoup(pPolySoup);
 
 	return 1;
 }
@@ -1745,7 +1745,7 @@ LUA_FUNCTION_STATIC(physcollide_ConvexFree)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
 	physcollide->ConvexFree(pConvex);
-	Delete_CPhysConvex(LUA, pConvex);
+	DeleteGlobal_CPhysConvex(pConvex);
 
 	return 0;
 }
@@ -1782,7 +1782,7 @@ LUA_FUNCTION_STATIC(physcollide_PolysoupDestroy)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
 	physcollide->PolysoupDestroy(pPolySoup);
-	Delete_CPhysPolysoup(LUA, pPolySoup);
+	DeleteGlobal_CPhysPolysoup(pPolySoup);
 	return 0;
 }
 
@@ -2013,7 +2013,7 @@ LUA_FUNCTION_STATIC(physcollide_DestroyQueryModel)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
 	physcollide->DestroyQueryModel(pQuery);
-	Delete_ICollisionQuery(LUA, pQuery);
+	DeleteGlobal_ICollisionQuery(pQuery);
 	return 0;
 }
 
@@ -2025,7 +2025,7 @@ LUA_FUNCTION_STATIC(physcollide_DestroyCollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
 	physcollide->DestroyCollide(pCollide);
-	Delete_CPhysCollide(LUA, pCollide);
+	DeleteGlobal_CPhysCollide(pCollide);
 	return 0;
 }
 

@@ -1,5 +1,6 @@
 #include "holylua.h"
 #include "GarrysMod/Lua/LuaShared.h"
+#include "module.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -27,6 +28,10 @@ void HolyLua::Init()
 
 	g_HolyLua = Lua::CreateInterface();
 	g_HolyLua->SetType(GarrysMod::Lua::State::MENU);
+
+	// Now add all supported HolyLib modules into the new interface.
+	g_pModuleManager.LuaInit(g_HolyLua, false);
+	g_pModuleManager.LuaInit(g_HolyLua, true);
 }
 
 void HolyLua::Shutdown()
@@ -34,6 +39,7 @@ void HolyLua::Shutdown()
 	if ( !g_HolyLua )
 		return;
 
+	g_pModuleManager.LuaShutdown(g_HolyLua);
 	Lua::DestroyInterface(g_HolyLua);
 	g_HolyLua = NULL;
 }

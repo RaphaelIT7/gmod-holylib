@@ -266,14 +266,118 @@ namespace Util
 #define HOLYLIB_UTIL_DEBUG_LUAUSERDATA 1
 #endif
 
-#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA
+/*
+ * Base UserData struct that is used by LuaUserData.
+ * Main purpose is for it to handle the stored pData & implement a reference counter.
+ * It also maskes sharing data between threads easier.
+ */
+
 struct LuaUserData;
+struct BaseUserData;
+extern std::unordered_map<void*, BaseUserData*> g_pGlobalLuaUserData; // A set containing all BaseUserData
+struct BaseUserData {
+	BaseUserData(void* data)
+	{
+		m_pData = data;
+		g_pGlobalLuaUserData[m_pData] = this; // Link it
+	}
+
+	~BaseUserData()
+	{
+		if (m_pData != NULL)
+		{
+			auto it = g_pGlobalLuaUserData.find(m_pData);
+			if (it != g_pGlobalLuaUserData.end())
+				g_pGlobalLuaUserData.erase(it);
+		}
+
+		m_pData = NULL;
+	}
+
+	inline void* GetData(GarrysMod::Lua::ILuaInterface* pLua)
+	{
+		if (m_bLocked && pLua != m_pOwningLua)
+			return NULL;
+
+		return m_pData;
+	}
+
+	/*inline void SetData(void* data)
+	{
+		if (pData != NULL) // This UserData was reassigned?!? Shouldn't happen normally... Anyways.
+		{
+			auto it = g_pGlobalLuaUserData.find(pData);
+			if (it != g_pGlobalLuaUserData.end())
+				g_pGlobalLuaUserData.erase(it);
+		}
+
+		pData = data;
+		g_pGlobalLuaUserData[pData] = this; // Link it
+	}*/
+
+	/*
+	 * Locks/Unlocks the UserData making GetData only return a valid result for the owning ILuaInterface.
+	 */
+	inline void SetLocked(bool bLocked)
+	{
+		m_bLocked = bLocked;
+	}
+
+	inline bool Release(LuaUserData* pLuaUserData)
+	{
+		if (m_iReferenceCount == 0) // Don't accidentally delete it again...
+			return false;
+
+		--m_iReferenceCount;
+		m_pOwningData.erase(pLuaUserData);
+
+		if (m_iReferenceCount == 0)
+		{
+			delete this;
+			return true;
+		}
+
+		return false;
+	}
+
+	static inline BaseUserData* LuaAquire(LuaUserData* pLuaUserData, void* pData)
+	{
+		if (!pData)
+			return NULL;
+
+		auto it = g_pGlobalLuaUserData.find(pData);
+		if (it != g_pGlobalLuaUserData.end())
+		{
+			it->second->Aquire();
+			return it->second;
+		}
+
+		BaseUserData* pUserData = new BaseUserData(pData);
+		pUserData->Aquire(); // Increment counter
+		pUserData->m_pOwningData.insert(pLuaUserData);
+		return pUserData;
+	}
+
+	static inline void ForceGlobalRelease(void* pData);
+
+private:
+	inline void Aquire()
+	{
+		++m_iReferenceCount;
+	}
+
+	void* m_pData = NULL;
+	bool m_bLocked = false;
+	GarrysMod::Lua::ILuaInterface* m_pOwningLua = NULL;
+
+	unsigned int m_iReferenceCount = 0;
+	std::unordered_set<LuaUserData*> m_pOwningData;
+};
+
+#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA
 extern bool g_pRemoveLuaUserData;
 extern std::unordered_set<LuaUserData*> g_pLuaUserData; // A set containing all LuaUserData that actually hold a reference.
 #endif
-// ToDo: Allow Lua states to aquire / reference a userdata from another state.
-//		This would make it easier & faster to share data between states BUT it'll require a few more things
-//		This should be easy - Instant regrets.
 struct LuaUserData {
 	LuaUserData() {
 #if HOLYLIB_UTIL_DEBUG_LUAUSERDATA
@@ -324,7 +428,12 @@ struct LuaUserData {
 		}
 
 		pAdditionalData = NULL;
-		pData = NULL;
+
+		if (pBaseData != NULL)
+		{
+			pBaseData->Release(this);
+			pBaseData = NULL;
+		}
 	}
 
 	inline void Init(GarrysMod::Lua::ILuaInterface* LUA)
@@ -352,12 +461,18 @@ struct LuaUserData {
 
 	inline void* GetData()
 	{
-		return pData;
+		return pBaseData->GetData(pLua);
 	}
 
 	inline void SetData(void* data)
 	{
-		pData = data;
+		if (pBaseData != NULL)
+		{
+			pBaseData->Release(this);
+			pBaseData = NULL;
+		}
+
+		pBaseData = BaseUserData::LuaAquire(this, data);
 	}
 
 	inline int GetAdditionalData()
@@ -399,39 +514,42 @@ struct LuaUserData {
 		return true;
 	}
 
-	// ToDo
-	// - Aquire
-	// - Release
-	// Reference control, see the todo above at the LuaUserData
-
-	inline void Aquire()
+	inline bool Release()
 	{
-		++referenceCount;
-	}
-
-	inline void Release()
-	{
-		if (referenceCount == -1)
-			return;
-
-		--referenceCount;
-		
-		if (referenceCount >= 0)
+		if (pBaseData != NULL)
 		{
-			referenceCount = -1;
+			bool bDelete = pBaseData->Release(this);
+			pBaseData = NULL;
 			delete this;
+			return bDelete;
 		}
+
+		delete this;
+		return false;
 	}
 
 private:
-	void* pData = NULL;
+	BaseUserData* pBaseData = NULL;
 	int iReference = -1;
 	int iTableReference = -1;
 	int pAdditionalData = NULL; // Used by HLTVClient.
-	GarrysMod::Lua::ILuaInterface* pLua;
-
-	int referenceCount = 0;
+	GarrysMod::Lua::ILuaInterface* pLua = NULL;
 };
+
+inline void BaseUserData::ForceGlobalRelease(void* pData)
+{
+	auto it = g_pGlobalLuaUserData.find(pData);
+	if (it == g_pGlobalLuaUserData.end())
+		return;
+
+	it->second->m_iReferenceCount = 0;
+	for (auto& userData : it->second->m_pOwningData)
+	{
+		userData->SetData(NULL); // Remove any references any LuaUserData holds to us.
+	}
+
+	it->second->Release(NULL);
+}
 
 #define TO_LUA_TYPE( className ) Lua::className
 
@@ -573,7 +691,7 @@ void Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
 		return; \
 	} \
 \
-	auto pushedUserData = Lua::GetLuaData(LUA)->GetPushedUserData(TO_LUA_TYPE(className)); \
+	auto pushedUserData = Lua::GetLuaData(LUA)->GetPushedUserData(); \
 	auto it = pushedUserData.find(var); \
 	if (it != pushedUserData.end()) \
 	{ \
@@ -584,14 +702,13 @@ void Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
 		LUA->PushUserType(userData, Lua::GetLuaData(LUA)->GetMetaTable(TO_LUA_TYPE(className))); \
 		userData->Init(LUA); \
 		userData->CreateReference(); \
-		userData->Aquire(); \
 		pushedUserData[var] = userData; \
 	} \
 } \
 \
 static void Delete_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
 { \
-	auto pushedUserData = Lua::GetLuaData(LUA)->GetPushedUserData(TO_LUA_TYPE(className)); \
+	auto pushedUserData = Lua::GetLuaData(LUA)->GetPushedUserData(); \
 	auto it = pushedUserData.find(var); \
 	if (it != pushedUserData.end()) \
 	{ \
@@ -602,12 +719,17 @@ static void Delete_##className(GarrysMod::Lua::ILuaInterface* LUA, className* va
 \
 static void DeleteAll_##className(GarrysMod::Lua::ILuaInterface* LUA) \
 { \
-	auto pushedUserData = Lua::GetLuaData(LUA)->GetPushedUserData(TO_LUA_TYPE(className)); \
+	auto pushedUserData = Lua::GetLuaData(LUA)->GetPushedUserData(); \
 	for (auto& [key, val] : pushedUserData) \
 	{ \
 		val->Release(); \
 	} \
 	pushedUserData.clear(); \
+} \
+\
+static void DeleteGlobal_##className(className* var) \
+{ \
+	BaseUserData::ForceGlobalRelease(var); \
 }
 
 #define Vector_RemoveElement(vec, element) \
@@ -660,8 +782,10 @@ LUA_FUNCTION_STATIC(className ## __gc) \
 	LuaUserData* pData = Get_##className##_Data(LUA, 1, false); \
 	if (pData) \
 	{ \
-		func \
-		delete pData; \
+		if (pData->Release()) \
+		{ \
+			func \
+		} \
 		LUA->SetUserType(1, NULL); \
 	} \
  \

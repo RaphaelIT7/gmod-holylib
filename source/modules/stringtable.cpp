@@ -38,7 +38,7 @@ Get_LuaClass(INetworkStringTable, "INetworkStringTable")
 static Detouring::Hook detour_CNetworkStringTable_Deconstructor;
 static void hook_CNetworkStringTable_Deconstructor(INetworkStringTable* tbl)
 {
-	Delete_INetworkStringTable(g_Lua, tbl);
+	DeleteGlobal_INetworkStringTable(tbl);
 	detour_CNetworkStringTable_Deconstructor.GetTrampoline<Symbols::CNetworkStringTable_Deconstructor>()(tbl);
 }
 

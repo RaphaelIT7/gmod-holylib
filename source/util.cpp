@@ -22,6 +22,7 @@ CUserMessages* Util::pUserMessages;
 
 bool g_pRemoveLuaUserData = true;
 std::unordered_set<LuaUserData*> g_pLuaUserData;
+std::unordered_map<void*, BaseUserData*> g_pGlobalLuaUserData;
 
 std::unordered_set<int> Util::g_pReference;
 ConVar Util::holylib_debug_mainutil("holylib_debug_mainutil", "1");
@@ -312,6 +313,10 @@ void Util::RemoveDetour()
 		Util::entitylist->RemoveListenerEntity(&pHolyEntityListener);
 }
 
+// If HolyLib was already loaded, we won't load a second time.
+// How could this happen?
+// In cases some other module utilizes HolyLib/compiled it to a .lib and uses the lib file they can load/execute HolyLib themself.
+// & yes, you can compile HolyLib to a .lib file & load it using the 
 static bool g_pShouldLoad = false;
 bool Util::ShouldLoad()
 {
