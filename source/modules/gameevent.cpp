@@ -627,9 +627,9 @@ void CGameeventLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bSer
 
 			// No listener function? We should probably add one
 		}
-	}
 
-	Util::PopTable(pLua);
+		Util::PopTable(pLua);
+	}
 }
 
 void CGameeventLibModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)

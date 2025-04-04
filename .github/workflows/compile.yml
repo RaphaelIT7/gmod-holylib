@@ -216,6 +216,36 @@ jobs:
       extra-startup-args: "-usegh"
       download-artifact: "gluatest_64x"
 
+  test_32bit_live_holylua:
+    name: "Test live branch (HolyLua)"
+    needs: setup_32x_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests_runnerimprovements.yml@holylib
+    with:
+      branch: live
+      gluatest-ref: "holylib"
+      extra-startup-args: "-usegh -holylib_lua"
+      download-artifact: "gluatest_32x"
+
+  test_32bit_dev_holylua:
+    name: "Test dev branch (HolyLua)"
+    needs: setup_32x_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests_runnerimprovements.yml@holylib
+    with:
+      branch: dev
+      gluatest-ref: "holylib"
+      extra-startup-args: "-usegh -holylib_lua"
+      download-artifact: "gluatest_32x"
+
+  test_64bit_holylua:
+    name: "Test x86-64 branch (HolyLua)"
+    needs: setup_64x_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests_runnerimprovements.yml@holylib
+    with:
+      branch: x86-64
+      gluatest-ref: "holylib"
+      extra-startup-args: "-usegh -holylib_lua"
+      download-artifact: "gluatest_64x"
+
   test_32bit_find_crash:
     if: false # Enable it if a unknown crash is happening. We'll test every single module.
     name: "Find the crash cause"
