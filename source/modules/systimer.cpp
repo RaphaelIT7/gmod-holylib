@@ -14,6 +14,7 @@ public:
 	virtual void LuaThink(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual const char* Name() { return "systimer"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
+	virtual bool SupportsMultipleLuaStates() { return true; };
 };
 
 static CSysTimerModule g_pSysTimerModule;

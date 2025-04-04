@@ -19,6 +19,7 @@ public:
 	virtual void LevelShutdown() OVERRIDE;
 	virtual const char* Name() { return "steamworks"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
+	virtual bool SupportsMultipleLuaStates() { return true; };
 };
 
 CSteamWorksModule g_pSteamWorksModule;

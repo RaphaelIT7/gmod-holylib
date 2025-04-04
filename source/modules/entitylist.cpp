@@ -17,6 +17,7 @@ public:
 	virtual void OnEntityDeleted(CBaseEntity* pEntity) OVERRIDE;
 	virtual const char* Name() { return "entitylist"; };
 	virtual int Compatibility() { return LINUX32; };
+	//virtual bool SupportsMultipleLuaStates() { return true; };
 };
 
 CEntListModule g_pEntListModule;
@@ -25,7 +26,7 @@ IModule* pEntListModule = &g_pEntListModule;
 Push_LuaClass(EntityList)
 Get_LuaClass(EntityList, "EntityList")
 
-static std::unordered_set<EntityList*> pEntityLists;
+static std::unordered_set<EntityList*> pEntityLists; // Fk... Now we have multiple threads partying on here. ToDo: Mutex
 
 class LuaEntityModuleData : public Lua::ModuleData
 {

@@ -17,6 +17,7 @@ public:
 #endif
 	virtual const char* Name() { return "cvars"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
+	virtual bool SupportsMultipleLuaStates() { return true; };
 };
 
 static CCVarsModule g_pCVarsModule;

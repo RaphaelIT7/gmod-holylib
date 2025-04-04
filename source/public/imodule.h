@@ -37,7 +37,7 @@ public:
 	virtual void LuaThink(GarrysMod::Lua::ILuaInterface* pLua) { (void)pLua; };
 
 	// returns true if this module supports multiple lua states. If not LuaInit won't be called for any other state.
-	virtual bool SupportsMultipleLuaStates() { return false; }; // By default none support it.
+	virtual bool SupportsMultipleLuaStates() { return true; }; // By default they support it.
 
 	// Called when the module should add it's detours.
 	// NOTE: This is called before Init if bPreServer is true.

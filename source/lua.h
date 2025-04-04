@@ -88,7 +88,8 @@ namespace Lua
 		void* pOtherData[4]; // If any other plugin wants to use this, they can.
 		Lua::ModuleData* pModuelData[Lua::Internal::pMaxEntries] = { NULL }; // It uses the assigned module IDs
 		LuaMetaEntry pLuaTypes[LuaTypes::TOTAL_TYPES];
-		std::unordered_map<void*, LuaUserData*> pPushedUserData;
+		std::unordered_map<void*, LuaUserData*> pPushedUserData; // Would love to get rid of this
+		CThreadMutex pMutex;
 
 		~StateData()
 		{

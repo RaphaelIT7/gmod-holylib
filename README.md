@@ -60,6 +60,9 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [#] Better support for multiple Lua states
 \- \- This required most of the lua setup to be changed >:(
 
+> [!WARNING]
+> The current builds are unstable and need **A LOT** of testing.
+
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 
@@ -84,6 +87,7 @@ None
 \- Reduce/Remove the usage of g_Lua since our code should work later with multiple ILuaInterfaces.  
 \- test/become compatible with vphysics-jolt (I'm quite sure that the `physenv` isn't compatible).  
 \- Check out `holylib_filesystem_predictexistance` as it seamingly broke, reportidly works in `0.6`.  
+\- Check if gmod userdata pushed from HolyLib to Lua is invalid in the 0.7 release
 
 # New Documentation
 Currently I'm working on implementing a better wiki that will replace this huge readme later.  

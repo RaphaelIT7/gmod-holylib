@@ -21,6 +21,7 @@ public:
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "sourcetv"; };
 	virtual int Compatibility() { return LINUX32; };
+	virtual bool SupportsMultipleLuaStates() { return true; };
 };
 
 static ConVar sourcetv_allownetworking("holylib_sourcetv_allownetworking", "0", 0, "Allows HLTV Clients to send net messages to the server.");
@@ -357,7 +358,7 @@ LUA_FUNCTION_STATIC(sourcetv_SetCameraMan)
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Number))
 		iTarget = LUA->GetNumber(1);
 	else {
-		CBaseEntity* pEnt = Util::Get_Entity(g_Lua, 1, false);
+		CBaseEntity* pEnt = Util::Get_Entity(LUA, 1, false);
 		iTarget = pEnt ? pEnt->edict()->m_EdictIndex : 0; // If given NULL, set it to 0.
 	}
 

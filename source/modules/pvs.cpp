@@ -19,6 +19,7 @@ public:
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "pvs"; };
 	virtual int Compatibility() { return LINUX32; };
+	virtual bool SupportsMultipleLuaStates() { return true; };
 };
 
 static CPVSModule g_pPVSModule;

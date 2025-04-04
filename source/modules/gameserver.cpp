@@ -23,6 +23,7 @@ public:
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "gameserver"; };
 	virtual int Compatibility() { return LINUX32; };
+	virtual bool SupportsMultipleLuaStates() { return true; };
 };
 
 static ConVar gameserver_disablespawnsafety("holylib_gameserver_disablespawnsafety", "0", 0, "If enabled, players can spawn on slots above 128 but this WILL cause stability and many other issues!");
@@ -1544,9 +1545,9 @@ void ILuaNetMessageHandler::ConnectionStart(INetChannel* chan)
 	if (connectionStartFunction == -1) // We have no callback function set.
 		return;
 
-	g_Lua->ReferencePush(connectionStartFunction);
+	m_pLua->ReferencePush(connectionStartFunction);
 	Push_CNetChan(m_pLua, (CNetChan*)chan);
-	g_Lua->CallFunctionProtected(1, 0, true);
+	m_pLua->CallFunctionProtected(1, 0, true);
 }
 
 void ILuaNetMessageHandler::ConnectionClosing(const char* reason)
@@ -1560,10 +1561,10 @@ void ILuaNetMessageHandler::ConnectionClosing(const char* reason)
 	if (connectionClosingFunction == -1) // We have no callback function set.
 		return;
 
-	g_Lua->ReferencePush(connectionClosingFunction);
+	m_pLua->ReferencePush(connectionClosingFunction);
 	Push_CNetChan(m_pLua, chan);
-	g_Lua->PushString(reason);
-	g_Lua->CallFunctionProtected(2, 0, true);
+	m_pLua->PushString(reason);
+	m_pLua->CallFunctionProtected(2, 0, true);
 }
 
 void ILuaNetMessageHandler::ConnectionCrashed(const char* reason)
@@ -1577,10 +1578,10 @@ void ILuaNetMessageHandler::ConnectionCrashed(const char* reason)
 	if (connectionCrashedFunction == -1) // We have no callback function set.
 		return;
 
-	g_Lua->ReferencePush(connectionCrashedFunction);
+	m_pLua->ReferencePush(connectionCrashedFunction);
 	Push_CNetChan(m_pLua, chan);
-	g_Lua->PushString(reason);
-	g_Lua->CallFunctionProtected(2, 0, true);
+	m_pLua->PushString(reason);
+	m_pLua->CallFunctionProtected(2, 0, true);
 }
 
 void ILuaNetMessageHandler::PacketStart(int incoming_sequence, int outgoing_acknowledged)

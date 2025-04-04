@@ -23,6 +23,7 @@ public:
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "vprof"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32; };
+	virtual bool SupportsMultipleLuaStates() { return true; };
 	// NOTE for myself: Linux64 seemingly doesn't have vprof enabled! so don't suppositly add compatbility!
 	// Update: Fk my old self, Linux64 is just broken and it crashed because I had the wrong symbols.
 };
