@@ -347,6 +347,11 @@ void CModuleManager::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 	VCALL_LUA_ENABLED_MODULES(LuaInit(pLua, bServerInit));
 }
 
+void CModuleManager::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
+{
+	VCALL_LUA_ENABLED_MODULES(LuaThink(pLua));
+}
+
 void CModuleManager::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	VCALL_LUA_ENABLED_MODULES(LuaShutdown(pLua));

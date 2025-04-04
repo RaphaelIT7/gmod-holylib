@@ -58,6 +58,7 @@ public:
 	virtual void Setup(CreateInterfaceFn appfn, CreateInterfaceFn gamefn);
 	virtual void Init();
 	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit);
+	virtual void LuaThink(GarrysMod::Lua::ILuaInterface* pLua);
 	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua);
 	virtual void InitDetour(bool bPreServer);
 	virtual void Think(bool bSimulating);

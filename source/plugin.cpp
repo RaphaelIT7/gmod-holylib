@@ -265,6 +265,7 @@ void CServerPlugin::GameFrame(bool simulating)
 {
 	VPROF_BUDGET("HolyLib - CServerPlugin::GameFrame", VPROF_BUDGETGROUP_HOLYLIB);
 	g_pModuleManager.Think(simulating);
+	HolyLua::Think();
 }
 
 //---------------------------------------------------------------------------------

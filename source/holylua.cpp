@@ -25,7 +25,7 @@ static ConVar holylib_lua("holylib_lua", "0", 0, "If enabled, it will create a n
 
 static void lua_run_holylibCmd(const CCommand &args)
 {
-	if ( args.ArgC() < 1 || Q_stricmp(args.Arg(1), "") == 0 )
+	if (args.ArgC() < 1 || Q_stricmp(args.Arg(1), "") == 0)
 	{
 		Msg("Usage: lua_run_holylib <code>\n");
 		return;
@@ -49,9 +49,17 @@ void HolyLua::Init()
 	g_pModuleManager.LuaInit(g_HolyLua, true);
 }
 
+void HolyLua::Think()
+{
+	if (!g_HolyLua)
+		return;
+
+	g_pModuleManager.LuaThink(g_HolyLua);
+}
+
 void HolyLua::Shutdown()
 {
-	if ( !g_HolyLua )
+	if (!g_HolyLua)
 		return;
 
 	g_pModuleManager.LuaShutdown(g_HolyLua);

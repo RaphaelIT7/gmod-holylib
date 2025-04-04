@@ -20,11 +20,13 @@ public:
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual void Think(bool bSimulating) OVERRIDE;
 	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaThink(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void Shutdown() OVERRIDE;
 	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) OVERRIDE;
 	virtual const char* Name() { return "filesystem"; };
 	virtual int Compatibility() { return LINUX32 | WINDOWS32; };
+	virtual bool SupportsMultipleLuaStates() { return true; };
 };
 
 static CFileSystemModule g_pFileSystemModule;
@@ -1438,11 +1440,8 @@ static void hook_CBaseFileSystem_Close(IFileSystem* filesystem, FileHandle_t fil
 	detour_CBaseFileSystem_Close.GetTrampoline<Symbols::CBaseFileSystem_Close>()(filesystem, file);
 }
 
-extern void FileAsyncReadThink(GarrysMod::Lua::ILuaInterface* pLua);
 void CFileSystemModule::Think(bool bSimulating)
 {
-	FileAsyncReadThink(g_Lua); // ToDo: Move this to LuaThink later.
-
 	if (!holylib_filesystem_cachefilehandle.GetBool())
 		return;
 
@@ -2200,6 +2199,11 @@ void CFileSystemModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, addonsystem_ShouldMount, "ShouldMount");
 		Util::AddFunc(pLua, addonsystem_SetShouldMount, "SetShouldMount");
 	Util::FinishTable(pLua, "addonsystem");
+}
+
+void CFileSystemModule::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
+{
+	FileAsyncReadThink(pLua);
 }
 
 void CFileSystemModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
