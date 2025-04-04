@@ -50,11 +50,16 @@ EntityList& GetGlobalEntityList(GarrysMod::Lua::ILuaInterface* pLua)
 
 EntityList::EntityList()
 {
+	if (g_pEntListModule.InDebug())
+		Msg("Created EntityList %p\n", this);
 	pEntityLists.insert(this);
 }
 
 EntityList::~EntityList()
 {
+	if (g_pEntListModule.InDebug())
+		Msg("Deleted EntityList %p\n", this);
+
 	Invalidate();
 	pEntityLists.erase(this);
 }
@@ -133,7 +138,12 @@ Default__GetTable(EntityList);
 Default__gc(EntityList,
 	EntityList* pList = (EntityList*)pData->GetData();
 	if (pList)
+	{
+		if (g_pEntListModule.InDebug())
+			Msg("Deleted EntityList %p\n", pList);
+
 		delete pList;
+	}
 )
 
 LUA_FUNCTION_STATIC(EntityList_IsValid)
