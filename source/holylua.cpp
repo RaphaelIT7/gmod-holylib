@@ -1,12 +1,27 @@
 #include "holylua.h"
 #include "GarrysMod/Lua/LuaShared.h"
 #include "module.h"
+#include "tier0/icommandline.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
 static GarrysMod::Lua::ILuaInterface* g_HolyLua = NULL;
-static ConVar holylib_lua("holylib_lua", "0", 0, "If enabled, it will create a new lua interface that will exist until holylib is unloaded");
+static void OnLuaChange(IConVar* convar, const char* pOldValue, float flOldValue)
+{
+	bool bNewValue = ((ConVar*)convar)->GetBool();
+
+	if (!bNewValue && g_HolyLua)
+	{
+		HolyLua::Shutdown();
+	}
+	else if (bNewValue && !g_HolyLua)
+	{
+		HolyLua::Init();
+	}
+}
+
+static ConVar holylib_lua("holylib_lua", "0", 0, "If enabled, it will create a new lua interface that will exist until holylib is unloaded", OnLuaChange);
 
 static void lua_run_holylibCmd(const CCommand &args)
 {
@@ -23,7 +38,7 @@ static ConCommand lua_run_holylib("lua_run_holylib", lua_run_holylibCmd, "Runs c
 
 void HolyLua::Init()
 {
-	if (!holylib_lua.GetBool())
+	if (!holylib_lua.GetBool() && !CommandLine()->FindParm("-holylib_lua"))
 		return;
 
 	g_HolyLua = Lua::CreateInterface();
