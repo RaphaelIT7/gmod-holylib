@@ -300,6 +300,7 @@ void CEntListModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 		return;
 
 	Lua::GetLuaData(pLua)->SetModuleData(m_pID, new LuaEntityModuleData);
+	GetGlobalEntityList(pLua).SetLua(pLua);
 
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::EntityList, pLua->CreateMetaTable("EntityList"));
 		Util::AddFunc(pLua, EntityList__tostring, "__tostring");
