@@ -963,7 +963,7 @@ void CHTTPServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 	if (bServerInit)
 		return;
 
-	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::HttpServer, g_Lua->CreateMetaTable("HttpServer"));
+	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::HttpServer, pLua->CreateMetaTable("HttpServer"));
 		Util::AddFunc(pLua, HttpServer__tostring, "__tostring");
 		Util::AddFunc(pLua, HttpServer__index, "__index");
 		Util::AddFunc(pLua, HttpServer__newindex, "__newindex");
@@ -1001,7 +1001,7 @@ void CHTTPServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, HttpServer_AddPreparedResponse, "AddPreparedResponse");
 	pLua->Pop(1);
 
-	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::HttpRequest, g_Lua->CreateMetaTable("HttpRequest"));
+	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::HttpRequest, pLua->CreateMetaTable("HttpRequest"));
 		Util::AddFunc(pLua, HttpResponse__tostring, "__tostring");
 		Util::AddFunc(pLua, HttpResponse__index, "__index");
 		Util::AddFunc(pLua, HttpResponse__newindex, "__newindex");
@@ -1013,7 +1013,7 @@ void CHTTPServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, HttpResponse_SetRedirect, "SetRedirect");
 	pLua->Pop(1);
 
-	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::HttpResponse, g_Lua->CreateMetaTable("HttpResponse"));
+	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::HttpResponse, pLua->CreateMetaTable("HttpResponse"));
 		Util::AddFunc(pLua, HttpRequest__tostring, "__tostring");
 		Util::AddFunc(pLua, HttpRequest__index, "__index");
 		Util::AddFunc(pLua, HttpRequest__newindex, "__newindex");

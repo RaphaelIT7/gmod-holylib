@@ -555,7 +555,7 @@ void CSourceTVLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServ
 
 	ref_tv_debug = cvar->FindVar("tv_debug"); // We only search for it once. Verify: ConVarRef would always search for it in it's constructor/Init if I remember correctly.
 
-	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::CHLTVClient, g_Lua->CreateMetaTable("CHLTVClient"));
+	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::CHLTVClient, pLua->CreateMetaTable("CHLTVClient"));
 		Push_CBaseClientMeta(pLua);
 
 		Util::AddFunc(pLua, CHLTVClient__tostring, "__tostring");

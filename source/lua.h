@@ -21,7 +21,7 @@ namespace Lua
 	   -2 = hook.Run(function)
 	   -1 = hook name(string)
 	 */
-	extern bool PushHook(const char* pName);
+	extern bool PushHook(const char* pName, GarrysMod::Lua::ILuaInterface* pLua = g_Lua);
 	extern void AddDetour();
 	extern void SetManualShutdown();
 	extern void ManualShutdown();

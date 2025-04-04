@@ -925,7 +925,7 @@ void CBitBufModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 	if (bServerInit)
 		return;
 
-	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::bf_read, g_Lua->CreateMetaTable("bf_read"));
+	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::bf_read, pLua->CreateMetaTable("bf_read"));
 		Util::AddFunc(pLua, bf_read__tostring, "__tostring");
 		Util::AddFunc(pLua, bf_read__index, "__index");
 		Util::AddFunc(pLua, bf_read__newindex, "__newindex");
@@ -980,7 +980,7 @@ void CBitBufModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 		Util::AddFunc(pLua, bf_read_GetData, "GetData");
 	pLua->Pop(1);
 
-	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::bf_write, g_Lua->CreateMetaTable("bf_write"));
+	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::bf_write, pLua->CreateMetaTable("bf_write"));
 		Util::AddFunc(pLua, bf_write__tostring, "__tostring");
 		Util::AddFunc(pLua, bf_write__index, "__index");
 		Util::AddFunc(pLua, bf_write__newindex, "__newindex");

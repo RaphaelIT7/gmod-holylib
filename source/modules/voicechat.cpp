@@ -874,7 +874,7 @@ void CVoiceChatModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServer
 
 	Lua::GetLuaData(pLua)->SetModuleData(m_pID, new LuaVoiceModuleData);
 
-	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::VoiceData, g_Lua->CreateMetaTable("VoiceData"));
+	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::VoiceData, pLua->CreateMetaTable("VoiceData"));
 		Util::AddFunc(pLua, VoiceData__tostring, "__tostring");
 		Util::AddFunc(pLua, VoiceData__index, "__index");
 		Util::AddFunc(pLua, VoiceData__newindex, "__newindex");
@@ -893,7 +893,7 @@ void CVoiceChatModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServer
 		Util::AddFunc(pLua, VoiceData_CreateCopy, "CreateCopy");
 	g_Lua->Pop(1);
 
-	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::VoiceStream, g_Lua->CreateMetaTable("VoiceStream"));
+	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::VoiceStream, pLua->CreateMetaTable("VoiceStream"));
 		Util::AddFunc(pLua, VoiceStream__tostring, "__tostring");
 		Util::AddFunc(pLua, VoiceStream__index, "__index");
 		Util::AddFunc(pLua, VoiceStream__newindex, "__newindex");

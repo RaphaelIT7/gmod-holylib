@@ -548,7 +548,7 @@ void CStringTableModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServ
 
 	if (!bServerInit)
 	{
-		Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::INetworkStringTable, g_Lua->CreateMetaTable("INetworkStringTable"));
+		Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::INetworkStringTable, pLua->CreateMetaTable("INetworkStringTable"));
 			Util::AddFunc(pLua, INetworkStringTable__tostring, "__tostring");
 			Util::AddFunc(pLua, INetworkStringTable__newindex, "__newindex");
 			Util::AddFunc(pLua, INetworkStringTable__index, "__index");
@@ -575,13 +575,13 @@ void CStringTableModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServ
 			Util::AddFunc(pLua, INetworkStringTable_GetNumberUserData, "GetNumberUserData");
 			Util::AddFunc(pLua, INetworkStringTable_SetPrecacheUserData, "SetPrecacheUserData");
 			Util::AddFunc(pLua, INetworkStringTable_GetPrecacheUserData, "GetPrecacheUserData");
-		g_Lua->Pop(1);
+		pLua->Pop(1);
 
-		if (g_Lua->PushMetaTable(Lua::GetLuaData(pLua)->GetMetaTable(Lua::LuaTypes::INetworkStringTable)))
+		if (pLua->PushMetaTable(Lua::GetLuaData(pLua)->GetMetaTable(Lua::LuaTypes::INetworkStringTable)))
 		{
-			g_Lua->Pop(1);
+			pLua->Pop(1);
 		} else {
-			Warning(PROJECT_NAME ": g_Lua->PushMetaTable fails to push INetworkStringTable!\n");
+			Warning(PROJECT_NAME ": pLua->PushMetaTable fails to push INetworkStringTable!\n");
 		}
 
 		Util::StartTable(pLua);
@@ -600,10 +600,10 @@ void CStringTableModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServ
 			Util::AddValue(pLua, INVALID_STRING_INDEX, "INVALID_STRING_INDEX");
 		Util::FinishTable(pLua, "stringtable");
 	} else {
-		if (Lua::PushHook("HolyLib:OnStringTableCreation")) // Use this hook to create / modify the stringtables.
+		if (Lua::PushHook("HolyLib:OnStringTableCreation", pLua)) // Use this hook to create / modify the stringtables.
 		{
 			networkStringTableContainerServer->m_bAllowCreation = true; // Will this work? We'll see.
-			g_Lua->CallFunctionProtected(1, 0, true);
+			pLua->CallFunctionProtected(1, 0, true);
 			networkStringTableContainerServer->m_bAllowCreation = false;
 		}
 	}

@@ -571,7 +571,7 @@ void CGameeventLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bSer
 	if (bServerInit)
 		return;
 
-	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::IGameEvent, g_Lua->CreateMetaTable("IGameEvent"));
+	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::IGameEvent, pLua->CreateMetaTable("IGameEvent"));
 		Util::AddFunc(pLua, IGameEvent__tostring, "__tostring");
 		Util::AddFunc(pLua, IGameEvent__index, "__index");
 		Util::AddFunc(pLua, IGameEvent__newindex, "__newindex");

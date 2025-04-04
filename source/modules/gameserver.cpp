@@ -2186,13 +2186,13 @@ void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 	if (!sv_stressbots)
 		Warning(PROJECT_NAME ": Failed to find sv_stressbots convar!\n");
 
-	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::CBaseClient, g_Lua->CreateMetaTable("CGameClient"));
+	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::CBaseClient, pLua->CreateMetaTable("CGameClient"));
 		Push_CBaseClientMeta(pLua);
 
 		Util::AddFunc(pLua, CGameClient__tostring, "__tostring");
 	pLua->Pop(1);
 
-	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::CNetChan, g_Lua->CreateMetaTable("CNetChan"));
+	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::CNetChan, pLua->CreateMetaTable("CNetChan"));
 		Util::AddFunc(pLua, CNetChan__tostring, "__tostring");
 		Util::AddFunc(pLua, CNetChan__index, "__index");
 		Util::AddFunc(pLua, CNetChan__newindex, "__newindex");
