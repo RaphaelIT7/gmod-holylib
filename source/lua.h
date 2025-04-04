@@ -87,7 +87,7 @@ namespace Lua
 	struct StateData
 	{
 		void* pOtherData[4]; // If any other plugin wants to use this, they can.
-		Lua::ModuleData* pModuelData[Lua::Internal::pMaxEntries]; // It uses the assigned module IDs
+		Lua::ModuleData* pModuelData[Lua::Internal::pMaxEntries] = { NULL }; // It uses the assigned module IDs
 		LuaMetaEntry pLuaTypes[LuaTypes::TOTAL_TYPES];
 
 		~StateData()
@@ -95,8 +95,11 @@ namespace Lua
 			for (int i = 0; i < Lua::Internal::pMaxEntries; ++i)
 			{
 				Lua::ModuleData* pData = pModuelData[i];
+				if (pData == NULL)
+					continue;
 
 				delete pData;
+				pModuelData[i] = NULL;
 			}
 		}
 

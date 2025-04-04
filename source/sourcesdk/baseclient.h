@@ -209,7 +209,7 @@ public:
 
 #if ARCHITECTURE_IS_X86_64
 	// CNETMsg_PlayerAvatarData_t m_msgAvatarData;	// Client avatar
-	// This are the offsets for the variable above. Why not add it directly? Because it depends on sooo much it would be a pain to do. Maybe if I'm bored I'll do it.
+	// RaphaelIT7: This are the offsets for the variable above. Why not add it directly? Because it depends on sooo much it would be a pain to do. Maybe if I'm bored I'll do it.
 	int _offset[23];
 	char _offset2;
 #endif
