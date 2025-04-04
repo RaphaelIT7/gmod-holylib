@@ -187,7 +187,9 @@ private:
 	int m_iGlobalReference = -1;
 	int m_iStringPoolReference = -1;
 	std::list<char*> m_pPaths;
-	int m_iTypeNum = 8;
+
+	int m_iTypeNum = GarrysMod::Lua::Type::Type_Count;
+	char m_strTypes[255 - GarrysMod::Lua::Type::Type_Count][32];
 
 public:
 	void RunThreadedCalls();

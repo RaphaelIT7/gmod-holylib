@@ -390,9 +390,9 @@ void CHolyLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 			Util::AddFunc(pLua, _MessageEnd, "MessageEnd");
 		Util::FinishTable(pLua, "HolyLib");
 	} else {
-		if (Lua::PushHook("HolyLib:Initialize"))
+		if (Lua::PushHook("HolyLib:Initialize", pLua))
 		{
-			g_Lua->CallFunctionProtected(1, 0, true);
+			pLua->CallFunctionProtected(1, 0, true);
 		} else {
 			DevMsg(1, PROJECT_NAME ": Failed to call HolyLib:Initialize!\n");
 		}

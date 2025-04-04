@@ -465,7 +465,7 @@ const char* CLuaInterface::GetTypeName(int iType)
 	if (iType < 0) {
 		return "none";
 	} else {
-		const char* pName = GarrysMod::Lua::Type::Name[iType];
+		const char* pName = GetActualTypeName(iType);
 		if (!pName) {
 			return "unknown";
 		} else {
@@ -477,6 +477,7 @@ const char* CLuaInterface::GetTypeName(int iType)
 void CLuaInterface::CreateMetaTableType(const char* strName, int iType)
 {
 	::DebugPrint(2, "CLuaInterface::CreateMetaTableType\n");
+	V_strncpy(m_strTypes[iType - GarrysMod::Lua::Type::Type_Count], strName, sizeof(m_strTypes[iType - GarrysMod::Lua::Type::Type_Count]));
 	luaL_newmetatable_type(state, strName, iType);
 
 	if (iType > 254) {
@@ -585,6 +586,7 @@ int CLuaInterface::CreateMetaTable(const char* strName) // Return value is proba
 		return metaID;
 	} else {
 		luaL_newmetatable_type(state, strName, ++m_iTypeNum); // Missing this logic in lua-shared, CreateMetaTable creates it if it's missing.
+		V_strncpy(m_strTypes[m_iTypeNum - GarrysMod::Lua::Type::Type_Count], strName, sizeof(m_strTypes[m_iTypeNum - GarrysMod::Lua::Type::Type_Count]));
 		return m_iTypeNum;
 	}
 }
@@ -651,6 +653,7 @@ bool CLuaInterface::Init( GarrysMod::Lua::ILuaGameCallback* callback, bool bIsSe
 	::DebugPrint(1, "CLuaInterface::Init Server: %s\n", bIsServer ? "Yes" : "No");
 	m_pGameCallback = callback;
 	memset(&m_sPathID, 0, sizeof(m_sPathID)); // NULL out pathID properly, gmod doesn't seem to do this.
+	memset(&m_strTypes, 0, sizeof(m_strTypes));
 
 	state = luaL_newstate();
 	luaL_openlibs(state);
@@ -1508,7 +1511,7 @@ const char* CLuaInterface::GetActualTypeName(int type)
 
 	//lua_typename(state, lua_type(state, type));
 
-	return GarrysMod::Lua::Type::Name[type];
+	return (type < GarrysMod::Lua::Type::Type_Count) ? GarrysMod::Lua::Type::Name[type] : m_strTypes[type - GarrysMod::Lua::Type::Type_Count];
 }
 
 void CLuaInterface::PreCreateTable(int arrelems, int nonarrelems)
