@@ -57,7 +57,8 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- Improved ConVar's find code improving performance (done in the `cvars` module)  
 
 ## Next Update
-None
+\- [#] Better support for multiple Lua states
+\- \- This required most of the lua setup to be changed >:(
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
