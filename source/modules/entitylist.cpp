@@ -58,7 +58,7 @@ EntityList::EntityList()
 EntityList::~EntityList()
 {
 	if (g_pEntListModule.InDebug())
-		Msg("Deleted EntityList %p\n", this);
+		Msg("Deleted-2 EntityList %p - %p\n", this, m_pLua);
 
 	Invalidate();
 	pEntityLists.erase(this);
@@ -66,6 +66,9 @@ EntityList::~EntityList()
 
 void EntityList::Clear()
 {
+	if (g_pEntListModule.InDebug())
+		Msg("Clearing EntityList %p - %p\n", this, m_pLua);
+
 	m_pEntities.clear();
 	for (auto& [_, iReference] : m_pEntReferences)
 	{
@@ -140,7 +143,7 @@ Default__gc(EntityList,
 	if (pList)
 	{
 		if (g_pEntListModule.InDebug())
-			Msg("Deleted EntityList %p\n", pList);
+			Msg("Deleted-1 EntityList %p\n", pList);
 
 		delete pList;
 	}
@@ -257,6 +260,7 @@ LUA_FUNCTION_STATIC(CreateEntityList)
 {
 	EntityList* pList = new EntityList();
 	pList->SetLua(LUA);
+
 	Push_EntityList(LUA, pList);
 	return 1;
 }

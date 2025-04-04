@@ -887,7 +887,7 @@ private:
 	// NOTE: The Entity will always be valid but the reference can be -1!
 	std::unordered_map<CBaseEntity*, int> m_pEntReferences;
 	std::vector<CBaseEntity*> m_pEntities;
-	GarrysMod::Lua::ILuaInterface* m_pLua;
+	GarrysMod::Lua::ILuaInterface* m_pLua = NULL;
 };
 
 extern EntityList& GetGlobalEntityList(GarrysMod::Lua::ILuaInterface* pLua);
