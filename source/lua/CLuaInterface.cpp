@@ -16,8 +16,6 @@
 #define POINT_UNREACHABLE   __assume(false)
 #endif
 
-int g_iTypeNum = 0;
-
 static ConVar lua_debugmode("lua_debugmode_interface", "1", 0);
 inline void DebugPrint(int level, const char* fmt, ...)
 {
@@ -561,7 +559,7 @@ void CLuaInterface::SetState(lua_State* L)
 	state = L;
 }
 
-int CLuaInterface::CreateMetaTable(const char* strName) // Return value is probably a bool?
+int CLuaInterface::CreateMetaTable(const char* strName) // Return value is probably a bool? Update: NO! It returns a int -> metaID
 {
 	::DebugPrint(2, "CLuaInterface::CreateMetaTable\n");
 	//luaL_newmetatable_type(state, strName, -1);
@@ -581,10 +579,14 @@ int CLuaInterface::CreateMetaTable(const char* strName) // Return value is proba
 	{
 		ReferencePush(ref);
 		ReferenceFree(ref);
-		return 1;
+		lua_getfield(state, -1, "MetaID");
+		int metaID = lua_tonumber(state, -1);
+		lua_pop(state, 1);
+		return metaID;
+	} else {
+		luaL_newmetatable_type(state, strName, ++m_iTypeNum); // Missing this logic in lua-shared, CreateMetaTable creates it if it's missing.
+		return m_iTypeNum;
 	}
-
-	return 0;
 }
 
 bool CLuaInterface::PushMetaTable(int iType)

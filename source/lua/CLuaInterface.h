@@ -22,7 +22,6 @@ struct lua_Debug;
 extern void GMOD_LoadBinaryModule(lua_State* L, const char*);
 extern void GMOD_UnloadBinaryModules(lua_State* L);
 
-extern int g_iTypeNum;
 class CLuaInterface : public GarrysMod::Lua::ILuaInterface
 {
 public:
@@ -188,6 +187,7 @@ private:
 	int m_iGlobalReference = -1;
 	int m_iStringPoolReference = -1;
 	std::list<char*> m_pPaths;
+	int m_iTypeNum = 8;
 
 public:
 	void RunThreadedCalls();
