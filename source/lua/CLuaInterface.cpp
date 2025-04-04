@@ -95,13 +95,13 @@ int AdvancedLuaErrorReporter(lua_State *L)
 	return 0;
 }
 
-GarrysMod::Lua::ILuaInterface* CreateLuaInterface(bool bIsServer)
+GarrysMod::Lua::ILuaInterface* Lua::CreateLuaInterface(bool bIsServer)
 {
 	::DebugPrint(1, "CreateLuaInterface\n");
 	return new CLuaInterface;
 }
 
-void CloseLuaInterface(GarrysMod::Lua::ILuaInterface* LuaInterface)
+void Lua::CloseLuaInterface(GarrysMod::Lua::ILuaInterface* LuaInterface)
 {
 	::DebugPrint(1, "CloseLuaInterface\n");
 	//LuaInterface->Shutdown(); // This was moved to lua.cpp in holylib

@@ -180,7 +180,7 @@ private:
 	int m_iPushedPaths = 0;
 	const char* m_sLastPath = NULL;
 	std::list<GarrysMod::Lua::ILuaThreadedCall*> m_pThreadedCalls;
-	unsigned char m_iRealm = -1; // CLIENT = 0, SERVER = 1, MENU = 2
+	unsigned char m_iRealm = (unsigned char)-1; // CLIENT = 0, SERVER = 1, MENU = 2
 	GarrysMod::Lua::ILuaGameCallback* m_pGameCallback = nullptr;
 	char m_sPathID[24] = "LuaMenu"; // lsv, lsc or LuaMenu. Normally 32 bytes in Gmod, but in HolyLib we utilize the last 4/8(64x) bytes to store the Lua::StateData pointer for fast access
 	char m_sStatePointer[8] = ""; // Used in HolyLib to store the pointer to the Lua::StateData
@@ -202,6 +202,10 @@ public:
 //extern GarrysMod::Lua::ILuaGameCallback::CLuaError* ReadStackIntoError(lua_State* L);
 //extern int AdvancedLuaErrorReporter(lua_State* L);
 
-extern GarrysMod::Lua::ILuaInterface* CreateLuaInterface(bool bIsServer);
-extern void CloseLuaInterface(GarrysMod::Lua::ILuaInterface*);
+namespace Lua
+{
+	extern GarrysMod::Lua::ILuaInterface* CreateLuaInterface(bool bIsServer);
+	extern void CloseLuaInterface(GarrysMod::Lua::ILuaInterface*);
+	extern GarrysMod::Lua::ILuaGameCallback* GetLuaGameCallback();
+}
 #endif

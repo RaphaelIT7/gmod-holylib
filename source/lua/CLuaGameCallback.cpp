@@ -1,4 +1,4 @@
-#include "LuaInterface.h"
+#include "CLuaInterface.h"
 #include <GarrysMod/Lua/LuaGameCallback.h>
 #include "color.h"
 #include <sstream>
@@ -19,7 +19,7 @@ public:
 
 static CLuaGameCallback g_pLuaGameCallback;
 
-GarrysMod::Lua::ILuaGameCallback* GetLuaGameCallback()
+GarrysMod::Lua::ILuaGameCallback* Lua::GetLuaGameCallback()
 {
 	return &g_pLuaGameCallback;
 }
