@@ -355,7 +355,7 @@ LUA_FUNCTION_STATIC(bass_PlayFile)
 			LUA->PushString(gGModAudio->GetErrorString(errorCode));
 		else
 			LUA->PushNil();
-	g_Lua->CallFunctionProtected(3, 0, true);
+	LUA->CallFunctionProtected(3, 0, true);
 
 	return 0;
 }
@@ -382,7 +382,7 @@ LUA_FUNCTION_STATIC(bass_PlayURL)
 			LUA->PushString(gGModAudio->GetErrorString(errorCode));
 		else
 			LUA->PushNil();
-	g_Lua->CallFunctionProtected(3, 0, true);
+	LUA->CallFunctionProtected(3, 0, true);
 
 	return 0;
 }

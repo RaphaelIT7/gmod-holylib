@@ -98,7 +98,7 @@ void CLuaJITModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 	if (bServerInit)
 		return;
 
-	lua_State* L = g_Lua->GetState();
+	lua_State* L = pLua->GetState();
 	lua_getfield(L, LUA_GLOBALSINDEX, "debug");
 	if (lua_istable(L, -1))
 	{

@@ -17,6 +17,13 @@ public:
 	virtual void InterfaceCreated(GarrysMod::Lua::ILuaInterface* iface);
 };
 
+static CLuaGameCallback g_pLuaGameCallback;
+
+GarrysMod::Lua::ILuaGameCallback* GetLuaGameCallback()
+{
+	return &g_pLuaGameCallback;
+}
+
 #ifdef CLIENT_DLL
 Color col_msg(255, 241, 122, 200);
 Color col_error(255, 221, 102, 255);

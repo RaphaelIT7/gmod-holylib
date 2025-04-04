@@ -374,8 +374,8 @@ void CSysTimerModule::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
 		{
 			timer->nextRunTime = time + timer->delay;
 
-			Util::ReferencePush(g_Lua, timer->function);
-			g_Lua->CallFunctionProtected(0, 0, true); // We should add a custom error handler to not have errors with no stack (Which somehow can happen but only observed in gmod clients)
+			Util::ReferencePush(pLua, timer->function);
+			pLua->CallFunctionProtected(0, 0, true); // We should add a custom error handler to not have errors with no stack (Which somehow can happen but only observed in gmod clients)
 
 			if (timer->repetitions == 1)
 				timer->markDelete = true;

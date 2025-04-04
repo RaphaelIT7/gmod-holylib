@@ -2110,7 +2110,7 @@ void CPhysEnvModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 		Util::AddFunc(pLua, CPhysCollide__newindex, "__newindex");
 		Util::AddFunc(pLua, CPhysCollide_IsValid, "IsValid");
 		Util::AddFunc(pLua, CPhysCollide_GetTable, "GetTable");
-	g_Lua->Pop(1);
+	pLua->Pop(1);
 
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::CPhysPolysoup, pLua->CreateMetaTable("CPhysPolysoup"));
 		Util::AddFunc(pLua, CPhysPolysoup__tostring, "__tostring");

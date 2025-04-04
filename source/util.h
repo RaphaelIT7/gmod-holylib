@@ -10,6 +10,7 @@
 
 #define DEDICATED
 #include "vstdlib/jobthread.h"
+#include "lua.hpp"
 
 #if GITHUB_RUN_DATA == 0
 #define HOLYLIB_BUILD_RELEASE 0
@@ -58,6 +59,12 @@ namespace Util
 	extern Symbols::lua_rawseti func_lua_rawseti;
 	inline void RawSetI(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, int iValue)
 	{
+		if (LUA != g_Lua)
+		{
+			lua_rawseti(LUA->GetState(), iStackPos, iValue);
+			return;
+		}
+
 		if (func_lua_rawseti)
 		{
 			func_lua_rawseti(LUA->GetState(), iStackPos, iValue);
@@ -72,6 +79,12 @@ namespace Util
 	extern Symbols::lua_rawgeti func_lua_rawgeti;
 	inline void RawGetI(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, int iValue)
 	{
+		if (LUA != g_Lua)
+		{
+			lua_rawgeti(LUA->GetState(), iStackPos, iValue);
+			return;
+		}
+
 		if (func_lua_rawgeti)
 		{
 			func_lua_rawgeti(LUA->GetState(), iStackPos, iValue);
@@ -89,6 +102,12 @@ namespace Util
 	 */
 	inline void ReferencePush(GarrysMod::Lua::ILuaInterface* LUA, int iReference)
 	{
+		if (LUA != g_Lua)
+		{
+			lua_rawgeti(LUA->GetState(), LUA_REGISTRYINDEX, iReference);
+			return;
+		}
+
 		if (func_lua_rawgeti)
 		{
 			func_lua_rawgeti(LUA->GetState(), LUA_REGISTRYINDEX, iReference);
@@ -137,6 +156,7 @@ namespace Util
 
 		g_pReference.erase(it);
 #endif
+
 		LUA->ReferenceFree(iReference);
 	}
 

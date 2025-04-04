@@ -891,7 +891,7 @@ void CVoiceChatModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServer
 		Util::AddFunc(pLua, VoiceData_GetProximity, "GetProximity");
 		Util::AddFunc(pLua, VoiceData_SetProximity, "SetProximity");
 		Util::AddFunc(pLua, VoiceData_CreateCopy, "CreateCopy");
-	g_Lua->Pop(1);
+	pLua->Pop(1);
 
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::VoiceStream, pLua->CreateMetaTable("VoiceStream"));
 		Util::AddFunc(pLua, VoiceStream__tostring, "__tostring");
@@ -905,7 +905,7 @@ void CVoiceChatModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServer
 		Util::AddFunc(pLua, VoiceStream_GetCount, "GetCount");
 		Util::AddFunc(pLua, VoiceStream_GetIndex, "GetIndex");
 		Util::AddFunc(pLua, VoiceStream_SetIndex, "SetIndex");
-	g_Lua->Pop(1);
+	pLua->Pop(1);
 
 	Util::StartTable(pLua);
 		Util::AddFunc(pLua, voicechat_SendEmptyData, "SendEmptyData");

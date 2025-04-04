@@ -126,7 +126,7 @@ public:
 			return;
 		}
 
-		if (!g_Lua)
+		if (!m_pLua)
 			return;
 
 		for (auto& ref : m_pHandlerReferences)

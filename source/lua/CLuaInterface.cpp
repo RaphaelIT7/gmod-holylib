@@ -56,39 +56,15 @@ GarrysMod::Lua::ILuaGameCallback::CLuaError* ReadStackIntoError(lua_State* L, bo
 		lua_getinfo(L, "nSl", &ar);
 
 		GarrysMod::Lua::ILuaGameCallback::CLuaError::StackEntry& entry = lua_error->stack.emplace_back();
-#ifdef WIN32
 		entry.source = ar.source ? ar.source : "unknown";
 		entry.function = ar.name ? ar.name : "unknown";
-#else
-		const char* source = ar.source ? ar.source : "unknown";
-		const char* function = ar.name ? ar.name : "unknown";
-
-		char* csource = new char[strlen(source) + 1];
-		char* cfunction = new char[strlen(function) + 1];
-		V_strncpy(csource, source, strlen(source) + 1);
-		V_strncpy(cfunction, function, strlen(function) + 1);
-		cfunction[strlen(function)] = '\0';
-		csource[strlen(source)] = '\0';
-
-		entry.source = csource;
-		entry.function = cfunction;
-#endif
 		entry.line = ar.currentline;
 
 		++level;
 	}
 
 	CLuaInterface* LUA = (CLuaInterface*)L->luabase;
-#ifdef WIN32
 	lua_error->side = LUA->IsClient() ? "client" : (LUA->IsMenu() ? "menu" : "server");
-#else
-	const char* side = LUA->IsClient() ? "client" : (LUA->IsMenu() ? "menu" : "server");
-	char* newside = new char[strlen(side) + 1];
-	V_strncpy(newside, side, strlen(side) + 1);
-	newside[strlen(side)] = '\0';
-
-	lua_error->side = newside;
-#endif
 
 	if ( bSimple )
 		return lua_error;
@@ -96,15 +72,7 @@ GarrysMod::Lua::ILuaGameCallback::CLuaError* ReadStackIntoError(lua_State* L, bo
 	const char* str = lua_tolstring(L, -1, NULL);
 	if (str != NULL) // Setting a std::string to NULL causes a crash
 	{
-#ifdef WIN32
 		lua_error->message = str;
-#else
-		char* newmessage = new char[strlen(str) + 1];
-		V_strncpy(newmessage, str, strlen(str) + 1);
-		newmessage[strlen(str)] = '\0';
-
-		lua_error->message = newmessage;
-#endif
 	}
 
 	return lua_error;
@@ -1140,16 +1108,15 @@ void CLuaInterface::ErrorNoHalt( const char* fmt, ... )
 	error->message = buffer;
 	va_end(args);
 
-#ifdef WIN32
+	if (m_pGameCallback)
+	{
 		m_pGameCallback->LuaError(error);
-#else
-		Msg("An error ocurred! %s\n", error->message);
-#endif
+	} else {
+		Msg("An error ocurred! %s\n", error->message.c_str());
+	}
 
-#ifdef WIN32
 	delete[] buffer;
-#endif
-	//delete error; // Deconstuctor will delete our buffer
+	delete error; // Deconstuctor will delete our buffer
 }
 
 void CLuaInterface::Msg( const char* fmt, ... )
@@ -1269,18 +1236,21 @@ bool CLuaInterface::RunStringEx(const char *filename, const char *path, const ch
 	int res = luaL_loadbuffer(state, code.c_str(), code.length(), filename);
 	if (res != 0)
 	{
-		GarrysMod::Lua::ILuaGameCallback::CLuaError* err = ReadStackIntoError(state, false);
+		GarrysMod::Lua::ILuaGameCallback::CLuaError* error = ReadStackIntoError(state, false);
 		if (dontPushErrors)
 			Pop(1);
 
 		if (printErrors)
-#ifdef WIN32
-			m_pGameCallback->LuaError(err);
-#else
-			Msg("An error ocurred! %s\n", err->message);
-#endif
+		{
+			if (m_pGameCallback)
+			{
+				m_pGameCallback->LuaError(error);
+			} else {
+				Msg("An error ocurred! %s\n", error->message.c_str());
+			}
+		}
 
-		//delete err;
+		delete error;
 
 		return false;
 	} else {
@@ -1351,14 +1321,16 @@ void CLuaInterface::ErrorFromLua(const char *fmt, ...)
 	}
 #endif*/
 
-//#ifdef WIN32
-			m_pGameCallback->LuaError(error);
-//#else
-//			Msg("An error ocurred! %s\n", error->message);
-//#endif
+	if (m_pGameCallback)
+	{
+		m_pGameCallback->LuaError(error);
+	}
+	else {
+		Msg("An error ocurred! %s\n", error->message.c_str());
+	}
 
 	delete[] buffer;
-	//delete error; // Deconstuctor will delete our buffer
+	delete error; // Deconstuctor will delete our buffer
 }
 
 const char* CLuaInterface::GetCurrentLocation()
@@ -1450,16 +1422,17 @@ bool CLuaInterface::CallFunctionProtected(int iArgs, int iRets, bool showError)
 	int ret = PCall(iArgs, iRets, 0);
 	if (ret != 0)
 	{
-		GarrysMod::Lua::ILuaGameCallback::CLuaError* err = ReadStackIntoError(state, false);
+		GarrysMod::Lua::ILuaGameCallback::CLuaError* error = ReadStackIntoError(state, false);
 		if (showError)
 		{
-#ifdef WIN32
-			m_pGameCallback->LuaError(err);
-#else
-			Msg("An error ocurred! %s\n", err->message);
-#endif
+			if (m_pGameCallback)
+			{
+				m_pGameCallback->LuaError(error);
+			} else {
+				Msg("An error ocurred! %s\n", error->message.c_str());
+			}
 		}
-		//delete err;
+		delete error;
 		Pop(1);
 	}
 

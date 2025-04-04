@@ -121,7 +121,7 @@ LUA_FUNCTION_STATIC(CHLTVClient_SetCameraMan)
 	if (LUA->IsType(2, GarrysMod::Lua::Type::Number))
 		iTarget = LUA->GetNumber(2);
 	else {
-		CBaseEntity* pEnt = Util::Get_Entity(g_Lua, 2, false);
+		CBaseEntity* pEnt = Util::Get_Entity(LUA, 2, false);
 		iTarget = pEnt ? pEnt->edict()->m_EdictIndex : 0; // If given NULL, set it to 0.
 	}
 	g_iTarget[pClient->GetUserID()] = iTarget;
@@ -594,7 +594,7 @@ void CSourceTVLibModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	Util::NukeTable(pLua, "sourcetv");
 
-	DeleteAll_CHLTVClient(g_Lua);
+	DeleteAll_CHLTVClient(pLua);
 }
 
 void CSourceTVLibModule::InitDetour(bool bPreServer)
