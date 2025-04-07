@@ -476,9 +476,10 @@ struct LuaUserData {
 		}
 	}
 
-	inline void Init(GarrysMod::Lua::ILuaInterface* LUA)
+	inline void Init(GarrysMod::Lua::ILuaInterface* LUA, int type)
 	{
 		pLua = LUA;
+		iType = (unsigned char)type;
 	}
 
 	inline void EnsureLuaTable()
@@ -545,6 +546,11 @@ struct LuaUserData {
 		return iReference;
 	}
 
+	inline int GetType()
+	{
+		return iType;
+	}
+
 	inline bool Push()
 	{
 		if (iReference == -1)
@@ -574,6 +580,7 @@ private:
 	int iTableReference = -1;
 	int pAdditionalData = NULL; // Used by HLTVClient.
 	GarrysMod::Lua::ILuaInterface* pLua = NULL;
+	unsigned char iType = GarrysMod::Lua::Type::None;
 };
 
 inline void BaseUserData::ForceGlobalRelease(void* pData)
@@ -716,8 +723,9 @@ LuaUserData* Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var
 \
 	LuaUserData* userData = new LuaUserData; \
 	userData->SetData(var); \
-	userData->Init(LUA); \
-	LUA->PushUserType(userData, Lua::GetLuaData(LUA)->GetMetaTable(TO_LUA_TYPE(className))); \
+	int iMeta = Lua::GetLuaData(LUA)->GetMetaTable(TO_LUA_TYPE(className)); \
+	userData->Init(LUA, iMeta); \
+	LUA->PushUserType(userData, iMeta); \
 	return userData; \
 }
 
@@ -743,8 +751,9 @@ void Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
 	} else { \
 		LuaUserData* userData = new LuaUserData; \
 		userData->SetData(var); \
-		LUA->PushUserType(userData, Lua::GetLuaData(LUA)->GetMetaTable(TO_LUA_TYPE(className))); \
-		userData->Init(LUA); \
+		int iMeta = Lua::GetLuaData(LUA)->GetMetaTable(TO_LUA_TYPE(className)); \
+		LUA->PushUserType(userData, iMeta); \
+		userData->Init(LUA, iMeta); \
 		userData->CreateReference(); \
 		pushedUserData[var] = userData; \
 	} \
@@ -763,10 +772,18 @@ static void Delete_##className(GarrysMod::Lua::ILuaInterface* LUA, className* va
 \
 static void DeleteAll_##className(GarrysMod::Lua::ILuaInterface* LUA) \
 { \
+	Lua::StateData* LUADATA = Lua::GetLuaData(LUA); \
+	int luaType = LUADATA->GetMetaTable(TO_LUA_TYPE(className)); \
 	auto pushedUserData = Lua::GetLuaData(LUA)->GetPushedUserData(); \
-	for (auto& [key, val] : pushedUserData) \
+	for (auto it = pushedUserData.begin(); it != pushedUserData.end(); ) \
 	{ \
-		val->Release(); \
+		if (it->second->GetType() == luaType) \
+		{ \
+			it->second->Release(); \
+			it = pushedUserData.erase(it); \
+		} else { \
+			it++; \
+		} \
 	} \
 	pushedUserData.clear(); \
 } \
