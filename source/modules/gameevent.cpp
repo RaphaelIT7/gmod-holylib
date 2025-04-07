@@ -593,6 +593,17 @@ void CGameeventLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bSer
 		Util::AddFunc(pLua, IGameEvent_SetString, "SetString");
 	pLua->Pop(1);
 
+	if (pLua != g_Lua)
+	{
+		if (Util::PushTable(pLua, "gameevent"))
+		{
+			pLua->Pop(1);
+		} else {
+			pLua->CreateTable();
+			Util::FinishTable(pLua, "gameevent");
+		}
+	}
+
 	if (Util::PushTable(pLua, "gameevent"))
 	{
 		Util::AddFunc(pLua, gameevent_GetListeners, "GetListeners");
