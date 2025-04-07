@@ -230,7 +230,6 @@ LUA_FUNCTION_STATIC(cvars_Find)
 	return 1;
 }
 
-// ToDo: Port over find optimization later
 void CCVarsModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)

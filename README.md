@@ -61,7 +61,8 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- \- This required most of the lua setup to be changed >:(
 
 > [!WARNING]
-> The current builds are unstable and need **A LOT** of testing.
+> The current builds are unstable and need **A LOT** of testing.  
+> Use the last `0.7` release instead of the last workflow run if you value your server's stability!  
 
 You can see all changes here:  
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
@@ -71,6 +72,7 @@ None
 
 ### QoL updates
 \- [#] Changed some console message to be more consistent.  
+\- [#] Solved a possible crash caused by a `CGameClient` disconnecting after `g_Lua` became `NULL`  
 
 ## ToDo
 
