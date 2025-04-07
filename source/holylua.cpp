@@ -1,7 +1,7 @@
 #include "holylua.h"
-#include "GarrysMod/Lua/LuaShared.h"
 #include "module.h"
 #include "tier0/icommandline.h"
+#include "iluashared.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -42,11 +42,34 @@ void HolyLua::Init()
 		return;
 
 	g_HolyLua = Lua::CreateInterface();
-	g_HolyLua->SetType(GarrysMod::Lua::State::MENU);
 
 	// Now add all supported HolyLib modules into the new interface.
 	g_pModuleManager.LuaInit(g_HolyLua, false);
 	g_pModuleManager.LuaInit(g_HolyLua, true);
+
+	// Finally, load any holylua scripts
+	std::vector<LuaFindResult> results;
+	Lua::GetShared()->FindScripts("lua/autorun/_holylua/*.lua", "GAME", results);
+	for (LuaFindResult& result : results)
+	{
+		std::string fileName = "lua/autorun/_holylua/";
+		fileName.append(result.GetFileName());
+		FileHandle_t fh = g_pFullFileSystem->Open(fileName.c_str(), "rb", "GAME");
+		if (fh)
+		{
+			int length = g_pFullFileSystem->Size(fh);
+
+			char* buffer = new char[length + 1];
+			g_pFullFileSystem->Read(buffer, length, fh);
+			buffer[length] = 0;
+
+			g_Lua->RunStringEx(fileName.c_str(), "", buffer, true, true, true, true);
+
+			delete[] buffer;
+
+			g_pFullFileSystem->Close(fh);
+		}
+	}
 }
 
 void HolyLua::Think()
