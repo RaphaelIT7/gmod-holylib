@@ -57,6 +57,8 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- Improved ConVar's find code improving performance (done in the `cvars` module)  
 
 ## Next Update
+\- [+] Any files in `lua/autorun/_holylua/` are loaded by HolyLib on startup.  
+\- [+] Added a new module `luathreads`  
 \- [#] Better support for multiple Lua states  
 \- \- This required most of the lua setup to be changed >:(  
 \- [#] Solved a few possible stack issues  
