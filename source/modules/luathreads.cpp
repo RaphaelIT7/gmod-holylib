@@ -66,6 +66,7 @@ struct LuaInterface
 class InterfaceTask
 {
 public:
+	virtual ~InterfaceTask() = default;
 	virtual void DoTask(LuaInterface* pData) = 0;
 };
 
@@ -79,7 +80,7 @@ public:
 
 public:
 	std::string strCode;
-}
+};
 
 PushReferenced_LuaClass(LuaInterface)
 Get_LuaClass(LuaInterface, "LuaInterface")
