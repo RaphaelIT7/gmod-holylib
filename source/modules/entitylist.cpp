@@ -75,7 +75,7 @@ void EntityList::Clear()
 	{
 		if (IsValidReference(iReference))
 		{
-			Util::ReferenceFree(m_pLua, iReference, "EntityList::Clear");
+		//	Util::ReferenceFree(m_pLua, iReference, "EntityList::Clear");
 		}
 	}
 	
