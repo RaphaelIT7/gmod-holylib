@@ -17,6 +17,7 @@
 #define POINT_UNREACHABLE   __assume(false)
 #endif
 
+// BUG: On 64x this instantly crashes the server when called, why? unknown but it has to do with the fmt & varargs
 static ConVar lua_debugmode("lua_debugmode_interface", "1", 0);
 inline void CLuaInterface_DebugPrint(int level, const char* fmt, ...)
 {
@@ -24,24 +25,28 @@ inline void CLuaInterface_DebugPrint(int level, const char* fmt, ...)
 		return;
 
 	va_list args;
+	va_list argsCopy;
 	va_start(args, fmt);
+	va_copy(argsCopy, args);
 
 	int size = vsnprintf(NULL, 0, fmt, args);
 	if (size < 0) {
 		va_end(args);
+		va_end(argsCopy);
 		return;
 	}
 
 	char* buffer = new char[size + 1];
-	vsnprintf(buffer, size + 1, fmt, args);
+	vsnprintf(buffer, size + 1, fmt, argsCopy);
 
 	Msg("%s", buffer);
 
 	delete[] buffer;
 	va_end(args);
+	va_end(argsCopy);
 }
 
-#if !HOLYLIB_BUILD_RELEASE && ARCHITECTURE_IS_X86
+#if !HOLYLIB_BUILD_RELEASE
 #define LuaDebugPrint CLuaInterface_DebugPrint
 #else
 #define LuaDebugPrint(...)
