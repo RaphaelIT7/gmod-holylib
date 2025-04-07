@@ -779,7 +779,7 @@ Default__index(VProfCounter);
 Default__newindex(VProfCounter);
 Default__GetTable(VProfCounter);
 Default__gc(VProfCounter,
-	VProfCounter* pCounter = (VProfCounter*)pData->GetData();
+	VProfCounter* pCounter = (VProfCounter*)pStoredData;
 	if (pCounter)
 		delete pCounter;
 )
@@ -850,7 +850,7 @@ Default__index(CVProfNode);
 Default__newindex(CVProfNode);
 Default__GetTable(CVProfNode);
 Default__gc(CVProfNode,
-	CVProfNode* pNode = (CVProfNode*)pData->GetData();
+	CVProfNode* pNode = (CVProfNode*)pStoredData;
 	if (pNode)
 		delete pNode;
 )

@@ -44,7 +44,7 @@ Default__index(bf_read);
 Default__newindex(bf_read);
 Default__GetTable(bf_read);
 Default__gc(bf_read, 
-	bf_read* bf = (bf_read*)pData->GetData();
+	bf_read* bf = (bf_read*)pStoredData;
 	if (bf)
 	{
 		delete[] bf->GetBasePointer();
@@ -498,7 +498,7 @@ Default__index(bf_write);
 Default__newindex(bf_write);
 Default__GetTable(bf_write);
 Default__gc(bf_write, 
-	bf_write* bf = (bf_write*)pData->GetData();
+	bf_write* bf = (bf_write*)pStoredData;
 	if (bf)
 	{
 		delete[] bf->GetBasePointer();

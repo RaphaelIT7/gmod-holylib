@@ -340,7 +340,7 @@ Default__index(IGameEvent);
 Default__newindex(IGameEvent);
 Default__GetTable(IGameEvent);
 Default__gc(IGameEvent, 
-	pManager->FreeEvent((IGameEvent*)pData->GetData());
+	pManager->FreeEvent((IGameEvent*)pStoredData);
 )
 
 LUA_FUNCTION_STATIC(IGameEvent_IsValid)

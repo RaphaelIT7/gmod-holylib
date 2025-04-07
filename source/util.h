@@ -285,6 +285,7 @@ namespace Util
 #else
 #define HOLYLIB_UTIL_DEBUG_LUAUSERDATA 1
 #endif
+#define HOLYLIB_UTIL_DEBUG_BASEUSERDATA 0
 
 /*
  * Base UserData struct that is used by LuaUserData.
@@ -349,18 +350,27 @@ struct BaseUserData {
 
 	inline bool Release(LuaUserData* pLuaUserData)
 	{
+		m_pMutex.Lock();
 		if (m_iReferenceCount == 0) // Don't accidentally delete it again...
+		{
+			m_pMutex.Unlock();
 			return false;
+		}
 
 		--m_iReferenceCount;
+#if HOLYLIB_UTIL_DEBUG_BASEUSERDATA
+		Msg("holylib - util: Userdata %p(%p) got released %i\n", this, m_pData, m_iReferenceCount);
+#endif
 		m_pOwningData.erase(pLuaUserData);
 
 		if (m_iReferenceCount == 0)
 		{
+			m_pMutex.Unlock();
 			delete this;
 			return true;
 		}
 
+		m_pMutex.Unlock();
 		return false;
 	}
 
@@ -387,7 +397,12 @@ struct BaseUserData {
 private:
 	inline void Aquire()
 	{
+		m_pMutex.Lock();
 		++m_iReferenceCount;
+		m_pMutex.Unlock();
+#if HOLYLIB_UTIL_DEBUG_BASEUSERDATA
+		Msg("holylib - util: Userdata %p(%p) got aquired %i\n", this, m_pData, m_iReferenceCount);
+#endif
 	}
 
 	void* m_pData = NULL;
@@ -396,6 +411,7 @@ private:
 
 	unsigned int m_iReferenceCount = 0;
 	std::unordered_set<LuaUserData*> m_pOwningData;
+	CThreadFastMutex m_pMutex;
 };
 
 #if HOLYLIB_UTIL_DEBUG_LUAUSERDATA
@@ -485,7 +501,7 @@ struct LuaUserData {
 
 	inline void* GetData()
 	{
-		return pBaseData->GetData(pLua);
+		return pBaseData ? pBaseData->GetData(pLua) : NULL;
 	}
 
 	inline void SetData(void* data)
@@ -801,21 +817,23 @@ LUA_FUNCTION_STATIC(className ## __newindex) \
 }
 
 // A default gc function for userData,
-// handles garbage collection, inside the func argument you can use pData as a variable
+// handles garbage collection, inside the func argument you can use pStoredData
 // Use the pStoredData variable as pData->GetData() will return NULL. Just see how it's done inside the bf_read gc definition.
 // NOTE: You need to manually delete the data inside the callback function -> delete pStoredData
+// WARNING: DO NOT USE pData as it will be invalid because of the Release call!
 #define Default__gc(className, func) \
 LUA_FUNCTION_STATIC(className ## __gc) \
 { \
 	LuaUserData* pData = Get_##className##_Data(LUA, 1, false); \
 	if (pData) \
 	{ \
+		LUA->SetUserType(1, NULL); \
 		void* pStoredData = pData->GetData(); \
 		if (pData->Release()) \
 		{ \
+			pData = NULL; /*Don't let any idiot(that's me) use it*/ \
 			func \
 		} \
-		LUA->SetUserType(1, NULL); \
 	} \
  \
 	return 0; \

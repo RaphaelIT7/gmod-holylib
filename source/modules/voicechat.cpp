@@ -100,7 +100,7 @@ Default__index(VoiceData);
 Default__newindex(VoiceData);
 Default__GetTable(VoiceData);
 Default__gc(VoiceData,
-	VoiceData* pVoiceData = (VoiceData*)pData->GetData();
+	VoiceData* pVoiceData = (VoiceData*)pStoredData;
 	if (pVoiceData)
 		delete pVoiceData;
 )
@@ -365,7 +365,7 @@ Default__index(VoiceStream);
 Default__newindex(VoiceStream);
 Default__GetTable(VoiceStream);
 Default__gc(VoiceStream,
-	VoiceStream* pVoiceData = (VoiceStream*)pData->GetData();
+	VoiceStream* pVoiceData = (VoiceStream*)pStoredData;
 	if (pVoiceData)
 		delete pVoiceData;
 )
