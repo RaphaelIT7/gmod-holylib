@@ -41,7 +41,7 @@ inline void CLuaInterface_DebugPrint(int level, const char* fmt, ...)
 	va_end(args);
 }
 
-#if !HOLYLIB_BUILD_RELEASE
+#if !HOLYLIB_BUILD_RELEASE && ARCHITECTURE_IS_X86
 #define LuaDebugPrint CLuaInterface_DebugPrint
 #else
 #define LuaDebugPrint(...)
