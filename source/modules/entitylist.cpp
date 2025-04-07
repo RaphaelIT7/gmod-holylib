@@ -75,7 +75,7 @@ void EntityList::Clear()
 	{
 		if (IsValidReference(iReference))
 		{
-		//	Util::ReferenceFree(m_pLua, iReference, "EntityList::Clear");
+			Util::ReferenceFree(m_pLua, iReference, "EntityList::Clear");
 		}
 	}
 	
@@ -140,7 +140,7 @@ Default__index(EntityList);
 Default__newindex(EntityList);
 Default__GetTable(EntityList);
 Default__gc(EntityList,
-	EntityList* pList = (EntityList*)pData->GetData();
+	EntityList* pList = (EntityList*)pStoredData;
 	if (pList)
 	{
 		if (g_pEntListModule.InDebug())

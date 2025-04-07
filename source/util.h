@@ -290,6 +290,10 @@ namespace Util
  * Base UserData struct that is used by LuaUserData.
  * Main purpose is for it to handle the stored pData & implement a reference counter.
  * It also maskes sharing data between threads easier.
+ *
+ * NOTE:
+ * Memory usage is utter garbage.
+ * For UserData which stores a few bytes (often 4) we setup UserData that has a average size of 60 bytes...
  */
 
 struct LuaUserData;
@@ -701,7 +705,11 @@ LuaUserData* Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var
 	return userData; \
 }
 
-// This one is special, the GC WONT free the LuaClass meaning this "could" (and did in the past) cause a memory/reference leak
+/*
+ * This one is special
+ * the GC WONT free the LuaClass meaning this "could" (and did in the past) cause a memory/reference leak
+ * The data thats passed won't be freed by lua.
+ */
 #define PushReferenced_LuaClass( className ) \
 void Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
 { \
@@ -794,14 +802,15 @@ LUA_FUNCTION_STATIC(className ## __newindex) \
 
 // A default gc function for userData,
 // handles garbage collection, inside the func argument you can use pData as a variable
-// like pData->GetData() to get your class. Just see how it's done inside the bf_read gc definition.
-// NOTE: You need to manually delete the data inside the callback function -> delete pData->GetData()
+// Use the pStoredData variable as pData->GetData() will return NULL. Just see how it's done inside the bf_read gc definition.
+// NOTE: You need to manually delete the data inside the callback function -> delete pStoredData
 #define Default__gc(className, func) \
 LUA_FUNCTION_STATIC(className ## __gc) \
 { \
 	LuaUserData* pData = Get_##className##_Data(LUA, 1, false); \
 	if (pData) \
 	{ \
+		void* pStoredData = pData->GetData(); \
 		if (pData->Release()) \
 		{ \
 			func \
