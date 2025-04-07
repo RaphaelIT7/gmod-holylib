@@ -68,6 +68,7 @@ namespace Lua
 		INetworkStringTable,
 		CVProfNode,
 		VProfCounter,
+		LuaInterface,
 
 		TOTAL_TYPES,
 	};

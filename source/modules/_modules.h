@@ -28,5 +28,6 @@ extern IModule* pHttpServerModule;
 extern IModule* pLuaJITModule;
 extern IModule* pGameServerModule;
 extern IModule* pSoundscapeModule;
+extern IModule* pLuaThreadsModule;
 
 #define HOLYLIB_MODULE_COUNT 28 // I hate this.... Anyways
