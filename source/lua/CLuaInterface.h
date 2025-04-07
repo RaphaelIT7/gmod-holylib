@@ -194,7 +194,11 @@ private:
 public:
 	void RunThreadedCalls();
 	inline void DoStackCheck() {
-		DebugPrint(2, "Top: %i\n", Top());
+		//DebugPrint(2, "Top: %i\n", Top());
+		if (Top() != 0)
+		{
+			::Error("holylib - lua: Stack leak! %i (%p)\n", Top(), this);
+		}
 	}
 };
 
