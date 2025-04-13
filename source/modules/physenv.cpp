@@ -2110,6 +2110,8 @@ void CPhysEnvModule::LuaInit(bool bServerInit)
 	if (bServerInit)
 		return;
 
+	Msg("Called LuaInit\n");
+
 	CPhysicsInterface* pPhys = (CPhysicsInterface*)physics;
 	FOR_EACH_VEC(pPhys->m_envList, i)
 	{
@@ -2202,7 +2204,9 @@ void CPhysEnvModule::LuaInit(bool bServerInit)
 		Util::AddFunc(IPhysicsEnvironment_CreateWorldPhysics, "CreateWorldPhysics");
 	g_Lua->Pop(1);
 
-	if (Util::PushTable("physenv"))
+	bool bPushed = Util::PushTable("physenv");
+	Msg("Got to physenv (%s)\n", bPushed ? "true" : "false");
+	if (bPushed)
 	{
 		Util::AddFunc(physenv_CreateEnvironment, "CreateEnvironment");
 		Util::AddFunc(physenv_GetActiveEnvironmentByIndex, "GetActiveEnvironmentByIndex");
@@ -2252,6 +2256,8 @@ void CPhysEnvModule::LuaInit(bool bServerInit)
 		Util::AddFunc(physcollide_DestroyQueryModel, "DestroyQueryModel");
 		Util::AddFunc(physcollide_DestroyCollide, "DestroyCollide");
 	Util::FinishTable("physcollide");
+
+	Msg("Finished LuaInit\n");
 }
 
 void CPhysEnvModule::LuaShutdown()
