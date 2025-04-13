@@ -168,7 +168,7 @@ void CLuaThreadsModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 	if (bServerInit)
 		return;
 
-	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::EntityList, pLua->CreateMetaTable("LuaInterface"));
+	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::LuaInterface, pLua->CreateMetaTable("LuaInterface"));
 		Util::AddFunc(pLua, LuaInterface__tostring, "__tostring");
 		Util::AddFunc(pLua, LuaInterface__index, "__index");
 		Util::AddFunc(pLua, LuaInterface__newindex, "__newindex");
