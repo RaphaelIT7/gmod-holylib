@@ -186,22 +186,17 @@ jobs:
           compression-level: 9
           retention-days: 1
 
-  test_32bit_live:
-    name: "Test live branch"
+  test_32bit:
+    name: "Test 32x branches"
     needs: setup_32x_artifacts
-    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests_runnerimprovements.yml@holylib
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests_runnerimprovements.yml@holylib # ToDo: Change this later
+    strategy:
+      matrix:
+        branch:
+          - live
+          - dev
+          - prerelease
     with:
-      branch: live
-      gluatest-ref: "holylib"
-      extra-startup-args: "-usegh"
-      download-artifact: "gluatest_32x"
-
-  test_32bit_dev:
-    name: "Test dev branch"
-    needs: setup_32x_artifacts
-    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests_runnerimprovements.yml@holylib
-    with:
-      branch: dev
       gluatest-ref: "holylib"
       extra-startup-args: "-usegh"
       download-artifact: "gluatest_32x"
@@ -216,22 +211,17 @@ jobs:
       extra-startup-args: "-usegh"
       download-artifact: "gluatest_64x"
 
-  test_32bit_live_holylua:
-    name: "Test live branch (HolyLua)"
+  test_32x_holylua:
+    name: "Test 32x branches"
     needs: setup_32x_artifacts
-    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests_runnerimprovements.yml@holylib
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests_runnerimprovements.yml@holylib # ToDo: Change this later
+    strategy:
+      matrix:
+        branch:
+          - live
+          - dev
+          - prerelease
     with:
-      branch: live
-      gluatest-ref: "holylib"
-      extra-startup-args: "-usegh -holylib_lua +holylib_module_debug 0"
-      download-artifact: "gluatest_32x"
-
-  test_32bit_dev_holylua:
-    name: "Test dev branch (HolyLua)"
-    needs: setup_32x_artifacts
-    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests_runnerimprovements.yml@holylib
-    with:
-      branch: dev
       gluatest-ref: "holylib"
       extra-startup-args: "-usegh -holylib_lua +holylib_module_debug 0"
       download-artifact: "gluatest_32x"
