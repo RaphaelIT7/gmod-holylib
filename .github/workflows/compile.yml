@@ -189,7 +189,7 @@ jobs:
   test_32bit:
     name: "Test 32x branches"
     needs: setup_32x_artifacts
-    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests_runnerimprovements.yml@holylib # ToDo: Change this later
+    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main # ToDo: Change this later
     strategy:
       matrix:
         branch:
@@ -197,24 +197,22 @@ jobs:
           - dev
           - prerelease
     with:
-      gluatest-ref: "holylib"
       extra-startup-args: "-usegh"
       download-artifact: "gluatest_32x"
 
   test_64bit:
     name: "Test x86-64 branch"
     needs: setup_64x_artifacts
-    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests_runnerimprovements.yml@holylib
+    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
     with:
       branch: x86-64
-      gluatest-ref: "holylib"
       extra-startup-args: "-usegh"
       download-artifact: "gluatest_64x"
 
   test_32x_holylua:
     name: "Test 32x branches"
     needs: setup_32x_artifacts
-    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests_runnerimprovements.yml@holylib # ToDo: Change this later
+    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main # ToDo: Change this later
     strategy:
       matrix:
         branch:
@@ -222,17 +220,15 @@ jobs:
           - dev
           - prerelease
     with:
-      gluatest-ref: "holylib"
       extra-startup-args: "-usegh -holylib_lua +holylib_module_debug 0"
       download-artifact: "gluatest_32x"
 
   test_64bit_holylua:
     name: "Test x86-64 branch (HolyLua)"
     needs: setup_64x_artifacts
-    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests_runnerimprovements.yml@holylib
+    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
     with:
       branch: x86-64
-      gluatest-ref: "holylib"
       extra-startup-args: "-usegh -holylib_lua +holylib_module_debug 0"
       download-artifact: "gluatest_64x"
 
@@ -240,7 +236,7 @@ jobs:
     if: false # Enable it if a unknown crash is happening. We'll test every single module.
     name: "Find the crash cause"
     needs: setup_32x_artifacts
-    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests_runnerimprovements.yml@holylib
+    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
     strategy:
       matrix:
         module: 
@@ -274,6 +270,5 @@ jobs:
           - soundscape
     with:
       branch: dev
-      gluatest-ref: "holylib"
       extra-startup-args: "-usegh -holylib_startdisabled -holylib_enable_${{ matrix.module }} 1"
       download-artifact: "gluatest_32x"
