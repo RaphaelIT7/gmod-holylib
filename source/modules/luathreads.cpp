@@ -60,7 +60,7 @@ struct LuaInterface
 	InterfaceStatus iStatus = InterfaceStatus::INTERFACE_STOPPED;
 	unsigned int iSleepTime = 1; // Time in ms to sleep
 	std::vector<InterfaceTask*> pTasks;
-	CThreadMutex pMutex;
+	CThreadFastMutex pMutex;
 };
 
 class InterfaceTask
