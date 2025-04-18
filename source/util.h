@@ -227,9 +227,17 @@ namespace Util
 	extern CBaseClient* GetClientByIndex(int index);
 	extern std::vector<CBaseClient*> GetClients();
 	extern CBasePlayer* GetPlayerByClient(CBaseClient* client);
-	extern void CM_Vis(const Vector& orig, int type);
+	
+	#define MAX_MAP_LEAFS 65536
+	struct VisData {
+		byte cluster[MAX_MAP_LEAFS / 8];
+	};
+
+	// Returns new VisData, delete it after use
+	extern VisData* CM_Vis(const Vector& orig, int type);
 	extern bool CM_Vis(byte* cluster, int clusterSize, int cluserID, int type);
-	extern void ResetClusers();
+	extern void ResetClusers(VisData* data);
+
 	extern bool ShouldLoad();
 	extern void CheckVersion();
 
@@ -263,8 +271,6 @@ namespace Util
 	extern IModuleWrapper* pEntityList; // Other rely on this module.
 	extern IGameEventManager2* gameeventmanager;
 	extern IGet* get;
-	#define MAX_MAP_LEAFS 65536
-	extern byte g_pCurrentCluster[MAX_MAP_LEAFS / 8];
 }
 
 /*

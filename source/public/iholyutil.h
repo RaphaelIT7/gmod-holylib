@@ -26,10 +26,6 @@ public: // First all variables
 	virtual CUserMessages* GetUserMessages() = 0;
 	virtual IGameEventManager2* GetGameEventManager() = 0;
 
-	// This is the current PVS/PAS used by HolyLib.
-	// Modifying it will change the behavior of the functions using it.
-	virtual byte* GetCurrentCluster() = 0;
-
 public: // Then all functions
 	// Bind to Gmod's Get_Player function
 	// Will return the given CBasePlayer that is at the given Stack.

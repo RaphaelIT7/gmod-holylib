@@ -45,11 +45,6 @@ public:
 		return Util::gameeventmanager;
 	}
 
-	virtual byte* GetCurrentCluster()
-	{
-		return Util::g_pCurrentCluster;
-	}
-
 public:
 	virtual CBasePlayer* Get_Player(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError)
 	{
