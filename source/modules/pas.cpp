@@ -114,8 +114,7 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 		return 1;
 	}
 
-#if ARCHITECTURE_IS_X86
-	CBaseEntity* pEnt = Util::entitylist->FirstEnt();
+	CBaseEntity* pEnt = Util::FirstEnt();
 	while (pEnt != NULL)
 	{
 		if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), Util::g_pCurrentCluster, sizeof(Util::g_pCurrentCluster)))
@@ -124,24 +123,8 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 			Util::RawSetI(LUA, -2, ++idx);
 		}
 
-		pEnt = Util::entitylist->NextEnt(pEnt);
+		pEnt = Util::NextEnt(pEnt);
 	}
-#else
-	edict_t* pWorldEdict = Util::engineserver->PEntityOfEntIndex(0);
-	for(int i=0; i<MAX_EDICTS; ++i)
-	{
-		edict_t* pEdict = &pWorldEdict[i]; // Let's hope this works.... It's used in CServerGameEnts::CheckTransmit as an optimization.
-		CBaseEntity* pEnt = Util::GetCBaseEntityFromEdict(pEdict);
-		if (!pEnt)
-			continue;
-
-		if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), Util::g_pCurrentCluster, sizeof(Util::g_pCurrentCluster)))
-		{
-			Util::Push_Entity(LUA, pEnt);
-			Util::RawSetI(LUA, -2, ++idx);
-		}
-	}
-#endif
 
 	return 1;
 }

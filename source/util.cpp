@@ -29,6 +29,18 @@ ConVar Util::holylib_debug_mainutil("holylib_debug_mainutil", "1");
 
 CBasePlayer* Util::Get_Player(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError) // bError = error if not a valid player
 {
+	if (!entitylist) // In case we don't have a entitylist, fallback to continue working.
+	{
+		GarrysMod::Lua::ILuaObject* pObj = LUA->NewTemporaryObject(); // NOTE: This doesn't actually allocate a new object, it reuses one of 32 objects that were created for this.
+		pObj->SetFromStack(iStackPos);
+		CBaseEntity* pEntity = pObj->GetEntity();
+
+		if (!pEntity && bError)
+			LUA->ThrowError("Tried to use a NULL Entity!");
+
+		return (CBasePlayer*)pEntity;
+	}
+
 	EHANDLE* pEntHandle = LUA->GetUserType<EHANDLE>(iStackPos, GarrysMod::Lua::Type::Entity);
 	if (!pEntHandle)
 	{
@@ -77,6 +89,18 @@ void Util::Push_Entity(GarrysMod::Lua::ILuaInterface* LUA, CBaseEntity* pEnt)
 
 CBaseEntity* Util::Get_Entity(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError)
 {
+	if (!entitylist) // In case we don't have a entitylist, fallback to continue working.
+	{
+		GarrysMod::Lua::ILuaObject* pObj = LUA->NewTemporaryObject(); // NOTE: This doesn't actually allocate a new object, it reuses one of 32 objects that were created for this.
+		pObj->SetFromStack(iStackPos);
+		CBaseEntity* pEntity = pObj->GetEntity();
+
+		if (!pEntity && bError)
+			LUA->ThrowError("Tried to use a NULL Entity!");
+
+		return pEntity;
+	}
+
 	EHANDLE* pEntHandle = LUA->GetUserType<EHANDLE>(iStackPos, GarrysMod::Lua::Type::Entity);
 	if (!pEntHandle && bError)
 		LUA->ThrowError("Tried to use a NULL Entity!");
@@ -175,7 +199,43 @@ void CCollisionProperty::MarkSurroundingBoundsDirty()
 
 CBaseEntity* Util::GetCBaseEntityFromEdict(edict_t* edict)
 {
+	if (!edict)
+		return NULL;
+
 	return Util::servergameents->EdictToBaseEntity(edict);
+}
+
+CBaseEntity* Util::FirstEnt()
+{
+	if (Util::entitylist)
+		return Util::entitylist->FirstEnt();
+
+	if (!Util::engineserver)
+		return NULL; // We can't continue like this...
+
+	return Util::GetCBaseEntityFromEdict(Util::engineserver->PEntityOfEntIndex(0)); // Return the world as the start
+}
+
+CBaseEntity* Util::NextEnt(CBaseEntity* pEnt)
+{
+	if (Util::entitylist)
+		return Util::entitylist->NextEnt(pEnt);
+
+	if (!Util::engineserver)
+		return NULL; // We can't continue like this...
+
+	int nextIndex = pEnt->edict()->m_EdictIndex + 1;
+	int totalCount = Util::engineserver->GetEntityCount();
+	if (totalCount <= nextIndex) // ToDo: Verify that we don't skip the last entitiy.
+		return NULL;
+
+	CBaseEntity* pEntity = Util::GetCBaseEntityFromEdict(Util::engineserver->PEntityOfEntIndex(nextIndex));
+	while (!pEntity && totalCount > nextIndex) // Search for the next entity, we stop if the next index reaches the total count of edicts.
+	{
+		pEntity = Util::GetCBaseEntityFromEdict(Util::engineserver->PEntityOfEntIndex(++nextIndex));
+	}
+
+	return pEntity;
 }
 
 class HolyEntityListener : public IEntityListener
