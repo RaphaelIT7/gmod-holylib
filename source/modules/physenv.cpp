@@ -23,8 +23,8 @@ class CPhysEnvModule : public IModule
 {
 public:
 	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
-	virtual void LuaInit(bool bServerInit);
-	virtual void LuaShutdown();
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit);
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua);
 	virtual void InitDetour(bool bPreServer);
 	virtual void Shutdown();
 	virtual const char* Name() { return "physenv"; };
@@ -2105,7 +2105,7 @@ LUA_FUNCTION_STATIC(physenv_EnablePhysHook)
 	return 0;
 }
 
-void CPhysEnvModule::LuaInit(bool bServerInit)
+void CPhysEnvModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
@@ -2254,7 +2254,7 @@ void CPhysEnvModule::LuaInit(bool bServerInit)
 	Util::FinishTable("physcollide");
 }
 
-void CPhysEnvModule::LuaShutdown()
+void CPhysEnvModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	if (Util::PushTable("physenv"))
 	{
