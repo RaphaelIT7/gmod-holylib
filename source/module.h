@@ -8,16 +8,18 @@ class CModule : public IModuleWrapper
 public:
 	virtual ~CModule();
 	virtual void SetModule(IModule* module);
+	virtual IModule* GetModule() { return m_pModule; };
 	virtual void SetEnabled(bool bEnabled, bool bForced = false);
 	virtual void Shutdown();
 	virtual bool IsEnabled();
+	virtual bool IsCompatible() { return m_bCompatible; };
 
 public:
-	inline IModule* GetModule() { return m_pModule; };
+	inline IModule* FastGetModule() { return m_pModule; };
 	inline bool FastIsEnabled() { return m_bEnabled; };
 	inline ConVar* GetConVar() { return m_pCVar; };
 	inline ConVar* GetDebugConVar() { return m_pDebugCVar; };
-	inline bool IsCompatible() { return m_bCompatible; };
+	inline bool FastIsCompatible() { return m_bCompatible; };
 
 protected:
 	friend class CModuleManager;

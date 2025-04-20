@@ -98,6 +98,9 @@ public:
 	// Binds the IModuleWrapper to the IModule and Initializes itself.
 	virtual void SetModule(IModule* module) = 0;
 
+	// Returns the module that this wrapper is linked to.
+	virtual IModule* GetModule() = 0;
+
 	// Enables/Disables the module.
 	// It will call all the Modules functions in proper order to enable / disable.
 	// Order: InitDetour(true) -> Init() -> InitDetour(false) -> LuaInit(false) -> LuaInit(true) -> ServerActivate()
@@ -109,6 +112,9 @@ public:
 
 	// Returns true if the module is enabled. We should add this to the IModule.
 	virtual bool IsEnabled() = 0;
+
+	// Returns true if the module is compatible with the current build. (Used to check for Linux32, Linux64 support and such)
+	virtual bool IsCompatible() = 0;
 };
 
 #define LoadStatus_PreDetourInit (1<<0)

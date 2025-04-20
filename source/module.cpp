@@ -67,7 +67,7 @@ void OnModuleDebugConVarChange(IConVar* convar, const char* pOldValue, float flO
 		return;
 	}
 
-	module->GetModule()->SetDebug(((ConVar*)convar)->GetInt());
+	module->FastGetModule()->SetDebug(((ConVar*)convar)->GetInt());
 }
 
 bool CModule::IsEnabled()
@@ -255,11 +255,11 @@ IModuleWrapper* CModuleManager::RegisterModule(IModule* pModule)
 	module->SetID(g_pIDs);
 	Msg(PROJECT_NAME ": Registered module %-*s (%-*i Enabled: %s Compatible: %s)\n", 
 		15,
-		module->GetModule()->Name(), 
+		module->FastGetModule()->Name(), 
 		2,
 		g_pIDs,
 		module->IsEnabled() ? "true, " : "false,", 
-		module->IsCompatible() ? "true " : "false"
+		module->FastIsCompatible() ? "true " : "false"
 	);
 
 	return module;
@@ -282,7 +282,7 @@ IModuleWrapper* CModuleManager::FindModuleByConVar(ConVar* convar)
 IModuleWrapper* CModuleManager::FindModuleByName(const char* name)
 {
 	for (CModule* module : m_pModules)
-		if (V_stricmp(module->GetModule()->Name(), name) == 0)
+		if (V_stricmp(module->FastGetModule()->Name(), name) == 0)
 			return module;
 
 	return NULL;
@@ -297,17 +297,17 @@ void CModuleManager::Setup(CreateInterfaceFn appfn, CreateInterfaceFn gamefn)
 #define VCALL_ENABLED_MODULES(call) \
 	for (CModule* pModule : m_pModules) { \
 		if ( !pModule->FastIsEnabled() ) { continue; } \
-		if ( module_debug.GetBool() ) { Msg(PROJECT_NAME ": Calling(V) %s on %s\n", #call, pModule->GetModule()->Name()); } \
-		pModule->GetModule()-> call; \
-		if ( module_debug.GetBool() ) { Msg(PROJECT_NAME ": Finished calling(V) %s on %s\n", #call, pModule->GetModule()->Name()); } \
+		if ( module_debug.GetBool() ) { Msg(PROJECT_NAME ": Calling(V) %s on %s\n", #call, pModule->FastGetModule()->Name()); } \
+		pModule->FastGetModule()-> call; \
+		if ( module_debug.GetBool() ) { Msg(PROJECT_NAME ": Finished calling(V) %s on %s\n", #call, pModule->FastGetModule()->Name()); } \
 	}
 
 #define CALL_ENABLED_MODULES(call) \
 	for (CModule* pModule : m_pModules) { \
 		if ( !pModule->FastIsEnabled() ) { continue; } \
-		if ( module_debug.GetBool() ) { Msg(PROJECT_NAME ": Calling %s on %s\n", #call, pModule->GetModule()->Name()); } \
+		if ( module_debug.GetBool() ) { Msg(PROJECT_NAME ": Calling %s on %s\n", #call, pModule->FastGetModule()->Name()); } \
 		pModule-> call; \
-		if ( module_debug.GetBool() ) { Msg(PROJECT_NAME ": Finished calling %s on %s\n", #call, pModule->GetModule()->Name()); } \
+		if ( module_debug.GetBool() ) { Msg(PROJECT_NAME ": Finished calling %s on %s\n", #call, pModule->FastGetModule()->Name()); } \
 	}
 
 
@@ -409,3 +409,27 @@ static void NukeModules(const CCommand &args)
 		module->SetEnabled(false, true);
 }
 static ConCommand nukemodules("holylib_nukemodules", NukeModules, "Debug command. Disables all modules.", 0);
+
+static void ModuleStatus(const CCommand &args)
+{
+	Msg("------- Modules -------\n");
+
+	for (CModule* module : g_pModuleManager.GetModules())
+	{
+		Msg(PROJECT_NAME ": Registered module %-*s (%-*i Enabled: %s Compatible: %s)\n", 
+			15,
+			module->FastGetModule()->Name(), 
+			2,
+			g_pIDs,
+			module->IsEnabled() ? "true, " : "false,", 
+			module->FastIsCompatible() ? "true " : "false"
+		);
+	}
+
+	Msg("------- Lua Interfaces -------\n");
+	Msg("Count: %i\n", g_pModuleManager.GetLuaInterfaces().size());
+
+	for (GarrysMod::Lua::ILuaInterface* interface : g_pModuleManager.GetLuaInterfaces())
+		Msg("\"%p\"", interface);
+}
+static ConCommand modulestatus("holylib_modulestatus", ModuleStatus, "Debug command. Prints out the status of all modules.", 0);
