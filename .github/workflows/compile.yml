@@ -199,7 +199,7 @@ jobs:
     with:
       extra-startup-args: "-usegh"
       download-artifact: "gluatest_32x"
-      dockerbuild: "true"
+      no-checkout: "true"
 
   test_64bit:
     name: "Test x86-64 branch"
@@ -209,7 +209,7 @@ jobs:
       branch: x86-64
       extra-startup-args: "-usegh"
       download-artifact: "gluatest_64x"
-      dockerbuild: "true"
+      no-checkout: "true"
 
   test_32x_holylua:
     name: "Test 32x branches"
@@ -224,7 +224,7 @@ jobs:
     with:
       extra-startup-args: "-usegh -holylib_lua +holylib_module_debug 0"
       download-artifact: "gluatest_32x"
-      dockerbuild: "true"
+      no-checkout: "true"
 
   test_64bit_holylua:
     name: "Test x86-64 branch (HolyLua)"
@@ -234,7 +234,7 @@ jobs:
       branch: x86-64
       extra-startup-args: "-usegh -holylib_lua +holylib_module_debug 0"
       download-artifact: "gluatest_64x"
-      dockerbuild: "true"
+      no-checkout: "true"
 
   test_32bit_find_crash:
     if: false # Enable it if a unknown crash is happening. We'll test every single module.
@@ -276,3 +276,4 @@ jobs:
       branch: dev
       extra-startup-args: "-usegh -holylib_startdisabled -holylib_enable_${{ matrix.module }} 1"
       download-artifact: "gluatest_32x"
+      no-checkout: "true"
