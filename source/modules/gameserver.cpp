@@ -10,8 +10,50 @@
 #include "sourcesdk/net_chan.h"
 #include <framesnapshot.h>
 
+#if defined(_WIN32)
+
+#include <WS2tcpip.h>
+
+// #include <process.h>
+typedef int socklen_t;
+
+#elif defined POSIX
+
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <arpa/inet.h>
+#include <netinet/tcp.h>
+#include <netdb.h>
+#include <sys/param.h>
+#include <sys/ioctl.h>
+#include <sys/uio.h>
+#include <errno.h>
+#include <string.h>
+#include <stdlib.h>
+
+#define WSAEWOULDBLOCK		EWOULDBLOCK
+#define WSAEMSGSIZE			EMSGSIZE
+#define WSAEADDRNOTAVAIL	EADDRNOTAVAIL
+#define WSAEAFNOSUPPORT		EAFNOSUPPORT
+#define WSAECONNRESET		ECONNRESET
+#define WSAECONNREFUSED     ECONNREFUSED
+#define WSAEADDRINUSE		EADDRINUSE
+#define WSAENOTCONN			ENOTCONN
+
+#define ioctlsocket ioctl
+#define closesocket close
+
+#undef SOCKET
+typedef int SOCKET;
+#define FAR
+
+#endif
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
+#include <icommandline.h>
 
 double		net_time;
 
@@ -1409,7 +1451,8 @@ void hook_CNetChan_D2(CNetChan* pNetChan)
 		return;
 	}
 
-	Delete_CNetChan(g_Lua, pNetChan);
+	if (g_Lua)
+		Delete_CNetChan(g_Lua, pNetChan);
 
 	detour_CNetChan_D2.GetTrampoline<Symbols::CNetChan_D2>()(pNetChan);
 }
@@ -2904,6 +2947,12 @@ int hook_CNetChan_SendDatagram(CNetChan* chan, bf_write *datagram)
 	// append the challenge number itself right on the end
 	send.WriteLong( chan->m_ChallengeNr );
 
+	if (chan->m_WaitingList[FRAG_NORMAL_STREAM].Count() != 0)
+	{
+		CNetChan::dataFragments_t *data = chan->m_WaitingList[FRAG_NORMAL_STREAM][0];
+		data->asTCP = true;
+	}
+
 	if ( func_CNetChan_SendSubChannelData(chan, send) )
 	{
 		flags |= PACKET_FLAG_RELIABLE;
@@ -3309,6 +3358,418 @@ void hook_Filter_SendBan(const netadr_t& adr)
 	detour_Filter_SendBan.GetTrampoline<Symbols::Filter_SendBan>()(adr);
 }
 
+const char *NET_ErrorString (int code)
+{
+#if defined( _WIN32 )
+	switch (code)
+	{
+	case WSAEINTR: return "WSAEINTR";
+	case WSAEBADF: return "WSAEBADF";
+	case WSAEACCES: return "WSAEACCES";
+	case WSAEDISCON: return "WSAEDISCON";
+	case WSAEFAULT: return "WSAEFAULT";
+	case WSAEINVAL: return "WSAEINVAL";
+	case WSAEMFILE: return "WSAEMFILE";
+	case WSAEWOULDBLOCK: return "WSAEWOULDBLOCK";
+	case WSAEINPROGRESS: return "WSAEINPROGRESS";
+	case WSAEALREADY: return "WSAEALREADY";
+	case WSAENOTSOCK: return "WSAENOTSOCK";
+	case WSAEDESTADDRREQ: return "WSAEDESTADDRREQ";
+	case WSAEMSGSIZE: return "WSAEMSGSIZE";
+	case WSAEPROTOTYPE: return "WSAEPROTOTYPE";
+	case WSAENOPROTOOPT: return "WSAENOPROTOOPT";
+	case WSAEPROTONOSUPPORT: return "WSAEPROTONOSUPPORT";
+	case WSAESOCKTNOSUPPORT: return "WSAESOCKTNOSUPPORT";
+	case WSAEOPNOTSUPP: return "WSAEOPNOTSUPP";
+	case WSAEPFNOSUPPORT: return "WSAEPFNOSUPPORT";
+	case WSAEAFNOSUPPORT: return "WSAEAFNOSUPPORT";
+	case WSAEADDRINUSE: return "WSAEADDRINUSE";
+	case WSAEADDRNOTAVAIL: return "WSAEADDRNOTAVAIL";
+	case WSAENETDOWN: return "WSAENETDOWN";
+	case WSAENETUNREACH: return "WSAENETUNREACH";
+	case WSAENETRESET: return "WSAENETRESET";
+	case WSAECONNABORTED: return "WSWSAECONNABORTEDAEINTR";
+	case WSAECONNRESET: return "WSAECONNRESET";
+	case WSAENOBUFS: return "WSAENOBUFS";
+	case WSAEISCONN: return "WSAEISCONN";
+	case WSAENOTCONN: return "WSAENOTCONN";
+	case WSAESHUTDOWN: return "WSAESHUTDOWN";
+	case WSAETOOMANYREFS: return "WSAETOOMANYREFS";
+	case WSAETIMEDOUT: return "WSAETIMEDOUT";
+	case WSAECONNREFUSED: return "WSAECONNREFUSED";
+	case WSAELOOP: return "WSAELOOP";
+	case WSAENAMETOOLONG: return "WSAENAMETOOLONG";
+	case WSAEHOSTDOWN: return "WSAEHOSTDOWN";
+	case WSASYSNOTREADY: return "WSASYSNOTREADY";
+	case WSAVERNOTSUPPORTED: return "WSAVERNOTSUPPORTED";
+	case WSANOTINITIALISED: return "WSANOTINITIALISED";
+	case WSAHOST_NOT_FOUND: return "WSAHOST_NOT_FOUND";
+	case WSATRY_AGAIN: return "WSATRY_AGAIN";
+	case WSANO_RECOVERY: return "WSANO_RECOVERY";
+	case WSANO_DATA: return "WSANO_DATA";
+	default: return "UNKNOWN ERROR";
+	}
+#else
+	return strerror( code );
+#endif
+}
+
+Symbols::NET_CloseSocket func_NET_CloseSocket;
+Symbols::NET_OpenSocket func_NET_OpenSocket;
+Symbols::NET_StringToSockaddr func_NET_StringToSockaddr;
+Symbols::NET_GetLastError func_NET_GetLastError;
+Symbols::NET_HostToNetShort func_NET_HostToNetShort;
+static Detouring::Hook detour_NET_ListenSocket;
+int NET_OpenSocket ( const char *net_interface, int& port, int protocol )
+{
+	struct sockaddr_in	address;
+	unsigned int		opt;
+	int					newsocket = -1;
+
+	if ( protocol == IPPROTO_TCP )
+	{
+		newsocket = socket(PF_INET, SOCK_STREAM, IPPROTO_TCP);
+	}
+	else // as UDP or VDP
+	{
+		newsocket = socket(PF_INET, SOCK_DGRAM, protocol);
+	}
+
+	if ( newsocket == -1 )
+	{
+		int net_error = func_NET_GetLastError(); 
+		if ( net_error != WSAEAFNOSUPPORT )
+			Msg ("WARNING: NET_OpenSockett: socket failed: %s", NET_ErrorString(net_error));
+
+		return 0;
+	}
+
+	
+	opt =  1; // make it non-blocking
+	int ret;
+	ret = ioctlsocket(newsocket, FIONBIO, (unsigned long*)&opt);
+	if ( ret == -1 )
+	{
+		int net_error = func_NET_GetLastError();
+		Msg ("WARNING: NET_OpenSocket: ioctl FIONBIO: %s\n", NET_ErrorString(net_error) );
+	}
+	
+	if ( protocol == IPPROTO_TCP )
+	{
+		if ( !IsX360() ) // SO_KEEPALIVE unsupported on the 360
+		{
+			opt = 1; // set TCP options: keep TCP connection alive
+			ret = setsockopt(newsocket, SOL_SOCKET, SO_KEEPALIVE, (char *)&opt, sizeof(opt));
+			if (ret == -1)
+			{
+				int net_error = func_NET_GetLastError();		
+				Msg ("WARNING: NET_OpenSocket: setsockopt SO_KEEPALIVE: %s\n", NET_ErrorString(net_error));
+				return 0;
+			}
+		}
+
+		linger optlinger;	// set TCP options: Does not block close waiting for unsent data to be sent
+		optlinger.l_linger = 0;
+		optlinger.l_onoff = 0;
+		ret = setsockopt(newsocket, SOL_SOCKET, SO_LINGER, (char *)&optlinger, sizeof(optlinger));
+		if (ret == -1)
+		{
+			int net_error = func_NET_GetLastError();
+			Msg ("WARNING: NET_OpenSocket: setsockopt SO_LINGER: %s\n", NET_ErrorString(net_error));
+			return 0;
+		}
+
+		opt = 1; // set TCP options: Disables the Nagle algorithm for send coalescing.
+		ret = setsockopt(newsocket, IPPROTO_TCP, TCP_NODELAY, (char *)&opt, sizeof(opt));
+		if (ret == -1)
+		{
+			int net_error = func_NET_GetLastError();
+			Msg ("WARNING: NET_OpenSocket: setsockopt TCP_NODELAY: %s\n", NET_ErrorString(net_error));
+			return 0;
+		}
+
+		opt = NET_MAX_MESSAGE; // set TCP options: set send buffer size
+		ret = setsockopt(newsocket, SOL_SOCKET, SO_SNDBUF, (char *)&opt, sizeof(opt));
+		if (ret == -1)
+		{
+			int net_error = func_NET_GetLastError();
+			Msg ("WARNING: NET_OpenSocket: setsockopt SO_SNDBUF: %s\n", NET_ErrorString(net_error));
+			return 0;
+		}
+
+		opt = NET_MAX_MESSAGE; // set TCP options: set receive buffer size
+		ret = setsockopt(newsocket, SOL_SOCKET, SO_RCVBUF, (char *)&opt, sizeof(opt));
+		if (ret == -1)
+		{
+			int net_error = func_NET_GetLastError();		
+			Msg ("WARNING: NET_OpenSocket: setsockopt SO_RCVBUF: %s\n", NET_ErrorString(net_error));
+			return 0;
+		}
+
+		opt = 1; // make it reusable
+		ret = setsockopt(newsocket, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(opt));
+		if (ret == -1)
+		{
+			int net_error = func_NET_GetLastError();
+			Msg ("WARNING: NET_OpenSocket: setsockopt SO_REUSEADDR: %s\n", NET_ErrorString(net_error));
+			return 0;
+		}
+
+#ifndef _WIN32
+		ret = setsockopt(newsocket, SOL_SOCKET, SO_REUSEPORT, (char *)&opt, sizeof(opt));
+		if (ret == -1)
+		{
+			int net_error = func_NET_GetLastError();
+			Msg ("WARNING: NET_OpenSocket: setsockopt SO_REUSEPORT: %s\n", NET_ErrorString(net_error));
+			return 0;
+		}
+#endif
+		
+
+		return newsocket;	// don't bind TCP sockets by default
+	}
+
+	// rest is UDP only
+
+	opt = 0;
+	socklen_t len = sizeof( opt );
+	ret = getsockopt( newsocket, SOL_SOCKET, SO_RCVBUF, (char *)&opt, &len );
+	if ( ret == -1 )
+	{
+		int net_error = func_NET_GetLastError();		
+		Msg ("WARNING: NET_OpenSocket: getsockopt SO_RCVBUF: %s\n", NET_ErrorString(net_error));
+		return 0;
+	}
+
+	ConVarRef net_udp_rcvbuf("net_udp_rcvbuf");
+	if ( net_showudp->GetBool() )
+	{
+		static bool bFirst = true;
+		if ( bFirst )
+		{
+			Msg( "UDP socket SO_RCVBUF size %d bytes, changing to %d\n", opt, net_udp_rcvbuf.GetInt() );
+		}
+		bFirst = false;
+	}
+
+	opt = net_udp_rcvbuf.GetInt(); // set UDP receive buffer size
+	ret = setsockopt(newsocket, SOL_SOCKET, SO_RCVBUF, (char *)&opt, sizeof(opt));
+	if (ret == -1)
+	{
+		int net_error = func_NET_GetLastError();
+		Msg ("WARNING: NET_OpenSocket: setsockopt SO_RCVBUF: %s\n", NET_ErrorString(net_error));
+		return 0;
+	}
+
+	opt = net_udp_rcvbuf.GetInt(); // set UDP send buffer size
+	ret = setsockopt(newsocket, SOL_SOCKET, SO_SNDBUF, (char *)&opt, sizeof(opt));
+	if (ret == -1)
+	{
+		int net_error = func_NET_GetLastError();
+		Msg ("WARNING: NET_OpenSocket: setsockopt SO_SNDBUF: %s\n", NET_ErrorString(net_error));
+		return 0;
+	}
+
+ 	if ( true )
+ 	{
+		opt = 1; // set UDP options: make it broadcast capable
+		ret = setsockopt(newsocket, SOL_SOCKET, SO_BROADCAST, (char *)&opt, sizeof(opt));
+		if (ret == -1)
+		{
+			int net_error = func_NET_GetLastError();
+			Msg ("WARNING: NET_OpenSocket: setsockopt SO_BROADCAST: %s\n", NET_ErrorString(net_error));
+			return 0;
+		}
+	}
+	
+	//if ( CommandLine()->FindParm( "-reuse" ) )
+	{
+		opt = 1; // make it reusable
+		ret = setsockopt(newsocket, SOL_SOCKET, SO_REUSEADDR, (char *)&opt, sizeof(opt));
+		if (ret == -1)
+		{
+			int net_error = func_NET_GetLastError();
+			Msg ("WARNING: NET_OpenSocket: setsockopt SO_REUSEADDR: %s\n", NET_ErrorString(net_error));
+			return 0;
+		}
+
+#ifndef _WIN32
+		ret = setsockopt(newsocket, SOL_SOCKET, SO_REUSEPORT, (char *)&opt, sizeof(opt));
+		if (ret == -1)
+		{
+			int net_error = func_NET_GetLastError();
+			Msg ("WARNING: NET_OpenSocket: setsockopt SO_REUSEPORT: %s\n", NET_ErrorString(net_error));
+			return 0;
+		}
+#endif
+	}
+
+	if (!net_interface || !net_interface[0] || !Q_strcmp(net_interface, "localhost"))
+	{
+		address.sin_addr.s_addr = INADDR_ANY;
+	}
+	else
+	{
+		func_NET_StringToSockaddr (net_interface, (struct sockaddr *)&address);
+	}
+
+	address.sin_family = AF_INET;
+
+	int port_offset;	// try binding socket to port, try next 10 is port is already used
+
+	for ( port_offset = 0; port_offset < PORT_TRY_MAX; port_offset++ )
+	{
+		if ( port == PORT_ANY )
+		{
+			address.sin_port = 0;	// = INADDR_ANY
+		}
+		else
+		{
+			address.sin_port = func_NET_HostToNetShort((short)( port + port_offset ));
+		}
+
+		ret = bind (newsocket, (struct sockaddr *)&address, sizeof(address));
+		if ( ret != -1 )
+		{
+			if ( port != PORT_ANY && port_offset != 0 )
+			{
+				port += port_offset;	// update port
+				ConDMsg( "Socket bound to non-default port %i because original port was already in use.\n", port );
+			}
+			break;
+		}
+
+		int net_error = func_NET_GetLastError();
+
+		if ( port == PORT_ANY || net_error != WSAEADDRINUSE )
+		{
+			Msg ("WARNING: NNET_OpenSocket: bind: %s\n", NET_ErrorString(net_error));
+			func_NET_CloseSocket(newsocket,-1);
+			return 0;
+		}
+
+		// Try next port
+	}
+
+	const bool bStrictBind = CommandLine()->FindParm( "-strictportbind" );
+	if ( port_offset == PORT_TRY_MAX && !bStrictBind )
+	{
+		Msg( "WARNING: UDP_OpenSocket: unable to bind socket\n" );
+		func_NET_CloseSocket( newsocket,-1 );
+		return 0;
+	}
+
+	if ( port_offset > 0 )
+	{
+		if ( bStrictBind )
+		{
+			// The server op wants to exit if the desired port was not avialable.
+			Error( "ERROR: Port %i was unavailable - quitting due to \"-strictportbind\" command-line flag!\n", port - port_offset );
+		}
+		else
+		{
+			Warning( "WARNING: Port %i was unavailable - bound to port %i instead\n", port - port_offset, port );
+		}
+	}
+	
+	return newsocket;
+}
+
+static bool* noTCP = NULL;
+static Detouring::Hook detour_NET_ConnectSocket;
+int hook_NET_ConnectSocket(int sock, const netadr_t &addr)
+{
+	Msg("NET_ConnectSocket - noTCP: %s\n", (*noTCP) ? "true" : "false");
+	return detour_NET_ConnectSocket.GetTrampoline<Symbols::NET_ConnectSocket>()(sock, addr);
+}
+
+static Detouring::Hook detour_NET_OpenSocket;
+int hook_NET_OpenSocket(const char *net_interface, int& port, int protocol)
+{
+	Msg("NET_OpenSocket: \"%s\" - %i - %i\n", net_interface, port, protocol);
+	return NET_OpenSocket(net_interface, port, protocol);
+}
+
+typedef struct
+{
+	int			nPort;		// UDP/TCP use same port number
+	bool		bListening;	// true if TCP port is listening
+	int			hUDP;		// handle to UDP socket from socket()
+	int			hTCP;		// handle to TCP socket from socket()
+} netsocket_t;
+
+static CUtlVector<netsocket_t>* net_sockets;
+void hook_NET_ListenSocket(int sock, bool bListen)
+{
+	Assert( (sock >= 0) && (sock < net_sockets.Count()) );
+
+	netsocket_t * netsock = &(*net_sockets)[sock];
+
+	if ( netsock->hTCP )
+	{
+		func_NET_CloseSocket( netsock->hTCP, sock );
+	}
+
+	if ( (*noTCP) )
+		return;
+
+	if ( bListen )
+	{
+		ConVarRef ipname("ip");
+		const char * net_interface = "127.0.0.1"; // ipname.GetString();
+
+		Msg("NET_ListenSocket(Custom): \"%s\" - %i\n", net_interface, netsock->nPort);
+		netsock->hTCP = hook_NET_OpenSocket( net_interface, netsock->nPort, IPPROTO_TCP );
+
+		if ( !netsock->hTCP )
+		{
+			Msg( "Warning! NET_ListenSocket(Custom) failed opening socket %i, port %i.\n", sock, (*net_sockets)[sock].nPort );
+			return;
+		}
+
+		sockaddr_in address;
+		memset(&address, 0, sizeof(address));
+
+		if (!net_interface || !net_interface[0] || !Q_strcmp(net_interface, "localhost"))
+		{
+			address.sin_addr.s_addr = INADDR_ANY;
+		}
+		else
+		{
+			Msg("NET_StringToSockaddr returned %s\n", func_NET_StringToSockaddr(net_interface, (sockaddr*)&address) ? "true" : "false");
+		}
+
+		address.sin_family = AF_INET;
+		address.sin_port = func_NET_HostToNetShort((short)( netsock->nPort ));
+
+		Msg("address.sin_port: %i\n", (int)address.sin_port);
+		Msg("address.sin_family: %i\n", (int)address.sin_family);
+		
+		char ipstr[255];
+		inet_ntop(AF_INET, &(address.sin_addr), ipstr, sizeof(ipstr));
+		Msg("address.sin_addr: \"%s\"\n", ipstr);
+
+		int ret = bind(netsock->hTCP, (sockaddr*)&address, sizeof(address));
+		if ( ret == -1 )
+		{
+			Msg("bind() failed: errno = %d (%s)\n", errno, strerror(errno));
+			func_NET_GetLastError();
+			Msg ("WARNING: NET_ListenSocket(Custom) bind failed on socket %i, port %i.\n", netsock->hTCP, netsock->nPort );
+			return;
+		}
+
+		ret = listen(netsock->hTCP, TCP_MAX_ACCEPTS);
+		if ( ret == -1 )
+		{
+			func_NET_GetLastError();
+			Msg ("WARNING: NET_ListenSocket(Custom) listen failed on socket %i, port %i.\n", netsock->hTCP, netsock->nPort );
+			return;
+		}
+
+		netsock->bListening = true;
+	}
+}
+
 void CGameServerModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
@@ -3414,6 +3875,24 @@ void CGameServerModule::InitDetour(bool bPreServer)
 		(void*)hook_Filter_SendBan, m_pID
 	);
 
+	Detour::Create(
+		&detour_NET_ConnectSocket, "NET_ConnectSocket",
+		engine_loader.GetModule(), Symbols::NET_ConnectSocketSym,
+		(void*)hook_NET_ConnectSocket, m_pID
+	);
+
+	Detour::Create(
+		&detour_NET_OpenSocket, "NET_OpenSocket",
+		engine_loader.GetModule(), Symbols::NET_OpenSocketSym,
+		(void*)hook_NET_OpenSocket, m_pID
+	);
+
+	Detour::Create(
+		&detour_NET_ListenSocket, "NET_ListenSocket",
+		engine_loader.GetModule(), Symbols::NET_ListenSocketSym,
+		(void*)hook_NET_ListenSocket, m_pID
+	);
+
 	func_NET_SendPacket = (Symbols::NET_SendPacket)Detour::GetFunction(engine_loader.GetModule(), Symbols::NET_SendPacketSym);
 	Detour::CheckFunction((void*)func_NET_SendPacket, "NET_SendPacket");
 
@@ -3431,6 +3910,24 @@ void CGameServerModule::InitDetour(bool bPreServer)
 
 	func_CNetChan_CheckWaitingList = (Symbols::CNetChan_CheckWaitingList)Detour::GetFunction(engine_loader.GetModule(), Symbols::CNetChan_CheckWaitingListSym);
 	Detour::CheckFunction((void*)func_CNetChan_CheckWaitingList, "CNetChan::CheckWaitingList");
+
+	func_NET_CloseSocket = (Symbols::NET_CloseSocket)Detour::GetFunction(engine_loader.GetModule(), Symbols::NET_CloseSocketSym);
+	Detour::CheckFunction((void*)func_NET_CloseSocket, "NET_CloseSocket");
+
+	func_NET_GetLastError = (Symbols::NET_GetLastError)Detour::GetFunction(engine_loader.GetModule(), Symbols::NET_GetLastErrorSym);
+	Detour::CheckFunction((void*)func_NET_GetLastError, "NET_GetLastError");
+
+	func_NET_StringToSockaddr = (Symbols::NET_StringToSockaddr)Detour::GetFunction(engine_loader.GetModule(), Symbols::NET_StringToSockaddrSym);
+	Detour::CheckFunction((void*)func_NET_StringToSockaddr, "NET_StringToSockaddr");
+
+	func_NET_HostToNetShort = (Symbols::NET_HostToNetShort)Detour::GetFunction(engine_loader.GetModule(), Symbols::NET_HostToNetShortSym);
+	Detour::CheckFunction((void*)func_NET_HostToNetShort, "NET_HostToNetShort");
+	
+	noTCP = Detour::ResolveSymbol<bool>(engine_loader, Symbols::net_notcpSym);
+	Detour::CheckValue("get pointer", "net_notcp", noTCP != NULL);
+
+	net_sockets = Detour::ResolveSymbol<CUtlVector<netsocket_t>>(engine_loader, Symbols::net_socketsSym);
+	Detour::CheckValue("get pointer", "net_sockets", net_sockets != NULL);
 
 	vcr_verbose = g_pCVar->FindVar("vcr_verbose");
 	net_maxroutable = g_pCVar->FindVar("net_maxroutable");
