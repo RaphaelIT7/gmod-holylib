@@ -53,7 +53,6 @@ class CNetChan;
 struct MD5Value_t;
 struct dataFragments_s;
 class CBaseClient;
-struct sockaddr;
 
 class	CGameTrace;
 typedef	CGameTrace trace_t;
@@ -594,30 +593,6 @@ namespace Symbols
 
 	typedef void (*NET_RemoveNetChannel)(INetChannel* chan, bool bDeleteNetChan);
 	extern const std::vector<Symbol> NET_RemoveNetChannelSym;
-
-	typedef int (*NET_ConnectSocket)(int sock, const netadr_t &addr);
-	extern const std::vector<Symbol> NET_ConnectSocketSym;
-
-	typedef int (*NET_OpenSocket)(const char *net_interface, int& port, int protocol);
-	extern const std::vector<Symbol> NET_OpenSocketSym;
-
-	typedef void (*NET_CloseSocket)(int hSocket, int sock);
-	extern const std::vector<Symbol> NET_CloseSocketSym;
-
-	typedef bool (*NET_StringToSockaddr)(const char *s, sockaddr *sadr);
-	extern const std::vector<Symbol> NET_StringToSockaddrSym;
-
-	typedef unsigned short (*NET_HostToNetShort)(unsigned short us_in);
-	extern const std::vector<Symbol> NET_HostToNetShortSym;
-
-	typedef void (*NET_ListenSocket)(int sock, bool bListen);
-	extern const std::vector<Symbol> NET_ListenSocketSym;
-
-	typedef int (*NET_GetLastError)();
-	extern const std::vector<Symbol> NET_GetLastErrorSym;
-
-	extern const std::vector<Symbol> net_socketsSym;
-	extern const std::vector<Symbol> net_notcpSym;
 
 	typedef void (*Filter_SendBan)(const netadr_t& adr);
 	extern const std::vector<Symbol> Filter_SendBanSym;

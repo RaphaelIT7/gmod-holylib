@@ -817,42 +817,6 @@ namespace Symbols
 		Symbol::FromName("_Z20NET_RemoveNetChannelP11INetChannelb"),
 	};
 
-	const std::vector<Symbol> NET_ConnectSocketSym = {
-		Symbol::FromName("_Z17NET_ConnectSocketiRK8netadr_s"),
-	};
-
-	const std::vector<Symbol> NET_OpenSocketSym = {
-		Symbol::FromName("_Z14NET_OpenSocketPKcRii"),
-	};
-
-	const std::vector<Symbol> NET_CloseSocketSym = {
-		Symbol::FromName("_Z14NET_OpenSocketPKcRii"),
-	};
-
-	const std::vector<Symbol> NET_StringToSockaddrSym = {
-		Symbol::FromName("_Z20NET_StringToSockaddrPKcP8sockaddr"),
-	};
-
-	const std::vector<Symbol> NET_GetLastErrorSym = {
-		Symbol::FromName("_Z16NET_GetLastErrorv"),
-	};
-
-	const std::vector<Symbol> NET_ListenSocketSym = {
-		Symbol::FromName("_Z16NET_ListenSocketib"),
-	};
-
-	const std::vector<Symbol> NET_HostToNetShortSym = {
-		Symbol::FromName("_Z18NET_HostToNetShortt"),
-	};
-
-	const std::vector<Symbol> net_socketsSym = {
-		Symbol::FromName("_ZL11net_sockets"),
-	};
-
-	const std::vector<Symbol> net_notcpSym = {
-		Symbol::FromName("_ZL9net_notcp"),
-	};
-
 	const std::vector<Symbol> Filter_SendBanSym = {
 		Symbol::FromName("_Z14Filter_SendBanRK8netadr_s"),
 	};
