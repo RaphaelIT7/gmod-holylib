@@ -135,6 +135,9 @@ namespace Symbols
 	typedef void (GMCOMMON_CALLING_CONVENTION* CSteam3Server_NotifyClientDisconnect)(void* server, CBaseClient* client);
 	extern const std::vector<Symbol> CSteam3Server_NotifyClientDisconnectSym;
 
+	typedef void (*SteamGameServer_Shutdown)();
+	extern const std::vector<Symbol> SteamGameServer_ShutdownSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: holylib Symbols
 	//---------------------------------------------------------------------------------

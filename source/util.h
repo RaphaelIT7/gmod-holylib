@@ -214,6 +214,10 @@ namespace Util
 	extern bool ShouldLoad();
 	extern void CheckVersion();
 
+	// Steam API functions as they love to crash apparently
+	// Can return NULL
+	extern ISteamUser* GetSteamUser();
+
 	inline void StartThreadPool(IThreadPool* pool, ThreadPoolStartParams_t& startParams)
 	{
 #if ARCHITECTURE_IS_X86_64 && SYSTEM_LINUX

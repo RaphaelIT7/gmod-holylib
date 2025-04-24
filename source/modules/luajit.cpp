@@ -31,6 +31,7 @@ Detour::Create( \
 
 #define Override(name) ManualOverride(name, name)
 
+static bool bOpenLibs = false;
 void hook_luaL_openlibs(lua_State* L)
 {
 	//Msg("luaL_openlibs called!\n");
@@ -72,6 +73,8 @@ void hook_luaL_openlibs(lua_State* L)
 		lua_getfield(L, LUA_GLOBALSINDEX, "require");
 		lua_setfield(L, -2, "require");
 	lua_pop(L, 1);
+
+	bOpenLibs = true;
 }
 
 /*
@@ -98,7 +101,16 @@ void CLuaJITModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 	if (bServerInit)
 		return;
 
-	lua_State* L = g_Lua->GetState();
+	if (!bOpenLibs)
+	{
+		Error(PROJECT_NAME ": LuaJIT didn't work for some magical reason!\n");
+		// This is better than a random crash.
+		// ToDo: Actually fix the bug
+		// NOTE: We error because further up the GetType function will else cause a crash so if we fail its better to error out than to continue & crash
+		return;
+	}
+
+	lua_State* L = pLua->GetState();
 	lua_getfield(L, LUA_GLOBALSINDEX, "debug");
 	if (lua_istable(L, -1))
 	{
@@ -115,6 +127,8 @@ void CLuaJITModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 		lua_setfield(L, -2, "upvaluejoin");
 	}
 	lua_pop(L, 1);
+
+	bOpenLibs = false;
 }
 
 void CLuaJITModule::InitDetour(bool bPreServer)

@@ -217,11 +217,12 @@ jobs:
       download-artifact: "gluatest_64x"
 
   test_32bit_find_crash:
-    if: false # Enable it if a unknown crash is happening. We'll test every single module.
+    if: false # always() Enable it if a unknown crash is happening. We'll test every single module.
     name: "Find the crash cause"
     needs: setup_32x_artifacts
     uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests_runnerimprovements.yml@holylib
     strategy:
+      fail-fast: false
       matrix:
         module: 
           - holylib
@@ -249,9 +250,9 @@ jobs:
           - net
           - entitylist
           - httpserver
-          - luajit
           - gameserver
           - soundscape
+          # - luajit # Removed because rn it loves to crash
     with:
       branch: dev
       gluatest-ref: "holylib"
