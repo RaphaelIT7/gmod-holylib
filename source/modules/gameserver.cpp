@@ -2549,7 +2549,9 @@ public:
  * This is required to preserve the logic of m_nEntityIndex = m_nClientSlot + 1
  * We don't copy everything, like the baseline and such.
  * 
- * Current State: The Client's LocalPlayer is a NULL Entity.....
+ * Current State: It works
+ * Previous Bugs:
+ * - The Client's LocalPlayer is a NULL Entity.....
  */
 static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* target)
 {
