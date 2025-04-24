@@ -245,6 +245,10 @@ namespace Util
 	extern CBaseEntity* FirstEnt();
 	extern CBaseEntity* NextEnt(CBaseEntity* pEntity);
 
+	// Steam API functions as they love to crash apparently
+	// Can return NULL
+	extern ISteamUser* GetSteamUser();
+
 	inline void StartThreadPool(IThreadPool* pool, ThreadPoolStartParams_t& startParams)
 	{
 #if ARCHITECTURE_IS_X86_64 && SYSTEM_LINUX

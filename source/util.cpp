@@ -275,6 +275,78 @@ static void hook_CSteam3Server_NotifyClientDisconnect(void* pServer, CBaseClient
 	detour_CSteam3Server_NotifyClientDisconnect.GetTrampoline<Symbols::CSteam3Server_NotifyClientDisconnect>()(pServer, pClient);
 }
 
+static HSteamPipe hSteamPipe = NULL;
+static HSteamUser hSteamUser = NULL;
+static ISteamUser* g_pSteamUser = NULL;
+void ShutdownSteamUser()
+{
+	Warning("ShutdownSteamUser called! %p\n", g_pSteamUser);
+	if (!g_pSteamUser)
+		return;
+
+	//NOTE: Fking don't deal with this BS, steam just loves to crash no matter what, the SteamGameServer shutdown should already do the job so it should be fine.
+	ISteamClient* pSteamClient = SteamGameServerClient();
+	if (pSteamClient)
+	{
+		if (hSteamPipe)
+		{
+			pSteamClient->ReleaseUser(hSteamPipe, hSteamUser);
+			pSteamClient->BReleaseSteamPipe(hSteamPipe);
+			hSteamPipe = NULL;
+			hSteamUser = NULL;
+		}
+	}
+
+	g_pSteamUser = NULL;
+	hSteamPipe = NULL;
+	hSteamUser = NULL;
+	Warning("Nuked g_pSteamUser\n");
+}
+
+void CreateSteamUserIfMissing()
+{
+	Warning("CreateSteamUserIfMissing called! %p\n", g_pSteamUser);
+	if (!g_pSteamUser)
+	{
+		if (SteamUser())
+		{
+			g_pSteamUser = SteamUser();
+			return;
+		}
+
+		//if (Util::get != NULL)
+		//	g_pSteamUser = Util::get->SteamUser();
+
+		ISteamClient* pSteamClient = SteamGameServerClient();
+
+		if (pSteamClient)
+		{
+			hSteamPipe = pSteamClient->CreateSteamPipe();
+			hSteamUser = pSteamClient->CreateLocalUser(&hSteamPipe, k_EAccountTypeAnonUser);
+			g_pSteamUser = pSteamClient->GetISteamUser(hSteamUser, hSteamPipe, "SteamUser023");
+
+			Warning("CreateSteamUserIfMissing done! %p\n", g_pSteamUser);
+		}
+	}
+}
+
+ISteamUser* Util::GetSteamUser()
+{
+	CreateSteamUserIfMissing(); // We may still fail.
+	return g_pSteamUser;
+}
+
+static Detouring::Hook detour_SteamGameServer_Shutdown;
+static void hook_SteamGameServer_Shutdown()
+{
+	// Their taken care of already when shutting down.
+	// Previous Bug: The voicechat caused a crash because this function was called before we were shutting down which caused us to later try to release a invalid steam user.
+	ShutdownSteamUser();
+
+	Warning("SteamGameServer_Shutdown called!\n");
+	detour_SteamGameServer_Shutdown.GetTrampoline<Symbols::SteamGameServer_Shutdown>()();
+}
+
 IGet* Util::get;
 CBaseEntityList* g_pEntityList = NULL;
 Symbols::lua_rawseti Util::func_lua_rawseti;
@@ -322,6 +394,13 @@ void Util::AddDetour()
 		&detour_CSteam3Server_NotifyClientDisconnect, "CSteam3Server::NotifyClientDisconnect",
 		engine_loader.GetModule(), Symbols::CSteam3Server_NotifyClientDisconnectSym,
 		(void*)hook_CSteam3Server_NotifyClientDisconnect, 0
+	);
+
+	SourceSDK::ModuleLoader steam_api_loader("steam_api");
+	Detour::Create(
+		&detour_SteamGameServer_Shutdown, "SteamGameServer_Shutdown",
+		steam_api_loader.GetModule(), Symbols::SteamGameServer_ShutdownSym,
+		(void*)hook_SteamGameServer_Shutdown, 0
 	);
 
 	server = InterfacePointers::Server();
@@ -376,6 +455,8 @@ void Util::RemoveDetour()
 {
 	if (Util::entitylist)
 		Util::entitylist->RemoveListenerEntity(&pHolyEntityListener);
+
+	ShutdownSteamUser();
 }
 
 // If HolyLib was already loaded, we won't load a second time.

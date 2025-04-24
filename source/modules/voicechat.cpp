@@ -17,8 +17,6 @@ public:
 	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
-	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) OVERRIDE;
-	virtual void Shutdown() OVERRIDE;
 	virtual void LuaThink(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual const char* Name() { return "voicechat"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32; };
@@ -140,18 +138,18 @@ LUA_FUNCTION_STATIC(VoiceData_GetData)
 	return 1;
 }
 
-static ISteamUser* g_pSteamUser;
 LUA_FUNCTION_STATIC(VoiceData_GetUncompressedData)
 {
 	VoiceData* pData = Get_VoiceData(LUA, 1, true);
 	int iSize = (int)LUA->CheckNumberOpt(2, 20000); // How many bytes to allocate for the decompressed version. 20000 is default
 
-	if (!g_pSteamUser)
+	ISteamUser* pSteamUser =  Util::GetSteamUser();
+	if (!pSteamUser)
 		LUA->ThrowError("Failed to get SteamUser!\n");
 
 	uint32 pDecompressedLength;
 	char* pDecompressed = new char[iSize];
-	g_pSteamUser->DecompressVoice(
+	pSteamUser->DecompressVoice(
 		pData->pData, pData->iLength,
 		pDecompressed, iSize,
 		&pDecompressedLength, 44100
@@ -937,46 +935,4 @@ void CVoiceChatModule::InitDetour(bool bPreServer)
 		engine_loader.GetModule(), Symbols::SV_BroadcastVoiceDataSym,
 		(void*)hook_SV_BroadcastVoiceData, m_pID
 	);
-}
-
-static HSteamPipe hSteamPipe = NULL;
-static HSteamUser hSteamUser = NULL;
-void CVoiceChatModule::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
-{
-	if (!g_pSteamUser)
-	{
-		if (SteamUser())
-		{
-			g_pSteamUser = SteamUser();
-			if (g_pVoiceChatModule.InDebug())
-				Msg(PROJECT_NAME ": SteamUser returned valid stuff?\n");
-			return;
-		}
-
-		//if (Util::get != NULL)
-		//	g_pSteamUser = Util::get->SteamUser();
-
-		ISteamClient* pSteamClient = SteamGameServerClient();
-
-		if (pSteamClient)
-		{
-			hSteamPipe = pSteamClient->CreateSteamPipe();
-			hSteamUser = pSteamClient->CreateLocalUser(&hSteamPipe, k_EAccountTypeAnonUser);
-			g_pSteamUser = pSteamClient->GetISteamUser(hSteamUser, hSteamPipe, "SteamUser023");
-		}
-	}
-}
-
-void CVoiceChatModule::Shutdown()
-{
-	ISteamClient* pSteamClient = SteamGameServerClient();
-	if (pSteamClient)
-	{
-		pSteamClient->ReleaseUser(hSteamPipe, hSteamUser);
-		pSteamClient->BReleaseSteamPipe(hSteamPipe);
-		hSteamPipe = NULL;
-		hSteamUser = NULL;
-	}
-
-	g_pSteamUser = NULL;
 }
