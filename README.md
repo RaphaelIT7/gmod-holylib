@@ -62,6 +62,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [#] Better support for multiple Lua states  
 \- \- This required most of the lua setup to be changed >:(  
 \- [#] Solved a few possible stack issues  
+\- [#] Fixed a crash after a map change. See https://github.com/RaphaelIT7/gmod-holylib/issues/41  
 
 > [!WARNING]
 > The current builds are unstable and need **A LOT** of testing.  
@@ -78,8 +79,6 @@ None
 \- [#] Solved a possible crash caused by a `CGameClient` disconnecting after `g_Lua` became `NULL`  
 
 ## ToDo
-
-\- **Important before next release** Fix a unknown crash on shutdown(Need to get a valid debug log but it just won't give me one).  
 
 \- Finish 64x (`pvs`, `sourcetv`, `surffix`)  
 \- Find out why ConVars are so broken. (Serverside `path` command breaks :<)  
