@@ -236,6 +236,115 @@ jobs:
       download-artifact: "gluatest_64x"
       no-checkout: "true"
 
+  # We run gmod_tests repo to ensure that we didn't break any gmod functions unknowingly.
+  setup_gmod_tests_32x_artifacts:
+    name: "Setup gmod_tests 32x Artifact"
+    needs: [setup_32x_artifacts]
+    runs-on: ubuntu-latest
+    container: debian:bullseye
+    steps:
+      - uses: actions/checkout@v4
+        name: "Checkout gmod_tests repo"
+        with:
+          sparse-checkout: lua
+          repository: 'CFC-Servers/gmod_tests'
+          path: 'gmod_tests'
+
+      - uses: actions/download-artifact@v4
+        name: "Download 32x artifact"
+        with:
+          name: "gluatest_32x"
+
+      - name: "Setup structure"
+        run: |
+          mkdir -p garrysmod/lua/bin
+          mkdir -p garrysmod/addons
+
+          ls -R
+          tar -xzf gluatest.tar.gz
+          ls -R
+
+          mv gmod_tests garrysmod/addons
+
+          tar -czf gmod_tests.tar.gz ghostinj.dll garrysmod/
+
+      - uses: actions/upload-artifact@v4
+        name: "Upload tar"
+        with:
+          name: gmod_tests_32x
+          path: gmod_tests.tar.gz
+          compression-level: 9
+          retention-days: 1
+
+  setup_gmod_tests_64x_artifacts:
+    name: "Setup gmod_tests 64x Artifact"
+    needs: [setup_64x_artifacts]
+    runs-on: ubuntu-latest
+    container: debian:bullseye
+    steps:
+      - uses: actions/checkout@v4
+        name: "Checkout gmod_tests repo"
+        with:
+          sparse-checkout: lua
+          repository: 'CFC-Servers/gmod_tests'
+          path: 'gmod_tests'
+
+      - uses: actions/download-artifact@v4
+        name: "Download 64x artifact"
+        with:
+          name: "gluatest_64x"
+
+      - name: "Setup structure"
+        run: |
+          mkdir -p garrysmod/lua/bin
+          mkdir -p garrysmod/addons
+
+          tar -xzf gluatest.tar.gz
+
+          mv gmod_tests garrysmod/addons
+          mv ghostinj.dll ghostinj2.dll
+
+          tar -czf gmod_tests.tar.gz ghostinj2.dll garrysmod/
+
+      - uses: actions/upload-artifact@v4
+        name: "Upload tar"
+        with:
+          name: gmod_tests_64x
+          path: gmod_tests.tar.gz
+          compression-level: 9
+          retention-days: 1
+
+  test_gmod_tests_32bit:
+    name: "Test 32x branches (gmod_tests)"
+    needs: setup_gmod_tests_32x_artifacts
+    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main # ToDo: Change this later
+    strategy:
+      matrix:
+        branch:
+          - live
+          - dev
+          - prerelease
+    with:
+      extra-startup-args: "-usegh -maxplayers 64"
+      download-artifact: "gmod_tests_32x"
+      no-checkout: "true"
+      additional-setup: "wget -q https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux32.tar.gz -O gluatest/docker/_gluatest_artifacts/linux32.tar.gz"
+      collection: 3460542547
+      map: gm_glua_tests
+
+  test_gmod_tests_64bit:
+    name: "Test x86-64 branch (gmod_tests)"
+    needs: setup_gmod_tests_64x_artifacts
+    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
+    with:
+      branch: x86-64
+      extra-startup-args: "-usegh -maxplayers 64"
+      download-artifact: "gmod_tests_64x"
+      no-checkout: "true"
+      additional-setup: "wget -q https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux64.tar.gz -O gluatest/docker/_gluatest_artifacts/linux64.tar.gz"
+      collection: 3460542547
+      map: gm_glua_tests
+
   test_32bit_find_crash:
     if: false # always() Enable it if a unknown crash is happening. We'll test every single module.
     name: "Find the crash cause"
