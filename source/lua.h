@@ -108,11 +108,23 @@ namespace Lua
 		inline void RegisterMetaTable(LuaTypes type, int metaID)
 		{
 			pLuaTypes[type].iType = metaID;
+			Msg("Registered MetaTable: %i - %i\n", (int)type, metaID);
 		}
 
 		inline int GetMetaTable(LuaTypes type)
 		{
 			return pLuaTypes[type].iType;
+		}
+
+		inline LuaTypes FindMetaTable(int type)
+		{
+			for (int i=0; i<LuaTypes::TOTAL_TYPES; ++i)
+			{
+				if (pLuaTypes[i].iType == type)
+					return (LuaTypes)i;
+			}
+
+			return LuaTypes::TOTAL_TYPES;
 		}
 
 		/*
