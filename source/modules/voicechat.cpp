@@ -604,7 +604,7 @@ LUA_FUNCTION_STATIC(voicechat_CreateVoiceData)
 {
 	int iPlayerSlot = (int)LUA->CheckNumberOpt(1, 0);
 	const char* pStr = LUA->CheckStringOpt(2, NULL);
-	int iLength = (int)LUA->CheckNumberOpt(3, NULL);
+	int iLength = (int)LUA->CheckNumberOpt(3, 0);
 
 	VoiceData* pData = new VoiceData;
 	pData->iPlayerSlot = iPlayerSlot;
