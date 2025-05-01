@@ -50,6 +50,7 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 		defines("SWDS=1")
 		defines("PROJECT_NAME=\"holylib\"")
 		defines("NO_FRAMESNAPSHOTDEF")
+		defines("NO_VCR")
 
 		files({
 			[[../../source/modules/*.h]],
