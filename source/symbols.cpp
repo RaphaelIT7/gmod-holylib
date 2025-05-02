@@ -828,6 +828,14 @@ namespace Symbols
 		Symbol::FromName("_Z14Filter_SendBanRK8netadr_s"),
 	};
 
+	const std::vector<Symbol> NET_SendStreamSym = {
+		Symbol::FromName("_Z14NET_SendStreamiPKcii"),
+	};
+
+	const std::vector<Symbol> NET_ReceiveStreamSym = {
+		Symbol::FromName("_Z17NET_ReceiveStreamiPcii"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: lagcompensation Symbols
 	//---------------------------------------------------------------------------------

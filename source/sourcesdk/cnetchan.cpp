@@ -25,34 +25,67 @@
 // Construction/Destruction
 //////////////////////////////////////////////////////////////////////
 
-ConVar net_showudp( "net_showudp", "0", 0, "Dump UDP packets summary to console" );
-ConVar net_showtcp( "net_showtcp", "0", 0, "Dump TCP stream summary to console" );
-ConVar net_blocksize( "net_maxfragments", NETSTRING( MAX_ROUTABLE_PAYLOAD ), 0, "Max fragment bytes per packet", true, FRAGMENT_SIZE, true, MAX_ROUTABLE_PAYLOAD );
+static ConVar net_showudp( "holylib_net_showudp", "0", 0, "Dump UDP packets summary to console" );
+static ConVar net_showtcp( "holylib_net_showtcp", "0", 0, "Dump TCP stream summary to console" );
+static ConVar net_blocksize( "holylib_net_blocksize", std::to_string(MAX_ROUTABLE_PAYLOAD).c_str(), 0, "Max fragment bytes per packet", true, FRAGMENT_SIZE, true, MAX_ROUTABLE_PAYLOAD );
 
-static ConVar net_showmsg( "net_showmsg", "0", 0, "Show incoming message: <0|1|name>" );
-static ConVar net_showfragments( "net_showfragments", "0", 0, "Show netchannel fragments" );
-static ConVar net_showpeaks( "net_showpeaks", "0", 0, "Show messages for large packets only: <size>" );
-static ConVar net_blockmsg( "net_blockmsg", "none", FCVAR_CHEAT, "Discards incoming message: <0|1|name>" );
-static ConVar net_showdrop( "net_showdrop", "0", 0, "Show dropped packets in console" );
-static ConVar net_drawslider( "net_drawslider", "0", 0, "Draw completion slider during signon" );
-static ConVar net_chokeloopback( "net_chokeloop", "0", 0, "Apply bandwidth choke to loopback packets" );
-static ConVar net_maxfilesize( "net_maxfilesize", "256", 0, "Maximum allowed file size for uploading in MiB", true, 0, true, 512 );
-static ConVar net_compresspackets( "net_compresspackets", "1", 0, "Use compression on game packets." );
-static ConVar net_compresspackets_minsize( "net_compresspackets_minsize", "1024", 0, "Don't bother compressing packets below this size." );
-static ConVar net_maxcleartime( "net_maxcleartime", "4.0", 0, "Max # of seconds we can wait for next packets to be sent based on rate setting (0 == no limit)." );
-static ConVar net_maxpacketdrop( "net_maxpacketdrop", "5000", 0, "Ignore any packets with the sequence number more than this ahead (0 == no limit)" );
+static ConVar net_showmsg( "holylib_net_showmsg", "0", 0, "Show incoming message: <0|1|name>" );
+static ConVar net_showfragments( "holylib_net_showfragments", "0", 0, "Show netchannel fragments" );
+static ConVar net_showpeaks( "holylib_net_showpeaks", "0", 0, "Show messages for large packets only: <size>" );
+static ConVar net_blockmsg( "holylib_net_blockmsg", "none", FCVAR_CHEAT, "Discards incoming message: <0|1|name>" );
+static ConVar net_showdrop( "holylib_net_showdrop", "0", 0, "Show dropped packets in console" );
+static ConVar net_drawslider( "holylib_net_drawslider", "0", 0, "Draw completion slider during signon" );
+static ConVar net_chokeloopback( "holylib_net_chokeloop", "0", 0, "Apply bandwidth choke to loopback packets" );
+static ConVar net_maxfilesize( "holylib_net_maxfilesize", "256", 0, "Maximum allowed file size for uploading in MiB", true, 0, true, 512 );
+static ConVar net_compresspackets( "holylib_net_compresspackets", "1", 0, "Use compression on game packets." );
+static ConVar net_compresspackets_minsize( "holylib_net_compresspackets_minsize", "1024", 0, "Don't bother compressing packets below this size." );
+static ConVar net_maxcleartime( "holylib_net_maxcleartime", "4.0", 0, "Max # of seconds we can wait for next packets to be sent based on rate setting (0 == no limit)." );
+static ConVar net_maxpacketdrop( "holylib_net_maxpacketdrop", "5000", 0, "Ignore any packets with the sequence number more than this ahead (0 == no limit)" );
 
 // Testing convars, but can be useful for server owners to control how many fragments are used.
 static ConVar net_filebackgroundtranmission( "net_filebackgroundtranmission", "-1", 0, "Networks a file by sending only a single fragment making it quite slow. -1 = let engine control it. 0 = force disable. 1 = force enable" );
-static ConVar net_minfragments( "net_minfragments", "1", 0, "Forces a minimum number of fragments to be used", true, 1, true, MAX_FRAGMENTS );
-static ConVar net_maxfragments( "net_maxfragments", "0", 0, "Forces a maximum number of fragments to be used. 0 = let the engine freely decide", true, 0, true, MAX_FRAGMENTS );
+static ConVar net_minfragments( "holylib_net_minfragments", "1", 0, "Forces a minimum number of fragments to be used", true, 1, true, MAX_FRAGMENTS );
+static ConVar net_maxfragments( "holylib_net_maxfragments", "0", 0, "Forces a maximum number of fragments to be used. 0 = let the engine freely decide", true, 0, true, MAX_FRAGMENTS );
 
-extern ConVar net_maxroutable;
+static ConVar holylib_net_maxroutable("holylib_net_maxroutable", std::to_string(MAX_ROUTABLE_PAYLOAD).c_str(), 0, "Maximum payload size", true, 0, true, MAX_ROUTABLE_PAYLOAD);
 
-extern int  NET_ConnectSocket( int nSock, const netadr_t &addr );
-extern void NET_CloseSocket( int hSocket, int sock = -1 );
 extern int  NET_SendStream( int nSock, const char * buf, int len, int flags );
 extern int  NET_ReceiveStream( int nSock, char * buf, int len, int flags );
+
+inline bool NET_IsMultiplayer()
+{
+	return true;
+}
+
+inline bool Q_isempty(const char *v) { return v[0] == '\0'; }
+bool COM_IsValidPath( const char *pszFilename )
+{
+	if ( !pszFilename )
+	{
+		return false;
+	}
+
+	if ( Q_isempty( pszFilename )    ||
+		Q_strstr( pszFilename, "\\\\" ) ||	// to protect network paths
+		Q_strstr( pszFilename, ":" )    || // to protect absolute paths
+		Q_strstr( pszFilename, ".." ) ||   // to protect relative paths
+		Q_strstr( pszFilename, "\n" ) ||   // CFileSystem_Stdio::FS_fopen doesn't allow this
+		Q_strstr( pszFilename, "\r" ) ||   // CFileSystem_Stdio::FS_fopen doesn't allow this
+
+		Q_strstr( pszFilename, ">" ) || // additional gmod checks
+		Q_strstr( pszFilename, "<" ) ||
+		Q_strstr( pszFilename, "\"" ) ||
+		Q_strstr( pszFilename, "|" ) ||
+		Q_strstr( pszFilename, "?" ) ||
+		strchr( pszFilename, '\n' ) ||
+		strchr( pszFilename, '\r' ) ||
+		strchr( pszFilename, '\t' ) )
+	{
+		return false;
+	}
+
+	return true;
+}
 
 
 // If the network connection hasn't been active in this many seconds, display some warning text.
@@ -376,12 +409,14 @@ void CNetChan::Shutdown(const char *pReason)
 		Transmit();	// push message out
 	}
 
+	/*
+	TCP got yeeted -> https://github.com/Facepunch/garrysmod-issues/issues/6294
 	if ( m_StreamSocket )
 	{
 		NET_CloseSocket( m_StreamSocket, m_Socket );
 		m_StreamSocket = 0;
 		m_StreamActive = false;
-	}
+	}*/
 
 	m_Socket = -1; // signals that netchannel isn't valid anymore
 
@@ -490,11 +525,13 @@ void CNetChan::Setup(int sock, netadr_t *adr, const char * name, INetChannelHand
 
 	m_Socket = sock;
 
+	/*
+	TCP got yeeted -> https://github.com/Facepunch/garrysmod-issues/issues/6294
 	if ( m_StreamSocket )
 	{
 		NET_CloseSocket( m_StreamSocket );
 		m_StreamSocket = 0;
-	}
+	}*/
 
 	// remote_address may be NULL for fake channels (demo playback etc)
 	if ( adr )
@@ -599,7 +636,7 @@ bool CNetChan::StartStreaming( unsigned int challengeNr )
 
 	MEM_ALLOC_CREDIT();
 
-	m_StreamSocket = NET_ConnectSocket( m_Socket, remote_address );
+	m_StreamSocket = 0; //NET_ConnectSocket( m_Socket, remote_address ); // TCP was yeeted from Gmod -> https://github.com/Facepunch/garrysmod-issues/issues/6294
 	m_StreamData.EnsureCapacity( NET_MAX_PAYLOAD );
 
 	return (m_StreamSocket != 0);
@@ -1593,9 +1630,9 @@ int CNetChan::SendDatagram(bf_write *datagram)
 	// Make sure for the client that the max routable payload size is up to date
 	if ( m_Socket == NS_CLIENT )
 	{
-		if ( net_maxroutable.GetInt() != GetMaxRoutablePayloadSize() )
+		if ( holylib_net_maxroutable.GetInt() != GetMaxRoutablePayloadSize() )
 		{
-			SetMaxRoutablePayloadSize( net_maxroutable.GetInt() );
+			SetMaxRoutablePayloadSize( holylib_net_maxroutable.GetInt() );
 		}
 	}
 

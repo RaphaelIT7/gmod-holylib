@@ -600,6 +600,12 @@ namespace Symbols
 	typedef void (*Filter_SendBan)(const netadr_t& adr);
 	extern const std::vector<Symbol> Filter_SendBanSym;
 
+	typedef int (*NET_SendStream)(int nSock, const char * buf, int len, int flags);
+	extern const std::vector<Symbol> NET_SendStreamSym;
+
+	typedef int (*NET_ReceiveStream)(int nSock, char * buf, int len, int flags);
+	extern const std::vector<Symbol> NET_ReceiveStreamSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: cvar Symbols
 	//---------------------------------------------------------------------------------

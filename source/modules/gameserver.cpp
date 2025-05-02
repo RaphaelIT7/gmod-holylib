@@ -3311,6 +3311,33 @@ void hook_Filter_SendBan(const netadr_t& adr)
 	detour_Filter_SendBan.GetTrampoline<Symbols::Filter_SendBan>()(adr);
 }
 
+INetChannel* NET_CreateNetChannel(int socket, netadr_t* adr, const char* name, INetChannelHandler* handler, bool bForceNewCHannel, int nProtocolVersion)
+{
+	return func_NET_CreateNetChannel(socket, adr, name, handler, bForceNewCHannel, nProtocolVersion);
+}
+
+void NET_RemoveNetChannel(INetChannel* chan, bool bDeleteNetChan)
+{
+	return func_NET_RemoveNetChannel(chan, bDeleteNetChan);
+}
+
+int NET_SendPacket(INetChannel *chan, int sock, const netadr_t &to, const unsigned char *data, int length, bf_write *pVoicePayload /* = NULL */, bool bUseCompression /*=false*/)
+{
+	return func_NET_SendPacket(chan, sock, to, data, length, pVoicePayload, bUseCompression);
+}
+
+static Symbols::NET_SendStream func_NET_SendStream;
+int NET_SendStream(int nSock, const char* buf, int len, int flags)
+{
+	return func_NET_SendStream(nSock, buf, len, flags);
+}
+
+static Symbols::NET_ReceiveStream func_NET_ReceiveStream;
+int NET_ReceiveStream(int nSock, char* buf, int len, int flags)
+{
+	return func_NET_ReceiveStream(nSock, buf, len, flags);
+}
+
 void CGameServerModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
@@ -3443,4 +3470,10 @@ void CGameServerModule::InitDetour(bool bPreServer)
 	net_showfragments = g_pCVar->FindVar("net_showfragments");
 	net_maxpacketdrop = g_pCVar->FindVar("net_maxpacketdrop");
 	net_showdrop = g_pCVar->FindVar("net_showdrop");
+
+	func_NET_SendStream = (Symbols::NET_SendStream)Detour::GetFunction(engine_loader.GetModule(), Symbols::NET_SendStreamSym);
+	Detour::CheckFunction((void*)func_NET_SendStream, "NET_SendStream");
+
+	func_NET_ReceiveStream = (Symbols::NET_ReceiveStream)Detour::GetFunction(engine_loader.GetModule(), Symbols::NET_ReceiveStreamSym);
+	Detour::CheckFunction((void*)func_NET_ReceiveStream, "NET_ReceiveStream");
 }
