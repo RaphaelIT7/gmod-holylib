@@ -10,7 +10,7 @@ struct lz4_header_t
 	unsigned int id;
 	unsigned int decompressedSize;
 };
-bool COM_BufferToBufferCompress_LZ4(void* dest, unsigned int* destLen, const void* source, unsigned int sourceLen)
+bool COM_BufferToBufferCompress_LZ4(void* dest, unsigned int* destLen, const void* source, unsigned int sourceLen, int accelerationLevel)
 {
 	lz4_header_t header;
 	header.id = LZ4_ID;
@@ -18,11 +18,12 @@ bool COM_BufferToBufferCompress_LZ4(void* dest, unsigned int* destLen, const voi
 
 	memcpy(dest, &header, sizeof(lz4_header_t));
 
-	int compressedSize = LZ4_compress_default(
+	int compressedSize = LZ4_compress_fast(
 		(const char*)source,
 		(char*)dest + sizeof(lz4_header_t),
 		(int)sourceLen,
-		(int)(*destLen - sizeof(lz4_header_t))
+		(int)(*destLen - sizeof(lz4_header_t)),
+		accelerationLevel
 	);
 
 	if (compressedSize <= 0)
@@ -35,7 +36,7 @@ bool COM_BufferToBufferCompress_LZ4(void* dest, unsigned int* destLen, const voi
 	return true;
 }
 
-bool COM_Compress_LZ4(const void* source, unsigned int sourceLen, void** dest, unsigned int* destLen)
+bool COM_Compress_LZ4(const void* source, unsigned int sourceLen, void** dest, unsigned int* destLen, int accelerationLevel)
 {
 	if (source == nullptr || sourceLen == 0)
 		return false;
@@ -47,7 +48,7 @@ bool COM_Compress_LZ4(const void* source, unsigned int sourceLen, void** dest, u
 		return false;
 
 	*destLen = maxCompressedSize;
-	bool result = COM_BufferToBufferCompress_LZ4(*dest, destLen, source, sourceLen);
+	bool result = COM_BufferToBufferCompress_LZ4(*dest, destLen, source, sourceLen, accelerationLevel);
 	if (!result)
 	{
 		free(*dest);

@@ -373,10 +373,11 @@ LUA_FUNCTION_STATIC(util_CompressLZ4)
 {
 	const char* pData = LUA->CheckString(1);
 	int iLength = LUA->ObjLen(1);
+	int accelerationLevel = LUA->CheckNumberOpt(2, 1);
 
 	void* pDest = NULL;
 	unsigned int pDestLen = 0;
-	bool bSuccess = COM_Compress_LZ4(pData, iLength, &pDest, &pDestLen);
+	bool bSuccess = COM_Compress_LZ4(pData, iLength, &pDest, &pDestLen, accelerationLevel);
 	if (!bSuccess)
 	{
 		LUA->PushNil();
