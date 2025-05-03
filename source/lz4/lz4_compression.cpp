@@ -4,33 +4,49 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#define LZ4_ID ( ('L' << 24) | ('Z' << 16) | ('4' << 8) | 0x00 )
+struct lz4_header_t
+{
+	unsigned int id;
+	unsigned int decompressedSize;
+};
 bool COM_BufferToBufferCompress_LZ4(void* dest, unsigned int* destLen, const void* source, unsigned int sourceLen)
 {
+	lz4_header_t header;
+	header.id = LZ4_ID;
+	header.decompressedSize = sourceLen;
+
+	memcpy(dest, &header, sizeof(lz4_header_t));
+
 	int compressedSize = LZ4_compress_default(
 		(const char*)source,
-		(char*)dest,
+		(char*)dest + sizeof(lz4_header_t),
 		(int)sourceLen,
-		(int)*destLen
+		(int)(*destLen - sizeof(lz4_header_t))
 	);
 
 	if (compressedSize <= 0)
 	{
-		Warning("COM_BufferToBufferCompress_LZ4: LZ4 compression failed with error code: %d\n", compressedSize);
+		Warning("COM_BufferToBufferCompress_LZ4: compression failed with error code: %d\n", compressedSize);
 		return false;
 	}
 
-	*destLen = (unsigned int)compressedSize;
+	*destLen = (unsigned int)(compressedSize + sizeof(lz4_header_t));
 	return true;
 }
 
 bool COM_Compress_LZ4(const void* source, unsigned int sourceLen, void** dest, unsigned int* destLen)
 {
+	if (source == nullptr || sourceLen == 0)
+		return false;
+
 	int maxCompressedSize = LZ4_compressBound(sourceLen);
 	
 	*dest = malloc(maxCompressedSize);
 	if (!*dest)
 		return false;
 
+	*destLen = maxCompressedSize;
 	bool result = COM_BufferToBufferCompress_LZ4(*dest, destLen, source, sourceLen);
 	if (!result)
 	{
@@ -44,15 +60,8 @@ bool COM_Compress_LZ4(const void* source, unsigned int sourceLen, void** dest, u
 
 unsigned int COM_GetIdealDestinationCompressionBufferSize_LZ4(unsigned int uncompressedSize)
 {
-	return 4 + LZ4_compressBound(uncompressedSize);
+	return sizeof(lz4_header_t) + LZ4_compressBound(uncompressedSize);
 }
-
-#define LZ4_ID ( ('L' << 24) | ('Z' << 16) | ('4' << 8) | 0x00 )
-struct lz4_header_t
-{
-	unsigned int id;
-	unsigned int decompressedSize;
-};
 
 bool COM_BufferToBufferDecompress_LZ4(void* dest, unsigned int* destLen, const void* source, unsigned int sourceLen)
 {
@@ -123,6 +132,7 @@ bool COM_Decompress_LZ4(const void* source, unsigned int sourceLen, void** dest,
 			Warning("COM_Decompress_LZ4: memory allocation failed for decompressed data\n");
 			return false;
 		}
+		*destLen = expectedSize;
 	}
 
 	int result = LZ4_decompress_safe(
