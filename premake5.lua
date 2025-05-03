@@ -59,6 +59,9 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			[[source/sourcesdk/*.cpp]],
 			[[source/public/*.h]],
 			[[source/lua/*.*]],
+			[[source/lz4/*.h]],
+			[[source/lz4/*.c]],
+			[[source/lz4/*.cpp]],
 		})
 		
 		removefiles({

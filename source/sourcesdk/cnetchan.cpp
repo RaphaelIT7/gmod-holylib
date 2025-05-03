@@ -12,11 +12,10 @@
 #include "inetmsghandler.h"
 #include "common.h"
 #include "netmessages.h"
-#include "tier0/vcrmode.h"
-#include "tier0/etwprof.h"
 #include "tier0/vprof.h"
 #include "filesystem_init.h"
 #include "net_chan.h"
+#include <lz4/lz4_compression.h>
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -49,6 +48,7 @@ static ConVar net_maxfragments( "holylib_net_maxfragments", "0", 0, "Forces a ma
 
 static ConVar holylib_net_maxroutable("holylib_net_maxroutable", std::to_string(MAX_ROUTABLE_PAYLOAD).c_str(), 0, "Maximum payload size", true, 0, true, MAX_ROUTABLE_PAYLOAD);
 
+extern bool Q_RemoveAllEvilCharacters2( char *pch ); // Bcause 64x is shit
 extern int  NET_SendStream( int nSock, const char * buf, int len, int flags );
 extern int  NET_ReceiveStream( int nSock, char * buf, int len, int flags );
 
@@ -86,7 +86,6 @@ bool COM_IsValidPath( const char *pszFilename )
 
 	return true;
 }
-
 
 // If the network connection hasn't been active in this many seconds, display some warning text.
 #define CONNECTION_PROBLEM_TIME		4.0f	// assume network problem after this time
@@ -174,8 +173,8 @@ void CNetChan::CompressFragments()
 	if ( !m_bUseCompression )
 		return;
 
-	if ( VCRGetMode() != VCR_Disabled )
-		return;
+	//if ( VCRGetMode() != VCR_Disabled )
+	//	return;
 
 	VPROF_BUDGET( "CNetChan::CompressFragments", VPROF_BUDGETGROUP_OTHER_NETWORKING );
 
@@ -204,10 +203,10 @@ void CNetChan::CompressFragments()
 			compressTimer.Start();
 
 			// fragments data is in memory
-			unsigned int compressedSize = COM_GetIdealDestinationCompressionBufferSize_Snappy( data->bytes );
+			unsigned int compressedSize = COM_GetIdealDestinationCompressionBufferSize_LZ4( data->bytes );
 			char * compressedData = new char[ compressedSize ];
 
-			if ( COM_BufferToBufferCompress_Snappy( compressedData, &compressedSize, data->buffer, data->bytes ) &&
+			if ( COM_BufferToBufferCompress_LZ4( compressedData, &compressedSize, data->buffer, data->bytes ) &&
 				( compressedSize < data->bytes ) )
 			{
 				compressTimer.End(); 
@@ -255,7 +254,7 @@ void CNetChan::CompressFragments()
 			{
 				// create compressed version of source file
 				unsigned int uncompressedSize = data->bytes;
-				unsigned int compressedSize = COM_GetIdealDestinationCompressionBufferSize_Snappy( uncompressedSize );
+				unsigned int compressedSize = COM_GetIdealDestinationCompressionBufferSize_LZ4( uncompressedSize );
 				char *uncompressed = new char[uncompressedSize];
 				char *compressed = new char[compressedSize];
 					
@@ -263,7 +262,7 @@ void CNetChan::CompressFragments()
 				g_pFullFileSystem->Read( uncompressed, data->bytes, data->file );
 
 				// compress into buffer
-				if ( COM_BufferToBufferCompress_Snappy( compressed, &compressedSize, uncompressed, uncompressedSize ) )
+				if ( COM_BufferToBufferCompress_LZ4( compressed, &compressedSize, uncompressed, uncompressedSize ) )
 				{
 					// write out to disk compressed version
 					hZipFile = g_pFullFileSystem->Open( compressedfilename, "wb", NULL );
@@ -313,7 +312,7 @@ void CNetChan::UncompressFragments( dataFragments_t *data )
 	unsigned int uncompressedSize = data->nUncompressedSize;
 
 	// uncompress data
-	COM_BufferToBufferDecompress( newbuffer, &uncompressedSize, data->buffer, data->bytes );
+	COM_BufferToBufferDecompress_LZ4( newbuffer, &uncompressedSize, data->buffer, data->bytes );
 
 	Assert( uncompressedSize == data->nUncompressedSize );
 
@@ -2442,7 +2441,7 @@ int CNetChan::ProcessPacketHeader( netpacket_t * packet )
 
 	m_nInSequenceNr = sequence;
 	m_nOutSequenceNrAck = sequence_ack;
-	ETWReadPacket( packet->from.ToString(), packet->wiresize, m_nInSequenceNr, m_nOutSequenceNr );
+	//ETWReadPacket( packet->from.ToString(), packet->wiresize, m_nInSequenceNr, m_nOutSequenceNr );
 
 // Update waiting list status
 	
@@ -3206,7 +3205,7 @@ bool CNetChan::IsValidFileForTransfer( const char *pszFilename )
 		return false;
 
 	// Don't allow filenames with unicode whitespace in them.
-	if ( Q_RemoveAllEvilCharacters( szTemp ) )
+	if ( Q_RemoveAllEvilCharacters2( szTemp ) )
 		return false;
 
 	if ( V_stristr( szTemp, "lua/" ) ||

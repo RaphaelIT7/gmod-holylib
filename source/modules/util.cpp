@@ -2,6 +2,7 @@
 #include "module.h"
 #include "lua.h"
 #include "Bootil/Bootil.h"
+#include <lz4/lz4_compression.h>
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -368,6 +369,46 @@ LUA_FUNCTION_STATIC(util_TableToJSON)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(util_CompressLZ4)
+{
+	const char* pData = LUA->CheckString(1);
+	int iLength = LUA->ObjLen(1);
+
+	void* pDest;
+	unsigned int pDestLen;
+	bool bSuccess = COM_Compress_LZ4(pData, iLength, &pDest, &pDestLen);
+	if (!bSuccess)
+	{
+		LUA->PushNil();
+		return 1;
+	}
+
+	LUA->PushString((const char*)pDest, pDestLen);
+	free(pDest);
+	
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(util_DecompressLZ4)
+{
+	const char* pData = LUA->CheckString(1);
+	int iLength = LUA->ObjLen(1);
+
+	void* pDest;
+	unsigned int pDestLen;
+	bool bSuccess = COM_Decompress_LZ4(pData, iLength, &pDest, &pDestLen);
+	if (!bSuccess)
+	{
+		LUA->PushNil();
+		return 1;
+	}
+
+	LUA->PushString((const char*)pDest, pDestLen);
+	free(pDest);
+
+	return 1;
+}
+
 void CUtilModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
@@ -380,6 +421,8 @@ void CUtilModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 		Util::AddFunc(pLua, util_AsyncCompress, "AsyncCompress");
 		Util::AddFunc(pLua, util_AsyncDecompress, "AsyncDecompress");
 		Util::AddFunc(pLua, util_TableToJSON, "FancyTableToJSON");
+		Util::AddFunc(pLua, util_CompressLZ4, "CompressLZ4");
+		Util::AddFunc(pLua, util_DecompressLZ4, "DecompressLZ4");
 		Util::PopTable(pLua);
 	}
 }
@@ -410,6 +453,8 @@ void CUtilModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 		Util::RemoveField(pLua, "AsyncCompress");
 		Util::RemoveField(pLua, "AsyncDecompress");
 		Util::RemoveField(pLua, "FancyTableToJSON");
+		Util::RemoveField(pLua, "CompressLZ4");
+		Util::RemoveField(pLua, "DecompressLZ4");
 		Util::PopTable(pLua);
 	}
 }
