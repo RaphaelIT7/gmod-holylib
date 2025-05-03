@@ -4,7 +4,8 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-#define LZ4_ID ( ('L' << 24) | ('Z' << 16) | ('4' << 8) | 0x00 )
+//#define LZ4_ID ( ('L' << 24) | ('Z' << 16) | ('4' << 8) | 0x00 )
+#define LZ4_ID ( ('4' << 24) | ('Z' << 16) | ('L' << 8) | 0x00 )
 struct lz4_header_t
 {
 	unsigned int id;
@@ -17,7 +18,6 @@ bool COM_BufferToBufferCompress_LZ4(void* dest, unsigned int* destLen, const voi
 	header.decompressedSize = sourceLen;
 
 	memcpy(dest, &header, sizeof(lz4_header_t));
-
 	int compressedSize = LZ4_compress_fast(
 		(const char*)source,
 		(char*)dest + sizeof(lz4_header_t),
@@ -28,7 +28,7 @@ bool COM_BufferToBufferCompress_LZ4(void* dest, unsigned int* destLen, const voi
 
 	if (compressedSize <= 0)
 	{
-		Warning("COM_BufferToBufferCompress_LZ4: compression failed with error code: %d\n", compressedSize);
+		Warning("COM_BufferToBufferCompress_LZ4: compression failed %i - (%p, %u, %p, %u)\n", compressedSize, dest, *destLen, source, sourceLen);
 		return false;
 	}
 
@@ -95,7 +95,7 @@ bool COM_BufferToBufferDecompress_LZ4(void* dest, unsigned int* destLen, const v
 
 	if (result < 0)
 	{
-		Warning("COM_BufferToBufferDecompress_LZ4: LZ4 decompression failed\n");
+		Warning("COM_BufferToBufferDecompress_LZ4: decompression failed %i - (%p, %u, %p, %u)\n", result, dest, *destLen, source, sourceLen);
 		return false;
 	}
 
@@ -125,35 +125,23 @@ bool COM_Decompress_LZ4(const void* source, unsigned int sourceLen, void** dest,
 	}
 
 	unsigned int expectedSize = pHeader->decompressedSize;
-	if (*dest == nullptr)
+	if (expectedSize <= 0)
 	{
-		*dest = malloc(expectedSize);
-		if (*dest == nullptr)
-		{
-			Warning("COM_Decompress_LZ4: memory allocation failed for decompressed data\n");
-			return false;
-		}
-		*destLen = expectedSize;
-	}
-
-	int result = LZ4_decompress_safe(
-		(const char*)(pHeader + 1),
-		(char*)dest,
-		(int)(sourceLen - sizeof(lz4_header_t)),
-		(int)*destLen
-	);
-
-	if (result < 0)
-	{
-		Warning("COM_Decompress_LZ4: LZ4 decompression failed\n");
-		free(*dest);
-		*dest = nullptr;
+		Warning("COM_Decompress_LZ4: invalid decompression size (%u)\n", expectedSize);
 		return false;
 	}
 
-	if (*destLen != expectedSize)
+	*dest = malloc(expectedSize);
+	if (*dest == nullptr)
 	{
-		Warning("COM_Decompress_LZ4: expected %u bytes, got %u bytes\n", expectedSize, *destLen);
+		Warning("COM_Decompress_LZ4: memory allocation failed for decompressed data\n");
+		return false;
+	}
+	*destLen = expectedSize;
+
+	bool result = COM_BufferToBufferDecompress_LZ4(*dest, destLen, source, sourceLen);
+	if (!result)
+	{
 		free(*dest);
 		*dest = nullptr;
 		return false;
