@@ -374,8 +374,8 @@ LUA_FUNCTION_STATIC(util_CompressLZ4)
 	const char* pData = LUA->CheckString(1);
 	int iLength = LUA->ObjLen(1);
 
-	void* pDest;
-	unsigned int pDestLen;
+	void* pDest = NULL;
+	unsigned int pDestLen = 0;
 	bool bSuccess = COM_Compress_LZ4(pData, iLength, &pDest, &pDestLen);
 	if (!bSuccess)
 	{

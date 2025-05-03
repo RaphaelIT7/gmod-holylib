@@ -42,7 +42,7 @@ static ConVar net_maxcleartime( "holylib_net_maxcleartime", "4.0", 0, "Max # of 
 static ConVar net_maxpacketdrop( "holylib_net_maxpacketdrop", "5000", 0, "Ignore any packets with the sequence number more than this ahead (0 == no limit)" );
 
 // Testing convars, but can be useful for server owners to control how many fragments are used.
-static ConVar net_filebackgroundtranmission( "net_filebackgroundtranmission", "-1", 0, "Networks a file by sending only a single fragment making it quite slow. -1 = let engine control it. 0 = force disable. 1 = force enable" );
+static ConVar net_filebackgroundtranmission( "holylib_net_filebackgroundtranmission", "-1", 0, "Networks a file by sending only a single fragment making it quite slow. -1 = let engine control it. 0 = force disable. 1 = force enable" );
 static ConVar net_minfragments( "holylib_net_minfragments", "1", 0, "Forces a minimum number of fragments to be used", true, 1, true, MAX_FRAGMENTS );
 static ConVar net_maxfragments( "holylib_net_maxfragments", "0", 0, "Forces a maximum number of fragments to be used. 0 = let the engine freely decide", true, 0, true, MAX_FRAGMENTS );
 
