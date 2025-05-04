@@ -13,8 +13,6 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-double		net_time;
-
 class CGameServerModule : public IModule
 {
 public:
@@ -33,6 +31,7 @@ static ConVar sv_filter_nobanresponse("sv_filter_nobanresponse", "0", 0, "If ena
 CGameServerModule g_pGameServerModule;
 IModule* pGameServerModule = &g_pGameServerModule;
 
+double net_time;
 class SVC_CustomMessage : public CNetMessage
 {
 public:
@@ -2123,11 +2122,13 @@ LUA_FUNCTION_STATIC(gameserver_SendConnectionlessPacket)
 	return 1;
 }
 
+static CUtlVectorMT<CUtlVector<CNetChan*>>* s_NetChannels;
 static Symbols::NET_CreateNetChannel func_NET_CreateNetChannel;
 LUA_FUNCTION_STATIC(gameserver_CreateNetChannel)
 {
 	netadr_t adr;
 	adr.SetFromString(LUA->CheckString(1), LUA->GetBool(2));
+	int nProtocolVersion = LUA->CheckNumberOpt(3, 1);
 
 	if (!adr.IsValid())
 	{
@@ -2138,7 +2139,7 @@ LUA_FUNCTION_STATIC(gameserver_CreateNetChannel)
 	ILuaNetMessageHandler* pHandler = new ILuaNetMessageHandler(LUA);
 
 	CBaseServer* pServer = (CBaseServer*)Util::server;
-	CNetChan* pNetChannel = (CNetChan*)func_NET_CreateNetChannel(pServer->m_Socket, &adr, adr.ToString(), (INetChannelHandler*)pHandler, true, 1);
+	CNetChan* pNetChannel = (CNetChan*)func_NET_CreateNetChannel(pServer->m_Socket, &adr, adr.ToString(), (INetChannelHandler*)pHandler, true, nProtocolVersion);
 	pNetChannel->RegisterMessage(pHandler->luaNetChanMessage);
 	pHandler->chan = pNetChannel;
 
@@ -2950,8 +2951,9 @@ int hook_CNetChan_SendDatagram(CNetChan* chan, bf_write *datagram)
 	int nMinRoutablePayload = MIN_ROUTABLE_PAYLOAD;
 
 #if defined( _DEBUG ) || defined( MIN_ROUTABLE_TESTING )
-	if ( m_Socket == NS_SERVER )
+	if ( chan->m_Socket == NS_SERVER )
 	{
+		ConVarRef net_minroutable("net_minroutable"); // RIP Performance. Anyways.
 		nMinRoutablePayload = net_minroutable.GetInt();
 	}
 #endif
@@ -3099,7 +3101,7 @@ int hook_CNetChan_SendDatagram(CNetChan* chan, bf_write *datagram)
 				if (subchan->numFragments[j] == 0)
 					continue;
 
-				Assert(m_WaitingList[j].Count() > 0);
+				Assert(chan->m_WaitingList[j].Count() > 0);
 
 				CNetChan::dataFragments_t * data = chan->m_WaitingList[j][0];
 
@@ -3245,7 +3247,7 @@ int hook_CNetChan_ProcessPacketHeader(CNetChan* chan, netpacket_t* packet)
 					if ( subchan->numFragments[j] == 0 )
 						continue;
 
-					Assert( m_WaitingList[j].Count() > 0 );
+					Assert( chan->m_WaitingList[j].Count() > 0 );
 					
 					CNetChan::dataFragments_t* data = chan->m_WaitingList[j][0];
 
@@ -3309,11 +3311,6 @@ void hook_Filter_SendBan(const netadr_t& adr)
 		return;
 
 	detour_Filter_SendBan.GetTrampoline<Symbols::Filter_SendBan>()(adr);
-}
-
-INetChannel* NET_CreateNetChannel(int socket, netadr_t* adr, const char* name, INetChannelHandler* handler, bool bForceNewCHannel, int nProtocolVersion)
-{
-	return func_NET_CreateNetChannel(socket, adr, name, handler, bForceNewCHannel, nProtocolVersion);
 }
 
 void NET_RemoveNetChannel(INetChannel* chan, bool bDeleteNetChan)
