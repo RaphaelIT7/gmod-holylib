@@ -3272,8 +3272,9 @@ Calculates and returns the CPU Usage.
 Approximates the memory usage of the server in bytes.  
 It isn't really related to the gameserver itself, but since it has CalculateCPUUsage I want to keep them close.
 
-#### number gameserver.SendConnectionlessPacket(bf_write bf, string ip)
+#### number gameserver.SendConnectionlessPacket(bf_write bf, string ip, bool useDNS = false, number socket = 1)
 ip - The target ip. Format `ip:port`  
+socket - The socket to use, `1` is the Server socket, `0` is the Client socket.  
 Sends out a connectionless packet to the target ip.
 Returns the length of the sent data or `-1` on failure.
 

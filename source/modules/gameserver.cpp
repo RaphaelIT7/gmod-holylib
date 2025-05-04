@@ -9,6 +9,7 @@
 #include "sourcesdk/baseserver.h"
 #include "sourcesdk/net_chan.h"
 #include <framesnapshot.h>
+#include <netadr_new.h> // Better than the normal sdk one as this one actually sets stuff properly.
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -2108,8 +2109,11 @@ LUA_FUNCTION_STATIC(gameserver_SendConnectionlessPacket)
 {
 	bf_write* msg = Get_bf_write(LUA, 1, true);
 
-	netadr_t adr;
+	netadrnew_t adr; adr;
 	adr.SetFromString(LUA->CheckString(2), LUA->GetBool(3));
+
+	CBaseServer* pServer = (CBaseServer*)Util::server;
+	int nSocket = LUA->CheckNumberOpt(4, pServer->m_Socket);
 
 	if (!adr.IsValid())
 	{
@@ -2117,13 +2121,12 @@ LUA_FUNCTION_STATIC(gameserver_SendConnectionlessPacket)
 		return 1;
 	}
 
-	CBaseServer* pServer = (CBaseServer*)Util::server;
-	LUA->PushNumber(func_NET_SendPacket(NULL, pServer->m_Socket, adr, msg->GetData(), msg->GetNumBytesWritten(), NULL, false));
+	LUA->PushNumber(func_NET_SendPacket(NULL, nSocket, (netadr_t&)adr, msg->GetData(), msg->GetNumBytesWritten(), NULL, false));
 	return 1;
 }
 
 static CUtlVectorMT<CUtlVector<CNetChan*>>* s_NetChannels = NULL;
-CNetChan* NET_CreateHolyLibNetChannel(int socket, netadr_t *adr, const char * name, INetChannelHandler * handler, bool bForceNewChannel, int nProtocolVersion)
+CNetChan* NET_CreateHolyLibNetChannel(int socket, netadrnew_t* adr, const char* name, INetChannelHandler* handler, bool bForceNewChannel, int nProtocolVersion)
 {
 	CNetChan* pChan = new CNetChan;
 
@@ -2131,7 +2134,7 @@ CNetChan* NET_CreateHolyLibNetChannel(int socket, netadr_t *adr, const char * na
 	(*s_NetChannels).AddToTail(pChan);
 	(*s_NetChannels).Unlock();
 
-	pChan->Setup(socket, adr, name, handler, nProtocolVersion);
+	pChan->Setup(socket, (netadr_t*)adr, name, handler, nProtocolVersion);
 
 	return pChan;
 }
@@ -2139,7 +2142,7 @@ CNetChan* NET_CreateHolyLibNetChannel(int socket, netadr_t *adr, const char * na
 static Symbols::NET_CreateNetChannel func_NET_CreateNetChannel;
 LUA_FUNCTION_STATIC(gameserver_CreateNetChannel)
 {
-	netadr_t adr;
+	netadrnew_t adr;
 	adr.SetFromString(LUA->CheckString(1), LUA->GetBool(2));
 	int nProtocolVersion = (int)LUA->CheckNumberOpt(3, 1);
 
