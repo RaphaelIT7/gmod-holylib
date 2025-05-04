@@ -606,6 +606,8 @@ namespace Symbols
 	typedef int (*NET_ReceiveStream)(int nSock, char * buf, int len, int flags);
 	extern const std::vector<Symbol> NET_ReceiveStreamSym;
 
+	extern const std::vector<Symbol> s_NetChannelsSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: cvar Symbols
 	//---------------------------------------------------------------------------------

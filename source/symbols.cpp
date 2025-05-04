@@ -836,6 +836,10 @@ namespace Symbols
 		Symbol::FromName("_Z17NET_ReceiveStreamiPcii"),
 	};
 
+	const std::vector<Symbol> s_NetChannelsSym = {
+		Symbol::FromName("_ZL13s_NetChannels"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: lagcompensation Symbols
 	//---------------------------------------------------------------------------------

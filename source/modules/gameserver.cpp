@@ -2122,7 +2122,20 @@ LUA_FUNCTION_STATIC(gameserver_SendConnectionlessPacket)
 	return 1;
 }
 
-static CUtlVectorMT<CUtlVector<CNetChan*>>* s_NetChannels;
+static CUtlVectorMT<CUtlVector<CNetChan*>>* s_NetChannels = NULL;
+CNetChan* NET_CreateHolyLibNetChannel(int socket, netadr_t *adr, const char * name, INetChannelHandler * handler, bool bForceNewChannel, int nProtocolVersion)
+{
+	CNetChan* pChan = new CNetChan;
+
+	(*s_NetChannels).Lock();
+	(*s_NetChannels).AddToTail(pChan);
+	(*s_NetChannels).Unlock();
+
+	pChan->Setup(socket, adr, name, handler, nProtocolVersion);
+
+	return pChan;
+}
+
 static Symbols::NET_CreateNetChannel func_NET_CreateNetChannel;
 LUA_FUNCTION_STATIC(gameserver_CreateNetChannel)
 {
@@ -2139,7 +2152,7 @@ LUA_FUNCTION_STATIC(gameserver_CreateNetChannel)
 	ILuaNetMessageHandler* pHandler = new ILuaNetMessageHandler(LUA);
 
 	CBaseServer* pServer = (CBaseServer*)Util::server;
-	CNetChan* pNetChannel = (CNetChan*)func_NET_CreateNetChannel(pServer->m_Socket, &adr, adr.ToString(), (INetChannelHandler*)pHandler, true, nProtocolVersion);
+	CNetChan* pNetChannel = NET_CreateHolyLibNetChannel(pServer->m_Socket, &adr, adr.ToString(), (INetChannelHandler*)pHandler, true, nProtocolVersion);
 	pNetChannel->RegisterMessage(pHandler->m_pLuaNetChanMessage);
 	pHandler->m_pChan = pNetChannel;
 
@@ -3474,4 +3487,6 @@ void CGameServerModule::InitDetour(bool bPreServer)
 
 	func_NET_ReceiveStream = (Symbols::NET_ReceiveStream)Detour::GetFunction(engine_loader.GetModule(), Symbols::NET_ReceiveStreamSym);
 	Detour::CheckFunction((void*)func_NET_ReceiveStream, "NET_ReceiveStream");
+
+	s_NetChannels = Detour::ResolveSymbol<CUtlVectorMT<CUtlVector<CNetChan*>>>(engine_loader, Symbols::s_NetChannelsSym);
 }
