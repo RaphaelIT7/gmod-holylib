@@ -170,7 +170,7 @@ unsigned int CBassAudioStream::Decode(void* data, unsigned int size)
 int CBassAudioStream::GetOutputBits()
 {
 	Error(PROJECT_NAME ": CBassAudioStream::GetOutputBits is Not used");
-#ifdef SYSTEM_LINUX
+#if defined(SYSTEM_LINUX) || defined(ARCHITECTURE_X86_64)
 	return 0; // Make linux happy but windows angry
 #endif
 }
