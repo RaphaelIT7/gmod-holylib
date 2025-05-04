@@ -2146,6 +2146,9 @@ LUA_FUNCTION_STATIC(gameserver_CreateNetChannel)
 	adr.SetFromString(LUA->CheckString(1), LUA->GetBool(2));
 	int nProtocolVersion = (int)LUA->CheckNumberOpt(3, 1);
 
+	CBaseServer* pServer = (CBaseServer*)Util::server;
+	int nSocket = LUA->CheckNumberOpt(4, pServer->m_Socket);
+
 	if (!adr.IsValid())
 	{
 		Push_CNetChan(LUA, NULL);
@@ -2153,9 +2156,7 @@ LUA_FUNCTION_STATIC(gameserver_CreateNetChannel)
 	}
 
 	ILuaNetMessageHandler* pHandler = new ILuaNetMessageHandler(LUA);
-
-	CBaseServer* pServer = (CBaseServer*)Util::server;
-	CNetChan* pNetChannel = NET_CreateHolyLibNetChannel(pServer->m_Socket, &adr, adr.ToString(), (INetChannelHandler*)pHandler, true, nProtocolVersion);
+	CNetChan* pNetChannel = NET_CreateHolyLibNetChannel(nSocket, &adr, adr.ToString(), (INetChannelHandler*)pHandler, true, nProtocolVersion);
 	pNetChannel->RegisterMessage(pHandler->m_pLuaNetChanMessage);
 	pHandler->m_pChan = pNetChannel;
 
@@ -2310,6 +2311,10 @@ void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, gameserver_CreateNetChannel, "CreateNetChannel");
 		Util::AddFunc(pLua, gameserver_RemoveNetChannel, "RemoveNetChannel");
 		Util::AddFunc(pLua, gameserver_GetCreatedNetChannels, "GetCreatedNetChannels");
+
+		Util::AddValue(pLua, NS_CLIENT, "NS_CLIENT");
+		Util::AddValue(pLua, NS_SERVER, "NS_SERVER");
+		Util::AddValue(pLua, NS_HLTV, "NS_HLTV");
 	Util::FinishTable(pLua, "gameserver");
 }
 

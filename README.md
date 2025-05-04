@@ -59,10 +59,17 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 ## Next Update
 \- [+] Any files in `lua/autorun/_holylua/` are loaded by HolyLib on startup.  
 \- [+] Added a new module `luathreads`  
+\- [+] Added `NS_` enums to `gameserver` module.  
+\- [+] Added missing `CNetChan:Shutdown` function to the `gameserver` module.  
+\- [+] Added LZ4 compression for newly implemented net channel.  
+\- [+] Added `util.CompressLZ4` & `util.DecompressLZ4` to `util` module.  
+\- [+] Implemented a custom `CNetChan` for faster Server <-> Server connections. See https://github.com/RaphaelIT7/gmod-holylib/issues/42  
 \- [#] Better support for multiple Lua states  
 \- \- This required most of the lua setup to be changed >:(  
 \- [#] Solved a few possible stack issues  
 \- [#] Fixed a crash after a map change. See https://github.com/RaphaelIT7/gmod-holylib/issues/41  
+\- [#] Update internal `netadr` stuct to now properly support `loopback` and `localhost` inputs for IP's.  
+\- [#] Possibly fixed memory issues caused by `IGModAudioChannel`'s being deleted & having undefined behavior.  
 
 > [!WARNING]
 > The current builds are unstable and need **A LOT** of testing.  
@@ -72,7 +79,9 @@ You can see all changes here:
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 
 ### Existing Lua API Changes
-None
+\- [+] Added third `protocolVersion` argument to `gameserver.CreateNetChannel`  
+\- [+] Added fourth `socket`(use `NS_` enums) argument to `gameserver.CreateNetChannel` & `gameserver.SendConnectionlessPacket`  
+\- [#] Fixed `addonsystem.ShouldMount` & `addonsystem.SetShouldMount` `workshopID` arguments being a number when they should have been a string.  
 
 ### QoL updates
 \- [#] Changed some console message to be more consistent.  
@@ -1097,6 +1106,14 @@ ignorecycle - If `true` it won't throw a lua error when you have a table that is
 
 Convers the given table to json.  
 Unlike Gmod's version, this function will turn the numbers to an integer if they are one/fit one.  
+
+#### string util.CompressLZ4(string data, number accelerationLevel = 1)
+Compresses the given data using [LZ4](https://github.com/lz4/lz4)  
+Returns `nil` on failure.  
+
+#### string util.DecompressLZ4(string data)
+Decompresses the given data using [LZ4](https://github.com/lz4/lz4)  
+Returns `nil` on failure. 
 
 ## ConVars
 
@@ -3272,9 +3289,8 @@ Calculates and returns the CPU Usage.
 Approximates the memory usage of the server in bytes.  
 It isn't really related to the gameserver itself, but since it has CalculateCPUUsage I want to keep them close.
 
-#### number gameserver.SendConnectionlessPacket(bf_write bf, string ip, bool useDNS = false, number socket = 1)
+#### number gameserver.SendConnectionlessPacket(bf_write bf, string ip, bool useDNS = false, number socket = NS_SERVER)
 ip - The target ip. Format `ip:port`  
-socket - The socket to use, `1` is the Server socket, `0` is the Client socket.  
 Sends out a connectionless packet to the target ip.
 Returns the length of the sent data or `-1` on failure.
 
@@ -3282,7 +3298,24 @@ Returns the length of the sent data or `-1` on failure.
 > It's expected that **YOU** already added the connectionless header, this was done to not have to copy the buffer.  
 > `bf:WriteLong(-1) -- Write this as the first thing. This is the CONNECTIONLESS_HEADER`
 
-#### CNetChan gameserver.CreateNetChannel(string ip, bool useDNS = false)
+Example on how to send a loopback packet:
+```lua
+hook.Add("HolyLib:ProcessConnectionlessPacket", "LoopbackExample", function(bf, ip)
+	if ip != "loopback" then return end
+
+	print("We got our own packet: " .. bf:ReadString())
+	return true
+end)
+
+local bf = bitbuf.CreateWriteBuffer(64)
+bf:WriteLong(-1)
+bf:WriteString("Hello World")
+
+-- We use NS_CLIENT as a socket because then the packet is queued into the Server loopback queue.
+gameserver.SendConnectionlessPacket(bf, "loopback:" .. gameserver.GetUDPPort(), false, gameserver.NS_CLIENT)
+```
+
+#### CNetChan gameserver.CreateNetChannel(string ip, bool useDNS = false, number protocolVersion = 1, number socket = NS_SERVER)
 ip - The target ip. Format `ip:port`  
 Creates a net channel for the given ip.
 Returns the channel or `nil` on failure.  
@@ -3359,6 +3392,15 @@ Removes/Destroys a net channel invalidating it.
 
 #### table[CNetChan] gameserver.GetCreatedNetChannels()
 Returns a table containing all net channels created by gameserver.CreateNetChannel.  
+
+#### gameserver.NS_CLIENT = 0
+Client socket.
+
+#### gameserver.NS_SERVER = 1
+Server socket.
+
+#### gameserver.NS_HLTV = 2
+HLTV socket.
 
 ### CBaseClient
 This class represents a client.
