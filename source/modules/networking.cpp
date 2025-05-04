@@ -296,7 +296,7 @@ static int hook_SendTable_CullPropsFromProxies(
 {
 	//memcpy(pOutProps, pStartProps, nStartProps * sizeof(int));
 	int count = 0;
-	auto pPrecalc = pTable->m_pPrecalc;
+	//auto pPrecalc = pTable->m_pPrecalc;
 	auto &prop_cull = GetServerClassCache(pTable)->prop_cull;
 	for (int i = 0; i <nStartProps; i++) {
 		int prop = pStartProps[i];
@@ -709,7 +709,7 @@ int FindSendPropPrecalcIndex(SendTable *table, const std::string &name, int inde
 
     if (FindSendProp(offset, table, name.c_str(), prop, usedTables, index)) {
         auto precalc = table->m_pPrecalc;
-        int indexProp = -1;
+        //int indexProp = -1;
         for (int i = 0; i < precalc->m_Props.Count(); i++) {
             if (precalc->m_Props[i] == prop) {
                 return i;
@@ -1502,7 +1502,7 @@ void CNetworkingModule::OnEntityDeleted(CBaseEntity* pEntity)
 
 void CNetworkingModule::OnEntityCreated(CBaseEntity* pEntity)
 {
-	auto mod = GetOrCreateEntityModule<SendpropOverrideModule>(pEntity, "sendpropoverride");
+	//auto mod = GetOrCreateEntityModule<SendpropOverrideModule>(pEntity, "sendpropoverride");
 	//mod->AddOverride(CallbackPluginCall, precalcIndex, prop, callbacks.size() - 1);
 	g_pEntityCache[pEntity->entindex()] = pEntity;
 }
@@ -1675,7 +1675,7 @@ void CNetworkingModule::ServerActivate(edict_t* pEdictList, int edictCount, int 
 				int elementStride = 0;
 				int propIdToUse = iToProp;
 				int offsetToUse = offset;
-				auto arrayProp = pProp;
+				//auto arrayProp = pProp;
 				if ( pProp->GetType() == DPT_Array )
 				{
 					offset = pProp->GetArrayProp()->GetOffset() + (intptr_t)pmStack.GetCurStructBase() - 1;

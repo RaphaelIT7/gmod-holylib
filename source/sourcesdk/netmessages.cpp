@@ -185,7 +185,7 @@ bool SVC_ServerInfo::ReadFromBuffer( bf_read &buffer )
 	m_nPlayerSlot	= buffer.ReadByte();
 	m_nMaxClients	= buffer.ReadByte();
 	m_fTickInterval	= buffer.ReadFloat();
-	m_cOS			= buffer.ReadChar();
+	m_cOS			= (char)buffer.ReadChar();
 	buffer.ReadString( m_szGameDirBuffer, sizeof(m_szGameDirBuffer) );
 	buffer.ReadString( m_szMapNameBuffer, sizeof(m_szMapNameBuffer) );
 	buffer.ReadString( m_szSkyNameBuffer, sizeof(m_szSkyNameBuffer) );

@@ -166,7 +166,7 @@ FileHandle_t GetFileHandleFromCache(std::string_view strFilePath)
 		Msg("holylib - GetFileHandleFromCache: File wasn't marked for deletion? (%p)\n", it->second); // This could mean that were actively using it.
 	}
 
-	int iPos = g_pFullFileSystem->Tell(it->second);
+	int iPos = (int)g_pFullFileSystem->Tell(it->second);
 	if (iPos != 0)
 	{
 		if (g_pFileSystemModule.InDebug())
@@ -177,7 +177,7 @@ FileHandle_t GetFileHandleFromCache(std::string_view strFilePath)
 		if (g_pFileSystemModule.InDebug())
 			Msg("holylib - GetFileHandleFromCache: Rewind pos: %llu\n", g_pFullFileSystem->Tell(it->second));
 		
-		int iNewPos = g_pFullFileSystem->Tell(it->second);
+		int iNewPos = (int)g_pFullFileSystem->Tell(it->second);
 		if (iNewPos != 0)
 		{
 			if (g_pFileSystemModule.InDebug())
@@ -2005,7 +2005,7 @@ LUA_FUNCTION_STATIC(filesystem_Rename)
 
 LUA_FUNCTION_STATIC(filesystem_Size)
 {
-	LUA->PushNumber(g_pFullFileSystem->Size(LUA->CheckString(1), LUA->CheckStringOpt(2, "GAME")));
+	LUA->PushNumber((double)g_pFullFileSystem->Size(LUA->CheckString(1), LUA->CheckStringOpt(2, "GAME")));
 
 	return 1;
 }
@@ -2131,7 +2131,7 @@ LUA_FUNCTION_STATIC(addonsystem_Refresh)
 
 LUA_FUNCTION_STATIC(addonsystem_MountFile)
 {
-	const char* strGMAPath = LUA->CheckString(1);
+	//const char* strGMAPath = LUA->CheckString(1);
 
 	std::vector<std::string> files;
 	//LUA->PushNumber(GetAddonFilesystem()->MountFile(strGMAPath, &files, 0, 0, !?));
@@ -2149,14 +2149,17 @@ LUA_FUNCTION_STATIC(addonsystem_MountFile)
 
 LUA_FUNCTION_STATIC(addonsystem_ShouldMount)
 {
-	LUA->PushBool(GetAddonFilesystem()->ShouldMount(LUA->CheckNumber(1)));
+	const char* workshopID64 = LUA->CheckString(1);
+	uint64 workshopID = strtoull(workshopID64, NULL, 0);
+	LUA->PushBool(GetAddonFilesystem()->ShouldMount(workshopID));
 
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(addonsystem_SetShouldMount)
 {
-	uint64_t workshopID = LUA->CheckNumber(1);
+	const char* workshopID64 = LUA->CheckString(1);
+	uint64 workshopID = strtoull(workshopID64, NULL, 0);
 	bool bMount = LUA->GetBool(2);
 	GetAddonFilesystem()->SetShouldMount(workshopID, bMount);
 

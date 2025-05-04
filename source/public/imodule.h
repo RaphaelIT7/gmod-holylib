@@ -131,7 +131,7 @@ public:
 #define LoadStatus_LuaServerInit (1<<4)
 #define LoadStatus_ServerActivate (1<<5)
 
-enum Module_Realm
+enum Module_Realm : unsigned char
 {
 	CLIENT = 0,
 	SERVER,

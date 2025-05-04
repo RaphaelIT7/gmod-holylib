@@ -69,6 +69,7 @@ public:
 	virtual void Restart();
 public:
 	CGModAudioChannel( DWORD handle, bool isfile );
+	virtual ~CGModAudioChannel();
 
 private:
 	DWORD m_pHandle;

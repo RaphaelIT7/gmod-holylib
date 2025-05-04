@@ -57,7 +57,7 @@ void HolyLua::Init()
 		FileHandle_t fh = g_pFullFileSystem->Open(fileName.c_str(), "rb", "GAME");
 		if (fh)
 		{
-			int length = g_pFullFileSystem->Size(fh);
+			int length = (int)g_pFullFileSystem->Size(fh);
 
 			char* buffer = new char[length + 1];
 			g_pFullFileSystem->Read(buffer, length, fh);

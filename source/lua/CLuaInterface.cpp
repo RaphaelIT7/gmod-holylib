@@ -261,7 +261,7 @@ void CLuaInterface::CheckType(int iStackPos, int iType)
 	if (actualType != iType) {
 		const char* expectedType = GetTypeName(iType);
 		const char* actualTypeName = GetTypeName(actualType);
-		const char* errorMessage = lua_pushfstring(state, "Expected type %s at stack position %d, but got type %s.", expectedType, iStackPos, actualTypeName);
+		//const char* errorMessage = lua_pushfstring(state, "Expected type %s at stack position %d, but got type %s.", expectedType, iStackPos, actualTypeName);
 		lua_error(state);
 	}
 }
@@ -564,7 +564,7 @@ int CLuaInterface::CreateMetaTable(const char* strName) // Return value is proba
 		ReferencePush(ref);
 		ReferenceFree(ref);
 		lua_getfield(state, -1, "MetaID");
-		int metaID = lua_tonumber(state, -1);
+		int metaID = (int)lua_tonumber(state, -1);
 		lua_pop(state, 1);
 		return metaID;
 	} else {
@@ -600,7 +600,7 @@ void CLuaInterface::PushUserType(void* data, int iType)
 
 	GarrysMod::Lua::ILuaBase::UserData* udata = (GarrysMod::Lua::ILuaBase::UserData*)NewUserdata(8);
 	udata->data = data;
-	udata->type = iType;
+	udata->type = (unsigned char)iType;
 
 	if (PushMetaTable(iType))
 	{

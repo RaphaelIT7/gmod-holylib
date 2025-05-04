@@ -48,7 +48,7 @@ Default__index(IGModAudioChannel);
 Default__newindex(IGModAudioChannel);
 Default__GetTable(IGModAudioChannel);
 Default__gc(IGModAudioChannel,
-	IGModAudioChannel* channel = (IGModAudioChannel*)pStoredData;
+	CGModAudioChannel* channel = (CGModAudioChannel*)pStoredData;
 	if (channel)
 		delete channel;
 )

@@ -594,7 +594,7 @@ private:
 	int iTableReference = -1;
 	int pAdditionalData = NULL; // Used by HLTVClient.
 	GarrysMod::Lua::ILuaInterface* pLua = NULL;
-	unsigned char iType = GarrysMod::Lua::Type::None;
+	unsigned char iType = GarrysMod::Lua::Type::Nil;
 };
 
 inline void BaseUserData::ForceGlobalRelease(void* pData)
@@ -748,6 +748,7 @@ LuaUserData* Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var
  * the GC WONT free the LuaClass meaning this "could" (and did in the past) cause a memory/reference leak
  * The data thats passed won't be freed by lua.
  */
+#pragma warning(disable:4505) // Why would we need a warning if a function got removed because its unused.
 #define PushReferenced_LuaClass( className ) \
 void Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
 { \
@@ -773,7 +774,7 @@ void Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
 	} \
 } \
 \
-static void Delete_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
+static [[maybe_unused]] void Delete_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
 { \
 	auto pushedUserData = Lua::GetLuaData(LUA)->GetPushedUserData(); \
 	auto it = pushedUserData.find(var); \
@@ -784,7 +785,7 @@ static void Delete_##className(GarrysMod::Lua::ILuaInterface* LUA, className* va
 	} \
 } \
 \
-static void DeleteAll_##className(GarrysMod::Lua::ILuaInterface* LUA) \
+static [[maybe_unused]] void DeleteAll_##className(GarrysMod::Lua::ILuaInterface* LUA) \
 { \
 	Lua::StateData* LUADATA = Lua::GetLuaData(LUA); \
 	int luaType = LUADATA->GetMetaTable(TO_LUA_TYPE(className)); \
@@ -802,7 +803,7 @@ static void DeleteAll_##className(GarrysMod::Lua::ILuaInterface* LUA) \
 	pushedUserData.clear(); \
 } \
 \
-static void DeleteGlobal_##className(className* var) \
+static [[maybe_unused]] void DeleteGlobal_##className(className* var) \
 { \
 	BaseUserData::ForceGlobalRelease(var); \
 }

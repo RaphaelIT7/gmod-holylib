@@ -99,3 +99,5 @@ public:
 	virtual void StopAllPlayback() = 0;
 	virtual const char* GetErrorString( int ) = 0;
 };
+
+#undef CALLBACK // Solves another error with minwindef.h

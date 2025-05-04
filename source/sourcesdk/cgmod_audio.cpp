@@ -170,7 +170,9 @@ unsigned int CBassAudioStream::Decode(void* data, unsigned int size)
 int CBassAudioStream::GetOutputBits()
 {
 	Error(PROJECT_NAME ": CBassAudioStream::GetOutputBits is Not used");
+#ifdef SYSTEM_LINUX
 	return 0; // Make linux happy but windows angry
+#endif
 }
 
 int CBassAudioStream::GetOutputRate()
@@ -448,6 +450,11 @@ CGModAudioChannel::CGModAudioChannel( DWORD handle, bool isfile )
 	this->m_bIsFile = isfile;
 }
 
+CGModAudioChannel::~CGModAudioChannel()
+{
+
+}
+
 void CGModAudioChannel::Destroy()
 {
  	if (BASS_ChannelIsActive(m_pHandle) != 1) {
@@ -461,10 +468,7 @@ void CGModAudioChannel::Destroy()
 		}
 	}
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wdelete-non-virtual-dtor"
 	delete this;
-#pragma GCC diagnostic pop
 }
 
 void CGModAudioChannel::Stop()
@@ -555,11 +559,11 @@ void CGModAudioChannel::GetPos(Vector* earPosition, Vector* earForward, Vector* 
 
 void CGModAudioChannel::SetTime(double time, bool dont_decode)
 {
-	double pos = BASS_ChannelSeconds2Bytes(m_pHandle, (QWORD)time);
+	QWORD pos = BASS_ChannelSeconds2Bytes(m_pHandle, time);
 	//double currentPos = BASS_ChannelGetPosition(handle, BASS_POS_BYTE);
 
 	DWORD mode = dont_decode ? BASS_POS_DECODE : BASS_POS_BYTE;
-	BASS_ChannelSetPosition(m_pHandle, (QWORD)pos, mode);
+	BASS_ChannelSetPosition(m_pHandle, pos, mode);
 }
 
 double CGModAudioChannel::GetTime()

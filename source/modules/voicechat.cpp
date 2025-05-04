@@ -400,7 +400,7 @@ LUA_FUNCTION_STATIC(VoiceStream_SetData)
 			continue;
 		}
 
-		int tick = LUA->GetNumber(-2); // key
+		int tick = (int)LUA->GetNumber(-2); // key
 		VoiceData* data = Get_VoiceData(LUA, -1, false); // value
 
 		if (data)

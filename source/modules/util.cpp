@@ -373,7 +373,7 @@ LUA_FUNCTION_STATIC(util_CompressLZ4)
 {
 	const char* pData = LUA->CheckString(1);
 	int iLength = LUA->ObjLen(1);
-	int accelerationLevel = LUA->CheckNumberOpt(2, 1);
+	int accelerationLevel = (int)LUA->CheckNumberOpt(2, 1);
 
 	void* pDest = NULL;
 	unsigned int pDestLen = 0;
