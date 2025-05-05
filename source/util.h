@@ -774,7 +774,7 @@ void Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
 	} \
 } \
 \
-static [[maybe_unused]] void Delete_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
+[[maybe_unused]] static void Delete_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
 { \
 	auto pushedUserData = Lua::GetLuaData(LUA)->GetPushedUserData(); \
 	auto it = pushedUserData.find(var); \
@@ -785,7 +785,7 @@ static [[maybe_unused]] void Delete_##className(GarrysMod::Lua::ILuaInterface* L
 	} \
 } \
 \
-static [[maybe_unused]] void DeleteAll_##className(GarrysMod::Lua::ILuaInterface* LUA) \
+[[maybe_unused]] static void DeleteAll_##className(GarrysMod::Lua::ILuaInterface* LUA) \
 { \
 	Lua::StateData* LUADATA = Lua::GetLuaData(LUA); \
 	int luaType = LUADATA->GetMetaTable(TO_LUA_TYPE(className)); \
@@ -803,7 +803,7 @@ static [[maybe_unused]] void DeleteAll_##className(GarrysMod::Lua::ILuaInterface
 	pushedUserData.clear(); \
 } \
 \
-static [[maybe_unused]] void DeleteGlobal_##className(className* var) \
+[[maybe_unused]] static void DeleteGlobal_##className(className* var) \
 { \
 	BaseUserData::ForceGlobalRelease(var); \
 }
