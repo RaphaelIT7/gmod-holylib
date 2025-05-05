@@ -362,6 +362,17 @@ LUA_FUNCTION_STATIC(Disconnect)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(ReceiveClientMessage)
+{
+	int userID = LUA->CheckNumber(1);
+	CBaseEntity* pEnt = Util::Get_Entity(LUA, 2, true);
+	bf_read* msg = Get_bf_read(LUA, 3, true);
+	int bits = LUA->CheckNumber(4);
+
+	Util::servergameclients->GMOD_ReceiveClientMessage(userID, pEnt->edict(), msg, bits);
+	return 0;
+}
+
 void CHolyLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (!bServerInit)
@@ -388,6 +399,7 @@ void CHolyLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 			Util::AddFunc(pLua, _EntityMessageBegin, "EntityMessageBegin");
 			Util::AddFunc(pLua, _UserMessageBegin, "UserMessageBegin");
 			Util::AddFunc(pLua, _MessageEnd, "MessageEnd");
+			Util::AddFunc(pLua, ReceiveClientMessage, "ReceiveClientMessage");
 		Util::FinishTable(pLua, "HolyLib");
 	} else {
 		if (Lua::PushHook("HolyLib:Initialize", pLua))

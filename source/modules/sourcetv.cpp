@@ -404,6 +404,14 @@ static bool hook_CHLTVClient_ProcessGMod_ClientToServer(CHLTVClient* pClient, CL
 	if (!g_pBitBufModule->IsEnabled()) // This relies on the bitbuf module.
 		return true;
 
+	/*
+	 * ToDo: Verify this again as it might have changed?
+	 * 
+	 * Type is 8 bits instead of 4,
+	 * Lua net message is type 0 instead of 2
+	 * 30 bits padding were removed?
+	 */
+
 	pBf->m_DataIn.Seek(0);
 	int iType = pBf->m_DataIn.ReadUBitLong(4);
 	if (iType != 2) // Only handle type 2 -> Lua net message.

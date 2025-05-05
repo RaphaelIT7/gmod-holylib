@@ -46,6 +46,7 @@ jobs:
       SOURCESDK_MINIMAL_BRANCH: "patch-6"
       SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-2"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
+      PTERODACTYL_RESTART: "true"
 
   build_testingarea_dev2: # Could make this use the already created artifact but I'm too lazy rn
     name: "Build 32x (Testing Area - Dev2)"
@@ -65,6 +66,7 @@ jobs:
       SOURCESDK_MINIMAL_BRANCH: "patch-6"
       SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-2"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
+      PTERODACTYL_RESTART: "true"
 
   build_testingarea_64x:
     name: "Build 64x (Testing Area - 64x)"
@@ -85,6 +87,7 @@ jobs:
       SOURCESDK_MINIMAL_BRANCH: "patch-6"
       SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-2"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
+      PTERODACTYL_RESTART: "true"
 
   build_ghostinj:
     name: "Build GhostInj"
