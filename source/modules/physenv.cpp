@@ -108,7 +108,7 @@ void CheckPhysicsLag()
 			g_Lua->PushNumber((double)pSimulationTime);
 			if (g_Lua->CallFunctionProtected(2, 1, true))
 			{
-				int pType = (int)g_Lua->GetNumber();
+				int pType = (int)g_Lua->GetNumber(-1);
 				if (pType > 2 || pType < 0)
 					pType = IVP_NoSkip; // Invalid value. So we won't do shit.
 

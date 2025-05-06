@@ -2337,7 +2337,7 @@ Supports: Linux32 | Windows32
 ### Functions
 
 #### physenv.SetLagThreshold(number ms)
-The lag threshold(time in ms) which if exceeded will cause it to call the `HolyLib:PhysicsLag` hook.  
+The lag threshold(time in ms) which if exceeded will cause it to call the `HolyLib:OnPhysicsLag` hook.  
 
 > [!NOTE]
 > Only works on Linux32  
