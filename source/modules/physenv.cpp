@@ -34,6 +34,8 @@ public:
 CPhysEnvModule g_pPhysEnvModule;
 IModule* pPhysEnvModule = &g_pPhysEnvModule;
 
+static bool bIsJoltPhysics = false; // if were using jolt, a lot of things need to change.
+
 class IVP_Mindist;
 static bool g_bInImpactCall = false;
 IVP_Mindist** g_pCurrentMindist;
@@ -2296,91 +2298,123 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 	if (bPreServer)
 		return;
 
-#if !defined(SYSTEM_WINDOWS) && defined(ARCHITECTURE_X86)
-	SourceSDK::FactoryLoader vphysics_loader("vphysics");
-	Detour::Create(
-		&detour_IVP_Mindist_do_impact, "IVP_Mindist::do_impact",
-		vphysics_loader.GetModule(), Symbols::IVP_Mindist_do_impactSym,
-		(void*)hook_IVP_Mindist_do_impact, m_pID
-	);
+#if defined(SYSTEM_LINUX) && defined(ARCHITECTURE_X86)
+	if (g_pFullFileSystem)
+	{
+		FileHandle_t fileHandle = g_pFullFileSystem->Open("bin/vphysics_srv.so", "rb", "BASE_PATH");
+		if (fileHandle)
+		{
+			int size = g_pFullFileSystem->Size(fileHandle);
+			g_pFullFileSystem->Close(fileHandle);
 
-	Detour::Create(
-		&detour_IVP_Mindist_D2, "IVP_Mindist::~IVP_Mindist",
-		vphysics_loader.GetModule(), Symbols::IVP_Mindist_D2Sym,
-		(void*)hook_IVP_Mindist_D2, m_pID
-	);
+			if (size < (500 * 1024)) // It's smaller than 500kb? Sus. Let's check for jolt.
+			{
+				FileFindHandle_t findHandle;
+				const char *pFilename = g_pFullFileSystem->FindFirstEx("bin/vphysics_jolt_*.*", "BASE_PATH", &findHandle);
+				bIsJoltPhysics = pFilename != NULL;
+				g_pFullFileSystem->FindClose(findHandle);
+			}
+		}
 
-	Detour::Create(
-		&detour_IVP_Event_Manager_Standard_simulate_time_events, "IVP_Event_Manager_Standard::simulate_time_events",
-		vphysics_loader.GetModule(), Symbols::IVP_Event_Manager_Standard_simulate_time_eventsSym,
-		(void*)hook_IVP_Event_Manager_Standard_simulate_time_events, m_pID
-	);
+		if (bIsJoltPhysics)
+		{
+			Msg(PROJECT_NAME " - physenv: Detected vphysics-jolt usage.\n");
+		}
+	}
 
-	Detour::Create(
-		&detour_IVP_Mindist_simulate_time_event, "IVP_Mindist::simulate_time_event",
-		vphysics_loader.GetModule(), Symbols::IVP_Mindist_simulate_time_eventSym,
-		(void*)hook_IVP_Mindist_simulate_time_event, m_pID
-	);
+	if (!bIsJoltPhysics)
+	{
+		SourceSDK::FactoryLoader vphysics_loader("vphysics");
+		Detour::Create(
+			&detour_IVP_Mindist_do_impact, "IVP_Mindist::do_impact",
+			vphysics_loader.GetModule(), Symbols::IVP_Mindist_do_impactSym,
+			(void*)hook_IVP_Mindist_do_impact, m_pID
+		);
 
-	Detour::Create(
-		&detour_IVP_Mindist_update_exact_mindist_events, "IVP_Mindist::update_exact_mindist_events",
-		vphysics_loader.GetModule(), Symbols::IVP_Mindist_update_exact_mindist_eventsSym,
-		(void*)hook_IVP_Mindist_update_exact_mindist_events, m_pID
-	);
+		Detour::Create(
+			&detour_IVP_Mindist_D2, "IVP_Mindist::~IVP_Mindist",
+			vphysics_loader.GetModule(), Symbols::IVP_Mindist_D2Sym,
+			(void*)hook_IVP_Mindist_D2, m_pID
+		);
 
-	Detour::Create(
-		&detour_CPhysicsEnvironment_DestroyObject, "CPhysicsEnvironment::DestroyObject",
-		vphysics_loader.GetModule(), Symbols::CPhysicsEnvironment_DestroyObjectSym,
-		(void*)hook_CPhysicsEnvironment_DestroyObject, m_pID
-	);
+		Detour::Create(
+			&detour_IVP_Event_Manager_Standard_simulate_time_events, "IVP_Event_Manager_Standard::simulate_time_events",
+			vphysics_loader.GetModule(), Symbols::IVP_Event_Manager_Standard_simulate_time_eventsSym,
+			(void*)hook_IVP_Event_Manager_Standard_simulate_time_events, m_pID
+		);
 
-	Detour::Create(
-		&detour_CPhysicsEnvironment_Restore, "CPhysicsEnvironment::Restore",
-		vphysics_loader.GetModule(), Symbols::CPhysicsEnvironment_RestoreSym,
-		(void*)hook_CPhysicsEnvironment_Restore, m_pID
-	);
+		Detour::Create(
+			&detour_IVP_Mindist_simulate_time_event, "IVP_Mindist::simulate_time_event",
+			vphysics_loader.GetModule(), Symbols::IVP_Mindist_simulate_time_eventSym,
+			(void*)hook_IVP_Mindist_simulate_time_event, m_pID
+		);
 
-	Detour::Create(
-		&detour_CPhysicsEnvironment_TransferObject, "CPhysicsEnvironment::TransferObject",
-		vphysics_loader.GetModule(), Symbols::CPhysicsEnvironment_TransferObjectSym,
-		(void*)hook_CPhysicsEnvironment_TransferObject, m_pID
-	);
+		Detour::Create(
+			&detour_IVP_Mindist_update_exact_mindist_events, "IVP_Mindist::update_exact_mindist_events",
+			vphysics_loader.GetModule(), Symbols::IVP_Mindist_update_exact_mindist_eventsSym,
+			(void*)hook_IVP_Mindist_update_exact_mindist_events, m_pID
+		);
 
-	Detour::Create(
-		&detour_CPhysicsEnvironment_CreateSphereObject, "CPhysicsEnvironment::CreateSphereObject",
-		vphysics_loader.GetModule(), Symbols::CPhysicsEnvironment_CreateSphereObjectSym,
-		(void*)hook_CPhysicsEnvironment_CreateSphereObject, m_pID
-	);
+		Detour::Create(
+			&detour_CPhysicsEnvironment_DestroyObject, "CPhysicsEnvironment::DestroyObject",
+			vphysics_loader.GetModule(), Symbols::CPhysicsEnvironment_DestroyObjectSym,
+			(void*)hook_CPhysicsEnvironment_DestroyObject, m_pID
+		);
 
-	Detour::Create(
-		&detour_CPhysicsEnvironment_UnserializeObjectFromBuffer, "CPhysicsEnvironment::UnserializeObjectFromBuffer",
-		vphysics_loader.GetModule(), Symbols::CPhysicsEnvironment_UnserializeObjectFromBufferSym,
-		(void*)hook_CPhysicsEnvironment_UnserializeObjectFromBuffer, m_pID
-	);
+		Detour::Create(
+			&detour_CPhysicsEnvironment_Restore, "CPhysicsEnvironment::Restore",
+			vphysics_loader.GetModule(), Symbols::CPhysicsEnvironment_RestoreSym,
+			(void*)hook_CPhysicsEnvironment_Restore, m_pID
+		);
 
-	Detour::Create(
-		&detour_CPhysicsEnvironment_CreatePolyObjectStatic, "CPhysicsEnvironment::CreatePolyObjectStatic",
-		vphysics_loader.GetModule(), Symbols::CPhysicsEnvironment_CreatePolyObjectStaticSym,
-		(void*)hook_CPhysicsEnvironment_CreatePolyObjectStatic, m_pID
-	);
+		Detour::Create(
+			&detour_CPhysicsEnvironment_TransferObject, "CPhysicsEnvironment::TransferObject",
+			vphysics_loader.GetModule(), Symbols::CPhysicsEnvironment_TransferObjectSym,
+			(void*)hook_CPhysicsEnvironment_TransferObject, m_pID
+		);
 
-	Detour::Create(
-		&detour_CPhysicsEnvironment_CreatePolyObject, "CPhysicsEnvironment::CreatePolyObject",
-		vphysics_loader.GetModule(), Symbols::CPhysicsEnvironment_CreatePolyObjectSym,
-		(void*)hook_CPhysicsEnvironment_CreatePolyObject, m_pID
-	);
+		Detour::Create(
+			&detour_CPhysicsEnvironment_CreateSphereObject, "CPhysicsEnvironment::CreateSphereObject",
+			vphysics_loader.GetModule(), Symbols::CPhysicsEnvironment_CreateSphereObjectSym,
+			(void*)hook_CPhysicsEnvironment_CreateSphereObject, m_pID
+		);
 
-	Detour::Create(
-		&detour_CPhysicsEnvironment_D2, "CPhysicsEnvironment::~CPhysicsEnvironment",
-		vphysics_loader.GetModule(), Symbols::CPhysicsEnvironment_D2Sym,
-		(void*)hook_CPhysicsEnvironment_D2, m_pID
-	);
+		Detour::Create(
+			&detour_CPhysicsEnvironment_UnserializeObjectFromBuffer, "CPhysicsEnvironment::UnserializeObjectFromBuffer",
+			vphysics_loader.GetModule(), Symbols::CPhysicsEnvironment_UnserializeObjectFromBufferSym,
+			(void*)hook_CPhysicsEnvironment_UnserializeObjectFromBuffer, m_pID
+		);
 
-	Detour::Create(
-		&detour_CPhysicsEnvironment_C2, "CPhysicsEnvironment::CPhysicsEnvironment",
-		vphysics_loader.GetModule(), Symbols::CPhysicsEnvironment_C2Sym,
-		(void*)hook_CPhysicsEnvironment_C2, m_pID
-	);
+		Detour::Create(
+			&detour_CPhysicsEnvironment_CreatePolyObjectStatic, "CPhysicsEnvironment::CreatePolyObjectStatic",
+			vphysics_loader.GetModule(), Symbols::CPhysicsEnvironment_CreatePolyObjectStaticSym,
+			(void*)hook_CPhysicsEnvironment_CreatePolyObjectStatic, m_pID
+		);
+
+		Detour::Create(
+			&detour_CPhysicsEnvironment_CreatePolyObject, "CPhysicsEnvironment::CreatePolyObject",
+			vphysics_loader.GetModule(), Symbols::CPhysicsEnvironment_CreatePolyObjectSym,
+			(void*)hook_CPhysicsEnvironment_CreatePolyObject, m_pID
+		);
+
+		Detour::Create(
+			&detour_CPhysicsEnvironment_D2, "CPhysicsEnvironment::~CPhysicsEnvironment",
+			vphysics_loader.GetModule(), Symbols::CPhysicsEnvironment_D2Sym,
+			(void*)hook_CPhysicsEnvironment_D2, m_pID
+		);
+
+		Detour::Create(
+			&detour_CPhysicsEnvironment_C2, "CPhysicsEnvironment::CPhysicsEnvironment",
+			vphysics_loader.GetModule(), Symbols::CPhysicsEnvironment_C2Sym,
+			(void*)hook_CPhysicsEnvironment_C2, m_pID
+		);
+
+		g_pCurrentMindist = Detour::ResolveSymbol<IVP_Mindist*>(vphysics_loader, Symbols::g_pCurrentMindistSym);
+		Detour::CheckValue("get class", "g_pCurrentMindist", g_pCurrentMindist != NULL);
+
+		g_fDeferDeleteMindist = Detour::ResolveSymbol<bool>(vphysics_loader, Symbols::g_fDeferDeleteMindistSym);
+		Detour::CheckValue("get class", "g_fDeferDeleteMindist", g_fDeferDeleteMindist != NULL);
+	}
 #endif
 
 	SourceSDK::FactoryLoader server_loader("server");
@@ -2401,12 +2435,4 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 		server_loader.GetModule(), Symbols::CBaseEntity_GMOD_VPhysicsTestSym,
 		(void*)hook_CBaseEntity_GMOD_VPhysicsTest, m_pID
 	);*/
-
-#if !defined(SYSTEM_WINDOWS) && defined(ARCHITECTURE_X86)
-	g_pCurrentMindist = Detour::ResolveSymbol<IVP_Mindist*>(vphysics_loader, Symbols::g_pCurrentMindistSym);
-	Detour::CheckValue("get class", "g_pCurrentMindist", g_pCurrentMindist != NULL);
-
-	g_fDeferDeleteMindist = Detour::ResolveSymbol<bool>(vphysics_loader, Symbols::g_fDeferDeleteMindistSym);
-	Detour::CheckValue("get class", "g_fDeferDeleteMindist", g_fDeferDeleteMindist != NULL);
-#endif
 }

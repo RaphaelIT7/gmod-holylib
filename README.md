@@ -4257,3 +4257,8 @@ local fileData = client_lua_files:GetStringUserData(client_lua_files:FindStringI
 local fileTable = string.Split(fileData, ":")
 PrintTable(fileTable)
 ```
+
+## Usage with vphysics jolt
+Currently there might be bugs when combining holylib with VPhysics-Jolt.  
+This mainly affects the `physenv` module and most other modules should be completely fine.  
+Only VPhysics-Jolt builds from https://github.com/RaphaelIT7/VPhysics-Jolt will be suppored for now due to holylib requiring extented functionality.  
