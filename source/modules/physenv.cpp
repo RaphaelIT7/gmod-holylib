@@ -261,7 +261,12 @@ void CPhysEnvModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 //PushReferenced_LuaClass(IPhysicsObject) // This will later cause so much pain when they become Invalid XD
 //Get_LuaClass(IPhysicsObject, "IPhysicsObject")
 // Fking idiot, it's a gmod class!!
-GMODGet_LuaClass(IPhysicsObject, GarrysMod::Lua::Type::PhysObj, "PhysObj");
+static inline bool IsRegisteredPhysicsObject(IPhysicsObject* pObject);
+GMODGet_LuaClass(IPhysicsObject, GarrysMod::Lua::Type::PhysObj, "PhysObj", 
+	if (!IsRegisteredPhysicsObject(pVar) && bError) {
+		LUA->ThrowError(triedNull_IPhysicsObject.c_str());
+	}
+);
 GMODPush_LuaClass(IPhysicsObject, GarrysMod::Lua::Type::PhysObj);
 
 static CCollisionEvent* g_Collisions = NULL;

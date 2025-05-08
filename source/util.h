@@ -658,7 +658,7 @@ void Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
 	LUA->PushUserType(var, luaType); \
 }
 
-#define GMODGet_LuaClass( className, luaType, strName ) \
+#define GMODGet_LuaClass( className, luaType, strName, additional ) \
 static std::string invalidType_##className = MakeString("Tried to use something that wasn't a ", strName, "!"); \
 static std::string triedNull_##className = MakeString("Tried to use a NULL ", strName, "!"); \
 className* Get_##className(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError) \
@@ -674,6 +674,8 @@ className* Get_##className(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bo
 	className* pVar = LUA->GetUserType<className>(iStackPos, luaType); \
 	if (!pVar && bError) \
 		LUA->ThrowError(triedNull_##className.c_str()); \
+\
+	additional \
 \
 	return pVar; \
 }
