@@ -50,7 +50,7 @@ enum IVP_SkipType {
 	IVP_SkipImpact,
 	IVP_SkipSimulation,
 };
-IVP_SkipType pCurrentSkipType = IVP_None;
+IVP_SkipType pCurrentSkipType = IVP_SkipType::IVP_None;
 
 #define TOSTRING( var ) var ? "true" : "false"
 
@@ -72,7 +72,7 @@ static void hook_IVP_Mindist_do_impact(IVP_Mindist* mindist)
 	if (g_pPhysEnvModule.InDebug() > 2)
 		Msg(PROJECT_NAME " - physenv: IVP_Mindist::do_impact called! (%i)\n", (int)pCurrentSkipType);
 
-	if (pCurrentSkipType == IVP_SkipImpact)
+	if (pCurrentSkipType == IVP_SkipType::IVP_SkipImpact)
 		return;
 
 	g_bInImpactCall = true; // Verify: Do we actually need this?
@@ -86,20 +86,20 @@ static Detouring::Hook detour_IVP_Event_Manager_Standard_simulate_time_events;
 static void hook_IVP_Event_Manager_Standard_simulate_time_events(void* eventmanager, void* timemanager, void* environment, IVP_Time time)
 {
 	pCurrentTime = std::chrono::high_resolution_clock::now();
-	pCurrentSkipType = IVP_None; // Idk if it can happen that something else sets it in the mean time but let's just be sure...
+	pCurrentSkipType = IVP_SkipType::IVP_None; // Idk if it can happen that something else sets it in the mean time but let's just be sure...
 
 	if (g_pPhysEnvModule.InDebug() > 2)
 		Msg(PROJECT_NAME " - physenv: IVP_Event_Manager_Standart::simulate_time_events called!\n");
 
 	detour_IVP_Event_Manager_Standard_simulate_time_events.GetTrampoline<Symbols::IVP_Event_Manager_Standard_simulate_time_events>()(eventmanager, timemanager, environment, time);
 
-	pCurrentSkipType = IVP_NoCall; // Reset it.
+	pCurrentSkipType = IVP_SkipType::IVP_NoCall; // Reset it.
 }
 
 static Symbols::IVP_Mindist_Base_get_objects func_IVP_Mindist_Base_get_objects;
 void CheckPhysicsLag(IVP_Mindist* pCollision)
 {
-	if (pCurrentSkipType != IVP_None) // We already have a skip type.
+	if (pCurrentSkipType != IVP_SkipType::IVP_None) // We already have a skip type.
 		return;
 
 	auto pTime = std::chrono::high_resolution_clock::now();
@@ -134,7 +134,7 @@ void CheckPhysicsLag(IVP_Mindist* pCollision)
 			if (g_Lua->CallFunctionProtected(4, 1, true))
 			{
 				int pType = (int)g_Lua->GetNumber(-1);
-				if (pType > 2 || pType < 0)
+				if (pType > 2 || pType < -1)
 					pType = IVP_NoSkip; // Invalid value. So we won't do shit.
 
 				pCurrentSkipType = (IVP_SkipType)pType;
@@ -154,7 +154,7 @@ static void hook_IVP_Mindist_simulate_time_event(IVP_Mindist* mindist, void* env
 		Msg(PROJECT_NAME " - physenv: IVP_Mindist::simulate_time_event called! (%i)\n", (int)pCurrentSkipType);
 
 	CheckPhysicsLag(mindist);
-	if (pCurrentSkipType == IVP_SkipSimulation)
+	if (pCurrentSkipType == IVP_SkipType::IVP_SkipSimulation)
 		return;
 
 	detour_IVP_Mindist_simulate_time_event.GetTrampoline<Symbols::IVP_Mindist_simulate_time_event>()(mindist, environment);
@@ -167,7 +167,7 @@ static void hook_IVP_Mindist_update_exact_mindist_events(IVP_Mindist* mindist, I
 		Msg(PROJECT_NAME " - physenv: IVP_Mindist::update_exact_mindist_events called! (%i)\n", (int)pCurrentSkipType);
 
 	CheckPhysicsLag(mindist);
-	if (pCurrentSkipType == IVP_SkipSimulation)
+	if (pCurrentSkipType == IVP_SkipType::IVP_SkipSimulation)
 		return;
 
 	detour_IVP_Mindist_update_exact_mindist_events.GetTrampoline<Symbols::IVP_Mindist_update_exact_mindist_events>()(mindist, allow_hull_conversion, event_hint);
@@ -2238,9 +2238,10 @@ void CPhysEnvModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 		Util::AddFunc(pLua, physenv_GetLagThreshold, "GetLagThreshold");
 		Util::AddFunc(pLua, physenv_SetPhysSkipType, "SetPhysSkipType");
 
-		Util::AddValue(pLua, IVP_NoSkip, "IVP_NoSkip");
-		Util::AddValue(pLua, IVP_SkipImpact, "IVP_SkipImpact");
-		Util::AddValue(pLua, IVP_SkipSimulation, "IVP_SkipSimulation");
+		Util::AddValue(pLua, IVP_SkipType::IVP_None, "IVP_None");
+		Util::AddValue(pLua, IVP_SkipType::IVP_NoSkip, "IVP_NoSkip");
+		Util::AddValue(pLua, IVP_SkipType::IVP_SkipImpact, "IVP_SkipImpact");
+		Util::AddValue(pLua, IVP_SkipType::IVP_SkipSimulation, "IVP_SkipSimulation");
 		Util::PopTable(pLua);
 	}
 

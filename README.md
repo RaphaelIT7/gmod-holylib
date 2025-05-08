@@ -65,6 +65,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [+] Added `util.CompressLZ4` & `util.DecompressLZ4` to `util` module.  
 \- [+] Implemented a custom `CNetChan` for faster Server <-> Server connections. See https://github.com/RaphaelIT7/gmod-holylib/issues/42  
 \- [+] Added `HolyLib.ReceiveClientMessage` to `HolyLib` module.  
+\- [+] Added `physenv.IVP_NONE` flag to `physenv` module.  
 \- [#] Better support for multiple Lua states  
 \- \- This required most of the lua setup to be changed >:(  
 \- [#] Solved a few possible stack issues  
@@ -2737,6 +2738,10 @@ Creates the world physics object and also adds all static props.
 ### Enums
 Theses are the IVP_SkipType enums.  
 
+#### physenv.IVP_NONE = -1
+Do nothing and call the `HolyLib:OnPhysicsLag` hook again if it trigger again.  
+This can be useful if you want the `HolyLib:OnPhysicsLag` hook to run multiple times in the same simulation frame.  
+
 #### physenv.IVP_NoSkip = 0
 Let the simulation run normally.  
 
@@ -2760,6 +2765,7 @@ You can freeze all props here and then return `physenv.IVP_SkipSimulation` to sk
 
 > [!NOTE]
 > Only works on Linux32  
+> By default its called only **ONCE** per simulation frame, you can return `physenv.IVP_NONE` to get it triggered multiple times in the same frame.  
 
 #### bool HolyLib:OnPhysFrame(number deltaTime)  
 Called when the physics are about to be simulated.  
