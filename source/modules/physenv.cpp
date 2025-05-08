@@ -186,7 +186,7 @@ static IVP_MRC_TYPE hook_IVP_Mindist_Minimize_Solver_p_minimize_PP(IVP_Mindist_M
 static Detouring::Hook detour_IVP_OV_Element_add_oo_collision;
 static void hook_IVP_OV_Element_add_oo_collision(void* ovElement, IVP_Collision* connector)
 {
-	if (!connector) // Simple NULL check missing
+	if (!connector || !ovElement) // Simple NULL check missing. Yes ovElement can be NULL. Somehow.
 		return;
 
 	detour_IVP_OV_Element_add_oo_collision.GetTrampoline<Symbols::IVP_OV_Element_add_oo_collision>()(ovElement, connector);

@@ -2109,7 +2109,7 @@ LUA_FUNCTION_STATIC(gameserver_SendConnectionlessPacket)
 {
 	bf_write* msg = Get_bf_write(LUA, 1, true);
 
-	netadrnew_t adr; adr;
+	netadrnew_t adr;
 	adr.SetFromString(LUA->CheckString(2), LUA->GetBool(3));
 
 	CBaseServer* pServer = (CBaseServer*)Util::server;

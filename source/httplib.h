@@ -6011,12 +6011,12 @@ inline SocketStream::SocketStream(
     socket_t sock, time_t read_timeout_sec, time_t read_timeout_usec,
     time_t write_timeout_sec, time_t write_timeout_usec,
     time_t max_timeout_msec,
-    std::chrono::time_point<std::chrono::steady_clock> start_time)
+    std::chrono::time_point<std::chrono::steady_clock> start_time_)
     : sock_(sock), read_timeout_sec_(read_timeout_sec),
       read_timeout_usec_(read_timeout_usec),
       write_timeout_sec_(write_timeout_sec),
       write_timeout_usec_(write_timeout_usec),
-      max_timeout_msec_(max_timeout_msec), start_time(start_time),
+      max_timeout_msec_(max_timeout_msec), start_time(start_time_),
       read_buff_(read_buff_size_, 0) {}
 
 inline SocketStream::~SocketStream() = default;

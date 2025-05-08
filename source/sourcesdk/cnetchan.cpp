@@ -922,7 +922,6 @@ void CNetChan::FlowUpdate(int flow, int addbytes)
 	float	endtime = 0.0f;
 
 	netframe_t *pprev = &pflow->frames[ NET_FRAMES_BACKUP-1 ];
-
 	for ( int i = 0; i < NET_FRAMES_BACKUP; i++ )
 	{
 		// Most recent message then backward from there
@@ -1933,7 +1932,7 @@ bool CNetChan::ProcessMessages( bf_read &buf  )
 		showmsgname = "1";	// show messages for this packet only
 	}
 
-	bf_read democopy = buf; // create a copy of reading buffer state for demo recording
+	//bf_read democopy = buf; // create a copy of reading buffer state for demo recording
 	
 	//int startbit = buf.GetNumBitsRead();
 
