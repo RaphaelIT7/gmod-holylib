@@ -73,6 +73,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [#] Update internal `netadr` stuct to now properly support `loopback` and `localhost` inputs for IP's.  
 \- [#] Possibly fixed memory issues caused by `IGModAudioChannel`'s being deleted & having undefined behavior.  
 \- [#] Fixed `HolyLib:OnPhysicsLag` possibly being called recursively causing a crash.  
+\- [#] Fixed every function from the `physenv` module not accepting gmod's PhysObj.  
 
 > [!WARNING]
 > The current builds are unstable and need **A LOT** of testing.  

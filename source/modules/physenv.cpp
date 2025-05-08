@@ -258,8 +258,11 @@ void CPhysEnvModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 	Detour::CheckValue("get interface", "modelinfo", modelinfo != NULL);
 }
 
-PushReferenced_LuaClass(IPhysicsObject) // This will later cause so much pain when they become Invalid XD
-Get_LuaClass(IPhysicsObject, "IPhysicsObject")
+//PushReferenced_LuaClass(IPhysicsObject) // This will later cause so much pain when they become Invalid XD
+//Get_LuaClass(IPhysicsObject, "IPhysicsObject")
+// Fking idiot, it's a gmod class!!
+GMODGet_LuaClass(IPhysicsObject, GarrysMod::Lua::Type::PhysObj, "PhysObj");
+GMODPush_LuaClass(IPhysicsObject, GarrysMod::Lua::Type::PhysObj);
 
 static CCollisionEvent* g_Collisions = NULL;
 class CLuaPhysicsObjectEvent : public IPhysicsObjectEvent
@@ -534,7 +537,6 @@ void hook_CPhysicsEnvironment_DestroyObject(CPhysicsEnvironment* pEnvironment, I
 	pEnv->m_objects.FastRemove(foundIndex);
 
 	UnregisterPhysicsObject(pLuaEnvironment, pObject);
-	DeleteGlobal_IPhysicsObject(pObject); // Delete any reference we might hold. ToDo: This may crash?!? Were accessing a Lua state from the main thread... It'll be fiine
 	//pEnv->DestroyObject(pObject);
 
 	CPhysicsObject* pPhysics = static_cast<CPhysicsObject*>(pObject);
@@ -2307,7 +2309,6 @@ void CPhysEnvModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 	DeleteAll_ICollisionQuery(pLua);
 	DeleteAll_ILuaPhysicsEnvironment(pLua);
 	DeleteAll_IPhysicsCollisionSet(pLua);
-	DeleteAll_IPhysicsObject(pLua);
 }
 
 void CPhysEnvModule::Shutdown()
