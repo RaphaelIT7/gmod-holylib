@@ -2,7 +2,7 @@
 //
 // Purpose: gameeventmanager.h: interface for the CGameEventManager class.
 //
-// $Workfile:     $
+// $Workfile:	 $
 // $NoKeywords: $
 //=============================================================================//
 
@@ -47,7 +47,7 @@ public:
 	KeyValues	*keys;		// KeyValue describing data types, if NULL only name 
 	bool		local;		// local event, never tell clients about that
 	bool		reliable;	// send this event as reliable message
-    CUtlVector<CGameEventCallback*>	listeners;	// registered listeners
+	CUtlVector<CGameEventCallback*>	listeners;	// registered listeners
 };
 
 class CGameEvent : public IGameEvent
@@ -127,7 +127,7 @@ public:
 	void ReloadEventDefinitions();	// called by server on new map
 	bool AddListener( void *listener, CGameEventDescriptor *descriptor, int nListenerType );
 
-    CGameEventDescriptor *GetEventDescriptor( const char *name );
+	CGameEventDescriptor *GetEventDescriptor( const char *name );
 	CGameEventDescriptor *GetEventDescriptor( IGameEvent *event );
 	CGameEventDescriptor *GetEventDescriptor( int eventid );
 

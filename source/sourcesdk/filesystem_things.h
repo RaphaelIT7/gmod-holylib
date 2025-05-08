@@ -775,7 +775,7 @@ public:
 	virtual int FS_feof( FILE *fp ) = 0;
 	size_t FS_fread( void *dest, size_t size, FILE *fp ) { return FS_fread( dest, (size_t)-1, size, fp ); }
 	virtual size_t FS_fread( void *dest, size_t destSize, size_t size, FILE *fp ) = 0;
-    virtual size_t FS_fwrite( const void *src, size_t size, FILE *fp ) = 0;
+	virtual size_t FS_fwrite( const void *src, size_t size, FILE *fp ) = 0;
 	virtual bool FS_setmode( FILE *fp, FileMode_t mode ) { return false; }
 	virtual size_t FS_vfprintf( FILE *fp, const char *fmt, va_list list ) = 0;
 	virtual int FS_ferror( FILE *fp ) = 0;

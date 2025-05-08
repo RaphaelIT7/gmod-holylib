@@ -72,7 +72,7 @@ char	*tmpstr512();
 // Returns char* because of bad historical reasons.
 char	*va(PRINTF_FORMAT_STRING const char *format, ...) FMTFUNCTION( 1, 2 );
 // prints a vector into a temp buffer.
-const char    *vstr(Vector& v);
+const char	*vstr(Vector& v);
 
 //============================================================================
 extern	char	com_basedir[MAX_OSPATH];

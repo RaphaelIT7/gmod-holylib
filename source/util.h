@@ -290,7 +290,7 @@ namespace Util
  * PushReferenced_LuaClass - Use this macro if you want to manually delete the userdata, it will hold a reference of itself stopping the GC.
  *
  * NOTE: If you use PushReferenced_LuaClass you should ALWAYS call DeleteAll_[YourClass] for your userdata
- *       as else it COULD persist across lua states which is VERY BAD as the references will ALL be INVALID.
+ *	   as else it COULD persist across lua states which is VERY BAD as the references will ALL be INVALID.
  */
 
 // This WILL slow down userData creation & deletion so we disable this in release builds.
@@ -812,9 +812,9 @@ void Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
 
 #define Vector_RemoveElement(vec, element) \
 { \
-    auto _it = std::find((vec).begin(), (vec).end(), (element)); \
-    if (_it != (vec).end()) \
-        (vec).erase(_it); \
+	auto _it = std::find((vec).begin(), (vec).end(), (element)); \
+	if (_it != (vec).end()) \
+		(vec).erase(_it); \
 }
 
 // A default index function for userData,

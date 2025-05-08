@@ -82,7 +82,7 @@ public:
 		
 	virtual void	SetReliable( bool state) {m_bReliable = state;};
 	virtual bool	IsReliable() const { return m_bReliable; };
-	virtual void    SetNetChannel(INetChannel * netchan) { m_NetChannel = netchan; }	
+	virtual void	SetNetChannel(INetChannel * netchan) { m_NetChannel = netchan; }	
 	virtual bool	Process() { Assert( 0 ); return false; };	// no handler set
 
 protected:
@@ -522,14 +522,14 @@ public:
 
 // SVC_VoiceInit
 //   v2 - 2017/02/07
-//     - Can detect v2 packets by nLegacyQuality == 255 and presence of additional nSampleRate field.
-//     - Added nSampleRate field. Previously, nSampleRate was hard-coded per codec type. ::ReadFromBuffer does a
-//       one-time conversion of these old types (which can no longer change)
-//     - Marked quality field as deprecated. This was already being ignored. v2 clients send 255
-//     - Prior to this the sv_use_steam_voice convar was used to switch to steam voice. With this, we properly set
-//       szVoiceCodec to "steam".  See ::ReadFromBuffer for shim to fallback to the convar for old streams.
-//     - We no longer pass "svc_voiceinit NULL" as szVoiceCodec if it is not selected, just the empty string.  Nothing
-//       used this that I could find.
+//	 - Can detect v2 packets by nLegacyQuality == 255 and presence of additional nSampleRate field.
+//	 - Added nSampleRate field. Previously, nSampleRate was hard-coded per codec type. ::ReadFromBuffer does a
+//	   one-time conversion of these old types (which can no longer change)
+//	 - Marked quality field as deprecated. This was already being ignored. v2 clients send 255
+//	 - Prior to this the sv_use_steam_voice convar was used to switch to steam voice. With this, we properly set
+//	   szVoiceCodec to "steam".  See ::ReadFromBuffer for shim to fallback to the convar for old streams.
+//	 - We no longer pass "svc_voiceinit NULL" as szVoiceCodec if it is not selected, just the empty string.  Nothing
+//	   used this that I could find.
 class SVC_VoiceInit : public CNetMessage
 {
 	DECLARE_SVC_MESSAGE( VoiceInit );

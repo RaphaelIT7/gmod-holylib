@@ -2379,8 +2379,8 @@ static bool hook_CBaseServer_ProcessConnectionlessPacket(void* server, netpacket
 
 /*
  * ToDo: Ask Rubat if were allowed to modify SVC_ServerInfo
- *       I think it "could" be considered breaking gmod server operator rules.
- *       "Do not fake server information. This mostly means player count, but other data also applies."
+ *	   I think it "could" be considered breaking gmod server operator rules.
+ *	   "Do not fake server information. This mostly means player count, but other data also applies."
  * 
  * Update: Rubat said it's fine.
  */

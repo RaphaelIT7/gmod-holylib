@@ -257,10 +257,10 @@ public:
 	// until we get an ack from them on this packet.
 	// This is for 3 reasons:
 	// 1. A client requesting a nodelta packet means they're screwed so no point in deluging them with data.
-	//    Better to send the uncompressed data at a slow rate until we hear back from them (if at all).
+	//	Better to send the uncompressed data at a slow rate until we hear back from them (if at all).
 	// 2. Since the nodelta packet deletes all client entities, we can't ever delta from a packet previous to it.
 	// 3. It can eat up a lot of CPU on the server to keep building nodelta packets while waiting for
-	//    a client to get back on its feet.
+	//	a client to get back on its feet.
 	int				m_nForceWaitForTick;
 	
 	bool			m_bFakePlayer;		// JAC: This client is a fake player controlled by the game DLL
@@ -281,9 +281,9 @@ public:
 	// when it is sent out to the client.  overflow is tolerated.
 
 	// Time when we should send next world state update ( datagram )
-	double         m_fNextMessageTime;   
+	double		 m_fNextMessageTime;   
 	// Default time to wait for next message
-	float          m_fSnapshotInterval;  
+	float		  m_fSnapshotInterval;  
 
 	enum
 	{

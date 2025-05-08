@@ -80,7 +80,7 @@ public:
 	int		GetProtocolVersion();
 public:
 	char			m_szFileName[MAX_PATH];	//name of current demo file
-	demoheader_t    m_DemoHeader;  //general demo info
+	demoheader_t	m_DemoHeader;  //general demo info
 	CUtlBuffer		*m_pBuffer;
 	bool			m_bAllowHeaderWrite;
 	bool			m_bIsStreamBuffer;

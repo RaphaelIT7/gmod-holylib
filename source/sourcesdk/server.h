@@ -62,10 +62,10 @@ public:
 	edict_t		*edicts;			// Can array index now, edict_t is fixed
 	IChangeInfoAccessor *edictchangeinfo; // HACK to allow backward compat since we can't change edict_t layout
 
-	int			m_nMaxClientsLimit;    // Max allowed on server.
+	int			m_nMaxClientsLimit;	// Max allowed on server.
 	
 	bool		allowsignonwrites;
-	bool	    dll_initialized;    // Have we loaded the game dll.
+	bool		dll_initialized;	// Have we loaded the game dll.
 
 	bool		m_bIsLevelMainMenuBackground;	// true if the level running only as the background to the main menu
 

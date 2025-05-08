@@ -43,7 +43,7 @@ bool		RecvTable_CreateDecoders( const CStandardSendProxies *pSendProxies, bool b
 
 // objectID gets passed into proxies and can be used to track data on particular objects.
 // NOTE: this function can ONLY decode a buffer outputted from RecvTable_MergeDeltas
-//       or RecvTable_CopyEncoding because if the way it follows the exclude prop bits.
+//	   or RecvTable_CopyEncoding because if the way it follows the exclude prop bits.
 bool		RecvTable_Decode( 
 	RecvTable *pTable, 
 	void *pStruct, 

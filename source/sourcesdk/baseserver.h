@@ -44,9 +44,9 @@ bool AllowDebugDedicatedServerOutsideSteam();
 
 typedef struct
 {
-	netadr_t    adr;       // Address where challenge value was sent to.
+	netadr_t	adr;	   // Address where challenge value was sent to.
 	int			challenge; // To connect, adr IP address must respond with this #
-	float		time;      // # is valid for only a short duration.
+	float		time;	  // # is valid for only a short duration.
 } challenge_t;
 
 
@@ -156,7 +156,7 @@ public: // IConnectionlessPacketHandler implementation
 public: // protected - private, doesn't matter, I want access :3
 
 	virtual IClient *ConnectClient ( netadr_t &adr, int protocol, int challenge, int clientChallenge, int authProtocol, 
-					    const char *name, const char *password, const char *hashedCDkey, int cdKeyLen );
+						const char *name, const char *password, const char *hashedCDkey, int cdKeyLen );
 	
 	virtual CBaseClient *GetFreeClient( netadr_t &adr );
 
@@ -233,7 +233,7 @@ private:
 
 public: // Gimme that access
 
-	int			m_nMaxclients;         // Current max #
+	int			m_nMaxclients;		 // Current max #
 	int			m_nSpawnCount;			// Number of servers spawned since start,
 									// used to check late spawns (e.g., when d/l'ing lots of
 									// data)

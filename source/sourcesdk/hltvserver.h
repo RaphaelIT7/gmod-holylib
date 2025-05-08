@@ -173,7 +173,7 @@ public:
 	void	StartMaster(CGameClient *client); // start HLTV server as master proxy
 	void	ConnectRelay(const char *address); // connect to other HLTV proxy
 	void	StartDemo(const char *filename); // starts playing back a demo file
-	void    StartRelay( void ); // start HLTV server as relay proxy
+	void	StartRelay( void ); // start HLTV server as relay proxy
 	bool	SendNetMsg( INetMessage &msg, bool bForceReliable = false );
 	void	RunFrame();
 	void	SetMaxClients( int number );

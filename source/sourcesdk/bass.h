@@ -280,18 +280,18 @@ typedef struct {
 
 // defines for formats field of BASS_RECORDINFO (from MMSYSTEM.H)
 #ifndef WAVE_FORMAT_1M08
-#define WAVE_FORMAT_1M08       0x00000001       /* 11.025 kHz, Mono,   8-bit  */
-#define WAVE_FORMAT_1S08       0x00000002       /* 11.025 kHz, Stereo, 8-bit  */
-#define WAVE_FORMAT_1M16       0x00000004       /* 11.025 kHz, Mono,   16-bit */
-#define WAVE_FORMAT_1S16       0x00000008       /* 11.025 kHz, Stereo, 16-bit */
-#define WAVE_FORMAT_2M08       0x00000010       /* 22.05  kHz, Mono,   8-bit  */
-#define WAVE_FORMAT_2S08       0x00000020       /* 22.05  kHz, Stereo, 8-bit  */
-#define WAVE_FORMAT_2M16       0x00000040       /* 22.05  kHz, Mono,   16-bit */
-#define WAVE_FORMAT_2S16       0x00000080       /* 22.05  kHz, Stereo, 16-bit */
-#define WAVE_FORMAT_4M08       0x00000100       /* 44.1   kHz, Mono,   8-bit  */
-#define WAVE_FORMAT_4S08       0x00000200       /* 44.1   kHz, Stereo, 8-bit  */
-#define WAVE_FORMAT_4M16       0x00000400       /* 44.1   kHz, Mono,   16-bit */
-#define WAVE_FORMAT_4S16       0x00000800       /* 44.1   kHz, Stereo, 16-bit */
+#define WAVE_FORMAT_1M08	   0x00000001	   /* 11.025 kHz, Mono,   8-bit  */
+#define WAVE_FORMAT_1S08	   0x00000002	   /* 11.025 kHz, Stereo, 8-bit  */
+#define WAVE_FORMAT_1M16	   0x00000004	   /* 11.025 kHz, Mono,   16-bit */
+#define WAVE_FORMAT_1S16	   0x00000008	   /* 11.025 kHz, Stereo, 16-bit */
+#define WAVE_FORMAT_2M08	   0x00000010	   /* 22.05  kHz, Mono,   8-bit  */
+#define WAVE_FORMAT_2S08	   0x00000020	   /* 22.05  kHz, Stereo, 8-bit  */
+#define WAVE_FORMAT_2M16	   0x00000040	   /* 22.05  kHz, Mono,   16-bit */
+#define WAVE_FORMAT_2S16	   0x00000080	   /* 22.05  kHz, Stereo, 16-bit */
+#define WAVE_FORMAT_4M08	   0x00000100	   /* 44.1   kHz, Mono,   8-bit  */
+#define WAVE_FORMAT_4S08	   0x00000200	   /* 44.1   kHz, Stereo, 8-bit  */
+#define WAVE_FORMAT_4M16	   0x00000400	   /* 44.1   kHz, Mono,   16-bit */
+#define WAVE_FORMAT_4S16	   0x00000800	   /* 44.1   kHz, Stereo, 16-bit */
 #endif
 
 // Sample info structure
@@ -890,13 +890,13 @@ typedef const WAVEFORMATEX *LPCWAVEFORMATEX;
 #define BASS_FX_VOLUME				9
 
 typedef struct {
-	float       fWetDryMix;
-	float       fDepth;
-	float       fFeedback;
-	float       fFrequency;
-	DWORD       lWaveform;	// 0=triangle, 1=sine
-	float       fDelay;
-	DWORD       lPhase;		// BASS_DX8_PHASE_xxx
+	float	   fWetDryMix;
+	float	   fDepth;
+	float	   fFeedback;
+	float	   fFrequency;
+	DWORD	   lWaveform;	// 0=triangle, 1=sine
+	float	   fDelay;
+	DWORD	   lPhase;		// BASS_DX8_PHASE_xxx
 } BASS_DX8_CHORUS;
 
 typedef struct {
@@ -921,37 +921,37 @@ typedef struct {
 	float   fFeedback;
 	float   fLeftDelay;
 	float   fRightDelay;
-	BOOL    lPanDelay;
+	BOOL	lPanDelay;
 } BASS_DX8_ECHO;
 
 typedef struct {
-	float       fWetDryMix;
-	float       fDepth;
-	float       fFeedback;
-	float       fFrequency;
-	DWORD       lWaveform;	// 0=triangle, 1=sine
-	float       fDelay;
-	DWORD       lPhase;		// BASS_DX8_PHASE_xxx
+	float	   fWetDryMix;
+	float	   fDepth;
+	float	   fFeedback;
+	float	   fFrequency;
+	DWORD	   lWaveform;	// 0=triangle, 1=sine
+	float	   fDelay;
+	DWORD	   lPhase;		// BASS_DX8_PHASE_xxx
 } BASS_DX8_FLANGER;
 
 typedef struct {
-	DWORD       dwRateHz;               // Rate of modulation in hz
-	DWORD       dwWaveShape;            // 0=triangle, 1=square
+	DWORD	   dwRateHz;			   // Rate of modulation in hz
+	DWORD	   dwWaveShape;			// 0=triangle, 1=square
 } BASS_DX8_GARGLE;
 
 typedef struct {
-	int     lRoom;                  // [-10000, 0]      default: -1000 mB
-	int     lRoomHF;                // [-10000, 0]      default: 0 mB
-	float   flRoomRolloffFactor;    // [0.0, 10.0]      default: 0.0
-	float   flDecayTime;            // [0.1, 20.0]      default: 1.49s
-	float   flDecayHFRatio;         // [0.1, 2.0]       default: 0.83
-	int     lReflections;           // [-10000, 1000]   default: -2602 mB
-	float   flReflectionsDelay;     // [0.0, 0.3]       default: 0.007 s
-	int     lReverb;                // [-10000, 2000]   default: 200 mB
-	float   flReverbDelay;          // [0.0, 0.1]       default: 0.011 s
-	float   flDiffusion;            // [0.0, 100.0]     default: 100.0 %
-	float   flDensity;              // [0.0, 100.0]     default: 100.0 %
-	float   flHFReference;          // [20.0, 20000.0]  default: 5000.0 Hz
+	int	 lRoom;				  // [-10000, 0]	  default: -1000 mB
+	int	 lRoomHF;				// [-10000, 0]	  default: 0 mB
+	float   flRoomRolloffFactor;	// [0.0, 10.0]	  default: 0.0
+	float   flDecayTime;			// [0.1, 20.0]	  default: 1.49s
+	float   flDecayHFRatio;		 // [0.1, 2.0]	   default: 0.83
+	int	 lReflections;		   // [-10000, 1000]   default: -2602 mB
+	float   flReflectionsDelay;	 // [0.0, 0.3]	   default: 0.007 s
+	int	 lReverb;				// [-10000, 2000]   default: 200 mB
+	float   flReverbDelay;		  // [0.0, 0.1]	   default: 0.011 s
+	float   flDiffusion;			// [0.0, 100.0]	 default: 100.0 %
+	float   flDensity;			  // [0.0, 100.0]	 default: 100.0 %
+	float   flHFReference;		  // [20.0, 20000.0]  default: 5000.0 Hz
 } BASS_DX8_I3DL2REVERB;
 
 typedef struct {
@@ -961,17 +961,17 @@ typedef struct {
 } BASS_DX8_PARAMEQ;
 
 typedef struct {
-	float   fInGain;                // [-96.0,0.0]            default: 0.0 dB
-	float   fReverbMix;             // [-96.0,0.0]            default: 0.0 db
-	float   fReverbTime;            // [0.001,3000.0]         default: 1000.0 ms
-	float   fHighFreqRTRatio;       // [0.001,0.999]          default: 0.001
+	float   fInGain;				// [-96.0,0.0]			default: 0.0 dB
+	float   fReverbMix;			 // [-96.0,0.0]			default: 0.0 db
+	float   fReverbTime;			// [0.001,3000.0]		 default: 1000.0 ms
+	float   fHighFreqRTRatio;	   // [0.001,0.999]		  default: 0.001
 } BASS_DX8_REVERB;
 
-#define BASS_DX8_PHASE_NEG_180        0
-#define BASS_DX8_PHASE_NEG_90         1
-#define BASS_DX8_PHASE_ZERO           2
-#define BASS_DX8_PHASE_90             3
-#define BASS_DX8_PHASE_180            4
+#define BASS_DX8_PHASE_NEG_180		0
+#define BASS_DX8_PHASE_NEG_90		 1
+#define BASS_DX8_PHASE_ZERO		   2
+#define BASS_DX8_PHASE_90			 3
+#define BASS_DX8_PHASE_180			4
 
 typedef struct {
 	float fTarget;

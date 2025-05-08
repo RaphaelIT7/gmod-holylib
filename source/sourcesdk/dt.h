@@ -102,8 +102,8 @@ FORCEINLINE unsigned int CDeltaBitsReader::ReadNextPropIndex()
 	// Expanded and optimized version of
 	// if ( m_pBuf->ReadOneBit() )
 	// { 
-	//    m_iLastProp += 1 + m_pBuf->ReadUBitVar();
-	//    return m_iLastProp;
+	//	m_iLastProp += 1 + m_pBuf->ReadUBitVar();
+	//	return m_iLastProp;
 	// }
 	// return ~0u;
 	if ( m_pBuf->GetNumBitsLeft() >= 7 )

@@ -100,14 +100,14 @@ private:
 	CSteamID m_SteamIDGS;
 	CSteamID m_steamIDLanOnly;
 	bool m_bActive;
-    bool m_bWantsSecure;
-    bool m_bInitialized;
+	bool m_bWantsSecure;
+	bool m_bInitialized;
 	bool m_bWantsPersistentAccountLogon;
-    
-    // The port that we are listening for queries on.
+	
+	// The port that we are listening for queries on.
 	uint32		m_unIP;
 	uint16		m_usPort;
-    uint16		m_QueryPort;
+	uint16		m_QueryPort;
 
 	CUtlString m_sAccountToken;
 

@@ -554,10 +554,10 @@ public:
 class EntityModule
 {
 public:
-    EntityModule() {}
-    EntityModule(CBaseEntity *entity) {}
+	EntityModule() {}
+	EntityModule(CBaseEntity *entity) {}
 
-    virtual ~EntityModule() {}
+	virtual ~EntityModule() {}
 };
 
 template<typename T>
@@ -619,9 +619,9 @@ public:
 
 	int AddOverride(SendPropOverrideCallback callback, const std::string &name, int index = -1, uintptr_t data = 0);
 	int AddOverride(SendPropOverrideCallback callback, int indexProp, SendProp *prop, uintptr_t data = 0);
-        
+		
 	void RemoveOverride(int id);
-        
+		
 	CBaseEntity *m_pEntity;
 	std::vector<PropOverride> propOverrides;
 };
@@ -633,90 +633,90 @@ SendpropOverrideModule::~SendpropOverrideModule()
 
 struct DatatableProxyOffset
 {
-    SendProp *prop;
-    int base;
-    int offset;
+	SendProp *prop;
+	int base;
+	int offset;
 };
 
 using DatatableProxyVector = std::vector<DatatableProxyOffset>;
 bool FindSendProp(int& off, SendTable *s_table, const char *name, SendProp *&prop, DatatableProxyVector &usedTables, int index)
 {
-    static CStandardSendProxies* sendproxies = Util::servergamedll->GetStandardSendProxies();
-    for (int i = 0; i < s_table->GetNumProps(); ++i) {
-        SendProp *s_prop = s_table->GetProp(i);
-        
-        if (s_prop->GetName() != nullptr && strcmp(s_prop->GetName(), name) == 0) {
-            off += s_prop->GetOffset();
-            if (index >= 0) {
-                if (s_prop->GetDataTable() != nullptr && index < s_prop->GetDataTable()->GetNumProps()) {
-                    prop = s_prop->GetDataTable()->GetProp(index);
-                    off += prop->GetOffset();
-                    return true;
-                }
-                if (s_prop->IsInsideArray()) {
-                    auto prop_array = s_table->GetProp(i + 1);
-                    if (prop_array != nullptr && prop_array->GetType() == DPT_Array && index < prop_array->GetNumElements()) {
-                        off += prop_array->GetElementStride() * index;
-                    }
-                }
-            }
-            else {
-                if (s_prop->IsInsideArray()) {
-                    off -= s_prop->GetOffset();
-                    continue;
-                }
-            }
-            if (s_prop->GetDataTable() != nullptr) {
-                bool modifying = !CPropMapStack::IsNonPointerModifyingProxy(s_prop->GetDataTableProxyFn(), sendproxies);
-                //int oldOffset = usedTables.empty() ? 0 : usedTables.back().second;
-                if (modifying) {
-                    usedTables.push_back({s_prop, off - s_prop->GetOffset(), s_prop->GetOffset()});
-                    off = 0;
-                }
-            }
-            prop = s_prop;
-            return true;
-        }
-        
-        if (s_prop->GetDataTable() != nullptr) {
-            bool modifying = !CPropMapStack::IsNonPointerModifyingProxy(s_prop->GetDataTableProxyFn(), sendproxies);
-            //int oldOffset = usedTables.empty() ? 0 : usedTables.back().second;
-            int oldOffReal = off;
-            off += s_prop->GetOffset();
-            if (modifying) {
-                usedTables.push_back({s_prop, oldOffReal,  off - oldOffReal});
-                off = 0;
-            }
+	static CStandardSendProxies* sendproxies = Util::servergamedll->GetStandardSendProxies();
+	for (int i = 0; i < s_table->GetNumProps(); ++i) {
+		SendProp *s_prop = s_table->GetProp(i);
+		
+		if (s_prop->GetName() != nullptr && strcmp(s_prop->GetName(), name) == 0) {
+			off += s_prop->GetOffset();
+			if (index >= 0) {
+				if (s_prop->GetDataTable() != nullptr && index < s_prop->GetDataTable()->GetNumProps()) {
+					prop = s_prop->GetDataTable()->GetProp(index);
+					off += prop->GetOffset();
+					return true;
+				}
+				if (s_prop->IsInsideArray()) {
+					auto prop_array = s_table->GetProp(i + 1);
+					if (prop_array != nullptr && prop_array->GetType() == DPT_Array && index < prop_array->GetNumElements()) {
+						off += prop_array->GetElementStride() * index;
+					}
+				}
+			}
+			else {
+				if (s_prop->IsInsideArray()) {
+					off -= s_prop->GetOffset();
+					continue;
+				}
+			}
+			if (s_prop->GetDataTable() != nullptr) {
+				bool modifying = !CPropMapStack::IsNonPointerModifyingProxy(s_prop->GetDataTableProxyFn(), sendproxies);
+				//int oldOffset = usedTables.empty() ? 0 : usedTables.back().second;
+				if (modifying) {
+					usedTables.push_back({s_prop, off - s_prop->GetOffset(), s_prop->GetOffset()});
+					off = 0;
+				}
+			}
+			prop = s_prop;
+			return true;
+		}
+		
+		if (s_prop->GetDataTable() != nullptr) {
+			bool modifying = !CPropMapStack::IsNonPointerModifyingProxy(s_prop->GetDataTableProxyFn(), sendproxies);
+			//int oldOffset = usedTables.empty() ? 0 : usedTables.back().second;
+			int oldOffReal = off;
+			off += s_prop->GetOffset();
+			if (modifying) {
+				usedTables.push_back({s_prop, oldOffReal,  off - oldOffReal});
+				off = 0;
+			}
 
-            if (FindSendProp(off, s_prop->GetDataTable(), name, prop, usedTables, index)) {
-                return true;
-            }
-            off -= s_prop->GetOffset();
-            if (modifying) {
-                off = oldOffReal;
-                usedTables.pop_back();
-            }
-        }
-    }
-    
-    return false;
+			if (FindSendProp(off, s_prop->GetDataTable(), name, prop, usedTables, index)) {
+				return true;
+			}
+			off -= s_prop->GetOffset();
+			if (modifying) {
+				off = oldOffReal;
+				usedTables.pop_back();
+			}
+		}
+	}
+	
+	return false;
 }
 
 int FindSendPropPrecalcIndex(SendTable *table, const std::string &name, int index, SendProp *&prop) {
-    prop = nullptr;
-    int offset = 0;
-    DatatableProxyVector usedTables;
+	prop = nullptr;
+	int offset = 0;
+	DatatableProxyVector usedTables;
 
-    if (FindSendProp(offset, table, name.c_str(), prop, usedTables, index)) {
-        auto precalc = table->m_pPrecalc;
-        //int indexProp = -1;
-        for (int i = 0; i < precalc->m_Props.Count(); i++) {
-            if (precalc->m_Props[i] == prop) {
-                return i;
-            }
-        }
-    }
-    return -1;
+	if (FindSendProp(offset, table, name.c_str(), prop, usedTables, index)) {
+		auto precalc = table->m_pPrecalc;
+		//int indexProp = -1;
+		for (int i = 0; i < precalc->m_Props.Count(); i++) {
+			if (precalc->m_Props[i] == prop) {
+				return i;
+			}
+		}
+	}
+	return -1;
 }
 
 int SendpropOverrideModule::AddOverride(SendPropOverrideCallback callback, const std::string &name, int index, uintptr_t data)
@@ -943,12 +943,12 @@ int CheckOverridePropIndex(int *pDeltaProps, int nDeltaProps, const int objectID
 #if 0
 struct PropCacheEntry
 {
-    int offset = 0;
-    fieldtype_t fieldType = FIELD_VOID;
-    int arraySize = 1;
-    int elementStride = 0;
-    SendProp *prop = nullptr;
-    DatatableProxyVector usedTables;
+	int offset = 0;
+	fieldtype_t fieldType = FIELD_VOID;
+	int arraySize = 1;
+	int elementStride = 0;
+	SendProp *prop = nullptr;
+	DatatableProxyVector usedTables;
 };
 
 struct PluginCallbackInfo
@@ -1071,7 +1071,7 @@ static void hook_SV_DetermineUpdateType(CEntityWriteInfo& u)
 #if SYSTEM_WINDOWS
 	__asm {
 		mov esi, eax
-    }
+	}
 #else
 	asm("mov %eax, %esi");
 #endif
@@ -1437,7 +1437,7 @@ void New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 
 		// BUG BUG:  I think it might be better to build up a list of edict indices which "depend" on other answers and then
 		// resolve them in a second pass.  Not sure what happens if an entity has two parents who both request PVS check?
-        while ( check )
+		while ( check )
 		{
 			int checkIndex = check->entindex();
 

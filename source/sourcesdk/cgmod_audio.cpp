@@ -61,11 +61,11 @@ const char* g_BASSErrorStrings[] = {
 };
 
 const char* BassErrorToString(int errorCode) {
-    if (g_BASSErrorStrings[errorCode]) {
-        return g_BASSErrorStrings[errorCode];
-    }
+	if (g_BASSErrorStrings[errorCode]) {
+		return g_BASSErrorStrings[errorCode];
+	}
 
-    return "unknown error";
+	return "unknown error";
 }
 
 /*

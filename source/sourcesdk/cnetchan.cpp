@@ -65,9 +65,9 @@ bool COM_IsValidPath( const char *pszFilename )
 		return false;
 	}
 
-	if ( Q_isempty( pszFilename )    ||
+	if ( Q_isempty( pszFilename )	||
 		Q_strstr( pszFilename, "\\\\" ) ||	// to protect network paths
-		Q_strstr( pszFilename, ":" )    || // to protect absolute paths
+		Q_strstr( pszFilename, ":" )	|| // to protect absolute paths
 		Q_strstr( pszFilename, ".." ) ||   // to protect relative paths
 		Q_strstr( pszFilename, "\n" ) ||   // CFileSystem_Stdio::FS_fopen doesn't allow this
 		Q_strstr( pszFilename, "\r" ) ||   // CFileSystem_Stdio::FS_fopen doesn't allow this
@@ -3208,36 +3208,36 @@ bool CNetChan::IsValidFileForTransfer( const char *pszFilename )
 		return false;
 
 	if ( V_stristr( szTemp, "lua/" ) ||
-	     V_stristr( szTemp, "gamemodes/" ) ||
-	     V_stristr( szTemp, "addons/" ) ||
-	     V_stristr( szTemp, "~/" ) ||
-	     // V_stristr( szTemp, "//" ) || 		// Don't allow '//'. TODO: Is this check ok?
-	     V_stristr( szTemp, "./././" ) ||	// Don't allow folks to make crazy long paths with ././././ stuff.
-	     V_stristr( szTemp, "   " ) ||		// Don't allow multiple spaces or tab (was being used for an exploit).
-	     V_stristr( szTemp, "\t" ) )
+		 V_stristr( szTemp, "gamemodes/" ) ||
+		 V_stristr( szTemp, "addons/" ) ||
+		 V_stristr( szTemp, "~/" ) ||
+		 // V_stristr( szTemp, "//" ) || 		// Don't allow '//'. TODO: Is this check ok?
+		 V_stristr( szTemp, "./././" ) ||	// Don't allow folks to make crazy long paths with ././././ stuff.
+		 V_stristr( szTemp, "   " ) ||		// Don't allow multiple spaces or tab (was being used for an exploit).
+		 V_stristr( szTemp, "\t" ) )
 	{
 		return false;
 	}
 
 	// If .exe or .EXE or these other strings exist _anywhere_ in the filename, reject it.
 	if ( V_stristr( szTemp, ".cfg" ) ||
-	     V_stristr( szTemp, ".lst" ) ||
-	     V_stristr( szTemp, ".exe" ) ||
-	     V_stristr( szTemp, ".vbs" ) ||
-	     V_stristr( szTemp, ".com" ) ||
-	     V_stristr( szTemp, ".bat" ) ||
-	     V_stristr( szTemp, ".cmd" ) ||
-	     V_stristr( szTemp, ".dll" ) ||
-	     V_stristr( szTemp, ".so" ) ||
-	     V_stristr( szTemp, ".dylib" ) ||
-	     V_stristr( szTemp, ".ini" ) ||
-	     V_stristr( szTemp, ".log" ) ||
-	     V_stristr( szTemp, ".lua" ) ||
-	     V_stristr( szTemp, ".vdf" ) ||
-	     V_stristr( szTemp, ".smx" ) ||
-	     V_stristr( szTemp, ".gcf" ) ||
-	     V_stristr( szTemp, ".lmp" ) ||
-	     V_stristr( szTemp, ".sys" ) )
+		 V_stristr( szTemp, ".lst" ) ||
+		 V_stristr( szTemp, ".exe" ) ||
+		 V_stristr( szTemp, ".vbs" ) ||
+		 V_stristr( szTemp, ".com" ) ||
+		 V_stristr( szTemp, ".bat" ) ||
+		 V_stristr( szTemp, ".cmd" ) ||
+		 V_stristr( szTemp, ".dll" ) ||
+		 V_stristr( szTemp, ".so" ) ||
+		 V_stristr( szTemp, ".dylib" ) ||
+		 V_stristr( szTemp, ".ini" ) ||
+		 V_stristr( szTemp, ".log" ) ||
+		 V_stristr( szTemp, ".lua" ) ||
+		 V_stristr( szTemp, ".vdf" ) ||
+		 V_stristr( szTemp, ".smx" ) ||
+		 V_stristr( szTemp, ".gcf" ) ||
+		 V_stristr( szTemp, ".lmp" ) ||
+		 V_stristr( szTemp, ".sys" ) )
 	{
 		return false;
 	}
@@ -3254,12 +3254,12 @@ bool CNetChan::IsValidFileForTransfer( const char *pszFilename )
 	// If the extension is not exactly 3 or 4 characters, bail.
 	intp extension_len = V_strlen( extension );
 	if ( ( extension_len != 3 ) &&
-	     ( extension_len != 4 ) &&
-	     V_stricmp( extension, ".bsp.bz2" ) &&
-	     V_stricmp( extension, ".xbox.vtx" ) &&
-	     V_stricmp( extension, ".dx80.vtx" ) &&
-	     V_stricmp( extension, ".dx90.vtx" ) &&
-	     V_stricmp( extension, ".sw.vtx" ) )
+		 ( extension_len != 4 ) &&
+		 V_stricmp( extension, ".bsp.bz2" ) &&
+		 V_stricmp( extension, ".xbox.vtx" ) &&
+		 V_stricmp( extension, ".dx80.vtx" ) &&
+		 V_stricmp( extension, ".dx90.vtx" ) &&
+		 V_stricmp( extension, ".sw.vtx" ) )
 	{
 		return false;
 	}

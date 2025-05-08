@@ -45,9 +45,9 @@ typedef struct
 {
 	// Encode a value.
 	// pStruct : points at the base structure
-	// pVar    : holds data in the correct type (ie: PropVirtualsInt will have DVariant::m_Int set).
+	// pVar	: holds data in the correct type (ie: PropVirtualsInt will have DVariant::m_Int set).
 	// pProp   : describes the property to be encoded.
-	// pOut    : the buffer to encode into.
+	// pOut	: the buffer to encode into.
 	// objectID: for debug output.
 	void			(*Encode)( const unsigned char *pStruct, DVariant *pVar, const SendProp *pProp, bf_write *pOut, int objectID );
 

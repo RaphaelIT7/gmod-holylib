@@ -183,28 +183,28 @@ public:
 class IVP_Anomaly_Limits;
 class IVP_Core;
 class IVP_Anomaly_Manager {
-    IVP_BOOL delete_this_if_env_is_deleted;
+	IVP_BOOL delete_this_if_env_is_deleted;
 public:
-    virtual void max_velocity_exceeded(IVP_Anomaly_Limits *, IVP_Core *, IVP_U_Float_Point *velocity_in_out);
-    virtual void max_angular_velocity_exceeded( IVP_Anomaly_Limits *, IVP_Core *, IVP_U_Float_Point *angular_velocity_in_out);
-    virtual void inter_penetration( IVP_Mindist *mindist,IVP_Real_Object *, IVP_Real_Object *, IVP_DOUBLE);
-    virtual IVP_BOOL max_collisions_exceeded_check_freezing(IVP_Anomaly_Limits *, IVP_Core *);
+	virtual void max_velocity_exceeded(IVP_Anomaly_Limits *, IVP_Core *, IVP_U_Float_Point *velocity_in_out);
+	virtual void max_angular_velocity_exceeded( IVP_Anomaly_Limits *, IVP_Core *, IVP_U_Float_Point *angular_velocity_in_out);
+	virtual void inter_penetration( IVP_Mindist *mindist,IVP_Real_Object *, IVP_Real_Object *, IVP_DOUBLE);
+	virtual IVP_BOOL max_collisions_exceeded_check_freezing(IVP_Anomaly_Limits *, IVP_Core *);
 
-    virtual void environment_will_be_deleted(IVP_Environment *);
-    virtual IVP_FLOAT get_push_speed_penetration( IVP_Real_Object *, IVP_Real_Object *);
+	virtual void environment_will_be_deleted(IVP_Environment *);
+	virtual IVP_FLOAT get_push_speed_penetration( IVP_Real_Object *, IVP_Real_Object *);
 
 	void solve_inter_penetration_simple( IVP_Real_Object *, IVP_Real_Object *);
 
-    IVP_Anomaly_Manager(IVP_BOOL delete_this_if_env_is_deleted = IVP_TRUE);
-    virtual ~IVP_Anomaly_Manager();
+	IVP_Anomaly_Manager(IVP_BOOL delete_this_if_env_is_deleted = IVP_TRUE);
+	virtual ~IVP_Anomaly_Manager();
 };
 
 class IVP_Collision_Filter {
 public:
-    virtual IVP_BOOL check_objects_for_collision_detection(IVP_Real_Object *object0, IVP_Real_Object *object1) = 0;
-    virtual void environment_will_be_deleted(IVP_Environment *environment) = 0;
+	virtual IVP_BOOL check_objects_for_collision_detection(IVP_Real_Object *object0, IVP_Real_Object *object1) = 0;
+	virtual void environment_will_be_deleted(IVP_Environment *environment) = 0;
 
-    virtual ~IVP_Collision_Filter();
+	virtual ~IVP_Collision_Filter();
 };
 
 class CCollisionSolver : public IVP_Collision_Filter, public IVP_Anomaly_Manager
@@ -213,7 +213,7 @@ public:
 	CCollisionSolver( void ) : IVP_Anomaly_Manager(IVP_FALSE) { m_pSolver = NULL; }
 	void SetHandler( IPhysicsCollisionSolver *pSolver ) { m_pSolver = pSolver; }
 
-    virtual int max_collision_checks_exceeded( int totalChecks )
+	virtual int max_collision_checks_exceeded( int totalChecks )
 	{
 		if ( m_pSolver )
 		{

@@ -30,7 +30,7 @@
 #define MAX_FILE_SIZE		((1<<MAX_FILE_SIZE_BITS)-1)	// maximum transferable size is	64MB
 
 // 0 == regular, 1 == file stream
-#define MAX_STREAMS			2    
+#define MAX_STREAMS			2	
 
 #define	FRAG_NORMAL_STREAM	0
 #define FRAG_FILE_STREAM	1
@@ -64,7 +64,7 @@
 #define MAX_ROUTABLE_PAYLOAD		1260	// Matches x360 size
 
 static_assert((MAX_ROUTABLE_PAYLOAD & 3) == 0,
-              "Bit buffers must be a multiple of 4 bytes");
+			  "Bit buffers must be a multiple of 4 bytes");
 
 #define MIN_ROUTABLE_PAYLOAD		16		// minimum playload size
 

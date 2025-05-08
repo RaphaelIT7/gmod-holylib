@@ -132,7 +132,7 @@ struct cboxbrush_t
 
 struct cleaf_t
 {
-	int			    contents;
+	int				contents;
 	short			cluster;
 	short			area : 9;
 	short			flags : 7;
@@ -282,8 +282,8 @@ public:
 	void Discard()
 	{
 		// TODO(johns): Neutered -- Tear this class out. This can no longer be discarded with transparently compressed
-		//              BSPs. This is on the range of 500k of memory, and is probably overly complex for the savings in
-		//              the current era.
+		//			  BSPs. This is on the range of 500k of memory, and is probably overly complex for the savings in
+		//			  the current era.
 		// dimhotepus: Do not fuzz console logs when nothing to discard
 		if ( m_nCount )
 		{

@@ -9,9 +9,9 @@
    modification, are permitted provided that the following conditions are
    met:
 
-       * Redistributions of source code must retain the above copyright
+	   * Redistributions of source code must retain the above copyright
    notice, this list of conditions and the following disclaimer.
-       * Redistributions in binary form must reproduce the above
+	   * Redistributions in binary form must reproduce the above
    copyright notice, this list of conditions and the following disclaimer
    in the documentation and/or other materials provided with the
    distribution.
@@ -39,19 +39,19 @@ It also successfully passes all tests from the SMHasher suite.
 
 Comparison (single thread, Windows Seven 32 bits, using SMHasher on a Core 2 Duo @3GHz)
 
-Name            Speed       Q.Score   Author
-xxHash          5.4 GB/s     10
-CrapWow         3.2 GB/s      2       Andrew
-MumurHash 3a    2.7 GB/s     10       Austin Appleby
-SpookyHash      2.0 GB/s     10       Bob Jenkins
-SBox            1.4 GB/s      9       Bret Mulvey
-Lookup3         1.2 GB/s      9       Bob Jenkins
-SuperFastHash   1.2 GB/s      1       Paul Hsieh
-CityHash64      1.05 GB/s    10       Pike & Alakuijala
-FNV             0.55 GB/s     5       Fowler, Noll, Vo
-CRC32           0.43 GB/s     9
-MD5-32          0.33 GB/s    10       Ronald L. Rivest
-SHA1-32         0.28 GB/s    10
+Name			Speed	   Q.Score   Author
+xxHash		  5.4 GB/s	 10
+CrapWow		 3.2 GB/s	  2	   Andrew
+MumurHash 3a	2.7 GB/s	 10	   Austin Appleby
+SpookyHash	  2.0 GB/s	 10	   Bob Jenkins
+SBox			1.4 GB/s	  9	   Bret Mulvey
+Lookup3		 1.2 GB/s	  9	   Bob Jenkins
+SuperFastHash   1.2 GB/s	  1	   Paul Hsieh
+CityHash64	  1.05 GB/s	10	   Pike & Alakuijala
+FNV			 0.55 GB/s	 5	   Fowler, Noll, Vo
+CRC32		   0.43 GB/s	 9
+MD5-32		  0.33 GB/s	10	   Ronald L. Rivest
+SHA1-32		 0.28 GB/s	10
 
 Q.Score is a measure of quality of the hash function.
 It depends on successfully passing SMHasher test set.
@@ -59,9 +59,9 @@ It depends on successfully passing SMHasher test set.
 
 A 64-bit version, named XXH64, is available since r35.
 It offers much better speed, but for 64-bit applications only.
-Name     Speed on 64 bits    Speed on 32 bits
-XXH64       13.8 GB/s            1.9 GB/s
-XXH32        6.8 GB/s            6.0 GB/s
+Name	 Speed on 64 bits	Speed on 32 bits
+XXH64	   13.8 GB/s			1.9 GB/s
+XXH32		6.8 GB/s			6.0 GB/s
 */
 
 #ifndef XXHASH_H_5627135585666179
@@ -87,24 +87,24 @@ typedef enum { XXH_OK=0, XXH_ERROR } XXH_errorcode;
  *  in order to inline them, and remove their symbol from the public list.
  *  Inlining can offer dramatic performance improvement on small keys.
  *  Methodology :
- *     #define XXH_INLINE_ALL
- *     #include "xxhash.h"
+ *	 #define XXH_INLINE_ALL
+ *	 #include "xxhash.h"
  * `xxhash.c` is automatically included.
  *  It's not useful to compile and link it as a separate module.
  */
 #if defined(XXH_INLINE_ALL) || defined(XXH_PRIVATE_API)
 #  ifndef XXH_STATIC_LINKING_ONLY
-#    define XXH_STATIC_LINKING_ONLY
+#	define XXH_STATIC_LINKING_ONLY
 #  endif
 #  if defined(__GNUC__)
-#    define XXH_PUBLIC_API static __inline __attribute__((unused))
+#	define XXH_PUBLIC_API static __inline __attribute__((unused))
 #  elif defined (__cplusplus) || (defined (__STDC_VERSION__) && (__STDC_VERSION__ >= 199901L) /* C99 */)
-#    define XXH_PUBLIC_API static inline
+#	define XXH_PUBLIC_API static inline
 #  elif defined(_MSC_VER)
-#    define XXH_PUBLIC_API static __inline
+#	define XXH_PUBLIC_API static __inline
 #  else
-     /* this version may generate warnings for unused static functions */
-#    define XXH_PUBLIC_API static
+	 /* this version may generate warnings for unused static functions */
+#	define XXH_PUBLIC_API static
 #  endif
 #else
 #  define XXH_PUBLIC_API   /* do nothing */
@@ -149,8 +149,8 @@ typedef enum { XXH_OK=0, XXH_ERROR } XXH_errorcode;
 /* *************************************
 *  Version
 ***************************************/
-#define XXH_VERSION_MAJOR    0
-#define XXH_VERSION_MINOR    6
+#define XXH_VERSION_MAJOR	0
+#define XXH_VERSION_MINOR	6
 #define XXH_VERSION_RELEASE  5
 #define XXH_VERSION_NUMBER  (XXH_VERSION_MAJOR *100*100 + XXH_VERSION_MINOR *100 + XXH_VERSION_RELEASE)
 XXH_PUBLIC_API unsigned XXH_versionNumber (void);
@@ -162,10 +162,10 @@ XXH_PUBLIC_API unsigned XXH_versionNumber (void);
 typedef unsigned int XXH32_hash_t;
 
 /*! XXH32() :
-    Calculate the 32-bit hash of sequence "length" bytes stored at memory address "input".
-    The memory between input & input+length must be valid (allocated and read-accessible).
-    "seed" can be used to alter the result predictably.
-    Speed on Core 2 Duo @ 3 GHz (single thread, SMHasher benchmark) : 5.4 GB/s */
+	Calculate the 32-bit hash of sequence "length" bytes stored at memory address "input".
+	The memory between input & input+length must be valid (allocated and read-accessible).
+	"seed" can be used to alter the result predictably.
+	Speed on Core 2 Duo @ 3 GHz (single thread, SMHasher benchmark) : 5.4 GB/s */
 XXH_PUBLIC_API XXH32_hash_t XXH32 (const void* input, size_t length, unsigned int seed);
 
 /*======   Streaming   ======*/
@@ -219,9 +219,9 @@ XXH_PUBLIC_API XXH32_hash_t XXH32_hashFromCanonical(const XXH32_canonical_t* src
 typedef unsigned long long XXH64_hash_t;
 
 /*! XXH64() :
-    Calculate the 64-bit hash of sequence of length "len" stored at memory address "input".
-    "seed" can be used to alter the result predictably.
-    This function runs faster on 64-bit systems, but slower on 32-bit systems (see benchmark).
+	Calculate the 64-bit hash of sequence of length "len" stored at memory address "input".
+	"seed" can be used to alter the result predictably.
+	This function runs faster on 64-bit systems, but slower on 32-bit systems (see benchmark).
 */
 XXH_PUBLIC_API XXH64_hash_t XXH64 (const void* input, size_t length, unsigned long long seed);
 
@@ -281,7 +281,7 @@ struct XXH64_state_s {
    uint64_t v4;
    uint64_t mem64[4];
    uint32_t memsize;
-   uint32_t reserved[2];          /* never read nor write, might be removed in a future version */
+   uint32_t reserved[2];		  /* never read nor write, might be removed in a future version */
 };   /* typedef'd to XXH64_state_t */
 
 # else
@@ -307,9 +307,9 @@ struct XXH64_state_s {
    unsigned long long v4;
    unsigned long long mem64[4];
    unsigned memsize;
-   unsigned reserved[2];     /* never read nor write, might be removed in a future version */
+   unsigned reserved[2];	 /* never read nor write, might be removed in a future version */
 };   /* typedef'd to XXH64_state_t */
-#    endif
+#	endif
 
 # endif
 

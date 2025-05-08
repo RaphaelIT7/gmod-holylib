@@ -32,7 +32,7 @@ public:
 	bool	SetFromSockadr(const struct sockaddr *s);
 	void	SetIP(uint8 b1, uint8 b2, uint8 b3, uint8 b4);
 	void	SetIP(uint unIP);									// Sets IP.  unIP is in host order (little-endian)
-	void    SetIPAndPort( uint unIP, unsigned short usPort ) { SetIP( unIP ); SetPort( usPort ); }
+	void	SetIPAndPort( uint unIP, unsigned short usPort ) { SetIP( unIP ); SetPort( usPort ); }
 	bool	SetFromString(const char *pch, bool bUseDNS = false ); // if bUseDNS is true then do a DNS lookup if needed
 	
 	bool	CompareAdr (const netadrnew_s &a, bool onlyBase = false) const;
@@ -68,7 +68,7 @@ public:
 	bool	IsValid() const;	// ip & port != 0
 	bool	IsBaseAdrValid() const;	// ip != 0
 
-	void    SetFromSocket( int hSocket );
+	void	SetFromSocket( int hSocket );
 
 	bool	Unserialize( bf_read &readBuf );
 	bool	Serialize( bf_write &writeBuf );

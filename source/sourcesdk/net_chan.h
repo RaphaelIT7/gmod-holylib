@@ -305,7 +305,7 @@ public:
 	// For timeouts.  Time last message was received.
 	float		last_received;		
 	// Time when channel was connected.
-	double      connect_time;       
+	double	  connect_time;	   
 
 	// Bandwidth choke
 	// Bytes per second

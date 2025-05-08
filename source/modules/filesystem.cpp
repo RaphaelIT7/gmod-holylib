@@ -776,15 +776,15 @@ static const char* GetOverridePath(const char* pFileName, const char* pathID)
 
 	std::string_view strStart = strFileName.substr(0, pos);
 	static const std::unordered_map<std::string_view, std::string_view> pOverridePaths = {
-        {"materials",	"CONTENT_MATERIALS"},
-        {"models",		"CONTENT_MODELS"},
-        {"sound",		"CONTENT_SOUNDS"},
-        {"maps",		"CONTENT_MAPS"},
-        {"resource",	"CONTENT_RESOURCE"},
-        {"scripts",		"CONTENT_SCRIPTS"},
-        {"cfg",			"CONTENT_CONFIGS"},
-        {"gamemodes",	"LUA_GAMEMODES"}
-    };
+		{"materials",	"CONTENT_MATERIALS"},
+		{"models",		"CONTENT_MODELS"},
+		{"sound",		"CONTENT_SOUNDS"},
+		{"maps",		"CONTENT_MAPS"},
+		{"resource",	"CONTENT_RESOURCE"},
+		{"scripts",		"CONTENT_SCRIPTS"},
+		{"cfg",			"CONTENT_CONFIGS"},
+		{"gamemodes",	"LUA_GAMEMODES"}
+	};
 
 	auto it = pOverridePaths.find(strStart);
 	if (it != pOverridePaths.end())
@@ -1870,12 +1870,12 @@ LUA_FUNCTION_STATIC(filesystem_Exists)
 }
 
 std::string extractDirectoryPath(const std::string& filepath) {
-    size_t lastSlashPos = filepath.find_last_of('/');
-    if (lastSlashPos != std::string::npos) {
-        return filepath.substr(0, lastSlashPos + 1);
-    } else {
-        return "";
-    }
+	size_t lastSlashPos = filepath.find_last_of('/');
+	if (lastSlashPos != std::string::npos) {
+		return filepath.substr(0, lastSlashPos + 1);
+	} else {
+		return "";
+	}
 }
 
 std::vector<std::string> SortByDate(std::vector<std::string> files, const char* filepath, const char* path, bool ascending)
@@ -1887,12 +1887,12 @@ std::vector<std::string> SortByDate(std::vector<std::string> files, const char* 
 	}
 
 	std::sort(files.begin(), files.end(), [&dates](const std::string& a, const std::string& b) {
-        return dates[a] < dates[b];
-    });
+		return dates[a] < dates[b];
+	});
 
 	if (!ascending) {
-        std::reverse(files.begin(), files.end());
-    }
+		std::reverse(files.begin(), files.end());
+	}
 
 	return files;
 }

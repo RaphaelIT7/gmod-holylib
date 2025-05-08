@@ -74,7 +74,7 @@ public:
 	virtual void			UnPause( void ) = 0;
 
 	// Returns string describing current plugin.  e.g., Admin-Mod.  
-	virtual const char     *GetPluginDescription( void ) = 0;      
+	virtual const char	 *GetPluginDescription( void ) = 0;	  
 
 	// Called any time a new level is started (after GameInit() also on level transitions within a game)
 	virtual void			LevelInit( char const *pMapName ) = 0;

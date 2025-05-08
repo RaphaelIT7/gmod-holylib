@@ -167,7 +167,7 @@ The dynamic library has to be added to linking options.
 It means that if a project that uses LZ4 consists of a single `test-dll.c`
 file it should be linked with `dll\liblz4.dll`. For example:
 ```
-    $(CC) $(CFLAGS) -Iinclude/ test-dll.c -o test-dll dll\liblz4.dll
+	$(CC) $(CFLAGS) -Iinclude/ test-dll.c -o test-dll dll\liblz4.dll
 ```
 The compiled executable will require LZ4 DLL which is available at `dll\liblz4.dll`.
 

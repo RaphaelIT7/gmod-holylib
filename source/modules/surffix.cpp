@@ -25,46 +25,46 @@ IModule* pSurfFixModule = &g_pSurfFixModule;
 // static ConVar sv_slope_fix("sv_slope_fix", "1");
 static ConVar sv_ramp_fix("sv_ramp_fix", "1");
 static ConVar sv_ramp_initial_retrace_length("sv_ramp_initial_retrace_length", "0.2", 0,
-                                      "Amount of units used in offset for retraces", true, 0.2f, true, 5.f);
+									  "Amount of units used in offset for retraces", true, 0.2f, true, 5.f);
 static ConVar sv_ramp_bumpcount("sv_ramp_bumpcount", "8", 0, "Helps with fixing surf/ramp bugs", true, 4, true, 32);
 
 static bool CGameMovement_IsValidMovementTrace(CGameMovement* gamemovement, trace_t &tr)
 {
 	VPROF_BUDGET("HolyLib - CGameMovement::IsValidMovementTrace", VPROF_BUDGETGROUP_HOLYLIB);
 
-    trace_t stuck;
+	trace_t stuck;
 
-    // Apparently we can be stuck with pm.allsolid without having valid plane info ok..
-    if (tr.allsolid || tr.startsolid)
-    {
-        return false;
-    }
+	// Apparently we can be stuck with pm.allsolid without having valid plane info ok..
+	if (tr.allsolid || tr.startsolid)
+	{
+		return false;
+	}
 
-    // Maybe we don't need this one
-    if (CloseEnough(tr.fraction, 0.0f, FLT_EPSILON))
-    {
-        return false;
-    }
+	// Maybe we don't need this one
+	if (CloseEnough(tr.fraction, 0.0f, FLT_EPSILON))
+	{
+		return false;
+	}
 
-    if (CloseEnough(tr.fraction, 0.0f, FLT_EPSILON) &&
-        CloseEnough(tr.plane.normal, Vector(0.0f, 0.0f, 0.0f), FLT_EPSILON))
-    {
-        return false;
-    }
+	if (CloseEnough(tr.fraction, 0.0f, FLT_EPSILON) &&
+		CloseEnough(tr.plane.normal, Vector(0.0f, 0.0f, 0.0f), FLT_EPSILON))
+	{
+		return false;
+	}
 
-    // Is the plane deformed or some stupid shit?
-    if (fabs(tr.plane.normal.x) > 1.0f || fabs(tr.plane.normal.y) > 1.0f || fabs(tr.plane.normal.z) > 1.0f)
-    {
-        return false;
-    }
+	// Is the plane deformed or some stupid shit?
+	if (fabs(tr.plane.normal.x) > 1.0f || fabs(tr.plane.normal.y) > 1.0f || fabs(tr.plane.normal.z) > 1.0f)
+	{
+		return false;
+	}
 
-    gamemovement->TracePlayerBBox(tr.endpos, tr.endpos, gamemovement->PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, stuck);
-    if (stuck.startsolid || !CloseEnough(stuck.fraction, 1.0f, FLT_EPSILON))
-    {
-        return false;
-    }
+	gamemovement->TracePlayerBBox(tr.endpos, tr.endpos, gamemovement->PlayerSolidMask(), COLLISION_GROUP_PLAYER_MOVEMENT, stuck);
+	if (stuck.startsolid || !CloseEnough(stuck.fraction, 1.0f, FLT_EPSILON))
+	{
+		return false;
+	}
 
-    return true;
+	return true;
 }
 
 #define	MAX_CLIP_PLANES		5
@@ -123,7 +123,7 @@ static int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector*
 	int			numplanes;
 	Vector		planes[MAX_CLIP_PLANES];
 	Vector		primal_velocity, original_velocity;
-	Vector      new_velocity;
+	Vector	  new_velocity;
 	Vector		fixed_origin;
 	Vector		valid_plane;
 	int			i, j, h;
@@ -136,8 +136,8 @@ static int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector*
 	
 	numbumps  = sv_ramp_bumpcount.GetInt();
 	
-	blocked   = 0;           // Assume not blocked
-	numplanes = 0;           //  and not sliding along any planes
+	blocked   = 0;		   // Assume not blocked
+	numplanes = 0;		   //  and not sliding along any planes
 
 	stuck_on_ramp = false;
 	has_valid_plane = false;

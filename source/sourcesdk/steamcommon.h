@@ -368,8 +368,8 @@ typedef struct
 
 typedef struct TSteamProgress
 {
-	int bValid;                      /* non-zero if call provides progress info */
-	unsigned int uPercentDone;       /* 0 to 100 * STEAM_PROGRESS_PERCENT_SCALE if bValid */
+	int bValid;					  /* non-zero if call provides progress info */
+	unsigned int uPercentDone;	   /* 0 to 100 * STEAM_PROGRESS_PERCENT_SCALE if bValid */
 	char szProgress[STEAM_MAX_PATH]; /* additional progress info */
 } TSteamProgress;
 
@@ -563,7 +563,7 @@ typedef enum
 	eSteamUserAdministrator	=	0x00000001, /* May subscribe, unsubscribe, etc */
 	eSteamUserDeveloper		=	0x00000002, /* Steam or App developer */
 	eSteamUserCyberCafe		=	0x00000004  /* CyberCafe, school, etc -- UI should ask for password */
-											/* before allowing logout, unsubscribe, etc             */
+											/* before allowing logout, unsubscribe, etc			 */
 } ESteamUserTypeFlags;
 
 typedef enum 

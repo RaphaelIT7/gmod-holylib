@@ -8,9 +8,9 @@
    modification, are permitted provided that the following conditions are
    met:
 
-       * Redistributions of source code must retain the above copyright
+	   * Redistributions of source code must retain the above copyright
    notice, this list of conditions and the following disclaimer.
-       * Redistributions in binary form must reproduce the above
+	   * Redistributions in binary form must reproduce the above
    copyright notice, this list of conditions and the following disclaimer
    in the documentation and/or other materials provided with the
    distribution.
@@ -71,9 +71,9 @@ extern "C" {
  */
 #ifndef LZ4FLIB_VISIBILITY
 #  if defined(__GNUC__) && (__GNUC__ >= 4)
-#    define LZ4FLIB_VISIBILITY __attribute__ ((visibility ("default")))
+#	define LZ4FLIB_VISIBILITY __attribute__ ((visibility ("default")))
 #  else
-#    define LZ4FLIB_VISIBILITY
+#	define LZ4FLIB_VISIBILITY
 #  endif
 #endif
 #if defined(LZ4_DLL_EXPORT) && (LZ4_DLL_EXPORT==1)
@@ -88,11 +88,11 @@ extern "C" {
 #  define LZ4F_DEPRECATE(x) x
 #else
 #  if defined(_MSC_VER)
-#    define LZ4F_DEPRECATE(x) x   /* __declspec(deprecated) x - only works with C++ */
+#	define LZ4F_DEPRECATE(x) x   /* __declspec(deprecated) x - only works with C++ */
 #  elif defined(__clang__) || (defined(__GNUC__) && (__GNUC__ >= 6))
-#    define LZ4F_DEPRECATE(x) x __attribute__((deprecated))
+#	define LZ4F_DEPRECATE(x) x __attribute__((deprecated))
 #  else
-#    define LZ4F_DEPRECATE(x) x   /* no deprecation warning for this compiler */
+#	define LZ4F_DEPRECATE(x) x   /* no deprecation warning for this compiler */
 #  endif
 #endif
 
@@ -102,7 +102,7 @@ extern "C" {
  **************************************/
 typedef size_t LZ4F_errorCode_t;
 
-LZ4FLIB_API unsigned    LZ4F_isError(LZ4F_errorCode_t code);   /**< tells when a function result is an error code */
+LZ4FLIB_API unsigned	LZ4F_isError(LZ4F_errorCode_t code);   /**< tells when a function result is an error code */
 LZ4FLIB_API const char* LZ4F_getErrorName(LZ4F_errorCode_t code);   /**< return error code string; for debugging */
 
 
@@ -121,43 +121,43 @@ LZ4FLIB_API const char* LZ4F_getErrorName(LZ4F_errorCode_t code);   /**< return 
  * Larger blocks also increase memory usage on both compression and decompression sides.
  */
 typedef enum {
-    LZ4F_default=0,
-    LZ4F_max64KB=4,
-    LZ4F_max256KB=5,
-    LZ4F_max1MB=6,
-    LZ4F_max4MB=7
-    LZ4F_OBSOLETE_ENUM(max64KB)
-    LZ4F_OBSOLETE_ENUM(max256KB)
-    LZ4F_OBSOLETE_ENUM(max1MB)
-    LZ4F_OBSOLETE_ENUM(max4MB)
+	LZ4F_default=0,
+	LZ4F_max64KB=4,
+	LZ4F_max256KB=5,
+	LZ4F_max1MB=6,
+	LZ4F_max4MB=7
+	LZ4F_OBSOLETE_ENUM(max64KB)
+	LZ4F_OBSOLETE_ENUM(max256KB)
+	LZ4F_OBSOLETE_ENUM(max1MB)
+	LZ4F_OBSOLETE_ENUM(max4MB)
 } LZ4F_blockSizeID_t;
 
 /* Linked blocks sharply reduce inefficiencies when using small blocks,
  * they compress better.
  * However, some LZ4 decoders are only compatible with independent blocks */
 typedef enum {
-    LZ4F_blockLinked=0,
-    LZ4F_blockIndependent
-    LZ4F_OBSOLETE_ENUM(blockLinked)
-    LZ4F_OBSOLETE_ENUM(blockIndependent)
+	LZ4F_blockLinked=0,
+	LZ4F_blockIndependent
+	LZ4F_OBSOLETE_ENUM(blockLinked)
+	LZ4F_OBSOLETE_ENUM(blockIndependent)
 } LZ4F_blockMode_t;
 
 typedef enum {
-    LZ4F_noContentChecksum=0,
-    LZ4F_contentChecksumEnabled
-    LZ4F_OBSOLETE_ENUM(noContentChecksum)
-    LZ4F_OBSOLETE_ENUM(contentChecksumEnabled)
+	LZ4F_noContentChecksum=0,
+	LZ4F_contentChecksumEnabled
+	LZ4F_OBSOLETE_ENUM(noContentChecksum)
+	LZ4F_OBSOLETE_ENUM(contentChecksumEnabled)
 } LZ4F_contentChecksum_t;
 
 typedef enum {
-    LZ4F_noBlockChecksum=0,
-    LZ4F_blockChecksumEnabled
+	LZ4F_noBlockChecksum=0,
+	LZ4F_blockChecksumEnabled
 } LZ4F_blockChecksum_t;
 
 typedef enum {
-    LZ4F_frame=0,
-    LZ4F_skippableFrame
-    LZ4F_OBSOLETE_ENUM(skippableFrame)
+	LZ4F_frame=0,
+	LZ4F_skippableFrame
+	LZ4F_OBSOLETE_ENUM(skippableFrame)
 } LZ4F_frameType_t;
 
 #ifdef LZ4F_ENABLE_OBSOLETE_ENUMS
@@ -173,16 +173,16 @@ typedef LZ4F_contentChecksum_t contentChecksum_t;
  *  setting all parameters to default.
  *  It's then possible to update selectively some parameters */
 typedef struct {
-  LZ4F_blockSizeID_t     blockSizeID;         /* max64KB, max256KB, max1MB, max4MB; 0 == default (LZ4F_max64KB) */
-  LZ4F_blockMode_t       blockMode;           /* LZ4F_blockLinked, LZ4F_blockIndependent; 0 == default (LZ4F_blockLinked) */
+  LZ4F_blockSizeID_t	 blockSizeID;		 /* max64KB, max256KB, max1MB, max4MB; 0 == default (LZ4F_max64KB) */
+  LZ4F_blockMode_t	   blockMode;		   /* LZ4F_blockLinked, LZ4F_blockIndependent; 0 == default (LZ4F_blockLinked) */
   LZ4F_contentChecksum_t contentChecksumFlag; /* 1: add a 32-bit checksum of frame's decompressed data; 0 == default (disabled) */
-  LZ4F_frameType_t       frameType;           /* read-only field : LZ4F_frame or LZ4F_skippableFrame */
-  unsigned long long     contentSize;         /* Size of uncompressed content ; 0 == unknown */
-  unsigned               dictID;              /* Dictionary ID, sent by compressor to help decoder select correct dictionary; 0 == no dictID provided */
+  LZ4F_frameType_t	   frameType;		   /* read-only field : LZ4F_frame or LZ4F_skippableFrame */
+  unsigned long long	 contentSize;		 /* Size of uncompressed content ; 0 == unknown */
+  unsigned			   dictID;			  /* Dictionary ID, sent by compressor to help decoder select correct dictionary; 0 == no dictID provided */
   LZ4F_blockChecksum_t   blockChecksumFlag;   /* 1: each block followed by a checksum of block's compressed data; 0 == default (disabled) */
 } LZ4F_frameInfo_t;
 
-#define LZ4F_INIT_FRAMEINFO   { LZ4F_max64KB, LZ4F_blockLinked, LZ4F_noContentChecksum, LZ4F_frame, 0ULL, 0U, LZ4F_noBlockChecksum }    /* v1.8.3+ */
+#define LZ4F_INIT_FRAMEINFO   { LZ4F_max64KB, LZ4F_blockLinked, LZ4F_noContentChecksum, LZ4F_frame, 0ULL, 0U, LZ4F_noBlockChecksum }	/* v1.8.3+ */
 
 /*! LZ4F_preferences_t :
  *  makes it possible to supply advanced compression instructions to streaming interface.
@@ -191,13 +191,13 @@ typedef struct {
  *  All reserved fields must be set to zero. */
 typedef struct {
   LZ4F_frameInfo_t frameInfo;
-  int      compressionLevel;    /* 0: default (fast mode); values > LZ4HC_CLEVEL_MAX count as LZ4HC_CLEVEL_MAX; values < 0 trigger "fast acceleration" */
-  unsigned autoFlush;           /* 1: always flush; reduces usage of internal buffers */
-  unsigned favorDecSpeed;       /* 1: parser favors decompression speed vs compression ratio. Only works for high compression modes (>= LZ4HC_CLEVEL_OPT_MIN) */  /* v1.8.2+ */
-  unsigned reserved[3];         /* must be zero for forward compatibility */
+  int	  compressionLevel;	/* 0: default (fast mode); values > LZ4HC_CLEVEL_MAX count as LZ4HC_CLEVEL_MAX; values < 0 trigger "fast acceleration" */
+  unsigned autoFlush;		   /* 1: always flush; reduces usage of internal buffers */
+  unsigned favorDecSpeed;	   /* 1: parser favors decompression speed vs compression ratio. Only works for high compression modes (>= LZ4HC_CLEVEL_OPT_MIN) */  /* v1.8.2+ */
+  unsigned reserved[3];		 /* must be zero for forward compatibility */
 } LZ4F_preferences_t;
 
-#define LZ4F_INIT_PREFERENCES   { LZ4F_INIT_FRAMEINFO, 0, 0u, 0u, { 0u, 0u, 0u } }    /* v1.8.3+ */
+#define LZ4F_INIT_PREFERENCES   { LZ4F_INIT_FRAMEINFO, 0, 0u, 0u, { 0u, 0u, 0u } }	/* v1.8.3+ */
 
 
 /*-*********************************
@@ -219,17 +219,17 @@ typedef struct {
  * @dstCapacity MUST be >= LZ4F_compressFrameBound(srcSize, preferencesPtr).
  * @preferencesPtr is optional : one can provide NULL, in which case all preferences are set to default.
  * @return : number of bytes written into dstBuffer.
- *           or an error code if it fails (can be tested using LZ4F_isError())
+ *		   or an error code if it fails (can be tested using LZ4F_isError())
  */
 LZ4FLIB_API size_t LZ4F_compressFrame(void* dstBuffer, size_t dstCapacity,
-                                const void* srcBuffer, size_t srcSize,
-                                const LZ4F_preferences_t* preferencesPtr);
+								const void* srcBuffer, size_t srcSize,
+								const LZ4F_preferences_t* preferencesPtr);
 
 /*! LZ4F_compressFrameBound() :
  *  Returns the maximum possible compressed size with LZ4F_compressFrame() given srcSize and preferences.
  * `preferencesPtr` is optional. It can be replaced by NULL, in which case, the function will assume default preferences.
  *  Note : this result is only usable with LZ4F_compressFrame().
- *         It may also be relevant to LZ4F_compressUpdate() _only if_ no flush() operation is ever performed.
+ *		 It may also be relevant to LZ4F_compressUpdate() _only if_ no flush() operation is ever performed.
  */
 LZ4FLIB_API size_t LZ4F_compressFrameBound(size_t srcSize, const LZ4F_preferences_t* preferencesPtr);
 
@@ -247,13 +247,13 @@ typedef struct LZ4F_cctx_s LZ4F_cctx;   /* incomplete type */
 typedef LZ4F_cctx* LZ4F_compressionContext_t;  /* for compatibility with older APIs, prefer using LZ4F_cctx */
 
 typedef struct {
-  unsigned stableSrc;    /* 1 == src content will remain present on future calls to LZ4F_compress(); skip copying src content within tmp buffer */
+  unsigned stableSrc;	/* 1 == src content will remain present on future calls to LZ4F_compress(); skip copying src content within tmp buffer */
   unsigned reserved[3];
 } LZ4F_compressOptions_t;
 
 /*---   Resource Management   ---*/
 
-#define LZ4F_VERSION 100    /* This number can be used to check for an incompatible API breaking change */
+#define LZ4F_VERSION 100	/* This number can be used to check for an incompatible API breaking change */
 LZ4FLIB_API unsigned LZ4F_getVersion(void);
 
 /*! LZ4F_createCompressionContext() :
@@ -275,7 +275,7 @@ LZ4FLIB_API LZ4F_errorCode_t LZ4F_createCompressionContext(LZ4F_cctx** cctxPtr, 
 LZ4FLIB_API LZ4F_errorCode_t LZ4F_freeCompressionContext(LZ4F_cctx* cctx);
 
 
-/*----    Compression    ----*/
+/*----	Compression	----*/
 
 #define LZ4F_HEADER_SIZE_MIN  7   /* LZ4 Frame header size can vary, depending on selected parameters */
 #define LZ4F_HEADER_SIZE_MAX 19
@@ -294,11 +294,11 @@ LZ4FLIB_API LZ4F_errorCode_t LZ4F_freeCompressionContext(LZ4F_cctx* cctx);
  *  dstCapacity must be >= LZ4F_HEADER_SIZE_MAX bytes.
  * `prefsPtr` is optional : NULL can be provided to set all preferences to default.
  * @return : number of bytes written into dstBuffer for the header
- *           or an error code (which can be tested using LZ4F_isError())
+ *		   or an error code (which can be tested using LZ4F_isError())
  */
 LZ4FLIB_API size_t LZ4F_compressBegin(LZ4F_cctx* cctx,
-                                      void* dstBuffer, size_t dstCapacity,
-                                      const LZ4F_preferences_t* prefsPtr);
+									  void* dstBuffer, size_t dstCapacity,
+									  const LZ4F_preferences_t* prefsPtr);
 
 /*! LZ4F_compressBound() :
  *  Provides minimum dstCapacity required to guarantee success of
@@ -327,12 +327,12 @@ LZ4FLIB_API size_t LZ4F_compressBound(size_t srcSize, const LZ4F_preferences_t* 
  *  before appending compressed data is continued.
  * `cOptPtr` is optional : NULL can be provided, in which case all options are set to default.
  * @return : number of bytes written into `dstBuffer` (it can be zero, meaning input data was just buffered).
- *           or an error code if it fails (which can be tested using LZ4F_isError())
+ *		   or an error code if it fails (which can be tested using LZ4F_isError())
  */
 LZ4FLIB_API size_t LZ4F_compressUpdate(LZ4F_cctx* cctx,
-                                       void* dstBuffer, size_t dstCapacity,
-                                 const void* srcBuffer, size_t srcSize,
-                                 const LZ4F_compressOptions_t* cOptPtr);
+									   void* dstBuffer, size_t dstCapacity,
+								 const void* srcBuffer, size_t srcSize,
+								 const LZ4F_compressOptions_t* cOptPtr);
 
 /*! LZ4F_flush() :
  *  When data must be generated and sent immediately, without waiting for a block to be completely filled,
@@ -340,12 +340,12 @@ LZ4FLIB_API size_t LZ4F_compressUpdate(LZ4F_cctx* cctx,
  * `dstCapacity` must be large enough to ensure the operation will be successful.
  * `cOptPtr` is optional : it's possible to provide NULL, all options will be set to default.
  * @return : nb of bytes written into dstBuffer (can be zero, when there is no data stored within cctx)
- *           or an error code if it fails (which can be tested using LZ4F_isError())
+ *		   or an error code if it fails (which can be tested using LZ4F_isError())
  *  Note : LZ4F_flush() is guaranteed to be successful when dstCapacity >= LZ4F_compressBound(0, prefsPtr).
  */
 LZ4FLIB_API size_t LZ4F_flush(LZ4F_cctx* cctx,
-                              void* dstBuffer, size_t dstCapacity,
-                        const LZ4F_compressOptions_t* cOptPtr);
+							  void* dstBuffer, size_t dstCapacity,
+						const LZ4F_compressOptions_t* cOptPtr);
 
 /*! LZ4F_compressEnd() :
  *  To properly finish an LZ4 frame, invoke LZ4F_compressEnd().
@@ -353,13 +353,13 @@ LZ4FLIB_API size_t LZ4F_flush(LZ4F_cctx* cctx,
  *  and properly finalize the frame, with an endMark and a checksum.
  * `cOptPtr` is optional : NULL can be provided, in which case all options will be set to default.
  * @return : nb of bytes written into dstBuffer, necessarily >= 4 (endMark),
- *           or an error code if it fails (which can be tested using LZ4F_isError())
+ *		   or an error code if it fails (which can be tested using LZ4F_isError())
  *  Note : LZ4F_compressEnd() is guaranteed to be successful when dstCapacity >= LZ4F_compressBound(0, prefsPtr).
  *  A successful call to LZ4F_compressEnd() makes `cctx` available again for another compression task.
  */
 LZ4FLIB_API size_t LZ4F_compressEnd(LZ4F_cctx* cctx,
-                                    void* dstBuffer, size_t dstCapacity,
-                              const LZ4F_compressOptions_t* cOptPtr);
+									void* dstBuffer, size_t dstCapacity,
+							  const LZ4F_compressOptions_t* cOptPtr);
 
 
 /*-*********************************
@@ -369,13 +369,13 @@ typedef struct LZ4F_dctx_s LZ4F_dctx;   /* incomplete type */
 typedef LZ4F_dctx* LZ4F_decompressionContext_t;   /* compatibility with previous API versions */
 
 typedef struct {
-  unsigned stableDst;     /* pledges that last 64KB decompressed data is present right before @dstBuffer pointer.
-                           * This optimization skips internal storage operations.
-                           * Once set, this pledge must remain valid up to the end of current frame. */
+  unsigned stableDst;	 /* pledges that last 64KB decompressed data is present right before @dstBuffer pointer.
+						   * This optimization skips internal storage operations.
+						   * Once set, this pledge must remain valid up to the end of current frame. */
   unsigned skipChecksums; /* disable checksum calculation and verification, even when one is present in frame, to save CPU time.
-                           * Setting this option to 1 once disables all checksums for the rest of the frame. */
-  unsigned reserved1;     /* must be set to zero for forward compatibility */
-  unsigned reserved0;     /* idem */
+						   * Setting this option to 1 once disables all checksums for the rest of the frame. */
+  unsigned reserved1;	 /* must be set to zero for forward compatibility */
+  unsigned reserved0;	 /* idem */
 } LZ4F_decompressOptions_t;
 
 
@@ -408,9 +408,9 @@ LZ4FLIB_API LZ4F_errorCode_t LZ4F_freeDecompressionContext(LZ4F_dctx* dctx);
  * `srcSize` must be >= LZ4F_MIN_SIZE_TO_KNOW_HEADER_LENGTH,
  *  which is enough to decode the header length.
  * @return : size of frame header
- *           or an error code, which can be tested using LZ4F_isError()
+ *		   or an error code, which can be tested using LZ4F_isError()
  *  note : Frame header size is variable, but is guaranteed to be
- *         >= LZ4F_HEADER_SIZE_MIN bytes, and <= LZ4F_HEADER_SIZE_MAX bytes.
+ *		 >= LZ4F_HEADER_SIZE_MIN bytes, and <= LZ4F_HEADER_SIZE_MAX bytes.
  */
 LZ4FLIB_API size_t LZ4F_headerSize(const void* src, size_t srcSize);
 
@@ -424,28 +424,28 @@ LZ4FLIB_API size_t LZ4F_headerSize(const void* src, size_t srcSize);
  *  LZ4F_getFrameInfo() can work in the following situations :
  *
  *  1) At the beginning of a new frame, before any invocation of LZ4F_decompress().
- *     It will decode header from `srcBuffer`,
- *     consuming the header and starting the decoding process.
+ *	 It will decode header from `srcBuffer`,
+ *	 consuming the header and starting the decoding process.
  *
- *     Input size must be large enough to contain the full frame header.
- *     Frame header size can be known beforehand by LZ4F_headerSize().
- *     Frame header size is variable, but is guaranteed to be >= LZ4F_HEADER_SIZE_MIN bytes,
- *     and not more than <= LZ4F_HEADER_SIZE_MAX bytes.
- *     Hence, blindly providing LZ4F_HEADER_SIZE_MAX bytes or more will always work.
- *     It's allowed to provide more input data than the header size,
- *     LZ4F_getFrameInfo() will only consume the header.
+ *	 Input size must be large enough to contain the full frame header.
+ *	 Frame header size can be known beforehand by LZ4F_headerSize().
+ *	 Frame header size is variable, but is guaranteed to be >= LZ4F_HEADER_SIZE_MIN bytes,
+ *	 and not more than <= LZ4F_HEADER_SIZE_MAX bytes.
+ *	 Hence, blindly providing LZ4F_HEADER_SIZE_MAX bytes or more will always work.
+ *	 It's allowed to provide more input data than the header size,
+ *	 LZ4F_getFrameInfo() will only consume the header.
  *
- *     If input size is not large enough,
- *     aka if it's smaller than header size,
- *     function will fail and return an error code.
+ *	 If input size is not large enough,
+ *	 aka if it's smaller than header size,
+ *	 function will fail and return an error code.
  *
  *  2) After decoding has been started,
- *     it's possible to invoke LZ4F_getFrameInfo() anytime
- *     to extract already decoded frame parameters stored within dctx.
+ *	 it's possible to invoke LZ4F_getFrameInfo() anytime
+ *	 to extract already decoded frame parameters stored within dctx.
  *
- *     Note that, if decoding has barely started,
- *     and not yet read enough information to decode the header,
- *     LZ4F_getFrameInfo() will fail.
+ *	 Note that, if decoding has barely started,
+ *	 and not yet read enough information to decode the header,
+ *	 LZ4F_getFrameInfo() will fail.
  *
  *  The number of bytes consumed from srcBuffer will be updated in *srcSizePtr (necessarily <= original value).
  *  LZ4F_getFrameInfo() only consumes bytes when decoding has not yet started,
@@ -453,14 +453,14 @@ LZ4FLIB_API size_t LZ4F_headerSize(const void* src, size_t srcSize);
  *  Decompression must then resume from (srcBuffer + *srcSizePtr).
  *
  * @return : a hint about how many srcSize bytes LZ4F_decompress() expects for next call,
- *           or an error code which can be tested using LZ4F_isError().
+ *		   or an error code which can be tested using LZ4F_isError().
  *  note 1 : in case of error, dctx is not modified. Decoding operation can resume from beginning safely.
  *  note 2 : frame parameters are *copied into* an already allocated LZ4F_frameInfo_t structure.
  */
 LZ4FLIB_API size_t
 LZ4F_getFrameInfo(LZ4F_dctx* dctx,
-                  LZ4F_frameInfo_t* frameInfoPtr,
-            const void* srcBuffer, size_t* srcSizePtr);
+				  LZ4F_frameInfo_t* frameInfoPtr,
+			const void* srcBuffer, size_t* srcSizePtr);
 
 /*! LZ4F_decompress() :
  *  Call this function repetitively to regenerate data compressed in `srcBuffer`.
@@ -500,9 +500,9 @@ LZ4F_getFrameInfo(LZ4F_dctx* dctx,
  */
 LZ4FLIB_API size_t
 LZ4F_decompress(LZ4F_dctx* dctx,
-                void* dstBuffer, size_t* dstSizePtr,
-          const void* srcBuffer, size_t* srcSizePtr,
-          const LZ4F_decompressOptions_t* dOptPtr);
+				void* dstBuffer, size_t* dstSizePtr,
+		  const void* srcBuffer, size_t* srcSizePtr,
+		  const LZ4F_decompressOptions_t* dOptPtr);
 
 
 /*! LZ4F_resetDecompressionContext() : added in v1.8.0
@@ -537,17 +537,17 @@ LZ4FLIB_API void LZ4F_resetDecompressionContext(LZ4F_dctx* dctx);   /* always su
  *  however, it's the only way to provide dictID in the frame header.
  * @dictBuffer must outlive the compression session.
  * @return : number of bytes written into dstBuffer for the header,
- *           or an error code (which can be tested using LZ4F_isError())
+ *		   or an error code (which can be tested using LZ4F_isError())
  *  NOTE: The LZ4Frame spec allows each independent block to be compressed with the dictionary,
- *        but this entry supports a more limited scenario, where only the first block uses the dictionary.
- *        This is still useful for small data, which only need one block anyway.
- *        For larger inputs, one may be more interested in LZ4F_compressFrame_usingCDict() below.
+ *		but this entry supports a more limited scenario, where only the first block uses the dictionary.
+ *		This is still useful for small data, which only need one block anyway.
+ *		For larger inputs, one may be more interested in LZ4F_compressFrame_usingCDict() below.
  */
 LZ4FLIB_API size_t
 LZ4F_compressBegin_usingDict(LZ4F_cctx* cctx,
-                            void* dstBuffer, size_t dstCapacity,
-                      const void* dictBuffer, size_t dictSize,
-                      const LZ4F_preferences_t* prefsPtr);
+							void* dstBuffer, size_t dstCapacity,
+					  const void* dictBuffer, size_t dictSize,
+					  const LZ4F_preferences_t* prefsPtr);
 
 /*! LZ4F_decompress_usingDict() : stable since v1.10
  *  Same as LZ4F_decompress(), using a predefined dictionary.
@@ -555,10 +555,10 @@ LZ4F_compressBegin_usingDict(LZ4F_cctx* cctx,
 **  It must remain accessible throughout the entire frame decoding. */
 LZ4FLIB_API size_t
 LZ4F_decompress_usingDict(LZ4F_dctx* dctxPtr,
-                          void* dstBuffer, size_t* dstSizePtr,
-                    const void* srcBuffer, size_t* srcSizePtr,
-                    const void* dict, size_t dictSize,
-                    const LZ4F_decompressOptions_t* decompressOptionsPtr);
+						  void* dstBuffer, size_t* dstSizePtr,
+					const void* srcBuffer, size_t* srcSizePtr,
+					const void* dict, size_t dictSize,
+					const LZ4F_decompressOptions_t* decompressOptionsPtr);
 
 /*****************************************
  *  Bulk processing dictionary compression
@@ -581,7 +581,7 @@ typedef struct LZ4F_CDict_s LZ4F_CDict;
  *  LZ4_CDict can be created once and shared by multiple threads concurrently, since its usage is read-only.
  * @dictBuffer can be released after LZ4_CDict creation, since its content is copied within CDict. */
 LZ4FLIB_API LZ4F_CDict* LZ4F_createCDict(const void* dictBuffer, size_t dictSize);
-LZ4FLIB_API void        LZ4F_freeCDict(LZ4F_CDict* CDict);
+LZ4FLIB_API void		LZ4F_freeCDict(LZ4F_CDict* CDict);
 
 /*! LZ4_compressFrame_usingCDict() : stable since v1.10
  *  Compress an entire srcBuffer into a valid LZ4 frame using a digested Dictionary.
@@ -592,15 +592,15 @@ LZ4FLIB_API void        LZ4F_freeCDict(LZ4F_CDict* CDict);
  *  The LZ4F_preferences_t structure is optional : one may provide NULL as argument,
  *  but it's not recommended, as it's the only way to provide @dictID in the frame header.
  * @return : number of bytes written into dstBuffer.
- *           or an error code if it fails (can be tested using LZ4F_isError())
+ *		   or an error code if it fails (can be tested using LZ4F_isError())
  *  Note: for larger inputs generating multiple independent blocks,
- *        this entry point uses the dictionary for each block. */
+ *		this entry point uses the dictionary for each block. */
 LZ4FLIB_API size_t
 LZ4F_compressFrame_usingCDict(LZ4F_cctx* cctx,
-                              void* dst, size_t dstCapacity,
-                        const void* src, size_t srcSize,
-                        const LZ4F_CDict* cdict,
-                        const LZ4F_preferences_t* preferencesPtr);
+							  void* dst, size_t dstCapacity,
+						const void* src, size_t srcSize,
+						const LZ4F_CDict* cdict,
+						const LZ4F_preferences_t* preferencesPtr);
 
 /*! LZ4F_compressBegin_usingCDict() : stable since v1.10
  *  Inits streaming dictionary compression, and writes the frame header into dstBuffer.
@@ -609,12 +609,12 @@ LZ4F_compressFrame_usingCDict(LZ4F_cctx* cctx,
  *  note however that it's the only way to insert a @dictID in the frame header.
  * @cdict must outlive the compression session.
  * @return : number of bytes written into dstBuffer for the header,
- *           or an error code, which can be tested using LZ4F_isError(). */
+ *		   or an error code, which can be tested using LZ4F_isError(). */
 LZ4FLIB_API size_t
 LZ4F_compressBegin_usingCDict(LZ4F_cctx* cctx,
-                              void* dstBuffer, size_t dstCapacity,
-                        const LZ4F_CDict* cdict,
-                        const LZ4F_preferences_t* prefsPtr);
+							  void* dstBuffer, size_t dstCapacity,
+						const LZ4F_CDict* cdict,
+						const LZ4F_preferences_t* prefsPtr);
 
 
 #if defined (__cplusplus)
@@ -651,37 +651,37 @@ extern "C" {
 
 /* ---   Error List   --- */
 #define LZ4F_LIST_ERRORS(ITEM) \
-        ITEM(OK_NoError) \
-        ITEM(ERROR_GENERIC) \
-        ITEM(ERROR_maxBlockSize_invalid) \
-        ITEM(ERROR_blockMode_invalid) \
-        ITEM(ERROR_parameter_invalid) \
-        ITEM(ERROR_compressionLevel_invalid) \
-        ITEM(ERROR_headerVersion_wrong) \
-        ITEM(ERROR_blockChecksum_invalid) \
-        ITEM(ERROR_reservedFlag_set) \
-        ITEM(ERROR_allocation_failed) \
-        ITEM(ERROR_srcSize_tooLarge) \
-        ITEM(ERROR_dstMaxSize_tooSmall) \
-        ITEM(ERROR_frameHeader_incomplete) \
-        ITEM(ERROR_frameType_unknown) \
-        ITEM(ERROR_frameSize_wrong) \
-        ITEM(ERROR_srcPtr_wrong) \
-        ITEM(ERROR_decompressionFailed) \
-        ITEM(ERROR_headerChecksum_invalid) \
-        ITEM(ERROR_contentChecksum_invalid) \
-        ITEM(ERROR_frameDecoding_alreadyStarted) \
-        ITEM(ERROR_compressionState_uninitialized) \
-        ITEM(ERROR_parameter_null) \
-        ITEM(ERROR_io_write) \
-        ITEM(ERROR_io_read) \
-        ITEM(ERROR_maxCode)
+		ITEM(OK_NoError) \
+		ITEM(ERROR_GENERIC) \
+		ITEM(ERROR_maxBlockSize_invalid) \
+		ITEM(ERROR_blockMode_invalid) \
+		ITEM(ERROR_parameter_invalid) \
+		ITEM(ERROR_compressionLevel_invalid) \
+		ITEM(ERROR_headerVersion_wrong) \
+		ITEM(ERROR_blockChecksum_invalid) \
+		ITEM(ERROR_reservedFlag_set) \
+		ITEM(ERROR_allocation_failed) \
+		ITEM(ERROR_srcSize_tooLarge) \
+		ITEM(ERROR_dstMaxSize_tooSmall) \
+		ITEM(ERROR_frameHeader_incomplete) \
+		ITEM(ERROR_frameType_unknown) \
+		ITEM(ERROR_frameSize_wrong) \
+		ITEM(ERROR_srcPtr_wrong) \
+		ITEM(ERROR_decompressionFailed) \
+		ITEM(ERROR_headerChecksum_invalid) \
+		ITEM(ERROR_contentChecksum_invalid) \
+		ITEM(ERROR_frameDecoding_alreadyStarted) \
+		ITEM(ERROR_compressionState_uninitialized) \
+		ITEM(ERROR_parameter_null) \
+		ITEM(ERROR_io_write) \
+		ITEM(ERROR_io_read) \
+		ITEM(ERROR_maxCode)
 
 #define LZ4F_GENERATE_ENUM(ENUM) LZ4F_##ENUM,
 
 /* enum list is exposed, to handle specific errors */
 typedef enum { LZ4F_LIST_ERRORS(LZ4F_GENERATE_ENUM)
-              _LZ4F_dummy_error_enum_for_c89_never_used } LZ4F_errorCodes;
+			  _LZ4F_dummy_error_enum_for_c89_never_used } LZ4F_errorCodes;
 
 LZ4FLIB_STATIC_API LZ4F_errorCodes LZ4F_getErrorCode(size_t functionResult);
 
@@ -691,8 +691,8 @@ LZ4FLIB_STATIC_API LZ4F_errorCodes LZ4F_getErrorCode(size_t functionResult);
 
 /*! LZ4F_getBlockSize() :
  * @return, in scalar format (size_t),
- *          the maximum block size associated with @blockSizeID,
- *          or an error code (can be tested using LZ4F_isError()) if @blockSizeID is invalid.
+ *		  the maximum block size associated with @blockSizeID,
+ *		  or an error code (can be tested using LZ4F_isError()) if @blockSizeID is invalid.
 **/
 LZ4FLIB_STATIC_API size_t LZ4F_getBlockSize(LZ4F_blockSizeID_t blockSizeID);
 
@@ -707,13 +707,13 @@ LZ4FLIB_STATIC_API size_t LZ4F_getBlockSize(LZ4F_blockSizeID_t blockSizeID);
  *  This operation is only supported when LZ4F_blockIndependent is used.
  * `cOptPtr` is optional : NULL can be provided, in which case all options are set to default.
  * @return : number of bytes written into `dstBuffer` (it can be zero, meaning input data was just buffered).
- *           or an error code if it fails (which can be tested using LZ4F_isError())
+ *		   or an error code if it fails (which can be tested using LZ4F_isError())
  */
 LZ4FLIB_STATIC_API size_t
 LZ4F_uncompressedUpdate(LZ4F_cctx* cctx,
-                        void* dstBuffer, size_t dstCapacity,
-                  const void* srcBuffer, size_t srcSize,
-                  const LZ4F_compressOptions_t* cOptPtr);
+						void* dstBuffer, size_t dstCapacity,
+				  const void* srcBuffer, size_t srcSize,
+				  const LZ4F_compressOptions_t* cOptPtr);
 
 /**********************************
  *  Custom memory allocation
@@ -728,10 +728,10 @@ typedef void* (*LZ4F_AllocFunction) (void* opaqueState, size_t size);
 typedef void* (*LZ4F_CallocFunction) (void* opaqueState, size_t size);
 typedef void  (*LZ4F_FreeFunction) (void* opaqueState, void* address);
 typedef struct {
-    LZ4F_AllocFunction customAlloc;
-    LZ4F_CallocFunction customCalloc; /* optional; when not defined, uses customAlloc + memset */
-    LZ4F_FreeFunction customFree;
-    void* opaqueState;
+	LZ4F_AllocFunction customAlloc;
+	LZ4F_CallocFunction customCalloc; /* optional; when not defined, uses customAlloc + memset */
+	LZ4F_FreeFunction customFree;
+	void* opaqueState;
 } LZ4F_CustomMem;
 static
 #ifdef __GNUC__

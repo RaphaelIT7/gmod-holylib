@@ -173,9 +173,9 @@ static void hook_IVP_Mindist_update_exact_mindist_events(IVP_Mindist* mindist, I
 	if (pCurrentSkipType == IVP_SkipType::IVP_SkipSimulation)
 		return;
 
-	Msg("Debug3 start\n");
+	Msg("Debug3 start %i\n", (int)pCurrentSkipType);
 	detour_IVP_Mindist_update_exact_mindist_events.GetTrampoline<Symbols::IVP_Mindist_update_exact_mindist_events>()(mindist, allow_hull_conversion, event_hint);
-	Msg("Debug3 end\n");
+	Msg("Debug3 end %i\n", (int)pCurrentSkipType);
 }
 
 static Detouring::Hook detour_IVP_Mindist_Minimize_Solver_p_minimize_PP;
@@ -264,7 +264,7 @@ IVP_U_MINLIST_INDEX IVP_U_Min_List::add(void *elem, IVP_U_MINLIST_FIXED_POINT va
 		}
 
 		elems[malloced_size-1].next = IVP_U_MINLIST_UNUSED;
-    }
+	}
 	
 	e->element = elem;
 	e->value = value;
@@ -384,14 +384,14 @@ end:
 			}	
 			first_long = new_long_pos;
 		}
-    }
+	}
 #endif
-    
+	
 #ifdef _DEBUG
 //	check();
 #endif
 
-    return return_index;
+	return return_index;
 }
 
 static Detouring::Hook detour_IVP_U_Min_List_add;
@@ -753,8 +753,8 @@ static inline ILuaPhysicsEnvironment* GetPhysicsObjectLuaEnvironment(IPhysicsObj
  * Solution: If it was called on the main Environment, we loop thru all environments until we find our object and delete it.
  * 
  * Real Solution: The real soulution would be to let the IPhysicsObject store it's environment and have a method ::GetEnvironment and use that inside PhysDestroyObject to delete it properly.
- *                It would most likely require one to edit the vphysics dll for a clean and proper solution.
- *                Inside the engine there most likely would also be a CPhysicsObject::SetEnvironment method that would need to be added and called at all points, were it uses m_objects.AddToTail()
+ *				It would most likely require one to edit the vphysics dll for a clean and proper solution.
+ *				Inside the engine there most likely would also be a CPhysicsObject::SetEnvironment method that would need to be added and called at all points, were it uses m_objects.AddToTail()
  */
 static Detouring::Hook detour_CPhysicsEnvironment_DestroyObject;
 void hook_CPhysicsEnvironment_DestroyObject(CPhysicsEnvironment* pEnvironment, IPhysicsObject* pObject)

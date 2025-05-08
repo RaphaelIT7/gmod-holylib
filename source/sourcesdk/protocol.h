@@ -44,7 +44,7 @@ enum
 #define SERVER_STARTUP_DATA_TABLENAME	"server_query_info"	// the name is a remnant...
 
 
-//#define CURRENT_PROTOCOL    1
+//#define CURRENT_PROTOCOL	1
 
 
 #define DELTA_OFFSET_BITS 5
@@ -62,9 +62,9 @@ enum
 
 
 #define PROTOCOL_AUTHCERTIFICATE 0x01   // Connection from client is using a WON authenticated certificate
-#define PROTOCOL_HASHEDCDKEY     0x02	// Connection from client is using hashed CD key because WON comm. channel was unreachable
+#define PROTOCOL_HASHEDCDKEY	 0x02	// Connection from client is using hashed CD key because WON comm. channel was unreachable
 #define PROTOCOL_STEAM			 0x03	// Steam certificates
-#define PROTOCOL_LASTVALID       0x03    // Last valid protocol
+#define PROTOCOL_LASTVALID	   0x03	// Last valid protocol
 
 #define CONNECTIONLESS_HEADER			0xFFFFFFFF	// all OOB packet start with this sequence
 #define STEAM_KEYSIZE				2048  // max size needed to contain a steam authentication key (both server and client)
@@ -152,7 +152,7 @@ enum
 
 #define clc_ClientInfo			8		// client info (table CRC etc)
 #define	clc_Move				9		// [CUserCmd]
-#define clc_VoiceData			10      // Voicestream data from a client
+#define clc_VoiceData			10	  // Voicestream data from a client
 #define clc_BaselineAck			11		// client acknowledges a new baseline seqnr
 #define clc_ListenEvents		12		// client acknowledges a new baseline seqnr
 #define clc_RespondCvarValue	13		// client is responding to a svc_GetCvarValue message.

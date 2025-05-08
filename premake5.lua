@@ -11,6 +11,7 @@ newoption({
 local gmcommon = assert(_OPTIONS.gmcommon or os.getenv("GARRYSMOD_COMMON"),
 	"you didn't provide a path to your garrysmod_common (https://github.com/danielga/garrysmod_common) directory")
 include(gmcommon)
+include("source/ivp/premake5.lua")
 
 local file = io.open("workflow_info.txt", "r") -- Added this file to the workflow so it could also be useful for others.
 local run_id = file and file:read("*l") or "1" -- First like = workflow run id
@@ -42,6 +43,7 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 		IncludeSteamAPI()
 		IncludeDetouring()
 		IncludeScanning()
+		IncludeIVP()
 
 		-- I don't care about the ID.
 		defines("GITHUB_RUN_NUMBER=\"" .. run_number .. "\"")

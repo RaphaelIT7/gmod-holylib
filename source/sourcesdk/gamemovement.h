@@ -140,7 +140,7 @@ public:
 	virtual bool	CheckJumpButton( void );	// Overridden by each game.
 
 	// Dead player flying through air., e.g.
-	virtual void    FullTossMove( void );
+	virtual void	FullTossMove( void );
 	
 	// Player is a Observer chasing another player
 	void			FullObserverMove( void );

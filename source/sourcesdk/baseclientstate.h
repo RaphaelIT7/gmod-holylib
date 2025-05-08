@@ -181,7 +181,7 @@ public:
 	char			m_szRetryAddress[ MAX_OSPATH ];
 	CUtlString		m_sRetrySourceTag; // string that describes why we decided to connect to this server (empty for command line, "serverbrowser", "quickplay", etc)
 	int				m_retryChallenge; // challenge we sent to the server
-	int				m_nSignonState;    // see SIGNONSTATE_* definitions
+	int				m_nSignonState;	// see SIGNONSTATE_* definitions
 	double			m_flNextCmdTime; // When can we send the next command packet?
 	int				m_nServerCount;	// server identification for prespawns, must match the svs.spawncount which
 									// is incremented on server spawning.  This supercedes svs.spawn_issued, in that
