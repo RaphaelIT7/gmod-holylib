@@ -528,6 +528,9 @@ namespace Symbols
 	typedef void (*IVP_OV_Element_remove_oo_collision)(void* ovElement, IVP_Collision* connector);
 	extern const std::vector<Symbol> IVP_OV_Element_remove_oo_collisionSym;
 
+	typedef IVP_U_MINLIST_INDEX (*IVP_U_Min_List_add)(IVP_U_Min_List* minList, void *elem, IVP_U_MINLIST_FIXED_POINT value);
+	extern const std::vector<Symbol> IVP_U_Min_List_addSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: net Symbols
 	//---------------------------------------------------------------------------------

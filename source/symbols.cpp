@@ -702,6 +702,10 @@ namespace Symbols
 		Symbol::FromName("_ZN14IVP_OV_Element19remove_oo_collisionEP13IVP_Collision"),
 	};
 
+	const std::vector<Symbol> IVP_U_Min_List_addSym = {
+		Symbol::FromName("_ZN14IVP_U_Min_List3addEPvf"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: net Symbols
 	//---------------------------------------------------------------------------------

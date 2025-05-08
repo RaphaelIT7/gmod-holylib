@@ -125,5 +125,13 @@ enum IVP_SYNAPSE_POLYGON_STATUS {
 
 #define IVP_IF(flag)	if (flag)
 #define IVP_LOOP_LIST_SIZE 256
+typedef unsigned int IVP_U_MINLIST_INDEX;
+
+constexpr inline float P_FLOAT_RES{1e-6f};	// float resolution for numbers < 1.0
+constexpr inline float P_FLOAT_MAX{1e16f};
+
+#define IVP_U_MINLIST_UNUSED ( (1<<16) -1 )
+#define IVP_U_MINLIST_LONG_UNUSED ( (1<<16) -2 )
+#define IVP_U_MINLIST_MAX_ALLOCATION ( (1<<16) - 4 )
 
 #endif

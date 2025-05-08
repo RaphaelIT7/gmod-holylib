@@ -107,6 +107,8 @@ public:
 #endif
     unsigned short	first_element;
     unsigned short	counter;
+
+	IVP_U_MINLIST_INDEX add(void *elem,IVP_U_MINLIST_FIXED_POINT value);
 };
 
 class IVP_Hull_Manager_Base_Gradient {
