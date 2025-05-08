@@ -1,5 +1,5 @@
 #include <GarrysMod/Symbol.hpp>
-#include "sourcesdk/ivp_time.h"
+#include "sourcesdk/ivp_classes.h"
 #include <steam/isteamuser.h>
 #include "tier0/wchartypes.h"
 #include "Platform.hpp"
@@ -521,6 +521,9 @@ namespace Symbols
 
 	typedef void (*IVP_Mindist_Base_get_objects)(void* mindist, IVP_Real_Object**);
 	extern const std::vector<Symbol> IVP_Mindist_Base_get_objectsSym;
+
+	typedef void (*IVP_OV_Element_add_oo_collision)(void* ovElement, IVP_Collision* connector);
+	extern const std::vector<Symbol> IVP_OV_Element_add_oo_collisionSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: net Symbols

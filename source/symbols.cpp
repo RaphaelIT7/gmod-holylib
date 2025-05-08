@@ -694,6 +694,10 @@ namespace Symbols
 		Symbol::FromName("_ZN16IVP_Mindist_Base11get_objectsEPP15IVP_Real_Object"),
 	};
 
+	const std::vector<Symbol> IVP_OV_Element_add_oo_collisionSym = {
+		Symbol::FromName("_ZN14IVP_OV_Element16add_oo_collisionEP13IVP_Collision"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: net Symbols
 	//---------------------------------------------------------------------------------

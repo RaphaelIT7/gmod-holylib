@@ -183,6 +183,15 @@ static IVP_MRC_TYPE hook_IVP_Mindist_Minimize_Solver_p_minimize_PP(IVP_Mindist_M
 	return detour_IVP_Mindist_Minimize_Solver_p_minimize_PP.GetTrampoline<Symbols::IVP_Mindist_Minimize_Solver_p_minimize_PP>()(mindistMinimizeSolver, A, B, m_cache_A, m_cache_B);
 }
 
+static Detouring::Hook detour_IVP_OV_Element_add_oo_collision;
+static void hook_IVP_OV_Element_add_oo_collision(void* ovElement, IVP_Collision* connector)
+{
+	if (!connector) // Simple NULL check missing
+		return;
+
+	detour_IVP_OV_Element_add_oo_collision.GetTrampoline<Symbols::IVP_OV_Element_add_oo_collision>()(ovElement, connector);
+}
+
 LUA_FUNCTION_STATIC(physenv_SetLagThreshold)
 {
 	pCurrentLagThreadshold = LUA->CheckNumber(1);
@@ -2453,6 +2462,12 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 			&detour_IVP_Mindist_Minimize_Solver_p_minimize_PP, "IVP_Mindist_Minimize_Solver::p_minimize_PP",
 			vphysics_loader.GetModule(), Symbols::IVP_Mindist_Minimize_Solver_p_minimize_PPSym,
 			(void*)hook_IVP_Mindist_Minimize_Solver_p_minimize_PP, m_pID
+		);
+
+		Detour::Create(
+			&detour_IVP_OV_Element_add_oo_collision, "IVP_OV_Element::add_oo_collision",
+			vphysics_loader.GetModule(), Symbols::IVP_OV_Element_add_oo_collisionSym,
+			(void*)hook_IVP_OV_Element_add_oo_collision, m_pID
 		);
 
 		g_pCurrentMindist = Detour::ResolveSymbol<IVP_Mindist*>(vphysics_loader, Symbols::g_pCurrentMindistSym);
