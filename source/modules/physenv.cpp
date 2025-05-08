@@ -115,26 +115,19 @@ void CheckPhysicsLag(IVP_Mindist* pCollision)
 				func_IVP_Mindist_Base_get_objects(pCollision, pObjs);
 			}
 
-			if (pObjs[0]/*&& pObjs[0]->client_data*/)
+			if (pObjs[0] && pObjs[0]->client_data)
 			{
 				CPhysicsObject* pObject = static_cast<CPhysicsObject*>(pObjs[0]->client_data);
-				Msg("PhysObject: %p\n", pObject);
-				Msg("Object: %p\n", pObjs[0]);
-				Msg("PhysObject Points to: %p\n", pObject->m_pObject);
-				Msg("Object Name: %s\n", pObjs[0]->get_name());
-				Msg("Object state: %i\n", (int)pObjs[0]->flags.object_movement_state);
-				//Msg("Object radius: %f\n", pObjs[0]->extra_radius);
-				//Msg("Entity: %p\n", pObject->GetGameData());
-				//Util::Push_Entity(g_Lua, (CBaseEntity*)pObject->GetGameData());
-			//} else {
+				Util::Push_Entity(g_Lua, (CBaseEntity*)pObject->GetGameData());
+			} else {
 				g_Lua->PushNil();
 			}
 
-			if (pObjs[1]/* && pObjs[1]->client_data*/)
+			if (pObjs[1] && pObjs[1]->client_data)
 			{
-				//IPhysicsObject* pObject = static_cast<IPhysicsObject*>(pObjs[1]->client_data);
-				//Util::Push_Entity(g_Lua, (CBaseEntity*)pObject->GetGameData());
-			//} else {
+				IPhysicsObject* pObject = static_cast<IPhysicsObject*>(pObjs[1]->client_data);
+				Util::Push_Entity(g_Lua, (CBaseEntity*)pObject->GetGameData());
+			} else {
 				g_Lua->PushNil();
 			}
 
@@ -477,7 +470,6 @@ static inline void RegisterPhysicsObject(ILuaPhysicsEnvironment* pEnv, IPhysicsO
 		g_pObjects[pObject] = pEnv;
 
 	pEnv->RegisterObject(pObject);
-	Msg("Registered object - %p\n", pObject);
 }
 
 static inline void UnregisterPhysicsObject(ILuaPhysicsEnvironment* pEnv, IPhysicsObject* pObject)

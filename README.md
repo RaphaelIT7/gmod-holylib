@@ -82,6 +82,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 ### Existing Lua API Changes
 \- [+] Added third `protocolVersion` argument to `gameserver.CreateNetChannel`  
 \- [+] Added fourth `socket`(use `NS_` enums) argument to `gameserver.CreateNetChannel` & `gameserver.SendConnectionlessPacket`  
+\- [+] Added second and thrid arguments to `HolyLib:OnPhysicsLag` providing the entities it was working on when it triggered.  
 \- [#] Fixed `addonsystem.ShouldMount` & `addonsystem.SetShouldMount` `workshopID` arguments being a number when they should have been a string.  
 
 ### QoL updates
@@ -2750,8 +2751,10 @@ Skip the entire simulation.
 
 ### Hooks
 
-#### IVP_SkipType HolyLib:OnPhysicsLag(number simulationTime)
+#### IVP_SkipType HolyLib:OnPhysicsLag(number simulationTime, Entity ent1, Entity ent2)
 Called when the physics simulaton is taking longer than the set lag threshold.  
+It provides the two entities it was currently working on when the hook was triggered,  
+most likely they will be the oney causing the lag BUT it should NOT be taken for granted!
 
 You can freeze all props here and then return `physenv.IVP_SkipSimulation` to skip the simulation for this tick if someone is trying to crash the server.  
 
