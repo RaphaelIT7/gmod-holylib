@@ -2188,7 +2188,7 @@ void CPhysEnvModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 		Util::AddFunc(pLua, IPhysicsCollisionSet_ShouldCollide, "ShouldCollide");
 	pLua->Pop(1);
 
-	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::IPhysicsEnvironment, pLua->CreateMetaTable("IPhysicsEnvironment"));
+	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::ILuaPhysicsEnvironment, pLua->CreateMetaTable("IPhysicsEnvironment"));
 		Util::AddFunc(pLua, IPhysicsEnvironment__tostring, "__tostring");
 		Util::AddFunc(pLua, ILuaPhysicsEnvironment__index, "__index");
 		Util::AddFunc(pLua, ILuaPhysicsEnvironment__newindex, "__newindex");

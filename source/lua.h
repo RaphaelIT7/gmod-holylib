@@ -50,7 +50,6 @@ namespace Lua
 		Vector,
 		EntityList,
 		ConVar,
-		IPhysicsEnvironment,
 		IPhysicsCollisionSet,
 		CPhysCollide,
 		CPhysPolysoup,
