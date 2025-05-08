@@ -453,7 +453,7 @@ public:
     const IVP_Compact_Edge *get_edge() const { return edge; };
 
     IVP_Mindist_Base *get_synapse_mindist()const{ return  (IVP_Mindist_Base *)(mindist_offset + (char *)this);} ;
-    void set_synapse_mindist( IVP_Mindist_Base *md ) { mindist_offset = ((char *)md) - (char *)this; };
+    void set_synapse_mindist( IVP_Mindist_Base *md ) { mindist_offset = (short)(((char *)md) - (char *)this); };
 };
 
 /********************************************************************************

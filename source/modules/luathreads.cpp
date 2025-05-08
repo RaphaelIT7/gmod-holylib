@@ -29,7 +29,14 @@ enum InterfaceStatus
 	INTERFACE_STOPPING = 2, // This should be set if you request it to stop.
 };
 
-class InterfaceTask;
+struct LuaInterface;
+class InterfaceTask
+{
+public:
+	virtual ~InterfaceTask() = default;
+	virtual void DoTask(LuaInterface* pData) = 0;
+};
+
 struct LuaInterface
 {
 	~LuaInterface()
@@ -61,13 +68,6 @@ struct LuaInterface
 	unsigned int iSleepTime = 1; // Time in ms to sleep
 	std::vector<InterfaceTask*> pTasks;
 	CThreadFastMutex pMutex;
-};
-
-class InterfaceTask
-{
-public:
-	virtual ~InterfaceTask() = default;
-	virtual void DoTask(LuaInterface* pData) = 0;
 };
 
 class RunStringTask : public InterfaceTask
@@ -132,7 +132,7 @@ static unsigned
 LuaThread(LuaInterface& data)
 {
 	data.iStatus = INTERFACE_RUNNING;
-	while (data.iStatus = INTERFACE_RUNNING)
+	while (data.iStatus == INTERFACE_RUNNING)
 	{
 		// Execute all tasks first
 		data.pMutex.Lock();
@@ -151,6 +151,8 @@ LuaThread(LuaInterface& data)
 		ThreadSleep(data.iSleepTime);
 	}
 	data.iStatus = INTERFACE_STOPPED;
+	
+	return 0;
 }
 
 LUA_FUNCTION_STATIC(luathreads_CreateInterface)
