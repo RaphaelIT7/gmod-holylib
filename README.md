@@ -72,6 +72,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [#] Fixed a crash after a map change. See https://github.com/RaphaelIT7/gmod-holylib/issues/41  
 \- [#] Update internal `netadr` stuct to now properly support `loopback` and `localhost` inputs for IP's.  
 \- [#] Possibly fixed memory issues caused by `IGModAudioChannel`'s being deleted & having undefined behavior.  
+\- [#] Fixed `HolyLib:OnPhysicsLag` possibly being called recursively causing a crash.  
 
 > [!WARNING]
 > The current builds are unstable and need **A LOT** of testing.  

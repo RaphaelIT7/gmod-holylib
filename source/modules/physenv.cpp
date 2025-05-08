@@ -97,9 +97,10 @@ static void hook_IVP_Event_Manager_Standard_simulate_time_events(void* eventmana
 }
 
 static Symbols::IVP_Mindist_Base_get_objects func_IVP_Mindist_Base_get_objects;
+static bool g_pIsInPhysicsLagCall = false;
 void CheckPhysicsLag(IVP_Mindist* pCollision)
 {
-	if (pCurrentSkipType != IVP_SkipType::IVP_None) // We already have a skip type.
+	if (pCurrentSkipType != IVP_SkipType::IVP_None || g_pIsInPhysicsLagCall) // We already have a skip type.
 		return;
 
 	auto pTime = std::chrono::high_resolution_clock::now();
@@ -131,6 +132,7 @@ void CheckPhysicsLag(IVP_Mindist* pCollision)
 				g_Lua->PushNil();
 			}
 
+			g_pIsInPhysicsLagCall = true;
 			if (g_Lua->CallFunctionProtected(4, 1, true))
 			{
 				int pType = (int)g_Lua->GetNumber(-1);
@@ -143,6 +145,7 @@ void CheckPhysicsLag(IVP_Mindist* pCollision)
 				if (g_pPhysEnvModule.InDebug() > 2)
 					Msg(PROJECT_NAME " - physenv: Lua hook called (%i)\n", (int)pCurrentSkipType);
 			}
+			g_pIsInPhysicsLagCall = false;
 		}
 	}
 }
