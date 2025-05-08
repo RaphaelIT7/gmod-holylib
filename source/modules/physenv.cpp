@@ -173,7 +173,9 @@ static void hook_IVP_Mindist_update_exact_mindist_events(IVP_Mindist* mindist, I
 	if (pCurrentSkipType == IVP_SkipType::IVP_SkipSimulation)
 		return;
 
+	Msg("Debug3 start\n");
 	detour_IVP_Mindist_update_exact_mindist_events.GetTrampoline<Symbols::IVP_Mindist_update_exact_mindist_events>()(mindist, allow_hull_conversion, event_hint);
+	Msg("Debug3 end\n");
 }
 
 static Detouring::Hook detour_IVP_Mindist_Minimize_Solver_p_minimize_PP;
@@ -395,7 +397,31 @@ end:
 static Detouring::Hook detour_IVP_U_Min_List_add;
 static IVP_U_MINLIST_INDEX hook_IVP_U_Min_List_add(IVP_U_Min_List* minList, void *elem, IVP_U_MINLIST_FIXED_POINT value)
 {
-	return minList->add(elem, value); // FK IVP, we'll do it ourself.
+	Msg("Debug start 2.\n");
+	IVP_U_MINLIST_INDEX idx = minList->add(elem, value); // FK IVP, we'll do it ourself.
+	Msg("Debug end 2.\n");
+	return idx;
+}
+
+static Symbols::IVP_Mindist_update_exact_mindist_events func_IVP_Mindist_update_exact_mindist_events;
+void IVP_Mindist_Manager::recalc_all_exact_mindists_events()
+{
+	IVP_Mindist *mdist, *mdist_next;
+	
+	for( mdist=this->exact_mindists; mdist; mdist=mdist_next )
+	{
+		mdist_next = mdist->next;
+		//mdist->update_exact_mindist_events(IVP_TRUE, IVP_EH_SMALL_DELAY);
+		Msg("Debug start.\n");
+		func_IVP_Mindist_update_exact_mindist_events(mdist, IVP_TRUE, IVP_EH_SMALL_DELAY);
+		Msg("Debug end.\n");
+	}
+}
+
+static Detouring::Hook detour_IVP_Mindist_Manager_recalc_all_exact_mindists_events;
+static void hook_IVP_Mindist_Manager_recalc_all_exact_mindists_events(IVP_Mindist_Manager* minList)
+{
+	return minList->recalc_all_exact_mindists_events(); // FK IVP, we'll do it ourself.
 }
 
 LUA_FUNCTION_STATIC(physenv_SetLagThreshold)
@@ -2688,6 +2714,12 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 			(void*)hook_IVP_OV_Element_remove_oo_collision, m_pID
 		);
 
+		Detour::Create(
+			&detour_IVP_Mindist_Manager_recalc_all_exact_mindists_events, "IVP_Mindist_Manager::recalc_all_exact_mindists_events",
+			vphysics_loader.GetModule(), Symbols::IVP_Mindist_Manager_recalc_all_exact_mindists_eventsSym,
+			(void*)hook_IVP_Mindist_Manager_recalc_all_exact_mindists_events, m_pID
+		);
+
 		g_pCurrentMindist = Detour::ResolveSymbol<IVP_Mindist*>(vphysics_loader, Symbols::g_pCurrentMindistSym);
 		Detour::CheckValue("get class", "g_pCurrentMindist", g_pCurrentMindist != NULL);
 
@@ -2696,6 +2728,9 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 
 		func_IVP_Mindist_Base_get_objects = (Symbols::IVP_Mindist_Base_get_objects)Detour::GetFunction(vphysics_loader.GetModule(), Symbols::IVP_Mindist_Base_get_objectsSym);
 		Detour::CheckFunction((void*)func_IVP_Mindist_Base_get_objects, "IVP_Mindist_Base::get_objects");
+
+		func_IVP_Mindist_update_exact_mindist_events = (Symbols::IVP_Mindist_update_exact_mindist_events)Detour::GetFunction(vphysics_loader.GetModule(), Symbols::IVP_Mindist_update_exact_mindist_eventsSym);
+		Detour::CheckFunction((void*)func_IVP_Mindist_update_exact_mindist_events, "IVP_Mindist::update_exact_mindist_events");
 	}
 #endif
 

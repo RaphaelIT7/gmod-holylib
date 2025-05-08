@@ -531,6 +531,9 @@ namespace Symbols
 	typedef IVP_U_MINLIST_INDEX (*IVP_U_Min_List_add)(IVP_U_Min_List* minList, void *elem, IVP_U_MINLIST_FIXED_POINT value);
 	extern const std::vector<Symbol> IVP_U_Min_List_addSym;
 
+	typedef void (*IVP_Mindist_Manager_recalc_all_exact_mindists_events)(IVP_Mindist_Manager* manager);
+	extern const std::vector<Symbol> IVP_Mindist_Manager_recalc_all_exact_mindists_eventsSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: net Symbols
 	//---------------------------------------------------------------------------------

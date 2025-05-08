@@ -706,6 +706,10 @@ namespace Symbols
 		Symbol::FromName("_ZN14IVP_U_Min_List3addEPvf"),
 	};
 
+	const std::vector<Symbol> IVP_Mindist_Manager_recalc_all_exact_mindists_eventsSym = {
+		Symbol::FromName("_ZN19IVP_Mindist_Manager32recalc_all_exact_mindists_eventsEv"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: net Symbols
 	//---------------------------------------------------------------------------------
