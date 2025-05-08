@@ -36,7 +36,7 @@ public:
 	 *  Parameter:	link_to_input_compact_ledges
 	 *  Default:	  IVP_FALSE
 	 *	Description:  if true input data is reused by linking to it
-	 *  Note:		  if true than assert( !free_input_compact_ledges );
+	 *  Note:		  if true than IVP_ASSERT( !free_input_compact_ledges );
 	 *******************************************************************************/
 	IVP_BOOL link_to_input_compact_ledges;
 

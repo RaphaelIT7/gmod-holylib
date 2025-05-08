@@ -68,7 +68,7 @@ function IncludeHKBase()
 			defines({"_WIN32", "WIN32"})
 
 		filter("system:linux")
-			defines({"_LINUX", "LINUX"})
+			defines({"_LINUX", "LINUX", "POSIX"})
 
 		filter({})
 end

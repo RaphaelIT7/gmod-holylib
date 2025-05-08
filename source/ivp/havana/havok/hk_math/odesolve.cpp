@@ -145,7 +145,7 @@ void OdeRungaKutta4::ode_realloc(int new_size)
   k2 = new hk_real[state_size]; //-V121
   k3 = new hk_real[state_size]; //-V121
   k4 = new hk_real[state_size]; //-V121
-  assert(k1); assert(k2); assert(k3); assert(k4);
+  HK_ASSERT(k1); HK_ASSERT(k2); HK_ASSERT(k3); HK_ASSERT(k4);
 }
 
 

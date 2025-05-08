@@ -92,7 +92,7 @@ KV* hk_Hash<KV>::search_element( KV &kv )
 
 template<class KV>
 hk_Hash<KV>::hk_Hash(int size, hk_Memory *mem)
-		//: assert(size = 2,4,8,16,32 ... 2**x)
+		//: HK_ASSERT(size = 2,4,8,16,32 ... 2**x)
 {
 	HK_ASSERT( size >= 1 );
 

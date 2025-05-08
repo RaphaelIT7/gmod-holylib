@@ -261,7 +261,7 @@ void hk_Local_Constraint_System::apply_effector_PSI(hk_PSI_Info& pi, hk_Array<hk
 
 	//first do the setup
 	{
-		assert( max_constraints > m_constraints.length() );
+		HK_ASSERT( max_constraints > m_constraints.length() );
 
 		char* p_buffer = &buffer[0];
 		for (int i = 0; i < m_constraints.length(); i++) {

@@ -21,6 +21,9 @@
 
 #if defined(LINUX)
 #	include <cstring>
+	#include <climits>
+	#define isnan std::isnan // cmath doesn't have this on linux >:(
+	#define _finite std::isfinite // windows specific function.
 #endif
 
 #ifndef _IVP_U_TYPES_INCLUDED

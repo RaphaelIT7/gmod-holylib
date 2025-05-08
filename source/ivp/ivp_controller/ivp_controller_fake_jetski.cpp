@@ -20,7 +20,9 @@
 #include <ivp_controller_raycast_car.hxx>
 #include <ivp_solver_core_reaction.hxx>
 
+#ifdef WIN32
 #include <windows.h>
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: Main raycast jetski simulation.
@@ -396,7 +398,11 @@ IVP_DOUBLE IVP_Controller_Raycast_Fake_Jetski::GetSteeringForceRotational( int i
 
 	char szDebug[128];
 	sprintf( szDebug, "RotSpeed %f (%f %f %f)\n",pCarCore->rot_speed.real_length(), pCarCore->rot_speed.k[0], pCarCore->rot_speed.k[1], pCarCore->rot_speed.k[2] );
-	OutputDebugString( szDebug );
+#ifdef WIN32
+	OutputDebugStringA(szDebug);
+#else
+	fprintf(stderr, "%s", szDebug);
+#endif
 
 	// If we are at the speed where we rotate independently of movement direction.
 	

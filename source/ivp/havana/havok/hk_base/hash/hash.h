@@ -11,7 +11,7 @@ class hk_Hash
 	public:
 
 		HK_TEMPLATE_INLINE hk_Hash(int size, hk_Memory *mem = hk_Memory::get_instance());
-			//: assert(size = 2,4,8,16,32 ... 2**x)
+			//: HK_ASSERT(size = 2,4,8,16,32 ... 2**x)
 		inline ~hk_Hash();
 
 		HK_TEMPLATE_INLINE void add_element( KV &key_value );

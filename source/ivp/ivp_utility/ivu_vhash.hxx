@@ -41,8 +41,7 @@ protected:
 	virtual IVP_BOOL compare(const void *elem0, const void *elem1)const = 0;  // return TRUE if equal
 public:
 	static inline int hash_index(const char *data, intp size);			// useable index calculation, result is [0,0xfffffff]
-	static inline int fast_hash_index(int key);	   // useable index calculation when size == 4 , result is [0,0xfffffff]
-	static inline int fast_hash_index(long long key);	   // useable index calculation when size == 4 , result is [0,0xfffffff]
+	static inline int fast_hash_index(intp key);	// useable index calculation when size == 4 , result is [0,0xfffffff]
 
 	// touches element
 	void add_elem(const void *elem, int hash_index);
@@ -88,15 +87,10 @@ inline int IVP_VHash::hash_index(const char *key, intp key_size){
 	return index | IVP_VHASH_TOUCH_BIT;	// set touch bit
 }
 
-// basic function for calculating the hash_index of key is a long
-inline int IVP_VHash::fast_hash_index(int key){
-  int index =  ((key * 1001)>>16) + key * 75;
-  return index | IVP_VHASH_TOUCH_BIT;	// set touch bit
-}
-
 // basic function for calculating the hash_index of key is a long long
-inline int IVP_VHash::fast_hash_index(long long key) {
-  int index = static_cast<int>(((key * 1001) >> 32) + key * 75); //-V112
+constexpr int keyBits = sizeof(intp) * 4;
+inline int IVP_VHash::fast_hash_index(intp key) {
+  int index = static_cast<int>(((key * 1001) >> keyBits) + key * 75); //-V112
   return index | IVP_VHASH_TOUCH_BIT;  // set touch bit
 }
 

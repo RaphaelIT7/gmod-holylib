@@ -88,6 +88,7 @@ class hk_Matrix3
 
 		inline const hk_Vector3& get_column(int x) const;
 
+#ifndef _LINUX
 		// dimhotepus: Better DirectX math integration.
 		inline DirectX::XMFLOAT3X4A* XmBase()
 		{
@@ -101,6 +102,7 @@ class hk_Matrix3
 			static_assert(alignof(DirectX::XMFLOAT3X4A) == alignof(hk_Matrix3));
 			return reinterpret_cast<const DirectX::XMFLOAT3X4A*>(&m_elems);
 		}
+#endif
 
 	protected:
 
