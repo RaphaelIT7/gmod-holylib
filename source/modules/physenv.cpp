@@ -3,7 +3,7 @@
 #include "module.h"
 #include "lua.h"
 #include <chrono>
-#include "sourcesdk/ivp_time.h"
+#include "sourcesdk/ivp_classes.h"
 #include "vcollide_parse.h"
 #include "solidsetdefaults.h"
 #include <vphysics_interface.h>
@@ -96,7 +96,8 @@ static void hook_IVP_Event_Manager_Standard_simulate_time_events(void* eventmana
 	pCurrentSkipType = IVP_NoCall; // Reset it.
 }
 
-void CheckPhysicsLag()
+static Symbols::IVP_Mindist_Base_get_objects func_IVP_Mindist_Base_get_objects;
+void CheckPhysicsLag(IVP_Mindist* pCollision)
 {
 	if (pCurrentSkipType != IVP_None) // We already have a skip type.
 		return;
@@ -108,7 +109,36 @@ void CheckPhysicsLag()
 		if (Lua::PushHook("HolyLib:OnPhysicsLag"))
 		{
 			g_Lua->PushNumber((double)pSimulationTime);
-			if (g_Lua->CallFunctionProtected(2, 1, true))
+			IVP_Real_Object* pObjs[2] = {NULL, NULL};
+			if (func_IVP_Mindist_Base_get_objects)
+			{
+				func_IVP_Mindist_Base_get_objects(pCollision, pObjs);
+			}
+
+			if (pObjs[0]/*&& pObjs[0]->client_data*/)
+			{
+				CPhysicsObject* pObject = static_cast<CPhysicsObject*>(pObjs[0]->client_data);
+				Msg("PhysObject: %p\n", pObject);
+				Msg("Object: %p\n", pObjs[0]);
+				Msg("PhysObject Points to: %p\n", pObject->m_pObject);
+				Msg("Object Name: %s\n", pObjs[0]->get_name());
+				Msg("Object state: %i\n", (int)pObjs[0]->flags.object_movement_state);
+				//Msg("Object radius: %f\n", pObjs[0]->extra_radius);
+				//Msg("Entity: %p\n", pObject->GetGameData());
+				//Util::Push_Entity(g_Lua, (CBaseEntity*)pObject->GetGameData());
+			//} else {
+				g_Lua->PushNil();
+			}
+
+			if (pObjs[1]/* && pObjs[1]->client_data*/)
+			{
+				//IPhysicsObject* pObject = static_cast<IPhysicsObject*>(pObjs[1]->client_data);
+				//Util::Push_Entity(g_Lua, (CBaseEntity*)pObject->GetGameData());
+			//} else {
+				g_Lua->PushNil();
+			}
+
+			if (g_Lua->CallFunctionProtected(4, 1, true))
 			{
 				int pType = (int)g_Lua->GetNumber(-1);
 				if (pType > 2 || pType < 0)
@@ -125,12 +155,12 @@ void CheckPhysicsLag()
 }
 
 static Detouring::Hook detour_IVP_Mindist_simulate_time_event;
-static void hook_IVP_Mindist_simulate_time_event(void* mindist, void* environment)
+static void hook_IVP_Mindist_simulate_time_event(IVP_Mindist* mindist, void* environment)
 {
 	if (g_pPhysEnvModule.InDebug() > 2)
 		Msg(PROJECT_NAME " - physenv: IVP_Mindist::simulate_time_event called! (%i)\n", (int)pCurrentSkipType);
 
-	CheckPhysicsLag();
+	CheckPhysicsLag(mindist);
 	if (pCurrentSkipType == IVP_SkipSimulation)
 		return;
 
@@ -138,16 +168,23 @@ static void hook_IVP_Mindist_simulate_time_event(void* mindist, void* environmen
 }
 
 static Detouring::Hook detour_IVP_Mindist_update_exact_mindist_events;
-static void hook_IVP_Mindist_update_exact_mindist_events(void* mindist, IVP_BOOL allow_hull_conversion, IVP_MINDIST_EVENT_HINT event_hint)
+static void hook_IVP_Mindist_update_exact_mindist_events(IVP_Mindist* mindist, IVP_BOOL allow_hull_conversion, IVP_MINDIST_EVENT_HINT event_hint)
 {
 	if (g_pPhysEnvModule.InDebug() > 2)
 		Msg(PROJECT_NAME " - physenv: IVP_Mindist::update_exact_mindist_events called! (%i)\n", (int)pCurrentSkipType);
 
-	CheckPhysicsLag();
+	CheckPhysicsLag(mindist);
 	if (pCurrentSkipType == IVP_SkipSimulation)
 		return;
 
 	detour_IVP_Mindist_update_exact_mindist_events.GetTrampoline<Symbols::IVP_Mindist_update_exact_mindist_events>()(mindist, allow_hull_conversion, event_hint);
+}
+
+static Detouring::Hook detour_IVP_Mindist_Minimize_Solver_p_minimize_PP;
+static IVP_MRC_TYPE hook_IVP_Mindist_Minimize_Solver_p_minimize_PP(IVP_Mindist_Minimize_Solver* mindistMinimizeSolver, const IVP_Compact_Edge *A, const IVP_Compact_Edge *B, IVP_Cache_Ledge_Point *m_cache_A, IVP_Cache_Ledge_Point *m_cache_B)
+{
+	CheckPhysicsLag(mindistMinimizeSolver->mindist);
+	return detour_IVP_Mindist_Minimize_Solver_p_minimize_PP.GetTrampoline<Symbols::IVP_Mindist_Minimize_Solver_p_minimize_PP>()(mindistMinimizeSolver, A, B, m_cache_A, m_cache_B);
 }
 
 LUA_FUNCTION_STATIC(physenv_SetLagThreshold)
@@ -440,6 +477,7 @@ static inline void RegisterPhysicsObject(ILuaPhysicsEnvironment* pEnv, IPhysicsO
 		g_pObjects[pObject] = pEnv;
 
 	pEnv->RegisterObject(pObject);
+	Msg("Registered object - %p\n", pObject);
 }
 
 static inline void UnregisterPhysicsObject(ILuaPhysicsEnvironment* pEnv, IPhysicsObject* pObject)
@@ -2409,11 +2447,20 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 			(void*)hook_CPhysicsEnvironment_C2, m_pID
 		);
 
+		Detour::Create(
+			&detour_IVP_Mindist_Minimize_Solver_p_minimize_PP, "IVP_Mindist_Minimize_Solver::p_minimize_PP",
+			vphysics_loader.GetModule(), Symbols::IVP_Mindist_Minimize_Solver_p_minimize_PPSym,
+			(void*)hook_IVP_Mindist_Minimize_Solver_p_minimize_PP, m_pID
+		);
+
 		g_pCurrentMindist = Detour::ResolveSymbol<IVP_Mindist*>(vphysics_loader, Symbols::g_pCurrentMindistSym);
 		Detour::CheckValue("get class", "g_pCurrentMindist", g_pCurrentMindist != NULL);
 
 		g_fDeferDeleteMindist = Detour::ResolveSymbol<bool>(vphysics_loader, Symbols::g_fDeferDeleteMindistSym);
 		Detour::CheckValue("get class", "g_fDeferDeleteMindist", g_fDeferDeleteMindist != NULL);
+
+		func_IVP_Mindist_Base_get_objects = (Symbols::IVP_Mindist_Base_get_objects)Detour::GetFunction(vphysics_loader.GetModule(), Symbols::IVP_Mindist_Base_get_objectsSym);
+		Detour::CheckFunction((void*)func_IVP_Mindist_Base_get_objects, "IVP_Mindist_Base::get_objects");
 	}
 #endif
 

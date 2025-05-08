@@ -53,6 +53,7 @@ class CNetChan;
 struct MD5Value_t;
 struct dataFragments_s;
 class CBaseClient;
+class IVP_Cache_Ledge_Point;
 
 class	CGameTrace;
 typedef	CGameTrace trace_t;
@@ -514,6 +515,12 @@ namespace Symbols
 
 	typedef void (*PhysFrame)(float deltaTime);
 	extern const std::vector<Symbol> PhysFrameSym;
+
+	typedef IVP_MRC_TYPE (*IVP_Mindist_Minimize_Solver_p_minimize_PP)(void* mindistMinimizeSolver, const IVP_Compact_Edge *A, const IVP_Compact_Edge *B, IVP_Cache_Ledge_Point *m_cache_A, IVP_Cache_Ledge_Point *m_cache_B);
+	extern const std::vector<Symbol> IVP_Mindist_Minimize_Solver_p_minimize_PPSym;
+
+	typedef void (*IVP_Mindist_Base_get_objects)(void* mindist, IVP_Real_Object**);
+	extern const std::vector<Symbol> IVP_Mindist_Base_get_objectsSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: net Symbols

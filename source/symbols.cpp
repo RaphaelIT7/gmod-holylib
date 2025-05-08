@@ -686,6 +686,13 @@ namespace Symbols
 		Symbol::FromName("_ZN19CPhysicsEnvironmentC2Ev"),
 	};
 
+	const std::vector<Symbol> IVP_Mindist_Minimize_Solver_p_minimize_PPSym = {
+		Symbol::FromName("_ZN27IVP_Mindist_Minimize_Solver13p_minimize_PPEPK16IVP_Compact_EdgeS2_P21IVP_Cache_Ledge_PointS4_"),
+	};
+
+	const std::vector<Symbol> IVP_Mindist_Base_get_objectsSym = {
+		Symbol::FromName("_ZN16IVP_Mindist_Base11get_objectsEPP15IVP_Real_Object"),
+	};
 
 	//---------------------------------------------------------------------------------
 	// Purpose: net Symbols

@@ -48,4 +48,82 @@ enum IVP_MINDIST_EVENT_HINT {
     IVP_EH_SMALL_DELAY,
     IVP_EH_BIG_DELAY
 };
+
+enum IVP_MRC_TYPE {
+    IVP_MRC_UNINITIALIZED = 0,
+    IVP_MRC_OK = 1,
+    IVP_MRC_ENDLESS_LOOP=2,
+    IVP_MRC_BACKSIDE=3,
+    IVP_MRC_ALREADY_CALCULATED=4,	// see status for details
+    IVP_MRC_ILLEGAL=5
+};
+
+class IVP_Mindist;
+class IVP_Mindist_Minimize_Solver {
+public:
+    IVP_Mindist *mindist;
+    int P_Finish_Counter; 	// global for debug/termination purposes
+};
+
+enum P_MATERIAL_TYPE
+{
+	P_MATERIAL_TYPE_UNINITIALIZED = -1,
+    P_MATERIAL_TYPE_TERMINAL,
+    P_MATERIAL_TYPE_LAST
+};
+
+// flag telling how the mindist is linked
+enum IVP_MINIMAL_DIST_STATUS {
+    IVP_MD_UNINITIALIZED = 0,
+    IVP_MD_INVALID = 2,   // invalid mindist, eg endless loop, collision
+    IVP_MD_EXACT = 3,
+    IVP_MD_HULL_RECURSIVE = 4,   // invalid recursive mindists which spawned childs
+    IVP_MD_HULL = 5   // -> synapses = hull synapses
+};
+
+// result of last recalc_mindist
+enum IVP_MINIMAL_DIST_RECALC_RESULT {
+  IVP_MDRR_OK = 0,
+  IVP_MDRR_INTRUSION = 1
+};
+
+
+// result of the last recalc_next_event
+enum IVP_COLL_TYPE {  // if last 4 bits == 0 then collision
+    IVP_COLL_NONE =0x00,
+    IVP_COLL_PP_COLL  =0x10,
+    IVP_COLL_PP_PK  =0x11,
+
+    IVP_COLL_PF_COLL  =0x20,
+    IVP_COLL_PF_NPF =0x21,
+    // PF_PK nicht noetig, da Flaeche Objekt abschirmt
+
+    IVP_COLL_PK_COLL  =0x30,
+    IVP_COLL_PK_PF  =0x31,
+    IVP_COLL_PK_KK  =0x32,
+    IVP_COLL_PK_NOT_MORE_PARALLEL = 0x33,
+    
+    IVP_COLL_KK_COLL  =0x40,
+    IVP_COLL_KK_PARALLEL=0x41,
+    IVP_COLL_KK_PF  =0x42
+};
+
+// type of mindist
+enum IVP_MINDIST_FUNCTION {
+  IVP_MF_COLLISION = 0,
+  IVP_MF_PHANTOM =1
+};
+
+enum IVP_SYNAPSE_POLYGON_STATUS {
+    IVP_ST_POINT = 0,
+    IVP_ST_EDGE  = 1,
+    IVP_ST_TRIANGLE =2,
+    IVP_ST_BALL = 3,
+    IVP_ST_MAX_LEGAL = 4,	// max legal status, should be 2**x
+    IVP_ST_BACKSIDE = 5	        // unknown, intrusion
+};
+
+#define IVP_IF(flag)	if (flag)
+#define IVP_LOOP_LIST_SIZE 256
+
 #endif
