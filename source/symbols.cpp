@@ -698,6 +698,10 @@ namespace Symbols
 		Symbol::FromName("_ZN14IVP_OV_Element16add_oo_collisionEP13IVP_Collision"),
 	};
 
+	const std::vector<Symbol> IVP_OV_Element_remove_oo_collisionSym = {
+		Symbol::FromName("_ZN14IVP_OV_Element19remove_oo_collisionEP13IVP_Collision"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: net Symbols
 	//---------------------------------------------------------------------------------

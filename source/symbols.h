@@ -525,6 +525,9 @@ namespace Symbols
 	typedef void (*IVP_OV_Element_add_oo_collision)(void* ovElement, IVP_Collision* connector);
 	extern const std::vector<Symbol> IVP_OV_Element_add_oo_collisionSym;
 
+	typedef void (*IVP_OV_Element_remove_oo_collision)(void* ovElement, IVP_Collision* connector);
+	extern const std::vector<Symbol> IVP_OV_Element_remove_oo_collisionSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: net Symbols
 	//---------------------------------------------------------------------------------

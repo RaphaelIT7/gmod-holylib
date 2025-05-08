@@ -192,6 +192,15 @@ static void hook_IVP_OV_Element_add_oo_collision(void* ovElement, IVP_Collision*
 	detour_IVP_OV_Element_add_oo_collision.GetTrampoline<Symbols::IVP_OV_Element_add_oo_collision>()(ovElement, connector);
 }
 
+static Detouring::Hook detour_IVP_OV_Element_remove_oo_collision;
+static void hook_IVP_OV_Element_remove_oo_collision(void* ovElement, IVP_Collision* connector)
+{
+	if (!connector || !ovElement) // Simple NULL check missing. Yes ovElement can be NULL. Somehow.
+		return;
+
+	detour_IVP_OV_Element_remove_oo_collision.GetTrampoline<Symbols::IVP_OV_Element_remove_oo_collision>()(ovElement, connector);
+}
+
 LUA_FUNCTION_STATIC(physenv_SetLagThreshold)
 {
 	pCurrentLagThreadshold = LUA->CheckNumber(1);
@@ -2468,6 +2477,12 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 			&detour_IVP_OV_Element_add_oo_collision, "IVP_OV_Element::add_oo_collision",
 			vphysics_loader.GetModule(), Symbols::IVP_OV_Element_add_oo_collisionSym,
 			(void*)hook_IVP_OV_Element_add_oo_collision, m_pID
+		);
+
+		Detour::Create(
+			&detour_IVP_OV_Element_remove_oo_collision, "IVP_OV_Element::remove_oo_collision",
+			vphysics_loader.GetModule(), Symbols::IVP_OV_Element_remove_oo_collisionSym,
+			(void*)hook_IVP_OV_Element_remove_oo_collision, m_pID
 		);
 
 		g_pCurrentMindist = Detour::ResolveSymbol<IVP_Mindist*>(vphysics_loader, Symbols::g_pCurrentMindistSym);
