@@ -54,7 +54,8 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 		defines("PROJECT_NAME=\"holylib\"")
 		defines("NO_FRAMESNAPSHOTDEF")
 		defines("NO_VCR")
-		defines("HOLYLIB")
+		defines("IVP_NO_MATH_INL")
+		defines("IVP_NO_PERFORMANCE_TIMER")
 
 		files({
 			gmcommon .. [[/sourcesdk-minimal/public/filesystem_helpers.cpp]],

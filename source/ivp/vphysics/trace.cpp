@@ -452,6 +452,7 @@ private:
 
 static const fltx4 g_IVPToHLDir = { 1.0f, -1.0f, 1.0f, 1.0f };
 
+#if SIMD_MATRIX && defined(WIN32)
 FORCEINLINE fltx4 XM_CALLCONV ConvertDirectionToIVP( DirectX::FXMVECTOR a )
 {
 	// swap Z & Y
@@ -463,6 +464,7 @@ FORCEINLINE fltx4 XM_CALLCONV ConvertDirectionToIVP( DirectX::FXMVECTOR a )
 	// negate Y
 	return MulSIMD( t, g_IVPToHLDir );
 }
+#endif
 
 CTraceIVP::CTraceIVP( const CPhysCollide *pCollide, const Vector &origin, const QAngle &angles )
     : m_pLeafmap(nullptr), m_cacheCount(0)

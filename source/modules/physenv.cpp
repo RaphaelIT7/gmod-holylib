@@ -38,8 +38,8 @@ static bool bIsJoltPhysics = false; // if were using jolt, a lot of things need 
 
 class IVP_Mindist;
 static bool g_bInImpactCall = false;
-IVP_Mindist** g_pCurrentMindist;
-bool* g_fDeferDeleteMindist;
+static IVP_Mindist** g_pCurrentMindist;
+static bool* g_fDeferDeleteMindist;
 
 enum IVP_SkipType {
 	IVP_NoCall = -2, // Were not in our expected simulation, so don't handle anything.
@@ -245,7 +245,7 @@ IVModelInfo* modelinfo;
 IStaticPropMgrServer* staticpropmgr;
 IPhysics* physics = NULL;
 static IPhysicsCollision* physcollide = NULL;
-IPhysicsSurfaceProps* physprops;
+static IPhysicsSurfaceProps* physprops;
 void CPhysEnvModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	SourceSDK::FactoryLoader vphysics_loader("vphysics");
@@ -2495,9 +2495,6 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 
 		func_IVP_Mindist_Base_get_objects = (Symbols::IVP_Mindist_Base_get_objects)Detour::GetFunction(vphysics_loader.GetModule(), Symbols::IVP_Mindist_Base_get_objectsSym);
 		Detour::CheckFunction((void*)func_IVP_Mindist_Base_get_objects, "IVP_Mindist_Base::get_objects");
-
-		func_IVP_Mindist_update_exact_mindist_events = (Symbols::IVP_Mindist_update_exact_mindist_events)Detour::GetFunction(vphysics_loader.GetModule(), Symbols::IVP_Mindist_update_exact_mindist_eventsSym);
-		Detour::CheckFunction((void*)func_IVP_Mindist_update_exact_mindist_events, "IVP_Mindist::update_exact_mindist_events");
 	}
 #endif
 

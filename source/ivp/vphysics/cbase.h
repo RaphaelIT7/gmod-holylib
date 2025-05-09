@@ -8,6 +8,9 @@
 // system
 #include <cstdio>
 
+#define IVP_NO_MATH_INL
+#define IVP_NO_PERFORMANCE_TIMER
+
 // Valve
 #include "tier0/dbg.h"
 #include "mathlib/mathlib.h"
@@ -26,6 +29,9 @@
 
 #undef max
 #undef min // Fix valve includes.
+
+#undef intp
+#undef uintp
 
 // ivp
 #include "ivp_physics.hxx"

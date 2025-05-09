@@ -3,6 +3,7 @@ function runFile(fileName)
 	local _project = project()
 	group("IVP")
 	dofile(current_dir .. "/" .. fileName)
+	defines("IVP_NO_PERFORMANCE_TIMER")
 	project(_project.name)
 end
 
