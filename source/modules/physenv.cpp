@@ -2487,6 +2487,12 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 			(void*)hook_IVP_OV_Element_add_oo_collision, m_pID
 		);
 
+		Detour::Create(
+			&detour_IVP_OV_Element_remove_oo_collision, "IVP_OV_Element::remove_oo_collision",
+			vphysics_loader.GetModule(), Symbols::IVP_OV_Element_remove_oo_collisionSym,
+			(void*)hook_IVP_OV_Element_remove_oo_collision, m_pID
+		);
+
 		g_pCurrentMindist = Detour::ResolveSymbol<IVP_Mindist*>(vphysics_loader, Symbols::g_pCurrentMindistSym);
 		Detour::CheckValue("get class", "g_pCurrentMindist", g_pCurrentMindist != NULL);
 

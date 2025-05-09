@@ -921,7 +921,7 @@ void CNetChan::FlowUpdate(int flow, int addbytes)
 	float   starttime = FLT_MAX;
 	float	endtime = 0.0f;
 
-	netframe_t *pprev = &pflow->frames[ NET_FRAMES_BACKUP-1 ];
+	//netframe_t *pprev = &pflow->frames[ NET_FRAMES_BACKUP-1 ];
 	for ( int i = 0; i < NET_FRAMES_BACKUP; i++ )
 	{
 		// Most recent message then backward from there
@@ -950,7 +950,7 @@ void CNetChan::FlowUpdate(int flow, int addbytes)
 			totalinvalid++;
 		}
 		
-		pprev = pcurr;
+		//pprev = pcurr;
 	}
 
 	float totaltime = endtime - starttime;
