@@ -1409,7 +1409,8 @@ void hook_CNetChan_D2(CNetChan* pNetChan)
 		return;
 	}
 
-	Delete_CNetChan(g_Lua, pNetChan);
+	if (g_Lua)
+		Delete_CNetChan(g_Lua, pNetChan);
 
 	detour_CNetChan_D2.GetTrampoline<Symbols::CNetChan_D2>()(pNetChan);
 }

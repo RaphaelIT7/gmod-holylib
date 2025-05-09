@@ -213,16 +213,16 @@ public:
 
 	void DeleteObject( CPhysicsObject *pObject )
 	{
-		hk_intp index = pObject->GetActiveIndex();
-		if ( index < m_activeObjects.Count() )
+		int index = pObject->GetActiveIndex();
+		if ( index < m_activeObjects.Count() && index >= 0 )
 		{
 			Assert( m_activeObjects[index] == pObject );
 			Remove( index );
-			pObject->SetActiveIndex( std::numeric_limits<hk_intp>::max() );
+			pObject->SetActiveIndex( std::numeric_limits<int>::max() );
 		}
 		else
 		{
-			Assert(index==std::numeric_limits<hk_intp>::max());
+			Assert(index==std::numeric_limits<int>::max());
 		}
 	}
 
