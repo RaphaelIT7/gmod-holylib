@@ -1563,6 +1563,7 @@ CPhysicsObject *CreatePhysicsObject( CPhysicsEnvironment *pEnvironment, const CP
 
 	IVP_U_Matrix massCenterMatrix;
 	massCenterMatrix.init();
+#if ARCHITECTURE_IS_X86 // BUG: Crashes on 64x
 	if ( pParams->massCenterOverride )
 	{
 		IVP_U_Point center;
@@ -1570,6 +1571,7 @@ CPhysicsObject *CreatePhysicsObject( CPhysicsEnvironment *pEnvironment, const CP
 		massCenterMatrix.shift_os( &center );
 		objectTemplate.mass_center_override = &massCenterMatrix;
 	}
+#endif
 
 	CPhysicsObject *pObject = new CPhysicsObject();
 	short collideType;
@@ -1909,34 +1911,33 @@ void CPhysicsObject::InitFromTemplate( CPhysicsEnvironment *pEnvironment, void *
 #if ARCHITECTURE_X86_64
 void CPhysicsObject::SetSphereRadius(float radius)
 {
-	Error("not implemented!\n");
+	Warning("CPhysicsObject::SetSphereRadius - not implemented!\n");
 }
 
 void CPhysicsObject::SetUseAlternateGravity(bool bSet)
 {
-	Error("not implemented!\n");
+	Warning("CPhysicsObject::SetUseAlternateGravity - not implemented!\n");
 }
 
 void CPhysicsObject::SetCollisionHints(uint32 collisionHints)
 {
-	Error("not implemented!\n");
+	m_collisionHints = collisionHints; // ToDo, tf does it do.
 }
 
 uint32 CPhysicsObject::GetCollisionHints() const
 {
-	Error("not implemented!\n");
-	return (uint32)0;
+	return m_collisionHints;
 }
 
 IPredictedPhysicsObject* CPhysicsObject::GetPredictedInterface(void) const
 {
-	Error("not implemented!\n");
+	Warning("CPhysicsObject::GetPredictedInterface - not implemented!\n");
 	return nullptr;
 }
 
 void CPhysicsObject::SyncWith(IPhysicsObject* pOther)
 {
-	Error("not implemented!\n");
+	Warning("CPhysicsObject::SyncWith - not implemented!\n");
 }
 #endif
 

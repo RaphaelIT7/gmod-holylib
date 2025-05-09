@@ -749,11 +749,11 @@ void CVProfModule::InitDetour(bool bPreServer)
 
 struct VProfCounter
 {
-	const char* strName;
+	const char* strName = NULL;
 #if ARCHITECTURE_IS_X86_64
-	int* iValue;
+	int* iValue = NULL;
 #else
-	int64* iValue;
+	int64* iValue = NULL;
 #endif
 };
 
@@ -1136,7 +1136,9 @@ LUA_FUNCTION_STATIC(vprof_FindOrCreateCounter)
 
 	VProfCounter* counter = new VProfCounter;
 	counter->strName = pName;
+#ifndef WIN32
 	counter->iValue = g_VProfCurrentProfile.FindOrCreateCounter(pName, group);
+#endif
 
 	Push_VProfCounter(LUA, counter);
 	return 1;
@@ -1154,9 +1156,13 @@ LUA_FUNCTION_STATIC(vprof_GetCounter)
 		return 1; // Not a valid counter. LIAR
 	}
 	
+#ifndef WIN32
 	counter->iValue = g_VProfCurrentProfile.FindOrCreateCounter(counter->strName);
 
 	Push_VProfCounter(LUA, counter);
+#else
+	LUA->PushNil();
+#endif
 	return 1;
 }
 
