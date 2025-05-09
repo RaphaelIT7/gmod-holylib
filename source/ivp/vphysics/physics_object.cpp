@@ -28,6 +28,7 @@
 #include "bspflags.h"
 #include "vphysics/player_controller.h"
 #include "vphysics/friction.h"
+#include <unordered_set>
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -67,6 +68,37 @@ static float AngDragIntegral( float invInertia, float l, float w, float h )
 	return invInertia * ( (1.f/3.f)*w2*l*l2 + 0.5f * w2*w2*l + l*w2*h2 );
 }
 
+static std::unordered_set<CPhysicsObject*> g_pObjects;
+inline void RegisterObject(CPhysicsObject* pObject)
+{
+	auto it = g_pObjects.find(pObject);
+	if (it == g_pObjects.end())
+		g_pObjects.insert(pObject);
+}
+
+inline void UnregisterObject(CPhysicsObject* pObject)
+{
+	auto it = g_pObjects.find(pObject);
+	if (it != g_pObjects.end())
+		g_pObjects.erase(it);
+}
+
+bool CPhysicsHolyLib::IsValidObject(IPhysicsObject* pObject)
+{
+	auto it = g_pObjects.find((CPhysicsObject*)pObject);
+	return it != g_pObjects.end();
+}
+
+IPhysicsEnvironment* CPhysicsHolyLib::GetEnvironmentFromObject(IPhysicsObject* pObject)
+{
+	CPhysicsObject* pObj = (CPhysicsObject*)pObject;
+	return pObj->GetVPhysicsEnvironment();
+}
+
+bool CPhysicsHolyLib::HasObject(IPhysicsEnvironment* pEnvironment, IPhysicsObject* pObject)
+{
+    return ((CPhysicsObject*)pObject)->GetVPhysicsEnvironment() == pEnvironment;
+}
 
 CPhysicsObject::CPhysicsObject( void )
 	: m_pGameData{nullptr},
@@ -104,7 +136,7 @@ void CPhysicsObject::Init( const CPhysCollide *pCollisionModel, IVP_Real_Object 
 	m_pCollide = pCollisionModel;
 	m_materialIndex = materialIndex;
 	m_pObject = pObject;
-	pObject->client_data = (void *)this;
+	pObject->client_data = this;
 	m_pGameData = NULL;
 	m_gameFlags = 0;
 	m_gameIndex = 0;
@@ -131,10 +163,12 @@ void CPhysicsObject::Init( const CPhysCollide *pCollisionModel, IVP_Real_Object 
 	m_angDragCoefficient = angDrag;
 
 	SetVolume( volume );
+	RegisterObject( this );
 }
 
 CPhysicsObject::~CPhysicsObject( void )
 {
+	UnregisterObject( this );
 	RemoveShadowController();
 
 	if ( m_pObject )

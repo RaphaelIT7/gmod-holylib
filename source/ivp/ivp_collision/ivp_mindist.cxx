@@ -880,6 +880,13 @@ void IVP_Mindist_Manager::recalc_all_exact_mindists(){
 /* check length, check for hull, check for coll events*/
 void IVP_Mindist::update_exact_mindist_events(IVP_BOOL allow_hull_conversion, IVP_MINDIST_EVENT_HINT event_hint)
 {
+	IVP_Real_Object *objects[2];
+	get_objects(objects);
+	if (g_pHolyLibCallbacks && g_pHolyLibCallbacks->CheckLag(objects[0] ? objects[0]->client_data : NULL, objects[1] ? objects[1]->client_data : NULL))
+	{
+		return;
+	}
+
 	IVP_IF(1) 
 	{
 		IVP_ASSERT( mindist_status == IVP_MD_EXACT);
@@ -1278,6 +1285,13 @@ void IVP_Mindist::create_cp_in_advance_pretension(IVP_Real_Object *robject,float
 
 void IVP_Mindist::simulate_time_event(IVP_Environment * env)
 {
+	IVP_Real_Object *objects[2];
+	get_objects(objects);
+	if (g_pHolyLibCallbacks && g_pHolyLibCallbacks->CheckLag(objects[0]->client_data, objects[1]->client_data))
+	{
+		return;
+	}
+
 #ifdef IVP_ENABLE_PERFORMANCE_COUNTER
 	env->get_performancecounter()->pcount(IVP_PE_AT_INIT);
 #endif

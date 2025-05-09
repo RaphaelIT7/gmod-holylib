@@ -1,8 +1,9 @@
+#include "physics_holylib.h"
 #include "LuaInterface.h"
 #include "module.h"
 #include "lua.h"
 #include <chrono>
-#include "sourcesdk/ivp_classes.h"
+//#include "sourcesdk/ivp_classes.h"
 #include "vcollide_parse.h"
 #include "solidsetdefaults.h"
 #include <vphysics_interface.h>
@@ -55,6 +56,7 @@ IVP_SkipType pCurrentSkipType = IVP_SkipType::IVP_None;
 
 #define TOSTRING( var ) var ? "true" : "false"
 
+#if 0
 static Detouring::Hook detour_IVP_Mindist_D2;
 static void hook_IVP_Mindist_D2(IVP_Mindist* mindist)
 {
@@ -80,9 +82,11 @@ static void hook_IVP_Mindist_do_impact(IVP_Mindist* mindist)
 	detour_IVP_Mindist_do_impact.GetTrampoline<Symbols::IVP_Mindist_do_impact>()(mindist);
 	g_bInImpactCall = false;
 }
+#endif
 
 auto pCurrentTime = std::chrono::high_resolution_clock::now();
 double pCurrentLagThreadshold = 100; // 100 ms
+#if 0
 static Detouring::Hook detour_IVP_Event_Manager_Standard_simulate_time_events;
 static void hook_IVP_Event_Manager_Standard_simulate_time_events(void* eventmanager, void* timemanager, void* environment, IVP_Time time)
 {
@@ -96,10 +100,41 @@ static void hook_IVP_Event_Manager_Standard_simulate_time_events(void* eventmana
 
 	pCurrentSkipType = IVP_SkipType::IVP_NoCall; // Reset it.
 }
+#endif
 
-static Symbols::IVP_Mindist_Base_get_objects func_IVP_Mindist_Base_get_objects;
+struct ILuaPhysicsEnvironment;
+static inline ILuaPhysicsEnvironment* RegisterPhysicsEnvironment(IPhysicsEnvironment* pEnv);
+static inline void UnregisterPhysicsEnvironment(IPhysicsEnvironment* pEnv);
+void CheckPhysicsLag(IPhysicsObject* pObject1, IPhysicsObject* pObject2);
+class IVPHolyLib : public IVP_HolyLib_Callbacks
+{
+public:
+	virtual ~IVPHolyLib() {};
+
+	virtual bool CheckLag(IPhysicsObject* pObject1, IPhysicsObject* pObject2)
+	{
+		CheckPhysicsLag(pObject1, pObject2);
+
+		SetShouldSkip(pCurrentSkipType != IVP_SkipType::IVP_None);
+		return ShouldSkip();
+	}
+
+	virtual void OnEnvironmentCreated(IPhysicsEnvironment* pEnvironment)
+	{
+		RegisterPhysicsEnvironment(pEnvironment);
+	}
+
+	virtual void OnEnvironmentDestroyed(IPhysicsEnvironment* pEnvironment)
+	{
+		UnregisterPhysicsEnvironment(pEnvironment);
+	}
+};
+
+static IVPHolyLib g_pIVPHolyLib;
+
+//static Symbols::IVP_Mindist_Base_get_objects func_IVP_Mindist_Base_get_objects;
 static bool g_pIsInPhysicsLagCall = false;
-void CheckPhysicsLag(IVP_Mindist* pCollision)
+void CheckPhysicsLag(IPhysicsObject* pObject1, IPhysicsObject* pObject2)
 {
 	if (pCurrentSkipType != IVP_SkipType::IVP_None || g_pIsInPhysicsLagCall) // We already have a skip type.
 		return;
@@ -111,24 +146,17 @@ void CheckPhysicsLag(IVP_Mindist* pCollision)
 		if (Lua::PushHook("HolyLib:OnPhysicsLag"))
 		{
 			g_Lua->PushNumber((double)pSimulationTime);
-			IVP_Real_Object* pObjs[2] = {NULL, NULL};
-			if (func_IVP_Mindist_Base_get_objects)
-			{
-				func_IVP_Mindist_Base_get_objects(pCollision, pObjs);
-			}
 
-			if (pObjs[0] && pObjs[0]->client_data)
+			if (pObject1)
 			{
-				CPhysicsObject* pObject = static_cast<CPhysicsObject*>(pObjs[0]->client_data);
-				Util::Push_Entity(g_Lua, (CBaseEntity*)pObject->GetGameData());
+				Util::Push_Entity(g_Lua, (CBaseEntity*)pObject1->GetGameData());
 			} else {
 				g_Lua->PushNil();
 			}
 
-			if (pObjs[1] && pObjs[1]->client_data)
+			if (pObject2)
 			{
-				IPhysicsObject* pObject = static_cast<IPhysicsObject*>(pObjs[1]->client_data);
-				Util::Push_Entity(g_Lua, (CBaseEntity*)pObject->GetGameData());
+				Util::Push_Entity(g_Lua, (CBaseEntity*)pObject2->GetGameData());
 			} else {
 				g_Lua->PushNil();
 			}
@@ -151,6 +179,7 @@ void CheckPhysicsLag(IVP_Mindist* pCollision)
 	}
 }
 
+#if 0
 static Detouring::Hook detour_IVP_Mindist_simulate_time_event;
 static void hook_IVP_Mindist_simulate_time_event(IVP_Mindist* mindist, void* environment)
 {
@@ -203,6 +232,7 @@ static void hook_IVP_OV_Element_remove_oo_collision(void* ovElement, IVP_Collisi
 
 	detour_IVP_OV_Element_remove_oo_collision.GetTrampoline<Symbols::IVP_OV_Element_remove_oo_collision>()(ovElement, connector);
 }
+#endif 0
 
 static Detouring::Hook detour_CreateInterface;
 static void* hook_CreateInterface(const char *pName, int *pReturnCode)
@@ -291,9 +321,9 @@ void CPhysEnvModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 //PushReferenced_LuaClass(IPhysicsObject) // This will later cause so much pain when they become Invalid XD
 //Get_LuaClass(IPhysicsObject, "IPhysicsObject")
 // Fking idiot, it's a gmod class!!
-static inline bool IsRegisteredPhysicsObject(IPhysicsObject* pObject);
+// static inline bool IsRegisteredPhysicsObject(IPhysicsObject* pObject);
 GMODGet_LuaClass(IPhysicsObject, GarrysMod::Lua::Type::PhysObj, "PhysObj", 
-	if (!IsRegisteredPhysicsObject(pVar) && bError) {
+	if (!g_pPhysicsHolyLib->IsValidObject(pVar) && bError) {
 		LUA->ThrowError(triedNull_IPhysicsObject.c_str());
 	}
 );
@@ -359,7 +389,7 @@ struct ILuaPhysicsEnvironment;
 PushReferenced_LuaClass(ILuaPhysicsEnvironment)
 Get_LuaClass(ILuaPhysicsEnvironment, "IPhysicsEnvironment")
 
-#ifdef SYSTEM_WINDOWS
+#if defined(SYSTEM_WINDOWS) && 0
 extern void hook_CPhysicsEnvironment_DestroyObject(CPhysicsEnvironment* pEnvironment, IPhysicsObject* pObject);
 class CPhysicsEnvironmentProxy : public Detouring::ClassProxy<IPhysicsEnvironment, CPhysicsEnvironmentProxy> {
 public:
@@ -382,23 +412,25 @@ public:
 
 static std::unordered_map<IPhysicsEnvironment*, ILuaPhysicsEnvironment*> g_pEnvironmentToLua;
 static std::unordered_map<IPhysicsObject*, ILuaPhysicsEnvironment*> g_pObjects; // contains all IPhysicsObject that exist
-static inline void RegisterPhysicsObject(ILuaPhysicsEnvironment* pEnv, IPhysicsObject* pObject);
+//static inline void RegisterPhysicsObject(ILuaPhysicsEnvironment* pEnv, IPhysicsObject* pObject);
 struct ILuaPhysicsEnvironment
 {
 	ILuaPhysicsEnvironment(IPhysicsEnvironment* env)
 	{
 		pEnvironment = env;
 		//g_pEnvironmentToLua[env] = this;
-#ifdef SYSTEM_WINDOWS
+#if defined(SYSTEM_WINDOWS) && 0
 		pEnvironmentProxy = std::make_unique<CPhysicsEnvironmentProxy>(env);
 #endif
 
+#if 0
 		int iCount;
 		IPhysicsObject** pList = (IPhysicsObject**)pEnvironment->GetObjectList(&iCount);
 		for (int i = 0; i < iCount; ++i)
 		{
 			RegisterPhysicsObject(this, pList[i]);
 		}
+#endif
 	}
 
 	~ILuaPhysicsEnvironment()
@@ -406,12 +438,13 @@ struct ILuaPhysicsEnvironment
 		DeleteGlobal_ILuaPhysicsEnvironment(this);
 
 		//g_pEnvironmentToLua.erase(g_pEnvironmentToLua.find(pEnvironment));
-#ifdef SYSTEM_WINDOWS
+#if defined(SYSTEM_WINDOWS) && 0
 		pEnvironmentProxy->DeInit();
 #endif
 		//physics->DestroyEnvironment(pEnvironment);
 		pEnvironment = NULL;
 
+#if 0
 		for (IPhysicsObject* pObject : pObjects)
 		{
 			auto it = g_pObjects.find(pObject);
@@ -420,6 +453,7 @@ struct ILuaPhysicsEnvironment
 		}
 
 		pObjects.clear();
+#endif
 
 		if (pObjectEvent)
 			delete pObjectEvent;
@@ -431,6 +465,7 @@ struct ILuaPhysicsEnvironment
 		//	delete pCollisionEvent;
 	}
 
+#if 0
 	inline void RegisterObject(IPhysicsObject* pObject)
 	{
 		auto it = pObjects.find(pObject);
@@ -450,6 +485,7 @@ struct ILuaPhysicsEnvironment
 		auto it = pObjects.find(pObject);
 		return it != pObjects.end();
 	}
+#endif
 
 	inline bool Created()
 	{
@@ -457,10 +493,10 @@ struct ILuaPhysicsEnvironment
 	}
 
 	bool bCreatedEnvironment = false; // If we were the one that created the environment.
-	std::unordered_set<IPhysicsObject*> pObjects;
+	//std::unordered_set<IPhysicsObject*> pObjects;
 	
 	IPhysicsEnvironment* pEnvironment = NULL;
-#ifdef SYSTEM_WINDOWS
+#if defined(SYSTEM_WINDOWS) && 0
 	std::unique_ptr<CPhysicsEnvironmentProxy> pEnvironmentProxy = NULL;
 #endif
 	CLuaPhysicsObjectEvent* pObjectEvent = NULL;
@@ -504,6 +540,7 @@ static inline ILuaPhysicsEnvironment* GetPhysicsEnvironment(IPhysicsEnvironment*
 	return NULL;
 }
 
+#if 0
 static inline void RegisterPhysicsObject(ILuaPhysicsEnvironment* pEnv, IPhysicsObject* pObject)
 {
 	auto it = g_pObjects.find(pObject);
@@ -527,6 +564,7 @@ static inline bool IsRegisteredPhysicsObject(IPhysicsObject* pObject)
 	auto it = g_pObjects.find(pObject);
 	return it != g_pObjects.end();
 }
+#endif
 
 static inline ILuaPhysicsEnvironment* GetPhysicsObjectLuaEnvironment(IPhysicsObject* pObject)
 {
@@ -545,6 +583,7 @@ static inline ILuaPhysicsEnvironment* GetPhysicsObjectLuaEnvironment(IPhysicsObj
  *				It would most likely require one to edit the vphysics dll for a clean and proper solution.
  *				Inside the engine there most likely would also be a CPhysicsObject::SetEnvironment method that would need to be added and called at all points, were it uses m_objects.AddToTail()
  */
+#if 0
 static Detouring::Hook detour_CPhysicsEnvironment_DestroyObject;
 void hook_CPhysicsEnvironment_DestroyObject(CPhysicsEnvironment* pEnvironment, IPhysicsObject* pObject)
 {
@@ -695,6 +734,7 @@ void hook_CPhysicsEnvironment_C2(IPhysicsEnvironment* pEnv)
 	detour_CPhysicsEnvironment_C2.GetTrampoline<Symbols::CPhysicsEnvironment_C2>()(pEnv);
 	RegisterPhysicsEnvironment(pEnv);
 }
+#endif
 
 PushReferenced_LuaClass(IPhysicsCollisionSet)
 Get_LuaClass(IPhysicsCollisionSet, "IPhysicsCollisionSet")
@@ -1589,10 +1629,12 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreateWorldPhysics)
 #if ARCHITECTURE_IS_X86
 	Push_IPhysicsObject(LUA, PhysCreateWorld(pEnvironment, Util::GetCBaseEntityFromEdict(Util::engineserver->PEntityOfEntIndex(0))));
 
+#if 0
 	int iCount = 0;
 	IPhysicsObject** pList = (IPhysicsObject**)pEnvironment->GetObjectList(&iCount);
 	for (int i = 0; i < iCount; ++i)
 		pLuaEnv->RegisterObject(pList[i]); // Make sure everything is registered properly
+#endif
 
 	return 1;
 #else
@@ -2124,7 +2166,9 @@ bool hook_GMod_Util_IsPhysicsObjectValid(IPhysicsObject* pObject)
 	}*/
 
 	// Should be O(1) now since were using a hash / unordered_map.
-	return IsRegisteredPhysicsObject(pObject);
+	//return IsRegisteredPhysicsObject(pObject);
+
+	return g_pPhysicsHolyLib->IsValidObject(pObject);
 }
 
 /*
@@ -2364,6 +2408,8 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 			vphysics_loader.GetModule(), Symbol::FromName(CREATEINTERFACE_PROCNAME),
 			(void*)hook_CreateInterface, m_pID
 		);
+
+		SetIVPHolyLibCallbacks(&g_pIVPHolyLib);
 		return;
 	}
 

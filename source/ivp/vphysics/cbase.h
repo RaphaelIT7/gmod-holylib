@@ -26,6 +26,7 @@
 #include "physics_material.h"
 #include "physics_environment.h"
 #include "physics_object.h"
+#include "physics_holylib.h"
 
 #undef max
 #undef min // Fix valve includes.

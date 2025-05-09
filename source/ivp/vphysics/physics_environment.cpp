@@ -1169,10 +1169,14 @@ CPhysicsEnvironment::CPhysicsEnvironment( void )
 	CPhysicsEnvironment::SetPerformanceSettings( &perf );
 	m_pPhysEnv->client_data = this;
 	m_lastObjectThisTick = 0;
+
+	g_pHolyLibCallbacks->OnEnvironmentCreated( this );
 }
 
 CPhysicsEnvironment::~CPhysicsEnvironment( void )
 {
+	g_pHolyLibCallbacks->OnEnvironmentDestroyed( this );
+
 	// no callbacks during shutdown
 	SetCollisionSolver( NULL );
 	m_pPhysEnv->remove_listener_object_global( m_pSleepEvents );
@@ -1532,6 +1536,8 @@ void CPhysicsEnvironment::Simulate( float deltaTime )
 		}
 		END_IVP_ALLOCATION();
 		m_inSimulation = false;
+
+		g_pHolyLibCallbacks->SetShouldSkip(false); // Reset at the end of the frame
 	}
 
 	// If the queue is disabled, it's only used during simulation.

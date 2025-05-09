@@ -30,6 +30,11 @@
 
 
 void IVP_Event_Manager_Standard::simulate_time_events(IVP_Time_Manager *tman,IVP_Environment *env,IVP_Time time) {
+  if (g_pHolyLibCallbacks && g_pHolyLibCallbacks->ShouldSkip())
+  {
+	return;
+  }
+
   IVP_FLOAT event_time;
   while ( (event_time = tman->min_hash->find_min_value()) < time - tman->base_time ){
       IVP_Time_Event *event = (IVP_Time_Event *)tman->min_hash->find_min_elem();

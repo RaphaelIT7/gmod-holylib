@@ -30,6 +30,7 @@
 
 class IVP_Real_Object;
 class IVP_Material;
+class IPhysicsObject;
 
 #ifndef _IVP_U_LINEAR_INCLUDED
 #	include "ivu_linear.hxx"
@@ -164,7 +165,7 @@ public:
 /********************************************************************************
  *	Feature:	Rotation axis and mass center
  ********************************************************************************/
-    void *client_data;			// user supplied client data
+    IPhysicsObject *client_data;			// user supplied client data
     IVP_Template_Real_Object();
     ~IVP_Template_Real_Object();       
 };

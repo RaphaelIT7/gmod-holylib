@@ -33,6 +33,7 @@ class IVP_Radar;
 class IVP_Template_Anchor;
 class IVP_Hull_Manager;
 class IVP_Synapse_Friction;
+class IPhysicsObject; // SourceSDK specific
 
 #define IVP_NO_COLL_GROUP_STRING_LEN 8
 
@@ -231,7 +232,8 @@ public:
  *	The real end user public section:
  ********************************************************************************/
     
-    void *client_data; //not used by physics, provided for customer
+	// SourceSDK specific - Source uses this to store a pointer to the CPhysicsObject
+    IPhysicsObject *client_data; //not used by physics, provided for customer
 
     
     /********************************************************************************

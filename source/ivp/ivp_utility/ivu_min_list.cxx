@@ -40,11 +40,16 @@ IVP_U_Min_List::~IVP_U_Min_List()
 
 IVP_U_MINLIST_INDEX IVP_U_Min_List::add(void *elem, IVP_U_MINLIST_FIXED_POINT value)
 {
+	if (g_pHolyLibCallbacks && g_pHolyLibCallbacks->CheckLag())
+	{
+		return IVP_U_MINLIST_UNUSED; // This will probably break things. Anyways.
+	}
+
 	// search free element first
 	IVP_ASSERT(value <= P_FLOAT_MAX);
 	IVP_U_Min_List_Element *e;
 	IVP_U_MINLIST_INDEX return_index;
-	counter += 1;
+	++counter;
 	
 	if ( free_list != IVP_U_MINLIST_UNUSED )
 	{
@@ -82,7 +87,6 @@ IVP_U_MINLIST_INDEX IVP_U_Min_List::add(void *elem, IVP_U_MINLIST_FIXED_POINT va
 		
 		for(i=0; i < malloced_size; i++)
 		{
-			printf("how many for loops are there\n");
 			new_elems[i] = elems[i];
 		}
 
@@ -96,7 +100,6 @@ IVP_U_MINLIST_INDEX IVP_U_Min_List::add(void *elem, IVP_U_MINLIST_FIXED_POINT va
 
 		for(; i < malloced_size; i++)
 		{
-			printf("yet another for loop\n");
 			elems[i].next = i+1;
 		}
 
@@ -148,10 +151,9 @@ IVP_U_MINLIST_INDEX IVP_U_Min_List::add(void *elem, IVP_U_MINLIST_FIXED_POINT va
 		{
 			break;
 		}
-		max_cmp_len++;
+		++max_cmp_len;
 		lastj = lo;
 		lo = flong->long_next;
-		printf("while loop 1\n");
 	}
 
 	int firstj_after = lastj;
@@ -163,8 +165,6 @@ IVP_U_MINLIST_INDEX IVP_U_Min_List::add(void *elem, IVP_U_MINLIST_FIXED_POINT va
 	for (j = f->next; j != IVP_U_MINLIST_UNUSED; j = f->next)
 	{
 		f = &elems[j];
-		
-		printf("some for loop\n");
 
 #ifdef IVP_U_MINLIST_USELONG
 		count_cmp ++;
@@ -196,7 +196,6 @@ end:
 		// search new position for longjump
 		for (int k = 2; k < max_cmp_len; k ++)
 		{
-			printf("another for loop\n");
 			new_long_pos = elems[new_long_pos].next;
 		}
 		

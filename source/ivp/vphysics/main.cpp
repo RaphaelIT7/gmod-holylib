@@ -64,7 +64,7 @@ public:
 	IPhysicsCollisionSet *FindCollisionSet( unsigned int id ) override;
 	void DestroyAllCollisionSets() override;
 
-private:
+public:
 	CUtlVector<IPhysicsEnvironment *>	m_envList;
 	CUtlVector<CPhysicsCollisionSet>	m_collisionSets;
 	IVP_VHash_Store						*m_pCollisionSetHash;
@@ -168,4 +168,9 @@ void CPhysicsInterface::DestroyAllCollisionSets()
 	m_collisionSets.Purge();
 	delete m_pCollisionSetHash;
 	m_pCollisionSetHash = NULL;
+}
+
+const CUtlVector<IPhysicsEnvironment*>& CPhysicsHolyLib::GetEnvironments()
+{
+	return g_MainDLLInterface.m_envList;
 }

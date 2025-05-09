@@ -84,6 +84,10 @@
 #	include <ivp_core.hxx>
 #endif
 
+#ifndef _IVP_HOLYLIB
+#	include <ivp_holylib.hxx>
+#endif
+
 
 #include <ivu_string.hxx>
 
