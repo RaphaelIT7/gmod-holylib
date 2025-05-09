@@ -662,9 +662,9 @@ bool CTraceIVP::BuildLeafmapCache( const leafmap_t * RESTRICT pLeafmap )
 
 	int remIndex = (pointCount-1) & 3;
 	int x0 = 0;
-	int x1 = min(1,remIndex);
-	int x2 = min(2,remIndex);
-	int x3 = min(3,remIndex);
+	int x1 = MIN(1,remIndex);
+	int x2 = MIN(2,remIndex);
+	int x3 = MIN(3,remIndex);
 	m_vertCache[m_cacheCount-1].LoadAndSwizzleAligned( pVerts[x0], pVerts[x1], pVerts[x2], pVerts[x3] );
 	FourVectors::RotateManyBy( &m_vertCache[0], m_cacheCount, *((const matrix3x4_t *)&m_ivpLocalToHLWorld) );
 	return true;
@@ -1004,7 +1004,7 @@ public:
 		m_obstacle = obstacle;
 		m_ray = ray;
 		m_traceLength = 0;
-		m_totalTraceLength = max( ray->m_baseLength, 1e-8f );
+		m_totalTraceLength = MAX( ray->m_baseLength, 1e-8f );
 		m_epsilon = g_PhysicsUnits.collisionSweepEpsilon;
 	}
 

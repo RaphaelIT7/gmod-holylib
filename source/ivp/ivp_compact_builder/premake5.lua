@@ -1,4 +1,5 @@
 function IncludeIVPCompactBuilder()
+	links("ivp_compactbuilder")
 	project("ivp_compactbuilder")
 		kind("StaticLib")
 		language("C++")

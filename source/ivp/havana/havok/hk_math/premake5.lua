@@ -1,4 +1,5 @@
 function IncludeHKMath()
+	links("hk_math")
 	project("hk_math")
 		kind("StaticLib")
 		language("C++")

@@ -111,7 +111,7 @@ public:
 	void CleanupDeleteList() override;
 	void EnableDeleteQueue( bool enable ) override { m_queueDeleteObject = enable; }
 	// debug
-	[[nodiscard]] bool IsCollisionModelUsed( const CPhysCollide *pCollide ) const override;
+	[[nodiscard]] bool IsCollisionModelUsed( CPhysCollide *pCollide ) const override;
 
 	// trace against the physics world
 	void TraceRay( const Ray_t &ray, unsigned int fMask, IPhysicsTraceFilter *pTraceFilter, trace_t *pTrace ) override;

@@ -488,8 +488,8 @@ public:
 			m_event.deltaCollisionTime = 1.0;
 		}
 			
-
-		m_event.pInternalData = std::make_shared<CPhysicsCollisionData>(contact);
+		CPhysicsCollisionData data(contact);
+		m_event.pInternalData = &data;
 
 		// clear out any static object collisions unless flagged to keep them
 		if ( contact->objects[0]->get_movement_state() == IVP_MT_STATIC )
@@ -535,7 +535,8 @@ public:
 
 		float collisionSpeed = contact->speed.dot_product(&contact->surf_normal);
 		m_event.collisionSpeed = ConvertDistanceToHL( fabs(collisionSpeed) );
-		m_event.pInternalData = std::make_shared<CPhysicsCollisionData>(contact);
+		CPhysicsCollisionData data(contact);
+		m_event.pInternalData = &data;
 
 		m_pCallback->PostCollision( &m_event );
 	}
@@ -1840,7 +1841,7 @@ void CPhysicsEnvironment::CleanupDeleteList()
 	ClearDeadObjects();
 }
 
-bool CPhysicsEnvironment::IsCollisionModelUsed( const CPhysCollide *pCollide ) const
+bool CPhysicsEnvironment::IsCollisionModelUsed( CPhysCollide *pCollide ) const
 {
 	for ( intp i = m_deadObjects.Count()-1; i >= 0; --i )
 	{

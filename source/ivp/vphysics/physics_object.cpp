@@ -1644,7 +1644,7 @@ public:
 	{
 		char nameBuf[1024];
 		int nameLen = pRestore->ReadInt();
-		pRestore->ReadString( nameBuf, nameLen );
+		pRestore->ReadString( nameBuf, sizeof(nameBuf), nameLen );
 		int *pMaterialIndex = (int *)fieldInfo.pField;
 		*pMaterialIndex = physprops->GetSurfaceIndex( nameBuf );
 		if ( *pMaterialIndex < 0 )

@@ -76,7 +76,7 @@ public:
 	byte GetRootLedges( IVP_Compact_Ledge **pLedges, byte outCount ) const
 	{ 
 		unsigned int hullOffset = m_hullOffset;
-		byte count = min(outCount, m_hullCount);
+		byte count = MIN(outCount, m_hullCount);
 		for ( byte i = 0; i < count; i++ )
 		{
 			pLedges[i] = (IVP_Compact_Ledge *)(m_pMemory + hullOffset);

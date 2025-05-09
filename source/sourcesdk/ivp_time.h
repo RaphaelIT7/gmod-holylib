@@ -1,7 +1,7 @@
 #ifndef _IVP_TYPE
 #define _IVP_TYPE
 
-#include "ivp_types.h"
+#include "sourcesdk/ivp_types.h"
 
 class IVP_Time {
 	double seconds;

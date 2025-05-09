@@ -26,7 +26,7 @@ static int MaxLedgeVertIndex( const IVP_Compact_Ledge *pLedge )
 		for ( int j = 0; j < 3; j++ )
 		{
 			int ivpIndex = pTri->get_edge(j)->get_start_point_index();
-			maxIndex = max(maxIndex, ivpIndex);
+			maxIndex = MAX(maxIndex, ivpIndex);
 		}
 	}
 	return maxIndex;
@@ -77,8 +77,8 @@ static void BuildVertMap( vertmap_t &out, const Vector *pVerts, int vertexCount,
 				}
 				Assert(minDist<0.1f);
 				out.map[ivpIndex] = index;
-				out.minRef = min(out.minRef, index);
-				out.maxRef = max(out.maxRef, index);
+				out.minRef = MIN(out.minRef, index);
+				out.maxRef = MAX(out.maxRef, index);
 			}
 		}
 	}

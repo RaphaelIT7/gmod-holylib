@@ -72,8 +72,8 @@ public:
 	void PolysoupAddTriangle( CPhysPolysoup *pSoup, const Vector &a, const Vector &b, const Vector &c, int materialIndex7bits ) override;
 	CPhysCollide *ConvertPolysoupToCollide( CPhysPolysoup *pSoup, bool useMOPP = true ) override;
 
-	size_t CollideSize(CPhysCollide *pCollide) override;
-	size_t CollideWrite( char *pDest, CPhysCollide *pCollide, bool bSwap = false ) override;
+	int CollideSize(CPhysCollide *pCollide) override;
+	int CollideWrite( char *pDest, CPhysCollide *pCollide, bool bSwap = false ) override;
 	// Get the AABB of an oriented collide
 	void CollideGetAABB( Vector *pMins, Vector *pMaxs, const CPhysCollide *pCollide, const Vector &collideOrigin, const QAngle &collideAngles ) override;
 	Vector CollideGetExtent( const CPhysCollide *pCollide, const Vector &collideOrigin, const QAngle &collideAngles, const Vector &direction ) override;
@@ -126,7 +126,7 @@ public:
 	Vector			CollideGetOrthographicAreas( const CPhysCollide *pCollide ) override;
 	void			OutputDebugInfo( const CPhysCollide *pCollide ) override;
 	CPhysCollide	*CreateVirtualMesh(const virtualmeshparams_t &params) override { return ::CreateVirtualMesh(params); }
-	bool			GetBBoxCacheSize( size_t *pCachedSize, intp *pCachedCount ) override;
+	bool			GetBBoxCacheSize( int *pCachedSize, int *pCachedCount ) override;
 
 	bool			SupportsVirtualMesh() override { return true; }
 
@@ -1363,12 +1363,12 @@ void CPhysicsCollision::ConvexFree( CPhysConvex *pConvex )
 }
 
 // Get the size of the collision model for serialization
-size_t	CPhysicsCollision::CollideSize( CPhysCollide *pCollide )
+int	CPhysicsCollision::CollideSize( CPhysCollide *pCollide )
 {
 	return pCollide->GetSerializationSize();
 }
 
-size_t	CPhysicsCollision::CollideWrite( char *pDest, CPhysCollide *pCollide, bool bSwap )
+int	CPhysicsCollision::CollideWrite( char *pDest, CPhysCollide *pCollide, bool bSwap )
 {
 	return pCollide->SerializeToBuffer( pDest, bSwap );
 }
@@ -1754,7 +1754,7 @@ void CPhysicsCollision::OutputDebugInfo( const CPhysCollide *pCollide )
 	pCollide->OutputDebugInfo();
 }
 
-bool CPhysicsCollision::GetBBoxCacheSize( size_t *pCachedSize, intp *pCachedCount )
+bool CPhysicsCollision::GetBBoxCacheSize( int *pCachedSize, int *pCachedCount )
 {
 	*pCachedSize = 0;
 	*pCachedCount = m_bboxCache.Count();

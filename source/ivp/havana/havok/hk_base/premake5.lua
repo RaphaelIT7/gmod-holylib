@@ -1,4 +1,6 @@
 function IncludeHKBase()
+	links("hk_base")
+
 	project("hk_base")
 		kind("StaticLib")
 		language("C++")

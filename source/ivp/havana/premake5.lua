@@ -1,4 +1,5 @@
 function IncludeHavanaConstraints()
+	links("havana_constraints")
 	project("havana_constraints")
 		kind("StaticLib")
 		language("C++")

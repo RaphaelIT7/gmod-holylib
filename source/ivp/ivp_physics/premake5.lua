@@ -1,4 +1,5 @@
 function IncludeIVPPhysics()
+	links("ivp_physics")
 	project("ivp_physics")
 		kind("StaticLib")
 		language("C++")

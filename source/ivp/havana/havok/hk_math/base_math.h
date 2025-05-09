@@ -56,6 +56,8 @@ class hk_Math
 		static bool almost_zero [[nodiscard]] ( hk_double a, hk_double eps = HK_DOUBLE_RES );
 };
 
+#ifndef HOLYLIB
 #include <hk_math/math.inl>
+#endif
 
 #endif /* HK_MATH_MATH_H */

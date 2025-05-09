@@ -10,7 +10,7 @@
 #define IVP_NO_DOUBLE
 #endif
 
-#include "ivp_time.h"
+#include "sourcesdk/ivp_time.h"
 
 class IVP_Core;
 class IVP_Anchor;

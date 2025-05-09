@@ -770,7 +770,7 @@ void CVehicleController::InitCarSystemWheels( IVP_Template_Car_System &ivpVehicl
 		ivpVehicleData.stabilizer_constant[i] = m_vehicleData.axles[i].suspension.stabilizerConstant * m_bodyMass;
 		// this should output in radians per second
 		float radius = ConvertDistanceToIVP( m_vehicleData.axles[i].wheels.radius );
-		float totalMaxSpeed = max( m_vehicleData.engine.boostMaxSpeed, m_vehicleData.engine.maxSpeed );
+		float totalMaxSpeed = MAX( m_vehicleData.engine.boostMaxSpeed, m_vehicleData.engine.maxSpeed );
 		ivpVehicleData.wheel_max_rotation_speed[i] = totalMaxSpeed / radius;
 		if ( radius > m_wheelRadius )
 		{
@@ -1260,7 +1260,7 @@ void CVehicleController::CalcEngine( float throttle, float brake_val, bool handb
 
 	// Speed governor
 	float maxSpeed = torqueBoost ? m_vehicleData.engine.boostMaxSpeed : m_vehicleData.engine.maxSpeed;
-	maxSpeed = max(1.f,maxSpeed);	// make sure this is non-zero before the divide
+	maxSpeed = MAX(1.f,maxSpeed);	// make sure this is non-zero before the divide
 	if ( (throttle > 0) && (flAbsSpeed > maxSpeed) )
 		{
 			float frac = flAbsSpeed / maxSpeed;
