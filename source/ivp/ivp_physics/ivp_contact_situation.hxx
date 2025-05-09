@@ -3,7 +3,7 @@
 //IVP_EXPORT_PUBLIC
 
 /********************************************************************************
- *	File:		   	ivp_contact_situation.hxx	
+ *	File:	       	ivp_contact_situation.hxx	
  *	Description:	???
  ********************************************************************************/
 
@@ -15,7 +15,7 @@ class IVP_Material;
 
 
 /********************************************************************************
- *	Name:		  	IVP_Contact_Situation 	
+ *	Name:	      	IVP_Contact_Situation 	
  *	Description:	Contact situations are simple, condensed information
  *			about a collision.
  ********************************************************************************/
@@ -27,7 +27,7 @@ struct IVP_Contact_Situation
 	IVP_U_Point contact_point_ws;		// 16bytes[ND]:
 	IVP_Real_Object* objects[2];		// 8bytes: link to involved objects
 	const class IVP_Compact_Edge* compact_edges[2]; // 8bytes: link to involved Edges (needs source code license for more info
-	IVP_Material* materials[2];			// 8bytes: materials (might be virtual materials for point and edge cases)
+	IVP_Material* materials[2];	        // 8bytes: materials (might be virtual materials for point and edge cases)
 	IVP_Contact_Situation() = default;
 };
 

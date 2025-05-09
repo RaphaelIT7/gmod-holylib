@@ -20,14 +20,14 @@
 #if 0
 #define IVP_CLUSTERING_SHORTRANGE_VISUALIZER_ASSERT(errortext) \
 { \
-	if ( !this->valid_instance ) { \
+    if ( !this->valid_instance ) { \
 	IVP_IF(1) { \
-		IVP_IFDEBUG(IVP_DM_CLUSTERING_SHORTRANGE_VISUALIZER) { \
+	    IVP_IFDEBUG(IVP_DM_CLUSTERING_SHORTRANGE_VISUALIZER) { \
 		ivp_debugmanager.dprint(IVP_DM_CLUSTERING_SHORTRANGE_VISUALIZER, errortext); \
-		} \
+	    } \
 	} \
 	return; \
-	} \
+    } \
 }
 #endif
 
@@ -46,139 +46,139 @@
 
 void IVP_BetterStatisticsmanager_Data_Entity::set_int_value(int value) {
 
-	this->data.int_value = value;
-	return;
+    this->data.int_value = value;
+    return;
 }
 
 
 void IVP_BetterStatisticsmanager_Data_Entity::set_double_value(IVP_DOUBLE value) {
 
-	this->data.double_value = value;
-	return;
+    this->data.double_value = value;
+    return;
 }
 
 
 void IVP_BetterStatisticsmanager_Data_Entity::set_array_size(int array_size) {
 
-	switch ( this->type ) {
-	case INT_ARRAY:
+    switch ( this->type ) {
+    case INT_ARRAY:
 	P_FREE(this->data.int_array.array);
 	this->data.int_array.array = (int *)p_calloc(array_size+1, sizeof(int));
 	this->data.int_array.size = array_size;
 	break;
-	case DOUBLE_ARRAY:
+    case DOUBLE_ARRAY:
 	P_FREE(this->data.double_array.array);
 	this->data.double_array.array = (IVP_DOUBLE *)p_calloc(array_size+1, sizeof(IVP_DOUBLE));
 	this->data.double_array.size = array_size;
 	break;
-	default:
+    default:
 	break;
-	}
-	return;
+    }
+    return;
 }
 
 
 void IVP_BetterStatisticsmanager_Data_Entity::set_int_array_latest_value(int value) {
 
-	if ( !this->data.int_array.array ) return;
+    if ( !this->data.int_array.array ) return;
 
-	int x;
-	for (x=0; x<this->data.int_array.size-1; x++) {
+    int x;
+    for (x=0; x<this->data.int_array.size-1; x++) {
 	this->data.int_array.array[x] = this->data.int_array.array[x+1];
-	}
-	this->data.int_array.array[x] = value;
-	return;
+    }
+    this->data.int_array.array[x] = value;
+    return;
 }
 
 
 void IVP_BetterStatisticsmanager_Data_Entity::set_double_array_latest_value(IVP_DOUBLE value) {
 
-	if ( !this->data.double_array.array ) return;
+    if ( !this->data.double_array.array ) return;
 
-	int x;
-	for (x=0; x<this->data.double_array.size-1; x++) {
+    int x;
+    for (x=0; x<this->data.double_array.size-1; x++) {
 	this->data.double_array.array[x] = this->data.double_array.array[x+1];
-	}
-	this->data.double_array.array[x] = value;
-	return;
+    }
+    this->data.double_array.array[x] = value;
+    return;
 }
 
 
 //int IVP_BetterStatisticsmanager_Data_Entity::get_int_value() {
 //
-//	return(this->data.int_value);
+//    return(this->data.int_value);
 //}
 
 
 //IVP_DOUBLE IVP_BetterStatisticsmanager_Data_Entity::get_double_value() {
 //
-//	return(this->data.double_value);
+//    return(this->data.double_value);
 //}
 
 
-//	void	   set_int_array(int size);
-//	void	   set_int_array_latest_value(int value);
+//    void       set_int_array(int size);
+//    void       set_int_array_latest_value(int value);
 
 void IVP_BetterStatisticsmanager_Data_Entity::enable() {
 
-	this->enabled = IVP_TRUE;
+    this->enabled = IVP_TRUE;
 
-	return;
+    return;
 }
 
 
 void IVP_BetterStatisticsmanager_Data_Entity::disable() {
 
-	this->enabled = IVP_FALSE;
+    this->enabled = IVP_FALSE;
 
-	return;
+    return;
 }
 
 
 IVP_BOOL IVP_BetterStatisticsmanager_Data_Entity::get_state() {
 
-	return(this->enabled);
+    return(this->enabled);
 }
 
 
 void IVP_BetterStatisticsmanager_Data_Entity::set_text(const char *text_in) {
 
-	char *new_text = p_strdup(text_in);
-	if ( !new_text ) return;
+    char *new_text = p_strdup(text_in);
+    if ( !new_text ) return;
 
-	P_FREE(this->text);
-	this->text = new_text;
+    P_FREE(this->text);
+    this->text = new_text;
 
-	return;
+    return;
 }
 
 
 void IVP_BetterStatisticsmanager_Data_Entity::set_position(int x, int y) {
 
-	this->xpos = x;
-	this->ypos = y;
+    this->xpos = x;
+    this->ypos = y;
 
-	return;
+    return;
 }
 
 
 IVP_BetterStatisticsmanager_Data_Entity::IVP_BetterStatisticsmanager_Data_Entity(IVP_BETTERSTATISTICSMANAGER_DATA_ENTITY_TYPE type_in) {
 
-	this->enabled	= IVP_TRUE;
-	this->type	   = type_in;
-	this->text	   = p_strdup("Value: ");
-	this->text_color = 0;
-	this->xpos	   = 0;
-	this->ypos	   = 0;
+    this->enabled    = IVP_TRUE;
+    this->type       = type_in;
+    this->text       = p_strdup("Value: ");
+    this->text_color = 0;
+    this->xpos       = 0;
+    this->ypos       = 0;
 
-	switch ( this->type ) {
-	case INT_VALUE:
+    switch ( this->type ) {
+    case INT_VALUE:
 	this->data.int_value = 0;
 	break;
-	case DOUBLE_VALUE:
+    case DOUBLE_VALUE:
 	this->data.double_value = 0.0;
 	break;
-	case INT_ARRAY:
+    case INT_ARRAY:
 	this->data.int_array.size = 10;
 	this->data.int_array.array = (int *)p_calloc(11, sizeof(int));
 	this->data.int_array.max_value = 10;
@@ -190,7 +190,7 @@ IVP_BetterStatisticsmanager_Data_Entity::IVP_BetterStatisticsmanager_Data_Entity
 	this->data.int_array.border_color = 1;
 	this->data.int_array.graph_color = 2;
 	break;
-	case DOUBLE_ARRAY:
+    case DOUBLE_ARRAY:
 	this->data.double_array.size = 10;
 	this->data.double_array.array = (IVP_DOUBLE *)p_calloc(11, sizeof(IVP_DOUBLE));
 	this->data.double_array.max_value = 10.0;
@@ -202,19 +202,19 @@ IVP_BetterStatisticsmanager_Data_Entity::IVP_BetterStatisticsmanager_Data_Entity
 	this->data.int_array.border_color = 1;
 	this->data.int_array.graph_color = 2;
 	break;
-	case STRING:
+    case STRING:
 	break;
-	}
+    }
 
-	return;
+    return;
 }
 
 
 IVP_BetterStatisticsmanager_Data_Entity::~IVP_BetterStatisticsmanager_Data_Entity() {
 
-	P_FREE(this->text);
+    P_FREE(this->text);
 
-	return;
+    return;
 }
 
 
@@ -241,125 +241,125 @@ IVP_BetterStatisticsmanager_Data_Entity::~IVP_BetterStatisticsmanager_Data_Entit
 
 void IVP_BetterStatisticsmanager::print() {
 
-	if ( !this->enabled ) return;
-	if ( this->update_delayed ) return;
+    if ( !this->enabled ) return;
+    if ( this->update_delayed ) return;
 
-#if 0	
-	static IVP_DOUBLE time_of_last_update = 0.0;
-	if ( (simulation_time - time_of_last_update) < this->update_interval ) {
+#if 0    
+    static IVP_DOUBLE time_of_last_update = 0.0;
+    if ( (simulation_time - time_of_last_update) < this->update_interval ) {
 	this->update_delayed = IVP_TRUE;
 	return;
-	}
-	time_of_last_update = this->simulation_time;
-	this->update_delayed = IVP_FALSE;
+    }
+    time_of_last_update = this->simulation_time;
+    this->update_delayed = IVP_FALSE;
 #endif
-	
-	int i;
-	for (i=0; i<this->output_callbacks.len(); i++) {
+    
+    int i;
+    for (i=0; i<this->output_callbacks.len(); i++) {
 	IVP_BetterStatisticsmanager_Callback_Interface *callback = this->output_callbacks.element_at(i);
 
 	int k;
 	for (k=0; k<this->data_entities.len(); k++) {
-		IVP_BetterStatisticsmanager_Data_Entity *entity = this->data_entities.element_at(k);
+	    IVP_BetterStatisticsmanager_Data_Entity *entity = this->data_entities.element_at(k);
 
-		if ( entity->get_state() ) {
+	    if ( entity->get_state() ) {
 		callback->output_request(entity);
-		}
+	    }
 	}
-	}
-	
-	return;
+    }
+    
+    return;
 }
 
 
 void IVP_BetterStatisticsmanager::set_simulation_time(IVP_DOUBLE time) {
-	
-	this->simulation_time = time;
-	
-	static IVP_DOUBLE time_of_last_update = 0.0;
-	if ( (simulation_time - time_of_last_update) < this->update_interval ) {
+    
+    this->simulation_time = time;
+    
+    static IVP_DOUBLE time_of_last_update = 0.0;
+    if ( (simulation_time - time_of_last_update) < this->update_interval ) {
 	this->update_delayed = IVP_TRUE;
 	return;
-	}
-	time_of_last_update = this->simulation_time;
-	//ivp_message("Time: %f\n", time_of_last_update);
-	this->update_delayed = IVP_FALSE;
+    }
+    time_of_last_update = this->simulation_time;
+    //ivp_message("Time: %f\n", time_of_last_update);
+    this->update_delayed = IVP_FALSE;
 
-	return;
+    return;
 }
 
 
 void IVP_BetterStatisticsmanager::install_data_entity(IVP_BetterStatisticsmanager_Data_Entity *entity) {
 
-	this->data_entities.add(entity);
-	return;
+    this->data_entities.add(entity);
+    return;
 }
 
 
 void IVP_BetterStatisticsmanager::remove_data_entity(IVP_BetterStatisticsmanager_Data_Entity *entity) {
 
-	if ( this->data_entities.index_of(entity) == -1 ) {
+    if ( this->data_entities.index_of(entity) == -1 ) {
 	return;
-	}
-	
-	this->data_entities.remove(entity);
-	return;
+    }
+    
+    this->data_entities.remove(entity);
+    return;
 }
 
 
 void IVP_BetterStatisticsmanager::install_output_callback(IVP_BetterStatisticsmanager_Callback_Interface *callback) {
 
-	this->output_callbacks.add(callback);
-	return;
+    this->output_callbacks.add(callback);
+    return;
 }
 
 
 void IVP_BetterStatisticsmanager::remove_output_callback(IVP_BetterStatisticsmanager_Callback_Interface *callback) {
 
-	if ( this->output_callbacks.index_of(callback) == -1 ) {
+    if ( this->output_callbacks.index_of(callback) == -1 ) {
 	return;
-	}
-	
-	this->output_callbacks.remove(callback);
-	return;
+    }
+    
+    this->output_callbacks.remove(callback);
+    return;
 }
 
 
 void IVP_BetterStatisticsmanager::enable() {
 
-	this->enabled = IVP_TRUE;
+    this->enabled = IVP_TRUE;
 
-	return;
+    return;
 }
 
 
 void IVP_BetterStatisticsmanager::disable() {
 
-	this->enabled = IVP_FALSE;
+    this->enabled = IVP_FALSE;
 
-	return;
+    return;
 }
 
 
 IVP_BOOL IVP_BetterStatisticsmanager::get_state() {
 
-	return(this->enabled);
+    return(this->enabled);
 }
 
 
 IVP_BetterStatisticsmanager::IVP_BetterStatisticsmanager() {
 
-	this->enabled = IVP_TRUE;
-	this->update_interval = 1.0;
-	this->update_delayed = IVP_TRUE;
-	this->simulation_time = 0;
+    this->enabled = IVP_TRUE;
+    this->update_interval = 1.0;
+    this->update_delayed = IVP_TRUE;
+    this->simulation_time = 0;
 
-	return;
+    return;
 }
 
 
 IVP_BetterStatisticsmanager::~IVP_BetterStatisticsmanager() {
 
-	return;
+    return;
 }
 

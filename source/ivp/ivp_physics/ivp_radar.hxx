@@ -2,19 +2,19 @@
 
 
 /********************************************************************************
- *	Name:		   	IVP_Radar_Hit	
+ *	Name:	       	IVP_Radar_Hit	
  *	Description:	Information about a hit
  *	Attention:	positions are only an estimate
  ********************************************************************************/
 class IVP_Radar_Hit {
 public:
-	IVP_Object *this_object;
-	IVP_Object *other_object;
-	IVP_DOUBLE dist;
+    IVP_Object *this_object;
+    IVP_Object *other_object;
+    IVP_DOUBLE dist;
 };
 
 /********************************************************************************
- *	Name:		  	IVP_Radar	
+ *	Name:	      	IVP_Radar	
  *	Description:	base class, needed for IVP_Environment::do_radar_checking(...)
  *	Note:		a callback class, which has to be subclassed by the user
  *			max_range and max_relative_error have to be set by the user
@@ -24,10 +24,10 @@ public:
  ********************************************************************************/
 class IVP_Radar {
 public:
-	//////////// minimal settings for radar checking
-	IVP_DOUBLE max_range;		// max distance to check
-	IVP_DOUBLE max_relative_error;	// maximum relative distance error for checking
-	
-	virtual void radar_hit( IVP_Radar_Hit *)=0;
+    //////////// minimal settings for radar checking
+    IVP_DOUBLE max_range;		// max distance to check
+    IVP_DOUBLE max_relative_error;	// maximum relative distance error for checking
+    
+    virtual void radar_hit( IVP_Radar_Hit *)=0;
 };
 

@@ -23,7 +23,7 @@ class hk_Hinge_BP  //: public hk_Effector_BP
 
 	public: // hack for now
 
-		hk_real	 m_tau;	
+		hk_real     m_tau;	
 		hk_real		m_strength;
 
 		hk_Constraint_Limit_BP m_limit;

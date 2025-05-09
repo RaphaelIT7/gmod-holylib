@@ -27,7 +27,7 @@ class hk_Fixed_BP  //: public hk_Effector_BP
 
 		hk_Transform m_transform_os_ks;
 		hk_real		m_strength;
-		hk_real	 m_tau;
+		hk_real     m_tau;
 
 	protected:
 

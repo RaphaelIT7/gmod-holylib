@@ -10,7 +10,7 @@ class hk_Ball_Socket_Constraint : public hk_Constraint
 {
 	public:
 
-		hk_Ball_Socket_Constraint( hk_Environment *,			 const hk_Ball_Socket_BP *, hk_Rigid_Body *a ,hk_Rigid_Body *b );	
+		hk_Ball_Socket_Constraint( hk_Environment *,             const hk_Ball_Socket_BP *, hk_Rigid_Body *a ,hk_Rigid_Body *b );	
 		hk_Ball_Socket_Constraint( hk_Local_Constraint_System *, const hk_Ball_Socket_BP *, hk_Rigid_Body *a ,hk_Rigid_Body *b );	
 
 		void apply_effector_PSI( hk_PSI_Info&, hk_Array<hk_Entity*>* );
@@ -49,7 +49,7 @@ class hk_Ball_Socket_Constraint : public hk_Constraint
 		hk_Vector3 m_translation_os_ks[2];  // 32 
 
 		hk_real m_tau;  // 4
-		hk_real m_strength;	   // 4
+		hk_real m_strength;       // 4
 };
 
 #endif //HK_LOCAL_BALL_SOCKET_CONTRAINT_H

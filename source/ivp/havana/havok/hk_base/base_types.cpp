@@ -19,3 +19,4 @@ void hk_check(bool test, const char* cond, int line, const char* file)
 		hk_Console::get_instance()->flush();
 	}
 }
+

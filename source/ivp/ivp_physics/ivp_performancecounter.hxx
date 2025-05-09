@@ -3,8 +3,8 @@
 // IVP_EXPORT_PUBLIC
 
 /********************************************************************************
- *  Filename:		ivp_performancecounter.hxx
- *  Description:	This file provides you with an abstract class to count 
+ *  Filename:	    ivp_performancecounter.hxx
+ *  Description:    This file provides you with an abstract class to count 
  *					the performance of the physics engine
  ********************************************************************************/
 
@@ -53,12 +53,12 @@ struct IVP_PerformanceCounter {
 
 
 /********************************************************************************
- *	Name:		   	a simple implementation 
+ *	Name:	       	a simple implementation 
  ********************************************************************************/
 class IVP_PerformanceCounter_Simple : public IVP_PerformanceCounter {
 public:
 #ifdef WIN32
-	__int64 ref_counter64;
+    __int64 ref_counter64;
 
 	typedef union _LARGE_INTEGER {
 		struct {
@@ -72,10 +72,10 @@ public:
 		long long QuadPart;
 	} LARGE_INTEGER;
 
-	LARGE_INTEGER counter_freq;
+    LARGE_INTEGER counter_freq;
 #endif
 
-	IVP_PERFORMANCE_ELEMENT counting;
+    IVP_PERFORMANCE_ELEMENT counting;
 	int count_PSIs;
 
 	int counter[IVP_PE_MAX][2]; // counting seconds

@@ -55,17 +55,17 @@ class hk_Vector3
 		inline void set_interpolate( const hk_Vector3& a, const hk_Vector3& b, hk_real t);
 
 		/* transform */
-		void set_rotated_dir	(const hk_Rotation& a, const hk_Vector3& b);
+		void set_rotated_dir    (const hk_Rotation& a, const hk_Vector3& b);
 		void set_rotated_inv_dir(const hk_Rotation& a, const hk_Vector3& b);
 
-		void set_transformed_pos	(const hk_Transform& a, const hk_Vector3& b);
+		void set_transformed_pos    (const hk_Transform& a, const hk_Vector3& b);
 		void set_transformed_inv_pos(const hk_Transform& a, const hk_Vector3& b);
-	
+    
 		/* inline versions of above */
-		inline void _set_rotated_dir	(const hk_Rotation& a, const hk_Vector3& b);
+		inline void _set_rotated_dir    (const hk_Rotation& a, const hk_Vector3& b);
 		inline void _set_rotated_inv_dir(const hk_Rotation& a, const hk_Vector3& b);
 
-		inline void _set_transformed_pos	(const hk_Transform& a, const hk_Vector3& b);
+		inline void _set_transformed_pos    (const hk_Transform& a, const hk_Vector3& b);
 		inline void _set_transformed_inv_pos(const hk_Transform& a, const hk_Vector3& b);
 
 		/* length and distance */
@@ -81,11 +81,11 @@ class hk_Vector3
 		inline hk_real normalize_with_length();
 		//void fast_normalize_e10(); // 10 bits valid
 
-		/* element access */
-		inline hk_real& operator() (int a);
+        /* element access */
+	    inline hk_real& operator() (int a);
 		inline const hk_real& operator() (int a) const;
 
-		inline	   hk_real* get_real_pointer() { return &x; }
+		inline       hk_real* get_real_pointer() { return &x; }
 		inline const hk_real* get_real_pointer() const { return &x; }
 
 #ifndef _LINUX

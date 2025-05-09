@@ -6,18 +6,18 @@
 #	include <math.h>
 
 #   if defined(WIN32) || defined(PSXII) || defined(LINUX)
-	union p_float_ieee {		IVP_FLOAT val;
-		struct {
-			unsigned int valh:23;   unsigned int exp:8;   unsigned int signum:1;
-		} ln;	};
+    union p_float_ieee {	    IVP_FLOAT val;
+	    struct {
+		    unsigned int valh:23;   unsigned int exp:8;   unsigned int signum:1;
+	    } ln;    };
 #else
-	union p_float_ieee {		IVP_FLOAT val;
-		struct {
-			unsigned int signum:1; unsigned int exp:8;   ;unsigned int valh:23;   
-		} ln;	};
+    union p_float_ieee {	    IVP_FLOAT val;
+	    struct {
+		    unsigned int signum:1; unsigned int exp:8;   ;unsigned int valh:23;   
+	    } ln;    };
 #endif
-	#define IVP_EXP_FOR_ONE 0x7f
-	inline int PFM_LD(float a){ return ((p_float_ieee *)&(a))->ln.exp - IVP_EXP_FOR_ONE; };
+    #define IVP_EXP_FOR_ONE 0x7f
+    inline int PFM_LD(float a){ return ((p_float_ieee *)&(a))->ln.exp - IVP_EXP_FOR_ONE; };
 #else
 #	if defined(POSIX) || defined(WIN32)
 
@@ -30,8 +30,8 @@ union p_double_ieee {
 		unsigned int signum:1;
 	} ln;
   struct {
-	int l;
-	int h;
+    int l;
+    int h;
   } ln2;
 };
 #define IVP_EXP_FOR_ONE 0x3ff
@@ -47,7 +47,7 @@ union p_double_ieee {
 		unsigned int valh:20;
 		int val;
 	} ln;
-		struct {
+        struct {
 		int h;
 		int l;
 	} ln2;
@@ -64,7 +64,7 @@ public:
 #if defined(PSXII)
 /// Calculates the dot product of the calling vector with v.
 /// \param v   
-inline	static IVP_DOUBLE isqrt(IVP_DOUBLE x, int /*resolution_steps*/)
+inline    static IVP_DOUBLE isqrt(IVP_DOUBLE x, int /*resolution_steps*/)
 {
 	float u = 1.0f;
 	__asm__ __volatile__ ("
@@ -78,7 +78,7 @@ inline	static IVP_DOUBLE isqrt(IVP_DOUBLE x, int /*resolution_steps*/)
 
 /// Calculates the dot product of the calling vector with v.
 /// \param v   
-inline	static IVP_DOUBLE sqrt(IVP_DOUBLE x)
+inline    static IVP_DOUBLE sqrt(IVP_DOUBLE x)
 {
 	__asm__ __volatile__ ("
 	.set noreorder
@@ -90,11 +90,11 @@ inline	static IVP_DOUBLE sqrt(IVP_DOUBLE x)
 
 #elif defined(IVP_NO_DOUBLE)
   static IVP_DOUBLE isqrt(IVP_DOUBLE square, int /*resolution_steps*/){
-	return 1.0f/IVP_Inline_Math::ivp_sqrtf(square);
+    return 1.0f/IVP_Inline_Math::ivp_sqrtf(square);
   }
 
   static IVP_DOUBLE sqrt(IVP_DOUBLE x){
-	return IVP_Inline_Math::ivp_sqrtf(x);
+    return IVP_Inline_Math::ivp_sqrtf(x);
   }
 
 #else
@@ -104,7 +104,7 @@ inline	static IVP_DOUBLE sqrt(IVP_DOUBLE x)
   // 1 -> 1e-7
   // 2 -> 1e-14
   // 3 -> 1e-16
-	static double isqrt(double square, int resolution_steps){
+    static double isqrt(double square, int resolution_steps){
 	p_double_ieee *ie = (p_double_ieee *)&square;
 	IVP_ASSERT(IVP_Inline_Math::fabsd(square) > 0.0f);
 	p_double_ieee h; h.val = 1.0f;
@@ -120,9 +120,9 @@ inline	static IVP_DOUBLE sqrt(IVP_DOUBLE x)
 
 	IVP_ASSERT( IVP_Inline_Math::fabsd( 1.0f - inv_sqrt * inv_sqrt * square) < 0.001f );
 	return inv_sqrt;
-	}
-	static IVP_DOUBLE sqrt(IVP_DOUBLE x) {
+    }
+    static IVP_DOUBLE sqrt(IVP_DOUBLE x) {
 	return ::sqrt(x);
-	}
+    }
 #endif
 };

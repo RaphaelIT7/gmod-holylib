@@ -18,7 +18,7 @@ IVP_Constraint_Fixed_Keyframed::~IVP_Constraint_Fixed_Keyframed(){
 }
 
 void IVP_Constraint_Fixed_Keyframed::core_is_going_to_be_deleted_event(IVP_Core *) {
-	P_DELETE_THIS(this);
+    P_DELETE_THIS(this);
 }
 
 IVP_DOUBLE IVP_Constraint_Fixed_Keyframed::get_minimum_simulation_frequency(){
@@ -33,8 +33,8 @@ void IVP_Constraint_Fixed_Keyframed::ensure_in_simulation(){
 IVP_Template_Constraint &ivp_create_template_for_constraint_local(IVP_Real_Object *reference_object,
 								 IVP_Real_Object *attached_object,
 								 const IVP_Template_Constraint_Fixed_Keyframed *tin){
-	static IVP_Template_Constraint t;
-	t.set_fixed( reference_object, attached_object);
+    static IVP_Template_Constraint t;
+    t.set_fixed( reference_object, attached_object);
 
 	IVP_Cache_Object *co_attached = attached_object->get_cache_object_no_lock();
 	IVP_U_Point co_pos_ws( co_attached->m_world_f_object.get_position());
@@ -43,8 +43,8 @@ IVP_Template_Constraint &ivp_create_template_for_constraint_local(IVP_Real_Objec
 	IVP_Cache_Object *co_reference = reference_object->get_cache_object_no_lock();
 	co_reference->transform_position_to_object_coords( & co_pos_ws, &co_pos_Ros);
 
-	t.set_fixing_point_Ros( &co_pos_Ros);
-	return t;
+    t.set_fixing_point_Ros( &co_pos_Ros);
+    return t;
 }
 */
 //#define WATCHPOINT 0x56b56f0
@@ -52,31 +52,31 @@ IVP_Template_Constraint &ivp_create_template_for_constraint_local(IVP_Real_Objec
 
 
 IVP_Constraint_Fixed_Keyframed::IVP_Constraint_Fixed_Keyframed(IVP_Real_Object *reference_object, IVP_Real_Object *attached_object,
-								   const IVP_Template_Constraint_Fixed_Keyframed *t)
+							       const IVP_Template_Constraint_Fixed_Keyframed *t)
 	//:IVP_Constraint_Local( ivp_create_template_for_constraint_local(reference_object,attached_object,t ))
 	{
-	if (!reference_object->get_core()->physical_unmoveable){
+    if (!reference_object->get_core()->physical_unmoveable){
 		cores_of_constraint_system.add(reference_object->get_core());
-	}
-	if (!attached_object->get_core()->physical_unmoveable){
+    }
+    if (!attached_object->get_core()->physical_unmoveable){
 		cores_of_constraint_system.add(attached_object->get_core());
-	}
-	reference_obj = reference_object;
-	attached_obj = attached_object;
+    }
+    reference_obj = reference_object;
+    attached_obj = attached_object;
 
 
-	max_translation_force.set( &t->max_translation_force);
-	max_torque.set(t->max_torque, t->max_torque, t->max_torque);
-	force_factor = t->force_factor;
-	damp_factor = t->damp_factor;
+    max_translation_force.set( &t->max_translation_force);
+    max_torque.set(t->max_torque, t->max_torque, t->max_torque);
+    force_factor = t->force_factor;
+    damp_factor = t->damp_factor;
 
-	torque_factor = t->torque_factor;
-	angular_damp_factor = t->angular_damp_factor;
-	
+    torque_factor = t->torque_factor;
+    angular_damp_factor = t->angular_damp_factor;
+    
 	l_environment = reference_object->get_environment();
 
-	time_of_prime_orientation_0 = 0.0;
-	velocity_Ros.set_to_zero();
+    time_of_prime_orientation_0 = 0.0;
+    velocity_Ros.set_to_zero();
 
 	IVP_U_Matrix m_Ros_f_Aos;
 	IVP_Cache_Object *co_attached = attached_object->get_cache_object();
@@ -88,37 +88,37 @@ IVP_Constraint_Fixed_Keyframed::IVP_Constraint_Fixed_Keyframed(IVP_Real_Object *
 	//if (int(this) == WATCHPOINT){
 		//IVP_DOUBLE x = velocity_Ros.quad_length();
 
-	prime_position_Ros.set( m_Ros_f_Aos.get_position());
-	prime_orientation_0.set_quaternion( &m_Ros_f_Aos );
+    prime_position_Ros.set( m_Ros_f_Aos.get_position());
+    prime_orientation_0.set_quaternion( &m_Ros_f_Aos );
 
-	angular_velocity_set = IVP_FALSE;
-	get_environment()->get_controller_manager()->announce_controller_to_environment(this);
+    angular_velocity_set = IVP_FALSE;
+    get_environment()->get_controller_manager()->announce_controller_to_environment(this);
 }
 
 
 
 void IVP_Constraint_Fixed_Keyframed::do_simulation_controller(IVP_Event_Sim *es,IVP_U_Vector<IVP_Core> *cores){
-	IVP_Time current_time = es->environment->get_current_time();
+    IVP_Time current_time = es->environment->get_current_time();
 
 	//if (int(this) == WATCHPOINT)
 	//	IVP_DOUBLE x = current_time.get_time();
 
-	IVP_Cache_Object *co_Ref = reference_obj->get_cache_object();
-	IVP_Cache_Object *co_Att = attached_obj->get_cache_object();
+    IVP_Cache_Object *co_Ref = reference_obj->get_cache_object();
+    IVP_Cache_Object *co_Att = attached_obj->get_cache_object();
 
-	const IVP_U_Matrix *m_Rws_f_Ros = &co_Ref->m_world_f_object;
-	const IVP_U_Matrix *m_Aws_f_Aos = &co_Att->m_world_f_object;
+    const IVP_U_Matrix *m_Rws_f_Ros = &co_Ref->m_world_f_object;
+    const IVP_U_Matrix *m_Aws_f_Aos = &co_Att->m_world_f_object;
 
 
-	IVP_U_Float_Point x_rot_axis_world(1,0,0);
-	IVP_U_Float_Point y_rot_axis_world(0,1,0);
-	IVP_U_Float_Point z_rot_axis_world(0,0,1);
+    IVP_U_Float_Point x_rot_axis_world(1,0,0);
+    IVP_U_Float_Point y_rot_axis_world(0,1,0);
+    IVP_U_Float_Point z_rot_axis_world(0,0,1);
 
-	IVP_Core *core_A = (reference_obj->get_core()->physical_unmoveable)? NULL : reference_obj->get_core();
-	IVP_Core *core_B = (attached_obj->get_core()->physical_unmoveable)? NULL : attached_obj->get_core();
+    IVP_Core *core_A = (reference_obj->get_core()->physical_unmoveable)? NULL : reference_obj->get_core();
+    IVP_Core *core_B = (attached_obj->get_core()->physical_unmoveable)? NULL : attached_obj->get_core();
 
-	// orientation
-	{
+    // orientation
+    {
 	IVP_FLOAT dt = current_time - time_of_prime_orientation_0;
 
 	IVP_U_Quat new_q_Ros_f_Rrs;
@@ -139,7 +139,7 @@ void IVP_Constraint_Fixed_Keyframed::do_simulation_controller(IVP_Event_Sim *es,
 				  2.0f * IVP_Inline_Math::fast_asin(q.z));
 
 	if ( q.w > 0.0f){
-		drRA_rs.mult(-1.0f);
+	    drRA_rs.mult(-1.0f);
 	}
 
 
@@ -162,10 +162,10 @@ void IVP_Constraint_Fixed_Keyframed::do_simulation_controller(IVP_Event_Sim *es,
 	IVP_U_Float_Point rot_impulse_ws;
 	tpm.vmult3( & delta_angles, &rot_impulse_ws);
 	tcb.exert_angular_impulse_dim3(core_B, core_A, rot_impulse_ws);
-	}
+    }
 
-	// position
-	{
+    // position
+    {
 	IVP_FLOAT dt = current_time - time_of_prime_position;
 	IVP_U_Point new_target_position_Ros;
 	new_target_position_Ros.add_multiple( &prime_position_Ros, &velocity_Ros, dt + es->delta_time);
@@ -202,24 +202,24 @@ void IVP_Constraint_Fixed_Keyframed::do_simulation_controller(IVP_Event_Sim *es,
 }
 
 void IVP_Constraint_Fixed_Keyframed::set_prime_position_Ros(const IVP_U_Point * position,const IVP_U_Float_Point * velocity ,const  IVP_Time & time ){
-	time_of_prime_position = time;
-	prime_position_Ros.set(position);
-	velocity_Ros.set(velocity);
+    time_of_prime_position = time;
+    prime_position_Ros.set(position);
+    velocity_Ros.set(velocity);
 //	if (int(this) == WATCHPOINT)
 //		IVP_DOUBLE x = velocity->quad_length();
-	this->ensure_in_simulation();
+    this->ensure_in_simulation();
 }
 
 void IVP_Constraint_Fixed_Keyframed::set_prime_orientation_Ros( const IVP_U_Quat * orientation0,const IVP_Time & time0, const IVP_U_Quat * orientation1,const IVP_FLOAT dt ){
-	prime_orientation_0 = *orientation0;
+    prime_orientation_0 = *orientation0;
 	if ( orientation1 ){
-		prime_orientation_1 = *orientation1;
-		i_delta_prime_orientation_time = 1.0f / (dt);
+	    prime_orientation_1 = *orientation1;
+	    i_delta_prime_orientation_time = 1.0f / (dt);
 		angular_velocity_set = IVP_TRUE;
 	}else{
 		angular_velocity_set = IVP_FALSE;
 	}
 
-	time_of_prime_orientation_0 = time0;
+    time_of_prime_orientation_0 = time0;
 	this->ensure_in_simulation();
 }

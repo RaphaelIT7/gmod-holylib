@@ -22,7 +22,7 @@ class hk_Dense_Matrix
 		inline void set_zero() { makeZero(); }
 		inline int get_num_rows() const { return m_rows; }
 		inline int get_num_cols() const { return m_cols; }
-		inline int get_lda()	 const { return m_lda;  }
+		inline int get_lda()     const { return m_lda;  }
 
 		inline void set_size(int r,int c) { m_rows=r; m_cols=c; }
 
@@ -33,7 +33,7 @@ class hk_Dense_Matrix
 		inline void makeZero();
 		int getNumRows() const { return m_rows; }
 		int getNumCols() const { return m_cols; }
-		int getLda()	 const { return m_lda;  }
+		int getLda()     const { return m_lda;  }
 		inline void setNumRows(int r) { m_rows = r; }
 		inline void setNumCols(int c) { m_cols = c; }
 		
@@ -77,7 +77,7 @@ class hk_Fixed_Dense_Matrix : public hk_Dense_Matrix
 
 		inline int get_num_rows() const { return N; }
 		inline int get_num_cols() const { return N; }
-		inline int get_lda()	 const { return HK_NEXT_MULTIPLE_OF(4,N);  } //-V112
+		inline int get_lda()     const { return HK_NEXT_MULTIPLE_OF(4,N);  } //-V112
 
 		inline hk_real& operator() (int r, int c) { return m_elt_buffer[r+c * HK_NEXT_MULTIPLE_OF(4,N)]; } //-V112
 		inline const hk_real& operator() (int r, int c) const { return m_elt_buffer[r + c * HK_NEXT_MULTIPLE_OF(4,N)]; } //-V112

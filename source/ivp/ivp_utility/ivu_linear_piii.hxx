@@ -88,8 +88,8 @@ inline void IVP_U_Float_Point::add_multiple (const IVP_U_Float_Point *v1, const 
 	IVP_DOUBLE a,b,c;
 
 	a = v2->k[0] * factor2;
-	b = v2->k[1] * factor2;	a += v1->k[0];
-	c = v2->k[2] * factor2;	b += v1->k[1];
+	b = v2->k[1] * factor2;    a += v1->k[0];
+	c = v2->k[2] * factor2;    b += v1->k[1];
 	c += v1->k[2];
 	k[0] = a;
 	k[1] = b;
@@ -98,7 +98,7 @@ inline void IVP_U_Float_Point::add_multiple (const IVP_U_Float_Point *v1, const 
 
 
 inline IVP_DOUBLE IVP_U_Float_Point::dot_product(const IVP_U_Float_Point *v2) const {
-	return( k[0]*v2->k[0] + k[1]*v2->k[1] + k[2]*v2->k[2] );
+    return( k[0]*v2->k[0] + k[1]*v2->k[1] + k[2]*v2->k[2] );
 };
 
 inline void IVP_U_Float_Point::set_multiple(const IVP_U_Float_Point *v, IVP_DOUBLE f){
@@ -168,7 +168,7 @@ inline void IVP_U_Matrix::inline_vmult4(const IVP_U_Float_Point *p_in, IVP_U_Flo
 	IVP_DOUBLE x,y;
 	h = p_in->k[1]; x = h*get_elem(0,1);	y = h*get_elem(1,1);	a += x;	x = h*get_elem(2,1);	 b+=y; c+= x;
 	h = p_in->k[2]; x = h*get_elem(0,2);	y = h*get_elem(1,2);	a += x;	x = h*get_elem(2,2);	 b+=y; c+= x;
-	a += vv.k[0];	b += vv.k[1];	c += vv.k[2];
+	a += vv.k[0];    b += vv.k[1];    c += vv.k[2];
 	p_out->k[0] = (IVP_FLOAT)a;p_out->k[1] = (IVP_FLOAT)b; p_out->k[2] = (IVP_FLOAT)c;
 }
 
@@ -227,7 +227,7 @@ inline void IVP_U_Quat::init(){
 }
 
 inline IVP_DOUBLE IVP_U_Quat::acos_quat(const IVP_U_Quat* q) const{ // acosinus between two quats
-	return x * q->x + y * q->y + z * q->z + w * q->w;
+    return x * q->x + y * q->y + z * q->z + w * q->w;
 }
 
 inline void IVP_U_Quat::inline_set_mult_quat(const IVP_U_Quat* q1,const  IVP_U_Quat* q2) {
@@ -244,7 +244,7 @@ inline void IVP_U_Quat::inline_set_mult_quat(const IVP_U_Quat* q1,const  IVP_U_Q
 }
 
 inline void IVP_U_Quat::inline_set_mult_quat(const IVP_U_Quat* q1,const  IVP_U_Float_Quat* q2) {
-	this->inline_set_mult_quat( q1, (const IVP_U_Quat *)q2 );
+    this->inline_set_mult_quat( q1, (const IVP_U_Quat *)q2 );
 }
 
 void IVP_U_Quat::normize_correct_step(int steps) {
@@ -252,11 +252,11 @@ void IVP_U_Quat::normize_correct_step(int steps) {
 	IVP_DOUBLE square = quat->x * quat->x + quat->y * quat->y + quat->z * quat->z + quat->w * quat->w;
 	square *= 0.5f;
 	IVP_DOUBLE factor = 1.5f - square;
-	if (steps > 1)	factor += 0.5f - ( factor * factor * square );
-	if (steps > 2)	factor += 0.5f - ( factor * factor * square );
-	if (steps > 3)	factor += 0.5f - ( factor * factor * square );
-	if (steps > 4)	factor += 0.5f - ( factor * factor * square ); //-V112
-	if (steps > 5)	factor += 0.5f - ( factor * factor * square );
+	if (steps > 1)    factor += 0.5f - ( factor * factor * square );
+	if (steps > 2)    factor += 0.5f - ( factor * factor * square );
+	if (steps > 3)    factor += 0.5f - ( factor * factor * square );
+	if (steps > 4)    factor += 0.5f - ( factor * factor * square ); //-V112
+	if (steps > 5)    factor += 0.5f - ( factor * factor * square );
 	quat->x *= factor;
 	quat->y *= factor;
 	quat->z *= factor;
@@ -264,8 +264,8 @@ void IVP_U_Quat::normize_correct_step(int steps) {
 }
 
 void IVP_U_Float_Quat::set(const IVP_U_Quat *source){
-	x = (IVP_FLOAT)source->x;
-	y = (IVP_FLOAT)source->y;
-	z = (IVP_FLOAT)source->z;
-	w = (IVP_FLOAT)source->w;
+    x = (IVP_FLOAT)source->x;
+    y = (IVP_FLOAT)source->y;
+    z = (IVP_FLOAT)source->z;
+    w = (IVP_FLOAT)source->w;
 }

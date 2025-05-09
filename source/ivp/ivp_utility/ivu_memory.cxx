@@ -23,18 +23,18 @@ void ivp_memory_check(void *a) {
   if (a) return;
 #if 0
   //if( !ivp_global_env ) {
-  //		return;
-  //	}
-		//int fp;
-		//fp=sceOpen("host0:/ipion_out/ipion.txt",SCE_CREAT);
+  //        return;
+  //    }
+	    //int fp;
+	    //fp=sceOpen("host0:/ipion_out/ipion.txt",SCE_CREAT);
 		uintp address = (uintp)a;
 		IVP_Time now_time = ivp_global_env->get_current_time();
 		IVP_DOUBLE tt = now_time.get_time();
 		if (tt > 11.98) {
-			fprintf(stderr, "trying to free %p time %f\n", a, tt);
-			if (a == (void *)(uintp)0x30ca50){
-				fprintf(stderr, "Crashing soon\n");
-			}
+		    fprintf(stderr, "trying to free %p time %f\n", a, tt);
+		    if (a == (void *)(uintp)0x30ca50){
+		    	fprintf(stderr, "Crashing soon\n");
+		    }
 
 #endif
 }
@@ -86,9 +86,9 @@ void ivp_byte_swap2(ushort& twobytes)
 void *p_malloc(size_t size)
 {
 #ifndef GEKKO
-	return malloc(size);
+    return malloc(size);
 #else
-	return new char[size];
+    return new char[size];
  #endif
 }
 
@@ -129,69 +129,69 @@ void p_free(void* data)
 constexpr inline uint IVP_MEMORY_MAGIC{0x65981234U};
 
 struct IVP_Aligned_Memory {
-	uint magic_number;
-	void *back_link;
+    uint magic_number;
+    void *back_link;
 };
 
 void *ivp_malloc_aligned(size_t size, unsigned short alignment) {
 #if defined(SUN__)
-	return memalign( alignment, size);
+    return memalign( alignment, size);
 #else
-	size += alignment + sizeof(IVP_Aligned_Memory);
+    size += alignment + sizeof(IVP_Aligned_Memory);
 
-	auto *data = static_cast<IVP_Aligned_Memory*>(p_malloc(size));
-	if (data) {
-		data->magic_number = IVP_MEMORY_MAGIC;
+    auto *data = static_cast<IVP_Aligned_Memory*>(p_malloc(size));
+    if (data) {
+        data->magic_number = IVP_MEMORY_MAGIC;
 
-		void *ret = (void *)((((uintp)data) + alignment + sizeof(IVP_Aligned_Memory) - 1) & (-static_cast<intp>(alignment)));
-		((void **)ret)[-1] = (void *)data;
-		return ret;
-	}
+        void *ret = (void *)((((uintp)data) + alignment + sizeof(IVP_Aligned_Memory) - 1) & (-static_cast<intp>(alignment)));
+        ((void **)ret)[-1] = (void *)data;
+        return ret;
+    }
 
-	return nullptr;
+    return nullptr;
 #endif
 }
 
 void* IVP_CDECL ivp_calloc_aligned(size_t size, unsigned short alignment) {
-	size += alignment + sizeof(IVP_Aligned_Memory);
+    size += alignment + sizeof(IVP_Aligned_Memory);
 
-	auto *data = static_cast<IVP_Aligned_Memory*>(p_malloc(size));
-	if (data) {
-		memset(data, 0, size);
-		data->magic_number = IVP_MEMORY_MAGIC;
+    auto *data = static_cast<IVP_Aligned_Memory*>(p_malloc(size));
+    if (data) {
+        memset(data, 0, size);
+        data->magic_number = IVP_MEMORY_MAGIC;
 
-		void *ret = (void *)((((uintp)data) + alignment + sizeof(IVP_Aligned_Memory) - 1) & (-static_cast<intp>(alignment)));
-		((void **)ret)[-1] = (void *)data;
-		return ret;
-	}
+        void *ret = (void *)((((uintp)data) + alignment + sizeof(IVP_Aligned_Memory) - 1) & (-static_cast<intp>(alignment)));
+        ((void **)ret)[-1] = (void *)data;
+        return ret;
+    }
 
-	return nullptr;
+    return nullptr;
 }
 
 void ivp_free_aligned(void *data)
 {
 #if defined(SUN__)
-	p_free(data);
+    p_free(data);
 #else
-	auto *am = static_cast<IVP_Aligned_Memory *>(((void **)data)[-1]);
+    auto *am = static_cast<IVP_Aligned_Memory *>(((void **)data)[-1]);
 
-	IVP_ASSERT ( am->magic_number == IVP_MEMORY_MAGIC);
-	IVP_IF(1){
-		am->magic_number = 0;
-	}
-	p_free( am );
+    IVP_ASSERT ( am->magic_number == IVP_MEMORY_MAGIC);
+    IVP_IF(1){
+        am->magic_number = 0;
+    }
+    p_free( am );
 #endif
 }
 
 IVP_U_Memory::~IVP_U_Memory()
 {
-	free_mem();
+    free_mem();
 }
 
 void IVP_U_Memory::init_mem_transaction_usage(char *external_mem, size_t size) {
-	//IVP_IF(1) {
+    //IVP_IF(1) {
 	transaction_in_use=0;
-	//}
+    //}
 #if defined(MEMTEST)
 #else
 	if (external_mem) {
@@ -214,17 +214,17 @@ void IVP_U_Memory::init_mem_transaction_usage(char *external_mem, size_t size) {
 void IVP_U_Memory::free_mem_transaction()
 {
 #if defined(MEMTEST)
-	for (int i = mem_vector.len()-1; i>=0; i--){
+    for (int i = mem_vector.len()-1; i>=0; i--){
 	ivp_free_aligned(mem_vector.element_at(i));
-	}
-	mem_vector.clear();
+    }
+    mem_vector.clear();
 #else
 	//IVP_ASSERT(first_elem!=NULL); playstation doesn't like this ...
 	struct p_Memory_Elem *f, *n = nullptr;
 	for (f = last_elem; f; f = n){
 		n = f->next;
 		if(f==first_elem) {
-			break;
+		    break;
 		}
 		p_free( f);
 	}
@@ -258,13 +258,13 @@ char *IVP_U_Memory::neuer_sp_block(size_t groesse)
 void *IVP_U_Memory::get_memc(size_t groesse)
 {
 //	if (groesse & 0x7) *(int *)0 = 0;
-	void *neubeginn = get_mem(groesse);
-	memset(neubeginn, 0, groesse);
-	return neubeginn;
+    void *neubeginn = get_mem(groesse);
+    memset(neubeginn, 0, groesse);
+    return neubeginn;
 }
 
 IVP_U_Memory::IVP_U_Memory(){
-	init_mem();
+    init_mem();
 }
 
 void IVP_U_Memory::init_mem()
@@ -283,16 +283,16 @@ void IVP_U_Memory::init_mem()
 void IVP_U_Memory::free_mem()
 {
 #if defined(MEMTEST)
-	for (int i = mem_vector.len()-1; i>=0; i--){
+    for (int i = mem_vector.len()-1; i>=0; i--){
 	ivp_free_aligned(mem_vector.element_at(i));
-	}
-	mem_vector.clear();
+    }
+    mem_vector.clear();
 #else
 	struct p_Memory_Elem	*f,*n;
 	for (f = last_elem; f; f = n){
 		n = f->next;
 		if (this->size_of_external_mem && f==first_elem) {
-			break;
+		    break;
 		}
 		P_FREE( f);
 	}

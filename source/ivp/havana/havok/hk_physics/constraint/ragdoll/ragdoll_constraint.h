@@ -12,7 +12,7 @@ class hk_Ragdoll_Constraint : public hk_Constraint
 {
 	public:
 
-		hk_Ragdoll_Constraint( hk_Environment *,			 const hk_Ragdoll_Constraint_BP *, hk_Rigid_Body *a ,hk_Rigid_Body *b );	
+		hk_Ragdoll_Constraint( hk_Environment *,             const hk_Ragdoll_Constraint_BP *, hk_Rigid_Body *a ,hk_Rigid_Body *b );	
 		hk_Ragdoll_Constraint( hk_Local_Constraint_System *, const hk_Ragdoll_Constraint_BP *, hk_Rigid_Body *a ,hk_Rigid_Body *b );	
 
 		void apply_effector_PSI( hk_PSI_Info&, hk_Array<hk_Entity*>* );
@@ -64,7 +64,7 @@ class hk_Ragdoll_Constraint : public hk_Constraint
 
 		hk_real m_strength;
 		hk_real m_tau;
-		unsigned char			  m_axisMap[3];
+		unsigned char              m_axisMap[3];
 		bool m_constrainTranslation;
 
 };

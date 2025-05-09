@@ -1,7 +1,7 @@
 // Copyright (C) Ipion Software GmbH 1999-2000. All rights reserved.
 
 /********************************************************************************
- *	File:		   	ivp_compact_rekursive.hxx	
+ *	File:	       	ivp_compact_rekursive.hxx	
  *	Description:	create rekursive compact ledges
  ********************************************************************************/
 

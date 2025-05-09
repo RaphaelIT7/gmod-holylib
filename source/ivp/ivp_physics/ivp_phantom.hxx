@@ -14,55 +14,55 @@
 class IVP_Mindist_Base;
 
 /*********************************************************************
- *	Name:			IVP_Template_Phantom  	
+ *	Name:	    	IVP_Template_Phantom  	
  *	Description:	Parameters needed to construct a phantom
- *					  A phantom is just another name for an object
- *					  which does not collide but keeps track of all
- *					  objects intruding it
+ *                      A phantom is just another name for an object
+ *                      which does not collide but keeps track of all
+ *                      objects intruding it
  *********************************************************************/
 class IVP_Template_Phantom {
 public:
 
   /*********************************************************************
-   *	Name:			manage_intruding_objects  	
+   *	Name:	    	manage_intruding_objects  	
    *	Default:	IVP_FALSE
-   *	Description:	if set to IVP_TRUE, phantom manages a set of intruding objects,
-   *					see IVP_Controller_Phantom::get_intruding_objects()
+   *	Description:    if set to IVP_TRUE, phantom manages a set of intruding objects,
+   *                    see IVP_Controller_Phantom::get_intruding_objects()
    *********************************************************************/
-  IVP_BOOL manage_intruding_objects;		 // default IVP_FALSE, if set to IVP_TRUE, phantom manages a set of intruding objects
+  IVP_BOOL manage_intruding_objects;         // default IVP_FALSE, if set to IVP_TRUE, phantom manages a set of intruding objects
 
   /*********************************************************************
-   *	Name:			manage_intruding_cores  	
+   *	Name:	    	manage_intruding_cores  	
    *	Default:	IVP_FALSE
-   *	Description:	if set to IVP_TRUE, phantom manages a set of intruding cores of objects,
-   *					see IVP_Controller_Phantom::get_intruding_cores()
+   *	Description:    if set to IVP_TRUE, phantom manages a set of intruding cores of objects,
+   *                    see IVP_Controller_Phantom::get_intruding_cores()
    *********************************************************************/
-  IVP_BOOL manage_intruding_cores;		 // default IVP_FALSE, if set to IVP_TRUE, phantom manages a set of intruding objects
-	
+  IVP_BOOL manage_intruding_cores;         // default IVP_FALSE, if set to IVP_TRUE, phantom manages a set of intruding objects
+    
   /*********************************************************************
-   *	Name:			dont_check_for_unmoveables  	
+   *	Name:	    	dont_check_for_unmoveables  	
    *	Default:	IVP_FALSE
-   *	Description:	if set to IVP_TRUE, only moving objects are checked
+   *	Description:    if set to IVP_TRUE, only moving objects are checked
    *********************************************************************/
   IVP_BOOL dont_check_for_unmoveables;
   
   /*********************************************************************
-   *	Name:			exit_policy_extra_radius  	
+   *	Name:	    	exit_policy_extra_radius  	
    *	Default:	0.5f[m]
-   *	Description:	This is an extra radius around each phantom.
+   *	Description:    This is an extra radius around each phantom.
    *			the callback object_left_volume() is only called if the object
    *			leaves the phantom plus this extra radius.
-   *	Note:		   Set this value to higher values to speed up the collision detection engine
+   *    Note:           Set this value to higher values to speed up the collision detection engine
    *********************************************************************/
   IVP_FLOAT exit_policy_extra_radius;
 
   /*********************************************************************
-   *	Name:			exit_policy_extra_time  	
+   *	Name:	    	exit_policy_extra_time  	
    *	Default:	0.5f[sec]
-   *	Description:	This is the time interval used by the collision detection engine
-   *					to check for intruded objects to leave the phantom volume
-   *	Note:		   Set this value to higher values to speed up the collision detection engine
-   *	Version Info:   Not implemented yet
+   *	Description:    This is the time interval used by the collision detection engine
+   *                    to check for intruded objects to leave the phantom volume
+   *    Note:           Set this value to higher values to speed up the collision detection engine
+   *    Version Info:   Not implemented yet
    *********************************************************************/
   IVP_FLOAT exit_policy_extra_time;   // def 0.5f[s]
   
@@ -72,7 +72,7 @@ public:
 };
 
 /*********************************************************************
- *	Name:			IVP_Listener_Phantom  	
+ *	Name:	    	IVP_Listener_Phantom  	
  *	Description:	Listens to phantom events
  *********************************************************************/
 class IVP_Listener_Phantom {
@@ -87,7 +87,7 @@ public:
 
 
 /*********************************************************************
- *	Name:			IVP_Controller_Phantom  	
+ *	Name:	    	IVP_Controller_Phantom  	
  *	Description:	Manages and stores parameters used by the 
  *			collision detection engine
  *	Note:		To access the IVP_Controller_Phantom call
@@ -97,12 +97,12 @@ class IVP_Controller_Phantom: public IVP_Listener_Object {
   friend class IVP_Mindist_Manager;
 protected:
   IVP_Real_Object *object;
-  IVP_FLOAT	exit_policy_extra_radius;
+  IVP_FLOAT    exit_policy_extra_radius;
   IVP_U_Vector<IVP_Listener_Phantom> listeners;
   IVP_U_Set_Active<IVP_Mindist_Base> set_of_mindists;
   IVP_U_Set_Active<IVP_Real_Object> *set_of_objects;   // optional set of objects
-	IVP_VHash_Store *mindist_object_counter;
-	IVP_VHash_Store *mindist_core_counter;
+    IVP_VHash_Store *mindist_object_counter;
+    IVP_VHash_Store *mindist_core_counter;
   IVP_U_Set_Active<IVP_Core> *set_of_cores;   // optional set of objects
   IVP_U_Set<IVP_Core> *set_of_sleeping_cores;
   IVP_Time time_of_last_set_transformation;
@@ -117,7 +117,7 @@ public:
   
   IVP_U_Set_Active<IVP_Real_Object> *get_intruding_objects() const { return set_of_objects ; }  // returns NULL if manage_set was IVP_FALSE 
   IVP_U_Set_Active<IVP_Core> *get_intruding_cores() const { return set_of_cores ; }  // returns NULL if manage_set was IVP_FALSE 
-  IVP_U_Set_Active<IVP_Mindist_Base> *get_intruding_mindists(){ return &set_of_mindists ; }			 // returns mindist
+  IVP_U_Set_Active<IVP_Mindist_Base> *get_intruding_mindists(){ return &set_of_mindists ; }             // returns mindist
   IVP_Real_Object *get_object() const { return object; }
   
   void add_listener_phantom( IVP_Listener_Phantom *listener);

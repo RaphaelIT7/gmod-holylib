@@ -5,7 +5,7 @@
 
 class hk_Ray
 {
-	public:
+    public:
 
 		HK_DECLARE_NONVIRTUAL_CLASS_ALLOCATOR(HK_MEMORY_CLASS_CONSTRAINT, hk_Ray)
 
@@ -18,7 +18,7 @@ class hk_Ray
 		inline const hk_Vector3& get_origin() const { return m_origin; }
 		inline const hk_Vector3& get_direction() const { return m_direction; }
 
-	public:
+    public:
 		hk_Vector3 m_origin;
 		hk_Vector3 m_direction;
 };

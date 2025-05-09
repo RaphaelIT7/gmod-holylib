@@ -18,15 +18,15 @@ IVP_point_hash::~IVP_point_hash(){}
 
 int IVP_point_hash::point_to_index(IVP_Poly_Point *point)
 {
-	// ATTENTION: assumes that doubles are taken for IVP_Poly_Point coords
-	return hash_index( (char *)&point->k[0], sizeof(IVP_DOUBLE)*3);
+    // ATTENTION: assumes that doubles are taken for IVP_Poly_Point coords
+    return hash_index( (char *)&point->k[0], sizeof(IVP_DOUBLE)*3);
 }
 
 IVP_BOOL IVP_point_hash::compare(const void *elem0, const void *elem1) const {
-	if( memcmp(elem0, elem1, sizeof(IVP_DOUBLE)*3) == 0){
+    if( memcmp(elem0, elem1, sizeof(IVP_DOUBLE)*3) == 0){
 	return IVP_TRUE;
-	}
-	return IVP_FALSE;
+    }
+    return IVP_FALSE;
 }
 
 
@@ -34,15 +34,15 @@ IVP_I_Point_VHash::~IVP_I_Point_VHash(){}
 
 int IVP_I_Point_VHash::point_to_index(IVP_U_Point *point)
 {
-	// ATTENTION: assumes that doubles are taken for IVP_Poly_Point coords
-	return hash_index( (char *)&point->k[0], sizeof(IVP_DOUBLE)*3);
+    // ATTENTION: assumes that doubles are taken for IVP_Poly_Point coords
+    return hash_index( (char *)&point->k[0], sizeof(IVP_DOUBLE)*3);
 }
 
 IVP_BOOL IVP_I_Point_VHash::compare(const void *elem0, const void *elem1) const {
-	if( memcmp(elem0, elem1, sizeof(IVP_DOUBLE)*3) == 0){
+    if( memcmp(elem0, elem1, sizeof(IVP_DOUBLE)*3) == 0){
 	return IVP_TRUE;
-	}
-	return IVP_FALSE;
+    }
+    return IVP_FALSE;
 }
 
 

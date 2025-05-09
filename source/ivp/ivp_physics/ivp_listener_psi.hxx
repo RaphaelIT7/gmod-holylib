@@ -6,17 +6,17 @@
 #define IVP_LISTENER_PSI_INCLUDED
 
 /********************************************************************************
- *	Name:		   	IVP_Event_PSI
+ *	Name:	       	IVP_Event_PSI
  *	Description:	information given to the IVP_Listener_PSI callback
  ********************************************************************************/
 class IVP_Event_PSI {
 public:
-	IVP_Environment	*environment;		// note: call environment->get_current_time() to get time
+    IVP_Environment	*environment;		// note: call environment->get_current_time() to get time
 };
 
 // 
 /********************************************************************************
- *	Name:			IVP_Listener_PSI   	
+ *	Name:	    	IVP_Listener_PSI   	
  *	Description:	A callback called every psi
  *			Using this callback, an application may change the speed of objects
  *			by pushing them.
@@ -24,8 +24,8 @@ public:
  ********************************************************************************/
 class IVP_Listener_PSI {
 public:
-	virtual void event_PSI( IVP_Event_PSI *)=0;
-	virtual void environment_will_be_deleted(IVP_Environment *) = 0;
+    virtual void event_PSI( IVP_Event_PSI *)=0;
+    virtual void environment_will_be_deleted(IVP_Environment *) = 0;
 };
 
 #endif

@@ -28,7 +28,7 @@ IVP_U_Min_List::IVP_U_Min_List(int start_size)
 	
 #ifdef IVP_U_MINLIST_USELONG
 	first_long = IVP_U_MINLIST_UNUSED;
-#endif	
+#endif    
 	min_value = IVP_U_MINLIST_MAXVALUE;
 }
 
@@ -99,7 +99,7 @@ IVP_U_MINLIST_INDEX IVP_U_Min_List::add(void *elem, IVP_U_MINLIST_FIXED_POINT va
 		}
 
 		elems[malloced_size-1].next = IVP_U_MINLIST_UNUSED;
-	}
+    }
 	
 	e->element = elem;
 	e->value = value;
@@ -219,14 +219,14 @@ end:
 			}	
 			first_long = new_long_pos;
 		}
-	}
+    }
 #endif
-	
+    
 #ifdef _DEBUG
 //	check();
 #endif
 
-	return return_index;
+    return return_index;
 }
 
 
@@ -283,9 +283,9 @@ void IVP_U_Min_List::remove_minlist_elem(IVP_U_MINLIST_INDEX index)
 	}
 #endif
 
-	counter-=1;
-	e->next = free_list;
-	free_list = index;
+    counter-=1;
+    e->next = free_list;
+    free_list = index;
 
 #ifdef _DEBUG
 //	check();

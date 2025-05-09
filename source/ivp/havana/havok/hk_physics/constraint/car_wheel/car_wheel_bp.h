@@ -20,7 +20,7 @@ class hk_Car_Wheel_BP  //: public hk_Effector_BP
 
 	public: // hack for now (as we do not have builders)
 
-		hk_real	 m_tau;	
+		hk_real     m_tau;	
 		hk_real		m_damp;	
 
 		hk_Constraint_Limit_BP m_suspension_limit;

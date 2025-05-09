@@ -231,16 +231,16 @@ hk_result hk_Dense_Matrix_Util::invert_3x3_symmetric(hk_Dense_Matrix& m, hk_real
 	hk_real *co2 = co1 + m.getLda();
 
 	hk_Vector3 r0; r0.set_cross( *reinterpret_cast<const hk_Vector3 *>(co1), *reinterpret_cast<const hk_Vector3 *>(co2) );
-	hk_Vector3 r1; r1.set_cross( *reinterpret_cast<const hk_Vector3 *>(co2), *reinterpret_cast<const hk_Vector3 *>(co0) );
-	hk_Vector3 r2; r2.set_cross( *reinterpret_cast<const hk_Vector3 *>(co0), *reinterpret_cast<const hk_Vector3 *>(co1) );
+    hk_Vector3 r1; r1.set_cross( *reinterpret_cast<const hk_Vector3 *>(co2), *reinterpret_cast<const hk_Vector3 *>(co0) );
+    hk_Vector3 r2; r2.set_cross( *reinterpret_cast<const hk_Vector3 *>(co0), *reinterpret_cast<const hk_Vector3 *>(co1) );
 
-	hk_real D = reinterpret_cast<const hk_Vector3 *>(co0)->dot(r0);	// main determinant
-	
-	if( hk_Math::fabs(D)< tolerance * tolerance * tolerance ){
+    hk_real D = reinterpret_cast<const hk_Vector3 *>(co0)->dot(r0);	// main determinant
+    
+    if( hk_Math::fabs(D)< tolerance * tolerance * tolerance ){
 		return HK_FAULT;  // cannot invert, may happen
-	}
+    }
 
-	hk_real DI = 1.0f/D;
+    hk_real DI = 1.0f/D;
 
 	reinterpret_cast<hk_Vector3 *>(co0)->set_mul( DI, r0 );
 	reinterpret_cast<hk_Vector3 *>(co1)->set_mul( DI, r1 );
@@ -255,15 +255,15 @@ hk_result hk_Dense_Matrix_Util::invert_2x2(const hk_Dense_Matrix& m, hk_Dense_Ma
 
 	hk_real D =  (co0[0] * co1[1]) - (co0[1] * co1[0]);
 
-	if(D*D < tolerance * tolerance){
+    if(D*D < tolerance * tolerance){
 		return HK_FAULT;  // may be an ordinary result
-	}
-	
-	hk_real DI = 1.0f/D;
-	hk_real a1 =  co1[1] * DI;
-	hk_real b1 = -co0[1] * DI;
-	hk_real a2 = -co1[0] * DI;
-	hk_real b2 =  co0[0] * DI;
+    }
+    
+    hk_real DI = 1.0f/D;
+    hk_real a1 =  co1[1] * DI;
+    hk_real b1 = -co0[1] * DI;
+    hk_real a2 = -co1[0] * DI;
+    hk_real b2 =  co0[0] * DI;
 
 	hk_real *o_co0 = out.getRealPointer();
 	hk_real *o_co1 = o_co0 + out.getLda();

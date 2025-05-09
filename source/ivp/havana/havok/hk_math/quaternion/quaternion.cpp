@@ -82,9 +82,9 @@ void hk_Quaternion::set_slerp(const hk_Quaternion& q0, const hk_Quaternion& q1, 
 		hk_real t_theta = t*theta;
 
 		hk_real t0 = hk_Math::sin(theta-t_theta) * i_sin_theta;
-		hk_real t1 = hk_Math::sin(t_theta)	   * i_sin_theta;
+		hk_real t1 = hk_Math::sin(t_theta)       * i_sin_theta;
 
-		this->set_mul4( t0,			q0);
+		this->set_mul4( t0,            q0);
 		this->add_mul4( t1*sign_of_t1, q1);
 		this->normalize_quaternion();
 	}
@@ -94,7 +94,7 @@ void hk_Quaternion::set_slerp(const hk_Quaternion& q0, const hk_Quaternion& q1, 
 		hk_real t0 = 1.0f - t;
 		hk_real t1 = t;
 
-		this->set_mul4( t0,			q0);
+		this->set_mul4( t0,            q0);
 		this->add_mul4( t1*sign_of_t1, q1);
 
 		this->normalize_quaternion();

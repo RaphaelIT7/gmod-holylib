@@ -3,11 +3,11 @@
 // IVP_EXPORT_PUBLIC
 
 /********************************************************************************
- *  Filename:		ivp_surman_mopp.hxx
- *  Description:	This file provides you with an interface class to the compact
+ *  Filename:	    ivp_surman_mopp.hxx
+ *  Description:    This file provides you with an interface class to the compact
  *			surface of any polygonal object with a 'mopp' bounding volume tree. 
  *			This class is vital to generate physical objects.
- *  Classes:		IVP_SurfaceManager_Mopp
+ *  Classes:	    IVP_SurfaceManager_Mopp
  ********************************************************************************/
 
 #ifndef IVP_SURMAN_MOPP_INCLUDED
@@ -21,22 +21,22 @@ class IVP_Compact_Mopp;
 class hkMoppCode;
 
 /********************************************************************************
- *  Class:		IVP_SurfaceManager_Mopp
- *  Description:	A subclass of the basic IVP_SurfaceManager class. Used for
- *			polygonal objects with 'mopp' bounding volume trees. This is sort of 
+ *  Class:	    IVP_SurfaceManager_Mopp
+ *  Description:    A subclass of the basic IVP_SurfaceManager class. Used for
+ *		    polygonal objects with 'mopp' bounding volume trees. This is sort of 
  *			an interface to the compact surface (geometrical topology) and some 
  *			of its basic values.
- *  Note:		Use these methods instead of directly accessing the compact
- *			surface!
+ *  Note:	    Use these methods instead of directly accessing the compact
+ *		    surface!
  *******************************************************************************/
 
 class IVP_SurfaceManager_Mopp : public IVP_SurfaceManager 
 {
 protected:
 
-	IVP_SurfaceManager_Mopp();				// internal methods & data
+    IVP_SurfaceManager_Mopp();				// internal methods & data
 
-	const IVP_Compact_Mopp* compact_mopp;	// should be constructed using ivp_malloc_aligned
+    const IVP_Compact_Mopp* compact_mopp;	// should be constructed using ivp_malloc_aligned
 
 public:
 
@@ -88,9 +88,9 @@ public:
 	 *			a given center point.
 	 *	Input:		<root_ledge>	   for recursive compact ledges start search
 	 *					   at 'root_ledge'
-	 *			<observer_os>	  center point of observation (in compact
+	 *			<observer_os>      center point of observation (in compact
 	 *					   surface coordinate system!)
-	 *			<radius>		   radius to check
+	 *			<radius>           radius to check
 	 *			<resulting_ledges> vector to be filled with ledges
 	 *****************************************************************************/
 	void get_all_ledges_within_radius(const IVP_U_Point* observer_os, 
@@ -116,7 +116,7 @@ public:
 	 *	Description:	Simply initializes the surface manager with the supplied
 	 *			compact mopp.
 	 *	Input:		<compact_surface_in> compact surface to initilize the
-	 *								 surface manager with
+	 *			                     surface manager with
 	 *****************************************************************************/
 	IVP_SurfaceManager_Mopp(const IVP_Compact_Mopp* compact_mopp_in) 
 	{

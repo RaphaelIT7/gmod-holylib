@@ -1,4 +1,4 @@
-/*<html><pre>  -<a							 href="qh-c.htm#stat"
+/*<html><pre>  -<a                             href="qh-c.htm#stat"
   >-------------------------------</a><a name="TOP">-</a>
 
    stat.c 
@@ -22,15 +22,15 @@ qhstatT qh_qhstat;   /* add "={0}" if this causes a compiler error */
 
 /*========== functions in alphabetic order ================*/
 
-/*-<a							 href="qh-c.htm#stat"
+/*-<a                             href="qh-c.htm#stat"
   >-------------------------------</a><a name="allstatA">-</a>
   
   qh_allstatA()
-	define statistics in groups of 20
+    define statistics in groups of 20
 
   notes:
-	(otherwise, 'gcc -O2' uses too much memory)
-	uses qhstat.next
+    (otherwise, 'gcc -O2' uses too much memory)
+    uses qhstat.next
 */
 void qh_allstatA (void) {
   
@@ -93,14 +93,14 @@ void qh_allstatC (void) {
   zdef_(zinc, Ztotvisible, "ave. visible facets per iteration", Zprocessed);
   zdef_(zinc, Zinsidevisible, "  ave. visible facets without an horizon neighbor", Zprocessed);
   zdef_(zadd, Zvisfacettot,  "  ave. facets deleted per iteration", Zprocessed);
-  zdef_(zmax, Zvisfacetmax,  "	maximum", -1);
+  zdef_(zmax, Zvisfacetmax,  "    maximum", -1);
   zdef_(zadd, Zvisvertextot, "ave. visible vertices per iteration", Zprocessed);
-  zdef_(zmax, Zvisvertexmax, "	maximum", -1);
+  zdef_(zmax, Zvisvertexmax, "    maximum", -1);
   zdef_(zadd, Zdelvertextot, "  ave. vertices deleted per iteration", Zprocessed);
-  zdef_(zmax, Zdelvertexmax, "	maximum vertices deleted", -1);
+  zdef_(zmax, Zdelvertexmax, "    maximum vertices deleted", -1);
   zdef_(zinc, Ztothorizon, "ave. horizon facets per iteration", Zprocessed);
   zdef_(zadd, Znewfacettot,  "ave. new or merged facets per iteration", Zprocessed);
-  zdef_(zmax, Znewfacetmax,  "	maximum (includes initial simplex)", -1);
+  zdef_(zmax, Znewfacetmax,  "    maximum (includes initial simplex)", -1);
   zdef_(wadd, Wnewbalance, "average new facet balance", Zprocessed);
   zdef_(wadd, Wnewbalance2, "  standard deviation", -1);
   zdef_(wadd, Wpbalance, "average partition balance", Zpbalance);
@@ -256,25 +256,25 @@ void qh_allstatI(void) {
   zzdef_(wmax, Wridge0max, "  max. angle to ridge", -1);
 } /* allstat */
 
-/*-<a							 href="qh-c.htm#stat"
+/*-<a                             href="qh-c.htm#stat"
   >-------------------------------</a><a name="allstatistics">-</a>
   
   qh_allstatistics()
-	reset printed flag for all statistics
+    reset printed flag for all statistics
 */
 void qh_allstatistics (void) {
   int i;
   
   for (i=ZEND; i--; ) 
-	qhstat printed[i]= False;
+    qhstat printed[i]= False;
 } /* allstatistics */
 
 #if qh_KEEPstatistics
-/*-<a							 href="qh-c.htm#stat"
+/*-<a                             href="qh-c.htm#stat"
   >-------------------------------</a><a name="collectstatistics">-</a>
   
   qh_collectstatistics()
-	collect statistics for qh.facet_list
+    collect statistics for qh.facet_list
 
 */
 void qh_collectstatistics (void) {
@@ -286,7 +286,7 @@ void qh_collectstatistics (void) {
   qh old_randomdist= qh RANDOMdist;
   qh RANDOMdist= False;
   zval_(Zmempoints)= qh num_points * qh normal_size + 
-							 sizeof (qhT) + sizeof (qhstatT);
+                             sizeof (qhT) + sizeof (qhstatT);
   zval_(Zmemfacets)= 0;
   zval_(Zmemridges)= 0;
   zval_(Zmemvertices)= 0;
@@ -301,88 +301,88 @@ void qh_collectstatistics (void) {
   zval_(Znummergemax)= 0;
   zval_(Zvertices)= qh num_vertices - qh_setsize (qh del_vertices);
   if (qh MERGING || qh APPROXhull || qh JOGGLEmax < REALmax/2)
-	wmax_(Wmaxoutside, qh max_outside);
+    wmax_(Wmaxoutside, qh max_outside);
   if (qh MERGING)
-	wmin_(Wminvertex, qh min_vertex);
+    wmin_(Wminvertex, qh min_vertex);
   FORALLfacets
-	facet->seen= False;
+    facet->seen= False;
   if (qh DELAUNAY) {
-	FORALLfacets {
-	  if (facet->upperdelaunay != qh UPPERdelaunay)
-		facet->seen= True; /* remove from angle statistics */
-	}
+    FORALLfacets {
+      if (facet->upperdelaunay != qh UPPERdelaunay)
+        facet->seen= True; /* remove from angle statistics */
+    }
   }
   FORALLfacets {
-	if (facet->visible && qh NEWfacets)
-	  continue;
-	sizvertices= qh_setsize (facet->vertices);
-	sizneighbors= qh_setsize (facet->neighbors);
-	sizridges= qh_setsize (facet->ridges);
-	zinc_(Znumfacets);
-	zadd_(Znumvertices, sizvertices);
-	zmax_(Zmaxvertices, sizvertices);
-	zadd_(Znumneighbors, sizneighbors);
-	zmax_(Zmaxneighbors, sizneighbors);
-	zadd_(Znummergetot, facet->nummerge);
-	i= facet->nummerge; /* avoid warnings */
-	zmax_(Znummergemax, i); 
-	if (sizridges) {
-	  zadd_(Znumridges, sizridges);
-	  zmax_(Zmaxridges, sizridges);
-	}
-	zadd_(Zmemfacets, sizeof (facetT) + qh normal_size + 2*sizeof (setT) 
-	   + SETelemsize * (sizneighbors + sizvertices));
-	if (facet->ridges) {
-	  zadd_(Zmemridges,
+    if (facet->visible && qh NEWfacets)
+      continue;
+    sizvertices= qh_setsize (facet->vertices);
+    sizneighbors= qh_setsize (facet->neighbors);
+    sizridges= qh_setsize (facet->ridges);
+    zinc_(Znumfacets);
+    zadd_(Znumvertices, sizvertices);
+    zmax_(Zmaxvertices, sizvertices);
+    zadd_(Znumneighbors, sizneighbors);
+    zmax_(Zmaxneighbors, sizneighbors);
+    zadd_(Znummergetot, facet->nummerge);
+    i= facet->nummerge; /* avoid warnings */
+    zmax_(Znummergemax, i); 
+    if (sizridges) {
+      zadd_(Znumridges, sizridges);
+      zmax_(Zmaxridges, sizridges);
+    }
+    zadd_(Zmemfacets, sizeof (facetT) + qh normal_size + 2*sizeof (setT) 
+       + SETelemsize * (sizneighbors + sizvertices));
+    if (facet->ridges) {
+      zadd_(Zmemridges,
 	 sizeof (setT) + SETelemsize * sizridges + sizridges * 
-		 (sizeof (ridgeT) + sizeof (setT) + SETelemsize * (qh hull_dim-1))/2);
-	}
-	if (facet->outsideset)
-	  zadd_(Zmempoints, sizeof (setT) + SETelemsize * qh_setsize (facet->outsideset));
-	if (facet->coplanarset)
-	  zadd_(Zmempoints, sizeof (setT) + SETelemsize * qh_setsize (facet->coplanarset));
-	if (facet->seen) /* Delaunay upper envelope */
-	  continue;
-	facet->seen= True;
-	FOREACHneighbor_(facet) {
-	  if (neighbor == qh_DUPLICATEridge || neighbor == qh_MERGEridge
+         (sizeof (ridgeT) + sizeof (setT) + SETelemsize * (qh hull_dim-1))/2);
+    }
+    if (facet->outsideset)
+      zadd_(Zmempoints, sizeof (setT) + SETelemsize * qh_setsize (facet->outsideset));
+    if (facet->coplanarset)
+      zadd_(Zmempoints, sizeof (setT) + SETelemsize * qh_setsize (facet->coplanarset));
+    if (facet->seen) /* Delaunay upper envelope */
+      continue;
+    facet->seen= True;
+    FOREACHneighbor_(facet) {
+      if (neighbor == qh_DUPLICATEridge || neighbor == qh_MERGEridge
 	  || neighbor->seen || !facet->normal || !neighbor->normal)
 	continue;
-	  dotproduct= qh_getangle(facet->normal, neighbor->normal);
-	  zinc_(Zangle);
-	  wadd_(Wangle, dotproduct);
-	  wmax_(Wanglemax, dotproduct);
-	  wmin_(Wanglemin, dotproduct);
-	}
-	if (facet->normal) {
-	  FOREACHvertex_(facet->vertices) {
-		zinc_(Zdiststat);
-		qh_distplane(vertex->point, facet, &dist);
-		wmax_(Wvertexmax, dist);
-		wmin_(Wvertexmin, dist);
-	  }
-	}
+      dotproduct= qh_getangle(facet->normal, neighbor->normal);
+      zinc_(Zangle);
+      wadd_(Wangle, dotproduct);
+      wmax_(Wanglemax, dotproduct);
+      wmin_(Wanglemin, dotproduct);
+    }
+    if (facet->normal) {
+      FOREACHvertex_(facet->vertices) {
+        zinc_(Zdiststat);
+        qh_distplane(vertex->point, facet, &dist);
+        wmax_(Wvertexmax, dist);
+        wmin_(Wvertexmin, dist);
+      }
+    }
   }
   FORALLvertices {
-	if (vertex->deleted)
-	  continue;
-	zadd_(Zmemvertices, sizeof (vertexT));
-	if (vertex->neighbors) {
-	  sizneighbors= qh_setsize (vertex->neighbors);
-	  zadd_(Znumvneighbors, sizneighbors);
-	  zmax_(Zmaxvneighbors, sizneighbors);
-	  zadd_(Zmemvertices, sizeof (vertexT) + SETelemsize * sizneighbors);
-	}
+    if (vertex->deleted)
+      continue;
+    zadd_(Zmemvertices, sizeof (vertexT));
+    if (vertex->neighbors) {
+      sizneighbors= qh_setsize (vertex->neighbors);
+      zadd_(Znumvneighbors, sizneighbors);
+      zmax_(Zmaxvneighbors, sizneighbors);
+      zadd_(Zmemvertices, sizeof (vertexT) + SETelemsize * sizneighbors);
+    }
   }
   qh RANDOMdist= qh old_randomdist;
 } /* collectstatistics */
 #endif /* qh_KEEPstatistics */
 
-/*-<a							 href="qh-c.htm#stat"
+/*-<a                             href="qh-c.htm#stat"
   >-------------------------------</a><a name="freestatistics">-</a>
   
   qh_freestatistics(  )
-	free memory used for statistics
+    free memory used for statistics
 */
 void qh_freestatistics (void) {
 
@@ -392,14 +392,14 @@ void qh_freestatistics (void) {
 #endif
 } /* freestatistics */
 
-/*-<a							 href="qh-c.htm#stat"
+/*-<a                             href="qh-c.htm#stat"
   >-------------------------------</a><a name="initstatistics">-</a>
   
   qh_initstatistics(  )
-	allocate and initialize statistics
+    allocate and initialize statistics
 
   notes:
-	uses malloc() instead of qh_memalloc() since mem.c not set up yet
+    uses malloc() instead of qh_memalloc() since mem.c not set up yet
 */
 void qh_initstatistics (void) {
   int i;
@@ -408,8 +408,8 @@ void qh_initstatistics (void) {
 
 #if qh_QHpointer
   if (!(qh_qhstat= (qhstatT *)p_malloc (sizeof(qhstatT)))) {
-	ivp_message( "qhull error (qh_initstatistics): insufficient memory\n");
-	exit (1);  /* can not use qh_errexit() */
+    ivp_message( "qhull error (qh_initstatistics): insufficient memory\n");
+    exit (1);  /* can not use qh_errexit() */
   }
 #endif
   
@@ -424,20 +424,20 @@ void qh_initstatistics (void) {
   qh_allstatH();
   qh_allstatI();
   if (qhstat next > (int)sizeof(qhstat id)) {
-	ivp_message( "qhull error (qh_initstatistics): increase size of qhstat.id[].\n\
-	  qhstat.next %d should be <= sizeof(qhstat id) %d\n", qhstat next, sizeof(qhstat id));
+    ivp_message( "qhull error (qh_initstatistics): increase size of qhstat.id[].\n\
+      qhstat.next %d should be <= sizeof(qhstat id) %d\n", qhstat next, sizeof(qhstat id));
 #if 0 /* for locating error, Znumridges should be duplicated */
-	for (i=0; i < ZEND; i++) {
-	  int j;
-	  for (j=i+1; j < ZEND; j++) {
+    for (i=0; i < ZEND; i++) {
+      int j;
+      for (j=i+1; j < ZEND; j++) {
 	if (qhstat id[i] == qhstat id[j]) {
-		  ivp_message( "qhull error (qh_initstatistics): duplicated statistic %d at indices %d and %d\n", 
-		  qhstat id[i], i, j);
+          ivp_message( "qhull error (qh_initstatistics): duplicated statistic %d at indices %d and %d\n", 
+	      qhstat id[i], i, j);
 	}
-	  }
-	}
+      }
+    }
 #endif 
-	exit (1);  /* can not use qh_errexit() */
+    exit (1);  /* can not use qh_errexit() */
   }
   qhstat init[zinc].i= 0;
   qhstat init[zadd].i= 0;
@@ -447,63 +447,63 @@ void qh_initstatistics (void) {
   qhstat init[wmin].r= REALmax;
   qhstat init[wmax].r= -REALmax;
   for (i=0; i < ZEND; i++) {
-	if (qhstat type[i] > ZTYPEreal) {
-	  realx= qhstat init[(unsigned char)(qhstat type[i])].r;
-	  qhstat stats[i].r= realx;
-	}else if (qhstat type[i] != zdoc) {
-	  intx= qhstat init[(unsigned char)(qhstat type[i])].i;
-	  qhstat stats[i].i= intx;
-	}
+    if (qhstat type[i] > ZTYPEreal) {
+      realx= qhstat init[(unsigned char)(qhstat type[i])].r;
+      qhstat stats[i].r= realx;
+    }else if (qhstat type[i] != zdoc) {
+      intx= qhstat init[(unsigned char)(qhstat type[i])].i;
+      qhstat stats[i].i= intx;
+    }
   }
 } /* initstatistics */
 
-/*-<a							 href="qh-c.htm#stat"
+/*-<a                             href="qh-c.htm#stat"
   >-------------------------------</a><a name="newstats">-</a>
   
   qh_newstats(  )
-	returns True if statistics for zdoc
+    returns True if statistics for zdoc
 
   returns:
-	next zdoc
+    next zdoc
 */
 boolT qh_newstats (int index, int *nextindex) {
   boolT isnew= False;
   int start, i;
 
   if (qhstat type[qhstat id[index]] == zdoc) 
-	start= index+1;
+    start= index+1;
   else
-	start= index;
+    start= index;
   for (i= start; i < qhstat next && qhstat type[qhstat id[i]] != zdoc; i++) {
-	if (!qh_nostatistic(qhstat id[i]) && !qhstat printed[qhstat id[i]])
+    if (!qh_nostatistic(qhstat id[i]) && !qhstat printed[qhstat id[i]])
 	isnew= True;
   }
   *nextindex= i;
   return isnew;
 } /* newstats */
 
-/*-<a							 href="qh-c.htm#stat"
+/*-<a                             href="qh-c.htm#stat"
   >-------------------------------</a><a name="nostatistic">-</a>
   
   qh_nostatistic( index )
-	true if no statistic to print
+    true if no statistic to print
 */
 boolT qh_nostatistic (int i) {
   
   if ((qhstat type[i] > ZTYPEreal
-	   && hk_Math::almost_equal( qhstat stats[i].r, qhstat init[(unsigned char)(qhstat type[i])].r ) )
-	  || (qhstat type[i] < ZTYPEreal
+       && hk_Math::almost_equal( qhstat stats[i].r, qhstat init[(unsigned char)(qhstat type[i])].r ) )
+      || (qhstat type[i] < ZTYPEreal
 	  &&qhstat stats[i].i == qhstat init[(unsigned char)(qhstat type[i])].i))
-	return True;
+    return True;
   return False;
 } /* nostatistic */
 
 #if qh_KEEPstatistics
-/*-<a							 href="qh-c.htm#stat"
+/*-<a                             href="qh-c.htm#stat"
   >-------------------------------</a><a name="printallstatistics">-</a>
   
   qh_printallstatistics( fp, string )
-	print all statistics with header 'string'
+    print all statistics with header 'string'
 */
 void qh_printallstatistics (FILE *fp, const char *string) {
 
@@ -514,32 +514,32 @@ void qh_printallstatistics (FILE *fp, const char *string) {
 }
 
 
-/*-<a							 href="qh-c.htm#stat"
+/*-<a                             href="qh-c.htm#stat"
   >-------------------------------</a><a name="printstatistics">-</a>
   
   qh_printstatistics( fp, string )
-	print statistics to a file with header 'string'
-	skips statistics with qhstat.printed[] (reset with qh_allstatistics)
+    print statistics to a file with header 'string'
+    skips statistics with qhstat.printed[] (reset with qh_allstatistics)
 
   see: 
-	qh_printallstatistics()
+    qh_printallstatistics()
 */
 void qh_printstatistics (FILE *fp, const char *string) {
   int i, k;
   realT ave;
 	if (!fp) return;
   if (qh num_points != qh num_vertices) {
-	wval_(Wpbalance)= 0;
-	wval_(Wpbalance2)= 0;
+    wval_(Wpbalance)= 0;
+    wval_(Wpbalance2)= 0;
   }else
-	wval_(Wpbalance2)= qh_stddev (zval_(Zpbalance), wval_(Wpbalance), 
-								 wval_(Wpbalance2), &ave);
+    wval_(Wpbalance2)= qh_stddev (zval_(Zpbalance), wval_(Wpbalance), 
+                                 wval_(Wpbalance2), &ave);
   wval_(Wnewbalance2)= qh_stddev (zval_(Zprocessed), wval_(Wnewbalance), 
-								 wval_(Wnewbalance2), &ave);
+                                 wval_(Wnewbalance2), &ave);
   fprintf (fp, "\n\
 %s\n\
  qhull invoked by: %s | %s\n%s with options:\n%s\n", string, qh rbox_command, 
-	 qh qhull_command, qh_version, qh qhull_options);
+     qh qhull_command, qh_version, qh qhull_options);
   fprintf (fp, "\nprecision constants:\n\
  %6.2g max. abs. coordinate in the (transformed) input ('Qbd:n')\n\
  %6.2g max. roundoff error for distance computation ('En')\n\
@@ -550,9 +550,9 @@ void qh_printstatistics (FILE *fp, const char *string) {
  %6.2g max. facet width for recomputing centrum and area\n\
 ", 
   qh MAXabs_coord, qh DISTround, qh ANGLEround, qh MINoutside, 
-		qh MINvisible, qh MAXcoplanar, qh WIDEfacet);
+        qh MINvisible, qh MAXcoplanar, qh WIDEfacet);
   if (qh KEEPnearinside)
-	fprintf(fp, "\
+    fprintf(fp, "\
  %6.2g max. distance for near-inside points\n", qh NEARinside);
   if (qh premerge_cos < REALmax/2) fprintf (fp, "\
  %6.2g max. cosine for pre-merge angle\n", qh premerge_cos);
@@ -568,86 +568,86 @@ void qh_printstatistics (FILE *fp, const char *string) {
  %6.2g min. denominator for divisions\n\
   zero diagonal for Gauss: ", qh ONEmerge, REALepsilon, qh MINdenom);
   for (k=0; k < qh hull_dim; k++)
-	fprintf (fp, "%6.2e ", qh NEARzero[k]);
+    fprintf (fp, "%6.2e ", qh NEARzero[k]);
   fprintf (fp, "\n\n");
   for (i=0 ; i < qhstat next; ) 
-	qh_printstats (fp, i, &i);
+    qh_printstats (fp, i, &i);
 } /* printstatistics */
 #endif /* qh_KEEPstatistics */
 
-/*-<a							 href="qh-c.htm#stat"
+/*-<a                             href="qh-c.htm#stat"
   >-------------------------------</a><a name="printstatlevel">-</a>
   
   qh_printstatlevel( fp, id )
-	print level information for a statistic
+    print level information for a statistic
 
   notes:
-	nop if id >= ZEND, printed, or same as initial value
+    nop if id >= ZEND, printed, or same as initial value
 */
 void qh_printstatlevel (FILE *fp, int id, [[maybe_unused]] int start) {
-//#define NULLfield "	   "
+//#define NULLfield "       "
 
   if (id >= ZEND || qhstat printed[id])
-	return;
+    return;
   if (qhstat type[id] == zdoc) {
-	fprintf (fp, "%s\n", qhstat doc[id]);
-	return;
+    fprintf (fp, "%s\n", qhstat doc[id]);
+    return;
   }
   start= 0; /* not used */
   if (qh_nostatistic(id) || !qhstat doc[id])
-	return;
+    return;
   qhstat printed[id]= True;
   if (qhstat count[id] != -1 
-	  && qhstat stats[(unsigned char)(qhstat count[id])].i == 0)
-	fprintf (fp, " *0 cnt*");
+      && qhstat stats[(unsigned char)(qhstat count[id])].i == 0)
+    fprintf (fp, " *0 cnt*");
   else if (qhstat type[id] >= ZTYPEreal && qhstat count[id] == -1)
-	fprintf (fp, "%7.2g", qhstat stats[id].r);
+    fprintf (fp, "%7.2g", qhstat stats[id].r);
   else if (qhstat type[id] >= ZTYPEreal && qhstat count[id] != -1)
-	fprintf (fp, "%7.2g", qhstat stats[id].r/ qhstat stats[(unsigned char)(qhstat count[id])].i);
+    fprintf (fp, "%7.2g", qhstat stats[id].r/ qhstat stats[(unsigned char)(qhstat count[id])].i);
   else if (qhstat type[id] < ZTYPEreal && qhstat count[id] == -1)
-	fprintf (fp, "%7d", qhstat stats[id].i);
+    fprintf (fp, "%7d", qhstat stats[id].i);
   else if (qhstat type[id] < ZTYPEreal && qhstat count[id] != -1)
-	fprintf (fp, "%7.3g", (realT) qhstat stats[id].i / qhstat stats[(unsigned char)(qhstat count[id])].i);
+    fprintf (fp, "%7.3g", (realT) qhstat stats[id].i / qhstat stats[(unsigned char)(qhstat count[id])].i);
   fprintf (fp, " %s\n", qhstat doc[id]);
 } /* printstatlevel */
 
 
-/*-<a							 href="qh-c.htm#stat"
+/*-<a                             href="qh-c.htm#stat"
   >-------------------------------</a><a name="printstats">-</a>
   
   qh_printstats( fp, index, nextindex )
-	print statistics for a zdoc group
+    print statistics for a zdoc group
 
   returns:
-	next zdoc if non-null
+    next zdoc if non-null
 */
 void qh_printstats (FILE *fp, int index, int *nextindex) {
   int j, nexti;
 
   if (qh_newstats (index, &nexti)) {
-	fprintf (fp, "\n");
-	for (j=index; j<nexti; j++)
-	  qh_printstatlevel (fp, qhstat id[j], 0);
+    fprintf (fp, "\n");
+    for (j=index; j<nexti; j++)
+      qh_printstatlevel (fp, qhstat id[j], 0);
   }
   if (nextindex)
-	*nextindex= nexti;
+    *nextindex= nexti;
 } /* printstats */
 
 #if qh_KEEPstatistics
 
-/*-<a							 href="qh-c.htm#stat"
+/*-<a                             href="qh-c.htm#stat"
   >-------------------------------</a><a name="stddev">-</a>
   
   qh_stddev( num, tot, tot2, ave )
-	compute the standard deviation and average from statistics
+    compute the standard deviation and average from statistics
 
-	tot2 is the sum of the squares
+    tot2 is the sum of the squares
   notes:
-	computes r.m.s.: 
-	  (x-ave)^2 
-	  == x^2 - 2x tot/num +   (tot/num)^2
-	  == tot2 - 2 tot tot/num + tot tot/num 
-	  == tot2 - tot ave
+    computes r.m.s.: 
+      (x-ave)^2 
+      == x^2 - 2x tot/num +   (tot/num)^2
+      == tot2 - 2 tot tot/num + tot tot/num 
+      == tot2 - tot ave
 */
 realT qh_stddev (int num, realT tot, realT tot2, realT *ave) {
   realT stddev;
@@ -660,8 +660,8 @@ realT qh_stddev (int num, realT tot, realT tot2, realT *ave) {
 #endif /* qh_KEEPstatistics */ 
 
 #if !qh_KEEPstatistics
-void	qh_collectstatistics (void) {}
-void	qh_printallstatistics (FILE *fp, const char *string) {};
-void	qh_printstatistics (FILE *fp, const char *string) {}
+void    qh_collectstatistics (void) {}
+void    qh_printallstatistics (FILE *fp, const char *string) {};
+void    qh_printstatistics (FILE *fp, const char *string) {}
 #endif
 

@@ -46,7 +46,7 @@ class hk_Math
 
 		static void srand01( unsigned seedVal );
 		static inline hk_real _rand01 [[nodiscard]] ();
-		static		  hk_real rand01 [[nodiscard]] ();
+		static	      hk_real rand01 [[nodiscard]] ();
 		static inline int int_log2 [[nodiscard]] ( hk_real ); // integer part of log2
 		static unsigned int hk_random_seed;
 
@@ -56,8 +56,6 @@ class hk_Math
 		static bool almost_zero [[nodiscard]] ( hk_double a, hk_double eps = HK_DOUBLE_RES );
 };
 
-#ifndef HOLYLIB
 #include <hk_math/math.inl>
-#endif
 
 #endif /* HK_MATH_MATH_H */

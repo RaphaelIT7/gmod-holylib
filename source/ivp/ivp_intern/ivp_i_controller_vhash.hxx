@@ -13,29 +13,29 @@ class IVP_Real_Object;
 class IVP_Controller_VHash : protected IVP_VHash
 {
 protected:
-	IVP_Real_Object *real_object;
-	IVP_BOOL compare(const void *elem0, const void *elem1) const override;
-	int	  controller_to_index(IVP_Controller *cntrl);
+    IVP_Real_Object *real_object;
+    IVP_BOOL compare(const void *elem0, const void *elem1) const override;
+    int      controller_to_index(IVP_Controller *cntrl);
 
 public:
-	void add_controller(IVP_Controller *controller)
-	{
+    void add_controller(IVP_Controller *controller)
+    {
 	add_elem(controller, controller_to_index(controller));
-	};
+    };
 
-	IVP_Controller *remove_controller(IVP_Controller *controller)
-	{
+    IVP_Controller *remove_controller(IVP_Controller *controller)
+    {
 	return (IVP_Controller *)remove_elem(controller, controller_to_index(controller));
-	};
+    };
 
-	IVP_Controller *find_controller(IVP_Controller *controller)
-	{
+    IVP_Controller *find_controller(IVP_Controller *controller)
+    {
 	return (IVP_Controller *)find_elem(controller, controller_to_index(controller));
-	};
+    };
   
 
-	~IVP_Controller_VHash();
-	IVP_Controller_VHash(IVP_Real_Object *object, int init_size) : IVP_VHash(init_size) { real_object = object; };
+    ~IVP_Controller_VHash();
+    IVP_Controller_VHash(IVP_Real_Object *object, int init_size) : IVP_VHash(init_size) { real_object = object; };
 };
 
 

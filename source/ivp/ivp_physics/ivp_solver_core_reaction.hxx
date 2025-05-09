@@ -14,19 +14,19 @@
 class IVP_U_Point_4: public IVP_U_Float_Hesse {
 public:
   IVP_DOUBLE dot_product4( const IVP_U_Point_4 &o){
-	return k[0] * o.k[0] + k[1] * o.k[1] + k[2] * o.k[2] + hesse_val * o.hesse_val;
+    return k[0] * o.k[0] + k[1] * o.k[1] + k[2] * o.k[2] + hesse_val * o.hesse_val;
   }
   
 
   void set_line_wise_mult4( const IVP_U_Point_4 *a, const IVP_U_Point_4 *b){
-	IVP_DOUBLE x = a->k[0] * b->k[0];
-	IVP_DOUBLE y = a->k[1] * b->k[1];
-	IVP_DOUBLE z = a->k[2] * b->k[2];
-	IVP_DOUBLE w = a->hesse_val * b->hesse_val;
-	this->k[0] = x;
-	this->k[1] = y;
-	this->k[2] = z;
-	this->hesse_val = w;
+    IVP_DOUBLE x = a->k[0] * b->k[0];
+    IVP_DOUBLE y = a->k[1] * b->k[1];
+    IVP_DOUBLE z = a->k[2] * b->k[2];
+    IVP_DOUBLE w = a->hesse_val * b->hesse_val;
+    this->k[0] = x;
+    this->k[1] = y;
+    this->k[2] = z;
+    this->hesse_val = w;
   }
   
 };
@@ -44,12 +44,12 @@ public:
   IVP_U_Point_4 cr_mult_inv0[3];
   IVP_U_Point_4 cr_mult_inv1[3];
   
-	/********************************************************************************
-	 *	Name:		   	m_velocity_ds_f_impulse_ds
-	 *	Description:	The symmetric matrix which describes the reaction of
-	 *			the core based on given impulses
-	 *	Note:		only the upper diagonal is filled
-	 ********************************************************************************/
+    /********************************************************************************
+     *	Name:	       	m_velocity_ds_f_impulse_ds
+     *	Description:	The symmetric matrix which describes the reaction of
+     *			the core based on given impulses
+     *	Note:		only the upper diagonal is filled
+     ********************************************************************************/
   IVP_U_Matrix3 m_velocity_ds_f_impulse_ds;  // 
   IVP_U_Float_Point delta_velocity_ds;   // based on current rot_speeds only speeds
 
@@ -66,8 +66,8 @@ public:
 	// invertion
 	IVP_RETURN_TYPE invert_3x3_matrix(); // real inverts the m_velocity_ds_f_impulse_ds matrix (result is full 3x3
 
-	// get the results
-	IVP_U_Matrix3 *get_m_velocity_ds_f_impulse_ds(){	return &m_velocity_ds_f_impulse_ds;	};
+    // get the results
+    IVP_U_Matrix3 *get_m_velocity_ds_f_impulse_ds(){	return &m_velocity_ds_f_impulse_ds;    };
 
   
   void exert_impulse_dim1(IVP_Core *core_0, IVP_Core *core_1, IVP_U_Float_Point &impulse_ds); // 1 dimension only

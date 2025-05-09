@@ -22,8 +22,8 @@ class IVP_U_Matrix3;
 
 // Quaternion Structure
 // quaternion is represented as (w,[x,y,z])
-// where: w	   - scalar part
-//		x, y, z - vector part
+// where: w       - scalar part
+//        x, y, z - vector part
 typedef struct tag_GL_QUAT { 
   GLIVP_FLOAT w, x, y, z;
 } GL_QUAT;

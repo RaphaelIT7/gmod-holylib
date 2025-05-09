@@ -11,87 +11,87 @@
 
 void IVP_BetterDebugmanager::enable_debug_output(IVP_DEBUG_CLASS class_id) {
 
-	if (class_id < IVP_DM_DUMMY || class_id >= IVP_DEBUG_MAX_N_CLASSES) {
+    if (class_id < IVP_DM_DUMMY || class_id >= IVP_DEBUG_MAX_N_CLASSES) {
 	return;
-	}
-	this->flag_list[class_id] = 1;
+    }
+    this->flag_list[class_id] = 1;
 
-	return;
+    return;
 }
 
 void IVP_BetterDebugmanager::disable_debug_output(IVP_DEBUG_CLASS class_id) {
 
-	if (class_id < IVP_DM_DUMMY || class_id >= IVP_DEBUG_MAX_N_CLASSES) {
+    if (class_id < IVP_DM_DUMMY || class_id >= IVP_DEBUG_MAX_N_CLASSES) {
 	return;
-	}
-	this->flag_list[class_id] = 0;
+    }
+    this->flag_list[class_id] = 0;
 
-	return;
+    return;
 }
 
 
 IVP_BOOL IVP_BetterDebugmanager::is_debug_enabled(IVP_DEBUG_CLASS class_id) {
 
-	if (class_id >= IVP_DEBUG_MAX_N_CLASSES ) {
+    if (class_id >= IVP_DEBUG_MAX_N_CLASSES ) {
 	return(IVP_FALSE);
-	}
-	if ( class_id < IVP_DM_DUMMY || this->flag_list[class_id] == 0 || !this->initialized ) {
+    }
+    if ( class_id < IVP_DM_DUMMY || this->flag_list[class_id] == 0 || !this->initialized ) {
 	return(IVP_FALSE);
-	}
-	return(IVP_TRUE);
+    }
+    return(IVP_TRUE);
 }
 
 
 void IVP_BetterDebugmanager::dprint(IVP_DEBUG_CLASS class_id, const  char *formatstring, ...) {
 
-	char buffer[4096];
-	va_list args;
+    char buffer[4096];
+    va_list args;
 
-	va_start(args, formatstring);	 //-V2019
-	vsnprintf(buffer, sizeof(buffer), formatstring, args);
-	va_end(args);
+    va_start(args, formatstring);	 //-V2019
+    vsnprintf(buffer, sizeof(buffer), formatstring, args);
+    va_end(args);
 
-	this->output_function(class_id, buffer);
+    this->output_function(class_id, buffer);
 
-	return;
+    return;
 }
 
 
 void IVP_BetterDebugmanager::output_function(IVP_DEBUG_CLASS , const char *string) {
 
-	ivp_message("%s", string);
-	return;
+    ivp_message("%s", string);
+    return;
 }
 
 
 IVP_BetterDebugmanager::IVP_BetterDebugmanager() {
 
-	int x;
-	for (x=0; x<IVP_DEBUG_MAX_N_CLASSES; x++) {
+    int x;
+    for (x=0; x<IVP_DEBUG_MAX_N_CLASSES; x++) {
 	this->flag_list[x] = 0;
-	}
-	this->initialized = 1;
+    }
+    this->initialized = 1;
 
 #ifdef DEBUG
-	//this->enable_debug_output(IVP_DM_SURBUILD_POINTSOUP);
-	//this->enable_debug_output(IVP_DM_SURBUILD_HALFSPACESOUP);
-	//this->enable_debug_output(IVP_DM_SURBUILD_Q12);
-	//this->enable_debug_output(IVP_DM_CONVEX_DECOMPOSITOR);
-	//this->enable_debug_output(IVP_DM_QHULL);
-	//this->enable_debug_output(IVP_DM_GEOMPACK_LEVEL1);
-	//this->enable_debug_output(IVP_DM_GEOMPACK_LEVEL2);
-	//this->enable_debug_output(IVP_DM_GEOMPACK_LEVEL3);
-	this->enable_debug_output(IVP_DM_CLUSTERING_SHORTRANGE_VISUALIZER);
-	this->enable_debug_output(IVP_DEBUG_IPION_ERROR_MSG);
+    //this->enable_debug_output(IVP_DM_SURBUILD_POINTSOUP);
+    //this->enable_debug_output(IVP_DM_SURBUILD_HALFSPACESOUP);
+    //this->enable_debug_output(IVP_DM_SURBUILD_Q12);
+    //this->enable_debug_output(IVP_DM_CONVEX_DECOMPOSITOR);
+    //this->enable_debug_output(IVP_DM_QHULL);
+    //this->enable_debug_output(IVP_DM_GEOMPACK_LEVEL1);
+    //this->enable_debug_output(IVP_DM_GEOMPACK_LEVEL2);
+    //this->enable_debug_output(IVP_DM_GEOMPACK_LEVEL3);
+    this->enable_debug_output(IVP_DM_CLUSTERING_SHORTRANGE_VISUALIZER);
+    this->enable_debug_output(IVP_DEBUG_IPION_ERROR_MSG);
 #endif
 
-	return;
+    return;
 }
 
 
 IVP_BetterDebugmanager::~IVP_BetterDebugmanager() {
 
-	return;
+    return;
 }
 
 IVP_BetterDebugmanager ivp_debugmanager;

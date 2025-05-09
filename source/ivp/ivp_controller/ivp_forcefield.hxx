@@ -3,7 +3,7 @@
 //IVP_EXPORT_PUBLIC
 
 /********************************************************************************
- *	File:		   	ivp_forcefield.hxx	
+ *	File:	       	ivp_forcefield.hxx	
  *	Description:	IVP_ForceFields are convinient managers to Force Fields
  ********************************************************************************/
 
@@ -26,22 +26,22 @@
 class IVP_Forcefield: protected IVP_Listener_Set_Active<IVP_Core>, protected IVP_Controller_Independent
 {
 protected:
-	IVP_U_Set_Active<IVP_Core> *set_of_cores;
-	IVP_BOOL i_am_owner_of_set_of_cores; // default: IVP_TRUE; if IVP_FALSE, set_of_cores will not be deleted by deconstructor!
+    IVP_U_Set_Active<IVP_Core> *set_of_cores;
+    IVP_BOOL i_am_owner_of_set_of_cores; // default: IVP_TRUE; if IVP_FALSE, set_of_cores will not be deleted by deconstructor!
 
-	// IVP_Listener_Set_Active implementations
-	void element_added(IVP_U_Set_Active<IVP_Core> *set, IVP_Core *elem) override;
-	void element_removed(IVP_U_Set_Active<IVP_Core> *set, IVP_Core *elem) override;
-	void pset_is_going_to_be_deleted(IVP_U_Set_Active<IVP_Core> *set) override;   // Note: pset is not removing elements when deleted
+    // IVP_Listener_Set_Active implementations
+    void element_added(IVP_U_Set_Active<IVP_Core> *set, IVP_Core *elem) override;
+    void element_removed(IVP_U_Set_Active<IVP_Core> *set, IVP_Core *elem) override;
+    void pset_is_going_to_be_deleted(IVP_U_Set_Active<IVP_Core> *set) override;   // Note: pset is not removing elements when deleted
 
-	// IVP_Controller implementations (only some)
-	void core_is_going_to_be_deleted_event(IVP_Core *) override;   // default deletes this
-	
-	virtual void do_simulation_controller(IVP_Event_Sim *,IVP_U_Vector<IVP_Core> *core_list)=0;
-	IVP_CONTROLLER_PRIORITY get_controller_priority() override;
-	IVP_Forcefield(IVP_Environment *env, IVP_U_Set_Active<IVP_Core> *set_of_cores, IVP_BOOL owner_of_set);
+    // IVP_Controller implementations (only some)
+    void core_is_going_to_be_deleted_event(IVP_Core *) override;   // default deletes this
+    
+    virtual void do_simulation_controller(IVP_Event_Sim *,IVP_U_Vector<IVP_Core> *core_list)=0;
+    IVP_CONTROLLER_PRIORITY get_controller_priority() override;
+    IVP_Forcefield(IVP_Environment *env, IVP_U_Set_Active<IVP_Core> *set_of_cores, IVP_BOOL owner_of_set);
 public:
-	~IVP_Forcefield();
+    ~IVP_Forcefield();
 };
 
 

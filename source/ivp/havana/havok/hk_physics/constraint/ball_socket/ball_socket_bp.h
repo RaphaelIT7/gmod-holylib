@@ -27,7 +27,7 @@ class hk_Ball_Socket_BP  //: public hk_Effector_BP
 
 	public: // hack for now
 
-		hk_real	 m_tau;
+		hk_real     m_tau;
 		hk_real		m_strength;
 		hk_Vector3	m_translation_os_ks[2];
 

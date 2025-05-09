@@ -12,24 +12,24 @@
 
 IVP_DOUBLE IVP_Material_Manager::get_friction_factor(IVP_Contact_Situation *sit)
 {
-	return sit->materials[0]->get_friction_factor() *
+    return sit->materials[0]->get_friction_factor() *
 	   sit->materials[1]->get_friction_factor();
 }
 
 IVP_DOUBLE IVP_Material_Manager::get_elasticity(IVP_Contact_Situation *sit)
 {
-	return sit->materials[0]->get_elasticity() *
+    return sit->materials[0]->get_elasticity() *
 	   sit->materials[1]->get_elasticity();
 }
 
 IVP_DOUBLE IVP_Material_Manager::get_adhesion(IVP_Contact_Situation *sit)
 {
-	return sit->materials[0]->get_adhesion() +
+    return sit->materials[0]->get_adhesion() +
 	   sit->materials[1]->get_adhesion();
 }
 
 IVP_Material_Manager::IVP_Material_Manager(IVP_BOOL delete_on_env_delete_in){
-	delete_on_env_delete = delete_on_env_delete_in;
+    delete_on_env_delete = delete_on_env_delete_in;
 }
 
 IVP_Material::~IVP_Material(){
@@ -43,26 +43,26 @@ IVP_Material *IVP_Material_Manager::get_material_by_index(const IVP_U_Point * /*
 
 IVP_DOUBLE IVP_Material_Simple::get_friction_factor()
 {
-	return friction_value;
+    return friction_value;
 }
 
 IVP_DOUBLE IVP_Material_Simple::get_elasticity()
 {
-	return elasticity;
+    return elasticity;
 }
 
 // INTERN_START
 IVP_DOUBLE IVP_Material_Simple::get_adhesion()
 {
-	return adhesion;
+    return adhesion;
 }
 // INTERN_END
 
 IVP_Material_Simple::IVP_Material_Simple(IVP_DOUBLE friction, IVP_DOUBLE elas){
-	friction_value = friction;
-	second_friction_x = 0.0f;
-	elasticity = elas;
-	adhesion = 0.0f;
+    friction_value = friction;
+    second_friction_x = 0.0f;
+    elasticity = elas;
+    adhesion = 0.0f;
 }
 
 IVP_Material_Simple::~IVP_Material_Simple(){
@@ -70,12 +70,12 @@ IVP_Material_Simple::~IVP_Material_Simple(){
 }
 
 IVP_Material_Simple::IVP_Material_Simple(){
-	friction_value = 0.0f;
-	second_friction_x = 0.0f;
-	elasticity = 0.5f;
-	adhesion = 0.0f;
+    friction_value = 0.0f;
+    second_friction_x = 0.0f;
+    elasticity = 0.5f;
+    adhesion = 0.0f;
 
 }
 const char *IVP_Material_Simple::get_name(){
-	return "Simple material";
+    return "Simple material";
 }

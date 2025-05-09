@@ -36,11 +36,11 @@ const char *P_String::find_string(const char *str, const char *key, int upper_ca
 {
 /* checks for a substring in another string
    upper_case = 0	->exact match
-			  = 1	-> a==A
-			  = 2	-> a==A && a==?
+              = 1	-> a==A
+              = 2	-> a==A && a==?
 */
-	if ( str == NULL ) return NULL;
-	
+    if ( str == NULL ) return NULL;
+    
 	const char  *p1, *p2;
 	char b;
 	switch (upper_case) {
@@ -226,51 +226,51 @@ char *GBS_remove_escape(char *com)	/* \ is the escape charakter */
 
 char *p_strdup(const char *s)
 {
-	// kann auch NULLen
-	if(s){
+    // kann auch NULLen
+    if(s){
 	size_t len = strlen(s)+1;
 	char *s2 = (char *)p_malloc(len);
 	memcpy(s2,(char *)s,len); 
 	return s2;
-	}else{
+    }else{
 	return NULL;
-	}
+    }
 }
 
 #define MAX_MAKE_STRING_LEN 10000
 
 char *p_make_string_fast(const char *templat, ...)
 {
-	// returns an allocated string with format like ivp_message
-	// NULL-Strings and empty strings allowed
-	// no check for overflow
-	
-	if(!templat) return NULL;
-	
-	char buffer[MAX_MAKE_STRING_LEN];
-	va_list parg;
-	memset(buffer,0,std::min(1000, MAX_MAKE_STRING_LEN)); // nur bei sparc-debugging
-	va_start(parg,templat);	 //-V2019
-	vsnprintf(buffer,std::size(buffer),templat,parg);
-	va_end(parg);
-	return p_strdup(buffer);
+    // returns an allocated string with format like ivp_message
+    // NULL-Strings and empty strings allowed
+    // no check for overflow
+    
+    if(!templat) return NULL;
+    
+    char buffer[MAX_MAKE_STRING_LEN];
+    va_list parg;
+    memset(buffer,0,std::min(1000, MAX_MAKE_STRING_LEN)); // nur bei sparc-debugging
+    va_start(parg,templat);	 //-V2019
+    vsnprintf(buffer,std::size(buffer),templat,parg);
+    va_end(parg);
+    return p_strdup(buffer);
 }
 
 char *p_make_string(const char *templat, ...)
 {
-	// returns an allocated string with format like ivp_message
-	// NULL-Strings and empty strings allowed
-	// LINUX: check for overflow
-	
-	if(!templat) return NULL;
-	
-	char buffer[MAX_MAKE_STRING_LEN];
-	va_list parg;
-	memset(buffer,0,std::min(1000, MAX_MAKE_STRING_LEN)); // only for sparc-debugging
-	va_start(parg,templat); //-V2019
-	vsnprintf(buffer, std::size(buffer), templat, parg);
-	va_end(parg);
-	return p_strdup(buffer);
+    // returns an allocated string with format like ivp_message
+    // NULL-Strings and empty strings allowed
+    // LINUX: check for overflow
+    
+    if(!templat) return NULL;
+    
+    char buffer[MAX_MAKE_STRING_LEN];
+    va_list parg;
+    memset(buffer,0,std::min(1000, MAX_MAKE_STRING_LEN)); // only for sparc-debugging
+    va_start(parg,templat); //-V2019
+    vsnprintf(buffer, std::size(buffer), templat, parg);
+    va_end(parg);
+    return p_strdup(buffer);
 }
 
 #define MAX_ERROR_BUFFER_LEN 10000
@@ -278,104 +278,104 @@ char *p_error_buffer = 0;
 
 IVP_ERROR_STRING p_export_error(const char *templat, ...)
 {
-	// for general error management... z.B. p_error_message()
-	char buffer[MAX_ERROR_BUFFER_LEN];
-	char *p = buffer;
-	va_list	parg;
-	memset(buffer,0, std::min(1000, MAX_ERROR_BUFFER_LEN)); // only for sparc-debugging
-	snprintf (buffer, std::size(buffer), "ERROR: ");
-	p += strlen(p);
-	
-	va_start(parg,templat);	 //-V2019
-	vsnprintf(buffer,std::size(buffer),templat,parg);
-	va_end(parg);
+    // for general error management... z.B. p_error_message()
+    char buffer[MAX_ERROR_BUFFER_LEN];
+    char *p = buffer;
+    va_list	parg;
+    memset(buffer,0, std::min(1000, MAX_ERROR_BUFFER_LEN)); // only for sparc-debugging
+    snprintf (buffer, std::size(buffer), "ERROR: ");
+    p += strlen(p);
+    
+    va_start(parg,templat);	 //-V2019
+    vsnprintf(buffer,std::size(buffer),templat,parg);
+    va_end(parg);
 
-	P_FREE(p_error_buffer);
-	p_error_buffer = p_strdup(buffer);
-	return p_error_buffer;
+    P_FREE(p_error_buffer);
+    p_error_buffer = p_strdup(buffer);
+    return p_error_buffer;
 }
 
 void ivp_message(const char *fmt, ...)
 {
-	// for general error management... z.B. p_error_message()
-	char buffer_tmp[MAX_ERROR_BUFFER_LEN] = { 'E', 'R', 'R', 'O', 'R', ':', ' ', '\0' };
-	va_list	args;
+    // for general error management... z.B. p_error_message()
+    char buffer_tmp[MAX_ERROR_BUFFER_LEN] = { 'E', 'R', 'R', 'O', 'R', ':', ' ', '\0' };
+    va_list	args;
 
-	va_start(args, fmt); //-V2019
-	vsnprintf(buffer_tmp, std::size(buffer_tmp), fmt, args);
-	va_end(args);
+    va_start(args, fmt); //-V2019
+    vsnprintf(buffer_tmp, std::size(buffer_tmp), fmt, args);
+    va_end(args);
 
-	char buffer_out[MAX_ERROR_BUFFER_LEN];
-	snprintf(buffer_out, std::size(buffer_out), "[havok] %s", buffer_tmp);
+    char buffer_out[MAX_ERROR_BUFFER_LEN];
+    snprintf(buffer_out, std::size(buffer_out), "[havok] %s", buffer_tmp);
 
 #ifdef WIN32
-	OutputDebugStringA(buffer_out);
+    OutputDebugStringA(buffer_out);
 #else
-	fprintf(stderr, "%s", buffer_out);
+    fprintf(stderr, "%s", buffer_out);
 #endif
 }
 
 
 IVP_ERROR_STRING p_get_error(){
-	return p_error_buffer;
+    return p_error_buffer;
 }
 
 void p_print_error() {
-	char buffer_out[MAX_ERROR_BUFFER_LEN];
-	snprintf(buffer_out, std::size(buffer_out), "[havok] %s", p_get_error());
+    char buffer_out[MAX_ERROR_BUFFER_LEN];
+    snprintf(buffer_out, std::size(buffer_out), "[havok] %s", p_get_error());
 
 #ifdef WIN32
-	OutputDebugStringA(buffer_out);
+    OutputDebugStringA(buffer_out);
 #else
-	fprintf(stderr, "%s", buffer_out);
+    fprintf(stderr, "%s", buffer_out);
 #endif
 }
 
 char *p_read_first_token(FILE *fp){
-	static char buffer[1024];
-	while( fgets(buffer, 1000, fp) ){
+    static char buffer[1024];
+    while( fgets(buffer, 1000, fp) ){
 	if(buffer[0] == '#') continue;	//Comment
 	char *tok = p_str_tok(buffer, IVP_WHITESPACE);
 	if (!tok) continue;
 	return tok;
-	}
-	return 0;
+    }
+    return 0;
 }
 
 char *p_get_string(){
-	char *s =  p_str_tok(0,"\n");
-	return p_strdup(s);
+    char *s =  p_str_tok(0,"\n");
+    return p_strdup(s);
 }
 
 char *p_get_next_token(){
-	return  p_str_tok(0,IVP_WHITESPACE);
+    return  p_str_tok(0,IVP_WHITESPACE);
 }
 
 int p_get_num(){
-	return atoi(p_str_tok(NULL, IVP_WHITESPACE));
+    return atoi(p_str_tok(NULL, IVP_WHITESPACE));
 }
 
 IVP_DOUBLE p_get_float(){
-	char *str = p_str_tok(NULL, IVP_WHITESPACE);
-	if (!str) return 0.0f;
+    char *str = p_str_tok(NULL, IVP_WHITESPACE);
+    if (!str) return 0.0f;
 	// dimhotepus: atof -> strtof
-	return IVP_DOUBLE(strtof(str, nullptr));
+    return IVP_DOUBLE(strtof(str, nullptr));
 }
 
 
 ptrdiff_t p_strlen(const char *s)
 {
-	if(!s || s[0] == 0) return 0;
-	return strlen(s);
+    if(!s || s[0] == 0) return 0;
+    return strlen(s);
 }
 
 int p_strcmp( const char *s1, const char *s2){
-	if (s1 == NULL){
+    if (s1 == NULL){
 	if (s2 == NULL) return 0;
 	return 1;
-	}
-	if (s2 == NULL) return -1;
-	return strcmp(s1,s2);
+    }
+    if (s2 == NULL) return -1;
+    return strcmp(s1,s2);
 }
 
 char *p_str_tok(char *a,const char *deli){
@@ -395,14 +395,14 @@ char *p_str_tok(char *a,const char *deli){
 }
 
 IVP_DOUBLE p_atof(const char *s){
-	if (!s) return(0.0f);
+    if (!s) return(0.0f);
 	// dimhotepus: atof -> strtof
-	return IVP_DOUBLE(strtof(s, nullptr));
+    return IVP_DOUBLE(strtof(s, nullptr));
 };
 
 int p_atoi(const char *s){
-	if (!s) return(0);
-	return atoi(s);
+    if (!s) return(0);
+    return atoi(s);
 }
 
 

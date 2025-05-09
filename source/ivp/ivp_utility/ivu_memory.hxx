@@ -20,7 +20,7 @@ struct p_Memory_Elem {
 
 class IVP_U_Memory {
 #ifdef MEMTEST
-	IVP_U_Vector<char> mem_vector;
+    IVP_U_Vector<char> mem_vector;
 #else
 	p_Memory_Elem *first_elem;
 	p_Memory_Elem *last_elem;
@@ -28,7 +28,7 @@ class IVP_U_Memory {
 	char *speicherende;
 #endif
 
-	short transaction_in_use : 16;			 // for asserts
+	short transaction_in_use : 16;             // for asserts
 	unsigned short size_of_external_mem:16;  // or 0 if not external mem; used for e.g. PS2 scratchpad
  
 	void *speicher_callok(unsigned int groesse);
@@ -55,38 +55,38 @@ class IVP_U_Memory {
 
 void IVP_U_Memory::start_memory_transaction()
 {
-	//IVP_ASSERT(transaction_in_use==0);
-	IVP_IF(1) {
+    //IVP_ASSERT(transaction_in_use==0);
+    IVP_IF(1) {
 #ifdef SUN
 		if(size_of_external_mem==0) {
-			init_mem_transaction_usage(); //get first block
+	        init_mem_transaction_usage(); //get first block
 		}
 #endif
-	}
+    }
 	transaction_in_use++;
 }
 
 void IVP_U_Memory::end_memory_transaction()
 {
-	//IVP_IF(1) {
-		transaction_in_use--;
-	//}
-	//IVP_ASSERT(transaction_in_use==0);
-	free_mem_transaction();
-	IVP_IF(1) {
+    //IVP_IF(1) {
+	    transaction_in_use--;
+    //}
+    //IVP_ASSERT(transaction_in_use==0);
+    free_mem_transaction();
+    IVP_IF(1) {
 #ifdef SUN
 		free_mem(); //clear last block to be able to detect unitialized memory access
 #endif
-	}
+    }
 }
 
 
 //warning: dependency with function neuer_sp_block
 inline void *IVP_U_Memory::align_to_next_adress(void *p) {
-	uintp address = (uintp)p;
-	address += IVU_MEM_ALIGN-1;
-	address = address & IVU_MEM_MASK;
-	return (void*)address;
+    uintp address = (uintp)p;
+    address += IVU_MEM_ALIGN-1;
+    address = address & IVU_MEM_MASK;
+    return (void*)address;
 }
 
 inline void	*IVP_U_Memory::get_mem(size_t groesse)
@@ -119,8 +119,8 @@ inline void	*IVP_U_Memory::get_mem(size_t groesse)
 }
 
 inline void *IVP_U_Memory::get_mem_transaction(size_t groesse){
-	IVP_ASSERT(transaction_in_use == 1);
-	return get_mem(groesse);
+    IVP_ASSERT(transaction_in_use == 1);
+    return get_mem(groesse);
 }
 
 

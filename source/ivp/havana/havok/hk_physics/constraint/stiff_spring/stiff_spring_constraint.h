@@ -9,7 +9,7 @@ class hk_Stiff_Spring_Constraint : public hk_Constraint
 
 		void apply_effector_PSI( hk_PSI_Info&, hk_Array<hk_Entity*>* );
 
-		hk_Stiff_Spring_Constraint( hk_Environment *,			 const hk_Stiff_Spring_BP *, hk_Rigid_Body *a ,hk_Rigid_Body *b );	
+		hk_Stiff_Spring_Constraint( hk_Environment *,             const hk_Stiff_Spring_BP *, hk_Rigid_Body *a ,hk_Rigid_Body *b );	
 		hk_Stiff_Spring_Constraint( hk_Local_Constraint_System *, const hk_Stiff_Spring_BP *, hk_Rigid_Body *a ,hk_Rigid_Body *b );	
 
 		inline ~hk_Stiff_Spring_Constraint(){}
@@ -38,9 +38,9 @@ class hk_Stiff_Spring_Constraint : public hk_Constraint
 
 		hk_Vector3 m_translation_os_ks[2];		// 32 
 
-		hk_real m_tau;	   // 4
+		hk_real m_tau;       // 4
 		hk_real m_strength;  // 4
-		hk_real m_stiff_spring_length;	   // 4
+		hk_real m_stiff_spring_length;       // 4
 		hk_real m_min_length;
 
 	private:

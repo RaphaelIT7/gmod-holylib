@@ -38,7 +38,7 @@ class hk_Car_Wheel_Constraint : public hk_Constraint
 
 		void init_car_wheel_constraint(const hk_Car_Wheel_BP*);
 
-		hk_real	 m_tau;	
+		hk_real     m_tau;	
 		hk_real		m_damp;
 
 		hk_Constraint_Limit m_suspension_limit;

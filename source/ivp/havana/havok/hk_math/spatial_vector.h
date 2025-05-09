@@ -44,8 +44,8 @@ class hk_Spatial_Vector
 		void set_transformed_pos(const hk_Spatial_Matrix& a, const hk_Spatial_Vector& b);
 		inline void _set_transformed_pos(const hk_Spatial_Matrix& a, const hk_Spatial_Vector& b);
 
-		/* element access */
-		inline hk_real& operator() (int a);
+        /* element access */
+	    inline hk_real& operator() (int a);
 		inline const hk_real& operator() (int a) const;
 
 	public:

@@ -10,7 +10,7 @@ public:
 		hk_PSI_Info& pi,
 		hk_Rigid_Body *b0,
 		const hk_Vector3 &rot_axis_Ref_ws,		// the axis the objects are rotating around
-		hk_real	alpha,				// the current angle
+		hk_real    alpha,				// the current angle
 		hk_Rigid_Body *b1,
 		hk_Constraint_Limit &limit,
 		hk_real		tau_factor,
@@ -216,7 +216,7 @@ public:
 		hk_Rigid_Body *b1,
 		const hk_Vector3  &axis_ws,		// the axis the objects are rotating around
 		const hk_Vector3	&plane_normal_ws,		// the plane we are clipping 
-		hk_real		alpha,			// the current distance (e.g. initialized with axis_ws.dot( plane_normal_ws )
+		hk_real	    alpha,			// the current distance (e.g. initialized with axis_ws.dot( plane_normal_ws )
 		hk_Constraint_Limit &limit,
 		hk_real		tau_factor,
 		hk_real		damp_factor

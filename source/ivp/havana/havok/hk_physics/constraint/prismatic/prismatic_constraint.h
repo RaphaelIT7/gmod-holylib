@@ -8,7 +8,7 @@ class hk_Prismatic_Constraint : public hk_Constraint
 {
 	public:
 
-		hk_Prismatic_Constraint( hk_Environment *,			 const hk_Prismatic_BP *, hk_Rigid_Body *Ref ,hk_Rigid_Body *Att );	
+		hk_Prismatic_Constraint( hk_Environment *,             const hk_Prismatic_BP *, hk_Rigid_Body *Ref ,hk_Rigid_Body *Att );	
 		hk_Prismatic_Constraint( hk_Local_Constraint_System *, const hk_Prismatic_BP *, hk_Rigid_Body *Ref ,hk_Rigid_Body *Att );	
 
 

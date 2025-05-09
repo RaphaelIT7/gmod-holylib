@@ -11,8 +11,8 @@
 void IVP_Collision_Delegator_Root_Mindist::object_is_removed_from_collision_detection(IVP_Real_Object *o){
   IVP_OV_Element *ov = o->get_ov_element();
   for (int i= ov->collision_fvector.len()-1; i>=0;i--){
-	  IVP_Collision *coll = ov->collision_fvector.element_at(i);
-	  coll->delegator_is_going_to_be_deleted_event(this); // deletes oo_collision removes itself from this hash
+      IVP_Collision *coll = ov->collision_fvector.element_at(i);
+      coll->delegator_is_going_to_be_deleted_event(this); // deletes oo_collision removes itself from this hash
   }
 }
 
@@ -38,25 +38,25 @@ IVP_Collision *IVP_Collision_Delegator_Root_Mindist::delegate_collisions_for_obj
   const IVP_Compact_Ledge *l1 = obj1->get_surface_manager()->get_single_convex();
   
   if (  l0 && l1 ){
-	const IVP_Compact_Triangle *tri0 = l0->get_first_triangle();
-	const IVP_Compact_Triangle *tri1 = l1->get_first_triangle();
+    const IVP_Compact_Triangle *tri0 = l0->get_first_triangle();
+    const IVP_Compact_Triangle *tri1 = l1->get_first_triangle();
 
-	IVP_Environment *env = obj0->get_environment();
+    IVP_Environment *env = obj0->get_environment();
 
-	IVP_Mindist *md; // #+# check for bounding boxes using get_all_ledges_within_radius
-	if ( !l0->is_terminal() || !l1->is_terminal()){
+    IVP_Mindist *md; // #+# check for bounding boxes using get_all_ledges_within_radius
+    if ( !l0->is_terminal() || !l1->is_terminal()){
 	md = new IVP_Mindist_Recursive(env, this);
-	}else{
+    }else{
 	md = new IVP_Mindist(env, this);
-	}
-	md->init_mindist(obj0, obj1, tri0->get_first_edge(),tri1->get_first_edge());
-	coll = md;
-  }else{	  
-	coll = new IVP_OO_Watcher(this,obj0,obj1);
+    }
+    md->init_mindist(obj0, obj1, tri0->get_first_edge(),tri1->get_first_edge());
+    coll = md;
+  }else{      
+    coll = new IVP_OO_Watcher(this,obj0,obj1);
   }
   
 #else
-	coll = new IVP_OO_Watcher(this,obj0,obj1);
+    coll = new IVP_OO_Watcher(this,obj0,obj1);
 #endif  
   
   IVP_OV_Element *ov0 = obj0->get_ov_element();

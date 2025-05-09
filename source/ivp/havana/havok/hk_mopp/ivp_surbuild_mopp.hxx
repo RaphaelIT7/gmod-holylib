@@ -3,14 +3,14 @@
 // IVP_EXPORT_PUBLIC
 
 /********************************************************************************
- *  Filename:		ivp_surbuild_Mopp.hxx
- *  Description:	This file provides you with a builder class for assembling
- *			different (convex) compact ledges into one (possibly concave)
- *			compact surface which you can then use to create a physical
- *			object. It is much like the IVP_SurfaceBuilder_Ledge_Soup class, but
- *		  creates a compact surface with a different internal ledgetree 
+ *  Filename:	    ivp_surbuild_Mopp.hxx
+ *  Description:    This file provides you with a builder class for assembling
+ *		    different (convex) compact ledges into one (possibly concave)
+ *		    compact surface which you can then use to create a physical
+ *		    object. It is much like the IVP_SurfaceBuilder_Ledge_Soup class, but
+ *          creates a compact surface with a different internal ledgetree 
  *			structure.
- *  Classes:		IVP_SurfaceBuilder_Mopp
+ *  Classes:	    IVP_SurfaceBuilder_Mopp
  ********************************************************************************/
 
 #ifndef IVP_SURBUILD_MOPP_INCLUDED
@@ -24,12 +24,12 @@ class IVP_I_FPoint_VHash;
 class hkMoppCode; // bv - tree
 
 /********************************************************************************
- *  Class:		IVP_SurfaceBuilder_Ledge_Soup
- *  Description:	Ipion's ledgesoup builder takes one or more (convex) compact
- *			ledges as input, combines them and builds a (possibly
- *			concave) compact surface. You can then use this compact
- *			surface to create a physical object.
- *  Note:		Algorithm is fast but still O(n*sqrt(n));
+ *  Class:	    IVP_SurfaceBuilder_Ledge_Soup
+ *  Description:    Ipion's ledgesoup builder takes one or more (convex) compact
+ *		    ledges as input, combines them and builds a (possibly
+ *		    concave) compact surface. You can then use this compact
+ *		    surface to create a physical object.
+ *  Note:	    Algorithm is fast but still O(n*sqrt(n));
  *******************************************************************************/
 class IVP_SurfaceBuilder_Mopp {
 
@@ -78,7 +78,7 @@ public:
 
 	/******************************************************************************
 	 *  Method:		insert_ledge
-	 *  Description:	Use this method to add additional ledges (i.e. convex
+	 *  Description:    Use this method to add additional ledges (i.e. convex
 	 *			subparts of your object) to the ledgesoup builder
 	 *	Input:		<ledge> new ledge to add to the soup
 	 *	Output:		Pointer to the original (supplied) IVP_Compact_Ledge
@@ -88,7 +88,7 @@ public:
 
 	/******************************************************************************
 	 *  Method:		compile
-	 *  Description:	This method will actually build the new (possibly concave)
+	 *  Description:    This method will actually build the new (possibly concave)
 	 *			compact surface out of the (convex) ledges
 	 *  build_convex_hull if set to true, the algorithm generates an additional
 	 *			convex hull around the object. For moveable objects this

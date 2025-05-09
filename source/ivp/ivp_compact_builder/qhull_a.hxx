@@ -1,4 +1,4 @@
-/*<html><pre>  -<a							 href="qh-c.htm#qhull"
+/*<html><pre>  -<a                             href="qh-c.htm#qhull"
   >-------------------------------</a><a name="TOP">-</a>
 
    qhull_a.h 
@@ -15,7 +15,7 @@
    copyright (c) 1993-1999, The Geometry Center
 
    Notes:  grep for ((" and (" to catch fprintf("lkasdjf");
-		   full parens around (x?y:z)
+           full parens around (x?y:z)
 	   use '#include qhull/qhull_a.h' to avoid name clashes
 */
 
@@ -27,11 +27,11 @@
 #include <setjmp.h>
 #include <cstring>
 //#include <cmath>
-#include <cfloat>	/* some compilers will not need float.h */
+#include <cfloat>    /* some compilers will not need float.h */
 #include <climits>
 #include <ctype.h>
 /*** uncomment here and qset.c
-	 if string.h does not define memcpy()
+     if string.h does not define memcpy()
 #include <memory.h>
 */
 #include "qhull.hxx"
@@ -53,14 +53,14 @@
 
 /* ======= -macros- =========== */
 
-/*-<a							 href="qh-c.htm#qhull"
+/*-<a                             href="qh-c.htm#qhull"
   >--------------------------------</a><a name="traceN">-</a>
   
   traceN((fp.ferr, "format\n", vars));  
-	calls fprintf if qh.IStracing >= N
+    calls fprintf if qh.IStracing >= N
   
   notes:
-	removing tracing reduces code size but doesn't change execution speed
+    removing tracing reduces code size but doesn't change execution speed
 */
 #ifndef qh_NOtrace
 #define trace0(args) do {if (qh IStracing) fprintf args;} while (false)
@@ -86,26 +86,26 @@ extern void 	ivp_message(const char *templat, ...);
 void 	qh_qhull (void);
 boolT   qh_addpoint (pointT *furthest, facetT *facet, boolT checkdist);
 void 	qh_buildhull(void);
-void	qh_buildtracing (pointT *furthest, facetT *facet);
-void	qh_build_withrestart (void);
+void    qh_buildtracing (pointT *furthest, facetT *facet);
+void    qh_build_withrestart (void);
 void 	qh_errexit2 [[noreturn]] (int exitcode, facetT *facet, facetT *otherfacet);
-void	qh_findhorizon(pointT *point, facetT *facet, int *goodvisible,int *goodhorizon);
+void    qh_findhorizon(pointT *point, facetT *facet, int *goodvisible,int *goodhorizon);
 pointT *qh_nextfurthest (facetT **visible);
 void 	qh_partitionall(setT *vertices, pointT *points,int npoints);
-void	qh_partitioncoplanar (pointT *point, facetT *facet, realT *dist);
-void	qh_partitionpoint (pointT *point, facetT *facet);
+void    qh_partitioncoplanar (pointT *point, facetT *facet, realT *dist);
+void    qh_partitionpoint (pointT *point, facetT *facet);
 void 	qh_partitionvisible(boolT allpoints, int *numpoints);
-void	qh_precision (const char *reason);
+void    qh_precision (const char *reason);
 void	qh_printsummary(FILE *fp);
 
 /***** -global.c internal prototypes (alphabetical) ***********************/
 
-void	qh_appendprint (qh_PRINT format);
+void    qh_appendprint (qh_PRINT format);
 void 	qh_freebuild (boolT allmem);
 void 	qh_freebuffers (void);
-void	qh_initbuffers (coordT *points, int numpoints, int dim, boolT ismalloc);
-void	qh_option (const char *option, int *i, realT *r);
-int	 qh_strtol (const char *s, char **endp);
+void    qh_initbuffers (coordT *points, int numpoints, int dim, boolT ismalloc);
+void    qh_option (const char *option, int *i, realT *r);
+int     qh_strtol (const char *s, char **endp);
 double  qh_strtod (const char *s, char **endp);
 
 /***** -stat.c internal prototypes (alphabetical) ***********************/
@@ -117,7 +117,7 @@ void	qh_allstatD (void);
 void	qh_allstatE (void);
 void	qh_allstatF (void);
 void 	qh_freebuffers (void);
-void	qh_initbuffers (coordT *points, int numpoints, int dim, boolT ismalloc);
+void    qh_initbuffers (coordT *points, int numpoints, int dim, boolT ismalloc);
 
 #endif /* qhDEFqhulla */
 

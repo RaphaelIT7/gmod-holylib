@@ -43,9 +43,9 @@ class hk_Pulley_Constraint : public hk_Constraint
 		hk_Vector3 m_translation_os_ks[2];	// 32 
 		hk_Vector3 m_worldspace_point[2];	// 32
 
-		hk_real m_tau;	   			// 4
+		hk_real m_tau;       			// 4
 		hk_real m_strength;  			// 4
-		hk_real m_length;	   		// 4
+		hk_real m_length;       		// 4
 		hk_real m_gearing;			// 4
 		hk_bool m_is_rigid;
 		

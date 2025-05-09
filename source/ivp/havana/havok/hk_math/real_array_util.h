@@ -11,7 +11,7 @@
 // routines will cause a crash.
 class hk_Real_Array_Util
 {
-	public:
+    public:
 
 		static hk_real dot(const hk_real* x, const hk_real* y);
 };

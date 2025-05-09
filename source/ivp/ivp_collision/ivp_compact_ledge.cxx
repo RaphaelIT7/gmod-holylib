@@ -1,7 +1,7 @@
 // Copyright (C) Ipion Software GmbH 1999-2000. All rights reserved.
 
 /********************************************************************************
- *	File:		   	ivp_compact_ledge.cxx	
+ *	File:	       	ivp_compact_ledge.cxx	
  *	Description:	compacted ledge representation
  ********************************************************************************/
 
@@ -29,9 +29,9 @@ int IVP_Compact_Edge::prev_table[] = { 0, 2*int(sizeof(IVP_Compact_Edge)), -1*in
 
 IVP_Compact_Edge::IVP_Compact_Edge()
 {
-	start_point_index = 0;
-	opposite_index = 0;
-	is_virtual = 0;
+    start_point_index = 0;
+    opposite_index = 0;
+    is_virtual = 0;
 }
 
 void IVP_Compact_Edge::byte_swap()
@@ -73,7 +73,7 @@ void IVP_Compact_Edge::byte_swap()
 
 IVP_Compact_Triangle::IVP_Compact_Triangle()
 {
-	P_MEM_CLEAR(this);
+    P_MEM_CLEAR(this);
 }
 
 
@@ -126,7 +126,7 @@ void IVP_Compact_Triangle::byte_swap()
 
 void IVP_Compact_Ledge::c_ledge_init()
 {
-	P_MEM_CLEAR(this);
+    P_MEM_CLEAR(this);
 }
 
 		
@@ -134,16 +134,16 @@ void IVP_Compact_Ledge::byte_swap()
 {
 /*
 	int c_point_offset; // byte offset from 'this' to (ledge) point array
-	union {
+    union {
 		int ledgetree_node_offset;
 		int client_data;	// if indicates a non terminal ledge
-	};
-	unsigned int has_chilren_flag:2;
-	IVP_BOOL is_compact_flag:2;  // if false than compact ledge uses points outside this piece of memory
-	unsigned int dummy:4;
-	unsigned int size_div_16:24; 
-	short n_triangles;
-	short for_future_use;
+    };
+    unsigned int has_chilren_flag:2;
+    IVP_BOOL is_compact_flag:2;  // if false than compact ledge uses points outside this piece of memory
+    unsigned int dummy:4;
+    unsigned int size_div_16:24; 
+    short n_triangles;
+    short for_future_use;
 */
 	
 	ivp_byte_swap4( (uint&) c_point_offset );
@@ -254,11 +254,11 @@ void IVP_Compact_Ledgetree_Node::byte_swap()
 {
 /*
 	int offset_right_node; // (if != 0 than children
-	int offset_compact_ledge; //(if != 0, pointer to hull that contains all subelements
-	IVP_U_Float_Point3 center;	// in object_coords
-	IVP_FLOAT radius; // size of sphere
-	uchar box_sizes[IVP_CLT_N_DIRECTIONS];
-	uchar free_0;
+    int offset_compact_ledge; //(if != 0, pointer to hull that contains all subelements
+    IVP_U_Float_Point3 center;	// in object_coords
+    IVP_FLOAT radius; // size of sphere
+    uchar box_sizes[IVP_CLT_N_DIRECTIONS];
+    uchar free_0;
 */
 	ivp_byte_swap4( (uint&) offset_right_node );
 	ivp_byte_swap4( (uint&) offset_compact_ledge );

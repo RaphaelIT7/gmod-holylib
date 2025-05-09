@@ -1,7 +1,7 @@
 #include <hk_math/vecmath.h>
 
 hk_Transform::hk_Transform(const hk_Quaternion &q, const hk_Vector3 &t)
-	: m_translation{t}
+    : m_translation{t}
 {
 	this->set(q);
 }

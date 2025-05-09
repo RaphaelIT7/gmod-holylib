@@ -3,7 +3,7 @@
 //IVP_EXPORT_PUBLIC
 
 /********************************************************************************
- *	File:		   	ivp_physics.hxx	
+ *	File:	       	ivp_physics.hxx	
  *	Description:	The main include file for the physics API.
  *	Attention:	This file should be included prior to other 'ivp*.hxx' files.
  ********************************************************************************/

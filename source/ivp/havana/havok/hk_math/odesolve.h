@@ -50,7 +50,7 @@ private:
 	void ode_realloc(int new_size) override;
 
 	// work variables
-	hk_real *k1;	
+	hk_real *k1;    
 	hk_real *k2;
 	hk_real *k3;
 	hk_real *k4;

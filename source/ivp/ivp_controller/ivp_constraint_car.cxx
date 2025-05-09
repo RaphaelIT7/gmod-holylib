@@ -22,20 +22,20 @@ IVP_Constraint_Car_Object::IVP_Constraint_Car_Object( IVP_Constraint_Solver_Car 
 													  IVP_Real_Object *i_real_obj_body, 
 													  IVP_U_Float_Point *target_Bos_override )
 {
-	this->real_object = i_real_obj_app;
-	this->solver_car = solver_car_;
-	this->fix_wheel_constraint = NULL;
+    this->real_object = i_real_obj_app;
+    this->solver_car = solver_car_;
+    this->fix_wheel_constraint = NULL;
 
-	i_real_obj_app->get_core()->car_wheel = this;
+    i_real_obj_app->get_core()->car_wheel = this;
 
 	last_skid_value = 0.0f;
 	last_contact_position_ws.set_to_zero();
 	last_skid_time = 0.0f;
 
-	// missing: backward ref from obj to this, to manage obj deletion... @@@OG
+    // missing: backward ref from obj to this, to manage obj deletion... @@@OG
 
-	/*** remember as default: target_position and rotation in body system ***/
-	if (i_real_obj_body )
+    /*** remember as default: target_position and rotation in body system ***/
+    if (i_real_obj_body )
 	{
 		//// treat appendix
 		IVP_Core *core_A = i_real_obj_app->get_core();
@@ -56,12 +56,12 @@ IVP_Constraint_Car_Object::IVP_Constraint_Car_Object( IVP_Constraint_Solver_Car 
 		{
 			m_world_f_B->mimult4(m_world_f_A, &this->target_position_bs);
 		}
-	}
+    }
 	else
 	{
 		//// body itself: gets unit pos and rot
 		this->target_position_bs.init();
-	}
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -69,7 +69,7 @@ IVP_Constraint_Car_Object::IVP_Constraint_Car_Object( IVP_Constraint_Solver_Car 
 //-----------------------------------------------------------------------------
 IVP_Constraint_Car_Object::~IVP_Constraint_Car_Object()
 {
-	real_object->get_core()->car_wheel = NULL;
+    real_object->get_core()->car_wheel = NULL;
 }
 
 //=============================================================================
@@ -85,22 +85,22 @@ IVP_Constraint_Solver_Car::IVP_Constraint_Solver_Car( IVP_COORDINATE_INDEX right
 													  IVP_COORDINATE_INDEX forward, 
 													  IVP_BOOL is_left_hand )
 {
-	// P_MEM_CLEAR(this); NO !!!
+    // P_MEM_CLEAR(this); NO !!!
 	
-	memset(constraint_is_disabled, 0, sizeof(constraint_is_disabled));
-	memset(c_local_ballsocket, 0, sizeof(c_local_ballsocket));
-	this->body_object = NULL;
-	this->x_idx = right;
-	this->y_idx = up;
-	this->z_idx = forward;
-	this->angle_sign = ( is_left_hand ) ? -1.0f : 1.0f;
+    memset(constraint_is_disabled, 0, sizeof(constraint_is_disabled));
+    memset(c_local_ballsocket, 0, sizeof(c_local_ballsocket));
+    this->body_object = NULL;
+    this->x_idx = right;
+    this->y_idx = up;
+    this->z_idx = forward;
+    this->angle_sign = ( is_left_hand ) ? -1.0f : 1.0f;
 	
-	this->max_delta_speed = 80.0f * 3.0f;				// greater ??
-	this->local_translation_in_use = IVP_FALSE;
-	this->environment = NULL;
-	this->psis_left_for_plan_B = 0;
+    this->max_delta_speed = 80.0f * 3.0f;				// greater ??
+    this->local_translation_in_use = IVP_FALSE;
+    this->environment = NULL;
+    this->psis_left_for_plan_B = 0;
 
-	// constraint_is_disabled is inited in Builder.
+    // constraint_is_disabled is inited in Builder.
 }
 
 //-----------------------------------------------------------------------------
@@ -109,24 +109,24 @@ IVP_Constraint_Solver_Car::IVP_Constraint_Solver_Car( IVP_COORDINATE_INDEX right
 IVP_Constraint_Solver_Car::~IVP_Constraint_Solver_Car()
 {
 	//delete silently
-	IVP_Controller_Manager::remove_controller_from_environment( this, IVP_TRUE ); 
+    IVP_Controller_Manager::remove_controller_from_environment( this, IVP_TRUE ); 
 
-	P_DELETE( body_object );
-	for ( int app_nr = 0; app_nr < wheel_objects.len(); app_nr++ )
+    P_DELETE( body_object );
+    for ( int app_nr = 0; app_nr < wheel_objects.len(); app_nr++ )
 	{
 		delete wheel_objects.element_at( app_nr );
-	}
-	
-	for ( int k = 0; k < wheel_objects.len(); k++ )
+    }
+    
+    for ( int k = 0; k < wheel_objects.len(); k++ )
 	{
 		P_DELETE( this->c_local_ballsocket[k] );
-	}
+    }
 
-	wheel_objects.clear();
+    wheel_objects.clear();
 
-	P_FREE( this->co_matrix.matrix_values );
-	P_FREE( this->co_matrix.result_vector );
-	P_FREE( this->co_matrix.desired_vector );
+    P_FREE( this->co_matrix.matrix_values );
+    P_FREE( this->co_matrix.result_vector );
+    P_FREE( this->co_matrix.desired_vector );
 }
 
 //-----------------------------------------------------------------------------
@@ -136,33 +136,33 @@ IVP_RETURN_TYPE IVP_Constraint_Solver_Car::init_constraint_system( IVP_Environme
 																   IVP_U_Vector<IVP_Real_Object> &wheels,	
 																   IVP_U_Vector<IVP_U_Float_Point> &p_Bos )
 { 
-	environment = env;
+    environment = env;
 
-	body_object = new IVP_Constraint_Car_Object( this, body, 0, NULL );
-	cores_of_constraint_system.add( body->get_core() );
+    body_object = new IVP_Constraint_Car_Object( this, body, 0, NULL );
+    cores_of_constraint_system.add( body->get_core() );
 
-	for ( int i = 0; i < wheels.len(); i++ )
+    for ( int i = 0; i < wheels.len(); i++ )
 	{
 		wheel_objects.add( new IVP_Constraint_Car_Object( this, wheels.element_at(i), body, p_Bos.element_at( i ) ) );
 		cores_of_constraint_system.add( wheels.element_at(i)->get_core() );
 		c_local_ballsocket[i] = NULL;
-	}
+    }
 
-	env->get_controller_manager()->announce_controller_to_environment( this );
-	
-	IVP_Constraint_Solver_Car_Builder *builder;
-	builder = new IVP_Constraint_Solver_Car_Builder( this );
+    env->get_controller_manager()->announce_controller_to_environment( this );
+    
+    IVP_Constraint_Solver_Car_Builder *builder;
+    builder = new IVP_Constraint_Solver_Car_Builder( this );
 
-	builder->disable_constraint( y_idx );	// free Y trans
-	builder->disable_constraint( x_idx+3 ); // free X rot
-	builder->disable_constraint( y_idx+3 ); // free y rot
-	builder->disable_constraint( z_idx+3 ); // free z rot
+    builder->disable_constraint( y_idx );	// free Y trans
+    builder->disable_constraint( x_idx+3 ); // free X rot
+    builder->disable_constraint( y_idx+3 ); // free y rot
+    builder->disable_constraint( z_idx+3 ); // free z rot
 
-	IVP_RETURN_TYPE res =  builder->calc_constraint_matrix();
+    IVP_RETURN_TYPE res =  builder->calc_constraint_matrix();
 
-	P_DELETE( builder );
+    P_DELETE( builder );
 
-	return res;
+    return res;
 }
 
 //-----------------------------------------------------------------------------
@@ -172,7 +172,7 @@ void IVP_Constraint_Solver_Car::do_simulation_controller_rotation( IVP_Event_Sim
 																   IVP_Core *core_B, 
 																   const IVP_U_Matrix *m_world_f_B )
 {
-	// For all appendices (wheels).
+    // For all appendices (wheels).
 	for (int app_cnt = 0; app_cnt < wheel_objects.len(); app_cnt++ )
 	{
 		IVP_Constraint_Car_Object *app = wheel_objects.element_at( app_cnt );
@@ -263,29 +263,29 @@ void IVP_Constraint_Solver_Car::do_simulation_controller_rotation( IVP_Event_Sim
 void IVP_Constraint_Solver_Car::do_simulation_controller( IVP_Event_Sim *es, 
 														  IVP_U_Vector<IVP_Core> * /*core_list*/ ) 
 {
-	IVP_DOUBLE inv_dtime = es->i_delta_time;	
+    IVP_DOUBLE inv_dtime = es->i_delta_time;    
 
-	// Pushes body and appendices so that total impulse is the same
-	// and all parts will fulfil the specified constraints in next PSI
-	IVP_Constraint_Car_Object *body = body_object;
-	IVP_Core *core_B = body->get_core();
-	const IVP_U_Matrix *m_world_f_B = core_B->get_m_world_f_core_PSI();
+    // Pushes body and appendices so that total impulse is the same
+    // and all parts will fulfil the specified constraints in next PSI
+    IVP_Constraint_Car_Object *body = body_object;
+    IVP_Core *core_B = body->get_core();
+    const IVP_U_Matrix *m_world_f_B = core_B->get_m_world_f_core_PSI();
 
-	/*********** ROTATION ************/
+    /*********** ROTATION ************/
 	do_simulation_controller_rotation( es, core_B, m_world_f_B );
-	  
-	/*********** TRANSLATION ************/
+      
+    /*********** TRANSLATION ************/
 //	move the below stuff into - do_simulation_controller_translation( );
 
-	IVP_DOUBLE *input_vec_ptr = this->co_matrix.desired_vector;
-	IVP_ASSERT( this->co_matrix.columns == wheel_objects.len() * 2 );
+    IVP_DOUBLE *input_vec_ptr = this->co_matrix.desired_vector;
+    IVP_ASSERT( this->co_matrix.columns == wheel_objects.len() * 2 );
 
-	int init_local_translation = 0;					// flag
-	int invalid_count= 0;							// for plan B removal
-	IVP_FLOAT delta_time = es->delta_time;
-	
-	// for all appendices
-	for(int app_cnt=0; app_cnt < wheel_objects.len(); app_cnt++){
+    int init_local_translation = 0;					// flag
+    int invalid_count= 0;							// for plan B removal
+    IVP_FLOAT delta_time = es->delta_time;
+    
+    // for all appendices
+    for(int app_cnt=0; app_cnt < wheel_objects.len(); app_cnt++){
 	IVP_Constraint_Car_Object *app = wheel_objects.element_at(app_cnt);
 	IVP_Core *core_A = app->get_core();
 	// core_A->ensure_core_to_be_in_simulation(); // already done for rotation
@@ -294,47 +294,47 @@ void IVP_Constraint_Solver_Car::do_simulation_controller( IVP_Event_Sim *es,
 	/**** translation divergence (after delta time) ***/
 	IVP_U_Point delta_speed_vec;
 	{
-		// calc current positions in B
-		IVP_U_Float_Point cur_pos_A_in_B;
-		IVP_U_Float_Point cur_pos_B_in_B(app->target_position_bs.get_position());
-		m_world_f_B->vimult4(&m_world_f_A->vv, &cur_pos_A_in_B); // takes center of app
+	    // calc current positions in B
+	    IVP_U_Float_Point cur_pos_A_in_B;
+	    IVP_U_Float_Point cur_pos_B_in_B(app->target_position_bs.get_position());
+	    m_world_f_B->vimult4(&m_world_f_A->vv, &cur_pos_A_in_B); // takes center of app
 
-		// calc speed and rotspeed in B
-		IVP_U_Float_Point surspeed_A_in_B;
-		IVP_U_Float_Point surspeed_B_in_world;
-		IVP_U_Float_Point surspeed_B_in_B;
+	    // calc speed and rotspeed in B
+	    IVP_U_Float_Point surspeed_A_in_B;
+	    IVP_U_Float_Point surspeed_B_in_world;
+	    IVP_U_Float_Point surspeed_B_in_B;
 
-		m_world_f_B->vimult3(&core_A->speed, &surspeed_A_in_B); // takes app center speed
+	    m_world_f_B->vimult3(&core_A->speed, &surspeed_A_in_B); // takes app center speed
 	
-		core_B->get_surface_speed(&cur_pos_B_in_B, &surspeed_B_in_world);
-		m_world_f_B->vimult3(&surspeed_B_in_world, &surspeed_B_in_B);
+	    core_B->get_surface_speed(&cur_pos_B_in_B, &surspeed_B_in_world);
+	    m_world_f_B->vimult3(&surspeed_B_in_world, &surspeed_B_in_B);
 
-		// calc positions at next PSI in B
-		IVP_U_Float_Point next_pos_A_in_B;
-		IVP_U_Float_Point next_pos_B_in_B;
+	    // calc positions at next PSI in B
+	    IVP_U_Float_Point next_pos_A_in_B;
+	    IVP_U_Float_Point next_pos_B_in_B;
 
-		next_pos_A_in_B.add_multiple(&cur_pos_A_in_B, &surspeed_A_in_B, delta_time);
-		next_pos_B_in_B.add_multiple(&cur_pos_B_in_B, &surspeed_B_in_B, delta_time);
+	    next_pos_A_in_B.add_multiple(&cur_pos_A_in_B, &surspeed_A_in_B, delta_time);
+	    next_pos_B_in_B.add_multiple(&cur_pos_B_in_B, &surspeed_B_in_B, delta_time);
 	
-		// calc delta speed vec that has to be realized
-		delta_speed_vec.subtract(&next_pos_A_in_B, &next_pos_B_in_B); 
-		delta_speed_vec.mult(inv_dtime * 1.0f);
+	    // calc delta speed vec that has to be realized
+	    delta_speed_vec.subtract(&next_pos_A_in_B, &next_pos_B_in_B); 
+	    delta_speed_vec.mult(inv_dtime * 1.0f);
 
-		// difference too high?
-		{
+	    // difference too high?
+	    {
 		IVP_DOUBLE quad_speed = delta_speed_vec.quad_length();
 		if( quad_speed > (this->max_delta_speed*this->max_delta_speed)){
 		  invalid_count ++;
 		  // IVP_DOUBLE factor = this->max_delta_speed / delta_speed_vec.fast_real_length();
 		  // delta_speed_vec.mult(factor);
-			psis_left_for_plan_B = 10;
+		    psis_left_for_plan_B = 10;
 		  if(this->local_translation_in_use == IVP_FALSE){
-			// switch to ball and socket local solution
-			init_local_translation = 1;
-			break;
+		    // switch to ball and socket local solution
+		    init_local_translation = 1;
+		    break;
 		  }
 		}
-		}
+	    }
 	}
 
 	/**** add to input vector for matrix mult ***/
@@ -345,119 +345,119 @@ void IVP_Constraint_Solver_Car::do_simulation_controller( IVP_Event_Sim *es,
 	IVP_ASSERT(this->constraint_is_disabled[z_idx+3] == IVP_TRUE);
 	(*input_vec_ptr++) = delta_speed_vec.k[x_idx];
 	(*input_vec_ptr++) = delta_speed_vec.k[z_idx];	
-	}
+    }
 
-	if(invalid_count == 0 && (this->local_translation_in_use==IVP_TRUE)){
-	  // switch back to regular translation
+    if(invalid_count == 0 && (this->local_translation_in_use==IVP_TRUE)){
+      // switch back to regular translation
 	psis_left_for_plan_B--;
 	if (psis_left_for_plan_B <0){
-		  int app_nr;
-		  for(app_nr=0; app_nr< wheel_objects.len(); app_nr++){
+	      int app_nr;
+	      for(app_nr=0; app_nr< wheel_objects.len(); app_nr++){
 		P_DELETE(this->c_local_ballsocket[app_nr]);
 		this->c_local_ballsocket[app_nr] = NULL;
-		  }
-		  this->local_translation_in_use = IVP_FALSE;
-		  IVP_IF(1){
+	      }
+	      this->local_translation_in_use = IVP_FALSE;
+	      IVP_IF(1){
 		ivp_message("plan B deactivated.\n");
-		  }
+	      }
 	}
-	}
-	
-	if(init_local_translation==IVP_TRUE){
+    }
+    
+    if(init_local_translation==IVP_TRUE){
 	IVP_IF(1){
-		ivp_message("plan B activated.\n");
+	    ivp_message("plan B activated.\n");
 	}
 
 
 #if 1
-		// appendices are too far away -> start plan B (solve problem with local constraints)
-		init_local_translation = 0;
+        // appendices are too far away -> start plan B (solve problem with local constraints)
+        init_local_translation = 0;
 	int app_nr;
 	for(app_nr=0; app_nr < wheel_objects.len(); app_nr++){
-		IVP_Constraint_Car_Object *app = wheel_objects.element_at(app_nr);
-		
-		IVP_U_Matrix m_core_f_object;
-		body->real_object->calc_m_core_f_object(&m_core_f_object);
-		const IVP_U_Matrix *pm_ws_f_Bcs;
-		IVP_U_Matrix m_ws_f_Aos;
-		pm_ws_f_Bcs = body->real_object->get_core()->get_m_world_f_core_PSI();
-		app->real_object->get_m_world_f_object_AT(&m_ws_f_Aos);
-		
-		// fill in template
-		IVP_U_Point anchorB_Bos, anchorB_ws, anchorB_Aos;
-		anchorB_Bos.set(app->target_position_bs.get_position());
-		pm_ws_f_Bcs->vmult4(&anchorB_Bos, &anchorB_ws);
-		m_ws_f_Aos.vimult4(&anchorB_ws, &anchorB_Aos);
-		IVP_U_Point anchorA_Aos; anchorA_Aos.set_to_zero();
-		
-		IVP_Template_Constraint templ;
-		templ.set_ballsocket_tense_Ros(app->real_object, &anchorA_Aos, body->real_object, &anchorB_Aos);
-		
-		IVP_Environment *env = core_B->get_environment();
-		this->c_local_ballsocket[app_nr] = env->create_constraint(&templ);
+	    IVP_Constraint_Car_Object *app = wheel_objects.element_at(app_nr);
+	    
+	    IVP_U_Matrix m_core_f_object;
+	    body->real_object->calc_m_core_f_object(&m_core_f_object);
+	    const IVP_U_Matrix *pm_ws_f_Bcs;
+	    IVP_U_Matrix m_ws_f_Aos;
+	    pm_ws_f_Bcs = body->real_object->get_core()->get_m_world_f_core_PSI();
+	    app->real_object->get_m_world_f_object_AT(&m_ws_f_Aos);
+	    
+	    // fill in template
+	    IVP_U_Point anchorB_Bos, anchorB_ws, anchorB_Aos;
+	    anchorB_Bos.set(app->target_position_bs.get_position());
+	    pm_ws_f_Bcs->vmult4(&anchorB_Bos, &anchorB_ws);
+	    m_ws_f_Aos.vimult4(&anchorB_ws, &anchorB_Aos);
+	    IVP_U_Point anchorA_Aos; anchorA_Aos.set_to_zero();
+	    
+	    IVP_Template_Constraint templ;
+	    templ.set_ballsocket_tense_Ros(app->real_object, &anchorA_Aos, body->real_object, &anchorB_Aos);
+	    
+	    IVP_Environment *env = core_B->get_environment();
+	    this->c_local_ballsocket[app_nr] = env->create_constraint(&templ);
 	}
 	this->local_translation_in_use = IVP_TRUE;
 #endif
-	}
+    }
 
 
 #if 0
-	{
+    {
 	int k;
 	ivp_message("Inputvector:\n");
 	for(k=0; k<co_matrix.columns; k++){
-		if(k%4 == 0)ivp_message("(%d)", k);
-		ivp_message("%2.2f  ", co_matrix.desired_vector[k]);
+	    if(k%4 == 0)ivp_message("(%d)", k);
+	    ivp_message("%2.2f  ", co_matrix.desired_vector[k]);
 	}
 	ivp_message("\n");
-	}
+    }
 #endif
-	
-	// calc pushes that have to be performed
-	co_matrix.mult();
+    
+    // calc pushes that have to be performed
+    co_matrix.mult();
 
 #if 0
-	{
+    {
 	int k;
 	ivp_message("Outputvector:\n");
 	for(k=0; k<co_matrix.columns; k++){
-		if(k%4 == 0)ivp_message("(%d)", k);
-		ivp_message("%2.2f  ", co_matrix.result_vector[k]);
+	    if(k%4 == 0)ivp_message("(%d)", k);
+	    ivp_message("%2.2f  ", co_matrix.result_vector[k]);
 	}
 	ivp_message("\n\n");
-	}
-#endif	
+    }
+#endif    
 
-	if(this->local_translation_in_use == IVP_FALSE){
+    if(this->local_translation_in_use == IVP_FALSE){
 	/*** now push objects ***/
 	IVP_DOUBLE *res_vec_ptr = this->co_matrix.result_vector;
 	int a_cnt;
 	for( a_cnt=0; a_cnt < wheel_objects.len(); a_cnt++){
-		IVP_Constraint_Car_Object *app = wheel_objects.element_at(a_cnt);
-		IVP_Core *core_A = app->get_core();
-		const IVP_U_Matrix *m_world_f_A = core_A->get_m_world_f_core_PSI();
+	    IVP_Constraint_Car_Object *app = wheel_objects.element_at(a_cnt);
+	    IVP_Core *core_A = app->get_core();
+	    const IVP_U_Matrix *m_world_f_A = core_A->get_m_world_f_core_PSI();
 
-		//// translation push 
-		IVP_U_Float_Point t_impulse_ws, t_impulse_bs;
-		t_impulse_bs.k[x_idx] = res_vec_ptr[0];
-		t_impulse_bs.k[y_idx] = 0.0f;
-		t_impulse_bs.k[z_idx] = res_vec_ptr[1];
+	    //// translation push 
+	    IVP_U_Float_Point t_impulse_ws, t_impulse_bs;
+	    t_impulse_bs.k[x_idx] = res_vec_ptr[0];
+	    t_impulse_bs.k[y_idx] = 0.0f;
+	    t_impulse_bs.k[z_idx] = res_vec_ptr[1];
 
-		m_world_f_B->vmult3(&t_impulse_bs, &t_impulse_ws);
-		res_vec_ptr += 2;
+	    m_world_f_B->vmult3(&t_impulse_bs, &t_impulse_ws);
+	    res_vec_ptr += 2;
 
-		IVP_U_Point target_position_ws;
-		m_world_f_B->vmult4(&app->target_position_bs.vv, &target_position_ws);
+	    IVP_U_Point target_position_ws;
+	    m_world_f_B->vmult4(&app->target_position_bs.vv, &target_position_ws);
 
-		// body	
-		core_B->push_core_ws(&target_position_ws, &t_impulse_ws);
+	    // body	
+	    core_B->push_core_ws(&target_position_ws, &t_impulse_ws);
 
-		// appendix
-		t_impulse_ws.mult(-1.0f);
-		core_A->push_core_ws(&m_world_f_A->vv, &t_impulse_ws); // @@@OG use center push
+	    // appendix
+	    t_impulse_ws.mult(-1.0f);
+	    core_A->push_core_ws(&m_world_f_A->vv, &t_impulse_ws); // @@@OG use center push
 	}
 	/*** translation done ***/
-	}
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -465,7 +465,7 @@ void IVP_Constraint_Solver_Car::do_simulation_controller( IVP_Event_Sim *es,
 //-----------------------------------------------------------------------------
 void IVP_Constraint_Solver_Car::core_is_going_to_be_deleted_event(IVP_Core *) 
 {
-	P_DELETE_THIS( this );
+    P_DELETE_THIS( this );
 }
 
 /////////////////////////////////////////////////////////////////////////
@@ -475,17 +475,17 @@ void IVP_Constraint_Solver_Car::core_is_going_to_be_deleted_event(IVP_Core *)
 //-----------------------------------------------------------------------------
 IVP_Constraint_Solver_Car_Builder::IVP_Constraint_Solver_Car_Builder( IVP_Constraint_Solver_Car *i_car_solver )
 {
-	P_MEM_CLEAR(this);
-	
-	this->car_solver = i_car_solver;
-	this->n_appends = this->car_solver->get_num_of_appending_terminals();
+    P_MEM_CLEAR(this);
+    
+    this->car_solver = i_car_solver;
+    this->n_appends = this->car_solver->get_num_of_appending_terminals();
 
 	// Default: trans (x, y, z) and rot(x, y, z )
-	this->n_constraints = 6;
-	for ( int i = 0; i < 6; i++ )
+    this->n_constraints = 6;
+    for ( int i = 0; i < 6; i++ )
 	{
 		this->car_solver->constraint_is_disabled[i] = IVP_FALSE;
-	}
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -493,66 +493,66 @@ IVP_Constraint_Solver_Car_Builder::IVP_Constraint_Solver_Car_Builder( IVP_Constr
 //-----------------------------------------------------------------------------
 void IVP_Constraint_Solver_Car_Builder::disable_constraint(int idx)
 {
-	IVP_ASSERT( ( idx >= 0 ) && ( idx < 6 ) );
+    IVP_ASSERT( ( idx >= 0 ) && ( idx < 6 ) );
 
-	if( this->car_solver->constraint_is_disabled[idx] == IVP_FALSE )
+    if( this->car_solver->constraint_is_disabled[idx] == IVP_FALSE )
 	{
 		this->car_solver->constraint_is_disabled[idx] = IVP_TRUE;
 		this->n_constraints--;
-	}
+    }
 }
 
 //-----------------------------------------------------------------------------
 // Purpose: Performs bilateral test pushes in all 3 coord axis and all 3 rot axis
-//		  using coord system of constraint_obj 'co_obj[0]'.  The resulting delta 
-//		  speed changes are written into this->tmp_matrix.
+//          using coord system of constraint_obj 'co_obj[0]'.  The resulting delta 
+//          speed changes are written into this->tmp_matrix.
 //-----------------------------------------------------------------------------
 void IVP_Constraint_Solver_Car_Builder::calc_pushing_behavior( int A_obj_idx, int push_vec_idx )
 {
 	// Verify incoming data.
-	IVP_ASSERT( A_obj_idx >= 0 && A_obj_idx < n_appends );
-	IVP_ASSERT( push_vec_idx >= 0 && push_vec_idx < 6 );
-	IVP_ASSERT( this->car_solver->constraint_is_disabled[push_vec_idx] == IVP_FALSE );
+    IVP_ASSERT( A_obj_idx >= 0 && A_obj_idx < n_appends );
+    IVP_ASSERT( push_vec_idx >= 0 && push_vec_idx < 6 );
+    IVP_ASSERT( this->car_solver->constraint_is_disabled[push_vec_idx] == IVP_FALSE );
 	
-	IVP_Constraint_Car_Object *A_obj = car_solver->wheel_objects.element_at( A_obj_idx );
-	IVP_Core *core_A = A_obj->get_core();
+    IVP_Constraint_Car_Object *A_obj = car_solver->wheel_objects.element_at( A_obj_idx );
+    IVP_Core *core_A = A_obj->get_core();
 
-	IVP_Constraint_Car_Object *B_obj = car_solver->body_object;	
-	IVP_Core *core_B = B_obj->get_core();
-	const IVP_U_Matrix *m_world_f_B = core_B->get_m_world_f_core_PSI();
+    IVP_Constraint_Car_Object *B_obj = car_solver->body_object;    
+    IVP_Core *core_B = B_obj->get_core();
+    const IVP_U_Matrix *m_world_f_B = core_B->get_m_world_f_core_PSI();
 
 	IVP_U_Matrix h_matrix = (*m_world_f_B);
-	IVP_U_Matrix *m_world_f_A = &h_matrix;
+    IVP_U_Matrix *m_world_f_A = &h_matrix;
 	m_world_f_B->mmult4( &A_obj->target_position_bs, m_world_f_A ); // m_world_f_A refers to ideal position of A
 
-	IVP_U_Matrix m_B_from_A;
-	m_world_f_B->mimult4( m_world_f_A, &m_B_from_A );
-	
-	IVP_U_Float_Point impulse_A, impulse_B, impulse_world;
-	impulse_B.set_to_zero();
-	impulse_B.k[push_vec_idx%3] = 1.0f;
-	m_world_f_B->vmult3( &impulse_B, &impulse_world );
-	m_world_f_A->vimult3( &impulse_world, &impulse_A );	
+    IVP_U_Matrix m_B_from_A;
+    m_world_f_B->mimult4( m_world_f_A, &m_B_from_A );
+    
+    IVP_U_Float_Point impulse_A, impulse_B, impulse_world;
+    impulse_B.set_to_zero();
+    impulse_B.k[push_vec_idx%3] = 1.0f;
+    m_world_f_B->vmult3( &impulse_B, &impulse_world );
+    m_world_f_A->vimult3( &impulse_world, &impulse_A );    
 
-	IVP_U_Float_Point inv_impulse_A, inv_impulse_B, inv_impulse_world;
-	inv_impulse_B.set_negative( &impulse_B );
-	m_world_f_B->vmult3( &inv_impulse_B, &inv_impulse_world );
-	m_world_f_A->vimult3( &inv_impulse_world, &inv_impulse_A );	
+    IVP_U_Float_Point inv_impulse_A, inv_impulse_B, inv_impulse_world;
+    inv_impulse_B.set_negative( &impulse_B );
+    m_world_f_B->vmult3( &inv_impulse_B, &inv_impulse_world );
+    m_world_f_A->vimult3( &inv_impulse_world, &inv_impulse_A );    
 
-	IVP_U_Float_Point A_push_pos_in_A, B_push_pos_in_B;
-	A_push_pos_in_A.set_to_zero();								// push in appendix center
-	m_B_from_A.vmult4( &A_push_pos_in_A, &B_push_pos_in_B );	// means: objects are regarded as placed at the desired positions
-	
-	IVP_DOUBLE rot_impulse_strength = 1.0f;
-	IVP_DOUBLE inv_rot_impulse_strength = -rot_impulse_strength;
+    IVP_U_Float_Point A_push_pos_in_A, B_push_pos_in_B;
+    A_push_pos_in_A.set_to_zero();								// push in appendix center
+    m_B_from_A.vmult4( &A_push_pos_in_A, &B_push_pos_in_B );	// means: objects are regarded as placed at the desired positions
+    
+    IVP_DOUBLE rot_impulse_strength = 1.0f;
+    IVP_DOUBLE inv_rot_impulse_strength = -rot_impulse_strength;
 
-	IVP_U_Float_Point speed_change_A_in_B, rot_change_A_in_B;
-	IVP_U_Float_Point sur_speed_B_in_B, rot_change_B_in_B;
-	IVP_U_Float_Point sur_speed_B_world;
-	IVP_U_Float_Point speed_change_B_world;
+    IVP_U_Float_Point speed_change_A_in_B, rot_change_A_in_B;
+    IVP_U_Float_Point sur_speed_B_in_B, rot_change_B_in_B;
+    IVP_U_Float_Point sur_speed_B_world;
+    IVP_U_Float_Point speed_change_B_world;
 
 	// Bilateral Translation Test Pushes of the specified impulse vec in core system of B
-	if ( push_vec_idx <= 2 )
+    if ( push_vec_idx <= 2 )
 	{
 		/** Push A **/
 		IVP_U_Float_Point speed_change_A_world, rot_change_A_in_A;
@@ -571,10 +571,10 @@ void IVP_Constraint_Solver_Car_Builder::calc_pushing_behavior( int A_obj_idx, in
 		// calc speed at push pos
 		core_B->get_surface_speed_on_test( &B_push_pos_in_B, &speed_change_B_world, &rot_change_B_in_B, &sur_speed_B_world );
 		m_world_f_B->vimult3( &sur_speed_B_world, &sur_speed_B_in_B );
-	}
+    }
 
 	// Bilateral Rotation Test Pushes of the specified impulse vec in core system of B
-	if ( push_vec_idx >= 3)
+    if ( push_vec_idx >= 3)
 	{
 		/** Rot push A **/
 		IVP_U_Float_Point rot_change_A_in_A;
@@ -591,10 +591,10 @@ void IVP_Constraint_Solver_Car_Builder::calc_pushing_behavior( int A_obj_idx, in
 		speed_change_B_world.set_to_zero(); // no core trans
 		core_B->get_surface_speed_on_test( &B_push_pos_in_B, &speed_change_B_world, &rot_change_B_in_B, &sur_speed_B_world );
 		m_world_f_B->vimult3( &sur_speed_B_world, &sur_speed_B_in_B );	
-	}
+    }
 
-	// Calc push_vec_idx for this (reduced) matrix
-	int pv_mat_idx = 0;
+    // Calc push_vec_idx for this (reduced) matrix
+    int pv_mat_idx = 0;
 	for ( int dim = 0; dim < push_vec_idx; dim++ )
 	{
 		if ( this->car_solver->constraint_is_disabled[dim] == IVP_FALSE )
@@ -602,14 +602,14 @@ void IVP_Constraint_Solver_Car_Builder::calc_pushing_behavior( int A_obj_idx, in
 			pv_mat_idx++;
 		}
 	}
-	IVP_ASSERT( pv_mat_idx >= 0 ); // all constraints disabled !?
-	
-	/// Calc and insert deltas in great tmp matrix
-	IVP_Great_Matrix_Many_Zero *g_mat = &this->tmp_matrix;
-	int gm_col = n_constraints * A_obj_idx + pv_mat_idx; // col to fill
-	int gm_row = 0;
+    IVP_ASSERT( pv_mat_idx >= 0 ); // all constraints disabled !?
+    
+    /// Calc and insert deltas in great tmp matrix
+    IVP_Great_Matrix_Many_Zero *g_mat = &this->tmp_matrix;
+    int gm_col = n_constraints * A_obj_idx + pv_mat_idx; // col to fill
+    int gm_row = 0;
 
-	for ( int fill_app_idx = 0; fill_app_idx < car_solver->wheel_objects.len(); fill_app_idx++ )
+    for ( int fill_app_idx = 0; fill_app_idx < car_solver->wheel_objects.len(); fill_app_idx++ )
 	{
 		IVP_U_Float_Point delta_speed_change, delta_rot_change;
 		if ( fill_app_idx == A_obj_idx )
@@ -636,7 +636,7 @@ void IVP_Constraint_Solver_Car_Builder::calc_pushing_behavior( int A_obj_idx, in
 			g_mat->set_value(delta_speed_change.k[0], gm_col, gm_row++);
 		}
 
-		if ( this->car_solver->constraint_is_disabled[1] == IVP_FALSE )		
+		if ( this->car_solver->constraint_is_disabled[1] == IVP_FALSE )	    
 		{
 			g_mat->set_value(delta_speed_change.k[1], gm_col, gm_row++);
 		}
@@ -646,7 +646,7 @@ void IVP_Constraint_Solver_Car_Builder::calc_pushing_behavior( int A_obj_idx, in
 			g_mat->set_value(delta_speed_change.k[2], gm_col, gm_row++);
 		}
 
-		if ( this->car_solver->constraint_is_disabled[3] == IVP_FALSE )		
+		if ( this->car_solver->constraint_is_disabled[3] == IVP_FALSE )	    
 		{
 			g_mat->set_value(delta_rot_change.k[0], gm_col, gm_row++);
 		}
@@ -660,7 +660,7 @@ void IVP_Constraint_Solver_Car_Builder::calc_pushing_behavior( int A_obj_idx, in
 		{
 			g_mat->set_value(delta_rot_change.k[2], gm_col, gm_row++);
 		}
-	}
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -668,16 +668,16 @@ void IVP_Constraint_Solver_Car_Builder::calc_pushing_behavior( int A_obj_idx, in
 //-----------------------------------------------------------------------------
 IVP_RETURN_TYPE IVP_Constraint_Solver_Car_Builder::calc_constraint_matrix()
 {
-	// Malloc matrix value vec (temp).
-	int gm_size = n_constraints * n_appends;
-	this->tmp_matrix.columns = gm_size;
-	this->tmp_matrix.MATRIX_EPS = P_DOUBLE_EPS;
-	this->tmp_matrix.matrix_values = ( IVP_DOUBLE* )p_malloc( gm_size * gm_size * sizeof( IVP_DOUBLE ) );
-	this->tmp_matrix.desired_vector = ( IVP_DOUBLE* )p_malloc( gm_size * sizeof(IVP_DOUBLE ) );
-	this->tmp_matrix.result_vector = ( IVP_DOUBLE* )p_malloc( gm_size * sizeof( IVP_DOUBLE ) );
-	
-	// Build up pushing/reaction matrix.
-	for( int app_idx = 0; app_idx < n_appends; app_idx++ )
+    // Malloc matrix value vec (temp).
+    int gm_size = n_constraints * n_appends;
+    this->tmp_matrix.columns = gm_size;
+    this->tmp_matrix.MATRIX_EPS = P_DOUBLE_EPS;
+    this->tmp_matrix.matrix_values = ( IVP_DOUBLE* )p_malloc( gm_size * gm_size * sizeof( IVP_DOUBLE ) );
+    this->tmp_matrix.desired_vector = ( IVP_DOUBLE* )p_malloc( gm_size * sizeof(IVP_DOUBLE ) );
+    this->tmp_matrix.result_vector = ( IVP_DOUBLE* )p_malloc( gm_size * sizeof( IVP_DOUBLE ) );
+    
+    // Build up pushing/reaction matrix.
+    for( int app_idx = 0; app_idx < n_appends; app_idx++ )
 	{
 		for( int vec_idx = 0; vec_idx < 6; vec_idx++ )
 		{
@@ -686,32 +686,32 @@ IVP_RETURN_TYPE IVP_Constraint_Solver_Car_Builder::calc_constraint_matrix()
 
 			calc_pushing_behavior( app_idx, vec_idx );
 		}
-	}
+    }
 
 //  ivp_message( "Constraint solver: calc_pushing_behavior done.\n" );
 //  this->tmp_matrix.print( "Pushing behavior matrix.\n" );
-	
-	// Invert matrix into Solver.
-	IVP_DOUBLE *double_vec = ( IVP_DOUBLE* )p_malloc( gm_size * gm_size * sizeof( IVP_DOUBLE ) );
-	this->car_solver->co_matrix.matrix_values = double_vec;
-	this->car_solver->co_matrix.columns = gm_size;
+    
+    // Invert matrix into Solver.
+    IVP_DOUBLE *double_vec = ( IVP_DOUBLE* )p_malloc( gm_size * gm_size * sizeof( IVP_DOUBLE ) );
+    this->car_solver->co_matrix.matrix_values = double_vec;
+    this->car_solver->co_matrix.columns = gm_size;
 
-	IVP_RETURN_TYPE ret_val = this->tmp_matrix.invert( &this->car_solver->co_matrix );
+    IVP_RETURN_TYPE ret_val = this->tmp_matrix.invert( &this->car_solver->co_matrix );
 //  ivp_message("Constraint solver: matrix inversion done.\n");
 
 	// Free the temp data.
-	P_FREE( this->tmp_matrix.matrix_values );
-	P_FREE( this->tmp_matrix.result_vector );
-	P_FREE( this->tmp_matrix.desired_vector );
-	
-	// Some mallocs, so that they don't have to be done in simulation...
-	int vec_size = gm_size * sizeof( IVP_DOUBLE );
-	this->car_solver->co_matrix.desired_vector = ( IVP_DOUBLE* )p_malloc( vec_size );
-	this->car_solver->co_matrix.result_vector = ( IVP_DOUBLE* )p_malloc( vec_size );
-	this->car_solver->co_matrix.MATRIX_EPS = P_DOUBLE_EPS;
+    P_FREE( this->tmp_matrix.matrix_values );
+    P_FREE( this->tmp_matrix.result_vector );
+    P_FREE( this->tmp_matrix.desired_vector );
+    
+    // Some mallocs, so that they don't have to be done in simulation...
+    int vec_size = gm_size * sizeof( IVP_DOUBLE );
+    this->car_solver->co_matrix.desired_vector = ( IVP_DOUBLE* )p_malloc( vec_size );
+    this->car_solver->co_matrix.result_vector = ( IVP_DOUBLE* )p_malloc( vec_size );
+    this->car_solver->co_matrix.MATRIX_EPS = P_DOUBLE_EPS;
 
 //  this->car_solver->co_matrix.print( "Pushing behavior matrix.\n" );
 
-	return ret_val;
+    return ret_val;
 }
 

@@ -21,45 +21,45 @@
 
 void IVP_Halfspacesoup::add_halfspace(const IVP_U_Hesse *plane)
 {
-	IVP_U_Vector<IVP_U_Hesse> *planes = this;
-	int i;
-	IVP_U_Vector<IVP_U_Hesse> planes_to_delete;
+    IVP_U_Vector<IVP_U_Hesse> *planes = this;
+    int i;
+    IVP_U_Vector<IVP_U_Hesse> planes_to_delete;
 
-	for (i=0; i< planes->len(); i++) {
+    for (i=0; i< planes->len(); i++) {
 	IVP_U_Hesse *plane_old = planes->element_at(i);
 	
 	IVP_DOUBLE dp = plane->dot_product(plane_old);
 	if ( dp > 1-HALFSPACESOUP_TOLERANCE ) { // plane is almost identical (position, orientation and direction) to a previous one in list
-		if ( plane_old->hesse_val < plane->hesse_val ) { // drop plane that is further away
+	    if ( plane_old->hesse_val < plane->hesse_val ) { // drop plane that is further away
 		return;
-		}
-		planes_to_delete.add(plane_old);
+	    }
+	    planes_to_delete.add(plane_old);
 	}
 
-	}
+    }
 
-	planes->add(new IVP_U_Hesse(*plane));
+    planes->add(new IVP_U_Hesse(*plane));
 
-	for (i=planes_to_delete.len()-1; i>=0; i--) {
+    for (i=planes_to_delete.len()-1; i>=0; i--) {
 	IVP_U_Hesse *old_plane = planes_to_delete.element_at(i);
 	planes->remove(old_plane);
 	P_DELETE(old_plane);
-	}
-	return;
+    }
+    return;
 }
 
 IVP_Halfspacesoup::~IVP_Halfspacesoup(){
-	for (int i=this->len()-1; i>=0; i--) {
+    for (int i=this->len()-1; i>=0; i--) {
 	IVP_U_Hesse *old_plane = this->element_at(i);
 	P_DELETE(old_plane);
-	}
-	this->clear();
+    }
+    this->clear();
 }
 
 IVP_Halfspacesoup::IVP_Halfspacesoup( const IVP_Compact_Ledge *ledge ){
-	const IVP_Compact_Triangle *tri;
-	tri = ledge->get_first_triangle();
-	for (int i = 0; i< ledge->get_n_triangles(); tri = tri->get_next_tri(), i++){
+    const IVP_Compact_Triangle *tri;
+    tri = ledge->get_first_triangle();
+    for (int i = 0; i< ledge->get_n_triangles(); tri = tri->get_next_tri(), i++){
 	IVP_U_Hesse hesse;
 	const IVP_Compact_Edge *edge = tri->get_first_edge();
 	IVP_CLS.calc_hesse_vec_object_not_normized( edge , ledge, &hesse );
@@ -71,6 +71,6 @@ IVP_Halfspacesoup::IVP_Halfspacesoup( const IVP_Compact_Ledge *ledge ){
 	a_point.set( edge->get_start_point(ledge) );
 	hesse.calc_hesse_val( &a_point );
 	
-		add_halfspace(&hesse);
-	}
+        add_halfspace(&hesse);
+    }
 }

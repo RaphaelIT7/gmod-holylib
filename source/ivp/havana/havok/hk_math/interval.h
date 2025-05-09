@@ -4,7 +4,7 @@
 template <class T>
 class hk_Interval
 {
-	public:
+    public:
 
 		HK_DECLARE_NONVIRTUAL_CLASS_ALLOCATOR(HK_MEMORY_CLASS_CONSTRAINT, hk_Interval<T> )
 

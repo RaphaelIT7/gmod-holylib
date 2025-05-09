@@ -1,20 +1,20 @@
-/*<html><pre>  -<a							 href="qh-c.htm#set"
+/*<html><pre>  -<a                             href="qh-c.htm#set"
   >-------------------------------</a><a name="TOP">-</a>
 
    qset.h
-	 header file for qset.c that implements set
+     header file for qset.c that implements set
 
    see qh-c.htm and qset.c
    
    only uses mem.c, malloc/free
 
    for error handling, writes message and calls
-	  qh_errexit (qhmem_ERRqhull, NULL, NULL);
+      qh_errexit (qhmem_ERRqhull, NULL, NULL);
    
    set operations satisfy the following properties:
-	- sets have a max size, the actual size (if different) is stored at the end
-	- every set is NULL terminated
-	- sets may be sorted or unsorted, the caller must distinguish this
+    - sets have a max size, the actual size (if different) is stored at the end
+    - every set is NULL terminated
+    - sets may be sorted or unsorted, the caller must distinguish this
    
    copyright (c) 1993-1999, The Geometry Center
 */
@@ -29,7 +29,7 @@
 typedef struct setT setT;   /* a set is a sorted or unsorted array of pointers */
 #endif
 
-/*-<a									  href="qh-c.htm#set"
+/*-<a                                      href="qh-c.htm#set"
 >----------------------------------------</a><a name="setT">-</a>
    
 setT
@@ -38,10 +38,10 @@ setT
 variations:
   unsorted, unique   -- a list of unique pointers with NULL terminator
   			   user guarantees uniqueness
-  sorted		 -- a sorted list of unique pointers with NULL terminator
+  sorted	     -- a sorted list of unique pointers with NULL terminator
   			   qset.c guarantees uniqueness
-  unsorted		   -- a list of pointers terminated with NULL
-  indexed  		 -- an array of pointers with NULL elements 
+  unsorted           -- a list of pointers terminated with NULL
+  indexed  	     -- an array of pointers with NULL elements 
 
 structure for set of n elements:
 
@@ -70,346 +70,346 @@ structure for set of n elements:
 */
 typedef union setelemT setelemT;
 union setelemT {
-  void	*p;
-  int	  i;		 /* integer used for e[maxSize] */
+  void    *p;
+  int      i;         /* integer used for e[maxSize] */
 };
 
 struct setT {
-  int maxsize;		  /* maximum number of elements (except NULL) */
-  setelemT e[1];		/* array of pointers, tail is NULL */
-						/* last slot (unless NULL) is actual size+1 
-						   e[maxsize]==NULL or e[e[maxsize]-1]==NULL */
-						/* this may generate a warning since e[] contains
+  int maxsize;          /* maximum number of elements (except NULL) */
+  setelemT e[1];        /* array of pointers, tail is NULL */
+                        /* last slot (unless NULL) is actual size+1 
+                           e[maxsize]==NULL or e[e[maxsize]-1]==NULL */
+                        /* this may generate a warning since e[] contains
 			   maxsize elements */
 };
 
 /*=========== -constants- =========================*/
 
-/*-<a								 href="qh-c.htm#set"
+/*-<a                                 href="qh-c.htm#set"
   >-----------------------------------</a><a name="SETelemsize">-</a>
    
   SETelemsize
-	size of a set element in bytes
+    size of a set element in bytes
 */
 #define SETelemsize sizeof(setelemT) 
 
 
 /*=========== -macros- =========================*/
 
-/*-<a								 href="qh-c.htm#set"
+/*-<a                                 href="qh-c.htm#set"
   >-----------------------------------</a><a name="FOREACHsetelement_">-</a>
    
    FOREACHsetelement_(type, set, variable)
-	 define FOREACH iterator
+     define FOREACH iterator
 
    declare:  
-	 assumes *variable and **variablep are declared
-	 no space in "variable)" [DEC Alpha cc compiler]
+     assumes *variable and **variablep are declared
+     no space in "variable)" [DEC Alpha cc compiler]
 
    each iteration:
-	 variable is set element
-	 variablep is one beyond variable.  
+     variable is set element
+     variablep is one beyond variable.  
 
    to repeat an element:
-	 variablep--; / *repeat* /
+     variablep--; / *repeat* /
 
    at exit:
-	 variable is NULL at end of loop
+     variable is NULL at end of loop
 
    example:  
-	 #define FOREACHfacet_( facets ) FOREACHsetelement_( facetT, facets, facet )
+     #define FOREACHfacet_( facets ) FOREACHsetelement_( facetT, facets, facet )
 
    notes:
-	 use FOREACHsetelement_i_() if need index or include NULLs
+     use FOREACHsetelement_i_() if need index or include NULLs
 
    WARNING: 
-	 nested loops can't use the same variable (define another FOREACH)
+     nested loops can't use the same variable (define another FOREACH)
    
-	 needs braces if nested inside another FOREACH
-	 this includes intervening blocks, e.g. FOREACH...{ if () FOREACH...} )
+     needs braces if nested inside another FOREACH
+     this includes intervening blocks, e.g. FOREACH...{ if () FOREACH...} )
 */
 #define FOREACHsetelement_(type, set, variable) \
-		if (((variable= NULL), set)) for(\
-		  variable##p= (type **)&((set)->e[0].p); \
+        if (((variable= NULL), set)) for(\
+          variable##p= (type **)&((set)->e[0].p); \
 	  (variable= *variable##p++);)
 
-/*-<a									  href="qh-c.htm#set"
+/*-<a                                      href="qh-c.htm#set"
   >----------------------------------------</a><a name="FOREACHsetelement_i_">-</a>
 
    FOREACHsetelement_i_(type, set, variable)
-	 define indexed FOREACH iterator
+     define indexed FOREACH iterator
 
    declare:  
-	 type *variable, variable_n, variable_i;
+     type *variable, variable_n, variable_i;
 
    each iteration:
-	 variable is set element, may be NULL
-	 variable_i is index, variable_n is qh_setsize()
+     variable is set element, may be NULL
+     variable_i is index, variable_n is qh_setsize()
 
    to repeat an element:
-	 variable_i--; variable_n-- repeats for deleted element
+     variable_i--; variable_n-- repeats for deleted element
 
    at exit:
-	 variable==NULL and variable_i==variable_n
+     variable==NULL and variable_i==variable_n
 
    example:
-	 #define FOREACHfacet_i_( facets ) FOREACHsetelement_i_( facetT, facets, facet )
+     #define FOREACHfacet_i_( facets ) FOREACHsetelement_i_( facetT, facets, facet )
    
    WARNING: 
-	 nested loops can't use the same variable (define another FOREACH)
+     nested loops can't use the same variable (define another FOREACH)
    
-	 needs braces if nested inside another FOREACH
-	 this includes intervening blocks, e.g. FOREACH...{ if () FOREACH...} )
+     needs braces if nested inside another FOREACH
+     this includes intervening blocks, e.g. FOREACH...{ if () FOREACH...} )
 */
 #define FOREACHsetelement_i_(type, set, variable) \
-		if (((variable= NULL), set)) for (\
-		  variable##_i= 0, variable= (type *)((set)->e[0].p), \
-				   variable##_n= qh_setsize(set);\
-		  variable##_i < variable##_n;\
-		  variable= (type *)((set)->e[++variable##_i].p) )
+        if (((variable= NULL), set)) for (\
+          variable##_i= 0, variable= (type *)((set)->e[0].p), \
+                   variable##_n= qh_setsize(set);\
+          variable##_i < variable##_n;\
+          variable= (type *)((set)->e[++variable##_i].p) )
 
-/*-<a									href="qh-c.htm#set"
+/*-<a                                    href="qh-c.htm#set"
   >--------------------------------------</a><a name="FOREACHsetelementreverse_">-</a>
 
    FOREACHsetelementreverse_(type, set, variable)- 
-	 define FOREACH iterator in reverse order
+     define FOREACH iterator in reverse order
 
    declare:  
-	 assumes *variable and **variablep are declared
-	 also declare 'int variabletemp'
+     assumes *variable and **variablep are declared
+     also declare 'int variabletemp'
 
    each iteration:
-	 variable is set element
+     variable is set element
 
    to repeat an element:
-	 variabletemp++; / *repeat* /
+     variabletemp++; / *repeat* /
 
    at exit:
-	 variable is NULL
+     variable is NULL
 
    example:
-	 #define FOREACHvertexreverse_( vertices ) FOREACHsetelementreverse_( vertexT, vertices, vertex )
+     #define FOREACHvertexreverse_( vertices ) FOREACHsetelementreverse_( vertexT, vertices, vertex )
   
    notes:
-	 use FOREACHsetelementreverse12_() to reverse first two elements
-	 WARNING: needs braces if nested inside another FOREACH
+     use FOREACHsetelementreverse12_() to reverse first two elements
+     WARNING: needs braces if nested inside another FOREACH
 */
 #define FOREACHsetelementreverse_(type, set, variable) \
-		if (((variable= NULL), set)) for(\
+        if (((variable= NULL), set)) for(\
 	   variable##temp= qh_setsize(set)-1, variable= qh_setlast(set);\
 	   variable; variable= \
 	   ((--variable##temp >= 0) ? SETelemt_(set, variable##temp, type) : NULL))
 
-/*-<a								 href="qh-c.htm#set"
+/*-<a                                 href="qh-c.htm#set"
   >-----------------------------------</a><a name="FOREACHsetelementreverse12_">-</a>
 
    FOREACHsetelementreverse12_(type, set, variable)- 
-	 define FOREACH iterator with e[1] and e[0] reversed
+     define FOREACH iterator with e[1] and e[0] reversed
 
    declare:  
-	 assumes *variable and **variablep are declared
+     assumes *variable and **variablep are declared
 
    each iteration:
-	 variable is set element
-	 variablep is one after variable.  
+     variable is set element
+     variablep is one after variable.  
 
    to repeat an element:
-	 variablep--; / *repeat* /
+     variablep--; / *repeat* /
 
    at exit:
-	 variable is NULL at end of loop
+     variable is NULL at end of loop
   
    example
-	 #define FOREACHvertexreverse12_( vertices ) FOREACHsetelementreverse12_( vertexT, vertices, vertex )
+     #define FOREACHvertexreverse12_( vertices ) FOREACHsetelementreverse12_( vertexT, vertices, vertex )
 
    notes:
-	 WARNING: needs braces if nested inside another FOREACH
+     WARNING: needs braces if nested inside another FOREACH
 */
 #define FOREACHsetelementreverse12_(type, set, variable) \
-		if (((variable= NULL), set)) for(\
-		  variable##p= (type **)&((set)->e[1].p); \
+        if (((variable= NULL), set)) for(\
+          variable##p= (type **)&((set)->e[1].p); \
 	  (variable= *variable##p); \
-		  variable##p == ((type **)&((set)->e[0].p))?variable##p += 2: \
-		  (variable##p == ((type **)&((set)->e[1].p))?variable##p--:variable##p++))
+          variable##p == ((type **)&((set)->e[0].p))?variable##p += 2: \
+	      (variable##p == ((type **)&((set)->e[1].p))?variable##p--:variable##p++))
 
-/*-<a								 href="qh-c.htm#set"
+/*-<a                                 href="qh-c.htm#set"
   >-----------------------------------</a><a name="FOREACHelem_">-</a>
 
    FOREACHelem_( set )- 
-	 iterate elements in a set
+     iterate elements in a set
 
    declare:  
-	 void *elem, *elemp;
+     void *elem, *elemp;
 
    each iteration:
-	 elem is set element
-	 elemp is one beyond
+     elem is set element
+     elemp is one beyond
 
    to repeat an element:
-	 elemp--; / *repeat* /
+     elemp--; / *repeat* /
 
    at exit:
-	 elem == NULL at end of loop
+     elem == NULL at end of loop
   
    example:
-	 FOREACHelem_(set) {
-	 
+     FOREACHelem_(set) {
+     
    notes:
-	 WARNING: needs braces if nested inside another FOREACH
+     WARNING: needs braces if nested inside another FOREACH
 */
 #define FOREACHelem_(set) FOREACHsetelement_(void, set, elem)
 
-/*-<a								 href="qh-c.htm#set"
+/*-<a                                 href="qh-c.htm#set"
   >-----------------------------------</a><a name="FOREACHset_">-</a>
 
    FOREACHset_( set )- 
-	 iterate a set of sets
+     iterate a set of sets
 
    declare:  
-	 setT *set, **setp;
+     setT *set, **setp;
 
    each iteration:
-	 set is set element
-	 setp is one beyond
+     set is set element
+     setp is one beyond
 
    to repeat an element:
-	 setp--; / *repeat* /
+     setp--; / *repeat* /
 
    at exit:
-	 set == NULL at end of loop
+     set == NULL at end of loop
   
    example
-	 FOREACHset_(sets) {
-	 
+     FOREACHset_(sets) {
+     
    notes:
-	 WARNING: needs braces if nested inside another FOREACH
+     WARNING: needs braces if nested inside another FOREACH
 */
 #define FOREACHset_(sets) FOREACHsetelement_(setT, sets, set)
 
-/*-<a									   href="qh-c.htm#set"
+/*-<a                                       href="qh-c.htm#set"
   >-----------------------------------------</a><a name="SETindex_">-</a>
 
    SETindex_( set, elem )
-	 return index of elem in set
+     return index of elem in set
 
    notes:   
-	 for use with FOREACH iteration
+     for use with FOREACH iteration
 
    example:
-	 i= SETindex_(ridges, ridge)
+     i= SETindex_(ridges, ridge)
 */
 #define SETindex_(set, elem) ((void **)elem##p - (void **)&(set)->e[1].p)
 
-/*-<a									 href="qh-c.htm#set"
+/*-<a                                     href="qh-c.htm#set"
   >---------------------------------------</a><a name="SETref_">-</a>
 
    SETref_( elem )
-	 l.h.s. for modifying the current element in a FOREACH iteration
+     l.h.s. for modifying the current element in a FOREACH iteration
 
    example:
-	 SETref_(ridge)= anotherridge;
+     SETref_(ridge)= anotherridge;
 */
 #define SETref_(elem) (elem##p[-1])
 
-/*-<a									 href="qh-c.htm#set"
+/*-<a                                     href="qh-c.htm#set"
   >---------------------------------------</a><a name="SETelem_">-</a>
 
    SETelem_(set, n)
-	 return the n'th element of set
+     return the n'th element of set
    
    notes:
-	  assumes that n is valid [0..size] and that set is defined
-	  use SETelemt_() for type cast
+      assumes that n is valid [0..size] and that set is defined
+      use SETelemt_() for type cast
 */
-#define SETelem_(set, n)		   ((set)->e[n].p)
+#define SETelem_(set, n)           ((set)->e[n].p)
 
-/*-<a									 href="qh-c.htm#set"
+/*-<a                                     href="qh-c.htm#set"
   >---------------------------------------</a><a name="SETelemt_">-</a>
 
    SETelemt_(set, n, type)
-	 return the n'th element of set as a type
+     return the n'th element of set as a type
    
    notes:
-	  assumes that n is valid [0..size] and that set is defined
+      assumes that n is valid [0..size] and that set is defined
 */
-#define SETelemt_(set, n, type)	((type*)((set)->e[n].p))
+#define SETelemt_(set, n, type)    ((type*)((set)->e[n].p))
 
-/*-<a									 href="qh-c.htm#set"
+/*-<a                                     href="qh-c.htm#set"
   >---------------------------------------</a><a name="SETelemaddr_">-</a>
 
    SETelemaddr_(set, n, type)
-	 return address of the n'th element of a set
+     return address of the n'th element of a set
    
    notes:
-	  assumes that n is valid [0..size] and set is defined 
+      assumes that n is valid [0..size] and set is defined 
 */
 #define SETelemaddr_(set, n, type) ((type **)(&((set)->e[n].p)))
 
-/*-<a									 href="qh-c.htm#set"
+/*-<a                                     href="qh-c.htm#set"
   >---------------------------------------</a><a name="SETfirst_">-</a>
 
    SETfirst_(set)
-	 return first element of set
+     return first element of set
    
 */
-#define SETfirst_(set)			 ((set)->e[0].p)
+#define SETfirst_(set)             ((set)->e[0].p)
 
-/*-<a									 href="qh-c.htm#set"
+/*-<a                                     href="qh-c.htm#set"
   >---------------------------------------</a><a name="SETfirstt_">-</a>
 
    SETfirstt_(set, type)
-	 return first element of set as a type
+     return first element of set as a type
    
 */
-#define SETfirstt_(set, type)	  ((type*)((set)->e[0].p))
+#define SETfirstt_(set, type)      ((type*)((set)->e[0].p))
 
-/*-<a									 href="qh-c.htm#set"
+/*-<a                                     href="qh-c.htm#set"
   >---------------------------------------</a><a name="SETsecond_">-</a>
 
    SETsecond_(set)
-	 return second element of set
+     return second element of set
    
 */
-#define SETsecond_(set)			((set)->e[1].p)
+#define SETsecond_(set)            ((set)->e[1].p)
 
-/*-<a									 href="qh-c.htm#set"
+/*-<a                                     href="qh-c.htm#set"
   >---------------------------------------</a><a name="SETsecondt_">-</a>
 
    SETsecondt_(set, type)
-	 return second element of set as a type
+     return second element of set as a type
 */
-#define SETsecondt_(set, type)	 ((type*)((set)->e[1].p))
+#define SETsecondt_(set, type)     ((type*)((set)->e[1].p))
 
-/*-<a									 href="qh-c.htm#set"
+/*-<a                                     href="qh-c.htm#set"
   >---------------------------------------</a><a name="SETaddr_">-</a>
 
    SETaddr_(set, type)
-	   return address of set's elements
+       return address of set's elements
 */
 #define SETaddr_(set,type)	   ((type **)(&((set)->e[0].p)))
 
-/*-<a									 href="qh-c.htm#set"
+/*-<a                                     href="qh-c.htm#set"
   >---------------------------------------</a><a name="SETreturnsize_">-</a>
 
    SETreturnsize_(set, size) 
-	 return size of a set
+     return size of a set
    
    notes:
-	  set must be defined
-	  use qh_setsize(set) unless speed is critical
+      set must be defined
+      use qh_setsize(set) unless speed is critical
 */
 #define SETreturnsize_(set, size) (((size)= ((set)->e[(set)->maxsize].i))?(--(size)):((size)= (set)->maxsize))
 
-/*-<a									 href="qh-c.htm#set"
+/*-<a                                     href="qh-c.htm#set"
   >---------------------------------------</a><a name="SETempty_">-</a>
 
    SETempty_(set) 
-	 return true (1) if set is empty
+     return true (1) if set is empty
    
    notes:
-	  set may be NULL
+      set may be NULL
 */
-#define SETempty_(set) 			  (!set || (SETfirst_(set) ? 0:1))
+#define SETempty_(set) 	          (!set || (SETfirst_(set) ? 0:1))
 
 /*======= prototypes in alphabetical order ============*/
 

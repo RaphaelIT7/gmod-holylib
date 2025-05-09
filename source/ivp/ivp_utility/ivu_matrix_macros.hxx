@@ -3,27 +3,27 @@
 
 void IVP_U_Matrix3::inline_mimult3(const IVP_U_Matrix3 *mb, IVP_U_Matrix3 *m_out) const
 {
-	IVP_U_Point col[3];
-	this->get_col( IVP_INDEX_X, &col[0]);
-	this->get_col( IVP_INDEX_Y, &col[1]);
-	this->get_col( IVP_INDEX_Z, &col[2]);
-	for (int c = 0;c<3;c++){
+    IVP_U_Point col[3];
+    this->get_col( IVP_INDEX_X, &col[0]);
+    this->get_col( IVP_INDEX_Y, &col[1]);
+    this->get_col( IVP_INDEX_Z, &col[2]);
+    for (int c = 0;c<3;c++){
 	mb->inline_vimult3(&col[c], &col[c] );
-	}
-	m_out->rows[0].set(&col[0]);
-	m_out->rows[1].set(&col[1]);
-	m_out->rows[2].set(&col[2]);
+    }
+    m_out->rows[0].set(&col[0]);
+    m_out->rows[1].set(&col[1]);
+    m_out->rows[2].set(&col[2]);
 }
 
 
 void IVP_U_Matrix3::inline_mmult3(const IVP_U_Matrix3 *mb, IVP_U_Matrix3 *m_out) const {
-	IVP_U_Point row[3];
-	for (int r = 0;r<3;r++){
+    IVP_U_Point row[3];
+    for (int r = 0;r<3;r++){
 	mb->inline_vimult3(&rows[r], &row[r] );
-	}
-	m_out->rows[0].set(&row[0]);
-	m_out->rows[1].set(&row[1]);
-	m_out->rows[2].set(&row[2]);
+    }
+    m_out->rows[0].set(&row[0]);
+    m_out->rows[1].set(&row[1]);
+    m_out->rows[2].set(&row[2]);
 }
 
 void IVP_U_Matrix::inline_mmult4(const IVP_U_Matrix *mb, IVP_U_Matrix *m_out) const
@@ -70,11 +70,11 @@ void IVP_U_Matrix::get_4x4_column_major( class hk_Transform *o ) const
 
 
 IVP_DOUBLE IVP_U_Quat::inline_estimate_q_diff_to(const IVP_U_Float_Quat *to) const {	// roughly estimate the quad alpha
-	// cosinus of half angle
-	IVP_DOUBLE cosom2 = this->x * to->x + this->y * to->y + this->z * to->z + this->w * to->w;
-	IVP_DOUBLE qcosom2 = cosom2 * cosom2;
-	IVP_DOUBLE qsin2 = 1 - qcosom2;		// quad sin
-	return qsin2 * 2;
+    // cosinus of half angle
+    IVP_DOUBLE cosom2 = this->x * to->x + this->y * to->y + this->z * to->z + this->w * to->w;
+    IVP_DOUBLE qcosom2 = cosom2 * cosom2;
+    IVP_DOUBLE qsin2 = 1 - qcosom2;		// quad sin
+    return qsin2 * 2;
 }
 
 #endif

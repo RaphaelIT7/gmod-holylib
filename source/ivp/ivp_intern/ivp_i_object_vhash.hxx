@@ -9,41 +9,41 @@
 
 class IVP_Object_Callback_Table {
 public:
-	IVP_Real_Object				   *real_object;
-	IVP_U_Vector<IVP_Listener_Object>  listeners;
-	~IVP_Object_Callback_Table();
+    IVP_Real_Object                   *real_object;
+    IVP_U_Vector<IVP_Listener_Object>  listeners;
+    ~IVP_Object_Callback_Table();
 };
 
 
 class IVP_Object_Callback_Table_Hash : protected IVP_VHash
 {
 protected:
-	IVP_BOOL compare(const void *elem0, const void *elem1) const override;
-	int	  object_to_index(IVP_Real_Object *real_object);
+    IVP_BOOL compare(const void *elem0, const void *elem1) const override;
+    int      object_to_index(IVP_Real_Object *real_object);
 
 public:
-	void add_table(IVP_Object_Callback_Table *table)
-	{
+    void add_table(IVP_Object_Callback_Table *table)
+    {
 	add_elem(table, object_to_index(table->real_object));
-	};
+    };
 
-	IVP_Object_Callback_Table *remove_table(IVP_Real_Object *real_object)
-	{
+    IVP_Object_Callback_Table *remove_table(IVP_Real_Object *real_object)
+    {
 	IVP_Object_Callback_Table table;
 	table.real_object = real_object;
 	return (IVP_Object_Callback_Table *)remove_elem(&table, object_to_index(real_object));
-	};
+    };
 
-	IVP_Object_Callback_Table *find_table(IVP_Real_Object *real_object)
-	{
+    IVP_Object_Callback_Table *find_table(IVP_Real_Object *real_object)
+    {
 	IVP_Object_Callback_Table table;
 	table.real_object = real_object;
 	return (IVP_Object_Callback_Table *)find_elem(&table, object_to_index(real_object));
-	};
+    };
   
 
-	~IVP_Object_Callback_Table_Hash();
-	IVP_Object_Callback_Table_Hash(int init_size) : IVP_VHash(init_size) {}
+    ~IVP_Object_Callback_Table_Hash();
+    IVP_Object_Callback_Table_Hash(int init_size) : IVP_VHash(init_size) {}
 };
 
 

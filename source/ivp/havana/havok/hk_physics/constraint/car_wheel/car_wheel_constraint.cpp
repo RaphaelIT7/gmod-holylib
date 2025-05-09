@@ -223,11 +223,11 @@ int	hk_Car_Wheel_Constraint::setup_and_step_constraint(
 	{
 		hk_real tau = pi.get_inv_delta_time();
 
-		work.m_correction(0) = delta_pos_ws.dot( hinge_axis_ws[0] )		 * tau;
-		work.m_correction(1) = delta_pos_ws.dot( perp_steering_axis_ws )	* tau;
+		work.m_correction(0) = delta_pos_ws.dot( hinge_axis_ws[0] )         * tau;
+		work.m_correction(1) = delta_pos_ws.dot( perp_steering_axis_ws )    * tau;
 
 		work.m_correction(2) =  hinge_axis_ws[1].dot(perp_steering_axis_ws) * tau;
-		work.m_correction(3) = -hinge_axis_ws[1].dot(steering_axis_ws)	  * tau;
+		work.m_correction(3) = -hinge_axis_ws[1].dot(steering_axis_ws)      * tau;
 
 		delta.set_mul_add_mul( m_tau * tau_factor, work.m_correction, -1.0f * m_damp * damp_factor, vmq_velocity );
 	}

@@ -18,7 +18,7 @@ class hk_Fixed_Constraint : public hk_Constraint
 {
 	public:
 
-		hk_Fixed_Constraint( hk_Environment *,			 const hk_Fixed_BP *, hk_Rigid_Body *a ,hk_Rigid_Body *b );	
+		hk_Fixed_Constraint( hk_Environment *,             const hk_Fixed_BP *, hk_Rigid_Body *a ,hk_Rigid_Body *b );	
 		hk_Fixed_Constraint( hk_Local_Constraint_System *, const hk_Fixed_BP *, hk_Rigid_Body *a ,hk_Rigid_Body *b );	
 
 		void apply_effector_PSI( hk_PSI_Info&, hk_Array<hk_Entity*>* );

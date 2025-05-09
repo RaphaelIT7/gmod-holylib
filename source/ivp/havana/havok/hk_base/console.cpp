@@ -30,19 +30,19 @@ hk_Console *hk_Console::get_instance()
 
 void hk_Console::printf( const char *fmt, ...)
 {
-	va_list args;
-	char buffer_tmp[MAX_ERROR_BUFFER_LEN];
-	va_start(args, fmt); //-V2018 //-V2019
-	vsnprintf(buffer_tmp, std::size(buffer_tmp), fmt, args);
-	va_end(args);
+    va_list args;
+    char buffer_tmp[MAX_ERROR_BUFFER_LEN];
+    va_start(args, fmt); //-V2018 //-V2019
+    vsnprintf(buffer_tmp, std::size(buffer_tmp), fmt, args);
+    va_end(args);
 
-	char buffer_out[MAX_ERROR_BUFFER_LEN];
-	snprintf(buffer_out, std::size(buffer_out), "[havok] %s", buffer_tmp);
+    char buffer_out[MAX_ERROR_BUFFER_LEN];
+    snprintf(buffer_out, std::size(buffer_out), "[havok] %s", buffer_tmp);
 
 #ifdef WIN32
-	OutputDebugStringA(buffer_out);
+    OutputDebugStringA(buffer_out);
 #else
-	fprintf(stderr, "%s", buffer_out);
+    fprintf(stderr, "%s", buffer_out);
 #endif
 }
 

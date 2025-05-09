@@ -31,7 +31,7 @@ class hk_Limited_Ball_Socket_BP  //: public hk_Effector_BP
 		//hk_Vector3	m_position_os[2];
 		//hk_Matrix3	m_joint_axes[2];
 		hk_real		m_strength;
-		hk_real	 m_tau;
+		hk_real     m_tau;
 		hk_Interval<hk_real> m_angular_limits[3];
 
 	protected:

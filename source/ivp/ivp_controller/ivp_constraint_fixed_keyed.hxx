@@ -15,20 +15,20 @@
 
 class IVP_Template_Constraint_Fixed_Keyframed:public IVP_Template_Controller_Motion {
 public:
-	IVP_Template_Constraint_Fixed_Keyframed() = default;
+    IVP_Template_Constraint_Fixed_Keyframed() = default;
 };
 
 class IVP_Constraint_Fixed_Keyframed: public IVP_Controller_Dependent {
 protected:
 	// static values
-	IVP_U_Float_Point max_translation_force; // defined in ws
-	IVP_U_Float_Point max_torque;	// defined per core axis
+    IVP_U_Float_Point max_translation_force; // defined in ws
+    IVP_U_Float_Point max_torque;	// defined per core axis
 
-	IVP_FLOAT force_factor;	// [ 0.. 1 ] 
-	IVP_FLOAT damp_factor;	// [ 0..1 ] 
+    IVP_FLOAT force_factor;	// [ 0.. 1 ] 
+    IVP_FLOAT damp_factor;	// [ 0..1 ] 
 
-	IVP_FLOAT torque_factor;
-	IVP_FLOAT angular_damp_factor;
+    IVP_FLOAT torque_factor;
+    IVP_FLOAT angular_damp_factor;
 
 	IVP_Environment *l_environment;
 	// dynamic values
@@ -46,12 +46,12 @@ protected:
 
 	IVP_Real_Object *reference_obj;
 	IVP_Real_Object *attached_obj;
-	IVP_Vector_of_Cores_2 cores_of_constraint_system;
+    IVP_Vector_of_Cores_2 cores_of_constraint_system;
 
 	void core_is_going_to_be_deleted_event(IVP_Core *) override;
-	IVP_DOUBLE get_minimum_simulation_frequency() override;
-	IVP_U_Vector<IVP_Core> *get_associated_controlled_cores() override { return &cores_of_constraint_system; };
-	IVP_CONTROLLER_PRIORITY get_controller_priority() override { return IVP_CP_CONSTRAINTS; }
+    IVP_DOUBLE get_minimum_simulation_frequency() override;
+    IVP_U_Vector<IVP_Core> *get_associated_controlled_cores() override { return &cores_of_constraint_system; };
+    IVP_CONTROLLER_PRIORITY get_controller_priority() override { return IVP_CP_CONSTRAINTS; }
 	void ensure_in_simulation();
 	void do_simulation_controller(IVP_Event_Sim *,IVP_U_Vector<IVP_Core> *) override;
 public:

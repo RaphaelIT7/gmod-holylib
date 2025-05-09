@@ -24,7 +24,7 @@ class hk_Pulley_BP  //: public hk_Constraint_BP
 	public: // hack for now
 
 		hk_real		m_length;
-		hk_real		m_tau;
+		hk_real    	m_tau;
 		hk_real		m_strength;
 		hk_real		m_gearing;
 		hk_Vector3	m_translation_os_ks[2];

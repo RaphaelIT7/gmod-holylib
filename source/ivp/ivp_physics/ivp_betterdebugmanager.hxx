@@ -10,8 +10,8 @@
 
 
 // NOTE: The values from 0-1023 are reserved for internal
-//	   Ipion use. Feel free to define your own debug
-//	   identifiers using values from 1024-2047.
+//       Ipion use. Feel free to define your own debug
+//       identifiers using values from 1024-2047.
 enum IVP_DEBUG_CLASS {
   IVP_DM_DUMMY,
   IVP_DM_SURBUILD_POINTSOUP,
@@ -31,23 +31,23 @@ enum IVP_DEBUG_CLASS {
 };
 
 class IVP_BetterDebugmanager {
-	int initialized;
-	int flag_list[IVP_DEBUG_MAX_N_CLASSES];
+    int initialized;
+    int flag_list[IVP_DEBUG_MAX_N_CLASSES];
 
 public:
-	void	 enable_debug_output(IVP_DEBUG_CLASS class_id);
-	void	 disable_debug_output(IVP_DEBUG_CLASS class_id);
+    void     enable_debug_output(IVP_DEBUG_CLASS class_id);
+    void     disable_debug_output(IVP_DEBUG_CLASS class_id);
 
-	IVP_BOOL is_debug_enabled(IVP_DEBUG_CLASS class_identifier);
-	void	 dprint(IVP_DEBUG_CLASS class_id, const char *formatstring, ...);
+    IVP_BOOL is_debug_enabled(IVP_DEBUG_CLASS class_identifier);
+    void     dprint(IVP_DEBUG_CLASS class_id, const char *formatstring, ...);
 
-	// feel free to override this method with your customized
-	// output function (e.g. for redirecting all debug outputs
-	// into a file)
-	virtual void output_function(IVP_DEBUG_CLASS class_id, const char *string);
+    // feel free to override this method with your customized
+    // output function (e.g. for redirecting all debug outputs
+    // into a file)
+    virtual void output_function(IVP_DEBUG_CLASS class_id, const char *string);
 
-	IVP_BetterDebugmanager();
-	virtual ~IVP_BetterDebugmanager();
+    IVP_BetterDebugmanager();
+    virtual ~IVP_BetterDebugmanager();
 };
 
 // use global variable only in emergency

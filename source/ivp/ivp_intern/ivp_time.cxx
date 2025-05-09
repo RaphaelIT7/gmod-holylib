@@ -32,16 +32,16 @@
 void IVP_Event_Manager_Standard::simulate_time_events(IVP_Time_Manager *tman,IVP_Environment *env,IVP_Time time) {
   IVP_FLOAT event_time;
   while ( (event_time = tman->min_hash->find_min_value()) < time - tman->base_time ){
-	  IVP_Time_Event *event = (IVP_Time_Event *)tman->min_hash->find_min_elem();
-	  tman->min_hash->remove_minlist_elem(event->index);
-	  event->index = IVP_U_MINLIST_UNUSED;
-	  IVP_ASSERT(event_time - tman->last_time >= -P_FLOAT_RES);
-	  tman->last_time = event_time;
-	  tman->env_set_current_time(env,tman->base_time + event_time);
-	  event->simulate_time_event(env);
-	  if(tman->event_manager->mode==1) {
+      IVP_Time_Event *event = (IVP_Time_Event *)tman->min_hash->find_min_elem();
+      tman->min_hash->remove_minlist_elem(event->index);
+      event->index = IVP_U_MINLIST_UNUSED;
+      IVP_ASSERT(event_time - tman->last_time >= -P_FLOAT_RES);
+      tman->last_time = event_time;
+      tman->env_set_current_time(env,tman->base_time + event_time);
+      event->simulate_time_event(env);
+      if(tman->event_manager->mode==1) {
 	break;
-	  }
+      }
   }
   tman->env_set_current_time(env,time);
 };
@@ -50,14 +50,14 @@ void IVP_Event_Manager_D::simulate_time_events(IVP_Time_Manager *tman,IVP_Enviro
   IVP_FLOAT event_time;
   event_time = tman->min_hash->find_min_value();
   if( !hk_Math::almost_zero( time - tman->base_time ) ){
-	//while ( (event_time = tman->min_hash->find_min_value()) < time - tman->base_time ){
-	  IVP_Time_Event *event = (IVP_Time_Event *)tman->min_hash->find_min_elem();
-	  tman->min_hash->remove_minlist_elem(event->index);
-	  event->index = IVP_U_MINLIST_UNUSED;
-	  IVP_ASSERT(event_time - tman->last_time >= -P_FLOAT_RES);
-	  tman->last_time = event_time;
-	  tman->env_set_current_time(env,tman->base_time + event_time);
-	  event->simulate_time_event(env);
+    //while ( (event_time = tman->min_hash->find_min_value()) < time - tman->base_time ){
+      IVP_Time_Event *event = (IVP_Time_Event *)tman->min_hash->find_min_elem();
+      tman->min_hash->remove_minlist_elem(event->index);
+      event->index = IVP_U_MINLIST_UNUSED;
+      IVP_ASSERT(event_time - tman->last_time >= -P_FLOAT_RES);
+      tman->last_time = event_time;
+      tman->env_set_current_time(env,tman->base_time + event_time);
+      event->simulate_time_event(env);
   }
   tman->env_set_current_time(env,time);
 };
@@ -91,74 +91,74 @@ IVP_Event_Manager::~IVP_Event_Manager() {}
 
 IVP_Time_Manager::IVP_Time_Manager()
 {
-	P_MEM_CLEAR(this);
-	event_manager=new IVP_Event_Manager_Standard();
-	event_manager->mode=0;
-	this->min_hash = new IVP_U_Min_List(16);
-	this->psi_event = new IVP_Time_Event_PSI();
+    P_MEM_CLEAR(this);
+    event_manager=new IVP_Event_Manager_Standard();
+    event_manager->mode=0;
+    this->min_hash = new IVP_U_Min_List(16);
+    this->psi_event = new IVP_Time_Event_PSI();
 
-	this->insert_event(psi_event, 0.0f);
+    this->insert_event(psi_event, 0.0f);
 }
 
 IVP_Time_Manager::~IVP_Time_Manager()
 {
-	IVP_Time_Event *event;
-	while ( min_hash->has_elements()){
+    IVP_Time_Event *event;
+    while ( min_hash->has_elements()){
 	event = get_next_event();
 	P_DELETE(event);
-	}
-	P_DELETE(this->event_manager);
-	P_DELETE(this->min_hash);
+    }
+    P_DELETE(this->event_manager);
+    P_DELETE(this->min_hash);
 }
 
 void IVP_Time_Manager::insert_event(IVP_Time_Event *event, IVP_Time time)
 {
-	IVP_FLOAT event_time = time - base_time;
-	IVP_ASSERT(event_time - last_time >= -P_FLOAT_RES);
-	event->index = this->min_hash->add((void *)event, event_time);
+    IVP_FLOAT event_time = time - base_time;
+    IVP_ASSERT(event_time - last_time >= -P_FLOAT_RES);
+    event->index = this->min_hash->add((void *)event, event_time);
 }
 
 
 void IVP_Time_Manager::remove_event(IVP_Time_Event *event)
 {
-	this->min_hash->remove_minlist_elem(event->index);
+    this->min_hash->remove_minlist_elem(event->index);
 }
 
 void IVP_Time_Manager::update_event(IVP_Time_Event *event, IVP_Time time)
 {
-	IVP_FLOAT event_time = time - base_time;
-	IVP_ASSERT(event_time - last_time >= -P_FLOAT_RES);
-	this->min_hash->remove_minlist_elem(event->index);
-	event->index = this->min_hash->add((void *)event, event_time);
+    IVP_FLOAT event_time = time - base_time;
+    IVP_ASSERT(event_time - last_time >= -P_FLOAT_RES);
+    this->min_hash->remove_minlist_elem(event->index);
+    event->index = this->min_hash->add((void *)event, event_time);
 }
 
 
 
 IVP_Time_Event *IVP_Time_Manager::get_next_event()
 {
-	if (min_hash->has_elements()){
+    if (min_hash->has_elements()){
 	IVP_Time_Event *event = (IVP_Time_Event *)this->min_hash->find_min_elem();
 	this->min_hash->remove_minlist_elem(event->index);
 	return event;
-	}
-	return NULL;
+    }
+    return NULL;
 }
 
 IVP_Time_Event *IVP_Time_Manager::get_next_event(IVP_Time ttime)
 {
-	// removes event from manager afterwards!
-	IVP_DOUBLE rel_time = ttime - base_time;
-	if ( min_hash->find_min_value() < rel_time ){
+    // removes event from manager afterwards!
+    IVP_DOUBLE rel_time = ttime - base_time;
+    if ( min_hash->find_min_value() < rel_time ){
 	IVP_Time_Event *event = (IVP_Time_Event *)this->min_hash->find_min_elem();
 	this->min_hash->remove_minlist_elem(event->index);
 	return event;
-	}
-	return NULL;
+    }
+    return NULL;
 }
 
 int IVP_Time_Manager::get_event_count()
 {
-	return this->min_hash->counter;
+    return this->min_hash->counter;
 }
 
 void IVP_Event_Manager::simulate_time_events(IVP_Time_Manager *,IVP_Environment *, IVP_Time) {
@@ -170,19 +170,19 @@ void IVP_Event_Manager::simulate_time_events(IVP_Time_Manager *,IVP_Environment 
 class ScopedFpuMode {
  public:
   explicit ScopedFpuMode(uint16_t new_mode) noexcept {
-	// MSVC complains when we write to member directly.
-	uint16_t old_mode;
+    // MSVC complains when we write to member directly.
+    uint16_t old_mode;
 
-	__asm FSTCW old_mode;
-	new_mode = old_mode | new_mode;
-	__asm FLDCW new_mode;
+    __asm FSTCW old_mode;
+    new_mode = old_mode | new_mode;
+    __asm FLDCW new_mode;
 
-	old_mode_ = old_mode;
+    old_mode_ = old_mode;
   }
   ~ScopedFpuMode() noexcept {
-	// MSVC complains when we write to member directly.
-	uint16_t old_mode = old_mode_;
-	__asm FLDCW old_mode;
+    // MSVC complains when we write to member directly.
+    uint16_t old_mode = old_mode_;
+    __asm FLDCW old_mode;
   }
 
  private:
@@ -239,44 +239,44 @@ void IVP_Time_Manager::simulate_variable_time_step(IVP_Environment *env, IVP_FLO
 
 
 void IVP_Time_Manager::env_set_current_time(IVP_Environment *env, IVP_Time time){
-	env->set_current_time(time);
+    env->set_current_time(time);
 }
 
 void IVP_Time_Event_PSI::simulate_time_event(IVP_Environment *env)
 {
-	IVP_Time_Manager *tm = env->get_time_manager();
-	IVP_DOUBLE delta_psi_time = env->get_delta_PSI_time();
-	env->time_of_last_psi = env->get_current_time();
-	env->time_of_next_psi = env->time_of_last_psi + delta_psi_time;
-	IVP_FLOAT event_time = env->time_of_last_psi.get_time();
-	// reset min_list
-	{
+    IVP_Time_Manager *tm = env->get_time_manager();
+    IVP_DOUBLE delta_psi_time = env->get_delta_PSI_time();
+    env->time_of_last_psi = env->get_current_time();
+    env->time_of_next_psi = env->time_of_last_psi + delta_psi_time;
+    IVP_FLOAT event_time = env->time_of_last_psi.get_time();
+    // reset min_list
+    {
 	IVP_U_Min_List_Enumerator enumerator(tm->min_hash);
 	while (  IVP_U_Min_List_Element *h = enumerator.get_next_element_header()){
-		h->value -= event_time;
+	    h->value -= event_time;
 	}
 	tm->min_hash->min_value -= event_time;
-	}
-	tm->base_time = env->time_of_last_psi;
-	tm->last_time = 0.0f;
-	env->simulate_psi(env->time_of_last_psi);
-	env->time_manager->insert_event(this, env->time_of_next_psi);
+    }
+    tm->base_time = env->time_of_last_psi;
+    tm->last_time = 0.0f;
+    env->simulate_psi(env->time_of_last_psi);
+    env->time_manager->insert_event(this, env->time_of_next_psi);
 }
 
 void IVP_Time_Manager::reset_time( IVP_Time offset){
-	IVP_Time_Manager *tm = this;
-	IVP_FLOAT event_time = offset - base_time;
+    IVP_Time_Manager *tm = this;
+    IVP_FLOAT event_time = offset - base_time;
 
-	// reset min_list
-	{
+    // reset min_list
+    {
 	IVP_U_Min_List_Enumerator enumerator(tm->min_hash);
 	while (  IVP_U_Min_List_Element *h = enumerator.get_next_element_header()){
-		h->value -= event_time;
+	    h->value -= event_time;
 	}
 	tm->min_hash->min_value -= event_time;
-	}
-	tm->base_time = 0.0f;
-	tm->last_time = 0.0f;
+    }
+    tm->base_time = 0.0f;
+    tm->last_time = 0.0f;
 }
 
 

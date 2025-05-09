@@ -5,9 +5,7 @@
 #include <signal.h>
 #endif
 
-#ifndef _LINUX
 #include <DirectXMath.h>
-#endif
 
 // dimhotepus: Use SSE when DirectXMath uses SSE.
 #ifdef _XM_SSE_INTRINSICS_
@@ -135,7 +133,7 @@ using hk_id = hk_uint32;
 #define HK_TEMPLATE_INLINE inline
 
 #if defined(__i386__) || defined(WIN32)
-//#	define HK_HAVE_QUERY_PERFORMANCE_TIMER
+#	define HK_HAVE_QUERY_PERFORMANCE_TIMER
 #endif
 
 #if !defined(HK_ALIGNED_VARIABLE)

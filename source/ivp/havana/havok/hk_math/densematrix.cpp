@@ -4,18 +4,18 @@
 
 void hk_Dense_Matrix::mult_vector( const hk_real *x_vector, hk_real *result_vector ) const
 {
-	int i;
-	for(i=getNumRows()-1;i>=0;i--)
+    int i;
+    for(i=getNumRows()-1;i>=0;i--)
 	{
 		result_vector[i]=0.0f;
-	}
+    }
 
-	hk_real *start_column=&m_elt[m_lda*getNumCols()];
-	for(i=getNumRows()-1;i>=0;i--)
+    hk_real *start_column=&m_elt[m_lda*getNumCols()];
+    for(i=getNumRows()-1;i>=0;i--)
 	{
 		start_column-=m_lda;
 		hk_VecFPU::fpu_add_multiple_row(result_vector,start_column,x_vector[i],getNumCols(),HK_TRUE);
-	}
+    }
 }
 
 

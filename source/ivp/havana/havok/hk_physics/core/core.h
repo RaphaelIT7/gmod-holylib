@@ -76,7 +76,7 @@ class hk_Core: public hk_Object
 
 
 //: the next functions require that the core is synchronized, either by explicitely calling synchronize core
-// or during a PhysicalSynchronousInstance (PSI)	
+// or during a PhysicalSynchronousInstance (PSI)    
 class hk_Synchronized_Core : public hk_Core
 {
 	public:
@@ -98,7 +98,7 @@ class hk_Synchronized_Core : public hk_Core
 			//: check the current velocities or check against a reference position
 
 		virtual void add_to_mass_matrix_inv( hk_Core_VMQ_Input &input,hk_Dense_Matrix &matrix_out, hk_real velocities_out[]){;};
-		virtual void add_to_velocities(	  hk_Core_VMQ_Input &input, hk_real velocities_out[]){;};
+		virtual void add_to_velocities(      hk_Core_VMQ_Input &input, hk_real velocities_out[]){;};
 
 		
 		virtual void apply_impulses( hk_Core_VMQ_Input &input,
@@ -133,28 +133,28 @@ class hk_Synchronized_Core : public hk_Core
 };
 
 /******************************* Notes ***************************************
-*	 Typical usage of core for collisions:
-*			  begin_synchronize
-*				  hk_Sim_Unit::simulate_collision
-*				  get_projected_velocities
-*				  add_to_mass_matrix_inv
-*				   ... collision resolution
-*			  commit_synchronize
-*			  apply_impulses
-*			  speculative_step
+*     Typical usage of core for collisions:
+*              begin_synchronize
+*                  hk_Sim_Unit::simulate_collision
+*                  get_projected_velocities
+*                  add_to_mass_matrix_inv
+*                   ... collision resolution
+*              commit_synchronize
+*              apply_impulses
+*              speculative_step
 ******************************************************************************/
 
  
 /******************************** Notes ***************************************
-*	 Typical usage of core at PSI:
-*			  init_for_PSI
-*				  hk_Sim_Unit::simulate_PSI
+*     Typical usage of core at PSI:
+*              init_for_PSI
+*                  hk_Sim_Unit::simulate_PSI
 *				   commit_async_impulses
-*				  get_projected_velocities
-*				  add_to_mass_matrix_inv
-*				  collision resolution
-*				  apply_impulses
-*			  speculative_step
+*                  get_projected_velocities
+*                  add_to_mass_matrix_inv
+*                  collision resolution
+*                  apply_impulses
+*              speculative_step
 ******************************************************************************/
 
 #endif /* HK_PHYSICS_CORE_H */

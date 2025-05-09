@@ -10,7 +10,7 @@ void hk_Matrix3::set_rows( const hk_Vector3& r0,
 }
 
 void hk_Matrix3::set_cols( const hk_Vector3& c0,			   
-							const hk_Vector3& c1,
+						    const hk_Vector3& c1,
 							const hk_Vector3& c2)
 {
 	get_column(0) = c0;
@@ -51,19 +51,19 @@ void hk_Matrix3::set_diagonal( hk_real m00, hk_real m11, hk_real m22 )
 hk_result hk_Matrix3::invert(hk_real epsilon)
 {
 	hk_Vector3 r0; r0.set_cross( get_column(1), get_column(2) );
-	hk_Vector3 r1; r1.set_cross( get_column(2), get_column(0) );
-	hk_Vector3 r2; r2.set_cross( get_column(0), get_column(1) );
+    hk_Vector3 r1; r1.set_cross( get_column(2), get_column(0) );
+    hk_Vector3 r2; r2.set_cross( get_column(0), get_column(1) );
 
-	hk_real D = get_column(0).dot(r0);	// main determinant
-	
-	if( hk_Math::fabs(D)< epsilon ){
+    hk_real D = get_column(0).dot(r0);	// main determinant
+    
+    if( hk_Math::fabs(D)< epsilon ){
 		return HK_FAULT;  // cannot invert, may happen
-	}
+    }
 
-	hk_real DI = 1.0f/D;
-	r0 *= DI;
-	r1 *= DI;
-	r2 *= DI;
+    hk_real DI = 1.0f/D;
+    r0 *= DI;
+    r1 *= DI;
+    r2 *= DI;
 
 	_set_rows( r0, r1, r2 );
 	return HK_OK;
@@ -78,8 +78,8 @@ void hk_Matrix3::transpose()
 }
 
 // r~ = [ 0 -z  y ]
-//	  [ z  0 -x ]
-//	  [-y  x  0 ]
+//      [ z  0 -x ]
+//      [-y  x  0 ]
 void hk_Matrix3::set_cross_skew( const hk_Vector3& r, const hk_Matrix3& R )
 {
 	for( int col = 0; col < 3; col++ )

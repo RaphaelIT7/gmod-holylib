@@ -10,15 +10,15 @@
 
 class IVP_Clustering_Visualizer_Object_Hash : protected IVP_VHash {
 protected:
-	IVP_BOOL		  compare	 (const void *elem0, const void *elem1) const override;
-	int			   obj_to_index(IVP_Real_Object *obj);
+    IVP_BOOL          compare     (const void *elem0, const void *elem1) const override;
+    int               obj_to_index(IVP_Real_Object *obj);
 
 public:
-	void			  add		 (IVP_Real_Object *obj);
-	IVP_Real_Object * remove	  (IVP_Real_Object *obj);
-	IVP_Real_Object * find		(IVP_Real_Object *obj);
+    void              add         (IVP_Real_Object *obj);
+    IVP_Real_Object * remove      (IVP_Real_Object *obj);
+    IVP_Real_Object * find        (IVP_Real_Object *obj);
 
-	IVP_Clustering_Visualizer_Object_Hash(int create_size);
-	~IVP_Clustering_Visualizer_Object_Hash();
+    IVP_Clustering_Visualizer_Object_Hash(int create_size);
+    ~IVP_Clustering_Visualizer_Object_Hash();
 };
 

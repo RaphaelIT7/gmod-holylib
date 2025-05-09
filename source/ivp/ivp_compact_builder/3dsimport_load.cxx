@@ -122,12 +122,12 @@ static void * getmem(int size)
 
 // tab 4
 enum {
-	CHUNK_RGBF	  	= 0x0010,
-	CHUNK_RGBB	  	= 0x0011,
-//  CHUNK_RBGB2	 	= 0x0012,	// ?? NOT HLS.
-	CHUNK_MAIN	  	= 0x4D4D,
-	 CHUNK_OBJMESH	  = 0x3D3D,
-	  CHUNK_BKGCOLOR	= 0x1200,
+	CHUNK_RGBF      	= 0x0010,
+	CHUNK_RGBB      	= 0x0011,
+//  CHUNK_RBGB2     	= 0x0012,	// ?? NOT HLS.
+	CHUNK_MAIN      	= 0x4D4D,
+     CHUNK_OBJMESH      = 0x3D3D,
+      CHUNK_BKGCOLOR    = 0x1200,
 	  CHUNK_AMBCOLOR  	= 0x2100,
 	  CHUNK_OBJBLOCK  	= 0x4000,
 	   CHUNK_TRIMESH   	= 0x4100,
@@ -137,9 +137,9 @@ enum {
 		CHUNK_MAPLIST   = 0x4140,
 		CHUNK_SMOOLIST  = 0x4150,
 		CHUNK_TRMATRIX  = 0x4160,
-	   CHUNK_LIGHT	 	= 0x4600,
+	   CHUNK_LIGHT     	= 0x4600,
 		CHUNK_SPOTLIGHT = 0x4610,
-	   CHUNK_CAMERA		= 0x4700,
+	   CHUNK_CAMERA    	= 0x4700,
 	 CHUNK_MATERIAL  	= 0xAFFF,
 	  CHUNK_MATNAME   	= 0xA000,
 	  CHUNK_AMBIENT   	= 0xA010,
@@ -149,7 +149,7 @@ enum {
 	  CHUNK_BUMPMAP   	= 0xA230,
 	  CHUNK_MAPFILE   	= 0xA300,
 	 CHUNK_KEYFRAMER 	= 0xB000,
-	  CHUNK_FRAMES	  = 0xB008
+	  CHUNK_FRAMES      = 0xB008
 };
 
 
@@ -355,7 +355,7 @@ H3dsScene * HRead3dsScene(void * ptr, int what, dword size)
 		ReadMainBlocks(pc+len);
 	}
 	else {
-		// There was an error, free the allocated mem and return NULL.
+        // There was an error, free the allocated mem and return NULL.
 		HFree3dsScene(Scene);
 		return 0;
 	}

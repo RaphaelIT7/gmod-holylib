@@ -74,7 +74,7 @@ void hk_Prismatic_Constraint::init_prismatic_constraint(const hk_Prismatic_BP* b
 	const hk_Transform &t_ws_f_Ros = get_rigid_body(0)->get_cached_transform();
 	const hk_Transform &t_ws_f_Aos = get_rigid_body(1)->get_cached_transform();
 
-	hk_Vector3 axis_ws;	 axis_ws.set_rotated_dir(t_ws_f_Ros, m_axis_Ros);
+	hk_Vector3 axis_ws;     axis_ws.set_rotated_dir(t_ws_f_Ros, m_axis_Ros);
 	hk_Vector3 pos_ws;		pos_ws.set_interpolate( t_ws_f_Ros.get_translation(), t_ws_f_Aos.get_translation(), m_pos_interpolation_value );
 
 	hk_Vector3 delta_ws;
@@ -164,9 +164,9 @@ int	hk_Prismatic_Constraint::setup_and_step_constraint(
 		work.m_correction(2) = factor * q_Desired_Ros_Ros.z;
 	}
 
-	hk_Vector3 axis_ws;	   axis_ws.set_rotated_dir(	  t_ws_f_Ros, m_axis_Ros);
+	hk_Vector3 axis_ws;       axis_ws.set_rotated_dir(      t_ws_f_Ros, m_axis_Ros);
 	hk_Vector3 perp_axis_ws;  perp_axis_ws.set_rotated_dir( t_ws_f_Ros, m_perp_axis_Ros);
-	hk_Vector3 perp_axis2_ws; perp_axis2_ws.set_cross(	  axis_ws,	perp_axis_ws);
+	hk_Vector3 perp_axis2_ws; perp_axis2_ws.set_cross(      axis_ws,    perp_axis_ws);
 
 	hk_Vector3 delta_ws;
 	{

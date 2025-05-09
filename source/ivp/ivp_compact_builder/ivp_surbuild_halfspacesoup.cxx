@@ -23,32 +23,32 @@
 // yes: drop new point and return pointer to old point
 //
 // NOTE: the passed IVP_U_Point-pointer is invalid after function's return;
-//	   always use the returned pointer!
+//       always use the returned pointer!
 // ------------------------------------------------------------------------
 IVP_U_Point *IVP_SurfaceBuilder_Halfspacesoup::insert_point_into_list(IVP_U_Point *point, IVP_U_Vector<IVP_U_Point> *points, IVP_DOUBLE quad_threshold)
 {
-	int i;
-	for (i=0; i<points->len(); i++) {
+    int i;
+    for (i=0; i<points->len(); i++) {
 	
 	IVP_U_Point *old_point = points->element_at(i);
 	if ( point->quad_distance_to(old_point) < quad_threshold ) {
 #ifdef INSERT_POINT_INTO_LIST_DEBUG
-		ivp_message("  +++ Dropping almost similar point {%f, %f, %f} in favour of {%f, %f, %f}\n",
+	    ivp_message("  +++ Dropping almost similar point {%f, %f, %f} in favour of {%f, %f, %f}\n",
 		   point->k[0], point->k[1], point->k[2],
 		   old_point->k[0], old_point->k[1], old_point->k[2]);
-#endif		
-		P_DELETE(point);
-		return(old_point);
+#endif	    
+	    P_DELETE(point);
+	    return(old_point);
 	}
 	
-	}
-	
-	points->add(point);
+    }
+    
+    points->add(point);
 #ifdef INSERT_POINT_INTO_LIST_DEBUG	
-	ivp_message("  +++ Insert point {%f, %f, %f}\n", point->k[0], point->k[1], point->k[2]);
+    ivp_message("  +++ Insert point {%f, %f, %f}\n", point->k[0], point->k[1], point->k[2]);
 #endif
 
-	return(point);
+    return(point);
 }
 
 
@@ -60,19 +60,19 @@ IVP_U_Point *IVP_SurfaceBuilder_Halfspacesoup::insert_point_into_list(IVP_U_Poin
 // resulting points into the pointlist
 // ------------------------------------------------------------------------
 int IVP_SurfaceBuilder_Halfspacesoup::convert_halfspacesoup_to_points(IVP_Halfspacesoup *halfspaces,
-									  IVP_DOUBLE pointmerge_threshold,
-									  IVP_U_Vector<IVP_U_Point> *points)
+								      IVP_DOUBLE pointmerge_threshold,
+								      IVP_U_Vector<IVP_U_Point> *points)
 {
-	int i;
+    int i;
 
-	IVP_DOUBLE threshold = pointmerge_threshold * pointmerge_threshold;
+    IVP_DOUBLE threshold = pointmerge_threshold * pointmerge_threshold;
 
-	// process all existing triple-plane combinations
-	for (i=0; i<halfspaces->len(); i++) {
+    // process all existing triple-plane combinations
+    for (i=0; i<halfspaces->len(); i++) {
 	int j;
 	for (j=i+1; j<halfspaces->len(); j++) {
-		int k;
-		for (k=j+1; k<halfspaces->len(); k++) {
+	    int k;
+	    for (k=j+1; k<halfspaces->len(); k++) {
 
 		IVP_U_Hesse *plane1 = halfspaces->element_at(i);
 		IVP_U_Hesse *plane2 = halfspaces->element_at(j);
@@ -85,124 +85,124 @@ int IVP_SurfaceBuilder_Halfspacesoup::convert_halfspacesoup_to_points(IVP_Halfsp
 
 #ifdef PLANES_TO_POINT_DEBUG
 		if ( debug_plane ) {
-			ivp_message("Combining:\n");
-			ivp_message("  {%f,%f,%f}, %f\n", plane1->k[0], plane1->k[1], plane1->k[2], plane1->hesse_val);
-			ivp_message("  {%f,%f,%f}, %f\n", plane2->k[0], plane2->k[1], plane2->k[2], plane2->hesse_val);
-			ivp_message("  {%f,%f,%f}, %f\n", plane3->k[0], plane3->k[1], plane3->k[2], plane3->hesse_val);
+		    ivp_message("Combining:\n");
+		    ivp_message("  {%f,%f,%f}, %f\n", plane1->k[0], plane1->k[1], plane1->k[2], plane1->hesse_val);
+		    ivp_message("  {%f,%f,%f}, %f\n", plane2->k[0], plane2->k[1], plane2->k[2], plane2->hesse_val);
+		    ivp_message("  {%f,%f,%f}, %f\n", plane3->k[0], plane3->k[1], plane3->k[2], plane3->hesse_val);
 		}
 #endif
 		
 		rval = point.set_crossing(plane1, plane2, plane3);
 		if ( rval ) {
 
-#ifdef PLANES_TO_POINT_DEBUG				
-			if ( debug_plane ) {
+#ifdef PLANES_TO_POINT_DEBUG			    
+		    if ( debug_plane ) {
 			ivp_message(" --> intersection at {%f, %f, %f}\n", point.k[0], point.k[1], point.k[2]);
-			}
+		    }
 #endif
-			
-			// an intersection exists...
-			IVP_BOOL skip_point = IVP_FALSE;
+		    
+		    // an intersection exists...
+		    IVP_BOOL skip_point = IVP_FALSE;
 
-			// check whether point is inside or outside of our
-			// object
-			int l;
-			for (l=0; l<halfspaces->len(); l++) {
+		    // check whether point is inside or outside of our
+		    // object
+		    int l;
+		    for (l=0; l<halfspaces->len(); l++) {
 			IVP_U_Hesse *plane = halfspaces->element_at(l);
 			if ( plane->get_dist(&point) < -HALFSPACESOUP_TOLERANCE ) {
-				skip_point = IVP_TRUE;
+			    skip_point = IVP_TRUE;
 #ifdef PLANES_TO_POINT_DEBUG
-				if ( debug_plane ) {
+			    if ( debug_plane ) {
 				if ( debug_plane == plane ) {
-					ivp_message("Combining:\n");
-					ivp_message("  {%f,%f,%f}, %f\n", plane1->k[0], plane1->k[1], plane1->k[2], plane1->hesse_val);
-					ivp_message("  {%f,%f,%f}, %f\n", plane2->k[0], plane2->k[1], plane2->k[2], plane2->hesse_val);
-					ivp_message("  {%f,%f,%f}, %f\n", plane3->k[0], plane3->k[1], plane3->k[2], plane3->hesse_val);
-					ivp_message("  +++ Dropping point {%f, %f, %f}\n	  because outside of plane {%f, %f, %f}, %f\n	  Distance = %f\n",
+				    ivp_message("Combining:\n");
+				    ivp_message("  {%f,%f,%f}, %f\n", plane1->k[0], plane1->k[1], plane1->k[2], plane1->hesse_val);
+				    ivp_message("  {%f,%f,%f}, %f\n", plane2->k[0], plane2->k[1], plane2->k[2], plane2->hesse_val);
+				    ivp_message("  {%f,%f,%f}, %f\n", plane3->k[0], plane3->k[1], plane3->k[2], plane3->hesse_val);
+				    ivp_message("  +++ Dropping point {%f, %f, %f}\n      because outside of plane {%f, %f, %f}, %f\n      Distance = %f\n",
 					   point.k[0], point.k[1], point.k[2],
 					   plane->k[0], plane->k[1], plane->k[2], plane->hesse_val,
 					   plane->get_dist(&point));
 				}
-				}
+			    }
 #endif
-				break;
+			    break;
 			}
-			}
+		    }
 
-			if ( !skip_point ) {
+		    if ( !skip_point ) {
 			// inside... add point to planes;
 			insert_point_into_list(new IVP_U_Point(point), points, threshold);
-			}
-			
+		    }
+		    
 		}else {
 #ifdef P_LANES_TO_POINT_DEBUG
-			if ( debug_plane ) {
+		    if ( debug_plane ) {
 			ivp_message(" --> no intersection\n");
-			}
+		    }
 #endif
 		}
-#ifdef PLANES_TO_POINT_DEBUG				
+#ifdef PLANES_TO_POINT_DEBUG			    
 		if ( debug_plane ) {
-			ivp_message("\n");
+		    ivp_message("\n");
 		}
 #endif		
-		}
+	    }
 	}
-	}
-	
-	// -------------------------------------------------------------------------------
-	// to avoid numerical problems when triangularizing the object we merge any points
-	// that are closer than a user-defined threshold
-	// -------------------------------------------------------------------------------
-	for (i=0; i<points->len(); i++) {
+    }
+    
+    // -------------------------------------------------------------------------------
+    // to avoid numerical problems when triangularizing the object we merge any points
+    // that are closer than a user-defined threshold
+    // -------------------------------------------------------------------------------
+    for (i=0; i<points->len(); i++) {
 	IVP_U_Point *p1 = points->element_at(i);
 	int j;
 	for (j=points->len()-1; j>i; j--) {
-		IVP_U_Point *p2 = points->element_at(j);
-		if ( p1->quad_distance_to(p2) < threshold ) {
+	    IVP_U_Point *p2 = points->element_at(j);
+	    if ( p1->quad_distance_to(p2) < threshold ) {
 		IVP_IF(1) {
-			ivp_message("*** IVP_SurfaceBuilder_Halfspacesoup::convert_halfspacesoup_to_points - removing ");
-			p2->print();
+		    ivp_message("*** IVP_SurfaceBuilder_Halfspacesoup::convert_halfspacesoup_to_points - removing ");
+		    p2->print();
 		}
 		points->remove(p2);
 		P_DELETE(p2);
-		}
+	    }
 	}
-	}
+    }
 
-	return(points->len());
+    return(points->len());
 }
 
 
 IVP_Compact_Ledge *IVP_SurfaceBuilder_Halfspacesoup::convert_halfspacesoup_to_compact_ledge(IVP_Halfspacesoup *halfspaces,
-												IVP_DOUBLE pointmerge_threshold)
+											    IVP_DOUBLE pointmerge_threshold)
 {
-	IVP_U_Vector<IVP_U_Point> points;
+    IVP_U_Vector<IVP_U_Point> points;
 
-	IVP_SurfaceBuilder_Halfspacesoup::convert_halfspacesoup_to_points(halfspaces, pointmerge_threshold, &points);
-	IVP_Compact_Ledge *ledge = IVP_SurfaceBuilder_Pointsoup::convert_pointsoup_to_compact_ledge(&points);
+    IVP_SurfaceBuilder_Halfspacesoup::convert_halfspacesoup_to_points(halfspaces, pointmerge_threshold, &points);
+    IVP_Compact_Ledge *ledge = IVP_SurfaceBuilder_Pointsoup::convert_pointsoup_to_compact_ledge(&points);
 	for (int i= points.len()-1;i>=0;i--){
 		delete points.element_at(i);
 	}
 
-	return(ledge);
+    return(ledge);
 }
 
 
 IVP_Compact_Surface *IVP_SurfaceBuilder_Halfspacesoup::convert_halfspacesoup_to_compact_surface(IVP_Halfspacesoup *halfspaces,
 												IVP_DOUBLE pointmerge_threshold)
 {
-	IVP_SurfaceBuilder_Ledge_Soup ledge_soup;
-	IVP_Compact_Surface *cs = NULL;
+    IVP_SurfaceBuilder_Ledge_Soup ledge_soup;
+    IVP_Compact_Surface *cs = NULL;
 
-	IVP_Compact_Ledge *ledge = IVP_SurfaceBuilder_Halfspacesoup::convert_halfspacesoup_to_compact_ledge(halfspaces, pointmerge_threshold);
-	if ( ledge ) {
+    IVP_Compact_Ledge *ledge = IVP_SurfaceBuilder_Halfspacesoup::convert_halfspacesoup_to_compact_ledge(halfspaces, pointmerge_threshold);
+    if ( ledge ) {
 	ledge_soup.insert_ledge(ledge);
 	cs = ledge_soup.compile();
-	} else {
+    } else {
 	ivp_message("*** IVP_SurfaceBuilder_Halfspacesoup::convert_halfspacesoup_to_compact_surface - skipping ledge due to invalid topology\n");
-	}
-	return(cs);
+    }
+    return(cs);
 }
 
 

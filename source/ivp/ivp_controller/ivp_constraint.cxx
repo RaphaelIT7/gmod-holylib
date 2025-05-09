@@ -8,42 +8,42 @@
 //-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 void IVP_Constraint::core_is_going_to_be_deleted_event(IVP_Core *) {
-	P_DELETE_THIS(this);
+    P_DELETE_THIS(this);
 }
 
 IVP_Constraint::IVP_Constraint() {
-	is_enabled = IVP_TRUE;
-	client_data = HK_NULL;
+    is_enabled = IVP_TRUE;
+    client_data = HK_NULL;
 }
 
 IVP_DOUBLE IVP_Constraint::get_minimum_simulation_frequency(){
-	//return get_objectF()->get_core()->environment->get_delta_PSI_time();
-	return 1.0f;
+    //return get_objectF()->get_core()->environment->get_delta_PSI_time();
+    return 1.0f;
 }
 
 IVP_Environment *IVP_Constraint::get_environment() {
-	return cores_of_constraint_system.element_at(0)->environment;
+    return cores_of_constraint_system.element_at(0)->environment;
 }
 
 void IVP_Constraint::activate() {
-	if (!is_enabled) {
+    if (!is_enabled) {
 	is_enabled = IVP_TRUE;
 	get_environment()->get_controller_manager()->announce_controller_to_environment(this);
-	}
+    }
 }
 
 void IVP_Constraint::deactivate() {
-	if (is_enabled) {
+    if (is_enabled) {
 	is_enabled = IVP_FALSE;
 	get_environment()->get_controller_manager()->remove_controller_from_environment(this, IVP_FALSE);
-	}
+    }
 }
 
 IVP_Constraint::~IVP_Constraint() {
-	//get_environment().get_controller_manager()->remove_controller_from_environment(this, IVP_FALSE);
-	if (is_enabled) {
+    //get_environment().get_controller_manager()->remove_controller_from_environment(this, IVP_FALSE);
+    if (is_enabled) {
 	IVP_Controller_Manager::remove_controller_from_environment(this,IVP_TRUE); //delete silently
-	}
+    }
 }
 
 void IVP_Constraint::change_fixing_point_Ros(const IVP_U_Point *) { ivp_message("You are changing the fixing point of a constraint which does not exist.\n");}

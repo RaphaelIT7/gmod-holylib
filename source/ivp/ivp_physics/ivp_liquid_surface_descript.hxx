@@ -4,10 +4,10 @@
 
 class IVP_Liquid_Surface_Descriptor {
 public:
-	virtual void calc_liquid_surface( IVP_Environment *environment,
-					  IVP_Core *core,
-					  IVP_U_Float_Hesse *surface_normal_out,
-					  IVP_U_Float_Point *abs_speed_of_current_out) = 0;
+    virtual void calc_liquid_surface( IVP_Environment *environment,
+				      IVP_Core *core,
+				      IVP_U_Float_Hesse *surface_normal_out,
+				      IVP_U_Float_Point *abs_speed_of_current_out) = 0;
 
 	virtual ~IVP_Liquid_Surface_Descriptor();
 };
@@ -16,15 +16,15 @@ public:
 class IVP_Liquid_Surface_Descriptor_Simple : public IVP_Liquid_Surface_Descriptor {
 
 public:
-	IVP_U_Float_Hesse surface;
-	IVP_U_Float_Point abs_speed_of_current;
-	
+    IVP_U_Float_Hesse surface;
+    IVP_U_Float_Point abs_speed_of_current;
+    
 public:
-	void calc_liquid_surface( IVP_Environment *environment,
-				  IVP_Core *core,
-				  IVP_U_Float_Hesse *surface_normal_out,
-				  IVP_U_Float_Point *abs_speed_of_current_out) override;
+    void calc_liquid_surface( IVP_Environment *environment,
+			      IVP_Core *core,
+			      IVP_U_Float_Hesse *surface_normal_out,
+			      IVP_U_Float_Point *abs_speed_of_current_out) override;
 
-	IVP_Liquid_Surface_Descriptor_Simple(const IVP_U_Float_Hesse *surface_in, const IVP_U_Float_Point *abs_speed_of_current_in);
+    IVP_Liquid_Surface_Descriptor_Simple(const IVP_U_Float_Hesse *surface_in, const IVP_U_Float_Point *abs_speed_of_current_in);
 };
 

@@ -47,83 +47,83 @@ class IVP_Template_Constraint_Anchor;
 // vv of m_as_f_bs is the origin of as, stored in bs
 class IVP_Constraint_Local_Anchor : public IVP_U_Matrix {
 public:
-	IVP_Real_Object *object; // remember object (not core) since cores may be split up in objects
-	IVP_U_Matrix3   *rot;
-	
-	IVP_Constraint_Local_Anchor();
-	~IVP_Constraint_Local_Anchor();
+    IVP_Real_Object *object; // remember object (not core) since cores may be split up in objects
+    IVP_U_Matrix3   *rot;
+    
+    IVP_Constraint_Local_Anchor();
+    ~IVP_Constraint_Local_Anchor();
 };
 
 class IVP_Constraint_Local_MaxImpulse {
-	friend class IVP_Constraint_Local;
+    friend class IVP_Constraint_Local;
 private:
-	IVP_FLOAT halfimpulse [IVP_TR_INDEX_MAX];
-	IVP_CONSTRAINT_FORCE_EXCEED type [IVP_TR_INDEX_MAX];
+    IVP_FLOAT halfimpulse [IVP_TR_INDEX_MAX];
+    IVP_CONSTRAINT_FORCE_EXCEED type [IVP_TR_INDEX_MAX];
 };
 
 class IVP_Constraint_Local : public IVP_Constraint {
-	friend class IVP_Controller;
-	friend class IVP_Environment;
+    friend class IVP_Controller;
+    friend class IVP_Environment;
 private: // describing variables
-	IVP_FLOAT force_factor;  // factor to balance different simulation frequencies
-	IVP_FLOAT damp_factor_div_force;  // dampening / force 
-	
-	IVP_CONSTRAINT_AXIS_TYPE fixed[IVP_TR_INDEX_MAX]; // fixed axles, maybe bitfield
-	IVP_FLOAT borderleft_Rfs[IVP_TR_INDEX_MAX];
-	IVP_FLOAT borderright_Rfs[IVP_TR_INDEX_MAX];
-	IVP_FLOAT limited_axis_stiffness; // a stiffness factor ( 0..1 ) for all limited axis (default 0.3f)
-	IVP_Constraint_Local_MaxImpulse *maxforce;
-	//IVP_CONSTRAINT_FORCE_EXCEED maxforce_type, maxtorque_type;
-	
-	IVP_Constraint_Local_Anchor m_Rfs_f_Rcs; // matrizes, that descibe the relative rotation and translation systems
-	IVP_Constraint_Local_Anchor m_Afs_f_Acs;
+    IVP_FLOAT force_factor;  // factor to balance different simulation frequencies
+    IVP_FLOAT damp_factor_div_force;  // dampening / force 
+    
+    IVP_CONSTRAINT_AXIS_TYPE fixed[IVP_TR_INDEX_MAX]; // fixed axles, maybe bitfield
+    IVP_FLOAT borderleft_Rfs[IVP_TR_INDEX_MAX];
+    IVP_FLOAT borderright_Rfs[IVP_TR_INDEX_MAX];
+    IVP_FLOAT limited_axis_stiffness; // a stiffness factor ( 0..1 ) for all limited axis (default 0.3f)
+    IVP_Constraint_Local_MaxImpulse *maxforce;
+    //IVP_CONSTRAINT_FORCE_EXCEED maxforce_type, maxtorque_type;
+    
+    IVP_Constraint_Local_Anchor m_Rfs_f_Rcs; // matrizes, that descibe the relative rotation and translation systems
+    IVP_Constraint_Local_Anchor m_Afs_f_Acs;
 private: // useful variables for calculation
 
-	IVP_U_Mapping mapping_uRfs_f_Rfs, mapping_uRrs_f_Rrs;
-	unsigned char fixedtrans_dim, fixedrot_dim;
-	unsigned char limitedtrans_dim, limitedrot_dim;
-	unsigned char matrix_size; // number of (sometimes temporary) fixed axles
-	IVP_NORM norm:8;
+    IVP_U_Mapping mapping_uRfs_f_Rfs, mapping_uRrs_f_Rrs;
+    unsigned char fixedtrans_dim, fixedrot_dim;
+    unsigned char limitedtrans_dim, limitedrot_dim;
+    unsigned char matrix_size; // number of (sometimes temporary) fixed axles
+    IVP_NORM norm:8;
 private: // functions
-	//void set_orientation(const IVP_U_Matrix3 &m_relatedsystem_f_rotatedsystem, IVP_U_Point *orientation_out); // calculates orientation vector for one matrix
+    //void set_orientation(const IVP_U_Matrix3 &m_relatedsystem_f_rotatedsystem, IVP_U_Point *orientation_out); // calculates orientation vector for one matrix
 
-	IVP_Constraint_Local();
-	void init(const IVP_Template_Constraint &tmpl);
-	void sort_translation_mapping();
-	void sort_rotation_mapping();
-	void constraint_changed();
+    IVP_Constraint_Local();
+    void init(const IVP_Template_Constraint &tmpl);
+    void sort_translation_mapping();
+    void sort_rotation_mapping();
+    void constraint_changed();
 protected:
-	void core_is_going_to_be_deleted_event(IVP_Core *core) override;
-	void do_simulation_controller(IVP_Event_Sim *es,IVP_U_Vector<IVP_Core> *core_list) override;
-	
+    void core_is_going_to_be_deleted_event(IVP_Core *core) override;
+    void do_simulation_controller(IVP_Event_Sim *es,IVP_U_Vector<IVP_Core> *core_list) override;
+    
 public: // constraint changing functions
-	IVP_Real_Object *get_objectR();
-	IVP_Real_Object *get_objectA();
+    IVP_Real_Object *get_objectR();
+    IVP_Real_Object *get_objectA();
 
-	// functions that refer to translation
-	void change_fixing_point_Ros(const IVP_U_Point *anchor_Ros) override;
-	void change_target_fixing_point_Ros(const IVP_U_Point *anchor_Ros) override;
-	void change_translation_axes_Ros(const IVP_U_Matrix3 *m_Ros_f_Rfs) override;
-	void change_target_translation_axes_Ros(const IVP_U_Matrix3 *m_Ros_f_Rfs) override;
-	void fix_translation_axis(IVP_COORDINATE_INDEX which) override;
-	void free_translation_axis(IVP_COORDINATE_INDEX which) override;
-	void limit_translation_axis(IVP_COORDINATE_INDEX which, IVP_FLOAT border_left, IVP_FLOAT border_right) override;
-	void change_max_translation_impulse(IVP_CONSTRAINT_FORCE_EXCEED impulsetype, IVP_FLOAT impulse) override;
+    // functions that refer to translation
+    void change_fixing_point_Ros(const IVP_U_Point *anchor_Ros) override;
+    void change_target_fixing_point_Ros(const IVP_U_Point *anchor_Ros) override;
+    void change_translation_axes_Ros(const IVP_U_Matrix3 *m_Ros_f_Rfs) override;
+    void change_target_translation_axes_Ros(const IVP_U_Matrix3 *m_Ros_f_Rfs) override;
+    void fix_translation_axis(IVP_COORDINATE_INDEX which) override;
+    void free_translation_axis(IVP_COORDINATE_INDEX which) override;
+    void limit_translation_axis(IVP_COORDINATE_INDEX which, IVP_FLOAT border_left, IVP_FLOAT border_right) override;
+    void change_max_translation_impulse(IVP_CONSTRAINT_FORCE_EXCEED impulsetype, IVP_FLOAT impulse) override;
 
-	// functions that refer to rotation
-	
-	void change_rotation_axes_Ros(const IVP_U_Matrix3 *m_Ros_f_Rrs) override;   // set a new rotation axis in both object
-	void change_target_rotation_axes_Ros(const IVP_U_Matrix3 *m_Ros_f_Rrs) override; // set a new angular target position of attached object
-	void fix_rotation_axis(IVP_COORDINATE_INDEX which) override;
-	void free_rotation_axis(IVP_COORDINATE_INDEX which) override;
-	void limit_rotation_axis(IVP_COORDINATE_INDEX which, IVP_FLOAT border_left, IVP_FLOAT border_right) override;
-	void change_max_rotation_impulse(IVP_CONSTRAINT_FORCE_EXCEED impulsetype, IVP_FLOAT impulse) override;
+    // functions that refer to rotation
+    
+    void change_rotation_axes_Ros(const IVP_U_Matrix3 *m_Ros_f_Rrs) override;   // set a new rotation axis in both object
+    void change_target_rotation_axes_Ros(const IVP_U_Matrix3 *m_Ros_f_Rrs) override; // set a new angular target position of attached object
+    void fix_rotation_axis(IVP_COORDINATE_INDEX which) override;
+    void free_rotation_axis(IVP_COORDINATE_INDEX which) override;
+    void limit_rotation_axis(IVP_COORDINATE_INDEX which, IVP_FLOAT border_left, IVP_FLOAT border_right) override;
+    void change_max_rotation_impulse(IVP_CONSTRAINT_FORCE_EXCEED impulsetype, IVP_FLOAT impulse) override;
 
-	// functions that explain differences
-	void change_Aos_to_relaxe_constraint() override;
-	void change_Ros_to_relaxe_constraint() override;
+    // functions that explain differences
+    void change_Aos_to_relaxe_constraint() override;
+    void change_Ros_to_relaxe_constraint() override;
 
-	IVP_Constraint_Local(const IVP_Template_Constraint &tmpl);
-	~IVP_Constraint_Local();
+    IVP_Constraint_Local(const IVP_Template_Constraint &tmpl);
+    ~IVP_Constraint_Local();
 };
 #endif

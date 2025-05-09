@@ -10,7 +10,7 @@ class hk_Breakable_Constraint : public hk_Constraint
 {
 	public:
 
-		hk_Breakable_Constraint( hk_Environment*,			 const hk_Breakable_Constraint_BP* );	
+		hk_Breakable_Constraint( hk_Environment*,             const hk_Breakable_Constraint_BP* );	
 		hk_Breakable_Constraint( hk_Local_Constraint_System*, const hk_Breakable_Constraint_BP* );	
 		~hk_Breakable_Constraint();
 

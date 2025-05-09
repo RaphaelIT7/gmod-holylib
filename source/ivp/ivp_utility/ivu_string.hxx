@@ -4,9 +4,9 @@
 
 class P_String {
 public:
-	static const char *find_string(const char *str, const char *key, int upper_case_flag);
-	static void uppercase(char *string_to_change);	// in place
-	static int string_cmp(const char *str,const char *search,IVP_BOOL upper_case);
+    static const char *find_string(const char *str, const char *key, int upper_case_flag);
+    static void uppercase(char *string_to_change);	// in place
+    static int string_cmp(const char *str,const char *search,IVP_BOOL upper_case);
 	/*	*	Wildcard in search string */
 	/*	?	any	Charakter	*/
 	/*	if uppercase	change all letters to uppercase */
@@ -44,3 +44,9 @@ void replace_slash(const char *in,char *out);
 // dimhotepus: long long instead of long for 64 bits.
 long long p_get_time(); // returns seconds since 1970
 #endif
+
+
+
+
+
+

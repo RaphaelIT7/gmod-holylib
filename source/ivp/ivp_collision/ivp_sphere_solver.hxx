@@ -21,9 +21,9 @@ class IVP_Vector_of_Objects_128 : public IVP_U_Vector<IVP_Real_Object>
 {
 public:
 
-	IVP_Vector_of_Objects_128() : IVP_U_Vector<IVP_Real_Object>((void**)&elem_buffer[0],128) {;};
+    IVP_Vector_of_Objects_128() : IVP_U_Vector<IVP_Real_Object>((void**)&elem_buffer[0],128) {;};
 
-	void reset()
+    void reset()
 	{ 
 		elems = (void**)&elem_buffer[0]; 
 		memsize = 128; 

@@ -46,7 +46,7 @@ class hk_Sim_Object : public hk_Object
 	private:
 
 		friend class hk_Object_Factory;
-		hk_id	 m_id;
+		hk_id     m_id;
 		hk_client m_client;
 };
 

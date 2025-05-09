@@ -3,13 +3,13 @@
 class IVP_Draw_Vector_Debug
 {
 public:
-	IVP_Draw_Vector_Debug *next;
-	IVP_U_Point first_point; 
-	IVP_U_Point direction_vec;
-	int color;
-	char *debug_text; //may be null. must be freed afterwards
-	IVP_Draw_Vector_Debug();
-	~IVP_Draw_Vector_Debug();
+    IVP_Draw_Vector_Debug *next;
+    IVP_U_Point first_point; 
+    IVP_U_Point direction_vec;
+    int color;
+    char *debug_text; //may be null. must be freed afterwards
+    IVP_Draw_Vector_Debug();
+    ~IVP_Draw_Vector_Debug();
 };
 
 // returns IVP_TRUEif mindist is interesting

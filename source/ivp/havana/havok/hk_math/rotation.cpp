@@ -22,7 +22,7 @@ void hk_Rotation::set(const hk_Quaternion& q)
 	hk_real wy = q(3)*y2;
 	hk_real wz = q(3)*z2;
 
-	get_column(0).set(1.0f-(yy+zz),		xy+wz,			xz-wy);
+	get_column(0).set(1.0f-(yy+zz),	    xy+wz,			xz-wy);
 	get_column(1).set(xy-wz,			1.0f-(xx+zz),	yz+wx);
 	get_column(2).set(xz+wy,			yz-wx,			1.0f-(xx+yy));
 }

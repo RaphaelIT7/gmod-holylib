@@ -15,14 +15,14 @@ void IVP_Liquid_Surface_Descriptor_Simple::calc_liquid_surface( IVP_Environment 
 								IVP_Core * /*core*/,
 								IVP_U_Float_Hesse *surface_normal_out,
 								IVP_U_Float_Point *abs_speed_of_current_out) {
-	surface_normal_out->set(&surface);
-	surface_normal_out->hesse_val = surface.hesse_val;
-	abs_speed_of_current_out->set(&abs_speed_of_current);
+    surface_normal_out->set(&surface);
+    surface_normal_out->hesse_val = surface.hesse_val;
+    abs_speed_of_current_out->set(&abs_speed_of_current);
 }
 
 
 IVP_Liquid_Surface_Descriptor_Simple::IVP_Liquid_Surface_Descriptor_Simple(const IVP_U_Float_Hesse *surface_in, const IVP_U_Float_Point *abs_speed_of_current_in) {
-	surface.set(surface_in);
-	surface.hesse_val = surface_in->hesse_val;
-	abs_speed_of_current.set(abs_speed_of_current_in);
+    surface.set(surface_in);
+    surface.hesse_val = surface_in->hesse_val;
+    abs_speed_of_current.set(abs_speed_of_current_in);
 }

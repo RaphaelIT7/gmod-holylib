@@ -46,7 +46,7 @@ class hk_Quaternion : public hk_Vector4
 
 		/* element access */
 
-		inline hk_real& operator() (int a);
+	    inline hk_real& operator() (int a);
 			//: XXX
 		inline const hk_real& operator() (int a) const;
 			//: XXX

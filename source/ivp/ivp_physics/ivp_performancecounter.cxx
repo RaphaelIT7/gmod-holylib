@@ -21,7 +21,7 @@ void IVP_PerformanceCounter_Simple::reset_and_print_performance_counters(IVP_Tim
 
 	IVP_DOUBLE factor = .001 / diff;
 
-	ivp_message(	"TOT %2.1f%% %2.2f COLL %2.2f  DYN %2.2f	 det:  UNIV: %2.2f CONTR: %2.2f INTEGR: %2.2f "
+	ivp_message(	"TOT %2.1f%% %2.2f COLL %2.2f  DYN %2.2f     det:  UNIV: %2.2f CONTR: %2.2f INTEGR: %2.2f "
 			"HULL: %2.2f SHORT: %2.2f CRITIC: %2.2f AT %2.2f\n",
 			sum * factor * 66.0 * (100.0 * 0.001),
 			sum * factor, collision * factor , dynamics * factor,
@@ -47,7 +47,7 @@ IVP_PerformanceCounter_Simple::~IVP_PerformanceCounter_Simple(){
 
 #if !defined(WIN32)
 IVP_PerformanceCounter_Simple::IVP_PerformanceCounter_Simple(){
-	P_MEM_CLEAR_M4(this);
+    P_MEM_CLEAR_M4(this);
 }
 #endif
 
@@ -59,29 +59,29 @@ IVP_PerformanceCounter_Simple::IVP_PerformanceCounter_Simple(){
 #include <Windows.h>
 
 IVP_PerformanceCounter_Simple::IVP_PerformanceCounter_Simple(){
-	P_MEM_CLEAR_M4(this);
+    P_MEM_CLEAR_M4(this);
 
 	QueryPerformanceFrequency(reinterpret_cast<::LARGE_INTEGER*>(&counter_freq));  // address of current frequency
 }
 
 void IVP_PerformanceCounter_Simple::pcount(IVP_PERFORMANCE_ELEMENT el){
-	::LARGE_INTEGER Profile_Counter;
+    ::LARGE_INTEGER Profile_Counter;
 
 	if (el == IVP_PE_PSI_UNIVERSE ){
 		count_PSIs++;
 	}
 
-	QueryPerformanceCounter(&Profile_Counter);
+    QueryPerformanceCounter(&Profile_Counter);
 
-	long long diff0 = Profile_Counter.QuadPart - ref_counter64;
-	ref_counter64 = Profile_Counter.QuadPart;
+    long long diff0 = Profile_Counter.QuadPart - ref_counter64;
+    ref_counter64 = Profile_Counter.QuadPart;
 
-	counter[counting][0] += 1e6 * double(diff0) / double (counter_freq.QuadPart);
-	counting = el;
+    counter[counting][0] += 1e6 * double(diff0) / double (counter_freq.QuadPart);
+    counting = el;
 }
 
 void IVP_PerformanceCounter_Simple::start_pcount(){
-	counting = IVP_PE_PSI_START;
+    counting = IVP_PE_PSI_START;
 }
 
 void IVP_PerformanceCounter_Simple::stop_pcount(){}

@@ -6,27 +6,27 @@
 
 IVP_Collision_Callback_Table_Hash::~IVP_Collision_Callback_Table_Hash() 
 {
-	for (int i=this->len()-1; i>=0; i--) {
+    for (int i=this->len()-1; i>=0; i--) {
 	IVP_Collision_Callback_Table *table;
 	table = (IVP_Collision_Callback_Table *)this->element_at(i);
 	P_DELETE(table);
-	}
+    }
 }
 
 int IVP_Collision_Callback_Table_Hash::object_to_index(IVP_Real_Object *real_object)
 {
-	IVP_Real_Object *real_obj = real_object;
-	return hash_index( (char *)&real_obj, sizeof(real_obj) );
+    IVP_Real_Object *real_obj = real_object;
+    return hash_index( (char *)&real_obj, sizeof(real_obj) );
 }
 
 IVP_BOOL IVP_Collision_Callback_Table_Hash::compare(const void *elem0, const void *elem1) const
 {
-	const IVP_Collision_Callback_Table *table0 = (const IVP_Collision_Callback_Table *)elem0;
-	const IVP_Collision_Callback_Table *table1 = (const IVP_Collision_Callback_Table *)elem1;
+    const IVP_Collision_Callback_Table *table0 = (const IVP_Collision_Callback_Table *)elem0;
+    const IVP_Collision_Callback_Table *table1 = (const IVP_Collision_Callback_Table *)elem1;
 
-	if ( table0->real_object != table1->real_object) return(IVP_FALSE);
-	
-	return(IVP_TRUE);
+    if ( table0->real_object != table1->real_object) return(IVP_FALSE);
+    
+    return(IVP_TRUE);
 }
 
 

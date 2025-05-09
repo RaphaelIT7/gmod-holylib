@@ -80,15 +80,15 @@ void IVP_SurfaceManager_Grid::traverse_grid(	const IVP_U_Point &visitor_position
 
 
 
-void IVP_SurfaceManager_Grid::get_all_ledges_within_radius(const IVP_U_Point *visitor_position_object_space,	 IVP_DOUBLE radius,
+void IVP_SurfaceManager_Grid::get_all_ledges_within_radius(const IVP_U_Point *visitor_position_object_space,     IVP_DOUBLE radius,
 							   const IVP_Compact_Ledge * /*root_ledge*/, IVP_Real_Object * /*other_object*/, const IVP_Compact_Ledge * /*other_reference_ledge*/,
 							   IVP_U_BigVector<IVP_Compact_Ledge> *resulting_ledges){
-	traverse_grid(*visitor_position_object_space, radius, resulting_ledges);
+    traverse_grid(*visitor_position_object_space, radius, resulting_ledges);
 }
 
 void IVP_SurfaceManager_Grid::insert_all_ledges_hitting_ray(IVP_Ray_Solver *ray_solver, IVP_Real_Object *object){
 	IVP_Vector_of_Ledges_256 ledges;
-	IVP_Ray_Solver_Os ray_solver_os( ray_solver, object);
+    IVP_Ray_Solver_Os ray_solver_os( ray_solver, object);
 
 	IVP_U_Point center(&ray_solver_os.ray_center_point);
 	get_all_ledges_within_radius( &center, ray_solver_os.ray_length * 0.5f, NULL,NULL, NULL, &ledges);
@@ -100,31 +100,31 @@ void IVP_SurfaceManager_Grid::insert_all_ledges_hitting_ray(IVP_Ray_Solver *ray_
 }
 
 void IVP_SurfaceManager_Grid::get_all_terminal_ledges(IVP_U_BigVector<IVP_Compact_Ledge> *resulting_ledges){
-	IVP_U_Point visitor_position_object_space; visitor_position_object_space.set_to_zero();
-	traverse_grid(visitor_position_object_space, P_DOUBLE_MAX, resulting_ledges);
+    IVP_U_Point visitor_position_object_space; visitor_position_object_space.set_to_zero();
+    traverse_grid(visitor_position_object_space, P_DOUBLE_MAX, resulting_ledges);
 }
 
 void IVP_SurfaceManager_Grid::get_mass_center(IVP_U_Float_Point *mass_center_out) const{
-	mass_center_out->set(compact_grid->center.k);
+    mass_center_out->set(compact_grid->center.k);
 }
 
 void IVP_SurfaceManager_Grid::get_rotation_inertia( IVP_U_Float_Point *rotation_inertia_out ) const {
 	IVP_DOUBLE r = compact_grid->radius * compact_grid->radius;
-	rotation_inertia_out->set( r, r, r);
+    rotation_inertia_out->set( r, r, r);
 }
 
 void IVP_SurfaceManager_Grid::get_radius_and_radius_dev_to_given_center(const IVP_U_Float_Point * /*center*/ , IVP_FLOAT *radius, IVP_FLOAT *radius_deviation) const {
-	*radius = compact_grid->radius;
-	*radius_deviation = compact_grid->radius;
+    *radius = compact_grid->radius;
+    *radius_deviation = compact_grid->radius;
 }
 
 
 const IVP_Compact_Ledge *IVP_SurfaceManager_Grid::get_single_convex() const{
-	return NULL;
+    return NULL;
 }
 
 IVP_SURMAN_TYPE IVP_SurfaceManager_Grid::get_type(){
-	return IVP_SURMAN_POLYGON; 
+    return IVP_SURMAN_POLYGON; 
 }
 
 void IVP_SurfaceManager_Grid::add_reference_to_ledge(const IVP_Compact_Ledge * /*ledge*/ ){

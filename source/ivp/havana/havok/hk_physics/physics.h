@@ -38,7 +38,7 @@ public:
 	hk_Rigid_Body(IVP_Cluster *father,IVP_SurfaceManager *surface, const IVP_Template_Real_Object *obj, const IVP_U_Quat *q_world_f_obj, const IVP_U_Point *position) : IVP_Real_Object(father, surface, obj, q_world_f_obj, position) {}
 
 	/**************************************************************************************
-	 *	Section:		havana	
+	 *	Section:	    havana	
 	 *	Description:	Havana compatibility functions
 	 **************************************************************************************/
 	inline const hk_Vector3 get_center_of_mass(){
@@ -103,7 +103,7 @@ class hk_Dense_Matrix;
 class hk_Single_Rigid_Body_CFAD
 {
 public:
-	hk_Vector3 m_delta_spin; // based on a unit push
+    hk_Vector3 m_delta_spin; // based on a unit push
 };
 
 
@@ -137,7 +137,7 @@ public:
 
 	void add_to_mass_matrix_inv(	hk_Core_VMQ_Input &input,	hk_Dense_Matrix& matrix_out,	hk_real velocities_out[]);
 
-	inline void add_to_velocities(	  hk_Core_VMQ_Input &input, hk_real velocities_out[])
+	inline void add_to_velocities(      hk_Core_VMQ_Input &input, hk_real velocities_out[])
 	{
 		int i = input.m_n_queries - 1;
 
@@ -192,14 +192,14 @@ protected:
 // this is the ipion interface for the local_constraint_system
 class hk_Link_EF : public IVP_Controller_Dependent
 {
-	friend class IVP_Actuator_Manager;
+    friend class IVP_Actuator_Manager;
 protected:
 	hk_Environment *m_environment;
 public:
-	//Controller Section
-	IVP_U_Vector<IVP_Core> actuator_controlled_cores;
-	IVP_U_Vector<IVP_Core> *get_associated_controlled_cores() override { return &actuator_controlled_cores; }
-	IVP_CONTROLLER_PRIORITY get_controller_priority() override { return IVP_CP_CONSTRAINTS_MIN; }
+    //Controller Section
+    IVP_U_Vector<IVP_Core> actuator_controlled_cores;
+    IVP_U_Vector<IVP_Core> *get_associated_controlled_cores() override { return &actuator_controlled_cores; }
+    IVP_CONTROLLER_PRIORITY get_controller_priority() override { return IVP_CP_CONSTRAINTS_MIN; }
 
 	virtual void apply_effector_PSI(	class hk_PSI_Info& pi, hk_Array<hk_Entity*>* ) = 0;
 
@@ -208,20 +208,20 @@ public:
 		apply_effector_PSI( *(hk_PSI_Info *)(es), NULL );
 	}
 
-	hk_Link_EF(hk_Environment *env)
+    hk_Link_EF(hk_Environment *env)
 	{
 			m_environment = env;
 	}
 
-	virtual void anchor_will_be_deleted_event( [[maybe_unused]] IVP_Anchor *del_anchor){ // when an object is deleted it sends events to its connected actuators
+    virtual void anchor_will_be_deleted_event( [[maybe_unused]] IVP_Anchor *del_anchor){ // when an object is deleted it sends events to its connected actuators
 		delete this;
 	}
 
-	void core_is_going_to_be_deleted_event( [[maybe_unused]] IVP_Core *my_core) override {
+    void core_is_going_to_be_deleted_event( [[maybe_unused]] IVP_Core *my_core) override {
 		delete this;
 	}
 
-	virtual ~hk_Link_EF(){
+    virtual ~hk_Link_EF(){
 	}
 
 	inline hk_Environment *get_environment() const

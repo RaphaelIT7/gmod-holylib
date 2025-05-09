@@ -39,50 +39,50 @@
    The algorithm tries to solve full_A*full_x >= full_b, where full_x is the solution
    constraints: full_x >= 0.0 and if full_x[i]>0 than equation i has to hold
    Modification: with n_equations you can specify that the first part of A and x are treated as a system of
-				 equations this means full_A*full_x = full_b for i<= n_equations. full_x is then allowed to be negative
+                 equations this means full_A*full_x = full_b for i<= n_equations. full_x is then allowed to be negative
    
    During all computations the most important variables are:
-	 vector int:  active_inactive_ignored (has information about what variables are active,inactive or not processed yet)
-	 integer	  r_actives (number of active variables)
-	 integer	  ignored_pos (number of next unknown to process)
+     vector int:  active_inactive_ignored (has information about what variables are active,inactive or not processed yet)
+     integer      r_actives (number of active variables)
+     integer      ignored_pos (number of next unknown to process)
    Given that information we can calculate all other information during a setup in case numerical errors accumulate.
    The most valuable thing to lose in that setup is the LU information. We can recompute it with
    lu_sub_solver::l_u_decomposition_with_pivoting() but that costs 3X a gaussian elemination
    
    lu_sub_solver: here is stored the LU decompostion of the sub Matrix A of active variables
-				  in case an active variable is changed to inactive we call lu_sub_solver::decrement_l_u
+                  in case an active variable is changed to inactive we call lu_sub_solver::decrement_l_u
 		  in case an inactive/ignored variable becomes active we call lu_sub_solver::increment_l_u
 
    accel: stores vector values full_A*full_x - full_b 
-		  has to be zero for the active variables and >zero for inactives and some known value for ignored variables
+          has to be zero for the active variables and >zero for inactives and some known value for ignored variables
 
    delta_x: during a step holds the changes of x when moving 1.0 with the latest ignored variable
-			has to be zero for inactive variables (their x values are and shall stay zero)
+            has to be zero for inactive variables (their x values are and shall stay zero)
 
    delta_accel: during a step holds the changes of accel when moving 1.0 with the latest ignored variable
-				has to be zero for active variables (their accels are and shall stay zero)
+                has to be zero for active variables (their accels are and shall stay zero)
 
 
    if accel > 0.0 for next ignored variable, we can move that variable to inactives. Else we have to do a standard step
 
    standard step:
-	 step begins with call to 'get_xdirection'. There the delta_x values are calculated. Delta_x for new ignored
-	 variable is 1.0 for the rest of the actives delta_x is unknown.
-	 So A*delta_x = delta_accel
-		A* (? ? .. ? 1.0) = ( 0 0 0 .. 0 alpha )  sub matrix A is (r_actives+1)*(r_actives+1)
+     step begins with call to 'get_xdirection'. There the delta_x values are calculated. Delta_x for new ignored
+     variable is 1.0 for the rest of the actives delta_x is unknown.
+     So A*delta_x = delta_accel
+        A* (? ? .. ? 1.0) = ( 0 0 0 .. 0 alpha )  sub matrix A is (r_actives+1)*(r_actives+1)
 	A* delta_x + ai = ( 0 0 0 0 0 0 0)  sub matrix A is (r_actives*r_actives) and ai is ith column of A
 	we have to solve:
-					   A * delta_x = -ai
-		we solve this with our LU solver or with gauss-eleminiation
+	                   A * delta_x = -ai
+        we solve this with our LU solver or with gauss-eleminiation
 
-	 After we have delta_x we calculate delta_accel: delta_accel = A * delta_x (and get value alpha)
+     After we have delta_x we calculate delta_accel: delta_accel = A * delta_x (and get value alpha)
 
-	 Then we calculate step size s:
-	 s = -accel[i]/delta_x[i] for current ignored variable to fullfill A*x>=b
-	 s = -full_x/delta_x for actives to avoid x-values getting negative
-	 s = -accel/delta_accel for inactives to avoid >=b violated
-	 Three possibilites: ignored variable becomes active, one active becomes inactive, one inactive becomes active
-	 Then we have to update accel and full_x and do next step
+     Then we calculate step size s:
+     s = -accel[i]/delta_x[i] for current ignored variable to fullfill A*x>=b
+     s = -full_x/delta_x for actives to avoid x-values getting negative
+     s = -accel/delta_accel for inactives to avoid >=b violated
+     Three possibilites: ignored variable becomes active, one active becomes inactive, one inactive becomes active
+     Then we have to update accel and full_x and do next step
 
 
 // */
@@ -90,246 +90,246 @@
 
 //can not be vector optimized because of indexed access
 void hk_LCP_Solver::mult_active_x_for_accel() {
-	int i,j;
-	for(i=r_actives;i<n_variables;i++) {
+    int i,j;
+    for(i=r_actives;i<n_variables;i++) {
 	hk_real sum=0.0f;
 	int row_of_A=actives_inactives_ignored[i];
 	hk_real *row_vals=&full_A[ row_of_A * aligned_size ];
 	int real_pos;
 	for(j=0;j<r_actives;j++) {
-		real_pos=actives_inactives_ignored[j];
-		sum+= delta_x[real_pos]*row_vals[real_pos];
+	    real_pos=actives_inactives_ignored[j];
+	    sum+= delta_x[real_pos]*row_vals[real_pos];
 	}
 	real_pos=actives_inactives_ignored[ignored_pos];
 	sum+=row_vals[real_pos];
 	delta_accel[row_of_A]=sum;
-	}
+    }
 }
 
 void hk_LCP_Solver::mult_x_with_full_A_minus_b() {
 #if 0
-	for(int i=0;i<n_variables;i++) {
-		IVP_DOUBLE *base_a=&full_A[i*aligned_size];
-		IVP_DOUBLE sum=IVP_VecFPU::fpu_large_dot_product(base_a,full_x,n_variables,HK_TRUE);
-		temp[i] = sum-full_b[i];
-	}
+    for(int i=0;i<n_variables;i++) {
+	    IVP_DOUBLE *base_a=&full_A[i*aligned_size];
+	    IVP_DOUBLE sum=IVP_VecFPU::fpu_large_dot_product(base_a,full_x,n_variables,HK_TRUE);
+	    temp[i] = sum-full_b[i];
+    }
 #endif
-	input_struct->m_A->mult_vector(full_x,temp);
-	hk_VecFPU::fpu_add_multiple_row(temp,full_b,-1.0f,n_variables,HK_TRUE);
+    input_struct->m_A->mult_vector(full_x,temp);
+    hk_VecFPU::fpu_add_multiple_row(temp,full_b,-1.0f,n_variables,HK_TRUE);
 }
 
 //quite costly, because we have to multiply with the full matrix
 // we check wether the active variables match with the right side full_b
-//	and we check wether the inactives are greater equal the right side full_b
+//    and we check wether the inactives are greater equal the right side full_b
 hk_bool hk_LCP_Solver::numerical_stability_ok() {
-	mult_x_with_full_A_minus_b();
-	int k;
-	hk_real val;
-	for(k=0;k<r_actives;k++) {
+    mult_x_with_full_A_minus_b();
+    int k;
+    hk_real val;
+    for(k=0;k<r_actives;k++) {
 	val=hk_Math::fabs(temp[actives_inactives_ignored[k]]);
 	if( val > HK_LCP_TEST_EPS ) {
-		return HK_FALSE;
+	    return HK_FALSE;
 	}
-	}
-	for(k=r_actives; k<n_variables; k++) {
+    }
+    for(k=r_actives; k<n_variables; k++) {
 	val=hk_Math::fabs( temp[actives_inactives_ignored[k]] - accel[actives_inactives_ignored[k]] );
 	if( val > HK_LCP_TEST_EPS ) {
-		HK_LCP_IF(debug_lcs) {
+	    HK_LCP_IF(debug_lcs) {
 		hkprintf("numerical_unstable %d %.10f should be %.10f\n",ignored_pos,temp[actives_inactives_ignored[k]],accel[actives_inactives_ignored[k]]);
-		}
-		return HK_FALSE;
+	    }
+	    return HK_FALSE;
 	}
-	}
-	return HK_TRUE;
+    }
+    return HK_TRUE;
 }
 
 hk_result hk_LCP_Solver::solve_lcp(hk_LCP_Input &in,hk_LCP_Temp &tmp,hk_LCP_Output &out) {
-	input_struct=&in;
-	m_gauss_inp.m_A=tmp.m_L_matrix; //aligned Matrix
-	m_gauss_inp.m_b=tmp.m_temp_vec; //aligned vector  
-	m_gauss_out.m_result=tmp.m_inout_vec; //aligned vector
-	//Gauss solver shares all its memory with LU_Solver. Gauss is only needed when LU is invalid
+    input_struct=&in;
+    m_gauss_inp.m_A=tmp.m_L_matrix; //aligned Matrix
+    m_gauss_inp.m_b=tmp.m_temp_vec; //aligned vector  
+    m_gauss_out.m_result=tmp.m_inout_vec; //aligned vector
+    //Gauss solver shares all its memory with LU_Solver. Gauss is only needed when LU is invalid
 
-	lu_sub_solver.m_L_matrix=tmp.m_L_matrix; //aligned Matrix
-	lu_sub_solver.m_U_matrix=tmp.m_U_matrix; //aligned Matrix	
-	lu_sub_solver.m_inout_vec=tmp.m_inout_vec; //aligned vector
-	lu_sub_solver.m_temp_vec=tmp.m_temp_vec;  //aligned vector
+    lu_sub_solver.m_L_matrix=tmp.m_L_matrix; //aligned Matrix
+    lu_sub_solver.m_U_matrix=tmp.m_U_matrix; //aligned Matrix	
+    lu_sub_solver.m_inout_vec=tmp.m_inout_vec; //aligned vector
+    lu_sub_solver.m_temp_vec=tmp.m_temp_vec;  //aligned vector
 
-	full_A=in.m_A->getRealPointer(); //aligned matrix, points to input
-	full_b=in.m_b; //aligned vector, points to input
-	full_x=out.m_result; //aligned vector, points to output
-	n_variables=in.m_n_variables;
-	n_equations=in.m_n_equations;
-	aligned_size=hk_VecFPU::calc_aligned_row_len(n_variables,full_A);
-	
-	r_actives=0;
-	ignored_pos=0;
+    full_A=in.m_A->getRealPointer(); //aligned matrix, points to input
+    full_b=in.m_b; //aligned vector, points to input
+    full_x=out.m_result; //aligned vector, points to output
+    n_variables=in.m_n_variables;
+    n_equations=in.m_n_equations;
+    aligned_size=hk_VecFPU::calc_aligned_row_len(n_variables,full_A);
+    
+    r_actives=0;
+    ignored_pos=0;
 
-	sub_solver_status=0;
-	
-	lu_sub_solver.m_aligned_row_len=aligned_size;
-	lu_sub_solver.m_n_sub=0;
-	
-	m_gauss_inp.m_gauss_eps=HK_LCP_SOLVER_EPS;	 // for gauss a more liberal EPS is enough (otherwise it may happen the unilateral solver to fail completely)
-											// sorry, but for xdirection its not acceptable to have very large values
-	
-	m_max_steps_lcp=3*in.m_n_variables;
+    sub_solver_status=0;
+    
+    lu_sub_solver.m_aligned_row_len=aligned_size;
+    lu_sub_solver.m_n_sub=0;
+    
+    m_gauss_inp.m_gauss_eps=HK_LCP_SOLVER_EPS;     // for gauss a more liberal EPS is enough (otherwise it may happen the unilateral solver to fail completely)
+                                            // sorry, but for xdirection its not acceptable to have very large values
+    
+    m_max_steps_lcp=3*in.m_n_variables;
 
-	actives_inactives_ignored=tmp.m_actives_inactives_ignored;
-	accel =		tmp.m_accel;
-	delta_accel =  tmp.m_delta_accel;
-	delta_x	 =  tmp.m_delta_f;
-	temp  =		tmp.m_temp_vec;
+    actives_inactives_ignored=tmp.m_actives_inactives_ignored;
+    accel =        tmp.m_accel;
+    delta_accel =  tmp.m_delta_accel;
+    delta_x     =  tmp.m_delta_f;
+    temp  =        tmp.m_temp_vec;
 
-	int i;
-	for(i=0;i<aligned_size;i++)
+    int i;
+    for(i=0;i<aligned_size;i++)
 	{
 		actives_inactives_ignored[i]=i;
 		full_x[i] = 0.0f;
 		accel[i] = -full_b[i];
-	}
+    }
 
-	first_permute_index=0;
-	second_permute_index=0;
-	first_permute_ignored=0;
-	second_permute_ignored=0;
-	
-	debug_no_lu_count=0;
-	debug_lcs = 0;
+    first_permute_index=0;
+    second_permute_index=0;
+    first_permute_ignored=0;
+    second_permute_ignored=0;
+    
+    debug_no_lu_count=0;
+    debug_lcs = 0;
 
 #if 0 //only for debug
-	HK_LCP_IF(debug_lcs)
+    HK_LCP_IF(debug_lcs)
 	{
 		hkprintf("\n***********************************************************\n");
 		start_debug_lcs();
-	}
+    }
 #endif
 
-	startup_setup( in.m_n_actives_at_start );
-	hk_result ret_val = solve_lc();
+    startup_setup( in.m_n_actives_at_start );
+    hk_result ret_val = solve_lc();
 
-	for(i=r_actives-1;i>=0;i--) {
+    for(i=r_actives-1;i>=0;i--) {
 	out.m_active[actives_inactives_ignored[i]]=HK_TRUE;
-	}
-	for(i=r_actives;i<n_variables;i++) {
+    }
+    for(i=r_actives;i<n_variables;i++) {
 	out.m_active[this->actives_inactives_ignored[i]]=HK_FALSE;
-	}
+    }
 
-	//only for debug
-	HK_LCP_IF((debug_no_lu_count>0) && (debug_lcs)) {
+    //only for debug
+    HK_LCP_IF((debug_no_lu_count>0) && (debug_lcs)) {
 	hkprintf("sum_lu_failed %d\n",debug_no_lu_count);
-	}
-	
-	HK_LCP_IF(ret_val==HK_OK) {
+    }
+    
+    HK_LCP_IF(ret_val==HK_OK) {
 	input_struct->m_A->mult_vector( out.m_result, temp );
 
 	constexpr hk_real eps = 0.0001f;
 
 	for(int j=0;j<n_variables;j++) {
-		if(temp[j] + eps < full_b[j]) {
+	    if(temp[j] + eps < full_b[j]) {
 		hkprintf("linear_constraint_failed #%d %f > %f\n",j,temp[j],full_b[j]);
-		}
+	    }
 	}
 	for(int j=0;j<r_actives;j++) {
-		int index_full=actives_inactives_ignored[j];
-		hk_real diff=hk_Math::fabs(temp[index_full] - full_b[index_full]);
-		if(diff>eps) {
+	    int index_full=actives_inactives_ignored[j];
+	    hk_real diff=hk_Math::fabs(temp[index_full] - full_b[index_full]);
+	    if(diff>eps) {
 		hkprintf("linear_constraint_failed #%d %f == %f (diff %f > %.4f)\n",j,temp[index_full],full_b[index_full],diff,eps);
-		}
+	    }
 	}
-	}	
-	
-	return ret_val;
+    }    
+    
+    return ret_val;
 }
 
 
 void hk_LCP_Solver::decrement_sub_solver( int sub_pos ) {
-	if(sub_solver_status==0) {
+    if(sub_solver_status==0) {
 	HK_ASSERT( lu_sub_solver.m_n_sub == r_actives + 1 );
 	if( lu_sub_solver.decrement_l_u( sub_pos ) != HK_OK ) {
 #if 0
-		HK_LCP_IF(1) {
+	    HK_LCP_IF(1) {
 		hkprintf("\n\ndecrement_lu_failed_need_setup\n\n");
-		}
+	    }
 #endif
-		sub_solver_status=2;
+	    sub_solver_status=2;
 	}
-	} else {
+    } else {
 	lu_sub_solver.m_n_sub--;
-	}
+    }
 }
 
 void hk_LCP_Solver::increment_sub_solver() {
-	int k;
-	int new_var_orig = actives_inactives_ignored[ r_actives-1 ];
-	if(sub_solver_status==0) {
+    int k;
+    int new_var_orig = actives_inactives_ignored[ r_actives-1 ];
+    if(sub_solver_status==0) {
 	HK_ASSERT( lu_sub_solver.m_n_sub == r_actives - 1);
 	for(k=0;k<r_actives;k++) {
-		lu_sub_solver.m_U_matrix[ lu_sub_solver.m_n_sub * lu_sub_solver.m_aligned_row_len + k ] = full_A[ new_var_orig*aligned_size + actives_inactives_ignored[ k ] ]; 
+	    lu_sub_solver.m_U_matrix[ lu_sub_solver.m_n_sub * lu_sub_solver.m_aligned_row_len + k ] = full_A[ new_var_orig*aligned_size + actives_inactives_ignored[ k ] ]; 
 	}
 	for(k=0;k<r_actives-1;k++) {
-		lu_sub_solver.m_inout_vec[k] = full_A[ aligned_size * actives_inactives_ignored[ k ] + new_var_orig ];
+	    lu_sub_solver.m_inout_vec[k] = full_A[ aligned_size * actives_inactives_ignored[ k ] + new_var_orig ];
 	}
 	if( lu_sub_solver.increment_l_u() != HK_OK ) {
-		HK_LCP_IF(debug_lcs) {
+	    HK_LCP_IF(debug_lcs) {
 		hkprintf("\n\nincrement_lu_failed_need_setup\n\n");
-		}
-		sub_solver_status=2;
+	    }
+	    sub_solver_status=2;
 	}
-	} else {
+    } else {
 	lu_sub_solver.m_n_sub++;
-	}
+    }
 }
 
 void hk_LCP_Solver::do_a_little_random_permutation() {
-	// in case numeric gets unstable, neverending loops can occur
-	// do some permutions to get fresh values ( in gauss the last variable gets zero, this "wrong" values are distributed alternatively )
+    // in case numeric gets unstable, neverending loops can occur
+    // do some permutions to get fresh values ( in gauss the last variable gets zero, this "wrong" values are distributed alternatively )
 
-	if( r_actives-n_equations < 2) {
+    if( r_actives-n_equations < 2) {
 	goto permute_free_variables;
-	}
+    }
 
-	first_permute_index +=1;
-	second_permute_index +=2;
+    first_permute_index +=1;
+    second_permute_index +=2;
 
-	while(first_permute_index >= (r_actives-n_equations)) {
+    while(first_permute_index >= (r_actives-n_equations)) {
 	first_permute_index-=(r_actives-n_equations);
-	}
-	while(second_permute_index >= (r_actives-n_equations)) {
+    }
+    while(second_permute_index >= (r_actives-n_equations)) {
 	second_permute_index-=(r_actives-n_equations);
-	}
-	exchange_lcs_variables( first_permute_index+n_equations, second_permute_index+n_equations );
+    }
+    exchange_lcs_variables( first_permute_index+n_equations, second_permute_index+n_equations );
 
-	first_permute_ignored +=1;
-	second_permute_ignored +=2;
+    first_permute_ignored +=1;
+    second_permute_ignored +=2;
 
 permute_free_variables:
-	int free_space=n_variables-ignored_pos-1;
-	if(free_space<2) {
+    int free_space=n_variables-ignored_pos-1;
+    if(free_space<2) {
 	return;
-	}
-	while(first_permute_ignored >= free_space) {
+    }
+    while(first_permute_ignored >= free_space) {
 	first_permute_ignored-=free_space;
-	}
-	while(second_permute_ignored >= free_space) {
+    }
+    while(second_permute_ignored >= free_space) {
 	second_permute_ignored-=free_space;
-	}
-	exchange_lcs_variables( first_permute_ignored+ignored_pos+1, second_permute_ignored+ignored_pos+1 );
+    }
+    exchange_lcs_variables( first_permute_ignored+ignored_pos+1, second_permute_ignored+ignored_pos+1 );
 
 }
 
 void hk_LCP_Solver::move_not_necessary_actives_to_inactives() {
-	int i;
-	for( i=n_equations;i<r_actives;i++ ) {
+    int i;
+    for( i=n_equations;i<r_actives;i++ ) {
 	if( full_x[ actives_inactives_ignored[i] ] < HK_LCP_SOLVER_EPS ) {
-		//hkprintf("juhu_removed_not_necessary_active %d full %d\n",i,actives_inactives_ignored[i]);
-		full_x[ actives_inactives_ignored[i] ]=0.0f;
-		exchange_lcs_variables( i, r_actives-1 );
-		r_actives--;
-		decrement_sub_solver( i );
-		i--;
+	    //hkprintf("juhu_removed_not_necessary_active %d full %d\n",i,actives_inactives_ignored[i]);
+	    full_x[ actives_inactives_ignored[i] ]=0.0f;
+	    exchange_lcs_variables( i, r_actives-1 );
+	    r_actives--;
+	    decrement_sub_solver( i );
+	    i--;
 	}
-	}
+    }
 }
 
 // actives_inactives_ignored : array to transform index from small variable space (that is growing) to full variable space
@@ -342,17 +342,17 @@ void hk_LCP_Solver::move_not_necessary_actives_to_inactives() {
 // but moving variables with x=0.0f into active cannot be avoided: sometimes it is necessary when moving first ignored into actives (as second step)
 hk_result hk_LCP_Solver::solve_lc()
 {
-	int index; //var to go from sub space to full space
-	int step_count=0;
-	int nr_zero_steps=0; //to avoid endless loops
-	int did_real_step=0; //real step means that active variables have changed
-	int next_numeric_stability_test = HK_LCP_NUMERIC_TEST_EVERY_N;
+    int index; //var to go from sub space to full space
+    int step_count=0;
+    int nr_zero_steps=0; //to avoid endless loops
+    int did_real_step=0; //real step means that active variables have changed
+    int next_numeric_stability_test = HK_LCP_NUMERIC_TEST_EVERY_N;
 
-	//hkprintf("\n\n\n\n\ndoing_lcs_ %d\n",n_variables);
-	
-	hk_incrlu_real solver_eps = HK_LCP_SOLVER_EPS;
-	
-	while(1)
+    //hkprintf("\n\n\n\n\ndoing_lcs_ %d\n",n_variables);
+    
+    hk_incrlu_real solver_eps = HK_LCP_SOLVER_EPS;
+    
+    while(1)
 	{
 		if(did_real_step)
 		{
@@ -375,7 +375,7 @@ hk_result hk_LCP_Solver::solve_lc()
 			{
 perform_full_setup:
 				increase_step_count(&step_count);
-				if(step_count > m_max_steps_lcp)
+    			if(step_count > m_max_steps_lcp)
 				{
 					HK_LCP_IF(1)
 					{
@@ -516,7 +516,7 @@ perform_full_setup:
 			delta_x[ ignored_full_index ] = 1.0f;
 			
 			//delta_x is now filled in original var space
-					
+	    			
 			//full_solver_mat.mult();  //delta_accel = A * delta_x
 			//delta_accel is now filled in original var space
 			mult_active_x_for_accel();
@@ -688,8 +688,8 @@ limiting_var_found:
 				else
 				{
 	move_ignored_to_active:
-					// ignored_pos comes to the active variables			
-					move_not_necessary_actives_to_inactives();			
+					// ignored_pos comes to the active variables		    
+					move_not_necessary_actives_to_inactives();		    
 					HK_LCP_IF(debug_lcs)
 					{
 						hkprintf("\nignored %d becomes active (relp %d)\n\n",actives_inactives_ignored[ignored_pos],ignored_pos);
@@ -722,7 +722,7 @@ limiting_var_found:
 		}
 		else
 		{
-	move_ignored_to_inactive:		
+	move_ignored_to_inactive:	    
 			// ignored_pos comes to the inactives variables
 			did_real_step = 0; //active variables are unchanged
 			HK_LCP_IF(debug_lcs)
@@ -744,148 +744,148 @@ limiting_var_found:
 			if(ignored_pos >= n_variables)
 			{
 				next_numeric_stability_test=0;
-			}		
+			}	    
 			//reset_values();
 		}
 	}
 
-	HK_LCP_IF(debug_lcs)
+    HK_LCP_IF(debug_lcs)
 	{
 		debug_out_lcs();
-	}
-	
-	return HK_OK;
+    }
+    
+    return HK_OK;
 }
 
 //both numbers are in sub-space
 void hk_LCP_Solver::exchange_lcs_variables( int first_nr, int second_nr ) {
-	HK_ASSERT( first_nr >= 0 );
-	HK_ASSERT( second_nr >= 0 );
-	HK_ASSERT( first_nr < n_variables );
-	HK_ASSERT( second_nr < n_variables );
-	int full_space_0,full_space_1;
-	full_space_0=actives_inactives_ignored[second_nr];
-	full_space_1=actives_inactives_ignored[first_nr];
-	actives_inactives_ignored[first_nr]=full_space_0;
-	actives_inactives_ignored[second_nr]=full_space_1;
+    HK_ASSERT( first_nr >= 0 );
+    HK_ASSERT( second_nr >= 0 );
+    HK_ASSERT( first_nr < n_variables );
+    HK_ASSERT( second_nr < n_variables );
+    int full_space_0,full_space_1;
+    full_space_0=actives_inactives_ignored[second_nr];
+    full_space_1=actives_inactives_ignored[first_nr];
+    actives_inactives_ignored[first_nr]=full_space_0;
+    actives_inactives_ignored[second_nr]=full_space_1;
 }
 //please merge these two functions !!!!
 void hk_LCP_Solver::exchange_activ_inactiv( int change_var ) {
-	int first_inactiv=r_actives;
-	int full_space_0,full_space_1;
-	full_space_0=actives_inactives_ignored[change_var];
-	full_space_1=actives_inactives_ignored[first_inactiv];
-	actives_inactives_ignored[first_inactiv]=full_space_0;
-	actives_inactives_ignored[change_var]=full_space_1;
+    int first_inactiv=r_actives;
+    int full_space_0,full_space_1;
+    full_space_0=actives_inactives_ignored[change_var];
+    full_space_1=actives_inactives_ignored[first_inactiv];
+    actives_inactives_ignored[first_inactiv]=full_space_0;
+    actives_inactives_ignored[change_var]=full_space_1;
 }
 
 //optimization: do not go from 0 to n_variables
-//			  make two loops: one for actives, one for others
+//              make two loops: one for actives, one for others
 void hk_LCP_Solver::update_step_vars( hk_real step_size ) {
-	int i;
-	HK_LCP_IF(debug_lcs) {
+    int i;
+    HK_LCP_IF(debug_lcs) {
 	hkprintf("deltaa  ");
-	}
-	for( i = 0; i < n_variables; i++) {
+    }
+    for( i = 0; i < n_variables; i++) {
 	HK_LCP_IF(debug_lcs) {
-		hkprintf("%f ",delta_accel[i]);
+	    hkprintf("%f ",delta_accel[i]);
 	}
 	accel[ i ] = accel[i] + step_size * delta_accel[ i ]; //Vector Optimization possible
-	full_x[ i ] = full_x[ i ] + step_size * delta_x[ i ];		   //dito
-	}
-	HK_LCP_IF(debug_lcs) {
+	full_x[ i ] = full_x[ i ] + step_size * delta_x[ i ];           //dito
+    }
+    HK_LCP_IF(debug_lcs) {
 	hkprintf("\n");
-	}
+    }
 
-	//in some cases (e.g. overriding an inactive) acceleration of inactives gets negative
-	for( i=r_actives; i<ignored_pos; i++ ) {
+    //in some cases (e.g. overriding an inactive) acceleration of inactives gets negative
+    for( i=r_actives; i<ignored_pos; i++ ) {
 	if(accel[actives_inactives_ignored[i]] < 0.0f) {
-		accel[actives_inactives_ignored[i]]=0.0f;  
+	    accel[actives_inactives_ignored[i]]=0.0f;  
 	}
-	}
-	//same with actives
-	for(i=0;i<r_actives;i++) {
+    }
+    //same with actives
+    for(i=0;i<r_actives;i++) {
 	if(full_x[actives_inactives_ignored[i]] < 0.0f) {
-		full_x[actives_inactives_ignored[i]]=0.0f;
+	    full_x[actives_inactives_ignored[i]]=0.0f;
 	}
-	}
+    }
 }
-	
+    
 hk_result hk_LCP_Solver::get_xdirection() {
-	// clear all
-	int i,k;
-	for(i=0;i<aligned_size;i++) {
-		this->delta_x[ i ] = 0.0f;
-	}
+    // clear all
+    int i,k;
+    for(i=0;i<aligned_size;i++) {
+        this->delta_x[ i ] = 0.0f;
+    }
 
-	if(r_actives==0) {
+    if(r_actives==0) {
 	return HK_OK;
-	}
+    }
 
-	hk_result ret_val = HK_FAULT;
-	
+    hk_result ret_val = HK_FAULT;
+    
 
-	if(sub_solver_status == 0) {
+    if(sub_solver_status == 0) {
 	int ignored_index = actives_inactives_ignored[ ignored_pos ];
 
 	for(k=0;k<r_actives;k++) {
-		int index=actives_inactives_ignored[k];
-		lu_sub_solver.m_inout_vec[k]= - this->full_A[index * aligned_size + ignored_index];
+	    int index=actives_inactives_ignored[k];
+	    lu_sub_solver.m_inout_vec[k]= - this->full_A[index * aligned_size + ignored_index];
 	}
 	lu_sub_solver.solve_lin_equ();
 	ret_val = HK_OK;
 #if 0	
 	HK_LCP_IF(debug_lcs) {
-		sub_solver_mat.columns = r_actives;
-		sub_solver_mat.calc_aligned_row_len();
-		sub_solver_mat.MATRIX_EPS = GAUSS_EPS * 0.001f; //we know our matrix is stable, so it is save to raise EPS
-		inv_mat.columns = r_actives;
-		debug_mat.columns = r_actives;
-		
-		for(i=0;i<r_actives;i++) {
+	    sub_solver_mat.columns = r_actives;
+	    sub_solver_mat.calc_aligned_row_len();
+	    sub_solver_mat.MATRIX_EPS = GAUSS_EPS * 0.001f; //we know our matrix is stable, so it is save to raise EPS
+	    inv_mat.columns = r_actives;
+	    debug_mat.columns = r_actives;
+	    
+	    for(i=0;i<r_actives;i++) {
 		int index=actives_inactives_ignored[i];
 		sub_solver_mat.desired_vector[i]= - this->full_A[index * aligned_size + ignored_index];
 		debug_mat.desired_vector[i]= - this->full_A[index * aligned_size + ignored_index];
 		int j;
 		for(j=0;j<r_actives;j++) {
-			int index2=actives_inactives_ignored[j];
-			sub_solver_mat.matrix_values[i*sub_solver_mat.aligned_row_len + j] = this->full_A[ index * aligned_size + index2 ];
-			inv_mat.matrix_values[i*r_actives + j] = this->full_A[ index * aligned_size + index2 ];
+		    int index2=actives_inactives_ignored[j];
+		    sub_solver_mat.matrix_values[i*sub_solver_mat.aligned_row_len + j] = this->full_A[ index * aligned_size + index2 ];
+		    inv_mat.matrix_values[i*r_actives + j] = this->full_A[ index * aligned_size + index2 ];
 		}
-		}
-		hk_result ret_val2 = sub_solver_mat.solve_great_matrix_many_zero();
-		hk_result ret_val3 = HK_FAULT; //inv_mat.invert(&debug_mat);
-		if( ret_val2 == HK_OK ) {
+	    }
+	    hk_result ret_val2 = sub_solver_mat.solve_great_matrix_many_zero();
+	    hk_result ret_val3 = HK_FAULT; //inv_mat.invert(&debug_mat);
+	    if( ret_val2 == HK_OK ) {
 		for( i=0;i<r_actives;i++ ) {
-			IVP_DOUBLE diff=lu_sub_solver.out_vec[i]-sub_solver_mat.result_vector[i];
-			if(hk_Math::fabs(diff) > 0.001f) {
-			  HK_LCP_IF(debug_lcs) {
+		    IVP_DOUBLE diff=lu_sub_solver.out_vec[i]-sub_solver_mat.result_vector[i];
+		    if(hk_Math::fabs(diff) > 0.001f) {
+		      HK_LCP_IF(debug_lcs) {
 			hkprintf("gauss_lu_test_fail %f %f should be equal\n",lu_sub_solver.out_vec[i],sub_solver_mat.result_vector[i]);
-			  }
-			}
+		      }
+		    }
 		}
-		} else {
-		  HK_LCP_IF(debug_lcs) {
+	    } else {
+	      HK_LCP_IF(debug_lcs) {
 		hkprintf("gauss_lu_test_gauss_invalid\n");
-		  }
-		}
-		if( ret_val3 == HK_OK ) {
+	      }
+	    }
+	    if( ret_val3 == HK_OK ) {
 		debug_mat.mult();
 		for( i=0;i<r_actives;i++ ) {
-			IVP_DOUBLE diff=lu_sub_solver.out_vec[i]-debug_mat.result_vector[i];
-			if(hk_Math::fabs(diff) > 0.001f) {
-			  HK_LCP_IF(debug_lcs) {
+		    IVP_DOUBLE diff=lu_sub_solver.out_vec[i]-debug_mat.result_vector[i];
+		    if(hk_Math::fabs(diff) > 0.001f) {
+		      HK_LCP_IF(debug_lcs) {
 			hkprintf("inv_lu_test_fail %f %f should be equal\n",lu_sub_solver.out_vec[i],debug_mat.result_vector[i]);
-			  }
-			}
+		      }
+		    }
 		}
-		}
-		sub_solver_mat.MATRIX_EPS = GAUSS_EPS;
+	    }
+	    sub_solver_mat.MATRIX_EPS = GAUSS_EPS;
 	}
 #endif
-	} else {
+    } else {
 	HK_LCP_IF((debug_lcs)) {
-		hkprintf("sub_lu_is_off %d\n",r_actives);
+	    hkprintf("sub_lu_is_off %d\n",r_actives);
 	}
 	debug_no_lu_count++;
 
@@ -893,189 +893,189 @@ hk_result hk_LCP_Solver::get_xdirection() {
 	m_gauss_inp.m_aligned_row_len = hk_VecFPU::calc_aligned_row_len(r_actives,m_gauss_inp.m_A);
 
 	int ignored_index = actives_inactives_ignored[ ignored_pos ];
-	
+    
 	for(i=0;i<r_actives;i++) {
-		int index=actives_inactives_ignored[i];
-		m_gauss_inp.m_b[i]= - this->full_A[index * aligned_size + ignored_index];
+	    int index=actives_inactives_ignored[i];
+	    m_gauss_inp.m_b[i]= - this->full_A[index * aligned_size + ignored_index];
 
-		int j;
-		for(j=0;j<r_actives;j++) {
+	    int j;
+	    for(j=0;j<r_actives;j++) {
 		int index2=actives_inactives_ignored[j];
 		m_gauss_inp.m_A[i*m_gauss_inp.m_aligned_row_len + j] = this->full_A[ index * aligned_size + index2 ];
 
-		}
+	    }
 	}
 	ret_val = m_gauss_sub_solver.solve_gauss_elemination( m_gauss_inp, m_gauss_out);
 	for( i=0;i<r_actives;i++ ) {
-		lu_sub_solver.m_inout_vec[i]=m_gauss_out.m_result[i];
+	    lu_sub_solver.m_inout_vec[i]=m_gauss_out.m_result[i];
 	}
-	}
-	
-	//copy clamped
-	for(i=0;i<r_actives;i++) {
+    }
+    
+    //copy clamped
+    for(i=0;i<r_actives;i++) {
 	this->delta_x[ actives_inactives_ignored[i] ] = lu_sub_solver.m_inout_vec[i];
-	}
+    }
 
-	this->delta_x[ actives_inactives_ignored[ignored_pos] ] = 1.0f;
-	
-	return ret_val;
+    this->delta_x[ actives_inactives_ignored[ignored_pos] ] = 1.0f;
+    
+    return ret_val;
 }
 
 void hk_LCP_Solver::start_debug_lcs() {
-	hkprintf("b_vals ");
-	int i;
-	int j;
-	for(i=0;i<n_variables;i++) {
+    hkprintf("b_vals ");
+    int i;
+    int j;
+    for(i=0;i<n_variables;i++) {
 	hkprintf("%.4f ",full_b[i]);
-	}
-	hkprintf("\n");
-	
-	hkprintf("matrix:\n");
-	for(i=0;i<n_variables;i++) {
+    }
+    hkprintf("\n");
+    
+    hkprintf("matrix:\n");
+    for(i=0;i<n_variables;i++) {
 	for(j=0;j<n_variables;j++) {
-		hkprintf("%.4f ",full_A[i*aligned_size + j]);
+	    hkprintf("%.4f ",full_A[i*aligned_size + j]);
 	}
 	hkprintf("\n");
-	}
-	hkprintf("\n");
+    }
+    hkprintf("\n");
 }
 
 void hk_LCP_Solver::debug_out_lcs() {
-	hkprintf("r_actives %d  ignored_nr %d\n",r_actives,ignored_pos);
-	int i;
+    hkprintf("r_actives %d  ignored_nr %d\n",r_actives,ignored_pos);
+    int i;
 
-	if(ignored_pos>n_variables) {
+    if(ignored_pos>n_variables) {
 	ignored_pos=n_variables;
-	}
-	
-	hkprintf("actives_inactives  ");
-	for(i=0;i<r_actives;i++) {
+    }
+    
+    hkprintf("actives_inactives  ");
+    for(i=0;i<r_actives;i++) {
 	hkprintf("%d ",actives_inactives_ignored[i]);
-	}
-	hkprintf("  ");
-	for(i=r_actives;i<ignored_pos;i++) {
+    }
+    hkprintf("  ");
+    for(i=r_actives;i<ignored_pos;i++) {
 	hkprintf("%d ",actives_inactives_ignored[i]);
-	}
-	hkprintf("  ");
-	for(i=ignored_pos;i<n_variables;i++) {
+    }
+    hkprintf("  ");
+    for(i=ignored_pos;i<n_variables;i++) {
 	hkprintf("%d ",actives_inactives_ignored[i]);
-	}
-	hkprintf("\n");
+    }
+    hkprintf("\n");
 
-	hkprintf("x-vals ");
-	for(i=0;i<n_variables;i++) {
+    hkprintf("x-vals ");
+    for(i=0;i<n_variables;i++) {
 	hkprintf("%.4f ",full_x[i]);
-	}
-	hkprintf("\n");
+    }
+    hkprintf("\n");
 
 #if 0
-	full_solver_mat.desired_vector = full_x;
-	full_solver_mat.mult_aligned(); // temporary missuse
-	full_solver_mat.desired_vector = delta_x;
-	
-	hkprintf("accel1 ");
-	for(i=0;i<n_variables;i++) {
+    full_solver_mat.desired_vector = full_x;
+    full_solver_mat.mult_aligned(); // temporary missuse
+    full_solver_mat.desired_vector = delta_x;
+    
+    hkprintf("accel1 ");
+    for(i=0;i<n_variables;i++) {
 	hkprintf("%.4f ",full_solver_mat.result_vector[i] - full_b[i]);
-	}
-	hkprintf("\n");
+    }
+    hkprintf("\n");
 #endif
 
-	hkprintf("incr_accel ");
-	for(i=0;i<n_variables;i++) {
+    hkprintf("incr_accel ");
+    for(i=0;i<n_variables;i++) {
 	hkprintf("%.4f ",accel[i]);
-	}
-	hkprintf("\n\n");
+    }
+    hkprintf("\n\n");
   
 }
 
 //cannot be vector optimized because of indexed access
 hk_result hk_LCP_Solver::setup_l_u_solver() {
-	int i;
-	HK_LCP_IF(0) {
+    int i;
+    HK_LCP_IF(0) {
 	hkprintf("setting_up_lu\n");
-	}
-	
-	for(i=0; i <r_actives;i++) {
-		int index = actives_inactives_ignored[i];
-		//sub_solver_mat.desired_vector[i]= b[index];
-		lu_sub_solver.m_inout_vec[i]=full_b[index];
-		hk_real *source = & this->full_A[ index * aligned_size ];
-		hk_incrlu_real *dest = & lu_sub_solver.m_U_matrix[ i * lu_sub_solver.m_aligned_row_len ];
-		for(int j=0;j<r_actives;j++) {
-			int index2=actives_inactives_ignored[j];
+    }
+    
+    for(i=0; i <r_actives;i++) {
+	    int index = actives_inactives_ignored[i];
+	    //sub_solver_mat.desired_vector[i]= b[index];
+	    lu_sub_solver.m_inout_vec[i]=full_b[index];
+	    hk_real *source = & this->full_A[ index * aligned_size ];
+	    hk_incrlu_real *dest = & lu_sub_solver.m_U_matrix[ i * lu_sub_solver.m_aligned_row_len ];
+	    for(int j=0;j<r_actives;j++) {
+	        int index2=actives_inactives_ignored[j];
 		dest[j] = source[index2];
-		}
-	}
-	
-	return lu_sub_solver.l_u_decomposition_with_pivoting();
+	    }
+    }
+    
+    return lu_sub_solver.l_u_decomposition_with_pivoting();
 }
 
 void hk_LCP_Solver::lcs_bubble_sort_x_vals() {
-	int r1=n_equations;
-	int r2;
-	while(1) {
+    int r1=n_equations;
+    int r2;
+    while(1) {
 	r2=r1+1;
 	if(r2>=r_actives) {
-		break;
+	    break;
 	}
 	if( full_x[ actives_inactives_ignored[ r1 ] ] < full_x[ actives_inactives_ignored[ r2 ] ] ) {
-		exchange_lcs_variables( r1, r2 );
-		int r_t = r1;
-		while( (r_t > n_equations) && ( full_x[ actives_inactives_ignored [r_t-1] ] < full_x[ actives_inactives_ignored[ r_t ] ] ) ) {
+	    exchange_lcs_variables( r1, r2 );
+	    int r_t = r1;
+	    while( (r_t > n_equations) && ( full_x[ actives_inactives_ignored [r_t-1] ] < full_x[ actives_inactives_ignored[ r_t ] ] ) ) {
 		exchange_lcs_variables( r_t, r_t-1 );
 		r_t--;
-		}
+	    }
 	}
 	r1=r2;
-	}
+    }
 
-	HK_LCP_IF(1) {
+    HK_LCP_IF(1) {
 	int i;
 	for(i=1;i<r_actives;i++) {
-		if( full_x[ actives_inactives_ignored[ i-1 ] ] < full_x[ actives_inactives_ignored[ i ] ] ) {
+	    if( full_x[ actives_inactives_ignored[ i-1 ] ] < full_x[ actives_inactives_ignored[ i ] ] ) {
 		hkprintf("lcs_bubble_failed\n");
-		}
+	    }
 	}
-	}
+    }
 }
 
 // fills accel and full_x vectors
 void hk_LCP_Solver::get_values_when_setup() {
 #if 0
-	full_solver_mat.result_vector=accel;
-	full_solver_mat.desired_vector=full_x; //temporary misuse
-	full_solver_mat.mult_aligned();
-	full_solver_mat.result_vector=delta_accel;
-	full_solver_mat.desired_vector=delta_x;
+    full_solver_mat.result_vector=accel;
+    full_solver_mat.desired_vector=full_x; //temporary misuse
+    full_solver_mat.mult_aligned();
+    full_solver_mat.result_vector=delta_accel;
+    full_solver_mat.desired_vector=delta_x;
 #endif
 
-	input_struct->m_A->mult_vector( full_x, accel );
+    input_struct->m_A->mult_vector( full_x, accel );
 
-	int i;
-	{
+    int i;
+    {
 	for(i=0;i<n_variables;i++) {
-		accel[i]-=full_b[i];
+	    accel[i]-=full_b[i];
 	}
-	}
+    }
 
-	for(i=0;i<r_actives;i++) {
+    for(i=0;i<r_actives;i++) {
 	accel[actives_inactives_ignored[i]]=0.0f; //just to remove rounding errors
-	}
+    }
 }
 
 void hk_LCP_Solver::startup_setup(int try_actives)
 {
-	r_actives = try_actives;
-	aligned_sub_size=hk_VecFPU::calc_aligned_row_len(r_actives,lu_sub_solver.m_L_matrix);
-	ignored_pos=try_actives;
-	lu_sub_solver.m_n_sub = r_actives;
+    r_actives = try_actives;
+    aligned_sub_size=hk_VecFPU::calc_aligned_row_len(r_actives,lu_sub_solver.m_L_matrix);
+    ignored_pos=try_actives;
+    lu_sub_solver.m_n_sub = r_actives;
 
-	int i;
-	for(i=0;i<aligned_size;i++)
+    int i;
+    for(i=0;i<aligned_size;i++)
 	{
 		full_x[i]=0.0f;
-	}
-	if(setup_l_u_solver() == HK_OK)
+    }
+    if(setup_l_u_solver() == HK_OK)
 	{
 		sub_solver_status = 0;
 		HK_LCP_IF(debug_lcs)
@@ -1089,11 +1089,11 @@ void hk_LCP_Solver::startup_setup(int try_actives)
 			}
 			hkprintf("\n\n");
 		}
-		//input vec for lu_sub_solver is filled within setup_l_u_solver
+        //input vec for lu_sub_solver is filled within setup_l_u_solver
 
 		while(1)
 		{
-begin_of_while:		
+begin_of_while:	    
 			//solution_not_found=0;
 			lu_sub_solver.solve_lin_equ();
 			for(i=0;i<r_actives;i++)
@@ -1135,7 +1135,7 @@ begin_of_while:
 			}
 			break;
 		}
-	}
+    }
 	else
 	{
 fast_setup_failed:	
@@ -1143,159 +1143,159 @@ fast_setup_failed:
 		r_actives=n_equations;
 		ignored_pos=n_equations;
 		lu_sub_solver.m_n_sub=n_equations;
-	}
+    }
 }
 
 // full setup is done when numerical problems are encountered.
 // lu_solver is setup with pivoting to get a stable inverted matrix
 // for the active variables
 hk_result hk_LCP_Solver::full_setup() {
-	HK_LCP_IF(0) {
+    HK_LCP_IF(0) {
 	hkprintf("doing_fulll_setup\n");
-	}
-	
-	int i;
-	lu_sub_solver.m_n_sub = r_actives;
-	
-	for(i=0;i<aligned_size;i++) {
+    }
+    
+    int i;
+    lu_sub_solver.m_n_sub = r_actives;
+    
+    for(i=0;i<aligned_size;i++) {
 	full_x[i]=0.0f;
-	}
+    }
 
-	do_a_little_random_permutation();
-	if( setup_l_u_solver() == HK_OK ) {
+    do_a_little_random_permutation();
+    if( setup_l_u_solver() == HK_OK ) {
 	sub_solver_status = 0;
-		//input vec for lu_sub_solver is filled within setup_l_u_solver
+        //input vec for lu_sub_solver is filled within setup_l_u_solver
 	lu_sub_solver.solve_lin_equ();
 	for(i=0;i<r_actives;i++) {
-		int index=actives_inactives_ignored[i];
-		full_x[index]=lu_sub_solver.m_inout_vec[i];
+	    int index=actives_inactives_ignored[i];
+	    full_x[index]=lu_sub_solver.m_inout_vec[i];
 	}
-	} else {
+    } else {
 	sub_solver_status = 2;
 	HK_LCP_IF(debug_lcs) {
-		hkprintf("setup_lu_failed\n");
+	    hkprintf("setup_lu_failed\n");
 	}
 
 	lcs_bubble_sort_x_vals(); //move actives with lowest x to the end (matrix is singular and last vars get a zero)
-							  //but giving the lowest x's the zeros is just a heuristic
+	                          //but giving the lowest x's the zeros is just a heuristic
 	do_a_little_random_permutation();
 	
 	m_gauss_inp.m_n_columns = r_actives;
 	m_gauss_inp.m_aligned_row_len = hk_VecFPU::calc_aligned_row_len(r_actives,m_gauss_inp.m_A);
 	
 	for(i=0;i<r_actives;i++) {
-		int index=actives_inactives_ignored[i];
-		m_gauss_inp.m_b[i]= full_b[index];
+	    int index=actives_inactives_ignored[i];
+	    m_gauss_inp.m_b[i]= full_b[index];
 
-		int j;
-		for(j=0;j<r_actives;j++) {
+	    int j;
+	    for(j=0;j<r_actives;j++) {
 		int index2=actives_inactives_ignored[j];
 		m_gauss_inp.m_A[i*m_gauss_inp.m_aligned_row_len + j] = this->full_A[ index * aligned_size + index2 ];
 
-		}
+	    }
 	}
 	hk_result ret_val = m_gauss_sub_solver.solve_gauss_elemination( m_gauss_inp, m_gauss_out);
 
 	if(ret_val!=HK_OK) {
-		HK_LCP_IF(1) {
+	    HK_LCP_IF(1) {
 		hkprintf("error_setup_gauss_failed_too\n");
-		}
-		return ret_val;
+	    }
+	    return ret_val;
 	}
-	
+    
 	for(i=0;i<r_actives;i++) {
-		int index=actives_inactives_ignored[i];
-		full_x[index]=m_gauss_out.m_result[i];
+	    int index=actives_inactives_ignored[i];
+	    full_x[index]=m_gauss_out.m_result[i];
 	}
-	}
+    }
 
-	get_values_when_setup();
-	
-	if( full_setup_test_ranges() > 0 ) {
+    get_values_when_setup();
+    
+    if( full_setup_test_ranges() > 0 ) {
 	HK_LCP_IF(debug_lcs) {
-		hkprintf("\ncleared_some_illegal_vars\n\n");
+	    hkprintf("\ncleared_some_illegal_vars\n\n");
 	}
 	return full_setup();
-	} else {
+    } else {
 	
-	}
-	
-	return HK_OK;
-	//optimization:
-	//fill directly in data, not versus reset_*
+    }
+    
+    return HK_OK;
+    //optimization:
+    //fill directly in data, not versus reset_*
 }
 
 void hk_LCP_Solver::move_variable_to_end( int var_nr ) {
-	int i;
-	for(i=var_nr+1;i<n_variables;i++) {
+    int i;
+    for(i=var_nr+1;i<n_variables;i++) {
 	exchange_lcs_variables( i-1, i );
-	}
+    }
 }	
 
 // returns number of removed actives
 int hk_LCP_Solver::full_setup_test_ranges() {
-	int illegal_vars=0;
-	int i;
-	for(i=n_equations;i<r_actives;i++) {
+    int illegal_vars=0;
+    int i;
+    for(i=n_equations;i<r_actives;i++) {
 	if( full_x[actives_inactives_ignored[i]] < HK_LCP_SOLVER_EPS ) {
-		if( full_x[actives_inactives_ignored[i]] > -HK_LCP_SOLVER_EPS ) {
+	    if( full_x[actives_inactives_ignored[i]] > -HK_LCP_SOLVER_EPS ) {
 		full_x[actives_inactives_ignored[i]] = 0.0f;
 		exchange_lcs_variables( i, r_actives-1 );
-		} else {
+	    } else {
 		move_variable_to_end( i );
 		illegal_vars++;
 		ignored_pos--;
-		}
-		i--;
-		r_actives--;
-		lu_sub_solver.m_n_sub--;
-		sub_solver_status=1;
+	    }
+	    i--;
+	    r_actives--;
+	    lu_sub_solver.m_n_sub--;
+	    sub_solver_status=1;
 	}
-	}
-	for(i=r_actives;i<ignored_pos;i++) {
+    }
+    for(i=r_actives;i<ignored_pos;i++) {
 	if( accel[actives_inactives_ignored[i]] < 0.0f ) {
-		move_variable_to_end( i );
-		i--;
-		ignored_pos--;
+	    move_variable_to_end( i );
+	    i--;
+	    ignored_pos--;
 	}
-	}
-	return illegal_vars;
+    }
+    return illegal_vars;
 }
 
 void hk_LCP_Solver::debug_test_all_values() {
-	//TL: doesn't make sense, because reset_x and reset_accel have been removed 
+    //TL: doesn't make sense, because reset_x and reset_accel have been removed 
 #if 0
-	int i;
+    int i;
 
-	for(i=0;i<aligned_size;i++) {
+    for(i=0;i<aligned_size;i++) {
 	full_x[i] = full_x[i];
-	}
+    }
 
-	input_struct->m_A->mult_vector(full_x,accel);
+    input_struct->m_A->mult_vector(full_x,accel);
 
 #if 0
-	full_solver_mat.result_vector = accel;
-	full_solver_mat.desired_vector = full_x; //temporary misuse
-	full_solver_mat.mult_aligned();
-	full_solver_mat.result_vector = delta_accel;
-	full_solver_mat.desired_vector = delta_x;
+    full_solver_mat.result_vector = accel;
+    full_solver_mat.desired_vector = full_x; //temporary misuse
+    full_solver_mat.mult_aligned();
+    full_solver_mat.result_vector = delta_accel;
+    full_solver_mat.desired_vector = delta_x;
 #endif
 
-	for(i=0;i<aligned_size;i++) {
+    for(i=0;i<aligned_size;i++) {
 	accel[i]-=full_b[i];
-	}
+    }
 
-	HK_LCP_IF(debug_lcs) {
+    HK_LCP_IF(debug_lcs) {
 	for(i=0;i<n_variables;i++) {
-		hk_real diff=hk_Math::fabs( accel[i] - accel[i] );
-		if( diff > 0.001f ) {
+	    hk_real diff=hk_Math::fabs( accel[i] - accel[i] );
+	    if( diff > 0.001f ) {
 		hkprintf("accel_violated at %d %f should be %f\n",i,accel[i],accel[i]);
-		}
-		diff=hk_Math::fabs( full_x[i] - full_x[i] );
-		if( diff > 0.001f ) {
+	    }
+	    diff=hk_Math::fabs( full_x[i] - full_x[i] );
+	    if( diff > 0.001f ) {
 		hkprintf("x_violated at %d\n",i);
-		}
+	    }
 	}
-	}
+    }
 #endif
 }

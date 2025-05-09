@@ -31,7 +31,7 @@ class hk_Spatial_Matrix
 			//: mulitply two spatial matrixes together
 		
 		void set_vector_mul_vector( const hk_Spatial_Vector &a, const hk_Spatial_Vector &b );
-			//: M = a*!b	where !b = spatial transpose
+			//: M = a*!b    where !b = spatial transpose
 
 		void set_add( const hk_Spatial_Matrix& a, const hk_Spatial_Matrix& b );
 			//: add two spatial matrixes together

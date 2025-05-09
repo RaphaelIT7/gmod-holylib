@@ -24,8 +24,8 @@ typedef hk_int32 hk_Entity_Core_ID;
 
 enum
 {
-	HK_MAX_FREQUENCY = 0x1,
-	HK_MIN_FREQUENCY = 0xff
+    HK_MAX_FREQUENCY = 0x1,
+    HK_MIN_FREQUENCY = 0xff
 };
 
 class hk_Clock_Time

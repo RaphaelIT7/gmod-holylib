@@ -17,7 +17,7 @@
 //#define IVP_WMT_ALIGN		/* set to compile with MS but Willamette compatible */
 //#define IVP_PSXII			/* playstation II */
 #endif
-//#define IVP_NO_DOUBLE	/* set if processor has no double floating point unit, or lib should use float only */
+//#define IVP_NO_DOUBLE    /* set if processor has no double floating point unit, or lib should use float only */
 #define IVP_VECTOR_UNIT_FLOAT  /* set if extra data is inserted to support vector units */
 #define IVP_VECTOR_UNIT_DOUBLE /* set if extra data should be insersted to utilize double vector units */
 
@@ -44,11 +44,11 @@
 #	define IVP_VECTOR_UNIT_FLOAT
 #	define IVP_VECTOR_UNIT_DOUBLE
 #endif
-						 
+					     
 // typedefs for our special types
 
 #if defined(NDEBUG) + defined(DEBUG) != 1
-	   Exactly DEBUG or NDEBUG has to be defined, check Makefile
+       Exactly DEBUG or NDEBUG has to be defined, check Makefile
 #endif
 
 #ifndef WIN32
@@ -144,46 +144,46 @@ using IVP_UINT32 = unsigned int;
 #ifndef IVP_NO_DOUBLE
 using IVP_DOUBLE = double;
 class IVP_Time {
-	double seconds;
+    double seconds;
 public:
-	void operator+=(double val){
+    void operator+=(double val){
 	seconds += val;
-	}
-	double get_seconds() const { return seconds; }
-	double get_time() const { return seconds; } // for debugging
-	double operator-(const IVP_Time &b) const { return this->seconds - b.seconds; }
-	void operator-=(const IVP_Time b) { this->seconds -= b.seconds; }
-	IVP_Time operator+(double val) const { IVP_Time result; result.seconds = this->seconds + val; return result;}
+    }
+    double get_seconds() const { return seconds; }
+    double get_time() const { return seconds; } // for debugging
+    double operator-(const IVP_Time &b) const { return this->seconds - b.seconds; }
+    void operator-=(const IVP_Time b) { this->seconds -= b.seconds; }
+    IVP_Time operator+(double val) const { IVP_Time result; result.seconds = this->seconds + val; return result;}
 
-	IVP_Time() = default;
-	IVP_Time(double time){ seconds = time; }
+    IVP_Time() = default;
+    IVP_Time(double time){ seconds = time; }
 };
 
 #else
 // ************************
 using IVP_DOUBLE = float;
 class IVP_Time {
-	float seconds;
-	float sub_seconds;
+    float seconds;
+    float sub_seconds;
 public:
-	void operator+=(float val){
+    void operator+=(float val){
 	sub_seconds += val;
-	while (sub_seconds > 1.0f){	seconds ++;	sub_seconds -= 1.0f;	}
-	}
-	float get_seconds() const { return seconds; };
-	float get_time() const{ return seconds + sub_seconds; }; // for debugging
-	float operator-(const IVP_Time &b) const { return (this->seconds - b.seconds) + this->sub_seconds - b.sub_seconds; }
-	void operator-=(const IVP_Time b) { this->seconds -= b.seconds; this->sub_seconds -= b.sub_seconds;
-		while (sub_seconds > 1.0f){	seconds ++;	sub_seconds -= 1.0f;	}
-		while (sub_seconds < 0.0f){	seconds --;	sub_seconds += 1.0f;	}
-	}
-	IVP_Time operator+(float val) const {
+	while (sub_seconds > 1.0f){    seconds ++;    sub_seconds -= 1.0f;	}
+    }
+    float get_seconds() const { return seconds; };
+    float get_time() const{ return seconds + sub_seconds; }; // for debugging
+    float operator-(const IVP_Time &b) const { return (this->seconds - b.seconds) + this->sub_seconds - b.sub_seconds; }
+    void operator-=(const IVP_Time b) { this->seconds -= b.seconds; this->sub_seconds -= b.sub_seconds;
+    	while (sub_seconds > 1.0f){    seconds ++;    sub_seconds -= 1.0f;	}
+    	while (sub_seconds < 0.0f){    seconds --;    sub_seconds += 1.0f;	}
+    }
+    IVP_Time operator+(float val) const {
 	IVP_Time result; result.seconds = this->seconds; result.sub_seconds = this->sub_seconds + val;
-	while (result.sub_seconds > 1.0f){	result.seconds ++;	result.sub_seconds -= 1.0f;	}
+	while (result.sub_seconds > 1.0f){    result.seconds ++;    result.sub_seconds -= 1.0f;	}
 	return result;
-	}
-	IVP_Time(){}
-	IVP_Time(float time){ seconds = float(int(time)); sub_seconds = time - int(time); };
+    }
+    IVP_Time(){}
+    IVP_Time(float time){ seconds = float(int(time)); sub_seconds = time - int(time); };
 };
 #endif
  
@@ -209,7 +209,7 @@ constexpr inline std::nullptr_t IVP_NO_ERROR{nullptr};
 
 
 /********************************************************************************
- *						Simple Base Types
+ *		    			Simple Base Types
  ********************************************************************************/
   
 using IVP_Time_CODE = int;	// Internal enumeration for time handles.
@@ -217,23 +217,23 @@ using ivp_u_bool = int;		// must be int!!
 
 // boolean enumeration, compatible to C++ bool, ivp_u_bool
 enum IVP_BOOL {
-	IVP_FALSE = 0,
-	IVP_TRUE = 1
+    IVP_FALSE = 0,
+    IVP_TRUE = 1
 };
 
 
 enum IVP_RETURN_TYPE {
-	IVP_FAULT = 0,
-	IVP_OK = 1
+    IVP_FAULT = 0,
+    IVP_OK = 1
 };
 
-#define IVP_CDECL	   /* set this to whatever you need to satisfy your linker */
+#define IVP_CDECL       /* set this to whatever you need to satisfy your linker */
 
 #if !defined(__MWERKS__) || !defined(__POWERPC__)
 #   ifdef OSX
-#	   include <malloc/malloc.h>
+#       include <malloc/malloc.h>
 #   else
-#	   include <malloc.h>
+#       include <malloc.h>
 #   endif
 #endif
 
@@ -280,8 +280,8 @@ constexpr inline float P_FLOAT_RES{1e-6f};	// float resolution for numbers < 1.0
 constexpr inline float P_FLOAT_MAX{1e16f};
 
 #ifdef IVP_NO_DOUBLE
-#	define IVP_PI		3.14159265358979323846f	/* pi */
-#	define IVP_PI_2	  1.57079632679489661923f	/* pi/2 */
+#	define IVP_PI        3.14159265358979323846f	/* pi */
+#	define IVP_PI_2      1.57079632679489661923f	/* pi/2 */
 #	define P_DOUBLE_MAX P_FLOAT_MAX
 #	define P_DOUBLE_RES P_FLOAT_RES	// double resolution for numbers < 1.0
 #	define IVP_3D_SOLVER_NULLSTELLE_EPS 3e-3f
@@ -293,7 +293,7 @@ constexpr inline double IVP_PI_2{1.57079632679489661923}; /* pi/2 */
 constexpr inline double P_DOUBLE_MAX{1e20};
 constexpr inline double P_DOUBLE_RES{1E-12};	// double resolution for numbers < 1.0
 constexpr inline double IVP_3D_SOLVER_NULLSTELLE_EPS{1e-8};
-constexpr inline double P_DOUBLE_EPS { 1e-10};	// used for division checking
+constexpr inline double P_DOUBLE_EPS { 1e-10};    // used for division checking
 constexpr inline double P_MAX_WORLD_DOUBLE{10000};  // max world koords
 #endif
 
@@ -340,12 +340,12 @@ IVP_FLOAT ivp_rand();		// returns [0 .. 1]
 #else
 
 #   define IVP_PREFETCH_BLOCK(pntr, size) do {	\
-	IVP_PREFETCH(pntr,0);	\
-	if ( size > IVP_PREFETCH_CLINE_SIZE)   IVP_PREFETCH( pntr, IVP_PREFETCH_CLINE_SIZE);   \
-	if ( size > 2*IVP_PREFETCH_CLINE_SIZE) IVP_PREFETCH( pntr, 2*IVP_PREFETCH_CLINE_SIZE); \
-	if ( size > 3*IVP_PREFETCH_CLINE_SIZE) IVP_PREFETCH( pntr, 3*IVP_PREFETCH_CLINE_SIZE); \
-	/*if ( size > 4*IVP_PREFETCH_CLINE_SIZE) IVP_PREFETCH( pntr, 4*IVP_PREFETCH_CLINE_SIZE);*/ \
-	/*IVP_PREFETCH( pntr, (size - sizeof(void *))) */\
+    IVP_PREFETCH(pntr,0);	\
+    if ( size > IVP_PREFETCH_CLINE_SIZE)   IVP_PREFETCH( pntr, IVP_PREFETCH_CLINE_SIZE);   \
+    if ( size > 2*IVP_PREFETCH_CLINE_SIZE) IVP_PREFETCH( pntr, 2*IVP_PREFETCH_CLINE_SIZE); \
+    if ( size > 3*IVP_PREFETCH_CLINE_SIZE) IVP_PREFETCH( pntr, 3*IVP_PREFETCH_CLINE_SIZE); \
+    /*if ( size > 4*IVP_PREFETCH_CLINE_SIZE) IVP_PREFETCH( pntr, 4*IVP_PREFETCH_CLINE_SIZE);*/ \
+    /*IVP_PREFETCH( pntr, (size - sizeof(void *))) */\
 } while (false)
 
 #endif

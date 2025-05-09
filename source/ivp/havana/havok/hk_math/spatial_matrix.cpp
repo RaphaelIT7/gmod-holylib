@@ -15,7 +15,7 @@ void hk_Spatial_Matrix::set_spatial_inertia_tensor( const hk_Matrix3& inertia_te
 
 
 // spatial transform from frame F to G = 
-// [ R	0 ]   where R is rotation taking vector from F to G
+// [ R    0 ]   where R is rotation taking vector from F to G
 // [ -r~R R ]   and r is vector from origin of F to origin of G in G's frame of reference
 // 
 void hk_Spatial_Matrix::set_spatial_transform( const hk_Matrix3& R, const hk_Vector3& r )
@@ -30,7 +30,7 @@ void hk_Spatial_Matrix::set_spatial_transform( const hk_Matrix3& R, const hk_Vec
 }
 
 // spatial transform from frame F to G = 
-// [ R	0 ]   where R is transform taking vector from F to G
+// [ R    0 ]   where R is transform taking vector from F to G
 // [ -r~R R ]   and r is vector from origin of F to origin of G in G's frame of reference
 // 
 void hk_Spatial_Matrix::set_spatial_transform( [[maybe_unused]] const hk_Transform& cartesian_frame )
@@ -236,14 +236,14 @@ int max_order_row_index;
 		// elimination:  only eliminate all rows that haven't been reduced already
 		for( target_row = elimcol+1; target_row < dim; target_row++ ){
 			if( A[elimrow][elimcol] == 0.0f ){ //!me should report errors
-		//!me instead of failing I should try to fix it the best I can.
-		//!me much better to have wierd results than to fail completely.
-		//!me Here's what to do:  look up cholesky factorization
-		//!me or do this: try to figure out what vector is missing in 
-		//!me order to get b.  take dot product with b and subract from
-		//!me b for every row ( column? ) then whatever is left is 
-		//!me what this 0 row should be ( might have to take it from 
-		//!me column space to row space first ). Cool!?!?!
+        //!me instead of failing I should try to fix it the best I can.
+        //!me much better to have wierd results than to fail completely.
+        //!me Here's what to do:  look up cholesky factorization
+        //!me or do this: try to figure out what vector is missing in 
+        //!me order to get b.  take dot product with b and subract from
+        //!me b for every row ( column? ) then whatever is left is 
+        //!me what this 0 row should be ( might have to take it from 
+        //!me column space to row space first ). Cool!?!?!
 
 
 				factor = 0.0f;  // the whole row was 0.0, so fail nicely
@@ -293,17 +293,17 @@ int max_order_row_index;
 void hk_Spatial_Matrix::linear_solve( hk_Spatial_Vector &sx, const hk_Spatial_Vector &sb )
 {
 	hk_real x[6];
-	hk_real b[6];
+    hk_real b[6];
 	hk_real A[6][6];
 
-	int idx, jdx;  
+    int idx, jdx;  
 	
-	for( idx = 0; idx < 3; idx++ ){
+    for( idx = 0; idx < 3; idx++ ){
 		x[idx] = sx.top(idx);
 		b[idx] = sb.top(idx);
 		x[idx+3] = sx.bottom(idx);
 		b[idx+3] = sb.bottom(idx);
-		for( jdx = 0; jdx < 3; jdx++ ){
+	    for( jdx = 0; jdx < 3; jdx++ ){
 			A[idx][jdx] = m_Block[0][0](idx,jdx);
 			A[idx+3][jdx] = m_Block[1][0](idx,jdx);
 			A[idx+3][jdx+3] = m_Block[1][1](idx,jdx);
@@ -312,10 +312,10 @@ void hk_Spatial_Matrix::linear_solve( hk_Spatial_Vector &sx, const hk_Spatial_Ve
 
 	}
 
-	// solve this sucker
-	gausse_siedel_solve( A, 6, x, b );
+    // solve this sucker
+    gausse_siedel_solve( A, 6, x, b );
 
-	for( idx = 0; idx < 6; idx++ ){
+    for( idx = 0; idx < 6; idx++ ){
 		sx(idx) = x[idx];
 	}
 	

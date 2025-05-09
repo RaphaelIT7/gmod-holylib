@@ -12,7 +12,7 @@ class hk_Limited_Ball_Socket_Constraint : public hk_Constraint
 {
 	public:
 
-		hk_Limited_Ball_Socket_Constraint( hk_Environment *,			 const hk_Limited_Ball_Socket_BP *, hk_Rigid_Body *a ,hk_Rigid_Body *b );	
+		hk_Limited_Ball_Socket_Constraint( hk_Environment *,             const hk_Limited_Ball_Socket_BP *, hk_Rigid_Body *a ,hk_Rigid_Body *b );	
 		hk_Limited_Ball_Socket_Constraint( hk_Local_Constraint_System *, const hk_Limited_Ball_Socket_BP *, hk_Rigid_Body *a ,hk_Rigid_Body *b );	
 
 
