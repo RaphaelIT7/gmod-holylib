@@ -1277,7 +1277,7 @@ void CPhysicsEnvironment::GetGravity( Vector *pGravityVector ) const
 }
 
 
-IPhysicsObject *CPhysicsEnvironment::CreatePolyObject( const CPhysCollide *pCollisionModel, hk_intp materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams )
+IPhysicsObject *CPhysicsEnvironment::CreatePolyObject( const CPhysCollide *pCollisionModel, int materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams )
 {
 	IPhysicsObject *pObject = ::CreatePhysicsObject( this, pCollisionModel, materialIndex, position, angles, pParams, false );
 	if ( pObject )
@@ -1287,7 +1287,7 @@ IPhysicsObject *CPhysicsEnvironment::CreatePolyObject( const CPhysCollide *pColl
 	return pObject;
 }
 
-IPhysicsObject *CPhysicsEnvironment::CreatePolyObjectStatic( const CPhysCollide *pCollisionModel, hk_intp materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams )
+IPhysicsObject *CPhysicsEnvironment::CreatePolyObjectStatic( const CPhysCollide *pCollisionModel, int materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams )
 {
 	IPhysicsObject *pObject = ::CreatePhysicsObject( this, pCollisionModel, materialIndex, position, angles, pParams, true );
 	if ( pObject )
@@ -1322,7 +1322,7 @@ IPhysicsObject *CPhysicsEnvironment::UnserializeObjectFromBuffer( void *pGameDat
 	return pObject;
 }
 
-const IPhysicsObject **CPhysicsEnvironment::GetObjectList( hk_intp *pOutputObjectCount ) const
+const IPhysicsObject **CPhysicsEnvironment::GetObjectList( int *pOutputObjectCount ) const
 {
 	hk_intp iCount = m_objects.Count();
 	if( pOutputObjectCount ) 
@@ -1806,7 +1806,7 @@ void CPhysicsEnvironment::DestroyVehicleController( IPhysicsVehicleController *p
 	delete pController;
 }
 
-hk_intp	CPhysicsEnvironment::GetActiveObjectCount( void ) const
+int	CPhysicsEnvironment::GetActiveObjectCount( void ) const
 {
 	return m_pSleepEvents->GetActiveObjectCount();
 }
@@ -1881,7 +1881,7 @@ void CPhysicsEnvironment::PhantomRemove( CPhysicsObject *pObject )
 
 //-------------------------------------
 
-IPhysicsObject *CPhysicsEnvironment::CreateSphereObject( float radius, hk_intp materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams, bool isStatic )
+IPhysicsObject *CPhysicsEnvironment::CreateSphereObject( float radius, int materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams, bool isStatic )
 {
 	IPhysicsObject *pObject = ::CreatePhysicsSphere( this, radius, materialIndex, position, angles, pParams, isStatic );
 	m_objects.AddToTail( pObject );
@@ -1990,6 +1990,75 @@ void CPhysicsEnvironment::EnableConstraintNotify( bool bEnable )
 	m_enableConstraintNotify = bEnable;
 }
 
+#if ARCHITECTURE_X86_64
+void CPhysicsEnvironment::PreSave(const physpresaverestoreparams_t& params)
+{
+	Error("not implemented!\n");
+}
+
+void CPhysicsEnvironment::PostSave()
+{
+	Error("not implemented!\n");
+}
+
+void CPhysicsEnvironment::SetAlternateGravity(const Vector& gravityVector)
+{
+	Error("not implemented!\n");
+}
+
+void CPhysicsEnvironment::GetAlternateGravity(Vector* pGravityVector) const
+{
+	Error("not implemented!\n");
+}
+
+float CPhysicsEnvironment::GetDeltaFrameTime(int maxTicks) const
+{
+	Error("not implemented!\n");
+	return 0.0f;
+}
+
+void CPhysicsEnvironment::ForceObjectsToSleep(IPhysicsObject** pList, int listCount)
+{
+	Error("not implemented!\n");
+}
+
+void CPhysicsEnvironment::SetPredicted(bool bPredicted)
+{
+	Error("not implemented!\n");
+}
+
+bool CPhysicsEnvironment::IsPredicted(void)
+{
+	Error("not implemented!\n");
+	return false;
+}
+
+void CPhysicsEnvironment::SetPredictionCommandNum(int iCommandNum)
+{
+	Error("not implemented!\n");
+}
+
+int CPhysicsEnvironment::GetPredictionCommandNum(void)
+{
+	Error("not implemented!\n");
+	return 0;
+}
+
+void CPhysicsEnvironment::DoneReferencingPreviousCommands(int iCommandNum)
+{
+	Error("not implemented!\n");
+}
+
+void CPhysicsEnvironment::RestorePredictedSimulation(void)
+{
+	Error("not implemented!\n");
+}
+
+void CPhysicsEnvironment::DestroyCollideOnDeadObjectFlush(CPhysCollide*)
+{
+	Error("not implemented!\n");
+}
+#endif
 
 IPhysicsEnvironment *CreatePhysicsEnvironment( void )
 {

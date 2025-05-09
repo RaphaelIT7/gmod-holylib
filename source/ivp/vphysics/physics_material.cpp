@@ -12,6 +12,7 @@
 #include "tier1/utlsymbol.h"
 #include "tier1/strtools.h" 
 #include "vcollide_parse_private.h"
+#include "Platform.hpp"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -66,7 +67,7 @@ class CIVPMaterialManager : public IVP_Material_Manager
 public:
 	CIVPMaterialManager( void );
 	void Init( CPhysicsSurfaceProps *pProps ) { m_props = pProps; }
-	void SetPropMap( hk_intp *map, int mapSize );
+	void SetPropMap( int *map, int mapSize );
 	int RemapIVPMaterialIndex( int ivpMaterialIndex ) const;
 
 	// IVP_Material_Manager
@@ -118,29 +119,29 @@ public:
 	CPhysicsSurfaceProps( void );
 	~CPhysicsSurfaceProps( void );
 
-	hk_intp	ParseSurfaceData( const char *pFilename, const char *pTextfile ) override;
-	hk_intp	SurfacePropCount( void ) const override;
-	hk_intp	GetSurfaceIndex( const char *pPropertyName ) const override;
-	void	GetPhysicsProperties( hk_intp surfaceDataIndex, float *density, float *thickness, float *friction, float *elasticity ) const override;
-	void	GetPhysicsParameters( hk_intp surfaceDataIndex, surfacephysicsparams_t *pParamsOut ) const override;
-	surfacedata_t *GetSurfaceData( hk_intp surfaceDataIndex ) override;
+	int	ParseSurfaceData( const char *pFilename, const char *pTextfile ) override;
+	int	SurfacePropCount( void ) const override;
+	int	GetSurfaceIndex( const char *pPropertyName ) const override;
+	void	GetPhysicsProperties( int surfaceDataIndex, float *density, float *thickness, float *friction, float *elasticity ) const override;
+	void	GetPhysicsParameters( int surfaceDataIndex, surfacephysicsparams_t *pParamsOut ) const override;
+	surfacedata_t *GetSurfaceData( int surfaceDataIndex ) override;
 	const char *GetString( unsigned short stringTableIndex ) const override;
-	const char *GetPropName( hk_intp surfaceDataIndex ) const override;
-	void SetWorldMaterialIndexTable( hk_intp *pMapArray, int mapSize ) override;
+	const char *GetPropName( int surfaceDataIndex ) const override;
+	void SetWorldMaterialIndexTable( int *pMapArray, int mapSize ) override;
 	int RemapIVPMaterialIndex( int ivpMaterialIndex ) const override
 	{
 		return m_ivpManager.RemapIVPMaterialIndex( ivpMaterialIndex );
 	}
 	bool IsReservedMaterialIndex( int materialIndex ) const;
 	virtual const char *GetReservedMaterialName( int materialIndex ) const;
-	hk_intp GetReservedFallBack( int materialIndex ) const;
+	int GetReservedFallBack( int materialIndex ) const;
 
-	hk_intp GetReservedSurfaceIndex( const char *pPropertyName ) const;
+	int GetReservedSurfaceIndex( const char *pPropertyName ) const;
 
 	// The database is derived from the IVP material class
 	const IVP_Material *GetIVPMaterial( int materialIndex ) const;
 	IVP_Material *GetIVPMaterial( int materialIndex ) override;
-	hk_intp GetIVPMaterialIndex( const IVP_Material *pIVP ) const override;
+	int GetIVPMaterialIndex( const IVP_Material *pIVP ) const override;
 	IVP_Material_Manager *GetIVPManager( void ) override { return &m_ivpManager; }
 
 	const char *GetNameString( CUtlSymbol name ) const
@@ -148,11 +149,15 @@ public:
 		return m_strings.String(name);
 	}
 
+#if ARCHITECTURE_X86_64
+	ISaveRestoreOps* GetMaterialIndexDataOps() const override;
+#endif
+
 private:
-	const CSurface	*GetInternalSurface( hk_intp materialIndex ) const;
-	CSurface	*GetInternalSurface( hk_intp materialIndex );
+	const CSurface	*GetInternalSurface( int materialIndex ) const;
+	CSurface	*GetInternalSurface( int materialIndex );
 	
-	void			CopyPhysicsProperties( CSurface *pOut, hk_intp baseIndex );
+	void			CopyPhysicsProperties( CSurface *pOut, int baseIndex );
 	bool			AddFileToDatabase( const char *pFilename );
 
 private:
@@ -194,7 +199,7 @@ CPhysicsSurfaceProps::~CPhysicsSurfaceProps( void )
 {
 }
 
-hk_intp CPhysicsSurfaceProps::SurfacePropCount( void ) const
+int CPhysicsSurfaceProps::SurfacePropCount( void ) const
 {
 	return m_props.Count();
 }
@@ -214,7 +219,7 @@ bool CPhysicsSurfaceProps::AddFileToDatabase( const char *pFilename )
 	return true;
 }
 
-hk_intp CPhysicsSurfaceProps::GetSurfaceIndex( const char *pPropertyName ) const
+int CPhysicsSurfaceProps::GetSurfaceIndex( const char *pPropertyName ) const
 {
 	if ( pPropertyName[0] == '$' )
 	{
@@ -239,7 +244,7 @@ hk_intp CPhysicsSurfaceProps::GetSurfaceIndex( const char *pPropertyName ) const
 }
 
 
-const char *CPhysicsSurfaceProps::GetPropName( hk_intp surfaceDataIndex ) const
+const char *CPhysicsSurfaceProps::GetPropName( int surfaceDataIndex ) const
 {
 	const CSurface *pSurface = GetInternalSurface( surfaceDataIndex );
 	if ( pSurface )
@@ -252,7 +257,7 @@ const char *CPhysicsSurfaceProps::GetPropName( hk_intp surfaceDataIndex ) const
 
 // UNDONE: move reserved materials into this table, or into a parallel table
 // that gets hooked out here.
-CSurface *CPhysicsSurfaceProps::GetInternalSurface( hk_intp materialIndex )
+CSurface *CPhysicsSurfaceProps::GetInternalSurface( int materialIndex )
 {
 	if ( IsReservedMaterialIndex( materialIndex ) )
 	{
@@ -266,12 +271,12 @@ CSurface *CPhysicsSurfaceProps::GetInternalSurface( hk_intp materialIndex )
 }
 
 // this function is actually const except for the return type, so this is safe
-const CSurface *CPhysicsSurfaceProps::GetInternalSurface( hk_intp materialIndex ) const
+const CSurface *CPhysicsSurfaceProps::GetInternalSurface( int materialIndex ) const
 {
 	return const_cast<CPhysicsSurfaceProps *>(this)->GetInternalSurface(materialIndex);
 }
 
-void CPhysicsSurfaceProps::GetPhysicsProperties( hk_intp materialIndex, float *density, float *thickness, float *friction, float *elasticity ) const
+void CPhysicsSurfaceProps::GetPhysicsProperties( int materialIndex, float *density, float *thickness, float *friction, float *elasticity ) const
 {
 	const CSurface *pSurface = GetInternalSurface( materialIndex );
 	if ( !pSurface )
@@ -300,7 +305,7 @@ void CPhysicsSurfaceProps::GetPhysicsProperties( hk_intp materialIndex, float *d
 	}
 }
 
-void CPhysicsSurfaceProps::GetPhysicsParameters( hk_intp surfaceDataIndex, surfacephysicsparams_t *pParamsOut ) const
+void CPhysicsSurfaceProps::GetPhysicsParameters( int surfaceDataIndex, surfacephysicsparams_t *pParamsOut ) const
 {
 	if ( !pParamsOut )
 		return;
@@ -312,7 +317,7 @@ void CPhysicsSurfaceProps::GetPhysicsParameters( hk_intp surfaceDataIndex, surfa
 	}
 }
 
-surfacedata_t *CPhysicsSurfaceProps::GetSurfaceData( hk_intp materialIndex )
+surfacedata_t *CPhysicsSurfaceProps::GetSurfaceData( int materialIndex )
 {
 	CSurface *pSurface = GetInternalSurface( materialIndex );
 	if (!pSurface)
@@ -345,7 +350,7 @@ const char *CPhysicsSurfaceProps::GetReservedMaterialName( int materialIndex ) c
 	return NULL;
 }
 
-hk_intp CPhysicsSurfaceProps::GetReservedSurfaceIndex( const char *pPropertyName ) const
+int CPhysicsSurfaceProps::GetReservedSurfaceIndex( const char *pPropertyName ) const
 {
 	if ( !Q_stricmp( pPropertyName, "$MATERIAL_INDEX_SHADOW" ) )
 	{
@@ -365,7 +370,7 @@ IVP_Material *CPhysicsSurfaceProps::GetIVPMaterial( int materialIndex )
 }
 
 
-hk_intp CPhysicsSurfaceProps::GetReservedFallBack( int materialIndex ) const
+int CPhysicsSurfaceProps::GetReservedFallBack( int materialIndex ) const
 {
 	switch( materialIndex )
 	{
@@ -377,7 +382,7 @@ hk_intp CPhysicsSurfaceProps::GetReservedFallBack( int materialIndex ) const
 }
 
 
-hk_intp CPhysicsSurfaceProps::GetIVPMaterialIndex( const IVP_Material *pIVP ) const
+int CPhysicsSurfaceProps::GetIVPMaterialIndex( const IVP_Material *pIVP ) const
 {
 	hk_intp index = static_cast<const CSurface *>(pIVP) - m_props.Base();
 	if ( index >= 0 && index < m_props.Count() )
@@ -387,7 +392,7 @@ hk_intp CPhysicsSurfaceProps::GetIVPMaterialIndex( const IVP_Material *pIVP ) co
 }
 
 
-void CPhysicsSurfaceProps::CopyPhysicsProperties( CSurface *pOut, hk_intp baseIndex )
+void CPhysicsSurfaceProps::CopyPhysicsProperties( CSurface *pOut, int baseIndex )
 {
 	const CSurface *pSurface = GetInternalSurface( baseIndex );
 	if ( pSurface )
@@ -397,7 +402,7 @@ void CPhysicsSurfaceProps::CopyPhysicsProperties( CSurface *pOut, hk_intp baseIn
 }
 
 
-hk_intp CPhysicsSurfaceProps::ParseSurfaceData( const char *pFileName, const char *pTextfile )
+int CPhysicsSurfaceProps::ParseSurfaceData( const char *pFileName, const char *pTextfile )
 {
 	if ( !AddFileToDatabase( pFileName ) )
 	{
@@ -501,6 +506,7 @@ hk_intp CPhysicsSurfaceProps::ParseSurfaceData( const char *pFileName, const cha
 					prop.data.audio.hardThreshold = strtof(value, nullptr);
 				}
 				// sound names
+#if ARCHITECTURE_X86
 				else if ( !strcmpi( key, "stepleft" ) )
 				{
 					prop.data.sounds.stepleft = m_strings.AddString( value );
@@ -509,6 +515,7 @@ hk_intp CPhysicsSurfaceProps::ParseSurfaceData( const char *pFileName, const cha
 				{
 					prop.data.sounds.stepright = m_strings.AddString( value );
 				}
+#endif
 				else if ( !strcmpi( key, "impactsoft" ) )
 				{
 					prop.data.sounds.impactSoft = m_strings.AddString( value );
@@ -556,10 +563,28 @@ hk_intp CPhysicsSurfaceProps::ParseSurfaceData( const char *pFileName, const cha
 				{
 					prop.data.physics.dampening = strtof(value, nullptr);
 				}
+#if ARCHITECTURE_X86_64
+				else if ( !strcmpi( key, "walkStepLeft" ) )
+				{
+					prop.data.sounds.walkStepLeft = strtof(value, nullptr);
+				}
+				else if ( !strcmpi( key, "walkStepRight" ) )
+				{
+					prop.data.sounds.walkStepRight = strtof(value, nullptr);
+				}
+				else if ( !strcmpi( key, "runStepLeft" ) )
+				{
+					prop.data.sounds.runStepLeft = strtof(value, nullptr);
+				}
+				else if ( !strcmpi( key, "runStepRight" ) )
+				{
+					prop.data.sounds.runStepRight = strtof(value, nullptr);
+				}
+#endif
 				else
 				{
 					// force a breakpoint
-					AssertMsg2( 0, "Bad surfaceprop key %s (%s)\n", key, value );
+					//AssertMsg2( 0, "Bad surfaceprop key %s (%s)\n", key, value );
 				}
 			} while (pText);
 		}
@@ -583,10 +608,17 @@ hk_intp CPhysicsSurfaceProps::ParseSurfaceData( const char *pFileName, const cha
 }
 
 
-void CPhysicsSurfaceProps::SetWorldMaterialIndexTable( hk_intp *pMapArray, int mapSize )
+void CPhysicsSurfaceProps::SetWorldMaterialIndexTable( int *pMapArray, int mapSize )
 {
 	m_ivpManager.SetPropMap( pMapArray, mapSize );
 }
+
+#if ARCHITECTURE_X86_64
+ISaveRestoreOps* CPhysicsSurfaceProps::GetMaterialIndexDataOps() const
+{
+	return MaterialIndexDataOps();
+}
+#endif
 
 CIVPMaterialManager::CIVPMaterialManager( void ) : IVP_Material_Manager( IVP_FALSE ), m_props()
 {
@@ -626,7 +658,7 @@ IVP_Material *CIVPMaterialManager::get_material_by_index( [[maybe_unused]] IVP_R
 // compiled bsp file.  This is then remapped dynamically without touching the
 // per-triangle indices on load.  If we wanted to support multiple LUTs, it would
 // be better to preprocess/remap the triangles in the collision models at load time
-void CIVPMaterialManager::SetPropMap( hk_intp *map, int mapSize )
+void CIVPMaterialManager::SetPropMap( int *map, int mapSize )
 {
 	// ??? just ignore any extra bits
 	if ( mapSize > 128 )

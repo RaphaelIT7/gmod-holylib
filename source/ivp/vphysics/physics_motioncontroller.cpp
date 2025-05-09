@@ -24,7 +24,7 @@ struct vphysics_save_motioncontroller_t
 
 
 BEGIN_SIMPLE_DATADESC( vphysics_save_motioncontroller_t )
-	DEFINE_VPHYSPTR_UTLVECTOR( m_objectList ),
+	//DEFINE_VPHYSPTR_UTLVECTOR( m_objectList ),
 	DEFINE_FIELD( m_nPriority,	FIELD_INTEGER ),
 END_DATADESC()
 
@@ -55,7 +55,7 @@ public:
 	void InitFromTemplate( const vphysics_save_motioncontroller_t &controllerTemplate );
 
 	// returns the number of objects currently attached to the controller
-	hk_intp CountObjects( void ) override
+	int CountObjects( void ) override
 	{
 		return m_coreList.Count();
 	}

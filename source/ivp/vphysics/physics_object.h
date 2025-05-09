@@ -13,7 +13,9 @@
 #endif
 
 #include "vphysics_interface.h"
+#include "Platform.hpp"
 
+class IPredictedPhysicsObject;
 class IVP_Real_Object;
 class IVP_Environment;
 class IVP_U_Float_Point;
@@ -115,7 +117,11 @@ public:
 	void			WakeNow();
 	void			Sleep() override;
 	void			RecheckCollisionFilter() override;
+#if !ARCHITECTURE_X86_64
 	void			RecheckContactPoints() override;
+#else
+	void			RecheckContactPoints( bool bSearchForNewContacts = false ) override;
+#endif
 
 	void			SetMass( float mass ) override;
 	[[nodiscard]] float			GetMass( void ) const override;
@@ -199,8 +205,8 @@ public:
 	[[nodiscard]] int				GetSleepState( void ) const { return m_sleepState; }
 	inline void		ForceSilentDelete() { m_forceSilentDelete = true; }
 
-	[[nodiscard]] inline hk_intp		GetActiveIndex( void ) const { return m_activeIndex; }
-	inline void		SetActiveIndex( hk_intp index ) { m_activeIndex = index; }
+	[[nodiscard]] inline int		GetActiveIndex( void ) const { return m_activeIndex; }
+	inline void		SetActiveIndex( int index ) { m_activeIndex = index; }
 	[[nodiscard]] inline float	GetBuoyancyRatio( void ) const { return m_buoyancyRatio; }
 	// returns true if the mass center is set to the default for the collision model
 	[[nodiscard]] bool			IsMassCenterAtDefault() const;
@@ -215,6 +221,19 @@ public:
 
 	[[nodiscard]] CPhysicsEnvironment	*GetVPhysicsEnvironment();
 	[[nodiscard]] const CPhysicsEnvironment	*GetVPhysicsEnvironment() const;
+
+#if ARCHITECTURE_X86_64
+	void			SetSphereRadius(float radius) override;
+
+	// EnableGravity still determines whether to apply gravity
+	// This flag determines which gravity constant to use for an alternate gravity effect
+	void			SetUseAlternateGravity( bool bSet ) override;
+	void			SetCollisionHints( uint32 collisionHints ) override;
+	uint32			GetCollisionHints() const override;
+
+	IPredictedPhysicsObject *GetPredictedInterface( void ) const override;
+	void			SyncWith( IPhysicsObject *pOther ) override;
+#endif
 
 private:
 	// NOTE: Local to vphysics, used to save/restore shadow controller
@@ -251,7 +270,7 @@ private:
 
 private:
 	// dimhotepus: unsigned short -> hk_intp
-	hk_intp	m_activeIndex;
+	int	m_activeIndex;
 	// dimhotepus: unsigned short -> int
 	int		m_materialIndex;
 
@@ -264,7 +283,7 @@ private:
 	float			m_dragCoefficient;
 	float			m_angDragCoefficient;
 
-	friend CPhysicsObject *CreatePhysicsObject( CPhysicsEnvironment *pEnvironment, const CPhysCollide *pCollisionModel, hk_intp materialIndex, const Vector &position, const QAngle& angles, objectparams_t *pParams, bool isStatic );
+	friend CPhysicsObject *CreatePhysicsObject( CPhysicsEnvironment *pEnvironment, const CPhysCollide *pCollisionModel, int materialIndex, const Vector &position, const QAngle& angles, objectparams_t *pParams, bool isStatic );
 	friend bool CPhysicsEnvironment::TransferObject( IPhysicsObject *pObject, IPhysicsEnvironment *pDestinationEnvironment ); //need direct access to m_pShadow for Portal mod's physics object transfer system
 };
 
@@ -280,8 +299,8 @@ inline void CPhysicsObject::SetTouchedDynamic()
 	m_hasTouchedDynamic = true;
 }
 
-extern [[nodiscard]] CPhysicsObject *CreatePhysicsObject( CPhysicsEnvironment *pEnvironment, const CPhysCollide *pCollisionModel, hk_intp materialIndex, const Vector &position, const QAngle &angles, objectparams_t *pParams, bool isStatic );
-extern [[nodiscard]] CPhysicsObject *CreatePhysicsSphere( CPhysicsEnvironment *pEnvironment, float radius, hk_intp materialIndex, const Vector &position, const QAngle &angles, objectparams_t *pParams, bool isStatic );
+extern [[nodiscard]] CPhysicsObject *CreatePhysicsObject( CPhysicsEnvironment *pEnvironment, const CPhysCollide *pCollisionModel, int materialIndex, const Vector &position, const QAngle &angles, objectparams_t *pParams, bool isStatic );
+extern [[nodiscard]] CPhysicsObject *CreatePhysicsSphere( CPhysicsEnvironment *pEnvironment, float radius, int materialIndex, const Vector &position, const QAngle &angles, objectparams_t *pParams, bool isStatic );
 extern void PostRestorePhysicsObject();
 extern [[nodiscard]] IPhysicsObject *CreateObjectFromBuffer( CPhysicsEnvironment *pEnvironment, void *pGameData, unsigned char *pBuffer, unsigned int bufferSize, bool enableCollisions );
 extern IPhysicsObject *CreateObjectFromBuffer_UseExistingMemory( CPhysicsEnvironment *pEnvironment, void *pGameData, unsigned char *pBuffer, unsigned int bufferSize, CPhysicsObject *pExistingMemory );

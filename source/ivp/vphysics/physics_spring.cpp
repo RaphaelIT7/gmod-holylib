@@ -33,8 +33,8 @@ BEGIN_SIMPLE_DATADESC( vphysics_save_cphysicsspring_t )
 	DEFINE_FIELD( useLocalPositions,	FIELD_BOOLEAN ),
 	DEFINE_FIELD( onlyStretch,			FIELD_BOOLEAN ),
 
-	DEFINE_VPHYSPTR( pObjStart ),
-	DEFINE_VPHYSPTR( pObjEnd ),
+	//DEFINE_VPHYSPTR( pObjStart ),
+	//DEFINE_VPHYSPTR( pObjEnd ),
 END_DATADESC()
 
 

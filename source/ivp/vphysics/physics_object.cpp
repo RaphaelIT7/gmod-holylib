@@ -327,7 +327,11 @@ void CPhysicsObject::RecheckCollisionFilter()
 	m_callbacks &= ~CALLBACK_ENABLING_COLLISION;
 }
 
+#if !ARCHITECTURE_X86_64
 void CPhysicsObject::RecheckContactPoints()
+#else
+void CPhysicsObject::RecheckContactPoints( bool bSearchForNewContacts )
+#endif
 {
 	IVP_Environment *pEnv = m_pObject->get_environment();
 	IVP_Collision_Filter *coll_filter = pEnv->get_collision_filter();
@@ -1008,6 +1012,15 @@ void CPhysicsObject::SetPosition( const Vector &worldPosition, const QAngle &ang
 	}
 }
 
+inline void MatrixGetColumn_Sdk( const matrix3x4_t &src, int nCol, Vector *pColumn )
+{
+	Assert( (nCol >= 0) && (nCol <= 3) );
+
+	pColumn->x = src[0][nCol];
+	pColumn->y = src[1][nCol];
+	pColumn->z = src[2][nCol];
+}
+
 void CPhysicsObject::SetPositionMatrix( const matrix3x4_t& matrix, bool isTeleport )
 {
 	if ( m_pShadow )
@@ -1471,7 +1484,7 @@ bool CPhysicsObject::IsAttachedToConstraint( bool bExternalOnly ) const
 	return false;
 }
 
-static void InitObjectTemplate( IVP_Template_Real_Object &objectTemplate, hk_intp materialIndex, objectparams_t *pParams, bool isStatic )
+static void InitObjectTemplate( IVP_Template_Real_Object &objectTemplate, int materialIndex, objectparams_t *pParams, bool isStatic )
 {
 	objectTemplate.mass = clamp( pParams->mass, VPHYSICS_MIN_MASS, VPHYSICS_MAX_MASS );
 
@@ -1514,7 +1527,7 @@ static void InitObjectTemplate( IVP_Template_Real_Object &objectTemplate, hk_int
 	objectTemplate.auto_check_rot_inertia = pParams->rotInertiaLimit;
 }
 
-CPhysicsObject *CreatePhysicsObject( CPhysicsEnvironment *pEnvironment, const CPhysCollide *pCollisionModel, hk_intp materialIndex, const Vector &position, const QAngle& angles, objectparams_t *pParams, bool isStatic )
+CPhysicsObject *CreatePhysicsObject( CPhysicsEnvironment *pEnvironment, const CPhysCollide *pCollisionModel, int materialIndex, const Vector &position, const QAngle& angles, objectparams_t *pParams, bool isStatic )
 {
 	if ( materialIndex < 0 )
 	{
@@ -1587,7 +1600,7 @@ CPhysicsObject *CreatePhysicsObject( CPhysicsEnvironment *pEnvironment, const CP
 	return pObject;
 }
 
-CPhysicsObject *CreatePhysicsSphere( CPhysicsEnvironment *pEnvironment, float radius, hk_intp materialIndex, const Vector &position, const QAngle &angles, objectparams_t *pParams, bool isStatic )
+CPhysicsObject *CreatePhysicsSphere( CPhysicsEnvironment *pEnvironment, float radius, int materialIndex, const Vector &position, const QAngle &angles, objectparams_t *pParams, bool isStatic )
 {
 	IVP_U_Quat rotation;
 	IVP_U_Point pos;
@@ -1893,6 +1906,39 @@ void CPhysicsObject::InitFromTemplate( CPhysicsEnvironment *pEnvironment, void *
 	m_pShadow = NULL;
 }
 
+#if ARCHITECTURE_X86_64
+void CPhysicsObject::SetSphereRadius(float radius)
+{
+	Error("not implemented!\n");
+}
+
+void CPhysicsObject::SetUseAlternateGravity(bool bSet)
+{
+	Error("not implemented!\n");
+}
+
+void CPhysicsObject::SetCollisionHints(uint32 collisionHints)
+{
+	Error("not implemented!\n");
+}
+
+uint32 CPhysicsObject::GetCollisionHints() const
+{
+	Error("not implemented!\n");
+	return (uint32)0;
+}
+
+IPredictedPhysicsObject* CPhysicsObject::GetPredictedInterface(void) const
+{
+	Error("not implemented!\n");
+	return nullptr;
+}
+
+void CPhysicsObject::SyncWith(IPhysicsObject* pOther)
+{
+	Error("not implemented!\n");
+}
+#endif
 
 bool SavePhysicsObject( const physsaveparams_t &params, CPhysicsObject *pObject )
 {

@@ -23,7 +23,7 @@ static void ReadVector( const char *pString, Vector& out )
 	float x = 0, y = 0, z = 0;
 	int read = sscanf( pString, "%f %f %f", &x, &y, &z );
 
-	AssertMsg( read == 3, "Unable to read 3D vector components from '%s'.", pString );
+	//AssertMsg( read == 3, "Unable to read 3D vector components from '%s'.", pString );
 
 	out[0] = x;
 	out[1] = y;
@@ -45,7 +45,7 @@ static void ReadVector4D( const char *pString, Vector4D& out )
 	float x = 0, y = 0, z = 0, w = 0;
 	int read = sscanf( pString, "%f %f %f %f", &x, &y, &z, &w );
 
-	AssertMsg( read == 4, "Unable to read 4D vector components from '%s'.", pString );
+	//AssertMsg( read == 4, "Unable to read 4D vector components from '%s'.", pString );
 
 	out[0] = x;
 	out[1] = y;
@@ -66,7 +66,7 @@ public:
 	void		ParseSolid( solid_t *pSolid, IVPhysicsKeyHandler *unknownKeyHandler ) override;
 	void		ParseFluid( fluid_t *pFluid, IVPhysicsKeyHandler *unknownKeyHandler ) override;
 	void		ParseRagdollConstraint( constraint_ragdollparams_t *pConstraint, IVPhysicsKeyHandler *unknownKeyHandler ) override;
-	void		ParseSurfaceTable( hk_intp *table, IVPhysicsKeyHandler *unknownKeyHandler ) override;
+	void		ParseSurfaceTable( int *table, IVPhysicsKeyHandler *unknownKeyHandler ) override;
 	void		ParseSurfaceTablePacked( CUtlVector<char> &out );
 	void		ParseVehicle( vehicleparams_t *pVehicle, IVPhysicsKeyHandler *unknownKeyHandler ) override;
 	void		ParseCustom( void *pCustom, IVPhysicsKeyHandler *unknownKeyHandler ) override;
@@ -201,7 +201,7 @@ void CVPhysicsParse::ParseSolid( solid_t *pSolid, IVPhysicsKeyHandler *unknownKe
 		}
 		else if ( !Q_stricmp( key, "rollingdrag" ) )
 		{
-			AssertMsg( false, "Solid '%s' rolling drag is not implemented.", pSolid->name );
+			//AssertMsg( false, "Solid '%s' rolling drag is not implemented.", pSolid->name );
 			//pSolid->params.rollingDrag = strtof(value, nullptr);
 		}
 		else
@@ -213,7 +213,7 @@ void CVPhysicsParse::ParseSolid( solid_t *pSolid, IVPhysicsKeyHandler *unknownKe
 			else
 			{
 				// dimhotepus: Need to look through data.
-				DWarning( "vphysics", 0, "Unknown solid '%s' configuration key '%s' (%s).\n", pSolid->name, key, value );
+				DevWarning( "vphysics - Unknown solid '%s' configuration key '%s' (%s).\n", pSolid->name, key, value );
 			}
 		}
 	}
@@ -304,7 +304,7 @@ void CVPhysicsParse::ParseRagdollConstraint( constraint_ragdollparams_t *pConstr
 			else
 			{
 				// dimhotepus: Need to look through data.
-				DWarning( "vphysics", 0, "Unknown ragdoll constraint configuration key '%s' (%s).\n", key, value );
+				DevWarning( "vphysics - Unknown ragdoll constraint configuration key '%s' (%s).\n", key, value );
 			}
 		}
 	}
@@ -370,13 +370,13 @@ void CVPhysicsParse::ParseFluid( fluid_t *pFluid, IVPhysicsKeyHandler *unknownKe
 			else
 			{
 				// dimhotepus: Need to look through data.
-				DWarning( "vphysics", 0, "Unknown fluid configuration key '%s' (%s).\n", key, value );
+				DevWarning( "vphysics - Unknown fluid configuration key '%s' (%s).\n", key, value );
 			}
 		}
 	}
 }
 
-void CVPhysicsParse::ParseSurfaceTable( hk_intp *table, IVPhysicsKeyHandler *unknownKeyHandler )
+void CVPhysicsParse::ParseSurfaceTable( int *table, IVPhysicsKeyHandler *unknownKeyHandler )
 {
 	char key[MAX_KEYVALUE], value[MAX_KEYVALUE];
 
@@ -470,7 +470,7 @@ void CVPhysicsParse::ParseVehicleAxle( vehicle_axleparams_t &axle )
 		else
 		{
 			// dimhotepus: Need to look through data.
-			DWarning( "vphysics", 0, "Unknown vehicle axie configuration key '%s' (%s).\n", key, value );
+			DevWarning( "vphysics - Unknown vehicle axie configuration key '%s' (%s).\n", key, value );
 		}
 	}
 }
@@ -524,7 +524,7 @@ void CVPhysicsParse::ParseVehicleWheel( vehicle_wheelparams_t &wheel )
 		}
 		else
 		{
-			DWarning( "vphysics", 0, "Unknown vehicle wheel parser configuration key '%s' (%s).\n", key, value );
+			DevWarning( "vphysics - Unknown vehicle wheel parser configuration key '%s' (%s).\n", key, value );
 		}
 	}
 }
@@ -563,7 +563,7 @@ void CVPhysicsParse::ParseVehicleSuspension( vehicle_suspensionparams_t &suspens
 		}
 		else
 		{
-			DWarning( "vphysics", 0, "Unknown vehicle suspension parser configuration key '%s' (%s).\n", key, value);
+			DevWarning( "vphysics - Unknown vehicle suspension parser configuration key '%s' (%s).\n", key, value);
 		}
 	}
 }
@@ -614,7 +614,7 @@ void CVPhysicsParse::ParseVehicleBody( vehicle_bodyparams_t &body )
 		}
 		else
 		{
-			DWarning( "vphysics", 0, "Unknown vehicle body parser configuration key '%s' (%s).\n", key, value );
+			DevWarning( "vphysics - Unknown vehicle body parser configuration key '%s' (%s).\n", key, value );
 		}
 	}
 }
@@ -654,7 +654,7 @@ void CVPhysicsParse::ParseVehicleEngineBoost( vehicle_engineparams_t &engine )
 		}
 		else
 		{
-			DWarning( "vphysics", 0, "Unknown vehicle engine boost parser configuration key '%s' (%s).\n", key, value );
+			DevWarning( "vphysics - Unknown vehicle engine boost parser configuration key '%s' (%s).\n", key, value );
 		}
 	}
 }
@@ -692,10 +692,10 @@ void CVPhysicsParse::ParseVehicleEngine( vehicle_engineparams_t &engine )
 			}
 			else
 			{
-				DWarning( "vphysics", 0, "Out of range (%d > max %zd) gear in vehicle configuration parser '%s' (%s).\n",
+				DevWarning( "vphysics - Out of range (%d > max %zd) gear in vehicle configuration parser '%s' (%s).\n",
 					engine.gearCount + 1, ssize(engine.gearRatio), key, value );
-				AssertMsg( 0, "Out of range (%d > max %zd) gear in vehicle configuration parser '%s' (%s).\n",
-					engine.gearCount + 1, ssize(engine.gearRatio), key, value );
+				//AssertMsg( 0, "Out of range (%d > max %zd) gear in vehicle configuration parser '%s' (%s).\n",
+				//	engine.gearCount + 1, ssize(engine.gearRatio), key, value );
 			}
 		}
 		else if ( !Q_stricmp( key, "horsepower" ) )
@@ -744,7 +744,7 @@ void CVPhysicsParse::ParseVehicleEngine( vehicle_engineparams_t &engine )
 		}
 		else
 		{
-			DWarning( "vphysics", 0, "Unknown vehicle engine parser configuration key '%s' (%s). ", key, value );
+			DevWarning( "vphysics - Unknown vehicle engine parser configuration key '%s' (%s). ", key, value );
 		}
 	}
 }
@@ -840,7 +840,7 @@ void CVPhysicsParse::ParseVehicleSteering( vehicle_steeringparams_t &steering )
 		}
 		else
 		{
-			DWarning( "vphysics", 0, "Unknown vehicle steering parser configuration key '%s' (%s). ", key, value );
+			DevWarning( "vphysics - Unknown vehicle steering parser configuration key '%s' (%s). ", key, value );
 		}
 	}
 }
@@ -907,7 +907,7 @@ void CVPhysicsParse::ParseVehicle( vehicleparams_t *pVehicle, IVPhysicsKeyHandle
 		}
 		else
 		{
-			DWarning( "vphysics", 0, "Unknown vehicle parser configuration key '%s' (%s). ", key, value );
+			DevWarning( "vphysics - Unknown vehicle parser configuration key '%s' (%s). ", key, value );
 		}
 	}
 }

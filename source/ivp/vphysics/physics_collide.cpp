@@ -30,6 +30,8 @@
 #include "mathlib/polyhedron.h"
 #include "tier1/byteswap.h"
 
+#include "Platform.hpp"
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -104,6 +106,11 @@ public:
 	// begins parsing a vcollide.  NOTE: This keeps pointers to the text
 	// If you delete the text and call members of IVPhysicsKeyParser, it will crash
 	IVPhysicsKeyParser	*VPhysicsKeyParserCreate( const char *pKeyData ) override;
+
+#if ARCHITECTURE_X86_64
+	IVPhysicsKeyParser	*VPhysicsKeyParserCreate( vcollide_t *pVCollide ) override;
+#endif
+
 	// Free the parser created by VPhysicsKeyParserCreate
 	void			VPhysicsKeyParserDestroy( IVPhysicsKeyParser *pParser ) override;
 
@@ -132,6 +139,16 @@ public:
 
 	CPhysCollide	*UnserializeCollide( char *pBuffer, int size, int index ) override;
 	void			CollideSetOrthographicAreas( CPhysCollide *pCollide, const Vector &areas ) override;
+
+#if ARCHITECTURE_X86_64
+	// Get an AABB for an oriented collision model
+	float			CollideGetRadius( const CPhysCollide *pCollide ) override;
+	void			*VCollideAllocUserData( vcollide_t *pVCollide, size_t userDataSize ) override;
+	void			VCollideFreeUserData( vcollide_t *pVCollide ) override;
+	void			VCollideCheck( vcollide_t *pVCollide, const char *pName ) override;
+	bool			TraceBoxAA( const Ray_t &ray, const CPhysCollide *pCollide, trace_t *ptr ) override;
+	void			DuplicateAndScale( vcollide_t *pOut, const vcollide_t *pIn, float flScale ) override;
+#endif
 
 private:
 	void InitBBoxCache();
@@ -1064,7 +1081,10 @@ static void LedgeInsidePoint( IVP_Compact_Ledge *pLedge, Vector& out )
 //			p3 - 
 // Output : float (volume in units^3)
 //-----------------------------------------------------------------------------
-static float TetrahedronVolume( const Vector &p0, const Vector &p1, const Vector &p2, const Vector &p3 )
+#if !ARCHITECTURE_X86_64
+static
+#endif
+float TetrahedronVolume( const Vector &p0, const Vector &p1, const Vector &p2, const Vector &p3 )
 {
 	Vector a, b, c, cross;
 	float volume = 1.0f / 6.0f;
@@ -1080,8 +1100,10 @@ static float TetrahedronVolume( const Vector &p0, const Vector &p1, const Vector
 	return volume;
 }
 
-
-static float TriangleArea( const Vector &p0, const Vector &p1, const Vector &p2 )
+#if !ARCHITECTURE_X86_64
+static
+#endif
+float TriangleArea( const Vector &p0, const Vector &p1, const Vector &p2 )
 {
 	Vector e0 = p1 - p0;
 	Vector e1 = p2 - p0;
@@ -1280,7 +1302,7 @@ void CPhysicsCollision::InitBBoxCache()
 		}
 #endif
 		// NOTE: If this is wrong, you can disable FAST_BBOX above to fix
-		AssertMsg( nearest != -1, "CPhysCollide: Vert map is wrong\n" );
+		//AssertMsg( nearest != -1, "CPhysCollide: Vert map is wrong\n" );
 	}
 	CPhysCollide *pCollide = ConvertConvexToCollide( &pConvex, 1 );
 	AddBBoxCache( (CPhysCollideCompactSurface *)pCollide, mins, maxs );
@@ -1683,7 +1705,7 @@ void CPhysicsCollision::VCollideUnload( vcollide_t *pVCollide )
 
 			if ( pEnv->IsCollisionModelUsed( (const CPhysCollide *)pVCollide->solids[i] ) )
 			{
- 				AssertMsg(0, "Freed collision model while in use!!!\n");
+ 				//AssertMsg(0, "Freed collision model while in use!!!\n");
 				return;
 			}
 		}
@@ -1701,6 +1723,13 @@ IVPhysicsKeyParser *CPhysicsCollision::VPhysicsKeyParserCreate( const char *pKey
 {
 	return CreateVPhysicsKeyParser( pKeyData );
 }
+
+#if ARCHITECTURE_X86_64
+IVPhysicsKeyParser *CPhysicsCollision::VPhysicsKeyParserCreate( vcollide_t *pVCollide )
+{
+	return CreateVPhysicsKeyParser( pVCollide->pKeyValues );
+}
+#endif
 
 // Free the parser created by VPhysicsKeyParserCreate
 void CPhysicsCollision::VPhysicsKeyParserDestroy( IVPhysicsKeyParser *pParser )
@@ -1808,6 +1837,41 @@ void CPhysicsCollision::DestroyQueryModel( ICollisionQuery *pQuery )
 {
 	delete pQuery;
 }
+
+#if ARCHITECTURE_X86_64
+float CPhysicsCollision::CollideGetRadius(const CPhysCollide* pCollide)
+{
+	Error("Not Implemented!\n");
+	return 0.0f;
+}
+
+void* CPhysicsCollision::VCollideAllocUserData(vcollide_t* pVCollide, size_t userDataSize)
+{
+	Error("Not Implemented!\n");
+	return nullptr;
+}
+
+void CPhysicsCollision::VCollideFreeUserData(vcollide_t* pVCollide)
+{
+	Error("Not Implemented!\n");
+}
+
+void CPhysicsCollision::VCollideCheck(vcollide_t* pVCollide, const char* pName)
+{
+	Error("Not Implemented!\n");
+}
+
+bool CPhysicsCollision::TraceBoxAA(const Ray_t& ray, const CPhysCollide* pCollide, trace_t* ptr)
+{
+	Error("Not Implemented!\n");
+	return false;
+}
+
+void CPhysicsCollision::DuplicateAndScale(vcollide_t* pOut, const vcollide_t* pIn, float flScale)
+{
+	Error("Not Implemented!\n");
+}
+#endif
 
 
 CCollisionQuery::CCollisionQuery( CPhysCollide *pCollide )

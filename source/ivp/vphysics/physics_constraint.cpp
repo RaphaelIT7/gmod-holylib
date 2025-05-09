@@ -319,9 +319,9 @@ struct vphysics_save_cphysicsconstraint_t
 
 BEGIN_SIMPLE_DATADESC( vphysics_save_cphysicsconstraint_t )
 	DEFINE_FIELD( constraintType,		FIELD_INTEGER ),
-	DEFINE_VPHYSPTR( pGroup ),
-	DEFINE_VPHYSPTR( pObjReference ),
-	DEFINE_VPHYSPTR( pObjAttached ),
+	//DEFINE_VPHYSPTR( pGroup ),
+	//DEFINE_VPHYSPTR( pObjReference ),
+	//DEFINE_VPHYSPTR( pObjAttached ),
 END_DATADESC()
 
 struct vphysics_save_constraintbreakable_t : public constraint_breakableparams_t
@@ -594,6 +594,15 @@ CPhysicsConstraint::CPhysicsConstraint( CPhysicsObject *pReferenceObject, CPhysi
 	}
 }
 
+inline void MatrixGetColumn_Sdk( matrix3x4_t* src, int nCol, Vector *pColumn )
+{
+	Assert( (nCol >= 0) && (nCol <= 3) );
+
+	pColumn->x = (*src)[0][nCol];
+	pColumn->y = (*src)[1][nCol];
+	pColumn->z = (*src)[2][nCol];
+}
+
 // Check to see if this is a single degree of freedom joint, if so, convert to a hinge
 static bool ConvertRagdollToHinge( constraint_limitedhingeparams_t *pHingeOut, const constraint_ragdollparams_t &ragdoll, IPhysicsObject *pReferenceObject, IPhysicsObject *pAttachedObject )
 {
@@ -623,8 +632,8 @@ static bool ConvertRagdollToHinge( constraint_limitedhingeparams_t *pHingeOut, c
 	// many ragdoll constraints don't set this and the ragdoll solver ignores it
 	// force it to the default
 	pHingeOut->constraint.strength = 1.0f;
-	MatrixGetColumn( constraintToWorld, 3, &pHingeOut->worldPosition );
-	MatrixGetColumn( constraintToWorld, dofIndex, &pHingeOut->worldAxisDirection );
+	MatrixGetColumn_Sdk( &constraintToWorld, 3, &pHingeOut->worldPosition );
+	MatrixGetColumn_Sdk( &constraintToWorld, dofIndex, &pHingeOut->worldAxisDirection );
 	pHingeOut->referencePerpAxisDirection.Init();
 	pHingeOut->referencePerpAxisDirection[(dofIndex+1)%3] = 1;
 

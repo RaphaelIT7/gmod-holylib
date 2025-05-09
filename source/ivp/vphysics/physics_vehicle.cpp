@@ -67,7 +67,7 @@ struct vphysics_save_cvehiclecontroller_t
 
 
 BEGIN_SIMPLE_DATADESC( vphysics_save_cvehiclecontroller_t )
-	DEFINE_VPHYSPTR( m_pCarBody ),
+	//DEFINE_VPHYSPTR( m_pCarBody ),
 	DEFINE_FIELD( m_wheelCount,		FIELD_INTEGER ),
 	DEFINE_EMBEDDED( m_vehicleData ),
 	DEFINE_EMBEDDED( m_currentState ),
@@ -77,7 +77,7 @@ BEGIN_SIMPLE_DATADESC( vphysics_save_cvehiclecontroller_t )
 	DEFINE_FIELD( m_gravityLength,	FIELD_FLOAT	),
 	DEFINE_FIELD( m_torqueScale,	FIELD_FLOAT	),
 
-	DEFINE_VPHYSPTR_ARRAY( m_pWheels, VEHICLE_MAX_WHEEL_COUNT ),
+	//DEFINE_VPHYSPTR_ARRAY( m_pWheels, VEHICLE_MAX_WHEEL_COUNT ),
 	DEFINE_ARRAY( m_wheelPosition_Bs,	FIELD_VECTOR, VEHICLE_MAX_WHEEL_COUNT ),
 	DEFINE_ARRAY( m_tracePosition_Bs,	FIELD_VECTOR, VEHICLE_MAX_WHEEL_COUNT ),
 	DEFINE_FIELD( m_vehicleFlags,		FIELD_INTEGER ),

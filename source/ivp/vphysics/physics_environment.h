@@ -13,6 +13,12 @@
 #include "ivu_types.hxx"
 #include "tier1/utlvector.h"
 
+#include "Platform.hpp"
+
+#if ARCHITECTURE_X86_64
+typedef physpresaverestoreparams_t physprerestoreparams_t;
+#endif
+
 class IVP_Environment;
 class CSleepObjects;
 class CPhysicsListenerCollision;
@@ -39,8 +45,8 @@ public:
 	[[nodiscard]] IVPhysicsDebugOverlay *GetDebugOverlay( void ) override;
 
 	void			SetGravity( const Vector& gravityVector ) override;
-	[[nodiscard]] IPhysicsObject	*CreatePolyObject( const CPhysCollide *pCollisionModel, hk_intp materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams ) override;
-	[[nodiscard]] IPhysicsObject	*CreatePolyObjectStatic( const CPhysCollide *pCollisionModel, hk_intp materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams ) override;
+	[[nodiscard]] IPhysicsObject	*CreatePolyObject( const CPhysCollide *pCollisionModel, int materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams ) override;
+	[[nodiscard]] IPhysicsObject	*CreatePolyObjectStatic( const CPhysCollide *pCollisionModel, int materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams ) override;
 	[[nodiscard]] unsigned int	GetObjectSerializeSize( IPhysicsObject *pObject ) const override;
 	void			SerializeObjectToBuffer( IPhysicsObject *pObject, unsigned char *pBuffer, unsigned int bufferSize ) override;
 	[[nodiscard]] IPhysicsObject *UnserializeObjectFromBuffer( void *pGameData, unsigned char *pBuffer, unsigned int bufferSize, bool enableCollisions ) override;
@@ -95,9 +101,9 @@ public:
 	virtual void TraceBox( trace_t *ptr, const Vector &mins, const Vector &maxs, const Vector &start, const Vector &end );
 	void SetCollisionSolver( IPhysicsCollisionSolver *pCollisionSolver ) override;
 	void GetGravity( Vector *pGravityVector ) const override;
-	[[nodiscard]] hk_intp GetActiveObjectCount() const override;
+	[[nodiscard]] int GetActiveObjectCount() const override;
 	void GetActiveObjects( IPhysicsObject **pOutputObjectList ) const override;
-	[[nodiscard]] const IPhysicsObject **GetObjectList( hk_intp *pOutputObjectCount ) const override;
+	[[nodiscard]] const IPhysicsObject **GetObjectList( int *pOutputObjectCount ) const override;
 	[[nodiscard]] bool TransferObject( IPhysicsObject *pObject, IPhysicsEnvironment *pDestinationEnvironment ) override;
 
 	[[nodiscard]] IVP_Environment	*GetIVPEnvironment( void ) { return m_pPhysEnv; }
@@ -107,7 +113,7 @@ public:
 	void SetAirDensity( float density ) override;
 	[[nodiscard]] float GetAirDensity( void ) const override;
 	void ResetSimulationClock( void ) override;
-	[[nodiscard]] IPhysicsObject *CreateSphereObject( float radius, hk_intp materialIndex, const Vector &position, const QAngle &angles, objectparams_t *pParams, bool isStatic ) override;
+	[[nodiscard]] IPhysicsObject *CreateSphereObject( float radius, int materialIndex, const Vector &position, const QAngle &angles, objectparams_t *pParams, bool isStatic ) override;
 	void CleanupDeleteList() override;
 	void EnableDeleteQueue( bool enable ) override { m_queueDeleteObject = enable; }
 	// debug
@@ -144,6 +150,28 @@ public:
 	[[nodiscard]] IPhysicsCollisionEvent *GetCollisionEventHandler();
 	// a constraint is being disabled - report the game DLL as "broken"
 	void NotifyConstraintDisabled( IPhysicsConstraint *pConstraint );
+
+#if ARCHITECTURE_X86_64
+	void PreSave( const physpresaverestoreparams_t &params ) override;
+	void PostSave() override;
+
+	void SetAlternateGravity( const Vector &gravityVector ) override;
+	void GetAlternateGravity( Vector *pGravityVector ) const override;
+
+	float GetDeltaFrameTime( int maxTicks ) const override;
+	void ForceObjectsToSleep( IPhysicsObject **pList, int listCount ) override;
+	
+	//Network prediction related functions
+	void SetPredicted( bool bPredicted ) override; //Interaction with this system and it's objects may not always march forward, sometimes it will get/set data in the past.
+	bool IsPredicted( void ) override;
+	void SetPredictionCommandNum( int iCommandNum ) override; //what command the client is working on right now
+	int GetPredictionCommandNum( void ) override;
+	void DoneReferencingPreviousCommands( int iCommandNum ) override; //won't need data from commands before this one any more
+	void RestorePredictedSimulation( void ) override; //called to restore results from a previous simulation with the same predicted timestamp set
+
+	// destroy a CPhysCollide used in CreatePolyObject()/CreatePolyObjectStatic() when any owning IPhysicsObject is flushed from the queued deletion list.
+	void DestroyCollideOnDeadObjectFlush( CPhysCollide * ) override; //should only be used after calling DestroyObject() on all IPhysicsObjects created with it.
+#endif
 
 private:
 	IVP_Environment					*m_pPhysEnv;

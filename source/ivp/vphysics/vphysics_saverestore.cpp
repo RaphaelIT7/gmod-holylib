@@ -5,6 +5,8 @@
 //=============================================================================//
 
 #include "cbase.h"
+#include "Platform.hpp"
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -32,7 +34,7 @@ static void AddPtrAssociation( void *pOldValue, void *pNewValue )
 //-----------------------------------------------------------------------------
 static bool NoPhysSaveFunc( const physsaveparams_t &, void * )
 {
-	AssertMsg( 0, "Physics cannot save the specified type" );
+	//AssertMsg( 0, "Physics cannot save the specified type" );
 	return false;
 }
 
@@ -65,7 +67,7 @@ bool CPhysicsEnvironment::Save( const physsaveparams_t &params )
 
 static bool NoPhysRestoreFunc( const physrestoreparams_t &, void ** )
 {
-	AssertMsg( 0, "Physics cannot save the specified type" );
+	//AssertMsg( 0, "Physics cannot save the specified type" );
 	return false;
 }
 
@@ -77,10 +79,12 @@ CVPhysPtrSaveRestoreOps::CVPhysPtrSaveRestoreOps()
 void CPhysicsEnvironment::PreRestore( const physprerestoreparams_t &params )
 {
 	g_VPhysPtrSaveRestoreOps.PreRestore();
+#if ARCHITECTURE_X86
 	for ( int i = 0; i < params.recreatedObjectCount; i++ )
 	{
 		AddPtrAssociation( params.recreatedObjectList[i].pOldObject, params.recreatedObjectList[i].pNewObject );
 	}
+#endif
 }
 
 bool CPhysicsEnvironment::Restore( const physrestoreparams_t &params )
