@@ -259,8 +259,8 @@ void CLuaInterface::CheckType(int iStackPos, int iType)
 	LuaDebugPrint(3, "CLuaInterface::CheckType %i %i\n", iStackPos, iType);
 	int actualType = GetType(iStackPos);
 	if (actualType != iType) {
-		const char* expectedType = GetTypeName(iType);
-		const char* actualTypeName = GetTypeName(actualType);
+		//const char* expectedType = GetTypeName(iType);
+		//const char* actualTypeName = GetTypeName(actualType);
 		//const char* errorMessage = lua_pushfstring(state, "Expected type %s at stack position %d, but got type %s.", expectedType, iStackPos, actualTypeName);
 		lua_error(state);
 	}

@@ -2113,7 +2113,7 @@ LUA_FUNCTION_STATIC(gameserver_SendConnectionlessPacket)
 	adr.SetFromString(LUA->CheckString(2), LUA->GetBool(3));
 
 	CBaseServer* pServer = (CBaseServer*)Util::server;
-	int nSocket = LUA->CheckNumberOpt(4, pServer->m_Socket);
+	int nSocket = (int)LUA->CheckNumberOpt(4, pServer->m_Socket);
 
 	if (!adr.IsValid())
 	{
@@ -2147,7 +2147,7 @@ LUA_FUNCTION_STATIC(gameserver_CreateNetChannel)
 	int nProtocolVersion = (int)LUA->CheckNumberOpt(3, 1);
 
 	CBaseServer* pServer = (CBaseServer*)Util::server;
-	int nSocket = LUA->CheckNumberOpt(4, pServer->m_Socket);
+	int nSocket = (int)LUA->CheckNumberOpt(4, pServer->m_Socket);
 
 	if (!adr.IsValid())
 	{

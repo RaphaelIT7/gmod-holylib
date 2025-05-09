@@ -306,7 +306,7 @@ bool netadrnew_s::SetFromString( const char *pch, bool bUseDNS )
 			|| n5 < 0 || n5 > 65535
 		)
 			return false;
-		SetIP( n1, n2, n3, n4 );
+		SetIP( (uint8)n1, (uint8)n2, (uint8)n3, (uint8)n4 );
 		SetPort( ( uint16 ) n5 );
 		return true;
 	}
@@ -335,7 +335,7 @@ bool netadrnew_s::SetFromString( const char *pch, bool bUseDNS )
 		// Set Port to whatever was specified after the colon
 		if ( pchColon )
 		{
-			SetPort( V_atoi( ++pchColon ) );
+			SetPort( (unsigned short)V_atoi( ++pchColon ) );
 		}
 		return true;
 #else
