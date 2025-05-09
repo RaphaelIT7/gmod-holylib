@@ -1081,10 +1081,8 @@ static void LedgeInsidePoint( IVP_Compact_Ledge *pLedge, Vector& out )
 //			p3 - 
 // Output : float (volume in units^3)
 //-----------------------------------------------------------------------------
-#if !ARCHITECTURE_X86_64
-static
-#endif
-float TetrahedronVolume( const Vector &p0, const Vector &p1, const Vector &p2, const Vector &p3 )
+#if !ARCHITECTURE_X86_64 // Mathlib has them on 64x.
+static float TetrahedronVolume( const Vector &p0, const Vector &p1, const Vector &p2, const Vector &p3 )
 {
 	Vector a, b, c, cross;
 	float volume = 1.0f / 6.0f;
@@ -1100,10 +1098,7 @@ float TetrahedronVolume( const Vector &p0, const Vector &p1, const Vector &p2, c
 	return volume;
 }
 
-#if !ARCHITECTURE_X86_64
-static
-#endif
-float TriangleArea( const Vector &p0, const Vector &p1, const Vector &p2 )
+static float TriangleArea( const Vector &p0, const Vector &p1, const Vector &p2 )
 {
 	Vector e0 = p1 - p0;
 	Vector e1 = p2 - p0;
@@ -1112,7 +1107,7 @@ float TriangleArea( const Vector &p0, const Vector &p1, const Vector &p2 )
 	CrossProduct( e0, e1, cross );
 	return 0.5f * cross.Length();
 }
-
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: Tetrahedronalize this ledge and compute it's volume in BSP space
