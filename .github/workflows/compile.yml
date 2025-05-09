@@ -138,12 +138,21 @@ jobs:
           mv gluatests garrysmod/addons
 
           tar -czf gluatest.tar.gz ghostinj.dll garrysmod/
+          tar -czf gluatest_no_ghostinj.tar.gz garrysmod/
 
       - uses: actions/upload-artifact@v4
         name: "Upload tar"
         with:
           name: gluatest_32x
           path: gluatest.tar.gz
+          compression-level: 9
+          retention-days: 1
+
+      - uses: actions/upload-artifact@v4
+        name: "Upload tar"
+        with:
+          name: gluatest_no_ghostinj_32x
+          path: gluatest_no_ghostinj.tar.gz
           compression-level: 9
           retention-days: 1
 
@@ -180,12 +189,21 @@ jobs:
           mv gluatests garrysmod/addons
 
           tar -czf gluatest.tar.gz ghostinj.dll garrysmod/
+          tar -czf gluatest_no_ghostinj.tar.gz garrysmod/
 
       - uses: actions/upload-artifact@v4
         name: "Upload tar"
         with:
           name: gluatest_64x
           path: gluatest.tar.gz
+          compression-level: 9
+          retention-days: 1
+
+      - uses: actions/upload-artifact@v4
+        name: "Upload tar"
+        with:
+          name: gluatest_no_ghostinj_64x
+          path: gluatest_no_ghostinj.tar.gz
           compression-level: 9
           retention-days: 1
 
@@ -204,6 +222,20 @@ jobs:
       download-artifact: "gluatest_32x"
       no-checkout: "true"
 
+  test_32bit_noghostinj:
+    name: "Test 32x branches (No GhostInj)"
+    needs: setup_32x_artifacts
+    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main # ToDo: Change this later
+    strategy:
+      matrix:
+        branch:
+          - live
+          - dev
+          - prerelease
+    with:
+      download-artifact: "gluatest_no_ghostinj_32x"
+      no-checkout: "true"
+
   test_64bit:
     name: "Test x86-64 branch"
     needs: setup_64x_artifacts
@@ -214,8 +246,17 @@ jobs:
       download-artifact: "gluatest_64x"
       no-checkout: "true"
 
+  test_64bit_noghostinj:
+    name: "Test x86-64 branch (No GhostInj)"
+    needs: setup_64x_artifacts
+    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
+    with:
+      branch: x86-64
+      download-artifact: "gluatest_no_ghostinj_64x"
+      no-checkout: "true"
+
   test_32x_holylua:
-    name: "Test 32x branches"
+    name: "Test 32x branches (HolyLua)"
     needs: setup_32x_artifacts
     uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main # ToDo: Change this later
     strategy:
@@ -229,6 +270,21 @@ jobs:
       download-artifact: "gluatest_32x"
       no-checkout: "true"
 
+  test_32x_holylua_noghostinj:
+    name: "Test 32x branches (HolyLua, No GhostInj)"
+    needs: setup_32x_artifacts
+    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main # ToDo: Change this later
+    strategy:
+      matrix:
+        branch:
+          - live
+          - dev
+          - prerelease
+    with:
+      extra-startup-args: "-holylib_lua +holylib_module_debug 0"
+      download-artifact: "gluatest_no_ghostinj_32x"
+      no-checkout: "true"
+
   test_64bit_holylua:
     name: "Test x86-64 branch (HolyLua)"
     needs: setup_64x_artifacts
@@ -237,6 +293,16 @@ jobs:
       branch: x86-64
       extra-startup-args: "-usegh -holylib_lua +holylib_module_debug 0"
       download-artifact: "gluatest_64x"
+      no-checkout: "true"
+
+  test_64bit_holylua_noghostinj:
+    name: "Test x86-64 branch (HolyLua, No GhostInj)"
+    needs: setup_64x_artifacts
+    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
+    with:
+      branch: x86-64
+      extra-startup-args: "-holylib_lua +holylib_module_debug 0"
+      download-artifact: "gluatest_no_ghostinj_64x"
       no-checkout: "true"
 
   # We run gmod_tests repo to ensure that we didn't break any gmod functions unknowingly.
@@ -269,12 +335,21 @@ jobs:
           mv ghostinj.dll ghostinj2.dll
 
           tar -czf gmod_tests.tar.gz ghostinj2.dll garrysmod/
+          tar -czf gmod_tests_no_ghostinj.tar.gz garrysmod/
 
       - uses: actions/upload-artifact@v4
         name: "Upload tar"
         with:
           name: gmod_tests_32x
           path: gmod_tests.tar.gz
+          compression-level: 9
+          retention-days: 1
+
+      - uses: actions/upload-artifact@v4
+        name: "Upload tar"
+        with:
+          name: gmod_tests_no_ghostinj_32x
+          path: gmod_tests_no_ghostinj.tar.gz
           compression-level: 9
           retention-days: 1
 
@@ -307,12 +382,21 @@ jobs:
           mv ghostinj.dll ghostinj2.dll
 
           tar -czf gmod_tests.tar.gz ghostinj2.dll garrysmod/
+          tar -czf gmod_tests_no_ghostinj.tar.gz garrysmod/
 
       - uses: actions/upload-artifact@v4
         name: "Upload tar"
         with:
           name: gmod_tests_64x
           path: gmod_tests.tar.gz
+          compression-level: 9
+          retention-days: 1
+
+      - uses: actions/upload-artifact@v4
+        name: "Upload tar"
+        with:
+          name: gmod_tests_no_ghostinj_64x
+          path: gmod_tests_no_ghostinj.tar.gz
           compression-level: 9
           retention-days: 1
 
@@ -326,9 +410,12 @@ jobs:
           - live
           - dev
           - prerelease
+        artifact:
+          - gmod_tests_32x
+          - gmod_tests_no_ghostinj_32x
     with:
       extra-startup-args: "-usegh -maxplayers 64"
-      download-artifact: "gmod_tests_32x"
+      download-artifact: ${{ matrix.artifact }}
       no-checkout: "true"
       additional-setup: "wget -q https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux32.tar.gz -O gluatest/docker/_gluatest_artifacts/linux32.tar.gz"
       collection: 3460542547
@@ -338,10 +425,15 @@ jobs:
     name: "Test x86-64 branch (gmod_tests)"
     needs: setup_gmod_tests_64x_artifacts
     uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
+    strategy:
+      matrix:
+        artifact:
+          - gmod_tests_64x
+          - gmod_tests_no_ghostinj_64x
     with:
       branch: x86-64
       extra-startup-args: "-usegh -maxplayers 64"
-      download-artifact: "gmod_tests_64x"
+      download-artifact: ${{ matrix.artifact }}
       no-checkout: "true"
       additional-setup: "wget -q https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux64.tar.gz -O gluatest/docker/_gluatest_artifacts/linux64.tar.gz"
       collection: 3460542547
