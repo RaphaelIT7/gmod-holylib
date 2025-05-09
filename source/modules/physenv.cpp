@@ -2373,7 +2373,7 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 		g_pPhysicsModule = NULL;
 	}
 
-#if defined(SYSTEM_LINUX) && defined(ARCHITECTURE_X86)
+#if defined(SYSTEM_LINUX) && defined(ARCHITECTURE_X86) && 0
 	if (g_pFullFileSystem)
 	{
 		FileHandle_t fileHandle = g_pFullFileSystem->Open("bin/vphysics_srv.so", "rb", "BASE_PATH");
@@ -2397,6 +2397,7 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 		}
 	}
 
+#if 0
 	if (!bIsJoltPhysics && false)
 	{
 		SourceSDK::FactoryLoader vphysics_loader("vphysics");
@@ -2511,6 +2512,7 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 		func_IVP_Mindist_Base_get_objects = (Symbols::IVP_Mindist_Base_get_objects)Detour::GetFunction(vphysics_loader.GetModule(), Symbols::IVP_Mindist_Base_get_objectsSym);
 		Detour::CheckFunction((void*)func_IVP_Mindist_Base_get_objects, "IVP_Mindist_Base::get_objects");
 	}
+#endif
 #endif
 
 	SourceSDK::FactoryLoader server_loader("server");
