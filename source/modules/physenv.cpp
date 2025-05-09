@@ -44,15 +44,15 @@ static IVP_Mindist** g_pCurrentMindist;
 static bool* g_fDeferDeleteMindist;
 
 enum IVP_SkipType {
-	IVP_NoCall = -2, // Were not in our expected simulation, so don't handle anything.
-	IVP_None, // We didn't ask lua yet. So make the lua call.
+	//IVP_NoCall = -2, // Were not in our expected simulation, so don't handle anything.
+	IVP_None = -1, // We didn't ask lua yet. So make the lua call.
 
 	// Lua Enums
 	IVP_NoSkip,
 	IVP_SkipImpact,
 	IVP_SkipSimulation,
 };
-IVP_SkipType pCurrentSkipType = IVP_SkipType::IVP_None;
+static IVP_SkipType pCurrentSkipType = IVP_SkipType::IVP_None;
 
 #define TOSTRING( var ) var ? "true" : "false"
 
@@ -115,7 +115,6 @@ public:
 	{
 		CheckPhysicsLag(static_cast<CPhysicsObject*>(pObject1), static_cast<CPhysicsObject*>(pObject2));
 
-		SetShouldSkip(pCurrentSkipType != IVP_SkipType::IVP_None);
 		return ShouldSkip();
 	}
 
@@ -128,6 +127,22 @@ public:
 	{
 		UnregisterPhysicsEnvironment(pEnvironment);
 	}
+
+	virtual void SimulationBegin()
+	{
+		pCurrentTime = std::chrono::high_resolution_clock::now();
+		pCurrentSkipType = IVP_SkipType::IVP_None;
+	}
+
+	virtual void SimulationFinish()
+	{
+		pCurrentSkipType = IVP_SkipType::IVP_None;
+	}
+	
+	virtual bool ShouldSkip()
+	{
+		return ((int)pCurrentSkipType) > 0;
+	}
 };
 
 static IVPHolyLib g_pIVPHolyLib;
@@ -136,7 +151,7 @@ static IVPHolyLib g_pIVPHolyLib;
 static bool g_pIsInPhysicsLagCall = false;
 void CheckPhysicsLag(CPhysicsObject* pObject1, CPhysicsObject* pObject2)
 {
-	if (g_pIVPHolyLib.ShouldSkip() || g_pIsInPhysicsLagCall) // We already have a skip type.
+	if (pCurrentSkipType != IVP_SkipType::IVP_None || g_pIsInPhysicsLagCall) // We already have a skip type.
 		return;
 
 	auto pTime = std::chrono::high_resolution_clock::now();
@@ -173,6 +188,8 @@ void CheckPhysicsLag(CPhysicsObject* pObject1, CPhysicsObject* pObject2)
 
 				if (g_pPhysEnvModule.InDebug() > 2)
 					Msg(PROJECT_NAME " - physenv: Lua hook called (%i)\n", (int)pCurrentSkipType);
+
+				//g_pIVPHolyLib.SetShouldSkip(pCurrentSkipType != IVP_SkipType::IVP_None);
 			}
 			g_pIsInPhysicsLagCall = false;
 		}
@@ -2562,7 +2579,7 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 #endif
 
 	SourceSDK::FactoryLoader server_loader("server");
-	/*Detour::Create(
+	Detour::Create(
 		&detour_GMod_Util_IsPhysicsObjectValid, "GMod::Util::IsPhysicsObjectValid",
 		server_loader.GetModule(), Symbols::GMod_Util_IsPhysicsObjectValidSym,
 		(void*)hook_GMod_Util_IsPhysicsObjectValid, m_pID
@@ -2572,7 +2589,7 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 		&detour_PhysFrame, "PhysFrame",
 		server_loader.GetModule(), Symbols::PhysFrameSym,
 		(void*)hook_PhysFrame, m_pID
-	);*/
+	);
 
 	/*Detour::Create(
 		&detour_CBaseEntity_GMOD_VPhysicsTest, "CBaseEntity::GMOD_VPhysicsTest",

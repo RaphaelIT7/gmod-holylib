@@ -18,10 +18,10 @@ public:
 	//virtual void OnPhysicsObjectCreated(IPhysicsObject* pObject) = 0;
 	//virtual void OnPhysicsObjectDestroyed(IPhysicsObject* pObject) = 0;
 
-	inline bool ShouldSkip() { return m_bSkipSimulation; };
-	inline void SetShouldSkip(bool bSkipSimulation) { m_bSkipSimulation = bSkipSimulation; };
-private:
-	bool m_bSkipSimulation = false;
+	virtual void SimulationBegin() = 0;
+	virtual void SimulationFinish() = 0;
+
+	virtual bool ShouldSkip() = 0;
 };
 
 extern IVP_HolyLib_Callbacks* g_pHolyLibCallbacks;

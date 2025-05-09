@@ -1523,6 +1523,7 @@ void CPhysicsEnvironment::Simulate( float deltaTime )
 		m_pCollisionSolver->EventPSI( this );
 		m_pCollisionListener->EventPSI( this );
 
+		g_pHolyLibCallbacks->SimulationBegin();
 		m_inSimulation = true;
 		BEGIN_IVP_ALLOCATION();
 		if ( !m_fixedTimestep || !hk_Math::almost_equal(deltaTime, m_pPhysEnv->get_delta_PSI_time()) )
@@ -1536,8 +1537,7 @@ void CPhysicsEnvironment::Simulate( float deltaTime )
 		}
 		END_IVP_ALLOCATION();
 		m_inSimulation = false;
-
-		g_pHolyLibCallbacks->SetShouldSkip(false); // Reset at the end of the frame
+		g_pHolyLibCallbacks->SimulationFinish();
 	}
 
 	// If the queue is disabled, it's only used during simulation.
