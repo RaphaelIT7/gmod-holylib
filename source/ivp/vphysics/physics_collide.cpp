@@ -1763,6 +1763,7 @@ Vector CPhysicsCollision::CollideGetOrthographicAreas( const CPhysCollide *pColl
 {
 	if ( !pCollide )
 		return vec3_origin;
+
 	return pCollide->GetOrthographicAreas();
 }
 
