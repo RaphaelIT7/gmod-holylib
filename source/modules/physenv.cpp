@@ -1,5 +1,4 @@
 #include "LuaInterface.h"
-#include "detours.h"
 #include "module.h"
 #include "lua.h"
 #include <chrono>
@@ -15,6 +14,8 @@
 #include "unordered_set"
 #include "player.h"
 #include "tier1/tier1.h"
+#define DLL_TOOLS
+#include "detours.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -28,7 +29,7 @@ public:
 	virtual void InitDetour(bool bPreServer);
 	virtual void Shutdown();
 	virtual const char* Name() { return "physenv"; };
-	virtual int Compatibility() { return LINUX32; };
+	virtual int Compatibility() { return LINUX32 | LINUX64; };
 };
 
 CPhysEnvModule g_pPhysEnvModule;
@@ -201,6 +202,13 @@ static void hook_IVP_OV_Element_remove_oo_collision(void* ovElement, IVP_Collisi
 		return;
 
 	detour_IVP_OV_Element_remove_oo_collision.GetTrampoline<Symbols::IVP_OV_Element_remove_oo_collision>()(ovElement, connector);
+}
+
+static Detouring::Hook detour_CreateInterface;
+static void* hook_CreateInterface(const char *pName, int *pReturnCode)
+{
+	Msg("vphysics - CreateInterface: %s\n", pName);
+	return Sys_GetFactoryThis()(pName, pReturnCode);
 }
 
 LUA_FUNCTION_STATIC(physenv_SetLagThreshold)
@@ -2344,27 +2352,26 @@ void CPhysEnvModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 	DeleteAll_IPhysicsCollisionSet(pLua);
 }
 
-void CPhysEnvModule::Shutdown()
-{
-	//DeleteAll_ILuaPhysicsEnvironment(); // >:( Why did I add it here.... ToDo: Move this to LuaShutdown after verifying that it should be fine there.
-
-	// What tf are we even doing here....
-	/*for (auto it = g_pEnvironmentToLua.begin(); it != g_pEnvironmentToLua.end(); )
-	{
-		delete it->second;
-		it = g_pEnvironmentToLua.erase(it);
-	}*/
-
-	for (auto it = g_pEnvironmentToLua.begin(); it != g_pEnvironmentToLua.end(); ++it)
-	{
-		Msg(PROJECT_NAME " - physenv: Found remaining environment! (%p - %p)\n", it->first, it->second);
-	}
-}
-
+static DLL_Handle g_pPhysicsModule = NULL;
 void CPhysEnvModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
+	{
+		g_pPhysicsModule = DLL_LoadModule("vphysics" DLL_EXTENSION, RTLD_LAZY); // Load it manually since rn it wasn't loaded yet.
+		SourceSDK::FactoryLoader vphysics_loader("vphysics");
+		Detour::Create(
+			&detour_CreateInterface, CREATEINTERFACE_PROCNAME,
+			vphysics_loader.GetModule(), Symbol::FromName(CREATEINTERFACE_PROCNAME),
+			(void*)hook_CreateInterface, m_pID
+		);
 		return;
+	}
+
+	if (g_pPhysicsModule)
+	{
+		DLL_UnloadModule(g_pPhysicsModule);
+		g_pPhysicsModule = NULL;
+	}
 
 #if defined(SYSTEM_LINUX) && defined(ARCHITECTURE_X86)
 	if (g_pFullFileSystem)
@@ -2390,7 +2397,7 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 		}
 	}
 
-	if (!bIsJoltPhysics)
+	if (!bIsJoltPhysics && false)
 	{
 		SourceSDK::FactoryLoader vphysics_loader("vphysics");
 		Detour::Create(
@@ -2524,4 +2531,27 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 		server_loader.GetModule(), Symbols::CBaseEntity_GMOD_VPhysicsTestSym,
 		(void*)hook_CBaseEntity_GMOD_VPhysicsTest, m_pID
 	);*/
+}
+
+void CPhysEnvModule::Shutdown()
+{
+	//DeleteAll_ILuaPhysicsEnvironment(); // >:( Why did I add it here.... ToDo: Move this to LuaShutdown after verifying that it should be fine there.
+
+	// What tf are we even doing here....
+	/*for (auto it = g_pEnvironmentToLua.begin(); it != g_pEnvironmentToLua.end(); )
+	{
+		delete it->second;
+		it = g_pEnvironmentToLua.erase(it);
+	}*/
+
+	if (g_pPhysicsModule)
+	{
+		DLL_UnloadModule(g_pPhysicsModule);
+		g_pPhysicsModule = NULL;
+	}
+
+	for (auto it = g_pEnvironmentToLua.begin(); it != g_pEnvironmentToLua.end(); ++it)
+	{
+		Msg(PROJECT_NAME " - physenv: Found remaining environment! (%p - %p)\n", it->first, it->second);
+	}
 }

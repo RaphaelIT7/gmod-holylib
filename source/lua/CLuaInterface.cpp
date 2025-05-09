@@ -1586,20 +1586,8 @@ void CLuaInterface::RegisterMetaTable( const char* name, GarrysMod::Lua::ILuaObj
 	Error("CLuaInterface::RegisterMetaTable NOT IMPLEMENTED!\n");
 }
 
-#ifdef WIN32
-#include <Windows.h>
-#define Handle HMODULE
-#define LoadModule(name, _) LoadLibrary(name)
-#define UnloadModule(handle) FreeLibrary((Handle)handle)
-#define GetAddress(handle, name) GetProcAddress((Handle)handle, name)
-#else
-#include <dlfcn.h>
-#define Handle void*
-#define LoadModule(name, type) dlopen(name, type)
-#define UnloadModule(handle) dlclose(handle)
-#define GetAddress(handle, name) dlsym(handle, name)
-#endif
-
+#define DLL_TOOLS
+#include "detours.h"
 void GMOD_LoadBinaryModule(lua_State* L, const char* name)
 {
 	lua_pushfstring(L, "LOADLIB: %s", name);
@@ -1616,18 +1604,18 @@ void GMOD_LoadBinaryModule(lua_State* L, const char* name)
 	lua_settable(L, -3);
 	//lua_pop(L, 1);
 
-	void* hDll = LoadModule(name, RTLD_LAZY);
+	void* hDll = DLL_LoadModule(name, RTLD_LAZY);
 	if (hDll == NULL) {
 		lua_pushliteral(L, "Failed to load dll!");
 		lua_error(L);
 		return;
 	}
 
-	GarrysMod::Lua::CFunc gmod13_open = (GarrysMod::Lua::CFunc)GetAddress(hDll, "gmod13_open");
+	GarrysMod::Lua::CFunc gmod13_open = (GarrysMod::Lua::CFunc)DLL_GetAddress(hDll, "gmod13_open");
 	if (gmod13_open == NULL) {
 		lua_pushliteral(L, "Failed to get gmod13_open!");
 		lua_error(L);
-		UnloadModule(hDll);
+		DLL_UnloadModule(hDll);
 		return;
 	}
 
@@ -1641,13 +1629,13 @@ void GMOD_UnloadBinaryModule(lua_State* L, const char* module, GarrysMod::Lua::I
 {
 	if (udata->data != NULL)
 	{
-		GarrysMod::Lua::CFunc gmod13_close = (GarrysMod::Lua::CFunc)GetAddress(udata->data, "gmod13_close");
+		GarrysMod::Lua::CFunc gmod13_close = (GarrysMod::Lua::CFunc)DLL_GetAddress(udata->data, "gmod13_close");
 		if (gmod13_close != NULL) {
 			lua_pushcclosure(L, gmod13_close, 0);
 			lua_call(L, 0, 0);
 		}
 
-		UnloadModule(udata->data);
+		DLL_UnloadModule(udata->data);
 	}
 
 	lua_pushvalue(L, LUA_REGISTRYINDEX);

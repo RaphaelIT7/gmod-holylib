@@ -86,6 +86,7 @@ void *CPhysicsInterface::QueryInterface( const char *pInterfaceName )
 {
 	// Loading the datacache DLL mounts *all* interfaces
 	// This includes the backward-compatible interfaces + other vphysics interfaces
+	Msg("vphysics - QueryInterface: %s\n", pInterfaceName);
 	return Sys_GetFactoryThis()( pInterfaceName, nullptr );
 }
 
