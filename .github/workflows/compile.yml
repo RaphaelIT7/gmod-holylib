@@ -263,13 +263,12 @@ jobs:
           mkdir -p garrysmod/lua/bin
           mkdir -p garrysmod/addons
 
-          ls -R
           tar -xzf gluatest.tar.gz
-          ls -R
 
           mv gmod_tests garrysmod/addons
+          mv ghostinj.dll ghostinj2.dll
 
-          tar -czf gmod_tests.tar.gz ghostinj.dll garrysmod/
+          tar -czf gmod_tests.tar.gz ghostinj2.dll garrysmod/
 
       - uses: actions/upload-artifact@v4
         name: "Upload tar"
