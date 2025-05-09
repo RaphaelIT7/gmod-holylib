@@ -282,6 +282,7 @@ IVP_DOUBLE IVP_SurMan_PS_Plane::get_qlen_of_all_edges(){
 
 void IVP_SurfaceBuilder_Pointsoup::error_output(IVP_Template_Polygon *templ)
 {
+	IVP_DEBUGCODE(
 //    ivp_debugmanager.dprint(IVP_DM_SURBUILD_POINTSOUP, "IVP_SurfaceBuilder_Pointsoup::convert_pointsoup_to_compact_ledge_internal() - failed to triangulize object!\n");
     ivp_debugmanager.dprint(IVP_DM_SURBUILD_POINTSOUP, "Object points:\n");
     int i;
@@ -296,6 +297,7 @@ void IVP_SurfaceBuilder_Pointsoup::error_output(IVP_Template_Polygon *templ)
 	ivp_debugmanager.dprint(IVP_DM_SURBUILD_POINTSOUP, "Distance [%d] - [%d] : %f\n", p0, p1, templ->points[p0].quad_distance_to(&templ->points[p1]));
     }
     ivp_debugmanager.dprint(IVP_DM_SURBUILD_POINTSOUP, "\n");
+	)
     return;
 }
 

@@ -7,8 +7,10 @@
 
 #ifndef IVP_NO_DEBUGMANAGER
 #define IVP_IFDEBUG(dci, func)	if (ivp_debugmanager.is_debug_enabled(dci)) func
+#define IVP_DEBUGCODE(func) func
 #else
 #define IVP_IFDEBUG(a, b) if (0) {}
+#define IVP_DEBUGCODE(func)
 #endif
 
 
