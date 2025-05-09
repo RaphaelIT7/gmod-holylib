@@ -7,6 +7,7 @@
 #include "ivp_holylib.hxx"
 #include <utlvector.h>
 
+class IPhysicsObject;
 class CPhysicsHolyLib
 {
 public:

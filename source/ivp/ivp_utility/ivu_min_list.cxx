@@ -239,6 +239,9 @@ void IVP_U_Min_List::remove_minlist_elem(IVP_U_MINLIST_INDEX index)
 {
 	IVP_ASSERT( index < malloced_size );
 
+	//if (index == IVP_U_MINLIST_UNUSED)
+	//	return;
+
 	IVP_U_Min_List_Element *e = & elems[index];
 	unsigned int prev = e->prev;
 	unsigned int next = e->next;

@@ -105,15 +105,15 @@ static void hook_IVP_Event_Manager_Standard_simulate_time_events(void* eventmana
 struct ILuaPhysicsEnvironment;
 static inline ILuaPhysicsEnvironment* RegisterPhysicsEnvironment(IPhysicsEnvironment* pEnv);
 static inline void UnregisterPhysicsEnvironment(IPhysicsEnvironment* pEnv);
-void CheckPhysicsLag(IPhysicsObject* pObject1, IPhysicsObject* pObject2);
+void CheckPhysicsLag(CPhysicsObject* pObject1, CPhysicsObject* pObject2);
 class IVPHolyLib : public IVP_HolyLib_Callbacks
 {
 public:
 	virtual ~IVPHolyLib() {};
 
-	virtual bool CheckLag(IPhysicsObject* pObject1, IPhysicsObject* pObject2)
+	virtual bool CheckLag(void* pObject1, void* pObject2)
 	{
-		CheckPhysicsLag(pObject1, pObject2);
+		CheckPhysicsLag(static_cast<CPhysicsObject*>(pObject1), static_cast<CPhysicsObject*>(pObject2));
 
 		SetShouldSkip(pCurrentSkipType != IVP_SkipType::IVP_None);
 		return ShouldSkip();
@@ -134,9 +134,9 @@ static IVPHolyLib g_pIVPHolyLib;
 
 //static Symbols::IVP_Mindist_Base_get_objects func_IVP_Mindist_Base_get_objects;
 static bool g_pIsInPhysicsLagCall = false;
-void CheckPhysicsLag(IPhysicsObject* pObject1, IPhysicsObject* pObject2)
+void CheckPhysicsLag(CPhysicsObject* pObject1, CPhysicsObject* pObject2)
 {
-	if (pCurrentSkipType != IVP_SkipType::IVP_None || g_pIsInPhysicsLagCall) // We already have a skip type.
+	if (g_pIVPHolyLib.ShouldSkip() || g_pIsInPhysicsLagCall) // We already have a skip type.
 		return;
 
 	auto pTime = std::chrono::high_resolution_clock::now();

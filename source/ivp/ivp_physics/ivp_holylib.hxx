@@ -3,7 +3,6 @@
 
 class IVP_Real_Object;
 class IPhysicsEnvironment;
-class IPhysicsObject;
 
 class IVP_HolyLib_Callbacks
 {
@@ -11,7 +10,7 @@ public:
 	virtual ~IVP_HolyLib_Callbacks() {};
 
 	// Returns true if the simulation should be canceled. Let's try to safely stop it.
-	virtual bool CheckLag(IPhysicsObject* pObject1 = nullptr, IPhysicsObject* pObject2 = nullptr) = 0;
+	virtual bool CheckLag(void* pObject1 = nullptr, void* pObject2 = nullptr) = 0;
 
 	virtual void OnEnvironmentCreated(IPhysicsEnvironment* pEnvironment) = 0;
 	virtual void OnEnvironmentDestroyed(IPhysicsEnvironment* pEnvironment) = 0;
