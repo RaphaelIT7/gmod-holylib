@@ -358,6 +358,11 @@ void IVP_Mindist_Manager::create_exact_mindists(IVP_Real_Object *pop0, IVP_Real_
 						const IVP_Compact_Ledge *single_ledge0, const IVP_Compact_Ledge *single_ledge1,
 						const IVP_Compact_Ledge *root_ledge0, const IVP_Compact_Ledge *root_ledge1,
 						IVP_Collision_Delegator *oo_watcher){
+	if (g_pHolyLibCallbacks && g_pHolyLibCallbacks->ShouldSkip())
+	{
+		return;
+	}
+
     // takes first point of each pop and adds a mindist
     IVP_Environment *env = pop0->get_environment();
     IVP_Vector_of_Ledges_256 ledges0;

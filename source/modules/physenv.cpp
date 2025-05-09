@@ -2578,6 +2578,12 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 #endif
 #endif
 
+	if (!g_pModuleManager.IsUsingGhostInj()) // We return as else we'll break stuff.
+	{
+		Warning(PROJECT_NAME " - physenv: we weren't loaded early enouth! use the ghostinj and ensure that holylib is loaded properly!\n");
+		return;
+	}
+
 	SourceSDK::FactoryLoader server_loader("server");
 	Detour::Create(
 		&detour_GMod_Util_IsPhysicsObjectValid, "GMod::Util::IsPhysicsObjectValid",
