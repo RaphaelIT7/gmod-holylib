@@ -116,9 +116,9 @@ void IVP_Geompack::decompose(struct geompack_parameters *params) {
 
     if ( !this->g_facesdata || !this->g_facestype || !this->g_hashtable || !this->g_polyhedronfirstfaceoffset || !this->g_polyhedronfaceindices || !this->g_faceverticeslist || !this->g_intworkarray || !this->g_doubleworkarray || !this->g_edge_angles || !this->g_normals || !this->g_ev ) {
 	IVP_IF(1) {
-	    IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL1) {
+	    IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL1, {
 		ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL1, "*** GEOMPACK: Out of memory!\n\n");
-	    }
+	    })
 	}
 	goto out_of_memory;
     }
@@ -187,12 +187,12 @@ void IVP_Geompack::decompose(struct geompack_parameters *params) {
 
     if (this->ierr != 0) {
 	IVP_IF(1) {
-	    IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL1) {
+	    IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL1, {
 		if ( this->ierr == 500 ) {
 		    ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL1, "*** GEOMPACK: Out of memory!\n\n");
 		}
 		ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL1, "Premature abort due to above error.\n\n");
-	    }
+	    })
 	}
 	goto GEOMPACK_abort;
     }
@@ -200,7 +200,7 @@ void IVP_Geompack::decompose(struct geompack_parameters *params) {
 
 
     IVP_IF(1) {
-	IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL1) {
+	IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL1, {
 	    int	n_reflex_edges;
 	    double	minimum_angle;
 	    int mem_iwa;
@@ -235,7 +235,7 @@ void IVP_Geompack::decompose(struct geompack_parameters *params) {
 	    mem_fl    = this->size_facearrays*sizeof(int)+this->size_facearrays*3*sizeof(int)+this->size_facearrays*3*sizeof(double);
 	    mem_fvl   = this->size_facevertexarrays*6*sizeof(int)+this->size_facevertexarrays*sizeof(double);
 	    mem_total = mem_iwa+ mem_dwa + mem_vcl + mem_pffl + mem_pfil + mem_fl + mem_fvl;
-	    IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL2) {
+	    IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL2, {
 		ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL2, "Memory allocated for int WORK ARRAY: %d bytes\n"        , mem_iwa);
 		ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL2, "Memory allocated for DOUBLE WORK ARRAY: %d bytes\n"         , mem_dwa);
 		ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL2, "Memory allocated for VERTEX COORDINATE LIST: %d bytes\n"    , mem_vcl);
@@ -243,7 +243,7 @@ void IVP_Geompack::decompose(struct geompack_parameters *params) {
 		ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL2, "Memory allocated for POLYHEDRON FACE INDEX LIST: %d bytes\n", mem_pfil);
 		ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL2, "Memory allocated for FACE LISTS: %d bytes\n"                , mem_fl);
 		ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL2, "Memory allocated for FACE VERTICES LISTS: %d bytes\n"       , mem_fvl);
-	    }
+	    })
 	    else {
 		ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL1, "Total memory allocated: %d bytes\n", mem_total);
 	    }
@@ -255,7 +255,7 @@ void IVP_Geompack::decompose(struct geompack_parameters *params) {
 	    ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL1, "N_REFLEX_EDGES      = %d\n", n_reflex_edges);
 	    ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL1, "MINIMUM_ANGLE       = %f\n", minimum_angle);
 	    ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL1, "\n");
-	}
+	})
     }
 
 
@@ -272,12 +272,12 @@ Retry_convex_decomposition:
 
     if ( (this->ierr != 0) && (this->ierr != 327) ) { // abort on error but skip "reflex edge" resolving problems
 	IVP_IF(1) {
-	    IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL1) {
+	    IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL1, {
 		if ( this->ierr == 500 ) {
 		    ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL1, "*** GEOMPACK: Out of memory!\n\n");
 		}
 		ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL1, "Premature abort due to above error.\n\n");
-	    }
+	    })
 	}
 	goto GEOMPACK_abort;
     }
@@ -285,7 +285,7 @@ Retry_convex_decomposition:
 
 
     IVP_IF(1) {
-	IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL1) {
+	IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL1, {
 	    int	n_reflex_edges;
 	    double	minimum_angle;
 	    int mem_iwa;
@@ -320,7 +320,7 @@ Retry_convex_decomposition:
 	    mem_fl    = this->size_facearrays*sizeof(int)+this->size_facearrays*3*sizeof(int)+this->size_facearrays*3*sizeof(double);
 	    mem_fvl   = this->size_facevertexarrays*6*sizeof(int)+this->size_facevertexarrays*sizeof(double);
 	    mem_total = mem_iwa+ mem_dwa + mem_vcl + mem_pffl + mem_pfil + mem_fl + mem_fvl;
-	    IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL2) {
+	    IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL2, {
 		ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL2, "Memory allocated for int WORK ARRAY: %d bytes\n"        , mem_iwa);
 		ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL2, "Memory allocated for DOUBLE WORK ARRAY: %d bytes\n"         , mem_dwa);
 		ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL2, "Memory allocated for VERTEX COORDINATE LIST: %d bytes\n"    , mem_vcl);
@@ -328,7 +328,7 @@ Retry_convex_decomposition:
 		ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL2, "Memory allocated for POLYHEDRON FACE INDEX LIST: %d bytes\n", mem_pfil);
 		ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL2, "Memory allocated for FACE LISTS: %d bytes\n"                , mem_fl);
 		ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL2, "Memory allocated for FACE VERTICES LISTS: %d bytes\n"       , mem_fvl);
-	    }
+	    })
 	    else {
 		ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL1, "Total memory allocated: %d bytes\n", mem_total);
 	    }
@@ -340,7 +340,7 @@ Retry_convex_decomposition:
 	    ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL1, "N_REFLEX_EDGES      = %d\n", n_reflex_edges);
 	    ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL1, "MINIMUM_ANGLE       = %f\n", minimum_angle);
 	    ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL1, "\n");
-	}
+	})
     }
 
 
@@ -353,17 +353,17 @@ Retry_convex_decomposition:
 		this->ierr = 0;
 		retry_counter++;
 		IVP_IF(1) {
-		    IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL1) {
+		    IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL1, {
 			ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL1, "Retrying with <angacc=%f> and <rdacc=%f>\n\n", this->angacc, this->rdacc);
-		    }
+		    })
 		}
 		goto Retry_convex_decomposition;
 	    }
 	}
 	IVP_IF(1) {
-	    IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL1) {
+	    IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL1, {
 		ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL1, "Premature abort due to difficulties in resolving some reflex edge(s).\n\n");
-	    }
+	    })
 	}
 	goto GEOMPACK_abort;
     }
@@ -374,11 +374,11 @@ Retry_convex_decomposition:
     // -----------------------------------------------------------------------
 
     IVP_IF(1) {
-	IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL1) {
+	IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL1, {
 	    ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL1, "+++ Convex decomposition successful!\n\n");
-	}
+	})
 
-	IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL2) {
+	IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL2, {
 	    ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL2, "VCL (vertex coordinate list)\n");
 	    for (i=1; i<=this->n_original_vertices; i++) {
 		int j;
@@ -436,7 +436,7 @@ Retry_convex_decomposition:
 		ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL2, "\t(%f Grad)\n", this->g_edge_angles[i-1]/IVP_PI*180.0);
 	    }
 	    ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL2, "\n\n");
-	}
+	})
 
 #if 0
 	s_wsfe(&io___90);
@@ -462,14 +462,14 @@ Retry_convex_decomposition:
 GEOMPACK_abort:
 
     IVP_IF(1) {
-	IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL1) {
+	IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL1, {
 	    ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL1, "Final GEOMPACK statistics:\n");
 	    ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL1, "N_ORIGINAL_VERTICES   \t= %d (number of vertex coordinates)\n", this->n_original_vertices);
 	    ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL1, "NFACE \t= %d (number of faces in polyhedral decomposition)\n", this->nface);
 	    ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL1, "N_WORK_VERTICES \t= %d (number of positions used in FVL array)\n", this->n_work_vertices);
 	    ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL1, "NPOLH \t= %d (number of polyhedra in decomposition)\n", this->npolh);
 	    ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL1, "\n\n");
-	}
+	})
     }
 
     *n_original_vertices_out	= this->n_original_vertices;

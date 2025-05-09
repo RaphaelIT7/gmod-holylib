@@ -114,11 +114,11 @@ int IVP_Convex_Decompositor::perform_convex_decomposition_on_concave_polyhedron(
 	// alloc an array for n points, consisting of 3 floats each
 	vcl = (double *)p_calloc(n_points*3, sizeof(double));
 	if ( !vcl ) {
-	    IVP_IFDEBUG(IVP_DEBUG_IPION_ERROR_MSG) {
+	    IVP_IFDEBUG(IVP_DEBUG_IPION_ERROR_MSG, {
 		ivp_debugmanager.dprint(IVP_DEBUG_IPION_ERROR_MSG,
 					"IVP_Convex_Decompositor::perform_convex_decomposition_on_concave_polyhedron()\n"
 					"Not enough memory to allocate 'points_list' (needed: %d bytes)\n", n_points*3*sizeof(float));
-	    }
+	    })
 	    return(0);
 	}
 
@@ -288,9 +288,9 @@ fclose(fp);
 	    IVP_Convex_Subpart_Work *subpart_work = subparts_offsets.element_at(i);
 	    IVP_Convex_Subpart *subpart = convex_subparts_out->element_at(i);
 	    IVP_IF(1) {
-		IVP_IFDEBUG(IVP_DM_CONVEX_DECOMPOSITOR) {
+		IVP_IFDEBUG(IVP_DM_CONVEX_DECOMPOSITOR, {
 		    ivp_debugmanager.dprint(IVP_DM_CONVEX_DECOMPOSITOR, "Points of convex subpart:\n");
-		}
+		})
 	    }
 	    int j;
 	    for (j=0; j<subpart_work->offsets.len(); j++) {
@@ -300,9 +300,9 @@ fclose(fp);
 		point->k[1] = vcl_out[(offset*3)+1];
 		point->k[2] = vcl_out[(offset*3)+2];
 		IVP_IF(1) {
-		    IVP_IFDEBUG(IVP_DM_CONVEX_DECOMPOSITOR) {
+		    IVP_IFDEBUG(IVP_DM_CONVEX_DECOMPOSITOR, {
 			ivp_debugmanager.dprint(IVP_DM_CONVEX_DECOMPOSITOR, "   %.6f %.6f %.6f\n", point->k[0], point->k[1], point->k[2]);
-		    }
+		    })
 		}
 		subpart->points.add(point);
 	    }

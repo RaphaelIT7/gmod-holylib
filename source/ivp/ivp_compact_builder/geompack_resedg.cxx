@@ -161,9 +161,9 @@ void IVP_Geompack::resedg_(
 	lvo = lu;
     }
     IVP_IF(1) {
-	IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL3) {
+	IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL3, {
 	    ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL3, "RESEDG: U,V,LU,LV,FL,FR,P = %d %d %d %d %d %d %d\n", u_in, v, lu, lv, fl, fr, p);
-	}
+	})
     }
 
 /*     Determine edges in polyhedron P and average edge length. */
@@ -487,12 +487,12 @@ L70:
     }
 L80:
     IVP_IF(1) {
-	IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL3) {
+	IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL3, {
 	    ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL3, "Candidate angles (dihedral angle = %f ", edge_angles[u_in] * 180.0 / IVP_PI);
 	    for (i__ = 1; i__ <= nang; ++i__) {
 		ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL3, "%f ", ang[i__ - 1] * 180.0 / IVP_PI);
 	    }
-	}
+	})
     }
 
 /*     For each angle in ANG array, try to resolve reflex edge as */
@@ -563,9 +563,9 @@ L90:
 	intworkarray[(n_edges + 2) * 3 + 1] = u_in;
 	doubleworkarray[1] = ang[i__ - 1];
 	IVP_IF(1) {
-	    IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL3) {
+	    IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL3, {
 		ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL3, "Trying angle %d   NEDGC = %d\n", i__, nedgc);
-	    }
+	    })
 	}
 
 	// *******************************************************************

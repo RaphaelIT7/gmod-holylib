@@ -307,13 +307,13 @@ IVP_Compact_Ledge *IVP_SurfaceBuilder_Pointsoup::try_to_build_convex_ledge_from_
   *skip_point = IVP_FALSE;
   // DEBUG: Print all vertices of convex hull
 	IVP_IF(1) {
-	    IVP_IFDEBUG(IVP_DM_SURBUILD_POINTSOUP) {
+	    IVP_IFDEBUG(IVP_DM_SURBUILD_POINTSOUP, {
 		vertexT *vertex;	    /* set by FORALLvertices */
 		FORALLvertices {
 		    int point_index = qh_pointid(vertex->point);
 		    ivp_debugmanager.dprint(IVP_DM_SURBUILD_POINTSOUP, "Point in convex hull: %f %f %f\n", points->element_at(point_index)->k[0], points->element_at(point_index)->k[1], points->element_at(point_index)->k[2]);
 		}
-	    }
+	    })
 	}
 	
 	IVP_U_Vector<IVP_SurMan_PS_Plane> planes;
@@ -398,12 +398,12 @@ IVP_Compact_Ledge *IVP_SurfaceBuilder_Pointsoup::try_to_build_convex_ledge_from_
 	    
 	    qh_settempfree(&vertices);
 	    IVP_IF(0) {
-		IVP_IFDEBUG(IVP_DM_SURBUILD_POINTSOUP) {
+		IVP_IFDEBUG(IVP_DM_SURBUILD_POINTSOUP, {
 		    ivp_debugmanager.dprint(IVP_DM_SURBUILD_POINTSOUP, "n_faces: %d\n", plane->points.len());
 		    if ( plane->points.len() > 3 ) { //@@@SF: Debug [14.12.1999]
 			ivp_debugmanager.dprint(IVP_DM_SURBUILD_POINTSOUP, "[Testing/Debug] Qhull : more than 3 points on plane!\n");
 		    }
-		}
+		})
 	    }
 	}
 
@@ -418,11 +418,11 @@ IVP_Compact_Ledge *IVP_SurfaceBuilder_Pointsoup::try_to_build_convex_ledge_from_
 	  // -----------------------------------------
 	  compact_ledge = IVP_SurfaceBuilder_Polygon_Convex::convert_template_to_ledge(templ);
 	  IVP_IF(1) {
-	    IVP_IFDEBUG(IVP_DM_SURBUILD_POINTSOUP) {
+	    IVP_IFDEBUG(IVP_DM_SURBUILD_POINTSOUP, {
 	      if ( !compact_ledge ) {
 		error_output(templ);
 	      }
-	    }
+	    })
 	  }
 	  P_DELETE(templ);
 	}
@@ -442,9 +442,9 @@ IVP_Compact_Ledge *IVP_SurfaceBuilder_Pointsoup::try_to_build_convex_ledge_from_
 IVP_Compact_Ledge *IVP_SurfaceBuilder_Pointsoup::convert_pointsoup_to_compact_ledge_internal(IVP_U_Vector<IVP_U_Point> *points_in)
 {
     IVP_IF(1) {
-	IVP_IFDEBUG(IVP_DM_SURBUILD_POINTSOUP) {
+	IVP_IFDEBUG(IVP_DM_SURBUILD_POINTSOUP, {
 	    ivp_debugmanager.dprint(IVP_DM_SURBUILD_POINTSOUP, "*** Starting building new convex hull from pointsoup.\n");
-	}
+	})
     }
 
 
@@ -509,9 +509,9 @@ IVP_Compact_Ledge *IVP_SurfaceBuilder_Pointsoup::convert_pointsoup_to_compact_le
 	  qhull_free_flag = IVP_TRUE;
       }
       if ( exitcode || !try_unjumbled) {      
-	IVP_IFDEBUG(IVP_DM_SURBUILD_POINTSOUP) {
+	IVP_IFDEBUG(IVP_DM_SURBUILD_POINTSOUP, {
 	  ivp_debugmanager.dprint(IVP_DM_SURBUILD_POINTSOUP, "*** Qhull failed. Retrying with different parameters.\n");
-	}
+	})
 
 	snprintf(flags, sizeof(flags), "qhull Qs QJ%G C-0 Pp W1e-14 E1.0e-18",random_eps); // "qhull QbB Pp"
 	if (qhull_free_flag)	  qh_freeqhull(!qh_ALL);                   /* free long memory  */
@@ -604,18 +604,18 @@ IVP_Compact_Ledge *IVP_SurfaceBuilder_Pointsoup::convert_pointsoup_to_compact_le
 	P_FREE(use_list);
     }
     if (!res){
-      IVP_IFDEBUG(IVP_DM_SURBUILD_POINTSOUP) {
+      IVP_IFDEBUG(IVP_DM_SURBUILD_POINTSOUP, {
 	ivp_debugmanager.dprint(IVP_DM_SURBUILD_POINTSOUP, "*** IVP_SurfaceBuilder_Pointsoup::convert_pointsoup_to_template_polygon - couldn't build convex hull! Skipping object...\n");
 	int i;
 	for (i=0; i<points.len(); i++) {
 	  //points->element_at(i)->print();
 	}
-      }
+      })
 
     }
-    IVP_IFDEBUG(IVP_DM_SURBUILD_POINTSOUP) {
+    IVP_IFDEBUG(IVP_DM_SURBUILD_POINTSOUP, {
       ivp_debugmanager.dprint(IVP_DM_SURBUILD_POINTSOUP, "*** Done with convex pointsoup.\n\n");
-    }
+    })
     return res;
 }
 
@@ -723,9 +723,9 @@ IVP_Compact_Surface *IVP_SurfaceBuilder_Pointsoup::convert_pointsoup_to_compact_
     }
     else {
 	IVP_IF(1) {
-	    IVP_IFDEBUG(IVP_DM_SURBUILD_POINTSOUP) {
+	    IVP_IFDEBUG(IVP_DM_SURBUILD_POINTSOUP, {
 		ivp_debugmanager.dprint(IVP_DM_SURBUILD_POINTSOUP, "*** IVP_SurfaceBuilder_Pointsoup::convert_pointsoup_to_compact_surface - skipping ledge due to invalid topology\n");
-	    }
+	    })
 	}
     }
 

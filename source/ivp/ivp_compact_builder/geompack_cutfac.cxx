@@ -772,9 +772,9 @@ L110:
 	for (i__ = 1; i__ <= i__1; ++i__) {
 	    if (lw1 == this->g_ev[i__ - 1]) {
 		IVP_IF(1) {
-		    IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL3) {
+		    IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL3, {
 			ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL3, "Rejected due to simply-connected polygon: case 1\n");
-		    }
+		    })
 		}
 		return;
 	    }
@@ -810,9 +810,9 @@ recheck_size_2:
 /* L130: */
 	    }
 	    IVP_IF(1) {
-		IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL3) {
+		IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL3, {
 		    ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL3, "Rejected due to simply-connected polygon: case 2\n");
-		}
+		})
 	    }
 	    return;
 L140:
@@ -885,9 +885,9 @@ L150:
     }
     if ( (angr < this->angacc) || ang - angr < this->angacc ) {
 	IVP_IF(1) {
-	    IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL3) {
+	    IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL3, {
 		ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL3, "Rejected due to small angle\n");
-	    }
+	    })
 	}
 	return;
     }
@@ -957,9 +957,9 @@ L150:
     }
     if (s < 0.) {
 	IVP_IF(1) {
-	    IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL3) {
+	    IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL3, {
 		ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL3, "Rejected due to inner boundary\n");
-	    }
+	    })
 	}
 	return;
     }
@@ -1045,9 +1045,9 @@ L190:
 
 	if (inout == 1) {
 	    IVP_IF(1) {
-		IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL3) {
+		IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL3, {
 		    ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL3, "Rejected due to hole polygon\n");
-		}
+		})
 	    }
 	    return;
 	}
@@ -1055,13 +1055,13 @@ L190:
     }
     *rflag = 1;
     IVP_IF(1) {
-	IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL3) {
+	IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL3, {
 	    ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL3, "CEDGE(1:2), CDANG\n");
 	    i__1 = *nce;
 	    for (i__ = 1; i__ <= i__1; ++i__) {
 		ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL3, "%d %d %d %f\n", i__, cedge[(i__ << 1) + 1], cedge[(i__ << 1) + 2], cdang[i__] * 180.0 / IVP_PI);
 	    }
-  	}
+  	})
     }
 
     return;

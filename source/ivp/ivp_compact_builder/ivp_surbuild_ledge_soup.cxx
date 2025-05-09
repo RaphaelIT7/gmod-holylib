@@ -105,9 +105,9 @@ IVP_SurfaceBuilder_Ledge_Soup::~IVP_SurfaceBuilder_Ledge_Soup() = default;
 void IVP_SurfaceBuilder_Ledge_Soup::insert_ledge(IVP_Compact_Ledge *c_ledge)
 {
   if (!c_ledge){
-    IVP_IFDEBUG(IVP_DM_SURBUILD_LEDGESOUP) {
+    IVP_IFDEBUG(IVP_DM_SURBUILD_LEDGESOUP, {
       ivp_debugmanager.dprint(IVP_DM_SURBUILD_LEDGESOUP, "warning: tried to add NULL ledge in IVP_SurfaceBuilder_Ledge_Soup::insert_ledge()\n");
-    }
+    })
     return;
 
   }

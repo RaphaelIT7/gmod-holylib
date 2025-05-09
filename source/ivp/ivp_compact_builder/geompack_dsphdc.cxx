@@ -180,9 +180,9 @@ void IVP_Geompack::dsphdc_() {
 	if (facesdata[f * 3 + 2] * facesdata[f * 3 + 3] > 0) {
 	    this->ierr = 321;
 	    IVP_IF(1) {
-		IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL1) {
+		IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL1, {
 		    ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL1, "*** GEOMPACK: face oriented same way twice in routine DSPHDC\n");
-		}
+		})
 	    }
 	    return;
 	}
@@ -312,9 +312,9 @@ void IVP_Geompack::dsphdc_() {
 	if (nht != 0) {
 	    this->ierr = 322;
 	    IVP_IF(1) {
-		IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL1) {
+		IVP_IFDEBUG(IVP_DM_GEOMPACK_LEVEL1, {
 		    ivp_debugmanager.dprint(IVP_DM_GEOMPACK_LEVEL1, "*** GEOMPACK: unmatched edge determined by routine DSPHDC\n");
-		}
+		})
 	    }
 	    return;
 	}
