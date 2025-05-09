@@ -25,7 +25,7 @@ jobs:
       ARTIFACT_EXPIRE: "7"
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
-      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-2"
+      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
 
   build_testingarea:
@@ -44,7 +44,7 @@ jobs:
       UPLOAD: "pterodactyl"
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
-      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-2"
+      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
       PTERODACTYL_RESTART: "true"
 
@@ -64,7 +64,7 @@ jobs:
       UPLOAD: "pterodactyl"
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
-      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-2"
+      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
       PTERODACTYL_RESTART: "true"
 
@@ -85,7 +85,7 @@ jobs:
       UPLOAD: "pterodactyl"
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
-      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-2"
+      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
       PTERODACTYL_RESTART: "true"
 
@@ -102,7 +102,7 @@ jobs:
       ARTIFACT_EXPIRE: "1"
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
-      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-2"
+      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
 
   setup_32x_artifacts:
