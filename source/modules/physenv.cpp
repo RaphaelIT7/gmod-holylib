@@ -245,7 +245,7 @@ IVModelInfo* modelinfo;
 IStaticPropMgrServer* staticpropmgr;
 IPhysics* physics = NULL;
 static IPhysicsCollision* physcollide = NULL;
-static IPhysicsSurfaceProps* physprops;
+IPhysicsSurfaceProps* physprops;
 void CPhysEnvModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	SourceSDK::FactoryLoader vphysics_loader("vphysics");
