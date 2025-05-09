@@ -124,7 +124,7 @@ void IVP_Compact_Ledge_Solver::get_all_ledges( const IVP_Compact_Mopp* mopp, IVP
 
 	do
 	{
-		IVP_ASSERT(((uintp)(ledge) & 0xf) == 0);
+		IVP_ASSERT(((hk_uintp)(ledge) & 0xf) == 0);
 
 		all_ledges_out->add((IVP_Compact_Ledge*)ledge);
 
@@ -698,16 +698,16 @@ IVP_BOOL IVP_Compact_Ledge_Solver::check_ledge(const IVP_Compact_Ledge *cl)
     // For debugging only
     // Checks for consistency
 
-	IVP_ASSERT ( (intp(cl) & 15) == 0);
+	IVP_ASSERT ( (hk_intp(cl) & 15) == 0);
 	const IVP_Compact_Poly_Point *ppppp=cl->get_point_array();
-	IVP_ASSERT ( ((intp)ppppp & 15 ) == 0);
+	IVP_ASSERT ( ((hk_intp)ppppp & 15 ) == 0);
 
     // all triangles 
     const IVP_Compact_Triangle *tri = cl->get_first_triangle();
     for(int i=0; i<cl->get_n_triangles(); i++){
 	IVP_ASSERT(i == tri->get_tri_index());
 
-		IVP_ASSERT ( (intp(tri) & 15) == 0);
+		IVP_ASSERT ( (hk_intp(tri) & 15) == 0);
 
 	// all edges
 	for(int j=0; j<3; j++){

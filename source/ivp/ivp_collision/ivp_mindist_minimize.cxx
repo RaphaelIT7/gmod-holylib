@@ -92,8 +92,8 @@ IVP_BOOL IVP_Mindist_Minimize_Solver::check_loop_hash(IVP_SYNAPSE_POLYGON_STATUS
     IVP_ASSERT( i_s0 < 4);
     IVP_ASSERT( i_s1 < 4);
 
-    intp x0 = intp(i_e0) | i_s0;
-    intp x1 = intp(i_e1) | i_s1;
+    hk_intp x0 = hk_intp(i_e0) | i_s0;
+    hk_intp x1 = hk_intp(i_e1) | i_s1;
 
     if (x0 < x1) {
 	int h = x0; x0 = x1; x1 = h;

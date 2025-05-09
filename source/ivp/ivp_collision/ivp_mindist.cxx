@@ -310,7 +310,7 @@ public:
 class IVP_MM_CMP {
 public:
     static inline int calc_hash_index( IVP_MM_CMP_Key * o){
-	int x = (intp)o->ledge[0] ^ ( intp(o->ledge[1])* 75 );
+	int x = (hk_intp)o->ledge[0] ^ ( hk_intp(o->ledge[1])* 75 );
 	return x + 1023 * (x>>8);
     }
 
@@ -318,7 +318,7 @@ public:
     static inline int calc_hash_index( IVP_Collision *c, IVP_MM_CMP_Key * /*ref_key*/){
 	const IVP_Compact_Ledge *ledge[2];
 	c->get_ledges(ledge);
-    intp x = (intp)ledge[0] ^ ( intp(ledge[1])* 75 );
+    hk_intp x = (hk_intp)ledge[0] ^ ( hk_intp(ledge[1])* 75 );
 	return x + 1023 * (x>>8);
     }
 
@@ -627,7 +627,7 @@ void IVP_Mindist_Manager::insert_and_recalc_phantom_mindist( IVP_Mindist *new_mi
 class IVP_OO_CMP {
 public:
     static inline int calc_hash_index( IVP_Real_Object * o){
-    intp x = (intp)o;
+    hk_intp x = (hk_intp)o;
 	return x + 1023 * (x>>8);
     }
 
@@ -635,7 +635,7 @@ public:
     static inline int calc_hash_index( IVP_Collision *c, IVP_Real_Object * con){
 	IVP_Real_Object *objects[2];
 	c->get_objects(objects);
-    intp x = intp(objects[0]) ^ intp(objects[1]) ^ intp(con);  // take other object (trick to avoid if)
+    hk_intp x = hk_intp(objects[0]) ^ hk_intp(objects[1]) ^ hk_intp(con);  // take other object (trick to avoid if)
 	IVP_ASSERT( objects[0] == con || objects[1] == con );
 	return x + 1023 * (x>>8);
     }
@@ -886,7 +886,7 @@ void IVP_Mindist::update_exact_mindist_events(IVP_BOOL allow_hull_conversion, IV
 		IVP_Debug_Manager *dm=get_environment()->get_debug_manager();
 		if(dm->file_out_impacts) 
 		{
-			fprintf(dm->out_deb_file,"doing_mindist_events %zi at %f\n",0x0000ffff&(intp)this,get_environment()->get_current_time().get_time());
+			fprintf(dm->out_deb_file,"doing_mindist_events %zi at %f\n",0x0000ffff&(hk_intp)this,get_environment()->get_current_time().get_time());
 		}
 	}
 	

@@ -170,7 +170,7 @@ int P_String::string_cmp(const char *str,const char *search,IVP_BOOL upper_case)
 
 char *gbs_add_path(char *path,char *name)
 	{
-	intp i,len,found;
+	hk_intp i,len,found;
 	char *erg;
 	if (!name) return name;
 	if (!path) {

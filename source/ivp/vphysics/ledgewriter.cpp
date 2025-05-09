@@ -88,7 +88,7 @@ static void BuildVertMap( vertmap_t &out, const Vector *pVerts, int vertexCount,
 // Each IVP_Compact_Triangle and IVP_Compact_Edge occupies an index 
 // 0,1,2,3 is tri, edge, edge, edge (tris and edges are both 16 bytes)
 // So you can just add the index to get_first_triangle to get a pointer 
-inline intp EdgeIndex( const IVP_Compact_Ledge *pLedge, const IVP_Compact_Edge *pEdge )
+inline hk_intp EdgeIndex( const IVP_Compact_Ledge *pLedge, const IVP_Compact_Edge *pEdge )
 {
 	return pEdge - (const IVP_Compact_Edge *)pLedge->get_first_triangle();
 }
@@ -101,8 +101,8 @@ void PackLedgeIntoBuffer( packedhull_t *pHull, CUtlBuffer &buf, const IVP_Compac
 
 	// The lists store the ivp index of each element to be written out
 	// The maps store the output packed index for each ivp index
-	CUtlVector<intp> triangleList, triangleMap;
-	CUtlVector<intp> edgeList, edgeMap;
+	CUtlVector<hk_intp> triangleList, triangleMap;
+	CUtlVector<hk_intp> edgeList, edgeMap;
 	vertmap_t vertMap;
 	BuildVertMap( vertMap, list.pVerts, list.vertexCount, pLedge );
 	pHull->baseVert = vertMap.minRef;
@@ -165,8 +165,8 @@ void PackLedgeIntoBuffer( packedhull_t *pHull, CUtlBuffer &buf, const IVP_Compac
 		for ( int j = 0; j < 3; j++ )
 		{
 			const IVP_Compact_Edge *pEdge = pTri->get_edge(j);
-			intp index = EdgeIndex(pLedge, pEdge);
-			intp oppositeIndex = EdgeIndex(pLedge, pEdge->get_opposite());
+			hk_intp index = EdgeIndex(pLedge, pEdge);
+			hk_intp oppositeIndex = EdgeIndex(pLedge, pEdge->get_opposite());
 			if ( !pEdge->get_is_virtual() && edgeMap[oppositeIndex] < 0 )
 			{
 				edgeMap[index] = edgeList.AddToTail(index);
@@ -230,10 +230,10 @@ void CVPhysicsVirtualMeshWriter::UnpackCompactLedgeFromHull( IVP_Compact_Ledge *
 	pLedge->has_chilren_flag = static_cast<unsigned>(isVirtualLedge ? IVP_TRUE : IVP_FALSE);
 
 	// Make the offset -pLedge so the result is a NULL ledgetree node - we haven't needed to create one of these as of yet
-	//pLedge->ledgetree_node_offset = -((intp)pLedge);
+	//pLedge->ledgetree_node_offset = -((hk_intp)pLedge);
 
 	// keep track of which triangle edge referenced this edge (so the next one can swap the order and point to the first one)
-	intp forwardEdgeIndex[255] = {};
+	hk_intp forwardEdgeIndex[255] = {};
 	for ( int i = 0; i < pHull->edgeCount; i++ )
 	{
 		forwardEdgeIndex[i] = -1;
@@ -264,13 +264,13 @@ void CVPhysicsVirtualMeshWriter::UnpackCompactLedgeFromHull( IVP_Compact_Ledge *
 			else
 			{
 				// this is the second triangle to use this edge, so it's reversed (and the other triangle sharing is in the forward edge table)
-				intp oppositeIndex = forwardEdgeIndex[edges[j]];
+				hk_intp oppositeIndex = forwardEdgeIndex[edges[j]];
 
 				int startVert = pPackedEdges[edges[j]].v1 + baseVert;
 				pOut[i].c_three_edges[j].set_start_point_index(startVert);
 				pOut[i].c_three_edges[j].set_is_virtual( static_cast<unsigned>(edges[j] < pHull->vedgeCount ? IVP_TRUE : IVP_FALSE) );
 				// now build the links between the triangles sharing this edge
-				intp thisEdgeIndex = EdgeIndex( pLedge, &pOut[i].c_three_edges[j] );
+				hk_intp thisEdgeIndex = EdgeIndex( pLedge, &pOut[i].c_three_edges[j] );
 				pOut[i].c_three_edges[j].set_opposite_index( oppositeIndex - thisEdgeIndex );
 				pOut[i].c_three_edges[j].get_opposite()->set_opposite_index( thisEdgeIndex - oppositeIndex );
 			}

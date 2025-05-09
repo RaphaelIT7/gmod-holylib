@@ -201,8 +201,8 @@ void IVP_Hash::remove(const char *key){
 int IVP_U_String_Hash::hash_index(const char *key)const {
 	unsigned int c;		
 	unsigned int index = 0xffffffffL;
-	intp i;
-	intp key_size = strlen(key);
+	hk_intp i;
+	hk_intp key_size = strlen(key);
 	for (i=key_size-1;i>=0;i--){
 	    c = *((unsigned char *)(key++));
 	    index = IVP_Hash_crctab[((int) index ^ c) & 0xff] ^ (index >> 8);
@@ -247,7 +247,7 @@ void *IVP_U_String_Hash::find(const char *key)const{
 
 void IVP_U_String_Hash::add(const char *key, void *val){
     int i = hash_index(key);
-    intp keysize = strlen(key);
+    hk_intp keysize = strlen(key);
     IVP_Hash_Elem *el = (IVP_Hash_Elem *)p_malloc(sizeof(IVP_Hash_Elem) + keysize);
     memcpy(el->key,key,keysize+1);
     el->next = elems[i];

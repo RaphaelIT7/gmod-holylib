@@ -52,7 +52,7 @@ public:
 
     IVP_FLOAT		radius;
 
-    intp			byte_size;
+    hk_intp			byte_size;
     
     IVP_FLOAT		inv_grid_size;
 
@@ -67,7 +67,7 @@ public:
      *  Description:    INTERNAL METHOD
      *****************************************************************************/
     const IVP_Compact_Grid_Element *get_grid_elements() {
-    	char *base = (char *)(((intp)this) + this->offset_grid_elements);
+    	char *base = (char *)(((hk_intp)this) + this->offset_grid_elements);
 	return((const IVP_Compact_Grid_Element *)base);
     }
 
@@ -76,7 +76,7 @@ public:
      *  Description:    INTERNAL METHOD
      *****************************************************************************/
     const IVP_Compact_Ledge *get_compact_ledge_at(int i) {
-    	char *base = (char *)(((intp)this) + this->offset_compact_ledge_array[i]);
+    	char *base = (char *)(((hk_intp)this) + this->offset_compact_ledge_array[i]);
 	return((const IVP_Compact_Ledge *)base);
     }
 

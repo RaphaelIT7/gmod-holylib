@@ -40,8 +40,8 @@ protected:
     IVP_VHash(IVP_VHash_Elem *static_elems, int size);// assert(size = 2**x)
     virtual IVP_BOOL compare(const void *elem0, const void *elem1)const = 0;  // return TRUE if equal
 public:
-    static inline int hash_index(const char *data, intp size);            // useable index calculation, result is [0,0xfffffff]
-    static inline int fast_hash_index(intp key);       // useable index calculation when size == 4 , result is [0,0xfffffff]
+    static inline int hash_index(const char *data, hk_intp size);            // useable index calculation, result is [0,0xfffffff]
+    static inline int fast_hash_index(hk_intp key);       // useable index calculation when size == 4 , result is [0,0xfffffff]
 
     // touches element
     void add_elem(const void *elem, int hash_index);
@@ -76,10 +76,10 @@ public:
 
 
 // basic function for calculating the hash_index
-inline int IVP_VHash::hash_index(const char *key, intp key_size){
+inline int IVP_VHash::hash_index(const char *key, hk_intp key_size){
 	unsigned int c;		
 	unsigned int index = 0xffffffffL; //-V112
-	for (intp i=key_size-1;i>=0;i--){
+	for (hk_intp i=key_size-1;i>=0;i--){
 	    c = *((const unsigned char *)(key++));
 	    index = IVP_Hash_crctab[((int) index ^ c) & 0xff] ^ (index >> 8);
 	}
@@ -87,8 +87,8 @@ inline int IVP_VHash::hash_index(const char *key, intp key_size){
 };
 
 // basic function for calculating the hash_index of key is a long long
-constexpr int keyBits = sizeof(intp) * 4;
-inline int IVP_VHash::fast_hash_index(intp key) {
+constexpr int keyBits = sizeof(hk_intp) * 4;
+inline int IVP_VHash::fast_hash_index(hk_intp key) {
   int index = static_cast<int>(((key * 1001) >> keyBits) + key * 75); //-V112
   return index | IVP_VHASH_TOUCH_BIT;  // set touch bit
 }

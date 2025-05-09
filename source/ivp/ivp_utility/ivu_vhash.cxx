@@ -277,7 +277,7 @@ void IVP_VHash::print()const{
     int i;
     ivp_message("%i:",len());
     for (i = 0; i<= size_mm;i++){
-	ivp_message (" %i:%X:%X  ", elems[i].hash_index & size_mm, (int)(intp)elems[i].elem, elems[i].hash_index);
+	ivp_message (" %i:%X:%X  ", elems[i].hash_index & size_mm, (int)(hk_intp)elems[i].elem, elems[i].hash_index);
     }
     ivp_message("\n");
 }
@@ -571,7 +571,7 @@ void IVP_VHash_Store::print(){
     int i;
     ivp_message("%i:",size);
     for (i = 0; i< size;i++){
-	ivp_message (" %i:%X:%X:%X  ", elems_store[i].hash_index & size_mm, (int)(intp)elems_store[i].key_elem, (int)(intp)elems_store[i].elem, elems_store[i].hash_index);
+	ivp_message (" %i:%X:%X:%X  ", elems_store[i].hash_index & size_mm, (int)(hk_intp)elems_store[i].key_elem, (int)(hk_intp)elems_store[i].elem, elems_store[i].hash_index);
     }
     ivp_message("\n");
 }

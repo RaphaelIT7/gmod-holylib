@@ -98,7 +98,7 @@ public:
 	}
 	void DeleteAll()
 	{
-		for ( intp i = m_list.Count()-1; i >= 0; --i)
+		for ( hk_intp i = m_list.Count()-1; i >= 0; --i)
 		{
 			m_list[i]->Delete();
 			delete m_list[i];
@@ -200,7 +200,7 @@ public:
 		m_pCallback = pListener;
 	}
 
-	void Remove( intp index )
+	void Remove( hk_intp index )
 	{
 		// fast remove preserves indices except for the last element (moved into the empty spot)
 		m_activeObjects.FastRemove(index);
@@ -213,16 +213,16 @@ public:
 
 	void DeleteObject( CPhysicsObject *pObject )
 	{
-		intp index = pObject->GetActiveIndex();
+		hk_intp index = pObject->GetActiveIndex();
 		if ( index < m_activeObjects.Count() )
 		{
 			Assert( m_activeObjects[index] == pObject );
 			Remove( index );
-			pObject->SetActiveIndex( std::numeric_limits<intp>::max() );
+			pObject->SetActiveIndex( std::numeric_limits<hk_intp>::max() );
 		}
 		else
 		{
-			Assert(index==std::numeric_limits<intp>::max());
+			Assert(index==std::numeric_limits<hk_intp>::max());
 		}
 	}
 
@@ -256,8 +256,8 @@ public:
 		// don't track static objects (like the world).  That way we only track objects that will move
 		if ( pObject->GetObject()->get_movement_state() != IVP_MT_STATIC )
 		{
-			Assert(pObject->GetActiveIndex()==std::numeric_limits<intp>::max());
-			if ( pObject->GetActiveIndex()!=std::numeric_limits<intp>::max())
+			Assert(pObject->GetActiveIndex()==std::numeric_limits<hk_intp>::max());
+			if ( pObject->GetActiveIndex()!=std::numeric_limits<hk_intp>::max())
 				return;
 
 			auto index = m_activeObjects.AddToTail( pObject );
@@ -378,20 +378,20 @@ public:
 			}
 		}
 	}
-	intp	GetActiveObjectCount( void ) const
+	hk_intp	GetActiveObjectCount( void ) const
 	{
 		return m_activeObjects.Count();
 	}
 	void GetActiveObjects( IPhysicsObject **pOutputObjectList ) const
 	{
-		for ( intp i = 0; i < m_activeObjects.Count(); i++ )
+		for ( hk_intp i = 0; i < m_activeObjects.Count(); i++ )
 		{
 			pOutputObjectList[i] = m_activeObjects[i];
 		}
 	}
 	void UpdateSleepObjects( void )
 	{
-		intp i;
+		hk_intp i;
 
 		CUtlVector<CPhysicsObject *> sleepObjects;
 
@@ -1185,7 +1185,7 @@ CPhysicsEnvironment::~CPhysicsEnvironment( void )
 	m_pPhysEnv->remove_listener_constraint_global( m_pConstraintListener );
 
 	// Clean out the list of physics objects
-	for ( intp i = m_objects.Count()-1; i >= 0; --i )
+	for ( hk_intp i = m_objects.Count()-1; i >= 0; --i )
 	{
 		CPhysicsObject *pObject = static_cast<CPhysicsObject *>(m_objects[i]);
 		PhantomRemove( pObject );
@@ -1277,7 +1277,7 @@ void CPhysicsEnvironment::GetGravity( Vector *pGravityVector ) const
 }
 
 
-IPhysicsObject *CPhysicsEnvironment::CreatePolyObject( const CPhysCollide *pCollisionModel, intp materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams )
+IPhysicsObject *CPhysicsEnvironment::CreatePolyObject( const CPhysCollide *pCollisionModel, hk_intp materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams )
 {
 	IPhysicsObject *pObject = ::CreatePhysicsObject( this, pCollisionModel, materialIndex, position, angles, pParams, false );
 	if ( pObject )
@@ -1287,7 +1287,7 @@ IPhysicsObject *CPhysicsEnvironment::CreatePolyObject( const CPhysCollide *pColl
 	return pObject;
 }
 
-IPhysicsObject *CPhysicsEnvironment::CreatePolyObjectStatic( const CPhysCollide *pCollisionModel, intp materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams )
+IPhysicsObject *CPhysicsEnvironment::CreatePolyObjectStatic( const CPhysCollide *pCollisionModel, hk_intp materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams )
 {
 	IPhysicsObject *pObject = ::CreatePhysicsObject( this, pCollisionModel, materialIndex, position, angles, pParams, true );
 	if ( pObject )
@@ -1322,9 +1322,9 @@ IPhysicsObject *CPhysicsEnvironment::UnserializeObjectFromBuffer( void *pGameDat
 	return pObject;
 }
 
-const IPhysicsObject **CPhysicsEnvironment::GetObjectList( intp *pOutputObjectCount ) const
+const IPhysicsObject **CPhysicsEnvironment::GetObjectList( hk_intp *pOutputObjectCount ) const
 {
-	intp iCount = m_objects.Count();
+	hk_intp iCount = m_objects.Count();
 	if( pOutputObjectCount ) 
 		*pOutputObjectCount = iCount;
 
@@ -1341,7 +1341,7 @@ extern void ControlPhysicsPlayerControllerAttachment_Silent( IPhysicsPlayerContr
 
 bool CPhysicsEnvironment::TransferObject( IPhysicsObject *pObject, IPhysicsEnvironment *pDestinationEnvironment )
 {
-	intp iIndex = m_objects.Find( pObject );
+	hk_intp iIndex = m_objects.Find( pObject );
 	if( iIndex == -1 || (pObject->GetCallbackFlags() & CALLBACK_MARKED_FOR_DELETE ) )
 		return false;
 
@@ -1405,7 +1405,7 @@ bool CPhysicsEnvironment::TransferObject( IPhysicsObject *pObject, IPhysicsEnvir
 	//even if this is going to sleep in a second, put it active right away to fix some object hitching problems
 	pPhysics->Wake();
 	pPhysics->NotifyWake();
-	/*intp iActiveIndex = pDest->m_pSleepEvents->m_activeObjects.AddToTail( pPhysics );
+	/*hk_intp iActiveIndex = pDest->m_pSleepEvents->m_activeObjects.AddToTail( pPhysics );
 	pPhysics->SetActiveIndex( iActiveIndex );*/
 	
 	pDest->m_pPhysEnv->force_psi_on_next_simulation(); //avoids an object pause
@@ -1600,8 +1600,8 @@ void CPhysicsEnvironment::DestroyObject( IPhysicsObject *pObject )
 	}
 
 	// search from the end because we usually delete the most recent objects during run time
-	intp index = -1;
-	for ( intp i = m_objects.Count(); --i >= 0; )
+	hk_intp index = -1;
+	for ( hk_intp i = m_objects.Count(); --i >= 0; )
 	{
 		if ( m_objects[i] == pObject )
 		{
@@ -1709,7 +1709,7 @@ void CPhysicsEnvironment::ClearDeadObjects( void )
 {
 	// dimhotepus: Can't use range-for loop here as DeleteObject may recursively
 	// call ClearDeadObjects and m_deadObjects will be modified when iterating.
-	for ( intp i = 0; i < m_deadObjects.Count(); i++ )
+	for ( hk_intp i = 0; i < m_deadObjects.Count(); i++ )
 	{
 		auto *pObject = (CPhysicsObject *)m_deadObjects.Element(i);
 
@@ -1737,7 +1737,7 @@ void CPhysicsEnvironment::RemovePlayerController( IPhysicsPlayerController *pCon
 
 IPhysicsPlayerController *CPhysicsEnvironment::FindPlayerController( IPhysicsObject *pPhysicsObject )
 {
-	for ( intp i = m_playerControllers.Count()-1; i >= 0; --i )
+	for ( hk_intp i = m_playerControllers.Count()-1; i >= 0; --i )
 	{
 		if ( m_playerControllers[i]->GetObject() == pPhysicsObject )
 			return m_playerControllers[i];
@@ -1806,7 +1806,7 @@ void CPhysicsEnvironment::DestroyVehicleController( IPhysicsVehicleController *p
 	delete pController;
 }
 
-intp	CPhysicsEnvironment::GetActiveObjectCount( void ) const
+hk_intp	CPhysicsEnvironment::GetActiveObjectCount( void ) const
 {
 	return m_pSleepEvents->GetActiveObjectCount();
 }
@@ -1843,13 +1843,13 @@ void CPhysicsEnvironment::CleanupDeleteList()
 
 bool CPhysicsEnvironment::IsCollisionModelUsed( CPhysCollide *pCollide ) const
 {
-	for ( intp i = m_deadObjects.Count()-1; i >= 0; --i )
+	for ( hk_intp i = m_deadObjects.Count()-1; i >= 0; --i )
 	{
 		if ( m_deadObjects[i]->GetCollide() == pCollide )
 			return true;
 	}
 	
-	for ( intp i = m_objects.Count()-1; i >= 0; --i )
+	for ( hk_intp i = m_objects.Count()-1; i >= 0; --i )
 	{
 		if ( m_objects[i]->GetCollide() == pCollide )
 			return true;
@@ -1881,7 +1881,7 @@ void CPhysicsEnvironment::PhantomRemove( CPhysicsObject *pObject )
 
 //-------------------------------------
 
-IPhysicsObject *CPhysicsEnvironment::CreateSphereObject( float radius, intp materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams, bool isStatic )
+IPhysicsObject *CPhysicsEnvironment::CreateSphereObject( float radius, hk_intp materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams, bool isStatic )
 {
 	IPhysicsObject *pObject = ::CreatePhysicsSphere( this, radius, materialIndex, position, angles, pParams, isStatic );
 	m_objects.AddToTail( pObject );
@@ -2042,7 +2042,7 @@ public:
 		if ( !pHash )
 			return m_objectList.InvalidIndex();
 
-        uintp hash = (uintp)pHash;
+        hk_uintp hash = (hk_uintp)pHash;
 		// mask off the extra bit we added to avoid zeros
 		hash &= 0xFFFF;
 		return (unsigned short)hash;
@@ -2055,7 +2055,7 @@ public:
 
 		// set the high bit, so zero means "not there"
 		hash |= 0x80000000;
-		return (void *)(intp)hash;
+		return (void *)(hk_intp)hash;
 	}
 
 	// Lookup this object and get a multilist entry

@@ -55,14 +55,14 @@ public:
 	void InitFromTemplate( const vphysics_save_motioncontroller_t &controllerTemplate );
 
 	// returns the number of objects currently attached to the controller
-	intp CountObjects( void ) override
+	hk_intp CountObjects( void ) override
 	{
 		return m_coreList.Count();
 	}
 	// NOTE: pObjectList is an array with at least CountObjects() allocated
 	void GetObjects( IPhysicsObject **pObjectList ) override
 	{
-		for ( intp i = 0; i < m_coreList.Count(); i++ )
+		for ( hk_intp i = 0; i < m_coreList.Count(); i++ )
 		{
 			IVP_Core *pCore = m_coreList[i];
 
@@ -78,7 +78,7 @@ public:
 	{
 		while ( m_coreList.Count() )
 		{
-			intp x = m_coreList.Count()-1;
+			hk_intp x = m_coreList.Count()-1;
 			IVP_Core *pCore = m_coreList[x];
 			RemoveCore( pCore );
 		}
@@ -87,7 +87,7 @@ public:
 	// wakes up all attached objects
 	void WakeObjects( void ) override
 	{
-		for ( intp i = 0; i < m_coreList.Count(); i++ )
+		for ( hk_intp i = 0; i < m_coreList.Count(); i++ )
 		{
 			IVP_Core *pCore = m_coreList[i];
 			pCore->ensure_core_to_be_in_simulation();
@@ -113,7 +113,7 @@ CPhysicsMotionController::CPhysicsMotionController( IMotionEvent *pHandler, CPhy
 CPhysicsMotionController::~CPhysicsMotionController( void )
 {
 	Assert( !m_pVEnv->IsInSimulation() );
-	for ( intp i = 0; i < m_coreList.Count(); i++ )
+	for ( hk_intp i = 0; i < m_coreList.Count(); i++ )
 	{
 		m_coreList[i]->rem_core_controller( (IVP_Controller *)this );
 	}
@@ -234,7 +234,7 @@ void CPhysicsMotionController::AttachObject( IPhysicsObject *pObject, bool check
 	// OPTIMIZE: Linear search here?
 	if ( checkIfAlreadyAttached )
 	{
-		intp index = m_coreList.Find(pCore);
+		hk_intp index = m_coreList.Find(pCore);
 		if ( m_coreList.IsValidIndex(index) )
 		{
 			DevMsg(1,"Attached core twice!!!\n");
@@ -251,7 +251,7 @@ void CPhysicsMotionController::AttachObject( IPhysicsObject *pObject, bool check
 
 void CPhysicsMotionController::RemoveCore( IVP_Core *pCore )
 {
-	intp index = m_coreList.Find(pCore);
+	hk_intp index = m_coreList.Find(pCore);
 	if ( !m_coreList.IsValidIndex(index) )
 	{
 #if DEBUG
@@ -279,7 +279,7 @@ void CPhysicsMotionController::WriteToTemplate( vphysics_save_motioncontroller_t
 {
 	controllerTemplate.m_nPriority = m_priority;
 
-	intp nObjectCount = CountObjects();
+	hk_intp nObjectCount = CountObjects();
 	controllerTemplate.m_objectList.AddMultipleToTail( nObjectCount );
 	GetObjects( controllerTemplate.m_objectList.Base() );
 }
@@ -288,8 +288,8 @@ void CPhysicsMotionController::InitFromTemplate(  const vphysics_save_motioncont
 {
 	m_priority = controllerTemplate.m_nPriority;
 
-	intp nObjectCount = controllerTemplate.m_objectList.Count();
-	for ( intp i = 0; i < nObjectCount; ++i )
+	hk_intp nObjectCount = controllerTemplate.m_objectList.Count();
+	for ( hk_intp i = 0; i < nObjectCount; ++i )
 	{
 		AttachObject( controllerTemplate.m_objectList[i], true );
 	}

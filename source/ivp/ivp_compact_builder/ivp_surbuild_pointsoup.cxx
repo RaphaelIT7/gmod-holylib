@@ -334,7 +334,7 @@ IVP_Compact_Ledge *IVP_SurfaceBuilder_Pointsoup::try_to_build_convex_ledge_from_
 	    point_indizes.remove_all();
 	    FOREACHvertex_(vertices) {
 		int point_index = qh_pointid(vertex->point);
-		point_indizes.add( reinterpret_cast<int*>(static_cast<intp>(point_index)) );
+		point_indizes.add( reinterpret_cast<int*>(static_cast<hk_intp>(point_index)) );
 		plane->points.add(points->element_at(point_index));
 		use_list[point_index] ++;
 	    }
@@ -357,7 +357,7 @@ IVP_Compact_Ledge *IVP_SurfaceBuilder_Pointsoup::try_to_build_convex_ledge_from_
 	      int max_index = 0;
 	      int max_index2 = 0;
 	      for (int i0 = 0; i0 < point_indizes.len(); i0++){
-        intp in = intp(point_indizes.element_at(i0));
+        hk_intp in = hk_intp(point_indizes.element_at(i0));
 		if (skip_list[in]) goto no_point_skipped;
 		IVP_U_Point *p2 = plane->points.element_at( i0 );
 		IVP_DOUBLE dist = plane->points.element_at( 0 )->quad_distance_to(p2);
@@ -384,7 +384,7 @@ IVP_Compact_Ledge *IVP_SurfaceBuilder_Pointsoup::try_to_build_convex_ledge_from_
 	      {
 		  for (int i2 = 0; i2 < point_indizes.len(); i2++){
 		    if (i2 != max_index2 && i2 != max_index) {
-              intp in = intp(point_indizes.element_at(i2));
+              hk_intp in = hk_intp(point_indizes.element_at(i2));
 		      skip_list[in]++;
 		      IVP_ASSERT( use_list[in] );
 		      //ivp_message("point removed %i %i\n",in, points->len());

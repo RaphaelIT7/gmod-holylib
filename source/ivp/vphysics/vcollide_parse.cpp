@@ -66,7 +66,7 @@ public:
 	void		ParseSolid( solid_t *pSolid, IVPhysicsKeyHandler *unknownKeyHandler ) override;
 	void		ParseFluid( fluid_t *pFluid, IVPhysicsKeyHandler *unknownKeyHandler ) override;
 	void		ParseRagdollConstraint( constraint_ragdollparams_t *pConstraint, IVPhysicsKeyHandler *unknownKeyHandler ) override;
-	void		ParseSurfaceTable( intp *table, IVPhysicsKeyHandler *unknownKeyHandler ) override;
+	void		ParseSurfaceTable( hk_intp *table, IVPhysicsKeyHandler *unknownKeyHandler ) override;
 	void		ParseSurfaceTablePacked( CUtlVector<char> &out );
 	void		ParseVehicle( vehicleparams_t *pVehicle, IVPhysicsKeyHandler *unknownKeyHandler ) override;
 	void		ParseCustom( void *pCustom, IVPhysicsKeyHandler *unknownKeyHandler ) override;
@@ -376,7 +376,7 @@ void CVPhysicsParse::ParseFluid( fluid_t *pFluid, IVPhysicsKeyHandler *unknownKe
 	}
 }
 
-void CVPhysicsParse::ParseSurfaceTable( intp *table, IVPhysicsKeyHandler *unknownKeyHandler )
+void CVPhysicsParse::ParseSurfaceTable( hk_intp *table, IVPhysicsKeyHandler *unknownKeyHandler )
 {
 	char key[MAX_KEYVALUE], value[MAX_KEYVALUE];
 
@@ -390,7 +390,7 @@ void CVPhysicsParse::ParseSurfaceTable( intp *table, IVPhysicsKeyHandler *unknow
 			return;
 		}
 
-		intp propIndex = physprops->GetSurfaceIndex( key );
+		hk_intp propIndex = physprops->GetSurfaceIndex( key );
 		int tableIndex = atoi(value);
 		if ( tableIndex >= 0 && tableIndex < 128 )
 		{
@@ -414,8 +414,8 @@ void CVPhysicsParse::ParseSurfaceTablePacked( CUtlVector<char> &out )
 			return;
 		}
 
-		intp len = Q_strlen( key );
-		intp outIndex = out.AddMultipleToTail( len + 1 );
+		hk_intp len = Q_strlen( key );
+		hk_intp outIndex = out.AddMultipleToTail( len + 1 );
 		memcpy( &out[outIndex], key, len+1 );
 		int tableIndex = atoi(value);
 		Assert( tableIndex == lastIndex + 1);

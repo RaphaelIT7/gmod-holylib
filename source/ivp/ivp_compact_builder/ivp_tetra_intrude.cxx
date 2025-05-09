@@ -75,7 +75,7 @@ void IVP_Intrusion_Intersection::print(const char *text){
     if (!text){
 	text = "";
     }else{
-	if ( intp(pairing_intersection) > intp(this)) return;
+	if ( hk_intp(pairing_intersection) > hk_intp(this)) return;
     }
     ivp_message("%s %s Intersection pnt %i - %i",text,
 	   (type != IVP_INTRUSION_CHECK_OVERLAP)? "normal":"equalp",
@@ -263,7 +263,7 @@ void IVP_Tetra_Intrude::checkin_edge(IVP_Tri_Edge *edge){
 
 	this->init_tetra_edge(t_edge,edge->tmp.gen.tetra_point,edge->next->tmp.gen.tetra_point,edge);
     }else{
-	t_edge = (IVP_Tetra_Edge *)(te + intp(tetra_edges));
+	t_edge = (IVP_Tetra_Edge *)(te + hk_intp(tetra_edges));
     }
     t_edge->reference_count++;
     edge->tmp.gen.checked_in = IVP_TRUE;
@@ -285,7 +285,7 @@ void IVP_Tetra_Intrude::checkout_edge(IVP_Tri_Edge *edge){
     }
 
     te = (char *)twop_2_tetra_edge_hash->find((char *)&buffer[0]);
-    t_edge = (IVP_Tetra_Edge *)(te + intp(tetra_edges));
+    t_edge = (IVP_Tetra_Edge *)(te + hk_intp(tetra_edges));
     t_edge->reference_count--;
     /* edge no more referenced -> delete it */
     if (t_edge->reference_count<=0){

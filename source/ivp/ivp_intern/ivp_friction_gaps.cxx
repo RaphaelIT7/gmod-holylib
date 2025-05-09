@@ -641,7 +641,7 @@ void IVP_Friction_System::test_hole_fr_system_data()
 			temp_dist=fs->get_next_friction_dist(temp_dist);
 		    }
 		    if(!is_in_collection){
-			ivp_message("test_fr there was mindist %zi in obj which is not in system\n",(intp)all_dists&0x0000ffff); CORE; 
+			ivp_message("test_fr there was mindist %zi in obj which is not in system\n",(hk_intp)all_dists&0x0000ffff); CORE; 
 		    }
 		}
 	    }
@@ -1009,10 +1009,10 @@ void IVP_Friction_System::exchange_friction_dists(IVP_Contact_Point *first_frd,I
 void IVP_Friction_System::ivp_debug_fs_pointers()
 {
     IVP_IF(1) {
-    ivp_message("%zi  ",(intp)first_friction_dist&0x0000ffff);
+    ivp_message("%zi  ",(hk_intp)first_friction_dist&0x0000ffff);
     for(IVP_Contact_Point *fr_d=get_first_friction_dist();fr_d;fr_d=get_next_friction_dist(fr_d))
     {
-	ivp_message("%zi %zi %d %zi  ",(intp)fr_d->prev_dist_in_friction&0x0000ffff,(intp)fr_d&0x0000ffff,fr_d->has_negative_pull_since,(intp)fr_d->next_dist_in_friction&0x0000ffff);
+	ivp_message("%zi %zi %d %zi  ",(hk_intp)fr_d->prev_dist_in_friction&0x0000ffff,(hk_intp)fr_d&0x0000ffff,fr_d->has_negative_pull_since,(hk_intp)fr_d->next_dist_in_friction&0x0000ffff);
     }
     ivp_message("\n");
     }

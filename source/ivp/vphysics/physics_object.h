@@ -199,8 +199,8 @@ public:
 	[[nodiscard]] int				GetSleepState( void ) const { return m_sleepState; }
 	inline void		ForceSilentDelete() { m_forceSilentDelete = true; }
 
-	[[nodiscard]] inline intp		GetActiveIndex( void ) const { return m_activeIndex; }
-	inline void		SetActiveIndex( intp index ) { m_activeIndex = index; }
+	[[nodiscard]] inline hk_intp		GetActiveIndex( void ) const { return m_activeIndex; }
+	inline void		SetActiveIndex( hk_intp index ) { m_activeIndex = index; }
 	[[nodiscard]] inline float	GetBuoyancyRatio( void ) const { return m_buoyancyRatio; }
 	// returns true if the mass center is set to the default for the collision model
 	[[nodiscard]] bool			IsMassCenterAtDefault() const;
@@ -250,8 +250,8 @@ private:
 	unsigned short	m_gameIndex;
 
 private:
-	// dimhotepus: unsigned short -> intp
-	intp	m_activeIndex;
+	// dimhotepus: unsigned short -> hk_intp
+	hk_intp	m_activeIndex;
 	// dimhotepus: unsigned short -> int
 	int		m_materialIndex;
 
@@ -264,7 +264,7 @@ private:
 	float			m_dragCoefficient;
 	float			m_angDragCoefficient;
 
-	friend CPhysicsObject *CreatePhysicsObject( CPhysicsEnvironment *pEnvironment, const CPhysCollide *pCollisionModel, intp materialIndex, const Vector &position, const QAngle& angles, objectparams_t *pParams, bool isStatic );
+	friend CPhysicsObject *CreatePhysicsObject( CPhysicsEnvironment *pEnvironment, const CPhysCollide *pCollisionModel, hk_intp materialIndex, const Vector &position, const QAngle& angles, objectparams_t *pParams, bool isStatic );
 	friend bool CPhysicsEnvironment::TransferObject( IPhysicsObject *pObject, IPhysicsEnvironment *pDestinationEnvironment ); //need direct access to m_pShadow for Portal mod's physics object transfer system
 };
 
@@ -280,8 +280,8 @@ inline void CPhysicsObject::SetTouchedDynamic()
 	m_hasTouchedDynamic = true;
 }
 
-extern [[nodiscard]] CPhysicsObject *CreatePhysicsObject( CPhysicsEnvironment *pEnvironment, const CPhysCollide *pCollisionModel, intp materialIndex, const Vector &position, const QAngle &angles, objectparams_t *pParams, bool isStatic );
-extern [[nodiscard]] CPhysicsObject *CreatePhysicsSphere( CPhysicsEnvironment *pEnvironment, float radius, intp materialIndex, const Vector &position, const QAngle &angles, objectparams_t *pParams, bool isStatic );
+extern [[nodiscard]] CPhysicsObject *CreatePhysicsObject( CPhysicsEnvironment *pEnvironment, const CPhysCollide *pCollisionModel, hk_intp materialIndex, const Vector &position, const QAngle &angles, objectparams_t *pParams, bool isStatic );
+extern [[nodiscard]] CPhysicsObject *CreatePhysicsSphere( CPhysicsEnvironment *pEnvironment, float radius, hk_intp materialIndex, const Vector &position, const QAngle &angles, objectparams_t *pParams, bool isStatic );
 extern void PostRestorePhysicsObject();
 extern [[nodiscard]] IPhysicsObject *CreateObjectFromBuffer( CPhysicsEnvironment *pEnvironment, void *pGameData, unsigned char *pBuffer, unsigned int bufferSize, bool enableCollisions );
 extern IPhysicsObject *CreateObjectFromBuffer_UseExistingMemory( CPhysicsEnvironment *pEnvironment, void *pGameData, unsigned char *pBuffer, unsigned int bufferSize, CPhysicsObject *pExistingMemory );

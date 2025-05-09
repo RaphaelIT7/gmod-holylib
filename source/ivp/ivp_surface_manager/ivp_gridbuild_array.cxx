@@ -58,7 +58,7 @@ IVP_GridBuilder_Array::IVP_GridBuilder_Array(IVP_U_Memory *mm_, const IVP_Templa
 	    dest->k[ gp->height_maps_to ]      = float(source[0] * dz);
 	    source++;
 	    dest++;
-		IVP_ASSERT( ((intp)dest & 15) == 0 );
+		IVP_ASSERT( ((hk_intp)dest & 15) == 0 );
 	    y += dy;
 	}
 	x += dx;
@@ -74,7 +74,7 @@ int IVP_GridBuilder_Array::install_grid_point(int grid_point_index){
     compact_poly_point_buffer[ index ] = height_points[grid_point_index];
 	IVP_IF(1) {
 		IVP_Compact_Poly_Point *cpp=&compact_poly_point_buffer[ index ];
-        intp adress=(intp)cpp;
+        hk_intp adress=(hk_intp)cpp;
 		IVP_ASSERT( (adress & 15)==0 );
 	}
     return index;
@@ -84,7 +84,7 @@ int IVP_GridBuilder_Array::install_point(const IVP_U_Float_Point *point){
     int index = n_compact_poly_points_used++;
 	IVP_IF(1) {
 		IVP_Compact_Poly_Point *cpp=&compact_poly_point_buffer[ index ];
-        intp adress=(intp)cpp;
+        hk_intp adress=(hk_intp)cpp;
 		IVP_ASSERT( (adress & 15)==0 );
 	}
     compact_poly_point_buffer[ index ].set(point);
@@ -181,7 +181,7 @@ IVP_Compact_Ledge *IVP_GridBuilder_Array::convert_convex_triangle_to_compact_led
     int mem_size = 	sizeof(IVP_Compact_Ledge) +	num_triangles * sizeof(IVP_Compact_Triangle);
 
     this->c_ledge = (IVP_Compact_Ledge *)mm->get_memc( mem_size);
-    IVP_ASSERT( (intp(this->c_ledge) & 15) == 0);	// make sure it is aligned
+    IVP_ASSERT( (hk_intp(this->c_ledge) & 15) == 0);	// make sure it is aligned
 
     { // set point arrays
 	// search the minimum point index and install points
@@ -235,7 +235,7 @@ IVP_Compact_Ledge *IVP_GridBuilder_Array::convert_convex_square_to_compact_ledge
     int mem_size = 	sizeof(IVP_Compact_Ledge) +	num_triangles * sizeof(IVP_Compact_Triangle);
 
     this->c_ledge = (IVP_Compact_Ledge *)mm->get_memc( mem_size);
-    IVP_ASSERT( (intp(this->c_ledge) & 15) == 0);	// make sure it is aligned
+    IVP_ASSERT( (hk_intp(this->c_ledge) & 15) == 0);	// make sure it is aligned
 
     { // set point arrays
 	// search the minimum point index and install points
@@ -320,7 +320,7 @@ IVP_Compact_Ledge *IVP_GridBuilder_Array::convert_convex_stripe_to_compact_ledge
     int mem_size = 	sizeof(IVP_Compact_Ledge) +	num_triangles * sizeof(IVP_Compact_Triangle);
 
     this->c_ledge = (IVP_Compact_Ledge *)mm->get_memc( mem_size);
-    IVP_ASSERT ( (intp(c_ledge) & 15) == 0);
+    IVP_ASSERT ( (hk_intp(c_ledge) & 15) == 0);
 
 
 
@@ -732,7 +732,7 @@ void IVP_GridBuilder_Array::convert_array_to_compact_ledges( const IVP_Template_
 /* merge everything into the final compact grid thing */
 IVP_Compact_Grid *IVP_GridBuilder_Array::compile_ledges_into_compact_grid(const IVP_Template_Compact_Grid *gp,IVP_U_Vector<IVP_Compact_Ledge> *ledges){
 	IVP_Compact_Grid *cg = NULL;
-	intp buffer_size = offsetof(IVP_Compact_Grid, offset_compact_ledge_array);	// size for base compact ledge
+	hk_intp buffer_size = offsetof(IVP_Compact_Grid, offset_compact_ledge_array);	// size for base compact ledge
 
 	buffer_size += ledges->len() * sizeof(int); // add buffersize for ledge index array
 	buffer_size += (n_rows-1) * (n_cols-1) * sizeof(IVP_Compact_Grid_Element);	 //the grid referencing ledge index array
@@ -829,7 +829,7 @@ IVP_Compact_Grid *IVP_GridBuilder_Array::compile_ledges_into_compact_grid(const 
 		}
 
 		// and the ledges
-		dest = (char *)((intp(dest)+0xf) & ~0xf);     	// align destination
+		dest = (char *)((hk_intp(dest)+0xf) & ~0xf);     	// align destination
 		for (int ledge_index = 0; ledge_index < ledges->len(); ledge_index++){
 			IVP_Compact_Ledge *cl;
 			cl = ledges->element_at(ledge_index);

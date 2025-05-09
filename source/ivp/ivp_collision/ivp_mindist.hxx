@@ -58,8 +58,8 @@ public:
   const IVP_Compact_Edge 	*edge;		// Note: all balls share one dummy edge
 
 protected:
-    // dimhotepus: short -> intp.
-    intp mindist_offset;             // back link to my controlling mindist
+    // dimhotepus: short -> hk_intp.
+    hk_intp mindist_offset;             // back link to my controlling mindist
     short status;                     // IVP_SYNAPSE_POLYGON_STATUS point, edge, tri, ball ....
 public:
    
@@ -74,7 +74,7 @@ public:
     IVP_Real_Object *get_object(){ return l_obj; }
     IVP_SYNAPSE_POLYGON_STATUS get_status()const{ return (IVP_SYNAPSE_POLYGON_STATUS) status; }
 
-    IVP_Synapse() : next{nullptr}, prev{nullptr}, l_obj{nullptr}, edge{nullptr}, mindist_offset{std::numeric_limits<intp>::max()}, status{SHRT_MAX} {}
+    IVP_Synapse() : next{nullptr}, prev{nullptr}, l_obj{nullptr}, edge{nullptr}, mindist_offset{std::numeric_limits<hk_intp>::max()}, status{SHRT_MAX} {}
     virtual ~IVP_Synapse(){}			// dummy, do not call
     const IVP_Compact_Ledge *get_ledge() const;
     const IVP_Compact_Edge *get_edge() const { return edge; }

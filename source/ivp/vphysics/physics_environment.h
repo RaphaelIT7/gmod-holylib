@@ -39,8 +39,8 @@ public:
 	[[nodiscard]] IVPhysicsDebugOverlay *GetDebugOverlay( void ) override;
 
 	void			SetGravity( const Vector& gravityVector ) override;
-	[[nodiscard]] IPhysicsObject	*CreatePolyObject( const CPhysCollide *pCollisionModel, intp materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams ) override;
-	[[nodiscard]] IPhysicsObject	*CreatePolyObjectStatic( const CPhysCollide *pCollisionModel, intp materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams ) override;
+	[[nodiscard]] IPhysicsObject	*CreatePolyObject( const CPhysCollide *pCollisionModel, hk_intp materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams ) override;
+	[[nodiscard]] IPhysicsObject	*CreatePolyObjectStatic( const CPhysCollide *pCollisionModel, hk_intp materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams ) override;
 	[[nodiscard]] unsigned int	GetObjectSerializeSize( IPhysicsObject *pObject ) const override;
 	void			SerializeObjectToBuffer( IPhysicsObject *pObject, unsigned char *pBuffer, unsigned int bufferSize ) override;
 	[[nodiscard]] IPhysicsObject *UnserializeObjectFromBuffer( void *pGameData, unsigned char *pBuffer, unsigned int bufferSize, bool enableCollisions ) override;
@@ -95,9 +95,9 @@ public:
 	virtual void TraceBox( trace_t *ptr, const Vector &mins, const Vector &maxs, const Vector &start, const Vector &end );
 	void SetCollisionSolver( IPhysicsCollisionSolver *pCollisionSolver ) override;
 	void GetGravity( Vector *pGravityVector ) const override;
-	[[nodiscard]] intp GetActiveObjectCount() const override;
+	[[nodiscard]] hk_intp GetActiveObjectCount() const override;
 	void GetActiveObjects( IPhysicsObject **pOutputObjectList ) const override;
-	[[nodiscard]] const IPhysicsObject **GetObjectList( intp *pOutputObjectCount ) const override;
+	[[nodiscard]] const IPhysicsObject **GetObjectList( hk_intp *pOutputObjectCount ) const override;
 	[[nodiscard]] bool TransferObject( IPhysicsObject *pObject, IPhysicsEnvironment *pDestinationEnvironment ) override;
 
 	[[nodiscard]] IVP_Environment	*GetIVPEnvironment( void ) { return m_pPhysEnv; }
@@ -107,7 +107,7 @@ public:
 	void SetAirDensity( float density ) override;
 	[[nodiscard]] float GetAirDensity( void ) const override;
 	void ResetSimulationClock( void ) override;
-	[[nodiscard]] IPhysicsObject *CreateSphereObject( float radius, intp materialIndex, const Vector &position, const QAngle &angles, objectparams_t *pParams, bool isStatic ) override;
+	[[nodiscard]] IPhysicsObject *CreateSphereObject( float radius, hk_intp materialIndex, const Vector &position, const QAngle &angles, objectparams_t *pParams, bool isStatic ) override;
 	void CleanupDeleteList() override;
 	void EnableDeleteQueue( bool enable ) override { m_queueDeleteObject = enable; }
 	// debug
@@ -158,7 +158,7 @@ private:
 	CCollisionSolver				*m_pCollisionSolver;
 	CPhysicsListenerConstraint		*m_pConstraintListener;
 	CDeleteQueue					*m_pDeleteQueue;
-	intp							m_lastObjectThisTick;
+	hk_intp							m_lastObjectThisTick;
 	bool							m_deleteQuick;
 	bool							m_inSimulation;
 	bool							m_queueDeleteObject;

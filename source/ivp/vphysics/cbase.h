@@ -30,9 +30,6 @@
 #undef max
 #undef min // Fix valve includes.
 
-#undef intp
-#undef uintp
-
 // ivp
 #include "ivp_physics.hxx"
 #include "ivp_core.hxx"

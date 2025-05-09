@@ -1328,7 +1328,7 @@ CPhysCollide *CPhysicsCollision::BBoxToCollide( const Vector &mins, const Vector
 bool CPhysicsCollision::IsBBoxCache( CPhysCollide *pCollide )
 {
 	// UNDONE: Sort the list so it can be searched spatially instead of linearly?
-	for ( intp i = m_bboxCache.Count()-1; i >= 0; i-- )
+	for ( hk_intp i = m_bboxCache.Count()-1; i >= 0; i-- )
 	{
 		if ( m_bboxCache[i].pCollide == pCollide )
 			return true;
@@ -1346,7 +1346,7 @@ void CPhysicsCollision::AddBBoxCache( CPhysCollideCompactSurface *pCollide, cons
 
 CPhysCollideCompactSurface *CPhysicsCollision::GetBBoxCache( const Vector &mins, const Vector &maxs )
 {
-	for ( intp i = m_bboxCache.Count()-1; i >= 0; i-- )
+	for ( hk_intp i = m_bboxCache.Count()-1; i >= 0; i-- )
 	{
 		if ( m_bboxCache[i].mins == mins && m_bboxCache[i].maxs == maxs )
 			return m_bboxCache[i].pCollide;
@@ -1758,7 +1758,7 @@ bool CPhysicsCollision::GetBBoxCacheSize( int *pCachedSize, int *pCachedCount )
 {
 	*pCachedSize = 0;
 	*pCachedCount = m_bboxCache.Count();
-	for ( intp i = 0; i < *pCachedCount; i++ )
+	for ( hk_intp i = 0; i < *pCachedCount; i++ )
 	{
 		*pCachedSize += m_bboxCache[i].pCollide->GetSerializationSize();
 	}

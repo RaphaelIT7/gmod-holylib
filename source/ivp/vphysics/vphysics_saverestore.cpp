@@ -188,14 +188,14 @@ void CVPhysPtrUtlVectorSaveRestoreOps::Save( const SaveRestoreFieldInfo_t &field
 	Assert( fieldInfo.pTypeDesc->fieldSize == 1 );
 
 	VPhysPtrVector *pUtlVector = (VPhysPtrVector*)fieldInfo.pField;
-	intp nObjects = pUtlVector->Count();
+	hk_intp nObjects = pUtlVector->Count();
 
 	Assert( nObjects <= INT_MAX );
 
 	int objects = static_cast<int>(nObjects);
 
 	pSave->WriteInt( &objects );
-	for ( intp i = 0; i < objects; i++ )
+	for ( hk_intp i = 0; i < objects; i++ )
 	{
 		pSave->WriteData( (char*)&pUtlVector->Element(i), sizeof(void*) );
 	}

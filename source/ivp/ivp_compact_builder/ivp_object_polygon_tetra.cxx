@@ -138,7 +138,7 @@ void IVP_Tri_Edge::print(const char *text){
     if (!text) text = "";
     const char *name = start_point->get_real_object2()->get_name();
     if (!name) name = "noname";
-    ivp_message("%s '%s'	start_%zi: %i	",text,name, 0xff & ( ( (intp)this->start_point->l_tetras  ) >>8), this->start_point->point_num());
+    ivp_message("%s '%s'	start_%zi: %i	",text,name, 0xff & ( ( (hk_intp)this->start_point->l_tetras  ) >>8), this->start_point->point_num());
     this->triangle->print("\n");
 }
 

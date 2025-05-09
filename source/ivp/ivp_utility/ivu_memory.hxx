@@ -83,7 +83,7 @@ void IVP_U_Memory::end_memory_transaction()
 
 //warning: dependency with function neuer_sp_block
 inline void *IVP_U_Memory::align_to_next_adress(void *p) {
-    uintp address = (uintp)p;
+    hk_uintp address = (hk_uintp)p;
     address += IVU_MEM_ALIGN-1;
     address = address & IVU_MEM_MASK;
     return (void*)address;
@@ -109,7 +109,7 @@ inline void	*IVP_U_Memory::get_mem(size_t groesse)
 		return this->neuer_sp_block(groesse);
 	} else {
 		speicherbeginn = p;
-		IVP_IF( ((intp)op > 0x780000 ) && ((intp)op < 0x792f48)) {
+		IVP_IF( ((hk_intp)op > 0x780000 ) && ((hk_intp)op < 0x792f48)) {
 			op++;
 			op--;
 		}

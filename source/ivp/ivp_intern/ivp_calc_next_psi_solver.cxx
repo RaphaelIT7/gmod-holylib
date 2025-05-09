@@ -160,7 +160,7 @@ void IVP_Calc_Next_PSI_Solver::calc_next_PSI_matrix(IVP_Event_Sim *event_sim,IVP
    IVP_IF(1) {
         IVP_Debug_Manager *dm=event_sim->environment->get_debug_manager();
 	if(dm->file_out_impacts) {
-	    fprintf(dm->out_deb_file,"making_calc_next_psi %zi at %f\n",0x0000ffff&(intp)this,core->environment->get_current_time().get_time());
+	    fprintf(dm->out_deb_file,"making_calc_next_psi %zi at %f\n",0x0000ffff&(hk_intp)this,core->environment->get_current_time().get_time());
 	}
     }    
 

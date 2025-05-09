@@ -9,7 +9,7 @@
 
 
 
-void IVP_Concave_Polyhedron_Face::add_offset(intp offset_in) {
+void IVP_Concave_Polyhedron_Face::add_offset(hk_intp offset_in) {
 
     IVP_Concave_Polyhedron_Face_Pointoffset *p_offset = new IVP_Concave_Polyhedron_Face_Pointoffset();
     p_offset->offset = offset_in;
@@ -51,11 +51,11 @@ class IVP_Convex_Subpart_Work {
 public:
     IVP_U_Vector<int> offsets; // @@@SF: replace with IVP_VHash someday!!!
 
-    void add_offset(intp offset_in);
+    void add_offset(hk_intp offset_in);
 };
 
 
-void IVP_Convex_Subpart_Work::add_offset(intp offset_in) {
+void IVP_Convex_Subpart_Work::add_offset(hk_intp offset_in) {
 
     int i;
     for (i=0; i<this->offsets.len(); i++) {
@@ -294,7 +294,7 @@ fclose(fp);
 	    }
 	    int j;
 	    for (j=0; j<subpart_work->offsets.len(); j++) {
-        intp offset = (intp)subpart_work->offsets.element_at(j)-1;
+        hk_intp offset = (hk_intp)subpart_work->offsets.element_at(j)-1;
 		IVP_U_Point *point = new IVP_U_Point();
 		point->k[0] = vcl_out[(offset*3)+0];
 		point->k[1] = vcl_out[(offset*3)+1];

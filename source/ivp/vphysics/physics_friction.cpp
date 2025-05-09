@@ -28,7 +28,7 @@ public:
 
 	// Object 0 is this object, Object 1 is the other object
 	IPhysicsObject *GetObject( int index ) override;
-	intp GetMaterial( int index ) override;
+	hk_intp GetMaterial( int index ) override;
 
 	void GetContactPoint( Vector &out ) override;
 	void GetSurfaceNormal( Vector &out ) override;
@@ -125,7 +125,7 @@ void CFrictionSnapshot::MarkContactForDelete()
 	}
 }
 
-intp CFrictionSnapshot::GetMaterial( int index )
+hk_intp CFrictionSnapshot::GetMaterial( int index )
 {
 	IVP_Material *ivpMats[2];
 

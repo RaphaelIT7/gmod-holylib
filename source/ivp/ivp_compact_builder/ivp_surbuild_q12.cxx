@@ -447,9 +447,9 @@ void IVP_SurfaceBuilder_Q12::convert_model(int model)
 }
 
 
-void IVP_SurfaceBuilder_Q12::convert_node(intp node)
+void IVP_SurfaceBuilder_Q12::convert_node(hk_intp node)
 {
-    this->nodes.add((intp *)node);
+    this->nodes.add((hk_intp *)node);
 
     if ( dnodes[node].children[0] > 0 ) {
 	this->convert_node(dnodes[node].children[0]);
@@ -564,9 +564,9 @@ void IVP_SurfaceBuilder_Q12::nodes_to_planes()
     int i;
     
     for (i=0; i<this->nodes.len(); i++) {
-	dplane_t *bsp_plane = &dplanes[dnodes[(intp)nodes.element_at(i)].planenum];
+	dplane_t *bsp_plane = &dplanes[dnodes[(hk_intp)nodes.element_at(i)].planenum];
 	if ( i == this->nodes.len()-1 ) {
-	    if ( dnodes[(intp)this->nodes.element_at(i)].children[0] == -1 ) {
+	    if ( dnodes[(hk_intp)this->nodes.element_at(i)].children[0] == -1 ) {
 		create_and_insert_plane( bsp_plane->normal[0],  bsp_plane->normal[1],  bsp_plane->normal[2], bsp_plane->dist);
 	    }
 	    else {
@@ -574,7 +574,7 @@ void IVP_SurfaceBuilder_Q12::nodes_to_planes()
 	    }
 	}
 	else {
-	    if ( dnodes[(intp)this->nodes.element_at(i)].children[0] == (intp)this->nodes.element_at(i+1) ) {
+	    if ( dnodes[(hk_intp)this->nodes.element_at(i)].children[0] == (hk_intp)this->nodes.element_at(i+1) ) {
 		create_and_insert_plane( bsp_plane->normal[0],  bsp_plane->normal[1],  bsp_plane->normal[2], bsp_plane->dist);
 	    }
 	    else {

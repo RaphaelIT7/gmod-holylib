@@ -1606,7 +1606,7 @@ IVP_BOOL IVP_Impact_System::test_loop_all_pairs()
 	    IVP_Contact_Point *my_fr = my_pair->fr_dists.element_at(k);
 	    if(my_fr->tmp_contact_info->coll_time_is_valid==IVP_TRUE) {
 	      IVP_IF(l_environment->get_debug_manager()->debug_imp_sys) {
-		ivp_message("did_not_test %zi\n",0x0000ffff&(intp)my_fr);
+		ivp_message("did_not_test %zi\n",0x0000ffff&(hk_intp)my_fr);
 	      }
 	    } else {
 		l_environment->get_statistic_manager()->impact_coll_checks++;
@@ -1821,7 +1821,7 @@ void IVP_Contact_Point::calc_coll_distance(){
 	    IVP_Core *core0,*core1;
 	    core0=get_synapse(0)->l_obj->friction_core;
 	    core1=get_synapse(1)->l_obj->friction_core;
-	    fprintf(fp,"  %zi %zi-%zi: ",0x0000ffff&(intp)this,0x0000ffff&(intp)core0,0x0000ffff&(intp)core1);
+	    fprintf(fp,"  %zi %zi-%zi: ",0x0000ffff&(hk_intp)this,0x0000ffff&(hk_intp)core0,0x0000ffff&(hk_intp)core1);
 	    fprintf(fp,"di %.4f  ",get_gap_length());
 	    IVP_DOUBLE debug_cs = closing_speed + info->impact.rescue_speed_addon*0.5f;
 	    fprintf(fp,"cs %.4f  ",debug_cs);
@@ -1829,7 +1829,7 @@ void IVP_Contact_Point::calc_coll_distance(){
 	}
 	IVP_IF(env->get_debug_manager()->debug_imp_sys) {
 	    ivp_message("tested_frdist %zi di %.4f cs %.4f dr %.4f\n",
-		0x0000ffff&(intp)this,
+		0x0000ffff&(hk_intp)this,
 		get_gap_length(),
 		closing_speed + info->impact.rescue_speed_addon*0.5f,
 		info->impact.distance_reached_in_time);

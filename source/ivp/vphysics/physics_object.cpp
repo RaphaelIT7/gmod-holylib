@@ -110,7 +110,7 @@ void CPhysicsObject::Init( const CPhysCollide *pCollisionModel, IVP_Real_Object 
 	m_gameIndex = 0;
 	m_sleepState = OBJ_SLEEP;		// objects start asleep
 	m_callbacks = CALLBACK_GLOBAL_COLLISION|CALLBACK_GLOBAL_FRICTION|CALLBACK_FLUID_TOUCH|CALLBACK_GLOBAL_TOUCH|CALLBACK_GLOBAL_COLLIDE_STATIC|CALLBACK_DO_FLUID_SIMULATION;
-	m_activeIndex = std::numeric_limits<intp>::max();
+	m_activeIndex = std::numeric_limits<hk_intp>::max();
 	m_pShadow = NULL;
 	m_shadowTempGravityDisable = false;
 	m_forceSilentDelete = false;
@@ -1471,7 +1471,7 @@ bool CPhysicsObject::IsAttachedToConstraint( bool bExternalOnly ) const
 	return false;
 }
 
-static void InitObjectTemplate( IVP_Template_Real_Object &objectTemplate, intp materialIndex, objectparams_t *pParams, bool isStatic )
+static void InitObjectTemplate( IVP_Template_Real_Object &objectTemplate, hk_intp materialIndex, objectparams_t *pParams, bool isStatic )
 {
 	objectTemplate.mass = clamp( pParams->mass, VPHYSICS_MIN_MASS, VPHYSICS_MAX_MASS );
 
@@ -1514,7 +1514,7 @@ static void InitObjectTemplate( IVP_Template_Real_Object &objectTemplate, intp m
 	objectTemplate.auto_check_rot_inertia = pParams->rotInertiaLimit;
 }
 
-CPhysicsObject *CreatePhysicsObject( CPhysicsEnvironment *pEnvironment, const CPhysCollide *pCollisionModel, intp materialIndex, const Vector &position, const QAngle& angles, objectparams_t *pParams, bool isStatic )
+CPhysicsObject *CreatePhysicsObject( CPhysicsEnvironment *pEnvironment, const CPhysCollide *pCollisionModel, hk_intp materialIndex, const Vector &position, const QAngle& angles, objectparams_t *pParams, bool isStatic )
 {
 	if ( materialIndex < 0 )
 	{
@@ -1587,7 +1587,7 @@ CPhysicsObject *CreatePhysicsObject( CPhysicsEnvironment *pEnvironment, const CP
 	return pObject;
 }
 
-CPhysicsObject *CreatePhysicsSphere( CPhysicsEnvironment *pEnvironment, float radius, intp materialIndex, const Vector &position, const QAngle &angles, objectparams_t *pParams, bool isStatic )
+CPhysicsObject *CreatePhysicsSphere( CPhysicsEnvironment *pEnvironment, float radius, hk_intp materialIndex, const Vector &position, const QAngle &angles, objectparams_t *pParams, bool isStatic )
 {
 	IVP_U_Quat rotation;
 	IVP_U_Point pos;
@@ -1996,7 +1996,7 @@ IPhysicsObject *CreateObjectFromBuffer_UseExistingMemory( CPhysicsEnvironment *p
 // So now we need to recreate them or some objects may not wake up when this object (or its neighbors) are deleted.
 void PostRestorePhysicsObject()
 {
-	for ( intp i = g_PostRestoreObjectList.Count()-1; i >= 0; --i )
+	for ( hk_intp i = g_PostRestoreObjectList.Count()-1; i >= 0; --i )
 	{
 		auto &list = g_PostRestoreObjectList[i];
 		if ( list.pObject )

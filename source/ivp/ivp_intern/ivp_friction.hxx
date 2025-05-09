@@ -110,8 +110,8 @@ public:
   IVP_Synapse_Friction 	 *next, *prev;		        // per object list
   IVP_Real_Object  *l_obj;				// back link to object
 protected:
-  // dimhotepus: x86-64 - short -> intp
-  intp contact_point_offset;               // back link to my controlling mindist
+  // dimhotepus: x86-64 - short -> hk_intp
+  hk_intp contact_point_offset;               // back link to my controlling mindist
   short status:8;			    // type IVP_SYNAPSE_POLYGON_STATUS  point, edge, tri, ball ....
 public:
     

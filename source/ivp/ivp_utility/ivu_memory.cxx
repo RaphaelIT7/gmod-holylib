@@ -27,12 +27,12 @@ void ivp_memory_check(void *a) {
   //    }
 	    //int fp;
 	    //fp=sceOpen("host0:/ipion_out/ipion.txt",SCE_CREAT);
-		uintp address = (uintp)a;
+		hk_uintp address = (hk_uintp)a;
 		IVP_Time now_time = ivp_global_env->get_current_time();
 		IVP_DOUBLE tt = now_time.get_time();
 		if (tt > 11.98) {
 		    fprintf(stderr, "trying to free %p time %f\n", a, tt);
-		    if (a == (void *)(uintp)0x30ca50){
+		    if (a == (void *)(hk_uintp)0x30ca50){
 		    	fprintf(stderr, "Crashing soon\n");
 		    }
 
@@ -143,7 +143,7 @@ void *ivp_malloc_aligned(size_t size, unsigned short alignment) {
     if (data) {
         data->magic_number = IVP_MEMORY_MAGIC;
 
-        void *ret = (void *)((((uintp)data) + alignment + sizeof(IVP_Aligned_Memory) - 1) & (-static_cast<intp>(alignment)));
+        void *ret = (void *)((((hk_uintp)data) + alignment + sizeof(IVP_Aligned_Memory) - 1) & (-static_cast<hk_intp>(alignment)));
         ((void **)ret)[-1] = (void *)data;
         return ret;
     }
@@ -160,7 +160,7 @@ void* IVP_CDECL ivp_calloc_aligned(size_t size, unsigned short alignment) {
         memset(data, 0, size);
         data->magic_number = IVP_MEMORY_MAGIC;
 
-        void *ret = (void *)((((uintp)data) + alignment + sizeof(IVP_Aligned_Memory) - 1) & (-static_cast<intp>(alignment)));
+        void *ret = (void *)((((hk_uintp)data) + alignment + sizeof(IVP_Aligned_Memory) - 1) & (-static_cast<hk_intp>(alignment)));
         ((void **)ret)[-1] = (void *)data;
         return ret;
     }

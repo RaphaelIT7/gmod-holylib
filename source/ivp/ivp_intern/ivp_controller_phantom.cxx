@@ -128,7 +128,7 @@ void IVP_Controller_Phantom::mindist_entered_volume(class IVP_Mindist *mindist)
 		{
 			other_object = mindist->get_synapse(0)->get_object();
 		}
-        intp x = (intp)mindist_object_counter->find_elem( other_object );
+        hk_intp x = (hk_intp)mindist_object_counter->find_elem( other_object );
 		if (x)
 		{
 			mindist_object_counter->change_elem( other_object, (void *)(x+1));
@@ -151,7 +151,7 @@ void IVP_Controller_Phantom::mindist_entered_volume(class IVP_Mindist *mindist)
 			other_object = mindist->get_synapse(0)->get_object();
 		}
 		IVP_Core *other_core= other_object->get_core();
-        intp x = (intp)mindist_core_counter->find_elem( other_core );
+        hk_intp x = (hk_intp)mindist_core_counter->find_elem( other_core );
 		if (x)
 		{
 			mindist_core_counter->change_elem( other_core, (void *)(x+1));
@@ -188,7 +188,7 @@ void IVP_Controller_Phantom:: mindist_left_volume(class IVP_Mindist *mindist)
 		{
 			other_object = mindist->get_synapse(0)->get_object();
 		}
-        intp x = (intp)mindist_object_counter->find_elem( other_object );
+        hk_intp x = (hk_intp)mindist_object_counter->find_elem( other_object );
 		if (x>1)
 		{
 			mindist_object_counter->change_elem( other_object, (void *)(x-1));
@@ -211,7 +211,7 @@ void IVP_Controller_Phantom:: mindist_left_volume(class IVP_Mindist *mindist)
 			other_object = mindist->get_synapse(0)->get_object();
 		}
 		IVP_Core *other_core= other_object->get_core();
-        intp x = (intp)mindist_core_counter->find_elem( other_core );
+        hk_intp x = (hk_intp)mindist_core_counter->find_elem( other_core );
 		if (x>1)
 		{
 			mindist_core_counter->change_elem( other_core, (void *)(x-1));

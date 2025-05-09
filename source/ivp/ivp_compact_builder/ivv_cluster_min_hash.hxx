@@ -7,7 +7,7 @@ union IVV_Cluster_Min_Hash_Key {
 	unsigned int s1:16;
 	unsigned int s2:16;
     } spheres;
-    uintp key;
+    hk_uintp key;
 };
 
 

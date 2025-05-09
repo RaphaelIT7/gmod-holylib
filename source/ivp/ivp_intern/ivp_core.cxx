@@ -770,7 +770,7 @@ void IVP_Core::synchronize_with_rot_z(){
     IVP_IF(1) {
         IVP_Debug_Manager *dm=environment->get_debug_manager();
 	if(dm->file_out_impacts) {
-	    fprintf(dm->out_deb_file,"doing_synchronize %zi at %f\n",0x0000ffff&(intp)this,current_time.get_time());
+	    fprintf(dm->out_deb_file,"doing_synchronize %zi at %f\n",0x0000ffff&(hk_intp)this,current_time.get_time());
 	}
     }
     
@@ -801,7 +801,7 @@ void IVP_Core::undo_synchronize_rot_z() {
     IVP_IF(1) {
         IVP_Debug_Manager *dm=environment->get_debug_manager();
 	if(dm->file_out_impacts) {
-	    fprintf(dm->out_deb_file,"undoing_synchro %x at %f\n",0x0000ffff&(IVP_INT32)(intp)this,environment->get_current_time().get_time());
+	    fprintf(dm->out_deb_file,"undoing_synchro %x at %f\n",0x0000ffff&(IVP_INT32)(hk_intp)this,environment->get_current_time().get_time());
 	}
     }
     rot_speed.      set(&tmp_null.old_sync_info->old_sync_rot_speed);

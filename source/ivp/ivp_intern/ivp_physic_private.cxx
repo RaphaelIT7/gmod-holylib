@@ -538,7 +538,7 @@ void IVP_Core::freeze_simulation_core(){
 }
 
 void IVP_Core::debug_out_movement_vars() {
-    ivp_message("core_status %zi  trans %f %f %f  rot %f %f %f\n",(intp)this&0x0000ffff,speed.k[0],speed.k[1],speed.k[2],rot_speed.k[0],rot_speed.k[1],rot_speed.k[2]); 
+    ivp_message("core_status %zi  trans %f %f %f  rot %f %f %f\n",(hk_intp)this&0x0000ffff,speed.k[0],speed.k[1],speed.k[2],rot_speed.k[0],rot_speed.k[1],rot_speed.k[2]); 
 }
 
 void IVP_Core::debug_vec_movement_state() {
@@ -551,7 +551,7 @@ void IVP_Core::debug_vec_movement_state() {
 	int v_color;
 	ivp_start.set(my_core->get_position_PSI());	
 	ivp_pointer.set(0.0f,-7.0f,0.0f);
-	out_text=p_make_string("oob%zi_sp%.3f",(intp)one_object&0x0000ffff,one_object->speed.real_length());//,one_object->get_energy_on_test(&one_object->speed,&one_object->rot_speed));
+	out_text=p_make_string("oob%zi_sp%.3f",(hk_intp)one_object&0x0000ffff,one_object->speed.real_length());//,one_object->get_energy_on_test(&one_object->speed,&one_object->rot_speed));
 	if(my_core->movement_state==IVP_MT_CALM)	{
 	    //out_text=p_export_error("%lxo_calm%lx",(long)one_object&0x0000ffff,(long)fr_i&0x0000ffff);
 	    //sprintf(out_text,"%ldobj_calm%lx",counter,(long)one_object);

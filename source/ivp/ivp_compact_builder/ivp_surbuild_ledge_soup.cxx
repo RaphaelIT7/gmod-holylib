@@ -532,8 +532,8 @@ void IVP_SurfaceBuilder_Ledge_Soup::cluster_spheres_bottomup(IVP_DOUBLE threshol
 		
 		// retrieve smallest mothersphere (if available!)
 		IVV_Cluster_Min_Hash_Key key;
-		key.key = (uintp)cluster_min_hash.find_min_elem();
-		if ( key.key != (uintp)NULL ) { // verify that there were at least 2 spheres in vector and a new minimal sphere could be generated!
+		key.key = (hk_uintp)cluster_min_hash.find_min_elem();
+		if ( key.key != (hk_uintp)NULL ) { // verify that there were at least 2 spheres in vector and a new minimal sphere could be generated!
 		    //IVP_DOUBLE radius = cluster_min_hash->find_min_value(); // radius of minimal sphere
 		    int sphere_1_number = key.spheres.s1;
 		    int sphere_2_number = key.spheres.s2;
@@ -601,12 +601,12 @@ void IVP_SurfaceBuilder_Ledge_Soup::generate_interval_minhash(float fixed_max_ra
 
 	// insert interval start into interval MinHash
 	IVP_Clustering_Shortrange_Interval_Min_Hash_Entry *new_entry_interval_start = new IVP_Clustering_Shortrange_Interval_Min_Hash_Entry(IVP_TRUE, sphere);
-	new_key.key = (uintp)new_entry_interval_start;
+	new_key.key = (hk_uintp)new_entry_interval_start;
 	this->interval_minhash->add((void *)new_key.key, sphere->center.k[this->longest_axis]-radius);
 
 	// insert interval end into interval MinHash
 	IVP_Clustering_Shortrange_Interval_Min_Hash_Entry *new_entry_interval_end = new IVP_Clustering_Shortrange_Interval_Min_Hash_Entry(IVP_FALSE, sphere);
-	new_key.key = (uintp)new_entry_interval_end;
+	new_key.key = (hk_uintp)new_entry_interval_end;
 	this->interval_minhash->add((void *)new_key.key, sphere->center.k[this->longest_axis]+radius);
 
     }
@@ -1304,7 +1304,7 @@ void IVP_SurfaceBuilder_Ledge_Soup::insert_compact_ledges(){
        	    IVV_Sphere *sphere = this->terminal_spheres.element_at(i);
 	    IVP_Compact_Ledge *source = sphere->compact_ledge;
 
-	    IVP_ASSERT((intp(dest) & 0xf) == 0);
+	    IVP_ASSERT((hk_intp(dest) & 0xf) == 0);
 
 	    sphere->compact_ledge = (IVP_Compact_Ledge *)dest;	    
 	    int ledge_size = recompile_point_indizes_of_compact_ledge(source,dest);
@@ -1319,7 +1319,7 @@ void IVP_SurfaceBuilder_Ledge_Soup::insert_compact_ledges(){
        	IVV_Sphere *sphere = this->rec_spheres.element_at(j);
 	IVP_Compact_Ledge *source = sphere->compact_ledge;
 
-	IVP_ASSERT((intp(dest) & 0xf) == 0);
+	IVP_ASSERT((hk_intp(dest) & 0xf) == 0);
 
 	sphere->compact_ledge = (IVP_Compact_Ledge *)dest;
 	
@@ -1344,8 +1344,8 @@ IVP_Compact_Ledgetree_Node *IVP_SurfaceBuilder_Ledge_Soup::build_ledgetree(IVV_S
 
     IVP_Compact_Ledgetree_Node *current_node = this->ledgetree_work;
 
-    IVP_ASSERT((intp)current_node <  (intp)this->clt_highmem); // ledgetree memory overwrite!
-    IVP_ASSERT((intp)current_node >= (intp)this->clt_lowmem);  // ledgetree memory underwrite!
+    IVP_ASSERT((hk_intp)current_node <  (hk_intp)this->clt_highmem); // ledgetree memory overwrite!
+    IVP_ASSERT((hk_intp)current_node >= (hk_intp)this->clt_lowmem);  // ledgetree memory underwrite!
 	
     this->ledgetree_work++;
     
@@ -1397,8 +1397,8 @@ void IVP_SurfaceBuilder_Ledge_Soup::ledgetree_debug_output(const IVP_Compact_Led
 {
     // *** debugging START ******************************************************
     IVP_IF(1) {
-	IVP_ASSERT((intp)node < (intp)this->clt_highmem); // ledgetree memory overread!
-	IVP_ASSERT((intp)node >= (intp)this->clt_lowmem); // ledgetree memory underread!
+	IVP_ASSERT((hk_intp)node < (hk_intp)this->clt_highmem); // ledgetree memory overread!
+	IVP_ASSERT((hk_intp)node >= (hk_intp)this->clt_lowmem); // ledgetree memory underread!
     }
     
     //for (int x=0; x<ivp_debug_sf_indent; x++) {
