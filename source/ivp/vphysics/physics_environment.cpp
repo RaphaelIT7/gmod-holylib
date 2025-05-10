@@ -1239,7 +1239,7 @@ void CPhysicsEnvironment::SetDebugOverlay( CreateInterfaceFn debugOverlayFactory
 	m_pDebugOverlay = NULL;
 	if (debugOverlayFactory)
 	{
-		m_pDebugOverlay = ( IVPhysicsDebugOverlay * )debugOverlayFactory( VPHYSICS_DEBUG_OVERLAY_INTERFACE_VERSION, NULL );
+		//m_pDebugOverlay = ( IVPhysicsDebugOverlay * )debugOverlayFactory( VPHYSICS_DEBUG_OVERLAY_INTERFACE_VERSION, NULL );
 	}
 
 	if (!m_pDebugOverlay)
