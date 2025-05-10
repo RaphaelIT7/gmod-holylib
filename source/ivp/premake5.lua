@@ -7,6 +7,9 @@ function runFile(fileName)
 		"IVP_NO_PERFORMANCE_TIMER",
 		"IVP_NO_DEBUGMANAGER"
 	})
+	filter({"platforms:x86_64"})
+		defines("PLATFORM_64BITS")
+
 	project(_project.name)
 end
 
