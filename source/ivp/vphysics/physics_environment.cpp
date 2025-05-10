@@ -1170,12 +1170,18 @@ CPhysicsEnvironment::CPhysicsEnvironment( void )
 	m_pPhysEnv->client_data = this;
 	m_lastObjectThisTick = 0;
 
-	g_pHolyLibCallbacks->OnEnvironmentCreated( this );
+	if (g_pHolyLibCallbacks)
+	{
+		g_pHolyLibCallbacks->OnEnvironmentCreated( this );
+	}
 }
 
 CPhysicsEnvironment::~CPhysicsEnvironment( void )
 {
-	g_pHolyLibCallbacks->OnEnvironmentDestroyed( this );
+	if (g_pHolyLibCallbacks)
+	{
+		g_pHolyLibCallbacks->OnEnvironmentDestroyed( this );
+	}
 
 	// no callbacks during shutdown
 	SetCollisionSolver( NULL );
@@ -1523,7 +1529,10 @@ void CPhysicsEnvironment::Simulate( float deltaTime )
 		m_pCollisionSolver->EventPSI( this );
 		m_pCollisionListener->EventPSI( this );
 
-		g_pHolyLibCallbacks->SimulationBegin();
+		if (g_pHolyLibCallbacks)
+		{
+			g_pHolyLibCallbacks->SimulationBegin();
+		}
 		m_inSimulation = true;
 		BEGIN_IVP_ALLOCATION();
 		if ( !m_fixedTimestep || !hk_Math::almost_equal(deltaTime, m_pPhysEnv->get_delta_PSI_time()) )
@@ -1537,7 +1546,10 @@ void CPhysicsEnvironment::Simulate( float deltaTime )
 		}
 		END_IVP_ALLOCATION();
 		m_inSimulation = false;
-		g_pHolyLibCallbacks->SimulationFinish();
+		if (g_pHolyLibCallbacks)
+		{
+			g_pHolyLibCallbacks->SimulationFinish();
+		}
 	}
 
 	// If the queue is disabled, it's only used during simulation.

@@ -177,6 +177,7 @@ void CheckPhysicsLag(CPhysicsObject* pObject1, CPhysicsObject* pObject2)
 			}
 
 			g_pIsInPhysicsLagCall = true;
+			pCurrentTime = std::chrono::high_resolution_clock::now(); // Update timer.
 			if (g_Lua->CallFunctionProtected(4, 1, true))
 			{
 				int pType = (int)g_Lua->GetNumber(-1);
