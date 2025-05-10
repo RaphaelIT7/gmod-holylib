@@ -147,6 +147,12 @@ LUA_FUNCTION_STATIC(VoiceData_GetUncompressedData)
 	if (!pSteamUser)
 		LUA->ThrowError("Failed to get SteamUser!\n");
 
+	if (!pData->pData || pData->iLength == 0)
+	{
+		LUA->PushString("");
+		return 1;
+	}
+
 	uint32 pDecompressedLength;
 	char* pDecompressed = new char[iSize];
 	pSteamUser->DecompressVoice(
