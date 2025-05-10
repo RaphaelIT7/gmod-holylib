@@ -281,6 +281,18 @@ LUA_FUNCTION_STATIC(physenv_SetPhysSkipType)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(physenv_GetPhysSkipType)
+{
+	LUA->PushNumber(pCurrentSkipType);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(physenv_ShouldSkip)
+{
+	LUA->PushBool(g_pIVPHolyLib.ShouldSkip());
+	return 1;
+}
+
 class CPhysicsCollisionSet : public IPhysicsCollisionSet
 {
 	virtual ~CPhysicsCollisionSet() {}
@@ -2345,6 +2357,8 @@ void CPhysEnvModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 		Util::AddFunc(pLua, physenv_SetLagThreshold, "SetLagThreshold");
 		Util::AddFunc(pLua, physenv_GetLagThreshold, "GetLagThreshold");
 		Util::AddFunc(pLua, physenv_SetPhysSkipType, "SetPhysSkipType");
+		Util::AddFunc(pLua, physenv_GetPhysSkipType, "GetPhysSkipType");
+		Util::AddFunc(pLua, physenv_ShouldSkip, "ShouldSkip");
 
 		Util::AddValue(pLua, IVP_SkipType::IVP_None, "IVP_None");
 		Util::AddValue(pLua, IVP_SkipType::IVP_NoSkip, "IVP_NoSkip");

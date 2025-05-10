@@ -143,6 +143,7 @@ IVP_U_MINLIST_INDEX IVP_U_Min_List::add(void *elem, IVP_U_MINLIST_FIXED_POINT va
 	// lastj is the last element after we want to insert
 	int lo = first_long;
 	int max_cmp_len = 3;
+	int dumbCounter1 = 0;
 	while (lo != IVP_U_MINLIST_UNUSED)
 	{
 		// do _long jumps if possible
@@ -154,6 +155,18 @@ IVP_U_MINLIST_INDEX IVP_U_Min_List::add(void *elem, IVP_U_MINLIST_FIXED_POINT va
 		++max_cmp_len;
 		lastj = lo;
 		lo = flong->long_next;
+
+		++dumbCounter1;
+		if (dumbCounter1 > 500000)
+		{
+			printf("DIE YOU WHILE LOOP!\n");
+			CORE;
+		}
+
+		if (dumbCounter1 > 100000)
+		{
+			printf("while - flong: %p\ne: %p\nlastj: %i\nlo: %i\ncheck: %i", flong, e, lastj, lo, IVP_U_MINLIST_UNUSED);
+		}
 	}
 
 	int firstj_after = lastj;
@@ -162,9 +175,22 @@ IVP_U_MINLIST_INDEX IVP_U_Min_List::add(void *elem, IVP_U_MINLIST_FIXED_POINT va
 
 	IVP_U_Min_List_Element *f = &elems[lastj];
 	int j;
+	int dumbCounter2 = 0;
 	for (j = f->next; j != IVP_U_MINLIST_UNUSED; j = f->next)
 	{
 		f = &elems[j];
+
+		++dumbCounter2;
+		if (dumbCounter2 > 500000)
+		{
+			printf("DIE!\n");
+			CORE;
+		}
+
+		if (dumbCounter2 > 100000)
+		{
+			printf("for - f: %p\ne: %p\nlastj: %i\nj: %i\ncheck: %i", f, e, lastj, j, IVP_U_MINLIST_UNUSED);
+		}
 
 #ifdef IVP_U_MINLIST_USELONG
 		count_cmp ++;
