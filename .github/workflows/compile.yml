@@ -333,6 +333,7 @@ jobs:
 
           mv gmod_tests garrysmod/addons
           mv ghostinj.dll ghostinj2.dll
+          rm -rf garrysmod/addons/gluatests
 
           tar -czf gmod_tests.tar.gz ghostinj2.dll garrysmod/
           tar -czf gmod_tests_no_ghostinj.tar.gz garrysmod/
@@ -380,6 +381,7 @@ jobs:
 
           mv gmod_tests garrysmod/addons
           mv ghostinj.dll ghostinj2.dll
+          rm -rf garrysmod/addons/gluatests
 
           tar -czf gmod_tests.tar.gz ghostinj2.dll garrysmod/
           tar -czf gmod_tests_no_ghostinj.tar.gz garrysmod/
