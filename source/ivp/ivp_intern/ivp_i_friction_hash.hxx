@@ -16,13 +16,13 @@ protected:
     
 public:
     void add_friction_info(IVP_Friction_Info_For_Core *fs_info){
-	add_elem( fs_info->l_friction_system , fs_info );
-	IVP_IF(1){
-	    IVP_Environment *env=fs_info->l_friction_system->l_environment;
-	    if( env->get_debug_manager()->check_fs ) {
-		IVP_ASSERT( find_friction_info(fs_info->l_friction_system) == fs_info );
-	    }
-	}
+		add_elem( fs_info->l_friction_system , fs_info );
+		IVP_IFDEBUG(1,
+			IVP_Environment *env=fs_info->l_friction_system->l_environment;
+			if( env->get_debug_manager()->check_fs ) {
+			IVP_ASSERT( find_friction_info(fs_info->l_friction_system) == fs_info );
+			}
+		)
     };
 
     IVP_Friction_Info_For_Core *remove_friction_info(IVP_Friction_Info_For_Core *fs_info){

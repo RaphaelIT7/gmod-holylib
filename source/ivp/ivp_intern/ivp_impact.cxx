@@ -241,9 +241,9 @@ IVP_Contact_Point *IVP_Mindist::try_to_generate_managed_friction(IVP_Friction_Sy
 #endif        
     friction_dist->calc_virtual_mass_of_mindist();
     
-    IVP_IF(obj0->get_environment()->get_debug_manager()->check_fs) {
-	affected_fs->test_hole_fr_system_data();
-    }
+    IVP_IFDEBUG(obj0->get_environment()->get_debug_manager()->check_fs,
+		affected_fs->test_hole_fr_system_data();
+	)
     
     IVP_Simulation_Unit *sim0,*sim1;
     sim0=core0->sim_unit_of_core;
@@ -645,9 +645,9 @@ void IVP_Impact_Solver::do_impact(IVP_Core *pushed_cores[2],IVP_BOOL allow_delay
     //IVP_DOUBLE relative_trans_speed_before;
     IVP_DOUBLE used_conservation;
 
-    IVP_IF(1) {
-	core[0]->environment->get_debug_manager()->all_time_impacts += 1.0f;
-    }
+    IVP_DEBUGCODE(
+		core[0]->environment->get_debug_manager()->all_time_impacts += 1.0f;
+	)
 
     used_conservation = 1.0f - (1.0f/(pushes_while_system*IVP_INV_HALF_CONSERVATION_STEPS+1.0f))
 	* (1.0f-percent_energy_conservation);
@@ -1448,17 +1448,17 @@ void IVP_Impact_System::init_and_solve_impact_system(IVP_Mindist *mindist, IVP_F
     add_pair_to_impact_system(start_pair);
     impact_system_check_start_pair(start_pair,start_fr_dist);
     
-    IVP_IF(1) {
+    IVP_DEBUGCODE(
         l_environment->get_debug_manager()->debug_imp_sys=IVP_FALSE;
-    }
+	)
     
-    IVP_IF(l_environment->get_debug_manager()->file_out_impacts) {
+    IVP_IFDEBUG(l_environment->get_debug_manager()->file_out_impacts,
         if(l_environment->get_current_time().get_time() > 10000.86f) {
-	    ivp_message("critical_imp_sys\n");
-	    l_environment->get_debug_manager()->debug_imp_sys=IVP_TRUE;
-	}
+			ivp_message("critical_imp_sys\n");
+			l_environment->get_debug_manager()->debug_imp_sys=IVP_TRUE;
+		}
         fprintf(l_environment->get_debug_manager()->out_deb_file,"starting_impact_system at time %f\n",l_environment->get_current_time().get_time());
-    }
+	)
 
     int impact_sys_counter = 0;
     while(test_loop_all_pairs()==IVP_TRUE)    {
@@ -1497,10 +1497,10 @@ void IVP_Impact_System::init_and_solve_impact_system(IVP_Mindist *mindist, IVP_F
     IVP_IF(1) {
 	associated_fs_system->debug_clean_tmp_info();
     }
-    IVP_IF(l_environment->get_debug_manager()->file_out_impacts) {
-	l_environment->get_debug_manager()->debug_imp_sys=IVP_FALSE;	
+    IVP_IFDEBUG(l_environment->get_debug_manager()->file_out_impacts,
+		l_environment->get_debug_manager()->debug_imp_sys=IVP_FALSE;	
         fprintf(l_environment->get_debug_manager()->out_deb_file,"\n");
-    }
+	)
 }
 
 void IVP_Impact_System::add_pair_to_impact_system(IVP_Friction_Core_Pair *new_pair)
@@ -1596,9 +1596,9 @@ IVP_BOOL IVP_Impact_System::test_loop_all_pairs()
     IVP_Friction_Core_Pair *associated_pair = NULL;
     IVP_DOUBLE smallest_distance =  ivp_mindist_settings.minimum_friction_dist;
     IVP_DOUBLE rescue_speed_addon=0.0f;
-    IVP_IF(l_environment->get_debug_manager()->file_out_impacts) {
+    IVP_IFDEBUG(l_environment->get_debug_manager()->file_out_impacts,
         fprintf(l_environment->get_debug_manager()->out_deb_file,"calc_new_coll_distances\n");
-    }
+	)
     for (int i = i_s_pairs.len()-1; i >= 0 ; i--){
 	IVP_Friction_Core_Pair *my_pair = i_s_pairs.element_at(i);
 	int unmov0,unmov1;
@@ -1610,12 +1610,12 @@ IVP_BOOL IVP_Impact_System::test_loop_all_pairs()
 	for (int k = my_pair->fr_dists.len()-1; k>=0; k--){
 	    IVP_Contact_Point *my_fr = my_pair->fr_dists.element_at(k);
 	    if(my_fr->tmp_contact_info->coll_time_is_valid==IVP_TRUE) {
-	      IVP_IF(l_environment->get_debug_manager()->debug_imp_sys) {
-		ivp_message("did_not_test %zi\n",0x0000ffff&(hk_intp)my_fr);
-	      }
+			IVP_IFDEBUG(l_environment->get_debug_manager()->debug_imp_sys,
+				ivp_message("did_not_test %zi\n",0x0000ffff&(hk_intp)my_fr);
+			)
 	    } else {
-		l_environment->get_statistic_manager()->impact_coll_checks++;
-		my_fr->calc_coll_distance();
+			l_environment->get_statistic_manager()->impact_coll_checks++;
+			my_fr->calc_coll_distance();
 	    }
 	    if(my_fr->tmp_contact_info->impact.distance_reached_in_time< smallest_distance ) {
 		rescue_speed_addon=my_fr->tmp_contact_info->impact.rescue_speed_addon;
@@ -1625,9 +1625,9 @@ IVP_BOOL IVP_Impact_System::test_loop_all_pairs()
 	    }
 	}
     }
-    IVP_IF(l_environment->get_debug_manager()->file_out_impacts) {
+    IVP_IFDEBUG(l_environment->get_debug_manager()->file_out_impacts,
         fprintf(l_environment->get_debug_manager()->out_deb_file,"\n");
-    }
+	)
     
     if(worst_impact_dist){
 	IVP_ASSERT(worst_impact_dist->tmp_contact_info->impact.distance_reached_in_time < ivp_mindist_settings.minimum_friction_dist);
@@ -1820,26 +1820,28 @@ void IVP_Contact_Point::calc_coll_distance(){
     info->impact.distance_reached_in_time = get_gap_length() - ( closing_speed + info->impact.rescue_speed_addon * 0.5f ) * env->get_delta_PSI_time();
     //rescue speed * 0.5f : at impact demand full rescue_speed; at testing, demand only half (to assure termination)
 
-    IVP_IF(1){
-	IVP_IF(env->get_debug_manager()->file_out_impacts) {
-	    FILE *fp=env->get_debug_manager()->out_deb_file;
-	    IVP_Core *core0,*core1;
-	    core0=get_synapse(0)->l_obj->friction_core;
-	    core1=get_synapse(1)->l_obj->friction_core;
-	    fprintf(fp,"  %zi %zi-%zi: ",0x0000ffff&(hk_intp)this,0x0000ffff&(hk_intp)core0,0x0000ffff&(hk_intp)core1);
-	    fprintf(fp,"di %.4f  ",get_gap_length());
-	    IVP_DOUBLE debug_cs = closing_speed + info->impact.rescue_speed_addon*0.5f;
-	    fprintf(fp,"cs %.4f  ",debug_cs);
-	    fprintf(fp,"dr %.4f  ",info->impact.distance_reached_in_time);
-	}
-	IVP_IF(env->get_debug_manager()->debug_imp_sys) {
-	    ivp_message("tested_frdist %zi di %.4f cs %.4f dr %.4f\n",
-		0x0000ffff&(hk_intp)this,
-		get_gap_length(),
-		closing_speed + info->impact.rescue_speed_addon*0.5f,
-		info->impact.distance_reached_in_time);
-	}
-    }
+    IVP_DEBUGCODE(
+		IVP_IFDEBUG(env->get_debug_manager()->file_out_impacts,
+			FILE *fp=env->get_debug_manager()->out_deb_file;
+			IVP_Core *core0,*core1;
+			core0=get_synapse(0)->l_obj->friction_core;
+			core1=get_synapse(1)->l_obj->friction_core;
+			fprintf(fp,"  %zi %zi-%zi: ",0x0000ffff&(hk_intp)this,0x0000ffff&(hk_intp)core0,0x0000ffff&(hk_intp)core1);
+			fprintf(fp,"di %.4f  ",get_gap_length());
+			IVP_DOUBLE debug_cs = closing_speed + info->impact.rescue_speed_addon*0.5f;
+			fprintf(fp,"cs %.4f  ",debug_cs);
+			fprintf(fp,"dr %.4f  ",info->impact.distance_reached_in_time);
+		)
+	
+		IVP_IFDEBUG(env->get_debug_manager()->debug_imp_sys,
+			ivp_message("tested_frdist %zi di %.4f cs %.4f dr %.4f\n",
+				0x0000ffff&(hk_intp)this,
+				get_gap_length(),
+				closing_speed + info->impact.rescue_speed_addon*0.5f,
+				info->impact.distance_reached_in_time
+			);
+		)
+	)
 };
 
 class IVP_Vector_of_Hull_Managers_256: public IVP_U_Vector<IVP_Hull_Manager_Base> {

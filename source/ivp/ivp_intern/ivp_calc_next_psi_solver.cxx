@@ -157,12 +157,12 @@ no_sim_speedup:
 /* needs speed rot_speed  next_psi_time */
 void IVP_Calc_Next_PSI_Solver::calc_next_PSI_matrix(IVP_Event_Sim *event_sim,IVP_U_Vector<IVP_Hull_Manager_Base> *active_hull_managers_out){
    
-   IVP_IF(1) {
+   IVP_IFDEBUG(1,
         IVP_Debug_Manager *dm=event_sim->environment->get_debug_manager();
-	if(dm->file_out_impacts) {
-	    fprintf(dm->out_deb_file,"making_calc_next_psi %zi at %f\n",0x0000ffff&(hk_intp)this,core->environment->get_current_time().get_time());
-	}
-    }    
+		if(dm->file_out_impacts) {
+			fprintf(dm->out_deb_file,"making_calc_next_psi %zi at %f\n",0x0000ffff&(hk_intp)this,core->environment->get_current_time().get_time());
+		}
+	) 
 
    if (!( core->car_wheel && (core->max_surface_deviation == 0.0f) )) { //@@CB
 		core->clip_velocity(&core->speed, &core->rot_speed);

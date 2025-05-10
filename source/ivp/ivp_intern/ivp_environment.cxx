@@ -882,10 +882,10 @@ void IVP_Environment::simulate_psi(IVP_Time /*psi_time*/){
 	    get_statistic_manager()->last_statistic_output = get_current_time();
 	}
     }
-    IVP_IF(1) {
-	get_debug_manager()->psi_counter += 1.0f;
+    IVP_DEBUGCODE(
+		get_debug_manager()->psi_counter += 1.0f;
         delete_draw_vector_debug();
-    }
+	)
 
 
 #ifdef IVP_ENABLE_PERFORMANCE_COUNTER

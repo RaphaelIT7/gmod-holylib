@@ -767,12 +767,12 @@ void IVP_Core::synchronize_with_rot_z(){
     
     IVP_Time current_time = environment->get_current_time();
 
-    IVP_IF(1) {
+    IVP_IFDEBUG(1,
         IVP_Debug_Manager *dm=environment->get_debug_manager();
-	if(dm->file_out_impacts) {
-	    fprintf(dm->out_deb_file,"doing_synchronize %zi at %f\n",0x0000ffff&(hk_intp)this,current_time.get_time());
-	}
-    }
+		if(dm->file_out_impacts) {
+			fprintf(dm->out_deb_file,"doing_synchronize %zi at %f\n",0x0000ffff&(hk_intp)this,current_time.get_time());
+		}
+	)
     
     tmp_null.old_sync_info->old_sync_rot_speed. set(&rot_speed);
     tmp_null.old_sync_info->old_sync_q_world_f_core_next_psi = q_world_f_core_next_psi;
@@ -798,12 +798,12 @@ void IVP_Core::synchronize_with_rot_z(){
  * undos synchronize_with_rot_z (only if not calc_next_PSI_matrix is not called
  **************************/
 void IVP_Core::undo_synchronize_rot_z() {    
-    IVP_IF(1) {
+    IVP_IFDEBUG(1,
         IVP_Debug_Manager *dm=environment->get_debug_manager();
-	if(dm->file_out_impacts) {
-	    fprintf(dm->out_deb_file,"undoing_synchro %x at %f\n",0x0000ffff&(IVP_INT32)(hk_intp)this,environment->get_current_time().get_time());
-	}
-    }
+		if(dm->file_out_impacts) {
+			fprintf(dm->out_deb_file,"undoing_synchro %x at %f\n",0x0000ffff&(IVP_INT32)(hk_intp)this,environment->get_current_time().get_time());
+		}
+	)
     rot_speed.      set(&tmp_null.old_sync_info->old_sync_rot_speed);
     q_world_f_core_next_psi = tmp_null.old_sync_info->old_sync_q_world_f_core_next_psi;
     tmp_null.old_sync_info=NULL;
@@ -1213,20 +1213,20 @@ IVP_Friction_Info_For_Core *IVP_Core::get_friction_info(IVP_Friction_System *my_
 	    IVP_Friction_Info_For_Core *fr_info;
 	    fr_info=my_hash->find_friction_info( my_fr_system );
 #ifdef DEBUG_FRICTION_CONSISTENCY
-	    IVP_IF( my_fr_system->l_environment->get_debug_manager()->check_fs ) {
-	    IVP_Friction_Info_For_Core *test_info;
-		test_info=NULL;
-		int i;
-		for(i=0;i<list_debug_hash.len();i++) {
-		    IVP_Friction_Info_For_Core *search;
-		    search=list_debug_hash.element_at(i);
-		    if(search->l_friction_system == my_fr_system) {
-			test_info=search;
-			break;
-		    }
-		}
-		IVP_ASSERT( test_info == fr_info );
-	    }
+	    IVP_IFDEBUG( my_fr_system->l_environment->get_debug_manager()->check_fs,
+			IVP_Friction_Info_For_Core *test_info;
+			test_info=NULL;
+			int i;
+			for(i=0;i<list_debug_hash.len();i++) {
+				IVP_Friction_Info_For_Core *search;
+				search=list_debug_hash.element_at(i);
+				if(search->l_friction_system == my_fr_system) {
+				test_info=search;
+				break;
+				}
+			}
+			IVP_ASSERT( test_info == fr_info );
+		)
 #endif
 	    return fr_info;
 	} else {
@@ -1260,9 +1260,9 @@ void IVP_Core::add_friction_info(IVP_Friction_Info_For_Core *my_fr_info)
 	}
 	this->core_friction_info.for_unmoveables.l_friction_info_hash->add_friction_info( my_fr_info );
 #ifdef DEBUG_FRICTION_CONSISTENCY
-	IVP_IF(environment->get_debug_manager()->check_fs) {
+	IVP_IFDEBUG(environment->get_debug_manager()->check_fs,
 	    this->list_debug_hash.add( my_fr_info );
-	}
+	)
 #endif
     } else {
 	IVP_ASSERT( this->core_friction_info.for_moveables.moveable_core_friction_info == NULL );
@@ -1292,7 +1292,7 @@ void IVP_Core::unlink_friction_info(IVP_Friction_Info_For_Core *my_fr_info)
 	my_info = this->core_friction_info.for_unmoveables.l_friction_info_hash->remove_friction_info( my_fr_info );
 	IVP_ASSERT( my_info );
 #ifdef DEBUG_FRICTION_CONSISTENCY
-	IVP_IF( environment->get_debug_manager()->check_fs ) {
+	IVP_IFDEBUG( environment->get_debug_manager()->check_fs,
 	    int i=0;
 	    IVP_Friction_Info_For_Core*my_test_info=NULL;
 	    while(my_info!=NULL) {
@@ -1305,7 +1305,7 @@ void IVP_Core::unlink_friction_info(IVP_Friction_Info_For_Core *my_fr_info)
 		i++;
 	    }
 	    IVP_ASSERT( my_info==my_test_info );
-	}
+	)
 #endif
     } else {
 	IVP_ASSERT( this->core_friction_info.for_moveables.moveable_core_friction_info == my_fr_info );
