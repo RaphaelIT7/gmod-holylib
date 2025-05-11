@@ -508,8 +508,8 @@ int CPhysicsSurfaceProps::ParseSurfaceData( const char *pFileName, const char *p
 				else if ( !strcmpi( key, "stepleft" ) )
 				{
 #if PLATFORM_64BITS
-					prop.data.sounds.walkStepLeft = strtof(value, nullptr);
-					prop.data.sounds.runStepLeft = strtof(value, nullptr);
+					prop.data.sounds.walkStepLeft = m_strings.AddString( value );
+					prop.data.sounds.runStepLeft = prop.data.sounds.walkStepLeft;
 #else
 					prop.data.sounds.stepleft = m_strings.AddString( value );
 #endif
@@ -517,8 +517,8 @@ int CPhysicsSurfaceProps::ParseSurfaceData( const char *pFileName, const char *p
 				else if ( !strcmpi( key, "stepright" ) )
 				{
 #if PLATFORM_64BITS
-					prop.data.sounds.walkStepRight = strtof(value, nullptr);
-					prop.data.sounds.runStepRight = strtof(value, nullptr);
+					prop.data.sounds.walkStepRight = m_strings.AddString( value );
+					prop.data.sounds.runStepRight = prop.data.sounds.walkStepRight;
 #else
 					prop.data.sounds.stepright = m_strings.AddString( value );
 #endif
@@ -526,19 +526,19 @@ int CPhysicsSurfaceProps::ParseSurfaceData( const char *pFileName, const char *p
 #if PLATFORM_64BITS
 				else if ( !strcmpi( key, "walkstepleft" ) )
 				{
-					prop.data.sounds.walkStepLeft = strtof(value, nullptr);
+					prop.data.sounds.walkStepLeft = m_strings.AddString( value );
 				}
 				else if ( !strcmpi( key, "walkstepright" ) )
 				{
-					prop.data.sounds.walkStepRight = strtof(value, nullptr);
+					prop.data.sounds.walkStepRight = m_strings.AddString( value );
 				}
 				else if ( !strcmpi( key, "runstepleft" ) )
 				{
-					prop.data.sounds.runStepLeft = strtof(value, nullptr);
+					prop.data.sounds.runStepLeft = m_strings.AddString( value );
 				}
 				else if ( !strcmpi( key, "runstepright" ) )
 				{
-					prop.data.sounds.runStepRight = strtof(value, nullptr);
+					prop.data.sounds.runStepRight = m_strings.AddString( value );
 				}
 #endif
 				else if ( !strcmpi( key, "impactsoft" ) )
