@@ -985,7 +985,7 @@ IVP_MRC_TYPE IVP_Mindist_Minimize_Solver::p_minimize_PK(const IVP_Compact_Edge *
     if(sr.checks[0] < 0.0f){
 	return p_minimize_PP(P, K, m_cache_P, m_cache_K);
     }
-    if(sr.checks[1] < 0.0f){
+    if(sr.checks[1] < 0.0f && K->get_next()){
 	return p_minimize_PP(P, K->get_next(), m_cache_P, m_cache_K);
     }
     return p_minimize_Leave_PK(P, K, m_cache_P, m_cache_K);

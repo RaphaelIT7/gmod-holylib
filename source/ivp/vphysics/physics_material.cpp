@@ -222,7 +222,7 @@ int CPhysicsSurfaceProps::GetSurfaceIndex( const char *pPropertyName ) const
 {
 	if ( pPropertyName[0] == '$' )
 	{
-		hk_intp index = GetReservedSurfaceIndex( pPropertyName );
+		int index = GetReservedSurfaceIndex( pPropertyName );
 		if ( index >= 0 )
 			return index;
 	}
@@ -231,7 +231,7 @@ int CPhysicsSurfaceProps::GetSurfaceIndex( const char *pPropertyName ) const
 	if ( id.IsValid() )
 	{
 		// BUGBUG: Linear search is slow!!!
-		for ( hk_intp i = 0; i < m_props.Count(); i++ )
+		for ( int i = 0; i < m_props.Count(); i++ )
 		{
 			// NOTE: Just comparing strings by index is pretty fast though
 			if ( m_props[i].m_name == id )
@@ -420,7 +420,7 @@ int CPhysicsSurfaceProps::ParseSurfaceData( const char *pFileName, const char *p
 			CSurface prop;
 			memset( &prop.data, 0, sizeof(prop.data) );
 			prop.m_name = m_strings.AddString( key );
-			hk_intp baseMaterial = GetSurfaceIndex( key );
+			int baseMaterial = GetSurfaceIndex( key );
 			if ( baseMaterial < 0 )
 			{
 				baseMaterial = GetSurfaceIndex( "default" );
