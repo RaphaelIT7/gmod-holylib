@@ -264,6 +264,7 @@ protected:
     void core_is_going_to_be_deleted_event(IVP_Core *) override { delete this; }
     IVP_DOUBLE get_minimum_simulation_frequency() override { return 0.0f; }
     IVP_CONTROLLER_PRIORITY get_controller_priority() override { return IVP_CP_FORCEFIELDS; }
+	virtual const char* get_controller_name() override { return "ivp:controller_buoyancy"; };
     
     /********************************************************************
      * Name:        do_simulation_controller(...)

@@ -67,6 +67,8 @@ public:
 	IVP_U_Vector<IVP_Core>	*get_associated_controlled_cores() override		{ return &cores_of_constraint_system; }
     int						get_num_of_appending_terminals()		{ return wheel_objects.len(); }			// e.g. 4 for four wheels, might be more flexible in the future
 
+	virtual const char* get_controller_name() override { return "ivp:constraint_solver_car"; };
+
 public:
     
     friend class IVP_Constraint_Solver_Car_Builder;

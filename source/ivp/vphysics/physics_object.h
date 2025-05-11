@@ -13,7 +13,6 @@
 #endif
 
 #include "vphysics_interface.h"
-#include "Platform.hpp"
 
 class IPredictedPhysicsObject;
 class IVP_Real_Object;
@@ -117,7 +116,7 @@ public:
 	void			WakeNow();
 	void			Sleep() override;
 	void			RecheckCollisionFilter() override;
-#if !ARCHITECTURE_X86_64
+#if !PLATFORM_64BITS
 	void			RecheckContactPoints() override;
 #else
 	void			RecheckContactPoints( bool bSearchForNewContacts = false ) override;
@@ -222,7 +221,7 @@ public:
 	[[nodiscard]] CPhysicsEnvironment	*GetVPhysicsEnvironment();
 	[[nodiscard]] const CPhysicsEnvironment	*GetVPhysicsEnvironment() const;
 
-#if ARCHITECTURE_X86_64
+#if PLATFORM_64BITS
 	void			SetSphereRadius(float radius) override;
 
 	// EnableGravity still determines whether to apply gravity
@@ -269,7 +268,7 @@ private:
 	unsigned short	m_gameIndex;
 
 private:
-	// dimhotepus: unsigned short -> hk_intp
+	// dimhotepus: unsigned short -> int
 	int	m_activeIndex;
 	// dimhotepus: unsigned short -> int
 	int		m_materialIndex;

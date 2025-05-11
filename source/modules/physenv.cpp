@@ -9,14 +9,18 @@
 #include <vphysics_interface.h>
 #include <vphysics/collision_set.h>
 #include <vphysics/performance.h>
-#include "sourcesdk/cphysicsobject.h"
-#include "sourcesdk/cphysicsenvironment.h"
+//#include "sourcesdk/cphysicsobject.h"
+//#include "sourcesdk/cphysicsenvironment.h"
 #include <detouring/classproxy.hpp>
 #include "unordered_set"
 #include "player.h"
 #include "tier1/tier1.h"
 #define DLL_TOOLS
 #include "detours.h"
+
+#include "physics_environment.h" // has to be before physics_object.h
+#include "physics_object.h"
+#include "physics_collisionevent.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -812,12 +816,12 @@ LUA_FUNCTION_STATIC(physenv_CreateEnvironment)
 		pEnvironment->EnableDeleteQueue(true);
 		pEnvironment->SetSimulationTimestep(pMainEnvironment->GetSimulationTimestep());
 
-		g_Collisions = (CCollisionEvent*)pMainEnvironment->m_pCollisionSolver->m_pSolver; // Raw access is always fun :D
+		g_Collisions = (CCollisionEvent*)g_pPhysicsHolyLib->GetCollisionSolver(pMainEnvironment); // Raw access is always fun :D
 
 		pEnvironment->SetCollisionSolver(g_Collisions);
 		pEnvironment->SetCollisionEventHandler(g_Collisions);
 
-		pEnvironment->SetConstraintEventHandler(pMainEnvironment->m_pConstraintListener->m_pCallback);
+		pEnvironment->SetConstraintEventHandler(g_pPhysicsHolyLib->GetPhysicsListenerConstraint(pMainEnvironment));
 		pEnvironment->EnableConstraintNotify(true);
 
 		pEnvironment->SetObjectEventHandler(g_Collisions);
@@ -880,9 +884,9 @@ LUA_FUNCTION_STATIC(physenv_DestroyEnvironment)
 	CPhysicsEnvironment* pEnvironment = (CPhysicsEnvironment*)pLuaEnv->pEnvironment;
 	if (pLuaEnv->pEnvironment)
 	{
-		for (int i = pEnvironment->m_objects.Count(); --i >= 0; )
+		for (int i = pEnvironment->GetObjects().Count(); --i >= 0; )
 		{
-			IPhysicsObject* pObject = pEnvironment->m_objects[i];
+			IPhysicsObject* pObject = pEnvironment->GetObjects()[i];
 			CBaseEntity* pEntity = (CBaseEntity*)pObject->GetGameData();
 			if (pEntity)
 				pEntity->VPhysicsDestroyObject();

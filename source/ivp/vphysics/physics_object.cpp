@@ -142,7 +142,7 @@ void CPhysicsObject::Init( const CPhysCollide *pCollisionModel, IVP_Real_Object 
 	m_gameIndex = 0;
 	m_sleepState = OBJ_SLEEP;		// objects start asleep
 	m_callbacks = CALLBACK_GLOBAL_COLLISION|CALLBACK_GLOBAL_FRICTION|CALLBACK_FLUID_TOUCH|CALLBACK_GLOBAL_TOUCH|CALLBACK_GLOBAL_COLLIDE_STATIC|CALLBACK_DO_FLUID_SIMULATION;
-	m_activeIndex = std::numeric_limits<hk_intp>::max();
+	m_activeIndex = std::numeric_limits<int>::max();
 	m_pShadow = NULL;
 	m_shadowTempGravityDisable = false;
 	m_forceSilentDelete = false;
@@ -361,7 +361,7 @@ void CPhysicsObject::RecheckCollisionFilter()
 	m_callbacks &= ~CALLBACK_ENABLING_COLLISION;
 }
 
-#if !ARCHITECTURE_X86_64
+#if !PLATFORM_64BITS
 void CPhysicsObject::RecheckContactPoints()
 #else
 void CPhysicsObject::RecheckContactPoints( bool bSearchForNewContacts )
@@ -1597,7 +1597,7 @@ CPhysicsObject *CreatePhysicsObject( CPhysicsEnvironment *pEnvironment, const CP
 
 	IVP_U_Matrix massCenterMatrix;
 	massCenterMatrix.init();
-#if ARCHITECTURE_IS_X86 // BUG: Crashes on 64x
+#if !PLATFORM_64BITS // BUG: Crashes on 64x
 	if ( pParams->massCenterOverride )
 	{
 		IVP_U_Point center;
@@ -1942,7 +1942,7 @@ void CPhysicsObject::InitFromTemplate( CPhysicsEnvironment *pEnvironment, void *
 	m_pShadow = NULL;
 }
 
-#if ARCHITECTURE_X86_64
+#if PLATFORM_64BITS
 void CPhysicsObject::SetSphereRadius(float radius)
 {
 	Warning("CPhysicsObject::SetSphereRadius - not implemented!\n");

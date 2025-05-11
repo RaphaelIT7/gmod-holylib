@@ -5,7 +5,6 @@
 //=============================================================================//
 
 #include "cbase.h"
-#include "Platform.hpp"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -79,7 +78,7 @@ CVPhysPtrSaveRestoreOps::CVPhysPtrSaveRestoreOps()
 void CPhysicsEnvironment::PreRestore( const physprerestoreparams_t &params )
 {
 	g_VPhysPtrSaveRestoreOps.PreRestore();
-#if ARCHITECTURE_X86
+#if !PLATFORM_64BITS
 	for ( int i = 0; i < params.recreatedObjectCount; i++ )
 	{
 		AddPtrAssociation( params.recreatedObjectList[i].pOldObject, params.recreatedObjectList[i].pNewObject );

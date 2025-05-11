@@ -13,9 +13,7 @@
 #include "ivu_types.hxx"
 #include "tier1/utlvector.h"
 
-#include "Platform.hpp"
-
-#if ARCHITECTURE_X86_64
+#if PLATFORM_64BITS
 typedef physpresaverestoreparams_t physprerestoreparams_t;
 #endif
 
@@ -151,7 +149,7 @@ public:
 	// a constraint is being disabled - report the game DLL as "broken"
 	void NotifyConstraintDisabled( IPhysicsConstraint *pConstraint );
 
-#if ARCHITECTURE_X86_64
+#if PLATFORM_64BITS
 	void PreSave( const physpresaverestoreparams_t &params ) override;
 	void PostSave() override;
 
@@ -172,6 +170,10 @@ public:
 	// destroy a CPhysCollide used in CreatePolyObject()/CreatePolyObjectStatic() when any owning IPhysicsObject is flushed from the queued deletion list.
 	void DestroyCollideOnDeadObjectFlush( CPhysCollide * ) override; //should only be used after calling DestroyObject() on all IPhysicsObjects created with it.
 #endif
+
+	inline const CUtlVector<IPhysicsObject *>& GetObjects() { return m_objects; }; // Expose for holylib
+	inline CCollisionSolver* GetCollisionSolver() { return m_pCollisionSolver; };
+	inline CPhysicsListenerConstraint* GetPhysicsListenerConstraint() { return m_pConstraintListener; };
 
 private:
 	IVP_Environment					*m_pPhysEnv;

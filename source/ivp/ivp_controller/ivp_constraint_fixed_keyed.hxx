@@ -52,6 +52,7 @@ protected:
     IVP_DOUBLE get_minimum_simulation_frequency() override;
     IVP_U_Vector<IVP_Core> *get_associated_controlled_cores() override { return &cores_of_constraint_system; };
     IVP_CONTROLLER_PRIORITY get_controller_priority() override { return IVP_CP_CONSTRAINTS; }
+	virtual const char* get_controller_name() override { return "ivp:template_constraint_fixed_keyframed"; };
 	void ensure_in_simulation();
 	void do_simulation_controller(IVP_Event_Sim *,IVP_U_Vector<IVP_Core> *) override;
 public:

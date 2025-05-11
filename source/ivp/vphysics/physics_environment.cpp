@@ -205,7 +205,7 @@ public:
 		// fast remove preserves indices except for the last element (moved into the empty spot)
 		m_activeObjects.FastRemove(index);
 		// If this isn't the last element, shift its index over
-		if ( index < m_activeObjects.Count() )
+		if ( index < m_activeObjects.Count() && m_activeObjects.IsValidIndex( index ) )
 		{
 			m_activeObjects[index]->SetActiveIndex( index );
 		}
@@ -214,7 +214,7 @@ public:
 	void DeleteObject( CPhysicsObject *pObject )
 	{
 		int index = pObject->GetActiveIndex();
-		if ( index < m_activeObjects.Count() && index >= 0 )
+		if ( index < m_activeObjects.Count() )
 		{
 			Assert( m_activeObjects[index] == pObject );
 			Remove( index );
@@ -256,8 +256,8 @@ public:
 		// don't track static objects (like the world).  That way we only track objects that will move
 		if ( pObject->GetObject()->get_movement_state() != IVP_MT_STATIC )
 		{
-			Assert(pObject->GetActiveIndex()==std::numeric_limits<hk_intp>::max());
-			if ( pObject->GetActiveIndex()!=std::numeric_limits<hk_intp>::max())
+			Assert(pObject->GetActiveIndex() == std::numeric_limits<int>::max());
+			if ( pObject->GetActiveIndex() != std::numeric_limits<int>::max())
 				return;
 
 			auto index = m_activeObjects.AddToTail( pObject );
@@ -982,6 +982,9 @@ private:
 		return false;
 	}
 
+public:
+	inline IPhysicsCollisionSolver* GetSolver() { return m_pSolver; };
+
 private:
 	IPhysicsCollisionSolver					*m_pSolver;
 	// UNDONE: Linear search? should be small, but switch to rb tree if this ever gets large
@@ -992,7 +995,10 @@ public:
 #endif
 };
 
-
+IPhysicsCollisionSolver* CPhysicsHolyLib::GetCollisionSolver(IPhysicsEnvironment* pEnvironment)
+{
+	return ((CPhysicsEnvironment*)pEnvironment)->GetCollisionSolver()->GetSolver();
+}
 
 class CPhysicsListenerConstraint : public IVP_Listener_Constraint
 {
@@ -1031,10 +1037,17 @@ public:
 			m_pCallback->ConstraintBroken(pConstraint);
 		}
 	}
+
+	inline IPhysicsConstraintEvent* GetCallback() { return m_pCallback; };
+
 private:
 	IPhysicsConstraintEvent *m_pCallback;
 };
 
+IPhysicsConstraintEvent* CPhysicsHolyLib::GetPhysicsListenerConstraint(IPhysicsEnvironment* pEnvironment)
+{
+	return ((CPhysicsEnvironment*)pEnvironment)->GetPhysicsListenerConstraint()->GetCallback();
+}
 
 #define AIR_DENSITY	2
 
@@ -2008,7 +2021,7 @@ void CPhysicsEnvironment::EnableConstraintNotify( bool bEnable )
 	m_enableConstraintNotify = bEnable;
 }
 
-#if ARCHITECTURE_X86_64
+#if PLATFORM_64BITS
 void CPhysicsEnvironment::PreSave(const physpresaverestoreparams_t& params)
 {
 	Error("not implemented!\n");

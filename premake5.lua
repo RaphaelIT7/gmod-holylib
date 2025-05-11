@@ -104,6 +104,9 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			libdirs("libs/linux32")
 			links("luajit_32")
 
+		filter({"platforms:x86_64"})
+			defines("PLATFORM_64BITS")
+
 		filter("system:linux")
 			disablewarnings({"unused-variable"})
 			targetextension(".so")

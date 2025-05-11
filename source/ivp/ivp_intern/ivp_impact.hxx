@@ -43,11 +43,17 @@ void IVP_Impact_System::add_known_core_to_impact_system(IVP_Core *new_core){
 void IVP_Impact_System::add_pushed_core_to_impact_system(IVP_Core *new_core)
 {
     i_s_pushed_cores.add(new_core);
-    IVP_ASSERT(new_core->tmp_null.old_sync_info->was_pushed_during_i_s==IVP_FALSE);
-    new_core->tmp_null.old_sync_info->was_pushed_during_i_s=IVP_TRUE;
+	if (new_core->tmp_null.old_sync_info)
+	{
+		IVP_ASSERT(new_core->tmp_null.old_sync_info->was_pushed_during_i_s==IVP_FALSE);
+		new_core->tmp_null.old_sync_info->was_pushed_during_i_s=IVP_TRUE;
+	}
 }
 
 IVP_BOOL IVP_Impact_System::core_was_already_pushed_in_system(IVP_Core *test_core) {
+	if (!test_core->tmp_null.old_sync_info)
+		return IVP_FALSE;
+
     return test_core->tmp_null.old_sync_info->was_pushed_during_i_s;
 }
 

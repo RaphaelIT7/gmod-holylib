@@ -30,8 +30,6 @@
 #include "mathlib/polyhedron.h"
 #include "tier1/byteswap.h"
 
-#include "Platform.hpp"
-
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -107,7 +105,7 @@ public:
 	// If you delete the text and call members of IVPhysicsKeyParser, it will crash
 	IVPhysicsKeyParser	*VPhysicsKeyParserCreate( const char *pKeyData ) override;
 
-#if ARCHITECTURE_X86_64
+#if PLATFORM_64BITS
 	IVPhysicsKeyParser	*VPhysicsKeyParserCreate( vcollide_t *pVCollide ) override;
 #endif
 
@@ -140,7 +138,7 @@ public:
 	CPhysCollide	*UnserializeCollide( char *pBuffer, int size, int index ) override;
 	void			CollideSetOrthographicAreas( CPhysCollide *pCollide, const Vector &areas ) override;
 
-#if ARCHITECTURE_X86_64
+#if PLATFORM_64BITS
 	// Get an AABB for an oriented collision model
 	float			CollideGetRadius( const CPhysCollide *pCollide ) override;
 	void			*VCollideAllocUserData( vcollide_t *pVCollide, size_t userDataSize ) override;
@@ -1081,7 +1079,7 @@ static void LedgeInsidePoint( IVP_Compact_Ledge *pLedge, Vector& out )
 //			p3 - 
 // Output : float (volume in units^3)
 //-----------------------------------------------------------------------------
-#if !ARCHITECTURE_X86_64 // Mathlib has them on 64x.
+#if !PLATFORM_64BITS // Mathlib has them on 64x.
 static float TetrahedronVolume( const Vector &p0, const Vector &p1, const Vector &p2, const Vector &p3 )
 {
 	Vector a, b, c, cross;
@@ -1719,7 +1717,7 @@ IVPhysicsKeyParser *CPhysicsCollision::VPhysicsKeyParserCreate( const char *pKey
 	return CreateVPhysicsKeyParser( pKeyData );
 }
 
-#if ARCHITECTURE_X86_64
+#if PLATFORM_64BITS
 IVPhysicsKeyParser *CPhysicsCollision::VPhysicsKeyParserCreate( vcollide_t *pVCollide )
 {
 	return CreateVPhysicsKeyParser( pVCollide->pKeyValues );
@@ -1834,7 +1832,7 @@ void CPhysicsCollision::DestroyQueryModel( ICollisionQuery *pQuery )
 	delete pQuery;
 }
 
-#if ARCHITECTURE_X86_64
+#if PLATFORM_64BITS
 float CPhysicsCollision::CollideGetRadius(const CPhysCollide* pCollide)
 {
 	Error("Not Implemented!\n");

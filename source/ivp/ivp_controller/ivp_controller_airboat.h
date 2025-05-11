@@ -200,6 +200,8 @@ public:
 	void							SetCarSystemDebugData( const IVP_CarSystemDebugData_t &carSystemDebugData ) override;
 	void							GetCarSystemDebugData( IVP_CarSystemDebugData_t &carSystemDebugData ) override;
 
+	virtual const char* get_controller_name() override { return "ivp:controller_raycast_airboat"; };
+
 protected:
 
     IVP_Real_Object					*m_pAirboatBody;			// *car_body

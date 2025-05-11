@@ -124,18 +124,19 @@ public:
      ********************************************************************************/
     virtual IVP_CONTROLLER_PRIORITY get_controller_priority() = 0;
 
-    virtual const char* get_controller_name() { return "sys:unknown"; }
+    virtual const char* get_controller_name() { return "sys:unknown"; };
 
     virtual ~IVP_Controller() {}
 };
 
 class IVP_Controller_Independent: public IVP_Controller {
     static IVP_U_Vector<IVP_Core> empty_list;
-    IVP_U_Vector<IVP_Core> *get_associated_controlled_cores() override { return &empty_list; }
+    IVP_U_Vector<IVP_Core> *get_associated_controlled_cores() override { return &empty_list; };
+	virtual const char* get_controller_name() override { return "sys:unknown-independent"; };
 };
 
 class IVP_Controller_Dependent: public IVP_Controller {
-    
+    virtual const char* get_controller_name() override { return "sys:unknown-dependent"; };
 };
 
 
@@ -150,6 +151,7 @@ public:
     IVP_CONTROLLER_PRIORITY get_controller_priority() override { return IVP_CP_GRAVITY; }
     virtual ~IVP_Standard_Gravity_Controller() {}
     void core_is_going_to_be_deleted_event(IVP_Core *) override {}
+	virtual const char* get_controller_name() override { return "ivp:standard_gravity_controller"; }
 };
 
 

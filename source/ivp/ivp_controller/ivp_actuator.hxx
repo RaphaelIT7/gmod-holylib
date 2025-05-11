@@ -276,6 +276,7 @@ public:
     virtual void anchor_will_be_deleted_event(IVP_Anchor *del_anchor); // when an object is deleted it sends events to its connected actuators
     void core_is_going_to_be_deleted_event(IVP_Core *my_core) override;
     virtual ~IVP_Actuator();
+	virtual const char* get_controller_name() override { return "ivp:actuator"; };
 };
 
 

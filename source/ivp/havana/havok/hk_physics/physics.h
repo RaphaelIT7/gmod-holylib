@@ -228,6 +228,8 @@ public:
 	{
 		return m_environment;
 	}
+
+	virtual const char* get_controller_name() override { return "hk:link_ef"; };
 };
 class hk_Limited_Ball_Socket_BP *ivp_create_limited_ball_socket_bp(IVP_Template_Constraint *tmpl );
 class hk_Constraint *ivp_create_ragdoll_constraint_from_local_constraint_system(class hk_Local_Constraint_System *, IVP_Template_Constraint * );

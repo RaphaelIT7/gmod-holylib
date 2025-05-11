@@ -36,7 +36,8 @@ protected:
 
     // IVP_Controller implementations (only some)
     void core_is_going_to_be_deleted_event(IVP_Core *) override;   // default deletes this
-    
+    virtual const char* get_controller_name() override { return "ivp:forcefield"; };
+
     virtual void do_simulation_controller(IVP_Event_Sim *,IVP_U_Vector<IVP_Core> *core_list)=0;
     IVP_CONTROLLER_PRIORITY get_controller_priority() override;
     IVP_Forcefield(IVP_Environment *env, IVP_U_Set_Active<IVP_Core> *set_of_cores, IVP_BOOL owner_of_set);

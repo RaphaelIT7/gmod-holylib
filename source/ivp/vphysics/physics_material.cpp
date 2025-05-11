@@ -12,7 +12,6 @@
 #include "tier1/utlsymbol.h"
 #include "tier1/strtools.h" 
 #include "vcollide_parse_private.h"
-#include "Platform.hpp"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -149,7 +148,7 @@ public:
 		return m_strings.String(name);
 	}
 
-#if ARCHITECTURE_X86_64
+#if PLATFORM_64BITS
 	ISaveRestoreOps* GetMaterialIndexDataOps() const override;
 #endif
 
@@ -506,14 +505,40 @@ int CPhysicsSurfaceProps::ParseSurfaceData( const char *pFileName, const char *p
 					prop.data.audio.hardThreshold = strtof(value, nullptr);
 				}
 				// sound names
-#if ARCHITECTURE_X86
 				else if ( !strcmpi( key, "stepleft" ) )
 				{
+#if PLATFORM_64BITS
+					prop.data.sounds.walkStepLeft = strtof(value, nullptr);
+					prop.data.sounds.runStepLeft = strtof(value, nullptr);
+#else
 					prop.data.sounds.stepleft = m_strings.AddString( value );
+#endif
 				}
 				else if ( !strcmpi( key, "stepright" ) )
 				{
+#if PLATFORM_64BITS
+					prop.data.sounds.walkStepRight = strtof(value, nullptr);
+					prop.data.sounds.runStepRight = strtof(value, nullptr);
+#else
 					prop.data.sounds.stepright = m_strings.AddString( value );
+#endif
+				}
+#if PLATFORM_64BITS
+				else if ( !strcmpi( key, "walkstepleft" ) )
+				{
+					prop.data.sounds.walkStepLeft = strtof(value, nullptr);
+				}
+				else if ( !strcmpi( key, "walkstepright" ) )
+				{
+					prop.data.sounds.walkStepRight = strtof(value, nullptr);
+				}
+				else if ( !strcmpi( key, "runstepleft" ) )
+				{
+					prop.data.sounds.runStepLeft = strtof(value, nullptr);
+				}
+				else if ( !strcmpi( key, "runstepright" ) )
+				{
+					prop.data.sounds.runStepRight = strtof(value, nullptr);
 				}
 #endif
 				else if ( !strcmpi( key, "impactsoft" ) )
@@ -563,24 +588,6 @@ int CPhysicsSurfaceProps::ParseSurfaceData( const char *pFileName, const char *p
 				{
 					prop.data.physics.dampening = strtof(value, nullptr);
 				}
-#if ARCHITECTURE_X86_64
-				else if ( !strcmpi( key, "walkStepLeft" ) )
-				{
-					prop.data.sounds.walkStepLeft = strtof(value, nullptr);
-				}
-				else if ( !strcmpi( key, "walkStepRight" ) )
-				{
-					prop.data.sounds.walkStepRight = strtof(value, nullptr);
-				}
-				else if ( !strcmpi( key, "runStepLeft" ) )
-				{
-					prop.data.sounds.runStepLeft = strtof(value, nullptr);
-				}
-				else if ( !strcmpi( key, "runStepRight" ) )
-				{
-					prop.data.sounds.runStepRight = strtof(value, nullptr);
-				}
-#endif
 				else
 				{
 					// force a breakpoint
@@ -613,7 +620,7 @@ void CPhysicsSurfaceProps::SetWorldMaterialIndexTable( int *pMapArray, int mapSi
 	m_ivpManager.SetPropMap( pMapArray, mapSize );
 }
 
-#if ARCHITECTURE_X86_64
+#if PLATFORM_64BITS
 ISaveRestoreOps* CPhysicsSurfaceProps::GetMaterialIndexDataOps() const
 {
 	return MaterialIndexDataOps();

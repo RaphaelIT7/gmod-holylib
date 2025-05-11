@@ -89,6 +89,8 @@ public:
     // constraint changing functions that explain differences
     virtual void change_Aos_to_relaxe_constraint();
     virtual void change_Ros_to_relaxe_constraint();
+
+	virtual const char* get_controller_name() override { return "ivp:constraint"; };
     
     // some functions are missing yet.
 public:

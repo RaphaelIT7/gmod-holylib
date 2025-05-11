@@ -290,11 +290,11 @@ public:
 		{
 			Assert(m_activeObjects[index] == pObject);
 			Remove(index);
-			pObject->SetActiveIndex(0xFFFF);
+			pObject->SetActiveIndex( std::numeric_limits<int>::max() );
 		}
 		else
 		{
-			Assert(index == 0xFFFF);
+			Assert(index == std::numeric_limits<int>::max() );
 		}
 
 	}

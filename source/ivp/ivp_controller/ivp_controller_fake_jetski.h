@@ -165,6 +165,8 @@ public:
 	void							SetCarSystemDebugData( const IVP_CarSystemDebugData_t &carSystemDebugData );
 	void							GetCarSystemDebugData( IVP_CarSystemDebugData_t &carSystemDebugData );
 
+	virtual const char* get_controller_name() override { return "ivp:controller_raycast_fake_jetski"; };
+
 protected:
 
 	// Jetski body.

@@ -8,11 +8,15 @@
 #include <utlvector.h>
 
 class IPhysicsObject;
+class IPhysicsCollisionSolver;
+class IPhysicsConstraintEvent;
 class CPhysicsHolyLib
 {
 public:
 	bool HasObject(IPhysicsEnvironment* pEnvironment, IPhysicsObject* pObject);
 	bool IsValidObject(IPhysicsObject* pObject);
+	IPhysicsCollisionSolver* GetCollisionSolver(IPhysicsEnvironment* pEnvironment);
+	IPhysicsConstraintEvent* GetPhysicsListenerConstraint(IPhysicsEnvironment* pEnvironment);
 	const CUtlVector<IPhysicsEnvironment*>& GetEnvironments();
 	IPhysicsEnvironment* GetEnvironmentFromObject(IPhysicsObject* pObject);
 };
