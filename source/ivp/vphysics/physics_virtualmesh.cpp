@@ -154,7 +154,7 @@ void CMeshInstance::Init( const virtualmeshlist_t &list )
 	const unsigned int memSize = ledgeSize + pointSize + ComputeRootLedgeSize(list.pHull);
 	
 	m_pMemory = static_cast<byte *>(ivp_calloc_aligned( memSize, 16 ));
-	Assert( (hk_intp(m_pMemory) & 15) == 0 );	// make sure it is aligned
+	Assert( (int(m_pMemory) & 15) == 0 );	// make sure it is aligned
 
 	m_memSize = memSize;
 	m_hullCount = 0;

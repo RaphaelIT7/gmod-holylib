@@ -309,22 +309,26 @@ private:
 
 static const IVP_Compact_Surface *ConvertPhysCollideToCompactSurface( const CPhysCollide *pCollide )
 {
+	DebugPrint();
 	return pCollide->GetCompactSurface();
 }
 
 IVP_SurfaceManager *CreateSurfaceManager( const CPhysCollide *pCollisionModel, short &collideType )
 {
+	DebugPrint();
 	return pCollisionModel ? pCollisionModel->CreateSurfaceManager( collideType ) : NULL;
 }
 
 void OutputCollideDebugInfo( const CPhysCollide *pCollisionModel )
 {
+	DebugPrint();
 	pCollisionModel->OutputDebugInfo();
 }
 
 
 CPhysCollide *CPhysCollide::UnserializeFromBuffer( const char *pBuffer, unsigned int size, int index, bool swap )
 {
+	DebugPrint();
 	const physcollideheader_t *pHeader = reinterpret_cast<const physcollideheader_t *>(pBuffer);
 	if ( pHeader->vphysicsID == VPHYSICS_COLLISION_ID )
 	{
@@ -375,49 +379,58 @@ CPhysCollide *CPhysCollide::UnserializeFromBuffer( const char *pBuffer, unsigned
 
 void CPhysCollideMopp::Init( const char *pBuffer, unsigned int size )
 {
+	DebugPrint();
 	m_pMopp = (IVP_Compact_Mopp *)ivp_malloc_aligned( size, 32 );
 	memcpy( m_pMopp, pBuffer, size );
 }
 
 CPhysCollideMopp::CPhysCollideMopp( const char *pBuffer, unsigned int size )
 {
+	DebugPrint();
 	Init( pBuffer, size );
 }
 
 CPhysCollideMopp::CPhysCollideMopp( const moppheader_t *pHeader )
 {
+	DebugPrint();
 	Init( (const char *)(pHeader+1), pHeader->moppSize );
 }
 
 CPhysCollideMopp::CPhysCollideMopp( IVP_Compact_Mopp *pMopp )
 {
+	DebugPrint();
 	m_pMopp = pMopp;
 	pMopp->dummy = IVP_COMPACT_MOPP_ID;
 }
 
 CPhysCollideMopp::~CPhysCollideMopp()
 {
+	DebugPrint();
 	ivp_free_aligned(m_pMopp);
 }
 
 void CPhysCollideMopp::GetAllLedges( IVP_U_BigVector<IVP_Compact_Ledge> &ledges ) const
 {
+	DebugPrint();
 	IVP_Compact_Ledge_Solver::get_all_ledges( m_pMopp, &ledges );
 }
 
 IVP_SurfaceManager *CPhysCollideMopp::CreateSurfaceManager( short &collideType ) const
 {
+	DebugPrint();
 	collideType = COLLIDE_MOPP;
 	return new IVP_SurfaceManager_Mopp( m_pMopp );
 }
 
 size_t CPhysCollideMopp::GetSerializationSize() const
 {
+	DebugPrint();
 	return m_pMopp->byte_size + sizeof(moppheader_t);
 }
 
 size_t CPhysCollideMopp::SerializeToBuffer( char *pDest, bool bSwap ) const
 {
+	DebugPrint();
 	moppheader_t header;
 	header.Mopp( m_pMopp );
 	memcpy( pDest, &header, sizeof(header) );
@@ -428,6 +441,7 @@ size_t CPhysCollideMopp::SerializeToBuffer( char *pDest, bool bSwap ) const
 
 Vector CPhysCollideMopp::GetMassCenter() const
 {
+	DebugPrint();
 	Vector massCenterHL;
 	ConvertPositionToHL( m_pMopp->mass_center, massCenterHL );
 	return massCenterHL;
@@ -435,17 +449,20 @@ Vector CPhysCollideMopp::GetMassCenter() const
 
 void CPhysCollideMopp::SetMassCenter( const Vector &massCenterHL )
 {
+	DebugPrint();
 	ConvertPositionToIVP( massCenterHL, m_pMopp->mass_center );
 }
 
 void CPhysCollideMopp::OutputDebugInfo() const
 {
+	DebugPrint();
 	Msg("CollisionModel: MOPP\n");
 }
 #endif
 
 void CPhysCollideCompactSurface::InitCollideMap()
 {
+	DebugPrint();
 	m_pCollideMap = NULL;
 	if ( m_pCompactSurface )
 	{
@@ -466,6 +483,7 @@ void CPhysCollideCompactSurface::InitCollideMap()
 
 void CPhysCollideCompactSurface::Init( const char *pBuffer, unsigned int size, int index, bool bSwap )
 {
+	DebugPrint();
 	m_pCompactSurface = (IVP_Compact_Surface *)ivp_malloc_aligned( size, 32 );
 	memcpy( m_pCompactSurface, pBuffer, size );
 	if ( bSwap )
@@ -479,16 +497,19 @@ void CPhysCollideCompactSurface::Init( const char *pBuffer, unsigned int size, i
 
 CPhysCollideCompactSurface::CPhysCollideCompactSurface( const char *pBuffer, unsigned int size, int index, bool swap )
 {
+	DebugPrint();
 	Init( pBuffer, size, index, swap );
 }
 CPhysCollideCompactSurface::CPhysCollideCompactSurface( const compactsurfaceheader_t *pHeader, int index, bool swap )
 {
+	DebugPrint();
 	Init( (const char *)(pHeader+1), pHeader->surfaceSize, index, swap );
 	m_orthoAreas = pHeader->dragAxisAreas;
 }
 
 CPhysCollideCompactSurface::CPhysCollideCompactSurface( IVP_Compact_Surface *pSurface )
 {
+	DebugPrint();
 	m_pCompactSurface = pSurface;
 	pSurface->dummy[2] = IVP_COMPACT_SURFACE_ID;
 	m_pCompactSurface->dummy[0] = 0;
@@ -498,6 +519,7 @@ CPhysCollideCompactSurface::CPhysCollideCompactSurface( IVP_Compact_Surface *pSu
 
 CPhysCollideCompactSurface::~CPhysCollideCompactSurface()
 {
+	DebugPrint();
 	ivp_free_aligned(m_pCompactSurface);
 	if ( m_pCollideMap )
 	{
@@ -507,22 +529,26 @@ CPhysCollideCompactSurface::~CPhysCollideCompactSurface()
 
 IVP_SurfaceManager *CPhysCollideCompactSurface::CreateSurfaceManager( short &collideType ) const
 {
+	DebugPrint();
 	collideType = COLLIDE_POLY;
 	return new IVP_SurfaceManager_Polygon( m_pCompactSurface );
 }
 
 void CPhysCollideCompactSurface::GetAllLedges( IVP_U_BigVector<IVP_Compact_Ledge> &ledges ) const
 {
+	DebugPrint();
 	IVP_Compact_Ledge_Solver::get_all_ledges( m_pCompactSurface, &ledges );
 }
 
 size_t CPhysCollideCompactSurface::GetSerializationSize() const
 {
+	DebugPrint();
 	return m_pCompactSurface->byte_size + sizeof(compactsurfaceheader_t);
 }
 
 size_t CPhysCollideCompactSurface::SerializeToBuffer( char *pDest, bool bSwap ) const
 {
+	DebugPrint();
 	compactsurfaceheader_t header;
 	header.CompactSurface( m_pCompactSurface, m_orthoAreas );
 	if ( bSwap )
@@ -545,6 +571,7 @@ size_t CPhysCollideCompactSurface::SerializeToBuffer( char *pDest, bool bSwap ) 
 
 Vector CPhysCollideCompactSurface::GetMassCenter() const
 {
+	DebugPrint();
 	Vector massCenterHL;
 	ConvertPositionToHL( m_pCompactSurface->mass_center, massCenterHL );
 	return massCenterHL;
@@ -552,22 +579,26 @@ Vector CPhysCollideCompactSurface::GetMassCenter() const
 
 void CPhysCollideCompactSurface::SetMassCenter( const Vector &massCenterHL )
 {
+	DebugPrint();
 	ConvertPositionToIVP( massCenterHL, m_pCompactSurface->mass_center );
 }
 
 Vector CPhysCollideCompactSurface::GetOrthographicAreas() const
 {
+	DebugPrint();
 	return m_orthoAreas;
 }
 
 void CPhysCollideCompactSurface::SetOrthographicAreas( const Vector &areas )
 {
+	DebugPrint();
 	m_orthoAreas = areas;
 }
 
 
 void CPhysCollideCompactSurface::ComputeOrthographicAreas( float epsilon )
 {
+	DebugPrint();
 	Vector mins, maxs;
 
 	physcollision->CollideGetAABB( &mins, &maxs, this, vec3_origin, vec3_angle );
@@ -614,6 +645,7 @@ void CPhysCollideCompactSurface::ComputeOrthographicAreas( float epsilon )
 
 void CPhysCollideCompactSurface::ComputeHullInfo_r( hullinfo_t *pOut, const IVP_Compact_Ledgetree_Node *node ) const
 {
+	DebugPrint();
 	if ( !node->is_terminal() )
 	{
 		if ( node->get_compact_hull() )
@@ -632,6 +664,7 @@ void CPhysCollideCompactSurface::ComputeHullInfo_r( hullinfo_t *pOut, const IVP_
 
 void CPhysCollideCompactSurface::OutputDebugInfo() const
 {
+	DebugPrint();
 	hullinfo_t info;
 
 	ComputeHullInfo_r( &info, m_pCompactSurface->get_compact_ledge_tree_root() );
@@ -650,6 +683,7 @@ void CPhysCollideCompactSurface::OutputDebugInfo() const
 //-----------------------------------------------------------------------------
 CPhysConvex	*CPhysicsCollision::ConvexFromVertsFast( Vector **pVerts, int vertCount )
 {
+	DebugPrint();
 	IVP_U_Vector<IVP_U_Point> points;
 	int i;
 
@@ -679,6 +713,7 @@ CPhysConvex	*CPhysicsCollision::ConvexFromVertsFast( Vector **pVerts, int vertCo
 
 CPhysConvex *CPhysicsCollision::RebuildConvexFromPlanes( CPhysConvex *pConvex, float mergeTolerance )
 {
+	DebugPrint();
 	if ( !pConvex )
 		return NULL;
 	
@@ -713,6 +748,7 @@ CPhysConvex *CPhysicsCollision::RebuildConvexFromPlanes( CPhysConvex *pConvex, f
 
 CPhysConvex	*CPhysicsCollision::ConvexFromVerts( Vector **pVerts, int vertCount )
 {
+	DebugPrint();
 	CPhysConvex	*pConvex = ConvexFromVertsFast( pVerts, vertCount );
 	CPhysConvex	*pReturn = RebuildConvexFromPlanes( pConvex, 0.01f );	// remove interior coplanar verts!
 	if ( pReturn )
@@ -726,6 +762,7 @@ CPhysConvex	*CPhysicsCollision::ConvexFromVerts( Vector **pVerts, int vertCount 
 // produce a convex element from planes (csg of planes)
 CPhysConvex	*CPhysicsCollision::ConvexFromPlanes( float *pPlanes, int planeCount, float mergeDistance )
 {
+	DebugPrint();
 	// NOTE: We're passing in planes with outward-facing normals
 	// Ipion expects inward facing ones; we'll need to reverse plane directon
 	struct listplane_t
@@ -755,6 +792,7 @@ CPhysConvex	*CPhysicsCollision::ConvexFromPlanes( float *pPlanes, int planeCount
 
 CPhysConvex *CPhysicsCollision::ConvexFromConvexPolyhedron( const CPolyhedron &ConvexPolyhedron )
 {
+	DebugPrint();
 	IVP_Template_Polygon polyTemplate(ConvexPolyhedron.iVertexCount, ConvexPolyhedron.iLineCount, ConvexPolyhedron.iPolygonCount );
 
 	//convert/copy coordinates
@@ -808,6 +846,7 @@ struct PolyhedronMesh_Triangle
 //TODO: Optimize the returned polyhedron to get away from the triangulated mesh
 CPolyhedron *CPhysicsCollision::PolyhedronFromConvex( CPhysConvex * const pConvex, bool bUseTempPolyhedron )
 {
+	DebugPrint();
 	IVP_Compact_Ledge *pLedge = (IVP_Compact_Ledge *)pConvex;
 	int iTriangles = pLedge->get_n_triangles();
 
@@ -982,6 +1021,7 @@ CPolyhedron *CPhysicsCollision::PolyhedronFromConvex( CPhysConvex * const pConve
 
 int CPhysicsCollision::GetConvexesUsedInCollideable( const CPhysCollide *pCollideable, CPhysConvex **pOutputArray, int iOutputArrayLimit )
 {
+	DebugPrint();
 	IVP_U_BigVector<IVP_Compact_Ledge> ledges;
 	pCollideable->GetAllLedges( ledges );
 
@@ -1000,6 +1040,7 @@ int CPhysicsCollision::GetConvexesUsedInCollideable( const CPhysCollide *pCollid
 
 void CPhysicsCollision::ConvexesFromConvexPolygon( const Vector &vPolyNormal, const Vector *pPoints, int iPointCount, CPhysConvex **pOutput )
 {
+	DebugPrint();
 	IVP_U_Point *pIVP_Points = stackallocT( IVP_U_Point, iPointCount );
 	IVP_U_Point **pTriangulator = stackallocT( IVP_U_Point*, iPointCount );
 	IVP_U_Point **pRead = pTriangulator;
@@ -1114,6 +1155,7 @@ static float TriangleArea( const Vector &p0, const Vector &p1, const Vector &p2 
 //-----------------------------------------------------------------------------
 float CPhysicsCollision::ConvexVolume( CPhysConvex *pConvex )
 {
+	DebugPrint();
 	IVP_Compact_Ledge *pLedge = (IVP_Compact_Ledge *)pConvex;
 	int triangleCount = pLedge->get_n_triangles();
 
@@ -1144,6 +1186,7 @@ float CPhysicsCollision::ConvexVolume( CPhysConvex *pConvex )
 
 float CPhysicsCollision::ConvexSurfaceArea( CPhysConvex *pConvex )
 {
+	DebugPrint();
 	IVP_Compact_Ledge *pLedge = (IVP_Compact_Ledge *)pConvex;
 	int triangleCount = pLedge->get_n_triangles();
 
@@ -1171,6 +1214,7 @@ float CPhysicsCollision::ConvexSurfaceArea( CPhysConvex *pConvex )
 // Convert an array of convex elements to a compiled collision model (this deletes the convex elements)
 CPhysCollide *CPhysicsCollision::ConvertConvexToCollide( CPhysConvex **pConvex, int convexCount )
 {
+	DebugPrint();
 	convertconvexparams_t convertParams;
 	convertParams.Defaults();
 	return ConvertConvexToCollideParams( pConvex, convexCount, convertParams );
@@ -1178,6 +1222,7 @@ CPhysCollide *CPhysicsCollision::ConvertConvexToCollide( CPhysConvex **pConvex, 
 
 CPhysCollide *CPhysicsCollision::ConvertConvexToCollideParams( CPhysConvex **pConvex, int convexCount, const convertconvexparams_t &convertParams )
 {
+	DebugPrint();
 	if ( !convexCount || !pConvex )
 		return NULL;
 
@@ -1236,6 +1281,7 @@ static void InitBoxVerts( Vector *boxVerts, Vector **ppVerts, const Vector &mins
 #define FAST_BBOX 1
 CPhysCollideCompactSurface *CPhysicsCollision::FastBboxCollide( const CPhysCollideCompactSurface *pCollide, const Vector &mins, const Vector &maxs )
 {
+	DebugPrint();
 	Vector boxVerts[8];
 	InitBoxVerts( boxVerts, NULL, mins, maxs );
 	// copy the compact ledge at bboxCache 0
@@ -1263,6 +1309,7 @@ CPhysCollideCompactSurface *CPhysicsCollision::FastBboxCollide( const CPhysColli
 
 void CPhysicsCollision::InitBBoxCache()
 {
+	DebugPrint();
 	Vector boxVerts[8], *ppVerts[8];
 	Vector mins(-16,-16,0), maxs(16,16,72);
 	// init with the player box
@@ -1304,6 +1351,7 @@ void CPhysicsCollision::InitBBoxCache()
 
 CPhysConvex	*CPhysicsCollision::BBoxToConvex( const Vector &mins, const Vector &maxs )
 {
+	DebugPrint();
 	Vector boxVerts[8], *ppVerts[8];
 	InitBoxVerts( boxVerts, ppVerts, mins, maxs );
 	// Generate a convex hull from the verts
@@ -1312,6 +1360,7 @@ CPhysConvex	*CPhysicsCollision::BBoxToConvex( const Vector &mins, const Vector &
 
 CPhysCollide *CPhysicsCollision::BBoxToCollide( const Vector &mins, const Vector &maxs )
 {
+	DebugPrint();
 	// can't create a collision model for an empty box !
 	if ( mins == maxs )
 	{
@@ -1342,8 +1391,9 @@ CPhysCollide *CPhysicsCollision::BBoxToCollide( const Vector &mins, const Vector
 
 bool CPhysicsCollision::IsBBoxCache( CPhysCollide *pCollide )
 {
+	DebugPrint();
 	// UNDONE: Sort the list so it can be searched spatially instead of linearly?
-	for ( hk_intp i = m_bboxCache.Count()-1; i >= 0; i-- )
+	for ( int i = m_bboxCache.Count()-1; i >= 0; i-- )
 	{
 		if ( m_bboxCache[i].pCollide == pCollide )
 			return true;
@@ -1353,6 +1403,7 @@ bool CPhysicsCollision::IsBBoxCache( CPhysCollide *pCollide )
 
 void CPhysicsCollision::AddBBoxCache( CPhysCollideCompactSurface *pCollide, const Vector &mins, const Vector &maxs )
 {
+	DebugPrint();
 	bboxcache_t &pCache = m_bboxCache[m_bboxCache.AddToTail()];
 	pCache.pCollide = pCollide;
 	pCache.mins = mins;
@@ -1361,7 +1412,8 @@ void CPhysicsCollision::AddBBoxCache( CPhysCollideCompactSurface *pCollide, cons
 
 CPhysCollideCompactSurface *CPhysicsCollision::GetBBoxCache( const Vector &mins, const Vector &maxs )
 {
-	for ( hk_intp i = m_bboxCache.Count()-1; i >= 0; i-- )
+	DebugPrint();
+	for ( int i = m_bboxCache.Count()-1; i >= 0; i-- )
 	{
 		if ( m_bboxCache[i].mins == mins && m_bboxCache[i].maxs == maxs )
 			return m_bboxCache[i].pCollide;
@@ -1372,6 +1424,7 @@ CPhysCollideCompactSurface *CPhysicsCollision::GetBBoxCache( const Vector &mins,
 
 void CPhysicsCollision::ConvexFree( CPhysConvex *pConvex )
 {
+	DebugPrint();
 	if ( !pConvex )
 		return;
 	ivp_free_aligned( pConvex );
@@ -1380,16 +1433,19 @@ void CPhysicsCollision::ConvexFree( CPhysConvex *pConvex )
 // Get the size of the collision model for serialization
 int	CPhysicsCollision::CollideSize( CPhysCollide *pCollide )
 {
+	DebugPrint();
 	return pCollide->GetSerializationSize();
 }
 
 int	CPhysicsCollision::CollideWrite( char *pDest, CPhysCollide *pCollide, bool bSwap )
 {
+	DebugPrint();
 	return pCollide->SerializeToBuffer( pDest, bSwap );
 }
 
 CPhysCollide *CPhysicsCollision::UnserializeCollide( char *pBuffer, int size, int index )
 {
+	DebugPrint();
 	return CPhysCollide::UnserializeFromBuffer( pBuffer, size, index );
 }
 
@@ -1409,6 +1465,7 @@ public:
 
 CPhysPolysoup::CPhysPolysoup()
 {
+	DebugPrint();
 	m_isValid = false;
     m_points.add( &m_triangle[0] );
     m_points.add( &m_triangle[1] );
@@ -1417,16 +1474,19 @@ CPhysPolysoup::CPhysPolysoup()
 
 CPhysPolysoup *CPhysicsCollision::PolysoupCreate( void )
 {
+	DebugPrint();
 	return new CPhysPolysoup;
 }
 
 void CPhysicsCollision::PolysoupDestroy( CPhysPolysoup *pSoup )
 {
+	DebugPrint();
 	delete pSoup;
 }
 
 void CPhysicsCollision::PolysoupAddTriangle( CPhysPolysoup *pSoup, const Vector &a, const Vector &b, const Vector &c, int materialIndex7bits )
 {
+	DebugPrint();
 	pSoup->m_isValid = true;
 	ConvertPositionToIVP( a, pSoup->m_triangle[0] );
 	ConvertPositionToIVP( b, pSoup->m_triangle[1] );
@@ -1450,6 +1510,7 @@ void CPhysicsCollision::PolysoupAddTriangle( CPhysPolysoup *pSoup, const Vector 
 
 CPhysCollide *CPhysicsCollision::ConvertPolysoupToCollide( CPhysPolysoup *pSoup, [[maybe_unused]] bool useMOPP )
 {
+	DebugPrint();
 	if ( !pSoup->m_isValid )
 		return NULL;
 
@@ -1504,6 +1565,7 @@ CPhysCollide *CPhysicsCollision::ConvertPolysoupToCollide( CPhysPolysoup *pSoup,
 
 int CPhysicsCollision::CreateDebugMesh( const CPhysCollide *pCollisionModel, Vector **outVerts )
 {
+	DebugPrint();
 	int i;
 
 	IVP_U_BigVector<IVP_Compact_Ledge> ledges;
@@ -1547,12 +1609,14 @@ int CPhysicsCollision::CreateDebugMesh( const CPhysCollide *pCollisionModel, Vec
 
 void CPhysicsCollision::DestroyDebugMesh( int, Vector *outVerts )
 {
+	DebugPrint();
 	delete[] outVerts;
 }
 
 
 void CPhysicsCollision::SetConvexGameData( CPhysConvex *pConvex, unsigned int gameData )
 {
+	DebugPrint();
 	IVP_Compact_Ledge *pLedge = reinterpret_cast<IVP_Compact_Ledge *>( pConvex );
 	pLedge->set_client_data( gameData );
 }
@@ -1560,33 +1624,39 @@ void CPhysicsCollision::SetConvexGameData( CPhysConvex *pConvex, unsigned int ga
 
 void CPhysicsCollision::TraceBox( const Vector &start, const Vector &end, const Vector &mins, const Vector &maxs, const CPhysCollide *pCollide, const Vector &collideOrigin, const QAngle &collideAngles, trace_t *ptr )
 {
+	DebugPrint();
 	m_traceapi.SweepBoxIVP( start, end, mins, maxs, pCollide, collideOrigin, collideAngles, ptr );
 }
 
 void CPhysicsCollision::TraceBox( const Ray_t &ray, const CPhysCollide *pCollide, const Vector &collideOrigin, const QAngle &collideAngles, trace_t *ptr )
 {
+	DebugPrint();
 	TraceBox( ray, MASK_ALL, NULL, pCollide, collideOrigin, collideAngles, ptr );
 }
 
 void CPhysicsCollision::TraceBox( const Ray_t &ray, unsigned int contentsMask, IConvexInfo *pConvexInfo, const CPhysCollide *pCollide, const Vector &collideOrigin, const QAngle &collideAngles, trace_t *ptr )
 {
+	DebugPrint();
 	m_traceapi.SweepBoxIVP( ray, contentsMask, pConvexInfo, pCollide, collideOrigin, collideAngles, ptr );
 }
 
 // Trace one collide against another
 void CPhysicsCollision::TraceCollide( const Vector &start, const Vector &end, const CPhysCollide *pSweepCollide, const QAngle &sweepAngles, const CPhysCollide *pCollide, const Vector &collideOrigin, const QAngle &collideAngles, trace_t *ptr )
 {
+	DebugPrint();
 	m_traceapi.SweepIVP( start, end, pSweepCollide, sweepAngles, pCollide, collideOrigin, collideAngles, ptr );
 }
 
 void CPhysicsCollision::CollideGetAABB( Vector *pMins, Vector *pMaxs, const CPhysCollide *pCollide, const Vector &collideOrigin, const QAngle &collideAngles )
 {
+	DebugPrint();
 	m_traceapi.GetAABB( pMins, pMaxs, pCollide, collideOrigin, collideAngles );
 }
 
 
 Vector CPhysicsCollision::CollideGetExtent( const CPhysCollide *pCollide, const Vector &collideOrigin, const QAngle &collideAngles, const Vector &direction )
 {
+	DebugPrint();
 	if ( !pCollide )
 		return collideOrigin;
 
@@ -1595,12 +1665,14 @@ Vector CPhysicsCollision::CollideGetExtent( const CPhysCollide *pCollide, const 
 
 bool CPhysicsCollision::IsBoxIntersectingCone( const Vector &boxAbsMins, const Vector &boxAbsMaxs, const truncatedcone_t &cone )
 {
+	DebugPrint();
 	return m_traceapi.IsBoxIntersectingCone( boxAbsMins, boxAbsMaxs, cone );
 }
 
 // Free a collide that was created with ConvertConvexToCollide()
 void CPhysicsCollision::DestroyCollide( CPhysCollide *pCollide )
 {
+	DebugPrint();
 	if ( !IsBBoxCache( pCollide ) )
 	{
 		delete pCollide;
@@ -1610,6 +1682,7 @@ void CPhysicsCollision::DestroyCollide( CPhysCollide *pCollide )
 // calculate the volume of a collide by calling ConvexVolume on its parts
 float CPhysicsCollision::CollideVolume( CPhysCollide *pCollide )
 {
+	DebugPrint();
 	IVP_U_BigVector<IVP_Compact_Ledge> ledges;
 	pCollide->GetAllLedges( ledges );
 
@@ -1625,6 +1698,7 @@ float CPhysicsCollision::CollideVolume( CPhysCollide *pCollide )
 // calculate the volume of a collide by calling ConvexVolume on its parts
 float CPhysicsCollision::CollideSurfaceArea( CPhysCollide *pCollide )
 {
+	DebugPrint();
 	IVP_U_BigVector<IVP_Compact_Ledge> ledges;
 	pCollide->GetAllLedges( ledges );
 
@@ -1641,6 +1715,7 @@ float CPhysicsCollision::CollideSurfaceArea( CPhysCollide *pCollide )
 // loads a set of solids into a vcollide_t
 void CPhysicsCollision::VCollideLoad( vcollide_t *pOutput, int solidCount, const char *pBuffer, int bufferSize, bool swap )
 {
+	DebugPrint();
 	memset( pOutput, 0, sizeof(*pOutput) );
 	int position = 0;
 
@@ -1684,6 +1759,7 @@ void CPhysicsCollision::VCollideLoad( vcollide_t *pOutput, int solidCount, const
 // destroys the set of solids created by VCollideCreateCPhysCollide
 void CPhysicsCollision::VCollideUnload( vcollide_t *pVCollide )
 {
+	DebugPrint();
 	for ( int i = 0; i < pVCollide->solidCount; i++ )
 	{
 #if _DEBUG
@@ -1714,44 +1790,52 @@ void CPhysicsCollision::VCollideUnload( vcollide_t *pVCollide )
 // If you delete the vcollide_t and call members of IVCollideParse, it will crash
 IVPhysicsKeyParser *CPhysicsCollision::VPhysicsKeyParserCreate( const char *pKeyData )
 {
-	return CreateVPhysicsKeyParser( pKeyData );
+	DebugPrint();
+	return CreateVPhysicsKeyParser( pKeyData, false );
 }
 
 #if PLATFORM_64BITS
 IVPhysicsKeyParser *CPhysicsCollision::VPhysicsKeyParserCreate( vcollide_t *pVCollide )
 {
-	return CreateVPhysicsKeyParser( pVCollide->pKeyValues );
+	DebugPrint();
+	return CreateVPhysicsKeyParser( pVCollide->pKeyValues, pVCollide->isPacked );
 }
 #endif
 
 // Free the parser created by VPhysicsKeyParserCreate
 void CPhysicsCollision::VPhysicsKeyParserDestroy( IVPhysicsKeyParser *pParser )
 {
+	DebugPrint();
 	DestroyVPhysicsKeyParser( pParser );
 }
 
 IPhysicsCollision *CPhysicsCollision::ThreadContextCreate( void )
 { 
+	DebugPrint();
 	return this;
 }
 
 void CPhysicsCollision::ThreadContextDestroy( IPhysicsCollision * )
 {
+	DebugPrint();
 }
 
 
 void CPhysicsCollision::CollideGetMassCenter( CPhysCollide *pCollide, Vector *pOutMassCenter )
 {
+	DebugPrint();
 	*pOutMassCenter = pCollide->GetMassCenter();
 }
 
 void CPhysicsCollision::CollideSetMassCenter( CPhysCollide *pCollide, const Vector &massCenter )
 {
+	DebugPrint();
 	pCollide->SetMassCenter( massCenter );
 }
 
 int CPhysicsCollision::CollideIndex( const CPhysCollide *pCollide )
 {
+	DebugPrint();
 	if ( !pCollide )
 		return 0;
 	return pCollide->GetVCollideIndex();
@@ -1759,6 +1843,7 @@ int CPhysicsCollision::CollideIndex( const CPhysCollide *pCollide )
 
 Vector CPhysicsCollision::CollideGetOrthographicAreas( const CPhysCollide *pCollide )
 {
+	DebugPrint();
 	if ( !pCollide )
 		return vec3_origin;
 
@@ -1767,6 +1852,7 @@ Vector CPhysicsCollision::CollideGetOrthographicAreas( const CPhysCollide *pColl
 
 void CPhysicsCollision::CollideSetOrthographicAreas( CPhysCollide *pCollide, const Vector &areas )
 {
+	DebugPrint();
 	if ( pCollide )
 		pCollide->SetOrthographicAreas( areas );
 }
@@ -1774,14 +1860,16 @@ void CPhysicsCollision::CollideSetOrthographicAreas( CPhysCollide *pCollide, con
 // returns true if this collide has an outer hull built
 void CPhysicsCollision::OutputDebugInfo( const CPhysCollide *pCollide )
 {
+	DebugPrint();
 	pCollide->OutputDebugInfo();
 }
 
 bool CPhysicsCollision::GetBBoxCacheSize( int *pCachedSize, int *pCachedCount )
 {
+	DebugPrint();
 	*pCachedSize = 0;
 	*pCachedCount = m_bboxCache.Count();
-	for ( hk_intp i = 0; i < *pCachedCount; i++ )
+	for ( int i = 0; i < *pCachedCount; i++ )
 	{
 		*pCachedSize += m_bboxCache[i].pCollide->GetSerializationSize();
 	}
@@ -1823,46 +1911,54 @@ private:
 // create a queryable version of the collision model
 ICollisionQuery *CPhysicsCollision::CreateQueryModel( CPhysCollide *pCollide )
 {
+	DebugPrint();
 	return new CCollisionQuery( pCollide );
 }
 
 	// destroy the queryable version
 void CPhysicsCollision::DestroyQueryModel( ICollisionQuery *pQuery )
 {
+	DebugPrint();
 	delete pQuery;
 }
 
 #if PLATFORM_64BITS
 float CPhysicsCollision::CollideGetRadius(const CPhysCollide* pCollide)
 {
+	DebugPrint();
 	Error("Not Implemented!\n");
 	return 0.0f;
 }
 
 void* CPhysicsCollision::VCollideAllocUserData(vcollide_t* pVCollide, size_t userDataSize)
 {
+	DebugPrint();
 	Error("Not Implemented!\n");
 	return nullptr;
 }
 
 void CPhysicsCollision::VCollideFreeUserData(vcollide_t* pVCollide)
 {
+	DebugPrint();
 	Error("Not Implemented!\n");
 }
 
 void CPhysicsCollision::VCollideCheck(vcollide_t* pVCollide, const char* pName)
 {
+	DebugPrint();
 	Error("Not Implemented!\n");
 }
 
 bool CPhysicsCollision::TraceBoxAA(const Ray_t& ray, const CPhysCollide* pCollide, trace_t* ptr)
 {
+	DebugPrint();
 	Error("Not Implemented!\n");
 	return false;
 }
 
 void CPhysicsCollision::DuplicateAndScale(vcollide_t* pOut, const vcollide_t* pIn, float flScale)
 {
+	DebugPrint();
 	Error("Not Implemented!\n");
 }
 #endif
@@ -1870,6 +1966,7 @@ void CPhysicsCollision::DuplicateAndScale(vcollide_t* pOut, const vcollide_t* pI
 
 CCollisionQuery::CCollisionQuery( CPhysCollide *pCollide )
 {
+	DebugPrint();
 	pCollide->GetAllLedges( m_ledges );
 }
 
@@ -1877,12 +1974,14 @@ CCollisionQuery::CCollisionQuery( CPhysCollide *pCollide )
 	// number of convex pieces in the whole solid
 int	CCollisionQuery::ConvexCount( void )
 {
+	DebugPrint();
 	return m_ledges.len();
 }
 
 	// triangle count for this convex piece
 int CCollisionQuery::TriangleCount( int convexIndex )
 {
+	DebugPrint();
 	IVP_Compact_Ledge *pLedge = m_ledges.element_at(convexIndex);
 	if ( pLedge )
 	{
@@ -1895,6 +1994,7 @@ int CCollisionQuery::TriangleCount( int convexIndex )
 
 unsigned int CCollisionQuery::GetGameData( int convexIndex )
 {
+	DebugPrint();
 	IVP_Compact_Ledge *pLedge = m_ledges.element_at( convexIndex );
 	if ( pLedge )
 		return pLedge->get_client_data();
@@ -1904,6 +2004,7 @@ unsigned int CCollisionQuery::GetGameData( int convexIndex )
 	// Gets the triangle's verts to an array
 void CCollisionQuery::GetTriangleVerts( int convexIndex, int triangleIndex, Vector *verts )
 {
+	DebugPrint();
 	IVP_Compact_Ledge *pLedge = m_ledges.element_at( convexIndex );
 	IVP_Compact_Triangle *pTriangle = Triangle( pLedge, triangleIndex );
 
@@ -1922,6 +2023,7 @@ void CCollisionQuery::GetTriangleVerts( int convexIndex, int triangleIndex, Vect
 // UNDONE: This doesn't work!!!
 void CCollisionQuery::SetTriangleVerts( int convexIndex, int triangleIndex, const Vector *verts )
 {
+	DebugPrint();
 	IVP_Compact_Ledge *pLedge = m_ledges.element_at( convexIndex );
 	Triangle( pLedge, triangleIndex );
 }
@@ -1929,6 +2031,7 @@ void CCollisionQuery::SetTriangleVerts( int convexIndex, int triangleIndex, cons
 	
 int CCollisionQuery::GetTriangleMaterialIndex( int convexIndex, int triangleIndex )
 {
+	DebugPrint();
 	IVP_Compact_Ledge *pLedge = m_ledges.element_at( convexIndex );
 	IVP_Compact_Triangle *pTriangle = Triangle( pLedge, triangleIndex );
 
@@ -1937,6 +2040,7 @@ int CCollisionQuery::GetTriangleMaterialIndex( int convexIndex, int triangleInde
 
 void CCollisionQuery::SetTriangleMaterialIndex( int convexIndex, int triangleIndex, int index7bits )
 {
+	DebugPrint();
 	IVP_Compact_Ledge *pLedge = m_ledges.element_at( convexIndex );
 	IVP_Compact_Triangle *pTriangle = Triangle( pLedge, triangleIndex );
 
@@ -1945,6 +2049,7 @@ void CCollisionQuery::SetTriangleMaterialIndex( int convexIndex, int triangleInd
 
 IVP_Compact_Triangle *CCollisionQuery::Triangle( IVP_Compact_Ledge *pLedge, int triangleIndex )
 {
+	DebugPrint();
 	if ( !pLedge )
 		return NULL;
 

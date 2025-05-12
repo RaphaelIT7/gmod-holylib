@@ -98,7 +98,7 @@ public:
 	}
 	void DeleteAll()
 	{
-		for ( hk_intp i = m_list.Count()-1; i >= 0; --i)
+		for ( int i = m_list.Count()-1; i >= 0; --i)
 		{
 			m_list[i]->Delete();
 			delete m_list[i];
@@ -141,6 +141,7 @@ public:
 
 	void GetSurfaceNormal( Vector &out ) override
 	{ 
+		DebugPrint();
 		if ( m_pContact )
 		{
 			ConvertDirectionToHL( m_pContact->surf_normal, out ); 
@@ -155,6 +156,7 @@ public:
 	}
 	void GetContactPoint( Vector &out ) override
 	{
+		DebugPrint();
 		if ( m_pContact )
 		{
 			ConvertPositionToHL( m_pContact->contact_point_ws, out ); 
@@ -166,6 +168,7 @@ public:
 	}
 	void GetContactSpeed( Vector &out ) override
 	{
+		DebugPrint();
 		if ( m_pContact )
 		{
 			ConvertPositionToHL( m_pContact->speed, out );
@@ -200,7 +203,7 @@ public:
 		m_pCallback = pListener;
 	}
 
-	void Remove( hk_intp index )
+	void Remove( int index )
 	{
 		// fast remove preserves indices except for the last element (moved into the empty spot)
 		m_activeObjects.FastRemove(index);
@@ -378,20 +381,20 @@ public:
 			}
 		}
 	}
-	hk_intp	GetActiveObjectCount( void ) const
+	int	GetActiveObjectCount( void ) const
 	{
 		return m_activeObjects.Count();
 	}
 	void GetActiveObjects( IPhysicsObject **pOutputObjectList ) const
 	{
-		for ( hk_intp i = 0; i < m_activeObjects.Count(); i++ )
+		for ( int i = 0; i < m_activeObjects.Count(); i++ )
 		{
 			pOutputObjectList[i] = m_activeObjects[i];
 		}
 	}
 	void UpdateSleepObjects( void )
 	{
-		hk_intp i;
+		int i;
 
 		CUtlVector<CPhysicsObject *> sleepObjects;
 
@@ -851,6 +854,7 @@ public:
 	// IVP_Collision_Filter
     IVP_BOOL check_objects_for_collision_detection(IVP_Real_Object *ivp0, IVP_Real_Object *ivp1) override
 	{
+		DebugPrint();
 		if ( m_pSolver )
 		{
 			CPhysicsObject *pObject0 = static_cast<CPhysicsObject *>(ivp0->client_data);
@@ -874,6 +878,7 @@ public:
 	// IVP_Anomaly_Manager
 	void inter_penetration( IVP_Mindist *mindist,IVP_Real_Object *ivp0, IVP_Real_Object *ivp1, IVP_DOUBLE speedChange) override
 	{
+		DebugPrint();
 		if ( m_pSolver )
 		{
 			// UNDONE: project current velocity onto rescue velocity instead
@@ -913,6 +918,7 @@ public:
 	// return true if object should be temp. freezed
     IVP_BOOL max_collisions_exceeded_check_freezing(IVP_Anomaly_Limits *, IVP_Core *pCore) override
 	{
+		DebugPrint();
 		if ( m_pSolver )
 		{
 			CPhysicsObject *pObject = static_cast<CPhysicsObject *>(pCore->objects.element_at(0)->client_data);
@@ -923,6 +929,7 @@ public:
 	// return number of additional checks to do this psi
     virtual int max_collision_checks_exceeded( int totalChecks )
 	{
+		DebugPrint();
 		if ( m_pSolver )
 		{
 			return m_pSolver->AdditionalCollisionChecksThisTick( totalChecks );
@@ -931,6 +938,7 @@ public:
 	}
 	void max_velocity_exceeded(IVP_Anomaly_Limits *al, IVP_Core *pCore, IVP_U_Float_Point *velocity_in_out) override
 	{
+		DebugPrint();
 		CPhysicsObject *pObject = static_cast<CPhysicsObject *>(pCore->objects.element_at(0)->client_data);
 		if ( pObject->GetShadowController() != NULL )
 			return;
@@ -938,6 +946,7 @@ public:
 	}
 	IVP_BOOL max_contacts_exceeded_check_freezing( IVP_Core **pCoreList, int coreCount )
 	{
+		DebugPrint();
 		CUtlVector<IPhysicsObject *> list;
 		list.EnsureCapacity(coreCount);
 		for ( int i = 0; i < coreCount; i++ )
@@ -954,6 +963,7 @@ public:
 public:
 	void EventPSI( CPhysicsEnvironment * )
 	{
+		DebugPrint();
 		m_rescue.RemoveAll();
 	}
 
@@ -1024,6 +1034,7 @@ public:
 
     void event_constraint_broken( hk_Breakable_Constraint *pConstraint ) override
 	{
+		DebugPrint();
 		if ( m_pCallback )
 		{
 			IPhysicsConstraint *pObj = GetClientDataForHkConstraint( pConstraint );
@@ -1032,6 +1043,7 @@ public:
 	}
 	void event_constraint_broken( IPhysicsConstraint *pConstraint )
 	{
+		DebugPrint();
 		if ( m_pCallback )
 		{
 			m_pCallback->ConstraintBroken(pConstraint);
@@ -1063,6 +1075,7 @@ public:
 
     void do_simulation_controller(IVP_Event_Sim *event,IVP_U_Vector<IVP_Core> *core_list) override
 	{
+		DebugPrint();
 		int i;
 		for( i = core_list->len()-1; i >=0; i--) 
 		{
@@ -1208,7 +1221,7 @@ CPhysicsEnvironment::~CPhysicsEnvironment( void )
 	m_pPhysEnv->remove_listener_constraint_global( m_pConstraintListener );
 
 	// Clean out the list of physics objects
-	for ( hk_intp i = m_objects.Count()-1; i >= 0; --i )
+	for ( int i = m_objects.Count()-1; i >= 0; --i )
 	{
 		CPhysicsObject *pObject = static_cast<CPhysicsObject *>(m_objects[i]);
 		PhantomRemove( pObject );
@@ -1234,11 +1247,13 @@ CPhysicsEnvironment::~CPhysicsEnvironment( void )
 
 IPhysicsCollisionEvent *CPhysicsEnvironment::GetCollisionEventHandler() 
 { 
+	DebugPrint();
 	return m_pCollisionListener->GetHandler(); 
 }
 
 void CPhysicsEnvironment::NotifyConstraintDisabled( IPhysicsConstraint *pConstraint )
 {
+	DebugPrint();
 	if ( m_enableConstraintNotify )
 	{
 		m_pConstraintListener->event_constraint_broken( pConstraint );
@@ -1247,6 +1262,7 @@ void CPhysicsEnvironment::NotifyConstraintDisabled( IPhysicsConstraint *pConstra
 
 void CPhysicsEnvironment::DebugCheckContacts(void)
 {
+	DebugPrint();
 	if ( m_pSleepEvents )
 	{
 		m_pSleepEvents->DebugCheckContacts( m_pPhysEnv );
@@ -1255,6 +1271,7 @@ void CPhysicsEnvironment::DebugCheckContacts(void)
 
 void CPhysicsEnvironment::SetDebugOverlay( CreateInterfaceFn debugOverlayFactory )
 {
+	DebugPrint();
 	m_pDebugOverlay = NULL;
 	if (debugOverlayFactory)
 	{
@@ -1276,12 +1293,14 @@ void CPhysicsEnvironment::SetDebugOverlay( CreateInterfaceFn debugOverlayFactory
 
 IVPhysicsDebugOverlay *CPhysicsEnvironment::GetDebugOverlay( void )
 {
+	DebugPrint();
 	return m_pDebugOverlay;
 }
 
 
 void CPhysicsEnvironment::SetGravity( const Vector& gravityVector )
 {
+	DebugPrint();
     IVP_U_Point gravity; 
 
 	ConvertPositionToIVP( gravityVector, gravity );
@@ -1294,6 +1313,7 @@ void CPhysicsEnvironment::SetGravity( const Vector& gravityVector )
 
 void CPhysicsEnvironment::GetGravity( Vector *pGravityVector ) const
 {
+	DebugPrint();
     const IVP_U_Point *gravity = m_pPhysEnv->get_gravity();
 
 	ConvertPositionToHL( *gravity, *pGravityVector );
@@ -1302,6 +1322,7 @@ void CPhysicsEnvironment::GetGravity( Vector *pGravityVector ) const
 
 IPhysicsObject *CPhysicsEnvironment::CreatePolyObject( const CPhysCollide *pCollisionModel, int materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams )
 {
+	DebugPrint();
 	IPhysicsObject *pObject = ::CreatePhysicsObject( this, pCollisionModel, materialIndex, position, angles, pParams, false );
 	if ( pObject )
 	{
@@ -1312,6 +1333,8 @@ IPhysicsObject *CPhysicsEnvironment::CreatePolyObject( const CPhysCollide *pColl
 
 IPhysicsObject *CPhysicsEnvironment::CreatePolyObjectStatic( const CPhysCollide *pCollisionModel, int materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams )
 {
+	DebugPrint();
+	Msg("Name: %s\n", pParams->pName);
 	IPhysicsObject *pObject = ::CreatePhysicsObject( this, pCollisionModel, materialIndex, position, angles, pParams, true );
 	if ( pObject )
 	{
@@ -1322,11 +1345,13 @@ IPhysicsObject *CPhysicsEnvironment::CreatePolyObjectStatic( const CPhysCollide 
 
 unsigned int CPhysicsEnvironment::GetObjectSerializeSize( IPhysicsObject * ) const
 {
+	DebugPrint();
 	return sizeof(vphysics_save_cphysicsobject_t);
 }
 
 void CPhysicsEnvironment::SerializeObjectToBuffer( IPhysicsObject *pObject, unsigned char *pBuffer, unsigned int bufferSize )
 {
+	DebugPrint();
 	CPhysicsObject *pPhysics = static_cast<CPhysicsObject *>(pObject);
 	if ( bufferSize >= sizeof(vphysics_save_cphysicsobject_t))
 	{
@@ -1337,6 +1362,7 @@ void CPhysicsEnvironment::SerializeObjectToBuffer( IPhysicsObject *pObject, unsi
 
 IPhysicsObject *CPhysicsEnvironment::UnserializeObjectFromBuffer( void *pGameData, unsigned char *pBuffer, unsigned int bufferSize, bool enableCollisions )
 {
+	DebugPrint();
 	IPhysicsObject *pObject = ::CreateObjectFromBuffer( this, pGameData, pBuffer, bufferSize, enableCollisions );
 	if ( pObject )
 	{
@@ -1347,7 +1373,8 @@ IPhysicsObject *CPhysicsEnvironment::UnserializeObjectFromBuffer( void *pGameDat
 
 const IPhysicsObject **CPhysicsEnvironment::GetObjectList( int *pOutputObjectCount ) const
 {
-	hk_intp iCount = m_objects.Count();
+	DebugPrint();
+	int iCount = m_objects.Count();
 	if( pOutputObjectCount ) 
 		*pOutputObjectCount = iCount;
 
@@ -1364,7 +1391,8 @@ extern void ControlPhysicsPlayerControllerAttachment_Silent( IPhysicsPlayerContr
 
 bool CPhysicsEnvironment::TransferObject( IPhysicsObject *pObject, IPhysicsEnvironment *pDestinationEnvironment )
 {
-	hk_intp iIndex = m_objects.Find( pObject );
+	DebugPrint();
+	int iIndex = m_objects.Find( pObject );
 	if( iIndex == -1 || (pObject->GetCallbackFlags() & CALLBACK_MARKED_FOR_DELETE ) )
 		return false;
 
@@ -1428,7 +1456,7 @@ bool CPhysicsEnvironment::TransferObject( IPhysicsObject *pObject, IPhysicsEnvir
 	//even if this is going to sleep in a second, put it active right away to fix some object hitching problems
 	pPhysics->Wake();
 	pPhysics->NotifyWake();
-	/*hk_intp iActiveIndex = pDest->m_pSleepEvents->m_activeObjects.AddToTail( pPhysics );
+	/*int iActiveIndex = pDest->m_pSleepEvents->m_activeObjects.AddToTail( pPhysics );
 	pPhysics->SetActiveIndex( iActiveIndex );*/
 	
 	pDest->m_pPhysEnv->force_psi_on_next_simulation(); //avoids an object pause
@@ -1453,14 +1481,17 @@ bool CPhysicsEnvironment::TransferObject( IPhysicsObject *pObject, IPhysicsEnvir
     return true;	
 }
 
+int GlobalSCOPE = 0;
 
 IPhysicsSpring *CPhysicsEnvironment::CreateSpring( IPhysicsObject *pObjectStart, IPhysicsObject *pObjectEnd, springparams_t *pParams )
 {
+	DebugPrint();
 	return ::CreateSpring( m_pPhysEnv, static_cast<CPhysicsObject *>(pObjectStart), static_cast<CPhysicsObject *>(pObjectEnd), pParams );
 }
 
 IPhysicsFluidController *CPhysicsEnvironment::CreateFluidController( IPhysicsObject *pFluidObject, fluidparams_t *pParams )
 {
+	DebugPrint();
 	CPhysicsFluidController *pFluid = ::CreateFluidController( m_pPhysEnv, static_cast<CPhysicsObject *>(pFluidObject), pParams );
 	m_fluids.AddToTail( pFluid );
 	return pFluid;
@@ -1468,52 +1499,62 @@ IPhysicsFluidController *CPhysicsEnvironment::CreateFluidController( IPhysicsObj
 
 IPhysicsConstraint *CPhysicsEnvironment::CreateRagdollConstraint( IPhysicsObject *pReferenceObject, IPhysicsObject *pAttachedObject, IPhysicsConstraintGroup *pGroup, const constraint_ragdollparams_t &ragdoll )
 {
+	DebugPrint();
 	return ::CreateRagdollConstraint( m_pPhysEnv, (CPhysicsObject *)pReferenceObject, (CPhysicsObject *)pAttachedObject, pGroup, ragdoll );
 }
 
 IPhysicsConstraint *CPhysicsEnvironment::CreateHingeConstraint( IPhysicsObject *pReferenceObject, IPhysicsObject *pAttachedObject, IPhysicsConstraintGroup *pGroup, const constraint_hingeparams_t &hinge )
 {
+	DebugPrint();
 	constraint_limitedhingeparams_t limitedhinge(hinge);
 	return ::CreateHingeConstraint( m_pPhysEnv, (CPhysicsObject *)pReferenceObject, (CPhysicsObject *)pAttachedObject, pGroup, limitedhinge );
 }
 
 IPhysicsConstraint *CPhysicsEnvironment::CreateLimitedHingeConstraint( IPhysicsObject *pReferenceObject, IPhysicsObject *pAttachedObject, IPhysicsConstraintGroup *pGroup, const constraint_limitedhingeparams_t &hinge )
 {
+	DebugPrint();
 	return ::CreateHingeConstraint( m_pPhysEnv, (CPhysicsObject *)pReferenceObject, (CPhysicsObject *)pAttachedObject, pGroup, hinge );
 }
 
 IPhysicsConstraint *CPhysicsEnvironment::CreateFixedConstraint( IPhysicsObject *pReferenceObject, IPhysicsObject *pAttachedObject, IPhysicsConstraintGroup *pGroup, const constraint_fixedparams_t &fixed )
 {
+	DebugPrint();
 	return ::CreateFixedConstraint( m_pPhysEnv, (CPhysicsObject *)pReferenceObject, (CPhysicsObject *)pAttachedObject, pGroup, fixed );
 }
 
 IPhysicsConstraint *CPhysicsEnvironment::CreateSlidingConstraint( IPhysicsObject *pReferenceObject, IPhysicsObject *pAttachedObject, IPhysicsConstraintGroup *pGroup, const constraint_slidingparams_t &sliding )
 {
+	DebugPrint();
 	return ::CreateSlidingConstraint( m_pPhysEnv, (CPhysicsObject *)pReferenceObject, (CPhysicsObject *)pAttachedObject, pGroup, sliding );
 }
 
 IPhysicsConstraint *CPhysicsEnvironment::CreateBallsocketConstraint( IPhysicsObject *pReferenceObject, IPhysicsObject *pAttachedObject, IPhysicsConstraintGroup *pGroup, const constraint_ballsocketparams_t &ballsocket )
 {
+	DebugPrint();
 	return ::CreateBallsocketConstraint( m_pPhysEnv, (CPhysicsObject *)pReferenceObject, (CPhysicsObject *)pAttachedObject, pGroup, ballsocket );
 }
 
 IPhysicsConstraint *CPhysicsEnvironment::CreatePulleyConstraint( IPhysicsObject *pReferenceObject, IPhysicsObject *pAttachedObject, IPhysicsConstraintGroup *pGroup, const constraint_pulleyparams_t &pulley )
 {
+	DebugPrint();
 	return ::CreatePulleyConstraint( m_pPhysEnv, (CPhysicsObject *)pReferenceObject, (CPhysicsObject *)pAttachedObject, pGroup, pulley );
 }
 
 IPhysicsConstraint *CPhysicsEnvironment::CreateLengthConstraint( IPhysicsObject *pReferenceObject, IPhysicsObject *pAttachedObject, IPhysicsConstraintGroup *pGroup, const constraint_lengthparams_t &length )
 {
+	DebugPrint();
 	return ::CreateLengthConstraint( m_pPhysEnv, (CPhysicsObject *)pReferenceObject, (CPhysicsObject *)pAttachedObject, pGroup, length );
 }
 
 IPhysicsConstraintGroup *CPhysicsEnvironment::CreateConstraintGroup( const constraint_groupparams_t &group )
 {
+	DebugPrint();
 	return CreatePhysicsConstraintGroup( m_pPhysEnv, group );
 }
 
 void CPhysicsEnvironment::Simulate( float deltaTime )
 {
+	DebugPrint();
 	LOCAL_THREAD_LOCK();
 
 	if ( !m_pPhysEnv )
@@ -1584,6 +1625,7 @@ void CPhysicsEnvironment::Simulate( float deltaTime )
 
 void CPhysicsEnvironment::ResetSimulationClock()
 {
+	DebugPrint();
 	// UNDONE: You'd think that all of this would make the system deterministic, but
 	// it doesn't.
 	extern void SeedRandomGenerators();
@@ -1597,21 +1639,25 @@ void CPhysicsEnvironment::ResetSimulationClock()
 
 float CPhysicsEnvironment::GetSimulationTimestep( void ) const
 {
+	DebugPrint();
 	return m_pPhysEnv->get_delta_PSI_time();
 }
 
 void CPhysicsEnvironment::SetSimulationTimestep( float timestep )
 {
+	DebugPrint();
 	m_pPhysEnv->set_delta_PSI_time( timestep );
 }
 
 float CPhysicsEnvironment::GetSimulationTime( void ) const
 {
+	DebugPrint();
 	return (float)m_pPhysEnv->get_current_time().get_time();
 }
 
 float CPhysicsEnvironment::GetNextFrameTime( void ) const
 {
+	DebugPrint();
 	return (float)m_pPhysEnv->get_next_PSI_time().get_time();
 }
 
@@ -1619,11 +1665,13 @@ float CPhysicsEnvironment::GetNextFrameTime( void ) const
 // true if currently running the simulator (i.e. in a callback during physenv->Simulate())
 bool CPhysicsEnvironment::IsInSimulation( void ) const
 {
+	DebugPrint();
 	return m_inSimulation;
 }
 
 void CPhysicsEnvironment::DestroyObject( IPhysicsObject *pObject )
 {
+	DebugPrint();
 	if ( !pObject )
 	{
 		DevMsg("Deleted NULL vphysics object\n");
@@ -1631,8 +1679,8 @@ void CPhysicsEnvironment::DestroyObject( IPhysicsObject *pObject )
 	}
 
 	// search from the end because we usually delete the most recent objects during run time
-	hk_intp index = -1;
-	for ( hk_intp i = m_objects.Count(); --i >= 0; )
+	int index = -1;
+	for ( int i = m_objects.Count(); --i >= 0; )
 	{
 		if ( m_objects[i] == pObject )
 		{
@@ -1684,10 +1732,12 @@ void CPhysicsEnvironment::DestroyObject( IPhysicsObject *pObject )
 
 void CPhysicsEnvironment::DestroySpring( IPhysicsSpring *pSpring )
 {
+	DebugPrint();
 	delete pSpring;
 }
 void CPhysicsEnvironment::DestroyFluidController( IPhysicsFluidController *pFluid )
 {
+	DebugPrint();
 	m_fluids.FindAndRemove( (CPhysicsFluidController *)pFluid );
 	delete pFluid;
 }
@@ -1695,6 +1745,7 @@ void CPhysicsEnvironment::DestroyFluidController( IPhysicsFluidController *pFlui
 
 void CPhysicsEnvironment::DestroyConstraint( IPhysicsConstraint *pConstraint )
 {
+	DebugPrint();
 	if ( !m_deleteQuick && pConstraint )
 	{
 		IPhysicsObject *pObj0 = pConstraint->GetReferenceObject();
@@ -1722,25 +1773,29 @@ void CPhysicsEnvironment::DestroyConstraint( IPhysicsConstraint *pConstraint )
 
 void CPhysicsEnvironment::DestroyConstraintGroup( IPhysicsConstraintGroup *pGroup )
 {
+	DebugPrint();
 	delete pGroup;
 }
 
 void CPhysicsEnvironment::TraceBox( trace_t *, const Vector &, const Vector &, const Vector &, const Vector & )
 {
+	DebugPrint();
 	// UNDONE: Need this?
 }
 
 void CPhysicsEnvironment::SetCollisionSolver( IPhysicsCollisionSolver *pSolver )
 {
+	DebugPrint();
 	m_pCollisionSolver->SetHandler( pSolver );
 }
 
 
 void CPhysicsEnvironment::ClearDeadObjects( void )
 {
+	DebugPrint();
 	// dimhotepus: Can't use range-for loop here as DeleteObject may recursively
 	// call ClearDeadObjects and m_deadObjects will be modified when iterating.
-	for ( hk_intp i = 0; i < m_deadObjects.Count(); i++ )
+	for ( int i = 0; i < m_deadObjects.Count(); i++ )
 	{
 		auto *pObject = (CPhysicsObject *)m_deadObjects.Element(i);
 
@@ -1753,6 +1808,7 @@ void CPhysicsEnvironment::ClearDeadObjects( void )
 
 void CPhysicsEnvironment::AddPlayerController( IPhysicsPlayerController *pController )
 {
+	DebugPrint();
 	if ( m_playerControllers.Find(pController) != -1 )
 	{
 		Assert(0);
@@ -1763,12 +1819,14 @@ void CPhysicsEnvironment::AddPlayerController( IPhysicsPlayerController *pContro
 
 void CPhysicsEnvironment::RemovePlayerController( IPhysicsPlayerController *pController )
 {
+	DebugPrint();
 	m_playerControllers.FindAndRemove( pController );
 }
 
 IPhysicsPlayerController *CPhysicsEnvironment::FindPlayerController( IPhysicsObject *pPhysicsObject )
 {
-	for ( hk_intp i = m_playerControllers.Count()-1; i >= 0; --i )
+	DebugPrint();
+	for ( int i = m_playerControllers.Count()-1; i >= 0; --i )
 	{
 		if ( m_playerControllers[i]->GetObject() == pPhysicsObject )
 			return m_playerControllers[i];
@@ -1779,33 +1837,39 @@ IPhysicsPlayerController *CPhysicsEnvironment::FindPlayerController( IPhysicsObj
 
 void CPhysicsEnvironment::SetCollisionEventHandler( IPhysicsCollisionEvent *pCollisionEvents )
 {
+	DebugPrint();
 	m_pCollisionListener->SetHandler( pCollisionEvents );
 }
 
 
 void CPhysicsEnvironment::SetObjectEventHandler( IPhysicsObjectEvent *pObjectEvents )
 {
+	DebugPrint();
 	m_pSleepEvents->SetHandler( pObjectEvents );
 }
 
 void CPhysicsEnvironment::SetConstraintEventHandler( IPhysicsConstraintEvent *pConstraintEvents )
 {
+	DebugPrint();
 	m_pConstraintListener->SetHandler( pConstraintEvents );
 }
 
 
 IPhysicsShadowController *CPhysicsEnvironment::CreateShadowController( IPhysicsObject *pObject, bool allowTranslation, bool allowRotation )
 {
+	DebugPrint();
 	return ::CreateShadowController( static_cast<CPhysicsObject*>(pObject), allowTranslation, allowRotation );
 }
 
 void CPhysicsEnvironment::DestroyShadowController( IPhysicsShadowController *pController )
 {
+	DebugPrint();
 	delete pController;
 }
 
 IPhysicsPlayerController *CPhysicsEnvironment::CreatePlayerController( IPhysicsObject *pObject )
 {
+	DebugPrint();
 	IPhysicsPlayerController *pController = ::CreatePlayerController( static_cast<CPhysicsObject*>(pObject) );
 	AddPlayerController( pController );
 	return pController;
@@ -1813,43 +1877,51 @@ IPhysicsPlayerController *CPhysicsEnvironment::CreatePlayerController( IPhysicsO
 
 void CPhysicsEnvironment::DestroyPlayerController( IPhysicsPlayerController *pController )
 {
+	DebugPrint();
 	RemovePlayerController( pController );
 	::DestroyPlayerController( pController );
 }
 
 IPhysicsMotionController *CPhysicsEnvironment::CreateMotionController( IMotionEvent *pHandler )
 {
+	DebugPrint();
 	return ::CreateMotionController( this, pHandler );
 }
 
 void CPhysicsEnvironment::DestroyMotionController( IPhysicsMotionController *pController )
 {
+	DebugPrint();
 	delete pController;
 }
 
 IPhysicsVehicleController *CPhysicsEnvironment::CreateVehicleController( IPhysicsObject *pVehicleBodyObject, const vehicleparams_t &params, unsigned int nVehicleType, IPhysicsGameTrace *pGameTrace )
 {
+	DebugPrint();
 	return ::CreateVehicleController( this, static_cast<CPhysicsObject*>(pVehicleBodyObject), params, nVehicleType, pGameTrace );
 }
 
 void CPhysicsEnvironment::DestroyVehicleController( IPhysicsVehicleController *pController )
 {
+	DebugPrint();
 	delete pController;
 }
 
 int	CPhysicsEnvironment::GetActiveObjectCount( void ) const
 {
+	DebugPrint();
 	return m_pSleepEvents->GetActiveObjectCount();
 }
 
 
 void CPhysicsEnvironment::GetActiveObjects( IPhysicsObject **pOutputObjectList ) const
 {
+	DebugPrint();
 	m_pSleepEvents->GetActiveObjects( pOutputObjectList );
 }
 
 void CPhysicsEnvironment::SetAirDensity( float density )
 {
+	DebugPrint();
 	CDragController *pDrag = ((CDragController *)m_pDragController);
 	if ( pDrag )
 	{
@@ -1859,6 +1931,7 @@ void CPhysicsEnvironment::SetAirDensity( float density )
 
 float CPhysicsEnvironment::GetAirDensity( void ) const
 {
+	DebugPrint();
 	const CDragController *pDrag = ((CDragController *)m_pDragController);
 	if ( pDrag )
 	{
@@ -1869,18 +1942,20 @@ float CPhysicsEnvironment::GetAirDensity( void ) const
 
 void CPhysicsEnvironment::CleanupDeleteList()
 {
+	DebugPrint();
 	ClearDeadObjects();
 }
 
 bool CPhysicsEnvironment::IsCollisionModelUsed( CPhysCollide *pCollide ) const
 {
-	for ( hk_intp i = m_deadObjects.Count()-1; i >= 0; --i )
+	DebugPrint();
+	for ( int i = m_deadObjects.Count()-1; i >= 0; --i )
 	{
 		if ( m_deadObjects[i]->GetCollide() == pCollide )
 			return true;
 	}
 	
-	for ( hk_intp i = m_objects.Count()-1; i >= 0; --i )
+	for ( int i = m_objects.Count()-1; i >= 0; --i )
 	{
 		if ( m_objects[i]->GetCollide() == pCollide )
 			return true;
@@ -1893,6 +1968,7 @@ bool CPhysicsEnvironment::IsCollisionModelUsed( CPhysCollide *pCollide ) const
 // manage phantoms
 void CPhysicsEnvironment::PhantomAdd( CPhysicsObject *pObject )
 {
+	DebugPrint();
 	IVP_Controller_Phantom *pPhantom = pObject->GetObject()->get_controller_phantom();
 	if ( pPhantom )
 	{
@@ -1902,6 +1978,7 @@ void CPhysicsEnvironment::PhantomAdd( CPhysicsObject *pObject )
 
 void CPhysicsEnvironment::PhantomRemove( CPhysicsObject *pObject )
 {
+	DebugPrint();
 	IVP_Controller_Phantom *pPhantom = pObject->GetObject()->get_controller_phantom();
 	if ( pPhantom )
 	{
@@ -1914,6 +1991,7 @@ void CPhysicsEnvironment::PhantomRemove( CPhysicsObject *pObject )
 
 IPhysicsObject *CPhysicsEnvironment::CreateSphereObject( float radius, int materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams, bool isStatic )
 {
+	DebugPrint();
 	IPhysicsObject *pObject = ::CreatePhysicsSphere( this, radius, materialIndex, position, angles, pParams, isStatic );
 	m_objects.AddToTail( pObject );
 	return pObject;
@@ -1921,16 +1999,19 @@ IPhysicsObject *CPhysicsEnvironment::CreateSphereObject( float radius, int mater
 
 void CPhysicsEnvironment::TraceRay( const Ray_t &, unsigned int, IPhysicsTraceFilter *, trace_t * )
 {
+	DebugPrint();
 }
 
 void CPhysicsEnvironment::SweepCollideable( const CPhysCollide *, const Vector &, const Vector &, 
 		const QAngle &, unsigned int, IPhysicsTraceFilter *, trace_t * )
 {
+	DebugPrint();
 }
 
 
 void CPhysicsEnvironment::GetPerformanceSettings( physics_performanceparams_t *pOutput ) const
 {
+	DebugPrint();
 	if ( !pOutput )
 		return;
 
@@ -1956,6 +2037,7 @@ void CPhysicsEnvironment::GetPerformanceSettings( physics_performanceparams_t *p
 
 void CPhysicsEnvironment::SetPerformanceSettings( const physics_performanceparams_t *pSettings )
 {
+	DebugPrint();
 	if ( !pSettings )
 		return;
 
@@ -1983,6 +2065,7 @@ void CPhysicsEnvironment::SetPerformanceSettings( const physics_performanceparam
 // perf/cost statistics
 void CPhysicsEnvironment::ReadStats( physics_stats_t *pOutput )
 {
+	DebugPrint();
 	if ( !pOutput )
 		return;
 
@@ -2012,81 +2095,96 @@ void CPhysicsEnvironment::ReadStats( physics_stats_t *pOutput )
 
 void CPhysicsEnvironment::ClearStats()
 {
+	DebugPrint();
 	IVP_Statistic_Manager *stats = m_pPhysEnv->get_statistic_manager();
 	stats->clear_statistic();
 }
 
 void CPhysicsEnvironment::EnableConstraintNotify( bool bEnable )
 {
+	DebugPrint();
 	m_enableConstraintNotify = bEnable;
 }
 
 #if PLATFORM_64BITS
 void CPhysicsEnvironment::PreSave(const physpresaverestoreparams_t& params)
 {
+	DebugPrint();
 	Error("not implemented!\n");
 }
 
 void CPhysicsEnvironment::PostSave()
 {
+	DebugPrint();
 	Error("not implemented!\n");
 }
 
 void CPhysicsEnvironment::SetAlternateGravity(const Vector& gravityVector)
 {
+	DebugPrint();
 	Error("not implemented!\n");
 }
 
 void CPhysicsEnvironment::GetAlternateGravity(Vector* pGravityVector) const
 {
+	DebugPrint();
 	Error("not implemented!\n");
 }
 
 float CPhysicsEnvironment::GetDeltaFrameTime(int maxTicks) const
 {
+	DebugPrint();
 	Error("not implemented!\n");
 	return 0.0f;
 }
 
 void CPhysicsEnvironment::ForceObjectsToSleep(IPhysicsObject** pList, int listCount)
 {
+	DebugPrint();
 	Error("not implemented!\n");
 }
 
 void CPhysicsEnvironment::SetPredicted(bool bPredicted)
 {
+	DebugPrint();
 	Error("not implemented!\n");
 }
 
 bool CPhysicsEnvironment::IsPredicted(void)
 {
+	DebugPrint();
 	Error("not implemented!\n");
 	return false;
 }
 
 void CPhysicsEnvironment::SetPredictionCommandNum(int iCommandNum)
 {
+	DebugPrint();
 	Error("not implemented!\n");
 }
 
 int CPhysicsEnvironment::GetPredictionCommandNum(void)
 {
+	DebugPrint();
 	Error("not implemented!\n");
 	return 0;
 }
 
 void CPhysicsEnvironment::DoneReferencingPreviousCommands(int iCommandNum)
 {
+	DebugPrint();
 	Error("not implemented!\n");
 }
 
 void CPhysicsEnvironment::RestorePredictedSimulation(void)
 {
+	DebugPrint();
 	Error("not implemented!\n");
 }
 
 void CPhysicsEnvironment::DestroyCollideOnDeadObjectFlush(CPhysCollide*)
 {
+	DebugPrint();
 	Error("not implemented!\n");
 }
 #endif
@@ -2105,18 +2203,21 @@ class CVoidPairHash : private IVP_Collision_Filter_Exclusive_Pair
 public:
 	void AddPair( void *pObject0, void *pObject1 )
 	{
+		DebugPrint();
 		// disabled pairs are stored int the collision filter's hash
 		disable_collision_between_objects( (IVP_Real_Object *)pObject0, (IVP_Real_Object *)pObject1 );
 	}
 
 	void RemovePair( void *pObject0, void *pObject1 )
 	{
+		DebugPrint();
 		// enabling removes the stored hash pair
 		enable_collision_between_objects( (IVP_Real_Object *)pObject0, (IVP_Real_Object *)pObject1 );
 	}
 
 	bool HasPair( void *pObject0, void *pObject1 )
 	{
+		DebugPrint();
 		// If collision is enabled, the pair is NOT present, so invert the test here.
 		return check_objects_for_collision_detection( (IVP_Real_Object *)pObject0, (IVP_Real_Object *)pObject1 ) ? false : true;
 	}
@@ -2139,10 +2240,11 @@ public:
 	// converts the void * stored in the hash to a list in the multilist
 	unsigned short HashToListIndex( void *pHash )
 	{
+		DebugPrint();
 		if ( !pHash )
 			return m_objectList.InvalidIndex();
 
-        hk_uintp hash = (hk_uintp)pHash;
+        uintp hash = (uintp)pHash;
 		// mask off the extra bit we added to avoid zeros
 		hash &= 0xFFFF;
 		return (unsigned short)hash;
@@ -2151,22 +2253,25 @@ public:
 	// converts the list in the multilist to a void * we can put in the hash
 	void *ListIndexToHash( unsigned short listIndex )
 	{
+		DebugPrint();
 		unsigned int hash = (unsigned int)listIndex;
 
 		// set the high bit, so zero means "not there"
 		hash |= 0x80000000;
-		return (void *)(hk_intp)hash;
+		return (void *)(intp)hash;
 	}
 
 	// Lookup this object and get a multilist entry
 	unsigned short GetListForObject( void *pObject )
 	{
+		DebugPrint();
 		return HashToListIndex( m_pObjectHash->find_elem( pObject ) );
 	}
 
 	// new object, set up his list
 	void SetListForObject( void *pObject, unsigned short listIndex )
 	{
+		DebugPrint();
 		Assert( !m_pObjectHash->find_elem( pObject ) );
 		m_pObjectHash->add_elem( pObject, ListIndexToHash(listIndex) );
 	}
@@ -2174,6 +2279,7 @@ public:
 	// last entry is gone, remove the object
 	void DestroyListForObject( void *pObject, unsigned short listIndex )
 	{
+		DebugPrint();
 		if ( m_objectList.IsValidList( listIndex ) )
 		{
 			m_objectList.DestroyList( listIndex );
@@ -2184,6 +2290,7 @@ public:
 	// Add this object to the list of disabled objects
 	void AddToObjectList( void *pObject, void *pAdd )
 	{
+		DebugPrint();
 		unsigned short listIndex = GetListForObject( pObject );
 		if ( !m_objectList.IsValidList( listIndex ) )
 		{
@@ -2197,6 +2304,7 @@ public:
 	// Remove one object from a particular object's list (linear time)
 	void RemoveFromObjectList( void *pObject, void *pRemove )
 	{
+		DebugPrint();
 		unsigned short listIndex = GetListForObject( pObject );
 		if ( !m_objectList.IsValidList( listIndex ) )
 			return;
@@ -2221,6 +2329,7 @@ public:
 	// add a pair (constant time)
 	void AddObjectPair( void *pObject0, void *pObject1 ) override
 	{
+		DebugPrint();
 		if ( IsObjectPairInHash(pObject0,pObject1) )
 			return;
 
@@ -2233,6 +2342,7 @@ public:
 	// remove a pair (linear time x 2)
 	void RemoveObjectPair( void *pObject0, void *pObject1 ) override
 	{
+		DebugPrint();
 		if ( !IsObjectPairInHash(pObject0,pObject1) )
 			return;
 		
@@ -2245,11 +2355,13 @@ public:
 	// check for pair presence (fast constant time)
 	bool IsObjectPairInHash( void *pObject0, void *pObject1 ) override
 	{
+		DebugPrint();
 		return m_pairHash.HasPair( pObject0, pObject1 );
 	}
 
 	void RemoveAllPairsForObject( void *pObject ) override
 	{
+		DebugPrint();
 		unsigned short listIndex = GetListForObject( pObject );
 		if ( !m_objectList.IsValidList( listIndex ) )
 			return;
@@ -2271,6 +2383,7 @@ public:
 	// Gets the # of dependencies for a particular entity
 	int GetPairCountForObject( void *pObject0 ) override
 	{
+		DebugPrint();
 		unsigned short listIndex = GetListForObject( pObject0 );
 		if ( !m_objectList.IsValidList( listIndex ) )
 			return 0;
@@ -2287,6 +2400,7 @@ public:
 	// Gets all dependencies for a particular entity
 	int GetPairListForObject( void *pObject0, int nMaxCount, void **ppObjectList ) override
 	{
+		DebugPrint();
 		unsigned short listIndex = GetListForObject( pObject0 );
 		if ( !m_objectList.IsValidList( listIndex ) )
 			return 0;
@@ -2304,6 +2418,7 @@ public:
 
 	bool IsObjectInHash( void *pObject0 ) override
 	{
+		DebugPrint();
 		return m_pObjectHash->find_elem(pObject0) != nullptr;
 	}
 
@@ -2319,5 +2434,6 @@ private:
 
 IPhysicsObjectPairHash *CreateObjectPairHash()
 {
+	DebugPrint();
 	return new CObjectPairHash;
 }

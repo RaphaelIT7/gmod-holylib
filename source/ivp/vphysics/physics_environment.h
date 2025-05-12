@@ -188,7 +188,7 @@ private:
 	CCollisionSolver				*m_pCollisionSolver;
 	CPhysicsListenerConstraint		*m_pConstraintListener;
 	CDeleteQueue					*m_pDeleteQueue;
-	hk_intp							m_lastObjectThisTick;
+	int							m_lastObjectThisTick;
 	bool							m_deleteQuick;
 	bool							m_inSimulation;
 	bool							m_queueDeleteObject;

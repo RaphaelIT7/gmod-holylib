@@ -133,6 +133,7 @@ CPhysicsObject::CPhysicsObject( void )
 
 void CPhysicsObject::Init( const CPhysCollide *pCollisionModel, IVP_Real_Object *pObject, int materialIndex, float volume, float drag, float angDrag )
 {
+	DebugPrint();
 	m_pCollide = pCollisionModel;
 	m_materialIndex = materialIndex;
 	m_pObject = pObject;
@@ -168,6 +169,7 @@ void CPhysicsObject::Init( const CPhysCollide *pCollisionModel, IVP_Real_Object 
 
 CPhysicsObject::~CPhysicsObject( void )
 {
+	DebugPrint();
 	UnregisterObject( this );
 	RemoveShadowController();
 
@@ -211,23 +213,27 @@ CPhysicsObject::~CPhysicsObject( void )
 
 void CPhysicsObject::Wake( void )
 {
+	DebugPrint();
 	m_pObject->ensure_in_simulation();
 }
 
 void CPhysicsObject::WakeNow( void )
 {
+	DebugPrint();
 	m_pObject->ensure_in_simulation_now();
 }
 
 // supported
 void CPhysicsObject::Sleep( void )
 {
+	DebugPrint();
 	m_pObject->disable_simulation();
 }
 
 
 bool CPhysicsObject::IsAsleep() const
 {
+	DebugPrint();
 	if ( m_sleepState == OBJ_AWAKE )
 		return false;
 
@@ -240,6 +246,7 @@ bool CPhysicsObject::IsAsleep() const
 
 void CPhysicsObject::NotifySleep( void )
 {
+	DebugPrint();
 	if ( m_sleepState == OBJ_AWAKE )
 	{
 		m_sleepState = OBJ_STARTSLEEP;
@@ -255,6 +262,7 @@ void CPhysicsObject::NotifySleep( void )
 
 void CPhysicsObject::NotifyWake( void )
 {
+	DebugPrint();
 	m_asleepSinceCreation = false;
 	m_sleepState = OBJ_AWAKE;
 }
@@ -262,6 +270,7 @@ void CPhysicsObject::NotifyWake( void )
 
 void CPhysicsObject::SetCallbackFlags( unsigned short callbackflags )
 {
+	DebugPrint();
 #if defined(IVP_ENABLE_VISUALIZER)
 	unsigned short changedFlags = m_callbacks ^ callbackflags;
 	if ( changedFlags & CALLBACK_MARKED_FOR_TEST )
@@ -285,33 +294,39 @@ void CPhysicsObject::SetCallbackFlags( unsigned short callbackflags )
 
 unsigned short CPhysicsObject::GetCallbackFlags() const
 {
+	DebugPrint();
 	return m_callbacks;
 }
 
 
 void CPhysicsObject::SetGameFlags( unsigned short userFlags )
 {
+	DebugPrint();
 	m_gameFlags = userFlags;
 }
 
 unsigned short CPhysicsObject::GetGameFlags() const
 {
+	DebugPrint();
 	return m_gameFlags;
 }
 
 
 void CPhysicsObject::SetGameIndex( unsigned short gameIndex )
 {
+	DebugPrint();
 	m_gameIndex = gameIndex;
 }
 
 unsigned short CPhysicsObject::GetGameIndex() const
 {
+	DebugPrint();
 	return m_gameIndex;
 }
 
 bool CPhysicsObject::IsStatic() const
 {
+	DebugPrint();
 	if ( m_pObject->get_core()->physical_unmoveable )
 		return true;
 
@@ -321,6 +336,7 @@ bool CPhysicsObject::IsStatic() const
 
 void CPhysicsObject::EnableCollisions( bool enable )
 {
+	DebugPrint();
 	if ( enable )
 	{
 		m_callbacks |= CALLBACK_ENABLING_COLLISION;
@@ -350,6 +366,7 @@ void CPhysicsObject::EnableCollisions( bool enable )
 
 void CPhysicsObject::RecheckCollisionFilter()
 {
+	DebugPrint();
 	if ( CallbackFlags() & CALLBACK_MARKED_FOR_DELETE )
 		return;
 
@@ -367,6 +384,7 @@ void CPhysicsObject::RecheckContactPoints()
 void CPhysicsObject::RecheckContactPoints( bool bSearchForNewContacts )
 #endif
 {
+	DebugPrint();
 	IVP_Environment *pEnv = m_pObject->get_environment();
 	IVP_Collision_Filter *coll_filter = pEnv->get_collision_filter();
 	IPhysicsFrictionSnapshot *pSnapshot = CreateFrictionSnapshot();
@@ -385,17 +403,20 @@ void CPhysicsObject::RecheckContactPoints( bool bSearchForNewContacts )
 
 CPhysicsEnvironment	*CPhysicsObject::GetVPhysicsEnvironment()
 {
+	DebugPrint();
 	return (CPhysicsEnvironment *) (m_pObject->get_environment()->client_data);
 }
 
 const CPhysicsEnvironment	*CPhysicsObject::GetVPhysicsEnvironment() const
 {
+	DebugPrint();
 	return (CPhysicsEnvironment *) (m_pObject->get_environment()->client_data);
 }
 
 
 bool CPhysicsObject::IsControlling( const IVP_Controller *pController ) const
 {
+	DebugPrint();
 	IVP_Core *pCore = m_pObject->get_core();
 	for ( int i = 0; i < pCore->controllers_of_core.len(); i++ )
 	{
@@ -409,6 +430,7 @@ bool CPhysicsObject::IsControlling( const IVP_Controller *pController ) const
 
 bool CPhysicsObject::IsGravityEnabled() const
 {
+	DebugPrint();
 	if ( !IsStatic() )
 	{
 		return IsControlling( m_pObject->get_core()->environment->get_gravity_controller() );
@@ -419,6 +441,7 @@ bool CPhysicsObject::IsGravityEnabled() const
 
 bool CPhysicsObject::IsDragEnabled() const
 {
+	DebugPrint();
 	if ( !IsStatic() )
 	{
 		return IsControlling( GetVPhysicsEnvironment()->GetDragController() );
@@ -430,12 +453,14 @@ bool CPhysicsObject::IsDragEnabled() const
 
 bool CPhysicsObject::IsMotionEnabled() const
 {
+	DebugPrint();
 	return m_pObject->get_core()->pinned ? false : true;
 }
 
 
 bool CPhysicsObject::IsMoveable() const
 {
+	DebugPrint();
 	if ( IsStatic() || !IsMotionEnabled() )
 		return false;
 	return true;
@@ -444,6 +469,7 @@ bool CPhysicsObject::IsMoveable() const
 
 void CPhysicsObject::EnableGravity( bool enable )
 {
+	DebugPrint();
 	if ( IsStatic() )
 		return;
 
@@ -466,6 +492,7 @@ void CPhysicsObject::EnableGravity( bool enable )
 
 void CPhysicsObject::EnableDrag( bool enable )
 {
+	DebugPrint();
 	if ( IsStatic() )
 		return;
 
@@ -489,6 +516,7 @@ void CPhysicsObject::EnableDrag( bool enable )
 
 void CPhysicsObject::SetDragCoefficient( float *pDrag, float *pAngularDrag )
 {
+	DebugPrint();
 	if ( pDrag )
 	{
 		m_dragCoefficient = *pDrag;
@@ -504,6 +532,7 @@ void CPhysicsObject::SetDragCoefficient( float *pDrag, float *pAngularDrag )
 
 void CPhysicsObject::RecomputeDragBases()
 {
+	DebugPrint();
 	if ( IsStatic() || !GetCollide() )
 		return;
 
@@ -547,6 +576,7 @@ void CPhysicsObject::RecomputeDragBases()
 
 void CPhysicsObject::EnableMotion( bool enable )
 {
+	DebugPrint();
 	if ( IsStatic() )
 		return;
 
@@ -570,6 +600,7 @@ void CPhysicsObject::EnableMotion( bool enable )
 
 bool CPhysicsObject::IsControlledByGame() const
 {
+	DebugPrint();
 	if (m_pShadow && !m_pShadow->IsPhysicallyControlled())
 		return true;
 
@@ -581,16 +612,19 @@ bool CPhysicsObject::IsControlledByGame() const
 
 IPhysicsFrictionSnapshot *CPhysicsObject::CreateFrictionSnapshot()
 {
+	DebugPrint();
 	return ::CreateFrictionSnapshot( m_pObject );
 }
 
 void CPhysicsObject::DestroyFrictionSnapshot( IPhysicsFrictionSnapshot *pSnapshot )
 {
+	DebugPrint();
 	::DestroyFrictionSnapshot(pSnapshot);
 }
 
 bool CPhysicsObject::IsMassCenterAtDefault() const
 {
+	DebugPrint();
 	// this is the actual mass center of the object as created
 	Vector massCenterHL = GetMassCenterLocalSpace();
 
@@ -606,6 +640,7 @@ bool CPhysicsObject::IsMassCenterAtDefault() const
 
 Vector CPhysicsObject::GetMassCenterLocalSpace() const
 {
+	DebugPrint();
 	if ( m_pObject->flags.shift_core_f_object_is_zero )
 		return vec3_origin;
 
@@ -619,16 +654,19 @@ Vector CPhysicsObject::GetMassCenterLocalSpace() const
 
 void CPhysicsObject::SetGameData( void *pGameData )
 {
+	DebugPrint();
 	m_pGameData = pGameData;
 }
 
 void *CPhysicsObject::GetGameData( void ) const
 {
+	DebugPrint();
 	return m_pGameData;
 }
 
 void CPhysicsObject::SetMass( float mass )
 {
+	DebugPrint();
 	bool reset = false;
 
 	if ( !IsMoveable() )
@@ -651,16 +689,19 @@ void CPhysicsObject::SetMass( float mass )
 
 float CPhysicsObject::GetMass( void ) const
 {
+	DebugPrint();
 	return m_pObject->get_core()->get_mass();
 }
 
 float CPhysicsObject::GetInvMass( void ) const
 {
+	DebugPrint();
 	return m_pObject->get_core()->get_inv_mass();
 }
 
 Vector CPhysicsObject::GetInertia( void ) const
 {
+	DebugPrint();
 	const IVP_U_Float_Point *pRI = m_pObject->get_core()->get_rot_inertia();
 
 	Vector hlInertia;
@@ -671,6 +712,7 @@ Vector CPhysicsObject::GetInertia( void ) const
 
 Vector CPhysicsObject::GetInvInertia( void ) const
 {
+	DebugPrint();
 	const IVP_U_Float_Point *pRI = m_pObject->get_core()->get_inv_rot_inertia();
 
 	Vector hlInvInertia;
@@ -683,6 +725,7 @@ Vector CPhysicsObject::GetInvInertia( void ) const
 
 void CPhysicsObject::SetInertia( const Vector &inertia )
 {
+	DebugPrint();
 	IVP_U_Float_Point ri; ConvertDirectionToIVP( inertia, ri );
 	ri.k[0] = fabs(ri.k[0]);
 	ri.k[1] = fabs(ri.k[1]);
@@ -694,6 +737,7 @@ void CPhysicsObject::SetInertia( const Vector &inertia )
 
 void CPhysicsObject::GetDamping( float *speed, float *rot ) const
 {
+	DebugPrint();
 	IVP_Core *pCore = m_pObject->get_core();
 	if ( speed )
 	{
@@ -707,6 +751,7 @@ void CPhysicsObject::GetDamping( float *speed, float *rot ) const
 
 void CPhysicsObject::SetDamping( const float *speed, const float *rot )
 {
+	DebugPrint();
 	IVP_Core *pCore = m_pObject->get_core();
 	if ( speed )
 	{
@@ -720,6 +765,7 @@ void CPhysicsObject::SetDamping( const float *speed, const float *rot )
 
 void CPhysicsObject::SetVolume( float volume )
 {
+	DebugPrint();
 	m_volume = volume;
 	if ( volume != 0.f )
 	{
@@ -742,23 +788,27 @@ void CPhysicsObject::SetVolume( float volume )
 
 float CPhysicsObject::GetVolume() const
 {
+	DebugPrint();
 	return m_volume;
 }
 
 
 void CPhysicsObject::SetBuoyancyRatio( float ratio )
 {
+	DebugPrint();
 	m_buoyancyRatio = ratio;
 }
 
 void CPhysicsObject::SetContents( unsigned int contents )
 {
+	DebugPrint();
 	m_contentsMask = contents;
 }
 
 // converts HL local units to HL world units
 void CPhysicsObject::LocalToWorld( Vector *worldPosition, const Vector &localPosition ) const
 {
+	DebugPrint();
 	matrix3x4_t matrix;
 	GetPositionMatrix( &matrix );
 	// copy in case the src == dest
@@ -768,6 +818,7 @@ void CPhysicsObject::LocalToWorld( Vector *worldPosition, const Vector &localPos
 // Converts world HL units to HL local/object units
 void CPhysicsObject::WorldToLocal( Vector *localPosition, const Vector &worldPosition ) const
 {
+	DebugPrint();
 	matrix3x4_t matrix;
 	GetPositionMatrix( &matrix );
 	// copy in case the src == dest
@@ -776,6 +827,7 @@ void CPhysicsObject::WorldToLocal( Vector *localPosition, const Vector &worldPos
 
 void CPhysicsObject::LocalToWorldVector( Vector *worldVector, const Vector &localVector ) const
 {
+	DebugPrint();
 	matrix3x4_t matrix;
 	GetPositionMatrix( &matrix );
 	// copy in case the src == dest
@@ -784,6 +836,7 @@ void CPhysicsObject::LocalToWorldVector( Vector *worldVector, const Vector &loca
 
 void CPhysicsObject::WorldToLocalVector( Vector *localVector, const Vector &worldVector ) const
 {
+	DebugPrint();
 	matrix3x4_t matrix;
 	GetPositionMatrix( &matrix );
 	// copy in case the src == dest
@@ -794,6 +847,7 @@ void CPhysicsObject::WorldToLocalVector( Vector *localVector, const Vector &worl
 // Apply force impulse (momentum) to the object
 void CPhysicsObject::ApplyForceCenter( const Vector &forceVector )
 {
+	DebugPrint();
 	if ( !IsMoveable() )
 		return;
 
@@ -808,6 +862,7 @@ void CPhysicsObject::ApplyForceCenter( const Vector &forceVector )
 
 void CPhysicsObject::ApplyForceOffset( const Vector &forceVector, const Vector &worldPosition )
 {
+	DebugPrint();
 	if ( !IsMoveable() )
 		return;
 
@@ -825,6 +880,7 @@ void CPhysicsObject::ApplyForceOffset( const Vector &forceVector, const Vector &
 
 void CPhysicsObject::CalculateForceOffset( const Vector &forceVector, const Vector &worldPosition, Vector *centerForce, AngularImpulse *centerTorque ) const
 {
+	DebugPrint();
 	IVP_U_Point pos;
 	IVP_U_Float_Point force;
 
@@ -849,6 +905,7 @@ void CPhysicsObject::CalculateForceOffset( const Vector &forceVector, const Vect
 
 void CPhysicsObject::CalculateVelocityOffset( const Vector &forceVector, const Vector &worldPosition, Vector *centerVelocity, AngularImpulse *centerAngularVelocity ) const
 {
+	DebugPrint();
 	IVP_U_Point pos;
 	IVP_U_Float_Point force;
 
@@ -875,6 +932,7 @@ void CPhysicsObject::CalculateVelocityOffset( const Vector &forceVector, const V
 
 void CPhysicsObject::ApplyTorqueCenter( const AngularImpulse &torqueImpulse )
 {
+	DebugPrint();
 	if ( !IsMoveable() )
 		return;
 	IVP_U_Float_Point ivpTorque;
@@ -887,6 +945,7 @@ void CPhysicsObject::ApplyTorqueCenter( const AngularImpulse &torqueImpulse )
 
 void CPhysicsObject::GetPosition( Vector *worldPosition, QAngle *angles ) const
 {
+	DebugPrint();
 	IVP_U_Matrix matrix;
 	m_pObject->get_m_world_f_object_AT( &matrix );
 	if ( worldPosition )
@@ -903,6 +962,7 @@ void CPhysicsObject::GetPosition( Vector *worldPosition, QAngle *angles ) const
 
 void CPhysicsObject::GetPositionMatrix( matrix3x4_t *positionMatrix ) const
 {
+	DebugPrint();
 	IVP_U_Matrix matrix;
 	m_pObject->get_m_world_f_object_AT( &matrix );
 	ConvertMatrixToHL( matrix, *positionMatrix );
@@ -911,6 +971,7 @@ void CPhysicsObject::GetPositionMatrix( matrix3x4_t *positionMatrix ) const
 
 void CPhysicsObject::GetImplicitVelocity( Vector *velocity, AngularImpulse *angularVelocity ) const
 {
+	DebugPrint();
 	if ( !velocity && !angularVelocity )
 		return;
 
@@ -949,6 +1010,7 @@ void CPhysicsObject::GetImplicitVelocity( Vector *velocity, AngularImpulse *angu
 
 void CPhysicsObject::GetVelocity( Vector *velocity, AngularImpulse *angularVelocity ) const
 {
+	DebugPrint();
 	if ( !velocity && !angularVelocity )
 		return;
 
@@ -971,6 +1033,7 @@ void CPhysicsObject::GetVelocity( Vector *velocity, AngularImpulse *angularVeloc
 
 void CPhysicsObject::GetVelocityAtPoint( const Vector &worldPosition, Vector *pVelocity ) const
 {
+	DebugPrint();
 	IVP_Core *core = m_pObject->get_core();
 	IVP_U_Point pos;
 	ConvertPositionToIVP( worldPosition, pos );
@@ -997,6 +1060,7 @@ void CPhysicsObject::GetVelocityAtPoint( const Vector &worldPosition, Vector *pV
 // UNDONE: Limit these?
 void CPhysicsObject::AddVelocity( const Vector *velocity, const AngularImpulse *angularVelocity )
 {
+	DebugPrint();
 	Assert(IsMoveable());
 	if ( !IsMoveable() )
 		return;
@@ -1023,6 +1087,7 @@ void CPhysicsObject::AddVelocity( const Vector *velocity, const AngularImpulse *
 
 void CPhysicsObject::SetPosition( const Vector &worldPosition, const QAngle &angles, bool isTeleport )
 {
+	DebugPrint();
 	IVP_U_Quat rot;
 	IVP_U_Point pos;
 
@@ -1048,6 +1113,7 @@ void CPhysicsObject::SetPosition( const Vector &worldPosition, const QAngle &ang
 
 inline void MatrixGetColumn_Sdk( const matrix3x4_t &src, int nCol, Vector *pColumn )
 {
+	DebugPrint();
 	Assert( (nCol >= 0) && (nCol <= 3) );
 
 	pColumn->x = src[0][nCol];
@@ -1057,6 +1123,7 @@ inline void MatrixGetColumn_Sdk( const matrix3x4_t &src, int nCol, Vector *pColu
 
 void CPhysicsObject::SetPositionMatrix( const matrix3x4_t& matrix, bool isTeleport )
 {
+	DebugPrint();
 	if ( m_pShadow )
 	{
 		Vector worldPosition;
@@ -1087,6 +1154,7 @@ void CPhysicsObject::SetPositionMatrix( const matrix3x4_t& matrix, bool isTelepo
 
 void CPhysicsObject::SetVelocityInstantaneous( const Vector *velocity, const AngularImpulse *angularVelocity )
 {
+	DebugPrint();
 	Assert(IsMoveable());
 	if ( !IsMoveable() )
 		return;
@@ -1110,6 +1178,7 @@ void CPhysicsObject::SetVelocityInstantaneous( const Vector *velocity, const Ang
 
 void CPhysicsObject::SetVelocity( const Vector *velocity, const AngularImpulse *angularVelocity )
 {
+	DebugPrint();
 	if ( !IsMoveable() )
 		return;
 	IVP_Core *core = m_pObject->get_core();
@@ -1133,6 +1202,7 @@ void CPhysicsObject::SetVelocity( const Vector *velocity, const AngularImpulse *
 
 void CPhysicsObject::ClampVelocity()
 {
+	DebugPrint();
 	if ( m_pShadow )
 		return;
 
@@ -1141,11 +1211,13 @@ void CPhysicsObject::ClampVelocity()
 
 void GetWorldCoordFromSynapse( IVP_Synapse_Friction *pfriction, IVP_U_Point &world )
 {
+	DebugPrint();
 	world.set(pfriction->get_contact_point()->get_contact_point_ws());
 }
 
 bool CPhysicsObject::GetContactPoint( Vector *contactPoint, IPhysicsObject **contactObject ) const
 {
+	DebugPrint();
 	IVP_Synapse_Friction *pfriction = m_pObject->get_first_friction_synapse();
 	if ( !pfriction )
 		return false;
@@ -1166,6 +1238,7 @@ bool CPhysicsObject::GetContactPoint( Vector *contactPoint, IPhysicsObject **con
 
 void CPhysicsObject::SetShadow( float maxSpeed, float maxAngularSpeed, bool allowPhysicsMovement, bool allowPhysicsRotation )
 {
+	DebugPrint();
 	if ( m_pShadow )
 	{
 		m_pShadow->MaxSpeed( maxSpeed, maxAngularSpeed );
@@ -1185,6 +1258,7 @@ void CPhysicsObject::SetShadow( float maxSpeed, float maxAngularSpeed, bool allo
 
 void CPhysicsObject::UpdateShadow( const Vector &targetPosition, const QAngle &targetAngles, bool tempDisableGravity, float timeOffset )
 {
+	DebugPrint();
 	if ( tempDisableGravity != m_shadowTempGravityDisable )
 	{
 		m_shadowTempGravityDisable = tempDisableGravity;
@@ -1202,6 +1276,7 @@ void CPhysicsObject::UpdateShadow( const Vector &targetPosition, const QAngle &t
 
 void CPhysicsObject::RemoveShadowController()
 {
+	DebugPrint();
 	if ( m_pShadow )
 	{
 		CPhysicsEnvironment *pVEnv = GetVPhysicsEnvironment();
@@ -1213,12 +1288,14 @@ void CPhysicsObject::RemoveShadowController()
 // Back door to allow save/restore of backlink between shadow controller and physics object
 void CPhysicsObject::RestoreShadowController( IPhysicsShadowController *pShadowController )
 {
+	DebugPrint();
 	Assert( !m_pShadow );
 	m_pShadow = pShadowController;
 }
 
 int CPhysicsObject::GetShadowPosition( Vector *position, QAngle *angles ) const
 {
+	DebugPrint();
 	IVP_U_Matrix matrix;
 
 	IVP_Environment *pEnv = m_pObject->get_environment();
@@ -1239,17 +1316,20 @@ int CPhysicsObject::GetShadowPosition( Vector *position, QAngle *angles ) const
 
 IPhysicsShadowController *CPhysicsObject::GetShadowController( void ) const
 {
+	DebugPrint();
 	return m_pShadow;
 }
 
 const CPhysCollide *CPhysicsObject::GetCollide( void ) const
 {
+	DebugPrint();
 	return m_pCollide;
 }
 
 
 IVP_SurfaceManager *CPhysicsObject::GetSurfaceManager( void ) const
 {
+	DebugPrint();
 	if ( m_collideType != COLLIDE_BALL )
 	{
 		return m_pObject->get_surface_manager();
@@ -1260,6 +1340,7 @@ IVP_SurfaceManager *CPhysicsObject::GetSurfaceManager( void ) const
 
 float CPhysicsObject::GetDragInDirection( const IVP_U_Float_Point &velocity ) const
 {
+	DebugPrint();
 	IVP_U_Float_Point local;
 
 	const IVP_U_Matrix *m_world_f_core = m_pObject->get_core()->get_m_world_f_core_PSI();
@@ -1272,6 +1353,7 @@ float CPhysicsObject::GetDragInDirection( const IVP_U_Float_Point &velocity ) co
 
 float CPhysicsObject::GetAngularDragInDirection( const IVP_U_Float_Point &angVelocity ) const
 {
+	DebugPrint();
 	return m_angDragCoefficient * fabs( angVelocity.k[0] * m_angDragBasis.x ) + 
 		fabs( angVelocity.k[1] * m_angDragBasis.y ) + 
 		fabs( angVelocity.k[2] * m_angDragBasis.z );
@@ -1279,11 +1361,13 @@ float CPhysicsObject::GetAngularDragInDirection( const IVP_U_Float_Point &angVel
 
 const char *CPhysicsObject::GetName() const
 {
+	DebugPrint();
 	return m_pObject->get_name();
 }
 
 void CPhysicsObject::SetMaterialIndex( int materialIndex )
 {
+	DebugPrint();
 	if ( m_materialIndex == materialIndex )
 		return;
 
@@ -1305,6 +1389,7 @@ void CPhysicsObject::SetMaterialIndex( int materialIndex )
 // convert square velocity magnitude from IVP to HL
 float CPhysicsObject::GetEnergy() const
 {
+	DebugPrint();
 	IVP_Core *pCore = m_pObject->get_core();
 	IVP_FLOAT energy = 0.0f;
 	IVP_U_Float_Point tmp;
@@ -1318,11 +1403,13 @@ float CPhysicsObject::GetEnergy() const
 
 float CPhysicsObject::ComputeShadowControl( const hlshadowcontrol_params_t &params, float secondsToArrival, float dt )
 {
+	DebugPrint();
 	return ComputeShadowControllerHL( this, params, secondsToArrival, dt );
 }
 
 float CPhysicsObject::GetSphereRadius() const
 {
+	DebugPrint();
 	if ( m_collideType != COLLIDE_BALL )
 		return 0;
 
@@ -1331,6 +1418,7 @@ float CPhysicsObject::GetSphereRadius() const
 
 float CPhysicsObject::CalculateLinearDrag( const Vector &unitDirection ) const
 {
+	DebugPrint();
 	IVP_U_Float_Point ivpDir;
 	ConvertDirectionToIVP( unitDirection, ivpDir );
 
@@ -1339,6 +1427,7 @@ float CPhysicsObject::CalculateLinearDrag( const Vector &unitDirection ) const
 
 float CPhysicsObject::CalculateAngularDrag( const Vector &objectSpaceRotationAxis ) const
 {
+	DebugPrint();
 	IVP_U_Float_Point ivpAxis;
 	ConvertDirectionToIVP( objectSpaceRotationAxis, ivpAxis );
 
@@ -1349,6 +1438,7 @@ float CPhysicsObject::CalculateAngularDrag( const Vector &objectSpaceRotationAxi
 
 void CPhysicsObject::BecomeTrigger()
 {
+	DebugPrint();
 	if ( IsTrigger() )
 		return;
 
@@ -1384,6 +1474,7 @@ void CPhysicsObject::BecomeTrigger()
 
 void CPhysicsObject::RemoveTrigger()
 {
+	DebugPrint();
 	IVP_Controller_Phantom *pController = m_pObject->get_controller_phantom();
 
 	// NOTE: This will remove the back-link in the object
@@ -1393,11 +1484,13 @@ void CPhysicsObject::RemoveTrigger()
 
 bool CPhysicsObject::IsTrigger() const
 {
+	DebugPrint();
 	return m_pObject->get_controller_phantom() != NULL ? true : false;
 }
 
 bool CPhysicsObject::IsFluid() const
 {
+	DebugPrint();
 	IVP_Controller_Phantom *pController = m_pObject->get_controller_phantom();
 	if ( pController )
 	{
@@ -1414,7 +1507,7 @@ bool CPhysicsObject::IsFluid() const
 // sets the object to be hinged.  Fixed it place, but able to rotate around one axis.
 void CPhysicsObject::BecomeHinged( int localAxis )
 {
-
+	DebugPrint();
 	if ( IsMoveable() )
 	{
 		float savedMass = GetMass();
@@ -1444,6 +1537,7 @@ void CPhysicsObject::BecomeHinged( int localAxis )
 
 void CPhysicsObject::RemoveHinged()
 {
+	DebugPrint();
 	m_hingedAxis = 0;
 	m_pObject->get_core()->calc_calc();
 }
@@ -1451,6 +1545,7 @@ void CPhysicsObject::RemoveHinged()
 // dumps info about the object to Msg()
 void CPhysicsObject::OutputDebugInfo() const
 {
+	DebugPrint();
 	Msg("-----------------\nObject: %s\n", m_pObject->get_name());
 	Msg("Mass: %.3e (inv %.3e)\n", GetMass(), GetInvMass() );
 	Vector inertia = GetInertia();
@@ -1503,6 +1598,7 @@ void CPhysicsObject::OutputDebugInfo() const
 
 bool CPhysicsObject::IsAttachedToConstraint( bool bExternalOnly ) const
 {
+	DebugPrint();
 	if ( m_pObject )
 	{
 		for (int k = m_pObject->get_core()->controllers_of_core.len()-1; k>=0;k--)
@@ -1520,6 +1616,7 @@ bool CPhysicsObject::IsAttachedToConstraint( bool bExternalOnly ) const
 
 static void InitObjectTemplate( IVP_Template_Real_Object &objectTemplate, int materialIndex, objectparams_t *pParams, bool isStatic )
 {
+	DebugPrint();
 	objectTemplate.mass = clamp( pParams->mass, VPHYSICS_MIN_MASS, VPHYSICS_MAX_MASS );
 
 	if ( materialIndex >= 0 )
@@ -1563,6 +1660,7 @@ static void InitObjectTemplate( IVP_Template_Real_Object &objectTemplate, int ma
 
 CPhysicsObject *CreatePhysicsObject( CPhysicsEnvironment *pEnvironment, const CPhysCollide *pCollisionModel, int materialIndex, const Vector &position, const QAngle& angles, objectparams_t *pParams, bool isStatic )
 {
+	DebugPrint();
 	if ( materialIndex < 0 )
 	{
 		materialIndex = physprops->GetSurfaceIndex( "default" );
@@ -1638,6 +1736,7 @@ CPhysicsObject *CreatePhysicsObject( CPhysicsEnvironment *pEnvironment, const CP
 
 CPhysicsObject *CreatePhysicsSphere( CPhysicsEnvironment *pEnvironment, float radius, int materialIndex, const Vector &position, const QAngle &angles, objectparams_t *pParams, bool isStatic )
 {
+	DebugPrint();
 	IVP_U_Quat rotation;
 	IVP_U_Point pos;
 
@@ -1678,6 +1777,7 @@ public:
 	// save data type interface
 	void Save( const SaveRestoreFieldInfo_t &fieldInfo, ISave *pSave ) override
 	{
+		DebugPrint();
 		int materialIndex = *((int *)fieldInfo.pField);
 		const char *pMaterialName = physprops->GetPropName( materialIndex );
 		if ( !pMaterialName )
@@ -1691,6 +1791,7 @@ public:
 
 	void Restore( const SaveRestoreFieldInfo_t &fieldInfo, IRestore *pRestore ) override
 	{
+		DebugPrint();
 		char nameBuf[1024];
 		int nameLen = pRestore->ReadInt();
 		pRestore->ReadString( nameBuf, sizeof(nameBuf), nameLen );
@@ -1704,12 +1805,14 @@ public:
 
 	bool IsEmpty( const SaveRestoreFieldInfo_t &fieldInfo ) override 
 	{ 
+		DebugPrint();
 		int *pMaterialIndex = (int *)fieldInfo.pField;
 		return (*pMaterialIndex == 0);
 	}
 
 	void MakeEmpty( const SaveRestoreFieldInfo_t &fieldInfo ) override
 	{
+		DebugPrint();
 		int *pMaterialIndex = (int *)fieldInfo.pField;
 		*pMaterialIndex = 0;
 	}
@@ -1719,6 +1822,7 @@ static CMaterialIndexOps g_MaterialIndexDataOps;
 
 ISaveRestoreOps* MaterialIndexDataOps()
 {
+	DebugPrint();
 	return &g_MaterialIndexDataOps;
 }
 
@@ -1760,11 +1864,13 @@ END_DATADESC()
 
 bool CPhysicsObject::IsCollisionEnabled() const
 {
+	DebugPrint();
 	return GetObject()->is_collision_detection_enabled() ? true : false;
 }
 
 void CPhysicsObject::WriteToTemplate( vphysics_save_cphysicsobject_t &objectTemplate )
 {
+	DebugPrint();
 	if ( m_collideType == COLLIDE_BALL )
 	{
 		objectTemplate.pCollide = NULL;
@@ -1813,6 +1919,7 @@ void CPhysicsObject::WriteToTemplate( vphysics_save_cphysicsobject_t &objectTemp
 
 void CPhysicsObject::InitFromTemplate( CPhysicsEnvironment *pEnvironment, void *pGameData, const vphysics_save_cphysicsobject_t &objectTemplate )
 {
+	DebugPrint();
 	MEM_ALLOC_CREDIT();
 	m_collideType = objectTemplate.collideType;
 
@@ -1945,38 +2052,45 @@ void CPhysicsObject::InitFromTemplate( CPhysicsEnvironment *pEnvironment, void *
 #if PLATFORM_64BITS
 void CPhysicsObject::SetSphereRadius(float radius)
 {
+	DebugPrint();
 	Warning("CPhysicsObject::SetSphereRadius - not implemented!\n");
 }
 
 void CPhysicsObject::SetUseAlternateGravity(bool bSet)
 {
+	DebugPrint();
 	Warning("CPhysicsObject::SetUseAlternateGravity - not implemented!\n");
 }
 
 void CPhysicsObject::SetCollisionHints(uint32 collisionHints)
 {
+	DebugPrint();
 	m_collisionHints = collisionHints; // ToDo, tf does it do.
 }
 
 uint32 CPhysicsObject::GetCollisionHints() const
 {
+	DebugPrint();
 	return m_collisionHints;
 }
 
 IPredictedPhysicsObject* CPhysicsObject::GetPredictedInterface(void) const
 {
+	DebugPrint();
 	Warning("CPhysicsObject::GetPredictedInterface - not implemented!\n");
 	return nullptr;
 }
 
 void CPhysicsObject::SyncWith(IPhysicsObject* pOther)
 {
+	DebugPrint();
 	Warning("CPhysicsObject::SyncWith - not implemented!\n");
 }
 #endif
 
 bool SavePhysicsObject( const physsaveparams_t &params, CPhysicsObject *pObject )
 {
+	DebugPrint();
 	vphysics_save_cphysicsobject_t objectTemplate;
 	memset( &objectTemplate, 0, sizeof(objectTemplate) );
 
@@ -1992,6 +2106,7 @@ bool SavePhysicsObject( const physsaveparams_t &params, CPhysicsObject *pObject 
 
 bool RestorePhysicsObject( const physrestoreparams_t &params, CPhysicsObject **ppObject )
 {
+	DebugPrint();
 	vphysics_save_cphysicsobject_t objectTemplate;
 	memset( &objectTemplate, 0, sizeof(objectTemplate) );
 	params.pRestore->ReadAll( &objectTemplate );
@@ -2038,6 +2153,7 @@ bool RestorePhysicsObject( const physrestoreparams_t &params, CPhysicsObject **p
 
 IPhysicsObject *CreateObjectFromBuffer( CPhysicsEnvironment *pEnvironment, void *pGameData, unsigned char *pBuffer, unsigned int bufferSize, bool enableCollisions )
 {
+	DebugPrint();
 	if ( bufferSize >= sizeof(vphysics_save_cphysicsobject_t))
 	{
 		CPhysicsObject *pObject = new CPhysicsObject();
@@ -2055,6 +2171,7 @@ IPhysicsObject *CreateObjectFromBuffer( CPhysicsEnvironment *pEnvironment, void 
 
 IPhysicsObject *CreateObjectFromBuffer_UseExistingMemory( CPhysicsEnvironment *pEnvironment, void *pGameData, unsigned char *pBuffer, unsigned int bufferSize, CPhysicsObject *pExistingMemory )
 {
+	DebugPrint();
 	if ( bufferSize >= sizeof(vphysics_save_cphysicsobject_t))
 	{
 		vphysics_save_cphysicsobject_t *pTemplate = reinterpret_cast<vphysics_save_cphysicsobject_t *>(pBuffer);
@@ -2077,7 +2194,8 @@ IPhysicsObject *CreateObjectFromBuffer_UseExistingMemory( CPhysicsEnvironment *p
 // So now we need to recreate them or some objects may not wake up when this object (or its neighbors) are deleted.
 void PostRestorePhysicsObject()
 {
-	for ( hk_intp i = g_PostRestoreObjectList.Count()-1; i >= 0; --i )
+	DebugPrint();
+	for ( int i = g_PostRestoreObjectList.Count()-1; i >= 0; --i )
 	{
 		auto &list = g_PostRestoreObjectList[i];
 		if ( list.pObject )

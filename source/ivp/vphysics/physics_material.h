@@ -21,6 +21,7 @@ public:
 	virtual [[nodiscard]] int GetIVPMaterialIndex( const IVP_Material *pIVP ) const = 0;
 	virtual [[nodiscard]] IVP_Material_Manager *GetIVPManager( void ) = 0;
 	virtual [[nodiscard]] int RemapIVPMaterialIndex( int ivpMaterialIndex ) const = 0;
+	virtual [[nodiscard]] const char *GetReservedMaterialName( int nMaterialIndex ) const = 0;
 };
 
 extern IPhysicsSurfacePropsInternal	*physprops;

@@ -165,7 +165,7 @@ private:
 	CUtlVector<CUtlSymbol>		m_fileList;
 	CIVPMaterialManager			m_ivpManager;
 	bool						m_init;
-	hk_intp						m_shadowFallback;
+	int						m_shadowFallback;
 };
 
 
@@ -185,6 +185,7 @@ const char *CSurface::get_name()
 
 CPhysicsSurfaceProps::CPhysicsSurfaceProps() : m_strings( 0, 32, true ), m_fileList(8,8)
 {
+	DebugPrint();
 	m_ivpManager.Init( this );
 	// Force index 0 to be the empty string.  Allows game code to check for zero, but
 	// still resolve to a string
@@ -196,16 +197,19 @@ CPhysicsSurfaceProps::CPhysicsSurfaceProps() : m_strings( 0, 32, true ), m_fileL
 
 CPhysicsSurfaceProps::~CPhysicsSurfaceProps( void )
 {
+	DebugPrint();
 }
 
 int CPhysicsSurfaceProps::SurfacePropCount( void ) const
 {
+	DebugPrint();
 	return m_props.Count();
 }
 
 // Add the filename to a list to make sure each file is only processed once
 bool CPhysicsSurfaceProps::AddFileToDatabase( const char *pFilename )
 {
+	DebugPrint();
 	CUtlSymbol id = m_strings.AddString( pFilename );
 
 	for ( auto &&f : m_fileList )
@@ -220,6 +224,7 @@ bool CPhysicsSurfaceProps::AddFileToDatabase( const char *pFilename )
 
 int CPhysicsSurfaceProps::GetSurfaceIndex( const char *pPropertyName ) const
 {
+	DebugPrint();
 	if ( pPropertyName[0] == '$' )
 	{
 		int index = GetReservedSurfaceIndex( pPropertyName );
@@ -258,6 +263,7 @@ const char *CPhysicsSurfaceProps::GetPropName( int surfaceDataIndex ) const
 // that gets hooked out here.
 CSurface *CPhysicsSurfaceProps::GetInternalSurface( int materialIndex )
 {
+	DebugPrint();
 	if ( IsReservedMaterialIndex( materialIndex ) )
 	{
 		materialIndex = GetReservedFallBack( materialIndex );
@@ -272,11 +278,13 @@ CSurface *CPhysicsSurfaceProps::GetInternalSurface( int materialIndex )
 // this function is actually const except for the return type, so this is safe
 const CSurface *CPhysicsSurfaceProps::GetInternalSurface( int materialIndex ) const
 {
+	DebugPrint();
 	return const_cast<CPhysicsSurfaceProps *>(this)->GetInternalSurface(materialIndex);
 }
 
 void CPhysicsSurfaceProps::GetPhysicsProperties( int materialIndex, float *density, float *thickness, float *friction, float *elasticity ) const
 {
+	DebugPrint();
 	const CSurface *pSurface = GetInternalSurface( materialIndex );
 	if ( !pSurface )
 	{
@@ -306,6 +314,7 @@ void CPhysicsSurfaceProps::GetPhysicsProperties( int materialIndex, float *densi
 
 void CPhysicsSurfaceProps::GetPhysicsParameters( int surfaceDataIndex, surfacephysicsparams_t *pParamsOut ) const
 {
+	DebugPrint();
 	if ( !pParamsOut )
 		return;
 
@@ -318,6 +327,7 @@ void CPhysicsSurfaceProps::GetPhysicsParameters( int surfaceDataIndex, surfaceph
 
 surfacedata_t *CPhysicsSurfaceProps::GetSurfaceData( int materialIndex )
 {
+	DebugPrint();
 	CSurface *pSurface = GetInternalSurface( materialIndex );
 	if (!pSurface)
 		pSurface = GetInternalSurface( 0 ); // Zero is always the "default" property
@@ -328,17 +338,20 @@ surfacedata_t *CPhysicsSurfaceProps::GetSurfaceData( int materialIndex )
 
 const char *CPhysicsSurfaceProps::GetString( unsigned short stringTableIndex ) const
 {
+	DebugPrint();
 	return m_strings.String( stringTableIndex );
 }
 
 
 bool CPhysicsSurfaceProps::IsReservedMaterialIndex( int materialIndex ) const
 {
+	DebugPrint();
 	return (materialIndex > 127) ? true : false;
 }
 
 const char *CPhysicsSurfaceProps::GetReservedMaterialName( int materialIndex ) const
 {
+	DebugPrint();
 	// NOTE: All of these must start with '$'
 	switch( materialIndex )
 	{
@@ -351,6 +364,7 @@ const char *CPhysicsSurfaceProps::GetReservedMaterialName( int materialIndex ) c
 
 int CPhysicsSurfaceProps::GetReservedSurfaceIndex( const char *pPropertyName ) const
 {
+	DebugPrint();
 	if ( !Q_stricmp( pPropertyName, "$MATERIAL_INDEX_SHADOW" ) )
 	{
 		return MATERIAL_INDEX_SHADOW;
@@ -360,17 +374,20 @@ int CPhysicsSurfaceProps::GetReservedSurfaceIndex( const char *pPropertyName ) c
 
 const IVP_Material *CPhysicsSurfaceProps::GetIVPMaterial( int materialIndex ) const
 {
+	DebugPrint();
 	return GetInternalSurface(materialIndex);
 }
 
 IVP_Material *CPhysicsSurfaceProps::GetIVPMaterial( int materialIndex )
 {
+	DebugPrint();
 	return GetInternalSurface(materialIndex);
 }
 
 
 int CPhysicsSurfaceProps::GetReservedFallBack( int materialIndex ) const
 {
+	DebugPrint();
 	switch( materialIndex )
 	{
 	case MATERIAL_INDEX_SHADOW:
@@ -383,7 +400,8 @@ int CPhysicsSurfaceProps::GetReservedFallBack( int materialIndex ) const
 
 int CPhysicsSurfaceProps::GetIVPMaterialIndex( const IVP_Material *pIVP ) const
 {
-	hk_intp index = static_cast<const CSurface *>(pIVP) - m_props.Base();
+	DebugPrint();
+	int index = static_cast<const CSurface *>(pIVP) - m_props.Base();
 	if ( index >= 0 && index < m_props.Count() )
 		return index;
 
@@ -393,6 +411,7 @@ int CPhysicsSurfaceProps::GetIVPMaterialIndex( const IVP_Material *pIVP ) const
 
 void CPhysicsSurfaceProps::CopyPhysicsProperties( CSurface *pOut, int baseIndex )
 {
+	DebugPrint();
 	const CSurface *pSurface = GetInternalSurface( baseIndex );
 	if ( pSurface )
 	{
@@ -403,6 +422,7 @@ void CPhysicsSurfaceProps::CopyPhysicsProperties( CSurface *pOut, int baseIndex 
 
 int CPhysicsSurfaceProps::ParseSurfaceData( const char *pFileName, const char *pTextfile )
 {
+	DebugPrint();
 	if ( !AddFileToDatabase( pFileName ) )
 	{
 		return 0;
@@ -435,7 +455,7 @@ int CPhysicsSurfaceProps::ParseSurfaceData( const char *pFileName, const char *p
 				{
 					// already in the database, don't add again, override values instead
 					const char *pOverride = m_strings.String(prop.m_name);
-					hk_intp propIndex = GetSurfaceIndex( pOverride );
+					int propIndex = GetSurfaceIndex( pOverride );
 					if (  propIndex >= 0 )
 					{
 						CSurface *pSurface = GetInternalSurface( propIndex );
@@ -617,18 +637,21 @@ int CPhysicsSurfaceProps::ParseSurfaceData( const char *pFileName, const char *p
 
 void CPhysicsSurfaceProps::SetWorldMaterialIndexTable( int *pMapArray, int mapSize )
 {
+	DebugPrint();
 	m_ivpManager.SetPropMap( pMapArray, mapSize );
 }
 
 #if PLATFORM_64BITS
 ISaveRestoreOps* CPhysicsSurfaceProps::GetMaterialIndexDataOps() const
 {
+	DebugPrint();
 	return MaterialIndexDataOps();
 }
 #endif
 
 CIVPMaterialManager::CIVPMaterialManager( void ) : IVP_Material_Manager( IVP_FALSE ), m_props()
 {
+	DebugPrint();
 	// by default every index maps to itself (NULL translation)
 	for ( unsigned short i = 0; i < std::size(m_propMap); i++ )
 	{
@@ -638,6 +661,7 @@ CIVPMaterialManager::CIVPMaterialManager( void ) : IVP_Material_Manager( IVP_FAL
 
 int CIVPMaterialManager::RemapIVPMaterialIndex( int ivpMaterialIndex ) const
 {
+	DebugPrint();
 	if ( ivpMaterialIndex > 127 )
 		return ivpMaterialIndex;
 	
@@ -648,6 +672,7 @@ int CIVPMaterialManager::RemapIVPMaterialIndex( int ivpMaterialIndex ) const
 // note that ivp will only supply indices between 1 and 127
 IVP_Material *CIVPMaterialManager::get_material_by_index( [[maybe_unused]] IVP_Real_Object *pObject, [[maybe_unused]] const IVP_U_Point *world_position, int index)
 {
+	DebugPrint();
 	IVP_Material *tmp = m_props->GetIVPMaterial( RemapIVPMaterialIndex(index) );
 	Assert(tmp);
 	if ( tmp )
@@ -667,6 +692,7 @@ IVP_Material *CIVPMaterialManager::get_material_by_index( [[maybe_unused]] IVP_R
 // be better to preprocess/remap the triangles in the collision models at load time
 void CIVPMaterialManager::SetPropMap( int *map, int mapSize )
 {
+	DebugPrint();
 	// ??? just ignore any extra bits
 	if ( mapSize > 128 )
 	{

@@ -15,6 +15,10 @@
 #include "filesystem_helpers.h"
 #include "bspfile.h"
 #include "tier1/utlbuffer.h"
+
+#include "filesystem.h"
+#include "characterset.h"
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -88,12 +92,14 @@ private:
 
 CVPhysicsParse::CVPhysicsParse( const char *pKeyData )
 {
+	DebugPrint();
 	m_pText = pKeyData;
 	NextBlock();
 }
 
 void CVPhysicsParse::NextBlock( void )
 {
+	DebugPrint();
 	char key[MAX_KEYVALUE], value[MAX_KEYVALUE];
 	while ( m_pText )
 	{
@@ -112,6 +118,8 @@ void CVPhysicsParse::NextBlock( void )
 
 const char *CVPhysicsParse::GetCurrentBlockName( void )
 {
+	DebugPrint();
+	DebugMsg3("Text: %s\nBlockName: %s\n", m_pText ? m_pText : "[NULL]", (const char*)m_blockName);
 	if ( m_pText )
 		return m_blockName;
 
@@ -121,6 +129,7 @@ const char *CVPhysicsParse::GetCurrentBlockName( void )
 
 bool CVPhysicsParse::Finished( void )
 {
+	DebugPrint();
 	if ( m_pText )
 		return false;
 
@@ -130,6 +139,7 @@ bool CVPhysicsParse::Finished( void )
 
 void CVPhysicsParse::ParseSolid( solid_t *pSolid, IVPhysicsKeyHandler *unknownKeyHandler )
 {
+	DebugPrint();
 	char key[MAX_KEYVALUE], value[MAX_KEYVALUE];
 	key[0] = 0;
 
@@ -151,12 +161,15 @@ void CVPhysicsParse::ParseSolid( solid_t *pSolid, IVPhysicsKeyHandler *unknownKe
 		if ( key[0] == '}' )
 		{
 			NextBlock();
+			DebugMsg2("Solid Index: %i\n", pSolid->index);
 			return;
 		}
 
+		DebugMsg2("Key: %s\n", key);
+		DebugMsg2("Value: %s\n", value);
 		if ( !Q_stricmp( key, "index" ) )
 		{
-			pSolid->index = atoi(value);
+			pSolid->index = strtol(value, NULL, 10);
 		}
 		else if ( !Q_stricmp( key, "name" ) )
 		{
@@ -172,7 +185,7 @@ void CVPhysicsParse::ParseSolid( solid_t *pSolid, IVPhysicsKeyHandler *unknownKe
 		}
 		else if ( !Q_stricmp( key, "mass" ) )
 		{
-			pSolid->params.mass = strtof(value, nullptr);
+			pSolid->params.mass = strtod(value, nullptr);
 		}
 		else if ( !Q_stricmp( key, "massCenterOverride" ) )
 		{
@@ -181,28 +194,28 @@ void CVPhysicsParse::ParseSolid( solid_t *pSolid, IVPhysicsKeyHandler *unknownKe
 		}
 		else if ( !Q_stricmp( key, "inertia" ) )
 		{
-			pSolid->params.inertia = strtof(value, nullptr);
+			pSolid->params.inertia = strtod(value, nullptr);
 		}
 		else if ( !Q_stricmp( key, "damping" ) )
 		{
-			pSolid->params.damping = strtof(value, nullptr);
+			pSolid->params.damping = strtod(value, nullptr);
 		}
 		else if ( !Q_stricmp( key, "rotdamping" ) )
 		{
-			pSolid->params.rotdamping = strtof(value, nullptr);
+			pSolid->params.rotdamping = strtod(value, nullptr);
 		}
 		else if ( !Q_stricmp( key, "volume" ) )
 		{
-			pSolid->params.volume = strtof(value, nullptr);
+			pSolid->params.volume = strtod(value, nullptr);
 		}
 		else if ( !Q_stricmp( key, "drag" ) )
 		{
-			pSolid->params.dragCoefficient = strtof(value, nullptr);
+			pSolid->params.dragCoefficient = strtod(value, nullptr);
 		}
 		else if ( !Q_stricmp( key, "rollingdrag" ) )
 		{
 			//AssertMsg( false, "Solid '%s' rolling drag is not implemented.", pSolid->name );
-			//pSolid->params.rollingDrag = strtof(value, nullptr);
+			//pSolid->params.rollingDrag = strtod(value, nullptr);
 		}
 		else
 		{
@@ -221,6 +234,7 @@ void CVPhysicsParse::ParseSolid( solid_t *pSolid, IVPhysicsKeyHandler *unknownKe
 
 void CVPhysicsParse::ParseRagdollConstraint( constraint_ragdollparams_t *pConstraint, IVPhysicsKeyHandler *unknownKeyHandler )
 {
+	DebugPrint();
 	char key[MAX_KEYVALUE], value[MAX_KEYVALUE];
 
 	key[0] = 0;
@@ -313,6 +327,7 @@ void CVPhysicsParse::ParseRagdollConstraint( constraint_ragdollparams_t *pConstr
 
 void CVPhysicsParse::ParseFluid( fluid_t *pFluid, IVPhysicsKeyHandler *unknownKeyHandler )
 {
+	DebugPrint();
 	char key[MAX_KEYVALUE], value[MAX_KEYVALUE];
 
 	key[0] = 0;
@@ -378,6 +393,7 @@ void CVPhysicsParse::ParseFluid( fluid_t *pFluid, IVPhysicsKeyHandler *unknownKe
 
 void CVPhysicsParse::ParseSurfaceTable( int *table, IVPhysicsKeyHandler *unknownKeyHandler )
 {
+	DebugPrint();
 	char key[MAX_KEYVALUE], value[MAX_KEYVALUE];
 
 	key[0] = 0;
@@ -390,7 +406,7 @@ void CVPhysicsParse::ParseSurfaceTable( int *table, IVPhysicsKeyHandler *unknown
 			return;
 		}
 
-		hk_intp propIndex = physprops->GetSurfaceIndex( key );
+		int propIndex = physprops->GetSurfaceIndex( key );
 		int tableIndex = atoi(value);
 		if ( tableIndex >= 0 && tableIndex < 128 )
 		{
@@ -401,6 +417,7 @@ void CVPhysicsParse::ParseSurfaceTable( int *table, IVPhysicsKeyHandler *unknown
 
 void CVPhysicsParse::ParseSurfaceTablePacked( CUtlVector<char> &out )
 {
+	DebugPrint();
 	char key[MAX_KEYVALUE], value[MAX_KEYVALUE];
 
 	key[0] = 0;
@@ -414,8 +431,8 @@ void CVPhysicsParse::ParseSurfaceTablePacked( CUtlVector<char> &out )
 			return;
 		}
 
-		hk_intp len = Q_strlen( key );
-		hk_intp outIndex = out.AddMultipleToTail( len + 1 );
+		int len = Q_strlen( key );
+		int outIndex = out.AddMultipleToTail( len + 1 );
 		memcpy( &out[outIndex], key, len+1 );
 		int tableIndex = atoi(value);
 		Assert( tableIndex == lastIndex + 1);
@@ -425,6 +442,7 @@ void CVPhysicsParse::ParseSurfaceTablePacked( CUtlVector<char> &out )
 
 void CVPhysicsParse::ParseVehicleAxle( vehicle_axleparams_t &axle )
 {
+	DebugPrint();
 	char key[MAX_KEYVALUE], value[MAX_KEYVALUE];
 
 	memset( &axle, 0, sizeof(axle) );
@@ -477,6 +495,7 @@ void CVPhysicsParse::ParseVehicleAxle( vehicle_axleparams_t &axle )
 
 void CVPhysicsParse::ParseVehicleWheel( vehicle_wheelparams_t &wheel )
 {
+	DebugPrint();
 	char key[MAX_KEYVALUE], value[MAX_KEYVALUE];
 
 	key[0] = 0;
@@ -532,6 +551,7 @@ void CVPhysicsParse::ParseVehicleWheel( vehicle_wheelparams_t &wheel )
 
 void CVPhysicsParse::ParseVehicleSuspension( vehicle_suspensionparams_t &suspension )
 {
+	DebugPrint();
 	char key[MAX_KEYVALUE], value[MAX_KEYVALUE];
 
 	key[0] = 0;
@@ -571,6 +591,7 @@ void CVPhysicsParse::ParseVehicleSuspension( vehicle_suspensionparams_t &suspens
 
 void CVPhysicsParse::ParseVehicleBody( vehicle_bodyparams_t &body )
 {
+	DebugPrint();
 	char key[MAX_KEYVALUE], value[MAX_KEYVALUE];
 
 	key[0] = 0;
@@ -622,6 +643,7 @@ void CVPhysicsParse::ParseVehicleBody( vehicle_bodyparams_t &body )
 
 void CVPhysicsParse::ParseVehicleEngineBoost( vehicle_engineparams_t &engine )
 {
+	DebugPrint();
 	char key[MAX_KEYVALUE], value[MAX_KEYVALUE];
 
 	key[0] = 0;
@@ -661,6 +683,7 @@ void CVPhysicsParse::ParseVehicleEngineBoost( vehicle_engineparams_t &engine )
 
 void CVPhysicsParse::ParseVehicleEngine( vehicle_engineparams_t &engine )
 {
+	DebugPrint();
 	char key[MAX_KEYVALUE], value[MAX_KEYVALUE];
 
 	key[0] = 0;
@@ -752,6 +775,7 @@ void CVPhysicsParse::ParseVehicleEngine( vehicle_engineparams_t &engine )
 
 void CVPhysicsParse::ParseVehicleSteering( vehicle_steeringparams_t &steering )
 {
+	DebugPrint();
 	char key[MAX_KEYVALUE], value[MAX_KEYVALUE];
 
 	key[0] = 0;
@@ -847,6 +871,7 @@ void CVPhysicsParse::ParseVehicleSteering( vehicle_steeringparams_t &steering )
 
 void CVPhysicsParse::ParseVehicle( vehicleparams_t *pVehicle, IVPhysicsKeyHandler *unknownKeyHandler )
 {
+	DebugPrint();
 	char key[MAX_KEYVALUE], value[MAX_KEYVALUE];
 
 	key[0] = 0;
@@ -914,6 +939,7 @@ void CVPhysicsParse::ParseVehicle( vehicleparams_t *pVehicle, IVPhysicsKeyHandle
 
 void CVPhysicsParse::ParseCustom( void *pCustom, IVPhysicsKeyHandler *unknownKeyHandler )
 {
+	DebugPrint();
 	char key[MAX_KEYVALUE], value[MAX_KEYVALUE];
 
 	key[0] = 0;
@@ -964,26 +990,181 @@ void CVPhysicsParse::ParseCustom( void *pCustom, IVPhysicsKeyHandler *unknownKey
 	}
 }
 
-IVPhysicsKeyParser *CreateVPhysicsKeyParser( const char *pKeyData )
+IVPhysicsKeyParser *CreateVPhysicsKeyParser( const char *pKeyData, bool bIsPacked )
 {
+	DebugPrint();
+	if (bIsPacked)
+	{
+		Warning("vphysics - CreateVPhysicsKeyParser: Packed vcollide's are unsupported!\n");
+		return nullptr;
+	}
+
 	return new CVPhysicsParse( pKeyData );
 }
 
 void DestroyVPhysicsKeyParser( IVPhysicsKeyParser *pParser )
 {
+	DebugPrint();
 	delete pParser;
 }
 
 //-----------------------------------------------------------------------------
 // Helper functions for parsing script file
 //-----------------------------------------------------------------------------
+static characterset_t	g_BreakSet, g_BreakSetIncludingColons;
+static void InitializeCharacterSets()
+{
+	static bool s_CharacterSetInitialized = false;
+	if (!s_CharacterSetInitialized)
+	{
+		CharacterSetBuild( &g_BreakSet, "{}()'" );
+		CharacterSetBuild( &g_BreakSetIncludingColons, "{}()':" );
+		s_CharacterSetInitialized = true;
+	}
+}
+
+const char* ParseFileInternal_SDK( const char* pFileBytes, char* pTokenOut, bool* pWasQuoted, characterset_t *pCharSet, size_t nMaxTokenLen )
+{
+	pTokenOut[0] = 0;
+
+	if (pWasQuoted)
+		*pWasQuoted = false;
+
+	if (!pFileBytes)
+		return 0;
+	
+	if ( nMaxTokenLen <= 1 )
+		return 0;
+
+	InitializeCharacterSets();
+
+	// YWB:  Ignore colons as token separators in COM_Parse
+	static bool com_ignorecolons = false;  
+	characterset_t& breaks = pCharSet ? *pCharSet : (com_ignorecolons ? g_BreakSet : g_BreakSetIncludingColons);
+	
+	int c;
+	unsigned int len = 0;
+	
+// skip whitespace
+skipwhite:
+
+	while ( (c = *pFileBytes) <= ' ')
+	{
+		if (c == 0)
+			return 0;                    // end of file;
+		pFileBytes++;
+	}
+	
+// skip // comments
+	if (c=='/' && pFileBytes[1] == '/')
+	{
+		while (*pFileBytes && *pFileBytes != '\n')
+			pFileBytes++;
+		goto skipwhite;
+	}
+	
+// skip c-style comments
+	if (c=='/' && pFileBytes[1] == '*' )
+	{
+		// Skip "/*"
+		pFileBytes += 2;
+
+		while ( *pFileBytes  )
+		{
+			if ( *pFileBytes == '*' &&
+				 pFileBytes[1] == '/' )
+			{
+				pFileBytes += 2;
+				break;
+			}
+
+			pFileBytes++;
+		}
+
+		goto skipwhite;
+	}
+
+// handle quoted strings specially
+	if (c == '\"')
+	{
+		if (pWasQuoted)
+			*pWasQuoted = true;
+
+		pFileBytes++;
+		while (1)
+		{
+			c = *pFileBytes++;
+			if (c=='\"' || !c)
+			{
+				pTokenOut[len] = 0;
+				return pFileBytes;
+			}
+			pTokenOut[len] = c;
+			len++;
+			
+			// Ensure buffer length is not overrunning!
+			if ( len == nMaxTokenLen - 1 )
+			{
+				pTokenOut[len] = 0;
+				Assert( 0 );
+				return pFileBytes;
+			}
+		}
+	}
+
+// parse single characters
+	if ( IN_CHARACTERSET( breaks, c ) )
+	{
+		pTokenOut[len] = c;
+		len += ( len < nMaxTokenLen-1 ) ? 1 : 0;
+		pTokenOut[len] = 0;
+		return pFileBytes+1;
+	}
+
+// parse a regular word
+	do
+	{
+		pTokenOut[len] = c;
+		pFileBytes++;
+		len++;
+		
+		// Ensure buffer length is not overrunning!
+		if ( len == nMaxTokenLen - 1 )
+		{
+			pTokenOut[ len ] = 0;
+			Assert( 0 );
+			return pFileBytes;
+		}
+
+		c = *pFileBytes;
+		if ( IN_CHARACTERSET( breaks, c ) )
+			break;
+	} while (c>32);
+	
+	pTokenOut[len] = 0;
+	return pFileBytes;
+}
+
+template <size_t count>
+const char* ParseFile_SDK( const char* pFileBytes, OUT_Z_ARRAY char (&pTokenOut)[count], bool* pWasQuoted, characterset_t *pCharSet = NULL, unsigned int nMaxTokenLen = (unsigned int)-1 )
+{
+	(void)nMaxTokenLen; // Avoid unreferenced variable warnings.
+	return ParseFileInternal_SDK( pFileBytes, pTokenOut, pWasQuoted, pCharSet, count );
+}
+
+template <size_t count>
+char* ParseFile_SDK( char* pFileBytes, OUT_Z_ARRAY char (&pTokenOut)[count], bool* pWasQuoted )	// (same exact thing as the const version)
+{
+	return const_cast<char*>( ParseFileInternal_SDK( pFileBytes, pTokenOut, pWasQuoted, NULL, count ) );
+}
 
 const char *ParseKeyvalue( const char *pBuffer, OUT_Z_ARRAY char (&key)[MAX_KEYVALUE], OUT_Z_ARRAY char (&value)[MAX_KEYVALUE] )
 {
+	DebugPrint();
 	// Make sure value is always null-terminated.
 	value[0] = 0;
 
-	pBuffer = ParseFile( pBuffer, key, NULL );
+	pBuffer = ParseFile_SDK( pBuffer, key, NULL );
 
 	// no value on a close brace
 	if ( key[0] == '}' && key[1] == 0 )
@@ -994,7 +1175,7 @@ const char *ParseKeyvalue( const char *pBuffer, OUT_Z_ARRAY char (&key)[MAX_KEYV
 
 	Q_strlower( key );
 	
-	pBuffer = ParseFile( pBuffer, value, NULL );
+	pBuffer = ParseFile_SDK( pBuffer, value, NULL );
 	Q_strlower( value );
 
 	return pBuffer;

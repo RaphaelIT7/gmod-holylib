@@ -19,7 +19,7 @@ class IVPhysicsKeyParser;
 class CPackedPhysicsDescription;
 
 [[nodiscard]] const char			*ParseKeyvalue( const char *pBuffer, OUT_Z_ARRAY char (&key)[MAX_KEYVALUE], OUT_Z_ARRAY char (&value)[MAX_KEYVALUE] );
-[[nodiscard]] IVPhysicsKeyParser	*CreateVPhysicsKeyParser( const char *pKeyData );
+[[nodiscard]] IVPhysicsKeyParser	*CreateVPhysicsKeyParser( const char *pKeyData, bool bIsPacked = false );
 void				DestroyVPhysicsKeyParser( IVPhysicsKeyParser * );
 [[nodiscard]] const char			*PackVCollideText( IPhysicsCollision *physcollision, const char *pTextIn, int *pSizeOut, bool storeSolidNames, bool storeSurfacepropsAsNames );
 [[nodiscard]] CPackedPhysicsDescription *CreatePackedDescription( const char *pPackedBuffer, int packedSize );

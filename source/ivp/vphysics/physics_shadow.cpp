@@ -392,7 +392,7 @@ public:
 		if ( IsFull() )
 			return;
 
-		for ( hk_intp i = m_Normals.Count(); --i >= 0; )
+		for ( int i = m_Normals.Count(); --i >= 0; )
 		{
 			if ( DotProduct( m_Normals[i], normal ) > 0.99f )
 				return;
@@ -402,7 +402,7 @@ public:
 
 	bool HasPositiveProjection( const Vector &vec )
 	{
-		for ( hk_intp i = m_Normals.Count(); --i >= 0; )
+		for ( int i = m_Normals.Count(); --i >= 0; )
 		{
 			if ( DotProduct( m_Normals[i], vec ) > 0 )
 				return true;
@@ -417,7 +417,7 @@ public:
 	{
 		if ( m_Normals.Count() > 2 )
 		{
-			for ( hk_intp i = 0; i < m_Normals.Count(); i++ )
+			for ( int i = 0; i < m_Normals.Count(); i++ )
 			{
 				if ( DotProduct(inVector, m_Normals[i]) > 0 )
 				{

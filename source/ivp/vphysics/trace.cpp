@@ -165,7 +165,7 @@ static unsigned short GetPackedIndex( const IVP_Compact_Ledge *pLedge, const IVP
 			break;
 	}
 
-	hk_intp triIndex = pBestTri - pLedge->get_first_triangle();
+	int triIndex = pBestTri - pLedge->get_first_triangle();
 	int edgeIndex = 0;
 	// just do a search for the edge containing this vert instead of storing it along the way
 	for ( i = 0; i < 3; i++ )
@@ -1242,7 +1242,7 @@ loop_without_store:
 				goto loop_without_store;
 			}
 		}
-		hk_intp last = list.Count()-1;
+		int last = list.Count()-1;
 		if ( last < 0 )
 			break;
 		node = list[last];

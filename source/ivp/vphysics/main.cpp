@@ -26,12 +26,14 @@ public:
 	}
 	void EnableCollisions( int index0, int index1 ) override
 	{
+		DebugPrint();
 		Assert(index0<32&&index1<32);
 		m_bits[index0] |= 1<<index1;
 		m_bits[index1] |= 1<<index0;
 	}
 	void DisableCollisions( int index0, int index1 ) override
 	{
+		DebugPrint();
 		Assert(index0<32&&index1<32);
 		m_bits[index0] &= ~(1<<index1);
 		m_bits[index1] &= ~(1<<index0);
@@ -39,6 +41,7 @@ public:
 
 	bool ShouldCollide( int index0, int index1 ) override
 	{
+		DebugPrint();
 		Assert(index0<32&&index1<32);
 		return (m_bits[index0] & (1<<index1)) ? true : false;
 	}
@@ -84,6 +87,7 @@ EXPOSE_SINGLE_INTERFACE_GLOBALVAR( CPhysicsInterface, IPhysics, VPHYSICS_INTERFA
 //-----------------------------------------------------------------------------
 void *CPhysicsInterface::QueryInterface( const char *pInterfaceName )
 {
+	DebugPrint();
 	// Loading the datacache DLL mounts *all* interfaces
 	// This includes the backward-compatible interfaces + other vphysics interfaces
 	Msg("vphysics - QueryInterface: %s\n", pInterfaceName);
@@ -96,6 +100,7 @@ void *CPhysicsInterface::QueryInterface( const char *pInterfaceName )
 //-----------------------------------------------------------------------------
 IPhysicsEnvironment *CPhysicsInterface::CreateEnvironment( void )
 {
+	DebugPrint();
 	IPhysicsEnvironment *pEnvironment = CreatePhysicsEnvironment();
 	m_envList.AddToTail( pEnvironment );
 	return pEnvironment;
@@ -103,12 +108,14 @@ IPhysicsEnvironment *CPhysicsInterface::CreateEnvironment( void )
 
 void CPhysicsInterface::DestroyEnvironment( IPhysicsEnvironment *pEnvironment )
 {
+	DebugPrint();
 	m_envList.FindAndRemove( pEnvironment );
 	delete pEnvironment;
 }
 
 IPhysicsEnvironment	*CPhysicsInterface::GetActiveEnvironmentByIndex( int index )
 {
+	DebugPrint();
 	if ( index < 0 || index >= m_envList.Count() )
 		return NULL;
 
@@ -117,11 +124,13 @@ IPhysicsEnvironment	*CPhysicsInterface::GetActiveEnvironmentByIndex( int index )
 
 IPhysicsObjectPairHash *CPhysicsInterface::CreateObjectPairHash()
 {
+	DebugPrint();
 	return ::CreateObjectPairHash();
 }
 
 void CPhysicsInterface::DestroyObjectPairHash( IPhysicsObjectPairHash *pHash )
 {
+	DebugPrint();
 	delete pHash;
 }
 // holds a cache of these by id.
@@ -129,6 +138,7 @@ void CPhysicsInterface::DestroyObjectPairHash( IPhysicsObjectPairHash *pHash )
 // client and server in single player.  So you can't have different client/server rules.
 IPhysicsCollisionSet *CPhysicsInterface::FindOrCreateCollisionSet( unsigned int id, int maxElementCount )
 {
+	DebugPrint();
 	if ( !m_pCollisionSetHash )
 	{
 		m_pCollisionSetHash = new IVP_VHash_Store(256);
@@ -141,16 +151,17 @@ IPhysicsCollisionSet *CPhysicsInterface::FindOrCreateCollisionSet( unsigned int 
 	IPhysicsCollisionSet *pSet = FindCollisionSet( id );
 	if ( pSet )
 		return pSet;
-	hk_intp index = m_collisionSets.AddToTail();
-	m_pCollisionSetHash->add_elem( (void *)(hk_intp)id, (void *)(hk_intp)(index+1) );
+	intp index = m_collisionSets.AddToTail();
+	m_pCollisionSetHash->add_elem( (void *)(intp)id, (void *)(intp)(index+1) );
 	return &m_collisionSets[index];
 }
 
 IPhysicsCollisionSet *CPhysicsInterface::FindCollisionSet( unsigned int id )
 {
+	DebugPrint();
 	if ( m_pCollisionSetHash )
 	{
-		hk_intp index = (hk_intp)m_pCollisionSetHash->find_elem( (void *)(hk_intp)id );
+		intp index = (intp)m_pCollisionSetHash->find_elem( (void *)(intp)id );
 		if ( index > 0 )
 		{
 			Assert( index <= m_collisionSets.Count() );
@@ -165,6 +176,7 @@ IPhysicsCollisionSet *CPhysicsInterface::FindCollisionSet( unsigned int id )
 
 void CPhysicsInterface::DestroyAllCollisionSets()
 {
+	DebugPrint();
 	m_collisionSets.Purge();
 	delete m_pCollisionSetHash;
 	m_pCollisionSetHash = NULL;
@@ -172,5 +184,6 @@ void CPhysicsInterface::DestroyAllCollisionSets()
 
 const CUtlVector<IPhysicsEnvironment*>& CPhysicsHolyLib::GetEnvironments()
 {
+	DebugPrint();
 	return g_MainDLLInterface.m_envList;
 }

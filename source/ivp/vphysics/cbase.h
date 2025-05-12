@@ -19,6 +19,35 @@
 #include "convert.h"
 #include "tier0/commonmacros.h"
 
+#if PLATFORM_64BITS
+extern int GlobalSCOPE;
+class DEBUGCLASS {
+public:
+    DEBUGCLASS()
+    {
+        Msg("Started function call! (%i)\n", GlobalSCOPE);
+        GlobalSCOPE++;
+    }
+
+    ~DEBUGCLASS()
+    {
+        GlobalSCOPE--;
+        Msg("Finished function call! (%i)\n", GlobalSCOPE);
+    }
+};
+
+#define DebugPrint() Msg("File: %s, Line: %d, Function: %s\n", __FILE__, __LINE__, __func__); \
+DEBUGCLASS __debugclass
+#define DebugMsg3(arg1, arg2, arg3) Msg(arg1, arg2, arg3)
+#define DebugMsg2(arg1, arg2) Msg(arg1, arg2)
+#define DebugMsg1(arg1) Msg(arg1)
+#else
+#define DebugPrint()
+#define DebugMsg3(arg1, arg2, arg3)
+#define DebugMsg2(arg1, arg2)
+#define DebugMsg1(arg1)
+#endif
+
 // vphysics
 #include "vphysics_interface.h"
 #include "vphysics_saverestore.h"
