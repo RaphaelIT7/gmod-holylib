@@ -21,7 +21,7 @@
 #include "const.h"
 #include "inetchannel.h"
 
-#define MAX_FRAGMENTS_BITS	3	// How many fragments we can send at once
+#define MAX_FRAGMENTS_BITS	5	// How many fragments we can send at once
 #define MAX_FRAGMENTS	(1 << MAX_FRAGMENTS_BITS) - 1  // Maximum number of fragments we can safely transmit. -1 as else we would go over MAX_FRAGMENTS_BITS
 
 #undef MAX_ROUTABLE_PAYLOAD
@@ -36,7 +36,7 @@
 #define NET_FRAMES_BACKUP	64	// must be power of 2
 #define NET_FRAMES_MASK		(NET_FRAMES_BACKUP-1)
 
-#define SUBCHANNEL_BITS		3	// raising it above 5 would require changes to m_nOutReliableState & m_nInReliableState as they couldn't hold the states anymore.
+#define SUBCHANNEL_BITS		4	// raising it above 5 would require changes to m_nOutReliableState & m_nInReliableState as they couldn't hold the states anymore.
 #define MAX_SUBCHANNELS		(1 << SUBCHANNEL_BITS) // we have 16 alternative send&wait bits
 
 #define SUBCHANNEL_FREE		0	// subchannel is free to use
