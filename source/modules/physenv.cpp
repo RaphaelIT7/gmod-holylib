@@ -40,12 +40,8 @@ public:
 CPhysEnvModule g_pPhysEnvModule;
 IModule* pPhysEnvModule = &g_pPhysEnvModule;
 
-static bool bIsJoltPhysics = false; // if were using jolt, a lot of things need to change.
-
-class IVP_Mindist;
-static bool g_bInImpactCall = false;
-static IVP_Mindist** g_pCurrentMindist;
-static bool* g_fDeferDeleteMindist;
+// If set it will include code to fallback when it couldn't replace IVP, in cases where for example holylib wasn't loaded by the ghostinj.dll
+#define PHYSENV_INCLUDEIVPFALLBACK 0
 
 enum IVP_SkipType {
 	//IVP_NoCall = -2, // Were not in our expected simulation, so don't handle anything.
@@ -60,52 +56,8 @@ static IVP_SkipType pCurrentSkipType = IVP_SkipType::IVP_None;
 
 #define TOSTRING( var ) var ? "true" : "false"
 
-#if 0
-static Detouring::Hook detour_IVP_Mindist_D2;
-static void hook_IVP_Mindist_D2(IVP_Mindist* mindist)
-{
-	if (g_bInImpactCall && *g_fDeferDeleteMindist && *g_pCurrentMindist == NULL)
-	{
-		*g_fDeferDeleteMindist = false; // The single thing missing in the physics engine that causes it to break.....
-		Warning(PROJECT_NAME " - physenv: Someone forgot to call Entity:CollisionRulesChanged!\n");
-	}
-
-	detour_IVP_Mindist_D2.GetTrampoline<Symbols::IVP_Mindist_D2>()(mindist);
-}
-
-static Detouring::Hook detour_IVP_Mindist_do_impact;
-static void hook_IVP_Mindist_do_impact(IVP_Mindist* mindist)
-{
-	if (g_pPhysEnvModule.InDebug() > 2)
-		Msg(PROJECT_NAME " - physenv: IVP_Mindist::do_impact called! (%i)\n", (int)pCurrentSkipType);
-
-	if (pCurrentSkipType == IVP_SkipType::IVP_SkipImpact)
-		return;
-
-	g_bInImpactCall = true; // Verify: Do we actually need this?
-	detour_IVP_Mindist_do_impact.GetTrampoline<Symbols::IVP_Mindist_do_impact>()(mindist);
-	g_bInImpactCall = false;
-}
-#endif
-
-auto pCurrentTime = std::chrono::high_resolution_clock::now();
-double pCurrentLagThreadshold = 100; // 100 ms
-#if 0
-static Detouring::Hook detour_IVP_Event_Manager_Standard_simulate_time_events;
-static void hook_IVP_Event_Manager_Standard_simulate_time_events(void* eventmanager, void* timemanager, void* environment, IVP_Time time)
-{
-	pCurrentTime = std::chrono::high_resolution_clock::now();
-	pCurrentSkipType = IVP_SkipType::IVP_None; // Idk if it can happen that something else sets it in the mean time but let's just be sure...
-
-	if (g_pPhysEnvModule.InDebug() > 2)
-		Msg(PROJECT_NAME " - physenv: IVP_Event_Manager_Standart::simulate_time_events called!\n");
-
-	detour_IVP_Event_Manager_Standard_simulate_time_events.GetTrampoline<Symbols::IVP_Event_Manager_Standard_simulate_time_events>()(eventmanager, timemanager, environment, time);
-
-	pCurrentSkipType = IVP_SkipType::IVP_NoCall; // Reset it.
-}
-#endif
-
+static auto pCurrentTime = std::chrono::high_resolution_clock::now();
+static double pCurrentLagThreadshold = 100; // 100 ms
 struct ILuaPhysicsEnvironment;
 static inline ILuaPhysicsEnvironment* RegisterPhysicsEnvironment(IPhysicsEnvironment* pEnv);
 static inline void UnregisterPhysicsEnvironment(IPhysicsEnvironment* pEnv);
@@ -201,7 +153,53 @@ void CheckPhysicsLag(CPhysicsObject* pObject1, CPhysicsObject* pObject2)
 	}
 }
 
-#if 0
+#if PHYSENV_INCLUDEIVPFALLBACK
+static bool bIsJoltPhysics = false; // if were using jolt, a lot of things need to change.
+class IVP_Mindist;
+static bool g_bInImpactCall = false;
+static IVP_Mindist** g_pCurrentMindist;
+static bool* g_fDeferDeleteMindist;
+
+static Detouring::Hook detour_IVP_Mindist_D2;
+static void hook_IVP_Mindist_D2(IVP_Mindist* mindist)
+{
+	if (g_bInImpactCall && *g_fDeferDeleteMindist && *g_pCurrentMindist == NULL)
+	{
+		*g_fDeferDeleteMindist = false; // The single thing missing in the physics engine that causes it to break.....
+		Warning(PROJECT_NAME " - physenv: Someone forgot to call Entity:CollisionRulesChanged!\n");
+	}
+
+	detour_IVP_Mindist_D2.GetTrampoline<Symbols::IVP_Mindist_D2>()(mindist);
+}
+
+static Detouring::Hook detour_IVP_Mindist_do_impact;
+static void hook_IVP_Mindist_do_impact(IVP_Mindist* mindist)
+{
+	if (g_pPhysEnvModule.InDebug() > 2)
+		Msg(PROJECT_NAME " - physenv: IVP_Mindist::do_impact called! (%i)\n", (int)pCurrentSkipType);
+
+	if (pCurrentSkipType == IVP_SkipType::IVP_SkipImpact)
+		return;
+
+	g_bInImpactCall = true; // Verify: Do we actually need this?
+	detour_IVP_Mindist_do_impact.GetTrampoline<Symbols::IVP_Mindist_do_impact>()(mindist);
+	g_bInImpactCall = false;
+}
+
+static Detouring::Hook detour_IVP_Event_Manager_Standard_simulate_time_events;
+static void hook_IVP_Event_Manager_Standard_simulate_time_events(void* eventmanager, void* timemanager, void* environment, IVP_Time time)
+{
+	pCurrentTime = std::chrono::high_resolution_clock::now();
+	pCurrentSkipType = IVP_SkipType::IVP_None; // Idk if it can happen that something else sets it in the mean time but let's just be sure...
+
+	if (g_pPhysEnvModule.InDebug() > 2)
+		Msg(PROJECT_NAME " - physenv: IVP_Event_Manager_Standart::simulate_time_events called!\n");
+
+	detour_IVP_Event_Manager_Standard_simulate_time_events.GetTrampoline<Symbols::IVP_Event_Manager_Standard_simulate_time_events>()(eventmanager, timemanager, environment, time);
+
+	pCurrentSkipType = IVP_SkipType::IVP_NoCall; // Reset it.
+}
+
 static Detouring::Hook detour_IVP_Mindist_simulate_time_event;
 static void hook_IVP_Mindist_simulate_time_event(IVP_Mindist* mindist, void* environment)
 {
@@ -423,7 +421,7 @@ struct ILuaPhysicsEnvironment;
 PushReferenced_LuaClass(ILuaPhysicsEnvironment)
 Get_LuaClass(ILuaPhysicsEnvironment, "IPhysicsEnvironment")
 
-#if defined(SYSTEM_WINDOWS) && 0
+#if defined(SYSTEM_WINDOWS) && PHYSENV_INCLUDEIVPFALLBACK
 extern void hook_CPhysicsEnvironment_DestroyObject(CPhysicsEnvironment* pEnvironment, IPhysicsObject* pObject);
 class CPhysicsEnvironmentProxy : public Detouring::ClassProxy<IPhysicsEnvironment, CPhysicsEnvironmentProxy> {
 public:
@@ -453,11 +451,11 @@ struct ILuaPhysicsEnvironment
 	{
 		pEnvironment = env;
 		//g_pEnvironmentToLua[env] = this;
-#if defined(SYSTEM_WINDOWS) && 0
+#if defined(SYSTEM_WINDOWS) && PHYSENV_INCLUDEIVPFALLBACK
 		pEnvironmentProxy = std::make_unique<CPhysicsEnvironmentProxy>(env);
 #endif
 
-#if 0
+#if PHYSENV_INCLUDEIVPFALLBACK
 		int iCount;
 		IPhysicsObject** pList = (IPhysicsObject**)pEnvironment->GetObjectList(&iCount);
 		for (int i = 0; i < iCount; ++i)
@@ -472,13 +470,13 @@ struct ILuaPhysicsEnvironment
 		DeleteGlobal_ILuaPhysicsEnvironment(this);
 
 		//g_pEnvironmentToLua.erase(g_pEnvironmentToLua.find(pEnvironment));
-#if defined(SYSTEM_WINDOWS) && 0
+#if defined(SYSTEM_WINDOWS) && PHYSENV_INCLUDEIVPFALLBACK
 		pEnvironmentProxy->DeInit();
 #endif
 		//physics->DestroyEnvironment(pEnvironment);
 		pEnvironment = NULL;
 
-#if 0
+#if PHYSENV_INCLUDEIVPFALLBACK
 		for (IPhysicsObject* pObject : pObjects)
 		{
 			auto it = g_pObjects.find(pObject);
@@ -499,7 +497,7 @@ struct ILuaPhysicsEnvironment
 		//	delete pCollisionEvent;
 	}
 
-#if 0
+#if PHYSENV_INCLUDEIVPFALLBACK
 	inline void RegisterObject(IPhysicsObject* pObject)
 	{
 		auto it = pObjects.find(pObject);
@@ -530,7 +528,7 @@ struct ILuaPhysicsEnvironment
 	//std::unordered_set<IPhysicsObject*> pObjects;
 	
 	IPhysicsEnvironment* pEnvironment = NULL;
-#if defined(SYSTEM_WINDOWS) && 0
+#if defined(SYSTEM_WINDOWS) && PHYSENV_INCLUDEIVPFALLBACK
 	std::unique_ptr<CPhysicsEnvironmentProxy> pEnvironmentProxy = NULL;
 #endif
 	CLuaPhysicsObjectEvent* pObjectEvent = NULL;
@@ -2433,6 +2431,7 @@ void CPhysEnvModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 }
 
 static DLL_Handle g_pPhysicsModule = NULL;
+static bool g_bReplacedIVP = false;
 void CPhysEnvModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
@@ -2446,6 +2445,7 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 		);
 
 		SetIVPHolyLibCallbacks(&g_pIVPHolyLib);
+		g_bReplacedIVP = true;
 		return;
 	}
 
@@ -2455,7 +2455,7 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 		g_pPhysicsModule = NULL;
 	}
 
-#if defined(SYSTEM_LINUX) && defined(ARCHITECTURE_X86) && 0
+#if defined(ARCHITECTURE_X86) && PHYSENV_INCLUDEIVPFALLBACK
 	if (g_pFullFileSystem)
 	{
 		FileHandle_t fileHandle = g_pFullFileSystem->Open("bin/vphysics_srv.so", "rb", "BASE_PATH");
@@ -2479,8 +2479,8 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 		}
 	}
 
-#if 0
-	if (!bIsJoltPhysics && false)
+#if defined(SYSTEM_LINUX) && PHYSENV_INCLUDEIVPFALLBACK
+	if (!bIsJoltPhysics && !g_bReplacedIVP)
 	{
 		SourceSDK::FactoryLoader vphysics_loader("vphysics");
 		Detour::Create(
