@@ -143,7 +143,7 @@ LUA_FUNCTION_STATIC(VoiceData_GetUncompressedData)
 	VoiceData* pData = Get_VoiceData(LUA, 1, true);
 	int iSize = (int)LUA->CheckNumberOpt(2, 20000); // How many bytes to allocate for the decompressed version. 20000 is default
 
-	ISteamUser* pSteamUser =  Util::GetSteamUser();
+	ISteamUser* pSteamUser = Util::GetSteamUser();
 	if (!pSteamUser)
 		LUA->ThrowError("Failed to get SteamUser!\n");
 
