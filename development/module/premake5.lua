@@ -29,6 +29,7 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 	CreateProject({serverside = true, manual_files = false, source_path = "../../source"})
 		kind "SharedLib"
 		symbols "On"
+		
 		-- Remove some or all of these includes if they're not needed
 		IncludeHelpersExtended()
 		--IncludeLuaShared()

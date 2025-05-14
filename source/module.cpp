@@ -454,7 +454,7 @@ static void ModuleStatus(const CCommand &args)
 	}
 
 	Msg("------- Lua Interfaces -------\n");
-	Msg("Count: %i\n", g_pModuleManager.GetLuaInterfaces().size());
+	Msg("Count: %i\n", (int)g_pModuleManager.GetLuaInterfaces().size());
 
 	for (GarrysMod::Lua::ILuaInterface* interface : g_pModuleManager.GetLuaInterfaces())
 		Msg("\"%p\"", interface);

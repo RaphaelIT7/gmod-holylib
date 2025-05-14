@@ -215,7 +215,6 @@ const char* CServerPlugin::GetPluginDescription(void)
 //---------------------------------------------------------------------------------
 void CServerPlugin::LevelInit(char const *pMapName)
 {
-
 }
 
 //---------------------------------------------------------------------------------
