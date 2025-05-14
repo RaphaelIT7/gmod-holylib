@@ -229,7 +229,10 @@ int CPhysicsSurfaceProps::GetSurfaceIndex( const char *pPropertyName ) const
 	{
 		int index = GetReservedSurfaceIndex( pPropertyName );
 		if ( index >= 0 )
+		{
+			Msg("Returning-1 %i! (%s)\n", index, pPropertyName);
 			return index;
+		}
 	}
 
 	CUtlSymbol id = m_strings.Find( pPropertyName );
@@ -240,10 +243,14 @@ int CPhysicsSurfaceProps::GetSurfaceIndex( const char *pPropertyName ) const
 		{
 			// NOTE: Just comparing strings by index is pretty fast though
 			if ( m_props[i].m_name == id )
+			{
+				Msg("Returning-2 %i! (%s)\n", i, pPropertyName);
 				return i;
+			}
 		}
 	}
 
+	Msg("Returning -1! (%s)\n", pPropertyName);
 	return -1;
 }
 
