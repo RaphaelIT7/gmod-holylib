@@ -38,8 +38,8 @@ static void OnDecompressThreadsChange(IConVar* convar, const char* pOldValue, fl
 	Util::StartThreadPool(pDecompressPool, ((ConVar*)convar)->GetInt());
 }
 
-static ConVar compressthreads("holylib_util_compressthreads", "1", 0, "The number of threads to use for util.AsyncCompress", OnCompressThreadsChange);
-static ConVar decompressthreads("holylib_util_decompressthreads", "1", 0, "The number of threads to use for util.AsyncDecompress", OnDecompressThreadsChange);
+static ConVar compressthreads("holylib_util_compressthreads", "1", FCVAR_ARCHIVE, "The number of threads to use for util.AsyncCompress", OnCompressThreadsChange);
+static ConVar decompressthreads("holylib_util_decompressthreads", "1", FCVAR_ARCHIVE, "The number of threads to use for util.AsyncDecompress", OnDecompressThreadsChange);
 
 struct CompressEntry
 {

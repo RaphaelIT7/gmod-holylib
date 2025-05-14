@@ -34,7 +34,7 @@ public:
 	virtual void InitDetour(bool bPreServer);
 	virtual void Shutdown();
 	virtual const char* Name() { return "physenv"; };
-	virtual int Compatibility() { return LINUX32 | LINUX64; };
+	virtual int Compatibility() { return LINUX32; };
 };
 
 CPhysEnvModule g_pPhysEnvModule;

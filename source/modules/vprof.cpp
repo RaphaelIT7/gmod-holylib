@@ -28,7 +28,7 @@ public:
 	// Update: Fk my old self, Linux64 is just broken and it crashed because I had the wrong symbols.
 };
 
-static ConVar holylib_vprof_exportreport("holylib_vprof_exportreport", "1", 0, "If enabled, vprof results will be dumped into a file in the vprof/ folder");
+static ConVar holylib_vprof_exportreport("holylib_vprof_exportreport", "1", FCVAR_ARCHIVE, "If enabled, vprof results will be dumped into a file in the vprof/ folder");
 //static ConVar holylib_vprof_profilecfunc("holylib_vprof_profilecfunc", "0", 0, "If enabled, Lua->C calls will also be profiled.");
 
 static CVProfModule g_pVProfModule;

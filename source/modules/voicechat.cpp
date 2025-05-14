@@ -33,7 +33,7 @@ static void OnVoiceThreadsChange(IConVar* convar, const char* pOldValue, float f
 	Util::StartThreadPool(pVoiceThreadPool, ((ConVar*)convar)->GetInt());
 }
 
-static ConVar voicechat_threads("holylib_voicechat_threads", "1", 0, "The number of threads to use for voicechat.LoadVoiceStream and voicechat.SaveVoiceStream if you specify async", OnVoiceThreadsChange);
+static ConVar voicechat_threads("holylib_voicechat_threads", "1", FCVAR_ARCHIVE, "The number of threads to use for voicechat.LoadVoiceStream and voicechat.SaveVoiceStream if you specify async", OnVoiceThreadsChange);
 
 static CVoiceChatModule g_pVoiceChatModule;
 IModule* pVoiceChatModule = &g_pVoiceChatModule;

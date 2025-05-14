@@ -32,33 +32,33 @@ public:
 static CFileSystemModule g_pFileSystemModule;
 IModule* pFileSystemModule = &g_pFileSystemModule;
 
-static ConVar holylib_filesystem_easydircheck("holylib_filesystem_easydircheck", "0", 0, 
+static ConVar holylib_filesystem_easydircheck("holylib_filesystem_easydircheck", "0", FCVAR_ARCHIVE, 
 	"Checks if the folder CBaseFileSystem::IsDirectory checks has a . in the name after the last /. if so assume it's a file extension.");
-static ConVar holylib_filesystem_searchcache("holylib_filesystem_searchcache", "1", 0, 
+static ConVar holylib_filesystem_searchcache("holylib_filesystem_searchcache", "1", FCVAR_ARCHIVE, 
 	"If enabled, it will cache the search path a file was located in and if the same file is requested, it will use that search path directly.");
-static ConVar holylib_filesystem_optimizedfixpath("holylib_filesystem_optimizedfixpath", "1", 0, 
+static ConVar holylib_filesystem_optimizedfixpath("holylib_filesystem_optimizedfixpath", "1", FCVAR_ARCHIVE, 
 	"If enabled, it will optimize CBaseFilesystem::FixUpPath by caching the BASE_PATH search cache.");
-static ConVar holylib_filesystem_earlysearchcache("holylib_filesystem_earlysearchcache", "1", 0, 
+static ConVar holylib_filesystem_earlysearchcache("holylib_filesystem_earlysearchcache", "1", FCVAR_ARCHIVE, 
 	"If enabled, it will check early in CBaseFilesystem::OpenForRead if the file is in the search cache.");
-static ConVar holylib_filesystem_forcepath("holylib_filesystem_forcepath", "1", 0, 
+static ConVar holylib_filesystem_forcepath("holylib_filesystem_forcepath", "1", FCVAR_ARCHIVE, 
 	"If enabled, it will change the paths of some specific files");
-static ConVar holylib_filesystem_predictpath("holylib_filesystem_predictpath", "1", 0, 
+static ConVar holylib_filesystem_predictpath("holylib_filesystem_predictpath", "1", FCVAR_ARCHIVE, 
 	"If enabled, it will try to predict the path of a file");
 static ConVar holylib_filesystem_predictexistance("holylib_filesystem_predictexistance", "0", 0, 
 	"If enabled, it will try to predict the path of a file, but if the file doesn't exist in the predicted path, we'll just say it doesn't exist.");
-static ConVar holylib_filesystem_splitgamepath("holylib_filesystem_splitgamepath", "1", 0, 
+static ConVar holylib_filesystem_splitgamepath("holylib_filesystem_splitgamepath", "1", FCVAR_ARCHIVE, 
 	"If enabled, it will create for each content type like models/, materials/ a game path which will be used to find that content.");
 static ConVar holylib_filesystem_splitluapath("holylib_filesystem_splitluapath", "0", 0, 
 	"If enabled, it will do the same thing holylib_filesystem_splitgamepath does but with lsv. Currently it breaks workshop addons.");
-static ConVar holylib_filesystem_splitfallback("holylib_filesystem_splitfallback", "1", 0, 
+static ConVar holylib_filesystem_splitfallback("holylib_filesystem_splitfallback", "1", FCVAR_ARCHIVE, 
 	"If enabled, it will fallback to the original searchpath if the split path failed.");
-static ConVar holylib_filesystem_fixgmodpath("holylib_filesystem_fixgmodpath", "1", 0, 
+static ConVar holylib_filesystem_fixgmodpath("holylib_filesystem_fixgmodpath", "1", FCVAR_ARCHIVE, 
 	"If enabled, it will fix up weird gamemode paths like sandbox/gamemode/sandbox/gamemode which gmod likes to use.");
 static ConVar holylib_filesystem_cachefilehandle("holylib_filesystem_cachefilehandle", "0", 0, 
 	"If enabled, it will cache the file handle and return it if needed. This will probably cause issues if you open the same file multiple times.");
 static ConVar holylib_filesystem_precachehandle("holylib_filesystem_precachehandle", "1", 0,
 	"If enabled, it will try to predict which file it will open next and open the file to keep a handle ready to be opened.");
-static ConVar holylib_filesystem_savesearchcache("holylib_filesystem_savesearchcache", "1", 0,
+static ConVar holylib_filesystem_savesearchcache("holylib_filesystem_savesearchcache", "1", FCVAR_ARCHIVE,
 	"If enabled, it will write the search cache into a file and restore it when starting, using it to improve performance.");
 
 

@@ -24,9 +24,9 @@ IModule* pSurfFixModule = &g_pSurfFixModule;
 // Code belongs to https://github.com/momentum-mod
 // static ConVar sv_slope_fix("sv_slope_fix", "1");
 static ConVar sv_ramp_fix("sv_ramp_fix", "1");
-static ConVar sv_ramp_initial_retrace_length("sv_ramp_initial_retrace_length", "0.2", 0,
+static ConVar sv_ramp_initial_retrace_length("sv_ramp_initial_retrace_length", "0.2", FCVAR_ARCHIVE,
 									  "Amount of units used in offset for retraces", true, 0.2f, true, 5.f);
-static ConVar sv_ramp_bumpcount("sv_ramp_bumpcount", "8", 0, "Helps with fixing surf/ramp bugs", true, 4, true, 32);
+static ConVar sv_ramp_bumpcount("sv_ramp_bumpcount", "8", FCVAR_ARCHIVE, "Helps with fixing surf/ramp bugs", true, 4, true, 32);
 
 static bool CGameMovement_IsValidMovementTrace(CGameMovement* gamemovement, trace_t &tr)
 {

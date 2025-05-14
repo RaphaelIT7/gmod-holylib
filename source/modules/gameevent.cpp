@@ -28,7 +28,7 @@ public:
 	virtual bool SupportsMultipleLuaStates() { return true; };
 };
 
-static ConVar gameevent_callhook("holylib_gameevent_callhook", "1", 0, "If enabled, the HolyLib:Pre/PostListenGameEvent hooks get called");
+static ConVar gameevent_callhook("holylib_gameevent_callhook", "1", FCVAR_ARCHIVE, "If enabled, the HolyLib:Pre/PostListenGameEvent hooks get called");
 
 static CGameeventLibModule g_pGameeventLibModule;
 IModule* pGameeventLibModule = &g_pGameeventLibModule;

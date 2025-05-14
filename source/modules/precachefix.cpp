@@ -19,8 +19,8 @@ public:
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
 };
 
-ConVar model_fallback("holylib_precache_modelfallback", "-1", 0, "The model index to fallback to if the precache failed");
-ConVar generic_fallback("holylib_precache_genericfallback", "-1", 0, "The generic index to fallback to if the precache failed");
+ConVar model_fallback("holylib_precache_modelfallback", "-1", FCVAR_ARCHIVE, "The model index to fallback to if the precache failed");
+ConVar generic_fallback("holylib_precache_genericfallback", "-1", FCVAR_ARCHIVE, "The generic index to fallback to if the precache failed");
 
 static CPrecacheFixModule g_pPrecacheFixModule;
 IModule* pPrecacheFixModule = &g_pPrecacheFixModule;
