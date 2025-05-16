@@ -171,3 +171,8 @@ namespace Lua
 	// This sounds like a dumb idea, because it is.
 	// it would be painful to implement differently.
 }
+
+union TValue;
+namespace RawLua {
+	extern TValue *index2adr(lua_State *L, int idx);
+}
