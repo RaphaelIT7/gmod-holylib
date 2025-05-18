@@ -13,6 +13,8 @@
 #include "tier1/strtools.h" 
 #include "vcollide_parse_private.h"
 
+#include <array> // std::size implementation
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 

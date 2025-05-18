@@ -161,8 +161,8 @@ extern void ConvertMatrixToIVP( const matrix3x4_t& matrix, IVP_U_Matrix &out );
 extern void ConvertRotationToIVP( const QAngle &angles, IVP_U_Matrix3 &out );
 extern void ConvertRotationToIVP( const QAngle& angles, IVP_U_Quat &out );
 extern void ConvertBoxToIVP( const Vector &mins, const Vector &maxs, Vector &outmins, Vector &outmaxs );
-extern [[nodiscard]] int ConvertCoordinateAxisToIVP( int axisIndex );
-extern [[nodiscard]] int ConvertCoordinateAxisToHL( int axisIndex );
+[[nodiscard]] extern int ConvertCoordinateAxisToIVP( int axisIndex );
+[[nodiscard]] extern int ConvertCoordinateAxisToHL( int axisIndex );
 
 // IVP to HL conversions
 inline void ConvertPositionToHL( const IVP_U_Point &point, Vector& out )
