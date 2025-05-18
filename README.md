@@ -74,6 +74,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [#] Possibly fixed memory issues caused by `IGModAudioChannel`'s being deleted & having undefined behavior.  
 \- [#] Fixed `HolyLib:OnPhysicsLag` possibly being called recursively causing a crash.  
 \- [#] Fixed every function from the `physenv` module not accepting gmod's PhysObj.  
+\- [#] Fixed a crash caused by `comcommand` module since Gmod's `ConCommand_IsBlocked` changed. (See https://github.com/RaphaelIT7/gmod-holylib/issues/45)  
 
 > [!WARNING]
 > The current builds are unstable and need **A LOT** of testing.  
