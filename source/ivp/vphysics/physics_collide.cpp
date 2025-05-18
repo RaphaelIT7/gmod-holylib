@@ -30,7 +30,14 @@
 #include "mathlib/polyhedron.h"
 #include "tier1/byteswap.h"
 
+#if PLATFORM_64BITS
 #include <GarrysMod/FactoryLoader.hpp>
+
+#if _WIN32
+#define DLL_TOOLS
+#include "detours.h"
+#endif
+#endif
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -50,6 +57,16 @@ public:
 	{
 		memset(m_bboxVertMap, 0, sizeof(m_bboxVertMap));
 	}
+#if PLATFORM_64BITS && _WIN32
+	~CPhysicsCollision()
+	{
+		if (pOrigPhysicsDLL)
+		{
+			DLL_UnloadModule(pOrigPhysicsDLL);
+			pOrigPhysicsDLL = NULL;
+		}
+	}
+#endif
 	CPhysConvex	*ConvexFromVerts( Vector **pVerts, int vertCount ) override;
 	CPhysConvex	*ConvexFromVertsFast( Vector **pVerts, int vertCount );
 	CPhysConvex	*ConvexFromPlanes( float *pPlanes, int planeCount, float mergeDistance ) override;
@@ -161,6 +178,10 @@ private:
 	CPhysicsTrace		m_traceapi;
 	CUtlVector<bboxcache_t>	m_bboxCache;
 	byte				m_bboxVertMap[8];
+
+#if PLATFORM_64BITS && _WIN32
+	DLL_Handle pOrigPhysicsDLL = NULL;
+#endif
 };
 
 CPhysicsCollision g_PhysicsCollision;
@@ -1807,6 +1828,28 @@ IVPhysicsKeyParser *CPhysicsCollision::VPhysicsKeyParserCreate( vcollide_t *pVCo
 		extern bool g_pForceOriginalIVP;
 		g_pForceOriginalIVP = true;
 		g_OrigPhysicsCollision = vphysics_loader.GetInterface<IPhysicsCollision>(VPHYSICS_COLLISION_INTERFACE_VERSION);
+		if (g_OrigPhysicsCollision == physcollision)
+		{
+			Warning(PROJECT_NAME " - vphysics: We loaded ourself!\n");
+			g_OrigPhysicsCollision = NULL;
+
+#if _WIN32
+			// Of course we loaded ourself, were on windows.
+			if (!pOrigPhysicsDLL)
+			{
+				pOrigPhysicsDLL = DLL_LoadModule("vphysics_orig" DLL_EXTENSION, RTLD_LAZY); // Load original DLL
+			}
+
+			if (pOrigPhysicsDLL)
+			{
+				SourceSDK::FactoryLoader vphysics_orig_loader("vphysics_orig");
+				g_OrigPhysicsCollision = vphysics_orig_loader.GetInterface<IPhysicsCollision>(VPHYSICS_COLLISION_INTERFACE_VERSION);
+			} else {
+				Warning(PROJECT_NAME " - vphysics: Failed to load original vphysics dll! Ensure that you renamed the original DLL to vphysics_orig.dll!\n");
+			}
+#endif
+		}
+
 		g_pForceOriginalIVP = false;
 	}
 
