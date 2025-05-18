@@ -17,6 +17,7 @@
 #include "tier1/tier1.h"
 #define DLL_TOOLS
 #include "detours.h"
+#include "tier0/icommandline.h"
 
 #include "physics_environment.h" // has to be before physics_object.h
 #include "physics_object.h"
@@ -2434,18 +2435,21 @@ static DLL_Handle g_pPhysicsModule = NULL;
 static bool g_bReplacedIVP = false;
 void CPhysEnvModule::InitDetour(bool bPreServer)
 {
-	if (bPreServer && CommandLine()->FindParm("holylib_replaceivp"))
+	if (bPreServer)
 	{
-		g_pPhysicsModule = DLL_LoadModule("vphysics" DLL_EXTENSION, RTLD_LAZY); // Load it manually since rn it wasn't loaded yet.
-		SourceSDK::FactoryLoader vphysics_loader("vphysics");
-		Detour::Create(
-			&detour_CreateInterface, CREATEINTERFACE_PROCNAME,
-			vphysics_loader.GetModule(), Symbol::FromName(CREATEINTERFACE_PROCNAME),
-			(void*)hook_CreateInterface, m_pID
-		);
+		if (CommandLine()->FindParm("holylib_replaceivp"))
+		{
+			g_pPhysicsModule = DLL_LoadModule("vphysics" DLL_EXTENSION, RTLD_LAZY); // Load it manually since rn it wasn't loaded yet.
+			SourceSDK::FactoryLoader vphysics_loader("vphysics");
+			Detour::Create(
+				&detour_CreateInterface, CREATEINTERFACE_PROCNAME,
+				vphysics_loader.GetModule(), Symbol::FromName(CREATEINTERFACE_PROCNAME),
+				(void*)hook_CreateInterface, m_pID
+			);
 
-		SetIVPHolyLibCallbacks(&g_pIVPHolyLib);
-		g_bReplacedIVP = true;
+			SetIVPHolyLibCallbacks(&g_pIVPHolyLib);
+			g_bReplacedIVP = true;
+		}
 		return;
 	}
 
