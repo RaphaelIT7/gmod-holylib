@@ -1341,14 +1341,8 @@ LUA_FUNCTION_STATIC(CNetChan_Transmit)
 {
 	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
 	bool bOnlyReliable = LUA->GetBool(2);
-	int maxFragments = (int)LUA->CheckNumberOpt(3, -1);
-	bool bFreeSubChannels = LUA->GetBool(4);
 
-	g_pMaxFragments = maxFragments;
-	g_bFreeSubChannels = bFreeSubChannels;
 	LUA->PushBool(pNetChannel->Transmit(bOnlyReliable));
-	g_bFreeSubChannels = false;
-	g_pMaxFragments = -1;
 
 	return 1;
 }
