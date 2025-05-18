@@ -99,6 +99,7 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 
 		filter({"system:linux", "platforms:x86_64"})
 			libdirs("libs/linux64")
+			buildoptions({"-mcx16"}) -- Should solve this: undefined reference to `__sync_bool_compare_and_swap_16'
 			links("luajit_64")
 
 		filter({"system:linux", "platforms:x86"})
