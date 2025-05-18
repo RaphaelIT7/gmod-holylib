@@ -19,7 +19,7 @@ local run_number = file and file:read("*l") or "1" --- Second line = workflow ru
 local branch = file and file:read("*l") or "main" -- Third line = branch -> "main"
 local additional = file and file:read("*l") or "0" -- Fouth line = Additional data. We set it to 1 for releases.
 
-CreateWorkspace({name = "holylib", abi_compatible = false})
+CreateWorkspace({name = "holylib", abi_compatible = true})
 	-- Serverside module (gmsv prefix)
 	-- Can define "source_path", where the source files are located
 	-- Can define "manual_files", which allows you to manually add files to the project,

@@ -19,7 +19,7 @@ local run_number = "1"
 local branch = "main"
 local additional = "0"
 
-CreateWorkspace({name = "holylib", abi_compatible = false})
+CreateWorkspace({name = "holylib", abi_compatible = true})
 	-- Serverside module (gmsv prefix)
 	-- Can define "source_path", where the source files are located
 	-- Can define "manual_files", which allows you to manually add files to the project,
