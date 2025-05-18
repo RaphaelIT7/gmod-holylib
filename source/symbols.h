@@ -323,7 +323,7 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: concommand Symbols
 	//---------------------------------------------------------------------------------
-	typedef bool (*ConCommand_IsBlocked)(const char* cmd);
+	typedef const char* (*ConCommand_IsBlocked)(const char* cmd);
 	extern const std::vector<Symbol> ConCommand_IsBlockedSym;
 
 	//---------------------------------------------------------------------------------
