@@ -2608,11 +2608,14 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 	}
 
 	SourceSDK::FactoryLoader server_loader("server");
-	Detour::Create(
-		&detour_GMod_Util_IsPhysicsObjectValid, "GMod::Util::IsPhysicsObjectValid",
-		server_loader.GetModule(), Symbols::GMod_Util_IsPhysicsObjectValidSym,
-		(void*)hook_GMod_Util_IsPhysicsObjectValid, m_pID
-	);
+	if (g_bReplacedIVP)
+	{
+		Detour::Create(
+			&detour_GMod_Util_IsPhysicsObjectValid, "GMod::Util::IsPhysicsObjectValid",
+			server_loader.GetModule(), Symbols::GMod_Util_IsPhysicsObjectValidSym,
+			(void*)hook_GMod_Util_IsPhysicsObjectValid, m_pID
+		);
+	}
 
 	Detour::Create(
 		&detour_PhysFrame, "PhysFrame",
