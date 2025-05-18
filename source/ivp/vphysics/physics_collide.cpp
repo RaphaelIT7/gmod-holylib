@@ -30,6 +30,8 @@
 #include "mathlib/polyhedron.h"
 #include "tier1/byteswap.h"
 
+#include <GarrysMod/FactoryLoader.hpp>
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -1798,6 +1800,29 @@ IVPhysicsKeyParser *CPhysicsCollision::VPhysicsKeyParserCreate( const char *pKey
 IVPhysicsKeyParser *CPhysicsCollision::VPhysicsKeyParserCreate( vcollide_t *pVCollide )
 {
 	DebugPrint();
+	static IPhysicsCollision *g_OrigPhysicsCollision;
+	if (!g_OrigPhysicsCollision)
+	{
+		SourceSDK::FactoryLoader vphysics_loader("vphysics");
+		extern bool g_pForceOriginalIVP;
+		g_pForceOriginalIVP = true;
+		g_OrigPhysicsCollision = vphysics_loader.GetInterface<IPhysicsCollision>(VPHYSICS_COLLISION_INTERFACE_VERSION);
+		g_pForceOriginalIVP = false;
+	}
+
+	if (g_OrigPhysicsCollision)
+	{
+		IVPhysicsKeyParser* parser = g_OrigPhysicsCollision->VPhysicsKeyParserCreate( pVCollide );
+		DEBUG_IF
+		{
+			IVPhysicsKeyParser* our_parser = CreateVPhysicsKeyParser( pVCollide->pKeyValues, pVCollide->isPacked );
+			Msg("IVP returned: %p\n", parser);
+			Msg("We returned: %p\n", our_parser);
+		}
+
+		return parser;
+	}
+
 	return CreateVPhysicsKeyParser( pVCollide->pKeyValues, pVCollide->isPacked );
 }
 #endif

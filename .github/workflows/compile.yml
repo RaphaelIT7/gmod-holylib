@@ -210,7 +210,7 @@ jobs:
   test_32bit:
     name: "Test 32x branches"
     needs: setup_32x_artifacts
-    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main # ToDo: Change this later
+    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
     strategy:
       matrix:
         branch:
@@ -225,7 +225,7 @@ jobs:
   test_32bit_noghostinj:
     name: "Test 32x branches (No GhostInj)"
     needs: setup_32x_artifacts
-    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main # ToDo: Change this later
+    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
     strategy:
       matrix:
         branch:
@@ -258,7 +258,7 @@ jobs:
   test_32x_holylua:
     name: "Test 32x branches (HolyLua)"
     needs: setup_32x_artifacts
-    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main # ToDo: Change this later
+    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
     strategy:
       matrix:
         branch:
@@ -273,7 +273,7 @@ jobs:
   test_32x_holylua_noghostinj:
     name: "Test 32x branches (HolyLua, No GhostInj)"
     needs: setup_32x_artifacts
-    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main # ToDo: Change this later
+    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
     strategy:
       matrix:
         branch:
@@ -405,7 +405,7 @@ jobs:
   test_gmod_tests_32bit:
     name: "Test 32x branches (gmod_tests)"
     needs: setup_gmod_tests_32x_artifacts
-    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main # ToDo: Change this later
+    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
     strategy:
       matrix:
         branch:

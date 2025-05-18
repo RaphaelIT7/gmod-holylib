@@ -225,12 +225,13 @@ bool CPhysicsSurfaceProps::AddFileToDatabase( const char *pFilename )
 int CPhysicsSurfaceProps::GetSurfaceIndex( const char *pPropertyName ) const
 {
 	DebugPrint();
+	DebugMsg2("GetSurfaceIndex - %s\n", pPropertyName);
 	if ( pPropertyName[0] == '$' )
 	{
 		int index = GetReservedSurfaceIndex( pPropertyName );
 		if ( index >= 0 )
 		{
-			Msg("Returning-1 %i! (%s)\n", index, pPropertyName);
+			DebugMsg3("Returning-1 %i! (%s)\n", index, pPropertyName);
 			return index;
 		}
 	}
@@ -244,13 +245,13 @@ int CPhysicsSurfaceProps::GetSurfaceIndex( const char *pPropertyName ) const
 			// NOTE: Just comparing strings by index is pretty fast though
 			if ( m_props[i].m_name == id )
 			{
-				Msg("Returning-2 %i! (%s)\n", i, pPropertyName);
+				DebugMsg3("Returning-2 %i! (%s)\n", i, pPropertyName);
 				return i;
 			}
 		}
 	}
 
-	Msg("Returning -1! (%s)\n", pPropertyName);
+	DebugMsg2("Returning -1! (%s)\n", pPropertyName);
 	return -1;
 }
 

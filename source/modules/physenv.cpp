@@ -255,10 +255,17 @@ static void hook_IVP_OV_Element_remove_oo_collision(void* ovElement, IVP_Collisi
 }
 #endif 0
 
+bool g_pForceOriginalIVP = false;
 static Detouring::Hook detour_CreateInterface;
 static void* hook_CreateInterface(const char *pName, int *pReturnCode)
 {
 	Msg("vphysics - CreateInterface: %s\n", pName);
+	if (g_pForceOriginalIVP)
+	{
+		Msg("vphysics(original) - CreateInterface: %s\n", pName);
+		return detour_CreateInterface.GetTrampoline<CreateInterfaceFn>()(pName, pReturnCode);
+	}
+
 	return Sys_GetFactoryThis()(pName, pReturnCode);
 }
 

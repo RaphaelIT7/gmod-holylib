@@ -1334,7 +1334,7 @@ IPhysicsObject *CPhysicsEnvironment::CreatePolyObject( const CPhysCollide *pColl
 IPhysicsObject *CPhysicsEnvironment::CreatePolyObjectStatic( const CPhysCollide *pCollisionModel, int materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams )
 {
 	DebugPrint();
-	Msg("Name: %s\n", pParams->pName);
+	DebugMsg2("Name: %s\n", pParams->pName);
 	IPhysicsObject *pObject = ::CreatePhysicsObject( this, pCollisionModel, materialIndex, position, angles, pParams, true );
 	if ( pObject )
 	{

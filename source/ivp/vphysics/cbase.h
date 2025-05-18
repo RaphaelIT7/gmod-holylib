@@ -19,7 +19,7 @@
 #include "convert.h"
 #include "tier0/commonmacros.h"
 
-#if PLATFORM_64BITS
+#if PLATFORM_64BITS && 0
 extern int GlobalSCOPE;
 class DEBUGCLASS {
 public:
@@ -41,11 +41,13 @@ DEBUGCLASS __debugclass
 #define DebugMsg3(arg1, arg2, arg3) Msg(arg1, arg2, arg3)
 #define DebugMsg2(arg1, arg2) Msg(arg1, arg2)
 #define DebugMsg1(arg1) Msg(arg1)
+#define DEBUG_IF if (true)
 #else
 #define DebugPrint()
 #define DebugMsg3(arg1, arg2, arg3)
 #define DebugMsg2(arg1, arg2)
 #define DebugMsg1(arg1)
+#define DEBUG_IF if (false)
 #endif
 
 // vphysics
