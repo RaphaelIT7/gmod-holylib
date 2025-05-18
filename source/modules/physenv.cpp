@@ -2444,7 +2444,7 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
 	{
-		if (CommandLine()->FindParm("holylib_replaceivp"))
+		if (CommandLine()->FindParm("-holylib_replaceivp"))
 		{
 			g_pPhysicsModule = DLL_LoadModule("vphysics" DLL_EXTENSION, RTLD_LAZY); // Load it manually since rn it wasn't loaded yet.
 			SourceSDK::FactoryLoader vphysics_loader("vphysics");
