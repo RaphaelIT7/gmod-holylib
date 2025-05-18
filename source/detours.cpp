@@ -6,6 +6,10 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#ifndef PROJECT_NAME // When people copy this file they might not have it defined, so we just fallback.
+#define PROJECT_NAME "project"
+#endif
+
 unsigned int g_pCurrentCategory = 0;
 
 SymbolFinder Detour::symfinder;
