@@ -8,6 +8,8 @@
 
 #include <cctype>
 
+#include <array> // std::size implementation
+
 #if !defined(__MWERKS__) || !defined(__POWERPC__)
 #ifdef OSX
 #include <malloc/malloc.h>

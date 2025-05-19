@@ -13,8 +13,8 @@ class CPhysicsObject;
 class IPhysicsShadowController;
 class IPhysicsPlayerController;
 
-extern [[nodiscard]] IPhysicsShadowController *CreateShadowController( CPhysicsObject *pObject, bool allowTranslation, bool allowRotation );
-extern [[nodiscard]] IPhysicsPlayerController *CreatePlayerController( CPhysicsObject *pObject );
+[[nodiscard]] extern IPhysicsShadowController *CreateShadowController( CPhysicsObject *pObject, bool allowTranslation, bool allowRotation );
+[[nodiscard]] extern IPhysicsPlayerController *CreatePlayerController( CPhysicsObject *pObject );
 extern void DestroyPlayerController( IPhysicsPlayerController *pController );
 
 

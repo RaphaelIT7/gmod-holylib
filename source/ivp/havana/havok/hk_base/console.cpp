@@ -3,6 +3,7 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstdarg>
+#include <array> // std::size implementation
 
 #ifdef WIN32
 #	ifdef _XBOX

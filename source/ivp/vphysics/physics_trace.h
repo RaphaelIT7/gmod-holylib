@@ -38,16 +38,16 @@ public:
 	//virtual void ReleaseReference() = 0;
 
 	// get a surface manager 
-	virtual [[nodiscard]] IVP_SurfaceManager *CreateSurfaceManager( short & ) const = 0;
+	[[nodiscard]] virtual IVP_SurfaceManager *CreateSurfaceManager( short & ) const = 0;
 	virtual void GetAllLedges( IVP_U_BigVector<IVP_Compact_Ledge> &ledges ) const = 0;
-	virtual [[nodiscard]] size_t GetSerializationSize() const = 0;
-	virtual [[nodiscard]] size_t SerializeToBuffer( char *pDest, bool bSwap = false ) const = 0;
-	virtual [[nodiscard]] int GetVCollideIndex() const = 0;
-	virtual [[nodiscard]] Vector GetMassCenter() const = 0;
+	[[nodiscard]] virtual size_t GetSerializationSize() const = 0;
+	[[nodiscard]] virtual size_t SerializeToBuffer( char *pDest, bool bSwap = false ) const = 0;
+	[[nodiscard]] virtual int GetVCollideIndex() const = 0;
+	[[nodiscard]] virtual Vector GetMassCenter() const = 0;
 	virtual void SetMassCenter( const Vector &massCenter ) = 0;
-	virtual [[nodiscard]] Vector GetOrthographicAreas() const = 0;
+	[[nodiscard]] virtual Vector GetOrthographicAreas() const = 0;
 	virtual void SetOrthographicAreas( const Vector &areas ) = 0;
-	virtual [[nodiscard]] float GetSphereRadius() const = 0;
+	[[nodiscard]] virtual float GetSphereRadius() const = 0;
 	virtual void OutputDebugInfo() const = 0;
 };
 
@@ -132,20 +132,20 @@ class CPhysCollide : public IPhysCollide
 {
 public:
 	[[nodiscard]] static CPhysCollide *UnserializeFromBuffer( const char *pBuffer, unsigned int size, int index, bool swap = false );
-	virtual [[nodiscard]] const IVP_Compact_Surface *GetCompactSurface() const { return nullptr; }
+	[[nodiscard]] virtual const IVP_Compact_Surface *GetCompactSurface() const { return nullptr; }
 	[[nodiscard]] Vector GetOrthographicAreas() const override { return Vector(1,1,1); }
 	[[nodiscard]] float GetSphereRadius() const override { return 0; }
 	virtual void ComputeOrthographicAreas( [[maybe_unused]] float epsilon ) {}
 	void SetOrthographicAreas( [[maybe_unused]] const Vector &areas ) override {}
-	virtual [[nodiscard]] const collidemap_t *GetCollideMap() const { return nullptr; }
+	[[nodiscard]] virtual const collidemap_t *GetCollideMap() const { return nullptr; }
 };
 
 class ITraceObject
 {
 public:
-	virtual [[nodiscard]] unsigned short SupportMap( const Vector &dir, Vector *pOut ) const = 0;
-	virtual [[nodiscard]] Vector GetVertByIndex( int index ) const = 0;
-	virtual [[nodiscard]] float Radius( void ) const = 0;
+	[[nodiscard]] virtual unsigned short SupportMap( const Vector &dir, Vector *pOut ) const = 0;
+	[[nodiscard]] virtual Vector GetVertByIndex( int index ) const = 0;
+	[[nodiscard]] virtual float Radius( void ) const = 0;
 };
 
 // This is the size of the vertex hash
@@ -238,7 +238,7 @@ inline void CVisitHash::NewVisit( void )
 
 
 
-extern [[nodiscard]] IVP_SurfaceManager *CreateSurfaceManager( const CPhysCollide *pCollisionModel, short &collideType );
+[[nodiscard]] extern IVP_SurfaceManager *CreateSurfaceManager( const CPhysCollide *pCollisionModel, short &collideType );
 extern void OutputCollideDebugInfo( const CPhysCollide *pCollisionModel );
 
 #endif // PHYSICS_TRACE_H

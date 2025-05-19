@@ -56,7 +56,7 @@ public:
 	[[nodiscard]] IPhysicsConstraint *CreateRagdollConstraint( IPhysicsObject *pReferenceObject, IPhysicsObject *pAttachedObject, IPhysicsConstraintGroup *pGroup, const constraint_ragdollparams_t &ragdoll ) override;
 
 	[[nodiscard]] IPhysicsConstraint *CreateHingeConstraint( IPhysicsObject *pReferenceObject, IPhysicsObject *pAttachedObject, IPhysicsConstraintGroup *pGroup, const constraint_hingeparams_t &hinge ) override;
-	virtual [[nodiscard]] IPhysicsConstraint *CreateLimitedHingeConstraint( IPhysicsObject *pReferenceObject, IPhysicsObject *pAttachedObject, IPhysicsConstraintGroup *pGroup, const constraint_limitedhingeparams_t &hinge );
+	[[nodiscard]] virtual IPhysicsConstraint *CreateLimitedHingeConstraint( IPhysicsObject *pReferenceObject, IPhysicsObject *pAttachedObject, IPhysicsConstraintGroup *pGroup, const constraint_limitedhingeparams_t &hinge );
 	[[nodiscard]] IPhysicsConstraint *CreateFixedConstraint( IPhysicsObject *pReferenceObject, IPhysicsObject *pAttachedObject, IPhysicsConstraintGroup *pGroup, const constraint_fixedparams_t &fixed ) override;
 	[[nodiscard]] IPhysicsConstraint *CreateSlidingConstraint( IPhysicsObject *pReferenceObject, IPhysicsObject *pAttachedObject, IPhysicsConstraintGroup *pGroup, const constraint_slidingparams_t &sliding ) override;
 	[[nodiscard]] IPhysicsConstraint *CreateBallsocketConstraint( IPhysicsObject *pReferenceObject, IPhysicsObject *pAttachedObject, IPhysicsConstraintGroup *pGroup, const constraint_ballsocketparams_t &ballsocket ) override;
@@ -196,11 +196,11 @@ private:
 	bool							m_enableConstraintNotify;
 };
 
-extern [[nodiscard]] IPhysicsEnvironment *CreatePhysicsEnvironment( void );
+[[nodiscard]] extern IPhysicsEnvironment *CreatePhysicsEnvironment( void );
 
 class IVP_Synapse_Friction;
 class IVP_Real_Object;
-extern [[nodiscard]] IVP_Real_Object *GetOppositeSynapseObject( IVP_Synapse_Friction *pfriction );
-extern [[nodiscard]] IPhysicsObjectPairHash *CreateObjectPairHash();
+[[nodiscard]] extern IVP_Real_Object *GetOppositeSynapseObject( IVP_Synapse_Friction *pfriction );
+[[nodiscard]] extern IPhysicsObjectPairHash *CreateObjectPairHash();
 
 #endif // PHYSICS_WORLD_H

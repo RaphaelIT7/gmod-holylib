@@ -43,7 +43,7 @@ private:
 	void							*m_pGameData;
 };
 
-extern [[nodiscard]] CPhysicsFluidController *CreateFluidController( IVP_Environment *pEnvironment, CPhysicsObject *pFluidObject, fluidparams_t *pParams );
+[[nodiscard]] extern CPhysicsFluidController *CreateFluidController( IVP_Environment *pEnvironment, CPhysicsObject *pFluidObject, fluidparams_t *pParams );
 
 
 #endif // PHYSICS_FLUID_H
