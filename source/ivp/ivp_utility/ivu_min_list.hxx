@@ -18,11 +18,11 @@ typedef unsigned int IVP_U_MINLIST_INDEX;
 class IVP_U_Min_List_Element {
 	public:
 #ifdef IVP_U_MINLIST_USELONG
-		unsigned short  long_next;
-		unsigned short  long_prev;
+		unsigned int  long_next;
+		unsigned int  long_prev;
 #endif
-		unsigned short next;
-		unsigned short prev;
+		unsigned int next;
+		unsigned int prev;
 		IVP_U_MINLIST_FIXED_POINT value;
 		void *element;
 };

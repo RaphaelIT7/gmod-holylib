@@ -141,7 +141,7 @@ IVP_U_MINLIST_INDEX IVP_U_Min_List::add(void *elem, IVP_U_MINLIST_FIXED_POINT va
 	
 #ifdef IVP_U_MINLIST_USELONG
 	// lastj is the last element after we want to insert
-	int lo = first_long;
+	unsigned int lo = first_long;
 	int max_cmp_len = 3;
 	int dumbCounter1 = 0;
 	while (lo != IVP_U_MINLIST_UNUSED)
