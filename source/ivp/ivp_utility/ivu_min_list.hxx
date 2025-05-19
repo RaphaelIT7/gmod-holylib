@@ -12,7 +12,7 @@ typedef unsigned int IVP_U_MINLIST_INDEX;
 
 #define IVP_U_MINLIST_UNUSED ( (1<<16) -1 )
 #define IVP_U_MINLIST_LONG_UNUSED ( (1<<16) -2 )
-#define IVP_U_MINLIST_MAX_ALLOCATION ( (1<<16) - 4 )
+#define IVP_U_MINLIST_MAX_ALLOCATION ( (1<<20) - 4 )
 
 
 class IVP_U_Min_List_Element {
@@ -31,15 +31,15 @@ class IVP_U_Min_List {
     friend class IVP_U_Min_List_Enumerator;
 	// dimhotepus: Reordered members to reduce size on x86-64.
     IVP_U_Min_List_Element *elems;
-    unsigned short	malloced_size;
-    unsigned short	free_list;
+    unsigned int	malloced_size;
+    unsigned int	free_list;
 public:
     IVP_U_MINLIST_FIXED_POINT min_value;
 #ifdef IVP_U_MINLIST_USELONG
-    unsigned short	first_long;
+    unsigned int	first_long;
 #endif
-    unsigned short	first_element;
-    unsigned short	counter;
+    unsigned int	first_element;
+    unsigned int	counter;
     
     IVP_U_Min_List(int size=4);
     ~IVP_U_Min_List();

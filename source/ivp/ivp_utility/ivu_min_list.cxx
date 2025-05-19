@@ -64,8 +64,8 @@ IVP_U_MINLIST_INDEX IVP_U_Min_List::add(void *elem, IVP_U_MINLIST_FIXED_POINT va
 		// If this assertion triggers, it's going to overflow...
 		IVP_ASSERT( malloced_size != IVP_U_MINLIST_MAX_ALLOCATION );
 
-		// Clamp allocation to 65535
-		int nNewMallocSize = malloced_size * 2 + 1;
+		// Clamp allocation to IVP_U_MINLIST_MAX_ALLOCATION
+		unsigned int nNewMallocSize = malloced_size * 2 + 1;
 		if (nNewMallocSize > IVP_U_MINLIST_MAX_ALLOCATION)
 			nNewMallocSize = IVP_U_MINLIST_MAX_ALLOCATION;
 
