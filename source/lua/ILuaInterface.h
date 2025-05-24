@@ -96,7 +96,7 @@ namespace GarrysMod::Lua
 
 		// Sets the metatable for the value at iStackPos to the value at the top of the stack
 		// Pops the value off of the top of the stack
-		virtual void		SetMetaTable(int iStackPos) = 0;
+		virtual bool		SetMetaTable(int iStackPos) = 0;
 
 		// Pushes the metatable of the value at iStackPos on to the top of the stack
 		// Upon failure, returns false and does not push anything
@@ -281,11 +281,11 @@ namespace GarrysMod::Lua
 		virtual bool		PushMetaTable(int iType) = 0;
 
 		// Creates a new UserData of type iType that references the given data
-		virtual void		PushUserType(void* data, int iType) = 0;
+		virtual bool		PushUserType(void* data, int iType) = 0;
 
 		// Sets the data pointer of the UserType at iStackPos
 		// You can use this to invalidate a UserType by passing NULL
-		virtual void		SetUserType(int iStackPos, void* data) = 0;
+		virtual GarrysMod::Lua::ILuaBase::UserData* SetUserType(int iStackPos, void* data) = 0;
 
 		// Returns the data of the UserType at iStackPos if it is of the given type
 		template <class T>

@@ -180,10 +180,10 @@ void CLuaInterface::SetTable(int iStackPos)
 	lua_settable(state, iStackPos);
 }
 
-void CLuaInterface::SetMetaTable(int iStackPos)
+bool CLuaInterface::SetMetaTable(int iStackPos)
 {
 	LuaDebugPrint(3, "CLuaInterface::SetMetaTable %i\n", iStackPos);
-	lua_setmetatable(state, iStackPos);
+	return lua_setmetatable(state, iStackPos);
 }
 
 bool CLuaInterface::GetMetaTable(int iStackPos)
@@ -594,7 +594,7 @@ bool CLuaInterface::PushMetaTable(int iType)
 	return false;
 }
 
-void CLuaInterface::PushUserType(void* data, int iType)
+bool CLuaInterface::PushUserType(void* data, int iType)
 {
 	LuaDebugPrint(2, "CLuaInterface::PushUserType %i\n", iType);
 
@@ -602,21 +602,26 @@ void CLuaInterface::PushUserType(void* data, int iType)
 	udata->data = data;
 	udata->type = (unsigned char)iType;
 
-	if (PushMetaTable(iType))
+	bool success = PushMetaTable(iType);
+	if (success)
 	{
-		SetMetaTable(-2);
+		return SetMetaTable(-2);
 	} else {
 		::Msg("Failed to find Metatable for %i!\n", iType);
 	}
+
+	return success;
 }
 
-void CLuaInterface::SetUserType(int iStackPos, void* data)
+GarrysMod::Lua::ILuaBase::UserData* CLuaInterface::SetUserType(int iStackPos, void* data)
 {
 	LuaDebugPrint(2, "CLuaInterface::SetUserType\n");
 	
 	GarrysMod::Lua::ILuaBase::UserData* udata = (GarrysMod::Lua::ILuaBase::UserData*)GetUserdata(iStackPos);
 	if (udata)
 		udata->data = data;
+
+	return udata;
 }
 
 // =================================
@@ -627,7 +632,7 @@ int LuaPanic(lua_State* lua)
 {
 	LuaDebugPrint(1, "CLuaInterface::LuaPanic\n");
 
-	Error("Lua Panic! Something went horribly wrong!\n%s", lua_tolstring(lua, -1, 0));
+	Error("Lua Panic! Something went horribly wrong!\n\n\"%s\"", lua_tolstring(lua, -1, 0));
 	return 0;
 }
 
@@ -1537,6 +1542,32 @@ void CLuaInterface::AppendStackTrace(char *, unsigned long)
 	Error("CLuaInterface::AppendStackTrace is not implemented!");
 }
 
+#ifndef FCVAR_LUA_CLIENT // 64x fun
+static constexpr int FCVAR_LUA_CLIENT = (1 << 18);
+static constexpr int FCVAR_LUA_SERVER = (1 << 19);
+#endif
+int CLuaInterface::FilterConVarFlags(int& flags)
+{
+	flags &= ~(FCVAR_GAMEDLL | FCVAR_CLIENTDLL | FCVAR_LUA_CLIENT); // Check if FCVAR_RELEASE is added on 64x
+
+	if (IsServer())
+	{
+		flags |= FCVAR_GAMEDLL | FCVAR_LUA_SERVER;
+	}
+
+	if (IsClient())
+	{
+		flags |= FCVAR_CLIENTDLL | FCVAR_SERVER_CAN_EXECUTE | FCVAR_LUA_CLIENT;
+	}
+
+	if (IsMenu())
+	{
+		flags &= ~FCVAR_ARCHIVE;
+	}
+
+	return IsMenu();
+}
+
 void* CLuaInterface::CreateConVar(const char* name, const char* defaultValue, const char* helpString, int flags)
 {
 	LuaDebugPrint(2, "CLuaInterface::CreateConVar\n");
@@ -1547,6 +1578,7 @@ void* CLuaInterface::CreateConVar(const char* name, const char* defaultValue, co
 		flags |= FCVAR_LUA_CLIENT;*/
 
 	Error("CLuaInterface::CreateConVar NOT IMPLEMENTED!\n");
+	FilterConVarFlags(flags);
 	return NULL;//LuaConVars()->CreateConVar(name, defaultValue, helpString, flags);
 }
 
@@ -1555,6 +1587,12 @@ void* CLuaInterface::CreateConCommand(const char* name, const char* helpString, 
 	LuaDebugPrint(2, "CLuaInterface::CreateConCommand\n");
 
 	Error("CLuaInterface::CreateConCommand NOT IMPLEMENTED!\n");
+	FilterConVarFlags(flags);
+	if (IsServer())
+	{
+		flags |= FCVAR_CLIENTCMD_CAN_EXECUTE;
+	}
+
 	return NULL;//LuaConVars()->CreateConCommand(name, helpString, flags, callback, completionFunc);
 }
 
