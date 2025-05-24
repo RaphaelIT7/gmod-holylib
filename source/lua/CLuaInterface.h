@@ -33,7 +33,7 @@ public:
 	virtual void SetField(int iStackPos, const char* strName);
 	virtual void CreateTable();
 	virtual void SetTable(int iStackPos);
-	virtual void SetMetaTable(int iStackPos);
+	virtual bool SetMetaTable(int iStackPos);
 	virtual bool GetMetaTable(int i);
 	virtual void Call(int iArgs, int iResults);
 	virtual int PCall(int iArgs, int iResults, int iErrorFunc);
@@ -80,8 +80,8 @@ public:
 	virtual void SetState(lua_State* L);
 	virtual int CreateMetaTable(const char* strName);
 	virtual bool PushMetaTable(int iType);
-	virtual void PushUserType(void* data, int iType);
-	virtual void SetUserType(int iStackPos, void* data);
+	virtual bool PushUserType(void* data, int iType);
+	virtual GarrysMod::Lua::ILuaBase::UserData* SetUserType(int iStackPos, void* data);
 
 public:
 	virtual bool Init(GarrysMod::Lua::ILuaGameCallback *, bool);
@@ -163,6 +163,7 @@ public:
 
 public:
 	std::string RunMacros(std::string script);
+	int FilterConVarFlags(int& flags);
 
 public:
 	inline GarrysMod::Lua::ILuaGameCallback *GetLuaGameCallback() const
