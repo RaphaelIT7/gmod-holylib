@@ -1,3 +1,6 @@
+// If set it will include code to fallback when it couldn't replace IVP, in cases where for example holylib wasn't loaded by the ghostinj.dll
+#define PHYSENV_INCLUDEIVPFALLBACK 1
+
 #include "physics_holylib.h"
 #include "LuaInterface.h"
 #include "module.h"
@@ -23,6 +26,13 @@
 #include "physics_object.h"
 #include "physics_collisionevent.h"
 
+#if PHYSENV_INCLUDEIVPFALLBACK
+#include "ivp_old/ivp_classes.h"
+#include "ivp_old/ivp_types.h"
+#include "ivp_old/cphysicsenvironment.h"
+#include "ivp_old/cphysicsobject.h"
+#endif
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -40,9 +50,6 @@ public:
 
 CPhysEnvModule g_pPhysEnvModule;
 IModule* pPhysEnvModule = &g_pPhysEnvModule;
-
-// If set it will include code to fallback when it couldn't replace IVP, in cases where for example holylib wasn't loaded by the ghostinj.dll
-#define PHYSENV_INCLUDEIVPFALLBACK 0
 
 enum IVP_SkipType {
 	//IVP_NoCall = -2, // Were not in our expected simulation, so don't handle anything.
@@ -188,7 +195,7 @@ static void hook_IVP_Mindist_do_impact(IVP_Mindist* mindist)
 }
 
 static Detouring::Hook detour_IVP_Event_Manager_Standard_simulate_time_events;
-static void hook_IVP_Event_Manager_Standard_simulate_time_events(void* eventmanager, void* timemanager, void* environment, IVP_Time time)
+static void hook_IVP_Event_Manager_Standard_simulate_time_events(void* eventmanager, void* timemanager, void* environment, GMODSDK::IVP_Time time)
 {
 	pCurrentTime = std::chrono::high_resolution_clock::now();
 	pCurrentSkipType = IVP_SkipType::IVP_None; // Idk if it can happen that something else sets it in the mean time but let's just be sure...
@@ -198,16 +205,25 @@ static void hook_IVP_Event_Manager_Standard_simulate_time_events(void* eventmana
 
 	detour_IVP_Event_Manager_Standard_simulate_time_events.GetTrampoline<Symbols::IVP_Event_Manager_Standard_simulate_time_events>()(eventmanager, timemanager, environment, time);
 
-	pCurrentSkipType = IVP_SkipType::IVP_NoCall; // Reset it.
+	pCurrentSkipType = IVP_SkipType::IVP_None; // Reset it.
 }
 
+static Symbols::IVP_Mindist_Base_get_objects func_IVP_Mindist_Base_get_objects;
 static Detouring::Hook detour_IVP_Mindist_simulate_time_event;
-static void hook_IVP_Mindist_simulate_time_event(IVP_Mindist* mindist, void* environment)
+static void hook_IVP_Mindist_simulate_time_event(GMODSDK::IVP_Mindist* mindist, void* environment)
 {
 	if (g_pPhysEnvModule.InDebug() > 2)
 		Msg(PROJECT_NAME " - physenv: IVP_Mindist::simulate_time_event called! (%i)\n", (int)pCurrentSkipType);
 
-	CheckPhysicsLag(mindist);
+	
+	GMODSDK::IVP_Real_Object* pObjs[2] = {NULL, NULL};
+	if (func_IVP_Mindist_Base_get_objects)
+	{
+		func_IVP_Mindist_Base_get_objects(mindist, pObjs);
+
+		CheckPhysicsLag(pObjs[0] ? (CPhysicsObject*)pObjs[0]->client_data : NULL, pObjs[1] ? (CPhysicsObject*)pObjs[1]->client_data : NULL);
+	}
+
 	if (pCurrentSkipType == IVP_SkipType::IVP_SkipSimulation)
 		return;
 
@@ -215,29 +231,43 @@ static void hook_IVP_Mindist_simulate_time_event(IVP_Mindist* mindist, void* env
 }
 
 static Detouring::Hook detour_IVP_Mindist_update_exact_mindist_events;
-static void hook_IVP_Mindist_update_exact_mindist_events(IVP_Mindist* mindist, IVP_BOOL allow_hull_conversion, IVP_MINDIST_EVENT_HINT event_hint)
+static void hook_IVP_Mindist_update_exact_mindist_events(GMODSDK::IVP_Mindist* mindist, GMODSDK::IVP_BOOL allow_hull_conversion, GMODSDK::IVP_MINDIST_EVENT_HINT event_hint)
 {
 	if (g_pPhysEnvModule.InDebug() > 2)
 		Msg(PROJECT_NAME " - physenv: IVP_Mindist::update_exact_mindist_events called! (%i)\n", (int)pCurrentSkipType);
 
-	CheckPhysicsLag(mindist);
+	GMODSDK::IVP_Real_Object* pObjs[2] = {NULL, NULL};
+	if (func_IVP_Mindist_Base_get_objects)
+	{
+		func_IVP_Mindist_Base_get_objects(mindist, pObjs);
+
+		CheckPhysicsLag(pObjs[0] ? (CPhysicsObject*)pObjs[0]->client_data : NULL, pObjs[1] ? (CPhysicsObject*)pObjs[1]->client_data : NULL);
+	}
+
 	if (pCurrentSkipType == IVP_SkipType::IVP_SkipSimulation)
 		return;
 
-	Msg("Debug3 start %i\n", (int)pCurrentSkipType);
+	//Msg("Debug3 start %i\n", (int)pCurrentSkipType);
 	detour_IVP_Mindist_update_exact_mindist_events.GetTrampoline<Symbols::IVP_Mindist_update_exact_mindist_events>()(mindist, allow_hull_conversion, event_hint);
-	Msg("Debug3 end %i\n", (int)pCurrentSkipType);
+	//Msg("Debug3 end %i\n", (int)pCurrentSkipType);
 }
 
 static Detouring::Hook detour_IVP_Mindist_Minimize_Solver_p_minimize_PP;
-static IVP_MRC_TYPE hook_IVP_Mindist_Minimize_Solver_p_minimize_PP(IVP_Mindist_Minimize_Solver* mindistMinimizeSolver, const IVP_Compact_Edge *A, const IVP_Compact_Edge *B, IVP_Cache_Ledge_Point *m_cache_A, IVP_Cache_Ledge_Point *m_cache_B)
+static GMODSDK::IVP_MRC_TYPE hook_IVP_Mindist_Minimize_Solver_p_minimize_PP(GMODSDK::IVP_Mindist_Minimize_Solver* mindistMinimizeSolver, const GMODSDK::IVP_Compact_Edge *A, const GMODSDK::IVP_Compact_Edge *B, IVP_Cache_Ledge_Point *m_cache_A, IVP_Cache_Ledge_Point *m_cache_B)
 {
-	CheckPhysicsLag(mindistMinimizeSolver->mindist);
+	GMODSDK::IVP_Real_Object* pObjs[2] = {NULL, NULL};
+	if (func_IVP_Mindist_Base_get_objects)
+	{
+		func_IVP_Mindist_Base_get_objects(mindistMinimizeSolver->mindist, pObjs);
+
+		CheckPhysicsLag(pObjs[0] ? (CPhysicsObject*)pObjs[0]->client_data : NULL, pObjs[1] ? (CPhysicsObject*)pObjs[1]->client_data : NULL);
+	}
+
 	return detour_IVP_Mindist_Minimize_Solver_p_minimize_PP.GetTrampoline<Symbols::IVP_Mindist_Minimize_Solver_p_minimize_PP>()(mindistMinimizeSolver, A, B, m_cache_A, m_cache_B);
 }
 
 static Detouring::Hook detour_IVP_OV_Element_add_oo_collision;
-static void hook_IVP_OV_Element_add_oo_collision(void* ovElement, IVP_Collision* connector)
+static void hook_IVP_OV_Element_add_oo_collision(void* ovElement, GMODSDK::IVP_Collision* connector)
 {
 	if (!connector || !ovElement) // Simple NULL check missing. Yes ovElement can be NULL. Somehow.
 		return;
@@ -246,14 +276,14 @@ static void hook_IVP_OV_Element_add_oo_collision(void* ovElement, IVP_Collision*
 }
 
 static Detouring::Hook detour_IVP_OV_Element_remove_oo_collision;
-static void hook_IVP_OV_Element_remove_oo_collision(void* ovElement, IVP_Collision* connector)
+static void hook_IVP_OV_Element_remove_oo_collision(void* ovElement, GMODSDK::IVP_Collision* connector)
 {
 	if (!connector || !ovElement) // Simple NULL check missing. Yes ovElement can be NULL. Somehow.
 		return;
 
 	detour_IVP_OV_Element_remove_oo_collision.GetTrampoline<Symbols::IVP_OV_Element_remove_oo_collision>()(ovElement, connector);
 }
-#endif 0
+#endif
 
 bool g_pForceOriginalIVP = false;
 static Detouring::Hook detour_CreateInterface;
@@ -430,7 +460,7 @@ PushReferenced_LuaClass(ILuaPhysicsEnvironment)
 Get_LuaClass(ILuaPhysicsEnvironment, "IPhysicsEnvironment")
 
 #if defined(SYSTEM_WINDOWS) && PHYSENV_INCLUDEIVPFALLBACK
-extern void hook_CPhysicsEnvironment_DestroyObject(CPhysicsEnvironment* pEnvironment, IPhysicsObject* pObject);
+extern void hook_CPhysicsEnvironment_DestroyObject(GMODSDK::CPhysicsEnvironment* pEnvironment, IPhysicsObject* pObject);
 class CPhysicsEnvironmentProxy : public Detouring::ClassProxy<IPhysicsEnvironment, CPhysicsEnvironmentProxy> {
 public:
 	CPhysicsEnvironmentProxy(IPhysicsEnvironment* env) {
@@ -445,14 +475,16 @@ public:
 
 	virtual void DestroyObject(IPhysicsObject* pObject)
 	{
-		hook_CPhysicsEnvironment_DestroyObject((CPhysicsEnvironment*)This(), pObject);
+		hook_CPhysicsEnvironment_DestroyObject((GMODSDK::CPhysicsEnvironment*)This(), pObject);
 	}
 };
 #endif
 
 static std::unordered_map<IPhysicsEnvironment*, ILuaPhysicsEnvironment*> g_pEnvironmentToLua;
 static std::unordered_map<IPhysicsObject*, ILuaPhysicsEnvironment*> g_pObjects; // contains all IPhysicsObject that exist
-//static inline void RegisterPhysicsObject(ILuaPhysicsEnvironment* pEnv, IPhysicsObject* pObject);
+#if PHYSENV_INCLUDEIVPFALLBACK
+static inline void RegisterPhysicsObject(ILuaPhysicsEnvironment* pEnv, IPhysicsObject* pObject);
+#endif
 struct ILuaPhysicsEnvironment
 {
 	ILuaPhysicsEnvironment(IPhysicsEnvironment* env)
@@ -533,7 +565,9 @@ struct ILuaPhysicsEnvironment
 	}
 
 	bool bCreatedEnvironment = false; // If we were the one that created the environment.
-	//std::unordered_set<IPhysicsObject*> pObjects;
+#if PHYSENV_INCLUDEIVPFALLBACK
+	std::unordered_set<IPhysicsObject*> pObjects;
+#endif
 	
 	IPhysicsEnvironment* pEnvironment = NULL;
 #if defined(SYSTEM_WINDOWS) && PHYSENV_INCLUDEIVPFALLBACK
@@ -580,7 +614,7 @@ static inline ILuaPhysicsEnvironment* GetPhysicsEnvironment(IPhysicsEnvironment*
 	return NULL;
 }
 
-#if 0
+#if PHYSENV_INCLUDEIVPFALLBACK
 static inline void RegisterPhysicsObject(ILuaPhysicsEnvironment* pEnv, IPhysicsObject* pObject)
 {
 	auto it = g_pObjects.find(pObject);
@@ -623,9 +657,9 @@ static inline ILuaPhysicsEnvironment* GetPhysicsObjectLuaEnvironment(IPhysicsObj
  *				It would most likely require one to edit the vphysics dll for a clean and proper solution.
  *				Inside the engine there most likely would also be a CPhysicsObject::SetEnvironment method that would need to be added and called at all points, were it uses m_objects.AddToTail()
  */
-#if 0
+#if PHYSENV_INCLUDEIVPFALLBACK
 static Detouring::Hook detour_CPhysicsEnvironment_DestroyObject;
-void hook_CPhysicsEnvironment_DestroyObject(CPhysicsEnvironment* pEnvironment, IPhysicsObject* pObject)
+void hook_CPhysicsEnvironment_DestroyObject(GMODSDK::CPhysicsEnvironment* pEnvironment, IPhysicsObject* pObject)
 {
 	int foundIndex = -1;
 	ILuaPhysicsEnvironment* pLuaEnvironment = GetPhysicsObjectLuaEnvironment(pObject);
@@ -636,7 +670,7 @@ void hook_CPhysicsEnvironment_DestroyObject(CPhysicsEnvironment* pEnvironment, I
 		return;
 	}
 
-	CPhysicsEnvironment* pEnv = (CPhysicsEnvironment*)pLuaEnvironment->pEnvironment;
+	GMODSDK::CPhysicsEnvironment* pEnv = (GMODSDK::CPhysicsEnvironment*)pLuaEnvironment->pEnvironment;
 	for (int i = pEnv->m_objects.Count(); --i >= 0; )
 		if (pEnv->m_objects[i] == pObject)
 			foundIndex = i;
@@ -653,7 +687,7 @@ void hook_CPhysicsEnvironment_DestroyObject(CPhysicsEnvironment* pEnvironment, I
 	UnregisterPhysicsObject(pLuaEnvironment, pObject);
 	//pEnv->DestroyObject(pObject);
 
-	CPhysicsObject* pPhysics = static_cast<CPhysicsObject*>(pObject);
+	GMODSDK::CPhysicsObject* pPhysics = static_cast<GMODSDK::CPhysicsObject*>(pObject);
 	// add this flag so we can optimize some cases
 	pPhysics->AddCallbackFlags(CALLBACK_MARKED_FOR_DELETE);
 

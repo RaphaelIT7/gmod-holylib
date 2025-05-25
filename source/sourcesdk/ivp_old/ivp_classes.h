@@ -10,7 +10,10 @@
 #define IVP_NO_DOUBLE
 #endif
 
-#include "sourcesdk/ivp_time.h"
+#include "sourcesdk/ivp_old/ivp_time.h"
+
+namespace GMODSDK
+{
 
 class IVP_Core;
 class IVP_Anchor;
@@ -636,7 +639,7 @@ public:
 	if (size){		// will be optimized by most compilers
 		elems = (void **)malloc(size*sizeof(void *));
 	}else{	
-		elems = (void **)NULL;
+		elems = (void **)0;
 	}
 	};
 	
@@ -768,6 +771,8 @@ public:
 	IVP_Mindist *invalid_mindists;
 
 	void recalc_all_exact_mindists_events();
+};
+
 };
 
 #endif

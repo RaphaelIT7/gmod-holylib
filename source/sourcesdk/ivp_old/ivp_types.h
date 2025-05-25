@@ -1,6 +1,9 @@
 #ifndef _IVP_TYPES
 #define _IVP_TYPES
 
+namespace GMODSDK
+{
+
 class IVP_Hull_Manager;
 class IVP_Real_Object;
 class IVP_Compact_Edge;
@@ -133,5 +136,7 @@ constexpr inline float P_FLOAT_MAX{1e16f};
 #define IVP_U_MINLIST_UNUSED ( (1<<16) -1 )
 #define IVP_U_MINLIST_LONG_UNUSED ( (1<<16) -2 )
 #define IVP_U_MINLIST_MAX_ALLOCATION ( (1<<16) - 4 )
+
+};
 
 #endif

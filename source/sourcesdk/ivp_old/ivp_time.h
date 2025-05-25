@@ -1,7 +1,10 @@
 #ifndef _IVP_TYPE
 #define _IVP_TYPE
 
-#include "sourcesdk/ivp_types.h"
+#include "sourcesdk/ivp_old/ivp_types.h"
+
+namespace GMODSDK
+{
 
 class IVP_Time {
 	double seconds;
@@ -17,6 +20,8 @@ public:
 
 	IVP_Time() = default;
 	IVP_Time(double time){ seconds = time; };
+};
+
 };
 
 #endif

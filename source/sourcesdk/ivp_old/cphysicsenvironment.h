@@ -1,23 +1,25 @@
 #include "vphysics_interface.h"
 #include "utlvector.h"
 
-class IVP_Environment;
-class CSleepObjects;
-class CPhysicsListenerCollision;
-class CPhysicsListenerConstraint;
-class IVP_Listener_Collision;
-class IVP_Listener_Constraint;
-class IVP_Listener_Object;
-class IVP_Controller;
-class CPhysicsFluidController;
-class CCollisionSolver;
-class CPhysicsObject;
-class CDeleteQueue;
 class IVPhysicsDebugOverlay;
-struct constraint_limitedhingeparams_t;
-struct vphysics_save_iphysicsobject_t;
-class IVP_Mindist;
-struct physprerestoreparams_t;
+namespace GMODSDK
+{
+	class IVP_Environment;
+	class CSleepObjects;
+	class CPhysicsListenerCollision;
+	class CPhysicsListenerConstraint;
+	class IVP_Listener_Collision;
+	class IVP_Listener_Constraint;
+	class IVP_Listener_Object;
+	class IVP_Controller;
+	class CPhysicsFluidController;
+	class CCollisionSolver;
+	class CPhysicsObject;
+	class CDeleteQueue;
+	struct constraint_limitedhingeparams_t;
+	struct vphysics_save_iphysicsobject_t;
+	class IVP_Mindist;
+	struct physprerestoreparams_t;
 
 class CPhysicsEnvironment : public IPhysicsEnvironment
 {
@@ -274,18 +276,19 @@ public:
 
 	void Remove(intp index)
 	{
-		// fast remove preserves indices except for the last element (moved into the empty spot)
+	/*	// fast remove preserves indices except for the last element (moved into the empty spot)
 		m_activeObjects.FastRemove(index);
 		// If this isn't the last element, shift its index over
 		if (index < m_activeObjects.Count())
 		{
 			m_activeObjects[index]->SetActiveIndex(index);
 		}
+	*/
 	}
 
 	void DeleteObject(CPhysicsObject* pObject)
 	{
-		int index = pObject->GetActiveIndex();
+	/*	int index = pObject->GetActiveIndex();
 		if (index < m_activeObjects.Count())
 		{
 			Assert(m_activeObjects[index] == pObject);
@@ -296,11 +299,13 @@ public:
 		{
 			Assert(index == std::numeric_limits<int>::max() );
 		}
-
+	*/
 	}
 
 private:
-	CUtlVector<CPhysicsObject*>	m_activeObjects;
+	CUtlVector<GMODSDK::CPhysicsObject*>	m_activeObjects;
 	float							m_lastScrapeTime;
 	IPhysicsObjectEvent* m_pCallback;
+};
+
 };

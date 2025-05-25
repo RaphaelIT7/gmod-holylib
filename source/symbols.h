@@ -1,11 +1,14 @@
 #include <GarrysMod/Symbol.hpp>
-//#include "sourcesdk/ivp_classes.h"
 #include <steam/isteamuser.h>
 #include "tier0/wchartypes.h"
 #include "Platform.hpp"
 #include "filesystem.h"
 #include "inetchannel.h"
 #include <vector>
+
+#if PHYSENV_INCLUDEIVPFALLBACK
+#include "sourcesdk/ivp_old/ivp_classes.h"
+#endif
 
 #if ARCHITECTURE_IS_X86_64
 typedef uint64 ThreadId_t;
@@ -464,17 +467,17 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: physenv Symbols
 	//---------------------------------------------------------------------------------
-#if 0
+#if PHYSENV_INCLUDEIVPFALLBACK
 	typedef void (*IVP_Mindist_do_impact)(void* mindist);
 	extern const std::vector<Symbol> IVP_Mindist_do_impactSym;
 
-	typedef void (*IVP_Event_Manager_Standard_simulate_time_events)(void* eventmanager, void* timemanager, void* environment, IVP_Time time);
+	typedef void (*IVP_Event_Manager_Standard_simulate_time_events)(void* eventmanager, void* timemanager, void* environment, GMODSDK::IVP_Time time);
 	extern const std::vector<Symbol> IVP_Event_Manager_Standard_simulate_time_eventsSym;
 
 	typedef void (*IVP_Mindist_simulate_time_event)(void* mindist, void* environment);
 	extern const std::vector<Symbol> IVP_Mindist_simulate_time_eventSym;
 
-	typedef void (*IVP_Mindist_update_exact_mindist_events)(void* mindist, IVP_BOOL, IVP_MINDIST_EVENT_HINT);
+	typedef void (*IVP_Mindist_update_exact_mindist_events)(void* mindist, GMODSDK::IVP_BOOL, GMODSDK::IVP_MINDIST_EVENT_HINT);
 	extern const std::vector<Symbol> IVP_Mindist_update_exact_mindist_eventsSym;
 
 	typedef void (*CPhysicsEnvironment_DestroyObject)(IPhysicsEnvironment*, IPhysicsObject*);
@@ -518,17 +521,17 @@ namespace Symbols
 	typedef void (*PhysFrame)(float deltaTime);
 	extern const std::vector<Symbol> PhysFrameSym;
 
-#if 0
-	typedef IVP_MRC_TYPE (*IVP_Mindist_Minimize_Solver_p_minimize_PP)(void* mindistMinimizeSolver, const IVP_Compact_Edge *A, const IVP_Compact_Edge *B, IVP_Cache_Ledge_Point *m_cache_A, IVP_Cache_Ledge_Point *m_cache_B);
+#if PHYSENV_INCLUDEIVPFALLBACK
+	typedef GMODSDK::IVP_MRC_TYPE (*IVP_Mindist_Minimize_Solver_p_minimize_PP)(void* mindistMinimizeSolver, const GMODSDK::IVP_Compact_Edge *A, const GMODSDK::IVP_Compact_Edge *B, IVP_Cache_Ledge_Point *m_cache_A, IVP_Cache_Ledge_Point *m_cache_B);
 	extern const std::vector<Symbol> IVP_Mindist_Minimize_Solver_p_minimize_PPSym;
 
-	typedef void (*IVP_Mindist_Base_get_objects)(void* mindist, IVP_Real_Object**);
+	typedef void (*IVP_Mindist_Base_get_objects)(void* mindist, GMODSDK::IVP_Real_Object**);
 	extern const std::vector<Symbol> IVP_Mindist_Base_get_objectsSym;
 
-	typedef void (*IVP_OV_Element_add_oo_collision)(void* ovElement, IVP_Collision* connector);
+	typedef void (*IVP_OV_Element_add_oo_collision)(void* ovElement, GMODSDK::IVP_Collision* connector);
 	extern const std::vector<Symbol> IVP_OV_Element_add_oo_collisionSym;
 
-	typedef void (*IVP_OV_Element_remove_oo_collision)(void* ovElement, IVP_Collision* connector);
+	typedef void (*IVP_OV_Element_remove_oo_collision)(void* ovElement, GMODSDK::IVP_Collision* connector);
 	extern const std::vector<Symbol> IVP_OV_Element_remove_oo_collisionSym;
 #endif
 

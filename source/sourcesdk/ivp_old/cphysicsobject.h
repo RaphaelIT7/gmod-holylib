@@ -1,9 +1,12 @@
 #include <vphysics_interface.h>
-#include <ivp_types.h>
+#include <ivp_old/ivp_types.h>
 
 class IVP_Real_Object;
 class IVP_U_Float_Point;
 class IVP_Controller;
+
+namespace GMODSDK
+{
 
 class CPhysicsObject : public IPhysicsObject
 {
@@ -193,4 +196,6 @@ public:
 	float			m_buoyancyRatio;
 	float			m_dragCoefficient;
 	float			m_angDragCoefficient;
+};
+
 };
