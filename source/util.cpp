@@ -8,6 +8,7 @@
 #include "icommandline.h"
 #include "player.h"
 #include "detours.h"
+#include "toolframework/itoolentity.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -416,7 +417,22 @@ void Util::AddDetour()
 	server = InterfacePointers::Server();
 	Detour::CheckValue("get class", "IServer", server != NULL);
 
-	entitylist = Detour::ResolveSymbol<CGlobalEntityList>(server_loader, Symbols::gEntListSym);
+	IServerTools* serverTools = NULL;
+	if (g_pModuleManager.GetAppFactory())
+		serverTools = (IServerTools*)g_pModuleManager.GetGameFactory()(VSERVERTOOLS_INTERFACE_VERSION, NULL);
+	else
+		serverTools = server_loader.GetInterface<IServerTools>(VSERVERTOOLS_INTERFACE_VERSION);
+
+	if (serverTools)
+	{
+		entitylist = serverTools->GetEntityList();
+	}
+
+	if (!entitylist)
+	{
+		entitylist = Detour::ResolveSymbol<CGlobalEntityList>(server_loader, Symbols::gEntListSym);
+	}
+
 	Detour::CheckValue("get class", "gEntList", entitylist != NULL);
 	g_pEntityList = entitylist;
 	if (entitylist)
