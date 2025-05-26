@@ -53,28 +53,28 @@ namespace Detour
 		(void*)hook_##name, m_pID \
 	)
 
-	inline bool CheckValue(const char* msg, const char* name, bool ret)
+	inline bool CheckValue(const char* strMsg, const char* strName, bool bRet)
 	{
-		if (!ret) {
-			Warning(PROJECT_NAME ": Failed to %s %s!\n", msg, name);
+		if (!bRet) {
+			Warning(PROJECT_NAME ": Failed to %s %s!\n", strMsg, strName);
 			return false;
 		}
 
 		return true;
 	}
 
-	inline bool CheckValue(const char* name, bool ret)
+	inline bool CheckValue(const char* strName, bool bRet)
 	{
-		return CheckValue("get function", name, ret);
+		return CheckValue("get function", strName, bRet);
 	}
 
-	inline bool CheckFunction(void* func, const char* name)
+	inline bool CheckFunction(void* pFunc, const char* strName)
 	{
-		return CheckValue("get function", name, func != nullptr);
+		return CheckValue("get function", strName, pFunc != nullptr);
 	}
 
-	extern void* GetFunction(void* module, Symbol symbol);
-	extern void Create(Detouring::Hook* hook, const char* name, void* module, Symbol symbol, void* func, unsigned int category = 0);
+	extern void* GetFunction(void* pModule, Symbol pSymbol);
+	extern void Create(Detouring::Hook* pHook, const char* strName, void* pModule, Symbol pSymbol, void* pHookFunc, unsigned int category = 0);
 	extern void Remove(unsigned int category); // 0 = All
 	extern void ReportLeak();
 	extern unsigned int g_pCurrentCategory;
@@ -82,20 +82,20 @@ namespace Detour
 	extern SymbolFinder symfinder;
 	template<class T>
 	inline T* ResolveSymbol(
-		SourceSDK::FactoryLoader& loader, const Symbol& symbol
+		SourceSDK::FactoryLoader& pLoader, const Symbol& pSymbol
 	)
 	{
-		if (symbol.type == Symbol::Type::None)
+		if (pSymbol.type == Symbol::Type::None)
 			return nullptr;
 
 	#if defined SYSTEM_WINDOWS
 		auto iface = reinterpret_cast<T**>(symfinder.Resolve(
-			loader.GetModule(), symbol.name.c_str(), symbol.length
+			pLoader.GetModule(), pSymbol.name.c_str(), pSymbol.length
 		));
 		return iface != nullptr ? *iface : nullptr;
 	#elif defined SYSTEM_POSIX
 		return reinterpret_cast<T*>(symfinder.Resolve(
-			loader.GetModule(), symbol.name.c_str(), symbol.length
+			pLoader.GetModule(), pSymbol.name.c_str(), pSymbol.length
 		));
 	#endif
 	}
@@ -119,7 +119,7 @@ namespace Detour
 
 	template<class T>
 	inline T* ResolveSymbol(
-		SourceSDK::FactoryLoader& loader, const std::vector<Symbol>& symbols
+		SourceSDK::FactoryLoader& pLoader, const std::vector<Symbol>& pSymbols
 	)
 	{
 	#if DETOUR_SYMBOL_ID != 0
@@ -129,36 +129,36 @@ namespace Detour
 
 	#if defined SYSTEM_WINDOWS
 		auto iface = reinterpret_cast<T**>(symfinder.Resolve(
-			loader.GetModule(), symbols[DETOUR_SYMBOL_ID].name.c_str(), symbols[DETOUR_SYMBOL_ID].length
+			pLoader.GetModule(), pSymbols[DETOUR_SYMBOL_ID].name.c_str(), pSymbols[DETOUR_SYMBOL_ID].length
 		));
 		return iface != nullptr ? *iface : nullptr;
 	#elif defined SYSTEM_POSIX
 		return reinterpret_cast<T*>(symfinder.Resolve(
-			loader.GetModule(), symbols[DETOUR_SYMBOL_ID].name.c_str(), symbols[DETOUR_SYMBOL_ID].length
+			pLoader.GetModule(), pSymbols[DETOUR_SYMBOL_ID].name.c_str(), pSymbols[DETOUR_SYMBOL_ID].length
 		));
 	#endif
 	}
 
-	inline void* GetFunction(void* module, std::vector<Symbol> symbols)
+	inline void* GetFunction(void* pModule, std::vector<Symbol> pSymbols)
 	{
 #if DETOUR_SYMBOL_ID != 0
-		if ((symbols.size()-1) < DETOUR_SYMBOL_ID)
+		if ((pSymbols.size()-1) < DETOUR_SYMBOL_ID)
 			return NULL;
 #endif
 
-		return GetFunction(module, symbols[DETOUR_SYMBOL_ID]);
+		return GetFunction(pModule, pSymbols[DETOUR_SYMBOL_ID]);
 	}
 
-	inline void Create(Detouring::Hook* hook, const char* name, void* module, std::vector<Symbol> symbols, void* func, unsigned int category = 0)
+	inline void Create(Detouring::Hook* pHook, const char* strName, void* pModule, std::vector<Symbol> pSymbols, void* pHookFunc, unsigned int category = 0)
 	{
 #if DETOUR_SYMBOL_ID != 0
-		if ((symbols.size()-1) < DETOUR_SYMBOL_ID)
+		if ((pSymbols.size()-1) < DETOUR_SYMBOL_ID)
 		{
-			CheckFunction(nullptr, name);
+			CheckFunction(nullptr, strName);
 			return;
 		}
 #endif
 
-		Create(hook, name, module, symbols[DETOUR_SYMBOL_ID], func, category);
+		Create(pHook, strName, pModule, pSymbols[DETOUR_SYMBOL_ID], pHookFunc, category);
 	}
 }

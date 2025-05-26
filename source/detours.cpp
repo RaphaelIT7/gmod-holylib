@@ -13,32 +13,32 @@
 unsigned int g_pCurrentCategory = 0;
 
 SymbolFinder Detour::symfinder;
-void* Detour::GetFunction(void* module, Symbol symbol)
+void* Detour::GetFunction(void* pModule, Symbol pSymbol)
 {
-	return symfinder.Resolve(module, symbol.name.c_str(), symbol.length);
+	return symfinder.Resolve(pModule, pSymbol.name.c_str(), pSymbol.length);
 }
 
 std::unordered_set<std::string> pDisabledDetours;
 std::map<unsigned int, std::vector<Detouring::Hook*>> g_pDetours = {};
-void Detour::Create(Detouring::Hook* hook, const char* name, void* module, Symbol symbol, void* hook_func, unsigned int category)
+void Detour::Create(Detouring::Hook* pHook, const char* strName, void* pModule, Symbol pSymbol, void* pHookFunc, unsigned int category)
 {
-	if (pDisabledDetours.find(name) != pDisabledDetours.end())
+	if (pDisabledDetours.find(strName) != pDisabledDetours.end())
 	{
-		Msg(PROJECT_NAME ": Detour %s was disabled!\n", name);
+		Msg(PROJECT_NAME ": Detour %s was disabled!\n", strName);
 		return;
 	}
 
-	void* func = Detour::GetFunction(module, symbol);
-	if (!CheckFunction(func, name))
+	void* func = Detour::GetFunction(pModule, pSymbol);
+	if (!CheckFunction(func, strName))
 		return;
 
-	hook->Create(func, hook_func);
-	hook->Enable();
+	pHook->Create(func, pHookFunc);
+	pHook->Enable();
 
-	g_pDetours[category].push_back(hook);
+	g_pDetours[category].push_back(pHook);
 
-	if (!DETOUR_ISVALID((*hook)))
-		Msg(PROJECT_NAME ": Failed to detour %s!\n", name);
+	if (!DETOUR_ISVALID((*pHook)))
+		Msg(PROJECT_NAME ": Failed to detour %s!\n", strName);
 }
 
 void Detour::Remove(unsigned int category) // NOTE: Do we need to check if the provided category is valid?
