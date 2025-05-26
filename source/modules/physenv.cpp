@@ -391,9 +391,9 @@ void CPhysEnvModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 //PushReferenced_LuaClass(IPhysicsObject) // This will later cause so much pain when they become Invalid XD
 //Get_LuaClass(IPhysicsObject, "IPhysicsObject")
 // Fking idiot, it's a gmod class!!
-// static inline bool IsRegisteredPhysicsObject(IPhysicsObject* pObject);
+static inline bool IsRegisteredPhysicsObject(IPhysicsObject* pObject);
 GMODGet_LuaClass(IPhysicsObject, GarrysMod::Lua::Type::PhysObj, "PhysObj", 
-	if (!g_pPhysicsHolyLib->IsValidObject(pVar) && bError) {
+	if (!(g_pPhysicsHolyLib != NULL ? g_pPhysicsHolyLib->IsValidObject(pVar) : IsRegisteredPhysicsObject(pVar)) && bError) {
 		LUA->ThrowError(triedNull_IPhysicsObject.c_str());
 	}
 );
@@ -856,12 +856,19 @@ LUA_FUNCTION_STATIC(physenv_CreateEnvironment)
 		pEnvironment->EnableDeleteQueue(true);
 		pEnvironment->SetSimulationTimestep(pMainEnvironment->GetSimulationTimestep());
 
-		g_Collisions = (CCollisionEvent*)g_pPhysicsHolyLib->GetCollisionSolver(pMainEnvironment); // Raw access is always fun :D
+		if (g_pPhysicsHolyLib)
+		{
+			g_Collisions = (CCollisionEvent*)g_pPhysicsHolyLib->GetCollisionSolver(pMainEnvironment); // Raw access is always fun :D
+			pEnvironment->SetConstraintEventHandler(g_pPhysicsHolyLib->GetPhysicsListenerConstraint(pMainEnvironment));
+		} else {
+			GMODSDK::CPhysicsEnvironment* pGmodMainEnvironment = static_cast<GMODSDK::CPhysicsEnvironment*>(static_cast<void*>(pMainEnvironment));
+			g_Collisions = (CCollisionEvent*)pGmodMainEnvironment->m_pCollisionSolver->m_pSolver; // Raw access is always fun :D
+			pEnvironment->SetConstraintEventHandler(pGmodMainEnvironment->m_pConstraintListener->m_pCallback);
+		}
 
 		pEnvironment->SetCollisionSolver(g_Collisions);
 		pEnvironment->SetCollisionEventHandler(g_Collisions);
 
-		pEnvironment->SetConstraintEventHandler(g_pPhysicsHolyLib->GetPhysicsListenerConstraint(pMainEnvironment));
 		pEnvironment->EnableConstraintNotify(true);
 
 		pEnvironment->SetObjectEventHandler(g_Collisions);
@@ -2240,9 +2247,12 @@ bool hook_GMod_Util_IsPhysicsObjectValid(IPhysicsObject* pObject)
 	}*/
 
 	// Should be O(1) now since were using a hash / unordered_map.
-	//return IsRegisteredPhysicsObject(pObject);
-
-	return g_pPhysicsHolyLib->IsValidObject(pObject);
+	if (g_pPhysicsHolyLib)
+	{
+		return g_pPhysicsHolyLib->IsValidObject(pObject);
+	} else {
+		return IsRegisteredPhysicsObject(pObject);
+	}
 }
 
 /*
@@ -2490,6 +2500,8 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 
 			SetIVPHolyLibCallbacks(&g_pIVPHolyLib);
 			g_bReplacedIVP = true;
+		} else {
+			g_pPhysicsHolyLib = NULL;
 		}
 		return;
 	}
