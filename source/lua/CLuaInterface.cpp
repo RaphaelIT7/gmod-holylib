@@ -1161,9 +1161,13 @@ void CLuaInterface::Msg( const char* fmt, ... )
 void CLuaInterface::PushPath( const char* path )
 {
 	LuaDebugPrint(2, "CLuaInterface::PushPath %s\n", path);
-	char* str = new char[strlen(path)];
-	V_strncpy( str, path, strlen(path) );
-	str[ strlen(path) - 1 ] = '\0'; // nuke the last /
+	if (!path)
+		return;
+
+	int strLen = strlen(path);
+	char* str = new char[strLen];
+	V_strncpy( str, path, strLen );
+	str[ strLen - 1 ] = '\0'; // nuke the last /
 	m_sCurrentPath = str;
 	m_pPaths.push_back( str );
 	++m_iPushedPaths;

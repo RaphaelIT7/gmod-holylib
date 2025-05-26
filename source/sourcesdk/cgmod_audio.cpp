@@ -656,9 +656,9 @@ const char* CGModAudioChannel::GetFileName()
 	static char fileName[MAX_PATH];
 	BASS_CHANNELINFO info;
 	if (BASS_ChannelGetInfo(m_pHandle, &info)) {
-		strcpy(fileName, info.filename);
+		strncpy(fileName, info.filename, sizeof(fileName));
 	} else {
-		strcpy(fileName, "NULL");
+		strncpy(fileName, "NULL", sizeof(fileName));
 	}
 
 	return fileName;
