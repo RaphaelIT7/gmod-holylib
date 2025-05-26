@@ -123,7 +123,7 @@ namespace Detour
 	)
 	{
 	#if DETOUR_SYMBOL_ID != 0
-		if ((symbols.size()-1) < DETOUR_SYMBOL_ID)
+		if ((pSymbols.size()-1) < DETOUR_SYMBOL_ID)
 			return NULL;
 	#endif
 
