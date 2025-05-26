@@ -19,7 +19,7 @@ public:
 	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "stringtable"; };
-	virtual int Compatibility() { return LINUX32 | LINUX64; };
+	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 	virtual bool SupportsMultipleLuaStates() { return true; };
 };
 
