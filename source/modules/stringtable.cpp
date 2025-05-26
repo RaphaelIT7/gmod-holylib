@@ -151,6 +151,90 @@ private:
 	CUtlMap< FileNameHandle_t, CNetworkStringTableItem > m_Items;
 };
 
+#if ARCHITECTURE_X86_64
+class CNetworkStringDict : public INetworkStringDict
+{
+public:
+	CNetworkStringDict( bool bUseDictionary ) : 
+		m_bUseDictionary( bUseDictionary ), 
+		m_Items( 0, 0, CTableItem::Less )
+	{
+	}
+
+	virtual ~CNetworkStringDict() 
+	{ 
+	}
+
+	unsigned int Count()
+	{
+		return -1;
+	}
+
+	void Purge()
+	{
+	}
+
+	const char *String( int index )
+	{
+		return NULL;
+	}
+
+	bool IsValidIndex( int index )
+	{
+		return false;
+	}
+
+	int Insert( const char *pString )
+	{
+		return -1;
+	}
+
+	int Find( const char *pString )
+	{
+		return -1;
+	}
+
+	CNetworkStringTableItem	&Element( int index )
+	{
+		return m_Items.Element( index );
+	}
+
+	const CNetworkStringTableItem &Element( int index ) const
+	{
+		return m_Items.Element( index );
+	}
+
+	virtual void UpdateDictionary( int index )
+	{
+	}
+
+	virtual int DictionaryIndex( int index )
+	{
+		return -1;
+	}
+
+public:
+	bool	m_bUseDictionary;
+
+	// We use this type of item to avoid having two copies of the strings in memory --
+	//  either we have a dictionary slot and point to that, or we have a m_Name CUtlString that gets
+	//  wiped between levels
+	class CTableItem
+	{
+	public:
+		static bool Less( const CTableItem &lhs, const CTableItem &rhs )
+		{
+			return lhs.m_StringHash < rhs.m_StringHash;
+		}
+	private:
+		int						m_DictionaryIndex;
+		CUtlString				m_Name;
+		CRC32_t					m_StringHash;
+	};
+	CUtlMap< CTableItem, CNetworkStringTableItem > m_Items;
+};
+#else
+
 //-----------------------------------------------------------------------------
 // Implementation for general purpose strings
 //-----------------------------------------------------------------------------
@@ -208,6 +292,7 @@ public:
 private:
 	CUtlStableHashtable< CUtlConstString, CNetworkStringTableItem, CaselessStringHashFunctor, UTLConstStringCaselessStringEqualFunctor<char> > m_Lookup;
 };
+#endif
 
 void CNetworkStringTable::DeleteAllStrings( void )
 {
@@ -218,6 +303,11 @@ void CNetworkStringTable::DeleteAllStrings( void )
 		 So we need to copy over the original vtable and replace ours with GMod's vtable so that Gmod uses its functions safely.
 	*/
 	void* m_pItemsVTable = *(void**)m_pItems; // Save original vtable.
+#if ARCHITECTURE_X86_64
+	CNetworkStringDict* dict = (CNetworkStringDict*)m_pItems;
+	bool bUseDictionary = dict->m_bUseDictionary;
+#endif
+
 	delete m_pItems;
 	if ( m_bIsFilenames )
 	{
@@ -225,15 +315,27 @@ void CNetworkStringTable::DeleteAllStrings( void )
 	}
 	else
 	{
+#if ARCHITECTURE_X86_64
+		m_pItems = new CNetworkStringDict(bUseDictionary);
+#else
 		m_pItems = new CNetworkStringDict;
+#endif
 	}
 	*(void**)m_pItems = m_pItemsVTable; // Restore original vtable.
 
 	if ( m_pItemsClientSide )
 	{
+#if ARCHITECTURE_X86_64
+		CNetworkStringDict* clientDict = (CNetworkStringDict*)m_pItemsClientSide;
+		bool bUseClientDictionary = clientDict->m_bUseDictionary;
+#endif
 		void* m_pItemsClientSideVTable = *(void**)m_pItemsClientSide; // Save original vtable.
 		delete m_pItemsClientSide;
+#if ARCHITECTURE_X86_64
+		m_pItemsClientSide = new CNetworkStringDict(bUseClientDictionary);
+#else
 		m_pItemsClientSide = new CNetworkStringDict;
+#endif
 		m_pItemsClientSide->Insert( "___clientsideitemsplaceholder0___" ); // 0 slot can't be used
 		m_pItemsClientSide->Insert( "___clientsideitemsplaceholder1___" ); // -1 can't be used since it looks like the "invalid" index from other string lookups
 		*(void**)m_pItemsClientSide = m_pItemsClientSideVTable; // Restore original vtable.
