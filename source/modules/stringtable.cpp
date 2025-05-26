@@ -234,7 +234,14 @@ void CNetworkStringTable::DeleteAllStrings( void )
 static CNetworkStringTableContainer* networkStringTableContainerServer = NULL;
 void CStringTableModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
-	networkStringTableContainerServer = (CNetworkStringTableContainer*)appfn[0](INTERFACENAME_NETWORKSTRINGTABLESERVER, NULL);
+	if (appfn[0])
+	{
+		networkStringTableContainerServer = (CNetworkStringTableContainer*)appfn[0](INTERFACENAME_NETWORKSTRINGTABLESERVER, NULL);
+	} else {
+		SourceSDK::FactoryLoader engine_loader("engine");
+		networkStringTableContainerServer = engine_loader.GetInterface<CNetworkStringTableContainer>(INTERFACENAME_NETWORKSTRINGTABLESERVER);
+	}
+
 	Detour::CheckValue("get interface", "networkStringTableContainerServer", networkStringTableContainerServer != NULL);
 }
 

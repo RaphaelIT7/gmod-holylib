@@ -358,13 +358,13 @@ IPhysicsSurfaceProps* physprops;
 #endif
 void CPhysEnvModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
-	SourceSDK::FactoryLoader vphysics_loader("vphysics");
 	if (appfn[0])
 	{
 		physics = (IPhysics*)appfn[0](VPHYSICS_INTERFACE_VERSION, NULL);
 		physprops = (IPhysicsSurfaceProps*)appfn[0](VPHYSICS_SURFACEPROPS_INTERFACE_VERSION, NULL);
 		physcollide = (IPhysicsCollision*)appfn[0](VPHYSICS_COLLISION_INTERFACE_VERSION, NULL);
 	} else {
+		SourceSDK::FactoryLoader vphysics_loader("vphysics");
 		physics = vphysics_loader.GetInterface<IPhysics>(VPHYSICS_INTERFACE_VERSION);
 		physprops = vphysics_loader.GetInterface<IPhysicsSurfaceProps>(VPHYSICS_SURFACEPROPS_INTERFACE_VERSION);
 		physcollide = vphysics_loader.GetInterface<IPhysicsCollision>(VPHYSICS_COLLISION_INTERFACE_VERSION);
@@ -374,12 +374,12 @@ void CPhysEnvModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 	Detour::CheckValue("get interface", "physprops", physprops != NULL);
 	Detour::CheckValue("get interface", "physcollide", physcollide != NULL);
 
-	SourceSDK::FactoryLoader engine_loader("engine");
 	if (appfn[0])
 	{
 		staticpropmgr = (IStaticPropMgrServer*)appfn[0](INTERFACEVERSION_STATICPROPMGR_SERVER, NULL);
 		modelinfo = (IVModelInfo*)appfn[0](VMODELINFO_SERVER_INTERFACE_VERSION, NULL);
 	} else {
+		SourceSDK::FactoryLoader engine_loader("engine");
 		staticpropmgr = engine_loader.GetInterface<IStaticPropMgrServer>(INTERFACEVERSION_STATICPROPMGR_SERVER);
 		modelinfo = engine_loader.GetInterface<IVModelInfo>(VMODELINFO_SERVER_INTERFACE_VERSION);
 	}
