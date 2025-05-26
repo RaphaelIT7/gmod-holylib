@@ -322,7 +322,7 @@ LUA_FUNCTION_STATIC(CBaseClient_SendNetMsg)
 
 	SVC_CustomMessage msg;
 	msg.m_iType = iType;
-	strcpy(msg.m_strName, strName);
+	strncpy(msg.m_strName, strName, sizeof(msg.m_strName));
 	msg.m_DataOut.StartWriting(bf->GetData(), 0, 0, bf->GetMaxNumBits());
 	msg.m_iLength = bf->GetNumBitsWritten();
 
@@ -2074,7 +2074,7 @@ LUA_FUNCTION_STATIC(gameserver_BroadcastMessage)
 
 	SVC_CustomMessage msg;
 	msg.m_iType = iType;
-	strcpy(msg.m_strName, strName);
+	strncpy(msg.m_strName, strName, sizeof(msg.m_strName));
 	msg.m_DataOut.StartWriting(bf->GetData(), 0, 0, bf->GetMaxNumBits());
 	msg.m_iLength = bf->GetNumBitsWritten();
 
