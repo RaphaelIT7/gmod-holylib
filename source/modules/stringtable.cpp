@@ -211,6 +211,13 @@ private:
 
 void CNetworkStringTable::DeleteAllStrings( void )
 {
+	/*
+		 == BUG ==
+		 When the game shuts down our dll is unloaded and then the stringtables are deleted.
+		 This means that when gmod tries to delete the stringtables it would try to call our vtable but we were already unloaded so it would crash.
+		 So we need to copy over the original vtable and replace ours with GMod's vtable so that Gmod uses its functions safely.
+	*/
+	void* m_pItemsVTable = *(void**)m_pItems; // Save original vtable.
 	delete m_pItems;
 	if ( m_bIsFilenames )
 	{
@@ -220,13 +227,16 @@ void CNetworkStringTable::DeleteAllStrings( void )
 	{
 		m_pItems = new CNetworkStringDict;
 	}
+	*(void**)m_pItems = m_pItemsVTable; // Restore original vtable.
 
 	if ( m_pItemsClientSide )
 	{
+		void* m_pItemsClientSideVTable = *(void**)m_pItemsClientSide; // Save original vtable.
 		delete m_pItemsClientSide;
 		m_pItemsClientSide = new CNetworkStringDict;
 		m_pItemsClientSide->Insert( "___clientsideitemsplaceholder0___" ); // 0 slot can't be used
 		m_pItemsClientSide->Insert( "___clientsideitemsplaceholder1___" ); // -1 can't be used since it looks like the "invalid" index from other string lookups
+		*(void**)m_pItemsClientSide = m_pItemsClientSideVTable; // Restore original vtable.
 	}
 }
 #endif
@@ -525,7 +535,15 @@ LUA_FUNCTION_STATIC(INetworkStringTable_DeleteString)
 		pElements.push_back(pEntry);
 	}
 
+#ifdef SYSTEM_WINDOWS
+	CNetworkStringTable* pTable = (CNetworkStringTable*)table;
+	pTable->DeleteAllStrings();
+#else
+	if (!func_CNetworkStringTable_DeleteAllStrings)
+		LUA->ThrowError("Failed to get CNetworkStringTable::DeleteAllStrings");
+
 	func_CNetworkStringTable_DeleteAllStrings(table); // If this deletes the UserData that we got, were gonna have a problem.
+#endif
 
 	for (StringTableEntry* pEntry : pElements)
 	{
