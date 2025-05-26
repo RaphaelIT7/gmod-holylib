@@ -6,6 +6,7 @@
 #include <sourcesdk/networkstringtable.h>
 #include <sourcesdk/server.h>
 #include <unordered_map>
+#include "networkstringtableitem.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -24,6 +25,211 @@ public:
 
 static CStringTableModule g_pStringTableFixModule;
 IModule* pStringTableModule = &g_pStringTableFixModule;
+
+#ifdef SYSTEM_WINDOWS // ISSUE: On Windows CNetworkStringTable::DeleteAllStrings doesn't exist as its inlined into CNetworkStringTable::ReadStringTable
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+CNetworkStringTableItem::CNetworkStringTableItem( void )
+{
+	m_pUserData = NULL;
+	m_nUserDataLength = 0;
+	m_nTickChanged = 0;
+
+#ifndef SHARED_NET_STRING_TABLES
+	m_nTickCreated = 0;
+	m_pChangeList = NULL;
+#endif
+}
+
+//-----------------------------------------------------------------------------
+// Purpose: 
+//-----------------------------------------------------------------------------
+CNetworkStringTableItem::~CNetworkStringTableItem( void )
+{
+#ifndef SHARED_NET_STRING_TABLES
+	if ( m_pChangeList )
+	{
+		// free changelist and elements
+
+		for ( int i=0; i < m_pChangeList->Count(); i++ )
+		{
+			itemchange_s item = m_pChangeList->Element( i );
+
+			delete[] item.data;
+		}
+
+		delete m_pChangeList; // destructor calls Purge()
+
+		m_pUserData = NULL;
+	}
+#endif
+		
+	delete[] m_pUserData;
+}
+
+/*
+============
+tmpstr512
+
+rotates through a bunch of string buffers of 512 bytes each
+============
+*/
+char *tmpstr512()
+{
+	static char	string[32][512];
+	static int	curstring = 0;
+	curstring = ( curstring + 1 ) & 31;
+	return string[curstring];  
+}
+
+bool CNetworkStringTable_LessFunc( FileNameHandle_t const &a, FileNameHandle_t const &b )
+{
+	return a < b;
+}
+
+class CNetworkStringFilenameDict : public INetworkStringDict
+{
+public:
+	CNetworkStringFilenameDict()
+	{
+		m_Items.SetLessFunc( CNetworkStringTable_LessFunc );
+	}
+
+	virtual ~CNetworkStringFilenameDict()
+	{
+		Purge();
+	}
+
+	unsigned int Count()
+	{
+		return m_Items.Count();
+	}
+
+	void Purge()
+	{
+		m_Items.Purge();
+	}
+
+	const char *String( int index )
+	{
+		char* pString = tmpstr512();
+		g_pFullFileSystem->String( m_Items.Key( index ), pString, 512 );
+		return pString;
+	}
+
+	bool IsValidIndex( int index )
+	{
+		return m_Items.IsValidIndex( index );
+	}
+
+	int Insert( const char *pString )
+	{
+		FileNameHandle_t fnHandle = g_pFullFileSystem->FindOrAddFileName( pString );
+		return m_Items.Insert( fnHandle );
+	}
+
+	int Find( const char *pString )
+	{
+		FileNameHandle_t fnHandle = g_pFullFileSystem->FindFileName( pString );
+		if ( !fnHandle )
+			return m_Items.InvalidIndex();
+		return m_Items.Find( fnHandle );
+	}
+
+	CNetworkStringTableItem	&Element( int index )
+	{
+		return m_Items.Element( index );
+	}
+
+	const CNetworkStringTableItem &Element( int index ) const
+	{
+		return m_Items.Element( index );
+	}
+
+private:
+	CUtlMap< FileNameHandle_t, CNetworkStringTableItem > m_Items;
+};
+
+//-----------------------------------------------------------------------------
+// Implementation for general purpose strings
+//-----------------------------------------------------------------------------
+class CNetworkStringDict : public INetworkStringDict
+{
+public:
+	CNetworkStringDict() 
+	{
+	}
+
+	virtual ~CNetworkStringDict() 
+	{ 
+	}
+
+	unsigned int Count()
+	{
+		return m_Lookup.Count();
+	}
+
+	void Purge()
+	{
+		m_Lookup.Purge();
+	}
+
+	const char *String( int index )
+	{
+		return m_Lookup.Key( index ).Get();
+	}
+
+	bool IsValidIndex( int index )
+	{
+		return m_Lookup.IsValidHandle( index );
+	}
+
+	int Insert( const char *pString )
+	{
+		return m_Lookup.Insert( pString );
+	}
+
+	int Find( const char *pString )
+	{
+		return pString ? m_Lookup.Find( pString ) : m_Lookup.InvalidHandle();
+	}
+
+	CNetworkStringTableItem	&Element( int index )
+	{
+		return m_Lookup.Element( index );
+	}
+
+	const CNetworkStringTableItem &Element( int index ) const
+	{
+		return m_Lookup.Element( index );
+	}
+
+private:
+	CUtlStableHashtable< CUtlConstString, CNetworkStringTableItem, CaselessStringHashFunctor, UTLConstStringCaselessStringEqualFunctor<char> > m_Lookup;
+};
+
+void CNetworkStringTable::DeleteAllStrings( void )
+{
+	delete m_pItems;
+	if ( m_bIsFilenames )
+	{
+		m_pItems = new CNetworkStringFilenameDict;
+	}
+	else
+	{
+		m_pItems = new CNetworkStringDict;
+	}
+
+	if ( m_pItemsClientSide )
+	{
+		delete m_pItemsClientSide;
+		m_pItemsClientSide = new CNetworkStringDict;
+		m_pItemsClientSide->Insert( "___clientsideitemsplaceholder0___" ); // 0 slot can't be used
+		m_pItemsClientSide->Insert( "___clientsideitemsplaceholder1___" ); // -1 can't be used since it looks like the "invalid" index from other string lookups
+	}
+}
+#endif
 
 static CNetworkStringTableContainer* networkStringTableContainerServer = NULL;
 void CStringTableModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
@@ -180,10 +386,15 @@ LUA_FUNCTION_STATIC(INetworkStringTable_DeleteAllStrings)
 	INetworkStringTable* table = Get_INetworkStringTable(LUA, 1, true);
 	bool bNukePrecache = LUA->GetBool(2);
 
+#ifndef SYSTEM_WINDOWS
 	if (!func_CNetworkStringTable_DeleteAllStrings)
 		LUA->ThrowError("Failed to get CNetworkStringTable::DeleteAllStrings");
 
 	func_CNetworkStringTable_DeleteAllStrings(table);
+#else
+	CNetworkStringTable* pTable = (CNetworkStringTable*)table;
+	pTable->DeleteAllStrings();
+#endif
 
 	if (!bNukePrecache)
 		return 0;
@@ -442,6 +653,7 @@ LUA_FUNCTION_STATIC(stringtable_CreateStringTable)
 LUA_FUNCTION_STATIC(stringtable_RemoveAllTables)
 {
 	networkStringTableContainerServer->RemoveAllTables();
+	DeleteAll_INetworkStringTable(LUA);
 
 	return 0;
 }
@@ -536,6 +748,7 @@ LUA_FUNCTION_STATIC(stringtable_RemoveTable)
 	INetworkStringTable* table = Get_INetworkStringTable(LUA, 1, true);
 
 	networkStringTableContainerServer->m_Tables.Remove(table->GetTableId());
+	DeleteGlobal_INetworkStringTable(table);
 	delete table;
 
 	return 0;
@@ -621,6 +834,7 @@ void CStringTableModule::InitDetour(bool bPreServer)
 	if (bPreServer)
 		return;
 
+	// Note: This hook exists for safety and if everything goes well we shouldn't even require it.
 	SourceSDK::ModuleLoader engine_loader("engine");
 	Detour::Create(
 		&detour_CNetworkStringTable_Deconstructor, "CNetworkStringTable::~CNetworkStringTable",

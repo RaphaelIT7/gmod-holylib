@@ -234,12 +234,12 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: stringtable Symbols
 	//---------------------------------------------------------------------------------
-	const std::vector<Symbol> CNetworkStringTable_DeleteAllStringsSym = {
+	const std::vector<Symbol> CNetworkStringTable_DeleteAllStringsSym = { // Error reading string table %s\n - CNetworkStringTableContainer::ReadStringTables -> Fidn the CNetworkStringTable::ReadStringTable call -> Find the CNetworkStringTable::DeleteAllStrings call
 		Symbol::FromName("_ZN19CNetworkStringTable16DeleteAllStringsEv"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x89\xFB\x48\x83\xEC\x08\x48\x8B\x7F\x50"), // 55 48 89 E5 53 48 89 FB 48 83 EC 08 48 8B 7F 50
 	};
 
-	const std::vector<Symbol> CNetworkStringTable_DeconstructorSym = {
+	const std::vector<Symbol> CNetworkStringTable_DeconstructorSym = { // Table %s\n - Brings you to CNetworkStringTable::Dump
 		Symbol::FromName("_ZN19CNetworkStringTableD0Ev"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x89\xFB\x48\x83\xEC\x08\xE8\x8F\xFF\xFF\xFF\x48\x83\xC4\x08\x48\x89\xDF\x5B\x5D\xE9**\xEE\xFF"), // 55 48 89 E5 53 48 89 FB 48 83 EC 08 E8 8F FF FF FF 48 83 C4 08 48 89 DF 5B 5D E9 ?? ?? EE FF
 	};
