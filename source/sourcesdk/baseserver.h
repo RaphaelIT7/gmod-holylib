@@ -202,7 +202,7 @@ public:
 	int				m_nTickCount;	// current server tick
 	bool			m_bSimulatingTicks;		// whether or not the server is currently simulating ticks
 	char			m_szMapname[64];		// map name
-	char			m_szMapFilename[64];	// map filename, may bear no resemblance to map name
+	//char			m_szMapFilename[64];	// map filename, may bear no resemblance to map name. Gmod doesn't have this.
 	char			m_szSkyname[64];		// skybox name
 	char			m_Password[32];		// server password
 

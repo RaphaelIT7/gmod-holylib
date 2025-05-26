@@ -323,7 +323,7 @@ LUA_FUNCTION_STATIC(CBaseClient_SendNetMsg)
 
 	SVC_CustomMessage msg;
 	msg.m_iType = iType;
-	strcpy(msg.m_strName, strName);
+	strncpy(msg.m_strName, strName, sizeof(msg.m_strName));
 	msg.m_DataOut.StartWriting(bf->GetData(), 0, 0, bf->GetMaxNumBits());
 	msg.m_iLength = bf->GetNumBitsWritten();
 
@@ -1343,14 +1343,8 @@ LUA_FUNCTION_STATIC(CNetChan_Transmit)
 {
 	CNetChan* pNetChannel = Get_CNetChan(1, true);
 	bool bOnlyReliable = LUA->GetBool(2);
-	int maxFragments = (int)LUA->CheckNumberOpt(3, -1);
-	bool bFreeSubChannels = LUA->GetBool(4);
 
-	g_pMaxFragments = maxFragments;
-	g_bFreeSubChannels = bFreeSubChannels;
 	LUA->PushBool(pNetChannel->Transmit(bOnlyReliable));
-	g_bFreeSubChannels = false;
-	g_pMaxFragments = -1;
 
 	return 1;
 }
@@ -2075,7 +2069,7 @@ LUA_FUNCTION_STATIC(gameserver_BroadcastMessage)
 
 	SVC_CustomMessage msg;
 	msg.m_iType = iType;
-	strcpy(msg.m_strName, strName);
+	strncpy(msg.m_strName, strName, sizeof(msg.m_strName));
 	msg.m_DataOut.StartWriting(bf->GetData(), 0, 0, bf->GetMaxNumBits());
 	msg.m_iLength = bf->GetNumBitsWritten();
 
@@ -2493,9 +2487,9 @@ static void hook_CBaseServer_CheckTimeouts(CBaseServer* srv)
 	int i;
 
 #if !defined( _DEBUG )
-	for (i=0 ; i< srv->m_Clients.Count() ; i++ )
+	for (i=0 ; i< srv->GetClientCount() ; i++ )
 	{
-		IClient	*cl = srv->m_Clients[ i ];
+		IClient	*cl = srv->Client(i);
 		
 		if ( cl->IsFakeClient() || !cl->IsConnected() )
 			continue;
@@ -2510,9 +2504,9 @@ static void hook_CBaseServer_CheckTimeouts(CBaseServer* srv)
 	}
 #endif
 
-	for (i=0 ; i< srv->m_Clients.Count() ; i++ )
+	for (i=0 ; i< srv->GetClientCount() ; i++ )
 	{
-		IClient	*cl = srv->m_Clients[ i ];
+		IClient	*cl = srv->Client(i);
 		
 		if ( cl->IsFakeClient() || !cl->IsConnected() )
 			continue;

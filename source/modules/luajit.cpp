@@ -22,7 +22,7 @@ CLuaJITModule g_pLuaJITModule;
 IModule* pLuaJITModule = &g_pLuaJITModule;
 
 #define ManualOverride(name, hook) \
-Detouring::Hook detour_##name; \
+static Detouring::Hook detour_##name; \
 Detour::Create( \
 	&detour_##name, #name, \
 	lua_shared_loader.GetModule(), Symbol::FromName(#name), \
@@ -32,7 +32,7 @@ Detour::Create( \
 #define Override(name) ManualOverride(name, name)
 
 static bool bOpenLibs = false;
-void hook_luaL_openlibs(lua_State* L)
+static void hook_luaL_openlibs(lua_State* L)
 {
 	//Msg("luaL_openlibs called!\n");
 	luaL_openlibs(L);
