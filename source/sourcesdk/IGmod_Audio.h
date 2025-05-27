@@ -78,10 +78,6 @@ public:
 	virtual uint GetPosition() = 0;
 	virtual void SetPosition( uint distance ) = 0;
 	virtual unsigned long GetHandle() = 0; // unsigned long -> DWORD -> HSTREAM
-	virtual void CALLBACK MyFileCloseProc( void* ) = 0;
-	virtual unsigned long long CALLBACK MyFileLenProc( void* ) = 0; // unsigned long long -> QWORD
-	virtual unsigned long CALLBACK MyFileReadProc( void*, uint, void* ) = 0; // unsigned long -> DWORD
-	virtual bool CALLBACK MyFileSeekProc( unsigned long long, void* ) = 0;
 };
 
 abstract_class IGMod_Audio
