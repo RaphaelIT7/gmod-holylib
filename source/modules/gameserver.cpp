@@ -13,8 +13,6 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-double		net_time;
-
 class CGameServerModule : public IModule
 {
 public:
@@ -2411,10 +2409,6 @@ static bool hook_GModDataPack_IsSingleplayer(void* dataPack)
 static Detouring::Hook detour_CBaseClient_ShouldSendMessages;
 static bool hook_CBaseClient_ShouldSendMessages(CBaseClient* cl)
 {
-	if ( !cl->IsConnected() )
-		return false;
-
-	// if the reliable message overflowed, drop the client
 	if ( cl->m_NetChannel && cl->m_NetChannel->IsOverflowed() )
 	{
 		bool bKick = true;
@@ -2436,37 +2430,7 @@ static bool hook_CBaseClient_ShouldSendMessages(CBaseClient* cl)
 		}
 	}
 
-	if ( cl->m_NetChannel )
-		net_time = cl->m_NetChannel->GetTime(); // Required as we use net_time below.
-
-	// check, if it's time to send the next packet
-	bool bSendMessage = cl->m_fNextMessageTime <= net_time;
-	if ( !bSendMessage && !cl->IsActive() )
-	{
-		// if we are in signon modem instantly reply if
-		// we got a answer and have reliable data waiting
-		if ( cl->m_bReceivedPacket && cl->m_NetChannel && cl->m_NetChannel->HasPendingReliableData() )
-		{
-			bSendMessage = true;
-		}
-	}
-
-	if ( bSendMessage && cl->m_NetChannel && !cl->m_NetChannel->CanPacket() )
-	{
-		// we would like to send a message, but bandwidth isn't available yet
-		// tell netchannel that we are choking a packet
-		cl->m_NetChannel->SetChoked();	
-		// Record an ETW event to indicate that we are throttling.
-#if ARCHITECTURE_IS_X86
-		ETWThrottled();
-#endif
-		bSendMessage = false;
-	}
-
-	if (cl->IsFakeClient() && sv_stressbots && sv_stressbots->GetBool())
-		bSendMessage = true;
-
-	return bSendMessage;
+	return detour_CBaseClient_ShouldSendMessages.GetTrampoline<Symbols::CBaseClient_ShouldSendMessages>()(cl);
 }
 
 static Detouring::Hook detour_CBaseServer_CheckTimeouts;
