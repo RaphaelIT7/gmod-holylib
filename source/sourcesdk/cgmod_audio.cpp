@@ -138,7 +138,7 @@ unsigned int CBassAudioStream::Decode(void* data, unsigned int size)
 	unsigned int result = 0;
 
 	if (data != nullptr) {
-		result = BASS_ChannelGetData(reinterpret_cast<HSTREAM>(data), data, size);
+		result = BASS_ChannelGetData(m_hStream, data, size);
 	}
 
 	return result;
@@ -157,7 +157,7 @@ int CBassAudioStream::GetOutputRate()
 	if (BASS_ChannelGetInfo(m_hStream, &info)) {
 		return info.freq;
 	} else {
-		return 0xAC44;
+		return 44100;
 	}
 }
 
@@ -187,7 +187,7 @@ void CBassAudioStream::SetPosition(unsigned int pos)
 {
 }
 
-HSTREAM CBassAudioStream::GetHandle()
+unsigned long CBassAudioStream::GetHandle()
 {
 	return m_hStream;
 }

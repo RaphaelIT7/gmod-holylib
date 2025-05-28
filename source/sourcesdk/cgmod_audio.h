@@ -15,7 +15,7 @@ public:
 	virtual void SetPosition( uint distance );
 	virtual unsigned long GetHandle();
 	static void CALLBACK FileClose( void* );
-	static unsigned long long CALLBACK FileLength( void* );
+	static QWORD CALLBACK FileLength( void* );
 	static DWORD CALLBACK FileRead( void*, DWORD, void* );
 	static BOOL CALLBACK FileSeek( QWORD, void* );
 
