@@ -2526,7 +2526,23 @@ static void hook_CBaseServer_CheckTimeouts(CBaseServer* srv)
 			continue;
 
 		if ( netchan->IsTimedOut() )
+		{
+			if (Lua::PushHook("HolyLib:OnClientTimeout"))
+			{
+				Push_CBaseClient(g_Lua, (CBaseClient*)cl);
+				if (g_Lua->CallFunctionProtected(2, 1, true))
+				{
+					float timeoutIncrease = (float)g_Lua->CheckNumberOpt(-1, 0);
+					g_Lua->Pop(1);
+					if (timeoutIncrease > 0)
+					{
+						netchan->SetTimeout(netchan->GetTimeoutSeconds() + timeoutIncrease);
+						continue;
+					}
+				}
+			}
 			cl->Disconnect( CLIENTNAME_TIMED_OUT, cl->GetClientName() );
+		}
 	}
 #endif
 
