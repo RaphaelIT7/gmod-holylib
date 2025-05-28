@@ -98,7 +98,7 @@ int hook_CLuaInterface_GetType(GarrysMod::Lua::ILuaInterface* pLua, int iStackPo
 
 void CLuaJITModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
-	if (bServerInit)
+	if (bServerInit || pLua != g_Lua) // Don't init for non-gmod states
 		return;
 
 	if (!bOpenLibs)

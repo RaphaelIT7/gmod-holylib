@@ -55,6 +55,10 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- Greatly improved Gmod's `GMod::Util::IsPhysicsObjectValid` function improving performance especially when many physics objects exist (done in the `physenv` module)  
 \- (Disabled by default) Updated LuaJIT version (done in the `luajit` module)  
 \- Improved ConVar's find code improving performance (done in the `cvars` module)  
+\- Server <-> Server connections using net channels (done in the `gameserver` module)  
+
+> [!NOTE]
+> The threadpoolfix module currently does nothing as all of the fixes it contained were implemented into the Garry's Mod itself.
 
 ## Next Update
 \- [+] Any files in `lua/autorun/_holylua/` are loaded by HolyLib on startup.  
@@ -66,6 +70,8 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [+] Implemented a custom `CNetChan` for faster Server <-> Server connections. See https://github.com/RaphaelIT7/gmod-holylib/issues/42  
 \- [+] Added `HolyLib.ReceiveClientMessage` to `HolyLib` module.  
 \- [+] Added `physenv.IVP_NONE` flag to `physenv` module.  
+\- [+] Added a few stringtable related functions to the `stringtable` module.  
+\- [+] Added a new hook `HolyLib:OnClientTimeout` to the `gameserver` module.  
 \- [#] Better support for multiple Lua states  
 \- \- This required most of the lua setup to be changed >:(  
 \- [#] Solved a few possible stack issues  
@@ -75,6 +81,11 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [#] Fixed `HolyLib:OnPhysicsLag` possibly being called recursively causing a crash.  
 \- [#] Fixed every function from the `physenv` module not accepting gmod's PhysObj.  
 \- [#] Fixed a crash caused by `comcommand` module since Gmod's `ConCommand_IsBlocked` changed. (See https://github.com/RaphaelIT7/gmod-holylib/issues/45)  
+\- [#] Fixed a few Windows issues.  
+\- \- [+] Added support for the `stringtable` module on Windows.  
+\- \- [#] Fixed entitylist not being loaded on Windows  
+\- [#] Solved a few Bass bugs.  
+\- [#] Fixed possible undefined behavor & two buffer overflows in `gameserver` module.  
 
 > [!WARNING]
 > The current builds are unstable and need **A LOT** of testing.  
@@ -553,17 +564,19 @@ number userdatafixedsize(default `0`) - The size of the userdata.
 number userdatanetworkbits(default `0`) - The networkbits to use for the userdata.  
 bool bIsFilenames(default `false`) - If the stringtable will contain filenames.  
 
-#### stringtable.SetAllowClientSideAddString(INetworkStringTable table, bool bAllowClientSideAddString)
-INetworkStringTable table - The table to set it on  
-bool bAllowClientSideAddString - If clients should be able to modify the stringtable.  
+#### stringtable.SetAllowClientSideAddString(INetworkStringTable table, bool bAllowClientSideAddString = false)
+Allows/Denies the client from adding additional strings to the table clientside.
 
 #### bool stringtable.IsCreationAllowed()
 Returns whether you're allowed to create stringtables.  
 
 #### bool stringtable.IsLocked()
-Returns if the stringtable is locked or not.  
+Returns if all stringtables are locked or not.  
 
-#### stringtable.AllowCreation(bool bAllowCreation)
+#### stringtable.SetLocked(bool bLocked = false)
+Locks or Unlocks all stringtables.  
+
+#### stringtable.AllowCreation(bool bAllowCreation = false)
 Sets whether you're allowed to create stringtable.  
 
 Example:  
@@ -724,6 +737,27 @@ Sets the `CPrecacheUserData` and sets the flags of it to the given value.
 
 #### number INetworkStringTable:GetPrecacheUserData(number index)
 Returns the flags of `CPrecacheUserData`.  
+
+#### bool INetworkStringTable:IsClientSideAddStringAllowed()
+Returns `true` if the client is allowed to add strings to this table.  
+
+#### INetworkStringTable:SetAllowClientSideAddString(bool bAllowClientSideAddString = false)
+Allows/Denies the client from adding additional strings to the table clientside.
+
+> [!NOTE]
+> This is a direct alias to `stringtable.SetAllowClientSideAddString`
+
+#### bool INetworkStringTable:IsLocked()
+Returns if this specific table is locked or not.  
+
+#### INetworkStringTable:SetLocked(bool bLocked = false)
+Locks or Unlocks this specific table.  
+
+#### bool INetworkStringTable:IsFilenames()
+Returns `true` if the table stores filenames.  
+
+> [!NOTE]
+> This value can only be set when creating the table using `stringtable.CreateStringTableEx` for creation.
 
 ### Enums
 This module adds these enums  
@@ -4100,6 +4134,11 @@ Output:
 ["Header"]      =       D
 ["Players"]     =       1
 ```
+
+#### number HolyLib:OnClientTimeout(CBaseClient pClient)
+Called when a client is marked as timing out.  
+Return a time in seconds to extent his timeout duration.  
+If `0` or a number below `0` is returned, the client will be kicked normally for timing out.  
 
 ### ConVars
 

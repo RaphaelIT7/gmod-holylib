@@ -109,6 +109,13 @@ if SERVER then
             bot:Kick()
         end
     end
+
+    -- string table need unique names as else if one of the tests fail they might collide with each other.
+    GetTestStringTableName = function()
+        StringTableCounter = (StringTableCounter or 0) + 1
+
+        return "testTable-" .. StringTableCounter
+    end
 end
 
 -- Helper utility to isolate test groups

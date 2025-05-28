@@ -297,7 +297,7 @@ namespace Util
 #if HOLYLIB_BUILD_RELEASE
 #define HOLYLIB_UTIL_DEBUG_LUAUSERDATA 0
 #else
-#define HOLYLIB_UTIL_DEBUG_LUAUSERDATA 1
+#define HOLYLIB_UTIL_DEBUG_LUAUSERDATA 1 // 1 = leak checks, 2 = debug prints
 #endif
 #define HOLYLIB_UTIL_DEBUG_BASEUSERDATA 0
 
@@ -365,6 +365,9 @@ struct BaseUserData {
 	inline bool Release(LuaUserData* pLuaUserData)
 	{
 		m_pMutex.Lock();
+#if HOLYLIB_UTIL_DEBUG_BASEUSERDATA
+		Msg("holylib - util: Userdata %p(%p) tried to release %i (%p)\n", this, m_pData, m_iReferenceCount, pLuaUserData);
+#endif
 		if (m_iReferenceCount == 0) // Don't accidentally delete it again...
 		{
 			m_pMutex.Unlock();
@@ -373,13 +376,16 @@ struct BaseUserData {
 
 		--m_iReferenceCount;
 #if HOLYLIB_UTIL_DEBUG_BASEUSERDATA
-		Msg("holylib - util: Userdata %p(%p) got released %i\n", this, m_pData, m_iReferenceCount);
+		Msg("holylib - util: Userdata %p(%p) got released %i (%p)\n", this, m_pData, m_iReferenceCount, pLuaUserData);
 #endif
 		m_pOwningData.erase(pLuaUserData);
 
 		if (m_iReferenceCount == 0)
 		{
 			m_pMutex.Unlock();
+#if HOLYLIB_UTIL_DEBUG_BASEUSERDATA
+		Msg("holylib - util: Userdata %p(%p) got deleted %i (%p)\n", this, m_pData, m_iReferenceCount, pLuaUserData);
+#endif
 			delete this;
 			return true;
 		}
@@ -404,6 +410,11 @@ struct BaseUserData {
 		pUserData->Aquire(); // Increment counter
 		pUserData->m_pOwningData.insert(pLuaUserData);
 		return pUserData;
+	}
+
+	inline int GetReferenceCount()
+	{
+		return m_iReferenceCount;
 	}
 
 	static inline void ForceGlobalRelease(void* pData);
@@ -436,6 +447,9 @@ struct LuaUserData {
 	LuaUserData() {
 #if HOLYLIB_UTIL_DEBUG_LUAUSERDATA
 		g_pLuaUserData.insert(this);
+#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA == 2
+		Msg("holylib - util: LuaUserdata got created %p\n", this);
+#endif
 #endif
 	}
 
@@ -464,7 +478,7 @@ struct LuaUserData {
 		{
 			if (pLua)
 			{
-				pLua->ReferencePush(iReference);
+				Util::ReferencePush(pLua, iReference);
 				pLua->SetUserType(-1, NULL);
 				pLua->Pop(1);
 				Util::ReferenceFree(pLua, iReference, "LuaUserData::~LuaUserData(UserData)");
@@ -488,12 +502,20 @@ struct LuaUserData {
 			pBaseData->Release(this);
 			pBaseData = NULL;
 		}
+
+#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA == 2
+		Msg("holylib - util: LuaUserdata got deleted %p\n", this);
+#endif
 	}
 
 	inline void Init(GarrysMod::Lua::ILuaInterface* LUA, int type)
 	{
 		pLua = LUA;
 		iType = (unsigned char)type;
+
+#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA == 2
+		Msg("holylib - util: LuaUserdata got initialized %p - %p - %i\n", this, pLua, type);
+#endif
 	}
 
 	inline void EnsureLuaTable()
@@ -502,6 +524,9 @@ struct LuaUserData {
 		{
 			pLua->CreateTable();
 			iTableReference = Util::ReferenceCreate(pLua, "LuaUserData::EnsureLuaTable");
+#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA == 2
+			Msg("holylib - util: LuaUserdata got created luaTable %p - %p - %i\n", this, pLua, iTableReference);
+#endif
 		}
 	}
 
@@ -512,6 +537,10 @@ struct LuaUserData {
 
 		pLua->Push(-1); // When CreateReference is called we expect our object to be already be on the stack at -1!
 		iReference = Util::ReferenceCreate(pLua, "LuaUserData::CreateReference");
+
+#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA == 2
+		Msg("holylib - util: LuaUserdata got created reference %p - %p - %i\n", this, pLua, iReference);
+#endif
 	}
 
 	inline void* GetData()
@@ -519,15 +548,27 @@ struct LuaUserData {
 		return pBaseData ? pBaseData->GetData(pLua) : NULL;
 	}
 
+	inline BaseUserData* GetInternalData()
+	{
+		return pBaseData;
+	}
+
 	inline void SetData(void* data)
 	{
+#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA == 2
+		Msg("holylib - util: LuaUserdata got new data %p - %p\n", this, data);
+#endif
+
 		if (pBaseData != NULL)
 		{
 			pBaseData->Release(this);
 			pBaseData = NULL;
 		}
 
-		pBaseData = BaseUserData::LuaAquire(this, data);
+		if (data)
+		{
+			pBaseData = BaseUserData::LuaAquire(this, data);
+		}
 	}
 
 	inline int GetAdditionalData()
@@ -552,6 +593,10 @@ struct LuaUserData {
 		{
 			Util::ReferenceFree(pLua, iTableReference, "LuaUserData::ClearLuaTable");
 			iTableReference = -1;
+
+#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA == 2
+			Msg("holylib - util: LuaUserdata nuked its luatable %p - %p\n", this, pLua);
+#endif
 		}
 	}
 
@@ -576,6 +621,10 @@ struct LuaUserData {
 
 	inline bool Release()
 	{
+#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA == 2
+		Msg("holylib - util: LuaUserdata got created released %p\n", this);
+#endif
+
 		if (pBaseData != NULL)
 		{
 			bool bDelete = pBaseData->Release(this);
@@ -603,13 +652,34 @@ inline void BaseUserData::ForceGlobalRelease(void* pData)
 	if (it == g_pGlobalLuaUserData.end())
 		return;
 
-	it->second->m_iReferenceCount = 0;
-	for (auto& userData : it->second->m_pOwningData)
+#if HOLYLIB_UTIL_DEBUG_BASEUSERDATA
+	Msg("holylib - util: Global release for Userdata %p (%p) got aquired %i\n", it->second, pData, it->second->m_iReferenceCount);
+#endif
+
+	std::unordered_set<LuaUserData*> owningData = it->second->m_pOwningData; // Copy it over in case it->second gets deleted while iterating
+	for (auto& userData : owningData)
 	{
-		userData->SetData(NULL); // Remove any references any LuaUserData holds to us.
+		if (userData->GetInternalData())
+		{
+			userData->SetData(NULL); // Remove any references any LuaUserData holds to us.
+		}
 	}
 
-	it->second->Release(NULL);
+	/*
+		We need to pull it again since the it->second might have now been deleted.
+		This is because SetData internally releases the UserData it holds and the UserData will delete itself if all references were freed
+	*/
+	auto it2 = g_pGlobalLuaUserData.find(pData);
+	if (it2 == g_pGlobalLuaUserData.end())
+		return;
+
+	// Reference leak case. This should normally never happen.
+//#if HOLYLIB_UTIL_DEBUG_BASEUSERDATA
+	Warning(PROJECT_NAME " - BaseUserData: Found a reference leak while deleting it! (%p, %p, %i)\n", pData, it2->second, it2->second->m_iReferenceCount);
+//#endif
+
+	it2->second->m_iReferenceCount = 1; // Set it to 1 because Release will only fully execute if there aren't any other references left.
+	it2->second->Release(NULL);
 }
 
 #define TO_LUA_TYPE( className ) Lua::className
@@ -760,11 +830,11 @@ void Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
 		return; \
 	} \
 \
-	auto pushedUserData = Lua::GetLuaData(LUA)->GetPushedUserData(); \
+	auto& pushedUserData = Lua::GetLuaData(LUA)->GetPushedUserData(); \
 	auto it = pushedUserData.find(var); \
 	if (it != pushedUserData.end()) \
 	{ \
-		LUA->ReferencePush(it->second->GetReference()); \
+		Util::ReferencePush(LUA, it->second->GetReference()); \
 	} else { \
 		LuaUserData* userData = new LuaUserData; \
 		userData->SetData(var); \
@@ -778,7 +848,7 @@ void Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
 \
 [[maybe_unused]] static void Delete_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
 { \
-	auto pushedUserData = Lua::GetLuaData(LUA)->GetPushedUserData(); \
+	auto& pushedUserData = Lua::GetLuaData(LUA)->GetPushedUserData(); \
 	auto it = pushedUserData.find(var); \
 	if (it != pushedUserData.end()) \
 	{ \
@@ -791,7 +861,7 @@ void Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
 { \
 	Lua::StateData* LUADATA = Lua::GetLuaData(LUA); \
 	int luaType = LUADATA->GetMetaTable(TO_LUA_TYPE(className)); \
-	auto pushedUserData = Lua::GetLuaData(LUA)->GetPushedUserData(); \
+	auto& pushedUserData = LUADATA->GetPushedUserData(); \
 	for (auto it = pushedUserData.begin(); it != pushedUserData.end(); ) \
 	{ \
 		if (it->second->GetType() == luaType) \
@@ -802,7 +872,6 @@ void Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
 			it++; \
 		} \
 	} \
-	pushedUserData.clear(); \
 } \
 \
 [[maybe_unused]] static void DeleteGlobal_##className(className* var) \
