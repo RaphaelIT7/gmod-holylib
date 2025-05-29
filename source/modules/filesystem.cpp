@@ -699,7 +699,8 @@ static bool hook_CBaseFileSystem_FixUpPath(IFileSystem* filesystem, const char *
 	if (!holylib_filesystem_optimizedfixpath.GetBool())
 		return detour_CBaseFileSystem_FixUpPath.GetTrampoline<Symbols::CBaseFileSystem_FixUpPath>()(filesystem, pFileName, pFixedUpFileName, sizeFixedUpFileName);
 
-	VPROF_BUDGET("HolyLib - CBaseFileSystem::FixUpPath", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
+	// This is already utterly fast, so we don't need vprof here.
+	//VPROF_BUDGET("HolyLib - CBaseFileSystem::FixUpPath", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
 	if (!g_pFullFileSystem)
 		InitFileSystem((IFileSystem*)filesystem);
