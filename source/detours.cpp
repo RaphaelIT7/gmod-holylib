@@ -2,6 +2,7 @@
 #include <map>
 #include <convar.h>
 #include <unordered_set>
+#include <unordered_map>
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -16,6 +17,7 @@ void* Detour::GetFunction(void* module, Symbol symbol)
 
 std::unordered_set<std::string> pDisabledDetours;
 std::map<unsigned int, std::vector<Detouring::Hook*>> g_pDetours = {};
+std::unordered_map<Detouring::Hook*, std::string> g_pDetourNames = {};
 void Detour::Create(Detouring::Hook* hook, const char* name, void* module, Symbol symbol, void* hook_func, unsigned int category)
 {
 	if (pDisabledDetours.find(name) != pDisabledDetours.end())
@@ -32,6 +34,7 @@ void Detour::Create(Detouring::Hook* hook, const char* name, void* module, Symbo
 	hook->Enable();
 
 	g_pDetours[category].push_back(hook);
+	g_pDetourNames[hook] = (std::string)name;
 
 	if (!DETOUR_ISVALID((*hook)))
 		Msg(PROJECT_NAME ": Failed to detour %s!\n", name);
@@ -47,6 +50,7 @@ void Detour::Remove(unsigned int category) // NOTE: Do we need to check if the p
 		}
 	}
 	g_pDetours[category].clear();
+	g_pDetourNames.clear();
 }
 
 void Detour::ReportLeak()
@@ -79,3 +83,23 @@ static void ToggleDetour(const CCommand& args)
 	Msg("Disabled detour %s!\n", args.Arg(1));
 }
 static ConCommand toggledetour("holylib_toggledetour", ToggleDetour, "Debug command. Enables/Disables the given detour.", 0);
+
+static void DisableDetour(const CCommand& args)
+{
+	if (args.ArgC() < 1 || V_stricmp(args.Arg(1), "") == 0)
+	{
+		Msg("No. Give us more.\n");
+		return;
+	}
+	
+	for (auto& [hook, name] : g_pDetourNames)
+	{
+		if (name == ((std::string)args.Arg(1)))
+		{
+			Msg("Found and disabled the hook.\n");
+			hook->Disable();
+			break;
+		}
+	}
+}
+static ConCommand disabledetour("holylib_disabledetour", DisableDetour, "Debug command. Disables the given detour.", 0);
