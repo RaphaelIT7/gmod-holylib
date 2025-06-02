@@ -11,7 +11,7 @@ jobs:
       BUILD_64x: "true"
       REALM: "sv"
       LINUX_FILEEXTENTION: "so"
-      BUILD_WINDOWS: "false"
+      BUILD_WINDOWS: "true"
       ARTIFACT_EXPIRE: "1"
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
