@@ -17,7 +17,7 @@ public:
 	virtual void Shutdown() OVERRIDE;
 	virtual void Think(bool bSimulating) OVERRIDE;
 	virtual const char* Name() { return "bass"; };
-	virtual int Compatibility() { return LINUX32 | LINUX64; };
+	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 	virtual bool IsEnabledByDefault() { return false; };
 	virtual bool SupportsMultipleLuaStates() { return true; };
 };
@@ -389,7 +389,7 @@ LUA_FUNCTION_STATIC(bass_PlayURL)
 
 void CBassModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
-	SourceSDK::FactoryLoader gmod_audio_loader("gmod_audio"); // Probably a broken dll/so file.
+	/*SourceSDK::FactoryLoader gmod_audio_loader("gmod_audio"); // Probably a broken dll/so file.
 	if (!gmod_audio_loader.GetFactory())
 	{
 		if (g_pGModAudio)
@@ -408,6 +408,11 @@ void CBassModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 	Detour::CheckValue("get interface", "IGMod_Audio", gGModAudio != NULL);
 
 	gGModAudio->Init(*appfn); // The engine didn't...
+	*/
+
+	gGModAudio = g_pGModAudio;
+	gGModAudio->Init(*appfn);
+	// Always use our own Interface to not create funnies with the engine.
 }
 
 void CBassModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
