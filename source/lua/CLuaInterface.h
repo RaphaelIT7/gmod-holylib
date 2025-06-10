@@ -42,7 +42,7 @@ public:
 	virtual void Insert(int iStackPos);
 	virtual void Remove(int iStackPos);
 	virtual int Next(int iStackPos);
-	virtual void* NewUserdata(unsigned int iSize);
+	virtual GarrysMod::Lua::ILuaBase::UserData* NewUserdata(unsigned int iSize);
 	[[noreturn]]
 	virtual void ThrowError(const char* strError);
 	virtual void CheckType(int iStackPos, int iType);
@@ -54,14 +54,14 @@ public:
 	virtual double GetNumber(int iStackPos = -1);
 	virtual bool GetBool(int iStackPos = -1);
 	virtual GarrysMod::Lua::CFunc GetCFunction(int iStackPos = -1);
-	virtual void* GetUserdata(int iStackPos = -1);
+	virtual GarrysMod::Lua::ILuaBase::UserData* GetUserdata(int iStackPos = -1);
 	virtual void PushNil();
 	virtual void PushString(const char* val, unsigned int iLen = 0);
 	virtual void PushNumber(double val);
 	virtual void PushBool(bool val);
 	virtual void PushCFunction(GarrysMod::Lua::CFunc val);
 	virtual void PushCClosure(GarrysMod::Lua::CFunc val, int iVars);
-	virtual void PushUserdata(void*);
+	virtual void PushUserdata(GarrysMod::Lua::ILuaBase::UserData* pData);
 	virtual int ReferenceCreate();
 	virtual void ReferenceFree(int i);
 	virtual void ReferencePush(int i);
@@ -80,8 +80,8 @@ public:
 	virtual void SetState(lua_State* L);
 	virtual int CreateMetaTable(const char* strName);
 	virtual bool PushMetaTable(int iType);
-	virtual bool PushUserType(void* data, int iType);
-	virtual GarrysMod::Lua::ILuaBase::UserData* SetUserType(int iStackPos, void* data);
+	virtual void PushUserType(void* data, int iType);
+	virtual void SetUserType(int iStackPos, void* data);
 
 public:
 	virtual bool Init(GarrysMod::Lua::ILuaGameCallback *, bool);
@@ -135,7 +135,7 @@ public:
 	virtual void PopPath( );
 	virtual const char *GetPath( );
 	virtual int GetColor( int index );
-	virtual void PushColor( Color color );
+	virtual GarrysMod::Lua::ILuaObject* PushColor( Color color );
 	virtual int GetStack( int level, lua_Debug *dbg );
 	virtual int GetInfo( const char *what, lua_Debug *dbg );
 	virtual const char *GetLocal( lua_Debug *dbg, int n );
@@ -146,7 +146,7 @@ public:
 	virtual const char *GetCurrentLocation( );
 	virtual void MsgColour( const Color &col, const char *fmt, ... );
 	virtual void GetCurrentFile( std::string &outStr );
-	virtual void CompileString( Bootil::Buffer &dumper, const std::string &stringToCompile );
+	virtual bool CompileString( Bootil::Buffer &dumper, const std::string &stringToCompile );
 	virtual bool CallFunctionProtected( int iArgs, int iRets, bool showError );
 	virtual void Require( const char *name );
 	virtual const char *GetActualTypeName( int type );
@@ -154,12 +154,12 @@ public:
 	virtual void PushPooledString( int index );
 	virtual const char *GetPooledString( int index );
 	virtual int AddThreadedCall( GarrysMod::Lua::ILuaThreadedCall * );
-	virtual void AppendStackTrace( char *, unsigned long );
+	virtual void AppendStackTrace( char *, unsigned int );
 	virtual void *CreateConVar( const char *, const char *, const char *, int );
 	virtual void *CreateConCommand( const char *, const char *, int, FnCommandCallback_t, FnCommandCompletionCallback );
 	virtual const char* CheckStringOpt( int iStackPos, const char* def );
 	virtual double CheckNumberOpt( int iStackPos, double def );
-	virtual void RegisterMetaTable( const char* name, GarrysMod::Lua::ILuaObject* obj );
+	virtual int RegisterMetaTable( const char* name, GarrysMod::Lua::ILuaObject* obj );
 
 public:
 	std::string RunMacros(std::string script);
@@ -176,21 +176,34 @@ public:
 		m_pGameCallback = callback;
 	}
 
-private:
+private: // We keep gmod's structure in case any modules depend on it.
+	int _1 = 1; // Always 1?
 	char* m_sCurrentPath = new char[32]; // not how gmod does it :/
+	int _3 = 0;
+	int _4 = 0;
 	int m_iPushedPaths = 0;
 	const char* m_sLastPath = NULL;
 	std::list<GarrysMod::Lua::ILuaThreadedCall*> m_pThreadedCalls;
-	unsigned char m_iRealm = (unsigned char)-1; // CLIENT = 0, SERVER = 1, MENU = 2
-	GarrysMod::Lua::ILuaGameCallback* m_pGameCallback = nullptr;
-	char m_sPathID[24] = "LuaMenu"; // lsv, lsc or LuaMenu. Normally 32 bytes in Gmod, but in HolyLib we utilize the last 4/8(64x) bytes to store the Lua::StateData pointer for fast access
-	char m_sStatePointer[8] = ""; // Used in HolyLib to store the pointer to the Lua::StateData
-	int m_iGlobalReference = -1;
-	int m_iStringPoolReference = -1;
-	std::list<char*> m_pPaths;
 
-	int m_iTypeNum = GarrysMod::Lua::Type::Type_Count;
-	char m_strTypes[255 - GarrysMod::Lua::Type::Type_Count][32];
+#ifdef __APPLE__
+
+	size_t _7; // 1 * sizeof(size_t) = 4 (x86) or 8 (x86-64) bytes
+
+#endif
+
+	GarrysMod::Lua::ILuaObject* m_ProtectedFunctionReturns[4];
+	GarrysMod::Lua::ILuaObject* m_TempObjects[LUA_MAX_TEMP_OBJECTS];
+	unsigned char m_iRealm = (unsigned char)2; // CLIENT = 0, SERVER = 1, MENU = 2
+	GarrysMod::Lua::ILuaGameCallback* m_pGameCallback = nullptr;
+	char m_sPathID[32] = "LuaMenu"; // lsv, lsc or LuaMenu
+	int m_iCurrentTempObject = 0;
+	GarrysMod::Lua::ILuaObject* m_pGlobal = nullptr;
+	GarrysMod::Lua::ILuaObject* m_pStringPool = nullptr;
+	// But wait, theres more. In the next fields the metatables objects are saved but idk if it just has a field for each metatable or if it uses a map.
+	unsigned char m_iMetaTableIDCounter = 44;
+	GarrysMod::Lua::ILuaObject* m_pMetaTables[255]; // Their index is based off their type. means m_MetaTables[Type::Entity] returns the Entity metatable.
+private: // NOT GMOD stuff
+	std::list<char*> m_pPaths;
 
 public:
 	void RunThreadedCalls();

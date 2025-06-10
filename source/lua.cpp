@@ -47,6 +47,7 @@ bool Lua::PushHook(const char* hook, GarrysMod::Lua::ILuaInterface* pLua)
 	return true;
 }
 
+extern void SetupUnHolyVTableForThisShit(GarrysMod::Lua::ILuaInterface* pLua);
 void Lua::Init(GarrysMod::Lua::ILuaInterface* LUA)
 {
 	if (g_Lua)
@@ -58,10 +59,11 @@ void Lua::Init(GarrysMod::Lua::ILuaInterface* LUA)
 	g_Lua = LUA;
 	Lua::CreateLuaData(g_Lua, true);
 	g_pModuleManager.LuaInit(g_Lua, false);
+	SetupUnHolyVTableForThisShit(g_Lua);
 
-	std::vector<LuaFindResult> results;
+	std::vector<GarrysMod::Lua::LuaFindResult> results;
 	GetShared()->FindScripts("lua/autorun/_holylib/*.lua", "GAME", results);
-	for (LuaFindResult& result : results)
+	for (GarrysMod::Lua::LuaFindResult& result : results)
 	{
 		std::string fileName = "lua/autorun/_holylib/";
 		fileName.append(result.GetFileName());

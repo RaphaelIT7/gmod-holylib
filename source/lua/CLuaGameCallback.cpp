@@ -4,6 +4,7 @@
 #include <sstream>
 #include <string>
 #include "Platform.hpp"
+#include "lua.h"
 
 #if !HOLYLIB_BUILD_RELEASE && SYSTEM_WINDOWS
 __declspec(dllexport) class [[nodiscard]] CLuaObject : GarrysMod::Lua::ILuaObject // For IDA as I need a vtable and its members to use when comparing stuff
@@ -141,7 +142,7 @@ protected:
 	int m_reference;
 	GarrysMod::Lua::ILuaBase* m_pLua;
 protected:
-	int m_metatable;
+	int m_metatable; // Verify: This real? Why did I add it? Where did this come from? Magic
 };
 #endif
 
@@ -182,15 +183,49 @@ Color col_error(136, 221, 255, 255);
 	va_end(args);
 }*/
 
+// Time for yet ANOTHER shitty workaround.
+// This should be considered a warcrime at this point.
+struct UnholyVTable
+{
+	// I think it only has like 50 virtual functions, but we take up more space just to be safe.
+	void* entry[128] = {NULL}; // Hopefully this should be enouth for years to come.
+};
+UnholyVTable g_pGlobalObjctVTable;
+class UnholyLuaObject
+{
+public:
+	void* m_pVTABLE = &g_pGlobalObjctVTable; // Vtable offset as else our member variables are all invalid.
+	bool m_bUserData;
+	int m_iLUA_TYPE;
+	int m_reference;
+	GarrysMod::Lua::ILuaInterface* m_pLua;
+};
+void SetupUnHolyVTableForThisShit(GarrysMod::Lua::ILuaInterface* pLua)
+{
+	GarrysMod::Lua::ILuaObject* pObject = pLua->NewTemporaryObject();
+	memcpy(&g_pGlobalObjctVTable, *(void**)pObject, sizeof(UnholyVTable));
+	// Yes, we just copy the entire thing.
+	// This is cursed, but it allows us to update the vtable without having to change every single ILuaObject created before this function was called.
+	// By default all vtable functions are NULL since they shouldn't be used that early anyways.
+}
+
 GarrysMod::Lua::ILuaObject* CLuaGameCallback::CreateLuaObject()
 {
-	Error("CLuaGameCallback::CreateLuaObject was called! (Should never be used)\n");
-	return NULL;
+	return static_cast<GarrysMod::Lua::ILuaObject*>(static_cast<void*>(new UnholyLuaObject()));
 }
 
 void CLuaGameCallback::DestroyLuaObject(GarrysMod::Lua::ILuaObject* pObject)
 {
-	Error("CLuaGameCallback::DestroyLuaObject was called! (Should never be used)\n");
+	UnholyLuaObject* pUnholyObject = static_cast<UnholyLuaObject*>(static_cast<void*>(pObject));
+	if (pUnholyObject->m_pVTABLE == &g_pGlobalObjctVTable) // Ensure its one of our unholy instances.
+	{
+		delete pUnholyObject;
+	} else {
+		if (!g_Lua)
+			Error("CLuaGameCallback::DestroyLuaObject called while no valid lua instance existed!\n");
+
+		g_Lua->DestroyObject(pObject);
+	}
 }
 
 void CLuaGameCallback::ErrorPrint(const char* error, bool print)

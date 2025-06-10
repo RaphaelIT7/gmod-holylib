@@ -135,7 +135,7 @@ namespace GarrysMod::Lua
 	//protected:
 	//#endif
 		// Deprecated: Use the UserType functions instead of this
-		virtual void* NewUserdata(unsigned int iSize) = 0;
+		virtual ILuaBase::UserData* NewUserdata(unsigned int iSize) = 0;
 
 	public:
 		// Throws an error and ceases execution of the function
@@ -187,7 +187,7 @@ namespace GarrysMod::Lua
 	//protected:
 	//#endif
 		// Deprecated: You should probably be using the UserType functions instead of this
-		virtual void* GetUserdata(int iStackPos = -1) = 0;
+		virtual ILuaBase::UserData* GetUserdata(int iStackPos = -1) = 0;
 
 	public:
 		// Pushes a nil value on to the stack
@@ -215,7 +215,7 @@ namespace GarrysMod::Lua
 	//protected:
 	//#endif
 		// Deprecated: Don't use light userdata in GMod
-		virtual void		PushUserdata(void*) = 0;
+		virtual void		PushUserdata(GarrysMod::Lua::ILuaBase::UserData*) = 0;
 
 	public:
 		// Allows for values to be stored by reference for later use
@@ -281,11 +281,11 @@ namespace GarrysMod::Lua
 		virtual bool		PushMetaTable(int iType) = 0;
 
 		// Creates a new UserData of type iType that references the given data
-		virtual bool		PushUserType(void* data, int iType) = 0;
+		virtual void		PushUserType(void* data, int iType) = 0;
 
 		// Sets the data pointer of the UserType at iStackPos
 		// You can use this to invalidate a UserType by passing NULL
-		virtual GarrysMod::Lua::ILuaBase::UserData* SetUserType(int iStackPos, void* data) = 0;
+		virtual void SetUserType(int iStackPos, void* data) = 0;
 
 		// Returns the data of the UserType at iStackPos if it is of the given type
 		template <class T>
@@ -504,7 +504,7 @@ namespace GarrysMod::Lua
 		virtual void PopPath( ) = 0;
 		virtual const char *GetPath( ) = 0;
 		virtual int GetColor( int index ) = 0;
-		virtual void PushColor( Color color ) = 0;
+		virtual ILuaObject* PushColor( Color color ) = 0;
 		virtual int GetStack( int level, lua_Debug *dbg ) = 0;
 		virtual int GetInfo( const char *what, lua_Debug *dbg ) = 0;
 		virtual const char *GetLocal( lua_Debug *dbg, int n ) = 0;
@@ -515,7 +515,7 @@ namespace GarrysMod::Lua
 		virtual const char *GetCurrentLocation( ) = 0;
 		virtual void MsgColour( const Color &col, const char *fmt, ... ) = 0;
 		virtual void GetCurrentFile( std::string &outStr ) = 0;
-		virtual void CompileString( Bootil::Buffer &dumper, const std::string &stringToCompile ) = 0;
+		virtual bool CompileString( Bootil::Buffer &dumper, const std::string &stringToCompile ) = 0;
 		virtual bool CallFunctionProtected( int iArgs, int iRets, bool bError ) = 0;
 		virtual void Require( const char *name ) = 0;
 		virtual const char *GetActualTypeName( int type ) = 0;
@@ -523,12 +523,12 @@ namespace GarrysMod::Lua
 		virtual void PushPooledString( int index ) = 0;
 		virtual const char *GetPooledString( int index ) = 0;
 		virtual int AddThreadedCall( ILuaThreadedCall * ) = 0;
-		virtual void AppendStackTrace( char *, unsigned long ) = 0;
+		virtual void AppendStackTrace( char *, unsigned int ) = 0;
 		virtual void *CreateConVar( const char *, const char *, const char *, int ) = 0;
 		virtual void *CreateConCommand( const char *, const char *, int, void ( * )( const CCommand & ), int ( * )( const char *, char ( * )[128] ) ) = 0;
 		virtual const char* CheckStringOpt( int iStackPos, const char* def ) = 0;
 		virtual double CheckNumberOpt( int iStackPos, double def ) = 0;
-		virtual void RegisterMetaTable( const char* name, ILuaObject* obj ) = 0;
+		virtual int RegisterMetaTable( const char* name, ILuaObject* obj ) = 0;
 
 		// Not in gmod? Anyways.
 		virtual ~ILuaInterface() {}

@@ -48,9 +48,9 @@ void HolyLua::Init()
 	g_pModuleManager.LuaInit(g_HolyLua, true);
 
 	// Finally, load any holylua scripts
-	std::vector<LuaFindResult> results;
+	std::vector<GarrysMod::Lua::LuaFindResult> results;
 	Lua::GetShared()->FindScripts("lua/autorun/_holylua/*.lua", "GAME", results);
-	for (LuaFindResult& result : results)
+	for (GarrysMod::Lua::LuaFindResult& result : results)
 	{
 		std::string fileName = "lua/autorun/_holylua/";
 		fileName.append(result.GetFileName());

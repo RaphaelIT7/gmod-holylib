@@ -1,15 +1,14 @@
-#include "CLuaInterface.h"
-#include "lua.hpp"
+#include "../lua/lua.hpp"
 #include "../lua/lj_obj.h"
 #include "../lua/luajit_rolling.h"
-#include "../lua/lauxlib.h"
-#include "../lua/lj_obj.h"
-#include <regex>
-#include "color.h"
+#include "CLuaInterface.h"
 #include <filesystem.h>
-#include "GarrysMod/Lua/LuaShared.h"
+#include "iluashared.h"
 #include "lua/PooledStrings.h"
 #include "util.h"
+#include "Bootil/Bootil.h"
+#include "color.h"
+#include "lua.h"
 
 #if defined(__clang__) || defined(__GNUC__)
 #define POINT_UNREACHABLE   __builtin_unreachable()
@@ -17,7 +16,144 @@
 #define POINT_UNREACHABLE   __assume(false)
 #endif
 
-static ConVar lua_debugmode("lua_debugmode_interface", "1", 0);
+// Another shit workaround since the vtable is off on Windows.
+// And until I get a response from Rubat I give up trying to properly fix the vtable.
+// This project already has enouth shitty workarounds and I hate to keep having to add some just because some updates breaks shit without the changes being announced.
+class CSimpleLuaObject;
+inline CSimpleLuaObject* ToSimpleObject(GarrysMod::Lua::ILuaObject* pObj);
+class CSimpleLuaObject
+{
+public:
+	inline void Init(GarrysMod::Lua::ILuaInterface* pLua)
+	{
+		m_pLua = pLua;
+		m_bUserData = false;
+		m_reference = -1;
+		m_iLUA_TYPE = -1;
+	}
+
+	inline void Push(GarrysMod::Lua::ILuaInterface* pLua)
+	{
+		if (!m_pLua)
+		{
+			Init(pLua);
+		}
+
+		if (m_reference != -1)
+			m_pLua->ReferencePush(m_reference);
+		else
+			m_pLua->PushNil();
+	}
+
+	inline void SetFromStack(int iStackPos, GarrysMod::Lua::ILuaInterface* pLua)
+	{
+		if (!m_pLua)
+		{
+			Init(pLua);
+		}
+
+		m_pLua->Push(iStackPos);
+
+		UnReference();
+		m_iLUA_TYPE = m_pLua->GetType( -1 );
+		m_bUserData = m_iLUA_TYPE > 7;
+
+		m_reference = m_pLua->ReferenceCreate();
+	}
+
+	inline int GetType()
+	{
+		if (m_reference != -1)
+		{
+			m_pLua->ReferencePush(m_reference);
+			int type = m_pLua->GetType(-1);
+			m_pLua->Pop(1);
+			return type;
+		} else {
+			return GarrysMod::Lua::Type::Nil;
+		}
+	}
+
+	inline bool isTable()
+	{
+		return GetType() == GarrysMod::Lua::Type::Table;
+	}
+
+	inline void UnReference()
+	{
+		m_pLua->ReferenceFree(m_reference);
+		m_reference = -1;
+	}
+
+	inline void SetMember(const char* name, const char* val)
+	{
+		if (m_reference != -1)
+		{
+			m_pLua->ReferencePush(m_reference);
+			if (m_pLua->IsType(-1, GarrysMod::Lua::Type::Table))
+			{
+				m_pLua->PushString(val);
+				m_pLua->SetField(-2, name);
+			}
+			m_pLua->Pop(1);
+		}
+	}
+
+	inline int GetMemberInt(const char* name, int b)
+	{
+		int val = b;
+		if (m_reference != -1)
+		{
+			m_pLua->ReferencePush(m_reference);
+			if (m_pLua->IsType(-1, GarrysMod::Lua::Type::Table))
+			{
+				m_pLua->GetField(-1, name);
+				if (m_pLua->IsType(-1, GarrysMod::Lua::Type::Number)) {
+					val = (int)m_pLua->GetNumber(-1);
+				}
+				m_pLua->Pop(1);
+			}
+			m_pLua->Pop(1);
+		}
+
+		return val;
+	}
+
+	inline void SetMember(const char* name, int val)
+	{
+		if (m_reference != -1)
+		{
+			m_pLua->ReferencePush(m_reference);
+			if (m_pLua->IsType(-1, GarrysMod::Lua::Type::Table))
+			{
+				m_pLua->PushNumber(val);
+				m_pLua->SetField(-2, name);
+			}
+			m_pLua->Pop(1);
+		}
+	}
+
+	inline void SetMetaTable(GarrysMod::Lua::ILuaObject* meta, GarrysMod::Lua::ILuaInterface* pLua)
+	{
+		Push(pLua);
+		ToSimpleObject(meta)->Push(pLua);
+		m_pLua->SetMetaTable( -2 );
+	}
+
+public:
+	void* m_pVTABLE; // Vtable offset as else our member variables are all invalid.
+	bool m_bUserData;
+	int m_iLUA_TYPE;
+	int m_reference;
+	GarrysMod::Lua::ILuaInterface* m_pLua;
+};
+
+inline CSimpleLuaObject* ToSimpleObject(GarrysMod::Lua::ILuaObject* pObj)
+{
+	return static_cast<CSimpleLuaObject*>(static_cast<void*>(pObj));
+}
+
+static ConVar lua_debugmode("lua_debugmode_interface", "5", 0);
 inline void CLuaInterface_DebugPrint(int level, const char* fmt, ...)
 {
 	if (lua_debugmode.GetInt() < level)
@@ -56,7 +192,7 @@ inline void CLuaInterface_DebugPrint(int level, const char* fmt, ...)
 // =================================
 std::string g_LastError;
 std::vector<lua_Debug*> stackErrors;
-GarrysMod::Lua::ILuaGameCallback::CLuaError* ReadStackIntoError(lua_State* L, bool bSimple)
+GarrysMod::Lua::ILuaGameCallback::CLuaError* ReadStackIntoError(lua_State* L)
 {
 	// VPROF ReadStackIntoError GLua
 
@@ -69,22 +205,18 @@ GarrysMod::Lua::ILuaGameCallback::CLuaError* ReadStackIntoError(lua_State* L, bo
 		GarrysMod::Lua::ILuaGameCallback::CLuaError::StackEntry& entry = lua_error->stack.emplace_back();
 		entry.source = ar.source ? ar.source : "unknown";
 		entry.function = ar.name ? ar.name : "unknown";
+
 		entry.line = ar.currentline;
 
 		++level;
 	}
 
+	const char* str = lua_tolstring(L, -1, NULL);
+	if (str != NULL) // Setting a std::string to NULL causes a crash. Don't care.
+		lua_error->message = str;
+
 	CLuaInterface* LUA = (CLuaInterface*)L->luabase;
 	lua_error->side = LUA->IsClient() ? "client" : (LUA->IsMenu() ? "menu" : "server");
-
-	if ( bSimple )
-		return lua_error;
-
-	const char* str = lua_tolstring(L, -1, NULL);
-	if (str != NULL) // Setting a std::string to NULL causes a crash
-	{
-		lua_error->message = str;
-	}
 
 	return lua_error;
 }
@@ -98,7 +230,7 @@ int AdvancedLuaErrorReporter(lua_State *L)
 
 		g_LastError.assign(str);
 
-		ReadStackIntoError(L, false);
+		ReadStackIntoError(L);
 
 		lua_pushstring(L, g_LastError.c_str());
 	}
@@ -109,13 +241,17 @@ int AdvancedLuaErrorReporter(lua_State *L)
 GarrysMod::Lua::ILuaInterface* Lua::CreateLuaInterface(bool bIsServer)
 {
 	LuaDebugPrint(1, "CreateLuaInterface\n");
+
 	return new CLuaInterface;
 }
 
 void Lua::CloseLuaInterface(GarrysMod::Lua::ILuaInterface* LuaInterface)
 {
 	LuaDebugPrint(1, "CloseLuaInterface\n");
-	//LuaInterface->Shutdown(); // This was moved to lua.cpp in holylib
+	// ToDo: Add all fancy operations and delete ILuaGameCallback? (Should we really delete it? No.)
+	// LuaInterface->Shutdown(); // BUG: Gmod doesn't do this in here... right?
+	// NOTE: We alreay call Shutdown from Lua::DestroyInterface so if your not careful you might call it twice and crash.
+
 	delete LuaInterface;
 }
 
@@ -195,19 +331,17 @@ bool CLuaInterface::GetMetaTable(int iStackPos)
 void CLuaInterface::Call(int iArgs, int iResults)
 {
 	LuaDebugPrint(3, "CLuaInterface::Call %i %i\n", iArgs, iResults);
-	lua_call(state, iArgs, iResults);
+	lua_State* currentState = state;
+	lua_call(currentState, iArgs, iResults);
+	SetState(currentState); // done for some reason, idk. Probably done in case the state somehow changes like if you call a coroutine?
 }
 
 int CLuaInterface::PCall(int iArgs, int iResults, int iErrorFunc)
 {
 	LuaDebugPrint(2, "CLuaInterface::PCall %i %i %i\n", iArgs, iResults, iErrorFunc);
-	//return lua_pcall(state, iArgs, iResults, iErrorFunc);
-	int ret = lua_pcall(state, iArgs, iResults, iErrorFunc);
-#if !HOLYLIB_BUILD_RELEASE
-	if ( ret != 0 )
-		LuaDebugPrint(2, "CLuaInterface::PCall went boom. Oh nooo\n");
-#endif
-
+	lua_State* pCurrentState = state;
+	int ret = lua_pcall(pCurrentState, iArgs, iResults, iErrorFunc);
+	SetState(pCurrentState);
 	return ret;
 }
 
@@ -241,10 +375,10 @@ int CLuaInterface::Next(int iStackPos)
 	return lua_next(state, iStackPos);
 }
 
-void* CLuaInterface::NewUserdata(unsigned int iSize)
+GarrysMod::Lua::ILuaBase::UserData* CLuaInterface::NewUserdata(unsigned int iSize)
 {
 	LuaDebugPrint(3, "CLuaInterface::NewUserdata\n");
-	return lua_newuserdata(state, iSize);
+	return (UserData*)lua_newuserdata(state, iSize);
 }
 
 [[noreturn]] void CLuaInterface::ThrowError(const char* strError)
@@ -259,10 +393,7 @@ void CLuaInterface::CheckType(int iStackPos, int iType)
 	LuaDebugPrint(3, "CLuaInterface::CheckType %i %i\n", iStackPos, iType);
 	int actualType = GetType(iStackPos);
 	if (actualType != iType) {
-		//const char* expectedType = GetTypeName(iType);
-		//const char* actualTypeName = GetTypeName(actualType);
-		//const char* errorMessage = lua_pushfstring(state, "Expected type %s at stack position %d, but got type %s.", expectedType, iStackPos, actualTypeName);
-		lua_error(state);
+		TypeError(GetTypeName(iType), iStackPos);
 	}
 }
 
@@ -288,7 +419,13 @@ void CLuaInterface::RawSet(int iStackPos)
 const char* CLuaInterface::GetString(int iStackPos, unsigned int* iOutLen)
 {
 	LuaDebugPrint(4, "CLuaInterface::GetString\n");
-	return lua_tolstring(state, iStackPos, reinterpret_cast<std::size_t*>(iOutLen));
+
+	size_t length;
+	const char* pString = lua_tolstring(state, iStackPos, &length);
+	if (iOutLen)
+		*iOutLen = length;
+
+	return pString;
 }
 
 double CLuaInterface::GetNumber(int iStackPos)
@@ -309,10 +446,10 @@ GarrysMod::Lua::CFunc CLuaInterface::GetCFunction(int iStackPos)
 	return lua_tocfunction(state, iStackPos);
 }
 
-void* CLuaInterface::GetUserdata(int iStackPos)
+GarrysMod::Lua::ILuaBase::UserData* CLuaInterface::GetUserdata(int iStackPos)
 {
 	LuaDebugPrint(4, "CLuaInterface::GetUserdata %i\n", iStackPos);
-	return lua_touserdata(state, iStackPos);
+	return (ILuaBase::UserData*)lua_touserdata(state, iStackPos);
 }
 
 void CLuaInterface::PushNil()
@@ -355,7 +492,7 @@ void CLuaInterface::PushCClosure(GarrysMod::Lua::CFunc val, int iVars)
 	lua_pushcclosure(state, val, iVars);
 }
 
-void CLuaInterface::PushUserdata(void* val)
+void CLuaInterface::PushUserdata(GarrysMod::Lua::ILuaBase::UserData* val)
 {
 	LuaDebugPrint(4, "CLuaInterface::PushUserdata\n");
 	lua_pushlightuserdata(state, val);
@@ -408,29 +545,20 @@ bool CLuaInterface::IsType(int iStackPos, int iType)
 	if (actualType == iType)
 		return true;
 
-	if (iType > 8)
-	{
-		GarrysMod::Lua::ILuaBase::UserData* udata = (GarrysMod::Lua::ILuaBase::UserData*)GetUserdata(iStackPos);
-		if (udata && udata->type == iType)
-		{
-			LuaDebugPrint(4, "CLuaInterface::IsType %i %i (%i)\n", iStackPos, iType, udata->type);
-			return true;
-		}
-	}
-
-	LuaDebugPrint(4, "CLuaInterface::IsType %i %i (%i)\n", iStackPos, iType, actualType);
+	if (actualType == 7 && iType > 7) // Check for 7 since gmod doesn't know that all type values were shifted by 1 because of a new type in luajit.
+		return iType == GetUserdata(iStackPos)->type; // Don't need to accout for type shift since this shouldn't be affected.
 
 	return false;
 }
 
-int CLuaInterface::GetType(int iStackPos)
+int CLuaInterface::GetType(int iStackPos) // WHY DOES THIS USE A SWITCH BLOCK IN GMOD >:(
 {
 	LuaDebugPrint(4, "CLuaInterface::GetType %i %i\n", iStackPos, lua_type(state, iStackPos));
 	int type = lua_type(state, iStackPos);
 
 	if (type == GarrysMod::Lua::Type::UserData)
 	{
-		GarrysMod::Lua::ILuaBase::UserData* udata = (GarrysMod::Lua::ILuaBase::UserData*)GetUserdata(iStackPos);
+		ILuaBase::UserData* udata = GetUserdata(iStackPos);
 		if (udata)
 		{
 			type = udata->type;
@@ -445,27 +573,32 @@ int CLuaInterface::GetType(int iStackPos)
 const char* CLuaInterface::GetTypeName(int iType)
 {
 	LuaDebugPrint(1, "CLuaInterface::GetTypeName %i\n", iType);
-	if (iType < 0) {
+	if (iType < 0)
 		return "none";
-	} else {
-		const char* pName = GetActualTypeName(iType);
-		if (!pName) {
-			return "unknown";
-		} else {
-			return pName;
-		}
-	}
+
+	constexpr int typeCount = sizeof(GarrysMod::Lua::Type::Name) / sizeof(const char*);
+	if (iType <= typeCount)
+		return GarrysMod::Lua::Type::Name[iType];
+
+	return "unknown";
 }
 
 void CLuaInterface::CreateMetaTableType(const char* strName, int iType)
 {
-	LuaDebugPrint(2, "CLuaInterface::CreateMetaTableType\n");
-	V_strncpy(m_strTypes[iType - GarrysMod::Lua::Type::Type_Count], strName, sizeof(m_strTypes[iType - GarrysMod::Lua::Type::Type_Count]));
-	luaL_newmetatable_type(state, strName, iType);
-
-	if (iType > 254) {
-		return;
+	LuaDebugPrint(1, "CLuaInterface::CreateMetaTableType(%s, %i)\n", strName, iType);
+	int ret = luaL_newmetatable_type(state, strName, iType);
+	if (ret && iType <= 254)
+	{
+		GarrysMod::Lua::ILuaObject* pObject = m_pMetaTables[iType];
+		if (!pObject)
+		{
+			pObject = CreateObject();
+			m_pMetaTables[iType] = pObject;
+		}
+		ToSimpleObject(pObject)->SetFromStack(-1, this);
 	}
+
+	//return ret;
 }
 
 const char* CLuaInterface::CheckString(int iStackPos)
@@ -491,24 +624,24 @@ int CLuaInterface::ObjLen(int iStackPos)
 // ToDo: Recheck every function below!
 // ------------------------------------------
 
-static const QAngle ang_invalid(FLT_MAX, FLT_MAX, FLT_MAX);
+static QAngle angle_fallback = QAngle(0, 0, 0);
 const QAngle& CLuaInterface::GetAngle(int iStackPos)
 {
 	LuaDebugPrint(2, "CLuaInterface::GetAngle\n");
-	GarrysMod::Lua::ILuaBase::UserData* udata = (GarrysMod::Lua::ILuaBase::UserData*)GetUserdata(iStackPos);
+	ILuaBase::UserData* udata = GetUserdata(iStackPos);
 	if (!udata || !udata->data || udata->type != GarrysMod::Lua::Type::Angle)
-		return ang_invalid;
+		return angle_fallback;
 
 	return *(QAngle*)udata->data;
 }
 
-static const Vector vec_invalid(FLT_MAX, FLT_MAX, FLT_MAX);
+static Vector vector_fallback = Vector(0, 0, 0);
 const Vector& CLuaInterface::GetVector(int iStackPos)
 {
 	LuaDebugPrint(2, "CLuaInterface::GetVector\n");
-	GarrysMod::Lua::ILuaBase::UserData* udata = (GarrysMod::Lua::ILuaBase::UserData*)GetUserdata(iStackPos);
+	ILuaBase::UserData* udata = GetUserdata(iStackPos);
 	if (!udata || !udata->data || udata->type != GarrysMod::Lua::Type::Vector)
-		return vec_invalid;
+		return vector_fallback;
 
 	return *(Vector*)udata->data;
 }
@@ -517,7 +650,7 @@ void CLuaInterface::PushAngle(const QAngle& val)
 {
 	LuaDebugPrint(2, "CLuaInterface::PushAngle\n");
 	
-	GarrysMod::Lua::ILuaBase::UserData* udata = (GarrysMod::Lua::ILuaBase::UserData*)NewUserdata(20); // Should we use PushUserType?
+	ILuaBase::UserData* udata = NewUserdata(20); // Should we use PushUserType?
 	*(QAngle*)udata->data = val;
 	udata->type = GarrysMod::Lua::Type::Angle;
 
@@ -529,7 +662,7 @@ void CLuaInterface::PushVector(const Vector& val)
 {
 	LuaDebugPrint(2, "CLuaInterface::PushVector\n");
 
-	GarrysMod::Lua::ILuaBase::UserData* udata = (GarrysMod::Lua::ILuaBase::UserData*)NewUserdata(20);
+	ILuaBase::UserData* udata = NewUserdata(20);
 	*(Vector*)udata->data = val;
 	udata->type = GarrysMod::Lua::Type::Vector;
 
@@ -545,19 +678,17 @@ void CLuaInterface::SetState(lua_State* L)
 
 int CLuaInterface::CreateMetaTable(const char* strName) // Return value is probably a bool? Update: NO! It returns a int -> metaID
 {
-	LuaDebugPrint(2, "CLuaInterface::CreateMetaTable\n");
+	LuaDebugPrint(1, "CLuaInterface::CreateMetaTable\n");
 	//luaL_newmetatable_type(state, strName, -1);
 
 	int ref = -1;
-	PushSpecial(GarrysMod::Lua::SPECIAL_REG);
-		GetField(-1, strName);
-		if (IsType(-1, GarrysMod::Lua::Type::Table))
-		{
-			ref = ReferenceCreate();
-		} else {
-			Pop(1);
-		}
-	Pop(1);
+	GetField(LUA_REGISTRYINDEX, strName);
+	if (IsType(-1, GarrysMod::Lua::Type::Table))
+	{
+		ref = ReferenceCreate();
+	} else {
+		Pop(1);
+	}
 
 	if (ref != -1)
 	{
@@ -568,60 +699,49 @@ int CLuaInterface::CreateMetaTable(const char* strName) // Return value is proba
 		lua_pop(state, 1);
 		return metaID;
 	} else {
-		luaL_newmetatable_type(state, strName, ++m_iTypeNum); // Missing this logic in lua-shared, CreateMetaTable creates it if it's missing.
-		V_strncpy(m_strTypes[m_iTypeNum - GarrysMod::Lua::Type::Type_Count], strName, sizeof(m_strTypes[m_iTypeNum - GarrysMod::Lua::Type::Type_Count]));
-		return m_iTypeNum;
+		// Missing this logic in lua-shared, CreateMetaTable creates it if it's missing, just as its name would imply.
+		luaL_newmetatable_type(state, strName, ++m_iMetaTableIDCounter);
+		return m_iMetaTableIDCounter;
 	}
+
+	return 0;
 }
 
 bool CLuaInterface::PushMetaTable(int iType)
 {
 	LuaDebugPrint(2, "CLuaInterface::PushMetaTable %i\n", iType);
-	bool bFound = false;
-	const char* type = GetActualTypeName(iType);
-	PushSpecial(GarrysMod::Lua::SPECIAL_REG);
-		GetField(-1, type);
-		bFound = IsType(-1, GarrysMod::Lua::Type::Table);
-	Remove(-2);
-
-	if (bFound)
-		return true;
-
-	Pop(1);
-
-	::Msg("I failed u :< %i\n", iType);
+	if (iType <= 254)
+	{
+		GarrysMod::Lua::ILuaObject* pMetaObject = m_pMetaTables[iType];
+		if (pMetaObject)
+		{
+			ToSimpleObject(pMetaObject)->Push(this);
+			return true;
+		}
+	}
 
 	return false;
 }
 
-bool CLuaInterface::PushUserType(void* data, int iType)
+void CLuaInterface::PushUserType(void* data, int iType)
 {
 	LuaDebugPrint(2, "CLuaInterface::PushUserType %i\n", iType);
 
-	GarrysMod::Lua::ILuaBase::UserData* udata = (GarrysMod::Lua::ILuaBase::UserData*)NewUserdata(8);
+	UserData* udata = NewUserdata(8);
 	udata->data = data;
 	udata->type = (unsigned char)iType;
 
-	bool success = PushMetaTable(iType);
-	if (success)
-	{
-		return SetMetaTable(-2);
-	} else {
-		::Msg("Failed to find Metatable for %i!\n", iType);
-	}
-
-	return success;
+	if (PushMetaTable(iType))
+		SetMetaTable(-2);
 }
 
-GarrysMod::Lua::ILuaBase::UserData* CLuaInterface::SetUserType(int iStackPos, void* data)
+void CLuaInterface::SetUserType(int iStackPos, void* data)
 {
 	LuaDebugPrint(2, "CLuaInterface::SetUserType\n");
 	
-	GarrysMod::Lua::ILuaBase::UserData* udata = (GarrysMod::Lua::ILuaBase::UserData*)GetUserdata(iStackPos);
+	ILuaBase::UserData* udata = GetUserdata(iStackPos);
 	if (udata)
 		udata->data = data;
-
-	return udata;
 }
 
 // =================================
@@ -632,16 +752,27 @@ int LuaPanic(lua_State* lua)
 {
 	LuaDebugPrint(1, "CLuaInterface::LuaPanic\n");
 
-	Error("Lua Panic! Something went horribly wrong!\n\n\"%s\"", lua_tolstring(lua, -1, 0));
-	return 0;
+	Error("Lua Panic! Something went horribly wrong!\n%s", lua_tolstring(lua, -1, 0));
+	POINT_UNREACHABLE;
 }
 
 bool CLuaInterface::Init( GarrysMod::Lua::ILuaGameCallback* callback, bool bIsServer )
 {
 	LuaDebugPrint(1, "CLuaInterface::Init Server: %s\n", bIsServer ? "Yes" : "No");
 	m_pGameCallback = callback;
-	memset(&m_sPathID, 0, sizeof(m_sPathID)); // NULL out pathID properly, gmod doesn't seem to do this.
-	memset(&m_strTypes, 0, sizeof(m_strTypes));
+	m_pGlobal = CreateObject();
+
+	for (int i=0; i<LUA_MAX_TEMP_OBJECTS;++i)
+	{
+		m_TempObjects[i] = CreateObject();
+	}
+
+	m_iMetaTableIDCounter = GarrysMod::Lua::Type::Type_Count;
+	for (int i=0; i<=254; ++i)
+	{
+		m_pMetaTables[i] = NULL;
+	}
+	m_iCurrentTempObject = 0;
 
 	state = luaL_newstate();
 	luaL_openlibs(state);
@@ -661,26 +792,50 @@ bool CLuaInterface::Init( GarrysMod::Lua::ILuaGameCallback* callback, bool bIsSe
 		// Warning("Lua detected bad FPU precision! Prepare for weirdness!");
 	}
 
+	int reference = -1;
+	lua_getfield(state, LUA_GLOBALSINDEX, "require"); // Keep the original require function
+	if (IsType(-1, GarrysMod::Lua::Type::Function))
+	{
+		reference = ReferenceCreate();
+	} else {
+		Pop(1);
+	}
+
 	DoStackCheck();
 
-	NewGlobalTable("");
+	lua_pushvalue(state, LUA_GLOBALSINDEX);
+	ToSimpleObject(m_pGlobal)->SetFromStack(-1, this);
+	Pop(1);
+
+	if (reference != -1)
+	{
+		ReferencePush(reference);
+		SetMember(Global(), "requiree");
+		ReferenceFree(reference);
+	}
+
+	LuaDebugPrint(3, "Table? %s\n", ToSimpleObject(m_pGlobal)->isTable() ? "Yes" : "No");
 
 	DoStackCheck();
 
-	lua_createtable(state, (sizeof(g_PooledStrings) / 4), 0);
+	constexpr int pooledStrings = sizeof(g_PooledStrings) / sizeof(const char*);
+	lua_createtable(state, pooledStrings, 0);
 	
 	int idx = 0;
 	for(const char* str : g_PooledStrings)
 	{
+		++idx;
+		PushNumber(idx);
 		PushString(str);
-		lua_rawseti(state, -2, ++idx);
+		SetTable(-3);
 	}
 
-	m_iStringPoolReference = ReferenceCreate();
+	m_pStringPool = CreateObject();
+	ToSimpleObject(m_pStringPool)->SetFromStack(-1, this);
+	Pop(1);
 
 	DoStackCheck();
 
-	// lua_getfield(state, "debug");
 
 	// lua_pushnil(state);
 	// lua_setfield(state, -2, "setlocal");
@@ -702,16 +857,26 @@ bool CLuaInterface::Init( GarrysMod::Lua::ILuaGameCallback* callback, bool bIsSe
 void CLuaInterface::Shutdown()
 {
 	LuaDebugPrint(1, "CLuaInterface::Shutdown\n");
+	if (!state)
+	{
+		Warning(PROJECT_NAME " - CLuaInterface::Shutdown called while having no lua state! Was it already called once?\n");
+		return;
+	}
+
 	GMOD_UnloadBinaryModules(state);
 
 	lua_close(state);
+	state = NULL;
 }
 
+static int iLastTimeCheck = 0;
 void CLuaInterface::Cycle()
 {
 	LuaDebugPrint(3, "CLuaInterface::Cycle\n");
-	// iLastTimeCheck
 
+	iLastTimeCheck = 0;
+	// someotherValue = 0;
+	// m_ProtectedFunctionReturns = NULL; // Why would we want this? Sounds like a possible memory leak.
 	DoStackCheck();
 
 	RunThreadedCalls();
@@ -745,22 +910,27 @@ int CLuaInterface::AddThreadedCall(GarrysMod::Lua::ILuaThreadedCall* call)
 GarrysMod::Lua::ILuaObject* CLuaInterface::Global()
 {
 	LuaDebugPrint(4, "CLuaInterface::Global\n");
-	Error("CLuaInterface::Global NOT IMPLEMENTED");
-	return NULL;
+	return m_pGlobal;
 }
 
 GarrysMod::Lua::ILuaObject* CLuaInterface::GetObject(int index)
 {
 	LuaDebugPrint(4, "CLuaInterface::GetObject\n");
-	Error("CLuaInterface::GetObject NOT IMPLEMENTED");
-	return NULL;
+	GarrysMod::Lua::ILuaObject* obj = CreateObject();
+	ToSimpleObject(obj)->SetFromStack(index, this);
+
+	return obj;
 }
 
 void CLuaInterface::PushLuaObject(GarrysMod::Lua::ILuaObject* obj)
 {
 	LuaDebugPrint(4, "CLuaInterface::PushLuaObject\n");
-	Error("CLuaInterface::PushLuaObject NOT IMPLEMENTED!\n");
-	// Don't call obj->Push as we are the one supposed to push it.
+	if (obj)
+	{
+		ToSimpleObject(obj)->Push(this);
+	} else {
+		PushNil();
+	}
 }
 
 void CLuaInterface::PushLuaFunction(GarrysMod::Lua::CFunc func)
@@ -777,7 +947,7 @@ void CLuaInterface::LuaError(const char* str, int iStackPos)
 	{
 		luaL_argerror(state, iStackPos, str);
 	} else {
-		LuaDebugPrint(1, "CLuaInterface::LuaError_IMPORTANT %s %i\n", str, iStackPos);
+		ErrorNoHalt("%s", str);
 	}
 }
 
@@ -790,8 +960,32 @@ void CLuaInterface::TypeError(const char* str, int iStackPos)
 void CLuaInterface::CallInternal(int args, int rets)
 {
 	LuaDebugPrint(2, "CLuaInterface::CallInternal %i %i\n", args, rets);
-	
-	CallFunctionProtected(args, rets, true);
+	if (!ThreadInMainThread())
+		Error("Calling Lua function in a thread other than main!");
+
+	if (rets > 4)
+		Error("[CLuaInterface::Call] Expecting more returns than possible\n");
+
+	for (int i=0; i<3; ++i)
+	{
+		m_ProtectedFunctionReturns[i] = nullptr;
+	}
+
+	if (IsType(-(args + 1), GarrysMod::Lua::Type::Function))
+	{
+		if (CallFunctionProtected(args, rets, true))
+		{
+			for (int i=0; i<rets; ++i)
+			{
+				GarrysMod::Lua::ILuaObject* obj = NewTemporaryObject();
+				ToSimpleObject(obj)->SetFromStack(-1, this);
+				m_ProtectedFunctionReturns[i] = obj;
+				Pop(1);
+			}
+		}
+	} else {
+		Error("Lua tried to call non functions");
+	}
 }
 
 void CLuaInterface::CallInternalNoReturns(int args)
@@ -830,7 +1024,12 @@ const char* CLuaInterface::CallInternalGetString(int args)
 bool CLuaInterface::CallInternalGet(int args, GarrysMod::Lua::ILuaObject* obj)
 {
 	LuaDebugPrint(2, "CLuaInterface::CallInternalGet %i\n", args);
-	Error("CLuaInterface::CallInternalGet NOT IMPLEMENTED!\n");
+	if (CallFunctionProtected(args, 1, 1)) {
+		ToSimpleObject(obj)->SetFromStack(-1, this);
+		Pop(1);
+		return true;
+	}
+
 	return false;
 }
 
@@ -838,18 +1037,28 @@ void CLuaInterface::NewGlobalTable(const char* name)
 {
 	LuaDebugPrint(1, "CLuaInterface::NewGlobalTable %s\n", name);
 
-	//CreateTable();
-	PushSpecial(GarrysMod::Lua::SPECIAL_GLOB);
-	m_iGlobalReference = ReferenceCreate();
-	//SetField(LUA_GLOBALSINDEX, name);
+	lua_createtable(state, 0, 0);
+	lua_setfield(state, LUA_GLOBALSINDEX, name);
 }
 
 GarrysMod::Lua::ILuaObject* CLuaInterface::NewTemporaryObject()
 {
 	LuaDebugPrint(2, "CLuaInterface::NewTemporaryObject\n");
 
-	Error("CLuaInterface::NewTemporaryObject NOT IMPLEMENTED");
-	return NULL;
+	++m_iCurrentTempObject;
+	if (m_iCurrentTempObject >= LUA_MAX_TEMP_OBJECTS)
+		m_iCurrentTempObject = 0;
+
+	GarrysMod::Lua::ILuaObject* obj = m_TempObjects[m_iCurrentTempObject];
+	if (obj)
+	{
+		ToSimpleObject(obj)->UnReference();
+	} else {
+		obj = CreateObject();
+		m_TempObjects[m_iCurrentTempObject] = obj;
+	}
+
+	return obj;
 }
 
 bool CLuaInterface::isUserData(int iStackPos)
@@ -863,22 +1072,62 @@ GarrysMod::Lua::ILuaObject* CLuaInterface::GetMetaTableObject(const char* name, 
 {
 	LuaDebugPrint(2, "CLuaInterface::GetMetaTableObject %s, %i\n", name, type);
 
-	Error("CLuaInterface::GetMetaTableObject NOT IMPLEMENTED");
-	return NULL;
+	lua_getfield(state, LUA_REGISTRYINDEX, name);
+	if (GetType(-1) != 5)
+	{
+		Pop(1);
+		if (type != -1)
+		{
+			CreateMetaTableType(name, type);
+			lua_getfield(state, LUA_REGISTRYINDEX, name);
+		} else {
+			return NULL;
+		}
+	}
+
+	GarrysMod::Lua::ILuaObject* obj = NewTemporaryObject();
+	ToSimpleObject(obj)->SetFromStack(-1, this);
+	Pop(1);
+	return obj;
 }
 
 GarrysMod::Lua::ILuaObject* CLuaInterface::GetMetaTableObject(int iStackPos)
 {
 	LuaDebugPrint(2, "CLuaInterface::GetMetaTableObject\n");
 
-	Error("CLuaInterface::GetMetaTableObject NOT IMPLEMENTED");
+	if (lua_getmetatable(state, iStackPos))
+	{
+		GarrysMod::Lua::ILuaObject* obj = NewTemporaryObject();
+		ToSimpleObject(obj)->SetFromStack(-1, this);
+		Pop(1);
+		return obj;
+	}
+
 	return NULL;
 }
 
 GarrysMod::Lua::ILuaObject* CLuaInterface::GetReturn(int iStackPos)
 {
 	LuaDebugPrint(2, "CLuaInterface::GetReturn\n");
-	Error("CLuaInterface::GetReturn NOT IMPLEMENTED");
+	
+	int idx = abs(iStackPos);
+	if (idx >= 0 && idx < 4)
+	{
+		if ( m_ProtectedFunctionReturns[idx] == NULL)
+		{
+			LuaDebugPrint(1, "CLuaInterface::GetReturn We could crash! (null object!)\n");
+#ifdef WIN32
+			__debugbreak();
+#endif
+		}
+
+		return m_ProtectedFunctionReturns[idx];
+	}
+
+	LuaDebugPrint(1, "CLuaInterface::GetReturn We could crash! (invalid idx!)\n");
+#ifdef WIN32
+	__debugbreak();
+#endif
 	return nullptr;
 }
 
@@ -906,53 +1155,82 @@ bool CLuaInterface::IsMenu()
 void CLuaInterface::DestroyObject(GarrysMod::Lua::ILuaObject* obj)
 {
 	LuaDebugPrint(4, "CLuaInterface::DestroyObject\n");
-	Error("CLuaInterface::DestroyObject NOT IMPLEMENTED!\n");
+	m_pGameCallback->DestroyLuaObject(obj);
 }
 
 GarrysMod::Lua::ILuaObject* CLuaInterface::CreateObject()
 {
 	LuaDebugPrint(4, "CLuaInterface::CreateObject\n");
-
-	Error("CLuaInterface::CreateObject NOT IMPLEMENTED!\n");
-	return NULL;
+	return m_pGameCallback->CreateLuaObject();
 }
 
 void CLuaInterface::SetMember(GarrysMod::Lua::ILuaObject* obj, GarrysMod::Lua::ILuaObject* key, GarrysMod::Lua::ILuaObject* value)
 {
 	LuaDebugPrint(3, "CLuaInterface::SetMember 1\n");
-	Error("CLuaInterface::SetMember(1) NOT IMPLEMENTED!\n");
+	ToSimpleObject(obj)->Push(this);
+	ToSimpleObject(key)->Push(this);
+	if (value)
+		ToSimpleObject(value)->Push(this);
+	else
+		lua_pushnil(state);
+	SetTable(-3);
+	Pop(1);
 }
 
 GarrysMod::Lua::ILuaObject* CLuaInterface::GetNewTable()
 {
 	LuaDebugPrint(2, "CLuaInterface::GetNewTable\n");
-
-	Error("CLuaInterface::GetNewTable NOT IMPLEMENTED!\n");
-	return NULL;
+	
+	CreateTable();
+	GarrysMod::Lua::ILuaObject* obj = CreateObject();
+	ToSimpleObject(obj)->SetFromStack(-1, this);
+	return obj;
 }
 
 void CLuaInterface::SetMember(GarrysMod::Lua::ILuaObject* obj, float key)
 {
 	LuaDebugPrint(3, "CLuaInterface::SetMember 2\n");
-	Error("CLuaInterface::SetMember(2) NOT IMPLEMENTED!\n");
+	ToSimpleObject(obj)->Push(this);
+	PushNumber(key);
+	lua_pushvalue(state, -3);
+	SetTable(-3);
+	Pop(2);
 }
 
 void CLuaInterface::SetMember(GarrysMod::Lua::ILuaObject* obj, float key, GarrysMod::Lua::ILuaObject* value)
 {
 	LuaDebugPrint(3, "CLuaInterface::SetMember 3 %f\n", key);
-	Error("CLuaInterface::SetMember(3) NOT IMPLEMENTED!\n");
+	ToSimpleObject(obj)->Push(this);
+	PushNumber(key);
+	if (value)
+		ToSimpleObject(value)->Push(this);
+	else
+		lua_pushnil(state);
+	SetTable(-3);
+	Pop(1);
 }
 
 void CLuaInterface::SetMember(GarrysMod::Lua::ILuaObject* obj, const char* key)
 {
 	LuaDebugPrint(3, "CLuaInterface::SetMember 4 %s\n", key);
-	Error("CLuaInterface::SetMember(4) NOT IMPLEMENTED!\n");
+	ToSimpleObject(obj)->Push(this);
+	PushString(key);
+	lua_pushvalue(state, -3);
+	SetTable(-3);
+	Pop(2);
 }
 
 void CLuaInterface::SetMember(GarrysMod::Lua::ILuaObject* obj, const char* key, GarrysMod::Lua::ILuaObject* value)
 {
 	LuaDebugPrint(3, "CLuaInterface::SetMember 5 %s\n", key);
-	Error("CLuaInterface::SetMember(5) NOT IMPLEMENTED!\n");
+	ToSimpleObject(obj)->Push(this);
+	PushString(key);
+	if (value)
+		ToSimpleObject(value)->Push(this);
+	else
+		lua_pushnil(state);
+	SetTable(-3);
+	Pop(1);
 }
 
 void CLuaInterface::SetType(unsigned char realm)
@@ -978,50 +1256,38 @@ bool CLuaInterface::FindOnObjectsMetaTable(int iStackPos, int keyIndex)
 {
 	LuaDebugPrint(2, "CLuaInterface::FindOnObjectsMetaTable %i %i %s\n", iStackPos, keyIndex, lua_tolstring(state, keyIndex, NULL));
 
-	if (lua_getmetatable(state, iStackPos) == 1)
-	{
-		lua_pushvalue(state, keyIndex);
-		lua_gettable(state, -2);
-		if (lua_type(state, -1) == GarrysMod::Lua::Type::Nil)
-		{
-			Pop(2);
-		} else {
-			Remove(-2);
-			LuaDebugPrint(2, "CLuaInterface::FindOnObjectsMetaTable GOOD\n");
-			return true;
-		}
-	}
+	if (!lua_getmetatable(state, iStackPos))
+		return false;
 
-	LuaDebugPrint(2, "CLuaInterface::FindOnObjectsMetaTable BAD\n");
+	lua_pushvalue(state, keyIndex);
+	GetTable(-2);
+	if (lua_type(state, -1))
+		return true;
+
 	return false;
 }
 
 bool CLuaInterface::FindObjectOnTable(int iStackPos, int keyIndex)
 {
 	LuaDebugPrint(2, "CLuaInterface::FindObjectOnTable\n");
-	if (IsType(iStackPos, GarrysMod::Lua::Type::Table))
-	{
-		lua_pushvalue(state, iStackPos);
-		lua_pushvalue(state, keyIndex);
-		lua_gettable(state, -2);
-		lua_remove(state, -2);
-		if (GetType(-1) != GarrysMod::Lua::Type::Nil)
-		{
-			return true;
-		} else {
-			lua_remove(state, -1);
-		}
-	} else {
-		LuaDebugPrint(2, "CLuaInterface::FindObjectOnTable NOT A TABLE!\n");
-	}
+	lua_pushvalue(state, iStackPos);
+	lua_pushvalue(state, keyIndex);
 
-	return false;
+	return lua_type(state, -1) != 0;
 }
 
 void CLuaInterface::SetMemberFast(GarrysMod::Lua::ILuaObject* obj, int keyIndex, int valueIndex)
 {
 	LuaDebugPrint(3, "CLuaInterface::SetMemberFast %i %i %s\n", keyIndex, valueIndex, GetType(keyIndex) == GarrysMod::Lua::Type::String ? GetString(keyIndex) : "");
-	Error("CLuaInterface::SetMemberFast NOT IMPLEMENTED!\n");
+	CSimpleLuaObject* pObj = ToSimpleObject(obj);
+	if (pObj->isTable() || pObj->GetType() == GarrysMod::Lua::Type::Table)
+	{
+		ReferencePush(pObj->m_reference);
+		Push(keyIndex);
+		Push(valueIndex);
+		SetTable(-3);
+		Pop(1);
+	}
 }
 
 bool CLuaInterface::RunString(const char* filename, const char* path, const char* stringToRun, bool run, bool showErrors)
@@ -1033,9 +1299,13 @@ bool CLuaInterface::RunString(const char* filename, const char* path, const char
 bool CLuaInterface::IsEqual(GarrysMod::Lua::ILuaObject* objA, GarrysMod::Lua::ILuaObject* objB)
 {
 	LuaDebugPrint(2, "CLuaInterface::IsEqual\n");
+	
+	ToSimpleObject(objA)->Push(this);
+	ToSimpleObject(objB)->Push(this);
+	bool ret = Equal(-1, -2);
+	Pop(2);
 
-	Error("CLuaInterface::IsEqual NOT IMPLEMENTED!\n");
-	return false;
+	return ret;
 }
 
 void CLuaInterface::Error(const char* err)
@@ -1075,24 +1345,84 @@ std::string ToPath(std::string path)
 {
 	size_t lastSeparatorPos = path.find_last_of("/\\");
 
-	if (lastSeparatorPos != std::string::npos) {
-		return path.substr(0, lastSeparatorPos + 1);
+	std::string resultPath = path;
+	if (lastSeparatorPos != std::string::npos)
+	{
+		resultPath = path.substr(0, lastSeparatorPos + 1);
 	}
 
-	return path;
+	if ( resultPath.find( "lua/" ) == 0 )
+		resultPath.erase( 0, 4 );
+
+	if ( resultPath.find( "gamemodes/" ) == 0 )
+		resultPath.erase( 0, 10 );
+
+    if (resultPath.rfind("addons/", 0) == 0) // ToDo: I think we can remove this again.
+	{
+		size_t first = path.find('/', 7);
+		if (first != std::string::npos)
+		{
+			size_t second = path.find('/', first + 1);
+			if (second != std::string::npos)
+			{
+				resultPath = resultPath.substr(second + 1);
+			}
+		}
+	}
+
+	return resultPath;
 }
 
 bool CLuaInterface::FindAndRunScript(const char *filename, bool run, bool showErrors, const char *stringToRun, bool noReturns)
 {
 	LuaDebugPrint(2, "CLuaInterface::FindAndRunScript %s, %s, %s, %s, %s\n", filename, run ? "Yes" : "No", showErrors ? "Yes" : "No", stringToRun, noReturns ? "Yes" : "No");
 
-	//if (true)
-	//	return false;
+	bool bDataTable = ((std::string)filename).rfind("!lua", 0) == 0;
+	GarrysMod::Lua::ILuaShared* shared = Lua::GetShared();
+	std::string filePath = filename;
+	if (GetPath())
+	{
+		std::string currentPath = GetPath();
+		if (!currentPath.empty() && currentPath.back() != '/')
+		{
+			currentPath.append("/");
+		}
 
-	//bool bDataTable = ((std::string)filename).rfind("!lua", 0) == 0;
-	Error("CLuaInterface::FindAndRunScript NOT IMPLEMENTED!\n");
+		if ( filePath.rfind( currentPath, 0 ) != 0 )
+		{
+			filePath = GetPath();
+			filePath.append( "/" );
+			filePath.append( filename );
+		}
 
-	return false;
+		if ( filePath.find( "lua/" ) == 0 )
+			filePath.erase( 0, 4 );
+
+		if ( filePath.find( "gamemodes/" ) == 0 )
+			filePath.erase( 0, 10 );
+	}
+
+	GarrysMod::Lua::LuaFile* file = shared->LoadFile(filePath.c_str(), m_sPathID, bDataTable, true);
+	if (!file)
+	{
+		filePath = filename;
+		file = shared->LoadFile(filename, m_sPathID, bDataTable, true);
+	}
+
+	bool ret = false;
+	if (file)
+	{
+		PushPath(ToPath(filePath).c_str());
+		ret = RunStringEx(filePath.c_str(), filePath.c_str(), file->GetContents(), true, showErrors, true, noReturns);
+		PopPath();
+	}
+
+	if ( !file )
+	{
+		LuaDebugPrint( 1, "Failed to find Script %s!\n", filename );
+	}
+
+	return ret;
 }
 
 void CLuaInterface::SetPathID(const char* pathID)
@@ -1112,7 +1442,7 @@ void CLuaInterface::ErrorNoHalt( const char* fmt, ... )
 {
 	LuaDebugPrint(2, "CLuaInterface::ErrorNoHalt %s\n", fmt);
 
-	GarrysMod::Lua::ILuaGameCallback::CLuaError* error = ReadStackIntoError(state, true);
+	GarrysMod::Lua::ILuaGameCallback::CLuaError* error = ReadStackIntoError(state);
 
 	va_list args;
 	va_start(args, fmt);
@@ -1130,15 +1460,10 @@ void CLuaInterface::ErrorNoHalt( const char* fmt, ... )
 	error->message = buffer;
 	va_end(args);
 
-	if (m_pGameCallback)
-	{
-		m_pGameCallback->LuaError(error);
-	} else {
-		Msg("An error ocurred! %s\n", error->message.c_str());
-	}
+	m_pGameCallback->LuaError(error);
 
-	delete[] buffer;
-	delete error; // Deconstuctor will delete our buffer
+	delete error; // Deconstuctor will delete our buffer.
+	delete buffer; // Update: I'm a idiot, it won't since a std::string copies it
 }
 
 void CLuaInterface::Msg( const char* fmt, ... )
@@ -1161,13 +1486,9 @@ void CLuaInterface::Msg( const char* fmt, ... )
 void CLuaInterface::PushPath( const char* path )
 {
 	LuaDebugPrint(2, "CLuaInterface::PushPath %s\n", path);
-	if (!path)
-		return;
-
-	int strLen = strlen(path);
-	char* str = new char[strLen];
-	V_strncpy( str, path, strLen );
-	str[ strLen - 1 ] = '\0'; // nuke the last /
+	char* str = new char[strlen(path)];
+	V_strncpy( str, path, strlen(path) );
+	str[ strlen(path) - 1 ] = '\0'; // nuke the last /
 	m_sCurrentPath = str;
 	m_pPaths.push_back( str );
 	++m_iPushedPaths;
@@ -1202,28 +1523,35 @@ int CLuaInterface::GetColor(int iStackPos) // Probably returns the StackPos
 {
 	LuaDebugPrint(2, "CLuaInterface::GetColor\n");
 
-	return 0;
+	int r, g, b, a = 0;
+	CSimpleLuaObject* pObject = ToSimpleObject(GetObject(iStackPos));
+	if (!pObject)
+		return 0xFFFFFFFF;
+
+	r = pObject->GetMemberInt("r", 255);
+	g = pObject->GetMemberInt("g", 255);
+	b = pObject->GetMemberInt("b", 255);
+	a = pObject->GetMemberInt("a", 255);
+
+	return (a << 24) | (r << 16) | (g << 8) | b;
 }
 
-void CLuaInterface::PushColor(Color color)
+GarrysMod::Lua::ILuaObject* CLuaInterface::PushColor(Color color)
 {
 	LuaDebugPrint(2, "CLuaInterface::PushColor\n");
 	
-	CreateTable();
-		PushNumber( color.r() );
-		SetField( -2, "r" );
+	GarrysMod::Lua::ILuaObject* pOrigObject = CreateObject();
+	CSimpleLuaObject* pObject = ToSimpleObject(pOrigObject);
+	pObject->SetMember("r", color.r());
+	pObject->SetMember("g", color.g());
+	pObject->SetMember("b", color.b());
+	pObject->SetMember("a", color.a());
+	GarrysMod::Lua::ILuaObject* pMetaTable = GetMetaTableObject("Color", -1);
+	if (pMetaTable)
+		pObject->SetMetaTable(pMetaTable, this);
 
-		PushNumber( color.g() );
-		SetField( -2, "g" );
-
-		PushNumber( color.b() );
-		SetField( -2, "b" );
-
-		PushNumber( color.a() );
-		SetField( -2, "a" );
-
-	if ( CreateMetaTable( "Color" ) == 1 )
-		SetMetaTable( -1 );
+	pObject->Push(this);
+	return pOrigObject;
 }
 
 int CLuaInterface::GetStack(int level, lua_Debug* dbg)
@@ -1256,27 +1584,20 @@ const char* CLuaInterface::GetUpvalue(int funcIndex, int n)
 
 bool CLuaInterface::RunStringEx(const char *filename, const char *path, const char *stringToRun, bool run, bool printErrors, bool dontPushErrors, bool noReturns)
 {
-	LuaDebugPrint(1, "CLuaInterface::RunStringEx %s, %s\n", filename, path);
+	LuaDebugPrint(2, "CLuaInterface::RunStringEx %s, %s\n", filename, path);
 
 	std::string code = RunMacros(stringToRun);
 	int res = luaL_loadbuffer(state, code.c_str(), code.length(), filename);
 	if (res != 0)
 	{
-		GarrysMod::Lua::ILuaGameCallback::CLuaError* error = ReadStackIntoError(state, false);
+		GarrysMod::Lua::ILuaGameCallback::CLuaError* err = ReadStackIntoError(state);
 		if (dontPushErrors)
 			Pop(1);
 
 		if (printErrors)
-		{
-			if (m_pGameCallback)
-			{
-				m_pGameCallback->LuaError(error);
-			} else {
-				Msg("An error ocurred! %s\n", error->message.c_str());
-			}
-		}
+			m_pGameCallback->LuaError(err);
 
-		delete error;
+		delete err;
 
 		return false;
 	} else {
@@ -1284,20 +1605,25 @@ bool CLuaInterface::RunStringEx(const char *filename, const char *path, const ch
 	}
 }
 
-size_t CLuaInterface::GetDataString(int index, const char **str)
+size_t CLuaInterface::GetDataString(int iStackPos, const char **pOutput)
 {
 	LuaDebugPrint(2, "CLuaInterface::GetDataString\n");
-	// ToDo
+	
+	size_t length = 0;
+	*pOutput = NULL;
+	const char* pString = lua_tolstring(state, iStackPos, &length);
+	if (!pString)
+		return 0;
 
-	Error("CLuaInterface::GetDataString is not implemented!\n");
-
-	return 0;
+	*pOutput = pString;
+	return length;
 }
 
+static char cMessageBuffer[4096]; // this is NOT thread safe! Anyways :3
 void CLuaInterface::ErrorFromLua(const char *fmt, ...)
 {
 	LuaDebugPrint(2, "CLuaInterface::ErrorFromLua %s\n", fmt);
-	GarrysMod::Lua::ILuaGameCallback::CLuaError* error = ReadStackIntoError(state, true);
+	GarrysMod::Lua::ILuaGameCallback::CLuaError* error = ReadStackIntoError(state);
 
 	va_list args;
 	va_start(args, fmt);
@@ -1335,27 +1661,8 @@ void CLuaInterface::ErrorFromLua(const char *fmt, ...)
 	}
 	error->side = realm;*/
 
-/*#ifndef WIN32
-	Msg("Error Message: %s\n", error->message);
-	Msg("Error Side: %s\n", error->side);
+	m_pGameCallback->LuaError(error);
 
-	for ( GarrysMod::Lua::ILuaGameCallback::CLuaError::StackEntry entry : error->stack )
-	{
-		Msg("Error Stack function: %s\n", entry.function);
-		Msg("Error Stack source: %s\n", entry.source);
-		Msg("Error Stack line: %i\n", entry.line);
-	}
-#endif*/
-
-	if (m_pGameCallback)
-	{
-		m_pGameCallback->LuaError(error);
-	}
-	else {
-		Msg("An error ocurred! %s\n", error->message.c_str());
-	}
-
-	delete[] buffer;
 	delete error; // Deconstuctor will delete our buffer
 }
 
@@ -1368,8 +1675,8 @@ const char* CLuaInterface::GetCurrentLocation()
 	lua_getinfo(state, "Sl", &ar);
 	if (ar.source && strcmp(ar.what, "C") != 0)
 	{
-		static char strOutput[511];
-		V_snprintf( strOutput, 511, "%s (line %i)", ar.source, ar.currentline );
+		static char strOutput[512];
+		V_snprintf( strOutput, sizeof(strOutput), "%s (line %i)", ar.source, ar.currentline );
 
 		LuaDebugPrint(2, "CLuaInterface::GetCurrentLocation %s\n", strOutput);
 		return strOutput;
@@ -1384,25 +1691,15 @@ void CLuaInterface::MsgColour(const Color& col, const char* fmt, ...)
 
 	va_list args;
 	va_start(args, fmt);
-
-	int size = vsnprintf(NULL, 0, fmt, args);
-	if (size < 0) {
-		va_end(args);
-		return;
-	}
-
-	char* buffer = new char[size + 1];
-	vsnprintf(buffer, size + 1, fmt, args);
-
-	m_pGameCallback->MsgColour(buffer, col);
-
-	delete[] buffer;
+	V_vsnprintf(cMessageBuffer, sizeof(cMessageBuffer), fmt, args);
 	va_end(args);
+
+	m_pGameCallback->MsgColour(cMessageBuffer, col);
 }
 
 void CLuaInterface::GetCurrentFile(std::string &outStr)
 {
-	LuaDebugPrint(1, "CLuaInterface::GetCurrentFile\n");
+	LuaDebugPrint(2, "CLuaInterface::GetCurrentFile\n");
 
 	lua_Debug ar;
 	int level = 0;
@@ -1412,22 +1709,37 @@ void CLuaInterface::GetCurrentFile(std::string &outStr)
 		if (ar.source && strcmp(ar.what, "C") != 0)
 		{
 			outStr.assign(ar.source);
-			LuaDebugPrint(1, "CLuaInterface::GetCurrentFile %s\n", ar.source);
+			LuaDebugPrint(2, "CLuaInterface::GetCurrentFile %s\n", ar.source);
 			return;
 		}
 		++level;
 	}
 
 	outStr = "!UNKNOWN";
-	LuaDebugPrint(1, "CLuaInterface::GetCurrentFile %s\n", "!UNKNOWN (How dare you)");
+	LuaDebugPrint(2, "CLuaInterface::GetCurrentFile %s\n", "!UNKNOWN (How dare you)");
 }
 
-void CLuaInterface::CompileString(Bootil::Buffer& dumper, const std::string& stringToCompile)
+int WriteToBuffer(lua_State* pState, const void *pData, size_t iSize, void* pBuffer)
+{
+	((Bootil::AutoBuffer*)pBuffer)->Write(pData, iSize);
+	return 0;
+}
+
+bool CLuaInterface::CompileString(Bootil::Buffer& dumper, const std::string& stringToCompile)
 {
 	LuaDebugPrint(2, "CLuaInterface::CompileString\n");
-	// ToDo
+	
+	int loadResult = luaL_loadbufferx(state, stringToCompile.c_str(), stringToCompile.size(), "", "t");
+	if (loadResult != 0)
+	{
+		Pop(1);
+		return 0;
+	}
 
-	Error("CLuaInterface::CompileString is not implemented!");
+	bool success = lua_dump(state, WriteToBuffer, &dumper) == 0;
+	Pop(1);
+
+	return success;
 }
 
 bool CLuaInterface::CallFunctionProtected(int iArgs, int iRets, bool showError)
@@ -1436,7 +1748,7 @@ bool CLuaInterface::CallFunctionProtected(int iArgs, int iRets, bool showError)
 
 	/*for (int i=1;i <= Top(); ++i)
 	{
-		LuaDebugPrint(4, "Stack: %i, Type: %i\n", i, GetType(i));
+		LuaDebugPrint(4, "Stack: %i, GarrysMod::Lua::Type::: %i\n", i, GetType(i));
 	}*/
 
 	if (GetType(-(iArgs + 1)) != GarrysMod::Lua::Type::Function)
@@ -1448,17 +1760,11 @@ bool CLuaInterface::CallFunctionProtected(int iArgs, int iRets, bool showError)
 	int ret = PCall(iArgs, iRets, 0);
 	if (ret != 0)
 	{
-		GarrysMod::Lua::ILuaGameCallback::CLuaError* error = ReadStackIntoError(state, false);
+		GarrysMod::Lua::ILuaGameCallback::CLuaError* err = ReadStackIntoError(state);
 		if (showError)
-		{
-			if (m_pGameCallback)
-			{
-				m_pGameCallback->LuaError(error);
-			} else {
-				Msg("An error ocurred! %s\n", error->message.c_str());
-			}
-		}
-		delete error;
+			m_pGameCallback->LuaError(err);
+
+		delete err;
 		Pop(1);
 	}
 
@@ -1504,13 +1810,11 @@ void CLuaInterface::Require(const char* cname)
 	}
 }
 
-const char* CLuaInterface::GetActualTypeName(int type)
+const char* CLuaInterface::GetActualTypeName(int typeID)
 {
-	LuaDebugPrint(4, "CLuaInterface::GetActualTypeName\n");
+	LuaDebugPrint(4, "CLuaInterface::GetActualTypeName (%i)\n", typeID);
 
-	//lua_typename(state, lua_type(state, type));
-
-	return (type < GarrysMod::Lua::Type::Type_Count) ? GarrysMod::Lua::Type::Name[type] : m_strTypes[type - GarrysMod::Lua::Type::Type_Count];
+	return luaL_typename(state, typeID);
 }
 
 void CLuaInterface::PreCreateTable(int arrelems, int nonarrelems)
@@ -1523,12 +1827,9 @@ void CLuaInterface::PushPooledString(int index)
 {
 	LuaDebugPrint(2, "CLuaInterface::PushPooledString %i %s\n", index, g_PooledStrings[index]);
 	
-	ReferencePush(m_iStringPoolReference);
-	PushNumber(index+1); // LUA starts at 1 so we add 1
-	GetTable(-2);
-	Remove(-2);
-
-	LuaDebugPrint(2, "CLuaInterface::PushPooledString %i %s %s\n", index, g_PooledStrings[index], GetString(-1));
+	ToSimpleObject(m_pStringPool)->Push(this);
+	lua_rawgeti(state, -1, index + 1);
+	lua_remove(state, -2);
 }
 
 const char* CLuaInterface::GetPooledString(int index)
@@ -1538,12 +1839,37 @@ const char* CLuaInterface::GetPooledString(int index)
 	return g_PooledStrings[index];
 }
 
-void CLuaInterface::AppendStackTrace(char *, unsigned long)
+void CLuaInterface::AppendStackTrace(char* pOutput, unsigned int iOutputLength)
 {
 	LuaDebugPrint(2, "CLuaInterface::AppendStackTrace\n");
-	// ToDo
+	
+	if (!state)
+	{
+		V_strncat(pOutput, "   Lua State = NULL\n\n", iOutputLength, -1);
+		return;
+	}
 
-	Error("CLuaInterface::AppendStackTrace is not implemented!");
+	lua_Debug ar;
+	int iStackLevel = 0;
+	while (lua_getstack(state, iStackLevel, &ar))
+	{
+		lua_getinfo(state, "Slnu", &ar);
+
+		char lineBuffer[256] = {0};
+		V_snprintf(lineBuffer, sizeof(lineBuffer), "%d. %s - %s:%d\n", iStackLevel, ar.name, ar.short_src, ar.currentline);
+		for (int i = 0; i <= iStackLevel; ++i)
+			V_strncat(pOutput, "  ", iOutputLength, -1);
+
+		V_strncat(pOutput, lineBuffer, iOutputLength, -1);
+
+		if (++iStackLevel == 17)
+			break;
+	}
+
+	if (iStackLevel == 0)
+		V_strncat(pOutput, "\t*Not in Lua call OR Lua has panicked*\n", iOutputLength, -1);
+
+	V_strncat(pOutput, "\n", iOutputLength, -1);
 }
 
 #ifndef FCVAR_LUA_CLIENT // 64x fun
@@ -1576,28 +1902,22 @@ void* CLuaInterface::CreateConVar(const char* name, const char* defaultValue, co
 {
 	LuaDebugPrint(2, "CLuaInterface::CreateConVar\n");
 
-	/*if ( IsServer() )
-		flags |= FCVAR_LUA_SERVER;
-	else
-		flags |= FCVAR_LUA_CLIENT;*/
-
-	Error("CLuaInterface::CreateConVar NOT IMPLEMENTED!\n");
 	FilterConVarFlags(flags);
-	return NULL;//LuaConVars()->CreateConVar(name, defaultValue, helpString, flags);
+
+	Warning("holylib - CLuaInterface::CreateConVar was NOT implemented yet!\n"); // This function requires changes to work properly to support multiple states
+	return NULL;// LuaConVars()->CreateConVar(name, defaultValue, helpString, flags);
 }
 
 void* CLuaInterface::CreateConCommand(const char* name, const char* helpString, int flags, FnCommandCallback_t callback, FnCommandCompletionCallback completionFunc)
 {
 	LuaDebugPrint(2, "CLuaInterface::CreateConCommand\n");
 
-	Error("CLuaInterface::CreateConCommand NOT IMPLEMENTED!\n");
 	FilterConVarFlags(flags);
 	if (IsServer())
-	{
 		flags |= FCVAR_CLIENTCMD_CAN_EXECUTE;
-	}
 
-	return NULL;//LuaConVars()->CreateConCommand(name, helpString, flags, callback, completionFunc);
+	Warning("holylib - CLuaInterface::CreateConCommand was NOT implemented yet!\n");
+	return NULL; //return LuaConVars()->CreateConCommand(name, helpString, flags, callback, completionFunc);
 }
 
 const char* CLuaInterface::CheckStringOpt( int iStackPos, const char* def )
@@ -1618,14 +1938,37 @@ std::string CLuaInterface::RunMacros(std::string code)
 {
 	LuaDebugPrint(2, "CLuaInterface::RunMacros\n");
 
-	code = std::regex_replace(code, std::regex("DEFINE_BASECLASS"), "local BaseClass = baseclass.Get");
+	Bootil::String::Util::FindAndReplace(code, "DEFINE_BASECLASS", "local BaseClass = baseclass.Get");
 
 	return code;
 }
 
-void CLuaInterface::RegisterMetaTable( const char* name, GarrysMod::Lua::ILuaObject* obj )
+int CLuaInterface::RegisterMetaTable( const char* name, GarrysMod::Lua::ILuaObject* metaObj )
 {
-	Error("CLuaInterface::RegisterMetaTable NOT IMPLEMENTED!\n");
+	lua_getfield(state, LUA_REGISTRYINDEX, name);
+	if (GetType(-1) == 0)
+	{
+		Pop(1);
+		int metaID = m_iMetaTableIDCounter++;
+		CSimpleLuaObject* pMetaObject = ToSimpleObject(metaObj);
+		pMetaObject->SetMember("MetaID", metaID); // Gmod uses SetMember_FixKey
+		pMetaObject->SetMember("MetaName", name);
+
+		pMetaObject->Push(this);
+		lua_setfield(state, LUA_REGISTRYINDEX, name);
+		lua_getfield(state, LUA_REGISTRYINDEX, name);
+	}
+
+	if (GetType(-1) == GarrysMod::Lua::Type::Table)
+	{
+		lua_getfield(state, -1, "MetaID");
+		int id = (int)lua_tonumber(state, -1);
+		lua_settop(state, -2);
+
+		return id;
+	}
+
+	return -1;
 }
 
 #define DLL_TOOLS
