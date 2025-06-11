@@ -552,6 +552,9 @@ LUA_FUNCTION_STATIC(CBaseClient_FreeBaselines)
 static Symbols::CBaseClient_OnRequestFullUpdate func_CBaseClient_OnRequestFullUpdate;
 LUA_FUNCTION_STATIC(CBaseClient_OnRequestFullUpdate)
 {
+	if (!func_CBaseClient_OnRequestFullUpdate)
+		LUA->ThrowError("Failed to load CBaseClient::OnRequestFullUpdate");
+
 	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
 
 	if (func_CBaseClient_OnRequestFullUpdate)
@@ -2137,6 +2140,9 @@ CNetChan* NET_CreateHolyLibNetChannel(int socket, netadrnew_t* adr, const char* 
 static Symbols::NET_CreateNetChannel func_NET_CreateNetChannel;
 LUA_FUNCTION_STATIC(gameserver_CreateNetChannel)
 {
+	if (!s_NetChannels)
+		LUA->ThrowError("Failed to load s_NetChannels!");
+
 	netadrnew_t adr;
 	adr.SetFromString(LUA->CheckString(1), LUA->GetBool(2));
 	int nProtocolVersion = (int)LUA->CheckNumberOpt(3, 1);
@@ -2162,6 +2168,9 @@ LUA_FUNCTION_STATIC(gameserver_CreateNetChannel)
 static Symbols::NET_RemoveNetChannel func_NET_RemoveNetChannel;
 LUA_FUNCTION_STATIC(gameserver_RemoveNetChannel)
 {
+	if (!func_NET_RemoveNetChannel)
+		LUA->ThrowError("Failed to load NET_RemoveNetChannel!");
+
 	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
 
 	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler;
@@ -3348,23 +3357,35 @@ void hook_Filter_SendBan(const netadr_t& adr)
 
 void NET_RemoveNetChannel(INetChannel* chan, bool bDeleteNetChan)
 {
+	if (!func_NET_RemoveNetChannel)
+		Error(PROJECT_NAME " - gameserver: Failed to load NET_RemoveNetChannel!\n");
+
 	return func_NET_RemoveNetChannel(chan, bDeleteNetChan);
 }
 
 int NET_SendPacket(INetChannel *chan, int sock, const netadr_t &to, const unsigned char *data, int length, bf_write *pVoicePayload /* = NULL */, bool bUseCompression /*=false*/)
 {
+	if (!func_NET_SendPacket)
+		Error(PROJECT_NAME " - gameserver: Failed to load NET_SendPacket!\n");
+
 	return func_NET_SendPacket(chan, sock, to, data, length, pVoicePayload, bUseCompression);
 }
 
 static Symbols::NET_SendStream func_NET_SendStream;
 int NET_SendStream(int nSock, const char* buf, int len, int flags)
 {
+	if (!func_NET_SendStream)
+		Error(PROJECT_NAME " - gameserver: Failed to load NET_SendStream!\n");
+
 	return func_NET_SendStream(nSock, buf, len, flags);
 }
 
 static Symbols::NET_ReceiveStream func_NET_ReceiveStream;
 int NET_ReceiveStream(int nSock, char* buf, int len, int flags)
 {
+	if (!func_NET_ReceiveStream)
+		Error(PROJECT_NAME " - gameserver: Failed to load NET_ReceiveStream!\n");
+
 	return func_NET_ReceiveStream(nSock, buf, len, flags);
 }
 

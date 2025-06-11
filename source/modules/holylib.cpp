@@ -37,7 +37,7 @@ LUA_FUNCTION_STATIC(Reconnect)
 		LUA->ArgError(1, "Tried to use a NULL player!");
 
 	CBaseClient* client = Util::GetClientByIndex(ent->GetClientIndex());
-	if (!client->IsFakeClient()) { // ToDo: Verify that this 100% works. If it can crash here, we add a workaround.
+	if (client->GetNetChannel()) {
 		client->Reconnect();
 		LUA->PushBool(true);
 	} else {
@@ -53,7 +53,7 @@ LUA_FUNCTION_STATIC(HideServer)
 
 	ConVarRef hide_server("hide_server");
 	if (hide_server.IsValid())
-		hide_server.SetValue(LUA->GetBool(1)); // Remove our hook with the next gmod update. I should start to reduce the amount of Symbols I use.
+		hide_server.SetValue(LUA->GetBool(1));
 	else
 		LUA->ThrowError("Failed to find hide_server?");
 

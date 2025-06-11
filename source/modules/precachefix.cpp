@@ -43,6 +43,9 @@ static int hook_CVEngineServer_PrecacheModel(IVEngineServer* eengine, const char
 {
 	VPROF_BUDGET("HolyLib - CVEngineServer::PrecacheModel", VPROF_BUDGETGROUP_GAME);
 
+	if (!func_SV_FindOrAddModel)
+		return detour_CVEngineServer_PrecacheModel.GetTrampoline<Symbols::CVEngineServer_PrecacheModel>()(eengine, mdl, preload);
+
 	PR_CheckEmptyString(mdl);
 
 	bool bNewModel = false;
@@ -95,6 +98,9 @@ static Detouring::Hook detour_CVEngineServer_PrecacheGeneric;
 static int hook_CVEngineServer_PrecacheGeneric(IVEngineServer* eengine, const char* mdl, bool preload)
 {		
 	VPROF_BUDGET("HolyLib - CVEngineServer::PrecacheGeneric", VPROF_BUDGETGROUP_GAME);
+
+	if (!func_SV_FindOrAddGeneric)
+		return detour_CVEngineServer_PrecacheGeneric.GetTrampoline<Symbols::CVEngineServer_PrecacheGeneric>()(eengine, mdl, preload);
 
 	PR_CheckEmptyString(mdl);
 	bool bNewFile = false;

@@ -14,6 +14,7 @@ public:
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "nw"; };
 	virtual int Compatibility() { return LINUX32; };
+	virtual bool IsEnabledByDefault() { return false; }; // This has no code at all.
 };
 
 static CNWModule g_pNWModule;
