@@ -11,7 +11,7 @@ class CConCommandModule : public IModule
 public:
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "concommand"; };
-	virtual int Compatibility() { return LINUX32 | LINUX64; };
+	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 };
 
 static ConVar holylib_concommand_disableblacklist("holylib_concommand_disableblacklist", "0", 0, "If enabled, it will allow you to run use RunConsoleCommand with any command/convar.");
