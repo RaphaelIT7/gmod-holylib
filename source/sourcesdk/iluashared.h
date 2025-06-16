@@ -67,6 +67,7 @@ namespace GarrysMod::Lua
 
 class LuaClientDatatableHook;
 class CSteamAPIContext;
+class IGet;
 
 #define GMOD_LUASHARED_INTERFACE "LUASHARED003"
 namespace GarrysMod::Lua

@@ -1,6 +1,7 @@
 #include "public/imodule.h"
 #include <vector>
 #include "unordered_set"
+#include "public/iconfigsystem.h"
 
 class CModuleManager;
 class CModule : public IModuleWrapper
@@ -81,6 +82,7 @@ public:
 	inline int GetClientMax() { return m_iClientMax; };
 	inline std::vector<CModule*>& GetModules() { return m_pModules; };
 	inline std::unordered_set<GarrysMod::Lua::ILuaInterface*>& GetLuaInterfaces() { return m_pLuaInterfaces; };
+	inline IConfig* GetConfig() { return m_pConfig; };
 
 private:
 	std::vector<CModule*> m_pModules;
@@ -90,6 +92,7 @@ private:
 	CreateInterfaceFn m_pGameFactory = NULL;
 	bool m_bGhostInj = false;
 	bool m_bMarkedAsBinaryModule = false;
+	IConfig* m_pConfig = NULL; // Can be NULL at runtime so check for it!
 
 private: // ServerActivate stuff
 	edict_t* m_pEdictList = NULL;

@@ -49,5 +49,9 @@ public:
 	virtual void GhostInj(); // Making this virtual is such a bad Idea... Anyways.
 
 private:
+	void InitHolyLib();
+
+private:
 	int m_iClientCommandIndex;
+	bool m_bInit = false;
 };
