@@ -115,10 +115,13 @@ void CModule::SetModule(IModule* module)
 			IConfig* pConfig = g_pModuleManager.GetConfig();
 			if (pConfig)
 			{
+				Msg("Has child %s: %s\n", m_pModule->Name(), pConfig->GetData().HasChild(m_pModule->Name()) ? "true" : "false");
 				if (pConfig->GetData().HasChild(m_pModule->Name()))
 				{
+					Msg("Got child value: %s\n", pConfig->GetData().ChildVar<bool>(m_pModule->Name(), false) ? "true" : "false");
 					m_bEnabled = pConfig->GetData().ChildVar<bool>(m_pModule->Name(), m_bEnabled);
 				} else {
+					Msg("Fking child is gone!\n");
 					pConfig->GetData().SetChildVar<bool>(m_pModule->Name(), m_bEnabled);
 				}
 			}

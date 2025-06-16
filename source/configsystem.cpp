@@ -26,7 +26,7 @@ IConfig* CConfigSystem::LoadConfig(const char* pFilePath)
 		Bootil::BString pData;
 		if (Bootil::File::Read(pConfig->m_strFileName, pData))
 		{
-			if (!Bootil::Data::Json::Import(pConfig->m_pData, pData.c_str()));
+			if (!Bootil::Data::Json::Import(pConfig->m_pData, pData.c_str()))
 			{
 				// Why don't we just reset it?
 				// Because in this case the json may be invalid
