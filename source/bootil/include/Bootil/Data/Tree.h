@@ -73,6 +73,9 @@ namespace Bootil
 				//
 				template <typename TValue> TreeT<TString> & SetChildVar( TString strKey, TValue strValue );
 				template <typename TValue> TValue ChildVar( TString strKey, TValue Default ) const;
+				// Unlike SetChildVar & ChildVar, this function will return the value of the variable if it exists
+				// and if it doesn't exist it will create it and set the given default value.
+				template <typename TValue> TValue EnsureChildVar( TString strKey, TValue Default );
 				template <typename TValue> void Var( TValue strValue );
 				template <typename TValue> TValue Var() const;
 				template <typename TValue> bool IsVar() const;
@@ -230,6 +233,19 @@ namespace Bootil
 			{
 				if ( a->Name() == strKey ) { return a->template Var<TValue>(); }
 			}
+			return varDefault;
+		}
+
+		template <typename TString> template <typename TValue> TValue TreeT<TString>::EnsureChildVar( TString strKey, TValue varDefault )
+		{
+			BOOTIL_FOREACH_CONST( a, Children(), typename List )
+			{
+				if ( a->Name() == strKey ) { return a->template Var<TValue>(); }
+			}
+
+			TreeT<TString> & tchild = AddChild( strKey );
+			tchild.Var<TValue>( varDefault );
+
 			return varDefault;
 		}
 

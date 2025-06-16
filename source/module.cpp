@@ -78,6 +78,26 @@ bool CModule::IsEnabled()
 	return m_bEnabled;
 }
 
+void CModule::SetupConfig()
+{
+	IConfig* pConfig = g_pModuleManager.GetConfig();
+	if (!pConfig)
+		return;
+
+	Bootil::Data::Tree& pData = pConfig->GetData().GetChild(m_pModule->Name());
+	m_bEnabled = pData.EnsureChildVar<bool>("enabled", m_bEnabled);
+	m_pModule->SetDebug(pData.EnsureChildVar<int>("debugLevel", m_pModule->InDebug()));
+}
+
+/*
+	Module activation priority from low to high.
+	Based on this priority modules are enabled/disabled.
+
+	1 - IModule::IsEnabledByDefault - The module's default state
+	2 - CModule::SetupConfig - The module config
+	3 - Command line - The module's command line argument
+	4 - holylib_startdisabled - If all modules should start disabled.
+*/
 void CModule::SetModule(IModule* module)
 {
 	m_bStartup = true;
@@ -100,6 +120,10 @@ void CModule::SetModule(IModule* module)
 #endif
 #endif
 
+	m_bEnabled = m_pModule->IsEnabledByDefault() ? m_bCompatible : false;
+
+	SetupConfig();
+
 	std::string pStrName = "holylib_enable_";
 	pStrName.append(module->Name());
 	std::string cmdStr = "-";
@@ -108,23 +132,9 @@ void CModule::SetModule(IModule* module)
 	if (cmd > -1) {
 		SetEnabled(cmd == 1, true);
 	} else {
-		if (!CommandLine()->FindParm("-holylib_startdisabled"))
+		if (CommandLine()->FindParm("-holylib_startdisabled"))
 		{
-			m_bEnabled = m_pModule->IsEnabledByDefault() ? m_bCompatible : false;
-
-			IConfig* pConfig = g_pModuleManager.GetConfig();
-			if (pConfig)
-			{
-				Msg("Has child %s: %s\n", m_pModule->Name(), pConfig->GetData().HasChild(m_pModule->Name()) ? "true" : "false");
-				if (pConfig->GetData().HasChild(m_pModule->Name()))
-				{
-					Msg("Got child value: %s\n", pConfig->GetData().ChildVar<bool>(m_pModule->Name(), false) ? "true" : "false");
-					m_bEnabled = pConfig->GetData().ChildVar<bool>(m_pModule->Name(), m_bEnabled);
-				} else {
-					Msg("Fking child is gone!\n");
-					pConfig->GetData().SetChildVar<bool>(m_pModule->Name(), m_bEnabled);
-				}
-			}
+			m_bEnabled = false;
 		}
 	}
 
@@ -229,8 +239,8 @@ CModuleManager::CModuleManager()
 
 	if (!m_pConfig)
 	{
-		m_pConfig = g_pConfigSystem->LoadConfig("garrysmod/cfg/holylib/modules.json");
-		if (m_pConfig->IsInvalid())
+		m_pConfig = g_pConfigSystem->LoadConfig("garrysmod/holylib/cfg/modules.json");
+		if (m_pConfig->GetState() == ConfigState::INVALID_JSON)
 		{
 			Warning(PROJECT_NAME " - modulesystem: Failed to load modules.json!\n- Check if the json is valid or delete the config to let a new one be generated!\n");
 			m_pConfig->Destroy(); // Our config is in a invaid state :/
@@ -257,7 +267,7 @@ CModuleManager::~CModuleManager()
 
 	if (m_pConfig)
 	{
-		m_pConfig->Save();
+		//m_pConfig->Save(); // We don't save because we else would possibly override any changes made while the server was running, which we don't want.
 		m_pConfig->Destroy();
 		m_pConfig = NULL;
 	}

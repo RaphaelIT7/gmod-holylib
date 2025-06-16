@@ -14,6 +14,7 @@ public:
 	virtual void Shutdown();
 	virtual bool IsEnabled();
 	virtual bool IsCompatible() { return m_bCompatible; };
+	virtual void SetupConfig();
 
 public:
 	inline IModule* FastGetModule() { return m_pModule; };

@@ -9,17 +9,17 @@ public:
 class CConfig : public IConfig
 {
 public:
-	virtual bool FreshConfig();
-	virtual bool IsInvalid();
+	CConfig(const char* pFileName);
+	virtual ConfigState GetState();
 	virtual Bootil::Data::Tree& GetData();
 	virtual bool Save();
+	virtual bool Load();
 	virtual void Destroy();
 
 private:
 	std::string m_strFileName = "";
 	Bootil::Data::Tree m_pData;
-	bool m_bFreshlyCreated = false;
-	bool m_bIsInvalid = false;
+	ConfigState m_pState = ConfigState::NOT_LOADED;
 
 	friend class CConfigSystem;
 };

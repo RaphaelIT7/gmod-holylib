@@ -150,6 +150,13 @@ namespace Bootil
 			return OutputFiles.size();
 		}
 
+		// Not passed by reference since we motify it's value.
+		BOOTIL_EXPORT bool CreateFilePath( BString strFileName )
+		{
+			Bootil::String::File::StripFilename( strFileName );
+			return Bootil::File::CreateFolder( strFileName, true );
+		}
+
 		BOOTIL_EXPORT bool CreateFolder( const BString & strFileName, bool bRecursive )
 		{
 			// Fix slashes, trim last slash

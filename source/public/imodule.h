@@ -89,7 +89,7 @@ public:
 
 public: // I would like to remove these at some point but it's more efficient if the modules themself have them.
 	unsigned int m_pID = 0; // Set by the CModuleManager when registering it! Don't touch it.
-	int m_iIsDebug = false;
+	int m_iIsDebug = 0;
 
 	inline void SetDebug(int iDebug) { m_iIsDebug = iDebug; };
 
@@ -122,6 +122,9 @@ public:
 
 	// Returns true if the module is compatible with the current build. (Used to check for Linux32, Linux64 support and such)
 	virtual bool IsCompatible() = 0;
+
+	// Sets up the config file.
+	virtual void SetupConfig() = 0;
 };
 
 #define LoadStatus_PreDetourInit (1<<0)
