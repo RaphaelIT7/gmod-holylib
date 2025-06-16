@@ -1,0 +1,322 @@
+<html>
+<head>
+<title>
+HappyHTTP - a simple HTTP library
+</title>
+</head>
+<body>
+
+<h1>HappyHTTP</h1>
+
+<i>a simple HTTP library</i><br>
+<br>
+Version: 0.1<br>
+Homepage: <a href="http://www.scumways.com/happyhttp/happyhttp.html">http://www.scumways.com/happyhttp/happyhttp.html</a><br>
+Author: Ben Campbell (homepage www.scumways.com)<br>
+
+
+
+<h2>Contents</h2>
+
+<ul>
+	<li><a href="#overview">Overview</a></li>
+	<li><a href="#download">Download</a></li>
+	<li><a href="#usage">Usage</a></li>
+	<li><a href="#example">Example</a></li>
+	<li><a href="#todo">TODO</a></li>
+	<li><a href="#license">License</a></li>
+</ul>
+
+<hr>
+<a name="overview"><h2>Overview</h2></a>
+
+<p>
+HappyHTTP is a simple C++ library for issuing HTTP requests and processing
+responses.
+</p>
+
+<p>
+<ul>
+<li>Simple to integrate - just drop in the <a href="happyhttp.h">.h</a> and
+ <a href="happyhttp.cpp">.cpp</a> files</li>
+<li>Easy-to-use interface (<a href="#example">example</a>)</li>
+<li>Non-blocking operation, suitable for use in game update loops</li>
+<li>Supports pipelining. You can issue multiple requests without waiting for
+ responses.</li>
+<li>Licensed under the <a href="http://www.opensource.org/licenses/zlib-license.php">zlib/libpng license</a>.</li>
+<li>Cross-platform (Linux, OSX, Windows, at least)</li>
+</ul>
+</p>
+
+<p>
+Why reinvent the wheel with yet another HTTP library?<br>
+I wanted one that was non-blocking, lightweight, and easy to drop into an
+existing project.
+Also, I wanted to learn a bit more about HTTP.
+</p>
+
+
+<hr>
+<a name="download"><h2>Download</h2></a>
+
+<p>
+Latest Version is 0.1: <a href="http://www.scumways.com/happyhttp/happyhttp-0.1.tar.gz">happyhttp-0.1.tar.gz</a><br>
+</p>
+
+<hr>
+<a name="usage"><h2>Usage</h2></a>
+
+<p>The interface is based loosely on Pythons <a href="http://docs.python.org/lib/module-httplib.html">httplib</a>. I've kept the same terminology where possible.</p>
+
+<p>All HappyHTTP code is kept within the <code>happyhttp</code> namespace</p>
+
+<p>To issue and process a HTTP request, the basic steps are:
+<ol>
+<li>Create a connection object</li>
+<li>Set up callbacks for handling responses</li>
+<li>Issue request(s)</li>
+<li>'pump' the connection at regular intervals. As responses are received,
+the callbacks will be invoked.</li>
+</ol>
+</p>
+
+
+<h3>Connection object methods</h3>
+
+<p>
+<b><code>Connection( const char* host, int port )</code></b><br>
+Constructor. Specifies host and port, but connection isn't made until request
+is issued or connect() is called.
+</p>
+
+<p>
+<b><code>~Connection()</code></b><br>
+Destructor. If connection is open, it'll be closed, and any outstanding requests will be discarded.
+</p>
+
+<p>
+<b><code>void setcallbacks( ResponseBegin_CB begincb, ResponseData_CB datacb, ResponseComplete_CB completecb, void* userdata )</code></b><br>
+Set up the response handling callbacks. These will be invoked during
+calls to pump().<br>
+<code>begincb</code> - called when the responses headers have been received<br>
+<code>datacb</code> - called repeatedly to handle body data<br>
+<code>completecb</code> - response is completed<br>
+<code>userdata</code> - passed as a param to all callbacks.<br>
+</p>
+
+<p>
+<b><code>void connect()</code></b><br>
+Don't need to call connect() explicitly as issuing a request will
+call it automatically if needed.
+But it could block (for name lookup etc), so you might prefer to
+call it in advance.
+</p>
+
+<p>
+<b><code>void close()</code></b><br>
+// close connection, discarding any pending requests.
+</p>
+
+<p>
+<b><code>void pump()</code></b><br>
+Update the connection (non-blocking)
+Just keep calling this regularly to service outstanding requests.
+As responses are received, the callbacks will be invoked.
+</p>
+
+<p>
+<b><code>bool outstanding() const</code></b><br>
+Returns true if any requests are still outstanding.
+</p>
+
+<p>
+<b><code>void request( const char* method, const char* url, const char* headers[], const unsigned char* body, int bodysize )</code></b><br>
+High-level request interface. Issues a request.<br>
+<code>method</code> - "GET", "POST" etc...<br>
+<code>url</code> - eg  "/index.html"<br>
+<code>headers</code> - array of name/value pairs, terminated by a null-ptr<br>
+<code>body, bodysize</code> - specify body data of request (eg values for a form)<br>
+</p>
+
+<p>
+<b><code>void putrequest( const char* method, const char* url )</code></b> <br>
+(part of low-level request interface)<br>
+Begin a request<br>
+method is "GET", "POST" etc...<br>
+url is only path part: eg  "/index.html"<br>
+</p>
+
+<p>
+<b><code>void putheader( const char* header, const char* value )</code></b><br>
+<b><code>void putheader( const char* header, int numericvalue )</code></b><br>
+(part of low-level request interface)<br>
+Add a header to the request (call after putrequest() )
+</p>
+
+<p>
+<b><code>void endheaders()</code></b><br>
+(part of low-level request interface)<br>
+Indicate that your are finished adding headers and the request can be issued.
+</p>
+
+<p>
+<b><code>void send( const unsigned char* buf, int numbytes )</b></code> <br>
+(part of low-level request interface)<br>
+send body data if any.
+To be called after endheaders()
+</p>
+
+
+
+
+<h3>Callback types</h3>
+
+<p>
+<b><code>typedef void (*ResponseBegin_CB)( const Response* r, void* userdata )</code></b><br>
+Invoked when all the headers for a response have been received.<br>
+The Response object can be queried to determine status and header values.<br>
+<code>userdata</code> is the same value that was passed in to
+<code>Connection::setcallbacks()</code>.
+</p>
+
+<p>
+<b><code>typedef void (*ResponseData_CB)( const Response* r, void* userdata, const unsigned char* data, int numbytes )</code></b><br>
+This callback is invoked to pass out data from the body of the response. It may
+be called multiple times, or not at all (if there is no body).
+</p>
+
+<p>
+<b><code>typedef void (*ResponseComplete_CB)( const Response* r, void* userdata )</code></b><br>
+Once a response is completed, this callback is invoked. When the callback
+returns, the respsonse object will be destroyed.
+</p>
+
+
+
+
+<h3>Response object methods</h3>
+
+When a callback is invoked, a response object is passed to it. The following
+member functions can be used to query the response:
+
+<p>
+<b><code>const char* getheader( const char* name ) const</code></b><br>
+retrieve the value of a header (returns 0 if not present)
+</p>
+
+<p>
+<b><code>int getstatus() const</code></b><br>
+Get the HTTP status code returned by the server
+</p>
+
+<p>
+<b><code>const char* getreason() const</code></b><br>
+Get the HTTP response reason string returned by the server
+</p>
+
+
+<h3>Error Handling</h3>
+
+<p>
+If an error occurs, a <code>Wobbly</code> is thrown.
+The <code>Wobbly::what()</code> method returns a text description.
+</p>
+
+<hr>
+<a name="example"><h2>Example</h2></a>
+
+<p>
+For more examples, see <a href="test.cpp">test.cpp</a>.
+</p>
+
+<pre>
+
+static int count=0;
+
+// invoked when response headers have been received
+void OnBegin( const happyhttp::Response* r, void* userdata )
+{
+	printf( "BEGIN (%d %s)\n", r-&gtgetstatus(), r-&gtgetreason() );
+	count = 0;
+}
+
+// invoked to process response body data (may be called multiple times)
+void OnData( const happyhttp::Response* r, void* userdata, const unsigned char* data, int n )
+{
+	fwrite( data,1,n, stdout );
+	count += n;
+}
+
+// invoked when response is complete
+void OnComplete( const happyhttp::Response* r, void* userdata )
+{
+	printf( "COMPLETE (%d bytes)\n", count );
+}
+
+
+void TestGET()
+{
+	happyhttp::Connection conn( "www.scumways.com", 80 );
+	conn.setcallbacks( OnBegin, OnData, OnComplete, 0 );
+
+	conn.request( "GET", "/happyhttp/test.php" );
+
+	while( conn.outstanding() )
+		conn.pump();
+}
+</pre>
+
+
+<hr>
+<a name="todo"><h2>TODO</h2></a>
+
+<p>
+Priority stuff:<br>
+<ul>
+<li>Proxy support</li>
+<li>Add helper functions for URL wrangling</li>
+<li>Improve error text (and maybe some more exception types?)</li>
+<li>HTTP 0.9 support</li>
+<li>Improved documentation and examples</li>
+</ul>
+</p>
+
+<p>
+Stuff that'd be nice, but I probably won't get around to doing for a while:
+<ul>
+<li>Get rid of STL usage (Don't really need STL, and it a lot of projects
+ prefer not to use it, especially games)</li>
+<li>Compile option to use error codes instead of exceptions. Exception use
+ is likely to be a real show-stopper for many game developers.</li>
+<li>Some higher-level helpers to handle redirects etc...</li>
+<li>Add interface to Response to allow iteration over headers</li>
+</ul>
+</p>
+
+<p>
+Stuff that I almost certainly won't get around to doing, but would seriously
+consider if someone sent me a patch :-)
+<ul>
+<li>Convert to straight C instead of C++.</li>
+<li>Remove/reduce dynamic memory allocation (for platforms where
+fragmentation is a big issue).</li>
+<li>HTTPS support - I really have no idea what's involved here. Probably
+involves pulling in some SSL library or something.</li>
+<li>Compiling under Visual Studio. Shouldn't be too hard, but it's quite likely
+that some minor tweaks will be needed!</li>
+</ul>
+
+
+<hr>
+<a name="license"><h2>License</h2></a>
+
+<p>HappyHTTP is licensed under the <a href="http://www.opensource.org/licenses/zlib-license.php">zlib/libpng license</a>.</p>
+
+<p>The intented spirit is: do whatever you want with it (including using it
+in commercial products), but if you make improvements, please send me a patch!
+</p>
+<p>If you use it in something cool, let me know!</p>
+
+</body>
+</html>
+

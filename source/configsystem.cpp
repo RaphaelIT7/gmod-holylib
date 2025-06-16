@@ -66,7 +66,7 @@ bool CConfig::Save()
 	}
 
 	// Trim or else we might have a new line in our file for some reason
-	// Bootil::String::Util::Trim(pData);
+	Bootil::String::Util::Trim(pData);
 	return Bootil::File::Write(m_strFileName, pData);
 }
 
