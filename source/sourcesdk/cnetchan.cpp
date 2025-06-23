@@ -26,7 +26,8 @@
 
 static ConVar net_showudp( "holylib_net_showudp", "0", 0, "Dump UDP packets summary to console" );
 static ConVar net_showtcp( "holylib_net_showtcp", "0", 0, "Dump TCP stream summary to console" );
-static ConVar net_blocksize( "holylib_net_blocksize", std::to_string(MAX_ROUTABLE_PAYLOAD).c_str(), 0, "Max fragment bytes per packet", true, FRAGMENT_SIZE, true, MAX_ROUTABLE_PAYLOAD );
+static std::string blocksize_value = std::to_string(MAX_ROUTABLE_PAYLOAD); // Required as else we crash since std::string would be deconstructed.
+static ConVar net_blocksize( "holylib_net_blocksize", blocksize_value.c_str(), 0, "Max fragment bytes per packet", true, FRAGMENT_SIZE, true, MAX_ROUTABLE_PAYLOAD );
 
 static ConVar net_showmsg( "holylib_net_showmsg", "0", 0, "Show incoming message: <0|1|name>" );
 static ConVar net_showfragments( "holylib_net_showfragments", "0", 0, "Show netchannel fragments" );
