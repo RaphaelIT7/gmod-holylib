@@ -509,6 +509,45 @@ void Util::CheckVersion()
 	// ToDo: Implement this someday
 }
 
+static bool g_bUtilInit = false;
+void Util::Load()
+{
+	if (g_bUtilInit)
+		return;
+
+	g_bUtilInit = true;
+	IConfig* pConVarConfig = g_pConfigSystem->LoadConfig("garrysmod/holylib/cfg/convars.json");
+	if (pConVarConfig)
+	{
+		Bootil::Data::Tree& pData = pConVarConfig->GetData();
+		ConCommandBase *pCur, *pNext;
+		pCur = ConCommandBase::InternalConCommandBases();
+		while (pCur)
+		{
+			pNext = pCur->InternalNext();
+			if (!pCur->IsCommand())
+			{
+				ConVar* pConVar = (ConVar*)pCur;
+				Bootil::Data::Tree& pEntry = pData.GetChild(pCur->GetName());
+				pConVar->SetValue(pEntry.EnsureChildVar<Bootil::BString>("value", pConVar->GetDefault()).c_str());
+				pEntry.EnsureChildVar<Bootil::BString>("help", pConVar->GetHelpText());
+			}
+			pCur = pNext;
+		}
+
+		pConVarConfig->Save();
+		pConVarConfig->Destroy();
+	}
+}
+
+void Util::Unload()
+{
+	if (!g_bUtilInit)
+		return;
+
+	g_bUtilInit = false;
+}
+
 GMODGet_LuaClass(IRecipientFilter, GarrysMod::Lua::Type::RecipientFilter, "RecipientFilter", )
 GMODGet_LuaClass(Vector, GarrysMod::Lua::Type::Vector, "Vector", )
 GMODGet_LuaClass(QAngle, GarrysMod::Lua::Type::Angle, "Angle", )

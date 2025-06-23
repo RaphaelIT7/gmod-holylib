@@ -46,7 +46,8 @@ static ConVar net_filebackgroundtranmission( "holylib_net_filebackgroundtranmiss
 static ConVar net_minfragments( "holylib_net_minfragments", "1", 0, "Forces a minimum number of fragments to be used", true, 1, true, MAX_FRAGMENTS );
 static ConVar net_maxfragments( "holylib_net_maxfragments", "0", 0, "Forces a maximum number of fragments to be used. 0 = let the engine freely decide", true, 0, true, MAX_FRAGMENTS );
 
-static ConVar holylib_net_maxroutable("holylib_net_maxroutable", std::to_string(MAX_ROUTABLE_PAYLOAD).c_str(), 0, "Maximum payload size", true, 0, true, MAX_ROUTABLE_PAYLOAD);
+static std::string routable_default = std::to_string(MAX_ROUTABLE_PAYLOAD); // Let's try to not crash
+static ConVar holylib_net_maxroutable("holylib_net_maxroutable", routable_default.c_str(), 0, "Maximum payload size", true, 0, true, MAX_ROUTABLE_PAYLOAD);
 
 extern bool Q_RemoveAllEvilCharacters2( char *pch ); // Bcause 64x is shit
 extern int  NET_SendStream( int nSock, const char * buf, int len, int flags );

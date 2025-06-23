@@ -241,6 +241,10 @@ namespace Util
 	extern bool ShouldLoad();
 	extern void CheckVersion();
 
+	// The main load/unload functions
+	extern void Load();
+	extern void Unload();
+
 	// Iterator functions for entities that reliably work even if the entitylist isn't available.
 	extern CBaseEntity* FirstEnt();
 	extern CBaseEntity* NextEnt(CBaseEntity* pEntity);

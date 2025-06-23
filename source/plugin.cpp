@@ -59,6 +59,8 @@ void CServerPlugin::GhostInj()
 	g_pModuleManager.LoadModules();
 #endif
 
+	Util::Load();
+
 	g_pModuleManager.SetGhostInj();
 	g_pModuleManager.InitDetour(true);
 }
@@ -118,6 +120,8 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 
 	if (playerinfomanager)
 		gpGlobals = playerinfomanager->GetGlobalVars();
+
+	Util::Load();
 
 	g_pModuleManager.Setup(interfaceFactory, gameServerFactory); // Setup so that Util won't cause issues
 	Lua::AddDetour();

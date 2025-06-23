@@ -26,6 +26,9 @@ static IThreadPool* pCompressPool = NULL;
 static IThreadPool* pDecompressPool = NULL;
 static void OnCompressThreadsChange(IConVar* convar, const char* pOldValue, float flOldValue)
 {
+	if (!pCompressPool)
+		return;
+
 	pCompressPool->ExecuteAll(); // ToDo: Do we need to do this?
 	pCompressPool->Stop();
 	Util::StartThreadPool(pCompressPool, ((ConVar*)convar)->GetInt());
@@ -33,6 +36,9 @@ static void OnCompressThreadsChange(IConVar* convar, const char* pOldValue, floa
 
 static void OnDecompressThreadsChange(IConVar* convar, const char* pOldValue, float flOldValue)
 {
+	if (!pDecompressPool)
+		return;
+
 	pDecompressPool->ExecuteAll();
 	pDecompressPool->Stop();
 	Util::StartThreadPool(pDecompressPool, ((ConVar*)convar)->GetInt());

@@ -28,6 +28,9 @@ static ConVar voicechat_hooks("holylib_voicechat_hooks", "1", 0);
 static IThreadPool* pVoiceThreadPool = NULL;
 static void OnVoiceThreadsChange(IConVar* convar, const char* pOldValue, float flOldValue)
 {
+	if (!pVoiceThreadPool)
+		return;
+
 	pVoiceThreadPool->ExecuteAll();
 	pVoiceThreadPool->Stop();
 	Util::StartThreadPool(pVoiceThreadPool, ((ConVar*)convar)->GetInt());

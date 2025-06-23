@@ -6,6 +6,8 @@ namespace Bootil
 	{
 		// String (generic value)
 		template<> template<> unsigned char Tree::VarID<Bootil::BString>() const			{ return 1; }
+		template<> template<> Bootil::BString Tree::VarToString( Bootil::BString var ) const { return var; }
+		template<> template<> Bootil::BString Tree::StringToVar( const Bootil::BString & var ) const { return Bootil::BString(var); }
 
 		// Float
 		template<> template<> unsigned char Tree::VarID<float>() const						{ return 2; }
