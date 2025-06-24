@@ -27,8 +27,6 @@ static ConVar gameserver_disablespawnsafety("holylib_gameserver_disablespawnsafe
 static ConVar gameserver_connectionlesspackethook("holylib_gameserver_connectionlesspackethook", "1", 0, "If enabled, the HolyLib:ProcessConnectionlessPacket hook is active and will be called.");
 static ConVar sv_filter_nobanresponse("sv_filter_nobanresponse", "0", 0, "If enabled, a blocked ip won't be informed that its even blocked.");
 
-static ConVar gameserver_detourlevel("holylib_gameserver_detourlevel", "00000000000", FCVAR_ARCHIVE, "Toggles detours, 0 = disable 1 = enable.");
-
 CGameServerModule g_pGameServerModule;
 IModule* pGameServerModule = &g_pGameServerModule;
 
@@ -2451,7 +2449,7 @@ static void hook_CBaseServer_CheckTimeouts(CBaseServer* srv)
 #if !defined( _DEBUG )
 	for (i=0 ; i< srv->GetClientCount() ; i++ )
 	{
-		IClient	*cl = srv->Client(i);
+		IClient	*cl = srv->GetClient(i);
 		
 		if ( cl->IsFakeClient() || !cl->IsConnected() )
 			continue;
@@ -2484,7 +2482,7 @@ static void hook_CBaseServer_CheckTimeouts(CBaseServer* srv)
 
 	for (i=0 ; i< srv->GetClientCount() ; i++ )
 	{
-		IClient	*cl = srv->Client(i);
+		IClient	*cl = srv->GetClient(i);
 		
 		if ( cl->IsFakeClient() || !cl->IsConnected() )
 			continue;
@@ -2750,68 +2748,44 @@ void hook_Filter_SendBan(const netadr_t& adr)
 	detour_Filter_SendBan.GetTrampoline<Symbols::Filter_SendBan>()(adr);
 }
 
-inline bool IsDetourEnabled(int index)
-{
-	const char* pFlags = gameserver_detourlevel.GetString();
-	if (strlen(pFlags) <= index || index < 0)
-		return false;
-
-	return pFlags[index] == '1';
-}
-
 void CGameServerModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
 		return;
 
 	SourceSDK::FactoryLoader engine_loader("engine");
-	if (IsDetourEnabled(1))
-	{
-		Detour::Create(
-			&detour_CBaseServer_FillServerInfo, "CBaseServer::FillServerInfo",
-			engine_loader.GetModule(), Symbols::CBaseServer_FillServerInfoSym,
-			(void*)hook_CBaseServer_FillServerInfo, m_pID
-		);
-	}
+	Detour::Create(
+		&detour_CBaseServer_FillServerInfo, "CBaseServer::FillServerInfo",
+		engine_loader.GetModule(), Symbols::CBaseServer_FillServerInfoSym,
+		(void*)hook_CBaseServer_FillServerInfo, m_pID
+	);
 
-	if (IsDetourEnabled(2))
-	{
-		Detour::Create(
-			&detour_CBaseClient_SetSignonState, "CBaseClient::SetSignonState",
-			engine_loader.GetModule(), Symbols::CBaseClient_SetSignonStateSym,
-			(void*)hook_CBaseClient_SetSignonState, m_pID
-		);
-	}
+	Detour::Create(
+		&detour_CBaseClient_SetSignonState, "CBaseClient::SetSignonState",
+		engine_loader.GetModule(), Symbols::CBaseClient_SetSignonStateSym,
+		(void*)hook_CBaseClient_SetSignonState, m_pID
+	);
 
-	if (IsDetourEnabled(3))
-	{
-		Detour::Create(
-			&detour_CBaseClient_ShouldSendMessages, "CBaseClient::ShouldSendMessages",
-			engine_loader.GetModule(), Symbols::CBaseClient_ShouldSendMessagesSym,
-			(void*)hook_CBaseClient_ShouldSendMessages, m_pID
-		);
-	}
+	Detour::Create(
+		&detour_CBaseClient_ShouldSendMessages, "CBaseClient::ShouldSendMessages",
+		engine_loader.GetModule(), Symbols::CBaseClient_ShouldSendMessagesSym,
+		(void*)hook_CBaseClient_ShouldSendMessages, m_pID
+	);
 
-	if (IsDetourEnabled(4))
-	{
-		Detour::Create(
-			&detour_CBaseServer_CheckTimeouts, "CBaseServer::CheckTimeouts",
-			engine_loader.GetModule(), Symbols::CBaseServer_CheckTimeoutsSym,
-			(void*)hook_CBaseServer_CheckTimeouts, m_pID
-		);
-	}
+	Detour::Create(
+		&detour_CBaseServer_CheckTimeouts, "CBaseServer::CheckTimeouts",
+		engine_loader.GetModule(), Symbols::CBaseServer_CheckTimeoutsSym,
+		(void*)hook_CBaseServer_CheckTimeouts, m_pID
+	);
 
-	if (IsDetourEnabled(5))
-	{
-		Detour::Create(
-			&detour_CGameClient_SpawnPlayer, "CGameClient::SpawnPlayer",
-			engine_loader.GetModule(), Symbols::CGameClient_SpawnPlayerSym,
-			(void*)hook_CGameClient_SpawnPlayer, m_pID
-		);
-	}
+	Detour::Create(
+		&detour_CGameClient_SpawnPlayer, "CGameClient::SpawnPlayer",
+		engine_loader.GetModule(), Symbols::CGameClient_SpawnPlayerSym,
+		(void*)hook_CGameClient_SpawnPlayer, m_pID
+	);
 
 	SourceSDK::FactoryLoader server_loader("server");
-	if (!g_pModuleManager.IsMarkedAsBinaryModule() && IsDetourEnabled(6)) // Loaded by require? Then we skip this since it would be too late already.
+	if (!g_pModuleManager.IsMarkedAsBinaryModule()) // Loaded by require? Then we skip this since it would be too late already.
 	{
 		Detour::Create(
 			&detour_CBaseServer_IsMultiplayer, "CBaseServer::IsMultiplayer",
@@ -2826,24 +2800,17 @@ void CGameServerModule::InitDetour(bool bPreServer)
 		);
 	}
 
-	if (IsDetourEnabled(7))
-	{
-		Detour::Create(
-			&detour_CServerGameClients_GetPlayerLimit, "CServerGameClients::GetPlayerLimit",
-			server_loader.GetModule(), Symbols::CServerGameClients_GetPlayerLimitSym,
-			(void*)hook_CServerGameClients_GetPlayerLimit, m_pID
-		);
-	}
+	Detour::Create(
+		&detour_CServerGameClients_GetPlayerLimit, "CServerGameClients::GetPlayerLimit",
+		server_loader.GetModule(), Symbols::CServerGameClients_GetPlayerLimitSym,
+		(void*)hook_CServerGameClients_GetPlayerLimit, m_pID
+	);
 
-
-	if (IsDetourEnabled(8))
-	{
-		Detour::Create(
-			&detour_CBaseServer_ProcessConnectionlessPacket, "CBaseServer::ProcessConnectionlessPacket",
-			engine_loader.GetModule(), Symbols::CBaseServer_ProcessConnectionlessPacketSym,
-			(void*)hook_CBaseServer_ProcessConnectionlessPacket, m_pID
-		);
-	}
+	Detour::Create(
+		&detour_CBaseServer_ProcessConnectionlessPacket, "CBaseServer::ProcessConnectionlessPacket",
+		engine_loader.GetModule(), Symbols::CBaseServer_ProcessConnectionlessPacketSym,
+		(void*)hook_CBaseServer_ProcessConnectionlessPacket, m_pID
+	);
 
 	func_CBaseClient_OnRequestFullUpdate = (Symbols::CBaseClient_OnRequestFullUpdate)Detour::GetFunction(engine_loader.GetModule(), Symbols::CBaseClient_OnRequestFullUpdateSym);
 	Detour::CheckFunction((void*)func_CBaseClient_OnRequestFullUpdate, "CBaseClient::OnRequestFullUpdate");
@@ -2851,15 +2818,11 @@ void CGameServerModule::InitDetour(bool bPreServer)
 	/*
 	 * CNetChan related stuff
 	 */
-
-	if (IsDetourEnabled(9))
-	{
-		Detour::Create(
-			&detour_CNetChan_D2, "CNetChan::~CNetChan",
-			engine_loader.GetModule(), Symbols::CNetChan_D2Sym,
-			(void*)hook_CNetChan_D2, m_pID
-		);
-	}
+	Detour::Create(
+		&detour_CNetChan_D2, "CNetChan::~CNetChan",
+		engine_loader.GetModule(), Symbols::CNetChan_D2Sym,
+		(void*)hook_CNetChan_D2, m_pID
+	);
 
 	func_NET_CreateNetChannel = (Symbols::NET_CreateNetChannel)Detour::GetFunction(engine_loader.GetModule(), Symbols::NET_CreateNetChannelSym);
 	Detour::CheckFunction((void*)func_NET_CreateNetChannel, "NET_CreateNetChannel");
@@ -2871,23 +2834,17 @@ void CGameServerModule::InitDetour(bool bPreServer)
 	 * Everything below are networking related changes, when the next gmod update is out we should be able to remove most of it if rubat implements https://github.com/Facepunch/garrysmod-requests/issues/2632
 	 */
 
-	if (IsDetourEnabled(10))
-	{
-		Detour::Create(
-			&detour_CNetChan_SendDatagram, "CNetChan::SendDatagram",
-			engine_loader.GetModule(), Symbols::CNetChan_SendDatagramSym,
-			(void*)hook_CNetChan_SendDatagram, m_pID
-		);
-	}
+	Detour::Create(
+		&detour_CNetChan_SendDatagram, "CNetChan::SendDatagram",
+		engine_loader.GetModule(), Symbols::CNetChan_SendDatagramSym,
+		(void*)hook_CNetChan_SendDatagram, m_pID
+	);
 
-	if (IsDetourEnabled(11))
-	{
-		Detour::Create(
-			&detour_Filter_SendBan, "Filter_SendBan",
-			engine_loader.GetModule(), Symbols::Filter_SendBanSym,
-			(void*)hook_Filter_SendBan, m_pID
-		);
-	}
+	Detour::Create(
+		&detour_Filter_SendBan, "Filter_SendBan",
+		engine_loader.GetModule(), Symbols::Filter_SendBanSym,
+		(void*)hook_Filter_SendBan, m_pID
+	);
 
 	func_NET_SendPacket = (Symbols::NET_SendPacket)Detour::GetFunction(engine_loader.GetModule(), Symbols::NET_SendPacketSym);
 	Detour::CheckFunction((void*)func_NET_SendPacket, "NET_SendPacket");
