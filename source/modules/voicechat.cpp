@@ -1,3 +1,4 @@
+#include "opus/opus_framedecoder.h"
 #include "LuaInterface.h"
 #include "detours.h"
 #include "module.h"

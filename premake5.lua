@@ -62,6 +62,7 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 
 		files({
 			gmcommon .. [[/sourcesdk-minimal/public/filesystem_helpers.cpp]],
+			[[source/opus/*.h]],
 			[[source/modules/*.h]],
 			[[source/modules/*.cpp]],
 			[[source/sourcesdk/*.h]],
@@ -90,6 +91,8 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			links({"lua51_64.lib"})
 			links({"bass_32.lib"})
 			links({"bass_64.lib"})
+			links({"opus_32.lib"})
+			links({"opus_64.lib"})
 
 		filter("system:windows", "platforms:x86")
 			libdirs("libs/win32")
@@ -101,10 +104,12 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			libdirs("libs/linux64")
 			buildoptions({"-mcx16"}) -- Should solve this: undefined reference to `__sync_bool_compare_and_swap_16'
 			links("luajit_64")
+			links("opus_64")
 
 		filter({"system:linux", "platforms:x86"})
 			libdirs("libs/linux32")
 			links("luajit_32")
+			links("opus_32")
 
 		filter({"platforms:x86_64"})
 			defines("PLATFORM_64BITS")
@@ -119,6 +124,3 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 					"pthread",
 					"bass",
 				}
-
-		filter("system:linux or macosx")
-			files({"source/posix/*.cpp", "source/posix/*.hpp"})
