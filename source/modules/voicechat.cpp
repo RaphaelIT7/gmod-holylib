@@ -1,4 +1,5 @@
 #include "opus/opus_framedecoder.h"
+#include "opus/steam_voice.h"
 #include "LuaInterface.h"
 #include "detours.h"
 #include "module.h"
@@ -8,6 +9,7 @@
 #include "steam/isteamclient.h"
 #include <isteamutils.h>
 #include "unordered_set"
+#include "server.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -167,6 +169,46 @@ LUA_FUNCTION_STATIC(VoiceData_GetUncompressedData)
 
 	LUA->PushString(pDecompressed, pDecompressedLength);
 	delete[] pDecompressed; // Lua will already have a copy of it.
+
+	return 1;
+}
+
+static SteamOpus::Opus_FrameDecoder g_pOpusDecoder;
+LUA_FUNCTION_STATIC(VoiceData_SetUncompressedData)
+{
+	VoiceData* pData = Get_VoiceData(LUA, 1, true);
+	const char* pUncompressedData = LUA->CheckString(2);
+	int iSize = LUA->ObjLen(2);
+
+	ISteamUser* pSteamUser = Util::GetSteamUser();
+	if (!pSteamUser)
+		LUA->ThrowError("Failed to get SteamUser!\n");
+
+	if (!pData->pData || pData->iLength == 0)
+	{
+		LUA->PushString("");
+		return 1;
+	}
+
+	char* pCompressed = new char[iSize];
+	CBaseClient* pClient = Util::GetClientByIndex(pData->iPlayerSlot);
+	uint64 steamID64 = 0;
+	if (pClient)
+	{
+		steamID64 = pClient->GetNetworkID().steamid.ConvertToUint64(); // Crash any% speedrun
+	}
+
+	int pBytes = SteamVoice::CompressIntoBuffer(steamID64, &g_pOpusDecoder, pUncompressedData, iSize, pCompressed, 20000, 44100);
+	if (pBytes != -1)
+	{
+		// Instead of calling SetData which copies it, we set it directly to avoid any additional copying.
+		pData->pData = pCompressed;
+		pData->iLength = pBytes;
+		LUA->PushBool(true);
+	} else {
+		delete[] pCompressed;
+		LUA->PushBool(false);
+	}
 
 	return 1;
 }
@@ -896,6 +938,7 @@ void CVoiceChatModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServer
 		Util::AddFunc(pLua, VoiceData_SetLength, "SetLength");
 		Util::AddFunc(pLua, VoiceData_SetPlayerSlot, "SetPlayerSlot");
 		Util::AddFunc(pLua, VoiceData_GetUncompressedData, "GetUncompressedData");
+		Util::AddFunc(pLua, VoiceData_SetUncompressedData, "SetUncompressedData");
 		Util::AddFunc(pLua, VoiceData_GetProximity, "GetProximity");
 		Util::AddFunc(pLua, VoiceData_SetProximity, "SetProximity");
 		Util::AddFunc(pLua, VoiceData_CreateCopy, "CreateCopy");
