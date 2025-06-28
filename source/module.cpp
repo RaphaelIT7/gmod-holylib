@@ -304,6 +304,7 @@ void CModuleManager::LoadModules()
 	RegisterModule(pGameServerModule);
 	RegisterModule(pSoundscapeModule);
 	RegisterModule(pLuaThreadsModule);
+	RegisterModule(pNW2DebuggingModule);
 }
 
 int g_pIDs = 0;

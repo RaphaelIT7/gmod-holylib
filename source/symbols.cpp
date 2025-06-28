@@ -58,9 +58,15 @@ namespace Symbols
 
 	const std::vector<Symbol> lua_rawsetiSym = {
 		Symbol::FromName("lua_rawseti"),
+		Symbol::FromName("lua_rawseti"),
+		Symbol::FromName("lua_rawseti"),
+		Symbol::FromName("lua_rawseti"),
 	};
 
 	const std::vector<Symbol> lua_rawgetiSym = {
+		Symbol::FromName("lua_rawgeti"),
+		Symbol::FromName("lua_rawgeti"),
+		Symbol::FromName("lua_rawgeti"),
 		Symbol::FromName("lua_rawgeti"),
 	};
 
@@ -528,6 +534,7 @@ namespace Symbols
 	const std::vector<Symbol> g_FrameSnapshotManagerSym = {
 		Symbol::FromName("framesnapshotmanager"),
 		Symbol::FromSignature("\x48\x8B\x2A\x2A\x2A\x2A\x2A\x48\x8B\x38\x48\x8B\x07*\x50\x10\x48\x8D\x43\x15"), // 48 8B ?? ?? ?? ?? ?? 48 8B 38 48 8B 07 ?? 50 10 48 8D 43 15 || "framesnapshotmanager->LevelChanged()" || "sv.Clear()"
+		Symbol::FromSignature("\x2A\x2A\x2A\x2A\x83\xC4\x04\x8B\x01\xFF\x50\x04\x6A\x40"), // ?? ?? ?? ?? 83 C4 04 8B 01 FF 50 04 6A 40 || "framesnapshotmanager"
 	};
 
 	const std::vector<Symbol> g_PropTypeFnsSym = {

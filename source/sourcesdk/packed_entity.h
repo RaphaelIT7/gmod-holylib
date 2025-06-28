@@ -113,7 +113,7 @@ public:
 	int			m_ReferenceCount;	// reference count;
 
 public:
-
+	void*		pOffset;
 	CUtlVector<CSendProxyRecipients>	m_Recipients;
 
 	void				*m_pData;				// Packed data.
