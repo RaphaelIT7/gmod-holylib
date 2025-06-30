@@ -23,6 +23,7 @@ namespace Symbols
 	const std::vector<Symbol> UsermessagesSym = {
 		Symbol::FromName("_ZL14g_UserMessages"),
 		Symbol::FromSignature("\x55\x48\x8D*****\xBA\x01\x00\x00\x00\x48\x89\xE5\x53\x48\x83\xEC\x08\x2A\x2A\x2A\x2A"), // 55 48 8D ?? ?? ?? ?? ?? BA 01 00 00 00 48 89 E5 53 48 83 EC 08 2A 2A 2A 2A
+		Symbol::FromSignature("\x2A\x2A\x2A\x2A\xE8****\x8B\xD0\x83\xFA\xFF**\xFF\x75\x0C"), // UserMessageBegin - ?? ?? ?? ?? E8 ?? ?? ?? ?? 8B D0 83 FA FF ?? ?? FF 75 0C
 	};
 
 	const std::vector<Symbol> CBaseEntity_CalcAbsolutePositionSym = { // 64x = "%s[%i]:SetPos( %f %f %f ): Ignoring unreasonable position." -> Entity__SetPos -> CBaseEntity::SetAbsOrigin -> CBaseEntity::CalcAbsolutePosition
@@ -609,6 +610,42 @@ namespace Symbols
 		Symbol::FromName("_Z21SV_BroadcastVoiceDataP7IClientiPcx"),
 		Symbol::FromSignature("\x55\x48******\x48\x89\xE5\x41\x57\x41\x56\x41\x89\xF6\x41\x55\x49\x89\xFD\x41\x54"), // 55 48 ?? ?? ?? ?? ?? ?? 48 89 E5 41 57 41 56 41 89 F6 41 55 49 89 FD 41 54
 		Symbol::FromSignature("\x55\x8B\xEC\xA1****\x83\xEC\x50\x8B\x50\x48"), // 55 8B EC A1 ?? ?? ?? ?? 83 EC 50 8B 50 48
+	};
+
+	const std::vector<Symbol> CVoiceGameMgr_UpdateSym = { // VoiceMask
+		Symbol::FromName("_ZN13CVoiceGameMgr6UpdateEd"),
+		NULL_SIGNATURE,
+		Symbol::FromSignature("\x55\x8B\xEC\xDD\x45\x08\x56\x8B\xF1\xDC\x46\x10\xDD\x56\x10"), // 55 8B EC DD 45 08 56 8B F1 DC 46 10 DD 56 10
+	};
+
+	const std::vector<Symbol> g_PlayerModEnableSym = {
+		Symbol::FromName("g_PlayerModEnable"),
+		NULL_SIGNATURE,
+		Symbol::FromSignature("\x2A\x2A\x2A\x2A\x89\x5D\xFC\x2A\x2A\x2A\x2A\x2A\x83\xC4\x04"), // CVoiceGameMgr::ClientCommand: VModEnable - ?? ?? ?? ?? 89 5D FC ?? ?? ?? ?? ?? 83 C4 04
+	};
+
+	const std::vector<Symbol> g_BanMasksSym = {
+		Symbol::FromName("g_BanMasks"),
+		NULL_SIGNATURE,
+		Symbol::FromSignature("\x2A\x2A\x2A\x2A\x8B\x4D\x08\x46\x8B\x07"), // CVoiceGameMgr::ClientCommand: vban - ?? ?? ?? ?? 8B 4D 08 46 8B 07
+	};
+
+	const std::vector<Symbol> g_SentGameRulesMasksSym = {
+		Symbol::FromName("g_SentGameRulesMasks"),
+		NULL_SIGNATURE,
+		Symbol::FromSignature("\x2A\x2A\x2A\x2A\x89\x81\x2A\x2A\x2A\x2A\x8B\x81\x2A\x2A\x2A\x2A\x89\x81\x2A\x2A\x2A\x2A\x8B\x81\x2A\x2A\x2A\x2A\x89\x81\x2A\x2A\x2A\x2A\x8D\x45\xA0"), // Guess - ?? ?? ?? ?? 89 81 ?? ?? ?? ?? 8B 81 ?? ?? ?? ?? 89 81 ?? ?? ?? ?? 8B 81 ?? ?? ?? ?? 89 81 ?? ?? ?? ?? 8D 45 A0
+	};
+
+	const std::vector<Symbol> g_SentBanMasksSym = {
+		Symbol::FromName("g_SentBanMasks"),
+		NULL_SIGNATURE,
+		Symbol::FromSignature("\x2A\x2A\x2A\x2A\x89\x81\x2A\x2A\x2A\x2A\x8B\x81\x2A\x2A\x2A\x2A\x89\x81\x2A\x2A\x2A\x2A\x8D\x45\xA0"), // Guess - ?? ?? ?? ?? 89 81 ?? ?? ?? ?? 8B 81 ?? ?? ?? ?? 89 81 ?? ?? ?? ?? 8D 45 A0
+	};
+
+	const std::vector<Symbol> g_bWantModEnableSym = {
+		Symbol::FromName("g_bWantModEnable"),
+		NULL_SIGNATURE,
+		Symbol::FromSignature("\x2A\x2A\x2A\x2A\x89\x81\x2A\x2A\x2A\x2A\x8D\x45\xA0"), // Guess - ?? ?? ?? ?? 89 81 ?? ?? ?? ?? 8D 45 A0
 	};
 
 	//---------------------------------------------------------------------------------

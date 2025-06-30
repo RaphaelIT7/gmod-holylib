@@ -57,6 +57,7 @@ struct MD5Value_t;
 struct dataFragments_s;
 class CBaseClient;
 class IVP_Cache_Ledge_Point;
+class CVoiceGameMgr;
 
 class	CGameTrace;
 typedef	CGameTrace trace_t;
@@ -463,6 +464,15 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	typedef void (*SV_BroadcastVoiceData)(IClient*, int nBytes, char* data, int64 xuid);
 	extern const std::vector<Symbol> SV_BroadcastVoiceDataSym;
+
+	typedef void (*CVoiceGameMgr_Update)(CVoiceGameMgr*, double frametime);
+	extern const std::vector<Symbol> CVoiceGameMgr_UpdateSym;
+
+	extern const std::vector<Symbol> g_PlayerModEnableSym;
+	extern const std::vector<Symbol> g_BanMasksSym;
+	extern const std::vector<Symbol> g_SentGameRulesMasksSym;
+	extern const std::vector<Symbol> g_SentBanMasksSym;
+	extern const std::vector<Symbol> g_bWantModEnableSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: physenv Symbols

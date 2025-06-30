@@ -72,6 +72,8 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [+] Added `physenv.IVP_NONE` flag to `physenv` module.  
 \- [+] Added a few stringtable related functions to the `stringtable` module.  
 \- [+] Added a new hook `HolyLib:OnClientTimeout` to the `gameserver` module.  
+\- [+] Optimized `GM:PlayerCanHearPlayersVoice` by **only** calling it for actively speaking players/when a voice packet is received.  
+\- [+] Added `voicechat.IsPlayerTalking` & `voicechat.LastPlayerTalked` to the `voicechat` module.  
 \- [#] Better support for multiple Lua states  
 \- \- This required most of the lua setup to be changed >:(  
 \- [#] Solved a few possible stack issues  
@@ -2107,6 +2109,12 @@ You could probably completly rework the voicechat with this since you could comp
 
 Supports: Linux32 | Linux64 | Windows32  
 
+### Optimizations
+
+This module improves `GM:PlayerCanHearPlayersVoice` by calling it only for actively speaking players.  
+The hook is additionally NOT called for all players which would result in `currentPlayers * currentPlayers` calls of the hook.  
+Instead now its called only once for the player that is speaking resulting in `1 * currentPlayers` calls of the hook.  
+
 ### Functions
 
 #### voicechat.SendEmptyData(Player ply, number playerSlot = ply:EntIndex()-1)
@@ -2157,6 +2165,18 @@ If `async` is specified it **WONT** return **anything** and the `callback` will 
 
 > [!NOTE]
 > It should be safe to modify/use the VoiceStream while it's saving async **BUT** you should try to avoid doing that.
+
+### bool voicedata.IsPlayerTalking(Player ply/number playerSlot)
+Returns `true` if the player is currently talking.<br>
+
+> [!NOTE]
+> This value does NOT reset if a player disconnect meaning on empty slots the value of the last player there will remain stored.
+
+### number voicedata.LastPlayerTalked(Player ply/number playerSlot)
+Returns when the player last talked.
+
+> [!NOTE]
+> This value does NOT reset if a player disconnect meaning on empty slots the value of the last player there will remain stored.
 
 ####
 
@@ -2363,6 +2383,17 @@ If enabled, the VoiceChat hooks will be called.
 The number of threads the voicechat can use for async stuff.  
 voicechat.LoadVoiceStream and voicechat.SaveVoiceStream currently use it,  
 originally I expected thoes both functions to be far slower but they turned out to be quite fast.
+
+### holylib_voicechat_updateinterval(default `0.1`)
+How often we call PlayerCanHearPlayersVoice for the actively talking players.  
+This interval is unique to each player  
+
+### holylib_voicechat_managerupdateinterval(default `0.1`)
+How often we loop through all players to check their voice states,  
+We still check the player's interval to reduce calls if they already have been updated in the last x(your defined interval) seconds.
+
+### holylib_voicechat_stopdelay(default `1`)
+How many seconds before a player is marked as stopped talking.
 
 ## physenv
 This module fixes https://github.com/Facepunch/garrysmod-issues/issues/642 and adds a few small things.  

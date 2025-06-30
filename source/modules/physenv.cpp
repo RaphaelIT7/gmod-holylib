@@ -351,28 +351,26 @@ public: // private? Naaaa I beg to differ
 
 IVModelInfo* modelinfo;
 IStaticPropMgrServer* staticpropmgr;
-IPhysics* physics = NULL;
-static IPhysicsCollision* physcollide = NULL;
-#ifdef WIN32
-IPhysicsSurfaceProps* physprops;
-#endif
+IPhysics* g_pPhysics = NULL;
+static IPhysicsCollision* g_pPhysCollide = NULL;
+static IPhysicsSurfaceProps* g_pPhysProps;
 void CPhysEnvModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	if (appfn[0])
 	{
-		physics = (IPhysics*)appfn[0](VPHYSICS_INTERFACE_VERSION, NULL);
-		physprops = (IPhysicsSurfaceProps*)appfn[0](VPHYSICS_SURFACEPROPS_INTERFACE_VERSION, NULL);
-		physcollide = (IPhysicsCollision*)appfn[0](VPHYSICS_COLLISION_INTERFACE_VERSION, NULL);
+		g_pPhysics = (IPhysics*)appfn[0](VPHYSICS_INTERFACE_VERSION, NULL);
+		g_pPhysProps = (IPhysicsSurfaceProps*)appfn[0](VPHYSICS_SURFACEPROPS_INTERFACE_VERSION, NULL);
+		g_pPhysCollide = (IPhysicsCollision*)appfn[0](VPHYSICS_COLLISION_INTERFACE_VERSION, NULL);
 	} else {
 		SourceSDK::FactoryLoader vphysics_loader("vphysics");
-		physics = vphysics_loader.GetInterface<IPhysics>(VPHYSICS_INTERFACE_VERSION);
-		physprops = vphysics_loader.GetInterface<IPhysicsSurfaceProps>(VPHYSICS_SURFACEPROPS_INTERFACE_VERSION);
-		physcollide = vphysics_loader.GetInterface<IPhysicsCollision>(VPHYSICS_COLLISION_INTERFACE_VERSION);
+		g_pPhysics = vphysics_loader.GetInterface<IPhysics>(VPHYSICS_INTERFACE_VERSION);
+		g_pPhysProps = vphysics_loader.GetInterface<IPhysicsSurfaceProps>(VPHYSICS_SURFACEPROPS_INTERFACE_VERSION);
+		g_pPhysCollide = vphysics_loader.GetInterface<IPhysicsCollision>(VPHYSICS_COLLISION_INTERFACE_VERSION);
 	}
 
-	Detour::CheckValue("get interface", "physics", physics != NULL);
-	Detour::CheckValue("get interface", "physprops", physprops != NULL);
-	Detour::CheckValue("get interface", "physcollide", physcollide != NULL);
+	Detour::CheckValue("get interface", "g_pPhysics", g_pPhysics != NULL);
+	Detour::CheckValue("get interface", "g_pPhysProps", g_pPhysProps != NULL);
+	Detour::CheckValue("get interface", "g_pPhysCollide", g_pPhysCollide != NULL);
 
 	if (appfn[0])
 	{
@@ -513,7 +511,7 @@ struct ILuaPhysicsEnvironment
 #if defined(SYSTEM_WINDOWS) && PHYSENV_INCLUDEIVPFALLBACK
 		pEnvironmentProxy->DeInit();
 #endif
-		//physics->DestroyEnvironment(pEnvironment);
+		//g_pPhysics->DestroyEnvironment(pEnvironment);
 		pEnvironment = NULL;
 
 #if PHYSENV_INCLUDEIVPFALLBACK
@@ -836,12 +834,12 @@ static IPhysicsEnvironment* GetPhysicsEnvironmentFromLua(GarrysMod::Lua::ILuaInt
 
 LUA_FUNCTION_STATIC(physenv_CreateEnvironment)
 {
-	if (!physics)
+	if (!g_pPhysics)
 		LUA->ThrowError("Failed to get IPhysics!");
 
-	ILuaPhysicsEnvironment* pLua = GetPhysicsEnvironment(physics->CreateEnvironment());
+	ILuaPhysicsEnvironment* pLua = GetPhysicsEnvironment(g_pPhysics->CreateEnvironment());
 	IPhysicsEnvironment* pEnvironment = pLua->pEnvironment;
-	CPhysicsEnvironment* pMainEnvironment = (CPhysicsEnvironment*)physics->GetActiveEnvironmentByIndex(0);
+	CPhysicsEnvironment* pMainEnvironment = (CPhysicsEnvironment*)g_pPhysics->GetActiveEnvironmentByIndex(0);
 
 	if (pMainEnvironment)
 	{
@@ -900,11 +898,11 @@ LUA_FUNCTION_STATIC(physenv_CreateEnvironment)
 
 LUA_FUNCTION_STATIC(physenv_GetActiveEnvironmentByIndex)
 {
-	if (!physics)
+	if (!g_pPhysics)
 		LUA->ThrowError("Failed to get IPhysics!");
 
 	int index = (int)LUA->CheckNumber(1);
-	IPhysicsEnvironment* pEnvironment = physics->GetActiveEnvironmentByIndex(index);
+	IPhysicsEnvironment* pEnvironment = g_pPhysics->GetActiveEnvironmentByIndex(index);
 	if (!pEnvironment)
 	{
 		Push_ILuaPhysicsEnvironment(LUA, NULL);
@@ -918,7 +916,7 @@ LUA_FUNCTION_STATIC(physenv_GetActiveEnvironmentByIndex)
 static std::vector<ILuaPhysicsEnvironment*> g_pCurrentEnvironment;
 LUA_FUNCTION_STATIC(physenv_DestroyEnvironment)
 {
-	if (!physics)
+	if (!g_pPhysics)
 		LUA->ThrowError("Failed to get IPhysics!");
 
 	ILuaPhysicsEnvironment* pLuaEnv = Get_ILuaPhysicsEnvironment(LUA, 1, true);
@@ -940,7 +938,7 @@ LUA_FUNCTION_STATIC(physenv_DestroyEnvironment)
 		}
 	}
 
-	physics->DestroyEnvironment(pEnvironment);
+	g_pPhysics->DestroyEnvironment(pEnvironment);
 	delete pLuaEnv;
 
 	return 0;
@@ -948,7 +946,7 @@ LUA_FUNCTION_STATIC(physenv_DestroyEnvironment)
 
 LUA_FUNCTION_STATIC(physenv_GetAllEnvironments)
 {
-	CPhysicsInterface* pPhys = (CPhysicsInterface*)physics;
+	CPhysicsInterface* pPhys = (CPhysicsInterface*)g_pPhysics;
 	LUA->PreCreateTable(pPhys->m_envList.Count(), 0);
 		int idx = 0;
 		FOR_EACH_VEC(pPhys->m_envList, i)
@@ -962,31 +960,31 @@ LUA_FUNCTION_STATIC(physenv_GetAllEnvironments)
 
 LUA_FUNCTION_STATIC(physenv_FindCollisionSet)
 {
-	if (!physics)
+	if (!g_pPhysics)
 		LUA->ThrowError("Failed to get IPhysics!");
 
 	unsigned int index = (int)LUA->CheckNumber(1);
-	Push_IPhysicsCollisionSet(LUA, physics->FindCollisionSet(index));
+	Push_IPhysicsCollisionSet(LUA, g_pPhysics->FindCollisionSet(index));
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(physenv_FindOrCreateCollisionSet)
 {
-	if (!physics)
+	if (!g_pPhysics)
 		LUA->ThrowError("Failed to get IPhysics!");
 
 	unsigned int index = (int)LUA->CheckNumber(1);
 	int maxElements = (int)LUA->CheckNumber(2);
-	Push_IPhysicsCollisionSet(LUA, physics->FindOrCreateCollisionSet(index, maxElements));
+	Push_IPhysicsCollisionSet(LUA, g_pPhysics->FindOrCreateCollisionSet(index, maxElements));
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(physenv_DestroyAllCollisionSets)
 {
-	if (!physics)
+	if (!g_pPhysics)
 		LUA->ThrowError("Failed to get IPhysics!");
 
-	physics->DestroyAllCollisionSets();
+	g_pPhysics->DestroyAllCollisionSets();
 	DeleteAll_IPhysicsCollisionSet(LUA);
 	return 0;
 }
@@ -1338,7 +1336,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_Simulate)
 		CBaseEntity *pEntity = pItem->hEnt.Get();
 		if ( !pEntity )
 		{
-			Msg( "Dangling pointer to physics entity!!!\n" );
+			Msg( "Dangling pointer to g_pPhysics entity!!!\n" );
 			continue;
 		}
 
@@ -1573,7 +1571,7 @@ void PhysCreateVirtualTerrain( IPhysicsEnvironment* pEnvironment, CBaseEntity *p
 			solid.params.pGameData = static_cast<void *>(pWorld);
 			Q_snprintf(nameBuf, sizeof(nameBuf), "vdisp_%04d", i );
 			solid.params.pName = nameBuf;
-			int surfaceData = physprops->GetSurfaceIndex( "default" );
+			int surfaceData = g_pPhysProps->GetSurfaceIndex( "default" );
 			// create this as part of the world
 			IPhysicsObject *pObject = pEnvironment->CreatePolyObjectStatic( pCollide, surfaceData, vec3_origin, vec3_angle, &solid.params );
 			pObject->SetCallbackFlags( pObject->GetCallbackFlags() | CALLBACK_NEVER_DELETED );
@@ -1589,7 +1587,7 @@ IPhysicsObject *PhysCreateWorld_Shared( IPhysicsEnvironment* pEnvironment, CBase
 	if ( !pEnvironment )
 		return NULL;
 
-	int surfaceData = physprops->GetSurfaceIndex( "default" );
+	int surfaceData = g_pPhysProps->GetSurfaceIndex( "default" );
 
 	objectparams_t params = defaultParams;
 	params.pGameData = static_cast<void *>(pWorld);
@@ -1603,7 +1601,7 @@ IPhysicsObject *PhysCreateWorld_Shared( IPhysicsEnvironment* pEnvironment, CBase
 
 	//PhysCheckAdd( world, "World" );
 	// walk the world keys in case there are some fluid volumes to create
-	IVPhysicsKeyParser *pParse = physcollide->VPhysicsKeyParserCreate( pWorldCollide->pKeyValues );
+	IVPhysicsKeyParser *pParse = g_pPhysCollide->VPhysicsKeyParserCreate( pWorldCollide->pKeyValues );
 
 	bool bCreateVirtualTerrain = false;
 	while ( !pParse->Finished() )
@@ -1617,7 +1615,7 @@ IPhysicsObject *PhysCreateWorld_Shared( IPhysicsEnvironment* pEnvironment, CBase
 			solid.params.enableCollisions = true;
 			solid.params.pGameData = static_cast<void *>(pWorld);
 			solid.params.pName = "world";
-			surfaceData = physprops->GetSurfaceIndex( "default" );
+			surfaceData = g_pPhysProps->GetSurfaceIndex( "default" );
 
 			// already created world above
 			if ( solid.index == 0 )
@@ -1658,7 +1656,7 @@ IPhysicsObject *PhysCreateWorld_Shared( IPhysicsEnvironment* pEnvironment, CBase
 				solid.params.pName = "fluid";
 				solid.params.pGameData = static_cast<void *>(pWorld);
 				fluid.params.pGameData = static_cast<void *>(pWorld);
-				surfaceData = physprops->GetSurfaceIndex( fluid.surfaceprop );
+				surfaceData = g_pPhysProps->GetSurfaceIndex( fluid.surfaceprop );
 				// create this as part of the world
 				IPhysicsObject *pWater = pEnvironment->CreatePolyObjectStatic( pWorldCollide->solids[fluid.index], 
 					surfaceData, vec3_origin, vec3_angle, &solid.params );
@@ -1673,7 +1671,7 @@ IPhysicsObject *PhysCreateWorld_Shared( IPhysicsEnvironment* pEnvironment, CBase
 			memset( surfaceTable, 0, sizeof(surfaceTable) );
 
 			pParse->ParseSurfaceTable( surfaceTable, NULL );
-			physprops->SetWorldMaterialIndexTable( surfaceTable, 128 );
+			g_pPhysProps->SetWorldMaterialIndexTable( surfaceTable, 128 );
 		}
 		else if ( !strcmpi(pBlock, "virtualterrain" ) )
 		{
@@ -1686,9 +1684,9 @@ IPhysicsObject *PhysCreateWorld_Shared( IPhysicsEnvironment* pEnvironment, CBase
 			pParse->SkipBlock();
 		}
 	}
-	physcollide->VPhysicsKeyParserDestroy( pParse );
+	g_pPhysCollide->VPhysicsKeyParserDestroy( pParse );
 
-	if ( bCreateVirtualTerrain && physcollide->SupportsVirtualMesh() )
+	if ( bCreateVirtualTerrain && g_pPhysCollide->SupportsVirtualMesh() )
 	{
 		PhysCreateVirtualTerrain( pEnvironment, pWorld, defaultParams );
 	}
@@ -1886,10 +1884,10 @@ LUA_FUNCTION_STATIC(physcollide_BBoxToCollide)
 	Vector* mins = Get_Vector(LUA, 1, true);
 	Vector* maxs = Get_Vector(LUA, 2, true);
 
-	if (!physcollide)
+	if (!g_pPhysCollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
-	Push_CPhysCollide(LUA, physcollide->BBoxToCollide(*mins, *maxs));
+	Push_CPhysCollide(LUA, g_pPhysCollide->BBoxToCollide(*mins, *maxs));
 	return 1;
 }
 
@@ -1898,10 +1896,10 @@ LUA_FUNCTION_STATIC(physcollide_BBoxToConvex)
 	Vector* mins = Get_Vector(LUA, 1, true);
 	Vector* maxs = Get_Vector(LUA, 2, true);
 
-	if (!physcollide)
+	if (!g_pPhysCollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
-	Push_CPhysConvex(LUA, physcollide->BBoxToConvex(*mins, *maxs));
+	Push_CPhysConvex(LUA, g_pPhysCollide->BBoxToConvex(*mins, *maxs));
 	return 1;
 }
 
@@ -1909,10 +1907,10 @@ LUA_FUNCTION_STATIC(physcollide_ConvertConvexToCollide)
 {
 	CPhysConvex* pConvex = Get_CPhysConvex(LUA, 1, true);
 
-	if (!physcollide)
+	if (!g_pPhysCollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
-	Push_CPhysCollide(LUA, physcollide->ConvertConvexToCollide(&pConvex, 1));
+	Push_CPhysCollide(LUA, g_pPhysCollide->ConvertConvexToCollide(&pConvex, 1));
 	DeleteGlobal_CPhysConvex(pConvex);
 
 	return 1;
@@ -1923,10 +1921,10 @@ LUA_FUNCTION_STATIC(physcollide_ConvertPolysoupToCollide)
 	CPhysPolysoup* pPolySoup = Get_CPhysPolysoup(LUA, 1, true);
 	bool bUseMOPP = LUA->GetBool(2);
 
-	if (!physcollide)
+	if (!g_pPhysCollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
-	Push_CPhysCollide(LUA, physcollide->ConvertPolysoupToCollide(pPolySoup, bUseMOPP));
+	Push_CPhysCollide(LUA, g_pPhysCollide->ConvertPolysoupToCollide(pPolySoup, bUseMOPP));
 	DeleteGlobal_CPhysPolysoup(pPolySoup);
 
 	return 1;
@@ -1936,10 +1934,10 @@ LUA_FUNCTION_STATIC(physcollide_ConvexFree)
 {
 	CPhysConvex* pConvex = Get_CPhysConvex(LUA, 1, true);
 
-	if (!physcollide)
+	if (!g_pPhysCollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
-	physcollide->ConvexFree(pConvex);
+	g_pPhysCollide->ConvexFree(pConvex);
 	DeleteGlobal_CPhysConvex(pConvex);
 
 	return 0;
@@ -1947,10 +1945,10 @@ LUA_FUNCTION_STATIC(physcollide_ConvexFree)
 
 LUA_FUNCTION_STATIC(physcollide_PolysoupCreate)
 {
-	if (!physcollide)
+	if (!g_pPhysCollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
-	Push_CPhysPolysoup(LUA, physcollide->PolysoupCreate());
+	Push_CPhysPolysoup(LUA, g_pPhysCollide->PolysoupCreate());
 	return 1;
 }
 
@@ -1962,10 +1960,10 @@ LUA_FUNCTION_STATIC(physcollide_PolysoupAddTriangle)
 	Vector* c = Get_Vector(LUA, 4, true);
 	int materialIndex = (int)LUA->CheckNumber(5);
 
-	if (!physcollide)
+	if (!g_pPhysCollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
-	physcollide->PolysoupAddTriangle(pPolySoup, *a, *b, *c, materialIndex);
+	g_pPhysCollide->PolysoupAddTriangle(pPolySoup, *a, *b, *c, materialIndex);
 	return 0;
 }
 
@@ -1973,10 +1971,10 @@ LUA_FUNCTION_STATIC(physcollide_PolysoupDestroy)
 {
 	CPhysPolysoup* pPolySoup = Get_CPhysPolysoup(LUA, 1, true);
 
-	if (!physcollide)
+	if (!g_pPhysCollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
-	physcollide->PolysoupDestroy(pPolySoup);
+	g_pPhysCollide->PolysoupDestroy(pPolySoup);
 	DeleteGlobal_CPhysPolysoup(pPolySoup);
 	return 0;
 }
@@ -1987,11 +1985,11 @@ LUA_FUNCTION_STATIC(physcollide_CollideGetAABB)
 	Vector* pOrigin = Get_Vector(LUA, 2, true);
 	QAngle* pRotation = Get_QAngle(LUA, 3, true);
 
-	if (!physcollide)
+	if (!g_pPhysCollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
 	Vector mins, maxs;
-	physcollide->CollideGetAABB(&mins, &maxs, pCollide, *pOrigin, *pRotation);
+	g_pPhysCollide->CollideGetAABB(&mins, &maxs, pCollide, *pOrigin, *pRotation);
 	Push_Vector(LUA, &mins);
 	Push_Vector(LUA, &maxs);
 	return 2;
@@ -2004,10 +2002,10 @@ LUA_FUNCTION_STATIC(physcollide_CollideGetExtent)
 	QAngle* pRotation = Get_QAngle(LUA, 3, true);
 	Vector* pDirection = Get_Vector(LUA, 4, true);
 
-	if (!physcollide)
+	if (!g_pPhysCollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
-	Vector vec = physcollide->CollideGetExtent(pCollide, *pOrigin, *pRotation, *pDirection);
+	Vector vec = g_pPhysCollide->CollideGetExtent(pCollide, *pOrigin, *pRotation, *pDirection);
 	Push_Vector(LUA, &vec);
 	return 1;
 }
@@ -2016,11 +2014,11 @@ LUA_FUNCTION_STATIC(physcollide_CollideGetMassCenter)
 {
 	CPhysCollide* pCollide = Get_CPhysCollide(LUA, 1, true);
 
-	if (!physcollide)
+	if (!g_pPhysCollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
 	Vector pMassCenter;
-	physcollide->CollideGetMassCenter(pCollide, &pMassCenter);
+	g_pPhysCollide->CollideGetMassCenter(pCollide, &pMassCenter);
 	Push_Vector(LUA, &pMassCenter);
 	return 1;
 }
@@ -2029,10 +2027,10 @@ LUA_FUNCTION_STATIC(physcollide_CollideGetOrthographicAreas)
 {
 	CPhysCollide* pCollide = Get_CPhysCollide(LUA, 1, true);
 
-	if (!physcollide)
+	if (!g_pPhysCollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
-	Vector vec = physcollide->CollideGetOrthographicAreas(pCollide);
+	Vector vec = g_pPhysCollide->CollideGetOrthographicAreas(pCollide);
 	Push_Vector(LUA, &vec);
 	return 1;
 }
@@ -2041,10 +2039,10 @@ LUA_FUNCTION_STATIC(physcollide_CollideIndex)
 {
 	CPhysCollide* pCollide = Get_CPhysCollide(LUA, 1, true);
 
-	if (!physcollide)
+	if (!g_pPhysCollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
-	LUA->PushNumber(physcollide->CollideIndex(pCollide));
+	LUA->PushNumber(g_pPhysCollide->CollideIndex(pCollide));
 	return 1;
 }
 
@@ -2053,10 +2051,10 @@ LUA_FUNCTION_STATIC(physcollide_CollideSetMassCenter)
 	CPhysCollide* pCollide = Get_CPhysCollide(LUA, 1, true);
 	Vector* pMassCenter = Get_Vector(LUA, 2, true);
 
-	if (!physcollide)
+	if (!g_pPhysCollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
-	physcollide->CollideSetMassCenter(pCollide, *pMassCenter);
+	g_pPhysCollide->CollideSetMassCenter(pCollide, *pMassCenter);
 	return 0;
 }
 
@@ -2065,10 +2063,10 @@ LUA_FUNCTION_STATIC(physcollide_CollideSetOrthographicAreas)
 	CPhysCollide* pCollide = Get_CPhysCollide(LUA, 1, true);
 	Vector* pArea = Get_Vector(LUA, 2, true);
 
-	if (!physcollide)
+	if (!g_pPhysCollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
-	physcollide->CollideSetOrthographicAreas(pCollide, *pArea);
+	g_pPhysCollide->CollideSetOrthographicAreas(pCollide, *pArea);
 	return 0;
 }
 
@@ -2076,10 +2074,10 @@ LUA_FUNCTION_STATIC(physcollide_CollideSize)
 {
 	CPhysCollide* pCollide = Get_CPhysCollide(LUA, 1, true);
 
-	if (!physcollide)
+	if (!g_pPhysCollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
-	LUA->PushNumber(physcollide->CollideSize(pCollide));
+	LUA->PushNumber(g_pPhysCollide->CollideSize(pCollide));
 	return 1;
 }
 
@@ -2087,10 +2085,10 @@ LUA_FUNCTION_STATIC(physcollide_CollideSurfaceArea)
 {
 	CPhysCollide* pCollide = Get_CPhysCollide(LUA, 1, true);
 
-	if (!physcollide)
+	if (!g_pPhysCollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
-	LUA->PushNumber(physcollide->CollideSurfaceArea(pCollide));
+	LUA->PushNumber(g_pPhysCollide->CollideSurfaceArea(pCollide));
 	return 1;
 }
 
@@ -2098,10 +2096,10 @@ LUA_FUNCTION_STATIC(physcollide_CollideVolume)
 {
 	CPhysCollide* pCollide = Get_CPhysCollide(LUA, 1, true);
 
-	if (!physcollide)
+	if (!g_pPhysCollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
-	LUA->PushNumber(physcollide->CollideVolume(pCollide));
+	LUA->PushNumber(g_pPhysCollide->CollideVolume(pCollide));
 	return 1;
 }
 
@@ -2110,12 +2108,12 @@ LUA_FUNCTION_STATIC(physcollide_CollideWrite)
 	CPhysCollide* pCollide = Get_CPhysCollide(LUA, 1, true);
 	bool bSwap = LUA->GetBool(2);
 
-	if (!physcollide)
+	if (!g_pPhysCollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
-	int iSize = physcollide->CollideSize(pCollide);
+	int iSize = g_pPhysCollide->CollideSize(pCollide);
 	char* pData = (char*)stackalloc(iSize);
-	physcollide->CollideWrite(pData, pCollide, bSwap);
+	g_pPhysCollide->CollideWrite(pData, pCollide, bSwap);
 	LUA->PushString(pData, iSize);
 	return 1;
 }
@@ -2127,10 +2125,10 @@ LUA_FUNCTION_STATIC(physcollide_UnserializeCollide)
 	int iSize = LUA->ObjLen(2);
 	int index = LUA->CheckNumber(3);
 
-	if (!physcollide)
+	if (!g_pPhysCollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
-	Push_CPhysCollide(LUA, physcollide->UnserializeCollide((char*)pData, iSize, index));
+	Push_CPhysCollide(LUA, g_pPhysCollide->UnserializeCollide((char*)pData, iSize, index));
 	return 1;
 }
 
@@ -2138,10 +2136,10 @@ LUA_FUNCTION_STATIC(physcollide_UnserializeCollide)
 {
 	CPhysCollide* pCollide = Get_CPhysCollide(LUA, 1, true);
 
-	if (!physcollide)
+	if (!g_pPhysCollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
-	physcollide->ConvexFromVerts(pData, pCollide, bSwap);
+	g_pPhysCollide->ConvexFromVerts(pData, pCollide, bSwap);
 	return 1;
 }*/
 
@@ -2149,10 +2147,10 @@ LUA_FUNCTION_STATIC(physcollide_UnserializeCollide)
 {
 	CPhysCollide* pCollide = Get_CPhysCollide(LUA, 1, true);
 
-	if (!physcollide)
+	if (!g_pPhysCollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
-	physcollide->ConvexFromPlanes(pData, pCollide, bSwap);
+	g_pPhysCollide->ConvexFromPlanes(pData, pCollide, bSwap);
 	return 1;
 }*/
 
@@ -2160,10 +2158,10 @@ LUA_FUNCTION_STATIC(physcollide_ConvexSurfaceArea)
 {
 	CPhysConvex* pConvex = Get_CPhysConvex(LUA, 1, true);
 
-	if (!physcollide)
+	if (!g_pPhysCollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
-	LUA->PushNumber(physcollide->ConvexSurfaceArea(pConvex));
+	LUA->PushNumber(g_pPhysCollide->ConvexSurfaceArea(pConvex));
 	return 1;
 }
 
@@ -2171,10 +2169,10 @@ LUA_FUNCTION_STATIC(physcollide_ConvexVolume)
 {
 	CPhysConvex* pConvex = Get_CPhysConvex(LUA, 1, true);
 
-	if (!physcollide)
+	if (!g_pPhysCollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
-	LUA->PushNumber(physcollide->ConvexVolume(pConvex));
+	LUA->PushNumber(g_pPhysCollide->ConvexVolume(pConvex));
 	return 1;
 }
 
@@ -2182,10 +2180,10 @@ LUA_FUNCTION_STATIC(physcollide_ConvexVolume)
 {
 	CPhysConvex* pConvex = Get_CPhysConvex(LUA, 1, true);
 
-	if (!physcollide)
+	if (!g_pPhysCollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
-	LUA->PushNumber(physcollide->CreateDebugMesh(pConvex));
+	LUA->PushNumber(g_pPhysCollide->CreateDebugMesh(pConvex));
 	return 1;
 }*/
 
@@ -2193,10 +2191,10 @@ LUA_FUNCTION_STATIC(physcollide_CreateQueryModel)
 {
 	CPhysCollide* pCollide = Get_CPhysCollide(LUA, 1, true);
 
-	if (!physcollide)
+	if (!g_pPhysCollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
-	Push_ICollisionQuery(LUA, physcollide->CreateQueryModel(pCollide));
+	Push_ICollisionQuery(LUA, g_pPhysCollide->CreateQueryModel(pCollide));
 	return 1;
 }
 
@@ -2204,10 +2202,10 @@ LUA_FUNCTION_STATIC(physcollide_DestroyQueryModel)
 {
 	ICollisionQuery* pQuery = Get_ICollisionQuery(LUA, 1, true);
 
-	if (!physcollide)
+	if (!g_pPhysCollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
-	physcollide->DestroyQueryModel(pQuery);
+	g_pPhysCollide->DestroyQueryModel(pQuery);
 	DeleteGlobal_ICollisionQuery(pQuery);
 	return 0;
 }
@@ -2216,10 +2214,10 @@ LUA_FUNCTION_STATIC(physcollide_DestroyCollide)
 {
 	CPhysCollide* pCollide = Get_CPhysCollide(LUA, 1, true);
 
-	if (!physcollide)
+	if (!g_pPhysCollide)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
-	physcollide->DestroyCollide(pCollide);
+	g_pPhysCollide->DestroyCollide(pCollide);
 	DeleteGlobal_CPhysCollide(pCollide);
 	return 0;
 }
@@ -2303,7 +2301,7 @@ void CPhysEnvModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 	if (bServerInit)
 		return;
 
-	CPhysicsInterface* pPhys = (CPhysicsInterface*)physics;
+	CPhysicsInterface* pPhys = (CPhysicsInterface*)g_pPhysics;
 	FOR_EACH_VEC(pPhys->m_envList, i)
 	{
 		// If we were enabled after the server was started, we should register all phys envs as the GMod::Util::IsPhysicsObjectValid depends on it.

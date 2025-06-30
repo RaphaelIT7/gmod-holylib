@@ -33,6 +33,7 @@ public:
 	virtual const char* Name() { return "nw2debugging"; };
 	virtual int Compatibility() { return WINDOWS32; };
 	virtual bool SupportsMultipleLuaStates() { return false; };
+	virtual bool IsEnabledByDefault() { return false; };
 };
 
 static CNW2DebuggingModule g_pNW2DebuggingModule;
