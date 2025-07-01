@@ -519,6 +519,16 @@ void Util::Load()
 	IConfig* pConVarConfig = g_pConfigSystem->LoadConfig("garrysmod/holylib/cfg/convars.json");
 	if (pConVarConfig)
 	{
+		std::unordered_set<ConVar*> pSkipConVars;
+		for (CModule* pWrapper : g_pModuleManager.GetModules())
+		{
+			if (pWrapper->GetConVar())
+				pSkipConVars.insert(pWrapper->GetConVar());
+			
+			if (pWrapper->GetDebugConVar())
+				pSkipConVars.insert(pWrapper->GetDebugConVar());
+		}
+
 		Bootil::Data::Tree& pData = pConVarConfig->GetData();
 		ConCommandBase *pCur, *pNext;
 		pCur = ConCommandBase::InternalConCommandBases();
@@ -528,9 +538,12 @@ void Util::Load()
 			if (!pCur->IsCommand())
 			{
 				ConVar* pConVar = (ConVar*)pCur;
-				Bootil::Data::Tree& pEntry = pData.GetChild(pCur->GetName());
-				pConVar->SetValue(pEntry.EnsureChildVar<Bootil::BString>("value", pConVar->GetString()).c_str());
-				pEntry.EnsureChildVar<Bootil::BString>("help", pConVar->GetHelpText());
+				if (pSkipConVars.find(pConVar) == pSkipConVars.end())
+				{
+					Bootil::Data::Tree& pEntry = pData.GetChild(pCur->GetName());
+					pConVar->SetValue(pEntry.EnsureChildVar<Bootil::BString>("value", pConVar->GetString()).c_str());
+					pEntry.EnsureChildVar<Bootil::BString>("help", pConVar->GetHelpText());
+				}
 			}
 			pCur = pNext;
 		}
