@@ -971,7 +971,7 @@ class bf_read;
  * It will be deleted by Lua GC.
  * ensure that either you set it to NULL afterwards or push a Copy if you don't own the original.
  */
-extern LuaUserData* Push_bf_read(GarrysMod::Lua::ILuaInterface* LUA, bf_read* tbl);
+extern LuaUserData* Push_bf_read(GarrysMod::Lua::ILuaInterface* LUA, bf_read* tbl, bool bDeleteUs); // if bDeleteUs is false, the bf_read won't be deleted when __gc is called.
 extern bf_read* Get_bf_read(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
 
 class bf_write;
@@ -979,7 +979,7 @@ class bf_write;
  * It will be deleted by Lua GC.
  * ensure that either you set it to NULL afterwards or push a Copy if you don't own the original.
  */
-extern LuaUserData* Push_bf_write(GarrysMod::Lua::ILuaInterface* LUA, bf_write* tbl);
+extern LuaUserData* Push_bf_write(GarrysMod::Lua::ILuaInterface* LUA, bf_write* tbl, bool bDeleteUs);
 extern bf_write* Get_bf_write(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
 
 class IGameEvent;

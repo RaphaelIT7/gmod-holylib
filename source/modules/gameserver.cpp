@@ -696,7 +696,7 @@ LUA_FUNCTION_STATIC(CBaseClient_GetStreamReliable)
 	if (!pNetChannel)
 		LUA->ThrowError("Failed to get a valid net channel");
 
-	Push_bf_write(LUA, &pNetChannel->m_StreamReliable);
+	Push_bf_write(LUA, &pNetChannel->m_StreamReliable, false);
 	return 1;
 }
 
@@ -707,7 +707,7 @@ LUA_FUNCTION_STATIC(CBaseClient_GetStreamUnreliable)
 	if (!pNetChannel)
 		LUA->ThrowError("Failed to get a valid net channel");
 
-	Push_bf_write(LUA, &pNetChannel->m_StreamUnreliable);
+	Push_bf_write(LUA, &pNetChannel->m_StreamUnreliable, false);
 	return 1;
 }
 
@@ -718,7 +718,7 @@ LUA_FUNCTION_STATIC(CBaseClient_GetStreamVoice)
 	if (!pNetChannel)
 		LUA->ThrowError("Failed to get a valid net channel");
 
-	Push_bf_write(LUA, &pNetChannel->m_StreamVoice);
+	Push_bf_write(LUA, &pNetChannel->m_StreamVoice, false);
 	return 1;
 }
 
@@ -1263,7 +1263,7 @@ LUA_FUNCTION_STATIC(CNetChan_GetStreamReliable)
 {
 	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
 
-	Push_bf_write(LUA, &pNetChannel->m_StreamReliable);
+	Push_bf_write(LUA, &pNetChannel->m_StreamReliable, false);
 	return 1;
 }
 
@@ -1271,7 +1271,7 @@ LUA_FUNCTION_STATIC(CNetChan_GetStreamUnreliable)
 {
 	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
 
-	Push_bf_write(LUA, &pNetChannel->m_StreamUnreliable);
+	Push_bf_write(LUA, &pNetChannel->m_StreamUnreliable, false);
 	return 1;
 }
 
@@ -1279,7 +1279,7 @@ LUA_FUNCTION_STATIC(CNetChan_GetStreamVoice)
 {
 	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
 
-	Push_bf_write(LUA, &pNetChannel->m_StreamVoice);
+	Push_bf_write(LUA, &pNetChannel->m_StreamVoice, false);
 	return 1;
 }
 
@@ -1629,7 +1629,7 @@ bool ILuaNetMessageHandler::ProcessLuaNetChanMessage(NET_LuaNetChanMessage *msg)
 	if (m_iMessageCallbackFunction == -1) // We have no callback function set.
 		return true;
 
-	LuaUserData* pLuaData = Push_bf_read(m_pLua, &msg->m_DataIn);
+	LuaUserData* pLuaData = Push_bf_read(m_pLua, &msg->m_DataIn, false);
 	m_pLua->ReferencePush(m_iMessageCallbackFunction);
 
 	Push_CNetChan(m_pLua, m_pChan);
@@ -2349,7 +2349,7 @@ static bool hook_CBaseServer_ProcessConnectionlessPacket(void* server, netpacket
 	int originalPos = packet->message.GetNumBitsRead();
 	if (Lua::PushHook("HolyLib:ProcessConnectionlessPacket"))
 	{
-		LuaUserData* pLuaData = Push_bf_read(g_Lua, &packet->message);
+		LuaUserData* pLuaData = Push_bf_read(g_Lua, &packet->message, false);
 		g_Lua->Push(-3);
 		g_Lua->Push(-3);
 		g_Lua->Remove(-5);

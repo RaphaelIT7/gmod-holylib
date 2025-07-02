@@ -424,7 +424,7 @@ static bool hook_CHLTVClient_ProcessGMod_ClientToServer(CHLTVClient* pClient, CL
 	if (Lua::PushHook("HolyLib:OnSourceTVNetMessage")) // Maybe change the name? I don't have a better one rn :/
 	{
 		Push_CHLTVClient(g_Lua, pClient);
-		Push_bf_read(g_Lua, &pBf->m_DataIn);
+		Push_bf_read(g_Lua, &pBf->m_DataIn, false);
 		g_Lua->Push(-1);
 		int iReference = Util::ReferenceCreate(g_Lua, "ProcessGMod_ClientToServer - net message buffer");
 		g_Lua->CallFunctionProtected(3, 0, true);

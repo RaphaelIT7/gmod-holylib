@@ -19,11 +19,81 @@ public:
 static CBitBufModule g_pBitBufModule;
 IModule* pBitBufModule = &g_pBitBufModule;
 
-Push_LuaClass(bf_read)
-Get_LuaClass(bf_read, "bf_read")
+struct LUA_bf_read
+{
+	LUA_bf_read(bf_read* pBuffer, bool bDeleteUs = true)
+	{
+		m_pBuffer = pBuffer;
+		m_bDeleteUs = bDeleteUs;
+	}
 
-Push_LuaClass(bf_write)
-Get_LuaClass(bf_write, "bf_write")
+	~LUA_bf_read()
+	{
+		if (m_bDeleteUs && m_pBuffer)
+		{
+			delete[] m_pBuffer->GetBasePointer();
+			delete m_pBuffer;
+		}
+	}
+
+	bf_read* m_pBuffer = NULL;
+	bool m_bDeleteUs = true;
+};
+
+Push_LuaClass(LUA_bf_read)
+Get_LuaClass(LUA_bf_read, "bf_read")
+
+LuaUserData* Push_bf_read(GarrysMod::Lua::ILuaInterface* LUA, bf_read* tbl, bool bDeleteUs)
+{
+	return Push_LUA_bf_read(LUA, new LUA_bf_read(tbl, bDeleteUs));
+}
+
+bf_read * Get_bf_read(GarrysMod::Lua::ILuaInterface * LUA, int iStackPos, bool bError)
+{
+	LUA_bf_read* pBf = Get_LUA_bf_read(LUA, iStackPos, bError);
+	if (pBf)
+		return pBf->m_pBuffer;
+
+	return NULL;
+}
+
+struct LUA_bf_write
+{
+	LUA_bf_write(bf_write* pBuffer, bool bDeleteUs = true)
+	{
+		m_pBuffer = pBuffer;
+		m_bDeleteUs = bDeleteUs;
+	}
+
+	~LUA_bf_write()
+	{
+		if (m_bDeleteUs && m_pBuffer)
+		{
+			delete[] m_pBuffer->GetBasePointer();
+			delete m_pBuffer;
+		}
+	}
+
+	bf_write* m_pBuffer = NULL;
+	bool m_bDeleteUs = true;
+};
+
+Push_LuaClass(LUA_bf_write)
+Get_LuaClass(LUA_bf_write, "bf_write")
+
+LuaUserData* Push_bf_write(GarrysMod::Lua::ILuaInterface* LUA, bf_write* tbl, bool bDeleteUs)
+{
+	return Push_LUA_bf_write(LUA, new LUA_bf_write(tbl, bDeleteUs));
+}
+
+bf_write * Get_bf_write(GarrysMod::Lua::ILuaInterface * LUA, int iStackPos, bool bError)
+{
+	LUA_bf_write* pBf = Get_LUA_bf_write(LUA, iStackPos, bError);
+	if (pBf)
+		return pBf->m_pBuffer;
+
+	return NULL;
+}
 
 LUA_FUNCTION_STATIC(bf_read__tostring)
 {
@@ -40,14 +110,13 @@ LUA_FUNCTION_STATIC(bf_read__tostring)
 	return 1;
 }
 
-Default__index(bf_read);
-Default__newindex(bf_read);
-Default__GetTable(bf_read);
-Default__gc(bf_read, 
-	bf_read* bf = (bf_read*)pStoredData;
+Default__index(LUA_bf_read);
+Default__newindex(LUA_bf_read);
+Default__GetTable(LUA_bf_read);
+Default__gc(LUA_bf_read, 
+	LUA_bf_read* bf = (LUA_bf_read*)pStoredData;
 	if (bf)
 	{
-		delete[] bf->GetBasePointer();
 		delete bf;
 	}
 )
@@ -494,14 +563,13 @@ LUA_FUNCTION_STATIC(bf_write__tostring)
 	return 1;
 }
 
-Default__index(bf_write);
-Default__newindex(bf_write);
-Default__GetTable(bf_write);
-Default__gc(bf_write, 
-	bf_write* bf = (bf_write*)pStoredData;
+Default__index(LUA_bf_write);
+Default__newindex(LUA_bf_write);
+Default__GetTable(LUA_bf_write);
+Default__gc(LUA_bf_write, 
+	LUA_bf_write* bf = (LUA_bf_write*)pStoredData;
 	if (bf)
 	{
-		delete[] bf->GetBasePointer();
 		delete bf;
 	}
 )
@@ -870,7 +938,7 @@ LUA_FUNCTION_STATIC(bitbuf_CopyReadBuffer)
 	bf_read* pNewBf = new bf_read;
 	pNewBf->StartReading(pData, iNewSize);
 
-	Push_bf_read(LUA, pNewBf);
+	Push_bf_read(LUA, pNewBf, true);
 
 	return 1;
 }
@@ -887,7 +955,7 @@ LUA_FUNCTION_STATIC(bitbuf_CreateReadBuffer)
 	bf_read* pNewBf = new bf_read;
 	pNewBf->StartReading(cData, iNewLength);
 
-	Push_bf_read(LUA, pNewBf);
+	Push_bf_read(LUA, pNewBf, true);
 
 	return 1;
 }
@@ -902,7 +970,7 @@ LUA_FUNCTION_STATIC(bitbuf_CreateWriteBuffer)
 		bf_write* pNewBf = new bf_write;
 		pNewBf->StartWriting(cData, iSize);
 
-		Push_bf_write(LUA, pNewBf);
+		Push_bf_write(LUA, pNewBf, true);
 	} else {
 		const char* pData = LUA->CheckString(1);
 		int iLength = LUA->ObjLen(1);
@@ -914,7 +982,7 @@ LUA_FUNCTION_STATIC(bitbuf_CreateWriteBuffer)
 		bf_write* pNewBf = new bf_write;
 		pNewBf->StartWriting(cData, iNewLength);
 
-		Push_bf_write(LUA, pNewBf);
+		Push_bf_write(LUA, pNewBf, true);
 	}
 
 	return 1;
@@ -925,12 +993,12 @@ void CBitBufModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 	if (bServerInit)
 		return;
 
-	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::bf_read, pLua->CreateMetaTable("bf_read"));
+	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::LUA_bf_read, pLua->CreateMetaTable("bf_read"));
 		Util::AddFunc(pLua, bf_read__tostring, "__tostring");
-		Util::AddFunc(pLua, bf_read__index, "__index");
-		Util::AddFunc(pLua, bf_read__newindex, "__newindex");
-		Util::AddFunc(pLua, bf_read__gc, "__gc");
-		Util::AddFunc(pLua, bf_read_GetTable, "GetTable");
+		Util::AddFunc(pLua, LUA_bf_read__index, "__index");
+		Util::AddFunc(pLua, LUA_bf_read__newindex, "__newindex");
+		Util::AddFunc(pLua, LUA_bf_read__gc, "__gc");
+		Util::AddFunc(pLua, LUA_bf_read_GetTable, "GetTable");
 		Util::AddFunc(pLua, bf_read_IsValid, "IsValid");
 		Util::AddFunc(pLua, bf_read_GetNumBitsLeft, "GetNumBitsLeft");
 		Util::AddFunc(pLua, bf_read_GetNumBitsRead, "GetNumBitsRead");
@@ -980,12 +1048,12 @@ void CBitBufModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 		Util::AddFunc(pLua, bf_read_GetData, "GetData");
 	pLua->Pop(1);
 
-	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::bf_write, pLua->CreateMetaTable("bf_write"));
+	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::LUA_bf_write, pLua->CreateMetaTable("bf_write"));
 		Util::AddFunc(pLua, bf_write__tostring, "__tostring");
-		Util::AddFunc(pLua, bf_write__index, "__index");
-		Util::AddFunc(pLua, bf_write__newindex, "__newindex");
-		Util::AddFunc(pLua, bf_write__gc, "__gc");
-		Util::AddFunc(pLua, bf_write_GetTable, "GetTable");
+		Util::AddFunc(pLua, LUA_bf_write__index, "__index");
+		Util::AddFunc(pLua, LUA_bf_write__newindex, "__newindex");
+		Util::AddFunc(pLua, LUA_bf_write__gc, "__gc");
+		Util::AddFunc(pLua, LUA_bf_write_GetTable, "GetTable");
 		Util::AddFunc(pLua, bf_write_IsValid, "IsValid");
 		Util::AddFunc(pLua, bf_write_GetData, "GetData");
 		Util::AddFunc(pLua, bf_write_GetNumBytesWritten, "GetNumBytesWritten");

@@ -108,7 +108,7 @@ LUA_FUNCTION_STATIC(_EntityMessageBegin)
 		LUA->ThrowError("This won't work when the bitbuf library is disabled!");
 
 	EntityMessageBegin(pEnt, bReliable);
-	Push_bf_write(LUA, GetActiveMessage());
+	Push_bf_write(LUA, GetActiveMessage(), false);
 	return 1;
 }
 
@@ -121,7 +121,7 @@ LUA_FUNCTION_STATIC(_UserMessageBegin)
 		LUA->ThrowError("This won't work when the bitbuf library is disabled!");
 
 	UserMessageBegin(*pFilter, pName);
-	Push_bf_write(LUA, GetActiveMessage());
+	Push_bf_write(LUA, GetActiveMessage(), false);
 	return 1;
 }
 
