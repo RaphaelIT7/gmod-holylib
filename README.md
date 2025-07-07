@@ -3307,6 +3307,9 @@ returns the udp port the server is running on.
 #### CGameClient gameserver.GetClient(number playerSlot)
 Returns the CGameClient at that player slot or `nil` on failure.  
 
+#### CGameClient gameserver.GetClientByUserID(number userID)
+Returns the CGameClient for the given userID or `nil` on failure.  
+
 #### number gameserver.GetClientCount()
 returns client count for iteration  
 

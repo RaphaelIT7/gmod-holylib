@@ -1860,6 +1860,28 @@ LUA_FUNCTION_STATIC(gameserver_GetClient)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(gameserver_GetClientByUserID)
+{
+	if (!Util::server || !Util::server->IsActive())
+		return 0;
+
+	int userID = (int)LUA->CheckNumber(1);
+	if (userID < 0)
+		return 0;
+
+	for(int iClientIndex; iClientIndex<Util::server->GetClientCount(); ++iClientIndex)
+	{
+		CBaseClient* pClient = (CBaseClient*)Util::server->GetClient(iClientIndex);
+		if (!pClient->IsConnected() || pClient->GetUserID() != userID)
+			continue;
+
+		Push_CBaseClient(LUA, pClient);
+		return 1;
+	}
+
+	return 0;
+}
+
 LUA_FUNCTION_STATIC(gameserver_GetClientCount)
 {
 	if (!Util::server || !Util::server->IsActive())
@@ -2286,6 +2308,7 @@ void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, gameserver_GetMaxClients, "GetMaxClients");
 		Util::AddFunc(pLua, gameserver_GetUDPPort, "GetUDPPort");
 		Util::AddFunc(pLua, gameserver_GetClient, "GetClient");
+		Util::AddFunc(pLua, gameserver_GetClientByUserID, "GetClientByUserID");
 		Util::AddFunc(pLua, gameserver_GetClientCount, "GetClientCount");
 		Util::AddFunc(pLua, gameserver_GetAll, "GetAll");
 		Util::AddFunc(pLua, gameserver_GetTime, "GetTime");
@@ -3480,12 +3503,6 @@ void CGameServerModule::InitDetour(bool bPreServer)
 		&detour_CNetChan_SendDatagram, "CNetChan::SendDatagram",
 		engine_loader.GetModule(), Symbols::CNetChan_SendDatagramSym,
 		(void*)hook_CNetChan_SendDatagram, m_pID
-	);
-
-	Detour::Create(
-		&detour_CNetChan_ProcessPacketHeader, "CNetChan::ProcessPacketHeader",
-		engine_loader.GetModule(), Symbols::CNetChan_ProcessPacketHeaderSym,
-		(void*)hook_CNetChan_ProcessPacketHeader, m_pID
 	);
 
 	Detour::Create(
