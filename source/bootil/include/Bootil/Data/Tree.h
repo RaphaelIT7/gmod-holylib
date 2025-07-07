@@ -25,9 +25,11 @@ namespace Bootil
 
 				const TString & Name() const;
 				void Name( const TString & name );
+				void DirectName( TString name ); // Like all Direct functions, we move the given name into our structure instead of creating a copy!
 
 				const TString & Value() const;
 				void Value( const TString & value );
+				void DirectValue( TString value );
 
 				//
 				// Returns true if we have some children
@@ -55,7 +57,9 @@ namespace Bootil
 				// mychild = GetChildNum( 7 );				[returns 7th child, or creates 7 child if not exists (if empty, will create 7 children and return the 7th etc)]
 				TreeT<TString> & AddChild();
 				TreeT<TString> & AddChild( TString name );
+				TreeT<TString> & AddDirectChild( TString name ); // the given name is moved into the child so don't use it after passing it to us.
 				TreeT<TString> & SetChild( TString strKey, TString strValue );
+				TreeT<TString> & SetDirectChild( TString strKey, TString strValue );
                 TreeT<TString> & SetChild( TString strValue ) { return SetChild( "", strValue ); }
 				TreeT<TString> & GetChild( const TString & name );
 				bool			HasChild( const TString & name ) const;
@@ -127,6 +131,12 @@ namespace Bootil
 		}
 
 		template <typename TString>
+		void TreeT<TString>::DirectName( TString name )
+		{
+			m_Name = std::move(name);
+		}
+
+		template <typename TString>
 		const TString & TreeT<TString>::Value() const
 		{
 			return m_Value;
@@ -140,14 +150,17 @@ namespace Bootil
 		}
 
 		template <typename TString>
+		void TreeT<TString>::DirectValue( TString value )
+		{
+			m_Info = 1;
+			m_Value = std::move(value);
+		}
+
+		template <typename TString>
 		TreeT<TString> & TreeT<TString>::AddChild()
 		{
-			{
-				TreeT<TString> t;
-				m_Children.push_back( t );
-			}
-			TreeT<TString> & t = m_Children.back();
-			return t;
+			m_Children.emplace_back();
+			return m_Children.back();
 		}
 
 		template <typename TString>
@@ -159,10 +172,26 @@ namespace Bootil
 		}
 
 		template <typename TString>
+		TreeT<TString> & TreeT<TString>::AddDirectChild( TString name )
+		{
+			TreeT<TString> & tree = AddChild();
+			tree.DirectName( name );
+			return tree;
+		}
+
+		template <typename TString>
 		TreeT<TString> & TreeT<TString>::SetChild( TString strKey, TString strValue )
 		{
 			TreeT<TString> & tchild = AddChild( strKey );
 			tchild.Value( strValue );
+			return tchild;
+		}
+
+		template <typename TString>
+		TreeT<TString> & TreeT<TString>::SetDirectChild( TString strKey, TString strValue )
+		{
+			TreeT<TString> & tchild = AddChild( strKey );
+			tchild.DirectValue( strValue );
 			return tchild;
 		}
 

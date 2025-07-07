@@ -326,9 +326,9 @@ void TableToJSONRecursive(GarrysMod::Lua::ILuaInterface* pLua, LuaUtilModuleData
 		{
 			case GarrysMod::Lua::Type::String:
 				if (isSequential)
-					pTree.AddChild().Value(pLua->GetString(-1));
+					pTree.AddChild().DirectValue(pLua->GetString(-1));
 				else
-					pTree.SetChild(key, pLua->GetString(-1));
+					pTree.SetDirectChild(key, pLua->GetString(-1));
 				break;
 			case GarrysMod::Lua::Type::Number:
 				{
@@ -357,7 +357,7 @@ void TableToJSONRecursive(GarrysMod::Lua::ILuaInterface* pLua, LuaUtilModuleData
 				if (isSequential)
 					TableToJSONRecursive(pLua, pData, pTree.AddChild());
 				else
-					TableToJSONRecursive(pLua, pData, pTree.AddChild(key));
+					TableToJSONRecursive(pLua, pData, pTree.AddDirectChild(key));
 				break;
 			case GarrysMod::Lua::Type::Vector:
 				{
@@ -367,9 +367,9 @@ void TableToJSONRecursive(GarrysMod::Lua::ILuaInterface* pLua, LuaUtilModuleData
 
 					snprintf(pData->buffer, sizeof(pData->buffer), "[%.16g %.16g %.16g]", vec->x, vec->y, vec->z); // Do we even need to be this percice?
 					if (isSequential)
-						pTree.AddChild().Value(pData->buffer);
+						pTree.AddChild().DirectValue(pData->buffer);
 					else
-						pTree.SetChild(key, pData->buffer);
+						pTree.SetDirectChild(key, pData->buffer);
 				}
 				break;
 			case GarrysMod::Lua::Type::Angle:
@@ -380,9 +380,9 @@ void TableToJSONRecursive(GarrysMod::Lua::ILuaInterface* pLua, LuaUtilModuleData
 
 					snprintf(pData->buffer, sizeof(pData->buffer), "{%.12g %.12g %.12g}", ang->x, ang->y, ang->z);
 					if (isSequential)
-						pTree.AddChild().Value(pData->buffer);
+						pTree.AddChild().DirectValue(pData->buffer);
 					else
-						pTree.SetChild(key, pData->buffer);
+						pTree.SetDirectChild(key, pData->buffer);
 				}
 				break;
 			default:
