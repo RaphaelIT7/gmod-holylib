@@ -153,7 +153,7 @@ inline CSimpleLuaObject* ToSimpleObject(GarrysMod::Lua::ILuaObject* pObj)
 	return static_cast<CSimpleLuaObject*>(static_cast<void*>(pObj));
 }
 
-static ConVar lua_debugmode("lua_debugmode_interface", "5", 0);
+static ConVar lua_debugmode("lua_debugmode_interface", "0", 0);
 inline void CLuaInterface_DebugPrint(int level, const char* fmt, ...)
 {
 	if (lua_debugmode.GetInt() < level)

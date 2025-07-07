@@ -150,13 +150,15 @@ static void hook_InitLuaClasses(GarrysMod::Lua::ILuaInterface* LUA) // ToDo: Add
 static Detouring::Hook detour_CLuaInterface_Shutdown;
 static void hook_CLuaInterface_Shutdown(GarrysMod::Lua::ILuaInterface* LUA)
 {
-	if ((void*)LUA == (void*)g_Lua)
+	bool bIsOurInterface = ((void*)LUA == (void*)g_Lua);
+	if (bIsOurInterface)
 		Lua::Shutdown();
 
 	detour_CLuaInterface_Shutdown.GetTrampoline<Symbols::CLuaInterface_Shutdown>()(LUA); 
 	// Garbage collection will kick in so our remaining objects could call theirs __gc function so g_Lua still needs to be valid.
 
-	Lua::FinalShutdown();
+	if (bIsOurInterface)
+		Lua::FinalShutdown();
 }
 
 void Lua::AddDetour() // Our Lua Loader.

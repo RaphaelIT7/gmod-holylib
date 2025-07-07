@@ -49,6 +49,9 @@ static void hook_luaL_openlibs(lua_State* L)
 	lua_setfield(L, -2, "buffer");
 	lua_pop(L, 1);
 
+	lua_pushboolean(L, true);
+	lua_setfield(L, LUA_REGISTRYINDEX, "HOLYLIB_LUAJIT");
+
 	/*
 	 * Save funny debug functions.
 	 */

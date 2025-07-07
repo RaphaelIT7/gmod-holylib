@@ -2,6 +2,7 @@
 #include "../lua/lj_obj.h"
 #include "../lua/luajit_rolling.h"
 #include "../lua/lauxlib.h"
+#include "../lua/lj_state.h"
 
 #include "lua.h"
 
@@ -33,4 +34,18 @@ TValue* RawLua::index2adr(lua_State* L, int idx)
 			return idx <= fn->c.nupvalues ? &fn->c.upvalue[idx-1] : niltv(L);
 		}
 	}
+}
+
+TValue* RawLua::CopyTValue(lua_State* L, TValue* o)
+{
+	TValue* newO = new TValue;
+	copyTV(L, newO, o);
+
+	return newO;
+}
+
+void RawLua::PushTValue(lua_State* L, TValue* o)
+{
+	lua_pushnil(L);
+	copyTV(L, L->top - 1, o);
 }
