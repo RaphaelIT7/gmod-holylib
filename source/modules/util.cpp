@@ -290,6 +290,12 @@ void TableToJSONRecursive(GarrysMod::Lua::ILuaInterface* pLua, LuaUtilModuleData
 	bool wasSequential = true;
 	rapidjson::Value jsonObj(rapidjson::kObjectType);
 	rapidjson::Value jsonArr(rapidjson::kArrayType);
+	//int tableSize = pLua->ObjLen(-2);
+	//if (tableSize > 0)
+	//{
+	//	jsonArr.Reserve(tableSize * 8, allocator); // * 8 because we assume each key-value will take up atleast 8 bytes.
+	//}
+
 	while (pLua->Next(-2)) {
 		// In bootil, you just don't give a child a name to indicate that it's sequentail. 
 		// so we need to support that.
@@ -388,6 +394,9 @@ void TableToJSONRecursive(GarrysMod::Lua::ILuaInterface* pLua, LuaUtilModuleData
 				jsonObj.AddMember(k, jsonArr[i], allocator);
 			}
 			jsonArr.Clear();
+			//jsonArr.~GenericValue();
+			//new (&jsonArr) rapidjson::Value(rapidjson::kArrayType);
+			//jsonObj.Reserve(tableSize * 8, allocator); // Since we use the jsonObj now, we can instead go in and reserve space there.
 			wasSequential = false;
 		}
 

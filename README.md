@@ -1183,6 +1183,20 @@ Returns `nil` on failure.
 Decompresses the given data using [LZ4](https://github.com/lz4/lz4)  
 Returns `nil` on failure. 
 
+#### util.AsyncTableToJSON(table tbl, function callback, bool pretty = false)
+callback = `function(json) end`
+
+Turns the given table into a json string just like `util.FancyTableToJSON` but it will do this on a different thread.  
+
+> [!WARNING]
+> By giving the table to this function you make a promise to **not** modify the table while the json string is being created!  
+> This is because we don't copy the table, we instead copy the pointer into a new Lua state where we then iterate/access it from another state/thread and if you **modify** it in any way you will experience a crash.  
+> You still can access the table in that time, you are just not allowed to modify it.  
+> It was observed that you can kinda modify the table though if you add new elements/the size of the table changes while its still creating the json string you will crash.  
+
+> [!NOTE]
+> This function requires the `luajit` module to be enabled.
+
 ## ConVars
 
 ### holylib_util_compressthreads(default `1`)
@@ -1191,6 +1205,9 @@ When changing it, it will wait for all queried jobs to first finish before chang
 
 ### holylib_util_decompressthreads(default `1`)
 The number of threads to use for `util.AsyncDecompress`.  
+
+### holylib_util_jsonthreads(default `1`)
+The number of threads to use for `util.AsyncTableToJSON`.  
 
 > [!NOTE]
 > Decompressing seems to be far faster than compressing so it won't need as many threads.  
