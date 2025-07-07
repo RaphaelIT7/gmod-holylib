@@ -541,7 +541,13 @@ void Util::Load()
 				if (pSkipConVars.find(pConVar) == pSkipConVars.end())
 				{
 					Bootil::Data::Tree& pEntry = pData.GetChild(pCur->GetName());
-					pConVar->SetValue(pEntry.EnsureChildVar<Bootil::BString>("value", pConVar->GetString()).c_str());
+					Bootil::BString pDefault = pEntry.EnsureChildVar<Bootil::BString>("default", pConVar->GetDefault());
+					if (pDefault == (std::string_view)pConVar->GetDefault())
+					{
+						pConVar->SetValue(pEntry.EnsureChildVar<Bootil::BString>("value", pConVar->GetString()).c_str());
+					} else {
+						pEntry.GetChild("value").Var((Bootil::BString)pConVar->GetString());
+					}
 					pEntry.EnsureChildVar<Bootil::BString>("help", pConVar->GetHelpText());
 				}
 			}
