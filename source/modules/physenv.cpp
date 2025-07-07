@@ -22,7 +22,9 @@
 #include "detours.h"
 #include "tier0/icommandline.h"
 
+#define private public
 #include "physics_environment.h" // has to be before physics_object.h
+#undef private
 #include "physics_object.h"
 #include "physics_collisionevent.h"
 
@@ -1263,6 +1265,14 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_IsInSimulation)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetInSimulation)
+{
+	CPhysicsEnvironment* pEnvironment = (CPhysicsEnvironment*)GetPhysicsEnvironmentFromLua(LUA, 1, true);
+
+	pEnvironment->m_inSimulation = LUA->GetBool(1);
+	return 0;
+}
+
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_ResetSimulationClock)
 {
 	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, true);
@@ -1304,6 +1314,22 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_Simulate)
 
 	float deltaTime = (float)LUA->CheckNumber(2);
 	bool onlyEntities = LUA->GetBool(3);
+
+	if (pEnvironment->IsInSimulation())
+	{
+		LUA->ThrowError("Tried to simulate a IPhysicsEnvironment that is already simulating!");
+	}
+
+	// Additional safety
+	// I've seen cursed shit happen like it somehow freeing all memory of the server & crashing instantly. Don't tempt IVP
+	for (ILuaPhysicsEnvironment* pEnv : g_pCurrentEnvironment)
+	{
+		if (pEnv == pLuaEnv)
+		{
+			LUA->ThrowError("Tried to simulate a IPhysicsEnvironment that is already simulating!");
+			return 0;
+		}
+	}
 
 	VPROF_BUDGET("HolyLib(Lua) - IPhysicsEnvironment::Simulate", VPROF_BUDGETGROUP_HOLYLIB);
 	g_pCurrentEnvironment.push_back(pLuaEnv);
@@ -2378,6 +2404,7 @@ void CPhysEnvModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 		Util::AddFunc(pLua, IPhysicsEnvironment_GetActiveObjects, "GetActiveObjects");
 		Util::AddFunc(pLua, IPhysicsEnvironment_GetObjectList, "GetObjectList");
 		Util::AddFunc(pLua, IPhysicsEnvironment_IsInSimulation, "IsInSimulation");
+		Util::AddFunc(pLua, IPhysicsEnvironment_SetInSimulation, "SetInSimulation");
 		Util::AddFunc(pLua, IPhysicsEnvironment_ResetSimulationClock, "ResetSimulationClock");
 		Util::AddFunc(pLua, IPhysicsEnvironment_CleanupDeleteList, "CleanupDeleteList");
 		Util::AddFunc(pLua, IPhysicsEnvironment_SetQuickDelete, "SetQuickDelete");
