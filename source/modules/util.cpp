@@ -4,6 +4,12 @@
 #include "Bootil/Bootil.h"
 #include <lz4/lz4_compression.h>
 
+#include "bootil/src/3rdParty/rapidjson/rapidjson.h"
+#include "bootil/src/3rdParty/rapidjson/document.h"
+#include "bootil/src/3rdParty/rapidjson/stringbuffer.h"
+#include "bootil/src/3rdParty/rapidjson/prettywriter.h"
+#include "bootil/src/3rdParty/rapidjson/writer.h"
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -249,8 +255,8 @@ inline bool IsInt(float pNumber)
 	return static_cast<int>(pNumber) == pNumber && INT32_MAX >= pNumber && pNumber >= INT32_MIN;
 }
 
-extern void TableToJSONRecursive(GarrysMod::Lua::ILuaInterface* pLua, LuaUtilModuleData* pData, Bootil::Data::Tree& pTree);
-void TableToJSONRecursive(GarrysMod::Lua::ILuaInterface* pLua, LuaUtilModuleData* pData, Bootil::Data::Tree& pTree)
+extern void TableToJSONRecursive(GarrysMod::Lua::ILuaInterface* pLua, LuaUtilModuleData* pData, rapidjson::Value& outValue, rapidjson::Document::AllocatorType& allocator);
+void TableToJSONRecursive(GarrysMod::Lua::ILuaInterface* pLua, LuaUtilModuleData* pData, rapidjson::Value& outValue, rapidjson::Document::AllocatorType& allocator)
 {
 	bool bEqual = false;
 	for (int iReference : pData->pRecursiveTableScope)
@@ -281,6 +287,9 @@ void TableToJSONRecursive(GarrysMod::Lua::ILuaInterface* pLua, LuaUtilModuleData
 	pData->pRecursiveTableScope.push_back(Util::ReferenceCreate(pLua, "TableToJSONRecursive - Scope"));
 
 	int idx = 1;
+	bool wasSequential = true;
+	rapidjson::Value jsonObj(rapidjson::kObjectType);
+	rapidjson::Value jsonArr(rapidjson::kArrayType);
 	while (pLua->Next(-2)) {
 		// In bootil, you just don't give a child a name to indicate that it's sequentail. 
 		// so we need to support that.
@@ -322,42 +331,28 @@ void TableToJSONRecursive(GarrysMod::Lua::ILuaInterface* pLua, LuaUtilModuleData
 			}
 		}
 
+		rapidjson::Value value;
 		switch (pLua->GetType(-1))
 		{
 			case GarrysMod::Lua::Type::String:
-				if (isSequential)
-					pTree.AddChild().DirectValue(pLua->GetString(-1));
-				else
-					pTree.SetDirectChild(key, pLua->GetString(-1));
+				value.SetString(pLua->GetString(-1), pLua->ObjLen(-1), allocator);
 				break;
 			case GarrysMod::Lua::Type::Number:
 				{
 					double pNumber = pLua->GetNumber(-1);
 					if (IsInt(pNumber))
-						if (isSequential)
-							pTree.AddChild().Var(static_cast<int>(pNumber));
-						else
-							pTree.SetChildVar(key, static_cast<int>(pNumber));
+						value.SetInt(pNumber);
 					else
-						if (isSequential)
-							pTree.AddChild().Var(pNumber);
-						else
-							pTree.SetChildVar(key, pNumber);
+						value.SetDouble(pNumber);
 				}
 				break;
 			case GarrysMod::Lua::Type::Bool:
-				if (isSequential)
-					pTree.AddChild().Var(pLua->GetBool(-1));
-				else
-					pTree.SetChildVar(key, pLua->GetBool(-1));
+				value.SetBool(pLua->GetBool(-1));
 				break;
 			case GarrysMod::Lua::Type::Table: // now make it recursive >:D
 				pLua->Push(-1);
 				pLua->PushNil();
-				if (isSequential)
-					TableToJSONRecursive(pLua, pData, pTree.AddChild());
-				else
-					TableToJSONRecursive(pLua, pData, pTree.AddDirectChild(key));
+				TableToJSONRecursive(pLua, pData, value, allocator);
 				break;
 			case GarrysMod::Lua::Type::Vector:
 				{
@@ -365,11 +360,8 @@ void TableToJSONRecursive(GarrysMod::Lua::ILuaInterface* pLua, LuaUtilModuleData
 					if (!vec)
 						break;
 
-					snprintf(pData->buffer, sizeof(pData->buffer), "[%.16g %.16g %.16g]", vec->x, vec->y, vec->z); // Do we even need to be this percice?
-					if (isSequential)
-						pTree.AddChild().DirectValue(pData->buffer);
-					else
-						pTree.SetDirectChild(key, pData->buffer);
+					int length = snprintf(pData->buffer, sizeof(pData->buffer), "[%.16g %.16g %.16g]", vec->x, vec->y, vec->z); // Do we even need to be this percice?
+					value.SetString(pData->buffer, length, allocator);
 				}
 				break;
 			case GarrysMod::Lua::Type::Angle:
@@ -378,19 +370,39 @@ void TableToJSONRecursive(GarrysMod::Lua::ILuaInterface* pLua, LuaUtilModuleData
 					if (!ang)
 						break;
 
-					snprintf(pData->buffer, sizeof(pData->buffer), "{%.12g %.12g %.12g}", ang->x, ang->y, ang->z);
-					if (isSequential)
-						pTree.AddChild().DirectValue(pData->buffer);
-					else
-						pTree.SetDirectChild(key, pData->buffer);
+					int length = snprintf(pData->buffer, sizeof(pData->buffer), "{%.12g %.12g %.12g}", ang->x, ang->y, ang->z);
+					value.SetString(pData->buffer, length, allocator);
 				}
 				break;
 			default:
 				break; // We should fallback to nil
 		}
 
+		if (wasSequential && !isSequential)
+		{
+			for (rapidjson::SizeType i=0; i<jsonArr.Size(); ++i)
+			{
+				char indexKey[32];
+				snprintf(indexKey, sizeof(indexKey), "%u", i + 1);
+				rapidjson::Value k(indexKey, allocator);
+				jsonObj.AddMember(k, jsonArr[i], allocator);
+			}
+			jsonArr.Clear();
+			wasSequential = false;
+		}
+
+		if (wasSequential && isSequential)
+		{
+			jsonArr.PushBack(std::move(value), allocator);
+		} else {
+			rapidjson::Value k(key, allocator);
+			jsonObj.AddMember(std::move(k), std::move(value), allocator);
+		}
+
 		pLua->Pop(1);
 	}
+
+	outValue = std::move(wasSequential ? jsonArr : jsonObj);
 
 	pLua->Pop(1);
 
@@ -407,17 +419,24 @@ LUA_FUNCTION_STATIC(util_TableToJSON)
 	pData->bRecursiveNoError = LUA->GetBool(3);
 
 	pData->iRecursiveStartTop = LUA->Top();
-	Bootil::Data::Tree pTree;
 	LUA->Push(1);
 	LUA->PushNil();
 
-	TableToJSONRecursive(LUA, pData, pTree);
+	rapidjson::Document doc;
+	TableToJSONRecursive(LUA, pData, doc, doc.GetAllocator());
 
-	Bootil::BString pOut;
-	Bootil::Data::Json::Export(pTree, pOut, bPretty);
+	rapidjson::StringBuffer buffer;
+	if (bPretty)
+	{
+		rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(buffer);
+		writer.SetIndent( '\t', 1 );
+		doc.Accept(writer);
+	} else {
+		rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+		doc.Accept(writer);
+	}
 
-	LUA->PushString(pOut.c_str());
-
+	LUA->PushString(buffer.GetString(), buffer.GetLength());
 	return 1;
 }
 
@@ -494,7 +513,7 @@ public:
 		}
 
 		Util::ReferencePush(pLua, m_iCallback);
-		pLua->PushString(m_strOut.c_str());
+		pLua->PushString(m_strOut.GetString(), m_strOut.GetLength());
 		pLua->CallFunctionProtected(1, 0, true);
 
 		return true;
@@ -505,7 +524,7 @@ public:
 	bool m_bPretty = false;
 
 	bool m_bIsDone = false;
-	Bootil::BString m_strOut;
+	rapidjson::StringBuffer m_strOut;
 	int m_iCallback = -1;
 };
 
@@ -520,11 +539,11 @@ static void JsonJob(JsonEntry*& entry)
 	pData.bRecursiveNoError = true;
 
 	pData.iRecursiveStartTop = LUA->Top();
-	Bootil::Data::Tree pTree;
 	RawLua::PushTValue(LUA->GetState(), entry->m_pObject);
 	LUA->PushNil();
 
-	TableToJSONRecursive(LUA, &pData, pTree);
+	rapidjson::Document doc;
+	TableToJSONRecursive(LUA, &pData, doc, doc.GetAllocator());
 
 	if (entry->m_bCancel)
 	{
@@ -532,7 +551,15 @@ static void JsonJob(JsonEntry*& entry)
 		return;
 	}
 
-	Bootil::Data::Json::Export(pTree, entry->m_strOut, entry->m_bPretty);
+	if (entry->m_bPretty)
+	{
+		rapidjson::PrettyWriter<rapidjson::StringBuffer> writer(entry->m_strOut);
+		writer.SetIndent('\t', 1);
+		doc.Accept(writer);
+	} else {
+		rapidjson::Writer<rapidjson::StringBuffer> writer(entry->m_strOut);
+		doc.Accept(writer);
+	}
 
 	Lua::DestroyInterface(LUA);
 
