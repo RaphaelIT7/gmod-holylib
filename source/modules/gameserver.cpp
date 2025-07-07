@@ -1869,7 +1869,7 @@ LUA_FUNCTION_STATIC(gameserver_GetClientByUserID)
 	if (userID < 0)
 		return 0;
 
-	for(int iClientIndex; iClientIndex<Util::server->GetClientCount(); ++iClientIndex)
+	for(int iClientIndex=0; iClientIndex<Util::server->GetClientCount(); ++iClientIndex)
 	{
 		CBaseClient* pClient = (CBaseClient*)Util::server->GetClient(iClientIndex);
 		if (!pClient->IsConnected() || pClient->GetUserID() != userID)
