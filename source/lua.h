@@ -177,4 +177,5 @@ namespace RawLua {
 	extern TValue *index2adr(lua_State *L, int idx);
 	extern TValue* CopyTValue(lua_State* L, TValue* o);
 	extern void PushTValue(lua_State* L, TValue* o);
+	extern void SetReadOnly(TValue* o, bool readOnly);
 }

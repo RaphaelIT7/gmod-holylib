@@ -1,8 +1,12 @@
+extern "C" {
 #include "../lua/lua.hpp"
 #include "../lua/lj_obj.h"
 #include "../lua/luajit_rolling.h"
 #include "../lua/lauxlib.h"
 #include "../lua/lj_state.h"
+#include "../lua/lj_tab.h"
+#include "../lua/lj_lib.h"
+}
 
 #include "lua.h"
 
@@ -48,4 +52,27 @@ void RawLua::PushTValue(lua_State* L, TValue* o)
 {
 	lua_pushnil(L);
 	copyTV(L, L->top - 1, o);
+}
+
+void RawLua::SetReadOnly(TValue* o, bool readOnly)
+{
+	GCtab* pTable = tabV(o);
+	lj_tab_setreadonly(pTable, readOnly);
+}
+
+int table_setreadonly(lua_State* L)
+{
+  GCtab *t = lj_lib_checktab(L, 1);
+  int readOnly = lua_toboolean(L, 2);
+  
+  lj_tab_setreadonly(t, readOnly);
+  return 0;
+}
+
+int table_isreadonly(lua_State* L)
+{
+  GCtab *t = lj_lib_checktab(L, 1);
+  
+  lua_pushboolean(L, lj_tab_isreadonly(t));
+  return 1;
 }

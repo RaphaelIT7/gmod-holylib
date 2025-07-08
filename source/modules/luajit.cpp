@@ -99,6 +99,8 @@ int hook_CLuaInterface_GetType(GarrysMod::Lua::ILuaInterface* pLua, int iStackPo
 	return type == -1 ? GarrysMod::Lua::Type::Nil : type;
 }
 
+extern int table_setreadonly(lua_State* L);
+extern int table_isreadonly(lua_State* L);
 void CLuaJITModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit || pLua != g_Lua) // Don't init for non-gmod states
@@ -128,6 +130,12 @@ void CLuaJITModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 
 		lua_getfield(L, -1, "_upvaluejoin");
 		lua_setfield(L, -2, "upvaluejoin");
+
+		lua_pushcfunction(L, table_setreadonly);
+		lua_setfield(L, -2, "setreadonly");
+
+		lua_pushcfunction(L, table_isreadonly);
+		lua_setfield(L, -2, "isreadonly");
 	}
 	lua_pop(L, 1);
 

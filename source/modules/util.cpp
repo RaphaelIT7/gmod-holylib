@@ -630,7 +630,10 @@ public:
 static void JsonJob(JsonEntry*& entry)
 {
 	if (entry->m_bCancel)
+	{
+		RawLua::SetReadOnly(entry->m_pObject, false);
 		return;
+	}
 
 	GarrysMod::Lua::ILuaInterface* LUA = Lua::CreateInterface();
 
@@ -647,6 +650,7 @@ static void JsonJob(JsonEntry*& entry)
 	if (entry->m_bCancel)
 	{
 		Lua::DestroyInterface(LUA);
+		RawLua::SetReadOnly(entry->m_pObject, false);
 		return;
 	}
 
@@ -661,6 +665,7 @@ static void JsonJob(JsonEntry*& entry)
 	}
 
 	Lua::DestroyInterface(LUA);
+	RawLua::SetReadOnly(entry->m_pObject, false);
 
 	entry->m_bIsDone = true;
 }
@@ -699,6 +704,8 @@ LUA_FUNCTION_STATIC(util_AsyncTableToJSON)
 	entry->m_pObject = RawLua::CopyTValue(LUA->GetState(), RawLua::index2adr(LUA->GetState(), -1));
 	entry->m_iReference = LUA->ReferenceCreate();
 	entry->m_pLua = LUA;
+
+	RawLua::SetReadOnly(entry->m_pObject, true);
 
 	GetLuaData(LUA)->pEntries.push_back(entry);
 
