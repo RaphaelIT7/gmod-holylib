@@ -1269,7 +1269,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_SetInSimulation)
 {
 	CPhysicsEnvironment* pEnvironment = (CPhysicsEnvironment*)GetPhysicsEnvironmentFromLua(LUA, 1, true);
 
-	pEnvironment->m_inSimulation = LUA->GetBool(1);
+	pEnvironment->m_inSimulation = LUA->GetBool(2);
 	return 0;
 }
 

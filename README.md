@@ -74,6 +74,12 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [+] Added a new hook `HolyLib:OnClientTimeout` to the `gameserver` module.  
 \- [+] Optimized `GM:PlayerCanHearPlayersVoice` by **only** calling it for actively speaking players/when a voice packet is received.  
 \- [+] Added `voicechat.IsPlayerTalking` & `voicechat.LastPlayerTalked` to the `voicechat` module.  
+\- [+] Added `util.FancyJSONToTable` & `util.AsyncTableToJSON` to the `util` module.  
+\- [+] Added `gameserver.GetClientByUserID` to the `gameserver` module.  
+\- [+] Added a config system allowing one to set convars without using the command line.  
+\- [+] Added `IPhysicsEnvironment:SetInSimulation` to the `physenv` module.  
+\- [#] Added some more safeguards to `IPhysicsEnvironment:Simulate` to prevent one from simulating a environment that is already being simulated.  
+\- [#] Highly optimized `util` module's json code to be noticably faster and use noticably less memory.  
 \- [#] Better support for multiple Lua states  
 \- \- This required most of the lua setup to be changed >:(  
 \- [#] Solved a few possible stack issues  
@@ -1174,6 +1180,11 @@ ignorecycle - If `true` it won't throw a lua error when you have a table that is
 
 Convers the given table to json.  
 Unlike Gmod's version, this function will turn the numbers to an integer if they are one/fit one.  
+This version is noticably faster than Gmod's version and uses less memory in the process.  
+
+#### table util.FancyJSONToTable(string json)
+Convers the json into a table.
+This version is noticably faster than Gmod's version and uses less memory in the process.
 
 #### string util.CompressLZ4(string data, number accelerationLevel = 1)
 Compresses the given data using [LZ4](https://github.com/lz4/lz4)  
@@ -2781,6 +2792,9 @@ returns a table containing all physics objects.
 
 #### bool IPhysicsEnvironment:IsInSimulation()
 returns true if the current physics environment is in simulation.  
+
+#### IPhysicsEnvironment:SetInSimulation(bool simulating = false)
+Sets if the current physics environment is in simulation or not.  
 
 #### IPhysicsEnvironment:ResetSimulationClock()
 resets the simulation clock.  
