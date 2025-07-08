@@ -95,6 +95,8 @@ static const uint16_t recff_idmap[] = {
 0x2700,
 0x2800,
 0,
+0,
+0,
 0x2900,
 0x2a00,
 0,

@@ -1,6 +1,6 @@
 /*
 ** Table handling.
-** Copyright (C) 2005-2023 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2025 Mike Pall. See Copyright Notice in luajit.h
 */
 
 #ifndef _LJ_TAB_H
@@ -58,11 +58,8 @@ LJ_FUNC GCtab *lj_tab_new_ah(lua_State *L, int32_t a, int32_t h);
 LJ_FUNC GCtab * LJ_FASTCALL lj_tab_new1(lua_State *L, uint32_t ahsize);
 #endif
 LJ_FUNCA GCtab * LJ_FASTCALL lj_tab_dup(lua_State *L, const GCtab *kt);
-LJ_FUNC void LJ_FASTCALL lj_tab_clear(GCtab *t);
+LJ_FUNC void LJ_FASTCALL lj_tab_clear(lua_State* L, GCtab *t);
 LJ_FUNC void LJ_FASTCALL lj_tab_free(global_State *g, GCtab *t);
-#if LJ_HASFFI
-LJ_FUNC void lj_tab_rehash(lua_State *L, GCtab *t);
-#endif
 LJ_FUNC void lj_tab_resize(lua_State *L, GCtab *t, uint32_t asize, uint32_t hbits);
 LJ_FUNCA void lj_tab_reasize(lua_State *L, GCtab *t, uint32_t nasize);
 
@@ -78,6 +75,8 @@ LJ_FUNCA TValue *lj_tab_newkey(lua_State *L, GCtab *t, cTValue *key);
 LJ_FUNCA TValue *lj_tab_setinth(lua_State *L, GCtab *t, int32_t key);
 LJ_FUNC TValue *lj_tab_setstr(lua_State *L, GCtab *t, const GCstr *key);
 LJ_FUNC TValue *lj_tab_set(lua_State *L, GCtab *t, cTValue *key);
+LJ_FUNC void LJ_FASTCALL lj_tab_setreadonly(GCtab *t, int readOnly);
+LJ_FUNC int LJ_FASTCALL lj_tab_isreadonly(GCtab *t);
 
 #define inarray(t, key)		((MSize)(key) < (MSize)(t)->asize)
 #define arrayslot(t, i)		(&tvref((t)->array)[(i)])

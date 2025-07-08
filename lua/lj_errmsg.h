@@ -1,6 +1,6 @@
 /*
 ** VM error messages.
-** Copyright (C) 2005-2023 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2025 Mike Pall. See Copyright Notice in luajit.h
 */
 
 /* This file may be included multiple times with different ERRDEF macros. */
@@ -21,6 +21,7 @@ ERRDEF(TABOV,	"table overflow")
 ERRDEF(NANIDX,	"table index is NaN")
 ERRDEF(NILIDX,	"table index is nil")
 ERRDEF(NEXTIDX,	"invalid key to " LUA_QL("next"))
+ERRDEF(READONLY, "table is in read only")
 
 /* Metamethod resolving. */
 ERRDEF(BADCALL,	"attempt to call a %s value")
@@ -79,6 +80,7 @@ ERRDEF(SETFENV,	LUA_QL("setfenv") " cannot change environment of given object")
 ERRDEF(CORUN,	"cannot resume running coroutine")
 ERRDEF(CODEAD,	"cannot resume dead coroutine")
 ERRDEF(COSUSP,	"cannot resume non-suspended coroutine")
+ERRDEF(PRNGSD,	"PRNG seeding failed")
 ERRDEF(TABINS,	"wrong number of arguments to " LUA_QL("insert"))
 ERRDEF(TABCAT,	"invalid value (%s) at index %d in table for " LUA_QL("concat"))
 ERRDEF(TABSORT,	"invalid order function for sorting")
@@ -139,6 +141,7 @@ ERRDEF(XDOTS,	"cannot use " LUA_QL("...") " outside a vararg function")
 ERRDEF(XSYNTAX,	"syntax error")
 ERRDEF(XFOR,	LUA_QL("=") " or " LUA_QL("in") " expected")
 ERRDEF(XBREAK,	"no loop to break")
+ERRDEF(XCONTINUE,	"no loop to continue")
 ERRDEF(XLUNDEF,	"undefined label " LUA_QS)
 ERRDEF(XLDUP,	"duplicate label " LUA_QS)
 ERRDEF(XGSCOPE,	"<goto %s> jumps into the scope of local " LUA_QS)

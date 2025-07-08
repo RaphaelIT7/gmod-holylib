@@ -1,6 +1,6 @@
 /*
 ** LuaJIT VM tags, values and objects.
-** Copyright (C) 2005-2023 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2025 Mike Pall. See Copyright Notice in luajit.h
 **
 ** Portions taken verbatim or adapted from the Lua interpreter.
 ** Copyright (C) 1994-2008 Lua.org, PUC-Rio. See Copyright Notice in lua.h
@@ -493,6 +493,8 @@ typedef struct Node {
 #endif
 } Node;
 
+//LJ_STATIC_ASSERT(offsetof(Node, val) == 0);
+
 typedef struct GCtab {
   GCHeader;
   uint8_t nomm;		/* Negative cache for fast metamethods. */
@@ -577,6 +579,9 @@ typedef enum {
   GCROOT_BASEMT_NUM = GCROOT_BASEMT + ~LJ_TNUMX,
   GCROOT_IO_INPUT,	/* Userdata for default I/O input file. */
   GCROOT_IO_OUTPUT,	/* Userdata for default I/O output file. */
+#if LJ_HASFFI
+  GCROOT_FFI_FIN,	/* FFI finalizer table. */
+#endif
   GCROOT_MAX
 } GCRootID;
 
@@ -590,7 +595,7 @@ typedef struct GCState {
   GCSize threshold;	/* Memory threshold. */
   uint8_t currentwhite;	/* Current white color. */
   uint8_t state;	/* GC state. */
-  uint8_t nocdatafin;	/* No cdata finalizer called. */
+  uint8_t unused0;
 #if LJ_64
   uint8_t lightudnum;	/* Number of lightuserdata segments - 1. */
 #else
@@ -731,6 +736,20 @@ typedef struct GChead {
   GCRef gclist;
   GCRef metatable;
 } GChead;
+
+/* The env field SHOULD be at the same offset for all GC objects. */
+//LJ_STATIC_ASSERT(offsetof(GChead, env) == offsetof(GCfuncL, env));
+//LJ_STATIC_ASSERT(offsetof(GChead, env) == offsetof(GCudata, env));
+
+/* The metatable field MUST be at the same offset for all GC objects. */
+//LJ_STATIC_ASSERT(offsetof(GChead, metatable) == offsetof(GCtab, metatable));
+//LJ_STATIC_ASSERT(offsetof(GChead, metatable) == offsetof(GCudata, metatable));
+
+/* The gclist field MUST be at the same offset for all GC objects. */
+//LJ_STATIC_ASSERT(offsetof(GChead, gclist) == offsetof(lua_State, gclist));
+//LJ_STATIC_ASSERT(offsetof(GChead, gclist) == offsetof(GCproto, gclist));
+//LJ_STATIC_ASSERT(offsetof(GChead, gclist) == offsetof(GCfuncL, gclist));
+//LJ_STATIC_ASSERT(offsetof(GChead, gclist) == offsetof(GCtab, gclist));
 
 typedef union GCobj {
   GChead gch;
