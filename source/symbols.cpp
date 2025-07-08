@@ -91,6 +91,13 @@ namespace Symbols
 		Symbol::FromName("SteamGameServer_Shutdown"),
 	};
 
+	const std::vector<Symbol> GMOD_LoadBinaryModuleSym = { // Same symbol for all versions.
+		Symbol::FromName("GMOD_LoadBinaryModule"),
+		Symbol::FromName("GMOD_LoadBinaryModule"),
+		Symbol::FromName("GMOD_LoadBinaryModule"),
+		Symbol::FromName("GMOD_LoadBinaryModule"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: holylib Symbols
 	//---------------------------------------------------------------------------------

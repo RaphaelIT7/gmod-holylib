@@ -478,6 +478,16 @@ void CModuleManager::LevelShutdown()
 	VCALL_ENABLED_MODULES(LevelShutdown());
 }
 
+void CModuleManager::PreLuaModuleLoaded(lua_State* L, const char* pFileName)
+{
+	VCALL_ENABLED_MODULES(PreLuaModuleLoaded(L, pFileName));
+}
+
+void CModuleManager::PostLuaModuleLoaded(lua_State* L, const char* pFileName)
+{
+	VCALL_ENABLED_MODULES(PostLuaModuleLoaded(L, pFileName));
+}
+
 CModuleManager g_pModuleManager;
 
 static void NukeModules(const CCommand &args)

@@ -74,6 +74,8 @@ public:
 	virtual void OnEntitySpawned(CBaseEntity* pEntity);
 	virtual void OnEntityDeleted(CBaseEntity* pEntity);
 	virtual void LevelShutdown();
+	virtual void PreLuaModuleLoaded(lua_State* L, const char* pFileName);
+	virtual void PostLuaModuleLoaded(lua_State* L, const char* pFileName);
 
 	inline int GetStatus() { return m_pStatus; };
 	inline CreateInterfaceFn& GetAppFactory() { return m_pAppFactory; };

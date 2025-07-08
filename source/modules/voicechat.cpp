@@ -30,6 +30,8 @@ public:
 	virtual void LevelShutdown() OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual void LuaThink(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
+	virtual void PreLuaModuleLoaded(lua_State* L, const char* pFileName) OVERRIDE;
+	virtual void PostLuaModuleLoaded(lua_State* L, const char* pFileName) OVERRIDE;
 	virtual const char* Name() { return "voicechat"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32; };
 	virtual bool SupportsMultipleLuaStates() { return true; };
@@ -1256,4 +1258,30 @@ void CVoiceChatModule::InitDetour(bool bPreServer)
 
 	g_bWantModEnable = Detour::ResolveSymbol<CPlayerBitVec>(server_loader, Symbols::g_bWantModEnableSym);
 	Detour::CheckValue("get class", "g_bWantModEnable", g_bWantModEnable != NULL);
+}
+
+void CVoiceChatModule::PreLuaModuleLoaded(lua_State* L, const char* pFileName)
+{
+	std::string_view strFileName = pFileName;
+	if (strFileName.find("voicebox") !=std::string::npos)
+	{
+		Msg(PROJECT_NAME " - voicechat: Removing SV_BroadcastVoiceData hook before voicebox is loaded\n");
+		detour_SV_BroadcastVoiceData.Disable();
+		detour_SV_BroadcastVoiceData.Destroy();
+	}
+}
+
+void CVoiceChatModule::PostLuaModuleLoaded(lua_State* L, const char* pFileName)
+{
+	std::string_view strFileName = pFileName;
+	if (strFileName.find("voicebox") !=std::string::npos)
+	{
+		Msg(PROJECT_NAME " - voicechat: Recreating SV_BroadcastVoiceData hook after voicebox was loaded\n");
+		SourceSDK::ModuleLoader engine_loader("engine");
+		Detour::Create(
+			&detour_SV_BroadcastVoiceData, "SV_BroadcastVoiceData",
+			engine_loader.GetModule(), Symbols::SV_BroadcastVoiceDataSym,
+			(void*)hook_SV_BroadcastVoiceData, m_pID
+		);
+	}
 }

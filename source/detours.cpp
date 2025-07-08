@@ -19,7 +19,7 @@ void* Detour::GetFunction(void* pModule, Symbol pSymbol)
 }
 
 std::unordered_set<std::string> pDisabledDetours;
-std::map<unsigned int, std::vector<Detouring::Hook*>> g_pDetours = {};
+std::map<unsigned int, std::unordered_set<Detouring::Hook*>> g_pDetours = {};
 void Detour::Create(Detouring::Hook* pHook, const char* strName, void* pModule, Symbol pSymbol, void* pHookFunc, unsigned int category)
 {
 	if (pDisabledDetours.find(strName) != pDisabledDetours.end())
@@ -35,7 +35,10 @@ void Detour::Create(Detouring::Hook* pHook, const char* strName, void* pModule, 
 	pHook->Create(func, pHookFunc);
 	pHook->Enable();
 
-	g_pDetours[category].push_back(pHook);
+	if (g_pDetours[category].find(pHook) == g_pDetours[category].end())
+	{
+		g_pDetours[category].insert(pHook);
+	}
 
 	if (!DETOUR_ISVALID((*pHook)))
 		Msg(PROJECT_NAME ": Failed to detour %s!\n", strName);
