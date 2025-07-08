@@ -17,6 +17,7 @@ public:
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "serverplugin"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
+	virtual bool IsEnabledByDefault() { return false; }; // Broken rn if used with voicebox & xeon drm? (ToDo: Investigate)
 };
 
 static CServerPluginLibModule g_pServerPluginLibModule;
