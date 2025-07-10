@@ -60,6 +60,19 @@ void RawLua::SetReadOnly(TValue* o, bool readOnly)
 	lj_tab_setreadonly(pTable, readOnly);
 }
 
+void* RawLua::GetUserDataOrFFIVar(lua_State* L, int idx)
+{
+	cTValue *o = index2adr(L, idx);
+	if (tvisudata(o))
+		return uddata(udataV(o));
+	else if (tvislightud(o))
+		return lightudV(G(L), o);
+	else if (tviscdata(o))
+		return (void*)lj_obj_ptr(G(L), o); // won't mind the const void* -> void* it'll be fine
+	else
+		return NULL;
+}
+
 int table_setreadonly(lua_State* L)
 {
   GCtab *t = lj_lib_checktab(L, 1);

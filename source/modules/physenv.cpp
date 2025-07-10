@@ -464,8 +464,8 @@ extern void hook_CPhysicsEnvironment_DestroyObject(GMODSDK::CPhysicsEnvironment*
 class CPhysicsEnvironmentProxy : public Detouring::ClassProxy<IPhysicsEnvironment, CPhysicsEnvironmentProxy> {
 public:
 	CPhysicsEnvironmentProxy(IPhysicsEnvironment* env) {
-		if (Detour::CheckValue("initialize", "CLuaInterfaceProxy", Initialize(env)))
-			Detour::CheckValue("CLuaInterface::PushPooledString", Hook(&IPhysicsEnvironment::DestroyObject, &CPhysicsEnvironmentProxy::DestroyObject));
+		if (Detour::CheckValue("initialize", "CPhysicsEnvironmentProxy", Initialize(env)))
+			Detour::CheckValue("CPhysicsEnvironment::DestroyObject", Hook(&IPhysicsEnvironment::DestroyObject, &CPhysicsEnvironmentProxy::DestroyObject));
 	}
 
 	void DeInit()

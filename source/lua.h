@@ -178,4 +178,5 @@ namespace RawLua {
 	extern TValue* CopyTValue(lua_State* L, TValue* o);
 	extern void PushTValue(lua_State* L, TValue* o);
 	extern void SetReadOnly(TValue* o, bool readOnly);
+	extern void* GetUserDataOrFFIVar(lua_State* L, int idx);
 }

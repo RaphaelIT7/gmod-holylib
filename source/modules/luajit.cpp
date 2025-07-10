@@ -1,6 +1,7 @@
 #include "module.h"
 #define LUAJIT
 #include "detours.h"
+#include <detouring/classproxy.hpp>
 #include "LuaInterface.h"
 #include "lua.h"
 #include "lua.hpp"
@@ -12,6 +13,7 @@ class CLuaJITModule : public IModule
 {
 public:
 	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "luajit"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
@@ -99,6 +101,43 @@ int hook_CLuaInterface_GetType(GarrysMod::Lua::ILuaInterface* pLua, int iStackPo
 	return type == -1 ? GarrysMod::Lua::Type::Nil : type;
 }
 
+class CLuaInterfaceProxy : public Detouring::ClassProxy<GarrysMod::Lua::ILuaInterface, CLuaInterfaceProxy> {
+public:
+	CLuaInterfaceProxy(GarrysMod::Lua::ILuaInterface* env) {
+		if (Detour::CheckValue("initialize", "CLuaInterfaceProxy", Initialize(env)))
+			Detour::CheckValue("CLuaInterface::GetUserdata", Hook(&GarrysMod::Lua::ILuaInterface::GetUserdata, &CLuaInterfaceProxy::GetUserdata));
+	}
+
+	void DeInit()
+	{
+		UnHook(&GarrysMod::Lua::ILuaInterface::GetUserdata);
+	}
+
+	virtual GarrysMod::Lua::ILuaBase::UserData* GetUserdata(int iStackPos)
+	{
+		return (GarrysMod::Lua::ILuaBase::UserData*)RawLua::GetUserDataOrFFIVar(This()->GetState(), iStackPos);
+	}
+};
+
+class LuaJITModuleData : public Lua::ModuleData
+{
+public:
+	std::unique_ptr<CLuaInterfaceProxy> pLuaInterfaceProxy;
+};
+
+static inline LuaJITModuleData* GetLuaData(GarrysMod::Lua::ILuaInterface* pLua)
+{
+	if (!pLua)
+		return NULL;
+
+	return (LuaJITModuleData*)Lua::GetLuaData(pLua)->GetModuleData(g_pLuaJITModule.m_pID);
+}
+
+void CLuaJITModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
+{
+	GetLuaData(pLua)->pLuaInterfaceProxy->DeInit();
+}
+
 extern int table_setreadonly(lua_State* L);
 extern int table_isreadonly(lua_State* L);
 void CLuaJITModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
@@ -138,6 +177,10 @@ void CLuaJITModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 		lua_setfield(L, -2, "isreadonly");
 	}
 	lua_pop(L, 1);
+
+	LuaJITModuleData* pData = new LuaJITModuleData;
+	pData->pLuaInterfaceProxy = std::make_unique<CLuaInterfaceProxy>(pLua);
+	Lua::GetLuaData(pLua)->SetModuleData(m_pID, pData);
 
 	bOpenLibs = false;
 }
