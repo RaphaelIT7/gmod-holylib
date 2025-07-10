@@ -3312,8 +3312,31 @@ This module updates luajit to a newer version.
 > [!WARNING]
 > It's **not** recommended to enable/disable it at runtime!  
 
-The `ffi` and `string.buffer` packages are already added when enabled.  
-It also restores `debug.setlocal`, `debug.setupvalue`, `debug.upvalueid` and `debug.upvaluejoin`.  
+The `string.buffer` package is already added by default.  
+
+### Functions
+
+#### table jit.getffi()
+If ffi is enabled in the config, then this will return a valid table, else it will return nothing.
+
+### table jit.require(string name)
+LuaJITs default require function, this function does **not** exist when ffi is disabled.
+
+### debug.setreadonly(table tbl, bool readOnly = false)
+Forces a table to become read only, meaning it cannot be modified in any way.  
+This readonly logic was added into our LuaJIT build and does **not** exist in the normal LuaJIT.
+
+### bool debug.isreadonly(table tbl)
+Checks if the table is set to be read only.
+
+### Config
+
+#### `enableFFI = false`
+If set to `true`, `jit.require` will exist and `jit.getffi` will return ffi.
+
+#### `keepRemovedDebugFunctions = false`
+If set to `true`, all debug function listed below are restored.  
+`debug.setlocal`, `debug.setupvalue`, `debug.upvalueid` and `debug.upvaluejoin`
 
 ## gameserver
 This module adds a library that exposes the `CBaseServer` and `CBaseClient`.  

@@ -5,6 +5,7 @@
 #include "LuaInterface.h"
 #include "lua.h"
 #include "lua.hpp"
+#include "Bootil/Bootil.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -18,6 +19,15 @@ public:
 	virtual const char* Name() { return "luajit"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
 	virtual bool IsEnabledByDefault() { return false; };
+	virtual void OnConfigLoad(Bootil::Data::Tree& pConfig) OVERRIDE
+	{
+		m_bAllowFFI = pConfig.EnsureChildVar<bool>("enableFFI", m_bAllowFFI);
+		m_bKeepRemovedDebugFunctions = pConfig.EnsureChildVar<bool>("keepRemovedDebugFunctions", m_bKeepRemovedDebugFunctions);
+	};
+
+public:
+	bool m_bAllowFFI = false;
+	bool m_bKeepRemovedDebugFunctions = false;
 };
 
 CLuaJITModule g_pLuaJITModule;
@@ -33,16 +43,29 @@ Detour::Create( \
 
 #define Override(name) ManualOverride(name, name)
 
-static bool bOpenLibs = false;
-static void hook_luaL_openlibs(lua_State* L)
+static int getffi(lua_State* L)
 {
-	//Msg("luaL_openlibs called!\n");
-	luaL_openlibs(L);
+	if (!g_pLuaJITModule.m_bAllowFFI)
+		return 0;
 
 	lua_pushcfunction(L, luaopen_ffi);
 	lua_pushstring(L, LUA_FFILIBNAME);
 	lua_call(L, 1, 1);
-	lua_setfield(L, LUA_GLOBALSINDEX, LUA_FFILIBNAME);
+	return 1;
+}
+
+static bool bOpenLibs = false;
+static void hook_luaL_openlibs(lua_State* L)
+{
+	luaL_openlibs(L);
+
+	if (g_pLuaJITModule.m_bAllowFFI)
+	{
+		lua_pushcfunction(L, luaopen_ffi);
+		lua_pushstring(L, LUA_FFILIBNAME);
+		lua_call(L, 1, 1);
+		lua_setfield(L, LUA_GLOBALSINDEX, LUA_FFILIBNAME);
+	}
 
 	lua_getfield(L, LUA_GLOBALSINDEX, LUA_STRLIBNAME);
 	lua_pushcfunction(L, luaopen_string_buffer);
@@ -54,68 +77,79 @@ static void hook_luaL_openlibs(lua_State* L)
 	lua_pushboolean(L, true);
 	lua_setfield(L, LUA_REGISTRYINDEX, "HOLYLIB_LUAJIT");
 
-	/*
-	 * Save funny debug functions.
-	 */
-	lua_getfield(L, LUA_GLOBALSINDEX, "debug");
-	if (lua_istable(L, -1))
+	if (g_pLuaJITModule.m_bKeepRemovedDebugFunctions)
 	{
-		lua_getfield(L, -1, "setlocal");
-		lua_setfield(L, -2, "_setlocal");
+		/*
+		 * Save funny debug functions.
+		 */
+		lua_getfield(L, LUA_GLOBALSINDEX, "debug");
+		if (lua_istable(L, -1))
+		{
+			lua_getfield(L, -1, "setlocal");
+			lua_setfield(L, -2, "_setlocal");
 
-		lua_getfield(L, -1, "setupvalue");
-		lua_setfield(L, -2, "_setupvalue");
+			lua_getfield(L, -1, "setupvalue");
+			lua_setfield(L, -2, "_setupvalue");
 
-		lua_getfield(L, -1, "upvalueid");
-		lua_setfield(L, -2, "_upvalueid");
+			lua_getfield(L, -1, "upvalueid");
+			lua_setfield(L, -2, "_upvalueid");
 
-		lua_getfield(L, -1, "upvaluejoin");
-		lua_setfield(L, -2, "_upvaluejoin");
+			lua_getfield(L, -1, "upvaluejoin");
+			lua_setfield(L, -2, "_upvaluejoin");
+		}
+		lua_pop(L, 1);
 	}
-	lua_pop(L, 1);
 
 	lua_getfield(L, LUA_GLOBALSINDEX, "jit");
-		lua_getfield(L, LUA_GLOBALSINDEX, "require");
-		lua_setfield(L, -2, "require");
+		if (g_pLuaJITModule.m_bAllowFFI) // if we allow ffi, then we will also keep the original require so scripts can use jit.require("ffi")
+		{
+			lua_getfield(L, LUA_GLOBALSINDEX, "require");
+			lua_setfield(L, -2, "require");
+		}
+		lua_pushcfunction(L, getffi);
+		lua_setfield(L, -2, "getffi");
 	lua_pop(L, 1);
 
 	bOpenLibs = true;
-}
-
-/*
-	Removes vprof.
-	Why? Because in this case, lua_type is too fast and vprof creates a huge slowdown.
-*/
-static Detouring::Hook detour_CLuaInterface_GetType;
-int hook_CLuaInterface_GetType(GarrysMod::Lua::ILuaInterface* pLua, int iStackPos)
-{
-	int type = lua_type(pLua->GetState(), iStackPos);
-
-	if (type == GarrysMod::Lua::Type::UserData)
-	{
-		GarrysMod::Lua::ILuaBase::UserData* udata = (GarrysMod::Lua::ILuaBase::UserData*)pLua->GetUserdata(iStackPos);
-		if (udata)
-			type = udata->type;
-	}
-
-	return type == -1 ? GarrysMod::Lua::Type::Nil : type;
 }
 
 class CLuaInterfaceProxy : public Detouring::ClassProxy<GarrysMod::Lua::ILuaInterface, CLuaInterfaceProxy> {
 public:
 	CLuaInterfaceProxy(GarrysMod::Lua::ILuaInterface* env) {
 		if (Detour::CheckValue("initialize", "CLuaInterfaceProxy", Initialize(env)))
+		{
 			Detour::CheckValue("CLuaInterface::GetUserdata", Hook(&GarrysMod::Lua::ILuaInterface::GetUserdata, &CLuaInterfaceProxy::GetUserdata));
+			Detour::CheckValue("CLuaInterface::GetType", Hook(&GarrysMod::Lua::ILuaInterface::GetType, &CLuaInterfaceProxy::GetType));
+		}
 	}
 
 	void DeInit()
 	{
 		UnHook(&GarrysMod::Lua::ILuaInterface::GetUserdata);
+		UnHook(&GarrysMod::Lua::ILuaInterface::GetType);
 	}
 
 	virtual GarrysMod::Lua::ILuaBase::UserData* GetUserdata(int iStackPos)
 	{
 		return (GarrysMod::Lua::ILuaBase::UserData*)RawLua::GetUserDataOrFFIVar(This()->GetState(), iStackPos);
+	}
+
+	/*
+		Removes vprof.
+		Why? Because in this case, lua_type is too fast and vprof creates a huge slowdown.
+	*/
+	virtual int GetType(int iStackPos)
+	{
+		int type = lua_type(This()->GetState(), iStackPos);
+
+		if (type == GarrysMod::Lua::Type::UserData)
+		{
+			GarrysMod::Lua::ILuaBase::UserData* udata = (GarrysMod::Lua::ILuaBase::UserData*)This()->GetUserdata(iStackPos);
+			if (udata)
+				type = udata->type;
+		}
+
+		return type == -1 ? GarrysMod::Lua::Type::Nil : type;
 	}
 };
 
@@ -158,17 +192,20 @@ void CLuaJITModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 	lua_getfield(L, LUA_GLOBALSINDEX, "debug");
 	if (lua_istable(L, -1))
 	{
-		lua_getfield(L, -1, "_setlocal");
-		lua_setfield(L, -2, "setlocal");
+		if (g_pLuaJITModule.m_bKeepRemovedDebugFunctions)
+		{
+			lua_getfield(L, -1, "_setlocal");
+			lua_setfield(L, -2, "setlocal");
 
-		lua_getfield(L, -1, "_setupvalue");
-		lua_setfield(L, -2, "setupvalue");
+			lua_getfield(L, -1, "_setupvalue");
+			lua_setfield(L, -2, "setupvalue");
 
-		lua_getfield(L, -1, "_upvalueid");
-		lua_setfield(L, -2, "upvalueid");
+			lua_getfield(L, -1, "_upvalueid");
+			lua_setfield(L, -2, "upvalueid");
 
-		lua_getfield(L, -1, "_upvaluejoin");
-		lua_setfield(L, -2, "upvaluejoin");
+			lua_getfield(L, -1, "_upvaluejoin");
+			lua_setfield(L, -2, "upvaluejoin");
+		}
 
 		lua_pushcfunction(L, table_setreadonly);
 		lua_setfield(L, -2, "setreadonly");
@@ -328,10 +365,4 @@ void CLuaJITModule::InitDetour(bool bPreServer)
 
 	Util::func_lua_rawgeti = &lua_rawgeti;
 	Util::func_lua_rawseti = &lua_rawseti;
-
-	Detour::Create(
-		&detour_CLuaInterface_GetType, "CLuaInterface::GetType",
-		lua_shared_loader.GetModule(), Symbols::CLuaInterface_GetTypeSym,
-		(void*)hook_CLuaInterface_GetType, m_pID
-	);
 }

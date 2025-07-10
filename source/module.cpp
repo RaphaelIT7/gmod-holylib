@@ -87,6 +87,8 @@ void CModule::SetupConfig()
 	Bootil::Data::Tree& pData = pConfig->GetData().GetChild(m_pModule->Name());
 	m_bEnabled = pData.EnsureChildVar<bool>("enabled", m_bEnabled);
 	m_pModule->SetDebug(pData.EnsureChildVar<int>("debugLevel", m_pModule->InDebug()));
+
+	m_pModule->OnConfigLoad(pData);
 }
 
 /*

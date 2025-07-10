@@ -1,4 +1,5 @@
 #include "interface.h"
+#include "string"
 
 enum Module_Compatibility
 {
@@ -11,6 +12,18 @@ enum Module_Compatibility
 namespace GarrysMod::Lua
 {
 	class ILuaInterface;
+}
+
+namespace Bootil
+{
+	typedef std::string BString;
+
+	namespace Data
+	{
+		template <typename TString>
+		class TreeT;
+		typedef TreeT<Bootil::BString> Tree;
+	}
 }
 
 class ConVar;
@@ -84,6 +97,10 @@ public:
 	// Called when a CBaseEntity is created
 	// NOTE: If we fail to load the g_pEntityList, this won't be called!
 	virtual void OnEntityDeleted(CBaseEntity* pEntity) { (void)pEntity; };
+
+	// Called when the module config is loaded
+	// You can load any custom fields from here.
+	virtual void OnConfigLoad(Bootil::Data::Tree& pConfig) { (void)pConfig; };
 
 	// Called on level shutdown
 	virtual void LevelShutdown() {};

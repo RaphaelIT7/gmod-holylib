@@ -75,17 +75,17 @@ void* RawLua::GetUserDataOrFFIVar(lua_State* L, int idx)
 
 int table_setreadonly(lua_State* L)
 {
-  GCtab *t = lj_lib_checktab(L, 1);
-  int readOnly = lua_toboolean(L, 2);
+	GCtab *t = lj_lib_checktab(L, 1);
+	int readOnly = lua_toboolean(L, 2);
   
-  lj_tab_setreadonly(t, readOnly);
-  return 0;
+	lj_tab_setreadonly(t, readOnly);
+	return 0;
 }
 
 int table_isreadonly(lua_State* L)
 {
-  GCtab *t = lj_lib_checktab(L, 1);
+	GCtab *t = lj_lib_checktab(L, 1);
   
-  lua_pushboolean(L, lj_tab_isreadonly(t));
-  return 1;
+	lua_pushboolean(L, lj_tab_isreadonly(t));
+	return 1;
 }
