@@ -545,8 +545,12 @@ bool CLuaInterface::IsType(int iStackPos, int iType)
 	if (actualType == iType)
 		return true;
 
-	if (actualType == 7 && iType > 7) // Check for 7 since gmod doesn't know that all type values were shifted by 1 because of a new type in luajit.
-		return iType == GetUserdata(iStackPos)->type; // Don't need to accout for type shift since this shouldn't be affected.
+	if (actualType == GarrysMod::Lua::Type::UserData && iType > GarrysMod::Lua::Type::UserData)
+	{
+		GarrysMod::Lua::ILuaBase::UserData* pData = GetUserdata(iStackPos);
+		if (pData)
+			return iType == pData->type;
+	}
 
 	return false;
 }

@@ -152,6 +152,7 @@ public:
 		{
 			Detour::CheckValue("CLuaInterface::GetUserdata", Hook(&GarrysMod::Lua::ILuaInterface::GetUserdata, &CLuaInterfaceProxy::GetUserdata));
 			Detour::CheckValue("CLuaInterface::GetType", Hook(&GarrysMod::Lua::ILuaInterface::GetType, &CLuaInterfaceProxy::GetType));
+			Detour::CheckValue("CLuaInterface::IsType", Hook(&GarrysMod::Lua::ILuaInterface::IsType, &CLuaInterfaceProxy::IsType));
 		}
 	}
 
@@ -159,6 +160,7 @@ public:
 	{
 		UnHook(&GarrysMod::Lua::ILuaInterface::GetUserdata);
 		UnHook(&GarrysMod::Lua::ILuaInterface::GetType);
+		UnHook(&GarrysMod::Lua::ILuaInterface::IsType);
 	}
 
 	virtual GarrysMod::Lua::ILuaBase::UserData* GetUserdata(int iStackPos)
@@ -182,6 +184,24 @@ public:
 		}
 
 		return type == -1 ? GarrysMod::Lua::Type::Nil : type;
+	}
+
+	// Fixed with the next update - https://github.com/Facepunch/garrysmod-issues/issues/6418
+	virtual bool IsType(int iStackPos, int iType)
+	{
+		int actualType = lua_type(This()->GetState(), iStackPos);
+
+		if (actualType == iType)
+			return true;
+
+		if (actualType == GarrysMod::Lua::Type::UserData && iType > GarrysMod::Lua::Type::UserData)
+		{
+			GarrysMod::Lua::ILuaBase::UserData* pData = This()->GetUserdata(iStackPos);
+			if (pData)
+				return iType == pData->type;
+		}
+
+		return false;
 	}
 };
 
