@@ -6,6 +6,7 @@ extern "C" {
 #include "../lua/lj_state.h"
 #include "../lua/lj_tab.h"
 #include "../lua/lj_lib.h"
+#include "../lua/lj_gc.h"
 }
 
 #include "lua.h"
@@ -99,5 +100,21 @@ int table_isreadonly(lua_State* L)
 	GCtab *t = lj_lib_checktab(L, 1);
   
 	lua_pushboolean(L, lj_tab_isreadonly(t));
+	return 1;
+}
+
+int func_setdebugblocked(lua_State* L)
+{
+	GCfunc *func = lj_lib_checkfunc(L, 1);
+  
+	markblockdebug(func->c);
+	return 0;
+}
+
+int func_isdebugblocked(lua_State* L)
+{
+	GCfunc *func = lj_lib_checkfunc(L, 1);
+  
+	lua_pushboolean(L, isblockdebug(func->c));
 	return 1;
 }

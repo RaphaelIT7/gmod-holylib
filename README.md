@@ -3335,6 +3335,12 @@ This readonly logic was added into our LuaJIT build and does **not** exist in th
 ### bool debug.isreadonly(table tbl)
 Checks if the table is set to be read only.
 
+### debug.setdebugblocked(function func)
+Marks the function to be inaccessable by any debug function & `setfenv` & `getfenv`.  
+
+### bool debug.isdebugblocked(function func)
+Checks if the function is set to be inaccessable by any debug function.
+
 ### Config
 
 #### `enableFFI = false`

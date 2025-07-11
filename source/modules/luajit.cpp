@@ -192,6 +192,8 @@ void CLuaJITModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 
 extern int table_setreadonly(lua_State* L);
 extern int table_isreadonly(lua_State* L);
+extern int func_setdebugblocked(lua_State* L);
+extern int func_isdebugblocked(lua_State* L);
 void CLuaJITModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit || pLua != g_Lua) // Don't init for non-gmod states
@@ -230,6 +232,12 @@ void CLuaJITModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 
 		lua_pushcfunction(L, table_isreadonly);
 		lua_setfield(L, -2, "isreadonly");
+
+		lua_pushcfunction(L, func_setdebugblocked);
+		lua_setfield(L, -2, "setdebugblocked");
+
+		lua_pushcfunction(L, func_isdebugblocked);
+		lua_setfield(L, -2, "isdebugblocked");
 	}
 	lua_pop(L, 1);
 
