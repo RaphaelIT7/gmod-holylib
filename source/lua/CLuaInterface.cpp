@@ -1433,7 +1433,7 @@ void CLuaInterface::SetPathID(const char* pathID)
 
 const char* CLuaInterface::GetPathID()
 {
-	LuaDebugPrint(2, "CLuaInterface::GetPathID\n");
+	LuaDebugPrint(5, "CLuaInterface::GetPathID\n");
 
 	return m_sPathID;
 }

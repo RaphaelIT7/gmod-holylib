@@ -33,6 +33,22 @@ public:
 CLuaJITModule g_pLuaJITModule;
 IModule* pLuaJITModule = &g_pLuaJITModule;
 
+class CLuaInterfaceProxy;
+class LuaJITModuleData : public Lua::ModuleData
+{
+public:
+	std::unique_ptr<CLuaInterfaceProxy> pLuaInterfaceProxy;
+	bool pRegisteredTypes[USHRT_MAX] = {0};
+};
+
+static inline LuaJITModuleData* GetLuaData(GarrysMod::Lua::ILuaInterface* pLua)
+{
+	if (!pLua)
+		return NULL;
+
+	return (LuaJITModuleData*)Lua::GetLuaData(pLua)->GetModuleData(g_pLuaJITModule.m_pID);
+}
+
 #define ManualOverride(name, hook) \
 static Detouring::Hook detour_##name; \
 Detour::Create( \
@@ -52,6 +68,19 @@ static int getffi(lua_State* L)
 	lua_pushstring(L, LUA_FFILIBNAME);
 	lua_call(L, 1, 1);
 	return 1;
+}
+
+LUA_FUNCTION_STATIC(markFFITypeAsGmodUserData)
+{
+	if (!g_pLuaJITModule.m_bAllowFFI)
+		return 0;
+
+	uint16_t type = RawLua::GetCDataType(LUA->GetState(), 1);
+	if (type < 0)
+		return 0;
+
+	GetLuaData(LUA)->pRegisteredTypes[type] = true;
+	return 0;
 }
 
 static bool bOpenLibs = false;
@@ -108,6 +137,9 @@ static void hook_luaL_openlibs(lua_State* L)
 		}
 		lua_pushcfunction(L, getffi);
 		lua_setfield(L, -2, "getffi");
+
+		lua_pushcfunction(L, markFFITypeAsGmodUserData);
+		lua_setfield(L, -2, "markFFITypeAsGmodUserData");
 	lua_pop(L, 1);
 
 	bOpenLibs = true;
@@ -131,7 +163,7 @@ public:
 
 	virtual GarrysMod::Lua::ILuaBase::UserData* GetUserdata(int iStackPos)
 	{
-		return (GarrysMod::Lua::ILuaBase::UserData*)RawLua::GetUserDataOrFFIVar(This()->GetState(), iStackPos);
+		return (GarrysMod::Lua::ILuaBase::UserData*)RawLua::GetUserDataOrFFIVar(This()->GetState(), iStackPos, GetLuaData(This())->pRegisteredTypes);
 	}
 
 	/*
@@ -152,20 +184,6 @@ public:
 		return type == -1 ? GarrysMod::Lua::Type::Nil : type;
 	}
 };
-
-class LuaJITModuleData : public Lua::ModuleData
-{
-public:
-	std::unique_ptr<CLuaInterfaceProxy> pLuaInterfaceProxy;
-};
-
-static inline LuaJITModuleData* GetLuaData(GarrysMod::Lua::ILuaInterface* pLua)
-{
-	if (!pLua)
-		return NULL;
-
-	return (LuaJITModuleData*)Lua::GetLuaData(pLua)->GetModuleData(g_pLuaJITModule.m_pID);
-}
 
 void CLuaJITModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {

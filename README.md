@@ -3314,10 +3314,16 @@ This module updates luajit to a newer version.
 
 The `string.buffer` package is already added by default.  
 
+### FFI - cdata
+cdata is slightly different as we changed it's typeID to be `7` instead of `10` since `10` is already used for `Vector` so we mark it to be `7(UserData)`.  
+
 ### Functions
 
 #### table jit.getffi()
 If ffi is enabled in the config, then this will return a valid table, else it will return nothing.
+
+#### jit.markFFITypeAsGmodUserData(cdata data)
+If ffi is enabled in the config, then this will allow you to mark cdata to be compatible with gmod allowing you to mimic types.
 
 ### table jit.require(string name)
 LuaJITs default require function, this function does **not** exist when ffi is disabled.
