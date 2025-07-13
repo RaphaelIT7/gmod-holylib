@@ -285,6 +285,8 @@ LUA_FUNCTION_STATIC(VoiceData_CreateCopy)
 	return 1;
 }
 
+static const int VOICESTREAM_VERSION_1 = 1;
+static const int VOICESTREAM_VERSION = 1; // Current version
 struct VoiceStream {
 	~VoiceStream()
 	{
@@ -297,6 +299,8 @@ struct VoiceStream {
 	/*
 	 * VoiceStream file structure:
 	 * 
+	 * 4 bytes / int - VoiceStream version number
+	 * 4 bytes / int - VoiceStream tickrate
 	 * 4 bytes / int - total count of VoiceData
 	 * 
 	 * each entry:
@@ -308,6 +312,11 @@ struct VoiceStream {
 	{
 		// Create a copy so that the main thread can still party on it.
 		std::unordered_map<int, VoiceData*> voiceDataEnties = pVoiceData;
+
+		g_pFullFileSystem->Write(&VOICESTREAM_VERSION, sizeof(int), fh);
+
+		int tickRate = std::ceil(1 / gpGlobals->interval_per_tick);
+		g_pFullFileSystem->Write(&tickRate, sizeof(int), fh);
 
 		int count = (int)voiceDataEnties.size();
 		g_pFullFileSystem->Write(&count, sizeof(int), fh); // First write the total number of voice data
@@ -328,8 +337,25 @@ struct VoiceStream {
 	{
 		VoiceStream* pStream = new VoiceStream;
 
-		int count;
-		g_pFullFileSystem->Read(&count, sizeof(int), fh);
+		int version;
+		g_pFullFileSystem->Read(&version, sizeof(int), fh);
+
+		double scaleRate = 1;
+		int count = 0;
+		if (version == VOICESTREAM_VERSION_1) // Were doing this to stay compatible with the older version in the 0.7 release.
+		{
+			int tickRate;
+			g_pFullFileSystem->Read(&tickRate, sizeof(int), fh);
+
+			int serverTickRate = std::ceil(1 / gpGlobals->interval_per_tick);
+			scaleRate = std::ceil(serverTickRate / tickRate);
+
+			int count;
+			g_pFullFileSystem->Read(&count, sizeof(int), fh);
+		} else if (version < VOICESTREAM_VERSION) {
+			delete pStream;
+			return NULL;
+		}
 
 		for (int i=0; i<count; ++i)
 		{
@@ -346,7 +372,7 @@ struct VoiceStream {
 			voiceData->iLength = length;
 			voiceData->pData = data;
 
-			pStream->SetIndex(tickNumber, voiceData);
+			pStream->SetIndex(tickNumber * scaleRate, voiceData);
 		}
 
 		return pStream;
@@ -917,6 +943,7 @@ LUA_FUNCTION_STATIC(voicechat_CreateVoiceStream)
 }
 
 enum VoiceStreamTaskStatus {
+	VoiceStreamTaskStatus_FAILED_INVALID_VERSION = -3,
 	VoiceStreamTaskStatus_FAILED_FILE_NOT_FOUND = -2,
 	VoiceStreamTaskStatus_FAILED_INVALID_TYPE = -1,
 	VoiceStreamTaskStatus_NONE = 0,
@@ -974,6 +1001,11 @@ static void VoiceStreamJob(VoiceStreamTask*& task)
 			{
 				task->pStream = VoiceStream::Load(fh);
 				g_pFullFileSystem->Close(fh);
+
+				if (task->pStream == NULL)
+				{
+					task->iStatus = VoiceStreamTaskStatus_FAILED_INVALID_VERSION;
+				}
 			} else {
 				task->iStatus = VoiceStreamTaskStatus_FAILED_FILE_NOT_FOUND;
 			}
@@ -1082,13 +1114,13 @@ LUA_FUNCTION_STATIC(voicechat_IsPlayerTalking)
 	int iClient = -1;
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Number))
 	{
-		
+		iClient = LUA->GetNumber(1);
 	} else {
 		CBasePlayer* pPlayer = Util::Get_Player(LUA, 1, true);
 		iClient = pPlayer->edict()->m_EdictIndex-1;
 	}
 
-	if (iClient == -1 || iClient > ABSOLUTE_PLAYER_LIMIT)
+	if (iClient < 0 || iClient > ABSOLUTE_PLAYER_LIMIT)
 		LUA->ThrowError("Failed to get a valid Client index!");
 
 	LUA->PushBool(g_bIsPlayerTalking[iClient]);
@@ -1100,13 +1132,13 @@ LUA_FUNCTION_STATIC(voicechat_LastPlayerTalked)
 	int iClient = -1;
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Number))
 	{
-		
+		iClient = LUA->GetNumber(1);
 	} else {
 		CBasePlayer* pPlayer = Util::Get_Player(LUA, 1, true);
 		iClient = pPlayer->edict()->m_EdictIndex-1;
 	}
 
-	if (iClient == -1 || iClient > ABSOLUTE_PLAYER_LIMIT)
+	if (iClient < 0 || iClient > ABSOLUTE_PLAYER_LIMIT)
 		LUA->ThrowError("Failed to get a valid Client index!");
 
 	LUA->PushNumber(g_fLastPlayerTalked[iClient]);

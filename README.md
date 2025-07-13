@@ -94,6 +94,8 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- \- [#] Fixed entitylist not being loaded on Windows  
 \- [#] Solved a few Bass bugs.  
 \- [#] Fixed possible undefined behavor & two buffer overflows in `gameserver` module.  
+\- [#] Updated `VoiceStream` file structure to also save the server tickrate and include a file version.  
+\- \- The `VoiceStream` now properly updates the tickCount for the saved `VoiceData` to scale the tickCount when the server changed tickrate which should ensure the audio remains usable.
 
 > [!WARNING]
 > The current builds are unstable and need **A LOT** of testing.  
@@ -2179,14 +2181,14 @@ Creates a empty VoiceStream.
 
 #### VoiceStream, number(statusCode) voicechat.LoadVoiceStream(string fileName, string gamePath = "DATA", bool async = false, function callback = nil)
 callback = `function(VoiceStream loadedStream, number statusCode)`
-statusCode = `-2 = File not found, -1 = Invalid type, 0 = None, 1 = Done`  
+statusCode = `-3 = Invalid version, -2 = File not found, -1 = Invalid type, 0 = None, 1 = Done`  
 
 Tries to load a VoiceStream from the given file.  
 If `async` is specified it **WONT** return **anything** and the `callback` will be **required**.  
 
 #### number(statusCode) voicechat.SaveVoiceStream(VoiceStream stream, string fileName, string gamePath = "DATA", bool async = false, function callback = nil)
 callback = `function(VoiceStream loadedStream, number statusCode)`
-statusCode = `-2 = File not found, -1 = Invalid type, 0 = None, 1 = Done`  
+statusCode = `-3 = Invalid version, -2 = File not found, -1 = Invalid type, 0 = None, 1 = Done`  
 
 Tries to save a VoiceStream into the given file.  
 If `async` is specified it **WONT** return **anything** and the `callback` will be **required**.  
