@@ -5,9 +5,11 @@
 
 local POOL_SIZE = 20000
 
-local isvector
+local CreateVector, isvector
+
 do
     local old_type = type
+    -- Override the type function to return "Vector" for our custom vector type
     function type(v)
         if isvector(v) then
             return "Vector"
@@ -16,17 +18,21 @@ do
     end
 end
 
-local ffi = jit.getffi and jit.getffi() or require("ffi")
-local table = table
-local tonumber = tonumber
 local type = type
+local tonumber = tonumber
+local table_remove = table.remove
 
-ffi.cdef [[
-typedef struct { const uintptr_t data; const uint8_t type; float x, y, z; } GMOD_VecUserData;
-]]
+local POOL = {}
 
-function isvector(v)
-    return ffi.istype("GMOD_VecUserData", v)
+local function Vector(x, y, z)
+    -- Vector() in gmod, doesn't error for invalid arguments
+    x, y, z = tonumber(x) or 0, tonumber(y) or 0, tonumber(z) or 0
+    local v_pool = table_remove(POOL)
+    if v_pool then
+        v_pool.x, v_pool.y, v_pool.z = x, y, z
+        return v_pool
+    end
+    return CreateVector(x, y, z)
 end
 _G.Vector = Vector
 
@@ -72,7 +78,6 @@ local function check_vec_or_num(value, arg_num, is_optional)
     return expect(value, "number", arg_num, is_optional)
 end
 
-local Vector
 local methods = {}
 local mt = {
     __index = function(s, k)
@@ -321,45 +326,50 @@ methods.ToScreen = gmodVecMeta.ToScreen
 methods.ToTable = gmodVecMeta.ToTable
 methods.WithinAABox = gmodVecMeta.WithinAABox
 
-local RawVector = ffi.metatype("GMOD_VecUserData", mt)
----@return Vector
-local function CreateVector(x, y, z)
-    local vec = RawVector(0, 10, x, y, z)
+do
+    local ffi = jit.getffi and jit.getffi() or require("ffi")
 
-    -- Get a pointer to the data field and set it directly
-    local vec_ptr = ffi.cast("uintptr_t*", vec)
-    vec_ptr[0] = ffi.cast("uintptr_t", ffi.cast("uint8_t*", vec) + ffi.offsetof("GMOD_VecUserData", "x"))
+    ffi.cdef [[
+        typedef struct { const uintptr_t data; const uint8_t type; float x, y, z; } GMOD_VecUserData;
+    ]]
 
-    ---@type Vector
-    return vec
-end
-debug.setdebugblocked(CreateVector)
+    local RawVector = ffi.metatype("GMOD_VecUserData", mt)
+    ---@return Vector
+    function CreateVector(x, y, z)
+        local vec = RawVector(0, 10, x, y, z)
 
-local POOL = {}
-local function add_to_pool(v)
-    table.insert(POOL, v)
-    ffi.gc(v, add_to_pool)
-end
-debug.setdebugblocked(add_to_pool)
+        -- Get a pointer to the data field and set it directly
+        local vec_ptr = ffi.cast("uintptr_t*", vec)
+        vec_ptr[0] = ffi.cast("uintptr_t", ffi.cast("uint8_t*", vec) + ffi.offsetof("GMOD_VecUserData", "x"))
 
-for i = 1, POOL_SIZE do
-    local v = CreateVector(0, 0, 0)
-    add_to_pool(v)
-end
-
-function Vector(x, y, z)
-    -- Vector() in gmod, doesn't error for invalid arguments
-    x, y, z = tonumber(x) or 0, tonumber(y) or 0, tonumber(z) or 0
-    local v_pool = table.remove(POOL)
-    if v_pool then
-        v_pool.x, v_pool.y, v_pool.z = x, y, z
-        return v_pool
+        ---@type Vector
+        return vec
     end
-    return CreateVector(x, y, z)
+
+    debug.setdebugblocked(CreateVector)
+
+    function isvector(v)
+        return ffi.istype("GMOD_VecUserData", v)
+    end
+
+    debug.setdebugblocked(isvector)
+
+    local function initialize_vector_pool()
+        local function add_to_pool(v)
+            table.insert(POOL, v)
+            ffi.gc(v, add_to_pool)
+        end
+
+        for _ = 1, POOL_SIZE do
+            local v = CreateVector(0, 0, 0)
+            add_to_pool(v)
+        end
+    end
+
+    if timer.Simple then
+        -- Lot's of addons cache Vectors when they load, and main reason for the pool is for temporary vectors, so we need to avoid them using the vectors inside the pool
+        timer.Simple(0, initialize_vector_pool)
+    else
+        initialize_vector_pool()
+    end
 end
-
-jit.markFFITypeAsGmodUserData(Vector(1, 1, 1))
-
-VectorFFI = Vector
-
-print("VectorFFI loaded")
