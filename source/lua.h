@@ -20,6 +20,8 @@ namespace Lua
 	   Stack:
 	   -2 = hook.Run(function)
 	   -1 = hook name(string)
+
+	   When you call CallFunctionProtected you need to use your number of arguments + 1 since the hook name is also an argument!
 	 */
 	extern bool PushHook(const char* pName, GarrysMod::Lua::ILuaInterface* pLua = g_Lua);
 	extern void AddDetour();
