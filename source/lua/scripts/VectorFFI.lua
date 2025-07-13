@@ -1,6 +1,7 @@
 -- Cons of this VectorFFI:
 -- setting x/y/z to a string that contains a number, will error, eg. v.x = "1" won't work but works in gmod
 -- adding data to the vector, like v.hey = 1 will not work, but works in gmod
+-- cannot grab the metatable of the vector, nor edit it, so you cannot add custom methods to the vector
 
 local POOL_SIZE = 20000
 
