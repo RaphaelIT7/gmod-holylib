@@ -109,6 +109,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 \- [+] Added fourth `socket`(use `NS_` enums) argument to `gameserver.CreateNetChannel` & `gameserver.SendConnectionlessPacket`  
 \- [+] Added second and thrid arguments to `HolyLib:OnPhysicsLag` providing the entities it was working on when it triggered.  
 \- [#] Fixed `addonsystem.ShouldMount` & `addonsystem.SetShouldMount` `workshopID` arguments being a number when they should have been a string.  
+\- [#] Changed `VoiceData:GetUncompressedData` to now returns a statusCode/a number on failure instead of possibly returning a garbage string.  
 
 ### QoL updates
 \- [#] Changed some console message to be more consistent.  
@@ -2181,14 +2182,14 @@ Creates a empty VoiceStream.
 
 #### VoiceStream, number(statusCode) voicechat.LoadVoiceStream(string fileName, string gamePath = "DATA", bool async = false, function callback = nil)
 callback = `function(VoiceStream loadedStream, number statusCode)`
-statusCode = `-3 = Invalid version, -2 = File not found, -1 = Invalid type, 0 = None, 1 = Done`  
+statusCode = `-4 = Invalid file, -3 = Invalid version, -2 = File not found, -1 = Invalid type, 0 = None, 1 = Done`  
 
 Tries to load a VoiceStream from the given file.  
 If `async` is specified it **WONT** return **anything** and the `callback` will be **required**.  
 
 #### number(statusCode) voicechat.SaveVoiceStream(VoiceStream stream, string fileName, string gamePath = "DATA", bool async = false, function callback = nil)
 callback = `function(VoiceStream loadedStream, number statusCode)`
-statusCode = `-3 = Invalid version, -2 = File not found, -1 = Invalid type, 0 = None, 1 = Done`  
+statusCode = `-4 = Invalid file, -3 = Invalid version, -2 = File not found, -1 = Invalid type, 0 = None, 1 = Done`  
 
 Tries to save a VoiceStream into the given file.  
 If `async` is specified it **WONT** return **anything** and the `callback` will be **required**.  
@@ -2246,7 +2247,24 @@ Returns the slot of the player this voicedata is originally from.
 #### string VoiceData:GetUncompressedData(number decompressSize = 20000)
 number decompressSize - The number of bytes to allocate for decompression.  
 
-Returns the uncompressed voice data.  
+Returns the uncompressed voice data or an empty string if the VoiceData had no data.  
+On failure it will return the number for the status code, see the list below:  
+```cpp
+// Error codes for use with the voice functions
+enum EVoiceResult
+{
+	k_EVoiceResultOK = 0,
+	k_EVoiceResultNotInitialized = 1,
+	k_EVoiceResultNotRecording = 2,
+	k_EVoiceResultNoData = 3,
+	k_EVoiceResultBufferTooSmall = 4,
+	k_EVoiceResultDataCorrupted = 5,
+	k_EVoiceResultRestricted = 6,
+	k_EVoiceResultUnsupportedCodec = 7,
+	k_EVoiceResultReceiverOutOfDate = 8,
+	k_EVoiceResultReceiverDidNotAnswer = 9,
+};
+```
 
 #### bool VoiceData:GetProximity()
 Returns if the VoiceData is in proximity.  
