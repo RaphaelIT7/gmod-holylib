@@ -27,8 +27,7 @@ typedef struct { const uintptr_t data; const uint8_t type; float x, y, z; } GMOD
 function isvector(v)
     return ffi.istype("GMOD_VecUserData", v)
 end
-
-debug.setdebugblocked(isvector)
+_G.Vector = Vector
 
 ---@param value any
 ---@param expected_type string
