@@ -70,6 +70,7 @@ namespace Lua
 		CVProfNode,
 		VProfCounter,
 		LuaInterface,
+		WavAudioFile,
 
 		TOTAL_TYPES,
 	};
