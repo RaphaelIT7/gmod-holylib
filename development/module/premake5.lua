@@ -97,6 +97,10 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			links({"opus_32.lib"})
 			links({"opus_64.lib"})
 
+			prebuildcommands({
+				"cd ../../../../../source/lua/scripts/ && luajit.exe _compilefiles.lua"
+			})
+
 		filter("system:windows", "platforms:x86")
 			libdirs("../../libs/win32")
 
@@ -108,10 +112,18 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			links("luajit_64")
 			links("opus_64")
 
+			prebuildcommands({
+				"cd ../../../../../source/lua/scripts/ && chmod +x luajit_64 && ./luajit_64 _compilefiles.lua"
+			})
+
 		filter({"system:linux", "platforms:x86"})
 			libdirs("../../libs/linux32")
 			links("luajit_32")
 			links("opus_32")
+
+			prebuildcommands({
+				"cd ../../../../../source/lua/scripts/ && chmod +x luajit_32 && ./luajit_32 _compilefiles.lua"
+			})
 
 		filter({"platforms:x86_64"})
 			defines("PLATFORM_64BITS")
