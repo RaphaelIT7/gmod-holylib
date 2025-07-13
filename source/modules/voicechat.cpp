@@ -517,6 +517,7 @@ static CVoiceGameMgr* g_pManager = NULL;
 static ConVar voicechat_updateinterval("holylib_voicechat_updateinterval", "0.1", FCVAR_ARCHIVE, "How often we call PlayerCanHearPlayersVoice for the actively talking players. This interval is unique to each player");
 static ConVar voicechat_managerupdateinterval("holylib_voicechat_managerupdateinterval", "0.1", FCVAR_ARCHIVE, "How often we loop through all players to check their voice states. We still check the player's interval to reduce calls if they already have been updated in the last x(your defined interval) seconds.");
 static ConVar voicechat_stopdelay("holylib_voicechat_stopdelay", "1", FCVAR_ARCHIVE, "How many seconds before a player is marked as stopped talking");
+static ConVar voicechat_canhearhimself("holylib_voicechat_canhearhimself", "1", FCVAR_ARCHIVE, "If enabled, we assume the player can always hear himself and thus we save one call for PlayerCanHearPlayersVoice");
 static void UpdatePlayerTalkingState(CBasePlayer* pPlayer, bool bIsTalking = false)
 {
 	if (!g_pManager) // Skip if we have no manager.
@@ -574,12 +575,13 @@ static void UpdatePlayerTalkingState(CBasePlayer* pPlayer, bool bIsTalking = fal
 	bool bProximity = false;
 	if(bIsTalking && (*g_PlayerModEnable)[iClient] )
 	{
+		bool bCanHearHimself = voicechat_canhearhimself.GetBool();
 		// Build a mask of who they can hear based on the game rules.
 		for(int iOtherClient=0; iOtherClient < g_pManager->m_nMaxPlayers; iOtherClient++)
 		{
 			CBaseEntity *pEnt = Util::GetCBaseEntityFromEdict(Util::engineserver->PEntityOfEntIndex(iOtherClient + 1));
 			if(pEnt && pEnt->IsPlayer() && 
-				(bAllTalk || g_pManager->m_pHelper->CanPlayerHearPlayer((CBasePlayer*)pEnt, pPlayer, bProximity )) )
+				(bCanHearHimself && iOtherClient == iClient || (bAllTalk || g_pManager->m_pHelper->CanPlayerHearPlayer((CBasePlayer*)pEnt, pPlayer, bProximity ))) )
 			{
 				gameRulesMask[iOtherClient] = true;
 				ProximityMask[iOtherClient] = bProximity;
