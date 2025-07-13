@@ -89,6 +89,17 @@ local mt = {
             return s.z
         end
     end,
+    __newindex = function(s, k, v)
+        if k == 1 then
+            s.x = check_num(v, 1)
+        elseif k == 2 then
+            s.y = check_num(v, 2)
+        elseif k == 3 then
+            s.z = check_num(v, 3)
+        else
+            error(string.format("cannot set field '%s' on FFI Vector", k), 2)
+        end
+    end,
     __eq = function(a, b)
         if type(b) ~= "Vector" then
             return false
