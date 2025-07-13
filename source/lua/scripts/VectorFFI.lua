@@ -373,3 +373,5 @@ do
         initialize_vector_pool()
     end
 end
+
+jit.markFFITypeAsGmodUserData(Vector(1, 1, 1))
