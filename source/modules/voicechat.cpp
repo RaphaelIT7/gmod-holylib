@@ -449,12 +449,24 @@ struct VoiceStream {
 			g_pFullFileSystem->Write(wavePCM.data(), dataSize, fh);
 	}
 
-	static double CubicInterpolate(double y0, double y1, double y2, double y3, double t) {
-		double a0 = y3 - y2 - y0 + y1;
-		double a1 = y0 - y1 - a0;
-		double a2 = y2 - y0;
-		double a3 = y1;
-		return (a0 * t * t * t) + (a1 * t * t) + (a2 * t) + a3;
+	static double CatmullRom(double y0, double y1, double y2, double y3, double t) {
+		return 0.5 * ((2 * y1) +
+			(-y0 + y2) * t +
+			(2 * y0 - 5 * y1 + 4 * y2 - y3) * t * t +
+			(-y0 + 3 * y1 - 3 * y2 + y3) * t * t * t);
+	}
+
+	static std::vector<int16_t> LowPassFilter(const std::vector<int16_t>& in) {
+		if (in.size() < 3) return in;
+
+		std::vector<int16_t> out(in.size());
+		out[0] = in[0];
+		for (size_t i = 1; i < in.size() - 1; ++i) {
+			int32_t val = (in[i - 1] + 2 * in[i] + in[i + 1]) / 4;
+			out[i] = static_cast<int16_t>(std::clamp(val, -32768, 32767));
+		}
+		out.back() = in.back();
+		return out;
 	}
 
 	static std::vector<int16_t> ResampleCubic(const std::vector<int16_t>& in, int inRate, int outRate) {
@@ -467,8 +479,9 @@ struct VoiceStream {
 		std::vector<int16_t> out(outCount);
 
 		auto getSample = [&](int64_t idx) -> int16_t {
-			if (idx < 0) return in[0];
-			if (static_cast<size_t>(idx) >= in.size()) return in.back();
+			if (idx < 0) return in[std::min<size_t>(-idx, in.size() - 1)];
+			if (static_cast<size_t>(idx) >= in.size())
+				return in[std::max<size_t>(2 * in.size() - idx - 2, 0)];
 			return in[idx];
 		};
 
@@ -484,7 +497,7 @@ struct VoiceStream {
 			int16_t y2 = getSample(idx + 1);
 			int16_t y3 = getSample(idx + 2);
 
-			double val = CubicInterpolate(y0, y1, y2, y3, t);
+			double val = CatmullRom(y0, y1, y2, y3, t);
 			if (val > 32767.0) val = 32767.0;
 			else if (val < -32768.0) val = -32768.0;
 
@@ -600,7 +613,7 @@ struct VoiceStream {
 		}
 
 		if (sampleRate != SAMPLERATE_GMOD_OPUS) {
-			monoPCM = ResampleCubic(monoPCM, sampleRate, SAMPLERATE_GMOD_OPUS);
+			monoPCM = ResampleCubic(LowPassFilter(monoPCM), sampleRate, SAMPLERATE_GMOD_OPUS);
 			sampleRate = SAMPLERATE_GMOD_OPUS;
 		}
 
