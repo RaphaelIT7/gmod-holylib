@@ -255,10 +255,10 @@ void CLuaJITModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 		lua_setfield(L, -2, "isreadonly");
 
 		lua_pushcfunction(L, func_setdebugblocked);
-		lua_setfield(L, -2, "setdebugblocked");
+		lua_setfield(L, -2, "setblocked");
 
 		lua_pushcfunction(L, func_isdebugblocked);
-		lua_setfield(L, -2, "isdebugblocked");
+		lua_setfield(L, -2, "isblocked");
 	}
 	lua_pop(L, 1);
 

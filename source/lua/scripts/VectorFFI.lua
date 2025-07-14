@@ -346,13 +346,13 @@ do
         return vec
     end
 
-    debug.setdebugblocked(CreateVector)
+    debug.setblocked(CreateVector)
 
     function isvector(v)
         return ffi.istype("GMOD_VecUserData", v)
     end
 
-    debug.setdebugblocked(isvector)
+    debug.setblocked(isvector)
 
     local function initialize_vector_pool()
         local function add_to_pool(v)
