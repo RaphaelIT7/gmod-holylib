@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  build_plugin:
+  build_plugin_windows:
     name: "Build Plugin"
     uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
     with:
@@ -22,11 +22,29 @@ jobs:
       REALM: "sv"
       LINUX_FILEEXTENTION: "so"
       BUILD_WINDOWS: "true"
+      BUILD_LINUX: "false"
       ARTIFACT_EXPIRE: "7"
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
       SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
+      BUILD_CACHE: "true"
+
+  build_plugin_linux:
+    name: "Build Plugin"
+    uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
+    with:
+      PROJECT_NAME: "holylib"
+      BUILD_64x: "true"
+      REALM: "sv"
+      LINUX_FILEEXTENTION: "so"
+      BUILD_WINDOWS: "false"
+      ARTIFACT_EXPIRE: "7"
+      SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
+      SOURCESDK_MINIMAL_BRANCH: "patch-7"
+      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
+      GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
+      BUILD_CACHE: "true"
 
   build_testingarea:
     name: "Build 32x (Testing Area - Dev)"
@@ -47,7 +65,9 @@ jobs:
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
       SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
+      PTERODACTYL_RESTART_SLEEPTIME: "0"
       PTERODACTYL_RESTART: "true"
+      BUILD_CACHE: "true"
 
   build_testingarea_dev2: # Could make this use the already created artifact but I'm too lazy rn
     name: "Build 32x (Testing Area - Dev2)"
@@ -68,7 +88,9 @@ jobs:
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
       SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
+      PTERODACTYL_RESTART_SLEEPTIME: "0"
       PTERODACTYL_RESTART: "true"
+      BUILD_CACHE: "true"
 
   build_testingarea_64x:
     name: "Build 64x (Testing Area - 64x)"
@@ -90,7 +112,9 @@ jobs:
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
       SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
+      PTERODACTYL_RESTART_SLEEPTIME: "0"
       PTERODACTYL_RESTART: "true"
+      BUILD_CACHE: "true"
 
   build_ghostinj:
     name: "Build GhostInj"
@@ -107,10 +131,11 @@ jobs:
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
       SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
+      BUILD_CACHE: "true"
 
   setup_32x_artifacts:
     name: "Setup 32x Artifact"
-    needs: [build_plugin, build_ghostinj]
+    needs: [build_plugin_linux, build_ghostinj]
     runs-on: ubuntu-latest
     container: debian:bullseye
     steps:
@@ -161,7 +186,7 @@ jobs:
 
   setup_64x_artifacts:
     name: "Setup 64x Artifact"
-    needs: [build_plugin, build_ghostinj]
+    needs: [build_plugin_linux, build_ghostinj]
     runs-on: ubuntu-latest
     container: debian:bullseye
     steps:
