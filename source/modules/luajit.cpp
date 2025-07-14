@@ -77,8 +77,6 @@ LUA_FUNCTION_STATIC(markFFITypeAsGmodUserData)
 		return 0;
 
 	uint16_t type = RawLua::GetCDataType(LUA->GetState(), 1);
-	if (type < 0)
-		return 0;
 
 	GetLuaData(LUA)->pRegisteredTypes[type] = true;
 	return 0;

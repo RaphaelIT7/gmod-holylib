@@ -388,7 +388,7 @@ struct VoiceStream {
 			int serverTickRate = std::ceil(1 / gpGlobals->interval_per_tick);
 			scaleRate = std::ceil(serverTickRate / tickRate);
 
-			int count;
+			count = 0;
 			g_pFullFileSystem->Read(&count, sizeof(int), fh);
 		} else if (version < VOICESTREAM_VERSION) {
 			delete pStream;
@@ -624,7 +624,7 @@ struct VoiceStream {
 		}
 
 		std::vector<char> pcmData(header.dataSize);
-		if (g_pFullFileSystem->Read(pcmData.data(), header.dataSize, fh) != header.dataSize) {
+		if ((uint32_t)g_pFullFileSystem->Read(pcmData.data(), header.dataSize, fh) != header.dataSize) {
 			if (g_pVoiceChatModule.InDebug() == 1)
 			{
 				Warning(PROJECT_NAME " - voicechat - LoadWave: invalid data!\n");
@@ -703,7 +703,6 @@ struct VoiceStream {
 		VoiceStream* pStream = new VoiceStream;
 		size_t offset = 0;
 		float playbackTime = 0.0f;
-		int lastTick = 0;
 		while (offset < monoPCM.size()) {
 			int chunkSizeBytes = chunkSize;
 			int chunkSamples = chunkSizeBytes / bytesPerSample;
@@ -783,8 +782,6 @@ struct VoiceStream {
 				voiceData->SetData(recompressBuffer, bytesWritten);
 				pStream->SetIndex(tickIndex, voiceData);
 			}
-
-			lastTick = tickIndex;
 
 			offset += thisChunkSamples;
 			playbackTime += chunkDuration;

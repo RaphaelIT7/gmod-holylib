@@ -129,28 +129,29 @@ static long long unsigned
 #else
 static unsigned
 #endif
-LuaThread(LuaInterface& data)
+LuaThread(void* data)
 {
-	data.iStatus = INTERFACE_RUNNING;
-	while (data.iStatus == INTERFACE_RUNNING)
+	LuaInterface* pData = (LuaInterface*)data;
+	pData->iStatus = INTERFACE_RUNNING;
+	while (pData->iStatus == INTERFACE_RUNNING)
 	{
 		// Execute all tasks first
-		data.pMutex.Lock();
-		for (auto& task : data.pTasks)
+		pData->pMutex.Lock();
+		for (auto& task : pData->pTasks)
 		{
-			task->DoTask(&data);
+			task->DoTask(pData);
 			delete task;
 		}
-		data.pTasks.clear();
-		data.pMutex.Unlock();
+		pData->pTasks.clear();
+		pData->pMutex.Unlock();
 
 		// Execute any module's think code
-		g_pModuleManager.LuaThink(data.pInterface);
+		g_pModuleManager.LuaThink(pData->pInterface);
 
 		// eep
-		ThreadSleep(data.iSleepTime);
+		ThreadSleep(pData->iSleepTime);
 	}
-	data.iStatus = INTERFACE_STOPPED;
+	pData->iStatus = INTERFACE_STOPPED;
 	
 	return 0;
 }

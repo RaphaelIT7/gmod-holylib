@@ -29,6 +29,7 @@
 #include "physics_collisionevent.h"
 
 #if PHYSENV_INCLUDEIVPFALLBACK
+#undef IVP_IF
 #include "ivp_old/ivp_classes.h"
 #include "ivp_old/ivp_types.h"
 #include "ivp_old/cphysicsenvironment.h"
