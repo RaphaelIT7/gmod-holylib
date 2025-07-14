@@ -18,7 +18,7 @@ public:
 	virtual void Think(bool bSimulating) OVERRIDE;
 	virtual const char* Name() { return "bass"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
-	virtual bool IsEnabledByDefault() { return false; };
+	virtual bool IsEnabledByDefault() { return true; };
 	virtual bool SupportsMultipleLuaStates() { return true; };
 };
 
