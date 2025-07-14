@@ -587,7 +587,10 @@ struct VoiceStream {
 
 		WAVHeader header;
 		if (g_pFullFileSystem->Read(&header, sizeof(header), fh) != sizeof(header)) {
-			Warning("voicechat - LoadWave: invalid header!\n");
+			if (g_pVoiceChatModule.InDebug() == 1)
+			{
+				Warning(PROJECT_NAME " - voicechat - LoadWave: invalid header!\n");
+			}
 			return NULL;
 		}
 
@@ -601,7 +604,10 @@ struct VoiceStream {
 		if (strncmp(header.riff, "RIFF", 4) != 0 || strncmp(header.wave, "WAVE", 4) != 0 ||
 			strncmp(header.fmt, "fmt ", 4) != 0 || strncmp(header.data, "data", 4) != 0 ||
 			header.audioFormat != 1) {
-			Warning("voicechat - LoadWave: invalid format! (%s, %s, %s, %s, %i)\n", header.riff, header.wave, header.fmt, header.data, header.audioFormat);
+			if (g_pVoiceChatModule.InDebug() == 1)
+			{
+				Warning(PROJECT_NAME " - voicechat - LoadWave: invalid format! (%s, %s, %s, %s, %i)\n", header.riff, header.wave, header.fmt, header.data, header.audioFormat);
+			}
 			return NULL;
 		}
 
@@ -610,13 +616,19 @@ struct VoiceStream {
 		const int inputBytesPerSample = inputBitsPerSample / 8;
 		int sampleRate = header.sampleRate;
 		if (inputBitsPerSample % 8 != 0 || inputBitsPerSample > 64 || inputChannels < 1 || inputChannels > 2) {
-			Warning("voicechat - LoadWave: invalid sampleRate or channels! (%i, %i)\n", inputBitsPerSample, inputChannels);
+			if (g_pVoiceChatModule.InDebug() == 1)
+			{
+				Warning(PROJECT_NAME " - voicechat - LoadWave: invalid sampleRate or channels! (%i, %i)\n", inputBitsPerSample, inputChannels);
+			}
 			return NULL;
 		}
 
 		std::vector<char> pcmData(header.dataSize);
 		if (g_pFullFileSystem->Read(pcmData.data(), header.dataSize, fh) != header.dataSize) {
-			Warning("voicechat - LoadWave: invalid data!\n");
+			if (g_pVoiceChatModule.InDebug() == 1)
+			{
+				Warning(PROJECT_NAME " - voicechat - LoadWave: invalid data!\n");
+			}
 			return NULL;
 		}
 
@@ -656,7 +668,10 @@ struct VoiceStream {
 					}
 					default:
 					{
-						Warning("voicechat - LoadWave: invalid bitsPerSame! (%i)\n", inputBitsPerSample);
+						if (g_pVoiceChatModule.InDebug() == 1)
+						{
+							Warning(PROJECT_NAME " - voicechat - LoadWave: invalid bitsPerSame! (%i)\n", inputBitsPerSample);
+						}
 						return NULL;
 					}
 				}
@@ -727,14 +742,20 @@ struct VoiceStream {
 				SteamOpus::Opus_FrameDecoder mergeCodec;
 				int samplesOld = SteamVoice::DecompressIntoBuffer(&mergeCodec, existing->pData, existing->iLength, decompressTarget, maxDecompressed);
 				if (samplesOld < 0) {
-					Warning(PROJECT_NAME " - voicechat: Failed to decompress existing tick data!\n");
+					if (g_pVoiceChatModule.InDebug() == 1)
+					{
+						Warning(PROJECT_NAME " - voicechat: Failed to decompress existing tick data!\n");
+					}
 					continue;
 				}
 
 				decompressTarget += samplesOld * 2;
 				int samplesNew = SteamVoice::DecompressIntoBuffer(&mergeCodec, recompressBuffer, bytesWritten, decompressTarget, maxDecompressed - samplesOld * 2);
 				if (samplesNew < 0) {
-					Warning(PROJECT_NAME " - voicechat: Failed to decompress new tick data!\n");
+					if (g_pVoiceChatModule.InDebug() == 1)
+					{
+						Warning(PROJECT_NAME " - voicechat: Failed to decompress new tick data!\n");
+					}
 					continue;
 				}
 
@@ -752,7 +773,10 @@ struct VoiceStream {
 				if (mergedLen > 0) {
 					existing->SetData(mergedCompressed, mergedLen);
 				} else {
-					Warning(PROJECT_NAME " - voicechat: Failed to recompress merged tick!\n");
+					if (g_pVoiceChatModule.InDebug() == 1)
+					{
+						Warning(PROJECT_NAME " - voicechat: Failed to recompress merged tick!\n");
+					}
 				}
 			} else {
 				VoiceData* voiceData = new VoiceData;
@@ -1442,7 +1466,7 @@ static void VoiceStreamJob(VoiceStreamTask*& task)
 		}
 		default:
 		{
-			Warning("holylib - VoiceChat(VoiceStreamJob): Managed to get a job without a valid type. How.\n");
+			Warning(PROJECT_NAME " - VoiceChat(VoiceStreamJob): Managed to get a job without a valid type. How.\n");
 			task->iStatus = VoiceStreamTaskStatus_FAILED_INVALID_TYPE;
 			return;
 		}
@@ -1584,7 +1608,7 @@ void CVoiceChatModule::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
 
 		if (pTask->iCallback == -1)
 		{
-			Warning("holylib - VoiceChat(Think): somehow managed to get a task without a callback!\n");
+			Warning(PROJECT_NAME " - VoiceChat(Think): somehow managed to get a task without a callback!\n");
 			if (pTask->pStream != NULL && pTask->iType != VoiceStreamTask_SAVE)
 				delete pTask->pStream;
 
