@@ -73,6 +73,8 @@ public:
 	virtual void OnEntityCreated(CBaseEntity* pEntity);
 	virtual void OnEntitySpawned(CBaseEntity* pEntity);
 	virtual void OnEntityDeleted(CBaseEntity* pEntity);
+	virtual void OnClientConnect(CBaseClient* pClient);
+	virtual void OnClientDisconnect(CBaseClient* pClient);
 	virtual void LevelShutdown();
 	virtual void PreLuaModuleLoaded(lua_State* L, const char* pFileName);
 	virtual void PostLuaModuleLoaded(lua_State* L, const char* pFileName);

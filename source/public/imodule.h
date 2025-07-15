@@ -31,6 +31,7 @@ class KeyValues;
 struct edict_t;
 class CBaseEntity;
 struct lua_State;
+class CBaseClient;
 
 class IModule
 {
@@ -97,6 +98,14 @@ public:
 	// Called when a CBaseEntity is created
 	// NOTE: If we fail to load the g_pEntityList, this won't be called!
 	virtual void OnEntityDeleted(CBaseEntity* pEntity) { (void)pEntity; };
+
+	// Called when a client connects to the server and is assigned a CBaseClient
+	// NOTE: This callback is currently not implemented!
+	// ToDo: Hook into CBaseClient::Connect and call this callback from there!
+	virtual void OnClientConnect(CBaseClient* pClient) { (void)pClient; };
+
+	// Called when a client disconnects from the server and their CBaseClient is cleared
+	virtual void OnClientDisconnect(CBaseClient* pClient) { (void)pClient; };
 
 	// Called when the module config is loaded
 	// You can load any custom fields from here.
@@ -214,6 +223,8 @@ public:
 	virtual void OnEntityCreated(CBaseEntity* pEntity) = 0;
 	virtual void OnEntitySpawned(CBaseEntity* pEntity) = 0;
 	virtual void OnEntityDeleted(CBaseEntity* pEntity) = 0;
+	virtual void OnClientConnect(CBaseClient* pClient) = 0;
+	virtual void OnClientDisconnect(CBaseClient* pClient) = 0;
 	virtual void LevelShutdown() = 0;
 	virtual void PreLuaModuleLoaded(lua_State* L, const char* pFileName) = 0;
 	virtual void PostLuaModuleLoaded(lua_State* L, const char* pFileName) = 0;

@@ -110,6 +110,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 \- [+] Added second and thrid arguments to `HolyLib:OnPhysicsLag` providing the entities it was working on when it triggered.  
 \- [#] Fixed `addonsystem.ShouldMount` & `addonsystem.SetShouldMount` `workshopID` arguments being a number when they should have been a string.  
 \- [#] Changed `VoiceData:GetUncompressedData` to now returns a statusCode/a number on failure instead of possibly returning a garbage string.  
+\- [#] Limited `HttpServer:SetName` to have a length limit of `64` characters.  
 \- [-] Removed `gameserver.CalculateCPUUsage` and `gameserver.ApproximateProcessMemoryUsage` since they never worked.  
 
 ### QoL updates
@@ -3193,7 +3194,8 @@ Returns the address that was originally passed to `HttpServer:Start()`
 Returns the name set by `HttpServer:SetName()`, defaults to `NONAME`
 
 #### HttpServer:SetName(string name)
-Sets the name of the HttpServer.
+Sets the name of the HttpServer.  
+The length of the name is limited to 64 characters.
 
 #### (Experimental) HttpServer:AddPreparedResponse(number userID, string path, string method, table headers, function callback)
 callback - function(HttpResponse response)  

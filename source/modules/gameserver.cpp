@@ -20,6 +20,7 @@ public:
 	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
+	virtual void OnClientDisconnect(CBaseClient* pClient) OVERRIDE;
 	virtual const char* Name() { return "gameserver"; };
 	virtual int Compatibility() { return LINUX32; };
 	virtual bool SupportsMultipleLuaStates() { return true; };
@@ -2768,7 +2769,7 @@ void hook_CGameClient_SpawnPlayer(CGameClient* client)
 }
 
 // Called by Util from CSteam3Server::NotifyClientDisconnect
-void GameServer_OnClientDisconnect(CBaseClient* pClient)
+void CGameServerModule::OnClientDisconnect(CBaseClient* pClient)
 {
 	if (pClient->GetServer() != Util::server)
 		return;

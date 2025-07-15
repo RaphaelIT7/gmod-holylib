@@ -116,6 +116,8 @@ public:
 	HttpServer(GarrysMod::Lua::ILuaInterface* pLua) {
 		m_pLua = pLua;
 		g_pHttpServers.insert(this);
+
+		SetName("NONAME");
 	}
 
 	~HttpServer()
@@ -220,8 +222,17 @@ public:
 	std::string& GetAddress() { return m_strAddress; };
 	unsigned short GetPort() { return m_iPort; };
 	void SetThreadSleep(unsigned int threadSleep) { m_iThreadSleep = threadSleep; };
-	std::string& GetName() { return m_strName; };
-	void SetName(std::string strName) { m_strName = strName; };
+	const char* GetName() { return m_strName; };
+	void SetName(const char* strName)
+	{
+		if (!strName)
+		{
+			SetName("NONAME");
+			return;
+		}
+
+		V_strncpy(m_strName, strName, sizeof(m_strName));
+	};
 
 	void ClearDisconnectedClient(int userID)
 	{
@@ -247,7 +258,7 @@ private:
 	std::vector<HttpRequest*> m_pRequests;
 	std::vector<int> m_pHandlerReferences; // Contains the Lua references to the handler functions.
 	httplib::Server m_pServer;
-	std::string m_strName = "NONAME";
+	char m_strName[64] = {0};
 
 	// userID - Response pairs.
 	std::unordered_map<int, std::vector<PreparedHttpResponse*>> m_pPreparedResponses;
@@ -541,6 +552,9 @@ httplib::Server::Handler HttpServer::CreateHandler(const char* path, int func, b
 		int userID = -1;
 		for (auto& pClient : Util::GetClients())
 		{
+			// NOTE: Currently we assume pClient is always valid, and this is true as long as our httpServer doesn't persist across map changes
+			// This is because the engine by default reuses CBaseClient's but they are potentially nuked when the server shuts down
+			// so on map changes if a HttpServer would run, it would have possible bugs.
 			if (!pClient->IsConnected())
 				continue;
 
@@ -548,6 +562,8 @@ httplib::Server::Handler HttpServer::CreateHandler(const char* path, int func, b
 			if (!pChannel)
 				continue; // Probably a fake client.
 
+			// ToDo: Could this possibly end up as a race condition?
+			// What if pClient disconnects right here and their INetChannel is nuked?
 			const netadr_s& addr = pChannel->GetRemoteAddress();
 			std::string address = addr.ToString();
 			size_t port_pos = address.find(":");
@@ -642,8 +658,12 @@ LUA_FUNCTION_STATIC(HttpServer__tostring)
 		return 1;
 	}
 
-	char szBuf[64] = {};
-	V_snprintf(szBuf, sizeof(szBuf),"HttpServer [%s:%s - %s]", pServer->GetAddress().c_str(), std::to_string(pServer->GetPort()).c_str(), pServer->GetName().c_str()); 
+	char szBuf[96] = {};
+	V_snprintf(szBuf, sizeof(szBuf), "HttpServer [%s:%s - %s]", 
+		pServer->GetAddress().c_str(),
+		std::to_string(pServer->GetPort()).c_str(),
+		pServer->GetName()
+	); 
 	LUA->PushString(szBuf);
 	return 1;
 }
@@ -849,7 +869,7 @@ LUA_FUNCTION_STATIC(HttpServer_GetName)
 {
 	HttpServer* pServer = Get_HttpServer(LUA, 1, true);
 
-	LUA->PushString(pServer->GetName().c_str());
+	LUA->PushString(pServer->GetName());
 	return 1;
 }
 

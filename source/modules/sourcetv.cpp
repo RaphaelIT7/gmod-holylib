@@ -19,6 +19,7 @@ public:
 	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
+	virtual void OnClientDisconnect(CBaseClient* pClient) OVERRIDE;
 	virtual const char* Name() { return "sourcetv"; };
 	virtual int Compatibility() { return LINUX32; };
 	virtual bool SupportsMultipleLuaStates() { return true; };
@@ -77,7 +78,7 @@ static void hook_CHLTVClient_Deconstructor(CHLTVClient* pClient)
 	detour_CHLTVClient_Deconstructor.GetTrampoline<Symbols::CHLTVClient_Deconstructor>()(pClient);
 }
 
-void SourceTV_OnClientDisconnect(CBaseClient* pClient)
+void CSourceTVLibModule::OnClientDisconnect(CBaseClient* pClient)
 {
 	if (((CHLTVServer*)pClient->GetServer()) != hltv)
 		return;

@@ -475,6 +475,16 @@ void CModuleManager::OnEntityDeleted(CBaseEntity* pEntity)
 	VCALL_ENABLED_MODULES(OnEntityDeleted(pEntity));
 }
 
+void CModuleManager::OnClientConnect(CBaseClient* pClient)
+{
+	VCALL_ENABLED_MODULES(OnClientConnect(pClient));
+}
+
+void CModuleManager::OnClientDisconnect(CBaseClient* pClient)
+{
+	VCALL_ENABLED_MODULES(OnClientDisconnect(pClient));
+}
+
 void CModuleManager::LevelShutdown()
 {
 	VCALL_ENABLED_MODULES(LevelShutdown());
