@@ -110,6 +110,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 \- [+] Added second and thrid arguments to `HolyLib:OnPhysicsLag` providing the entities it was working on when it triggered.  
 \- [#] Fixed `addonsystem.ShouldMount` & `addonsystem.SetShouldMount` `workshopID` arguments being a number when they should have been a string.  
 \- [#] Changed `VoiceData:GetUncompressedData` to now returns a statusCode/a number on failure instead of possibly returning a garbage string.  
+\- [-] Removed `gameserver.CalculateCPUUsage` and `gameserver.ApproximateProcessMemoryUsage` since they never worked.  
 
 ### QoL updates
 \- [#] Changed some console message to be more consistent.  
@@ -3474,13 +3475,6 @@ bf:WriteString("1") -- ConVar value
 -- You can use CBaseClient:SendNetMsg to send it to specific clients.
 gameserver.BroadcastMessage(5, "NET_SetConVar", bf) -- 5 = net_SetConVar / net message type.
 ```
-
-#### number gameserver.CalculateCPUUsage()
-Calculates and returns the CPU Usage.
-
-#### number gameserver.ApproximateProcessMemoryUsage()
-Approximates the memory usage of the server in bytes.  
-It isn't really related to the gameserver itself, but since it has CalculateCPUUsage I want to keep them close.
 
 #### number gameserver.SendConnectionlessPacket(bf_write bf, string ip, bool useDNS = false, number socket = NS_SERVER)
 ip - The target ip. Format `ip:port`  

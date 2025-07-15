@@ -2107,23 +2107,6 @@ LUA_FUNCTION_STATIC(gameserver_BroadcastMessage)
 	return 0;
 }
 
-LUA_FUNCTION_STATIC(gameserver_CalculateCPUUsage)
-{
-	if (!Util::server || !Util::server->IsActive())
-		return 0;
-
-	CBaseServer* pServer = (CBaseServer*)Util::server;
-	pServer->CalculateCPUUsage();
-	LUA->PushNumber(pServer->m_fCPUPercent);
-	return 1;
-}
-
-LUA_FUNCTION_STATIC(gameserver_ApproximateProcessMemoryUsage)
-{
-	LUA->PushNumber(ApproximateProcessMemoryUsage());
-	return 1;
-}
-
 static Symbols::NET_SendPacket func_NET_SendPacket;
 LUA_FUNCTION_STATIC(gameserver_SendConnectionlessPacket)
 {
@@ -2331,8 +2314,6 @@ void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, gameserver_SetPaused, "SetPaused");
 		Util::AddFunc(pLua, gameserver_SetPassword, "SetPassword");
 		Util::AddFunc(pLua, gameserver_BroadcastMessage, "BroadcastMessage");
-		Util::AddFunc(pLua, gameserver_CalculateCPUUsage, "CalculateCPUUsage");
-		Util::AddFunc(pLua, gameserver_ApproximateProcessMemoryUsage, "ApproximateProcessMemoryUsage");
 		Util::AddFunc(pLua, gameserver_SendConnectionlessPacket, "SendConnectionlessPacket");
 
 		Util::AddFunc(pLua, gameserver_CreateNetChannel, "CreateNetChannel");
