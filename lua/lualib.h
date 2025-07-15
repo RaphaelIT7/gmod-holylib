@@ -35,6 +35,9 @@ LUALIB_API int luaopen_jit(lua_State *L);
 LUALIB_API int luaopen_ffi(lua_State *L);
 LUALIB_API int luaopen_string_buffer(lua_State *L);
 
+// Internal JIT function, this one is NOT loaded by luaL_openlibs
+LUALIB_API int luaopen_jit_profile(lua_State *L);
+
 LUALIB_API void luaL_openlibs(lua_State *L);
 
 #ifndef lua_assert

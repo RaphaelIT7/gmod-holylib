@@ -139,6 +139,10 @@ static void hook_luaL_openlibs(lua_State* L)
 
 		lua_pushcfunction(L, markFFITypeAsGmodUserData);
 		lua_setfield(L, -2, "markFFITypeAsGmodUserData");
+
+		lua_pushcfunction(L, luaopen_jit_profile);
+		lua_call(L, 0, 1);
+		lua_setfield(L, -2, "profile");
 	lua_pop(L, 1);
 
 	bOpenLibs = true;
