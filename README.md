@@ -3360,6 +3360,7 @@ Checks if the table is set to be read only.
 
 ### debug.setblocked(function func)
 Marks the function to be inaccessable by any debug function & `setfenv` & `getfenv`.  
+This function is used internally for the FFI Scripts executed by HolyLib to prevent access to FFI functions when their disabled.  
 
 ### bool debug.isblocked(function func)
 Checks if the function is set to be inaccessable by any debug function.

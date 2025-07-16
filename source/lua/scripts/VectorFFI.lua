@@ -67,6 +67,10 @@ local function check_vec(value, arg_num, is_optional, is_optionalType)
     return expect(value, "Vector", arg_num, is_optional)
 end
 
+local function check_ang(value, arg_num, is_optional, is_optionalType)
+    return expect(value, "Angle", arg_num, is_optional)
+end
+
 local function check_vec_or_num(value, arg_num, is_optional)
     local t = type(value)
     if t == "Vector" then
@@ -316,15 +320,83 @@ function methods:Zero()
     self.z = 0
 end
 
+local up_vec
+function methods:Angle()
+    return self:AngleEx(up_vec)
+end
+
+function methods:AngleEx(up)
+    check_ang(up, 1)
+
+    local forward = self:GetNormalized()
+    local upNormalized = up:GetNormalized()
+
+    local dot = forward:Dot(upNormalized)
+    dot = math.min(1, math.max(-1, dot))
+
+    local angle = math.acos(dot)
+    local axis = forward:Cross(upNormalized)
+    if axis:IsZero() then
+        return Angle(0, 0, 0)
+    end
+
+    axis:Normalize()
+
+    local pitch = angle * 180 / math.pi
+    return Angle(pitch, pitch, 0)
+end
+
+function methods:Rotate(rotation)
+    check_ang(rotation, 1)
+
+    local pitch = rotation[1]
+    local yaw = rotation[2]
+    local roll = rotation[3]
+
+    local radPitch = math.rad(pitch)
+    local radYaw = math.rad(yaw)
+    local radRoll = math.rad(roll)
+
+    local sinPitch = math.sin(radPitch)
+    local cosPitch = math.cos(radPitch)
+    local sinYaw = math.sin(radYaw)
+    local cosYaw = math.cos(radYaw)
+    local sinRoll = math.sin(radRoll)
+    local cosRoll = math.cos(radRoll)
+
+    local y = self.y * cosPitch - self.z * sinPitch
+    local z = self.y * sinPitch + self.z * cosPitch
+    self.y, self.z = y, z
+
+    local x = self.x * cosYaw + self.z * sinYaw
+    z = -self.x * sinYaw + self.z * cosYaw
+    self.x, self.z = x, z
+
+    x = self.x * cosRoll - self.y * sinRoll
+    y = self.x * sinRoll + self.y * cosRoll
+    self.x, self.y = x, y
+end
+
+function methods:ToTable()
+    return Color( self.x * 255, self.y * 255, self.z * 255, 255 )
+end
+
+function methods:ToTable()
+    return { self.x, self.y, self.z }
+end
+
+function methods:WithinAABox(boxStart, boxEnd)
+    check_vec(boxStart, 1)
+    check_vec(boxEnd, 2)
+    
+    return self.x >= boxStart.x and self.x <= boxEnd.x and
+           self.y >= boxStart.y and self.y <= boxEnd.y and
+           self.z >= boxStart.z and self.z <= boxEnd.z
+end
+
 ---@class Vector
 local gmodVecMeta = FindMetaTable("Vector")
-methods.Angle = gmodVecMeta.Angle
-methods.AngleEx = gmodVecMeta.AngleEx
-methods.Rotate = gmodVecMeta.Rotate
-methods.ToColor = gmodVecMeta.ToColor
 methods.ToScreen = gmodVecMeta.ToScreen
-methods.ToTable = gmodVecMeta.ToTable
-methods.WithinAABox = gmodVecMeta.WithinAABox
 
 do
     local ffi = jit.getffi and jit.getffi() or require("ffi")
@@ -345,6 +417,7 @@ do
         ---@type Vector
         return vec
     end
+    up_vec = CreateVector(0, 0, 1)
 
     debug.setblocked(CreateVector)
 
