@@ -361,6 +361,8 @@ jobs:
 
           mv gmod_tests garrysmod/addons
           mv ghostinj.dll ghostinj2.dll
+          mkdir -p garrysmod/lua/bin/gmod_tests/maps
+          mv garrysmod/addons/gluatests/maps garrysmod/addons/gmod_tests/maps
           rm -rf garrysmod/addons/gluatests
 
           tar -czf gmod_tests.tar.gz ghostinj2.dll garrysmod/
@@ -409,6 +411,8 @@ jobs:
 
           mv gmod_tests garrysmod/addons
           mv ghostinj.dll ghostinj2.dll
+          mkdir -p garrysmod/lua/bin/gmod_tests/maps
+          mv garrysmod/addons/gluatests/maps garrysmod/addons/gmod_tests/maps
           rm -rf garrysmod/addons/gluatests
 
           tar -czf gmod_tests.tar.gz ghostinj2.dll garrysmod/
@@ -448,7 +452,6 @@ jobs:
       download-artifact: ${{ matrix.artifact }}
       no-checkout: "true"
       additional-setup: "wget -q https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux32.tar.gz -O gluatest/docker/_gluatest_artifacts/linux32.tar.gz"
-      collection: 3460542547
       map: gm_glua_tests
 
   test_gmod_tests_32bit_luajit:
@@ -469,7 +472,6 @@ jobs:
       download-artifact: ${{ matrix.artifact }}
       no-checkout: "true"
       additional-setup: "wget -q https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux32.tar.gz -O gluatest/docker/_gluatest_artifacts/linux32.tar.gz"
-      collection: 3460542547
       map: gm_glua_tests
 
   test_gmod_tests_64bit:
@@ -487,7 +489,6 @@ jobs:
       download-artifact: ${{ matrix.artifact }}
       no-checkout: "true"
       additional-setup: "wget -q https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux64.tar.gz -O gluatest/docker/_gluatest_artifacts/linux64.tar.gz"
-      collection: 3460542547
       map: gm_glua_tests
 
   test_gmod_tests_32bit_with_ivpreplacement:
@@ -508,7 +509,6 @@ jobs:
       download-artifact: ${{ matrix.artifact }}
       no-checkout: "true"
       additional-setup: "wget -q https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux32.tar.gz -O gluatest/docker/_gluatest_artifacts/linux32.tar.gz"
-      collection: 3460542547
       map: gm_glua_tests
 
   test_gmod_tests_64bit_with_ivpreplacement:
@@ -526,7 +526,6 @@ jobs:
       download-artifact: ${{ matrix.artifact }}
       no-checkout: "true"
       additional-setup: "wget -q https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux64.tar.gz -O gluatest/docker/_gluatest_artifacts/linux64.tar.gz"
-      collection: 3460542547
       map: gm_glua_tests
 
   test_32bit_find_crash:
