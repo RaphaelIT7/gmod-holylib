@@ -451,6 +451,27 @@ jobs:
       collection: 3460542547
       map: gm_glua_tests
 
+  test_gmod_tests_32bit_luajit:
+    name: "Test 32x branches (gmod_tests + LuaJIT module)"
+    needs: setup_gmod_tests_32x_artifacts
+    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
+    strategy:
+      matrix:
+        branch:
+          - live
+          - dev
+          - prerelease
+        artifact:
+          - gmod_tests_32x
+          - gmod_tests_no_ghostinj_32x
+    with:
+      extra-startup-args: "-usegh -maxplayers 64 -holylib_enable_luajit 1"
+      download-artifact: ${{ matrix.artifact }}
+      no-checkout: "true"
+      additional-setup: "wget -q https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux32.tar.gz -O gluatest/docker/_gluatest_artifacts/linux32.tar.gz"
+      collection: 3460542547
+      map: gm_glua_tests
+
   test_gmod_tests_64bit:
     name: "Test x86-64 branch (gmod_tests)"
     needs: setup_gmod_tests_64x_artifacts
@@ -544,7 +565,7 @@ jobs:
           - httpserver
           - gameserver
           - soundscape
-          # - luajit # Removed because rn it loves to crash
+          - luajit
     with:
       branch: dev
       extra-startup-args: "-usegh -holylib_startdisabled -holylib_enable_${{ matrix.module }} 1"
