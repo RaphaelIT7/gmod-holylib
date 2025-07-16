@@ -79,6 +79,13 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			[[../../README.md]],
 		})
 
+		vpaths({
+			["Source files/sourcesdk/"] = gmcommon .. "/**.*",
+			["Lua Headers"] = "../../lua/*.h",
+			["Lua Scrips"] = "../../source/lua/scripts/*.lua",
+			["README"] = "../../README.md",
+		})
+
 		removefiles({
 			[[../../source/modules/lagcompensation.cpp]] -- It's not finished yet.
 		})
