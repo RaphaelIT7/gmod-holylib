@@ -203,9 +203,9 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_IsBlockStreamed)
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_IsValid)
 {
-	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, false);
 
-	LUA->PushBool(channel->IsValid());
+	LUA->PushBool(channel && channel->IsValid());
 	return 1;
 }
 

@@ -111,6 +111,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 \- [#] Fixed `addonsystem.ShouldMount` & `addonsystem.SetShouldMount` `workshopID` arguments being a number when they should have been a string.  
 \- [#] Changed `VoiceData:GetUncompressedData` to now returns a statusCode/a number on failure instead of possibly returning a garbage string.  
 \- [#] Limited `HttpServer:SetName` to have a length limit of `64` characters.  
+\- [#] Fixed `IGModAudioChannel:IsValid` throwing a error when it's NULL instead of returning false.  
 \- [-] Removed `gameserver.CalculateCPUUsage` and `gameserver.ApproximateProcessMemoryUsage` since they never worked.  
 
 ### QoL updates
