@@ -270,7 +270,7 @@ void CLuaJITModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 
 	bool bPreviousFFiValue = g_pLuaJITModule.m_bAllowFFI;
 	g_pLuaJITModule.m_bAllowFFI = true;
-	if (!pLua->RunStringEx("HolyLib", "HolyLib", luaVectorFFI, true, true, true, true))
+	if (!pLua->RunStringEx("HolyLib", "", luaVectorFFI, true, true, true, true))
 	{
 		Warning(PROJECT_NAME " - luajit: Failed to load VectorFFI script!\n");
 	}
