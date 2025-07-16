@@ -26,7 +26,14 @@ local POOL = {}
 
 local function Vector(x, y, z)
     -- Vector() in gmod, doesn't error for invalid arguments
+    local vec = x
     x, y, z = tonumber(x) or 0, tonumber(y) or 0, tonumber(z) or 0
+    if isvector(vec) then
+        x = vec.x
+        y = vec.y
+        z = vec.z
+    end
+
     local v_pool = table_remove(POOL)
     if v_pool then
         v_pool.x, v_pool.y, v_pool.z = x, y, z
@@ -90,23 +97,24 @@ local mt = {
             return method
         end
 
-        if k == 1 then
+        if k == 1 or k == "x" then
             return s.x
-        elseif k == 2 then
+        elseif k == 2 or k == "y" then
             return s.y
-        elseif k == 3 then
+        elseif k == 3 or k == "z" then
             return s.z
         end
     end,
     __newindex = function(s, k, v)
-        if k == 1 then
+        if k == 1 or k == "x" then
             s.x = check_num(v, 1)
-        elseif k == 2 then
+        elseif k == 2 or k == "y" then
             s.y = check_num(v, 2)
-        elseif k == 3 then
+        elseif k == 3 or k == "z" then
             s.z = check_num(v, 3)
         else
-            error(string.format("cannot set field '%s' on FFI Vector", k), 2)
+            -- Normal Gmod Vector's do nothing in this case.
+            -- error(string.format("cannot set field '%s' on FFI Vector", k), 2)
         end
     end,
     __eq = function(a, b)
@@ -140,6 +148,13 @@ local mt = {
     MetaName = "Vector",
     MetaID = 10,
 }
+
+-- We do this so that we also have things like Vector():__tostring() working
+for name, func in pairs(mt) do
+    if isfunction(func) then
+        methods[name] = func
+    end
+end
 
 function methods:Add(v)
     check_vec(v, 1)
@@ -216,8 +231,9 @@ function methods:DistToSqr(v)
 
     local dx = self.x - v.x
     local dy = self.y - v.y
+    local dz = self.z - v.z
 
-    return dx * dx + dy * dy
+    return dx * dx + dy * dy + dz * dz
 end
 
 function methods:Dot(v)
@@ -320,61 +336,59 @@ function methods:Zero()
     self.z = 0
 end
 
-local up_vec
 function methods:Angle()
-    return self:AngleEx(up_vec)
-end
-
-function methods:AngleEx(up)
-    check_ang(up, 1)
-
     local forward = self:GetNormalized()
-    local upNormalized = up:GetNormalized()
+    local x = forward.x
+    local y = forward.y
+    local z = forward.z
+    local pitch = 0
+    local yaw = 0
+    local roll = 0
 
-    local dot = forward:Dot(upNormalized)
-    dot = math.min(1, math.max(-1, dot))
+    yaw = math.deg(math.atan2(y, x))
 
-    local angle = math.acos(dot)
-    local axis = forward:Cross(upNormalized)
-    if axis:IsZero() then
-        return Angle(0, 0, 0)
-    end
+    local clamped_forward_z = math.min(1, math.max(-1, z))
+    pitch = 270 + math.deg(math.acos(clamped_forward_z))
 
-    axis:Normalize()
-
-    local pitch = angle * 180 / math.pi
-    return Angle(pitch, pitch, 0)
+    return Angle(pitch, yaw, roll)
 end
 
-function methods:Rotate(rotation)
+function methods:Rotate(rotation) -- This was painful.
     check_ang(rotation, 1)
 
-    local pitch = rotation[1]
-    local yaw = rotation[2]
-    local roll = rotation[3]
-
-    local radPitch = math.rad(pitch)
-    local radYaw = math.rad(yaw)
-    local radRoll = math.rad(roll)
-
+    local pitch_angle = rotation[1]
+    local yaw_angle   = rotation[2]
+    local roll_angle  = rotation[3]
+    local radPitch = math.rad(pitch_angle)
+    local radYaw   = math.rad(yaw_angle)
+    local radRoll  = math.rad(roll_angle)
     local sinPitch = math.sin(radPitch)
     local cosPitch = math.cos(radPitch)
-    local sinYaw = math.sin(radYaw)
-    local cosYaw = math.cos(radYaw)
-    local sinRoll = math.sin(radRoll)
-    local cosRoll = math.cos(radRoll)
+    local sinYaw   = math.sin(radYaw)
+    local cosYaw   = math.cos(radYaw)
+    local sinRoll  = math.sin(radRoll)
+    local cosRoll  = math.cos(radRoll)
+    local x = self.x
+    local y = self.y
+    local z = self.z
+    local temp_x = x * cosPitch + z * sinPitch
+    local temp_z = -x * sinPitch + z * cosPitch
+    x = temp_x
+    z = temp_z
 
-    local y = self.y * cosPitch - self.z * sinPitch
-    local z = self.y * sinPitch + self.z * cosPitch
-    self.y, self.z = y, z
+    temp_x = x * cosYaw - y * sinYaw
+    local temp_y = x * sinYaw + y * cosYaw
+    x = temp_x
+    y = temp_y
 
-    local x = self.x * cosYaw + self.z * sinYaw
-    z = -self.x * sinYaw + self.z * cosYaw
-    self.x, self.z = x, z
+    temp_y = y * cosRoll - z * sinRoll
+    temp_z = y * sinRoll + z * cosRoll
+    y = temp_y
+    z = temp_z
 
-    x = self.x * cosRoll - self.y * sinRoll
-    y = self.x * sinRoll + self.y * cosRoll
-    self.x, self.y = x, y
+    self.x = x
+    self.y = y
+    self.z = z
 end
 
 function methods:ToTable()
@@ -396,6 +410,7 @@ end
 
 ---@class Vector
 local gmodVecMeta = FindMetaTable("Vector")
+methods.AngleEx = gmodVecMeta.AngleEx -- Cannot get it to work
 methods.ToScreen = gmodVecMeta.ToScreen
 
 do
@@ -417,7 +432,6 @@ do
         ---@type Vector
         return vec
     end
-    up_vec = CreateVector(0, 0, 1)
 
     debug.setblocked(CreateVector)
 
