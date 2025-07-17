@@ -7,7 +7,8 @@
 
 #include "lua/ILuaInterface.h"
 
-struct lua_State
+struct lua_State;
+struct lua_GmodState
 {
 #if ( defined( _WIN32 ) || defined( __linux__ ) || defined( __APPLE__ ) ) && \
 	!defined( __x86_64__ ) && !defined( _M_X64 )
@@ -45,7 +46,7 @@ struct lua_State
 			int gmod13_open__Imp( GarrysMod::Lua::ILuaInterface* LUA );  \
 			GMOD_DLL_EXPORT int gmod13_open( lua_State* L )		 \
 			{													   \
-				return gmod13_open__Imp( L->luabase );			  \
+				return gmod13_open__Imp( ((lua_GmodState*)L)->luabase );			  \
 			}													   \
 			int gmod13_open__Imp( [[maybe_unused]] GarrysMod::Lua::ILuaInterface* LUA )
 
@@ -53,7 +54,7 @@ struct lua_State
 			int gmod13_close__Imp( GarrysMod::Lua::ILuaInterface* LUA ); \
 			GMOD_DLL_EXPORT int gmod13_close( lua_State* L )		\
 			{													   \
-				return gmod13_close__Imp( L->luabase );			 \
+				return gmod13_close__Imp( ((lua_GmodState*)L)->luabase );			 \
 			}													   \
 			int gmod13_close__Imp( [[maybe_unused]] GarrysMod::Lua::ILuaInterface* LUA )
 
@@ -61,7 +62,7 @@ struct lua_State
 			static int FUNC##__Imp( GarrysMod::Lua::ILuaInterface* LUA );	\
 			static int FUNC( lua_State* L )							 \
 			{														   \
-				GarrysMod::Lua::ILuaInterface* LUA = L->luabase;			 \
+				GarrysMod::Lua::ILuaInterface* LUA = ((lua_GmodState*)L)->luabase;			 \
 				LUA->SetState(L);									   \
 				return FUNC##__Imp( LUA );							  \
 			}														   \

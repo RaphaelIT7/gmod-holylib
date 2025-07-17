@@ -1,7 +1,8 @@
 -- Cons of this VectorFFI:
 -- setting x/y/z to a string that contains a number, will error, eg. v.x = "1" won't work but works in gmod
--- adding data to the vector, like v.hey = 1 will not work, but works in gmod
 -- cannot grab the metatable of the vector, nor edit it, so you cannot add custom methods to the vector
+
+-- Collaboration between Raphael & Srlion (https://github.com/Srlion) <3 
 
 local POOL_SIZE = 20000
 
@@ -106,12 +107,13 @@ local mt = {
         end
     end,
     __newindex = function(s, k, v)
+        local num = check_num(v, 3)
         if k == 1 or k == "x" then
-            s.x = check_num(v, 1)
+            s.x = num
         elseif k == 2 or k == "y" then
-            s.y = check_num(v, 2)
+            s.y = num
         elseif k == 3 or k == "z" then
-            s.z = check_num(v, 3)
+            s.z = num
         else
             -- Normal Gmod Vector's do nothing in this case.
             -- error(string.format("cannot set field '%s' on FFI Vector", k), 2)
@@ -391,7 +393,7 @@ function methods:Rotate(rotation) -- This was painful.
     self.z = z
 end
 
-function methods:ToTable()
+function methods:ToColor()
     return Color( self.x * 255, self.y * 255, self.z * 255, 255 )
 end
 

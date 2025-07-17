@@ -30,6 +30,7 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 	CreateProject({serverside = true, manual_files = false, source_path = "../../source"})
 		kind "SharedLib"
 		symbols "On"
+		-- enableunitybuild "On" -- Caused 500+ errors :/
 		
 		-- Remove some or all of these includes if they're not needed
 		IncludeHelpersExtended()

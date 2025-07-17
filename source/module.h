@@ -1,3 +1,5 @@
+#pragma once
+
 #include "public/imodule.h"
 #include <vector>
 #include "unordered_set"
