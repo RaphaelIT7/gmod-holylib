@@ -29,6 +29,7 @@ jobs:
       SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
       BUILD_CACHE: "true"
+      UPLOAD_PDB: "true"
 
   build_plugin_linux:
     name: "Build Plugin"
