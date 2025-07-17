@@ -162,14 +162,15 @@ static void hook_CLuaInterface_Shutdown(GarrysMod::Lua::ILuaInterface* LUA)
 }
 
 static Detouring::Hook detour_GMOD_LoadBinaryModule;
-static void hook_GMOD_LoadBinaryModule(lua_State* L, const char* pFileName)
+static int hook_GMOD_LoadBinaryModule(lua_State* L, const char* pFileName)
 {
 	g_pModuleManager.PreLuaModuleLoaded(L, pFileName);
 
-	detour_GMOD_LoadBinaryModule.GetTrampoline<Symbols::GMOD_LoadBinaryModule>()(L, pFileName); 
-	// Garbage collection will kick in so our remaining objects could call theirs __gc function so g_Lua still needs to be valid.
+	bool retCode = detour_GMOD_LoadBinaryModule.GetTrampoline<Symbols::GMOD_LoadBinaryModule>()(L, pFileName); 
 
 	g_pModuleManager.PostLuaModuleLoaded(L, pFileName);
+
+	return retCode;
 }
 
 void Lua::AddDetour() // Our Lua Loader.

@@ -143,7 +143,7 @@ namespace Symbols
 	typedef void (*SteamGameServer_Shutdown)();
 	extern const std::vector<Symbol> SteamGameServer_ShutdownSym;
 
-	typedef void (*GMOD_LoadBinaryModule)(lua_State* L, const char* pFileName);
+	typedef int (*GMOD_LoadBinaryModule)(lua_State* L, const char* pFileName);
 	extern const std::vector<Symbol> GMOD_LoadBinaryModuleSym;
 
 	//---------------------------------------------------------------------------------
