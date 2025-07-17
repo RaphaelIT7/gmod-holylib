@@ -9,6 +9,7 @@
 #include "player.h"
 #include "detours.h"
 #include "toolframework/itoolentity.h"
+#include "GarrysMod/IGet.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -533,22 +534,36 @@ void Util::Load()
 		while (pCur)
 		{
 			pNext = pCur->InternalNext();
-			if (!pCur->IsCommand())
+			if (pCur->IsCommand())
 			{
-				ConVar* pConVar = (ConVar*)pCur;
-				if (pSkipConVars.find(pConVar) == pSkipConVars.end())
-				{
-					Bootil::Data::Tree& pEntry = pData.GetChild(pCur->GetName());
-					Bootil::BString pDefault = pEntry.EnsureChildVar<Bootil::BString>("default", pConVar->GetDefault());
-					if (pDefault == (std::string_view)pConVar->GetDefault())
-					{
-						pConVar->SetValue(pEntry.EnsureChildVar<Bootil::BString>("value", pConVar->GetString()).c_str());
-					} else {
-						pEntry.GetChild("value").Var((Bootil::BString)pConVar->GetString());
-					}
-					pEntry.EnsureChildVar<Bootil::BString>("help", pConVar->GetHelpText());
-				}
+				pCur = pNext;
+				continue;
 			}
+
+			ConVar* pConVar = (ConVar*)pCur;
+			if (pSkipConVars.find(pConVar)	!= pSkipConVars.end())
+			{
+				pCur = pNext;
+				continue;
+			}
+
+			Bootil::BString strName = pCur->GetName();
+			if (strName.length() <= 0)
+			{
+				pCur = pNext;
+				continue;
+			}
+
+			Bootil::Data::Tree& pEntry = pData.GetChild(strName);
+			Bootil::BString pDefault = pEntry.EnsureChildVar<Bootil::BString>("default", pConVar->GetDefault());
+			if (pDefault == (std::string_view)pConVar->GetDefault())
+			{
+				pConVar->SetValue(pEntry.EnsureChildVar<Bootil::BString>("value", pConVar->GetString()).c_str());
+			} else {
+				pEntry.GetChild("value").Var((Bootil::BString)pConVar->GetString());
+			}
+			pEntry.EnsureChildVar<Bootil::BString>("help", pConVar->GetHelpText());
+
 			pCur = pNext;
 		}
 
@@ -584,6 +599,13 @@ static void CreateDebugDump(const CCommand &args)
 		pInformation.EnsureChildVar<int>("numproxies", Util::server->GetNumProxies());
 		pInformation.EnsureChildVar<int>("tick", Util::server->GetTick());
 		pInformation.EnsureChildVar<int>("tickinterval", Util::server->GetTickInterval());
+
+		if (Util::get)
+		{
+			pInformation.EnsureChildVar<Bootil::BString>("version", Util::get->VersionStr());
+			pInformation.EnsureChildVar<Bootil::BString>("versionTime", Util::get->VersionTimeStr());
+			pInformation.EnsureChildVar<Bootil::BString>("branch", Util::get->SteamBranch());
+		}
 
 		// Dump all holylib convars.
 		{
