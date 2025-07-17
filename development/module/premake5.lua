@@ -148,3 +148,12 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 					"pthread",
 					"bass",
 				}
+
+		filter("configurations:ReleaseWithSymbols")
+			optimize("Full")
+
+			buildoptions({
+				"-O3",
+				"-fno-rtti",
+				"-fomit-frame-pointer",
+			})
