@@ -847,36 +847,8 @@ namespace Symbols
 		Symbol::FromName("_Z14NET_SendPacketP11INetChanneliRK8netadr_sPKhiP8bf_writeb"),
 	};
 
-	const std::vector<Symbol> CNetChan_CreateFragmentsFromBufferSym = {
-		Symbol::FromName("_ZN8CNetChan25CreateFragmentsFromBufferEP8bf_writei"),
-	};
-
-	const std::vector<Symbol> CNetChan_SendSubChannelDataSym = {
-		Symbol::FromName("_ZN8CNetChan18SendSubChannelDataER8bf_write"),
-	};
-
-	const std::vector<Symbol> CNetChan_FlowNewPacketSym = {
-		Symbol::FromName("_ZN8CNetChan13FlowNewPacketEiiiiii"),
-	};
-
-	const std::vector<Symbol> CNetChan_FlowUpdateSym = {
-		Symbol::FromName("_ZN8CNetChan10FlowUpdateEii"),
-	};
-
 	const std::vector<Symbol> CNetChan_SendDatagramSym = {
 		Symbol::FromName("_ZN8CNetChan12SendDatagramEP8bf_write"),
-	};
-
-	const std::vector<Symbol> CNetChan_UpdateSubChannelsSym = {
-		Symbol::FromName("_ZN8CNetChan17UpdateSubChannelsEv"),
-	};
-
-	const std::vector<Symbol> CNetChan_CheckWaitingListSym = {
-		Symbol::FromName("_ZN8CNetChan16CheckWaitingListEi"),
-	};
-
-	const std::vector<Symbol> CNetChan_ProcessPacketHeaderSym = {
-		Symbol::FromName("_ZN8CNetChan19ProcessPacketHeaderEP11netpacket_s"),
 	};
 
 	const std::vector<Symbol> CNetChan_D2Sym = {

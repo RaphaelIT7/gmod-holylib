@@ -597,29 +597,8 @@ namespace Symbols
 	typedef int (*NET_SendPacket)(INetChannel *chan, int sock, const netadr_t &to, const unsigned char *data, int length, bf_write *pVoicePayload /* = NULL */, bool bUseCompression /*=false*/);
 	extern const std::vector<Symbol> NET_SendPacketSym;
 
-	typedef bool (*CNetChan_CreateFragmentsFromBuffer)(CNetChan* channel, bf_write *buffer, int stream);
-	extern const std::vector<Symbol> CNetChan_CreateFragmentsFromBufferSym;
-
-	typedef bool (*CNetChan_SendSubChannelData)(CNetChan* channel, bf_write &buf);
-	extern const std::vector<Symbol> CNetChan_SendSubChannelDataSym;
-
-	typedef void (*CNetChan_FlowNewPacket)(CNetChan* channel, int flow, int seqnr, int acknr, int nChoked, int nDropped, int nSize);
-	extern const std::vector<Symbol> CNetChan_FlowNewPacketSym;
-
-	typedef void (*CNetChan_FlowUpdate)(CNetChan* channel, int flow, int addbytes);
-	extern const std::vector<Symbol> CNetChan_FlowUpdateSym;
-
 	typedef int (*CNetChan_SendDatagram)(CNetChan* chan, bf_write *datagram);
 	extern const std::vector<Symbol> CNetChan_SendDatagramSym;
-
-	typedef void (*CNetChan_UpdateSubChannels)(CNetChan* channel);
-	extern const std::vector<Symbol> CNetChan_UpdateSubChannelsSym;
-
-	typedef void (*CNetChan_CheckWaitingList)(CNetChan* channel, int nList);
-	extern const std::vector<Symbol> CNetChan_CheckWaitingListSym;
-
-	typedef int (*CNetChan_ProcessPacketHeader)(CNetChan* chan, netpacket_t* packet);
-	extern const std::vector<Symbol> CNetChan_ProcessPacketHeaderSym;
 
 	typedef void (*CNetChan_D2)(CNetChan* chan);
 	extern const std::vector<Symbol> CNetChan_D2Sym;

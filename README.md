@@ -96,6 +96,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [#] Fixed possible undefined behavor & two buffer overflows in `gameserver` module.  
 \- [#] Updated `VoiceStream` file structure to also save the server tickrate and include a file version.  
 \- \- The `VoiceStream` now properly updates the tickCount for the saved `VoiceData` to scale the tickCount when the server changed tickrate which should ensure the audio remains usable.
+\- [#] Fixed a issue with the `gameserver` moduel causing random `Lost Connection` disconnects (See https://github.com/RaphaelIT7/gmod-holylib/issues/51)  
 
 > [!WARNING]
 > The current builds are unstable and need **A LOT** of testing.  
@@ -112,6 +113,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 \- [#] Changed `VoiceData:GetUncompressedData` to now returns a statusCode/a number on failure instead of possibly returning a garbage string.  
 \- [#] Limited `HttpServer:SetName` to have a length limit of `64` characters.  
 \- [#] Fixed `IGModAudioChannel:IsValid` throwing a error when it's NULL instead of returning false.  
+\- [-] Removed `CBaseClient:Transmit` third argument `fragments`.  
 \- [-] Removed `gameserver.CalculateCPUUsage` and `gameserver.ApproximateProcessMemoryUsage` since they never worked.  
 
 ### QoL updates
@@ -3809,7 +3811,7 @@ Returns the voice stream used by the voice chat.
 #### CBaseClient:SetTimeout(number seconds)
 Sets the time in seconds before the client is marked as timing out.
 
-#### bool CBaseClient:Transmit(bool onlyReliable = false, number fragments = -1, bool freeSubChannels = false)
+#### bool CBaseClient:Transmit(bool onlyReliable = false, bool freeSubChannels = false)
 Transmit any pending data to the client.  
 Returns `true` on success.
 
