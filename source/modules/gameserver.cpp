@@ -72,14 +72,8 @@ LUA_FUNCTION_STATIC(CBaseClient_GetTable)
 {
 	LuaUserData* data = Get_CBaseClient_Data(LUA, 1, true);
 	CBaseClient* pClient = (CBaseClient*)data->GetData();
-	if (data->GetAdditionalData() != pClient->GetUserID())
-	{
-		data->SetAdditionalData(pClient->GetUserID());
-		data->ClearLuaTable();
-	}
 
 	Util::ReferencePush(LUA, data->GetLuaTable()); // This should never crash so no safety checks.
-
 	return 1;
 }
 
@@ -2767,7 +2761,7 @@ void hook_CGameClient_SpawnPlayer(CGameClient* client)
 // Called by Util from CSteam3Server::NotifyClientDisconnect
 void CGameServerModule::OnClientDisconnect(CBaseClient* pClient)
 {
-	if (pClient->GetServer() != Util::server)
+	if (pClient->GetServer() != Util::server) // Not our main server
 		return;
 
 	if (g_Lua)
@@ -2775,7 +2769,9 @@ void CGameServerModule::OnClientDisconnect(CBaseClient* pClient)
 		if (Lua::PushHook("HolyLib:OnClientDisconnect"))
 		{
 			Push_CBaseClient(g_Lua, pClient);
+			LuaUserData* pData = Get_CBaseClient_Data(g_Lua, -1, false);
 			g_Lua->CallFunctionProtected(2, 0, true);
+			pData->ClearLuaTable();
 		}
 
 		Delete_CBaseClient(g_Lua, pClient);

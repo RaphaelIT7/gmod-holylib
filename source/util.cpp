@@ -10,6 +10,7 @@
 #include "detours.h"
 #include "toolframework/itoolentity.h"
 #include "GarrysMod/IGet.h"
+#include <lua.h>
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -24,10 +25,67 @@ CUserMessages* Util::pUserMessages;
 
 bool g_pRemoveLuaUserData = true;
 std::unordered_set<LuaUserData*> g_pLuaUserData;
+#if HOLYLIB_UTIL_BASEUSERDATA && HOLYLIB_UTIL_GLOBALUSERDATA 
+std::shared_mutex g_UserDataMutex;
 std::unordered_map<void*, BaseUserData*> g_pGlobalLuaUserData;
+#endif
 
 std::unordered_set<int> Util::g_pReference;
 ConVar Util::holylib_debug_mainutil("holylib_debug_mainutil", "1");
+
+// We require this here since we depend on the Lua namespace
+void LuaUserData::ForceGlobalRelease(void* pData)
+{
+#if HOLYLIB_UTIL_DEBUG_BASEUSERDATA
+	Msg("holylib - util: Global release for Userdata %p (%p) got aquired %i\n", it->second, pData, it->second->m_iReferenceCount);
+#endif
+
+	bool bFound = false;
+	const std::unordered_set<Lua::StateData*> pStateData = Lua::GetAllLuaData();
+	for (Lua::StateData* pState : pStateData)
+	{
+		std::unordered_map<void*, LuaUserData*> owningData = pState->GetPushedUserData(); // Copy it over in case it->second gets deleted while iterating
+		auto it2 = owningData.find(pData);
+		if (it2 == owningData.end())
+			continue;
+		
+		bFound = true;
+		for (auto& [_, userData] : owningData)
+		{
+			if (userData->GetData())
+			{
+				userData->SetData(NULL); // Remove any references any LuaUserData holds to us.
+			}
+		}
+	}
+
+	if (!bFound)
+		return;
+
+	/*
+		We need to pull it again since the it->second might have now been deleted.
+		This is because SetData internally releases the UserData it holds and the UserData will delete itself if all references were freed
+	*/
+	for (Lua::StateData* pState : pStateData)
+	{
+		std::unordered_map<void*, LuaUserData*> owningData = pState->GetPushedUserData(); // Copy it over in case it->second gets deleted while iterating
+		auto it2 = owningData.find(pData);
+		if (it2 == owningData.end())
+			continue;
+
+		// Reference leak case. This should normally never happen.
+#if HOLYLIB_UTIL_BASEUSERDATA 
+//#if HOLYLIB_UTIL_DEBUG_BASEUSERDATA
+		Warning(PROJECT_NAME " - BaseUserData: Found a reference leak while deleting it! (%p, %p, %i)\n", pData, it2->second, it2->second->GetReferenceCount());
+//#endif
+
+		it2->second-> = 1; // Set it to 1 because Release will only fully execute if there aren't any other references left.
+		it2->second->Release(NULL);
+#else
+		it2->second->Release();
+#endif
+	}
+}
 
 CBasePlayer* Util::Get_Player(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError) // bError = error if not a valid player
 {

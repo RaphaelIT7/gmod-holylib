@@ -105,7 +105,10 @@ void Lua::Shutdown()
 			continue;
 
 		if (Util::holylib_debug_mainutil.GetBool())
-			Msg(PROJECT_NAME ": This should NEVER happen! Discarding of old userdata %p (Type: %i - %i)\n", ref, ref->GetType(), Lua::GetLuaData(g_Lua)->FindMetaTable(ref->GetType()));
+		{
+			int iType = ref->GetType();
+			Msg(PROJECT_NAME ": This should NEVER happen! Discarding of old userdata %p (Type: %i - %i)\n", ref, iType, (iType > 0) && Lua::GetLuaData(g_Lua)->FindMetaTable(iType) || 0);
+		}
 
 		delete ref;
 	}

@@ -7,6 +7,7 @@
 #include <algorithm>
 #include "symbols.h"
 #include "unordered_set"
+#include <shared_mutex>
 
 #define DEDICATED
 #include "vstdlib/jobthread.h"
@@ -313,34 +314,52 @@ namespace Util
  * NOTE:
  * Memory usage is utter garbage.
  * For UserData which stores a few bytes (often 4) we setup UserData that has a average size of 60 bytes...
+ * 
+ * Update:
+ * Memory usage improved noticably
+ * Also we don't even need this class
  */
 
+// We had previously kept stuff in a global unordered_map though we don't even need it at all
+#define HOLYLIB_UTIL_GLOBALUSERDATA 0
+#define HOLYLIB_UTIL_BASEUSERDATA 0
+
+#if HOLYLIB_UTIL_BASEUSERDATA
 struct LuaUserData;
 struct BaseUserData;
-extern std::unordered_map<void*, BaseUserData*> g_pGlobalLuaUserData; // A set containing all BaseUserData
+#if HOLYLIB_UTIL_GLOBALUSERDATA
+extern std::shared_mutex g_UserDataMutex; // Needed to keep g_pGlobalLuaUserData thread safe
+extern std::unordered_map<void*, BaseUserData*> g_pGlobalLuaUserData; // A set containing all BaseUserData.
+#endif
 struct BaseUserData {
 	BaseUserData(void* data)
 	{
 		m_pData = data;
+#if HOLYLIB_UTIL_GLOBALUSERDATA
+		std::unique_lock lock(g_UserDataMutex);
 		g_pGlobalLuaUserData[m_pData] = this; // Link it
+#endif
 	}
 
 	~BaseUserData()
 	{
+#if HOLYLIB_UTIL_GLOBALUSERDATA
 		if (m_pData != NULL)
 		{
+			std::shared_lock lock(g_UserDataMutex);
 			auto it = g_pGlobalLuaUserData.find(m_pData);
 			if (it != g_pGlobalLuaUserData.end())
 				g_pGlobalLuaUserData.erase(it);
 		}
+#endif
 
 		m_pData = NULL;
 	}
 
 	inline void* GetData(GarrysMod::Lua::ILuaInterface* pLua)
 	{
-		if (m_bLocked && pLua != m_pOwningLua)
-			return NULL;
+		//if (m_bLocked && pLua != m_pOwningLua)
+		//	return NULL;
 
 		return m_pData;
 	}
@@ -363,30 +382,21 @@ struct BaseUserData {
 	 */
 	inline void SetLocked(bool bLocked)
 	{
-		m_bLocked = bLocked;
+		// m_bLocked = bLocked;
 	}
 
 	inline bool Release(LuaUserData* pLuaUserData)
 	{
-		m_pMutex.Lock();
 #if HOLYLIB_UTIL_DEBUG_BASEUSERDATA
 		Msg("holylib - util: Userdata %p(%p) tried to release %i (%p)\n", this, m_pData, m_iReferenceCount, pLuaUserData);
 #endif
-		if (m_iReferenceCount == 0) // Don't accidentally delete it again...
-		{
-			m_pMutex.Unlock();
-			return false;
-		}
 
-		--m_iReferenceCount;
 #if HOLYLIB_UTIL_DEBUG_BASEUSERDATA
 		Msg("holylib - util: Userdata %p(%p) got released %i (%p)\n", this, m_pData, m_iReferenceCount, pLuaUserData);
 #endif
-		m_pOwningData.erase(pLuaUserData);
 
-		if (m_iReferenceCount == 0)
+		if (m_iReferenceCount.fetch_sub(1, std::memory_order_acq_rel) == 1)
 		{
-			m_pMutex.Unlock();
 #if HOLYLIB_UTIL_DEBUG_BASEUSERDATA
 		Msg("holylib - util: Userdata %p(%p) got deleted %i (%p)\n", this, m_pData, m_iReferenceCount, pLuaUserData);
 #endif
@@ -394,7 +404,6 @@ struct BaseUserData {
 			return true;
 		}
 
-		m_pMutex.Unlock();
 		return false;
 	}
 
@@ -403,47 +412,45 @@ struct BaseUserData {
 		if (!pData)
 			return NULL;
 
+#if HOLYLIB_UTIL_GLOBALUSERDATA
+		std::shared_lock lock(g_UserDataMutex);
 		auto it = g_pGlobalLuaUserData.find(pData);
 		if (it != g_pGlobalLuaUserData.end())
 		{
 			it->second->Aquire();
 			return it->second;
 		}
+#endif
 
 		BaseUserData* pUserData = new BaseUserData(pData);
 		pUserData->Aquire(); // Increment counter
-		pUserData->m_pOwningData.insert(pLuaUserData);
 		return pUserData;
 	}
 
 	inline int GetReferenceCount()
 	{
-		return m_iReferenceCount;
+		return m_iReferenceCount.load(std::memory_order_relaxed);
 	}
-
-	static inline void ForceGlobalRelease(void* pData);
 
 private:
 	inline void Aquire()
 	{
-		m_pMutex.Lock();
-		++m_iReferenceCount;
-		m_pMutex.Unlock();
+		m_iReferenceCount.fetch_add(1, std::memory_order_relaxed);
 #if HOLYLIB_UTIL_DEBUG_BASEUSERDATA
 		Msg("holylib - util: Userdata %p(%p) got aquired %i\n", this, m_pData, m_iReferenceCount);
 #endif
 	}
 
 	void* m_pData = NULL;
-	bool m_bLocked = false;
-	GarrysMod::Lua::ILuaInterface* m_pOwningLua = NULL;
+	// GarrysMod::Lua::ILuaInterface* m_pOwningLua = NULL; // ToDo: We don't even set the m_pOwningLua right now.
 
-	unsigned int m_iReferenceCount = 0;
-	std::unordered_set<LuaUserData*> m_pOwningData;
-	CThreadFastMutex m_pMutex;
+	//bool m_bLocked = false;
+	std::atomic<unsigned int> m_iReferenceCount = 0;
 };
+#endif
 
 #if HOLYLIB_UTIL_DEBUG_LUAUSERDATA
+struct LuaUserData;
 extern bool g_pRemoveLuaUserData;
 extern std::unordered_set<LuaUserData*> g_pLuaUserData; // A set containing all LuaUserData that actually hold a reference.
 #endif
@@ -499,13 +506,13 @@ struct LuaUserData {
 			iTableReference = -1;
 		}
 
-		pAdditionalData = NULL;
-
+#if HOLYLIB_UTIL_BASEUSERDATA
 		if (pBaseData != NULL)
 		{
 			pBaseData->Release(this);
 			pBaseData = NULL;
 		}
+#endif
 
 #if HOLYLIB_UTIL_DEBUG_LUAUSERDATA == 2
 		Msg("holylib - util: LuaUserdata got deleted %p\n", this);
@@ -515,7 +522,6 @@ struct LuaUserData {
 	inline void Init(GarrysMod::Lua::ILuaInterface* LUA, int type)
 	{
 		pLua = LUA;
-		iType = (unsigned char)type;
 
 #if HOLYLIB_UTIL_DEBUG_LUAUSERDATA == 2
 		Msg("holylib - util: LuaUserdata got initialized %p - %p - %i\n", this, pLua, type);
@@ -547,6 +553,7 @@ struct LuaUserData {
 #endif
 	}
 
+#if HOLYLIB_UTIL_BASEUSERDATA
 	inline void* GetData()
 	{
 		return pBaseData ? pBaseData->GetData(pLua) : NULL;
@@ -556,6 +563,12 @@ struct LuaUserData {
 	{
 		return pBaseData;
 	}
+#else
+	inline void* GetData()
+	{
+		return m_pData;
+	}
+#endif
 
 	inline void SetData(void* data)
 	{
@@ -563,6 +576,7 @@ struct LuaUserData {
 		Msg("holylib - util: LuaUserdata got new data %p - %p\n", this, data);
 #endif
 
+#if HOLYLIB_UTIL_BASEUSERDATA
 		if (pBaseData != NULL)
 		{
 			pBaseData->Release(this);
@@ -573,16 +587,9 @@ struct LuaUserData {
 		{
 			pBaseData = BaseUserData::LuaAquire(this, data);
 		}
-	}
-
-	inline int GetAdditionalData()
-	{
-		return pAdditionalData;
-	}
-
-	inline void SetAdditionalData(int data)
-	{
-		pAdditionalData = data;
+#else
+		m_pData = data;
+#endif
 	}
 
 	inline int GetLuaTable()
@@ -609,11 +616,6 @@ struct LuaUserData {
 		return iReference;
 	}
 
-	inline int GetType()
-	{
-		return iType;
-	}
-
 	inline bool Push()
 	{
 		if (iReference == -1)
@@ -629,6 +631,7 @@ struct LuaUserData {
 		Msg("holylib - util: LuaUserdata got created released %p\n", this);
 #endif
 
+#if HOLYLIB_UTIL_BASEUSERDATA
 		if (pBaseData != NULL)
 		{
 			bool bDelete = pBaseData->Release(this);
@@ -639,52 +642,37 @@ struct LuaUserData {
 
 		delete this;
 		return false;
+#else
+		delete this;
+		return true;
+#endif
 	}
+
+	// This is slower than just storing the type, but we generally won't call this function by any normal usecase which requires high performance.
+	inline bool GetType()
+	{
+		if (Push())
+		{
+			int iType = pLua->GetType(-1);
+			pLua->Pop(1);
+			return iType;
+		}
+
+		return -1;
+	}
+
+	static void ForceGlobalRelease(void* pData);
 
 private:
+#if HOLYLIB_UTIL_BASEUSERDATA
 	BaseUserData* pBaseData = NULL;
+#else
+	void* m_pData = NULL;
+#endif
+	GarrysMod::Lua::ILuaInterface* pLua = NULL;
 	int iReference = -1;
 	int iTableReference = -1;
-	int pAdditionalData = NULL; // Used by HLTVClient.
-	GarrysMod::Lua::ILuaInterface* pLua = NULL;
-	unsigned char iType = GarrysMod::Lua::Type::Nil;
 };
-
-inline void BaseUserData::ForceGlobalRelease(void* pData)
-{
-	auto it = g_pGlobalLuaUserData.find(pData);
-	if (it == g_pGlobalLuaUserData.end())
-		return;
-
-#if HOLYLIB_UTIL_DEBUG_BASEUSERDATA
-	Msg("holylib - util: Global release for Userdata %p (%p) got aquired %i\n", it->second, pData, it->second->m_iReferenceCount);
-#endif
-
-	std::unordered_set<LuaUserData*> owningData = it->second->m_pOwningData; // Copy it over in case it->second gets deleted while iterating
-	for (auto& userData : owningData)
-	{
-		if (userData->GetInternalData())
-		{
-			userData->SetData(NULL); // Remove any references any LuaUserData holds to us.
-		}
-	}
-
-	/*
-		We need to pull it again since the it->second might have now been deleted.
-		This is because SetData internally releases the UserData it holds and the UserData will delete itself if all references were freed
-	*/
-	auto it2 = g_pGlobalLuaUserData.find(pData);
-	if (it2 == g_pGlobalLuaUserData.end())
-		return;
-
-	// Reference leak case. This should normally never happen.
-//#if HOLYLIB_UTIL_DEBUG_BASEUSERDATA
-	Warning(PROJECT_NAME " - BaseUserData: Found a reference leak while deleting it! (%p, %p, %i)\n", pData, it2->second, it2->second->m_iReferenceCount);
-//#endif
-
-	it2->second->m_iReferenceCount = 1; // Set it to 1 because Release will only fully execute if there aren't any other references left.
-	it2->second->Release(NULL);
-}
 
 #define TO_LUA_TYPE( className ) Lua::className
 
@@ -880,7 +868,7 @@ void Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
 \
 [[maybe_unused]] static void DeleteGlobal_##className(className* var) \
 { \
-	BaseUserData::ForceGlobalRelease(var); \
+	LuaUserData::ForceGlobalRelease(var); \
 }
 
 #define Vector_RemoveElement(vec, element) \
