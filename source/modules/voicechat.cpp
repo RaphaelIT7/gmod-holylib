@@ -28,6 +28,7 @@ public:
 	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax);
 	virtual void LevelShutdown() OVERRIDE;
+	virtual void Shutdown() OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual void LuaThink(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void PreLuaModuleLoaded(lua_State* L, const char* pFileName) OVERRIDE;
@@ -1474,6 +1475,17 @@ static void VoiceStreamJob(VoiceStreamTask*& task)
 	}
 }
 
+static void AddVoiceJobToPool(VoiceStreamTask* pTask)
+{
+	if (!pVoiceThreadPool)
+	{
+		pVoiceThreadPool = V_CreateThreadPool();
+		Util::StartThreadPool(pVoiceThreadPool, voicechat_threads.GetInt());
+	}
+
+	pVoiceThreadPool->QueueCall(&VoiceStreamJob, pTask);
+}
+
 LUA_FUNCTION_STATIC(voicechat_LoadVoiceStream)
 {
 	LuaVoiceModuleData* pData = (LuaVoiceModuleData*)Lua::GetLuaData(LUA)->GetModuleData(g_pVoiceChatModule.m_pID);
@@ -1497,7 +1509,7 @@ LUA_FUNCTION_STATIC(voicechat_LoadVoiceStream)
 		LUA->Push(4);
 		task->iCallback = Util::ReferenceCreate(LUA, "voicechat.LoadVoiceStream - callback");
 		pData->pVoiceStreamTasks.insert(task);
-		pVoiceThreadPool->QueueCall(&VoiceStreamJob, task);
+		AddVoiceJobToPool(task);
 		return 0;
 	} else {
 		VoiceStreamJob(task);
@@ -1536,7 +1548,7 @@ LUA_FUNCTION_STATIC(voicechat_SaveVoiceStream)
 		LUA->Push(5);
 		task->iCallback = Util::ReferenceCreate(LUA, "voicechat.SaveVoiceStream - callback");
 		pData->pVoiceStreamTasks.insert(task);
-		pVoiceThreadPool->QueueCall(&VoiceStreamJob, task);
+		AddVoiceJobToPool(task);
 		return 0;
 	} else {
 		VoiceStreamJob(task);
@@ -1697,6 +1709,12 @@ void CVoiceChatModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServer
 void CVoiceChatModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	Util::NukeTable(pLua, "voicechat");
+}
+
+void CVoiceChatModule::Shutdown()
+{
+	V_DestroyThreadPool(pVoiceThreadPool);
+	pVoiceThreadPool = NULL;
 }
 
 IVoiceServer* g_pVoiceServer = NULL;
