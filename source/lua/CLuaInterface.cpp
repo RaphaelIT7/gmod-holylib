@@ -731,7 +731,7 @@ void CLuaInterface::PushUserType(void* data, int iType)
 {
 	LuaDebugPrint(2, "CLuaInterface::PushUserType %i\n", iType);
 
-	UserData* udata = NewUserdata(8);
+	UserData* udata = NewUserdata(sizeof(UserData));
 	udata->data = data;
 	udata->type = (unsigned char)iType;
 

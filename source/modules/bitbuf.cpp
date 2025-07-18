@@ -962,15 +962,13 @@ LUA_FUNCTION_STATIC(bitbuf_CreateReadBuffer)
 
 LUA_FUNCTION_STATIC(bitbuf_CreateWriteBuffer)
 {
+	bf_write* pNewBf = new bf_write;
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Number))
 	{
 		int iSize = CLAMP_BF((int)LUA->CheckNumber(1));
 		unsigned char* cData = new unsigned char[iSize];
 
-		bf_write* pNewBf = new bf_write;
 		pNewBf->StartWriting(cData, iSize);
-
-		Push_bf_write(LUA, pNewBf, true);
 	} else {
 		const char* pData = LUA->CheckString(1);
 		int iLength = LUA->ObjLen(1);
@@ -979,11 +977,9 @@ LUA_FUNCTION_STATIC(bitbuf_CreateWriteBuffer)
 		unsigned char* cData = new unsigned char[iNewLength];
 		memcpy(cData, pData, iLength);
 
-		bf_write* pNewBf = new bf_write;
 		pNewBf->StartWriting(cData, iNewLength);
-
-		Push_bf_write(LUA, pNewBf, true);
 	}
+	Push_bf_write(LUA, pNewBf, true);
 
 	return 1;
 }
