@@ -972,18 +972,18 @@ static void UpdatePlayerTalkingState(CBasePlayer* pPlayer, bool bIsTalking = fal
 		{
 			if (g_pVoiceChatModule.InDebug() == 2)
 			{
-				Msg("Skipping voice player update since their not talking! (%i, %s, %f, %f)\n", iClient, g_bIsPlayerTalking[iClient] ? "true" : "false", fTime, voicechat_stopdelay.GetFloat());
+				Msg("Skipping voice player update since their not talking! (%i, %f, %f, %f)\n", iClient, fTime, g_fLastPlayerTalked[iClient], voicechat_stopdelay.GetFloat());
 			}
 
 			return;
 		}
 	}
 
-	if ((g_fLastPlayerUpdated[iClient] + voicechat_updateinterval.GetFloat()) > fTime)
+	if ((g_bIsPlayerTalking[iClient] == bIsTalking || !bIsTalking) && (g_fLastPlayerUpdated[iClient] + voicechat_updateinterval.GetFloat()) > fTime)
 	{
 		if (g_pVoiceChatModule.InDebug() == 2)
 		{
-			Msg("Skipping voice player update! (%i, %s, %f, %f, %f)\n", iClient, bIsTalking ? "true" : "false", g_fLastPlayerUpdated[iClient], fTime, voicechat_updateinterval.GetFloat());
+			Msg("Skipping voice player update! (%i, %s, %s, %f, %f, %f)\n", iClient, bIsTalking ? "true" : "false", g_bIsPlayerTalking[iClient] ? "true" : "false", g_fLastPlayerUpdated[iClient], fTime, voicechat_updateinterval.GetFloat());
 		}
 
 		return;
@@ -991,7 +991,7 @@ static void UpdatePlayerTalkingState(CBasePlayer* pPlayer, bool bIsTalking = fal
 
 	if (g_pVoiceChatModule.InDebug() == 2)
 	{
-		Msg("Doing voice player update! (%i, %s, %f, %f, %f)\n", iClient, bIsTalking ? "true" : "false", g_fLastPlayerUpdated[iClient], fTime, voicechat_updateinterval.GetFloat());
+		Msg("Doing voice player update! (%i, %s, %s, %f, %f, %f)\n", iClient, bIsTalking ? "true" : "false", g_bIsPlayerTalking[iClient] ? "true" : "false", g_fLastPlayerUpdated[iClient], fTime, voicechat_updateinterval.GetFloat());
 	}
 
 	CSingleUserRecipientFilter user( pPlayer );
@@ -1019,7 +1019,7 @@ static void UpdatePlayerTalkingState(CBasePlayer* pPlayer, bool bIsTalking = fal
 		{
 			CBaseEntity *pEnt = Util::GetCBaseEntityFromEdict(Util::engineserver->PEntityOfEntIndex(iOtherClient + 1));
 			if(pEnt && pEnt->IsPlayer() && 
-				(bCanHearHimself && iOtherClient == iClient || (bAllTalk || g_pManager->m_pHelper->CanPlayerHearPlayer((CBasePlayer*)pEnt, pPlayer, bProximity ))) )
+				(bCanHearHimself && (iOtherClient == iClient) || (bAllTalk || g_pManager->m_pHelper->CanPlayerHearPlayer((CBasePlayer*)pEnt, pPlayer, bProximity ))) )
 			{
 				gameRulesMask[iOtherClient] = true;
 				ProximityMask[iOtherClient] = bProximity;
@@ -1058,8 +1058,7 @@ static void UpdatePlayerTalkingState(CBasePlayer* pPlayer, bool bIsTalking = fal
 	}
 
 	g_fLastPlayerUpdated[iClient] = fTime;
-
-	if ((g_fLastPlayerTalked[iClient] + voicechat_stopdelay.GetFloat()) > fTime)
+	if (bIsTalking || (g_fLastPlayerTalked[iClient] + voicechat_stopdelay.GetFloat()) > fTime)
 	{
 		g_bIsPlayerTalking[iClient] = true;
 	} else {
@@ -1068,7 +1067,7 @@ static void UpdatePlayerTalkingState(CBasePlayer* pPlayer, bool bIsTalking = fal
 
 	if (g_pVoiceChatModule.InDebug() == 2)
 	{
-		Msg("Updated voice player! (%i, %s, %f, %f)\n", iClient, bIsTalking ? "true" : "false", fTime, (g_fLastPlayerTalked[iClient] + voicechat_stopdelay.GetFloat()));
+		Msg("Updated voice player! (%i, %s, %s, %f, %f, %f, %f)\n", iClient, bIsTalking ? "true" : "false", g_bIsPlayerTalking[iClient] ? "true" : "false", fTime, g_fLastPlayerTalked[iClient], (g_fLastPlayerTalked[iClient] + voicechat_stopdelay.GetFloat()), voicechat_stopdelay.GetFloat());
 	}
 }
 
