@@ -2151,6 +2151,10 @@ This module improves `GM:PlayerCanHearPlayersVoice` by calling it only for activ
 The hook is additionally NOT called for all players which would result in `currentPlayers * currentPlayers` calls of the hook.  
 Instead now its called only once for the player that is speaking resulting in `1 * currentPlayers` calls of the hook.  
 
+> [!NOTE]
+> If you have any issues with this optimization, check if `sv_alltalk` is enabled as the lua hook is **not** called when the convar is enabled!  
+> In the default Gmod behavior, it would get called even when `sv_alltalk` was enabled which changed with our optimization.  
+
 ### Functions
 
 #### voicechat.SendEmptyData(Player ply, number playerSlot = ply:EntIndex()-1)
