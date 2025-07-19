@@ -2,9 +2,7 @@
 -- setting x/y/z to a string that contains a number, will error, eg. v.x = "1" won't work but works in gmod
 -- cannot grab the metatable of the vector, nor edit it, so you cannot add custom methods to the vector
 
--- Collaboration between Raphael & Srlion (https://github.com/Srlion) <3 
-
-local POOL_SIZE = 20000
+-- Collaboration between Raphael & Srlion (https://github.com/Srlion) <3
 
 local CreateVector, isvector
 
@@ -21,26 +19,14 @@ end
 
 local type = type
 local tonumber = tonumber
-local table_remove = table.remove
-
-local POOL = {}
 
 local function Vector(x, y, z)
     -- Vector() in gmod, doesn't error for invalid arguments
     local vec = x
-    x, y, z = tonumber(x) or 0, tonumber(y) or 0, tonumber(z) or 0
     if isvector(vec) then
-        x = vec.x
-        y = vec.y
-        z = vec.z
+        return CreateVector(vec.x, vec.y, vec.z)
     end
-
-    local v_pool = table_remove(POOL)
-    if v_pool then
-        v_pool.x, v_pool.y, v_pool.z = x, y, z
-        return v_pool
-    end
-    return CreateVector(x, y, z)
+    return CreateVector(tonumber(x) or 0, tonumber(y) or 0, tonumber(z) or 0)
 end
 _G.Vector = Vector
 
@@ -71,11 +57,11 @@ local function check_num(value, arg_num, is_optional)
     return expect(value, "number", arg_num, is_optional)
 end
 
-local function check_vec(value, arg_num, is_optional, is_optionalType)
+local function check_vec(value, arg_num, is_optional)
     return expect(value, "Vector", arg_num, is_optional)
 end
 
-local function check_ang(value, arg_num, is_optional, is_optionalType)
+local function check_ang(value, arg_num, is_optional)
     return expect(value, "Angle", arg_num, is_optional)
 end
 
@@ -361,40 +347,40 @@ function methods:Rotate(rotation) -- This was painful.
     local pitch_angle = rotation[1]
     local yaw_angle   = rotation[2]
     local roll_angle  = rotation[3]
-    local radPitch = math.rad(pitch_angle)
-    local radYaw   = math.rad(yaw_angle)
-    local radRoll  = math.rad(roll_angle)
-    local sinPitch = math.sin(radPitch)
-    local cosPitch = math.cos(radPitch)
-    local sinYaw   = math.sin(radYaw)
-    local cosYaw   = math.cos(radYaw)
-    local sinRoll  = math.sin(radRoll)
-    local cosRoll  = math.cos(radRoll)
-    local x = self.x
-    local y = self.y
-    local z = self.z
-    local temp_x = x * cosPitch + z * sinPitch
-    local temp_z = -x * sinPitch + z * cosPitch
-    x = temp_x
-    z = temp_z
+    local radPitch    = math.rad(pitch_angle)
+    local radYaw      = math.rad(yaw_angle)
+    local radRoll     = math.rad(roll_angle)
+    local sinPitch    = math.sin(radPitch)
+    local cosPitch    = math.cos(radPitch)
+    local sinYaw      = math.sin(radYaw)
+    local cosYaw      = math.cos(radYaw)
+    local sinRoll     = math.sin(radRoll)
+    local cosRoll     = math.cos(radRoll)
+    local x           = self.x
+    local y           = self.y
+    local z           = self.z
+    local temp_x      = x * cosPitch + z * sinPitch
+    local temp_z      = -x * sinPitch + z * cosPitch
+    x                 = temp_x
+    z                 = temp_z
 
-    temp_x = x * cosYaw - y * sinYaw
-    local temp_y = x * sinYaw + y * cosYaw
-    x = temp_x
-    y = temp_y
+    temp_x            = x * cosYaw - y * sinYaw
+    local temp_y      = x * sinYaw + y * cosYaw
+    x                 = temp_x
+    y                 = temp_y
 
-    temp_y = y * cosRoll - z * sinRoll
-    temp_z = y * sinRoll + z * cosRoll
-    y = temp_y
-    z = temp_z
+    temp_y            = y * cosRoll - z * sinRoll
+    temp_z            = y * sinRoll + z * cosRoll
+    y                 = temp_y
+    z                 = temp_z
 
-    self.x = x
-    self.y = y
-    self.z = z
+    self.x            = x
+    self.y            = y
+    self.z            = z
 end
 
 function methods:ToColor()
-    return Color( self.x * 255, self.y * 255, self.z * 255, 255 )
+    return Color(self.x * 255, self.y * 255, self.z * 255, 255)
 end
 
 function methods:ToTable()
@@ -404,10 +390,10 @@ end
 function methods:WithinAABox(boxStart, boxEnd)
     check_vec(boxStart, 1)
     check_vec(boxEnd, 2)
-    
+
     return self.x >= boxStart.x and self.x <= boxEnd.x and
-           self.y >= boxStart.y and self.y <= boxEnd.y and
-           self.z >= boxStart.z and self.z <= boxEnd.z
+        self.y >= boxStart.y and self.y <= boxEnd.y and
+        self.z >= boxStart.z and self.z <= boxEnd.z
 end
 
 ---@class Vector
@@ -442,25 +428,6 @@ do
     end
 
     debug.setblocked(isvector)
-
-    local function initialize_vector_pool()
-        local function add_to_pool(v)
-            table.insert(POOL, v)
-            ffi.gc(v, add_to_pool)
-        end
-
-        for _ = 1, POOL_SIZE do
-            local v = CreateVector(0, 0, 0)
-            add_to_pool(v)
-        end
-    end
-
-    if timer.Simple then
-        -- Lot's of addons cache Vectors when they load, and main reason for the pool is for temporary vectors, so we need to avoid them using the vectors inside the pool
-        timer.Simple(0, initialize_vector_pool)
-    else
-        initialize_vector_pool()
-    end
 end
 
 jit.markFFITypeAsGmodUserData(Vector(1, 1, 1))
