@@ -649,7 +649,7 @@ struct LuaUserData {
 	}
 
 	// This is slower than just storing the type, but we generally won't call this function by any normal usecase which requires high performance.
-	inline bool GetType()
+	inline int GetType()
 	{
 		if (Push())
 		{
