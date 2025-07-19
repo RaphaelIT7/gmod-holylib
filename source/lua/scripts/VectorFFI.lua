@@ -4,8 +4,6 @@
 
 -- Collaboration between Raphael & Srlion (https://github.com/Srlion) <3
 
-local POOL_SIZE = 20000
-
 local CreateVector, isvector
 
 do
@@ -21,26 +19,14 @@ end
 
 local type = type
 local tonumber = tonumber
-local table_remove = table.remove
-
-local POOL = {}
 
 local function Vector(x, y, z)
     -- Vector() in gmod, doesn't error for invalid arguments
     local vec = x
-    x, y, z = tonumber(x) or 0, tonumber(y) or 0, tonumber(z) or 0
     if isvector(vec) then
-        x = vec.x
-        y = vec.y
-        z = vec.z
+        return CreateVector(vec.x, vec.y, vec.z)
     end
-
-    local v_pool = table_remove(POOL)
-    if v_pool then
-        v_pool.x, v_pool.y, v_pool.z = x, y, z
-        return v_pool
-    end
-    return CreateVector(x, y, z)
+    return CreateVector(tonumber(x) or 0, tonumber(y) or 0, tonumber(z) or 0)
 end
 _G.Vector = Vector
 
@@ -442,25 +428,6 @@ do
     end
 
     debug.setblocked(isvector)
-
-    local function initialize_vector_pool()
-        local function add_to_pool(v)
-            table.insert(POOL, v)
-            ffi.gc(v, add_to_pool)
-        end
-
-        for _ = 1, POOL_SIZE do
-            local v = CreateVector(0, 0, 0)
-            add_to_pool(v)
-        end
-    end
-
-    if timer.Simple then
-        -- Lot's of addons cache Vectors when they load, and main reason for the pool is for temporary vectors, so we need to avoid them using the vectors inside the pool
-        timer.Simple(0, initialize_vector_pool)
-    else
-        initialize_vector_pool()
-    end
 end
 
 jit.markFFITypeAsGmodUserData(Vector(1, 1, 1))
