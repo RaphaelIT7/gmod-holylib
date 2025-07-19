@@ -2,7 +2,7 @@
 -- setting x/y/z to a string that contains a number, will error, eg. v.x = "1" won't work but works in gmod
 -- cannot grab the metatable of the vector, nor edit it, so you cannot add custom methods to the vector
 
--- Collaboration between Raphael & Srlion (https://github.com/Srlion) <3 
+-- Collaboration between Raphael & Srlion (https://github.com/Srlion) <3
 
 local POOL_SIZE = 20000
 
@@ -361,40 +361,40 @@ function methods:Rotate(rotation) -- This was painful.
     local pitch_angle = rotation[1]
     local yaw_angle   = rotation[2]
     local roll_angle  = rotation[3]
-    local radPitch = math.rad(pitch_angle)
-    local radYaw   = math.rad(yaw_angle)
-    local radRoll  = math.rad(roll_angle)
-    local sinPitch = math.sin(radPitch)
-    local cosPitch = math.cos(radPitch)
-    local sinYaw   = math.sin(radYaw)
-    local cosYaw   = math.cos(radYaw)
-    local sinRoll  = math.sin(radRoll)
-    local cosRoll  = math.cos(radRoll)
-    local x = self.x
-    local y = self.y
-    local z = self.z
-    local temp_x = x * cosPitch + z * sinPitch
-    local temp_z = -x * sinPitch + z * cosPitch
-    x = temp_x
-    z = temp_z
+    local radPitch    = math.rad(pitch_angle)
+    local radYaw      = math.rad(yaw_angle)
+    local radRoll     = math.rad(roll_angle)
+    local sinPitch    = math.sin(radPitch)
+    local cosPitch    = math.cos(radPitch)
+    local sinYaw      = math.sin(radYaw)
+    local cosYaw      = math.cos(radYaw)
+    local sinRoll     = math.sin(radRoll)
+    local cosRoll     = math.cos(radRoll)
+    local x           = self.x
+    local y           = self.y
+    local z           = self.z
+    local temp_x      = x * cosPitch + z * sinPitch
+    local temp_z      = -x * sinPitch + z * cosPitch
+    x                 = temp_x
+    z                 = temp_z
 
-    temp_x = x * cosYaw - y * sinYaw
-    local temp_y = x * sinYaw + y * cosYaw
-    x = temp_x
-    y = temp_y
+    temp_x            = x * cosYaw - y * sinYaw
+    local temp_y      = x * sinYaw + y * cosYaw
+    x                 = temp_x
+    y                 = temp_y
 
-    temp_y = y * cosRoll - z * sinRoll
-    temp_z = y * sinRoll + z * cosRoll
-    y = temp_y
-    z = temp_z
+    temp_y            = y * cosRoll - z * sinRoll
+    temp_z            = y * sinRoll + z * cosRoll
+    y                 = temp_y
+    z                 = temp_z
 
-    self.x = x
-    self.y = y
-    self.z = z
+    self.x            = x
+    self.y            = y
+    self.z            = z
 end
 
 function methods:ToColor()
-    return Color( self.x * 255, self.y * 255, self.z * 255, 255 )
+    return Color(self.x * 255, self.y * 255, self.z * 255, 255)
 end
 
 function methods:ToTable()
@@ -404,10 +404,10 @@ end
 function methods:WithinAABox(boxStart, boxEnd)
     check_vec(boxStart, 1)
     check_vec(boxEnd, 2)
-    
+
     return self.x >= boxStart.x and self.x <= boxEnd.x and
-           self.y >= boxStart.y and self.y <= boxEnd.y and
-           self.z >= boxStart.z and self.z <= boxEnd.z
+        self.y >= boxStart.y and self.y <= boxEnd.y and
+        self.z >= boxStart.z and self.z <= boxEnd.z
 end
 
 ---@class Vector
