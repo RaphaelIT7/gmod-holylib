@@ -2647,7 +2647,6 @@ static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* tar
 	memcpy(target->m_GUID, origin->m_GUID, sizeof(origin->m_GUID));
 
 	target->m_fTimeLastNameChange = origin->m_fTimeLastNameChange;
-	target->m_bPlayerNameLocked = origin->m_bPlayerNameLocked;
 	memcpy(target->m_szPendingNameChange, origin->m_szPendingNameChange, sizeof(origin->m_szPendingNameChange));
 
 	/*

@@ -1135,7 +1135,9 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 	if (g_pVoiceChatModule.InDebug() == 1)
 		Msg("cl: %p\nbytes: %i\ndata: %p\n", pClient, nBytes, data);
 
+#if SYSTEM_LINUX
 	UpdatePlayerTalkingState(Util::GetPlayerByClient((CBaseClient*)pClient), true);
+#endif
 
 	if (!voicechat_hooks.GetBool())
 	{
@@ -1743,6 +1745,7 @@ void CVoiceChatModule::InitDetour(bool bPreServer)
 		(void*)hook_SV_BroadcastVoiceData, m_pID
 	);
 
+#if SYSTEM_LINUX
 	SourceSDK::FactoryLoader server_loader("server");
 	Detour::Create(
 		&detour_CVoiceGameMgr_Update, "CVoiceGameMgr::Update",
@@ -1764,6 +1767,7 @@ void CVoiceChatModule::InitDetour(bool bPreServer)
 
 	g_bWantModEnable = Detour::ResolveSymbol<CPlayerBitVec>(server_loader, Symbols::g_bWantModEnableSym);
 	Detour::CheckValue("get class", "g_bWantModEnable", g_bWantModEnable != NULL);
+#endif
 }
 
 void CVoiceChatModule::PreLuaModuleLoaded(lua_State* L, const char* pFileName)

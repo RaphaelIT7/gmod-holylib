@@ -554,6 +554,48 @@ namespace Symbols
 		Symbol::FromName("g_BSPData"),
 	};
 
+	const std::vector<Symbol> PackWork_t_ProcessSym = {
+		Symbol::FromName("_ZN10PackWork_t7ProcessERS_"),
+	};
+
+	const std::vector<Symbol> SV_PackEntitySym = {
+		NULL_SIGNATURE,
+		NULL_SIGNATURE,
+		Symbol::FromSignature("\x55\x8B\xEC\xB8\x58\xC4\x00\x00"), // 55 8B EC B8 58 C4 00 00
+	};
+
+	const std::vector<Symbol> InvalidateSharedEdictChangeInfosSym = {
+		Symbol::FromName("_Z32InvalidateSharedEdictChangeInfosv"),
+		NULL_SIGNATURE,
+		Symbol::FromSignature("\x66*****\xB9\xFF\xFF\x00\x00\x66\x3B\xC1**\x57\x33\xFF"), // 66 ?? ?? ?? ?? ?? B9 FF FF 00 00 66 3B C1 ?? ?? 57 33 FF
+	};
+
+	const std::vector<Symbol> PackEntities_NormalSym = {
+		Symbol::FromName("_Z19PackEntities_NormaliPP11CGameClientP14CFrameSnapshot"),
+		NULL_SIGNATURE,
+		Symbol::FromSignature("\x55\x8B\xEC\xB8\x2C\x80\x01\x00"), // 55 8B EC B8 2C 80 01 00
+	};
+
+	const std::vector<Symbol> CGMOD_Player_CreateViewModelSym = {
+		Symbol::FromName("_ZN12CGMOD_Player15CreateViewModelEi"),
+	};
+
+	const std::vector<Symbol> CBasePlayer_GetViewModelSym = {
+		Symbol::FromName("_ZN11CBasePlayer12GetViewModelEib"),
+	};
+
+	const std::vector<Symbol> Player__SetHandsSym = {
+		Symbol::FromName("_Z16Player__SetHandsP13ILuaInterface"),
+	};
+
+	const std::vector<Symbol> CBaseCombatCharacter_SetTransmitSym = {
+		Symbol::FromName("_ZN20CBaseCombatCharacter11SetTransmitEP18CCheckTransmitInfob"),
+	};
+
+	const std::vector<Symbol> CBaseAnimating_SetTransmitSym = {
+		Symbol::FromName("_ZN14CBaseAnimating11SetTransmitEP18CCheckTransmitInfob"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: steamworks Symbols
 	//---------------------------------------------------------------------------------
