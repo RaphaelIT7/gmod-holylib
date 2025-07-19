@@ -139,7 +139,7 @@ local mt = {
 
 -- We do this so that we also have things like Vector():__tostring() working
 for name, func in pairs(mt) do
-    if isfunction(func) then
+    if type(func) == "function" then
         methods[name] = func
     end
 end
