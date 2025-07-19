@@ -57,11 +57,11 @@ local function check_num(value, arg_num, is_optional)
     return expect(value, "number", arg_num, is_optional)
 end
 
-local function check_vec(value, arg_num, is_optional, is_optionalType)
+local function check_vec(value, arg_num, is_optional)
     return expect(value, "Vector", arg_num, is_optional)
 end
 
-local function check_ang(value, arg_num, is_optional, is_optionalType)
+local function check_ang(value, arg_num, is_optional)
     return expect(value, "Angle", arg_num, is_optional)
 end
 
