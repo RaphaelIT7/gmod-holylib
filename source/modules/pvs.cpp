@@ -42,9 +42,11 @@ static void hook_CGMOD_Player_SetupVisibility(void* ent, unsigned char* pvs, int
 }
 #endif
 
-static std::unordered_map<edict_t*, int> pOriginalFlags;
-static std::vector<edict_t*> g_pAddEntityToPVS;
-static std::unordered_map<edict_t*, int> g_pOverrideStateFlag;
+static bool bWasAddedEntityUsed = false;
+static CBitVec<MAX_EDICTS> g_pAddEntityToPVS;
+static bool bWasOverrideStateFlagsUsed = false;
+static int g_pOverrideStateFlag[MAX_EDICTS];
+static int pOriginalFlags[MAX_EDICTS];
 
 static CCheckTransmitInfo* g_pCurrentTransmitInfo = NULL;
 static const unsigned short *g_pCurrentEdictIndices = NULL;
@@ -71,8 +73,18 @@ static void hook_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheck
 
 			if (bCancel)
 			{
-				g_pAddEntityToPVS.clear();
-				g_pOverrideStateFlag.clear();
+				if (bWasOverrideStateFlagsUsed)
+				{
+					memset(pOriginalFlags, 0, sizeof(pOriginalFlags));
+					memset(g_pOverrideStateFlag, 0, sizeof(g_pOverrideStateFlag));
+					bWasOverrideStateFlagsUsed = false;
+				}
+
+				if (bWasAddedEntityUsed)
+				{
+					g_pAddEntityToPVS.ClearAll();
+					bWasAddedEntityUsed = false;
+				}
 
 				g_pCurrentTransmitInfo = NULL;
 				g_pCurrentEdictIndices = NULL;
@@ -82,16 +94,26 @@ static void hook_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheck
 		}
 	}
 
-	for (edict_t* ent : g_pAddEntityToPVS)
-		Util::servergameents->EdictToBaseEntity(ent)->SetTransmit(pInfo, true);
-	
-	for (auto&[ent, flag] : g_pOverrideStateFlag)
+	edict_t* pWorld = Util::engineserver->PEntityOfEntIndex(0);
+	if (bWasAddedEntityUsed)
 	{
-		pOriginalFlags[ent] = ent->m_fStateFlags;
-		if (g_pPVSModule.InDebug())
-			Msg("Overriding ent(%i) flags for snapshot (%i -> %i)\n", ent->m_EdictIndex, ent->m_fStateFlags, flag);
+		for (int i=0; i<g_pAddEntityToPVS.GetNumBits(); ++i)
+		{
+			Util::servergameents->EdictToBaseEntity(&pWorld[i])->SetTransmit(pInfo, true);
+		}
+	}
+
+	if (bWasOverrideStateFlagsUsed)
+	{
+		for (int i=0; i<MAX_EDICTS; ++i)
+		{
+			edict_t* pEdict = &pWorld[i];
+			pOriginalFlags[i] = pEdict->m_fStateFlags;
+			if (g_pPVSModule.InDebug())
+				Msg("Overriding ent(%i) flags for snapshot (%i -> %i)\n", pEdict->m_EdictIndex, pEdict->m_fStateFlags, g_pOverrideStateFlag[i]);
 		
-		ent->m_fStateFlags = flag;
+			pEdict->m_fStateFlags = g_pOverrideStateFlag[i];
+		}
 	}
 
 	if (g_pReplaceCServerGameEnts_CheckTransmit)
@@ -105,12 +127,23 @@ static void hook_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheck
 		g_Lua->CallFunctionProtected(2, 0, true);
 	}
 
-	for (auto&[ent, flag] : pOriginalFlags)
-		ent->m_fStateFlags = flag;
+	if (bWasOverrideStateFlagsUsed)
+	{
+		for (int i=0; i<MAX_EDICTS; ++i)
+		{
+			(&pWorld[i])->m_fStateFlags = pOriginalFlags[i];
+		}
 
-	pOriginalFlags.clear();
-	g_pAddEntityToPVS.clear();
-	g_pOverrideStateFlag.clear();
+		memset(pOriginalFlags, 0, sizeof(pOriginalFlags));
+		memset(g_pOverrideStateFlag, 0, sizeof(g_pOverrideStateFlag));
+		bWasOverrideStateFlagsUsed = false;
+	}
+
+	if (bWasAddedEntityUsed)
+	{
+		g_pAddEntityToPVS.ClearAll();
+		bWasAddedEntityUsed = false;
+	}
 
 	g_pCurrentTransmitInfo = NULL;
 	g_pCurrentEdictIndices = NULL;
@@ -292,9 +325,10 @@ LUA_FUNCTION_STATIC(pvs_CheckBoxInPVS)
 static void AddEntityToPVS(GarrysMod::Lua::ILuaInterface* pLua, CBaseEntity* ent)
 {
 	edict_t* edict = ent->edict();
-	if (edict)
-		g_pAddEntityToPVS.push_back(edict);
-	else
+	if (edict) {
+		g_pAddEntityToPVS.Set(edict->m_EdictIndex);
+		bWasAddedEntityUsed = true;
+	} else
 		pLua->ThrowError("Failed to get edict?");
 }
 
@@ -324,10 +358,10 @@ LUA_FUNCTION_STATIC(pvs_AddEntityToPVS)
 	return 0;
 }
 
-#define LUA_FL_EDICT_DONTSEND 1 << 0
-#define LUA_FL_EDICT_ALWAYS 1 << 1
-#define LUA_FL_EDICT_PVSCHECK 1 << 2
-#define LUA_FL_EDICT_FULLCHECK 1 << 3
+#define LUA_FL_EDICT_DONTSEND 1 << 0 // 0
+#define LUA_FL_EDICT_ALWAYS 1 << 1 // 1
+#define LUA_FL_EDICT_PVSCHECK 1 << 2 // 2
+#define LUA_FL_EDICT_FULLCHECK 1 << 3 // 4
 static void SetOverrideStateFlags(GarrysMod::Lua::ILuaInterface* pLua, CBaseEntity* ent, int flags, bool force)
 {
 	edict_t* edict = ent->edict();
@@ -356,7 +390,8 @@ static void SetOverrideStateFlags(GarrysMod::Lua::ILuaInterface* pLua, CBaseEnti
 			newFlags |= FL_EDICT_FULLCHECK;
 	}
 
-	g_pOverrideStateFlag[edict] = newFlags;
+	g_pOverrideStateFlag[edict->m_EdictIndex] = newFlags;
+	bWasOverrideStateFlagsUsed = true;
 }
 
 LUA_FUNCTION_STATIC(pvs_OverrideStateFlags)

@@ -1300,6 +1300,8 @@ extern IMDLCache* mdlcache;
 static ConVar* sv_force_transmit_ents;
 static CBaseEntity* g_pEntityCache[MAX_EDICTS];
 bool g_pReplaceCServerGameEnts_CheckTransmit = false;
+static int g_iLastCheckTransmit = -1;
+static CBitVec<MAX_EDICTS> g_pTransmitCacheBitVec;
 void New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts)
 {
 	// get recipient player's skybox:
@@ -1311,7 +1313,7 @@ void New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	
 	MDLCACHE_CRITICAL_SECTION();
 	CBasePlayer *pRecipientPlayer = static_cast<CBasePlayer*>( pRecipientEntity );
-	const int skyBoxArea = pRecipientPlayer->m_Local.m_skybox3d.area;
+	const int skyBoxArea = pRecipientPlayer->m_Local.m_skybox3d.area; // RIP, crash any% offsets are not reliable at all!
 	
 	// ToDo: Bring over's CS:GO code for InitialSpawnTime
 	//const bool bIsFreshlySpawned = pRecipientPlayer->GetInitialSpawnTime()+3.0f > gpGlobals->curtime;
@@ -1323,6 +1325,15 @@ void New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	// m_pTransmitAlways must be set if HLTV client
 	Assert( bIsHLTV == ( pInfo->m_pTransmitAlways != NULL) );
 #endif
+
+	bool bFirstTransmit = g_iLastCheckTransmit != gpGlobals->tickcount;
+	if (bFirstTransmit)
+	{
+		g_pTransmitCacheBitVec.ClearAll();
+		g_iLastCheckTransmit = gpGlobals->tickcount;
+	} else {
+		g_pTransmitCacheBitVec.CopyTo(pInfo->m_pTransmitEdict);
+	}
 
 	bool bForceTransmit = sv_force_transmit_ents->GetBool();
 	int iPlayerIndex = pInfo->m_pClientEnt->m_EdictIndex - 1;
@@ -1353,6 +1364,7 @@ void New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 			{
 				// mark entity for sending
 				pInfo->m_pTransmitEdict->Set( iEdict );
+				g_pTransmitCacheBitVec.Set( iEdict );
 	
 #ifndef _X360
 				if ( bIsHLTV/* || bIsReplay*/ )
@@ -1388,6 +1400,7 @@ void New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 			if ( nFlags & FL_EDICT_ALWAYS )
 			{
 				pEnt->SetTransmit( pInfo, true );
+				g_pTransmitCacheBitVec.Set( iEdict );
 				continue;
 			}	
 		}
@@ -1595,7 +1608,10 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 	for (size_t i = 0; i < DPT_NUMSendPropTypes; ++i)
 		g_PropTypeFns[i] = pPropTypeFns[i]; // Crash any% speed run. I don't believe this will work
 
-	//g_pReplaceCServerGameEnts_CheckTransmit = true;
+	SourceSDK::FactoryLoader datacache_loader("datacache");
+	mdlcache = datacache_loader.GetInterface<IMDLCache>(MDLCACHE_INTERFACE_VERSION);
+
+	g_pReplaceCServerGameEnts_CheckTransmit = true;
 }
 
 void CNetworkingModule::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
@@ -1740,7 +1756,7 @@ void CNetworkingModule::ServerActivate(edict_t* pEdictList, int edictCount, int 
 extern CGlobalVars *gpGlobals;
 void CNetworkingModule::Shutdown()
 {
-	//g_pReplaceCServerGameEnts_CheckTransmit = false;
+	g_pReplaceCServerGameEnts_CheckTransmit = false;
 
 	if (!framesnapshotmanager) // If we failed, we failed
 	{
