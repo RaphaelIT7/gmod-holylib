@@ -55,7 +55,7 @@ static int g_nCurrentEdicts = -1;
 static Detouring::Hook detour_CServerGameEnts_CheckTransmit;
 #ifndef HOLYLIB_MANUALNETWORKING
 extern bool g_pReplaceCServerGameEnts_CheckTransmit;
-extern void New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts);
+extern bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts);
 static void hook_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts)
 {
 	VPROF_BUDGET("HolyLib - CServerGameEnts::CheckTransmit", VPROF_BUDGETGROUP_OTHER_NETWORKING);
@@ -117,8 +117,12 @@ static void hook_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheck
 	}
 
 	if (g_pReplaceCServerGameEnts_CheckTransmit)
-		New_CServerGameEnts_CheckTransmit(gameents, pInfo, pEdictIndices, nEdicts);
-	else
+	{
+		if (!New_CServerGameEnts_CheckTransmit(gameents, pInfo, pEdictIndices, nEdicts))
+		{
+			detour_CServerGameEnts_CheckTransmit.GetTrampoline<Symbols::CServerGameEnts_CheckTransmit>()(gameents, pInfo, pEdictIndices, nEdicts);
+		}
+	} else
 		detour_CServerGameEnts_CheckTransmit.GetTrampoline<Symbols::CServerGameEnts_CheckTransmit>()(gameents, pInfo, pEdictIndices, nEdicts);
 
 	if(Lua::PushHook("HolyLib:PostCheckTransmit"))

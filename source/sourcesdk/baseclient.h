@@ -186,8 +186,8 @@ public:
 	void			CheckFlushNameChange( bool bShowStatusMessage = false );
 	bool			IsNameChangeOnCooldown( bool bShowStatusMessage = false );
 
-	void			SetPlayerNameLocked( bool bValue ) { m_bPlayerNameLocked = bValue; }
-	bool			IsPlayerNameLocked( void ) { return m_bPlayerNameLocked; }
+	// void			SetPlayerNameLocked( bool bValue ) { m_bPlayerNameLocked = bValue; }
+	// bool			IsPlayerNameLocked( void ) { return m_bPlayerNameLocked; }
 
 	void			SetSignOnState( int ); // Why
 
@@ -271,7 +271,7 @@ public:
 
 	// Time when last name change was applied
 	double			m_fTimeLastNameChange;
-	bool			m_bPlayerNameLocked;
+	// bool			m_bPlayerNameLocked;
 
 	// Does this client have a name change that is pending?
 	// (Their 'name' convar differs from our value for their client name.)
@@ -287,7 +287,7 @@ public:
 
 	enum
 	{
-		SNAPSHOT_SCRATCH_BUFFER_SIZE = 160000,
+		SNAPSHOT_SCRATCH_BUFFER_SIZE = 1048576,
 	};
 
 	unsigned int		m_SnapshotScratchBuffer[ SNAPSHOT_SCRATCH_BUFFER_SIZE / 4 ];
@@ -296,11 +296,13 @@ private:
 	void				StartTrace( bf_write &msg );
 	void				EndTrace( bf_write &msg );
 
+	int __offset[2];
+
 
 	int					m_iTracing; // 0 = not active, 1 = active for this frame, 2 = forced active
 	CNetworkStatTrace	m_Trace;
+
+	void* __offset2[4];
 };
-
-
 
 #endif // BASECLIENT_H
