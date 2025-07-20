@@ -1040,7 +1040,7 @@ static void UpdatePlayerTalkingState(CBasePlayer* pPlayer, bool bIsTalking = fal
 			for(dw=0; dw < VOICE_MAX_PLAYERS_DW; dw++)
 			{
 				WRITE_LONG(gameRulesMask.GetDWord(dw));
-				WRITE_LONG(g_BanMasks[iClient].GetDWord(dw));
+				WRITE_LONG(g_BanMasks[dw].GetDWord(iClient));
 			}
 			WRITE_BYTE( !!(*g_PlayerModEnable)[iClient] );
 		MessageEnd();
@@ -1049,7 +1049,7 @@ static void UpdatePlayerTalkingState(CBasePlayer* pPlayer, bool bIsTalking = fal
 	// Tell the engine.
 	for(int iOtherClient=0; iOtherClient < g_pManager->m_nMaxPlayers; iOtherClient++)
 	{
-		bool bCanHear = gameRulesMask[iOtherClient] && !g_BanMasks[iClient][iOtherClient];
+		bool bCanHear = gameRulesMask[iOtherClient] && !g_BanMasks[iOtherClient][iClient];
 		g_pVoiceServer->SetClientListening( iOtherClient+1, iClient+1, bCanHear );
 
 		if ( bCanHear )
