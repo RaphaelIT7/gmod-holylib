@@ -1,3 +1,4 @@
+// NOTE: When updating httplib.h, ensure that you revert the changes from https://github.com/yhirose/cpp-httplib/pull/2177/files
 #include "httplib.h"
 #include "LuaInterface.h"
 #include "module.h"

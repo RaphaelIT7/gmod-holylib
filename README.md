@@ -78,6 +78,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [+] Added `gameserver.GetClientByUserID` to the `gameserver` module.  
 \- [+] Added a config system allowing one to set convars without using the command line.  
 \- [+] Added `IPhysicsEnvironment:SetInSimulation` to the `physenv` module.  
+\- [+] Added `HttpResponse:SetStatusCode` to `httpserver` module. (See https://github.com/RaphaelIT7/gmod-holylib/issues/62)  
 \- [#] Added some more safeguards to `IPhysicsEnvironment:Simulate` to prevent one from simulating a environment that is already being simulated.  
 \- [#] Highly optimized `util` module's json code to be noticably faster and use noticably less memory.  
 \- [#] Better support for multiple Lua states  
@@ -3331,6 +3332,10 @@ Redirects one to the given URL and returns the given code.
 
 #### HttpResponse:SetHeader(string key, string value)
 Sets the given value for the given key in the header.
+
+#### HttpResponse:SetStatusCode(number statusCode)
+Sets the status code of the response.  
+The code is clamped between 100 and 600 internally, you cannot go above or below as else the status code won't be set!  
 
 ## luajit
 This module updates luajit to a newer version.
