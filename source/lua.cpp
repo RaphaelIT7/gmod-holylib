@@ -57,6 +57,8 @@ void Lua::Init(GarrysMod::Lua::ILuaInterface* LUA)
 	}
 
 	g_Lua = LUA;
+	LUA->PushBool(true);
+	LUA->SetField(GarrysMod::Lua::INDEX_GLOBAL, "_HOLYLIB");
 	Lua::CreateLuaData(g_Lua, true);
 	g_pModuleManager.LuaInit(g_Lua, false);
 	SetupUnHolyVTableForThisShit(g_Lua);
@@ -115,6 +117,9 @@ void Lua::Shutdown()
 	g_pRemoveLuaUserData = true;
 	g_pLuaUserData.clear();
 #endif
+
+	g_Lua->PushNil();
+	g_Lua->SetField(GarrysMod::Lua::INDEX_GLOBAL, "_HOLYLIB");
 }
 
 void Lua::FinalShutdown()
