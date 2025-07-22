@@ -1043,7 +1043,7 @@ void CHTTPServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, HttpResponse_SetContent, "SetContent");
 		Util::AddFunc(pLua, HttpResponse_SetHeader, "SetHeader");
 		Util::AddFunc(pLua, HttpResponse_SetRedirect, "SetRedirect");
-		Util::AddFunc(pLua, HttpResponse_SetStatusCode", "SetStatusCode");
+		Util::AddFunc(pLua, HttpResponse_SetStatusCode, "SetStatusCode");
 	pLua->Pop(1);
 
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::HttpRequest, pLua->CreateMetaTable("HttpRequest"));
