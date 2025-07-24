@@ -2,6 +2,7 @@
 
 A library that contains some functions and optimizations for gmod.<br>
 If you need any function, make an issue for it, and I'll look into it.<br>
+When HolyLib was installed correctly, the variable `_HOLYLIB` should be set to `true` in Lua.<br>
 
 ## Windows
 So currently to get it working on Windows, I would have to redo most of the hooks, and It would also take a good while.<br>
@@ -56,6 +57,8 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- (Disabled by default) Updated LuaJIT version (done in the `luajit` module)<br>
 \- Improved ConVar's find code improving performance (done in the `cvars` module)<br>
 \- Server <-> Server connections using net channels (done in the `gameserver` module)<br>
+\- `CVoiceGameMgr` optimization to heavily reduce calls of the `GM:PlayerCanHearPlayersVoice` (done in the `voicechat` module)<br>
+\- Noticably improved `CServerGameEnts::CheckTransmit` (done in the `networking` module)<br>
 
 > [!NOTE]
 > The threadpoolfix module currently does nothing as all of the fixes it contained were implemented into the Garry's Mod itself.
@@ -106,6 +109,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- \- Added `holylib_networking_maxviewmodels` allowing one to limit view models to `1` for each player instead of each having `3` of which `2` often remain unused.<br>
 \- \- Added `holylib_networking_transmit_all_weapons`<br>
 \- \- Added `holylib_networking_transmit_all_weapons_to_owner`<br>
+\- [#] Slightly improved memory usage for UserData by HolyLib<br>
 
 > [!WARNING]
 > The current builds are unstable and need **A LOT** of testing.<br>
@@ -2500,10 +2504,13 @@ This interval is unique to each player<br>
 
 ### holylib_voicechat_managerupdateinterval(default `0.1`)
 How often we loop through all players to check their voice states,<br>
-We still check the player's interval to reduce calls if they already have been updated in the last x(your defined interval) seconds.
+We still check the player's interval to reduce calls if they already have been updated in the last x(your defined interval) seconds.<br>
 
 ### holylib_voicechat_stopdelay(default `1`)
 How many seconds before a player is marked as stopped talking.
+
+### holylib_voicechat_canhearhimself(default `1`)
+We assume that the player can hear himself and won't call `GM:PlayerCanHearPlayersVoice` for the talking player saving one call.<br>
 
 ## physenv
 This module fixes https://github.com/Facepunch/garrysmod-issues/issues/642 and adds a few small things.<br>
