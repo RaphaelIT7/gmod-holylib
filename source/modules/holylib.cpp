@@ -12,6 +12,7 @@
 #include "sourcesdk/baseclient.h"
 #include "hl2/hl2_player.h"
 #include "unordered_set"
+#include "host_state.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -373,6 +374,39 @@ LUA_FUNCTION_STATIC(ReceiveClientMessage)
 	return 0;
 }
 
+static char pLevelName[256], pLandmarkName[256] = {0};
+static Detouring::Hook detour_CHostState_State_ChangeLevelMP;
+static void hook_CHostState_State_ChangeLevelMP(const char* levelName, const char* landmarkName)
+{
+	if (levelName) {
+		strncpy(pLevelName, levelName, sizeof(pLevelName) - 1);
+		pLevelName[sizeof(pLevelName) - 1] = '\0';
+	}
+
+	if (landmarkName) {
+		strncpy(pLandmarkName, landmarkName, sizeof(pLandmarkName) - 1);
+		pLandmarkName[sizeof(pLandmarkName) - 1] = '\0';
+	}
+	else {
+		pLandmarkName[0] = '\0';
+	}
+
+	detour_CHostState_State_ChangeLevelMP.GetTrampoline<Symbols::CHostState_State_ChangeLevelMP>()(levelName, landmarkName);
+}
+
+void CHolyLibModule::LevelShutdown()
+{
+	if (Lua::PushHook("HolyLib:OnMapChange"))
+	{
+		g_Lua->PushString(pLevelName);
+		g_Lua->PushString(pLandmarkName);
+		g_Lua->CallFunctionProtected(3, 0, true);
+	}
+
+	pLevelName[0] = '\0';
+	pLandmarkName[0] = '\0';
+}
+
 void CHolyLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (!bServerInit)
@@ -455,6 +489,15 @@ void CHolyLibModule::InitDetour(bool bPreServer)
 		(void*)hook_GetGModServerTags, m_pID
 	);
 
+<<<<<<< HEAD
+=======
+	Detour::Create(
+		&detour_CHostState_State_ChangeLevelMP, "CHostState_State_ChangeLevelMP",
+		engine_loader.GetModule(), Symbols::CHostState_State_ChangeLevelMPSym,
+		(void *)hook_CHostState_State_ChangeLevelMP, m_pID
+	);
+
+>>>>>>> 91c13cd (holylib: changelevel hook experimenting)
 	func_CBaseAnimating_InvalidateBoneCache = (Symbols::CBaseAnimating_InvalidateBoneCache)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseAnimating_InvalidateBoneCacheSym);
 	Detour::CheckFunction((void*)func_CBaseAnimating_InvalidateBoneCache, "CBaseAnimating::InvalidateBoneCache");
 

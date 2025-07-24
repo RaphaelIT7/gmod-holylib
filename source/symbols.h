@@ -63,6 +63,7 @@ struct edict_t;
 struct PackWork_t;
 class CBaseViewModel;
 class CBaseCombatCharacter;
+class CHostState;
 
 class	CGameTrace;
 typedef	CGameTrace trace_t;
@@ -171,6 +172,9 @@ namespace Symbols
 
 	typedef void (GMCOMMON_CALLING_CONVENTION* CBaseEntity_SetMoveType)(void* ent, int, int);
 	extern const std::vector<Symbol> CBaseEntity_SetMoveTypeSym;
+
+	typedef void (GMCOMMON_CALLING_CONVENTION* CHostState_State_ChangeLevelMP)(const char* levelName, const char* LandmarkName);
+	extern const std::vector<Symbol> CHostState_State_ChangeLevelMPSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: gameevent Symbols
