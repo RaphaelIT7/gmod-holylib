@@ -3417,17 +3417,17 @@ cdata is slightly different as we changed it's typeID to be `7` instead of `10` 
 ### Functions
 
 #### table jit.getffi()
-If ffi is enabled in the config, then this will return a valid table, else it will return nothing.
+If ffi is enabled in the config, then this will return a valid table, else it will return nothing.<br>
 
 #### jit.markFFITypeAsGmodUserData(cdata data)
-If ffi is enabled in the config, then this will allow you to mark cdata to be compatible with gmod allowing you to mimic types.
+If ffi is enabled in the config, then this will allow you to mark cdata to be compatible with gmod allowing you to mimic types.<br>
 
 ### table jit.require(string name)
-LuaJITs default require function, this function does **not** exist when ffi is disabled.
+LuaJIT's default require function, this function does **not** exist when ffi is disabled.<br>
 
 ### debug.setreadonly(table tbl, bool readOnly = false)
 Forces a table to become read only, meaning it cannot be modified in any way.<br>
-This readonly logic was added into our LuaJIT build and does **not** exist in the normal LuaJIT.
+This readonly logic was added into our LuaJIT build and does **not** exist in the normal LuaJIT.<br>
 
 ### bool debug.isreadonly(table tbl)
 Checks if the table is set to be read only.
@@ -3437,16 +3437,16 @@ Marks the function to be inaccessable by any debug function & `setfenv` & `getfe
 This function is used internally for the FFI Scripts executed by HolyLib to prevent access to FFI functions when their disabled.<br>
 
 ### bool debug.isblocked(function func)
-Checks if the function is set to be inaccessable by any debug function.
+Checks if the function is set to be inaccessable by any debug function.<br>
 
 ### Config
 
 #### `enableFFI = false`
-If set to `true`, `jit.require` will exist and `jit.getffi` will return ffi.
+If set to `true`, `jit.require` will exist and `jit.getffi` will return ffi.<br>
 
 #### `keepRemovedDebugFunctions = false`
 If set to `true`, all debug function listed below are restored.<br>
-`debug.setlocal`, `debug.setupvalue`, `debug.upvalueid` and `debug.upvaluejoin`
+`debug.setlocal`, `debug.setupvalue`, `debug.upvalueid` and `debug.upvaluejoin`<br>
 
 ## gameserver
 This module adds a library that exposes the `CBaseServer` and `CBaseClient`.<br>

@@ -627,6 +627,7 @@ void Util::Load()
 				pConVar->SetValue(pEntry.EnsureChildVar<Bootil::BString>("value", pConVar->GetString()).c_str());
 			} else {
 				pEntry.GetChild("value").Var((Bootil::BString)pConVar->GetString());
+				pEntry.GetChild("default").Var((Bootil::BString)pConVar->GetDefault());
 			}
 			pEntry.EnsureChildVar<Bootil::BString>("help", pConVar->GetHelpText());
 
