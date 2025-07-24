@@ -394,6 +394,22 @@ LUA_FUNCTION_STATIC(HttpRequest_GetParam)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(HttpRequest_GetPathParam)
+{
+	HttpRequest* pData = Get_HttpRequest(LUA, 1, false);
+	const char* param = LUA->CheckString(2);
+
+	auto it = pData->m_pRequest.path_params.find(param);
+	if (it != pData->m_pRequest.path_params.end())
+	{
+		LUA->PushString(it->second.c_str());
+		return 1;
+	}
+
+	LUA->PushNil();
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(HttpRequest_GetBody)
 {
 	HttpRequest* pData = Get_HttpRequest(LUA, 1, false);
@@ -1057,6 +1073,7 @@ void CHTTPServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, HttpRequest_HasParam, "HasParam");
 		Util::AddFunc(pLua, HttpRequest_GetHeader, "GetHeader");
 		Util::AddFunc(pLua, HttpRequest_GetParam, "GetParam");
+		Util::AddFunc(pLua, HttpRequest_GetPathParam, "GetPathParam");
 		Util::AddFunc(pLua, HttpRequest_GetBody, "GetBody");
 		Util::AddFunc(pLua, HttpRequest_GetRemoteAddr, "GetRemoteAddr");
 		Util::AddFunc(pLua, HttpRequest_GetRemotePort, "GetRemotePort");
