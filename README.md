@@ -110,6 +110,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- \- Added `holylib_networking_transmit_all_weapons`<br>
 \- \- Added `holylib_networking_transmit_all_weapons_to_owner`<br>
 \- [#] Slightly improved memory usage for UserData by HolyLib<br>
+\- [#] Updated `VoiceStream` `Load/Save` function to be able to read/write `.wav` files<br>
 
 > [!WARNING]
 > The current builds are unstable and need **A LOT** of testing.<br>
@@ -2253,6 +2254,9 @@ statusCode = `-4 = Invalid file, -3 = Invalid version, -2 = File not found, -1 =
 Tries to load a VoiceStream from the given file.<br>
 If `async` is specified it **WONT** return **anything** and the `callback` will be **required**.<br>
 
+> [!NOTE]
+> This function also supports `.wav` files to load from since `0.8`
+
 #### number(statusCode) voicechat.SaveVoiceStream(VoiceStream stream, string fileName, string gamePath = "DATA", bool async = false, function callback = nil)
 callback = `function(VoiceStream loadedStream, number statusCode)`
 statusCode = `-4 = Invalid file, -3 = Invalid version, -2 = File not found, -1 = Invalid type, 0 = None, 1 = Done`<br>
@@ -2262,6 +2266,10 @@ If `async` is specified it **WONT** return **anything** and the `callback` will 
 
 > [!NOTE]
 > It should be safe to modify/use the VoiceStream while it's saving async **BUT** you should try to avoid doing that.
+
+> [!NOTE]
+> This function also supports `.wav` files to write the data into since `0.8`.<br>
+> You should **always** inform your players if you save their voice!
 
 ### bool voicedata.IsPlayerTalking(Player ply/number playerSlot)
 Returns `true` if the player is currently talking.<br>
@@ -3436,15 +3444,18 @@ Checks if the table is set to be read only.
 Marks the function to be inaccessable by any debug function & `setfenv` & `getfenv`.<br>
 This function is used internally for the FFI Scripts executed by HolyLib to prevent access to FFI functions when their disabled.<br>
 
+> [!NOTE]
+> Once set this intentionally cannot be reverted.
+
 ### bool debug.isblocked(function func)
 Checks if the function is set to be inaccessable by any debug function.<br>
 
 ### Config
 
-#### `enableFFI = false`
+#### `luajit.enableFFI = false`
 If set to `true`, `jit.require` will exist and `jit.getffi` will return ffi.<br>
 
-#### `keepRemovedDebugFunctions = false`
+#### `luajit.keepRemovedDebugFunctions = false`
 If set to `true`, all debug function listed below are restored.<br>
 `debug.setlocal`, `debug.setupvalue`, `debug.upvalueid` and `debug.upvaluejoin`<br>
 

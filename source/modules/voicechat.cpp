@@ -293,7 +293,7 @@ LUA_FUNCTION_STATIC(VoiceData_CreateCopy)
 	return 1;
 }
 
-struct WavAudioFile {
+/*struct WavAudioFile {
 	std::vector<char> data;
 };
 
@@ -322,7 +322,7 @@ Default__gc(WavAudioFile,
 	WavAudioFile* pWavFile = (WavAudioFile*)pStoredData;
 	if (pWavFile)
 		delete pWavFile;
-)
+)*/
 
 static const int VOICESTREAM_VERSION_1 = 1;
 static const int VOICESTREAM_VERSION = 1; // Current version
@@ -417,11 +417,11 @@ struct VoiceStream {
 		return pStream;
 	}
 
-	WavAudioFile* SaveWave(FileHandle_t fh)
+	/*WavAudioFile**/ void SaveWave(FileHandle_t fh)
 	{
 		ISteamUser* pSteamUser = Util::GetSteamUser();
 		if (!pSteamUser)
-			return NULL;
+			return; // NULL;
 
 		const int sampleRate = 44100;
 		const int bytesPerSample = 2; // 16-bit mono
@@ -476,13 +476,19 @@ struct VoiceStream {
 		header.bitsPerSample = bitsPerSample;
 		header.dataSize = dataSize;
 
+		/*
 		WavAudioFile* wav = new WavAudioFile;
 		wav->data.resize(sizeof(WAVHeader) + dataSize);
 		memcpy(wav->data.data(), &header, sizeof(WAVHeader));
 		if (dataSize > 0)
 			memcpy(wav->data.data() + sizeof(WAVHeader), wavePCM.data(), dataSize);
+		*/
 
-		return wav;
+		g_pFullFileSystem->Write(&header, sizeof(WAVHeader), fh);
+		if (dataSize > 0)
+			g_pFullFileSystem->Write(wavePCM.data(), dataSize, fh);
+
+		return; // wav;
 	}
 
 	static double CatmullRom(double y0, double y1, double y2, double y3, double t) {
@@ -1393,7 +1399,7 @@ struct VoiceStreamTask {
 	VoiceStreamTaskType iType = VoiceStreamTask_NONE;
 	VoiceStreamTaskStatus iStatus = VoiceStreamTaskStatus_NONE;
 
-	WavAudioFile* pWavFile = NULL;
+	// WavAudioFile* pWavFile = NULL;
 	VoiceStream* pStream = NULL;
 	int iReference = -1; // A reference to the pStream to stop the GC from kicking in.
 	int iCallback = -1;
@@ -1449,10 +1455,11 @@ static void VoiceStreamJob(VoiceStreamTask*& task)
 				bool bIsWave = getFileExtension(task->pFileName) == "wav";
 				if (bIsWave)
 				{
-					task->pWavFile = task->pStream->SaveWave(fh);
+					task->pStream->SaveWave(fh);
+					//task->pWavFile = task->pStream->SaveWave(fh);
 
-					if (task->pWavFile == NULL)
-						task->iStatus = VoiceStreamTaskStatus_FAILED_INVALID_FILE;
+					//if (task->pWavFile == NULL)
+					//	task->iStatus = VoiceStreamTaskStatus_FAILED_INVALID_FILE;
 				} else {
 					task->pStream->Save(fh);
 				}
@@ -1555,10 +1562,10 @@ LUA_FUNCTION_STATIC(voicechat_SaveVoiceStream)
 	} else {
 		VoiceStreamJob(task);
 		LUA->PushNumber((int)task->iStatus);
-		if (task->pWavFile)
+		/*if (task->pWavFile)
 		{
 			Push_WavAudioFile(LUA, task->pWavFile);
-		}
+		}*/
 		delete task;
 		return 1;
 	}
@@ -1628,10 +1635,10 @@ void CVoiceChatModule::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
 		}
 
 		pLua->ReferencePush(pTask->iCallback);
-		if (pTask->pWavFile)
+		/*if (pTask->pWavFile)
 		{
 			Push_WavAudioFile(pLua, pTask->pWavFile);
-		} else {
+		} else*/ {
 			Push_VoiceStream(pLua, pTask->pStream); // Lua GC will take care of deleting.
 		}
 		pLua->PushBool(pTask->iStatus == VoiceStreamTaskStatus_DONE);
@@ -1684,13 +1691,13 @@ void CVoiceChatModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServer
 		Util::AddFunc(pLua, VoiceStream_SetIndex, "SetIndex");
 	pLua->Pop(1);
 
-	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::WavAudioFile, pLua->CreateMetaTable("WavAudioFile"));
+	/*Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::WavAudioFile, pLua->CreateMetaTable("WavAudioFile"));
 		Util::AddFunc(pLua, WavAudioFile__tostring, "__tostring");
 		Util::AddFunc(pLua, WavAudioFile__index, "__index");
 		Util::AddFunc(pLua, WavAudioFile__newindex, "__newindex");
 		Util::AddFunc(pLua, WavAudioFile__gc, "__gc");
 		Util::AddFunc(pLua, WavAudioFile_GetTable, "GetTable");
-	pLua->Pop(1);
+	pLua->Pop(1);*/
 
 	Util::StartTable(pLua);
 		Util::AddFunc(pLua, voicechat_SendEmptyData, "SendEmptyData");
