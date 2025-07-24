@@ -576,6 +576,14 @@ void Util::Load()
 	IConfig* pConVarConfig = g_pConfigSystem->LoadConfig("garrysmod/holylib/cfg/convars.json");
 	if (pConVarConfig)
 	{
+		if (pConVarConfig->GetState() == ConfigState::INVALID_JSON)
+		{
+			Warning(PROJECT_NAME " - core: Failed to load convars.json!\n- Check if the json is valid or delete the config to let a new one be generated!\n");
+			pConVarConfig->Destroy(); // Our config is in a invaid state :/
+			pConVarConfig = NULL;
+			return;
+		}
+
 		std::unordered_set<ConVar*> pSkipConVars;
 		for (CModule* pWrapper : g_pModuleManager.GetModules())
 		{
