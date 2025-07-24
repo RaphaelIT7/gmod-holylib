@@ -656,7 +656,10 @@ static void CreateDebugDump(const CCommand &args)
 
 		// This will contain all kind of information that could be useful to figure out an issue
 		Bootil::Data::Tree& pInformation = pData.GetChild("information");
-		pInformation.EnsureChildVar<Bootil::BString>("runID", GITHUB_RUN_NUMBER);
+		extern const char* HolyLib_GetRunNumber();
+		pInformation.EnsureChildVar<Bootil::BString>("runID", HolyLib_GetRunNumber());
+		extern const char* HolyLib_GetBranch();
+		pInformation.EnsureChildVar<Bootil::BString>("branch", HolyLib_GetBranch());
 		pInformation.EnsureChildVar<bool>("release", HOLYLIB_BUILD_RELEASE == 1);
 		pInformation.EnsureChildVar<int>("slots", Util::server->GetMaxClients());
 		pInformation.EnsureChildVar<Bootil::BString>("map", Util::server->GetMapName());

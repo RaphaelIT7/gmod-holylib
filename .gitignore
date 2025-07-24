@@ -18,3 +18,7 @@ ghostinj-dll/projects/**
 ghostinj-dll/build.bat
 ghostinj-dll/ghostinj.dll
 ghostinj-dll/premake5.exe
+
+# generated files
+source/modules/_modules.h
+source/_versioninfo.h

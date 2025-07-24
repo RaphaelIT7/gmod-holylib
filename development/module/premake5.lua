@@ -14,12 +14,6 @@ include(gmcommon)
 include("../../source/ivp/premake5.lua")
 include("../../source/bootil/premake5.lua")
 
---local file = io.open("../../workflow_info.txt", "r")
-local run_id = "1"
-local run_number = "1"
-local branch = "main"
-local additional = "0"
-
 CreateWorkspace({name = "holylib", abi_compatible = false})
 	-- Serverside module (gmsv prefix)
 	-- Can define "source_path", where the source files are located
@@ -50,10 +44,7 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 		IncludeIVP()
 		IncludeBootil()
 
-		-- I don't care about the ID.
-		defines("GITHUB_RUN_NUMBER=\"" .. run_number .. "\"")
-		defines("GITHUB_RUN_BRANCH=\"" .. branch .. "\"")
-		defines("GITHUB_RUN_DATA=" .. additional)
+		defines("HOLYLIB_BUILD_RELEASE=0") -- No release builds.
 		defines("SWDS=1")
 		defines("PROJECT_NAME=\"holylib\"")
 		defines("NO_FRAMESNAPSHOTDEF")

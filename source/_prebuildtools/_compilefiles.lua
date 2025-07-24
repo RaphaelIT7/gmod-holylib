@@ -65,3 +65,24 @@ void CModuleManager::LoadModules()
 	WriteFile(path .. "_modules.h", string.Trim(moduleFile))
 end
 CompileModuleList()
+
+
+local function CompileVerionFile()
+	local path = "../../workflow_info.txt"
+	local file = io.open("workflow_info.txt", "r")
+	local run_id = file and file:read("*l") or "1"
+	local run_number = file and file:read("*l") or "1"
+	local branch = file and file:read("*l") or "main"
+	--local additional = file and file:read("*l") or "0"
+
+	local versionFile = [[
+// This is a generated file! & This will change on every run so don't include it unless you want cache misses & compiles to take ages.
+#pragma once
+
+#define HOLYLIB_BUILD_BRANCH "]] .. branch .. [["
+#define HOLYLIB_BUILD_RUN_NUMBER "]] .. run_number .. [["
+]]
+
+	WriteFile("../_versioninfo.h", string.Trim(versionFile))
+end
+CompileVerionFile()

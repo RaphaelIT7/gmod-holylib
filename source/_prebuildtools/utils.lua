@@ -28,6 +28,8 @@ end
 
 function ReadFile(path)
 	local file = io.open(path, "rb")
+	if not file then return end
+
 	local content = file:read("*a")
 	file:close()
 	return content

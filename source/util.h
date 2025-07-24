@@ -13,12 +13,6 @@
 #include "vstdlib/jobthread.h"
 #include "lua.hpp"
 
-#if GITHUB_RUN_DATA == 0
-#define HOLYLIB_BUILD_RELEASE 0
-#else
-#define HOLYLIB_BUILD_RELEASE 1
-#endif
-
 class IVEngineServer;
 
 // Added to not break some sourcesdk things. Use Util::engineserver!

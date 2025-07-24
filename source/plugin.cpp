@@ -205,13 +205,10 @@ void CServerPlugin::UnPause(void)
 //---------------------------------------------------------------------------------
 // Purpose: the name of this plugin, returned in "plugin_print" command
 //---------------------------------------------------------------------------------
+extern const char* HolyLib_GetPluginDescription();
 const char* CServerPlugin::GetPluginDescription(void)
 {
-#if !HOLYLIB_BUILD_RELEASE // DATA should always fallback to 0. We will set it to 1 in releases.
-	return "HolyLib Serverplugin V0.8 DEV (Workflow: " GITHUB_RUN_NUMBER ")";
-#else
-	return "HolyLib Serverplugin V0.8";
-#endif
+	return HolyLib_GetPluginDescription();
 }
 
 //---------------------------------------------------------------------------------
