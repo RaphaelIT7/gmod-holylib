@@ -73,10 +73,6 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			[[source/lz4/*.c]],
 			[[source/lz4/*.cpp]],
 		})
-		
-		removefiles({
-			[[source/modules/lagcompensation.cpp]] -- It's not finished yet.
-		})
 
 		includedirs({
 			[[source/sourcesdk/]],
@@ -95,7 +91,7 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			links({"opus_64.lib"})
 
 			prebuildcommands({
-				"cd ../../../source/lua/scripts/ && luajit.exe _compilefiles.lua"
+				"cd ../../../source/_prebuildtools/ && luajit.exe _compilefiles.lua"
 			})
 
 		filter("system:windows", "platforms:x86")
@@ -111,7 +107,7 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			links("opus_64")
 
 			prebuildcommands({
-				"cd ../../../source/lua/scripts/ && chmod +x luajit_64 && ./luajit_64 _compilefiles.lua"
+				"cd ../../../source/_prebuildtools/ && chmod +x luajit_64 && ./luajit_64 _compilefiles.lua"
 			})
 
 		filter({"system:linux", "platforms:x86"})
@@ -120,7 +116,7 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			links("opus_32")
 
 			prebuildcommands({
-				"cd ../../../source/lua/scripts/ && chmod +x luajit_32 && ./luajit_32 _compilefiles.lua"
+				"cd ../../../source/_prebuildtools/ && chmod +x luajit_32 && ./luajit_32 _compilefiles.lua"
 			})
 
 		filter({"platforms:x86_64"})

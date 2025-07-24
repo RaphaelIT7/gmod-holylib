@@ -47,6 +47,7 @@ public:
 	CModuleManager();
 	~CModuleManager();
 
+	// This one function is generated inside the _modules.h file.
 	virtual void LoadModules();
 	virtual IModuleWrapper* RegisterModule(IModule* mdl);
 	virtual IModuleWrapper* FindModuleByConVar(ConVar* convar);

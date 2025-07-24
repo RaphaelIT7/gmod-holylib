@@ -63,19 +63,31 @@ function ScanDir(directory, recursive) -- NOTE: Recursive is super slow!
 	return t
 end
 
--- Actual compile script
+local pattern_escape_replacements = { -- Gmod my <3
+	["("] = "%(",
+	[")"] = "%)",
+	["."] = "%.",
+	["%"] = "%%",
+	["+"] = "%+",
+	["-"] = "%-",
+	["*"] = "%*",
+	["?"] = "%?",
+	["["] = "%[",
+	["]"] = "%]",
+	["^"] = "%^",
+	["$"] = "%$",
+	["\0"] = "%z"
+}
+function string.PatternSafe(str)
+	return string.gsub(str, ".", pattern_escape_replacements)
+end
 
-for _, fileName in ipairs(ScanDir("./", false)) do
-	if not EndsWith(fileName, ".lua") then continue end
-	if fileName == "_compilefiles.lua" then continue end
+function string.Trim(s, char)
+	if char then
+		char = string.PatternSafe(char)
+	else
+		char = "%s"
+	end
 
-	local headerFileName = RemoveEnd(fileName, ".lua") .. ".h"
-	local headerFile = [[const char* lua]] .. RemoveEnd(fileName, ".lua") .. [[ = R"LUAFILE(
-]]
-	headerFile = headerFile .. ReadFile(fileName)
-	headerFile = headerFile .. [[
-
-)LUAFILE";]]
-	
-	WriteFile(headerFileName, headerFile)
+	return string.match(s, "^" .. char .. "*(.-)" .. char .. "*$") or s
 end

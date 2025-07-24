@@ -72,7 +72,7 @@ namespace Lua
 		LuaInterface,
 		// WavAudioFile,
 
-		TOTAL_TYPES,
+		TOTAL_TYPES = 255,
 	};
 
 	class ModuleData {
