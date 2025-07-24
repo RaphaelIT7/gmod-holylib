@@ -26,6 +26,8 @@ public:
 	virtual const char* Name() { return "holylib"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
 	virtual bool SupportsMultipleLuaStates() { return true; };
+
+	virtual void LevelShutdown() OVERRIDE;
 };
 
 static CHolyLibModule g_pHolyLibModule;
@@ -396,6 +398,10 @@ static void hook_CHostState_State_ChangeLevelMP(const char* levelName, const cha
 
 void CHolyLibModule::LevelShutdown()
 {
+	if (*pLevelName == '\0') {
+		return;
+	}
+
 	if (Lua::PushHook("HolyLib:OnMapChange"))
 	{
 		g_Lua->PushString(pLevelName);
@@ -489,15 +495,12 @@ void CHolyLibModule::InitDetour(bool bPreServer)
 		(void*)hook_GetGModServerTags, m_pID
 	);
 
-<<<<<<< HEAD
-=======
 	Detour::Create(
 		&detour_CHostState_State_ChangeLevelMP, "CHostState_State_ChangeLevelMP",
 		engine_loader.GetModule(), Symbols::CHostState_State_ChangeLevelMPSym,
 		(void *)hook_CHostState_State_ChangeLevelMP, m_pID
 	);
 
->>>>>>> 91c13cd (holylib: changelevel hook experimenting)
 	func_CBaseAnimating_InvalidateBoneCache = (Symbols::CBaseAnimating_InvalidateBoneCache)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseAnimating_InvalidateBoneCacheSym);
 	Detour::CheckFunction((void*)func_CBaseAnimating_InvalidateBoneCache, "CBaseAnimating::InvalidateBoneCache");
 
