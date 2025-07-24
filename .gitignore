@@ -6,6 +6,7 @@ Bootil/projects/release_x32_windows/
 Bootil/projects/release_x64_linux/
 Bootil/projects/release_x32_linux/
 **/.vs/
+**/.vscode/
 source/modules/32x/**
 source/modules/64x/**
 source/sourcesdk/tempshit
