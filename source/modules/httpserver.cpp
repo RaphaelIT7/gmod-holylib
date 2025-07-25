@@ -805,7 +805,7 @@ LUA_FUNCTION_STATIC(HttpServer_SetReadTimeout)
 LUA_FUNCTION_STATIC(HttpServer_SetWriteTimeout)
 {
 	HttpServer* pServer = Get_HttpServer(LUA, 1, true);
-	pServer->GetServer().set_write_timeout((time_t)LUA->CheckNumber(1), (time_t)LUA->CheckNumber(2));
+	pServer->GetServer().set_write_timeout((time_t)LUA->CheckNumber(2), (time_t)LUA->CheckNumber(3));
 
 	return 0;
 }
