@@ -1095,7 +1095,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	const int skyBoxArea = pRecipientPlayer->m_Local.m_skybox3d.area; // RIP, crash any% offsets are not reliable at all! Good thing the SDK is up to date
 	const int clientIndex = pInfo->m_pClientEnt->m_EdictIndex - 1;
 
-	const Vector& clientPosition = (pRecipientPlayer->GetViewEntity() != NULL) ? pRecipientPlayer->GetViewEntity()->GetAbsOrigin() : pRecipientEntity->GetAbsOrigin();
+	const Vector& clientPosition = (pRecipientPlayer->GetViewEntity() != NULL) ? pRecipientPlayer->GetViewEntity()->EyePosition() : pRecipientPlayer->EyePosition();
 	int clientArea = -1;
 	if (networking_fastpath_usecluster.GetBool()) {
 		clientArea = engine->GetClusterForOrigin(clientPosition);
