@@ -2795,7 +2795,7 @@ int hook_CNetChan_SendDatagram(CNetChan* chan, bf_write *datagram)
 				if (subchan->numFragments[j] == 0)
 					continue;
 
-				Assert(m_WaitingList[j].Count() > 0);
+				// Assert(m_WaitingList[j].Count() > 0);
 
 				CNetChan::dataFragments_t * data = chan->m_WaitingList[j][0];
 

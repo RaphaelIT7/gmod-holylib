@@ -94,16 +94,16 @@ function IncludeHavanaConstraints()
 		})
 
 		filter("configurations:Debug")
-			symbols "On"
-			runtime "Debug"
-			defines { "DEBUG" }
-			buildoptions { "RTC1" }
+			defines({"_DEBUG"})
+			symbols("On")
+			runtime("Debug")
+			buildoptions({"/RTC1"})
 
 		filter("configurations:Release")
+			defines({"NDEBUG"})
 			optimize("Speed")
 			runtime("Release")
-			defines({"NDEBUG"})
-			buildoptions({"Ob1"})
+			buildoptions({"/Ob1"})
 
 		filter("system:windows")
 			defines({"_WIN32", "WIN32"})
