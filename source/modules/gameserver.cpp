@@ -2519,7 +2519,7 @@ static void hook_CBaseServer_CheckTimeouts(CBaseServer* srv)
 #if !defined( _DEBUG )
 	for (i=0 ; i< srv->m_Clients.Count() ; i++ )
 	{
-		IClient	*cl = srv->m_Clients[ i ];
+		IClient	*cl = srv->GetClient(i);
 		
 		if ( cl->IsFakeClient() || !cl->IsConnected() )
 			continue;
@@ -2552,7 +2552,7 @@ static void hook_CBaseServer_CheckTimeouts(CBaseServer* srv)
 
 	for (i=0 ; i< srv->m_Clients.Count() ; i++ )
 	{
-		IClient	*cl = srv->m_Clients[ i ];
+		IClient	*cl = srv->GetClient(i);
 		
 		if ( cl->IsFakeClient() || !cl->IsConnected() )
 			continue;
