@@ -94,6 +94,7 @@ struct PreparedHttpResponse {
 
 struct HttpRequest {
 	~HttpRequest();
+	void MarkHandled();
 
 	bool m_bHandled = false;
 	bool m_bDelete = false; // We only delete from the main thread.
@@ -283,6 +284,13 @@ HttpRequest::~HttpRequest()
 	Delete_HttpResponse(m_pLua , &this->m_pResponseData);
 }
 
+void HttpRequest::MarkHandled()
+{
+	m_bHandled = true;
+	Delete_HttpRequest(m_pLua, this);
+	Delete_HttpResponse(m_pLua, &m_pResponseData);
+}
+
 LUA_FUNCTION_STATIC(HttpResponse__tostring)
 {
 	HttpResponse* pData = Get_HttpResponse(LUA, 1, false);
@@ -323,19 +331,19 @@ LUA_FUNCTION_STATIC(HttpResponse_SetRedirect)
 	return 0;
 }
 
-LUA_FUNCTION_STATIC(HttpResponse_SetStatusCode)
-{
-	HttpResponse* pData = Get_HttpResponse(LUA, 1, true);
-	pData->m_iStatusCode = (int)LUA->CheckNumber(2);
-
-	return 0;
-}
-
 LUA_FUNCTION_STATIC(HttpResponse_SetHeader)
 {
 	HttpResponse* pData = Get_HttpResponse(LUA, 1, true);
 	pData->m_bSetHeader = true;
 	pData->m_pHeaders[LUA->CheckString(2)] = LUA->CheckString(3);
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(HttpResponse_SetStatusCode)
+{
+	HttpResponse* pData = Get_HttpResponse(LUA, 1, true);
+	pData->m_iStatusCode = (int)LUA->CheckNumber(2);
 
 	return 0;
 }
@@ -350,6 +358,12 @@ LUA_FUNCTION_STATIC(HttpRequest__tostring)
 	return 1;
 }
 
+Default__gc(HttpRequest, 
+	if (pStoredData)
+	{
+		((HttpRequest*)pStoredData)->MarkHandled();
+	}
+);
 Default__index(HttpRequest);
 Default__newindex(HttpRequest);
 Default__GetTable(HttpRequest);
@@ -496,6 +510,14 @@ LUA_FUNCTION_STATIC(HttpRequest_GetPlayer)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(HttpRequest_MarkHandled)
+{
+	HttpRequest* pData = Get_HttpRequest(LUA, 1, false);
+	pData->MarkHandled();
+
+	return 0;
+}
+
 void CallFunc(GarrysMod::Lua::ILuaInterface* pLua, int callbackFunction, HttpRequest* request, HttpResponse* response)
 {
 	Util::ReferencePush(pLua, callbackFunction);
@@ -508,12 +530,15 @@ void CallFunc(GarrysMod::Lua::ILuaInterface* pLua, int callbackFunction, HttpReq
 
 	if (pLua->CallFunctionProtected(2, 1, true))
 	{
-		request->m_bHandled = !pLua->GetBool(-1);
-		pLua->Pop(1);
-	}
+		if (!pLua->GetBool(-1))
+		{
+			request->MarkHandled();
+		}
 
-	Delete_HttpRequest(pLua, request);
-	Delete_HttpResponse(pLua, response); // Destroys the Lua reference after we used it
+		pLua->Pop(1);
+	} else {
+		request->MarkHandled(); // Lua error? Nah mark it as handled.
+	}
 }
 
 void HttpServer::Start(const char* address, unsigned short port)
@@ -1063,6 +1088,7 @@ void CHTTPServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 	pLua->Pop(1);
 
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::HttpRequest, pLua->CreateMetaTable("HttpRequest"));
+		Util::AddFunc(pLua, HttpRequest__gc, "__gc");
 		Util::AddFunc(pLua, HttpRequest__tostring, "__tostring");
 		Util::AddFunc(pLua, HttpRequest__index, "__index");
 		Util::AddFunc(pLua, HttpRequest__newindex, "__newindex");
@@ -1082,6 +1108,7 @@ void CHTTPServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, HttpRequest_GetMethod, "GetMethod");
 		Util::AddFunc(pLua, HttpRequest_GetAuthorizationCount, "GetAuthorizationCount");
 		Util::AddFunc(pLua, HttpRequest_GetContentLength, "GetContentLength");
+		Util::AddFunc(pLua, HttpRequest_MarkHandled, "MarkHandled");
 
 		Util::AddFunc(pLua, HttpRequest_GetClient, "GetClient");
 		Util::AddFunc(pLua, HttpRequest_GetPlayer, "GetPlayer");
