@@ -376,6 +376,21 @@ Called when a gets off a ladder -> Direct bind to `CFuncLadder::PlayerGotOff`<br
 Called when the movetype is about to change.<br>
 If you call `Entity:SetMoveType` on the current entity inside this hook, it would have no effect.<br>
 
+#### HolyLib:OnMapChange(string levelName, string landmarkName)
+> [!NOTE]
+> This currently works only `LINUX32`
+
+Called right before a level transition occurs, this hook allows you to react to map changes initiated via changelevel.
+- string levelName — The name of the level we are changing to.
+- string levelLandmark — The name of the landmark (if any) otherwise, an empty string.
+Example usage:
+```lua
+hook.Add("HolyLib:OnMapChange", "HelloThere", function(levelName, landmarkName)
+    print("Next level name: " .. levelName)
+    print("Using landmark: " .. landmarkName) 
+end)
+```
+
 ## gameevent
 This module contains additional functions for the gameevent library.<br>
 With the Add/Get/RemoveClient* functions you can control the gameevents that are networked to a client which can be useful.<br>
