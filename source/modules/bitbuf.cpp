@@ -329,7 +329,7 @@ LUA_FUNCTION_STATIC(bf_read_ReadBits)
 	int size = PAD_NUMBER( Bits2Bytes(numBits), 4);
 	byte* buffer = (byte*)stackalloc( size );
 	bf->ReadBits(buffer, numBits);
-	LUA->PushString((const char*)buffer);
+	LUA->PushString((const char*)buffer, size);
 
 	return 1;
 }
@@ -371,7 +371,7 @@ LUA_FUNCTION_STATIC(bf_read_ReadBytes)
 	int numBytes = (int)LUA->CheckNumber(2);
 	byte* buffer = (byte*)stackalloc( numBytes );
 	bf->ReadBytes(buffer, numBytes);
-	LUA->PushString((const char*)buffer);
+	LUA->PushString((const char*)buffer, numBytes);
 
 	return 1;
 }
