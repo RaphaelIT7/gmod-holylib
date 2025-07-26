@@ -1269,7 +1269,7 @@ LUA_FUNCTION_STATIC(voicechat_BroadcastVoiceData)
 		}
 		LUA->Pop(1);
 	} else {
-		for(CBaseClient* pClient : Util::GetClients())
+		for(IClient* pClient : Util::GetClients())
 			pClient->SendNetMsg(voiceData);
 	}
 
