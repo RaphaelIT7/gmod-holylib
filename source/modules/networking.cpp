@@ -1110,11 +1110,11 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	//const bool bIsFreshlySpawned = pRecipientPlayer->GetInitialSpawnTime()+3.0f > gpGlobals->curtime;
 
 #ifndef _X360
-	const bool bIsHLTV = pRecipientPlayer->IsHLTV();
+	const bool bIsHLTV = pInfo->m_pTransmitAlways != NULL; // pRecipientPlayer->IsHLTV(); Why do we not use IsHLTV()? Because its NOT a virtual function & the variables are fked
 	//const bool bIsReplay = pRecipientPlayer->IsReplay();
 
 	// m_pTransmitAlways must be set if HLTV client
-	Assert( bIsHLTV == ( pInfo->m_pTransmitAlways != NULL) );
+	// Assert( bIsHLTV == ( pInfo->m_pTransmitAlways != NULL) );
 #endif
 
 	bool bFastPath = networking_fastpath.GetBool();
@@ -1670,6 +1670,11 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
 		return;
+
+	Plat_FastMemset(g_pEntityCache, 0, sizeof(g_pEntityCache));
+	Plat_FastMemset(g_pPlayerHandsEntity, 0, sizeof(g_pPlayerHandsEntity));
+	for (int i=0; i<MAX_PLAYERS; ++i)
+		g_pShouldPrevent[i].ClearAll();
 
 	SourceSDK::FactoryLoader engine_loader("engine");
 	Detour::Create(

@@ -127,6 +127,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 \- [#] Changed `VoiceData:GetUncompressedData` to now returns a statusCode/a number on failure instead of possibly returning a garbage string.<br>
 \- [#] Limited `HttpServer:SetName` to have a length limit of `64` characters.<br>
 \- [#] Fixed `IGModAudioChannel:IsValid` throwing a error when it's NULL instead of returning false.<br>
+\- [#] Fixed `HttpServer:SetWriteTimeout` using the wrong arguments. (See https://github.com/RaphaelIT7/gmod-holylib/pull/65)<br>
 \- [-] Removed `CBaseClient:Transmit` third argument `fragments`.<br>
 \- [-] Removed `gameserver.CalculateCPUUsage` and `gameserver.ApproximateProcessMemoryUsage` since they never worked.<br>
 
@@ -374,6 +375,21 @@ Called when a gets off a ladder -> Direct bind to `CFuncLadder::PlayerGotOff`<br
 #### HolyLib:OnMoveTypeChange(Entity ent, number old_moveType, number new_moveType, number moveCollide)
 Called when the movetype is about to change.<br>
 If you call `Entity:SetMoveType` on the current entity inside this hook, it would have no effect.<br>
+
+#### HolyLib:OnMapChange(string levelName, string landmarkName)
+> [!NOTE]
+> This currently works only `LINUX32`
+
+Called right before a level transition occurs, this hook allows you to react to map changes initiated via changelevel.
+- string levelName — The name of the level we are changing to.
+- string levelLandmark — The name of the landmark (if any) otherwise, an empty string.
+Example usage:
+```lua
+hook.Add("HolyLib:OnMapChange", "HelloThere", function(levelName, landmarkName)
+    print("Next level name: " .. levelName)
+    print("Using landmark: " .. landmarkName) 
+end)
+```
 
 ## gameevent
 This module contains additional functions for the gameevent library.<br>
@@ -3312,6 +3328,9 @@ A incoming Http Request.
 Returns `HttpRequest [NULL]` if given invalid list.<br>
 Normally returns `HttpRequest`.<br>
 
+#### HttpRequest:\_\_gc()
+When garbage collected, the request will be marked as hanled.<br>
+
 #### HttpRequest:\_\_newindex(string key, any value)
 Internally implemented and will set the values into the lua table.<br>
 
@@ -3368,6 +3387,10 @@ Returns the player who sent the HTTP Request or `nil` if it didn't find it.<br>
 
 #### string HttpRequest:GetPathParam(string param)
 Returns the value of the given parameter or `nil` if it wasn't found.<br>
+
+#### string HttpRequest:MarkHandled()
+Marks this request as handled, invalidating this object and the linked `HttpResponse`<br>
+This function is meant to be used when you `return true` in the HttpServer:[Get/Put/OtherStuff] callback function allowing you to delay a response.<br>
 
 ### HttpResponse
 A Http Response.

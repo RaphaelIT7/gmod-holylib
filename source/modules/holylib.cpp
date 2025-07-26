@@ -12,6 +12,7 @@
 #include "sourcesdk/baseclient.h"
 #include "hl2/hl2_player.h"
 #include "unordered_set"
+#include "host_state.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -22,6 +23,7 @@ public:
 	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
+	virtual void LevelShutdown() OVERRIDE;
 	virtual const char* Name() { return "holylib"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
 	virtual bool SupportsMultipleLuaStates() { return true; };
@@ -373,6 +375,42 @@ LUA_FUNCTION_STATIC(ReceiveClientMessage)
 	return 0;
 }
 
+static char pLevelName[256], pLandmarkName[256] = {0};
+static Detouring::Hook detour_CHostState_State_ChangeLevelMP;
+static void hook_CHostState_State_ChangeLevelMP(const char* levelName, const char* landmarkName)
+{
+	if (levelName) 
+	{
+		V_strncpy(pLevelName, levelName, sizeof(pLevelName));
+	}
+
+	if (landmarkName)
+	{
+		V_strncpy(pLandmarkName, landmarkName, sizeof(pLandmarkName));
+	} else {
+		pLandmarkName[0] = '\0';
+	}
+
+	detour_CHostState_State_ChangeLevelMP.GetTrampoline<Symbols::CHostState_State_ChangeLevelMP>()(levelName, landmarkName);
+}
+
+void CHolyLibModule::LevelShutdown()
+{
+	if (*pLevelName == '\0') {
+		return;
+	}
+
+	if (Lua::PushHook("HolyLib:OnMapChange"))
+	{
+		g_Lua->PushString(pLevelName);
+		g_Lua->PushString(pLandmarkName);
+		g_Lua->CallFunctionProtected(3, 0, true);
+	}
+
+	pLevelName[0] = '\0';
+	pLandmarkName[0] = '\0';
+}
+
 void CHolyLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (!bServerInit)
@@ -453,6 +491,12 @@ void CHolyLibModule::InitDetour(bool bPreServer)
 		&detour_GetGModServerTags, "GetGModServerTags",
 		engine_loader.GetModule(), Symbols::GetGModServerTagsSym,
 		(void*)hook_GetGModServerTags, m_pID
+	);
+
+	Detour::Create(
+		&detour_CHostState_State_ChangeLevelMP, "CHostState_State_ChangeLevelMP",
+		engine_loader.GetModule(), Symbols::CHostState_State_ChangeLevelMPSym,
+		(void*)hook_CHostState_State_ChangeLevelMP, m_pID
 	);
 
 	func_CBaseAnimating_InvalidateBoneCache = (Symbols::CBaseAnimating_InvalidateBoneCache)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseAnimating_InvalidateBoneCacheSym);

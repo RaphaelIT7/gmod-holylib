@@ -131,6 +131,13 @@ namespace Symbols
 		NULL_SIGNATURE, // ToDo
 	};
 
+	const std::vector<Symbol> CHostState_State_ChangeLevelMPSym = {
+		Symbol::FromName("_Z23HostState_ChangeLevelMPPKcS0_"),
+		NULL_SIGNATURE,
+		NULL_SIGNATURE,
+		NULL_SIGNATURE,
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: gameevent Symbols
 	//---------------------------------------------------------------------------------
@@ -851,6 +858,10 @@ namespace Symbols
 
 	const std::vector<Symbol> CBaseServer_FillServerInfoSym = {
 		Symbol::FromName("_ZN11CBaseServer14FillServerInfoER14SVC_ServerInfo"),
+	};
+
+	const std::vector<Symbol> CHLTVServer_FillServerInfoSym = {
+		Symbol::FromName("_ZN11CHLTVServer14FillServerInfoER14SVC_ServerInfo"),
 	};
 
 	const std::vector<Symbol> CBaseClient_SetSignonStateSym = {
