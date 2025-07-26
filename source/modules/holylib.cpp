@@ -381,14 +381,12 @@ static void hook_CHostState_State_ChangeLevelMP(const char* levelName, const cha
 {
 	if (levelName) 
 	{
-		strncpy(pLevelName, levelName, sizeof(pLevelName) - 1);
-		pLevelName[sizeof(pLevelName) - 1] = '\0';
+		V_strncpy(pLevelName, levelName, sizeof(pLevelName));
 	}
 
 	if (landmarkName)
 	{
-		strncpy(pLandmarkName, landmarkName, sizeof(pLandmarkName) - 1);
-		pLandmarkName[sizeof(pLandmarkName) - 1] = '\0';
+		V_strncpy(pLandmarkName, landmarkName, sizeof(pLandmarkName));
 	} else {
 		pLandmarkName[0] = '\0';
 	}
