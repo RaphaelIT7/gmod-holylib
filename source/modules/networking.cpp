@@ -1671,6 +1671,11 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 	if (bPreServer)
 		return;
 
+	Plat_FastMemset(g_pEntityCache, 0, sizeof(g_pEntityCache));
+	Plat_FastMemset(g_pPlayerHandsEntity, 0, sizeof(g_pPlayerHandsEntity));
+	for (int i=0; i<MAX_PLAYERS; ++i)
+		g_pShouldPrevent[i].ClearAll();
+
 	SourceSDK::FactoryLoader engine_loader("engine");
 	Detour::Create(
 		&detour_AllocChangeFrameList, "AllocChangeFrameList",
