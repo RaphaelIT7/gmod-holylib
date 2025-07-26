@@ -23,10 +23,10 @@ public:
 	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
+	virtual void LevelShutdown() OVERRIDE;
 	virtual const char* Name() { return "holylib"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
 	virtual bool SupportsMultipleLuaStates() { return true; };
-	virtual void LevelShutdown() OVERRIDE;
 };
 
 static CHolyLibModule g_pHolyLibModule;
@@ -389,9 +389,7 @@ static void hook_CHostState_State_ChangeLevelMP(const char* levelName, const cha
 	{
 		strncpy(pLandmarkName, landmarkName, sizeof(pLandmarkName) - 1);
 		pLandmarkName[sizeof(pLandmarkName) - 1] = '\0';
-	}
-	else
-	{
+	} else {
 		pLandmarkName[0] = '\0';
 	}
 
@@ -500,7 +498,7 @@ void CHolyLibModule::InitDetour(bool bPreServer)
 	Detour::Create(
 		&detour_CHostState_State_ChangeLevelMP, "CHostState_State_ChangeLevelMP",
 		engine_loader.GetModule(), Symbols::CHostState_State_ChangeLevelMPSym,
-		(void *)hook_CHostState_State_ChangeLevelMP, m_pID
+		(void*)hook_CHostState_State_ChangeLevelMP, m_pID
 	);
 
 	func_CBaseAnimating_InvalidateBoneCache = (Symbols::CBaseAnimating_InvalidateBoneCache)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseAnimating_InvalidateBoneCacheSym);

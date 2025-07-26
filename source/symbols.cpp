@@ -130,8 +130,9 @@ namespace Symbols
 		Symbol::FromName("_ZN11CBaseEntity11SetMoveTypeE10MoveType_t13MoveCollide_t"),
 		NULL_SIGNATURE, // ToDo
 	};
+
 	const std::vector<Symbol> CHostState_State_ChangeLevelMPSym = {
-		Symbol::FromName("_Z23HostState_ChangeLevelMPPKcS0_"), //
+		Symbol::FromName("_Z23HostState_ChangeLevelMPPKcS0_"),
 		NULL_SIGNATURE,
 		NULL_SIGNATURE,
 		NULL_SIGNATURE,
