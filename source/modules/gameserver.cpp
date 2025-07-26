@@ -2403,6 +2403,19 @@ static void hook_CBaseServer_FillServerInfo(void* srv, SVC_ServerInfo& info)
 	}
 }
 
+static Detouring::Hook detour_CHLTVServer_FillServerInfo;
+static void hook_CHLTVServer_FillServerInfo(void* srv, SVC_ServerInfo& info)
+{
+	detour_CHLTVServer_FillServerInfo.GetTrampoline<Symbols::CHLTVServer_FillServerInfo>()(srv, info);
+
+	// HLTVServer changes the m_nMaxClients so we need to set this again :(
+	if ( info.m_nMaxClients > 128 )
+		info.m_nMaxClients = 128;
+
+	if ( info.m_nMaxClients <= 1 )
+		info.m_nMaxClients = 2;
+}
+
 static Detouring::Hook detour_CBaseClient_SetSignonState;
 static bool hook_CBaseClient_SetSignonState(CBaseClient* cl, int state, int spawncount)
 {
@@ -2864,6 +2877,12 @@ void CGameServerModule::InitDetour(bool bPreServer)
 		&detour_CBaseServer_FillServerInfo, "CBaseServer::FillServerInfo",
 		engine_loader.GetModule(), Symbols::CBaseServer_FillServerInfoSym,
 		(void*)hook_CBaseServer_FillServerInfo, m_pID
+	);
+
+	Detour::Create(
+		&detour_CHLTVServer_FillServerInfo, "CHLTVServer::FillServerInfo",
+		engine_loader.GetModule(), Symbols::CHLTVServer_FillServerInfoSym,
+		(void*)hook_CHLTVServer_FillServerInfo, m_pID
 	);
 
 	Detour::Create(

@@ -860,6 +860,10 @@ namespace Symbols
 		Symbol::FromName("_ZN11CBaseServer14FillServerInfoER14SVC_ServerInfo"),
 	};
 
+	const std::vector<Symbol> CHLTVServer_FillServerInfoSym = {
+		Symbol::FromName("_ZN11CHLTVServer14FillServerInfoER14SVC_ServerInfo"),
+	};
+
 	const std::vector<Symbol> CBaseClient_SetSignonStateSym = {
 		Symbol::FromName("_ZN11CBaseClient14SetSignonStateEii"),
 	};

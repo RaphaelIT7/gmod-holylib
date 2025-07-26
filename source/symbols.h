@@ -605,6 +605,9 @@ namespace Symbols
 	typedef void (*CBaseServer_FillServerInfo)(void*, SVC_ServerInfo&);
 	extern const std::vector<Symbol> CBaseServer_FillServerInfoSym;
 
+	typedef void (*CHLTVServer_FillServerInfo)(void*, SVC_ServerInfo&);
+	extern const std::vector<Symbol> CHLTVServer_FillServerInfoSym;
+
 	typedef bool (*CBaseClient_SetSignonState)(void* client, int state, int spawncount);
 	extern const std::vector<Symbol> CBaseClient_SetSignonStateSym;
 
