@@ -192,7 +192,6 @@ LUA_FUNCTION_STATIC(VoiceData_GetUncompressedData)
 	return 1;
 }
 
-static SteamOpus::Opus_FrameDecoder g_pOpusDecoder;
 LUA_FUNCTION_STATIC(VoiceData_SetUncompressedData)
 {
 	VoiceData* pData = Get_VoiceData(LUA, 1, true);
@@ -217,6 +216,7 @@ LUA_FUNCTION_STATIC(VoiceData_SetUncompressedData)
 		steamID64 = pClient->GetNetworkID().steamid.ConvertToUint64(); // Crash any% speedrun
 	}
 
+	SteamOpus::Opus_FrameDecoder g_pOpusDecoder;
 	int pBytes = SteamVoice::CompressIntoBuffer(steamID64, &g_pOpusDecoder, pUncompressedData, iSize, pCompressed, 20000, 44100);
 	if (pBytes != -1)
 	{
@@ -710,6 +710,7 @@ struct VoiceStream {
 		VoiceStream* pStream = new VoiceStream;
 		size_t offset = 0;
 		float playbackTime = 0.0f;
+		SteamOpus::Opus_FrameDecoder opus_codec;
 		while (offset < monoPCM.size()) {
 			int chunkSizeBytes = chunkSize;
 			int chunkSamples = chunkSizeBytes / bytesPerSample;
@@ -721,7 +722,6 @@ struct VoiceStream {
 			int tickIndex = static_cast<int>(std::ceil(playbackTime / tickDuration));
 			const char* decompressedBuffer = reinterpret_cast<const char*>(&monoPCM[offset]);
 
-			static SteamOpus::Opus_FrameDecoder opus_codec;
 			int bytesWritten = SteamVoice::CompressIntoBuffer(
 				fakeSteamID,
 				&opus_codec,
