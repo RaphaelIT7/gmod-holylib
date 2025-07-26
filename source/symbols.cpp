@@ -948,5 +948,6 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	const std::vector<Symbol> GarrysMod_AutoRefresh_HandleChange_LuaSym = {
 		Symbol::FromName("_ZN9GarrysMod11AutoRefresh16HandleChange_LuaERKSsS2_S2_"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x49\x89\xD6\x41\x55\x49\x89\xFD\x48\x89\xD7\x41\x54"),
 	};
 }

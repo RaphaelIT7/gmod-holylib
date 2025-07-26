@@ -12,7 +12,7 @@ public:
 	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "autorefresh"; };
-	virtual int Compatibility() { return LINUX32; };
+	virtual int Compatibility() { return LINUX32 | LINUX64; };
 };
 
 CAutoRefreshModule g_pAutoRefreshModule;
@@ -68,7 +68,7 @@ void CAutoRefreshModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServ
 	Util::FinishTable(pLua, "autorefresh");
 }
 
-void CAutoRefreshModule::LuaShutdown(GarrysMod::Lua::ILuaInterface *pLua)
+void CAutoRefreshModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	Util::NukeTable(pLua, "autorefresh");
 }
