@@ -26,7 +26,6 @@ public:
 	virtual const char* Name() { return "holylib"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64; };
 	virtual bool SupportsMultipleLuaStates() { return true; };
-
 	virtual void LevelShutdown() OVERRIDE;
 };
 
@@ -380,16 +379,19 @@ static char pLevelName[256], pLandmarkName[256] = {0};
 static Detouring::Hook detour_CHostState_State_ChangeLevelMP;
 static void hook_CHostState_State_ChangeLevelMP(const char* levelName, const char* landmarkName)
 {
-	if (levelName) {
+	if (levelName) 
+	{
 		strncpy(pLevelName, levelName, sizeof(pLevelName) - 1);
 		pLevelName[sizeof(pLevelName) - 1] = '\0';
 	}
 
-	if (landmarkName) {
+	if (landmarkName)
+	{
 		strncpy(pLandmarkName, landmarkName, sizeof(pLandmarkName) - 1);
 		pLandmarkName[sizeof(pLandmarkName) - 1] = '\0';
 	}
-	else {
+	else
+	{
 		pLandmarkName[0] = '\0';
 	}
 
