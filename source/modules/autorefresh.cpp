@@ -21,7 +21,7 @@ IModule* pAutoRefreshModule = &g_pAutoRefreshModule;
 static Detouring::Hook detour_CAutoRefresh_HandleChange_Lua;
 static bool hook_CAutoRefresh_HandleChange_Lua(const std::string* pfileRelPath, const std::string* pfileName, const std::string* pfileExt)
 {
-	using HandleChange_Lua_Function = bool(*)(const std::string *, const std::string *, const std::string *);
+	using HandleChange_Lua_Function = bool(*)(const std::string*, const std::string*, const std::string*);
 	auto trampoline = detour_CAutoRefresh_HandleChange_Lua.GetTrampoline<HandleChange_Lua_Function>();
 
 	if (!g_Lua || !pfileRelPath || !pfileName || !pfileExt)
