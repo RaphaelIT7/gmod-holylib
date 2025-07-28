@@ -21,9 +21,12 @@ IModule* pAutoRefreshModule = &g_pAutoRefreshModule;
 static Detouring::Hook detour_CAutoRefresh_HandleChange_Lua;
 static bool hook_CAutoRefresh_HandleChange_Lua(const std::string* pfileRelPath, const std::string* pfileName, const std::string* pfileExt)
 {
-	if (!g_Lua)
+	using HandleChange_Lua_Function = bool(*)(const std::string *, const std::string *, const std::string *);
+	auto trampoline = detour_CAutoRefresh_HandleChange_Lua.GetTrampoline<HandleChange_Lua_Function>();
+
+	if (!g_Lua || !pfileRelPath || !pfileName || !pfileExt)
 	{
-		return true;
+		return trampoline(pfileRelPath, pfileName, pfileExt);
 	}
 
 	bool bDenyRefresh = false;
@@ -38,15 +41,16 @@ static bool hook_CAutoRefresh_HandleChange_Lua(const std::string* pfileRelPath, 
 			{
 				bDenyRefresh = g_Lua->GetBool(-1);
 			}
+
+			g_Lua->Pop(1);
 		}
-		g_Lua->Pop(1);
 	}
 
 	if (bDenyRefresh) {
 		return true;
 	}
 
-	bool original = detour_CAutoRefresh_HandleChange_Lua.GetTrampoline<Symbols::GarrysMod_AutoRefresh_HandleChange_Lua>()(pfileRelPath, pfileName, pfileExt);
+	bool originalResult = trampoline(pfileRelPath, pfileName, pfileExt);
 
 	if (Lua::PushHook("HolyLib:AfterLuaAutorefresh"))
 	{
@@ -56,7 +60,7 @@ static bool hook_CAutoRefresh_HandleChange_Lua(const std::string* pfileRelPath, 
 		g_Lua->CallFunctionProtected(3, 0, true);
 	}
 
-	return original;
+	return originalResult;
 };
 
 void CAutoRefreshModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
