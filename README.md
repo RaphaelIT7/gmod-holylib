@@ -4449,7 +4449,7 @@ Called before a Lua file is being refreshed. If `true` is returned it will deny 
 - string filePath — is the filePath provided relative to the garrysmod folder
 - string filename — is the filename without the extension
 ```lua
-hook.Add("HolyLib:BeforeLuaAutorefresh", "ExampleBeforeRefresh", function(filePath, filename)
+hook.Add("HolyLib:BeforeLuaAutorefresh", "ExampleBeforeRefresh", function(filePath, fileName)
     print("[BEFORE] FileChanged: " .. filePath .. filename)
         
     if filename == "bogos" then
@@ -4463,7 +4463,7 @@ end)
 Called after a Lua file is refreshed. 
 Note that if a refresh is being denied by BeforeLuaAutorefresh, this hook won't be called.
 ```lua
-hook.Add("HolyLib:AfterLuaAutorefresh", "ExampleAfterRefresh", function(filePath, filename)
+hook.Add("HolyLib:AfterLuaAutorefresh", "ExampleAfterRefresh", function(filePath, fileName)
     print("[AFTER] FileChanged: " .. filePath .. filename)
 end)
 ```
