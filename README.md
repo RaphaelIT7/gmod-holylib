@@ -4444,12 +4444,12 @@ Supports: Linux32 | LINUX64
 None
 
 ### Hooks
-#### bool HolyLib:BeforeLuaAutorefresh(string filePath, string fileName)
+#### bool HolyLib:PreLuaAutoRefresh(string filePath, string fileName)
 Called before a Lua file is being refreshed. If `true` is returned it will deny the refresh of the lua file.
 - string filePath — is the filePath provided relative to the garrysmod folder
 - string filename — is the filename without the extension
 ```lua
-hook.Add("HolyLib:BeforeLuaAutorefresh", "ExampleBeforeRefresh", function(filePath, fileName)
+hook.Add("HolyLib:PreLuaAutoRefresh", "ExampleBeforeRefresh", function(filePath, fileName)
     print("[BEFORE] FileChanged: " .. filePath .. filename)
         
     if filename == "bogos" then
@@ -4459,11 +4459,11 @@ hook.Add("HolyLib:BeforeLuaAutorefresh", "ExampleBeforeRefresh", function(filePa
 end)
 ```
 
-#### HolyLib:AfterLuaAutorefresh(string filePath, string fileName)
+#### HolyLib:PostLuaAutoRefresh(string filePath, string fileName)
 Called after a Lua file is refreshed. 
 Note that if a refresh is being denied by BeforeLuaAutorefresh, this hook won't be called.
 ```lua
-hook.Add("HolyLib:AfterLuaAutorefresh", "ExampleAfterRefresh", function(filePath, fileName)
+hook.Add("HolyLib:PostLuaAutoRefresh", "ExampleAfterRefresh", function(filePath, fileName)
     print("[AFTER] FileChanged: " .. filePath .. filename)
 end)
 ```

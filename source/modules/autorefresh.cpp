@@ -30,29 +30,26 @@ static bool hook_CAutoRefresh_HandleChange_Lua(const std::string* pfileRelPath, 
 	}
 
 	bool bDenyRefresh = false;
-	if (Lua::PushHook("HolyLib:BeforeLuaAutorefresh"))
+	if (Lua::PushHook("HolyLib:PreLuaAutoRefresh"))
 	{
 		g_Lua->PushString(pfileRelPath->c_str());
 		g_Lua->PushString(pfileName->c_str());
 
 		if (g_Lua->CallFunctionProtected(3, 1, true))
 		{
-			if (g_Lua->IsType(-1, GarrysMod::Lua::Type::BOOL))
-			{
-				bDenyRefresh = g_Lua->GetBool(-1);
-			}
-
+			bDenyRefresh = g_Lua->GetBool(-1);
 			g_Lua->Pop(1);
 		}
 	}
 
-	if (bDenyRefresh) {
+	if (bDenyRefresh)
+	{
 		return true;
 	}
 
 	bool originalResult = trampoline(pfileRelPath, pfileName, pfileExt);
 
-	if (Lua::PushHook("HolyLib:AfterLuaAutorefresh"))
+	if (Lua::PushHook("HolyLib:PostLuaAutoRefresh"))
 	{
 		g_Lua->PushString(pfileRelPath->c_str());
 		g_Lua->PushString(pfileName->c_str());
@@ -83,7 +80,6 @@ void CAutoRefreshModule::InitDetour(bool bPreServer)
 		return;
 
 	SourceSDK::FactoryLoader server_loader("server");
-
 	Detour::Create(
 		&detour_CAutoRefresh_HandleChange_Lua, "CAutoRefresh_HandleChange_Lua",
 		server_loader.GetModule(), Symbols::GarrysMod_AutoRefresh_HandleChange_LuaSym,
