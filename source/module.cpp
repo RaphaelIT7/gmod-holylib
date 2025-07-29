@@ -499,18 +499,3 @@ static void ModuleStatus(const CCommand &args)
 		Msg("\"%p\"", interface);
 }
 static ConCommand modulestatus("holylib_modulestatus", ModuleStatus, "Debug command. Prints out the status of all modules.", 0);
-
-static void SaveModuleConfig(const CCommand &args)
-{
-	IConfig* pConfig = g_pModuleManager.GetConfig();
-	if (!pConfig)
-		return;
-
-	for (auto pModule : g_pModuleManager.GetModules())
-	{
-		pConfig->GetData().SetChildVar<bool>(pModule->FastGetModule()->Name(), pModule->FastIsEnabled());
-	}
-
-	pConfig->Save();
-}
-static ConCommand savemoduleconfig("holylib_savemoduleconfig", SaveModuleConfig, "Saves the module config by storing all currently enabled/disabled modules", 0);
