@@ -33,6 +33,7 @@ static ConVar holylib_vprof_exportreport("holylib_vprof_exportreport", "1", FCVA
 
 static CVProfModule g_pVProfModule;
 IModule* pVProfModule = &g_pVProfModule;
+
 static std::string GetCurrentTime() { // Yoink from vprof module
 	auto now = std::chrono::system_clock::now();
 	std::time_t now_time = std::chrono::system_clock::to_time_t(now);
@@ -351,172 +352,6 @@ static void* hook_CScriptedEntity_CallFunction(void* funky_srv, int pool)
 	return detour_CScriptedEntity_CallFunction.GetTrampoline<Symbols::CScriptedEntity_CallFunction>()(funky_srv, pool);
 }
 
-#ifdef SYSTEM_WINDOWS
-static int pClient_CurrentGamemodeFunction = -1;
-static Detouring::Hook detour_Client_CLuaGamemode_CallWithArgs;
-static void* hook_Client_CLuaGamemode_CallWithArgs(void* funky_srv, int pool)
-{
-	if (!g_Lua)
-		return detour_Client_CLuaGamemode_CallWithArgs.GetTrampoline<Symbols::CLuaGamemode_CallWithArgs>()(funky_srv, pool);
-
-	/*const char* pStr = nullptr;
-	auto it = CallWithArgs_strs.find(pool);
-	if (it == CallWithArgs_strs.end())
-	{
-		CallWithArgs_strs[pool] = "CLuaGamemode::CallWithArgs (" + (std::string)g_Lua->GetPooledString(pool) + ")";
-		pStr = CallWithArgs_strs[pool].c_str();
-	} else {
-		pStr = it->second.c_str();
-	}*/
-
-	pClient_CurrentGamemodeFunction = pool;
-
-	//VPROF_BUDGET(pStr, "GMOD");
-
-	return detour_Client_CLuaGamemode_CallWithArgs.GetTrampoline<Symbols::CLuaGamemode_CallWithArgs>()(funky_srv, pool);
-}
-
-static Detouring::Hook detour_Client_CLuaGamemode_CallFinish;
-static void* hook_Client_CLuaGamemode_CallFinish(void* funky_srv, int pArgs)
-{
-	if (!g_Lua || !pCurrentGamemodeFunction)
-		return detour_Client_CLuaGamemode_CallFinish.GetTrampoline<Symbols::CLuaGamemode_CallFinish>()(funky_srv, pArgs);
-
-	const char* pStr = nullptr;
-	auto it = CallFinish_strs.find(pCurrentGamemodeFunction);
-	if (it == CallFinish_strs.end())
-	{
-		CallFinish_strs[pCurrentGamemodeFunction] = "CLuaGamemode::CallFinish (" + (std::string)pCurrentGamemodeFunction + ")";
-		pStr = CallFinish_strs[pCurrentGamemodeFunction].c_str();
-	} else {
-		pStr = it->second.c_str();
-	}
-
-	VPROF_BUDGET(pStr, "GMOD");
-	pCurrentGamemodeFunction = NULL;
-
-	return detour_Client_CLuaGamemode_CallFinish.GetTrampoline<Symbols::CLuaGamemode_CallFinish>()(funky_srv, pArgs);
-}
-
-static Detouring::Hook detour_Client_CLuaGamemode_Call;
-static void* hook_Client_CLuaGamemode_Call(void* funky_srv, int pool)
-{
-	if (!g_Lua)
-		return detour_Client_CLuaGamemode_Call.GetTrampoline<Symbols::CLuaGamemode_Call>()(funky_srv, pool);
-
-	const char* pStr = nullptr;
-	auto it = Call_strs.find(pool);
-	if (it == Call_strs.end())
-	{
-		Call_strs[pool] = "CLuaGamemode::Call (" + (std::string)g_Lua->GetPooledString(pool) + ")";
-		pStr = Call_strs[pool].c_str();
-	} else {
-		pStr = it->second.c_str();
-	}
-
-	VPROF_BUDGET(pStr, "GMOD");
-
-	return detour_Client_CLuaGamemode_Call.GetTrampoline<Symbols::CLuaGamemode_Call>()(funky_srv, pool);
-}
-
-static const char* pClient_CurrentScriptFunction = nullptr;
-static Detouring::Hook detour_Client_CScriptedEntity_StartFunctionStr;
-static void* hook_Client_CScriptedEntity_StartFunctionStr(void* funky_srv, const char* str) // Only used by GetSoundInterests
-{
-	if (!g_Lua)
-		return detour_Client_CScriptedEntity_StartFunctionStr.GetTrampoline<Symbols::CScriptedEntity_StartFunctionStr>()(funky_srv, str);
-
-	const char* pStr = nullptr;
-	auto it = ScriptedEntity_StartFunctionStr_strs.find(str);
-	if (it == ScriptedEntity_StartFunctionStr_strs.end())
-	{
-		ScriptedEntity_StartFunctionStr_strs[str] = "CScriptedEntity::Call (" + (std::string)str + ")"; // Vprof is added in CScriptedEntity::Call(int, int)
-		pStr = ScriptedEntity_StartFunctionStr_strs[str].c_str();
-	} else {
-		pStr = it->second.c_str();
-	}
-
-	pClient_CurrentScriptFunction = pStr;
-
-	return detour_Client_CScriptedEntity_StartFunctionStr.GetTrampoline<Symbols::CScriptedEntity_StartFunctionStr>()(funky_srv, str);
-}
-
-static Detouring::Hook detour_Client_CScriptedEntity_StartFunction;
-static void* hook_Client_CScriptedEntity_StartFunction(void* funky_srv, int pool)
-{
-	if (!g_Lua)
-		return detour_Client_CScriptedEntity_StartFunction.GetTrampoline<Symbols::CScriptedEntity_StartFunction>()(funky_srv, pool);
-
-	const char* pStr = nullptr;
-	auto it = CScriptedEntity_StartFunction_strs.find(pool);
-	if (it == CScriptedEntity_StartFunction_strs.end())
-	{
-		CScriptedEntity_StartFunction_strs[pool] = "CScriptedEntity::Call (" + (std::string)g_Lua->GetPooledString(pool) + ")";
-		pStr = CScriptedEntity_StartFunction_strs[pool].c_str();
-	} else {
-		pStr = it->second.c_str();
-	}
-
-	pClient_CurrentScriptFunction = pStr;
-
-	return detour_Client_CScriptedEntity_StartFunction.GetTrampoline<Symbols::CScriptedEntity_StartFunction>()(funky_srv, pool);
-}
-
-static Detouring::Hook detour_Client_CScriptedEntity_Call;
-static void* hook_Client_CScriptedEntity_Call(void* funky_srv, int iArgs, int iRets)
-{
-	if (!g_Lua || !pClient_CurrentScriptFunction)
-		return detour_Client_CScriptedEntity_Call.GetTrampoline<Symbols::CScriptedEntity_Call>()(funky_srv, iArgs, iRets);
-
-	VPROF_BUDGET(pClient_CurrentScriptFunction, "GMOD");
-	pClient_CurrentScriptFunction = nullptr;
-
-	return detour_Client_CScriptedEntity_Call.GetTrampoline<Symbols::CScriptedEntity_Call>()(funky_srv, iArgs, iRets);
-}
-
-static Detouring::Hook detour_Client_CScriptedEntity_CallFunctionStr;
-static void* hook_Client_CScriptedEntity_CallFunctionStr(void* funky_srv, const char* str)
-{
-	if (!g_Lua)
-		return detour_Client_CScriptedEntity_CallFunctionStr.GetTrampoline<Symbols::CScriptedEntity_CallFunctionStr>()(funky_srv, str);
-
-	const char* pStr = nullptr;
-	auto it = CScriptedEntity_CallFunctionStr_strs.find(str);
-	if (it == CScriptedEntity_CallFunctionStr_strs.end())
-	{
-		CScriptedEntity_CallFunctionStr_strs[str] = "CScriptedEntity::CallFunction (" + (std::string)str + ")";
-		pStr = CScriptedEntity_CallFunctionStr_strs[str].c_str();
-	} else {
-		pStr = it->second.c_str();
-	}
-
-	VPROF_BUDGET(pStr, "GMOD");
-
-	return detour_Client_CScriptedEntity_CallFunctionStr.GetTrampoline<Symbols::CScriptedEntity_CallFunctionStr>()(funky_srv, str);
-}
-
-static Detouring::Hook detour_Client_CScriptedEntity_CallFunction;
-static void* hook_Client_CScriptedEntity_CallFunction(void* funky_srv, int pool)
-{
-	if (!g_Lua)
-		return detour_Client_CScriptedEntity_CallFunction.GetTrampoline<Symbols::CScriptedEntity_CallFunction>()(funky_srv, pool);
-
-	const char* pStr = nullptr;
-	auto it = CScriptedEntity_CallFunction_strs.find(pool);
-	if (it == CScriptedEntity_CallFunction_strs.end())
-	{
-		CScriptedEntity_CallFunction_strs[pool] = "CScriptedEntity::CallFunction (" + (std::string)g_Lua->GetPooledString(pool) + ")";
-		pStr = CScriptedEntity_CallFunction_strs[pool].c_str();
-	} else {
-		pStr = it->second.c_str();
-	}
-
-	VPROF_BUDGET(pStr, "GMOD");
-
-	return detour_Client_CScriptedEntity_CallFunction.GetTrampoline<Symbols::CScriptedEntity_CallFunction>()(funky_srv, pool);
-}
-#endif
-
 static std::unordered_set<std::string> pLuaStrings; // Theses will almost never be freed!
 // VPROF doesn't manage the memory of the strings that are used in scopes!
 // So we need to make sure that they will always be valid.
@@ -565,17 +400,6 @@ static void* hook_lj_BC_FUNCC(void* arg) // Find out the luajit function later.
 
 	void* ret = detour_lj_BC_FUNCC.GetTrampoline<Symbols::lj_BC_FUNCC>()(arg);
 	return ret;
-}
-#endif
-
-#if defined(ARCHITECTURE_X86_64) && 0
-Detouring::Hook detour_ThreadGetCurrentId;
-ThreadId_t hook_ThreadGetCurrentId()
-{
-	// Downcasting it to a unsigned int to allow this line to work:
-	// bool InTargetThread() { return ( m_TargetThreadId == ThreadGetCurrentId() ); }
-	// The bug: unsigned int == unsigned long -> This will always return false
-	return (unsigned int)detour_ThreadGetCurrentId.GetTrampoline<Symbols::ThreadGetCurrentId_t>()();
 }
 #endif
 
@@ -660,79 +484,6 @@ void CVProfModule::InitDetour(bool bPreServer)
 		server_loader.GetModule(), Symbols::lj_BC_FUNCCSym,
 		(void*)hook_lj_BC_FUNCC, m_pID
 	);
-#endif
-
-#if defined(SYSTEM_WINDOWS) && 0
-	// We also add detours for the Client version of thoes functions.
-	// Finally we got some sort of lua profiling clientside and new we can know which hook eats all the frames
-	if (g_pModuleManager.IsMarkedAsBinaryModule()) // We were marked as a binary module on windows? Then were most likely running on a windows client.
-	{
-		SourceSDK::ModuleLoader client_loader("client");
-		Detour::Create(
-			&detour_Client_CLuaGamemode_Call, "Client - CLuaGamemode::Call",
-			client_loader.GetModule(), Symbols::Client_CLuaGamemode_CallSym,
-			(void*)hook_Client_CLuaGamemode_Call, m_pID
-		);
-
-		Detour::Create(
-			&detour_Client_CLuaGamemode_CallFinish, "Client - CLuaGamemode::CallFinish",
-			client_loader.GetModule(), Symbols::Client_CLuaGamemode_CallFinishSym,
-			(void*)hook_Client_CLuaGamemode_CallFinish, m_pID
-		);
-
-		Detour::Create(
-			&detour_Client_CLuaGamemode_CallWithArgs, "Client - CLuaGamemode::CallWithArgs",
-			client_loader.GetModule(), Symbols::Client_CLuaGamemode_CallWithArgsSym,
-			(void*)hook_Client_CLuaGamemode_CallWithArgs, m_pID
-		);
-
-		Detour::Create(
-			&detour_Client_CScriptedEntity_StartFunctionStr, "Client - CScriptedEntity::StartFunction1(const char*)",
-			client_loader.GetModule(), Symbols::Client_CScriptedEntity_StartFunctionStrSym,
-			(void*)hook_Client_CScriptedEntity_StartFunctionStr, m_pID
-		);
-
-		Detour::Create(
-			&detour_Client_CScriptedEntity_StartFunction, "Client - CScriptedEntity::StartFunction2(int)",
-			client_loader.GetModule(), Symbols::Client_CScriptedEntity_StartFunctionSym,
-			(void*)hook_Client_CScriptedEntity_StartFunction, m_pID
-		);
-
-		Detour::Create(
-			&detour_Client_CScriptedEntity_Call, "Client - CScriptedEntity::Call",
-			client_loader.GetModule(), Symbols::Client_CScriptedEntity_CallSym,
-			(void*)hook_Client_CScriptedEntity_Call, m_pID
-		);
-
-		Detour::Create(
-			&detour_Client_CScriptedEntity_CallFunctionStr, "Client - CScriptedEntity::CallFunction(const char*)",
-			client_loader.GetModule(), Symbols::Client_CScriptedEntity_CallFunctionStrSym,
-			(void*)hook_Client_CScriptedEntity_CallFunctionStr, m_pID
-		);
-
-		Detour::Create(
-			&detour_Client_CScriptedEntity_CallFunction, "Client - CScriptedEntity::CallFunction2(int)",
-			client_loader.GetModule(), Symbols::Client_CScriptedEntity_CallFunctionSym,
-			(void*)hook_Client_CScriptedEntity_CallFunction, m_pID
-		);
-	}
-#endif
-
-#if ARCHITECTURE_IS_X86_64 && SYSTEM_LINUX
-#if 0 // This bug was fixed in Gmod itself -> https://github.com/Facepunch/garrysmod-issues/issues/6019
-	Detour::Create(
-		&detour_ThreadGetCurrentId, "ThreadGetCurrentId",
-		tier0_loader.GetModule(), Symbols::ThreadGetCurrentIdSym,
-		(void*)hook_ThreadGetCurrentId, m_pID
-	);
-
-	DeclareCurrentThreadIsMainThread(); // Update g_ThreadMainThreadID to fix ThreadInMainThread breaking
-
-	unsigned m_TargetThreadId = ThreadGetCurrentId();
-	unsigned long int pthread_Id = ThreadGetCurrentId();
-	if (m_TargetThreadId != pthread_Id)
-		Warning("[holylib - vprof] Failed to fix ThreadGetCurrentId! (vprof most likely won't work)\n");
-#endif
 
 	Detour::Create(
 		&detour_Msg, "Msg",

@@ -105,7 +105,7 @@ struct ThreadPoolStartParams_t;
 namespace Symbols
 {
 	//---------------------------------------------------------------------------------
-	// Purpose: All Base Symbols
+	// Purpose: All Required Base Symbols
 	//---------------------------------------------------------------------------------
 	typedef bool (*InitLuaClasses)(GarrysMod::Lua::ILuaInterface*);
 	extern const std::vector<Symbol> InitLuaClassesSym;
@@ -113,6 +113,9 @@ namespace Symbols
 	typedef bool (GMCOMMON_CALLING_CONVENTION* CLuaInterface_Shutdown)(GarrysMod::Lua::ILuaInterface*);
 	extern const std::vector<Symbol> CLuaInterface_ShutdownSym;
 
+	//---------------------------------------------------------------------------------
+	// Purpose: All Optional Base Symbols
+	//---------------------------------------------------------------------------------
 	typedef void (*CBaseEntity_CalcAbsolutePosition)(void* ent);
 	extern const std::vector<Symbol> CBaseEntity_CalcAbsolutePositionSym;
 
@@ -124,15 +127,6 @@ namespace Symbols
 
 	typedef void (*CCollisionProperty_MarkSurroundingBoundsDirty)(void* fancy_class);
 	extern const std::vector<Symbol> CCollisionProperty_MarkSurroundingBoundsDirtySym;
-
-	typedef void (*CBaseEntity_VPhysicsUpdate)(void* fancy_class, void* obj);
-	extern const std::vector<Symbol> CBaseEntity_VPhysicsUpdateSym;
-
-	typedef void (*CBaseEntity_GMOD_VPhysicsTest)(void* fancy_class, void* obj);
-	extern const std::vector<Symbol> CBaseEntity_GMOD_VPhysicsTestSym;
-
-	typedef void (*CBaseEntity_VPhysicsDestroyObject)(void* fancy_class);
-	extern const std::vector<Symbol> CBaseEntity_VPhysicsDestroyObjectSym;
 
 	typedef void (*lua_rawseti)(lua_State* L, int index, int i);
 	extern const std::vector<Symbol> lua_rawsetiSym;
@@ -151,6 +145,9 @@ namespace Symbols
 
 	typedef int (*GMOD_LoadBinaryModule)(lua_State* L, const char* pFileName);
 	extern const std::vector<Symbol> GMOD_LoadBinaryModuleSym;
+
+	typedef const byte* (*CM_Vis)(byte* dest, int destlen, int cluster, int visType);
+	extern const std::vector<Symbol> CM_VisSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: holylib Symbols
@@ -232,17 +229,8 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: threadpoolfix Symbols
 	//---------------------------------------------------------------------------------
-	typedef int (GMCOMMON_CALLING_CONVENTION* CThreadPool_ExecuteToPriority)(void* pool, void* idk, void* idk2);
-	extern const std::vector<Symbol> CThreadPool_ExecuteToPrioritySym;
 
-	typedef bool (GMCOMMON_CALLING_CONVENTION* CThreadPool_Start)(void* pool, const ThreadPoolStartParams_t& params, const char* pszName);
-	extern const std::vector<Symbol> CThreadPool_StartSym;
-
-	typedef void (GMCOMMON_CALLING_CONVENTION* CBaseFileSystem_InitAsync)(void* filesystem);
-	extern const std::vector<Symbol> CBaseFileSystem_InitAsyncSym;
-
-	typedef void (GMCOMMON_CALLING_CONVENTION* CBaseFileSystem_ShutdownAsync)(void* filesystem);
-	extern const std::vector<Symbol> CBaseFileSystem_ShutdownAsyncSym;
+	// None as all fixed we had were implemented into gmod.
 
 	//---------------------------------------------------------------------------------
 	// Purpose: precachefix Symbols
@@ -378,22 +366,8 @@ namespace Symbols
 	typedef void* (GMCOMMON_CALLING_CONVENTION* CScriptedEntity_CallFunction)(void*, int);
 	extern const std::vector<Symbol> CScriptedEntity_CallFunctionSym;
 
-	typedef ThreadId_t (GMCOMMON_CALLING_CONVENTION* ThreadGetCurrentId_t)();
-	extern const std::vector<Symbol> ThreadGetCurrentIdSym;
-
 	typedef void* (GMCOMMON_CALLING_CONVENTION* lj_BC_FUNCC)(void* idk);
 	extern const std::vector<Symbol> lj_BC_FUNCCSym;
-
-//#ifdef SYSTEM_WINDOWS
-	extern const std::vector<Symbol> Client_CLuaGamemode_CallFinishSym;
-	extern const std::vector<Symbol> Client_CLuaGamemode_CallWithArgsSym;
-	extern const std::vector<Symbol> Client_CLuaGamemode_CallSym;
-	extern const std::vector<Symbol> Client_CScriptedEntity_StartFunctionStrSym;
-	extern const std::vector<Symbol> Client_CScriptedEntity_StartFunctionSym;
-	extern const std::vector<Symbol> Client_CScriptedEntity_CallSym;
-	extern const std::vector<Symbol> Client_CScriptedEntity_CallFunctionStrSym;
-	extern const std::vector<Symbol> Client_CScriptedEntity_CallFunctionSym;
-//#endif
 
 	//---------------------------------------------------------------------------------
 	// Purpose: networking Symbols
@@ -487,15 +461,6 @@ namespace Symbols
 
 	typedef void (*SV_InitGameServerSteam)();
 	extern const std::vector<Symbol> SV_InitGameServerSteamSym;
-
-	typedef void* (*CGet_SteamUGC)(void*);
-	extern const std::vector<Symbol> CGet_SteamUGCSym;
-
-	//---------------------------------------------------------------------------------
-	// Purpose: pas Symbols
-	//---------------------------------------------------------------------------------
-	typedef const byte* (*CM_Vis)(byte* dest, int destlen, int cluster, int visType);
-	extern const std::vector<Symbol> CM_VisSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: voicechat Symbols
