@@ -311,15 +311,19 @@ namespace Symbols
 	};
 
 	const std::vector<Symbol> CBaseFileSystem_FindSearchPathByStoreIdSym = {
+		// Find 'CBaseFileSystem::GetFileTime' then you have CBaseFileSystem__GetPathTime, go to xref and find in the vtable 3 function bellow, you'll get CBaseFileSystem__RegisterFileWhitelist which use CFileTracker2__GetFilesToUnloadForWhitelistChange which use it
 		Symbol::FromName("_ZN15CBaseFileSystem23FindSearchPathByStoreIdEi"),
+		Symbol::FromSignature("\x55\x0F\xB7\x87\x88\x00\x00\x00"), //55 0F B7 87 88 00 00 00
 	};
 
-	const std::vector<Symbol> CBaseFileSystem_FastFileTimeSym = {
+	const std::vector<Symbol> CBaseFileSystem_FastFileTimeSym = {// Find 'CBaseFileSystem::GetFileTime' then you have CBaseFileSystem__GetPathTime and it's there
 		Symbol::FromName("_ZN15CBaseFileSystem12FastFileTimeEPKNS_11CSearchPathEPKc"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x49\x89\xFD\x41\x54\x49\x89\xD4"), //55 48 89 E5 41 57 41 56 41 55 49 89 FD 41 54 49 89 D4
 	};
 
-	const std::vector<Symbol> CBaseFileSystem_FixUpPathSym = {
+	const std::vector<Symbol> CBaseFileSystem_FixUpPathSym = {//Find 'BASE_PATH'
 		Symbol::FromName("_ZN15CBaseFileSystem9FixUpPathEPKcPci"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x49\x89\xFD\x41\x54\x49\x89\xD4"), //55 48 89 E5 41 57 41 56 41 55 49 89 FD 41 54 49 89 D4
 	};
 
 	std::vector<Symbol> CBaseFileSystem_OpenForReadSym = {
@@ -334,18 +338,22 @@ namespace Symbols
 
 	const std::vector<Symbol> CBaseFileSystem_AddSearchPathSym = {
 		Symbol::FromName("_ZN15CBaseFileSystem13AddSearchPathEPKcS1_j"),
+		Symbol::FromSignature("\x55\x45\x31\xC9\x41\xB8\x01\x00\x00\x00"), // 55 45 31 C9 41 B8 01 00 00 00
 	};
 
-	const std::vector<Symbol> CBaseFileSystem_AddVPKFileSym = {
+	const std::vector<Symbol> CBaseFileSystem_AddVPKFileSym = {//Search for 'DUPLICATE: [%s]\n'
 		Symbol::FromName("_ZN15CBaseFileSystem10AddVPKFileEPKcS1_j"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x49\x89\xD6\x41\x55\x41\x54\x53\x48\x89\xFB"), // 55 48 89 E5 41 57 41 56 49 89 D6 41 55 41 54 53 48 89 FB
 	};
 
 	const std::vector<Symbol> CBaseFileSystem_RemoveAllMapSearchPathsSym = {
 		Symbol::FromName("_ZN15CBaseFileSystem23RemoveAllMapSearchPathsEv"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x49\x89\xD6\x41\x55\x41\x54\x53\x48\x89\xFB"), // 55 48 89 E5 41 57 41 56 49 89 D6 41 55 41 54 53 48 89 FB
 	};
 
 	const std::vector<Symbol> CBaseFileSystem_CloseSym = {
 		Symbol::FromName("_ZN15CBaseFileSystem5CloseEPv"),
+		Symbol::FromSignature("\x55\xBE\x00\x00\x00\x80\x48\x89\xE5"), // 55 BE 00 00 00 80 48 89 E5
 	};
 
 	const std::vector<Symbol> CBaseFileSystem_CSearchPath_GetDebugStringSym = {
