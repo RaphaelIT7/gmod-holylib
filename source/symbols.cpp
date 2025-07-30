@@ -45,18 +45,6 @@ namespace Symbols
 		Symbol::FromName("_ZN18CCollisionProperty24MarkPartitionHandleDirtyEv"),
 	};
 
-	const std::vector<Symbol> CBaseEntity_VPhysicsUpdateSym = {
-		Symbol::FromName("_ZN11CBaseEntity14VPhysicsUpdateEP14IPhysicsObject"),
-	};
-
-	const std::vector<Symbol> CBaseEntity_GMOD_VPhysicsTestSym = {
-		Symbol::FromName("_ZN11CBaseEntity17GMOD_VPhysicsTestEP14IPhysicsObject"),
-	};
-
-	const std::vector<Symbol> CBaseEntity_VPhysicsDestroyObjectSym = {
-		Symbol::FromName("_ZN11CBaseEntity21VPhysicsDestroyObjectEv"),
-	};
-
 	const std::vector<Symbol> lua_rawsetiSym = {
 		Symbol::FromName("lua_rawseti"),
 		Symbol::FromName("lua_rawseti"),
@@ -98,6 +86,11 @@ namespace Symbols
 		Symbol::FromName("GMOD_LoadBinaryModule"),
 	};
 
+	const std::vector<Symbol> CM_VisSym = { // CM_Vis:
+		Symbol::FromName("_Z6CM_VisPhiii"),
+		Symbol::FromSignature("\x55\x83\xF9\x02\x48\x89\xE5\x41\x54\x53\x48\x89\xFB\x89\xD7\x89\xCA"), // 55 83 F9 02 48 89 E5 41 54 53 48 89 FB 89 D7 89 CA
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: holylib Symbols
 	//---------------------------------------------------------------------------------
@@ -133,8 +126,6 @@ namespace Symbols
 
 	const std::vector<Symbol> CHostState_State_ChangeLevelMPSym = {
 		Symbol::FromName("_Z23HostState_ChangeLevelMPPKcS0_"),
-		NULL_SIGNATURE,
-		NULL_SIGNATURE,
 		NULL_SIGNATURE,
 	};
 
@@ -434,64 +425,9 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x8B\xEC\x56\x8B\xF1\x80\x7E\x04\x00**\x8B\x4E\x0C\x8B"), // 55 8B EC 56 8B F1 80 7E 04 00 ?? ?? 8B 4E 0C 8B
 	};
 
-	const std::vector<Symbol> ThreadGetCurrentIdSym = {
-		NULL_SIGNATURE,
-		Symbol::FromName("ThreadGetCurrentId"), // Trying to fix 64x Vprof
-	};
-
 	const std::vector<Symbol> lj_BC_FUNCCSym = {
 		Symbol::FromSignature("\x8B\x6A\xF8\x8B\x7D\x14\x8B\x6C\x24\x30\x8D\x44\xC2\xF8\x89\x55\x10\x8D\x88\xA0\x00\x00\x00\x3B\x4D\x18\x89\x45\x14\x89\x2C\x24"), // 8B 6A F8 8B 7D 14 8B 6C 24 30 8D 44 C2 F8 89 55 10 8D 88 A0 00 00 00 3B 4D 18 89 45 14 89 2C 24
 	};
-
-#ifdef SYSTEM_WINDOWS // A lot of Symbols to get.....
-	const std::vector<Symbol> Client_CLuaGamemode_CallFinishSym = {
-		NULL_SIGNATURE,
-		NULL_SIGNATURE,
-		Symbol::FromSignature(""),
-	};
-
-	const std::vector<Symbol> Client_CLuaGamemode_CallWithArgsSym = {
-		NULL_SIGNATURE,
-		NULL_SIGNATURE,
-		Symbol::FromSignature(""), 
-	};
-
-	const std::vector<Symbol> Client_CLuaGamemode_CallSym = {
-		NULL_SIGNATURE,
-		NULL_SIGNATURE,
-		Symbol::FromSignature(""), 
-	};
-
-	const std::vector<Symbol> Client_CScriptedEntity_StartFunctionStrSym = { // const char* version - GetSoundInterests
-		NULL_SIGNATURE,
-		NULL_SIGNATURE,
-		Symbol::FromSignature(""), 
-	};
-
-	const std::vector<Symbol> Client_CScriptedEntity_StartFunctionSym = { // int version - SENT:AcceptInput
-		NULL_SIGNATURE,
-		NULL_SIGNATURE,
-		Symbol::FromSignature(""), 
-	};
-
-	const std::vector<Symbol> Client_CScriptedEntity_CallSym = { // SENT:AcceptInput
-		NULL_SIGNATURE,
-		NULL_SIGNATURE,
-		Symbol::FromSignature(""), 
-	};
-
-	const std::vector<Symbol> Client_CScriptedEntity_CallFunctionStrSym = { // const char* version - SetupDataTables
-		NULL_SIGNATURE,
-		NULL_SIGNATURE,
-		Symbol::FromSignature(""), 
-	};
-
-	const std::vector<Symbol> Client_CScriptedEntity_CallFunctionSym = { // int version. - Found no good identifyer to find it. Guessed it.
-		NULL_SIGNATURE,
-		NULL_SIGNATURE,
-		Symbol::FromSignature(""), 
-	};
-#endif
 
 	//---------------------------------------------------------------------------------
 	// Purpose: networking Symbols
@@ -561,10 +497,12 @@ namespace Symbols
 		Symbol::FromName("g_BSPData"),
 	};
 
+	// Only used on Linux
 	const std::vector<Symbol> PackWork_t_ProcessSym = {
 		Symbol::FromName("_ZN10PackWork_t7ProcessERS_"),
 	};
 
+	// Only used on Windows
 	const std::vector<Symbol> SV_PackEntitySym = {
 		NULL_SIGNATURE,
 		NULL_SIGNATURE,
@@ -649,14 +587,6 @@ namespace Symbols
 	const std::vector<Symbol> CSteam3Server_CheckForDuplicateSteamIDSym = { // 64x = "STEAM UserID"
 		Symbol::FromName("_ZN13CSteam3Server24CheckForDuplicateSteamIDEPK11CBaseClient"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x53\x48\x83\xEC\x68\x48\x89\x75\x80"), // 55 48 89 E5 41 57 41 56 41 55 41 54 53 48 83 EC 68 48 89 75 80
-	};
-		
-	//---------------------------------------------------------------------------------
-	// Purpose: pas Symbols
-	//---------------------------------------------------------------------------------
-	const std::vector<Symbol> CM_VisSym = { // CM_Vis:
-		Symbol::FromName("_Z6CM_VisPhiii"),
-		Symbol::FromSignature("\x55\x83\xF9\x02\x48\x89\xE5\x41\x54\x53\x48\x89\xFB\x89\xD7\x89\xCA"), // 55 83 F9 02 48 89 E5 41 54 53 48 89 FB 89 D7 89 CA
 	};
 
 	//---------------------------------------------------------------------------------

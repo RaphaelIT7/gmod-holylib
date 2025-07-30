@@ -2281,17 +2281,6 @@ static bool hook_GMod_Util_IsPhysicsObjectValid(IPhysicsObject* pObject)
 	}
 }
 
-/*
- * BUG: This causes weird crashes. WHY. 
- * NOTE: This only ocurrs when you delete a Environment that still has objects?
- */
-/*Detouring::Hook detour_CBaseEntity_GMOD_VPhysicsTest;
-void hook_CBaseEntity_GMOD_VPhysicsTest(CBaseEntity* pEnt, IPhysicsObject* obj)
-{
-	// NUKE THE FUNCTION for now.
-	// detour_CBaseEntity_GMOD_VPhysicsTest.GetTrampoline<Symbols::CBaseEntity_GMOD_VPhysicsTest>()(pEnt, obj);
-}*/
-
 static bool g_bCallPhysHook = false;
 static Detouring::Hook detour_PhysFrame;
 static void hook_PhysFrame(float deltaTime)
@@ -2698,12 +2687,6 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 		server_loader.GetModule(), Symbols::PhysFrameSym,
 		(void*)hook_PhysFrame, m_pID
 	);
-
-	/*Detour::Create(
-		&detour_CBaseEntity_GMOD_VPhysicsTest, "CBaseEntity::GMOD_VPhysicsTest",
-		server_loader.GetModule(), Symbols::CBaseEntity_GMOD_VPhysicsTestSym,
-		(void*)hook_CBaseEntity_GMOD_VPhysicsTest, m_pID
-	);*/
 }
 
 void CPhysEnvModule::Shutdown()
