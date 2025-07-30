@@ -4441,7 +4441,14 @@ The Autorefresh module currently provides functionalities regarding the in-built
 Supports: Linux32 | LINUX64
 
 ### Functions
-None
+#### autorefresh.DenyLuaAutoRefresh(string filePath, bool shouldDeny)
+Prevents certain Lua files from being autorefreshed. Accepts a string of the relative file path and a bool indicating whether to block or allow the autorefresh.
+- `true` - denies the refresh
+- `false` - allows the refresh
+```lua
+local pathToFile = "lua/test-dir/test.lua"
+autorefresh.DenyLuaAutoRefresh(pathToFile, true)
+```
 
 ### Hooks
 #### bool HolyLib:PreLuaAutoRefresh(string filePath, string fileName)
@@ -4449,7 +4456,7 @@ Called before a Lua file is being refreshed. If `true` is returned it will deny 
 - string filePath — is the filePath provided relative to the garrysmod folder
 - string filename — is the filename without the extension
 ```lua
-hook.Add("HolyLib:PreLuaAutoRefresh", "ExampleBeforeRefresh", function(filePath, fileName)
+hook.Add("HolyLib:PreLuaAutoRefresh", "ExamplePreAutoRefresh", function(filePath, fileName)
     print("[BEFORE] FileChanged: " .. filePath .. filename)
         
     if filename == "bogos" then
@@ -4461,9 +4468,9 @@ end)
 
 #### HolyLib:PostLuaAutoRefresh(string filePath, string fileName)
 Called after a Lua file is refreshed. 
-Note that if a refresh is being denied by BeforeLuaAutorefresh, this hook won't be called.
+Note that if a refresh is being denied by PreLuaAutorefresh or DenyLuaAutoRefresh, this hook won't be called.
 ```lua
-hook.Add("HolyLib:PostLuaAutoRefresh", "ExampleAfterRefresh", function(filePath, fileName)
+hook.Add("HolyLib:PostLuaAutoRefresh", "ExamplePostAutoRefresh", function(filePath, fileName)
     print("[AFTER] FileChanged: " .. filePath .. filename)
 end)
 ```
