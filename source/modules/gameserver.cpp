@@ -2390,8 +2390,8 @@ static void hook_CBaseServer_FillServerInfo(void* srv, SVC_ServerInfo& info)
 	detour_CBaseServer_FillServerInfo.GetTrampoline<Symbols::CBaseServer_FillServerInfo>()(srv, info);
 
 	// Fixes a crash("UpdatePlayerName with bogus slot 129") when joining a server which has more than 128 slots / is over MAX_PLAYERS
-	if ( info.m_nMaxClients = 1 )
-		info.m_nMaxClients = 12;
+	if ( info.m_nMaxClients > 128 )
+		info.m_nMaxClients = 128;
 
 	if ( info.m_nMaxClients <= 1 )
 	{
