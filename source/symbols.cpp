@@ -931,15 +931,4 @@ namespace Symbols
 	const std::vector<Symbol> s_NetChannelsSym = {
 		Symbol::FromName("_ZL13s_NetChannels"),
 	};
-
-	//---------------------------------------------------------------------------------
-	// Purpose: lagcompensation Symbols
-	//---------------------------------------------------------------------------------
-	const std::vector<Symbol> UTIL_TraceEntity1Sym = {
-		Symbol::FromName("_Z16UTIL_TraceEntityP11CBaseEntityRK6VectorS3_jPK13IHandleEntityiP10CGameTrace"),
-	};
-
-	const std::vector<Symbol> UTIL_TraceEntity2Sym = {
-		Symbol::FromName("_Z16UTIL_TraceEntityP11CBaseEntityRK6VectorS3_jP10CGameTrace"),
-	};
 }
