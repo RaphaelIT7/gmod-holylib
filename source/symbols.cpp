@@ -858,6 +858,7 @@ namespace Symbols
 
 	const std::vector<Symbol> CBaseServer_FillServerInfoSym = {
 		Symbol::FromName("_ZN11CBaseServer14FillServerInfoER14SVC_ServerInfo"),
+		Symbol::FromSignature("\x55\xBA\x04\x01\x00\x00\x48\x89\xE5\x41\x54\x49\x89\xF4\x53\x48\x8D\x35\x2A\x2A\x2A\x2A"), // 55 BA 04 01 00 00 48 89 E5 41 54 49 89 F4 53 48 8D 35 ? ? ? ?
 	};
 
 	const std::vector<Symbol> CHLTVServer_FillServerInfoSym = {
