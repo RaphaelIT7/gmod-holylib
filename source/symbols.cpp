@@ -114,14 +114,14 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x48\x89\xF8\x48\x89\xF2\x48\x8D\xBF"), // 55 48 89 F8 48 89 F2 48 8D BF
 	};
 
-	const std::vector<Symbol> CHL2_Player_ExitLadderSym = {
+	const std::vector<Symbol> CHL2_Player_ExitLadderSym = {//Search for "HL2Player.FlashlightOn" then search for xref to get vtable and it will be 4 function above
 		Symbol::FromName("_ZN11CHL2_Player10ExitLadderEv"),
-		NULL_SIGNATURE, // ToDo
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x55\x41\x54\x53\x48\x89\xFB\x48\x83\xEC\x18\x80\xBF\xF6\x01\x00\x00\x09"), // 55 48 89 E5 41 55 41 54 53 48 89 FB 48 83 EC 18 80 BF F6 01 00 00 09
 	};
 
-	const std::vector<Symbol> CBaseEntity_SetMoveTypeSym = {
+	const std::vector<Symbol> CBaseEntity_SetMoveTypeSym = {//Search for 'Warning, funcladder with blocked bottom point (%.2f %.2f %.2f) st' to find CFuncLadder::Spawn then find the 3rd first call
 		Symbol::FromName("_ZN11CBaseEntity11SetMoveTypeE10MoveType_t13MoveCollide_t"),
-		NULL_SIGNATURE, // ToDo
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x56\x41\x55\x41\x54\x53\x48\x89\xFB\x48\x83\xEC\x10\x0F\xB6\x87\xF6\x01\x00\x00"), // 55 48 89 E5 41 56 41 55 41 54 53 48 89 FB 48 83 EC 10 0F B6 87 F6 01 00 00
 	};
 
 	const std::vector<Symbol> CHostState_State_ChangeLevelMPSym = {
@@ -259,35 +259,42 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: surffix Symbols
 	//---------------------------------------------------------------------------------
-	const std::vector<Symbol> CGameMovement_TryPlayerMoveSym = {
+	const std::vector<Symbol> CGameMovement_TryPlayerMoveSym = { // Find 'Player.Swim' then find the CGameMovement__CheckJumpButton and find the xref and go 3 bellow
 		Symbol::FromName("_ZN13CGameMovement13TryPlayerMoveEP6VectorP10CGameTrace"),
+		Symbol::FromSignature("\x55\x0F\x57\xD2\x48\x89\xE5\x41\x57\x41\x56\x48\x8D\x85\xB0\xFE\xFF\xFF"), //55 0F 57 D2 48 89 E5 41 57 41 56 48 8D 85 B0 FE FF FF
 	};
 
-	const std::vector<Symbol> CGameMovement_ClipVelocitySym = {
+	const std::vector<Symbol> CGameMovement_ClipVelocitySym = { // Find it into CGameMovement_TryPlayerMoveSym
 		Symbol::FromName("_ZN13CGameMovement12ClipVelocityER6VectorS1_S1_f"),
+		Symbol::FromSignature("\x55\x0F\x57\xDB\x31\xC0\xF3\x0F\x10\x52\x08"), //55 0F 57 DB 31 C0 F3 0F 10 52 08
 	};
 
-	const std::vector<Symbol> CBaseEntity_GetGroundEntitySym = {
+	const std::vector<Symbol> CBaseEntity_GetGroundEntitySym = { // Find 'Trace using: %s\n' and then it's bellow
 		Symbol::FromName("_ZN11CBaseEntity15GetGroundEntityEv"),
+		Symbol::FromSignature("\x48\x8B\x05\x2A\x2A\x2A\x2A\x55\x48\x89\xE5\x48\x8B\x08\x8B\x87\xD0\x02\x00\x00"), //48 8B 05 ? ? ? ? 55 48 89 E5 48 8B 08 8B 87 D0 02 00 00
 	};
 
-	const std::vector<Symbol> CTraceFilterSimple_ShouldHitEntitySym = {
+	const std::vector<Symbol> CTraceFilterSimple_ShouldHitEntitySym = { // Find '%3.2f: NextBotGroundLocomotion::GetBot()->OnLandOnGround' to get NextBotGroundLocomotion__OnLandOnGround then it should be above
 		Symbol::FromName("_ZN18CTraceFilterSimple15ShouldHitEntityEP13IHandleEntityi"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x56\x49\x89\xFE\x41\x55\x41\x89\xD5\x41\x54\x53"), //55 48 89 E5 41 56 49 89 FE 41 55 41 89 D5 41 54 53
 	};
 
-	const std::vector<Symbol> MoveHelperServerSym = {
+	const std::vector<Symbol> MoveHelperServerSym = {// Find 'CBasePlayer::PhysicsSimulate' and then you'll get CBasePlayer__PhysicsSimulate and then it's into it
 		Symbol::FromName("_Z16MoveHelperServerv"),
+		Symbol::FromSignature("\x80\x3D\x29\xF6\x18\x01\x00"), // 80 3D 29 F6 18 01 00
 	};
 
 	//---------------------------------------------------------------------------------
 	// Purpose: pvs Symbols
 	//---------------------------------------------------------------------------------
-	const std::vector<Symbol> CGMOD_Player_SetupVisibilitySym = {
+	const std::vector<Symbol> CGMOD_Player_SetupVisibilitySym = {//Find 'predicted_' then search for CGMOD_Player::CreateViewModel and once you got it, find the function bellow it in the xref VTable and you got it
 		Symbol::FromName("_ZN12CGMOD_Player15SetupVisibilityEP11CBaseEntityPhi"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x55\x49\x89\xFD\x41\x54\x49\x89\xF4\x53\x48\x83\xEC\x08\xE8\x2A\x2A\x2A\x2A\x48\x8B\x1D\x2A\x2A\x2A\x2A"), // 55 48 89 E5 41 55 49 89 FD 41 54 49 89 F4 53 48 83 EC 08 E8 ? ? ? ? 48 8B 1D ? ? ? ?
 	};
 
-	const std::vector<Symbol> CServerGameEnts_CheckTransmitSym = {
+	const std::vector<Symbol> CServerGameEnts_CheckTransmitSym = { // Find 'cl_updaterate' and you'll find CServerGameClients__ClientSettingsChanged then search for xref to get vtable and it will be above
 		Symbol::FromName("_ZN15CServerGameEnts13CheckTransmitEP18CCheckTransmitInfoPKti"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x49\x89\xF6\x31\xF6"), //55 48 89 E5 41 57 41 56 49 89 F6 31 F6
 	};
 
 	//---------------------------------------------------------------------------------
