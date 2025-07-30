@@ -500,6 +500,7 @@ namespace Symbols
 	// Only used on Linux
 	const std::vector<Symbol> PackWork_t_ProcessSym = {
 		Symbol::FromName("_ZN10PackWork_t7ProcessERS_"),
+		Symbol::FromSignature("\x55\x48\x89\xFA\x48\x8B\x4F\x10"), // 55 48 89 FA 48 8B 4F 10
 	};
 
 	// Only used on Windows
@@ -509,15 +510,15 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x8B\xEC\xB8\x58\xC4\x00\x00"), // 55 8B EC B8 58 C4 00 00
 	};
 
-	const std::vector<Symbol> InvalidateSharedEdictChangeInfosSym = {
+	const std::vector<Symbol> InvalidateSharedEdictChangeInfosSym = {//Search for "NUM_FOR_EDICTINFO: bad pointer" then you get CBaseEdict::GetChangeAccessor and search for the xref
 		Symbol::FromName("_Z32InvalidateSharedEdictChangeInfosv"),
-		NULL_SIGNATURE,
+		Symbol::FromSignature("\x0F\xB7\x05\x2A\x2A\x2A\x2A\x66\x83\xF8\xFF\x74\x2A"), // 0F B7 05 ? ? ? ? 66 83 F8 FF 74 ?
 		Symbol::FromSignature("\x66*****\xB9\xFF\xFF\x00\x00\x66\x3B\xC1**\x57\x33\xFF"), // 66 ?? ?? ?? ?? ?? B9 FF FF 00 00 66 3B C1 ?? ?? 57 33 FF
 	};
 
-	const std::vector<Symbol> PackEntities_NormalSym = {
+	const std::vector<Symbol> PackEntities_NormalSym = { //Search for 'SV_PackEntity: SendTable_Encode returned false (ent %d).
 		Symbol::FromName("_Z19PackEntities_NormaliPP11CGameClientP14CFrameSnapshot"),
-		NULL_SIGNATURE,
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x53\x48\x81\xEC\xC8\xC4\x03\x00"), // 55 48 89 E5 41 57 41 56 41 55 41 54 53 48 81 EC C8 C4 03 00
 		Symbol::FromSignature("\x55\x8B\xEC\xB8\x2C\x80\x01\x00"), // 55 8B EC B8 2C 80 01 00
 	};
 
