@@ -552,8 +552,7 @@ LUA_FUNCTION_STATIC(CBaseClient_OnRequestFullUpdate)
 
 	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
 
-	if (func_CBaseClient_OnRequestFullUpdate)
-		func_CBaseClient_OnRequestFullUpdate(pClient);
+	func_CBaseClient_OnRequestFullUpdate(pClient);
 
 	return 0;
 }
@@ -2115,6 +2114,9 @@ LUA_FUNCTION_STATIC(gameserver_SendConnectionlessPacket)
 		return 1;
 	}
 
+	if (!func_NET_SendPacket)
+		LUA->ThrowError("Failed to load NET_SendPacket");
+
 	LUA->PushNumber(func_NET_SendPacket(NULL, nSocket, (netadr_t&)adr, msg->GetData(), msg->GetNumBytesWritten(), NULL, false));
 	return 1;
 }
@@ -2122,6 +2124,9 @@ LUA_FUNCTION_STATIC(gameserver_SendConnectionlessPacket)
 static CUtlVectorMT<CUtlVector<CNetChan*>>* s_NetChannels = NULL;
 CNetChan* NET_CreateHolyLibNetChannel(int socket, netadrnew_t* adr, const char* name, INetChannelHandler* handler, bool bForceNewChannel, int nProtocolVersion)
 {
+	if (!s_NetChannels)
+		return NULL;
+
 	CNetChan* pChan = new CNetChan;
 
 	(*s_NetChannels).Lock();
