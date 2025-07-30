@@ -348,7 +348,7 @@ static HSteamUser hSteamUser = NULL;
 static ISteamUser* g_pSteamUser = NULL;
 void ShutdownSteamUser()
 {
-	Warning("ShutdownSteamUser called! %p\n", g_pSteamUser);
+	// Warning("ShutdownSteamUser called! %p\n", g_pSteamUser);
 	if (!g_pSteamUser)
 		return;
 
@@ -368,7 +368,7 @@ void ShutdownSteamUser()
 	g_pSteamUser = NULL;
 	hSteamPipe = NULL;
 	hSteamUser = NULL;
-	Warning("Nuked g_pSteamUser\n");
+	// Warning("Nuked g_pSteamUser\n");
 }
 
 void CreateSteamUserIfMissing()

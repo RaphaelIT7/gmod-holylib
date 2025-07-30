@@ -4476,6 +4476,11 @@ It now throws a warning instead of crashing -> https://github.com/Facepunch/garr
 `physenv` module -> https://github.com/Facepunch/garrysmod-requests/issues/2522<br>
 `physenv.EnablePhysHook` -> https://github.com/Facepunch/garrysmod-requests/issues/2541<br>
 
+# Things that were fixed in gmod
+https://github.com/Facepunch/garrysmod-issues/issues/6019<br>
+https://github.com/Facepunch/garrysmod-issues/issues/5932#issuecomment-2420392562<br>
+https://github.com/Facepunch/garrysmod-issues/issues/6031<br>
+
 # Things planned to add:
 https://github.com/Facepunch/garrysmod-requests/issues/1884<br>
 (Maybe)https://github.com/Facepunch/garrysmod-requests/issues/132<br>

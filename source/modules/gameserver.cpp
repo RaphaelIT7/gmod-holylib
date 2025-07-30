@@ -2339,9 +2339,9 @@ static void hook_CServerGameClients_GetPlayerLimit(void* funkyClass, int& minPla
 }
 
 static Detouring::Hook detour_CBaseServer_ProcessConnectionlessPacket;
-static bool hook_CBaseServer_ProcessConnectionlessPacket(void* server, netpacket_s* packet)
+static bool hook_CBaseServer_ProcessConnectionlessPacket(IServer* server, netpacket_s* packet)
 {
-	if (!gameserver_connectionlesspackethook.GetBool())
+	if (!gameserver_connectionlesspackethook.GetBool() || server->IsHLTV())
 	{
 		return detour_CBaseServer_ProcessConnectionlessPacket.GetTrampoline<Symbols::CBaseServer_ProcessConnectionlessPacket>()(server, packet);
 	}

@@ -27,11 +27,11 @@
 class CNW2DebuggingModule : public IModule
 {
 public:
-#if SYSTEM_WINDOWS && ARCHITECTURE_X86
+#if ARCHITECTURE_X86
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 #endif
 	virtual const char* Name() { return "nw2debugging"; };
-	virtual int Compatibility() { return WINDOWS32; };
+	virtual int Compatibility() { return WINDOWS32 | LINUX32; };
 	virtual bool SupportsMultipleLuaStates() { return false; };
 	virtual bool IsEnabledByDefault() { return false; };
 };
@@ -39,7 +39,7 @@ public:
 static CNW2DebuggingModule g_pNW2DebuggingModule;
 IModule* pNW2DebuggingModule = &g_pNW2DebuggingModule;
 
-#if SYSTEM_WINDOWS && ARCHITECTURE_X86
+#if ARCHITECTURE_X86
 class CEntityInfo
 {
 public:
@@ -93,6 +93,7 @@ public:
 	}
 };
 
+#if SYSTEM_WINDOWS
 extern ConVar g_CV_DTWatchEnt;
 
 //-----------------------------------------------------------------------------
@@ -119,7 +120,7 @@ public:
 
 
 static CUtlLinkedList<CChangeTrack*, int> g_Tracks;
-
+#endif
 
 // These are the main variables used by the SV_CreatePacketEntities function.
 // The function is split up into multiple smaller ones and they pass this structure around.
@@ -150,7 +151,7 @@ public:
 	int				m_nTotalGapCount; */
 };
 
-
+#if SYSTEM_WINDOWS
 
 //-----------------------------------------------------------------------------
 // Delta timing helpers.
@@ -211,7 +212,7 @@ void PrintChangeTracks()
 	ConMsg( "Total CalcDelta MS: %.2f\n\n", total.GetMillisecondsF() );
 	ConMsg( "Total Encode    MS: %.2f\n\n", encodeTotal.GetMillisecondsF() );
 }
-
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: Entity wasn't dealt with in packet, but it has been deleted, we'll flag
@@ -241,7 +242,7 @@ static inline bool SV_NeedsExplicitDestroy( int entnum, CFrameSnapshot *from, CF
 	return false;
 }
 
-
+#if SYSTEM_WINDOWS
 //-----------------------------------------------------------------------------
 // Purpose: Creates a delta header for the entity
 //-----------------------------------------------------------------------------
@@ -396,7 +397,7 @@ static inline void SV_WritePropsFromPackedEntity(
 		// hltv->m_DeltaCache.AddDeltaBits( pTo->m_nEntityIndex, u.m_pFromSnapshot->m_nTickCount, nBits, &bufStart );
 	}
 }
-
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: See if the entity needs a "hard" reset ( i.e., and explicit creation tag )
@@ -446,7 +447,7 @@ static bool SV_NeedsExplicitCreate( CEntityWriteInfo &u )
 	return bNeedsExplicitCreate;
 }
 
-
+#if SYSTEM_WINDOWS
 static inline void SV_DetermineUpdateType( CEntityWriteInfo &u )
 {
 	// Figure out how we want to update the entity.
@@ -869,7 +870,7 @@ static inline int SV_WriteDeletions( CEntityWriteInfo &u )
 
 	return nNumDeletions;
 }
-
+#endif
 
 /*
 =============
@@ -882,6 +883,7 @@ Returns the size IN BITS of the message buffer created.
 
 static CBaseServer* g_pBaseServer = NULL;
 static Detouring::Hook detour_CBaseServer_WriteDeltaEntities;
+#if SYSTEM_WINDOWS
 static void hook_CBaseServer_WriteDeltaEntities( CBaseClient *client, CClientFrame *to, CClientFrame *from, bf_write &pBuf )
 {
 	// ToDo: Use ASM to get the CBaseServer variable from ecx
@@ -1056,11 +1058,139 @@ static void hook_CBaseServer_WriteDeltaEntities( CBaseClient *client, CClientFra
 		client->TraceNetworkData( pBuf, "Delta Finish" );
 	}*/
 }
+#else
+enum FunnyUpdateTypes {
+	FU_EnterPVS = 0,
+	FU_LeavePVS = 1,
+	FU_ExplicitCreate = 2,
+	FU_ExplicitDestroy = 3,
+	FU_DeltaOrPreserve = 4,
+};
+
+static inline FunnyUpdateTypes Test_SV_DetermineUpdateType( CEntityWriteInfo &u )
+{
+	if( u.m_nNewEntity < u.m_nOldEntity )
+	{
+		return FunnyUpdateTypes::FU_EnterPVS;
+	}
+
+	/*bool destroy = u.m_bAsDelta && SV_NeedsExplicitDestroy( u.m_nOldEntity, u.m_pFromSnapshot, u.m_pToSnapshot );
+	if ( destroy )
+	{
+		return FunnyUpdateTypes::FU_ExplicitDestroy;
+	}*/
+	
+	if( u.m_nNewEntity > u.m_nOldEntity )
+	{
+		return FunnyUpdateTypes::FU_LeavePVS;
+	}
+
+	bool recreate = SV_NeedsExplicitCreate( u );
+	if ( recreate )
+	{
+		return FunnyUpdateTypes::FU_ExplicitCreate;
+	}
+	
+	Assert( u.m_pToSnapshot->m_pEntities[ u.m_nNewEntity ].m_pClass );
+	
+	return FunnyUpdateTypes::FU_DeltaOrPreserve;
+}
+
+static CFrameSnapshotManager* framesnapshotmanager = NULL;
+static void hook_CBaseServer_WriteDeltaEntities(CBaseServer* pServer, CBaseClient *client, CClientFrame *to, CClientFrame *from, bf_write &pBuf )
+{
+	// Setup the CEntityWriteInfo structure.
+	CEntityWriteInfo u;
+	u.m_pBuf = &pBuf;
+	u.m_pTo = to;
+	u.m_pToSnapshot = to->GetSnapshot();
+	u.m_pBaseline = client->m_pBaseline;
+	u.m_nFullProps = 0;
+	u.m_pServer = g_pBaseServer;
+	u.m_nClientEntity = client->m_nEntityIndex;
+
+	if ( from != NULL )
+	{
+		u.m_bAsDelta = true;	
+		u.m_pFrom = from;
+		u.m_pFromSnapshot = from->GetSnapshot();
+		Assert( u.m_pFromSnapshot );
+	}
+	else
+	{
+		u.m_bAsDelta = false;
+		u.m_pFrom = NULL;
+		u.m_pFromSnapshot = NULL;
+	}
+
+	std::unordered_map<int, int> pVisitedNewEntity;
+	std::unordered_map<int, int> pVisitedOldEntity;
+	{
+		// Iterate through the in PVS bitfields until we find an entity 
+		// that was either in the old pack or the new pack
+		u.NextOldEntity();
+		u.NextNewEntity();
+		
+		int previousType = -1;
+		while ( (u.m_nOldEntity != ENTITY_SENTINEL) || (u.m_nNewEntity != ENTITY_SENTINEL) )
+		{
+			u.m_pNewPack = (u.m_nNewEntity != ENTITY_SENTINEL) ? framesnapshotmanager->GetPackedEntity( u.m_pToSnapshot, u.m_nNewEntity ) : NULL;
+			u.m_pOldPack = (u.m_nOldEntity != ENTITY_SENTINEL) ? framesnapshotmanager->GetPackedEntity( u.m_pFromSnapshot, u.m_nOldEntity ) : NULL;
+			
+			FunnyUpdateTypes type = Test_SV_DetermineUpdateType(u);
+			
+			if (pVisitedNewEntity.find(u.m_nNewEntity) != pVisitedNewEntity.end())
+			{
+				Msg("m_nNewEntity: Tried to write a entity that we already went over? %i - %i - %i | %i - %i\n", pVisitedNewEntity.find(u.m_nNewEntity)->second, (int)type, previousType, u.m_nNewEntity, u.m_nOldEntity);
+			}
+
+			if (pVisitedOldEntity.find(u.m_nOldEntity) != pVisitedOldEntity.end())
+			{
+				Msg("m_nOldEntity: Tried to write a entity that we already went over? %i - %i - %i | %i - %i\n", pVisitedOldEntity.find(u.m_nOldEntity)->second, (int)type, previousType, u.m_nNewEntity, u.m_nOldEntity);
+			}
+			previousType = type;
+
+			if (type == FunnyUpdateTypes::FU_DeltaOrPreserve)
+			{
+				pVisitedOldEntity[u.m_nOldEntity] = (int)type;
+				u.NextOldEntity();
+				pVisitedNewEntity[u.m_nNewEntity] = (int)type;
+				u.NextNewEntity();
+				continue;
+			}
+
+			if (type == FunnyUpdateTypes::FU_LeavePVS || type == FunnyUpdateTypes::FU_ExplicitDestroy)
+			{
+				pVisitedOldEntity[u.m_nOldEntity] = (int)type;
+				u.NextOldEntity();
+				continue;
+			}
+
+			if (pVisitedOldEntity.find(u.m_nOldEntity) != pVisitedOldEntity.end())
+			{
+				Msg("EnterPVS: Tried to join pvs? %i - %i:%i - %i:%i - %s\n", pVisitedOldEntity.find(u.m_nOldEntity)->second, (int)type, previousType, u.m_nNewEntity, u.m_nOldEntity, (u.m_bAsDelta && SV_NeedsExplicitDestroy( u.m_nOldEntity, u.m_pFromSnapshot, u.m_pToSnapshot )) ? "true" : "false");
+			}
+			
+			if (u.m_nNewEntity == u.m_nOldEntity)
+			{
+				Msg("EnterPVS: Tried to join pvs? %i:%i - %i:%i - %s\n", (int)type, previousType, u.m_nNewEntity, u.m_nOldEntity, (u.m_bAsDelta && SV_NeedsExplicitDestroy( u.m_nOldEntity, u.m_pFromSnapshot, u.m_pToSnapshot )) ? "true" : "false");
+				pVisitedOldEntity[u.m_nOldEntity] = (int)previousType;
+				u.NextOldEntity();
+			}
+
+			Msg("EnterPVS: joined pvs? %i:%i - %i:%i - %s\n", (int)type, previousType, u.m_nNewEntity, u.m_nOldEntity, (u.m_bAsDelta && SV_NeedsExplicitDestroy( u.m_nNewEntity, u.m_pFromSnapshot, u.m_pToSnapshot )) ? "true" : "false");
+			pVisitedNewEntity[u.m_nNewEntity] = (int)type;
+			u.NextNewEntity();
+		}
+	}
+
+	detour_CBaseServer_WriteDeltaEntities.GetTrampoline<Symbols::CBaseServer_WriteDeltaEntities>()(pServer, client, to, from, pBuf);
+}
+#endif
 
 //-----------------------------------------------------------------------------
 // Returns the pack data for a particular entity for a particular snapshot
 //-----------------------------------------------------------------------------
-
 PackedEntity* CFrameSnapshotManager::GetPackedEntity( CFrameSnapshot* pSnapshot, int entity )
 {
 	if ( !pSnapshot )
@@ -1078,6 +1208,7 @@ PackedEntity* CFrameSnapshotManager::GetPackedEntity( CFrameSnapshot* pSnapshot,
 	return packedEntity;
 }
 
+#if SYSTEM_WINDOWS
 abstract_class IChangeFrameList
 {
 public:
@@ -1684,6 +1815,7 @@ int SendTable_CullPropsFromProxies(
 	return func_SendTable_CullPropsFromProxies(pTable, pStartProps, nStartProps, iClient, pOldStateProxies, nOldStateProxies, pNewStateProxies, nNewStateProxies, pOutProps, nMaxOutProps);
 }
 */
+#endif
 
 void CNW2DebuggingModule::InitDetour(bool bPreServer)
 {
@@ -1691,6 +1823,7 @@ void CNW2DebuggingModule::InitDetour(bool bPreServer)
 		return;
 
 	SourceSDK::FactoryLoader engine_loader("engine");
+#if SYSTEM_WINDOWS
 	Detour::Create(
 		&detour_CBaseServer_WriteDeltaEntities, "CBaseServer::WriteDeltaEntities",
 		engine_loader.GetModule(), Symbol::FromSignature("\x55\x8B\xEC\x81\xEC\x84\x04\x00\x00\x53\x56\x8B\xF1"), // 55 8B EC 81 EC 84 04 00 00 53 56 8B F1
@@ -1726,6 +1859,13 @@ void CNW2DebuggingModule::InitDetour(bool bPreServer)
 
 	g_svInstanceBaselineMutex2 = Detour::ResolveSymbol<CThreadFastMutex>(engine_loader, Symbol::FromSignature("\x2A\x2A\x2A\x2A\x3B\x15\x2A\x2A\x2A\x2A\x2A\x2A\x8B\xCA\x33\xC0\xF0\x0F\xB1\x0B\x85\xC0\x2A\x2A\xF3\x90\x6A\x00\x52\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x90\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x8B\x8F")); // ?? ?? ?? ?? 3B 15 ?? ?? ?? ?? ?? ?? 8B CA 33 C0 F0 0F B1 0B 85 C0 ?? ?? F3 90 6A 00 52 ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? 90 ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? 8B 8F Symbol::FromSignature("\x2A\x2A\x2A\x2A\x83\xC4\x04\x8B\x01\xFF\x50\x04\x6A\x40"), // ?? ?? ?? ?? 83 C4 04 8B 01 FF 50 04 6A 40 || "framesnapshotmanager"
 	Detour::CheckValue("get class", "g_svInstanceBaselineMutex", g_svInstanceBaselineMutex2 != NULL);
+#else
+	Detour::Create(
+		&detour_CBaseServer_WriteDeltaEntities, "CBaseServer::WriteDeltaEntities",
+		engine_loader.GetModule(), Symbol::FromName("_ZN11CBaseServer18WriteDeltaEntitiesEP11CBaseClientP12CClientFrameS3_R8bf_write"),
+		(void*)hook_CBaseServer_WriteDeltaEntities, m_pID
+	);
+#endif
 
 	// First time I made a symbol for a variable instead of a function :D
 	// Finally figured out how it works, only took me months
