@@ -484,7 +484,6 @@ void CVProfModule::InitDetour(bool bPreServer)
 		server_loader.GetModule(), Symbols::lj_BC_FUNCCSym,
 		(void*)hook_lj_BC_FUNCC, m_pID
 	);
-#endif
 
 	Detour::Create(
 		&detour_Msg, "Msg",
