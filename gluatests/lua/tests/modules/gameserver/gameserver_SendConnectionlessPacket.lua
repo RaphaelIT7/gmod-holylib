@@ -5,14 +5,14 @@ return {
             name = "Function exists globally",
             when = HolyLib_IsModuleEnabled( "gameserver" ),
             func = function()
-                expect( GetGlobalEntityList ).to.beA( "function" )
+                expect( SendConnectionlessPacket ).to.beA( "function" )
             end
         },
         {
             name = "Function doesn't exists globally",
             when = not HolyLib_IsModuleEnabled( "gameserver" ),
             func = function()
-                expect( GetGlobalEntityList ).to.beA( "nil" )
+                expect( SendConnectionlessPacket ).to.beA( "nil" )
             end
         },
         {
