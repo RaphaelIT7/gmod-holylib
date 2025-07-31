@@ -33,16 +33,19 @@ namespace Symbols
 
 	const std::vector<Symbol> CBaseAnimating_InvalidateBoneCacheSym = {
 		Symbol::FromName("_ZN14CBaseAnimating19InvalidateBoneCacheEv"),
-		Symbol::FromSignature(""), // 
+		Symbol::FromSignature("\x55\x48\x89\xE5\x48\x8B\xBF\x58\x16\x00\x00"), // 55 48 89 E5 48 8B BF 58 16 00 00
 		// How to hopefully find it(Still a pain): Search for "%5.2f : %s : %s : %5.3f\n" -> CBaseAnimating::StudioFrameAdvance() -> StudioFrameAdvanceInternal() -> Studio_InvalidateBoneCacheIfNotMatching() -> Find CBaseAnimating::InvalidateBoneCache by checking which function calls it with -1.0f
+		// Else: Search for 'aim_yaw' -> CNPC_SecurityCamera__UpdateFacing -> CBaseAnimating::InvalidateBoneCache
 	};
 
-	const std::vector<Symbol> CBaseEntity_PostConstructorSym = { // ToDo: 64x
+	const std::vector<Symbol> CBaseEntity_PostConstructorSym = { // Search for 'Setting CBaseEntity to non-brush model %s' then search for the vtable and it will be 2 functions bellow
 		Symbol::FromName("_ZN11CBaseEntity15PostConstructorEPKc"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x89\xFB\x48\x83\xEC\x18\x48\x85\xF6\x74\x2A\xE8\x2A\x2A\x2A\x2A"), // 55 48 89 E5 53 48 89 FB 48 83 EC 18 48 85 F6 74 ? E8 ? ? ? ?
 	};
 
-	const std::vector<Symbol> CCollisionProperty_MarkSurroundingBoundsDirtySym = {
+	const std::vector<Symbol> CCollisionProperty_MarkSurroundingBoundsDirtySym = { //Search for 'Clamping SetLocalVelocity(%f,%f,%f) on %s' to get CBaseEntity::SetLocalVelocity then into it find CBaseEntity::InvalidatePhysicsRecursive
 		Symbol::FromName("_ZN18CCollisionProperty24MarkPartitionHandleDirtyEv"),
+		Symbol::FromSignature("\x55\x48\x8B\x57\x08\x48\x89\xE5\x48\x8B\x42\x40"), //55 48 8B 57 08 48 89 E5 48 8B 42 40
 	};
 
 	const std::vector<Symbol> lua_rawsetiSym = {
@@ -126,7 +129,7 @@ namespace Symbols
 
 	const std::vector<Symbol> CHostState_State_ChangeLevelMPSym = {
 		Symbol::FromName("_Z23HostState_ChangeLevelMPPKcS0_"),
-		NULL_SIGNATURE,
+		Symbol::FromSignature("\x55\x80\xBF\x3C\x01\x00\x00\x00"), // 55 80 BF 3C 01 00 00 00
 	};
 
 	//---------------------------------------------------------------------------------
@@ -804,6 +807,7 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	const std::vector<Symbol> CServerGameClients_GetPlayerLimitSym = {
 		Symbol::FromName("_ZNK18CServerGameClients15GetPlayerLimitsERiS0_S0_"),
+		Symbol::FromSignature("\x55\xC7\x01\x80\x00\x00\x00"), // 55 C7 01 80 00 00 00
 	};
 
 	const std::vector<Symbol> CBaseServer_FillServerInfoSym = {
@@ -828,18 +832,22 @@ namespace Symbols
 
 	const std::vector<Symbol> GModDataPack_IsSingleplayerSym = {
 		Symbol::FromName("_ZN12GModDataPack14IsSingleplayerEv"),
+		Symbol::FromSignature("\x48\x8B\x05\x2A\x2A\x2A\x2A\x55\x48\x89\xE5\x5D\x48\x8B\x00\x83\x78\x14\x01"), // 48 8B 05 ? ? ? ? 55 48 89 E5 5D 48 8B 00 83 78 14 01
 	};
 
-	const std::vector<Symbol> CBaseClient_ShouldSendMessagesSym = {
+	const std::vector<Symbol> CBaseClient_ShouldSendMessagesSym = {//Search for '%s overflowed reliable buffer (%i bytes, %s in, %s out)'
 		Symbol::FromName("_ZN11CBaseClient18ShouldSendMessagesEv"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x53\x48\x89\xFB\x48\x83\xEC\x18\x48\x8B\x07"), // 55 48 89 E5 41 57 41 56 41 55 41 54 53 48 89 FB 48 83 EC 18 48 8B 07
 	};
 
-	const std::vector<Symbol> CBaseServer_CheckTimeoutsSym = {
+	const std::vector<Symbol> CBaseServer_CheckTimeoutsSym = {//Search for 'CBaseServer::CheckTimeouts'
 		Symbol::FromName("_ZN11CBaseServer13CheckTimeoutsEv"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x49\x89\xFC\x53\x48\x83\xEC\x18\x48\x8B\x05\x2A\x2A\x2A\x2A"), // 55 48 89 E5 41 57 41 56 41 55 41 54 49 89 FC 53 48 83 EC 18 48 8B 05 ? ? ? ?
 	};
 
-	const std::vector<Symbol> CBaseClient_OnRequestFullUpdateSym = {
+	const std::vector<Symbol> CBaseClient_OnRequestFullUpdateSym = {//Search for 'CBaseClient::OnRequestFullUpdate'
 		Symbol::FromName("_ZN11CBaseClient19OnRequestFullUpdateEv"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x53\x48\x89\xFB\x48\x83\xEC\x18\x4C\x8B\x25\x2A\x2A\x2A\x2A"), //55 48 89 E5 41 57 41 56 41 55 41 54 53 48 89 FB 48 83 EC 18 4C 8B 25 ? ? ? ?
 	};
 
 	const std::vector<Symbol> CGameClient_SpawnPlayerSym = {
