@@ -36,7 +36,7 @@ public:
 	virtual void OnEntityDeleted(CBaseEntity* pEntity) OVERRIDE;
 	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) OVERRIDE;
 	virtual const char* Name() { return "networking"; };
-	virtual int Compatibility() { return LINUX32 | LINUX64; };
+	virtual int Compatibility() { return LINUX32; };
 };
 
 /*
