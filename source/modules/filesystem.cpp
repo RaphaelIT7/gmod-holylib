@@ -25,7 +25,7 @@ public:
 	virtual void Shutdown() OVERRIDE;
 	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) OVERRIDE;
 	virtual const char* Name() { return "filesystem"; };
-	virtual int Compatibility() { return LINUX32 | WINDOWS32; };
+	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32; };
 	virtual bool SupportsMultipleLuaStates() { return true; };
 };
 
