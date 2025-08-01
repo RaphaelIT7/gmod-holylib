@@ -493,11 +493,13 @@ void CHolyLibModule::InitDetour(bool bPreServer)
 		(void*)hook_GetGModServerTags, m_pID
 	);
 
+#if ARCHITECTURE_IS_X86
 	Detour::Create(
 		&detour_CHostState_State_ChangeLevelMP, "CHostState_State_ChangeLevelMP",
 		engine_loader.GetModule(), Symbols::CHostState_State_ChangeLevelMPSym,
 		(void*)hook_CHostState_State_ChangeLevelMP, m_pID
 	);
+#endif
 
 	func_CBaseAnimating_InvalidateBoneCache = (Symbols::CBaseAnimating_InvalidateBoneCache)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseAnimating_InvalidateBoneCacheSym);
 	Detour::CheckFunction((void*)func_CBaseAnimating_InvalidateBoneCache, "CBaseAnimating::InvalidateBoneCache");
