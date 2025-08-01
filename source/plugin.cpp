@@ -9,6 +9,7 @@
 #include "module.h"
 #include "plugin.h"
 #include "vprof.h"
+#include "server.h"
 #include "holylua.h"
 
 struct edict_t;
@@ -375,6 +376,15 @@ GMOD_MODULE_OPEN()
 	g_pModuleManager.MarkAsBinaryModule();
 	Lua::SetManualShutdown();
 	g_HolyLibServerPlugin.Load(NULL, NULL); // Yes. I don't like it but I can't get thoes fancy interfaces.
+
+	if (Util::engineserver && Util::server)
+	{
+		edict_t* pEdict = Util::engineserver->PEntityOfEntIndex(0);
+		if (Util::GetCBaseEntityFromEdict(pEdict))
+		{
+			g_pModuleManager.ServerActivate(pEdict, Util::engineserver->GetEntityCount(), Util::server->GetMaxClients());
+		}
+	}
 
 	return 0;
 }
