@@ -45,6 +45,7 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 		IncludeBootil()
 
 		defines("HOLYLIB_BUILD_RELEASE=0") -- No release builds.
+		defines("HOLYLIB_DEVELOPMENT=1")
 		defines("SWDS=1")
 		defines("PROJECT_NAME=\"holylib\"")
 		defines("NO_FRAMESNAPSHOTDEF")
