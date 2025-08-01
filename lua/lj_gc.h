@@ -23,8 +23,9 @@ enum {
 #define LJ_GC_CDATA_FIN	0x10
 #define LJ_GC_FIXED	0x20
 #define LJ_GC_SFIXED	0x40
+#define LJ_GC_ISCDATA   0x80
 #define LJ_GC_READONLY	0x80
-#define LJ_GC_BLOCKDEBUG  0x80 // Same as LJ_GC_READONLY, but we'll use this one for functions.
+#define LJ_GC_BLOCKDEBUG  0x08 // Same as LJ_GC_WEAKKEY but we can use it for functions
 
 #define LJ_GC_WHITES	(LJ_GC_WHITE0 | LJ_GC_WHITE1)
 #define LJ_GC_COLORS	(LJ_GC_WHITES | LJ_GC_BLACK)

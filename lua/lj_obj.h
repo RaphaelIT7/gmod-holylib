@@ -358,7 +358,7 @@ typedef struct GCcdataVar {
 } GCcdataVar;
 
 #define cdataptr(cd)	((void *)((cd)+1))
-#define cdataisv(cd)	((cd)->marked & 0x80)
+#define cdataisv(cd)	((cd)->marked & LJ_GC_ISCDATA)
 #define cdatav(cd)	((GCcdataVar *)((char *)(cd) - sizeof(GCcdataVar)))
 #define cdatavlen(cd)	check_exp(cdataisv(cd), cdatav(cd)->len)
 #define sizecdatav(cd)	(cdatavlen(cd) + cdatav(cd)->extra)
