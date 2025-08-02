@@ -26,9 +26,11 @@ LUA_FUNCTION_STATIC(DenyLuaAutoRefresh)
 	LUA->CheckType(1, GarrysMod::Lua::Type::String);
 	LUA->CheckType(2, GarrysMod::Lua::Type::Bool);
 
-	std::string filePath = LUA->GetString(1);
+	const char* inputFilePath = LUA->GetString(1);
 	bool blockStatus = LUA->GetBool(2);
-	blockedLuaFilesMap.insert_or_assign(filePath, blockStatus);
+	char normalizedPath[260];
+	V_FixupPathName(normalizedPath, sizeof(normalizedPath), inputFilePath);
+	blockedLuaFilesMap.insert_or_assign(std::string(normalizedPath), blockStatus);
 
 	return 0;
 }
@@ -36,9 +38,13 @@ LUA_FUNCTION_STATIC(DenyLuaAutoRefresh)
 static Detouring::Hook detour_CAutoRefresh_HandleChange_Lua;
 static bool hook_CAutoRefresh_HandleChange_Lua(const std::string* pfileRelPath, const std::string* pfileName, const std::string* pfileExt)
 {
-	using HandleChange_Lua_Function = bool(*)(const std::string*, const std::string*, const std::string*);
-	auto trampoline = detour_CAutoRefresh_HandleChange_Lua.GetTrampoline<HandleChange_Lua_Function>();
+	auto trampoline = detour_CAutoRefresh_HandleChange_Lua.GetTrampoline<Symbols::GarrysMod_AutoRefresh_HandleChange_Lua>();
 	if (!g_Lua || !pfileRelPath || !pfileName || !pfileExt)
+	{
+		return trampoline(pfileRelPath, pfileName, pfileExt);
+	}
+
+	if (std::string(pfileExt->substr(0, 3)) != "lua")
 	{
 		return trampoline(pfileRelPath, pfileName, pfileExt);
 	}
@@ -58,7 +64,10 @@ static bool hook_CAutoRefresh_HandleChange_Lua(const std::string* pfileRelPath, 
 
 	if (!blockedLuaFilesMap.empty() && !bDenyRefresh)
 	{
-		if (auto fileSearch = blockedLuaFilesMap.find(pfileName->c_str()); fileSearch != blockedLuaFilesMap.end())
+		char fullPath[260];
+		V_ComposeFileName(pfileRelPath->c_str(), pfileName->c_str(), fullPath, sizeof(fullPath));
+		V_SetExtension(fullPath, "lua", sizeof(fullPath));
+		if (auto fileSearch = blockedLuaFilesMap.find(fullPath); fileSearch != blockedLuaFilesMap.end())
 		{
 			bDenyRefresh = fileSearch->second;
 		}
