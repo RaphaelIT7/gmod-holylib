@@ -104,11 +104,13 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			links("opus_64")
 
 			-- Very specific order required by it.
+			links("tbb")
 			links("embree4")
 			links("embree_sse42")
 			links("embree_avx")
 			links("embree_avx2")
 			links("embree_avx512")
+			links("embree_sys")
 
 			prebuildcommands({
 				"cd ../../../source/_prebuildtools/ && chmod +x luajit_64 && ./luajit_64 _compilefiles.lua"
