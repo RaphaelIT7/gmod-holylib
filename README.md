@@ -2,7 +2,7 @@
 
 A library that contains some functions and optimizations for gmod.<br>
 If you need any function, make an issue for it, and I'll look into it.<br>
-When HolyLib was installed correctly, the variable `_HOLYLIB` should be set to `true` in Lua.<br>
+When HolyLib was installed correctly, the variable `_HOLYLIB` should be set to `true` in Lua. (NOTE: This was **added** in the upcoming `0.8` release)<br>
 
 ## Windows
 So currently to get it working on Windows, I would have to redo most of the hooks, and It would also take a good while.<br>
@@ -111,6 +111,11 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- \- Added `holylib_networking_transmit_all_weapons_to_owner`<br>
 \- [#] Slightly improved memory usage for UserData by HolyLib<br>
 \- [#] Updated `VoiceStream` `Load/Save` function to be able to read/write `.wav` files<br>
+\- [#] Fixed `IModule::ServerActivate` not being called when being loaded as a binary module<br>
+\- [#] Fixed `HolyLib:ProcessConnectionlessPacket` being called for SourceTV packets<br>
+\- [#] Fixed `gameserver.SendConnectionlessPacket` crashing instead of throwing a lua error when NET_SendPacket couldn't be loaded<br>
+\- [-] Removed some unused code of former fixes that were implemented into Gmod<br>
+
 
 > [!WARNING]
 > The current builds are unstable and need **A LOT** of testing.<br>
