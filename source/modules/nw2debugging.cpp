@@ -645,8 +645,6 @@ __declspec(naked) int __fastcall getValue3(const CEntityWriteInfo* u)
     }
 }
 
-static CThreadLocal<CGMODDataTable*>* s_CurrentTable = NULL;
-static CThreadLocal<int>* s_TargetTick = NULL;
 static CFrameSnapshotManager* framesnapshotmanager = NULL;
 static inline void SV_WriteEnterPVS( CEntityWriteInfo &u )
 {
@@ -727,9 +725,6 @@ static inline void SV_WriteEnterPVS( CEntityWriteInfo &u )
 		nToBits = u.m_pNewPack->GetNumBits();
 	}
 
-	IGMODDataTable* pTable = (IGMODDataTable*)getValue1(&u);
-	// s_CurrentTable->Set()
-	// ToDo: Set the ThreadLocal var's as else GMODDataTable's CompareDelta crashes.
 
 	// send all changed properties when entering PVS (no SendProxy culling since we may use it as baseline
 	u.m_nFullProps +=  SendTable_WriteAllDeltaProps( pClass->m_pTable, pFromData, nFromBits,
@@ -883,7 +878,7 @@ Returns the size IN BITS of the message buffer created.
 
 static CBaseServer* g_pBaseServer = NULL;
 static Detouring::Hook detour_CBaseServer_WriteDeltaEntities;
-#if SYSTEM_WINDOWS
+#if SYSTEM_WINDOWS && !HOLYLIB_DEVELOPMENT
 static void hook_CBaseServer_WriteDeltaEntities( CBaseClient *client, CClientFrame *to, CClientFrame *from, bf_write &pBuf )
 {
 	// ToDo: Use ASM to get the CBaseServer variable from ecx
@@ -1185,6 +1180,17 @@ static void hook_CBaseServer_WriteDeltaEntities(CBaseServer* pServer, CBaseClien
 	}
 
 	detour_CBaseServer_WriteDeltaEntities.GetTrampoline<Symbols::CBaseServer_WriteDeltaEntities>()(pServer, client, to, from, pBuf);
+}
+
+static Detouring::Hook detour_SV_DetermineUpdateType;
+static void hook_SV_DetermineUpdateType(CEntityWriteInfo& u)
+{
+	detour_SV_DetermineUpdateType.GetTrampoline<Symbols::SV_DetermineUpdateType>()(u);
+
+	if (u.m_UpdateType == UpdateType::EnterPVS)
+	{
+		Msg("Entity entered PVS: %i - %i\n", u.m_nNewEntity, u.m_nOldEntity);
+	}
 }
 #endif
 
@@ -1823,7 +1829,7 @@ void CNW2DebuggingModule::InitDetour(bool bPreServer)
 		return;
 
 	SourceSDK::FactoryLoader engine_loader("engine");
-#if SYSTEM_WINDOWS
+#if SYSTEM_WINDOWS && !HOLYLIB_DEVELOPMENT
 	Detour::Create(
 		&detour_CBaseServer_WriteDeltaEntities, "CBaseServer::WriteDeltaEntities",
 		engine_loader.GetModule(), Symbol::FromSignature("\x55\x8B\xEC\x81\xEC\x84\x04\x00\x00\x53\x56\x8B\xF1"), // 55 8B EC 81 EC 84 04 00 00 53 56 8B F1
@@ -1864,6 +1870,12 @@ void CNW2DebuggingModule::InitDetour(bool bPreServer)
 		&detour_CBaseServer_WriteDeltaEntities, "CBaseServer::WriteDeltaEntities",
 		engine_loader.GetModule(), Symbol::FromName("_ZN11CBaseServer18WriteDeltaEntitiesEP11CBaseClientP12CClientFrameS3_R8bf_write"),
 		(void*)hook_CBaseServer_WriteDeltaEntities, m_pID
+	);
+
+	Detour::Create(
+		&detour_SV_DetermineUpdateType, "SV_DetermineUpdateType",
+		engine_loader.GetModule(), Symbol::FromName("_Z22SV_DetermineUpdateTypeR16CEntityWriteInfo"),
+		(void*)hook_SV_DetermineUpdateType, m_pID
 	);
 #endif
 
