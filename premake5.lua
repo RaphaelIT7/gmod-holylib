@@ -131,10 +131,4 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 		filter("system:linux")
 			disablewarnings({"unused-variable"})
 			targetextension(".so")
-			links -- this fixes the undefined reference to `dlopen' errors.
-				{
-					"dl",
-					"tier0",
-					"pthread",
-					"bass",
-				}
+			links({"dl", "tier0", "pthread", "bass"}) -- this fixes the undefined reference to `dlopen' errors.
