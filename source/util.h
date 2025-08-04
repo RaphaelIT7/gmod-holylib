@@ -516,6 +516,7 @@ struct LuaUserData {
 	inline void Init(GarrysMod::Lua::ILuaInterface* LUA, int type)
 	{
 		pLua = LUA;
+		iType = type;
 
 #if HOLYLIB_UTIL_DEBUG_LUAUSERDATA == 2
 		Msg("holylib - util: LuaUserdata got initialized %p - %p - %i\n", this, pLua, type);
@@ -642,18 +643,9 @@ struct LuaUserData {
 #endif
 	}
 
-	// This is slower than just storing the type, but we generally won't call this function by any normal usecase which requires high performance.
-	// We by default expect ILuaInterface::GetType or IsType to be used instead of this function!
 	inline int GetType()
 	{
-		if (Push())
-		{
-			int iType = pLua->GetType(-1);
-			pLua->Pop(1);
-			return iType;
-		}
-
-		return -1;
+		return iType;
 	}
 
 	static void ForceGlobalRelease(void* pData);
@@ -664,6 +656,7 @@ private:
 #else
 	void* m_pData = NULL;
 #endif
+	int iType = GarrysMod::Lua::Type::UserData;
 	GarrysMod::Lua::ILuaInterface* pLua = NULL;
 	int iReference = -1;
 	int iTableReference = -1;
@@ -687,7 +680,7 @@ LuaUserData* Get_##className##_Data(GarrysMod::Lua::ILuaInterface* LUA, int iSta
 		return NULL; \
 	} \
 \
-	LuaUserData* pVar = LUA->GetUserType<LuaUserData>(iStackPos, luaType); \
+	LuaUserData* pVar = (LuaUserData*)LUA->GetUserdata(iStackPos); \
 	if ((!pVar || !pVar->GetData()) && bError) \
 		LUA->ThrowError(triedNull_##className.c_str()); \
 \
@@ -758,14 +751,14 @@ LuaUserData* Get_##className##_Data(GarrysMod::Lua::ILuaInterface* LUA, int iSta
 \
 	if (iType == luaType) \
 	{ \
-		LuaUserData* pVar = LUA->GetUserType<LuaUserData>(iStackPos, luaType); \
+		LuaUserData* pVar = (LuaUserData*)LUA->GetUserdata(iStackPos); \
 		if (pVar) \
 			return pVar; \
 	} \
 \
 	if (iType == luaType2) \
 	{ \
-		LuaUserData* pVar = LUA->GetUserType<LuaUserData>(iStackPos, luaType2); \
+		LuaUserData* pVar = (LuaUserData*)LUA->GetUserdata(iStackPos); \
 		if (pVar) \
 			return pVar; \
 	} \
@@ -798,7 +791,8 @@ LuaUserData* Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var
 	userData->SetData(var); \
 	int iMeta = Lua::GetLuaData(LUA)->GetMetaTable(TO_LUA_TYPE(className)); \
 	userData->Init(LUA, iMeta); \
-	LUA->PushUserType(userData, iMeta); \
+	LUA->PushUserdata((GarrysMod::Lua::ILuaBase::UserData*)userData); \
+	if (LUA->GetMetaTable(iMeta)) LUA->SetMetaTable(-1); \
 	return userData; \
 }
 
@@ -826,7 +820,8 @@ void Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
 		LuaUserData* userData = new LuaUserData; \
 		userData->SetData(var); \
 		int iMeta = Lua::GetLuaData(LUA)->GetMetaTable(TO_LUA_TYPE(className)); \
-		LUA->PushUserType(userData, iMeta); \
+		LUA->PushUserdata((GarrysMod::Lua::ILuaBase::UserData*)userData); \
+		if (LUA->GetMetaTable(iMeta)) LUA->SetMetaTable(-1); \
 		userData->Init(LUA, iMeta); \
 		userData->CreateReference(); \
 		pushedUserData[var] = userData; \
