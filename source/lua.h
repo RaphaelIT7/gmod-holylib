@@ -44,8 +44,8 @@ namespace Lua
 	*/
 	enum LuaTypes {
 		IGModAudioChannel,
-		LUA_bf_read,
-		LUA_bf_write,
+		bf_read,
+		bf_write,
 		CBaseClient,
 		CHLTVClient,
 		QAngle,

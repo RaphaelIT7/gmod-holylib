@@ -650,6 +650,16 @@ struct LuaUserData {
 
 	static void ForceGlobalRelease(void* pData);
 
+	inline unsigned char GetAdditionalData()
+	{
+		return pAdditionalData;
+	}
+
+	inline void SetAdditionalData(unsigned char pData)
+	{
+		pAdditionalData = pData;
+	}
+
 private:
 #if HOLYLIB_UTIL_BASEUSERDATA
 	BaseUserData* pBaseData = NULL;
@@ -657,6 +667,7 @@ private:
 	void* m_pData = NULL;
 #endif
 	unsigned char iType = GarrysMod::Lua::Type::UserData;
+	unsigned char pAdditionalData = 0; // For anything to use since this is padded anyways.
 	GarrysMod::Lua::ILuaInterface* pLua = NULL;
 	int iReference = -1;
 	int iTableReference = -1;
@@ -792,7 +803,7 @@ LuaUserData* Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var
 	int iMeta = Lua::GetLuaData(LUA)->GetMetaTable(TO_LUA_TYPE(className)); \
 	userData->Init(LUA, iMeta); \
 	LUA->PushUserdata((GarrysMod::Lua::ILuaBase::UserData*)userData); \
-	if (LUA->GetMetaTable(iMeta)) LUA->SetMetaTable(-1); \
+	if (LUA->PushMetaTable(iMeta)) LUA->SetMetaTable(-1); \
 	return userData; \
 }
 
@@ -821,7 +832,7 @@ void Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
 		userData->SetData(var); \
 		int iMeta = Lua::GetLuaData(LUA)->GetMetaTable(TO_LUA_TYPE(className)); \
 		LUA->PushUserdata((GarrysMod::Lua::ILuaBase::UserData*)userData); \
-		if (LUA->GetMetaTable(iMeta)) LUA->SetMetaTable(-1); \
+		if (LUA->PushMetaTable(iMeta)) LUA->SetMetaTable(-1); \
 		userData->Init(LUA, iMeta); \
 		userData->CreateReference(); \
 		pushedUserData[var] = userData; \
@@ -913,6 +924,7 @@ LUA_FUNCTION_STATIC(className ## __gc) \
 	if (pData) \
 	{ \
 		LUA->SetUserType(1, NULL); \
+		unsigned char pAdditionalData = pData->GetAdditionalData(); \
 		void* pStoredData = pData->GetData(); \
 		if (pData->Release()) \
 		{ \
