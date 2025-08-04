@@ -656,7 +656,7 @@ private:
 #else
 	void* m_pData = NULL;
 #endif
-	int iType = GarrysMod::Lua::Type::UserData;
+	unsigned char iType = GarrysMod::Lua::Type::UserData;
 	GarrysMod::Lua::ILuaInterface* pLua = NULL;
 	int iReference = -1;
 	int iTableReference = -1;

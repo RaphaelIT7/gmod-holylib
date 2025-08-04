@@ -2788,7 +2788,8 @@ void CGameServerModule::OnClientDisconnect(CBaseClient* pClient)
 			Push_CBaseClient(g_Lua, pClient);
 			LuaUserData* pData = Get_CBaseClient_Data(g_Lua, -1, false);
 			g_Lua->CallFunctionProtected(2, 0, true);
-			pData->ClearLuaTable();
+			if (pData)
+				pData->ClearLuaTable();
 		}
 
 		Delete_CBaseClient(g_Lua, pClient);
