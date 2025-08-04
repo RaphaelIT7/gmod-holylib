@@ -277,6 +277,7 @@ void Lua::CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA, bool bNullOut)
 
 	char* pathID = (char*)LUA->GetPathID();
 	Lua::StateData* data = new Lua::StateData;
+	data->pLua = LUA;
 	*reinterpret_cast<Lua::StateData**>(pathID + 24) = data;
 	g_pLuaStates.insert(data);
 	Msg("holylib - Created thread data %p (%s)\n", data, pathID);

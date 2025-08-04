@@ -1188,7 +1188,7 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 
 		if (pLuaData)
 		{
-			delete pLuaData;
+			pLuaData->Release(g_Lua);
 		}
 
 		delete pVoiceData;

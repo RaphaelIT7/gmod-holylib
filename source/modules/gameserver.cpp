@@ -73,7 +73,7 @@ LUA_FUNCTION_STATIC(CBaseClient_GetTable)
 	LuaUserData* data = Get_CBaseClient_Data(LUA, 1, true);
 	CBaseClient* pClient = (CBaseClient*)data->GetData();
 
-	Util::ReferencePush(LUA, data->GetLuaTable()); // This should never crash so no safety checks.
+	Util::ReferencePush(LUA, data->GetLuaTable(LUA)); // This should never crash so no safety checks.
 	return 1;
 }
 
@@ -1629,7 +1629,7 @@ bool ILuaNetMessageHandler::ProcessLuaNetChanMessage(NET_LuaNetChanMessage *msg)
 		
 	if (pLuaData)
 	{
-		delete pLuaData;
+		pLuaData->Release(m_pLua);
 	}
 	m_pLua->SetUserType(-1, NULL);
 	m_pLua->Pop(1);
@@ -2366,7 +2366,7 @@ static bool hook_CBaseServer_ProcessConnectionlessPacket(IServer* server, netpac
 
 		if (pLuaData)
 		{
-			delete pLuaData;
+			pLuaData->Release(g_Lua);
 		}
 		g_Lua->SetUserType(-1, NULL);
 		g_Lua->Pop(1);
@@ -2789,7 +2789,7 @@ void CGameServerModule::OnClientDisconnect(CBaseClient* pClient)
 			LuaUserData* pData = Get_CBaseClient_Data(g_Lua, -1, false);
 			g_Lua->CallFunctionProtected(2, 0, true);
 			if (pData)
-				pData->ClearLuaTable();
+				pData->ClearLuaTable(g_Lua);
 		}
 
 		Delete_CBaseClient(g_Lua, pClient);

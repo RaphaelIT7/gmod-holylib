@@ -35,7 +35,7 @@ namespace Lua
 
 	// Each new metatable has this entry.
 	struct LuaMetaEntry {
-		int iType = -1;
+		unsigned char iType = -1;
 	};
 
 	/*
@@ -92,6 +92,7 @@ namespace Lua
 		Lua::ModuleData* pModuelData[Lua::Internal::pMaxEntries] = { NULL }; // It uses the assigned module IDs
 		LuaMetaEntry pLuaTypes[LuaTypes::TOTAL_TYPES];
 		std::unordered_map<void*, LuaUserData*> pPushedUserData; // Would love to get rid of this
+		GarrysMod::Lua::ILuaInterface* pLua = NULL;
 
 		~StateData()
 		{
@@ -106,18 +107,18 @@ namespace Lua
 			}
 		}
 
-		inline void RegisterMetaTable(LuaTypes type, int metaID)
+		inline void RegisterMetaTable(LuaTypes type, unsigned char metaID)
 		{
 			pLuaTypes[type].iType = metaID;
 			Msg("Registered MetaTable: %i - %i\n", (int)type, metaID);
 		}
 
-		inline int GetMetaTable(LuaTypes type)
+		inline unsigned char GetMetaTable(LuaTypes type)
 		{
 			return pLuaTypes[type].iType;
 		}
 
-		inline LuaTypes FindMetaTable(int type)
+		inline LuaTypes FindMetaTable(unsigned char type)
 		{
 			for (int i=0; i<LuaTypes::TOTAL_TYPES; ++i)
 			{

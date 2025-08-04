@@ -262,7 +262,7 @@ LUA_FUNCTION_STATIC(CreateEntityList)
 	EntityList* pList = new EntityList();
 	pList->SetLua(LUA);
 
-	Push_EntityList(LUA, pList);
+	LuaUserData* pData = Push_EntityList(LUA, pList);
 	return 1;
 }
 

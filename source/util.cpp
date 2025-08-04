@@ -82,7 +82,7 @@ void LuaUserData::ForceGlobalRelease(void* pData)
 		it2->second-> = 1; // Set it to 1 because Release will only fully execute if there aren't any other references left.
 		it2->second->Release(NULL);
 #else
-		it2->second->Release();
+		it2->second->Release(pState->pLua);
 #endif
 	}
 }
