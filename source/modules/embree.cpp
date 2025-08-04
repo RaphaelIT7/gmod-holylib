@@ -16,7 +16,7 @@
 class CEmbreeModule : public IModule
 {
 public:
-#if SYSTEM_LINUX && ARCHITECTURE_X86_64 || HOLYLIB_DEVELOPMENT
+#if SYSTEM_LINUX && ARCHITECTURE_X86_64 && false || HOLYLIB_DEVELOPMENT
 	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
@@ -28,7 +28,7 @@ public:
 static CEmbreeModule g_pEmbreeModule;
 IModule* pEmbreeModule = &g_pEmbreeModule;
 
-#if SYSTEM_LINUX && ARCHITECTURE_X86_64 || HOLYLIB_DEVELOPMENT
+#if SYSTEM_LINUX && ARCHITECTURE_X86_64 && false || HOLYLIB_DEVELOPMENT
 static RTCDevice pDevice = NULL;
 static RTCGeometry pGeometry = NULL;
 static RTCScene pScene = NULL;
