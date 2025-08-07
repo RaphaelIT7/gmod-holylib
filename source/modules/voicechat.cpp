@@ -1156,26 +1156,9 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 		VoiceData* pVoiceData = new VoiceData;
 		pVoiceData->SetData(data, nBytes);
 		pVoiceData->iPlayerSlot = pClient->GetPlayerSlot();
-		LuaUserData* pLuaData = Push_VoiceData(g_Lua, pVoiceData);
-		// Stack: -3 = hook.Run(function) | -2 = hook name(string) | -1 = voicedata(userdata)
-		
-		g_Lua->Push(-3);
-		// Stack: -4 = hook.Run(function) | -3 = hook name(string) | -2 = voicedata(userdata) | -1 = hook.Run(function)
-		
-		g_Lua->Push(-3);
-		// Stack: -5 = hook.Run(function) | -4 = hook name(string) | -3 = voicedata(userdata) | -2 = hook.Run(function) | -1 = hook name(string)
-		
-		g_Lua->Remove(-5);
-		// Stack: -4 = hook name(string) | -3 = voicedata(userdata) | -2 = hook.Run(function) | -1 = hook name(string)
-
-		g_Lua->Remove(-4);
-		// Stack: -3 = voicedata(userdata) | -2 = hook.Run(function) | -1 = hook name(string)
 
 		Util::Push_Entity(g_Lua, (CBaseEntity*)Util::GetPlayerByClient((CBaseClient*)pClient));
-		// Stack: -4 = voicedata(userdata) | -3 = hook.Run(function) | -2 = hook name(string) | -1 = entity(userdata)
-
-		g_Lua->Push(-4);
-		// Stack: -5 = voicedata(userdata) | -4 = hook.Run(function) | -3 = hook name(string) | -2 = entity(userdata) | -1 = voicedata(userdata)
+		LuaUserData* pLuaData = Push_VoiceData(g_Lua, pVoiceData);
 
 		bool bHandled = false;
 		if (g_Lua->CallFunctionProtected(3, 1, true))
@@ -1184,16 +1167,12 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 			g_Lua->Pop(1);
 		}
 
-		// Stack: -1 = voicedata(userdata)
-
 		if (pLuaData)
 		{
 			pLuaData->Release(g_Lua);
 		}
 
 		delete pVoiceData;
-		g_Lua->SetUserType(-1, NULL);
-		g_Lua->Pop(1); // The voice data is still there, so now finally remove it.
 
 		if (bHandled)
 			return;

@@ -570,7 +570,7 @@ struct LuaUserData { // No constructor/deconstructor since its managed by Lua!
 	inline bool Release(GarrysMod::Lua::ILuaInterface* pLua)
 	{
 #if HOLYLIB_UTIL_DEBUG_LUAUSERDATA == 2
-		Msg("holylib - util: LuaUserdata got created released %p\n", this);
+		Msg("holylib - util: LuaUserdata got released %p\n", this);
 #endif
 
 #if HOLYLIB_UTIL_BASEUSERDATA
@@ -589,9 +589,10 @@ struct LuaUserData { // No constructor/deconstructor since its managed by Lua!
 		{
 			if (pLua)
 			{
-				Util::ReferencePush(pLua, m_iReference);
-				pLua->SetUserType(-1, NULL);
-				pLua->Pop(1);
+				// We don't call SetUserType since we no longer use the ILuaBase::UserData! So it would set our own m_pData field to NULL!
+				// Util::ReferencePush(pLua, m_iReference);
+				// pLua->SetUserType(-1, NULL);
+				// pLua->Pop(1);
 				Util::ReferenceFree(pLua, m_iReference, "LuaUserData::~LuaUserData(UserData)");
 			}
 
@@ -618,9 +619,7 @@ struct LuaUserData { // No constructor/deconstructor since its managed by Lua!
 		}
 #endif
 
-#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA == 2
-		Msg("holylib - util: LuaUserdata got deleted %p\n", this);
-#endif
+		m_pData = NULL;
 
 		return true;
 #endif
@@ -901,7 +900,6 @@ LUA_FUNCTION_STATIC(className ## __gc) \
 	LuaUserData* pData = Get_##className##_Data(LUA, 1, false); \
 	if (pData) \
 	{ \
-		LUA->SetUserType(1, NULL); \
 		unsigned char pAdditionalData = pData->GetAdditionalData(); \
 		void* pStoredData = pData->GetData(); \
 		if (pData->Release(LUA)) \

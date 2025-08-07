@@ -1619,11 +1619,10 @@ bool ILuaNetMessageHandler::ProcessLuaNetChanMessage(NET_LuaNetChanMessage *msg)
 	if (m_iMessageCallbackFunction == -1) // We have no callback function set.
 		return true;
 
-	LuaUserData* pLuaData = Push_bf_read(m_pLua, &msg->m_DataIn, false);
 	m_pLua->ReferencePush(m_iMessageCallbackFunction);
 
 	Push_CNetChan(m_pLua, m_pChan);
-	m_pLua->Push(-3);
+	LuaUserData* pLuaData = Push_bf_read(m_pLua, &msg->m_DataIn, false);
 	m_pLua->PushNumber(msg->m_iLength);
 	m_pLua->CallFunctionProtected(3, 0, true);
 		
@@ -1631,8 +1630,6 @@ bool ILuaNetMessageHandler::ProcessLuaNetChanMessage(NET_LuaNetChanMessage *msg)
 	{
 		pLuaData->Release(m_pLua);
 	}
-	m_pLua->SetUserType(-1, NULL);
-	m_pLua->Pop(1);
 
 	return true;
 }
@@ -2172,11 +2169,12 @@ LUA_FUNCTION_STATIC(gameserver_RemoveNetChannel)
 	if (!func_NET_RemoveNetChannel)
 		LUA->ThrowError("Failed to load NET_RemoveNetChannel!");
 
-	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
+	LuaUserData* pLuaData = Get_CNetChan_Data(LUA, 1, true);
+	CNetChan* pNetChannel = (CNetChan*)pLuaData->GetData();
 
 	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler;
 	func_NET_RemoveNetChannel(pNetChannel, true);
-	LUA->SetUserType(1, NULL);
+	pLuaData->Release(LUA);
 
 	if (pHandler)
 	{
@@ -2350,11 +2348,6 @@ static bool hook_CBaseServer_ProcessConnectionlessPacket(IServer* server, netpac
 	if (Lua::PushHook("HolyLib:ProcessConnectionlessPacket"))
 	{
 		LuaUserData* pLuaData = Push_bf_read(g_Lua, &packet->message, false);
-		g_Lua->Push(-3);
-		g_Lua->Push(-3);
-		g_Lua->Remove(-5);
-		g_Lua->Remove(-4);
-		g_Lua->Push(-3);
 
 		bool bHandled = false;
 		g_Lua->PushString(packet->from.ToString());
@@ -2368,8 +2361,6 @@ static bool hook_CBaseServer_ProcessConnectionlessPacket(IServer* server, netpac
 		{
 			pLuaData->Release(g_Lua);
 		}
-		g_Lua->SetUserType(-1, NULL);
-		g_Lua->Pop(1);
 
 		if (bHandled)
 		{
