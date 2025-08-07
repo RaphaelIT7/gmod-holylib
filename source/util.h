@@ -445,7 +445,6 @@ private:
 
 #if HOLYLIB_UTIL_DEBUG_LUAUSERDATA
 struct LuaUserData;
-extern bool g_pRemoveLuaUserData;
 extern std::unordered_set<LuaUserData*> g_pLuaUserData; // A set containing all LuaUserData that actually hold a reference.
 #endif
 struct LuaUserData { // No constructor/deconstructor since its managed by Lua!
@@ -608,10 +607,7 @@ struct LuaUserData { // No constructor/deconstructor since its managed by Lua!
 		}
 
 #if HOLYLIB_UTIL_DEBUG_LUAUSERDATA
-		if (g_pRemoveLuaUserData)
-		{
-			g_pLuaUserData.erase(this);
-		}
+		g_pLuaUserData.erase(this);
 #endif
 
 #if HOLYLIB_UTIL_BASEUSERDATA

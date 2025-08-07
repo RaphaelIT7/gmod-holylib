@@ -98,7 +98,6 @@ void Lua::Shutdown()
 	g_pModuleManager.LuaShutdown(g_Lua);
 
 #if HOLYLIB_UTIL_DEBUG_LUAUSERDATA
-	g_pRemoveLuaUserData = false; // We are iterating over g_pLuaUserData so DON'T modify it.
 	for (auto& ref : g_pLuaUserData)
 	{
 		// If it doesn't hold a reference of itself, the gc will take care of it & call __gc in the lua_close call.
@@ -112,9 +111,8 @@ void Lua::Shutdown()
 			Msg(PROJECT_NAME ": This should NEVER happen! Discarding of old userdata %p (Type: %i - %i)\n", ref, iType, (iType > 0) && Lua::GetLuaData(g_Lua)->FindMetaTable(iType) || 0);
 		}
 
-		delete ref;
+		ref->Release(g_Lua);
 	}
-	g_pRemoveLuaUserData = true;
 	g_pLuaUserData.clear();
 #endif
 

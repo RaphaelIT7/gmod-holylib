@@ -25,7 +25,6 @@ IVEngineServer* engine;
 CGlobalEntityList* Util::entitylist = NULL;
 CUserMessages* Util::pUserMessages;
 
-bool g_pRemoveLuaUserData = true;
 std::unordered_set<LuaUserData*> g_pLuaUserData;
 #if HOLYLIB_UTIL_BASEUSERDATA && HOLYLIB_UTIL_GLOBALUSERDATA 
 std::shared_mutex g_UserDataMutex;
