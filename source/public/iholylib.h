@@ -34,6 +34,12 @@ public:
 
 	// For thoes who don't want to get it by the interface
 	virtual IHolyUtil* GetHolyUtil() = 0;
+
+	// Information about the plugin like version, branch & description
+	virtual const char* GetPluginDescription() = 0;
+	virtual const char* GetVersion() = 0;
+	virtual const char* GetRunNumber() = 0;
+	virtual const char* GetBranch() = 0;
 };
 
 #define INTERFACEVERSION_HOLYLIB "IHOLYLIB001"

@@ -1,3 +1,4 @@
+#include "httplib.h"
 #include "util.h"
 #include "GarrysMod/Lua/LuaObject.h"
 #include <string>
@@ -11,6 +12,7 @@
 #include "toolframework/itoolentity.h"
 #include "GarrysMod/IGet.h"
 #include <lua.h>
+#include "versioninfo.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -561,9 +563,31 @@ bool Util::ShouldLoad()
 	return true;
 }
 
-void Util::CheckVersion()
+void Util::CheckVersion() // This is called only when holylib is initially loaded! (ToDo: Allow people to disable this!)
 {
 	// ToDo: Implement this someday
+	httplib::Client pClient("http://holylib.raphaelit7.com");
+
+	httplib::Headers headers = {
+		{ "HolyLib_Branch", HolyLib_GetBranch() },
+		{ "HolyLib_RunNumber", HolyLib_GetRunNumber() },
+		{ "HolyLib_Version", HolyLib_GetVersion() }
+	};
+
+	auto res = pClient.Get("/api/check_version");
+	if (res->status == 200)
+	{
+		Bootil::Data::Tree pTree;
+		if (Bootil::Data::Json::Import(pTree, res->body.c_str()))
+		{
+			if (pTree.GetChild("status").Value() == "ok")
+			{
+				Msg(PROJECT_NAME " - versioncheck: We are up to date\n");
+			}
+		} else {
+			DevMsg(PROJECT_NAME " - versioncheck: Received invalid json!\n");
+		}
+	}
 }
 
 static bool g_bUtilInit = false;
@@ -573,6 +597,7 @@ void Util::Load()
 		return;
 
 	g_bUtilInit = true;
+	Util::CheckVersion();
 	IConfig* pConVarConfig = g_pConfigSystem->LoadConfig("garrysmod/holylib/cfg/convars.json");
 	if (pConVarConfig)
 	{
