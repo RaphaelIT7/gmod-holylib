@@ -897,7 +897,7 @@ Returns the size IN BITS of the message buffer created.
 
 static CBaseServer* g_pBaseServer = NULL;
 static Detouring::Hook detour_CBaseServer_WriteDeltaEntities;
-#if SYSTEM_WINDOWS && !HOLYLIB_DEVELOPMENT
+#if SYSTEM_WINDOWS
 static void hook_CBaseServer_WriteDeltaEntities( CBaseClient *client, CClientFrame *to, CClientFrame *from, bf_write &pBuf )
 {
 	// ToDo: Use ASM to get the CBaseServer variable from ecx
@@ -1916,7 +1916,7 @@ void CNW2DebuggingModule::InitDetour(bool bPreServer)
 		return;
 
 	SourceSDK::FactoryLoader engine_loader("engine");
-#if SYSTEM_WINDOWS && !HOLYLIB_DEVELOPMENT
+#if SYSTEM_WINDOWS
 	Detour::Create(
 		&detour_CBaseServer_WriteDeltaEntities, "CBaseServer::WriteDeltaEntities",
 		engine_loader.GetModule(), Symbol::FromSignature("\x55\x8B\xEC\x81\xEC\x84\x04\x00\x00\x53\x56\x8B\xF1"), // 55 8B EC 81 EC 84 04 00 00 53 56 8B F1
