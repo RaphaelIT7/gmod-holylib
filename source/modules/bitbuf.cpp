@@ -606,7 +606,7 @@ LUA_FUNCTION_STATIC(bf_write_SetDebugName)
 {
 	bf_write* pBF = Get_bf_write(LUA, 1, true);
 
-	pBF->SetDebugName(LUA->CheckString(2)); // BUG: Do we need to keep a reference?
+	pBF->SetDebugName(LUA->CheckString(2)); // BUG: Do we need to keep a reference? Note: Yes we do. (ToDo)
 	return 0;
 }
 
@@ -908,6 +908,30 @@ LUA_FUNCTION_STATIC(bitbuf_CreateReadBuffer)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(bitbuf_CreateStackReadBuffer)
+{
+	const char* pData = LUA->CheckString(1);
+	int iLength = LUA->ObjLen(1);
+	int iNewLength = CLAMP_BF(iLength);
+	// Our stackalloc will be gone after this function finished, so you'll have to provide a callback we can call inside of here.
+	LUA->CheckType(2, GarrysMod::Lua::Type::Function);
+
+	if (!holylib_canstackalloc(iNewLength))
+		LUA->ThrowError("Cannot stackalloc at this size!");
+
+	unsigned char* cData = (unsigned char*)_alloca(iNewLength);
+
+	bf_read pNewBf;
+	pNewBf.StartReading(cData, iNewLength);
+
+	LUA->Push(2);
+	LuaUserData* pLuaData = Push_bf_read(LUA, &pNewBf, true);
+	LUA->CallFunctionProtected(1, 0, true);
+	pLuaData->Release(LUA); // Sets the stored data to NULL ensuring we don't save the pointer to our stack allocated pNewBf
+
+	return 0;
+}
+
 LUA_FUNCTION_STATIC(bitbuf_CreateWriteBuffer)
 {
 	bf_write* pNewBf = new bf_write;
@@ -930,6 +954,43 @@ LUA_FUNCTION_STATIC(bitbuf_CreateWriteBuffer)
 	Push_bf_write(LUA, pNewBf, true);
 
 	return 1;
+}
+
+LUA_FUNCTION_STATIC(bitbuf_CreateStackWriteBuffer)
+{
+	bf_write pNewBf;
+	// Our stackalloc will be gone after this function finished, so you'll have to provide a callback we can call inside of here.
+	LUA->CheckType(2, GarrysMod::Lua::Type::Function);
+
+	if (LUA->IsType(1, GarrysMod::Lua::Type::Number))
+	{
+		int iSize = CLAMP_BF((int)LUA->CheckNumber(1));
+		if (!holylib_canstackalloc(iSize))
+			LUA->ThrowError("Cannot stackalloc at this size!");
+
+		unsigned char* cData = (unsigned char*)_alloca(iSize);
+
+		pNewBf.StartWriting(cData, iSize);
+	} else {
+		const char* pData = LUA->CheckString(1);
+		int iLength = LUA->ObjLen(1);
+		int iNewLength = CLAMP_BF(iLength);
+
+		if (!holylib_canstackalloc(iNewLength))
+			LUA->ThrowError("Cannot stackalloc at this size!");
+
+		unsigned char* cData = (unsigned char*)_alloca(iNewLength);
+		memcpy(cData, pData, iLength);
+
+		pNewBf.StartWriting(cData, iNewLength);
+	}
+
+	LUA->Push(2);
+	LuaUserData* pLuaData = Push_bf_write(LUA, &pNewBf, true);
+	LUA->CallFunctionProtected(1, 0, true);
+	pLuaData->Release(LUA); // Sets the stored data to NULL ensuring we don't save the pointer to our stack allocated pNewBf
+
+	return 0;
 }
 
 void CBitBufModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
@@ -1043,7 +1104,9 @@ void CBitBufModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 	Util::StartTable(pLua);
 		Util::AddFunc(pLua, bitbuf_CopyReadBuffer, "CopyReadBuffer");
 		Util::AddFunc(pLua, bitbuf_CreateReadBuffer, "CreateReadBuffer");
+		Util::AddFunc(pLua, bitbuf_CreateStackReadBuffer, "CreateStackReadBuffer");
 		Util::AddFunc(pLua, bitbuf_CreateWriteBuffer, "CreateWriteBuffer");
+		Util::AddFunc(pLua, bitbuf_CreateStackWriteBuffer, "CreateStackWriteBuffer");
 	Util::FinishTable(pLua, "bitbuf");
 }
 

@@ -276,6 +276,14 @@ namespace Util
 	extern IGet* get;
 }
 
+#if SYSTEM_LINUX // Linux got a bigger default stack.
+constexpr size_t _MAX_ALLOCA_SIZE = 64 * 1024;
+#else
+constexpr size_t _MAX_ALLOCA_SIZE = 8 * 1024;
+#endif
+
+#define holylib_canstackalloc(size) (size <= _MAX_ALLOCA_SIZE)
+
 /*
 	ToDo: Implement a proper class like gmod has with CLuaCLass/CLuaLibrary & use thoes instead for everything.
 */

@@ -83,6 +83,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [+] Added `IPhysicsEnvironment:SetInSimulation` to the `physenv` module.<br>
 \- [+] Added `HttpResponse:SetStatusCode` to `httpserver` module. (See https://github.com/RaphaelIT7/gmod-holylib/pull/62)<br>
 \- [+] Added `HttpRequest:GetPathParam` to `httpserver` module. (See https://github.com/RaphaelIT7/gmod-holylib/pull/63)<br>
+\- [+] Added `bitbuf.CreateStackReadBuffer` & `bitbuf.CreateStackWriteBuffer` to `bitbuf` module.<br>
 \- [#] Added some more safeguards to `IPhysicsEnvironment:Simulate` to prevent one from simulating a environment that is already being simulated.<br>
 \- [#] Highly optimized `util` module's json code to be noticably faster and use noticably less memory.<br>
 \- [#] Better support for multiple Lua states<br>
@@ -109,7 +110,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- \- Added `holylib_networking_maxviewmodels` allowing one to limit view models to `1` for each player instead of each having `3` of which `2` often remain unused.<br>
 \- \- Added `holylib_networking_transmit_all_weapons`<br>
 \- \- Added `holylib_networking_transmit_all_weapons_to_owner`<br>
-\- [#] Slightly improved memory usage for UserData by HolyLib<br>
+\- [#] Slightly improved memory usage & performance for UserData created by HolyLib<br>
 \- [#] Updated `VoiceStream` `Load/Save` function to be able to read/write `.wav` files<br>
 \- [#] Fixed `IModule::ServerActivate` not being called when being loaded as a binary module<br>
 \- [#] Fixed `HolyLib:ProcessConnectionlessPacket` being called for SourceTV packets<br>
@@ -1744,6 +1745,29 @@ Create a write buffer with the given size or with the given data.<br>
 > [!NOTE]
 > The size is clamped internally between a minimum of `4` bytes and a maximum of `262144` bytes.
 
+#### bf_read bitbuf.CreateStackReadBuffer(string data, function callback)
+callback = `function(bf) end`<br>
+Creates a read buffer from the given data allocated on the stack making it faster.<br>
+Useful if you want to read the userdata of the instancebaseline stringtable.<br>
+
+> [!WARNING]
+> The buffer will be stack allocated, do NOT call this function recursively and the buffer is **only** valid inside the callback function.<br>
+> This is because you could cause a crash if you were to create too many stack allocated buffers!<br>
+
+> [!NOTE]
+> The size is clamped internally between a minimum of `4` bytes and a maximum of `65536` bytes.
+
+#### bf_write bitbuf.CreateStackWriteBuffer(number size or string data, function callback)
+callback = `function(bf) end`<br>
+Create a write buffer with the given size or with the given data allocated on the stack making it faster.<br>
+
+> [!WARNING]
+> The buffer will be stack allocated, do NOT call this function recursively and the buffer is **only** valid inside the callback function.<br>
+> This is because you could cause a crash if you were to create too many stack allocated buffers!<br>
+
+> [!NOTE]
+> The size is clamped internally between a minimum of `4` bytes and a maximum of `65536` bytes.
+
 ### bf_read
 This class will later be used to read net messages from HLTV clients.<br>
 > ToDo: Finish the documentation below and make it more detailed.<br>
@@ -1957,6 +1981,7 @@ Sets the debug name.<br>
 
 > [!WARNING]
 > You should keep a reference to the string.<br>
+> If the GC removes the string, you will experience that GetDebugName will return junk!<br>
 
 #### bf_write:SeekToBit(number bit)
 Seeks to the given bit.<br>
