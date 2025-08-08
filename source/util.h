@@ -304,7 +304,7 @@ constexpr size_t _MAX_ALLOCA_SIZE = 8 * 1024;
 #if HOLYLIB_BUILD_RELEASE
 #define HOLYLIB_UTIL_DEBUG_LUAUSERDATA 0
 #else
-#define HOLYLIB_UTIL_DEBUG_LUAUSERDATA 0 // 1 = leak checks, 2 = debug prints
+#define HOLYLIB_UTIL_DEBUG_LUAUSERDATA 1 // 1 = leak checks, 2 = debug prints
 #endif
 #define HOLYLIB_UTIL_DEBUG_BASEUSERDATA 0
 
