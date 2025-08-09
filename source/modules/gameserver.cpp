@@ -2651,6 +2651,7 @@ static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* tar
 	target->m_bReportFakeClient = origin->m_bReportFakeClient;
 	target->m_bReceivedPacket = origin->m_bReceivedPacket;
 	target->m_bFullyAuthenticated = origin->m_bFullyAuthenticated;
+	target->m_OwnerSteamID = origin->m_OwnerSteamID;
 
 	memcpy(target->m_FriendsName, origin->m_FriendsName, sizeof(origin->m_FriendsName));
 	memcpy(target->m_GUID, origin->m_GUID, sizeof(origin->m_GUID));

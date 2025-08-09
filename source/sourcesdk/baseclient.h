@@ -292,11 +292,11 @@ public:
 
 	unsigned int		m_SnapshotScratchBuffer[ SNAPSHOT_SCRATCH_BUFFER_SIZE / 4 ];
 
+	CSteamID m_OwnerSteamID; // Verify: Could be owner steamid for Player:OwnerSteamID64()
+
 private:
 	void				StartTrace( bf_write &msg );
 	void				EndTrace( bf_write &msg );
-
-	int __offset[2];
 
 
 	int					m_iTracing; // 0 = not active, 1 = active for this frame, 2 = forced active
