@@ -3540,7 +3540,11 @@ Returns the CGameClient at that player slot or `nil` on failure.<br>
 Returns the CGameClient for the given userID or `nil` on failure.<br>
 
 #### number gameserver.GetClientCount()
-returns client count for iteration<br>
+returns client count for iteration of `gameserver.GetClient`<br>
+
+> [!NOTE]
+> This will include inactive `CGameClient`'s since the engine re-uses them and doesn't delete them on disconnect.<br>
+> If you want to get the count of active client's use `gameserver.GetNumClients()`
 
 #### table gameserver.GetAll()
 Returns a table that contains all game clients. It will return `nil` on failure.<br>
