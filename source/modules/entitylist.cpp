@@ -34,17 +34,11 @@ public:
 	EntityList pGlobalEntityList;
 };
 
-static inline LuaEntityModuleData* GetLuaData(GarrysMod::Lua::ILuaInterface* pLua)
-{
-	if (!pLua)
-		return NULL;
-
-	return (LuaEntityModuleData*)Lua::GetLuaData(pLua)->GetModuleData(g_pEntListModule.m_pID);
-}
+LUA_GetModuleData(LuaEntityModuleData, g_pEntListModule, EntityList)
 
 EntityList& GetGlobalEntityList(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	auto pData = GetLuaData(pLua);
+	auto pData = GetEntityListLuaData(pLua);
 	
 	return pData->pGlobalEntityList;
 }

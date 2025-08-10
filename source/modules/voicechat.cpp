@@ -1391,6 +1391,8 @@ public:
 	std::unordered_set<VoiceStreamTask*> pVoiceStreamTasks;
 };
 
+LUA_GetModuleData(LuaVoiceModuleData, g_pVoiceChatModule, VoiceChat)
+
 static std::string_view getFileExtension(const std::string_view& fileName) {
 	size_t lastDotPos = fileName.find_last_of('.');
 	if (lastDotPos == std::string::npos || lastDotPos == fileName.length() - 1)
@@ -1476,7 +1478,7 @@ static void AddVoiceJobToPool(VoiceStreamTask* pTask)
 
 LUA_FUNCTION_STATIC(voicechat_LoadVoiceStream)
 {
-	LuaVoiceModuleData* pData = (LuaVoiceModuleData*)Lua::GetLuaData(LUA)->GetModuleData(g_pVoiceChatModule.m_pID);
+	LuaVoiceModuleData* pData = GetVoiceChatLuaData(LUA);
 
 	const char* pFileName = LUA->CheckString(1);
 	const char* pGamePath = LUA->CheckStringOpt(2, "DATA");
@@ -1510,7 +1512,7 @@ LUA_FUNCTION_STATIC(voicechat_LoadVoiceStream)
 
 LUA_FUNCTION_STATIC(voicechat_SaveVoiceStream)
 {
-	LuaVoiceModuleData* pData = (LuaVoiceModuleData*)Lua::GetLuaData(LUA)->GetModuleData(g_pVoiceChatModule.m_pID);
+	LuaVoiceModuleData* pData = GetVoiceChatLuaData(LUA);
 
 	VoiceStream* pStream = Get_VoiceStream(LUA, 1, true);
 	const char* pFileName = LUA->CheckString(2);
@@ -1588,7 +1590,7 @@ LUA_FUNCTION_STATIC(voicechat_LastPlayerTalked)
 
 void CVoiceChatModule::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	LuaVoiceModuleData* pData = (LuaVoiceModuleData*)Lua::GetLuaData(pLua)->GetModuleData(m_pID);
+	LuaVoiceModuleData* pData = GetVoiceChatLuaData(pLua);
 
 	if (pData->pVoiceStreamTasks.size() <= 0)
 		return;

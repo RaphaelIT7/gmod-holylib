@@ -134,45 +134,62 @@ jobs:
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
       BUILD_CACHE: "true"
 
-  setup_32x_artifacts:
-    name: "Setup 32x Artifact"
+  setup_artifacts: # Having this as a matrix won't hurt concurrency since both 32x & 64x finish around the same time
+    name: "Setup ${{ matrix.arch }} Artifact"
     needs: [build_plugin_linux, build_ghostinj]
     runs-on: ubuntu-latest
     container: debian:bullseye
+    strategy:
+      matrix:
+        include:
+          - arch: 32x
+            plugin: gmsv_holylib_linux.so
+            plugin_artifact: gmsv_holylib_linux.so
+            vdf: holylib.vdf
+            ghostinj: ghostinj.dll
+            ghostinj_artifact: ghostinj.dll
+
+          - arch: 64x
+            plugin: gmsv_holylib_linux64.so
+            plugin_artifact: gmsv_holylib_linux64.so (64x)
+            vdf: holylib_64.vdf
+            ghostinj: ghostinj.dll
+            ghostinj_artifact: ghostinj.dll (64x)
+
     steps:
       - uses: actions/checkout@v4
         name: "Checkout required files"
         with:
           sparse-checkout: |
-            holylib.vdf
+            ${{ matrix.vdf }}
             gluatests
 
       - uses: actions/download-artifact@v4
-        name: "Download 32x plugin"
+        name: "Download plugin"
         with:
-          name: "gmsv_holylib_linux.so"
+          name: "${{ matrix.plugin_artifact }}"
 
       - uses: actions/download-artifact@v4
-        name: "Download 32x ghostinj"
+        name: "Download ghostinj"
         with:
-          name: "ghostinj.dll"
+          name: "${{ matrix.ghostinj_artifact }}"
 
       - name: "Create structure"
         run: |
           mkdir -p garrysmod/lua/bin
-          mv gmsv_holylib_linux.so garrysmod/lua/bin/
+          mv ${{ matrix.plugin }} garrysmod/lua/bin/
 
           mkdir -p garrysmod/addons
-          mv holylib.vdf garrysmod/addons
+          mv ${{ matrix.vdf }} garrysmod/addons
           mv gluatests garrysmod/addons
 
-          tar -czf gluatest.tar.gz ghostinj.dll garrysmod/
+          tar -czf gluatest.tar.gz ${{ matrix.ghostinj }} garrysmod/
           tar -czf gluatest_no_ghostinj.tar.gz garrysmod/
 
       - uses: actions/upload-artifact@v4
         name: "Upload tar"
         with:
-          name: gluatest_32x
+          name: gluatest_${{ matrix.arch }}
           path: gluatest.tar.gz
           compression-level: 9
           retention-days: 1
@@ -180,65 +197,14 @@ jobs:
       - uses: actions/upload-artifact@v4
         name: "Upload tar"
         with:
-          name: gluatest_no_ghostinj_32x
-          path: gluatest_no_ghostinj.tar.gz
-          compression-level: 9
-          retention-days: 1
-
-  setup_64x_artifacts:
-    name: "Setup 64x Artifact"
-    needs: [build_plugin_linux, build_ghostinj]
-    runs-on: ubuntu-latest
-    container: debian:bullseye
-    steps:
-      - uses: actions/checkout@v4
-        name: "Checkout required files"
-        with:
-          sparse-checkout: |
-            holylib_64.vdf
-            gluatests
-
-      - uses: actions/download-artifact@v4
-        name: "Download 64x plugin"
-        with:
-          name: "gmsv_holylib_linux64.so (64x)"
-
-      - uses: actions/download-artifact@v4
-        name: "Download 64x ghostinj"
-        with:
-          name: "ghostinj.dll (64x)"
-
-      - name: "Create structure"
-        run: |
-          mkdir -p garrysmod/lua/bin
-          mv gmsv_holylib_linux64.so garrysmod/lua/bin/
-
-          mkdir -p garrysmod/addons
-          mv holylib_64.vdf garrysmod/addons
-          mv gluatests garrysmod/addons
-
-          tar -czf gluatest.tar.gz ghostinj.dll garrysmod/
-          tar -czf gluatest_no_ghostinj.tar.gz garrysmod/
-
-      - uses: actions/upload-artifact@v4
-        name: "Upload tar"
-        with:
-          name: gluatest_64x
-          path: gluatest.tar.gz
-          compression-level: 9
-          retention-days: 1
-
-      - uses: actions/upload-artifact@v4
-        name: "Upload tar"
-        with:
-          name: gluatest_no_ghostinj_64x
+          name: gluatest_no_ghostinj_${{ matrix.arch }}
           path: gluatest_no_ghostinj.tar.gz
           compression-level: 9
           retention-days: 1
 
   test_32bit:
     name: "Test 32x branches"
-    needs: setup_32x_artifacts
+    needs: setup_artifacts
     uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
     strategy:
       matrix:
@@ -253,7 +219,7 @@ jobs:
 
   test_32bit_noghostinj:
     name: "Test 32x branches (No GhostInj)"
-    needs: setup_32x_artifacts
+    needs: setup_artifacts
     uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
     strategy:
       matrix:
@@ -267,7 +233,7 @@ jobs:
 
   test_64bit:
     name: "Test x86-64 branch"
-    needs: setup_64x_artifacts
+    needs: setup_artifacts
     uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
     with:
       branch: x86-64
@@ -277,7 +243,7 @@ jobs:
 
   test_64bit_noghostinj:
     name: "Test x86-64 branch (No GhostInj)"
-    needs: setup_64x_artifacts
+    needs: setup_artifacts
     uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
     with:
       branch: x86-64
@@ -286,7 +252,7 @@ jobs:
 
   test_32x_holylua:
     name: "Test 32x branches (HolyLua)"
-    needs: setup_32x_artifacts
+    needs: setup_artifacts
     uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
     strategy:
       matrix:
@@ -301,7 +267,7 @@ jobs:
 
   test_32x_holylua_noghostinj:
     name: "Test 32x branches (HolyLua, No GhostInj)"
-    needs: setup_32x_artifacts
+    needs: setup_artifacts
     uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
     strategy:
       matrix:
@@ -316,7 +282,7 @@ jobs:
 
   test_64bit_holylua:
     name: "Test x86-64 branch (HolyLua)"
-    needs: setup_64x_artifacts
+    needs: setup_artifacts
     uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
     with:
       branch: x86-64
@@ -326,7 +292,7 @@ jobs:
 
   test_64bit_holylua_noghostinj:
     name: "Test x86-64 branch (HolyLua, No GhostInj)"
-    needs: setup_64x_artifacts
+    needs: setup_artifacts
     uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
     with:
       branch: x86-64
@@ -334,12 +300,19 @@ jobs:
       download-artifact: "gluatest_no_ghostinj_64x"
       no-checkout: "true"
 
+  # --------------------
+  # HolyLib - gmod_tests
   # We run gmod_tests repo to ensure that we didn't break any gmod functions unknowingly.
-  setup_gmod_tests_32x_artifacts:
-    name: "Setup gmod_tests 32x Artifact"
-    needs: [setup_32x_artifacts]
+  # --------------------
+
+  setup_gmod_tests_artifacts:
+    name: "Setup gmod_tests ${{ matrix.arch }} Artifact"
+    needs: setup_artifacts
     runs-on: ubuntu-latest
     container: debian:bullseye
+    strategy:
+      matrix:
+        arch: [32x, 64x]
     steps:
       - uses: actions/checkout@v4
         name: "Checkout gmod_tests repo"
@@ -349,9 +322,9 @@ jobs:
           path: 'gmod_tests'
 
       - uses: actions/download-artifact@v4
-        name: "Download 32x artifact"
+        name: "Download ${{ matrix.arch }} artifact"
         with:
-          name: "gluatest_32x"
+          name: "gluatest_${{ matrix.arch }}"
 
       - name: "Setup structure"
         run: |
@@ -372,7 +345,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         name: "Upload tar"
         with:
-          name: gmod_tests_32x
+          name: gmod_tests_${{ matrix.arch }}
           path: gmod_tests.tar.gz
           compression-level: 9
           retention-days: 1
@@ -380,64 +353,14 @@ jobs:
       - uses: actions/upload-artifact@v4
         name: "Upload tar"
         with:
-          name: gmod_tests_no_ghostinj_32x
-          path: gmod_tests_no_ghostinj.tar.gz
-          compression-level: 9
-          retention-days: 1
-
-  setup_gmod_tests_64x_artifacts:
-    name: "Setup gmod_tests 64x Artifact"
-    needs: [setup_64x_artifacts]
-    runs-on: ubuntu-latest
-    container: debian:bullseye
-    steps:
-      - uses: actions/checkout@v4
-        name: "Checkout gmod_tests repo"
-        with:
-          sparse-checkout: lua
-          repository: 'CFC-Servers/gmod_tests'
-          path: 'gmod_tests'
-
-      - uses: actions/download-artifact@v4
-        name: "Download 64x artifact"
-        with:
-          name: "gluatest_64x"
-
-      - name: "Setup structure"
-        run: |
-          mkdir -p garrysmod/lua/bin
-          mkdir -p garrysmod/addons
-
-          tar -xzf gluatest.tar.gz
-
-          mv gmod_tests garrysmod/addons
-          mv ghostinj.dll ghostinj2.dll
-          mkdir -p garrysmod/lua/bin/gmod_tests/maps
-          mv garrysmod/addons/gluatests/maps garrysmod/addons/gmod_tests/maps
-          rm -rf garrysmod/addons/gluatests
-
-          tar -czf gmod_tests.tar.gz ghostinj2.dll garrysmod/
-          tar -czf gmod_tests_no_ghostinj.tar.gz garrysmod/
-
-      - uses: actions/upload-artifact@v4
-        name: "Upload tar"
-        with:
-          name: gmod_tests_64x
-          path: gmod_tests.tar.gz
-          compression-level: 9
-          retention-days: 1
-
-      - uses: actions/upload-artifact@v4
-        name: "Upload tar"
-        with:
-          name: gmod_tests_no_ghostinj_64x
+          name: gmod_tests_no_ghostinj_${{ matrix.arch }}
           path: gmod_tests_no_ghostinj.tar.gz
           compression-level: 9
           retention-days: 1
 
   test_gmod_tests_32bit:
     name: "Test 32x branches (gmod_tests)"
-    needs: setup_gmod_tests_32x_artifacts
+    needs: setup_gmod_tests_artifacts
     uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
     strategy:
       matrix:
@@ -457,7 +380,7 @@ jobs:
 
   test_gmod_tests_64bit:
     name: "Test x86-64 branch (gmod_tests)"
-    needs: setup_gmod_tests_64x_artifacts
+    needs: setup_gmod_tests_artifacts
     uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
     strategy:
       matrix:
@@ -474,7 +397,7 @@ jobs:
 
   test_gmod_tests_32bit_with_ivpreplacement:
     name: "Test 32x branches (gmod_tests & VPhysics replacement)"
-    needs: setup_gmod_tests_32x_artifacts
+    needs: setup_gmod_tests_artifacts
     uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
     strategy:
       matrix:
@@ -494,7 +417,7 @@ jobs:
 
   test_gmod_tests_64bit_with_ivpreplacement:
     name: "Test x86-64 branch (gmod_tests & VPhysics replacement)"
-    needs: setup_gmod_tests_64x_artifacts
+    needs: setup_gmod_tests_artifacts
     uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
     strategy:
       matrix:
@@ -512,7 +435,7 @@ jobs:
   test_32bit_find_crash:
     if: false # always() Enable it if a unknown crash is happening. We'll test every single module.
     name: "Find the crash cause"
-    needs: setup_32x_artifacts
+    needs: setup_artifacts
     uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
     strategy:
       fail-fast: false
@@ -550,4 +473,132 @@ jobs:
       branch: dev
       extra-startup-args: "-usegh -holylib_startdisabled -holylib_enable_${{ matrix.module }} 1"
       download-artifact: "gluatest_32x"
+      no-checkout: "true"
+
+  # -------
+  # HolyLib Example DLL jobs
+  # -------
+
+  build_exampledll_linux:
+    name: "Build Plugin"
+    uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
+    with:
+      PROJECT_PATH: "example-module-dll/"
+      PROJECT_NAME: "exampledll"
+      BUILD_64x: "true"
+      REALM: "sv"
+      BUILD_WINDOWS: "false"
+      ARTIFACT_EXPIRE: "1"
+      BUILD_CACHE: "true"
+
+  setup_exampledll_artifacts:
+    name: "Setup exampledll ${{ matrix.arch }} Artifact"
+    needs: [setup_artifacts, build_exampledll_linux]
+    runs-on: ubuntu-latest
+    container: debian:bullseye
+    strategy:
+      matrix:
+        include:
+          - arch: 32x
+            dll: gmsv_exampledll_linux.dll
+            dll_artifact: gmsv_exampledll_linux.dll
+
+          - arch: 64x
+            dll: gmsv_exampledll_linux64.dll
+            dll_artifact: gmsv_exampledll_linux64.dll (64x)
+    steps:
+      - uses: actions/download-artifact@v4
+        name: "Download ${{ matrix.arch }} artifact"
+        with:
+          name: "gluatest_${{ matrix.arch }}"
+
+      - uses: actions/download-artifact@v4
+        name: "Download module"
+        with:
+          name: "${{ matrix.dll_artifact }}"
+
+      - name: "Setup structure"
+        run: |
+          mkdir -p garrysmod/lua/bin
+          mkdir -p garrysmod/addons
+          mkdir -p garrysmod/holylib/cfg/
+
+          mv ${{ matrix.dll }} garrysmod/lua/bin/
+
+          cat <<EOF > garrysmod/holylib/cfg/dlls.json
+          [
+            {
+              "path": "garrysmod/lua/bin/${{ matrix.dll }}",
+              "name": "ExampleDLL"
+            }
+          ]
+          EOF
+
+          tar -xzf gluatest.tar.gz
+
+          tar -czf gluatest_exampledll.tar.gz ghostinj.dll garrysmod/
+          tar -czf gluatest_exampledll_no_ghostinj.tar.gz garrysmod/
+
+      - uses: actions/upload-artifact@v4
+        name: "Upload tar"
+        with:
+          name: gluatest_exampledll_${{ matrix.arch }}
+          path: gluatest_exampledll.tar.gz
+          compression-level: 9
+          retention-days: 1
+
+      - uses: actions/upload-artifact@v4
+        name: "Upload tar"
+        with:
+          name: gluatest_exampledll_no_ghostinj_${{ matrix.arch }}
+          path: gluatest_exampledll_no_ghostinj.tar.gz
+          compression-level: 9
+          retention-days: 1
+
+  test_exampledll_32bit:
+    name: "Test ExampleDLL 32x branches"
+    needs: setup_exampledll_artifacts
+    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
+    strategy:
+      matrix:
+        branch:
+          - live
+          - dev
+          - prerelease
+    with:
+      extra-startup-args: "-usegh"
+      download-artifact: "gluatest_exampledll_32x"
+      no-checkout: "true"
+
+  test_exampledll_32bit_noghostinj:
+    name: "Test ExampleDLL 32x branches (No GhostInj)"
+    needs: setup_exampledll_artifacts
+    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
+    strategy:
+      matrix:
+        branch:
+          - live
+          - dev
+          - prerelease
+    with:
+      download-artifact: "gluatest_exampledll_no_ghostinj_32x"
+      no-checkout: "true"
+
+  test_exampledll_64bit:
+    name: "Test ExampleDLL x86-64 branch"
+    needs: setup_exampledll_artifacts
+    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
+    with:
+      branch: x86-64
+      extra-startup-args: "-usegh"
+      download-artifact: "gluatest_exampledll_64x"
+      no-checkout: "true"
+
+  test_exampledll_64bit_noghostinj:
+    name: "Test ExampleDLL x86-64 branch (No GhostInj)"
+    needs: setup_exampledll_artifacts
+    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
+    with:
+      branch: x86-64
+      download-artifact: "gluatest_exampledll_no_ghostinj_64x"
       no-checkout: "true"

@@ -141,13 +141,7 @@ public:
 	char buffer[128];
 };
 
-static inline LuaUtilModuleData* GetLuaData(GarrysMod::Lua::ILuaInterface* pLua)
-{
-	if (!pLua)
-		return NULL;
-
-	return (LuaUtilModuleData*)Lua::GetLuaData(pLua)->GetModuleData(g_pUtilModule.m_pID);
-}
+LUA_GetModuleData(LuaUtilModuleData, g_pUtilModule, Util);
 
 static void CompressJob(CompressEntry*& entry)
 {
@@ -207,7 +201,7 @@ LUA_FUNCTION_STATIC(util_AsyncCompress)
 	entry->iDataReference = Util::ReferenceCreate(LUA, "util.AsyncCompress - Data");
 	entry->m_pLua = LUA;
 
-	GetLuaData(LUA)->pEntries.push_back(entry);
+	GetUtilLuaData(LUA)->pEntries.push_back(entry);
 
 	StartThread();
 
@@ -236,7 +230,7 @@ LUA_FUNCTION_STATIC(util_AsyncDecompress)
 	entry->iDataReference = Util::ReferenceCreate(LUA, "util.AsyncDecompress - Data");
 	entry->m_pLua = LUA;
 
-	GetLuaData(LUA)->pEntries.push_back(entry);
+	GetUtilLuaData(LUA)->pEntries.push_back(entry);
 
 	StartThread();
 
@@ -424,7 +418,7 @@ LUA_FUNCTION_STATIC(util_TableToJSON)
 	LUA->CheckType(1, GarrysMod::Lua::Type::Table);
 	bool bPretty = LUA->GetBool(2);
 
-	auto pData = GetLuaData(LUA);
+	auto pData = GetUtilLuaData(LUA);
 	pData->bRecursiveNoError = LUA->GetBool(3);
 
 	pData->iRecursiveStartTop = LUA->Top();
@@ -707,7 +701,7 @@ LUA_FUNCTION_STATIC(util_AsyncTableToJSON)
 
 	RawLua::SetReadOnly(entry->m_pObject, true);
 
-	GetLuaData(LUA)->pEntries.push_back(entry);
+	GetUtilLuaData(LUA)->pEntries.push_back(entry);
 
 	StartJsonThread();
 
@@ -766,7 +760,7 @@ void CUtilModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 
 void CUtilModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	auto pData = GetLuaData(pLua);
+	auto pData = GetUtilLuaData(pLua);
 
 	for (IJobEntry* entry : pData->pEntries)
 	{
@@ -805,7 +799,7 @@ void CUtilModule::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	VPROF_BUDGET("HolyLib - CUtilModule::LuaThink", VPROF_BUDGETGROUP_HOLYLIB);
 
-	auto pData = GetLuaData(pLua);
+	auto pData = GetUtilLuaData(pLua);
 	if (pData->pEntries.size() == 0)
 		return;
 

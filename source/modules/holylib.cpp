@@ -25,7 +25,7 @@ public:
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual void LevelShutdown() OVERRIDE;
 	virtual const char* Name() { return "holylib"; };
-	virtual int Compatibility() { return LINUX32 | LINUX64; };
+	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 	virtual bool SupportsMultipleLuaStates() { return true; };
 };
 

@@ -589,6 +589,7 @@ void Util::CheckVersion() // This is called only when holylib is initially loade
 	}
 }
 
+extern void LoadDLLs(); // From the dllsystem.cpp
 static bool g_bUtilInit = false;
 void Util::Load()
 {
@@ -597,6 +598,9 @@ void Util::Load()
 
 	g_bUtilInit = true;
 	Util::CheckVersion();
+
+	LoadDLLs();
+
 	IConfig* pConVarConfig = g_pConfigSystem->LoadConfig("garrysmod/holylib/cfg/convars.json");
 	if (pConVarConfig)
 	{

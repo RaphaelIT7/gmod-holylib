@@ -246,17 +246,6 @@ void Lua::DestroyInterface(GarrysMod::Lua::ILuaInterface* LUA)
 	Lua::CloseLuaInterface(LUA);
 }
 
-/*
- * Where do we store our StateData?
- * In the ILuaInterface itself.
- * We abuse the GetPathID var as it's a char[32] but it'll never actually fully use it.
- * Why? Because I didn't want to use yet another unordered_map for this, also this should be faster.
- */
-Lua::StateData* Lua::GetLuaData(GarrysMod::Lua::ILuaInterface* LUA)
-{
-	return *reinterpret_cast<Lua::StateData**>((char*)LUA->GetPathID() + 24);
-}
-
 static std::unordered_set<Lua::StateData*> g_pLuaStates;
 void Lua::CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA, bool bNullOut)
 {

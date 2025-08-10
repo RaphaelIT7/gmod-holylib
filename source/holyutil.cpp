@@ -99,3 +99,12 @@ public:
 
 static CHolyUtil s_HolyUtil;
 IHolyUtil* g_pHolyUtil = &s_HolyUtil;
+
+#ifdef LIB_HOLYLIB
+IHolyUtil* GetHolyUtil()
+{
+	return g_pHolyUtil;
+}
+#else
+EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CHolyUtil, IHolyUtil, INTERFACEVERSION_HOLYUTIL, s_HolyUtil);
+#endif

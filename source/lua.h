@@ -160,7 +160,16 @@ namespace Lua
 		}
 	};
 
-	extern Lua::StateData* GetLuaData(GarrysMod::Lua::ILuaInterface* LUA);
+	/*
+	 * Where do we store our StateData?
+	 * In the ILuaInterface itself.
+	 * We abuse the GetPathID var as it's a char[32] but it'll never actually fully use it.
+	 * Why? Because I didn't want to use yet another unordered_map for this, also this should be faster.
+	 */
+	inline Lua::StateData* GetLuaData(GarrysMod::Lua::ILuaInterface* LUA)
+	{
+		return *reinterpret_cast<Lua::StateData**>((char*)LUA->GetPathID() + 24);
+	}
 	extern void CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA, bool bNullOut = false);
 	extern void RemoveLuaData(GarrysMod::Lua::ILuaInterface* LUA);
 	extern const std::unordered_set<Lua::StateData*>& GetAllLuaData();
@@ -183,4 +192,15 @@ namespace RawLua {
 	extern void SetReadOnly(TValue* o, bool readOnly);
 	extern void* GetUserDataOrFFIVar(lua_State* L, int idx, bool cDataTypes[USHRT_MAX]);
 	extern uint16_t GetCDataType(lua_State* L, int idx);
+}
+
+// Creates a function Get[funcName]LuaData and returns the stored module data from the given module.
+#define LUA_GetModuleData(className, moduleName, funcName) \
+static inline className* Get##funcName##LuaData(GarrysMod::Lua::ILuaInterface* pLua) \
+{ \
+	if (!pLua) { \
+		return NULL; \
+	} \
+\
+	return (className*)Lua::GetLuaData(pLua)->GetModuleData(moduleName.m_pID); \
 }
