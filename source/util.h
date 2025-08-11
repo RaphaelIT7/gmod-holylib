@@ -11,7 +11,7 @@
 
 #define DEDICATED
 #include "vstdlib/jobthread.h"
-#include "lua.hpp"
+#include "../luajit/src/lua.hpp"
 
 class IVEngineServer;
 

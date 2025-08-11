@@ -4,7 +4,6 @@
 #include <detouring/classproxy.hpp>
 #include "LuaInterface.h"
 #include "lua.h"
-#include "lua.hpp"
 #include "Bootil/Bootil.h"
 #include "scripts/VectorFFI.h"
 

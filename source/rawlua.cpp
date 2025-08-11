@@ -1,12 +1,12 @@
 extern "C" {
-#include "../lua/lua.hpp"
-#include "../lua/lj_obj.h"
-#include "../lua/luajit_rolling.h"
-#include "../lua/lauxlib.h"
-#include "../lua/lj_state.h"
-#include "../lua/lj_tab.h"
-#include "../lua/lj_lib.h"
-#include "../lua/lj_gc.h"
+#include "../luajit/src/lua.hpp"
+#include "../luajit/src/lj_obj.h"
+#include "../luajit/src/luajit_rolling.h"
+#include "../luajit/src/lauxlib.h"
+#include "../luajit/src/lj_state.h"
+#include "../luajit/src/lj_tab.h"
+#include "../luajit/src/lj_lib.h"
+#include "../luajit/src/lj_gc.h"
 }
 
 #include "lua.h"

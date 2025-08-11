@@ -83,7 +83,6 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 
 		includedirs({
 			[[../../source/sourcesdk/]],
-			[[../../lua/]],
 			[[../../source/lua/]]
 		})
 
