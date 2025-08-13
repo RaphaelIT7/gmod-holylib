@@ -64,6 +64,7 @@ struct PackWork_t;
 class CBaseViewModel;
 class CBaseCombatCharacter;
 class CHostState;
+class CSkyCamera;
 
 class	CGameTrace;
 typedef	CGameTrace trace_t;
@@ -431,6 +432,9 @@ namespace Symbols
 	typedef void (*CBaseCombatCharacter_SetTransmit)(CBaseCombatCharacter* pCharacter, CCheckTransmitInfo *pInfo, bool bAlways);
 	extern const std::vector<Symbol> CBaseCombatCharacter_SetTransmitSym;
 	extern const std::vector<Symbol> CBaseAnimating_SetTransmitSym;
+
+	typedef CSkyCamera* (*GetCurrentSkyCamera)();
+	extern const std::vector<Symbol> GetCurrentSkyCameraSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: steamworks Symbols
