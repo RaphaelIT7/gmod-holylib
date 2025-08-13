@@ -60,13 +60,8 @@ extern "C" {
 #include <dlfcn.h>
 #endif
 
-void* ghostinj2 = NULL;
-void* holylib = NULL;
-typedef void ( *plugin_main )();
-void Load()
+static void TestJIT()
 {
-	printf( "--- Holylib-GhostInj Loading ---\n" );
-
 	lua_State* state = luaL_newstate();
 	luaL_openlibs(state);
 	//luaJIT_setmode(state, 0, 0);
@@ -89,6 +84,24 @@ void Load()
 
 	printf("holylib: Closing lua state\n");
 	lua_close(state);
+}
+
+void* ghostinj2 = NULL;
+void* holylib = NULL;
+typedef void ( *plugin_main )();
+void Load()
+{
+	printf( "--- Holylib-GhostInj Loading ---\n" );
+
+#if SYSTEM_LINUX && ARCHITECTURE_X86
+	{
+		uint16_t cw;
+		__asm__ __volatile__ ("fnstcw %0" : "=m" (cw));
+		printf("Current FPU control word: 0x%04x\n", cw);
+	}
+#endif
+
+	TestJIT();
 
 #ifdef ARCHITECTURE_X86
 	if ( std::filesystem::exists( "garrysmod/lua/bin/gmsv_holylib_linux_updated.so" ) )
@@ -134,6 +147,16 @@ void Load()
 	ghostinj2 = dlopen( "ghostinj2.dll", RTLD_NOW );
 	if ( ghostinj2 )
 		printf( "Found and loaded ghostinj2.dll\n" );
+
+	TestJIT();
+
+#if SYSTEM_LINUX && ARCHITECTURE_X86
+	{
+		uint16_t cw;
+		__asm__ __volatile__ ("fnstcw %0" : "=m" (cw));
+		printf("Final FPU control word: 0x%04x\n", cw);
+	}
+#endif
 
 	printf( "--- Holylib-GhostInj loaded ---\n" );
 }
