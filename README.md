@@ -2,7 +2,7 @@
 
 A library that contains some functions and optimizations for gmod.<br>
 If you need any function, make an issue for it, and I'll look into it.<br>
-When HolyLib was installed correctly, the variable `_HOLYLIB` should be set to `true` in Lua.<br>
+When HolyLib was installed correctly, the variable `_HOLYLIB` should be set to `true` in Lua. (NOTE: This was **added** in the upcoming `0.8` release)<br>
 
 ## Windows
 So currently to get it working on Windows, I would have to redo most of the hooks, and It would also take a good while.<br>
@@ -83,6 +83,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [+] Added `IPhysicsEnvironment:SetInSimulation` to the `physenv` module.<br>
 \- [+] Added `HttpResponse:SetStatusCode` to `httpserver` module. (See https://github.com/RaphaelIT7/gmod-holylib/pull/62)<br>
 \- [+] Added `HttpRequest:GetPathParam` to `httpserver` module. (See https://github.com/RaphaelIT7/gmod-holylib/pull/63)<br>
+\- [+] Added `bitbuf.CreateStackReadBuffer` & `bitbuf.CreateStackWriteBuffer` to `bitbuf` module.<br>
 \- [#] Added some more safeguards to `IPhysicsEnvironment:Simulate` to prevent one from simulating a environment that is already being simulated.<br>
 \- [#] Highly optimized `util` module's json code to be noticably faster and use noticably less memory.<br>
 \- [#] Better support for multiple Lua states<br>
@@ -109,8 +110,13 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- \- Added `holylib_networking_maxviewmodels` allowing one to limit view models to `1` for each player instead of each having `3` of which `2` often remain unused.<br>
 \- \- Added `holylib_networking_transmit_all_weapons`<br>
 \- \- Added `holylib_networking_transmit_all_weapons_to_owner`<br>
-\- [#] Slightly improved memory usage for UserData by HolyLib<br>
+\- [#] Slightly improved memory usage & performance for UserData created by HolyLib<br>
 \- [#] Updated `VoiceStream` `Load/Save` function to be able to read/write `.wav` files<br>
+\- [#] Fixed `IModule::ServerActivate` not being called when being loaded as a binary module<br>
+\- [#] Fixed `HolyLib:ProcessConnectionlessPacket` being called for SourceTV packets<br>
+\- [#] Fixed `gameserver.SendConnectionlessPacket` crashing instead of throwing a lua error when NET_SendPacket couldn't be loaded<br>
+\- [-] Removed some unused code of former fixes that were implemented into Gmod<br>
+
 
 > [!WARNING]
 > The current builds are unstable and need **A LOT** of testing.<br>
@@ -128,6 +134,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 \- [#] Limited `HttpServer:SetName` to have a length limit of `64` characters.<br>
 \- [#] Fixed `IGModAudioChannel:IsValid` throwing a error when it's NULL instead of returning false.<br>
 \- [#] Fixed `HttpServer:SetWriteTimeout` using the wrong arguments. (See https://github.com/RaphaelIT7/gmod-holylib/pull/65)<br>
+\- [#] Fixed `bf_read:ReadBytes` and `bf_read:ReadBits` both failing to push the string properly to lua.<br>
 \- [-] Removed `CBaseClient:Transmit` third argument `fragments`.<br>
 \- [-] Removed `gameserver.CalculateCPUUsage` and `gameserver.ApproximateProcessMemoryUsage` since they never worked.<br>
 
@@ -1739,6 +1746,29 @@ Create a write buffer with the given size or with the given data.<br>
 > [!NOTE]
 > The size is clamped internally between a minimum of `4` bytes and a maximum of `262144` bytes.
 
+#### bf_read bitbuf.CreateStackReadBuffer(string data, function callback)
+callback = `function(bf) end`<br>
+Creates a read buffer from the given data allocated on the stack making it faster.<br>
+Useful if you want to read the userdata of the instancebaseline stringtable.<br>
+
+> [!WARNING]
+> The buffer will be stack allocated, do NOT call this function recursively and the buffer is **only** valid inside the callback function.<br>
+> This is because you could cause a crash if you were to create too many stack allocated buffers!<br>
+
+> [!NOTE]
+> The size is clamped internally between a minimum of `4` bytes and a maximum of `65536` bytes.
+
+#### bf_write bitbuf.CreateStackWriteBuffer(number size or string data, function callback)
+callback = `function(bf) end`<br>
+Create a write buffer with the given size or with the given data allocated on the stack making it faster.<br>
+
+> [!WARNING]
+> The buffer will be stack allocated, do NOT call this function recursively and the buffer is **only** valid inside the callback function.<br>
+> This is because you could cause a crash if you were to create too many stack allocated buffers!<br>
+
+> [!NOTE]
+> The size is clamped internally between a minimum of `4` bytes and a maximum of `65536` bytes.
+
 ### bf_read
 This class will later be used to read net messages from HLTV clients.<br>
 > ToDo: Finish the documentation below and make it more detailed.<br>
@@ -1952,6 +1982,7 @@ Sets the debug name.<br>
 
 > [!WARNING]
 > You should keep a reference to the string.<br>
+> If the GC removes the string, you will experience that GetDebugName will return junk!<br>
 
 #### bf_write:SeekToBit(number bit)
 Seeks to the given bit.<br>
@@ -3510,7 +3541,11 @@ Returns the CGameClient at that player slot or `nil` on failure.<br>
 Returns the CGameClient for the given userID or `nil` on failure.<br>
 
 #### number gameserver.GetClientCount()
-returns client count for iteration<br>
+returns client count for iteration of `gameserver.GetClient`<br>
+
+> [!NOTE]
+> This will include inactive `CGameClient`'s since the engine re-uses them and doesn't delete them on disconnect.<br>
+> If you want to get the count of active client's use `gameserver.GetNumClients()`
 
 #### table gameserver.GetAll()
 Returns a table that contains all game clients. It will return `nil` on failure.<br>
@@ -4515,6 +4550,11 @@ It now throws a warning instead of crashing -> https://github.com/Facepunch/garr
 `physenv` module -> https://github.com/Facepunch/garrysmod-issues/issues/642<br>
 `physenv` module -> https://github.com/Facepunch/garrysmod-requests/issues/2522<br>
 `physenv.EnablePhysHook` -> https://github.com/Facepunch/garrysmod-requests/issues/2541<br>
+
+# Things that were fixed in gmod
+https://github.com/Facepunch/garrysmod-issues/issues/6019<br>
+https://github.com/Facepunch/garrysmod-issues/issues/5932#issuecomment-2420392562<br>
+https://github.com/Facepunch/garrysmod-issues/issues/6031<br>
 
 # Things planned to add:
 https://github.com/Facepunch/garrysmod-requests/issues/1884<br>

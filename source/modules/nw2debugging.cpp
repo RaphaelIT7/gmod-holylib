@@ -27,19 +27,19 @@
 class CNW2DebuggingModule : public IModule
 {
 public:
-#if SYSTEM_WINDOWS && ARCHITECTURE_X86
+#if ARCHITECTURE_X86
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 #endif
 	virtual const char* Name() { return "nw2debugging"; };
-	virtual int Compatibility() { return WINDOWS32; };
+	virtual int Compatibility() { return WINDOWS32 | LINUX32; };
 	virtual bool SupportsMultipleLuaStates() { return false; };
-	virtual bool IsEnabledByDefault() { return false; };
+	virtual bool IsEnabledByDefault() { return true; };
 };
 
 static CNW2DebuggingModule g_pNW2DebuggingModule;
 IModule* pNW2DebuggingModule = &g_pNW2DebuggingModule;
 
-#if SYSTEM_WINDOWS && ARCHITECTURE_X86
+#if ARCHITECTURE_X86
 class CEntityInfo
 {
 public:
@@ -93,6 +93,7 @@ public:
 	}
 };
 
+#if SYSTEM_WINDOWS
 extern ConVar g_CV_DTWatchEnt;
 
 //-----------------------------------------------------------------------------
@@ -119,7 +120,7 @@ public:
 
 
 static CUtlLinkedList<CChangeTrack*, int> g_Tracks;
-
+#endif
 
 // These are the main variables used by the SV_CreatePacketEntities function.
 // The function is split up into multiple smaller ones and they pass this structure around.
@@ -150,7 +151,7 @@ public:
 	int				m_nTotalGapCount; */
 };
 
-
+#if SYSTEM_WINDOWS
 
 //-----------------------------------------------------------------------------
 // Delta timing helpers.
@@ -211,7 +212,7 @@ void PrintChangeTracks()
 	ConMsg( "Total CalcDelta MS: %.2f\n\n", total.GetMillisecondsF() );
 	ConMsg( "Total Encode    MS: %.2f\n\n", encodeTotal.GetMillisecondsF() );
 }
-
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: Entity wasn't dealt with in packet, but it has been deleted, we'll flag
@@ -241,7 +242,7 @@ static inline bool SV_NeedsExplicitDestroy( int entnum, CFrameSnapshot *from, CF
 	return false;
 }
 
-
+#if SYSTEM_WINDOWS
 //-----------------------------------------------------------------------------
 // Purpose: Creates a delta header for the entity
 //-----------------------------------------------------------------------------
@@ -396,7 +397,7 @@ static inline void SV_WritePropsFromPackedEntity(
 		// hltv->m_DeltaCache.AddDeltaBits( pTo->m_nEntityIndex, u.m_pFromSnapshot->m_nTickCount, nBits, &bufStart );
 	}
 }
-
+#endif
 
 //-----------------------------------------------------------------------------
 // Purpose: See if the entity needs a "hard" reset ( i.e., and explicit creation tag )
@@ -408,6 +409,9 @@ static inline void SV_WritePropsFromPackedEntity(
 //			*to - 
 // Output : Returns true on success, false on failure.
 //-----------------------------------------------------------------------------
+static CThreadLocalInt<intp>* s_ReferenceTick;
+static CThreadLocalInt<intp>* s_TargetTick;
+static CThreadLocalPtr<CGMODDataTable>* s_CurrentTable;
 static bool SV_NeedsExplicitCreate( CEntityWriteInfo &u )
 {
 	// Never on uncompressed packet
@@ -446,11 +450,11 @@ static bool SV_NeedsExplicitCreate( CEntityWriteInfo &u )
 	return bNeedsExplicitCreate;
 }
 
-
+#if SYSTEM_WINDOWS
 static inline void SV_DetermineUpdateType( CEntityWriteInfo &u )
 {
 	// Figure out how we want to update the entity.
-	if( u.m_nNewEntity < u.m_nOldEntity )
+	if( u.m_nOldEntity == ENTITY_SENTINEL )
 	{
 		// If the entity was not in the old packet (oldnum == 9999), then 
 		// delta from the baseline since this is a new entity.
@@ -458,7 +462,7 @@ static inline void SV_DetermineUpdateType( CEntityWriteInfo &u )
 		return;
 	}
 	
-	if( u.m_nNewEntity > u.m_nOldEntity )
+	if( u.m_nNewEntity == ENTITY_SENTINEL )
 	{
 		// If the entity was in the old list, but is not in the new list 
 		// (newnum == 9999), then construct a special remove message.
@@ -574,6 +578,10 @@ static inline void SV_DetermineUpdateType( CEntityWriteInfo &u )
 	
 	if ( nCheckProps > 0 )
 	{
+		*s_CurrentTable = u.m_pNewPack->m_pGModDataTable;
+		*s_ReferenceTick = u.m_pFromSnapshot ? u.m_pFromSnapshot->m_nTickCount : 0;
+		*s_TargetTick = u.m_pToSnapshot->m_nTickCount;
+
 		// Write a header.
 		SV_WriteDeltaHeader( u, u.m_nNewEntity, FHDR_ZERO );
 #if defined( DEBUG_NETWORKING )
@@ -587,6 +595,10 @@ static inline void SV_DetermineUpdateType( CEntityWriteInfo &u )
 		// If the numbers are the same, then the entity was in the old and new packet.
 		// Just delta compress the differences.
 		u.m_UpdateType = DeltaEnt;
+
+		*s_CurrentTable = NULL;
+		*s_ReferenceTick = 0;
+		*s_TargetTick = 0;
 	}
 	else
 	{
@@ -644,8 +656,6 @@ __declspec(naked) int __fastcall getValue3(const CEntityWriteInfo* u)
     }
 }
 
-static CThreadLocal<CGMODDataTable*>* s_CurrentTable = NULL;
-static CThreadLocal<int>* s_TargetTick = NULL;
 static CFrameSnapshotManager* framesnapshotmanager = NULL;
 static inline void SV_WriteEnterPVS( CEntityWriteInfo &u )
 {
@@ -726,13 +736,18 @@ static inline void SV_WriteEnterPVS( CEntityWriteInfo &u )
 		nToBits = u.m_pNewPack->GetNumBits();
 	}
 
-	IGMODDataTable* pTable = (IGMODDataTable*)getValue1(&u);
-	// s_CurrentTable->Set()
-	// ToDo: Set the ThreadLocal var's as else GMODDataTable's CompareDelta crashes.
+	// Setup gmod shit
+	*s_CurrentTable = u.m_pNewPack->m_pGModDataTable;
+	*s_ReferenceTick = u.m_pFromSnapshot ? u.m_pFromSnapshot->m_nTickCount : 0;
+	*s_TargetTick = u.m_pToSnapshot->m_nTickCount;
 
 	// send all changed properties when entering PVS (no SendProxy culling since we may use it as baseline
 	u.m_nFullProps +=  SendTable_WriteAllDeltaProps( pClass->m_pTable, pFromData, nFromBits,
 		pToData, nToBits, u.m_pNewPack->m_nEntityIndex, u.m_pBuf );
+
+	*s_CurrentTable = NULL;
+	*s_ReferenceTick = 0;
+	*s_TargetTick = 0;
 
 	if ( u.m_nNewEntity == u.m_nOldEntity )
 		u.NextOldEntity();  // this was a entity recreate
@@ -869,7 +884,7 @@ static inline int SV_WriteDeletions( CEntityWriteInfo &u )
 
 	return nNumDeletions;
 }
-
+#endif
 
 /*
 =============
@@ -882,6 +897,7 @@ Returns the size IN BITS of the message buffer created.
 
 static CBaseServer* g_pBaseServer = NULL;
 static Detouring::Hook detour_CBaseServer_WriteDeltaEntities;
+#if SYSTEM_WINDOWS
 static void hook_CBaseServer_WriteDeltaEntities( CBaseClient *client, CClientFrame *to, CClientFrame *from, bf_write &pBuf )
 {
 	// ToDo: Use ASM to get the CBaseServer variable from ecx
@@ -1056,11 +1072,218 @@ static void hook_CBaseServer_WriteDeltaEntities( CBaseClient *client, CClientFra
 		client->TraceNetworkData( pBuf, "Delta Finish" );
 	}*/
 }
+#else
+enum FunnyUpdateTypes {
+	FU_EnterPVS = 0,
+	FU_LeavePVS = 1,
+	FU_ExplicitCreate = 2,
+	FU_ExplicitDestroy = 3,
+	FU_DeltaOrPreserve = 4,
+};
+
+static inline FunnyUpdateTypes Test_SV_DetermineUpdateType( CEntityWriteInfo &u )
+{
+	if( u.m_nOldEntity == ENTITY_SENTINEL )
+	{
+		return FunnyUpdateTypes::FU_EnterPVS;
+	}
+
+	/*bool destroy = u.m_bAsDelta && SV_NeedsExplicitDestroy( u.m_nOldEntity, u.m_pFromSnapshot, u.m_pToSnapshot );
+	if ( destroy )
+	{
+		return FunnyUpdateTypes::FU_ExplicitDestroy;
+	}*/
+	
+	if( u.m_nNewEntity == ENTITY_SENTINEL )
+	{
+		return FunnyUpdateTypes::FU_LeavePVS;
+	}
+
+	bool recreate = SV_NeedsExplicitCreate( u );
+	if ( recreate )
+	{
+		return FunnyUpdateTypes::FU_ExplicitCreate;
+	}
+	
+	Assert( u.m_pToSnapshot->m_pEntities[ u.m_nNewEntity ].m_pClass );
+	
+	return FunnyUpdateTypes::FU_DeltaOrPreserve;
+}
+
+static CFrameSnapshotManager* framesnapshotmanager = NULL;
+static void hook_CBaseServer_WriteDeltaEntities(CBaseServer* pServer, CBaseClient *client, CClientFrame *to, CClientFrame *from, bf_write &pBuf )
+{
+	// Setup the CEntityWriteInfo structure.
+	CEntityWriteInfo u;
+	u.m_pBuf = &pBuf;
+	u.m_pTo = to;
+	u.m_pToSnapshot = to->GetSnapshot();
+	u.m_pBaseline = client->m_pBaseline;
+	u.m_nFullProps = 0;
+	u.m_pServer = g_pBaseServer;
+	u.m_nClientEntity = client->m_nEntityIndex;
+
+	if ( from != NULL )
+	{
+		u.m_bAsDelta = true;
+		if (!client->IsHLTV()) // Not a HLTV Client
+		{
+			int baselineTick = client->m_nBaselineUpdateTick;
+			if (baselineTick > from->tick_count)
+			{
+				DevMsg("CBaseServer::WriteDeltaEntities: Baseline is newer than delta tick! %i - %i\n", baselineTick, from->tick_count);
+				while(from->m_pNext && from->m_pNext->tick_count <= baselineTick) // Skip forward to the baseline frame where we already wrote EnterPVS
+				{
+					from = from->m_pNext;
+				}
+			}
+		}
+		u.m_pFrom = from;
+		u.m_pFromSnapshot = from->GetSnapshot();
+
+		Assert( u.m_pFromSnapshot );
+	}
+	else
+	{
+		u.m_bAsDelta = false;
+		u.m_pFrom = NULL;
+		u.m_pFromSnapshot = NULL;
+	}
+
+	std::unordered_map<int, int> pVisitedNewEntity;
+	std::unordered_map<int, int> pVisitedOldEntity;
+	{
+		// Iterate through the in PVS bitfields until we find an entity 
+		// that was either in the old pack or the new pack
+		u.NextOldEntity();
+		u.NextNewEntity();
+		
+		int previousType = -1;
+		while ( (u.m_nOldEntity != ENTITY_SENTINEL) || (u.m_nNewEntity != ENTITY_SENTINEL) )
+		{
+			u.m_pNewPack = (u.m_nNewEntity != ENTITY_SENTINEL) ? framesnapshotmanager->GetPackedEntity( u.m_pToSnapshot, u.m_nNewEntity ) : NULL;
+			u.m_pOldPack = (u.m_nOldEntity != ENTITY_SENTINEL) ? framesnapshotmanager->GetPackedEntity( u.m_pFromSnapshot, u.m_nOldEntity ) : NULL;
+			
+			FunnyUpdateTypes type = Test_SV_DetermineUpdateType(u);
+			
+			if (pVisitedNewEntity.find(u.m_nNewEntity) != pVisitedNewEntity.end())
+			{
+				Msg("m_nNewEntity: Tried to write a entity that we already went over? %i - %i - %i | %i - %i\n", pVisitedNewEntity.find(u.m_nNewEntity)->second, (int)type, previousType, u.m_nNewEntity, u.m_nOldEntity);
+			}
+
+			if (pVisitedOldEntity.find(u.m_nOldEntity) != pVisitedOldEntity.end())
+			{
+				Msg("m_nOldEntity: Tried to write a entity that we already went over? %i - %i - %i | %i - %i\n", pVisitedOldEntity.find(u.m_nOldEntity)->second, (int)type, previousType, u.m_nNewEntity, u.m_nOldEntity);
+			}
+			previousType = type;
+
+			if (type == FunnyUpdateTypes::FU_DeltaOrPreserve)
+			{
+				pVisitedOldEntity[u.m_nOldEntity] = (int)type;
+				u.NextOldEntity();
+				pVisitedNewEntity[u.m_nNewEntity] = (int)type;
+				u.NextNewEntity();
+				continue;
+			}
+
+			if (type == FunnyUpdateTypes::FU_LeavePVS || type == FunnyUpdateTypes::FU_ExplicitDestroy)
+			{
+				pVisitedOldEntity[u.m_nOldEntity] = (int)type;
+				u.NextOldEntity();
+				continue;
+			}
+
+			if (pVisitedOldEntity.find(u.m_nOldEntity) != pVisitedOldEntity.end())
+			{
+				Msg("EnterPVS: Tried to join pvs? %i - %i:%i - %i:%i - %s\n", pVisitedOldEntity.find(u.m_nOldEntity)->second, (int)type, previousType, u.m_nNewEntity, u.m_nOldEntity, (u.m_bAsDelta && SV_NeedsExplicitDestroy( u.m_nOldEntity, u.m_pFromSnapshot, u.m_pToSnapshot )) ? "true" : "false");
+			}
+			
+			if (u.m_nNewEntity == u.m_nOldEntity)
+			{
+				Msg("EnterPVS: Tried to join pvs? %i:%i - %i:%i - %s\n", (int)type, previousType, u.m_nNewEntity, u.m_nOldEntity, (u.m_bAsDelta && SV_NeedsExplicitDestroy( u.m_nOldEntity, u.m_pFromSnapshot, u.m_pToSnapshot )) ? "true" : "false");
+				pVisitedOldEntity[u.m_nOldEntity] = (int)previousType;
+				u.NextOldEntity();
+			}
+
+			Msg("EnterPVS: joined pvs? %i:%i - %i:%i - %s\n", (int)type, previousType, u.m_nNewEntity, u.m_nOldEntity, (u.m_bAsDelta && SV_NeedsExplicitDestroy( u.m_nNewEntity, u.m_pFromSnapshot, u.m_pToSnapshot )) ? "true" : "false");
+			pVisitedNewEntity[u.m_nNewEntity] = (int)type;
+			u.NextNewEntity();
+		}
+	}
+
+	detour_CBaseServer_WriteDeltaEntities.GetTrampoline<Symbols::CBaseServer_WriteDeltaEntities>()(pServer, client, to, from, pBuf);
+}
+
+static Detouring::Hook detour_SV_DetermineUpdateType;
+static void hook_SV_DetermineUpdateType(CEntityWriteInfo& u)
+{
+	int origEnt = -1;
+	if (u.m_nNewEntity != ENTITY_SENTINEL && u.m_nOldEntity != ENTITY_SENTINEL && u.m_nNewEntity < u.m_nOldEntity)
+	{
+		origEnt = u.m_nOldEntity;
+		u.m_nOldEntity = u.m_nNewEntity;
+	}
+
+	detour_SV_DetermineUpdateType.GetTrampoline<Symbols::SV_DetermineUpdateType>()(u);
+
+	if (origEnt != -1)
+	{
+		u.m_nOldEntity = origEnt;
+	}
+
+	if (u.m_UpdateType == UpdateType::EnterPVS)
+	{
+		Msg("SV_DetermineUpdateType: Entity entered PVS: %i - %i | %i - %i\n", u.m_nNewEntity, origEnt != -1 ? origEnt :  u.m_nOldEntity, u.m_pFromSnapshot ? u.m_pFromSnapshot->m_nTickCount : -1, u.m_pToSnapshot ? u.m_pToSnapshot->m_nTickCount : -1);
+	}
+}
+
+static bool enterPVS = false;
+static Detouring::Hook detour_SV_WriteEnterPVS;
+static void hook_SV_WriteEnterPVS(CEntityWriteInfo& u)
+{
+	Msg("SV_WriteEnterPVS: Entity entered PVS\n", u.m_pToSnapshot->m_nTickCount);
+	enterPVS = true;
+	detour_SV_WriteEnterPVS.GetTrampoline<Symbols::SV_DetermineUpdateType>()(u);
+	enterPVS = false;
+}
+
+typedef bool (*CGMODDataTable_Compare)(bf_read* magicBuffer1, bf_read* magicBuffer2, void* magicVar, int magicVar2);
+static Detouring::Hook detour_CGMODDataTable_Compare;
+static bool hook_CGMODDataTable_Compare(bf_read* magicBuffer1, bf_read* magicBuffer2, void* magicVar, int magicVar2)
+{
+	bool whatIsThis = detour_CGMODDataTable_Compare.GetTrampoline<CGMODDataTable_Compare>()(magicBuffer1, magicBuffer2, magicVar, magicVar2);
+	if (enterPVS)
+	{
+		Msg("CGMODDataTable_Compare: %i - %s\n", magicVar2, whatIsThis ? "true" : "false");
+	}
+	return whatIsThis;
+}
+
+typedef bool (*CBaseClient_UpdateAcknowledgedFramecount)(CBaseClient* pClient, int tick);
+static Detouring::Hook detour_CBaseClient_UpdateAcknowledgedFramecount;
+static bool hook_CBaseClient_UpdateAcknowledgedFramecount(CBaseClient* pClient, int tick)
+{
+	if (pClient->IsFakeClient())
+	{
+		return detour_CBaseClient_UpdateAcknowledgedFramecount.GetTrampoline<CBaseClient_UpdateAcknowledgedFramecount>()(pClient, tick);
+	}
+
+	int currentDelta = pClient->m_nDeltaTick;
+	int currentBaseline = pClient->m_nBaselineUpdateTick;
+	bool bRet = detour_CBaseClient_UpdateAcknowledgedFramecount.GetTrampoline<CBaseClient_UpdateAcknowledgedFramecount>()(pClient, tick);
+	if ((currentBaseline > -1) && (tick > currentBaseline) && pClient->m_nBaselineUpdateTick == -1)
+	{
+		Warning("Forcing full update since baseline update was lost!\n");
+		return detour_CBaseClient_UpdateAcknowledgedFramecount.GetTrampoline<CBaseClient_UpdateAcknowledgedFramecount>()(pClient, -1);
+	}
+	
+	return bRet;
+}
+#endif
 
 //-----------------------------------------------------------------------------
 // Returns the pack data for a particular entity for a particular snapshot
 //-----------------------------------------------------------------------------
-
 PackedEntity* CFrameSnapshotManager::GetPackedEntity( CFrameSnapshot* pSnapshot, int entity )
 {
 	if ( !pSnapshot )
@@ -1078,6 +1301,7 @@ PackedEntity* CFrameSnapshotManager::GetPackedEntity( CFrameSnapshot* pSnapshot,
 	return packedEntity;
 }
 
+#if SYSTEM_WINDOWS
 abstract_class IChangeFrameList
 {
 public:
@@ -1684,6 +1908,7 @@ int SendTable_CullPropsFromProxies(
 	return func_SendTable_CullPropsFromProxies(pTable, pStartProps, nStartProps, iClient, pOldStateProxies, nOldStateProxies, pNewStateProxies, nNewStateProxies, pOutProps, nMaxOutProps);
 }
 */
+#endif
 
 void CNW2DebuggingModule::InitDetour(bool bPreServer)
 {
@@ -1691,6 +1916,7 @@ void CNW2DebuggingModule::InitDetour(bool bPreServer)
 		return;
 
 	SourceSDK::FactoryLoader engine_loader("engine");
+#if SYSTEM_WINDOWS
 	Detour::Create(
 		&detour_CBaseServer_WriteDeltaEntities, "CBaseServer::WriteDeltaEntities",
 		engine_loader.GetModule(), Symbol::FromSignature("\x55\x8B\xEC\x81\xEC\x84\x04\x00\x00\x53\x56\x8B\xF1"), // 55 8B EC 81 EC 84 04 00 00 53 56 8B F1
@@ -1726,6 +1952,37 @@ void CNW2DebuggingModule::InitDetour(bool bPreServer)
 
 	g_svInstanceBaselineMutex2 = Detour::ResolveSymbol<CThreadFastMutex>(engine_loader, Symbol::FromSignature("\x2A\x2A\x2A\x2A\x3B\x15\x2A\x2A\x2A\x2A\x2A\x2A\x8B\xCA\x33\xC0\xF0\x0F\xB1\x0B\x85\xC0\x2A\x2A\xF3\x90\x6A\x00\x52\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x90\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x2A\x8B\x8F")); // ?? ?? ?? ?? 3B 15 ?? ?? ?? ?? ?? ?? 8B CA 33 C0 F0 0F B1 0B 85 C0 ?? ?? F3 90 6A 00 52 ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? 90 ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? 8B 8F Symbol::FromSignature("\x2A\x2A\x2A\x2A\x83\xC4\x04\x8B\x01\xFF\x50\x04\x6A\x40"), // ?? ?? ?? ?? 83 C4 04 8B 01 FF 50 04 6A 40 || "framesnapshotmanager"
 	Detour::CheckValue("get class", "g_svInstanceBaselineMutex", g_svInstanceBaselineMutex2 != NULL);
+#else
+	Detour::Create(
+		&detour_CBaseServer_WriteDeltaEntities, "CBaseServer::WriteDeltaEntities",
+		engine_loader.GetModule(), Symbol::FromName("_ZN11CBaseServer18WriteDeltaEntitiesEP11CBaseClientP12CClientFrameS3_R8bf_write"),
+		(void*)hook_CBaseServer_WriteDeltaEntities, m_pID
+	);
+
+	Detour::Create(
+		&detour_SV_DetermineUpdateType, "SV_DetermineUpdateType",
+		engine_loader.GetModule(), Symbol::FromName("_Z22SV_DetermineUpdateTypeR16CEntityWriteInfo"),
+		(void*)hook_SV_DetermineUpdateType, m_pID
+	);
+
+	Detour::Create(
+		&detour_SV_WriteEnterPVS, "SV_WriteEnterPVS",
+		engine_loader.GetModule(), Symbol::FromName("_Z16SV_WriteEnterPVSR16CEntityWriteInfo"),
+		(void*)hook_SV_WriteEnterPVS, m_pID
+	);
+
+	Detour::Create(
+		&detour_CGMODDataTable_Compare, "CGMODDataTable::Compare",
+		engine_loader.GetModule(), Symbol::FromName("_ZN14CGMODDataTable7CompareEP7bf_readS1_PS_i"),
+		(void*)hook_CGMODDataTable_Compare, m_pID
+	);
+
+	Detour::Create(
+		&detour_CBaseClient_UpdateAcknowledgedFramecount, "CBaseClient::UpdateAcknowledgedFramecount",
+		engine_loader.GetModule(), Symbol::FromName("_ZN11CBaseClient28UpdateAcknowledgedFramecountEi"),
+		(void*)hook_CBaseClient_UpdateAcknowledgedFramecount, m_pID
+	);
+#endif
 
 	// First time I made a symbol for a variable instead of a function :D
 	// Finally figured out how it works, only took me months
@@ -1733,5 +1990,14 @@ void CNW2DebuggingModule::InitDetour(bool bPreServer)
 	Detour::CheckValue("get class", "framesnapshotmanager", fsm != NULL);
 	if (fsm)
 		framesnapshotmanager = *fsm;
+
+	s_CurrentTable = Detour::ResolveSymbol<CThreadLocalPtr<CGMODDataTable>>(engine_loader, Symbol::FromSignature("****\x6A\x00**\x6A\x00\xB9******\x6A\x00\xB9******\x8B\x43\x18\x8B\x53\x14")); // ?? ?? ?? ?? 6A 00 ?? ?? 6A 00 B9 ?? ?? ?? ?? ?? ?? 6A 00 B9 ?? ?? ?? ?? ?? ?? 8B 43 18 8B 53 14
+	Detour::CheckValue("get threadlocal", "s_CurrentTable", s_CurrentTable != NULL);
+
+	s_ReferenceTick = Detour::ResolveSymbol<CThreadLocalInt<intp>>(engine_loader, Symbol::FromSignature("******\x6A\x00\xB9******\x8B\x43\x18\x8B\x53\x14")); // ?? ?? ?? ?? ?? ?? 6A 00 B9 ?? ?? ?? ?? ?? ?? 8B 43 18 8B 53 14
+	Detour::CheckValue("get threadlocal", "s_ReferenceTick", s_ReferenceTick != NULL);
+
+	s_TargetTick = Detour::ResolveSymbol<CThreadLocalInt<intp>>(engine_loader, Symbol::FromSignature("******\x8B\x43\x18\x8B\x53\x14")); // ?? ?? ?? ?? ?? ?? 8B 43 18 8B 53 14
+	Detour::CheckValue("get threadlocal", "s_TargetTick", s_TargetTick != NULL);
 }
 #endif

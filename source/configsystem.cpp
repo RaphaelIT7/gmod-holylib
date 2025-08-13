@@ -5,7 +5,14 @@ static CConfigSystem pConfigSystem;
 IConfigSystem* g_pConfigSystem = &pConfigSystem;
 
 // Expose it :3
-EXPOSE_INTERFACE(CConfigSystem, IConfigSystem, INTERFACEVERSION_CONFIG);
+#ifdef LIB_HOLYLIB
+IConfigSystem* GetConfigSystem()
+{
+	return g_pConfigSystem;
+}
+#else
+EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CConfigSystem, IConfigSystem, INTERFACEVERSION_CONFIGSYSTEM, pConfigSystem);
+#endif
 
 IConfig* CConfigSystem::LoadConfig(const char* pFilePath)
 {

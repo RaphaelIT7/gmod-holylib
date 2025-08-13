@@ -76,8 +76,12 @@ local function CompileVerionFile()
 	--local additional = file and file:read("*l") or "0"
 
 	local versionFile = [[
-// This is a generated file! & This will change on every run so don't include it unless you want cache misses & compiles to take ages.
+// This is a generated file! & This will change on every run and don't include it unless you want cache misses & compiles to take ages.
 #pragma once
+
+#ifndef _ALLOWVERSIONFILE
+#error "you included the wrong file! Use versioninfo.h, not _versioninfo.h!"
+#endif
 
 #define HOLYLIB_BUILD_BRANCH "]] .. branch .. [["
 #define HOLYLIB_BUILD_RUN_NUMBER "]] .. run_number .. [["

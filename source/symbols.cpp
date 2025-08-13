@@ -45,18 +45,6 @@ namespace Symbols
 		Symbol::FromName("_ZN18CCollisionProperty24MarkPartitionHandleDirtyEv"),
 	};
 
-	const std::vector<Symbol> CBaseEntity_VPhysicsUpdateSym = {
-		Symbol::FromName("_ZN11CBaseEntity14VPhysicsUpdateEP14IPhysicsObject"),
-	};
-
-	const std::vector<Symbol> CBaseEntity_GMOD_VPhysicsTestSym = {
-		Symbol::FromName("_ZN11CBaseEntity17GMOD_VPhysicsTestEP14IPhysicsObject"),
-	};
-
-	const std::vector<Symbol> CBaseEntity_VPhysicsDestroyObjectSym = {
-		Symbol::FromName("_ZN11CBaseEntity21VPhysicsDestroyObjectEv"),
-	};
-
 	const std::vector<Symbol> lua_rawsetiSym = {
 		Symbol::FromName("lua_rawseti"),
 		Symbol::FromName("lua_rawseti"),
@@ -98,6 +86,11 @@ namespace Symbols
 		Symbol::FromName("GMOD_LoadBinaryModule"),
 	};
 
+	const std::vector<Symbol> CM_VisSym = { // CM_Vis:
+		Symbol::FromName("_Z6CM_VisPhiii"),
+		Symbol::FromSignature("\x55\x83\xF9\x02\x48\x89\xE5\x41\x54\x53\x48\x89\xFB\x89\xD7\x89\xCA"), // 55 83 F9 02 48 89 E5 41 54 53 48 89 FB 89 D7 89 CA
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: holylib Symbols
 	//---------------------------------------------------------------------------------
@@ -133,9 +126,9 @@ namespace Symbols
 
 	const std::vector<Symbol> CHostState_State_ChangeLevelMPSym = {
 		Symbol::FromName("_Z23HostState_ChangeLevelMPPKcS0_"),
-		NULL_SIGNATURE,
-		NULL_SIGNATURE,
-		NULL_SIGNATURE,
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x54\x49\x89\xFC\x53\x48\x89\xF3*****\x48\x89\xC7"), // 55 48 89 E5 41 54 49 89 FC 53 48 89 F3 ?? ?? ?? ?? ?? 48 89 C7
+		Symbol::FromSignature("\x55\x8B\xEC*****\x8B\xC8*****\x68\x00\x01\x00\x00\xFF\x75\x08"), // 55 8B EC ?? ?? ?? ?? ?? 8B C8 ?? ?? ?? ?? ?? 68 00 01 00 00 FF 75 08
+		Symbol::FromSignature("\x48\x89\x5C\x24\x08\x57\x48\x83\xEC\x20\x48\x8B\xFA\x48\x8B\xD9*****\x48\x8B\xC8"), // 48 89 5C 24 08 57 48 83 EC 20 48 8B FA 48 8B D9 ?? ?? ?? ?? ?? 48 8B C8
 	};
 
 	//---------------------------------------------------------------------------------
@@ -434,64 +427,9 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x8B\xEC\x56\x8B\xF1\x80\x7E\x04\x00**\x8B\x4E\x0C\x8B"), // 55 8B EC 56 8B F1 80 7E 04 00 ?? ?? 8B 4E 0C 8B
 	};
 
-	const std::vector<Symbol> ThreadGetCurrentIdSym = {
-		NULL_SIGNATURE,
-		Symbol::FromName("ThreadGetCurrentId"), // Trying to fix 64x Vprof
-	};
-
 	const std::vector<Symbol> lj_BC_FUNCCSym = {
 		Symbol::FromSignature("\x8B\x6A\xF8\x8B\x7D\x14\x8B\x6C\x24\x30\x8D\x44\xC2\xF8\x89\x55\x10\x8D\x88\xA0\x00\x00\x00\x3B\x4D\x18\x89\x45\x14\x89\x2C\x24"), // 8B 6A F8 8B 7D 14 8B 6C 24 30 8D 44 C2 F8 89 55 10 8D 88 A0 00 00 00 3B 4D 18 89 45 14 89 2C 24
 	};
-
-#ifdef SYSTEM_WINDOWS // A lot of Symbols to get.....
-	const std::vector<Symbol> Client_CLuaGamemode_CallFinishSym = {
-		NULL_SIGNATURE,
-		NULL_SIGNATURE,
-		Symbol::FromSignature(""),
-	};
-
-	const std::vector<Symbol> Client_CLuaGamemode_CallWithArgsSym = {
-		NULL_SIGNATURE,
-		NULL_SIGNATURE,
-		Symbol::FromSignature(""), 
-	};
-
-	const std::vector<Symbol> Client_CLuaGamemode_CallSym = {
-		NULL_SIGNATURE,
-		NULL_SIGNATURE,
-		Symbol::FromSignature(""), 
-	};
-
-	const std::vector<Symbol> Client_CScriptedEntity_StartFunctionStrSym = { // const char* version - GetSoundInterests
-		NULL_SIGNATURE,
-		NULL_SIGNATURE,
-		Symbol::FromSignature(""), 
-	};
-
-	const std::vector<Symbol> Client_CScriptedEntity_StartFunctionSym = { // int version - SENT:AcceptInput
-		NULL_SIGNATURE,
-		NULL_SIGNATURE,
-		Symbol::FromSignature(""), 
-	};
-
-	const std::vector<Symbol> Client_CScriptedEntity_CallSym = { // SENT:AcceptInput
-		NULL_SIGNATURE,
-		NULL_SIGNATURE,
-		Symbol::FromSignature(""), 
-	};
-
-	const std::vector<Symbol> Client_CScriptedEntity_CallFunctionStrSym = { // const char* version - SetupDataTables
-		NULL_SIGNATURE,
-		NULL_SIGNATURE,
-		Symbol::FromSignature(""), 
-	};
-
-	const std::vector<Symbol> Client_CScriptedEntity_CallFunctionSym = { // int version. - Found no good identifyer to find it. Guessed it.
-		NULL_SIGNATURE,
-		NULL_SIGNATURE,
-		Symbol::FromSignature(""), 
-	};
-#endif
 
 	//---------------------------------------------------------------------------------
 	// Purpose: networking Symbols
@@ -503,47 +441,47 @@ namespace Symbols
 
 	const std::vector<Symbol> SendTable_CullPropsFromProxiesSym = { // CPropCullStack::AddProp - m_pOutProps overflowed
 		Symbol::FromName("_Z30SendTable_CullPropsFromProxiesPK9SendTablePKiiiPK20CSendProxyRecipientsiS6_iPii"),
-		Symbol::FromSignature(""), // ToDo
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x49\x89\xFF\x41\x56\x41\x89\xCE"), // 55 48 89 E5 41 57 49 89 FF 41 56 41 89 CE
 	};
 
 	const std::vector<Symbol> SendTable_WritePropListSym = { // SendTable_WritePropList->inputBuffer
 		Symbol::FromName("_Z23SendTable_WritePropListPK9SendTablePKviP8bf_writeiPKii"),
-		Symbol::FromSignature(""), // ToDo
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x53\x48\x81\xEC\x88\x00\x00\x00\x48\x89\xBD\x60\xFF\xFF\xFF"), // 55 48 89 E5 41 57 41 56 41 55 41 54 53 48 81 EC 88 00 00 00 48 89 BD 60 FF FF FF
 	};
 
 	const std::vector<Symbol> CBaseServer_WriteDeltaEntitiesSym = { // CBaseServer::WriteDeltaEntities
 		Symbol::FromName("_ZN11CBaseServer18WriteDeltaEntitiesEP11CBaseClientP12CClientFrameS3_R8bf_write"),
-		Symbol::FromSignature(""), // ToDo
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x49\x89\xCC\x53\x48\x89\xFB"), // 55 48 89 E5 41 57 41 56 41 55 41 54 49 89 CC 53 48 89 FB
 	};
 
 	const std::vector<Symbol> SendTable_CalcDeltaSym = {
 		Symbol::FromName("_Z19SendTable_CalcDeltaPK9SendTablePKviS3_iPiii"),
-		Symbol::FromSignature(""), // ToDo
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x49\x89\xCF\x41\x56\x49\x89\xF6"), // 55 48 89 E5 41 57 49 89 CF 41 56 49 89 F6
 	};
 
 	const std::vector<Symbol> SV_DetermineUpdateTypeSym = { // CBaseServer::WriteDeltaEntities
 		Symbol::FromName("_ZL22SV_DetermineUpdateTypeR16CEntityWriteInfo"),
-		Symbol::FromSignature(""), // ToDo
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x53\x48\x89\xFB\x48\x81\xEC\xA8\x80\x00\x00"), // 55 48 89 E5 41 57 41 56 41 55 41 54 53 48 89 FB 48 81 EC A8 80 00 00
 	};
 
 	const std::vector<Symbol> PackedEntity_GetPropsChangedAfterTickSym = { //
 		Symbol::FromName("_ZN12PackedEntity24GetPropsChangedAfterTickEiPii"),
-		Symbol::FromSignature(""), // ToDo
+		Symbol::FromSignature("\x55\x48\x8B\x7F\x50\x48\x89\xE5\x48\x85\xFF"), // 55 48 8B 7F 50 48 89 E5 48 85 FF
 	};
 
 	const std::vector<Symbol> CGameServer_SendClientMessagesSym = { //
 		Symbol::FromName("_ZN11CGameServer18SendClientMessagesEb"),
-		Symbol::FromSignature(""), // ToDo
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x89\xF7\x41\x56\x41\x55\x49\x89\xFD\x41\x54\x53\x48\x81\xEC\x48\x08\x00\x00"), // 55 48 89 E5 41 57 41 89 F7 41 56 41 55 49 89 FD 41 54 53 48 81 EC 48 08 00 00
 	};
 
-	const std::vector<Symbol> CBaseEntity_GMOD_SetShouldPreventTransmitToPlayerSym = { //
+	const std::vector<Symbol> CBaseEntity_GMOD_SetShouldPreventTransmitToPlayerSym = { //Find CBaseEntity::GetLuaEntity with "m_LuaEntity != ENTITY!"
 		Symbol::FromName("_ZN11CBaseEntity37GMOD_SetShouldPreventTransmitToPlayerEP11CBasePlayerb"),
-		Symbol::FromSignature(""), // ToDo
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x89\xD7\x41\x56\x41\x55\x41\x54\x49\x89\xFC\x53"), // 55 48 89 E5 41 57 41 89 D7 41 56 41 55 41 54 49 89 FC 53
 	};
 
-	const std::vector<Symbol> CBaseEntity_GMOD_ShouldPreventTransmitToPlayerSym = { //
+	const std::vector<Symbol> CBaseEntity_GMOD_ShouldPreventTransmitToPlayerSym = { //Find CBaseEntity::GetLuaEntity with "m_LuaEntity != ENTITY!"
 		Symbol::FromName("_ZN11CBaseEntity34GMOD_ShouldPreventTransmitToPlayerEP11CBasePlayer"),
-		Symbol::FromSignature(""), // ToDo
+		Symbol::FromSignature("\x55\x31\xC0\x48\x89\xE5\x53\x48\x89\xFB\x48\x83\xEC\x18\x66\x83\xBF\xE6\x14\x00\x00\x00"), // 55 31 C0 48 89 E5 53 48 89 FB 48 83 EC 18 66 83 BF E6 14 00 00 00
 	};
 
 	const std::vector<Symbol> g_FrameSnapshotManagerSym = {
@@ -561,25 +499,28 @@ namespace Symbols
 		Symbol::FromName("g_BSPData"),
 	};
 
+	// Only used on Linux
 	const std::vector<Symbol> PackWork_t_ProcessSym = {
 		Symbol::FromName("_ZN10PackWork_t7ProcessERS_"),
+		Symbol::FromSignature("\x55\x48\x89\xFA\x48\x8B\x4F\x10"), // 55 48 89 FA 48 8B 4F 10
 	};
 
+	// Only used on Windows
 	const std::vector<Symbol> SV_PackEntitySym = {
 		NULL_SIGNATURE,
 		NULL_SIGNATURE,
 		Symbol::FromSignature("\x55\x8B\xEC\xB8\x58\xC4\x00\x00"), // 55 8B EC B8 58 C4 00 00
 	};
 
-	const std::vector<Symbol> InvalidateSharedEdictChangeInfosSym = {
+	const std::vector<Symbol> InvalidateSharedEdictChangeInfosSym = {//Search for "NUM_FOR_EDICTINFO: bad pointer" then you get CBaseEdict::GetChangeAccessor and search for the xref
 		Symbol::FromName("_Z32InvalidateSharedEdictChangeInfosv"),
-		NULL_SIGNATURE,
+		Symbol::FromSignature("\x0F\xB7\x05\x2A\x2A\x2A\x2A\x66\x83\xF8\xFF\x74\x2A"), // 0F B7 05 ? ? ? ? 66 83 F8 FF 74 ?
 		Symbol::FromSignature("\x66*****\xB9\xFF\xFF\x00\x00\x66\x3B\xC1**\x57\x33\xFF"), // 66 ?? ?? ?? ?? ?? B9 FF FF 00 00 66 3B C1 ?? ?? 57 33 FF
 	};
 
-	const std::vector<Symbol> PackEntities_NormalSym = {
+	const std::vector<Symbol> PackEntities_NormalSym = { //Search for 'SV_PackEntity: SendTable_Encode returned false (ent %d).
 		Symbol::FromName("_Z19PackEntities_NormaliPP11CGameClientP14CFrameSnapshot"),
-		NULL_SIGNATURE,
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x53\x48\x81\xEC\xC8\xC4\x03\x00"), // 55 48 89 E5 41 57 41 56 41 55 41 54 53 48 81 EC C8 C4 03 00
 		Symbol::FromSignature("\x55\x8B\xEC\xB8\x2C\x80\x01\x00"), // 55 8B EC B8 2C 80 01 00
 	};
 
@@ -587,20 +528,24 @@ namespace Symbols
 		Symbol::FromName("_ZN12CGMOD_Player15CreateViewModelEi"),
 	};
 
-	const std::vector<Symbol> CBasePlayer_GetViewModelSym = {
+	const std::vector<Symbol> CBasePlayer_GetViewModelSym = {//Search for "models/weapons/v_hands.mdl" and then find CHL2_Player__StartAdmireGlovesAnimation
 		Symbol::FromName("_ZN11CBasePlayer12GetViewModelEib"),
+		Symbol::FromSignature("\x48\x8B\x05\x2A\x2A\x2A\x2A\x55\x48\x63\xF6\x48\x89\xE5\x48\x8B\x08\x8B\x84\xB7\x10\x28\x00\x00"), // 48 8B 05 ? ? ? ? 55 48 63 F6 48 89 E5 48 8B 08 8B 84 B7 10 28 00 00
 	};
 
-	const std::vector<Symbol> Player__SetHandsSym = {
+	const std::vector<Symbol> Player__SetHandsSym = { //Search for "SetHands" then found the Player__SetHands__Redirect and then you'll find it
 		Symbol::FromName("_Z16Player__SetHandsP13ILuaInterface"),
+		Symbol::FromSignature("\x55\x31\xF6\xBF\x01\x00\x00\x00\x48\x89\xE5\x41\x55\x41\x54\x53\x48\x83\xEC\x18\xE8\x2A\x2A\x2A\x2A\x31\xF6"), // 55 31 F6 BF 01 00 00 00 48 89 E5 41 55 41 54 53 48 83 EC 18 E8 ? ? ? ? 31 F6
 	};
 
-	const std::vector<Symbol> CBaseCombatCharacter_SetTransmitSym = {
+	const std::vector<Symbol> CBaseCombatCharacter_SetTransmitSym = {//Search for 1st "CBaseAnimating::SetTransmit" xref
 		Symbol::FromName("_ZN20CBaseCombatCharacter11SetTransmitEP18CCheckTransmitInfob"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x49\x89\xF5\x41\x54\x49\x89\xFC\x53\x48\x83\xEC\x08\x48\x8B\x47\x40"), // 55 48 89 E5 41 57 41 56 41 55 49 89 F5 41 54 49 89 FC 53 48 83 EC 08 48 8B 47 40
 	};
 
-	const std::vector<Symbol> CBaseAnimating_SetTransmitSym = {
+	const std::vector<Symbol> CBaseAnimating_SetTransmitSym = {//Find "Setting CBaseAnimating to non-studio model %s  (type:%i)" to get CBaseAnimating__SetModel then find the last xref and take 4 function upper
 		Symbol::FromName("_ZN14CBaseAnimating11SetTransmitEP18CCheckTransmitInfob"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x49\x89\xFC\x53\x48\x89\xFB\x48\x81\xEC\x20\x01\x00\x00"), // 55 48 89 E5 41 57 41 56 41 55 41 54 49 89 FC 53 48 89 FB 48 81 EC 20 01 00 00
 	};
 
 	//---------------------------------------------------------------------------------
@@ -649,14 +594,6 @@ namespace Symbols
 	const std::vector<Symbol> CSteam3Server_CheckForDuplicateSteamIDSym = { // 64x = "STEAM UserID"
 		Symbol::FromName("_ZN13CSteam3Server24CheckForDuplicateSteamIDEPK11CBaseClient"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x53\x48\x83\xEC\x68\x48\x89\x75\x80"), // 55 48 89 E5 41 57 41 56 41 55 41 54 53 48 83 EC 68 48 89 75 80
-	};
-		
-	//---------------------------------------------------------------------------------
-	// Purpose: pas Symbols
-	//---------------------------------------------------------------------------------
-	const std::vector<Symbol> CM_VisSym = { // CM_Vis:
-		Symbol::FromName("_Z6CM_VisPhiii"),
-		Symbol::FromSignature("\x55\x83\xF9\x02\x48\x89\xE5\x41\x54\x53\x48\x89\xFB\x89\xD7\x89\xCA"), // 55 83 F9 02 48 89 E5 41 54 53 48 89 FB 89 D7 89 CA
 	};
 
 	//---------------------------------------------------------------------------------
@@ -858,18 +795,22 @@ namespace Symbols
 
 	const std::vector<Symbol> CBaseServer_FillServerInfoSym = {
 		Symbol::FromName("_ZN11CBaseServer14FillServerInfoER14SVC_ServerInfo"),
+		Symbol::FromSignature("\x55\xBA\x04\x01\x00\x00\x48\x89\xE5\x41\x54\x49\x89\xF4\x53\x48\x8D\x35\x2A\x2A\x2A\x2A"), // 55 BA 04 01 00 00 48 89 E5 41 54 49 89 F4 53 48 8D 35 ? ? ? ?
 	};
 
 	const std::vector<Symbol> CHLTVServer_FillServerInfoSym = {
 		Symbol::FromName("_ZN11CHLTVServer14FillServerInfoER14SVC_ServerInfo"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x54\x49\x89\xFC\x53\x48\x8D\x7F\x08"), // 55 48 89 E5 41 54 49 89 FC 53 48 8D 7F 08
 	};
 
 	const std::vector<Symbol> CBaseClient_SetSignonStateSym = {
 		Symbol::FromName("_ZN11CBaseClient14SetSignonStateEii"),
+		Symbol::FromSignature("\x55\x8B\x87\xA8\x01\x00\x00"), // 55 8B 87 A8 01 00 00
 	};
 
 	const std::vector<Symbol> CBaseServer_IsMultiplayerSym = {
 		Symbol::FromName("_ZNK11CBaseServer13IsMultiplayerEv"),
+		Symbol::FromSignature("\x55\x83\xBF\x34\x01\x00\x00\x01"), // 55 83 BF 34 01 00 00 01
 	};
 
 	const std::vector<Symbol> GModDataPack_IsSingleplayerSym = {
@@ -890,57 +831,56 @@ namespace Symbols
 
 	const std::vector<Symbol> CGameClient_SpawnPlayerSym = {
 		Symbol::FromName("_ZN11CGameClient11SpawnPlayerEv"),
+		Symbol::FromSignature("\x55\x31\xC0\x48\x89\xE5\x53\x48\x89\xFB\x48\x8D\x3D\x2A\x2A\x2A\x2A\x48\x83\xEC\x78"), // 55 31 C0 48 89 E5 53 48 89 FB 48 8D 3D ? ? ? ? 48 83 EC 78
 	};
 
 	const std::vector<Symbol> CBaseServer_ProcessConnectionlessPacketSym = {
 		Symbol::FromName("_ZN11CBaseServer27ProcessConnectionlessPacketEP11netpacket_s"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x49\x89\xFE\x41\x55\x41\x54\x53\x48\x89\xF3\x48\x81\xEC\xC8\x0A\x00\x00"), // 55 48 89 E5 41 57 41 56 49 89 FE 41 55 41 54 53 48 89 F3 48 81 EC C8 0A 00 00
 	};
 
 	const std::vector<Symbol> NET_SendPacketSym = {
 		Symbol::FromName("_Z14NET_SendPacketP11INetChanneliRK8netadr_sPKhiP8bf_writeb"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x49\x89\xD5\x41\x54\x4D\x89\xCC"), // 55 48 89 E5 41 57 41 56 41 55 49 89 D5 41 54 4D 89 CC
 	};
 
 	const std::vector<Symbol> CNetChan_SendDatagramSym = {
 		Symbol::FromName("_ZN8CNetChan12SendDatagramEP8bf_write"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x49\x89\xF7\x41\x56\x41\x55\x41\x54\x53\x48\x89\xFB\x48\x81\xEC\xE8\x00\x04\x00"), // 55 48 89 E5 41 57 49 89 F7 41 56 41 55 41 54 53 48 89 FB 48 81 EC E8 00 04 00
 	};
 
 	const std::vector<Symbol> CNetChan_D2Sym = {
 		Symbol::FromName("_ZN8CNetChanD2Ev"),
+		Symbol::FromSignature("\x55\x48\x8D\x05\x2A\x2A\x2A\x2A\x48\x89\xE5\x41\x55\x41\x54\x49\x89\xFC\x53\x48\x83\xEC\x08"), // 55 48 8D 05 ? ? ? ? 48 89 E5 41 55 41 54 49 89 FC 53 48 83 EC 08
 	};
 
 	const std::vector<Symbol> NET_CreateNetChannelSym = {
 		Symbol::FromName("_Z20NET_CreateNetChanneliP8netadr_sPKcP18INetChannelHandlerbi"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x45\x89\xCF\x41\x56\x49\x89\xCE"), // 55 48 89 E5 41 57 45 89 CF 41 56 49 89 CE
 	};
 
 	const std::vector<Symbol> NET_RemoveNetChannelSym = {
 		Symbol::FromName("_Z20NET_RemoveNetChannelP11INetChannelb"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x55\x41\x54\x53\x48\x89\xFB\x48\x83\xEC\x08\x48\x85\xFF\x0F\x84\x2A\x2A\x2A\x2A\x4C\x8D\x25\x2A\x2A\x2A\x2A"), // 55 48 89 E5 41 55 41 54 53 48 89 FB 48 83 EC 08 48 85 FF 0F 84 ? ? ? ? 4C 8D 25 ? ? ? ?
 	};
 
 	const std::vector<Symbol> Filter_SendBanSym = {
 		Symbol::FromName("_Z14Filter_SendBanRK8netadr_s"),
+		Symbol::FromSignature("\x55\x48\x89\xFE\xB9\x6C\x00\x00\x00"), // 55 48 89 FE B9 6C 00 00 00
 	};
 
 	const std::vector<Symbol> NET_SendStreamSym = {
 		Symbol::FromName("_Z14NET_SendStreamiPKcii"),
+		Symbol::FromSignature("\x55\x48\x63\xD2\x48\x89\xE5\x53\x48\x83\xEC\x08\xE8\x2A\x2A\x2A\x2A\x48\x89\xC3"), // 55 48 63 D2 48 89 E5 53 48 83 EC 08 E8 ? ? ? ? 48 89 C3
 	};
 
 	const std::vector<Symbol> NET_ReceiveStreamSym = {
 		Symbol::FromName("_Z17NET_ReceiveStreamiPcii"),
+		Symbol::FromSignature("\x55\x48\x63\xD2\x48\x89\xE5\x53\x48\x83\xEC\x08\xE8\x2A\x2A\x2A\x2A\x83\xF8\xFF"), // 55 48 63 D2 48 89 E5 53 48 83 EC 08 E8 ? ? ? ? 83 F8 FF
 	};
 
 	const std::vector<Symbol> s_NetChannelsSym = {
 		Symbol::FromName("_ZL13s_NetChannels"),
-	};
-
-	//---------------------------------------------------------------------------------
-	// Purpose: lagcompensation Symbols
-	//---------------------------------------------------------------------------------
-	const std::vector<Symbol> UTIL_TraceEntity1Sym = {
-		Symbol::FromName("_Z16UTIL_TraceEntityP11CBaseEntityRK6VectorS3_jPK13IHandleEntityiP10CGameTrace"),
-	};
-
-	const std::vector<Symbol> UTIL_TraceEntity2Sym = {
-		Symbol::FromName("_Z16UTIL_TraceEntityP11CBaseEntityRK6VectorS3_jP10CGameTrace"),
 	};
 
 	//---------------------------------------------------------------------------------

@@ -98,7 +98,6 @@ void Lua::Shutdown()
 	g_pModuleManager.LuaShutdown(g_Lua);
 
 #if HOLYLIB_UTIL_DEBUG_LUAUSERDATA
-	g_pRemoveLuaUserData = false; // We are iterating over g_pLuaUserData so DON'T modify it.
 	for (auto& ref : g_pLuaUserData)
 	{
 		// If it doesn't hold a reference of itself, the gc will take care of it & call __gc in the lua_close call.
@@ -112,9 +111,8 @@ void Lua::Shutdown()
 			Msg(PROJECT_NAME ": This should NEVER happen! Discarding of old userdata %p (Type: %i - %i)\n", ref, iType, (iType > 0) && Lua::GetLuaData(g_Lua)->FindMetaTable(iType) || 0);
 		}
 
-		delete ref;
+		ref->Release(g_Lua);
 	}
-	g_pRemoveLuaUserData = true;
 	g_pLuaUserData.clear();
 #endif
 
@@ -248,17 +246,6 @@ void Lua::DestroyInterface(GarrysMod::Lua::ILuaInterface* LUA)
 	Lua::CloseLuaInterface(LUA);
 }
 
-/*
- * Where do we store our StateData?
- * In the ILuaInterface itself.
- * We abuse the GetPathID var as it's a char[32] but it'll never actually fully use it.
- * Why? Because I didn't want to use yet another unordered_map for this, also this should be faster.
- */
-Lua::StateData* Lua::GetLuaData(GarrysMod::Lua::ILuaInterface* LUA)
-{
-	return *reinterpret_cast<Lua::StateData**>((char*)LUA->GetPathID() + 24);
-}
-
 static std::unordered_set<Lua::StateData*> g_pLuaStates;
 void Lua::CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA, bool bNullOut)
 {
@@ -277,6 +264,7 @@ void Lua::CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA, bool bNullOut)
 
 	char* pathID = (char*)LUA->GetPathID();
 	Lua::StateData* data = new Lua::StateData;
+	data->pLua = LUA;
 	*reinterpret_cast<Lua::StateData**>(pathID + 24) = data;
 	g_pLuaStates.insert(data);
 	Msg("holylib - Created thread data %p (%s)\n", data, pathID);

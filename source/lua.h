@@ -35,7 +35,7 @@ namespace Lua
 
 	// Each new metatable has this entry.
 	struct LuaMetaEntry {
-		int iType = -1;
+		unsigned char iType = -1;
 	};
 
 	/*
@@ -44,8 +44,8 @@ namespace Lua
 	*/
 	enum LuaTypes {
 		IGModAudioChannel,
-		LUA_bf_read,
-		LUA_bf_write,
+		bf_read,
+		bf_write,
 		CBaseClient,
 		CHLTVClient,
 		QAngle,
@@ -92,6 +92,7 @@ namespace Lua
 		Lua::ModuleData* pModuelData[Lua::Internal::pMaxEntries] = { NULL }; // It uses the assigned module IDs
 		LuaMetaEntry pLuaTypes[LuaTypes::TOTAL_TYPES];
 		std::unordered_map<void*, LuaUserData*> pPushedUserData; // Would love to get rid of this
+		GarrysMod::Lua::ILuaInterface* pLua = NULL;
 
 		~StateData()
 		{
@@ -106,18 +107,18 @@ namespace Lua
 			}
 		}
 
-		inline void RegisterMetaTable(LuaTypes type, int metaID)
+		inline void RegisterMetaTable(LuaTypes type, unsigned char metaID)
 		{
 			pLuaTypes[type].iType = metaID;
 			Msg("Registered MetaTable: %i - %i\n", (int)type, metaID);
 		}
 
-		inline int GetMetaTable(LuaTypes type)
+		inline unsigned char GetMetaTable(LuaTypes type)
 		{
 			return pLuaTypes[type].iType;
 		}
 
-		inline LuaTypes FindMetaTable(int type)
+		inline LuaTypes FindMetaTable(unsigned char type)
 		{
 			for (int i=0; i<LuaTypes::TOTAL_TYPES; ++i)
 			{
@@ -159,7 +160,16 @@ namespace Lua
 		}
 	};
 
-	extern Lua::StateData* GetLuaData(GarrysMod::Lua::ILuaInterface* LUA);
+	/*
+	 * Where do we store our StateData?
+	 * In the ILuaInterface itself.
+	 * We abuse the GetPathID var as it's a char[32] but it'll never actually fully use it.
+	 * Why? Because I didn't want to use yet another unordered_map for this, also this should be faster.
+	 */
+	inline Lua::StateData* GetLuaData(GarrysMod::Lua::ILuaInterface* LUA)
+	{
+		return *reinterpret_cast<Lua::StateData**>((char*)LUA->GetPathID() + 24);
+	}
 	extern void CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA, bool bNullOut = false);
 	extern void RemoveLuaData(GarrysMod::Lua::ILuaInterface* LUA);
 	extern const std::unordered_set<Lua::StateData*>& GetAllLuaData();
@@ -182,4 +192,15 @@ namespace RawLua {
 	extern void SetReadOnly(TValue* o, bool readOnly);
 	extern void* GetUserDataOrFFIVar(lua_State* L, int idx, bool cDataTypes[USHRT_MAX]);
 	extern uint16_t GetCDataType(lua_State* L, int idx);
+}
+
+// Creates a function Get[funcName]LuaData and returns the stored module data from the given module.
+#define LUA_GetModuleData(className, moduleName, funcName) \
+static inline className* Get##funcName##LuaData(GarrysMod::Lua::ILuaInterface* pLua) \
+{ \
+	if (!pLua) { \
+		return NULL; \
+	} \
+\
+	return (className*)Lua::GetLuaData(pLua)->GetModuleData(moduleName.m_pID); \
 }

@@ -22,7 +22,7 @@ public:
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual void OnClientDisconnect(CBaseClient* pClient) OVERRIDE;
 	virtual const char* Name() { return "gameserver"; };
-	virtual int Compatibility() { return LINUX32; };
+	virtual int Compatibility() { return LINUX32 | LINUX64; };
 	virtual bool SupportsMultipleLuaStates() { return true; };
 };
 
@@ -73,7 +73,7 @@ LUA_FUNCTION_STATIC(CBaseClient_GetTable)
 	LuaUserData* data = Get_CBaseClient_Data(LUA, 1, true);
 	CBaseClient* pClient = (CBaseClient*)data->GetData();
 
-	Util::ReferencePush(LUA, data->GetLuaTable()); // This should never crash so no safety checks.
+	Util::ReferencePush(LUA, data->GetLuaTable(LUA)); // This should never crash so no safety checks.
 	return 1;
 }
 
@@ -552,8 +552,7 @@ LUA_FUNCTION_STATIC(CBaseClient_OnRequestFullUpdate)
 
 	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
 
-	if (func_CBaseClient_OnRequestFullUpdate)
-		func_CBaseClient_OnRequestFullUpdate(pClient);
+	func_CBaseClient_OnRequestFullUpdate(pClient);
 
 	return 0;
 }
@@ -1620,20 +1619,17 @@ bool ILuaNetMessageHandler::ProcessLuaNetChanMessage(NET_LuaNetChanMessage *msg)
 	if (m_iMessageCallbackFunction == -1) // We have no callback function set.
 		return true;
 
-	LuaUserData* pLuaData = Push_bf_read(m_pLua, &msg->m_DataIn, false);
 	m_pLua->ReferencePush(m_iMessageCallbackFunction);
 
 	Push_CNetChan(m_pLua, m_pChan);
-	m_pLua->Push(-3);
+	LuaUserData* pLuaData = Push_bf_read(m_pLua, &msg->m_DataIn, false);
 	m_pLua->PushNumber(msg->m_iLength);
 	m_pLua->CallFunctionProtected(3, 0, true);
 		
 	if (pLuaData)
 	{
-		delete pLuaData;
+		pLuaData->Release(m_pLua);
 	}
-	m_pLua->SetUserType(-1, NULL);
-	m_pLua->Pop(1);
 
 	return true;
 }
@@ -2115,6 +2111,9 @@ LUA_FUNCTION_STATIC(gameserver_SendConnectionlessPacket)
 		return 1;
 	}
 
+	if (!func_NET_SendPacket)
+		LUA->ThrowError("Failed to load NET_SendPacket");
+
 	LUA->PushNumber(func_NET_SendPacket(NULL, nSocket, (netadr_t&)adr, msg->GetData(), msg->GetNumBytesWritten(), NULL, false));
 	return 1;
 }
@@ -2122,6 +2121,9 @@ LUA_FUNCTION_STATIC(gameserver_SendConnectionlessPacket)
 static CUtlVectorMT<CUtlVector<CNetChan*>>* s_NetChannels = NULL;
 CNetChan* NET_CreateHolyLibNetChannel(int socket, netadrnew_t* adr, const char* name, INetChannelHandler* handler, bool bForceNewChannel, int nProtocolVersion)
 {
+	if (!s_NetChannels)
+		return NULL;
+
 	CNetChan* pChan = new CNetChan;
 
 	(*s_NetChannels).Lock();
@@ -2167,11 +2169,12 @@ LUA_FUNCTION_STATIC(gameserver_RemoveNetChannel)
 	if (!func_NET_RemoveNetChannel)
 		LUA->ThrowError("Failed to load NET_RemoveNetChannel!");
 
-	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
+	LuaUserData* pLuaData = Get_CNetChan_Data(LUA, 1, true);
+	CNetChan* pNetChannel = (CNetChan*)pLuaData->GetData();
 
 	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler;
 	func_NET_RemoveNetChannel(pNetChannel, true);
-	LUA->SetUserType(1, NULL);
+	pLuaData->Release(LUA);
 
 	if (pHandler)
 	{
@@ -2334,9 +2337,9 @@ static void hook_CServerGameClients_GetPlayerLimit(void* funkyClass, int& minPla
 }
 
 static Detouring::Hook detour_CBaseServer_ProcessConnectionlessPacket;
-static bool hook_CBaseServer_ProcessConnectionlessPacket(void* server, netpacket_s* packet)
+static bool hook_CBaseServer_ProcessConnectionlessPacket(IServer* server, netpacket_s* packet)
 {
-	if (!gameserver_connectionlesspackethook.GetBool())
+	if (!gameserver_connectionlesspackethook.GetBool() || server->IsHLTV())
 	{
 		return detour_CBaseServer_ProcessConnectionlessPacket.GetTrampoline<Symbols::CBaseServer_ProcessConnectionlessPacket>()(server, packet);
 	}
@@ -2345,11 +2348,6 @@ static bool hook_CBaseServer_ProcessConnectionlessPacket(void* server, netpacket
 	if (Lua::PushHook("HolyLib:ProcessConnectionlessPacket"))
 	{
 		LuaUserData* pLuaData = Push_bf_read(g_Lua, &packet->message, false);
-		g_Lua->Push(-3);
-		g_Lua->Push(-3);
-		g_Lua->Remove(-5);
-		g_Lua->Remove(-4);
-		g_Lua->Push(-3);
 
 		bool bHandled = false;
 		g_Lua->PushString(packet->from.ToString());
@@ -2361,10 +2359,8 @@ static bool hook_CBaseServer_ProcessConnectionlessPacket(void* server, netpacket
 
 		if (pLuaData)
 		{
-			delete pLuaData;
+			pLuaData->Release(g_Lua);
 		}
-		g_Lua->SetUserType(-1, NULL);
-		g_Lua->Pop(1);
 
 		if (bHandled)
 		{
@@ -2655,6 +2651,7 @@ static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* tar
 	target->m_bReportFakeClient = origin->m_bReportFakeClient;
 	target->m_bReceivedPacket = origin->m_bReceivedPacket;
 	target->m_bFullyAuthenticated = origin->m_bFullyAuthenticated;
+	target->m_OwnerSteamID = origin->m_OwnerSteamID;
 
 	memcpy(target->m_FriendsName, origin->m_FriendsName, sizeof(origin->m_FriendsName));
 	memcpy(target->m_GUID, origin->m_GUID, sizeof(origin->m_GUID));
@@ -2783,7 +2780,8 @@ void CGameServerModule::OnClientDisconnect(CBaseClient* pClient)
 			Push_CBaseClient(g_Lua, pClient);
 			LuaUserData* pData = Get_CBaseClient_Data(g_Lua, -1, false);
 			g_Lua->CallFunctionProtected(2, 0, true);
-			pData->ClearLuaTable();
+			if (pData)
+				pData->ClearLuaTable(g_Lua);
 		}
 
 		Delete_CBaseClient(g_Lua, pClient);

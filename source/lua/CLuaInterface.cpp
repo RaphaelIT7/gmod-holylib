@@ -1,6 +1,6 @@
-#include "../lua/lua.hpp"
-#include "../lua/lj_obj.h"
-#include "../lua/luajit_rolling.h"
+#include "../luajit/src/lua.hpp"
+#include "../luajit/src/lj_obj.h"
+#include "../luajit/src/luajit_rolling.h"
 #include "CLuaInterface.h"
 #include <filesystem.h>
 #include "iluashared.h"

@@ -14,19 +14,21 @@ static ConVar module_debug("holylib_module_debug", "0");
 
 CModule::~CModule()
 {
+	m_pModule = nullptr; // We should NEVER access it in the deconstructor since our module might already be unloaded!
+
 	if ( m_pCVar )
 	{
 		if ( g_pCVar )
 			g_pCVar->UnregisterConCommand(m_pCVar);
 
 		delete m_pCVar; // Could this cause a crash? idk.
-		m_pCVar = NULL;
+		m_pCVar = nullptr;
 	}
 
 	if ( m_pCVarName )
 	{
 		delete[] m_pCVarName;
-		m_pCVarName = NULL;
+		m_pCVarName = nullptr;
 	}
 
 	if ( m_pDebugCVar )
@@ -35,13 +37,13 @@ CModule::~CModule()
 			g_pCVar->UnregisterConCommand(m_pDebugCVar);
 
 		delete m_pDebugCVar; // Could this cause a crash? idk either. But it didn't. Yet. Or has it.
-		m_pDebugCVar = NULL;
+		m_pDebugCVar = nullptr;
 	}
 
 	if ( m_pDebugCVarName )
 	{
 		delete[] m_pDebugCVarName;
-		m_pDebugCVarName = NULL;
+		m_pDebugCVarName = nullptr;
 	}
 }
 
@@ -499,18 +501,3 @@ static void ModuleStatus(const CCommand &args)
 		Msg("\"%p\"", interface);
 }
 static ConCommand modulestatus("holylib_modulestatus", ModuleStatus, "Debug command. Prints out the status of all modules.", 0);
-
-static void SaveModuleConfig(const CCommand &args)
-{
-	IConfig* pConfig = g_pModuleManager.GetConfig();
-	if (!pConfig)
-		return;
-
-	for (auto pModule : g_pModuleManager.GetModules())
-	{
-		pConfig->GetData().SetChildVar<bool>(pModule->FastGetModule()->Name(), pModule->FastIsEnabled());
-	}
-
-	pConfig->Save();
-}
-static ConCommand savemoduleconfig("holylib_savemoduleconfig", SaveModuleConfig, "Saves the module config by storing all currently enabled/disabled modules", 0);

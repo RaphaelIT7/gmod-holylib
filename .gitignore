@@ -18,3 +18,8 @@ development/module/projects/**
 # generated files
 source/modules/_modules.h
 source/_versioninfo.h
+ghostinj-dll/build.bat
+ghostinj-dll/ghostinj.dll
+ghostinj-dll/premake5.exe
+source/lua/scripts/VectorFFI.h
+source/_versioninfo.h

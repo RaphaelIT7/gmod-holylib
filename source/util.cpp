@@ -1,3 +1,4 @@
+#include "httplib.h"
 #include "util.h"
 #include "GarrysMod/Lua/LuaObject.h"
 #include <string>
@@ -11,6 +12,7 @@
 #include "toolframework/itoolentity.h"
 #include "GarrysMod/IGet.h"
 #include <lua.h>
+#include "versioninfo.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -23,7 +25,6 @@ IVEngineServer* engine;
 CGlobalEntityList* Util::entitylist = NULL;
 CUserMessages* Util::pUserMessages;
 
-bool g_pRemoveLuaUserData = true;
 std::unordered_set<LuaUserData*> g_pLuaUserData;
 #if HOLYLIB_UTIL_BASEUSERDATA && HOLYLIB_UTIL_GLOBALUSERDATA 
 std::shared_mutex g_UserDataMutex;
@@ -82,7 +83,7 @@ void LuaUserData::ForceGlobalRelease(void* pData)
 		it2->second-> = 1; // Set it to 1 because Release will only fully execute if there aren't any other references left.
 		it2->second->Release(NULL);
 #else
-		it2->second->Release();
+		it2->second->Release(pState->pLua);
 #endif
 	}
 }
@@ -348,7 +349,7 @@ static HSteamUser hSteamUser = NULL;
 static ISteamUser* g_pSteamUser = NULL;
 void ShutdownSteamUser()
 {
-	Warning("ShutdownSteamUser called! %p\n", g_pSteamUser);
+	// Warning("ShutdownSteamUser called! %p\n", g_pSteamUser);
 	if (!g_pSteamUser)
 		return;
 
@@ -368,7 +369,7 @@ void ShutdownSteamUser()
 	g_pSteamUser = NULL;
 	hSteamPipe = NULL;
 	hSteamUser = NULL;
-	Warning("Nuked g_pSteamUser\n");
+	// Warning("Nuked g_pSteamUser\n");
 }
 
 void CreateSteamUserIfMissing()
@@ -561,11 +562,34 @@ bool Util::ShouldLoad()
 	return true;
 }
 
-void Util::CheckVersion()
+void Util::CheckVersion() // This is called only when holylib is initially loaded! (ToDo: Allow people to disable this!)
 {
 	// ToDo: Implement this someday
+	httplib::Client pClient("http://holylib.raphaelit7.com");
+
+	httplib::Headers headers = {
+		{ "HolyLib_Branch", HolyLib_GetBranch() },
+		{ "HolyLib_RunNumber", HolyLib_GetRunNumber() },
+		{ "HolyLib_Version", HolyLib_GetVersion() }
+	};
+
+	auto res = pClient.Get("/api/check_version");
+	if (res->status == 200)
+	{
+		Bootil::Data::Tree pTree;
+		if (Bootil::Data::Json::Import(pTree, res->body.c_str()))
+		{
+			if (pTree.GetChild("status").Value() == "ok")
+			{
+				Msg(PROJECT_NAME " - versioncheck: We are up to date\n");
+			}
+		} else {
+			DevMsg(PROJECT_NAME " - versioncheck: Received invalid json!\n");
+		}
+	}
 }
 
+extern void LoadDLLs(); // From the dllsystem.cpp
 static bool g_bUtilInit = false;
 void Util::Load()
 {
@@ -573,6 +597,10 @@ void Util::Load()
 		return;
 
 	g_bUtilInit = true;
+	Util::CheckVersion();
+
+	LoadDLLs();
+
 	IConfig* pConVarConfig = g_pConfigSystem->LoadConfig("garrysmod/holylib/cfg/convars.json");
 	if (pConVarConfig)
 	{

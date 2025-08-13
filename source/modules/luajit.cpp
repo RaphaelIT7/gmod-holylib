@@ -4,7 +4,6 @@
 #include <detouring/classproxy.hpp>
 #include "LuaInterface.h"
 #include "lua.h"
-#include "lua.hpp"
 #include "Bootil/Bootil.h"
 #include "scripts/VectorFFI.h"
 
@@ -42,13 +41,7 @@ public:
 	bool pRegisteredTypes[USHRT_MAX] = {0};
 };
 
-static inline LuaJITModuleData* GetLuaData(GarrysMod::Lua::ILuaInterface* pLua)
-{
-	if (!pLua)
-		return NULL;
-
-	return (LuaJITModuleData*)Lua::GetLuaData(pLua)->GetModuleData(g_pLuaJITModule.m_pID);
-}
+LUA_GetModuleData(LuaJITModuleData, g_pLuaJITModule, LuaJIT)
 
 #define ManualOverride(name, hook) \
 static Detouring::Hook detour_##name; \
@@ -78,7 +71,7 @@ LUA_FUNCTION_STATIC(markFFITypeAsGmodUserData)
 
 	uint16_t type = RawLua::GetCDataType(LUA->GetState(), 1);
 
-	GetLuaData(LUA)->pRegisteredTypes[type] = true;
+	GetLuaJITLuaData(LUA)->pRegisteredTypes[type] = true;
 	return 0;
 }
 
@@ -168,7 +161,7 @@ public:
 
 	virtual GarrysMod::Lua::ILuaBase::UserData* GetUserdata(int iStackPos)
 	{
-		return (GarrysMod::Lua::ILuaBase::UserData*)RawLua::GetUserDataOrFFIVar(This()->GetState(), iStackPos, GetLuaData(This())->pRegisteredTypes);
+		return (GarrysMod::Lua::ILuaBase::UserData*)RawLua::GetUserDataOrFFIVar(This()->GetState(), iStackPos, GetLuaJITLuaData(This())->pRegisteredTypes);
 	}
 
 	/*
@@ -210,7 +203,7 @@ public:
 
 void CLuaJITModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	GetLuaData(pLua)->pLuaInterfaceProxy->DeInit();
+	GetLuaJITLuaData(pLua)->pLuaInterfaceProxy->DeInit();
 }
 
 extern int table_setreadonly(lua_State* L);

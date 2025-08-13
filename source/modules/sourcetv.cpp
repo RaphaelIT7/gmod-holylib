@@ -425,16 +425,11 @@ static bool hook_CHLTVClient_ProcessGMod_ClientToServer(CHLTVClient* pClient, CL
 	if (Lua::PushHook("HolyLib:OnSourceTVNetMessage")) // Maybe change the name? I don't have a better one rn :/
 	{
 		Push_CHLTVClient(g_Lua, pClient);
-		Push_bf_read(g_Lua, &pBf->m_DataIn, false);
-		g_Lua->Push(-1);
-		int iReference = Util::ReferenceCreate(g_Lua, "ProcessGMod_ClientToServer - net message buffer");
+		LuaUserData* pData = Push_bf_read(g_Lua, &pBf->m_DataIn, false);
 		g_Lua->CallFunctionProtected(3, 0, true);
 
 		// I hate this. We should reduce the number of references.
-		Util::ReferencePush(g_Lua, iReference);
-		g_Lua->SetUserType(-1, NULL); // Make sure that the we don't keep the buffer.
-		g_Lua->Pop(1);
-		Util::ReferenceFree(g_Lua, iReference, "ProcessGMod_ClientToServer - Free net message buffer");
+		pData->Release(g_Lua);
 	}
 
 	return true;

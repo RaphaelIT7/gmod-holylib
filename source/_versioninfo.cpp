@@ -1,4 +1,6 @@
+#define _ALLOWVERSIONFILE
 #include "_versioninfo.h"
+#undef _ALLOWVERSIONFILE
 
 // This file will always have a cache miss, so we make this as simple as possible to not become a slow down in the compile.
 
@@ -9,6 +11,11 @@ const char* HolyLib_GetPluginDescription()
 #else
 	return "HolyLib Serverplugin V0.8";
 #endif
+}
+
+const char* HolyLib_GetVersion()
+{
+	return "0.8";
 }
 
 const char* HolyLib_GetRunNumber()

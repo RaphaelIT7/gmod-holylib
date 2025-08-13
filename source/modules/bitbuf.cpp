@@ -19,80 +19,26 @@ public:
 static CBitBufModule g_pBitBufModule;
 IModule* pBitBufModule = &g_pBitBufModule;
 
-struct LUA_bf_read
-{
-	LUA_bf_read(bf_read* pBuffer, bool bDeleteUs = true)
-	{
-		m_pBuffer = pBuffer;
-		m_bDeleteUs = bDeleteUs;
-	}
-
-	~LUA_bf_read()
-	{
-		if (m_bDeleteUs && m_pBuffer)
-		{
-			delete[] m_pBuffer->GetBasePointer();
-			delete m_pBuffer;
-		}
-	}
-
-	bf_read* m_pBuffer = NULL;
-	bool m_bDeleteUs = true;
-};
-
-Push_LuaClass(LUA_bf_read)
-Get_LuaClass(LUA_bf_read, "bf_read")
+Push_LuaClass(bf_read)
+Get_LuaClass(bf_read, "bf_read")
 
 LuaUserData* Push_bf_read(GarrysMod::Lua::ILuaInterface* LUA, bf_read* tbl, bool bDeleteUs)
 {
-	return Push_LUA_bf_read(LUA, new LUA_bf_read(tbl, bDeleteUs));
+	LuaUserData* pUserData = Push_bf_read(LUA, tbl);
+	pUserData->SetAdditionalData(bDeleteUs);
+
+	return pUserData;
 }
 
-bf_read * Get_bf_read(GarrysMod::Lua::ILuaInterface * LUA, int iStackPos, bool bError)
-{
-	LUA_bf_read* pBf = Get_LUA_bf_read(LUA, iStackPos, bError);
-	if (pBf)
-		return pBf->m_pBuffer;
-
-	return NULL;
-}
-
-struct LUA_bf_write
-{
-	LUA_bf_write(bf_write* pBuffer, bool bDeleteUs = true)
-	{
-		m_pBuffer = pBuffer;
-		m_bDeleteUs = bDeleteUs;
-	}
-
-	~LUA_bf_write()
-	{
-		if (m_bDeleteUs && m_pBuffer)
-		{
-			delete[] m_pBuffer->GetBasePointer();
-			delete m_pBuffer;
-		}
-	}
-
-	bf_write* m_pBuffer = NULL;
-	bool m_bDeleteUs = true;
-};
-
-Push_LuaClass(LUA_bf_write)
-Get_LuaClass(LUA_bf_write, "bf_write")
+Push_LuaClass(bf_write)
+Get_LuaClass(bf_write, "bf_write")
 
 LuaUserData* Push_bf_write(GarrysMod::Lua::ILuaInterface* LUA, bf_write* tbl, bool bDeleteUs)
 {
-	return Push_LUA_bf_write(LUA, new LUA_bf_write(tbl, bDeleteUs));
-}
+	LuaUserData* pUserData = Push_bf_write(LUA, tbl);
+	pUserData->SetAdditionalData(bDeleteUs);
 
-bf_write * Get_bf_write(GarrysMod::Lua::ILuaInterface * LUA, int iStackPos, bool bError)
-{
-	LUA_bf_write* pBf = Get_LUA_bf_write(LUA, iStackPos, bError);
-	if (pBf)
-		return pBf->m_pBuffer;
-
-	return NULL;
+	return pUserData;
 }
 
 LUA_FUNCTION_STATIC(bf_read__tostring)
@@ -110,13 +56,14 @@ LUA_FUNCTION_STATIC(bf_read__tostring)
 	return 1;
 }
 
-Default__index(LUA_bf_read);
-Default__newindex(LUA_bf_read);
-Default__GetTable(LUA_bf_read);
-Default__gc(LUA_bf_read, 
-	LUA_bf_read* bf = (LUA_bf_read*)pStoredData;
-	if (bf)
+Default__index(bf_read);
+Default__newindex(bf_read);
+Default__GetTable(bf_read);
+Default__gc(bf_read, 
+	bf_read* bf = (bf_read*)pStoredData;
+	if (bf && pAdditionalData)
 	{
+		delete[] bf->GetBasePointer();
 		delete bf;
 	}
 )
@@ -329,7 +276,7 @@ LUA_FUNCTION_STATIC(bf_read_ReadBits)
 	int size = PAD_NUMBER( Bits2Bytes(numBits), 4);
 	byte* buffer = (byte*)stackalloc( size );
 	bf->ReadBits(buffer, numBits);
-	LUA->PushString((const char*)buffer);
+	LUA->PushString((const char*)buffer, size);
 
 	return 1;
 }
@@ -371,7 +318,7 @@ LUA_FUNCTION_STATIC(bf_read_ReadBytes)
 	int numBytes = (int)LUA->CheckNumber(2);
 	byte* buffer = (byte*)stackalloc( numBytes );
 	bf->ReadBytes(buffer, numBytes);
-	LUA->PushString((const char*)buffer);
+	LUA->PushString((const char*)buffer, numBytes);
 
 	return 1;
 }
@@ -563,13 +510,14 @@ LUA_FUNCTION_STATIC(bf_write__tostring)
 	return 1;
 }
 
-Default__index(LUA_bf_write);
-Default__newindex(LUA_bf_write);
-Default__GetTable(LUA_bf_write);
-Default__gc(LUA_bf_write, 
-	LUA_bf_write* bf = (LUA_bf_write*)pStoredData;
-	if (bf)
+Default__index(bf_write);
+Default__newindex(bf_write);
+Default__GetTable(bf_write);
+Default__gc(bf_write, 
+	bf_write* bf = (bf_write*)pStoredData;
+	if (bf && pAdditionalData)
 	{
+		delete[] bf->GetBasePointer();
 		delete bf;
 	}
 )
@@ -658,7 +606,7 @@ LUA_FUNCTION_STATIC(bf_write_SetDebugName)
 {
 	bf_write* pBF = Get_bf_write(LUA, 1, true);
 
-	pBF->SetDebugName(LUA->CheckString(2)); // BUG: Do we need to keep a reference?
+	pBF->SetDebugName(LUA->CheckString(2)); // BUG: Do we need to keep a reference? Note: Yes we do. (ToDo)
 	return 0;
 }
 
@@ -960,6 +908,30 @@ LUA_FUNCTION_STATIC(bitbuf_CreateReadBuffer)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(bitbuf_CreateStackReadBuffer)
+{
+	const char* pData = LUA->CheckString(1);
+	int iLength = LUA->ObjLen(1);
+	int iNewLength = CLAMP_BF(iLength);
+	// Our stackalloc will be gone after this function finished, so you'll have to provide a callback we can call inside of here.
+	LUA->CheckType(2, GarrysMod::Lua::Type::Function);
+
+	if (!holylib_canstackalloc(iNewLength))
+		LUA->ThrowError("Cannot stackalloc at this size!");
+
+	unsigned char* cData = (unsigned char*)_alloca(iNewLength);
+
+	bf_read pNewBf;
+	pNewBf.StartReading(cData, iNewLength);
+
+	LUA->Push(2);
+	LuaUserData* pLuaData = Push_bf_read(LUA, &pNewBf, true);
+	LUA->CallFunctionProtected(1, 0, true);
+	pLuaData->Release(LUA); // Sets the stored data to NULL ensuring we don't save the pointer to our stack allocated pNewBf
+
+	return 0;
+}
+
 LUA_FUNCTION_STATIC(bitbuf_CreateWriteBuffer)
 {
 	bf_write* pNewBf = new bf_write;
@@ -984,17 +956,54 @@ LUA_FUNCTION_STATIC(bitbuf_CreateWriteBuffer)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(bitbuf_CreateStackWriteBuffer)
+{
+	bf_write pNewBf;
+	// Our stackalloc will be gone after this function finished, so you'll have to provide a callback we can call inside of here.
+	LUA->CheckType(2, GarrysMod::Lua::Type::Function);
+
+	if (LUA->IsType(1, GarrysMod::Lua::Type::Number))
+	{
+		int iSize = CLAMP_BF((int)LUA->CheckNumber(1));
+		if (!holylib_canstackalloc(iSize))
+			LUA->ThrowError("Cannot stackalloc at this size!");
+
+		unsigned char* cData = (unsigned char*)_alloca(iSize);
+
+		pNewBf.StartWriting(cData, iSize);
+	} else {
+		const char* pData = LUA->CheckString(1);
+		int iLength = LUA->ObjLen(1);
+		int iNewLength = CLAMP_BF(iLength);
+
+		if (!holylib_canstackalloc(iNewLength))
+			LUA->ThrowError("Cannot stackalloc at this size!");
+
+		unsigned char* cData = (unsigned char*)_alloca(iNewLength);
+		memcpy(cData, pData, iLength);
+
+		pNewBf.StartWriting(cData, iNewLength);
+	}
+
+	LUA->Push(2);
+	LuaUserData* pLuaData = Push_bf_write(LUA, &pNewBf, true);
+	LUA->CallFunctionProtected(1, 0, true);
+	pLuaData->Release(LUA); // Sets the stored data to NULL ensuring we don't save the pointer to our stack allocated pNewBf
+
+	return 0;
+}
+
 void CBitBufModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
 
-	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::LUA_bf_read, pLua->CreateMetaTable("bf_read"));
+	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::bf_read, pLua->CreateMetaTable("bf_read"));
 		Util::AddFunc(pLua, bf_read__tostring, "__tostring");
-		Util::AddFunc(pLua, LUA_bf_read__index, "__index");
-		Util::AddFunc(pLua, LUA_bf_read__newindex, "__newindex");
-		Util::AddFunc(pLua, LUA_bf_read__gc, "__gc");
-		Util::AddFunc(pLua, LUA_bf_read_GetTable, "GetTable");
+		Util::AddFunc(pLua, bf_read__index, "__index");
+		Util::AddFunc(pLua, bf_read__newindex, "__newindex");
+		Util::AddFunc(pLua, bf_read__gc, "__gc");
+		Util::AddFunc(pLua, bf_read_GetTable, "GetTable");
 		Util::AddFunc(pLua, bf_read_IsValid, "IsValid");
 		Util::AddFunc(pLua, bf_read_GetNumBitsLeft, "GetNumBitsLeft");
 		Util::AddFunc(pLua, bf_read_GetNumBitsRead, "GetNumBitsRead");
@@ -1044,12 +1053,12 @@ void CBitBufModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 		Util::AddFunc(pLua, bf_read_GetData, "GetData");
 	pLua->Pop(1);
 
-	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::LUA_bf_write, pLua->CreateMetaTable("bf_write"));
+	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::bf_write, pLua->CreateMetaTable("bf_write"));
 		Util::AddFunc(pLua, bf_write__tostring, "__tostring");
-		Util::AddFunc(pLua, LUA_bf_write__index, "__index");
-		Util::AddFunc(pLua, LUA_bf_write__newindex, "__newindex");
-		Util::AddFunc(pLua, LUA_bf_write__gc, "__gc");
-		Util::AddFunc(pLua, LUA_bf_write_GetTable, "GetTable");
+		Util::AddFunc(pLua, bf_write__index, "__index");
+		Util::AddFunc(pLua, bf_write__newindex, "__newindex");
+		Util::AddFunc(pLua, bf_write__gc, "__gc");
+		Util::AddFunc(pLua, bf_write_GetTable, "GetTable");
 		Util::AddFunc(pLua, bf_write_IsValid, "IsValid");
 		Util::AddFunc(pLua, bf_write_GetData, "GetData");
 		Util::AddFunc(pLua, bf_write_GetNumBytesWritten, "GetNumBytesWritten");
@@ -1095,7 +1104,9 @@ void CBitBufModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 	Util::StartTable(pLua);
 		Util::AddFunc(pLua, bitbuf_CopyReadBuffer, "CopyReadBuffer");
 		Util::AddFunc(pLua, bitbuf_CreateReadBuffer, "CreateReadBuffer");
+		Util::AddFunc(pLua, bitbuf_CreateStackReadBuffer, "CreateStackReadBuffer");
 		Util::AddFunc(pLua, bitbuf_CreateWriteBuffer, "CreateWriteBuffer");
+		Util::AddFunc(pLua, bitbuf_CreateStackWriteBuffer, "CreateStackWriteBuffer");
 	Util::FinishTable(pLua, "bitbuf");
 }
 

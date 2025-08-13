@@ -192,7 +192,6 @@ LUA_FUNCTION_STATIC(VoiceData_GetUncompressedData)
 	return 1;
 }
 
-static SteamOpus::Opus_FrameDecoder g_pOpusDecoder;
 LUA_FUNCTION_STATIC(VoiceData_SetUncompressedData)
 {
 	VoiceData* pData = Get_VoiceData(LUA, 1, true);
@@ -217,6 +216,7 @@ LUA_FUNCTION_STATIC(VoiceData_SetUncompressedData)
 		steamID64 = pClient->GetNetworkID().steamid.ConvertToUint64(); // Crash any% speedrun
 	}
 
+	SteamOpus::Opus_FrameDecoder g_pOpusDecoder;
 	int pBytes = SteamVoice::CompressIntoBuffer(steamID64, &g_pOpusDecoder, pUncompressedData, iSize, pCompressed, 20000, 44100);
 	if (pBytes != -1)
 	{
@@ -710,6 +710,7 @@ struct VoiceStream {
 		VoiceStream* pStream = new VoiceStream;
 		size_t offset = 0;
 		float playbackTime = 0.0f;
+		SteamOpus::Opus_FrameDecoder opus_codec;
 		while (offset < monoPCM.size()) {
 			int chunkSizeBytes = chunkSize;
 			int chunkSamples = chunkSizeBytes / bytesPerSample;
@@ -721,7 +722,6 @@ struct VoiceStream {
 			int tickIndex = static_cast<int>(std::ceil(playbackTime / tickDuration));
 			const char* decompressedBuffer = reinterpret_cast<const char*>(&monoPCM[offset]);
 
-			static SteamOpus::Opus_FrameDecoder opus_codec;
 			int bytesWritten = SteamVoice::CompressIntoBuffer(
 				fakeSteamID,
 				&opus_codec,
@@ -1156,26 +1156,9 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 		VoiceData* pVoiceData = new VoiceData;
 		pVoiceData->SetData(data, nBytes);
 		pVoiceData->iPlayerSlot = pClient->GetPlayerSlot();
-		LuaUserData* pLuaData = Push_VoiceData(g_Lua, pVoiceData);
-		// Stack: -3 = hook.Run(function) | -2 = hook name(string) | -1 = voicedata(userdata)
-		
-		g_Lua->Push(-3);
-		// Stack: -4 = hook.Run(function) | -3 = hook name(string) | -2 = voicedata(userdata) | -1 = hook.Run(function)
-		
-		g_Lua->Push(-3);
-		// Stack: -5 = hook.Run(function) | -4 = hook name(string) | -3 = voicedata(userdata) | -2 = hook.Run(function) | -1 = hook name(string)
-		
-		g_Lua->Remove(-5);
-		// Stack: -4 = hook name(string) | -3 = voicedata(userdata) | -2 = hook.Run(function) | -1 = hook name(string)
-
-		g_Lua->Remove(-4);
-		// Stack: -3 = voicedata(userdata) | -2 = hook.Run(function) | -1 = hook name(string)
 
 		Util::Push_Entity(g_Lua, (CBaseEntity*)Util::GetPlayerByClient((CBaseClient*)pClient));
-		// Stack: -4 = voicedata(userdata) | -3 = hook.Run(function) | -2 = hook name(string) | -1 = entity(userdata)
-
-		g_Lua->Push(-4);
-		// Stack: -5 = voicedata(userdata) | -4 = hook.Run(function) | -3 = hook name(string) | -2 = entity(userdata) | -1 = voicedata(userdata)
+		LuaUserData* pLuaData = Push_VoiceData(g_Lua, pVoiceData);
 
 		bool bHandled = false;
 		if (g_Lua->CallFunctionProtected(3, 1, true))
@@ -1184,16 +1167,12 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 			g_Lua->Pop(1);
 		}
 
-		// Stack: -1 = voicedata(userdata)
-
 		if (pLuaData)
 		{
-			delete pLuaData;
+			pLuaData->Release(g_Lua);
 		}
 
 		delete pVoiceData;
-		g_Lua->SetUserType(-1, NULL);
-		g_Lua->Pop(1); // The voice data is still there, so now finally remove it.
 
 		if (bHandled)
 			return;
@@ -1269,7 +1248,7 @@ LUA_FUNCTION_STATIC(voicechat_BroadcastVoiceData)
 		}
 		LUA->Pop(1);
 	} else {
-		for(CBaseClient* pClient : Util::GetClients())
+		for(IClient* pClient : Util::GetClients())
 			pClient->SendNetMsg(voiceData);
 	}
 
@@ -1412,6 +1391,8 @@ public:
 	std::unordered_set<VoiceStreamTask*> pVoiceStreamTasks;
 };
 
+LUA_GetModuleData(LuaVoiceModuleData, g_pVoiceChatModule, VoiceChat)
+
 static std::string_view getFileExtension(const std::string_view& fileName) {
 	size_t lastDotPos = fileName.find_last_of('.');
 	if (lastDotPos == std::string::npos || lastDotPos == fileName.length() - 1)
@@ -1497,7 +1478,7 @@ static void AddVoiceJobToPool(VoiceStreamTask* pTask)
 
 LUA_FUNCTION_STATIC(voicechat_LoadVoiceStream)
 {
-	LuaVoiceModuleData* pData = (LuaVoiceModuleData*)Lua::GetLuaData(LUA)->GetModuleData(g_pVoiceChatModule.m_pID);
+	LuaVoiceModuleData* pData = GetVoiceChatLuaData(LUA);
 
 	const char* pFileName = LUA->CheckString(1);
 	const char* pGamePath = LUA->CheckStringOpt(2, "DATA");
@@ -1531,7 +1512,7 @@ LUA_FUNCTION_STATIC(voicechat_LoadVoiceStream)
 
 LUA_FUNCTION_STATIC(voicechat_SaveVoiceStream)
 {
-	LuaVoiceModuleData* pData = (LuaVoiceModuleData*)Lua::GetLuaData(LUA)->GetModuleData(g_pVoiceChatModule.m_pID);
+	LuaVoiceModuleData* pData = GetVoiceChatLuaData(LUA);
 
 	VoiceStream* pStream = Get_VoiceStream(LUA, 1, true);
 	const char* pFileName = LUA->CheckString(2);
@@ -1609,7 +1590,7 @@ LUA_FUNCTION_STATIC(voicechat_LastPlayerTalked)
 
 void CVoiceChatModule::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	LuaVoiceModuleData* pData = (LuaVoiceModuleData*)Lua::GetLuaData(pLua)->GetModuleData(m_pID);
+	LuaVoiceModuleData* pData = GetVoiceChatLuaData(pLua);
 
 	if (pData->pVoiceStreamTasks.size() <= 0)
 		return;
