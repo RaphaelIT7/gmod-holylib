@@ -7,11 +7,11 @@ local function CompileLuaScipts()
 
 		local headerFileName = path .. RemoveEnd(fileName, ".lua") .. ".h"
 		local headerFile = [[const char* lua]] .. RemoveEnd(fileName, ".lua") .. [[ = R"LUAFILE(
-	]]
-		headerFile = headerFile .. ReadFile(path .. fileName)
+]]
+		headerFile = headerFile .. string.Trim(ReadFile(path .. fileName)) -- Let's trim it to not include any new lines from the start/end of the file
 		headerFile = headerFile .. [[
 
-	)LUAFILE";]]
+)LUAFILE";]]
 		
 		WriteFile(headerFileName, headerFile)
 	end

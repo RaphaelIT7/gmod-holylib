@@ -6,6 +6,7 @@
 #include "lua.h"
 #include "Bootil/Bootil.h"
 #include "scripts/VectorFFI.h"
+#include "scripts/AngleFFI.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -53,14 +54,18 @@ Detour::Create( \
 
 #define Override(name) ManualOverride(name, name)
 
+static thread_local int overrideFFIReference = -1;
 static int getffi(lua_State* L)
 {
 	if (!g_pLuaJITModule.m_bAllowFFI)
 		return 0;
 
-	lua_pushcfunction(L, luaopen_ffi);
-	lua_pushstring(L, LUA_FFILIBNAME);
-	lua_call(L, 1, 1);
+	if (overrideFFIReference != -1)
+	{
+		lua_rawgeti(L, LUA_REGISTRYINDEX, overrideFFIReference);
+	} else {
+		lua_getfield(L, LUA_GLOBALSINDEX, "ffi");
+	}
 	return 1;
 }
 
@@ -261,13 +266,30 @@ void CLuaJITModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 	pData->pLuaInterfaceProxy = std::make_unique<CLuaInterfaceProxy>(pLua);
 	Lua::GetLuaData(pLua)->SetModuleData(m_pID, pData);
 
-	bool bPreviousFFiValue = g_pLuaJITModule.m_bAllowFFI;
-	g_pLuaJITModule.m_bAllowFFI = true;
-	if (!pLua->RunStringEx("HolyLib", "", luaVectorFFI, true, true, true, true))
+	if (!g_pLuaJITModule.m_bAllowFFI)
+	{
+		lua_pushcfunction(L, luaopen_ffi);
+		lua_pushstring(L, LUA_FFILIBNAME);
+		lua_call(L, 1, 1);
+		overrideFFIReference = luaL_ref(L, LUA_REGISTRYINDEX);
+	}
+
+	if (!pLua->RunStringEx("HolyLib:VectorFFI.lua", "", luaVectorFFI, true, true, true, true))
 	{
 		Warning(PROJECT_NAME " - luajit: Failed to load VectorFFI script!\n");
 	}
-	g_pLuaJITModule.m_bAllowFFI = bPreviousFFiValue;
+
+	if (!pLua->RunStringEx("HolyLib:AngleFFI.lua", "", luaAngleFFI, true, true, true, true))
+	{
+		Warning(PROJECT_NAME " - luajit: Failed to load VectorFFI script!\n");
+	}
+
+	// Remove FFI again.
+	if (overrideFFIReference != -1)
+	{
+		luaL_unref(L, LUA_REGISTRYINDEX, overrideFFIReference);
+		overrideFFIReference = -1;
+	}
 
 	bOpenLibs = false;
 }

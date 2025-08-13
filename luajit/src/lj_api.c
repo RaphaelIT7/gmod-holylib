@@ -64,6 +64,11 @@ static TValue *index2adr(lua_State *L, int idx)
   }
 }
 
+LUA_API TValue *lua_index2adr(lua_State *L, int idx)
+{
+  return index2adr(L, idx); // We just wrap around it since I have no idea if we remove the static of it as it could possibly hurt performance? idk
+}
+
 static LJ_AINLINE TValue *index2adr_check(lua_State *L, int idx)
 {
   TValue *o = index2adr(L, idx);
