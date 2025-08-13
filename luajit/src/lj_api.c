@@ -267,7 +267,7 @@ LUALIB_API void luaL_checkany(lua_State *L, int idx)
 // Based off https://github.com/meepen/gluajit/blob/master/src/lj_api.c#L225-L247
 /*extern "C"*/ const char* GMODLUA_GetUserType(lua_State* L, int iStackPos)
 {
-  static char strName[128];
+  static char strName[128]; // RaphaelIT7: This doesn't seem thread safe at all...
   const char* strTypeName = "UserData";
   cTValue *o = index2adr(L, iStackPos);
   GCtab *mt = NULL;
@@ -275,7 +275,7 @@ LUALIB_API void luaL_checkany(lua_State *L, int idx)
     mt = tabref(tabV(o)->metatable);
   else if (tvisudata(o))
     mt = tabref(udataV(o)->metatable);
-  else if (tviscdata(o))
+  else if (tviscdata(o)) // RaphaelIT7: Gmod also doesn't have this since FFI was never accounted for there.
   {
     strTypeName = "cdata";
     CTState *cts = ctype_cts(L);
@@ -292,7 +292,7 @@ LUALIB_API void luaL_checkany(lua_State *L, int idx)
 
     if (val && tvisstr(val))
     {
-      strncpy(strName, strdata(strV(val)), sizeof(strName));
+      strncpy(strName, strdata(strV(val)), sizeof(strName) - 1);
       strTypeName = strName;
     }
   }

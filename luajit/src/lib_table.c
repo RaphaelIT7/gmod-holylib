@@ -298,7 +298,6 @@ LJLIB_CF(table_setreadonly)
 LJLIB_CF(table_isreadonly)
 {
   GCtab *t = lj_lib_checktab(L, 1);
-  int readOnly = lj_lib_checkint(L, 2) != 0;
   
   lua_pushboolean(L, lj_tab_isreadonly(t));
   return 1;
