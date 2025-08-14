@@ -57,7 +57,7 @@ Detour::Create( \
 static thread_local int overrideFFIReference = -1;
 static int getffi(lua_State* L)
 {
-	if (!g_pLuaJITModule.m_bAllowFFI)
+	if (!g_pLuaJITModule.m_bAllowFFI && overrideFFIReference == -1)
 		return 0;
 
 	if (overrideFFIReference != -1)
