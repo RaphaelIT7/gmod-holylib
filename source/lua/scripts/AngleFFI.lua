@@ -17,7 +17,8 @@ do
     end
 end
 
-local type = type
+-- We cannot localize type since for the AngleFFI we override it!
+-- local type = type
 local tonumber = tonumber
 
 local function Angle(x, y, z)
