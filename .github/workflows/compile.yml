@@ -300,6 +300,31 @@ jobs:
       download-artifact: "gluatest_no_ghostinj_64x"
       no-checkout: "true"
 
+  test_32x_luajit:
+    name: "Test 32x branches (LuaJIT)"
+    needs: setup_artifacts
+    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
+    strategy:
+      matrix:
+        branch:
+          - live
+          - dev
+          - prerelease
+    with:
+      extra-startup-args: "-usegh -holylib_enable_luajit 1 +holylib_module_debug 0"
+      download-artifact: "gluatest_32x"
+      no-checkout: "true"
+
+  test_64bit_luajit:
+    name: "Test x86-64 branch (LuaJIT)"
+    needs: setup_artifacts
+    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
+    with:
+      branch: x86-64
+      extra-startup-args: "-usegh -holylib_enable_luajit 1 +holylib_module_debug 0"
+      download-artifact: "gluatest_64x"
+      no-checkout: "true"
+
   # --------------------
   # HolyLib - gmod_tests
   # We run gmod_tests repo to ensure that we didn't break any gmod functions unknowingly.
