@@ -425,7 +425,7 @@ do
     debug.setblocked(CreateVector)
 
     function isvector(v)
-        return ffi.istype("GMOD_VecUserData", v) and v.MetaID == mt.MetaID
+        return ffi.istype("GMOD_VecUserData", v)
     end
 
     debug.setblocked(isvector)

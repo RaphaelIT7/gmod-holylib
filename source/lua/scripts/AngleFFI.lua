@@ -276,29 +276,28 @@ do
         typedef struct { const uintptr_t data; const uint8_t type; float x, y, z; } GMOD_AngUserData;
     ]])
 
-    --local RawAngle = ffi.metatype("GMOD_AngUserData", mt)
+    local RawAngle = ffi.metatype("GMOD_AngUserData", mt)
     ---@return Angle
     function CreateAngle(x, y, z)
-        --[[local ang = RawAngle(0, mt.MetaID, x, y, z)
+        local ang = RawAngle(0, mt.MetaID, x, y, z)
 
         -- Get a pointer to the data field and set it directly
         local ang_ptr = ffi.cast("uintptr_t*", ang)
         ang_ptr[0] = ffi.cast("uintptr_t", ffi.cast("uint8_t*", ang) + ffi.offsetof("GMOD_AngUserData", "x"))
 
         ---@type Angle
-        return ang]]
-        return nil
+        return ang
     end
 
     debug.setblocked(CreateAngle)
 
     function isangle(v)
-        return false --ffi.istype("GMOD_AngUserData", v)
+        return ffi.istype("GMOD_AngUserData", v)
     end
 
     debug.setblocked(isangle)
-    -- _G.GMOD_isangle = _G.isangle
-    -- _G.isangle = isangle
+    _G.GMOD_isangle = _G.isangle
+    _G.isangle = isangle
 end
 
--- jit.markFFITypeAsGmodUserData(Angle(1, 1, 1))
+jit.markFFITypeAsGmodUserData(Angle(1, 1, 1))
