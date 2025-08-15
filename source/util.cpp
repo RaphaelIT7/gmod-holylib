@@ -374,7 +374,7 @@ void ShutdownSteamUser()
 
 void CreateSteamUserIfMissing()
 {
-	Warning("CreateSteamUserIfMissing called! %p\n", g_pSteamUser);
+	// Warning("CreateSteamUserIfMissing called! %p\n", g_pSteamUser);
 	if (!g_pSteamUser)
 	{
 		if (SteamUser())
@@ -394,7 +394,7 @@ void CreateSteamUserIfMissing()
 			hSteamUser = pSteamClient->CreateLocalUser(&hSteamPipe, k_EAccountTypeAnonUser);
 			g_pSteamUser = pSteamClient->GetISteamUser(hSteamUser, hSteamPipe, "SteamUser023");
 
-			Warning("CreateSteamUserIfMissing done! %p\n", g_pSteamUser);
+			// Warning("CreateSteamUserIfMissing done! %p\n", g_pSteamUser);
 		}
 	}
 }

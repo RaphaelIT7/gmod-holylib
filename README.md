@@ -136,6 +136,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 \- [#] Fixed `HttpServer:SetWriteTimeout` using the wrong arguments. (See https://github.com/RaphaelIT7/gmod-holylib/pull/65)<br>
 \- [#] Fixed `bf_read:ReadBytes` and `bf_read:ReadBits` both failing to push the string properly to lua.<br>
 \- [#] Changed `voicechat.SaveVoiceStream` & `voicechat.LoadVoiceStream` to remove their 4th argument, if a callback is provided it will be async, else it'll run sync<br>
+\- [-] Removed `VoiceData:GetUncompressedData` decompress size argument<br>
 \- [-] Removed `CBaseClient:Transmit` third argument `fragments`.<br>
 \- [-] Removed `gameserver.CalculateCPUUsage` and `gameserver.ApproximateProcessMemoryUsage` since they never worked.<br>
 
@@ -2393,7 +2394,7 @@ Returns the length of the data.<br>
 #### number VoiceData:GetPlayerSlot()
 Returns the slot of the player this voicedata is originally from.<br>
 
-#### string VoiceData:GetUncompressedData(number decompressSize = 20000)
+#### string VoiceData:GetUncompressedData()
 number decompressSize - The number of bytes to allocate for decompression.<br>
 
 Returns the uncompressed voice data or an empty string if the VoiceData had no data.<br>

@@ -40,11 +40,12 @@ public:
 
 static ConVar voicechat_hooks("holylib_voicechat_hooks", "1", 0);
 
-static constexpr int g_pDataBufferSize = 20000; // Used to decompress the data
+static constexpr int g_pDataBufferSize = 8192 * 2; // Used to decompress the data. This is the size of g_pDataBuffer for char* !!!! If you use a function that uses it as int16_t then use pActualDataBufferSize!
+static constexpr int g_nComppressedSize = g_pDataBufferSize / 4; // Used as char[] to stackallocate compressed buffers when compressing which later on are moved to the heap
 // The pDataBuffer is smaller since it uses int16_t instead of char
 static constexpr int pActualDataBufferSize = g_pDataBufferSize / sizeof(int16_t);
 // A buffer so that we reduce allocations. You should only use it directly in one function and NOT pass it around as other functions might override its contents!
-static thread_local std::unique_ptr<int16_t[]> g_pDataBuffer(new int16_t[20000]); // We cannot just use it normally since else we run out of TBL space (Error: cannot allocate memory in static TLS block)
+static thread_local std::unique_ptr<int16_t[]> g_pDataBuffer(new int16_t[pActualDataBufferSize]); // We cannot just use it normally since else we run out of TBL space (Error: cannot allocate memory in static TLS block)
 static thread_local SteamOpus::Opus_FrameDecoder g_pOpusDecoder;
 static uint64_t fakeSteamID = 0x0110000100000001; // STEAM_0:1:0
 // static inline void ClearDataBuffer() { memset(g_pDataBuffer, 0, g_pDefaultDecompressedSize); }
@@ -98,7 +99,7 @@ struct VoiceData
 	}
 
 	int iPlayerSlot = 0; // What if it's an invalid one ;D (It doesn't care.......)
-	char* pData = NULL;
+	char* pData = nullptr;
 	int iLength = 0;
 	bool bProximity = true;
 };
@@ -168,7 +169,6 @@ LUA_FUNCTION_STATIC(VoiceData_GetData)
 LUA_FUNCTION_STATIC(VoiceData_GetUncompressedData)
 {
 	VoiceData* pData = Get_VoiceData(LUA, 1, true);
-	int iSize = (int)LUA->CheckNumberOpt(2, g_pDataBufferSize); // How many bytes to allocate for the decompressed version. 20000 is default
 
 	ISteamUser* pSteamUser = Util::GetSteamUser();
 	if (!pSteamUser)
@@ -183,8 +183,8 @@ LUA_FUNCTION_STATIC(VoiceData_GetUncompressedData)
 	uint32 pDecompressedLength;
 	int returnCode = pSteamUser->DecompressVoice(
 		pData->pData, pData->iLength,
-		g_pDataBuffer.get(), iSize,
-		&pDecompressedLength, 44100
+		g_pDataBuffer.get(), g_pDataBufferSize,
+		&pDecompressedLength, SAMPLERATE_GMOD_OPUS
 	);
 
 	if (returnCode != k_EVoiceResultOK)
@@ -214,16 +214,13 @@ LUA_FUNCTION_STATIC(VoiceData_SetUncompressedData)
 		return 1;
 	}
 
-	char* pCompressed = new char[iSize];
-	int pBytes = SteamVoice::CompressIntoBuffer(fakeSteamID, &g_pOpusDecoder, pUncompressedData, iSize, pCompressed, iSize, 44100);
+	char pCompressed[g_nComppressedSize];
+	int pBytes = SteamVoice::CompressIntoBuffer(fakeSteamID, &g_pOpusDecoder, (char*)g_pDataBuffer.get(), g_pDataBufferSize, pCompressed, sizeof(pCompressed), SAMPLERATE_GMOD_OPUS);
 	if (pBytes != -1)
 	{
-		// Instead of calling SetData which copies it, we set it directly to avoid any additional copying.
-		pData->pData = pCompressed;
-		pData->iLength = pBytes;
+		pData->SetData(pCompressed, pBytes);
 		LUA->PushBool(true);
 	} else {
-		delete[] pCompressed;
 		LUA->PushBool(false);
 	}
 
@@ -425,7 +422,7 @@ struct VoiceStream {
 		const int bytesPerSample = 2; // 16-bit mono
 		std::map<int, VoiceData*> sorted(pVoiceData.begin(), pVoiceData.end());
 
-		std::vector<char> wavePCM;
+		std::vector<uint16_t> wavePCM;
 		const float intervalPerTick = gpGlobals->interval_per_tick;
 		for (auto& [tick, voiceData] : sorted)
 		{
@@ -439,10 +436,10 @@ struct VoiceStream {
 			if (res != k_EVoiceResultOK && res != k_EVoiceResultBufferTooSmall)
 				continue;
 
-			wavePCM.insert(wavePCM.end(), g_pDataBuffer.get(), g_pDataBuffer.get() + uncompressedWritten);
+			wavePCM.insert(wavePCM.end(), g_pDataBuffer.get(), g_pDataBuffer.get() + (uncompressedWritten / sizeof(uint16_t)));
 		}
 
-		int dataSize = wavePCM.size();
+		int dataSize = wavePCM.size() * sizeof(uint16_t);
 		int byteRate = sampleRate * bytesPerSample;
 		int blockAlign = bytesPerSample;
 		int bitsPerSample = 16;
@@ -700,7 +697,7 @@ struct VoiceStream {
 		const float sampleRateF = static_cast<float>(sampleRate);
 		const float tickDuration = gpGlobals->interval_per_tick;
 
-		char recompressBuffer[6000];
+		char recompressBuffer[g_nComppressedSize];
 		VoiceStream* pStream = new VoiceStream;
 		size_t offset = 0;
 		float playbackTime = 0.0f;
@@ -734,7 +731,7 @@ struct VoiceStream {
 			VoiceData* existing = pStream->GetIndex(tickIndex);
 			if (existing) {
 				std::vector<char> combinedPCM;
-				combinedPCM.resize(32000);
+				combinedPCM.resize(g_pDataBufferSize);
 
 				char* decompressTarget = combinedPCM.data();
 				int maxDecompressed = combinedPCM.size();
@@ -760,7 +757,7 @@ struct VoiceStream {
 
 				int totalSamples = samplesOld + samplesNew;
 				const char* combinedInput = combinedPCM.data();
-				char mergedCompressed[6000];
+				char mergedCompressed[g_nComppressedSize];
 				SteamOpus::Opus_FrameDecoder finalCodec;
 				int mergedLen = SteamVoice::CompressIntoBuffer(
 					fakeSteamID, &finalCodec,
@@ -951,6 +948,7 @@ LUA_FUNCTION_STATIC(VoiceStream_SetIndex)
 namespace VoiceEffects
 {
 enum Effects {
+	None = 0,
 	Volume,
 };
 
@@ -969,34 +967,46 @@ static void AdjustVolume(int16_t* audioData, size_t dataSize, float volume) {
 	}
 }
 
-static bool ApplyVoiceEffect(VoiceData* pData, VoiceEffectData& pEffect)
+static bool ApplyVoiceEffect(VoiceData* pData, VoiceEffectData& pEffect, int index = -1)
 {
 	ISteamUser* pSteamUser = Util::GetSteamUser();
 	if (!pSteamUser)
 		return false;
 
-	uint32_t uncompressedWritten = 0;
-	EVoiceResult result = pSteamUser->DecompressVoice(
+	int uncompressedWrittenBytes = SteamVoice::DecompressIntoBuffer(
+		&g_pOpusDecoder,
 		pData->pData, pData->iLength,
-		g_pDataBuffer.get(), g_pDataBufferSize,
-		&uncompressedWritten, 44100
+		(char*)g_pDataBuffer.get(), g_pDataBufferSize
 	);
 
-	if (result != k_EVoiceResultOK)
+	if (uncompressedWrittenBytes == -1)
 		return false;
 
+	// NOTE: Our effects already use it as int_16 so DONT pass g_pDataBufferSize since that is meant for function that treat it as char*
+	// if you fk this up you'll modify the 20kb directly after our buffer which will fk up shit
+	int uncompressedSizeForInt16 = uncompressedWrittenBytes / sizeof(int16_t); // Divided by int16_t since our g_pDataBuffer uses int16_t and not char!
 	switch(pEffect.type)
 	{
 	case Effects::Volume:
-		AdjustVolume(g_pDataBuffer.get(), g_pDataBufferSize, pEffect.data.volume);
+		AdjustVolume(g_pDataBuffer.get(), uncompressedSizeForInt16, pEffect.data.volume);
 		break;
 	default:
 		break;
 	}
 
-	int pBytes = SteamVoice::CompressIntoBuffer(fakeSteamID, &g_pOpusDecoder, (char*)g_pDataBuffer.get(), g_pDataBufferSize, pData->pData, pData->iLength, 44100);
-	if (pBytes == -1)
+	char pCompressed[g_nComppressedSize];
+	int pBytes = SteamVoice::CompressIntoBuffer(fakeSteamID, &g_pOpusDecoder, (char*)g_pDataBuffer.get(), uncompressedWrittenBytes, pCompressed, sizeof(pCompressed), SAMPLERATE_GMOD_OPUS);
+	if (pBytes != pData->iLength)
+	{
+		Msg("We changed length? (%i: %i - %i)\n", index, pData->iLength, pBytes);
+	}
+	
+	if (pBytes != -1)
+	{
+		pData->SetData(pCompressed, pBytes); // We copy it in here again though since its compressed it will save memory instead of us keeping a huge buffer.
+	} else {
 		return false; // We failed!
+	}
 
 	return true;
 }
@@ -1034,7 +1044,7 @@ static void VoiceEffect(VoiceEffectJob*& pJob)
 	{
 		for (auto it = pJob->pStreamData->GetData().begin(); it != pJob->pStreamData->GetData().end(); ++it)
 		{
-			pJob->bFailed = !ApplyVoiceEffect(it->second, pJob->pEffect);
+			pJob->bFailed = !ApplyVoiceEffect(it->second, pJob->pEffect, it->first);
 			if (pJob->bFailed && !pJob->bContinueOnFailure)
 				break;
 		}
@@ -1700,6 +1710,7 @@ LUA_FUNCTION_STATIC(voicechat_ApplyEffect)
 
 	VoiceEffects::VoiceEffectJob* pJob = new VoiceEffects::VoiceEffectJob();
 	pJob->pLua = LUA;
+	pJob->pEffect.type = VoiceEffects::Effects::None;
 	if (bIsVoiceData)
 	{
 		pJob->pVoiceData = Get_VoiceData(LUA, 2, false);
