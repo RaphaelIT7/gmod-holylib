@@ -40,12 +40,10 @@ public:
 
 static ConVar voicechat_hooks("holylib_voicechat_hooks", "1", 0);
 
-static constexpr int g_pDataBufferSize = 8192 * 2; // Used to decompress the data. This is the size of g_pDataBuffer for char* !!!! If you use a function that uses it as int16_t then use pActualDataBufferSize!
+static constexpr int g_pDataBufferSize = 16384; // Used to decompress the data. 
 static constexpr int g_nComppressedSize = g_pDataBufferSize / 4; // Used as char[] to stackallocate compressed buffers when compressing which later on are moved to the heap
-// The pDataBuffer is smaller since it uses int16_t instead of char
-static constexpr int pActualDataBufferSize = g_pDataBufferSize / sizeof(int16_t);
 // A buffer so that we reduce allocations. You should only use it directly in one function and NOT pass it around as other functions might override its contents!
-static thread_local std::unique_ptr<int16_t[]> g_pDataBuffer(new int16_t[pActualDataBufferSize]); // We cannot just use it normally since else we run out of TBL space (Error: cannot allocate memory in static TLS block)
+static thread_local std::unique_ptr<char[]> g_pDataBuffer(new char[g_pDataBufferSize]); // We cannot just use it normally since else we run out of TBL space (Error: cannot allocate memory in static TLS block)
 static thread_local SteamOpus::Opus_FrameDecoder g_pOpusDecoder;
 static uint64_t fakeSteamID = 0x0110000100000001; // STEAM_0:1:0
 // static inline void ClearDataBuffer() { memset(g_pDataBuffer, 0, g_pDefaultDecompressedSize); }
@@ -62,6 +60,7 @@ static void OnVoiceThreadsChange(IConVar* convar, const char* pOldValue, float f
 }
 
 static ConVar voicechat_threads("holylib_voicechat_threads", "4", FCVAR_ARCHIVE, "The number of threads to use for voicechat.LoadVoiceStream and voicechat.SaveVoiceStream if you specify async", OnVoiceThreadsChange);
+static ConVar voicechat_savedecompressed("holylib_voicechat_savedecompressed", "0", FCVAR_ARCHIVE, "If enabled the VoiceData will store the decompressed data improving quality though increasing memory usage when applying multiple effects since it no longer needs to decompress the data each time");
 
 static CVoiceChatModule g_pVoiceChatModule;
 IModule* pVoiceChatModule = &g_pVoiceChatModule;
@@ -71,21 +70,34 @@ struct VoiceData
 	~VoiceData() {
 		if (pData)
 			delete[] pData;
+
+		if (pDecompressedData)
+			delete[] pDecompressedData;
 	}
 
 	inline void AllocData()
 	{
 		if (pData)
+		{
 			delete[] pData;
+			pData = nullptr;
+		}
 
-		pData = new char[iLength]; // We won't need additional space right?
+		if (iLength > 0)
+			pData = new char[iLength]; // We won't need additional space right?
 	}
 
 	inline void SetData(const char* pNewData, int iNewLength)
 	{
 		iLength = iNewLength;
 		AllocData();
-		memcpy(pData, pNewData, iLength);
+		if (pData)
+			memcpy(pData, pNewData, iLength);
+	}
+
+	inline void SetDataDirect(char* pNewData)
+	{
+		pData = pNewData;
 	}
 
 	inline VoiceData* CreateCopy()
@@ -93,15 +105,195 @@ struct VoiceData
 		VoiceData* data = new VoiceData;
 		data->bProximity = bProximity;
 		data->iPlayerSlot = iPlayerSlot;
-		data->SetData(pData, iLength);
+		if (pData)
+			data->SetData(pData, iLength);
+
+		if (pDecompressedData)
+			data->SetDecompressedData(pDecompressedData, iDecompressedLength);
 
 		return data;
 	}
 
+	// We store the Decompressed data too since when for example applying effect decompressing & compressing destroys quality.
+	inline void AllocDecompressedData()
+	{
+		if (pDecompressedData)
+		{
+			delete[] pDecompressedData;
+			pDecompressedData = nullptr;
+		}
+
+		if (iDecompressedLength > 0)
+			pDecompressedData = new char[iDecompressedLength]; // We won't need additional space right?
+	}
+
+	inline void SetDecompressedData(const char* pNewData, int iNewLength)
+	{
+		if (!voicechat_savedecompressed.GetBool())
+		{
+			char pCompressed[g_nComppressedSize];
+			int bytes = SteamVoice::CompressIntoBuffer(
+				fakeSteamID, &g_pOpusDecoder,
+				pNewData, iNewLength,
+				pCompressed, sizeof(pCompressed),
+				SAMPLERATE_GMOD_OPUS
+			);
+
+			if (bytes != -1)
+				SetData(pCompressed, bytes);
+			else {
+				if (g_pVoiceChatModule.InDebug() == 1)
+				{
+					Msg(PROJECT_NAME " - voicechat: VoiceData::SetDecompressedData failed to compress into buffer! (%p, %i)\n", pNewData, iNewLength);
+				}
+			}
+			return;
+		}
+
+		iDecompressedLength = iNewLength;
+		if (iDecompressedLength > g_pDataBufferSize)
+			iDecompressedLength = g_pDataBufferSize;
+
+		AllocDecompressedData();
+		if (pDecompressedData)
+			memcpy(pDecompressedData, pNewData, iDecompressedLength);
+
+		bDecompressedChanged = true;
+	}
+
+	inline char* GetData()
+	{
+		if ((bDecompressedChanged || !pData) && pDecompressedData)
+		{
+			char pCompressed[g_nComppressedSize];
+			int bytes = SteamVoice::CompressIntoBuffer(
+				fakeSteamID, &g_pOpusDecoder,
+				pDecompressedData, iDecompressedLength,
+				pCompressed, sizeof(pCompressed),
+				SAMPLERATE_GMOD_OPUS
+			);
+
+			if (bytes == -1)
+			{
+				if (g_pVoiceChatModule.InDebug() == 1)
+				{
+					Msg(PROJECT_NAME " - voicechat: Failed to compress data in VoiceData::GetData! (%p, %i)\n", pDecompressedData, iDecompressedLength);
+				}
+
+				return pData; // We failed to update. GG
+			}
+
+			SetData(pCompressed, bytes);
+			bDecompressedChanged = false;
+		}
+
+		return pData;
+	}
+
+	// If you call this expect g_pDataBuffer to be changed.
+	inline char* GetDecompressedData(int* pLength)
+	{
+		if (pDecompressedData)
+		{
+			*pLength = iDecompressedLength;
+			return pDecompressedData;
+		}
+
+		if (!pData)
+			return nullptr;
+
+		int bytes = SteamVoice::DecompressIntoBuffer(
+			&g_pOpusDecoder,
+			pData, iLength,
+			g_pDataBuffer.get(), g_pDataBufferSize
+		);
+
+		if (bytes == -1)
+		{
+			if (g_pVoiceChatModule.InDebug() == 1)
+			{
+				Msg(PROJECT_NAME " - voicechat: VoiceData::GetDecompressedData failed to decompress into buffer! (%p, %i)\n", pData, iLength);
+			}
+
+			*pLength = 0;
+			return nullptr;
+		}
+
+		if (!voicechat_savedecompressed.GetBool())
+		{
+			*pLength = bytes;
+			return g_pDataBuffer.get();
+		}
+
+		SetDecompressedData(g_pDataBuffer.get(), bytes);
+
+		*pLength = iDecompressedLength;
+		return pDecompressedData;
+	}
+
+	inline void SetLength(int iNewLength)
+	{
+		iLength = iNewLength;
+	}
+
+	inline int GetLength()
+	{
+		if (bDecompressedChanged && pDecompressedData)
+		{
+			char pCompressed[g_nComppressedSize];
+			int bytes = SteamVoice::CompressIntoBuffer(
+				fakeSteamID, &g_pOpusDecoder,
+				pDecompressedData, iDecompressedLength,
+				pCompressed, sizeof(pCompressed),
+				SAMPLERATE_GMOD_OPUS
+			);
+
+			if (bytes == -1)
+			{
+				if (g_pVoiceChatModule.InDebug() == 1)
+				{
+					Msg(PROJECT_NAME " - voicechat: Failed to compress data in VoiceData::GetLength!\n");
+				}
+
+				return iLength; // We failed to update. GG
+			}
+
+			SetData(pCompressed, bytes);
+			bDecompressedChanged = false;
+		}
+
+		return iLength;
+	}
+
+	inline char* GetRawDecompressedData()
+	{
+		return pDecompressedData;
+	}
+
+	inline void MarkDecompressedChanged()
+	{
+		bDecompressedChanged = true;
+	}
+
+	inline int DecompressIntoBuffer()
+	{
+		return SteamVoice::DecompressIntoBuffer(
+			&g_pOpusDecoder,
+			pData, iLength,
+			g_pDataBuffer.get(), g_pDataBufferSize
+		);
+	}
+
 	int iPlayerSlot = 0; // What if it's an invalid one ;D (It doesn't care.......)
-	char* pData = nullptr;
-	int iLength = 0;
 	bool bProximity = true;
+	bool bDecompressedChanged = false;
+
+private:
+	int iLength = 0;
+	int iDecompressedLength = 0;
+
+	char* pData = nullptr;
+	char* pDecompressedData = nullptr;
 };
 
 Push_LuaClass(VoiceData)
@@ -117,7 +309,7 @@ LUA_FUNCTION_STATIC(VoiceData__tostring)
 	}
 
 	char szBuf[64] = {};
-	V_snprintf(szBuf, sizeof(szBuf), "VoiceData [%i][%i]", pData->iPlayerSlot, pData->iLength);
+	V_snprintf(szBuf, sizeof(szBuf), "VoiceData [%i][%i]", pData->iPlayerSlot, pData->GetLength());
 	LUA->PushString(szBuf);
 	return 1;
 }
@@ -152,7 +344,7 @@ LUA_FUNCTION_STATIC(VoiceData_GetLength)
 {
 	VoiceData* pData = Get_VoiceData(LUA, 1, true);
 
-	LUA->PushNumber(pData->iLength);
+	LUA->PushNumber(pData->GetLength());
 
 	return 1;
 }
@@ -161,7 +353,7 @@ LUA_FUNCTION_STATIC(VoiceData_GetData)
 {
 	VoiceData* pData = Get_VoiceData(LUA, 1, true);
 
-	LUA->PushString(pData->pData, pData->iLength);
+	LUA->PushString(pData->GetData(), pData->GetLength());
 
 	return 1;
 }
@@ -174,27 +366,15 @@ LUA_FUNCTION_STATIC(VoiceData_GetUncompressedData)
 	if (!pSteamUser)
 		LUA->ThrowError("Failed to get SteamUser!\n");
 
-	if (!pData->pData || pData->iLength == 0)
+	int iDecompressedLength = 0;
+	char* pDecompressed = pData->GetDecompressedData(&iDecompressedLength);
+	if (iDecompressedLength <= 0)
 	{
 		LUA->PushString("");
 		return 1;
 	}
 
-	uint32 pDecompressedLength;
-	int returnCode = pSteamUser->DecompressVoice(
-		pData->pData, pData->iLength,
-		g_pDataBuffer.get(), g_pDataBufferSize,
-		&pDecompressedLength, SAMPLERATE_GMOD_OPUS
-	);
-
-	if (returnCode != k_EVoiceResultOK)
-	{
-		LUA->PushNumber(returnCode);
-		return 1;
-	}
-
-	LUA->PushString((char*)g_pDataBuffer.get(), pDecompressedLength); // Lua creates a copy so g_pDataBuffer can be discarded.
-
+	LUA->PushString(pDecompressed, iDecompressedLength); // Lua creates a copy so g_pDataBuffer can be discarded.
 	return 1;
 }
 
@@ -208,22 +388,7 @@ LUA_FUNCTION_STATIC(VoiceData_SetUncompressedData)
 	if (!pSteamUser)
 		LUA->ThrowError("Failed to get SteamUser!\n");
 
-	if (!pData->pData || pData->iLength == 0)
-	{
-		LUA->PushString("");
-		return 1;
-	}
-
-	char pCompressed[g_nComppressedSize];
-	int pBytes = SteamVoice::CompressIntoBuffer(fakeSteamID, &g_pOpusDecoder, (char*)g_pDataBuffer.get(), g_pDataBufferSize, pCompressed, sizeof(pCompressed), SAMPLERATE_GMOD_OPUS);
-	if (pBytes != -1)
-	{
-		pData->SetData(pCompressed, pBytes);
-		LUA->PushBool(true);
-	} else {
-		LUA->PushBool(false);
-	}
-
+	pData->SetDecompressedData(pUncompressedData, iSize);
 	return 1;
 }
 
@@ -249,7 +414,7 @@ LUA_FUNCTION_STATIC(VoiceData_SetLength)
 {
 	VoiceData* pData = Get_VoiceData(LUA, 1, true);
 
-	pData->iLength = (int)LUA->CheckNumber(2);
+	pData->SetLength((int)LUA->CheckNumber(2));
 
 	return 0;
 }
@@ -359,8 +524,8 @@ struct VoiceStream {
 		{
 			g_pFullFileSystem->Write(&tickNumber, sizeof(int), fh);
 
-			int length = voiceData->iLength;
-			char* data = voiceData->pData;
+			int length = voiceData->GetLength();
+			char* data = voiceData->GetData();
 
 			g_pFullFileSystem->Write(&length, sizeof(int), fh);
 			g_pFullFileSystem->Write(data, length, fh);
@@ -403,8 +568,8 @@ struct VoiceStream {
 			g_pFullFileSystem->Read(data, length, fh);
 
 			VoiceData* voiceData = new VoiceData;
-			voiceData->iLength = length;
-			voiceData->pData = data;
+			voiceData->SetLength(length);
+			voiceData->SetDataDirect(data);
 
 			pStream->SetIndex(std::ceil(tickNumber * scaleRate), voiceData);
 		}
@@ -418,28 +583,21 @@ struct VoiceStream {
 		if (!pSteamUser)
 			return; // NULL;
 
-		const int sampleRate = 44100;
+		const int sampleRate = SAMPLERATE_GMOD_OPUS;
 		const int bytesPerSample = 2; // 16-bit mono
 		std::map<int, VoiceData*> sorted(pVoiceData.begin(), pVoiceData.end());
 
-		std::vector<uint16_t> wavePCM;
+		std::vector<char> wavePCM;
 		const float intervalPerTick = gpGlobals->interval_per_tick;
 		for (auto& [tick, voiceData] : sorted)
 		{
-			uint32_t uncompressedWritten = 0;
-			EVoiceResult res = pSteamUser->DecompressVoice(
-				voiceData->pData, voiceData->iLength,
-				g_pDataBuffer.get(), g_pDataBufferSize,
-				&uncompressedWritten, sampleRate
-			);
+			int iLength = 0;
+			char* pDecompressedData = voiceData->GetDecompressedData(&iLength);
 
-			if (res != k_EVoiceResultOK && res != k_EVoiceResultBufferTooSmall)
-				continue;
-
-			wavePCM.insert(wavePCM.end(), g_pDataBuffer.get(), g_pDataBuffer.get() + (uncompressedWritten / sizeof(uint16_t)));
+			wavePCM.insert(wavePCM.end(), pDecompressedData, pDecompressedData + iLength);
 		}
 
-		int dataSize = wavePCM.size() * sizeof(uint16_t);
+		int dataSize = wavePCM.size();
 		int byteRate = sampleRate * bytesPerSample;
 		int blockAlign = bytesPerSample;
 		int bitsPerSample = 16;
@@ -691,97 +849,46 @@ struct VoiceStream {
 			sampleRate = SAMPLERATE_GMOD_OPUS;
 		}
 
-		const int bytesPerSample = 2;
+		constexpr int bytesPerSample = sizeof(int16_t);
 		const int samplesPerTick = (int)(sampleRate * gpGlobals->interval_per_tick);
-		const int chunkSize = samplesPerTick * bytesPerSample;
-		const float sampleRateF = static_cast<float>(sampleRate);
-		const float tickDuration = gpGlobals->interval_per_tick;
 
-		char recompressBuffer[g_nComppressedSize];
 		VoiceStream* pStream = new VoiceStream;
 		size_t offset = 0;
-		float playbackTime = 0.0f;
 		while (offset < monoPCM.size()) {
-			int chunkSizeBytes = chunkSize;
-			int chunkSamples = chunkSizeBytes / bytesPerSample;
-			int thisChunkSamples = MIN(chunkSamples, static_cast<int>(monoPCM.size() - offset));
+			int thisChunkSamples = MIN(samplesPerTick, static_cast<int>(monoPCM.size() - offset));
 			if (thisChunkSamples <= 0)
 				break;
 
-			float chunkDuration = static_cast<float>(thisChunkSamples) / sampleRateF;
-			int tickIndex = static_cast<int>(std::ceil(playbackTime / tickDuration));
+			int tickIndex = static_cast<int>(std::ceil(offset / samplesPerTick));
 			const char* decompressedBuffer = reinterpret_cast<const char*>(&monoPCM[offset]);
+			int thisChunkSize = thisChunkSamples * bytesPerSample;
 
-			int bytesWritten = SteamVoice::CompressIntoBuffer(
-				fakeSteamID,
-				&g_pOpusDecoder,
-				decompressedBuffer,
-				thisChunkSamples * bytesPerSample,
-				recompressBuffer,
-				sizeof(recompressBuffer),
-				SAMPLERATE_GMOD_OPUS
-			);
-
-			if (bytesWritten <= 0) {
-				offset += thisChunkSamples;
-				playbackTime += chunkDuration;
-				continue;
-			}
-			
 			VoiceData* existing = pStream->GetIndex(tickIndex);
-			if (existing) {
-				std::vector<char> combinedPCM;
-				combinedPCM.resize(g_pDataBufferSize);
+			if (existing) { // Impossible to happen / this is old code that merged multiple ticks into one
+				int pCurrentLength = 0;
+				char* existingData = existing->GetDecompressedData(&pCurrentLength);
+				memcpy(g_pDataBuffer.get(), existingData, pCurrentLength);
 
-				char* decompressTarget = combinedPCM.data();
-				int maxDecompressed = combinedPCM.size();
-				SteamOpus::Opus_FrameDecoder mergeCodec;
-				int samplesOld = SteamVoice::DecompressIntoBuffer(&mergeCodec, existing->pData, existing->iLength, decompressTarget, maxDecompressed);
-				if (samplesOld < 0) {
-					if (g_pVoiceChatModule.InDebug() == 1)
-					{
-						Warning(PROJECT_NAME " - voicechat: Failed to decompress existing tick data!\n");
-					}
-					continue;
-				}
+				int iNextLength = thisChunkSize;
+				if ((pCurrentLength + iNextLength) > g_pDataBufferSize) // Ran out of space
+					iNextLength = g_pDataBufferSize - pCurrentLength;
 
-				decompressTarget += samplesOld * 2;
-				int samplesNew = SteamVoice::DecompressIntoBuffer(&mergeCodec, recompressBuffer, bytesWritten, decompressTarget, maxDecompressed - samplesOld * 2);
-				if (samplesNew < 0) {
-					if (g_pVoiceChatModule.InDebug() == 1)
-					{
-						Warning(PROJECT_NAME " - voicechat: Failed to decompress new tick data!\n");
-					}
-					continue;
-				}
+				memcpy(g_pDataBuffer.get() + pCurrentLength, decompressedBuffer, iNextLength);
+				pCurrentLength += iNextLength;
 
-				int totalSamples = samplesOld + samplesNew;
-				const char* combinedInput = combinedPCM.data();
-				char mergedCompressed[g_nComppressedSize];
-				SteamOpus::Opus_FrameDecoder finalCodec;
-				int mergedLen = SteamVoice::CompressIntoBuffer(
-					fakeSteamID, &finalCodec,
-					combinedInput, totalSamples * 2,
-					mergedCompressed, sizeof(mergedCompressed),
-					sampleRate
-				);
+				existing->SetDecompressedData(g_pDataBuffer.get(), pCurrentLength);
 
-				if (mergedLen > 0) {
-					existing->SetData(mergedCompressed, mergedLen);
-				} else {
-					if (g_pVoiceChatModule.InDebug() == 1)
-					{
-						Warning(PROJECT_NAME " - voicechat: Failed to recompress merged tick!\n");
-					}
+				if (g_pVoiceChatModule.InDebug() == 1)
+				{
+					Warning(PROJECT_NAME " - voicechat - LoadWave: Merged voicedata (%i)\n", tickIndex);
 				}
 			} else {
 				VoiceData* voiceData = new VoiceData;
-				voiceData->SetData(recompressBuffer, bytesWritten);
+				voiceData->SetDecompressedData(decompressedBuffer, thisChunkSize);
 				pStream->SetIndex(tickIndex, voiceData);
 			}
 
 			offset += thisChunkSamples;
-			playbackTime += chunkDuration;
 		}
 
 		return pStream;
@@ -973,40 +1080,32 @@ static bool ApplyVoiceEffect(VoiceData* pData, VoiceEffectData& pEffect, int ind
 	if (!pSteamUser)
 		return false;
 
-	int uncompressedWrittenBytes = SteamVoice::DecompressIntoBuffer(
-		&g_pOpusDecoder,
-		pData->pData, pData->iLength,
-		(char*)g_pDataBuffer.get(), g_pDataBufferSize
-	);
+	int nDecompressedLength = 0;
+	char* pDecompressedData = pData->GetDecompressedData(&nDecompressedLength);
 
-	if (uncompressedWrittenBytes == -1)
+	if (pDecompressedData == nullptr || nDecompressedLength == 0)
 		return false;
 
 	// NOTE: Our effects already use it as int_16 so DONT pass g_pDataBufferSize since that is meant for function that treat it as char*
 	// if you fk this up you'll modify the 20kb directly after our buffer which will fk up shit
-	int uncompressedSizeForInt16 = uncompressedWrittenBytes / sizeof(int16_t); // Divided by int16_t since our g_pDataBuffer uses int16_t and not char!
+	int uncompressedSizeForInt16 = nDecompressedLength / sizeof(int16_t); // Divided by int16_t since our g_pDataBuffer uses int16_t and not char!
 	switch(pEffect.type)
 	{
 	case Effects::Volume:
-		AdjustVolume(g_pDataBuffer.get(), uncompressedSizeForInt16, pEffect.data.volume);
+		AdjustVolume((int16_t*)pDecompressedData, uncompressedSizeForInt16, pEffect.data.volume);
 		break;
 	default:
 		break;
 	}
 
-	char pCompressed[g_nComppressedSize];
-	int pBytes = SteamVoice::CompressIntoBuffer(fakeSteamID, &g_pOpusDecoder, (char*)g_pDataBuffer.get(), uncompressedWrittenBytes, pCompressed, sizeof(pCompressed), SAMPLERATE_GMOD_OPUS);
-	if (pBytes != pData->iLength)
+	if (!voicechat_savedecompressed.GetBool())
 	{
-		Msg("We changed length? (%i: %i - %i)\n", index, pData->iLength, pBytes);
+		pData->SetDecompressedData(pDecompressedData, nDecompressedLength);
+		return true;
 	}
 	
-	if (pBytes != -1)
-	{
-		pData->SetData(pCompressed, pBytes); // We copy it in here again though since its compressed it will save memory instead of us keeping a huge buffer.
-	} else {
-		return false; // We failed!
-	}
+	pData->MarkDecompressedChanged();
+	// We don't call SetDecompressedData since we never changed the size. We only modify the existing data
 
 	return true;
 }
@@ -1321,8 +1420,8 @@ LUA_FUNCTION_STATIC(voicechat_SendVoiceData)
 
 	SVC_VoiceData voiceData;
 	voiceData.m_nFromClient = pData->iPlayerSlot;
-	voiceData.m_nLength = pData->iLength * 8; // In Bits...
-	voiceData.m_DataOut = pData->pData;
+	voiceData.m_nLength = pData->GetLength() * 8; // In Bits...
+	voiceData.m_DataOut = pData->GetData();
 	voiceData.m_bProximity = pData->bProximity;
 	voiceData.m_xuid = 0;
 
@@ -1337,8 +1436,8 @@ LUA_FUNCTION_STATIC(voicechat_BroadcastVoiceData)
 
 	SVC_VoiceData voiceData;
 	voiceData.m_nFromClient = pData->iPlayerSlot;
-	voiceData.m_nLength = pData->iLength * 8; // In Bits...
-	voiceData.m_DataOut = pData->pData;
+	voiceData.m_nLength = pData->GetLength() * 8; // In Bits...
+	voiceData.m_DataOut = pData->GetData();
 	voiceData.m_bProximity = pData->bProximity;
 	voiceData.m_xuid = 0;
 
@@ -1380,7 +1479,7 @@ LUA_FUNCTION_STATIC(voicechat_ProcessVoiceData)
 
 	UpdatePlayerTalkingState(pPlayer, true);
 	detour_SV_BroadcastVoiceData.GetTrampoline<Symbols::SV_BroadcastVoiceData>()(
-		pClient, pData->iLength, pData->pData, 0
+		pClient, pData->GetLength(), pData->GetData(), 0
 	);
 
 	return 0;
