@@ -2376,7 +2376,7 @@ void lj_record_ins(jit_State *J)
 	rc = lj_ir_kint(J, 0);
 	ta = IRT_INT;
       } else {
-  ix.mtspec = 1;
+	ix.mtspec = 1;
 	rec_mm_comp(J, &ix, (int)op);
 	break;
       }
@@ -2403,7 +2403,7 @@ void lj_record_ins(jit_State *J)
       if (diff == 2 || !(tref_istab(ra) || tref_isudata(ra))) {
 	rec_comp_fixup(J, J->pc, ((int)op & 1) == !diff);
       } else if (diff == 1) {  /* Only check __eq if different, but same type. */
-  ix.mtspec = 1;
+	ix.mtspec = 1;
 	rec_mm_equal(J, &ix, (int)op);
       }
     }
