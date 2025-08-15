@@ -40,6 +40,15 @@ public:
 
 static ConVar voicechat_hooks("holylib_voicechat_hooks", "1", 0);
 
+static constexpr int g_pDataBufferSize = 20000; // Used to decompress the data
+// The pDataBuffer is smaller since it uses int16_t instead of char
+static constexpr int pActualDataBufferSize = g_pDataBufferSize / sizeof(int16_t);
+// A buffer so that we reduce allocations. You should only use it directly in one function and NOT pass it around as other functions might override its contents!
+static thread_local std::unique_ptr<int16_t[]> g_pDataBuffer(new int16_t[20000]); // We cannot just use it normally since else we run out of TBL space (Error: cannot allocate memory in static TLS block)
+static thread_local SteamOpus::Opus_FrameDecoder g_pOpusDecoder;
+static uint64_t fakeSteamID = 0x0110000100000001; // STEAM_0:1:0
+// static inline void ClearDataBuffer() { memset(g_pDataBuffer, 0, g_pDefaultDecompressedSize); }
+
 static IThreadPool* pVoiceThreadPool = NULL;
 static void OnVoiceThreadsChange(IConVar* convar, const char* pOldValue, float flOldValue)
 {
@@ -51,7 +60,7 @@ static void OnVoiceThreadsChange(IConVar* convar, const char* pOldValue, float f
 	Util::StartThreadPool(pVoiceThreadPool, ((ConVar*)convar)->GetInt());
 }
 
-static ConVar voicechat_threads("holylib_voicechat_threads", "1", FCVAR_ARCHIVE, "The number of threads to use for voicechat.LoadVoiceStream and voicechat.SaveVoiceStream if you specify async", OnVoiceThreadsChange);
+static ConVar voicechat_threads("holylib_voicechat_threads", "4", FCVAR_ARCHIVE, "The number of threads to use for voicechat.LoadVoiceStream and voicechat.SaveVoiceStream if you specify async", OnVoiceThreadsChange);
 
 static CVoiceChatModule g_pVoiceChatModule;
 IModule* pVoiceChatModule = &g_pVoiceChatModule;
@@ -159,7 +168,7 @@ LUA_FUNCTION_STATIC(VoiceData_GetData)
 LUA_FUNCTION_STATIC(VoiceData_GetUncompressedData)
 {
 	VoiceData* pData = Get_VoiceData(LUA, 1, true);
-	int iSize = (int)LUA->CheckNumberOpt(2, 20000); // How many bytes to allocate for the decompressed version. 20000 is default
+	int iSize = (int)LUA->CheckNumberOpt(2, g_pDataBufferSize); // How many bytes to allocate for the decompressed version. 20000 is default
 
 	ISteamUser* pSteamUser = Util::GetSteamUser();
 	if (!pSteamUser)
@@ -172,22 +181,19 @@ LUA_FUNCTION_STATIC(VoiceData_GetUncompressedData)
 	}
 
 	uint32 pDecompressedLength;
-	char* pDecompressed = new char[iSize];
 	int returnCode = pSteamUser->DecompressVoice(
 		pData->pData, pData->iLength,
-		pDecompressed, iSize,
+		g_pDataBuffer.get(), iSize,
 		&pDecompressedLength, 44100
 	);
 
 	if (returnCode != k_EVoiceResultOK)
 	{
-		delete[] pDecompressed; // Lua will already have a copy of it.
 		LUA->PushNumber(returnCode);
 		return 1;
 	}
 
-	LUA->PushString(pDecompressed, pDecompressedLength);
-	delete[] pDecompressed; // Lua will already have a copy of it.
+	LUA->PushString((char*)g_pDataBuffer.get(), pDecompressedLength); // Lua creates a copy so g_pDataBuffer can be discarded.
 
 	return 1;
 }
@@ -209,15 +215,7 @@ LUA_FUNCTION_STATIC(VoiceData_SetUncompressedData)
 	}
 
 	char* pCompressed = new char[iSize];
-	CBaseClient* pClient = Util::GetClientByIndex(pData->iPlayerSlot);
-	uint64 steamID64 = 0;
-	if (pClient)
-	{
-		steamID64 = pClient->GetNetworkID().steamid.ConvertToUint64(); // Crash any% speedrun
-	}
-
-	SteamOpus::Opus_FrameDecoder g_pOpusDecoder;
-	int pBytes = SteamVoice::CompressIntoBuffer(steamID64, &g_pOpusDecoder, pUncompressedData, iSize, pCompressed, 20000, 44100);
+	int pBytes = SteamVoice::CompressIntoBuffer(fakeSteamID, &g_pOpusDecoder, pUncompressedData, iSize, pCompressed, iSize, 44100);
 	if (pBytes != -1)
 	{
 		// Instead of calling SetData which copies it, we set it directly to avoid any additional copying.
@@ -428,24 +426,21 @@ struct VoiceStream {
 		std::map<int, VoiceData*> sorted(pVoiceData.begin(), pVoiceData.end());
 
 		std::vector<char> wavePCM;
-		uint32_t uncompressedLength = 40000;
-		char* uncompressed = new char[uncompressedLength];
 		const float intervalPerTick = gpGlobals->interval_per_tick;
 		for (auto& [tick, voiceData] : sorted)
 		{
 			uint32_t uncompressedWritten = 0;
 			EVoiceResult res = pSteamUser->DecompressVoice(
 				voiceData->pData, voiceData->iLength,
-				uncompressed, uncompressedLength,
+				g_pDataBuffer.get(), g_pDataBufferSize,
 				&uncompressedWritten, sampleRate
 			);
 
 			if (res != k_EVoiceResultOK && res != k_EVoiceResultBufferTooSmall)
 				continue;
 
-			wavePCM.insert(wavePCM.end(), uncompressed, uncompressed + uncompressedWritten);
+			wavePCM.insert(wavePCM.end(), g_pDataBuffer.get(), g_pDataBuffer.get() + uncompressedWritten);
 		}
-		delete[] uncompressed;
 
 		int dataSize = wavePCM.size();
 		int byteRate = sampleRate * bytesPerSample;
@@ -706,11 +701,9 @@ struct VoiceStream {
 		const float tickDuration = gpGlobals->interval_per_tick;
 
 		char recompressBuffer[6000];
-		uint64_t fakeSteamID = 0x0110000100000001; // STEAM_0:1:0
 		VoiceStream* pStream = new VoiceStream;
 		size_t offset = 0;
 		float playbackTime = 0.0f;
-		SteamOpus::Opus_FrameDecoder opus_codec;
 		while (offset < monoPCM.size()) {
 			int chunkSizeBytes = chunkSize;
 			int chunkSamples = chunkSizeBytes / bytesPerSample;
@@ -724,7 +717,7 @@ struct VoiceStream {
 
 			int bytesWritten = SteamVoice::CompressIntoBuffer(
 				fakeSteamID,
-				&opus_codec,
+				&g_pOpusDecoder,
 				decompressedBuffer,
 				thisChunkSamples * bytesPerSample,
 				recompressBuffer,
@@ -843,6 +836,11 @@ struct VoiceStream {
 		return (int)pVoiceData.size();
 	}
 
+	inline std::unordered_map<int, VoiceData*>& GetData()
+	{
+		return pVoiceData;
+	}
+
 private:
 	// key = tickcount
 	// value = VoiceData
@@ -948,6 +946,109 @@ LUA_FUNCTION_STATIC(VoiceStream_SetIndex)
 
 	pStream->SetIndex(index, pData->CreateCopy());
 	return 0;
+}
+
+namespace VoiceEffects
+{
+enum Effects {
+	Volume,
+};
+
+struct VoiceEffectData
+{
+	Effects type;
+	union {
+		float volume;
+	} data;
+};
+
+static void AdjustVolume(int16_t* audioData, size_t dataSize, float volume) {
+	for (size_t i = 0; i < dataSize; ++i) {
+		int32_t adjustedSample = static_cast<int32_t>(audioData[i] * volume);
+		audioData[i] = static_cast<int16_t>(std::clamp(adjustedSample, -32768, 32767));
+	}
+}
+
+static bool ApplyVoiceEffect(VoiceData* pData, VoiceEffectData& pEffect)
+{
+	ISteamUser* pSteamUser = Util::GetSteamUser();
+	if (!pSteamUser)
+		return false;
+
+	uint32_t uncompressedWritten = 0;
+	EVoiceResult result = pSteamUser->DecompressVoice(
+		pData->pData, pData->iLength,
+		g_pDataBuffer.get(), g_pDataBufferSize,
+		&uncompressedWritten, 44100
+	);
+
+	if (result != k_EVoiceResultOK)
+		return false;
+
+	switch(pEffect.type)
+	{
+	case Effects::Volume:
+		AdjustVolume(g_pDataBuffer.get(), g_pDataBufferSize, pEffect.data.volume);
+		break;
+	default:
+		break;
+	}
+
+	int pBytes = SteamVoice::CompressIntoBuffer(fakeSteamID, &g_pOpusDecoder, (char*)g_pDataBuffer.get(), g_pDataBufferSize, pData->pData, pData->iLength, 44100);
+	if (pBytes == -1)
+		return false; // We failed!
+
+	return true;
+}
+
+struct VoiceEffectJob {
+	~VoiceEffectJob()
+	{
+		if (iReference != -1)
+		{
+			pLua->ReferenceFree(iReference);
+			iReference = -1;
+		}
+
+		if (iCallbackReference != -1)
+		{
+			pLua->ReferenceFree(iCallbackReference);
+			iCallbackReference = -1;
+		}
+	}
+
+	VoiceEffectData pEffect;
+	VoiceData* pVoiceData = nullptr;
+	VoiceStream* pStreamData = nullptr;
+	int iCallbackReference = -1;
+	int iReference = -1; // Reference to the VoiceData or VoiceStream
+	GarrysMod::Lua::ILuaInterface* pLua = NULL;
+	bool bContinueOnFailure = true;
+	bool bIsDone = false; // Will be true, if we failed bFailed will also be true
+	bool bFailed = false;
+};
+
+static void VoiceEffect(VoiceEffectJob*& pJob)
+{
+	if (pJob->pStreamData != nullptr)
+	{
+		for (auto it = pJob->pStreamData->GetData().begin(); it != pJob->pStreamData->GetData().end(); ++it)
+		{
+			pJob->bFailed = !ApplyVoiceEffect(it->second, pJob->pEffect);
+			if (pJob->bFailed && !pJob->bContinueOnFailure)
+				break;
+		}
+	} else {
+		if (pJob->pVoiceData)
+		{
+			pJob->bFailed = !ApplyVoiceEffect(pJob->pVoiceData, pJob->pEffect);
+		} else {
+			pJob->bFailed = true;
+		}
+	}
+
+	pJob->bIsDone = true;
+}
 }
 
 static CPlayerBitVec* g_PlayerModEnable;
@@ -1389,6 +1490,7 @@ class LuaVoiceModuleData : public Lua::ModuleData
 {
 public:
 	std::unordered_set<VoiceStreamTask*> pVoiceStreamTasks;
+	std::unordered_set<VoiceEffects::VoiceEffectJob*> pVoiceEffectTasks;
 };
 
 LUA_GetModuleData(LuaVoiceModuleData, g_pVoiceChatModule, VoiceChat)
@@ -1465,16 +1567,16 @@ static void VoiceStreamJob(VoiceStreamTask*& task)
 	}
 }
 
-static void AddVoiceJobToPool(VoiceStreamTask* pTask)
+static void EnsureVoiceThreadPool()
 {
 	if (!pVoiceThreadPool)
 	{
 		pVoiceThreadPool = V_CreateThreadPool();
 		Util::StartThreadPool(pVoiceThreadPool, voicechat_threads.GetInt());
 	}
-
-	pVoiceThreadPool->QueueCall(&VoiceStreamJob, pTask);
 }
+
+#define AddVoiceJobToPool(func, pTask) EnsureVoiceThreadPool(); pVoiceThreadPool->QueueCall(&func, pTask);
 
 LUA_FUNCTION_STATIC(voicechat_LoadVoiceStream)
 {
@@ -1482,11 +1584,7 @@ LUA_FUNCTION_STATIC(voicechat_LoadVoiceStream)
 
 	const char* pFileName = LUA->CheckString(1);
 	const char* pGamePath = LUA->CheckStringOpt(2, "DATA");
-	bool bAsync = LUA->GetBool(3);
-	if (bAsync)
-	{
-		LUA->CheckType(4, GarrysMod::Lua::Type::Function);
-	}
+	bool bAsync = LUA->IsType(3, GarrysMod::Lua::Type::Function);
 
 	VoiceStreamTask* task = new VoiceStreamTask;
 	V_strncpy(task->pFileName, pFileName, sizeof(task->pFileName));
@@ -1496,10 +1594,11 @@ LUA_FUNCTION_STATIC(voicechat_LoadVoiceStream)
 
 	if (bAsync)
 	{
-		LUA->Push(4);
+		LUA->Push(3);
 		task->iCallback = Util::ReferenceCreate(LUA, "voicechat.LoadVoiceStream - callback");
+
 		pData->pVoiceStreamTasks.insert(task);
-		AddVoiceJobToPool(task);
+		AddVoiceJobToPool(VoiceStreamJob, task);
 		return 0;
 	} else {
 		VoiceStreamJob(task);
@@ -1517,28 +1616,25 @@ LUA_FUNCTION_STATIC(voicechat_SaveVoiceStream)
 	VoiceStream* pStream = Get_VoiceStream(LUA, 1, true);
 	const char* pFileName = LUA->CheckString(2);
 	const char* pGamePath = LUA->CheckStringOpt(3, "DATA");
-	bool bAsync = LUA->GetBool(4);
-	if (bAsync)
-	{
-		LUA->CheckType(5, GarrysMod::Lua::Type::Function);
-	}
+	bool bAsync = LUA->IsType(4, GarrysMod::Lua::Type::Function);
 
 	VoiceStreamTask* task = new VoiceStreamTask;
 	V_strncpy(task->pFileName, pFileName, sizeof(task->pFileName));
 	V_strncpy(task->pGamePath, pGamePath, sizeof(task->pGamePath));
 	task->iType = VoiceStreamTask_SAVE;
 	
-	LUA->Push(1);
-	task->iReference = Util::ReferenceCreate(LUA, "voicechat.SaveVoiceStream - VoiceStream");
 	task->pStream = pStream;
 	task->pLua = LUA;
 
 	if (bAsync)
 	{
-		LUA->Push(5);
+		LUA->Push(1);
+		task->iReference = Util::ReferenceCreate(LUA, "voicechat.SaveVoiceStream - VoiceStream");
+
+		LUA->Push(4);
 		task->iCallback = Util::ReferenceCreate(LUA, "voicechat.SaveVoiceStream - callback");
 		pData->pVoiceStreamTasks.insert(task);
-		AddVoiceJobToPool(task);
+		AddVoiceJobToPool(VoiceStreamJob, task);
 		return 0;
 	} else {
 		VoiceStreamJob(task);
@@ -1588,6 +1684,67 @@ LUA_FUNCTION_STATIC(voicechat_LastPlayerTalked)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(voicechat_ApplyEffect)
+{
+	LuaVoiceModuleData* pData = GetVoiceChatLuaData(LUA);
+
+	LUA->CheckType(1, GarrysMod::Lua::Type::Table);
+	
+	bool bIsAsync = LUA->IsType(3, GarrysMod::Lua::Type::Function);
+	bool bIsVoiceData = true;
+	if (!LUA->IsType(2, Lua::GetLuaData(LUA)->GetMetaTable(Lua::LuaTypes::VoiceData)))
+	{
+		bIsVoiceData = false;
+		LUA->CheckType(2, Lua::GetLuaData(LUA)->GetMetaTable(Lua::LuaTypes::VoiceStream));
+	}
+
+	VoiceEffects::VoiceEffectJob* pJob = new VoiceEffects::VoiceEffectJob();
+	pJob->pLua = LUA;
+	if (bIsVoiceData)
+	{
+		pJob->pVoiceData = Get_VoiceData(LUA, 2, false);
+	} else {
+		pJob->pStreamData = Get_VoiceStream(LUA, 2, false);
+	}
+
+	LUA->GetField(1, "EffectName");
+	const char* pEffectName = LUA->GetString(-1);
+	if (V_stricmp(pEffectName, "Volume") == 0)
+	{
+		pJob->pEffect.type = VoiceEffects::Effects::Volume;
+
+		LUA->GetField(1, "Volume");
+		pJob->pEffect.data.volume = (float)LUA->GetNumber(-1);
+		LUA->Pop(1);
+	}
+	LUA->Pop(1);
+
+	LUA->GetField(1, "ContinueOnFailure");
+	if (LUA->IsType(-1, GarrysMod::Lua::Type::Bool))
+	{
+		pJob->bContinueOnFailure = LUA->GetBool(-1);
+	}
+	LUA->Pop(1);
+
+	if (bIsAsync)
+	{
+		LUA->Push(2);
+		pJob->iReference = Util::ReferenceCreate(LUA, "voicechat.ApplyEffect - VoiceData/VoiceStream");
+
+		LUA->Push(3);
+		pJob->iCallbackReference = Util::ReferenceCreate(LUA, "voicechat.ApplyEffect - Callback");
+
+		pData->pVoiceEffectTasks.insert(pJob);
+		AddVoiceJobToPool(VoiceEffects::VoiceEffect, pJob);
+		return 0;
+	} else {
+		VoiceEffects::VoiceEffect(pJob);
+		LUA->PushBool(!pJob->bFailed);
+		delete pJob;
+		return 1;
+	}
+}
+
 void CVoiceChatModule::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	LuaVoiceModuleData* pData = GetVoiceChatLuaData(pLua);
@@ -1604,17 +1761,6 @@ void CVoiceChatModule::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
 			continue;
 		}
 
-		if (pTask->iCallback == -1)
-		{
-			Warning(PROJECT_NAME " - VoiceChat(Think): somehow managed to get a task without a callback!\n");
-			if (pTask->pStream != NULL && pTask->iType != VoiceStreamTask_SAVE)
-				delete pTask->pStream;
-
-			delete pTask;
-			it = pData->pVoiceStreamTasks.erase(it);
-			continue;
-		}
-
 		pLua->ReferencePush(pTask->iCallback);
 		/*if (pTask->pWavFile)
 		{
@@ -1628,6 +1774,25 @@ void CVoiceChatModule::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
 		
 		delete pTask;
 		it = pData->pVoiceStreamTasks.erase(it);
+	}
+
+	for (auto it = pData->pVoiceEffectTasks.begin(); it != pData->pVoiceEffectTasks.end(); )
+	{
+		VoiceEffects::VoiceEffectJob* pJob = *it;
+		if (!pJob->bIsDone)
+		{
+			it++;
+			continue;
+		}
+
+		pLua->ReferencePush(pJob->iCallbackReference);
+		pLua->ReferencePush(pJob->iReference);
+		pLua->PushBool(!pJob->bFailed);
+
+		pLua->CallFunctionProtected(2, 0, true);
+		
+		delete pJob;
+		it = pData->pVoiceEffectTasks.erase(it);
 	}
 }
 
@@ -1693,6 +1858,7 @@ void CVoiceChatModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServer
 		Util::AddFunc(pLua, voicechat_SaveVoiceStream, "SaveVoiceStream");
 		Util::AddFunc(pLua, voicechat_IsPlayerTalking, "IsPlayerTalking");
 		Util::AddFunc(pLua, voicechat_LastPlayerTalked, "LastPlayerTalked");
+		Util::AddFunc(pLua, voicechat_ApplyEffect, "ApplyEffect");
 	Util::FinishTable(pLua, "voicechat");
 }
 

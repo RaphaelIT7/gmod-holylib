@@ -76,7 +76,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [+] Added a few stringtable related functions to the `stringtable` module.<br>
 \- [+] Added a new hook `HolyLib:OnClientTimeout` to the `gameserver` module.<br>
 \- [+] Optimized `GM:PlayerCanHearPlayersVoice` by **only** calling it for actively speaking players/when a voice packet is received.<br>
-\- [+] Added `voicechat.IsPlayerTalking` & `voicechat.LastPlayerTalked` to the `voicechat` module.<br>
+\- [+] Added `voicechat.ApplyEffect`, `voicechat.IsPlayerTalking` & `voicechat.LastPlayerTalked` to the `voicechat` module.<br>
 \- [+] Added `util.FancyJSONToTable` & `util.AsyncTableToJSON` to the `util` module.<br>
 \- [+] Added `gameserver.GetClientByUserID` to the `gameserver` module.<br>
 \- [+] Added a config system allowing one to set convars without using the command line.<br>
@@ -135,6 +135,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 \- [#] Fixed `IGModAudioChannel:IsValid` throwing a error when it's NULL instead of returning false.<br>
 \- [#] Fixed `HttpServer:SetWriteTimeout` using the wrong arguments. (See https://github.com/RaphaelIT7/gmod-holylib/pull/65)<br>
 \- [#] Fixed `bf_read:ReadBytes` and `bf_read:ReadBits` both failing to push the string properly to lua.<br>
+\- [#] Changed `voicechat.SaveVoiceStream` & `voicechat.LoadVoiceStream` to remove their 4th argument, if a callback is provided it will be async, else it'll run sync<br>
 \- [-] Removed `CBaseClient:Transmit` third argument `fragments`.<br>
 \- [-] Removed `gameserver.CalculateCPUUsage` and `gameserver.ApproximateProcessMemoryUsage` since they never worked.<br>
 
@@ -2294,22 +2295,24 @@ Creates a new VoiceData object.<br>
 #### VoiceStream voicechat.CreateVoiceStream()
 Creates a empty VoiceStream.<br>
 
-#### VoiceStream, number(statusCode) voicechat.LoadVoiceStream(string fileName, string gamePath = "DATA", bool async = false, function callback = nil)
+#### VoiceStream, number(statusCode) voicechat.LoadVoiceStream(string fileName, string gamePath = "DATA", function callback = nil)
 callback = `function(VoiceStream loadedStream, number statusCode)`
 statusCode = `-4 = Invalid file, -3 = Invalid version, -2 = File not found, -1 = Invalid type, 0 = None, 1 = Done`<br>
 
 Tries to load a VoiceStream from the given file.<br>
-If `async` is specified it **WONT** return **anything** and the `callback` will be **required**.<br>
+If a `callback` is specified it **WONT** return **anything** and the `callback` will be called, as it will execute everythign **async**.<br>
+If you want it to **not** run async, simply provide **no** callback function<br>
 
 > [!NOTE]
 > This function also supports `.wav` files to load from since `0.8`
 
-#### number(statusCode) voicechat.SaveVoiceStream(VoiceStream stream, string fileName, string gamePath = "DATA", bool async = false, function callback = nil)
+#### number(statusCode) voicechat.SaveVoiceStream(VoiceStream stream, string fileName, string gamePath = "DATA", function callback = nil)
 callback = `function(VoiceStream loadedStream, number statusCode)`
 statusCode = `-4 = Invalid file, -3 = Invalid version, -2 = File not found, -1 = Invalid type, 0 = None, 1 = Done`<br>
 
 Tries to save a VoiceStream into the given file.<br>
-If `async` is specified it **WONT** return **anything** and the `callback` will be **required**.<br>
+If a `callback` is specified it **WONT** return **anything** and the `callback` will be called, as it will execute everythign **async**.<br>
+If you want it to **not** run async, simply provide **no** callback function<br>
 
 > [!NOTE]
 > It should be safe to modify/use the VoiceStream while it's saving async **BUT** you should try to avoid doing that.
@@ -2329,6 +2332,31 @@ Returns when the player last talked.
 
 > [!NOTE]
 > This value does NOT reset if a player disconnect meaning on empty slots the value of the last player there will remain stored.
+
+#### bool voicechat.ApplyEffect(table effectData, VoiceStream/VoiceData stream, function callback = nil)
+callback = `function(VoiceStream/Voicedata data, bool success)`
+
+Example effectData:
+```lua
+{
+	ContinueOnFailure = true, -- If you process a VoiceStream and it fails to apply a effect for some reason it will still proceed and ignore the failure
+
+	-- Volume effect
+	EffectName = "Volume",
+	Volume = 1.0, -- The volume for the audio
+}
+```
+
+Applies the given effectData to the given Data/Stream.<br>
+If a `callback` is specified it **WONT** return **anything** and the `callback` will be called, as it will execute everythign **async**.<br>
+If you want it to **not** run async, simply provide **no** callback function, it will return `true` on success<br>
+
+> [!NOTE]
+> It should be safe to modify/use the VoiceStream while it's saving async **BUT** you should try to avoid doing that.
+
+> [!NOTE]
+> This function also supports `.wav` files to write the data into since `0.8`.<br>
+> You should **always** inform your players if you save their voice!
 
 ####
 
