@@ -41,7 +41,7 @@ public:
 static ConVar voicechat_hooks("holylib_voicechat_hooks", "1", 0);
 
 static constexpr int g_pDataBufferSize = 16384; // Used to decompress the data. 
-static constexpr int g_nComppressedSize = g_pDataBufferSize / 4; // Used as char[] to stackallocate compressed buffers when compressing which later on are moved to the heap
+static constexpr int g_nCompressedSize = g_pDataBufferSize / 4; // Used as char[] to stackallocate compressed buffers when compressing which later on are moved to the heap
 // A buffer so that we reduce allocations. You should only use it directly in one function and NOT pass it around as other functions might override its contents!
 static thread_local std::unique_ptr<char[]> g_pDataBuffer(new char[g_pDataBufferSize]); // We cannot just use it normally since else we run out of TBL space (Error: cannot allocate memory in static TLS block)
 static thread_local SteamOpus::Opus_FrameDecoder g_pOpusDecoder;
@@ -60,7 +60,7 @@ static void OnVoiceThreadsChange(IConVar* convar, const char* pOldValue, float f
 }
 
 static ConVar voicechat_threads("holylib_voicechat_threads", "4", FCVAR_ARCHIVE, "The number of threads to use for voicechat.LoadVoiceStream and voicechat.SaveVoiceStream if you specify async", OnVoiceThreadsChange);
-static ConVar voicechat_savedecompressed("holylib_voicechat_savedecompressed", "0", FCVAR_ARCHIVE, "If enabled the VoiceData will store the decompressed data improving quality though increasing memory usage when applying multiple effects since it no longer needs to decompress the data each time");
+static ConVar voicechat_savedecompressed("holylib_voicechat_savedecompressed", "1", FCVAR_ARCHIVE, "If enabled the VoiceData will store the decompressed data improving quality though increasing memory usage when applying multiple effects since it no longer needs to decompress the data each time");
 
 static CVoiceChatModule g_pVoiceChatModule;
 IModule* pVoiceChatModule = &g_pVoiceChatModule;
@@ -127,11 +127,12 @@ struct VoiceData
 			pDecompressedData = new char[iDecompressedLength]; // We won't need additional space right?
 	}
 
+	// This does NOT use the g_pDataBuffer
 	inline void SetDecompressedData(const char* pNewData, int iNewLength)
 	{
 		if (!voicechat_savedecompressed.GetBool())
 		{
-			char pCompressed[g_nComppressedSize];
+			char pCompressed[g_nCompressedSize];
 			int bytes = SteamVoice::CompressIntoBuffer(
 				fakeSteamID, &g_pOpusDecoder,
 				pNewData, iNewLength,
@@ -165,7 +166,7 @@ struct VoiceData
 	{
 		if ((bDecompressedChanged || !pData) && pDecompressedData)
 		{
-			char pCompressed[g_nComppressedSize];
+			char pCompressed[g_nCompressedSize];
 			int bytes = SteamVoice::CompressIntoBuffer(
 				fakeSteamID, &g_pOpusDecoder,
 				pDecompressedData, iDecompressedLength,
@@ -200,7 +201,10 @@ struct VoiceData
 		}
 
 		if (!pData)
+		{
+			*pLength = 0;
 			return nullptr;
+		}
 
 		int bytes = SteamVoice::DecompressIntoBuffer(
 			&g_pOpusDecoder,
@@ -240,7 +244,7 @@ struct VoiceData
 	{
 		if (bDecompressedChanged && pDecompressedData)
 		{
-			char pCompressed[g_nComppressedSize];
+			char pCompressed[g_nCompressedSize];
 			int bytes = SteamVoice::CompressIntoBuffer(
 				fakeSteamID, &g_pOpusDecoder,
 				pDecompressedData, iDecompressedLength,
