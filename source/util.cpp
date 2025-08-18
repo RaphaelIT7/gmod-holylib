@@ -184,6 +184,7 @@ void Util::Push_Entity(GarrysMod::Lua::ILuaInterface* LUA, CBaseEntity* pEnt)
 				ThreadSleep(10 * 1000); // Freeze the entire server for 10 seconds since this is a core issue!
 
 				// Let's try to recover from our failure
+				LUA->Pop(1);
 				GarrysMod::Lua::ILuaObject* pObj = LUA->NewTemporaryObject();
 				pObj->SetEntity(pEnt);
 				pObj->Push();
