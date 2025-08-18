@@ -394,6 +394,30 @@ static void hook_CHostState_State_ChangeLevelMP(const char* levelName, const cha
 	detour_CHostState_State_ChangeLevelMP.GetTrampoline<Symbols::CHostState_State_ChangeLevelMP>()(levelName, landmarkName);
 }
 
+LUA_FUNCTION_STATIC(Test_PushEntity)
+{
+	// We just push the world entity, in Lua we then test if we got an Entity.
+	Util::Push_Entity(LUA, Util::GetCBaseEntityFromEdict(Util::engineserver->PEntityOfEntIndex(0)));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(Test_GetEntity)
+{
+	CBaseEntity* pEntity = Util::Get_Entity(LUA, 1, true);
+	EHANDLE* pEntHandle = LUA->GetUserType<EHANDLE>(1, GarrysMod::Lua::Type::Entity);
+	// If something broke, either we will return false, or we will crash which is intented to make the tests fail.
+	LUA->PushBool(pEntity && pEntity->edict() && pEntity->edict()->m_EdictIndex == pEntHandle->GetEntryIndex());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(Test_GetPlayer) // Same as Test_GetEntity though calling Get_Player since it's a seperate independent function.
+{
+	CBasePlayer* pEntity = Util::Get_Player(LUA, 1, true);
+	EHANDLE* pEntHandle = LUA->GetUserType<EHANDLE>(1, GarrysMod::Lua::Type::Entity);
+	LUA->PushBool(pEntity && pEntity->edict() && pEntity->edict()->m_EdictIndex == pEntHandle->GetEntryIndex());
+	return 1;
+}
+
 void CHolyLibModule::LevelShutdown()
 {
 	if (*pLevelName == '\0') {
@@ -438,6 +462,11 @@ void CHolyLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 			Util::AddFunc(pLua, _UserMessageBegin, "UserMessageBegin");
 			Util::AddFunc(pLua, _MessageEnd, "MessageEnd");
 			Util::AddFunc(pLua, ReceiveClientMessage, "ReceiveClientMessage");
+
+			// Internal Testing
+			Util::AddFunc(pLua, Test_PushEntity, "__PushEntity");
+			Util::AddFunc(pLua, Test_GetEntity, "__GetEntity");
+			Util::AddFunc(pLua, Test_GetPlayer, "__GetPlayer");
 		Util::FinishTable(pLua, "HolyLib");
 	} else {
 		if (Lua::PushHook("HolyLib:Initialize", pLua))
