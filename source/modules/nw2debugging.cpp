@@ -93,7 +93,7 @@ public:
 	}
 };
 
-#if SYSTEM_WINDOWS
+#if SYSTEM_WINDOWS && !HOLYLIB_DEVELOPMENT
 extern ConVar g_CV_DTWatchEnt;
 
 //-----------------------------------------------------------------------------
@@ -151,7 +151,7 @@ public:
 	int				m_nTotalGapCount; */
 };
 
-#if SYSTEM_WINDOWS
+#if SYSTEM_WINDOWS && !HOLYLIB_DEVELOPMENT
 
 //-----------------------------------------------------------------------------
 // Delta timing helpers.
@@ -242,7 +242,7 @@ static inline bool SV_NeedsExplicitDestroy( int entnum, CFrameSnapshot *from, CF
 	return false;
 }
 
-#if SYSTEM_WINDOWS
+#if SYSTEM_WINDOWS && !HOLYLIB_DEVELOPMENT
 //-----------------------------------------------------------------------------
 // Purpose: Creates a delta header for the entity
 //-----------------------------------------------------------------------------
@@ -450,7 +450,7 @@ static bool SV_NeedsExplicitCreate( CEntityWriteInfo &u )
 	return bNeedsExplicitCreate;
 }
 
-#if SYSTEM_WINDOWS
+#if SYSTEM_WINDOWS && !HOLYLIB_DEVELOPMENT
 static inline void SV_DetermineUpdateType( CEntityWriteInfo &u )
 {
 	// Figure out how we want to update the entity.
@@ -897,7 +897,7 @@ Returns the size IN BITS of the message buffer created.
 
 static CBaseServer* g_pBaseServer = NULL;
 static Detouring::Hook detour_CBaseServer_WriteDeltaEntities;
-#if SYSTEM_WINDOWS
+#if SYSTEM_WINDOWS && !HOLYLIB_DEVELOPMENT
 static void hook_CBaseServer_WriteDeltaEntities( CBaseClient *client, CClientFrame *to, CClientFrame *from, bf_write &pBuf )
 {
 	// ToDo: Use ASM to get the CBaseServer variable from ecx
@@ -1110,6 +1110,7 @@ static inline FunnyUpdateTypes Test_SV_DetermineUpdateType( CEntityWriteInfo &u 
 	return FunnyUpdateTypes::FU_DeltaOrPreserve;
 }
 
+static std::unordered_map<int, int> pVisitedNewEntity;
 static CFrameSnapshotManager* framesnapshotmanager = NULL;
 static void hook_CBaseServer_WriteDeltaEntities(CBaseServer* pServer, CBaseClient *client, CClientFrame *to, CClientFrame *from, bf_write &pBuf )
 {
@@ -1150,7 +1151,7 @@ static void hook_CBaseServer_WriteDeltaEntities(CBaseServer* pServer, CBaseClien
 		u.m_pFromSnapshot = NULL;
 	}
 
-	std::unordered_map<int, int> pVisitedNewEntity;
+	pVisitedNewEntity.clear();
 	std::unordered_map<int, int> pVisitedOldEntity;
 	{
 		// Iterate through the in PVS bitfields until we find an entity 
@@ -1238,25 +1239,24 @@ static void hook_SV_DetermineUpdateType(CEntityWriteInfo& u)
 }
 
 static bool enterPVS = false;
+static bool explicitEnterPVS = false;
+static int currentPVSEnterEntity = -1;
 static Detouring::Hook detour_SV_WriteEnterPVS;
 static void hook_SV_WriteEnterPVS(CEntityWriteInfo& u)
 {
-	Msg("SV_WriteEnterPVS: Entity entered PVS\n", u.m_pToSnapshot->m_nTickCount);
+	Msg("SV_WriteEnterPVS: Entity entered PVS %i\n", u.m_pToSnapshot->m_nTickCount);
 	enterPVS = true;
-	detour_SV_WriteEnterPVS.GetTrampoline<Symbols::SV_DetermineUpdateType>()(u);
-	enterPVS = false;
-}
-
-typedef bool (*CGMODDataTable_Compare)(bf_read* magicBuffer1, bf_read* magicBuffer2, void* magicVar, int magicVar2);
-static Detouring::Hook detour_CGMODDataTable_Compare;
-static bool hook_CGMODDataTable_Compare(bf_read* magicBuffer1, bf_read* magicBuffer2, void* magicVar, int magicVar2)
-{
-	bool whatIsThis = detour_CGMODDataTable_Compare.GetTrampoline<CGMODDataTable_Compare>()(magicBuffer1, magicBuffer2, magicVar, magicVar2);
-	if (enterPVS)
+	currentPVSEnterEntity = u.m_nNewEntity;
+	auto it = pVisitedNewEntity.find(currentPVSEnterEntity);
+	if (it != pVisitedNewEntity.end())
 	{
-		Msg("CGMODDataTable_Compare: %i - %s\n", magicVar2, whatIsThis ? "true" : "false");
+		explicitEnterPVS = it->second == FunnyUpdateTypes::FU_ExplicitCreate;
+		Msg("SV_WriteEnterPVS: Entity explicit entered PVS %i - %i\n", u.m_pToSnapshot->m_nTickCount, currentPVSEnterEntity);
 	}
-	return whatIsThis;
+	detour_SV_WriteEnterPVS.GetTrampoline<Symbols::SV_DetermineUpdateType>()(u);
+	explicitEnterPVS = false;
+	enterPVS = false;
+	currentPVSEnterEntity = -1;
 }
 
 typedef bool (*CBaseClient_UpdateAcknowledgedFramecount)(CBaseClient* pClient, int tick);
@@ -1278,6 +1278,447 @@ static bool hook_CBaseClient_UpdateAcknowledgedFramecount(CBaseClient* pClient, 
 	}
 	
 	return bRet;
+}
+
+#include "GarrysMod/IGMODDataTable.h"
+
+// I wrote all of this code like a year ago or even longer, when I had initially discovered the NW2 bug and tried finding the cause.
+void F_Write(bf_write* bf, const CGMODVariant& var)
+{
+	float value = var.m_Float;
+	if (var.type == 7)
+	{
+		value = V_atof(var.m_pString);
+	}
+
+	bf->WriteFloat(value);
+}
+
+void F_Read(bf_read* bf, CGMODVariant& var)
+{
+	var.m_Float = bf->ReadFloat();
+	var.type = CGMODVariant_Number;
+}
+
+void F_Skip(bf_read* bf)
+{
+	bf->SeekRelative(32);
+}
+
+void I_Write(bf_write* bf, const CGMODVariant& var)
+{
+	int value = var.m_Int;
+	if (var.type == 7)
+	{
+		value = V_atof(var.m_pString);
+	}
+
+	bf->WriteBitLong(value, 32, true);
+}
+
+void I_Read(bf_read* bf, CGMODVariant& var)
+{
+	//var.m_Float = bf->ReadBitLong( 32, true );
+	var.type = CGMODVariant_Int;
+}
+
+void I_Skip(bf_read* bf)
+{
+	bf->SeekRelative(32);
+}
+
+void B_Write(bf_write* bf, const CGMODVariant& var)
+{
+	bool value = var.m_Bool;
+	if (var.type == 7)
+	{
+		value = V_stricmp(var.m_pString, "true") == 0;
+	}
+
+	bf->WriteOneBit(value);
+}
+
+void B_Read(bf_read* bf, CGMODVariant& var)
+{
+	var.m_Bool = bf->ReadOneBit();
+	var.type = CGMODVariant_Bool;
+}
+
+void B_Skip(bf_read* bf)
+{
+	bf->SeekRelative(1);
+}
+
+void V_Write(bf_write* bf, const CGMODVariant& var)
+{
+	Vector value = var.m_Vec;
+	if (var.type == 7)
+	{
+		// This is getting out of hand xd
+		sscanf(var.m_pString, "%f %f %f", &value.x, &value.y, &value.z);
+	}
+
+	bf->WriteBitVec3Coord(value);
+}
+
+void V_Read(bf_read* bf, CGMODVariant& var)
+{
+	bf->ReadBitVec3Coord(var.m_Vec);
+	var.type = CGMODVariant_Vector;
+}
+
+void V_Skip(bf_read* bf) // GMOD actually reads the floats
+{
+	bf->SeekRelative(96); // 32(float) * 3
+}
+
+void A_Write(bf_write* bf, const CGMODVariant& var)
+{
+	QAngle value = var.m_Ang;
+	if (var.type == 7)
+	{
+		// This is really getting out of hand
+		sscanf(var.m_pString, "%f %f %f", &value.x, &value.y, &value.z);
+	}
+
+	bf->WriteBitAngles(value);
+}
+
+void A_Read(bf_read* bf, CGMODVariant& var)
+{
+	bf->ReadBitAngles(var.m_Ang);
+	var.type = CGMODVariant_Angle;
+}
+
+void A_Skip(bf_read* bf) // GMOD actually reads the floats
+{
+	bf->SeekRelative(96); // 32(float) * 3
+}
+
+void E_Write(bf_write* bf, const CGMODVariant& var)
+{
+	int value = var.m_Ent;
+	if (var.type == 7)
+	{
+		// Why
+		value = V_atoi(var.m_pString);
+	}
+
+	bf->WriteShort(value);
+}
+
+void E_Read(bf_read* bf, CGMODVariant& var)
+{
+	var.m_Ent = bf->ReadShort();
+	var.type = CGMODVariant_Entity;
+}
+
+void E_Skip(bf_read* bf)
+{
+	bf->SeekRelative(NUM_NETWORKED_EHANDLE_BITS);
+}
+
+static constexpr int GMODDT_STRING_BITS = 9; // This is why we got that 511 character limit!
+void S_Write(bf_write* bf, const CGMODVariant& var)
+{
+	const char* string = var.m_pString;
+
+	switch (var.type)
+	{
+	case CGMODVariant_Number:
+		// ToDo %g
+		break;
+	case CGMODVariant_Vector:
+		// ToDo %g %g %g
+		break;
+	case CGMODVariant_Angle:
+		// ToDo %g %g %g
+		break;
+	case CGMODVariant_Int:
+		// ToDo %d
+		break;
+	case CGMODVariant_Entity:
+		// ToDo %d
+		break;
+	case CGMODVariant_Bool:
+		string = var.m_Bool ? "true" : "false";
+		break;
+	default:
+		break;
+	}
+
+	int length = strlen(string);
+	bf->WriteUBitLong(length, GMODDT_STRING_BITS);
+	bf->WriteBytes(string, length);
+}
+
+void S_Read(bf_read* bf, CGMODVariant& var)
+{
+	var.m_Length = bf->ReadUBitLong(GMODDT_STRING_BITS) + 1;
+	if (var.m_pString)
+	{
+		var.m_pString = (char*)realloc(var.m_pString, var.m_Length * sizeof(char));
+	}
+	else {
+		var.m_pString = (char*)malloc(var.m_Length * sizeof(char));
+	}
+
+	bf->ReadBytes(var.m_pString, var.m_Length);
+	var.m_pString[var.m_Length] = '\0';
+}
+
+void S_Skip(bf_read* bf)
+{
+	int length = bf->ReadUBitLong(GMODDT_STRING_BITS);
+	bf->SeekRelative(8 * length); // Skip it
+}
+
+// Only for String's since in our testing we mainly use them. Fk the others for now, I don't got the time to deal with them.
+bool S_Compare(bf_read* pDelta1, bf_read* pDelta2)
+{
+	unsigned int lengthDelta1 = pDelta1->ReadUBitLong(GMODDT_STRING_BITS);
+	unsigned int lengthDelta2 = pDelta2->ReadUBitLong(GMODDT_STRING_BITS);
+
+	if (lengthDelta1 != lengthDelta2)
+	{
+		pDelta1->SeekRelative(8 * lengthDelta1);
+		pDelta2->SeekRelative(8 * lengthDelta2);
+		return true;
+	}
+
+	for (int i = 0; i<lengthDelta1; ++i)
+	{
+		if (pDelta1->ReadByte() != pDelta2->ReadByte())
+		{
+			int bitsLeft = lengthDelta1 - i - 1;
+			if (bitsLeft > 0)
+			{
+				pDelta1->SeekRelative(8 * bitsLeft);
+				pDelta2->SeekRelative(8 * bitsLeft);
+			}
+			return true;
+		}
+	}
+
+	return false;
+}
+
+typedef struct
+{
+
+	void			(*Write) (bf_write* bf, const CGMODVariant& var);
+	void			(*Read) (bf_read* bf, CGMODVariant& var);
+	void			(*Skip) (bf_read* bf);
+	bool			(*Compare) (bf_read* bf1, bf_read* bf2); // I forgot this all thoes years ago, so now I had to do all of these since we need them...
+} VariantInfoType;
+
+VariantInfoType s_VariantInfo[CGMODVariant_Count] =
+{
+	// CGMODVariant_NIL
+	{
+		NULL,
+		NULL,
+		NULL,
+		NULL,
+	},
+
+	// CGMODVariant_Float
+	{
+		F_Write,
+		F_Read,
+		F_Skip,
+		NULL,
+	},
+
+	// CGMODVariant_Int
+	{
+		I_Write,
+		I_Read,
+		I_Skip,
+		NULL,
+	},
+
+	// CGMODVariant_Bool
+	{
+		B_Write,
+		B_Read,
+		B_Skip,
+		NULL,
+	},
+
+	// CGMODVariant_Vector
+	{
+		V_Write,
+		V_Read,
+		V_Skip,
+		NULL,
+	},
+
+	// CGMODVariant_Angle
+	{
+		A_Write,
+		A_Read,
+		A_Skip,
+		NULL,
+	},
+
+	// CGMODVariant_Entity
+	{
+		E_Write,
+		E_Read,
+		E_Skip,
+		NULL,
+	},
+
+	// CGMODVariant_String
+	{
+		S_Write,
+		S_Read,
+		S_Skip,
+		S_Compare,
+	},
+};
+
+static constexpr int GMODDT_INDEX_BITS = 12;
+static constexpr int GMODDT_TYPE_BITS = 3;
+static constexpr int GMODDT_INVALID_INDEX = USHRT_MAX;
+
+// s_VariantInfo has no debug symbol so we can't just load it :sob:
+static void GMODVariant_Skip(bf_read* pBuffer)
+{
+	unsigned int type = pBuffer->ReadUBitLong(GMODDT_TYPE_BITS);
+	if (s_VariantInfo[type].Skip)
+		s_VariantInfo[type].Skip(pBuffer);
+}
+
+static bool GMODVariant_Compare(bf_read* pDelta1, bf_read* pDelta2)
+{
+	unsigned int type1 = pDelta1->ReadUBitLong(GMODDT_TYPE_BITS);
+	unsigned int type2 = pDelta2->ReadUBitLong(GMODDT_TYPE_BITS);
+
+	if (type1 != type2)
+	{
+		if (s_VariantInfo[type1].Skip) {
+			s_VariantInfo[type1].Skip(pDelta1);
+		}
+
+		if (s_VariantInfo[type2].Skip) {
+			s_VariantInfo[type2].Skip(pDelta2);
+		}
+		return true;
+	}
+
+	if (s_VariantInfo[type1].Compare) {
+		return s_VariantInfo[type1].Compare(pDelta1, pDelta2);
+	}
+
+	return false;
+}
+
+class CGMODDataTable : public IGMODDataTable
+{
+public:
+	struct Entry // CGMODDataTable::Entry
+	{
+	public:
+		int m_iChangeTick = 0;
+		CGMODVariant m_pValue;
+	};
+
+	// CUtlRBTree<CUtlMap<unsigned short,CGMODDataTable::Entry,unsigned short>::Node_t,unsigned short,CUtlMap<unsigned short,CGMODDataTable::Entry,unsigned short>::CKeyLess,CUtlMemory<UtlRBTreeNode_t<CUtlMap<unsigned short,CGMODDataTable::Entry,unsigned short>::Node_t,unsigned short>,unsigned short>>::InsertRebalance
+	CUtlMap<unsigned short, Entry> m_pVarData;
+	CUtlMap<unsigned short, Entry> m_pOtherData; // What even uses this? Why does it have two maps? Also I'm like 99% this is wrong since I saw usage of a CUtlDict though the offset seems fine???
+	bool m_bFullUpdate;
+};
+
+static unsigned short GMODDataTable_NextIndex(bf_read* pDeltaBuffer, int& iCount)
+{
+	if (iCount > 0) {
+		--iCount; // IDA showed --*var
+		return pDeltaBuffer->ReadUBitLong(GMODDT_INDEX_BITS);
+	} else {
+		return GMODDT_INVALID_INDEX;
+	}
+}
+
+static Detouring::Hook detour_CGMODDataTable_Compare;
+static bool hook_CGMODDataTable_Compare(bf_read* pDelta1, bf_read* pDelta2, CGMODDataTable* pOtherTable, int targetTick)
+{
+	bool changed = false;
+
+	int delta1Count = pDelta1->ReadUBitLong(GMODDT_INDEX_BITS);
+	int delta2Count = pDelta2->ReadUBitLong(GMODDT_INDEX_BITS);
+
+	// Only took ages to figure out this order, had assumed for 6+ months it first would have read 1 bit then 12 bits. IDA my love <3
+
+	pDelta1->SeekRelative(1);
+	pDelta2->SeekRelative(1);
+
+	int delta2BitsRead = pDelta2->GetNumBitsRead(); // Required since it seeks back?!?
+	int delta2InitCount = delta2Count;
+
+	unsigned short delta1Index = GMODDataTable_NextIndex(pDelta1, delta1Count);
+	unsigned short delta2Index = GMODDataTable_NextIndex(pDelta1, delta2Count);
+
+	bool fullUpdate = delta2Index == GMODDT_INVALID_INDEX && delta1Index != GMODDT_INVALID_INDEX;
+	while (delta2Index != GMODDT_INVALID_INDEX)
+	{
+		//bool noFullUpdate = !fullUpdate; // Weird but ok? Fk this, probably IDA trolling.
+		unsigned short changeIndex = GMODDT_INVALID_INDEX;
+		if (!fullUpdate && delta1Index < delta2Index)
+		{
+			pDelta2->Seek(delta2BitsRead); // Seeking back???
+			delta2Index = 0;
+			delta2Count = delta2InitCount;
+			fullUpdate = true;
+
+			Msg("CGMODataTable_Compare: Triggered full update for %i\n", targetTick);
+			continue;
+		}
+
+		if (fullUpdate && delta1Index != delta2Index)
+		{
+			GMODVariant_Skip(pDelta2);
+			changeIndex = delta2Index;
+		} else {
+			if (GMODVariant_Compare(pDelta1, pDelta2))
+				changeIndex = delta2Index;
+
+			delta1Index = GMODDataTable_NextIndex(pDelta1, delta1Count);
+		}
+
+		if (changeIndex != GMODDT_INVALID_INDEX)
+		{
+			changed = true;
+
+			if (pOtherTable)
+			{
+				// Probably checks for the result of find? Idk IDA shows me that its using pDelta2->m_nDataBits for some reason to error, it's probably having a stroke.
+				// Error("GMODDataTable: Invalid key in packed entity data (%d)", changeIndex);
+				int index = pOtherTable->m_pVarData.Find(changeIndex);
+				if (index == pOtherTable->m_pVarData.InvalidIndex()) // Apparently we need this since else when testing we crash instantly.
+				{
+					pOtherTable->m_pVarData.Element(index).m_iChangeTick = targetTick;
+				}
+			}
+		}
+
+		delta2Index = GMODDataTable_NextIndex(pDelta2, delta2Count);
+	}
+
+	while (delta1Index != GMODDT_INVALID_INDEX)
+	{
+		GMODVariant_Skip(pDelta1);
+		delta1Index = GMODDataTable_NextIndex(pDelta1, delta1Count);
+	}
+
+	if (explicitEnterPVS && !fullUpdate)
+	{
+		Msg("No full update when we had a explicit create! %i\n", currentPVSEnterEntity);
+	}
+
+	pOtherTable->m_bFullUpdate = fullUpdate;
+	return fullUpdate || changed;
 }
 #endif
 
