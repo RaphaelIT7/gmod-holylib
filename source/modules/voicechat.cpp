@@ -457,11 +457,92 @@ LUA_FUNCTION_STATIC(VoiceData_CreateCopy)
 	return 1;
 }
 
-/*struct WavAudioFile {
-	std::vector<char> data;
+struct WavAudioFile {
+	~WavAudioFile()
+	{
+		if (bIsOurData)
+		{
+			delete[] data;
+		}
+	}
+
+	void WriteData(const void* pData, int nDataLength)
+	{
+		if ((currentPos + nDataLength) >= dataSize)
+		{
+			//if (g_pVoiceChatModule.InDebug() == 1)
+			{
+				Warning(PROJECT_NAME " - voicechat: Almost overflowed WavAudioFile!\n");
+			}
+			return;
+		}
+
+		memcpy(data + currentPos, pData, nDataLength);
+		currentPos += nDataLength;
+	}
+
+	int ReadData(void* pData, int nDataLength)
+	{
+		if ((currentPos + nDataLength) > dataSize)
+			return 0;
+
+		memcpy(pData, data + currentPos, nDataLength);
+		currentPos += nDataLength;
+
+		return nDataLength;
+	}
+
+	void Seek(int nSeek)
+	{
+		currentPos += nSeek;
+
+		if (currentPos < 0)
+			currentPos = 0;
+	}
+
+	char* GetData()
+	{
+		return data;
+	}
+
+	// Resets itself & resizes the data preparing for writes.
+	void Resize(int nDataSize)
+	{
+		if (data && bIsOurData)
+			delete[] data;
+
+		data = new char[nDataSize];
+		dataSize = nDataSize;
+		currentPos = 0;
+		bIsOurData = true;
+	}
+
+	void SetData(char* pData, int nDataLength)
+	{
+		if (data && bIsOurData)
+			delete[] data;
+
+		data = pData;
+		dataSize = nDataLength;
+		bIsOurData = false;
+	}
+
+	int CurrentPos()
+	{
+		if (currentPos > dataSize)
+			return dataSize;
+
+		return currentPos;
+	}
+
+private:
+	char* data = nullptr;
+	unsigned int dataSize = 0;
+	unsigned int currentPos = 0;
+	bool bIsOurData = false;
 };
 
-Push_LuaClass(WavAudioFile)
+/*Push_LuaClass(WavAudioFile)
 Get_LuaClass(WavAudioFile, "WavAudioFile")
 
 LUA_FUNCTION_STATIC(WavAudioFile__tostring)
@@ -581,7 +662,8 @@ struct VoiceStream {
 		return pStream;
 	}
 
-	/*WavAudioFile**/ void SaveWave(FileHandle_t fh)
+	// We can write into a file & into a WavAudioFile struct at once.
+	void SaveWave(FileHandle_t fh = nullptr, WavAudioFile* pWav = nullptr)
 	{
 		ISteamUser* pSteamUser = Util::GetSteamUser();
 		if (!pSteamUser)
@@ -630,19 +712,23 @@ struct VoiceStream {
 		header.bitsPerSample = bitsPerSample;
 		header.dataSize = dataSize;
 
-		/*
-		WavAudioFile* wav = new WavAudioFile;
-		wav->data.resize(sizeof(WAVHeader) + dataSize);
-		memcpy(wav->data.data(), &header, sizeof(WAVHeader));
-		if (dataSize > 0)
-			memcpy(wav->data.data() + sizeof(WAVHeader), wavePCM.data(), dataSize);
-		*/
+		if (fh)
+		{
+			g_pFullFileSystem->Write(&header, sizeof(WAVHeader), fh);
+			if (dataSize > 0)
+				g_pFullFileSystem->Write(wavePCM.data(), dataSize, fh);
+		}
 
-		g_pFullFileSystem->Write(&header, sizeof(WAVHeader), fh);
-		if (dataSize > 0)
-			g_pFullFileSystem->Write(wavePCM.data(), dataSize, fh);
+		if (pWav)
+		{
+			pWav->Resize(sizeof(WAVHeader) + dataSize);
+			pWav->WriteData(&header, sizeof(WAVHeader));
 
-		return; // wav;
+			if (dataSize > 0)
+				pWav->WriteData(wavePCM.data(), dataSize);
+		}
+
+		return;
 	}
 
 	static double CatmullRom(double y0, double y1, double y2, double y3, double t) {
@@ -728,7 +814,8 @@ struct VoiceStream {
 		return out;
 	}*/
 
-	static VoiceStream* LoadWave(FileHandle_t fh)
+	// We CANNOT load a wav from both the FileHandle & WavAudioFile, one of them is always expected to be NULL!
+	static VoiceStream* LoadWave(FileHandle_t fh = nullptr, WavAudioFile* pWav = nullptr)
 	{
 		struct WAVHeader {
 			char riff[4];
@@ -746,8 +833,24 @@ struct VoiceStream {
 			uint32_t dataSize;
 		};
 
+		if ((!fh && !pWav) || (fh && pWav))
+		{
+			//if (g_pVoiceChatModule.InDebug() == 1)
+			{
+				Warning(PROJECT_NAME " - voicechat - LoadWave: both the FileHandle & the WaveAudioFile are NULL or valid?... How... (%p, %p)\n", fh, pWav);
+			}
+			return NULL;
+		}
+
 		WAVHeader header;
-		if (g_pFullFileSystem->Read(&header, sizeof(header), fh) != sizeof(header)) {
+		int nHeaderBytesRead = 0;
+		if (fh) {
+			nHeaderBytesRead = g_pFullFileSystem->Read(&header, sizeof(header), fh);
+		} else {
+			nHeaderBytesRead = pWav->ReadData(&header, sizeof(header));
+		}
+
+		if (nHeaderBytesRead != sizeof(header)) {
 			if (g_pVoiceChatModule.InDebug() == 1)
 			{
 				Warning(PROJECT_NAME " - voicechat - LoadWave: invalid header!\n");
@@ -756,10 +859,18 @@ struct VoiceStream {
 		}
 
 		// the .wav had funny shit that now causes our data to be screwed up.
-		if (strncmp(header.data, "LIST", 4) == 0) {
-			g_pFullFileSystem->Seek(fh, header.dataSize, FileSystemSeek_t::FILESYSTEM_SEEK_CURRENT);
-			g_pFullFileSystem->Read(&header.data, sizeof(header.data), fh);
-			g_pFullFileSystem->Read(&header.dataSize, sizeof(header.dataSize), fh);
+		if (fh) {
+			if (strncmp(header.data, "LIST", 4) == 0) {
+				g_pFullFileSystem->Seek(fh, header.dataSize, FileSystemSeek_t::FILESYSTEM_SEEK_CURRENT);
+				g_pFullFileSystem->Read(&header.data, sizeof(header.data), fh);
+				g_pFullFileSystem->Read(&header.dataSize, sizeof(header.dataSize), fh);
+			}
+		} else {
+			if (strncmp(header.data, "LIST", 4) == 0) {
+				pWav->Seek(header.dataSize);
+				pWav->ReadData(&header.data, sizeof(header.data));
+				pWav->ReadData(&header.dataSize, sizeof(header.dataSize));
+			}
 		}
 
 		if (strncmp(header.riff, "RIFF", 4) != 0 || strncmp(header.wave, "WAVE", 4) != 0 ||
@@ -785,7 +896,14 @@ struct VoiceStream {
 		}
 
 		std::vector<char> pcmData(header.dataSize);
-		if ((uint32_t)g_pFullFileSystem->Read(pcmData.data(), header.dataSize, fh) != header.dataSize) {
+		uint32_t nDataBytesRead = 0;
+		if (fh) {
+			nDataBytesRead = (uint32_t)g_pFullFileSystem->Read(pcmData.data(), header.dataSize, fh);
+		} else {
+			nDataBytesRead = (uint32_t)pWav->ReadData(pcmData.data(), header.dataSize);
+		}
+
+		if (nDataBytesRead != header.dataSize) {
 			if (g_pVoiceChatModule.InDebug() == 1)
 			{
 				Warning(PROJECT_NAME " - voicechat - LoadWave: invalid data!\n");
@@ -1568,6 +1686,7 @@ enum VoiceStreamTaskType {
 	VoiceStreamTask_NONE,
 	VoiceStreamTask_SAVE,
 	VoiceStreamTask_LOAD,
+	VoiceStreamTask_LOADWAV,
 };
 
 struct VoiceStreamTask {
@@ -1584,15 +1703,21 @@ struct VoiceStreamTask {
 			pLua->ReferenceFree(iCallback);
 			iCallback = -1;
 		}
+
+		if (pWavFile)
+		{
+			// We push it using LUA->PushString, so we expect that when our Task is deleted that either our wav data was pushed to Lua or it was discarded.
+			delete pWavFile;
+		}
 	}
 
-	char pFileName[MAX_PATH];
-	char pGamePath[MAX_PATH];
+	char pFileName[MAX_PATH] = {0};
+	char pGamePath[MAX_PATH] = {0};
 
 	VoiceStreamTaskType iType = VoiceStreamTask_NONE;
 	VoiceStreamTaskStatus iStatus = VoiceStreamTaskStatus_NONE;
 
-	// WavAudioFile* pWavFile = NULL;
+	WavAudioFile* pWavFile = NULL;
 	VoiceStream* pStream = NULL;
 	int iReference = -1; // A reference to the pStream to stop the GC from kicking in.
 	int iCallback = -1;
@@ -1645,13 +1770,13 @@ static void VoiceStreamJob(VoiceStreamTask*& task)
 		}
 		case VoiceStreamTask_SAVE:
 		{
+			bool bIsWave = getFileExtension(task->pFileName) == "wav";
 			FileHandle_t fh = g_pFullFileSystem->Open(task->pFileName, "wb", task->pGamePath);
 			if (fh)
 			{
-				bool bIsWave = getFileExtension(task->pFileName) == "wav";
 				if (bIsWave)
 				{
-					task->pStream->SaveWave(fh);
+					task->pStream->SaveWave(fh, task->pWavFile);
 					//task->pWavFile = task->pStream->SaveWave(fh);
 
 					//if (task->pWavFile == NULL)
@@ -1662,8 +1787,21 @@ static void VoiceStreamJob(VoiceStreamTask*& task)
 
 				g_pFullFileSystem->Close(fh);
 			} else {
+				if (task->pWavFile)
+				{
+					task->pStream->SaveWave(nullptr, task->pWavFile);
+					break;
+				}
+
 				task->iStatus = VoiceStreamTaskStatus_FAILED_FILE_NOT_FOUND;
 			}
+			break;
+		}
+		case VoiceStreamTask_LOADWAV:
+		{
+			task->pStream = VoiceStream::LoadWave(nullptr, task->pWavFile);
+			if (task->pStream == NULL)
+				task->iStatus = VoiceStreamTaskStatus_FAILED_INVALID_FILE;
 			break;
 		}
 		default:
@@ -1722,20 +1860,75 @@ LUA_FUNCTION_STATIC(voicechat_LoadVoiceStream)
 	}
 }
 
+LUA_FUNCTION_STATIC(voicechat_LoadVoiceStreamFromWaveString)
+{
+	LuaVoiceModuleData* pData = GetVoiceChatLuaData(LUA);
+
+	const char* pWaveData = LUA->CheckString(1);
+	bool bAsync = LUA->IsType(2, GarrysMod::Lua::Type::Function);
+	bool bPromiseToNeverModify = LUA->GetBool(3);
+
+	VoiceStreamTask* task = new VoiceStreamTask;
+	task->pWavFile = new WavAudioFile;
+	task->iType = VoiceStreamTask_LOAD;
+	task->pLua = LUA;
+
+	int pWaveDataLength = LUA->ObjLen(1);
+	if (!bPromiseToNeverModify)
+	{
+		task->pWavFile->Resize(pWaveDataLength);
+		task->pWavFile->WriteData(pWaveData, pWaveDataLength);
+	} else {
+		// Instead of creating a copy of the data we store the pointer saving memory & making this faster
+		// Though they have to keep their promise to not modify the data while we use this!
+		task->pWavFile->SetData((char*)pWaveData, pWaveDataLength);
+
+		LUA->Push(1);
+		task->iReference = Util::ReferenceCreate(LUA, "voicechat.LoadVoiceStreamFromWavString - data");
+	}
+
+	if (bAsync)
+	{
+		LUA->Push(3);
+		task->iCallback = Util::ReferenceCreate(LUA, "voicechat.LoadVoiceStreamFromWavString - callback");
+
+		pData->pVoiceStreamTasks.insert(task);
+		AddVoiceJobToPool(VoiceStreamJob, task);
+		return 0;
+	} else {
+		VoiceStreamJob(task);
+		Push_VoiceStream(LUA, task->pStream);
+		LUA->PushNumber((int)task->iStatus);
+		delete task;
+		return 2;
+	}
+}
+
 LUA_FUNCTION_STATIC(voicechat_SaveVoiceStream)
 {
 	LuaVoiceModuleData* pData = GetVoiceChatLuaData(LUA);
 
 	VoiceStream* pStream = Get_VoiceStream(LUA, 1, true);
-	const char* pFileName = LUA->CheckString(2);
+	const char* pFileName = LUA->CheckStringOpt(2, nullptr);
 	const char* pGamePath = LUA->CheckStringOpt(3, "DATA");
 	bool bAsync = LUA->IsType(4, GarrysMod::Lua::Type::Function);
+	bool bReturnWaveData = LUA->GetBool(5);
+
+	if (!bReturnWaveData && !pFileName)
+		LUA->CheckType(2, GarrysMod::Lua::Type::String); // Will error xd
 
 	VoiceStreamTask* task = new VoiceStreamTask;
-	V_strncpy(task->pFileName, pFileName, sizeof(task->pFileName));
+	if (pFileName) {
+		V_strncpy(task->pFileName, pFileName, sizeof(task->pFileName));
+	} else {
+		V_memset(task->pFileName, 0, sizeof(task->pFileName));
+	}
 	V_strncpy(task->pGamePath, pGamePath, sizeof(task->pGamePath));
 	task->iType = VoiceStreamTask_SAVE;
 	
+	if (bReturnWaveData || !pFileName) {
+		task->pWavFile = new WavAudioFile;
+	}
 	task->pStream = pStream;
 	task->pLua = LUA;
 
@@ -1752,10 +1945,10 @@ LUA_FUNCTION_STATIC(voicechat_SaveVoiceStream)
 	} else {
 		VoiceStreamJob(task);
 		LUA->PushNumber((int)task->iStatus);
-		/*if (task->pWavFile)
+		if (task->pWavFile)
 		{
-			Push_WavAudioFile(LUA, task->pWavFile);
-		}*/
+			LUA->PushString(task->pWavFile->GetData(), task->pWavFile->CurrentPos());
+		}
 		delete task;
 		return 1;
 	}
@@ -1876,13 +2069,12 @@ void CVoiceChatModule::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
 		}
 
 		pLua->ReferencePush(pTask->iCallback);
-		/*if (pTask->pWavFile)
-		{
-			Push_WavAudioFile(pLua, pTask->pWavFile);
-		} else*/ {
-			Push_VoiceStream(pLua, pTask->pStream); // Lua GC will take care of deleting.
-		}
+		Push_VoiceStream(pLua, pTask->pStream); // Lua GC will take care of deleting.
 		pLua->PushBool(pTask->iStatus == VoiceStreamTaskStatus_DONE);
+		if (pTask->iType == VoiceStreamTask_SAVE && pTask->pWavFile)
+		{
+			pLua->PushString(pTask->pWavFile->GetData(), pTask->pWavFile->CurrentPos());
+		}
 
 		pLua->CallFunctionProtected(2, 0, true);
 		
@@ -1969,6 +2161,7 @@ void CVoiceChatModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServer
 		Util::AddFunc(pLua, voicechat_IsProximityHearingClient, "IsProximityHearingClient");
 		Util::AddFunc(pLua, voicechat_CreateVoiceStream, "CreateVoiceStream");
 		Util::AddFunc(pLua, voicechat_LoadVoiceStream, "LoadVoiceStream");
+		Util::AddFunc(pLua, voicechat_LoadVoiceStreamFromWaveString, "LoadVoiceStreamFromWaveString");
 		Util::AddFunc(pLua, voicechat_SaveVoiceStream, "SaveVoiceStream");
 		Util::AddFunc(pLua, voicechat_IsPlayerTalking, "IsPlayerTalking");
 		Util::AddFunc(pLua, voicechat_LastPlayerTalked, "LastPlayerTalked");

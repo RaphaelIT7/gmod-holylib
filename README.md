@@ -76,7 +76,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [+] Added a few stringtable related functions to the `stringtable` module.<br>
 \- [+] Added a new hook `HolyLib:OnClientTimeout` to the `gameserver` module.<br>
 \- [+] Optimized `GM:PlayerCanHearPlayersVoice` by **only** calling it for actively speaking players/when a voice packet is received.<br>
-\- [+] Added `voicechat.ApplyEffect`, `voicechat.IsPlayerTalking` & `voicechat.LastPlayerTalked` to the `voicechat` module.<br>
+\- [+] Added `voicechat.LoadVoiceStreamFromWaveString`, `voicechat.ApplyEffect`, `voicechat.IsPlayerTalking` & `voicechat.LastPlayerTalked` to the `voicechat` module.<br>
 \- [+] Added `util.FancyJSONToTable` & `util.AsyncTableToJSON` to the `util` module.<br>
 \- [+] Added `gameserver.GetClientByUserID` to the `gameserver` module.<br>
 \- [+] Added a config system allowing one to set convars without using the command line.<br>
@@ -129,13 +129,14 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 \- [+] Added third `protocolVersion` argument to `gameserver.CreateNetChannel`<br>
 \- [+] Added fourth `socket`(use `NS_` enums) argument to `gameserver.CreateNetChannel` & `gameserver.SendConnectionlessPacket`<br>
 \- [+] Added second and thrid arguments to `HolyLib:OnPhysicsLag` providing the entities it was working on when it triggered.<br>
+\- [+] Added `voicechat.SaveVoiceStream` 4th argument `returnWaveData` (previously the 4th argument was `async` but that one was removed)<br>
 \- [#] Fixed `addonsystem.ShouldMount` & `addonsystem.SetShouldMount` `workshopID` arguments being a number when they should have been a string.<br>
 \- [#] Changed `VoiceData:GetUncompressedData` to now returns a statusCode/a number on failure instead of possibly returning a garbage string.<br>
 \- [#] Limited `HttpServer:SetName` to have a length limit of `64` characters.<br>
 \- [#] Fixed `IGModAudioChannel:IsValid` throwing a error when it's NULL instead of returning false.<br>
 \- [#] Fixed `HttpServer:SetWriteTimeout` using the wrong arguments. (See https://github.com/RaphaelIT7/gmod-holylib/pull/65)<br>
 \- [#] Fixed `bf_read:ReadBytes` and `bf_read:ReadBits` both failing to push the string properly to lua.<br>
-\- [#] Changed `voicechat.SaveVoiceStream` & `voicechat.LoadVoiceStream` to remove their 4th argument, if a callback is provided it will be async, else it'll run sync<br>
+\- [#] Changed `voicechat.SaveVoiceStream` & `voicechat.LoadVoiceStream` to remove their 4th `sync` argument, if a callback is provided it will be async, else it'll run sync<br>
 \- [-] Removed `VoiceData:GetUncompressedData` decompress size argument<br>
 \- [-] Removed `CBaseClient:Transmit` third argument `fragments`.<br>
 \- [-] Removed `gameserver.CalculateCPUUsage` and `gameserver.ApproximateProcessMemoryUsage` since they never worked.<br>
@@ -2307,9 +2308,19 @@ If you want it to **not** run async, simply provide **no** callback function<br>
 > [!NOTE]
 > This function also supports `.wav` files to load from since `0.8`
 
-#### number(statusCode) voicechat.SaveVoiceStream(VoiceStream stream, string fileName, string gamePath = "DATA", function callback = nil)
+#### VoiceStream, number(statusCode) voicechat.LoadVoiceStreamFromWaveString(string waveData, function callback = nil, bool promiseToNeverModify = false)
 callback = `function(VoiceStream loadedStream, number statusCode)`
 statusCode = `-4 = Invalid file, -3 = Invalid version, -2 = File not found, -1 = Invalid type, 0 = None, 1 = Done`<br>
+promiseToNeverModify = If set to `true`, it will reference the waveData instead of copying it reducing memory usage and improving speed though you need to keep your promise of never modifying it while it's in use!<br>
+
+Tries to load a VoiceStream from the given data.<br>
+If a `callback` is specified it **WONT** return **anything** and the `callback` will be called, as it will execute everythign **async**.<br>
+If you want it to **not** run async, simply provide **no** callback function<br>
+
+#### number(statusCode), string(waveData) voicechat.SaveVoiceStream(VoiceStream stream, string fileName = nil, string gamePath = "DATA", function callback = nil, bool returnWaveData = false)
+callback = `function(VoiceStream loadedStream, number statusCode)`
+statusCode = `-4 = Invalid file, -3 = Invalid version, -2 = File not found, -1 = Invalid type, 0 = None, 1 = Done`<br>
+returnWaveData = If set to true, the function will when running in sync return the waveData as a string, or if async will return the waveData as a fourth argument after `statusCode` in the callback.<br>
 
 Tries to save a VoiceStream into the given file.<br>
 If a `callback` is specified it **WONT** return **anything** and the `callback` will be called, as it will execute everythign **async**.<br>
@@ -2321,6 +2332,10 @@ If you want it to **not** run async, simply provide **no** callback function<br>
 > [!NOTE]
 > This function also supports `.wav` files to write the data into since `0.8`.<br>
 > You should **always** inform your players if you save their voice!
+
+> [!NOTE]
+> You can set both `fileName` and `returnWaveData` which will cause it to be written to disk and the data to be returned<br>
+> If `fileName` and `returnWaveData` are both not set then it will error as atleast one of them needs to be enabled.<br>
 
 ### bool voicedata.IsPlayerTalking(Player ply/number playerSlot)
 Returns `true` if the player is currently talking.<br>
