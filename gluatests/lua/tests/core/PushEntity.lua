@@ -12,7 +12,7 @@ return {
             func = function()
                 local ent = HolyLib.__PushEntity()
                 expect( ent ).to.beA( "Entity" )
-                expect( ent ).to.beValid()
+                expect( ent ).to.equal( game.GetWorld() )
                 expect( ent:IsWorld() ).to.beTrue()
             end
         },
