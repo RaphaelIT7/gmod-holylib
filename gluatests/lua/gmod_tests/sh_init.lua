@@ -24,6 +24,70 @@ function HolyLib_IsModuleEnabled(name)
 	return GetConVar("holylib_enable_" .. name):GetBool()
 end
 
+require("reqwest")
+HTTP = reqwest or HTTP
+
+-- ConVar's don't work since thoes would need to exist before it tries to set all values from the command line. (Maybe make a gmod request? idk)
+-- local loki_host = CreateConVar("holylib_loki_host", "", {FCVAR_DONTRECORD, FCVAR_PROTECTED, FCVAR_UNLOGGED}, "Loki host secret.")
+-- local loki_api = CreateConVar("holylib_loki_api", "", {FCVAR_DONTRECORD, FCVAR_PROTECTED, FCVAR_UNLOGGED}, "Loki api key secret.")
+
+local loki_host = file.Read("loki_host.txt", "MOD")
+local loki_api = file.Read("loki_api.txt", "MOD")
+function HolyLib_RunPerformanceTest(name, callback, ...)
+    if not loki_host or loki_host == "" then
+        print("Skipping performance test \"" .. name .. "\" since were missing Loki.")
+        return
+    end
+
+    local startTime = SysTime()
+    local totalCalls = 0
+    while (SysTime() - startTime) < 2 do -- We spend a total of 2 seconds to run these
+        callback(...)
+        totalCalls = totalCalls + 1
+    end
+    
+    local totalTime = SysTime() - startTime -- Should almost always be 1 second
+    local timePerCall = totalTime / totalCalls
+    print("Finished performance test for \"" .. name .. "\". Took " .. totalTime .. "s with a total of " .. totalCalls .." calls (" .. timePerCall .. "s per call)")
+
+    HTTP({
+        blocking = true,
+        failed = function(reason)
+            print("Failed to send performance results to Loki!", reason)
+        end,
+        success = function(code, body, headers)
+            print("Successfully sent performance results to Loki :3", code)
+        end,
+        method = "POST",
+        url = string.Trim(loki_host) .. "/loki/api/v1/push",
+        type = "application/json",
+        headers = {
+            ["X-Api-Key"] = string.Trim(loki_api),
+        },
+        body = util.TableToJSON({
+            streams = {
+                {
+                    stream = {
+                        run_number = _HOLYLIB_RUN_NUMBER,
+                        branch = _HOLYLIB_BRANCH,
+                    },
+                    values = {
+                        {
+                            string.format("%.0f", os.time() * 1000 * 1000 * 1000), -- Need nano time
+                            util.TableToJSON({
+                                ["totalCalls"] = totalCalls,
+                                ["totalTime"] = totalTime,
+                                ["gmodBranch"] = BRANCH,
+                                ["name"] = name,
+                            })
+                        }
+                    }
+                }
+            }
+        })
+    })
+end
+
 if SERVER then
     --- Makes an entity for test purposes
     --- @param class string? The class of the entity
