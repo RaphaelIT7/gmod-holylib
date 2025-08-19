@@ -131,7 +131,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 \- [+] Added fourth `socket`(use `NS_` enums) argument to `gameserver.CreateNetChannel` & `gameserver.SendConnectionlessPacket`<br>
 \- [+] Added second and thrid arguments to `HolyLib:OnPhysicsLag` providing the entities it was working on when it triggered.<br>
 \- [+] Added `voicechat.SaveVoiceStream` 4th argument `returnWaveData` (previously the 4th argument was `async` but that one was removed)<br>
-\- [+] Added `directData` argument to `VoiceStream:GetData`, `VoiceStream:GetIndex` and `VoiceStream:SetIndex`<br>
+\- [+] Added `directData` argument to `VoiceStream:GetData`, `VoiceStream:GetIndex`, `VoiceStream:SetIndex` and `VoiceStream:SetData`<br>
 \- [#] Fixed `addonsystem.ShouldMount` & `addonsystem.SetShouldMount` `workshopID` arguments being a number when they should have been a string.<br>
 \- [#] Changed `VoiceData:GetUncompressedData` to now returns a statusCode/a number on failure instead of possibly returning a garbage string.<br>
 \- [#] Limited `HttpServer:SetName` to have a length limit of `64` characters.<br>
@@ -2484,7 +2484,10 @@ Returns a table, with the tick as key and **copy** of the VoiceData as value.<br
 > modifying them won't affect the internally stored VoiceData.
 > Call `VoiceStream:SetData` or `VoiceStream:SetIndex` after you modified it to update it.<br>
 
-#### VoiceStream:SetData(table data)
+#### VoiceStream:SetData(table data, bool directData = false)
+directData - If true it will store the VoiceData itself **instead of** creating a copy that would be saved, if you modify the VoiceData after you called this, you will change the VoiceData stored in the stream!<br>
+(This argument will reduce memory usage & should improve performance slightly)<br>
+
 Sets the VoiceStream from the given table.<br>
 
 #### number VoiceStream:GetCount()
@@ -2502,7 +2505,7 @@ Returns a **copy** of the VoiceData for the given index or `nil`.<br>
 > Call `VoiceStream:SetData` or `VoiceStream:SetIndex` after you modified it to update it.<br>
 
 #### VoiceStream:SetIndex(number index, VoiceData data, bool directData = false)
-directData - If true it will set the VoiceData itself **instead of** creating a copy that would be saved, if you modify the VoiceData after you called this, you will change the VoiceData stored in the stream!<br>
+directData - If true it will store the VoiceData itself **instead of** creating a copy that would be saved, if you modify the VoiceData after you called this, you will change the VoiceData stored in the stream!<br>
 (This argument will reduce memory usage & should improve performance slightly)<br>
 
 Create a copy of the given VoiceData and sets it onto the specific index and overrides any data thats already present.<br>
@@ -2532,7 +2535,7 @@ Returns the VoiceData of the current tick without changing the internal tick cou
 directData - If true it will set the VoiceData itself **instead of** creating a copy that would be saved, if you modify the VoiceData after you called this, you will change the VoiceData stored in the stream!<br>
 (This argument will reduce memory usage & should improve performance slightly)<br>
 
-Returns the VoiceData of the previous tick and decrements the counter by one<br>
+Returns the VoiceData of the previous tick and decrements the internal tick count by one<br>
 
 ### Hooks
 

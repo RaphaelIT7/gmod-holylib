@@ -1169,6 +1169,7 @@ LUA_FUNCTION_STATIC(VoiceStream_SetData)
 {
 	VoiceStream* pStream = Get_VoiceStream(LUA, 1, true);
 	LUA->CheckType(2, GarrysMod::Lua::Type::Table);
+	bool directData = LUA->GetBool(3);
 
 	LUA->Push(2);
 	LUA->PushNil();
@@ -1186,7 +1187,7 @@ LUA_FUNCTION_STATIC(VoiceStream_SetData)
 
 		if (data)
 		{
-			pStream->SetIndex(tick, data->CreateCopy());
+			pStream->SetIndex(tick, directData ? data : data->CreateCopy());
 		}
 
 		LUA->Pop(1);
