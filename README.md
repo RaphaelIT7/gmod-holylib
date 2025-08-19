@@ -77,6 +77,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [+] Added a new hook `HolyLib:OnClientTimeout` to the `gameserver` module.<br>
 \- [+] Optimized `GM:PlayerCanHearPlayersVoice` by **only** calling it for actively speaking players/when a voice packet is received.<br>
 \- [+] Added `voicechat.LoadVoiceStreamFromWaveString`, `voicechat.ApplyEffect`, `voicechat.IsPlayerTalking` & `voicechat.LastPlayerTalked` to the `voicechat` module.<br>
+\- [+] Added `VoiceStream:ResetTick`, `VoiceStream:GetNextTick`, `VoiceStream:GetCurrentTick`, `VoiceStream:GetPreviousTick` to the `voicechat` module.<br>
 \- [+] Added `util.FancyJSONToTable` & `util.AsyncTableToJSON` to the `util` module.<br>
 \- [+] Added `gameserver.GetClientByUserID` to the `gameserver` module.<br>
 \- [+] Added a config system allowing one to set convars without using the command line.<br>
@@ -130,6 +131,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 \- [+] Added fourth `socket`(use `NS_` enums) argument to `gameserver.CreateNetChannel` & `gameserver.SendConnectionlessPacket`<br>
 \- [+] Added second and thrid arguments to `HolyLib:OnPhysicsLag` providing the entities it was working on when it triggered.<br>
 \- [+] Added `voicechat.SaveVoiceStream` 4th argument `returnWaveData` (previously the 4th argument was `async` but that one was removed)<br>
+\- [+] Added `directData` argument to `VoiceStream:GetData`, `VoiceStream:GetIndex` and `VoiceStream:SetIndex`<br>
 \- [#] Fixed `addonsystem.ShouldMount` & `addonsystem.SetShouldMount` `workshopID` arguments being a number when they should have been a string.<br>
 \- [#] Changed `VoiceData:GetUncompressedData` to now returns a statusCode/a number on failure instead of possibly returning a garbage string.<br>
 \- [#] Limited `HttpServer:SetName` to have a length limit of `64` characters.<br>
@@ -2504,6 +2506,33 @@ directData - If true it will set the VoiceData itself **instead of** creating a 
 (This argument will reduce memory usage & should improve performance slightly)<br>
 
 Create a copy of the given VoiceData and sets it onto the specific index and overrides any data thats already present.<br>
+
+### VoiceStream functions for playback
+These functions mainly make it easier to play the VoiceData.<br>
+you can have a Think hook and call `VoiceStream:GetNextTick` once per Tick and either it returns a VoiceData for that Tick or it returns `nil`.<br>
+This way you don't need to keep track of a counter yourself to play the VoiceData from.<br>
+
+#### int (previousTick) VoiceStream:ResetTick(number resetTick = 0)
+Resets the current tick of the voicestream back to the given value or `0`<br>
+Returns the tick it was previously at<br>
+
+#### VoiceData VoiceStream:GetNextTick(bool directData = false)
+directData - If true it will set the VoiceData itself **instead of** creating a copy that would be saved, if you modify the VoiceData after you called this, you will change the VoiceData stored in the stream!<br>
+(This argument will reduce memory usage & should improve performance slightly)<br>
+
+Returns the VoiceData of the next tick and increments the internal tick counter by one.<br>
+
+#### VoiceData VoiceStream:GetCurrentTick(bool directData = false)
+directData - If true it will set the VoiceData itself **instead of** creating a copy that would be saved, if you modify the VoiceData after you called this, you will change the VoiceData stored in the stream!<br>
+(This argument will reduce memory usage & should improve performance slightly)<br>
+
+Returns the VoiceData of the current tick without changing the internal tick count<br>
+
+#### VoiceData VoiceStream:GetPreviousTick(bool directData = false)
+directData - If true it will set the VoiceData itself **instead of** creating a copy that would be saved, if you modify the VoiceData after you called this, you will change the VoiceData stored in the stream!<br>
+(This argument will reduce memory usage & should improve performance slightly)<br>
+
+Returns the VoiceData of the previous tick and decrements the counter by one<br>
 
 ### Hooks
 

@@ -1023,6 +1023,9 @@ struct VoiceStream {
 	 */
 	inline VoiceData* GetIndex(int index)
 	{
+		if (index < nLowestTick || index > nHightestTick)
+			return NULL;
+
 		auto it = pVoiceData.find(index);
 		if (it == pVoiceData.end())
 			return NULL;
@@ -1044,6 +1047,17 @@ struct VoiceStream {
 
 		pVoiceData[index] = pData;
 		pData->bAllowLuaGC = false;
+
+		if (index > nHightestTick)
+		{
+			nHightestTick = index;
+		}
+
+		// Idk, I feel like some insane people might insert negative indexes xD
+		if (nLowestTick > index)
+		{
+			nLowestTick = index;
+		}
 	}
 
 	/*
@@ -1069,10 +1083,42 @@ struct VoiceStream {
 		return pVoiceData;
 	}
 
+	inline void ResetTick(int nResetTick = 0)
+	{
+		nCurrentTick = nResetTick;
+	}
+
+	inline VoiceData* GetNextTick()
+	{
+		return GetIndex(nCurrentTick++);
+	}
+
+	inline VoiceData* GetPreviousTick()
+	{
+		return GetIndex(nCurrentTick--);
+	}
+
+	inline VoiceData* GetCurrentTick()
+	{
+		return GetIndex(nCurrentTick);
+	}
+
+	// Yes confusing naming... Anyways
+	inline int GetCurrentTickCount()
+	{
+		return nCurrentTick;
+	}
+
 private:
 	// key = tickcount
 	// value = VoiceData
 	std::unordered_map<int, VoiceData*> pVoiceData;
+	// Current tick, idea is that inside a Think hook you can call VoiceStream:GetNextTick()
+	// We don't clamp it since people might for example set it to -100 and then call GetNextTick to delay the start for example.
+	int nCurrentTick = 0;
+	// The highest tick we have stored, we use it to skip lookups in pVoiceData to improve performance for Indexes we know don't exist.
+	int nHightestTick = 0;
+	int nLowestTick = 0;
 };
 
 Push_LuaClass(VoiceStream)
@@ -1177,6 +1223,46 @@ LUA_FUNCTION_STATIC(VoiceStream_SetIndex)
 
 	pStream->SetIndex(index, directValue ? pData : pData->CreateCopy());
 	return 0;
+}
+
+LUA_FUNCTION_STATIC(VoiceStream_ResetTick)
+{
+	VoiceStream* pStream = Get_VoiceStream(LUA, 1, true);
+	int nResetTick = (int)LUA->CheckNumberOpt(2, 0);
+
+	LUA->PushNumber(pStream->GetCurrentTickCount());
+	pStream->ResetTick(nResetTick);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VoiceStream_GetNextTick)
+{
+	VoiceStream* pStream = Get_VoiceStream(LUA, 1, true);
+	bool bDirectData = LUA->GetBool(2);
+
+	VoiceData* pData = pStream->GetNextTick();
+	Push_VoiceData(LUA, pData ? (bDirectData ? pData : pData->CreateCopy()) : NULL);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VoiceStream_GetPreviousTick)
+{
+	VoiceStream* pStream = Get_VoiceStream(LUA, 1, true);
+	bool bDirectData = LUA->GetBool(2);
+
+	VoiceData* pData = pStream->GetPreviousTick();
+	Push_VoiceData(LUA, pData ? (bDirectData ? pData : pData->CreateCopy()) : NULL);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(VoiceStream_GetCurrentTick)
+{
+	VoiceStream* pStream = Get_VoiceStream(LUA, 1, true);
+	bool bDirectData = LUA->GetBool(2);
+
+	VoiceData* pData = pStream->GetCurrentTick();
+	Push_VoiceData(LUA, pData ? (bDirectData ? pData : pData->CreateCopy()) : NULL);
+	return 1;
 }
 
 namespace VoiceEffects
@@ -2170,6 +2256,11 @@ void CVoiceChatModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServer
 		Util::AddFunc(pLua, VoiceStream_GetCount, "GetCount");
 		Util::AddFunc(pLua, VoiceStream_GetIndex, "GetIndex");
 		Util::AddFunc(pLua, VoiceStream_SetIndex, "SetIndex");
+
+		Util::AddFunc(pLua, VoiceStream_ResetTick, "ResetTick");
+		Util::AddFunc(pLua, VoiceStream_GetNextTick, "GetNextTick");
+		Util::AddFunc(pLua, VoiceStream_GetCurrentTick, "GetCurrentTick");
+		Util::AddFunc(pLua, VoiceStream_GetPreviousTick, "GetPreviousTick");
 	pLua->Pop(1);
 
 	/*Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::WavAudioFile, pLua->CreateMetaTable("WavAudioFile"));
