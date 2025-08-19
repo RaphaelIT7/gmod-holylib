@@ -85,6 +85,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [+] Added `HttpResponse:SetStatusCode` to `httpserver` module. (See https://github.com/RaphaelIT7/gmod-holylib/pull/62)<br>
 \- [+] Added `HttpRequest:GetPathParam` to `httpserver` module. (See https://github.com/RaphaelIT7/gmod-holylib/pull/63)<br>
 \- [+] Added `bitbuf.CreateStackReadBuffer` & `bitbuf.CreateStackWriteBuffer` to `bitbuf` module.<br>
+\- [+] Added a fallback method for HolyLib's internal `Util::PushEntity` function in case a Gmod update breaks our offsets which previously lead to undefined behavior<br>
 \- [#] Added some more safeguards to `IPhysicsEnvironment:Simulate` to prevent one from simulating a environment that is already being simulated.<br>
 \- [#] Highly optimized `util` module's json code to be noticably faster and use noticably less memory.<br>
 \- [#] Better support for multiple Lua states<br>
@@ -2368,11 +2369,7 @@ If a `callback` is specified it **WONT** return **anything** and the `callback` 
 If you want it to **not** run async, simply provide **no** callback function, it will return `true` on success<br>
 
 > [!NOTE]
-> It should be safe to modify/use the VoiceStream while it's saving async **BUT** you should try to avoid doing that.
-
-> [!NOTE]
-> This function also supports `.wav` files to write the data into since `0.8`.<br>
-> You should **always** inform your players if you save their voice!
+> It should be safe to modify/use the VoiceStream while it's being modified async **BUT** you should try to avoid doing that.
 
 ####
 
