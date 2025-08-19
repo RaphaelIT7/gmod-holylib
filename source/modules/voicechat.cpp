@@ -291,6 +291,7 @@ struct VoiceData
 	int iPlayerSlot = 0; // What if it's an invalid one ;D (It doesn't care.......)
 	bool bProximity = true;
 	bool bDecompressedChanged = false;
+	bool bAllowLuaGC = true;
 
 private:
 	int iLength = 0;
@@ -323,7 +324,7 @@ Default__newindex(VoiceData);
 Default__GetTable(VoiceData);
 Default__gc(VoiceData,
 	VoiceData* pVoiceData = (VoiceData*)pStoredData;
-	if (pVoiceData)
+	if (pVoiceData && pVoiceData->bAllowLuaGC)
 		delete pVoiceData;
 )
 
@@ -1042,17 +1043,18 @@ struct VoiceStream {
 		}
 
 		pVoiceData[index] = pData;
+		pData->bAllowLuaGC = false;
 	}
 
 	/*
 	 * We create a copy of EVERY voiceData.
 	 */
-	inline void CreateLuaTable(GarrysMod::Lua::ILuaInterface* pLua)
+	inline void CreateLuaTable(GarrysMod::Lua::ILuaInterface* pLua, bool bDirect = false)
 	{
 		pLua->PreCreateTable(0, pVoiceData.size());
 			for (auto& [tickCount, voiceData] : pVoiceData)
 			{
-				Push_VoiceData(pLua, voiceData->CreateCopy());
+				Push_VoiceData(pLua, bDirect ? voiceData : voiceData->CreateCopy());
 				Util::RawSetI(pLua, -2, tickCount);
 			}
 	}
@@ -1111,8 +1113,9 @@ LUA_FUNCTION_STATIC(VoiceStream_IsValid)
 LUA_FUNCTION_STATIC(VoiceStream_GetData)
 {
 	VoiceStream* pStream = Get_VoiceStream(LUA, 1, true);
+	bool bDirectData = LUA->GetBool(2);
 
-	pStream->CreateLuaTable(LUA);
+	pStream->CreateLuaTable(LUA, bDirectData);
 	return 1;
 }
 
@@ -1158,9 +1161,10 @@ LUA_FUNCTION_STATIC(VoiceStream_GetIndex)
 {
 	VoiceStream* pStream = Get_VoiceStream(LUA, 1, true);
 	int index = (int)LUA->CheckNumber(2);
+	bool directValue = LUA->GetBool(3);
 
 	VoiceData* data = pStream->GetIndex(index);
-	Push_VoiceData(LUA, data ? data->CreateCopy() : NULL);
+	Push_VoiceData(LUA, data ? (directValue ? data : data->CreateCopy()) : NULL);
 	return 1;
 }
 
@@ -1169,8 +1173,9 @@ LUA_FUNCTION_STATIC(VoiceStream_SetIndex)
 	VoiceStream* pStream = Get_VoiceStream(LUA, 1, true);
 	int index = (int)LUA->CheckNumber(2);
 	VoiceData* pData = Get_VoiceData(LUA, 3, true);
+	bool directValue = LUA->GetBool(4);
 
-	pStream->SetIndex(index, pData->CreateCopy());
+	pStream->SetIndex(index, directValue ? pData : pData->CreateCopy());
 	return 0;
 }
 

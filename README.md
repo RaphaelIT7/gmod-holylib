@@ -2471,7 +2471,10 @@ You can store variables into it.<br>
 #### bool VoiceStream:IsValid()
 Returns `true` if the VoiceData is still valid.<br>
 
-#### table VoiceStream:GetData()
+#### table VoiceStream:GetData(bool directData = false)
+directData - If true it will return the VoiceData itself **instead of** creating a copy, if you modify it you will change the VoiceData stored in the stream!<br>
+(This argument will reduce memory usage & should improve performance slightly)<br>
+
 Returns a table, with the tick as key and **copy** of the VoiceData as value.<br>
 
 > [!NOTE]
@@ -2485,7 +2488,10 @@ Sets the VoiceStream from the given table.<br>
 #### number VoiceStream:GetCount()
 Returns the number of VoiceData it stores.<br>
 
-#### VoiceData VoiceStream:GetIndex(number index)
+#### VoiceData VoiceStream:GetIndex(number index, bool directData = false)
+directData - If true it will return the VoiceData itself **instead of** creating a copy, if you modify it you will change the VoiceData stored in the stream!<br>
+(This argument will reduce memory usage & should improve performance slightly)<br>
+
 Returns a **copy** of the VoiceData for the given index or `nil`.<br>
 
 > [!NOTE]
@@ -2493,7 +2499,10 @@ Returns a **copy** of the VoiceData for the given index or `nil`.<br>
 > modifying them won't affect the internally stored VoiceData.
 > Call `VoiceStream:SetData` or `VoiceStream:SetIndex` after you modified it to update it.<br>
 
-#### VoiceStream:SetIndex(number index, VoiceData data)
+#### VoiceStream:SetIndex(number index, VoiceData data, bool directData = false)
+directData - If true it will set the VoiceData itself **instead of** creating a copy that would be saved, if you modify the VoiceData after you called this, you will change the VoiceData stored in the stream!<br>
+(This argument will reduce memory usage & should improve performance slightly)<br>
+
 Create a copy of the given VoiceData and sets it onto the specific index and overrides any data thats already present.<br>
 
 ### Hooks
