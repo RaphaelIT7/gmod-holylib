@@ -2320,20 +2320,18 @@ If you want it to **not** run async, simply provide **no** callback function<br>
 #### number(statusCode), string(waveData) voicechat.SaveVoiceStream(VoiceStream stream, string fileName = nil, string gamePath = "DATA", function callback = nil, bool returnWaveData = false)
 callback = `function(VoiceStream loadedStream, number statusCode)`
 statusCode = `-4 = Invalid file, -3 = Invalid version, -2 = File not found, -1 = Invalid type, 0 = None, 1 = Done`<br>
-returnWaveData = If set to true, the function will when running in sync return the waveData as a string, or if async will return the waveData as a fourth argument after `statusCode` in the callback.<br>
+returnWaveData = If set to true (or if `fileName` is nil), the function will when running in sync return the waveData as a string, or if async will return the waveData as a fourth argument after `statusCode` in the callback.<br>
+
+Argument overload version (will **always** return wave data): `voicechat.SaveVoiceStream(VoiceStream stream, function callback = nil)`
 
 Tries to save a VoiceStream into the given file.<br>
 If a `callback` is specified it **WONT** return **anything** and the `callback` will be called, as it will execute everythign **async**.<br>
 If you want it to **not** run async, simply provide **no** callback function<br>
 
 > [!NOTE]
-> It should be safe to modify/use the VoiceStream while it's saving async **BUT** you should try to avoid doing that.
-
-> [!NOTE]
+> It should be safe to modify/use the VoiceStream while it's saving async **BUT** you should try to avoid doing that. <br>
 > This function also supports `.wav` files to write the data into since `0.8`.<br>
-> You should **always** inform your players if you save their voice!
-
-> [!NOTE]
+> You should **always** inform your players if you save their voice! <br>
 > You can set both `fileName` and `returnWaveData` which will cause it to be written to disk and the data to be returned<br>
 > If `fileName` and `returnWaveData` are both not set then it will error as atleast one of them needs to be enabled.<br>
 

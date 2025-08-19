@@ -1906,13 +1906,33 @@ LUA_FUNCTION_STATIC(voicechat_LoadVoiceStreamFromWaveString)
 
 LUA_FUNCTION_STATIC(voicechat_SaveVoiceStream)
 {
+	/*
+		Default version:
+
+		-- Either you set the last false / returnWaveData to true to receive the wavData as a string, or you provide no file name
+		voicechat.SaveVoiceStream(stream, "file.wav", "DATA", function(stream, status, wav) end, false)
+
+		Argument Overload version:
+
+		-- This will always return wav data since we never get a file name.
+		voicechat.SaveVoiceStream(stream, function(stream, status, wav) end)
+	*/
+
 	LuaVoiceModuleData* pData = GetVoiceChatLuaData(LUA);
 
 	VoiceStream* pStream = Get_VoiceStream(LUA, 1, true);
-	const char* pFileName = LUA->CheckStringOpt(2, nullptr);
-	const char* pGamePath = LUA->CheckStringOpt(3, "DATA");
-	bool bAsync = LUA->IsType(4, GarrysMod::Lua::Type::Function);
-	bool bReturnWaveData = LUA->GetBool(5);
+	bool bIsOverloadFunction = LUA->IsType(2, GarrysMod::Lua::Type::Function); // If our second arg is a function then we got the overload version.
+	bool bAsync = bIsOverloadFunction;
+	const char* pFileName = nullptr;
+	const char* pGamePath = nullptr;
+	bool bReturnWaveData = bAsync;
+	if (!bAsync)
+	{
+		pFileName = LUA->CheckStringOpt(2, nullptr);
+		pGamePath = LUA->CheckStringOpt(3, "DATA");
+		bAsync = LUA->IsType(4, GarrysMod::Lua::Type::Function);
+		bReturnWaveData = LUA->GetBool(5) || !pFileName; // if no pFileName was given / if nil then it should also return wav data.
+	}
 
 	if (!bReturnWaveData && !pFileName)
 		LUA->CheckType(2, GarrysMod::Lua::Type::String); // Will error xd
@@ -1937,7 +1957,11 @@ LUA_FUNCTION_STATIC(voicechat_SaveVoiceStream)
 		LUA->Push(1);
 		task->iReference = Util::ReferenceCreate(LUA, "voicechat.SaveVoiceStream - VoiceStream");
 
-		LUA->Push(4);
+		if (bIsOverloadFunction) {
+			LUA->Push(2);
+		} else {
+			LUA->Push(4);
+		}
 		task->iCallback = Util::ReferenceCreate(LUA, "voicechat.SaveVoiceStream - callback");
 		pData->pVoiceStreamTasks.insert(task);
 		AddVoiceJobToPool(VoiceStreamJob, task);
