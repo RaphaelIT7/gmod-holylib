@@ -925,7 +925,7 @@ LUA_FUNCTION_STATIC(bitbuf_CreateStackReadBuffer)
 	pNewBf.StartReading(cData, iNewLength);
 
 	LUA->Push(2);
-	LuaUserData* pLuaData = Push_bf_read(LUA, &pNewBf, true);
+	LuaUserData* pLuaData = Push_bf_read(LUA, &pNewBf, false); // false since else when __gc is called we'd try to delete stack allocated memory! (Who would even try something stupid like that, oh right. Me)
 	LUA->CallFunctionProtected(1, 0, true);
 	pLuaData->Release(LUA); // Sets the stored data to NULL ensuring we don't save the pointer to our stack allocated pNewBf
 
@@ -986,7 +986,7 @@ LUA_FUNCTION_STATIC(bitbuf_CreateStackWriteBuffer)
 	}
 
 	LUA->Push(2);
-	LuaUserData* pLuaData = Push_bf_write(LUA, &pNewBf, true);
+	LuaUserData* pLuaData = Push_bf_write(LUA, &pNewBf, false); // false since else when __gc is called we'd try to delete stack allocated memory!
 	LUA->CallFunctionProtected(1, 0, true);
 	pLuaData->Release(LUA); // Sets the stored data to NULL ensuring we don't save the pointer to our stack allocated pNewBf
 
