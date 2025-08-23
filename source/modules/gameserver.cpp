@@ -1643,6 +1643,9 @@ LUA_FUNCTION_STATIC(CNetChan_SendMessage)
 	bf_write* bf = Get_bf_write(LUA, 2, true);
 	bool bReliable = LUA->GetBool(3);
 
+	if (bf->IsOverflowed())
+		LUA->ThrowError("Tried to use a buffer that is overflowed!");
+
 	NET_LuaNetChanMessage msg;
 	msg.m_DataOut.StartWriting(bf->GetData(), 0, 0, bf->GetMaxNumBits());
 	msg.m_iLength = bf->GetNumBitsWritten();

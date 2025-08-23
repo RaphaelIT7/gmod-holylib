@@ -133,7 +133,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 \- [+] Added second and thrid arguments to `HolyLib:OnPhysicsLag` providing the entities it was working on when it triggered.<br>
 \- [+] Added `voicechat.SaveVoiceStream` 4th argument `returnWaveData` (previously the 4th argument was `async` but that one was removed)<br>
 \- [+] Added `directData` argument to `VoiceStream:GetData`, `VoiceStream:GetIndex`, `VoiceStream:SetIndex` and `VoiceStream:SetData`<br>
-\- [+] Added overflow checks for `gameserver.BroadcastMessage` and `CBaseClient:SendNetMsg` when you try to use a overflowed buffer<br>
+\- [+] Added overflow checks for `gameserver.BroadcastMessage`, `CNetChan:SendMessage` and `CBaseClient:SendNetMsg` when you try to use a overflowed buffer<br>
 \- [#] Fixed `addonsystem.ShouldMount` & `addonsystem.SetShouldMount` `workshopID` arguments being a number when they should have been a string.<br>
 \- [#] Changed `VoiceData:GetUncompressedData` to now returns a statusCode/a number on failure instead of possibly returning a garbage string.<br>
 \- [#] Limited `HttpServer:SetName` to have a length limit of `64` characters.<br>
