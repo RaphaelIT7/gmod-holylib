@@ -74,7 +74,7 @@ static IVP_SkipType pCurrentSkipType = IVP_SkipType::IVP_None;
 
 #define TOSTRING( var ) var ? "true" : "false"
 
-static auto pCurrentTime = std::chrono::high_resolution_clock::now();
+static thread_local auto pCurrentTime = std::chrono::high_resolution_clock::now();
 static double pCurrentLagThreadshold = 100; // 100 ms
 struct ILuaPhysicsEnvironment;
 static inline ILuaPhysicsEnvironment* RegisterPhysicsEnvironment(IPhysicsEnvironment* pEnv);
@@ -124,7 +124,7 @@ static IVPHolyLib g_pIVPHolyLib;
 GMODPush_LuaClass(IPhysicsObject, GarrysMod::Lua::Type::PhysObj);
 
 //static Symbols::IVP_Mindist_Base_get_objects func_IVP_Mindist_Base_get_objects;
-static bool g_pIsInPhysicsLagCall = false;
+static thread_local bool g_pIsInPhysicsLagCall = false;
 static thread_local std::vector<GMODSDK::IVP_Real_Object*> g_pCurrentRecheckOVElement; // not a unordered_set since this should never grow huge/iterating is faster than hashing for this one.
 void CheckPhysicsLag(const char* pFunctionName, CPhysicsObject* pObject1, CPhysicsObject* pObject2)
 {
@@ -208,9 +208,9 @@ void CheckPhysicsLag(const char* pFunctionName, CPhysicsObject* pObject1, CPhysi
 #if PHYSENV_INCLUDEIVPFALLBACK
 static bool bIsJoltPhysics = false; // if were using jolt, a lot of things need to change.
 class IVP_Mindist;
-static bool g_bInImpactCall = false;
-static IVP_Mindist** g_pCurrentMindist;
-static bool* g_fDeferDeleteMindist;
+static thread_local bool g_bInImpactCall = false;
+static thread_local IVP_Mindist** g_pCurrentMindist;
+static thread_local bool* g_fDeferDeleteMindist;
 
 static Detouring::Hook detour_IVP_Mindist_D2;
 static void hook_IVP_Mindist_D2(IVP_Mindist* mindist)
