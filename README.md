@@ -119,12 +119,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [#] Fixed `gameserver.SendConnectionlessPacket` crashing instead of throwing a lua error when NET_SendPacket couldn't be loaded<br>
 \- [-] Removed some unused code of former fixes that were implemented into Gmod<br>
 
-
-> [!WARNING]
-> The current builds are unstable and need **A LOT** of testing.<br>
-> Use the last `0.7` release instead of the last workflow run if you value your server's stability!<br>
-
-You can see all changes here:<br>
+You can see all changes/commits here:<br>
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 
 ### Existing Lua API Changes
