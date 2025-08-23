@@ -3076,9 +3076,10 @@ Skip the entire simulation.<br>
 
 ### Hooks
 
-#### IVP_SkipType HolyLib:OnPhysicsLag(number simulationTime, PhysObj phys1, PhysObj phys2, PhysObj recalcPhys, string callerFunction)
+#### IVP_SkipType HolyLib:OnPhysicsLag(number simulationTime, PhysObj phys1, PhysObj phys2, table recalcPhys, string callerFunction)
 callerFunction - This will be the internal IVP function in which the lag was detected and caued this Lua call<br>
-All arguments like `phys1`, `phys2` and `recalcPhys` can be nil! (not NULL)<br>
+recalcPhys - A table containing all physics objects that currently are recalculating collisions. **Avoid modifying them!**<br>
+All arguments like `phys1`, `phys2` can be nil! (not NULL)<br>
 
 Called when the physics simulaton is taking longer than the set lag threshold.<br>
 It provides the two entities it was currently working on when the hook was triggered,<br>
@@ -3087,7 +3088,8 @@ most likely they will be the oney causing the lag BUT it should NOT be taken for
 You can freeze all props here and then return `physenv.IVP_SkipSimulation` to skip the simulation for this tick if someone is trying to crash the server.<br>
 
 > [!WARNING]
-> Avoid modifying the `recalcPhys` PhysObject as changing collision rules on it can possibly be unstable!<br>
+> Avoid modifying the `recalcPhys` PhysObjects as changing collision rules on it can possibly be unstable!<br>
+> The table of `recalcPhys` has both key and value set for PhysObjects allowing you to easily check it like this: `if not recalcPhys[pObjectToModify] then`<br>
 
 > [!NOTE]
 > Only works on Linux32<br>

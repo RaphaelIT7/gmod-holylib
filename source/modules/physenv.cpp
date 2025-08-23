@@ -125,7 +125,7 @@ GMODPush_LuaClass(IPhysicsObject, GarrysMod::Lua::Type::PhysObj);
 
 //static Symbols::IVP_Mindist_Base_get_objects func_IVP_Mindist_Base_get_objects;
 static bool g_pIsInPhysicsLagCall = false;
-static thread_local GMODSDK::IVP_Real_Object* g_pCurrentRecheckOVElement = nullptr;
+static thread_local std::vector<GMODSDK::IVP_Real_Object*> g_pCurrentRecheckOVElement; // not a unordered_set since this should never grow huge/iterating is faster than hashing for this one.
 void CheckPhysicsLag(const char* pFunctionName, CPhysicsObject* pObject1, CPhysicsObject* pObject2)
 {
 	if (pCurrentSkipType != IVP_SkipType::IVP_None || g_pIsInPhysicsLagCall) // We already have a skip type.
@@ -153,20 +153,30 @@ void CheckPhysicsLag(const char* pFunctionName, CPhysicsObject* pObject1, CPhysi
 				g_Lua->PushNil();
 			}
 
-			if (g_pCurrentRecheckOVElement && g_pCurrentRecheckOVElement->client_data != nullptr)
+			g_Lua->PreCreateTable(g_pCurrentRecheckOVElement.size(), g_pCurrentRecheckOVElement.size());
+			int i = 0;
+			for (GMODSDK::IVP_Real_Object* pObject : g_pCurrentRecheckOVElement)
 			{
-				IPhysicsObject* pCurrentOVObject = (IPhysicsObject*)g_pCurrentRecheckOVElement->client_data;
-				Push_IPhysicsObject(g_Lua, pCurrentOVObject);
-			}
-			else {
-				g_Lua->PushNil();
+				IPhysicsObject* pCurrentOVObject = (IPhysicsObject*)pObject->client_data;
+				if (pCurrentOVObject)
+				{
+					Push_IPhysicsObject(g_Lua, pCurrentOVObject);
+				} else {
+					g_Lua->PushNil();
+				}
+
+				g_Lua->Push(-1);
+				Util::RawSetI(g_Lua, -3, ++i);
+
+				g_Lua->PushNumber(i);
+				g_Lua->SetTable(-3);
 			}
 
 			g_Lua->PushString(pFunctionName);
 
 			g_pIsInPhysicsLagCall = true;
 			pCurrentTime = std::chrono::high_resolution_clock::now(); // Update timer.
-			if (g_Lua->CallFunctionProtected(9, 1, true))
+			if (g_Lua->CallFunctionProtected(6, 1, true))
 			{
 				int pType = (int)g_Lua->GetNumber(-1);
 				if (pType >= IVP_SkipType::IVP_LastSkipType || pType < -1)
@@ -319,20 +329,22 @@ static void hook_IVP_OV_Element_remove_oo_collision(void* ovElement, GMODSDK::IV
 }
 
 static Detouring::Hook detour_IVP_Mindist_Manager_recheck_ov_element;
-static void hook_IVP_Mindist_Manager_recheck_ov_element(void* mindistManager, GMODSDK::IVP_Real_Object* pObject)
+static void hook_IVP_Mindist_Manager_recheck_ov_element(void* mindistManager, GMODSDK::IVP_Real_Object* pRecalcObject)
 {
-	if (g_pCurrentRecheckOVElement == pObject)
+	for (GMODSDK::IVP_Real_Object* pObject : g_pCurrentRecheckOVElement)
 	{
-		Warning(PROJECT_NAME " - physenv: Tried to recheck_ov_element while already in a recheck_ov_element call! Don't change the collision rules of the current physObject!\n");
-		return;
+		if (pObject == pRecalcObject)
+		{
+			Warning(PROJECT_NAME " - physenv: Tried to recheck_ov_element while already in a recheck_ov_element call! Don't change the collision rules of the current physObject!\n");
+			return;
+		}
 	}
 
-	GMODSDK::IVP_Real_Object* pPreviousObject = g_pCurrentRecheckOVElement;
-	g_pCurrentRecheckOVElement = pObject;
+	g_pCurrentRecheckOVElement.push_back(pRecalcObject);
 
-	detour_IVP_Mindist_Manager_recheck_ov_element.GetTrampoline<Symbols::IVP_Mindist_Manager_recheck_ov_element>()(mindistManager, pObject);
+	detour_IVP_Mindist_Manager_recheck_ov_element.GetTrampoline<Symbols::IVP_Mindist_Manager_recheck_ov_element>()(mindistManager, pRecalcObject);
 
-	g_pCurrentRecheckOVElement = pPreviousObject;
+	g_pCurrentRecheckOVElement.pop_back();
 }
 #endif
 
