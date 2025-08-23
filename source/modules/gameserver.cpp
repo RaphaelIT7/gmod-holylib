@@ -315,6 +315,9 @@ LUA_FUNCTION_STATIC(CBaseClient_SendNetMsg)
 	if (!pClient)
 		LUA->ThrowError("Failed to get IClient from player!");
 
+	if (bf->IsOverflowed())
+		LUA->ThrowError("Tried to use a buffer that is overflowed!");
+
 	SVC_CustomMessage msg;
 	msg.m_iType = iType;
 	strncpy(msg.m_strName, strName, sizeof(msg.m_strName));
@@ -2083,6 +2086,9 @@ LUA_FUNCTION_STATIC(gameserver_BroadcastMessage)
 	int iType = (int)LUA->CheckNumber(1);
 	const char* strName = LUA->CheckString(2);
 	bf_write* bf = Get_bf_write(LUA, 3, true);
+
+	if (bf->IsOverflowed())
+		LUA->ThrowError("Tried to use a buffer that is overflowed!");
 
 	SVC_CustomMessage msg;
 	msg.m_iType = iType;
