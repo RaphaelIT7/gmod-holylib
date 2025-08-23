@@ -667,14 +667,34 @@ public:
     IVP_Vector_of_Objects_128(): IVP_U_Vector<IVP_Real_Object>( (void **)&elem_buffer[0],128 ){}
 };
 
+/*
+	A list containing all objects that are rechecking the ov.
+	We need this as HolyLib can allow people to modify objects while being inside of this call.
+	And to not create any crash in case people trigger a recheck_ov_element while being inside of a recheck_ov_element for the same object, we keep track.
+*/
+static thread_local IVP_U_Vector<IVP_Real_Object> g_pCurrentRecheckOVElement;
+IVP_U_Vector<IVP_Real_Object>& _HOLYLIB_GetRecheckOVElements()
+{
+	return g_pCurrentRecheckOVElement;
+}
+
 void IVP_Mindist_Manager::recheck_ov_element(IVP_Real_Object *object){
-
-    IVP_Vector_of_OV_Elements_128 colliding_elements; // for recheck_ov_element
-
     IVP_OV_Element *elem = object->get_ov_element();
 
     if(!elem) 
 		return; // not collision enabled 
+
+	for (int i = g_pCurrentRecheckOVElement.len() - 1; i >= 0; i--)
+	{
+		if (g_pCurrentRecheckOVElement.element_at(i) == object)
+		{
+			g_pHolyLibCallbacks->ThrowRecheckOVWarning();
+			return;
+		}
+	}
+
+	IVP_Vector_of_OV_Elements_128 colliding_elements; // for recheck_ov_element
+	int pRecheckOVIndex = g_pCurrentRecheckOVElement.add(object);
 
     // check surrounding
 
@@ -689,6 +709,7 @@ void IVP_Mindist_Manager::recheck_ov_element(IVP_Real_Object *object){
     IVP_DOUBLE moved_distance = sphere_position.quad_distance_to(object_position);
     IVP_DOUBLE old_hull_time = elem->radius - core->upper_limit_radius;
     if (moved_distance < use_old_hull_factor * old_hull_time){
+		g_pCurrentRecheckOVElement.remove_at(pRecheckOVIndex);
 	return;
     }
 #endif
@@ -726,6 +747,7 @@ void IVP_Mindist_Manager::recheck_ov_element(IVP_Real_Object *object){
 	radius = environment->ov_tree_manager->insert_ov_element( elem, real_check_sphere, real_check_sphere, NULL);
 	IVP_DOUBLE real_hull_time =   P_DOUBLE_EPS;	// recheck as soon as possible because it's not checked now
 	elem->add_to_hull_manager( hm, real_hull_time );	    // insert into event queue
+	g_pCurrentRecheckOVElement.remove_at(pRecheckOVIndex);
 	return;			// thats it, IVP_Universe_Manager can only add objects which do not have collision candidates except object
     }
 
@@ -799,6 +821,8 @@ void IVP_Mindist_Manager::recheck_ov_element(IVP_Real_Object *object){
 	    }
 	}
     }
+
+	g_pCurrentRecheckOVElement.remove_at(pRecheckOVIndex);
 }
 
  

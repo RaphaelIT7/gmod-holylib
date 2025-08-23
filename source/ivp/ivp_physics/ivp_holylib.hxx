@@ -22,6 +22,8 @@ public:
 	virtual void SimulationFinish() = 0;
 
 	virtual bool ShouldSkip() = 0;
+
+	virtual void ThrowRecheckOVWarning() = 0;
 };
 
 extern IVP_HolyLib_Callbacks* g_pHolyLibCallbacks;

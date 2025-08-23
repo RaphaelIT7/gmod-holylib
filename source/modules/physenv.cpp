@@ -1,6 +1,6 @@
 // If set it will include code to fallback when it couldn't replace IVP, in cases where for example holylib wasn't loaded by the ghostinj.dll
 #define PHYSENV_INCLUDEIVPFALLBACK 1
-
+#define PHYSENV_C 1
 #include "physics_holylib.h"
 #include "LuaInterface.h"
 #include "module.h"
@@ -74,6 +74,7 @@ static IVP_SkipType pCurrentSkipType = IVP_SkipType::IVP_None;
 
 #define TOSTRING( var ) var ? "true" : "false"
 
+static bool g_bReplacedIVP = false;
 static thread_local auto pCurrentTime = std::chrono::high_resolution_clock::now();
 static double pCurrentLagThreadshold = 100; // 100 ms
 struct ILuaPhysicsEnvironment;
@@ -117,6 +118,11 @@ public:
 	{
 		return ((int)pCurrentSkipType) > 0;
 	}
+
+	virtual void ThrowRecheckOVWarning()
+	{
+		Warning(PROJECT_NAME " - physenv: Tried to recheck_ov_element while already in a recheck_ov_element call!\nDon't change the collision rules of the current physObject!\n");
+	}
 };
 
 static IVPHolyLib g_pIVPHolyLib;
@@ -153,23 +159,48 @@ void CheckPhysicsLag(const char* pFunctionName, CPhysicsObject* pObject1, CPhysi
 				g_Lua->PushNil();
 			}
 
-			g_Lua->PreCreateTable(g_pCurrentRecheckOVElement.size(), g_pCurrentRecheckOVElement.size());
-			int i = 0;
-			for (GMODSDK::IVP_Real_Object* pObject : g_pCurrentRecheckOVElement)
+			if (g_bReplacedIVP)
 			{
-				IPhysicsObject* pCurrentOVObject = (IPhysicsObject*)pObject->client_data;
-				if (pCurrentOVObject)
+				auto ivp_vector = g_pPhysicsHolyLib->GetRecheckOVVector();
+				g_Lua->PreCreateTable(ivp_vector.len(), ivp_vector.len());
+				int i = 0;
+				for (int i=0; i< ivp_vector.len(); ++i)
 				{
-					Push_IPhysicsObject(g_Lua, pCurrentOVObject);
-				} else {
-					g_Lua->PushNil();
+					IPhysicsObject* pCurrentOVObject = (IPhysicsObject*)ivp_vector.element_at(i)->client_data;
+					if (pCurrentOVObject)
+					{
+						Push_IPhysicsObject(g_Lua, pCurrentOVObject);
+					}
+					else {
+						g_Lua->PushNil();
+					}
+
+					g_Lua->Push(-1);
+					Util::RawSetI(g_Lua, -3, i+1);
+
+					g_Lua->PushNumber(i+1);
+					g_Lua->SetTable(-3);
 				}
+			} else {
+				g_Lua->PreCreateTable(g_pCurrentRecheckOVElement.size(), g_pCurrentRecheckOVElement.size());
+				int i = 0;
+				for (GMODSDK::IVP_Real_Object* pObject : g_pCurrentRecheckOVElement)
+				{
+					IPhysicsObject* pCurrentOVObject = (IPhysicsObject*)pObject->client_data;
+					if (pCurrentOVObject)
+					{
+						Push_IPhysicsObject(g_Lua, pCurrentOVObject);
+					}
+					else {
+						g_Lua->PushNil();
+					}
 
-				g_Lua->Push(-1);
-				Util::RawSetI(g_Lua, -3, ++i);
+					g_Lua->Push(-1);
+					Util::RawSetI(g_Lua, -3, ++i);
 
-				g_Lua->PushNumber(i);
-				g_Lua->SetTable(-3);
+					g_Lua->PushNumber(i);
+					g_Lua->SetTable(-3);
+				}
 			}
 
 			g_Lua->PushString(pFunctionName);
@@ -335,7 +366,7 @@ static void hook_IVP_Mindist_Manager_recheck_ov_element(void* mindistManager, GM
 	{
 		if (pObject == pRecalcObject)
 		{
-			Warning(PROJECT_NAME " - physenv: Tried to recheck_ov_element while already in a recheck_ov_element call! Don't change the collision rules of the current physObject!\n");
+			g_pIVPHolyLib.ThrowRecheckOVWarning();
 			return;
 		}
 	}
@@ -2314,7 +2345,6 @@ LUA_FUNCTION_STATIC(physcollide_DestroyCollide)
  * Gmod does this because it can't invalidate the userdata properly which means that calling a function like PhysObj:Wake could be called on a invalid pointer.
  * So they seem to have added this function as a workaround to check if the pointer Lua has is still valid.
  */
-static bool g_bReplacedIVP = false;
 static Detouring::Hook detour_GMod_Util_IsPhysicsObjectValid;
 static bool hook_GMod_Util_IsPhysicsObjectValid(IPhysicsObject* pObject)
 {

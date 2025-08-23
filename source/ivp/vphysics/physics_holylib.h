@@ -5,6 +5,8 @@
 #endif
 
 #include "ivp_holylib.hxx"
+#include <ivp_physics.hxx>
+#include "ivu_vector.hxx"
 #include <utlvector.h>
 
 class IPhysicsObject;
@@ -19,6 +21,7 @@ public:
 	IPhysicsConstraintEvent* GetPhysicsListenerConstraint(IPhysicsEnvironment* pEnvironment);
 	const CUtlVector<IPhysicsEnvironment*>& GetEnvironments();
 	IPhysicsEnvironment* GetEnvironmentFromObject(IPhysicsObject* pObject);
+	IVP_U_Vector<IVP_Real_Object>& GetRecheckOVVector();
 };
 extern CPhysicsHolyLib* g_pPhysicsHolyLib;
 
