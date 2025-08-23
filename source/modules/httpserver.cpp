@@ -16,6 +16,7 @@ public:
 	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void Think(bool bSimulating) OVERRIDE;
+	virtual void OnClientDisconnect(CBaseClient* pClient) OVERRIDE;
 	virtual const char* Name() { return "httpserver"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 	virtual bool SupportsMultipleLuaStates() { return true; };
@@ -1021,7 +1022,7 @@ LUA_FUNCTION_STATIC(httpserver_FindByName)
 	return 1;
 }
 
-void HttpServer_OnClientDisconnect(CBaseClient* pClient)
+void CHTTPServerModule::OnClientDisconnect(CBaseClient* pClient)
 {
 	// Verify: As stated above in the HttpServer class, should we add a mutex for this?
 	int userID = pClient->GetUserID();
