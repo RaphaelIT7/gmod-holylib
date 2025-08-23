@@ -242,9 +242,13 @@ public:
 
 	void ClearDisconnectedClient(int userID)
 	{
+		m_pPreparedResponsesMutex.Lock();
 		auto it = m_pPreparedResponses.find(userID);
 		if (it == m_pPreparedResponses.end())
+		{
+			m_pPreparedResponsesMutex.Unlock();
 			return;
+		}
 
 		for (auto& pPreparedResponse : it->second)
 		{
@@ -252,6 +256,7 @@ public:
 		}
 
 		m_pPreparedResponses.erase(it);
+		m_pPreparedResponsesMutex.Unlock();
 	}
 
 private:
