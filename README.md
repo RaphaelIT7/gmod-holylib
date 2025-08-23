@@ -129,6 +129,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 \- [+] Added `voicechat.SaveVoiceStream` 4th argument `returnWaveData` (previously the 4th argument was `async` but that one was removed)<br>
 \- [+] Added `directData` argument to `VoiceStream:GetData`, `VoiceStream:GetIndex`, `VoiceStream:SetIndex` and `VoiceStream:SetData`<br>
 \- [+] Added overflow checks for `gameserver.BroadcastMessage`, `CNetChan:SendMessage` and `CBaseClient:SendNetMsg` when you try to use a overflowed buffer<br>
+\- [+] Added a few more arguments to `HolyLib:OnPhysicsLag` like `phys1`, `phys2`, `recalcPhys`, `callerFunction` and the arguments `ent1` & `ent2` were removed since you can call `PhysObj:GetEntity`<br>
 \- [#] Fixed `addonsystem.ShouldMount` & `addonsystem.SetShouldMount` `workshopID` arguments being a number when they should have been a string.<br>
 \- [#] Changed `VoiceData:GetUncompressedData` to now returns a statusCode/a number on failure instead of possibly returning a garbage string.<br>
 \- [#] Limited `HttpServer:SetName` to have a length limit of `64` characters.<br>
@@ -3075,12 +3076,18 @@ Skip the entire simulation.<br>
 
 ### Hooks
 
-#### IVP_SkipType HolyLib:OnPhysicsLag(number simulationTime, Entity ent1, Entity ent2)
+#### IVP_SkipType HolyLib:OnPhysicsLag(number simulationTime, PhysObj phys1, PhysObj phys2, PhysObj recalcPhys, string callerFunction)
+callerFunction - This will be the internal IVP function in which the lag was detected and caued this Lua call<br>
+All arguments like `phys1`, `phys2` and `recalcPhys` can be nil! (not NULL)<br>
+
 Called when the physics simulaton is taking longer than the set lag threshold.<br>
 It provides the two entities it was currently working on when the hook was triggered,<br>
 most likely they will be the oney causing the lag BUT it should NOT be taken for granted!<br>
 
 You can freeze all props here and then return `physenv.IVP_SkipSimulation` to skip the simulation for this tick if someone is trying to crash the server.<br>
+
+> [!WARNING]
+> Avoid modifying the `recalcPhys` PhysObject as changing collision rules on it can possibly be unstable!<br>
 
 > [!NOTE]
 > Only works on Linux32<br>

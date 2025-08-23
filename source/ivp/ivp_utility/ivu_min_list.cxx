@@ -40,11 +40,6 @@ IVP_U_Min_List::~IVP_U_Min_List()
 
 IVP_U_MINLIST_INDEX IVP_U_Min_List::add(void *elem, IVP_U_MINLIST_FIXED_POINT value)
 {
-	if (g_pHolyLibCallbacks && g_pHolyLibCallbacks->CheckLag())
-	{
-		return IVP_U_MINLIST_UNUSED; // This will probably break things. Anyways.
-	}
-
 	// search free element first
 	IVP_ASSERT(value <= P_FLOAT_MAX);
 	IVP_U_Min_List_Element *e;

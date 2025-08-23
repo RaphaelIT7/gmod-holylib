@@ -524,6 +524,9 @@ namespace Symbols
 	typedef void (*CPhysicsEnvironment_C2)(IPhysicsEnvironment*); // Constructor
 	extern const std::vector<Symbol> CPhysicsEnvironment_C2Sym;
 
+	typedef void (*IVP_Mindist_Manager_recheck_ov_element)(void* mindistManager, void* physObj); // Crash fix.
+	extern const std::vector<Symbol> IVP_Mindist_Manager_recheck_ov_elementSym;
+
 	// Stuff for our do_impact replacement
 	typedef void (*IVP_Mindist_D2)(void* mindist);
 	extern const std::vector<Symbol> IVP_Mindist_D2Sym;

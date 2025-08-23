@@ -887,7 +887,7 @@ void IVP_Mindist::update_exact_mindist_events(IVP_BOOL allow_hull_conversion, IV
 {
 	IVP_Real_Object *objects[2];
 	get_objects(objects);
-	if (g_pHolyLibCallbacks && g_pHolyLibCallbacks->CheckLag(objects[0] ? objects[0]->client_data : NULL, objects[1] ? objects[1]->client_data : NULL))
+	if (g_pHolyLibCallbacks && g_pHolyLibCallbacks->CheckLag("IVP_Mindist::update_exact_mindist_events", objects[0] ? objects[0]->client_data : NULL, objects[1] ? objects[1]->client_data : NULL))
 	{
 		return;
 	}
@@ -1291,7 +1291,7 @@ void IVP_Mindist::simulate_time_event(IVP_Environment * env)
 {
 	IVP_Real_Object *objects[2];
 	get_objects(objects);
-	if (g_pHolyLibCallbacks && g_pHolyLibCallbacks->CheckLag(objects[0]->client_data, objects[1]->client_data))
+	if (g_pHolyLibCallbacks && g_pHolyLibCallbacks->CheckLag("IVP_Mindist::simulate_time_event", objects[0]->client_data, objects[1]->client_data))
 	{
 		return;
 	}
