@@ -628,6 +628,9 @@ namespace Symbols
 	typedef int (*NET_ReceiveStream)(int nSock, char * buf, int len, int flags);
 	extern const std::vector<Symbol> NET_ReceiveStreamSym;
 
+	typedef void (*NET_SetTime)(double flRealtime);
+	extern const std::vector<Symbol> NET_SetTimeSym;
+
 	extern const std::vector<Symbol> s_NetChannelsSym;
 
 	//---------------------------------------------------------------------------------
