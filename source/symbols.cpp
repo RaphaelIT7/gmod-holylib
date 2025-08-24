@@ -890,4 +890,8 @@ namespace Symbols
 	const std::vector<Symbol> s_NetChannelsSym = {
 		Symbol::FromName("_ZL13s_NetChannels"),
 	};
+
+	const std::vector<Symbol> NET_SetTimeSym = {
+		Symbol::FromName("_Z11NET_SetTimed"),
+	};
 }

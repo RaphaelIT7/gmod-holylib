@@ -456,7 +456,7 @@ struct LuaUserData;
 extern std::unordered_set<LuaUserData*> g_pLuaUserData; // A set containing all LuaUserData that actually hold a reference.
 #endif
 struct LuaUserData { // No constructor/deconstructor since its managed by Lua!
-	inline void Init(GarrysMod::Lua::ILuaInterface* LUA, int type, void* pData)
+	inline void Init(GarrysMod::Lua::ILuaInterface* LUA, unsigned char type, void* pData)
 	{
 		// Since Lua creates our userdata, we need to set all the fields ourself!
 #if HOLYLIB_UTIL_BASEUSERDATA

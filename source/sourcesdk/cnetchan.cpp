@@ -16,6 +16,7 @@
 #include "filesystem_init.h"
 #include "custom_net_chan.h"
 #include <lz4/lz4_compression.h>
+#include <memory>
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -36,7 +37,7 @@ static ConVar net_blockmsg( "holylib_net_blockmsg", "none", FCVAR_CHEAT, "Discar
 static ConVar net_showdrop( "holylib_net_showdrop", "0", 0, "Show dropped packets in console" );
 static ConVar net_drawslider( "holylib_net_drawslider", "0", 0, "Draw completion slider during signon" );
 static ConVar net_chokeloopback( "holylib_net_chokeloop", "0", 0, "Apply bandwidth choke to loopback packets" );
-static ConVar net_maxfilesize( "holylib_net_maxfilesize", "256", 0, "Maximum allowed file size for uploading in MiB", true, 0, true, 512 );
+static ConVar net_maxfilesize( "holylib_net_maxfilesize", "4096", 0, "Maximum allowed file size for uploading in MiB", true, 0, true, 4096 );
 static ConVar net_compresspackets( "holylib_net_compresspackets", "1", 0, "Use compression on game packets." );
 static ConVar net_compresspackets_minsize( "holylib_net_compresspackets_minsize", "1024", 0, "Don't bother compressing packets below this size." );
 static ConVar net_maxcleartime( "holylib_net_maxcleartime", "4.0", 0, "Max # of seconds we can wait for next packets to be sent based on rate setting (0 == no limit)." );
@@ -1145,10 +1146,10 @@ bool CNetChan::CreateFragmentsFromFile( const char *filename, int stream, unsign
 	}
 
 	int totalBytes = (int)g_pFullFileSystem->Size( filename, pPathID );
-
-	if ( totalBytes >= (net_maxfilesize.GetInt()*1024*1024) )
+	
+	if ( totalBytes >= (((uint64_t)net_maxfilesize.GetInt()) *1024*1024) ) // We need it as a uint64_t since else we'll overflow the int!
 	{
-		ConMsg( "CreateFragmentsFromFile: '%s' size exceeds net_maxfilesize limit (%i MiB).\n", filename, net_maxfilesize.GetInt() );
+		ConMsg( "CreateFragmentsFromFile: '%s' size exceeds net_maxfilesize limit (%i MiB, %i).\n", filename, net_maxfilesize.GetInt(), totalBytes);
 		return false;
 	}
 	
@@ -1620,7 +1621,9 @@ A 0 length will still generate a packet and deal with the reliable messages.
 */
 int CNetChan::SendDatagram(bf_write *datagram)
 {
-	ALIGN4 byte		send_buf[ NET_MAX_MESSAGE ] ALIGN4_POST;
+	// We cannot stackallocate this amount as else we can easily crash!
+	// We also use static so that each thread only allocates this once instead of on every call & we use a std::unique_ptr so that our memory is freed when the thread dies.
+	static thread_local std::unique_ptr<byte[]> send_buf(new byte[NET_MAX_MESSAGE]);
 
 #ifndef NO_VCR
 	if ( vcr_verbose.GetInt() && datagram && datagram->GetNumBytesWritten() > 0 )
@@ -1664,7 +1667,7 @@ int CNetChan::SendDatagram(bf_write *datagram)
 		m_StreamReliable.Reset();
 	}
 
-	bf_write send( "CNetChan_TransmitBits->send", send_buf, sizeof(send_buf) );
+	bf_write send( "CNetChan_TransmitBits->send", send_buf.get(), NET_MAX_MESSAGE);
 
 	// Prepare the packet header
 	// build packet flags
@@ -3173,6 +3176,7 @@ int CNetChan::IncrementSplitPacketSequence()
 	return ++m_nSplitPacketSequence;
 }
 
+// ToDo: iirc gmod changed this from a blacklist to whitelist for files.
 bool CNetChan::IsValidFileForTransfer( const char *pszFilename )
 {
 	if ( !pszFilename || !pszFilename[ 0 ] )
