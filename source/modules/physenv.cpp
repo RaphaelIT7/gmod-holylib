@@ -170,8 +170,7 @@ void CheckPhysicsLag(const char* pFunctionName, CPhysicsObject* pObject1, CPhysi
 					if (pCurrentOVObject)
 					{
 						Push_IPhysicsObject(g_Lua, pCurrentOVObject);
-					}
-					else {
+					} else {
 						g_Lua->PushNil();
 					}
 
@@ -190,8 +189,7 @@ void CheckPhysicsLag(const char* pFunctionName, CPhysicsObject* pObject1, CPhysi
 					if (pCurrentOVObject)
 					{
 						Push_IPhysicsObject(g_Lua, pCurrentOVObject);
-					}
-					else {
+					} else {
 						g_Lua->PushNil();
 					}
 
