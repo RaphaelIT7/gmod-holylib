@@ -214,6 +214,7 @@ Wiki: https://holylib.raphaelit7.com/
 \- \- [CGameClient](https://github.com/RaphaelIT7/gmod-holylib#cgameclient)<br>
 \- \- [Singleplayer](https://github.com/RaphaelIT7/gmod-holylib#singleplayer)<br>
 \- \- [128+ Players](https://github.com/RaphaelIT7/gmod-holylib#128-players)<br>
+\- [autorefresh](#autorefresh)<br>
 
 [Unfinished Modules](https://github.com/RaphaelIT7/gmod-holylib#unfinished-modules)<br>
 \- [serverplugins](https://github.com/RaphaelIT7/gmod-holylib#serverplugins)<br>
@@ -4551,6 +4552,46 @@ end)
 
 hook.Add("HolyLib:OnPlayerChangedSlot", "Example", function(oldPlayerSlot, newPlayerSlot)
 	print("Client was moved from slot " .. oldPlayerSlot .. " to slot " .. newPlayerSlot)
+end)
+```
+
+## autorefresh
+The Autorefresh module currently provides functionalities regarding the in-built lua file autorefresh system.
+
+Supports: Linux32 | LINUX64
+
+### Functions
+#### autorefresh.DenyLuaAutoRefresh(string filePath, bool shouldDeny)
+Prevents certain Lua files from being autorefreshed. Accepts a string of the relative file path and a bool indicating whether to block or allow the autorefresh.
+- `true` - denies the autorefresh
+- `false` - allows the autorefresh
+```lua
+local pathToFile = "lua/test-dir/test.lua"
+autorefresh.DenyLuaAutoRefresh(pathToFile, true)
+```
+
+### Hooks
+#### bool HolyLib:PreLuaAutoRefresh(string filePath, string fileName)
+Called before a Lua file is being refreshed. If `true` is returned it will deny the refresh of the lua file.
+- string filePath — is the filePath provided relative to the garrysmod folder
+- string filename — is the filename without the extension
+```lua
+hook.Add("HolyLib:PreLuaAutoRefresh", "ExamplePreAutoRefresh", function(filePath, fileName)
+    print("[BEFORE] FileChanged: " .. filePath .. filename)
+        
+    if filename == "bogos" then
+        print("Denying Refresh")
+    	return true -- prevent refresh
+    end
+end)
+```
+
+#### HolyLib:PostLuaAutoRefresh(string filePath, string fileName)
+Called after a Lua file is refreshed. 
+Note that if a refresh is being denied by PreLuaAutorefresh or DenyLuaAutoRefresh, this hook won't be called.
+```lua
+hook.Add("HolyLib:PostLuaAutoRefresh", "ExamplePostAutoRefresh", function(filePath, fileName)
+    print("[AFTER] FileChanged: " .. filePath .. filename)
 end)
 ```
 
