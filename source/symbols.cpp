@@ -548,6 +548,10 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x49\x89\xFC\x53\x48\x89\xFB\x48\x81\xEC\x20\x01\x00\x00"), // 55 48 89 E5 41 57 41 56 41 55 41 54 49 89 FC 53 48 89 FB 48 81 EC 20 01 00 00
 	};
 
+	const std::vector<Symbol> GetCurrentSkyCameraSym = {
+		Symbol::FromName("_Z19GetCurrentSkyCamerav"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: steamworks Symbols
 	//---------------------------------------------------------------------------------
@@ -724,6 +728,10 @@ namespace Symbols
 		Symbol::FromName("_ZN19CPhysicsEnvironmentC2Ev"),
 	};
 
+	const std::vector<Symbol> IVP_Mindist_Manager_recheck_ov_elementSym = {
+		Symbol::FromName("_ZN19IVP_Mindist_Manager18recheck_ov_elementEP15IVP_Real_Object"),
+	};
+
 	const std::vector<Symbol> IVP_Mindist_Minimize_Solver_p_minimize_PPSym = {
 		Symbol::FromName("_ZN27IVP_Mindist_Minimize_Solver13p_minimize_PPEPK16IVP_Compact_EdgeS2_P21IVP_Cache_Ledge_PointS4_"),
 	};
@@ -882,6 +890,10 @@ namespace Symbols
 	const std::vector<Symbol> s_NetChannelsSym = {
 		Symbol::FromName("_ZL13s_NetChannels"),
 	};
+  
+  const std::vector<Symbol> NET_SetTimeSym = {
+		Symbol::FromName("_Z11NET_SetTimed"),
+	};
 
 	//---------------------------------------------------------------------------------
 	// Purpose: AutoRefresh Symbols
@@ -889,5 +901,5 @@ namespace Symbols
 	const std::vector<Symbol> GarrysMod_AutoRefresh_HandleChange_LuaSym = {
 		Symbol::FromName("_ZN9GarrysMod11AutoRefresh16HandleChange_LuaERKSsS2_S2_"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x49\x89\xD6\x41\x55\x49\x89\xFD\x48\x89\xD7\x41\x54"),
-	};
+  };
 }

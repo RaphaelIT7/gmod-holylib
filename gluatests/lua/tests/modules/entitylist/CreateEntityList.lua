@@ -23,5 +23,12 @@ return {
                 expect( entityList ).to.beA( "EntityList" )
             end
         },
+        {
+            name = "Test performance of creating EntityLists",
+            when = HolyLib_IsModuleEnabled("entitylist"),
+            func = function()
+                HolyLib_RunPerformanceTest("CreateEntityList", CreateEntityList)
+            end
+        },
     }
 }

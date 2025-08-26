@@ -76,7 +76,8 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [+] Added a few stringtable related functions to the `stringtable` module.<br>
 \- [+] Added a new hook `HolyLib:OnClientTimeout` to the `gameserver` module.<br>
 \- [+] Optimized `GM:PlayerCanHearPlayersVoice` by **only** calling it for actively speaking players/when a voice packet is received.<br>
-\- [+] Added `voicechat.IsPlayerTalking` & `voicechat.LastPlayerTalked` to the `voicechat` module.<br>
+\- [+] Added `voicechat.LoadVoiceStreamFromWaveString`, `voicechat.ApplyEffect`, `voicechat.IsPlayerTalking` & `voicechat.LastPlayerTalked` to the `voicechat` module.<br>
+\- [+] Added `VoiceStream:ResetTick`, `VoiceStream:GetNextTick`, `VoiceStream:GetCurrentTick`, `VoiceStream:GetPreviousTick` to the `voicechat` module.<br>
 \- [+] Added `util.FancyJSONToTable` & `util.AsyncTableToJSON` to the `util` module.<br>
 \- [+] Added `gameserver.GetClientByUserID` to the `gameserver` module.<br>
 \- [+] Added a config system allowing one to set convars without using the command line.<br>
@@ -84,6 +85,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [+] Added `HttpResponse:SetStatusCode` to `httpserver` module. (See https://github.com/RaphaelIT7/gmod-holylib/pull/62)<br>
 \- [+] Added `HttpRequest:GetPathParam` to `httpserver` module. (See https://github.com/RaphaelIT7/gmod-holylib/pull/63)<br>
 \- [+] Added `bitbuf.CreateStackReadBuffer` & `bitbuf.CreateStackWriteBuffer` to `bitbuf` module.<br>
+\- [+] Added a fallback method for HolyLib's internal `Util::PushEntity` function in case a Gmod update breaks our offsets which previously lead to undefined behavior<br>
 \- [#] Added some more safeguards to `IPhysicsEnvironment:Simulate` to prevent one from simulating a environment that is already being simulated.<br>
 \- [#] Highly optimized `util` module's json code to be noticably faster and use noticably less memory.<br>
 \- [#] Better support for multiple Lua states<br>
@@ -117,24 +119,25 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [#] Fixed `gameserver.SendConnectionlessPacket` crashing instead of throwing a lua error when NET_SendPacket couldn't be loaded<br>
 \- [-] Removed some unused code of former fixes that were implemented into Gmod<br>
 
-
-> [!WARNING]
-> The current builds are unstable and need **A LOT** of testing.<br>
-> Use the last `0.7` release instead of the last workflow run if you value your server's stability!<br>
-
-You can see all changes here:<br>
+You can see all changes/commits here:<br>
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 
 ### Existing Lua API Changes
 \- [+] Added third `protocolVersion` argument to `gameserver.CreateNetChannel`<br>
 \- [+] Added fourth `socket`(use `NS_` enums) argument to `gameserver.CreateNetChannel` & `gameserver.SendConnectionlessPacket`<br>
 \- [+] Added second and thrid arguments to `HolyLib:OnPhysicsLag` providing the entities it was working on when it triggered.<br>
+\- [+] Added `voicechat.SaveVoiceStream` 4th argument `returnWaveData` (previously the 4th argument was `async` but that one was removed)<br>
+\- [+] Added `directData` argument to `VoiceStream:GetData`, `VoiceStream:GetIndex`, `VoiceStream:SetIndex` and `VoiceStream:SetData`<br>
+\- [+] Added overflow checks for `gameserver.BroadcastMessage`, `CNetChan:SendMessage` and `CBaseClient:SendNetMsg` when you try to use a overflowed buffer<br>
+\- [+] Added a few more arguments to `HolyLib:OnPhysicsLag` like `phys1`, `phys2`, `recalcPhys`, `callerFunction` and the arguments `ent1` & `ent2` were removed since you can call `PhysObj:GetEntity`<br>
 \- [#] Fixed `addonsystem.ShouldMount` & `addonsystem.SetShouldMount` `workshopID` arguments being a number when they should have been a string.<br>
 \- [#] Changed `VoiceData:GetUncompressedData` to now returns a statusCode/a number on failure instead of possibly returning a garbage string.<br>
 \- [#] Limited `HttpServer:SetName` to have a length limit of `64` characters.<br>
 \- [#] Fixed `IGModAudioChannel:IsValid` throwing a error when it's NULL instead of returning false.<br>
 \- [#] Fixed `HttpServer:SetWriteTimeout` using the wrong arguments. (See https://github.com/RaphaelIT7/gmod-holylib/pull/65)<br>
 \- [#] Fixed `bf_read:ReadBytes` and `bf_read:ReadBits` both failing to push the string properly to lua.<br>
+\- [#] Changed `voicechat.SaveVoiceStream` & `voicechat.LoadVoiceStream` to remove their 4th `sync` argument, if a callback is provided it will be async, else it'll run sync<br>
+\- [-] Removed `VoiceData:GetUncompressedData` decompress size argument<br>
 \- [-] Removed `CBaseClient:Transmit` third argument `fragments`.<br>
 \- [-] Removed `gameserver.CalculateCPUUsage` and `gameserver.ApproximateProcessMemoryUsage` since they never worked.<br>
 
@@ -2295,29 +2298,43 @@ Creates a new VoiceData object.<br>
 #### VoiceStream voicechat.CreateVoiceStream()
 Creates a empty VoiceStream.<br>
 
-#### VoiceStream, number(statusCode) voicechat.LoadVoiceStream(string fileName, string gamePath = "DATA", bool async = false, function callback = nil)
+#### VoiceStream, number(statusCode) voicechat.LoadVoiceStream(string fileName, string gamePath = "DATA", function callback = nil)
 callback = `function(VoiceStream loadedStream, number statusCode)`
 statusCode = `-4 = Invalid file, -3 = Invalid version, -2 = File not found, -1 = Invalid type, 0 = None, 1 = Done`<br>
 
 Tries to load a VoiceStream from the given file.<br>
-If `async` is specified it **WONT** return **anything** and the `callback` will be **required**.<br>
+If a `callback` is specified it **WONT** return **anything** and the `callback` will be called, as it will execute everythign **async**.<br>
+If you want it to **not** run async, simply provide **no** callback function<br>
 
 > [!NOTE]
 > This function also supports `.wav` files to load from since `0.8`
 
-#### number(statusCode) voicechat.SaveVoiceStream(VoiceStream stream, string fileName, string gamePath = "DATA", bool async = false, function callback = nil)
+#### VoiceStream, number(statusCode) voicechat.LoadVoiceStreamFromWaveString(string waveData, function callback = nil, bool promiseToNeverModify = false)
 callback = `function(VoiceStream loadedStream, number statusCode)`
 statusCode = `-4 = Invalid file, -3 = Invalid version, -2 = File not found, -1 = Invalid type, 0 = None, 1 = Done`<br>
+promiseToNeverModify = If set to `true`, it will reference the waveData instead of copying it reducing memory usage and improving speed though you need to keep your promise of never modifying it while it's in use!<br>
+
+Tries to load a VoiceStream from the given data.<br>
+If a `callback` is specified it **WONT** return **anything** and the `callback` will be called, as it will execute everythign **async**.<br>
+If you want it to **not** run async, simply provide **no** callback function<br>
+
+#### number(statusCode), string(waveData) voicechat.SaveVoiceStream(VoiceStream stream, string fileName = nil, string gamePath = "DATA", function callback = nil, bool returnWaveData = false)
+callback = `function(VoiceStream loadedStream, number statusCode)`
+statusCode = `-4 = Invalid file, -3 = Invalid version, -2 = File not found, -1 = Invalid type, 0 = None, 1 = Done`<br>
+returnWaveData = If set to true (or if `fileName` is nil), the function will when running in sync return the waveData as a string, or if async will return the waveData as a fourth argument after `statusCode` in the callback.<br>
+
+Argument overload version (will **always** return wave data): `voicechat.SaveVoiceStream(VoiceStream stream, function callback = nil)`
 
 Tries to save a VoiceStream into the given file.<br>
-If `async` is specified it **WONT** return **anything** and the `callback` will be **required**.<br>
+If a `callback` is specified it **WONT** return **anything** and the `callback` will be called, as it will execute everythign **async**.<br>
+If you want it to **not** run async, simply provide **no** callback function<br>
 
 > [!NOTE]
-> It should be safe to modify/use the VoiceStream while it's saving async **BUT** you should try to avoid doing that.
-
-> [!NOTE]
+> It should be safe to modify/use the VoiceStream while it's saving async **BUT** you should try to avoid doing that. <br>
 > This function also supports `.wav` files to write the data into since `0.8`.<br>
-> You should **always** inform your players if you save their voice!
+> You should **always** inform your players if you save their voice! <br>
+> You can set both `fileName` and `returnWaveData` which will cause it to be written to disk and the data to be returned<br>
+> If `fileName` and `returnWaveData` are both not set then it will error as atleast one of them needs to be enabled.<br>
 
 ### bool voicedata.IsPlayerTalking(Player ply/number playerSlot)
 Returns `true` if the player is currently talking.<br>
@@ -2330,6 +2347,27 @@ Returns when the player last talked.
 
 > [!NOTE]
 > This value does NOT reset if a player disconnect meaning on empty slots the value of the last player there will remain stored.
+
+#### bool voicechat.ApplyEffect(table effectData, VoiceStream/VoiceData stream, function callback = nil)
+callback = `function(VoiceStream/Voicedata data, bool success)`
+
+Example effectData:
+```lua
+{
+	ContinueOnFailure = true, -- If you process a VoiceStream and it fails to apply a effect for some reason it will still proceed and ignore the failure
+
+	-- Volume effect
+	EffectName = "Volume",
+	Volume = 1.0, -- The volume for the audio
+}
+```
+
+Applies the given effectData to the given Data/Stream.<br>
+If a `callback` is specified it **WONT** return **anything** and the `callback` will be called, as it will execute everythign **async**.<br>
+If you want it to **not** run async, simply provide **no** callback function, it will return `true` on success<br>
+
+> [!NOTE]
+> It should be safe to modify/use the VoiceStream while it's being modified async **BUT** you should try to avoid doing that.
 
 ####
 
@@ -2366,7 +2404,7 @@ Returns the length of the data.<br>
 #### number VoiceData:GetPlayerSlot()
 Returns the slot of the player this voicedata is originally from.<br>
 
-#### string VoiceData:GetUncompressedData(number decompressSize = 20000)
+#### string VoiceData:GetUncompressedData()
 number decompressSize - The number of bytes to allocate for decompression.<br>
 
 Returns the uncompressed voice data or an empty string if the VoiceData had no data.<br>
@@ -2430,7 +2468,10 @@ You can store variables into it.<br>
 #### bool VoiceStream:IsValid()
 Returns `true` if the VoiceData is still valid.<br>
 
-#### table VoiceStream:GetData()
+#### table VoiceStream:GetData(bool directData = false)
+directData - If true it will return the VoiceData itself **instead of** creating a copy, if you modify it you will change the VoiceData stored in the stream!<br>
+(This argument will reduce memory usage & should improve performance slightly)<br>
+
 Returns a table, with the tick as key and **copy** of the VoiceData as value.<br>
 
 > [!NOTE]
@@ -2438,13 +2479,19 @@ Returns a table, with the tick as key and **copy** of the VoiceData as value.<br
 > modifying them won't affect the internally stored VoiceData.
 > Call `VoiceStream:SetData` or `VoiceStream:SetIndex` after you modified it to update it.<br>
 
-#### VoiceStream:SetData(table data)
+#### VoiceStream:SetData(table data, bool directData = false)
+directData - If true it will store the VoiceData itself **instead of** creating a copy that would be saved, if you modify the VoiceData after you called this, you will change the VoiceData stored in the stream!<br>
+(This argument will reduce memory usage & should improve performance slightly)<br>
+
 Sets the VoiceStream from the given table.<br>
 
 #### number VoiceStream:GetCount()
 Returns the number of VoiceData it stores.<br>
 
-#### VoiceData VoiceStream:GetIndex(number index)
+#### VoiceData VoiceStream:GetIndex(number index, bool directData = false)
+directData - If true it will return the VoiceData itself **instead of** creating a copy, if you modify it you will change the VoiceData stored in the stream!<br>
+(This argument will reduce memory usage & should improve performance slightly)<br>
+
 Returns a **copy** of the VoiceData for the given index or `nil`.<br>
 
 > [!NOTE]
@@ -2452,8 +2499,38 @@ Returns a **copy** of the VoiceData for the given index or `nil`.<br>
 > modifying them won't affect the internally stored VoiceData.
 > Call `VoiceStream:SetData` or `VoiceStream:SetIndex` after you modified it to update it.<br>
 
-#### VoiceStream:SetIndex(number index, VoiceData data)
+#### VoiceStream:SetIndex(number index, VoiceData data, bool directData = false)
+directData - If true it will store the VoiceData itself **instead of** creating a copy that would be saved, if you modify the VoiceData after you called this, you will change the VoiceData stored in the stream!<br>
+(This argument will reduce memory usage & should improve performance slightly)<br>
+
 Create a copy of the given VoiceData and sets it onto the specific index and overrides any data thats already present.<br>
+
+### VoiceStream functions for playback
+These functions mainly make it easier to play the VoiceData.<br>
+you can have a Think hook and call `VoiceStream:GetNextTick` once per Tick and either it returns a VoiceData for that Tick or it returns `nil`.<br>
+This way you don't need to keep track of a counter yourself to play the VoiceData from.<br>
+
+#### int (previousTick) VoiceStream:ResetTick(number resetTick = 0)
+Resets the current tick of the voicestream back to the given value or `0`<br>
+Returns the tick it was previously at<br>
+
+#### VoiceData VoiceStream:GetNextTick(bool directData = false)
+directData - If true it will set the VoiceData itself **instead of** creating a copy that would be saved, if you modify the VoiceData after you called this, you will change the VoiceData stored in the stream!<br>
+(This argument will reduce memory usage & should improve performance slightly)<br>
+
+Returns the VoiceData of the next tick and increments the internal tick counter by one.<br>
+
+#### VoiceData VoiceStream:GetCurrentTick(bool directData = false)
+directData - If true it will set the VoiceData itself **instead of** creating a copy that would be saved, if you modify the VoiceData after you called this, you will change the VoiceData stored in the stream!<br>
+(This argument will reduce memory usage & should improve performance slightly)<br>
+
+Returns the VoiceData of the current tick without changing the internal tick count<br>
+
+#### VoiceData VoiceStream:GetPreviousTick(bool directData = false)
+directData - If true it will set the VoiceData itself **instead of** creating a copy that would be saved, if you modify the VoiceData after you called this, you will change the VoiceData stored in the stream!<br>
+(This argument will reduce memory usage & should improve performance slightly)<br>
+
+Returns the VoiceData of the previous tick and decrements the internal tick count by one<br>
 
 ### Hooks
 
@@ -3000,12 +3077,20 @@ Skip the entire simulation.<br>
 
 ### Hooks
 
-#### IVP_SkipType HolyLib:OnPhysicsLag(number simulationTime, Entity ent1, Entity ent2)
+#### IVP_SkipType HolyLib:OnPhysicsLag(number simulationTime, PhysObj phys1, PhysObj phys2, table recalcPhys, string callerFunction)
+callerFunction - This will be the internal IVP function in which the lag was detected and caued this Lua call<br>
+recalcPhys - A table containing all physics objects that currently are recalculating collisions. **Avoid modifying them!**<br>
+All arguments like `phys1`, `phys2` can be nil! (not NULL)<br>
+
 Called when the physics simulaton is taking longer than the set lag threshold.<br>
 It provides the two entities it was currently working on when the hook was triggered,<br>
 most likely they will be the oney causing the lag BUT it should NOT be taken for granted!<br>
 
 You can freeze all props here and then return `physenv.IVP_SkipSimulation` to skip the simulation for this tick if someone is trying to crash the server.<br>
+
+> [!WARNING]
+> Avoid modifying the `recalcPhys` PhysObjects as changing collision rules on it can possibly be unstable!<br>
+> The table of `recalcPhys` has both key and value set for PhysObjects allowing you to easily check it like this: `if not recalcPhys[pObjectToModify] then`<br>
 
 > [!NOTE]
 > Only works on Linux32<br>
@@ -3613,7 +3698,7 @@ You can find all valid types in the [protocol.h](https://github.com/RaphaelIT7/g
 
 Example usage, we enable `sv_cheats` clientside while having it disabled serverside.<br>
 ```lua
-local bf = bitbuf.CreateWriteBuffer(8) -- Create a 8 bytes / 64 bits buffer.
+local bf = bitbuf.CreateWriteBuffer(64) -- Create a 64 bytes buffer.
 
 bf:WriteByte(1) -- How many convars were sending
 bf:WriteString("sv_cheats") -- ConVar name

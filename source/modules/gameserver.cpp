@@ -315,6 +315,9 @@ LUA_FUNCTION_STATIC(CBaseClient_SendNetMsg)
 	if (!pClient)
 		LUA->ThrowError("Failed to get IClient from player!");
 
+	if (bf->IsOverflowed())
+		LUA->ThrowError("Tried to use a buffer that is overflowed!");
+
 	SVC_CustomMessage msg;
 	msg.m_iType = iType;
 	strncpy(msg.m_strName, strName, sizeof(msg.m_strName));
@@ -1330,6 +1333,23 @@ LUA_FUNCTION_STATIC(CNetChan_SetTimeout)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(CNetChan_GetRate)
+{
+	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
+
+	LUA->PushNumber(pNetChannel->GetDataRate());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CNetChan_SetRate)
+{
+	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
+	float rate = (float)LUA->CheckNumber(2);
+
+	pNetChannel->SetDataRate(rate);
+	return 0;
+}
+
 LUA_FUNCTION_STATIC(CNetChan_Transmit)
 {
 	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
@@ -1385,6 +1405,15 @@ LUA_FUNCTION_STATIC(CNetChan_Shutdown)
 
 	pNetChannel->Shutdown(reason);
 	return 0;
+}
+
+LUA_FUNCTION_STATIC(CNetChan_CanPacket)
+{
+	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
+
+	net_time = Util::engineserver->Time();
+	LUA->PushBool(pNetChannel->CanPacket());
+	return 1;
 }
 
 static Detouring::Hook detour_CNetChan_D2;
@@ -1640,11 +1669,24 @@ LUA_FUNCTION_STATIC(CNetChan_SendMessage)
 	bf_write* bf = Get_bf_write(LUA, 2, true);
 	bool bReliable = LUA->GetBool(3);
 
+	if (bf->IsOverflowed())
+		LUA->ThrowError("Tried to use a buffer that is overflowed!");
+
 	NET_LuaNetChanMessage msg;
 	msg.m_DataOut.StartWriting(bf->GetData(), 0, 0, bf->GetMaxNumBits());
 	msg.m_iLength = bf->GetNumBitsWritten();
 
 	LUA->PushBool(pNetChannel->SendNetMsg(msg, bReliable));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CNetChan_SendFile)
+{
+	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
+	const char* pFileName = LUA->CheckString(2);
+	int transferID = LUA->CheckNumber(3);
+
+	LUA->PushBool(pNetChannel->SendFile(pFileName, transferID));
 	return 1;
 }
 
@@ -2084,6 +2126,9 @@ LUA_FUNCTION_STATIC(gameserver_BroadcastMessage)
 	const char* strName = LUA->CheckString(2);
 	bf_write* bf = Get_bf_write(LUA, 3, true);
 
+	if (bf->IsOverflowed())
+		LUA->ThrowError("Tried to use a buffer that is overflowed!");
+
 	SVC_CustomMessage msg;
 	msg.m_iType = iType;
 	strncpy(msg.m_strName, strName, sizeof(msg.m_strName));
@@ -2260,12 +2305,16 @@ void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, CNetChan_GetClearTime, "GetClearTime");
 		Util::AddFunc(pLua, CNetChan_GetTimeout, "GetTimeout");
 		Util::AddFunc(pLua, CNetChan_SetTimeout, "SetTimeout");
+		Util::AddFunc(pLua, CNetChan_GetRate, "GetRate");
+		Util::AddFunc(pLua, CNetChan_SetRate, "SetRate");
 		Util::AddFunc(pLua, CNetChan_Transmit, "Transmit");
 		Util::AddFunc(pLua, CNetChan_ProcessStream, "ProcessStream");
 		Util::AddFunc(pLua, CNetChan_SetMaxBufferSize, "SetMaxBufferSize");
 		Util::AddFunc(pLua, CNetChan_GetMaxRoutablePayloadSize, "GetMaxRoutablePayloadSize");
 		Util::AddFunc(pLua, CNetChan_SendMessage, "SendMessage");
+		Util::AddFunc(pLua, CNetChan_SendFile, "SendFile");
 		Util::AddFunc(pLua, CNetChan_Shutdown, "Shutdown");
+		Util::AddFunc(pLua, CNetChan_CanPacket, "CanPacket");
 
 		// Callbacks
 		Util::AddFunc(pLua, CNetChan_SetMessageCallback, "SetMessageCallback");
@@ -2865,6 +2914,30 @@ int NET_ReceiveStream(int nSock, char* buf, int len, int flags)
 	return func_NET_ReceiveStream(nSock, buf, len, flags);
 }
 
+static ConVar* host_timescale = nullptr;
+static Detouring::Hook detour_NET_SetTime;
+static void hook_NET_SetTime(double flRealtime) // We need this hook to keep net_time up to date
+{
+	static double s_last_realtime = 0;
+
+	double frametime = flRealtime - s_last_realtime;
+	s_last_realtime = flRealtime;
+
+	if (frametime > 1.0f)
+	{
+		// if we have very long frame times because of loading stuff
+		// don't apply that to net time to avoid unwanted timeouts
+		frametime = 1.0f;
+	}
+	else if (frametime < 0.0f)
+	{
+		frametime = 0.0f;
+	}
+
+	// adjust network time so fakelag works with host_timescale
+	net_time += frametime * (host_timescale ? host_timescale->GetFloat() : 1.0f);
+}
+
 void CGameServerModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
@@ -2905,6 +2978,12 @@ void CGameServerModule::InitDetour(bool bPreServer)
 		&detour_CGameClient_SpawnPlayer, "CGameClient::SpawnPlayer",
 		engine_loader.GetModule(), Symbols::CGameClient_SpawnPlayerSym,
 		(void*)hook_CGameClient_SpawnPlayer, m_pID
+	);
+
+	Detour::Create(
+		&detour_NET_SetTime, "NET_SetTime",
+		engine_loader.GetModule(), Symbols::NET_SetTimeSym,
+		(void*)hook_NET_SetTime, m_pID
 	);
 
 	SourceSDK::FactoryLoader server_loader("server");
@@ -2980,4 +3059,6 @@ void CGameServerModule::InitDetour(bool bPreServer)
 	Detour::CheckFunction((void*)func_NET_ReceiveStream, "NET_ReceiveStream");
 
 	s_NetChannels = Detour::ResolveSymbol<CUtlVectorMT<CUtlVector<CNetChan*>>>(engine_loader, Symbols::s_NetChannelsSym);
+
+	host_timescale = g_pCVar->FindVar("host_timescale");
 }

@@ -212,6 +212,11 @@ typedef LJ_ALIGN(8) union TValue {
   } u32;
 } TValue;
 
+/*
+** internal functions. RaphaelIT7: Kill me later for defining it here though in lua.h it was complaining
+*/
+LUA_API TValue *(lua_index2adr) (lua_State *L, int idx);
+
 typedef const TValue cTValue;
 
 #define tvref(r)	(mref(r, TValue))

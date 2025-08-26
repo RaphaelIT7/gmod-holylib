@@ -5,10 +5,12 @@
 @rem Then cd to this directory and run this script. Use the following
 @rem options (in order), if needed. The default is a dynamic release build.
 @rem
-@rem   nogc64   disable LJ_GC64 mode for x64
-@rem   debug    emit debug symbols
-@rem   amalg    amalgamated build
-@rem   static   static linkage
+@rem   nogc64        disable LJ_GC64 mode for x64
+@rem   debug         emit debug symbols
+@rem   lua52compat   enable extra Lua 5.2 extensions
+@rem   amalg         amalgamated build
+@rem   static        create static lib to statically link into your project
+@rem   mixed         create static lib to build a DLL in your project
 
 @if not defined INCLUDE goto :FAIL
 
@@ -100,18 +102,24 @@ buildvm -m folddef -o lj_folddef.h lj_opt_fold.c
 @set LJDYNBUILD=%LJDYNBUILD_DEBUG%
 @set LJLINKTYPE=%LJLINKTYPE_DEBUG%
 :NODEBUG
+@if "%1" neq "lua52compat" goto :NOLUA52COMPAT
+@shift
+@set LJCOMPILE=%LJCOMPILE% /DLUAJIT_ENABLE_LUA52COMPAT
+:NOLUA52COMPAT
 @set LJCOMPILE=%LJCOMPILE% %LJCOMPILETARGET%
 @set LJLINK=%LJLINK% %LJLINKTYPE% %LJLINKTARGET%
 @if "%1"=="amalg" goto :AMALGDLL
 @if "%1"=="static" goto :STATIC
 %LJCOMPILE% %LJDYNBUILD% lj_*.c lib_*.c gmod.cpp
 @if errorlevel 1 goto :BAD
+@if "%1"=="mixed" goto :STATICLIB
 %LJLINK% /DLL /OUT:%LJDLLNAME% lj_*.obj lib_*.obj gmod.obj
 @if errorlevel 1 goto :BAD
 @goto :MTDLL
 :STATIC
 %LJCOMPILE% lj_*.c lib_*.c gmod.cpp
 @if errorlevel 1 goto :BAD
+:STATICLIB
 %LJLIB% /OUT:%LJLIBNAME% lj_*.obj lib_*.obj gmod.obj
 @if errorlevel 1 goto :BAD
 @goto :MTDLL
@@ -119,13 +127,15 @@ buildvm -m folddef -o lj_folddef.h lj_opt_fold.c
 @if "%2"=="static" goto :AMALGSTATIC
 %LJCOMPILE% %LJDYNBUILD% ljamalg.c
 @if errorlevel 1 goto :BAD
+@if "%2"=="mixed" goto :AMALGSTATICLIB
 %LJLINK% /DLL /OUT:%LJDLLNAME% ljamalg.obj lj_vm.obj
 @if errorlevel 1 goto :BAD
 @goto :MTDLL
 :AMALGSTATIC
 %LJCOMPILE% ljamalg.c
 @if errorlevel 1 goto :BAD
-%LJLINK% /OUT:%LJDLLNAME% ljamalg.obj lj_vm.obj
+:AMALGSTATICLIB
+%LJLIB% /OUT:%LJLIBNAME% ljamalg.obj lj_vm.obj
 @if errorlevel 1 goto :BAD
 :MTDLL
 if exist %LJDLLNAME%.manifest^

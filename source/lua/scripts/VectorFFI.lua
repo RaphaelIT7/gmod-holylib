@@ -17,7 +17,8 @@ do
     end
 end
 
-local type = type
+-- We cannot localize type since for the AngleFFI we override it!
+-- local type = type
 local tonumber = tonumber
 
 local function Vector(x, y, z)
@@ -28,6 +29,7 @@ local function Vector(x, y, z)
     end
     return CreateVector(tonumber(x) or 0, tonumber(y) or 0, tonumber(z) or 0)
 end
+_G.GMOD_Vector = _G.Vector -- let's keep the original around
 _G.Vector = Vector
 
 ---@param value any
@@ -84,21 +86,21 @@ local mt = {
             return method
         end
 
-        if k == 1 or k == "x" then
+        if k == 1 or k == "x" or k == "X" or k == "r" then
             return s.x
-        elseif k == 2 or k == "y" then
+        elseif k == 2 or k == "y" or k == "Y" or k == "g" then
             return s.y
-        elseif k == 3 or k == "z" then
+        elseif k == 3 or k == "z" or k == "Z" or k == "b" then
             return s.z
         end
     end,
     __newindex = function(s, k, v)
         local num = check_num(v, 3)
-        if k == 1 or k == "x" then
+        if k == 1 or k == "x" or k == "X" or k == "r" then
             s.x = num
-        elseif k == 2 or k == "y" then
+        elseif k == 2 or k == "y" or k == "Y" or k == "g" then
             s.y = num
-        elseif k == 3 or k == "z" then
+        elseif k == 3 or k == "z" or k == "Z" or k == "b" then
             s.z = num
         else
             -- Normal Gmod Vector's do nothing in this case.
@@ -404,14 +406,14 @@ methods.ToScreen = gmodVecMeta.ToScreen
 do
     local ffi = jit.getffi and jit.getffi() or require("ffi")
 
-    ffi.cdef [[
+    ffi.cdef([[
         typedef struct { const uintptr_t data; const uint8_t type; float x, y, z; } GMOD_VecUserData;
-    ]]
+    ]])
 
     local RawVector = ffi.metatype("GMOD_VecUserData", mt)
     ---@return Vector
     function CreateVector(x, y, z)
-        local vec = RawVector(0, 10, x, y, z)
+        local vec = RawVector(0, mt.MetaID, x, y, z)
 
         -- Get a pointer to the data field and set it directly
         local vec_ptr = ffi.cast("uintptr_t*", vec)
@@ -428,6 +430,8 @@ do
     end
 
     debug.setblocked(isvector)
+    _G.GMOD_isvector = _G.isvector
+    _G.isvector = isvector
 end
 
 jit.markFFITypeAsGmodUserData(Vector(1, 1, 1))

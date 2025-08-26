@@ -1,3 +1,8 @@
+--[[
+	This file is called as a prebuild command to generate all files we need
+	though generating files can cause caching to fail if the contents change. (like in _versioninfo.h)
+]]
+
 dofile("utils.lua")
 
 local function CompileLuaScipts()
@@ -7,11 +12,11 @@ local function CompileLuaScipts()
 
 		local headerFileName = path .. RemoveEnd(fileName, ".lua") .. ".h"
 		local headerFile = [[const char* lua]] .. RemoveEnd(fileName, ".lua") .. [[ = R"LUAFILE(
-	]]
-		headerFile = headerFile .. ReadFile(path .. fileName)
+]]
+		headerFile = headerFile .. string.Trim(ReadFile(path .. fileName)) -- Let's trim it to not include any new lines from the start/end of the file
 		headerFile = headerFile .. [[
 
-	)LUAFILE";]]
+)LUAFILE";]]
 		
 		WriteFile(headerFileName, headerFile)
 	end
@@ -69,7 +74,7 @@ CompileModuleList()
 
 local function CompileVerionFile()
 	local path = "../../workflow_info.txt"
-	local file = io.open("workflow_info.txt", "r")
+	local file = io.open(path, "r")
 	local run_id = file and file:read("*l") or "1"
 	local run_number = file and file:read("*l") or "1"
 	local branch = file and file:read("*l") or "main"

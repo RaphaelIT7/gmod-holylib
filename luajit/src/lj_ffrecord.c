@@ -238,6 +238,7 @@ static void LJ_FASTCALL recff_getmetatable(jit_State *J, RecordFFData *rd)
     RecordIndex ix;
     ix.tab = tr;
     copyTV(J->L, &ix.tabv, &rd->argv[0]);
+    ix.mtspec = 0;
     if (lj_record_mm_lookup(J, &ix, MM_metatable))
       J->base[0] = ix.mobj;
     else
@@ -254,6 +255,7 @@ static void LJ_FASTCALL recff_setmetatable(jit_State *J, RecordFFData *rd)
     RecordIndex ix;
     ix.tab = tr;
     copyTV(J->L, &ix.tabv, &rd->argv[0]);
+    ix.mtspec = 0;
     lj_record_mm_lookup(J, &ix, MM_metatable); /* Guard for no __metatable. */
     fref = emitir(IRT(IR_FREF, IRT_PGC), tr, IRFL_TAB_META);
     mtref = tref_isnil(mt) ? lj_ir_knull(J, IRT_TAB) : mt;
@@ -402,6 +404,7 @@ static int recff_metacall(jit_State *J, RecordFFData *rd, MMS mm)
   RecordIndex ix;
   ix.tab = J->base[0];
   copyTV(J->L, &ix.tabv, &rd->argv[0]);
+  ix.mtspec = 1;
   if (lj_record_mm_lookup(J, &ix, mm)) {  /* Has metamethod? */
     int errcode;
     TValue argv0;
@@ -561,11 +564,50 @@ static void LJ_FASTCALL recff_next(jit_State *J, RecordFFData *rd)
     ix.idxchain = (J->framedepth && frame_islua(J->L->base-1) &&
 		   bc_b(frame_pc(J->L->base-1)[-1])-1 < 2);
     ix.mobj = 0;  /* We don't need the next index. */
+    ix.mtspec = 0;
     rd->nres = lj_record_next(J, &ix);
     J->base[0] = ix.key;
     J->base[1] = ix.val;
   }  /* else: Interpreter will throw. */
 #endif
+}
+
+static void LJ_FASTCALL recff_unpack(jit_State *J, RecordFFData *rd)
+{
+  TRef tab = J->base[0], trstart = J->base[1], trend = J->base[2];
+  if (tref_istab(tab) && trstart && trend && tref_isk2(trstart, trend) &&
+       !tref_isnil(trend)) {
+    if (!tref_isnil(trstart))
+      trstart = lj_opt_narrow_toint(J, trstart);
+    trend = lj_opt_narrow_toint(J, trend);
+    if (tref_isk2(trstart, trend)) {
+      uint32_t nu;
+      int32_t start = tref_isnil(trstart) ? 1 : IR(tref_ref(trstart))->i;
+      int32_t end = IR(tref_ref(trend))->i;
+      if (start > end) {
+  rd->nres = 0;
+  return;
+      }
+      nu = (uint32_t)end - (uint32_t)start;
+      /* Check for space for the return values. */
+      if (nu <= INT32_MAX - LJ_MAX_JSLOTS && J->baseslot + nu < LJ_MAX_JSLOTS) {
+  int32_t i, n = (int32_t)(nu+1);
+  RecordIndex ix;
+  ix.tab = tab;
+  settabV(J->L, &ix.tabv, tabV(&rd->argv[0]));
+  ix.val = 0;
+  ix.idxchain = 0;
+  for (i = 0; i < n; i++) {
+    ix.key = lj_ir_kint(J, start + i);
+    setintV(&ix.keyv, start + i);
+    J->base[i] = lj_record_idx(J, &ix);
+  }
+  rd->nres = n;
+  return;
+      }
+    }
+  }
+  recff_nyiu(J, rd);
 }
 
 /* -- Math library fast functions ----------------------------------------- */

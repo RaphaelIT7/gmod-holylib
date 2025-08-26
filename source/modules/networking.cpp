@@ -23,6 +23,7 @@
 #include <cmodel_private.h>
 #include "server.h"
 #include "hltvserver.h"
+#include "SkyCamera.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -1078,6 +1079,7 @@ static unsigned char g_iEntityStateFlags[MAX_EDICTS] = {0};
 static ConVar networking_fastpath("holylib_networking_fastpath", "0", 0, "Experimental - If two players are in the same area, then it will reuse the transmit state of the first calculated player saving a lot of time");
 static ConVar networking_fasttransmit("holylib_networking_fasttransmit", "1", 0, "Experimental - Replaces CServerGameEnts::CheckTransmit with our own implementation");
 static ConVar networking_fastpath_usecluster("holylib_networking_fastpath_usecluster", "1", 0, "Experimental - When using the fastpatth, it will compate against clients in the same cluster instead of area");
+static Symbols::GetCurrentSkyCamera func_GetCurrentSkyCamera = NULL;
 bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts)
 {
 	if (!networking_fasttransmit.GetBool() || !gpGlobals || !engine)
@@ -1092,7 +1094,8 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	
 	MDLCACHE_CRITICAL_SECTION();
 	CBasePlayer *pRecipientPlayer = static_cast<CBasePlayer*>( pRecipientEntity );
-	const int skyBoxArea = pRecipientPlayer->m_Local.m_skybox3d.area; // RIP, crash any% offsets are not reliable at all! Good thing the SDK is up to date
+	// BUG: Our offsets are fked, so pRecipientPlayer->m_Local.m_skybox3d.area is pointing at the most random shit :sad:
+	const int skyBoxArea = func_GetCurrentSkyCamera ? func_GetCurrentSkyCamera()->m_skyboxData.area : pRecipientPlayer->m_Local.m_skybox3d.area; // RIP, crash any% offsets are not reliable at all! Good thing the SDK is up to date
 	const int clientIndex = pInfo->m_pClientEnt->m_EdictIndex - 1;
 
 	const Vector& clientPosition = (pRecipientPlayer->GetViewEntity() != NULL) ? pRecipientPlayer->GetViewEntity()->EyePosition() : pRecipientPlayer->EyePosition();
@@ -1797,6 +1800,9 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 
 	func_CBaseAnimating_SetTransmit = (Symbols::CBaseCombatCharacter_SetTransmit)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseAnimating_SetTransmitSym);
 	Detour::CheckFunction((void*)func_CBaseAnimating_SetTransmit, "CBaseAnimating::SetTransmit");
+
+	func_GetCurrentSkyCamera = (Symbols::GetCurrentSkyCamera)Detour::GetFunction(server_loader.GetModule(), Symbols::GetCurrentSkyCameraSym);
+	Detour::CheckFunction((void*)func_GetCurrentSkyCamera, "GetCurrentSkyCamera");
 
 #if SYSTEM_WINDOWS // BUG: On Windows IModule::ServerActivate is not called if HolyLib gets loaded using: require("holylib")
 	world_edict = Util::engineserver->PEntityOfEntIndex(0);

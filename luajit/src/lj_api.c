@@ -64,6 +64,11 @@ static TValue *index2adr(lua_State *L, int idx)
   }
 }
 
+LUA_API TValue *lua_index2adr(lua_State *L, int idx)
+{
+  return index2adr(L, idx); // We just wrap around it since I have no idea if we remove the static of it as it could possibly hurt performance? idk
+}
+
 static LJ_AINLINE TValue *index2adr_check(lua_State *L, int idx)
 {
   TValue *o = index2adr(L, idx);
@@ -93,6 +98,18 @@ static GCtab *getcurrenv(lua_State *L)
 {
   GCfunc *fn = curr_func(L);
   return fn->c.gct == ~LJ_TFUNC ? tabref(fn->c.env) : tabref(L->env);
+}
+
+static void check_vm_sandwich(lua_State *L)
+{
+  global_State *g = G(L);
+  /* Forbid Lua world re-entry while running the trace */
+  if (tvref(g->jit_base)) {
+    setstrV(L, L->top++, lj_err_str(L, LJ_ERR_JITREVM));
+    if (g->panic) g->panic(L);
+    exit(EXIT_FAILURE);
+  }
+  lj_trace_abort(g);  /* Never record across Lua VM entrance */
 }
 
 /* -- Miscellaneous API functions ----------------------------------------- */
@@ -262,7 +279,7 @@ LUALIB_API void luaL_checkany(lua_State *L, int idx)
 // Based off https://github.com/meepen/gluajit/blob/master/src/lj_api.c#L225-L247
 /*extern "C"*/ const char* GMODLUA_GetUserType(lua_State* L, int iStackPos)
 {
-  static char strName[128];
+  static char strName[128]; // RaphaelIT7: This doesn't seem thread safe at all...
   const char* strTypeName = "UserData";
   cTValue *o = index2adr(L, iStackPos);
   GCtab *mt = NULL;
@@ -270,7 +287,7 @@ LUALIB_API void luaL_checkany(lua_State *L, int idx)
     mt = tabref(tabV(o)->metatable);
   else if (tvisudata(o))
     mt = tabref(udataV(o)->metatable);
-  else if (tviscdata(o))
+  else if (tviscdata(o)) // RaphaelIT7: Gmod also doesn't have this since FFI was never accounted for there.
   {
     strTypeName = "cdata";
     CTState *cts = ctype_cts(L);
@@ -287,7 +304,7 @@ LUALIB_API void luaL_checkany(lua_State *L, int idx)
 
     if (val && tvisstr(val))
     {
-      strncpy(strName, strdata(strV(val)), sizeof(strName));
+      strncpy(strName, strdata(strV(val)), sizeof(strName) - 1);
       strTypeName = strName;
     }
   }
@@ -361,6 +378,7 @@ LUA_API int lua_equal(lua_State *L, int idx1, int idx2)
       return (int)(uintptr_t)base;
     } else {
       L->top = base+2;
+      check_vm_sandwich(L);
       lj_vm_call(L, base, 1+1);
       L->top -= 2+LJ_FR2;
       return tvistruecond(L->top+1+LJ_FR2);
@@ -384,6 +402,7 @@ LUA_API int lua_lessthan(lua_State *L, int idx1, int idx2)
       return (int)(uintptr_t)base;
     } else {
       L->top = base+2;
+      check_vm_sandwich(L);
       lj_vm_call(L, base, 1+1);
       L->top -= 2+LJ_FR2;
       return tvistruecond(L->top+1+LJ_FR2);
@@ -845,6 +864,7 @@ LUA_API void lua_concat(lua_State *L, int n)
       }
       n -= (int)(L->top - (top - 2*LJ_FR2));
       L->top = top+2;
+      check_vm_sandwich(L);
       lj_vm_call(L, top, 1+1);
       L->top -= 1+LJ_FR2;
       copyTV(L, L->top-1, L->top+LJ_FR2);
@@ -864,6 +884,7 @@ LUA_API void lua_gettable(lua_State *L, int idx)
   cTValue *v = lj_meta_tget(L, t, L->top-1);
   if (v == NULL) {
     L->top += 2;
+    check_vm_sandwich(L);
     lj_vm_call(L, L->top-2, 1+1);
     L->top -= 2+LJ_FR2;
     v = L->top+1+LJ_FR2;
@@ -879,6 +900,7 @@ LUA_API void lua_getfield(lua_State *L, int idx, const char *k)
   v = lj_meta_tget(L, t, &key);
   if (v == NULL) {
     L->top += 2;
+    check_vm_sandwich(L);
     lj_vm_call(L, L->top-2, 1+1);
     L->top -= 2+LJ_FR2;
     v = L->top+1+LJ_FR2;
@@ -1037,6 +1059,7 @@ LUA_API void lua_settable(lua_State *L, int idx)
     TValue *base = L->top;
     copyTV(L, base+2, base-3-2*LJ_FR2);
     L->top = base+3;
+    check_vm_sandwich(L);
     lj_vm_call(L, base, 0+1);
     L->top -= 3+LJ_FR2;
   }
@@ -1057,6 +1080,7 @@ LUA_API void lua_setfield(lua_State *L, int idx, const char *k)
     TValue *base = L->top;
     copyTV(L, base+2, base-3-2*LJ_FR2);
     L->top = base+3;
+    check_vm_sandwich(L);
     lj_vm_call(L, base, 0+1);
     L->top -= 2+LJ_FR2;
   }
@@ -1189,6 +1213,7 @@ LUA_API void lua_call(lua_State *L, int nargs, int nresults)
   lj_checkapi(L->status == LUA_OK || L->status == LUA_ERRERR,
 	      "thread called in wrong state %d", L->status);
   lj_checkapi_slot(nargs+1);
+  check_vm_sandwich(L);
   lj_vm_call(L, api_call_base(L, nargs), nresults+1);
 }
 
@@ -1207,6 +1232,7 @@ LUA_API int lua_pcall(lua_State *L, int nargs, int nresults, int errfunc)
     cTValue *o = index2adr_stack(L, errfunc);
     ef = savestack(L, o);
   }
+  check_vm_sandwich(L);
   status = lj_vm_pcall(L, api_call_base(L, nargs), nresults+1, ef);
   if (status) hook_restore(g, oldh);
   return status;
@@ -1235,6 +1261,7 @@ LUA_API int lua_cpcall(lua_State *L, lua_CFunction func, void *ud)
   int status;
   lj_checkapi(L->status == LUA_OK || L->status == LUA_ERRERR,
 	      "thread called in wrong state %d", L->status);
+  check_vm_sandwich(L);
   status = lj_vm_cpcall(L, func, ud, cpcall);
   if (status) hook_restore(g, oldh);
   return status;
@@ -1247,6 +1274,7 @@ LUALIB_API int luaL_callmeta(lua_State *L, int idx, const char *field)
     if (LJ_FR2) setnilV(top++);
     copyTV(L, top++, index2adr(L, idx));
     L->top = top;
+    check_vm_sandwich(L);
     lj_vm_call(L, top-1, 1+1);
     return 1;
   }

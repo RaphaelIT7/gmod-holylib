@@ -64,6 +64,7 @@ struct PackWork_t;
 class CBaseViewModel;
 class CBaseCombatCharacter;
 class CHostState;
+class CSkyCamera;
 
 class	CGameTrace;
 typedef	CGameTrace trace_t;
@@ -432,6 +433,9 @@ namespace Symbols
 	extern const std::vector<Symbol> CBaseCombatCharacter_SetTransmitSym;
 	extern const std::vector<Symbol> CBaseAnimating_SetTransmitSym;
 
+	typedef CSkyCamera* (*GetCurrentSkyCamera)();
+	extern const std::vector<Symbol> GetCurrentSkyCameraSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: steamworks Symbols
 	//---------------------------------------------------------------------------------
@@ -519,6 +523,9 @@ namespace Symbols
 
 	typedef void (*CPhysicsEnvironment_C2)(IPhysicsEnvironment*); // Constructor
 	extern const std::vector<Symbol> CPhysicsEnvironment_C2Sym;
+
+	typedef void (*IVP_Mindist_Manager_recheck_ov_element)(void* mindistManager, void* physObj); // Crash fix.
+	extern const std::vector<Symbol> IVP_Mindist_Manager_recheck_ov_elementSym;
 
 	// Stuff for our do_impact replacement
 	typedef void (*IVP_Mindist_D2)(void* mindist);
@@ -620,6 +627,9 @@ namespace Symbols
 
 	typedef int (*NET_ReceiveStream)(int nSock, char * buf, int len, int flags);
 	extern const std::vector<Symbol> NET_ReceiveStreamSym;
+
+	typedef void (*NET_SetTime)(double flRealtime);
+	extern const std::vector<Symbol> NET_SetTimeSym;
 
 	extern const std::vector<Symbol> s_NetChannelsSym;
 

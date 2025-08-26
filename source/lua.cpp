@@ -7,6 +7,7 @@
 #include "detours.h"
 #include "module.h"
 #include "CLuaInterface.h"
+#include "versioninfo.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -57,8 +58,21 @@ void Lua::Init(GarrysMod::Lua::ILuaInterface* LUA)
 	}
 
 	g_Lua = LUA;
+
+	// Setup HolyLib Vars
 	LUA->PushBool(true);
 	LUA->SetField(GarrysMod::Lua::INDEX_GLOBAL, "_HOLYLIB");
+
+	LUA->PushString(HolyLib_GetRunNumber());
+	LUA->SetField(GarrysMod::Lua::INDEX_GLOBAL, "_HOLYLIB_RUN_NUMBER");
+
+	LUA->PushString(HolyLib_GetBranch());
+	LUA->SetField(GarrysMod::Lua::INDEX_GLOBAL, "_HOLYLIB_BRANCH");
+
+	LUA->PushString(HolyLib_GetVersion());
+	LUA->SetField(GarrysMod::Lua::INDEX_GLOBAL, "_HOLYLIB_VERSION");
+
+	// Lua Interface setup to prepare them for modules.
 	Lua::CreateLuaData(g_Lua, true);
 	g_pModuleManager.LuaInit(g_Lua, false);
 	SetupUnHolyVTableForThisShit(g_Lua);

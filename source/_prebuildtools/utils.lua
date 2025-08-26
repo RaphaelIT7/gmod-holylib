@@ -26,6 +26,7 @@ function RemoveEnd(str, find)
 	return str:sub(0, #str - #find)
 end
 
+-- FileExists does not exist! Use this instead and check for nil return!
 function ReadFile(path)
 	local file = io.open(path, "rb")
 	if not file then return end
@@ -92,4 +93,76 @@ function string.Trim(s, char)
 	end
 
 	return string.match(s, "^" .. char .. "*(.-)" .. char .. "*$") or s
+end
+
+function string.Replace(str, rep, new)
+    local new_str = str
+    local last = 0
+    for k=1, 10 do
+        local found, finish = string.find(new_str, rep, last, true)
+        if found then
+            new_str = string.sub(new_str, 1, found - 1) .. new .. string.sub(new_str, finish + 1)
+            last = found + 1
+        end
+    end
+
+    return new_str
+end
+
+local created_dirs = {}
+function CreateDir(name)
+	if created_dirs[name] then return end -- To optimize especially on windows.
+	if os.name() == "Windows" then
+		os.execute('mkdir "' .. string.Replace(name, "/", [[\]]) .. '"')
+	else
+		os.execute('mkdir -p "' .. name .. '"')
+	end
+
+	created_dirs[name] = true
+end
+
+function RemoveDir(name)
+	if created_dirs[name] then return end -- To optimize especially on windows.
+	if os.name() == "Windows" then
+		os.execute('rmdir /s /q "' .. string.Replace(name, "/", [[\]]) .. '"')
+	else
+		if string.len(name) <= 3 then
+			error("too short folder name!")
+		end
+
+		if name == "." or name == "~/" or name == "../" or name == "/" then
+			error("tf are you doing!")
+		end
+
+		os.execute('rm -rf "' .. name .. '"')
+	end
+
+	created_dirs[name] = nil
+end
+
+function CopyFile(from, to)
+	CreateDir(GetPath(to))
+	WriteFile(to, ReadFile(from))
+end
+
+function PrintTable(tbl, indent)
+	indent = indent or 0
+	local str = ""
+	for k=1, indent do
+		str = str .. "	"
+	end
+
+	for k, v in pairs(tbl) do
+		if type(v) == "table" then
+			print(str .. k .. " = {")
+			PrintTable(v, indent + 1)
+			print(str .. "}")
+		else
+			if type(v) == "string" then
+				print(str .. k .. ' = "' .. v .. '"')
+			else
+				print(str .. k .. " = " .. tostring(v))
+			end
+		end
+	end
 end

@@ -66,7 +66,7 @@ LJLIB_CF(debug_getfenv)
 {
   TValue* o = lj_lib_checkany(L, 1);
   if (o && tvisfunc(o))
-    blockDebug(L, o);
+    blockDebug(L, funcV(o));
   lua_getfenv(L, 1);
   return 1;
 }
@@ -75,7 +75,7 @@ LJLIB_CF(debug_setfenv)
 {
   TValue* o = lj_lib_checkany(L, 1);
   if (o && tvisfunc(o))
-    blockDebug(L, o);
+    blockDebug(L, funcV(o));
   lj_lib_checktab(L, 2);
   L->top = L->base+2;
   if (!lua_setfenv(L, 1))
