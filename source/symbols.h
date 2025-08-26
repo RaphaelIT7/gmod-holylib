@@ -66,6 +66,11 @@ class CBaseCombatCharacter;
 class CHostState;
 class CSkyCamera;
 
+namespace GarrysMod::Lua
+{
+	class CLuaObject;
+}
+
 class	CGameTrace;
 typedef	CGameTrace trace_t;
 
@@ -149,6 +154,9 @@ namespace Symbols
 
 	typedef const byte* (*CM_Vis)(byte* dest, int destlen, int cluster, int visType);
 	extern const std::vector<Symbol> CM_VisSym;
+
+	typedef GarrysMod::Lua::CLuaObject* (*CBaseEntity_GetLuaEntity)(void* pEntity);
+	extern const std::vector<Symbol> CBaseEntity_GetLuaEntitySym; // We use this one to directly push by reference to reduce overhead and improve performance.
 
 	//---------------------------------------------------------------------------------
 	// Purpose: holylib Symbols
