@@ -14,7 +14,7 @@
 
 bool Lua::PushHook(const char* hook, GarrysMod::Lua::ILuaInterface* pLua)
 {
-	if ( !pLua)
+	if (!pLua)
 	{
 		Warning(PROJECT_NAME ": Lua::PushHook was called while pLua was NULL! (%s)\n", hook);
 		return false;

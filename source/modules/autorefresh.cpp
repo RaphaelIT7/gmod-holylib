@@ -12,42 +12,133 @@ class CAutoRefreshModule : public IModule
 public:
 	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
+	virtual void Shutdown() OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "autorefresh"; };
-	virtual int Compatibility() { return LINUX32 | LINUX64; };
+	virtual int Compatibility() { return LINUX32; };
 };
 
 CAutoRefreshModule g_pAutoRefreshModule;
 IModule* pAutoRefreshModule = &g_pAutoRefreshModule;
 
-static std::unordered_map<std::string, bool> blockedLuaFilesMap = {};
-LUA_FUNCTION_STATIC(DenyLuaAutoRefresh)
+static IThreadPool* pFileTimePool = NULL; // Used when checking the file times since the filesystem can be slow.
+static void OnFileTimeThreadsChange(IConVar* convar, const char* pOldValue, float flOldValue)
 {
-	LUA->CheckType(1, GarrysMod::Lua::Type::String);
-	LUA->CheckType(2, GarrysMod::Lua::Type::Bool);
+	if (!pFileTimePool)
+		return;
 
-	const char* inputFilePath = LUA->GetString(1);
-	bool blockStatus = LUA->GetBool(2);
-	char normalizedPath[260];
-	V_FixupPathName(normalizedPath, sizeof(normalizedPath), inputFilePath);
-	blockedLuaFilesMap.insert_or_assign(std::string(normalizedPath), blockStatus);
-
-	return 0;
+	pFileTimePool->ExecuteAll();
+	pFileTimePool->Stop();
+	Util::StartThreadPool(pFileTimePool, ((ConVar*)convar)->GetInt());
 }
 
-static Detouring::Hook detour_CAutoRefresh_HandleChange_Lua;
-static bool hook_CAutoRefresh_HandleChange_Lua(const std::string* pfileRelPath, const std::string* pfileName, const std::string* pfileExt)
-{
-	auto trampoline = detour_CAutoRefresh_HandleChange_Lua.GetTrampoline<Symbols::GarrysMod_AutoRefresh_HandleChange_Lua>();
-	if (!g_Lua || !pfileRelPath || !pfileName || !pfileExt)
+static ConVar autorefresh_threads("holylib_autorefresh_threads", "4", FCVAR_ARCHIVE, "The number of threads to use when checking the file times", true, 1, true, 16, OnFileTimeThreadsChange);
+
+struct FileTimeJob {
+	FileTimeJob(Bootil::BString& fileName)
 	{
-		return trampoline(pfileRelPath, pfileName, pfileExt);
+		strFileName = fileName;
+
+		nFileTime = g_pFullFileSystem->GetFileTime(strFileName.c_str(), "MOD");
 	}
 
-	if (std::string(pfileExt->substr(0, 3)) != "lua")
+	Bootil::BString strFileName;
+	long nFileTime = 0;
+	bool bChanged = false;
+};
+static std::vector<FileTimeJob*> pFileTimestamps;
+static void AddFileToAutoRefresh(Bootil::BString pFilename)
+{
+	for (auto& pFileEntry : pFileTimestamps)
 	{
-		return trampoline(pfileRelPath, pfileName, pfileExt);
+		if (pFileEntry->strFileName == pFilename)
+			return;
 	}
+
+	pFileTimestamps.push_back(new FileTimeJob(pFilename));
+}
+
+static void RemoveFileFromAutoRefresh(Bootil::BString pFilename)
+{
+	for(auto it = pFileTimestamps.begin(); it != pFileTimestamps.end();)
+	{
+		if ((*it)->strFileName == pFilename)
+		{
+			pFileTimestamps.erase(it);
+			return;
+		}
+
+		it++;
+	}
+}
+
+static void CheckFileTime(FileTimeJob*& pJob)
+{
+	pJob->nFileTime = g_pFullFileSystem->GetFileTime(pJob->strFileName.c_str(), "MOD");
+}
+
+static Bootil::File::ChangeMonitor* g_pChangeMonitor = nullptr;
+static bool bForceHasChangedCall = false;
+static Detouring::Hook detour_Bootil_File_ChangeMonitor_HasChanged;
+static bool hook_Bootil_File_ChangeMonitor_HasChanged(Bootil::File::ChangeMonitor* pMonitor)
+{
+	g_pChangeMonitor = pMonitor; // We cannot just load g_pChangeMonitor since the symbol has an additional fked offset that can change with every gmod build making it unreliable.
+
+	if (bForceHasChangedCall)
+		return false;
+
+	detour_Bootil_File_ChangeMonitor_HasChanged.GetTrampoline<Symbols::Bootil_File_ChangeMonitor_HasChanged>()(pMonitor);
+}
+
+static Detouring::Hook detour_Bootil_File_ChangeMonitor_CheckForChanges;
+static void hook_Bootil_File_ChangeMonitor_CheckForChanges(Bootil::File::ChangeMonitor* pMonitor)
+{
+	g_pChangeMonitor = pMonitor;
+
+	detour_Bootil_File_ChangeMonitor_CheckForChanges.GetTrampoline<Symbols::Bootil_File_ChangeMonitor_CheckForChanges>()(pMonitor);
+
+	if (pFileTimestamps.size() > 0)
+	{
+
+		if (pFileTimePool)
+		{
+			for (auto& pFileJob : pFileTimestamps)
+			{
+				pFileJob->bChanged = false;
+				pFileTimePool->QueueCall(&CheckFileTime, pFileJob);
+			}
+			pFileTimePool->ExecuteAll();
+
+			for (auto& pFileJob : pFileTimestamps)
+			{
+				if (pFileJob->bChanged)
+				{
+					pMonitor->NoteFileChanged(pFileJob->strFileName);
+					pFileJob->bChanged = false;
+				}
+			}
+		} else { // Idk why we don't have our threadpool but this will be slower if we got many files.
+			for (auto& pFileJob : pFileTimestamps)
+			{
+				pFileJob->bChanged = false;
+				CheckFileTime(pFileJob);
+				pMonitor->NoteFileChanged(pFileJob->strFileName);
+				pFileJob->bChanged = false;
+			}
+		}
+	}
+}
+
+static Detouring::Hook detour_GarrysMod_AutoRefresh_HandleChange_Lua;
+static bool hook_GarrysMod_AutoRefresh_HandleChange_Lua(const std::string* pfileRelPath, const std::string* pfileName, const std::string* pfileExt)
+{
+	auto trampoline = detour_GarrysMod_AutoRefresh_HandleChange_Lua.GetTrampoline<Symbols::GarrysMod_AutoRefresh_HandleChange_Lua>();
+	if (!g_Lua || !pfileRelPath || !pfileName || !pfileExt)
+		return trampoline(pfileRelPath, pfileName, pfileExt);
+
+	// Is this really needed? Yes it is since AutoRefresh::Cycle calls all HandleChange functions expecting them to first check the file extension... Why...
+	if (std::string(pfileExt->substr(0, 3)) != "lua")
+		return trampoline(pfileRelPath, pfileName, pfileExt);
 
 	bool bDenyRefresh = false;
 	if (Lua::PushHook("HolyLib:PreLuaAutoRefresh"))
@@ -62,21 +153,8 @@ static bool hook_CAutoRefresh_HandleChange_Lua(const std::string* pfileRelPath, 
 		}
 	}
 
-	if (!blockedLuaFilesMap.empty() && !bDenyRefresh)
-	{
-		char fullPath[260];
-		V_ComposeFileName(pfileRelPath->c_str(), pfileName->c_str(), fullPath, sizeof(fullPath));
-		V_SetExtension(fullPath, "lua", sizeof(fullPath));
-		if (auto fileSearch = blockedLuaFilesMap.find(fullPath); fileSearch != blockedLuaFilesMap.end())
-		{
-			bDenyRefresh = fileSearch->second;
-		}
-	}
-
 	if (bDenyRefresh)
-	{
 		return true;
-	}
 
 	bool originalResult = trampoline(pfileRelPath, pfileName, pfileExt);
 
@@ -91,19 +169,96 @@ static bool hook_CAutoRefresh_HandleChange_Lua(const std::string* pfileRelPath, 
 	return originalResult;
 };
 
+LUA_FUNCTION_STATIC(autorefresh_AddFileToRefresh)
+{
+	const char* fileName = LUA->CheckString(1);
+
+	AddFileToAutoRefresh(fileName);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(autorefresh_RemoveFileFromRefresh)
+{
+	const char* fileName = LUA->CheckString(1);
+
+	RemoveFileFromAutoRefresh(fileName);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(autorefresh_AddFolderToRefresh)
+{
+	if (!g_pChangeMonitor)
+		LUA->ThrowError("Failed to get g_pChangeMonitor!");
+
+	const char* folderName = LUA->CheckString(1);
+	bool bRecursive = LUA->GetBool(2);
+
+	g_pChangeMonitor->AddFolderToWatch(folderName, bRecursive);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(autorefresh_RemoveFolderFromRefresh)
+{
+	if (!g_pChangeMonitor)
+		LUA->ThrowError("Failed to get g_pChangeMonitor!");
+
+	const char* folderName = LUA->CheckString(1);
+	bool bRecursive = LUA->GetBool(2);
+
+	g_pChangeMonitor->RemoveFolderFromWatch(folderName, bRecursive);
+	return 0;
+}
+
+static Symbols::GarrysMod_AutoRefresh_Init func_GarrysMod_AutoRefresh_Init = nullptr;
+LUA_FUNCTION_STATIC(autorefresh_RefreshFolders)
+{
+	if (!func_GarrysMod_AutoRefresh_Init)
+		LUA->ThrowError("Failed to load function GarrysMod::AutoRefresh::Init");
+
+	func_GarrysMod_AutoRefresh_Init();
+	return 0;
+}
+
+static Symbols::GarrysMod_AutoRefresh_Cycle func_GarrysMod_AutoRefresh_Cycle = nullptr;
 void CAutoRefreshModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
 
+	if (!pFileTimePool)
+	{
+		pFileTimePool = V_CreateThreadPool();
+		Util::StartThreadPool(pFileTimePool, autorefresh_threads.GetInt());
+	}
+
+	if (!g_pChangeMonitor && func_GarrysMod_AutoRefresh_Cycle)
+	{
+		bForceHasChangedCall = true;
+		func_GarrysMod_AutoRefresh_Cycle();
+		bForceHasChangedCall = false;
+	}
+
 	Util::StartTable(pLua);
-		Util::AddFunc(pLua, DenyLuaAutoRefresh, "DenyLuaAutoRefresh");
+		Util::AddFunc(pLua, autorefresh_AddFileToRefresh, "AddFileToRefresh");
+		Util::AddFunc(pLua, autorefresh_RemoveFileFromRefresh, "RemoveFileFromRefresh");
+		Util::AddFunc(pLua, autorefresh_AddFolderToRefresh, "AddFolderToRefresh");
+		Util::AddFunc(pLua, autorefresh_RemoveFolderFromRefresh, "RemoveFolderFromRefresh");
+		Util::AddFunc(pLua, autorefresh_RefreshFolders, "RefreshFolders");
 	Util::FinishTable(pLua, "autorefresh");
 }
 
 void CAutoRefreshModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	Util::NukeTable(pLua, "autorefresh");
+}
+
+void CAutoRefreshModule::Shutdown()
+{
+	if (pFileTimePool)
+	{
+		V_DestroyThreadPool(pFileTimePool);
+		pFileTimePool = nullptr;
+	}
 }
 
 void CAutoRefreshModule::InitDetour(bool bPreServer)
@@ -113,8 +268,26 @@ void CAutoRefreshModule::InitDetour(bool bPreServer)
 
 	SourceSDK::FactoryLoader server_loader("server");
 	Detour::Create(
-		&detour_CAutoRefresh_HandleChange_Lua, "CAutoRefresh_HandleChange_Lua",
+		&detour_GarrysMod_AutoRefresh_HandleChange_Lua, "GarrysMod::AutoRefresh::HandleChange_Lua",
 		server_loader.GetModule(), Symbols::GarrysMod_AutoRefresh_HandleChange_LuaSym,
-		(void*)hook_CAutoRefresh_HandleChange_Lua, m_pID
+		(void*)hook_GarrysMod_AutoRefresh_HandleChange_Lua, m_pID
 	);
+
+	Detour::Create(
+		&detour_Bootil_File_ChangeMonitor_CheckForChanges, "Bootil::File::ChangeMonitor::CheckForChanges",
+		server_loader.GetModule(), Symbols::Bootil_File_ChangeMonitor_CheckForChangesSym,
+		(void*)hook_Bootil_File_ChangeMonitor_CheckForChanges, m_pID
+	);
+
+	Detour::Create(
+		&detour_Bootil_File_ChangeMonitor_HasChanged, "Bootil::File::ChangeMonitor::HasChanged",
+		server_loader.GetModule(), Symbols::Bootil_File_ChangeMonitor_HasChangedSym,
+		(void*)hook_Bootil_File_ChangeMonitor_HasChanged, m_pID
+	);
+
+	func_GarrysMod_AutoRefresh_Init = (Symbols::GarrysMod_AutoRefresh_Init)Detour::GetFunction(server_loader.GetModule(), Symbols::GarrysMod_AutoRefresh_InitSym);
+	Detour::CheckFunction((void*)func_GarrysMod_AutoRefresh_Init, "GarrysMod::AutoRefresh::Init");
+
+	func_GarrysMod_AutoRefresh_Cycle = (Symbols::GarrysMod_AutoRefresh_Cycle)Detour::GetFunction(server_loader.GetModule(), Symbols::GarrysMod_AutoRefresh_CycleSym);
+	Detour::CheckFunction((void*)func_GarrysMod_AutoRefresh_Cycle, "GarrysMod::AutoRefresh::Cycle");
 }

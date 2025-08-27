@@ -4561,16 +4561,33 @@ The Autorefresh module currently provides functionalities regarding the in-built
 Supports: Linux32 | LINUX64
 
 ### Functions
-#### autorefresh.DenyLuaAutoRefresh(string filePath, bool shouldDeny)
-Prevents certain Lua files from being autorefreshed. Accepts a string of the relative file path and a bool indicating whether to block or allow the autorefresh.
-- `true` - denies the autorefresh
-- `false` - allows the autorefresh
-```lua
-local pathToFile = "lua/test-dir/test.lua"
-autorefresh.DenyLuaAutoRefresh(pathToFile, true)
-```
+
+#### autorefresh.AddFileToRefresh(string filePath)
+Adds the given file to the autorefresh list.
+
+> [!NOTE]
+> Adding single files is really slow and at high numbers can hurt performance! Use `autorefresh.AddFolderToRefresh` instead.
+
+#### autorefresh.RemoveFileFromRefresh(string filePath)
+Removes the given file from the autorefresh list.
+
+> [!NOTE]
+> This **only** works on files added by `autorefresh.AddFileToRefresh`
+
+#### autorefresh.AddFolderToRefresh(string folderPath, bool recursive = false)
+Adds the given folder to be watched for any file changes to autorefresh.
+
+#### autorefresh.RemoveFolderFromRefresh(string folderPath, bool recursive = false)
+Removes the given folder from being watched for any file changes.
+
+### autorefresh.RefreshFolders()
+Resets autorefresh.<br>
+Useful when you added/removed folders.
+
+#### 
 
 ### Hooks
+
 #### bool HolyLib:PreLuaAutoRefresh(string filePath, string fileName)
 Called before a Lua file is being refreshed. If `true` is returned it will deny the refresh of the lua file.
 - string filePath — is the filePath provided relative to the garrysmod folder

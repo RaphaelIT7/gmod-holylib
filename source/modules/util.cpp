@@ -61,9 +61,9 @@ static void OnJsonThreadsChange(IConVar* convar, const char* pOldValue, float fl
 	Util::StartThreadPool(pJsonPool, ((ConVar*)convar)->GetInt());
 }
 
-static ConVar compressthreads("holylib_util_compressthreads", "1", FCVAR_ARCHIVE, "The number of threads to use for util.AsyncCompress", OnCompressThreadsChange);
-static ConVar decompressthreads("holylib_util_decompressthreads", "1", FCVAR_ARCHIVE, "The number of threads to use for util.AsyncDecompress", OnDecompressThreadsChange);
-static ConVar jsonthreads("holylib_util_jsonthreads", "1", FCVAR_ARCHIVE, "The number of threads to use for util.AsyncTableToJSON & util.AsyncJSONToTable", OnJsonThreadsChange);
+static ConVar compressthreads("holylib_util_compressthreads", "1", FCVAR_ARCHIVE, "The number of threads to use for util.AsyncCompress", true, 1, true, 16, OnCompressThreadsChange);
+static ConVar decompressthreads("holylib_util_decompressthreads", "1", FCVAR_ARCHIVE, "The number of threads to use for util.AsyncDecompress", true, 1, true, 16, OnDecompressThreadsChange);
+static ConVar jsonthreads("holylib_util_jsonthreads", "1", FCVAR_ARCHIVE, "The number of threads to use for util.AsyncTableToJSON & util.AsyncJSONToTable", true, 1, true, 16, OnJsonThreadsChange);
 
 class IJobEntry
 {

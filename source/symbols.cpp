@@ -895,7 +895,7 @@ namespace Symbols
 		Symbol::FromName("_ZL13s_NetChannels"),
 	};
   
-  const std::vector<Symbol> NET_SetTimeSym = {
+	const std::vector<Symbol> NET_SetTimeSym = {
 		Symbol::FromName("_Z11NET_SetTimed"),
 	};
 
@@ -905,5 +905,21 @@ namespace Symbols
 	const std::vector<Symbol> GarrysMod_AutoRefresh_HandleChange_LuaSym = {
 		Symbol::FromName("_ZN9GarrysMod11AutoRefresh16HandleChange_LuaERKSsS2_S2_"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x49\x89\xD6\x41\x55\x49\x89\xFD\x48\x89\xD7\x41\x54"),
-  };
+	};
+
+	const std::vector<Symbol> GarrysMod_AutoRefresh_InitSym = {
+		Symbol::FromName("_ZN9GarrysMod11AutoRefresh4InitEv"),
+	};
+
+	const std::vector<Symbol> GarrysMod_AutoRefresh_CycleSym = {
+		Symbol::FromName("_ZN9GarrysMod11AutoRefresh5CycleEv"),
+	};
+
+	const std::vector<Symbol> Bootil_File_ChangeMonitor_CheckForChangesSym = {
+		Symbol::FromName("_ZN6Bootil4File13ChangeMonitor10HasChangesEv"),
+	};
+
+	const std::vector<Symbol> Bootil_File_ChangeMonitor_HasChangedSym = {
+		Symbol::FromName("_ZN6Bootil4File13ChangeMonitor10HasChangesEv"),
+	};
 }
