@@ -15,6 +15,7 @@ class CLuaJITModule : public IModule
 {
 public:
 	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void PostLuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "luajit"; };
@@ -266,6 +267,16 @@ void CLuaJITModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 	pData->pLuaInterfaceProxy = std::make_unique<CLuaInterfaceProxy>(pLua);
 	Lua::GetLuaData(pLua)->SetModuleData(m_pID, pData);
 
+	bOpenLibs = false;
+}
+
+// We load the FFI scripts after LuaInit allowing them to properly work AFTER all new Lua types were registered.
+void CLuaJITModule::PostLuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
+{
+	if (bServerInit || pLua != g_Lua) // Don't init for non-gmod states
+		return;
+
+	lua_State* L = pLua->GetState();
 	if (!g_pLuaJITModule.m_bAllowFFI)
 	{
 		lua_pushcfunction(L, luaopen_ffi);
@@ -290,8 +301,6 @@ void CLuaJITModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 		luaL_unref(L, LUA_REGISTRYINDEX, overrideFFIReference);
 		overrideFFIReference = -1;
 	}
-
-	bOpenLibs = false;
 }
 
 void CLuaJITModule::InitDetour(bool bPreServer)

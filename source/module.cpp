@@ -374,6 +374,8 @@ void CModuleManager::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 
 	AddLuaInterface(pLua);
 	VCALL_LUA_ENABLED_MODULES(LuaInit(pLua, bServerInit));
+
+	VCALL_LUA_ENABLED_MODULES(PostLuaInit(pLua, bServerInit));
 }
 
 void CModuleManager::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
