@@ -35,7 +35,7 @@ namespace Lua
 
 	// Each new metatable has this entry.
 	struct LuaMetaEntry {
-		unsigned char iType = -1;
+		unsigned char iType = UCHAR_MAX;
 	};
 
 	/*

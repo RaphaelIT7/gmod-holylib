@@ -2918,6 +2918,8 @@ static ConVar* host_timescale = nullptr;
 static Detouring::Hook detour_NET_SetTime;
 static void hook_NET_SetTime(double flRealtime) // We need this hook to keep net_time up to date
 {
+	detour_NET_SetTime.GetTrampoline<Symbols::NET_SetTime>()(flRealtime);
+
 	static double s_last_realtime = 0;
 
 	double frametime = flRealtime - s_last_realtime;

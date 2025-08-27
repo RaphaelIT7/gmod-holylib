@@ -91,6 +91,10 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x83\xF9\x02\x48\x89\xE5\x41\x54\x53\x48\x89\xFB\x89\xD7\x89\xCA"), // 55 83 F9 02 48 89 E5 41 54 53 48 89 FB 89 D7 89 CA
 	};
 
+	const std::vector<Symbol> CBaseEntity_GetLuaEntitySym = {
+		Symbol::FromName("_ZN11CBaseEntity12GetLuaEntityEv"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: holylib Symbols
 	//---------------------------------------------------------------------------------

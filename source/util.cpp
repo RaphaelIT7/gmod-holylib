@@ -124,8 +124,7 @@ CBasePlayer* Util::Get_Player(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos,
 }
 
 IModuleWrapper* Util::pEntityList;
-static bool g_bIsPushEntityWorking = true;
-static bool g_bIsInitialPushEntity = true;
+static Symbols::CBaseEntity_GetLuaEntity func_CBaseEntity_GetLuaEntity = nullptr;
 void Util::Push_Entity(GarrysMod::Lua::ILuaInterface* LUA, CBaseEntity* pEnt)
 {
 	if (!pEnt)
@@ -134,9 +133,8 @@ void Util::Push_Entity(GarrysMod::Lua::ILuaInterface* LUA, CBaseEntity* pEnt)
 		return;
 	}
 
-	// In the case CBaseEntity::GetLuaEntity shifts in the VTable we will fall back to a safer though quite slower method.
-	// We don't really want to use this since other things too rely on the VTable so having it shift is catastrophic!
-	if (!g_bIsPushEntityWorking)
+	// In the case we are missing our symbol for CBaseEntity::GetLuaEntity, this will be slower though will still be fully functional.
+	if (!func_CBaseEntity_GetLuaEntity)
 	{
 		GarrysMod::Lua::ILuaObject* pObj = LUA->NewTemporaryObject();
 		pObj->SetEntity(pEnt);
@@ -146,53 +144,14 @@ void Util::Push_Entity(GarrysMod::Lua::ILuaInterface* LUA, CBaseEntity* pEnt)
 
 	if (LUA == g_Lua)
 	{
-		GarrysMod::Lua::CLuaObject* pObject = (GarrysMod::Lua::CLuaObject*)pEnt->GetLuaEntity();
+		GarrysMod::Lua::CLuaObject* pObject = (GarrysMod::Lua::CLuaObject*)func_CBaseEntity_GetLuaEntity(pEnt);
 		if (!pObject)
 		{
 			LUA->GetField(LUA_GLOBALSINDEX, "NULL");
 			return;
 		}
 
-		if (g_bIsInitialPushEntity)
-		{
-			if (pObject && (pObject->GetLua() != g_Lua || pObject->GetReference() < 0))
-			{ // The pObject is fked, so we cannot trust CBaseEntity::GetLuaEntity since it might not even be GetLuaEntity!
-				g_bIsPushEntityWorking = false;
-				g_bIsInitialPushEntity = false;
-
-				Warning(PROJECT_NAME " - Util::PushEntity: Failed to get Lua entity! VTable is broken! Expect issues. Switching to a fallback method...\n");
-				ThreadSleep(10 * 1000); // Freeze the entire server for 10 seconds since this is a core issue!
-
-				// Let's try to recover from our failure
-				GarrysMod::Lua::ILuaObject* pObj = LUA->NewTemporaryObject();
-				pObj->SetEntity(pEnt);
-				pObj->Push();
-				return;
-			}
-		}
-
 		Util::ReferencePush(LUA, pObject->GetReference()); // Assuming the reference is always right.
-
-		if (g_bIsInitialPushEntity)
-		{
-			if (g_Lua->GetType(-1) != GarrysMod::Lua::Type::Entity)
-			{
-				g_bIsPushEntityWorking = false;
-				g_bIsInitialPushEntity = false;
-
-				Warning(PROJECT_NAME " - Util::PushEntity: Failed to push entity to Lua! VTable is broken! Expect issues. Switching to a fallback method...\n");
-				ThreadSleep(10 * 1000); // Freeze the entire server for 10 seconds since this is a core issue!
-
-				// Let's try to recover from our failure
-				LUA->Pop(1);
-				GarrysMod::Lua::ILuaObject* pObj = LUA->NewTemporaryObject();
-				pObj->SetEntity(pEnt);
-				pObj->Push();
-				return;
-			}
-
-			g_bIsInitialPushEntity = false; // We passed our initial test and no issues were found.
-		}
 	} else {
 		Warning("holylib: tried to push a entity, but this wasn't implemented for other lua states yet!\n");
  		LUA->PushNil();
@@ -561,6 +520,9 @@ void Util::AddDetour()
 
 	func_lua_rawgeti = (Symbols::lua_rawgeti)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_rawgetiSym);
 	Detour::CheckFunction((void*)func_lua_rawgeti, "lua_rawgeti");
+
+	func_CBaseEntity_GetLuaEntity = (Symbols::CBaseEntity_GetLuaEntity)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseEntity_GetLuaEntitySym);
+	Detour::CheckFunction((void*)func_CBaseEntity_GetLuaEntity, "CBaseEntity::GetLuaEntity");
 
 	pEntityList = g_pModuleManager.FindModuleByName("entitylist");
 
