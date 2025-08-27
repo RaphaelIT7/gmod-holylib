@@ -4562,23 +4562,27 @@ Supports: Linux32 | LINUX64
 
 ### Functions
 
-#### autorefresh.AddFileToRefresh(string filePath)
+#### bool(success) autorefresh.AddFileToRefresh(string filePath)
 Adds the given file to the autorefresh list.
 
 > [!NOTE]
 > Adding single files is really slow and at high numbers can hurt performance! Use `autorefresh.AddFolderToRefresh` instead.
 
-#### autorefresh.RemoveFileFromRefresh(string filePath)
+#### bool(success) autorefresh.RemoveFileFromRefresh(string filePath)
 Removes the given file from the autorefresh list.
 
 > [!NOTE]
 > This **only** works on files added by `autorefresh.AddFileToRefresh`
 
-#### autorefresh.AddFolderToRefresh(string folderPath, bool recursive = false)
+#### bool(success) autorefresh.AddFolderToRefresh(string folderPath, bool recursive = false)
 Adds the given folder to be watched for any file changes to autorefresh.
 
-#### autorefresh.RemoveFolderFromRefresh(string folderPath, bool recursive = false)
+#### bool(success) autorefresh.RemoveFolderFromRefresh(string folderPath, bool recursive = false)
 Removes the given folder from being watched for any file changes.
+
+#### bool(success) autorefresh.BlockFileForRefresh(string filePatg, bool blockFile = false)
+blockFile - `true` to block the file from autorefresh, `false` to unblock it.<br>
+Blocks or unblocks the given file from being autorefreshed.
 
 ### autorefresh.RefreshFolders()
 Resets autorefresh.<br>

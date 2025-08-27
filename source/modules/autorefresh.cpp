@@ -47,30 +47,33 @@ struct FileTimeJob {
 	bool bChanged = false;
 };
 static std::vector<FileTimeJob> pFileTimestamps;
-static void AddFileToAutoRefresh(Bootil::BString pFilename)
+static bool AddFileToAutoRefresh(Bootil::BString pFilename)
 {
 	for (auto& pFileEntry : pFileTimestamps)
 	{
 		if (pFileEntry.strFileName == pFilename)
-			return;
+			return false;
 	}
 
 	auto newEntry = pFileTimestamps.emplace_back();
 	newEntry.Init(pFilename);
+	return true;
 }
 
-static void RemoveFileFromAutoRefresh(Bootil::BString pFilename)
+static bool RemoveFileFromAutoRefresh(Bootil::BString pFilename)
 {
 	for(auto it = pFileTimestamps.begin(); it != pFileTimestamps.end();)
 	{
 		if (it->strFileName == pFilename)
 		{
 			pFileTimestamps.erase(it);
-			return;
+			return true;
 		}
 
 		it++;
 	}
+
+	return false;
 }
 
 static void CheckFileTime(FileTimeJob* pJob)
@@ -130,6 +133,7 @@ static void hook_Bootil_File_ChangeMonitor_CheckForChanges(Bootil::File::ChangeM
 	}
 }
 
+static std::unordered_set<Bootil::BString> pBlacklistedFiles = {};
 static Detouring::Hook detour_GarrysMod_AutoRefresh_HandleChange_Lua;
 static bool hook_GarrysMod_AutoRefresh_HandleChange_Lua(const std::string* pfileRelPath, const std::string* pfileName, const std::string* pfileExt)
 {
@@ -154,6 +158,11 @@ static bool hook_GarrysMod_AutoRefresh_HandleChange_Lua(const std::string* pfile
 		}
 	}
 
+	if (pBlacklistedFiles.find(*const_cast<Bootil::BString*>(pfileRelPath)) != pBlacklistedFiles.end())
+	{
+		bDenyRefresh = true;
+	}
+
 	if (bDenyRefresh)
 		return true;
 
@@ -174,16 +183,16 @@ LUA_FUNCTION_STATIC(autorefresh_AddFileToRefresh)
 {
 	const char* fileName = LUA->CheckString(1);
 
-	AddFileToAutoRefresh(fileName);
-	return 0;
+	LUA->PushBool(AddFileToAutoRefresh(fileName));
+	return 1;
 }
 
 LUA_FUNCTION_STATIC(autorefresh_RemoveFileFromRefresh)
 {
 	const char* fileName = LUA->CheckString(1);
 
-	RemoveFileFromAutoRefresh(fileName);
-	return 0;
+	LUA->PushBool(RemoveFileFromAutoRefresh(fileName));
+	return 1;
 }
 
 LUA_FUNCTION_STATIC(autorefresh_AddFolderToRefresh)
@@ -194,8 +203,8 @@ LUA_FUNCTION_STATIC(autorefresh_AddFolderToRefresh)
 	const char* folderName = LUA->CheckString(1);
 	bool bRecursive = LUA->GetBool(2);
 
-	g_pChangeMonitor->AddFolderToWatch(folderName, bRecursive);
-	return 0;
+	LUA->PushBool(g_pChangeMonitor->AddFolderToWatch(folderName, bRecursive));
+	return 1;
 }
 
 LUA_FUNCTION_STATIC(autorefresh_RemoveFolderFromRefresh)
@@ -206,8 +215,8 @@ LUA_FUNCTION_STATIC(autorefresh_RemoveFolderFromRefresh)
 	const char* folderName = LUA->CheckString(1);
 	bool bRecursive = LUA->GetBool(2);
 
-	g_pChangeMonitor->RemoveFolderFromWatch(folderName, bRecursive);
-	return 0;
+	LUA->PushBool(g_pChangeMonitor->RemoveFolderFromWatch(folderName, bRecursive));
+	return 1;
 }
 
 static Symbols::GarrysMod_AutoRefresh_Init func_GarrysMod_AutoRefresh_Init = nullptr;
@@ -218,6 +227,35 @@ LUA_FUNCTION_STATIC(autorefresh_RefreshFolders)
 
 	func_GarrysMod_AutoRefresh_Init();
 	return 0;
+}
+
+LUA_FUNCTION_STATIC(autorefresh_BlockFileForRefresh)
+{
+	const char* pFilePath = LUA->CheckString(1);
+	bool bBlock = LUA->GetBool(2);
+
+	if (bBlock)
+	{
+		if (pBlacklistedFiles.find(pFilePath) != pBlacklistedFiles.end())
+		{
+			LUA->PushBool(false);
+			return 1;
+		}
+
+		pBlacklistedFiles.insert(pFilePath);
+	} else {
+		auto it = pBlacklistedFiles.find(pFilePath);
+		if (it == pBlacklistedFiles.end())
+		{
+			LUA->PushBool(false);
+			return 1;
+		}
+
+		pBlacklistedFiles.erase(it);
+	}
+
+	LUA->PushBool(true);
+	return 1;
 }
 
 static Symbols::GarrysMod_AutoRefresh_Cycle func_GarrysMod_AutoRefresh_Cycle = nullptr;
@@ -244,6 +282,7 @@ void CAutoRefreshModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServ
 		Util::AddFunc(pLua, autorefresh_RemoveFileFromRefresh, "RemoveFileFromRefresh");
 		Util::AddFunc(pLua, autorefresh_AddFolderToRefresh, "AddFolderToRefresh");
 		Util::AddFunc(pLua, autorefresh_RemoveFolderFromRefresh, "RemoveFolderFromRefresh");
+		Util::AddFunc(pLua, autorefresh_BlockFileForRefresh, "BlockFileForRefresh");
 		Util::AddFunc(pLua, autorefresh_RefreshFolders, "RefreshFolders");
 	Util::FinishTable(pLua, "autorefresh");
 }
