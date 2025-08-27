@@ -35,7 +35,7 @@ static void OnFileTimeThreadsChange(IConVar* convar, const char* pOldValue, floa
 static ConVar autorefresh_threads("holylib_autorefresh_threads", "4", FCVAR_ARCHIVE, "The number of threads to use when checking the file times", true, 1, true, 16, OnFileTimeThreadsChange);
 
 struct FileTimeJob {
-	FileTimeJob(Bootil::BString& fileName)
+	void Init(Bootil::BString& fileName)
 	{
 		strFileName = fileName;
 
@@ -46,23 +46,24 @@ struct FileTimeJob {
 	long nFileTime = 0;
 	bool bChanged = false;
 };
-static std::vector<FileTimeJob*> pFileTimestamps;
+static std::vector<FileTimeJob> pFileTimestamps;
 static void AddFileToAutoRefresh(Bootil::BString pFilename)
 {
 	for (auto& pFileEntry : pFileTimestamps)
 	{
-		if (pFileEntry->strFileName == pFilename)
+		if (pFileEntry.strFileName == pFilename)
 			return;
 	}
 
-	pFileTimestamps.push_back(new FileTimeJob(pFilename));
+	auto newEntry = pFileTimestamps.emplace_back();
+	newEntry.Init(pFilename);
 }
 
 static void RemoveFileFromAutoRefresh(Bootil::BString pFilename)
 {
 	for(auto it = pFileTimestamps.begin(); it != pFileTimestamps.end();)
 	{
-		if ((*it)->strFileName == pFilename)
+		if (it->strFileName == pFilename)
 		{
 			pFileTimestamps.erase(it);
 			return;
@@ -72,7 +73,7 @@ static void RemoveFileFromAutoRefresh(Bootil::BString pFilename)
 	}
 }
 
-static void CheckFileTime(FileTimeJob*& pJob)
+static void CheckFileTime(FileTimeJob* pJob)
 {
 	pJob->nFileTime = g_pFullFileSystem->GetFileTime(pJob->strFileName.c_str(), "MOD");
 }
@@ -104,26 +105,26 @@ static void hook_Bootil_File_ChangeMonitor_CheckForChanges(Bootil::File::ChangeM
 		{
 			for (auto& pFileJob : pFileTimestamps)
 			{
-				pFileJob->bChanged = false;
-				pFileTimePool->QueueCall(&CheckFileTime, pFileJob);
+				pFileJob.bChanged = false;
+				pFileTimePool->QueueCall(&CheckFileTime, &pFileJob);
 			}
 			pFileTimePool->ExecuteAll();
 
 			for (auto& pFileJob : pFileTimestamps)
 			{
-				if (pFileJob->bChanged)
+				if (pFileJob.bChanged)
 				{
-					pMonitor->NoteFileChanged(pFileJob->strFileName);
-					pFileJob->bChanged = false;
+					pMonitor->NoteFileChanged(pFileJob.strFileName);
+					pFileJob.bChanged = false;
 				}
 			}
 		} else { // Idk why we don't have our threadpool but this will be slower if we got many files.
 			for (auto& pFileJob : pFileTimestamps)
 			{
-				pFileJob->bChanged = false;
-				CheckFileTime(pFileJob);
-				pMonitor->NoteFileChanged(pFileJob->strFileName);
-				pFileJob->bChanged = false;
+				pFileJob.bChanged = false;
+				CheckFileTime(&pFileJob);
+				pMonitor->NoteFileChanged(pFileJob.strFileName);
+				pFileJob.bChanged = false;
 			}
 		}
 	}
