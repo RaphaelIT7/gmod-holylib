@@ -575,9 +575,9 @@ bool Util::ShouldLoad()
 	return true;
 }
 
-void Util::CheckVersion() // This is called only when holylib is initially loaded! (ToDo: Allow people to disable this!)
+void Util::CheckVersion() // This is called only when holylib is initially loaded!
 {
-	// ToDo: Implement this someday
+	// ToDo: Implement this someday / finish this implementation
 	httplib::Client pClient("http://holylib.raphaelit7.com");
 
 	httplib::Headers headers = {
@@ -610,7 +610,6 @@ void Util::Load()
 		return;
 
 	g_bUtilInit = true;
-	Util::CheckVersion();
 
 	LoadDLLs();
 
@@ -677,6 +676,31 @@ void Util::Load()
 
 		pConVarConfig->Save();
 		pConVarConfig->Destroy();
+	}
+
+	IConfig* pCoreConfig = g_pConfigSystem->LoadConfig("garrysmod/holylib/cfg/core.json");
+	if (pCoreConfig)
+	{
+		if (pCoreConfig->GetState() == ConfigState::INVALID_JSON)
+		{
+			Warning(PROJECT_NAME " - core: Failed to load core.json!\n- Check if the json is valid or delete the config to let a new one be generated!\n");
+			pCoreConfig->Destroy(); // Our config is in a invaid state :/
+			pCoreConfig = nullptr;
+			return;
+		}
+
+		Bootil::Data::Tree& pData = pCoreConfig->GetData();
+
+		// checkVersion block
+		Bootil::Data::Tree& pEntry = pData.GetChild("checkVersion");
+		pEntry.SetChildVar<Bootil::BString>("description", "(Unfinished implementation) If enabled, HolyLib will attempt to request the newest version from the wiki and compare them.");
+		if (pEntry.EnsureChildVar<bool>("enabled", false))
+		{
+			Util::CheckVersion();
+		}
+
+		pCoreConfig->Save();
+		pCoreConfig->Destroy();
 	}
 }
 
