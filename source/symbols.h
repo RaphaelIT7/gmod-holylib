@@ -658,4 +658,10 @@ namespace Symbols
 
 	typedef ConCommandBase* (*CCvar_FindCommandBase)(ICvar*, const char* name);
 	extern const std::vector<Symbol> CCvar_FindCommandBaseSym;
+
+	//---------------------------------------------------------------------------------
+	// Purpose: AutoRefresh Symbols
+	//---------------------------------------------------------------------------------
+	typedef bool (*GarrysMod_AutoRefresh_HandleChange_Lua)(const std::string* fileRelPath, const std::string* fileName, const std::string* fileExt);
+	extern const std::vector<Symbol> GarrysMod_AutoRefresh_HandleChange_LuaSym;
 }
