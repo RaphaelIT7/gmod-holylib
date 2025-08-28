@@ -223,7 +223,7 @@ std::vector<CBaseClient*> Util::GetClients()
 	{
 		IClient* pClient = Util::server->GetClient(i);
 		if (pClient)
-		pClients.push_back((CBaseClient*)pClient);
+			pClients.push_back((CBaseClient*)pClient);
 	}
 
 	return pClients;
