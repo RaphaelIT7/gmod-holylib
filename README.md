@@ -4560,6 +4560,9 @@ The Autorefresh module currently provides functionalities regarding the in-built
 
 Supports: Linux32 | LINUX64
 
+> [!WARNING]
+> This module is not yet finished and untested and is unstable/can easily crash on usage!
+
 ### Functions
 
 #### bool(success) autorefresh.AddFileToRefresh(string filePath)

@@ -16,6 +16,7 @@ public:
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "autorefresh"; };
 	virtual int Compatibility() { return LINUX32; };
+	virtual bool IsEnabledByDefault() { return false; };
 };
 
 CAutoRefreshModule g_pAutoRefreshModule;
