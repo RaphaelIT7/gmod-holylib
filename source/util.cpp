@@ -222,6 +222,7 @@ std::vector<CBaseClient*> Util::GetClients()
 	for (int i = 0; i < clientCount; ++i)
 	{
 		IClient* pClient = Util::server->GetClient(i);
+		if (pClient)
 		pClients.push_back((CBaseClient*)pClient);
 	}
 
