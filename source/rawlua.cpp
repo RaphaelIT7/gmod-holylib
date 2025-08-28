@@ -24,6 +24,11 @@ TValue* RawLua::CopyTValue(lua_State* L, TValue* o)
 	return newO;
 }
 
+void RawLua::DestroyTValue(TValue* o)
+{
+	delete o;
+}
+
 void RawLua::PushTValue(lua_State* L, TValue* o)
 {
 	lua_pushnil(L);

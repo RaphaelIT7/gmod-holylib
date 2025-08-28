@@ -36,7 +36,7 @@
 #define FRAGMENT_BITS		13
 constexpr int FRAGMENT_SIZE = 1 << FRAGMENT_BITS;
 #define MAX_FILE_SIZE_BITS	29
-constexpr int MAX_FILE_SIZE = (1 << MAX_FILE_SIZE_BITS) - 1;	// maximum transferable size is	4GB
+constexpr uint64_t MAX_FILE_SIZE = (1 << MAX_FILE_SIZE_BITS) - 1;	// maximum transferable size is	4GB
 
 #undef NET_MAX_PAYLOAD
 #undef NET_MAX_DATAGRAM_PAYLOAD

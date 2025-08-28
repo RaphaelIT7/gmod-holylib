@@ -107,9 +107,9 @@ namespace Lua
 			}
 		}
 
-		inline void RegisterMetaTable(LuaTypes type, unsigned char metaID)
+		inline void RegisterMetaTable(LuaTypes type, int metaID)
 		{
-			pLuaTypes[type].iType = metaID;
+			pLuaTypes[type].iType = (unsigned char)metaID;
 			Msg("Registered MetaTable: %i - %i\n", (int)type, metaID);
 		}
 
@@ -188,6 +188,7 @@ union TValue;
 namespace RawLua {
 	extern TValue *index2adr(lua_State *L, int idx);
 	extern TValue* CopyTValue(lua_State* L, TValue* o);
+	extern void DestroyTValue(TValue* o);
 	extern void PushTValue(lua_State* L, TValue* o);
 	extern void SetReadOnly(TValue* o, bool readOnly);
 	extern void* GetUserDataOrFFIVar(lua_State* L, int idx, bool cDataTypes[USHRT_MAX]);

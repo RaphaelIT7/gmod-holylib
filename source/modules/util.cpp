@@ -582,16 +582,19 @@ public:
 		if (m_pLua && m_iReference != -1)
 		{
 			Util::ReferenceFree(m_pLua, m_iReference, "JsonEntry(value) - util.AsyncJson");
+			m_iReference = -1;
 		}
 
 		if (m_pLua && m_iCallback != -1)
 		{
 			Util::ReferenceFree(m_pLua, m_iCallback, "JsonEntry(callback) - util.AsyncJson");
+			m_iCallback = -1;
 		}
 
 		if (m_pObject)
 		{
-			delete m_pObject;
+			RawLua::DestroyTValue(m_pObject);
+			m_pObject = nullptr;
 		}
 	}
 

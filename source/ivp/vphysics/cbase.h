@@ -6,10 +6,13 @@
 //
 //=============================================================================//
 // system
+#ifndef _CBASE_H
+#define _CBASE_H
 #include <cstdio>
 
-#define IVP_NO_MATH_INL
+#ifndef IVP_NO_PERFORMANCE_TIMER
 #define IVP_NO_PERFORMANCE_TIMER
+#endif
 
 // Valve
 #include "tier0/dbg.h"
@@ -97,3 +100,4 @@ constexpr std::ptrdiff_t ssize(const T (&)[N]) noexcept {
 #endif
 
 #include <memory> // for std::make_shared
+#endif

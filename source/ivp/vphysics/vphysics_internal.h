@@ -22,8 +22,8 @@ extern class IPhysics *g_PhysicsInternal;
 #define BEGIN_IVP_ALLOCATION()	MemAlloc_PushAllocDbgInfo("IVP: " __FILE__ , __LINE__ )
 #define END_IVP_ALLOCATION()	MemAlloc_PopAllocDbgInfo()
 #else
-#define BEGIN_IVP_ALLOCATION()	0
-#define END_IVP_ALLOCATION()	0
+#define BEGIN_IVP_ALLOCATION()	(void)0
+#define END_IVP_ALLOCATION()	(void)0
 #endif
 
 

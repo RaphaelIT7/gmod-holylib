@@ -25,7 +25,9 @@
 #ifndef PHYSENV_C
 	#define isnan std::isnan // cmath doesn't have this on linux >:(
 #endif
+#ifndef _finite
 	#define _finite std::isfinite // windows specific function.
+#endif
 #endif
 
 #ifndef _IVP_U_TYPES_INCLUDED

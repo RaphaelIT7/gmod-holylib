@@ -180,7 +180,7 @@ uint CBassAudioStream::GetPosition()
 		position = BASS_StreamGetFilePosition(m_hStream, BASS_FILEPOS_CURRENT);
 	}
 
-	return position;
+	return (uint)position;
 }
 
 void CBassAudioStream::SetPosition(unsigned int pos)

@@ -496,9 +496,6 @@ struct WavAudioFile {
 	void Seek(int nSeek)
 	{
 		currentPos += nSeek;
-
-		if (currentPos < 0)
-			currentPos = 0;
 	}
 
 	char* GetData()
@@ -600,7 +597,7 @@ struct VoiceStream {
 
 		g_pFullFileSystem->Write(&VOICESTREAM_VERSION, sizeof(int), fh);
 
-		int tickRate = std::ceil(1 / gpGlobals->interval_per_tick);
+		int tickRate = (int)std::ceil(1 / gpGlobals->interval_per_tick);
 		g_pFullFileSystem->Write(&tickRate, sizeof(int), fh);
 
 		int count = (int)voiceDataEnties.size();
@@ -632,8 +629,8 @@ struct VoiceStream {
 			int tickRate;
 			g_pFullFileSystem->Read(&tickRate, sizeof(int), fh);
 
-			int serverTickRate = std::ceil(1 / gpGlobals->interval_per_tick);
-			scaleRate = std::ceil(serverTickRate / tickRate);
+			int serverTickRate = (int)std::ceil(1 / gpGlobals->interval_per_tick);
+			scaleRate = (int)std::ceil(serverTickRate / tickRate);
 
 			count = 0;
 			g_pFullFileSystem->Read(&count, sizeof(int), fh);
@@ -657,7 +654,7 @@ struct VoiceStream {
 			voiceData->SetLength(length);
 			voiceData->SetDataDirect(data);
 
-			pStream->SetIndex(std::ceil(tickNumber * scaleRate), voiceData);
+			pStream->SetIndex((int)std::ceil(tickNumber * scaleRate), voiceData);
 		}
 
 		return pStream;
@@ -709,8 +706,8 @@ struct VoiceStream {
 		header.fileSize = sizeof(WAVHeader) - 8 + dataSize;
 		header.sampleRate = sampleRate;
 		header.byteRate = byteRate;
-		header.blockAlign = blockAlign;
-		header.bitsPerSample = bitsPerSample;
+		header.blockAlign = (short)blockAlign;
+		header.bitsPerSample = (short)bitsPerSample;
 		header.dataSize = dataSize;
 
 		if (fh)
@@ -1450,7 +1447,7 @@ static void UpdatePlayerTalkingState(CBasePlayer* pPlayer, bool bIsTalking = fal
 		{
 			CBaseEntity *pEnt = Util::GetCBaseEntityFromEdict(Util::engineserver->PEntityOfEntIndex(iOtherClient + 1));
 			if(pEnt && pEnt->IsPlayer() && 
-				(bCanHearHimself && (iOtherClient == iClient) || (bAllTalk || g_pManager->m_pHelper->CanPlayerHearPlayer((CBasePlayer*)pEnt, pPlayer, bProximity ))) )
+				((bCanHearHimself && (iOtherClient == iClient)) || (bAllTalk || g_pManager->m_pHelper->CanPlayerHearPlayer((CBasePlayer*)pEnt, pPlayer, bProximity ))) )
 			{
 				gameRulesMask[iOtherClient] = true;
 				ProximityMask[iOtherClient] = bProximity;
@@ -2075,7 +2072,7 @@ LUA_FUNCTION_STATIC(voicechat_IsPlayerTalking)
 	int iClient = -1;
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Number))
 	{
-		iClient = LUA->GetNumber(1);
+		iClient = (int)LUA->GetNumber(1);
 	} else {
 		CBasePlayer* pPlayer = Util::Get_Player(LUA, 1, true);
 		iClient = pPlayer->edict()->m_EdictIndex-1;
@@ -2093,7 +2090,7 @@ LUA_FUNCTION_STATIC(voicechat_LastPlayerTalked)
 	int iClient = -1;
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Number))
 	{
-		iClient = LUA->GetNumber(1);
+		iClient = (int)LUA->GetNumber(1);
 	} else {
 		CBasePlayer* pPlayer = Util::Get_Player(LUA, 1, true);
 		iClient = pPlayer->edict()->m_EdictIndex-1;

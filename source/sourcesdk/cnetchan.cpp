@@ -1145,8 +1145,8 @@ bool CNetChan::CreateFragmentsFromFile( const char *filename, int stream, unsign
 		return false;
 	}
 
-	int totalBytes = (int)g_pFullFileSystem->Size( filename, pPathID );
-	
+	uint64_t totalBytes = (uint64_t)g_pFullFileSystem->Size( filename, pPathID );
+
 	if ( totalBytes >= (((uint64_t)net_maxfilesize.GetInt()) *1024*1024) ) // We need it as a uint64_t since else we'll overflow the int!
 	{
 		ConMsg( "CreateFragmentsFromFile: '%s' size exceeds net_maxfilesize limit (%i MiB, %i).\n", filename, net_maxfilesize.GetInt(), totalBytes);
