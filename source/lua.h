@@ -204,3 +204,4 @@ static inline className* Get##funcName##LuaData(GarrysMod::Lua::ILuaInterface* p
 \
 	return (className*)Lua::GetLuaData(pLua)->GetModuleData(moduleName.m_pID); \
 }
+// Another new line just for the macro to not shit itself. GG
