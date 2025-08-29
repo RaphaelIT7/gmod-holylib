@@ -41,7 +41,7 @@ void RawLua::SetReadOnly(TValue* o, bool readOnly)
 	lj_tab_setreadonly(pTable, readOnly);
 }
 
-void* RawLua::GetUserDataOrFFIVar(lua_State* L, int idx, bool cDataTypes[USHRT_MAX])
+void* RawLua::GetUserDataOrFFIVar(lua_State* L, int idx, CBitVec<USHRT_MAX>& cDataTypes)
 {
 	cTValue *o = index2adr(L, idx);
 	if (tvisudata(o))
@@ -49,7 +49,7 @@ void* RawLua::GetUserDataOrFFIVar(lua_State* L, int idx, bool cDataTypes[USHRT_M
 	else if (tvislightud(o))
 		return lightudV(G(L), o);
 	else if (tviscdata(o))
-		if (cDataTypes[cdataV(o)->ctypeid])
+		if (cDataTypes.IsBitSet(cdataV(o)->ctypeid))
 			return (void*)lj_obj_ptr(G(L), o); // won't mind the const void* -> void* it'll be fine
 		else
 			return NULL;

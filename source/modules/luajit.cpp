@@ -5,6 +5,7 @@
 #include "LuaInterface.h"
 #include "lua.h"
 #include "Bootil/Bootil.h"
+#include "bitvec.h"
 #include "scripts/VectorFFI.h"
 #include "scripts/AngleFFI.h"
 
@@ -40,7 +41,7 @@ class LuaJITModuleData : public Lua::ModuleData
 {
 public:
 	std::unique_ptr<CLuaInterfaceProxy> pLuaInterfaceProxy;
-	bool pRegisteredTypes[USHRT_MAX] = {0};
+	CBitVec<USHRT_MAX> pRegisteredTypes;
 };
 
 LUA_GetModuleData(LuaJITModuleData, g_pLuaJITModule, LuaJIT)
@@ -77,7 +78,7 @@ LUA_FUNCTION_STATIC(markFFITypeAsGmodUserData)
 
 	uint16_t type = RawLua::GetCDataType(LUA->GetState(), 1);
 
-	GetLuaJITLuaData(LUA)->pRegisteredTypes[type] = true;
+	GetLuaJITLuaData(LUA)->pRegisteredTypes.Set(type);
 	return 0;
 }
 

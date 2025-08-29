@@ -1,6 +1,7 @@
 #pragma once
 
 #include "util.h"
+#include "bitvec.h"
 
 namespace GarrysMod::Lua
 {
@@ -191,7 +192,7 @@ namespace RawLua {
 	extern void DestroyTValue(TValue* o);
 	extern void PushTValue(lua_State* L, TValue* o);
 	extern void SetReadOnly(TValue* o, bool readOnly);
-	extern void* GetUserDataOrFFIVar(lua_State* L, int idx, bool cDataTypes[USHRT_MAX]);
+	extern void* GetUserDataOrFFIVar(lua_State* L, int idx, CBitVec<USHRT_MAX>& cDataTypes);
 	extern uint16_t GetCDataType(lua_State* L, int idx);
 }
 

@@ -78,6 +78,7 @@ local function check_vec_or_num(value, arg_num, is_optional)
     return expect(value, "number", arg_num, is_optional)
 end
 
+local vectorMeta = FindMetaTable("Vector")
 local methods = {}
 local mt = {
     __index = function(s, k)
@@ -135,8 +136,8 @@ local mt = {
     __tostring = function(a)
         return string.format("%f %f %f", a.x, a.y, a.z)
     end,
-    MetaName = "Vector",
-    MetaID = 10,
+    MetaName = vectorMeta.MetaName,
+    MetaID = vectorMeta.MetaID,
 }
 
 -- We do this so that we also have things like Vector():__tostring() working
