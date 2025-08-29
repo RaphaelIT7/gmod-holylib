@@ -34,7 +34,7 @@ HTTP = reqwest or HTTP
 local loki_host = file.Read("loki_host.txt", "MOD")
 local loki_api = file.Read("loki_api.txt", "MOD")
 function HolyLib_RunPerformanceTest(name, callback, ...)
-    if not loki_host or loki_host == "" or not loki_api or loki_api == "" then
+    if not loki_host or string.len(loki_host) < 5 or not loki_api or loki_api == "" then
         print("Skipping performance test \"" .. name .. "\" since were missing Loki.")
         return
     end
@@ -87,6 +87,8 @@ function HolyLib_RunPerformanceTest(name, callback, ...)
         })
     })
 end
+
+HolyLib_RunPerformanceTest("bitbuf.CreateReadBuffer", bitbuf.CreateReadBuffer, "Test123")
 
 if SERVER then
     --- Makes an entity for test purposes
