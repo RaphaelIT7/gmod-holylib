@@ -207,7 +207,11 @@ CPhysicsObject::~CPhysicsObject( void )
 		{
 			m_pObject->delete_and_check_vicinity();
 		}
-		delete pSurman;
+
+		if (pSurman)
+		{
+			delete pSurman;
+		}
 	}
 }
 
