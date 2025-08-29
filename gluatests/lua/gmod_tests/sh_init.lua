@@ -31,10 +31,13 @@ HTTP = reqwest or HTTP
 -- local loki_host = CreateConVar("holylib_loki_host", "", {FCVAR_DONTRECORD, FCVAR_PROTECTED, FCVAR_UNLOGGED}, "Loki host secret.")
 -- local loki_api = CreateConVar("holylib_loki_api", "", {FCVAR_DONTRECORD, FCVAR_PROTECTED, FCVAR_UNLOGGED}, "Loki api key secret.")
 
-local loki_host = file.Read("loki_host.txt", "MOD")
-local loki_api = file.Read("loki_api.txt", "MOD")
+local github_repo = file.Read("_workflow/github_repo.txt", "MOD")
+local loki_public_host = file.Read("_workflow/loki_public_host.txt", "MOD")
+local loki_host = file.Read("_workflow/loki_host.txt", "MOD")
+local loki_api = file.Read("_workflow/loki_api.txt", "MOD")
 function HolyLib_RunPerformanceTest(name, callback, ...)
-    if not loki_host or string.len(loki_host) < 5 or not loki_api or loki_api == "" then
+	local usingPublic = (not loki_host or string.len(loki_host) < 3 or not loki_api or string.len(loki_api) < 3)
+    if usingPublic and (not loki_public_host or string.len(loki_public_host) < 3) or not github_repo or string.len(github_repo) < 3 then
         print("Skipping performance test \"" .. name .. "\" since were missing Loki.")
         return
     end
@@ -49,6 +52,12 @@ function HolyLib_RunPerformanceTest(name, callback, ...)
     local totalTime = SysTime() - startTime -- Should almost always be 1 second
     local timePerCall = totalTime / totalCalls
     print("Finished performance test for \"" .. name .. "\". Took " .. totalTime .. "s with a total of " .. totalCalls .." calls (" .. timePerCall .. "s per call)")
+
+    if usingPublic then
+    	print("Using public Loki host to store temporary results.")
+    	loki_api = ""
+    	loki_host = loki_public_host
+    end
 
     HTTP({
         blocking = true,
@@ -68,6 +77,7 @@ function HolyLib_RunPerformanceTest(name, callback, ...)
             streams = {
                 {
                     stream = {
+                    	repository = string.Trim(github_repo),
                         run_number = _HOLYLIB_RUN_NUMBER,
                         branch = _HOLYLIB_BRANCH,
                     },
@@ -87,8 +97,6 @@ function HolyLib_RunPerformanceTest(name, callback, ...)
         })
     })
 end
-
-HolyLib_RunPerformanceTest("bitbuf.CreateReadBuffer", bitbuf.CreateReadBuffer, "Test123")
 
 if SERVER then
     --- Makes an entity for test purposes

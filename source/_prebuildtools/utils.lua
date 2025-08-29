@@ -102,7 +102,7 @@ function string.Replace(str, rep, new)
         local found, finish = string.find(new_str, rep, last, true)
         if found then
             new_str = string.sub(new_str, 1, found - 1) .. new .. string.sub(new_str, finish + 1)
-            last = found + 1
+            last = found + string.len(new)
         end
     end
 

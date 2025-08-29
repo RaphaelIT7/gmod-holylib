@@ -8,7 +8,7 @@ json = require("json")
 require("http")
 
 -- Let's fetch the current run data.
-function FetchLokiResults(runNumber, callback, host, apikey)
+function FetchLokiResults(github_repository, runNumber, callback, host, apikey)
 	JSONHTTP({
 		blocking = true,
 		failed = function(reason)
@@ -21,7 +21,7 @@ function FetchLokiResults(runNumber, callback, host, apikey)
 		method = "GET",
 		url = host .. "/loki/api/v1/query_range",
 		params = {
-			"query={run_number=\\\"" .. runNumber .. "\\\"}",
+			"query={run_number=\\\"" .. runNumber .. "\\\",repository=\\\"" .. github_repository .. "\\\"}",
 			"since=30d",
 			"limit=1000",
 		},
@@ -31,18 +31,18 @@ function FetchLokiResults(runNumber, callback, host, apikey)
 	})
 end
 
-function FetchFromLoki(runNumber, host, apikey)
+function FetchFromLoki(github_repository, runNumber, host, apikey)
 	local currentLokiResults = {}
-	FetchLokiResults(runNumber, function(jsonTable)
+	FetchLokiResults(github_repository, runNumber, function(jsonTable)
 		currentLokiResults = jsonTable
 	end, host, apikey)
 
 	local lastLokiResults = {} -- Results of the last run.
 	local lastLokiRun = -1
 	nextLokiSearchID = runNumber - 1
-	while (lastLokiRun == -1) and (runNumber - nextLokiSearchID) < 100 do -- NUKE IT >:3
+	while (lastLokiRun == -1) and ((runNumber - nextLokiSearchID) < 100 and nextLokiSearchID > 0) do -- NUKE IT >:3
 		local lokiID = nextLokiSearchID
-		FetchLokiResults(lokiID, function(jsonTable)
+		FetchLokiResults(github_repository, lokiID, function(jsonTable)
 			if not jsonTable or not jsonTable.data or not jsonTable.data.result or #jsonTable.data.result == 0 then -- Useless!
 				print("Skipping results for " .. lokiID .. " since the data is useless")
 				return
@@ -188,17 +188,20 @@ Previous run: ]] .. previousRun .. "<br>")
 end
 
 local settings = {...}
-local loki_host = settings[1]
-local loki_api = settings[2]
-local run_number = tonumber(settings[3])
+local github_repo = settings[1]
+local loki_public_host = settings[2]
+local loki_host = settings[3]
+local loki_api = settings[4]
+local run_number = tonumber(settings[5])
 
-if not loki_host or not loki_api or not run_number then
+local usingPublic = (not loki_host or loki_host == "") and (not loki_api or loki_api == "")
+if not run_number then
 	WriteFile("generated_summary.md", "Got no results")
 	error("Missing input data!")
 	return
 end
 
-local currentLokiResults, lastLokiResults, lastLokiRun = FetchFromLoki(run_number, loki_host, loki_api)
+local currentLokiResults, lastLokiResults, lastLokiRun = FetchFromLoki(github_repo, run_number, usingPublic and loki_public_host or loki_host, loki_api)
 local currentResults = CalculateMergedResults(currentLokiResults)
 local previousResults = CalculateMergedResults(lastLokiResults)
 
