@@ -26,6 +26,9 @@ end
 
 require("reqwest")
 HTTP = reqwest or HTTP
+if reqwest then
+	print("Loaded reqwest")
+end
 
 -- ConVar's don't work since thoes would need to exist before it tries to set all values from the command line. (Maybe make a gmod request? idk)
 -- local loki_host = CreateConVar("holylib_loki_host", "", {FCVAR_DONTRECORD, FCVAR_PROTECTED, FCVAR_UNLOGGED}, "Loki host secret.")
@@ -54,9 +57,9 @@ function HolyLib_RunPerformanceTest(name, callback, ...)
     print("Finished performance test for \"" .. name .. "\". Took " .. totalTime .. "s with a total of " .. totalCalls .." calls (" .. timePerCall .. "s per call)")
 
     if usingPublic then
-    	print("Using public Loki host to store temporary results.")
-    	loki_api = ""
-    	loki_host = loki_public_host
+        print("Using public Loki host to store temporary results.")
+        loki_api = ""
+        loki_host = loki_public_host
     end
 
     HTTP({
@@ -68,32 +71,17 @@ function HolyLib_RunPerformanceTest(name, callback, ...)
             print("Successfully sent performance results to Loki :3", code)
         end,
         method = "POST",
-        url = string.Trim(loki_host) .. "/loki/api/v1/push",
+        url = string.Trim(loki_host) .. "/AddEntry",
         type = "application/json",
         headers = {
+            ["entryIndex"] = github_repo .. "___" .. _HOLYLIB_RUN_NUMBER, -- Unique key for this run.
             ["X-Api-Key"] = string.Trim(loki_api),
         },
         body = util.TableToJSON({
-            streams = {
-                {
-                    stream = {
-                    	repository = string.Trim(github_repo),
-                        run_number = _HOLYLIB_RUN_NUMBER,
-                        branch = _HOLYLIB_BRANCH,
-                    },
-                    values = {
-                        {
-                            string.format("%.0f", os.time() * 1000 * 1000 * 1000), -- Need nano time
-                            util.TableToJSON({
-                                ["totalCalls"] = totalCalls,
-                                ["totalTime"] = totalTime,
-                                ["gmodBranch"] = BRANCH,
-                                ["name"] = name,
-                            })
-                        }
-                    }
-                }
-            }
+            ["totalCalls"] = totalCalls,
+            ["totalTime"] = totalTime,
+            ["gmodBranch"] = BRANCH,
+            ["name"] = name,
         })
     })
 end

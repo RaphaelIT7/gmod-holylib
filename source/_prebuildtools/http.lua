@@ -114,7 +114,7 @@ function HTTP(inputTbl)
 	tbl.httpfile = "http/" .. i .. ".txt"
 	--tbl.httpdonefile = "http/" .. i .. "_done.txt"
 
-	local curlCommand = "curl -sb -X " .. method .. " " .. url .. params .. (not (contentType == "") and (" -H \"Content-Type:".. contentType .. "\"") or "") .. headers .. (body == "" and "" or ("--data-raw \"" .. body .. "\"")) .. " --max-time " .. timeout .. " > " .. tbl.httpfile --.. " && echo \"Done\" > " .. tbl.httpfile
+	local curlCommand = "curl -sb -X " .. method .. " " .. url .. params .. (not (contentType == "") and (" -H \"Content-Type:".. contentType .. "\"") or "") .. headers .. (body == "" and "" or (" --data-raw \"" .. body .. "\"")) .. " --max-time " .. timeout .. " > " .. tbl.httpfile --.. " && echo \"Done\" > " .. tbl.httpfile
 	if not tbl.mode or tbl.mode == "async" then
 		local handle = io.popen(curlCommand)
 		tbl.handle = handle
