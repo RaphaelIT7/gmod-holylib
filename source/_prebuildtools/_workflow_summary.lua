@@ -15,6 +15,11 @@ function FetchHolyLogsResults(github_repository, runNumber, callback, host, apik
 		end,
 		success = function(responseBody)
 			print("Successfully got performance results from HolyLogs for " .. runNumber .. " :3")
+			if string.len(responseBody) < 3 then
+				callback(nil)
+				return
+			end
+
 			local function SubUntilNull(str, startPos)
 				for k=startPos, string.len(str) do
 					if string.byte(responseBody, k, k) == 0 then
@@ -28,10 +33,15 @@ function FetchHolyLogsResults(github_repository, runNumber, callback, host, apik
 			local entries = {}
 			local pos = 0
 			while pos < string.len(responseBody) do
-				local length, newPos = SubUntilNull(responseBody, pos)
+				local lengthStr, newPos = SubUntilNull(responseBody, pos)
 				pos = newPos + 1
 
-				length = tonumber(length)
+				local length = tonumber(lengthStr)
+				if not length then
+					print("Failed to parse number (" .. lengthStr .. ")")
+					return
+				end
+
 				local data = string.sub(responseBody, pos, pos + length - 1)
 				pos = pos + length + 1 -- Every entry too is ended by a null byte that we can skip
 
@@ -63,6 +73,11 @@ function FetchFromHolyLogs(github_repository, runNumber, host, apikey)
 	while (lastRun == -1) and ((runNumber - nextSearchID) < 100 and nextSearchID > 0) do -- NUKE IT >:3
 		local searchID = nextSearchID
 		FetchHolyLogsResults(github_repository, searchID, function(jsonTable)
+			if not jsonTable then
+				print("Skipping " .. searchID .. " since it has no data")
+				return
+			end
+
 			if nextSearchID < lastRun then -- We got newer results already!
 				print("Skipping results for " .. searchID .. " since we got newer data")
 				return
