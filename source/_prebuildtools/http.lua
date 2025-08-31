@@ -38,7 +38,6 @@ function HTTP_WaitForAllInternal()
 				continue
 			end
 
-			print(httpcontent)
 			table.remove(requests, key)
 			local success = tbl.handle and tbl.handle:close()
 			if success or not tbl.handle then
@@ -115,14 +114,30 @@ function HTTP(inputTbl)
 	--tbl.httpdonefile = "http/" .. i .. "_done.txt"
 
 	local curlCommand = "curl -sb -X " .. method .. " " .. url .. params .. (not (contentType == "") and (" -H \"Content-Type:".. contentType .. "\"") or "") .. headers .. (body == "" and "" or (" --data-raw \"" .. body .. "\"")) .. " --max-time " .. timeout .. " > " .. tbl.httpfile --.. " && echo \"Done\" > " .. tbl.httpfile
+	local handle = io.popen(curlCommand)
+	tbl.handle = handle
+
 	if not tbl.mode or tbl.mode == "async" then
-		local handle = io.popen(curlCommand)
-		tbl.handle = handle
+		table.insert(requests, tbl)
 	elseif tbl.mode == "sync" then
- 		io.execute(curlCommand)
+		handle:read('*all')
+		handle:close()
+		print("Result")
+		local httpcontent = ReadFile(tbl.httpfile)
+		if httpcontent and not (httpcontent == "") then
+			local success = tbl.handle and tbl.handle:close()
+			if success or not tbl.handle then
+				if tbl.success then
+					tbl.success(httpcontent)
+				end
+			else
+				if tbl.failed then
+					tbl.failed("Request failed: " .. success)
+				end
+			end
+		end
 	end
 
-	table.insert(requests, tbl)
 	last_added_request = os.time()
 end
 

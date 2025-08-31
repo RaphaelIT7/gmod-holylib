@@ -8,75 +8,91 @@ json = require("json")
 require("http")
 
 -- Let's fetch the current run data.
-function FetchLokiResults(github_repository, runNumber, callback, host, apikey)
-	JSONHTTP({
-		blocking = true,
+function FetchHolyLogsResults(github_repository, runNumber, callback, host, apikey)
+	HTTP({
 		failed = function(reason)
-			print("Failed to get performance results from Loki for " .. runNumber .. "!", reason)
+			print("Failed to get performance results from HolyLogs for " .. runNumber .. "!", reason)
 		end,
-		success = function(json)
-			print("Successfully got performance results from Loki for " .. runNumber .. " :3")
-			callback(json)
+		success = function(responseBody)
+			print("Successfully got performance results from HolyLogs for " .. runNumber .. " :3")
+			local function SubUntilNull(str, startPos)
+				for k=startPos, string.len(str) do
+					if string.byte(responseBody, k, k) == 0 then
+						return string.sub(str, startPos, k-1), k
+					end
+				end
+
+				return string.sub(str, startPos), string.len(str)
+			end
+
+			local entries = {}
+			local pos = 0
+			while pos < string.len(responseBody) do
+				local length, newPos = SubUntilNull(responseBody, pos)
+				pos = newPos + 1
+
+				length = tonumber(length)
+				local data = string.sub(responseBody, pos, pos + length - 1)
+				pos = pos + length + 1 -- Every entry too is ended by a null byte that we can skip
+
+				-- if string.len(data) != length then print("Length for entry doesn't match!") end
+
+				table.insert(entries, data)
+			end
+
+			callback(entries)
 		end,
 		method = "GET",
-		url = host .. "/loki/api/v1/query_range",
-		params = {
-			"query={run_number=\\\"" .. runNumber .. "\\\",repository=\\\"" .. github_repository .. "\\\"}",
-			"since=30d",
-			"limit=1000",
-		},
+		url = host .. "/GetEntries",
 		headers = {
+			["entryIndex"] = github_repository .. "___" .. runNumber, -- Unique key for this run.
 			["X-Api-Key"] = apikey
 		},
 	})
 end
 
-function FetchFromLoki(github_repository, runNumber, host, apikey)
-	local currentLokiResults = {}
-	FetchLokiResults(github_repository, runNumber, function(jsonTable)
-		currentLokiResults = jsonTable
+function FetchFromHolyLogs(github_repository, runNumber, host, apikey)
+	local currentHolyLogsResults = {}
+	FetchHolyLogsResults(github_repository, runNumber, function(jsonTable)
+		currentHolyLogsResults = jsonTable
 	end, host, apikey)
 
-	local lastLokiResults = {} -- Results of the last run.
-	local lastLokiRun = -1
-	nextLokiSearchID = runNumber - 1
-	while (lastLokiRun == -1) and ((runNumber - nextLokiSearchID) < 100 and nextLokiSearchID > 0) do -- NUKE IT >:3
-		local lokiID = nextLokiSearchID
-		FetchLokiResults(github_repository, lokiID, function(jsonTable)
-			if not jsonTable or not jsonTable.data or not jsonTable.data.result or #jsonTable.data.result == 0 then -- Useless!
-				print("Skipping results for " .. lokiID .. " since the data is useless")
-				return
-			end
-
-			if nextLokiSearchID < lastLokiRun then -- We got newer results already!
-				print("Skipping results for " .. lokiID .. " since we got newer data")
+	local lastHolyLogsResults = {} -- Results of the last run.
+	local lastRun = -1
+	nextSearchID = runNumber - 1
+	while (lastRun == -1) and ((runNumber - nextSearchID) < 100 and nextSearchID > 0) do -- NUKE IT >:3
+		local searchID = nextSearchID
+		FetchHolyLogsResults(github_repository, searchID, function(jsonTable)
+			if nextSearchID < lastRun then -- We got newer results already!
+				print("Skipping results for " .. searchID .. " since we got newer data")
 				return
 			end
 
 			-- We got newer shit :D
 			-- NOTE: This code previously was intented to be nuked in a for k=1, 100 loop though Loki's CPU usage spiked to 900% for 15 seconds :sob:
-			lastLokiRun = lokiID
-			lastLokiResults = jsonTable
-			print("Found the last performance results " .. lokiID)
+			-- We could go back now since we no longer use Loki
+			lastRun = searchID
+			lastHolyLogsResults = jsonTable
+			print("Found the last performance results " .. searchID)
 		end, host, apikey)
 
-		HTTP_WaitForAll() -- This will also wait in the first iteration for our currentLokiResults
-		nextLokiSearchID = nextLokiSearchID - 1
+		HTTP_WaitForAll() -- This will also wait in the first iteration for our currentHolyLogsResults
+		nextSearchID = nextSearchID - 1
 	end
 
-	if lastLokiRun == -1 or not lastLokiResults or not lastLokiResults.data or not lastLokiResults.data.result or #lastLokiResults.data.result == 0 then
+	if lastRun == -1 or not lastHolyLogsResults then
 		WriteFile("generated_summary.md", "Failed to fetch previous results!")
 		error("Failed to fetch previous results!")
 		return
 	end
 
-	if not currentLokiResults or not currentLokiResults.data or not currentLokiResults.data.result or #currentLokiResults.data.result == 0 then
+	if not currentHolyLogsResults then
 		WriteFile("generated_summary.md", "Failed to fetch results!")
 		error("Failed to fetch results!")
 		return
 	end
 
-	return currentLokiResults, lastLokiResults, lastLokiRun
+	return currentHolyLogsResults, lastHolyLogsResults, lastRun
 end
 
 --[[
@@ -104,9 +120,8 @@ end
 
 function CalculateMergedResults(lokiResults)
 	local resultTable = {}
-	local lokiData = lokiResults.data.result[1]
-	for _, lokiEntry in ipairs(lokiData.values) do
-		local logEntry = json.decode(lokiEntry[2])
+	for _, jsonEntry in ipairs(lokiResults) do
+		local logEntry = json.decode(jsonEntry)
 		if not logEntry then continue end
 
 		local branchResults = resultTable[logEntry.gmodBranch]
@@ -189,27 +204,27 @@ end
 
 local settings = {...}
 local github_repo = settings[1]
-local loki_public_host = settings[2]
-local loki_host = settings[3]
-local loki_api = settings[4]
+local holylogs_public_host = settings[2]
+local holylogs_host = settings[3]
+local holylogs_api = settings[4]
 local run_number = tonumber(settings[5])
 
-local usingPublic = (not loki_host or loki_host == "") and (not loki_api or loki_api == "")
+local usingPublic = (not holylogs_host or holylogs_host == "") and (not holylogs_api or holylogs_api == "")
 if not run_number then
 	WriteFile("generated_summary.md", "Got no results")
 	error("Missing input data!")
 	return
 end
 
-local currentLokiResults, lastLokiResults, lastLokiRun = FetchFromLoki(github_repo, run_number, usingPublic and loki_public_host or loki_host, loki_api)
-local currentResults = CalculateMergedResults(currentLokiResults)
-local previousResults = CalculateMergedResults(lastLokiResults)
+local currentHolyLogsResults, lastHolyLogsResults, lastRun = FetchFromHolyLogs(github_repo, run_number, usingPublic and holylogs_public_host or holylogs_host, holylogs_api)
+local currentResults = CalculateMergedResults(currentHolyLogsResults)
+local previousResults = CalculateMergedResults(lastHolyLogsResults)
 
 PrintTable(currentResults)
 PrintTable(previousResults)
 
 local differences = CalculateDifferences(currentResults, previousResults)
-local markdown = GenerateMarkdown(currentResults, run_number, lastLokiRun)
+local markdown = GenerateMarkdown(currentResults, run_number, lastRun)
 WriteFile("generated_summary.md", markdown)
 
 PrintTable(currentResults)
