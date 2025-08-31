@@ -34,13 +34,13 @@ end
 -- local loki_host = CreateConVar("holylib_loki_host", "", {FCVAR_DONTRECORD, FCVAR_PROTECTED, FCVAR_UNLOGGED}, "Loki host secret.")
 -- local loki_api = CreateConVar("holylib_loki_api", "", {FCVAR_DONTRECORD, FCVAR_PROTECTED, FCVAR_UNLOGGED}, "Loki api key secret.")
 
-local github_repo = file.Read("_workflow/github_repo.txt", "MOD")
-local loki_public_host = file.Read("_workflow/loki_public_host.txt", "MOD")
-local loki_host = file.Read("_workflow/loki_host.txt", "MOD")
-local loki_api = file.Read("_workflow/loki_api.txt", "MOD")
+local github_repo = string.Trim(file.Read("_workflow/github_repo.txt", "MOD") or "")
+local loki_public_host = string.Trim(file.Read("_workflow/loki_public_host.txt", "MOD") or "")
+local loki_host = string.Trim(file.Read("_workflow/loki_host.txt", "MOD") or "")
+local loki_api = string.Trim(file.Read("_workflow/loki_api.txt", "MOD") or "")
 function HolyLib_RunPerformanceTest(name, callback, ...)
-	local usingPublic = (not loki_host or string.len(loki_host) < 3 or not loki_api or string.len(loki_api) < 3)
-    if usingPublic and (not loki_public_host or string.len(loki_public_host) < 3) or not github_repo or string.len(github_repo) < 3 then
+	local usingPublic = (string.len(loki_host) < 3 or string.len(loki_api) < 3)
+    if usingPublic and (string.len(loki_public_host) < 3) or string.len(github_repo) < 3 then
         print("Skipping performance test \"" .. name .. "\" since were missing Loki.")
         return
     end
@@ -64,18 +64,17 @@ function HolyLib_RunPerformanceTest(name, callback, ...)
 
     HTTP({
         blocking = true,
-        failed = function(reason)
-            print("Failed to send performance results to Loki!", reason)
+        failed = function(reason, errExt)
+            print("Failed to send performance results to Loki!", reason, errExt)
         end,
         success = function(code, body, headers)
             print("Successfully sent performance results to Loki :3", code)
         end,
         method = "POST",
-        url = string.Trim(loki_host) .. "/AddEntry",
-        type = "application/json",
+        url = loki_host .. "/AddEntry",
         headers = {
             ["entryIndex"] = github_repo .. "___" .. _HOLYLIB_RUN_NUMBER, -- Unique key for this run.
-            ["X-Api-Key"] = string.Trim(loki_api),
+            ["X-Api-Key"] = loki_api,
         },
         body = util.TableToJSON({
             ["totalCalls"] = totalCalls,
