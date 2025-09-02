@@ -511,6 +511,44 @@ jobs:
       additional-setup: "wget -q https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux64.tar.gz -O gluatest/docker/_gluatest_artifacts/linux64.tar.gz"
       map: gm_glua_tests
 
+  test_gmod_tests_32bit_with_luajit:
+    name: "Test 32x branches (gmod_tests & VPhLuaJITysics replacement)"
+    needs: setup_gmod_tests_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
+    strategy:
+      matrix:
+        branch:
+          - public
+          - dev
+          - prerelease
+        artifact:
+          - gmod_tests_32x
+          - gmod_tests_no_ghostinj_32x
+    with:
+      branch: ${{ matrix.branch }}
+      extra-startup-args: "-usegh -maxplayers 64 -holylib_enable_luajit 1"
+      download-artifact: ${{ matrix.artifact }}
+      no-checkout: "true"
+      additional-setup: "wget -q https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux32.tar.gz -O gluatest/docker/_gluatest_artifacts/linux32.tar.gz"
+      map: gm_glua_tests
+
+  test_gmod_tests_64bit_with_luajit:
+    name: "Test x86-64 branch (gmod_tests & LuaJIT replacement)"
+    needs: setup_gmod_tests_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
+    strategy:
+      matrix:
+        artifact:
+          - gmod_tests_64x
+          - gmod_tests_no_ghostinj_64x
+    with:
+      branch: x86-64
+      extra-startup-args: "-usegh -maxplayers 64 -holylib_enable_luajit 1"
+      download-artifact: ${{ matrix.artifact }}
+      no-checkout: "true"
+      additional-setup: "wget -q https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux64.tar.gz -O gluatest/docker/_gluatest_artifacts/linux64.tar.gz"
+      map: gm_glua_tests
+
   test_32bit_find_crash:
     if: false # always() Enable it if a unknown crash is happening. We'll test every single module.
     name: "Find the crash cause"
