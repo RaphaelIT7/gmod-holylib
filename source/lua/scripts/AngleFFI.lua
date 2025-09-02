@@ -159,7 +159,7 @@ function methods:Sub(v)
 end
 
 function methods:Div(div)
-    local x, y, z = check_ang_or_num(div, 1)
+    local x, y, z = check_ang_or_num(tonumber(div), 1)
 
     self.x = self.x / x
     self.y = self.y / y
@@ -244,9 +244,9 @@ function methods:Up()
     local cr = math.cos(rr)
     local sr = math.sin(rr)
 
-    local x = -sr * sp * cy + cr * sy
-    local y = -sr * sp * sy - cr * cy
-    local z = -sr * cp
+    local x = cp * cy
+    local y = cp * sy
+    local z = -sp
 
     return Vector(x, y, z)
 end
@@ -269,6 +269,7 @@ end
 ---@class Angle
 local gmodAngMeta = FindMetaTable("Angle")
 methods.RotateAroundAxis = gmodAngMeta.RotateAroundAxis -- ToDo
+methods.Right = gmodAngMeta.Right -- ToDo
 
 do
     local ffi = jit.getffi and jit.getffi() or require("ffi")

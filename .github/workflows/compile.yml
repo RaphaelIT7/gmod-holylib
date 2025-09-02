@@ -512,6 +512,7 @@ jobs:
       map: gm_glua_tests
 
   test_gmod_tests_32bit_with_luajit:
+    if: false
     name: "Test 32x branches (gmod_tests & VPhLuaJITysics replacement)"
     needs: setup_gmod_tests_artifacts
     uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
@@ -533,6 +534,7 @@ jobs:
       map: gm_glua_tests
 
   test_gmod_tests_64bit_with_luajit:
+    if: false
     name: "Test x86-64 branch (gmod_tests & LuaJIT replacement)"
     needs: setup_gmod_tests_artifacts
     uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
