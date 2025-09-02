@@ -82,11 +82,11 @@ local mt = {
             return method
         end
 
-        if k == 1 or k == "p" then
+        if k == 1 or k == "p" or k == "pitch" or k == "x" then
             return s.x
-        elseif k == 2 or k == "y" then
+        elseif k == 2 or k == "y" or k == "yaw" then
             return s.y
-        elseif k == 3 or k == "r" then
+        elseif k == 3 or k == "r" or k == "roll" or k == "z" then
             return s.z
         end
     end,
