@@ -24,5 +24,15 @@ return {
                 expect( #voiceData:GetUncompressedData() ).to.equal( 0 )
             end
         },
+        {
+            name = "Performance",
+            func = function()
+                local voiceData = voicechat.CreateVoiceData()
+
+                voiceData:SetData( "Hello World", 5 ) -- Length of 5 / everything after Hello is cut away
+
+                HolyLib_RunPerformanceTest("VoiceData:GetUncompressedData", voiceData.GetUncompressedData, voiceData)
+            end
+        },
     }
 }

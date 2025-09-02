@@ -23,5 +23,11 @@ return {
                 expect( entities ).to.beA( "table" )
             end
         },
+        {
+            name = "Performance",
+            func = function()
+                HolyLib_RunPerformanceTest("GetGlobalEntityList", GetGlobalEntityList)
+            end
+        },
     }
 }

@@ -16,5 +16,11 @@ return {
                 expect( ent:IsWorld() ).to.beTrue()
             end
         },
+        {
+            name = "Performance",
+            func = function()
+                HolyLib_RunPerformanceTest("HolyLib.__PushEntity", HolyLib.__PushEntity)
+            end
+        },
     }
 }

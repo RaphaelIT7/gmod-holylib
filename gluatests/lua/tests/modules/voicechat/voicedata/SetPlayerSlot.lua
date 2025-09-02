@@ -25,5 +25,13 @@ return {
                 expect( voiceData:GetPlayerSlot() ).to.equal( 12 )
             end
         },
+        {
+            name = "Performance",
+            func = function()
+                local voiceData = voicechat.CreateVoiceData()
+
+                HolyLib_RunPerformanceTest("VoiceData:SetPlayerSlot", voiceData.SetPlayerSlot, voiceData, 12)
+            end
+        },
     }
 }

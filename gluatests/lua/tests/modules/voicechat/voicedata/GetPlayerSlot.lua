@@ -34,5 +34,15 @@ return {
                 expect( voiceData:GetPlayerSlot() ).to.equal( 12 )
             end
         },
+        {
+            name = "Performance",
+            func = function()
+                local voiceData = voicechat.CreateVoiceData()
+
+                voiceData:SetData( "Hello World", 5 ) -- Length of 5 / everything after Hello is cut away
+
+                HolyLib_RunPerformanceTest("VoiceData:GetPlayerSlot", voiceData.GetPlayerSlot, voiceData)
+            end
+        },
     }
 }
