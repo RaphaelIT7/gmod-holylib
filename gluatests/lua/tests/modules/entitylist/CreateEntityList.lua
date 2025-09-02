@@ -30,11 +30,5 @@ return {
                 HolyLib_RunPerformanceTest("CreateEntityList", CreateEntityList)
             end
         },
-        {
-            name = "Performance",
-            func = function()
-                HolyLib_RunPerformanceTest("CreateEntityList", CreateEntityList)
-            end
-        },
     }
 }

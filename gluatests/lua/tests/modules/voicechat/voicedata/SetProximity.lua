@@ -27,6 +27,7 @@ return {
         },
         {
             name = "Performance",
+            when = HolyLib_IsModuleEnabled("voicechat"),
             func = function()
                 local voiceData = voicechat.CreateVoiceData()
 

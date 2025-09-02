@@ -25,6 +25,7 @@ return {
         },
         {
             name = "Performance",
+            when = HolyLib_IsModuleEnabled("entitylist"),
             func = function()
                 HolyLib_RunPerformanceTest("GetGlobalEntityList", GetGlobalEntityList)
             end
