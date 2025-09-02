@@ -78,6 +78,7 @@ LUA_FUNCTION_STATIC(markFFITypeAsGmodUserData)
 
 	uint16_t type = RawLua::GetCDataType(LUA->GetState(), 1);
 
+	Msg("Registered FFI Type %d\n", type);
 	GetLuaJITLuaData(LUA)->pRegisteredTypes.Set(type);
 	return 0;
 }

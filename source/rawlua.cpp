@@ -51,8 +51,10 @@ void* RawLua::GetUserDataOrFFIVar(lua_State* L, int idx, CBitVec<USHRT_MAX>& cDa
 	else if (tviscdata(o))
 		if (cDataTypes.IsBitSet(cdataV(o)->ctypeid))
 			return (void*)lj_obj_ptr(G(L), o); // won't mind the const void* -> void* it'll be fine
-		else
+		else {
+			Msg("cdata type %i is NOT registered!\n", cdataV(o)->ctypeid);
 			return NULL;
+		}
 	else
 		return NULL;
 }
