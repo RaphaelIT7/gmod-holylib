@@ -8,6 +8,8 @@
 #include "bitvec.h"
 #include "scripts/VectorFFI.h"
 #include "scripts/AngleFFI.h"
+#include "scripts/HolyLibUserDataFFI.h"
+#include "scripts/VoiceDataFFI.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -41,7 +43,7 @@ class LuaJITModuleData : public Lua::ModuleData
 {
 public:
 	std::unique_ptr<CLuaInterfaceProxy> pLuaInterfaceProxy;
-	CBitVec<USHRT_MAX> pRegisteredTypes;
+	RawLua::CDataBridge pBridge;
 };
 
 LUA_GetModuleData(LuaJITModuleData, g_pLuaJITModule, LuaJIT)
@@ -55,6 +57,15 @@ Detour::Create( \
 )
 
 #define Override(name) ManualOverride(name, name)
+
+RawLua::CDataBridge* GetCDataBridgeFromInterface(GarrysMod::Lua::ILuaInterface* pLua)
+{
+	LuaJITModuleData* pData = GetLuaJITLuaData(pLua);
+	if (!pData)
+		return nullptr;
+
+	return &pData->pBridge;
+}
 
 static thread_local int overrideFFIReference = -1;
 static int getffi(lua_State* L)
@@ -71,15 +82,37 @@ static int getffi(lua_State* L)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(markFFITypeAsGmodUserData)
+LUA_FUNCTION_STATIC(markFFITypeAsValidUserData)
 {
 	if (!g_pLuaJITModule.m_bAllowFFI && overrideFFIReference == -1)
 		return 0;
 
-	uint16_t type = RawLua::GetCDataType(LUA->GetState(), 1);
+	unsigned char nMetaID = LUA->CheckNumber(1);
+	uint16_t cTypeID = RawLua::GetCDataType(LUA->GetState(), 2);
 
-	GetLuaJITLuaData(LUA)->pRegisteredTypes.Set(type);
+	GetLuaJITLuaData(LUA)->pBridge.RegisterType(nMetaID, cTypeID);
 	return 0;
+}
+
+LUA_FUNCTION_STATIC(registerCreateHolyLibCDataFunc)
+{
+	if (!g_pLuaJITModule.m_bAllowFFI && overrideFFIReference == -1)
+		return 0;
+
+	LUA->CheckType(2, GarrysMod::Lua::Type::Table);
+	LUA->CheckType(3, GarrysMod::Lua::Type::Function);
+
+	uint32_t nTypeID = RawLua::GetCTypeFromName(LUA->GetState(), LUA->CheckString(1), &GetLuaJITLuaData(LUA)->pBridge);
+	GetLuaJITLuaData(LUA)->pBridge.RegisterHolyLibUserData(nTypeID);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(getMetaTableByID)
+{
+	if (!g_pLuaJITModule.m_bAllowFFI && overrideFFIReference == -1)
+		return 0;
+
+	return LUA->PushMetaTable(LUA->CheckNumber(1)) ? 1 : 0;
 }
 
 static bool bOpenLibs = false;
@@ -137,8 +170,14 @@ static void hook_luaL_openlibs(lua_State* L)
 		lua_pushcfunction(L, getffi);
 		lua_setfield(L, -2, "getffi");
 
-		lua_pushcfunction(L, markFFITypeAsGmodUserData);
-		lua_setfield(L, -2, "markFFITypeAsGmodUserData");
+		lua_pushcfunction(L, markFFITypeAsValidUserData);
+		lua_setfield(L, -2, "markFFITypeAsValidUserData");
+
+		lua_pushcfunction(L, registerCreateHolyLibCDataFunc);
+		lua_setfield(L, -2, "registerCreateHolyLibCDataFunc");
+
+		lua_pushcfunction(L, getMetaTableByID);
+		lua_setfield(L, -2, "getMetaTableByID");
 
 		lua_pushcfunction(L, luaopen_jit_profile);
 		lua_call(L, 0, 1);
@@ -168,7 +207,7 @@ public:
 
 	virtual GarrysMod::Lua::ILuaBase::UserData* GetUserdata(int iStackPos)
 	{
-		return (GarrysMod::Lua::ILuaBase::UserData*)RawLua::GetUserDataOrFFIVar(This()->GetState(), iStackPos, GetLuaJITLuaData(This())->pRegisteredTypes);
+		return (GarrysMod::Lua::ILuaBase::UserData*)RawLua::GetUserDataOrFFIVar(This()->GetState(), iStackPos, GetLuaJITLuaData(This())->pBridge);
 	}
 
 	/*
@@ -286,6 +325,11 @@ void CLuaJITModule::PostLuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		overrideFFIReference = luaL_ref(L, LUA_REGISTRYINDEX);
 	}
 
+	if (!pLua->RunStringEx("HolyLib:HolyLibUserDataFFI.lua", "", luaHolyLibUserDataFFI, true, true, true, true))
+	{
+		Warning(PROJECT_NAME " - luajit: Failed to load HolyLibUserData script!\n");
+	}
+
 	if (!pLua->RunStringEx("HolyLib:VectorFFI.lua", "", luaVectorFFI, true, true, true, true))
 	{
 		Warning(PROJECT_NAME " - luajit: Failed to load VectorFFI script!\n");
@@ -293,8 +337,16 @@ void CLuaJITModule::PostLuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 
 	if (!pLua->RunStringEx("HolyLib:AngleFFI.lua", "", luaAngleFFI, true, true, true, true))
 	{
-		Warning(PROJECT_NAME " - luajit: Failed to load VectorFFI script!\n");
+		Warning(PROJECT_NAME " - luajit: Failed to load AngleFFI script!\n");
 	}
+
+	if (!pLua->RunStringEx("HolyLib:VoiceDataFFI.lua", "", luaVoiceDataFFI, true, true, true, true))
+	{
+		Warning(PROJECT_NAME " - luajit: Failed to load VoiceDataFFI script!\n");
+	}
+
+	pLua->PushNil();
+	pLua->SetField(GarrysMod::Lua::INDEX_GLOBAL, "__HOLYLIB_FFI"); // A table that the script could have used to share data between them.
 
 	// Remove FFI again.
 	if (overrideFFIReference != -1)

@@ -11,8 +11,7 @@ local function CompileLuaScipts()
 		if not EndsWith(fileName, ".lua") then continue end
 
 		local headerFileName = path .. RemoveEnd(fileName, ".lua") .. ".h"
-		local headerFile = [[const char* lua]] .. RemoveEnd(fileName, ".lua") .. [[ = R"LUAFILE(
-]]
+		local headerFile = [[const char* lua]] .. RemoveEnd(fileName, ".lua") .. [[ = R"LUAFILE(]]
 		headerFile = headerFile .. string.Trim(ReadFile(path .. fileName)) -- Let's trim it to not include any new lines from the start/end of the file
 		headerFile = headerFile .. [[
 

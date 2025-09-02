@@ -65,6 +65,7 @@ static ConVar voicechat_savedecompressed("holylib_voicechat_savedecompressed", "
 static CVoiceChatModule g_pVoiceChatModule;
 IModule* pVoiceChatModule = &g_pVoiceChatModule;
 
+// IMPORTANT: When changing this sturct, you also NEED to update the VoiceDataFFI.lua file!!!
 struct VoiceData
 {
 	~VoiceData() {

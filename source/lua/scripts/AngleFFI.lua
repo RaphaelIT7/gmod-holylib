@@ -302,4 +302,4 @@ do
     _G.isangle = isangle
 end
 
-jit.markFFITypeAsGmodUserData(Angle(1, 1, 1))
+jit.markFFITypeAsValidUserData(mt.MetaID, Angle(1, 1, 1))

@@ -1,5 +1,4 @@
 #include <GarrysMod/Symbol.hpp>
-#include <steam/isteamuser.h>
 #include "tier0/wchartypes.h"
 #include "Platform.hpp"
 #include "filesystem.h"
@@ -65,6 +64,8 @@ class CBaseViewModel;
 class CBaseCombatCharacter;
 class CHostState;
 class CSkyCamera;
+struct SteamServersConnected_t;
+struct SteamServersDisconnected_t;
 
 namespace GarrysMod::Lua
 {

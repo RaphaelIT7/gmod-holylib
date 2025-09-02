@@ -435,4 +435,4 @@ do
     _G.isvector = isvector
 end
 
-jit.markFFITypeAsGmodUserData(Vector(1, 1, 1))
+jit.markFFITypeAsValidUserData(mt.MetaID, Vector(1, 1, 1))

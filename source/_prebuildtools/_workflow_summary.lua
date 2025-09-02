@@ -61,11 +61,26 @@ function FetchHolyLogsResults(github_repository, runNumber, callback, host, apik
 	})
 end
 
-function FetchFromHolyLogs(github_repository, runNumber, host, apikey)
+function FetchFromHolyLogs(github_repository, runNumber, host, apikey, previous_run_number)
 	local currentHolyLogsResults = {}
 	FetchHolyLogsResults(github_repository, runNumber, function(jsonTable)
 		currentHolyLogsResults = jsonTable
 	end, host, apikey)
+
+	if previous_run_number > 0 then
+		local lastHolyLogsResults = {}
+		FetchHolyLogsResults(github_repository, runNumber, function(jsonTable)
+			lastHolyLogsResults = jsonTable
+		end, host, apikey)
+
+		HTTP_WaitForAll()
+
+		if not lastHolyLogsResults then
+			error("Failed to fetch results.")
+		end
+
+		return currentHolyLogsResults, lastHolyLogsResults, previous_run_number
+	end
 
 	local lastHolyLogsResults = {} -- Results of the last run.
 	local lastRun = -1
@@ -223,6 +238,7 @@ local holylogs_public_host = settings[2]
 local holylogs_host = settings[3]
 local holylogs_api = settings[4]
 local run_number = tonumber(settings[5])
+local previous_run_number = tonumber(settings[6] or "0")
 
 local usingPublic = (not holylogs_host or holylogs_host == "") and (not holylogs_api or holylogs_api == "")
 if not run_number then
@@ -231,7 +247,7 @@ if not run_number then
 	return
 end
 
-local currentHolyLogsResults, lastHolyLogsResults, lastRun = FetchFromHolyLogs(github_repo, run_number, usingPublic and holylogs_public_host or holylogs_host, holylogs_api)
+local currentHolyLogsResults, lastHolyLogsResults, lastRun = FetchFromHolyLogs(github_repo, run_number, usingPublic and holylogs_public_host or holylogs_host, holylogs_api, previous_run_number)
 local currentResults = CalculateMergedResults(currentHolyLogsResults)
 local previousResults = CalculateMergedResults(lastHolyLogsResults)
 

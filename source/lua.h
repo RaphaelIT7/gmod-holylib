@@ -187,13 +187,41 @@ namespace Lua
 
 union TValue;
 namespace RawLua {
+	struct CDataBridge
+	{
+		void RegisterType(unsigned char pMetaID, uint16_t cTypeID)
+		{
+			pRegisteredTypes.Set(cTypeID);
+			pMetaIDToCType[pMetaID] = cTypeID;
+		}
+
+		void RegisterHolyLibUserData(int nTypeID)
+		{
+			nHolyLibUserDataTypeID = nTypeID;
+			pRegisteredTypes.Set(nTypeID); // Mark this too as else HolyLib's userdata would be seen as cdata and it'll shit everything
+		}
+
+		CBitVec<USHRT_MAX> pRegisteredTypes;
+		std::unordered_map<unsigned char, uint16_t> pMetaIDToCType = {};
+		uint32_t nHolyLibUserDataTypeID = 0; // cData TypeID of the HOLYLIB_UserData struct.
+		TValue* nHolyLibUserDataGC = nullptr;
+		int nHolyLibUserDataGCFuncReference = -1;
+	};
+
 	extern TValue *index2adr(lua_State *L, int idx);
 	extern TValue* CopyTValue(lua_State* L, TValue* o);
 	extern void DestroyTValue(TValue* o);
 	extern void PushTValue(lua_State* L, TValue* o);
 	extern void SetReadOnly(TValue* o, bool readOnly);
-	extern void* GetUserDataOrFFIVar(lua_State* L, int idx, CBitVec<USHRT_MAX>& cDataTypes);
+	extern void* GetUserDataOrFFIVar(lua_State* L, int idx, CDataBridge& cDataBridge);
 	extern uint16_t GetCDataType(lua_State* L, int idx);
+
+	// Expects it to only be used from jit.registerCreateHolyLibCDataFunc where on the stack 2 MUST be a table.
+	extern uint32_t GetCTypeFromName(lua_State* L, const char* pName, CDataBridge* cDataBridge);
+
+	// Allocates either a cData if there is a registered ctype and else it allocates userdata.
+	// Returns a pointer to the userdata.
+	extern void* AllocateCDataOrUserData(GarrysMod::Lua::ILuaInterface* pLua, int nMetaID, int nSize);
 }
 
 // Creates a function Get[funcName]LuaData and returns the stored module data from the given module.

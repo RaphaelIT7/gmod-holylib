@@ -40,6 +40,7 @@ class IModuleWrapper;
 class IGameEventManager2;
 class IServer;
 class IServerGameDLL;
+class ISteamUser;
 namespace Util
 {
 	#define LUA_REGISTRYINDEX	(-10000)
@@ -787,8 +788,8 @@ LuaUserData* Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var
 		return NULL; \
 	} \
 \
-	LuaUserData* userData = (LuaUserData*)LUA->NewUserdata(sizeof(LuaUserData)); \
 	unsigned char iMeta = Lua::GetLuaData(LUA)->GetMetaTable(TO_LUA_TYPE(className)); \
+	LuaUserData* userData = (LuaUserData*)RawLua::AllocateCDataOrUserData(LUA, iMeta, sizeof(LuaUserData)); \
 	userData->Init(LUA, iMeta, var); \
 	if (LUA->PushMetaTable(iMeta)) LUA->SetMetaTable(-2); \
 	return userData; \
