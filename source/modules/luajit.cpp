@@ -73,12 +73,11 @@ static int getffi(lua_State* L)
 
 LUA_FUNCTION_STATIC(markFFITypeAsGmodUserData)
 {
-	if (!g_pLuaJITModule.m_bAllowFFI)
+	if (!g_pLuaJITModule.m_bAllowFFI && overrideFFIReference == -1)
 		return 0;
 
 	uint16_t type = RawLua::GetCDataType(LUA->GetState(), 1);
 
-	Msg("Registered FFI Type %d\n", type);
 	GetLuaJITLuaData(LUA)->pRegisteredTypes.Set(type);
 	return 0;
 }
