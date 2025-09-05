@@ -84,6 +84,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [+] Added `IPhysicsEnvironment:SetInSimulation` to the `physenv` module.<br>
 \- [+] Added `HttpResponse:SetStatusCode` to `httpserver` module. (See https://github.com/RaphaelIT7/gmod-holylib/pull/62)<br>
 \- [+] Added `HttpRequest:GetPathParam` to `httpserver` module. (See https://github.com/RaphaelIT7/gmod-holylib/pull/63)<br>
+\- [+] Added `HttpServer:AddProxyAddress` to `httpserver` module.<br>
 \- [+] Added `bitbuf.CreateStackReadBuffer` & `bitbuf.CreateStackWriteBuffer` to `bitbuf` module.<br>
 \- [+] Added a fallback method for HolyLib's internal `Util::PushEntity` function in case a Gmod update breaks our offsets which previously lead to undefined behavior<br>
 \- [#] Added some more safeguards to `IPhysicsEnvironment:Simulate` to prevent one from simulating a environment that is already being simulated.<br>
