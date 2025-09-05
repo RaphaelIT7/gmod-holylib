@@ -3415,6 +3415,18 @@ The callback function provides the HttpResponse object which you should use to s
 > [!NOTE]
 > This is fully experimental.<br>
 > Currently it doesn't have any real use except to remove the Thread overhead but I plan to make it more useful later.<br>
+
+#### HttpServer:AddProxyAddress(string proxyAddress, string headerName)
+Registers the given proxyAddress to be recognized, in which case it will look for the given header name and use it as the real address of the request sender.
+
+Example:
+```lua
+local ip = game.GetIPAddress()
+ip = ip:sub(0, ip:find(":") - 1) -- remove the port from the address
+
+randomHttpServer:AddProxyAddress(ip, "X-Real-IP") -- This is an example where an nginx proxy running on the same host would pass a request to the http server with the X-Real-IP header being the client address
+```
+
 ### Method Functions
 All Method functions add a listener for the given path and the given method, like this:<br>
 ```lua

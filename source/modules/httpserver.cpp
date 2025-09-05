@@ -101,6 +101,7 @@ struct HttpRequest {
 	bool m_bDelete = false; // We only delete from the main thread.
 	int m_iFunction = -1;
 	std::string m_strPath;
+	std::string m_strAddress;
 	HttpResponse m_pResponseData;
 	httplib::Response m_pResponse;
 	httplib::Request m_pRequest;
@@ -259,15 +260,43 @@ public:
 		m_pPreparedResponsesMutex.Unlock();
 	}
 
+	inline std::string GetAddressFromRequest(httplib::Request pRequest)
+	{
+		auto it = m_pAllowedProxies.find(pRequest.remote_addr);
+		if (it != m_pAllowedProxies.end())
+		{
+			std::string& realIP = pRequest.get_header_value(it->second);
+			if (!realIP.empty())
+			{
+				return realIP;
+			}
+		}
+
+		return pRequest.remote_addr;
+	}
+
+	void AddProxy(std::string strProxyAddress, std::string strHeaderName)
+	{
+		auto it = m_pAllowedProxies.find(strProxyAddress);
+		if (it != m_pAllowedProxies.end())
+		{
+			it->second = strHeaderName;
+			return;
+		}
+
+		m_pAllowedProxies[strProxyAddress] = strHeaderName;
+	};
+
 private:
 	unsigned char m_iStatus = HTTPSERVER_OFFLINE;
 	unsigned short m_iPort = 0;
-	unsigned int m_iThreadSleep = 5; // How long the threads sleep / wait for a request to be handled
 	bool m_bUpdate = false;
+	unsigned int m_iThreadSleep = 5; // How long the threads sleep / wait for a request to be handled
 	bool m_bInUpdate = false;
 	std::string m_strAddress = "";
 	std::vector<HttpRequest*> m_pRequests;
 	std::vector<int> m_pHandlerReferences; // Contains the Lua references to the handler functions.
+	std::unordered_map<std::string, std::string> m_pAllowedProxies;
 	httplib::Server m_pServer;
 	char m_strName[64] = {0};
 
@@ -442,7 +471,7 @@ LUA_FUNCTION_STATIC(HttpRequest_GetRemoteAddr)
 {
 	HttpRequest* pData = Get_HttpRequest(LUA, 1, false);
 
-	LUA->PushString(pData->m_pRequest.remote_addr.c_str());
+	LUA->PushString(pData->m_strAddress.c_str());
 	return 1;
 }
 
@@ -609,6 +638,7 @@ httplib::Server::Handler HttpServer::CreateHandler(const char* path, int func, b
 	return [=](const httplib::Request& req, httplib::Response& res)
 	{
 		int userID = -1;
+		std::string remoteAddress = GetAddressFromRequest(req);
 		for (auto& pClient : Util::GetClients())
 		{
 			// NOTE: Currently we assume pClient is always valid, and this is true as long as our httpServer doesn't persist across map changes
@@ -626,7 +656,7 @@ httplib::Server::Handler HttpServer::CreateHandler(const char* path, int func, b
 			const netadr_s& addr = pChannel->GetRemoteAddress();
 			std::string address = addr.ToString();
 			size_t port_pos = address.find(":");
-			if (address.substr(0, port_pos) == req.remote_addr || (req.remote_addr == localAddr && address.substr(0, port_pos) == loopBack))
+			if (address.substr(0, port_pos) == remoteAddress || (remoteAddress == localAddr && address.substr(0, port_pos) == loopBack))
 			{
 				userID = pClient->GetUserID();
 				break;
@@ -669,6 +699,7 @@ httplib::Server::Handler HttpServer::CreateHandler(const char* path, int func, b
 		request->m_iFunction = func;
 		request->m_pResponse = res;
 		request->m_pClientUserID = userID;
+		request->m_strAddress = remoteAddress;
 		request->m_pLua = m_pLua; // Inherit the Lua interface.
 		m_pRequests.push_back(request); // We should add a check here since we could write to it from multiple threads?
 		m_bUpdate = true;
@@ -976,6 +1007,14 @@ LUA_FUNCTION_STATIC(HttpServer_AddPreparedResponse)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(HttpServer_AddProxyAddress)
+{
+	HttpServer* pServer = Get_HttpServer(LUA, 1, true);
+
+	pServer->AddProxy(LUA->CheckString(2), LUA->CheckString(3));
+	return 0;
+}
+
 LUA_FUNCTION_STATIC(httpserver_Create)
 {
 	Push_HttpServer(LUA, new HttpServer(LUA));
@@ -1078,6 +1117,7 @@ void CHTTPServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, HttpServer_SetName, "SetName");
 
 		Util::AddFunc(pLua, HttpServer_AddPreparedResponse, "AddPreparedResponse");
+		Util::AddFunc(pLua, HttpServer_AddProxyAddress, "AddProxyAddress");
 	pLua->Pop(1);
 
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::HttpResponse, pLua->CreateMetaTable("HttpResponse"));
