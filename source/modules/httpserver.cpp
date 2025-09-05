@@ -156,11 +156,13 @@ public:
 			return;
 		}
 
-		if (!m_pLua)
-			return;
+		Stop();
 
-		for (auto& ref : m_pHandlerReferences)
-			Util::ReferenceFree(m_pLua, ref, "HttpServer::~HttpServer - Handler references");
+		if (m_pLua)
+		{
+			for (auto& ref : m_pHandlerReferences)
+				Util::ReferenceFree(m_pLua, ref, "HttpServer::~HttpServer - Handler references");
+		}
 
 		m_pHandlerReferences.clear();
 
@@ -342,6 +344,7 @@ private:
 	std::unordered_map<std::string, ProxyEntry> m_pAllowedProxies;
 	httplib::Server m_pServer;
 	char m_strName[64] = {0};
+	ThreadHandle_t m_pServerThread = nullptr;
 
 	// userID - Response pairs.
 	std::unordered_map<int, std::vector<PreparedHttpResponse*>> m_pPreparedResponses;
@@ -626,7 +629,7 @@ void HttpServer::Start(const char* address, unsigned short port)
 
 	m_strAddress = address;
 	m_iPort = port;
-	CreateSimpleThread((ThreadFunc_t)HttpServer::Server, this);
+	m_pServerThread = CreateSimpleThread((ThreadFunc_t)HttpServer::Server, this);
 	m_iStatus = HTTPSERVER_ONLINE;
 }
 
@@ -637,6 +640,10 @@ void HttpServer::Stop()
 
 	m_pServer.stop();
 	m_iStatus = HTTPSERVER_OFFLINE;
+
+	ThreadJoin(m_pServerThread, 100);
+	ReleaseThreadHandle(m_pServerThread);
+	m_pServerThread = nullptr;
 }
 
 void HttpServer::Think()
