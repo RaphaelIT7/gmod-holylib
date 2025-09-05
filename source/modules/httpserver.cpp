@@ -115,6 +115,27 @@ enum
 	HTTPSERVER_OFFLINE
 };
 
+#undef isspace // unfuck 64x
+namespace stringstuff
+{
+	static inline void ltrim(std::string &s) {
+		s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+			return !std::isspace(ch);
+		}));
+	}
+
+	static inline void rtrim(std::string &s) {
+		s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
+			return !std::isspace(ch);
+		}).base(), s.end());
+	}
+
+	static inline void trim(std::string &s) {
+		rtrim(s);
+		ltrim(s);
+	}
+}
+
 class HttpServer;
 static std::unordered_set<HttpServer*> g_pHttpServers;
 class HttpServer
@@ -274,7 +295,9 @@ public:
 					if (pos == std::string::npos) // It'll be fine... I think.
 						return realIP;
 
-					return realIP.substr(pos + 1);
+					std::string ip = realIP.substr(pos + 1);
+					stringstuff::trim(ip);
+					return ip;
 				}
 
 				return realIP;
