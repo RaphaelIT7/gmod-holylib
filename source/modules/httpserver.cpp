@@ -270,7 +270,7 @@ public:
 			{
 				if (it->second.bUnshitAddress)
 				{
-					size_t pos = realIP.find(',');
+					size_t pos = realIP.find_last_of(',');
 					if (pos == std::string::npos) // It'll be fine... I think.
 						return realIP;
 

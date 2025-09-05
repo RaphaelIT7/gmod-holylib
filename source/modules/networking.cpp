@@ -1086,7 +1086,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 		return false;
 
 	// get recipient player's skybox:
-	CBaseEntity *pRecipientEntity = CBaseEntity::Instance( pInfo->m_pClientEnt );
+	CBaseEntity *pRecipientEntity = Util::servergameents->EdictToBaseEntity( pInfo->m_pClientEnt );
 
 	//Assert( pRecipientEntity && pRecipientEntity->IsPlayer() );
 	if ( !pRecipientEntity )
