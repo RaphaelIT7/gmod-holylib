@@ -118,6 +118,8 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [#] Fixed `IModule::ServerActivate` not being called when being loaded as a binary module<br>
 \- [#] Fixed `HolyLib:ProcessConnectionlessPacket` being called for SourceTV packets<br>
 \- [#] Fixed `gameserver.SendConnectionlessPacket` crashing instead of throwing a lua error when NET_SendPacket couldn't be loaded<br>
+\- [#] Fixed `HttpServer` not properly shutting down and possibly crashing<br>
+\- [#] Fixed `CGameClient` & `CHLTVClient` possibly crashing when accessed after the client already disconnected<br>
 \- [-] Removed some unused code of former fixes that were implemented into Gmod<br>
 
 You can see all changes/commits here:<br>
