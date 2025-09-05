@@ -265,7 +265,7 @@ public:
 		auto it = m_pAllowedProxies.find(pRequest.remote_addr);
 		if (it != m_pAllowedProxies.end())
 		{
-			std::string& realIP = pRequest.get_header_value(it->second);
+			std::string realIP = pRequest.get_header_value(it->second);
 			if (!realIP.empty())
 			{
 				return realIP;
