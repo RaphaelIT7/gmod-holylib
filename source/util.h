@@ -732,7 +732,7 @@ className* Get_##className(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bo
 }
 
 // Only used by CBaseClient & CHLTVClient as they both work with each other / a CHLTVClient can use all CBaseClient functions.
-#define SpecialGet_LuaClass( className, className2, strName ) \
+#define SpecialGet_LuaClass( className, className2, strName, isvalid ) \
 static std::string invalidType_##className = MakeString("Tried to use something that wasn't a ", strName, "!"); \
 static std::string triedNull_##className = MakeString("Tried to use a NULL ", strName, "!"); \
 inline LuaUserData* Get_##className##_Data(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError) \
@@ -776,6 +776,15 @@ className* Get_##className(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bo
 	if (!pLuaData) \
 		return NULL; \
  \
+	className* pVar = (className*)pLuaData->GetData(); \
+	if (!isvalid) \
+	{ \
+		if (bError) \
+			LUA->ThrowError(triedNull_##className.c_str()); \
+\
+		return NULL; \
+	} \
+\
 	return (className*)pLuaData->GetData(); \
 }
 

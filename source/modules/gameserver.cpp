@@ -63,7 +63,7 @@ public:
 };
 
 PushReferenced_LuaClass(CBaseClient)
-SpecialGet_LuaClass(CBaseClient, CHLTVClient, "CBaseClient")
+SpecialGet_LuaClass(CBaseClient, CHLTVClient, "CBaseClient", pVar->IsConnected())
 
 Default__index(CBaseClient);
 Default__newindex(CBaseClient);
