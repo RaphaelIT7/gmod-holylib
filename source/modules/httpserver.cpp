@@ -265,9 +265,18 @@ public:
 		auto it = m_pAllowedProxies.find(pRequest.remote_addr);
 		if (it != m_pAllowedProxies.end())
 		{
-			std::string realIP = pRequest.get_header_value(it->second);
+			std::string realIP = pRequest.get_header_value(it->second.pHeaderName);
 			if (!realIP.empty())
 			{
+				if (it->second.bUnshitAddress)
+				{
+					size_t pos = realIP.find(',');
+					if (pos == std::string::npos) // It'll be fine... I think.
+						return realIP;
+
+					return realIP.substr(pos + 1);
+				}
+
 				return realIP;
 			}
 		}
@@ -275,16 +284,26 @@ public:
 		return pRequest.remote_addr;
 	}
 
-	void AddProxy(std::string strProxyAddress, std::string strHeaderName)
+	void AddProxy(std::string strProxyAddress, std::string strHeaderName, bool bUnshitAddress = false)
 	{
 		auto it = m_pAllowedProxies.find(strProxyAddress);
 		if (it != m_pAllowedProxies.end())
 		{
-			it->second = strHeaderName;
+			it->second.pHeaderName = strHeaderName;
+			it->second.bUnshitAddress = bUnshitAddress;
 			return;
 		}
 
-		m_pAllowedProxies[strProxyAddress] = strHeaderName;
+		m_pAllowedProxies.emplace(
+			std::move(strProxyAddress), 
+			ProxyEntry{std::move(strHeaderName), bUnshitAddress}
+		);
+	};
+
+	struct ProxyEntry
+	{
+		std::string pHeaderName = "";
+		bool bUnshitAddress = false; // If true, it will use the second ip provided (if there is one) in the given header because proxies love to be shit.
 	};
 
 private:
@@ -296,7 +315,7 @@ private:
 	std::string m_strAddress = "";
 	std::vector<HttpRequest*> m_pRequests;
 	std::vector<int> m_pHandlerReferences; // Contains the Lua references to the handler functions.
-	std::unordered_map<std::string, std::string> m_pAllowedProxies;
+	std::unordered_map<std::string, ProxyEntry> m_pAllowedProxies;
 	httplib::Server m_pServer;
 	char m_strName[64] = {0};
 
@@ -1011,7 +1030,7 @@ LUA_FUNCTION_STATIC(HttpServer_AddProxyAddress)
 {
 	HttpServer* pServer = Get_HttpServer(LUA, 1, true);
 
-	pServer->AddProxy(LUA->CheckString(2), LUA->CheckString(3));
+	pServer->AddProxy(LUA->CheckString(2), LUA->CheckString(3), LUA->GetBool(4));
 	return 0;
 }
 

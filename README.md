@@ -3416,7 +3416,9 @@ The callback function provides the HttpResponse object which you should use to s
 > This is fully experimental.<br>
 > Currently it doesn't have any real use except to remove the Thread overhead but I plan to make it more useful later.<br>
 
-#### HttpServer:AddProxyAddress(string proxyAddress, string headerName)
+#### HttpServer:AddProxyAddress(string proxyAddress, string headerName, bool useSecondAddress)
+useSecondAddress - If the given header provides two addresses seperated by a `,` it will use the second address. (proxies love to be funny. Now give me my Address!)<br>
+
 Registers the given proxyAddress to be recognized, in which case it will look for the given header name and use it as the real address of the request sender.
 
 Example:
