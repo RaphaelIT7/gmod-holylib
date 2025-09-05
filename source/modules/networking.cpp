@@ -1786,14 +1786,18 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 	SourceSDK::FactoryLoader datacache_loader("datacache");
 	mdlcache = datacache_loader.GetInterface<IMDLCache>(MDLCACHE_INTERFACE_VERSION);
 
+#if SYSTEM_WINDOWS
 	func_SV_PackEntity = (Symbols::SV_PackEntity)Detour::GetFunction(engine_loader.GetModule(), Symbols::SV_PackEntitySym);
 	Detour::CheckFunction((void*)func_SV_PackEntity, "SV_PackEntity");
+#endif
 
 	func_InvalidateSharedEdictChangeInfos = (Symbols::InvalidateSharedEdictChangeInfos)Detour::GetFunction(engine_loader.GetModule(), Symbols::InvalidateSharedEdictChangeInfosSym);
 	Detour::CheckFunction((void*)func_InvalidateSharedEdictChangeInfos, "InvalidateSharedEdictChangeInfos");
 
+#if SYSTEM_LINUX
 	func_PackWork_t_Process = (Symbols::PackWork_t_Process)Detour::GetFunction(engine_loader.GetModule(), Symbols::PackWork_t_ProcessSym);
 	Detour::CheckFunction((void*)func_PackWork_t_Process, "PackWork_t::Process");
+#endif
 
 	func_CBasePlayer_GetViewModel = (Symbols::CBasePlayer_GetViewModel)Detour::GetFunction(server_loader.GetModule(), Symbols::CBasePlayer_GetViewModelSym);
 	Detour::CheckFunction((void*)func_CBasePlayer_GetViewModel, "CBasePlayer::GetViewModel");
