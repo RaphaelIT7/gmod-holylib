@@ -1911,6 +1911,25 @@ LUA_FUNCTION_STATIC(gameserver_GetClientByUserID)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(gameserver_GetClientBySteamID)
+{
+	if (!Util::server || !Util::server->IsActive())
+		return 0;
+
+	const char* steamID = LUA->CheckString(1);
+	for(int iClientIndex=0; iClientIndex<Util::server->GetClientCount(); ++iClientIndex)
+	{
+		CBaseClient* pClient = (CBaseClient*)Util::server->GetClient(iClientIndex);
+		if (!pClient->IsConnected() || V_stricmp(pClient->GetNetworkIDString(), steamID) != 0)
+			continue;
+
+		Push_CBaseClient(LUA, pClient);
+		return 1;
+	}
+
+	return 0;
+}
+
 LUA_FUNCTION_STATIC(gameserver_GetClientCount)
 {
 	if (!Util::server || !Util::server->IsActive())
@@ -2335,6 +2354,7 @@ void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, gameserver_GetUDPPort, "GetUDPPort");
 		Util::AddFunc(pLua, gameserver_GetClient, "GetClient");
 		Util::AddFunc(pLua, gameserver_GetClientByUserID, "GetClientByUserID");
+		Util::AddFunc(pLua, gameserver_GetClientBySteamID, "GetClientBySteamID");
 		Util::AddFunc(pLua, gameserver_GetClientCount, "GetClientCount");
 		Util::AddFunc(pLua, gameserver_GetAll, "GetAll");
 		Util::AddFunc(pLua, gameserver_GetTime, "GetTime");

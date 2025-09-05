@@ -330,11 +330,12 @@ public:
 	};
 
 private:
-	unsigned char m_iStatus = HTTPSERVER_OFFLINE;
 	unsigned short m_iPort = 0;
 	bool m_bUpdate = false;
-	unsigned int m_iThreadSleep = 5; // How long the threads sleep / wait for a request to be handled
 	bool m_bInUpdate = false;
+	unsigned char m_iStatus = HTTPSERVER_OFFLINE;
+	// 3 bytes free here.
+	unsigned int m_iThreadSleep = 5; // How long the threads sleep / wait for a request to be handled
 	std::string m_strAddress = "";
 	std::vector<HttpRequest*> m_pRequests;
 	std::vector<int> m_pHandlerReferences; // Contains the Lua references to the handler functions.

@@ -3640,6 +3640,9 @@ Returns the CGameClient at that player slot or `nil` on failure.<br>
 #### CGameClient gameserver.GetClientByUserID(number userID)
 Returns the CGameClient for the given userID or `nil` on failure.<br>
 
+#### CGameClient gameserver.GetClientBySteamID(string steamID)
+Returns the CGameClient for the given steamID or `nil` on failure. (steamID not steamID64!)<br>
+
 #### number gameserver.GetClientCount()
 returns client count for iteration of `gameserver.GetClient`<br>
 
