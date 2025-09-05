@@ -777,7 +777,7 @@ className* Get_##className(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bo
 		return NULL; \
  \
 	className* pVar = (className*)pLuaData->GetData(); \
-	if (!isvalid) \
+	if (!pVar || !isvalid) \
 	{ \
 		if (bError) \
 			LUA->ThrowError(triedNull_##className.c_str()); \
@@ -785,7 +785,7 @@ className* Get_##className(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bo
 		return NULL; \
 	} \
 \
-	return (className*)pLuaData->GetData(); \
+	return pVar; \
 }
 
 #define Push_LuaClass( className ) \
