@@ -283,7 +283,7 @@ constexpr size_t _MAX_ALLOCA_SIZE = 64 * 1024;
 constexpr size_t _MAX_ALLOCA_SIZE = 8 * 1024;
 #endif
 
-#define holylib_canstackalloc(size) (size <= _MAX_ALLOCA_SIZE)
+#define holylib_canstackalloc(size) (static_cast<size_t>(size) <= _MAX_ALLOCA_SIZE)
 
 /*
 	ToDo: Implement a proper class like gmod has with CLuaCLass/CLuaLibrary & use thoes instead for everything.

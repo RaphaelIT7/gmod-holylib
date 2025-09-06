@@ -1149,13 +1149,13 @@ bool CNetChan::CreateFragmentsFromFile( const char *filename, int stream, unsign
 
 	if ( totalBytes >= (((uint64_t)net_maxfilesize.GetInt()) *1024*1024) ) // We need it as a uint64_t since else we'll overflow the int!
 	{
-		ConMsg( "CreateFragmentsFromFile: '%s' size exceeds net_maxfilesize limit (%i MiB, %i).\n", filename, net_maxfilesize.GetInt(), totalBytes);
+		ConMsg( "CreateFragmentsFromFile: '%s' size exceeds net_maxfilesize limit (%i MiB, %llu).\n", filename, net_maxfilesize.GetInt(), totalBytes);
 		return false;
 	}
 	
 	if ( totalBytes >= MAX_FILE_SIZE )
 	{
-		ConMsg( "CreateFragmentsFromFile: '%s' too big (max %i bytes).\n", filename, MAX_FILE_SIZE );
+		ConMsg( "CreateFragmentsFromFile: '%s' too big (max %llu bytes).\n", filename, MAX_FILE_SIZE );
 		return false;
 	}
 
@@ -1435,7 +1435,7 @@ bool CNetChan::ReadSubChannelData( bf_read &buf, int stream  )
 		if ( data->bytes > MAX_FILE_SIZE )
 		{
 			// This can happen with the compressed path above, which uses VarInt32 rather than MAX_FILE_SIZE_BITS
-			Warning( "Net message exceeds max size (%u / %u)\n", MAX_FILE_SIZE, data->bytes );
+			Warning( "Net message exceeds max size (%llu / %u)\n", MAX_FILE_SIZE, data->bytes );
 			// Subsequent packets for this transfer will treated as invalid since we never setup a buffer.
 			return false;
 		}

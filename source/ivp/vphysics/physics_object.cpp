@@ -115,8 +115,8 @@ CPhysicsObject::CPhysicsObject( void )
 	m_hingedAxis{0},
 	m_collideType{0},
 	m_gameIndex{0},
-	m_materialIndex{0},
 	m_activeIndex{0},
+	m_materialIndex{0},
 	m_callbacks{0},
 	m_gameFlags{0},
 	m_contentsMask{0},
@@ -2095,8 +2095,7 @@ void CPhysicsObject::SyncWith(IPhysicsObject* pOther)
 bool SavePhysicsObject( const physsaveparams_t &params, CPhysicsObject *pObject )
 {
 	DebugPrint();
-	vphysics_save_cphysicsobject_t objectTemplate;
-	memset( &objectTemplate, 0, sizeof(objectTemplate) );
+	vphysics_save_cphysicsobject_t objectTemplate{};
 
 	pObject->WriteToTemplate( objectTemplate );
 	params.pSave->WriteAll( &objectTemplate );
@@ -2111,8 +2110,7 @@ bool SavePhysicsObject( const physsaveparams_t &params, CPhysicsObject *pObject 
 bool RestorePhysicsObject( const physrestoreparams_t &params, CPhysicsObject **ppObject )
 {
 	DebugPrint();
-	vphysics_save_cphysicsobject_t objectTemplate;
-	memset( &objectTemplate, 0, sizeof(objectTemplate) );
+	vphysics_save_cphysicsobject_t objectTemplate{};
 	params.pRestore->ReadAll( &objectTemplate );
 	Assert(objectTemplate.origin.IsValid());
 	Assert(objectTemplate.angles.IsValid());

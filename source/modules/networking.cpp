@@ -1224,7 +1224,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 								}
 							}
 
-							CBaseEntity* pHandsEntity = g_pPlayerHandsEntity[pObserverPlayer->edict()->m_EdictIndex-1];
+							pHandsEntity = g_pPlayerHandsEntity[pObserverPlayer->edict()->m_EdictIndex-1];
 							if (pHandsEntity)
 							{
 								pHandsEntity->SetTransmit(pInfo, true);

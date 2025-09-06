@@ -1486,7 +1486,7 @@ bool S_Compare(bf_read* pDelta1, bf_read* pDelta2)
 		return true;
 	}
 
-	for (int i = 0; i<lengthDelta1; ++i)
+	for (unsigned int i = 0; i<lengthDelta1; ++i)
 	{
 		if (pDelta1->ReadByte() != pDelta2->ReadByte())
 		{

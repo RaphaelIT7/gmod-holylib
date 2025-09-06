@@ -96,7 +96,7 @@ LUA_FUNCTION_STATIC(markFFITypeAsValidUserData)
 
 LUA_FUNCTION_STATIC(registerCreateHolyLibCDataFunc)
 {
-	if (!g_pLuaJITModule.m_bAllowFFI && overrideFFIReference == -1)
+	if (!g_pLuaJITModule.m_bAllowFFI && overrideFFIReference == -1) // ONLY allowed inside the internal scripts
 		return 0;
 
 	LUA->CheckType(2, GarrysMod::Lua::Type::Table);

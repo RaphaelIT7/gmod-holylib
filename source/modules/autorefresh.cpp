@@ -92,7 +92,7 @@ static bool hook_Bootil_File_ChangeMonitor_HasChanged(Bootil::File::ChangeMonito
 	if (bForceHasChangedCall)
 		return false;
 
-	detour_Bootil_File_ChangeMonitor_HasChanged.GetTrampoline<Symbols::Bootil_File_ChangeMonitor_HasChanged>()(pMonitor);
+	return detour_Bootil_File_ChangeMonitor_HasChanged.GetTrampoline<Symbols::Bootil_File_ChangeMonitor_HasChanged>()(pMonitor);
 }
 
 static Detouring::Hook detour_Bootil_File_ChangeMonitor_CheckForChanges;

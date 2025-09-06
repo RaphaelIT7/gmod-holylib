@@ -1434,8 +1434,7 @@ bool CPhysicsEnvironment::TransferObject( IPhysicsObject *pObject, IPhysicsEnvir
 	
 
 	//templatize the object
-	vphysics_save_cphysicsobject_t objectTemplate;
-	memset( &objectTemplate, 0, sizeof( vphysics_save_cphysicsobject_t ) );	
+	vphysics_save_cphysicsobject_t objectTemplate{};
 	pPhysics->WriteToTemplate( objectTemplate );
 
 	//these should be detached already
@@ -1720,6 +1719,17 @@ void CPhysicsEnvironment::DestroyObject( IPhysicsObject *pObject )
 
 	if ( m_inSimulation || m_queueDeleteObject )
 	{
+		for ( int i = 0; i < m_deadObjects.Count(); i++ )
+		{
+			auto *pObj = (CPhysicsObject *)m_deadObjects.Element(i);
+
+			if (pObj == pObject)
+			{
+				Warning("Adding the same object to the deleteObjects list MULTIPLE TIMES!\n");
+				break;
+			}
+		}
+
 		// don't delete while simulating
 		m_deadObjects.AddToTail( pObject );
 	}

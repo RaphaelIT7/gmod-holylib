@@ -3584,8 +3584,14 @@ cdata is slightly different as we changed it's typeID to be `7` instead of `10` 
 #### table jit.getffi()
 If ffi is enabled in the config, then this will return a valid table, else it will return nothing.<br>
 
-#### jit.markFFITypeAsGmodUserData(cdata data)
+#### jit.markFFITypeAsValidUserData(cdata data)
 If ffi is enabled in the config, then this will allow you to mark cdata to be compatible with gmod allowing you to mimic types.<br>
+
+#### jit.registerCreateHolyLibCDataFunc(string cTypeName)
+A **Internall** function used by HolyLib to register the given cdata as the base userdata created & used by all holylib classes.<br>
+
+#### table jit.getMetaTableByID(int metaID)
+Pushes the metatable by their given metaID or returns `nil`.
 
 ### table jit.require(string name)
 LuaJIT's default require function, this function does **not** exist when ffi is disabled.<br>

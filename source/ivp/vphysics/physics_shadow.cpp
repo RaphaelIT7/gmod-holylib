@@ -1364,8 +1364,7 @@ IPhysicsShadowController *CreateShadowController( CPhysicsObject *pObject, bool 
 
 bool SavePhysicsShadowController( const physsaveparams_t &params, IPhysicsShadowController *pIShadow )
 {
-	vphysics_save_cshadowcontroller_t controllerTemplate;
-	memset( &controllerTemplate, 0, sizeof(controllerTemplate) );
+	vphysics_save_cshadowcontroller_t controllerTemplate{};
 
 	CShadowController *pShadowController = (CShadowController *)pIShadow;
 	pShadowController->WriteToTemplate( controllerTemplate );
@@ -1380,9 +1379,8 @@ bool RestorePhysicsShadowController( const physrestoreparams_t &, IPhysicsShadow
 
 bool RestorePhysicsShadowControllerInternal( const physrestoreparams_t &params, IPhysicsShadowController **ppShadowController, CPhysicsObject *pObject )
 {
-	vphysics_save_cshadowcontroller_t controllerTemplate;
+	vphysics_save_cshadowcontroller_t controllerTemplate{};
 
-	memset( &controllerTemplate, 0, sizeof(controllerTemplate) );
 	params.pRestore->ReadAll( &controllerTemplate );
 	
 	// HACKHACK: pass this in
