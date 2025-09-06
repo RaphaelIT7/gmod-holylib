@@ -119,6 +119,7 @@ uint32_t RawLua::GetCTypeFromName(lua_State* L, const char* pName, CDataBridge* 
 extern RawLua::CDataBridge* GetCDataBridgeFromInterface(GarrysMod::Lua::ILuaInterface* pLua); // From the LuaJIT module
 void* RawLua::AllocateCDataOrUserData(GarrysMod::Lua::ILuaInterface* pLua, int nMetaID, int nSize)
 {
+#if 0 // Disabled since stuff decides to behave funny...
 	CDataBridge* cDataBridge = GetCDataBridgeFromInterface(pLua);
 
 	if (cDataBridge && cDataBridge->nHolyLibUserDataTypeID != 0)
@@ -134,8 +135,11 @@ void* RawLua::AllocateCDataOrUserData(GarrysMod::Lua::ILuaInterface* pLua, int n
 		//if (cDataBridge->nHolyLibUserDataGC)
 		//	lj_cdata_setfin(L, cData, gcval(cDataBridge->nHolyLibUserDataGC), itype(cDataBridge->nHolyLibUserDataGC));
 
-		return uddata(cData);
-	} else {
+		// Msg("cdata pointer: %p - %p %u\n", cdataptr(cData), cData, cDataBridge->nHolyLibUserDataTypeID);
+		return cdataptr(cData);
+	} else
+#endif
+	{
 		return pLua->NewUserdata(nSize);
 	}
 }
