@@ -167,12 +167,10 @@ void CheckPhysicsLag(const char* pFunctionName, CPhysicsObject* pObject1, CPhysi
 				for (int i=0; i< ivp_vector.len(); ++i)
 				{
 					IPhysicsObject* pCurrentOVObject = (IPhysicsObject*)ivp_vector.element_at(i)->client_data;
-					if (pCurrentOVObject)
-					{
-						Push_IPhysicsObject(g_Lua, pCurrentOVObject);
-					} else {
-						g_Lua->PushNil();
-					}
+					if (!pCurrentOVObject)
+						continue;
+
+					Push_IPhysicsObject(g_Lua, pCurrentOVObject);
 
 					g_Lua->Push(-1);
 					Util::RawSetI(g_Lua, -3, i+1);
@@ -186,12 +184,10 @@ void CheckPhysicsLag(const char* pFunctionName, CPhysicsObject* pObject1, CPhysi
 				for (GMODSDK::IVP_Real_Object* pObject : g_pCurrentRecheckOVElement)
 				{
 					IPhysicsObject* pCurrentOVObject = (IPhysicsObject*)pObject->client_data;
-					if (pCurrentOVObject)
-					{
-						Push_IPhysicsObject(g_Lua, pCurrentOVObject);
-					} else {
-						g_Lua->PushNil();
-					}
+					if (!pCurrentOVObject)
+						continue;
+
+					Push_IPhysicsObject(g_Lua, pCurrentOVObject);
 
 					g_Lua->Push(-1);
 					Util::RawSetI(g_Lua, -3, ++i);
