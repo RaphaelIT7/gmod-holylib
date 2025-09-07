@@ -11,6 +11,12 @@
 #include "scripts/HolyLibUserDataFFI.h"
 #include "scripts/VoiceDataFFI.h"
 
+extern "C"
+{
+	#include "../luajit/src/lj_gc.h"
+	#include "../luajit/src/lj_tab.h"
+}
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -33,16 +39,17 @@ public:
 public:
 	bool m_bAllowFFI = false;
 	bool m_bKeepRemovedDebugFunctions = false;
+	bool m_bIsEnabled = false;
 };
 
 CLuaJITModule g_pLuaJITModule;
 IModule* pLuaJITModule = &g_pLuaJITModule;
 
-class CLuaInterfaceProxy;
+//class CLuaInterfaceProxy;
 class LuaJITModuleData : public Lua::ModuleData
 {
 public:
-	std::unique_ptr<CLuaInterfaceProxy> pLuaInterfaceProxy;
+	//std::unique_ptr<CLuaInterfaceProxy> pLuaInterfaceProxy;
 	RawLua::CDataBridge pBridge;
 };
 
@@ -60,6 +67,9 @@ Detour::Create( \
 
 RawLua::CDataBridge* GetCDataBridgeFromInterface(GarrysMod::Lua::ILuaInterface* pLua)
 {
+	if (!g_pLuaJITModule.m_bIsEnabled)
+		return nullptr;
+
 	LuaJITModuleData* pData = GetLuaJITLuaData(pLua);
 	if (!pData)
 		return nullptr;
@@ -187,69 +197,32 @@ static void hook_luaL_openlibs(lua_State* L)
 	bOpenLibs = true;
 }
 
+/*
+ToDo: Redo this entire class and move all LuaJIT specific stuff from lua.cpp into here to seperate shit from CORE code!
 class CLuaInterfaceProxy : public Detouring::ClassProxy<GarrysMod::Lua::ILuaInterface, CLuaInterfaceProxy> {
 public:
 	CLuaInterfaceProxy(GarrysMod::Lua::ILuaInterface* env) {
 		if (Detour::CheckValue("initialize", "CLuaInterfaceProxy", Initialize(env)))
 		{
 			Detour::CheckValue("CLuaInterface::GetUserdata", Hook(&GarrysMod::Lua::ILuaInterface::GetUserdata, &CLuaInterfaceProxy::GetUserdata));
-			Detour::CheckValue("CLuaInterface::GetType", Hook(&GarrysMod::Lua::ILuaInterface::GetType, &CLuaInterfaceProxy::GetType));
-			Detour::CheckValue("CLuaInterface::IsType", Hook(&GarrysMod::Lua::ILuaInterface::IsType, &CLuaInterfaceProxy::IsType));
 		}
 	}
 
 	void DeInit()
 	{
 		UnHook(&GarrysMod::Lua::ILuaInterface::GetUserdata);
-		UnHook(&GarrysMod::Lua::ILuaInterface::GetType);
-		UnHook(&GarrysMod::Lua::ILuaInterface::IsType);
 	}
 
 	virtual GarrysMod::Lua::ILuaBase::UserData* GetUserdata(int iStackPos)
 	{
-		return (GarrysMod::Lua::ILuaBase::UserData*)RawLua::GetUserDataOrFFIVar(This()->GetState(), iStackPos, GetLuaJITLuaData(This())->pBridge);
+		bool bFutureVar;
+		return (GarrysMod::Lua::ILuaBase::UserData*)RawLua::GetUserDataOrFFIVar(This()->GetState(), iStackPos, GetLuaJITLuaData(This())->pBridge, &bFutureVar);
 	}
-
-	/*
-		Removes vprof.
-		Why? Because in this case, lua_type is too fast and vprof creates a huge slowdown.
-	*/
-	virtual int GetType(int iStackPos)
-	{
-		int type = lua_type(This()->GetState(), iStackPos);
-
-		if (type == GarrysMod::Lua::Type::UserData)
-		{
-			GarrysMod::Lua::ILuaBase::UserData* udata = (GarrysMod::Lua::ILuaBase::UserData*)This()->GetUserdata(iStackPos);
-			if (udata)
-				type = udata->type;
-		}
-
-		return type == -1 ? GarrysMod::Lua::Type::Nil : type;
-	}
-
-	// Fixed with the next update - https://github.com/Facepunch/garrysmod-issues/issues/6418
-	virtual bool IsType(int iStackPos, int iType)
-	{
-		int actualType = lua_type(This()->GetState(), iStackPos);
-
-		if (actualType == iType)
-			return true;
-
-		if (actualType == GarrysMod::Lua::Type::UserData && iType > GarrysMod::Lua::Type::UserData)
-		{
-			GarrysMod::Lua::ILuaBase::UserData* pData = This()->GetUserdata(iStackPos);
-			if (pData)
-				return iType == pData->type;
-		}
-
-		return false;
-	}
-};
+};*/
 
 void CLuaJITModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	GetLuaJITLuaData(pLua)->pLuaInterfaceProxy->DeInit();
+	//GetLuaJITLuaData(pLua)->pLuaInterfaceProxy->DeInit();
 }
 
 extern int table_setreadonly(lua_State* L);
@@ -304,7 +277,7 @@ void CLuaJITModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 	lua_pop(L, 1);
 
 	LuaJITModuleData* pData = new LuaJITModuleData;
-	pData->pLuaInterfaceProxy = std::make_unique<CLuaInterfaceProxy>(pLua);
+	//pData->pLuaInterfaceProxy = std::make_unique<CLuaInterfaceProxy>(pLua);
 	Lua::GetLuaData(pLua)->SetModuleData(m_pID, pData);
 
 	bOpenLibs = false;
@@ -499,4 +472,10 @@ void CLuaJITModule::InitDetour(bool bPreServer)
 
 	Util::func_lua_rawgeti = &lua_rawgeti;
 	Util::func_lua_rawseti = &lua_rawseti;
+	Util::func_lj_tab_new = &lj_tab_new;
+	Util::func_lua_setfenv = &lua_setfenv;
+	Util::func_lua_touserdata = &lua_touserdata;
+	Util::func_lua_type = &lua_type;
+
+	m_bIsEnabled = true;
 }

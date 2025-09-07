@@ -1,0 +1,2 @@
+We need a custom version since the original does NOT allow one to hook multiple instances if they have different VTables.<br>
+We hit this special case with the `CLuaInterfaceProxy` inside of `lua.cpp` were we can hook both into Gmod's `ILuaInterface` VTable but **also** into our own `ILuaInterface` VTable which wasn't possible previously and it only hooked into the first VTable while for the second one it never hooked into it even though it would report hooking as successful.

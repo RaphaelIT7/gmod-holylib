@@ -67,15 +67,7 @@ SpecialGet_LuaClass(CBaseClient, CHLTVClient, "CBaseClient", pVar->IsConnected()
 
 Default__index(CBaseClient);
 Default__newindex(CBaseClient);
-
-LUA_FUNCTION_STATIC(CBaseClient_GetTable)
-{
-	LuaUserData* data = Get_CBaseClient_Data(LUA, 1, true);
-	CBaseClient* pClient = (CBaseClient*)data->GetData();
-
-	Util::ReferencePush(LUA, data->GetLuaTable(LUA)); // This should never crash so no safety checks.
-	return 1;
-}
+Default__GetTable(CBaseClient);
 
 LUA_FUNCTION_STATIC(CBaseClient_GetPlayerSlot)
 {

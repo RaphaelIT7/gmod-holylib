@@ -50,10 +50,7 @@ LUA_FUNCTION_STATIC(pas_TestPAS)
 		EntityList* entList = Get_EntityList(LUA, 2, true);
 		for (auto& [pEnt, iReference]: entList->GetReferences())
 		{
-			if (!entList->IsValidReference(iReference))
-				entList->CreateReference(pEnt);
-
-			Util::ReferencePush(LUA, iReference);
+			entList->PushReference(pEnt, iReference);
 			LUA->PushBool(TestPAS(pVisCluster, pEnt->GetAbsOrigin()));
 			LUA->RawSet(-3);
 		}
@@ -106,11 +103,8 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 		{
 			if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), pVisCluster->cluster, sizeof(pVisCluster->cluster)))
 			{
-				if (!pGlobalEntityList.IsValidReference(iReference))
-					pGlobalEntityList.CreateReference(pEnt);
-
 				// Since it should be a bit more rare that ALL entities are pushed we don't directly loop thru the map itself to benefit from the vector's performance.
-				Util::ReferencePush(LUA, iReference);
+				pGlobalEntityList.PushReference(pEnt, iReference);
 				Util::RawSetI(LUA, -2, ++idx);
 			}
 		}

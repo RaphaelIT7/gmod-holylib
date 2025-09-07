@@ -69,7 +69,7 @@ function FetchFromHolyLogs(github_repository, runNumber, host, apikey, previous_
 
 	if previous_run_number > 0 then
 		local lastHolyLogsResults = {}
-		FetchHolyLogsResults(github_repository, runNumber, function(jsonTable)
+		FetchHolyLogsResults(github_repository, previous_run_number, function(jsonTable)
 			lastHolyLogsResults = jsonTable
 		end, host, apikey)
 
@@ -200,7 +200,7 @@ function CalculateDifferences(currentResults, previousResults)
 			end
 
 			funcResults.timePerCall = funcResults.totalTime / funcResults.totalCalls
-			funcResults.diffTimePerCall = prevFuncResults and (funcResults.timePerCall / prevFuncResults.timePerCall) or 1
+			funcResults.diffTimePerCall = prevFuncResults and (prevFuncResults.timePerCall / funcResults.timePerCall) or 1
 		end
 	end
 end
@@ -219,8 +219,12 @@ Previous run: ]] .. previousRun .. "<br>")
 		table.insert(markdown, "| ------------- | ----------- | ------------- | ---------------------- |")
 
 		for funcName, funcResults in pairs(funcs) do
-			if math.abs(1 - funcResults.diffTimePerCall) > 0.20 then -- It may fluxuate between builds because of different runners/hardware but it shouldn't worsen by more than 20%
-				print("::warning title=" .. funcName .. "::Performance is worse beyond expectation")
+			local diff = funcResults.diffTimePerCall
+			local maxDiff = 0.20 -- It may fluxuate between builds because of different runners/hardware but it shouldn't worsen by more than 20%
+			if diff > (1 + maxDiff) then
+				print("::warning title=" .. funcName .. "::Performance is worse beyond expectation (" .. string.format("%.2fx", diff) .. " slower)")
+			elseif diff < (1 - maxDiff) then
+				print("::notice title=" .. funcName .. "::Performance improved significantly (" .. string.format("%.2fx", 1 / diff) .. " faster)")
 			end
 
 			table.insert(markdown, "| " .. funcName .. " | " .. funcResults.totalCalls .. " | " .. funcResults.timePerCall .. " | " .. funcResults.diffTimePerCall .. "x |")

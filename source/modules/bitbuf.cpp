@@ -25,7 +25,8 @@ Get_LuaClass(bf_read, "bf_read")
 LuaUserData* Push_bf_read(GarrysMod::Lua::ILuaInterface* LUA, bf_read* tbl, bool bDeleteUs)
 {
 	LuaUserData* pUserData = Push_bf_read(LUA, tbl);
-	pUserData->SetAdditionalData(bDeleteUs);
+	if (bDeleteUs)
+		pUserData->SetFlagExplicitDelete();
 
 	return pUserData;
 }
@@ -36,7 +37,8 @@ Get_LuaClass(bf_write, "bf_write")
 LuaUserData* Push_bf_write(GarrysMod::Lua::ILuaInterface* LUA, bf_write* tbl, bool bDeleteUs)
 {
 	LuaUserData* pUserData = Push_bf_write(LUA, tbl);
-	pUserData->SetAdditionalData(bDeleteUs);
+	if (bDeleteUs)
+		pUserData->SetFlagExplicitDelete();
 
 	return pUserData;
 }
@@ -61,7 +63,7 @@ Default__newindex(bf_read);
 Default__GetTable(bf_read);
 Default__gc(bf_read, 
 	bf_read* bf = (bf_read*)pStoredData;
-	if (bf && pAdditionalData)
+	if (bf && bFlagExplicitDelete)
 	{
 		delete[] bf->GetBasePointer();
 		delete bf;
@@ -515,7 +517,7 @@ Default__newindex(bf_write);
 Default__GetTable(bf_write);
 Default__gc(bf_write, 
 	bf_write* bf = (bf_write*)pStoredData;
-	if (bf && pAdditionalData)
+	if (bf && bFlagExplicitDelete)
 	{
 		delete[] bf->GetBasePointer();
 		delete bf;
@@ -924,10 +926,16 @@ LUA_FUNCTION_STATIC(bitbuf_CreateStackReadBuffer)
 	bf_read pNewBf;
 	pNewBf.StartReading(cData, iNewLength);
 
-	LUA->Push(2);
-	LuaUserData* pLuaData = Push_bf_read(LUA, &pNewBf, false); // false since else when __gc is called we'd try to delete stack allocated memory! (Who would even try something stupid like that, oh right. Me)
+	LUA->Push(2); // Push the function
+
+	// Pushes it onto the stack, since we never use the Push_ HolyLib function.
+	// this will be untracked by the GC BUT you'll have to pop it off the stack BEFORE we leave the scope!
+	LuaUserData pStackLuaData;
+	pStackLuaData.Init(LUA, Lua::GetLuaData(LUA)->GetMetaEntry(Lua::bf_read), &pNewBf, true, true);
+	pStackLuaData.Push(LUA);
+
 	LUA->CallFunctionProtected(1, 0, true);
-	pLuaData->Release(LUA); // Sets the stored data to NULL ensuring we don't save the pointer to our stack allocated pNewBf
+	pStackLuaData.Release(LUA);
 
 	return 0;
 }
@@ -937,7 +945,7 @@ LUA_FUNCTION_STATIC(bitbuf_CreateWriteBuffer)
 	bf_write* pNewBf = new bf_write;
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Number))
 	{
-		int iSize = CLAMP_BF((int)LUA->CheckNumber(1));
+		int iSize = CLAMP_BF((int)LUA->GetNumber(1));
 		unsigned char* cData = new unsigned char[iSize];
 
 		pNewBf->StartWriting(cData, iSize);
@@ -964,7 +972,7 @@ LUA_FUNCTION_STATIC(bitbuf_CreateStackWriteBuffer)
 
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Number))
 	{
-		int iSize = CLAMP_BF((int)LUA->CheckNumber(1));
+		int iSize = CLAMP_BF((int)LUA->GetNumber(1));
 		if (!holylib_canstackalloc(iSize))
 			LUA->ThrowError("Cannot stackalloc at this size!");
 
@@ -986,9 +994,15 @@ LUA_FUNCTION_STATIC(bitbuf_CreateStackWriteBuffer)
 	}
 
 	LUA->Push(2);
-	LuaUserData* pLuaData = Push_bf_write(LUA, &pNewBf, false); // false since else when __gc is called we'd try to delete stack allocated memory!
+	
+	// Pushes it onto the stack, since we never use the Push_ HolyLib function.
+	// this will be untracked by the GC BUT you'll have to pop it off the stack BEFORE we leave the scope!
+	LuaUserData pStackLuaData;
+	pStackLuaData.Init(LUA, Lua::GetLuaData(LUA)->GetMetaEntry(Lua::bf_read), &pNewBf, true, true);
+	pStackLuaData.Push(LUA);
+
 	LUA->CallFunctionProtected(1, 0, true);
-	pLuaData->Release(LUA); // Sets the stored data to NULL ensuring we don't save the pointer to our stack allocated pNewBf
+	pStackLuaData.Release(LUA);
 
 	return 0;
 }

@@ -394,10 +394,16 @@ static void hook_CHostState_State_ChangeLevelMP(const char* levelName, const cha
 	detour_CHostState_State_ChangeLevelMP.GetTrampoline<Symbols::CHostState_State_ChangeLevelMP>()(levelName, landmarkName);
 }
 
+static CBaseEntity* pTestWorld = nullptr;
 LUA_FUNCTION_STATIC(Test_PushEntity)
 {
 	// We just push the world entity, in Lua we then test if we got an Entity.
-	Util::Push_Entity(LUA, Util::GetCBaseEntityFromEdict(Util::engineserver->PEntityOfEntIndex(0)));
+	if (!pTestWorld)
+	{
+		pTestWorld = Util::GetCBaseEntityFromEdict(Util::engineserver->PEntityOfEntIndex(0));
+	}
+
+	Util::Push_Entity(LUA, pTestWorld);
 	return 1;
 }
 
@@ -481,6 +487,7 @@ void CHolyLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 void CHolyLibModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	Util::NukeTable(pLua, "holylib");
+	pTestWorld = nullptr;
 }
 
 void CHolyLibModule::InitDetour(bool bPreServer)

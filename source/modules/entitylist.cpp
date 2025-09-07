@@ -65,18 +65,10 @@ void EntityList::Clear()
 		Msg("Clearing EntityList %p - %p\n", this, m_pLua);
 
 	m_pEntities.clear();
-	for (auto& [_, iReference] : m_pEntReferences)
-	{
-		if (IsValidReference(iReference))
-		{
-			Util::ReferenceFree(m_pLua, iReference, "EntityList::Clear");
-		}
-	}
-	
 	m_pEntReferences.clear();
 }
 
-void EntityList::CreateReference(CBaseEntity* pEntity)
+void EntityList::CreateReference(CBaseEntity* pEntity, bool bNoPop)
 {
 	auto it = m_pEntReferences.find(pEntity);
 	if (it != m_pEntReferences.end())
@@ -84,12 +76,13 @@ void EntityList::CreateReference(CBaseEntity* pEntity)
 		if (IsValidReference(it->second)) // We initally set it to -1
 		{
 			Warning(PROJECT_NAME ": entitylist is leaking references! Report this!\n");
-			Util::ReferenceFree(m_pLua, m_pEntReferences[pEntity], "EntityList::CreateReference - Leak");
 		}
 	}
 
 	Util::Push_Entity(m_pLua, pEntity);
-	m_pEntReferences[pEntity] = Util::ReferenceCreate(m_pLua, "EntityList::CreateReference");
+	m_pEntReferences[pEntity] = udataV(m_pLua->GetState()->top-1);
+	if (!bNoPop)
+		m_pLua->Pop(1);
 }
 
 void EntityList::FreeEntity(CBaseEntity* pEntity)
@@ -97,9 +90,7 @@ void EntityList::FreeEntity(CBaseEntity* pEntity)
 	auto it = m_pEntReferences.find(pEntity);
 	if (it != m_pEntReferences.end())
 	{
-		if (IsValidReference(it->second))
-			Util::ReferenceFree(m_pLua, it->second, "EntityList::FreeEntity");
-
+		it->second = nullptr;
 		Vector_RemoveElement(m_pEntities, pEntity);
 		m_pEntReferences.erase(it);
 	}
@@ -158,9 +149,7 @@ LUA_FUNCTION_STATIC(EntityList_GetEntities)
 		int idx = 0;
 		for (auto& [pEnt, iReference] : pData->GetReferences())
 		{
-			pData->EnsureReference(pEnt, iReference);
-
-			Util::ReferencePush(LUA, iReference);
+			pData->PushReference(pEnt, iReference);
 			Util::RawSetI(LUA, -2, ++idx);
 		}
 	return 1;
@@ -267,10 +256,7 @@ LUA_FUNCTION_STATIC(GetGlobalEntityList)
 		int idx = 0;
 		for (auto& [pEnt, iReference] : pGlobalEntityList.GetReferences())
 		{
-			if (!pGlobalEntityList.IsValidReference(iReference))
-				pGlobalEntityList.CreateReference(pEnt);
-
-			Util::ReferencePush(LUA, iReference);
+			pGlobalEntityList.PushReference(pEnt, iReference);
 			Util::RawSetI(LUA, -2, ++idx);
 		}
 

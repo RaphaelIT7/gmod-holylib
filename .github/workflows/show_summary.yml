@@ -1,4 +1,4 @@
-name: Build JIT
+name: Show Summary
 
 on:
   workflow_dispatch:

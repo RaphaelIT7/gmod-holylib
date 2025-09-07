@@ -1,3 +1,5 @@
+if true then return end -- Disabled since it needs a major rework first depending on HolyLibUserDataFFI.lua!
+
 do
 	local ffi = jit.getffi and jit.getffi() or require("ffi")
 

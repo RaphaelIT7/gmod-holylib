@@ -45,12 +45,14 @@ void RawLua::SetReadOnly(TValue* o, bool readOnly)
 	lj_tab_setreadonly(pTable, readOnly);
 }
 
-void* RawLua::GetUserDataOrFFIVar(lua_State* L, int idx, CDataBridge& cDataBridge)
+void* RawLua::GetUserDataOrFFIVar(lua_State* L, int idx, CDataBridge& cDataBridge, bool* bIsUserData)
 {
+	*bIsUserData = false;
 	cTValue *o = index2adr(L, idx);
-	if (tvisudata(o))
+	if (tvisudata(o)) {
+		*bIsUserData = true;
 		return uddata(udataV(o));
-	else if (tvislightud(o))
+	} else if (tvislightud(o))
 		return lightudV(G(L), o);
 	else if (tviscdata(o))
 		if (cDataBridge.pRegisteredTypes.IsBitSet(cdataV(o)->ctypeid))

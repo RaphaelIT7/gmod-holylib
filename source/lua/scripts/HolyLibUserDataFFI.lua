@@ -2,6 +2,8 @@
     This has the simple purpose of creating HolyLib's UserData and creating the CType that is then later used to allocate data pushed from C to Lua as cdata when possible
 ]]
 
+if true then return end -- Disabled since it needs a major rework first. We recently changed the ENTIRE userdata setup.
+
 local metaTableCache = {}
 __HOLYLIB_FFI = __HOLYLIB_FFI or {}
 function __HOLYLIB_FFI.RegisterOverride(metaTable)

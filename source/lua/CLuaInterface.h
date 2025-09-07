@@ -191,8 +191,8 @@ private: // We keep gmod's structure in case any modules depend on it.
 
 #endif
 
-	GarrysMod::Lua::ILuaObject* m_ProtectedFunctionReturns[4];
-	GarrysMod::Lua::ILuaObject* m_TempObjects[LUA_MAX_TEMP_OBJECTS];
+	GarrysMod::Lua::ILuaObject* m_ProtectedFunctionReturns[4] = {nullptr};
+	GarrysMod::Lua::ILuaObject* m_TempObjects[LUA_MAX_TEMP_OBJECTS] = {nullptr};
 	unsigned char m_iRealm = (unsigned char)2; // CLIENT = 0, SERVER = 1, MENU = 2
 	GarrysMod::Lua::ILuaGameCallback* m_pGameCallback = nullptr;
 	char m_sPathID[32] = "LuaMenu"; // lsv, lsc or LuaMenu
@@ -200,8 +200,8 @@ private: // We keep gmod's structure in case any modules depend on it.
 	GarrysMod::Lua::ILuaObject* m_pGlobal = nullptr;
 	GarrysMod::Lua::ILuaObject* m_pStringPool = nullptr;
 	// But wait, theres more. In the next fields the metatables objects are saved but idk if it just has a field for each metatable or if it uses a map.
-	unsigned char m_iMetaTableIDCounter = 44;
-	GarrysMod::Lua::ILuaObject* m_pMetaTables[255]; // Their index is based off their type. means m_MetaTables[Type::Entity] returns the Entity metatable.
+	unsigned char m_iMetaTableIDCounter = GarrysMod::Lua::Type::COUNT;
+	GarrysMod::Lua::ILuaObject* m_pMetaTables[255] = {nullptr}; // Their index is based off their type. means m_MetaTables[Type::Entity] returns the Entity metatable.
 private: // NOT GMOD stuff
 	std::list<char*> m_pPaths;
 

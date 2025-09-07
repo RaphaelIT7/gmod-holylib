@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   push:
     paths:
+      - '.github/workflows/compile-luajit.yml'
       - 'libs/liblua_shared_lib_*'
       - 'libs/lua_shared_lib_*'
       - 'luajit/**'

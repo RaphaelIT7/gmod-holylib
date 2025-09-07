@@ -534,10 +534,7 @@ LUA_FUNCTION_STATIC(pvs_GetStateFlags)
 		EntityList* entList = Get_EntityList(LUA, 1, true);
 		for (auto& [pEnt, iReference] : entList->GetReferences())
 		{
-			if (!entList->IsValidReference(iReference))
-				entList->CreateReference(pEnt);
-
-			Util::ReferencePush(LUA, iReference);
+			entList->PushReference(pEnt, iReference);
 			LUA->PushNumber(GetStateFlags(LUA, pEnt, force));
 			LUA->RawSet(-3);
 		}
@@ -749,10 +746,7 @@ LUA_FUNCTION_STATIC(pvs_FindInPVS) // Copy from pas.FindInPAS
 		{
 			if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), pVisCluster->cluster, sizeof(pVisCluster->cluster)))
 			{
-				if (!pGlobalEntityList.IsValidReference(iReference))
-					pGlobalEntityList.CreateReference(pEnt);
-
-				Util::ReferencePush(LUA, iReference);
+				pGlobalEntityList.PushReference(pEnt, iReference);
 				Util::RawSetI(LUA, -2, ++idx);
 			}
 		}
@@ -803,10 +797,7 @@ LUA_FUNCTION_STATIC(pvs_TestPVS)
 		LUA->PreCreateTable(0, entList->GetEntities().size());
 		for (auto& [pEnt, iReference] : entList->GetReferences())
 		{
-			if (!entList->IsValidReference(iReference))
-				entList->CreateReference(pEnt);
-
-			Util::ReferencePush(LUA, iReference);
+			entList->PushReference(pEnt, iReference);
 			LUA->PushBool(TestPVS(pVisCluster, pEnt->GetAbsOrigin()));
 			LUA->RawSet(-3);
 		}

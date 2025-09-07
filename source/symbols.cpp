@@ -59,6 +59,34 @@ namespace Symbols
 		Symbol::FromName("lua_rawgeti"),
 	};
 
+	const std::vector<Symbol> lj_tab_newSym = {
+		Symbol::FromName("lj_tab_new"),
+		Symbol::FromName("lj_tab_new"),
+		Symbol::FromName("lj_tab_new"),
+		Symbol::FromName("lj_tab_new"),
+	};
+
+	const std::vector<Symbol> lua_setfenvSym = {
+		Symbol::FromName("lua_setfenv"),
+		Symbol::FromName("lua_setfenv"),
+		Symbol::FromName("lua_setfenv"),
+		Symbol::FromName("lua_setfenv"),
+	};
+
+	const std::vector<Symbol> lua_touserdataSym = {
+		Symbol::FromName("lua_touserdata"),
+		Symbol::FromName("lua_touserdata"),
+		Symbol::FromName("lua_touserdata"),
+		Symbol::FromName("lua_touserdata"),
+	};
+
+	const std::vector<Symbol> lua_typeSym = {
+		Symbol::FromName("lua_type"),
+		Symbol::FromName("lua_type"),
+		Symbol::FromName("lua_type"),
+		Symbol::FromName("lua_type"),
+	};
+
 	const std::vector<Symbol> CGetSym = { // 64x ToDo
 		Symbol::FromName("get"),
 	};

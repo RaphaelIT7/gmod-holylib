@@ -123,6 +123,9 @@ CBasePlayer* Util::Get_Player(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos,
 	return (CBasePlayer*)pEntity;
 }
 
+GCudata* g_pEntityReferences[MAX_EDICTS] = {nullptr}; // nulled out in Util::InitDetours
+int g_pEntitySerialNum[MAX_EDICTS] = {-1};
+
 IModuleWrapper* Util::pEntityList;
 static Symbols::CBaseEntity_GetLuaEntity func_CBaseEntity_GetLuaEntity = nullptr;
 void Util::Push_Entity(GarrysMod::Lua::ILuaInterface* LUA, CBaseEntity* pEnt)
@@ -144,6 +147,38 @@ void Util::Push_Entity(GarrysMod::Lua::ILuaInterface* LUA, CBaseEntity* pEnt)
 
 	if (LUA == g_Lua)
 	{
+		const CBaseHandle& pHandle = pEnt->GetRefEHandle(); // The only virtual function that would never dare to change
+		int nEntryIndex = pHandle.GetEntryIndex();
+		if (nEntryIndex >= 0 && MAX_EDICTS > nEntryIndex)
+		{
+			int nSerial = g_pEntitySerialNum[nEntryIndex];
+			int nEntSerial = pHandle.GetSerialNumber();
+			lua_State* L = LUA->GetState();
+			if (nSerial != nEntSerial)
+			{
+				g_pEntitySerialNum[nEntryIndex] = nEntSerial;
+				g_pEntityReferences[nEntryIndex] = nullptr;
+
+				GarrysMod::Lua::CLuaObject* pObject = (GarrysMod::Lua::CLuaObject*)func_CBaseEntity_GetLuaEntity(pEnt);
+				if (!pObject)
+				{
+					LUA->GetField(LUA_GLOBALSINDEX, "NULL");
+					return;
+				}
+
+				Util::ReferencePush(LUA, pObject->GetReference()); // Assuming the reference is always right.
+				g_pEntityReferences[nEntryIndex] = udataV(L->top-1); // Should be fine since the GCudata is never moved/nuked.
+				return;
+			}
+
+			GCudata* pData = g_pEntityReferences[nEntryIndex];
+			if (pData)
+			{
+				setudataV(L, L->top++, g_pEntityReferences[nEntryIndex]);
+				return;
+			}
+		}
+
 		GarrysMod::Lua::CLuaObject* pObject = (GarrysMod::Lua::CLuaObject*)func_CBaseEntity_GetLuaEntity(pEnt);
 		if (!pObject)
 		{
@@ -433,6 +468,10 @@ Symbols::lua_rawseti Util::func_lua_rawseti = nullptr;
 Symbols::lua_rawgeti Util::func_lua_rawgeti = nullptr;
 IGameEventManager2* Util::gameeventmanager = nullptr;
 IServerGameDLL* Util::servergamedll = nullptr;
+Symbols::lj_tab_new Util::func_lj_tab_new = nullptr;
+Symbols::lua_setfenv Util::func_lua_setfenv = nullptr;
+Symbols::lua_touserdata Util::func_lua_touserdata = nullptr;
+Symbols::lua_type Util::func_lua_type = nullptr;
 void Util::AddDetour()
 {
 	if (g_pModuleManager.GetAppFactory())
@@ -521,6 +560,24 @@ void Util::AddDetour()
 
 	func_lua_rawgeti = (Symbols::lua_rawgeti)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_rawgetiSym);
 	Detour::CheckFunction((void*)func_lua_rawgeti, "lua_rawgeti");
+
+	func_lj_tab_new = (Symbols::lj_tab_new)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lj_tab_newSym);
+	Detour::CheckFunction((void*)func_lj_tab_new, "lj_tab_new");
+
+	func_lua_touserdata = (Symbols::lua_touserdata)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_touserdataSym);
+	Detour::CheckFunction((void*)func_lua_touserdata, "lua_touserdata");
+
+	func_lua_type = (Symbols::lua_type)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_typeSym);
+	Detour::CheckFunction((void*)func_lua_type, "lua_type");
+
+	func_lua_setfenv = (Symbols::lua_type)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_setfenvSym);
+	Detour::CheckFunction((void*)func_lua_setfenv, "lua_setfenv");
+
+	if (!func_lua_touserdata || !func_lua_type || !func_lua_setfenv)
+	{
+		// This is like the ONLY dependency we have on symbols that without we cannot function.
+		Error(PROJECT_NAME " - core: Failed to load an important symbol which we utterly depend on.\n");
+	}
 
 	func_CBaseEntity_GetLuaEntity = (Symbols::CBaseEntity_GetLuaEntity)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseEntity_GetLuaEntitySym);
 	Detour::CheckFunction((void*)func_CBaseEntity_GetLuaEntity, "CBaseEntity::GetLuaEntity");

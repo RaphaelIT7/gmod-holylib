@@ -66,6 +66,8 @@ class CHostState;
 class CSkyCamera;
 struct SteamServersConnected_t;
 struct SteamServersDisconnected_t;
+struct global_State;
+struct GCtab;
 
 namespace GarrysMod::Lua
 {
@@ -140,6 +142,18 @@ namespace Symbols
 
 	typedef void (*lua_rawgeti)(lua_State* L, int index, int i);
 	extern const std::vector<Symbol> lua_rawgetiSym;
+
+	typedef GCtab* (*lj_tab_new)(lua_State *L, uint32_t nArray, uint32_t nRec);
+	extern const std::vector<Symbol> lj_tab_newSym;
+
+	typedef int (*lua_setfenv)(lua_State *L, int idx);
+	extern const std::vector<Symbol> lua_setfenvSym;
+
+	typedef void* (*lua_touserdata)(lua_State *L, int idx);
+	extern const std::vector<Symbol> lua_touserdataSym;
+
+	typedef int (*lua_type)(lua_State *L, int idx);
+	extern const std::vector<Symbol> lua_typeSym;
 
 	extern const std::vector<Symbol> CGetSym;
 	extern const std::vector<Symbol> gEntListSym;
