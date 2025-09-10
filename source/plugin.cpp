@@ -355,6 +355,49 @@ void CServerPlugin::OnEdictFreed(const edict_t *edict)
 	g_pModuleManager.OnEdictFreed(edict);
 }
 
+class HolyLib_PluginThink : GarrysMod::Lua::ILuaThreadedCall
+{
+public:
+	void SetLua(GarrysMod::Lua::ILuaInterface* pLua)
+	{
+		m_pLua = pLua;
+	}
+
+	bool IsDone()
+	{
+		if (m_pLua)
+		{
+			g_pModuleManager.Think(true);
+			g_pModuleManager.LuaThink(m_pLua);
+		}
+
+		return m_bDone;
+	}
+
+	void Done(GarrysMod::Lua::ILuaBase* LUA)
+	{
+		// We don't call delete since we create it as a static var.
+		// delete this;
+	}
+
+	void OnShutdown()
+	{
+		// delete this;
+	}
+
+	// We call this on Module shutdown
+	void MarkAsDone()
+	{
+		m_pLua = nullptr;
+		m_bDone = true;
+	}
+
+private:
+	GarrysMod::Lua::ILuaInterface* m_pLua = nullptr;
+	bool m_bDone = false;
+};
+
+static HolyLib_PluginThink pPluginThink;
 GMOD_MODULE_OPEN()
 {
 	LUA->GetField(LUA_GLOBALSINDEX, "CLIENT");
@@ -385,12 +428,18 @@ GMOD_MODULE_OPEN()
 		}
 	}
 
+	pPluginThink.SetLua(LUA);
+
+	// Add our Think hook.
+	LUA->AddThreadedCall((GarrysMod::Lua::ILuaThreadedCall*)&pPluginThink);
+
 	return 0;
 }
 
 GMOD_MODULE_CLOSE()
 {
 	g_HolyLibServerPlugin.Unload();
+	pPluginThink.MarkAsDone();
 
 	return 0;
 }

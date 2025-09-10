@@ -889,26 +889,50 @@ void CLuaInterface::Cycle()
 void CLuaInterface::RunThreadedCalls()
 {
 	LuaDebugPrint(3, "CLuaInterface::RunThreadedCalls\n");
-	for (GarrysMod::Lua::ILuaThreadedCall* call : m_pThreadedCalls)
+
+	AUTO_LOCK(m_pThreadedCallsMutex);
+
+	std::vector<GarrysMod::Lua::ILuaThreadedCall*> pFinishedCalls;
+	for (auto it = m_pThreadedCalls.begin(); it != m_pThreadedCalls.end(); )
 	{
-		call->Init();
+		if ((*it)->IsDone())
+		{
+			pFinishedCalls.push_back(*it);
+			it = m_pThreadedCalls.erase(it);
+			continue;
+		}
+
+		it++;
 	}
 
-	for (GarrysMod::Lua::ILuaThreadedCall* call : m_pThreadedCalls)
+	for (GarrysMod::Lua::ILuaThreadedCall* call : pFinishedCalls)
 	{
-		call->Run(this);
+		call->Done(this);
 	}
-
-	m_pThreadedCalls.clear();
+	pFinishedCalls.clear();
 }
 
 int CLuaInterface::AddThreadedCall(GarrysMod::Lua::ILuaThreadedCall* call)
 {
 	LuaDebugPrint(1, "CLuaInterface::AddThreadedCall What called this?\n");
 
-	m_pThreadedCalls.push_back(call);
+	AUTO_LOCK(m_pThreadedCallsMutex);
 
-	return m_pThreadedCalls.size();
+	m_pThreadedCalls.push_back(call);
+	int nSize = m_pThreadedCalls.size(); // Just to be sure, idk if the Mutex would cover a call in the return
+
+	return nSize;
+}
+
+void CLuaInterface::ShutdownThreadedCalls()
+{
+	AUTO_LOCK(m_pThreadedCallsMutex);
+
+	for (GarrysMod::Lua::ILuaThreadedCall* pCall : m_pThreadedCalls)
+	{
+		pCall->OnShutdown();
+	}
+	m_pThreadedCalls.clear();
 }
 
 GarrysMod::Lua::ILuaObject* CLuaInterface::Global()

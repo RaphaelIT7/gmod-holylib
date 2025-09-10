@@ -164,6 +164,7 @@ public:
 public:
 	std::string RunMacros(std::string script);
 	int FilterConVarFlags(int& flags);
+	void ShutdownThreadedCalls();
 
 public:
 	inline GarrysMod::Lua::ILuaGameCallback *GetLuaGameCallback() const
@@ -204,6 +205,7 @@ private: // We keep gmod's structure in case any modules depend on it.
 	GarrysMod::Lua::ILuaObject* m_pMetaTables[255] = {nullptr}; // Their index is based off their type. means m_MetaTables[Type::Entity] returns the Entity metatable.
 private: // NOT GMOD stuff
 	std::list<char*> m_pPaths;
+	CThreadFastMutex m_pThreadedCallsMutex;
 
 public:
 	void RunThreadedCalls();
