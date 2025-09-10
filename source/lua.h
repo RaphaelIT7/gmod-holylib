@@ -480,21 +480,10 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 
 		if (bNoUserTable)
 		{
-			setgcrefnull(usertable);
 			flags |= UDATA_NO_USERTABLE;
+			// setgcrefnull(usertable); // Verify: Do we need to always have a valid usertable? iirc the gc is missing a null check
 		} else {
-			if (Util::func_lj_tab_new)
-			{
-				setgcref(usertable, obj2gco(Util::func_lj_tab_new(LUA->GetState(), 0, 0)));
-			} else { // Slower on 64x though I won't deal with that shit for this improvement.
-				LUA->CreateTable();
-				TValue* o = RawLua::index2adr(LUA->GetState(), -2);
-				if (tvisudata(o)) // We expect this/our userdata to be at -2!!!
-				{
-					setgcref(usertable, obj2gco(tabV(LUA->GetState()->top-1)));
-				}
-				LUA->Pop(1); // Pop the table off the stack
-			}
+			ClearLuaTable(LUA);
 		}
 
 		/*global_StateGMOD *g = (global_StateGMOD*)G(LUA->GetState());
@@ -559,7 +548,18 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 		{
 			setnilV(L->top++);
 		} else {
-			settabV(L, L->top++, gco2tab(gcref(usertable)));
+			/*if (gcrefu(usertable) == 0)
+			{
+				if (Util::func_lj_tab_new)
+				{
+					setgcref(usertable, obj2gco(Util::func_lj_tab_new(L, 0, 0)));
+				} else { // Slower on 64x though I won't deal with that shit for this improvement.
+					pLua->CreateTable();
+					setgcref(usertable, obj2gco(tabV(L->top-1)));
+				}
+			} else {*/
+				settabV(L, L->top++, gco2tab(gcref(usertable)));
+			//}
 		}
 	}
 
@@ -568,8 +568,8 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 		if (flags & UDATA_NO_USERTABLE)
 			return;
 
-		/*lua_State* L = pLua->GetState();
-		if (Util::func_lj_tab_new_ah)
+		lua_State* L = pLua->GetState();
+		if (Util::func_lj_tab_new)
 		{
 			// We cannot free it since the GC would kill itself... We also SHOULDN'T since the gc handles it already, so NO touching >:(
 			// Why does the GC kill itself? Because inside the GCHeader of the usertable, the next GC object is stored.
@@ -577,17 +577,12 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 			// though it's not double linked / there is no "previousgc" variable so we do not know the next gc object.
 			// And lj_tab_free also doesn't take care of this, it just frees the memory, so this caused crashes, memory corruption and infinite loops.
 			// Util::func_lj_tab_free(G(L), gco2tab(gcref(usertable)));
-			setgcref(usertable, obj2gco(Util::func_lj_tab_new_ah(L, 0, 0)));
+			setgcref(usertable, obj2gco(Util::func_lj_tab_new(L, 0, 0)));
 		} else {
-			Push(pLua);
 			pLua->CreateTable();
-			TValue* o = RawLua::index2adr(L, -2);
-			if (tvisudata(o)) // We expect this/our userdata to be at -2!!!
-			{
-				setgcref(usertable, obj2gco(tabV(L->top-1)));
-			}
+			setgcref(usertable, obj2gco(tabV(L->top-1)));
 			pLua->Pop(1);
-		}*/
+		}
 	}
 
 	inline void Push(GarrysMod::Lua::ILuaInterface* pLua)
