@@ -1,3 +1,5 @@
+// MODULE_DEPENDENCY=bass
+
 #include "interface.h"
 #include "cgmod_audio.h"
 #include <stdio.h>

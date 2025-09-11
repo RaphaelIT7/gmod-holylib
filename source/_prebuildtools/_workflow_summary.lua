@@ -252,6 +252,11 @@ if not run_number then
 end
 
 local currentHolyLogsResults, lastHolyLogsResults, lastRun = FetchFromHolyLogs(github_repo, run_number, usingPublic and holylogs_public_host or holylogs_host, holylogs_api, previous_run_number)
+if not currentHolyLogsResults or not lastHolyLogsResults then
+	print("Missing results, skipping summary.", currentHolyLogsResults, lastHolyLogsResults)
+	return
+end
+
 local currentResults = CalculateMergedResults(currentHolyLogsResults)
 local previousResults = CalculateMergedResults(lastHolyLogsResults)
 

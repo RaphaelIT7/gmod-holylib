@@ -1,3 +1,5 @@
+// MODULE_DEPENDENCY=bass
+
 #pragma once
 
 #include <string>

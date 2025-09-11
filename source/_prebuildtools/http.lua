@@ -52,8 +52,10 @@ function HTTP_WaitForAllInternal()
 		end
 	end
 
-	if (os.time() - last_added_request) > 60 then
-		error("HTTP Took way too long. Assuming something broke!")
+	if (os.time() - last_added_request) > 20 then
+		print("HTTP Took way too long. Assuming something broke!")
+		requests = {} -- Discard of this crap
+		return false
 	end
 
 	return i > 0
