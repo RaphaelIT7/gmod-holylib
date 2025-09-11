@@ -296,7 +296,7 @@ void TableToJSONRecursive(GarrysMod::Lua::ILuaInterface* pLua, LuaUtilModuleData
 		bool isSequential = false; 
 		int iKeyType = pLua->GetType(-2);
 		double iKey = iKeyType == GarrysMod::Lua::Type::Number ? pLua->GetNumber(-2) : 0;
-		if (iKey != 0 && iKey == idx)
+		if (iKey != 0 && iKey == idx && wasSequential) // We check for wasSequential since if it becomes false we should NEVER mark isSequential as true again.
 		{
 			isSequential = true;
 			++idx;
