@@ -152,9 +152,13 @@ LUA_FUNCTION_STATIC(CBaseClient_SendLua)
 LUA_FUNCTION_STATIC(CBaseClient_FireGameEvent)
 {
 	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
+#if MODULE_EXISTS_GAMEEVENT
 	IGameEvent* pEvent = Get_IGameEvent(LUA, 2, true);
 
 	pClient->FireGameEvent(pEvent);
+#else
+	LUA->ThrowError("Missing gameevent module!");
+#endif
 	return 0;
 }
 
@@ -218,12 +222,12 @@ LUA_FUNCTION_STATIC(CBaseClient_Disconnect)
 		pClient->GetNetChannel()->Shutdown(NULL); // NULL = Send no disconnect message
 
 	if (bNoEvent)
-		BlockGameEvent("player_disconnect");
+		Util::BlockGameEvent("player_disconnect");
 
 	pClient->Disconnect(strReason);
 	
 	if (bNoEvent)
-		UnblockGameEvent("player_disconnect");
+		Util::UnblockGameEvent("player_disconnect");
 
 	return 0;
 }

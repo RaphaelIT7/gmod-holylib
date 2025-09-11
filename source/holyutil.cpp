@@ -95,6 +95,16 @@ public:
 	{
 		return Util::CM_Vis(cluster, clusterSize, cluserID, type);
 	}
+
+	virtual void BlockGameEvent(const char* pName)
+	{
+		Util::BlockGameEvent(pName);
+	}
+
+	virtual void UnblockGameEvent(const char* pName)
+	{
+		Util::UnblockGameEvent(pName);
+	}
 };
 
 static CHolyUtil s_HolyUtil;

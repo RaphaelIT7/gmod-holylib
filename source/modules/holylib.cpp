@@ -353,12 +353,12 @@ LUA_FUNCTION_STATIC(Disconnect)
 		pClient->GetNetChannel()->Shutdown(NULL); // NULL = Send no disconnect message
 
 	if (bNoEvent)
-		BlockGameEvent("player_disconnect");
+		Util::BlockGameEvent("player_disconnect");
 
 	pClient->Disconnect(strReason);
 
 	if (bNoEvent)
-		UnblockGameEvent("player_disconnect");
+		Util::UnblockGameEvent("player_disconnect");
 
 	LUA->PushBool(true);
 	return 1;

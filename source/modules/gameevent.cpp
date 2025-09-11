@@ -509,53 +509,23 @@ LUA_FUNCTION_STATIC(gameevent_FireClientEvent)
 	return 0;
 }
 
-static std::unordered_set<std::string> pBlockedEvents;
-static Detouring::Hook detour_CGameEventManager_CreateEvent;
-static IGameEvent* hook_CGameEventManager_CreateEvent(void* manager, const char* name, bool bForce)
-{
-	auto it = pBlockedEvents.find(name);
-	if (it != pBlockedEvents.end())
-		return NULL;
-
-	return detour_CGameEventManager_CreateEvent.GetTrampoline<Symbols::CGameEventManager_CreateEvent>()(manager, name, bForce);
-}
-
-// Exposed for other parts of HolyLib to use.
-void BlockGameEvent(const char* pName)
-{
-	auto it = pBlockedEvents.find(pName);
-	if (it != pBlockedEvents.end())
-			return;
-
-	pBlockedEvents.insert(pName);
-}
-
-void UnblockGameEvent(const char* pName)
-{
-	auto it = pBlockedEvents.find(pName);
-	if (it == pBlockedEvents.end())
-			return;
-
-	pBlockedEvents.erase(it);
-}
-
 LUA_FUNCTION_STATIC(gameevent_BlockCreation)
 {
 	const char* pName = LUA->CheckString(1);
 	bool bBlock = LUA->GetBool(2);
 
-	auto it = pBlockedEvents.find(pName);
+	auto it = Util::pBlockedEvents.find(pName);
 	if (bBlock)
 	{
-		if (it != pBlockedEvents.end())
+		if (it != Util::pBlockedEvents.end())
 			return 0;
 
-		pBlockedEvents.insert(pName);
+		Util::pBlockedEvents.insert(pName);
 	} else {
-		if (it == pBlockedEvents.end())
+		if (it == Util::pBlockedEvents.end())
 			return 0;
 
-		pBlockedEvents.erase(it);
+		Util::pBlockedEvents.erase(it);
 	}
 
 	return 0;
@@ -666,12 +636,6 @@ void CGameeventLibModule::InitDetour(bool bPreServer)
 		&detour_CBaseClient_ProcessListenEvents, "CBaseClient::ProcessListenEvents",
 		engine_loader.GetModule(), Symbols::CBaseClient_ProcessListenEventsSym,
 		(void*)hook_CBaseClient_ProcessListenEvents, m_pID
-	);
-
-	Detour::Create(
-		&detour_CGameEventManager_CreateEvent, "CGameEventManager::CreateEvent",
-		engine_loader.GetModule(), Symbols::CGameEventManager_CreateEventSym,
-		(void*)hook_CGameEventManager_CreateEvent, m_pID
 	);
 
 #if ARCHITECTURE_IS_X86

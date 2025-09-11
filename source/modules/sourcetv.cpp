@@ -345,10 +345,14 @@ LUA_FUNCTION_STATIC(sourcetv_FireEvent)
 	if (!hltv || !hltv->IsActive())
 		return 0;
 
+#if MODULE_EXISTS_GAMEEVENT
 	IGameEvent* pEvent = Get_IGameEvent(LUA, 1, true);
 	g_bLuaGameEvent = LUA->GetBool(2);
 	hltv->FireGameEvent(pEvent);
 	g_bLuaGameEvent = false;
+#else
+	LUA->ThrowError("Missing gameevent module!");
+#endif
 
 	return 0;
 }

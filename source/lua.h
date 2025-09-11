@@ -937,10 +937,22 @@ LUA_FUNCTION_STATIC(className ## _GetTable) \
  * and since it's the same userdata thats reference pushed, we won't need a __eq
  */
 
-// Push functions from modules: 
-// ToDo: move this at a later point into a seperate file. Maybe into _modules?
+/*
+	Push functions for Gmod Types
+*/ 
 Vector* Get_Vector(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError = true);
 QAngle* Get_QAngle(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError = true);
+
+class IRecipientFilter;
+extern IRecipientFilter* Get_IRecipientFilter(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
+
+class ConVar;
+extern ConVar* Get_ConVar(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
+
+
+/*
+	Push functions for HolyLib types.
+*/
 
 class bf_read;
 /*
@@ -958,14 +970,10 @@ class bf_write;
 extern LuaUserData* Push_bf_write(GarrysMod::Lua::ILuaInterface* LUA, bf_write* tbl, bool bDeleteUs);
 extern bf_write* Get_bf_write(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
 
+#if MODULE_EXISTS_GAMEEVENT
 class IGameEvent;
 extern IGameEvent* Get_IGameEvent(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
-
-class IRecipientFilter;
-extern IRecipientFilter* Get_IRecipientFilter(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
-
-class ConVar;
-extern ConVar* Get_ConVar(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
+#endif
 
 struct EntityList // entitylist module.
 {
@@ -1028,9 +1036,6 @@ extern EntityList& GetGlobalEntityList(GarrysMod::Lua::ILuaInterface* pLua);
 
 extern bool Is_EntityList(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos);
 extern EntityList* Get_EntityList(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
-
-extern void BlockGameEvent(const char* pName);
-extern void UnblockGameEvent(const char* pName);
 
 class CBaseClient;
 extern void Push_CBaseClient(GarrysMod::Lua::ILuaInterface* LUA, CBaseClient* tbl);

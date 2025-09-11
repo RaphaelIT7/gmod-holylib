@@ -1,5 +1,6 @@
 #pragma once
 
+#include "modules/_modules.h"
 #include <lua/ILuaInterface.h>
 #include "Platform.hpp"
 #include "vprof.h"
@@ -265,6 +266,11 @@ namespace Util
 		Util::StartThreadPool(pool, startParams);
 	}
 
+	// Gameevent stuff
+	extern std::unordered_set<std::string> pBlockedEvents; // For direct access
+	extern void BlockGameEvent(const char* pName);
+	extern void UnblockGameEvent(const char* pName);
+
 	// More Lua stuff for UserData (NEVER NULL)
 	extern Symbols::lua_setfenv func_lua_setfenv;
 	extern Symbols::lua_touserdata func_lua_touserdata;
@@ -299,3 +305,4 @@ constexpr size_t _MAX_ALLOCA_SIZE = 8 * 1024;
 	if (_it != (vec).end()) \
 		(vec).erase(_it); \
 }
+// New line so that no warning is thrown.

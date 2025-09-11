@@ -462,6 +462,35 @@ static void hook_SteamGameServer_Shutdown()
 	detour_SteamGameServer_Shutdown.GetTrampoline<Symbols::SteamGameServer_Shutdown>()();
 }
 
+std::unordered_set<std::string> Util::pBlockedEvents;
+static Detouring::Hook detour_CGameEventManager_CreateEvent;
+static IGameEvent* hook_CGameEventManager_CreateEvent(void* manager, const char* name, bool bForce)
+{
+	auto it = Util::pBlockedEvents.find(name);
+	if (it != Util::pBlockedEvents.end())
+		return NULL;
+
+	return detour_CGameEventManager_CreateEvent.GetTrampoline<Symbols::CGameEventManager_CreateEvent>()(manager, name, bForce);
+}
+
+void Util::BlockGameEvent(const char* pName)
+{
+	auto it = pBlockedEvents.find(pName);
+	if (it != pBlockedEvents.end())
+			return;
+
+	pBlockedEvents.insert(pName);
+}
+
+void Util::UnblockGameEvent(const char* pName)
+{
+	auto it = pBlockedEvents.find(pName);
+	if (it == pBlockedEvents.end())
+			return;
+
+	pBlockedEvents.erase(it);
+}
+
 IGet* Util::get = nullptr;
 CBaseEntityList* g_pEntityList = nullptr;
 Symbols::lua_rawseti Util::func_lua_rawseti = nullptr;
@@ -513,6 +542,12 @@ void Util::AddDetour()
 		&detour_CSteam3Server_NotifyClientDisconnect, "CSteam3Server::NotifyClientDisconnect",
 		engine_loader.GetModule(), Symbols::CSteam3Server_NotifyClientDisconnectSym,
 		(void*)hook_CSteam3Server_NotifyClientDisconnect, 0
+	);
+
+	Detour::Create(
+		&detour_CGameEventManager_CreateEvent, "CGameEventManager::CreateEvent",
+		engine_loader.GetModule(), Symbols::CGameEventManager_CreateEventSym,
+		(void*)hook_CGameEventManager_CreateEvent, 0
 	);
 
 	SourceSDK::ModuleLoader steam_api_loader("steam_api");

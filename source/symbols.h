@@ -173,6 +173,9 @@ namespace Symbols
 	typedef GarrysMod::Lua::CLuaObject* (*CBaseEntity_GetLuaEntity)(void* pEntity);
 	extern const std::vector<Symbol> CBaseEntity_GetLuaEntitySym; // We use this one to directly push by reference to reduce overhead and improve performance.
 
+	typedef IGameEvent* (GMCOMMON_CALLING_CONVENTION* CGameEventManager_CreateEvent)(void* manager, const char* name, bool bForce);
+	extern const std::vector<Symbol> CGameEventManager_CreateEventSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: holylib Symbols
 	//---------------------------------------------------------------------------------
@@ -205,9 +208,6 @@ namespace Symbols
 
 	typedef bool (GMCOMMON_CALLING_CONVENTION* CGameEventManager_AddListener)(void* manager, void* listener, void* descriptor, int);
 	extern const std::vector<Symbol> CGameEventManager_AddListenerSym;
-
-	typedef IGameEvent* (GMCOMMON_CALLING_CONVENTION* CGameEventManager_CreateEvent)(void* manager, const char* name, bool bForce);
-	extern const std::vector<Symbol> CGameEventManager_CreateEventSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: serverplugin Symbols

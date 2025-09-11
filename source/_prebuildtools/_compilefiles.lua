@@ -30,7 +30,7 @@ local function CompileModuleList()
 
 		local content = ReadFile(path .. fileName)
 		for moduleName in content:gmatch("IModule%s*%*%s*(%w+)%s*=%s*&%s*[%w_]+%s*") do
-			table.insert(moduleList, moduleName)
+			table.insert(moduleList, {moduleName, string.upper(RemoveEnd(fileName, ".cpp"))})
 		end
 	end
 	
@@ -42,7 +42,9 @@ local function CompileModuleList()
 
 ]]
 	for _, moduleName in ipairs(moduleList) do
-		moduleFile = moduleFile .. [[extern IModule* ]] .. moduleName .. [[;
+		moduleFile = moduleFile .. [[extern IModule* ]] .. moduleName[1] .. [[;
+#define MODULE_EXISTS_]] .. moduleName[2] .. [[ 1
+
 ]]
 	end
 
@@ -57,7 +59,7 @@ void CModuleManager::LoadModules()
 ]]
 
 	for _, moduleName in ipairs(moduleList) do
-		moduleFile = moduleFile .. [[	RegisterModule(]] .. moduleName .. [[);
+		moduleFile = moduleFile .. [[	RegisterModule(]] .. moduleName[1] .. [[);
 ]]
 	end
 

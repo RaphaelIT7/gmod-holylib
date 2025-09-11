@@ -123,6 +123,11 @@ namespace Symbols
 		Symbol::FromName("_ZN11CBaseEntity12GetLuaEntityEv"),
 	};
 
+	const std::vector<Symbol> CGameEventManager_CreateEventSym = {
+		Symbol::FromName("_ZN17CGameEventManager11CreateEventEPKcb"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x55\x41\x54\x53\x48\x89\xF3\x48\x83\xEC\x08\x48\x85\xF6**\x80\x3E\x00"), // 55 48 89 E5 41 55 41 54 53 48 89 F3 48 83 EC 08 48 85 F6 ?? ?? 80 3E 00
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: holylib Symbols
 	//---------------------------------------------------------------------------------
@@ -174,11 +179,6 @@ namespace Symbols
 
 	const std::vector<Symbol> CGameEventManager_AddListenerSym = { // Fk this. No 64x
 		Symbol::FromName("_ZN17CGameEventManager11AddListenerEPvP20CGameEventDescriptori"),
-	};
-
-	const std::vector<Symbol> CGameEventManager_CreateEventSym = {
-		Symbol::FromName("_ZN17CGameEventManager11CreateEventEPKcb"),
-		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x55\x41\x54\x53\x48\x89\xF3\x48\x83\xEC\x08\x48\x85\xF6**\x80\x3E\x00"), // 55 48 89 E5 41 55 41 54 53 48 89 F3 48 83 EC 08 48 85 F6 ?? ?? 80 3E 00
 	};
 
 	//---------------------------------------------------------------------------------
