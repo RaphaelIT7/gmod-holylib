@@ -22,6 +22,8 @@ return {
                 local buf = bitbuf.CreateStackReadBuffer("Test123", function( buf ) -- It's not async.
                     expect( buf:IsValid() ).to.beTrue()
                     expect( buf ).to.beA( "bf_read" )
+
+                    collectgarbage() -- Since it's stack allocated, we also handle the GC differently. So let's test if the gc will crash on a run.
                 end)
             end
         },
