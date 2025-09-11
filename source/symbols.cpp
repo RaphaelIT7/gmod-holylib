@@ -45,54 +45,19 @@ namespace Symbols
 		Symbol::FromName("_ZN18CCollisionProperty24MarkPartitionHandleDirtyEv"),
 	};
 
-	const std::vector<Symbol> lua_rawsetiSym = {
-		Symbol::FromName("lua_rawseti"),
-		Symbol::FromName("lua_rawseti"),
-		Symbol::FromName("lua_rawseti"),
-		Symbol::FromName("lua_rawseti"),
-	};
+	const Symbol lua_rawsetiSym = Symbol::FromName("lua_rawseti");
 
-	const std::vector<Symbol> lua_rawgetiSym = {
-		Symbol::FromName("lua_rawgeti"),
-		Symbol::FromName("lua_rawgeti"),
-		Symbol::FromName("lua_rawgeti"),
-		Symbol::FromName("lua_rawgeti"),
-	};
+	const Symbol lua_rawgetiSym = Symbol::FromName("lua_rawgeti");
 
-	const std::vector<Symbol> lj_tab_newSym = {
-		Symbol::FromName("lj_tab_new"),
-		Symbol::FromName("lj_tab_new"),
-		Symbol::FromName("lj_tab_new"),
-		Symbol::FromName("lj_tab_new"),
-	};
+	const Symbol lj_tab_newSym = Symbol::FromName("lj_tab_new");
 
-	const std::vector<Symbol> lua_setfenvSym = {
-		Symbol::FromName("lua_setfenv"),
-		Symbol::FromName("lua_setfenv"),
-		Symbol::FromName("lua_setfenv"),
-		Symbol::FromName("lua_setfenv"),
-	};
+	const Symbol lua_setfenvSym = Symbol::FromName("lua_setfenv");
 
-	const std::vector<Symbol> lua_touserdataSym = {
-		Symbol::FromName("lua_touserdata"),
-		Symbol::FromName("lua_touserdata"),
-		Symbol::FromName("lua_touserdata"),
-		Symbol::FromName("lua_touserdata"),
-	};
+	const Symbol lua_touserdataSym = Symbol::FromName("lua_touserdata");
 
-	const std::vector<Symbol> lua_typeSym = {
-		Symbol::FromName("lua_type"),
-		Symbol::FromName("lua_type"),
-		Symbol::FromName("lua_type"),
-		Symbol::FromName("lua_type"),
-	};
+	const Symbol lua_typeSym = Symbol::FromName("lua_type");
 
-	const std::vector<Symbol> luaL_checklstringSym = {
-		Symbol::FromName("luaL_checklstring"),
-		Symbol::FromName("luaL_checklstring"),
-		Symbol::FromName("luaL_checklstring"),
-		Symbol::FromName("luaL_checklstring"),
-	};
+	const Symbol luaL_checklstringSym = Symbol::FromName("luaL_checklstring");
 
 	const std::vector<Symbol> CGetSym = { // 64x ToDo
 		Symbol::FromName("get"),
@@ -107,19 +72,9 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x54\x53\x48\x89\xF3\x48\x83\xEC\x20\x48\x85\xF6"), // 55 48 89 E5 41 54 53 48 89 F3 48 83 EC 20 48 85 F6
 	};
 
-	const std::vector<Symbol> SteamGameServer_ShutdownSym = { // Same symbol for all versions.
-		Symbol::FromName("SteamGameServer_Shutdown"),
-		Symbol::FromName("SteamGameServer_Shutdown"),
-		Symbol::FromName("SteamGameServer_Shutdown"),
-		Symbol::FromName("SteamGameServer_Shutdown"),
-	};
+	const Symbol SteamGameServer_ShutdownSym = Symbol::FromName("SteamGameServer_Shutdown"); // Same symbol for all versions.
 
-	const std::vector<Symbol> GMOD_LoadBinaryModuleSym = { // Same symbol for all versions.
-		Symbol::FromName("GMOD_LoadBinaryModule"),
-		Symbol::FromName("GMOD_LoadBinaryModule"),
-		Symbol::FromName("GMOD_LoadBinaryModule"),
-		Symbol::FromName("GMOD_LoadBinaryModule"),
-	};
+	const Symbol GMOD_LoadBinaryModuleSym = Symbol::FromName("GMOD_LoadBinaryModule"); // Same symbol for all versions.
 
 	const std::vector<Symbol> CM_VisSym = { // CM_Vis:
 		Symbol::FromName("_Z6CM_VisPhiii"),

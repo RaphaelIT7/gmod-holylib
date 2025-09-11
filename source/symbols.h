@@ -138,25 +138,25 @@ namespace Symbols
 	extern const std::vector<Symbol> CCollisionProperty_MarkSurroundingBoundsDirtySym;
 
 	typedef void (*lua_rawseti)(lua_State* L, int index, int i);
-	extern const std::vector<Symbol> lua_rawsetiSym;
+	extern const Symbol lua_rawsetiSym;
 
 	typedef void (*lua_rawgeti)(lua_State* L, int index, int i);
-	extern const std::vector<Symbol> lua_rawgetiSym;
+	extern const Symbol lua_rawgetiSym;
 
 	typedef GCtab* (*lj_tab_new)(lua_State *L, uint32_t nArray, uint32_t nRec);
-	extern const std::vector<Symbol> lj_tab_newSym;
+	extern const Symbol lj_tab_newSym;
 
 	typedef int (*lua_setfenv)(lua_State *L, int idx);
-	extern const std::vector<Symbol> lua_setfenvSym;
+	extern const Symbol lua_setfenvSym;
 
 	typedef void* (*lua_touserdata)(lua_State *L, int idx);
-	extern const std::vector<Symbol> lua_touserdataSym;
+	extern const Symbol lua_touserdataSym;
 
 	typedef int (*lua_type)(lua_State *L, int idx);
-	extern const std::vector<Symbol> lua_typeSym;
+	extern const Symbol lua_typeSym;
 
 	typedef const char* (*luaL_checklstring)(lua_State *L, int idx, size_t* len);
-	extern const std::vector<Symbol> luaL_checklstringSym;
+	extern const Symbol luaL_checklstringSym;
 
 	extern const std::vector<Symbol> CGetSym;
 	extern const std::vector<Symbol> gEntListSym;
@@ -165,10 +165,10 @@ namespace Symbols
 	extern const std::vector<Symbol> CSteam3Server_NotifyClientDisconnectSym;
 
 	typedef void (*SteamGameServer_Shutdown)();
-	extern const std::vector<Symbol> SteamGameServer_ShutdownSym;
+	extern const Symbol SteamGameServer_ShutdownSym;
 
 	typedef int (*GMOD_LoadBinaryModule)(lua_State* L, const char* pFileName);
-	extern const std::vector<Symbol> GMOD_LoadBinaryModuleSym;
+	extern const Symbol GMOD_LoadBinaryModuleSym;
 
 	typedef const byte* (*CM_Vis)(byte* dest, int destlen, int cluster, int visType);
 	extern const std::vector<Symbol> CM_VisSym;
