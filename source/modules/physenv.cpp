@@ -1,7 +1,9 @@
 // If set it will include code to fallback when it couldn't replace IVP, in cases where for example holylib wasn't loaded by the ghostinj.dll
 #define PHYSENV_INCLUDEIVPFALLBACK 1
 #define PHYSENV_C 1
+#if CUSTOM_VPHYSICS_BUILD
 #include "physics_holylib.h"
+#endif
 #include "LuaInterface.h"
 #include "module.h"
 #include "lua.h"
@@ -22,19 +24,26 @@
 #include "detours.h"
 #include "tier0/icommandline.h"
 
+#if CUSTOM_VPHYSICS_BUILD
 #define private public
 #include "physics_environment.h" // has to be before physics_object.h
 #undef private
 #include "physics_object.h"
-#include "physics_collisionevent.h"
+#endif
 
-#if PHYSENV_INCLUDEIVPFALLBACK
+#if defined(PHYSENV_INCLUDEIVPFALLBACK) || !defined(CUSTOM_VPHYSICS_BUILD)
 #undef IVP_IF
 #include "ivp_old/ivp_classes.h"
 #include "ivp_old/ivp_types.h"
 #include "ivp_old/cphysicsenvironment.h"
 #include "ivp_old/cphysicsobject.h"
 #endif
+
+#if !defined(CUSTOM_VPHYSICS_BUILD)
+typedef GMODSDK::CPhysicsEnvironment CPhysicsEnvironment;
+typedef GMODSDK::CPhysicsObject CPhysicsObject;
+#endif
+#include "physics_collisionevent.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -81,7 +90,10 @@ struct ILuaPhysicsEnvironment;
 static inline ILuaPhysicsEnvironment* RegisterPhysicsEnvironment(IPhysicsEnvironment* pEnv);
 static inline void UnregisterPhysicsEnvironment(IPhysicsEnvironment* pEnv);
 void CheckPhysicsLag(const char* strFunctionName, CPhysicsObject* pObject1, CPhysicsObject* pObject2);
-class IVPHolyLib : public IVP_HolyLib_Callbacks
+class IVPHolyLib
+#if CUSTOM_VPHYSICS_BUILD
+	: public IVP_HolyLib_Callbacks
+#endif
 {
 public:
 	virtual ~IVPHolyLib() {};
@@ -159,6 +171,7 @@ void CheckPhysicsLag(const char* pFunctionName, CPhysicsObject* pObject1, CPhysi
 				g_Lua->PushNil();
 			}
 
+#if CUSTOM_VPHYSICS_BUILD
 			if (g_bReplacedIVP)
 			{
 				auto ivp_vector = g_pPhysicsHolyLib->GetRecheckOVVector();
@@ -178,7 +191,9 @@ void CheckPhysicsLag(const char* pFunctionName, CPhysicsObject* pObject1, CPhysi
 					g_Lua->PushNumber(i+1);
 					g_Lua->SetTable(-3);
 				}
-			} else {
+			} else
+#endif
+			{
 				g_Lua->PreCreateTable(g_pCurrentRecheckOVElement.size(), g_pCurrentRecheckOVElement.size());
 				int i = 0;
 				for (GMODSDK::IVP_Real_Object* pObject : g_pCurrentRecheckOVElement)
@@ -478,11 +493,19 @@ void CPhysEnvModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 //Get_LuaClass(IPhysicsObject, "IPhysicsObject")
 // Fking idiot, it's a gmod class!!
 static inline bool IsRegisteredPhysicsObject(IPhysicsObject* pObject);
+#if CUSTOM_VPHYSICS_BUILD
 GMODGet_LuaClass(IPhysicsObject, GarrysMod::Lua::Type::PhysObj, "PhysObj",
 	if (!(g_pPhysicsHolyLib != NULL ? g_pPhysicsHolyLib->IsValidObject(pVar) : IsRegisteredPhysicsObject(pVar)) && bError) {
 		LUA->ThrowError(triedNull_IPhysicsObject.c_str());
 	}
-		);
+);
+#else // I don't like that this is duplicate, since we had to remove the g_pPhysicsHolyLib
+GMODGet_LuaClass(IPhysicsObject, GarrysMod::Lua::Type::PhysObj, "PhysObj",
+	if (!(IsRegisteredPhysicsObject(pVar)) && bError) {
+		LUA->ThrowError(triedNull_IPhysicsObject.c_str());
+	}
+);
+#endif
 static CCollisionEvent* g_Collisions = NULL;
 class CLuaPhysicsObjectEvent : public IPhysicsObjectEvent
 {
@@ -940,11 +963,14 @@ LUA_FUNCTION_STATIC(physenv_CreateEnvironment)
 		pEnvironment->EnableDeleteQueue(true);
 		pEnvironment->SetSimulationTimestep(pMainEnvironment->GetSimulationTimestep());
 
+#if CUSTOM_VPHYSICS_BUILD
 		if (g_pPhysicsHolyLib)
 		{
 			g_Collisions = (CCollisionEvent*)g_pPhysicsHolyLib->GetCollisionSolver(pMainEnvironment); // Raw access is always fun :D
 			pEnvironment->SetConstraintEventHandler(g_pPhysicsHolyLib->GetPhysicsListenerConstraint(pMainEnvironment));
-		} else {
+		} else
+#endif
+		{
 			GMODSDK::CPhysicsEnvironment* pGmodMainEnvironment = static_cast<GMODSDK::CPhysicsEnvironment*>(static_cast<void*>(pMainEnvironment));
 			g_Collisions = (CCollisionEvent*)pGmodMainEnvironment->m_pCollisionSolver->m_pSolver; // Raw access is always fun :D
 			pEnvironment->SetConstraintEventHandler(pGmodMainEnvironment->m_pConstraintListener->m_pCallback);
@@ -2355,10 +2381,13 @@ static bool hook_GMod_Util_IsPhysicsObjectValid(IPhysicsObject* pObject)
 	}*/
 
 	// Should be O(1) now since were using a hash / unordered_map.
+#if CUSTOM_VPHYSICS_BUILD
 	if (g_bReplacedIVP)
 	{
 		return g_pPhysicsHolyLib->IsValidObject(pObject);
-	} else {
+	} else
+#endif
+	{
 		return IsRegisteredPhysicsObject(pObject);
 	}
 }
@@ -2586,6 +2615,7 @@ void CPhysEnvModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 static DLL_Handle g_pPhysicsModule = NULL;
 void CPhysEnvModule::InitDetour(bool bPreServer)
 {
+#if CUSTOM_VPHYSICS_BUILD
 	if (bPreServer)
 	{
 		if (CommandLine()->FindParm("-holylib_replaceivp"))
@@ -2605,6 +2635,7 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 		}
 		return;
 	}
+#endif
 
 	if (g_pPhysicsModule)
 	{

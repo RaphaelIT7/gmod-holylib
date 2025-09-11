@@ -51,24 +51,25 @@ local function CompileModuleList()
 	moduleFile = string.Trim(moduleFile) .. [[
 
 
-#define HOLYLIB_MODULE_COUNT ]] .. tostring(#moduleList) .. [[
+constexpr int HOLYLIB_MODULE_COUNT = ]] .. tostring(#moduleList) .. [[;
+#endif]]
 
+	WriteFile(path .. "_modules.h", string.Trim(moduleFile))
+
+	local moduleCPPFile = [[#include "_modules.h"
 
 void CModuleManager::LoadModules()
 {
 ]]
-
 	for _, moduleName in ipairs(moduleList) do
-		moduleFile = moduleFile .. [[	RegisterModule(]] .. moduleName[1] .. [[);
+		moduleCPPFile = moduleCPPFile .. [[	RegisterModule(]] .. moduleName[1] .. [[);
 ]]
 	end
 
-	moduleFile = string.Trim(moduleFile) .. [[
+	moduleCPPFile = moduleCPPFile .. [[
+}]]
 
-}
-#endif]]
-
-	WriteFile(path .. "_modules.h", string.Trim(moduleFile))
+	WriteFile(path .. "_modules.cpp", string.Trim(moduleCPPFile))
 end
 CompileModuleList()
 

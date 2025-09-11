@@ -25,3 +25,4 @@ source/lua/scripts/VectorFFI.h
 source/_versioninfo.h
 source/_prebuildtools/http/*.txt
 source/_prebuildtools/generated_summary.md
+source/modules/_modules.cpp

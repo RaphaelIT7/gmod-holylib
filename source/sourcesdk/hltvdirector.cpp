@@ -25,8 +25,4 @@ void CHLTVDirector::RemoveEventsFromHistory(int tick)
 			index = m_EventHistory.NextInorder( index );
 		}
 	}
-
-#ifdef _DEBUG
-	CheckHistory();
-#endif
 }
