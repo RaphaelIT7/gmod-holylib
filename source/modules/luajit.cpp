@@ -477,6 +477,10 @@ void CLuaJITModule::InitDetour(bool bPreServer)
 	Util::func_lua_touserdata = &lua_touserdata;
 	Util::func_lua_type = &lua_type;
 	Util::func_luaL_checklstring = &luaL_checklstring;
+	Util::func_lua_pcall = &lua_pcall;
+	Util::func_lua_insert = &lua_insert;
+	Util::func_lua_toboolean = &lua_toboolean;
+	Util::func_lj_gc_barrierf = (Symbols::lj_gc_barrierf)&lj_gc_barrierf;
 
 	m_bIsEnabled = true;
 }

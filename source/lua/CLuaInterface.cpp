@@ -787,7 +787,7 @@ bool CLuaInterface::Init( GarrysMod::Lua::ILuaGameCallback* callback, bool bIsSe
 	lua_atpanic(state, LuaPanic);
 
 	lua_pushcclosure(state, AdvancedLuaErrorReporter, 0);
-	lua_setglobal(state, "AdvancedLuaErrorReporter");
+	m_nLuaErrorReporter = luaL_ref(state, LUA_REGISTRYINDEX); // Since this is the first ever ref call luaErrorReporter will always be 1
 
 	{
 		luaJIT_setmode(state, -1, LUAJIT_MODE_WRAPCFUNC|LUAJIT_MODE_ON);
@@ -1514,37 +1514,22 @@ void CLuaInterface::Msg( const char* fmt, ... )
 void CLuaInterface::PushPath( const char* path )
 {
 	LuaDebugPrint(2, "CLuaInterface::PushPath %s\n", path);
-	char* str = new char[strlen(path)];
-	V_strncpy( str, path, strlen(path) );
-	str[ strlen(path) - 1 ] = '\0'; // nuke the last /
-	m_sCurrentPath = str;
-	m_pPaths.push_back( str );
-	++m_iPushedPaths;
+	
+	m_CurrentPaths.Push();
+	V_strncpy(m_CurrentPaths.Top().path, path, MAX_PATH);
 }
 
 void CLuaInterface::PopPath()
 {
 	LuaDebugPrint(2, "CLuaInterface::PopPath\n");
-	char* str = m_pPaths.back();
-	delete[] str;
-	m_pPaths.pop_back();
-
-	--m_iPushedPaths;
-	if ( m_iPushedPaths > 0 )
-		m_sCurrentPath = m_pPaths.back();
-	else
-		m_sCurrentPath = NULL;
+	
+	m_CurrentPaths.Pop();
 }
 
 const char* CLuaInterface::GetPath()
 {
-	LuaDebugPrint(2, "CLuaInterface::GetPath\n");
-
-	if ( m_iPushedPaths <= 0 )
-		return NULL;
-
-	LuaDebugPrint(2, "CLuaInterface::GetPath %s\n", (const char*)m_pPaths.back());
-	return m_pPaths.back();
+	LuaDebugPrint(2, "CLuaInterface::GetPath %s\n", (const char*)m_CurrentPaths.Top().path);
+	return m_CurrentPaths.Top().path;
 }
 
 int CLuaInterface::GetColor(int iStackPos) // Probably returns the StackPos
@@ -1785,7 +1770,11 @@ bool CLuaInterface::CallFunctionProtected(int iArgs, int iRets, bool showError)
 		return false;
 	}
 
-	int ret = PCall(iArgs, iRets, 0);
+	int nPos = lua_gettop(state) - iArgs;
+	lua_rawgeti(state, LUA_REGISTRYINDEX, m_nLuaErrorReporter);
+	lua_insert(state, nPos);
+	int ret = PCall(iArgs, iRets, -1);
+	lua_remove(state, nPos);
 	if (ret != 0)
 	{
 		GarrysMod::Lua::ILuaGameCallback::CLuaError* err = ReadStackIntoError(state);

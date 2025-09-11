@@ -51,6 +51,8 @@ namespace Symbols
 
 	const Symbol lj_tab_newSym = Symbol::FromName("lj_tab_new");
 
+	const Symbol lj_gc_barrierfSym = Symbol::FromName("lj_gc_barrierf");
+
 	const Symbol lua_setfenvSym = Symbol::FromName("lua_setfenv");
 
 	const Symbol lua_touserdataSym = Symbol::FromName("lua_touserdata");
@@ -58,6 +60,12 @@ namespace Symbols
 	const Symbol lua_typeSym = Symbol::FromName("lua_type");
 
 	const Symbol luaL_checklstringSym = Symbol::FromName("luaL_checklstring");
+
+	const Symbol lua_pcallSym = Symbol::FromName("lua_pcall");
+
+	const Symbol lua_insertSym = Symbol::FromName("lua_insert");
+
+	const Symbol lua_tobooleanSym = Symbol::FromName("lua_toboolean");
 
 	const std::vector<Symbol> CGetSym = { // 64x ToDo
 		Symbol::FromName("get"),

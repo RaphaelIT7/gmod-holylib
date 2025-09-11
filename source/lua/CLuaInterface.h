@@ -6,6 +6,7 @@
 #include "GarrysMod/Lua/LuaGameCallback.h"
 #include "GarrysMod/Lua/LuaObject.h"
 #include <list>
+#include "tier1/utlstack.h"
 
 #define GMOD
 
@@ -177,21 +178,15 @@ public:
 		m_pGameCallback = callback;
 	}
 
-private: // We keep gmod's structure in case any modules depend on it.
-	int _1 = 1; // Always 1?
-	char* m_sCurrentPath = new char[32]; // not how gmod does it :/
-	int _3 = 0;
-	int _4 = 0;
-	int m_iPushedPaths = 0;
-	const char* m_sLastPath = NULL;
+public: // We keep gmod's structure in case any modules depend on it.
+	struct Path
+	{
+		char path[MAX_PATH];
+	};
+
+	int m_nLuaErrorReporter = -1; // Always 1 since it's always the first registry reference.
+	CUtlStack<Path> m_CurrentPaths;
 	std::list<GarrysMod::Lua::ILuaThreadedCall*> m_pThreadedCalls;
-
-#ifdef __APPLE__
-
-	size_t _7; // 1 * sizeof(size_t) = 4 (x86) or 8 (x86-64) bytes
-
-#endif
-
 	GarrysMod::Lua::ILuaObject* m_ProtectedFunctionReturns[4] = {nullptr};
 	GarrysMod::Lua::ILuaObject* m_TempObjects[LUA_MAX_TEMP_OBJECTS] = {nullptr};
 	unsigned char m_iRealm = (unsigned char)2; // CLIENT = 0, SERVER = 1, MENU = 2
@@ -204,7 +199,6 @@ private: // We keep gmod's structure in case any modules depend on it.
 	unsigned char m_iMetaTableIDCounter = GarrysMod::Lua::Type::COUNT;
 	GarrysMod::Lua::ILuaObject* m_pMetaTables[255] = {nullptr}; // Their index is based off their type. means m_MetaTables[Type::Entity] returns the Entity metatable.
 private: // NOT GMOD stuff
-	std::list<char*> m_pPaths;
 	CThreadFastMutex m_pThreadedCallsMutex;
 
 public:

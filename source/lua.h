@@ -83,6 +83,11 @@ namespace Lua
 	struct LuaMetaEntry {
 		unsigned char iType = UCHAR_MAX;
 		GCRef metatable; // Direct reference allowing for faster setting.
+
+		LuaMetaEntry()
+		{
+			setgcrefnull(metatable);
+		}
 	};
 
 	/*
@@ -141,8 +146,30 @@ namespace Lua
 		std::unordered_map<void*, LuaUserData*> pPushedUserData; // Would love to get rid of this
 		GarrysMod::Lua::ILuaInterface* pLua = NULL;
 		CLuaInterfaceProxy* pProxy;
+		GCRef nErrorFunc;
+
+		StateData()
+		{
+			setgcrefnull(nErrorFunc);
+		}
 
 		~StateData();
+
+		// When called we expect the error function to be pushed onto the stack. We'll pop it.
+		inline void SetErrorFunc()
+		{
+			lua_State* L = pLua->GetState();
+			TValue* pVal = RawLua::index2adr(L, -1);
+			if (!tvistab(pVal))
+			{
+				Warning(PROJECT_NAME " - RegisterMetaTable: MetaTable is NOT a table?!? What the heck!\n");
+				pLua->Pop(1);
+				return;
+			}
+
+			setgcref(nErrorFunc, obj2gco(tabV(pVal)));
+			pLua->Pop(1); // it's stored in the registry so everything will be fine :3
+		}
 
 		inline void RegisterMetaTable(LuaTypes type, int metaID)
 		{
@@ -221,6 +248,28 @@ namespace Lua
 		inline std::unordered_map<void*, LuaUserData*>& GetPushedUserData()
 		{
 			return pPushedUserData;
+		}
+
+		inline bool FastPCall(int nArgs, int nRets, bool bShowError)
+		{
+			lua_State* L = pLua->GetState();
+			int nRet = Util::func_lua_pcall(L, nArgs, nRets, 0);
+			if (nRet > 0)
+			{
+				// We use the ILuaInterface here since on errors we really don't expect speed.
+				if (bShowError)
+				{
+					const char* pError = pLua->GetString(-1);
+					pLua->Pop(1);
+					pLua->ErrorFromLua(pError);
+				} else {
+					pLua->Pop(1);
+				}
+
+				return false;
+			}
+
+			return true;
 		}
 	};
 
@@ -464,7 +513,7 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 	{
 		setgcrefnull(nextgc);
 		gct = 0x0;
-		marked = 0x0;
+		marked = 0x4; // mark black. We are stack allocated, we are never white, never grey
 	}
 	
 	inline void Init(GarrysMod::Lua::ILuaInterface* LUA, const Lua::LuaMetaEntry& pMetaEntry, void* pData, bool bNoGC = false, bool bNoUserTable = false)
@@ -491,7 +540,7 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 			flags |= UDATA_NO_USERTABLE;
 			// setgcrefnull(usertable); // Verify: Do we need to always have a valid usertable? iirc the gc is missing a null check
 		} else {
-			ClearLuaTable(LUA);
+			ClearLuaTable(LUA, true);
 		}
 
 		/*global_StateGMOD *g = (global_StateGMOD*)G(LUA->GetState());
@@ -505,7 +554,7 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 #if HOLYLIB_UTIL_DEBUG_LUAUSERDATA
 		g_pLuaUserData.insert(this);
 #if HOLYLIB_UTIL_DEBUG_LUAUSERDATA == 2
-		Msg("holylib - util: LuaUserdata got initialized %p - %p - %i\n", this, LUA, type);
+		Msg("holylib - util: LuaUserdata got initialized %p - %p - %i\n", this, LUA, pMetaEntry.iType);
 #endif
 #endif
 	}
@@ -571,13 +620,13 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 		}
 	}
 
-	inline void ClearLuaTable(GarrysMod::Lua::ILuaInterface* pLua)
+	inline void ClearLuaTable(GarrysMod::Lua::ILuaInterface* pLua, bool bFresh = false) // bFresh = if we got freshly created / are in a white state
 	{
 		if (flags & UDATA_NO_USERTABLE)
 			return;
 
 		lua_State* L = pLua->GetState();
-		if (Util::func_lj_tab_new)
+		if (Util::func_lj_tab_new && (bFresh || Util::func_lj_gc_barrierf))
 		{
 			// We cannot free it since the GC would kill itself... We also SHOULDN'T since the gc handles it already, so NO touching >:(
 			// Why does the GC kill itself? Because inside the GCHeader of the usertable, the next GC object is stored.
@@ -586,10 +635,32 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 			// And lj_tab_free also doesn't take care of this, it just frees the memory, so this caused crashes, memory corruption and infinite loops.
 			// Util::func_lj_tab_free(G(L), gco2tab(gcref(usertable)));
 			setgcref(usertable, obj2gco(Util::func_lj_tab_new(L, 0, 0)));
+			
+			if (!bFresh)
+			{ // lj_gc_objbarrier unwrapped since we need to change the call to lj_gc_barrierf -> Util::func_lj_gc_barrierf
+				if (((((GCobj*)(gcref(usertable))))->gch.marked & (0x01 | 0x02)) && ((((GCobj*)(this)))->gch.marked & 0x04))
+							Util::func_lj_gc_barrierf(G(L), ((GCobj*)(this)), ((GCobj*)(gcref(usertable))));
+			}
 		} else {
 			pLua->CreateTable();
-			setgcref(usertable, obj2gco(tabV(L->top-1)));
-			pLua->Pop(1);
+			if (!bFresh)
+			{
+				if (Util::func_lj_gc_barrierf)
+				{
+					setgcref(usertable, obj2gco(tabV(L->top-1)));
+
+					{ // lj_gc_objbarrier unwrapped since we need to change the call to lj_gc_barrierf -> Util::func_lj_gc_barrierf
+						if (((((GCobj*)(gcref(usertable))))->gch.marked & (0x01 | 0x02)) && ((((GCobj*)(this)))->gch.marked & 0x04))
+							Util::func_lj_gc_barrierf(G(L), ((GCobj*)(this)), ((GCobj*)(gcref(usertable))));
+					}
+					pLua->Pop(1);
+				} else {
+					Util::func_lua_setfenv(L, -2); // Internally has the gc barrier
+				}
+			} else {
+				setgcref(usertable, obj2gco(tabV(L->top-1)));
+				pLua->Pop(1);
+			}
 		}
 	}
 

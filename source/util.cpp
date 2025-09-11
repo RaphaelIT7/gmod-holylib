@@ -498,10 +498,14 @@ Symbols::lua_rawgeti Util::func_lua_rawgeti = nullptr;
 IGameEventManager2* Util::gameeventmanager = nullptr;
 IServerGameDLL* Util::servergamedll = nullptr;
 Symbols::lj_tab_new Util::func_lj_tab_new = nullptr;
+Symbols::lj_gc_barrierf Util::func_lj_gc_barrierf = nullptr;
 Symbols::lua_setfenv Util::func_lua_setfenv = nullptr;
 Symbols::lua_touserdata Util::func_lua_touserdata = nullptr;
 Symbols::lua_type Util::func_lua_type = nullptr;
 Symbols::luaL_checklstring Util::func_luaL_checklstring = nullptr;
+Symbols::lua_pcall Util::func_lua_pcall = nullptr;
+Symbols::lua_insert Util::func_lua_insert = nullptr;
+Symbols::lua_toboolean Util::func_lua_toboolean = nullptr;
 void Util::AddDetour()
 {
 	if (g_pModuleManager.GetAppFactory())
@@ -612,7 +616,19 @@ void Util::AddDetour()
 	func_luaL_checklstring = (Symbols::luaL_checklstring)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::luaL_checklstringSym);
 	Detour::CheckFunction((void*)func_luaL_checklstring, "luaL_checklstring");
 
-	if (!func_lua_touserdata || !func_lua_type || !func_lua_setfenv)
+	func_lua_pcall = (Symbols::lua_pcall)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_pcallSym);
+	Detour::CheckFunction((void*)func_lua_pcall, "lua_pcall");
+
+	func_lua_insert = (Symbols::lua_insert)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_insertSym);
+	Detour::CheckFunction((void*)func_lua_insert, "lua_insert");
+
+	func_lua_toboolean = (Symbols::lua_toboolean)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_tobooleanSym);
+	Detour::CheckFunction((void*)func_lua_toboolean, "lua_toboolean");
+
+	func_lj_gc_barrierf = (Symbols::lj_gc_barrierf)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lj_gc_barrierfSym);
+	Detour::CheckFunction((void*)func_lj_gc_barrierf, "lj_gc_barrierf");
+
+	if (!func_lua_touserdata || !func_lua_type || !func_lua_setfenv || !func_luaL_checklstring || !func_lua_pcall || !func_lua_insert || !func_lua_toboolean)
 	{
 		// This is like the ONLY dependency we have on symbols that without we cannot function.
 		Error(PROJECT_NAME " - core: Failed to load an important symbol which we utterly depend on.\n");

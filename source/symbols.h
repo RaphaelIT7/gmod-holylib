@@ -146,6 +146,9 @@ namespace Symbols
 	typedef GCtab* (*lj_tab_new)(lua_State *L, uint32_t nArray, uint32_t nRec);
 	extern const Symbol lj_tab_newSym;
 
+	typedef void (*lj_gc_barrierf)(global_State *g, void *o, void *v);
+	extern const Symbol lj_gc_barrierfSym;
+
 	typedef int (*lua_setfenv)(lua_State *L, int idx);
 	extern const Symbol lua_setfenvSym;
 
@@ -157,6 +160,15 @@ namespace Symbols
 
 	typedef const char* (*luaL_checklstring)(lua_State *L, int idx, size_t* len);
 	extern const Symbol luaL_checklstringSym;
+
+	typedef int (*lua_pcall)(lua_State *L, int nArgs, int nRets, int nErrorFunc);
+	extern const Symbol lua_pcallSym;
+
+	typedef void (*lua_insert)(lua_State *L, int idx);
+	extern const Symbol lua_insertSym;
+
+	typedef int (*lua_toboolean)(lua_State *L, int idx);
+	extern const Symbol lua_tobooleanSym;
 
 	extern const std::vector<Symbol> CGetSym;
 	extern const std::vector<Symbol> gEntListSym;

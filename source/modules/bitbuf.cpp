@@ -949,7 +949,7 @@ LUA_FUNCTION_STATIC(bitbuf_CreateStackReadBuffer)
 	pStackLuaData.Init(LUA, Lua::GetLuaData(LUA)->GetMetaEntry(Lua::bf_read), &pNewBf, true, true);
 	pStackLuaData.Push(LUA);
 
-	LUA->CallFunctionProtected(1, 0, true);
+	Lua::GetLuaData(LUA)->FastPCall(1, 0, true);
 	pStackLuaData.Release(LUA);
 
 	return 0;

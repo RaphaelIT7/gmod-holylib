@@ -267,7 +267,7 @@ LuaUserData* Lua::GetHolyLibUserData(GarrysMod::Lua::ILuaInterface * LUA, int nS
 	GCudata* luaData = udataV(val); // Very "safe" I know :3
 	if (luaData->udtype >= GarrysMod::Lua::Type::UserData)
 	{
-		return (LuaUserData*)luaData;
+		return static_cast<LuaUserData*>(static_cast<void*>(luaData));
 	}
 
 	return nullptr;
@@ -457,6 +457,11 @@ void Lua::CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA, bool bNullOut)
 	Lua::StateData* data = new Lua::StateData;
 	data->pLua = LUA;
 	data->pProxy = new CLuaInterfaceProxy(LUA);
+	
+	CLuaInterface* pLua = (CLuaInterface*)LUA;
+	LUA->ReferencePush(pLua->m_nLuaErrorReporter);
+	data->SetErrorFunc();
+
 	*reinterpret_cast<Lua::StateData**>(pathID + 24) = data;
 	g_pLuaStates.insert(data);
 	Msg("holylib - Created thread data %p (%s)\n", data, pathID);

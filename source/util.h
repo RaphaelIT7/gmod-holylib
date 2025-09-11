@@ -296,8 +296,13 @@ namespace Util
 	extern Symbols::lua_touserdata func_lua_touserdata;
 	extern Symbols::lua_type func_lua_type;
 
+	extern Symbols::lua_pcall func_lua_pcall;
+	extern Symbols::lua_insert func_lua_insert;
+	extern Symbols::lua_toboolean func_lua_toboolean;
+
 	// These can be NULL. Why? Because on 64x all the names are mangled making shit far more difficult...
 	extern Symbols::lj_tab_new func_lj_tab_new;
+	extern Symbols::lj_gc_barrierf func_lj_gc_barrierf;
 
 	extern IVEngineServer* engineserver;
 	extern IServerGameClients* servergameclients;

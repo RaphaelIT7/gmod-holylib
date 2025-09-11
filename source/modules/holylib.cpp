@@ -424,6 +424,13 @@ LUA_FUNCTION_STATIC(Test_GetPlayer) // Same as Test_GetEntity though calling Get
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(Test_ClearLuaTable)
+{
+	LuaUserData* pUserData = Lua::GetHolyLibUserData(LUA, 1);
+	pUserData->ClearLuaTable(LUA);
+	return 0;
+}
+
 void CHolyLibModule::LevelShutdown()
 {
 	if (*pLevelName == '\0') {
@@ -473,6 +480,7 @@ void CHolyLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 			Util::AddFunc(pLua, Test_PushEntity, "__PushEntity");
 			Util::AddFunc(pLua, Test_GetEntity, "__GetEntity");
 			Util::AddFunc(pLua, Test_GetPlayer, "__GetPlayer");
+			Util::AddFunc(pLua, Test_ClearLuaTable, "__ClearLuaTable");
 		Util::FinishTable(pLua, "HolyLib");
 	} else {
 		if (Lua::PushHook("HolyLib:Initialize", pLua))
