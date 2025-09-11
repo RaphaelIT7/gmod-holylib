@@ -91,6 +91,26 @@ namespace Util
 		}
 	}
 
+	extern Symbols::luaL_checklstring func_luaL_checklstring;
+	inline const char* CheckLString(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos, size_t* nOutLength)
+	{
+		if (LUA != g_Lua)
+		{
+			return luaL_checklstring(LUA->GetState(), nStackPos, nOutLength);
+		}
+
+		if (func_luaL_checklstring)
+		{
+			return func_luaL_checklstring(LUA->GetState(), nStackPos, nOutLength);
+		} else {
+			const char* pStr = LUA->CheckString(nStackPos);
+			if (nOutLength)
+				*nOutLength = LUA->ObjLen(nStackPos);
+
+			return pStr;
+		}
+	}
+
 	/*
 	 * Why do we have the same code here when CLuaInterface::ReferencePush does exactly the same?
 	 * Because like this we should hopefully skip possibly funny code & the vtable call.

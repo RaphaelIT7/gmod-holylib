@@ -387,8 +387,9 @@ LUA_FUNCTION_STATIC(VoiceData_GetUncompressedData)
 LUA_FUNCTION_STATIC(VoiceData_SetUncompressedData)
 {
 	VoiceData* pData = Get_VoiceData(LUA, 1, true);
-	const char* pUncompressedData = LUA->CheckString(2);
-	int iSize = LUA->ObjLen(2);
+
+	size_t iSize;
+	const char* pUncompressedData = Util::CheckLString(LUA, 2, &iSize);
 
 	ISteamUser* pSteamUser = Util::GetSteamUser();
 	if (!pSteamUser)
@@ -429,8 +430,9 @@ LUA_FUNCTION_STATIC(VoiceData_SetData)
 {
 	VoiceData* pData = Get_VoiceData(LUA, 1, true);
 
-	const char* pStr = LUA->CheckString(2);
-	int iLength = LUA->ObjLen(2);
+	size_t iLength;
+	const char* pStr = Util::CheckLString(LUA, 2, &iLength);
+
 	if (LUA->IsType(3, GarrysMod::Lua::Type::Number))
 	{
 		int iNewLength = (int)LUA->GetNumber(3);
@@ -1954,7 +1956,8 @@ LUA_FUNCTION_STATIC(voicechat_LoadVoiceStreamFromWaveString)
 {
 	LuaVoiceModuleData* pData = GetVoiceChatLuaData(LUA);
 
-	const char* pWaveData = LUA->CheckString(1);
+	size_t pWaveDataLength;
+	const char* pWaveData = Util::CheckLString(LUA, 1, &pWaveDataLength);
 	bool bAsync = LUA->IsType(2, GarrysMod::Lua::Type::Function);
 	bool bPromiseToNeverModify = LUA->GetBool(3);
 
@@ -1963,7 +1966,6 @@ LUA_FUNCTION_STATIC(voicechat_LoadVoiceStreamFromWaveString)
 	task->iType = VoiceStreamTask_LOAD;
 	task->pLua = LUA;
 
-	int pWaveDataLength = LUA->ObjLen(1);
 	if (!bPromiseToNeverModify)
 	{
 		task->pWavFile->Resize(pWaveDataLength);

@@ -174,8 +174,8 @@ inline void StartThread()
 
 LUA_FUNCTION_STATIC(util_AsyncCompress)
 {
-	const char* pData = LUA->CheckString(1);
-	int iLength = LUA->ObjLen(1);
+	size_t iLength;
+	const char* pData = Util::CheckLString(LUA, 1, &iLength);
 	int iLevel = 5;
 	int iDictSize = 65536;
 	int iCallback = -1;
@@ -212,8 +212,8 @@ LUA_FUNCTION_STATIC(util_AsyncCompress)
 
 LUA_FUNCTION_STATIC(util_AsyncDecompress)
 {
-	const char* pData = LUA->CheckString(1);
-	int iLength = LUA->ObjLen(1);
+	size_t iLength;
+	const char* pData = Util::CheckLString(LUA, 1, &iLength);
 	LUA->CheckType(2, GarrysMod::Lua::Type::Function);
 	LUA->Push(2);
 	int iCallback = Util::ReferenceCreate(LUA, "util.AsyncDecompress - Callback");
@@ -535,8 +535,8 @@ LUA_FUNCTION_STATIC(util_JSONToTable)
 
 LUA_FUNCTION_STATIC(util_CompressLZ4)
 {
-	const char* pData = LUA->CheckString(1);
-	int iLength = LUA->ObjLen(1);
+	size_t iLength;
+	const char* pData = Util::CheckLString(LUA, 1, &iLength);
 	int accelerationLevel = (int)LUA->CheckNumberOpt(2, 1);
 
 	void* pDest = NULL;
@@ -556,8 +556,8 @@ LUA_FUNCTION_STATIC(util_CompressLZ4)
 
 LUA_FUNCTION_STATIC(util_DecompressLZ4)
 {
-	const char* pData = LUA->CheckString(1);
-	int iLength = LUA->ObjLen(1);
+	size_t iLength;
+	const char* pData = Util::CheckLString(LUA, 1, &iLength);
 
 	void* pDest = NULL;
 	unsigned int pDestLen = 0;
@@ -715,8 +715,8 @@ LUA_FUNCTION_STATIC(util_AsyncTableToJSON)
 
 /*LUA_FUNCTION_STATIC(util_AsyncDecompress)
 {
-	const char* pData = LUA->CheckString(1);
-	int iLength = LUA->ObjLen(1);
+	size_t iLength;
+	const char* pData = Util::CheckLString(LUA, 1, &iLength);
 	LUA->CheckType(2, GarrysMod::Lua::Type::Function);
 	LUA->Push(2);
 	int iCallback = Util::ReferenceCreate(LUA, "util.AsyncDecompress - Callback");

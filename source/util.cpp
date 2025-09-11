@@ -501,6 +501,7 @@ Symbols::lj_tab_new Util::func_lj_tab_new = nullptr;
 Symbols::lua_setfenv Util::func_lua_setfenv = nullptr;
 Symbols::lua_touserdata Util::func_lua_touserdata = nullptr;
 Symbols::lua_type Util::func_lua_type = nullptr;
+Symbols::luaL_checklstring Util::func_luaL_checklstring = nullptr;
 void Util::AddDetour()
 {
 	if (g_pModuleManager.GetAppFactory())
@@ -607,6 +608,9 @@ void Util::AddDetour()
 
 	func_lua_setfenv = (Symbols::lua_type)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_setfenvSym);
 	Detour::CheckFunction((void*)func_lua_setfenv, "lua_setfenv");
+
+	func_luaL_checklstring = (Symbols::luaL_checklstring)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::luaL_checklstringSym);
+	Detour::CheckFunction((void*)func_luaL_checklstring, "luaL_checklstring");
 
 	if (!func_lua_touserdata || !func_lua_type || !func_lua_setfenv)
 	{

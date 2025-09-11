@@ -476,6 +476,7 @@ void CLuaJITModule::InitDetour(bool bPreServer)
 	Util::func_lua_setfenv = &lua_setfenv;
 	Util::func_lua_touserdata = &lua_touserdata;
 	Util::func_lua_type = &lua_type;
+	Util::func_luaL_checklstring = &luaL_checklstring;
 
 	m_bIsEnabled = true;
 }

@@ -87,6 +87,13 @@ namespace Symbols
 		Symbol::FromName("lua_type"),
 	};
 
+	const std::vector<Symbol> luaL_checklstringSym = {
+		Symbol::FromName("luaL_checklstring"),
+		Symbol::FromName("luaL_checklstring"),
+		Symbol::FromName("luaL_checklstring"),
+		Symbol::FromName("luaL_checklstring"),
+	};
+
 	const std::vector<Symbol> CGetSym = { // 64x ToDo
 		Symbol::FromName("get"),
 	};

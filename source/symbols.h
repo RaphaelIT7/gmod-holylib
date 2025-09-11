@@ -155,6 +155,9 @@ namespace Symbols
 	typedef int (*lua_type)(lua_State *L, int idx);
 	extern const std::vector<Symbol> lua_typeSym;
 
+	typedef const char* (*luaL_checklstring)(lua_State *L, int idx, size_t* len);
+	extern const std::vector<Symbol> luaL_checklstringSym;
+
 	extern const std::vector<Symbol> CGetSym;
 	extern const std::vector<Symbol> gEntListSym;
 

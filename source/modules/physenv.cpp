@@ -2257,8 +2257,10 @@ LUA_FUNCTION_STATIC(physcollide_CollideWrite)
 LUA_FUNCTION_STATIC(physcollide_UnserializeCollide)
 {
 	Get_CPhysCollide(LUA, 1, true);
-	const char* pData = LUA->CheckString(2);
-	int iSize = LUA->ObjLen(2);
+
+	size_t iSize;
+	const char* pData = Util::CheckLString(LUA, 2, &iSize);
+
 	int index = LUA->CheckNumber(3);
 
 	if (!g_pPhysCollide)
