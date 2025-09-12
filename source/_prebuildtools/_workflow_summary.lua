@@ -222,9 +222,9 @@ Previous run: ]] .. previousRun .. "<br>")
 			local diff = funcResults.diffTimePerCall
 			local maxDiff = 0.20 -- It may fluxuate between builds because of different runners/hardware but it shouldn't worsen by more than 20%
 			if diff > (1 + maxDiff) then
-				print("::warning title=" .. funcName .. "::Performance is worse beyond expectation (" .. string.format("%.2fx", diff) .. " slower)")
-			elseif diff < (1 - maxDiff) then
 				print("::notice title=" .. funcName .. "::Performance improved significantly (" .. string.format("%.2fx", 1 / diff) .. " faster)")
+			elseif diff < (1 - maxDiff) then
+				print("::warning title=" .. funcName .. "::Performance is worse beyond expectation (" .. string.format("%.2fx", diff) .. " slower)")
 			end
 
 			table.insert(markdown, "| " .. funcName .. " | " .. funcResults.totalCalls .. " | " .. funcResults.timePerCall .. " | " .. funcResults.diffTimePerCall .. "x |")
