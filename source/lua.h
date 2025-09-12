@@ -250,6 +250,7 @@ namespace Lua
 			return pPushedUserData;
 		}
 
+		// No error handling
 		inline bool FastPCall(int nArgs, int nRets, bool bShowError)
 		{
 			lua_State* L = pLua->GetState();

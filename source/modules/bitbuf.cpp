@@ -932,6 +932,7 @@ LUA_FUNCTION_STATIC(bitbuf_CreateStackReadBuffer)
 	size_t iLength;
 	const char* pData = Util::CheckLString(LUA, 1, &iLength);
 	int iNewLength = CLAMP_BF(iLength);
+	bool bSimpleCall = LUA->GetBool(3);
 
 	// Our stackalloc will be gone after this function finished, so you'll have to provide a callback we can call inside of here.
 	LUA->CheckType(2, GarrysMod::Lua::Type::Function);
@@ -949,7 +950,10 @@ LUA_FUNCTION_STATIC(bitbuf_CreateStackReadBuffer)
 	pStackLuaData.Init(LUA, Lua::GetLuaData(LUA)->GetMetaEntry(Lua::bf_read), &pNewBf, true, true);
 	pStackLuaData.Push(LUA);
 
-	Lua::GetLuaData(LUA)->FastPCall(1, 0, true);
+	if (bSimpleCall)
+		Lua::GetLuaData(LUA)->FastPCall(1, 0, true);
+	else
+		LUA->CallFunctionProtected(1, 0, true);
 	pStackLuaData.Release(LUA);
 
 	return 0;
