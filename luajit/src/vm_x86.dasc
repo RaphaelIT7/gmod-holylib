@@ -4453,6 +4453,9 @@ static void build_ins(BuildCtx *ctx, BCOp op, int defop)
     |  checktab RB, ->vmeta_tsetv
     |  mov TAB:RB, [BASE+RB*8]
     |
+    |  test byte TAB:RB->marked, LJ_GC_READONLY
+    |  jnz ->err_readonly
+    |
     |  // Integer key?
     |.if DUALNUM
     |  checkint RC, >5
@@ -4505,6 +4508,10 @@ static void build_ins(BuildCtx *ctx, BCOp op, int defop)
     |  barrierback TAB:RB, RA
     |  movzx RA, PC_RA			// Restore RA.
     |  jmp <2
+    |->err_readonly:
+    |  mov FCARG1, SAVE_L
+    |  restoreregs
+    |  jmp extern lj_tab_readonly_err@4		// (lua_State *L)
     break;
   case BC_TSETS:
     |  ins_ABC	// RA = src, RB = table, RC = str const (~)
@@ -4512,6 +4519,8 @@ static void build_ins(BuildCtx *ctx, BCOp op, int defop)
     |  mov STR:RC, [KBASE+RC*4]
     |  checktab RB, ->vmeta_tsets
     |  mov TAB:RB, [BASE+RB*8]
+    |  test byte TAB:RB->marked, LJ_GC_READONLY
+    |  jnz ->err_readonly
     |->BC_TSETS_Z:	// RB = GCtab *, RC = GCstr *, refetches PC_RA.
     |  mov RA, TAB:RB->hmask
     |  and RA, STR:RC->sid
@@ -4598,6 +4607,8 @@ static void build_ins(BuildCtx *ctx, BCOp op, int defop)
     |  ins_ABC	// RA = src, RB = table, RC = byte literal
     |  checktab RB, ->vmeta_tsetb
     |  mov TAB:RB, [BASE+RB*8]
+    |  test byte TAB:RB->marked, LJ_GC_READONLY
+    |  jnz ->err_readonly
     |  cmp RC, TAB:RB->asize
     |  jae ->vmeta_tsetb
     |  shl RC, 3
@@ -4636,6 +4647,8 @@ static void build_ins(BuildCtx *ctx, BCOp op, int defop)
   case BC_TSETR:
     |  ins_ABC	// RA = src, RB = table, RC = key
     |  mov TAB:RB, [BASE+RB*8]
+    |  test byte TAB:RB->marked, LJ_GC_READONLY
+    |  jnz ->err_readonly
     |.if DUALNUM
     |  mov RC, dword [BASE+RC*8]
     |.else
@@ -4674,6 +4687,8 @@ static void build_ins(BuildCtx *ctx, BCOp op, int defop)
     |1:
     |  lea RA, [BASE+RA*8]
     |  mov TAB:RB, [RA-8]		// Guaranteed to be a table.
+    |  test byte TAB:RB->marked, LJ_GC_READONLY
+    |  jnz ->err_readonly
     |  test byte TAB:RB->marked, LJ_GC_BLACK	// isblack(table)
     |  jnz >7
     |2:

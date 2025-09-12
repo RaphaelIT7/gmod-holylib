@@ -3141,6 +3141,9 @@ static void build_ins(BuildCtx *ctx, BCOp op, int defop)
     |  ldr CARG2, [BASE, RB, lsl #3]
     |   ldr TMP1, [BASE, RC, lsl #3]
     |  checktab CARG2, ->vmeta_tsetv
+    |  ldrb TMP0w, TAB:CARG2->marked
+    |  tbz TMP0w, #LJ_GC_READONLY_SHIFT, >1
+    |  b ->err_readonly
     |  checkint TMP1, >9		// Integer key?
     |  ldr CARG3, TAB:CARG2->array
     |   ldr CARG1w, TAB:CARG2->asize
@@ -3175,6 +3178,10 @@ static void build_ins(BuildCtx *ctx, BCOp op, int defop)
     |  bne ->vmeta_tsetv
     |   and STR:RC, TMP1, #LJ_GCVMASK
     |  b ->BC_TSETS_Z
+    |->err_readonly:
+    |  mov CARG1, SAVE_L
+    |  restoreregs
+    |  bl extern lj_tab_readonly_err		// (lua_State *L)
     break;
   case BC_TSETS:
     |  decode_RB RB, INS
@@ -3184,6 +3191,9 @@ static void build_ins(BuildCtx *ctx, BCOp op, int defop)
     |   mvn RC, RC
     |   ldr STR:RC, [KBASE, RC, lsl #3]
     |  checktab CARG2, ->vmeta_tsets1
+    |  ldrb TMP0w, TAB:CARG2->marked
+    |  tbz TMP0w, #LJ_GC_READONLY_SHIFT, >1
+    |  b ->err_readonly
     |->BC_TSETS_Z:
     |  // TAB:CARG2 = GCtab *, STR:RC = GCstr *, RA = src
     |  ldr TMP1w, TAB:CARG2->hmask
@@ -3253,6 +3263,9 @@ static void build_ins(BuildCtx *ctx, BCOp op, int defop)
     |  // RA = src, RB = table, RC = index
     |  ldr CARG2, [BASE, RB, lsl #3]
     |  checktab CARG2, ->vmeta_tsetb
+    |  ldrb TMP0w, TAB:CARG2->marked
+    |  tbz TMP0w, #LJ_GC_READONLY_SHIFT, >1
+    |  b ->err_readonly
     |  ldr CARG3, TAB:CARG2->array
     |   ldr CARG1w, TAB:CARG2->asize
     |  add CARG3, CARG3, RC, lsl #3
@@ -3287,6 +3300,9 @@ static void build_ins(BuildCtx *ctx, BCOp op, int defop)
     |  ldr CARG2, [BASE, RB, lsl #3]
     |   ldr TMP1, [BASE, RC, lsl #3]
     |  and TAB:CARG2, CARG2, #LJ_GCVMASK
+    |  ldrb TMP0w, TAB:CARG2->marked
+    |  tbz TMP0w, #LJ_GC_READONLY_SHIFT, >1
+    |  b ->err_readonly
     |  ldr CARG1, TAB:CARG2->array
     |    ldrb TMP2w, TAB:CARG2->marked
     |   ldr CARG4w, TAB:CARG2->asize
@@ -3311,6 +3327,9 @@ static void build_ins(BuildCtx *ctx, BCOp op, int defop)
     |1:
     |   ldr RBw, SAVE_MULTRES
     |  ldr TAB:CARG2, [RA, #-8]		// Guaranteed to be a table.
+    |  ldrb TMP0w, TAB:CARG2->marked
+    |  tbz TMP0w, #LJ_GC_READONLY_SHIFT, >1
+    |  b ->err_readonly
     |   ldr TMP1, [KBASE, RC, lsl #3]	// Integer constant is in lo-word.
     |    sub RB, RB, #8
     |    cbz RB, >4			// Nothing to copy?

@@ -730,3 +730,9 @@ int LJ_FASTCALL lj_tab_isreadonly(GCtab *t)
 {
   return isreadonly(t);
 }
+
+LJ_FUNCA_NORET void LJ_FASTCALL lj_tab_readonly_err(lua_State *L)
+{
+  setstrV(L, L->top++, lj_err_str(L, LJ_ERR_READONLY));
+  lj_err_throw(L, LJ_ERR_READONLY);
+}
