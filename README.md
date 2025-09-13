@@ -79,7 +79,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [+] Added `voicechat.LoadVoiceStreamFromWaveString`, `voicechat.ApplyEffect`, `voicechat.IsPlayerTalking` & `voicechat.LastPlayerTalked` to the `voicechat` module.<br>
 \- [+] Added `VoiceStream:ResetTick`, `VoiceStream:GetNextTick`, `VoiceStream:GetCurrentTick`, `VoiceStream:GetPreviousTick` to the `voicechat` module.<br>
 \- [+] Added `util.FancyJSONToTable` & `util.AsyncTableToJSON` to the `util` module.<br>
-\- [+] Added `gameserver.GetClientByUserID` to the `gameserver` module.<br>
+\- [+] Added `gameserver.GetClientByUserID` & `gameserver.GetClientBySteamID` to the `gameserver` module.<br>
 \- [+] Added a config system allowing one to set convars without using the command line.<br>
 \- [+] Added `IPhysicsEnvironment:SetInSimulation` to the `physenv` module.<br>
 \- [+] Added `HttpResponse:SetStatusCode` to `httpserver` module. (See https://github.com/RaphaelIT7/gmod-holylib/pull/62)<br>

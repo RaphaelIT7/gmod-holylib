@@ -3675,6 +3675,9 @@ static void build_ins(BuildCtx *ctx, BCOp op, int defop)
     |  ldrd TAB:CARG12, [BASE, RB]
     |   ldrd CARG34, [BASE, RC]
     |  checktab CARG2, ->vmeta_tsetv  // STALL: load CARG12.
+    |  ldrb TMP0w, TAB:CARG1->marked
+    |  tbnz TMP0w, #7, ->err_readonly // #7 = 0x80 for the LJ_GC_READONLY flag
+    |  b ->err_readonly
     |   checktp CARG4, LJ_TISNUM	// Integer key?
     |  ldreq CARG2, TAB:CARG1->array
     |    ldreq CARG4, TAB:CARG1->asize
@@ -3718,6 +3721,10 @@ static void build_ins(BuildCtx *ctx, BCOp op, int defop)
     |   moveq STR:RC, CARG3
     |  beq ->BC_TSETS_Z
     |  b ->vmeta_tsetv
+    |->err_readonly:
+    |  mov CARG1, SAVE_L
+    |  restoreregs
+    |  bl extern lj_tab_readonly_err		// (lua_State *L)
     break;
   case BC_TSETS:
     |  decode_RB8 RB, INS
@@ -3727,6 +3734,8 @@ static void build_ins(BuildCtx *ctx, BCOp op, int defop)
     |   mvn RC, RC
     |   ldr STR:RC, [KBASE, RC, lsl #2]  // STALL: early RC.
     |  checktab CARG2, ->vmeta_tsets1
+    |  ldrb TMP0w, TAB:CARG1->marked
+    |  tbnz TMP0w, #7, ->err_readonly // #7 = 0x80 for the LJ_GC_READONLY flag
     |->BC_TSETS_Z:
     |  // (TAB:RB =) TAB:CARG1 = GCtab *, STR:RC = GCstr *, RA = dst*8
     |  ldr CARG3, TAB:CARG1->hmask
@@ -3803,6 +3812,8 @@ static void build_ins(BuildCtx *ctx, BCOp op, int defop)
     |  // RA = src*8, RB = table*8, RC = index
     |  ldrd CARG12, [BASE, RB]
     |  checktab CARG2, ->vmeta_tsetb  // STALL: load CARG12.
+    |  ldrb TMP0w, TAB:CARG1->marked
+    |  tbnz TMP0w, #7, ->err_readonly // #7 = 0x80 for the LJ_GC_READONLY flag
     |   ldr CARG3, TAB:CARG1->asize
     |  ldr RB, TAB:CARG1->array
     |  lsl CARG2, RC, #3
@@ -3842,6 +3853,8 @@ static void build_ins(BuildCtx *ctx, BCOp op, int defop)
     |   decode_RC8 RC, INS
     |  // RA = src*8, RB = table*8, RC = key*8
     |  ldr TAB:CARG2, [BASE, RB]
+    |  ldrb TMP0w, TAB:CARG1->marked
+    |  tbnz TMP0w, #7, ->err_readonly // #7 = 0x80 for the LJ_GC_READONLY flag
     |   ldr CARG3, [BASE, RC]
     |     ldrb INS, TAB:CARG2->marked
     |  ldr CARG1, TAB:CARG2->array
@@ -3870,6 +3883,8 @@ static void build_ins(BuildCtx *ctx, BCOp op, int defop)
     |1:
     |   ldr RB, SAVE_MULTRES
     |  ldr TAB:CARG2, [RA, #-8]		// Guaranteed to be a table.
+    |  ldrb TMP0w, TAB:CARG1->marked
+    |  tbnz TMP0w, #7, ->err_readonly // #7 = 0x80 for the LJ_GC_READONLY flag
     |  ldr CARG1, [KBASE, RC, lsl #3]	// Integer constant is in lo-word.
     |   subs RB, RB, #8
     |  ldr CARG4, TAB:CARG2->asize

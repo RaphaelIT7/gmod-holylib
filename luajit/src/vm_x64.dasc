@@ -3783,6 +3783,9 @@ static void build_ins(BuildCtx *ctx, BCOp op, int defop)
     |  mov RC, [BASE+RC*8]
     |  checktab TAB:RB, ->vmeta_tsetv
     |
+    |  test byte TAB:RB->marked, LJ_GC_READONLY
+    |  jnz ->err_readonly
+    |
     |  // Integer key?
     |.if DUALNUM
     |  checkint RC, >5
@@ -3825,6 +3828,10 @@ static void build_ins(BuildCtx *ctx, BCOp op, int defop)
     |7:  // Possible table write barrier for the value. Skip valiswhite check.
     |  barrierback TAB:RB, TMPR
     |  jmp <2
+    |->err_readonly:
+    |  mov CARG1, SAVE_L
+    |  restoreregs
+    |  jmp extern lj_tab_readonly_err		// (lua_State *L)
     break;
   case BC_TSETS:
     |  ins_ABC	// RA = src, RB = table, RC = str const (~)
@@ -3832,6 +3839,8 @@ static void build_ins(BuildCtx *ctx, BCOp op, int defop)
     |  not RC
     |  mov STR:RC, [KBASE+RC*8]
     |  checktab TAB:RB, ->vmeta_tsets
+    |  test byte TAB:RB->marked, LJ_GC_READONLY
+    |  jnz ->err_readonly
     |->BC_TSETS_Z:	// RB = GCtab *, RC = GCstr *
     |  mov TMPRd, TAB:RB->hmask
     |  and TMPRd, STR:RC->sid
@@ -3896,6 +3905,8 @@ static void build_ins(BuildCtx *ctx, BCOp op, int defop)
     |  ins_ABC	// RA = src, RB = table, RC = byte literal
     |  mov TAB:RB, [BASE+RB*8]
     |  checktab TAB:RB, ->vmeta_tsetb
+    |  test byte TAB:RB->marked, LJ_GC_READONLY
+    |  jnz ->err_readonly
     |  cmp RCd, TAB:RB->asize
     |  jae ->vmeta_tsetb
     |  shl RCd, 3
@@ -3926,6 +3937,8 @@ static void build_ins(BuildCtx *ctx, BCOp op, int defop)
     |  ins_ABC	// RA = src, RB = table, RC = key
     |  mov TAB:RB, [BASE+RB*8]
     |  cleartp TAB:RB
+    |  test byte TAB:RB->marked, LJ_GC_READONLY
+    |  jnz ->err_readonly
     |.if DUALNUM
     |  mov RC, [BASE+RC*8]
     |.else
@@ -3956,6 +3969,8 @@ static void build_ins(BuildCtx *ctx, BCOp op, int defop)
     |  lea RA, [BASE+RA*8]
     |  mov TAB:RB, [RA-8]		// Guaranteed to be a table.
     |  cleartp TAB:RB
+    |  test byte TAB:RB->marked, LJ_GC_READONLY
+    |  jnz ->err_readonly
     |  test byte TAB:RB->marked, LJ_GC_BLACK	// isblack(table)
     |  jnz >7
     |2:
