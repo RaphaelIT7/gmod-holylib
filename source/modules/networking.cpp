@@ -1997,3 +1997,100 @@ void CNetworkingModule::Shutdown()
 		pPackedEntity->m_pChangeFrameList = detour_AllocChangeFrameList.GetTrampoline<Symbols::AllocChangeFrameList>()(pPackedEntity->m_pServerClass->m_pTable->m_pPrecalc->m_Props.Count(), gpGlobals->tickcount);
 	}*/
 }
+
+static void DumpDT(const CCommand &args)
+{
+	g_pFullFileSystem->CreateDirHierarchy("holylib/dump/dt/", "MOD");
+
+	std::string baseFilePath = "holylib/dump/dt/";
+	int nClassIndex = 0;
+	for(ServerClass *serverclass = Util::servergamedll->GetAllServerClasses(); serverclass->m_pNext != nullptr; serverclass = serverclass->m_pNext) {
+		std::string fileName = baseFilePath;
+		fileName.append(std::to_string(++nClassIndex));
+		fileName.append("_");
+		fileName.append(serverclass->GetName());
+		fileName.append(".txt");
+
+		FileHandle_t pHandle = g_pFullFileSystem->Open(fileName.c_str(), "wb", "MOD");
+		if (!pHandle)
+		{
+			Warning(PROJECT_NAME " - DumpDT: Failed to open \"%s\" for dump!\n", fileName.c_str());
+			continue;
+		}
+
+		char strNewLine = '\n';
+		for (int i = 0; i < serverclass->m_pTable->GetNumProps(); i++) {
+			SendProp* pProp = serverclass->m_pTable->GetProp(i);
+			
+			std::string pIndex = "Index: ";
+			pIndex.append(std::to_string(i));
+
+			std::string pName = "PropName: ";
+			pName.append(pProp->GetName());
+
+			std::string pExcludeDTName = "ExcludeName: ";
+			pExcludeDTName.append(pProp->GetExcludeDTName() != NULL ? pProp->GetExcludeDTName() : "NULL");
+
+			std::string pFlags = "Flags: ";
+			pFlags.append(std::to_string(pProp->GetFlags()));
+
+			std::string pType = "Type: ";
+			switch (pProp->GetType())
+			{
+			case SendPropType::DPT_Int:
+				pType.append("DPT_Int");
+				break;
+			case SendPropType::DPT_Float:
+				pType.append("DPT_Float");
+				break;
+			case SendPropType::DPT_Vector:
+				pType.append("DPT_Vector");
+				break;
+			case SendPropType::DPT_VectorXY:
+				pType.append("DPT_VectorXY");
+				break;
+			case SendPropType::DPT_String:
+				pType.append("DPT_String");
+				break;
+			case SendPropType::DPT_Array:
+				pType.append("DPT_Array");
+				break;
+			case SendPropType::DPT_DataTable:
+				pType.append("DPT_DataTable");
+				break;
+			case SendPropType::DPT_GMODTable:
+				pType.append("DPT_GMODTable");
+				break;
+			default:
+				pType.append("UNKNOWN(");
+				pType.append(std::to_string(pProp->GetType()));
+				pType.append(")");
+			}
+
+			std::string pElemets = "NumElement: ";
+			pElemets.append(std::to_string(pProp->GetNumElements()));
+
+			g_pFullFileSystem->Write(pIndex.c_str(), pIndex.length(), pHandle);
+			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
+
+			g_pFullFileSystem->Write(pName.c_str(), pName.length(), pHandle);
+			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
+
+			g_pFullFileSystem->Write(pExcludeDTName.c_str(), pExcludeDTName.length(), pHandle);
+			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
+
+			g_pFullFileSystem->Write(pFlags.c_str(), pFlags.length(), pHandle);
+			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
+
+			g_pFullFileSystem->Write(pType.c_str(), pType.length(), pHandle);
+			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
+
+			g_pFullFileSystem->Write(pElemets.c_str(), pElemets.length(), pHandle);
+			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
+			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
+		}
+
+		g_pFullFileSystem->Close(pHandle);
+	}
+}
+static ConCommand dumpdt("holylib_networking_dumpdt", DumpDT, "Dumps a lot of DT into into the holylib/dumps/dt.txt file", 0);
