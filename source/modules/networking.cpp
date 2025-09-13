@@ -712,7 +712,7 @@ void hook_SendTable_WritePropList(
 			int offset = offset_data[propid].offset;
 			if (offset == 0 || offset == PROP_WRITE_OFFSET_ABSENT)
 				continue;
-                
+				
 
 			deltaBitsWriter.WritePropIndex(propid);
 
@@ -2006,7 +2006,7 @@ static void DumpDT(const CCommand &args)
 	int nClassIndex = 0;
 	for(ServerClass *serverclass = Util::servergamedll->GetAllServerClasses(); serverclass->m_pNext != nullptr; serverclass = serverclass->m_pNext) {
 		std::string fileName = baseFilePath;
-		fileName.append(std::to_string(++nClassIndex));
+		fileName.append(std::to_string(nClassIndex++));
 		fileName.append("_");
 		fileName.append(serverclass->GetName());
 		fileName.append(".txt");
@@ -2091,6 +2091,21 @@ static void DumpDT(const CCommand &args)
 		}
 
 		g_pFullFileSystem->Close(pHandle);
+
+		FileHandle_t pFullList = g_pFullFileSystem->Open("holylib/dump/dt/fulllist.dt", "wb", "MOD");
+		if (pFullList)
+		{
+			nClassIndex = 0;
+			for(ServerClass *serverclass = Util::servergamedll->GetAllServerClasses(); serverclass->m_pNext != nullptr; serverclass = serverclass->m_pNext) {
+				std::string pName = serverclass->GetName();
+				pName.append(" = ");
+				pName.append(std::to_string(nClassIndex++));
+				g_pFullFileSystem->Write(pName.c_str(), pName.length(), pFullList);
+				g_pFullFileSystem->Write(&strNewLine, 1, pFullList);
+			}
+
+			g_pFullFileSystem->Close(pFullList);
+		}
 	}
 }
 static ConCommand dumpdt("holylib_networking_dumpdt", DumpDT, "Dumps a lot of DT into into the holylib/dumps/dt.txt file", 0);
