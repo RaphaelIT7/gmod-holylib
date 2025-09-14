@@ -210,6 +210,7 @@ CPhysicsObject::~CPhysicsObject( void )
 
 		if (pSurman)
 		{
+			Msg("Deleting surf manager %p\n", pSurman);
 			delete pSurman;
 		}
 	}
