@@ -110,20 +110,42 @@ local mt = {
         return a.x == b.x and a.y == b.y and a.z == b.z
     end,
     __add = function(a, b)
-        check_ang(b, 2)
+        if type(a) == "Angle" then
+            check_ang(b, 2)
+        else
+            check_ang(a, 1)
+        end
         return Angle(a.x + b.x, a.y + b.y, a.z + b.z)
     end,
     __sub = function(a, b)
-        check_ang(b, 2)
+        if type(a) == "Angle" then
+            check_ang(b, 2)
+        else
+            check_ang(a, 1)
+        end
         return Angle(a.x - b.x, a.y - b.y, a.z - b.z)
     end,
     __mul = function(a, b)
-        local x, y, z = check_ang_or_num(b, 2)
-        return Angle(a.x * x, a.y * y, a.z * z)
+        local ang = a
+        local x, y, z
+        if type(a) == "Angle" then
+            x, y, z = check_ang_or_num(b, 2)
+        else
+            ang = b
+            x, y, z = check_ang_or_num(a, 1)
+        end
+        return Angle(ang.x * x, ang.y * y, ang.z * z)
     end,
     __div = function(a, b)
-        local x, y, z = check_ang_or_num(b, 2)
-        return Angle(a.x / x, a.y / y, a.z / z)
+        local ang = a
+        local x, y, z
+        if type(a) == "Angle" then
+            x, y, z = check_ang_or_num(b, 2)
+        else
+            ang = b
+            x, y, z = check_ang_or_num(a, 1)
+        end
+        return Angle(ang.x / x, ang.y / y, ang.z / z)
     end,
     __unm = function(a)
         return Angle(-a.x, -a.y, -a.z)
