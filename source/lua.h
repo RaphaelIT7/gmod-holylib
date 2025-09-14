@@ -160,9 +160,9 @@ namespace Lua
 		{
 			lua_State* L = pLua->GetState();
 			TValue* pVal = RawLua::index2adr(L, -1);
-			if (!tvistab(pVal))
+			if (!tvisfunc(pVal))
 			{
-				Warning(PROJECT_NAME " - RegisterMetaTable: MetaTable is NOT a table?!? What the heck!\n");
+				Warning(PROJECT_NAME " - SetErrorFunc: -1 stack pos is NOT a function?!? What the heck!\n");
 				pLua->Pop(1);
 				return;
 			}
