@@ -67,6 +67,7 @@ local function check_ang(value, arg_num, is_optional)
     return expect(value, "Angle", arg_num, is_optional)
 end
 
+
 local function check_vec_or_num(value, arg_num, is_optional)
     local t = type(value)
     if t == "Vector" then
@@ -109,26 +110,48 @@ local mt = {
         end
     end,
     __eq = function(a, b)
-        if type(b) ~= "Vector" then
+        if type(b) ~= "Vector" or type(a) ~= "Vector" then
             return false
         end
         return a.x == b.x and a.y == b.y and a.z == b.z
     end,
     __add = function(a, b)
-        check_vec(b, 2)
+        if type(a) == "Vector" then
+            check_vec(b, 2)
+        else
+            check_vec(a, 1)
+        end
         return Vector(a.x + b.x, a.y + b.y, a.z + b.z)
     end,
     __sub = function(a, b)
-        check_vec(b, 2)
+        if type(a) == "Vector" then
+            check_vec(b, 2)
+        else
+            check_vec(a, 1)
+        end
         return Vector(a.x - b.x, a.y - b.y, a.z - b.z)
     end,
     __mul = function(a, b)
-        local x, y, z = check_vec_or_num(b, 2)
-        return Vector(a.x * x, a.y * y, a.z * z)
+        local vec = a
+        local x, y, z
+        if type(a) == "Vector" then
+            x, y, z = check_vec_or_num(b, 2)
+        else
+            vec = b
+            x, y, z = check_vec_or_num(a, 1)
+        end
+        return Vector(vec.x * x, vec.y * y, vec.z * z)
     end,
     __div = function(a, b)
-        local x, y, z = check_vec_or_num(b, 2)
-        return Vector(a.x / x, a.y / y, a.z / z)
+        local vec = a
+        local x, y, z
+        if type(a) == "Vector" then
+            x, y, z = check_vec_or_num(b, 2)
+        else
+            vec = b
+            x, y, z = check_vec_or_num(a, 1)
+        end
+        return Vector(vec.x / x, vec.y / y, vec.z / z)
     end,
     __unm = function(a)
         return Vector(-a.x, -a.y, -a.z)

@@ -137,6 +137,13 @@ namespace Symbols
 	typedef void (*CCollisionProperty_MarkSurroundingBoundsDirty)(void* fancy_class);
 	extern const std::vector<Symbol> CCollisionProperty_MarkSurroundingBoundsDirtySym;
 
+	/*
+		NOTE FOR LUAJIT SYMBOLS
+
+		When we load any functions like lua_ or lj_ we NEED to also update the luajit module (luajit.cpp) to update the pointer when the module is enabled.
+		This is because else we might call the loaded function from Gmod when in reality our luajit build has taken over which would cause a crash!
+	*/
+
 	typedef void (*lua_rawseti)(lua_State* L, int index, int i);
 	extern const Symbol lua_rawsetiSym;
 
