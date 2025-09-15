@@ -369,6 +369,9 @@ static void WriteSearchCache()
 static std::unordered_map<std::string_view, std::unordered_map<std::string_view, std::string_view>> g_pAbsoluteSearchCache;
 inline std::string_view* GetStringFromAbsoluteCache(std::string_view fileName, std::string_view pathID)
 {
+	if (!pathID)
+		pathID = nullPath;
+
 	auto pathIT = g_pAbsoluteSearchCache.find(pathID);
 	if (pathIT == g_pAbsoluteSearchCache.end())
 		return NULL;
