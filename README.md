@@ -126,6 +126,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [#] Fixed possible memory leaks when using `bf_read` and `bf_write`<br>
 \- [#] Tried to improve out of memory handling of `bitbuf.Create[Read/Write]Buffer` and `bf_read:ReadString()` functions<br>
 \- [#] Fixed a regression with `util.FancyTableToJSON` crashing with the `0.8-pre` build when it falsely tried to become sequential while being already non-sequential. (Reported by @Noahbg)<br>
+\- [#] Fixed absolute search cache causing files from any search path to be returned / destroying seperation between search paths (See https://github.com/RaphaelIT7/gmod-holylib/issues/83)<br>
 \- [-] Removed some unused code of former fixes that were implemented into Gmod<br>
 
 You can see all changes/commits here:<br>
