@@ -367,16 +367,19 @@ static void WriteSearchCache()
 }
 
 static std::unordered_map<std::string_view, std::unordered_map<std::string_view, std::string_view>> g_pAbsoluteSearchCache;
-inline std::string_view* GetStringFromAbsoluteCache(std::string_view fileName, std::string_view pathID)
+inline std::string_view* GetStringFromAbsoluteCache(const char* fileName, const char* pathID)
 {
 	if (!pathID)
 		pathID = nullPath;
+
+	if (!fileName)
+		return NULL; // ??? can this even happen?
 
 	auto pathIT = g_pAbsoluteSearchCache.find(pathID);
 	if (pathIT == g_pAbsoluteSearchCache.end())
 		return NULL;
 
-	auto it = pathIT->second.find(pathID);
+	auto it = pathIT->second.find(fileName);
 	if (it == pathIT->second.end())
 		return NULL;
 
