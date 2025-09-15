@@ -1437,7 +1437,7 @@ static void UpdatePlayerTalkingState(CBasePlayer* pPlayer, bool bIsTalking = fal
 	}
 
 	ConVarRef sv_alltalk("sv_alltalk");
-	bool bAllTalk = !!sv_alltalk.GetInt();
+	bool bAllTalk = sv_alltalk.GetBool();
 
 	CPlayerBitVec gameRulesMask;
 	CPlayerBitVec ProximityMask;

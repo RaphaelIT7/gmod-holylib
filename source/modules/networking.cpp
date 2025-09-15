@@ -2025,17 +2025,32 @@ static void DumpDT(const CCommand &args)
 			std::string pIndex = "Index: ";
 			pIndex.append(std::to_string(i));
 
+			g_pFullFileSystem->Write(pIndex.c_str(), pIndex.length(), pHandle);
+			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
+
 			std::string pName = "PropName: ";
 			pName.append(pProp->GetName());
+
+			g_pFullFileSystem->Write(pName.c_str(), pName.length(), pHandle);
+			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
 
 			std::string pExcludeDTName = "ExcludeName: ";
 			pExcludeDTName.append(pProp->GetExcludeDTName() != NULL ? pProp->GetExcludeDTName() : "NULL");
 
+			g_pFullFileSystem->Write(pExcludeDTName.c_str(), pExcludeDTName.length(), pHandle);
+			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
+
 			std::string pFlags = "Flags: ";
 			pFlags.append(std::to_string(pProp->GetFlags()));
 
+			g_pFullFileSystem->Write(pFlags.c_str(), pFlags.length(), pHandle);
+			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
+
 			std::string pDataTableName = "Inherited: ";
 			pDataTableName.append((pProp->GetType() == SendPropType::DPT_DataTable && pProp->GetDataTable()) ? pProp->GetDataTable()->GetName() : "NONE");
+
+			g_pFullFileSystem->Write(pDataTableName.c_str(), pDataTableName.length(), pHandle);
+			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
 
 			std::string pType = "Type: ";
 			switch (pProp->GetType())
@@ -2070,26 +2085,33 @@ static void DumpDT(const CCommand &args)
 				pType.append(")");
 			}
 
-			std::string pElemets = "NumElement: ";
-			pElemets.append(std::to_string(pProp->GetNumElements()));
-
-			g_pFullFileSystem->Write(pIndex.c_str(), pIndex.length(), pHandle);
-			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
-
-			g_pFullFileSystem->Write(pName.c_str(), pName.length(), pHandle);
-			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
-
-			g_pFullFileSystem->Write(pExcludeDTName.c_str(), pExcludeDTName.length(), pHandle);
-			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
-
-			g_pFullFileSystem->Write(pFlags.c_str(), pFlags.length(), pHandle);
-			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
-
 			g_pFullFileSystem->Write(pType.c_str(), pType.length(), pHandle);
 			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
 
+			std::string pElemets = "NumElement: ";
+			pElemets.append(std::to_string(pProp->GetNumElements()));
+
 			g_pFullFileSystem->Write(pElemets.c_str(), pElemets.length(), pHandle);
 			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
+
+			std::string pBits = "Bits: ";
+			pBits.append(std::to_string(pProp->m_nBits));
+
+			g_pFullFileSystem->Write(pBits.c_str(), pBits.length(), pHandle);
+			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
+
+			std::string pHighValue = "HighValue: ";
+			pHighValue.append(std::to_string(pProp->m_fHighValue));
+
+			g_pFullFileSystem->Write(pHighValue.c_str(), pHighValue.length(), pHandle);
+			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
+
+			std::string pLowValue = "LowValue: ";
+			pLowValue.append(std::to_string(pProp->m_fLowValue));
+
+			g_pFullFileSystem->Write(pLowValue.c_str(), pLowValue.length(), pHandle);
+			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
+
 			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
 		}
 
