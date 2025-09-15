@@ -2034,6 +2034,9 @@ static void DumpDT(const CCommand &args)
 			std::string pFlags = "Flags: ";
 			pFlags.append(std::to_string(pProp->GetFlags()));
 
+			std::string pDataTableName = "Inherited: ";
+			pDataTableName.append((pProp->GetType() == SendPropType::DPT_DataTable && pProp->GetDataTable()) ? pProp->GetDataTable()->GetName() : "NONE");
+
 			std::string pType = "Type: ";
 			switch (pProp->GetType())
 			{

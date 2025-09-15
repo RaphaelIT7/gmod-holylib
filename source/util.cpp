@@ -850,13 +850,15 @@ static void CreateDebugDump(const CCommand &args)
 
 		if (Util::get)
 		{
-			pInformation.EnsureChildVar<Bootil::BString>("version", Util::get->VersionStr());
-			pInformation.EnsureChildVar<Bootil::BString>("versionTime", Util::get->VersionTimeStr());
-			pInformation.EnsureChildVar<Bootil::BString>("branch", Util::get->SteamBranch());
+			Bootil::Data::Tree& pGmodInformation = pData.GetChild("gmod");
+			pGmodInformation.EnsureChildVar<Bootil::BString>("version", Util::get->VersionStr());
+			pGmodInformation.EnsureChildVar<Bootil::BString>("versionTime", Util::get->VersionTimeStr());
+			pGmodInformation.EnsureChildVar<Bootil::BString>("branch", Util::get->SteamBranch());
 		}
 
 		// Dump all holylib convars.
 		{
+			Bootil::Data::Tree& pConVars = pData.GetChild("convars");
 		#if ARCHITECTURE_IS_X86_64
 			ICvar::Iterator iter(g_pCVar);
 			for ( iter.SetFirst() ; iter.IsValid() ; iter.Next() )
@@ -869,10 +871,27 @@ static void CreateDebugDump(const CCommand &args)
 				if (!pCommand->IsCommand() && pCommand->GetDLLIdentifier() == *ConVar_GetDLLIdentifier())
 				{
 					ConVar* pConVar = (ConVar*)pCommand;
-					Bootil::Data::Tree& pEntry = pData.GetChild("convars").GetChild(pConVar->GetName());
+					Bootil::Data::Tree& pEntry = pConVars.GetChild(pConVar->GetName());
 					pEntry.EnsureChildVar<Bootil::BString>("value", pConVar->GetString());
 				}
 			}
+		}
+
+		// Dump detour information
+		{
+			Bootil::Data::Tree& pDetours = pData.GetChild("detours");
+
+			Bootil::Data::Tree& pLoadedDetours = pDetours.GetChild("loaded");
+			for (auto& pName : Detour::GetLoadedDetours())
+				pLoadedDetours.EnsureChildVar<bool>(pName, true);
+
+			Bootil::Data::Tree& pFailedDetours = pDetours.GetChild("failed");
+			for (auto& pName : Detour::GetFailedDetours())
+				pFailedDetours.EnsureChildVar<bool>(pName, true);
+
+			Bootil::Data::Tree& pDisabledDetours = pDetours.GetChild("disabled");
+			for (auto& pName : Detour::GetDisabledDetours())
+				pDisabledDetours.EnsureChildVar<bool>(pName, true);
 		}
 
 		pDebugDump->Save();
