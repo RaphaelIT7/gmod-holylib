@@ -1997,7 +1997,7 @@ void CNetworkingModule::Shutdown()
 		pPackedEntity->m_pChangeFrameList = detour_AllocChangeFrameList.GetTrampoline<Symbols::AllocChangeFrameList>()(pPackedEntity->m_pServerClass->m_pTable->m_pPrecalc->m_Props.Count(), gpGlobals->tickcount);
 	}*/
 }
-
+#define APPEND_IF_PFLAGS_CONTAINS_SPROP(sprop) if(flags & SPROP_##sprop) pFlags.append(" " #sprop)
 static void DumpDT(const CCommand &args)
 {
 	g_pFullFileSystem->CreateDirHierarchy("holylib/dump/dt/", "MOD");
@@ -2040,9 +2040,29 @@ static void DumpDT(const CCommand &args)
 			g_pFullFileSystem->Write(pExcludeDTName.c_str(), pExcludeDTName.length(), pHandle);
 			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
 
-			std::string pFlags = "Flags: ";
-			pFlags.append(std::to_string(pProp->GetFlags()));
-
+			std::string pFlags = "Flags:";
+			int flags = pProp->GetFlags();
+			if(flags == 0)
+				pFlags.append(" None");
+			else{
+				APPEND_IF_PFLAGS_CONTAINS_SPROP(UNSIGNED);
+				APPEND_IF_PFLAGS_CONTAINS_SPROP(COORD);
+				APPEND_IF_PFLAGS_CONTAINS_SPROP(NOSCALE);
+				APPEND_IF_PFLAGS_CONTAINS_SPROP(ROUNDDOWN);
+				APPEND_IF_PFLAGS_CONTAINS_SPROP(ROUNDUP);
+				APPEND_IF_PFLAGS_CONTAINS_SPROP(NORMAL);
+				APPEND_IF_PFLAGS_CONTAINS_SPROP(EXCLUDE);
+				APPEND_IF_PFLAGS_CONTAINS_SPROP(XYZE);
+				APPEND_IF_PFLAGS_CONTAINS_SPROP(INSIDEARRAY);
+				APPEND_IF_PFLAGS_CONTAINS_SPROP(PROXY_ALWAYS_YES);
+				APPEND_IF_PFLAGS_CONTAINS_SPROP(CHANGES_OFTEN);
+				APPEND_IF_PFLAGS_CONTAINS_SPROP(IS_A_VECTOR_ELEM);
+				APPEND_IF_PFLAGS_CONTAINS_SPROP(COORD_MP);
+				APPEND_IF_PFLAGS_CONTAINS_SPROP(COORD_MP_LOWPRECISION);
+				APPEND_IF_PFLAGS_CONTAINS_SPROP(COORD_MP_INTEGRAL);
+				APPEND_IF_PFLAGS_CONTAINS_SPROP(VARINT);
+				APPEND_IF_PFLAGS_CONTAINS_SPROP(ENCODED_AGAINST_TICKCOUNT);
+			}
 			g_pFullFileSystem->Write(pFlags.c_str(), pFlags.length(), pHandle);
 			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
 
