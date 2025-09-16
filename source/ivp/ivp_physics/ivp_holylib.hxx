@@ -24,6 +24,7 @@ public:
 	virtual bool ShouldSkip() = 0;
 
 	virtual void ThrowRecheckOVWarning() = 0;
+	virtual bool ShouldSkipRecheck_ov_element() = 0;
 };
 
 extern IVP_HolyLib_Callbacks* g_pHolyLibCallbacks;

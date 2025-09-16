@@ -684,6 +684,9 @@ void IVP_Mindist_Manager::recheck_ov_element(IVP_Real_Object *object){
     if(!elem) 
 		return; // not collision enabled 
 
+	if (g_pHolyLibCallbacks->ShouldSkipRecheck_ov_element())
+		return;
+
 	for (int i = g_pCurrentRecheckOVElement.len() - 1; i >= 0; i--)
 	{
 		if (g_pCurrentRecheckOVElement.element_at(i) == object)
@@ -909,13 +912,6 @@ void IVP_Mindist_Manager::recalc_all_exact_mindists(){
 /* check length, check for hull, check for coll events*/
 void IVP_Mindist::update_exact_mindist_events(IVP_BOOL allow_hull_conversion, IVP_MINDIST_EVENT_HINT event_hint)
 {
-	IVP_Real_Object *objects[2];
-	get_objects(objects);
-	if (g_pHolyLibCallbacks && g_pHolyLibCallbacks->CheckLag("IVP_Mindist::update_exact_mindist_events", objects[0] ? objects[0]->client_data : NULL, objects[1] ? objects[1]->client_data : NULL))
-	{
-		return;
-	}
-
 	IVP_IFDEBUG(1,
 		IVP_ASSERT( mindist_status == IVP_MD_EXACT);
 		IVP_Debug_Manager *dm=get_environment()->get_debug_manager();
@@ -943,6 +939,13 @@ void IVP_Mindist::update_exact_mindist_events(IVP_BOOL allow_hull_conversion, IV
 		IVP_Time_Manager *time_manager = env->get_time_manager();
 		time_manager->remove_event(this);
 		this->index = IVP_U_MINLIST_UNUSED;
+	}
+
+	IVP_Real_Object *objects[2];
+	get_objects(objects);
+	if (g_pHolyLibCallbacks && g_pHolyLibCallbacks->CheckLag("IVP_Mindist::update_exact_mindist_events", objects[0] ? objects[0]->client_data : NULL, objects[1] ? objects[1]->client_data : NULL))
+	{
+		return;
 	}
 	
 	{  

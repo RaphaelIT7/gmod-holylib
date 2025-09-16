@@ -90,6 +90,7 @@ struct ILuaPhysicsEnvironment;
 static inline ILuaPhysicsEnvironment* RegisterPhysicsEnvironment(IPhysicsEnvironment* pEnv);
 static inline void UnregisterPhysicsEnvironment(IPhysicsEnvironment* pEnv);
 void CheckPhysicsLag(const char* strFunctionName, CPhysicsObject* pObject1, CPhysicsObject* pObject2);
+static thread_local bool g_pIsInPhysicsLagCall = false;
 class IVPHolyLib
 #if CUSTOM_VPHYSICS_BUILD
 	: public IVP_HolyLib_Callbacks
@@ -135,6 +136,17 @@ public:
 	{
 		Warning(PROJECT_NAME " - physenv: Tried to recheck_ov_element while already in a recheck_ov_element call!\nDon't change the collision rules of the current physObject!\n");
 	}
+
+	virtual bool ShouldSkipRecheck_ov_element()
+	{
+		if (g_pIsInPhysicsLagCall)
+		{
+			Warning("Triggered recheck_ov_element while inside OnPhysLag call! This is unsafe. Skipping...\n");
+			return true;
+		}
+	
+		return false;
+	}
 };
 
 static IVPHolyLib g_pIVPHolyLib;
@@ -142,7 +154,6 @@ static IVPHolyLib g_pIVPHolyLib;
 GMODPush_LuaClass(IPhysicsObject, GarrysMod::Lua::Type::PhysObj);
 
 //static Symbols::IVP_Mindist_Base_get_objects func_IVP_Mindist_Base_get_objects;
-static thread_local bool g_pIsInPhysicsLagCall = false;
 static thread_local std::vector<GMODSDK::IVP_Real_Object*> g_pCurrentRecheckOVElement; // not a unordered_set since this should never grow huge/iterating is faster than hashing for this one.
 void CheckPhysicsLag(const char* pFunctionName, CPhysicsObject* pObject1, CPhysicsObject* pObject2)
 {
@@ -245,6 +256,25 @@ void CheckPhysicsLag(const char* pFunctionName, CPhysicsObject* pObject1, CPhysi
 	}
 }
 
+void PostPhysicsLag()
+{
+	if (pCurrentSkipType != IVP_None && Lua::PushHook("HolyLib:PostPhysicsLag"))
+	{
+		auto pTime = std::chrono::high_resolution_clock::now();
+		auto pSimulationTime = std::chrono::duration_cast<std::chrono::milliseconds>(pTime - pCurrentTime).count();
+		g_Lua->PushNumber((double)pSimulationTime);
+
+		g_pIsInPhysicsLagCall = true;
+		pCurrentTime = std::chrono::high_resolution_clock::now(); // Update timer.
+		if (g_Lua->CallFunctionProtected(6, 0, true))
+		{
+			if (g_pPhysEnvModule.InDebug() > 2)
+				Msg(PROJECT_NAME " - physenv: Post Lua hook called!\n");
+		}
+		g_pIsInPhysicsLagCall = false;
+	}
+}
+
 #if PHYSENV_INCLUDEIVPFALLBACK
 static bool bIsJoltPhysics = false; // if were using jolt, a lot of things need to change.
 class IVP_Mindist;
@@ -289,6 +319,7 @@ static void hook_IVP_Event_Manager_Standard_simulate_time_events(void* eventmana
 
 	detour_IVP_Event_Manager_Standard_simulate_time_events.GetTrampoline<Symbols::IVP_Event_Manager_Standard_simulate_time_events>()(eventmanager, timemanager, environment, time);
 
+	PostPhysicsLag();
 	pCurrentSkipType = IVP_SkipType::IVP_None; // Reset it.
 }
 
@@ -371,6 +402,9 @@ static void hook_IVP_OV_Element_remove_oo_collision(void* ovElement, GMODSDK::IV
 static Detouring::Hook detour_IVP_Mindist_Manager_recheck_ov_element;
 static void hook_IVP_Mindist_Manager_recheck_ov_element(void* mindistManager, GMODSDK::IVP_Real_Object* pRecalcObject)
 {
+	if (g_pIVPHolyLib.ShouldSkipRecheck_ov_element())
+		return;
+
 	for (GMODSDK::IVP_Real_Object* pObject : g_pCurrentRecheckOVElement)
 	{
 		if (pObject == pRecalcObject)
