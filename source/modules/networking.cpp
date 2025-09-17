@@ -2004,6 +2004,7 @@ static void DumpDT(const CCommand &args)
 
 	std::string baseFilePath = "holylib/dump/dt/";
 	int nClassIndex = 0;
+	char strNewLine = '\n';
 	for(ServerClass *serverclass = Util::servergamedll->GetAllServerClasses(); serverclass->m_pNext != nullptr; serverclass = serverclass->m_pNext) {
 		std::string fileName = baseFilePath;
 		fileName.append(std::to_string(nClassIndex++));
@@ -2018,7 +2019,6 @@ static void DumpDT(const CCommand &args)
 			continue;
 		}
 
-		char strNewLine = '\n';
 		for (int i = 0; i < serverclass->m_pTable->GetNumProps(); i++) {
 			SendProp* pProp = serverclass->m_pTable->GetProp(i);
 			
@@ -2042,9 +2042,9 @@ static void DumpDT(const CCommand &args)
 
 			std::string pFlags = "Flags:";
 			int flags = pProp->GetFlags();
-			if(flags == 0)
+			if (flags == 0) {
 				pFlags.append(" None");
-			else{
+			} else {
 				APPEND_IF_PFLAGS_CONTAINS_SPROP(UNSIGNED);
 				APPEND_IF_PFLAGS_CONTAINS_SPROP(COORD);
 				APPEND_IF_PFLAGS_CONTAINS_SPROP(NOSCALE);
@@ -2136,21 +2136,21 @@ static void DumpDT(const CCommand &args)
 		}
 
 		g_pFullFileSystem->Close(pHandle);
+	}
 
-		FileHandle_t pFullList = g_pFullFileSystem->Open("holylib/dump/dt/fulllist.dt", "wb", "MOD");
-		if (pFullList)
-		{
-			nClassIndex = 0;
-			for(ServerClass *serverclass = Util::servergamedll->GetAllServerClasses(); serverclass->m_pNext != nullptr; serverclass = serverclass->m_pNext) {
-				std::string pName = serverclass->GetName();
-				pName.append(" = ");
-				pName.append(std::to_string(nClassIndex++));
-				g_pFullFileSystem->Write(pName.c_str(), pName.length(), pFullList);
-				g_pFullFileSystem->Write(&strNewLine, 1, pFullList);
-			}
-
-			g_pFullFileSystem->Close(pFullList);
+	FileHandle_t pFullList = g_pFullFileSystem->Open("holylib/dump/dt/fulllist.dt", "wb", "MOD");
+	if (pFullList)
+	{
+		nClassIndex = 0;
+		for(ServerClass *serverclass = Util::servergamedll->GetAllServerClasses(); serverclass->m_pNext != nullptr; serverclass = serverclass->m_pNext) {
+			std::string pName = serverclass->GetName();
+			pName.append(" = ");
+			pName.append(std::to_string(nClassIndex++));
+			g_pFullFileSystem->Write(pName.c_str(), pName.length(), pFullList);
+			g_pFullFileSystem->Write(&strNewLine, 1, pFullList);
 		}
+
+		g_pFullFileSystem->Close(pFullList);
 	}
 }
 static ConCommand dumpdt("holylib_networking_dumpdt", DumpDT, "Dumps a lot of DT into into the holylib/dumps/dt.txt file", 0);
