@@ -1997,14 +1997,165 @@ void CNetworkingModule::Shutdown()
 		pPackedEntity->m_pChangeFrameList = detour_AllocChangeFrameList.GetTrampoline<Symbols::AllocChangeFrameList>()(pPackedEntity->m_pServerClass->m_pTable->m_pPrecalc->m_Props.Count(), gpGlobals->tickcount);
 	}*/
 }
+
+static char strIndent = '\t';
+static char strNewLine = '\n';
+static void WriteString(std::string str, int nIndent, FileHandle_t pHandle)
+{
+	for (int i=0; i<nIndent; ++i)
+	{
+		g_pFullFileSystem->Write(&strIndent, 1, pHandle);
+	}
+
+	g_pFullFileSystem->Write(str.c_str(), str.length(), pHandle);
+	g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
+}
+
 #define APPEND_IF_PFLAGS_CONTAINS_SPROP(sprop) if(flags & SPROP_##sprop) pFlags.append(" " #sprop)
+extern void WriteSendProp(SendProp* pProp, int nIndex, int nIndent, FileHandle_t pHandle);
+void WriteSendProp(SendProp* pProp, int nIndex, int nIndent, FileHandle_t pHandle, std::unordered_set<SendTable*>& pReferencedTables)
+{
+	std::string pIndex = "Index: ";
+	pIndex.append(std::to_string(nIndex));
+
+	WriteString(pIndex, nIndent, pHandle);
+
+	std::string pName = "PropName: ";
+	pName.append(pProp->GetName());
+
+	WriteString(pName, nIndent, pHandle);
+
+	std::string pExcludeDTName = "ExcludeName: ";
+	pExcludeDTName.append(pProp->GetExcludeDTName() != NULL ? pProp->GetExcludeDTName() : "NULL");
+
+	WriteString(pExcludeDTName, nIndent, pHandle);
+
+	std::string pFlags = "Flags:";
+	int flags = pProp->GetFlags();
+	if (flags == 0) {
+		pFlags.append(" None");
+	} else {
+		APPEND_IF_PFLAGS_CONTAINS_SPROP(UNSIGNED);
+		APPEND_IF_PFLAGS_CONTAINS_SPROP(COORD);
+		APPEND_IF_PFLAGS_CONTAINS_SPROP(NOSCALE);
+		APPEND_IF_PFLAGS_CONTAINS_SPROP(ROUNDDOWN);
+		APPEND_IF_PFLAGS_CONTAINS_SPROP(ROUNDUP);
+		APPEND_IF_PFLAGS_CONTAINS_SPROP(NORMAL);
+		APPEND_IF_PFLAGS_CONTAINS_SPROP(EXCLUDE);
+		APPEND_IF_PFLAGS_CONTAINS_SPROP(XYZE);
+		APPEND_IF_PFLAGS_CONTAINS_SPROP(INSIDEARRAY);
+		APPEND_IF_PFLAGS_CONTAINS_SPROP(PROXY_ALWAYS_YES);
+		APPEND_IF_PFLAGS_CONTAINS_SPROP(CHANGES_OFTEN);
+		APPEND_IF_PFLAGS_CONTAINS_SPROP(IS_A_VECTOR_ELEM);
+		APPEND_IF_PFLAGS_CONTAINS_SPROP(COORD_MP);
+		APPEND_IF_PFLAGS_CONTAINS_SPROP(COORD_MP_LOWPRECISION);
+		APPEND_IF_PFLAGS_CONTAINS_SPROP(COORD_MP_INTEGRAL);
+		APPEND_IF_PFLAGS_CONTAINS_SPROP(VARINT);
+		APPEND_IF_PFLAGS_CONTAINS_SPROP(ENCODED_AGAINST_TICKCOUNT);
+	}
+	WriteString(pFlags, nIndent, pHandle);
+
+	std::string pDataTableName = "Inherited: ";
+	pDataTableName.append((pProp->GetType() == SendPropType::DPT_DataTable && pProp->GetDataTable()) ? pProp->GetDataTable()->GetName() : "NONE");
+	
+	if (pProp->GetDataTable())
+	{
+		if (pReferencedTables.find(pProp->GetDataTable()) == pReferencedTables.end())
+		{
+			pReferencedTables.insert(pProp->GetDataTable());
+		}
+	}
+
+	WriteString(pDataTableName, nIndent, pHandle);
+
+	std::string pType = "Type: ";
+	switch (pProp->GetType())
+	{
+	case SendPropType::DPT_Int:
+		pType.append("DPT_Int");
+		break;
+	case SendPropType::DPT_Float:
+		pType.append("DPT_Float");
+		break;
+	case SendPropType::DPT_Vector:
+		pType.append("DPT_Vector");
+		break;
+	case SendPropType::DPT_VectorXY:
+		pType.append("DPT_VectorXY");
+		break;
+	case SendPropType::DPT_String:
+		pType.append("DPT_String");
+		break;
+	case SendPropType::DPT_Array:
+		pType.append("DPT_Array");
+		break;
+	case SendPropType::DPT_DataTable:
+		pType.append("DPT_DataTable");
+		break;
+	case SendPropType::DPT_GMODTable:
+		pType.append("DPT_GMODTable");
+		break;
+	default:
+		pType.append("UNKNOWN(");
+		pType.append(std::to_string(pProp->GetType()));
+		pType.append(")");
+	}
+
+	WriteString(pType, nIndent, pHandle);
+
+	std::string pElemets = "NumElement: ";
+	pElemets.append(std::to_string(pProp->GetNumElements()));
+
+	WriteString(pElemets, nIndent, pHandle);
+
+	std::string pBits = "Bits: ";
+	pBits.append(std::to_string(pProp->m_nBits));
+
+	WriteString(pBits, nIndent, pHandle);
+
+	std::string pHighValue = "HighValue: ";
+	pHighValue.append(std::to_string(pProp->m_fHighValue));
+
+	WriteString(pHighValue, nIndent, pHandle);
+
+	std::string pLowValue = "LowValue: ";
+	pLowValue.append(std::to_string(pProp->m_fLowValue));
+
+	WriteString(pLowValue, nIndent, pHandle);
+
+	if (pProp->GetArrayProp())
+	{
+		std::string pArrayProp = "ArrayProp: ";
+
+		WriteString(pArrayProp, nIndent, pHandle);
+		WriteSendProp(pProp->GetArrayProp(), nIndex, nIndent + 1, pHandle, pReferencedTables);
+	}
+}
+
+static void WriteSendTable(SendTable* pTable, FileHandle_t pHandle, std::unordered_set<SendTable*>& pReferencedTables, std::unordered_set<SendTable*>& pWrittenTables)
+{
+	for (int i = 0; i < pTable->GetNumProps(); i++) {
+		SendProp* pProp = pTable->GetProp(i);
+		
+		WriteSendProp(pProp, i, 0, pHandle, pReferencedTables);
+
+		g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
+
+		if (pWrittenTables.find(pTable) == pWrittenTables.end())
+		{
+			pWrittenTables.insert(pTable);
+		}
+	}
+}
+
 static void DumpDT(const CCommand &args)
 {
 	g_pFullFileSystem->CreateDirHierarchy("holylib/dump/dt/", "MOD");
 
+	std::unordered_set<SendTable*> pReferencedTables;
+	std::unordered_set<SendTable*> pWrittenTables;
 	std::string baseFilePath = "holylib/dump/dt/";
 	int nClassIndex = 0;
-	char strNewLine = '\n';
 	for(ServerClass *serverclass = Util::servergamedll->GetAllServerClasses(); serverclass->m_pNext != nullptr; serverclass = serverclass->m_pNext) {
 		std::string fileName = baseFilePath;
 		fileName.append(std::to_string(nClassIndex++));
@@ -2019,121 +2170,30 @@ static void DumpDT(const CCommand &args)
 			continue;
 		}
 
-		for (int i = 0; i < serverclass->m_pTable->GetNumProps(); i++) {
-			SendProp* pProp = serverclass->m_pTable->GetProp(i);
-			
-			std::string pIndex = "Index: ";
-			pIndex.append(std::to_string(i));
+		WriteSendTable(serverclass->m_pTable, pHandle, pReferencedTables, pWrittenTables);
 
-			g_pFullFileSystem->Write(pIndex.c_str(), pIndex.length(), pHandle);
-			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
+		g_pFullFileSystem->Close(pHandle);
+	}
 
-			std::string pName = "PropName: ";
-			pName.append(pProp->GetName());
-
-			g_pFullFileSystem->Write(pName.c_str(), pName.length(), pHandle);
-			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
-
-			std::string pExcludeDTName = "ExcludeName: ";
-			pExcludeDTName.append(pProp->GetExcludeDTName() != NULL ? pProp->GetExcludeDTName() : "NULL");
-
-			g_pFullFileSystem->Write(pExcludeDTName.c_str(), pExcludeDTName.length(), pHandle);
-			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
-
-			std::string pFlags = "Flags:";
-			int flags = pProp->GetFlags();
-			if (flags == 0) {
-				pFlags.append(" None");
-			} else {
-				APPEND_IF_PFLAGS_CONTAINS_SPROP(UNSIGNED);
-				APPEND_IF_PFLAGS_CONTAINS_SPROP(COORD);
-				APPEND_IF_PFLAGS_CONTAINS_SPROP(NOSCALE);
-				APPEND_IF_PFLAGS_CONTAINS_SPROP(ROUNDDOWN);
-				APPEND_IF_PFLAGS_CONTAINS_SPROP(ROUNDUP);
-				APPEND_IF_PFLAGS_CONTAINS_SPROP(NORMAL);
-				APPEND_IF_PFLAGS_CONTAINS_SPROP(EXCLUDE);
-				APPEND_IF_PFLAGS_CONTAINS_SPROP(XYZE);
-				APPEND_IF_PFLAGS_CONTAINS_SPROP(INSIDEARRAY);
-				APPEND_IF_PFLAGS_CONTAINS_SPROP(PROXY_ALWAYS_YES);
-				APPEND_IF_PFLAGS_CONTAINS_SPROP(CHANGES_OFTEN);
-				APPEND_IF_PFLAGS_CONTAINS_SPROP(IS_A_VECTOR_ELEM);
-				APPEND_IF_PFLAGS_CONTAINS_SPROP(COORD_MP);
-				APPEND_IF_PFLAGS_CONTAINS_SPROP(COORD_MP_LOWPRECISION);
-				APPEND_IF_PFLAGS_CONTAINS_SPROP(COORD_MP_INTEGRAL);
-				APPEND_IF_PFLAGS_CONTAINS_SPROP(VARINT);
-				APPEND_IF_PFLAGS_CONTAINS_SPROP(ENCODED_AGAINST_TICKCOUNT);
-			}
-			g_pFullFileSystem->Write(pFlags.c_str(), pFlags.length(), pHandle);
-			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
-
-			std::string pDataTableName = "Inherited: ";
-			pDataTableName.append((pProp->GetType() == SendPropType::DPT_DataTable && pProp->GetDataTable()) ? pProp->GetDataTable()->GetName() : "NONE");
-
-			g_pFullFileSystem->Write(pDataTableName.c_str(), pDataTableName.length(), pHandle);
-			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
-
-			std::string pType = "Type: ";
-			switch (pProp->GetType())
-			{
-			case SendPropType::DPT_Int:
-				pType.append("DPT_Int");
-				break;
-			case SendPropType::DPT_Float:
-				pType.append("DPT_Float");
-				break;
-			case SendPropType::DPT_Vector:
-				pType.append("DPT_Vector");
-				break;
-			case SendPropType::DPT_VectorXY:
-				pType.append("DPT_VectorXY");
-				break;
-			case SendPropType::DPT_String:
-				pType.append("DPT_String");
-				break;
-			case SendPropType::DPT_Array:
-				pType.append("DPT_Array");
-				break;
-			case SendPropType::DPT_DataTable:
-				pType.append("DPT_DataTable");
-				break;
-			case SendPropType::DPT_GMODTable:
-				pType.append("DPT_GMODTable");
-				break;
-			default:
-				pType.append("UNKNOWN(");
-				pType.append(std::to_string(pProp->GetType()));
-				pType.append(")");
-			}
-
-			g_pFullFileSystem->Write(pType.c_str(), pType.length(), pHandle);
-			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
-
-			std::string pElemets = "NumElement: ";
-			pElemets.append(std::to_string(pProp->GetNumElements()));
-
-			g_pFullFileSystem->Write(pElemets.c_str(), pElemets.length(), pHandle);
-			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
-
-			std::string pBits = "Bits: ";
-			pBits.append(std::to_string(pProp->m_nBits));
-
-			g_pFullFileSystem->Write(pBits.c_str(), pBits.length(), pHandle);
-			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
-
-			std::string pHighValue = "HighValue: ";
-			pHighValue.append(std::to_string(pProp->m_fHighValue));
-
-			g_pFullFileSystem->Write(pHighValue.c_str(), pHighValue.length(), pHandle);
-			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
-
-			std::string pLowValue = "LowValue: ";
-			pLowValue.append(std::to_string(pProp->m_fLowValue));
-
-			g_pFullFileSystem->Write(pLowValue.c_str(), pLowValue.length(), pHandle);
-			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
-
-			g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
+	for (SendTable* pTable : pReferencedTables)
+	{
+		if (pWrittenTables.find(pTable) != pWrittenTables.end())
+		{
+			continue; // Already wrote it. Skipping...
 		}
+
+		std::string fileName = baseFilePath;
+		fileName.append(pTable->GetName());
+		fileName.append(".txt");
+
+		FileHandle_t pHandle = g_pFullFileSystem->Open(fileName.c_str(), "wb", "MOD");
+		if (!pHandle)
+		{
+			Warning(PROJECT_NAME " - DumpDT: Failed to open \"%s\" for dump!\n", fileName.c_str());
+			continue;
+		}
+
+		WriteSendTable(pTable, pHandle, pReferencedTables, pWrittenTables);
 
 		g_pFullFileSystem->Close(pHandle);
 	}
