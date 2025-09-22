@@ -1700,7 +1700,6 @@ CPhysicsObject *CreatePhysicsObject( CPhysicsEnvironment *pEnvironment, const CP
 
 	IVP_U_Matrix massCenterMatrix;
 	massCenterMatrix.init();
-#if !PLATFORM_64BITS // BUG: Crashes on 64x
 	if ( pParams->massCenterOverride )
 	{
 		IVP_U_Point center;
@@ -1708,7 +1707,6 @@ CPhysicsObject *CreatePhysicsObject( CPhysicsEnvironment *pEnvironment, const CP
 		massCenterMatrix.shift_os( &center );
 		objectTemplate.mass_center_override = &massCenterMatrix;
 	}
-#endif
 
 	CPhysicsObject *pObject = new CPhysicsObject();
 	short collideType;
