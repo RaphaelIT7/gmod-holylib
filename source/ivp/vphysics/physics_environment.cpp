@@ -2151,7 +2151,8 @@ float CPhysicsEnvironment::GetDeltaFrameTime(int maxTicks) const
 void CPhysicsEnvironment::ForceObjectsToSleep(IPhysicsObject** pList, int listCount)
 {
 	DebugPrint();
-	Error("not implemented!\n");
+	for (int i=0; i<listCount; ++i)
+		pList[i]->Sleep();
 }
 
 void CPhysicsEnvironment::SetPredicted(bool bPredicted)

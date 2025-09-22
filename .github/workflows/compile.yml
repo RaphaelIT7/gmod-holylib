@@ -354,13 +354,62 @@ jobs:
     secrets:
       secret-additional-setup: "mkdir -p garrysmod/ && mkdir -p garrysmod/_workflow/ && echo https://loki-public.raphaelit7.com > garrysmod/_workflow/loki_public_host.txt && echo ${{ github.repository }} > garrysmod/_workflow/github_repo.txt && echo ${{ secrets.LOKI_HOST }} > garrysmod/_workflow/loki_host.txt && echo ${{ secrets.LOKI_APIKEY }} > garrysmod/_workflow/loki_api.txt && tar -czf gluatest/docker/_gluatest_artifacts/gm_secrets.tar.gz -C . garrysmod && rm -rf garrysmod"
 
+  test_32x_vphysics:
+    name: "Test 32x branches (VPhysics)"
+    needs: setup_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
+    strategy:
+      matrix:
+        branch:
+          - public
+          - dev
+          - prerelease
+    with:
+      extra-startup-args: "-usegh -holylib_replaceivp +holylib_module_debug 0"
+      download-artifact: "gluatest_32x"
+      no-checkout: "true"
+      branch: ${{ matrix.branch }}
+    secrets:
+      secret-additional-setup: "mkdir -p garrysmod/ && mkdir -p garrysmod/_workflow/ && echo https://loki-public.raphaelit7.com > garrysmod/_workflow/loki_public_host.txt && echo ${{ github.repository }} > garrysmod/_workflow/github_repo.txt && echo ${{ secrets.LOKI_HOST }} > garrysmod/_workflow/loki_host.txt && echo ${{ secrets.LOKI_APIKEY }} > garrysmod/_workflow/loki_api.txt && tar -czf gluatest/docker/_gluatest_artifacts/gm_secrets.tar.gz -C . garrysmod && rm -rf garrysmod"
+
+  test_64bit_vphysics:
+    name: "Test x86-64 branch (VPhysics)"
+    needs: setup_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
+    with:
+      branch: x86-64
+      extra-startup-args: "-usegh  -holylib_replaceivp +holylib_module_debug 0"
+      download-artifact: "gluatest_64x"
+      no-checkout: "true"
+    secrets:
+      secret-additional-setup: "mkdir -p garrysmod/ && mkdir -p garrysmod/_workflow/ && echo https://loki-public.raphaelit7.com > garrysmod/_workflow/loki_public_host.txt && echo ${{ github.repository }} > garrysmod/_workflow/github_repo.txt && echo ${{ secrets.LOKI_HOST }} > garrysmod/_workflow/loki_host.txt && echo ${{ secrets.LOKI_APIKEY }} > garrysmod/_workflow/loki_api.txt && tar -czf gluatest/docker/_gluatest_artifacts/gm_secrets.tar.gz -C . garrysmod && rm -rf garrysmod"
+
+  test_32x_jolt:
+    name: "Test 32x branches (Jolt Physics)"
+    needs: setup_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
+    strategy:
+      matrix:
+        branch:
+          - public
+          - dev
+          - prerelease
+    with:
+      extra-startup-args: "-usegh +holylib_module_debug 0"
+      download-artifact: "gluatest_32x"
+      no-checkout: "true"
+      branch: ${{ matrix.branch }}
+      additional-setup: "wget -q https://raw.githubusercontent.com/RaphaelIT7/gmod-holylib/refs/heads/main/gluatests/binaries/vphysics_jolt_gmod_dedicated_linux32.zip -O jolt.zip && unzip jolt.zip -d __temp && tar -czf gluatest/docker/_gluatest_artifacts/jolt.tar.gz -C __temp . && rm -rf __temp"
+    secrets:
+      secret-additional-setup: "mkdir -p garrysmod/ && mkdir -p garrysmod/_workflow/ && echo https://loki-public.raphaelit7.com > garrysmod/_workflow/loki_public_host.txt && echo ${{ github.repository }} > garrysmod/_workflow/github_repo.txt && echo ${{ secrets.LOKI_HOST }} > garrysmod/_workflow/loki_host.txt && echo ${{ secrets.LOKI_APIKEY }} > garrysmod/_workflow/loki_api.txt && tar -czf gluatest/docker/_gluatest_artifacts/gm_secrets.tar.gz -C . garrysmod && rm -rf garrysmod"
+
   # -------
   # HolyLib Build summary DLL jobs
   # -------
 
   generate_test_summary:
     name: "Generate Summary"
-    needs: [test_32bit, test_32bit_noghostinj, test_64bit, test_64bit_noghostinj, test_32x_holylua, test_32x_holylua_noghostinj, test_64bit_holylua, test_64bit_holylua_noghostinj, test_32x_luajit, test_64bit_luajit]
+    needs: [test_32bit, test_32bit_noghostinj, test_64bit, test_64bit_noghostinj, test_32x_holylua, test_32x_holylua_noghostinj, test_64bit_holylua, test_64bit_holylua_noghostinj, test_32x_luajit, test_64bit_luajit, test_32x_vphysics, test_64bit_vphysics, test_32x_jolt]
     runs-on: ubuntu-latest
     container: raphaelit7/gmod-builder:latest_64x
     steps:
@@ -509,6 +558,27 @@ jobs:
       download-artifact: ${{ matrix.artifact }}
       no-checkout: "true"
       additional-setup: "wget -q https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux64.tar.gz -O gluatest/docker/_gluatest_artifacts/linux64.tar.gz"
+      map: gm_glua_tests
+
+  test_gmod_tests_32bit_with_joltreplacement:
+    name: "Test 32x branches (gmod_tests & Jolt Physics)"
+    needs: setup_gmod_tests_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
+    strategy:
+      matrix:
+        branch:
+          - public
+          - dev
+          - prerelease
+        artifact:
+          - gmod_tests_32x
+          - gmod_tests_no_ghostinj_32x
+    with:
+      branch: ${{ matrix.branch }}
+      extra-startup-args: "-usegh -maxplayers 64"
+      download-artifact: ${{ matrix.artifact }}
+      no-checkout: "true"
+      additional-setup: "wget -q https://raw.githubusercontent.com/RaphaelIT7/gmod-holylib/refs/heads/main/gluatests/binaries/vphysics_jolt_gmod_dedicated_linux32.zip -O jolt.zip && unzip jolt.zip -d __temp && tar -czf gluatest/docker/_gluatest_artifacts/jolt.tar.gz -C __temp . && rm -rf __temp && wget -q https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux32.tar.gz -O gluatest/docker/_gluatest_artifacts/linux32.tar.gz"
       map: gm_glua_tests
 
   test_gmod_tests_32bit_with_luajit:
