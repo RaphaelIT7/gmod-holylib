@@ -68,6 +68,7 @@ static float AngDragIntegral( float invInertia, float l, float w, float h )
 	return invInertia * ( (1.f/3.f)*w2*l*l2 + 0.5f * w2*w2*l + l*w2*h2 );
 }
 
+// We us a unordered_set so that lookups should be O(1) most of the time unlike gmod which currently has O(N) N = total number of physics objects
 static std::unordered_set<CPhysicsObject*> g_pObjects;
 inline void RegisterObject(CPhysicsObject* pObject)
 {
