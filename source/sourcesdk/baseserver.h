@@ -67,9 +67,9 @@ public: // IServer implementation
 	virtual int		GetUDPPort( void ) const { return NET_GetUDPPort( m_Socket );	}
 	virtual IClient	*GetClient( int index ) { return m_Clients[index]; } // returns interface to client 
 	virtual int		GetClientCount() const { return m_Clients.Count(); } // for iteration;
-	virtual double	GetTime( void ) const;
+	virtual float	GetTime( void ) const;
 	virtual int		GetTick( void ) const { return m_nTickCount; }
-	virtual double	GetTickInterval( void ) const { return m_flTickInterval; }
+	virtual float	GetTickInterval( void ) const { return m_flTickInterval; }
 	virtual const char *GetName( void ) const;
 	virtual const char *GetMapName( void ) const { return m_szMapname; }
 	virtual int		GetSpawnCount( void ) const { return m_nSpawnCount; }
@@ -237,7 +237,7 @@ public: // Gimme that access
 	int			m_nSpawnCount;			// Number of servers spawned since start,
 									// used to check late spawns (e.g., when d/l'ing lots of
 									// data)
-	double		m_flTickInterval;		// time for 1 tick in seconds
+	float		m_flTickInterval;		// time for 1 tick in seconds
 
 
 	CUtlVector<CBaseClient*>	m_Clients;		// array of up to [maxclients] client slots.
