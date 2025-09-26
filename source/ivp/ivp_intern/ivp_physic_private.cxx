@@ -732,12 +732,12 @@ void IVP_Friction_System::add_dist_to_system(IVP_Contact_Point *new_dist)
 
 void IVP_Friction_System::add_core_to_system(IVP_Core *new_obj)
 {
-    IVP_IFDEBUG(l_environment->get_debug_manager()->check_fs,
+   IVP_IFDEBUG(l_environment->get_debug_manager()->check_fs,
 		fprintf(l_environment->get_debug_manager()->out_deb_file,"add_core_to_fs %f %p to %p\n",l_environment->get_current_time().get_time(),new_obj,this);
 	)
 
     cores_of_friction_system.add(new_obj);
-    if(!new_obj->physical_unmoveable) {
+    if(!new_obj->physical_unmoveable) { // RaphaelIT7: You can play with these and comment out one or multiple, it can have quite interresting results :D
         moveable_cores_of_friction_system.add(new_obj);
 	new_obj->add_core_controller(&static_fs_handle);
         new_obj->add_core_controller(this);
@@ -756,7 +756,7 @@ void IVP_Friction_System::remove_core_from_system(IVP_Core *old_obj)
 		fprintf(l_environment->get_debug_manager()->out_deb_file,"remove_core_from_fs %f %p from %p\n",l_environment->get_current_time().get_time(),old_obj,this);
 	)
 
-    if(!old_obj->physical_unmoveable) {
+    if(!old_obj->physical_unmoveable) { // RaphaelIT7: You can play with these and comment out one or multiple, it can have quite interresting results :D
         moveable_cores_of_friction_system.remove(old_obj);
 	old_obj->rem_core_controller(&this->energy_fs_handle);
         old_obj->rem_core_controller(this);

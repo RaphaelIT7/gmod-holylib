@@ -684,15 +684,18 @@ void IVP_Mindist_Manager::recheck_ov_element(IVP_Real_Object *object){
     if(!elem) 
 		return; // not collision enabled 
 
-	if (g_pHolyLibCallbacks->ShouldSkipRecheck_ov_element())
-		return;
-
-	for (int i = g_pCurrentRecheckOVElement.len() - 1; i >= 0; i--)
+	if (g_pHolyLibCallbacks)
 	{
-		if (g_pCurrentRecheckOVElement.element_at(i) == object)
-		{
-			g_pHolyLibCallbacks->ThrowRecheckOVWarning();
+		if (g_pHolyLibCallbacks->ShouldSkipRecheck_ov_element())
 			return;
+
+		for (int i = g_pCurrentRecheckOVElement.len() - 1; i >= 0; i--)
+		{
+			if (g_pCurrentRecheckOVElement.element_at(i) == object)
+			{
+				g_pHolyLibCallbacks->ThrowRecheckOVWarning();
+				return;
+			}
 		}
 	}
 
