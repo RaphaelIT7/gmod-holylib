@@ -1,10 +1,32 @@
-#include "holylua.h"
 #include "module.h"
+#include "symbols.h"
+#include "detours.h"
+#include "LuaInterface.h"
+#include "lua.h"
 #include "tier0/icommandline.h"
 #include "iluashared.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
+
+class CHolyLuaModule : public IModule
+{
+public:
+	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
+	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
+	virtual void Think(bool bSimulating) OVERRIDE;
+	virtual void Shutdown() OVERRIDE;
+	virtual const char* Name() { return "holylua"; };
+	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
+
+public: // Just to make it easier with the ConVar callback.
+	void HolyLua_Init();
+	void HolyLua_Shutdown();
+};
+
+static CHolyLuaModule g_pHolyLuaModule;
+IModule* pHolyLuaModule = &g_pHolyLuaModule;
 
 static GarrysMod::Lua::ILuaInterface* g_HolyLua = NULL;
 static void OnLuaChange(IConVar* convar, const char* pOldValue, float flOldValue)
@@ -13,14 +35,13 @@ static void OnLuaChange(IConVar* convar, const char* pOldValue, float flOldValue
 
 	if (!bNewValue && g_HolyLua)
 	{
-		HolyLua::Shutdown();
+		g_pHolyLuaModule.HolyLua_Shutdown();
 	}
 	else if (bNewValue && !g_HolyLua)
 	{
-		HolyLua::Init();
+		g_pHolyLuaModule.HolyLua_Init();
 	}
 }
-
 static ConVar holylib_lua("holylib_lua", "0", 0, "If enabled, it will create a new lua interface that will exist until holylib is unloaded", OnLuaChange);
 
 static void lua_run_holylibCmd(const CCommand &args)
@@ -36,7 +57,25 @@ static void lua_run_holylibCmd(const CCommand &args)
 }
 static ConCommand lua_run_holylib("lua_run_holylib", lua_run_holylibCmd, "Runs code in the holylib lua state", 0);
 
-void HolyLua::Init()
+void CHolyLuaModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
+{
+	g_pHolyLuaModule.HolyLua_Shutdown();
+}
+
+void CHolyLuaModule::Think(bool bSimulating)
+{
+	if (!g_HolyLua)
+		return;
+
+	g_pModuleManager.LuaThink(g_HolyLua);
+}
+
+void CHolyLuaModule::Shutdown()
+{
+	g_pHolyLuaModule.HolyLua_Init();
+}
+
+void CHolyLuaModule::HolyLua_Init()
 {
 	if (!holylib_lua.GetBool() && !CommandLine()->FindParm("-holylib_lua"))
 		return;
@@ -72,15 +111,7 @@ void HolyLua::Init()
 	}
 }
 
-void HolyLua::Think()
-{
-	if (!g_HolyLua)
-		return;
-
-	g_pModuleManager.LuaThink(g_HolyLua);
-}
-
-void HolyLua::Shutdown()
+void CHolyLuaModule::HolyLua_Shutdown()
 {
 	if (!g_HolyLua)
 		return;
@@ -88,4 +119,16 @@ void HolyLua::Shutdown()
 	g_pModuleManager.LuaShutdown(g_HolyLua);
 	Lua::DestroyInterface(g_HolyLua);
 	g_HolyLua = NULL;
+}
+
+void CHolyLuaModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
+{
+	if (pLua != g_HolyLua)
+		return;
+}
+
+void CHolyLuaModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
+{
+	if (pLua != g_HolyLua)
+		return;
 }

@@ -10,8 +10,8 @@
 #include "plugin.h"
 #include "vprof.h"
 #include "server.h"
-#include "holylua.h"
 #include "versioninfo.h"
+#include "lua.h"
 
 struct edict_t;
 #include "playerinfomanager.h"
@@ -130,7 +130,6 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 	Util::AddDetour();
 	g_pModuleManager.Init();
 	g_pModuleManager.InitDetour(false);
-	HolyLua::Init();
 
 	GarrysMod::Lua::ILuaInterface* LUA = Lua::GetRealm(g_pModuleManager.GetModuleRealm());
 	if (LUA) // If we got loaded by plugin_load we need to manually call Lua::Init
@@ -170,7 +169,6 @@ void CServerPlugin::Unload(void)
 		return;
 	}
 
-	HolyLua::Shutdown();
 	Lua::ManualShutdown(); // Called to make sure that everything is shut down properly in cases of plugin_unload. does nothing if g_Lua is already NULL.
 	g_pModuleManager.Shutdown();
 	Util::RemoveDetour();
@@ -267,7 +265,6 @@ void CServerPlugin::GameFrame(bool simulating)
 	VPROF_BUDGET("HolyLib - CServerPlugin::GameFrame", VPROF_BUDGETGROUP_HOLYLIB);
 	g_pModuleManager.Think(simulating);
 	g_pModuleManager.LuaThink(g_Lua);
-	HolyLua::Think();
 }
 
 //---------------------------------------------------------------------------------
