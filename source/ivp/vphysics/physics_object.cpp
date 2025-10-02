@@ -1701,7 +1701,7 @@ CPhysicsObject *CreatePhysicsObject( CPhysicsEnvironment *pEnvironment, const CP
 
 	IVP_U_Matrix massCenterMatrix;
 	massCenterMatrix.init();
-#if !PLATFORM_64BITS // BUG: Crashes on 64x
+#if !PLATFORM_64BITS // BUG: Crashes on 64x. UPDATE: Now it crashes on 32x.... Maybe solid_t on 32x is wrong causing this issue?
 	if ( pParams->massCenterOverride )
 	{
 		IVP_U_Point center;
