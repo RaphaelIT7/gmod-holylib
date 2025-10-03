@@ -59,7 +59,7 @@ static ConCommand lua_run_holylib("lua_run_holylib", lua_run_holylibCmd, "Runs c
 
 void CHolyLuaModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
-	g_pHolyLuaModule.HolyLua_Shutdown();
+	g_pHolyLuaModule.HolyLua_Init();
 }
 
 void CHolyLuaModule::Think(bool bSimulating)
@@ -72,13 +72,19 @@ void CHolyLuaModule::Think(bool bSimulating)
 
 void CHolyLuaModule::Shutdown()
 {
-	g_pHolyLuaModule.HolyLua_Init();
+	g_pHolyLuaModule.HolyLua_Shutdown();
 }
 
 void CHolyLuaModule::HolyLua_Init()
 {
 	if (!holylib_lua.GetBool() && !CommandLine()->FindParm("-holylib_lua"))
 		return;
+
+	if (g_HolyLua)
+	{
+		Warning(PROJECT_NAME " - HolyLua: Called init while already having an interface!\n");
+		HolyLua_Shutdown();
+	}
 
 	g_HolyLua = Lua::CreateInterface();
 

@@ -597,6 +597,7 @@ void CLuaInterface::CreateMetaTableType(const char* strName, int iType)
 		if (!pObject)
 		{
 			pObject = CreateObject();
+			ToSimpleObject(pObject)->SetFromStack(-1, this);
 			m_pMetaTables[iType] = pObject;
 		}
 		ToSimpleObject(pObject)->SetFromStack(-1, this);
@@ -705,6 +706,9 @@ int CLuaInterface::CreateMetaTable(const char* strName) // Return value is proba
 	} else {
 		// Missing this logic in lua-shared, CreateMetaTable creates it if it's missing, just as its name would imply.
 		luaL_newmetatable_type(state, strName, ++m_iMetaTableIDCounter);
+		GarrysMod::Lua::ILuaObject* pObject = CreateObject();
+		ToSimpleObject(pObject)->SetFromStack(-1, this);
+		m_pMetaTables[m_iMetaTableIDCounter] = pObject;
 		return m_iMetaTableIDCounter;
 	}
 
@@ -777,6 +781,8 @@ bool CLuaInterface::Init( GarrysMod::Lua::ILuaGameCallback* callback, bool bIsSe
 		m_pMetaTables[i] = NULL;
 	}
 	m_iCurrentTempObject = 0;
+
+	m_bShutDownThreadedCalls = false;
 
 	state = luaL_newstate();
 	luaL_openlibs(state);
@@ -868,9 +874,20 @@ void CLuaInterface::Shutdown()
 	}
 
 	GMOD_UnloadBinaryModules(state);
+	ShutdownThreadedCalls();
 
 	lua_close(state);
 	state = NULL;
+
+	for (int i=0; i<255; ++i) {
+		if (m_pMetaTables[i])
+			DestroyObject(m_pMetaTables[i]);
+	}
+
+	for (int i=0; i<LUA_MAX_TEMP_OBJECTS; ++i) {
+		if (m_TempObjects[i])
+			DestroyObject(m_TempObjects[i]);
+	}
 }
 
 static int iLastTimeCheck = 0;
@@ -890,15 +907,17 @@ void CLuaInterface::RunThreadedCalls()
 {
 	LuaDebugPrint(3, "CLuaInterface::RunThreadedCalls\n");
 
-	AUTO_LOCK(m_pThreadedCallsMutex);
-
 	std::vector<GarrysMod::Lua::ILuaThreadedCall*> pFinishedCalls;
-	for (auto it = m_pThreadedCalls.begin(); it != m_pThreadedCalls.end(); )
+	// We create a copy for the rare case that a task might call AddThreadedCall inside IsDone, if we didn't do this it could break iteration!
+	m_pThreadedCallsMutex.Lock(); // We don't need to keep it locked for longer thanks to our copy.
+	std::list<GarrysMod::Lua::ILuaThreadedCall*> pThreadedCalls = m_pThreadedCalls;
+	m_pThreadedCallsMutex.Unlock();
+	for (auto it = pThreadedCalls.begin(); it != pThreadedCalls.end(); )
 	{
 		if ((*it)->IsDone())
 		{
 			pFinishedCalls.push_back(*it);
-			it = m_pThreadedCalls.erase(it);
+			it = pThreadedCalls.erase(it);
 			continue;
 		}
 
@@ -906,9 +925,8 @@ void CLuaInterface::RunThreadedCalls()
 	}
 
 	for (GarrysMod::Lua::ILuaThreadedCall* call : pFinishedCalls)
-	{
 		call->Done(this);
-	}
+
 	pFinishedCalls.clear();
 }
 
@@ -916,22 +934,36 @@ int CLuaInterface::AddThreadedCall(GarrysMod::Lua::ILuaThreadedCall* call)
 {
 	LuaDebugPrint(1, "CLuaInterface::AddThreadedCall What called this?\n");
 
-	AUTO_LOCK(m_pThreadedCallsMutex);
+	if (m_bShutDownThreadedCalls)
+	{
+		call->OnShutdown();
+		return 0;
+	}
+
+	// Required to prevent a deadlock
+	bool bMutex = !(ThreadInMainThread() && m_bIsThreadedCallMutexLocked);
+	if (bMutex)
+		m_pThreadedCallsMutex.Lock();
 
 	m_pThreadedCalls.push_back(call);
 	int nSize = m_pThreadedCalls.size(); // Just to be sure, idk if the Mutex would cover a call in the return
+
+	if (bMutex)
+		m_pThreadedCallsMutex.Unlock();
 
 	return nSize;
 }
 
 void CLuaInterface::ShutdownThreadedCalls()
 {
+	m_bShutDownThreadedCalls = true;
+
+	// We don't check for the case of a deadlock as it shouldn't happen that from inside IsDone it could enter ShutdownThreadedCalls?
 	AUTO_LOCK(m_pThreadedCallsMutex);
 
 	for (GarrysMod::Lua::ILuaThreadedCall* pCall : m_pThreadedCalls)
-	{
 		pCall->OnShutdown();
-	}
+
 	m_pThreadedCalls.clear();
 }
 
@@ -953,8 +985,7 @@ GarrysMod::Lua::ILuaObject* CLuaInterface::GetObject(int index)
 void CLuaInterface::PushLuaObject(GarrysMod::Lua::ILuaObject* obj)
 {
 	LuaDebugPrint(4, "CLuaInterface::PushLuaObject\n");
-	if (obj)
-	{
+	if (obj) {
 		ToSimpleObject(obj)->Push(this);
 	} else {
 		PushNil();
@@ -971,8 +1002,7 @@ void CLuaInterface::LuaError(const char* str, int iStackPos)
 {
 	LuaDebugPrint(4, "CLuaInterface::LuaError %s %i\n", str, iStackPos);
 	
-	if (iStackPos != -1)
-	{
+	if (iStackPos != -1) {
 		luaL_argerror(state, iStackPos, str);
 	} else {
 		ErrorNoHalt("%s", str);
@@ -995,9 +1025,7 @@ void CLuaInterface::CallInternal(int args, int rets)
 		Error("[CLuaInterface::Call] Expecting more returns than possible\n");
 
 	for (int i=0; i<3; ++i)
-	{
 		m_ProtectedFunctionReturns[i] = nullptr;
-	}
 
 	if (IsType(-(args + 1), GarrysMod::Lua::Type::Function))
 	{
