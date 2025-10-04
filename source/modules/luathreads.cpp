@@ -159,7 +159,7 @@ LuaThread(void* data)
 LUA_FUNCTION_STATIC(luathreads_CreateInterface)
 {
 	LuaInterface* pData = new LuaInterface;
-	pData->pInterface = (CLuaInterface*)Lua::CreateLuaInterface(true);
+	pData->pInterface = (CLuaInterface*)Lua::CreateInterface();
 
 	g_pModuleManager.LuaInit(pData->pInterface, false);
 
