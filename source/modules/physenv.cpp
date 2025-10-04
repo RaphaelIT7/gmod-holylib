@@ -2465,11 +2465,14 @@ void CPhysEnvModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 	if (bServerInit)
 		return;
 
-	CPhysicsInterface* pPhys = (CPhysicsInterface*)g_pPhysics;
-	FOR_EACH_VEC(pPhys->m_envList, i)
+	if (pLua == g_Lua)
 	{
-		// If we were enabled after the server was started, we should register all phys envs as the GMod::Util::IsPhysicsObjectValid depends on it.
-		RegisterPhysicsEnvironment(pPhys->m_envList[i]);
+		CPhysicsInterface* pPhys = (CPhysicsInterface*)g_pPhysics;
+		FOR_EACH_VEC(pPhys->m_envList, i)
+		{
+			// If we were enabled after the server was started, we should register all phys envs as the GMod::Util::IsPhysicsObjectValid depends on it.
+			RegisterPhysicsEnvironment(pPhys->m_envList[i]);
+		}
 	}
 
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::CPhysCollide, pLua->CreateMetaTable("CPhysCollide"));
