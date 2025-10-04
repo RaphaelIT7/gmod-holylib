@@ -95,7 +95,6 @@ void CHolyLuaModule::HolyLua_Init()
 
 	// Now add all supported HolyLib modules into the new interface.
 	g_pModuleManager.LuaInit(g_HolyLua, false);
-	g_pModuleManager.LuaInit(g_HolyLua, true);
 
 	// Finally, load any holylua scripts
 	std::vector<GarrysMod::Lua::LuaFindResult> results;

@@ -217,6 +217,8 @@ public:
 
 	// All callback things.
 	virtual void Init() = 0;
+
+	// bServerInit = true should never be called by a Interface itself, its called automatically
 	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) = 0;
 	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) = 0;
 	virtual void InitDetour(bool bPreServer) = 0;
