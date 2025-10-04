@@ -21,7 +21,7 @@ bool Lua::PushHook(const char* hook, GarrysMod::Lua::ILuaInterface* pLua)
 		return false;
 	}
 
-	if (!ThreadInMainThread())
+	if (!ThreadInMainThread() && pLua == g_Lua)
 	{
 		Warning(PROJECT_NAME ": Lua::PushHook was called ouside of the main thread! (%s)\n", hook);
 		return false;

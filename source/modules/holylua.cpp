@@ -5,6 +5,7 @@
 #include "lua.h"
 #include "tier0/icommandline.h"
 #include "iluashared.h"
+#include "sourcesdk/GameEventManager.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -57,8 +58,12 @@ static void lua_run_holylibCmd(const CCommand &args)
 }
 static ConCommand lua_run_holylib("lua_run_holylib", lua_run_holylibCmd, "Runs code in the holylib lua state", 0);
 
+static CGameEventManager* pGameEventManager = nullptr;
 void CHolyLuaModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
+	pGameEventManager = (CGameEventManager*)appfn[0](INTERFACEVERSION_GAMEEVENTSMANAGER2, NULL);
+	Detour::CheckValue("get interface", "CGameEventManager", pGameEventManager != NULL);
+
 	g_pHolyLuaModule.HolyLua_Init();
 }
 
@@ -127,14 +132,126 @@ void CHolyLuaModule::HolyLua_Shutdown()
 	g_HolyLua = NULL;
 }
 
+static inline void PushEvent(GarrysMod::Lua::ILuaInterface* pLua, CGameEvent* event)
+{
+	KeyValues* subkey = event->m_pDataKeys->GetFirstSubKey();
+	while (subkey)
+	{
+		KeyValues::types_t type = subkey->GetDataType();
+		if (type == KeyValues::TYPE_STRING) {
+			pLua->PushString(event->GetString(subkey->GetName()));
+		} else if (type == KeyValues::TYPE_UINT64 || type == KeyValues::TYPE_INT) {
+			pLua->PushNumber(event->GetInt(subkey->GetName()));
+		} else if (type == KeyValues::TYPE_FLOAT) {
+			pLua->PushNumber(event->GetFloat(subkey->GetName()));
+		} else {
+			pLua->PushNil();
+			Msg("Invalid Type?!? (%s -> %s)\n", event->GetName(), subkey->GetName());
+		}
+
+		pLua->SetField(-2, subkey->GetName());
+
+		subkey = subkey->GetNextKey();
+	}
+}
+
+class CLuaGameEventCallbackCall : GarrysMod::Lua::ILuaThreadedCall
+{
+public:
+	CLuaGameEventCallbackCall(IGameEvent* pEvent)
+	{
+		if (!pEvent) // In case of DuplicateEvent failing
+			return;
+
+		m_pEvent = (CGameEvent*)pEvent;
+	}
+
+	bool IsDone() { return true; } // Trigger Done call
+	void OnShutdown() { delete this; } // Cleanup ourself
+	void Done(GarrysMod::Lua::ILuaInterface* LUA)
+	{
+		if (!m_pEvent)
+			return;
+
+		if (Lua::PushHook(m_pEvent->GetName(), LUA))
+		{
+			LUA->CreateTable();
+			PushEvent(LUA, m_pEvent); // Pushes into our table
+
+			LUA->CallFunctionProtected(2, 0, true);
+		}
+
+		if (pGameEventManager)
+			pGameEventManager->FreeEvent(m_pEvent);
+	}
+
+private:
+	CGameEvent* m_pEvent = nullptr;
+};
+
+class CustomGameEventListener : public IGameEventListener2
+{
+public:
+	CustomGameEventListener() = default;
+	
+	void SetLua(GarrysMod::Lua::ILuaInterface* pLua)
+	{
+		m_pLua = pLua;
+	}
+
+	void FireGameEvent(IGameEvent* pEvent)
+	{
+		if (!pGameEventManager)
+			return;
+
+		CLuaGameEventCallbackCall* pCallback = new CLuaGameEventCallbackCall(pGameEventManager->DuplicateEvent(pEvent));
+		m_pLua->AddThreadedCall((GarrysMod::Lua::ILuaThreadedCall*)pEvent);
+	}
+
+private:
+	GarrysMod::Lua::ILuaInterface* m_pLua = nullptr;
+};
+
+class HolyLuaModuleData : public Lua::ModuleData
+{
+public:
+	CustomGameEventListener m_pEventListener;
+};
+LUA_GetModuleData(HolyLuaModuleData, g_pHolyLuaModule, HolyLua)
+
+LUA_FUNCTION_STATIC(gameevent_Listen) {
+	const char* name = LUA->CheckString(1);
+
+	auto pData = GetHolyLuaLuaData(LUA);
+	if (!pGameEventManager->FindListener(&pData->m_pEventListener, name))
+		pGameEventManager->AddListener(&pData->m_pEventListener, name, false);
+ 
+	return 0;
+}
+
 void CHolyLuaModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (pLua != g_HolyLua)
 		return;
+
+	Lua::GetLuaData(pLua)->SetModuleData(m_pID, new HolyLuaModuleData);
+
+	auto pData = GetHolyLuaLuaData(pLua);
+	pData->m_pEventListener.SetLua(pLua);
+
+	Util::StartTable(pLua);
+		Util::AddFunc(pLua, gameevent_Listen, "Listen");
+	Util::FinishTable(pLua, "gameevent");
 }
 
 void CHolyLuaModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	if (pLua != g_HolyLua)
 		return;
+
+	if (pGameEventManager)
+	{
+		auto pData = GetHolyLuaLuaData(pLua);
+		pGameEventManager->RemoveListener(&pData->m_pEventListener);
+	}
 }

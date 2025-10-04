@@ -33,21 +33,21 @@ static ConVar gameevent_callhook("holylib_gameevent_callhook", "1", FCVAR_ARCHIV
 static CGameeventLibModule g_pGameeventLibModule;
 IModule* pGameeventLibModule = &g_pGameeventLibModule;
 
-static CGameEventManager* pManager;
+static CGameEventManager* pGameEventManager = nullptr;
 LUA_FUNCTION_STATIC(gameevent_GetListeners)
 {
 	if (LUA->IsType(1, GarrysMod::Lua::Type::String))
 	{
-		CGameEventDescriptor* desciptor = pManager->GetEventDescriptor(LUA->GetString(1));
+		CGameEventDescriptor* desciptor = pGameEventManager->GetEventDescriptor(LUA->GetString(1));
 		if (!desciptor)
 			return 0; // Return nothing -> nil on failure
 
 		LUA->PushNumber(desciptor->listeners.Count());
 	} else {
 		LUA->CreateTable();
-			FOR_EACH_VEC(pManager->m_GameEvents, i)
+			FOR_EACH_VEC(pGameEventManager->m_GameEvents, i)
 			{
-				CGameEventDescriptor& descriptor = pManager->m_GameEvents[i];
+				CGameEventDescriptor& descriptor = pGameEventManager->m_GameEvents[i];
 				LUA->PushString((const char*)&descriptor.name);
 				LUA->PushNumber(descriptor.listeners.Count());
 				LUA->RawSet(-3); // Does it even need to be a const char* ?
@@ -57,7 +57,7 @@ LUA_FUNCTION_STATIC(gameevent_GetListeners)
 	return 1;
 }
 
-static IGameEventListener2* pLuaGameEventListener;
+static IGameEventListener2* pLuaGameEventListener = nullptr;
 LUA_FUNCTION_STATIC(gameevent_RemoveListener)
 {
 	const char* strEvent = LUA->CheckString(1);
@@ -65,7 +65,7 @@ LUA_FUNCTION_STATIC(gameevent_RemoveListener)
 	bool bSuccess = false;
 	if (pLuaGameEventListener)
 	{
-		CGameEventDescriptor* desciptor = pManager->GetEventDescriptor(strEvent);
+		CGameEventDescriptor* desciptor = pGameEventManager->GetEventDescriptor(strEvent);
 		if (!desciptor)
 		{
 			LUA->PushBool(false);
@@ -110,9 +110,9 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 
 		LUA->CreateTable();
 		int idx = 0;
-		FOR_EACH_VEC(pManager->m_GameEvents, i)
+		FOR_EACH_VEC(pGameEventManager->m_GameEvents, i)
 		{
-			CGameEventDescriptor& descriptor = pManager->m_GameEvents[i];
+			CGameEventDescriptor& descriptor = pGameEventManager->m_GameEvents[i];
 			FOR_EACH_VEC(descriptor.listeners, j)
 			{
 				CGameEventCallback* callback = descriptor.listeners[j];
@@ -144,9 +144,9 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 
 			CBaseClient* pClient = Util::GetClientByIndex(iClient);
 			int idx = 0;
-			FOR_EACH_VEC(pManager->m_GameEvents, i)
+			FOR_EACH_VEC(pGameEventManager->m_GameEvents, i)
 			{
-				CGameEventDescriptor& descriptor = pManager->m_GameEvents[i];
+				CGameEventDescriptor& descriptor = pGameEventManager->m_GameEvents[i];
 
 				FOR_EACH_VEC(descriptor.listeners, j)
 				{
@@ -183,7 +183,7 @@ LUA_FUNCTION_STATIC(gameevent_RemoveClientListener)
 	bool bSuccess = false;
 	if (strEvent)
 	{
-		CGameEventDescriptor* desciptor = pManager->GetEventDescriptor(strEvent);
+		CGameEventDescriptor* desciptor = pGameEventManager->GetEventDescriptor(strEvent);
 		if (!desciptor)
 		{
 			LUA->PushBool(false);
@@ -205,7 +205,7 @@ LUA_FUNCTION_STATIC(gameevent_RemoveClientListener)
 			}
 		}
 	} else {
-		pManager->RemoveListener(pClient);
+		pGameEventManager->RemoveListener(pClient);
 		bSuccess = true; // Always true?
 	}
 
@@ -232,14 +232,14 @@ LUA_FUNCTION_STATIC(gameevent_AddClientListener)
 	if (!func_CGameEventManager_AddListener)
 		LUA->ThrowError("Failed to get CGameEventManager::AddListener");
 
-	CGameEventDescriptor* desciptor = pManager->GetEventDescriptor(strEvent);
+	CGameEventDescriptor* desciptor = pGameEventManager->GetEventDescriptor(strEvent);
 	if (!desciptor)
 	{
 		LUA->PushBool(false);
 		return 1;
 	}
 
-	func_CGameEventManager_AddListener(pManager, Util::GetClientByPlayer(pEntity), desciptor, CGameEventManager::CLIENTSTUB);
+	func_CGameEventManager_AddListener(pGameEventManager, Util::GetClientByPlayer(pEntity), desciptor, CGameEventManager::CLIENTSTUB);
 
 	LUA->PushBool(true);
 	return 1;
@@ -272,7 +272,7 @@ bool hook_CBaseClient_ProcessListenEvents(CBaseClient* client, CLC_ListenEvents*
 		{
 			if (msg->m_EventArray.Get(i))
 			{
-				CGameEventDescriptor *descriptor = pManager->GetEventDescriptor(i);
+				CGameEventDescriptor *descriptor = pGameEventManager->GetEventDescriptor(i);
 
 				if (descriptor)
 				{
@@ -340,7 +340,7 @@ Default__index(IGameEvent);
 Default__newindex(IGameEvent);
 Default__GetTable(IGameEvent);
 Default__gc(IGameEvent, 
-	pManager->FreeEvent((IGameEvent*)pStoredData);
+	pGameEventManager->FreeEvent((IGameEvent*)pStoredData);
 )
 
 LUA_FUNCTION_STATIC(IGameEvent_IsValid)
@@ -471,7 +471,7 @@ LUA_FUNCTION_STATIC(gameevent_Create)
 	const char* pName = LUA->CheckString(1); // Let's hope that gc won't break something
 	bool bForce = LUA->GetBool(2);
 
-	IGameEvent* pEvent = pManager->CreateEvent(pName, bForce);
+	IGameEvent* pEvent = pGameEventManager->CreateEvent(pName, bForce);
 	Push_IGameEvent(LUA, pEvent);
 	return 1;
 }
@@ -480,7 +480,7 @@ LUA_FUNCTION_STATIC(gameevent_DuplicateEvent)
 {
 	IGameEvent* pEvent = Get_IGameEvent(LUA, 1, true);
 
-	IGameEvent* pNewEvent = pManager->DuplicateEvent(pEvent);
+	IGameEvent* pNewEvent = pGameEventManager->DuplicateEvent(pEvent);
 	Push_IGameEvent(LUA, pNewEvent);
 	return 1;
 }
@@ -490,7 +490,7 @@ LUA_FUNCTION_STATIC(gameevent_FireEvent)
 	IGameEvent* pEvent = Get_IGameEvent(LUA, 1, true);
 	bool bDontBroadcast = LUA->GetBool(2);
 
-	LUA->PushBool(pManager->FireEvent(pEvent, bDontBroadcast));
+	LUA->PushBool(pGameEventManager->FireEvent(pEvent, bDontBroadcast));
 	return 1;
 }
 
@@ -533,8 +533,8 @@ LUA_FUNCTION_STATIC(gameevent_BlockCreation)
 
 void CGameeventLibModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
-	pManager = (CGameEventManager*)appfn[0](INTERFACEVERSION_GAMEEVENTSMANAGER2, NULL);
-	Detour::CheckValue("get interface", "CGameEventManager", pManager != NULL);
+	pGameEventManager = (CGameEventManager*)appfn[0](INTERFACEVERSION_GAMEEVENTSMANAGER2, NULL);
+	Detour::CheckValue("get interface", "CGameEventManager", pGameEventManager != NULL);
 }
 
 void CGameeventLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
@@ -576,8 +576,11 @@ void CGameeventLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bSer
 
 	if (Util::PushTable(pLua, "gameevent"))
 	{
-		Util::AddFunc(pLua, gameevent_GetListeners, "GetListeners");
-		Util::AddFunc(pLua, gameevent_RemoveListener, "RemoveListener");
+		if (pLua == g_Lua) // Don't exist in the HolyLua state since these are specific to the main lua state.
+		{
+			Util::AddFunc(pLua, gameevent_GetListeners, "GetListeners");
+			Util::AddFunc(pLua, gameevent_RemoveListener, "RemoveListener");
+		}
 
 		Util::AddFunc(pLua, gameevent_GetClientListeners, "GetClientListeners");
 		Util::AddFunc(pLua, gameevent_RemoveClientListener, "RemoveClientListener");
@@ -594,7 +597,7 @@ void CGameeventLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bSer
 		{
 			pLua->PushString("vote_cast"); // Yes this is a valid gameevent.
 			pLua->CallFunctionProtected(1, 0, true);
-			CGameEventDescriptor* descriptor = pManager->GetEventDescriptor("vote_cast");
+			CGameEventDescriptor* descriptor = pGameEventManager->GetEventDescriptor("vote_cast");
 			FOR_EACH_VEC(descriptor->listeners, i)
 			{
 				pLuaGameEventListener = (IGameEventListener2*)descriptor->listeners[i]->m_pCallback;

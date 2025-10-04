@@ -371,7 +371,7 @@ public:
 		return m_bDone;
 	}
 
-	void Done(GarrysMod::Lua::ILuaBase* LUA)
+	void Done(GarrysMod::Lua::ILuaInterface* LUA)
 	{
 		// We don't call delete since we create it as a static var.
 		// delete this;
@@ -379,7 +379,7 @@ public:
 
 	void OnShutdown()
 	{
-		// delete this;
+		// delete this; // We are defined static! No delete this else we'd have a heart attack.
 	}
 
 	// We call this on Module shutdown
