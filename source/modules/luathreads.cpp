@@ -37,50 +37,133 @@ public:
 	virtual void DoTask(LuaInterface* pData) = 0;
 };
 
-struct LuaInterface
+class LuaInterface
 {
+public:
 	~LuaInterface()
 	{
-		if (iStatus != INTERFACE_STOPPED)
+		if (m_iStatus != INTERFACE_STOPPED)
 		{
-			iStatus = INTERFACE_STOPPING;
-			while (iStatus != INTERFACE_STOPPED)
+			m_iStatus = INTERFACE_STOPPING;
+			while (m_iStatus != INTERFACE_STOPPED)
 			{
 				ThreadSleep(0);
 			}
 		}
 
-		if (pTasks.size() > 0)
+		if (m_pThreadID != NULL)
 		{
-			for (auto& task : pTasks)
-				delete task;
-
-			pTasks.clear();
+			ReleaseThreadHandle(m_pThreadID);
+			m_pThreadID = NULL;
 		}
 
-		g_pModuleManager.LuaShutdown(pInterface);
-		Lua::DestroyInterface(pInterface);
+		if (m_pTasks.size() > 0)
+		{
+			for (auto& task : m_pTasks)
+				delete task;
+
+			m_pTasks.clear();
+		}
+
+		g_pModuleManager.LuaShutdown(m_pInterface);
+		Lua::DestroyInterface(m_pInterface);
 	}
 
-	CLuaInterface* pInterface;
-	ThreadHandle_t pThreadID;
-	InterfaceStatus iStatus = InterfaceStatus::INTERFACE_STOPPED;
-	unsigned int iSleepTime = 1; // Time in ms to sleep
-	std::vector<InterfaceTask*> pTasks;
-	CThreadFastMutex pMutex;
+	void EnsureThread();
+
+	void AddTask(InterfaceTask* pTask)
+	{
+		EnsureThread();
+
+		m_pMutex.Lock();
+		m_pTasks.push_back(pTask);
+		m_pMutex.Unlock();
+	}
+
+	void SetName(const char* pName)
+	{
+		V_strncpy(m_strName, pName, sizeof(m_strName));
+	}
+
+	const char* GetName()
+	{
+		return m_strName;
+	}
+
+	CLuaInterface* GetInterface()
+	{
+		return m_pInterface;
+	}
+
+	void CreateInterface()
+	{
+		m_pInterface = (CLuaInterface*)Lua::CreateInterface();
+	}
+
+private:
+#if ARCHITECTURE_IS_X86_64
+	static long long unsigned
+#else
+	static unsigned
+#endif
+	LuaInterfaceThread(void* data)
+	{
+		LuaInterface* pData = (LuaInterface*)data;
+		pData->m_iStatus = INTERFACE_RUNNING;
+		while (pData->m_iStatus == INTERFACE_RUNNING)
+		{
+			// Execute all tasks first
+			pData->m_pMutex.Lock();
+			std::vector<InterfaceTask*> pTasks = pData->m_pTasks; // Copy in case a task results in a new task being added
+			pData->m_pTasks.clear();
+			pData->m_pMutex.Unlock();
+
+			for (auto& task : pTasks)
+			{
+				task->DoTask(pData);
+				delete task;
+			}
+
+			// Execute any module's think code
+			g_pModuleManager.LuaThink(pData->m_pInterface);
+
+			// eep
+			ThreadSleep(pData->m_iSleepTime);
+		}
+		pData->m_iStatus = INTERFACE_STOPPED;
+	
+		return 0;
+	}
+
+	CLuaInterface* m_pInterface;
+	ThreadHandle_t m_pThreadID = NULL;
+	InterfaceStatus m_iStatus = InterfaceStatus::INTERFACE_STOPPED;
+	unsigned int m_iSleepTime = 1; // Time in ms to sleep
+	std::vector<InterfaceTask*> m_pTasks;
+	CThreadFastMutex m_pMutex;
+	char m_strName[MAX_PATH] = "NONAME";
 };
 
 class RunStringTask : public InterfaceTask
 {
 public:
+	~RunStringTask() = default;
 	virtual void DoTask(LuaInterface* pData)
 	{
-		pData->pInterface->RunString("RunString", "", strCode.c_str(), true, true);
+		pData->GetInterface()->RunString("RunString", "", strCode.c_str(), true, true);
 	}
 
 public:
 	std::string strCode;
 };
+
+void LuaInterface::EnsureThread()
+{
+	if (m_pThreadID != NULL)
+		return;
+
+	m_pThreadID = CreateSimpleThread((ThreadFunc_t)LuaInterfaceThread, this);
+}
 
 PushReferenced_LuaClass(LuaInterface)
 Get_LuaClass(LuaInterface, "LuaInterface")
@@ -95,7 +178,7 @@ LUA_FUNCTION_STATIC(LuaInterface__tostring)
 	}
 
 	char szBuf[64] = {};
-	V_snprintf(szBuf, sizeof(szBuf), "LuaInterface [%s]", pData->pInterface->GetPath());
+	V_snprintf(szBuf, sizeof(szBuf), "LuaInterface [%s]", pData->GetName());
 	LUA->PushString(szBuf);
 	return 1;
 }
@@ -117,53 +200,33 @@ LUA_FUNCTION_STATIC(LuaInterface_RunString)
 	RunStringTask* pTask = new RunStringTask;
 	pTask->strCode = LUA->CheckString(2);
 
-	pData->pMutex.Lock();
-	pData->pTasks.push_back(pTask);
-	pData->pMutex.Unlock();
+	pData->AddTask(pTask);
 
 	return 0;
 }
 
-#if ARCHITECTURE_IS_X86_64
-static long long unsigned
-#else
-static unsigned
-#endif
-LuaThread(void* data)
+LUA_FUNCTION_STATIC(LuaInterface_GetName)
 {
-	LuaInterface* pData = (LuaInterface*)data;
-	pData->iStatus = INTERFACE_RUNNING;
-	while (pData->iStatus == INTERFACE_RUNNING)
-	{
-		// Execute all tasks first
-		pData->pMutex.Lock();
-		for (auto& task : pData->pTasks)
-		{
-			task->DoTask(pData);
-			delete task;
-		}
-		pData->pTasks.clear();
-		pData->pMutex.Unlock();
+	LuaInterface* pData = Get_LuaInterface(LUA, 1, true);
 
-		// Execute any module's think code
-		g_pModuleManager.LuaThink(pData->pInterface);
+	LUA->PushString(pData->GetName());
+	return 1;
+}
 
-		// eep
-		ThreadSleep(pData->iSleepTime);
-	}
-	pData->iStatus = INTERFACE_STOPPED;
-	
+LUA_FUNCTION_STATIC(LuaInterface_SetName)
+{
+	LuaInterface* pData = Get_LuaInterface(LUA, 1, true);
+
+	pData->SetName(LUA->CheckString(2));
 	return 0;
 }
 
 LUA_FUNCTION_STATIC(luathreads_CreateInterface)
 {
 	LuaInterface* pData = new LuaInterface;
-	pData->pInterface = (CLuaInterface*)Lua::CreateInterface();
+	pData->CreateInterface();
 
-	g_pModuleManager.LuaInit(pData->pInterface, false);
-
-	pData->pThreadID = CreateSimpleThread((ThreadFunc_t)LuaThread, pData);
+	g_pModuleManager.LuaInit(pData->GetInterface(), false);
 
 	Push_LuaInterface(LUA, pData);
 	return 1;
@@ -181,6 +244,8 @@ void CLuaThreadsModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, LuaInterface_GetTable, "GetTable");
 		Util::AddFunc(pLua, LuaInterface_IsValid, "IsValid");
 		Util::AddFunc(pLua, LuaInterface_RunString, "RunString");
+		Util::AddFunc(pLua, LuaInterface_GetName, "GetName");
+		Util::AddFunc(pLua, LuaInterface_SetName, "SetName");
 	pLua->Pop(1);
 
 	Util::StartTable(pLua);
