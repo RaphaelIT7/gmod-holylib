@@ -190,8 +190,8 @@ inline void CLuaInterface_DebugPrint(int level, const char* fmt, ...)
 // =================================
 // First gmod function
 // =================================
-std::string g_LastError;
-std::vector<lua_Debug*> stackErrors;
+// std::string g_LastError;
+// std::vector<lua_Debug*> stackErrors;
 GarrysMod::Lua::ILuaGameCallback::CLuaError* ReadStackIntoError(lua_State* L)
 {
 	// VPROF ReadStackIntoError GLua
@@ -225,14 +225,17 @@ int AdvancedLuaErrorReporter(lua_State *L)
 {
 	// VPROF AdvancedLuaErrorReporter GLua
 
-	if (lua_isstring(L, 0)) {
-		const char* str = lua_tostring(L, 0);
+	if (lua_isstring(L, 1)) {
+		const char* str = lua_tostring(L, 1);
 
-		g_LastError.assign(str);
+		// g_LastError.assign(str);
 
-		ReadStackIntoError(L);
+		CLuaInterface* LUA = (CLuaInterface*)L->luabase;
+		lua_pushvalue(L, 1);
+		LUA->GetLuaGameCallback()->LuaError(ReadStackIntoError(L));
+		lua_pop(L, 1);
 
-		lua_pushstring(L, g_LastError.c_str());
+		// lua_pushstring(L, g_LastError.c_str());
 	}
 
 	return 0;
