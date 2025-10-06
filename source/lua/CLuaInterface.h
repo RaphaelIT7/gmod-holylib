@@ -7,6 +7,7 @@
 #include "GarrysMod/Lua/LuaObject.h"
 #include <list>
 #include "tier1/utlstack.h"
+#include <atomic>
 
 #define GMOD
 
@@ -200,8 +201,7 @@ public: // We keep gmod's structure in case any modules depend on it.
 	GarrysMod::Lua::ILuaObject* m_pMetaTables[255] = {nullptr}; // Their index is based off their type. means m_MetaTables[Type::Entity] returns the Entity metatable.
 private: // NOT GMOD stuff
 	CThreadFastMutex m_pThreadedCallsMutex;
-	bool m_bShutDownThreadedCalls = false;
-	bool m_bIsThreadedCallMutexLocked = false;
+	std::atomic<bool> m_bShutDownThreadedCalls = false;
 
 public:
 	void RunThreadedCalls();

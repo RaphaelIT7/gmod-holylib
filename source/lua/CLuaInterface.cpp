@@ -907,21 +907,32 @@ void CLuaInterface::RunThreadedCalls()
 {
 	LuaDebugPrint(3, "CLuaInterface::RunThreadedCalls\n");
 
-	std::vector<GarrysMod::Lua::ILuaThreadedCall*> pFinishedCalls;
+	// unordered_set instead of a vector to improve performance of the second pass
+	std::unordered_set<GarrysMod::Lua::ILuaThreadedCall*> pFinishedCalls;
+
 	// We create a copy for the rare case that a task might call AddThreadedCall inside IsDone, if we didn't do this it could break iteration!
 	m_pThreadedCallsMutex.Lock(); // We don't need to keep it locked for longer thanks to our copy.
 	std::list<GarrysMod::Lua::ILuaThreadedCall*> pThreadedCalls = m_pThreadedCalls;
 	m_pThreadedCallsMutex.Unlock();
+
 	for (auto it = pThreadedCalls.begin(); it != pThreadedCalls.end(); )
 	{
 		if ((*it)->IsDone())
 		{
-			pFinishedCalls.push_back(*it);
-			it = pThreadedCalls.erase(it);
+			pFinishedCalls.insert(*it);
 			continue;
 		}
 
 		it++;
+	}
+
+	// Second pass though without calling any callback ensuring that AddThreadedCall is not possibly invoked
+	if (!pFinishedCalls.empty())
+	{
+		AUTO_LOCK(m_pThreadedCallsMutex);
+		m_pThreadedCalls.remove_if([&pFinishedCalls](GarrysMod::Lua::ILuaThreadedCall* call) {
+			return pFinishedCalls.find(call) != pFinishedCalls.end();
+		});
 	}
 
 	for (GarrysMod::Lua::ILuaThreadedCall* call : pFinishedCalls)
@@ -934,31 +945,26 @@ int CLuaInterface::AddThreadedCall(GarrysMod::Lua::ILuaThreadedCall* call)
 {
 	LuaDebugPrint(1, "CLuaInterface::AddThreadedCall What called this?\n");
 
-	if (m_bShutDownThreadedCalls)
+	if (m_bShutDownThreadedCalls.load())
 	{
 		call->OnShutdown();
 		return 0;
 	}
 
-	// Required to prevent a deadlock
-	bool bMutex = !(ThreadInMainThread() && m_bIsThreadedCallMutexLocked);
-	if (bMutex)
-		m_pThreadedCallsMutex.Lock();
+	AUTO_LOCK(m_pThreadedCallsMutex);
 
 	m_pThreadedCalls.push_back(call);
 	int nSize = m_pThreadedCalls.size(); // Just to be sure, idk if the Mutex would cover a call in the return
-
-	if (bMutex)
-		m_pThreadedCallsMutex.Unlock();
 
 	return nSize;
 }
 
 void CLuaInterface::ShutdownThreadedCalls()
 {
-	m_bShutDownThreadedCalls = true;
+	m_bShutDownThreadedCalls.store(true);
 
 	// We don't check for the case of a deadlock as it shouldn't happen that from inside IsDone it could enter ShutdownThreadedCalls?
+	// If something inside the OnShutdown callback does try to add a new task m_bShutDownThreadedCalls will stop them.
 	AUTO_LOCK(m_pThreadedCallsMutex);
 
 	for (GarrysMod::Lua::ILuaThreadedCall* pCall : m_pThreadedCalls)
@@ -1413,7 +1419,7 @@ std::string ToPath(std::string path)
 	if ( resultPath.find( "gamemodes/" ) == 0 )
 		resultPath.erase( 0, 10 );
 
-    if (resultPath.rfind("addons/", 0) == 0) // ToDo: I think we can remove this again.
+	if (resultPath.rfind("addons/", 0) == 0) // ToDo: I think we can remove this again.
 	{
 		size_t first = path.find('/', 7);
 		if (first != std::string::npos)
