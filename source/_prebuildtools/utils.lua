@@ -1,13 +1,13 @@
 local BinaryFormat = package.cpath:match("%p[\\|/]?%p(%a+)")
-if BinaryFormat == "dll" then
+if BinaryFormat == "dll" or (os.host and os.host() == "windows") then
 	function os.name()
 		return "Windows"
 	end
-elseif BinaryFormat == "so" then
+elseif BinaryFormat == "so" or (os.host and os.host() == "linux") then
 	function os.name()
 		return "Linux"
 	end
-elseif BinaryFormat == "dylib" then
+elseif BinaryFormat == "dylib" or (os.host and os.host() == "macosx") then
 	function os.name()
 		return "MacOS"
 	end
@@ -107,6 +107,10 @@ function string.Replace(str, rep, new)
     end
 
     return new_str
+end
+
+function string.EndsWith(str, ending)
+	return string.sub(str, -1) == ending
 end
 
 local created_dirs = {}

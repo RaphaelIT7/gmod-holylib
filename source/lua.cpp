@@ -244,7 +244,11 @@ void Lua::DestroyInterface(GarrysMod::Lua::ILuaInterface* LUA)
 
 // From LuaJIT, though we can strip it out later
 // ToDo: Find out how to untangle these internal dependencies, we / our core system should not depend on modules.
+// Update: I don't like the usage of MODULE_EXISTS_LUAJIT though it's the best solution
+//         else we'd have to detour our own functions and I don't like the idea of possibly ending up with self modifing code
+#if MODULE_EXISTS_LUAJIT
 extern RawLua::CDataBridge* GetCDataBridgeFromInterface(GarrysMod::Lua::ILuaInterface* pLua);
+#endif
 LuaUserData* Lua::GetHolyLibUserData(GarrysMod::Lua::ILuaInterface * LUA, int nStackPos)
 {
 	lua_State* L = LUA->GetState();
@@ -254,12 +258,14 @@ LuaUserData* Lua::GetHolyLibUserData(GarrysMod::Lua::ILuaInterface * LUA, int nS
 
 	if (!tvisudata(val))
 	{
+#if MODULE_EXISTS_LUAJIT
 		if (tviscdata(val))
 		{
 			RawLua::CDataBridge* pBridge = GetCDataBridgeFromInterface(LUA);
 			if (pBridge->pRegisteredTypes.IsBitSet(cdataV(val)->ctypeid))
 				return (LuaUserData*)lj_obj_ptr(G(L), val);
 		}
+#endif
 
 		return nullptr;
 	}
@@ -303,6 +309,7 @@ public:
 
 		if (!tvisudata(val))
 		{
+#if MODULE_EXISTS_LUAJIT
 			if (tviscdata(val))
 			{
 				RawLua::CDataBridge* pBridge = GetCDataBridgeFromInterface(This());
@@ -315,6 +322,7 @@ public:
 					}
 				}
 			}
+#endif
 
 			return -1;
 		}
@@ -341,12 +349,14 @@ public:
 
 		if (!tvisudata(val))
 		{
+#if MODULE_EXISTS_LUAJIT
 			if (tviscdata(val))
 			{
 				RawLua::CDataBridge* pBridge = GetCDataBridgeFromInterface(This());
 				if (pBridge->pRegisteredTypes.IsBitSet(cdataV(val)->ctypeid))
 					return (void*)lj_obj_ptr(G(L), val);
 			}
+#endif
 
 			return nullptr;
 		}
@@ -373,6 +383,7 @@ public:
 
 		if (!tvisudata(val))
 		{
+#if MODULE_EXISTS_LUAJIT
 			if (tviscdata(val))
 			{
 				RawLua::CDataBridge* pBridge = GetCDataBridgeFromInterface(This());
@@ -385,6 +396,7 @@ public:
 					}
 				}
 			}
+#endif
 
 			return;
 		}

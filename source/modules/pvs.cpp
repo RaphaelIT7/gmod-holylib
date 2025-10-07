@@ -642,20 +642,6 @@ LUA_FUNCTION_STATIC(pvs_AddEntityToTransmit)
 	return 0;
 }
 
-CBasePlayer *UTIL_PlayerByIndex(int playerIndex)
-{
-	CBasePlayer *pPlayer = NULL;
-
-	if (playerIndex > 0 && playerIndex <= gpGlobals->maxClients)
-	{
-		edict_t *pPlayerEdict = INDEXENT(playerIndex);
-		if (pPlayerEdict && !pPlayerEdict->IsFree())
-			pPlayer = (CBasePlayer*)Util::GetCBaseEntityFromEdict(pPlayerEdict);
-	}
-	
-	return pPlayer;
-}
-
 LUA_FUNCTION_STATIC(pvs_SetPreventTransmitBulk)
 {
 	CBasePlayer* ply = NULL;

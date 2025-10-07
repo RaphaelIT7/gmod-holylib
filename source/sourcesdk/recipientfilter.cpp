@@ -9,9 +9,24 @@
 #include "recipientfilter.h"
 #include "team.h"
 #include "ipredictionsystem.h"
+#include "util.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
+
+CBasePlayer *UTIL_PlayerByIndex(int playerIndex)
+{
+	CBasePlayer *pPlayer = NULL;
+
+	if (playerIndex > 0 && playerIndex <= gpGlobals->maxClients)
+	{
+		edict_t *pPlayerEdict = INDEXENT(playerIndex);
+		if (pPlayerEdict && !pPlayerEdict->IsFree())
+			pPlayer = (CBasePlayer*)Util::GetCBaseEntityFromEdict(pPlayerEdict);
+	}
+	
+	return pPlayer;
+}
 
 //-----------------------------------------------------------------------------
 // Purpose: 

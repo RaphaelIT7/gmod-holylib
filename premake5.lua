@@ -30,6 +30,8 @@ end
 
 include(sourcePath .. "bootil/premake5.lua")
 
+include(sourcePath .. "_prebuildtools/_dependency_manager.lua")
+
 --[[
 	Workflow info variables
 ]]
@@ -133,6 +135,8 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			["Workflows"] = rootDir .. ".github/workflows/**.yml",
 		})
 
+		removefiles(GetExcludedFiles(sourcePath)) -- Remove source files marked by our dependency manager
+
 		includedirs({
 			sourcePath .. [[sourcesdk/]],
 			sourcePath .. [[lua]]
@@ -141,7 +145,6 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 		filter("system:windows")
 			defines("IVP_NO_MATH_INL")
 			disablewarnings({"4101"})
-			files({"source/win32/*.cpp", "source/win32/*.hpp"})
 			links({"lua51_32.lib"})
 			links({"lua51_64.lib"})
 			links({"bass_32.lib"})

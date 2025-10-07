@@ -1,3 +1,4 @@
+//HOLYLIB_REQUIRES_MODULE=gameserver
 //========= Copyright Valve Corporation, All rights reserved. ============//
 //
 // Purpose: net_chan.cpp: implementation of the CNetChan_t struct.
