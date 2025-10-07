@@ -435,8 +435,9 @@ GMOD_MODULE_OPEN()
 
 GMOD_MODULE_CLOSE()
 {
-	g_HolyLibServerPlugin.Unload();
 	pPluginThink.MarkAsDone();
+	g_Lua->Cycle(); // Just to get our ThreadedCall unloaded since when we are unloaded we expect to not leave any memory.
+	g_HolyLibServerPlugin.Unload();
 
 	return 0;
 }
