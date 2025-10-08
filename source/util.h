@@ -291,6 +291,16 @@ namespace Util
 	extern void BlockGameEvent(const char* pName);
 	extern void UnblockGameEvent(const char* pName);
 
+	// Offset / Networking related stuff
+	
+	// tries to find a SendProp with the given name, and if found it will return the offset stored in the sendprop.
+	// Returns -1 on failure
+	extern int FindOffsetForNetworkVar(const char* pDTName, const char* pVarName);
+	inline void* GoToNetworkVarOffset(void* pBase, int nOffset)
+	{
+		return *(void**)((char*)pBase + nOffset);
+	}
+
 	// More Lua stuff for UserData (NEVER NULL)
 	extern Symbols::lua_setfenv func_lua_setfenv;
 	extern Symbols::lua_touserdata func_lua_touserdata;

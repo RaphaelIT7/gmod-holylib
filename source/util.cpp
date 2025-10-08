@@ -491,6 +491,62 @@ void Util::UnblockGameEvent(const char* pName)
 	pBlockedEvents.erase(it);
 }
 
+/*
+	This isn't made for speed, instead this will be called once by code on ServerActivate
+	where then the calling code can cache the value.
+
+	Why do we use SendProp?
+	Because they are the most reliable and secure way to get offsets to variables even across platforms.
+	We normally try to avoid offsets, but these offset are our love.
+*/
+static std::unordered_map<std::string, std::unordered_set<SendProp*>> g_pSendProps;
+extern void AddSendProp(SendProp* pProp, std::unordered_set<SendProp*>& pSendProp);
+extern void AddSendTable(SendTable* pTables);
+void AddSendProp(SendProp* pProp, std::unordered_set<SendProp*>& pSendProp)
+{
+	if (pSendProp.find(pProp) == pSendProp.end())
+		pSendProp.insert(pProp);
+
+	if (pProp->GetDataTable())
+		AddSendTable(pProp->GetDataTable());
+
+	if (pProp->GetArrayProp())
+		AddSendProp(pProp->GetArrayProp(), pSendProp);
+}
+
+void AddSendTable(SendTable* pTable)
+{
+	std::unordered_set<SendProp*> pSendProp;
+	for (int i = 0; i < pTable->GetNumProps(); i++) {
+		SendProp* pProp = &pTable->m_pProps[i]; // Windows screwing with GetProp
+		
+		AddSendProp(pProp, pSendProp);
+	}
+
+	g_pSendProps[pTable->GetName()] = pSendProp;
+}
+
+int Util::FindOffsetForNetworkVar(const char* pDTName, const char* pVarName)
+{
+	if (g_pSendProps.size() == 0)
+	{
+		for(ServerClass *serverclass = Util::servergamedll->GetAllServerClasses(); serverclass->m_pNext != nullptr; serverclass = serverclass->m_pNext)
+			AddSendTable(serverclass->m_pTable);
+	}
+
+	auto it = g_pSendProps.find(pDTName);
+	if (it != g_pSendProps.end())
+	{
+		for (SendProp* pProp : it->second)
+		{
+			if (((std::string_view)pVarName) == pProp->GetName())
+				return pProp->GetOffset();
+		}
+	}
+
+	return -1;
+}
+
 IGet* Util::get = nullptr;
 CBaseEntityList* g_pEntityList = nullptr;
 Symbols::lua_rawseti Util::func_lua_rawseti = nullptr;
@@ -903,6 +959,18 @@ static void CreateDebugDump(const CCommand &args)
 	}
 }
 static ConCommand createdebugdump("holylib_createdebugdump", CreateDebugDump, "Creates a debug dump that can be provided in a issue or bug report", 0);
+
+static void ShowOffsetOfVar(const CCommand &args)
+{
+	if (args.ArgC() != 3)
+	{
+		Msg("holylib_showdtoffset [dtname] [varname]\n");
+		return;
+	}
+
+	Msg("Offset: %i\n", Util::FindOffsetForNetworkVar(args.Arg(1), args.Arg(2)));
+}
+static ConCommand showdtoffset("holylib_showdtoffset", ShowOffsetOfVar, "Shows the offset", 0);
 
 GMODGet_LuaClass(IRecipientFilter, GarrysMod::Lua::Type::RecipientFilter, "RecipientFilter", )
 GMODGet_LuaClass(Vector, GarrysMod::Lua::Type::Vector, "Vector", )
