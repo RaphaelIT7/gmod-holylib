@@ -13,12 +13,12 @@
 dofile("utils.lua")
 
 local _ProcessDir -- for recursion :3
-local function ProcessDir(results, dirPath, files)
+local function ProcessDir(results, dirPath, files, basePath)
 	-- print("ProcessDir called : ", dirPath, files)
 	for _dirname, filename in pairs(files) do
 		if type(filename) == "table" then
 			local fullPath = dirPath .. (string.EndsWith(dirPath, "/") and "" or "/") .. _dirname
-			_ProcessDir(results, fullPath, filename)
+			_ProcessDir(results, fullPath, filename, basePath)
 		elseif EndsWith(filename, ".cpp") then
 			local fullPath = dirPath .. (string.EndsWith(dirPath, "/") and "" or "/") .. filename
 			local content = ReadFile(fullPath)
@@ -27,7 +27,7 @@ local function ProcessDir(results, dirPath, files)
 				if requires then
 					for mod in requires:gmatch("([^,]+)") do
 						mod = string.Trim(mod)
-						local modulePath = "source/modules/" .. mod .. ".cpp"
+						local modulePath = basePath .. "modules/" .. mod .. ".cpp"
 						if not ReadFile(modulePath) then
 							table.insert(results, fullPath)
 							break
@@ -44,7 +44,7 @@ function GetExcludedFiles(basePath, makeRelative)
 	local excluded = {}
 	local sourceFiles = ScanDir(basePath, true)
 
-	ProcessDir(excluded, basePath, sourceFiles)
+	ProcessDir(excluded, basePath, sourceFiles, basePath)
 
 	if makeRelative then
 		-- Now we make the results relative to the source/ directory

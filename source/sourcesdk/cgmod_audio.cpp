@@ -1,4 +1,4 @@
-// MODULE_DEPENDENCY=bass
+// HOLYLIB_REQUIRES_MODULE=bass
 
 #include "interface.h"
 #include "cgmod_audio.h"

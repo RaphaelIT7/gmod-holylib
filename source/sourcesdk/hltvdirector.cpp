@@ -1,3 +1,4 @@
+//HOLYLIB_REQUIRES_MODULE=sourcetv
 #include "player.h"
 #include "sourcesdk/hltvdirector.h"
 #include "util.h"
