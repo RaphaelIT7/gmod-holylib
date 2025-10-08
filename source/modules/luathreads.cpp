@@ -126,6 +126,7 @@ private:
 
 			// Execute any module's think code
 			g_pModuleManager.LuaThink(pData->m_pInterface);
+			pData->m_pInterface->Cycle();
 
 			// eep
 			ThreadSleep(pData->m_iSleepTime);

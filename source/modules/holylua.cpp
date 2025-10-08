@@ -73,6 +73,7 @@ void CHolyLuaModule::Think(bool bSimulating)
 		return;
 
 	g_pModuleManager.LuaThink(g_HolyLua);
+	g_HolyLua->Cycle();
 }
 
 void CHolyLuaModule::Shutdown()
