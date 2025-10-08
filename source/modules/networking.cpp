@@ -2206,6 +2206,8 @@ static void DumpDT(const CCommand &args)
 		fileName.append(std::to_string(nClassIndex++));
 		fileName.append("_");
 		fileName.append(serverclass->GetName());
+		fileName.append("-");
+		fileName.append(serverclass->m_pTable->GetName());
 		fileName.append(".txt");
 
 		FileHandle_t pHandle = g_pFullFileSystem->Open(fileName.c_str(), "wb", "MOD");
