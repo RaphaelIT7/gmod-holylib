@@ -137,6 +137,57 @@ jobs:
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
       BUILD_CACHE: "true"
 
+  build_stripped_module:
+    name: "Build Stripped modules"
+    uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
+    strategy:
+      fail-fast: false
+      matrix:
+        module: 
+          - holylib
+          - gameevent
+          - serverplugin
+          - sourcetv
+          - threadpoolfix
+          - stringtable
+          - precachefix
+          - pvs
+          - surffix
+          - filesystem
+          - util
+          - concommand
+          - vprof
+          - cvars
+          - bitbuf
+          - networking
+          - steamworks
+          - pas
+          - bass
+          - systimer
+          - voicechat
+          - physenv
+          - net
+          - entitylist
+          - httpserver
+          - gameserver
+          - soundscape
+          - luajit
+          - holylua
+    with:
+      PROJECT_NAME: "holylib"
+      BUILD_64x: "true"
+      REALM: "sv"
+      LINUX_FILEEXTENTION: "so"
+      BUILD_WINDOWS: "true"
+      ARTIFACT_EXPIRE: "7"
+      UPLOAD: "none"
+      SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
+      SOURCESDK_MINIMAL_BRANCH: "patch-7"
+      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
+      GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
+      ADDITIONAL_LINUX_32_SETUP: 'rm -rf source/ivp && cd source/modules/ && ls | grep -xvF ${{ matrix.module }}.cpp | xargs rm -f -- && cd ../../'
+      ADDITIONAL_LINUX_64_SETUP: 'rm -rf source/ivp && cd source/modules/ && ls | grep -xvF ${{ matrix.module }}.cpp | xargs rm -f -- && cd ../../'
+
   setup_artifacts: # Having this as a matrix won't hurt concurrency since both 32x & 64x finish around the same time
     name: "Setup ${{ matrix.arch }} Artifact"
     needs: [build_plugin_linux, build_ghostinj]
