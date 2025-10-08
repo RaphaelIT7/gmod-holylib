@@ -132,6 +132,10 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [#] Fixed `steamworks.ForceAuthenticate` being silently broken<br>
 \- [#] Fully seperated HolyLib's core from all modules allowing anyone to remove modules they don't want.<br>
 \- [#] Removed all dependencies modules had on each other allowing each module to compile without requiring another one.<br>
+\- [#] Fixed some issues in `luathreads` module that caused either crashes or simply were bugs<br>
+\- [#] Fixed lua error handler used by any `CLuaInterface` created by HolyLib failing (`error in error handler`)<br>
+\- [#] Moved `HolyLua` from HolyLib's core into a module to seperate it and allow anyone to remove it<br>
+\- [#] Fixed some memory leaks from our own `CLuaInterface` since on shutdown they never cleared up on removal/shutdown<br>
 \- [-] Removed some unused code of former fixes that were implemented into Gmod<br>
 
 You can see all changes/commits here:<br>

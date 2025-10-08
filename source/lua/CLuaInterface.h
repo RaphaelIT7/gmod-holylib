@@ -27,6 +27,8 @@ extern void GMOD_UnloadBinaryModules(lua_State* L);
 class CLuaInterface : public GarrysMod::Lua::ILuaInterface
 {
 public:
+	~CLuaInterface();
+
 	virtual int Top(void);
 	virtual void Push(int iStackPos);
 	virtual void Pop(int iAmt = 1);

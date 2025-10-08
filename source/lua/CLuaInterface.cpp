@@ -262,6 +262,32 @@ void Lua::CloseLuaInterface(GarrysMod::Lua::ILuaInterface* LuaInterface)
 // ILuaBase / CBaseLuaInterface implementation
 // =================================
 
+CLuaInterface::~CLuaInterface()
+{
+	if (state != NULL)
+	{
+		Shutdown();
+		return;
+	}
+
+	// This is just for safety to ensure no memory leaks.
+	for (int i=0; i<255; ++i) {
+		if (m_pMetaTables[i])
+		{
+			DestroyObject(m_pMetaTables[i]);
+			m_pMetaTables[i] = nullptr;
+		}
+	}
+
+	for (int i=0; i<LUA_MAX_TEMP_OBJECTS; ++i) {
+		if (m_TempObjects[i])
+		{
+			DestroyObject(m_TempObjects[i]);
+			m_TempObjects[i] = nullptr;
+		}
+	}
+}
+
 int CLuaInterface::Top()
 {
 	LuaDebugPrint(3, "CLuaInterface::Top\n");
@@ -884,12 +910,18 @@ void CLuaInterface::Shutdown()
 
 	for (int i=0; i<255; ++i) {
 		if (m_pMetaTables[i])
+		{
 			DestroyObject(m_pMetaTables[i]);
+			m_pMetaTables[i] = nullptr;
+		}
 	}
 
 	for (int i=0; i<LUA_MAX_TEMP_OBJECTS; ++i) {
 		if (m_TempObjects[i])
+		{
 			DestroyObject(m_TempObjects[i]);
+			m_TempObjects[i] = nullptr;
+		}
 	}
 }
 
