@@ -116,6 +116,7 @@ static void hook_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheck
 		}
 	}
 
+#if MODULE_EXISTS_NETWORKING
 	if (g_pReplaceCServerGameEnts_CheckTransmit)
 	{
 		if (!New_CServerGameEnts_CheckTransmit(gameents, pInfo, pEdictIndices, nEdicts))
@@ -123,6 +124,7 @@ static void hook_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheck
 			detour_CServerGameEnts_CheckTransmit.GetTrampoline<Symbols::CServerGameEnts_CheckTransmit>()(gameents, pInfo, pEdictIndices, nEdicts);
 		}
 	} else
+#endif
 		detour_CServerGameEnts_CheckTransmit.GetTrampoline<Symbols::CServerGameEnts_CheckTransmit>()(gameents, pInfo, pEdictIndices, nEdicts);
 
 	if(Lua::PushHook("HolyLib:PostCheckTransmit"))
@@ -350,10 +352,12 @@ LUA_FUNCTION_STATIC(pvs_AddEntityToPVS)
 			LUA->Pop(1);
 		}
 		LUA->Pop(1);
+#if MODULE_EXISTS_ENTITYLIST
 	} else if (Is_EntityList(LUA, 1)) {
 		EntityList* entList = Get_EntityList(LUA, 1, true);
 		for (CBaseEntity* ent : entList->GetEntities())
 			AddEntityToPVS(LUA, ent);
+#endif
 	} else {
 		CBaseEntity* ent = Util::Get_Entity(LUA, 1, true);
 		AddEntityToPVS(LUA, ent);
@@ -415,10 +419,12 @@ LUA_FUNCTION_STATIC(pvs_OverrideStateFlags)
 			LUA->Pop(1);
 		}
 		LUA->Pop(1);
+#if MODULE_EXISTS_ENTITYLIST
 	} else if (Is_EntityList(LUA, 1)) {
 		EntityList* entList = Get_EntityList(LUA, 1, true);
 		for (CBaseEntity* ent : entList->GetEntities())
 			SetOverrideStateFlags(LUA, ent, flags, force);
+#endif
 	} else {
 		CBaseEntity* ent = Util::Get_Entity(LUA, 1, true);
 		SetOverrideStateFlags(LUA, ent, flags, force);
@@ -475,10 +481,12 @@ LUA_FUNCTION_STATIC(pvs_SetStateFlags)
 			LUA->Pop(1);
 		}
 		LUA->Pop(1);
+#if MODULE_EXISTS_ENTITYLIST
 	} else if (Is_EntityList(LUA, 1)) {
 		EntityList* entList = Get_EntityList(LUA, 1, true);
 		for (CBaseEntity* ent : entList->GetEntities())
 			SetStateFlags(LUA, ent, flags, force);
+#endif
 	} else {
 		CBaseEntity* ent = Util::Get_Entity(LUA, 1, true);
 		SetStateFlags(LUA, ent, flags, force);
@@ -529,6 +537,7 @@ LUA_FUNCTION_STATIC(pvs_GetStateFlags)
 			LUA->RawSet(-4);
 		}
 		LUA->Pop(1);
+#if MODULE_EXISTS_ENTITYLIST
 	} else if (Is_EntityList(LUA, 1)) {
 		LUA->CreateTable();
 		EntityList* entList = Get_EntityList(LUA, 1, true);
@@ -538,6 +547,7 @@ LUA_FUNCTION_STATIC(pvs_GetStateFlags)
 			LUA->PushNumber(GetStateFlags(LUA, pEnt, force));
 			LUA->RawSet(-3);
 		}
+#endif
 	} else {
 		CBaseEntity* ent = Util::Get_Entity(LUA, 1, true);
 		LUA->PushNumber(GetStateFlags(LUA, ent, force));
@@ -581,12 +591,14 @@ LUA_FUNCTION_STATIC(pvs_RemoveEntityFromTransmit)
 		LUA->Pop(1);
 
 		LUA->PushBool(true);
+#if MODULE_EXISTS_ENTITYLIST
 	} else if (Is_EntityList(LUA, 1)) {
 		EntityList* entList = Get_EntityList(LUA, 1, true);
 		for (CBaseEntity* ent : entList->GetEntities())
 			RemoveEntityFromTransmit(LUA, ent);
 
 		LUA->PushBool(true);
+#endif
 	} else {
 		CBaseEntity* ent = Util::Get_Entity(LUA, 1, true);
 		LUA->PushBool(RemoveEntityFromTransmit(LUA, ent));
@@ -630,10 +642,12 @@ LUA_FUNCTION_STATIC(pvs_AddEntityToTransmit)
 			LUA->Pop(1);
 		}
 		LUA->Pop(1);
+#if MODULE_EXISTS_ENTITYLIST
 	} else if (Is_EntityList(LUA, 1)) {
 		EntityList* entList = Get_EntityList(LUA, 1, true);
 		for (CBaseEntity* ent : entList->GetEntities())
 			AddEntityToTransmit(LUA, ent, true);
+#endif
 	} else {
 		CBaseEntity* ent = Util::Get_Entity(LUA, 1, true);
 		AddEntityToTransmit(LUA, ent, force);
@@ -690,6 +704,7 @@ LUA_FUNCTION_STATIC(pvs_SetPreventTransmitBulk)
 			LUA->Pop(1);
 		}
 		LUA->Pop(1);
+#if MODULE_EXISTS_ENTITYLIST
 	} else if (Is_EntityList(LUA, 1)) {
 		EntityList* entList = Get_EntityList(LUA, 1, true);
 		for (CBaseEntity* ent : entList->GetEntities())
@@ -700,6 +715,7 @@ LUA_FUNCTION_STATIC(pvs_SetPreventTransmitBulk)
 			else
 				ent->GMOD_SetShouldPreventTransmitToPlayer(ply, notransmit);
 		}
+#endif
 	} else {
 		CBaseEntity* ent = Util::Get_Entity(LUA, 1, true);
 		ent->GMOD_SetShouldPreventTransmitToPlayer(ply, notransmit);
@@ -725,6 +741,7 @@ LUA_FUNCTION_STATIC(pvs_FindInPVS) // Copy from pas.FindInPAS
 
 	LUA->PreCreateTable(MAX_EDICTS / 16, 0); // Should we reduce this later? (Currently: 512)
 	int idx = 0;
+#if MODULE_EXISTS_ENTITYLIST
 	if (Util::pEntityList->IsEnabled())
 	{
 		EntityList& pGlobalEntityList = GetGlobalEntityList(LUA);
@@ -739,6 +756,7 @@ LUA_FUNCTION_STATIC(pvs_FindInPVS) // Copy from pas.FindInPAS
 		delete pVisCluster;
 		return 1;
 	}
+#endif
 
 	CBaseEntity* pEnt = Util::FirstEnt();
 	while (pEnt != NULL)
@@ -778,6 +796,7 @@ LUA_FUNCTION_STATIC(pvs_TestPVS)
 	if (LUA->IsType(2, GarrysMod::Lua::Type::Vector))
 	{
 		LUA->PushBool(TestPVS(pVisCluster, *Get_Vector(LUA, 2)));
+#if MODULE_EXISTS_ENTITYLIST
 	} else if (Is_EntityList(LUA, 2)) {
 		EntityList* entList = Get_EntityList(LUA, 2, true);
 		LUA->PreCreateTable(0, entList->GetEntities().size());
@@ -787,6 +806,7 @@ LUA_FUNCTION_STATIC(pvs_TestPVS)
 			LUA->PushBool(TestPVS(pVisCluster, pEnt->GetAbsOrigin()));
 			LUA->RawSet(-3);
 		}
+#endif
 	} else {
 		LUA->CheckType(2, GarrysMod::Lua::Type::Entity);
 		CBaseEntity* ent = Util::Get_Entity(LUA, 2, false);

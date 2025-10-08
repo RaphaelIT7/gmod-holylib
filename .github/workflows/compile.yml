@@ -143,12 +143,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        module: 
+        module:
+          - autorefresh
           - holylib
           - gameevent
           - serverplugin
           - sourcetv
-          - threadpoolfix
           - stringtable
           - precachefix
           - pvs
@@ -178,9 +178,11 @@ jobs:
       BUILD_64x: "true"
       REALM: "sv"
       LINUX_FILEEXTENTION: "so"
-      BUILD_WINDOWS: "true"
+      BUILD_WINDOWS: "false"
       ARTIFACT_EXPIRE: "7"
       UPLOAD: "none"
+      BUILD_CACHE: "true"
+      NO_SAVE_CACHE: "true"
       SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
       SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
@@ -610,12 +612,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        module: 
+        module:
+          - autorefresh
           - holylib
           - gameevent
           - serverplugin
           - sourcetv
-          - threadpoolfix
           - stringtable
           - precachefix
           - pvs

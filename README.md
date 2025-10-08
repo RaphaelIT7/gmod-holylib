@@ -129,6 +129,9 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [#] Fixed absolute search cache causing files from any search path to be returned / destroying seperation between search paths (See https://github.com/RaphaelIT7/gmod-holylib/issues/83)<br>
 \- [#] Fixed HolyLua being unable to register any metatable causing crashes when trying to use them.<br>
 \- [#] Fixed some small memory leaks in HolyLibs CLuaInterface class<br>
+\- [#] Fixed `steamworks.ForceAuthenticate` being silently broken<br>
+\- [#] Fully seperated HolyLib's core from all modules allowing anyone to remove modules they don't want.<br>
+\- [#] Removed all dependencies modules had on each other allowing each module to compile without requiring another one.<br>
 \- [-] Removed some unused code of former fixes that were implemented into Gmod<br>
 
 You can see all changes/commits here:<br>

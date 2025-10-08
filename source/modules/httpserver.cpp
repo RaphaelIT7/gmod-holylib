@@ -573,7 +573,12 @@ LUA_FUNCTION_STATIC(HttpRequest_GetClient)
 {
 	HttpRequest* pData = Get_HttpRequest(LUA, 1, false);
 
+#if MODULE_EXISTS_GAMESERVER
 	Push_CBaseClient(LUA, Util::GetClientByUserID(pData->m_pClientUserID));
+#else
+	MISSING_MODULE_ERROR(LUA, gameserver);
+#endif
+
 	return 1;
 }
 

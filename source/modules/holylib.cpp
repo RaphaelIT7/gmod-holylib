@@ -99,18 +99,18 @@ LUA_FUNCTION_STATIC(IsMapValid)
 	return 1;
 }
 
-static IModuleWrapper* pBitBufWrapper = NULL;
 extern bf_write* GetActiveMessage();
 LUA_FUNCTION_STATIC(_EntityMessageBegin)
 {
 	CBaseEntity* pEnt = Util::Get_Entity(LUA, 1, true);
 	bool bReliable = LUA->GetBool(2);
 
-	if (!pBitBufWrapper->IsEnabled())
-		LUA->ThrowError("This won't work when the bitbuf library is disabled!");
-
+#if MODULE_EXISTS_BITBUF
 	EntityMessageBegin(pEnt, bReliable);
 	Push_bf_write(LUA, GetActiveMessage(), false);
+#else
+	MISSING_MODULE_ERROR(LUA, bitbuf);
+#endif
 	return 1;
 }
 
@@ -119,11 +119,12 @@ LUA_FUNCTION_STATIC(_UserMessageBegin)
 	IRecipientFilter* pFilter = Get_IRecipientFilter(LUA, 1, true);
 	const char* pName = LUA->CheckString(2);
 
-	if (!pBitBufWrapper->IsEnabled())
-		LUA->ThrowError("This won't work when the bitbuf library is disabled!");
-
+#if MODULE_EXISTS_BITBUF
 	UserMessageBegin(*pFilter, pName);
 	Push_bf_write(LUA, GetActiveMessage(), false);
+#else
+	MISSING_MODULE_ERROR(LUA, bitbuf);
+#endif
 	return 1;
 }
 
@@ -366,12 +367,16 @@ LUA_FUNCTION_STATIC(Disconnect)
 
 LUA_FUNCTION_STATIC(ReceiveClientMessage)
 {
+#if MODULE_EXISTS_BITBUF
 	int userID = LUA->CheckNumber(1);
 	CBaseEntity* pEnt = Util::Get_Entity(LUA, 2, true);
 	bf_read* msg = Get_bf_read(LUA, 3, true);
 	int bits = LUA->CheckNumber(4);
 
 	Util::servergameclients->GMOD_ReceiveClientMessage(userID, pEnt->edict(), msg, bits);
+#else
+	MISSING_MODULE_ERROR(LUA, bitbuf);
+#endif
 	return 0;
 }
 
@@ -452,8 +457,6 @@ void CHolyLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 {
 	if (!bServerInit)
 	{
-		pBitBufWrapper = g_pModuleManager.FindModuleByName("bitbuf");
-
 		Util::StartTable(pLua);
 			Util::AddFunc(pLua, HideServer, "HideServer");
 			Util::AddFunc(pLua, Reconnect, "Reconnect");

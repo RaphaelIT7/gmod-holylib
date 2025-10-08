@@ -1,6 +1,7 @@
 #include "tier0/dbg.h"
 #include <tier1/strtools.h>
 #include "Platform.hpp"
+#include "sourcesdk/baseclient.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -91,4 +92,9 @@ bool Q_RemoveAllEvilCharacters2( char *pch )
 	}
 
 	return bStrippedWhitespace;
+}
+
+void CBaseClient::SetSteamID( const CSteamID &steamID )
+{
+	m_SteamID = steamID;
 }

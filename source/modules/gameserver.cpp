@@ -306,19 +306,30 @@ LUA_FUNCTION_STATIC(CBaseClient_SendNetMsg)
 	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
 	int iType = (int)LUA->CheckNumber(2);
 	const char* strName = LUA->CheckString(3);
-	bf_write* bf = Get_bf_write(LUA, 4, true);
 
 	if (!pClient)
 		LUA->ThrowError("Failed to get IClient from player!");
 
-	if (bf->IsOverflowed())
-		LUA->ThrowError("Tried to use a buffer that is overflowed!");
-
 	SVC_CustomMessage msg;
 	msg.m_iType = iType;
 	strncpy(msg.m_strName, strName, sizeof(msg.m_strName));
+
+#if MODULE_EXISTS_BITBUF
+	bf_write* bf = Get_bf_write(LUA, 4, true);
+
+	if (bf->IsOverflowed())
+		LUA->ThrowError("Tried to use a buffer that is overflowed!");
+
 	msg.m_DataOut.StartWriting(bf->GetData(), 0, 0, bf->GetMaxNumBits());
 	msg.m_iLength = bf->GetNumBitsWritten();
+
+#else
+	size_t nLength;
+	const char* pData = Util::CheckLString(LUA, 1, &nLength);
+
+	msg.m_DataOut.StartWriting((void*)pData, nLength);
+	msg.m_iLength = nLength * 8;
+#endif
 
 	LUA->PushBool(pClient->SendNetMsg(msg));
 	return 1;
@@ -460,10 +471,14 @@ LUA_FUNCTION_STATIC(CBaseClient_SetSignonState) // At some point will replace Ho
 
 LUA_FUNCTION_STATIC(CBaseClient_WriteGameSounds)
 {
+#if MODULE_EXISTS_BITBUF
 	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
 	bf_write* bf = Get_bf_write(LUA, 2, true);
 
 	pClient->WriteGameSounds(*bf);
+#else
+	MISSING_MODULE_ERROR(LUA, bitbuf);
+#endif
 	return 0;
 }
 
@@ -554,11 +569,6 @@ LUA_FUNCTION_STATIC(CBaseClient_OnRequestFullUpdate)
 	func_CBaseClient_OnRequestFullUpdate(pClient);
 
 	return 0;
-}
-
-void CBaseClient::SetSteamID( const CSteamID &steamID )
-{
-	m_SteamID = steamID;
 }
 
 LUA_FUNCTION_STATIC(CBaseClient_SetSteamID)
@@ -684,34 +694,46 @@ LUA_FUNCTION_STATIC(CBaseClient_GetChokedPackets)
 
 LUA_FUNCTION_STATIC(CBaseClient_GetStreamReliable)
 {
+#if MODULE_EXISTS_BITBUF
 	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
 	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
 	if (!pNetChannel)
 		LUA->ThrowError("Failed to get a valid net channel");
 
 	Push_bf_write(LUA, &pNetChannel->m_StreamReliable, false);
+#else
+	MISSING_MODULE_ERROR(LUA, bitbuf);
+#endif
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(CBaseClient_GetStreamUnreliable)
 {
+#if MODULE_EXISTS_BITBUF
 	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
 	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
 	if (!pNetChannel)
 		LUA->ThrowError("Failed to get a valid net channel");
 
 	Push_bf_write(LUA, &pNetChannel->m_StreamUnreliable, false);
+#else
+	MISSING_MODULE_ERROR(LUA, bitbuf);
+#endif
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(CBaseClient_GetStreamVoice)
 {
+#if MODULE_EXISTS_BITBUF
 	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
 	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
 	if (!pNetChannel)
 		LUA->ThrowError("Failed to get a valid net channel");
 
 	Push_bf_write(LUA, &pNetChannel->m_StreamVoice, false);
+#else
+	MISSING_MODULE_ERROR(LUA, bitbuf);
+#endif
 	return 1;
 }
 
@@ -1250,25 +1272,37 @@ LUA_FUNCTION_STATIC(CNetChan_GetChokedPackets)
 
 LUA_FUNCTION_STATIC(CNetChan_GetStreamReliable)
 {
+#if MODULE_EXISTS_BITBUF
 	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
 
 	Push_bf_write(LUA, &pNetChannel->m_StreamReliable, false);
+#else
+	MISSING_MODULE_ERROR(LUA, bitbuf);
+#endif
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(CNetChan_GetStreamUnreliable)
 {
+#if MODULE_EXISTS_BITBUF
 	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
 
 	Push_bf_write(LUA, &pNetChannel->m_StreamUnreliable, false);
+#else
+	MISSING_MODULE_ERROR(LUA, bitbuf);
+#endif
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(CNetChan_GetStreamVoice)
 {
+#if MODULE_EXISTS_BITBUF
 	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
 
 	Push_bf_write(LUA, &pNetChannel->m_StreamVoice, false);
+#else
+	MISSING_MODULE_ERROR(LUA, bitbuf);
+#endif
 	return 1;
 }
 
@@ -1647,14 +1681,18 @@ bool ILuaNetMessageHandler::ProcessLuaNetChanMessage(NET_LuaNetChanMessage *msg)
 	m_pLua->ReferencePush(m_iMessageCallbackFunction);
 
 	Push_CNetChan(m_pLua, m_pChan);
+#if MODULE_EXISTS_BITBUF
 	LuaUserData* pLuaData = Push_bf_read(m_pLua, &msg->m_DataIn, false);
+#else
+	m_pLua->PushString((const char*)msg->m_DataIn.GetBasePointer(), msg->m_DataIn.GetNumBytesLeft());
+#endif
 	m_pLua->PushNumber(msg->m_iLength);
 	m_pLua->CallFunctionProtected(3, 0, true);
-		
+	
+#if MODULE_EXISTS_BITBUF
 	if (pLuaData)
-	{
 		pLuaData->Release(m_pLua);
-	}
+#endif
 
 	return true;
 }
@@ -1662,15 +1700,24 @@ bool ILuaNetMessageHandler::ProcessLuaNetChanMessage(NET_LuaNetChanMessage *msg)
 LUA_FUNCTION_STATIC(CNetChan_SendMessage)
 {
 	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
-	bf_write* bf = Get_bf_write(LUA, 2, true);
 	bool bReliable = LUA->GetBool(3);
+
+	NET_LuaNetChanMessage msg;
+#if MODULE_EXISTS_BITBUF
+	bf_write* bf = Get_bf_write(LUA, 2, true);
 
 	if (bf->IsOverflowed())
 		LUA->ThrowError("Tried to use a buffer that is overflowed!");
 
-	NET_LuaNetChanMessage msg;
 	msg.m_DataOut.StartWriting(bf->GetData(), 0, 0, bf->GetMaxNumBits());
 	msg.m_iLength = bf->GetNumBitsWritten();
+#else
+	size_t nLength;
+	const char* pData = Util::CheckLString(LUA, 1, &nLength);
+
+	msg.m_DataOut.StartWriting((void*)pData, nLength);
+	msg.m_iLength = nLength * 8;
+#endif
 
 	LUA->PushBool(pNetChannel->SendNetMsg(msg, bReliable));
 	return 1;
@@ -2139,16 +2186,26 @@ LUA_FUNCTION_STATIC(gameserver_BroadcastMessage)
 
 	int iType = (int)LUA->CheckNumber(1);
 	const char* strName = LUA->CheckString(2);
+
+	SVC_CustomMessage msg;
+	msg.m_iType = iType;
+	strncpy(msg.m_strName, strName, sizeof(msg.m_strName));
+
+#if MODULE_EXISTS_BITBUF
 	bf_write* bf = Get_bf_write(LUA, 3, true);
 
 	if (bf->IsOverflowed())
 		LUA->ThrowError("Tried to use a buffer that is overflowed!");
 
-	SVC_CustomMessage msg;
-	msg.m_iType = iType;
-	strncpy(msg.m_strName, strName, sizeof(msg.m_strName));
 	msg.m_DataOut.StartWriting(bf->GetData(), 0, 0, bf->GetMaxNumBits());
 	msg.m_iLength = bf->GetNumBitsWritten();
+#else
+	size_t nLength;
+	const char* pData = Util::CheckLString(LUA, 1, &nLength);
+
+	msg.m_DataOut.StartWriting((void*)pData, nLength);
+	msg.m_iLength = nLength * 8;
+#endif
 
 	Util::server->BroadcastMessage(msg);
 	return 0;
@@ -2157,7 +2214,12 @@ LUA_FUNCTION_STATIC(gameserver_BroadcastMessage)
 static Symbols::NET_SendPacket func_NET_SendPacket;
 LUA_FUNCTION_STATIC(gameserver_SendConnectionlessPacket)
 {
+#if MODULE_EXISTS_BITBUF
 	bf_write* msg = Get_bf_write(LUA, 1, true);
+#else
+	size_t nLength;
+	const char* pData = Util::CheckLString(LUA, 1, &nLength);
+#endif
 
 	netadrnew_t adr;
 	adr.SetFromString(LUA->CheckString(2), LUA->GetBool(3));
@@ -2174,7 +2236,13 @@ LUA_FUNCTION_STATIC(gameserver_SendConnectionlessPacket)
 	if (!func_NET_SendPacket)
 		LUA->ThrowError("Failed to load NET_SendPacket");
 
-	LUA->PushNumber(func_NET_SendPacket(NULL, nSocket, (netadr_t&)adr, msg->GetData(), msg->GetNumBytesWritten(), NULL, false));
+	LUA->PushNumber(func_NET_SendPacket(NULL, nSocket, (netadr_t&)adr,
+#if MODULE_EXISTS_BITBUF
+		msg->GetData(), msg->GetNumBytesWritten(),
+#else
+		(const unsigned char*)pData, nLength,
+#endif
+	NULL, false));
 	return 1;
 }
 
@@ -2412,7 +2480,11 @@ static bool hook_CBaseServer_ProcessConnectionlessPacket(IServer* server, netpac
 	int originalPos = packet->message.GetNumBitsRead();
 	if (Lua::PushHook("HolyLib:ProcessConnectionlessPacket"))
 	{
+#if MODULE_EXISTS_BITBUF
 		LuaUserData* pLuaData = Push_bf_read(g_Lua, &packet->message, false);
+#else
+		g_Lua->PushString((const char*)packet->message.GetBasePointer(), packet->message.GetNumBytesLeft());
+#endif
 
 		bool bHandled = false;
 		g_Lua->PushString(packet->from.ToString());
@@ -2422,10 +2494,10 @@ static bool hook_CBaseServer_ProcessConnectionlessPacket(IServer* server, netpac
 			g_Lua->Pop(1);
 		}
 
+#if MODULE_EXISTS_BITBUF
 		if (pLuaData)
-		{
 			pLuaData->Release(g_Lua);
-		}
+#endif
 
 		if (bHandled)
 		{
