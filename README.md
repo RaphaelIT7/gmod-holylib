@@ -27,6 +27,11 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 2. Put the `holylib.vdf` into the `garrysmod/addons/` directory.<br>
 3. Put the `gmsv_holylib_linux.so` into the `garrysmod/lua/bin/` directory.<br>
 
+## Custom Builds (Linux Only)
+You can fork this repository and use the `Build Custom Version` to create a custom HolyLib version which only contains specific functions.<br>
+I heard from some that they don't want a huge DLL of which they only use a few functions of,<br>
+so by making a custom build anyone can include just the stuff they actually want and need, nothing else.<br>
+
 ## How to update (Newer GhostInj)
 
 > [!NOTE]
