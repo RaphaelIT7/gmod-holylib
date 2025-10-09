@@ -72,6 +72,7 @@ jobs:
       PTERODACTYL_RESTART_SLEEPTIME: "0"
       PTERODACTYL_RESTART: "true"
       BUILD_CACHE: "true"
+      NO_SAVE_CACHE: "true" # Cache will only be updated by main compiles in build_plugin_linux job
 
   build_testingarea_dev2: # Could make this use the already created artifact but I'm too lazy rn
     name: "Build 32x (Testing Area - Public)"
@@ -95,6 +96,7 @@ jobs:
       PTERODACTYL_RESTART_SLEEPTIME: "0"
       PTERODACTYL_RESTART: "true"
       BUILD_CACHE: "true"
+      NO_SAVE_CACHE: "true" # Cache will only be updated by main compiles in build_plugin_linux job
 
   build_testingarea_64x:
     name: "Build 64x (Testing Area - 64x)"
@@ -119,6 +121,7 @@ jobs:
       PTERODACTYL_RESTART_SLEEPTIME: "0"
       PTERODACTYL_RESTART: "true"
       BUILD_CACHE: "true"
+      NO_SAVE_CACHE: "true" # Cache will only be updated by main compiles in build_plugin_linux job
 
   build_ghostinj:
     name: "Build GhostInj"
@@ -138,6 +141,12 @@ jobs:
       BUILD_CACHE: "true"
 
   build_stripped_module:
+    # This saves us useless compiles when it would already fail
+    # + This way we always use the newest cache reducing compile time.
+    # Update: NEVERMIND, this turned out to slow down the entire build process simply because we hit the runner limit
+    #         And less stuff could run in parallel.
+    # Doing this paralle to the main builds gives us at minimim 1min time with ~34 runners available to run parallel
+    # needs: build_plugin_linux
     name: "Build Stripped modules"
     uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
     strategy:
@@ -652,7 +661,7 @@ jobs:
   # -------
 
   build_exampledll_linux:
-    name: "Build Plugin"
+    name: "Build ExampleDLL"
     uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
     with:
       PROJECT_PATH: "example-module-dll/"
