@@ -490,29 +490,34 @@ void Util::AddDetour()
 		#ifdef ARCHITECTURE_X86
 			entitylist = Detour::ResolveSymbol<CGlobalEntityList>(server_loader, Symbols::gEntListSym);
 		#else
-			void* matchAddr = Detour::ResolveSymbol<void>(server_loader, Symbols::gEntListSym);	
-			uint8_t* ip = reinterpret_cast<uint8_t*>(matchAddr);
+			void* matchAddr = Detour::ResolveSymbol<void>(server_loader, Symbols::gEntListSym);
+			if (matchAddr != nullptr)
+			{
+				uint8_t* ip = reinterpret_cast<uint8_t*>(matchAddr);
 
-			if (ip[0] == 0x48 && ip[1] == 0x8D && ip[2] == 0x3D) {
-				// LEA encoding: 7 bytes total: 48 8D 3D XX XX XX XX
-				const size_t instrLen = 7;
-				int32_t disp = *reinterpret_cast<int32_t*>(ip + 3); // disp32 at offset 3
-				uint8_t* next = ip + instrLen;                      // RIP after the instruction
-				void* gEntListAddr = next + disp;                   // final address = next + disp32
+				if (ip[0] == 0x48 && ip[1] == 0x8D && ip[2] == 0x3D) {
+					// LEA encoding: 7 bytes total: 48 8D 3D XX XX XX XX
+					const size_t instrLen = 7;
+					int32_t disp = *reinterpret_cast<int32_t*>(ip + 3); // disp32 at offset 3
+					uint8_t* next = ip + instrLen;                      // RIP after the instruction
+					void* gEntListAddr = next + disp;                   // final address = next + disp32
 
-				// gEntList is the address of the CGlobalEntityList instance
-				entitylist = *reinterpret_cast<CGlobalEntityList**>(gEntListAddr);
-				// or if gEntListAddr already is a CGlobalEntityList object (not a pointer),
-				// you would cast: Util::entitylist = reinterpret_cast<CGlobalEntityList*>(gEntListAddr);
-				//
-				// Validate quickly:
-				if (entitylist == nullptr) {
-					// maybe gEntListAddr is the object itself rather than pointer — try direct cast
-					entitylist = reinterpret_cast<CGlobalEntityList*>(gEntListAddr);
+					// gEntList is the address of the CGlobalEntityList instance
+					entitylist = *reinterpret_cast<CGlobalEntityList**>(gEntListAddr);
+					// or if gEntListAddr already is a CGlobalEntityList object (not a pointer),
+					// you would cast: Util::entitylist = reinterpret_cast<CGlobalEntityList*>(gEntListAddr);
+					//
+					// Validate quickly:
+					if (entitylist == nullptr) {
+						// maybe gEntListAddr is the object itself rather than pointer — try direct cast
+						entitylist = reinterpret_cast<CGlobalEntityList*>(gEntListAddr);
+					}
+				} else {
+					// If matchAddr wasn't the LEA for some reason, try to interpret it directly
+					entitylist = reinterpret_cast<CGlobalEntityList*>(matchAddr);
 				}
 			} else {
-				// If matchAddr wasn't the LEA for some reason, try to interpret it directly
-				entitylist = reinterpret_cast<CGlobalEntityList*>(matchAddr);
+				Detour::CheckValue("get class", "gEntList matchAddr", true);
 			}
 		#endif
 	}
