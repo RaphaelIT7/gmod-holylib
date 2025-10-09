@@ -280,6 +280,9 @@ static inline CBaseEntity* GetLadder(void* pPlayer)
 	if (!pLadder)
 		return nullptr;
 
+	if (!g_pEntityList)
+		return nullptr;
+
 	return ((EHANDLE*)pLadder)->Get();
 }
 
