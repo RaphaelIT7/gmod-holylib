@@ -528,6 +528,9 @@ void AddSendTable(SendTable* pTable)
 
 int Util::FindOffsetForNetworkVar(const char* pDTName, const char* pVarName)
 {
+	if (!Util::servergamedll)
+		return -1;
+
 	if (g_pSendProps.size() == 0)
 	{
 		for(ServerClass *serverclass = Util::servergamedll->GetAllServerClasses(); serverclass->m_pNext != nullptr; serverclass = serverclass->m_pNext)

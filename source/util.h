@@ -293,7 +293,8 @@ namespace Util
 
 	// Offset / Networking related stuff
 	
-	// tries to find a SendProp with the given name, and if found it will return the offset stored in the sendprop.
+	// tries to find a SendProp with the given name
+	// and if found it will return the offset stored in the sendprop.
 	// Returns -1 on failure
 	extern int FindOffsetForNetworkVar(const char* pDTName, const char* pVarName);
 
@@ -303,6 +304,7 @@ namespace Util
 		if (nOffset == -1)
 			return nullptr;
 
+		// NOTE: Normally I'd use *(void**) to dereference it but apparently it's only a thing needed for vars that store a pointer / only m_GMOD_DataTable
 		return (void*)((char*)pBase + nOffset);
 	}
 
@@ -330,6 +332,63 @@ namespace Util
 	extern IGameEventManager2* gameeventmanager;
 	extern IGet* get;
 }
+
+// Helper class to get a pointer to our DTVar
+class DTVarByOffset
+{
+public:
+	DTVarByOffset(const char* pDTName, const char* pVarName)
+	{
+		m_pDTName = pDTName;
+		m_pVarName = pVarName;
+	}
+
+	DTVarByOffset(const char* pDTName, const char* pVarName, int nArraySize)
+	{
+		m_pDTName = pDTName;
+		m_pVarName = pVarName;
+	}
+
+	inline void Init()
+	{
+		if (m_nOffset != -1)
+			return;
+
+		m_nOffset = Util::FindOffsetForNetworkVar(m_pDTName, m_pVarName);
+		if (m_nOffset == -1)
+			Error(PROJECT_NAME ": Failed to find DTVar offset of var \"%s\" in DataTable \"%s\"!\n", m_pDTName, m_pVarName);
+	}
+
+	FORCEINLINE void* GetPointer(void* pBase)
+	{
+		if (m_nOffset == -1)
+			Init();
+
+		return Util::GoToNetworkVarOffset(pBase, m_nOffset);
+	}
+
+	// For DTVars that store a pointer like m_GMOD_DataTable
+	FORCEINLINE void* GetPointerDereferenced(void* pBase)
+	{
+		if (m_nOffset == -1)
+			Init();
+
+		return *(void**)Util::GoToNetworkVarOffset(pBase, m_nOffset);
+	}
+
+	FORCEINLINE void* GetPointerArray(void* pBase, int nArraySlot)
+	{
+		if (m_nOffset == -1)
+			Init();
+
+		return Util::GoToNetworkVarOffset(pBase, m_nOffset + (m_nArraySize * nArraySlot));
+	}
+
+	int m_nOffset = -1;
+	int m_nArraySize = 0;
+	const char* m_pDTName = nullptr;
+	const char* m_pVarName = nullptr;
+};
 
 #if SYSTEM_LINUX // Linux got a bigger default stack.
 constexpr size_t _MAX_ALLOCA_SIZE = 64 * 1024;

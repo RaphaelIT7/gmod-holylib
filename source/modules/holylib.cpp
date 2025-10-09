@@ -269,20 +269,26 @@ LUA_FUNCTION_STATIC(ExitLadder)
 	return 0;
 }
 
-class CHL2GameMovement // Workaround to make the compiler happy since were not allowed to acces it but this is a friend class.
+static DTVarByOffset m_hLadder_Offset("DT_HL2Local", "m_hLadder");
+static DTVarByOffset m_HL2Local_Offset("DT_HL2_Player", "m_HL2Local");
+static inline CBaseEntity* GetLadder(void* pPlayer)
 {
-public:
-	static CBaseEntity* GetLadder(CHL2_Player* ply)
-	{
-		return ply->m_HL2Local.m_hLadder.Get().Get(); // Make m_HL2Local a public member and verify that the var offset is right on 64x.
-	}
-};
+	void* pHL2Local = m_HL2Local_Offset.GetPointer(pPlayer);
+	if (!pHL2Local)
+		return nullptr;
+
+	void* pLadder = m_hLadder_Offset.GetPointer(pHL2Local);
+	if (!pLadder)
+		return nullptr;
+
+	return ((EHANDLE*)pLadder)->Get();
+}
 
 LUA_FUNCTION_STATIC(GetLadder)
 {
 	CHL2_Player* pPly = (CHL2_Player*)Util::Get_Player(LUA, 1, true);
 
-	Util::Push_Entity(LUA, CHL2GameMovement::GetLadder(pPly));
+	Util::Push_Entity(LUA, GetLadder(pPly));
 	return 1;
 }
 #endif

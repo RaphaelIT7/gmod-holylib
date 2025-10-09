@@ -77,7 +77,8 @@ public: // Then all functions
 	// Does nothing if the the gameevent is not blocked.
 	virtual void UnblockGameEvent(const char* pName) = 0;
 
-	// tries to find a SendProp with the given name, and if found it will return the offset stored in the sendprop.
+	// tries to find a SendProp with the given name
+	// and if found it will return the offset stored in the sendprop.
 	// Returns -1 on failure
 	virtual int FindOffsetForNetworkVar(const char* pDTName, const char* pVarName) = 0;
 

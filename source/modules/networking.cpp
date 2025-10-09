@@ -997,28 +997,28 @@ static inline CBaseEntity* IndexToEntity(int nEntIndex)
 	return g_pEntityCache[nEntIndex];
 }
 
-static int m_Hands_Offset = -1; // DT_GMOD_Player m_Hands
+static DTVarByOffset m_Hands_Offset("DT_GMOD_Player", "m_Hands");
 static inline CBaseEntity* GetGMODPlayerHands(void* pPlayer)
 {
-	return IndexToEntity(((CBaseHandle*)Util::GoToNetworkVarOffset(pPlayer, m_Hands_Offset))->GetEntryIndex());
+	return IndexToEntity(((CBaseHandle*)m_Hands_Offset.GetPointer(pPlayer))->GetEntryIndex());
 }
 
-static int m_hActiveWeapon_Offset = -1; // DT_BaseCombatCharacter m_hActiveWeapon
+static DTVarByOffset m_hActiveWeapon_Offset("DT_BaseCombatCharacter", "m_hActiveWeapon");
 static inline CBaseEntity* GetActiveWeapon(void* pPlayer)
 {
-	return IndexToEntity(((CBaseHandle*)Util::GoToNetworkVarOffset(pPlayer, m_hActiveWeapon_Offset))->GetEntryIndex());
+	return IndexToEntity(((CBaseHandle*)m_hActiveWeapon_Offset.GetPointer(pPlayer))->GetEntryIndex());
 }
 
-static int m_hMyWeapons_Offset = -1; // DT_BaseCombatCharacter m_hMyWeapons
+static DTVarByOffset m_hMyWeapons_Offset("DT_BaseCombatCharacter", "m_hMyWeapons", sizeof(CBaseCombatWeaponHandle));
 static inline CBaseEntity* GetMyWeapon(void* pPlayer, int nWeaponSlot)
 {
-	return IndexToEntity(((CBaseCombatWeaponHandle*)Util::GoToNetworkVarOffset(pPlayer, m_hMyWeapons_Offset + (sizeof(CBaseCombatWeaponHandle) * nWeaponSlot)))->GetEntryIndex());
+	return IndexToEntity(((CBaseCombatWeaponHandle*)m_hMyWeapons_Offset.GetPointerArray(pPlayer, nWeaponSlot))->GetEntryIndex());
 }
 
-static int m_hViewModel_Offset = -1; // DT_BasePlayer m_hViewModel
+static DTVarByOffset m_hViewModel_Offset("DT_BasePlayer", "m_hViewModel", sizeof(CBasePlayer::CBaseViewModelHandle));
 static inline CBaseViewModel* GetViewModel(void* pPlayer, int nViewModelSlot)
 {
-	return (CBaseViewModel*)IndexToEntity(((CBasePlayer::CBaseViewModelHandle*)Util::GoToNetworkVarOffset(pPlayer, m_hViewModel_Offset + (sizeof(CBasePlayer::CBaseViewModelHandle) * nViewModelSlot)))->GetEntryIndex());
+	return (CBaseViewModel*)IndexToEntity(((CBasePlayer::CBaseViewModelHandle*)m_hViewModel_Offset.GetPointerArray(pPlayer, nViewModelSlot))->GetEntryIndex());
 }
 
 static CBitVec<MAX_EDICTS> g_pDontTransmitCache; // Reset on every CServerGameEnts::CheckTransmit call
@@ -1841,11 +1841,6 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 void CNetworkingModule::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
 {
 	sv_force_transmit_ents = g_pCVar->FindVar("sv_force_transmit_ents");
-
-	m_Hands_Offset = Util::FindOffsetForNetworkVar("DT_GMOD_Player", "m_Hands");
-	m_hActiveWeapon_Offset = Util::FindOffsetForNetworkVar("DT_BaseCombatCharacter", "m_hActiveWeapon");
-	m_hMyWeapons_Offset = Util::FindOffsetForNetworkVar("DT_BaseCombatCharacter", "m_hMyWeapons");
-	m_hViewModel_Offset = Util::FindOffsetForNetworkVar("DT_BasePlayer", "m_hViewModel");
 
 	// Find player class (has DT_BasePlayer as a baseclass table)
 	// We do this in ServerActivate since the engine only now hooked into the ServerClass allowing us to safely use them now.
