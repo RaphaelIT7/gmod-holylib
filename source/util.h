@@ -235,6 +235,7 @@ namespace Util
 	extern CBaseEntity* Get_Entity(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
 	extern void Push_Entity(GarrysMod::Lua::ILuaInterface* LUA, CBaseEntity* pEnt);
 	extern CBaseEntity* GetCBaseEntityFromEdict(edict_t* edict);
+	extern CBaseEntity* GetCBaseEntityFromIndex(int nEntIndex);
 
 	extern void AddDetour(); // We load Gmod's functions in there.
 	extern void RemoveDetour();

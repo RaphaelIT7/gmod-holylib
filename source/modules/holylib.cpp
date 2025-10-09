@@ -281,7 +281,7 @@ static inline CBaseEntity* GetLadder(void* pPlayer)
 		return nullptr;
 
 	if (!g_pEntityList)
-		return nullptr;
+		return Util::GetCBaseEntityFromIndex(((EHANDLE*)pLadder)->GetEntryIndex());
 
 	return ((EHANDLE*)pLadder)->Get();
 }

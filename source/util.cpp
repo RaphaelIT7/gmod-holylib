@@ -336,6 +336,14 @@ CBaseEntity* Util::GetCBaseEntityFromEdict(edict_t* edict)
 	return Util::servergameents->EdictToBaseEntity(edict);
 }
 
+CBaseEntity* Util::GetCBaseEntityFromIndex(int nEntIndex)
+{
+	if (nEntIndex < 0 || nEntIndex > MAX_EDICTS)
+		return nullptr;
+
+	return Util::servergameents->EdictToBaseEntity(Util::engineserver->PEntityOfEntIndex(nEntIndex));
+}
+
 CBaseEntity* Util::FirstEnt()
 {
 	if (Util::entitylist)
