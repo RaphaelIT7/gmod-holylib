@@ -230,7 +230,6 @@ LUA_FUNCTION_STATIC(SetSignOnState)
 	return 1;
 }
 
-#if ARCHITECTURE_IS_X86
 static Detouring::Hook detour_CFuncLadder_PlayerGotOn;
 static void hook_CFuncLadder_PlayerGotOn(CBaseEntity* pLadder, CBasePlayer* pPly)
 {
@@ -291,7 +290,6 @@ LUA_FUNCTION_STATIC(GetLadder)
 	Util::Push_Entity(LUA, GetLadder(pPly));
 	return 1;
 }
-#endif
 
 static bool bInMoveTypeCall = false; // If someone calls SetMoveType inside the hook, we don't want a black hole to form.
 static Detouring::Hook detour_CBaseEntity_SetMoveType;
@@ -471,10 +469,8 @@ void CHolyLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 			Util::AddFunc(pLua, IsMapValid, "IsMapValid");
 			Util::AddFunc(pLua, InvalidateBoneCache, "InvalidateBoneCache");
 			Util::AddFunc(pLua, SetSignOnState, "SetSignOnState");
-#if ARCHITECTURE_IS_X86
 			Util::AddFunc(pLua, ExitLadder, "ExitLadder");
 			Util::AddFunc(pLua, GetLadder, "GetLadder");
-#endif
 			Util::AddFunc(pLua, HideMsg, "HideMsg");
 			Util::AddFunc(pLua, GetRegistry, "GetRegistry");
 			Util::AddFunc(pLua, Disconnect, "Disconnect");
@@ -519,7 +515,6 @@ void CHolyLibModule::InitDetour(bool bPreServer)
 		(void*)hook_CBaseEntity_PostConstructor, m_pID
 	);
 
-#if ARCHITECTURE_IS_X86
 	Detour::Create(
 		&detour_CFuncLadder_PlayerGotOn, "CFuncLadder::PlayerGotOn",
 		server_loader.GetModule(), Symbols::CFuncLadder_PlayerGotOnSym,
@@ -531,7 +526,6 @@ void CHolyLibModule::InitDetour(bool bPreServer)
 		server_loader.GetModule(), Symbols::CFuncLadder_PlayerGotOffSym,
 		(void*)hook_CFuncLadder_PlayerGotOff, m_pID
 	);
-#endif
 
 	Detour::Create(
 		&detour_CBaseEntity_SetMoveType, "CBaseEntity::SetMoveType",
@@ -555,8 +549,6 @@ void CHolyLibModule::InitDetour(bool bPreServer)
 	func_CBaseAnimating_InvalidateBoneCache = (Symbols::CBaseAnimating_InvalidateBoneCache)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseAnimating_InvalidateBoneCacheSym);
 	Detour::CheckFunction((void*)func_CBaseAnimating_InvalidateBoneCache, "CBaseAnimating::InvalidateBoneCache");
 
-#if ARCHITECTURE_IS_X86
 	func_CHL2_Player_ExitLadder = (Symbols::CHL2_Player_ExitLadder)Detour::GetFunction(server_loader.GetModule(), Symbols::CHL2_Player_ExitLadderSym);
 	Detour::CheckFunction((void*)func_CHL2_Player_ExitLadder, "CHL2_Player::ExitLadder");
-#endif
 }
