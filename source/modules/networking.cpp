@@ -2062,18 +2062,19 @@ void WriteSendProp(SendProp* pProp, int nIndex, int nIndent, FileHandle_t pHandl
 {
 	std::string pIndex = "Index: ";
 	pIndex.append(std::to_string(nIndex));
-
 	WriteString(pIndex, nIndent, pHandle);
 
 	std::string pName = "PropName: ";
 	pName.append(pProp->GetName());
-
 	WriteString(pName, nIndent, pHandle);
 
 	std::string pExcludeDTName = "ExcludeName: ";
 	pExcludeDTName.append(pProp->GetExcludeDTName() != NULL ? pProp->GetExcludeDTName() : "NULL");
-
 	WriteString(pExcludeDTName, nIndent, pHandle);
+
+	std::string pOffset = "Offset: ";
+	pOffset.append(std::to_string(pProp->GetOffset()));
+	WriteString(pOffset, nIndent, pHandle);
 
 	std::string pFlags = "Flags:";
 	int flags = pProp->GetFlags();
@@ -2110,7 +2111,6 @@ void WriteSendProp(SendProp* pProp, int nIndex, int nIndent, FileHandle_t pHandl
 			pReferencedTables.insert(pProp->GetDataTable());
 		}
 	}
-
 	WriteString(pDataTableName, nIndent, pHandle);
 
 	std::string pType = "Type: ";
@@ -2145,27 +2145,22 @@ void WriteSendProp(SendProp* pProp, int nIndex, int nIndent, FileHandle_t pHandl
 		pType.append(std::to_string(pProp->GetType()));
 		pType.append(")");
 	}
-
 	WriteString(pType, nIndent, pHandle);
 
 	std::string pElemets = "NumElement: ";
 	pElemets.append(std::to_string(pProp->GetNumElements()));
-
 	WriteString(pElemets, nIndent, pHandle);
 
 	std::string pBits = "Bits: ";
 	pBits.append(std::to_string(pProp->m_nBits));
-
 	WriteString(pBits, nIndent, pHandle);
 
 	std::string pHighValue = "HighValue: ";
 	pHighValue.append(std::to_string(pProp->m_fHighValue));
-
 	WriteString(pHighValue, nIndent, pHandle);
 
 	std::string pLowValue = "LowValue: ";
 	pLowValue.append(std::to_string(pProp->m_fLowValue));
-
 	WriteString(pLowValue, nIndent, pHandle);
 
 	if (pProp->GetArrayProp())
