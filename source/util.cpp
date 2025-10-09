@@ -490,7 +490,7 @@ void Util::AddDetour()
 		#ifdef ARCHITECTURE_X86
 			entitylist = Detour::ResolveSymbol<CGlobalEntityList>(server_loader, Symbols::gEntListSym);
 		#else
-			void* matchAddr = Detour::GetFunction(server_loader, Symbols::gEntListSym);
+			void* matchAddr = Detour::GetFunction(server_loader.GetModule(), Symbols::gEntListSym);
 			Detour::CheckValue("get class", "gEntList matchAddr", matchAddr != NULL);
 
 			uint8_t* ip = reinterpret_cast<uint8_t*>(matchAddr + 0x111);
