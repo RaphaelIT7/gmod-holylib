@@ -68,6 +68,7 @@ namespace Symbols
 
 	const std::vector<Symbol> gEntListSym = { // 64x = ents.GetAll
 		Symbol::FromName("gEntList"),
+		Symbol::FromSignature("\x55\x48\x8D\x3D\x2A\x2A\x2A\x2A\x48\x89\xE5\x53\x48\x83\xEC\x08\xC6\x05\xC9\x3C\x43\x01\x00", 0x111),
 	};
 
 	const std::vector<Symbol> CSteam3Server_NotifyClientDisconnectSym = { // 64x = Search for "S3" and then go through every function upwards till you find one that somewhat matches the ASM of the 32x version.
