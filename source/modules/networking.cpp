@@ -2035,8 +2035,8 @@ static void WriteString(std::string str, int nIndent, FileHandle_t pHandle)
 }
 
 #define APPEND_IF_PFLAGS_CONTAINS_SPROP(sprop) if(flags & SPROP_##sprop) pFlags.append(" " #sprop)
-extern void WriteSendProp(SendProp* pProp, int nIndex, int nIndent, FileHandle_t pHandle);
-void WriteSendProp(SendProp* pProp, int nIndex, int nIndent, FileHandle_t pHandle, std::unordered_set<SendTable*>& pReferencedTables)
+extern void WriteSendTable(SendTable* pTable, std::unordered_set<SendTable*>& pWrittenTables);
+void WriteSendProp(SendProp* pProp, int nIndex, int nIndent, FileHandle_t pHandle, std::unordered_set<SendTable*>& pWrittenTables)
 {
 	std::string pIndex = "Index: ";
 	pIndex.append(std::to_string(nIndex));
@@ -2082,13 +2082,9 @@ void WriteSendProp(SendProp* pProp, int nIndex, int nIndent, FileHandle_t pHandl
 	std::string pDataTableName = "Inherited: ";
 	pDataTableName.append((pProp->GetType() == SendPropType::DPT_DataTable && pProp->GetDataTable()) ? pProp->GetDataTable()->GetName() : "NONE");
 	
+
 	if (pProp->GetDataTable())
-	{
-		if (pReferencedTables.find(pProp->GetDataTable()) == pReferencedTables.end())
-		{
-			pReferencedTables.insert(pProp->GetDataTable());
-		}
-	}
+		WriteSendTable(pProp->GetDataTable(), pWrittenTables);
 	WriteString(pDataTableName, nIndent, pHandle);
 
 	std::string pType = "Type: ";
@@ -2146,16 +2142,16 @@ void WriteSendProp(SendProp* pProp, int nIndex, int nIndent, FileHandle_t pHandl
 		std::string pArrayProp = "ArrayProp: ";
 
 		WriteString(pArrayProp, nIndent, pHandle);
-		WriteSendProp(pProp->GetArrayProp(), nIndex, nIndent + 1, pHandle, pReferencedTables);
+		WriteSendProp(pProp->GetArrayProp(), nIndex, nIndent + 1, pHandle, pWrittenTables);
 	}
 }
 
-static void WriteSendTable(SendTable* pTable, FileHandle_t pHandle, std::unordered_set<SendTable*>& pReferencedTables, std::unordered_set<SendTable*>& pWrittenTables)
+static void WriteSendTable(SendTable* pTable, FileHandle_t pHandle, std::unordered_set<SendTable*>& pWrittenTables)
 {
 	for (int i = 0; i < pTable->GetNumProps(); i++) {
 		SendProp* pProp = pTable->GetProp(i);
 		
-		WriteSendProp(pProp, i, 0, pHandle, pReferencedTables);
+		WriteSendProp(pProp, i, 0, pHandle, pWrittenTables);
 
 		g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
 
@@ -2166,16 +2162,47 @@ static void WriteSendTable(SendTable* pTable, FileHandle_t pHandle, std::unorder
 	}
 }
 
+static std::string baseDTDumpFilePath = "holylib/dump/dt/";
+void WriteSendTable(SendTable* pTable, std::unordered_set<SendTable*>& pWrittenTables)
+{
+	if (pWrittenTables.find(pTable) != pWrittenTables.end())
+		return; // Already wrote it. Skipping...
+
+	std::string fileName = baseDTDumpFilePath;
+	fileName.append(pTable->GetName());
+	fileName.append(".txt");
+
+	FileHandle_t pHandle = g_pFullFileSystem->Open(fileName.c_str(), "wb", "MOD");
+	if (!pHandle)
+	{
+		Warning(PROJECT_NAME " - DumpDT: Failed to open \"%s\" for dump!\n", fileName.c_str());
+		return;
+	}
+
+	for (int i = 0; i < pTable->GetNumProps(); i++) {
+		SendProp* pProp = pTable->GetProp(i);
+		
+		WriteSendProp(pProp, i, 0, pHandle, pWrittenTables);
+
+		g_pFullFileSystem->Write(&strNewLine, 1, pHandle);
+
+		if (pWrittenTables.find(pTable) == pWrittenTables.end())
+		{
+			pWrittenTables.insert(pTable);
+		}
+	}
+
+	g_pFullFileSystem->Close(pHandle);
+}
+
 static void DumpDT(const CCommand &args)
 {
-	g_pFullFileSystem->CreateDirHierarchy("holylib/dump/dt/", "MOD");
+	g_pFullFileSystem->CreateDirHierarchy(baseDTDumpFilePath.c_str(), "MOD");
 
-	std::unordered_set<SendTable*> pReferencedTables;
 	std::unordered_set<SendTable*> pWrittenTables;
-	std::string baseFilePath = "holylib/dump/dt/";
 	int nClassIndex = 0;
 	for(ServerClass *serverclass = Util::servergamedll->GetAllServerClasses(); serverclass->m_pNext != nullptr; serverclass = serverclass->m_pNext) {
-		std::string fileName = baseFilePath;
+		std::string fileName = baseDTDumpFilePath;
 		fileName.append(std::to_string(nClassIndex++));
 		fileName.append("_");
 		fileName.append(serverclass->GetName());
@@ -2190,30 +2217,7 @@ static void DumpDT(const CCommand &args)
 			continue;
 		}
 
-		WriteSendTable(serverclass->m_pTable, pHandle, pReferencedTables, pWrittenTables);
-
-		g_pFullFileSystem->Close(pHandle);
-	}
-
-	for (SendTable* pTable : pReferencedTables)
-	{
-		if (pWrittenTables.find(pTable) != pWrittenTables.end())
-		{
-			continue; // Already wrote it. Skipping...
-		}
-
-		std::string fileName = baseFilePath;
-		fileName.append(pTable->GetName());
-		fileName.append(".txt");
-
-		FileHandle_t pHandle = g_pFullFileSystem->Open(fileName.c_str(), "wb", "MOD");
-		if (!pHandle)
-		{
-			Warning(PROJECT_NAME " - DumpDT: Failed to open \"%s\" for dump!\n", fileName.c_str());
-			continue;
-		}
-
-		WriteSendTable(pTable, pHandle, pReferencedTables, pWrittenTables);
+		WriteSendTable(serverclass->m_pTable, pHandle, pWrittenTables);
 
 		g_pFullFileSystem->Close(pHandle);
 	}
