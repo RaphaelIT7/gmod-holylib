@@ -32,4 +32,4 @@ This is an interface provided by HolyLib, which you can find here: https://githu
 Using this interface, you can for example, register your own module to HolyLib.
 
 > [!WARNING]
-> If you use dev builds of HolyLib, interfaces will most likely change, ensure that your DLLs either use the newest interface of HolyLib, or 
+> If you use dev builds of HolyLib, interfaces will most likely change, ensure that your DLLs either use the newest interface of HolyLib, or properly use the config
