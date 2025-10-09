@@ -125,6 +125,7 @@ namespace Lua
 		LuaInterface,
 		// WavAudioFile,
 
+		_HOLYLIB_CORE_TEST = UCHAR_MAX-1,
 		TOTAL_TYPES = UCHAR_MAX,
 	};
 
@@ -142,7 +143,9 @@ namespace Lua
 	struct StateData
 	{
 		void* pOtherData[4]; // If any other plugin wants to use this, they can.
-		Lua::ModuleData* pModuelData[Lua::Internal::pMaxEntries] = { NULL }; // It uses the assigned module IDs
+		// ID 0 is used by HolyLib core!!!
+		// It uses the assigned module IDs
+		Lua::ModuleData* pModuelData[Lua::Internal::pMaxEntries] = { NULL };
 		LuaMetaEntry pLuaTypes[LuaTypes::TOTAL_TYPES];
 		std::unordered_map<void*, LuaUserData*> pPushedUserData; // Would love to get rid of this
 		GarrysMod::Lua::ILuaInterface* pLua = NULL;
@@ -304,16 +307,17 @@ namespace Lua
 }
 
 // Creates a function Get[funcName]LuaData and returns the stored module data from the given module.
-#define LUA_GetModuleData(className, moduleName, funcName) \
+#define LUA_GetModuleDataWithID(className, funcName, id) \
 static inline className* Get##funcName##LuaData(GarrysMod::Lua::ILuaInterface* pLua) \
 { \
 	if (!pLua) { \
 		return NULL; \
 	} \
 \
-	return (className*)Lua::GetLuaData(pLua)->GetModuleData(moduleName.m_pID); \
+	return (className*)Lua::GetLuaData(pLua)->GetModuleData(id); \
 }
-// Another new line just for the macro to not shit itself. GG
+
+#define LUA_GetModuleData(className, moduleName, funcName) LUA_GetModuleDataWithID(className, funcName, moduleName.m_pID)
 
 /*
 	==============================================
