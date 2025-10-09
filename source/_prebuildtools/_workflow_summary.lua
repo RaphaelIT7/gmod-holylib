@@ -218,7 +218,7 @@ Previous run: ]] .. previousRun .. "<br>")
 		table.insert(markdown, "| Function Name | Total Calls | Time Per Call | Difference to Previous |")
 		table.insert(markdown, "| ------------- | ----------- | ------------- | ---------------------- |")
 
-		for funcName, funcResults in pairs(funcs) do
+		for funcName, funcResults in SortedPairs(funcs) do
 			local diff = funcResults.diffTimePerCall
 			local maxDiff = 0.20 -- It may fluxuate between builds because of different runners/hardware but it shouldn't worsen by more than 20%
 			if diff > (1 + maxDiff) then

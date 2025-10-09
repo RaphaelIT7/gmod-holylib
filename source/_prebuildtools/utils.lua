@@ -113,6 +113,36 @@ function string.EndsWith(str, ending)
 	return string.sub(str, -1) == ending
 end
 
+local function getKeys(tbl)
+	local keys, i = {}, 0
+	for k in pairs(tbl) do
+		i = i + 1
+		keys[i] = k
+	end
+
+	return keys
+end
+
+function SortedPairs(pTable, Desc) -- Again from Gmod <3
+	local keys = getKeys(pTable)
+
+	if Desc then
+		table.sort(keys, function(a, b)
+			return a > b
+		end)
+	else
+		table.sort(keys, function(a, b)
+			return a < b
+		end)
+	end
+
+	local i, key = 1, nil
+	return function()
+		key, i = keys[i], i + 1
+		return key, pTable[key]
+	end
+end
+
 local created_dirs = {}
 function CreateDir(name)
 	if created_dirs[name] then return end -- To optimize especially on windows.
