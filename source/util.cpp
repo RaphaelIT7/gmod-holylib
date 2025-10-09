@@ -136,15 +136,6 @@ void Util::Push_Entity(GarrysMod::Lua::ILuaInterface* LUA, CBaseEntity* pEnt)
 		return;
 	}
 
-	// In the case we are missing our symbol for CBaseEntity::GetLuaEntity, this will be slower though will still be fully functional.
-	if (!func_CBaseEntity_GetLuaEntity)
-	{
-		GarrysMod::Lua::ILuaObject* pObj = LUA->NewTemporaryObject();
-		pObj->SetEntity(pEnt);
-		pObj->Push();
-		return;
-	}
-
 	if (LUA == g_Lua)
 	{
 		const CBaseHandle& pHandle = pEnt->GetRefEHandle(); // The only virtual function that would never dare to change
@@ -159,14 +150,23 @@ void Util::Push_Entity(GarrysMod::Lua::ILuaInterface* LUA, CBaseEntity* pEnt)
 				g_pEntitySerialNum[nEntryIndex] = nEntSerial;
 				g_pEntityReferences[nEntryIndex] = nullptr;
 
-				GarrysMod::Lua::CLuaObject* pObject = (GarrysMod::Lua::CLuaObject*)func_CBaseEntity_GetLuaEntity(pEnt);
-				if (!pObject)
+
+				if (!func_CBaseEntity_GetLuaEntity)
 				{
-					LUA->GetField(LUA_GLOBALSINDEX, "NULL");
-					return;
+					GarrysMod::Lua::ILuaObject* pObj = LUA->NewTemporaryObject();
+					pObj->SetEntity(pEnt);
+					pObj->Push();
+				} else {
+					GarrysMod::Lua::CLuaObject* pObject = (GarrysMod::Lua::CLuaObject*)func_CBaseEntity_GetLuaEntity(pEnt);
+					if (!pObject)
+					{
+						LUA->GetField(LUA_GLOBALSINDEX, "NULL");
+						return;
+					}
+
+					Util::ReferencePush(LUA, pObject->GetReference()); // Assuming the reference is always right.
 				}
 
-				Util::ReferencePush(LUA, pObject->GetReference()); // Assuming the reference is always right.
 				g_pEntityReferences[nEntryIndex] = udataV(L->top-1); // Should be fine since the GCudata is never moved/nuked.
 				return;
 			}
@@ -177,6 +177,15 @@ void Util::Push_Entity(GarrysMod::Lua::ILuaInterface* LUA, CBaseEntity* pEnt)
 				setudataV(L, L->top++, g_pEntityReferences[nEntryIndex]);
 				return;
 			}
+		}
+
+		// In the case we are missing our symbol for CBaseEntity::GetLuaEntity, this will be slower though will still be fully functional.
+		if (!func_CBaseEntity_GetLuaEntity)
+		{
+			GarrysMod::Lua::ILuaObject* pObj = LUA->NewTemporaryObject();
+			pObj->SetEntity(pEnt);
+			pObj->Push();
+			return;
 		}
 
 		GarrysMod::Lua::CLuaObject* pObject = (GarrysMod::Lua::CLuaObject*)func_CBaseEntity_GetLuaEntity(pEnt);
