@@ -296,9 +296,14 @@ namespace Util
 	// tries to find a SendProp with the given name, and if found it will return the offset stored in the sendprop.
 	// Returns -1 on failure
 	extern int FindOffsetForNetworkVar(const char* pDTName, const char* pVarName);
+
+	// Returns a pointer to the given offset for the base, do the casting yourself.
 	inline void* GoToNetworkVarOffset(void* pBase, int nOffset)
 	{
-		return *(void**)((char*)pBase + nOffset);
+		if (nOffset == -1)
+			return nullptr;
+
+		return (void*)((char*)pBase + nOffset);
 	}
 
 	// More Lua stuff for UserData (NEVER NULL)

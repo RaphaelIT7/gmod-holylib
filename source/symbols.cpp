@@ -530,16 +530,6 @@ namespace Symbols
 		Symbol::FromName("_ZN12CGMOD_Player15CreateViewModelEi"),
 	};
 
-	const std::vector<Symbol> CBasePlayer_GetViewModelSym = {//Search for "models/weapons/v_hands.mdl" and then find CHL2_Player__StartAdmireGlovesAnimation
-		Symbol::FromName("_ZN11CBasePlayer12GetViewModelEib"),
-		Symbol::FromSignature("\x48\x8B\x05\x2A\x2A\x2A\x2A\x55\x48\x63\xF6\x48\x89\xE5\x48\x8B\x08\x8B\x84\xB7\x10\x28\x00\x00"), // 48 8B 05 ? ? ? ? 55 48 63 F6 48 89 E5 48 8B 08 8B 84 B7 10 28 00 00
-	};
-
-	const std::vector<Symbol> Player__SetHandsSym = { //Search for "SetHands" then found the Player__SetHands__Redirect and then you'll find it
-		Symbol::FromName("_Z16Player__SetHandsP13ILuaInterface"),
-		Symbol::FromSignature("\x55\x31\xF6\xBF\x01\x00\x00\x00\x48\x89\xE5\x41\x55\x41\x54\x53\x48\x83\xEC\x18\xE8\x2A\x2A\x2A\x2A\x31\xF6"), // 55 31 F6 BF 01 00 00 00 48 89 E5 41 55 41 54 53 48 83 EC 18 E8 ? ? ? ? 31 F6
-	};
-
 	const std::vector<Symbol> CBaseCombatCharacter_SetTransmitSym = {//Search for 1st "CBaseAnimating::SetTransmit" xref
 		Symbol::FromName("_ZN20CBaseCombatCharacter11SetTransmitEP18CCheckTransmitInfob"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x49\x89\xF5\x41\x54\x49\x89\xFC\x53\x48\x83\xEC\x08\x48\x8B\x47\x40"), // 55 48 89 E5 41 57 41 56 41 55 49 89 F5 41 54 49 89 FC 53 48 83 EC 08 48 8B 47 40

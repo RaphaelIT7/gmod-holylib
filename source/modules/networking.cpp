@@ -988,20 +988,37 @@ static ConVar* sv_force_transmit_ents = nullptr;
 static CBaseEntity* g_pEntityCache[MAX_EDICTS] = {nullptr};
 bool g_pReplaceCServerGameEnts_CheckTransmit = false;
 static edict_t* world_edict = nullptr;
-static Symbols::CBasePlayer_GetViewModel func_CBasePlayer_GetViewModel;
-static CBaseEntity* g_pPlayerHandsEntity[MAX_PLAYERS] = {0}; // Should never contain invalid entities since any Entity that is removed will have their entry set to NULL
 
-static Detouring::Hook detour_Player__SetHands;
-static int hook_Player__SetHands(GarrysMod::Lua::ILuaInterface* LUA)
+static inline CBaseEntity* IndexToEntity(int nEntIndex)
 {
-	CBasePlayer* pPlayer = Util::Get_Player(LUA, 1, false);
-	CBaseEntity* pEntity = Util::Get_Entity(LUA, 2, false);
-	if (pEntity && pPlayer && pEntity->edict())
-	{
-		g_pPlayerHandsEntity[pPlayer->edict()->m_EdictIndex-1] = pEntity;
-	}
+	if (nEntIndex < 0 || nEntIndex > MAX_EDICTS)
+		return nullptr;
 
-	return detour_Player__SetHands.GetTrampoline<Symbols::Player__SetHands>()(LUA);
+	return g_pEntityCache[nEntIndex];
+}
+
+static int m_Hands_Offset = -1; // DT_GMOD_Player m_Hands
+static inline CBaseEntity* GetGMODPlayerHands(void* pPlayer)
+{
+	return IndexToEntity(((CBaseHandle*)Util::GoToNetworkVarOffset(pPlayer, m_Hands_Offset))->GetEntryIndex());
+}
+
+static int m_hActiveWeapon_Offset = -1; // DT_BaseCombatCharacter m_hActiveWeapon
+static inline CBaseEntity* GetActiveWeapon(void* pPlayer)
+{
+	return IndexToEntity(((CBaseHandle*)Util::GoToNetworkVarOffset(pPlayer, m_hActiveWeapon_Offset))->GetEntryIndex());
+}
+
+static int m_hMyWeapons_Offset = -1; // DT_BaseCombatCharacter m_hMyWeapons
+static inline CBaseEntity* GetMyWeapon(void* pPlayer, int nWeaponSlot)
+{
+	return IndexToEntity(((CBaseCombatWeaponHandle*)Util::GoToNetworkVarOffset(pPlayer, m_hMyWeapons_Offset + (sizeof(CBaseCombatWeaponHandle) * nWeaponSlot)))->GetEntryIndex());
+}
+
+static int m_hViewModel_Offset = -1; // DT_BasePlayer m_hViewModel
+static inline CBaseViewModel* GetViewModel(void* pPlayer, int nViewModelSlot)
+{
+	return (CBaseViewModel*)IndexToEntity(((CBasePlayer::CBaseViewModelHandle*)Util::GoToNetworkVarOffset(pPlayer, m_hViewModel_Offset + (sizeof(CBasePlayer::CBaseViewModelHandle) * nViewModelSlot)))->GetEntryIndex());
 }
 
 static CBitVec<MAX_EDICTS> g_pDontTransmitCache; // Reset on every CServerGameEnts::CheckTransmit call
@@ -1024,11 +1041,7 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 	{
 		for ( int i=0; i < MAX_WEAPONS; i++ )
 		{
-			int entIndex = pCharacter->m_hMyWeapons[i].GetEntryIndex();
-			if (entIndex < 0 || entIndex > MAX_EDICTS)
-				continue;
-
-			CBaseEntity *pWeapon = g_pEntityCache[entIndex];
+			CBaseEntity *pWeapon = GetMyWeapon(pCharacter, i);
 			if ( !pWeapon )
 				continue;
 
@@ -1036,32 +1049,24 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 			pWeapon->SetTransmit( pInfo, bAlways );
 		}
 	} else {
-		int pActiveWeaponIndex = pCharacter->m_hActiveWeapon.m_Value.GetEntryIndex();
-		if (pActiveWeaponIndex > 0 && pActiveWeaponIndex < MAX_EDICTS)
-		{
-			CBaseEntity* pActiveWeapon = g_pEntityCache[pActiveWeaponIndex];
-			if (pActiveWeapon)
-			{
-				pActiveWeapon->SetTransmit(pInfo, bAlways);
-			}
-		}
+		CBaseEntity* pActiveWeapon = GetActiveWeapon(pCharacter);
+		if (pActiveWeapon)
+			pActiveWeapon->SetTransmit(pInfo, bAlways);
 
-		if (!g_bFilledDontTransmitWeaponCache[pEdict->m_EdictIndex-1])
+		int nEdictIndex = pEdict->m_EdictIndex-1;
+		if (!g_bFilledDontTransmitWeaponCache[nEdictIndex])
 		{
 			for ( int i=0; i < MAX_WEAPONS; i++ )
 			{
-				int entIndex = pCharacter->m_hMyWeapons[i].GetEntryIndex();
-				if (entIndex < 0 || entIndex > MAX_EDICTS)
-					continue;
-
-				CBaseEntity *pWeapon = g_pEntityCache[entIndex];
+				CBaseEntity *pWeapon = GetMyWeapon(pCharacter, i);
 				if ( !pWeapon )
 					continue;
 
+				int entIndex = pWeapon->edict()->m_EdictIndex;
 				g_pDontTransmitCache.Set(entIndex);
 				g_pDontTransmitWeaponCache.Set(entIndex);
 			}
-			g_bFilledDontTransmitWeaponCache[pEdict->m_EdictIndex-1] = true;
+			g_bFilledDontTransmitWeaponCache[nEdictIndex] = true;
 		}
 	}
 }
@@ -1239,17 +1244,14 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 				pRecipientPlayer->SetTransmit(pInfo, true);
 				// ENGINE BUG: CBaseCombatCharacter::SetTransmit doesn't network the player's viewmodel! So we need to do it ourself.
 				// This was probably done since CBaseViewModel::ShouldTransmit determines if it would be sent or not.
-				if (func_CBasePlayer_GetViewModel)
+				for (int iViewModel=0; iViewModel<MAX_VIEWMODELS; ++iViewModel)
 				{
-					for (int iViewModel=0; iViewModel<MAX_VIEWMODELS; ++iViewModel)
-					{
-						CBaseViewModel* pViewModel = func_CBasePlayer_GetViewModel(pRecipientPlayer, iViewModel, true); // Secret dependency on g_pEntityList
-						if (pViewModel)
-							pViewModel->SetTransmit(pInfo, true);
-					}
+					CBaseViewModel* pViewModel = GetViewModel(pRecipientPlayer, iViewModel); // Secret dependency on g_pEntityList
+					if (pViewModel)
+						pViewModel->SetTransmit(pInfo, true);
 				}
 
-				CBaseEntity* pHandsEntity = g_pPlayerHandsEntity[clientIndex];
+				CBaseEntity* pHandsEntity = GetGMODPlayerHands(pRecipientPlayer);
 				if (pHandsEntity)
 					pHandsEntity->SetTransmit(pInfo, true);
 
@@ -1263,17 +1265,14 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 						if (pObserverEntity->IsPlayer())
 						{
 							CBasePlayer* pObserverPlayer = (CBasePlayer*)pObserverEntity;
-							if (func_CBasePlayer_GetViewModel)
+							for (int iViewModel=0; iViewModel<MAX_VIEWMODELS; ++iViewModel)
 							{
-								for (int iViewModel=0; iViewModel<MAX_VIEWMODELS; ++iViewModel)
-								{
-									CBaseViewModel* pViewModel = func_CBasePlayer_GetViewModel(pRecipientPlayer, iViewModel, true); // Secret dependency on g_pEntityList
-									if (pViewModel)
-										pViewModel->SetTransmit(pInfo, true);
-								}
+								CBaseViewModel* pViewModel = GetViewModel(pRecipientPlayer, iViewModel); // Secret dependency on g_pEntityList
+								if (pViewModel)
+									pViewModel->SetTransmit(pInfo, true);
 							}
 
-							pHandsEntity = g_pPlayerHandsEntity[pObserverPlayer->edict()->m_EdictIndex-1];
+							pHandsEntity = GetGMODPlayerHands(pObserverPlayer);
 							if (pHandsEntity)
 								pHandsEntity->SetTransmit(pInfo, true);
 						}
@@ -1682,17 +1681,6 @@ void CNetworkingModule::OnEntityDeleted(CBaseEntity* pEntity)
 	CleaupSetPreventTransmit(pEntity);
 	int entIndex = pEdict->m_EdictIndex;
 	g_pEntityCache[entIndex] = NULL;
-
-	if (pEntity->IsPlayer())
-	{
-		g_pPlayerHandsEntity[entIndex-1] = NULL;
-	} else {
-		for (int iClient=0; iClient<MAX_PLAYERS; ++iClient)
-		{
-			if (g_pPlayerHandsEntity[iClient] == pEntity)
-				g_pPlayerHandsEntity[iClient] = NULL;
-		}
-	}
 }
 
 void CNetworkingModule::OnEntityCreated(CBaseEntity* pEntity)
@@ -1720,7 +1708,6 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 		return;
 
 	Plat_FastMemset(g_pEntityCache, 0, sizeof(g_pEntityCache));
-	Plat_FastMemset(g_pPlayerHandsEntity, 0, sizeof(g_pPlayerHandsEntity));
 	for (int i=0; i<MAX_PLAYERS; ++i)
 		g_pShouldPrevent[i].ClearAll();
 
@@ -1754,12 +1741,6 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 		&detour_CGMOD_Player_CreateViewModel, "CGMOD_Player::CreateViewModel",
 		server_loader.GetModule(), Symbols::CGMOD_Player_CreateViewModelSym,
 		(void*)hook_CGMOD_Player_CreateViewModel, m_pID
-	);
-
-	Detour::Create(
-		&detour_Player__SetHands, "Player:SetHands",
-		server_loader.GetModule(), Symbols::Player__SetHandsSym,
-		(void*)hook_Player__SetHands, m_pID
 	);
 
 	Detour::Create(
@@ -1844,9 +1825,6 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 	Detour::CheckFunction((void*)func_PackWork_t_Process, "PackWork_t::Process");
 #endif
 
-	func_CBasePlayer_GetViewModel = (Symbols::CBasePlayer_GetViewModel)Detour::GetFunction(server_loader.GetModule(), Symbols::CBasePlayer_GetViewModelSym);
-	Detour::CheckFunction((void*)func_CBasePlayer_GetViewModel, "CBasePlayer::GetViewModel");
-
 	func_CBaseAnimating_SetTransmit = (Symbols::CBaseCombatCharacter_SetTransmit)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseAnimating_SetTransmitSym);
 	Detour::CheckFunction((void*)func_CBaseAnimating_SetTransmit, "CBaseAnimating::SetTransmit");
 
@@ -1863,6 +1841,11 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 void CNetworkingModule::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
 {
 	sv_force_transmit_ents = g_pCVar->FindVar("sv_force_transmit_ents");
+
+	m_Hands_Offset = Util::FindOffsetForNetworkVar("DT_GMOD_Player", "m_Hands");
+	m_hActiveWeapon_Offset = Util::FindOffsetForNetworkVar("DT_BaseCombatCharacter", "m_hActiveWeapon");
+	m_hMyWeapons_Offset = Util::FindOffsetForNetworkVar("DT_BaseCombatCharacter", "m_hMyWeapons");
+	m_hViewModel_Offset = Util::FindOffsetForNetworkVar("DT_BasePlayer", "m_hViewModel");
 
 	// Find player class (has DT_BasePlayer as a baseclass table)
 	// We do this in ServerActivate since the engine only now hooked into the ServerClass allowing us to safely use them now.

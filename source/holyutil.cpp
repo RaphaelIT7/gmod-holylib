@@ -105,6 +105,16 @@ public:
 	{
 		Util::UnblockGameEvent(pName);
 	}
+
+	virtual int FindOffsetForNetworkVar(const char* pDTName, const char* pVarName)
+	{
+		return Util::FindOffsetForNetworkVar(pDTName, pVarName);
+	}
+
+	virtual void* GoToNetworkVarOffset(void* pBase, int nOffset)
+	{
+		return Util::GoToNetworkVarOffset(pBase, nOffset);
+	}
 };
 
 static CHolyUtil s_HolyUtil;

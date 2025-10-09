@@ -540,7 +540,12 @@ int Util::FindOffsetForNetworkVar(const char* pDTName, const char* pVarName)
 		for (SendProp* pProp : it->second)
 		{
 			if (((std::string_view)pVarName) == pProp->GetName())
+			{
+				if (pProp->GetArrayProp())
+					return pProp->GetArrayProp()->GetOffset();
+
 				return pProp->GetOffset();
+			}
 		}
 	}
 

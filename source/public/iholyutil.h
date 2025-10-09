@@ -76,6 +76,13 @@ public: // Then all functions
 	// Unblocks the creation of the given gameevent.
 	// Does nothing if the the gameevent is not blocked.
 	virtual void UnblockGameEvent(const char* pName) = 0;
+
+	// tries to find a SendProp with the given name, and if found it will return the offset stored in the sendprop.
+	// Returns -1 on failure
+	virtual int FindOffsetForNetworkVar(const char* pDTName, const char* pVarName) = 0;
+
+	// Returns a pointer to the given offset for the base, do the casting yourself.
+	virtual void* GoToNetworkVarOffset(void* pBase, int nOffset) = 0;
 };
 
 // Should we make this also a interface? :^ (Ye :3)
