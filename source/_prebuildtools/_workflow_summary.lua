@@ -212,7 +212,7 @@ function GenerateMarkdown(results, currentRun, previousRun)
 	table.insert(markdown, "Current run: " .. currentRun .. [[<br>
 Previous run: ]] .. previousRun .. "<br>")
 
-	for branch, funcs in pairs(results) do
+	for branch, funcs in SortedPairs(results) do
 		table.insert(markdown, "")
 		table.insert(markdown, "# Branch: " .. branch)
 		table.insert(markdown, "| Function Name | Total Calls | Time Per Call | Difference to Previous |")
@@ -222,7 +222,7 @@ Previous run: ]] .. previousRun .. "<br>")
 			local diff = funcResults.diffTimePerCall
 			local maxDiff = 0.20 -- It may fluxuate between builds because of different runners/hardware but it shouldn't worsen by more than 20%
 			if diff > (1 + maxDiff) then
-				print("::notice title=" .. funcName .. "::Performance improved significantly (" .. string.format("%.2fx", 1 / diff) .. " faster)")
+				print("::notice title=" .. funcName .. "::Performance improved significantly (" .. string.format("%.2fx", diff) .. " faster)")
 			elseif diff < (1 - maxDiff) then
 				print("::warning title=" .. funcName .. "::Performance is worse beyond expectation (" .. string.format("%.2fx", diff) .. " slower)")
 			end
