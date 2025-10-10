@@ -452,14 +452,33 @@ bool Lua::CheckGModType(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos, int n
 	lua_State* L = LUA->GetState();
 	TValue* val = RawLua::index2adr(L, nStackPos);
 
-	if (val && tvisudata(val))
+	if (val)
 	{
-		GarrysMod::Lua::ILuaBase::UserData* pData = (GarrysMod::Lua::ILuaBase::UserData*)uddata(val);
-		if (pData->type == nType)
+		if (tvisudata(val))
 		{
-			*pUserData = pData->data;
-			return true;
+			GarrysMod::Lua::ILuaBase::UserData* pData = (GarrysMod::Lua::ILuaBase::UserData*)uddata(udataV(val));
+			if (pData && pData->type == nType)
+			{
+				*pUserData = pData->data;
+				return true;
+			}
 		}
+
+#if MODULE_EXISTS_LUAJIT
+		if (tviscdata(val))
+		{
+			RawLua::CDataBridge* pBridge = GetCDataBridgeFromInterface(LUA);
+			if (pBridge->pRegisteredTypes.IsBitSet(cdataV(val)->ctypeid))
+			{
+				GarrysMod::Lua::ILuaBase::UserData* pData = (GarrysMod::Lua::ILuaBase::UserData*)lj_obj_ptr(G(L), val);
+				if (pData && pData->type == nType)
+				{
+					*pUserData = pData->data;
+					return true;
+				}
+			}
+		}
+#endif
 	}
 
 	*pUserData = nullptr;
