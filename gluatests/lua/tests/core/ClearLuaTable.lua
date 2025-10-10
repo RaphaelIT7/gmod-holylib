@@ -1,5 +1,5 @@
 return {
-    groupName = "HolyLib manages to properly Push Entities to Lua",
+    groupName = "HolyLib manages to properly clear the Lua table of HolyLib UserData",
     cases = {
         {
             name = "Is _HOLYLIB_CORE.ClearLuaTable function existent",

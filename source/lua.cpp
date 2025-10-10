@@ -115,6 +115,19 @@ LUA_FUNCTION_STATIC(Test_RawGetModuleData)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(Test_GetGModVector)
+{
+	Vector* pData = Get_Vector(LUA, 1);
+	LUA->PushBool(pData->x == 1 && pData->y == 2 && pData->z == 3);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(Test_RawGetGModVector)
+{
+	Get_Vector(LUA, 1);
+	return 0;
+}
+
 static void SetupCoreTestFunctions(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::_HOLYLIB_CORE_TEST, pLua->CreateMetaTable("_HOLYLIB_CORE_TEST"));
@@ -137,6 +150,8 @@ static void SetupCoreTestFunctions(GarrysMod::Lua::ILuaInterface* pLua)
 		Util::AddFunc(pLua, Test_RawGetTestUserData, "RawGetTestUserData");
 		Util::AddFunc(pLua, Test_GetModuleData, "GetModuleData");
 		Util::AddFunc(pLua, Test_RawGetModuleData, "RawGetModuleData");
+		Util::AddFunc(pLua, Test_GetGModVector, "GetGModVector");
+		Util::AddFunc(pLua, Test_RawGetGModVector, "RawGetGModVector");
 	Util::FinishTable(pLua, "_HOLYLIB_CORE");
 }
 

@@ -1,5 +1,5 @@
 return {
-    groupName = "HolyLib manages to properly Get Entities from Lua",
+    groupName = "HolyLib manages to properly Get Players from Lua",
     cases = {
         {
             name = "Is _HOLYLIB_CORE.GetPlayer function existent",
