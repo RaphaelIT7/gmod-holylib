@@ -156,6 +156,9 @@ namespace Symbols
 	typedef void (*lj_gc_barrierf)(global_State *g, void *o, void *v);
 	extern const Symbol lj_gc_barrierfSym;
 
+	typedef void* (*lj_tab_get)(lua_State *L, void *t, void *key);
+	extern const Symbol lj_tab_getSym;
+
 	typedef int (*lua_setfenv)(lua_State *L, int idx);
 	extern const Symbol lua_setfenvSym;
 

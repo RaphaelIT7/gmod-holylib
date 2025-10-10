@@ -481,6 +481,7 @@ void CLuaJITModule::InitDetour(bool bPreServer)
 	Util::func_lua_insert = &lua_insert;
 	Util::func_lua_toboolean = &lua_toboolean;
 	Util::func_lj_gc_barrierf = (Symbols::lj_gc_barrierf)&lj_gc_barrierf;
+	Util::func_lj_tab_get = (Symbols::lj_tab_get)&lj_tab_get;
 
 	m_bIsEnabled = true;
 }

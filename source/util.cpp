@@ -580,6 +580,7 @@ IGameEventManager2* Util::gameeventmanager = nullptr;
 IServerGameDLL* Util::servergamedll = nullptr;
 Symbols::lj_tab_new Util::func_lj_tab_new = nullptr;
 Symbols::lj_gc_barrierf Util::func_lj_gc_barrierf = nullptr;
+Symbols::lj_tab_get Util::func_lj_tab_get = nullptr;
 Symbols::lua_setfenv Util::func_lua_setfenv = nullptr;
 Symbols::lua_touserdata Util::func_lua_touserdata = nullptr;
 Symbols::lua_type Util::func_lua_type = nullptr;
@@ -708,6 +709,9 @@ void Util::AddDetour()
 
 	func_lj_gc_barrierf = (Symbols::lj_gc_barrierf)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lj_gc_barrierfSym);
 	Detour::CheckFunction((void*)func_lj_gc_barrierf, "lj_gc_barrierf");
+
+	func_lj_tab_get = (Symbols::lj_tab_get)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lj_tab_getSym);
+	Detour::CheckFunction((void*)func_lj_tab_get, "lj_tab_get");
 
 	if (!func_lua_touserdata || !func_lua_type || !func_lua_setfenv || !func_luaL_checklstring || !func_lua_pcall || !func_lua_insert || !func_lua_toboolean)
 	{

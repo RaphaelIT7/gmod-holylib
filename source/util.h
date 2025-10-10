@@ -321,6 +321,7 @@ namespace Util
 	// These can be NULL. Why? Because on 64x all the names are mangled making shit far more difficult...
 	extern Symbols::lj_tab_new func_lj_tab_new;
 	extern Symbols::lj_gc_barrierf func_lj_gc_barrierf;
+	extern Symbols::lj_tab_get func_lj_tab_get;
 
 	extern IVEngineServer* engineserver;
 	extern IServerGameClients* servergameclients;

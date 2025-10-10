@@ -485,6 +485,55 @@ bool Lua::CheckGModType(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos, int n
 	return false;
 }
 
+// NOTE: This Only works on stack values that are on the top!!!
+static inline TValue* FastIndex2Addr(lua_State* L, int nStackPos)
+{
+	TValue *o = L->base + (nStackPos - 1);
+	return o < L->top ? o : niltv(L);
+}
+
+// Should only be called by Default__index!
+bool Lua::FindOnObjectsMetaTable(lua_State* L, int nStackPos, int nKeyPos)
+{
+	if (Util::func_lj_tab_get)
+	{
+		TValue* val = FastIndex2Addr(L, nStackPos);
+
+		if (val && tvisudata(val))
+		{
+			GCudata* udata = udataV(val);
+			GCtab* meta = tabref(udata->metatable);
+			if (meta)
+			{
+				TValue* tabVal = (TValue*)Util::func_lj_tab_get(L, meta, L->top-1);
+				if (!tvisnil(tabVal))
+				{
+					copyTV(L, L->top++, tabVal);
+					return true;
+				}
+			}
+		}
+
+		return false;
+	}
+
+	// TEMP: Change this later!!!
+	GarrysMod::Lua::ILuaInterface* LUA = ((lua_GmodState*)L)->luabase;
+	LUA->SetState(L);
+	if (LUA->GetMetaTable(nStackPos))
+	{
+		LUA->Push(nKeyPos);
+		LUA->RawGet(-2);
+		
+		if (Util::func_lua_type(LUA->GetState(), -1))
+			return true;
+
+		LUA->Pop(2);
+	}
+
+	return false;
+}
+
 // We need to do some hooking for these since our userdata is "special"
 class CLuaInterfaceProxy : public Detouring::ClassProxy<GarrysMod::Lua::ILuaInterface, CLuaInterfaceProxy> {
 public:

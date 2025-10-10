@@ -287,9 +287,10 @@ namespace Lua
 	 * We abuse the GetPathID var as it's a char[32] but it'll never actually fully use it.
 	 * Why? Because I didn't want to use yet another unordered_map for this, also this should be faster.
 	 */
-	inline Lua::StateData* GetLuaData(GarrysMod::Lua::ILuaInterface* LUA)
+	// constexpr int nPathIDOffset = 196 + 24;
+	FORCEINLINE Lua::StateData* GetLuaData(GarrysMod::Lua::ILuaInterface* LUA)
 	{
-		return *reinterpret_cast<Lua::StateData**>((char*)LUA->GetPathID() + 24);
+		return *reinterpret_cast<Lua::StateData**>((char*)LUA->GetPathID() + 24); // ((char*)LUA + nPathIDOffset);
 	}
 	extern void CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA, bool bNullOut = false);
 	extern void RemoveLuaData(GarrysMod::Lua::ILuaInterface* LUA);
@@ -298,6 +299,8 @@ namespace Lua
 	// In a single call checks the type and returns the userdata saving some work.
 	extern bool CheckHolyLibType(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos, int nType, LuaUserData** pUserData);
 	extern LuaUserData* GetHolyLibUserData(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos);
+
+	extern bool FindOnObjectsMetaTable(lua_State* L, int nStackPos, int nKeyPos);
 
 	// GMod specific fast type check
 	extern bool CheckGModType(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos, int nType, void** pUserData);
@@ -961,12 +964,13 @@ void Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
 // which handles everything like finding the functions in the metatable
 // or getting vars on the object like: print(userData.value)
 #define Default__index(className) \
-LUA_FUNCTION_STATIC(className ## __index) \
+static int className ## __index( lua_State* L ) \
 { \
-	if (LUA->FindOnObjectsMetaTable(1, 2)) \
+	if (Lua::FindOnObjectsMetaTable(L, 1, 2)) \
 		return 1; \
 \
-	LUA->Pop(1); \
+	GarrysMod::Lua::ILuaInterface* LUA = ((lua_GmodState*)L)->luabase; \
+	LUA->SetState(L); \
 	Get_##className##_Data(LUA, 1, true)->PushLuaTable(LUA); \
 	if (!LUA->FindObjectOnTable(-1, 2)) \
 		LUA->PushNil(); \

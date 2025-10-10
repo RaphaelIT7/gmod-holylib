@@ -53,6 +53,8 @@ namespace Symbols
 
 	const Symbol lj_gc_barrierfSym = Symbol::FromName("lj_gc_barrierf");
 
+	const Symbol lj_tab_getSym = Symbol::FromName("lj_tab_get");
+
 	const Symbol lua_setfenvSym = Symbol::FromName("lua_setfenv");
 
 	const Symbol lua_touserdataSym = Symbol::FromName("lua_touserdata");
