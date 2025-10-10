@@ -432,6 +432,25 @@ bool Lua::CheckHolyLibType(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos, in
 	return false;
 }
 
+bool Lua::CheckGModType(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos, int nType, void** pUserData)
+{
+	lua_State* L = LUA->GetState();
+	TValue* val = RawLua::index2adr(L, nStackPos);
+
+	if (val && tvisudata(val))
+	{
+		GarrysMod::Lua::ILuaBase::UserData* pData = (GarrysMod::Lua::ILuaBase::UserData*)uddata(val);
+		if (pData->type == nType)
+		{
+			*pUserData = pData->data;
+			return true;
+		}
+	}
+
+	*pUserData = nullptr;
+	return false;
+}
+
 // We need to do some hooking for these since our userdata is "special"
 class CLuaInterfaceProxy : public Detouring::ClassProxy<GarrysMod::Lua::ILuaInterface, CLuaInterfaceProxy> {
 public:

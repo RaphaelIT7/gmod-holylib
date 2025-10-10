@@ -299,6 +299,9 @@ namespace Lua
 	extern bool CheckHolyLibType(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos, int nType, LuaUserData** pUserData);
 	extern LuaUserData* GetHolyLibUserData(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos);
 
+	// GMod specific fast type check
+	extern bool CheckGModType(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos, int nType, void** pUserData);
+
 	// ToDo
 	// - EnterLockdown
 	// - LeaveLockdown
@@ -811,7 +814,8 @@ static std::string invalidType_##className = MakeString("Tried to use something 
 static std::string triedNull_##className = MakeString("Tried to use a NULL ", strName, "!"); \
 className* Get_##className(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError) \
 { \
-	if (!LUA->IsType(iStackPos, luaType)) \
+	className* pVar = nullptr; \
+	if (!Lua::CheckGModType(LUA, iStackPos, luaType, (void**)&pVar)) \
 	{ \
 		if (bError) \
 			LUA->ThrowError(invalidType_##className.c_str()); \
@@ -819,7 +823,6 @@ className* Get_##className(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bo
 		return NULL; \
 	} \
 \
-	className* pVar = LUA->GetUserType<className>(iStackPos, luaType); \
 	if (!pVar && bError) \
 		LUA->ThrowError(triedNull_##className.c_str()); \
 \
