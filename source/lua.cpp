@@ -418,6 +418,20 @@ LuaUserData* Lua::GetHolyLibUserData(GarrysMod::Lua::ILuaInterface * LUA, int nS
 	return nullptr;
 }
 
+bool Lua::CheckHolyLibType(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos, int nType, LuaUserData** pUserData)
+{
+	LuaUserData* pData = Lua::GetHolyLibUserData(LUA, nStackPos);
+
+	if (pData && pData->GetType() == nType)
+	{
+		*pUserData = pData;
+		return true;
+	}
+
+	*pUserData = nullptr;
+	return false;
+}
+
 // We need to do some hooking for these since our userdata is "special"
 class CLuaInterfaceProxy : public Detouring::ClassProxy<GarrysMod::Lua::ILuaInterface, CLuaInterfaceProxy> {
 public:

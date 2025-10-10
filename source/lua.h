@@ -294,6 +294,9 @@ namespace Lua
 	extern void CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA, bool bNullOut = false);
 	extern void RemoveLuaData(GarrysMod::Lua::ILuaInterface* LUA);
 	extern const std::unordered_set<Lua::StateData*>& GetAllLuaData();
+
+	// In a single call checks the type and returns the userdata saving some work.
+	extern bool CheckHolyLibType(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos, int nType, LuaUserData** pUserData);
 	extern LuaUserData* GetHolyLibUserData(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos);
 
 	// ToDo
@@ -767,7 +770,8 @@ static std::string triedNull_##className = MakeString("Tried to use a NULL ", st
 inline LuaUserData* Get_##className##_Data(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError) \
 { \
 	unsigned char luaType = Lua::GetLuaData(LUA)->GetMetaTable(TO_LUA_TYPE(className)); \
-	if (!LUA->IsType(iStackPos, luaType)) \
+	LuaUserData* pVar = nullptr; \
+	if (!Lua::CheckHolyLibType(LUA, iStackPos, luaType, &pVar)) \
 	{ \
 		if (bError) \
 			LUA->ThrowError(invalidType_##className.c_str()); \
@@ -775,7 +779,6 @@ inline LuaUserData* Get_##className##_Data(GarrysMod::Lua::ILuaInterface* LUA, i
 		return NULL; \
 	} \
 \
-	LuaUserData* pVar = static_cast<LuaUserData*>(static_cast<void*>(Lua::GetHolyLibUserData(LUA, iStackPos))); \
 	if ((!pVar || !pVar->GetData()) && bError) \
 		LUA->ThrowError(triedNull_##className.c_str()); \
 \
@@ -835,8 +838,12 @@ inline LuaUserData* Get_##className##_Data(GarrysMod::Lua::ILuaInterface* LUA, i
 	unsigned char luaType = LUADATA->GetMetaTable(TO_LUA_TYPE(className)); \
 	unsigned char luaType2 = LUADATA->GetMetaTable(TO_LUA_TYPE(className2)); \
 \
-	int iType = LUA->GetType(iStackPos); \
-	if (iType != luaType && iType != luaType2) \
+	LuaUserData* pVar = Lua::GetHolyLibUserData(LUA, iStackPos); \
+	if (!pVar) \
+		if (bError) \
+			LUA->ThrowError(triedNull_##className.c_str()); \
+	\
+	if (!pVar || pVar->GetType() != luaType && pVar->GetType() != luaType2) \
 	{ \
 		if (bError) \
 			LUA->ThrowError(invalidType_##className.c_str()); \
@@ -844,24 +851,7 @@ inline LuaUserData* Get_##className##_Data(GarrysMod::Lua::ILuaInterface* LUA, i
 		return NULL; \
 	} \
 \
-	if (iType == luaType) \
-	{ \
-		LuaUserData* pVar = static_cast<LuaUserData*>(static_cast<void*>(Lua::GetHolyLibUserData(LUA, iStackPos))); \
-		if (pVar) \
-			return pVar; \
-	} \
-\
-	if (iType == luaType2) \
-	{ \
-		LuaUserData* pVar = static_cast<LuaUserData*>(static_cast<void*>(Lua::GetHolyLibUserData(LUA, iStackPos))); \
-		if (pVar) \
-			return pVar; \
-	} \
- \
-	if (bError) \
-		LUA->ThrowError(triedNull_##className.c_str()); \
-\
-	return NULL; \
+	return pVar; \
 } \
 \
 className* Get_##className(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError) \
