@@ -215,8 +215,8 @@ Previous run: ]] .. previousRun .. "<br>")
 	for branch, funcs in SortedPairs(results) do
 		table.insert(markdown, "")
 		table.insert(markdown, "# Branch: " .. branch)
-		table.insert(markdown, "| Function Name | Total Calls | Time Per Call | Difference to Previous |")
-		table.insert(markdown, "| ------------- | ----------- | ------------- | ---------------------- |")
+		table.insert(markdown, "| Function Name | Total Calls | Time Per Call | Difference to Previous Build |")
+		table.insert(markdown, "| ------------- | ----------- | ------------- | ---------------------------- |")
 
 		for funcName, funcResults in SortedPairs(funcs) do
 			local diff = funcResults.diffTimePerCall
