@@ -517,11 +517,12 @@ namespace Symbols
 
 	const std::vector<Symbol> g_PropTypeFnsSym = {
 		Symbol::FromName("g_PropTypeFns"),
-		Symbol::FromSignature(""), // ToDo
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x49\x89\xF5\x41\x54\x53\x48\x83\xEC\x08\x4C\x8B\x67\x20\xE8\x2A\x2A\x2A\x2A\x41\x8B\x55\x1C", 0x51), // 55 48 89 E5 41 57 41 56 41 55 49 89 F5 41 54 53 48 83 EC 08 4C 8B 67 20 E8 ? ? ? ? 41 8B 55 1C
 	};
 
-	const std::vector<Symbol> g_BSPDataSym = { // 64x won't happen until I figure out how to get g_BSPData. Rubat pls expose it
+	const std::vector<Symbol> g_BSPDataSym = { // Search CM_Vis 
 		Symbol::FromName("g_BSPData"),
+		Symbol::FromSignature("\x55\x83\xF9\x02", 0x1F), // 55 83 F9 02
 	};
 
 	// Only used on Linux

@@ -161,7 +161,7 @@ namespace Detour
 	#endif
 
 		//
-		if (ip[0] == 0x48 && ip[1] == 0x8D) {
+		if (ip[0] == 0x48) {
 			const size_t instrLen = 7;
 			int32_t disp = *reinterpret_cast<int32_t*>(ip + 3); // disp32 at offset 3
 			uint8_t* next = ip + instrLen;                      // RIP after the instruction
