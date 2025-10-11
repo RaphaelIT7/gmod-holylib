@@ -49,10 +49,18 @@ function HTTP_WaitForAllInternal()
 					tbl.failed("Request failed: " .. success)
 				end
 			end
+			continue
+		end
+
+		if os.time() > tbl.timeouttime then
+			table.remove(requests, key)
+			if tbl.failed then
+				tbl.failed("Request failed: timeout")
+			end
 		end
 	end
 
-	if (os.time() - last_added_request) > 20 then
+	if (os.time() - last_added_request) > 10 then
 		print("HTTP Took way too long. Assuming something broke!")
 		requests = {} -- Discard of this crap
 		return false
@@ -94,7 +102,7 @@ function HTTP(inputTbl)
 	local url = tbl.url or ""
 	local body = tbl.body or ""
 	local contentType = tbl.type or ""
-	local timeout = tbl.timeout or 15
+	local timeout = tbl.timeout or 5
 	local headers = ""
 	local params = ""
 	if tbl.params then
@@ -118,6 +126,8 @@ function HTTP(inputTbl)
 	local curlCommand = "curl -sb -X " .. method .. " " .. url .. params .. (not (contentType == "") and (" -H \"Content-Type:".. contentType .. "\"") or "") .. headers .. (body == "" and "" or (" --data-raw \"" .. body .. "\"")) .. " --max-time " .. timeout .. " > " .. tbl.httpfile --.. " && echo \"Done\" > " .. tbl.httpfile
 	local handle = io.popen(curlCommand)
 	tbl.handle = handle
+	tbl.starttime = os.time()
+	tbl.timeouttime = os.time() + timeout
 
 	if not tbl.mode or tbl.mode == "async" then
 		table.insert(requests, tbl)
