@@ -3052,11 +3052,13 @@ void CGameServerModule::InitDetour(bool bPreServer)
 		(void*)hook_CBaseClient_SetSignonState, m_pID
 	);
 
+#if ARCHITECTURE_IS_X86
 	Detour::Create(
 		&detour_CBaseClient_ShouldSendMessages, "CBaseClient::ShouldSendMessages",
 		engine_loader.GetModule(), Symbols::CBaseClient_ShouldSendMessagesSym,
 		(void*)hook_CBaseClient_ShouldSendMessages, m_pID
 	);
+#endif
 
 	Detour::Create(
 		&detour_CBaseServer_CheckTimeouts, "CBaseServer::CheckTimeouts",

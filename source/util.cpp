@@ -660,7 +660,11 @@ void Util::AddDetour()
 
 	if (!entitylist)
 	{
-		entitylist = Detour::ResolveSymbol<CGlobalEntityList>(server_loader, Symbols::gEntListSym);
+		#ifdef ARCHITECTURE_X86
+			entitylist = Detour::ResolveSymbol<CGlobalEntityList>(server_loader, Symbols::gEntListSym);
+		#else
+			entitylist = Detour::ResolveSymbolFromLea<CGlobalEntityList>(server_loader.GetModule(), Symbols::gEntListSym);
+		#endif
 	}
 
 	Detour::CheckValue("get class", "gEntList", entitylist != nullptr);

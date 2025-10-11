@@ -142,6 +142,42 @@ namespace Detour
 	#endif
 	}
 
+	template<class T>
+	inline T* ResolveSymbolFromLea(void* pModule, const std::vector<Symbol>& pSymbols)
+	{
+	#if DETOUR_SYMBOL_ID != 0
+		if ((pSymbols.size()-1) < DETOUR_SYMBOL_ID)
+			return NULL;
+	#endif
+
+		void* matchAddr = GetFunction(pModule, pSymbols[DETOUR_SYMBOL_ID]);
+		if (matchAddr == NULL)
+			return NULL;
+
+	#if defined(SYSTEM_WINDOWS)
+		uint8_t* ip = reinterpret_cast<uint8_t*>((char*)(matchAddr) + pSymbols[DETOUR_SYMBOL_ID].offset);
+	#else
+		uint8_t* ip = reinterpret_cast<uint8_t*>(matchAddr + pSymbols[DETOUR_SYMBOL_ID].offset);
+	#endif
+
+		//
+		if (ip[0] == 0x48) {
+			const size_t instrLen = 7;
+			int32_t disp = *reinterpret_cast<int32_t*>(ip + 3); // disp32 at offset 3
+			uint8_t* next = ip + instrLen;                      // RIP after the instruction
+			void* gEntListAddr = next + disp;                   // final address = next + disp32
+
+		#if defined SYSTEM_WINDOWS
+			auto iface = reinterpret_cast<T**>(gEntListAddr);
+			return iface != nullptr ? *iface : nullptr;
+		#elif defined SYSTEM_POSIX
+			return reinterpret_cast<T*>(gEntListAddr);
+		#endif
+		}
+
+		return NULL;
+	}
+
 	inline void* GetFunction(void* pModule, std::vector<Symbol> pSymbols)
 	{
 #if DETOUR_SYMBOL_ID != 0

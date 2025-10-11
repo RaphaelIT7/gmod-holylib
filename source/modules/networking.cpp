@@ -37,7 +37,7 @@ public:
 	virtual void OnEntityDeleted(CBaseEntity* pEntity) OVERRIDE;
 	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) OVERRIDE;
 	virtual const char* Name() { return "networking"; };
-	virtual int Compatibility() { return LINUX32; };
+	virtual int Compatibility() { return LINUX32 | LINUX64; };
 };
 
 /*
@@ -1797,10 +1797,18 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 	framesnapshotmanager = Detour::ResolveSymbol<CFrameSnapshotManager>(engine_loader, Symbols::g_FrameSnapshotManagerSym);
 	Detour::CheckValue("get class", "framesnapshotmanager", framesnapshotmanager != NULL);
 
+#if ARCHITECTURE_IS_X86
+	PropTypeFns* pPropTypeFns = Detour::ResolveSymbolFromLea<PropTypeFns>(engine_loader.GetModule(), Symbols::g_PropTypeFnsSym);
+#else
 	PropTypeFns* pPropTypeFns = Detour::ResolveSymbol<PropTypeFns>(engine_loader, Symbols::g_PropTypeFnsSym);
+#endif
 	Detour::CheckValue("get class", "pPropTypeFns", pPropTypeFns != NULL);
 
+#if ARCHITECTURE_IS_X86
+	g_BSPData = Detour::ResolveSymbolFromLea<CCollisionBSPData>(engine_loader.GetModule(), Symbols::g_BSPDataSym);
+#else
 	g_BSPData = Detour::ResolveSymbol<CCollisionBSPData>(engine_loader, Symbols::g_BSPDataSym);
+#endif
 	Detour::CheckValue("get class", "CCollisionBSPData", g_BSPData != NULL);
 	
 	if (pPropTypeFns)
