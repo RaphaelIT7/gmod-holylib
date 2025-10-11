@@ -13,25 +13,52 @@ namespace GarrysMod::Lua
 	class ILuaShared;
 }
 
+// Enables support for cdata to be used as userdata
+// See the RawLua::CDataBridge to know how it works
+#define LUA_CDATA_SUPPORT 1
 namespace RawLua {
 	struct CDataBridge
 	{
+		// Registers the given cdata type to be treated as the given metaID
 		void RegisterType(unsigned char pMetaID, uint16_t cTypeID)
 		{
 			pRegisteredTypes.Set(cTypeID);
-			pMetaIDToCType[pMetaID] = cTypeID;
+			pMetaIDToCType[pMetaID] = cTypeID; // Though currently unused.
 		}
 
+		// Registers the ctype that represents HolyLib userdata.
 		void RegisterHolyLibUserData(int nTypeID)
 		{
 			nHolyLibUserDataTypeID = nTypeID;
 			pRegisteredTypes.Set(nTypeID); // Mark this too as else HolyLib's userdata would be seen as cdata and it'll shit everything
 		}
 
+		// If a cdata type was never registered, then it will never be allowed to act as userdata
+		FORCEINLINE bool IsRegistered(TValue* val)
+		{
+			return pRegisteredTypes.IsBitSet(cdataV(val)->ctypeid);
+		}
+
+		int GetHolyLibUserDataGCFuncRef()
+		{
+			return nHolyLibUserDataGCFuncReference;
+		}
+
+		void SetHolyLibUserDataGCFuncRef(int nRef)
+		{
+			nHolyLibUserDataGCFuncReference = nRef;
+		}
+
+		TValue* GetHolyLibUserData()
+		{
+			return &nHolyLibUserDataGC;
+		}
+
+	private:
 		CBitVec<USHRT_MAX> pRegisteredTypes;
 		std::unordered_map<unsigned char, uint16_t> pMetaIDToCType = {};
 		uint32_t nHolyLibUserDataTypeID = 0; // cData TypeID of the HOLYLIB_UserData struct.
-		TValue* nHolyLibUserDataGC = nullptr;
+		TValue nHolyLibUserDataGC;
 		int nHolyLibUserDataGCFuncReference = -1;
 	};
 
@@ -151,6 +178,9 @@ namespace Lua
 		GarrysMod::Lua::ILuaInterface* pLua = NULL;
 		CLuaInterfaceProxy* pProxy;
 		GCRef nErrorFunc;
+#if LUA_CDATA_SUPPORT
+		RawLua::CDataBridge pBridge;
+#endif
 
 		StateData()
 		{
@@ -279,6 +309,13 @@ namespace Lua
 
 			return true;
 		}
+
+#if LUA_CDATA_SUPPORT
+		inline RawLua::CDataBridge& GetCDataBridge()
+		{
+			return pBridge;
+		}
+#endif
 	};
 
 	/*
