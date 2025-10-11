@@ -160,7 +160,8 @@ namespace Detour
 		uint8_t* ip = reinterpret_cast<uint8_t*>(matchAddr + pSymbols[DETOUR_SYMBOL_ID].offset);
 	#endif
 
-		if (ip[0] == 0x48 && ip[1] == 0x8D && ip[2] == 0x3D) {
+		//
+		if (ip[0] == 0x48 && ip[1] == 0x8D) {
 			const size_t instrLen = 7;
 			int32_t disp = *reinterpret_cast<int32_t*>(ip + 3); // disp32 at offset 3
 			uint8_t* next = ip + instrLen;                      // RIP after the instruction
