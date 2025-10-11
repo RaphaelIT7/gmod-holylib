@@ -25,7 +25,7 @@ return {
             end
         },
         {
-            name = "Properly creates a buffer from a string",
+            name = "Performance",
             when = HolyLib_IsModuleEnabled("cvars"),
             func = function()
                 HolyLib_RunPerformanceTest("cvar.GetAll", cvar.GetAll)
