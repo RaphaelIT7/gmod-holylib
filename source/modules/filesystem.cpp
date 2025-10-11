@@ -170,12 +170,12 @@ FileHandle_t GetFileHandleFromCache(std::string_view strFilePath)
 	if (iPos != 0)
 	{
 		if (g_pFileSystemModule.InDebug())
-			Msg("holylib - GetFileHandleFromCache: Pos: %llu\n", g_pFullFileSystem->Tell(it->second));
+			Msg("holylib - GetFileHandleFromCache: Pos: %u\n", g_pFullFileSystem->Tell(it->second));
 		
 		g_pFullFileSystem->Seek(it->second, 0, FILESYSTEM_SEEK_HEAD); // Why doesn't it reset?
 		
 		if (g_pFileSystemModule.InDebug())
-			Msg("holylib - GetFileHandleFromCache: Rewind pos: %llu\n", g_pFullFileSystem->Tell(it->second));
+			Msg("holylib - GetFileHandleFromCache: Rewind pos: %u\n", g_pFullFileSystem->Tell(it->second));
 		
 		int iNewPos = (int)g_pFullFileSystem->Tell(it->second);
 		if (iNewPos != 0)
@@ -1688,6 +1688,9 @@ inline const char* CPathIDInfo::GetPathIDString() const
 	 * Because then in RARE cases it can happen that m_pDebugPathID contains a INVALID value causing random and difficult to debug crashes.
 	 * This had happen in https://github.com/RaphaelIT7/gmod-holylib/issues/23 where it would result in crashes inside strlen calls on the string.
 	 */
+
+	if (!g_pPathIDTable)
+		return NULL;
 
 	return g_pPathIDTable->String( m_PathID );
 }

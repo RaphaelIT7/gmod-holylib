@@ -16,3 +16,11 @@ hook.Add("GLuaTest_Finished", "ChangeLevel", function()
 		RunConsoleCommand("changelevel", game.GetMap())
 	end
 end)
+
+hook.Add("Initialize", "SetupBots", function()
+	RunConsoleCommand("bot_zombie", "1")
+	RunConsoleCommand("sv_stressbots", "1")
+	for k=1, math.Clamp(math.ceil(game.MaxPlayers() / 4), 1, 4) do
+		RunConsoleCommand("bot")
+	end
+end)
