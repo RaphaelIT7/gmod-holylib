@@ -257,8 +257,7 @@ IPhysicsSpring *CreateSpring( IVP_Environment *pEnvironment, CPhysicsObject *pOb
 
 bool SavePhysicsSpring( const physsaveparams_t &params, CPhysicsSpring *pSpring )
 {
-	vphysics_save_cphysicsspring_t springTemplate;
-	memset( &springTemplate, 0, sizeof(springTemplate) );
+	vphysics_save_cphysicsspring_t springTemplate{};
 
 	pSpring->WriteToTemplate( springTemplate );
 	params.pSave->WriteAll( &springTemplate );
@@ -267,8 +266,7 @@ bool SavePhysicsSpring( const physsaveparams_t &params, CPhysicsSpring *pSpring 
 
 bool RestorePhysicsSpring( const physrestoreparams_t &params, CPhysicsSpring **ppSpring )
 {
-	vphysics_save_cphysicsspring_t springTemplate;
-	memset( &springTemplate, 0, sizeof(springTemplate) );
+	vphysics_save_cphysicsspring_t springTemplate{};
 	params.pRestore->ReadAll( &springTemplate );
 	CPhysicsEnvironment *pEnvironment = (CPhysicsEnvironment *)params.pEnvironment;
 	if ( springTemplate.pObjStart && springTemplate.pObjEnd )

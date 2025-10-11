@@ -16,6 +16,7 @@ return {
 
                 expect(levelName).to.beA("string")
                 expect(levelName).to.equal(oldLevel)
+                expect(levelName).to.equal(game.GetMap())
             end,
         },
     }

@@ -3,6 +3,7 @@
 #include "detours.h"
 #include "LuaInterface.h"
 #include "lua.h"
+#include "player.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -22,6 +23,21 @@ public:
 
 static CSoundscapeModule g_pSoundscapeModule;
 IModule* pSoundscapeModule = &g_pSoundscapeModule;
+
+static DTVarByOffset m_Local_Offset("DT_LocalPlayerExclusive", "m_Local");
+static DTVarByOffset m_Audio_Offset("DT_Local", "m_audio.localSound[0]");
+static inline audioparams_t* GetAudioParams(void* pPlayer)
+{
+	void* pLocal = m_Local_Offset.GetPointer(pPlayer);
+	if (!pLocal)
+		return nullptr;
+
+	void* pAudio = m_Audio_Offset.GetPointer(pLocal);
+	if (!pAudio)
+		return nullptr;
+
+	return (audioparams_t*)pAudio;
+}
 
 void CSoundscapeModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {

@@ -1,3 +1,4 @@
+//HOLYLIB_REQUIRES_MODULE=sourcetv
 #include "player.h"
 #include "sourcesdk/hltvdirector.h"
 #include "util.h"
@@ -25,8 +26,4 @@ void CHLTVDirector::RemoveEventsFromHistory(int tick)
 			index = m_EventHistory.NextInorder( index );
 		}
 	}
-
-#ifdef _DEBUG
-	CheckHistory();
-#endif
 }

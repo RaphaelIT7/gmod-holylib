@@ -192,6 +192,10 @@ public:
 
 	void			OutputDebugInfo() const override;
 
+#if !PLATFORM_64BITS
+	float			GetBuoyancyRatio() const override { return m_buoyancyRatio; };
+#endif
+
 	// local functions
 	[[nodiscard]] inline	IVP_Real_Object *GetObject( void ) const { return m_pObject; }
 	[[nodiscard]] inline int		CallbackFlags( void ) const { return m_callbacks; }
@@ -206,7 +210,9 @@ public:
 
 	[[nodiscard]] inline int		GetActiveIndex( void ) const { return m_activeIndex; }
 	inline void		SetActiveIndex( int index ) { m_activeIndex = index; }
+#if PLATFORM_64BITS
 	[[nodiscard]] inline float	GetBuoyancyRatio( void ) const { return m_buoyancyRatio; }
+#endif
 	// returns true if the mass center is set to the default for the collision model
 	[[nodiscard]] bool			IsMassCenterAtDefault() const;
 

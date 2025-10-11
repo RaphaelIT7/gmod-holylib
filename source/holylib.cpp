@@ -2,6 +2,8 @@
 #include "module.h"
 #include "util.h"
 #include "plugin.h"
+#include "versioninfo.h"
+#include "configsystem.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -44,6 +46,31 @@ public:
 	virtual IHolyUtil* GetHolyUtil()
 	{
 		return g_pHolyUtil;
+	}
+
+	virtual IConfigSystem* GetConfigSystem()
+	{
+		return g_pConfigSystem;
+	}
+
+	virtual const char* GetPluginDescription()
+	{
+		return HolyLib_GetPluginDescription();
+	}
+
+	virtual const char* GetVersion()
+	{
+		return HolyLib_GetVersion();
+	}
+
+	virtual const char* GetBranch()
+	{
+		return HolyLib_GetBranch();
+	}
+
+	virtual const char* GetRunNumber()
+	{
+		return HolyLib_GetRunNumber();
 	}
 };
 

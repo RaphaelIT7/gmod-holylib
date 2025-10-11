@@ -41,6 +41,10 @@ namespace SteamOpus {
 
             dec = opus_decoder_create(SAMPLERATE_GMOD_OPUS, 1, &error);
             enc = opus_encoder_create(SAMPLERATE_GMOD_OPUS, 1, OPUS_APPLICATION_VOIP, &error);
+            opus_encoder_ctl(enc, OPUS_SET_COMPLEXITY(10));
+            opus_encoder_ctl(enc, OPUS_SET_SIGNAL(OPUS_SIGNAL_VOICE));
+            opus_encoder_ctl(enc, OPUS_SET_VBR(1));
+            opus_encoder_ctl(enc, OPUS_SET_BITRATE(48000));
         }
 
         virtual bool Init(int quality, int sampleRate) {

@@ -67,11 +67,11 @@ public:
 inline    static IVP_DOUBLE isqrt(IVP_DOUBLE x, int /*resolution_steps*/)
 {
 	float u = 1.0f;
-	__asm__ __volatile__ ("
-	.set noreorder
-		rsqrt.s	%0, %1, %0
-	.set reorder
-	" : "+f" (x) : "f" (u));
+	__asm__ __volatile__(
+		".set noreorder\n"
+		"rsqrt.s %0, %1, %0\n"
+		".set reorder\n"
+		: "+f" (x) : "f" (u));
 	return x;
 }
 
@@ -80,11 +80,11 @@ inline    static IVP_DOUBLE isqrt(IVP_DOUBLE x, int /*resolution_steps*/)
 /// \param v   
 inline    static IVP_DOUBLE sqrt(IVP_DOUBLE x)
 {
-	__asm__ __volatile__ ("
-	.set noreorder
-		sqrt.s	%0, %0
-	.set reorder
-	" : "+f" (x) :);
+	__asm__ __volatile__(
+		".set noreorder\n"
+		"sqrt.s %0, %0\n"
+		".set reorder\n"
+		: "+f" (x) : );
 	return x;
 }
 

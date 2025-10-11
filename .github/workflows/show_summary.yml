@@ -1,0 +1,36 @@
+name: Show Summary
+
+on:
+  workflow_dispatch:
+    inputs:
+      previous_runnumber:
+        description: 'The Run that should be used as source'
+        required: false
+        type: string
+      target_runnumber:
+        description: 'The Run that should be used to compare against'
+        required: false
+        type: string
+
+env:
+  LOKI_PUBLIC: https://loki-public.raphaelit7.com # A completely seperate public loki server with bare minimum resources exposed for forks to use. (Yes anyone could abuse it but fk em, it doesn't have resources for any useful shit other than this.)
+
+
+jobs:
+  generate_test_summary:
+    name: "Generate Summary"
+    runs-on: ubuntu-latest
+    container: raphaelit7/gmod-builder:latest_64x
+    steps:
+      - uses: actions/checkout@v4
+        name: "Checkout build tool files"
+        with:
+          sparse-checkout: source/_prebuildtools
+
+      - name: "Generate Summary"
+        run: |
+          cd source/_prebuildtools
+          chmod +x luajit_64
+          ./luajit_64 _workflow_summary.lua "${{github.repository}}" "${{env.LOKI_PUBLIC}}" "${{secrets.LOKI_HOST}}" "${{secrets.LOKI_APIKEY}}" "${{inputs.target_runnumber}}" "${{inputs.previous_runnumber}}"
+
+          echo "$(cat generated_summary.md)" > $GITHUB_STEP_SUMMARY

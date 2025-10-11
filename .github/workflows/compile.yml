@@ -12,6 +12,9 @@ on:
   pull_request:
   workflow_dispatch:
 
+env:
+  LOKI_PUBLIC: https://loki-public.raphaelit7.com # A completely seperate public loki server with bare minimum resources exposed for forks to use. (Yes anyone could abuse it but fk em, it doesn't have resources for any useful shit other than this.)
+
 jobs:
   build_plugin_windows:
     name: "Build Plugin"
@@ -69,6 +72,7 @@ jobs:
       PTERODACTYL_RESTART_SLEEPTIME: "0"
       PTERODACTYL_RESTART: "true"
       BUILD_CACHE: "true"
+      NO_SAVE_CACHE: "true" # Cache will only be updated by main compiles in build_plugin_linux job
 
   build_testingarea_dev2: # Could make this use the already created artifact but I'm too lazy rn
     name: "Build 32x (Testing Area - Public)"
@@ -92,6 +96,7 @@ jobs:
       PTERODACTYL_RESTART_SLEEPTIME: "0"
       PTERODACTYL_RESTART: "true"
       BUILD_CACHE: "true"
+      NO_SAVE_CACHE: "true" # Cache will only be updated by main compiles in build_plugin_linux job
 
   build_testingarea_64x:
     name: "Build 64x (Testing Area - 64x)"
@@ -116,6 +121,7 @@ jobs:
       PTERODACTYL_RESTART_SLEEPTIME: "0"
       PTERODACTYL_RESTART: "true"
       BUILD_CACHE: "true"
+      NO_SAVE_CACHE: "true" # Cache will only be updated by main compiles in build_plugin_linux job
 
   build_ghostinj:
     name: "Build GhostInj"
@@ -134,45 +140,122 @@ jobs:
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
       BUILD_CACHE: "true"
 
-  setup_32x_artifacts:
-    name: "Setup 32x Artifact"
+  build_stripped_module:
+    # This saves us useless compiles when it would already fail
+    # + This way we always use the newest cache reducing compile time.
+    # Update: NEVERMIND, this turned out to slow down the entire build process simply because we hit the runner limit
+    #         And less stuff could run in parallel.
+    # Doing this paralle to the main builds gives us at minimim 1min time with ~34 runners available to run parallel
+    # needs: build_plugin_linux
+    name: "Build Stripped modules"
+    uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
+    strategy:
+      fail-fast: false
+      matrix:
+        module:
+          - autorefresh
+          - holylib
+          - gameevent
+          - serverplugin
+          - sourcetv
+          - stringtable
+          - precachefix
+          - pvs
+          - surffix
+          - filesystem
+          - util
+          - concommand
+          - vprof
+          - cvars
+          - bitbuf
+          - networking
+          - steamworks
+          - pas
+          - bass
+          - systimer
+          - voicechat
+          - physenv
+          - net
+          - entitylist
+          - httpserver
+          - gameserver
+          - soundscape
+          - luajit
+          - holylua
+    with:
+      PROJECT_NAME: "holylib"
+      BUILD_64x: "true"
+      REALM: "sv"
+      LINUX_FILEEXTENTION: "so"
+      BUILD_WINDOWS: "false"
+      ARTIFACT_EXPIRE: "7"
+      UPLOAD: "none"
+      BUILD_CACHE: "true"
+      NO_SAVE_CACHE: "true"
+      SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
+      SOURCESDK_MINIMAL_BRANCH: "patch-7"
+      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
+      GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
+      ADDITIONAL_LINUX_32_SETUP: 'rm -rf source/ivp && cd source/modules/ && ls | grep -xvF ${{ matrix.module }}.cpp | xargs rm -f -- && cd ../../'
+      ADDITIONAL_LINUX_64_SETUP: 'rm -rf source/ivp && cd source/modules/ && ls | grep -xvF ${{ matrix.module }}.cpp | xargs rm -f -- && cd ../../'
+
+  setup_artifacts: # Having this as a matrix won't hurt concurrency since both 32x & 64x finish around the same time
+    name: "Setup ${{ matrix.arch }} Artifact"
     needs: [build_plugin_linux, build_ghostinj]
     runs-on: ubuntu-latest
     container: debian:bullseye
+    strategy:
+      matrix:
+        include:
+          - arch: 32x
+            plugin: gmsv_holylib_linux.so
+            plugin_artifact: gmsv_holylib_linux.so
+            vdf: holylib.vdf
+            ghostinj: ghostinj.dll
+            ghostinj_artifact: ghostinj.dll
+
+          - arch: 64x
+            plugin: gmsv_holylib_linux64.so
+            plugin_artifact: gmsv_holylib_linux64.so (64x)
+            vdf: holylib_64.vdf
+            ghostinj: ghostinj.dll
+            ghostinj_artifact: ghostinj.dll (64x)
+
     steps:
       - uses: actions/checkout@v4
         name: "Checkout required files"
         with:
           sparse-checkout: |
-            holylib.vdf
+            ${{ matrix.vdf }}
             gluatests
 
       - uses: actions/download-artifact@v4
-        name: "Download 32x plugin"
+        name: "Download plugin"
         with:
-          name: "gmsv_holylib_linux.so"
+          name: "${{ matrix.plugin_artifact }}"
 
       - uses: actions/download-artifact@v4
-        name: "Download 32x ghostinj"
+        name: "Download ghostinj"
         with:
-          name: "ghostinj.dll"
+          name: "${{ matrix.ghostinj_artifact }}"
 
       - name: "Create structure"
         run: |
           mkdir -p garrysmod/lua/bin
-          mv gmsv_holylib_linux.so garrysmod/lua/bin/
+          mv ${{ matrix.plugin }} garrysmod/lua/bin/
 
           mkdir -p garrysmod/addons
-          mv holylib.vdf garrysmod/addons
+          mv ${{ matrix.vdf }} garrysmod/addons
+          mv gluatests/binaries/*.dll garrysmod/lua/bin/
           mv gluatests garrysmod/addons
 
-          tar -czf gluatest.tar.gz ghostinj.dll garrysmod/
+          tar -czf gluatest.tar.gz ${{ matrix.ghostinj }} garrysmod/
           tar -czf gluatest_no_ghostinj.tar.gz garrysmod/
 
       - uses: actions/upload-artifact@v4
         name: "Upload tar"
         with:
-          name: gluatest_32x
+          name: gluatest_${{ matrix.arch }}
           path: gluatest.tar.gz
           compression-level: 9
           retention-days: 1
@@ -180,178 +263,207 @@ jobs:
       - uses: actions/upload-artifact@v4
         name: "Upload tar"
         with:
-          name: gluatest_no_ghostinj_32x
-          path: gluatest_no_ghostinj.tar.gz
-          compression-level: 9
-          retention-days: 1
-
-  setup_64x_artifacts:
-    name: "Setup 64x Artifact"
-    needs: [build_plugin_linux, build_ghostinj]
-    runs-on: ubuntu-latest
-    container: debian:bullseye
-    steps:
-      - uses: actions/checkout@v4
-        name: "Checkout required files"
-        with:
-          sparse-checkout: |
-            holylib_64.vdf
-            gluatests
-
-      - uses: actions/download-artifact@v4
-        name: "Download 64x plugin"
-        with:
-          name: "gmsv_holylib_linux64.so (64x)"
-
-      - uses: actions/download-artifact@v4
-        name: "Download 64x ghostinj"
-        with:
-          name: "ghostinj.dll (64x)"
-
-      - name: "Create structure"
-        run: |
-          mkdir -p garrysmod/lua/bin
-          mv gmsv_holylib_linux64.so garrysmod/lua/bin/
-
-          mkdir -p garrysmod/addons
-          mv holylib_64.vdf garrysmod/addons
-          mv gluatests garrysmod/addons
-
-          tar -czf gluatest.tar.gz ghostinj.dll garrysmod/
-          tar -czf gluatest_no_ghostinj.tar.gz garrysmod/
-
-      - uses: actions/upload-artifact@v4
-        name: "Upload tar"
-        with:
-          name: gluatest_64x
-          path: gluatest.tar.gz
-          compression-level: 9
-          retention-days: 1
-
-      - uses: actions/upload-artifact@v4
-        name: "Upload tar"
-        with:
-          name: gluatest_no_ghostinj_64x
+          name: gluatest_no_ghostinj_${{ matrix.arch }}
           path: gluatest_no_ghostinj.tar.gz
           compression-level: 9
           retention-days: 1
 
   test_32bit:
     name: "Test 32x branches"
-    needs: setup_32x_artifacts
-    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
+    needs: setup_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
     strategy:
       matrix:
         branch:
-          - live
+          - public
           - dev
           - prerelease
     with:
       extra-startup-args: "-usegh"
       download-artifact: "gluatest_32x"
       no-checkout: "true"
+      branch: ${{ matrix.branch }}
+    secrets:
+      secret-additional-setup: "mkdir -p garrysmod/ && mkdir -p garrysmod/_workflow/ && echo https://loki-public.raphaelit7.com > garrysmod/_workflow/loki_public_host.txt && echo ${{ github.repository }} > garrysmod/_workflow/github_repo.txt && echo ${{ secrets.LOKI_HOST }} > garrysmod/_workflow/loki_host.txt && echo ${{ secrets.LOKI_APIKEY }} > garrysmod/_workflow/loki_api.txt && tar -czf gluatest/docker/_gluatest_artifacts/gm_secrets.tar.gz -C . garrysmod && rm -rf garrysmod"
 
   test_32bit_noghostinj:
     name: "Test 32x branches (No GhostInj)"
-    needs: setup_32x_artifacts
-    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
+    needs: setup_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
     strategy:
       matrix:
         branch:
-          - live
+          - public
           - dev
           - prerelease
     with:
       download-artifact: "gluatest_no_ghostinj_32x"
       no-checkout: "true"
+      branch: ${{ matrix.branch }}
+    secrets:
+      secret-additional-setup: "mkdir -p garrysmod/ && mkdir -p garrysmod/_workflow/ && echo https://loki-public.raphaelit7.com > garrysmod/_workflow/loki_public_host.txt && echo ${{ github.repository }} > garrysmod/_workflow/github_repo.txt && echo ${{ secrets.LOKI_HOST }} > garrysmod/_workflow/loki_host.txt && echo ${{ secrets.LOKI_APIKEY }} > garrysmod/_workflow/loki_api.txt && tar -czf gluatest/docker/_gluatest_artifacts/gm_secrets.tar.gz -C . garrysmod && rm -rf garrysmod"
 
   test_64bit:
     name: "Test x86-64 branch"
-    needs: setup_64x_artifacts
-    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
+    needs: setup_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
     with:
       branch: x86-64
       extra-startup-args: "-usegh"
       download-artifact: "gluatest_64x"
       no-checkout: "true"
+    secrets:
+      secret-additional-setup: "mkdir -p garrysmod/ && mkdir -p garrysmod/_workflow/ && echo https://loki-public.raphaelit7.com > garrysmod/_workflow/loki_public_host.txt && echo ${{ github.repository }} > garrysmod/_workflow/github_repo.txt && echo ${{ secrets.LOKI_HOST }} > garrysmod/_workflow/loki_host.txt && echo ${{ secrets.LOKI_APIKEY }} > garrysmod/_workflow/loki_api.txt && tar -czf gluatest/docker/_gluatest_artifacts/gm_secrets.tar.gz -C . garrysmod && rm -rf garrysmod"
 
   test_64bit_noghostinj:
     name: "Test x86-64 branch (No GhostInj)"
-    needs: setup_64x_artifacts
-    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
+    needs: setup_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
     with:
       branch: x86-64
       download-artifact: "gluatest_no_ghostinj_64x"
       no-checkout: "true"
+    secrets:
+      secret-additional-setup: "mkdir -p garrysmod/ && mkdir -p garrysmod/_workflow/ && echo https://loki-public.raphaelit7.com > garrysmod/_workflow/loki_public_host.txt && echo ${{ github.repository }} > garrysmod/_workflow/github_repo.txt && echo ${{ secrets.LOKI_HOST }} > garrysmod/_workflow/loki_host.txt && echo ${{ secrets.LOKI_APIKEY }} > garrysmod/_workflow/loki_api.txt && tar -czf gluatest/docker/_gluatest_artifacts/gm_secrets.tar.gz -C . garrysmod && rm -rf garrysmod"
 
   test_32x_holylua:
     name: "Test 32x branches (HolyLua)"
-    needs: setup_32x_artifacts
-    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
+    needs: setup_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
     strategy:
       matrix:
         branch:
-          - live
+          - public
           - dev
           - prerelease
     with:
       extra-startup-args: "-usegh -holylib_lua +holylib_module_debug 0"
       download-artifact: "gluatest_32x"
       no-checkout: "true"
+      branch: ${{ matrix.branch }}
+    secrets:
+      secret-additional-setup: "mkdir -p garrysmod/ && mkdir -p garrysmod/_workflow/ && echo https://loki-public.raphaelit7.com > garrysmod/_workflow/loki_public_host.txt && echo ${{ github.repository }} > garrysmod/_workflow/github_repo.txt && echo ${{ secrets.LOKI_HOST }} > garrysmod/_workflow/loki_host.txt && echo ${{ secrets.LOKI_APIKEY }} > garrysmod/_workflow/loki_api.txt && tar -czf gluatest/docker/_gluatest_artifacts/gm_secrets.tar.gz -C . garrysmod && rm -rf garrysmod"
 
   test_32x_holylua_noghostinj:
     name: "Test 32x branches (HolyLua, No GhostInj)"
-    needs: setup_32x_artifacts
-    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
+    needs: setup_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
     strategy:
       matrix:
         branch:
-          - live
+          - public
           - dev
           - prerelease
     with:
       extra-startup-args: "-holylib_lua +holylib_module_debug 0"
       download-artifact: "gluatest_no_ghostinj_32x"
       no-checkout: "true"
+      branch: ${{ matrix.branch }}
+    secrets:
+      secret-additional-setup: "mkdir -p garrysmod/ && mkdir -p garrysmod/_workflow/ && echo https://loki-public.raphaelit7.com > garrysmod/_workflow/loki_public_host.txt && echo ${{ github.repository }} > garrysmod/_workflow/github_repo.txt && echo ${{ secrets.LOKI_HOST }} > garrysmod/_workflow/loki_host.txt && echo ${{ secrets.LOKI_APIKEY }} > garrysmod/_workflow/loki_api.txt && tar -czf gluatest/docker/_gluatest_artifacts/gm_secrets.tar.gz -C . garrysmod && rm -rf garrysmod"
 
   test_64bit_holylua:
     name: "Test x86-64 branch (HolyLua)"
-    needs: setup_64x_artifacts
-    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
+    needs: setup_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
     with:
       branch: x86-64
       extra-startup-args: "-usegh -holylib_lua +holylib_module_debug 0"
       download-artifact: "gluatest_64x"
       no-checkout: "true"
+    secrets:
+      secret-additional-setup: "mkdir -p garrysmod/ && mkdir -p garrysmod/_workflow/ && echo https://loki-public.raphaelit7.com > garrysmod/_workflow/loki_public_host.txt && echo ${{ github.repository }} > garrysmod/_workflow/github_repo.txt && echo ${{ secrets.LOKI_HOST }} > garrysmod/_workflow/loki_host.txt && echo ${{ secrets.LOKI_APIKEY }} > garrysmod/_workflow/loki_api.txt && tar -czf gluatest/docker/_gluatest_artifacts/gm_secrets.tar.gz -C . garrysmod && rm -rf garrysmod"
 
   test_64bit_holylua_noghostinj:
     name: "Test x86-64 branch (HolyLua, No GhostInj)"
-    needs: setup_64x_artifacts
-    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
+    needs: setup_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
     with:
       branch: x86-64
       extra-startup-args: "-holylib_lua +holylib_module_debug 0"
       download-artifact: "gluatest_no_ghostinj_64x"
       no-checkout: "true"
+    secrets:
+      secret-additional-setup: "mkdir -p garrysmod/ && mkdir -p garrysmod/_workflow/ && echo https://loki-public.raphaelit7.com > garrysmod/_workflow/loki_public_host.txt && echo ${{ github.repository }} > garrysmod/_workflow/github_repo.txt && echo ${{ secrets.LOKI_HOST }} > garrysmod/_workflow/loki_host.txt && echo ${{ secrets.LOKI_APIKEY }} > garrysmod/_workflow/loki_api.txt && tar -czf gluatest/docker/_gluatest_artifacts/gm_secrets.tar.gz -C . garrysmod && rm -rf garrysmod"
 
+  test_32x_luajit:
+    name: "Test 32x branches (LuaJIT)"
+    needs: setup_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
+    strategy:
+      matrix:
+        branch:
+          - public
+          - dev
+          - prerelease
+    with:
+      extra-startup-args: "-usegh -holylib_enable_luajit 1 +holylib_module_debug 0"
+      download-artifact: "gluatest_32x"
+      no-checkout: "true"
+      branch: ${{ matrix.branch }}
+    secrets:
+      secret-additional-setup: "mkdir -p garrysmod/ && mkdir -p garrysmod/_workflow/ && echo https://loki-public.raphaelit7.com > garrysmod/_workflow/loki_public_host.txt && echo ${{ github.repository }} > garrysmod/_workflow/github_repo.txt && echo ${{ secrets.LOKI_HOST }} > garrysmod/_workflow/loki_host.txt && echo ${{ secrets.LOKI_APIKEY }} > garrysmod/_workflow/loki_api.txt && tar -czf gluatest/docker/_gluatest_artifacts/gm_secrets.tar.gz -C . garrysmod && rm -rf garrysmod"
+
+  test_64bit_luajit:
+    name: "Test x86-64 branch (LuaJIT)"
+    needs: setup_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
+    with:
+      branch: x86-64
+      extra-startup-args: "-usegh -holylib_enable_luajit 1 +holylib_module_debug 0"
+      download-artifact: "gluatest_64x"
+      no-checkout: "true"
+    secrets:
+      secret-additional-setup: "mkdir -p garrysmod/ && mkdir -p garrysmod/_workflow/ && echo https://loki-public.raphaelit7.com > garrysmod/_workflow/loki_public_host.txt && echo ${{ github.repository }} > garrysmod/_workflow/github_repo.txt && echo ${{ secrets.LOKI_HOST }} > garrysmod/_workflow/loki_host.txt && echo ${{ secrets.LOKI_APIKEY }} > garrysmod/_workflow/loki_api.txt && tar -czf gluatest/docker/_gluatest_artifacts/gm_secrets.tar.gz -C . garrysmod && rm -rf garrysmod"
+
+  # -------
+  # HolyLib Build summary DLL jobs
+  # -------
+
+  generate_test_summary:
+    name: "Generate Summary"
+    needs: [test_32bit, test_32bit_noghostinj, test_64bit, test_64bit_noghostinj, test_32x_holylua, test_32x_holylua_noghostinj, test_64bit_holylua, test_64bit_holylua_noghostinj, test_32x_luajit, test_64bit_luajit]
+    runs-on: ubuntu-latest
+    container: raphaelit7/gmod-builder:latest_64x
+    steps:
+      - uses: actions/checkout@v4
+        name: "Checkout build tool files"
+        with:
+          sparse-checkout: source/_prebuildtools
+
+      - name: "Generate Summary"
+        run: |
+          cd source/_prebuildtools
+          chmod +x luajit_64
+          ./luajit_64 _workflow_summary.lua "${{github.repository}}" "${{env.LOKI_PUBLIC}}" "${{secrets.LOKI_HOST}}" "${{secrets.LOKI_APIKEY}}" "${{github.run_number}}"
+
+          echo "$(cat generated_summary.md)" > $GITHUB_STEP_SUMMARY
+
+  # --------------------
+  # HolyLib - gmod_tests
   # We run gmod_tests repo to ensure that we didn't break any gmod functions unknowingly.
-  setup_gmod_tests_32x_artifacts:
-    name: "Setup gmod_tests 32x Artifact"
-    needs: [setup_32x_artifacts]
+  # --------------------
+
+  setup_gmod_tests_artifacts:
+    name: "Setup gmod_tests ${{ matrix.arch }} Artifact"
+    needs: setup_artifacts
     runs-on: ubuntu-latest
     container: debian:bullseye
+    strategy:
+      matrix:
+        arch: [32x, 64x]
     steps:
       - uses: actions/checkout@v4
         name: "Checkout gmod_tests repo"
         with:
           sparse-checkout: lua
-          repository: 'CFC-Servers/gmod_tests'
+          repository: 'RaphaelIT7/gmod_tests'
           path: 'gmod_tests'
 
       - uses: actions/download-artifact@v4
-        name: "Download 32x artifact"
+        name: "Download ${{ matrix.arch }} artifact"
         with:
-          name: "gluatest_32x"
+          name: "gluatest_${{ matrix.arch }}"
 
       - name: "Setup structure"
         run: |
@@ -372,7 +484,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         name: "Upload tar"
         with:
-          name: gmod_tests_32x
+          name: gmod_tests_${{ matrix.arch }}
           path: gmod_tests.tar.gz
           compression-level: 9
           retention-days: 1
@@ -380,75 +492,26 @@ jobs:
       - uses: actions/upload-artifact@v4
         name: "Upload tar"
         with:
-          name: gmod_tests_no_ghostinj_32x
-          path: gmod_tests_no_ghostinj.tar.gz
-          compression-level: 9
-          retention-days: 1
-
-  setup_gmod_tests_64x_artifacts:
-    name: "Setup gmod_tests 64x Artifact"
-    needs: [setup_64x_artifacts]
-    runs-on: ubuntu-latest
-    container: debian:bullseye
-    steps:
-      - uses: actions/checkout@v4
-        name: "Checkout gmod_tests repo"
-        with:
-          sparse-checkout: lua
-          repository: 'CFC-Servers/gmod_tests'
-          path: 'gmod_tests'
-
-      - uses: actions/download-artifact@v4
-        name: "Download 64x artifact"
-        with:
-          name: "gluatest_64x"
-
-      - name: "Setup structure"
-        run: |
-          mkdir -p garrysmod/lua/bin
-          mkdir -p garrysmod/addons
-
-          tar -xzf gluatest.tar.gz
-
-          mv gmod_tests garrysmod/addons
-          mv ghostinj.dll ghostinj2.dll
-          mkdir -p garrysmod/lua/bin/gmod_tests/maps
-          mv garrysmod/addons/gluatests/maps garrysmod/addons/gmod_tests/maps
-          rm -rf garrysmod/addons/gluatests
-
-          tar -czf gmod_tests.tar.gz ghostinj2.dll garrysmod/
-          tar -czf gmod_tests_no_ghostinj.tar.gz garrysmod/
-
-      - uses: actions/upload-artifact@v4
-        name: "Upload tar"
-        with:
-          name: gmod_tests_64x
-          path: gmod_tests.tar.gz
-          compression-level: 9
-          retention-days: 1
-
-      - uses: actions/upload-artifact@v4
-        name: "Upload tar"
-        with:
-          name: gmod_tests_no_ghostinj_64x
+          name: gmod_tests_no_ghostinj_${{ matrix.arch }}
           path: gmod_tests_no_ghostinj.tar.gz
           compression-level: 9
           retention-days: 1
 
   test_gmod_tests_32bit:
     name: "Test 32x branches (gmod_tests)"
-    needs: setup_gmod_tests_32x_artifacts
-    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
+    needs: setup_gmod_tests_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
     strategy:
       matrix:
         branch:
-          - live
+          - public
           - dev
           - prerelease
         artifact:
           - gmod_tests_32x
           - gmod_tests_no_ghostinj_32x
     with:
+      branch: ${{ matrix.branch }}
       extra-startup-args: "-usegh -maxplayers 64"
       download-artifact: ${{ matrix.artifact }}
       no-checkout: "true"
@@ -457,8 +520,8 @@ jobs:
 
   test_gmod_tests_64bit:
     name: "Test x86-64 branch (gmod_tests)"
-    needs: setup_gmod_tests_64x_artifacts
-    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
+    needs: setup_gmod_tests_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
     strategy:
       matrix:
         artifact:
@@ -474,18 +537,19 @@ jobs:
 
   test_gmod_tests_32bit_with_ivpreplacement:
     name: "Test 32x branches (gmod_tests & VPhysics replacement)"
-    needs: setup_gmod_tests_32x_artifacts
-    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
+    needs: setup_gmod_tests_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
     strategy:
       matrix:
         branch:
-          - live
+          - public
           - dev
           - prerelease
         artifact:
           - gmod_tests_32x
           - gmod_tests_no_ghostinj_32x
     with:
+      branch: ${{ matrix.branch }}
       extra-startup-args: "-usegh -maxplayers 64 -holylib_replaceivp"
       download-artifact: ${{ matrix.artifact }}
       no-checkout: "true"
@@ -494,8 +558,8 @@ jobs:
 
   test_gmod_tests_64bit_with_ivpreplacement:
     name: "Test x86-64 branch (gmod_tests & VPhysics replacement)"
-    needs: setup_gmod_tests_64x_artifacts
-    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
+    needs: setup_gmod_tests_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
     strategy:
       matrix:
         artifact:
@@ -509,20 +573,60 @@ jobs:
       additional-setup: "wget -q https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux64.tar.gz -O gluatest/docker/_gluatest_artifacts/linux64.tar.gz"
       map: gm_glua_tests
 
+  test_gmod_tests_32bit_with_luajit:
+    if: false
+    name: "Test 32x branches (gmod_tests & VPhLuaJITysics replacement)"
+    needs: setup_gmod_tests_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
+    strategy:
+      matrix:
+        branch:
+          - public
+          - dev
+          - prerelease
+        artifact:
+          - gmod_tests_32x
+          - gmod_tests_no_ghostinj_32x
+    with:
+      branch: ${{ matrix.branch }}
+      extra-startup-args: "-usegh -maxplayers 64 -holylib_enable_luajit 1"
+      download-artifact: ${{ matrix.artifact }}
+      no-checkout: "true"
+      additional-setup: "wget -q https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux32.tar.gz -O gluatest/docker/_gluatest_artifacts/linux32.tar.gz"
+      map: gm_glua_tests
+
+  test_gmod_tests_64bit_with_luajit:
+    if: false
+    name: "Test x86-64 branch (gmod_tests & LuaJIT replacement)"
+    needs: setup_gmod_tests_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
+    strategy:
+      matrix:
+        artifact:
+          - gmod_tests_64x
+          - gmod_tests_no_ghostinj_64x
+    with:
+      branch: x86-64
+      extra-startup-args: "-usegh -maxplayers 64 -holylib_enable_luajit 1"
+      download-artifact: ${{ matrix.artifact }}
+      no-checkout: "true"
+      additional-setup: "wget -q https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux64.tar.gz -O gluatest/docker/_gluatest_artifacts/linux64.tar.gz"
+      map: gm_glua_tests
+
   test_32bit_find_crash:
     if: false # always() Enable it if a unknown crash is happening. We'll test every single module.
     name: "Find the crash cause"
-    needs: setup_32x_artifacts
-    uses: CFC-Servers/GLuaTest/.github/workflows/run_tests.yml@main
+    needs: setup_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
     strategy:
       fail-fast: false
       matrix:
-        module: 
+        module:
+          - autorefresh
           - holylib
           - gameevent
           - serverplugin
           - sourcetv
-          - threadpoolfix
           - stringtable
           - precachefix
           - pvs
@@ -550,4 +654,134 @@ jobs:
       branch: dev
       extra-startup-args: "-usegh -holylib_startdisabled -holylib_enable_${{ matrix.module }} 1"
       download-artifact: "gluatest_32x"
+      no-checkout: "true"
+
+  # -------
+  # HolyLib Example DLL jobs
+  # -------
+
+  build_exampledll_linux:
+    name: "Build ExampleDLL"
+    uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
+    with:
+      PROJECT_PATH: "example-module-dll/"
+      PROJECT_NAME: "exampledll"
+      BUILD_64x: "true"
+      REALM: "sv"
+      BUILD_WINDOWS: "false"
+      ARTIFACT_EXPIRE: "1"
+      BUILD_CACHE: "true"
+
+  setup_exampledll_artifacts:
+    name: "Setup exampledll ${{ matrix.arch }} Artifact"
+    needs: [setup_artifacts, build_exampledll_linux]
+    runs-on: ubuntu-latest
+    container: debian:bullseye
+    strategy:
+      matrix:
+        include:
+          - arch: 32x
+            dll: gmsv_exampledll_linux.dll
+            dll_artifact: gmsv_exampledll_linux.dll
+
+          - arch: 64x
+            dll: gmsv_exampledll_linux64.dll
+            dll_artifact: gmsv_exampledll_linux64.dll (64x)
+    steps:
+      - uses: actions/download-artifact@v4
+        name: "Download ${{ matrix.arch }} artifact"
+        with:
+          name: "gluatest_${{ matrix.arch }}"
+
+      - uses: actions/download-artifact@v4
+        name: "Download module"
+        with:
+          name: "${{ matrix.dll_artifact }}"
+
+      - name: "Setup structure"
+        run: |
+          mkdir -p garrysmod/lua/bin
+          mkdir -p garrysmod/addons
+          mkdir -p garrysmod/holylib/cfg/
+
+          mv ${{ matrix.dll }} garrysmod/lua/bin/
+
+          cat <<EOF > garrysmod/holylib/cfg/dlls.json
+          [
+            {
+              "path": "garrysmod/lua/bin/${{ matrix.dll }}",
+              "name": "ExampleDLL"
+            }
+          ]
+          EOF
+
+          tar -xzf gluatest.tar.gz
+
+          tar -czf gluatest_exampledll.tar.gz ghostinj.dll garrysmod/
+          tar -czf gluatest_exampledll_no_ghostinj.tar.gz garrysmod/
+
+      - uses: actions/upload-artifact@v4
+        name: "Upload tar"
+        with:
+          name: gluatest_exampledll_${{ matrix.arch }}
+          path: gluatest_exampledll.tar.gz
+          compression-level: 9
+          retention-days: 1
+
+      - uses: actions/upload-artifact@v4
+        name: "Upload tar"
+        with:
+          name: gluatest_exampledll_no_ghostinj_${{ matrix.arch }}
+          path: gluatest_exampledll_no_ghostinj.tar.gz
+          compression-level: 9
+          retention-days: 1
+
+  test_exampledll_32bit:
+    name: "Test ExampleDLL 32x branches"
+    needs: setup_exampledll_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
+    strategy:
+      matrix:
+        branch:
+          - public
+          - dev
+          - prerelease
+    with:
+      branch: ${{ matrix.branch }}
+      extra-startup-args: "-usegh"
+      download-artifact: "gluatest_exampledll_32x"
+      no-checkout: "true"
+
+  test_exampledll_32bit_noghostinj:
+    name: "Test ExampleDLL 32x branches (No GhostInj)"
+    needs: setup_exampledll_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
+    strategy:
+      matrix:
+        branch:
+          - public
+          - dev
+          - prerelease
+    with:
+      branch: ${{ matrix.branch }}
+      download-artifact: "gluatest_exampledll_no_ghostinj_32x"
+      no-checkout: "true"
+
+  test_exampledll_64bit:
+    name: "Test ExampleDLL x86-64 branch"
+    needs: setup_exampledll_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
+    with:
+      branch: x86-64
+      extra-startup-args: "-usegh"
+      download-artifact: "gluatest_exampledll_64x"
+      no-checkout: "true"
+
+  test_exampledll_64bit_noghostinj:
+    name: "Test ExampleDLL x86-64 branch (No GhostInj)"
+    needs: setup_exampledll_artifacts
+    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
+    with:
+      branch: x86-64
+      download-artifact: "gluatest_exampledll_no_ghostinj_64x"
       no-checkout: "true"

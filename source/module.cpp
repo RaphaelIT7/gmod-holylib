@@ -14,19 +14,21 @@ static ConVar module_debug("holylib_module_debug", "0");
 
 CModule::~CModule()
 {
+	m_pModule = nullptr; // We should NEVER access it in the deconstructor since our module might already be unloaded!
+
 	if ( m_pCVar )
 	{
 		if ( g_pCVar )
 			g_pCVar->UnregisterConCommand(m_pCVar);
 
 		delete m_pCVar; // Could this cause a crash? idk.
-		m_pCVar = NULL;
+		m_pCVar = nullptr;
 	}
 
 	if ( m_pCVarName )
 	{
 		delete[] m_pCVarName;
-		m_pCVarName = NULL;
+		m_pCVarName = nullptr;
 	}
 
 	if ( m_pDebugCVar )
@@ -35,13 +37,13 @@ CModule::~CModule()
 			g_pCVar->UnregisterConCommand(m_pDebugCVar);
 
 		delete m_pDebugCVar; // Could this cause a crash? idk either. But it didn't. Yet. Or has it.
-		m_pDebugCVar = NULL;
+		m_pDebugCVar = nullptr;
 	}
 
 	if ( m_pDebugCVarName )
 	{
 		delete[] m_pDebugCVarName;
-		m_pDebugCVarName = NULL;
+		m_pDebugCVarName = nullptr;
 	}
 }
 
@@ -188,13 +190,19 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 			if (status & LoadStatus_LuaInit)
 			{
 				for (auto& pLua : g_pModuleManager.GetLuaInterfaces())
+				{
 					m_pModule->LuaInit(pLua, false);
+					m_pModule->PostLuaInit(pLua, false);
+				}
 			}
 
 			if (status & LoadStatus_LuaServerInit)
 			{
 				for (auto& pLua : g_pModuleManager.GetLuaInterfaces())
+				{
 					m_pModule->LuaInit(pLua, true);
+					m_pModule->PostLuaInit(pLua, true);
+				}
 			}
 
 			if (status & LoadStatus_ServerActivate)
@@ -359,10 +367,25 @@ void CModuleManager::Init()
 
 void CModuleManager::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
-	if (bServerInit)
-		m_pStatus |= LoadStatus_LuaServerInit;
-	else
-		m_pStatus |= LoadStatus_LuaInit;
+	if (pLua == g_Lua) // We only update our state based off the main lua state
+	{
+		if (bServerInit)
+			m_pStatus |= LoadStatus_LuaServerInit;
+		else
+			m_pStatus |= LoadStatus_LuaInit;
+
+		if (bServerInit)
+		{
+			for (GarrysMod::Lua::ILuaInterface* LUA : m_pLuaInterfaces)
+			{
+				if (LUA == pLua)
+					continue;
+
+				VCALL_LUA_ENABLED_MODULES(LuaInit(pLua, bServerInit));
+				VCALL_LUA_ENABLED_MODULES(PostLuaInit(pLua, bServerInit));
+			}
+		}
+	}
 
 	/*if (!Lua::GetLuaData(pLua))
 	{
@@ -372,6 +395,13 @@ void CModuleManager::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 
 	AddLuaInterface(pLua);
 	VCALL_LUA_ENABLED_MODULES(LuaInit(pLua, bServerInit));
+	VCALL_LUA_ENABLED_MODULES(PostLuaInit(pLua, bServerInit));
+
+	if (!bServerInit && pLua != g_Lua && (m_pStatus & LoadStatus_LuaServerInit))
+	{ // LuaServerInit was already called, so we need to call it too
+		VCALL_LUA_ENABLED_MODULES(LuaInit(pLua, true));
+		VCALL_LUA_ENABLED_MODULES(PostLuaInit(pLua, true));
+	}
 }
 
 void CModuleManager::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)

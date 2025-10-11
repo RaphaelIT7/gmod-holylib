@@ -95,7 +95,36 @@ public:
 	{
 		return Util::CM_Vis(cluster, clusterSize, cluserID, type);
 	}
+
+	virtual void BlockGameEvent(const char* pName)
+	{
+		Util::BlockGameEvent(pName);
+	}
+
+	virtual void UnblockGameEvent(const char* pName)
+	{
+		Util::UnblockGameEvent(pName);
+	}
+
+	virtual int FindOffsetForNetworkVar(const char* pDTName, const char* pVarName)
+	{
+		return Util::FindOffsetForNetworkVar(pDTName, pVarName);
+	}
+
+	virtual void* GoToNetworkVarOffset(void* pBase, int nOffset)
+	{
+		return Util::GoToNetworkVarOffset(pBase, nOffset);
+	}
 };
 
 static CHolyUtil s_HolyUtil;
 IHolyUtil* g_pHolyUtil = &s_HolyUtil;
+
+#ifdef LIB_HOLYLIB
+IHolyUtil* GetHolyUtil()
+{
+	return g_pHolyUtil;
+}
+#else
+EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CHolyUtil, IHolyUtil, INTERFACEVERSION_HOLYUTIL, s_HolyUtil);
+#endif

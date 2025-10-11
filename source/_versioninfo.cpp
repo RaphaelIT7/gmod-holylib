@@ -1,14 +1,21 @@
+#define _ALLOWVERSIONFILE
 #include "_versioninfo.h"
+#undef _ALLOWVERSIONFILE
 
 // This file will always have a cache miss, so we make this as simple as possible to not become a slow down in the compile.
 
 const char* HolyLib_GetPluginDescription()
 {
 #if !HOLYLIB_BUILD_RELEASE // DATA should always fallback to 0. We will set it to 1 in releases.
-	return "HolyLib Serverplugin V0.8 DEV (Workflow: " HOLYLIB_BUILD_RUN_NUMBER " - Branch: " HOLYLIB_BUILD_BRANCH ")";
+	return "HolyLib Serverplugin V0.8-pre2 DEV (Workflow: " HOLYLIB_BUILD_RUN_NUMBER " - Branch: " HOLYLIB_BUILD_BRANCH ")";
 #else
-	return "HolyLib Serverplugin V0.8";
+	return "HolyLib Serverplugin V0.8-pre2";
 #endif
+}
+
+const char* HolyLib_GetVersion()
+{
+	return "0.8-pre2";
 }
 
 const char* HolyLib_GetRunNumber()

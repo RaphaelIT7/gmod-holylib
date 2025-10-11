@@ -426,7 +426,7 @@ void CVPhysicsParse::ParseSurfaceTablePacked( CUtlVector<char> &out )
 	char key[MAX_KEYVALUE], value[MAX_KEYVALUE];
 
 	key[0] = 0;
-	int lastIndex = 0;
+	[[maybe_unused]] int lastIndex = 0;
 	while ( m_pText )
 	{
 		m_pText = ParseKeyvalue( m_pText, key, value );

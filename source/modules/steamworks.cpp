@@ -12,6 +12,7 @@
 class CSteamWorksModule : public IModule
 {
 public:
+	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
 	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void Think(bool bSimulating) OVERRIDE;
@@ -184,24 +185,38 @@ LUA_FUNCTION_STATIC(steamworks_ForceActivate)
 	return 1;
 }
 
-extern CServerPlugin* g_pServerPluginHandler;
+static CServerPlugin* pServerPluginHandler = nullptr;
 LUA_FUNCTION_STATIC(steamworks_ForceAuthenticate)
 {
 	int iClient = (int)LUA->CheckNumber(1);
 	CBaseClient* pClient = Util::GetClientByUserID(iClient);
-	if (!pClient || !g_pServerPluginHandler)
+	if (!pClient)
 	{
 		LUA->PushBool(false);
 		return 1;
 	}
 
-	g_pServerPluginHandler->NetworkIDValidated(pClient->GetClientName(), pClient->GetNetworkIDString());
+	if (pServerPluginHandler) // just to be sure
+		pServerPluginHandler->NetworkIDValidated(pClient->GetClientName(), pClient->GetNetworkIDString());
+	
 	Util::servergameclients->NetworkIDValidated(pClient->GetClientName(), pClient->GetNetworkIDString());
 
 	// Verify: Do we need to forcefully change the signonstate?
 	pClient->SetFullyAuthenticated();
 	LUA->PushBool(true);
 	return 1;
+}
+
+void CSteamWorksModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
+{
+	if (appfn[0])
+	{
+		pServerPluginHandler = (CServerPlugin*)appfn[0](INTERFACEVERSION_ISERVERPLUGINHELPERS, NULL);
+	} else {
+		SourceSDK::FactoryLoader engine_loader("engine");
+		pServerPluginHandler = engine_loader.GetInterface<CServerPlugin>(INTERFACEVERSION_ISERVERPLUGINHELPERS);
+	}
+	Detour::CheckValue("get interface", "pServerPluginHandler", pServerPluginHandler != NULL);
 }
 
 void CSteamWorksModule::Think(bool bSimulating)

@@ -68,6 +68,7 @@ static float AngDragIntegral( float invInertia, float l, float w, float h )
 	return invInertia * ( (1.f/3.f)*w2*l*l2 + 0.5f * w2*w2*l + l*w2*h2 );
 }
 
+// We us a unordered_set so that lookups should be O(1) most of the time unlike gmod which currently has O(N) N = total number of physics objects
 static std::unordered_set<CPhysicsObject*> g_pObjects;
 inline void RegisterObject(CPhysicsObject* pObject)
 {
@@ -115,8 +116,8 @@ CPhysicsObject::CPhysicsObject( void )
 	m_hingedAxis{0},
 	m_collideType{0},
 	m_gameIndex{0},
-	m_materialIndex{0},
 	m_activeIndex{0},
+	m_materialIndex{0},
 	m_callbacks{0},
 	m_gameFlags{0},
 	m_contentsMask{0},
@@ -207,7 +208,12 @@ CPhysicsObject::~CPhysicsObject( void )
 		{
 			m_pObject->delete_and_check_vicinity();
 		}
-		delete pSurman;
+
+		if (pSurman)
+		{
+			Msg("Deleting surf manager %p\n", pSurman);
+			delete pSurman;
+		}
 	}
 }
 
@@ -1695,7 +1701,7 @@ CPhysicsObject *CreatePhysicsObject( CPhysicsEnvironment *pEnvironment, const CP
 
 	IVP_U_Matrix massCenterMatrix;
 	massCenterMatrix.init();
-#if !PLATFORM_64BITS // BUG: Crashes on 64x
+#if !PLATFORM_64BITS // BUG: Crashes on 64x. UPDATE: Now it crashes on 32x.... Maybe solid_t on 32x is wrong causing this issue?
 	if ( pParams->massCenterOverride )
 	{
 		IVP_U_Point center;
@@ -2091,8 +2097,7 @@ void CPhysicsObject::SyncWith(IPhysicsObject* pOther)
 bool SavePhysicsObject( const physsaveparams_t &params, CPhysicsObject *pObject )
 {
 	DebugPrint();
-	vphysics_save_cphysicsobject_t objectTemplate;
-	memset( &objectTemplate, 0, sizeof(objectTemplate) );
+	vphysics_save_cphysicsobject_t objectTemplate{};
 
 	pObject->WriteToTemplate( objectTemplate );
 	params.pSave->WriteAll( &objectTemplate );
@@ -2107,8 +2112,7 @@ bool SavePhysicsObject( const physsaveparams_t &params, CPhysicsObject *pObject 
 bool RestorePhysicsObject( const physrestoreparams_t &params, CPhysicsObject **ppObject )
 {
 	DebugPrint();
-	vphysics_save_cphysicsobject_t objectTemplate;
-	memset( &objectTemplate, 0, sizeof(objectTemplate) );
+	vphysics_save_cphysicsobject_t objectTemplate{};
 	params.pRestore->ReadAll( &objectTemplate );
 	Assert(objectTemplate.origin.IsValid());
 	Assert(objectTemplate.angles.IsValid());

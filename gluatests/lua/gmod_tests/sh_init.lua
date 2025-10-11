@@ -24,6 +24,68 @@ function HolyLib_IsModuleEnabled(name)
 	return GetConVar("holylib_enable_" .. name):GetBool()
 end
 
+require("reqwest")
+HTTP = reqwest or HTTP
+if reqwest then
+	print("Loaded reqwest")
+end
+
+-- ConVar's don't work since thoes would need to exist before it tries to set all values from the command line. (Maybe make a gmod request? idk)
+-- local loki_host = CreateConVar("holylib_loki_host", "", {FCVAR_DONTRECORD, FCVAR_PROTECTED, FCVAR_UNLOGGED}, "Loki host secret.")
+-- local loki_api = CreateConVar("holylib_loki_api", "", {FCVAR_DONTRECORD, FCVAR_PROTECTED, FCVAR_UNLOGGED}, "Loki api key secret.")
+
+local github_repo = string.Trim(file.Read("_workflow/github_repo.txt", "MOD") or "")
+local loki_public_host = string.Trim(file.Read("_workflow/loki_public_host.txt", "MOD") or "")
+local loki_host = string.Trim(file.Read("_workflow/loki_host.txt", "MOD") or "")
+local loki_api = string.Trim(file.Read("_workflow/loki_api.txt", "MOD") or "")
+function HolyLib_RunPerformanceTest(name, callback, ...)
+	local usingPublic = (string.len(loki_host) < 3 or string.len(loki_api) < 3)
+    if usingPublic and (string.len(loki_public_host) < 3) or string.len(github_repo) < 3 then
+        print("Skipping performance test \"" .. name .. "\" since were missing Loki.")
+        return
+    end
+
+    local startTime = SysTime()
+    local totalCalls = 0
+    local runTime = 1 -- How long in seconds we run each test
+    while (SysTime() - startTime) < runTime do -- We spend a total of 1 seconds to run these
+        callback(...)
+        totalCalls = totalCalls + 1
+    end
+    
+    local totalTime = SysTime() - startTime -- Should almost always be 1 second
+    local timePerCall = totalTime / totalCalls
+    print("Finished performance test for \"" .. name .. "\". Took " .. totalTime .. "s with a total of " .. totalCalls .." calls (" .. timePerCall .. "s per call)")
+
+    if usingPublic then
+        print("Using public Loki host to store temporary results.")
+        loki_api = ""
+        loki_host = loki_public_host
+    end
+
+    HTTP({
+        blocking = true,
+        failed = function(reason, errExt)
+            print("Failed to send performance results to Loki!", reason, errExt)
+        end,
+        success = function(code, body, headers)
+            print("Successfully sent performance results to Loki :3", code)
+        end,
+        method = "POST",
+        url = loki_host .. "/AddEntry",
+        headers = {
+            ["entryIndex"] = github_repo .. "___" .. _HOLYLIB_RUN_NUMBER, -- Unique key for this run.
+            ["X-Api-Key"] = loki_api,
+        },
+        body = util.TableToJSON({
+            ["totalCalls"] = totalCalls,
+            ["totalTime"] = totalTime,
+            ["gmodBranch"] = BRANCH,
+            ["name"] = name,
+        })
+    })
+end
+
 if SERVER then
     --- Makes an entity for test purposes
     --- @param class string? The class of the entity

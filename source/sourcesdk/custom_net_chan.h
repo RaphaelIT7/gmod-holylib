@@ -21,11 +21,38 @@
 #include "const.h"
 #include "inetchannel.h"
 
+// Flow control bytes per second limits
+#undef MAX_RATE
+#undef MIN_RATE
+#undef DEFAULT_RATE
+#define MAX_RATE		(1024*1024*16)				
+#define MIN_RATE		4000
+#define DEFAULT_RATE	240000
+
+#undef FRAGMENT_BITS
+#undef FRAGMENT_SIZE
+#undef MAX_FILE_SIZE_BITS
+#undef MAX_FILE_SIZE
+#define FRAGMENT_BITS		13
+constexpr int FRAGMENT_SIZE = 1 << FRAGMENT_BITS;
+#define MAX_FILE_SIZE_BITS	29
+constexpr uint64_t MAX_FILE_SIZE = (1 << MAX_FILE_SIZE_BITS) - 1;	// maximum transferable size is	4GB
+
+#undef NET_MAX_PAYLOAD
+#undef NET_MAX_DATAGRAM_PAYLOAD
+// This is the packet payload without any header bytes (which are attached for actual sending)
+#define	NET_MAX_PAYLOAD				576000	// largest message we can send in bytes
+#define NET_MAX_DATAGRAM_PAYLOAD	8000	// = maximum unreliable payload size
+
 #define MAX_FRAGMENTS_BITS	5	// How many fragments we can send at once
-#define MAX_FRAGMENTS	(1 << MAX_FRAGMENTS_BITS) - 1  // Maximum number of fragments we can safely transmit. -1 as else we would go over MAX_FRAGMENTS_BITS
+constexpr int MAX_FRAGMENTS = (1 << MAX_FRAGMENTS_BITS) - 1;  // Maximum number of fragments we can safely transmit. -1 as else we would go over MAX_FRAGMENTS_BITS
 
 #undef MAX_ROUTABLE_PAYLOAD
-#define MAX_ROUTABLE_PAYLOAD		(FRAGMENT_SIZE * FRAGMENT_SIZE)	// Matches x360 size(1260). Update: Won't match anymore
+constexpr int MAX_ROUTABLE_PAYLOAD = FRAGMENT_SIZE * FRAGMENT_SIZE;	// Matches x360 size(1260). Update: Won't match anymore
+
+
+#undef NET_MAX_MESSAGE
+constexpr int NET_MAX_MESSAGE = PAD_NUMBER((NET_MAX_PAYLOAD + HEADER_BYTES), 16);
 
 // How fast to converge flow estimates
 #define FLOW_AVG ( 3.0F / 4.0F )
@@ -34,10 +61,10 @@
 
 
 #define NET_FRAMES_BACKUP	64	// must be power of 2
-#define NET_FRAMES_MASK		(NET_FRAMES_BACKUP-1)
+constexpr int NET_FRAMES_MASK = (NET_FRAMES_BACKUP - 1);
 
 #define SUBCHANNEL_BITS		4	// raising it above 5 would require changes to m_nOutReliableState & m_nInReliableState as they couldn't hold the states anymore.
-#define MAX_SUBCHANNELS		(1 << SUBCHANNEL_BITS) // we have 16 alternative send&wait bits
+constexpr int MAX_SUBCHANNELS = (1 << SUBCHANNEL_BITS); // we have 16 alternative send&wait bits
 
 #define SUBCHANNEL_FREE		0	// subchannel is free to use
 #define SUBCHANNEL_TOSEND	1	// subchannel has data, but not send yet

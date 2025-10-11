@@ -124,7 +124,13 @@ static bool hook_CPlugin_Load(CPlugin* pPlugin, const char* fileName)
 
 void CServerPluginLibModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
-	g_pServerPluginHandler = (CServerPlugin*)appfn[0](INTERFACEVERSION_ISERVERPLUGINHELPERS, NULL);
+	if (appfn[0])
+	{
+		g_pServerPluginHandler = (CServerPlugin*)appfn[0](INTERFACEVERSION_ISERVERPLUGINHELPERS, NULL);
+	} else {
+		SourceSDK::FactoryLoader engine_loader("engine");
+		g_pServerPluginHandler = engine_loader.GetInterface<CServerPlugin>(INTERFACEVERSION_ISERVERPLUGINHELPERS);
+	}
 	Detour::CheckValue("get interface", "g_pServerPluginHandler", g_pServerPluginHandler != NULL);
 }
 

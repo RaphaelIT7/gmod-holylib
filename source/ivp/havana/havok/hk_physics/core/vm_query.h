@@ -4,7 +4,7 @@
 
 class hk_Cached_Force_Axis_Description
 {
-	[[maybe_unused]] hk_Vector4 dummy;
+	hk_Vector4 dummy;
 };
 
 #define HK_MAX_SIZEOF_CACHED_FORCE_AXIS_DESCRIPTION (sizeof(hk_Cached_Force_Axis_Description))

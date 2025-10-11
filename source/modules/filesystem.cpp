@@ -46,7 +46,7 @@ static ConVar holylib_filesystem_predictpath("holylib_filesystem_predictpath", "
 	"If enabled, it will try to predict the path of a file");
 static ConVar holylib_filesystem_predictexistance("holylib_filesystem_predictexistance", "0", 0, 
 	"If enabled, it will try to predict the path of a file, but if the file doesn't exist in the predicted path, we'll just say it doesn't exist.");
-static ConVar holylib_filesystem_splitgamepath("holylib_filesystem_splitgamepath", "1", FCVAR_ARCHIVE, 
+static ConVar holylib_filesystem_splitgamepath("holylib_filesystem_splitgamepath", "0", FCVAR_ARCHIVE, 
 	"If enabled, it will create for each content type like models/, materials/ a game path which will be used to find that content.");
 static ConVar holylib_filesystem_splitluapath("holylib_filesystem_splitluapath", "0", 0, 
 	"If enabled, it will do the same thing holylib_filesystem_splitgamepath does but with lsv. Currently it breaks workshop addons.");
@@ -312,7 +312,7 @@ static void NukeSearchCache() // NOTE: We actually never nuke it :D
 	char* absolutePath;
 };*/
 
-#define SearchCacheVersion 1
+#define SearchCacheVersion 2
 #define MaxSearchCacheEntries (1 << 16) // 64k max files
 struct SearchCache {
 	unsigned int version = SearchCacheVersion;
@@ -340,7 +340,11 @@ static void WriteSearchCache()
 		{
 			for (auto& [strEntry, storeID] : cache)
 			{
-				//V_strcpy(entry.pathID, strPath.data());
+				unsigned char pathIDLength = (unsigned char)strPath.length();
+				const char* pathID = strPath.data();
+				g_pFullFileSystem->Write(&pathIDLength, sizeof(pathIDLength), handle);
+				g_pFullFileSystem->Write(pathID, pathIDLength, handle);
+
 				unsigned char pathLength = (unsigned char)strEntry.length();
 				const char* path = strEntry.data();
 				g_pFullFileSystem->Write(&pathLength, sizeof(pathLength), handle);
@@ -362,11 +366,21 @@ static void WriteSearchCache()
 	}
 }
 
-static std::unordered_map<std::string_view, std::string_view> g_pAbsoluteSearchCache;
-inline std::string_view* GetStringFromAbsoluteCache(std::string_view fileName)
+static std::unordered_map<std::string_view, std::unordered_map<std::string_view, std::string_view>> g_pAbsoluteSearchCache;
+inline std::string_view* GetStringFromAbsoluteCache(const char* fileName, const char* pathID)
 {
-	auto it = g_pAbsoluteSearchCache.find(fileName);
-	if (it == g_pAbsoluteSearchCache.end())
+	if (!pathID)
+		pathID = nullPath;
+
+	if (!fileName)
+		return NULL; // ??? can this even happen?
+
+	auto pathIT = g_pAbsoluteSearchCache.find(pathID);
+	if (pathIT == g_pAbsoluteSearchCache.end())
+		return NULL;
+
+	auto it = pathIT->second.find(fileName);
+	if (it == pathIT->second.end())
 		return NULL;
 
 	return &it->second;
@@ -379,7 +393,11 @@ static void ClearAbsoluteSearchCache()
 	for (auto& [key, val] : g_pAbsoluteSearchCache)
 	{
 		delete[] key.data(); // Free the memory.
-		delete[] val.data();
+		for (auto& [key2, val2] : val)
+		{
+			delete[] key2.data();
+			delete[] val2.data();
+		}
 	}
 
 	g_pAbsoluteSearchCache.clear();
@@ -397,7 +415,7 @@ static void ReadSearchCache()
 		g_pFullFileSystem->Read(&searchCache, sizeof(SearchCache), handle);
 		if (searchCache.version != SearchCacheVersion)
 		{
-			Warning("holylib - ReadSearchCache: Searchcache version didnt match  (File: %i, Current %i)\n", searchCache.version, SearchCacheVersion);
+			Warning(PROJECT_NAME " - ReadSearchCache: Searchcache version didnt match  (File: %i, Current %i)\n", searchCache.version, SearchCacheVersion);
 			return;
 		}
 
@@ -405,6 +423,15 @@ static void ReadSearchCache()
 
 		for (unsigned int i = 0; i < searchCache.usedPaths; ++i)
 		{
+			// PathID
+			unsigned char pathIDLength;
+			g_pFullFileSystem->Read(&pathIDLength, sizeof(pathIDLength), handle);
+
+			char* pathID = new char[pathIDLength + 1];
+			g_pFullFileSystem->Read(pathID, pathIDLength, handle);
+			pathID[pathIDLength] = '\0';
+
+			// relative file path
 			unsigned char pathLength;
 			g_pFullFileSystem->Read(&pathLength, sizeof(pathLength), handle);
 
@@ -412,16 +439,18 @@ static void ReadSearchCache()
 			g_pFullFileSystem->Read(path, pathLength, handle);
 			path[pathLength] = '\0'; // We null terminate it to keep it nice since things like Msg woukd print it with additional junk / random memory.
 
+			// full file path
 			unsigned char absolutePathLength;
 			g_pFullFileSystem->Read(&absolutePathLength, sizeof(absolutePathLength), handle);
 
 			char* absolutePath = new char[absolutePathLength + 1];
 			g_pFullFileSystem->Read(absolutePath, absolutePathLength, handle);
 			absolutePath[absolutePathLength] = '\0';
-
-			std::string_view pathStr = path; // NOTE: We have to manually free it later
-			std::string_view absolutePathStr = absolutePath; // NOTE: We have to manually free it later
-			g_pAbsoluteSearchCache[pathStr] = absolutePathStr;
+			
+			std::string_view pathIDStr(pathID, pathIDLength); // NOTE: We have to manually free it later
+			std::string_view pathStr(path, pathLength); // NOTE: We have to manually free it later
+			std::string_view absolutePathStr(absolutePath, absolutePathLength); // NOTE: We have to manually free it later
+			g_pAbsoluteSearchCache[pathIDStr][pathStr] = absolutePathStr;
 		}
 
 		g_pFullFileSystem->Close(handle);
@@ -530,7 +559,11 @@ static void DumpSearchCacheCmd(const CCommand& args)
 {
 	for (auto& [key, val] : g_pAbsoluteSearchCache)
 	{
-		Msg("Key: %s (%i)\nValue: %s (%i)\n", key.data(), (int)key.length(), val.data(), (int)val.length());
+		Msg("	\"%s\":\n", key.data());
+		for (auto&[relativeFilePath, fullFilePath] : val)
+		{
+			Msg("		\"%s\": %s\n", relativeFilePath.data(), fullFilePath.data());
+		}
 	}
 }
 static ConCommand dumpabsolutesearchcache("holylib_filesystem_dumpabsolutesearchcache", DumpSearchCacheCmd, "Dumps the absolute search cache", 0);
@@ -862,7 +895,7 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 
 	if (holylib_filesystem_savesearchcache.GetBool())
 	{
-		std::string_view* absoluteStr = GetStringFromAbsoluteCache(pFileName);
+		std::string_view* absoluteStr = GetStringFromAbsoluteCache(pFileName, pathID);
 		if (absoluteStr)
 		{
 			if (g_pFileSystemModule.InDebug())
@@ -975,7 +1008,7 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 
 		if (holylib_filesystem_savesearchcache.GetBool() && holylib_filesystem_predictexistance.GetBool())
 		{
-			std::string_view* absoluteStr = GetStringFromAbsoluteCache(pFileName);
+			std::string_view* absoluteStr = GetStringFromAbsoluteCache(pFileName, pathID);
 			if (!absoluteStr) // It didn't exist in the last cache, so most likely it won't exist now.
 			{
 				if (g_pFileSystemModule.InDebug())
@@ -1198,7 +1231,7 @@ static long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char
 
 	if (holylib_filesystem_savesearchcache.GetBool()) // why exactly was I doing this inside the forcepath check before? idk.
 	{
-		std::string_view* absoluteStr = GetStringFromAbsoluteCache(pFileName);
+		std::string_view* absoluteStr = GetStringFromAbsoluteCache(pFileName, pPathID);
 		if (absoluteStr)
 		{
 			if (g_pFileSystemModule.InDebug())

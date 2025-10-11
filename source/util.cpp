@@ -1,3 +1,4 @@
+#include "httplib.h"
 #include "util.h"
 #include "GarrysMod/Lua/LuaObject.h"
 #include <string>
@@ -11,19 +12,19 @@
 #include "toolframework/itoolentity.h"
 #include "GarrysMod/IGet.h"
 #include <lua.h>
+#include "versioninfo.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
 // Try not to use it. We want to move away from it.
 // Additionaly, we will add checks in many functions.
-GarrysMod::Lua::ILuaInterface* g_Lua;
+GarrysMod::Lua::ILuaInterface* g_Lua = nullptr;
 
-IVEngineServer* engine;
-CGlobalEntityList* Util::entitylist = NULL;
-CUserMessages* Util::pUserMessages;
+IVEngineServer* engine = nullptr;
+CGlobalEntityList* Util::entitylist = nullptr;
+CUserMessages* Util::pUserMessages = nullptr;
 
-bool g_pRemoveLuaUserData = true;
 std::unordered_set<LuaUserData*> g_pLuaUserData;
 #if HOLYLIB_UTIL_BASEUSERDATA && HOLYLIB_UTIL_GLOBALUSERDATA 
 std::shared_mutex g_UserDataMutex;
@@ -54,7 +55,7 @@ void LuaUserData::ForceGlobalRelease(void* pData)
 		{
 			if (userData->GetData())
 			{
-				userData->SetData(NULL); // Remove any references any LuaUserData holds to us.
+				userData->SetData(nullptr); // Remove any references any LuaUserData holds to us.
 			}
 		}
 	}
@@ -80,9 +81,9 @@ void LuaUserData::ForceGlobalRelease(void* pData)
 //#endif
 
 		it2->second-> = 1; // Set it to 1 because Release will only fully execute if there aren't any other references left.
-		it2->second->Release(NULL);
+		it2->second->Release(nullptr);
 #else
-		it2->second->Release();
+		it2->second->Release(pState->pLua);
 #endif
 	}
 }
@@ -107,7 +108,7 @@ CBasePlayer* Util::Get_Player(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos,
 		if (bError)
 			LUA->ThrowError("Tried to use a NULL Entity!");
 
-		return NULL;
+		return nullptr;
 	}
 	
 	CBaseEntity* pEntity = Util::entitylist->GetBaseEntity(*pEntHandle);
@@ -116,13 +117,17 @@ CBasePlayer* Util::Get_Player(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos,
 		if (bError)
 			LUA->ThrowError("Player entity is NULL or not a player (!?)");
 
-		return NULL;
+		return nullptr;
 	}
 
 	return (CBasePlayer*)pEntity;
 }
 
+GCudata* g_pEntityReferences[MAX_EDICTS] = {nullptr}; // nulled out in Util::InitDetours
+int g_pEntitySerialNum[MAX_EDICTS] = {-1};
+
 IModuleWrapper* Util::pEntityList;
+static Symbols::CBaseEntity_GetLuaEntity func_CBaseEntity_GetLuaEntity = nullptr;
 void Util::Push_Entity(GarrysMod::Lua::ILuaInterface* LUA, CBaseEntity* pEnt)
 {
 	if (!pEnt)
@@ -133,7 +138,57 @@ void Util::Push_Entity(GarrysMod::Lua::ILuaInterface* LUA, CBaseEntity* pEnt)
 
 	if (LUA == g_Lua)
 	{
-		GarrysMod::Lua::CLuaObject* pObject = (GarrysMod::Lua::CLuaObject*)pEnt->GetLuaEntity();
+		const CBaseHandle& pHandle = pEnt->GetRefEHandle(); // The only virtual function that would never dare to change
+		int nEntryIndex = pHandle.GetEntryIndex();
+		if (nEntryIndex >= 0 && MAX_EDICTS > nEntryIndex)
+		{
+			int nSerial = g_pEntitySerialNum[nEntryIndex];
+			int nEntSerial = pHandle.GetSerialNumber();
+			lua_State* L = LUA->GetState();
+			if (nSerial != nEntSerial)
+			{
+				g_pEntitySerialNum[nEntryIndex] = nEntSerial;
+				g_pEntityReferences[nEntryIndex] = nullptr;
+
+
+				if (!func_CBaseEntity_GetLuaEntity)
+				{
+					GarrysMod::Lua::ILuaObject* pObj = LUA->NewTemporaryObject();
+					pObj->SetEntity(pEnt);
+					pObj->Push();
+				} else {
+					GarrysMod::Lua::CLuaObject* pObject = (GarrysMod::Lua::CLuaObject*)func_CBaseEntity_GetLuaEntity(pEnt);
+					if (!pObject)
+					{
+						LUA->GetField(LUA_GLOBALSINDEX, "NULL");
+						return;
+					}
+
+					Util::ReferencePush(LUA, pObject->GetReference()); // Assuming the reference is always right.
+				}
+
+				g_pEntityReferences[nEntryIndex] = udataV(L->top-1); // Should be fine since the GCudata is never moved/nuked.
+				return;
+			}
+
+			GCudata* pData = g_pEntityReferences[nEntryIndex];
+			if (pData)
+			{
+				setudataV(L, L->top++, g_pEntityReferences[nEntryIndex]);
+				return;
+			}
+		}
+
+		// In the case we are missing our symbol for CBaseEntity::GetLuaEntity, this will be slower though will still be fully functional.
+		if (!func_CBaseEntity_GetLuaEntity)
+		{
+			GarrysMod::Lua::ILuaObject* pObj = LUA->NewTemporaryObject();
+			pObj->SetEntity(pEnt);
+			pObj->Push();
+			return;
+		}
+
+		GarrysMod::Lua::CLuaObject* pObject = (GarrysMod::Lua::CLuaObject*)func_CBaseEntity_GetLuaEntity(pEnt);
 		if (!pObject)
 		{
 			LUA->GetField(LUA_GLOBALSINDEX, "NULL");
@@ -172,7 +227,7 @@ CBaseEntity* Util::Get_Entity(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos,
 	return pEntity;
 }
 
-IServer* Util::server;
+IServer* Util::server = nullptr;
 CBaseClient* Util::GetClientByUserID(int userid)
 {
 	for (int i=0; i < Util::server->GetClientCount(); ++i)
@@ -182,12 +237,12 @@ CBaseClient* Util::GetClientByUserID(int userid)
 			return (CBaseClient*)pClient;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
-IVEngineServer* Util::engineserver = NULL;
-IServerGameEnts* Util::servergameents = NULL;
-IServerGameClients* Util::servergameclients = NULL;
+IVEngineServer* Util::engineserver = nullptr;
+IServerGameEnts* Util::servergameents = nullptr;
+IServerGameClients* Util::servergameclients = nullptr;
 CBaseClient* Util::GetClientByPlayer(const CBasePlayer* ply)
 {
 	return Util::GetClientByUserID(Util::engineserver->GetPlayerUserId(((CBaseEntity*)ply)->edict()));
@@ -196,7 +251,7 @@ CBaseClient* Util::GetClientByPlayer(const CBasePlayer* ply)
 CBaseClient* Util::GetClientByIndex(int index)
 {
 	if (server->GetClientCount() <= index || index < 0)
-		return NULL;
+		return nullptr;
 
 	return (CBaseClient*)server->GetClient(index);
 }
@@ -211,7 +266,8 @@ std::vector<CBaseClient*> Util::GetClients()
 	for (int i = 0; i < clientCount; ++i)
 	{
 		IClient* pClient = Util::server->GetClient(i);
-		pClients.push_back((CBaseClient*)pClient);
+		if (pClient)
+			pClients.push_back((CBaseClient*)pClient);
 	}
 
 	return pClients;
@@ -227,7 +283,7 @@ void Util::ResetClusers(VisData* data)
 	Q_memset(data->cluster, 0, sizeof(data->cluster));
 }
 
-Symbols::CM_Vis func_CM_Vis = NULL;
+Symbols::CM_Vis func_CM_Vis = nullptr;
 Util::VisData* Util::CM_Vis(const Vector& orig, int type)
 {
 	Util::VisData* data = new Util::VisData;
@@ -250,7 +306,7 @@ bool Util::CM_Vis(byte* cluster, int clusterSize, int clusterID, int type)
 }
 
 
-static Symbols::CBaseEntity_CalcAbsolutePosition func_CBaseEntity_CalcAbsolutePosition;
+static Symbols::CBaseEntity_CalcAbsolutePosition func_CBaseEntity_CalcAbsolutePosition = nullptr;
 void CBaseEntity::CalcAbsolutePosition(void)
 {
 	if (func_CBaseEntity_CalcAbsolutePosition)
@@ -261,7 +317,7 @@ void CBaseEntity::CalcAbsolutePosition(void)
 	}
 }
 
-static Symbols::CCollisionProperty_MarkSurroundingBoundsDirty func_CCollisionProperty_MarkSurroundingBoundsDirty;
+static Symbols::CCollisionProperty_MarkSurroundingBoundsDirty func_CCollisionProperty_MarkSurroundingBoundsDirty = nullptr;
 void CCollisionProperty::MarkSurroundingBoundsDirty()
 {
 	if (func_CCollisionProperty_MarkSurroundingBoundsDirty)
@@ -275,9 +331,17 @@ void CCollisionProperty::MarkSurroundingBoundsDirty()
 CBaseEntity* Util::GetCBaseEntityFromEdict(edict_t* edict)
 {
 	if (!edict)
-		return NULL;
+		return nullptr;
 
 	return Util::servergameents->EdictToBaseEntity(edict);
+}
+
+CBaseEntity* Util::GetCBaseEntityFromIndex(int nEntIndex)
+{
+	if (nEntIndex < 0 || nEntIndex > MAX_EDICTS)
+		return nullptr;
+
+	return Util::servergameents->EdictToBaseEntity(Util::engineserver->PEntityOfEntIndex(nEntIndex));
 }
 
 CBaseEntity* Util::FirstEnt()
@@ -286,7 +350,7 @@ CBaseEntity* Util::FirstEnt()
 		return Util::entitylist->FirstEnt();
 
 	if (!Util::engineserver)
-		return NULL; // We can't continue like this...
+		return nullptr; // We can't continue like this...
 
 	return Util::GetCBaseEntityFromEdict(Util::engineserver->PEntityOfEntIndex(0)); // Return the world as the start
 }
@@ -297,12 +361,12 @@ CBaseEntity* Util::NextEnt(CBaseEntity* pEnt)
 		return Util::entitylist->NextEnt(pEnt);
 
 	if (!Util::engineserver)
-		return NULL; // We can't continue like this...
+		return nullptr; // We can't continue like this...
 
 	int nextIndex = pEnt->edict()->m_EdictIndex + 1;
 	int totalCount = Util::engineserver->GetEntityCount();
 	if (totalCount <= nextIndex) // ToDo: Verify that we don't skip the last entitiy.
-		return NULL;
+		return nullptr;
 
 	CBaseEntity* pEntity = Util::GetCBaseEntityFromEdict(Util::engineserver->PEntityOfEntIndex(nextIndex));
 	while (!pEntity && totalCount > nextIndex) // Search for the next entity, we stop if the next index reaches the total count of edicts.
@@ -343,9 +407,9 @@ static void hook_CSteam3Server_NotifyClientDisconnect(void* pServer, CBaseClient
 	detour_CSteam3Server_NotifyClientDisconnect.GetTrampoline<Symbols::CSteam3Server_NotifyClientDisconnect>()(pServer, pClient);
 }
 
-static HSteamPipe hSteamPipe = NULL;
-static HSteamUser hSteamUser = NULL;
-static ISteamUser* g_pSteamUser = NULL;
+static HSteamPipe hSteamPipe;
+static HSteamUser hSteamUser;
+static ISteamUser* g_pSteamUser = nullptr;
 void ShutdownSteamUser()
 {
 	// Warning("ShutdownSteamUser called! %p\n", g_pSteamUser);
@@ -373,7 +437,7 @@ void ShutdownSteamUser()
 
 void CreateSteamUserIfMissing()
 {
-	Warning("CreateSteamUserIfMissing called! %p\n", g_pSteamUser);
+	// Warning("CreateSteamUserIfMissing called! %p\n", g_pSteamUser);
 	if (!g_pSteamUser)
 	{
 		if (SteamUser())
@@ -393,7 +457,7 @@ void CreateSteamUserIfMissing()
 			hSteamUser = pSteamClient->CreateLocalUser(&hSteamPipe, k_EAccountTypeAnonUser);
 			g_pSteamUser = pSteamClient->GetISteamUser(hSteamUser, hSteamPipe, "SteamUser023");
 
-			Warning("CreateSteamUserIfMissing done! %p\n", g_pSteamUser);
+			// Warning("CreateSteamUserIfMissing done! %p\n", g_pSteamUser);
 		}
 	}
 }
@@ -415,53 +479,162 @@ static void hook_SteamGameServer_Shutdown()
 	detour_SteamGameServer_Shutdown.GetTrampoline<Symbols::SteamGameServer_Shutdown>()();
 }
 
-IGet* Util::get;
-CBaseEntityList* g_pEntityList = NULL;
-Symbols::lua_rawseti Util::func_lua_rawseti;
-Symbols::lua_rawgeti Util::func_lua_rawgeti;
-IGameEventManager2* Util::gameeventmanager;
-IServerGameDLL* Util::servergamedll;
+std::unordered_set<std::string> Util::pBlockedEvents;
+static Detouring::Hook detour_CGameEventManager_CreateEvent;
+static IGameEvent* hook_CGameEventManager_CreateEvent(void* manager, const char* name, bool bForce)
+{
+	auto it = Util::pBlockedEvents.find(name);
+	if (it != Util::pBlockedEvents.end())
+		return NULL;
+
+	return detour_CGameEventManager_CreateEvent.GetTrampoline<Symbols::CGameEventManager_CreateEvent>()(manager, name, bForce);
+}
+
+void Util::BlockGameEvent(const char* pName)
+{
+	auto it = pBlockedEvents.find(pName);
+	if (it != pBlockedEvents.end())
+			return;
+
+	pBlockedEvents.insert(pName);
+}
+
+void Util::UnblockGameEvent(const char* pName)
+{
+	auto it = pBlockedEvents.find(pName);
+	if (it == pBlockedEvents.end())
+			return;
+
+	pBlockedEvents.erase(it);
+}
+
+/*
+	This isn't made for speed, instead this will be called once by code on ServerActivate
+	where then the calling code can cache the value.
+
+	Why do we use SendProp?
+	Because they are the most reliable and secure way to get offsets to variables even across platforms.
+	We normally try to avoid offsets, but these offset are our love.
+*/
+static std::unordered_map<std::string, std::unordered_set<SendProp*>> g_pSendProps;
+extern void AddSendProp(SendProp* pProp, std::unordered_set<SendProp*>& pSendProp);
+extern void AddSendTable(SendTable* pTables);
+void AddSendProp(SendProp* pProp, std::unordered_set<SendProp*>& pSendProp)
+{
+	if (pSendProp.find(pProp) == pSendProp.end())
+		pSendProp.insert(pProp);
+
+	if (pProp->GetDataTable())
+		AddSendTable(pProp->GetDataTable());
+
+	if (pProp->GetArrayProp())
+		AddSendProp(pProp->GetArrayProp(), pSendProp);
+}
+
+void AddSendTable(SendTable* pTable)
+{
+	std::unordered_set<SendProp*> pSendProp;
+	for (int i = 0; i < pTable->GetNumProps(); i++) {
+		SendProp* pProp = &pTable->m_pProps[i]; // Windows screwing with GetProp
+		
+		AddSendProp(pProp, pSendProp);
+	}
+
+	g_pSendProps[pTable->GetName()] = pSendProp;
+}
+
+int Util::FindOffsetForNetworkVar(const char* pDTName, const char* pVarName)
+{
+	if (!Util::servergamedll)
+		return -1;
+
+	if (g_pSendProps.size() == 0)
+	{
+		for(ServerClass *serverclass = Util::servergamedll->GetAllServerClasses(); serverclass->m_pNext != nullptr; serverclass = serverclass->m_pNext)
+			AddSendTable(serverclass->m_pTable);
+	}
+
+	auto it = g_pSendProps.find(pDTName);
+	if (it != g_pSendProps.end())
+	{
+		for (SendProp* pProp : it->second)
+		{
+			if (((std::string_view)pVarName) == pProp->GetName())
+			{
+				if (pProp->GetArrayProp())
+					return pProp->GetArrayProp()->GetOffset();
+
+				return pProp->GetOffset();
+			}
+		}
+	}
+
+	return -1;
+}
+
+IGet* Util::get = nullptr;
+CBaseEntityList* g_pEntityList = nullptr;
+Symbols::lua_rawseti Util::func_lua_rawseti = nullptr;
+Symbols::lua_rawgeti Util::func_lua_rawgeti = nullptr;
+IGameEventManager2* Util::gameeventmanager = nullptr;
+IServerGameDLL* Util::servergamedll = nullptr;
+Symbols::lj_tab_new Util::func_lj_tab_new = nullptr;
+Symbols::lj_gc_barrierf Util::func_lj_gc_barrierf = nullptr;
+Symbols::lj_tab_get Util::func_lj_tab_get = nullptr;
+Symbols::lua_setfenv Util::func_lua_setfenv = nullptr;
+Symbols::lua_touserdata Util::func_lua_touserdata = nullptr;
+Symbols::lua_type Util::func_lua_type = nullptr;
+Symbols::luaL_checklstring Util::func_luaL_checklstring = nullptr;
+Symbols::lua_pcall Util::func_lua_pcall = nullptr;
+Symbols::lua_insert Util::func_lua_insert = nullptr;
+Symbols::lua_toboolean Util::func_lua_toboolean = nullptr;
 void Util::AddDetour()
 {
 	if (g_pModuleManager.GetAppFactory())
-		engineserver = (IVEngineServer*)g_pModuleManager.GetAppFactory()(INTERFACEVERSION_VENGINESERVER, NULL);
+		engineserver = (IVEngineServer*)g_pModuleManager.GetAppFactory()(INTERFACEVERSION_VENGINESERVER, nullptr);
 	else
 		engineserver = InterfacePointers::VEngineServer();
-	Detour::CheckValue("get interface", "IVEngineServer", engineserver != NULL);
+	Detour::CheckValue("get interface", "IVEngineServer", engineserver != nullptr);
 	
 	SourceSDK::FactoryLoader engine_loader("engine");
 	if (g_pModuleManager.GetAppFactory())
-		gameeventmanager = (IGameEventManager2*)g_pModuleManager.GetAppFactory()(INTERFACEVERSION_GAMEEVENTSMANAGER2, NULL);
+		gameeventmanager = (IGameEventManager2*)g_pModuleManager.GetAppFactory()(INTERFACEVERSION_GAMEEVENTSMANAGER2, nullptr);
 	else
 		gameeventmanager = engine_loader.GetInterface<IGameEventManager2>(INTERFACEVERSION_GAMEEVENTSMANAGER2);
-	Detour::CheckValue("get interface", "IGameEventManager", gameeventmanager != NULL);
+	Detour::CheckValue("get interface", "IGameEventManager", gameeventmanager != nullptr);
 
 	SourceSDK::FactoryLoader server_loader("server");
 	pUserMessages = Detour::ResolveSymbol<CUserMessages>(server_loader, Symbols::UsermessagesSym);
-	Detour::CheckValue("get class", "usermessages", pUserMessages != NULL);
+	Detour::CheckValue("get class", "usermessages", pUserMessages != nullptr);
 
 	if (g_pModuleManager.GetAppFactory())
-		servergameents = (IServerGameEnts*)g_pModuleManager.GetGameFactory()(INTERFACEVERSION_SERVERGAMEENTS, NULL);
+		servergameents = (IServerGameEnts*)g_pModuleManager.GetGameFactory()(INTERFACEVERSION_SERVERGAMEENTS, nullptr);
 	else
 		servergameents = server_loader.GetInterface<IServerGameEnts>(INTERFACEVERSION_SERVERGAMEENTS);
-	Detour::CheckValue("get interface", "IServerGameEnts", servergameents != NULL);
+	Detour::CheckValue("get interface", "IServerGameEnts", servergameents != nullptr);
 
 	if (g_pModuleManager.GetAppFactory())
-		servergameclients = (IServerGameClients*)g_pModuleManager.GetGameFactory()(INTERFACEVERSION_SERVERGAMECLIENTS, NULL);
+		servergameclients = (IServerGameClients*)g_pModuleManager.GetGameFactory()(INTERFACEVERSION_SERVERGAMECLIENTS, nullptr);
 	else
 		servergameclients = server_loader.GetInterface<IServerGameClients>(INTERFACEVERSION_SERVERGAMECLIENTS);
-	Detour::CheckValue("get interface", "IServerGameClients", servergameclients != NULL);
+	Detour::CheckValue("get interface", "IServerGameClients", servergameclients != nullptr);
 
 	if (g_pModuleManager.GetAppFactory())
-		servergamedll = (IServerGameDLL*)g_pModuleManager.GetGameFactory()(INTERFACEVERSION_SERVERGAMEDLL, NULL);
+		servergamedll = (IServerGameDLL*)g_pModuleManager.GetGameFactory()(INTERFACEVERSION_SERVERGAMEDLL, nullptr);
 	else
 		servergamedll = server_loader.GetInterface<IServerGameDLL>(INTERFACEVERSION_SERVERGAMEDLL);
-	Detour::CheckValue("get interface", "IServerGameDLL", servergamedll != NULL);
+	Detour::CheckValue("get interface", "IServerGameDLL", servergamedll != nullptr);
 
 	Detour::Create(
 		&detour_CSteam3Server_NotifyClientDisconnect, "CSteam3Server::NotifyClientDisconnect",
 		engine_loader.GetModule(), Symbols::CSteam3Server_NotifyClientDisconnectSym,
 		(void*)hook_CSteam3Server_NotifyClientDisconnect, 0
+	);
+
+	Detour::Create(
+		&detour_CGameEventManager_CreateEvent, "CGameEventManager::CreateEvent",
+		engine_loader.GetModule(), Symbols::CGameEventManager_CreateEventSym,
+		(void*)hook_CGameEventManager_CreateEvent, 0
 	);
 
 	SourceSDK::ModuleLoader steam_api_loader("steam_api");
@@ -472,11 +645,11 @@ void Util::AddDetour()
 	);
 
 	server = InterfacePointers::Server();
-	Detour::CheckValue("get class", "IServer", server != NULL);
+	Detour::CheckValue("get class", "IServer", server != nullptr);
 
-	IServerTools* serverTools = NULL;
+	IServerTools* serverTools = nullptr;
 	if (g_pModuleManager.GetAppFactory())
-		serverTools = (IServerTools*)g_pModuleManager.GetGameFactory()(VSERVERTOOLS_INTERFACE_VERSION, NULL);
+		serverTools = (IServerTools*)g_pModuleManager.GetGameFactory()(VSERVERTOOLS_INTERFACE_VERSION, nullptr);
 	else
 		serverTools = server_loader.GetInterface<IServerTools>(VSERVERTOOLS_INTERFACE_VERSION);
 
@@ -494,14 +667,14 @@ void Util::AddDetour()
 		#endif
 	}
 
-	Detour::CheckValue("get class", "gEntList", entitylist != NULL);
+	Detour::CheckValue("get class", "gEntList", entitylist != nullptr);
 	g_pEntityList = entitylist;
 	if (entitylist)
 		entitylist->AddListenerEntity(&pHolyEntityListener);
 
 #ifdef ARCHITECTURE_X86 // We don't use it on 64x, do we. Look into pas_FindInPAS to see how we do it ^^
 	get = Detour::ResolveSymbol<IGet>(server_loader, Symbols::CGetSym);
-	Detour::CheckValue("get class", "IGet", get != NULL);
+	Detour::CheckValue("get class", "IGet", get != nullptr);
 #endif
 
 	func_CM_Vis = (Symbols::CM_Vis)Detour::GetFunction(engine_loader.GetModule(), Symbols::CM_VisSym);
@@ -513,6 +686,45 @@ void Util::AddDetour()
 
 	func_lua_rawgeti = (Symbols::lua_rawgeti)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_rawgetiSym);
 	Detour::CheckFunction((void*)func_lua_rawgeti, "lua_rawgeti");
+
+	func_lj_tab_new = (Symbols::lj_tab_new)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lj_tab_newSym);
+	Detour::CheckFunction((void*)func_lj_tab_new, "lj_tab_new");
+
+	func_lua_touserdata = (Symbols::lua_touserdata)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_touserdataSym);
+	Detour::CheckFunction((void*)func_lua_touserdata, "lua_touserdata");
+
+	func_lua_type = (Symbols::lua_type)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_typeSym);
+	Detour::CheckFunction((void*)func_lua_type, "lua_type");
+
+	func_lua_setfenv = (Symbols::lua_type)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_setfenvSym);
+	Detour::CheckFunction((void*)func_lua_setfenv, "lua_setfenv");
+
+	func_luaL_checklstring = (Symbols::luaL_checklstring)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::luaL_checklstringSym);
+	Detour::CheckFunction((void*)func_luaL_checklstring, "luaL_checklstring");
+
+	func_lua_pcall = (Symbols::lua_pcall)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_pcallSym);
+	Detour::CheckFunction((void*)func_lua_pcall, "lua_pcall");
+
+	func_lua_insert = (Symbols::lua_insert)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_insertSym);
+	Detour::CheckFunction((void*)func_lua_insert, "lua_insert");
+
+	func_lua_toboolean = (Symbols::lua_toboolean)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_tobooleanSym);
+	Detour::CheckFunction((void*)func_lua_toboolean, "lua_toboolean");
+
+	func_lj_gc_barrierf = (Symbols::lj_gc_barrierf)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lj_gc_barrierfSym);
+	Detour::CheckFunction((void*)func_lj_gc_barrierf, "lj_gc_barrierf");
+
+	func_lj_tab_get = (Symbols::lj_tab_get)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lj_tab_getSym);
+	Detour::CheckFunction((void*)func_lj_tab_get, "lj_tab_get");
+
+	if (!func_lua_touserdata || !func_lua_type || !func_lua_setfenv || !func_luaL_checklstring || !func_lua_pcall || !func_lua_insert || !func_lua_toboolean)
+	{
+		// This is like the ONLY dependency we have on symbols that without we cannot function.
+		Error(PROJECT_NAME " - core: Failed to load an important symbol which we utterly depend on.\n");
+	}
+
+	func_CBaseEntity_GetLuaEntity = (Symbols::CBaseEntity_GetLuaEntity)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseEntity_GetLuaEntitySym);
+	Detour::CheckFunction((void*)func_CBaseEntity_GetLuaEntity, "CBaseEntity::GetLuaEntity");
 
 	pEntityList = g_pModuleManager.FindModuleByName("entitylist");
 
@@ -565,11 +777,34 @@ bool Util::ShouldLoad()
 	return true;
 }
 
-void Util::CheckVersion()
+void Util::CheckVersion() // This is called only when holylib is initially loaded!
 {
-	// ToDo: Implement this someday
+	// ToDo: Implement this someday / finish this implementation
+	httplib::Client pClient("http://holylib.raphaelit7.com");
+
+	httplib::Headers headers = {
+		{ "HolyLib_Branch", HolyLib_GetBranch() },
+		{ "HolyLib_RunNumber", HolyLib_GetRunNumber() },
+		{ "HolyLib_Version", HolyLib_GetVersion() }
+	};
+
+	auto res = pClient.Get("/api/check_version");
+	if (res->status == 200)
+	{
+		Bootil::Data::Tree pTree;
+		if (Bootil::Data::Json::Import(pTree, res->body.c_str()))
+		{
+			if (pTree.GetChild("status").Value() == "ok")
+			{
+				Msg(PROJECT_NAME " - versioncheck: We are up to date\n");
+			}
+		} else {
+			DevMsg(PROJECT_NAME " - versioncheck: Received invalid json!\n");
+		}
+	}
 }
 
+extern void LoadDLLs(); // From the dllsystem.cpp
 static bool g_bUtilInit = false;
 void Util::Load()
 {
@@ -577,6 +812,9 @@ void Util::Load()
 		return;
 
 	g_bUtilInit = true;
+
+	LoadDLLs();
+
 	IConfig* pConVarConfig = g_pConfigSystem->LoadConfig("garrysmod/holylib/cfg/convars.json");
 	if (pConVarConfig)
 	{
@@ -584,7 +822,7 @@ void Util::Load()
 		{
 			Warning(PROJECT_NAME " - core: Failed to load convars.json!\n- Check if the json is valid or delete the config to let a new one be generated!\n");
 			pConVarConfig->Destroy(); // Our config is in a invaid state :/
-			pConVarConfig = NULL;
+			pConVarConfig = nullptr;
 			return;
 		}
 
@@ -641,6 +879,31 @@ void Util::Load()
 		pConVarConfig->Save();
 		pConVarConfig->Destroy();
 	}
+
+	IConfig* pCoreConfig = g_pConfigSystem->LoadConfig("garrysmod/holylib/cfg/core.json");
+	if (pCoreConfig)
+	{
+		if (pCoreConfig->GetState() == ConfigState::INVALID_JSON)
+		{
+			Warning(PROJECT_NAME " - core: Failed to load core.json!\n- Check if the json is valid or delete the config to let a new one be generated!\n");
+			pCoreConfig->Destroy(); // Our config is in a invaid state :/
+			pCoreConfig = nullptr;
+			return;
+		}
+
+		Bootil::Data::Tree& pData = pCoreConfig->GetData();
+
+		// checkVersion block
+		Bootil::Data::Tree& pEntry = pData.GetChild("checkVersion");
+		pEntry.SetChildVar<Bootil::BString>("description", "(Unfinished implementation) If enabled, HolyLib will attempt to request the newest version from the wiki and compare them.");
+		if (pEntry.EnsureChildVar<bool>("enabled", false))
+		{
+			Util::CheckVersion();
+		}
+
+		pCoreConfig->Save();
+		pCoreConfig->Destroy();
+	}
 }
 
 void Util::Unload()
@@ -676,13 +939,15 @@ static void CreateDebugDump(const CCommand &args)
 
 		if (Util::get)
 		{
-			pInformation.EnsureChildVar<Bootil::BString>("version", Util::get->VersionStr());
-			pInformation.EnsureChildVar<Bootil::BString>("versionTime", Util::get->VersionTimeStr());
-			pInformation.EnsureChildVar<Bootil::BString>("branch", Util::get->SteamBranch());
+			Bootil::Data::Tree& pGmodInformation = pData.GetChild("gmod");
+			pGmodInformation.EnsureChildVar<Bootil::BString>("version", Util::get->VersionStr());
+			pGmodInformation.EnsureChildVar<Bootil::BString>("versionTime", Util::get->VersionTimeStr());
+			pGmodInformation.EnsureChildVar<Bootil::BString>("branch", Util::get->SteamBranch());
 		}
 
 		// Dump all holylib convars.
 		{
+			Bootil::Data::Tree& pConVars = pData.GetChild("convars");
 		#if ARCHITECTURE_IS_X86_64
 			ICvar::Iterator iter(g_pCVar);
 			for ( iter.SetFirst() ; iter.IsValid() ; iter.Next() )
@@ -695,10 +960,27 @@ static void CreateDebugDump(const CCommand &args)
 				if (!pCommand->IsCommand() && pCommand->GetDLLIdentifier() == *ConVar_GetDLLIdentifier())
 				{
 					ConVar* pConVar = (ConVar*)pCommand;
-					Bootil::Data::Tree& pEntry = pData.GetChild("convars").GetChild(pConVar->GetName());
+					Bootil::Data::Tree& pEntry = pConVars.GetChild(pConVar->GetName());
 					pEntry.EnsureChildVar<Bootil::BString>("value", pConVar->GetString());
 				}
 			}
+		}
+
+		// Dump detour information
+		{
+			Bootil::Data::Tree& pDetours = pData.GetChild("detours");
+
+			Bootil::Data::Tree& pLoadedDetours = pDetours.GetChild("loaded");
+			for (auto& pName : Detour::GetLoadedDetours())
+				pLoadedDetours.EnsureChildVar<bool>(pName, true);
+
+			Bootil::Data::Tree& pFailedDetours = pDetours.GetChild("failed");
+			for (auto& pName : Detour::GetFailedDetours())
+				pFailedDetours.EnsureChildVar<bool>(pName, true);
+
+			Bootil::Data::Tree& pDisabledDetours = pDetours.GetChild("disabled");
+			for (auto& pName : Detour::GetDisabledDetours())
+				pDisabledDetours.EnsureChildVar<bool>(pName, true);
 		}
 
 		pDebugDump->Save();
@@ -710,6 +992,18 @@ static void CreateDebugDump(const CCommand &args)
 	}
 }
 static ConCommand createdebugdump("holylib_createdebugdump", CreateDebugDump, "Creates a debug dump that can be provided in a issue or bug report", 0);
+
+static void ShowOffsetOfVar(const CCommand &args)
+{
+	if (args.ArgC() != 3)
+	{
+		Msg("holylib_showdtoffset [dtname] [varname]\n");
+		return;
+	}
+
+	Msg("Offset: %i\n", Util::FindOffsetForNetworkVar(args.Arg(1), args.Arg(2)));
+}
+static ConCommand showdtoffset("holylib_showdtoffset", ShowOffsetOfVar, "Shows the offset", 0);
 
 GMODGet_LuaClass(IRecipientFilter, GarrysMod::Lua::Type::RecipientFilter, "RecipientFilter", )
 GMODGet_LuaClass(Vector, GarrysMod::Lua::Type::Vector, "Vector", )

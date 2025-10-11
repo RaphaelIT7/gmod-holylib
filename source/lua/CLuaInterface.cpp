@@ -1,6 +1,6 @@
-#include "../lua/lua.hpp"
-#include "../lua/lj_obj.h"
-#include "../lua/luajit_rolling.h"
+#include "../luajit/src/lua.hpp"
+#include "../luajit/src/lj_obj.h"
+#include "../luajit/src/luajit_rolling.h"
 #include "CLuaInterface.h"
 #include <filesystem.h>
 #include "iluashared.h"
@@ -190,8 +190,8 @@ inline void CLuaInterface_DebugPrint(int level, const char* fmt, ...)
 // =================================
 // First gmod function
 // =================================
-std::string g_LastError;
-std::vector<lua_Debug*> stackErrors;
+// std::string g_LastError;
+// std::vector<lua_Debug*> stackErrors;
 GarrysMod::Lua::ILuaGameCallback::CLuaError* ReadStackIntoError(lua_State* L)
 {
 	// VPROF ReadStackIntoError GLua
@@ -225,14 +225,17 @@ int AdvancedLuaErrorReporter(lua_State *L)
 {
 	// VPROF AdvancedLuaErrorReporter GLua
 
-	if (lua_isstring(L, 0)) {
-		const char* str = lua_tostring(L, 0);
+	if (lua_isstring(L, 1)) {
+		const char* str = lua_tostring(L, 1);
 
-		g_LastError.assign(str);
+		// g_LastError.assign(str);
 
-		ReadStackIntoError(L);
+		CLuaInterface* LUA = (CLuaInterface*)L->luabase;
+		lua_pushvalue(L, 1);
+		LUA->GetLuaGameCallback()->LuaError(ReadStackIntoError(L));
+		lua_pop(L, 1);
 
-		lua_pushstring(L, g_LastError.c_str());
+		// lua_pushstring(L, g_LastError.c_str());
 	}
 
 	return 0;
@@ -258,6 +261,32 @@ void Lua::CloseLuaInterface(GarrysMod::Lua::ILuaInterface* LuaInterface)
 // =================================
 // ILuaBase / CBaseLuaInterface implementation
 // =================================
+
+CLuaInterface::~CLuaInterface()
+{
+	if (state != NULL)
+	{
+		Shutdown();
+		return;
+	}
+
+	// This is just for safety to ensure no memory leaks.
+	for (int i=0; i<255; ++i) {
+		if (m_pMetaTables[i])
+		{
+			DestroyObject(m_pMetaTables[i]);
+			m_pMetaTables[i] = nullptr;
+		}
+	}
+
+	for (int i=0; i<LUA_MAX_TEMP_OBJECTS; ++i) {
+		if (m_TempObjects[i])
+		{
+			DestroyObject(m_TempObjects[i]);
+			m_TempObjects[i] = nullptr;
+		}
+	}
+}
 
 int CLuaInterface::Top()
 {
@@ -597,6 +626,7 @@ void CLuaInterface::CreateMetaTableType(const char* strName, int iType)
 		if (!pObject)
 		{
 			pObject = CreateObject();
+			ToSimpleObject(pObject)->SetFromStack(-1, this);
 			m_pMetaTables[iType] = pObject;
 		}
 		ToSimpleObject(pObject)->SetFromStack(-1, this);
@@ -705,6 +735,9 @@ int CLuaInterface::CreateMetaTable(const char* strName) // Return value is proba
 	} else {
 		// Missing this logic in lua-shared, CreateMetaTable creates it if it's missing, just as its name would imply.
 		luaL_newmetatable_type(state, strName, ++m_iMetaTableIDCounter);
+		GarrysMod::Lua::ILuaObject* pObject = CreateObject();
+		ToSimpleObject(pObject)->SetFromStack(-1, this);
+		m_pMetaTables[m_iMetaTableIDCounter] = pObject;
 		return m_iMetaTableIDCounter;
 	}
 
@@ -778,6 +811,8 @@ bool CLuaInterface::Init( GarrysMod::Lua::ILuaGameCallback* callback, bool bIsSe
 	}
 	m_iCurrentTempObject = 0;
 
+	m_bShutDownThreadedCalls = false;
+
 	state = luaL_newstate();
 	luaL_openlibs(state);
 
@@ -787,7 +822,7 @@ bool CLuaInterface::Init( GarrysMod::Lua::ILuaGameCallback* callback, bool bIsSe
 	lua_atpanic(state, LuaPanic);
 
 	lua_pushcclosure(state, AdvancedLuaErrorReporter, 0);
-	lua_setglobal(state, "AdvancedLuaErrorReporter");
+	m_nLuaErrorReporter = luaL_ref(state, LUA_REGISTRYINDEX); // Since this is the first ever ref call luaErrorReporter will always be 1
 
 	{
 		luaJIT_setmode(state, -1, LUAJIT_MODE_WRAPCFUNC|LUAJIT_MODE_ON);
@@ -868,9 +903,26 @@ void CLuaInterface::Shutdown()
 	}
 
 	GMOD_UnloadBinaryModules(state);
+	ShutdownThreadedCalls();
 
 	lua_close(state);
 	state = NULL;
+
+	for (int i=0; i<255; ++i) {
+		if (m_pMetaTables[i])
+		{
+			DestroyObject(m_pMetaTables[i]);
+			m_pMetaTables[i] = nullptr;
+		}
+	}
+
+	for (int i=0; i<LUA_MAX_TEMP_OBJECTS; ++i) {
+		if (m_TempObjects[i])
+		{
+			DestroyObject(m_TempObjects[i]);
+			m_TempObjects[i] = nullptr;
+		}
+	}
 }
 
 static int iLastTimeCheck = 0;
@@ -889,26 +941,71 @@ void CLuaInterface::Cycle()
 void CLuaInterface::RunThreadedCalls()
 {
 	LuaDebugPrint(3, "CLuaInterface::RunThreadedCalls\n");
-	for (GarrysMod::Lua::ILuaThreadedCall* call : m_pThreadedCalls)
+
+	// unordered_set instead of a vector to improve performance of the second pass
+	std::unordered_set<GarrysMod::Lua::ILuaThreadedCall*> pFinishedCalls;
+
+	// We create a copy for the rare case that a task might call AddThreadedCall inside IsDone, if we didn't do this it could break iteration!
+	m_pThreadedCallsMutex.Lock(); // We don't need to keep it locked for longer thanks to our copy.
+	std::list<GarrysMod::Lua::ILuaThreadedCall*> pThreadedCalls = m_pThreadedCalls;
+	m_pThreadedCallsMutex.Unlock();
+
+	for (auto it = pThreadedCalls.begin(); it != pThreadedCalls.end(); )
 	{
-		call->Init();
+		if ((*it)->IsDone())
+		{
+			pFinishedCalls.insert(*it);
+			continue;
+		}
+
+		it++;
 	}
 
-	for (GarrysMod::Lua::ILuaThreadedCall* call : m_pThreadedCalls)
+	// Second pass though without calling any callback ensuring that AddThreadedCall is not possibly invoked
+	if (!pFinishedCalls.empty())
 	{
-		call->Run(this);
+		AUTO_LOCK(m_pThreadedCallsMutex);
+		m_pThreadedCalls.remove_if([&pFinishedCalls](GarrysMod::Lua::ILuaThreadedCall* call) {
+			return pFinishedCalls.find(call) != pFinishedCalls.end();
+		});
 	}
 
-	m_pThreadedCalls.clear();
+	for (GarrysMod::Lua::ILuaThreadedCall* call : pFinishedCalls)
+		call->Done(this);
+
+	pFinishedCalls.clear();
 }
 
 int CLuaInterface::AddThreadedCall(GarrysMod::Lua::ILuaThreadedCall* call)
 {
 	LuaDebugPrint(1, "CLuaInterface::AddThreadedCall What called this?\n");
 
-	m_pThreadedCalls.push_back(call);
+	if (m_bShutDownThreadedCalls.load())
+	{
+		call->OnShutdown();
+		return 0;
+	}
 
-	return m_pThreadedCalls.size();
+	AUTO_LOCK(m_pThreadedCallsMutex);
+
+	m_pThreadedCalls.push_back(call);
+	int nSize = m_pThreadedCalls.size(); // Just to be sure, idk if the Mutex would cover a call in the return
+
+	return nSize;
+}
+
+void CLuaInterface::ShutdownThreadedCalls()
+{
+	m_bShutDownThreadedCalls.store(true);
+
+	// We don't check for the case of a deadlock as it shouldn't happen that from inside IsDone it could enter ShutdownThreadedCalls?
+	// If something inside the OnShutdown callback does try to add a new task m_bShutDownThreadedCalls will stop them.
+	AUTO_LOCK(m_pThreadedCallsMutex);
+
+	for (GarrysMod::Lua::ILuaThreadedCall* pCall : m_pThreadedCalls)
+		pCall->OnShutdown();
+
+	m_pThreadedCalls.clear();
 }
 
 GarrysMod::Lua::ILuaObject* CLuaInterface::Global()
@@ -929,8 +1026,7 @@ GarrysMod::Lua::ILuaObject* CLuaInterface::GetObject(int index)
 void CLuaInterface::PushLuaObject(GarrysMod::Lua::ILuaObject* obj)
 {
 	LuaDebugPrint(4, "CLuaInterface::PushLuaObject\n");
-	if (obj)
-	{
+	if (obj) {
 		ToSimpleObject(obj)->Push(this);
 	} else {
 		PushNil();
@@ -947,8 +1043,7 @@ void CLuaInterface::LuaError(const char* str, int iStackPos)
 {
 	LuaDebugPrint(4, "CLuaInterface::LuaError %s %i\n", str, iStackPos);
 	
-	if (iStackPos != -1)
-	{
+	if (iStackPos != -1) {
 		luaL_argerror(state, iStackPos, str);
 	} else {
 		ErrorNoHalt("%s", str);
@@ -971,9 +1066,7 @@ void CLuaInterface::CallInternal(int args, int rets)
 		Error("[CLuaInterface::Call] Expecting more returns than possible\n");
 
 	for (int i=0; i<3; ++i)
-	{
 		m_ProtectedFunctionReturns[i] = nullptr;
-	}
 
 	if (IsType(-(args + 1), GarrysMod::Lua::Type::Function))
 	{
@@ -1361,7 +1454,7 @@ std::string ToPath(std::string path)
 	if ( resultPath.find( "gamemodes/" ) == 0 )
 		resultPath.erase( 0, 10 );
 
-    if (resultPath.rfind("addons/", 0) == 0) // ToDo: I think we can remove this again.
+	if (resultPath.rfind("addons/", 0) == 0) // ToDo: I think we can remove this again.
 	{
 		size_t first = path.find('/', 7);
 		if (first != std::string::npos)
@@ -1490,37 +1583,22 @@ void CLuaInterface::Msg( const char* fmt, ... )
 void CLuaInterface::PushPath( const char* path )
 {
 	LuaDebugPrint(2, "CLuaInterface::PushPath %s\n", path);
-	char* str = new char[strlen(path)];
-	V_strncpy( str, path, strlen(path) );
-	str[ strlen(path) - 1 ] = '\0'; // nuke the last /
-	m_sCurrentPath = str;
-	m_pPaths.push_back( str );
-	++m_iPushedPaths;
+	
+	m_CurrentPaths.Push();
+	V_strncpy(m_CurrentPaths.Top().path, path, MAX_PATH);
 }
 
 void CLuaInterface::PopPath()
 {
 	LuaDebugPrint(2, "CLuaInterface::PopPath\n");
-	char* str = m_pPaths.back();
-	delete[] str;
-	m_pPaths.pop_back();
-
-	--m_iPushedPaths;
-	if ( m_iPushedPaths > 0 )
-		m_sCurrentPath = m_pPaths.back();
-	else
-		m_sCurrentPath = NULL;
+	
+	m_CurrentPaths.Pop();
 }
 
 const char* CLuaInterface::GetPath()
 {
-	LuaDebugPrint(2, "CLuaInterface::GetPath\n");
-
-	if ( m_iPushedPaths <= 0 )
-		return NULL;
-
-	LuaDebugPrint(2, "CLuaInterface::GetPath %s\n", (const char*)m_pPaths.back());
-	return m_pPaths.back();
+	LuaDebugPrint(2, "CLuaInterface::GetPath %s\n", (const char*)m_CurrentPaths.Top().path);
+	return m_CurrentPaths.Top().path;
 }
 
 int CLuaInterface::GetColor(int iStackPos) // Probably returns the StackPos
@@ -1761,7 +1839,11 @@ bool CLuaInterface::CallFunctionProtected(int iArgs, int iRets, bool showError)
 		return false;
 	}
 
-	int ret = PCall(iArgs, iRets, 0);
+	int nPos = lua_gettop(state) - iArgs;
+	lua_rawgeti(state, LUA_REGISTRYINDEX, m_nLuaErrorReporter);
+	lua_insert(state, nPos);
+	int ret = PCall(iArgs, iRets, -1);
+	lua_remove(state, nPos);
 	if (ret != 0)
 	{
 		GarrysMod::Lua::ILuaGameCallback::CLuaError* err = ReadStackIntoError(state);

@@ -75,8 +75,9 @@ namespace Bootil
 #endif
 		}
 
-		bool ChangeMonitor::WatchFolder( const BString & strFolder, bool bWatchSubtree )
+		bool ChangeMonitor::WatchFolder( const BString & strFolder, bool bWatchSubtree/*, const std::vector<BString>& strSubFolders*/)
 		{
+			// ToDo: strSubFolders is used by gmod to specify which sub folders specifically should be watched to reduce watcher thingys on Linux iirc
 			Stop();
 
 			m_strFolderName = strFolder;
@@ -144,6 +145,98 @@ namespace Bootil
 			StartWatch();
 
 			return true;
+		}
+
+		bool ChangeMonitor::AddFolderToWatch(const BString& strFolder, bool bWatchSubtree)
+		{
+			if (!m_dirHandles)
+				m_dirHandles = new std::vector<WatcherData>;
+
+			for (const auto& watcher : *static_cast<std::vector<WatcherData>*>(m_dirHandles))
+			{
+				if (watcher.directory == strFolder)
+					return true;
+			}
+
+			WatcherData watcherData;
+			watcherData.directory = strFolder;
+
+#ifdef _WIN32
+			watcherData.directoryHandle = CreateFileA(watcherData.directory.c_str(), FILE_LIST_DIRECTORY, FILE_SHARE_READ | FILE_SHARE_WRITE | FILE_SHARE_DELETE, NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS | FILE_FLAG_OVERLAPPED, NULL);
+
+			if (watcherData.directoryHandle == INVALID_HANDLE_VALUE)
+				return false;
+
+			memset(&watcherData.overlapped, 0, sizeof(watcherData.overlapped));
+			watcherData.overlapped.hEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+			std::fill(std::begin(watcherData.buffer), std::end(watcherData.buffer), 0);
+
+#elif __linux__
+			int flags = IN_ATTRIB | IN_CREATE | IN_DELETE | IN_MODIFY | IN_MOVED_FROM | IN_MOVED_TO;
+			watcherData.handle = inotify_add_watch(m_inotify, strFolder.c_str(), flags);
+
+			if (watcherData.handle < 0)
+				return false;
+#endif
+
+			static_cast<std::vector<WatcherData>*>(m_dirHandles)->push_back(watcherData);
+
+			if (bWatchSubtree)
+			{
+				Bootil::String::List directories;
+				RecurseDirectories(directories, strFolder);
+
+				for (const auto& subDir : directories)
+				{
+#ifdef _WIN32
+					if (!(GetFileAttributes(subDir.c_str()) & FILE_ATTRIBUTE_REPARSE_POINT))
+						continue;
+#endif
+					AddFolderToWatch(subDir, true);
+				}
+			}
+
+			return true;
+		}
+
+		bool ChangeMonitor::RemoveFolderFromWatch(const BString& strFolder, bool bWatchSubtree)
+		{
+			if (!m_dirHandles)
+				return false;
+
+			auto& handles = *static_cast<std::vector<WatcherData>*>(m_dirHandles);
+
+			for (auto it = handles.begin(); it != handles.end(); ++it)
+			{
+				if (it->directory == strFolder)
+				{
+#ifdef _WIN32
+					CloseHandle(it->directoryHandle);
+					CloseHandle(it->overlapped.hEvent);
+#elif __linux__
+					inotify_rm_watch(m_inotify, it->handle);
+#endif
+					handles.erase(it);
+					return true;
+				}
+			}
+
+			if (bWatchSubtree)
+			{
+				Bootil::String::List directories;
+				RecurseDirectories(directories, strFolder);
+
+				for (const auto& subDir : directories)
+				{
+#ifdef _WIN32
+					if (!(GetFileAttributes(subDir.c_str()) & FILE_ATTRIBUTE_REPARSE_POINT))
+						continue;
+#endif
+					RemoveFolderFromWatch(subDir, true);
+				}
+			}
+
+			return false;
 		}
 
 		void ChangeMonitor::NoteFileChanged( const BString & strChanged )

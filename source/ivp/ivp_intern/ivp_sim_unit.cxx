@@ -497,6 +497,9 @@ void IVP_Simulation_Unit::add_controller_of_core( IVP_Core *my_core, IVP_Control
 void IVP_Simulation_Unit::remove_controller_of_core( IVP_Core *my_core, IVP_Controller *cntrl ) {
     int pos=get_pos_of_controller(cntrl);
     IVP_ASSERT(pos>=0);
+    if (pos < 0)
+        return;
+
     IVP_Sim_Unit_Controller_Core_List *c_info=controller_cores.element_at(pos);
     c_info->cores_controlled_by.remove(my_core);
     if( c_info->cores_controlled_by.len() <= 0 ) {

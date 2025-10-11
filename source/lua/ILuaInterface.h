@@ -440,12 +440,22 @@ namespace GarrysMod::Lua
 		lua_State* state;
 	};
 
-	// NOTE: This is a custom class that somewhat works works with Gmod? (Gmod's real class is currently unknown) soonTM
-	// Update: This class now works 100% with Gmod :D
-	class ILuaThreadedCall {
+	// A Threaded call that can be added to any ILuaInterface for callbacks or any other use case like Think hooks.
+	// NOTE: The ILuaThreadedCall is NEVER deleted by the Interface, you yourself have to decide when to delete it.
+	//       You should ONLY delete it inside of the Done or OnShutdown function!
+	class ILuaInterface;
+	abstract_class ILuaThreadedCall {
 	public:
-		virtual void Init() = 0;
-		virtual void Run(ILuaBase*) = 0;
+		// Called every frame, to check if the call is done. Return true to mark them as done.
+		// NOTE: Don't call AddThreadedCall from inside here as it could break the iteration that the ILuaInterface is internally doing while calling this.
+		virtual bool IsDone() = 0;
+
+		// Called once after the it was marked as done, inside of here you should do cleanup
+		virtual void Done(ILuaInterface* LUA) = 0;
+
+		// Called from CLuaInterface::ShutdownThreadedCalls when the Lua Interface is closing.
+		// Cancel whatever you were doing and shut down.
+		virtual void OnShutdown() = 0;
 	};
 
 	class ILuaObject;

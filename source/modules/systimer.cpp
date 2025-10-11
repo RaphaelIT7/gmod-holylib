@@ -56,17 +56,11 @@ public:
 	CUtlVector<ILuaTimer*> pLuaTimers;
 };
 
-static inline LuaSysTimerModuleData* GetLuaData(GarrysMod::Lua::ILuaInterface* pLua)
-{
-	if (!pLua)
-		return NULL;
-
-	return (LuaSysTimerModuleData*)Lua::GetLuaData(pLua)->GetModuleData(g_pSysTimerModule.m_pID);
-}
+LUA_GetModuleData(LuaSysTimerModuleData, g_pSysTimerModule, SysTimer)
 
 static ILuaTimer* FindTimer(GarrysMod::Lua::ILuaInterface* pLua, const char* name) // We should pobably use a set or so to have faster look up. But my precious memory :(
 {
-	auto pData = GetLuaData(pLua);
+	auto pData = GetSysTimerLuaData(pLua);
 
 	FOR_EACH_VEC(pData->pLuaTimers, i)
 	{
@@ -82,7 +76,7 @@ static ILuaTimer* FindTimer(GarrysMod::Lua::ILuaInterface* pLua, const char* nam
 
 static void RemoveTimers(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	auto pData = GetLuaData(pLua);
+	auto pData = GetSysTimerLuaData(pLua);
 
 	bool bDeleted = false;
 	int nTimer = pData->pLuaTimers.Count();
@@ -160,7 +154,7 @@ LUA_FUNCTION_STATIC(timer_Create)
 	timer->pLua = LUA;
 
 	if (bNewTimer)
-		GetLuaData(LUA)->pLuaTimers.AddToTail(timer);
+		GetSysTimerLuaData(LUA)->pLuaTimers.AddToTail(timer);
 
 	return 0;
 }
@@ -234,7 +228,7 @@ LUA_FUNCTION_STATIC(timer_Simple)
 	timer->nextRunTime = GetTime() + delay;
 	timer->pLua = LUA;
 
-	GetLuaData(LUA)->pLuaTimers.AddToTail(timer);
+	GetSysTimerLuaData(LUA)->pLuaTimers.AddToTail(timer);
 
 	return 0;
 }
@@ -348,7 +342,7 @@ void CSysTimerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerI
 
 void CSysTimerModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	auto pData = GetLuaData(pLua);
+	auto pData = GetSysTimerLuaData(pLua);
 
 	FOR_EACH_VEC(pData->pLuaTimers, i)
 		delete pData->pLuaTimers[i];
@@ -362,7 +356,7 @@ void CSysTimerModule::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
 	VPROF_BUDGET("HolyLib - CSysTimerModule::LuaThink", VPROF_BUDGETGROUP_HOLYLIB);
 
 	double time = GetTime();
-	auto pData = GetLuaData(pLua);
+	auto pData = GetSysTimerLuaData(pLua);
 	for (ILuaTimer* timer : pData->pLuaTimers)
 	{
 		if (!timer->active)

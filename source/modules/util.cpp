@@ -61,9 +61,9 @@ static void OnJsonThreadsChange(IConVar* convar, const char* pOldValue, float fl
 	Util::StartThreadPool(pJsonPool, ((ConVar*)convar)->GetInt());
 }
 
-static ConVar compressthreads("holylib_util_compressthreads", "1", FCVAR_ARCHIVE, "The number of threads to use for util.AsyncCompress", OnCompressThreadsChange);
-static ConVar decompressthreads("holylib_util_decompressthreads", "1", FCVAR_ARCHIVE, "The number of threads to use for util.AsyncDecompress", OnDecompressThreadsChange);
-static ConVar jsonthreads("holylib_util_jsonthreads", "1", FCVAR_ARCHIVE, "The number of threads to use for util.AsyncTableToJSON & util.AsyncJSONToTable", OnJsonThreadsChange);
+static ConVar compressthreads("holylib_util_compressthreads", "1", FCVAR_ARCHIVE, "The number of threads to use for util.AsyncCompress", true, 1, true, 16, OnCompressThreadsChange);
+static ConVar decompressthreads("holylib_util_decompressthreads", "1", FCVAR_ARCHIVE, "The number of threads to use for util.AsyncDecompress", true, 1, true, 16, OnDecompressThreadsChange);
+static ConVar jsonthreads("holylib_util_jsonthreads", "1", FCVAR_ARCHIVE, "The number of threads to use for util.AsyncTableToJSON & util.AsyncJSONToTable", true, 1, true, 16, OnJsonThreadsChange);
 
 class IJobEntry
 {
@@ -141,13 +141,7 @@ public:
 	char buffer[128];
 };
 
-static inline LuaUtilModuleData* GetLuaData(GarrysMod::Lua::ILuaInterface* pLua)
-{
-	if (!pLua)
-		return NULL;
-
-	return (LuaUtilModuleData*)Lua::GetLuaData(pLua)->GetModuleData(g_pUtilModule.m_pID);
-}
+LUA_GetModuleData(LuaUtilModuleData, g_pUtilModule, Util);
 
 static void CompressJob(CompressEntry*& entry)
 {
@@ -180,8 +174,8 @@ inline void StartThread()
 
 LUA_FUNCTION_STATIC(util_AsyncCompress)
 {
-	const char* pData = LUA->CheckString(1);
-	int iLength = LUA->ObjLen(1);
+	size_t iLength;
+	const char* pData = Util::CheckLString(LUA, 1, &iLength);
 	int iLevel = 5;
 	int iDictSize = 65536;
 	int iCallback = -1;
@@ -207,7 +201,7 @@ LUA_FUNCTION_STATIC(util_AsyncCompress)
 	entry->iDataReference = Util::ReferenceCreate(LUA, "util.AsyncCompress - Data");
 	entry->m_pLua = LUA;
 
-	GetLuaData(LUA)->pEntries.push_back(entry);
+	GetUtilLuaData(LUA)->pEntries.push_back(entry);
 
 	StartThread();
 
@@ -218,8 +212,8 @@ LUA_FUNCTION_STATIC(util_AsyncCompress)
 
 LUA_FUNCTION_STATIC(util_AsyncDecompress)
 {
-	const char* pData = LUA->CheckString(1);
-	int iLength = LUA->ObjLen(1);
+	size_t iLength;
+	const char* pData = Util::CheckLString(LUA, 1, &iLength);
 	LUA->CheckType(2, GarrysMod::Lua::Type::Function);
 	LUA->Push(2);
 	int iCallback = Util::ReferenceCreate(LUA, "util.AsyncDecompress - Callback");
@@ -236,7 +230,7 @@ LUA_FUNCTION_STATIC(util_AsyncDecompress)
 	entry->iDataReference = Util::ReferenceCreate(LUA, "util.AsyncDecompress - Data");
 	entry->m_pLua = LUA;
 
-	GetLuaData(LUA)->pEntries.push_back(entry);
+	GetUtilLuaData(LUA)->pEntries.push_back(entry);
 
 	StartThread();
 
@@ -302,7 +296,7 @@ void TableToJSONRecursive(GarrysMod::Lua::ILuaInterface* pLua, LuaUtilModuleData
 		bool isSequential = false; 
 		int iKeyType = pLua->GetType(-2);
 		double iKey = iKeyType == GarrysMod::Lua::Type::Number ? pLua->GetNumber(-2) : 0;
-		if (iKey != 0 && iKey == idx)
+		if (iKey != 0 && iKey == idx && wasSequential) // We check for wasSequential since if it becomes false we should NEVER mark isSequential as true again.
 		{
 			isSequential = true;
 			++idx;
@@ -424,7 +418,7 @@ LUA_FUNCTION_STATIC(util_TableToJSON)
 	LUA->CheckType(1, GarrysMod::Lua::Type::Table);
 	bool bPretty = LUA->GetBool(2);
 
-	auto pData = GetLuaData(LUA);
+	auto pData = GetUtilLuaData(LUA);
 	pData->bRecursiveNoError = LUA->GetBool(3);
 
 	pData->iRecursiveStartTop = LUA->Top();
@@ -541,8 +535,8 @@ LUA_FUNCTION_STATIC(util_JSONToTable)
 
 LUA_FUNCTION_STATIC(util_CompressLZ4)
 {
-	const char* pData = LUA->CheckString(1);
-	int iLength = LUA->ObjLen(1);
+	size_t iLength;
+	const char* pData = Util::CheckLString(LUA, 1, &iLength);
 	int accelerationLevel = (int)LUA->CheckNumberOpt(2, 1);
 
 	void* pDest = NULL;
@@ -562,8 +556,8 @@ LUA_FUNCTION_STATIC(util_CompressLZ4)
 
 LUA_FUNCTION_STATIC(util_DecompressLZ4)
 {
-	const char* pData = LUA->CheckString(1);
-	int iLength = LUA->ObjLen(1);
+	size_t iLength;
+	const char* pData = Util::CheckLString(LUA, 1, &iLength);
 
 	void* pDest = NULL;
 	unsigned int pDestLen = 0;
@@ -588,16 +582,19 @@ public:
 		if (m_pLua && m_iReference != -1)
 		{
 			Util::ReferenceFree(m_pLua, m_iReference, "JsonEntry(value) - util.AsyncJson");
+			m_iReference = -1;
 		}
 
 		if (m_pLua && m_iCallback != -1)
 		{
 			Util::ReferenceFree(m_pLua, m_iCallback, "JsonEntry(callback) - util.AsyncJson");
+			m_iCallback = -1;
 		}
 
 		if (m_pObject)
 		{
-			delete m_pObject;
+			RawLua::DestroyTValue(m_pObject);
+			m_pObject = nullptr;
 		}
 	}
 
@@ -707,7 +704,7 @@ LUA_FUNCTION_STATIC(util_AsyncTableToJSON)
 
 	RawLua::SetReadOnly(entry->m_pObject, true);
 
-	GetLuaData(LUA)->pEntries.push_back(entry);
+	GetUtilLuaData(LUA)->pEntries.push_back(entry);
 
 	StartJsonThread();
 
@@ -718,8 +715,8 @@ LUA_FUNCTION_STATIC(util_AsyncTableToJSON)
 
 /*LUA_FUNCTION_STATIC(util_AsyncDecompress)
 {
-	const char* pData = LUA->CheckString(1);
-	int iLength = LUA->ObjLen(1);
+	size_t iLength;
+	const char* pData = Util::CheckLString(LUA, 1, &iLength);
 	LUA->CheckType(2, GarrysMod::Lua::Type::Function);
 	LUA->Push(2);
 	int iCallback = Util::ReferenceCreate(LUA, "util.AsyncDecompress - Callback");
@@ -766,7 +763,7 @@ void CUtilModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 
 void CUtilModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	auto pData = GetLuaData(pLua);
+	auto pData = GetUtilLuaData(pLua);
 
 	for (IJobEntry* entry : pData->pEntries)
 	{
@@ -805,7 +802,7 @@ void CUtilModule::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	VPROF_BUDGET("HolyLib - CUtilModule::LuaThink", VPROF_BUDGETGROUP_HOLYLIB);
 
-	auto pData = GetLuaData(pLua);
+	auto pData = GetUtilLuaData(pLua);
 	if (pData->pEntries.size() == 0)
 		return;
 

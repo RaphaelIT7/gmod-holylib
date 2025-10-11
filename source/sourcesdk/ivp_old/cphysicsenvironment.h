@@ -137,6 +137,8 @@ public:
 	// a constraint is being disabled - report the game DLL as "broken"
 	void NotifyConstraintDisabled( IPhysicsConstraint *pConstraint );
 
+	inline const CUtlVector<IPhysicsObject *>& GetObjects() { return m_objects; }; // Expose for holylib
+
 public:
 	IVP_Environment					*m_pPhysEnv;
 	IVP_Controller					*m_pDragController;

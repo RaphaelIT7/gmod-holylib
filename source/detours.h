@@ -10,6 +10,7 @@
 #include "Platform.hpp"
 #include "tier0/dbg.h"
 #include <vector>
+#include <unordered_set>
 
 #ifdef DLL_TOOLS
 #ifdef WIN32
@@ -77,7 +78,9 @@ namespace Detour
 	extern void Create(Detouring::Hook* pHook, const char* strName, void* pModule, Symbol pSymbol, void* pHookFunc, unsigned int category = 0);
 	extern void Remove(unsigned int category); // 0 = All
 	extern void ReportLeak();
-	extern unsigned int g_pCurrentCategory;
+	extern const std::unordered_set<std::string>& GetDisabledDetours();
+	extern const std::unordered_set<std::string>& GetFailedDetours();
+	extern const std::unordered_set<std::string>& GetLoadedDetours();
 
 	extern SymbolFinder symfinder;
 	template<class T>

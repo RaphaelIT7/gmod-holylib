@@ -27,7 +27,7 @@ public:
 extern IPhysicsSurfacePropsInternal	*physprops;
 
 // Special material indices outside of the normal system
-enum
+enum : int
 {
 	MATERIAL_INDEX_SHADOW = 0xF000,
 };

@@ -18,6 +18,8 @@ enum ConfigState
 abstract_class IConfig
 {
 public:
+	virtual ~IConfig() {};
+
 	// Returns true if the config was just created. Add your default values and then save it!
 	virtual ConfigState GetState() = 0;
 
@@ -47,4 +49,4 @@ public:
 
 extern IConfigSystem* g_pConfigSystem;
 
-#define INTERFACEVERSION_CONFIG "ICONFIGSYSTEM001"
+#define INTERFACEVERSION_CONFIGSYSTEM "ICONFIGSYSTEM001"

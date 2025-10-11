@@ -2,7 +2,7 @@
 
 A library that contains some functions and optimizations for gmod.<br>
 If you need any function, make an issue for it, and I'll look into it.<br>
-When HolyLib was installed correctly, the variable `_HOLYLIB` should be set to `true` in Lua.<br>
+When HolyLib was installed correctly, the variable `_HOLYLIB` should be set to `true` in Lua. (NOTE: This was **added** in the upcoming `0.8` release)<br>
 
 ## Windows
 So currently to get it working on Windows, I would have to redo most of the hooks, and It would also take a good while.<br>
@@ -26,6 +26,11 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 1. Download the `holylib.vdf` and `gmsv_holylib_linux.so` from the latest release.<br>
 2. Put the `holylib.vdf` into the `garrysmod/addons/` directory.<br>
 3. Put the `gmsv_holylib_linux.so` into the `garrysmod/lua/bin/` directory.<br>
+
+## Custom Builds (Linux Only)
+You can fork this repository and use the `Build Custom Version` to create a custom HolyLib version which only contains specific functions.<br>
+I heard from some that they don't want a huge DLL of which they only use a few functions of,<br>
+so by making a custom build anyone can include just the stuff they actually want and need, nothing else.<br>
 
 ## How to update (Newer GhostInj)
 
@@ -76,13 +81,19 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [+] Added a few stringtable related functions to the `stringtable` module.<br>
 \- [+] Added a new hook `HolyLib:OnClientTimeout` to the `gameserver` module.<br>
 \- [+] Optimized `GM:PlayerCanHearPlayersVoice` by **only** calling it for actively speaking players/when a voice packet is received.<br>
-\- [+] Added `voicechat.IsPlayerTalking` & `voicechat.LastPlayerTalked` to the `voicechat` module.<br>
+\- [+] Added `voicechat.LoadVoiceStreamFromWaveString`, `voicechat.ApplyEffect`, `voicechat.IsPlayerTalking` & `voicechat.LastPlayerTalked` to the `voicechat` module.<br>
+\- [+] Added `VoiceStream:ResetTick`, `VoiceStream:GetNextTick`, `VoiceStream:GetCurrentTick`, `VoiceStream:GetPreviousTick` to the `voicechat` module.<br>
 \- [+] Added `util.FancyJSONToTable` & `util.AsyncTableToJSON` to the `util` module.<br>
-\- [+] Added `gameserver.GetClientByUserID` to the `gameserver` module.<br>
+\- [+] Added `gameserver.GetClientByUserID` & `gameserver.GetClientBySteamID` to the `gameserver` module.<br>
 \- [+] Added a config system allowing one to set convars without using the command line.<br>
 \- [+] Added `IPhysicsEnvironment:SetInSimulation` to the `physenv` module.<br>
 \- [+] Added `HttpResponse:SetStatusCode` to `httpserver` module. (See https://github.com/RaphaelIT7/gmod-holylib/pull/62)<br>
 \- [+] Added `HttpRequest:GetPathParam` to `httpserver` module. (See https://github.com/RaphaelIT7/gmod-holylib/pull/63)<br>
+\- [+] Added `HttpServer:AddProxyAddress` to `httpserver` module.<br>
+\- [+] Added `bitbuf.CreateStackReadBuffer` & `bitbuf.CreateStackWriteBuffer` to `bitbuf` module.<br>
+\- [+] Added a fallback method for HolyLib's internal `Util::PushEntity` function in case a Gmod update breaks our offsets which previously lead to undefined behavior<br>
+\- [+] Added a `ILuaThreadedCall` to call all modules Think function when HolyLib is loaded as a binary module/loaded using `require("holylib")`<br>
+\- [+] Added a new DLL system if anything wants to be loaded with HolyLib. (See: [example-module-dll](https://github.com/RaphaelIT7/gmod-holylib/tree/f937ba454b4d86edfc72df9cb3f8a689d7de2571/example-module-dll))<br>
 \- [#] Added some more safeguards to `IPhysicsEnvironment:Simulate` to prevent one from simulating a environment that is already being simulated.<br>
 \- [#] Highly optimized `util` module's json code to be noticably faster and use noticably less memory.<br>
 \- [#] Better support for multiple Lua states<br>
@@ -109,26 +120,50 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- \- Added `holylib_networking_maxviewmodels` allowing one to limit view models to `1` for each player instead of each having `3` of which `2` often remain unused.<br>
 \- \- Added `holylib_networking_transmit_all_weapons`<br>
 \- \- Added `holylib_networking_transmit_all_weapons_to_owner`<br>
-\- [#] Slightly improved memory usage for UserData by HolyLib<br>
+\- [#] Slightly improved memory usage & performance for UserData created by HolyLib<br>
 \- [#] Updated `VoiceStream` `Load/Save` function to be able to read/write `.wav` files<br>
+\- [#] Fixed `IModule::ServerActivate` not being called when being loaded as a binary module<br>
+\- [#] Fixed `HolyLib:ProcessConnectionlessPacket` being called for SourceTV packets<br>
+\- [#] Fixed `gameserver.SendConnectionlessPacket` crashing instead of throwing a lua error when NET_SendPacket couldn't be loaded<br>
+\- [#] Fixed `HttpServer` not properly shutting down and possibly crashing<br>
+\- [#] Fixed `CGameClient` & `CHLTVClient` possibly crashing when accessed after the client already disconnected<br>
+\- [#] Reduced HolyLib's userdata size by 16 bytes.<br>
+\- [#] Improved `bitbuf.CreateStackReadBuffer` thanks to our userdata changes making it 3x faster<br>
+\- [#] Fixed possible memory leaks when using `bf_read` and `bf_write`<br>
+\- [#] Tried to improve out of memory handling of `bitbuf.Create[Read/Write]Buffer` and `bf_read:ReadString()` functions<br>
+\- [#] Fixed a regression with `util.FancyTableToJSON` crashing with the `0.8-pre` build when it falsely tried to become sequential while being already non-sequential. (Reported by @Noahbg)<br>
+\- [#] Fixed absolute search cache causing files from any search path to be returned / destroying seperation between search paths (See https://github.com/RaphaelIT7/gmod-holylib/issues/83)<br>
+\- [#] Fixed HolyLua being unable to register any metatable causing crashes when trying to use them.<br>
+\- [#] Fixed some small memory leaks in HolyLibs CLuaInterface class<br>
+\- [#] Fixed `steamworks.ForceAuthenticate` being silently broken<br>
+\- [#] Fully seperated HolyLib's core from all modules allowing anyone to remove modules they don't want.<br>
+\- [#] Removed all dependencies modules had on each other allowing each module to compile without requiring another one.<br>
+\- [#] Fixed some issues in `luathreads` module that caused either crashes or simply were bugs<br>
+\- [#] Fixed lua error handler used by any `CLuaInterface` created by HolyLib failing (`error in error handler`)<br>
+\- [#] Moved `HolyLua` from HolyLib's core into a module to seperate it and allow anyone to remove it<br>
+\- [#] Fixed some memory leaks from our own `CLuaInterface` since on shutdown they never cleared up on removal/shutdown<br>
+\- [#] Added a speedup for pushing networked entities to Lua (On 64x pushing entities became 2.6x faster)<br>
+\- [-] Removed some unused code of former fixes that were implemented into Gmod<br>
 
-> [!WARNING]
-> The current builds are unstable and need **A LOT** of testing.<br>
-> Use the last `0.7` release instead of the last workflow run if you value your server's stability!<br>
-
-You can see all changes here:<br>
+You can see all changes/commits here:<br>
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 
 ### Existing Lua API Changes
 \- [+] Added third `protocolVersion` argument to `gameserver.CreateNetChannel`<br>
 \- [+] Added fourth `socket`(use `NS_` enums) argument to `gameserver.CreateNetChannel` & `gameserver.SendConnectionlessPacket`<br>
 \- [+] Added second and thrid arguments to `HolyLib:OnPhysicsLag` providing the entities it was working on when it triggered.<br>
+\- [+] Added `voicechat.SaveVoiceStream` 4th argument `returnWaveData` (previously the 4th argument was `async` but that one was removed)<br>
+\- [+] Added `directData` argument to `VoiceStream:GetData`, `VoiceStream:GetIndex`, `VoiceStream:SetIndex` and `VoiceStream:SetData`<br>
+\- [+] Added overflow checks for `gameserver.BroadcastMessage`, `CNetChan:SendMessage` and `CBaseClient:SendNetMsg` when you try to use a overflowed buffer<br>
+\- [+] Added a few more arguments to `HolyLib:OnPhysicsLag` like `phys1`, `phys2`, `recalcPhys`, `callerFunction` and the arguments `ent1` & `ent2` were removed since you can call `PhysObj:GetEntity`<br>
 \- [#] Fixed `addonsystem.ShouldMount` & `addonsystem.SetShouldMount` `workshopID` arguments being a number when they should have been a string.<br>
 \- [#] Changed `VoiceData:GetUncompressedData` to now returns a statusCode/a number on failure instead of possibly returning a garbage string.<br>
 \- [#] Limited `HttpServer:SetName` to have a length limit of `64` characters.<br>
 \- [#] Fixed `IGModAudioChannel:IsValid` throwing a error when it's NULL instead of returning false.<br>
 \- [#] Fixed `HttpServer:SetWriteTimeout` using the wrong arguments. (See https://github.com/RaphaelIT7/gmod-holylib/pull/65)<br>
 \- [#] Fixed `bf_read:ReadBytes` and `bf_read:ReadBits` both failing to push the string properly to lua.<br>
+\- [#] Changed `voicechat.SaveVoiceStream` & `voicechat.LoadVoiceStream` to remove their 4th `sync` argument, if a callback is provided it will be async, else it'll run sync<br>
+\- [-] Removed `VoiceData:GetUncompressedData` decompress size argument<br>
 \- [-] Removed `CBaseClient:Transmit` third argument `fragments`.<br>
 \- [-] Removed `gameserver.CalculateCPUUsage` and `gameserver.ApproximateProcessMemoryUsage` since they never worked.<br>
 
@@ -205,6 +240,7 @@ Wiki: https://holylib.raphaelit7.com/
 \- \- [CGameClient](https://github.com/RaphaelIT7/gmod-holylib#cgameclient)<br>
 \- \- [Singleplayer](https://github.com/RaphaelIT7/gmod-holylib#singleplayer)<br>
 \- \- [128+ Players](https://github.com/RaphaelIT7/gmod-holylib#128-players)<br>
+\- [autorefresh](#autorefresh)<br>
 
 [Unfinished Modules](https://github.com/RaphaelIT7/gmod-holylib#unfinished-modules)<br>
 \- [serverplugins](https://github.com/RaphaelIT7/gmod-holylib#serverplugins)<br>
@@ -1739,6 +1775,29 @@ Create a write buffer with the given size or with the given data.<br>
 > [!NOTE]
 > The size is clamped internally between a minimum of `4` bytes and a maximum of `262144` bytes.
 
+#### bf_read bitbuf.CreateStackReadBuffer(string data, function callback)
+callback = `function(bf) end`<br>
+Creates a read buffer from the given data allocated on the stack making it faster.<br>
+Useful if you want to read the userdata of the instancebaseline stringtable.<br>
+
+> [!WARNING]
+> The buffer will be stack allocated, do NOT call this function recursively and the buffer is **only** valid inside the callback function.<br>
+> This is because you could cause a crash if you were to create too many stack allocated buffers!<br>
+
+> [!NOTE]
+> The size is clamped internally between a minimum of `4` bytes and a maximum of `65536` bytes.
+
+#### bf_write bitbuf.CreateStackWriteBuffer(number size or string data, function callback)
+callback = `function(bf) end`<br>
+Create a write buffer with the given size or with the given data allocated on the stack making it faster.<br>
+
+> [!WARNING]
+> The buffer will be stack allocated, do NOT call this function recursively and the buffer is **only** valid inside the callback function.<br>
+> This is because you could cause a crash if you were to create too many stack allocated buffers!<br>
+
+> [!NOTE]
+> The size is clamped internally between a minimum of `4` bytes and a maximum of `65536` bytes.
+
 ### bf_read
 This class will later be used to read net messages from HLTV clients.<br>
 > ToDo: Finish the documentation below and make it more detailed.<br>
@@ -1952,6 +2011,7 @@ Sets the debug name.<br>
 
 > [!WARNING]
 > You should keep a reference to the string.<br>
+> If the GC removes the string, you will experience that GetDebugName will return junk!<br>
 
 #### bf_write:SeekToBit(number bit)
 Seeks to the given bit.<br>
@@ -2264,29 +2324,43 @@ Creates a new VoiceData object.<br>
 #### VoiceStream voicechat.CreateVoiceStream()
 Creates a empty VoiceStream.<br>
 
-#### VoiceStream, number(statusCode) voicechat.LoadVoiceStream(string fileName, string gamePath = "DATA", bool async = false, function callback = nil)
+#### VoiceStream, number(statusCode) voicechat.LoadVoiceStream(string fileName, string gamePath = "DATA", function callback = nil)
 callback = `function(VoiceStream loadedStream, number statusCode)`
 statusCode = `-4 = Invalid file, -3 = Invalid version, -2 = File not found, -1 = Invalid type, 0 = None, 1 = Done`<br>
 
 Tries to load a VoiceStream from the given file.<br>
-If `async` is specified it **WONT** return **anything** and the `callback` will be **required**.<br>
+If a `callback` is specified it **WONT** return **anything** and the `callback` will be called, as it will execute everythign **async**.<br>
+If you want it to **not** run async, simply provide **no** callback function<br>
 
 > [!NOTE]
 > This function also supports `.wav` files to load from since `0.8`
 
-#### number(statusCode) voicechat.SaveVoiceStream(VoiceStream stream, string fileName, string gamePath = "DATA", bool async = false, function callback = nil)
+#### VoiceStream, number(statusCode) voicechat.LoadVoiceStreamFromWaveString(string waveData, function callback = nil, bool promiseToNeverModify = false)
 callback = `function(VoiceStream loadedStream, number statusCode)`
 statusCode = `-4 = Invalid file, -3 = Invalid version, -2 = File not found, -1 = Invalid type, 0 = None, 1 = Done`<br>
+promiseToNeverModify = If set to `true`, it will reference the waveData instead of copying it reducing memory usage and improving speed though you need to keep your promise of never modifying it while it's in use!<br>
+
+Tries to load a VoiceStream from the given data.<br>
+If a `callback` is specified it **WONT** return **anything** and the `callback` will be called, as it will execute everythign **async**.<br>
+If you want it to **not** run async, simply provide **no** callback function<br>
+
+#### number(statusCode), string(waveData) voicechat.SaveVoiceStream(VoiceStream stream, string fileName = nil, string gamePath = "DATA", function callback = nil, bool returnWaveData = false)
+callback = `function(VoiceStream loadedStream, number statusCode)`
+statusCode = `-4 = Invalid file, -3 = Invalid version, -2 = File not found, -1 = Invalid type, 0 = None, 1 = Done`<br>
+returnWaveData = If set to true (or if `fileName` is nil), the function will when running in sync return the waveData as a string, or if async will return the waveData as a fourth argument after `statusCode` in the callback.<br>
+
+Argument overload version (will **always** return wave data): `voicechat.SaveVoiceStream(VoiceStream stream, function callback = nil)`
 
 Tries to save a VoiceStream into the given file.<br>
-If `async` is specified it **WONT** return **anything** and the `callback` will be **required**.<br>
+If a `callback` is specified it **WONT** return **anything** and the `callback` will be called, as it will execute everythign **async**.<br>
+If you want it to **not** run async, simply provide **no** callback function<br>
 
 > [!NOTE]
-> It should be safe to modify/use the VoiceStream while it's saving async **BUT** you should try to avoid doing that.
-
-> [!NOTE]
+> It should be safe to modify/use the VoiceStream while it's saving async **BUT** you should try to avoid doing that. <br>
 > This function also supports `.wav` files to write the data into since `0.8`.<br>
-> You should **always** inform your players if you save their voice!
+> You should **always** inform your players if you save their voice! <br>
+> You can set both `fileName` and `returnWaveData` which will cause it to be written to disk and the data to be returned<br>
+> If `fileName` and `returnWaveData` are both not set then it will error as atleast one of them needs to be enabled.<br>
 
 ### bool voicedata.IsPlayerTalking(Player ply/number playerSlot)
 Returns `true` if the player is currently talking.<br>
@@ -2299,6 +2373,27 @@ Returns when the player last talked.
 
 > [!NOTE]
 > This value does NOT reset if a player disconnect meaning on empty slots the value of the last player there will remain stored.
+
+#### bool voicechat.ApplyEffect(table effectData, VoiceStream/VoiceData stream, function callback = nil)
+callback = `function(VoiceStream/Voicedata data, bool success)`
+
+Example effectData:
+```lua
+{
+	ContinueOnFailure = true, -- If you process a VoiceStream and it fails to apply a effect for some reason it will still proceed and ignore the failure
+
+	-- Volume effect
+	EffectName = "Volume",
+	Volume = 1.0, -- The volume for the audio
+}
+```
+
+Applies the given effectData to the given Data/Stream.<br>
+If a `callback` is specified it **WONT** return **anything** and the `callback` will be called, as it will execute everythign **async**.<br>
+If you want it to **not** run async, simply provide **no** callback function, it will return `true` on success<br>
+
+> [!NOTE]
+> It should be safe to modify/use the VoiceStream while it's being modified async **BUT** you should try to avoid doing that.
 
 ####
 
@@ -2335,7 +2430,7 @@ Returns the length of the data.<br>
 #### number VoiceData:GetPlayerSlot()
 Returns the slot of the player this voicedata is originally from.<br>
 
-#### string VoiceData:GetUncompressedData(number decompressSize = 20000)
+#### string VoiceData:GetUncompressedData()
 number decompressSize - The number of bytes to allocate for decompression.<br>
 
 Returns the uncompressed voice data or an empty string if the VoiceData had no data.<br>
@@ -2399,7 +2494,10 @@ You can store variables into it.<br>
 #### bool VoiceStream:IsValid()
 Returns `true` if the VoiceData is still valid.<br>
 
-#### table VoiceStream:GetData()
+#### table VoiceStream:GetData(bool directData = false)
+directData - If true it will return the VoiceData itself **instead of** creating a copy, if you modify it you will change the VoiceData stored in the stream!<br>
+(This argument will reduce memory usage & should improve performance slightly)<br>
+
 Returns a table, with the tick as key and **copy** of the VoiceData as value.<br>
 
 > [!NOTE]
@@ -2407,13 +2505,19 @@ Returns a table, with the tick as key and **copy** of the VoiceData as value.<br
 > modifying them won't affect the internally stored VoiceData.
 > Call `VoiceStream:SetData` or `VoiceStream:SetIndex` after you modified it to update it.<br>
 
-#### VoiceStream:SetData(table data)
+#### VoiceStream:SetData(table data, bool directData = false)
+directData - If true it will store the VoiceData itself **instead of** creating a copy that would be saved, if you modify the VoiceData after you called this, you will change the VoiceData stored in the stream!<br>
+(This argument will reduce memory usage & should improve performance slightly)<br>
+
 Sets the VoiceStream from the given table.<br>
 
 #### number VoiceStream:GetCount()
 Returns the number of VoiceData it stores.<br>
 
-#### VoiceData VoiceStream:GetIndex(number index)
+#### VoiceData VoiceStream:GetIndex(number index, bool directData = false)
+directData - If true it will return the VoiceData itself **instead of** creating a copy, if you modify it you will change the VoiceData stored in the stream!<br>
+(This argument will reduce memory usage & should improve performance slightly)<br>
+
 Returns a **copy** of the VoiceData for the given index or `nil`.<br>
 
 > [!NOTE]
@@ -2421,8 +2525,38 @@ Returns a **copy** of the VoiceData for the given index or `nil`.<br>
 > modifying them won't affect the internally stored VoiceData.
 > Call `VoiceStream:SetData` or `VoiceStream:SetIndex` after you modified it to update it.<br>
 
-#### VoiceStream:SetIndex(number index, VoiceData data)
+#### VoiceStream:SetIndex(number index, VoiceData data, bool directData = false)
+directData - If true it will store the VoiceData itself **instead of** creating a copy that would be saved, if you modify the VoiceData after you called this, you will change the VoiceData stored in the stream!<br>
+(This argument will reduce memory usage & should improve performance slightly)<br>
+
 Create a copy of the given VoiceData and sets it onto the specific index and overrides any data thats already present.<br>
+
+### VoiceStream functions for playback
+These functions mainly make it easier to play the VoiceData.<br>
+you can have a Think hook and call `VoiceStream:GetNextTick` once per Tick and either it returns a VoiceData for that Tick or it returns `nil`.<br>
+This way you don't need to keep track of a counter yourself to play the VoiceData from.<br>
+
+#### int (previousTick) VoiceStream:ResetTick(number resetTick = 0)
+Resets the current tick of the voicestream back to the given value or `0`<br>
+Returns the tick it was previously at<br>
+
+#### VoiceData VoiceStream:GetNextTick(bool directData = false)
+directData - If true it will set the VoiceData itself **instead of** creating a copy that would be saved, if you modify the VoiceData after you called this, you will change the VoiceData stored in the stream!<br>
+(This argument will reduce memory usage & should improve performance slightly)<br>
+
+Returns the VoiceData of the next tick and increments the internal tick counter by one.<br>
+
+#### VoiceData VoiceStream:GetCurrentTick(bool directData = false)
+directData - If true it will set the VoiceData itself **instead of** creating a copy that would be saved, if you modify the VoiceData after you called this, you will change the VoiceData stored in the stream!<br>
+(This argument will reduce memory usage & should improve performance slightly)<br>
+
+Returns the VoiceData of the current tick without changing the internal tick count<br>
+
+#### VoiceData VoiceStream:GetPreviousTick(bool directData = false)
+directData - If true it will set the VoiceData itself **instead of** creating a copy that would be saved, if you modify the VoiceData after you called this, you will change the VoiceData stored in the stream!<br>
+(This argument will reduce memory usage & should improve performance slightly)<br>
+
+Returns the VoiceData of the previous tick and decrements the internal tick count by one<br>
 
 ### Hooks
 
@@ -2969,12 +3103,20 @@ Skip the entire simulation.<br>
 
 ### Hooks
 
-#### IVP_SkipType HolyLib:OnPhysicsLag(number simulationTime, Entity ent1, Entity ent2)
+#### IVP_SkipType HolyLib:OnPhysicsLag(number simulationTime, PhysObj phys1, PhysObj phys2, table recalcPhys, string callerFunction)
+callerFunction - This will be the internal IVP function in which the lag was detected and caued this Lua call<br>
+recalcPhys - A table containing all physics objects that currently are recalculating collisions. **Avoid modifying them!**<br>
+All arguments like `phys1`, `phys2` can be nil! (not NULL)<br>
+
 Called when the physics simulaton is taking longer than the set lag threshold.<br>
 It provides the two entities it was currently working on when the hook was triggered,<br>
 most likely they will be the oney causing the lag BUT it should NOT be taken for granted!<br>
 
 You can freeze all props here and then return `physenv.IVP_SkipSimulation` to skip the simulation for this tick if someone is trying to crash the server.<br>
+
+> [!WARNING]
+> Avoid modifying the `recalcPhys` PhysObjects as changing collision rules on it can possibly be unstable!<br>
+> The table of `recalcPhys` has both key and value set for PhysObjects allowing you to easily check it like this: `if not recalcPhys[pObjectToModify] then`<br>
 
 > [!NOTE]
 > Only works on Linux32<br>
@@ -3299,6 +3441,20 @@ The callback function provides the HttpResponse object which you should use to s
 > [!NOTE]
 > This is fully experimental.<br>
 > Currently it doesn't have any real use except to remove the Thread overhead but I plan to make it more useful later.<br>
+
+#### HttpServer:AddProxyAddress(string proxyAddress, string headerName, bool useSecondAddress)
+useSecondAddress - If the given header provides two addresses seperated by a `,` it will use the second address. (proxies love to be funny. Now give me my Address!)<br>
+
+Registers the given proxyAddress to be recognized, in which case it will look for the given header name and use it as the real address of the request sender.
+
+Example:
+```lua
+local ip = game.GetIPAddress()
+ip = ip:sub(0, ip:find(":") - 1) -- remove the port from the address
+
+randomHttpServer:AddProxyAddress(ip, "X-Real-IP") -- This is an example where an nginx proxy running on the same host would pass a request to the http server with the X-Real-IP header being the client address
+```
+
 ### Method Functions
 All Method functions add a listener for the given path and the given method, like this:<br>
 ```lua
@@ -3451,8 +3607,14 @@ cdata is slightly different as we changed it's typeID to be `7` instead of `10` 
 #### table jit.getffi()
 If ffi is enabled in the config, then this will return a valid table, else it will return nothing.<br>
 
-#### jit.markFFITypeAsGmodUserData(cdata data)
+#### jit.markFFITypeAsValidUserData(cdata data)
 If ffi is enabled in the config, then this will allow you to mark cdata to be compatible with gmod allowing you to mimic types.<br>
+
+#### jit.registerCreateHolyLibCDataFunc(string cTypeName)
+A **Internall** function used by HolyLib to register the given cdata as the base userdata created & used by all holylib classes.<br>
+
+#### table jit.getMetaTableByID(int metaID)
+Pushes the metatable by their given metaID or returns `nil`.
 
 ### table jit.require(string name)
 LuaJIT's default require function, this function does **not** exist when ffi is disabled.<br>
@@ -3509,8 +3671,15 @@ Returns the CGameClient at that player slot or `nil` on failure.<br>
 #### CGameClient gameserver.GetClientByUserID(number userID)
 Returns the CGameClient for the given userID or `nil` on failure.<br>
 
+#### CGameClient gameserver.GetClientBySteamID(string steamID)
+Returns the CGameClient for the given steamID or `nil` on failure. (steamID not steamID64!)<br>
+
 #### number gameserver.GetClientCount()
-returns client count for iteration<br>
+returns client count for iteration of `gameserver.GetClient`<br>
+
+> [!NOTE]
+> This will include inactive `CGameClient`'s since the engine re-uses them and doesn't delete them on disconnect.<br>
+> If you want to get the count of active client's use `gameserver.GetNumClients()`
 
 #### table gameserver.GetAll()
 Returns a table that contains all game clients. It will return `nil` on failure.<br>
@@ -3578,7 +3747,7 @@ You can find all valid types in the [protocol.h](https://github.com/RaphaelIT7/g
 
 Example usage, we enable `sv_cheats` clientside while having it disabled serverside.<br>
 ```lua
-local bf = bitbuf.CreateWriteBuffer(8) -- Create a 8 bytes / 64 bits buffer.
+local bf = bitbuf.CreateWriteBuffer(64) -- Create a 64 bytes buffer.
 
 bf:WriteByte(1) -- How many convars were sending
 bf:WriteString("sv_cheats") -- ConVar name
@@ -4432,6 +4601,70 @@ end)
 
 hook.Add("HolyLib:OnPlayerChangedSlot", "Example", function(oldPlayerSlot, newPlayerSlot)
 	print("Client was moved from slot " .. oldPlayerSlot .. " to slot " .. newPlayerSlot)
+end)
+```
+
+## autorefresh
+The Autorefresh module currently provides functionalities regarding the in-built lua file autorefresh system.
+
+Supports: Linux32 | LINUX64
+
+> [!WARNING]
+> This module is not yet finished and untested and is unstable/can easily crash on usage!
+
+### Functions
+
+#### bool(success) autorefresh.AddFileToRefresh(string filePath)
+Adds the given file to the autorefresh list.
+
+> [!NOTE]
+> Adding single files is really slow and at high numbers can hurt performance! Use `autorefresh.AddFolderToRefresh` instead.
+
+#### bool(success) autorefresh.RemoveFileFromRefresh(string filePath)
+Removes the given file from the autorefresh list.
+
+> [!NOTE]
+> This **only** works on files added by `autorefresh.AddFileToRefresh`
+
+#### bool(success) autorefresh.AddFolderToRefresh(string folderPath, bool recursive = false)
+Adds the given folder to be watched for any file changes to autorefresh.
+
+#### bool(success) autorefresh.RemoveFolderFromRefresh(string folderPath, bool recursive = false)
+Removes the given folder from being watched for any file changes.
+
+#### bool(success) autorefresh.BlockFileForRefresh(string filePatg, bool blockFile = false)
+blockFile - `true` to block the file from autorefresh, `false` to unblock it.<br>
+Blocks or unblocks the given file from being autorefreshed.
+
+### autorefresh.RefreshFolders()
+Resets autorefresh.<br>
+Useful when you added/removed folders.
+
+#### 
+
+### Hooks
+
+#### bool HolyLib:PreLuaAutoRefresh(string filePath, string fileName)
+Called before a Lua file is being refreshed. If `true` is returned it will deny the refresh of the lua file.
+- string filePath — is the filePath provided relative to the garrysmod folder
+- string filename — is the filename without the extension
+```lua
+hook.Add("HolyLib:PreLuaAutoRefresh", "ExamplePreAutoRefresh", function(filePath, fileName)
+    print("[BEFORE] FileChanged: " .. filePath .. filename)
+        
+    if filename == "bogos" then
+        print("Denying Refresh")
+    	return true -- prevent refresh
+    end
+end)
+```
+
+#### HolyLib:PostLuaAutoRefresh(string filePath, string fileName)
+Called after a Lua file is refreshed. 
+Note that if a refresh is being denied by PreLuaAutorefresh or DenyLuaAutoRefresh, this hook won't be called.
+```lua
+hook.Add("HolyLib:PostLuaAutoRefresh", "ExamplePostAutoRefresh", function(filePath, fileName)
+    print("[AFTER] FileChanged: " .. filePath .. filename)
 end)
 ```
 

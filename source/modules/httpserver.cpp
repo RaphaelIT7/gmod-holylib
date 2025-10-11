@@ -16,6 +16,7 @@ public:
 	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void Think(bool bSimulating) OVERRIDE;
+	virtual void OnClientDisconnect(CBaseClient* pClient) OVERRIDE;
 	virtual const char* Name() { return "httpserver"; };
 	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 	virtual bool SupportsMultipleLuaStates() { return true; };
@@ -100,6 +101,7 @@ struct HttpRequest {
 	bool m_bDelete = false; // We only delete from the main thread.
 	int m_iFunction = -1;
 	std::string m_strPath;
+	std::string m_strAddress;
 	HttpResponse m_pResponseData;
 	httplib::Response m_pResponse;
 	httplib::Request m_pRequest;
@@ -112,6 +114,27 @@ enum
 	HTTPSERVER_ONLINE,
 	HTTPSERVER_OFFLINE
 };
+
+#undef isspace // unfuck 64x
+namespace stringstuff
+{
+	static inline void ltrim(std::string &s) {
+		s.erase(s.begin(), std::find_if(s.begin(), s.end(), [](unsigned char ch) {
+			return !std::isspace(ch);
+		}));
+	}
+
+	static inline void rtrim(std::string &s) {
+		s.erase(std::find_if(s.rbegin(), s.rend(), [](unsigned char ch) {
+			return !std::isspace(ch);
+		}).base(), s.end());
+	}
+
+	static inline void trim(std::string &s) {
+		rtrim(s);
+		ltrim(s);
+	}
+}
 
 class HttpServer;
 static std::unordered_set<HttpServer*> g_pHttpServers;
@@ -133,11 +156,13 @@ public:
 			return;
 		}
 
-		if (!m_pLua)
-			return;
+		Stop();
 
-		for (auto& ref : m_pHandlerReferences)
-			Util::ReferenceFree(m_pLua, ref, "HttpServer::~HttpServer - Handler references");
+		if (m_pLua)
+		{
+			for (auto& ref : m_pHandlerReferences)
+				Util::ReferenceFree(m_pLua, ref, "HttpServer::~HttpServer - Handler references");
+		}
 
 		m_pHandlerReferences.clear();
 
@@ -241,9 +266,13 @@ public:
 
 	void ClearDisconnectedClient(int userID)
 	{
+		m_pPreparedResponsesMutex.Lock();
 		auto it = m_pPreparedResponses.find(userID);
 		if (it == m_pPreparedResponses.end())
+		{
+			m_pPreparedResponsesMutex.Unlock();
 			return;
+		}
 
 		for (auto& pPreparedResponse : it->second)
 		{
@@ -251,19 +280,71 @@ public:
 		}
 
 		m_pPreparedResponses.erase(it);
+		m_pPreparedResponsesMutex.Unlock();
 	}
 
+	inline std::string GetAddressFromRequest(httplib::Request pRequest)
+	{
+		auto it = m_pAllowedProxies.find(pRequest.remote_addr);
+		if (it != m_pAllowedProxies.end())
+		{
+			std::string realIP = pRequest.get_header_value(it->second.pHeaderName);
+			if (!realIP.empty())
+			{
+				if (it->second.bUnshitAddress)
+				{
+					size_t pos = realIP.find_last_of(',');
+					if (pos == std::string::npos) // It'll be fine... I think.
+						return realIP;
+
+					std::string ip = realIP.substr(pos + 1);
+					stringstuff::trim(ip);
+					return ip;
+				}
+
+				return realIP;
+			}
+		}
+
+		return pRequest.remote_addr;
+	}
+
+	void AddProxy(std::string strProxyAddress, std::string strHeaderName, bool bUnshitAddress = false)
+	{
+		auto it = m_pAllowedProxies.find(strProxyAddress);
+		if (it != m_pAllowedProxies.end())
+		{
+			it->second.pHeaderName = strHeaderName;
+			it->second.bUnshitAddress = bUnshitAddress;
+			return;
+		}
+
+		m_pAllowedProxies.emplace(
+			std::move(strProxyAddress), 
+			ProxyEntry{std::move(strHeaderName), bUnshitAddress}
+		);
+	};
+
+	struct ProxyEntry
+	{
+		std::string pHeaderName = "";
+		bool bUnshitAddress = false; // If true, it will use the second ip provided (if there is one) in the given header because proxies love to be shit.
+	};
+
 private:
-	unsigned char m_iStatus = HTTPSERVER_OFFLINE;
 	unsigned short m_iPort = 0;
-	unsigned int m_iThreadSleep = 5; // How long the threads sleep / wait for a request to be handled
 	bool m_bUpdate = false;
 	bool m_bInUpdate = false;
+	unsigned char m_iStatus = HTTPSERVER_OFFLINE;
+	// 3 bytes free here.
+	unsigned int m_iThreadSleep = 5; // How long the threads sleep / wait for a request to be handled
 	std::string m_strAddress = "";
 	std::vector<HttpRequest*> m_pRequests;
 	std::vector<int> m_pHandlerReferences; // Contains the Lua references to the handler functions.
+	std::unordered_map<std::string, ProxyEntry> m_pAllowedProxies;
 	httplib::Server m_pServer;
 	char m_strName[64] = {0};
+	ThreadHandle_t m_pServerThread = nullptr;
 
 	// userID - Response pairs.
 	std::unordered_map<int, std::vector<PreparedHttpResponse*>> m_pPreparedResponses;
@@ -436,7 +517,7 @@ LUA_FUNCTION_STATIC(HttpRequest_GetRemoteAddr)
 {
 	HttpRequest* pData = Get_HttpRequest(LUA, 1, false);
 
-	LUA->PushString(pData->m_pRequest.remote_addr.c_str());
+	LUA->PushString(pData->m_strAddress.c_str());
 	return 1;
 }
 
@@ -492,7 +573,12 @@ LUA_FUNCTION_STATIC(HttpRequest_GetClient)
 {
 	HttpRequest* pData = Get_HttpRequest(LUA, 1, false);
 
+#if MODULE_EXISTS_GAMESERVER
 	Push_CBaseClient(LUA, Util::GetClientByUserID(pData->m_pClientUserID));
+#else
+	MISSING_MODULE_ERROR(LUA, gameserver);
+#endif
+
 	return 1;
 }
 
@@ -548,7 +634,7 @@ void HttpServer::Start(const char* address, unsigned short port)
 
 	m_strAddress = address;
 	m_iPort = port;
-	CreateSimpleThread((ThreadFunc_t)HttpServer::Server, this);
+	m_pServerThread = CreateSimpleThread((ThreadFunc_t)HttpServer::Server, this);
 	m_iStatus = HTTPSERVER_ONLINE;
 }
 
@@ -559,6 +645,10 @@ void HttpServer::Stop()
 
 	m_pServer.stop();
 	m_iStatus = HTTPSERVER_OFFLINE;
+
+	ThreadJoin(m_pServerThread, 100);
+	ReleaseThreadHandle(m_pServerThread);
+	m_pServerThread = nullptr;
 }
 
 void HttpServer::Think()
@@ -603,6 +693,7 @@ httplib::Server::Handler HttpServer::CreateHandler(const char* path, int func, b
 	return [=](const httplib::Request& req, httplib::Response& res)
 	{
 		int userID = -1;
+		std::string remoteAddress = GetAddressFromRequest(req);
 		for (auto& pClient : Util::GetClients())
 		{
 			// NOTE: Currently we assume pClient is always valid, and this is true as long as our httpServer doesn't persist across map changes
@@ -620,7 +711,7 @@ httplib::Server::Handler HttpServer::CreateHandler(const char* path, int func, b
 			const netadr_s& addr = pChannel->GetRemoteAddress();
 			std::string address = addr.ToString();
 			size_t port_pos = address.find(":");
-			if (address.substr(0, port_pos) == req.remote_addr || (req.remote_addr == localAddr && address.substr(0, port_pos) == loopBack))
+			if (address.substr(0, port_pos) == remoteAddress || (remoteAddress == localAddr && address.substr(0, port_pos) == loopBack))
 			{
 				userID = pClient->GetUserID();
 				break;
@@ -663,6 +754,7 @@ httplib::Server::Handler HttpServer::CreateHandler(const char* path, int func, b
 		request->m_iFunction = func;
 		request->m_pResponse = res;
 		request->m_pClientUserID = userID;
+		request->m_strAddress = remoteAddress;
 		request->m_pLua = m_pLua; // Inherit the Lua interface.
 		m_pRequests.push_back(request); // We should add a check here since we could write to it from multiple threads?
 		m_bUpdate = true;
@@ -970,6 +1062,14 @@ LUA_FUNCTION_STATIC(HttpServer_AddPreparedResponse)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(HttpServer_AddProxyAddress)
+{
+	HttpServer* pServer = Get_HttpServer(LUA, 1, true);
+
+	pServer->AddProxy(LUA->CheckString(2), LUA->CheckString(3), LUA->GetBool(4));
+	return 0;
+}
+
 LUA_FUNCTION_STATIC(httpserver_Create)
 {
 	Push_HttpServer(LUA, new HttpServer(LUA));
@@ -1021,7 +1121,7 @@ LUA_FUNCTION_STATIC(httpserver_FindByName)
 	return 1;
 }
 
-void HttpServer_OnClientDisconnect(CBaseClient* pClient)
+void CHTTPServerModule::OnClientDisconnect(CBaseClient* pClient)
 {
 	// Verify: As stated above in the HttpServer class, should we add a mutex for this?
 	int userID = pClient->GetUserID();
@@ -1072,6 +1172,7 @@ void CHTTPServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, HttpServer_SetName, "SetName");
 
 		Util::AddFunc(pLua, HttpServer_AddPreparedResponse, "AddPreparedResponse");
+		Util::AddFunc(pLua, HttpServer_AddProxyAddress, "AddProxyAddress");
 	pLua->Pop(1);
 
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::HttpResponse, pLua->CreateMetaTable("HttpResponse"));

@@ -1235,7 +1235,7 @@ void IVP_Mindist::do_impact(){
 	obj->revive_object_for_simulation();
     }
 
-	if (g_pHolyLibCallbacks && g_pHolyLibCallbacks->CheckLag(objects[0] ? objects[0]->client_data : NULL, objects[1] ? objects[1]->client_data : NULL))
+	if (g_pHolyLibCallbacks && g_pHolyLibCallbacks->CheckLag("IVP_Mindist::do_impact", objects[0] ? objects[0]->client_data : NULL, objects[1] ? objects[1]->client_data : NULL))
 	{
 		return;
 	}

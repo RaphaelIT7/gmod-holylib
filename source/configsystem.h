@@ -11,6 +11,8 @@ public:
 class CConfig : public IConfig
 {
 public:
+	virtual ~CConfig() {};
+
 	CConfig(const char* pFileName);
 	virtual ConfigState GetState();
 	virtual Bootil::Data::Tree& GetData();

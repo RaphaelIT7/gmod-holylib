@@ -1,44 +1,23 @@
 extern "C" {
-#include "../lua/lua.hpp"
-#include "../lua/lj_obj.h"
-#include "../lua/luajit_rolling.h"
-#include "../lua/lauxlib.h"
-#include "../lua/lj_state.h"
-#include "../lua/lj_tab.h"
-#include "../lua/lj_lib.h"
-#include "../lua/lj_gc.h"
+#include "../luajit/src/lua.hpp"
+#include "../luajit/src/lj_obj.h"
+#include "../luajit/src/luajit_rolling.h"
+#include "../luajit/src/lauxlib.h"
+#include "../luajit/src/lj_state.h"
+#include "../luajit/src/lj_tab.h"
+#include "../luajit/src/lj_lib.h"
+#include "../luajit/src/lj_gc.h"
+#include "../luajit/src/lj_ctype.h"
+#include "../luajit/src/lj_cdata.h"
+#include "../luajit/src/lj_err.h"
+#include "../luajit/src/lj_cparse.h"
 }
 
 #include "lua.h"
 
 TValue* RawLua::index2adr(lua_State* L, int idx)
 {
-	if (idx > 0) {
-		TValue *o = L->base + (idx - 1);
-		return o < L->top ? o : niltv(L);
-	} else if (idx > LUA_REGISTRYINDEX) {
-		lj_checkapi(idx != 0 && -idx <= L->top - L->base,
-			"bad stack slot %d", idx);
-		return L->top + idx;
-	} else if (idx == LUA_GLOBALSINDEX) {
-		TValue *o = &G(L)->tmptv;
-		settabV(L, o, tabref(L->env));
-		return o;
-	} else if (idx == LUA_REGISTRYINDEX) {
-		return registry(L);
-	} else {
-		GCfunc *fn = curr_func(L);
-		lj_checkapi(fn->c.gct == ~LJ_TFUNC && !isluafunc(fn),
-			"calling frame is not a C function");
-		if (idx == LUA_ENVIRONINDEX) {
-			TValue *o = &G(L)->tmptv;
-			settabV(L, o, tabref(fn->c.env));
-			return o;
-		} else {
-			idx = LUA_GLOBALSINDEX - idx;
-			return idx <= fn->c.nupvalues ? &fn->c.upvalue[idx-1] : niltv(L);
-		}
-	}
+	return lua_index2adr(L, idx); // We exposed it in LuaJIT so that we don't have to implement it ourself again.
 }
 
 TValue* RawLua::CopyTValue(lua_State* L, TValue* o)
@@ -47,6 +26,11 @@ TValue* RawLua::CopyTValue(lua_State* L, TValue* o)
 	copyTV(L, newO, o);
 
 	return newO;
+}
+
+void RawLua::DestroyTValue(TValue* o)
+{
+	delete o;
 }
 
 void RawLua::PushTValue(lua_State* L, TValue* o)
@@ -61,15 +45,17 @@ void RawLua::SetReadOnly(TValue* o, bool readOnly)
 	lj_tab_setreadonly(pTable, readOnly);
 }
 
-void* RawLua::GetUserDataOrFFIVar(lua_State* L, int idx, bool cDataTypes[USHRT_MAX])
+void* RawLua::GetUserDataOrFFIVar(lua_State* L, int idx, CDataBridge& cDataBridge, bool* bIsUserData)
 {
+	*bIsUserData = false;
 	cTValue *o = index2adr(L, idx);
-	if (tvisudata(o))
+	if (tvisudata(o)) {
+		*bIsUserData = true;
 		return uddata(udataV(o));
-	else if (tvislightud(o))
+	} else if (tvislightud(o))
 		return lightudV(G(L), o);
 	else if (tviscdata(o))
-		if (cDataTypes[cdataV(o)->ctypeid])
+		if (cDataBridge.pRegisteredTypes.IsBitSet(cdataV(o)->ctypeid))
 			return (void*)lj_obj_ptr(G(L), o); // won't mind the const void* -> void* it'll be fine
 		else
 			return NULL;
@@ -84,6 +70,80 @@ uint16_t RawLua::GetCDataType(lua_State* L, int idx)
 		return cdataV(o)->ctypeid;
 	
 	return -1;
+}
+
+CTypeID ffi_checkctype(lua_State *L, CTState *cts, TValue* param, const char* pStr)
+{
+	CPState cp;
+	int errcode;
+	cp.L = L;
+	cp.cts = cts;
+	cp.srcname = pStr;
+	cp.p = pStr;
+	cp.param = param;
+	cp.mode = CPARSE_MODE_ABSTRACT|CPARSE_MODE_NOIMPLICIT;
+	errcode = lj_cparse(&cp);
+	if (errcode)
+		lj_err_throw(L, errcode);  /* Propagate errors. */
+	
+	return cp.val.id;
+}
+
+uint32_t RawLua::GetCTypeFromName(lua_State* L, const char* pName, CDataBridge* cDataBridge)
+{
+	CTState* cts = ctype_cts(L);
+	CTypeID pType = ffi_checkctype(L, cts, NULL, pName);
+	CType* ct = ctype_raw(cts, pType);
+	GCtab* t = cts->miscmap;
+
+	TValue* tv = lj_tab_setinth(L, t, -(int32_t)ctype_typeid(cts, ct));
+	if (!tvisnil(tv))
+		lj_err_caller(L, LJ_ERR_PROTMT);
+
+	GCtab* mt = lj_lib_checktab(L, 2);
+	settabV(L, tv, mt);
+	lj_gc_anybarriert(L, t);
+	lj_gc_check(L);
+
+	if (!cDataBridge->nHolyLibUserDataGC)
+	{
+		cDataBridge->nHolyLibUserDataGC = new TValue;
+
+		copyTV(L, cDataBridge->nHolyLibUserDataGC, index2adr(L, 3));
+
+		lua_pushvalue(L, 3);
+		cDataBridge->nHolyLibUserDataGCFuncReference = luaL_ref(L, LUA_REGISTRYINDEX);
+	}
+
+	return pType;
+}
+
+extern RawLua::CDataBridge* GetCDataBridgeFromInterface(GarrysMod::Lua::ILuaInterface* pLua); // From the LuaJIT module
+void* RawLua::AllocateCDataOrUserData(GarrysMod::Lua::ILuaInterface* pLua, int nMetaID, int nSize)
+{
+#if 0 // Disabled since stuff decides to behave funny...
+	CDataBridge* cDataBridge = GetCDataBridgeFromInterface(pLua);
+
+	if (cDataBridge && cDataBridge->nHolyLibUserDataTypeID != 0)
+	{
+		lua_State* L = pLua->GetState();
+
+		lj_gc_check(L);
+		GCcdata* cData = lj_cdata_new_(L, cDataBridge->nHolyLibUserDataTypeID, sizeof(LuaUserData));
+		setcdataV(L, L->top, cData);
+		incr_top(L);
+
+		// Now also set our GC func
+		//if (cDataBridge->nHolyLibUserDataGC)
+		//	lj_cdata_setfin(L, cData, gcval(cDataBridge->nHolyLibUserDataGC), itype(cDataBridge->nHolyLibUserDataGC));
+
+		// Msg("cdata pointer: %p - %p %u\n", cdataptr(cData), cData, cDataBridge->nHolyLibUserDataTypeID);
+		return cdataptr(cData);
+	} else
+#endif
+	{
+		return pLua->NewUserdata(nSize);
+	}
 }
 
 int table_setreadonly(lua_State* L)

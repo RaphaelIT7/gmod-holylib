@@ -1,3 +1,4 @@
+//HOLYLIB_REQUIRES_MODULE=gameevent
 #include "sourcesdk/GameEventManager.h"
 
 // memdbgon must be the last include file in a .cpp file!!!

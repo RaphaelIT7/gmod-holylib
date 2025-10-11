@@ -1188,10 +1188,8 @@ bool CPhysicsConstraint::GetConstraintParams( constraint_breakableparams_t *pPar
 {
 	if ( !pParams )
 		return false;
-	vphysics_save_cphysicsconstraint_t header;
-	vphysics_save_constraint_t constraintTemplate;
-	memset( &header, 0, sizeof(header) );
-	memset( &constraintTemplate, 0, sizeof(constraintTemplate) );
+	vphysics_save_cphysicsconstraint_t header{};
+	vphysics_save_constraint_t constraintTemplate{};
 	WriteToTemplate( header, constraintTemplate );
 
 	if ( IsValidConstraint( header ) )
@@ -1680,10 +1678,8 @@ bool IsExternalConstraint( IVP_Controller *pLCS, void *pGameData )
 
 bool SavePhysicsConstraint( const physsaveparams_t &params, CPhysicsConstraint *pConstraint )
 {
-	vphysics_save_cphysicsconstraint_t header;
-	vphysics_save_constraint_t constraintTemplate;
-	memset( &header, 0, sizeof(header) );
-	memset( &constraintTemplate, 0, sizeof(constraintTemplate) );
+	vphysics_save_cphysicsconstraint_t header{};
+	vphysics_save_constraint_t constraintTemplate{};
 
 	pConstraint->WriteToTemplate( header, constraintTemplate );
 	
@@ -1725,8 +1721,7 @@ bool SavePhysicsConstraint( const physsaveparams_t &params, CPhysicsConstraint *
 
 bool RestorePhysicsConstraint( const physrestoreparams_t &params, CPhysicsConstraint **ppConstraint )
 {
-	vphysics_save_cphysicsconstraint_t header;
-	memset( &header, 0, sizeof(header) );
+	vphysics_save_cphysicsconstraint_t header{};
 	
 	params.pRestore->ReadAll( &header );
 	if ( IsValidConstraint( header ) )
@@ -1738,8 +1733,7 @@ bool RestorePhysicsConstraint( const physrestoreparams_t &params, CPhysicsConstr
 			break;
 		case CONSTRAINT_HINGE:
 			{
-				vphysics_save_constrainthinge_t hinge;
-				memset( &hinge, 0, sizeof(hinge) );
+				vphysics_save_constrainthinge_t hinge{};
 				params.pRestore->ReadAll( &hinge );
 				CPhysicsEnvironment *pEnvironment = (CPhysicsEnvironment *)params.pEnvironment;
 				*ppConstraint = (CPhysicsConstraint *)pEnvironment->CreateHingeConstraint( header.pObjReference, header.pObjAttached, header.pGroup, hinge );
@@ -1747,8 +1741,7 @@ bool RestorePhysicsConstraint( const physrestoreparams_t &params, CPhysicsConstr
 			break;
 		case CONSTRAINT_FIXED:
 			{
-				vphysics_save_constraintfixed_t fixed;
-				memset( &fixed, 0, sizeof(fixed) );
+				vphysics_save_constraintfixed_t fixed{};
 				params.pRestore->ReadAll( &fixed );
 				CPhysicsEnvironment *pEnvironment = (CPhysicsEnvironment *)params.pEnvironment;
 				*ppConstraint = (CPhysicsConstraint *)pEnvironment->CreateFixedConstraint( header.pObjReference, header.pObjAttached, header.pGroup, fixed );
@@ -1756,8 +1749,7 @@ bool RestorePhysicsConstraint( const physrestoreparams_t &params, CPhysicsConstr
 			break;
 		case CONSTRAINT_SLIDING:
 			{
-				vphysics_save_constraintsliding_t sliding;
-				memset( &sliding, 0, sizeof(sliding) );
+				vphysics_save_constraintsliding_t sliding{};
 				params.pRestore->ReadAll( &sliding );
 				CPhysicsEnvironment *pEnvironment = (CPhysicsEnvironment *)params.pEnvironment;
 				*ppConstraint = (CPhysicsConstraint *)pEnvironment->CreateSlidingConstraint( header.pObjReference, header.pObjAttached, header.pGroup, sliding );
@@ -1765,8 +1757,7 @@ bool RestorePhysicsConstraint( const physrestoreparams_t &params, CPhysicsConstr
 			break;
 		case CONSTRAINT_PULLEY:
 			{
-				vphysics_save_constraintpulley_t pulley;
-				memset( &pulley, 0, sizeof(pulley) );
+				vphysics_save_constraintpulley_t pulley{};
 				params.pRestore->ReadAll( &pulley );
 				CPhysicsEnvironment *pEnvironment = (CPhysicsEnvironment *)params.pEnvironment;
 				*ppConstraint = (CPhysicsConstraint *)pEnvironment->CreatePulleyConstraint( header.pObjReference, header.pObjAttached, header.pGroup, pulley );
@@ -1774,8 +1765,7 @@ bool RestorePhysicsConstraint( const physrestoreparams_t &params, CPhysicsConstr
 			break;
 		case CONSTRAINT_LENGTH:
 			{
-				vphysics_save_constraintlength_t length;
-				memset( &length, 0, sizeof(length) );
+				vphysics_save_constraintlength_t length{};
 				params.pRestore->ReadAll( &length );
 				CPhysicsEnvironment *pEnvironment = (CPhysicsEnvironment *)params.pEnvironment;
 				*ppConstraint = (CPhysicsConstraint *)pEnvironment->CreateLengthConstraint( header.pObjReference, header.pObjAttached, header.pGroup, length );
@@ -1783,8 +1773,7 @@ bool RestorePhysicsConstraint( const physrestoreparams_t &params, CPhysicsConstr
 			break;
 		case CONSTRAINT_BALLSOCKET:
 			{
-				vphysics_save_constraintballsocket_t ballsocket;
-				memset( &ballsocket, 0, sizeof(ballsocket) );
+				vphysics_save_constraintballsocket_t ballsocket{};
 				params.pRestore->ReadAll( &ballsocket );
 				CPhysicsEnvironment *pEnvironment = (CPhysicsEnvironment *)params.pEnvironment;
 				*ppConstraint = (CPhysicsConstraint *)pEnvironment->CreateBallsocketConstraint( header.pObjReference, header.pObjAttached, header.pGroup, ballsocket );
@@ -1792,8 +1781,7 @@ bool RestorePhysicsConstraint( const physrestoreparams_t &params, CPhysicsConstr
 			break;
 		case CONSTRAINT_RAGDOLL:
 			{
-				vphysics_save_constraintragdoll_t ragdoll;
-				memset( &ragdoll, 0, sizeof(ragdoll) );
+				vphysics_save_constraintragdoll_t ragdoll{};
 				params.pRestore->ReadAll( &ragdoll );
 				CPhysicsEnvironment *pEnvironment = (CPhysicsEnvironment *)params.pEnvironment;
 				*ppConstraint = (CPhysicsConstraint *)pEnvironment->CreateRagdollConstraint( header.pObjReference, header.pObjAttached, header.pGroup, ragdoll );
@@ -1816,8 +1804,7 @@ bool RestorePhysicsConstraint( const physrestoreparams_t &params, CPhysicsConstr
 
 bool SavePhysicsConstraintGroup( const physsaveparams_t &params, CPhysicsConstraintGroup *pConstraintGroup )
 {
-	vphysics_save_cphysicsconstraintgroup_t groupTemplate;
-	memset( &groupTemplate, 0, sizeof(groupTemplate) );
+	vphysics_save_cphysicsconstraintgroup_t groupTemplate{};
 
 	pConstraintGroup->WriteToTemplate( groupTemplate );
 	params.pSave->WriteAll( &groupTemplate );
@@ -1826,8 +1813,7 @@ bool SavePhysicsConstraintGroup( const physsaveparams_t &params, CPhysicsConstra
 
 bool RestorePhysicsConstraintGroup( const physrestoreparams_t &params, CPhysicsConstraintGroup **ppConstraintGroup )
 {
-	vphysics_save_cphysicsconstraintgroup_t groupTemplate;
-	memset( &groupTemplate, 0, sizeof(groupTemplate) );
+	vphysics_save_cphysicsconstraintgroup_t groupTemplate{};
 	params.pRestore->ReadAll( &groupTemplate );
 	if ( groupTemplate.errorTolerance == 0.0f && groupTemplate.minErrorTicks == 0 )
 	{
