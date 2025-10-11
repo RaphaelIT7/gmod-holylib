@@ -25,7 +25,7 @@ public:
 	virtual void Shutdown() OVERRIDE;
 	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) OVERRIDE;
 	virtual const char* Name() { return "filesystem"; };
-	virtual int Compatibility() { return LINUX32 | WINDOWS32; };
+	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 	virtual bool SupportsMultipleLuaStates() { return true; };
 };
 
@@ -1715,7 +1715,7 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 		return;
 
 	bShutdown = false;
-#ifndef SYSTEM_WINDOWS
+#if !defined(SYSTEM_WINDOWS) && defined(ARCHITECTURE_IS_X86)
 	if (holylib_filesystem_threads.GetInt() > 0)
 	{
 		pFileSystemPool = V_CreateThreadPool();
