@@ -4,7 +4,6 @@ A library that contains some functions and optimizations for gmod.<br>
 If you need any function, make an issue for it, and I'll look into it.<br>
 When HolyLib was installed correctly, the variable `_HOLYLIB` should be set to `true` in Lua.<br>
 
-
 ## Windows
 So currently to get it working on Windows, I would have to redo most of the hooks, and It would also take a good while.<br>
 Because of this, I'm not going to make it currently. I'm gonna slowly start adding all symbols and then someday I'm going to redo most hooks.<br>
