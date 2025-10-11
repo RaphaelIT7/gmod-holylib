@@ -154,7 +154,11 @@ namespace Detour
 		if (matchAddr == NULL)
 			return NULL;
 
+	#if defined(SYSTEM_WINDOWS) && ARCHITECTURE_IS_X86_64
+		uint8_t* ip = reinterpret_cast<uint8_t*>((char*)(matchAddr) + pSymbols[DETOUR_SYMBOL_ID].offset);
+	#else
 		uint8_t* ip = reinterpret_cast<uint8_t*>(matchAddr + pSymbols[DETOUR_SYMBOL_ID].offset);
+	#endif
 
 		if (ip[0] == 0x48 && ip[1] == 0x8D && ip[2] == 0x3D) {
 			const size_t instrLen = 7;
