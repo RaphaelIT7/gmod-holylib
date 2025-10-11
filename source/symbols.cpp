@@ -95,8 +95,9 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x83\xF9\x02\x48\x89\xE5\x41\x54\x53\x48\x89\xFB\x89\xD7\x89\xCA"), // 55 83 F9 02 48 89 E5 41 54 53 48 89 FB 89 D7 89 CA
 	};
 
-	const std::vector<Symbol> CBaseEntity_GetLuaEntitySym = {
+	const std::vector<Symbol> CBaseEntity_GetLuaEntitySym = {//Search for 'm_LuaEntity != ENTITY!'
 		Symbol::FromName("_ZN11CBaseEntity12GetLuaEntityEv"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x53\x48\x83\xEC\x28\x4C\x8B\x25\x2A\x2A\x2A\x2A\x49\x83\x3C\x24\x00"), // 55 48 89 E5 41 57 41 56 41 55 41 54 53 48 83 EC 28 4C 8B 25 ? ? ? ? 49 83 3C 24 00
 	};
 
 	const std::vector<Symbol> CGameEventManager_CreateEventSym = {
@@ -561,8 +562,9 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x49\x89\xFC\x53\x48\x89\xFB\x48\x81\xEC\x20\x01\x00\x00"), // 55 48 89 E5 41 57 41 56 41 55 41 54 49 89 FC 53 48 89 FB 48 81 EC 20 01 00 00
 	};
 
-	const std::vector<Symbol> GetCurrentSkyCameraSym = {
+	const std::vector<Symbol> GetCurrentSkyCameraSym = {// Search for 'models/props_combine/headcrabcannister01a_skybox.mdl' then select the xref function that call it 2 times, and you got it
 		Symbol::FromName("_Z19GetCurrentSkyCamerav"),
+		Symbol::FromSignature("\x55\x48\x8B\x05\xE0\x72\x0D\x01\x48\x89\xE5\x5D\xC3"), //55 48 8B 05 E0 72 0D 01 48 89 E5 5D C3 
 	};
 
 	//---------------------------------------------------------------------------------
@@ -624,7 +626,7 @@ namespace Symbols
 
 	const std::vector<Symbol> CVoiceGameMgr_UpdateSym = { // VoiceMask
 		Symbol::FromName("_ZN13CVoiceGameMgr6UpdateEd"),
-		NULL_SIGNATURE,
+		Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x89\xFB\x48\x83\xEC\x08\xF2\x0F\x58\x47\x18"), //55 48 89 E5 53 48 89 FB 48 83 EC 08 F2 0F 58 47 18
 		Symbol::FromSignature("\x55\x8B\xEC\xDD\x45\x08\x56\x8B\xF1\xDC\x46\x10\xDD\x56\x10"), // 55 8B EC DD 45 08 56 8B F1 DC 46 10 DD 56 10
 	};
 
@@ -908,9 +910,10 @@ namespace Symbols
 	const std::vector<Symbol> s_NetChannelsSym = {
 		Symbol::FromName("_ZL13s_NetChannels"),
 	};
-  
+
 	const std::vector<Symbol> NET_SetTimeSym = {
 		Symbol::FromName("_Z11NET_SetTimed"),
+
 	};
 
 	//---------------------------------------------------------------------------------
