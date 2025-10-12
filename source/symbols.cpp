@@ -334,7 +334,7 @@ namespace Symbols
 
 	const std::vector<Symbol> CBaseFileSystem_FixUpPathSym = {//Find 'BASE_PATH'
 		Symbol::FromName("_ZN15CBaseFileSystem9FixUpPathEPKcPci"),
-		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x49\x89\xFD\x41\x54\x49\x89\xD4"), //55 48 89 E5 41 57 41 56 41 55 49 89 FD 41 54 49 89 D4
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x56\x41\x55\x41\x54\x49\x89\xFC\x53\x48\x89\xD3\x48\x63\xD1"), //55 48 89 E5 41 56 41 55 41 54 49 89 FC 53 48 89 D3 48 63 D1
 	};
 
 	std::vector<Symbol> CBaseFileSystem_OpenForReadSym = {
@@ -357,18 +357,19 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x49\x89\xD6\x41\x55\x41\x54\x53\x48\x89\xFB"), // 55 48 89 E5 41 57 41 56 49 89 D6 41 55 41 54 53 48 89 FB
 	};
 
-	const std::vector<Symbol> CBaseFileSystem_RemoveAllMapSearchPathsSym = {
+	const std::vector<Symbol> CBaseFileSystem_RemoveAllMapSearchPathsSym = {//Search for 'Extracting BSP'
 		Symbol::FromName("_ZN15CBaseFileSystem23RemoveAllMapSearchPathsEv"),
-		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x49\x89\xD6\x41\x55\x41\x54\x53\x48\x89\xFB"), // 55 48 89 E5 41 57 41 56 49 89 D6 41 55 41 54 53 48 89 FB
+		Symbol::FromSignature("\x55\xBE\x00\x00\x00\x80\x48\x89\xE5"), // 55 BE 00 00 00 80 48 89 E5
 	};
 
-	const std::vector<Symbol> CBaseFileSystem_CloseSym = {
+	const std::vector<Symbol> CBaseFileSystem_CloseSym = { //Search for 'CBaseFileSystem::Close'
 		Symbol::FromName("_ZN15CBaseFileSystem5CloseEPv"),
-		Symbol::FromSignature("\x55\xBE\x00\x00\x00\x80\x48\x89\xE5"), // 55 BE 00 00 00 80 48 89 E5
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x49\x89\xFE\x41\x55\x41\x54\x49\x89\xF4\x53\x48\x83\xEC\x08\x48\x8B\x1D\x2A\x2A\x2A\x2A\x8B\x8B\x0C\x10\x00\x00\x85\xC9\x41\x0F\x95\xC5\x0F\x85\x2A\x2A\x2A\x2A\x4D\x85\xE4\x0F\x84\x2A\x2A\x2A\x2A\x49\x8B\x04\x24"), // 55 48 89 E5 41 57 41 56 49 89 FE 41 55 41 54 49 89 F4 53 48 83 EC 08 48 8B 1D ? ? ? ? 8B 8B 0C 10 00 00 85 C9 41 0F 95 C5 0F 85 ? ? ? ? 4D 85 E4 0F 84 ? ? ? ? 49 8B 04 24
 	};
 
 	const std::vector<Symbol> CBaseFileSystem_CSearchPath_GetDebugStringSym = {
 		Symbol::FromName("_ZNK15CBaseFileSystem11CSearchPath14GetDebugStringEv"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x83\xEC\x18\x48\x8B\x47\x28"), //55 48 89 E5 53 48 83 EC 18 48 8B 47 28
 	};
 
 	const std::vector<Symbol> g_PathIDTableSym = {
