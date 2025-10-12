@@ -168,13 +168,10 @@ LUA_FUNCTION_STATIC(cvars_GetAll)
 		int idx = 0;
 #if ARCHITECTURE_IS_X86_64
 		ICvar::Iterator iter(g_pCVar);
-		
-		Warning(PROJECT_NAME ": Iter !\n");
+
 		for ( iter.SetFirst() ; iter.IsValid() ; iter.Next() )
 		{
-			Warning(PROJECT_NAME ": For loop !\n");
 			ConCommandBase* var = iter.Get();
-			Warning(PROJECT_NAME ": Var !\n");
 #else
 		for (const ConCommandBase* var = g_pCVar->GetCommands(); var; var = var->GetNext())
 		{
@@ -182,14 +179,9 @@ LUA_FUNCTION_STATIC(cvars_GetAll)
 			if (var->IsCommand())
 				continue;
 
-			Warning(PROJECT_NAME ": Iter 2 !\n");
-
 			LUA->PushUserType((ConVar*)var, GarrysMod::Lua::Type::ConVar);
-			
-			Warning(PROJECT_NAME ": Iter 3 !\n");
+
 			Util::RawSetI(LUA, -2, ++idx);
-			
-			Warning(PROJECT_NAME ": Iter 4 !\n");
 		}
 
 	return 1;
