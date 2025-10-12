@@ -133,9 +133,9 @@ namespace Symbols
 		NULL_SIGNATURE, // ToDo
 	};
 
-	const std::vector<Symbol> CBaseEntity_SetMoveTypeSym = {
+	const std::vector<Symbol> CBaseEntity_SetMoveTypeSym = {// Search for %s[%i]: Changing collision rules within then you have CBaseEntity__CollisionRulesChanged and the 2nd xref it's this one
 		Symbol::FromName("_ZN11CBaseEntity11SetMoveTypeE10MoveType_t13MoveCollide_t"),
-		NULL_SIGNATURE, // ToDo
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x56\x41\x55\x41\x54\x53\x48\x89\xFB\x48\x83\xEC\x10\x0F\xB6\x87\xF6\x01\x00\x00"), // 55 48 89 E5 41 56 41 55 41 54 53 48 89 FB 48 83 EC 10 0F B6 87 F6 01 00 00
 	};
 
 	const std::vector<Symbol> CHostState_State_ChangeLevelMPSym = {
@@ -292,7 +292,7 @@ namespace Symbols
 
 	const std::vector<Symbol> MoveHelperServerSym = {// Find 'CBasePlayer::PhysicsSimulate' and then you'll get CBasePlayer__PhysicsSimulate and then it's into it
 		Symbol::FromName("_Z16MoveHelperServerv"),
-		Symbol::FromSignature("\x80\x3D\x29\xF6\x18\x01\x00"), // 80 3D 29 F6 18 01 00
+		Symbol::FromSignature("\x80\x3D\x29\x2A\x2A\x01\x00"), // 80 3D 29 ?? ?? 01 00
 	};
 
 	//---------------------------------------------------------------------------------
@@ -567,7 +567,7 @@ namespace Symbols
 
 	const std::vector<Symbol> GetCurrentSkyCameraSym = {// Search for 'models/props_combine/headcrabcannister01a_skybox.mdl' then select the xref function that call it 2 times, and you got it
 		Symbol::FromName("_Z19GetCurrentSkyCamerav"),
-		Symbol::FromSignature("\x55\x48\x8B\x05\xE0\x72\x0D\x01\x48\x89\xE5\x5D\xC3"), //55 48 8B 05 E0 72 0D 01 48 89 E5 5D C3 
+		Symbol::FromSignature("\x55\x48\x8B\x05\x2A\x2A\x0D\x01\x48\x89\xE5\x5D\xC3"), //55 48 8B 05 ?? ?? 0D 01 48 89 E5 5D C3 
 	};
 
 	//---------------------------------------------------------------------------------
@@ -696,15 +696,15 @@ namespace Symbols
 		Symbol::FromName("g_fDeferDeleteMindist"),
 	};
 
-	const std::vector<Symbol> GMod_Util_IsPhysicsObjectValidSym = { // PhysObject [%s][Entity %d]
+	const std::vector<Symbol> GMod_Util_IsPhysicsObjectValidSym = { // PhysObject [%s][Entity %d] or "Tried to use a NULL physics object!""
 		Symbol::FromName("_ZN4GMod4Util20IsPhysicsObjectValidEP14IPhysicsObject"),
-		Symbol::FromSignature(""),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x89\xFB\x48\x8D\x75\xEC"), // 55 48 89 E5 53 48 89 FB 48 8D 75 EC
 		Symbol::FromSignature("\x55\x8B\xEC\x51\x8B*****\x8D\x55\xFC\xC7\x45\xFC\x00\x00\x00\x00"), // 55 8B EC 51 8B ?? ?? ?? ?? ?? 8D 55 FC C7 45 FC 00 00 00 00
 	};
 
 	const std::vector<Symbol> PhysFrameSym = { // "Reset physics clock\n"
 		Symbol::FromName("_ZL9PhysFramef"),
-		Symbol::FromSignature(""),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x53\x48\x83\xEC\x38\x64\x48\x8B\x04\x25\x2A\x2A\x2A\x2A"), // 55 48 89 E5 41 57 41 56 41 55 41 54 53 48 83 EC 38 64 48 8B 04 25 ? ? ? ?
 		Symbol::FromSignature("\x55\x8B\xEC\x83\xEC\x1C\x83******\x53\x56\x57"), // 55 8B EC 83 EC 1C 83 ?? ?? ?? ?? ?? ?? 53 56 57
 	};
 
@@ -912,11 +912,12 @@ namespace Symbols
 
 	const std::vector<Symbol> s_NetChannelsSym = {
 		Symbol::FromName("_ZL13s_NetChannels"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x45\x89\xCF\x41\x56\x49\x89\xCE", 0x190), // 55 48 89 E5 41 57 45 89 CF 41 56 49 89 CE
 	};
 
 	const std::vector<Symbol> NET_SetTimeSym = {
 		Symbol::FromName("_Z11NET_SetTimed"),
-
+		Symbol::FromSignature("\x55\x66\x0F\x28\xC8"), // 55 66 0F 28 C8
 	};
 
 	//---------------------------------------------------------------------------------
