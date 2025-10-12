@@ -48,14 +48,14 @@ void RawLua::SetReadOnly(TValue* o, bool readOnly)
 void* RawLua::GetUserDataOrFFIVar(lua_State* L, int idx, CDataBridge& cDataBridge, bool* bIsUserData)
 {
 	*bIsUserData = false;
-	cTValue *o = index2adr(L, idx);
+	TValue *o = index2adr(L, idx);
 	if (tvisudata(o)) {
 		*bIsUserData = true;
 		return uddata(udataV(o));
 	} else if (tvislightud(o))
 		return lightudV(G(L), o);
 	else if (tviscdata(o))
-		if (cDataBridge.pRegisteredTypes.IsBitSet(cdataV(o)->ctypeid))
+		if (cDataBridge.IsRegistered(o))
 			return (void*)lj_obj_ptr(G(L), o); // won't mind the const void* -> void* it'll be fine
 		else
 			return NULL;
@@ -105,14 +105,12 @@ uint32_t RawLua::GetCTypeFromName(lua_State* L, const char* pName, CDataBridge* 
 	lj_gc_anybarriert(L, t);
 	lj_gc_check(L);
 
-	if (!cDataBridge->nHolyLibUserDataGC)
+	if (cDataBridge->GetHolyLibUserDataGCFuncRef() == -1)
 	{
-		cDataBridge->nHolyLibUserDataGC = new TValue;
-
-		copyTV(L, cDataBridge->nHolyLibUserDataGC, index2adr(L, 3));
+		copyTV(L, cDataBridge->GetHolyLibUserData(), index2adr(L, 3));
 
 		lua_pushvalue(L, 3);
-		cDataBridge->nHolyLibUserDataGCFuncReference = luaL_ref(L, LUA_REGISTRYINDEX);
+		cDataBridge->SetHolyLibUserDataGCFuncRef(luaL_ref(L, LUA_REGISTRYINDEX));
 	}
 
 	return pType;

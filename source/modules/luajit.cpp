@@ -50,7 +50,6 @@ class LuaJITModuleData : public Lua::ModuleData
 {
 public:
 	//std::unique_ptr<CLuaInterfaceProxy> pLuaInterfaceProxy;
-	RawLua::CDataBridge pBridge;
 };
 
 LUA_GetModuleData(LuaJITModuleData, g_pLuaJITModule, LuaJIT)
@@ -64,18 +63,6 @@ Detour::Create( \
 )
 
 #define Override(name) ManualOverride(name, name)
-
-RawLua::CDataBridge* GetCDataBridgeFromInterface(GarrysMod::Lua::ILuaInterface* pLua)
-{
-	if (!g_pLuaJITModule.m_bIsEnabled)
-		return nullptr;
-
-	LuaJITModuleData* pData = GetLuaJITLuaData(pLua);
-	if (!pData)
-		return nullptr;
-
-	return &pData->pBridge;
-}
 
 static thread_local int overrideFFIReference = -1;
 static int getffi(lua_State* L)
@@ -97,10 +84,14 @@ LUA_FUNCTION_STATIC(markFFITypeAsValidUserData)
 	if (!g_pLuaJITModule.m_bAllowFFI && overrideFFIReference == -1)
 		return 0;
 
+	Lua::StateData* pData = Lua::GetLuaData(LUA);
+	if (!pData)
+		return 0;
+
 	unsigned char nMetaID = LUA->CheckNumber(1);
 	uint16_t cTypeID = RawLua::GetCDataType(LUA->GetState(), 2);
 
-	GetLuaJITLuaData(LUA)->pBridge.RegisterType(nMetaID, cTypeID);
+	Lua::GetLuaData(LUA)->GetCDataBridge().RegisterType(nMetaID, cTypeID);
 	return 0;
 }
 
@@ -112,8 +103,12 @@ LUA_FUNCTION_STATIC(registerCreateHolyLibCDataFunc)
 	LUA->CheckType(2, GarrysMod::Lua::Type::Table);
 	LUA->CheckType(3, GarrysMod::Lua::Type::Function);
 
-	uint32_t nTypeID = RawLua::GetCTypeFromName(LUA->GetState(), LUA->CheckString(1), &GetLuaJITLuaData(LUA)->pBridge);
-	GetLuaJITLuaData(LUA)->pBridge.RegisterHolyLibUserData(nTypeID);
+	Lua::StateData* pData = Lua::GetLuaData(LUA);
+	if (!pData)
+		return 0;
+
+	uint32_t nTypeID = RawLua::GetCTypeFromName(LUA->GetState(), LUA->CheckString(1), &pData->GetCDataBridge());
+	pData->GetCDataBridge().RegisterHolyLibUserData(nTypeID);
 	return 0;
 }
 

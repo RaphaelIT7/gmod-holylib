@@ -25,7 +25,7 @@ public:
 	virtual void Shutdown() OVERRIDE;
 	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) OVERRIDE;
 	virtual const char* Name() { return "filesystem"; };
-	virtual int Compatibility() { return LINUX32 | WINDOWS32; };
+	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 	virtual bool SupportsMultipleLuaStates() { return true; };
 };
 
@@ -170,12 +170,12 @@ FileHandle_t GetFileHandleFromCache(std::string_view strFilePath)
 	if (iPos != 0)
 	{
 		if (g_pFileSystemModule.InDebug())
-			Msg("holylib - GetFileHandleFromCache: Pos: %llu\n", g_pFullFileSystem->Tell(it->second));
+			Msg("holylib - GetFileHandleFromCache: Pos: %u\n", g_pFullFileSystem->Tell(it->second));
 		
 		g_pFullFileSystem->Seek(it->second, 0, FILESYSTEM_SEEK_HEAD); // Why doesn't it reset?
 		
 		if (g_pFileSystemModule.InDebug())
-			Msg("holylib - GetFileHandleFromCache: Rewind pos: %llu\n", g_pFullFileSystem->Tell(it->second));
+			Msg("holylib - GetFileHandleFromCache: Rewind pos: %u\n", g_pFullFileSystem->Tell(it->second));
 		
 		int iNewPos = (int)g_pFullFileSystem->Tell(it->second);
 		if (iNewPos != 0)
@@ -1689,6 +1689,9 @@ inline const char* CPathIDInfo::GetPathIDString() const
 	 * This had happen in https://github.com/RaphaelIT7/gmod-holylib/issues/23 where it would result in crashes inside strlen calls on the string.
 	 */
 
+	if (!g_pPathIDTable)
+		return NULL;
+
 	return g_pPathIDTable->String( m_PathID );
 }
 
@@ -1712,7 +1715,7 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 		return;
 
 	bShutdown = false;
-#ifndef SYSTEM_WINDOWS
+#if !defined(SYSTEM_WINDOWS) && defined(ARCHITECTURE_IS_X86)
 	if (holylib_filesystem_threads.GetInt() > 0)
 	{
 		pFileSystemPool = V_CreateThreadPool();
