@@ -78,7 +78,7 @@ namespace Symbols
 
 	const std::vector<Symbol> gEntListSym = { // 64x = ents.GetAll
 		Symbol::FromName("gEntList"),
-		Symbol::FromSignature("\x55\x48\x8D\x3D\x2A\x2A\x2A\x2A\x48\x89\xE5\x53\x48\x83\xEC\x08\xC6\x05\xC9\x83\x43\x01\x00", 0x111),
+		Symbol::FromSignature("\x55\x48\x8D\x3D\x2A\x2A\x2A\x2A\x48\x89\xE5\x53\x48\x83\xEC\x08\xC6\x05\x2A\x2A\x43\x01\x00", 0x111),
 	};
 
 	const std::vector<Symbol> CSteam3Server_NotifyClientDisconnectSym = { // 64x = Search for "S3" and then go through every function upwards till you find one that somewhat matches the ASM of the 32x version.
@@ -133,9 +133,9 @@ namespace Symbols
 		NULL_SIGNATURE, // ToDo
 	};
 
-	const std::vector<Symbol> CBaseEntity_SetMoveTypeSym = {
+	const std::vector<Symbol> CBaseEntity_SetMoveTypeSym = {// Search for %s[%i]: Changing collision rules within then you have CBaseEntity__CollisionRulesChanged and the 2nd xref it's this one
 		Symbol::FromName("_ZN11CBaseEntity11SetMoveTypeE10MoveType_t13MoveCollide_t"),
-		NULL_SIGNATURE, // ToDo
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x56\x41\x55\x41\x54\x53\x48\x89\xFB\x48\x83\xEC\x10\x0F\xB6\x87\xF6\x01\x00\x00"), // 55 48 89 E5 41 56 41 55 41 54 53 48 89 FB 48 83 EC 10 0F B6 87 F6 01 00 00
 	};
 
 	const std::vector<Symbol> CHostState_State_ChangeLevelMPSym = {
@@ -292,7 +292,7 @@ namespace Symbols
 
 	const std::vector<Symbol> MoveHelperServerSym = {// Find 'CBasePlayer::PhysicsSimulate' and then you'll get CBasePlayer__PhysicsSimulate and then it's into it
 		Symbol::FromName("_Z16MoveHelperServerv"),
-		Symbol::FromSignature("\x80\x3D\x29\xF6\x18\x01\x00"), // 80 3D 29 F6 18 01 00
+		Symbol::FromSignature("\x80\x3D\x29\x2A\x2A\x01\x00"), // 80 3D 29 ?? ?? 01 00
 	};
 
 	//---------------------------------------------------------------------------------
@@ -334,7 +334,7 @@ namespace Symbols
 
 	const std::vector<Symbol> CBaseFileSystem_FixUpPathSym = {//Find 'BASE_PATH'
 		Symbol::FromName("_ZN15CBaseFileSystem9FixUpPathEPKcPci"),
-		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x49\x89\xFD\x41\x54\x49\x89\xD4"), //55 48 89 E5 41 57 41 56 41 55 49 89 FD 41 54 49 89 D4
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x56\x41\x55\x41\x54\x49\x89\xFC\x53\x48\x89\xD3\x48\x63\xD1"), //55 48 89 E5 41 56 41 55 41 54 49 89 FC 53 48 89 D3 48 63 D1
 	};
 
 	std::vector<Symbol> CBaseFileSystem_OpenForReadSym = {
@@ -357,18 +357,19 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x49\x89\xD6\x41\x55\x41\x54\x53\x48\x89\xFB"), // 55 48 89 E5 41 57 41 56 49 89 D6 41 55 41 54 53 48 89 FB
 	};
 
-	const std::vector<Symbol> CBaseFileSystem_RemoveAllMapSearchPathsSym = {
+	const std::vector<Symbol> CBaseFileSystem_RemoveAllMapSearchPathsSym = {//Search for 'Extracting BSP'
 		Symbol::FromName("_ZN15CBaseFileSystem23RemoveAllMapSearchPathsEv"),
-		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x49\x89\xD6\x41\x55\x41\x54\x53\x48\x89\xFB"), // 55 48 89 E5 41 57 41 56 49 89 D6 41 55 41 54 53 48 89 FB
+		Symbol::FromSignature("\x55\xBE\x00\x00\x00\x80\x48\x89\xE5"), // 55 BE 00 00 00 80 48 89 E5
 	};
 
-	const std::vector<Symbol> CBaseFileSystem_CloseSym = {
+	const std::vector<Symbol> CBaseFileSystem_CloseSym = { //Search for 'CBaseFileSystem::Close'
 		Symbol::FromName("_ZN15CBaseFileSystem5CloseEPv"),
-		Symbol::FromSignature("\x55\xBE\x00\x00\x00\x80\x48\x89\xE5"), // 55 BE 00 00 00 80 48 89 E5
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x49\x89\xFE\x41\x55\x41\x54\x49\x89\xF4\x53\x48\x83\xEC\x08\x48\x8B\x1D\x2A\x2A\x2A\x2A\x8B\x8B\x0C\x10\x00\x00\x85\xC9\x41\x0F\x95\xC5\x0F\x85\x2A\x2A\x2A\x2A\x4D\x85\xE4\x0F\x84\x2A\x2A\x2A\x2A\x49\x8B\x04\x24"), // 55 48 89 E5 41 57 41 56 49 89 FE 41 55 41 54 49 89 F4 53 48 83 EC 08 48 8B 1D ? ? ? ? 8B 8B 0C 10 00 00 85 C9 41 0F 95 C5 0F 85 ? ? ? ? 4D 85 E4 0F 84 ? ? ? ? 49 8B 04 24
 	};
 
 	const std::vector<Symbol> CBaseFileSystem_CSearchPath_GetDebugStringSym = {
 		Symbol::FromName("_ZNK15CBaseFileSystem11CSearchPath14GetDebugStringEv"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x83\xEC\x18\x48\x8B\x47\x28"), //55 48 89 E5 53 48 83 EC 18 48 8B 47 28
 	};
 
 	const std::vector<Symbol> g_PathIDTableSym = {
@@ -566,7 +567,7 @@ namespace Symbols
 
 	const std::vector<Symbol> GetCurrentSkyCameraSym = {// Search for 'models/props_combine/headcrabcannister01a_skybox.mdl' then select the xref function that call it 2 times, and you got it
 		Symbol::FromName("_Z19GetCurrentSkyCamerav"),
-		Symbol::FromSignature("\x55\x48\x8B\x05\xE0\x72\x0D\x01\x48\x89\xE5\x5D\xC3"), //55 48 8B 05 E0 72 0D 01 48 89 E5 5D C3 
+		Symbol::FromSignature("\x55\x48\x8B\x05\x2A\x2A\x0D\x01\x48\x89\xE5\x5D\xC3"), //55 48 8B 05 ?? ?? 0D 01 48 89 E5 5D C3 
 	};
 
 	//---------------------------------------------------------------------------------
@@ -695,15 +696,15 @@ namespace Symbols
 		Symbol::FromName("g_fDeferDeleteMindist"),
 	};
 
-	const std::vector<Symbol> GMod_Util_IsPhysicsObjectValidSym = { // PhysObject [%s][Entity %d]
+	const std::vector<Symbol> GMod_Util_IsPhysicsObjectValidSym = { // PhysObject [%s][Entity %d] or "Tried to use a NULL physics object!""
 		Symbol::FromName("_ZN4GMod4Util20IsPhysicsObjectValidEP14IPhysicsObject"),
-		Symbol::FromSignature(""),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x89\xFB\x48\x8D\x75\xEC"), // 55 48 89 E5 53 48 89 FB 48 8D 75 EC
 		Symbol::FromSignature("\x55\x8B\xEC\x51\x8B*****\x8D\x55\xFC\xC7\x45\xFC\x00\x00\x00\x00"), // 55 8B EC 51 8B ?? ?? ?? ?? ?? 8D 55 FC C7 45 FC 00 00 00 00
 	};
 
 	const std::vector<Symbol> PhysFrameSym = { // "Reset physics clock\n"
 		Symbol::FromName("_ZL9PhysFramef"),
-		Symbol::FromSignature(""),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x53\x48\x83\xEC\x38\x64\x48\x8B\x04\x25\x2A\x2A\x2A\x2A"), // 55 48 89 E5 41 57 41 56 41 55 41 54 53 48 83 EC 38 64 48 8B 04 25 ? ? ? ?
 		Symbol::FromSignature("\x55\x8B\xEC\x83\xEC\x1C\x83******\x53\x56\x57"), // 55 8B EC 83 EC 1C 83 ?? ?? ?? ?? ?? ?? 53 56 57
 	};
 
@@ -911,11 +912,12 @@ namespace Symbols
 
 	const std::vector<Symbol> s_NetChannelsSym = {
 		Symbol::FromName("_ZL13s_NetChannels"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x45\x89\xCF\x41\x56\x49\x89\xCE", 0x190), // 55 48 89 E5 41 57 45 89 CF 41 56 49 89 CE
 	};
 
 	const std::vector<Symbol> NET_SetTimeSym = {
 		Symbol::FromName("_Z11NET_SetTimed"),
-
+		Symbol::FromSignature("\x55\x66\x0F\x28\xC8"), // 55 66 0F 28 C8
 	};
 
 	//---------------------------------------------------------------------------------

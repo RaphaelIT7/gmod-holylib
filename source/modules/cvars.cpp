@@ -168,6 +168,7 @@ LUA_FUNCTION_STATIC(cvars_GetAll)
 		int idx = 0;
 #if ARCHITECTURE_IS_X86_64
 		ICvar::Iterator iter(g_pCVar);
+
 		for ( iter.SetFirst() ; iter.IsValid() ; iter.Next() )
 		{
 			ConCommandBase* var = iter.Get();
@@ -179,6 +180,7 @@ LUA_FUNCTION_STATIC(cvars_GetAll)
 				continue;
 
 			LUA->PushUserType((ConVar*)var, GarrysMod::Lua::Type::ConVar);
+
 			Util::RawSetI(LUA, -2, ++idx);
 		}
 

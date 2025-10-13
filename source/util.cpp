@@ -723,8 +723,10 @@ void Util::AddDetour()
 		Error(PROJECT_NAME " - core: Failed to load an important symbol which we utterly depend on.\n");
 	}
 
+#if ARCHITECTURE_IS_X86
 	func_CBaseEntity_GetLuaEntity = (Symbols::CBaseEntity_GetLuaEntity)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseEntity_GetLuaEntitySym);
 	Detour::CheckFunction((void*)func_CBaseEntity_GetLuaEntity, "CBaseEntity::GetLuaEntity");
+#endif
 
 	pEntityList = g_pModuleManager.FindModuleByName("entitylist");
 

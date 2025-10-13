@@ -152,7 +152,10 @@ namespace Detour
 
 		void* matchAddr = GetFunction(pModule, pSymbols[DETOUR_SYMBOL_ID]);
 		if (matchAddr == NULL)
+		{
+			Warning(PROJECT_NAME ": Failed to get matchAddr!\n");
 			return NULL;
+		}
 
 	#if defined(SYSTEM_WINDOWS)
 		uint8_t* ip = reinterpret_cast<uint8_t*>((char*)(matchAddr) + pSymbols[DETOUR_SYMBOL_ID].offset);
@@ -175,6 +178,7 @@ namespace Detour
 		#endif
 		}
 
+		Warning(PROJECT_NAME ": Failed to match LEA bytes!\n");
 		return NULL;
 	}
 
