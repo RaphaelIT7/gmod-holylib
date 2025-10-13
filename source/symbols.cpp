@@ -668,13 +668,14 @@ namespace Symbols
 	// Purpose: physenv Symbols
 	// ToDo: Get the Linux64 and Windows32 symbols.
 	//---------------------------------------------------------------------------------
-	const std::vector<Symbol> IVP_Mindist_do_impactSym = { // NOTE: is virtual
+	const std::vector<Symbol> IVP_Mindist_do_impactSym = { // Search for '%s in contact with %s, crash. dist = %d', then do xref to 'IVP Failed at %s %d\n' and find the xref bellow
 		Symbol::FromName("_ZN11IVP_Mindist9do_impactEv"),
-		Symbol::FromSignature(""),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x56\x41\x55\x49\x89\xFD\x41\x54\x53\x4C\x8B\x67\x40")//,55 48 89 E5 41 56 41 55 49 89 FD 41 54 53 4C 8B 67 40
 	};
 
 	const std::vector<Symbol> IVP_Event_Manager_Standard_simulate_time_eventsSym = { // NOTE: is virtual
 		Symbol::FromName("_ZN26IVP_Event_Manager_Standard20simulate_time_eventsEP16IVP_Time_ManagerP15IVP_Environment8IVP_Time"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x49\x89\xF7\x41\x56\x45\x31\xF6")//55 48 89 E5 41 57 49 89 F7 41 56 45 31 F6
 	};
 
 	const std::vector<Symbol> IVP_Mindist_simulate_time_eventSym = {
@@ -709,42 +710,50 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x8B\xEC\x83\xEC\x1C\x83******\x53\x56\x57"), // 55 8B EC 83 EC 1C 83 ?? ?? ?? ?? ?? ?? 53 56 57
 	};
 
-	const std::vector<Symbol> CPhysicsEnvironment_DestroyObjectSym = {
+	const std::vector<Symbol> CPhysicsEnvironment_DestroyObjectSym = {//Search for 'error deleting physics object\n'
 		Symbol::FromName("_ZN19CPhysicsEnvironment13DestroyObjectEP14IPhysicsObject"),
-		Symbol::FromSignature(""),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x54\x53\x48\x83\xEC\x10\x48\x85\xF6"),//55 48 89 E5 41 54 53 48 83 EC 10 48 85 F6
 		// On Windows we will use the vtable instead to detour it.... maybe we should do the same on linux?
 	};
 
 	const std::vector<Symbol> CPhysicsEnvironment_RestoreSym = {
 		Symbol::FromName("_ZN19CPhysicsEnvironment7RestoreERK19physrestoreparams_t"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x45\x31\xE4\x53\x48\x89\xF3"),//55 48 89 E5 41 57 41 56 41 55 41 54 45 31 E4 53 48 89 F3
 	};
 
 	const std::vector<Symbol> CPhysicsEnvironment_TransferObjectSym = {
 		Symbol::FromName("_ZN19CPhysicsEnvironment14TransferObjectEP14IPhysicsObjectP19IPhysicsEnvironment"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x49\x89\xFC\x53\x48\x81\xEC\xD8\x00\x00\x00"),//55 48 89 E5 41 57 41 56 41 55 41 54 49 89 FC 53 48 81 EC D8 00 00 00
 	};
 
 	const std::vector<Symbol> CPhysicsEnvironment_CreateSphereObjectSym = {
 		Symbol::FromName("_ZN19CPhysicsEnvironment18CreateSphereObjectEfiRK6VectorRK6QAngleP14objectparams_tb"),
+		Symbol::FromSignature("\x55\x45\x0F\xB6\xC9\x48\x89\xE5\x53"),//55 45 0F B6 C9 48 89 E5 53
 	};
 
 	const std::vector<Symbol> CPhysicsEnvironment_UnserializeObjectFromBufferSym = {
 		Symbol::FromName("_ZN19CPhysicsEnvironment27UnserializeObjectFromBufferEPvPhjb"),
+		Symbol::FromSignature("\x55\x45\x0F\xB6\xC0"),//55 45 0F B6 C0
 	};
 
 	const std::vector<Symbol> CPhysicsEnvironment_CreatePolyObjectStaticSym = {
 		Symbol::FromName("_ZN19CPhysicsEnvironment22CreatePolyObjectStaticEPK12CPhysCollideiRK6VectorRK6QAngleP14objectparams_t"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x89\xFB\x48\x83\xEC\x28\xC7\x04\x24\x01\x00\x00\x00"),//55 48 89 E5 53 48 89 FB 48 83 EC 28 C7 04 24 01 00 00 00
 	};
 
 	const std::vector<Symbol> CPhysicsEnvironment_CreatePolyObjectSym = {
 		Symbol::FromName("_ZN19CPhysicsEnvironment16CreatePolyObjectEPK12CPhysCollideiRK6VectorRK6QAngleP14objectparams_t"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x89\xFB\x48\x83\xEC\x28\xC7\x04\x24\x00\x00\x00\x00"),//55 48 89 E5 53 48 89 FB 48 83 EC 28 C7 04 24 00 00 00 00
 	};
 
 	const std::vector<Symbol> CPhysicsEnvironment_D2Sym = {
 		Symbol::FromName("_ZN19CPhysicsEnvironmentD2Ev"),
+		Symbol::FromSignature("\x55\x48\x8D\x05\x2A\x2A\x2A\x2A\x48\x89\xE5\x41\x56\x41\x55\x41\x54\x53\x48\x89\xFB\x48\x89\x07\x48\x8B\x87\xF0\x00\x00\x00"),//55 48 8D 05 ? ? ? ? 48 89 E5 41 56 41 55 41 54 53 48 89 FB 48 89 07 48 8B 87 F0 00 00 00
 	};
 
 	const std::vector<Symbol> CPhysicsEnvironment_C2Sym = {
 		Symbol::FromName("_ZN19CPhysicsEnvironmentC2Ev"),
+		Symbol::FromSignature("\x55\x48\x8D\x05\x2A\x2A\x2A\x2A\x48\x89\xE5\x41\x56\x41\x55\x41\x54\x53\x48\x89\xFB\x48\x83\xC4\x80"),//55 48 8D 05 ? ? ? ? 48 89 E5 41 56 41 55 41 54 53 48 89 FB 48 83 C4 80
 	};
 
 	const std::vector<Symbol> IVP_Mindist_Manager_recheck_ov_elementSym = {
