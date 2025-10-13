@@ -66,7 +66,8 @@ Default__gc(bf_read,
 	if (bf && bFlagExplicitDelete)
 	{
 		free((char*)bf->GetBasePointer());
-		delete bf;
+		if (!bIsInlined)
+			delete bf;
 	}
 )
 
@@ -920,9 +921,14 @@ LUA_FUNCTION_STATIC(bitbuf_CreateReadBuffer)
 
 	memcpy(cData, pData, iLength);
 
-	bf_read* pNewBf = new bf_read(cData, iNewLength);
+	// bf_read* pNewBf = new bf_read(cData, iNewLength);
 
-	Push_bf_read(LUA, pNewBf, true);
+	// Push_bf_read(LUA, pNewBf, true);
+
+	LuaUserData* pUserData = PushInlined_bf_read(LUA);
+	pUserData->SetFlagExplicitDelete();
+	bf_read* pNewBF = (bf_read*)pUserData->GetData();
+	pNewBF->StartReading(cData, iNewLength);
 
 	return 1;
 }

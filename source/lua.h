@@ -382,12 +382,14 @@ typedef struct GCudata_holylib { // We cannot change layout/sizes.
 	GCRef metatable;	/* Must be at same offset in GCtab. */
 	void* data;
 } GCudata_holylib;
+constexpr int GCudata_holylib_dataoffset = sizeof(GCudata_holylib) - sizeof(void*);
 
 enum udataFlags // we use bit flags so only a total of 8 are allowed.v
 {
 	UDATA_EXPLICIT_DELETE = 1 << 0,
 	UDATA_NO_GC = 1 << 1, // Causes additional flags to be set onto "marked" GCHeader var
 	UDATA_NO_USERTABLE = 1 << 2,
+	UDATA_INLINED_DATA = 1 << 3,
 };
 
 /*
@@ -571,16 +573,19 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 		marked = 0x4; // mark black. We are stack allocated, we are never white, never grey
 	}
 	
-	inline void Init(GarrysMod::Lua::ILuaInterface* LUA, const Lua::LuaMetaEntry& pMetaEntry, void* pData, bool bNoGC = false, bool bNoUserTable = false)
+	inline void Init(GarrysMod::Lua::ILuaInterface* LUA, const Lua::LuaMetaEntry& pMetaEntry, void* pData, bool bNoGC = false, bool bNoUserTable = false, bool bIsInline = false)
 	{
 		// Since Lua creates our userdata, we need to set all the fields ourself!
 #if HOLYLIB_UTIL_BASEUSERDATA
 		pBaseData = NULL;
-#else
-		data = pData;
 #endif
 
 		flags = 0;
+		if (!bIsInline)
+			data = pData;
+		else
+			flags |= UDATA_INLINED_DATA;
+
 		if (bNoGC)
 		{
 			marked |= 0x20 | 0x40;
@@ -632,6 +637,9 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 #else
 	inline void* GetData()
 	{
+		if (flags & UDATA_INLINED_DATA)
+			return (void*)((char*)this + GCudata_holylib_dataoffset);
+
 		return data;
 	}
 #endif
@@ -654,6 +662,12 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 			pBaseData = BaseUserData::LuaAquire(this, data);
 		}
 #else
+		if (flags & UDATA_INLINED_DATA)
+		{
+			Warning(PROJECT_NAME " - LuaUserData: Tried to call SetData when the data is inlined into the userdata!\n");
+			return;
+		}
+
 		data = pData;
 #endif
 	}
@@ -763,8 +777,9 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 			pBaseData = NULL;
 		}
 #endif
+		if (!(flags & UDATA_INLINED_DATA))
+			data = NULL;
 
-		data = NULL;
 		if (flags & UDATA_NO_GC)
 		{
 			marked &= (uint8_t)~(0x20 | 0x40); // Unset FIXED GC flags if they were set. Else GC is not gonna like this
@@ -789,6 +804,16 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 	inline void SetFlagExplicitDelete()
 	{
 		flags |= UDATA_EXPLICIT_DELETE;
+	}
+
+	inline bool IsInlined()
+	{
+		return (flags & UDATA_INLINED_DATA) != 0;
+	}
+
+	inline void SetAsInlined()
+	{
+		flags |= UDATA_INLINED_DATA;
 	}
 
 	inline int GetFlags()
@@ -931,6 +956,15 @@ LuaUserData* Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var
 	LuaUserData* userData = (LuaUserData*)((char*)RawLua::AllocateCDataOrUserData(LUA, pMeta.iType, udataSize) - sizeof(GCudata)); \
 	userData->Init(LUA, pMeta, var); \
 	return userData; \
+} \
+LuaUserData* PushInlined_##className(GarrysMod::Lua::ILuaInterface* LUA) \
+{ \
+	const Lua::LuaMetaEntry& pMeta = Lua::GetLuaData(LUA)->GetMetaEntry(TO_LUA_TYPE(className)); \
+	if (pMeta.iType == UCHAR_MAX) \
+		LUA->ThrowError(triedPushing_##className.c_str()); \
+	LuaUserData* userData = (LuaUserData*)((char*)RawLua::AllocateCDataOrUserData(LUA, pMeta.iType, udataSize + sizeof(className) - sizeof(void*)) - sizeof(GCudata)); \
+	userData->Init(LUA, pMeta, NULL, false, false, true); \
+	return userData; \
 }
 
 /*
@@ -1044,6 +1078,7 @@ LUA_FUNCTION_STATIC(className ## __gc) \
 	{ \
 		int pFlags = pData->GetFlags(); \
 		bool bFlagExplicitDelete = pData->IsFlagExplicitDelete(); \
+		bool bIsInlined = pData->IsInlined(); \
 		void* pStoredData = pData->GetData(); \
 		if (pData->Release(LUA, true)) \
 		{ \
