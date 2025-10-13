@@ -2682,7 +2682,7 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 		g_pPhysicsModule = NULL;
 	}
 
-#if defined(ARCHITECTURE_X86) && PHYSENV_INCLUDEIVPFALLBACK
+#if PHYSENV_INCLUDEIVPFALLBACK
 	if (g_pFullFileSystem)
 	{
 		FileHandle_t fileHandle = g_pFullFileSystem->Open("bin/vphysics_srv.so", "rb", "BASE_PATH");
@@ -2716,11 +2716,13 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 			(void*)hook_IVP_Mindist_do_impact, m_pID
 		);
 
+#if defined(ARCHITECTURE_X86)
 		Detour::Create(
 			&detour_IVP_Mindist_D2, "IVP_Mindist::~IVP_Mindist",
 			vphysics_loader.GetModule(), Symbols::IVP_Mindist_D2Sym,
 			(void*)hook_IVP_Mindist_D2, m_pID
 		);
+#endif
 
 		Detour::Create(
 			&detour_IVP_Event_Manager_Standard_simulate_time_events, "IVP_Event_Manager_Standard::simulate_time_events",
@@ -2818,11 +2820,13 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 			(void*)hook_IVP_Mindist_Manager_recheck_ov_element, m_pID
 		);
 
+#if defined(ARCHITECTURE_X86) 
 		g_pCurrentMindist = Detour::ResolveSymbol<IVP_Mindist*>(vphysics_loader, Symbols::g_pCurrentMindistSym);
 		Detour::CheckValue("get class", "g_pCurrentMindist", g_pCurrentMindist != NULL);
 
 		g_fDeferDeleteMindist = Detour::ResolveSymbol<bool>(vphysics_loader, Symbols::g_fDeferDeleteMindistSym);
 		Detour::CheckValue("get class", "g_fDeferDeleteMindist", g_fDeferDeleteMindist != NULL);
+#endif
 
 		func_IVP_Mindist_Base_get_objects = (Symbols::IVP_Mindist_Base_get_objects)Detour::GetFunction(vphysics_loader.GetModule(), Symbols::IVP_Mindist_Base_get_objectsSym);
 		Detour::CheckFunction((void*)func_IVP_Mindist_Base_get_objects, "IVP_Mindist_Base::get_objects");
