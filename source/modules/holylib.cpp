@@ -301,6 +301,8 @@ static void hook_CBaseEntity_SetMoveType(CBaseEntity* pEnt, int iMoveType, int i
 	int iCurrentMoveType = pEnt->GetMoveType();
 	if (!bInMoveTypeCall && iCurrentMoveType != iMoveType && Lua::PushHook("HolyLib:OnMoveTypeChange"))
 	{
+		// Uncomment the code below to see if the entity is valid. GetClassname should almost always return a valid class
+		// Msg("hook_CBaseEntity_SetMoveType: %p - %s\n", pEnt, pEnt->GetClassname());
 		Util::Push_Entity(g_Lua, pEnt);
 		g_Lua->PushNumber(iCurrentMoveType);
 		g_Lua->PushNumber(iMoveType);

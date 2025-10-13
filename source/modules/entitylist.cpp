@@ -16,7 +16,7 @@ public:
 	virtual void OnEntityCreated(CBaseEntity* pEntity) OVERRIDE;
 	virtual void OnEntityDeleted(CBaseEntity* pEntity) OVERRIDE;
 	virtual const char* Name() { return "entitylist"; };
-	virtual int Compatibility() { return LINUX32 | LINUX64; };
+	virtual int Compatibility() { return LINUX32; };
 	//virtual bool SupportsMultipleLuaStates() { return true; };
 };
 
@@ -293,6 +293,8 @@ void CEntListModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 {
 	if (bServerInit)
 		return;
+
+	m_iIsDebug = 1;
 
 	Lua::GetLuaData(pLua)->SetModuleData(m_pID, new LuaEntityModuleData);
 	GetGlobalEntityList(pLua).SetLua(pLua);

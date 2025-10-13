@@ -222,7 +222,10 @@ CBaseEntity* Util::Get_Entity(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos,
 
 	CBaseEntity* pEntity = Util::entitylist->GetBaseEntity(*pEntHandle);
 	if (!pEntity && bError)
+	{
+		Warning(PROJECT_NAME ": EHANDLE Index %i - %i\n", pEntHandle->GetEntryIndex(), pEntHandle->GetSerialNumber());
 		LUA->ThrowError("Tried to use a NULL Entity! (The weird case?)");
+	}
 		
 	return pEntity;
 }
@@ -723,10 +726,8 @@ void Util::AddDetour()
 		Error(PROJECT_NAME " - core: Failed to load an important symbol which we utterly depend on.\n");
 	}
 
-#if ARCHITECTURE_IS_X86
 	func_CBaseEntity_GetLuaEntity = (Symbols::CBaseEntity_GetLuaEntity)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseEntity_GetLuaEntitySym);
 	Detour::CheckFunction((void*)func_CBaseEntity_GetLuaEntity, "CBaseEntity::GetLuaEntity");
-#endif
 
 	pEntityList = g_pModuleManager.FindModuleByName("entitylist");
 
