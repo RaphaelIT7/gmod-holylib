@@ -20,7 +20,9 @@ end)
 hook.Add("Initialize", "SetupBots", function()
 	RunConsoleCommand("bot_zombie", "1")
 	if _HOLYLIB_CORE then
-		_HOLYLIB_CORE.EnableStressBots()
+		if not _HOLYLIB_CORE.EnableStressBots() then
+			RunConsoleCommand("sv_stressbots", "1")
+		end
 	else
 		RunConsoleCommand("sv_stressbots", "1")
 	end
