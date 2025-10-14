@@ -1033,6 +1033,13 @@ static ConVar networking_transmit_all_weapons("holylib_networking_transmit_all_w
 static ConVar networking_transmit_all_weapons_to_owner("holylib_networking_transmit_all_weapons_to_owner", "1", 0, "Experimental - By default all weapons are networked to the owner");
 static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharacter, CCheckTransmitInfo *pInfo, bool bAlways)
 {
+	if (!func_CBaseAnimating_SetTransmit)
+	{
+		// Without it we won't do shit, simply because possibly missing a transmit can cause quite the issues.
+		detour_CBaseCombatCharacter_SetTransmit.GetTrampoline<Symbols::CBaseCombatCharacter_SetTransmit>()(pCharacter, pInfo, bAlways);
+		return;
+	}
+
 	edict_t* pEdict = pCharacter->edict();
 	if ( pInfo->m_pTransmitEdict->Get( pEdict->m_EdictIndex ) )
 		return;
