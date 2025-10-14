@@ -957,12 +957,14 @@ LuaUserData* Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var
 	userData->Init(LUA, pMeta, var); \
 	return userData; \
 } \
-LuaUserData* PushInlined_##className(GarrysMod::Lua::ILuaInterface* LUA) \
+LuaUserData* PushInlined_##className(GarrysMod::Lua::ILuaInterface* LUA, int nAdditionalSize = 0) \
 { \
 	const Lua::LuaMetaEntry& pMeta = Lua::GetLuaData(LUA)->GetMetaEntry(TO_LUA_TYPE(className)); \
 	if (pMeta.iType == UCHAR_MAX) \
 		LUA->ThrowError(triedPushing_##className.c_str()); \
-	LuaUserData* userData = (LuaUserData*)((char*)RawLua::AllocateCDataOrUserData(LUA, pMeta.iType, udataSize + sizeof(className) - sizeof(void*)) - sizeof(GCudata)); \
+	constexpr int thisUDataSize = udataSize + sizeof(className) - sizeof(void*); \
+	/*We only do - sizeof(GCudata) because Lua returns a pointer that is only offset by this much regardless of size*/ \
+	LuaUserData* userData = (LuaUserData*)((char*)RawLua::AllocateCDataOrUserData(LUA, pMeta.iType, thisUDataSize + nAdditionalSize) - sizeof(GCudata)); \
 	userData->Init(LUA, pMeta, NULL, false, false, true); \
 	return userData; \
 }

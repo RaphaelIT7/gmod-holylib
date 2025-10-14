@@ -63,11 +63,10 @@ Default__newindex(bf_read);
 Default__GetTable(bf_read);
 Default__gc(bf_read, 
 	bf_read* bf = (bf_read*)pStoredData;
-	if (bf && bFlagExplicitDelete)
+	if (bf && bFlagExplicitDelete && !bIsInlined)
 	{
 		free((char*)bf->GetBasePointer());
-		if (!bIsInlined)
-			delete bf;
+		delete bf;
 	}
 )
 
@@ -912,23 +911,17 @@ LUA_FUNCTION_STATIC(bitbuf_CreateReadBuffer)
 {
 	size_t iLength;
 	const char* pData = Util::CheckLString(LUA, 1, &iLength);
-
 	int iNewLength = CLAMP_BF(iLength);
 
-	unsigned char* cData = (unsigned char*)malloc(iNewLength);
-	if (!cData)
-		LUA->ThrowError("Failed to allocate data for buffer!");
-
-	memcpy(cData, pData, iLength);
-
-	// bf_read* pNewBf = new bf_read(cData, iNewLength);
-
-	// Push_bf_read(LUA, pNewBf, true);
-
-	LuaUserData* pUserData = PushInlined_bf_read(LUA);
+	LuaUserData* pUserData = PushInlined_bf_read(LUA, iNewLength);
 	pUserData->SetFlagExplicitDelete();
 	bf_read* pNewBF = (bf_read*)pUserData->GetData();
-	pNewBF->StartReading(cData, iNewLength);
+	
+	// The buffer is part of the userdata, appended after the bf_read
+	void* bufferData = (void*)((char*)pNewBF + sizeof(bf_read));
+	memcpy(bufferData, pData, iLength);
+
+	pNewBF->StartReading(bufferData, iNewLength);
 
 	return 1;
 }
