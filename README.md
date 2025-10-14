@@ -163,6 +163,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 \- [#] Fixed `HttpServer:SetWriteTimeout` using the wrong arguments. (See https://github.com/RaphaelIT7/gmod-holylib/pull/65)<br>
 \- [#] Fixed `bf_read:ReadBytes` and `bf_read:ReadBits` both failing to push the string properly to lua.<br>
 \- [#] Changed `voicechat.SaveVoiceStream` & `voicechat.LoadVoiceStream` to remove their 4th `sync` argument, if a callback is provided it will be async, else it'll run sync<br>
+\- [#] Renamed `HolyLib:OnPhysFrame` to `HolyLib:PrePhysFrame`<br>
 \- [-] Removed `VoiceData:GetUncompressedData` decompress size argument<br>
 \- [-] Removed `CBaseClient:Transmit` third argument `fragments`.<br>
 \- [-] Removed `gameserver.CalculateCPUUsage` and `gameserver.ApproximateProcessMemoryUsage` since they never worked.<br>
@@ -2716,7 +2717,7 @@ Returns the physics environment by the given index.<br>
 Destroys the given physics environment.<br>
 
 #### IPhysicsEnvironment physenv.GetCurrentEnvironment()
-Returns the currently simulating environment.<br>
+Returns the currently simulating environment or `nil` if not inside a simulation.<br>
 
 #### physenv.EnablePhysHook(bool shouldCall)
 Enables/Disables the `HolyLib:OnPhysFrame` hook.<br>
@@ -3122,7 +3123,7 @@ You can freeze all props here and then return `physenv.IVP_SkipSimulation` to sk
 > Only works on Linux32<br>
 > By default its called only **ONCE** per simulation frame, you can return `physenv.IVP_NONE` to get it triggered multiple times in the same frame.<br>
 
-#### bool HolyLib:OnPhysFrame(number deltaTime)<br>
+#### bool HolyLib:PrePhysFrame(number deltaTime)<br>
 Called when the physics are about to be simulated.<br>
 Return `true` to stop the engine from doing anything.<br>
 
@@ -3133,11 +3134,14 @@ Example of pausing the physics simulation while still allowing the entities to b
 ```lua
 physenv.EnablePhysHook(true)
 local mainEnv = physenv.GetActiveEnvironmentByIndex(0)
-hook.Add("HolyLib:OnPhysFrame", "Example", function(deltaTime)
+hook.Add("HolyLib:PrePhysFrame", "Example", function(deltaTime)
 	mainEnv:Simulate(deltaTime, true) -- the second argument will only cause the entities to update.
 <br><br>return true -- We stop the engine from running the simulation itself again as else it will result in issue like "Reset physics clock" being spammed
 end)
 ```
+
+### HolyLib:PostPhysFrame(number deltaTime, number simulationTime)
+Called after physics were simulated and how long it took to simulate in milliseconds.
 
 ## (Experimental) bass
 This module will add functions related to the bass dll.<br>

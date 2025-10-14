@@ -1523,7 +1523,10 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_Simulate)
 
 LUA_FUNCTION_STATIC(physenv_GetCurrentEnvironment)
 {
-	Push_ILuaPhysicsEnvironment(LUA, g_pCurrentEnvironment.back());
+	if (g_pCurrentEnvironment.size() > 0)
+		Push_ILuaPhysicsEnvironment(LUA, g_pCurrentEnvironment.back());
+	else
+		LUA->PushNil();
 	return 1;
 }
 
@@ -2444,12 +2447,27 @@ static void hook_PhysFrame(float deltaTime)
 		}
 	}
 
+	auto pStartTime = std::chrono::high_resolution_clock::now();
+
+	bool bPushed = false;
+	IPhysicsEnvironment* pEnv = g_pPhysics->GetActiveEnvironmentByIndex(0);
+	if (pEnv)
+		g_pCurrentEnvironment.push_back(GetPhysicsEnvironment(pEnv));
+
 	detour_PhysFrame.GetTrampoline<Symbols::PhysFrame>()(deltaTime);
+
+	if (pEnv)
+		g_pCurrentEnvironment.pop_back();
 
 	if (g_bCallPhysHook && Lua::PushHook("HolyLib:PostPhysFrame"))
 	{
 		g_Lua->PushNumber(deltaTime);
-		g_Lua->CallFunctionProtected(2, 0, true);
+
+		auto pFinalTime = std::chrono::high_resolution_clock::now();
+		auto pSimulationTime = std::chrono::duration_cast<std::chrono::milliseconds>(pFinalTime - pStartTime).count();
+		g_Lua->PushNumber((double)pSimulationTime);
+
+		g_Lua->CallFunctionProtected(3, 0, true);
 	}
 }
 
