@@ -894,6 +894,9 @@ inline CCServerNetworkProperty* CCServerNetworkProperty::GetNetworkParent()
 static CCollisionBSPData* g_BSPData;
 inline bool CheckAreasConnected(int area1, int area2)
 {
+	if (!g_BSPData) // WEH!
+		return Util::engineserver->CheckAreasConnected(area1, area2);
+
 	return g_BSPData->map_areas[area1].floodnum == g_BSPData->map_areas[area2].floodnum;
 }
 

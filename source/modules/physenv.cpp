@@ -1059,7 +1059,7 @@ LUA_FUNCTION_STATIC(physenv_GetActiveEnvironmentByIndex)
 	return 1;
 }
 
-static std::vector<ILuaPhysicsEnvironment*> g_pCurrentEnvironment;
+static thread_local std::vector<ILuaPhysicsEnvironment*> g_pCurrentEnvironment;
 LUA_FUNCTION_STATIC(physenv_DestroyEnvironment)
 {
 	if (!g_pPhysics)
@@ -2431,7 +2431,7 @@ static bool hook_GMod_Util_IsPhysicsObjectValid(IPhysicsObject* pObject)
 	}
 }
 
-static bool g_bCallPhysHook = false;
+static thread_local bool g_bCallPhysHook = false;
 static Detouring::Hook detour_PhysFrame;
 static void hook_PhysFrame(float deltaTime)
 {

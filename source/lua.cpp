@@ -128,6 +128,40 @@ LUA_FUNCTION_STATIC(Test_RawGetGModVector)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(Test_EnableStressBots)
+{
+	if (!g_pCVar)
+		return 0;
+
+	ConVar* pConVar = g_pCVar->FindVar("sv_stressbots");
+	if (!pConVar)
+	{
+		LUA->PushBool(false);
+		return 1;
+	}
+
+	pConVar->SetValue("1");
+	LUA->PushBool(true);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(Test_DisableStressBots)
+{
+	if (!g_pCVar)
+		return 0;
+
+	ConVar* pConVar = g_pCVar->FindVar("sv_stressbots");
+	if (!pConVar)
+	{
+		LUA->PushBool(false);
+		return 1;
+	}
+
+	pConVar->SetValue("1");
+	LUA->PushBool(true);
+	return 1;
+}
+
 static void SetupCoreTestFunctions(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::_HOLYLIB_CORE_TEST, pLua->CreateMetaTable("_HOLYLIB_CORE_TEST"));
@@ -152,6 +186,9 @@ static void SetupCoreTestFunctions(GarrysMod::Lua::ILuaInterface* pLua)
 		Util::AddFunc(pLua, Test_RawGetModuleData, "RawGetModuleData");
 		Util::AddFunc(pLua, Test_GetGModVector, "GetGModVector");
 		Util::AddFunc(pLua, Test_RawGetGModVector, "RawGetGModVector");
+		
+		Util::AddFunc(pLua, Test_EnableStressBots, "EnableStressBots"); // Required until we get https://github.com/Facepunch/garrysmod-requests/issues/2948
+		Util::AddFunc(pLua, Test_DisableStressBots, "DisableStressBots");
 	Util::FinishTable(pLua, "_HOLYLIB_CORE");
 }
 
