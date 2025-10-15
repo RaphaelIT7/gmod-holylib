@@ -18,7 +18,7 @@ public:
 	virtual void Shutdown() OVERRIDE;
 	virtual const char* Name() { return "soundscape"; };
 	virtual int Compatibility() { return LINUX32; };
-	virtual bool IsEnabledByDefault() { return false; };
+	virtual bool IsEnabledByDefault() { return true; };
 };
 
 static CSoundscapeModule g_pSoundscapeModule;
@@ -39,6 +39,50 @@ static inline audioparams_t* GetAudioParams(void* pPlayer)
 	return (audioparams_t*)pAudio;
 }
 
+LUA_FUNCTION_STATIC(soundscape_GetActiveSoundScape)
+{
+	CBasePlayer* pPlayer = Util::Get_Player(LUA, 1, true);
+	audioparams_t* pParams = GetAudioParams(pPlayer);
+	if (!pParams) // Should normally never happen, though doesn't hurt to be sure
+		LUA->ThrowError("Failed to get audioparams_t!");
+	
+	Util::Push_Entity(LUA, Util::GetCBaseEntityFromHandle(pParams->ent.m_Value));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(soundscape_GetActiveSoundScapeIndex)
+{
+	CBasePlayer* pPlayer = Util::Get_Player(LUA, 1, true);
+	audioparams_t* pParams = GetAudioParams(pPlayer);
+	if (!pParams) // Should normally never happen, though doesn't hurt to be sure
+		LUA->ThrowError("Failed to get audioparams_t!");
+	
+	LUA->PushNumber(pParams->soundscapeIndex);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(soundscape_GetActivePositions)
+{
+	CBasePlayer* pPlayer = Util::Get_Player(LUA, 1, true);
+	audioparams_t* pParams = GetAudioParams(pPlayer);
+	if (!pParams) // Should normally never happen, though doesn't hurt to be sure
+		LUA->ThrowError("Failed to get audioparams_t!");
+	
+	LUA->PreCreateTable(NUM_AUDIO_LOCAL_SOUNDS, 0);
+		int nTableIndex = 0;
+		int localBits = pParams->localBits.Get();
+		for (int nIndex=0; nIndex<NUM_AUDIO_LOCAL_SOUNDS; ++nIndex)
+		{
+			if (!(localBits & (1 << nIndex))) // If a bit isn't set, its not used currently.
+				continue;
+			
+			Push_Vector(LUA, new Vector(pParams->localSound[nIndex]));
+			Util::RawSetI(LUA, -2, ++nTableIndex);
+		}
+
+	return 1;
+}
+
 void CSoundscapeModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 }
@@ -52,7 +96,11 @@ void CSoundscapeModule::InitDetour(bool bPreServer)
 
 void CSoundscapeModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
-
+	Util::StartTable(pLua);
+		Util::AddFunc(pLua, soundscape_GetActiveSoundScape, "GetActiveSoundScape");
+		Util::AddFunc(pLua, soundscape_GetActiveSoundScapeIndex, "GetActiveSoundScapeIndex");
+		Util::AddFunc(pLua, soundscape_GetActivePositions, "GetActivePositions");
+	Util::FinishTable(pLua, "soundscape");
 }
 
 void CSoundscapeModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)

@@ -347,6 +347,14 @@ CBaseEntity* Util::GetCBaseEntityFromIndex(int nEntIndex)
 	return Util::servergameents->EdictToBaseEntity(Util::engineserver->PEntityOfEntIndex(nEntIndex));
 }
 
+CBaseEntity* Util::GetCBaseEntityFromHandle(const CBaseHandle& pHandle)
+{
+	if (g_pEntityList)
+		return (CBaseEntity*)pHandle.Get();
+
+	return Util::GetCBaseEntityFromIndex(pHandle.GetEntryIndex());
+}
+
 CBaseEntity* Util::FirstEnt()
 {
 	if (Util::entitylist)
