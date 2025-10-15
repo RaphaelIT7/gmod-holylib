@@ -1219,5 +1219,20 @@ extern void Push_CBaseClient(GarrysMod::Lua::ILuaInterface* LUA, CBaseClient* tb
 extern CBaseClient* Get_CBaseClient(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
 #endif
 
+// NOTE: The angle itself is pushed, not a copy, any changes from lua will affect it!
 extern void Push_QAngle(GarrysMod::Lua::ILuaInterface* LUA, QAngle* var);
+
+// Pushes a copy of the given QAngle to lua
+FORCEINLINE void Push_CopyQAngle(GarrysMod::Lua::ILuaInterface* LUA, QAngle* var)
+{
+	Push_QAngle(LUA, new QAngle(*var));
+}
+
+// NOTE: The vector itself is pushed, not a copy, any changes from lua will affect it!
 extern void Push_Vector(GarrysMod::Lua::ILuaInterface* LUA, Vector* var);
+
+// Pushes a copy of the given QAngle to lua
+FORCEINLINE void Push_CopyVector(GarrysMod::Lua::ILuaInterface* LUA, Vector* var)
+{
+	Push_Vector(LUA, new Vector(*var));
+}

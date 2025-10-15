@@ -76,7 +76,7 @@ LUA_FUNCTION_STATIC(soundscape_GetActivePositions)
 			if (!(localBits & (1 << nIndex))) // If a bit isn't set, its not used currently.
 				continue;
 			
-			Push_Vector(LUA, new Vector(pParams->localSound[nIndex]));
+			Push_CopyVector(LUA, new Vector(pParams->localSound[nIndex]));
 			Util::RawSetI(LUA, -2, ++nTableIndex);
 		}
 

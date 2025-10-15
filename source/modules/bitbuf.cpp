@@ -172,7 +172,7 @@ LUA_FUNCTION_STATIC(bf_read_ReadBitAngles)
 
 	QAngle ang;
 	bf->ReadBitAngles(ang);
-	Push_QAngle(LUA, &ang);
+	Push_CopyQAngle(LUA, &ang);
 	return 1;
 }
 
@@ -289,7 +289,7 @@ LUA_FUNCTION_STATIC(bf_read_ReadBitVec3Coord)
 
 	Vector vec;
 	bf->ReadBitVec3Coord(vec);
-	Push_Vector(LUA, &vec);
+	Push_CopyVector(LUA, &vec);
 
 	return 1;
 }
@@ -300,7 +300,7 @@ LUA_FUNCTION_STATIC(bf_read_ReadBitVec3Normal)
 
 	Vector vec;
 	bf->ReadBitVec3Normal(vec);
-	Push_Vector(LUA, &vec);
+	Push_CopyVector(LUA, &vec);
 
 	return 1;
 }

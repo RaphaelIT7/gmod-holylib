@@ -1237,7 +1237,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_GetGravity)
 
 	Vector vec;
 	pEnvironment->GetGravity(&vec);
-	Push_Vector(LUA, &vec);
+	Push_CopyVector(LUA, &vec);
 	return 1;
 }
 
@@ -2032,9 +2032,9 @@ LUA_FUNCTION_STATIC(ICollisionQuery_GetTriangleVerts)
 
 	Vector verts[3];
 	pQuery->GetTriangleVerts(convexIndex, triangleIndex, verts);
-	Push_Vector(LUA, &verts[0]);
-	Push_Vector(LUA, &verts[1]);
-	Push_Vector(LUA, &verts[2]);
+	Push_CopyVector(LUA, &verts[0]);
+	Push_CopyVector(LUA, &verts[1]);
+	Push_CopyVector(LUA, &verts[2]);
 	return 3;
 }
 
@@ -2163,8 +2163,8 @@ LUA_FUNCTION_STATIC(physcollide_CollideGetAABB)
 
 	Vector mins, maxs;
 	g_pPhysCollide->CollideGetAABB(&mins, &maxs, pCollide, *pOrigin, *pRotation);
-	Push_Vector(LUA, &mins);
-	Push_Vector(LUA, &maxs);
+	Push_CopyVector(LUA, &mins);
+	Push_CopyVector(LUA, &maxs);
 	return 2;
 }
 
@@ -2179,7 +2179,7 @@ LUA_FUNCTION_STATIC(physcollide_CollideGetExtent)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
 	Vector vec = g_pPhysCollide->CollideGetExtent(pCollide, *pOrigin, *pRotation, *pDirection);
-	Push_Vector(LUA, &vec);
+	Push_CopyVector(LUA, &vec);
 	return 1;
 }
 
@@ -2192,7 +2192,7 @@ LUA_FUNCTION_STATIC(physcollide_CollideGetMassCenter)
 
 	Vector pMassCenter;
 	g_pPhysCollide->CollideGetMassCenter(pCollide, &pMassCenter);
-	Push_Vector(LUA, &pMassCenter);
+	Push_CopyVector(LUA, &pMassCenter);
 	return 1;
 }
 
@@ -2204,7 +2204,7 @@ LUA_FUNCTION_STATIC(physcollide_CollideGetOrthographicAreas)
 		LUA->ThrowError("Failed to get IPhysicsCollision!");
 
 	Vector vec = g_pPhysCollide->CollideGetOrthographicAreas(pCollide);
-	Push_Vector(LUA, &vec);
+	Push_CopyVector(LUA, &vec);
 	return 1;
 }
 

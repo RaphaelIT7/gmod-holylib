@@ -143,6 +143,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [#] Moved `HolyLua` from HolyLib's core into a module to seperate it and allow anyone to remove it<br>
 \- [#] Fixed some memory leaks from our own `CLuaInterface` since on shutdown they never cleared up on removal/shutdown<br>
 \- [#] Added a speedup for pushing networked entities to Lua (On 64x pushing entities became 2.6x faster)<br>
+\- [#] Fixed some issues where `Vector`s & `Angle`s pushed from HolyLib would be the original one instead of a copy causing issues like corruption when modified<br>
 \- [-] Removed some unused code of former fixes that were implemented into Gmod<br>
 
 You can see all changes/commits here:<br>
