@@ -18,7 +18,7 @@ return {
         },
         {
             name = "Returns an Table object",
-            when = HolyLib_IsModuleEnabled("entitylist"),
+            when = HolyLib_IsModuleEnabled("bass"),
             async = true,
             timeout = 2,
             func = function()
