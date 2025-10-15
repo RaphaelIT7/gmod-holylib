@@ -46,6 +46,9 @@ public:
 	// NOTE: This will be before any global functions were added.
 	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) { (void)pLua; (void)bServerInit; };
 
+	// Called directly after LuaInit was called for all modules.
+	virtual void PostLuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) { (void)pLua; (void)bServerInit; };
+
 	// Implement your Lua shutdown logic here like removing your table.
 	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) { (void)pLua; };
 
@@ -214,6 +217,8 @@ public:
 
 	// All callback things.
 	virtual void Init() = 0;
+
+	// bServerInit = true should never be called by a Interface itself, its called automatically
 	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) = 0;
 	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) = 0;
 	virtual void InitDetour(bool bPreServer) = 0;

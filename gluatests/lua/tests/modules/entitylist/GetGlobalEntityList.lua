@@ -21,6 +21,17 @@ return {
             func = function()
                 local entities = GetGlobalEntityList()
                 expect( entities ).to.beA( "table" )
+
+                for _, ent in ipairs(entities) do -- Ensure nothing Invalid was pushed
+                	expect( ent:IsValid() or ent == game.GetWorld() ).to.beTrue()
+                end
+            end
+        },
+        {
+            name = "Performance",
+            when = HolyLib_IsModuleEnabled("entitylist"),
+            func = function()
+                HolyLib_RunPerformanceTest("GetGlobalEntityList", GetGlobalEntityList)
             end
         },
     }

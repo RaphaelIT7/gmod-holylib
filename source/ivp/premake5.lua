@@ -14,6 +14,8 @@ function runFile(fileName)
 end
 
 function IncludeIVP()
+	defines({"CUSTOM_VPHYSICS_BUILD"})
+
 	IncludePackage("ivp")
 	runFile("havana/premake5.lua")
 	runFile("havana/havok/hk_base/premake5.lua")

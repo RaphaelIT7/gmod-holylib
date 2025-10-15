@@ -345,10 +345,14 @@ LUA_FUNCTION_STATIC(sourcetv_FireEvent)
 	if (!hltv || !hltv->IsActive())
 		return 0;
 
+#if MODULE_EXISTS_GAMEEVENT
 	IGameEvent* pEvent = Get_IGameEvent(LUA, 1, true);
 	g_bLuaGameEvent = LUA->GetBool(2);
 	hltv->FireGameEvent(pEvent);
 	g_bLuaGameEvent = false;
+#else
+	LUA->ThrowError("Missing gameevent module!");
+#endif
 
 	return 0;
 }
@@ -425,16 +429,17 @@ static bool hook_CHLTVClient_ProcessGMod_ClientToServer(CHLTVClient* pClient, CL
 	if (Lua::PushHook("HolyLib:OnSourceTVNetMessage")) // Maybe change the name? I don't have a better one rn :/
 	{
 		Push_CHLTVClient(g_Lua, pClient);
-		Push_bf_read(g_Lua, &pBf->m_DataIn, false);
-		g_Lua->Push(-1);
-		int iReference = Util::ReferenceCreate(g_Lua, "ProcessGMod_ClientToServer - net message buffer");
+#if MODULE_EXISTS_BITBUF
+		LuaUserData* pData = Push_bf_read(g_Lua, &pBf->m_DataIn, false);
+#else
+		g_Lua->PushString((const char*)pBf->m_DataIn.GetBasePointer(), pBf->m_DataIn.GetNumBytesLeft());
+#endif
 		g_Lua->CallFunctionProtected(3, 0, true);
 
+#if MODULE_EXISTS_BITBUF
 		// I hate this. We should reduce the number of references.
-		Util::ReferencePush(g_Lua, iReference);
-		g_Lua->SetUserType(-1, NULL); // Make sure that the we don't keep the buffer.
-		g_Lua->Pop(1);
-		Util::ReferenceFree(g_Lua, iReference, "ProcessGMod_ClientToServer - Free net message buffer");
+		pData->Release(g_Lua);
+#endif
 	}
 
 	return true;
@@ -556,8 +561,9 @@ static void hook_CHLTVServer_BroadcastEvent(CHLTVServer* pServer, IGameEvent* pE
 		Msg("SourceTV broadcast event: %s\n", pEvent->GetName());
 }
 
-extern int CBaseClient_TypeID; // Now we need to make sure gameserevr module is loaded before sourcetv.
+#if MODULE_EXISTS_GAMESERVER
 extern void Push_CBaseClientMeta(GarrysMod::Lua::ILuaInterface* pLua);
+#endif
 void CSourceTVLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
@@ -566,7 +572,9 @@ void CSourceTVLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServ
 	ref_tv_debug = cvar->FindVar("tv_debug"); // We only search for it once. Verify: ConVarRef would always search for it in it's constructor/Init if I remember correctly.
 
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::CHLTVClient, pLua->CreateMetaTable("CHLTVClient"));
+#if MODULE_EXISTS_GAMESERVER
 		Push_CBaseClientMeta(pLua);
+#endif
 
 		Util::AddFunc(pLua, CHLTVClient__tostring, "__tostring");
 		Util::AddFunc(pLua, CHLTVClient_SetCameraMan, "SetCameraMan");

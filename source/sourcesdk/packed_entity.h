@@ -49,7 +49,7 @@ class RecvTable;
 class ServerClass;
 class ClientClass;
 class IChangeFrameList;
-
+class CGMODDataTable;
 
 
 // Replaces entity_state_t.
@@ -113,7 +113,7 @@ public:
 	int			m_ReferenceCount;	// reference count;
 
 public:
-	void*		pOffset;
+	CGMODDataTable *m_pGModDataTable;
 	CUtlVector<CSendProxyRecipients>	m_Recipients;
 
 	void				*m_pData;				// Packed data.

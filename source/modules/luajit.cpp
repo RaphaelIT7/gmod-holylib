@@ -4,9 +4,18 @@
 #include <detouring/classproxy.hpp>
 #include "LuaInterface.h"
 #include "lua.h"
-#include "lua.hpp"
 #include "Bootil/Bootil.h"
+#include "bitvec.h"
 #include "scripts/VectorFFI.h"
+#include "scripts/AngleFFI.h"
+#include "scripts/HolyLibUserDataFFI.h"
+#include "scripts/VoiceDataFFI.h"
+
+extern "C"
+{
+	#include "../luajit/src/lj_gc.h"
+	#include "../luajit/src/lj_tab.h"
+}
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -15,6 +24,7 @@ class CLuaJITModule : public IModule
 {
 public:
 	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
+	virtual void PostLuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual const char* Name() { return "luajit"; };
@@ -29,26 +39,20 @@ public:
 public:
 	bool m_bAllowFFI = false;
 	bool m_bKeepRemovedDebugFunctions = false;
+	bool m_bIsEnabled = false;
 };
 
 CLuaJITModule g_pLuaJITModule;
 IModule* pLuaJITModule = &g_pLuaJITModule;
 
-class CLuaInterfaceProxy;
+//class CLuaInterfaceProxy;
 class LuaJITModuleData : public Lua::ModuleData
 {
 public:
-	std::unique_ptr<CLuaInterfaceProxy> pLuaInterfaceProxy;
-	bool pRegisteredTypes[USHRT_MAX] = {0};
+	//std::unique_ptr<CLuaInterfaceProxy> pLuaInterfaceProxy;
 };
 
-static inline LuaJITModuleData* GetLuaData(GarrysMod::Lua::ILuaInterface* pLua)
-{
-	if (!pLua)
-		return NULL;
-
-	return (LuaJITModuleData*)Lua::GetLuaData(pLua)->GetModuleData(g_pLuaJITModule.m_pID);
-}
+LUA_GetModuleData(LuaJITModuleData, g_pLuaJITModule, LuaJIT)
 
 #define ManualOverride(name, hook) \
 static Detouring::Hook detour_##name; \
@@ -60,26 +64,60 @@ Detour::Create( \
 
 #define Override(name) ManualOverride(name, name)
 
+static thread_local int overrideFFIReference = -1;
 static int getffi(lua_State* L)
 {
-	if (!g_pLuaJITModule.m_bAllowFFI)
+	if (!g_pLuaJITModule.m_bAllowFFI && overrideFFIReference == -1)
 		return 0;
 
-	lua_pushcfunction(L, luaopen_ffi);
-	lua_pushstring(L, LUA_FFILIBNAME);
-	lua_call(L, 1, 1);
+	if (overrideFFIReference != -1)
+	{
+		lua_rawgeti(L, LUA_REGISTRYINDEX, overrideFFIReference);
+	} else {
+		lua_getfield(L, LUA_GLOBALSINDEX, "ffi");
+	}
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(markFFITypeAsGmodUserData)
+LUA_FUNCTION_STATIC(markFFITypeAsValidUserData)
 {
-	if (!g_pLuaJITModule.m_bAllowFFI)
+	if (!g_pLuaJITModule.m_bAllowFFI && overrideFFIReference == -1)
 		return 0;
 
-	uint16_t type = RawLua::GetCDataType(LUA->GetState(), 1);
+	Lua::StateData* pData = Lua::GetLuaData(LUA);
+	if (!pData)
+		return 0;
 
-	GetLuaData(LUA)->pRegisteredTypes[type] = true;
+	unsigned char nMetaID = LUA->CheckNumber(1);
+	uint16_t cTypeID = RawLua::GetCDataType(LUA->GetState(), 2);
+
+	Lua::GetLuaData(LUA)->GetCDataBridge().RegisterType(nMetaID, cTypeID);
 	return 0;
+}
+
+LUA_FUNCTION_STATIC(registerCreateHolyLibCDataFunc)
+{
+	if (!g_pLuaJITModule.m_bAllowFFI && overrideFFIReference == -1) // ONLY allowed inside the internal scripts
+		return 0;
+
+	LUA->CheckType(2, GarrysMod::Lua::Type::Table);
+	LUA->CheckType(3, GarrysMod::Lua::Type::Function);
+
+	Lua::StateData* pData = Lua::GetLuaData(LUA);
+	if (!pData)
+		return 0;
+
+	uint32_t nTypeID = RawLua::GetCTypeFromName(LUA->GetState(), LUA->CheckString(1), &pData->GetCDataBridge());
+	pData->GetCDataBridge().RegisterHolyLibUserData(nTypeID);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(getMetaTableByID)
+{
+	if (!g_pLuaJITModule.m_bAllowFFI && overrideFFIReference == -1)
+		return 0;
+
+	return LUA->PushMetaTable(LUA->CheckNumber(1)) ? 1 : 0;
 }
 
 static bool bOpenLibs = false;
@@ -137,8 +175,14 @@ static void hook_luaL_openlibs(lua_State* L)
 		lua_pushcfunction(L, getffi);
 		lua_setfield(L, -2, "getffi");
 
-		lua_pushcfunction(L, markFFITypeAsGmodUserData);
-		lua_setfield(L, -2, "markFFITypeAsGmodUserData");
+		lua_pushcfunction(L, markFFITypeAsValidUserData);
+		lua_setfield(L, -2, "markFFITypeAsValidUserData");
+
+		lua_pushcfunction(L, registerCreateHolyLibCDataFunc);
+		lua_setfield(L, -2, "registerCreateHolyLibCDataFunc");
+
+		lua_pushcfunction(L, getMetaTableByID);
+		lua_setfield(L, -2, "getMetaTableByID");
 
 		lua_pushcfunction(L, luaopen_jit_profile);
 		lua_call(L, 0, 1);
@@ -148,69 +192,32 @@ static void hook_luaL_openlibs(lua_State* L)
 	bOpenLibs = true;
 }
 
+/*
+ToDo: Redo this entire class and move all LuaJIT specific stuff from lua.cpp into here to seperate shit from CORE code!
 class CLuaInterfaceProxy : public Detouring::ClassProxy<GarrysMod::Lua::ILuaInterface, CLuaInterfaceProxy> {
 public:
 	CLuaInterfaceProxy(GarrysMod::Lua::ILuaInterface* env) {
 		if (Detour::CheckValue("initialize", "CLuaInterfaceProxy", Initialize(env)))
 		{
 			Detour::CheckValue("CLuaInterface::GetUserdata", Hook(&GarrysMod::Lua::ILuaInterface::GetUserdata, &CLuaInterfaceProxy::GetUserdata));
-			Detour::CheckValue("CLuaInterface::GetType", Hook(&GarrysMod::Lua::ILuaInterface::GetType, &CLuaInterfaceProxy::GetType));
-			Detour::CheckValue("CLuaInterface::IsType", Hook(&GarrysMod::Lua::ILuaInterface::IsType, &CLuaInterfaceProxy::IsType));
 		}
 	}
 
 	void DeInit()
 	{
 		UnHook(&GarrysMod::Lua::ILuaInterface::GetUserdata);
-		UnHook(&GarrysMod::Lua::ILuaInterface::GetType);
-		UnHook(&GarrysMod::Lua::ILuaInterface::IsType);
 	}
 
 	virtual GarrysMod::Lua::ILuaBase::UserData* GetUserdata(int iStackPos)
 	{
-		return (GarrysMod::Lua::ILuaBase::UserData*)RawLua::GetUserDataOrFFIVar(This()->GetState(), iStackPos, GetLuaData(This())->pRegisteredTypes);
+		bool bFutureVar;
+		return (GarrysMod::Lua::ILuaBase::UserData*)RawLua::GetUserDataOrFFIVar(This()->GetState(), iStackPos, GetLuaJITLuaData(This())->pBridge, &bFutureVar);
 	}
-
-	/*
-		Removes vprof.
-		Why? Because in this case, lua_type is too fast and vprof creates a huge slowdown.
-	*/
-	virtual int GetType(int iStackPos)
-	{
-		int type = lua_type(This()->GetState(), iStackPos);
-
-		if (type == GarrysMod::Lua::Type::UserData)
-		{
-			GarrysMod::Lua::ILuaBase::UserData* udata = (GarrysMod::Lua::ILuaBase::UserData*)This()->GetUserdata(iStackPos);
-			if (udata)
-				type = udata->type;
-		}
-
-		return type == -1 ? GarrysMod::Lua::Type::Nil : type;
-	}
-
-	// Fixed with the next update - https://github.com/Facepunch/garrysmod-issues/issues/6418
-	virtual bool IsType(int iStackPos, int iType)
-	{
-		int actualType = lua_type(This()->GetState(), iStackPos);
-
-		if (actualType == iType)
-			return true;
-
-		if (actualType == GarrysMod::Lua::Type::UserData && iType > GarrysMod::Lua::Type::UserData)
-		{
-			GarrysMod::Lua::ILuaBase::UserData* pData = This()->GetUserdata(iStackPos);
-			if (pData)
-				return iType == pData->type;
-		}
-
-		return false;
-	}
-};
+};*/
 
 void CLuaJITModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	GetLuaData(pLua)->pLuaInterfaceProxy->DeInit();
+	//GetLuaJITLuaData(pLua)->pLuaInterfaceProxy->DeInit();
 }
 
 extern int table_setreadonly(lua_State* L);
@@ -265,18 +272,56 @@ void CLuaJITModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 	lua_pop(L, 1);
 
 	LuaJITModuleData* pData = new LuaJITModuleData;
-	pData->pLuaInterfaceProxy = std::make_unique<CLuaInterfaceProxy>(pLua);
+	//pData->pLuaInterfaceProxy = std::make_unique<CLuaInterfaceProxy>(pLua);
 	Lua::GetLuaData(pLua)->SetModuleData(m_pID, pData);
 
-	bool bPreviousFFiValue = g_pLuaJITModule.m_bAllowFFI;
-	g_pLuaJITModule.m_bAllowFFI = true;
-	if (!pLua->RunStringEx("HolyLib", "", luaVectorFFI, true, true, true, true))
+	bOpenLibs = false;
+}
+
+// We load the FFI scripts after LuaInit allowing them to properly work AFTER all new Lua types were registered.
+void CLuaJITModule::PostLuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
+{
+	if (bServerInit || pLua != g_Lua) // Don't init for non-gmod states
+		return;
+
+	lua_State* L = pLua->GetState();
+	if (!g_pLuaJITModule.m_bAllowFFI)
+	{
+		lua_pushcfunction(L, luaopen_ffi);
+		lua_pushstring(L, LUA_FFILIBNAME);
+		lua_call(L, 1, 1);
+		overrideFFIReference = luaL_ref(L, LUA_REGISTRYINDEX);
+	}
+
+	if (!pLua->RunStringEx("HolyLib:HolyLibUserDataFFI.lua", "", luaHolyLibUserDataFFI, true, true, true, true))
+	{
+		Warning(PROJECT_NAME " - luajit: Failed to load HolyLibUserData script!\n");
+	}
+
+	if (!pLua->RunStringEx("HolyLib:VectorFFI.lua", "", luaVectorFFI, true, true, true, true))
 	{
 		Warning(PROJECT_NAME " - luajit: Failed to load VectorFFI script!\n");
 	}
-	g_pLuaJITModule.m_bAllowFFI = bPreviousFFiValue;
 
-	bOpenLibs = false;
+	if (!pLua->RunStringEx("HolyLib:AngleFFI.lua", "", luaAngleFFI, true, true, true, true))
+	{
+		Warning(PROJECT_NAME " - luajit: Failed to load AngleFFI script!\n");
+	}
+
+	if (!pLua->RunStringEx("HolyLib:VoiceDataFFI.lua", "", luaVoiceDataFFI, true, true, true, true))
+	{
+		Warning(PROJECT_NAME " - luajit: Failed to load VoiceDataFFI script!\n");
+	}
+
+	pLua->PushNil();
+	pLua->SetField(GarrysMod::Lua::INDEX_GLOBAL, "__HOLYLIB_FFI"); // A table that the script could have used to share data between them.
+
+	// Remove FFI again.
+	if (overrideFFIReference != -1)
+	{
+		luaL_unref(L, LUA_REGISTRYINDEX, overrideFFIReference);
+		overrideFFIReference = -1;
+	}
 }
 
 void CLuaJITModule::InitDetour(bool bPreServer)
@@ -422,4 +467,16 @@ void CLuaJITModule::InitDetour(bool bPreServer)
 
 	Util::func_lua_rawgeti = &lua_rawgeti;
 	Util::func_lua_rawseti = &lua_rawseti;
+	Util::func_lj_tab_new = &lj_tab_new;
+	Util::func_lua_setfenv = &lua_setfenv;
+	Util::func_lua_touserdata = &lua_touserdata;
+	Util::func_lua_type = &lua_type;
+	Util::func_luaL_checklstring = &luaL_checklstring;
+	Util::func_lua_pcall = &lua_pcall;
+	Util::func_lua_insert = &lua_insert;
+	Util::func_lua_toboolean = &lua_toboolean;
+	Util::func_lj_gc_barrierf = (Symbols::lj_gc_barrierf)&lj_gc_barrierf;
+	Util::func_lj_tab_get = (Symbols::lj_tab_get)&lj_tab_get;
+
+	m_bIsEnabled = true;
 }

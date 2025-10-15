@@ -9,7 +9,9 @@
 #include "module.h"
 #include "plugin.h"
 #include "vprof.h"
-#include "holylua.h"
+#include "server.h"
+#include "versioninfo.h"
+#include "lua.h"
 
 struct edict_t;
 #include "playerinfomanager.h"
@@ -128,7 +130,6 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 	Util::AddDetour();
 	g_pModuleManager.Init();
 	g_pModuleManager.InitDetour(false);
-	HolyLua::Init();
 
 	GarrysMod::Lua::ILuaInterface* LUA = Lua::GetRealm(g_pModuleManager.GetModuleRealm());
 	if (LUA) // If we got loaded by plugin_load we need to manually call Lua::Init
@@ -168,10 +169,10 @@ void CServerPlugin::Unload(void)
 		return;
 	}
 
-	HolyLua::Shutdown();
 	Lua::ManualShutdown(); // Called to make sure that everything is shut down properly in cases of plugin_unload. does nothing if g_Lua is already NULL.
 	g_pModuleManager.Shutdown();
 	Util::RemoveDetour();
+	Util::Unload();
 	Detour::Remove(0);
 	Detour::ReportLeak();
 
@@ -205,7 +206,6 @@ void CServerPlugin::UnPause(void)
 //---------------------------------------------------------------------------------
 // Purpose: the name of this plugin, returned in "plugin_print" command
 //---------------------------------------------------------------------------------
-extern const char* HolyLib_GetPluginDescription();
 const char* CServerPlugin::GetPluginDescription(void)
 {
 	return HolyLib_GetPluginDescription();
@@ -255,7 +255,6 @@ void CServerPlugin::ServerActivate(edict_t *pEdictList, int edictCount, int clie
 
 	Lua::ServerInit();
 	g_pModuleManager.ServerActivate(pEdictList, edictCount, clientMax);
-	Util::CheckVersion();
 }
 
 //---------------------------------------------------------------------------------
@@ -266,7 +265,6 @@ void CServerPlugin::GameFrame(bool simulating)
 	VPROF_BUDGET("HolyLib - CServerPlugin::GameFrame", VPROF_BUDGETGROUP_HOLYLIB);
 	g_pModuleManager.Think(simulating);
 	g_pModuleManager.LuaThink(g_Lua);
-	HolyLua::Think();
 }
 
 //---------------------------------------------------------------------------------
@@ -354,6 +352,49 @@ void CServerPlugin::OnEdictFreed(const edict_t *edict)
 	g_pModuleManager.OnEdictFreed(edict);
 }
 
+class HolyLib_PluginThink : GarrysMod::Lua::ILuaThreadedCall
+{
+public:
+	void SetLua(GarrysMod::Lua::ILuaInterface* pLua)
+	{
+		m_pLua = pLua;
+	}
+
+	bool IsDone()
+	{
+		if (m_pLua)
+		{
+			g_pModuleManager.Think(true);
+			g_pModuleManager.LuaThink(m_pLua);
+		}
+
+		return m_bDone;
+	}
+
+	void Done(GarrysMod::Lua::ILuaInterface* LUA)
+	{
+		// We don't call delete since we create it as a static var.
+		// delete this;
+	}
+
+	void OnShutdown()
+	{
+		// delete this; // We are defined static! No delete this else we'd have a heart attack.
+	}
+
+	// We call this on Module shutdown
+	void MarkAsDone()
+	{
+		m_pLua = nullptr;
+		m_bDone = true;
+	}
+
+private:
+	GarrysMod::Lua::ILuaInterface* m_pLua = nullptr;
+	bool m_bDone = false;
+};
+
+static HolyLib_PluginThink pPluginThink;
 GMOD_MODULE_OPEN()
 {
 	LUA->GetField(LUA_GLOBALSINDEX, "CLIENT");
@@ -371,16 +412,31 @@ GMOD_MODULE_OPEN()
 	else
 		g_pModuleManager.SetModuleRealm(Module_Realm::MENU);
 
-	Util::CheckVersion();
 	g_pModuleManager.MarkAsBinaryModule();
 	Lua::SetManualShutdown();
 	g_HolyLibServerPlugin.Load(NULL, NULL); // Yes. I don't like it but I can't get thoes fancy interfaces.
+
+	if (Util::engineserver && Util::server)
+	{
+		edict_t* pEdict = Util::engineserver->PEntityOfEntIndex(0);
+		if (Util::GetCBaseEntityFromEdict(pEdict))
+		{
+			g_pModuleManager.ServerActivate(pEdict, Util::engineserver->GetEntityCount(), Util::server->GetMaxClients());
+		}
+	}
+
+	pPluginThink.SetLua(LUA);
+
+	// Add our Think hook.
+	LUA->AddThreadedCall((GarrysMod::Lua::ILuaThreadedCall*)&pPluginThink);
 
 	return 0;
 }
 
 GMOD_MODULE_CLOSE()
 {
+	pPluginThink.MarkAsDone();
+	g_Lua->Cycle(); // Just to get our ThreadedCall unloaded since when we are unloaded we expect to not leave any memory.
 	g_HolyLibServerPlugin.Unload();
 
 	return 0;

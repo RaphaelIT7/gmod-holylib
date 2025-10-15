@@ -262,7 +262,7 @@ void *hk_Memory::aligned_malloc( hk_size_t size, hk_size_t alignment )
 #if defined(_WIN32)
 	return _aligned_malloc ( size, alignment );
 #else
-	return std::aligned_alloc( size, alignment );
+	return std::aligned_alloc( alignment, size );
 #endif
 }
 

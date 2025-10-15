@@ -10,7 +10,7 @@ public:
 	virtual ~IVP_HolyLib_Callbacks() {};
 
 	// Returns true if the simulation should be canceled. Let's try to safely stop it.
-	virtual bool CheckLag(void* pObject1 = nullptr, void* pObject2 = nullptr) = 0;
+	virtual bool CheckLag(const char* pName, void* pObject1 = nullptr, void* pObject2 = nullptr) = 0;
 
 	virtual void OnEnvironmentCreated(IPhysicsEnvironment* pEnvironment) = 0;
 	virtual void OnEnvironmentDestroyed(IPhysicsEnvironment* pEnvironment) = 0;
@@ -22,6 +22,9 @@ public:
 	virtual void SimulationFinish() = 0;
 
 	virtual bool ShouldSkip() = 0;
+
+	virtual void ThrowRecheckOVWarning() = 0;
+	virtual bool ShouldSkipRecheck_ov_element() = 0;
 };
 
 extern IVP_HolyLib_Callbacks* g_pHolyLibCallbacks;

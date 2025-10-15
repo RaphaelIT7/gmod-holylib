@@ -22,7 +22,7 @@ public:
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual void OnClientDisconnect(CBaseClient* pClient) OVERRIDE;
 	virtual const char* Name() { return "gameserver"; };
-	virtual int Compatibility() { return LINUX32; };
+	virtual int Compatibility() { return LINUX32 | LINUX64; };
 	virtual bool SupportsMultipleLuaStates() { return true; };
 };
 
@@ -63,19 +63,11 @@ public:
 };
 
 PushReferenced_LuaClass(CBaseClient)
-SpecialGet_LuaClass(CBaseClient, CHLTVClient, "CBaseClient")
+SpecialGet_LuaClass(CBaseClient, CHLTVClient, "CBaseClient", pVar->IsConnected())
 
 Default__index(CBaseClient);
 Default__newindex(CBaseClient);
-
-LUA_FUNCTION_STATIC(CBaseClient_GetTable)
-{
-	LuaUserData* data = Get_CBaseClient_Data(LUA, 1, true);
-	CBaseClient* pClient = (CBaseClient*)data->GetData();
-
-	Util::ReferencePush(LUA, data->GetLuaTable()); // This should never crash so no safety checks.
-	return 1;
-}
+Default__GetTable(CBaseClient);
 
 LUA_FUNCTION_STATIC(CBaseClient_GetPlayerSlot)
 {
@@ -160,9 +152,13 @@ LUA_FUNCTION_STATIC(CBaseClient_SendLua)
 LUA_FUNCTION_STATIC(CBaseClient_FireGameEvent)
 {
 	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
+#if MODULE_EXISTS_GAMEEVENT
 	IGameEvent* pEvent = Get_IGameEvent(LUA, 2, true);
 
 	pClient->FireGameEvent(pEvent);
+#else
+	LUA->ThrowError("Missing gameevent module!");
+#endif
 	return 0;
 }
 
@@ -226,12 +222,12 @@ LUA_FUNCTION_STATIC(CBaseClient_Disconnect)
 		pClient->GetNetChannel()->Shutdown(NULL); // NULL = Send no disconnect message
 
 	if (bNoEvent)
-		BlockGameEvent("player_disconnect");
+		Util::BlockGameEvent("player_disconnect");
 
 	pClient->Disconnect(strReason);
 	
 	if (bNoEvent)
-		UnblockGameEvent("player_disconnect");
+		Util::UnblockGameEvent("player_disconnect");
 
 	return 0;
 }
@@ -310,7 +306,6 @@ LUA_FUNCTION_STATIC(CBaseClient_SendNetMsg)
 	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
 	int iType = (int)LUA->CheckNumber(2);
 	const char* strName = LUA->CheckString(3);
-	bf_write* bf = Get_bf_write(LUA, 4, true);
 
 	if (!pClient)
 		LUA->ThrowError("Failed to get IClient from player!");
@@ -318,8 +313,23 @@ LUA_FUNCTION_STATIC(CBaseClient_SendNetMsg)
 	SVC_CustomMessage msg;
 	msg.m_iType = iType;
 	strncpy(msg.m_strName, strName, sizeof(msg.m_strName));
+
+#if MODULE_EXISTS_BITBUF
+	bf_write* bf = Get_bf_write(LUA, 4, true);
+
+	if (bf->IsOverflowed())
+		LUA->ThrowError("Tried to use a buffer that is overflowed!");
+
 	msg.m_DataOut.StartWriting(bf->GetData(), 0, 0, bf->GetMaxNumBits());
 	msg.m_iLength = bf->GetNumBitsWritten();
+
+#else
+	size_t nLength;
+	const char* pData = Util::CheckLString(LUA, 1, &nLength);
+
+	msg.m_DataOut.StartWriting((void*)pData, nLength);
+	msg.m_iLength = nLength * 8;
+#endif
 
 	LUA->PushBool(pClient->SendNetMsg(msg));
 	return 1;
@@ -461,10 +471,14 @@ LUA_FUNCTION_STATIC(CBaseClient_SetSignonState) // At some point will replace Ho
 
 LUA_FUNCTION_STATIC(CBaseClient_WriteGameSounds)
 {
+#if MODULE_EXISTS_BITBUF
 	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
 	bf_write* bf = Get_bf_write(LUA, 2, true);
 
 	pClient->WriteGameSounds(*bf);
+#else
+	MISSING_MODULE_ERROR(LUA, bitbuf);
+#endif
 	return 0;
 }
 
@@ -552,15 +566,9 @@ LUA_FUNCTION_STATIC(CBaseClient_OnRequestFullUpdate)
 
 	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
 
-	if (func_CBaseClient_OnRequestFullUpdate)
-		func_CBaseClient_OnRequestFullUpdate(pClient);
+	func_CBaseClient_OnRequestFullUpdate(pClient);
 
 	return 0;
-}
-
-void CBaseClient::SetSteamID( const CSteamID &steamID )
-{
-	m_SteamID = steamID;
 }
 
 LUA_FUNCTION_STATIC(CBaseClient_SetSteamID)
@@ -686,34 +694,46 @@ LUA_FUNCTION_STATIC(CBaseClient_GetChokedPackets)
 
 LUA_FUNCTION_STATIC(CBaseClient_GetStreamReliable)
 {
+#if MODULE_EXISTS_BITBUF
 	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
 	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
 	if (!pNetChannel)
 		LUA->ThrowError("Failed to get a valid net channel");
 
 	Push_bf_write(LUA, &pNetChannel->m_StreamReliable, false);
+#else
+	MISSING_MODULE_ERROR(LUA, bitbuf);
+#endif
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(CBaseClient_GetStreamUnreliable)
 {
+#if MODULE_EXISTS_BITBUF
 	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
 	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
 	if (!pNetChannel)
 		LUA->ThrowError("Failed to get a valid net channel");
 
 	Push_bf_write(LUA, &pNetChannel->m_StreamUnreliable, false);
+#else
+	MISSING_MODULE_ERROR(LUA, bitbuf);
+#endif
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(CBaseClient_GetStreamVoice)
 {
+#if MODULE_EXISTS_BITBUF
 	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
 	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
 	if (!pNetChannel)
 		LUA->ThrowError("Failed to get a valid net channel");
 
 	Push_bf_write(LUA, &pNetChannel->m_StreamVoice, false);
+#else
+	MISSING_MODULE_ERROR(LUA, bitbuf);
+#endif
 	return 1;
 }
 
@@ -1252,25 +1272,37 @@ LUA_FUNCTION_STATIC(CNetChan_GetChokedPackets)
 
 LUA_FUNCTION_STATIC(CNetChan_GetStreamReliable)
 {
+#if MODULE_EXISTS_BITBUF
 	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
 
 	Push_bf_write(LUA, &pNetChannel->m_StreamReliable, false);
+#else
+	MISSING_MODULE_ERROR(LUA, bitbuf);
+#endif
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(CNetChan_GetStreamUnreliable)
 {
+#if MODULE_EXISTS_BITBUF
 	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
 
 	Push_bf_write(LUA, &pNetChannel->m_StreamUnreliable, false);
+#else
+	MISSING_MODULE_ERROR(LUA, bitbuf);
+#endif
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(CNetChan_GetStreamVoice)
 {
+#if MODULE_EXISTS_BITBUF
 	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
 
 	Push_bf_write(LUA, &pNetChannel->m_StreamVoice, false);
+#else
+	MISSING_MODULE_ERROR(LUA, bitbuf);
+#endif
 	return 1;
 }
 
@@ -1331,6 +1363,23 @@ LUA_FUNCTION_STATIC(CNetChan_SetTimeout)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(CNetChan_GetRate)
+{
+	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
+
+	LUA->PushNumber(pNetChannel->GetDataRate());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CNetChan_SetRate)
+{
+	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
+	float rate = (float)LUA->CheckNumber(2);
+
+	pNetChannel->SetDataRate(rate);
+	return 0;
+}
+
 LUA_FUNCTION_STATIC(CNetChan_Transmit)
 {
 	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
@@ -1386,6 +1435,15 @@ LUA_FUNCTION_STATIC(CNetChan_Shutdown)
 
 	pNetChannel->Shutdown(reason);
 	return 0;
+}
+
+LUA_FUNCTION_STATIC(CNetChan_CanPacket)
+{
+	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
+
+	net_time = Util::engineserver->Time();
+	LUA->PushBool(pNetChannel->CanPacket());
+	return 1;
 }
 
 static Detouring::Hook detour_CNetChan_D2;
@@ -1620,20 +1678,21 @@ bool ILuaNetMessageHandler::ProcessLuaNetChanMessage(NET_LuaNetChanMessage *msg)
 	if (m_iMessageCallbackFunction == -1) // We have no callback function set.
 		return true;
 
-	LuaUserData* pLuaData = Push_bf_read(m_pLua, &msg->m_DataIn, false);
 	m_pLua->ReferencePush(m_iMessageCallbackFunction);
 
 	Push_CNetChan(m_pLua, m_pChan);
-	m_pLua->Push(-3);
+#if MODULE_EXISTS_BITBUF
+	LuaUserData* pLuaData = Push_bf_read(m_pLua, &msg->m_DataIn, false);
+#else
+	m_pLua->PushString((const char*)msg->m_DataIn.GetBasePointer(), msg->m_DataIn.GetNumBytesLeft());
+#endif
 	m_pLua->PushNumber(msg->m_iLength);
 	m_pLua->CallFunctionProtected(3, 0, true);
-		
+	
+#if MODULE_EXISTS_BITBUF
 	if (pLuaData)
-	{
-		delete pLuaData;
-	}
-	m_pLua->SetUserType(-1, NULL);
-	m_pLua->Pop(1);
+		pLuaData->Release(m_pLua);
+#endif
 
 	return true;
 }
@@ -1641,14 +1700,36 @@ bool ILuaNetMessageHandler::ProcessLuaNetChanMessage(NET_LuaNetChanMessage *msg)
 LUA_FUNCTION_STATIC(CNetChan_SendMessage)
 {
 	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
-	bf_write* bf = Get_bf_write(LUA, 2, true);
 	bool bReliable = LUA->GetBool(3);
 
 	NET_LuaNetChanMessage msg;
+#if MODULE_EXISTS_BITBUF
+	bf_write* bf = Get_bf_write(LUA, 2, true);
+
+	if (bf->IsOverflowed())
+		LUA->ThrowError("Tried to use a buffer that is overflowed!");
+
 	msg.m_DataOut.StartWriting(bf->GetData(), 0, 0, bf->GetMaxNumBits());
 	msg.m_iLength = bf->GetNumBitsWritten();
+#else
+	size_t nLength;
+	const char* pData = Util::CheckLString(LUA, 1, &nLength);
+
+	msg.m_DataOut.StartWriting((void*)pData, nLength);
+	msg.m_iLength = nLength * 8;
+#endif
 
 	LUA->PushBool(pNetChannel->SendNetMsg(msg, bReliable));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CNetChan_SendFile)
+{
+	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
+	const char* pFileName = LUA->CheckString(2);
+	int transferID = LUA->CheckNumber(3);
+
+	LUA->PushBool(pNetChannel->SendFile(pFileName, transferID));
 	return 1;
 }
 
@@ -1873,6 +1954,25 @@ LUA_FUNCTION_STATIC(gameserver_GetClientByUserID)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(gameserver_GetClientBySteamID)
+{
+	if (!Util::server || !Util::server->IsActive())
+		return 0;
+
+	const char* steamID = LUA->CheckString(1);
+	for(int iClientIndex=0; iClientIndex<Util::server->GetClientCount(); ++iClientIndex)
+	{
+		CBaseClient* pClient = (CBaseClient*)Util::server->GetClient(iClientIndex);
+		if (!pClient->IsConnected() || V_stricmp(pClient->GetNetworkIDString(), steamID) != 0)
+			continue;
+
+		Push_CBaseClient(LUA, pClient);
+		return 1;
+	}
+
+	return 0;
+}
+
 LUA_FUNCTION_STATIC(gameserver_GetClientCount)
 {
 	if (!Util::server || !Util::server->IsActive())
@@ -2086,13 +2186,26 @@ LUA_FUNCTION_STATIC(gameserver_BroadcastMessage)
 
 	int iType = (int)LUA->CheckNumber(1);
 	const char* strName = LUA->CheckString(2);
-	bf_write* bf = Get_bf_write(LUA, 3, true);
 
 	SVC_CustomMessage msg;
 	msg.m_iType = iType;
 	strncpy(msg.m_strName, strName, sizeof(msg.m_strName));
+
+#if MODULE_EXISTS_BITBUF
+	bf_write* bf = Get_bf_write(LUA, 3, true);
+
+	if (bf->IsOverflowed())
+		LUA->ThrowError("Tried to use a buffer that is overflowed!");
+
 	msg.m_DataOut.StartWriting(bf->GetData(), 0, 0, bf->GetMaxNumBits());
 	msg.m_iLength = bf->GetNumBitsWritten();
+#else
+	size_t nLength;
+	const char* pData = Util::CheckLString(LUA, 1, &nLength);
+
+	msg.m_DataOut.StartWriting((void*)pData, nLength);
+	msg.m_iLength = nLength * 8;
+#endif
 
 	Util::server->BroadcastMessage(msg);
 	return 0;
@@ -2101,7 +2214,12 @@ LUA_FUNCTION_STATIC(gameserver_BroadcastMessage)
 static Symbols::NET_SendPacket func_NET_SendPacket;
 LUA_FUNCTION_STATIC(gameserver_SendConnectionlessPacket)
 {
+#if MODULE_EXISTS_BITBUF
 	bf_write* msg = Get_bf_write(LUA, 1, true);
+#else
+	size_t nLength;
+	const char* pData = Util::CheckLString(LUA, 1, &nLength);
+#endif
 
 	netadrnew_t adr;
 	adr.SetFromString(LUA->CheckString(2), LUA->GetBool(3));
@@ -2115,13 +2233,25 @@ LUA_FUNCTION_STATIC(gameserver_SendConnectionlessPacket)
 		return 1;
 	}
 
-	LUA->PushNumber(func_NET_SendPacket(NULL, nSocket, (netadr_t&)adr, msg->GetData(), msg->GetNumBytesWritten(), NULL, false));
+	if (!func_NET_SendPacket)
+		LUA->ThrowError("Failed to load NET_SendPacket");
+
+	LUA->PushNumber(func_NET_SendPacket(NULL, nSocket, (netadr_t&)adr,
+#if MODULE_EXISTS_BITBUF
+		msg->GetData(), msg->GetNumBytesWritten(),
+#else
+		(const unsigned char*)pData, nLength,
+#endif
+	NULL, false));
 	return 1;
 }
 
 static CUtlVectorMT<CUtlVector<CNetChan*>>* s_NetChannels = NULL;
 CNetChan* NET_CreateHolyLibNetChannel(int socket, netadrnew_t* adr, const char* name, INetChannelHandler* handler, bool bForceNewChannel, int nProtocolVersion)
 {
+	if (!s_NetChannels)
+		return NULL;
+
 	CNetChan* pChan = new CNetChan;
 
 	(*s_NetChannels).Lock();
@@ -2167,11 +2297,12 @@ LUA_FUNCTION_STATIC(gameserver_RemoveNetChannel)
 	if (!func_NET_RemoveNetChannel)
 		LUA->ThrowError("Failed to load NET_RemoveNetChannel!");
 
-	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
+	LuaUserData* pLuaData = Get_CNetChan_Data(LUA, 1, true);
+	CNetChan* pNetChannel = (CNetChan*)pLuaData->GetData();
 
 	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler;
 	func_NET_RemoveNetChannel(pNetChannel, true);
-	LUA->SetUserType(1, NULL);
+	pLuaData->Release(LUA);
 
 	if (pHandler)
 	{
@@ -2257,12 +2388,16 @@ void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, CNetChan_GetClearTime, "GetClearTime");
 		Util::AddFunc(pLua, CNetChan_GetTimeout, "GetTimeout");
 		Util::AddFunc(pLua, CNetChan_SetTimeout, "SetTimeout");
+		Util::AddFunc(pLua, CNetChan_GetRate, "GetRate");
+		Util::AddFunc(pLua, CNetChan_SetRate, "SetRate");
 		Util::AddFunc(pLua, CNetChan_Transmit, "Transmit");
 		Util::AddFunc(pLua, CNetChan_ProcessStream, "ProcessStream");
 		Util::AddFunc(pLua, CNetChan_SetMaxBufferSize, "SetMaxBufferSize");
 		Util::AddFunc(pLua, CNetChan_GetMaxRoutablePayloadSize, "GetMaxRoutablePayloadSize");
 		Util::AddFunc(pLua, CNetChan_SendMessage, "SendMessage");
+		Util::AddFunc(pLua, CNetChan_SendFile, "SendFile");
 		Util::AddFunc(pLua, CNetChan_Shutdown, "Shutdown");
+		Util::AddFunc(pLua, CNetChan_CanPacket, "CanPacket");
 
 		// Callbacks
 		Util::AddFunc(pLua, CNetChan_SetMessageCallback, "SetMessageCallback");
@@ -2283,6 +2418,7 @@ void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, gameserver_GetUDPPort, "GetUDPPort");
 		Util::AddFunc(pLua, gameserver_GetClient, "GetClient");
 		Util::AddFunc(pLua, gameserver_GetClientByUserID, "GetClientByUserID");
+		Util::AddFunc(pLua, gameserver_GetClientBySteamID, "GetClientBySteamID");
 		Util::AddFunc(pLua, gameserver_GetClientCount, "GetClientCount");
 		Util::AddFunc(pLua, gameserver_GetAll, "GetAll");
 		Util::AddFunc(pLua, gameserver_GetTime, "GetTime");
@@ -2334,9 +2470,9 @@ static void hook_CServerGameClients_GetPlayerLimit(void* funkyClass, int& minPla
 }
 
 static Detouring::Hook detour_CBaseServer_ProcessConnectionlessPacket;
-static bool hook_CBaseServer_ProcessConnectionlessPacket(void* server, netpacket_s* packet)
+static bool hook_CBaseServer_ProcessConnectionlessPacket(IServer* server, netpacket_s* packet)
 {
-	if (!gameserver_connectionlesspackethook.GetBool())
+	if (!gameserver_connectionlesspackethook.GetBool() || server->IsHLTV())
 	{
 		return detour_CBaseServer_ProcessConnectionlessPacket.GetTrampoline<Symbols::CBaseServer_ProcessConnectionlessPacket>()(server, packet);
 	}
@@ -2344,12 +2480,11 @@ static bool hook_CBaseServer_ProcessConnectionlessPacket(void* server, netpacket
 	int originalPos = packet->message.GetNumBitsRead();
 	if (Lua::PushHook("HolyLib:ProcessConnectionlessPacket"))
 	{
+#if MODULE_EXISTS_BITBUF
 		LuaUserData* pLuaData = Push_bf_read(g_Lua, &packet->message, false);
-		g_Lua->Push(-3);
-		g_Lua->Push(-3);
-		g_Lua->Remove(-5);
-		g_Lua->Remove(-4);
-		g_Lua->Push(-3);
+#else
+		g_Lua->PushString((const char*)packet->message.GetBasePointer(), packet->message.GetNumBytesLeft());
+#endif
 
 		bool bHandled = false;
 		g_Lua->PushString(packet->from.ToString());
@@ -2359,12 +2494,10 @@ static bool hook_CBaseServer_ProcessConnectionlessPacket(void* server, netpacket
 			g_Lua->Pop(1);
 		}
 
+#if MODULE_EXISTS_BITBUF
 		if (pLuaData)
-		{
-			delete pLuaData;
-		}
-		g_Lua->SetUserType(-1, NULL);
-		g_Lua->Pop(1);
+			pLuaData->Release(g_Lua);
+#endif
 
 		if (bHandled)
 		{
@@ -2655,6 +2788,7 @@ static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* tar
 	target->m_bReportFakeClient = origin->m_bReportFakeClient;
 	target->m_bReceivedPacket = origin->m_bReceivedPacket;
 	target->m_bFullyAuthenticated = origin->m_bFullyAuthenticated;
+	target->m_OwnerSteamID = origin->m_OwnerSteamID;
 
 	memcpy(target->m_FriendsName, origin->m_FriendsName, sizeof(origin->m_FriendsName));
 	memcpy(target->m_GUID, origin->m_GUID, sizeof(origin->m_GUID));
@@ -2745,7 +2879,7 @@ static int FindFreeClientSlot()
 static Detouring::Hook detour_CGameClient_SpawnPlayer;
 void hook_CGameClient_SpawnPlayer(CGameClient* client)
 {
-	if (client->m_nClientSlot < MAX_PLAYERS && !gameserver_disablespawnsafety.GetBool())
+	if (client->m_nClientSlot <= MAX_PLAYERS && !gameserver_disablespawnsafety.GetBool())
 	{
 		detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(client);
 		return;
@@ -2783,7 +2917,8 @@ void CGameServerModule::OnClientDisconnect(CBaseClient* pClient)
 			Push_CBaseClient(g_Lua, pClient);
 			LuaUserData* pData = Get_CBaseClient_Data(g_Lua, -1, false);
 			g_Lua->CallFunctionProtected(2, 0, true);
-			pData->ClearLuaTable();
+			if (pData)
+				pData->ClearLuaTable(g_Lua);
 		}
 
 		Delete_CBaseClient(g_Lua, pClient);
@@ -2867,6 +3002,32 @@ int NET_ReceiveStream(int nSock, char* buf, int len, int flags)
 	return func_NET_ReceiveStream(nSock, buf, len, flags);
 }
 
+static ConVar* host_timescale = nullptr;
+static Detouring::Hook detour_NET_SetTime;
+static void hook_NET_SetTime(double flRealtime) // We need this hook to keep net_time up to date
+{
+	detour_NET_SetTime.GetTrampoline<Symbols::NET_SetTime>()(flRealtime);
+
+	static double s_last_realtime = 0;
+
+	double frametime = flRealtime - s_last_realtime;
+	s_last_realtime = flRealtime;
+
+	if (frametime > 1.0f)
+	{
+		// if we have very long frame times because of loading stuff
+		// don't apply that to net time to avoid unwanted timeouts
+		frametime = 1.0f;
+	}
+	else if (frametime < 0.0f)
+	{
+		frametime = 0.0f;
+	}
+
+	// adjust network time so fakelag works with host_timescale
+	net_time += frametime * (host_timescale ? host_timescale->GetFloat() : 1.0f);
+}
+
 void CGameServerModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
@@ -2891,11 +3052,13 @@ void CGameServerModule::InitDetour(bool bPreServer)
 		(void*)hook_CBaseClient_SetSignonState, m_pID
 	);
 
+#if ARCHITECTURE_IS_X86
 	Detour::Create(
 		&detour_CBaseClient_ShouldSendMessages, "CBaseClient::ShouldSendMessages",
 		engine_loader.GetModule(), Symbols::CBaseClient_ShouldSendMessagesSym,
 		(void*)hook_CBaseClient_ShouldSendMessages, m_pID
 	);
+#endif
 
 	Detour::Create(
 		&detour_CBaseServer_CheckTimeouts, "CBaseServer::CheckTimeouts",
@@ -2907,6 +3070,12 @@ void CGameServerModule::InitDetour(bool bPreServer)
 		&detour_CGameClient_SpawnPlayer, "CGameClient::SpawnPlayer",
 		engine_loader.GetModule(), Symbols::CGameClient_SpawnPlayerSym,
 		(void*)hook_CGameClient_SpawnPlayer, m_pID
+	);
+
+	Detour::Create(
+		&detour_NET_SetTime, "NET_SetTime",
+		engine_loader.GetModule(), Symbols::NET_SetTimeSym,
+		(void*)hook_NET_SetTime, m_pID
 	);
 
 	SourceSDK::FactoryLoader server_loader("server");
@@ -2981,5 +3150,11 @@ void CGameServerModule::InitDetour(bool bPreServer)
 	func_NET_ReceiveStream = (Symbols::NET_ReceiveStream)Detour::GetFunction(engine_loader.GetModule(), Symbols::NET_ReceiveStreamSym);
 	Detour::CheckFunction((void*)func_NET_ReceiveStream, "NET_ReceiveStream");
 
+#if ARCHITECTURE_IS_X86
 	s_NetChannels = Detour::ResolveSymbol<CUtlVectorMT<CUtlVector<CNetChan*>>>(engine_loader, Symbols::s_NetChannelsSym);
+#else
+	s_NetChannels = Detour::ResolveSymbolFromLea<CUtlVectorMT<CUtlVector<CNetChan*>>>(engine_loader.GetModule(), Symbols::s_NetChannelsSym);
+#endif
+
+	host_timescale = g_pCVar->FindVar("host_timescale");
 }

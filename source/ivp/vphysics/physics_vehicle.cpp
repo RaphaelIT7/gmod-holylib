@@ -520,8 +520,7 @@ IVP_Real_Object *CVehicleController::CreateWheel( int wheelIndex, vehicle_axlepa
 		return pWheelObject->GetObject();
 	}
 
-	objectparams_t params;
-	memset( &params, 0, sizeof(params) );
+	objectparams_t params{};
 
 	Vector bodyPosition;
 	QAngle bodyAngles;
@@ -591,8 +590,7 @@ void CVehicleController::CreateTraceData( int wheelIndex, vehicle_axleparams_t &
 	if ( wheelIndex >= VEHICLE_MAX_WHEEL_COUNT )
 		return;
 
-	objectparams_t params;
-	memset( &params, 0, sizeof( params ) );
+	objectparams_t params{};
 
 	Vector bodyPosition;
 	QAngle bodyAngles;
@@ -1575,8 +1573,7 @@ IPhysicsVehicleController *CreateVehicleController( CPhysicsEnvironment *pEnv, C
 
 bool SavePhysicsVehicleController( const physsaveparams_t &params, CVehicleController *pVehicleController )
 {
-	vphysics_save_cvehiclecontroller_t controllerTemplate;
-	memset( &controllerTemplate, 0, sizeof(controllerTemplate) );
+	vphysics_save_cvehiclecontroller_t controllerTemplate{};
 
 	pVehicleController->WriteToTemplate( controllerTemplate );
 	params.pSave->WriteAll( &controllerTemplate );
@@ -1588,8 +1585,7 @@ bool RestorePhysicsVehicleController( const physrestoreparams_t &params, CVehicl
 {
 	*ppVehicleController = new CVehicleController;
 	
-	vphysics_save_cvehiclecontroller_t controllerTemplate;
-	memset( &controllerTemplate, 0, sizeof(controllerTemplate) );
+	vphysics_save_cvehiclecontroller_t controllerTemplate{};
 	params.pRestore->ReadAll( &controllerTemplate );
 
 	(*ppVehicleController)->InitFromTemplate( static_cast<CPhysicsEnvironment *>(params.pEnvironment),

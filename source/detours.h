@@ -10,6 +10,7 @@
 #include "Platform.hpp"
 #include "tier0/dbg.h"
 #include <vector>
+#include <unordered_set>
 
 #ifdef DLL_TOOLS
 #ifdef WIN32
@@ -77,7 +78,9 @@ namespace Detour
 	extern void Create(Detouring::Hook* pHook, const char* strName, void* pModule, Symbol pSymbol, void* pHookFunc, unsigned int category = 0);
 	extern void Remove(unsigned int category); // 0 = All
 	extern void ReportLeak();
-	extern unsigned int g_pCurrentCategory;
+	extern const std::unordered_set<std::string>& GetDisabledDetours();
+	extern const std::unordered_set<std::string>& GetFailedDetours();
+	extern const std::unordered_set<std::string>& GetLoadedDetours();
 
 	extern SymbolFinder symfinder;
 	template<class T>
@@ -137,6 +140,46 @@ namespace Detour
 			pLoader.GetModule(), pSymbols[DETOUR_SYMBOL_ID].name.c_str(), pSymbols[DETOUR_SYMBOL_ID].length
 		));
 	#endif
+	}
+
+	template<class T>
+	inline T* ResolveSymbolFromLea(void* pModule, const std::vector<Symbol>& pSymbols)
+	{
+	#if DETOUR_SYMBOL_ID != 0
+		if ((pSymbols.size()-1) < DETOUR_SYMBOL_ID)
+			return NULL;
+	#endif
+
+		void* matchAddr = GetFunction(pModule, pSymbols[DETOUR_SYMBOL_ID]);
+		if (matchAddr == NULL)
+		{
+			Warning(PROJECT_NAME ": Failed to get matchAddr!\n");
+			return NULL;
+		}
+
+	#if defined(SYSTEM_WINDOWS)
+		uint8_t* ip = reinterpret_cast<uint8_t*>((char*)(matchAddr) + pSymbols[DETOUR_SYMBOL_ID].offset);
+	#else
+		uint8_t* ip = reinterpret_cast<uint8_t*>(matchAddr + pSymbols[DETOUR_SYMBOL_ID].offset);
+	#endif
+
+		//
+		if (ip[0] == 0x48) {
+			const size_t instrLen = 7;
+			int32_t disp = *reinterpret_cast<int32_t*>(ip + 3); // disp32 at offset 3
+			uint8_t* next = ip + instrLen;                      // RIP after the instruction
+			void* gEntListAddr = next + disp;                   // final address = next + disp32
+
+		#if defined SYSTEM_WINDOWS
+			auto iface = reinterpret_cast<T**>(gEntListAddr);
+			return iface != nullptr ? *iface : nullptr;
+		#elif defined SYSTEM_POSIX
+			return reinterpret_cast<T*>(gEntListAddr);
+		#endif
+		}
+
+		Warning(PROJECT_NAME ": Failed to match LEA bytes!\n");
+		return NULL;
 	}
 
 	inline void* GetFunction(void* pModule, std::vector<Symbol> pSymbols)

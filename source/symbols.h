@@ -1,5 +1,4 @@
 #include <GarrysMod/Symbol.hpp>
-#include <steam/isteamuser.h>
 #include "tier0/wchartypes.h"
 #include "Platform.hpp"
 #include "filesystem.h"
@@ -64,6 +63,16 @@ struct PackWork_t;
 class CBaseViewModel;
 class CBaseCombatCharacter;
 class CHostState;
+class CSkyCamera;
+struct SteamServersConnected_t;
+struct SteamServersDisconnected_t;
+struct global_State;
+struct GCtab;
+
+namespace GarrysMod::Lua
+{
+	class CLuaObject;
+}
 
 class	CGameTrace;
 typedef	CGameTrace trace_t;
@@ -105,7 +114,7 @@ struct ThreadPoolStartParams_t;
 namespace Symbols
 {
 	//---------------------------------------------------------------------------------
-	// Purpose: All Base Symbols
+	// Purpose: All Required Base Symbols
 	//---------------------------------------------------------------------------------
 	typedef bool (*InitLuaClasses)(GarrysMod::Lua::ILuaInterface*);
 	extern const std::vector<Symbol> InitLuaClassesSym;
@@ -113,6 +122,9 @@ namespace Symbols
 	typedef bool (GMCOMMON_CALLING_CONVENTION* CLuaInterface_Shutdown)(GarrysMod::Lua::ILuaInterface*);
 	extern const std::vector<Symbol> CLuaInterface_ShutdownSym;
 
+	//---------------------------------------------------------------------------------
+	// Purpose: All Optional Base Symbols
+	//---------------------------------------------------------------------------------
 	typedef void (*CBaseEntity_CalcAbsolutePosition)(void* ent);
 	extern const std::vector<Symbol> CBaseEntity_CalcAbsolutePositionSym;
 
@@ -125,20 +137,48 @@ namespace Symbols
 	typedef void (*CCollisionProperty_MarkSurroundingBoundsDirty)(void* fancy_class);
 	extern const std::vector<Symbol> CCollisionProperty_MarkSurroundingBoundsDirtySym;
 
-	typedef void (*CBaseEntity_VPhysicsUpdate)(void* fancy_class, void* obj);
-	extern const std::vector<Symbol> CBaseEntity_VPhysicsUpdateSym;
+	/*
+		NOTE FOR LUAJIT SYMBOLS
 
-	typedef void (*CBaseEntity_GMOD_VPhysicsTest)(void* fancy_class, void* obj);
-	extern const std::vector<Symbol> CBaseEntity_GMOD_VPhysicsTestSym;
-
-	typedef void (*CBaseEntity_VPhysicsDestroyObject)(void* fancy_class);
-	extern const std::vector<Symbol> CBaseEntity_VPhysicsDestroyObjectSym;
+		When we load any functions like lua_ or lj_ we NEED to also update the luajit module (luajit.cpp) to update the pointer when the module is enabled.
+		This is because else we might call the loaded function from Gmod when in reality our luajit build has taken over which would cause a crash!
+	*/
 
 	typedef void (*lua_rawseti)(lua_State* L, int index, int i);
-	extern const std::vector<Symbol> lua_rawsetiSym;
+	extern const Symbol lua_rawsetiSym;
 
 	typedef void (*lua_rawgeti)(lua_State* L, int index, int i);
-	extern const std::vector<Symbol> lua_rawgetiSym;
+	extern const Symbol lua_rawgetiSym;
+
+	typedef GCtab* (*lj_tab_new)(lua_State *L, uint32_t nArray, uint32_t nRec);
+	extern const Symbol lj_tab_newSym;
+
+	typedef void (*lj_gc_barrierf)(global_State *g, void *o, void *v);
+	extern const Symbol lj_gc_barrierfSym;
+
+	typedef void* (*lj_tab_get)(lua_State *L, void *t, void *key);
+	extern const Symbol lj_tab_getSym;
+
+	typedef int (*lua_setfenv)(lua_State *L, int idx);
+	extern const Symbol lua_setfenvSym;
+
+	typedef void* (*lua_touserdata)(lua_State *L, int idx);
+	extern const Symbol lua_touserdataSym;
+
+	typedef int (*lua_type)(lua_State *L, int idx);
+	extern const Symbol lua_typeSym;
+
+	typedef const char* (*luaL_checklstring)(lua_State *L, int idx, size_t* len);
+	extern const Symbol luaL_checklstringSym;
+
+	typedef int (*lua_pcall)(lua_State *L, int nArgs, int nRets, int nErrorFunc);
+	extern const Symbol lua_pcallSym;
+
+	typedef void (*lua_insert)(lua_State *L, int idx);
+	extern const Symbol lua_insertSym;
+
+	typedef int (*lua_toboolean)(lua_State *L, int idx);
+	extern const Symbol lua_tobooleanSym;
 
 	extern const std::vector<Symbol> CGetSym;
 	extern const std::vector<Symbol> gEntListSym;
@@ -147,10 +187,19 @@ namespace Symbols
 	extern const std::vector<Symbol> CSteam3Server_NotifyClientDisconnectSym;
 
 	typedef void (*SteamGameServer_Shutdown)();
-	extern const std::vector<Symbol> SteamGameServer_ShutdownSym;
+	extern const Symbol SteamGameServer_ShutdownSym;
 
 	typedef int (*GMOD_LoadBinaryModule)(lua_State* L, const char* pFileName);
-	extern const std::vector<Symbol> GMOD_LoadBinaryModuleSym;
+	extern const Symbol GMOD_LoadBinaryModuleSym;
+
+	typedef const byte* (*CM_Vis)(byte* dest, int destlen, int cluster, int visType);
+	extern const std::vector<Symbol> CM_VisSym;
+
+	typedef GarrysMod::Lua::CLuaObject* (*CBaseEntity_GetLuaEntity)(void* pEntity);
+	extern const std::vector<Symbol> CBaseEntity_GetLuaEntitySym; // We use this one to directly push by reference to reduce overhead and improve performance.
+
+	typedef IGameEvent* (GMCOMMON_CALLING_CONVENTION* CGameEventManager_CreateEvent)(void* manager, const char* name, bool bForce);
+	extern const std::vector<Symbol> CGameEventManager_CreateEventSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: holylib Symbols
@@ -184,9 +233,6 @@ namespace Symbols
 
 	typedef bool (GMCOMMON_CALLING_CONVENTION* CGameEventManager_AddListener)(void* manager, void* listener, void* descriptor, int);
 	extern const std::vector<Symbol> CGameEventManager_AddListenerSym;
-
-	typedef IGameEvent* (GMCOMMON_CALLING_CONVENTION* CGameEventManager_CreateEvent)(void* manager, const char* name, bool bForce);
-	extern const std::vector<Symbol> CGameEventManager_CreateEventSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: serverplugin Symbols
@@ -232,17 +278,8 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: threadpoolfix Symbols
 	//---------------------------------------------------------------------------------
-	typedef int (GMCOMMON_CALLING_CONVENTION* CThreadPool_ExecuteToPriority)(void* pool, void* idk, void* idk2);
-	extern const std::vector<Symbol> CThreadPool_ExecuteToPrioritySym;
 
-	typedef bool (GMCOMMON_CALLING_CONVENTION* CThreadPool_Start)(void* pool, const ThreadPoolStartParams_t& params, const char* pszName);
-	extern const std::vector<Symbol> CThreadPool_StartSym;
-
-	typedef void (GMCOMMON_CALLING_CONVENTION* CBaseFileSystem_InitAsync)(void* filesystem);
-	extern const std::vector<Symbol> CBaseFileSystem_InitAsyncSym;
-
-	typedef void (GMCOMMON_CALLING_CONVENTION* CBaseFileSystem_ShutdownAsync)(void* filesystem);
-	extern const std::vector<Symbol> CBaseFileSystem_ShutdownAsyncSym;
+	// None as all fixed we had were implemented into gmod.
 
 	//---------------------------------------------------------------------------------
 	// Purpose: precachefix Symbols
@@ -378,22 +415,8 @@ namespace Symbols
 	typedef void* (GMCOMMON_CALLING_CONVENTION* CScriptedEntity_CallFunction)(void*, int);
 	extern const std::vector<Symbol> CScriptedEntity_CallFunctionSym;
 
-	typedef ThreadId_t (GMCOMMON_CALLING_CONVENTION* ThreadGetCurrentId_t)();
-	extern const std::vector<Symbol> ThreadGetCurrentIdSym;
-
 	typedef void* (GMCOMMON_CALLING_CONVENTION* lj_BC_FUNCC)(void* idk);
 	extern const std::vector<Symbol> lj_BC_FUNCCSym;
-
-//#ifdef SYSTEM_WINDOWS
-	extern const std::vector<Symbol> Client_CLuaGamemode_CallFinishSym;
-	extern const std::vector<Symbol> Client_CLuaGamemode_CallWithArgsSym;
-	extern const std::vector<Symbol> Client_CLuaGamemode_CallSym;
-	extern const std::vector<Symbol> Client_CScriptedEntity_StartFunctionStrSym;
-	extern const std::vector<Symbol> Client_CScriptedEntity_StartFunctionSym;
-	extern const std::vector<Symbol> Client_CScriptedEntity_CallSym;
-	extern const std::vector<Symbol> Client_CScriptedEntity_CallFunctionStrSym;
-	extern const std::vector<Symbol> Client_CScriptedEntity_CallFunctionSym;
-//#endif
 
 	//---------------------------------------------------------------------------------
 	// Purpose: networking Symbols
@@ -448,15 +471,12 @@ namespace Symbols
 	typedef void (*CGMOD_Player_CreateViewModel)(CBasePlayer* pPlayer, int viewmodelindex);
 	extern const std::vector<Symbol> CGMOD_Player_CreateViewModelSym;
 
-	typedef CBaseViewModel* (*CBasePlayer_GetViewModel)(CBasePlayer* pPlayer, int index, bool bObserverOK);
-	extern const std::vector<Symbol> CBasePlayer_GetViewModelSym;
-
-	typedef int (*Player__SetHands)(GarrysMod::Lua::ILuaInterface* pLua);
-	extern const std::vector<Symbol> Player__SetHandsSym;
-
 	typedef void (*CBaseCombatCharacter_SetTransmit)(CBaseCombatCharacter* pCharacter, CCheckTransmitInfo *pInfo, bool bAlways);
 	extern const std::vector<Symbol> CBaseCombatCharacter_SetTransmitSym;
 	extern const std::vector<Symbol> CBaseAnimating_SetTransmitSym;
+
+	typedef CSkyCamera* (*GetCurrentSkyCamera)();
+	extern const std::vector<Symbol> GetCurrentSkyCameraSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: steamworks Symbols
@@ -487,15 +507,6 @@ namespace Symbols
 
 	typedef void (*SV_InitGameServerSteam)();
 	extern const std::vector<Symbol> SV_InitGameServerSteamSym;
-
-	typedef void* (*CGet_SteamUGC)(void*);
-	extern const std::vector<Symbol> CGet_SteamUGCSym;
-
-	//---------------------------------------------------------------------------------
-	// Purpose: pas Symbols
-	//---------------------------------------------------------------------------------
-	typedef const byte* (*CM_Vis)(byte* dest, int destlen, int cluster, int visType);
-	extern const std::vector<Symbol> CM_VisSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: voicechat Symbols
@@ -554,6 +565,9 @@ namespace Symbols
 
 	typedef void (*CPhysicsEnvironment_C2)(IPhysicsEnvironment*); // Constructor
 	extern const std::vector<Symbol> CPhysicsEnvironment_C2Sym;
+
+	typedef void (*IVP_Mindist_Manager_recheck_ov_element)(void* mindistManager, void* physObj); // Crash fix.
+	extern const std::vector<Symbol> IVP_Mindist_Manager_recheck_ov_elementSym;
 
 	// Stuff for our do_impact replacement
 	typedef void (*IVP_Mindist_D2)(void* mindist);
@@ -656,6 +670,9 @@ namespace Symbols
 	typedef int (*NET_ReceiveStream)(int nSock, char * buf, int len, int flags);
 	extern const std::vector<Symbol> NET_ReceiveStreamSym;
 
+	typedef void (*NET_SetTime)(double flRealtime);
+	extern const std::vector<Symbol> NET_SetTimeSym;
+
 	extern const std::vector<Symbol> s_NetChannelsSym;
 
 	//---------------------------------------------------------------------------------
@@ -677,14 +694,20 @@ namespace Symbols
 	extern const std::vector<Symbol> CCvar_FindCommandBaseSym;
 
 	//---------------------------------------------------------------------------------
-	// Purpose: lagcompensation Symbols
+	// Purpose: AutoRefresh Symbols
 	//---------------------------------------------------------------------------------
-	typedef void (*UTIL_TraceEntity1)(CBaseEntity *pEntity, const Vector &vecAbsStart, const Vector &vecAbsEnd, unsigned int mask, const IHandleEntity *pIgnore, int nCollisionGroup, trace_t *ptr);
-	extern const std::vector<Symbol> UTIL_TraceEntity1Sym;
+	typedef bool (*GarrysMod_AutoRefresh_HandleChange_Lua)(const std::string* fileRelPath, const std::string* fileName, const std::string* fileExt);
+	extern const std::vector<Symbol> GarrysMod_AutoRefresh_HandleChange_LuaSym;
 
-	typedef void (*UTIL_TraceEntity1)(CBaseEntity *pEntity, const Vector &vecAbsStart, const Vector &vecAbsEnd, unsigned int mask, const IHandleEntity *pIgnore, int nCollisionGroup, trace_t *ptr);
-	extern const std::vector<Symbol> UTIL_TraceEntity1Sym;
+	typedef void (*GarrysMod_AutoRefresh_Init)();
+	extern const std::vector<Symbol> GarrysMod_AutoRefresh_InitSym;
 
-	typedef void (*UTIL_TraceEntity2)(CBaseEntity *pEntity, const Vector &vecAbsStart, const Vector &vecAbsEnd, unsigned int mask, trace_t *ptr);
-	extern const std::vector<Symbol> UTIL_TraceEntity2Sym;
+	typedef void (*GarrysMod_AutoRefresh_Cycle)();
+	extern const std::vector<Symbol> GarrysMod_AutoRefresh_CycleSym;
+
+	typedef void (*Bootil_File_ChangeMonitor_CheckForChanges)(void* changeMonitor);
+	extern const std::vector<Symbol> Bootil_File_ChangeMonitor_CheckForChangesSym;
+
+	typedef bool (*Bootil_File_ChangeMonitor_HasChanged)(void* changeMonitor);
+	extern const std::vector<Symbol> Bootil_File_ChangeMonitor_HasChangedSym;
 }

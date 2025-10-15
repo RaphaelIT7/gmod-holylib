@@ -1,6 +1,6 @@
 # Sources
 
-Garry's Mod common used (only for 64x): https://github.com/RaphaelIT7/garrysmod_common.git<br>
+Garry's Mod common used (only for 64x): https://github.com/RaphaelIT7/garrysmod_common.git<br> 
 SourceSDK minimal used: https://github.com/RaphaelIT7/sourcesdk-minimal.git<br>
 
 You can find all of the sources/branches used here: https://github.com/RaphaelIT7/gmod-holylib/blob/main/.github/workflows/compile.yml#L27-L30<br>

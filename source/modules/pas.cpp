@@ -45,18 +45,17 @@ LUA_FUNCTION_STATIC(pas_TestPAS)
 	if (LUA->IsType(2, GarrysMod::Lua::Type::Vector))
 	{
 		LUA->PushBool(TestPAS(pVisCluster, *Get_Vector(LUA, 2)));
+#if MODULE_EXISTS_ENTITYLIST
 	} else if (Is_EntityList(LUA, 2)) {
 		LUA->CreateTable();
 		EntityList* entList = Get_EntityList(LUA, 2, true);
 		for (auto& [pEnt, iReference]: entList->GetReferences())
 		{
-			if (!entList->IsValidReference(iReference))
-				entList->CreateReference(pEnt);
-
-			Util::ReferencePush(LUA, iReference);
+			entList->PushReference(pEnt, iReference);
 			LUA->PushBool(TestPAS(pVisCluster, pEnt->GetAbsOrigin()));
 			LUA->RawSet(-3);
 		}
+#endif
 	} else {
 		LUA->CheckType(2, GarrysMod::Lua::Type::Entity);
 		CBaseEntity* ent = Util::Get_Entity(LUA, 2, false);
@@ -99,6 +98,7 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 
 	LUA->PreCreateTable(MAX_EDICTS / 16, 0);
 	int idx = 0;
+#if MODULE_EXISTS_ENTITYLIST
 	if (Util::pEntityList->IsEnabled())
 	{
 		EntityList& pGlobalEntityList = GetGlobalEntityList(LUA);
@@ -106,17 +106,15 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 		{
 			if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), pVisCluster->cluster, sizeof(pVisCluster->cluster)))
 			{
-				if (!pGlobalEntityList.IsValidReference(iReference))
-					pGlobalEntityList.CreateReference(pEnt);
-
 				// Since it should be a bit more rare that ALL entities are pushed we don't directly loop thru the map itself to benefit from the vector's performance.
-				Util::ReferencePush(LUA, iReference);
+				pGlobalEntityList.PushReference(pEnt, iReference);
 				Util::RawSetI(LUA, -2, ++idx);
 			}
 		}
 		delete pVisCluster;
 		return 1;
 	}
+#endif
 
 	CBaseEntity* pEnt = Util::FirstEnt();
 	while (pEnt != NULL)

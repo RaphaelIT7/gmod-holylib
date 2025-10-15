@@ -36,7 +36,7 @@ namespace Bootil
 				ChangeMonitor();
 				~ChangeMonitor();
 
-				bool WatchFolder( const BString & strFolder, bool bWatchSubtree = false );
+				bool WatchFolder(const BString& strFolder, bool bWatchSubtree = false/*, const std::vector<BString>& strSubFolders = {}*/);
 				void Stop();
 
 				bool HasChanges();
@@ -44,7 +44,10 @@ namespace Bootil
 
 				const BString & FolderName() { return m_strFolderName; }
 
-			private:
+				bool AddFolderToWatch(const BString& strFolder, bool bWatchSubtree = false);
+				bool RemoveFolderFromWatch(const BString& strFolder, bool bWatchSubtree = false);
+
+			public: // private? Naah
 
 				void NoteFileChanged( const BString & strName );
 				void CheckForChanges();

@@ -798,6 +798,9 @@ void IVP_Core::synchronize_with_rot_z(){
  * undos synchronize_with_rot_z (only if not calc_next_PSI_matrix is not called
  **************************/
 void IVP_Core::undo_synchronize_rot_z() {    
+    if (!tmp_null.old_sync_info)
+        return;
+
     IVP_IFDEBUG(1,
         IVP_Debug_Manager *dm=environment->get_debug_manager();
 		if(dm->file_out_impacts) {

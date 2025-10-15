@@ -1,5 +1,6 @@
 #pragma once
 
+#include "modules/_modules.h"
 #include <lua/ILuaInterface.h>
 #include "Platform.hpp"
 #include "vprof.h"
@@ -11,7 +12,7 @@
 
 #define DEDICATED
 #include "vstdlib/jobthread.h"
-#include "lua.hpp"
+#include "../luajit/src/lua.hpp"
 
 class IVEngineServer;
 
@@ -40,6 +41,8 @@ class IModuleWrapper;
 class IGameEventManager2;
 class IServer;
 class IServerGameDLL;
+class ISteamUser;
+struct CBaseHandle;
 namespace Util
 {
 	#define LUA_REGISTRYINDEX	(-10000)
@@ -86,6 +89,26 @@ namespace Util
 		} else {
 			LUA->PushNumber(iValue);
 			LUA->RawGet(SHIFT_STACK(iStackPos, 1));
+		}
+	}
+
+	extern Symbols::luaL_checklstring func_luaL_checklstring;
+	inline const char* CheckLString(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos, size_t* nOutLength)
+	{
+		if (LUA != g_Lua)
+		{
+			return luaL_checklstring(LUA->GetState(), nStackPos, nOutLength);
+		}
+
+		if (func_luaL_checklstring)
+		{
+			return func_luaL_checklstring(LUA->GetState(), nStackPos, nOutLength);
+		} else {
+			const char* pStr = LUA->CheckString(nStackPos);
+			if (nOutLength)
+				*nOutLength = LUA->ObjLen(nStackPos);
+
+			return pStr;
 		}
 	}
 
@@ -213,6 +236,8 @@ namespace Util
 	extern CBaseEntity* Get_Entity(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
 	extern void Push_Entity(GarrysMod::Lua::ILuaInterface* LUA, CBaseEntity* pEnt);
 	extern CBaseEntity* GetCBaseEntityFromEdict(edict_t* edict);
+	extern CBaseEntity* GetCBaseEntityFromIndex(int nEntIndex);
+	extern CBaseEntity* GetCBaseEntityFromHandle(const CBaseHandle& pHandle);
 
 	extern void AddDetour(); // We load Gmod's functions in there.
 	extern void RemoveDetour();
@@ -264,6 +289,42 @@ namespace Util
 		Util::StartThreadPool(pool, startParams);
 	}
 
+	// Gameevent stuff
+	extern std::unordered_set<std::string> pBlockedEvents; // For direct access
+	extern void BlockGameEvent(const char* pName);
+	extern void UnblockGameEvent(const char* pName);
+
+	// Offset / Networking related stuff
+	
+	// tries to find a SendProp with the given name
+	// and if found it will return the offset stored in the sendprop.
+	// Returns -1 on failure
+	extern int FindOffsetForNetworkVar(const char* pDTName, const char* pVarName);
+
+	// Returns a pointer to the given offset for the base, do the casting yourself.
+	inline void* GoToNetworkVarOffset(void* pBase, int nOffset)
+	{
+		if (nOffset == -1)
+			return nullptr;
+
+		// NOTE: Normally I'd use *(void**) to dereference it but apparently it's only a thing needed for vars that store a pointer / only m_GMOD_DataTable
+		return (void*)((char*)pBase + nOffset);
+	}
+
+	// More Lua stuff for UserData (NEVER NULL)
+	extern Symbols::lua_setfenv func_lua_setfenv;
+	extern Symbols::lua_touserdata func_lua_touserdata;
+	extern Symbols::lua_type func_lua_type;
+
+	extern Symbols::lua_pcall func_lua_pcall;
+	extern Symbols::lua_insert func_lua_insert;
+	extern Symbols::lua_toboolean func_lua_toboolean;
+
+	// These can be NULL. Why? Because on 64x all the names are mangled making shit far more difficult...
+	extern Symbols::lj_tab_new func_lj_tab_new;
+	extern Symbols::lj_gc_barrierf func_lj_gc_barrierf;
+	extern Symbols::lj_tab_get func_lj_tab_get;
+
 	extern IVEngineServer* engineserver;
 	extern IServerGameClients* servergameclients;
 	extern IServerGameEnts* servergameents;
@@ -276,595 +337,70 @@ namespace Util
 	extern IGet* get;
 }
 
-/*
-	ToDo: Implement a proper class like gmod has with CLuaCLass/CLuaLibrary & use thoes instead for everything.
-*/
-
-/*
- * How to properly push & clean up LuaUserData.
- *
- * First, use the proper function for the userdata you want to push.
- *
- * Push_LuaClass - Use this macro if you want the Lua GC to free the userdata.
- * PushReferenced_LuaClass - Use this macro if you want to manually delete the userdata, it will hold a reference of itself stopping the GC.
- *
- * NOTE: If you use PushReferenced_LuaClass you should ALWAYS call DeleteAll_[YourClass] for your userdata
- *	   as else it COULD persist across lua states which is VERY BAD as the references will ALL be INVALID.
- */
-
-// This WILL slow down userData creation & deletion so we disable this in release builds.
-#if HOLYLIB_BUILD_RELEASE
-#define HOLYLIB_UTIL_DEBUG_LUAUSERDATA 0
-#else
-#define HOLYLIB_UTIL_DEBUG_LUAUSERDATA 1 // 1 = leak checks, 2 = debug prints
-#endif
-#define HOLYLIB_UTIL_DEBUG_BASEUSERDATA 0
-
-/*
- * Base UserData struct that is used by LuaUserData.
- * Main purpose is for it to handle the stored pData & implement a reference counter.
- * It also maskes sharing data between threads easier.
- *
- * NOTE:
- * Memory usage is utter garbage.
- * For UserData which stores a few bytes (often 4) we setup UserData that has a average size of 60 bytes...
- * 
- * Update:
- * Memory usage improved noticably
- * Also we don't even need this class
- */
-
-// We had previously kept stuff in a global unordered_map though we don't even need it at all
-#define HOLYLIB_UTIL_GLOBALUSERDATA 0
-#define HOLYLIB_UTIL_BASEUSERDATA 0
-
-#if HOLYLIB_UTIL_BASEUSERDATA
-struct LuaUserData;
-struct BaseUserData;
-#if HOLYLIB_UTIL_GLOBALUSERDATA
-extern std::shared_mutex g_UserDataMutex; // Needed to keep g_pGlobalLuaUserData thread safe
-extern std::unordered_map<void*, BaseUserData*> g_pGlobalLuaUserData; // A set containing all BaseUserData.
-#endif
-struct BaseUserData {
-	BaseUserData(void* data)
+// Helper class to get a pointer to our DTVar
+class DTVarByOffset
+{
+public:
+	DTVarByOffset(const char* pDTName, const char* pVarName)
 	{
-		m_pData = data;
-#if HOLYLIB_UTIL_GLOBALUSERDATA
-		std::unique_lock lock(g_UserDataMutex);
-		g_pGlobalLuaUserData[m_pData] = this; // Link it
-#endif
+		m_pDTName = pDTName;
+		m_pVarName = pVarName;
 	}
 
-	~BaseUserData()
+	DTVarByOffset(const char* pDTName, const char* pVarName, int nArraySize)
 	{
-#if HOLYLIB_UTIL_GLOBALUSERDATA
-		if (m_pData != NULL)
-		{
-			std::shared_lock lock(g_UserDataMutex);
-			auto it = g_pGlobalLuaUserData.find(m_pData);
-			if (it != g_pGlobalLuaUserData.end())
-				g_pGlobalLuaUserData.erase(it);
-		}
-#endif
-
-		m_pData = NULL;
+		m_pDTName = pDTName;
+		m_pVarName = pVarName;
 	}
 
-	inline void* GetData(GarrysMod::Lua::ILuaInterface* pLua)
+	inline void Init()
 	{
-		//if (m_bLocked && pLua != m_pOwningLua)
-		//	return NULL;
-
-		return m_pData;
-	}
-
-	/*inline void SetData(void* data)
-	{
-		if (pData != NULL) // This UserData was reassigned?!? Shouldn't happen normally... Anyways.
-		{
-			auto it = g_pGlobalLuaUserData.find(pData);
-			if (it != g_pGlobalLuaUserData.end())
-				g_pGlobalLuaUserData.erase(it);
-		}
-
-		pData = data;
-		g_pGlobalLuaUserData[pData] = this; // Link it
-	}*/
-
-	/*
-	 * Locks/Unlocks the UserData making GetData only return a valid result for the owning ILuaInterface.
-	 */
-	inline void SetLocked(bool bLocked)
-	{
-		// m_bLocked = bLocked;
-	}
-
-	inline bool Release(LuaUserData* pLuaUserData)
-	{
-#if HOLYLIB_UTIL_DEBUG_BASEUSERDATA
-		Msg("holylib - util: Userdata %p(%p) tried to release %i (%p)\n", this, m_pData, m_iReferenceCount, pLuaUserData);
-#endif
-
-#if HOLYLIB_UTIL_DEBUG_BASEUSERDATA
-		Msg("holylib - util: Userdata %p(%p) got released %i (%p)\n", this, m_pData, m_iReferenceCount, pLuaUserData);
-#endif
-
-		if (m_iReferenceCount.fetch_sub(1, std::memory_order_acq_rel) == 1)
-		{
-#if HOLYLIB_UTIL_DEBUG_BASEUSERDATA
-		Msg("holylib - util: Userdata %p(%p) got deleted %i (%p)\n", this, m_pData, m_iReferenceCount, pLuaUserData);
-#endif
-			delete this;
-			return true;
-		}
-
-		return false;
-	}
-
-	static inline BaseUserData* LuaAquire(LuaUserData* pLuaUserData, void* pData)
-	{
-		if (!pData)
-			return NULL;
-
-#if HOLYLIB_UTIL_GLOBALUSERDATA
-		std::shared_lock lock(g_UserDataMutex);
-		auto it = g_pGlobalLuaUserData.find(pData);
-		if (it != g_pGlobalLuaUserData.end())
-		{
-			it->second->Aquire();
-			return it->second;
-		}
-#endif
-
-		BaseUserData* pUserData = new BaseUserData(pData);
-		pUserData->Aquire(); // Increment counter
-		return pUserData;
-	}
-
-	inline int GetReferenceCount()
-	{
-		return m_iReferenceCount.load(std::memory_order_relaxed);
-	}
-
-private:
-	inline void Aquire()
-	{
-		m_iReferenceCount.fetch_add(1, std::memory_order_relaxed);
-#if HOLYLIB_UTIL_DEBUG_BASEUSERDATA
-		Msg("holylib - util: Userdata %p(%p) got aquired %i\n", this, m_pData, m_iReferenceCount);
-#endif
-	}
-
-	void* m_pData = NULL;
-	// GarrysMod::Lua::ILuaInterface* m_pOwningLua = NULL; // ToDo: We don't even set the m_pOwningLua right now.
-
-	//bool m_bLocked = false;
-	std::atomic<unsigned int> m_iReferenceCount = 0;
-};
-#endif
-
-#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA
-struct LuaUserData;
-extern bool g_pRemoveLuaUserData;
-extern std::unordered_set<LuaUserData*> g_pLuaUserData; // A set containing all LuaUserData that actually hold a reference.
-#endif
-struct LuaUserData {
-	LuaUserData() {
-#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA
-		g_pLuaUserData.insert(this);
-#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA == 2
-		Msg("holylib - util: LuaUserdata got created %p\n", this);
-#endif
-#endif
-	}
-
-	~LuaUserData() {
-		if (!ThreadInMainThread())
-		{
-			Warning(PROJECT_NAME ": Tried to delete usetdata from another thread!\n");
-
-#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA
-			if (g_pRemoveLuaUserData)
-			{
-				g_pLuaUserData.erase(this);
-			}
-#endif
+		if (m_nOffset != -1)
 			return;
-		}
 
-#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA
-		if (g_pRemoveLuaUserData)
-		{
-			g_pLuaUserData.erase(this);
-		}
-#endif
-
-		if (iReference != -1)
-		{
-			if (pLua)
-			{
-				Util::ReferencePush(pLua, iReference);
-				pLua->SetUserType(-1, NULL);
-				pLua->Pop(1);
-				Util::ReferenceFree(pLua, iReference, "LuaUserData::~LuaUserData(UserData)");
-			}
-
-			iReference = -1;
-		}
-
-		if (iTableReference != -1)
-		{
-			if (pLua)
-				Util::ReferenceFree(pLua, iTableReference, "LuaUserData::~LuaUserData(Table)");
-
-			iTableReference = -1;
-		}
-
-#if HOLYLIB_UTIL_BASEUSERDATA
-		if (pBaseData != NULL)
-		{
-			pBaseData->Release(this);
-			pBaseData = NULL;
-		}
-#endif
-
-#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA == 2
-		Msg("holylib - util: LuaUserdata got deleted %p\n", this);
-#endif
+		m_nOffset = Util::FindOffsetForNetworkVar(m_pDTName, m_pVarName);
+		if (m_nOffset == -1)
+			Error(PROJECT_NAME ": Failed to find DTVar offset of var \"%s\" in DataTable \"%s\"!\n", m_pDTName, m_pVarName);
 	}
 
-	inline void Init(GarrysMod::Lua::ILuaInterface* LUA, int type)
+	FORCEINLINE void* GetPointer(void* pBase)
 	{
-		pLua = LUA;
+		if (m_nOffset == -1)
+			Init();
 
-#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA == 2
-		Msg("holylib - util: LuaUserdata got initialized %p - %p - %i\n", this, pLua, type);
-#endif
+		return Util::GoToNetworkVarOffset(pBase, m_nOffset);
 	}
 
-	inline void EnsureLuaTable()
+	// For DTVars that store a pointer like m_GMOD_DataTable
+	FORCEINLINE void* GetPointerDereferenced(void* pBase)
 	{
-		if (iTableReference == -1 && pLua)
-		{
-			pLua->CreateTable();
-			iTableReference = Util::ReferenceCreate(pLua, "LuaUserData::EnsureLuaTable");
-#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA == 2
-			Msg("holylib - util: LuaUserdata got created luaTable %p - %p - %i\n", this, pLua, iTableReference);
-#endif
-		}
+		if (m_nOffset == -1)
+			Init();
+
+		return *(void**)Util::GoToNetworkVarOffset(pBase, m_nOffset);
 	}
 
-	inline void CreateReference()
+	FORCEINLINE void* GetPointerArray(void* pBase, int nArraySlot)
 	{
-		if (iReference != -1)
-			Warning("holylib: something went wrong when pushing userdata! (Reference leak!)\n");
+		if (m_nOffset == -1)
+			Init();
 
-		pLua->Push(-1); // When CreateReference is called we expect our object to be already be on the stack at -1!
-		iReference = Util::ReferenceCreate(pLua, "LuaUserData::CreateReference");
-
-#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA == 2
-		Msg("holylib - util: LuaUserdata got created reference %p - %p - %i\n", this, pLua, iReference);
-#endif
+		return Util::GoToNetworkVarOffset(pBase, m_nOffset + (m_nArraySize * nArraySlot));
 	}
 
-#if HOLYLIB_UTIL_BASEUSERDATA
-	inline void* GetData()
-	{
-		return pBaseData ? pBaseData->GetData(pLua) : NULL;
-	}
-
-	inline BaseUserData* GetInternalData()
-	{
-		return pBaseData;
-	}
-#else
-	inline void* GetData()
-	{
-		return m_pData;
-	}
-#endif
-
-	inline void SetData(void* data)
-	{
-#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA == 2
-		Msg("holylib - util: LuaUserdata got new data %p - %p\n", this, data);
-#endif
-
-#if HOLYLIB_UTIL_BASEUSERDATA
-		if (pBaseData != NULL)
-		{
-			pBaseData->Release(this);
-			pBaseData = NULL;
-		}
-
-		if (data)
-		{
-			pBaseData = BaseUserData::LuaAquire(this, data);
-		}
-#else
-		m_pData = data;
-#endif
-	}
-
-	inline int GetLuaTable()
-	{
-		EnsureLuaTable();
-		return iTableReference;
-	}
-
-	inline void ClearLuaTable()
-	{
-		if (iTableReference != -1 && pLua)
-		{
-			Util::ReferenceFree(pLua, iTableReference, "LuaUserData::ClearLuaTable");
-			iTableReference = -1;
-
-#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA == 2
-			Msg("holylib - util: LuaUserdata nuked its luatable %p - %p\n", this, pLua);
-#endif
-		}
-	}
-
-	inline int GetReference()
-	{
-		return iReference;
-	}
-
-	inline bool Push()
-	{
-		if (iReference == -1)
-			return false;
-
-		Util::ReferencePush(pLua, iReference);
-		return true;
-	}
-
-	inline bool Release()
-	{
-#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA == 2
-		Msg("holylib - util: LuaUserdata got created released %p\n", this);
-#endif
-
-#if HOLYLIB_UTIL_BASEUSERDATA
-		if (pBaseData != NULL)
-		{
-			bool bDelete = pBaseData->Release(this);
-			pBaseData = NULL;
-			delete this;
-			return bDelete;
-		}
-
-		delete this;
-		return false;
-#else
-		delete this;
-		return true;
-#endif
-	}
-
-	// This is slower than just storing the type, but we generally won't call this function by any normal usecase which requires high performance.
-	// We by default expect ILuaInterface::GetType or IsType to be used instead of this function!
-	inline int GetType()
-	{
-		if (Push())
-		{
-			int iType = pLua->GetType(-1);
-			pLua->Pop(1);
-			return iType;
-		}
-
-		return -1;
-	}
-
-	static void ForceGlobalRelease(void* pData);
-
-private:
-#if HOLYLIB_UTIL_BASEUSERDATA
-	BaseUserData* pBaseData = NULL;
-#else
-	void* m_pData = NULL;
-#endif
-	GarrysMod::Lua::ILuaInterface* pLua = NULL;
-	int iReference = -1;
-	int iTableReference = -1;
+	int m_nOffset = -1;
+	int m_nArraySize = 0;
+	const char* m_pDTName = nullptr;
+	const char* m_pVarName = nullptr;
 };
 
-#define TO_LUA_TYPE( className ) Lua::className
+#if SYSTEM_LINUX // Linux got a bigger default stack.
+constexpr size_t _MAX_ALLOCA_SIZE = 64 * 1024;
+#else
+constexpr size_t _MAX_ALLOCA_SIZE = 8 * 1024;
+#endif
 
-// BUG: This LuaClass function and all others were made in mind to support a single Lua Instance. Now we got multiple.
-#define MakeString( str1, str2, str3 ) ((std::string)str1).append(str2).append(str3)
-#define Get_LuaClass( className, strName ) \
-static std::string invalidType_##className = MakeString("Tried to use something that wasn't a ", strName, "!"); \
-static std::string triedNull_##className = MakeString("Tried to use a NULL ", strName, "!"); \
-LuaUserData* Get_##className##_Data(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError) \
-{ \
-	int luaType = Lua::GetLuaData(LUA)->GetMetaTable(TO_LUA_TYPE(className)); \
-	if (!LUA->IsType(iStackPos, luaType)) \
-	{ \
-		if (bError) \
-			LUA->ThrowError(invalidType_##className.c_str()); \
-\
-		return NULL; \
-	} \
-\
-	LuaUserData* pVar = LUA->GetUserType<LuaUserData>(iStackPos, luaType); \
-	if ((!pVar || !pVar->GetData()) && bError) \
-		LUA->ThrowError(triedNull_##className.c_str()); \
-\
-	return pVar; \
-} \
-\
-className* Get_##className(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError) \
-{ \
-	LuaUserData* pLuaData = Get_##className##_Data(LUA, iStackPos, bError); \
-	if (!pLuaData) \
-		return NULL; \
- \
-	return (className*)pLuaData->GetData(); \
-}
-
-#define GMODPush_LuaClass( className, luaType ) \
-void Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
-{ \
-	if (!var) \
-	{ \
-		LUA->PushNil(); \
-		return; \
-	} \
-\
-	LUA->PushUserType(var, luaType); \
-}
-
-#define GMODGet_LuaClass( className, luaType, strName, additional ) \
-static std::string invalidType_##className = MakeString("Tried to use something that wasn't a ", strName, "!"); \
-static std::string triedNull_##className = MakeString("Tried to use a NULL ", strName, "!"); \
-className* Get_##className(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError) \
-{ \
-	if (!LUA->IsType(iStackPos, luaType)) \
-	{ \
-		if (bError) \
-			LUA->ThrowError(invalidType_##className.c_str()); \
-\
-		return NULL; \
-	} \
-\
-	className* pVar = LUA->GetUserType<className>(iStackPos, luaType); \
-	if (!pVar && bError) \
-		LUA->ThrowError(triedNull_##className.c_str()); \
-\
-	additional \
-\
-	return pVar; \
-}
-
-// Only used by CBaseClient & CHLTVClient as they both work with each other / a CHLTVClient can use all CBaseClient functions.
-#define SpecialGet_LuaClass( className, className2, strName ) \
-static std::string invalidType_##className = MakeString("Tried to use something that wasn't a ", strName, "!"); \
-static std::string triedNull_##className = MakeString("Tried to use a NULL ", strName, "!"); \
-LuaUserData* Get_##className##_Data(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError) \
-{ \
-	Lua::StateData* LUADATA = Lua::GetLuaData(LUA); \
-	int luaType = LUADATA->GetMetaTable(TO_LUA_TYPE(className)); \
-	int luaType2 = LUADATA->GetMetaTable(TO_LUA_TYPE(className2)); \
-\
-	int iType = LUA->GetType(iStackPos); \
-	if (iType != luaType && iType != luaType2) \
-	{ \
-		if (bError) \
-			LUA->ThrowError(invalidType_##className.c_str()); \
-\
-		return NULL; \
-	} \
-\
-	if (iType == luaType) \
-	{ \
-		LuaUserData* pVar = LUA->GetUserType<LuaUserData>(iStackPos, luaType); \
-		if (pVar) \
-			return pVar; \
-	} \
-\
-	if (iType == luaType2) \
-	{ \
-		LuaUserData* pVar = LUA->GetUserType<LuaUserData>(iStackPos, luaType2); \
-		if (pVar) \
-			return pVar; \
-	} \
- \
-	if (bError) \
-		LUA->ThrowError(triedNull_##className.c_str()); \
-\
-	return NULL; \
-} \
-\
-className* Get_##className(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError) \
-{ \
-	LuaUserData* pLuaData = Get_##className##_Data(LUA, iStackPos, bError); \
-	if (!pLuaData) \
-		return NULL; \
- \
-	return (className*)pLuaData->GetData(); \
-}
-
-#define Push_LuaClass( className ) \
-LuaUserData* Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
-{ \
-	if (!var) \
-	{ \
-		LUA->PushNil(); \
-		return NULL; \
-	} \
-\
-	LuaUserData* userData = new LuaUserData; \
-	userData->SetData(var); \
-	int iMeta = Lua::GetLuaData(LUA)->GetMetaTable(TO_LUA_TYPE(className)); \
-	userData->Init(LUA, iMeta); \
-	LUA->PushUserType(userData, iMeta); \
-	return userData; \
-}
-
-/*
- * This one is special
- * the GC WONT free the LuaClass meaning this "could" (and did in the past) cause a memory/reference leak
- * The data thats passed won't be freed by lua.
- */
-#pragma warning(disable:4505) // Why would we need a warning if a function got removed because its unused.
-#define PushReferenced_LuaClass( className ) \
-void Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
-{ \
-	if (!var) \
-	{ \
-		LUA->PushNil(); \
-		return; \
-	} \
-\
-	auto& pushedUserData = Lua::GetLuaData(LUA)->GetPushedUserData(); \
-	auto it = pushedUserData.find(var); \
-	if (it != pushedUserData.end()) \
-	{ \
-		Util::ReferencePush(LUA, it->second->GetReference()); \
-	} else { \
-		LuaUserData* userData = new LuaUserData; \
-		userData->SetData(var); \
-		int iMeta = Lua::GetLuaData(LUA)->GetMetaTable(TO_LUA_TYPE(className)); \
-		LUA->PushUserType(userData, iMeta); \
-		userData->Init(LUA, iMeta); \
-		userData->CreateReference(); \
-		pushedUserData[var] = userData; \
-	} \
-} \
-\
-[[maybe_unused]] static void Delete_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
-{ \
-	auto& pushedUserData = Lua::GetLuaData(LUA)->GetPushedUserData(); \
-	auto it = pushedUserData.find(var); \
-	if (it != pushedUserData.end()) \
-	{ \
-		it->second->Release(); \
-		pushedUserData.erase(it); \
-	} \
-} \
-\
-[[maybe_unused]] static void DeleteAll_##className(GarrysMod::Lua::ILuaInterface* LUA) \
-{ \
-	Lua::StateData* LUADATA = Lua::GetLuaData(LUA); \
-	int luaType = LUADATA->GetMetaTable(TO_LUA_TYPE(className)); \
-	auto& pushedUserData = LUADATA->GetPushedUserData(); \
-	for (auto it = pushedUserData.begin(); it != pushedUserData.end(); ) \
-	{ \
-		if (it->second->GetType() == luaType) \
-		{ \
-			it->second->Release(); \
-			it = pushedUserData.erase(it); \
-		} else { \
-			it++; \
-		} \
-	} \
-} \
-\
-[[maybe_unused]] static void DeleteGlobal_##className(className* var) \
-{ \
-	LuaUserData::ForceGlobalRelease(var); \
-}
+#define holylib_canstackalloc(size) (static_cast<size_t>(size) <= _MAX_ALLOCA_SIZE)
 
 #define Vector_RemoveElement(vec, element) \
 { \
@@ -872,172 +408,4 @@ void Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
 	if (_it != (vec).end()) \
 		(vec).erase(_it); \
 }
-
-// A default index function for userData,
-// which handles everything like finding the functions in the metatable
-// or getting vars on the object like: print(userData.value)
-#define Default__index(className) \
-LUA_FUNCTION_STATIC(className ## __index) \
-{ \
-	if (LUA->FindOnObjectsMetaTable(1, 2)) \
-		return 1; \
-\
-	LUA->Pop(1); \
-	Util::ReferencePush(LUA, Get_##className##_Data(LUA, 1, true)->GetLuaTable()); \
-	if (!LUA->FindObjectOnTable(-1, 2)) \
-		LUA->PushNil(); \
-\
-	LUA->Remove(-2); \
-\
-	return 1; \
-}
-
-// A default newindex function for userData,
-// handles setting vars on the object like: userData.value = true
-#define Default__newindex(className) \
-LUA_FUNCTION_STATIC(className ## __newindex) \
-{ \
-	Util::ReferencePush(LUA, Get_##className##_Data(LUA, 1, true)->GetLuaTable()); \
-	LUA->Push(2); \
-	LUA->Push(3); \
-	LUA->RawSet(-3); \
-	LUA->Pop(1); \
-\
-	return 0; \
-}
-
-// A default gc function for userData,
-// handles garbage collection, inside the func argument you can use pStoredData
-// Use the pStoredData variable as pData->GetData() will return NULL. Just see how it's done inside the bf_read gc definition.
-// NOTE: You need to manually delete the data inside the callback function -> delete pStoredData
-// WARNING: DO NOT USE pData as it will be invalid because of the Release call!
-#define Default__gc(className, func) \
-LUA_FUNCTION_STATIC(className ## __gc) \
-{ \
-	LuaUserData* pData = Get_##className##_Data(LUA, 1, false); \
-	if (pData) \
-	{ \
-		LUA->SetUserType(1, NULL); \
-		void* pStoredData = pData->GetData(); \
-		if (pData->Release()) \
-		{ \
-			pData = NULL; /*Don't let any idiot(that's me) use it*/ \
-			func \
-		} \
-	} \
- \
-	return 0; \
-} \
-
-// Default function for GetTable. Simple.
-#define Default__GetTable(className) \
-LUA_FUNCTION_STATIC(className ## _GetTable) \
-{ \
-	Util::ReferencePush(LUA, Get_##className##_Data(LUA, 1, true)->GetLuaTable()); \
-	return 1; \
-}
-
-/*
- * Shouldn't we have a Default__eq?
- * No.
- * Because if we push the same object, we will ALWAYS use PushReferenced_LuaClass
- * and since it's the same userdata thats reference pushed, we won't need a __eq
- */
-
-// Push functions from modules: 
-// ToDo: move this at a later point into a seperate file. Maybe into _modules?
-Vector* Get_Vector(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError = true);
-QAngle* Get_QAngle(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError = true);
-
-class bf_read;
-/*
- * It will be deleted by Lua GC.
- * ensure that either you set it to NULL afterwards or push a Copy if you don't own the original.
- */
-extern LuaUserData* Push_bf_read(GarrysMod::Lua::ILuaInterface* LUA, bf_read* tbl, bool bDeleteUs); // if bDeleteUs is false, the bf_read won't be deleted when __gc is called.
-extern bf_read* Get_bf_read(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
-
-class bf_write;
-/*
- * It will be deleted by Lua GC.
- * ensure that either you set it to NULL afterwards or push a Copy if you don't own the original.
- */
-extern LuaUserData* Push_bf_write(GarrysMod::Lua::ILuaInterface* LUA, bf_write* tbl, bool bDeleteUs);
-extern bf_write* Get_bf_write(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
-
-class IGameEvent;
-extern IGameEvent* Get_IGameEvent(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
-
-class IRecipientFilter;
-extern IRecipientFilter* Get_IRecipientFilter(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
-
-class ConVar;
-extern ConVar* Get_ConVar(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
-
-struct EntityList // entitylist module.
-{
-	EntityList();
-	~EntityList();
-
-	void Clear();
-	inline bool IsValidReference(int iReference) { return iReference != -1; };
-	void CreateReference(CBaseEntity* pEntity);
-	void FreeEntity(CBaseEntity* pEntity);
-
-	inline void EnsureReference(CBaseEntity* pEntity, int iReference)
-	{
-		if (!IsValidReference(iReference))
-			CreateReference(pEntity);
-	}
-
-	inline void AddEntity(CBaseEntity* pEntity, bool bCreateReference = false)
-	{
-		m_pEntities.push_back(pEntity);
-		if (bCreateReference)
-			CreateReference(pEntity);
-		else
-			m_pEntReferences[pEntity] = -1;
-	}
-
-	inline const std::unordered_map<CBaseEntity*, int>& GetReferences()
-	{
-		return m_pEntReferences;
-	}
-
-	inline const std::vector<CBaseEntity*>& GetEntities()
-	{
-		return m_pEntities;
-	}
-
-	inline void Invalidate()
-	{
-		Clear();
-		m_pLua = NULL;
-	}
-
-	inline void SetLua(GarrysMod::Lua::ILuaInterface* pLua)
-	{
-		m_pLua = pLua;
-	}
-
-private:
-	// NOTE: The Entity will always be valid but the reference can be -1!
-	std::unordered_map<CBaseEntity*, int> m_pEntReferences;
-	std::vector<CBaseEntity*> m_pEntities;
-	GarrysMod::Lua::ILuaInterface* m_pLua = NULL;
-};
-
-extern EntityList& GetGlobalEntityList(GarrysMod::Lua::ILuaInterface* pLua);
-
-extern bool Is_EntityList(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos);
-extern EntityList* Get_EntityList(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
-
-extern void BlockGameEvent(const char* pName);
-extern void UnblockGameEvent(const char* pName);
-
-class CBaseClient;
-extern void Push_CBaseClient(GarrysMod::Lua::ILuaInterface* LUA, CBaseClient* tbl);
-extern CBaseClient* Get_CBaseClient(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
-
-extern void Push_QAngle(GarrysMod::Lua::ILuaInterface* LUA, QAngle* var);
-extern void Push_Vector(GarrysMod::Lua::ILuaInterface* LUA, Vector* var);
+// New line so that no warning is thrown.

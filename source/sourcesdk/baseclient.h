@@ -10,8 +10,6 @@
 #pragma once
 #endif
 
-#include "Platform.hpp" // 64x
-
 #include <const.h>
 #include <checksum_crc.h>
 #include <iclient.h>
@@ -207,7 +205,7 @@ public:
 	char			m_Name[MAX_PLAYER_NAME_LENGTH];			// for printing to other people
 	char			m_GUID[SIGNED_GUID_LEN + 1]; // the clients CD key
 
-#if ARCHITECTURE_IS_X86_64
+#if PLATFORM_64BITS
 	// CNETMsg_PlayerAvatarData_t m_msgAvatarData;	// Client avatar
 	// RaphaelIT7: This are the offsets for the variable above. Why not add it directly? Because it depends on sooo much it would be a pain to do. Maybe if I'm bored I'll do it.
 	int _offset[23];
@@ -292,11 +290,11 @@ public:
 
 	unsigned int		m_SnapshotScratchBuffer[ SNAPSHOT_SCRATCH_BUFFER_SIZE / 4 ];
 
+	CSteamID m_OwnerSteamID; // Verify: Could be owner steamid for Player:OwnerSteamID64()
+
 private:
 	void				StartTrace( bf_write &msg );
 	void				EndTrace( bf_write &msg );
-
-	int __offset[2];
 
 
 	int					m_iTracing; // 0 = not active, 1 = active for this frame, 2 = forced active

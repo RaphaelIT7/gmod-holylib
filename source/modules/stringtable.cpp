@@ -68,6 +68,7 @@ CNetworkStringTableItem::~CNetworkStringTableItem( void )
 	delete[] m_pUserData;
 }
 
+#ifdef SYSTEM_WINDOWS
 /*
 ============
 tmpstr512
@@ -341,6 +342,7 @@ void CNetworkStringTable::DeleteAllStrings( void )
 		*(void**)m_pItemsClientSide = m_pItemsClientSideVTable; // Restore original vtable.
 	}
 }
+#endif
 #endif
 
 static CNetworkStringTableContainer* networkStringTableContainerServer = NULL;

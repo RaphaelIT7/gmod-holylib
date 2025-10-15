@@ -24,5 +24,15 @@ return {
                 --expect( voiceData:SetUncompressedData("") ).to.equal( 0 )
             end
         },
+        {
+            name = "Performance",
+            when = HolyLib_IsModuleEnabled("voicechat"),
+            func = function()
+                local voiceData = voicechat.CreateVoiceData()
+
+                -- ToDo
+                -- HolyLib_RunPerformanceTest("VoiceData:SetProximity", voiceData.SetProximity, voiceData, false)
+            end
+        },
     }
 }

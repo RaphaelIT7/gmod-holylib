@@ -25,7 +25,7 @@ public:
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual void LevelShutdown() OVERRIDE;
 	virtual const char* Name() { return "holylib"; };
-	virtual int Compatibility() { return LINUX32 | LINUX64; };
+	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 	virtual bool SupportsMultipleLuaStates() { return true; };
 };
 
@@ -99,18 +99,18 @@ LUA_FUNCTION_STATIC(IsMapValid)
 	return 1;
 }
 
-static IModuleWrapper* pBitBufWrapper = NULL;
 extern bf_write* GetActiveMessage();
 LUA_FUNCTION_STATIC(_EntityMessageBegin)
 {
 	CBaseEntity* pEnt = Util::Get_Entity(LUA, 1, true);
 	bool bReliable = LUA->GetBool(2);
 
-	if (!pBitBufWrapper->IsEnabled())
-		LUA->ThrowError("This won't work when the bitbuf library is disabled!");
-
+#if MODULE_EXISTS_BITBUF
 	EntityMessageBegin(pEnt, bReliable);
 	Push_bf_write(LUA, GetActiveMessage(), false);
+#else
+	MISSING_MODULE_ERROR(LUA, bitbuf);
+#endif
 	return 1;
 }
 
@@ -119,11 +119,12 @@ LUA_FUNCTION_STATIC(_UserMessageBegin)
 	IRecipientFilter* pFilter = Get_IRecipientFilter(LUA, 1, true);
 	const char* pName = LUA->CheckString(2);
 
-	if (!pBitBufWrapper->IsEnabled())
-		LUA->ThrowError("This won't work when the bitbuf library is disabled!");
-
+#if MODULE_EXISTS_BITBUF
 	UserMessageBegin(*pFilter, pName);
 	Push_bf_write(LUA, GetActiveMessage(), false);
+#else
+	MISSING_MODULE_ERROR(LUA, bitbuf);
+#endif
 	return 1;
 }
 
@@ -229,7 +230,6 @@ LUA_FUNCTION_STATIC(SetSignOnState)
 	return 1;
 }
 
-#if ARCHITECTURE_IS_X86
 static Detouring::Hook detour_CFuncLadder_PlayerGotOn;
 static void hook_CFuncLadder_PlayerGotOn(CBaseEntity* pLadder, CBasePlayer* pPly)
 {
@@ -268,23 +268,31 @@ LUA_FUNCTION_STATIC(ExitLadder)
 	return 0;
 }
 
-class CHL2GameMovement // Workaround to make the compiler happy since were not allowed to acces it but this is a friend class.
+static DTVarByOffset m_hLadder_Offset("DT_HL2Local", "m_hLadder");
+static DTVarByOffset m_HL2Local_Offset("DT_HL2_Player", "m_HL2Local");
+static inline CBaseEntity* GetLadder(void* pPlayer)
 {
-public:
-	static CBaseEntity* GetLadder(CHL2_Player* ply)
-	{
-		return ply->m_HL2Local.m_hLadder.Get().Get(); // Make m_HL2Local a public member and verify that the var offset is right on 64x.
-	}
-};
+	void* pHL2Local = m_HL2Local_Offset.GetPointer(pPlayer);
+	if (!pHL2Local)
+		return nullptr;
+
+	void* pLadder = m_hLadder_Offset.GetPointer(pHL2Local);
+	if (!pLadder)
+		return nullptr;
+
+	if (!g_pEntityList)
+		return Util::GetCBaseEntityFromIndex(((EHANDLE*)pLadder)->GetEntryIndex());
+
+	return ((EHANDLE*)pLadder)->Get();
+}
 
 LUA_FUNCTION_STATIC(GetLadder)
 {
 	CHL2_Player* pPly = (CHL2_Player*)Util::Get_Player(LUA, 1, true);
 
-	Util::Push_Entity(LUA, CHL2GameMovement::GetLadder(pPly));
+	Util::Push_Entity(LUA, GetLadder(pPly));
 	return 1;
 }
-#endif
 
 static bool bInMoveTypeCall = false; // If someone calls SetMoveType inside the hook, we don't want a black hole to form.
 static Detouring::Hook detour_CBaseEntity_SetMoveType;
@@ -293,6 +301,8 @@ static void hook_CBaseEntity_SetMoveType(CBaseEntity* pEnt, int iMoveType, int i
 	int iCurrentMoveType = pEnt->GetMoveType();
 	if (!bInMoveTypeCall && iCurrentMoveType != iMoveType && Lua::PushHook("HolyLib:OnMoveTypeChange"))
 	{
+		// Uncomment the code below to see if the entity is valid. GetClassname should almost always return a valid class
+		// Msg("hook_CBaseEntity_SetMoveType: %p - %s\n", pEnt, pEnt->GetClassname());
 		Util::Push_Entity(g_Lua, pEnt);
 		g_Lua->PushNumber(iCurrentMoveType);
 		g_Lua->PushNumber(iMoveType);
@@ -353,12 +363,12 @@ LUA_FUNCTION_STATIC(Disconnect)
 		pClient->GetNetChannel()->Shutdown(NULL); // NULL = Send no disconnect message
 
 	if (bNoEvent)
-		BlockGameEvent("player_disconnect");
+		Util::BlockGameEvent("player_disconnect");
 
 	pClient->Disconnect(strReason);
 
 	if (bNoEvent)
-		UnblockGameEvent("player_disconnect");
+		Util::UnblockGameEvent("player_disconnect");
 
 	LUA->PushBool(true);
 	return 1;
@@ -366,12 +376,16 @@ LUA_FUNCTION_STATIC(Disconnect)
 
 LUA_FUNCTION_STATIC(ReceiveClientMessage)
 {
+#if MODULE_EXISTS_BITBUF
 	int userID = LUA->CheckNumber(1);
 	CBaseEntity* pEnt = Util::Get_Entity(LUA, 2, true);
 	bf_read* msg = Get_bf_read(LUA, 3, true);
 	int bits = LUA->CheckNumber(4);
 
 	Util::servergameclients->GMOD_ReceiveClientMessage(userID, pEnt->edict(), msg, bits);
+#else
+	MISSING_MODULE_ERROR(LUA, bitbuf);
+#endif
 	return 0;
 }
 
@@ -415,8 +429,6 @@ void CHolyLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 {
 	if (!bServerInit)
 	{
-		pBitBufWrapper = g_pModuleManager.FindModuleByName("bitbuf");
-
 		Util::StartTable(pLua);
 			Util::AddFunc(pLua, HideServer, "HideServer");
 			Util::AddFunc(pLua, Reconnect, "Reconnect");
@@ -425,10 +437,8 @@ void CHolyLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 			Util::AddFunc(pLua, IsMapValid, "IsMapValid");
 			Util::AddFunc(pLua, InvalidateBoneCache, "InvalidateBoneCache");
 			Util::AddFunc(pLua, SetSignOnState, "SetSignOnState");
-#if ARCHITECTURE_IS_X86
 			Util::AddFunc(pLua, ExitLadder, "ExitLadder");
 			Util::AddFunc(pLua, GetLadder, "GetLadder");
-#endif
 			Util::AddFunc(pLua, HideMsg, "HideMsg");
 			Util::AddFunc(pLua, GetRegistry, "GetRegistry");
 			Util::AddFunc(pLua, Disconnect, "Disconnect");
@@ -466,7 +476,6 @@ void CHolyLibModule::InitDetour(bool bPreServer)
 		(void*)hook_CBaseEntity_PostConstructor, m_pID
 	);
 
-#if ARCHITECTURE_IS_X86
 	Detour::Create(
 		&detour_CFuncLadder_PlayerGotOn, "CFuncLadder::PlayerGotOn",
 		server_loader.GetModule(), Symbols::CFuncLadder_PlayerGotOnSym,
@@ -478,7 +487,6 @@ void CHolyLibModule::InitDetour(bool bPreServer)
 		server_loader.GetModule(), Symbols::CFuncLadder_PlayerGotOffSym,
 		(void*)hook_CFuncLadder_PlayerGotOff, m_pID
 	);
-#endif
 
 	Detour::Create(
 		&detour_CBaseEntity_SetMoveType, "CBaseEntity::SetMoveType",
@@ -493,17 +501,17 @@ void CHolyLibModule::InitDetour(bool bPreServer)
 		(void*)hook_GetGModServerTags, m_pID
 	);
 
+#if ARCHITECTURE_IS_X86
 	Detour::Create(
 		&detour_CHostState_State_ChangeLevelMP, "CHostState_State_ChangeLevelMP",
 		engine_loader.GetModule(), Symbols::CHostState_State_ChangeLevelMPSym,
 		(void*)hook_CHostState_State_ChangeLevelMP, m_pID
 	);
+#endif
 
 	func_CBaseAnimating_InvalidateBoneCache = (Symbols::CBaseAnimating_InvalidateBoneCache)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseAnimating_InvalidateBoneCacheSym);
 	Detour::CheckFunction((void*)func_CBaseAnimating_InvalidateBoneCache, "CBaseAnimating::InvalidateBoneCache");
 
-#if ARCHITECTURE_IS_X86
 	func_CHL2_Player_ExitLadder = (Symbols::CHL2_Player_ExitLadder)Detour::GetFunction(server_loader.GetModule(), Symbols::CHL2_Player_ExitLadderSym);
 	Detour::CheckFunction((void*)func_CHL2_Player_ExitLadder, "CHL2_Player::ExitLadder");
-#endif
 }

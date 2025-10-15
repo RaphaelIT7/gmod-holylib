@@ -1,3 +1,5 @@
+// HOLYLIB_REQUIRES_MODULE=bass
+
 #include "interface.h"
 #include "cgmod_audio.h"
 #include <stdio.h>
@@ -180,7 +182,7 @@ uint CBassAudioStream::GetPosition()
 		position = BASS_StreamGetFilePosition(m_hStream, BASS_FILEPOS_CURRENT);
 	}
 
-	return position;
+	return (uint)position;
 }
 
 void CBassAudioStream::SetPosition(unsigned int pos)

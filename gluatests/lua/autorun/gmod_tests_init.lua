@@ -16,3 +16,18 @@ hook.Add("GLuaTest_Finished", "ChangeLevel", function()
 		RunConsoleCommand("changelevel", game.GetMap())
 	end
 end)
+
+hook.Add("Initialize", "SetupBots", function()
+	RunConsoleCommand("bot_zombie", "1")
+	if _HOLYLIB_CORE then
+		if not _HOLYLIB_CORE.EnableStressBots() then
+			RunConsoleCommand("sv_stressbots", "1")
+		end
+	else
+		RunConsoleCommand("sv_stressbots", "1")
+	end
+
+	for k=1, math.Clamp(math.ceil(game.MaxPlayers() / 4), 1, 4) do
+		RunConsoleCommand("bot")
+	end
+end)

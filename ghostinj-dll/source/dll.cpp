@@ -1,4 +1,3 @@
-#include <tier0/dbg.h>
 #include <Platform.hpp>
 #include <stdio.h>
 #include <filesystem>
@@ -53,59 +52,48 @@
 #include <dlfcn.h>
 #endif
 
+#ifdef ARCHITECTURE_X86
+#define HOLYLIB_FILENAME "gmsv_holylib_linux"
+#else
+#define HOLYLIB_FILENAME "gmsv_holylib_linux64"
+#endif
+
+void UpdateHolyLib()
+{
+	if ( std::filesystem::exists( "garrysmod/lua/bin/" HOLYLIB_FILENAME "_updated.so" ) )
+	{
+		printf( "Found a updated holylib version.\n" );
+		std::filesystem::rename( "garrysmod/lua/bin/" HOLYLIB_FILENAME ".so", "garrysmod/lua/bin/" HOLYLIB_FILENAME "_previous.so" );
+		std::filesystem::rename( "garrysmod/lua/bin/" HOLYLIB_FILENAME "_updated.so", "garrysmod/lua/bin/" HOLYLIB_FILENAME ".so" );
+		printf( "Updated HolyLib\n" );
+	}
+}
+
 void* ghostinj2 = NULL;
 void* holylib = NULL;
 typedef void ( *plugin_main )();
 void Load()
 {
-	Msg( "--- HolyLib-GhostInj Loading ---\n" );
+	printf( "--- HolyLib-GhostInj Loading ---\n" );
 
-#ifdef ARCHITECTURE_X86
-	if ( std::filesystem::exists( "garrysmod/lua/bin/gmsv_holylib_linux_updated.so" ) )
-	{
-		Msg( "Found a updated holylib version.\n" );
-		if ( std::filesystem::remove( "garrysmod/lua/bin/gmsv_holylib_linux.so" ) )
-		{
-			std::filesystem::rename( "garrysmod/lua/bin/gmsv_holylib_linux_updated.so", "garrysmod/lua/bin/gmsv_holylib_linux.so" );
-			Msg( "Updated HolyLib\n" );
-		} else {
-			Msg( "Failed to delete old HolyLib version!\n" );
-		}
-	}
+	UpdateHolyLib();
 
-	holylib = dlopen( "garrysmod/lua/bin/gmsv_holylib_linux.so", RTLD_NOW );
+	holylib = dlopen( "garrysmod/lua/bin/" HOLYLIB_FILENAME ".so", RTLD_NOW );
 	if ( !holylib )
-		Msg( "Failed to open gmsv_holylib_linux.so (%s)\n", dlerror() );
-#else
-	if ( std::filesystem::exists( "garrysmod/lua/bin/gmsv_holylib_linux64_updated.so" ) )
-	{
-		Msg( "Found a updated holylib version.\n" );
-		if ( std::filesystem::remove( "garrysmod/lua/bin/gmsv_holylib_linux64.so" ) )
-		{
-			std::filesystem::rename( "garrysmod/lua/bin/gmsv_holylib_linux64_updated.so", "garrysmod/lua/bin/gmsv_holylib_linux64.so" );
-			Msg( "Updated HolyLib\n" );
-		} else {
-			Msg( "Failed to delete old HolyLib version!\n" );
-		}
-	}
-
-	holylib = dlopen( "garrysmod/lua/bin/gmsv_holylib_linux64.so", RTLD_NOW );
-	if ( !holylib )
-		Msg( "Failed to open gmsv_holylib_linux64.so (%s)\n", dlerror() );
-#endif
+		printf( "Failed to open " HOLYLIB_FILENAME ".so (%s)\n", dlerror() );
 
 	plugin_main plugin = reinterpret_cast< plugin_main >( dlsym( holylib, "HolyLib_PreLoad" ) );
 	if ( !plugin ) {
-		Msg( "Failed to find HolyLib entry point (%s)\n", dlerror() );
+		printf( "Failed to find HolyLib entry point (%s)\n", dlerror() );
 	} else {
 		plugin();
 	}
 
 	ghostinj2 = dlopen( "ghostinj2.dll", RTLD_NOW );
 	if ( ghostinj2 )
-		Msg( "Found and loaded ghostinj2.dll\n" );
+		printf( "Found and loaded ghostinj2.dll\n" );
 
-	Msg( "--- HolyLib-GhostInj loaded ---\n" );
+	printf( "--- HolyLib-GhostInj loaded ---\n" );
 }
 
 void Unload()

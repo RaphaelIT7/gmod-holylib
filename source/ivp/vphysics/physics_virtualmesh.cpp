@@ -101,7 +101,7 @@ private:
 	unsigned int	m_memSize;
 	unsigned short	m_hullOffset;
 	byte			m_hullCount;
-	[[maybe_unused]] byte	m_pad;
+	byte			m_pad;
 };
 
 CMeshInstance::~CMeshInstance()

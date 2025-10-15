@@ -35,5 +35,14 @@ return {
                 expect( voiceData:GetData() ).to.equal( "Hello" )
             end
         },
+        {
+            name = "Performance",
+            when = HolyLib_IsModuleEnabled("voicechat"),
+            func = function()
+                local voiceData = voicechat.CreateVoiceData()
+
+                HolyLib_RunPerformanceTest("VoiceData:SetData", voiceData.SetData, voiceData, "Hello World", 5)
+            end
+        },
     }
 }

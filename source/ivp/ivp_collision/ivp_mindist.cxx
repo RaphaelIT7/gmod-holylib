@@ -667,14 +667,40 @@ public:
     IVP_Vector_of_Objects_128(): IVP_U_Vector<IVP_Real_Object>( (void **)&elem_buffer[0],128 ){}
 };
 
+/*
+	A list containing all objects that are rechecking the ov.
+	We need this as HolyLib can allow people to modify objects while being inside of this call.
+	And to not create any crash in case people trigger a recheck_ov_element while being inside of a recheck_ov_element for the same object, we keep track.
+*/
+static thread_local IVP_U_Vector<IVP_Real_Object> g_pCurrentRecheckOVElement;
+IVP_U_Vector<IVP_Real_Object>& _HOLYLIB_GetRecheckOVElements()
+{
+	return g_pCurrentRecheckOVElement;
+}
+
 void IVP_Mindist_Manager::recheck_ov_element(IVP_Real_Object *object){
-
-    IVP_Vector_of_OV_Elements_128 colliding_elements; // for recheck_ov_element
-
     IVP_OV_Element *elem = object->get_ov_element();
 
     if(!elem) 
 		return; // not collision enabled 
+
+	if (g_pHolyLibCallbacks)
+	{
+		if (g_pHolyLibCallbacks->ShouldSkipRecheck_ov_element())
+			return;
+
+		for (int i = g_pCurrentRecheckOVElement.len() - 1; i >= 0; i--)
+		{
+			if (g_pCurrentRecheckOVElement.element_at(i) == object)
+			{
+				g_pHolyLibCallbacks->ThrowRecheckOVWarning();
+				return;
+			}
+		}
+	}
+
+	IVP_Vector_of_OV_Elements_128 colliding_elements; // for recheck_ov_element
+	int pRecheckOVIndex = g_pCurrentRecheckOVElement.add(object);
 
     // check surrounding
 
@@ -689,6 +715,7 @@ void IVP_Mindist_Manager::recheck_ov_element(IVP_Real_Object *object){
     IVP_DOUBLE moved_distance = sphere_position.quad_distance_to(object_position);
     IVP_DOUBLE old_hull_time = elem->radius - core->upper_limit_radius;
     if (moved_distance < use_old_hull_factor * old_hull_time){
+		g_pCurrentRecheckOVElement.remove_at(pRecheckOVIndex);
 	return;
     }
 #endif
@@ -726,6 +753,7 @@ void IVP_Mindist_Manager::recheck_ov_element(IVP_Real_Object *object){
 	radius = environment->ov_tree_manager->insert_ov_element( elem, real_check_sphere, real_check_sphere, NULL);
 	IVP_DOUBLE real_hull_time =   P_DOUBLE_EPS;	// recheck as soon as possible because it's not checked now
 	elem->add_to_hull_manager( hm, real_hull_time );	    // insert into event queue
+	g_pCurrentRecheckOVElement.remove_at(pRecheckOVIndex);
 	return;			// thats it, IVP_Universe_Manager can only add objects which do not have collision candidates except object
     }
 
@@ -799,6 +827,8 @@ void IVP_Mindist_Manager::recheck_ov_element(IVP_Real_Object *object){
 	    }
 	}
     }
+
+	g_pCurrentRecheckOVElement.remove_at(pRecheckOVIndex);
 }
 
  
@@ -885,13 +915,6 @@ void IVP_Mindist_Manager::recalc_all_exact_mindists(){
 /* check length, check for hull, check for coll events*/
 void IVP_Mindist::update_exact_mindist_events(IVP_BOOL allow_hull_conversion, IVP_MINDIST_EVENT_HINT event_hint)
 {
-	IVP_Real_Object *objects[2];
-	get_objects(objects);
-	if (g_pHolyLibCallbacks && g_pHolyLibCallbacks->CheckLag(objects[0] ? objects[0]->client_data : NULL, objects[1] ? objects[1]->client_data : NULL))
-	{
-		return;
-	}
-
 	IVP_IFDEBUG(1,
 		IVP_ASSERT( mindist_status == IVP_MD_EXACT);
 		IVP_Debug_Manager *dm=get_environment()->get_debug_manager();
@@ -919,6 +942,13 @@ void IVP_Mindist::update_exact_mindist_events(IVP_BOOL allow_hull_conversion, IV
 		IVP_Time_Manager *time_manager = env->get_time_manager();
 		time_manager->remove_event(this);
 		this->index = IVP_U_MINLIST_UNUSED;
+	}
+
+	IVP_Real_Object *objects[2];
+	get_objects(objects);
+	if (g_pHolyLibCallbacks && g_pHolyLibCallbacks->CheckLag("IVP_Mindist::update_exact_mindist_events", objects[0] ? objects[0]->client_data : NULL, objects[1] ? objects[1]->client_data : NULL))
+	{
+		return;
 	}
 	
 	{  
@@ -1291,7 +1321,7 @@ void IVP_Mindist::simulate_time_event(IVP_Environment * env)
 {
 	IVP_Real_Object *objects[2];
 	get_objects(objects);
-	if (g_pHolyLibCallbacks && g_pHolyLibCallbacks->CheckLag(objects[0]->client_data, objects[1]->client_data))
+	if (g_pHolyLibCallbacks && g_pHolyLibCallbacks->CheckLag("IVP_Mindist::simulate_time_event", objects[0]->client_data, objects[1]->client_data))
 	{
 		return;
 	}

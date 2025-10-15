@@ -64,6 +64,7 @@ public:
 
 	virtual void Setup(CreateInterfaceFn appfn, CreateInterfaceFn gamefn);
 	virtual void Init();
+	// bServerInit = true should never be called by a Interface itself, its called automatically
 	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit);
 	virtual void LuaThink(GarrysMod::Lua::ILuaInterface* pLua);
 	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua);
@@ -96,14 +97,14 @@ private:
 	std::vector<CModule*> m_pModules;
 	int m_pStatus = 0;
 	Module_Realm m_pRealm = Module_Realm::SERVER;
-	CreateInterfaceFn m_pAppFactory = NULL;
-	CreateInterfaceFn m_pGameFactory = NULL;
+	CreateInterfaceFn m_pAppFactory = nullptr;
+	CreateInterfaceFn m_pGameFactory = nullptr;
 	bool m_bGhostInj = false;
 	bool m_bMarkedAsBinaryModule = false;
-	IConfig* m_pConfig = NULL; // Can be NULL at runtime so check for it!
+	IConfig* m_pConfig = nullptr; // Can be NULL at runtime so check for it!
 
 private: // ServerActivate stuff
-	edict_t* m_pEdictList = NULL;
+	edict_t* m_pEdictList = nullptr;
 	int m_iEdictCount = 0;
 	int m_iClientMax = 0;
 

@@ -1,6 +1,6 @@
 #include "detours.h"
-#include <map>
 #include <convar.h>
+#include <unordered_map>
 #include <unordered_set>
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -10,22 +10,28 @@
 #define PROJECT_NAME "project"
 #endif
 
-unsigned int g_pCurrentCategory = 0;
-
 SymbolFinder Detour::symfinder;
 void* Detour::GetFunction(void* pModule, Symbol pSymbol)
 {
 	return symfinder.Resolve(pModule, pSymbol.name.c_str(), pSymbol.length);
 }
 
-std::unordered_set<std::string> pDisabledDetours;
-std::map<unsigned int, std::unordered_set<Detouring::Hook*>> g_pDetours = {};
+static std::unordered_set<std::string> pDisabledDetours;
+static std::unordered_set<std::string> pFailedDetours;
+static std::unordered_set<std::string> pLoadedDetours;
+static std::unordered_map<unsigned int, std::unordered_set<Detouring::Hook*>> g_pDetours = {};
 void Detour::Create(Detouring::Hook* pHook, const char* strName, void* pModule, Symbol pSymbol, void* pHookFunc, unsigned int category)
 {
 	if (pDisabledDetours.find(strName) != pDisabledDetours.end())
 	{
 		Msg(PROJECT_NAME ": Detour %s was disabled!\n", strName);
 		return;
+	}
+
+	if (pLoadedDetours.find(strName) != pLoadedDetours.end())
+	{
+		Warning(PROJECT_NAME ": Detour %s was already loaded! Are you using the same name twice?\n", strName);
+		// Do not return since that could still break it. Though still warn others!
 	}
 
 	void* func = Detour::GetFunction(pModule, pSymbol);
@@ -35,13 +41,24 @@ void Detour::Create(Detouring::Hook* pHook, const char* strName, void* pModule, 
 	pHook->Create(func, pHookFunc);
 	pHook->Enable();
 
-	if (g_pDetours[category].find(pHook) == g_pDetours[category].end())
-	{
-		g_pDetours[category].insert(pHook);
-	}
-
 	if (!DETOUR_ISVALID((*pHook)))
+	{
 		Msg(PROJECT_NAME ": Failed to detour %s!\n", strName);
+		if (pFailedDetours.find(strName) == pFailedDetours.end())
+		{
+			pFailedDetours.insert(strName);
+		}
+	} else { // Loaded successfully
+		if (g_pDetours[category].find(pHook) == g_pDetours[category].end())
+		{
+			g_pDetours[category].insert(pHook);
+		}
+
+		if (pLoadedDetours.find(strName) == pLoadedDetours.end())
+		{
+			pLoadedDetours.insert(strName);
+		}
+	}
 }
 
 void Detour::Remove(unsigned int category) // NOTE: Do we need to check if the provided category is valid?
@@ -61,6 +78,21 @@ void Detour::ReportLeak()
 	for (auto& [id, hooks]: g_pDetours)
 		if (hooks.size() > 0)
 			Msg(PROJECT_NAME ": ID %d failed to shutdown it's detours!\n", id);
+}
+
+const std::unordered_set<std::string>& Detour::GetDisabledDetours()
+{
+	return pDisabledDetours;
+}
+
+const std::unordered_set<std::string>& Detour::GetFailedDetours()
+{
+	return pFailedDetours;
+}
+
+const std::unordered_set<std::string>& Detour::GetLoadedDetours()
+{
+	return pLoadedDetours;
 }
 
 static void ToggleDetour(const CCommand& args)

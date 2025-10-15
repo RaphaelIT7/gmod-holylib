@@ -1,0 +1,1 @@
+We need reqwest since Gmod's HTTP function crashes when used, this is probably because of docker slim nuking some important file.

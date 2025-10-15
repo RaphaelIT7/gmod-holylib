@@ -1,13 +1,13 @@
 local BinaryFormat = package.cpath:match("%p[\\|/]?%p(%a+)")
-if BinaryFormat == "dll" then
+if BinaryFormat == "dll" or (os.host and os.host() == "windows") then
 	function os.name()
 		return "Windows"
 	end
-elseif BinaryFormat == "so" then
+elseif BinaryFormat == "so" or (os.host and os.host() == "linux") then
 	function os.name()
 		return "Linux"
 	end
-elseif BinaryFormat == "dylib" then
+elseif BinaryFormat == "dylib" or (os.host and os.host() == "macosx") then
 	function os.name()
 		return "MacOS"
 	end
@@ -26,6 +26,7 @@ function RemoveEnd(str, find)
 	return str:sub(0, #str - #find)
 end
 
+-- FileExists does not exist! Use this instead and check for nil return!
 function ReadFile(path)
 	local file = io.open(path, "rb")
 	if not file then return end
@@ -92,4 +93,110 @@ function string.Trim(s, char)
 	end
 
 	return string.match(s, "^" .. char .. "*(.-)" .. char .. "*$") or s
+end
+
+function string.Replace(str, rep, new)
+    local new_str = str
+    local last = 0
+    for k=1, 10 do
+        local found, finish = string.find(new_str, rep, last, true)
+        if found then
+            new_str = string.sub(new_str, 1, found - 1) .. new .. string.sub(new_str, finish + 1)
+            last = found + string.len(new)
+        end
+    end
+
+    return new_str
+end
+
+function string.EndsWith(str, ending)
+	return string.sub(str, -1) == ending
+end
+
+local function getKeys(tbl)
+	local keys, i = {}, 0
+	for k in pairs(tbl) do
+		i = i + 1
+		keys[i] = k
+	end
+
+	return keys
+end
+
+function SortedPairs(pTable, Desc) -- Again from Gmod <3
+	local keys = getKeys(pTable)
+
+	if Desc then
+		table.sort(keys, function(a, b)
+			return a > b
+		end)
+	else
+		table.sort(keys, function(a, b)
+			return a < b
+		end)
+	end
+
+	local i, key = 1, nil
+	return function()
+		key, i = keys[i], i + 1
+		return key, pTable[key]
+	end
+end
+
+local created_dirs = {}
+function CreateDir(name)
+	if created_dirs[name] then return end -- To optimize especially on windows.
+	if os.name() == "Windows" then
+		os.execute('mkdir "' .. string.Replace(name, "/", [[\]]) .. '"')
+	else
+		os.execute('mkdir -p "' .. name .. '"')
+	end
+
+	created_dirs[name] = true
+end
+
+function RemoveDir(name)
+	if created_dirs[name] then return end -- To optimize especially on windows.
+	if os.name() == "Windows" then
+		os.execute('rmdir /s /q "' .. string.Replace(name, "/", [[\]]) .. '"')
+	else
+		if string.len(name) <= 3 then
+			error("too short folder name!")
+		end
+
+		if name == "." or name == "~/" or name == "../" or name == "/" then
+			error("tf are you doing!")
+		end
+
+		os.execute('rm -rf "' .. name .. '"')
+	end
+
+	created_dirs[name] = nil
+end
+
+function CopyFile(from, to)
+	CreateDir(GetPath(to))
+	WriteFile(to, ReadFile(from))
+end
+
+function PrintTable(tbl, indent)
+	indent = indent or 0
+	local str = ""
+	for k=1, indent do
+		str = str .. "	"
+	end
+
+	for k, v in pairs(tbl) do
+		if type(v) == "table" then
+			print(str .. k .. " = {")
+			PrintTable(v, indent + 1)
+			print(str .. "}")
+		else
+			if type(v) == "string" then
+				print(str .. k .. ' = "' .. v .. '"')
+			else
+				print(str .. k .. " = " .. tostring(v))
+			end
+		end
+	end
 end

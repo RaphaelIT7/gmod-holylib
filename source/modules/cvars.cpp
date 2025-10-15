@@ -2,6 +2,7 @@
 #include "module.h"
 #include "detours.h"
 #include "lua.h"
+#include "ankerl/unordered_dense.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -24,7 +25,31 @@ static CCVarsModule g_pCVarsModule;
 IModule* pCVarsModule = &g_pCVarsModule;
 
 #if ARCHITECTURE_IS_X86
-static std::unordered_map<std::string, ConCommandBase*> g_pCommandBaseNames;
+struct CaseInsensitiveHash {
+    size_t operator()(const std::string_view& s) const noexcept {
+        size_t h = 0;
+        for (char c : s) {
+            char lower = (c >= 'A' && c <= 'Z') ? c + 32 : c;
+            h = h * 31 + lower;
+        }
+        return h;
+    }
+};
+
+struct CaseInsensitiveEqual {
+    bool operator()(const std::string_view& a, const std::string_view& b) const noexcept {
+        if (a.size() != b.size())
+            return false;
+        for (size_t i = 0; i < a.size(); ++i) {
+            char ca = (a[i] >= 'A' && a[i] <= 'Z') ? a[i] + 32 : a[i];
+            char cb = (b[i] >= 'A' && b[i] <= 'Z') ? b[i] + 32 : b[i];
+            if (ca != cb) return false;
+        }
+        return true;
+    }
+};
+
+static ankerl::unordered_dense::map<std::string_view, ConCommandBase*, CaseInsensitiveHash, CaseInsensitiveEqual> g_pCommandBaseNames;
 
 /*
  * BUG: The Source engine uses Q_stricmp -> V_stricmp which is case insensitive, so we need to account for that.
@@ -33,10 +58,7 @@ inline void AddCommandBaseName(ConCommandBase* variable);
 inline ConCommandBase* FindCommandBaseName(const char* name);
 inline void AddCommandBaseName(ConCommandBase* variable)
 {
-	std::string strName = variable->GetName();
-	std::transform(strName.begin(), strName.end(), strName.begin(), ::tolower);
-
-	g_pCommandBaseNames.try_emplace(strName, variable);
+	g_pCommandBaseNames.try_emplace(variable->GetName(), variable);
 
 	/*
 	 * BUG: For some reason, children convars are NEVER registered.
@@ -51,20 +73,14 @@ inline void AddCommandBaseName(ConCommandBase* variable)
 
 inline void RemoveCommandBaseName(const ConCommandBase* variable)
 {
-	std::string strName = variable->GetName();
-	std::transform(strName.begin(), strName.end(), strName.begin(), ::tolower);
-
-	auto it = g_pCommandBaseNames.find(strName);
+	auto it = g_pCommandBaseNames.find(variable->GetName());
 	if (it != g_pCommandBaseNames.end())
 		g_pCommandBaseNames.erase(it);
 }
 
 inline ConCommandBase* FindCommandBaseName(const char* name)
 {
-	std::string strName = name;
-	std::transform(strName.begin(), strName.end(), strName.begin(), ::tolower);
-
-	auto it = g_pCommandBaseNames.find(strName);
+	auto it = g_pCommandBaseNames.find(name);
 	if (it != g_pCommandBaseNames.end())
 		return it->second;
 
@@ -160,14 +176,16 @@ ConCommandBase* hook_CCvar_FindCommandBase(ICvar* pCVar, const char* name)
 }
 #endif
 
+static constexpr int nConVarPreAllocSize = 5000;
 LUA_FUNCTION_STATIC(cvars_GetAll)
 {
 	VPROF_BUDGET("HolyLib(LUA) - cvars.GetAll", VPROF_BUDGETGROUP_HOLYLIB);
 
-	LUA->CreateTable();
+	LUA->PreCreateTable(nConVarPreAllocSize, 0);
 		int idx = 0;
 #if ARCHITECTURE_IS_X86_64
 		ICvar::Iterator iter(g_pCVar);
+
 		for ( iter.SetFirst() ; iter.IsValid() ; iter.Next() )
 		{
 			ConCommandBase* var = iter.Get();
@@ -179,6 +197,7 @@ LUA_FUNCTION_STATIC(cvars_GetAll)
 				continue;
 
 			LUA->PushUserType((ConVar*)var, GarrysMod::Lua::Type::ConVar);
+
 			Util::RawSetI(LUA, -2, ++idx);
 		}
 
@@ -279,6 +298,8 @@ void CCVarsModule::InitDetour(bool bServerInit)
 		vstdlib_loader.GetModule(), Symbols::CCvar_FindCommandBaseSym,
 		(void*)hook_CCvar_FindCommandBase, m_pID
 	);
+
+	g_pCommandBaseNames.reserve(nConVarPreAllocSize);
 
 	ICvar* pCVar = vstdlib_loader.GetInterface<ICvar>(CVAR_INTERFACE_VERSION); // g_pCVar isn't initialized yet since tiers didn't connect yet.
 #if ARCHITECTURE_IS_X86_64

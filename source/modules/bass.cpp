@@ -55,10 +55,11 @@ Default__gc(IGModAudioChannel,
 
 LUA_FUNCTION_STATIC(IGModAudioChannel_Destroy)
 {
-	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
+	LuaUserData* pLuaData = Get_IGModAudioChannel_Data(LUA, 1, true);
+	IGModAudioChannel* channel = (IGModAudioChannel*)pLuaData->GetData();
 
 	channel->Destroy();
-	LUA->SetUserType(1, NULL);
+	pLuaData->Release(LUA);
 
 	return 0;
 }

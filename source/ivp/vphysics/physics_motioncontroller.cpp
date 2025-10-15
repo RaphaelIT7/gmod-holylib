@@ -36,9 +36,9 @@ public:
 	CPhysicsMotionController( IMotionEvent *pHandler, CPhysicsEnvironment *pVEnv );
 	virtual ~CPhysicsMotionController( void );
 
-    void do_simulation_controller(IVP_Event_Sim *event,IVP_U_Vector<IVP_Core> *core_list) override;
-    IVP_CONTROLLER_PRIORITY get_controller_priority() override;
-    void core_is_going_to_be_deleted_event(IVP_Core *core) override 
+	void do_simulation_controller(IVP_Event_Sim *event,IVP_U_Vector<IVP_Core> *core_list) override;
+	IVP_CONTROLLER_PRIORITY get_controller_priority() override;
+	void core_is_going_to_be_deleted_event(IVP_Core *core) override 
 	{
 		m_coreList.FindAndRemove( core );
 	}
@@ -306,9 +306,13 @@ IPhysicsMotionController *CreateMotionController( CPhysicsEnvironment *pPhysEnv,
 
 bool SavePhysicsMotionController( const physsaveparams_t &params, IPhysicsMotionController *pMotionController )
 {
+#if WIN32
 	vphysics_save_motioncontroller_t controllerTemplate;
 	memset( &controllerTemplate, 0, sizeof(controllerTemplate) );
-  
+#else
+	vphysics_save_motioncontroller_t controllerTemplate{};
+#endif
+
 	CPhysicsMotionController *pControllerImp = static_cast<CPhysicsMotionController*>(pMotionController);
 	pControllerImp->WriteToTemplate( controllerTemplate );
 	params.pSave->WriteAll( &controllerTemplate );
@@ -320,8 +324,12 @@ bool RestorePhysicsMotionController( const physrestoreparams_t &params, IPhysics
 {		
 	CPhysicsMotionController *pControllerImp = new CPhysicsMotionController( NULL, static_cast<CPhysicsEnvironment *>(params.pEnvironment) );
 	
+#if WIN32
 	vphysics_save_motioncontroller_t controllerTemplate;
 	memset( &controllerTemplate, 0, sizeof(controllerTemplate) );
+#else
+	vphysics_save_motioncontroller_t controllerTemplate{};
+#endif
 	params.pRestore->ReadAll( &controllerTemplate );
   
 	pControllerImp->InitFromTemplate( controllerTemplate );

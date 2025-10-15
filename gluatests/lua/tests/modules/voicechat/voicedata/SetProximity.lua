@@ -25,5 +25,14 @@ return {
                 expect( voiceData:GetProximity() ).to.beFalse()
             end
         },
+        {
+            name = "Performance",
+            when = HolyLib_IsModuleEnabled("voicechat"),
+            func = function()
+                local voiceData = voicechat.CreateVoiceData()
+
+                HolyLib_RunPerformanceTest("VoiceData:SetProximity", voiceData.SetProximity, voiceData, false)
+            end
+        },
     }
 }
