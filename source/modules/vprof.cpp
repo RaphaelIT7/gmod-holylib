@@ -885,13 +885,14 @@ LUA_FUNCTION_STATIC(vprof_FindOrCreateCounter)
 	const char* pName = AddOrGetString(LUA->CheckString(1)); // Just to make sure
 	CounterGroup_t group = (CounterGroup_t)LUA->CheckNumberOpt(2, COUNTER_GROUP_DEFAULT);
 
-	VProfCounter* counter = new VProfCounter;
+	LuaUserData* pUserData = PushInlined_VProfCounter(LUA);
+	VProfCounter* counter = (VProfCounter*)pUserData->GetData();
+
 	counter->strName = pName;
 #ifndef WIN32
 	counter->iValue = g_VProfCurrentProfile.FindOrCreateCounter(pName, group);
 #endif
 
-	Push_VProfCounter(LUA, counter);
 	return 1;
 }
 
@@ -899,7 +900,9 @@ LUA_FUNCTION_STATIC(vprof_GetCounter)
 {
 	int index = (int)LUA->CheckNumber(1);
 
-	VProfCounter* counter = new VProfCounter;
+	LuaUserData* pUserData = PushInlined_VProfCounter(LUA);
+	VProfCounter* counter = (VProfCounter*)pUserData->GetData();
+
 	counter->strName = g_VProfCurrentProfile.GetCounterName(index);
 	if (!counter->strName)
 	{
