@@ -943,4 +943,19 @@ namespace Symbols
 	const std::vector<Symbol> Bootil_File_ChangeMonitor_HasChangedSym = {
 		Symbol::FromName("_ZN6Bootil4File13ChangeMonitor10HasChangesEv"),
 	};
+
+	//---------------------------------------------------------------------------------
+	// Purpose: AutoRefresh Symbols
+	//---------------------------------------------------------------------------------
+	const std::vector<Symbol> CEnvSoundscape_UpdateForPlayerSym = {
+		Symbol::FromName("_ZN14CEnvSoundscape15UpdateForPlayerER11ss_update_t"),
+	};
+
+	const std::vector<Symbol> CEnvSoundscape_WriteAudioParamsToSym = {
+		Symbol::FromName("_ZN14CEnvSoundscape18WriteAudioParamsToER13audioparams_t"),
+	};
+
+	const std::vector<Symbol> g_SoundscapeSystemSym = {
+		Symbol::FromName("g_SoundscapeSystem"),
+	};
 }

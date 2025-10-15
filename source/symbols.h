@@ -68,6 +68,8 @@ struct SteamServersConnected_t;
 struct SteamServersDisconnected_t;
 struct global_State;
 struct GCtab;
+struct audioparams_t;
+struct ss_update_t;
 
 namespace GarrysMod::Lua
 {
@@ -710,4 +712,15 @@ namespace Symbols
 
 	typedef bool (*Bootil_File_ChangeMonitor_HasChanged)(void* changeMonitor);
 	extern const std::vector<Symbol> Bootil_File_ChangeMonitor_HasChangedSym;
+
+	//---------------------------------------------------------------------------------
+	// Purpose: soundscape Symbols
+	//---------------------------------------------------------------------------------
+	typedef bool (*CEnvSoundscape_UpdateForPlayer)(CBaseEntity* pSoundScape, ss_update_t& update);
+	extern const std::vector<Symbol> CEnvSoundscape_UpdateForPlayerSym;
+
+	typedef bool (*CEnvSoundscape_WriteAudioParamsTo)(CBaseEntity* pSoundScape, audioparams_t& update);
+	extern const std::vector<Symbol> CEnvSoundscape_WriteAudioParamsToSym;
+
+	extern const std::vector<Symbol> g_SoundscapeSystemSym;
 }
