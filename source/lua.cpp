@@ -7,9 +7,185 @@
 #include "detours.h"
 #include "module.h"
 #include "CLuaInterface.h"
+#include "player.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
+
+// Testing functions
+
+static CBaseEntity* pTestWorld = nullptr;
+LUA_FUNCTION_STATIC(Test_PushEntity)
+{
+	// We just push the world entity, in Lua we then test if we got an Entity.
+	if (!pTestWorld)
+		pTestWorld = Util::GetCBaseEntityFromEdict(Util::engineserver->PEntityOfEntIndex(0));
+
+	Util::Push_Entity(pTestWorld);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(Test_RawGetEntity)
+{
+	Util::Get_Entity(1, true);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(Test_GetEntity)
+{
+	CBaseEntity* pEntity = Util::Get_Entity(1, true);
+	EHANDLE* pEntHandle = LUA->GetUserType<EHANDLE>(1, GarrysMod::Lua::Type::Entity);
+	// If something broke, either we will return false, or we will crash which is intented to make the tests fail.
+	LUA->PushBool(pEntity && pEntity->edict() && pEntity->edict()->m_EdictIndex == pEntHandle->GetEntryIndex());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(Test_GetPlayer) // Same as Test_GetEntity though calling Get_Player since it's a seperate independent function.
+{
+	CBasePlayer* pEntity = Util::Get_Player(1, true);
+	EHANDLE* pEntHandle = LUA->GetUserType<EHANDLE>(1, GarrysMod::Lua::Type::Entity);
+	LUA->PushBool(pEntity && pEntity->edict() && pEntity->edict()->m_EdictIndex == pEntHandle->GetEntryIndex());
+	return 1;
+}
+
+struct _HOLYLIB_CORE_TEST
+{
+	int JustAnExample = 123;
+};
+
+static int nCoreTestMetaID = -1;
+Push_LuaClass(_HOLYLIB_CORE_TEST, nCoreTestMetaID)
+Get_LuaClass(_HOLYLIB_CORE_TEST, nCoreTestMetaID, "_HOLYLIB_CORE_TEST")
+
+Default__index(_HOLYLIB_CORE_TEST);
+Default__newindex(_HOLYLIB_CORE_TEST);
+Default__GetTable(_HOLYLIB_CORE_TEST);
+Default__gc(_HOLYLIB_CORE_TEST, 
+	_HOLYLIB_CORE_TEST* pTestData = (_HOLYLIB_CORE_TEST*)pData;
+	if (pTestData)
+		delete pTestData;
+)
+
+LUA_FUNCTION_STATIC(Test_PushTestUserData)
+{
+	Push__HOLYLIB_CORE_TEST(new _HOLYLIB_CORE_TEST);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(Test_GetTestUserData)
+{
+	_HOLYLIB_CORE_TEST* pTest = Get__HOLYLIB_CORE_TEST(1, true);
+	LUA->PushBool(pTest->JustAnExample == 123); // Verify we didn't get garbage
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(Test_RawGetTestUserData)
+{
+	Get__HOLYLIB_CORE_TEST(1, true);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(Test_ClearLuaTable)
+{
+	LuaUserData* pUserData = Get__HOLYLIB_CORE_TEST_Data(1, true);
+	pUserData->ClearLuaTable();
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(Test_GetModuleData)
+{
+	LUA->PushBool(true);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(Test_RawGetModuleData)
+{
+	// GetHolyLib_CoreLuaData(LUA);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(Test_GetGModVector)
+{
+	Vector* pData = Get_Vector(1);
+	LUA->PushBool(pData->x == 1 && pData->y == 2 && pData->z == 3);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(Test_RawGetGModVector)
+{
+	Get_Vector(1);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(Test_EnableStressBots)
+{
+	if (!g_pCVar)
+		return 0;
+
+	ConVar* pConVar = g_pCVar->FindVar("sv_stressbots");
+	if (!pConVar)
+	{
+		LUA->PushBool(false);
+		return 1;
+	}
+
+	pConVar->SetValue("1");
+	LUA->PushBool(true);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(Test_DisableStressBots)
+{
+	if (!g_pCVar)
+		return 0;
+
+	ConVar* pConVar = g_pCVar->FindVar("sv_stressbots");
+	if (!pConVar)
+	{
+		LUA->PushBool(false);
+		return 1;
+	}
+
+	pConVar->SetValue("1");
+	LUA->PushBool(true);
+	return 1;
+}
+
+static void SetupCoreTestFunctions(GarrysMod::Lua::ILuaInterface* pLua)
+{
+	nCoreTestMetaID = g_Lua->CreateMetaTable("_HOLYLIB_CORE_TEST");
+		Util::AddFunc(_HOLYLIB_CORE_TEST__index, "__index");
+		Util::AddFunc(_HOLYLIB_CORE_TEST__newindex, "__newindex");
+		Util::AddFunc(_HOLYLIB_CORE_TEST__gc, "__gc");
+		Util::AddFunc(_HOLYLIB_CORE_TEST_GetTable, "GetTable");
+	pLua->Pop(1);
+
+	Util::StartTable();
+		Util::AddFunc(Test_PushEntity, "PushEntity");
+		Util::AddFunc(Test_GetEntity, "GetEntity");
+		Util::AddFunc(Test_RawGetEntity, "RawGetEntity"); // Used to test performance
+		Util::AddFunc(Test_GetPlayer, "GetPlayer");
+		Util::AddFunc(Test_ClearLuaTable, "ClearLuaTable");
+		Util::AddFunc(Test_PushTestUserData, "PushTestUserData");
+		Util::AddFunc(Test_GetTestUserData, "GetTestUserData");
+		Util::AddFunc(Test_RawGetTestUserData, "RawGetTestUserData");
+		Util::AddFunc(Test_GetModuleData, "GetModuleData");
+		Util::AddFunc(Test_RawGetModuleData, "RawGetModuleData");
+		Util::AddFunc(Test_GetGModVector, "GetGModVector");
+		Util::AddFunc(Test_RawGetGModVector, "RawGetGModVector");
+		
+		Util::AddFunc(Test_EnableStressBots, "EnableStressBots"); // Required until we get https://github.com/Facepunch/garrysmod-requests/issues/2948
+		Util::AddFunc(Test_DisableStressBots, "DisableStressBots");
+	Util::FinishTable("_HOLYLIB_CORE");
+}
+
+static void RemoveCoreTestFunctions(GarrysMod::Lua::ILuaInterface* pLua)
+{
+	Util::NukeTable("_HOLYLIB_CORE");
+	pTestWorld = nullptr;
+}
+
+// Testing functions end
 
 bool Lua::PushHook(const char* hook)
 {
@@ -59,6 +235,8 @@ void Lua::Init(GarrysMod::Lua::ILuaInterface* LUA)
 	Lua::CreateLuaData(g_Lua, true);
 	g_pModuleManager.LuaInit(g_Lua, false);
 
+	SetupCoreTestFunctions(g_Lua);
+
 	std::vector<LuaFindResult> results;
 	GetShared()->FindScripts("lua/autorun/_holylib/*.lua", "GAME", results);
 	for (LuaFindResult& result : results)
@@ -92,6 +270,8 @@ void Lua::ServerInit()
 void Lua::Shutdown()
 {
 	g_pModuleManager.LuaShutdown(g_Lua);
+
+	RemoveCoreTestFunctions(g_Lua);
 
 #if HOLYLIB_UTIL_DEBUG_LUAUSERDATA
 	g_pRemoveLuaUserData = false; // We are iterating over g_pLuaUserData so DON'T modify it.

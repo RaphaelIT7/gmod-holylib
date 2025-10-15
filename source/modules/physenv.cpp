@@ -190,23 +190,23 @@ IVModelInfo* modelinfo;
 IStaticPropMgrServer* staticpropmgr;
 IPhysics* physics = NULL;
 static IPhysicsCollision* physcollide = NULL;
-IPhysicsSurfaceProps* physprops;
+static IPhysicsSurfaceProps* g_pPhysProps;
 void CPhysEnvModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	SourceSDK::FactoryLoader vphysics_loader("vphysics");
 	if (appfn[0])
 	{
 		physics = (IPhysics*)appfn[0](VPHYSICS_INTERFACE_VERSION, NULL);
-		physprops = (IPhysicsSurfaceProps*)appfn[0](VPHYSICS_SURFACEPROPS_INTERFACE_VERSION, NULL);
+		g_pPhysProps = (IPhysicsSurfaceProps*)appfn[0](VPHYSICS_SURFACEPROPS_INTERFACE_VERSION, NULL);
 		physcollide = (IPhysicsCollision*)appfn[0](VPHYSICS_COLLISION_INTERFACE_VERSION, NULL);
 	} else {
 		physics = vphysics_loader.GetInterface<IPhysics>(VPHYSICS_INTERFACE_VERSION);
-		physprops = vphysics_loader.GetInterface<IPhysicsSurfaceProps>(VPHYSICS_SURFACEPROPS_INTERFACE_VERSION);
+		g_pPhysProps = vphysics_loader.GetInterface<IPhysicsSurfaceProps>(VPHYSICS_SURFACEPROPS_INTERFACE_VERSION);
 		physcollide = vphysics_loader.GetInterface<IPhysicsCollision>(VPHYSICS_COLLISION_INTERFACE_VERSION);
 	}
 
 	Detour::CheckValue("get interface", "physics", physics != NULL);
-	Detour::CheckValue("get interface", "physprops", physprops != NULL);
+	Detour::CheckValue("get interface", "physprops", g_pPhysProps != NULL);
 	Detour::CheckValue("get interface", "physcollide", physcollide != NULL);
 
 	SourceSDK::FactoryLoader engine_loader("engine");
@@ -1393,7 +1393,7 @@ void PhysCreateVirtualTerrain( IPhysicsEnvironment* pEnvironment, CBaseEntity *p
 			solid.params.pGameData = static_cast<void *>(pWorld);
 			Q_snprintf(nameBuf, sizeof(nameBuf), "vdisp_%04d", i );
 			solid.params.pName = nameBuf;
-			int surfaceData = physprops->GetSurfaceIndex( "default" );
+			int surfaceData = g_pPhysProps->GetSurfaceIndex( "default" );
 			// create this as part of the world
 			IPhysicsObject *pObject = pEnvironment->CreatePolyObjectStatic( pCollide, surfaceData, vec3_origin, vec3_angle, &solid.params );
 			pObject->SetCallbackFlags( pObject->GetCallbackFlags() | CALLBACK_NEVER_DELETED );
@@ -1409,7 +1409,7 @@ IPhysicsObject *PhysCreateWorld_Shared( IPhysicsEnvironment* pEnvironment, CBase
 	if ( !pEnvironment )
 		return NULL;
 
-	int surfaceData = physprops->GetSurfaceIndex( "default" );
+	int surfaceData = g_pPhysProps->GetSurfaceIndex( "default" );
 
 	objectparams_t params = defaultParams;
 	params.pGameData = static_cast<void *>(pWorld);
@@ -1437,7 +1437,7 @@ IPhysicsObject *PhysCreateWorld_Shared( IPhysicsEnvironment* pEnvironment, CBase
 			solid.params.enableCollisions = true;
 			solid.params.pGameData = static_cast<void *>(pWorld);
 			solid.params.pName = "world";
-			surfaceData = physprops->GetSurfaceIndex( "default" );
+			surfaceData = g_pPhysProps->GetSurfaceIndex( "default" );
 
 			// already created world above
 			if ( solid.index == 0 )
@@ -1478,7 +1478,7 @@ IPhysicsObject *PhysCreateWorld_Shared( IPhysicsEnvironment* pEnvironment, CBase
 				solid.params.pName = "fluid";
 				solid.params.pGameData = static_cast<void *>(pWorld);
 				fluid.params.pGameData = static_cast<void *>(pWorld);
-				surfaceData = physprops->GetSurfaceIndex( fluid.surfaceprop );
+				surfaceData = g_pPhysProps->GetSurfaceIndex( fluid.surfaceprop );
 				// create this as part of the world
 				IPhysicsObject *pWater = pEnvironment->CreatePolyObjectStatic( pWorldCollide->solids[fluid.index], 
 					surfaceData, vec3_origin, vec3_angle, &solid.params );
@@ -1493,7 +1493,7 @@ IPhysicsObject *PhysCreateWorld_Shared( IPhysicsEnvironment* pEnvironment, CBase
 			memset( surfaceTable, 0, sizeof(surfaceTable) );
 
 			pParse->ParseSurfaceTable( surfaceTable, NULL );
-			physprops->SetWorldMaterialIndexTable( surfaceTable, 128 );
+			g_pPhysProps->SetWorldMaterialIndexTable( surfaceTable, 128 );
 		}
 		else if ( !strcmpi(pBlock, "virtualterrain" ) )
 		{

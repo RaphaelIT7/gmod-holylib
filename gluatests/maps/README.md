@@ -1,0 +1,2 @@
+We do lots of tests, this also means that rare cases like where a runner fails to connect to the workshop become quite common.
+To Avoid the job failing, we include the map in our artifact to not rely on the workshop which is far more likely to fail.
