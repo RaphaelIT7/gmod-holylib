@@ -36,7 +36,9 @@ static inline audioparams_t* GetAudioParams(void* pPlayer)
 	if (!pAudio)
 		return nullptr;
 
-	return (audioparams_t*)pAudio;
+	// We need to shift it since audioparams_t has a vtable???
+	// Do we need to shift it by one void* or two? Idk
+	return (audioparams_t*)((char*)pAudio - sizeof(void*));
 }
 
 LUA_FUNCTION_STATIC(soundscape_GetActiveSoundScape)
