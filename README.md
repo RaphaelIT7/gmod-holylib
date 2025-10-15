@@ -4748,6 +4748,11 @@ Return `true` to block the call and any further calls for this tick and addition
 the currently set soundscape entity for the active soundscapeUpdate will be applied to the player.<br>
 You can set it using `soundscape.SetCurrentSoundscape` inside the hook.<br>
 
+### ConVars
+
+#### holylib_soundscape_updateplayerhook(default `0`)
+If enabled, the `HolyLib:OnSoundScapeUpdateForPlayer` will be called.
+
 # Unfinished Modules
 
 ## serverplugins
