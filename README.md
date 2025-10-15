@@ -257,6 +257,21 @@ You can use `holylib_filesystem_showpredictionerrors` to see any predictions tha
 You can solve this by setting `holylib_filesystem_predictexistance 0`.<br>
 The convar was disabled by default now because of this.<br>
 
+## HolyLib internally caches the TValue's of metatables
+This is like keeping a reference though faster but also more unsafe.<br>
+If a metatable is replaced with another table / the GC Object internally changes<br>
+HolyLib will most definetly experience issues / crashes<br>
+though generally this should never happen unless you touch the Lua registry yourself<br>
+
+## Compatibility
+HolyLib should be compatible with most other binary modules<br>
+though there are some cases where they conflict like if their detouring the same function<br>
+Other binary modules can check if HolyLib is loaded by checking if the command line option `-holylibexists` exists<br>
+C++: `CommandLine()->FindParm("-holylibexists")`<br>
+
+Setting/Adding `-holylibexists` to the command line yourself will result in HolyLib refusing to load!<br>
+This is to prevent HolyLib from loading multiple times if multiple versions exist / in cases where multiple DLLs include HolyLib<br>
+
 # Modules
 Each module has its own convar `holylib_enable_[module name]` which allows you to enable/disable specific modules.<br>
 You can add `-holylib_enable_[module name] 0` to the startup to disable modules on startup.<br>
