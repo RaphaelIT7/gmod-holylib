@@ -85,24 +85,6 @@ LUA_FUNCTION_STATIC(soundscape_GetActivePositions)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(soundscape_Stop)
-{
-    CBasePlayer* pPlayer = Util::Get_Player(LUA, 1, true);
-    audioparams_t* pParams = GetAudioParams(pPlayer);
-    if (!pParams)
-        LUA->ThrowError("Failed to get audioparams_t!");
-
-    pParams->soundscapeIndex = -1;
-    pParams->ent.m_Value = nullptr;
-    pParams->localBits.Set(0);
-
-    for (int i = 0; i < NUM_AUDIO_LOCAL_SOUNDS; ++i)
-        pParams->localSound[i].Init();
-
-    return 0;
-}
-
-
 void CSoundscapeModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 }
@@ -120,7 +102,6 @@ void CSoundscapeModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, soundscape_GetActiveSoundScape, "GetActiveSoundScape");
 		Util::AddFunc(pLua, soundscape_GetActiveSoundScapeIndex, "GetActiveSoundScapeIndex");
 		Util::AddFunc(pLua, soundscape_GetActivePositions, "GetActivePositions");
-		Util::AddFunc(pLua, soundscape_Stop, "Stop");
 	Util::FinishTable(pLua, "soundscape");
 }
 
