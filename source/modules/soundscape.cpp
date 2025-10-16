@@ -6,7 +6,6 @@
 #include "player.h"
 #include "eiface.h"
 #include "public/iholyutil.h"
-extern IHolyUtil* g_pHolyUtil;
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
