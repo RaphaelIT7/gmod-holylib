@@ -4,8 +4,6 @@
 #include "LuaInterface.h"
 #include "lua.h"
 #include "player.h"
-#include "eiface.h"
-#include "public/iholyutil.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -87,24 +85,25 @@ LUA_FUNCTION_STATIC(soundscape_GetActivePositions)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(soundscape_StopSoundscape)
+LUA_FUNCTION_STATIC(soundscape_Stop)
 {
     CBasePlayer* pPlayer = Util::Get_Player(LUA, 1, true);
     if (!pPlayer)
         LUA->ThrowError("Invalid player!");
 
-    IVEngineServer* pEngine = g_pHolyUtil->GetEngineServer();
-    if (!pEngine)
-        LUA->ThrowError("Failed to get IVEngineServer from HolyLib!");
+    audioparams_t* pParams = GetAudioParams(pPlayer);
+    if (!pParams)
+        LUA->ThrowError("Failed to get audioparams_t!");
 
-    edict_t* pEdict = pPlayer->edict();
-    if (!pEdict)
-        LUA->ThrowError("Invalid player edict!");
+    pParams->soundscapeIndex = -1;
 
-    pEngine->ClientCommand(pEdict, "playsoundscape nothing\n");
+    memset(&pParams->ent, 0, sizeof(pParams->ent));
+
+    pParams->localBits.Set(0);
 
     return 0;
 }
+
 
 void CSoundscapeModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
@@ -123,7 +122,7 @@ void CSoundscapeModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, soundscape_GetActiveSoundScape, "GetActiveSoundScape");
 		Util::AddFunc(pLua, soundscape_GetActiveSoundScapeIndex, "GetActiveSoundScapeIndex");
 		Util::AddFunc(pLua, soundscape_GetActivePositions, "GetActivePositions");
-		Util::AddFunc(pLua, soundscape_StopSoundscape, "StopSoundscape");
+		Util::AddFunc(pLua, soundscape_Stop, "Stop");
 	Util::FinishTable(pLua, "soundscape");
 }
 
