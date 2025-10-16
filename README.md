@@ -242,7 +242,8 @@ Wiki: https://holylib.raphaelit7.com/
 \- \- [CGameClient](https://github.com/RaphaelIT7/gmod-holylib#cgameclient)<br>
 \- \- [Singleplayer](https://github.com/RaphaelIT7/gmod-holylib#singleplayer)<br>
 \- \- [128+ Players](https://github.com/RaphaelIT7/gmod-holylib#128-players)<br>
-\- [autorefresh](#autorefresh)<br>
+\- [autorefresh](https://github.com/RaphaelIT7/gmod-holylib#autorefresh)<br>
+\- [soundscape](https://github.com/RaphaelIT7/gmod-holylib#soundscape)<br>
 
 [Unfinished Modules](https://github.com/RaphaelIT7/gmod-holylib#unfinished-modules)<br>
 \- [serverplugins](https://github.com/RaphaelIT7/gmod-holylib#serverplugins)<br>
@@ -4687,6 +4688,82 @@ hook.Add("HolyLib:PostLuaAutoRefresh", "ExamplePostAutoRefresh", function(filePa
     print("[AFTER] FileChanged: " .. filePath .. filename)
 end)
 ```
+
+## soundscape
+The Soundscape module was added in `0.8` and allows you to get information about soundscapes and to control them for players.
+
+Supports: Linux32
+
+> [!WARNING]
+> This module is not yet finished and untested
+
+> [!NOTE]
+> This mostly is for env_soundscape and will not do much for trigger_soundscape as thoes work noticably different.
+
+### Functions
+
+#### Entity soundscape.GetActiveSoundScape(Player player)
+Returns the currently active soundscape for the given player
+
+#### number soundscape.GetActiveSoundScapeIndex(Player player)
+Returns the currently active soundscape index for the given player or `-1` if they have no soundscape active.
+
+#### table(number - vector) soundscape.GetActivePositions(Player player)
+Returns a table containing all positions used for local sounds that are linked to the currently active soundscape.<br>
+Will return an empty table if the client has no active soundscape.
+
+#### soundscape.SetActiveSoundscape(Player player, Entity soundscape)
+Sets the soundscape entity for the given player, use soundscape.BlockEngineChanges as else the engine might override it.
+
+> [!NOTE]
+> The given entity must be a `env_soundscape` or else it will throw an error!
+
+#### soundscape.BlockEngineChanges(Player player, bool shouldBlock = false)
+Sets if the engine should be blocked from changing the soundscape of the given player.
+
+#### table(number - string) soundscape.GetAll()
+Returns a table containing all soundscapes that exist.<br>
+key will be the soundscape index and value will be the name of the soundscape<br>
+The table can possibly be non-sequential so use `pairs` instead of `ipairs` when iterating.<br>
+
+#### string soundscape.GetNameByIndex(number soundscapeIndex)
+Returns the name of the given soundscapeIndex or returns `nil` if not found.<br>
+
+#### number soundscape.GetIndexByName(string name)
+Returns the index of the given soundscape name or returns `nil` if not found.<br>
+
+#### table(number - entity) soundscape.GetAllEntities()
+Returns a sequential table containing all soundscape entities.<br>
+
+#### soundscape.SetCurrentSoundscape(Entity soundscape)
+Sets the soundscape entity for the currently active soundscapeUpdate.<br>
+Only works inside the `HolyLib:OnSoundScapeUpdateForPlayer` hook!<br>
+
+> [!NOTE]
+> The given entity must be a `env_soundscape` or else it will throw an error!
+
+#### soundscape.SetCurrentDistance(number distance)
+Sets the distance for the currently active soundscapeUpdate.<br>
+Only works inside the `HolyLib:OnSoundScapeUpdateForPlayer` hook!<br>
+Mostly only useful to influence which soundscape could be selected.<br>
+
+#### soundscape.SetCurrentPlayerPosition(Vector position)
+Sets the player position for the currently active soundscapeUpdate.<br>
+Only works inside the `HolyLib:OnSoundScapeUpdateForPlayer` hook!<br>
+Mostly only useful to influence which soundscape could be selected.<br>
+
+### Hooks
+
+#### bool HolyLib:OnSoundScapeUpdateForPlayer(Entity currentSoundscape, Player currentPlayer)
+Called before a soundscape tries to update for the given player.<br>
+Return `true` to block the call and any further calls for this tick and additionally,<br>
+the currently set soundscape entity for the active soundscapeUpdate will be applied to the player.<br>
+You can set it using `soundscape.SetCurrentSoundscape` inside the hook.<br>
+
+### ConVars
+
+#### holylib_soundscape_updateplayerhook(default `0`)
+If enabled, the `HolyLib:OnSoundScapeUpdateForPlayer` will be called.
 
 # Unfinished Modules
 

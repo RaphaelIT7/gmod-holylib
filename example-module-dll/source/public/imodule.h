@@ -2,6 +2,7 @@
 
 #include "interface.h"
 #include "string"
+#include "convar.h"
 
 enum Module_Compatibility
 {
@@ -28,6 +29,13 @@ namespace Bootil
 	}
 }
 
+typedef enum // Same as PLUGIN_RESULT of iserverplugin.h
+{
+	MODULE_CONTINUE = 0, // keep going
+	MODULE_OVERRIDE, // run the game dll function but use our return value instead
+	MODULE_STOP, // don't run the game dll function at all
+} MODULE_RESULT;
+
 class ConVar;
 class KeyValues;
 struct edict_t;
@@ -35,9 +43,16 @@ class CBaseEntity;
 struct lua_State;
 class CBaseClient;
 
+typedef enum
+{
+	VERSION_1 = 1,
+} IModuleVersion;
+
 class IModule
 {
 public:
+	virtual IModuleVersion ModuleVersion() { return IModuleVersion::VERSION_1; }
+
 	// Called when the Plugin's Init function is called.
 	// On Windows
 	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) { (void)appfn; (void)gamefn; };
@@ -119,8 +134,27 @@ public:
 	// Called on level shutdown
 	virtual void LevelShutdown() {};
 
+	// Called when Lua tries to load a gmod binary module
 	virtual void PreLuaModuleLoaded(lua_State* L, const char* pFileName) { (void)L; (void)pFileName; };
 	virtual void PostLuaModuleLoaded(lua_State* L, const char* pFileName) { (void)L; (void)pFileName; };
+
+	// called when a client spawns into the server
+	virtual void ClientActive(edict_t* pClient) { (void)pClient; };
+
+	// called when a client disconnects
+	virtual void ClientDisconnect(edict_t* pClient) { (void)pClient; };
+
+	// called when a client spawns into the server?
+	virtual void ClientPutInServer(edict_t* pClient, const char* pPlayerName) { (void)pClient; (void)pPlayerName; };
+
+	// called when a client connects to the servers
+	virtual MODULE_RESULT ClientConnect(bool* bAllowConnect, edict_t* pClient, const char* pszName, const char* pszAddress, char* reject, int maxrejectlen) { (void)bAllowConnect; (void)pClient; (void)pszName; (void)pszAddress; (void)reject; (void)maxrejectlen; return MODULE_CONTINUE; };
+
+	// called when a client spawns into the server
+	virtual MODULE_RESULT ClientCommand(edict_t *pClient, const CCommand &args) { (void)pClient; (void)args; return MODULE_CONTINUE; };
+
+	// called when a client spawns into the server
+	virtual MODULE_RESULT NetworkIDValidated(const char *pszUserName, const char *pszNetworkID) { (void)pszUserName; (void)pszNetworkID; return MODULE_CONTINUE; };
 
 public: // I would like to remove these at some point but it's more efficient if the modules themself have them.
 	unsigned int m_pID = 0; // Set by the CModuleManager when registering it! Don't touch it.
@@ -217,6 +251,8 @@ public:
 
 	// All callback things.
 	virtual void Init() = 0;
+
+	// bServerInit = true should never be called by a Interface itself, its called automatically
 	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) = 0;
 	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) = 0;
 	virtual void InitDetour(bool bPreServer) = 0;
@@ -233,4 +269,10 @@ public:
 	virtual void LevelShutdown() = 0;
 	virtual void PreLuaModuleLoaded(lua_State* L, const char* pFileName) = 0;
 	virtual void PostLuaModuleLoaded(lua_State* L, const char* pFileName) = 0;
+	virtual void ClientActive(edict_t* pClient) = 0;
+	virtual void ClientDisconnect(edict_t* pClient) = 0;
+	virtual void ClientPutInServer(edict_t* pClient, const char* pPlayerName) = 0;
+	virtual MODULE_RESULT ClientConnect(bool* bAllowConnect, edict_t* pClient, const char* pszName, const char* pszAddress, char* reject, int maxrejectlen) = 0;
+	virtual MODULE_RESULT ClientCommand(edict_t *pClient, const CCommand &args) = 0;
+	virtual MODULE_RESULT NetworkIDValidated(const char *pszUserName, const char *pszNetworkID) = 0;
 };
