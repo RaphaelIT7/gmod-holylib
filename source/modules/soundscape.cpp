@@ -88,18 +88,16 @@ LUA_FUNCTION_STATIC(soundscape_GetActivePositions)
 LUA_FUNCTION_STATIC(soundscape_Stop)
 {
     CBasePlayer* pPlayer = Util::Get_Player(LUA, 1, true);
-    if (!pPlayer)
-        LUA->ThrowError("Invalid player!");
-
     audioparams_t* pParams = GetAudioParams(pPlayer);
     if (!pParams)
         LUA->ThrowError("Failed to get audioparams_t!");
 
     pParams->soundscapeIndex = -1;
-
-    memset(&pParams->ent, 0, sizeof(pParams->ent));
-
+    pParams->ent.m_Value = nullptr;
     pParams->localBits.Set(0);
+
+    for (int i = 0; i < NUM_AUDIO_LOCAL_SOUNDS; ++i)
+        pParams->localSound[i].Init();
 
     return 0;
 }
