@@ -280,6 +280,7 @@ void CServerPlugin::LevelShutdown(void) // !!!!this can get called multiple time
 //---------------------------------------------------------------------------------
 void CServerPlugin::ClientActive(edict_t *pEntity)
 {
+	g_pModuleManager.ClientActive(pEntity);
 }
 
 //---------------------------------------------------------------------------------
@@ -287,6 +288,7 @@ void CServerPlugin::ClientActive(edict_t *pEntity)
 //---------------------------------------------------------------------------------
 void CServerPlugin::ClientDisconnect(edict_t *pEntity)
 {
+	g_pModuleManager.ClientDisconnect(pEntity);
 }
 
 //---------------------------------------------------------------------------------
@@ -294,6 +296,7 @@ void CServerPlugin::ClientDisconnect(edict_t *pEntity)
 //---------------------------------------------------------------------------------
 void CServerPlugin::ClientPutInServer(edict_t *pEntity, char const *playername)
 {
+	g_pModuleManager.ClientPutInServer(pEntity, playername);
 }
 
 //---------------------------------------------------------------------------------
@@ -316,7 +319,7 @@ void CServerPlugin::ClientSettingsChanged(edict_t *pEdict)
 //---------------------------------------------------------------------------------
 PLUGIN_RESULT CServerPlugin::ClientConnect(bool* bAllowConnect, edict_t* pEntity, const char* pszName, const char* pszAddress, char* reject, int maxrejectlen)
 {
-	return PLUGIN_CONTINUE;
+	return (PLUGIN_RESULT)g_pModuleManager.ClientConnect(bAllowConnect, pEntity, pszName, pszAddress, reject, maxrejectlen);
 }
 
 //---------------------------------------------------------------------------------
@@ -324,7 +327,7 @@ PLUGIN_RESULT CServerPlugin::ClientConnect(bool* bAllowConnect, edict_t* pEntity
 //---------------------------------------------------------------------------------
 PLUGIN_RESULT CServerPlugin::ClientCommand(edict_t *pEntity, const CCommand &args)
 {
-	return PLUGIN_CONTINUE;
+	return (PLUGIN_RESULT)g_pModuleManager.ClientCommand(pEntity, args);
 }
 
 //---------------------------------------------------------------------------------
@@ -332,7 +335,7 @@ PLUGIN_RESULT CServerPlugin::ClientCommand(edict_t *pEntity, const CCommand &arg
 //---------------------------------------------------------------------------------
 PLUGIN_RESULT CServerPlugin::NetworkIDValidated(const char *pszUserName, const char *pszNetworkID)
 {
-	return PLUGIN_CONTINUE;
+	return (PLUGIN_RESULT)g_pModuleManager.NetworkIDValidated(pszUserName, pszNetworkID);
 }
 
 //---------------------------------------------------------------------------------

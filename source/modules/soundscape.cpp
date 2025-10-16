@@ -20,6 +20,7 @@ public:
 	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void Shutdown() OVERRIDE;
+	virtual void ClientDisconnect(edict_t* pClient) OVERRIDE;
 	virtual const char* Name() { return "soundscape"; };
 	virtual int Compatibility() { return LINUX32; };
 	virtual bool IsEnabledByDefault() { return true; };
@@ -89,6 +90,43 @@ LUA_FUNCTION_STATIC(soundscape_GetActivePositions)
 		}
 
 	return 1;
+}
+
+static Symbols::CEnvSoundscape_WriteAudioParamsTo func_CEnvSoundscape_WriteAudioParamsTo = nullptr;
+LUA_FUNCTION_STATIC(soundscape_SetActiveSoundscape)
+{
+	CBaseEntity* pPlayer = Util::Get_Player(LUA, 1, true);
+	CBaseEntity* pSoundscape = Util::Get_Entity(LUA, 2, true);
+	if (V_stricmp(pSoundscape->GetClassname(), "env_soundscape") != 0)
+		LUA->ThrowError("Tried to give a entity which wasn't a env_soundscape!");
+
+	audioparams_t* pParams = GetAudioParams(pPlayer);
+	if (pParams && func_CEnvSoundscape_WriteAudioParamsTo)
+		func_CEnvSoundscape_WriteAudioParamsTo(pSoundscape, *pParams);
+
+	return 0;
+}
+
+static CBitVec<MAX_PLAYERS> pBlockEngineAction;
+LUA_FUNCTION_STATIC(soundscape_BlockEngineChanges)
+{
+	CBasePlayer* pPlayer = Util::Get_Player(LUA, 1, true);
+	bool bShouldBlock = LUA->GetBool(2);
+
+	int iClient = pPlayer->edict()->m_EdictIndex-1;
+	if (bShouldBlock) {
+		pBlockEngineAction.Set(iClient);
+	} else {
+		pBlockEngineAction.Clear(iClient);
+	}
+
+	return 0;
+}
+
+void CSoundscapeModule::ClientDisconnect(edict_t* pClient)
+{
+	// We unset the bit so that the next client that gets this slot won't be affected by the previous player.
+	pBlockEngineAction.Clear(pClient->m_EdictIndex-1);
 }
 
 static CSoundscapeSystem* g_pSoundscapeSystem = nullptr;
@@ -176,18 +214,19 @@ LUA_FUNCTION_STATIC(soundscape_GetAllEntities)
 }
 
 static int nLastUpdateTick = -1;
-static std::unordered_set<CBasePlayer*> pHandledPlayers;
+static CBitVec<MAX_PLAYERS> pHandledPlayers;
 static ss_update_t* pCurrentUpdate = nullptr;
 static Detouring::Hook detour_CEnvSoundscape_UpdateForPlayer;
-static Symbols::CEnvSoundscape_WriteAudioParamsTo func_CEnvSoundscape_WriteAudioParamsTo = nullptr;
 static void hook_CEnvSoundscape_UpdateForPlayer(CBaseEntity* pSoundScape, ss_update_t& update)
 {
 	int nTick = gpGlobals->tickcount;
 	if (nTick != nLastUpdateTick)
-		pHandledPlayers.clear();
+		pHandledPlayers.ClearAll();
+
+	int iClient = update.pPlayer->edict()->m_EdictIndex-1;
 	
 	// Player got handled by Lua already, so we can skip
-	if (update.pPlayer && pHandledPlayers.find(update.pPlayer) != pHandledPlayers.end())
+	if (pHandledPlayers.IsBitSet(iClient))
 		return;
 
 	// Can update.pPlayer even be NULL? Probably no
@@ -209,7 +248,7 @@ static void hook_CEnvSoundscape_UpdateForPlayer(CBaseEntity* pSoundScape, ss_upd
 					func_CEnvSoundscape_WriteAudioParamsTo(update.pCurrentSoundscape, *pParams);
 
 				// We canceled, so we now, we don't want anything to mess with the player further, so we'll block further actions for this tick.
-				pHandledPlayers.insert(update.pPlayer);
+				pHandledPlayers.Set(iClient);
 				pCurrentUpdate = nullptr;
 				return;
 			}
@@ -242,7 +281,7 @@ LUA_FUNCTION_STATIC(soundscape_SetCurrentSoundscape)
 	if (V_stricmp(pEntity->GetClassname(), "env_soundscape") != 0)
 		LUA->ThrowError("Tried to give a entity which wasn't a env_soundscape!");
 
-	pCurrentUpdate->pCurrentSoundscape = (CEnvSoundscape*)Util::Get_Entity(LUA, 1, true);
+	pCurrentUpdate->pCurrentSoundscape = (CEnvSoundscape*)pEntity;
 	return 0;
 }
 
@@ -284,6 +323,8 @@ void CSoundscapeModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, soundscape_GetActiveSoundScape, "GetActiveSoundScape");
 		Util::AddFunc(pLua, soundscape_GetActiveSoundScapeIndex, "GetActiveSoundScapeIndex");
 		Util::AddFunc(pLua, soundscape_GetActivePositions, "GetActivePositions");
+		Util::AddFunc(pLua, soundscape_SetActiveSoundscape, "SetActiveSoundscape");
+		Util::AddFunc(pLua, soundscape_BlockEngineChanges, "BlockEngineChanges");
 
 		Util::AddFunc(pLua, soundscape_GetAll, "GetAll");
 		Util::AddFunc(pLua, soundscape_GetNameByIndex, "GetNameByIndex");

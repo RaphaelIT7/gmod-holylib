@@ -4697,6 +4697,9 @@ Supports: Linux32
 > [!WARNING]
 > This module is not yet finished and untested
 
+> [!NOTE]
+> This mostly is for env_soundscape and will not do much for trigger_soundscape as thoes work noticably different.
+
 ### Functions
 
 #### Entity soundscape.GetActiveSoundScape(Player player)
@@ -4708,6 +4711,15 @@ Returns the currently active soundscape index for the given player or `-1` if th
 #### table(number - vector) soundscape.GetActivePositions(Player player)
 Returns a table containing all positions used for local sounds that are linked to the currently active soundscape.<br>
 Will return an empty table if the client has no active soundscape.
+
+#### soundscape.SetActiveSoundscape(Player player, Entity soundscape)
+Sets the soundscape entity for the given player, use soundscape.BlockEngineChanges as else the engine might override it.
+
+> [!NOTE]
+> The given entity must be a `env_soundscape` or else it will throw an error!
+
+#### soundscape.BlockEngineChanges(Player player, bool shouldBlock = false)
+Sets if the engine should be blocked from changing the soundscape of the given player.
 
 #### table(number - string) soundscape.GetAll()
 Returns a table containing all soundscapes that exist.<br>
