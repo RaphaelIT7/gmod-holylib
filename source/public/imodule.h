@@ -2,7 +2,6 @@
 
 #include "interface.h"
 #include "string"
-#include "convar.h"
 
 enum Module_Compatibility
 {
@@ -42,6 +41,7 @@ struct edict_t;
 class CBaseEntity;
 struct lua_State;
 class CBaseClient;
+class CCommand;
 
 typedef enum
 {
@@ -151,7 +151,7 @@ public:
 	virtual MODULE_RESULT ClientConnect(bool* bAllowConnect, edict_t* pClient, const char* pszName, const char* pszAddress, char* reject, int maxrejectlen) { (void)bAllowConnect; (void)pClient; (void)pszName; (void)pszAddress; (void)reject; (void)maxrejectlen; return MODULE_CONTINUE; };
 
 	// called when a client spawns into the server
-	virtual MODULE_RESULT ClientCommand(edict_t *pClient, const CCommand &args) { (void)pClient; (void)args; return MODULE_CONTINUE; };
+	virtual MODULE_RESULT ClientCommand(edict_t *pClient, const CCommand* args) { (void)pClient; (void)args; return MODULE_CONTINUE; };
 
 	// called when a client spawns into the server
 	virtual MODULE_RESULT NetworkIDValidated(const char *pszUserName, const char *pszNetworkID) { (void)pszUserName; (void)pszNetworkID; return MODULE_CONTINUE; };
@@ -273,6 +273,6 @@ public:
 	virtual void ClientDisconnect(edict_t* pClient) = 0;
 	virtual void ClientPutInServer(edict_t* pClient, const char* pPlayerName) = 0;
 	virtual MODULE_RESULT ClientConnect(bool* bAllowConnect, edict_t* pClient, const char* pszName, const char* pszAddress, char* reject, int maxrejectlen) = 0;
-	virtual MODULE_RESULT ClientCommand(edict_t *pClient, const CCommand &args) = 0;
+	virtual MODULE_RESULT ClientCommand(edict_t *pClient, const CCommand* args) = 0;
 	virtual MODULE_RESULT NetworkIDValidated(const char *pszUserName, const char *pszNetworkID) = 0;
 };

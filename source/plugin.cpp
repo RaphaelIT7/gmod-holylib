@@ -327,7 +327,8 @@ PLUGIN_RESULT CServerPlugin::ClientConnect(bool* bAllowConnect, edict_t* pEntity
 //---------------------------------------------------------------------------------
 PLUGIN_RESULT CServerPlugin::ClientCommand(edict_t *pEntity, const CCommand &args)
 {
-	return (PLUGIN_RESULT)g_pModuleManager.ClientCommand(pEntity, args);
+	// We pass &args since else we would need to include convar.h in imodule.h which causes a lot of unessesary stuff to be included.
+	return (PLUGIN_RESULT)g_pModuleManager.ClientCommand(pEntity, &args);
 }
 
 //---------------------------------------------------------------------------------

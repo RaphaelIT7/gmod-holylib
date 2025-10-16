@@ -523,7 +523,7 @@ MODULE_RESULT CModuleManager::ClientConnect(bool* bAllowConnect, edict_t* pClien
 	return result;
 }
 
-MODULE_RESULT CModuleManager::ClientCommand(edict_t *pClient, const CCommand &args)
+MODULE_RESULT CModuleManager::ClientCommand(edict_t *pClient, const CCommand* args)
 {
 	MODULE_RESULT result = MODULE_RESULT::MODULE_CONTINUE;
 	BASE_CALL_ENABLED_MODULES(
