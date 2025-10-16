@@ -32,11 +32,8 @@ static const char* hook_ConCommand_IsBlocked(const char* cmd)
 	if (V_stricmp(cmd, "exit") == 0)
 		return NULL;
 
-	if (V_stricmp(cmd, "playsoundscape nothing") == 0 ||
-		V_stricmp(cmd, "playsoundscape nothing\n") == 0)
-	{
+	if (V_stricmp(cmd, "playsoundscape") == 0)
 		return NULL;
-	}
 
 	if (V_stricmp(cmd, "holylib_concommand_disableblacklist") == 0)
 		return cmd;
