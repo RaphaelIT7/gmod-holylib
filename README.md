@@ -70,7 +70,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 
 ## Next Update
 \- [+] Any files in `lua/autorun/_holylua/` are loaded by HolyLib on startup.<br>
-\- [+] Added a new module `luathreads`<br>
+\- [+] Added a new modules `luathreads`, `networkthreading`, `soundscape`<br>
 \- [+] Added `NS_` enums to `gameserver` module.<br>
 \- [+] Added missing `CNetChan:Shutdown` function to the `gameserver` module.<br>
 \- [+] Added LZ4 compression for newly implemented net channel.<br>
@@ -244,6 +244,7 @@ Wiki: https://holylib.raphaelit7.com/
 \- \- [128+ Players](https://github.com/RaphaelIT7/gmod-holylib#128-players)<br>
 \- [autorefresh](https://github.com/RaphaelIT7/gmod-holylib#autorefresh)<br>
 \- [soundscape](https://github.com/RaphaelIT7/gmod-holylib#soundscape)<br>
+\- [networkthreading](https://github.com/RaphaelIT7/gmod-holylib#networkthreading)<br>
 
 [Unfinished Modules](https://github.com/RaphaelIT7/gmod-holylib#unfinished-modules)<br>
 \- [serverplugins](https://github.com/RaphaelIT7/gmod-holylib#serverplugins)<br>
@@ -4764,6 +4765,20 @@ You can set it using `soundscape.SetCurrentSoundscape` inside the hook.<br>
 
 #### holylib_soundscape_updateplayerhook(default `0`)
 If enabled, the `HolyLib:OnSoundScapeUpdateForPlayer` will be called.
+
+## networkthreading
+The Networkthreading module was added in `0.8` and starts a networking thread that will handle all incoming packets, filtering them and preparing them for the main thread for processing.<br>
+The main purpose is simply moving filtering and prepaing of packets off the main thread and only doing the processing on it.<br>
+
+Supports: Linux32
+
+### ConVars
+
+#### holylib_networkthreading_parallelprocessing(default `1`)
+If enabled, some packets will be processed by the networking thread instead of the main thread.
+
+> [!NOTE]
+> This can cause the `HolyLib:ProcessConnectionlessPacket` to not be called for the affected packets!
 
 # Unfinished Modules
 
