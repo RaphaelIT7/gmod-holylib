@@ -266,7 +266,7 @@ void PostPhysicsLag()
 
 		g_pIsInPhysicsLagCall = true;
 		pCurrentTime = std::chrono::high_resolution_clock::now(); // Update timer.
-		if (g_Lua->CallFunctionProtected(6, 0, true))
+		if (g_Lua->CallFunctionProtected(2, 0, true))
 		{
 			if (g_pPhysEnvModule.InDebug() > 2)
 				Msg(PROJECT_NAME " - physenv: Post Lua hook called!\n");
