@@ -68,6 +68,10 @@ struct SteamServersConnected_t;
 struct SteamServersDisconnected_t;
 struct global_State;
 struct GCtab;
+struct audioparams_t;
+struct ss_update_t;
+class IConnectionlessPacketHandler;
+class CCommand;
 
 namespace GarrysMod::Lua
 {
@@ -98,8 +102,16 @@ struct ThreadPoolStartParams_t;
 #else
 #define GMCOMMON_CALLING_CONVENTION __thiscall
 #endif
+#define CALLING_CONVENTION_FASTCALL __fastcall
 #else
+#define CALLING_CONVENTION_FASTCALL __attribute__((fastcall))
 #define GMCOMMON_CALLING_CONVENTION
+#endif
+
+#if ARCHITECTURE_IS_X86_64
+#define SIMPLETHREAD_RETURNVALUE long long unsigned
+#else
+#define SIMPLETHREAD_RETURNVALUE unsigned
 #endif
 
  /*
@@ -475,9 +487,6 @@ namespace Symbols
 	extern const std::vector<Symbol> CBaseCombatCharacter_SetTransmitSym;
 	extern const std::vector<Symbol> CBaseAnimating_SetTransmitSym;
 
-	typedef CSkyCamera* (*GetCurrentSkyCamera)();
-	extern const std::vector<Symbol> GetCurrentSkyCameraSym;
-
 	//---------------------------------------------------------------------------------
 	// Purpose: steamworks Symbols
 	//---------------------------------------------------------------------------------
@@ -582,6 +591,9 @@ namespace Symbols
 
 	typedef void (*PhysFrame)(float deltaTime);
 	extern const std::vector<Symbol> PhysFrameSym;
+
+	typedef void (*CCollisionEvent_FrameUpdate)(void* pCollisionEvent);
+	extern const std::vector<Symbol> CCollisionEvent_FrameUpdateSym;
 
 #if PHYSENV_INCLUDEIVPFALLBACK
 	typedef GMODSDK::IVP_MRC_TYPE (*IVP_Mindist_Minimize_Solver_p_minimize_PP)(void* mindistMinimizeSolver, const GMODSDK::IVP_Compact_Edge *A, const GMODSDK::IVP_Compact_Edge *B, IVP_Cache_Ledge_Point *m_cache_A, IVP_Cache_Ledge_Point *m_cache_B);
@@ -710,4 +722,53 @@ namespace Symbols
 
 	typedef bool (*Bootil_File_ChangeMonitor_HasChanged)(void* changeMonitor);
 	extern const std::vector<Symbol> Bootil_File_ChangeMonitor_HasChangedSym;
+
+	//---------------------------------------------------------------------------------
+	// Purpose: soundscape Symbols
+	//---------------------------------------------------------------------------------
+	typedef bool (*CEnvSoundscape_UpdateForPlayer)(CBaseEntity* pSoundScape, ss_update_t& update);
+	extern const std::vector<Symbol> CEnvSoundscape_UpdateForPlayerSym;
+
+	typedef bool (*CEnvSoundscape_WriteAudioParamsTo)(CBaseEntity* pSoundScape, audioparams_t& update);
+	extern const std::vector<Symbol> CEnvSoundscape_WriteAudioParamsToSym;
+
+	extern const std::vector<Symbol> g_SoundscapeSystemSym;
+
+	//---------------------------------------------------------------------------------
+	// Purpose: networkthreading Symbols
+	//---------------------------------------------------------------------------------
+	typedef void (*NET_ProcessSocket)(int sock, IConnectionlessPacketHandler *handler);
+	extern const std::vector<Symbol> NET_ProcessSocketSym;
+
+	typedef netpacket_s* (*NET_GetPacket)(int sock, byte *scratch);
+	extern const std::vector<Symbol> NET_GetPacketSym;
+	
+	typedef bool (*Filter_ShouldDiscard)(const netadr_t& adr);
+	extern const std::vector<Symbol> Filter_ShouldDiscardSym;
+
+	// Already defined by gameserver
+	// typedef void (*Filter_SendBan)(const netadr_t& adr);
+	// extern const std::vector<Symbol> Filter_SendBanSym;
+
+	typedef CNetChan* (*NET_FindNetChannel)(int socket, netadr_t &adr);
+	extern const std::vector<Symbol> NET_FindNetChannelSym;
+
+	typedef void (*CNetChan_Constructor)(CNetChan* pChanenl);
+	extern const std::vector<Symbol> CNetChan_ConstructorSym;
+
+	typedef void (*NET_RemoveNetChannel)(INetChannel* pChannel, bool bShouldRemove);
+	extern const std::vector<Symbol> NET_RemoveNetChannelSym;
+
+	// Now come some commands that party on g_IPFilters as we need to make it thread safe to avoid crashes :3
+	typedef void (*writeip)(const CCommand* pCommand);
+	extern const std::vector<Symbol> writeipSym;
+
+	typedef void (*listip)(const CCommand* pCommand);
+	extern const std::vector<Symbol> listipSym;
+
+	typedef void (*removeip)(const CCommand* pCommand);
+	extern const std::vector<Symbol> removeipSym;
+
+	typedef void (*Filter_Add_f)(const CCommand* pCommand);
+	extern const std::vector<Symbol> Filter_Add_fSym;
 }

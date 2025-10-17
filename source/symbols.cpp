@@ -566,11 +566,6 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x56\x41\x55\x41\x54\x49\x89\xF4\x53\x48\x89\xFB\x48\x8B\x47\x40\x48\x85\xC0\x0F\x84\x2A\x2A\x2A\x2A\x0F\xB7\x48\x06\x0F\xBF\xC1\xC1\xE8\x05\x89\xC0\x48\x8D\x34\x85\x2A\x2A\x2A\x2A\xB8\x01\x00\x00\x00\xD3\xE0\x49\x8B\x8C\x24\x10\x20\x00\x00\x85\x04\x31\x74\x2A\x5B\x41\x5C\x41\x5D\x41\x5E\x5D\xC3\x90\x44\x0F\xB6\xEA\x4C\x89\xE6\x48\x89\xDF\x44\x89\xEA\xE8\x2A\x2A\x2A\x2A\x8B\x83\x3C\x16\x00\x00"), // 55 48 89 E5 41 56 41 55 41 54 49 89 F4 53 48 89 FB 48 8B 47 40 48 85 C0 0F 84 ? ? ? ? 0F B7 48 06 0F BF C1 C1 E8 05 89 C0 48 8D 34 85 ? ? ? ? B8 01 00 00 00 D3 E0 49 8B 8C 24 10 20 00 00 85 04 31 74 ? 5B 41 5C 41 5D 41 5E 5D C3 90 44 0F B6 EA 4C 89 E6 48 89 DF 44 89 EA E8 ? ? ? ? 8B 83 3C 16 00 00
 	};
 
-	const std::vector<Symbol> GetCurrentSkyCameraSym = {// Search for 'models/props_combine/headcrabcannister01a_skybox.mdl' then select the xref function that call it 2 times, and you got it
-		Symbol::FromName("_Z19GetCurrentSkyCamerav"),
-		Symbol::FromSignature("\x55\x48\x8B\x05\x2A\x2A\x0D\x01\x48\x89\xE5\x5D\xC3"), //55 48 8B 05 ?? ?? 0D 01 48 89 E5 5D C3 
-	};
-
 	//---------------------------------------------------------------------------------
 	// Purpose: steamworks Symbols
 	//---------------------------------------------------------------------------------
@@ -708,6 +703,11 @@ namespace Symbols
 		Symbol::FromName("_ZL9PhysFramef"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x53\x48\x83\xEC\x38\x64\x48\x8B\x04\x25\x2A\x2A\x2A\x2A"), // 55 48 89 E5 41 57 41 56 41 55 41 54 53 48 83 EC 38 64 48 8B 04 25 ? ? ? ?
 		Symbol::FromSignature("\x55\x8B\xEC\x83\xEC\x1C\x83******\x53\x56\x57"), // 55 8B EC 83 EC 1C 83 ?? ?? ?? ?? ?? ?? 53 56 57
+	};
+
+	const std::vector<Symbol> CCollisionEvent_FrameUpdateSym = {
+		Symbol::FromName("_ZN15CCollisionEvent11FrameUpdateEv"),
+		NULL_SIGNATURE,
 	};
 
 	const std::vector<Symbol> CPhysicsEnvironment_DestroyObjectSym = {//Search for 'error deleting physics object\n'
@@ -952,5 +952,66 @@ namespace Symbols
 
 	const std::vector<Symbol> Bootil_File_ChangeMonitor_HasChangedSym = {
 		Symbol::FromName("_ZN6Bootil4File13ChangeMonitor10HasChangesEv"),
+	};
+
+	//---------------------------------------------------------------------------------
+	// Purpose: AutoRefresh Symbols
+	//---------------------------------------------------------------------------------
+	const std::vector<Symbol> CEnvSoundscape_UpdateForPlayerSym = {
+		Symbol::FromName("_ZN14CEnvSoundscape15UpdateForPlayerER11ss_update_t"),
+	};
+
+	const std::vector<Symbol> CEnvSoundscape_WriteAudioParamsToSym = {
+		Symbol::FromName("_ZN14CEnvSoundscape18WriteAudioParamsToER13audioparams_t"),
+	};
+
+	const std::vector<Symbol> g_SoundscapeSystemSym = {
+		Symbol::FromName("g_SoundscapeSystem"),
+	};
+
+	//---------------------------------------------------------------------------------
+	// Purpose: networkthreading Symbols
+	//---------------------------------------------------------------------------------
+	const std::vector<Symbol> NET_ProcessSocketSym = {
+		Symbol::FromName("_Z17NET_ProcessSocketiP28IConnectionlessPacketHandler"),
+	};
+
+	const std::vector<Symbol> NET_GetPacketSym = {
+		Symbol::FromName("_Z13NET_GetPacketiPh"),
+	};
+
+	const std::vector<Symbol> Filter_ShouldDiscardSym = {
+		Symbol::FromName("_Z20Filter_ShouldDiscardRK8netadr_s"),
+	};
+
+	const std::vector<Symbol> NET_FindNetChannelSym = {
+		Symbol::FromName("_Z18NET_FindNetChanneliR8netadr_s"),
+	};
+
+	// Since we don't have s_NetChannels we gotta do this shit.
+	// Would probably be useful to ask for it to be exposed but I don't want to wait 2+ years
+	const std::vector<Symbol> CNetChan_ConstructorSym = {
+		Symbol::FromName("_ZN8CNetChanC2Ev"),
+	};
+
+	const std::vector<Symbol> CNetChan_DeconstructorSym = {
+		Symbol::FromName("_ZN8CNetChanD2Ev"),
+	};
+
+	// Yay commands :3
+	const std::vector<Symbol> writeipSym = {
+		Symbol::FromName("_ZL7writeipRK8CCommand"),
+	};
+
+	const std::vector<Symbol> listipSym = {
+		Symbol::FromName("_ZL6listipRK8CCommand"),
+	};
+
+	const std::vector<Symbol> removeipSym = {
+		Symbol::FromName("_ZL8removeipRK8CCommand"),
+	};
+
+	const std::vector<Symbol> Filter_Add_fSym = {
+		Symbol::FromName("_ZL12Filter_Add_fRK8CCommand"),
 	};
 }

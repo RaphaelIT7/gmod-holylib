@@ -82,6 +82,12 @@ public:
 	virtual void LevelShutdown();
 	virtual void PreLuaModuleLoaded(lua_State* L, const char* pFileName);
 	virtual void PostLuaModuleLoaded(lua_State* L, const char* pFileName);
+	virtual void ClientActive(edict_t* pClient);
+	virtual void ClientDisconnect(edict_t* pClient);
+	virtual void ClientPutInServer(edict_t* pClient, const char* pPlayerName);
+	virtual MODULE_RESULT ClientConnect(bool* bAllowConnect, edict_t* pClient, const char* pszName, const char* pszAddress, char* reject, int maxrejectlen);
+	virtual MODULE_RESULT ClientCommand(edict_t *pClient, const CCommand* args);
+	virtual MODULE_RESULT NetworkIDValidated(const char *pszUserName, const char *pszNetworkID);
 
 	inline int GetStatus() { return m_pStatus; };
 	inline CreateInterfaceFn& GetAppFactory() { return m_pAppFactory; };

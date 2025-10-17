@@ -42,6 +42,7 @@ class IGameEventManager2;
 class IServer;
 class IServerGameDLL;
 class ISteamUser;
+struct CBaseHandle;
 namespace Util
 {
 	#define LUA_REGISTRYINDEX	(-10000)
@@ -236,6 +237,7 @@ namespace Util
 	extern void Push_Entity(GarrysMod::Lua::ILuaInterface* LUA, CBaseEntity* pEnt);
 	extern CBaseEntity* GetCBaseEntityFromEdict(edict_t* edict);
 	extern CBaseEntity* GetCBaseEntityFromIndex(int nEntIndex);
+	extern CBaseEntity* GetCBaseEntityFromHandle(const CBaseHandle& pHandle);
 
 	extern void AddDetour(); // We load Gmod's functions in there.
 	extern void RemoveDetour();

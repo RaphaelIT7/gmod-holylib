@@ -294,8 +294,6 @@ void CEntListModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 	if (bServerInit)
 		return;
 
-	m_iIsDebug = 1;
-
 	Lua::GetLuaData(pLua)->SetModuleData(m_pID, new LuaEntityModuleData);
 	GetGlobalEntityList(pLua).SetLua(pLua);
 

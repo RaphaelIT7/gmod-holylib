@@ -70,7 +70,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 
 ## Next Update
 \- [+] Any files in `lua/autorun/_holylua/` are loaded by HolyLib on startup.<br>
-\- [+] Added a new module `luathreads`<br>
+\- [+] Added a new modules `luathreads`, `networkthreading`, `soundscape`<br>
 \- [+] Added `NS_` enums to `gameserver` module.<br>
 \- [+] Added missing `CNetChan:Shutdown` function to the `gameserver` module.<br>
 \- [+] Added LZ4 compression for newly implemented net channel.<br>
@@ -143,6 +143,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [#] Moved `HolyLua` from HolyLib's core into a module to seperate it and allow anyone to remove it<br>
 \- [#] Fixed some memory leaks from our own `CLuaInterface` since on shutdown they never cleared up on removal/shutdown<br>
 \- [#] Added a speedup for pushing networked entities to Lua (On 64x pushing entities became 2.6x faster)<br>
+\- [#] Fixed some issues where `Vector`s & `Angle`s pushed from HolyLib would be the original one instead of a copy causing issues like corruption when modified<br>
 \- [-] Removed some unused code of former fixes that were implemented into Gmod<br>
 
 You can see all changes/commits here:<br>
@@ -163,6 +164,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 \- [#] Fixed `HttpServer:SetWriteTimeout` using the wrong arguments. (See https://github.com/RaphaelIT7/gmod-holylib/pull/65)<br>
 \- [#] Fixed `bf_read:ReadBytes` and `bf_read:ReadBits` both failing to push the string properly to lua.<br>
 \- [#] Changed `voicechat.SaveVoiceStream` & `voicechat.LoadVoiceStream` to remove their 4th `sync` argument, if a callback is provided it will be async, else it'll run sync<br>
+\- [#] Renamed `HolyLib:OnPhysFrame` to `HolyLib:PrePhysFrame`<br>
 \- [-] Removed `VoiceData:GetUncompressedData` decompress size argument<br>
 \- [-] Removed `CBaseClient:Transmit` third argument `fragments`.<br>
 \- [-] Removed `gameserver.CalculateCPUUsage` and `gameserver.ApproximateProcessMemoryUsage` since they never worked.<br>
@@ -240,7 +242,9 @@ Wiki: https://holylib.raphaelit7.com/
 \- \- [CGameClient](https://github.com/RaphaelIT7/gmod-holylib#cgameclient)<br>
 \- \- [Singleplayer](https://github.com/RaphaelIT7/gmod-holylib#singleplayer)<br>
 \- \- [128+ Players](https://github.com/RaphaelIT7/gmod-holylib#128-players)<br>
-\- [autorefresh](#autorefresh)<br>
+\- [autorefresh](https://github.com/RaphaelIT7/gmod-holylib#autorefresh)<br>
+\- [soundscape](https://github.com/RaphaelIT7/gmod-holylib#soundscape)<br>
+\- [networkthreading](https://github.com/RaphaelIT7/gmod-holylib#networkthreading)<br>
 
 [Unfinished Modules](https://github.com/RaphaelIT7/gmod-holylib#unfinished-modules)<br>
 \- [serverplugins](https://github.com/RaphaelIT7/gmod-holylib#serverplugins)<br>
@@ -255,6 +259,21 @@ This is most likely cause by the filesystem prediction.<br>
 You can use `holylib_filesystem_showpredictionerrors` to see any predictions that failed.<br>
 You can solve this by setting `holylib_filesystem_predictexistance 0`.<br>
 The convar was disabled by default now because of this.<br>
+
+## HolyLib internally caches the TValue's of metatables
+This is like keeping a reference though faster but also more unsafe.<br>
+If a metatable is replaced with another table / the GC Object internally changes<br>
+HolyLib will most definetly experience issues / crashes<br>
+though generally this should never happen unless you touch the Lua registry yourself<br>
+
+## Compatibility
+HolyLib should be compatible with most other binary modules<br>
+though there are some cases where they conflict like if their detouring the same function<br>
+Other binary modules can check if HolyLib is loaded by checking if the command line option `-holylibexists` exists<br>
+C++: `CommandLine()->FindParm("-holylibexists")`<br>
+
+Setting/Adding `-holylibexists` to the command line yourself will result in HolyLib refusing to load!<br>
+This is to prevent HolyLib from loading multiple times if multiple versions exist / in cases where multiple DLLs include HolyLib<br>
 
 # Modules
 Each module has its own convar `holylib_enable_[module name]` which allows you to enable/disable specific modules.<br>
@@ -2716,7 +2735,7 @@ Returns the physics environment by the given index.<br>
 Destroys the given physics environment.<br>
 
 #### IPhysicsEnvironment physenv.GetCurrentEnvironment()
-Returns the currently simulating environment.<br>
+Returns the currently simulating environment or `nil` if not inside a simulation.<br>
 
 #### physenv.EnablePhysHook(bool shouldCall)
 Enables/Disables the `HolyLib:OnPhysFrame` hook.<br>
@@ -3122,7 +3141,11 @@ You can freeze all props here and then return `physenv.IVP_SkipSimulation` to sk
 > Only works on Linux32<br>
 > By default its called only **ONCE** per simulation frame, you can return `physenv.IVP_NONE` to get it triggered multiple times in the same frame.<br>
 
-#### bool HolyLib:OnPhysFrame(number deltaTime)<br>
+### HolyLib:PostPhysicsLag(number simulationTime)
+Called after the physics simulation ended in which a physics lag was triggered.<br>
+Inside this hook you can safely change/modify the entities without having to worry about undefined behavior/crashes.<br>
+
+#### bool HolyLib:PrePhysFrame(number deltaTime)<br>
 Called when the physics are about to be simulated.<br>
 Return `true` to stop the engine from doing anything.<br>
 
@@ -3133,11 +3156,14 @@ Example of pausing the physics simulation while still allowing the entities to b
 ```lua
 physenv.EnablePhysHook(true)
 local mainEnv = physenv.GetActiveEnvironmentByIndex(0)
-hook.Add("HolyLib:OnPhysFrame", "Example", function(deltaTime)
+hook.Add("HolyLib:PrePhysFrame", "Example", function(deltaTime)
 	mainEnv:Simulate(deltaTime, true) -- the second argument will only cause the entities to update.
 <br><br>return true -- We stop the engine from running the simulation itself again as else it will result in issue like "Reset physics clock" being spammed
 end)
 ```
+
+### HolyLib:PostPhysFrame(number deltaTime, number simulationTime)
+Called after physics were simulated and how long it took to simulate in milliseconds.
 
 ## (Experimental) bass
 This module will add functions related to the bass dll.<br>
@@ -4667,6 +4693,96 @@ hook.Add("HolyLib:PostLuaAutoRefresh", "ExamplePostAutoRefresh", function(filePa
     print("[AFTER] FileChanged: " .. filePath .. filename)
 end)
 ```
+
+## soundscape
+The Soundscape module was added in `0.8` and allows you to get information about soundscapes and to control them for players.
+
+Supports: Linux32
+
+> [!WARNING]
+> This module is not yet finished and untested
+
+> [!NOTE]
+> This mostly is for env_soundscape and will not do much for trigger_soundscape as thoes work noticably different.
+
+### Functions
+
+#### Entity soundscape.GetActiveSoundScape(Player player)
+Returns the currently active soundscape for the given player
+
+#### number soundscape.GetActiveSoundScapeIndex(Player player)
+Returns the currently active soundscape index for the given player or `-1` if they have no soundscape active.
+
+#### table(number - vector) soundscape.GetActivePositions(Player player)
+Returns a table containing all positions used for local sounds that are linked to the currently active soundscape.<br>
+Will return an empty table if the client has no active soundscape.
+
+#### soundscape.SetActiveSoundscape(Player player, Entity soundscape)
+Sets the soundscape entity for the given player, use soundscape.BlockEngineChanges as else the engine might override it.
+
+> [!NOTE]
+> The given entity must be a `env_soundscape` or else it will throw an error!
+
+#### soundscape.BlockEngineChanges(Player player, bool shouldBlock = false)
+Sets if the engine should be blocked from changing the soundscape of the given player.
+
+#### table(number - string) soundscape.GetAll()
+Returns a table containing all soundscapes that exist.<br>
+key will be the soundscape index and value will be the name of the soundscape<br>
+The table can possibly be non-sequential so use `pairs` instead of `ipairs` when iterating.<br>
+
+#### string soundscape.GetNameByIndex(number soundscapeIndex)
+Returns the name of the given soundscapeIndex or returns `nil` if not found.<br>
+
+#### number soundscape.GetIndexByName(string name)
+Returns the index of the given soundscape name or returns `nil` if not found.<br>
+
+#### table(number - entity) soundscape.GetAllEntities()
+Returns a sequential table containing all soundscape entities.<br>
+
+#### soundscape.SetCurrentSoundscape(Entity soundscape)
+Sets the soundscape entity for the currently active soundscapeUpdate.<br>
+Only works inside the `HolyLib:OnSoundScapeUpdateForPlayer` hook!<br>
+
+> [!NOTE]
+> The given entity must be a `env_soundscape` or else it will throw an error!
+
+#### soundscape.SetCurrentDistance(number distance)
+Sets the distance for the currently active soundscapeUpdate.<br>
+Only works inside the `HolyLib:OnSoundScapeUpdateForPlayer` hook!<br>
+Mostly only useful to influence which soundscape could be selected.<br>
+
+#### soundscape.SetCurrentPlayerPosition(Vector position)
+Sets the player position for the currently active soundscapeUpdate.<br>
+Only works inside the `HolyLib:OnSoundScapeUpdateForPlayer` hook!<br>
+Mostly only useful to influence which soundscape could be selected.<br>
+
+### Hooks
+
+#### bool HolyLib:OnSoundScapeUpdateForPlayer(Entity currentSoundscape, Player currentPlayer)
+Called before a soundscape tries to update for the given player.<br>
+Return `true` to block the call and any further calls for this tick and additionally,<br>
+the currently set soundscape entity for the active soundscapeUpdate will be applied to the player.<br>
+You can set it using `soundscape.SetCurrentSoundscape` inside the hook.<br>
+
+### ConVars
+
+#### holylib_soundscape_updateplayerhook(default `0`)
+If enabled, the `HolyLib:OnSoundScapeUpdateForPlayer` will be called.
+
+## networkthreading
+The Networkthreading module was added in `0.8` and starts a networking thread that will handle all incoming packets, filtering them and preparing them for the main thread for processing.<br>
+The main purpose is simply moving filtering and prepaing of packets off the main thread and only doing the processing on it.<br>
+
+Supports: Linux32
+
+### ConVars
+
+#### holylib_networkthreading_parallelprocessing(default `1`)
+If enabled, some packets will be processed by the networking thread instead of the main thread.
+
+> [!NOTE]
+> This can cause the `HolyLib:ProcessConnectionlessPacket` to not be called for the affected packets!
 
 # Unfinished Modules
 

@@ -957,12 +957,14 @@ LuaUserData* Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var
 	userData->Init(LUA, pMeta, var); \
 	return userData; \
 } \
-LuaUserData* PushInlined_##className(GarrysMod::Lua::ILuaInterface* LUA) \
+LuaUserData* PushInlined_##className(GarrysMod::Lua::ILuaInterface* LUA, int nAdditionalSize = 0) \
 { \
 	const Lua::LuaMetaEntry& pMeta = Lua::GetLuaData(LUA)->GetMetaEntry(TO_LUA_TYPE(className)); \
 	if (pMeta.iType == UCHAR_MAX) \
 		LUA->ThrowError(triedPushing_##className.c_str()); \
-	LuaUserData* userData = (LuaUserData*)((char*)RawLua::AllocateCDataOrUserData(LUA, pMeta.iType, udataSize + sizeof(className) - sizeof(void*)) - sizeof(GCudata)); \
+	constexpr int thisUDataSize = udataSize + sizeof(className) - sizeof(void*); \
+	/*We only do - sizeof(GCudata) because Lua returns a pointer that is only offset by this much regardless of size*/ \
+	LuaUserData* userData = (LuaUserData*)((char*)RawLua::AllocateCDataOrUserData(LUA, pMeta.iType, thisUDataSize + nAdditionalSize) - sizeof(GCudata)); \
 	userData->Init(LUA, pMeta, NULL, false, false, true); \
 	return userData; \
 }
@@ -1217,5 +1219,20 @@ extern void Push_CBaseClient(GarrysMod::Lua::ILuaInterface* LUA, CBaseClient* tb
 extern CBaseClient* Get_CBaseClient(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
 #endif
 
+// NOTE: The angle itself is pushed, not a copy, any changes from lua will affect it!
 extern void Push_QAngle(GarrysMod::Lua::ILuaInterface* LUA, QAngle* var);
+
+// Pushes a copy of the given QAngle to lua
+FORCEINLINE void Push_CopyQAngle(GarrysMod::Lua::ILuaInterface* LUA, QAngle* var)
+{
+	Push_QAngle(LUA, new QAngle(*var));
+}
+
+// NOTE: The vector itself is pushed, not a copy, any changes from lua will affect it!
 extern void Push_Vector(GarrysMod::Lua::ILuaInterface* LUA, Vector* var);
+
+// Pushes a copy of the given QAngle to lua
+FORCEINLINE void Push_CopyVector(GarrysMod::Lua::ILuaInterface* LUA, Vector* var)
+{
+	Push_Vector(LUA, new Vector(*var));
+}

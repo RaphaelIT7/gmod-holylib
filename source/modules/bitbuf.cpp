@@ -63,11 +63,10 @@ Default__newindex(bf_read);
 Default__GetTable(bf_read);
 Default__gc(bf_read, 
 	bf_read* bf = (bf_read*)pStoredData;
-	if (bf && bFlagExplicitDelete)
+	if (bf && bFlagExplicitDelete && !bIsInlined)
 	{
 		free((char*)bf->GetBasePointer());
-		if (!bIsInlined)
-			delete bf;
+		delete bf;
 	}
 )
 
@@ -173,7 +172,7 @@ LUA_FUNCTION_STATIC(bf_read_ReadBitAngles)
 
 	QAngle ang;
 	bf->ReadBitAngles(ang);
-	Push_QAngle(LUA, &ang);
+	Push_CopyQAngle(LUA, &ang);
 	return 1;
 }
 
@@ -290,7 +289,7 @@ LUA_FUNCTION_STATIC(bf_read_ReadBitVec3Coord)
 
 	Vector vec;
 	bf->ReadBitVec3Coord(vec);
-	Push_Vector(LUA, &vec);
+	Push_CopyVector(LUA, &vec);
 
 	return 1;
 }
@@ -301,7 +300,7 @@ LUA_FUNCTION_STATIC(bf_read_ReadBitVec3Normal)
 
 	Vector vec;
 	bf->ReadBitVec3Normal(vec);
-	Push_Vector(LUA, &vec);
+	Push_CopyVector(LUA, &vec);
 
 	return 1;
 }
@@ -912,23 +911,16 @@ LUA_FUNCTION_STATIC(bitbuf_CreateReadBuffer)
 {
 	size_t iLength;
 	const char* pData = Util::CheckLString(LUA, 1, &iLength);
-
 	int iNewLength = CLAMP_BF(iLength);
 
-	unsigned char* cData = (unsigned char*)malloc(iNewLength);
-	if (!cData)
-		LUA->ThrowError("Failed to allocate data for buffer!");
-
-	memcpy(cData, pData, iLength);
-
-	// bf_read* pNewBf = new bf_read(cData, iNewLength);
-
-	// Push_bf_read(LUA, pNewBf, true);
-
-	LuaUserData* pUserData = PushInlined_bf_read(LUA);
-	pUserData->SetFlagExplicitDelete();
+	LuaUserData* pUserData = PushInlined_bf_read(LUA, iNewLength);
 	bf_read* pNewBF = (bf_read*)pUserData->GetData();
-	pNewBF->StartReading(cData, iNewLength);
+	
+	// The buffer is part of the userdata, appended after the bf_read
+	void* bufferData = (void*)((char*)pNewBF + sizeof(bf_read));
+	memcpy(bufferData, pData, iLength);
+
+	pNewBF->StartReading(bufferData, iNewLength);
 
 	return 1;
 }
@@ -967,29 +959,25 @@ LUA_FUNCTION_STATIC(bitbuf_CreateStackReadBuffer)
 
 LUA_FUNCTION_STATIC(bitbuf_CreateWriteBuffer)
 {
-	bf_write* pNewBf = nullptr;
+	size_t iBufferLength = 0;
+	size_t iDataLength = 0;
+	void* pData = nullptr;
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Number))
 	{
-		int iSize = CLAMP_BF((int)LUA->GetNumber(1));
-		unsigned char* cData = (unsigned char*)malloc(iSize);
-		if (!cData)
-			LUA->ThrowError("Failed to allocate data for buffer!");
-		
-		pNewBf = new bf_write(cData, iSize);
+		iBufferLength = CLAMP_BF((int)LUA->GetNumber(1));
 	} else {
-		size_t iLength;
-		const char* pData = Util::CheckLString(LUA, 1, &iLength);
-		int iNewLength = CLAMP_BF(iLength);
-
-		unsigned char* cData = (unsigned char*)malloc(iNewLength);
-		if (!cData)
-			LUA->ThrowError("Failed to allocate data for buffer!");
-
-		memcpy(cData, pData, iLength);
-
-		pNewBf = new bf_write(cData, iNewLength);
+		pData = (void*)Util::CheckLString(LUA, 1, &iDataLength);
+		iBufferLength = CLAMP_BF(iDataLength);
 	}
-	Push_bf_write(LUA, pNewBf, true);
+
+	LuaUserData* pUserData = PushInlined_bf_write(LUA, iBufferLength);
+	bf_write* pNewBF = (bf_write*)pUserData->GetData();
+	
+	// The buffer is part of the userdata, appended after the bf_write
+	void* bufferData = (void*)((char*)pNewBF + sizeof(bf_write));
+	memcpy(bufferData, pData, iDataLength);
+
+	pNewBF->StartWriting(bufferData, iBufferLength);
 
 	return 1;
 }

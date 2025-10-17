@@ -184,11 +184,7 @@ public:
 	void Stop();
 	void Think();
 
-#if ARCHITECTURE_IS_X86_64
-	static long long unsigned Server(void* params)
-#else
-	static unsigned Server(void* params)
-#endif
+	static SIMPLETHREAD_RETURNVALUE Server(void* params)
 	{
 		HttpServer* pServer = (HttpServer*)params;
 		pServer->GetServer().listen(pServer->GetAddress(), pServer->GetPort());

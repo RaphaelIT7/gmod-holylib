@@ -496,6 +496,57 @@ void CModuleManager::PostLuaModuleLoaded(lua_State* L, const char* pFileName)
 	VCALL_ENABLED_MODULES(PostLuaModuleLoaded(L, pFileName));
 }
 
+void CModuleManager::ClientActive(edict_t* pClient)
+{
+	VCALL_ENABLED_MODULES(ClientActive(pClient));
+}
+
+void CModuleManager::ClientDisconnect(edict_t* pClient)
+{
+	VCALL_ENABLED_MODULES(ClientDisconnect(pClient));
+}
+
+void CModuleManager::ClientPutInServer(edict_t* pClient, const char* pPlayerName)
+{
+	VCALL_ENABLED_MODULES(ClientPutInServer(pClient, pPlayerName));
+}
+
+MODULE_RESULT CModuleManager::ClientConnect(bool* bAllowConnect, edict_t* pClient, const char* pszName, const char* pszAddress, char* reject, int maxrejectlen)
+{
+	MODULE_RESULT result = MODULE_RESULT::MODULE_CONTINUE;
+	BASE_CALL_ENABLED_MODULES(
+		result = pModule->GetModule()->ClientConnect(bAllowConnect, pClient, pszName, pszAddress, reject, maxrejectlen);
+		if (result != MODULE_RESULT::MODULE_CONTINUE)
+			break;
+	, );
+
+	return result;
+}
+
+MODULE_RESULT CModuleManager::ClientCommand(edict_t *pClient, const CCommand* args)
+{
+	MODULE_RESULT result = MODULE_RESULT::MODULE_CONTINUE;
+	BASE_CALL_ENABLED_MODULES(
+		result = pModule->GetModule()->ClientCommand(pClient, args);
+		if (result != MODULE_RESULT::MODULE_CONTINUE)
+			break;
+	, );
+
+	return result;
+}
+
+MODULE_RESULT CModuleManager::NetworkIDValidated(const char *pszUserName, const char *pszNetworkID)
+{
+	MODULE_RESULT result = MODULE_RESULT::MODULE_CONTINUE;
+	BASE_CALL_ENABLED_MODULES(
+		result = pModule->GetModule()->NetworkIDValidated(pszUserName, pszNetworkID);
+		if (result != MODULE_RESULT::MODULE_CONTINUE)
+			break;
+	, );
+
+	return result;
+}
+
 CModuleManager g_pModuleManager;
 
 static void NukeModules(const CCommand &args)
