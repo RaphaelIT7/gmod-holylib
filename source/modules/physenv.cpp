@@ -541,6 +541,26 @@ GMODGet_LuaClass(IPhysicsObject, GarrysMod::Lua::Type::PhysObj, "PhysObj",
 );
 #endif
 static CCollisionEvent* g_Collisions = NULL;
+static void TryFetchingGCollisions()
+{
+	if (g_Collisions != NULL)
+		return;
+
+	CPhysicsEnvironment* pMainEnvironment = (CPhysicsEnvironment*)g_pPhysics->GetActiveEnvironmentByIndex(0);
+	if (!pMainEnvironment)
+		return;
+
+#if CUSTOM_VPHYSICS_BUILD
+	if (g_pPhysicsHolyLib) {
+		g_Collisions = (CCollisionEvent*)g_pPhysicsHolyLib->GetCollisionSolver(pMainEnvironment); // Raw access is always fun :D
+	} else
+#endif
+	{
+		GMODSDK::CPhysicsEnvironment* pGmodMainEnvironment = static_cast<GMODSDK::CPhysicsEnvironment*>(static_cast<void*>(pMainEnvironment));
+		g_Collisions = (CCollisionEvent*)pGmodMainEnvironment->m_pCollisionSolver->m_pSolver; // Raw access is always fun :D
+	}
+}
+
 class CLuaPhysicsObjectEvent : public IPhysicsObjectEvent
 {
 public:
@@ -1451,6 +1471,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_EnableDeleteQueue)
 	return 0;
 }
 
+static Symbols::CCollisionEvent_FrameUpdate func_CCollisionEvent_FrameUpdate = nullptr;
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_Simulate)
 {
 	ILuaPhysicsEnvironment* pLuaEnv = Get_ILuaPhysicsEnvironment(LUA, 1, true);
@@ -1516,6 +1537,13 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_Simulate)
 			pEntity->VPhysicsShadowUpdate( pPhysics );
 		}
 	}*/
+
+	TryFetchingGCollisions();
+	if (g_Collisions && func_CCollisionEvent_FrameUpdate)
+	{
+		g_Collisions->BufferTouchEvents(false);
+		func_CCollisionEvent_FrameUpdate(g_Collisions);
+	}
 
 	g_pCurrentEnvironment.pop_back();
 	return 0;
@@ -2882,6 +2910,9 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 		server_loader.GetModule(), Symbols::PhysFrameSym,
 		(void*)hook_PhysFrame, m_pID
 	);
+
+	func_CCollisionEvent_FrameUpdate = (Symbols::CCollisionEvent_FrameUpdate)Detour::GetFunction(server_loader.GetModule(), Symbols::CCollisionEvent_FrameUpdateSym);
+	Detour::CheckFunction((void*)func_CCollisionEvent_FrameUpdate, "CCollisionEvent::FrameUpdate");
 }
 
 void CPhysEnvModule::Shutdown()

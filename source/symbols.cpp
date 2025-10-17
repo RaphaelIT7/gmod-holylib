@@ -703,9 +703,14 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x8B\xEC\x83\xEC\x1C\x83******\x53\x56\x57"), // 55 8B EC 83 EC 1C 83 ?? ?? ?? ?? ?? ?? 53 56 57
 	};
 
+	const std::vector<Symbol> CCollisionEvent_FrameUpdateSym = {
+		Symbol::FromName("_ZN15CCollisionEvent11FrameUpdateEv"),
+		NULL_SIGNATURE,
+	};
+
 	const std::vector<Symbol> CPhysicsEnvironment_DestroyObjectSym = {
 		Symbol::FromName("_ZN19CPhysicsEnvironment13DestroyObjectEP14IPhysicsObject"),
-		Symbol::FromSignature(""),
+		NULL_SIGNATURE,
 		// On Windows we will use the vtable instead to detour it.... maybe we should do the same on linux?
 	};
 

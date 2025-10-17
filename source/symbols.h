@@ -592,6 +592,9 @@ namespace Symbols
 	typedef void (*PhysFrame)(float deltaTime);
 	extern const std::vector<Symbol> PhysFrameSym;
 
+	typedef void (*CCollisionEvent_FrameUpdate)(void* pCollisionEvent);
+	extern const std::vector<Symbol> CCollisionEvent_FrameUpdateSym;
+
 #if PHYSENV_INCLUDEIVPFALLBACK
 	typedef GMODSDK::IVP_MRC_TYPE (*IVP_Mindist_Minimize_Solver_p_minimize_PP)(void* mindistMinimizeSolver, const GMODSDK::IVP_Compact_Edge *A, const GMODSDK::IVP_Compact_Edge *B, IVP_Cache_Ledge_Point *m_cache_A, IVP_Cache_Ledge_Point *m_cache_B);
 	extern const std::vector<Symbol> IVP_Mindist_Minimize_Solver_p_minimize_PPSym;
