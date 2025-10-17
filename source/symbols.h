@@ -487,9 +487,6 @@ namespace Symbols
 	extern const std::vector<Symbol> CBaseCombatCharacter_SetTransmitSym;
 	extern const std::vector<Symbol> CBaseAnimating_SetTransmitSym;
 
-	typedef CSkyCamera* (*GetCurrentSkyCamera)();
-	extern const std::vector<Symbol> GetCurrentSkyCameraSym;
-
 	//---------------------------------------------------------------------------------
 	// Purpose: steamworks Symbols
 	//---------------------------------------------------------------------------------

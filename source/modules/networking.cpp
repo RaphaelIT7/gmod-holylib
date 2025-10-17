@@ -1081,6 +1081,21 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 	}
 }
 
+static DTVarByOffset m_Local_Offset("DT_LocalPlayerExclusive", "m_Local");
+static DTVarByOffset m_SkyBox3DArea_Offset("DT_Local", "m_skybox3d.area");
+static int GetSkybox3DArea(void* pPlayer) // Fully safe access :3
+{
+	void* pLocal = m_Local_Offset.GetPointer(pPlayer);
+	if (!pLocal)
+		return 255; // 255 is the default max value used so we just fallback to that.
+
+	void* pSkybox3DArea = m_SkyBox3DArea_Offset.GetPointer(pLocal);
+	if (!pSkybox3DArea)
+		return 255;
+
+	return *(int*)pSkybox3DArea;
+}
+
 /*
 	Planned setup:
 	- Have a system to split everything into 4 groups.
@@ -1155,23 +1170,21 @@ static unsigned char g_iEntityStateFlags[MAX_EDICTS] = {0};
 static ConVar networking_fastpath("holylib_networking_fastpath", "0", 0, "Experimental - If two players are in the same area, then it will reuse the transmit state of the first calculated player saving a lot of time");
 static ConVar networking_fasttransmit("holylib_networking_fasttransmit", "1", 0, "Experimental - Replaces CServerGameEnts::CheckTransmit with our own implementation");
 static ConVar networking_fastpath_usecluster("holylib_networking_fastpath_usecluster", "1", 0, "Experimental - When using the fastpatth, it will compate against clients in the same cluster instead of area");
-static Symbols::GetCurrentSkyCamera func_GetCurrentSkyCamera = NULL;
 bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts)
 {
 	if ( !networking_fasttransmit.GetBool() || !gpGlobals || !engine || !mdlcache )
 		return false;
 
 	// get recipient player's skybox:
-	CBaseEntity *pRecipientEntity = Util::servergameents->EdictToBaseEntity( pInfo->m_pClientEnt );
+	CBaseEntity *pRecipientEntity = Util::servergameents->EdictToBaseEntity(pInfo->m_pClientEnt);
 
 	//Assert( pRecipientEntity && pRecipientEntity->IsPlayer() );
 	if ( !pRecipientEntity )
 		return true;
 	
 	MDLCACHE_CRITICAL_SECTION();
-	CBasePlayer *pRecipientPlayer = static_cast<CBasePlayer*>( pRecipientEntity );
-	// BUG: Our offsets are fked, so pRecipientPlayer->m_Local.m_skybox3d.area is pointing at the most random shit :sad:
-	const int skyBoxArea = func_GetCurrentSkyCamera ? func_GetCurrentSkyCamera()->m_skyboxData.area : pRecipientPlayer->m_Local.m_skybox3d.area; // RIP, crash any% offsets are not reliable at all! Good thing the SDK is up to date
+	CBasePlayer *pRecipientPlayer = static_cast<CBasePlayer*>(pRecipientEntity);
+	const int skyBoxArea = GetSkybox3DArea(pRecipientPlayer);
 	const int clientIndex = pInfo->m_pClientEnt->m_EdictIndex - 1;
 
 	// BUG: Can this even happen? Probably, when people screw with the gameserver module & disable spawn safety
@@ -1845,9 +1858,6 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 
 	func_CBaseAnimating_SetTransmit = (Symbols::CBaseCombatCharacter_SetTransmit)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseAnimating_SetTransmitSym);
 	Detour::CheckFunction((void*)func_CBaseAnimating_SetTransmit, "CBaseAnimating::SetTransmit");
-
-	func_GetCurrentSkyCamera = (Symbols::GetCurrentSkyCamera)Detour::GetFunction(server_loader.GetModule(), Symbols::GetCurrentSkyCameraSym);
-	Detour::CheckFunction((void*)func_GetCurrentSkyCamera, "GetCurrentSkyCamera");
 
 #if SYSTEM_WINDOWS // BUG: On Windows IModule::ServerActivate is not called if HolyLib gets loaded using: require("holylib")
 	world_edict = Util::engineserver->PEntityOfEntIndex(0);
