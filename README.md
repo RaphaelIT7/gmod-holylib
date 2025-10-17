@@ -3141,6 +3141,10 @@ You can freeze all props here and then return `physenv.IVP_SkipSimulation` to sk
 > Only works on Linux32<br>
 > By default its called only **ONCE** per simulation frame, you can return `physenv.IVP_NONE` to get it triggered multiple times in the same frame.<br>
 
+### HolyLib:PostPhysicsLag(number simulationTime)
+Called after the physics simulation ended in which a physics lag was triggered.<br>
+Inside this hook you can safely change/modify the entities without having to worry about undefined behavior/crashes.<br>
+
 #### bool HolyLib:PrePhysFrame(number deltaTime)<br>
 Called when the physics are about to be simulated.<br>
 Return `true` to stop the engine from doing anything.<br>
