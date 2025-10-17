@@ -106,6 +106,12 @@ struct ThreadPoolStartParams_t;
 #define GMCOMMON_CALLING_CONVENTION
 #endif
 
+#if ARCHITECTURE_IS_X86_64
+#define SIMPLETHREAD_RETURNVALUE long long unsigned
+#else
+#define SIMPLETHREAD_RETURNVALUE unsigned
+#endif
+
  /*
   * I need to figure out how to hook into shit without breaking it on windows.
   * Currently every single hook seems to break gmod and every call to a hook seems broken.

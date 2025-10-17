@@ -101,12 +101,7 @@ public:
 	}
 
 private:
-#if ARCHITECTURE_IS_X86_64
-	static long long unsigned
-#else
-	static unsigned
-#endif
-	LuaInterfaceThread(void* data)
+	static SIMPLETHREAD_RETURNVALUE LuaInterfaceThread(void* data)
 	{
 		LuaInterface* pData = (LuaInterface*)data;
 		pData->m_iStatus = INTERFACE_RUNNING;
