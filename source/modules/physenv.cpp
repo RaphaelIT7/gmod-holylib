@@ -2435,6 +2435,13 @@ static thread_local bool g_bCallPhysHook = false;
 static Detouring::Hook detour_PhysFrame;
 static void hook_PhysFrame(float deltaTime)
 {
+	// BUG: our hook into PhysFrame seems to have it's arguments screwed up! We cannot rely on these so we need to get them ourselves!
+	// This seems to be because of the calling conversion of PhysFrame, IDA shows it as: unsigned int __usercall PhysFrame@<eax>(float@<xmm0>, CPhysicsHook *)
+	// And that alone looks fked up already :sob:
+#if defined(ARCHITECTURE_X86) && defined(SYSTEM_LINUX) 
+	__asm__ __volatile__ ("movss %%xmm0, %0" : "=m"(deltaTime) : : "xmm0");
+#endif
+
 	if (g_bCallPhysHook && Lua::PushHook("HolyLib:PrePhysFrame"))
 	{
 		g_Lua->PushNumber(deltaTime);
@@ -2448,8 +2455,6 @@ static void hook_PhysFrame(float deltaTime)
 	}
 
 	auto pStartTime = std::chrono::high_resolution_clock::now();
-
-	bool bPushed = false;
 	IPhysicsEnvironment* pEnv = g_pPhysics->GetActiveEnvironmentByIndex(0);
 	if (pEnv)
 		g_pCurrentEnvironment.push_back(GetPhysicsEnvironment(pEnv));
