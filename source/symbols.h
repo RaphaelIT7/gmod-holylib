@@ -70,8 +70,6 @@ struct global_State;
 struct GCtab;
 struct audioparams_t;
 struct ss_update_t;
-class IConnectionlessPacketHandler;
-class CCommand;
 
 namespace GarrysMod::Lua
 {
@@ -733,42 +731,4 @@ namespace Symbols
 	extern const std::vector<Symbol> CEnvSoundscape_WriteAudioParamsToSym;
 
 	extern const std::vector<Symbol> g_SoundscapeSystemSym;
-
-	//---------------------------------------------------------------------------------
-	// Purpose: networkthreading Symbols
-	//---------------------------------------------------------------------------------
-	typedef void (*NET_ProcessSocket)(int sock, IConnectionlessPacketHandler *handler);
-	extern const std::vector<Symbol> NET_ProcessSocketSym;
-
-	typedef netpacket_s* (*NET_GetPacket)(int sock, byte *scratch);
-	extern const std::vector<Symbol> NET_GetPacketSym;
-	
-	typedef bool (*Filter_ShouldDiscard)(const netadr_t& adr);
-	extern const std::vector<Symbol> Filter_ShouldDiscardSym;
-
-	// Already defined by gameserver
-	// typedef void (*Filter_SendBan)(const netadr_t& adr);
-	// extern const std::vector<Symbol> Filter_SendBanSym;
-
-	typedef CNetChan* (*NET_FindNetChannel)(int socket, netadr_t &adr);
-	extern const std::vector<Symbol> NET_FindNetChannelSym;
-
-	typedef void (*CNetChan_Constructor)(CNetChan* pChanenl);
-	extern const std::vector<Symbol> CNetChan_ConstructorSym;
-
-	typedef void (*NET_RemoveNetChannel)(INetChannel* pChannel, bool bShouldRemove);
-	extern const std::vector<Symbol> NET_RemoveNetChannelSym;
-
-	// Now come some commands that party on g_IPFilters as we need to make it thread safe to avoid crashes :3
-	typedef void (*writeip)(const CCommand* pCommand);
-	extern const std::vector<Symbol> writeipSym;
-
-	typedef void (*listip)(const CCommand* pCommand);
-	extern const std::vector<Symbol> listipSym;
-
-	typedef void (*removeip)(const CCommand* pCommand);
-	extern const std::vector<Symbol> removeipSym;
-
-	typedef void (*Filter_Add_f)(const CCommand* pCommand);
-	extern const std::vector<Symbol> Filter_Add_fSym;
 }
