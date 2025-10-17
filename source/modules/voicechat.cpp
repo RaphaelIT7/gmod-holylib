@@ -26,7 +26,7 @@ public:
 	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
 	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
-	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax);
+	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) OVERRIDE;
 	virtual void LevelShutdown() OVERRIDE;
 	virtual void Shutdown() OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
