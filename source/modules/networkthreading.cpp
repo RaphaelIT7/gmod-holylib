@@ -26,7 +26,7 @@ public:
 	virtual void Shutdown() OVERRIDE;
 	virtual const char* Name() { return "networkthreading"; };
 	virtual int Compatibility() { return LINUX32; };
-	virtual bool IsEnabledByDefault() { return true; };
+	virtual bool IsEnabledByDefault() { return false; };
 };
 
 static CNetworkThreadingModule g_pNetworkThreadingModule;
