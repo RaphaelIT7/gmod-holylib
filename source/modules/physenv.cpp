@@ -2460,16 +2460,10 @@ static bool hook_GMod_Util_IsPhysicsObjectValid(IPhysicsObject* pObject)
 }
 
 static thread_local bool g_bCallPhysHook = false;
-static Detouring::Hook detour_PhysFrame;
-static void hook_PhysFrame(float deltaTime)
+static Detouring::Hook detour_CPhysicsHook_FrameUpdatePostEntityThink;
+static void hook_CPhysicsHook_FrameUpdatePostEntityThink(void* CPhysicsHook)
 {
-	// BUG: our hook into PhysFrame seems to have it's arguments screwed up! We cannot rely on these so we need to get them ourselves!
-	// This seems to be because of the calling conversion of PhysFrame, IDA shows it as: unsigned int __usercall PhysFrame@<eax>(float@<xmm0>, CPhysicsHook *)
-	// And that alone looks fked up already :sob:
-#if defined(ARCHITECTURE_X86) && defined(SYSTEM_LINUX) 
-	__asm__ __volatile__ ("movss %%xmm0, %0" : "=m"(deltaTime) : : "xmm0");
-#endif
-
+	float deltaTime = gpGlobals->interval_per_tick;
 	if (g_bCallPhysHook && Lua::PushHook("HolyLib:PrePhysFrame"))
 	{
 		g_Lua->PushNumber(deltaTime);
@@ -2487,7 +2481,7 @@ static void hook_PhysFrame(float deltaTime)
 	if (pEnv)
 		g_pCurrentEnvironment.push_back(GetPhysicsEnvironment(pEnv));
 
-	detour_PhysFrame.GetTrampoline<Symbols::PhysFrame>()(deltaTime);
+	detour_CPhysicsHook_FrameUpdatePostEntityThink.GetTrampoline<Symbols::CPhysicsHook_FrameUpdatePostEntityThink>()(CPhysicsHook);
 
 	if (pEnv)
 		g_pCurrentEnvironment.pop_back();
@@ -2906,9 +2900,9 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 	}
 
 	Detour::Create(
-		&detour_PhysFrame, "PhysFrame",
-		server_loader.GetModule(), Symbols::PhysFrameSym,
-		(void*)hook_PhysFrame, m_pID
+		&detour_CPhysicsHook_FrameUpdatePostEntityThink, "CPhysicsHook::FrameUpdatePostEntityThink",
+		server_loader.GetModule(), Symbols::CPhysicsHook_FrameUpdatePostEntityThinkSym,
+		(void*)hook_CPhysicsHook_FrameUpdatePostEntityThink, m_pID
 	);
 
 	func_CCollisionEvent_FrameUpdate = (Symbols::CCollisionEvent_FrameUpdate)Detour::GetFunction(server_loader.GetModule(), Symbols::CCollisionEvent_FrameUpdateSym);

@@ -589,8 +589,8 @@ namespace Symbols
 	typedef bool (*GMod_Util_IsPhysicsObjectValid)(IPhysicsObject* obj);
 	extern const std::vector<Symbol> GMod_Util_IsPhysicsObjectValidSym;
 
-	typedef void (*PhysFrame)(float deltaTime);
-	extern const std::vector<Symbol> PhysFrameSym;
+	typedef void (*CPhysicsHook_FrameUpdatePostEntityThink)(void* CPhysicsHook);
+	extern const std::vector<Symbol> CPhysicsHook_FrameUpdatePostEntityThinkSym;
 
 	typedef void (*CCollisionEvent_FrameUpdate)(void* pCollisionEvent);
 	extern const std::vector<Symbol> CCollisionEvent_FrameUpdateSym;
