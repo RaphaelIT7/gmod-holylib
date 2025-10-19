@@ -417,149 +417,6 @@ enum udataFlags // we use bit flags so only a total of 8 are allowed.v
 #endif
 #define HOLYLIB_UTIL_DEBUG_BASEUSERDATA 0
 
-/*
- * Base UserData struct that is used by LuaUserData.
- * Main purpose is for it to handle the stored pData & implement a reference counter.
- * It also maskes sharing data between threads easier.
- *
- * NOTE:
- * Memory usage is utter garbage.
- * For UserData which stores a few bytes (often 4) we setup UserData that has a average size of 60 bytes...
- * 
- * Update:
- * Memory usage improved noticably
- * Also we don't even need this class
- */
-
-// We had previously kept stuff in a global unordered_map though we don't even need it at all
-#define HOLYLIB_UTIL_GLOBALUSERDATA 0
-#define HOLYLIB_UTIL_BASEUSERDATA 0
-
-#if HOLYLIB_UTIL_BASEUSERDATA
-struct LuaUserData;
-struct BaseUserData;
-#if HOLYLIB_UTIL_GLOBALUSERDATA
-extern std::shared_mutex g_UserDataMutex; // Needed to keep g_pGlobalLuaUserData thread safe
-extern std::unordered_map<void*, BaseUserData*> g_pGlobalLuaUserData; // A set containing all BaseUserData.
-#endif
-struct BaseUserData {
-	BaseUserData(void* data)
-	{
-		m_pData = data;
-#if HOLYLIB_UTIL_GLOBALUSERDATA
-		std::unique_lock lock(g_UserDataMutex);
-		g_pGlobalLuaUserData[m_pData] = this; // Link it
-#endif
-	}
-
-	~BaseUserData()
-	{
-#if HOLYLIB_UTIL_GLOBALUSERDATA
-		if (m_pData != NULL)
-		{
-			std::shared_lock lock(g_UserDataMutex);
-			auto it = g_pGlobalLuaUserData.find(m_pData);
-			if (it != g_pGlobalLuaUserData.end())
-				g_pGlobalLuaUserData.erase(it);
-		}
-#endif
-
-		m_pData = NULL;
-	}
-
-	inline void* GetData(GarrysMod::Lua::ILuaInterface* pLua)
-	{
-		//if (m_bLocked && pLua != m_pOwningLua)
-		//	return NULL;
-
-		return m_pData;
-	}
-
-	/*inline void SetData(void* data)
-	{
-		if (pData != NULL) // This UserData was reassigned?!? Shouldn't happen normally... Anyways.
-		{
-			auto it = g_pGlobalLuaUserData.find(pData);
-			if (it != g_pGlobalLuaUserData.end())
-				g_pGlobalLuaUserData.erase(it);
-		}
-
-		pData = data;
-		g_pGlobalLuaUserData[pData] = this; // Link it
-	}*/
-
-	/*
-	 * Locks/Unlocks the UserData making GetData only return a valid result for the owning ILuaInterface.
-	 */
-	inline void SetLocked(bool bLocked)
-	{
-		// m_bLocked = bLocked;
-	}
-
-	inline bool Release(LuaUserData* pLuaUserData)
-	{
-#if HOLYLIB_UTIL_DEBUG_BASEUSERDATA
-		Msg("holylib - util: Userdata %p(%p) tried to release %i (%p)\n", this, m_pData, m_iReferenceCount, pLuaUserData);
-#endif
-
-#if HOLYLIB_UTIL_DEBUG_BASEUSERDATA
-		Msg("holylib - util: Userdata %p(%p) got released %i (%p)\n", this, m_pData, m_iReferenceCount, pLuaUserData);
-#endif
-
-		if (m_iReferenceCount.fetch_sub(1, std::memory_order_acq_rel) == 1)
-		{
-#if HOLYLIB_UTIL_DEBUG_BASEUSERDATA
-		Msg("holylib - util: Userdata %p(%p) got deleted %i (%p)\n", this, m_pData, m_iReferenceCount, pLuaUserData);
-#endif
-			delete this;
-			return true;
-		}
-
-		return false;
-	}
-
-	static inline BaseUserData* LuaAquire(LuaUserData* pLuaUserData, void* pData)
-	{
-		if (!pData)
-			return NULL;
-
-#if HOLYLIB_UTIL_GLOBALUSERDATA
-		std::shared_lock lock(g_UserDataMutex);
-		auto it = g_pGlobalLuaUserData.find(pData);
-		if (it != g_pGlobalLuaUserData.end())
-		{
-			it->second->Aquire();
-			return it->second;
-		}
-#endif
-
-		BaseUserData* pUserData = new BaseUserData(pData);
-		pUserData->Aquire(); // Increment counter
-		return pUserData;
-	}
-
-	inline int GetReferenceCount()
-	{
-		return m_iReferenceCount.load(std::memory_order_relaxed);
-	}
-
-private:
-	inline void Aquire()
-	{
-		m_iReferenceCount.fetch_add(1, std::memory_order_relaxed);
-#if HOLYLIB_UTIL_DEBUG_BASEUSERDATA
-		Msg("holylib - util: Userdata %p(%p) got aquired %i\n", this, m_pData, m_iReferenceCount);
-#endif
-	}
-
-	void* m_pData = NULL;
-	// GarrysMod::Lua::ILuaInterface* m_pOwningLua = NULL; // ToDo: We don't even set the m_pOwningLua right now.
-
-	//bool m_bLocked = false;
-	std::atomic<unsigned int> m_iReferenceCount = 0;
-};
-#endif
-
 #if HOLYLIB_UTIL_DEBUG_LUAUSERDATA
 struct LuaUserData;
 extern std::unordered_set<LuaUserData*> g_pLuaUserData; // A set containing all LuaUserData that actually hold a reference.
@@ -576,9 +433,6 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 	inline void Init(GarrysMod::Lua::ILuaInterface* LUA, const Lua::LuaMetaEntry& pMetaEntry, void* pData, bool bNoGC = false, bool bNoUserTable = false, bool bIsInline = false)
 	{
 		// Since Lua creates our userdata, we need to set all the fields ourself!
-#if HOLYLIB_UTIL_BASEUSERDATA
-		pBaseData = NULL;
-#endif
 
 		flags = 0;
 		if (!bIsInline)
@@ -624,17 +478,6 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 #endif
 	}
 
-#if HOLYLIB_UTIL_BASEUSERDATA
-	inline void* GetData(GarrysMod::Lua::ILuaInterface* pLua)
-	{
-		return pBaseData ? pBaseData->GetData(pLua) : NULL;
-	}
-
-	inline BaseUserData* GetInternalData()
-	{
-		return pBaseData;
-	}
-#else
 	inline void* GetData()
 	{
 		if (flags & UDATA_INLINED_DATA)
@@ -642,7 +485,6 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 
 		return data;
 	}
-#endif
 
 	inline void SetData(void* pData)
 	{
@@ -650,18 +492,6 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 		Msg("holylib - util: LuaUserdata got new data %p - %p\n", this, data);
 #endif
 
-#if HOLYLIB_UTIL_BASEUSERDATA
-		if (pBaseData != NULL)
-		{
-			pBaseData->Release(this);
-			pBaseData = NULL;
-		}
-
-		if (data)
-		{
-			pBaseData = BaseUserData::LuaAquire(this, data);
-		}
-#else
 		if (flags & UDATA_INLINED_DATA)
 		{
 			Warning(PROJECT_NAME " - LuaUserData: Tried to call SetData when the data is inlined into the userdata!\n");
@@ -669,7 +499,6 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 		}
 
 		data = pData;
-#endif
 	}
 
 	inline void PushLuaTable(GarrysMod::Lua::ILuaInterface* pLua)
@@ -753,29 +582,8 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 		Msg("holylib - util: LuaUserdata got released %p - %p (%i, Called by GC: %s)\n", this, data, len, bGCCall ? "true" : "false");
 #endif
 
-#if HOLYLIB_UTIL_BASEUSERDATA
-		if (pBaseData != NULL)
-		{
-			bool bDelete = pBaseData->Release(this);
-			pBaseData = NULL;
-			delete this;
-			return bDelete;
-		}
-
-		delete this;
-		return false;
-#else
-
 #if HOLYLIB_UTIL_DEBUG_LUAUSERDATA
 		g_pLuaUserData.erase(this);
-#endif
-
-#if HOLYLIB_UTIL_BASEUSERDATA
-		if (pBaseData != NULL)
-		{
-			pBaseData->Release(this);
-			pBaseData = NULL;
-		}
 #endif
 		if (!(flags & UDATA_INLINED_DATA))
 			data = NULL;
@@ -786,7 +594,6 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 		}
 
 		return true;
-#endif
 	}
 
 	inline unsigned char GetType()
@@ -820,11 +627,6 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 	{
 		return flags;
 	}
-
-private:
-#if HOLYLIB_UTIL_BASEUSERDATA
-	BaseUserData* pBaseData = NULL;
-#endif
 };
 static constexpr int udataSize = sizeof(LuaUserData) - sizeof(GCudata);
 
