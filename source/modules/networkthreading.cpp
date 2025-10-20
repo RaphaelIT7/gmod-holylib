@@ -114,8 +114,8 @@ static void AddPacketToQueueForMainThread(netpacket_s* pPacket, bool bIsConnecti
 	pQueue->pBytes = new unsigned char[pPacket->size];
 	memcpy(pQueue->pBytes, pPacket->data, pPacket->size);
 
-	pPacket->data = pQueue->pBytes; // Update the pointer for later access
-	pPacket->message.StartReading( pPacket->data, pPacket->size ); // also needs updating
+	pQueue->pPacket.data = pQueue->pBytes; // Update the pointer for later access
+	pQueue->pPacket.message.StartReading( pQueue->pPacket.data, pQueue->pPacket.size ); // also needs updating
 
 	ConDMsg(PROJECT_NAME " - networkthreading: Added %i bytes packet to queue (%p)\n", pPacket->size, pQueue);
 
@@ -253,7 +253,7 @@ static void hook_NET_ProcessSocket(int nSocket, IConnectionlessPacketHandler* pH
 		return;
 	}
 
-	VPROF_BUDGET( "HolyLib - NET_ProcessSocket", VPROF_BUDGETGROUP_HOLYLIB );
+	VPROF_BUDGET("HolyLib - NET_ProcessSocket", VPROF_BUDGETGROUP_HOLYLIB);
 
 	// get streaming data from channel sockets
 	// NOTE: This code is probably completely useless since Gmod doesn't use TCP

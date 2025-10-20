@@ -11,6 +11,7 @@
 #include "tier0/dbg.h"
 #include <vector>
 #include <unordered_set>
+#include <unordered_map>
 
 #ifdef DLL_TOOLS
 #ifdef WIN32
@@ -80,7 +81,7 @@ namespace Detour
 	extern void ReportLeak();
 	extern const std::unordered_set<std::string>& GetDisabledDetours();
 	extern const std::unordered_set<std::string>& GetFailedDetours();
-	extern const std::unordered_set<std::string, unsigned int>& GetLoadedDetours();
+	extern const std::unordered_map<std::string, unsigned int>& GetLoadedDetours();
 
 	extern SymbolFinder symfinder;
 	template<class T>

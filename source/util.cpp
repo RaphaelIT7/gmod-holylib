@@ -974,7 +974,7 @@ static void CreateDebugDump(const CCommand &args)
 			Bootil::Data::Tree& pDetours = pData.GetChild("detours");
 
 			Bootil::Data::Tree& pLoadedDetours = pDetours.GetChild("loaded");
-			for (auto& pName : Detour::GetLoadedDetours())
+			for (auto& [pName, _] : Detour::GetLoadedDetours())
 				pLoadedDetours.EnsureChildVar<bool>(pName, true);
 
 			Bootil::Data::Tree& pFailedDetours = pDetours.GetChild("failed");

@@ -101,7 +101,7 @@ const std::unordered_set<std::string>& Detour::GetFailedDetours()
 	return pFailedDetours;
 }
 
-const std::unordered_set<std::string, unsigned int>& Detour::GetLoadedDetours()
+const std::unordered_map<std::string, unsigned int>& Detour::GetLoadedDetours()
 {
 	return pLoadedDetours;
 }
