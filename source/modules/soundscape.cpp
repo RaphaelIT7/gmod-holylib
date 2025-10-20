@@ -225,7 +225,7 @@ static void hook_CEnvSoundscape_UpdateForPlayer(CBaseEntity* pSoundScape, ss_upd
 	int iClient = update.pPlayer->edict()->m_EdictIndex-1;
 	
 	// Player got handled by Lua already, so we can skip
-	if (pHandledPlayers.IsBitSet(iClient))
+	if (pHandledPlayers.IsBitSet(iClient) || pBlockEngineAction.IsBitSet(iClient))
 		return;
 
 	// Can update.pPlayer even be NULL? Probably no
