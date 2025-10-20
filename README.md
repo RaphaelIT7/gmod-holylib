@@ -4757,6 +4757,9 @@ Sets the player position for the currently active soundscapeUpdate.<br>
 Only works inside the `HolyLib:OnSoundScapeUpdateForPlayer` hook!<br>
 Mostly only useful to influence which soundscape could be selected.<br>
 
+#### soundscape.EnableUpdateHook(bool enable = false)
+Enables/Disables the `HolyLib:OnSoundScapeUpdateForPlayer` hook.<br>
+
 ### Hooks
 
 #### bool HolyLib:OnSoundScapeUpdateForPlayer(Entity currentSoundscape, Player currentPlayer)
@@ -4764,11 +4767,6 @@ Called before a soundscape tries to update for the given player.<br>
 Return `true` to block the call and any further calls for this tick and additionally,<br>
 the currently set soundscape entity for the active soundscapeUpdate will be applied to the player.<br>
 You can set it using `soundscape.SetCurrentSoundscape` inside the hook.<br>
-
-### ConVars
-
-#### holylib_soundscape_updateplayerhook(default `0`)
-If enabled, the `HolyLib:OnSoundScapeUpdateForPlayer` will be called.
 
 ## networkthreading
 The Networkthreading module was added in `0.8` and starts a networking thread that will handle all incoming packets, filtering them and preparing them for the main thread for processing.<br>

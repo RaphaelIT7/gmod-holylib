@@ -29,8 +29,6 @@ public:
 static CSoundscapeModule g_pSoundscapeModule;
 IModule* pSoundscapeModule = &g_pSoundscapeModule;
 
-static ConVar soundscape_updateplayerhook("holylib_soundscape_updateplayerhook", "0", FCVAR_ARCHIVE, "If enabled, the soundscape hooks are called.");
-
 static DTVarByOffset m_Local_Offset("DT_LocalPlayerExclusive", "m_Local");
 static DTVarByOffset m_Audio_Offset("DT_Local", "m_audio.localSound[0]");
 static inline audioparams_t* GetAudioParams(void* pPlayer)
@@ -213,6 +211,7 @@ LUA_FUNCTION_STATIC(soundscape_GetAllEntities)
 	return 1;
 }
 
+static bool g_bCallUpdateHook = false;
 static int nLastUpdateTick = -1;
 static CBitVec<MAX_PLAYERS> pHandledPlayers;
 static ss_update_t* pCurrentUpdate = nullptr;
@@ -230,7 +229,7 @@ static void hook_CEnvSoundscape_UpdateForPlayer(CBaseEntity* pSoundScape, ss_upd
 		return;
 
 	// Can update.pPlayer even be NULL? Probably no
-	if (soundscape_updateplayerhook.GetBool() && update.pPlayer && Lua::PushHook("HolyLib:OnSoundScapeUpdateForPlayer"))
+	if (g_bCallUpdateHook && update.pPlayer && Lua::PushHook("HolyLib:OnSoundScapeUpdateForPlayer"))
 	{
 		Util::Push_Entity(g_Lua, pSoundScape);
 		Util::Push_Entity(g_Lua, update.pPlayer);
@@ -294,6 +293,13 @@ LUA_FUNCTION_STATIC(soundscape_SetCurrentPlayerPosition)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(soundscape_EnableUpdateHook)
+{
+	g_bCallUpdateHook = LUA->GetBool(1);
+
+	return 0;
+}
+
 void CSoundscapeModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 }
@@ -319,6 +325,11 @@ void CSoundscapeModule::InitDetour(bool bPreServer)
 
 void CSoundscapeModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
+	if (pLua == g_Lua)
+	{
+		g_bCallUpdateHook = false; // Resetting it on changelevel & such
+	}
+
 	Util::StartTable(pLua);
 		Util::AddFunc(pLua, soundscape_GetActiveSoundScape, "GetActiveSoundScape");
 		Util::AddFunc(pLua, soundscape_GetActiveSoundScapeIndex, "GetActiveSoundScapeIndex");
@@ -334,6 +345,8 @@ void CSoundscapeModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, soundscape_SetCurrentDistance, "SetCurrentDistance");
 		Util::AddFunc(pLua, soundscape_SetCurrentSoundscape, "SetCurrentSoundscape");
 		Util::AddFunc(pLua, soundscape_SetCurrentPlayerPosition, "SetCurrentPlayerPosition");
+
+		Util::AddFunc(pLua, soundscape_EnableUpdateHook, "EnableUpdateHook");
 	Util::FinishTable(pLua, "soundscape");
 }
 

@@ -2463,7 +2463,7 @@ static thread_local bool g_bCallPhysHook = false;
 static Detouring::Hook detour_CPhysicsHook_FrameUpdatePostEntityThink;
 static void hook_CPhysicsHook_FrameUpdatePostEntityThink(void* CPhysicsHook)
 {
-	float deltaTime = gpGlobals->interval_per_tick;
+	float deltaTime = (gpGlobals->frametime > 0.0f) ? gpGlobals->interval_per_tick : 0.0f; // Matches what source does.
 	if (g_bCallPhysHook && Lua::PushHook("HolyLib:PrePhysFrame"))
 	{
 		g_Lua->PushNumber(deltaTime);
@@ -2518,6 +2518,8 @@ void CPhysEnvModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 			// If we were enabled after the server was started, we should register all phys envs as the GMod::Util::IsPhysicsObjectValid depends on it.
 			RegisterPhysicsEnvironment(pPhys->m_envList[i]);
 		}
+
+		g_bCallPhysHook = false; // Reset to default
 	}
 
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::CPhysCollide, pLua->CreateMetaTable("CPhysCollide"));
