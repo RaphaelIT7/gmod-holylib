@@ -18,7 +18,7 @@ void* Detour::GetFunction(void* pModule, Symbol pSymbol)
 
 static std::unordered_set<std::string> pDisabledDetours;
 static std::unordered_set<std::string> pFailedDetours;
-static std::unordered_set<std::string> pLoadedDetours;
+static std::unordered_map<std::string, unsigned int> pLoadedDetours;
 static std::unordered_map<unsigned int, std::unordered_set<Detouring::Hook*>> g_pDetours = {};
 void Detour::Create(Detouring::Hook* pHook, const char* strName, void* pModule, Symbol pSymbol, void* pHookFunc, unsigned int category)
 {
@@ -56,7 +56,7 @@ void Detour::Create(Detouring::Hook* pHook, const char* strName, void* pModule, 
 
 		if (pLoadedDetours.find(strName) == pLoadedDetours.end())
 		{
-			pLoadedDetours.insert(strName);
+			pLoadedDetours[strName] = category;
 		}
 	}
 }
@@ -71,6 +71,17 @@ void Detour::Remove(unsigned int category) // NOTE: Do we need to check if the p
 		}
 	}
 	g_pDetours[category].clear();
+
+	// Remove them from our loaded list.
+	for (auto it = pLoadedDetours.begin(); it != pLoadedDetours.end(); )
+	{
+		if (it->second == category)
+		{
+			it = pLoadedDetours.erase(it);
+		} else {
+			it++;
+		}
+	}
 }
 
 void Detour::ReportLeak()
@@ -90,7 +101,7 @@ const std::unordered_set<std::string>& Detour::GetFailedDetours()
 	return pFailedDetours;
 }
 
-const std::unordered_set<std::string>& Detour::GetLoadedDetours()
+const std::unordered_set<std::string, unsigned int>& Detour::GetLoadedDetours()
 {
 	return pLoadedDetours;
 }
