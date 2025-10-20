@@ -44,6 +44,8 @@ static bool Filter_ShouldDiscard(const netadr_t& adr)
 
 	if (func_Filter_ShouldDiscard)
 		return func_Filter_ShouldDiscard(adr);
+
+	return false;
 }
 
 static Detouring::Hook detour_Filter_Add_f;
