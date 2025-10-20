@@ -29,8 +29,6 @@ public:
 static CSoundscapeModule g_pSoundscapeModule;
 IModule* pSoundscapeModule = &g_pSoundscapeModule;
 
-static ConVar soundscape_updateplayerhook("holylib_soundscape_updateplayerhook", "0", FCVAR_ARCHIVE, "If enabled, the soundscape hooks are called.");
-
 static DTVarByOffset m_Local_Offset("DT_LocalPlayerExclusive", "m_Local");
 static DTVarByOffset m_Audio_Offset("DT_Local", "m_audio.localSound[0]");
 static inline audioparams_t* GetAudioParams(void* pPlayer)
@@ -213,67 +211,51 @@ LUA_FUNCTION_STATIC(soundscape_GetAllEntities)
 	return 1;
 }
 
+static bool g_bCallUpdateHook = false;
 static int nLastUpdateTick = -1;
 static CBitVec<MAX_PLAYERS> pHandledPlayers;
 static ss_update_t* pCurrentUpdate = nullptr;
 static Detouring::Hook detour_CEnvSoundscape_UpdateForPlayer;
 static void hook_CEnvSoundscape_UpdateForPlayer(CBaseEntity* pSoundScape, ss_update_t& update)
 {
-    int nTick = gpGlobals->tickcount;
-    if (nTick != nLastUpdateTick)
-    {
-        pHandledPlayers.ClearAll();
-        nLastUpdateTick = nTick;
-    }
+	int nTick = gpGlobals->tickcount;
+	if (nTick != nLastUpdateTick)
+		pHandledPlayers.ClearAll();
 
-    int iClient = -1;
-    if (update.pPlayer && update.pPlayer->edict())
-    {
-        iClient = update.pPlayer->edict()->m_EdictIndex - 1;
-    }
+	int iClient = update.pPlayer->edict()->m_EdictIndex-1;
+	
+	// Player got handled by Lua already, so we can skip
+	if (pHandledPlayers.IsBitSet(iClient) || pBlockEngineAction.IsBitSet(iClient))
+		return;
 
-    if (iClient >= 0 && pBlockEngineAction.IsBitSet(iClient))
-    {
-        if (iClient >= 0)
-            pHandledPlayers.Set(iClient);
+	// Can update.pPlayer even be NULL? Probably no
+	if (g_bCallUpdateHook && update.pPlayer && Lua::PushHook("HolyLib:OnSoundScapeUpdateForPlayer"))
+	{
+		Util::Push_Entity(g_Lua, pSoundScape);
+		Util::Push_Entity(g_Lua, update.pPlayer);
 
-        return;
-    }
+		pCurrentUpdate = &update;
+		if (g_Lua->CallFunctionProtected(3, 1, true))
+		{
+			bool bCancel = g_Lua->GetBool(-1);
+			g_Lua->Pop(1);
 
-    if (!update.pPlayer)
-    {
-        detour_CEnvSoundscape_UpdateForPlayer.GetTrampoline<Symbols::CEnvSoundscape_UpdateForPlayer>()(pSoundScape, update);
-        return;
-    }
+			if (bCancel)
+			{
+				audioparams_t* pParams = GetAudioParams(update.pPlayer);
+				if (pParams && func_CEnvSoundscape_WriteAudioParamsTo)
+					func_CEnvSoundscape_WriteAudioParamsTo(update.pCurrentSoundscape, *pParams);
 
-    if (soundscape_updateplayerhook.GetBool() && Lua::PushHook("HolyLib:OnSoundScapeUpdateForPlayer"))
-    {
-        Util::Push_Entity(g_Lua, pSoundScape);
-        Util::Push_Entity(g_Lua, update.pPlayer);
+				// We canceled, so we now, we don't want anything to mess with the player further, so we'll block further actions for this tick.
+				pHandledPlayers.Set(iClient);
+				pCurrentUpdate = nullptr;
+				return;
+			}
+		}
+		pCurrentUpdate = nullptr;
+	}
 
-        pCurrentUpdate = &update;
-        if (g_Lua->CallFunctionProtected(3, 1, true))
-        {
-            bool bCancel = g_Lua->GetBool(-1);
-            g_Lua->Pop(1);
-
-            if (bCancel)
-            {
-                audioparams_t* pParams = GetAudioParams(update.pPlayer);
-                if (pParams && func_CEnvSoundscape_WriteAudioParamsTo)
-                    func_CEnvSoundscape_WriteAudioParamsTo(update.pCurrentSoundscape, *pParams);
-
-                if (iClient >= 0)
-                    pHandledPlayers.Set(iClient);
-
-                pCurrentUpdate = nullptr;
-                return;
-            }
-        }
-        pCurrentUpdate = nullptr;
-    }
-
-    detour_CEnvSoundscape_UpdateForPlayer.GetTrampoline<Symbols::CEnvSoundscape_UpdateForPlayer>()(pSoundScape, update);
+	detour_CEnvSoundscape_UpdateForPlayer.GetTrampoline<Symbols::CEnvSoundscape_UpdateForPlayer>()(pSoundScape, update);
 }
 
 LUA_FUNCTION_STATIC(soundscape_SetCurrentDistance)
@@ -311,6 +293,13 @@ LUA_FUNCTION_STATIC(soundscape_SetCurrentPlayerPosition)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(soundscape_EnableUpdateHook)
+{
+	g_bCallUpdateHook = LUA->GetBool(1);
+
+	return 0;
+}
+
 void CSoundscapeModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 }
@@ -336,6 +325,11 @@ void CSoundscapeModule::InitDetour(bool bPreServer)
 
 void CSoundscapeModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
+	if (pLua == g_Lua)
+	{
+		g_bCallUpdateHook = false; // Resetting it on changelevel & such
+	}
+
 	Util::StartTable(pLua);
 		Util::AddFunc(pLua, soundscape_GetActiveSoundScape, "GetActiveSoundScape");
 		Util::AddFunc(pLua, soundscape_GetActiveSoundScapeIndex, "GetActiveSoundScapeIndex");
@@ -351,6 +345,8 @@ void CSoundscapeModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, soundscape_SetCurrentDistance, "SetCurrentDistance");
 		Util::AddFunc(pLua, soundscape_SetCurrentSoundscape, "SetCurrentSoundscape");
 		Util::AddFunc(pLua, soundscape_SetCurrentPlayerPosition, "SetCurrentPlayerPosition");
+
+		Util::AddFunc(pLua, soundscape_EnableUpdateHook, "EnableUpdateHook");
 	Util::FinishTable(pLua, "soundscape");
 }
 
