@@ -565,11 +565,6 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x49\x89\xFC\x53\x48\x89\xFB\x48\x81\xEC\x20\x01\x00\x00"), // 55 48 89 E5 41 57 41 56 41 55 41 54 49 89 FC 53 48 89 FB 48 81 EC 20 01 00 00
 	};
 
-	const std::vector<Symbol> GetCurrentSkyCameraSym = {// Search for 'models/props_combine/headcrabcannister01a_skybox.mdl' then select the xref function that call it 2 times, and you got it
-		Symbol::FromName("_Z19GetCurrentSkyCamerav"),
-		Symbol::FromSignature("\x55\x48\x8B\x05\x2A\x2A\x0D\x01\x48\x89\xE5\x5D\xC3"), //55 48 8B 05 ?? ?? 0D 01 48 89 E5 5D C3 
-	};
-
 	//---------------------------------------------------------------------------------
 	// Purpose: steamworks Symbols
 	//---------------------------------------------------------------------------------
@@ -702,15 +697,18 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x8B\xEC\x51\x8B*****\x8D\x55\xFC\xC7\x45\xFC\x00\x00\x00\x00"), // 55 8B EC 51 8B ?? ?? ?? ?? ?? 8D 55 FC C7 45 FC 00 00 00 00
 	};
 
-	const std::vector<Symbol> PhysFrameSym = { // "Reset physics clock\n"
-		Symbol::FromName("_ZL9PhysFramef"),
-		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x53\x48\x83\xEC\x38\x64\x48\x8B\x04\x25\x2A\x2A\x2A\x2A"), // 55 48 89 E5 41 57 41 56 41 55 41 54 53 48 83 EC 38 64 48 8B 04 25 ? ? ? ?
-		Symbol::FromSignature("\x55\x8B\xEC\x83\xEC\x1C\x83******\x53\x56\x57"), // 55 8B EC 83 EC 1C 83 ?? ?? ?? ?? ?? ?? 53 56 57
+	const std::vector<Symbol> CPhysicsHook_FrameUpdatePostEntityThinkSym = { // "CPhysicsHook::FrameUpdatePostEntityThink" - VPROF Call
+		Symbol::FromName("_ZN12CPhysicsHook26FrameUpdatePostEntityThinkEv"),
+	};
+
+	const std::vector<Symbol> CCollisionEvent_FrameUpdateSym = {
+		Symbol::FromName("_ZN15CCollisionEvent11FrameUpdateEv"),
+		NULL_SIGNATURE,
 	};
 
 	const std::vector<Symbol> CPhysicsEnvironment_DestroyObjectSym = {
 		Symbol::FromName("_ZN19CPhysicsEnvironment13DestroyObjectEP14IPhysicsObject"),
-		Symbol::FromSignature(""),
+		NULL_SIGNATURE,
 		// On Windows we will use the vtable instead to detour it.... maybe we should do the same on linux?
 	};
 

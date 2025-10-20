@@ -2161,6 +2161,17 @@ This may be useful if you have `holylib_networking_transmit_all_weapons` set to 
 > [!NOTE]
 > If both `holylib_networking_transmit_all_weapons` and `holylib_networking_transmit_all_weapons_to_owner` are set to `0`, only the active weapon of the player will be networked.<br>
 
+#### holylib_networking_transmit_one_per_tick(default `0`)
+If enabled, one additional weapon is networked per tick, the slot always changes rotating through all weapons.<br>
+This allows you to have `holylib_networking_transmit_all_weapons` and `holylib_networking_transmit_all_weapons_to_owner` but still allow others to receive all weapons of a player over time.<br>
+This helps to reduce networking cost as networking all weapons of every player is very expensive easily being the most expensive thing<br>
+Setting it to `1` causes it to network the additional weapon to **all** players<br>
+Setting it to `2` causes it to network the additional weapon **only** to the owner<br>
+
+#### networking_bind_gmodhands_to_player(default `1`)
+If enabled, the GMOD Hands entity / the entity set with `Player:SetHands` will be bound to the player and only networked with the player himself.<br>
+Will become useless with https://github.com/Facepunch/garrysmod-requests/issues/2839<br>
+
 ## steamworks
 This module adds a few functions related to steam.<br>
 
@@ -3140,6 +3151,10 @@ You can freeze all props here and then return `physenv.IVP_SkipSimulation` to sk
 > [!NOTE]
 > Only works on Linux32<br>
 > By default its called only **ONCE** per simulation frame, you can return `physenv.IVP_NONE` to get it triggered multiple times in the same frame.<br>
+
+### HolyLib:PostPhysicsLag(number simulationTime)
+Called after the physics simulation ended in which a physics lag was triggered.<br>
+Inside this hook you can safely change/modify the entities without having to worry about undefined behavior/crashes.<br>
 
 #### bool HolyLib:PrePhysFrame(number deltaTime)<br>
 Called when the physics are about to be simulated.<br>
@@ -4753,6 +4768,9 @@ Sets the player position for the currently active soundscapeUpdate.<br>
 Only works inside the `HolyLib:OnSoundScapeUpdateForPlayer` hook!<br>
 Mostly only useful to influence which soundscape could be selected.<br>
 
+#### soundscape.EnableUpdateHook(bool enable = false)
+Enables/Disables the `HolyLib:OnSoundScapeUpdateForPlayer` hook.<br>
+
 ### Hooks
 
 #### bool HolyLib:OnSoundScapeUpdateForPlayer(Entity currentSoundscape, Player currentPlayer)
@@ -4760,11 +4778,6 @@ Called before a soundscape tries to update for the given player.<br>
 Return `true` to block the call and any further calls for this tick and additionally,<br>
 the currently set soundscape entity for the active soundscapeUpdate will be applied to the player.<br>
 You can set it using `soundscape.SetCurrentSoundscape` inside the hook.<br>
-
-### ConVars
-
-#### holylib_soundscape_updateplayerhook(default `0`)
-If enabled, the `HolyLib:OnSoundScapeUpdateForPlayer` will be called.
 
 ## networkthreading
 The Networkthreading module was added in `0.8` and starts a networking thread that will handle all incoming packets, filtering them and preparing them for the main thread for processing.<br>

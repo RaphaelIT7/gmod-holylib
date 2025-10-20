@@ -487,9 +487,6 @@ namespace Symbols
 	extern const std::vector<Symbol> CBaseCombatCharacter_SetTransmitSym;
 	extern const std::vector<Symbol> CBaseAnimating_SetTransmitSym;
 
-	typedef CSkyCamera* (*GetCurrentSkyCamera)();
-	extern const std::vector<Symbol> GetCurrentSkyCameraSym;
-
 	//---------------------------------------------------------------------------------
 	// Purpose: steamworks Symbols
 	//---------------------------------------------------------------------------------
@@ -592,8 +589,11 @@ namespace Symbols
 	typedef bool (*GMod_Util_IsPhysicsObjectValid)(IPhysicsObject* obj);
 	extern const std::vector<Symbol> GMod_Util_IsPhysicsObjectValidSym;
 
-	typedef void (*PhysFrame)(float deltaTime);
-	extern const std::vector<Symbol> PhysFrameSym;
+	typedef void (*CPhysicsHook_FrameUpdatePostEntityThink)(void* CPhysicsHook);
+	extern const std::vector<Symbol> CPhysicsHook_FrameUpdatePostEntityThinkSym;
+
+	typedef void (*CCollisionEvent_FrameUpdate)(void* pCollisionEvent);
+	extern const std::vector<Symbol> CCollisionEvent_FrameUpdateSym;
 
 #if PHYSENV_INCLUDEIVPFALLBACK
 	typedef GMODSDK::IVP_MRC_TYPE (*IVP_Mindist_Minimize_Solver_p_minimize_PP)(void* mindistMinimizeSolver, const GMODSDK::IVP_Compact_Edge *A, const GMODSDK::IVP_Compact_Edge *B, IVP_Cache_Ledge_Point *m_cache_A, IVP_Cache_Ledge_Point *m_cache_B);

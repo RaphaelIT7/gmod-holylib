@@ -247,7 +247,7 @@ void CheckPhysicsLag(const char* pFunctionName, CPhysicsObject* pObject1, CPhysi
 				g_Lua->Pop(1);
 
 				if (g_pPhysEnvModule.InDebug() > 2)
-					Msg(PROJECT_NAME " - physenv: Lua hook called (%i)\n", (int)pCurrentSkipType);
+					Msg(PROJECT_NAME " - physenv: HolyLib:OnPhysicsLag hook called (%i)\n", (int)pCurrentSkipType);
 
 				//g_pIVPHolyLib.SetShouldSkip(pCurrentSkipType != IVP_SkipType::IVP_None);
 			}
@@ -258,7 +258,7 @@ void CheckPhysicsLag(const char* pFunctionName, CPhysicsObject* pObject1, CPhysi
 
 void PostPhysicsLag()
 {
-	if (pCurrentSkipType != IVP_None && Lua::PushHook("HolyLib:PostPhysicsLag"))
+	if (pCurrentSkipType != IVP_None && !g_pIsInPhysicsLagCall && Lua::PushHook("HolyLib:PostPhysicsLag"))
 	{
 		auto pTime = std::chrono::high_resolution_clock::now();
 		auto pSimulationTime = std::chrono::duration_cast<std::chrono::milliseconds>(pTime - pCurrentTime).count();
@@ -266,10 +266,10 @@ void PostPhysicsLag()
 
 		g_pIsInPhysicsLagCall = true;
 		pCurrentTime = std::chrono::high_resolution_clock::now(); // Update timer.
-		if (g_Lua->CallFunctionProtected(6, 0, true))
+		if (g_Lua->CallFunctionProtected(2, 0, true))
 		{
 			if (g_pPhysEnvModule.InDebug() > 2)
-				Msg(PROJECT_NAME " - physenv: Post Lua hook called!\n");
+				Msg(PROJECT_NAME " - physenv: HolyLib:PostPhysicsLag hook called!\n");
 		}
 		g_pIsInPhysicsLagCall = false;
 	}
@@ -541,6 +541,26 @@ GMODGet_LuaClass(IPhysicsObject, GarrysMod::Lua::Type::PhysObj, "PhysObj",
 );
 #endif
 static CCollisionEvent* g_Collisions = NULL;
+static void TryFetchingGCollisions()
+{
+	if (g_Collisions != NULL)
+		return;
+
+	CPhysicsEnvironment* pMainEnvironment = (CPhysicsEnvironment*)g_pPhysics->GetActiveEnvironmentByIndex(0);
+	if (!pMainEnvironment)
+		return;
+
+#if CUSTOM_VPHYSICS_BUILD
+	if (g_pPhysicsHolyLib) {
+		g_Collisions = (CCollisionEvent*)g_pPhysicsHolyLib->GetCollisionSolver(pMainEnvironment); // Raw access is always fun :D
+	} else
+#endif
+	{
+		GMODSDK::CPhysicsEnvironment* pGmodMainEnvironment = static_cast<GMODSDK::CPhysicsEnvironment*>(static_cast<void*>(pMainEnvironment));
+		g_Collisions = (CCollisionEvent*)pGmodMainEnvironment->m_pCollisionSolver->m_pSolver; // Raw access is always fun :D
+	}
+}
+
 class CLuaPhysicsObjectEvent : public IPhysicsObjectEvent
 {
 public:
@@ -1451,6 +1471,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_EnableDeleteQueue)
 	return 0;
 }
 
+static Symbols::CCollisionEvent_FrameUpdate func_CCollisionEvent_FrameUpdate = nullptr;
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_Simulate)
 {
 	ILuaPhysicsEnvironment* pLuaEnv = Get_ILuaPhysicsEnvironment(LUA, 1, true);
@@ -1516,6 +1537,13 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_Simulate)
 			pEntity->VPhysicsShadowUpdate( pPhysics );
 		}
 	}*/
+
+	TryFetchingGCollisions();
+	if (g_Collisions && func_CCollisionEvent_FrameUpdate)
+	{
+		g_Collisions->BufferTouchEvents(false);
+		func_CCollisionEvent_FrameUpdate(g_Collisions);
+	}
 
 	g_pCurrentEnvironment.pop_back();
 	return 0;
@@ -2432,16 +2460,10 @@ static bool hook_GMod_Util_IsPhysicsObjectValid(IPhysicsObject* pObject)
 }
 
 static thread_local bool g_bCallPhysHook = false;
-static Detouring::Hook detour_PhysFrame;
-static void hook_PhysFrame(float deltaTime)
+static Detouring::Hook detour_CPhysicsHook_FrameUpdatePostEntityThink;
+static void hook_CPhysicsHook_FrameUpdatePostEntityThink(void* CPhysicsHook)
 {
-	// BUG: our hook into PhysFrame seems to have it's arguments screwed up! We cannot rely on these so we need to get them ourselves!
-	// This seems to be because of the calling conversion of PhysFrame, IDA shows it as: unsigned int __usercall PhysFrame@<eax>(float@<xmm0>, CPhysicsHook *)
-	// And that alone looks fked up already :sob:
-#if defined(ARCHITECTURE_X86) && defined(SYSTEM_LINUX) 
-	__asm__ __volatile__ ("movss %%xmm0, %0" : "=m"(deltaTime) : : "xmm0");
-#endif
-
+	float deltaTime = (gpGlobals->frametime > 0.0f) ? gpGlobals->interval_per_tick : 0.0f; // Matches what source does.
 	if (g_bCallPhysHook && Lua::PushHook("HolyLib:PrePhysFrame"))
 	{
 		g_Lua->PushNumber(deltaTime);
@@ -2459,7 +2481,7 @@ static void hook_PhysFrame(float deltaTime)
 	if (pEnv)
 		g_pCurrentEnvironment.push_back(GetPhysicsEnvironment(pEnv));
 
-	detour_PhysFrame.GetTrampoline<Symbols::PhysFrame>()(deltaTime);
+	detour_CPhysicsHook_FrameUpdatePostEntityThink.GetTrampoline<Symbols::CPhysicsHook_FrameUpdatePostEntityThink>()(CPhysicsHook);
 
 	if (pEnv)
 		g_pCurrentEnvironment.pop_back();
@@ -2496,6 +2518,8 @@ void CPhysEnvModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 			// If we were enabled after the server was started, we should register all phys envs as the GMod::Util::IsPhysicsObjectValid depends on it.
 			RegisterPhysicsEnvironment(pPhys->m_envList[i]);
 		}
+
+		g_bCallPhysHook = false; // Reset to default
 	}
 
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::CPhysCollide, pLua->CreateMetaTable("CPhysCollide"));
@@ -2878,10 +2902,13 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 	}
 
 	Detour::Create(
-		&detour_PhysFrame, "PhysFrame",
-		server_loader.GetModule(), Symbols::PhysFrameSym,
-		(void*)hook_PhysFrame, m_pID
+		&detour_CPhysicsHook_FrameUpdatePostEntityThink, "CPhysicsHook::FrameUpdatePostEntityThink",
+		server_loader.GetModule(), Symbols::CPhysicsHook_FrameUpdatePostEntityThinkSym,
+		(void*)hook_CPhysicsHook_FrameUpdatePostEntityThink, m_pID
 	);
+
+	func_CCollisionEvent_FrameUpdate = (Symbols::CCollisionEvent_FrameUpdate)Detour::GetFunction(server_loader.GetModule(), Symbols::CCollisionEvent_FrameUpdateSym);
+	Detour::CheckFunction((void*)func_CCollisionEvent_FrameUpdate, "CCollisionEvent::FrameUpdate");
 }
 
 void CPhysEnvModule::Shutdown()

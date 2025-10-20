@@ -44,6 +44,8 @@ static bool Filter_ShouldDiscard(const netadr_t& adr)
 
 	if (func_Filter_ShouldDiscard)
 		return func_Filter_ShouldDiscard(adr);
+
+	return false;
 }
 
 static Detouring::Hook detour_Filter_Add_f;
@@ -88,7 +90,8 @@ struct QueuedPacket {
 			pBytes = nullptr;
 		}
 
-		ConDMsg(PROJECT_NAME " - networkthreading: Freeing %i bytes after packet was now processed (%p)\n", pPacket.size, this);
+		if (g_pNetworkThreadingModule.InDebug() == 1)
+			Msg(PROJECT_NAME " - networkthreading: Freeing %i bytes after packet was now processed (%p)\n", pPacket.size, this);
 	}
 
 	netpacket_s pPacket;
@@ -114,10 +117,12 @@ static void AddPacketToQueueForMainThread(netpacket_s* pPacket, bool bIsConnecti
 	pQueue->pBytes = new unsigned char[pPacket->size];
 	memcpy(pQueue->pBytes, pPacket->data, pPacket->size);
 
-	pPacket->data = pQueue->pBytes; // Update the pointer for later access
-	pPacket->message.StartReading( pPacket->data, pPacket->size ); // also needs updating
+	pQueue->pPacket.data = pQueue->pBytes; // Update the pointer for later access
+	pQueue->pPacket.message.StartReading( pQueue->pPacket.data, pQueue->pPacket.size, pPacket->message.GetNumBitsRead() ); // also needs updating
+	pQueue->pPacket.pNext = NULL;
 
-	ConDMsg(PROJECT_NAME " - networkthreading: Added %i bytes packet to queue (%p)\n", pPacket->size, pQueue);
+	if (g_pNetworkThreadingModule.InDebug() == 1)
+		Msg(PROJECT_NAME " - networkthreading: Added %i bytes packet to queue (%p)\n", pPacket->size, pQueue);
 
 	AUTO_LOCK(g_pQueuePacketsMutex);
 	g_pQueuedPackets.push_back(pQueue);
@@ -143,7 +148,9 @@ static HandleStatus ShouldHandlePacket(netpacket_s* pPacket, bool isConnectionle
 		if (networkthreading_parallelprocessing.GetBool())
 		{
 			if (c == A2S_GETCHALLENGE || c == A2S_SERVERQUERY_GETCHALLENGE || c == A2S_INFO || c == A2S_PLAYER || c == A2S_RULES)
+			{
 				return HandleStatus::HANDLE_NOW;
+			}
 		}
 	}
 
@@ -223,7 +230,7 @@ static SIMPLETHREAD_RETURNVALUE NetworkThread(void* pThreadData)
 			CNetChan* netchan = func_NET_FindNetChannel(nSocket, packet->from);
 			if (netchan)
 			{
-				HandleStatus pStatus = ShouldHandlePacket(packet, true);
+				HandleStatus pStatus = ShouldHandlePacket(packet, false);
 				if (pStatus == HandleStatus::HANDLE_NOW) {
 					netchan->ProcessPacket(packet, true);
 				} else {
@@ -232,7 +239,8 @@ static SIMPLETHREAD_RETURNVALUE NetworkThread(void* pThreadData)
 			} else {
 				char pNetAddr[64]; // Needed since else .ToString is not threadsafe!
 				(*(netadrnew_s*)&packet->from).ToString(pNetAddr, sizeof(pNetAddr), false);
-				ConDMsg(PROJECT_NAME " - networkthreading: Discarding of %i bytes since there is no channel for %s!\n", packet->size, pNetAddr);
+				if (g_pNetworkThreadingModule.InDebug() == 1)
+					Msg(PROJECT_NAME " - networkthreading: Discarding of %i bytes since there is no channel for %s!\n", packet->size, pNetAddr);
 			}
 		}
 
@@ -253,7 +261,7 @@ static void hook_NET_ProcessSocket(int nSocket, IConnectionlessPacketHandler* pH
 		return;
 	}
 
-	VPROF_BUDGET( "HolyLib - NET_ProcessSocket", VPROF_BUDGETGROUP_HOLYLIB );
+	VPROF_BUDGET("HolyLib - NET_ProcessSocket", VPROF_BUDGETGROUP_HOLYLIB);
 
 	// get streaming data from channel sockets
 	// NOTE: This code is probably completely useless since Gmod doesn't use TCP
@@ -271,8 +279,14 @@ static void hook_NET_ProcessSocket(int nSocket, IConnectionlessPacketHandler* pH
 	for (QueuedPacket* pQueuePacket : g_pQueuedPackets)
 	{
 		if (pQueuePacket->bIsConnectionless) {
+			if (g_pNetworkThreadingModule.InDebug() == 1)
+				Msg(PROJECT_NAME " - networkthreading: Processed %i bytes as connectionless! (%p)\n", pQueuePacket->pPacket.size, pQueuePacket);
+
 			Util::server->ProcessConnectionlessPacket(&pQueuePacket->pPacket);
 		} else {
+			if (g_pNetworkThreadingModule.InDebug() == 1)
+				Msg(PROJECT_NAME " - networkthreading: Processed %i bytes as net channel! (%p)\n", pQueuePacket->pPacket.size, pQueuePacket);
+
 			CNetChan* netchan = func_NET_FindNetChannel(nSocket, pQueuePacket->pPacket.from);
 			if (netchan)
 				netchan->ProcessPacket(&pQueuePacket->pPacket, true);
@@ -314,7 +328,10 @@ void CNetworkThreadingModule::ServerActivate(edict_t* pEdictList, int edictCount
 {
 	g_nThreadState.store(NetworkThreadState::STATE_RUNNING);
 	if (g_pNetworkThread == NULL)
+	{
+		ConDMsg(PROJECT_NAME " - networkthreading: Starting network thread...\n");
 		g_pNetworkThread = CreateSimpleThread((ThreadFunc_t)NetworkThread, NULL);
+	}
 }
 
 void CNetworkThreadingModule::Shutdown()
@@ -322,10 +339,15 @@ void CNetworkThreadingModule::Shutdown()
 	if (g_pNetworkThread == NULL)
 		return;
 
-	g_nThreadState.store(NetworkThreadState::STATE_SHOULD_SHUTDOWN);
-	while (g_nThreadState.load() != NetworkThreadState::STATE_NOTRUNNING) // Wait for shutdown
-		ThreadSleep(0);
+	ConDMsg(PROJECT_NAME " - networkthreading: Stopping network thread...\n");
+	if (g_nThreadState.load() != NetworkThreadState::STATE_NOTRUNNING)
+	{
+		g_nThreadState.store(NetworkThreadState::STATE_SHOULD_SHUTDOWN);
+		while (g_nThreadState.load() != NetworkThreadState::STATE_NOTRUNNING) // Wait for shutdown
+			ThreadSleep(0);
+	}
 	ReleaseThreadHandle(g_pNetworkThread);
+	g_pNetworkThread = NULL;
 }
 
 void CNetworkThreadingModule::InitDetour(bool bPreServer)

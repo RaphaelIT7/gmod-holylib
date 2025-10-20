@@ -26,10 +26,6 @@ CGlobalEntityList* Util::entitylist = nullptr;
 CUserMessages* Util::pUserMessages = nullptr;
 
 std::unordered_set<LuaUserData*> g_pLuaUserData;
-#if HOLYLIB_UTIL_BASEUSERDATA && HOLYLIB_UTIL_GLOBALUSERDATA 
-std::shared_mutex g_UserDataMutex;
-std::unordered_map<void*, BaseUserData*> g_pGlobalLuaUserData;
-#endif
 
 std::unordered_set<int> Util::g_pReference;
 ConVar Util::holylib_debug_mainutil("holylib_debug_mainutil", "1");
@@ -37,10 +33,6 @@ ConVar Util::holylib_debug_mainutil("holylib_debug_mainutil", "1");
 // We require this here since we depend on the Lua namespace
 void LuaUserData::ForceGlobalRelease(void* pData)
 {
-#if HOLYLIB_UTIL_DEBUG_BASEUSERDATA
-	Msg("holylib - util: Global release for Userdata %p (%p) got aquired %i\n", it->second, pData, it->second->m_iReferenceCount);
-#endif
-
 	bool bFound = false;
 	const std::unordered_set<Lua::StateData*> pStateData = Lua::GetAllLuaData();
 	for (Lua::StateData* pState : pStateData)
@@ -982,7 +974,7 @@ static void CreateDebugDump(const CCommand &args)
 			Bootil::Data::Tree& pDetours = pData.GetChild("detours");
 
 			Bootil::Data::Tree& pLoadedDetours = pDetours.GetChild("loaded");
-			for (auto& pName : Detour::GetLoadedDetours())
+			for (auto& [pName, _] : Detour::GetLoadedDetours())
 				pLoadedDetours.EnsureChildVar<bool>(pName, true);
 
 			Bootil::Data::Tree& pFailedDetours = pDetours.GetChild("failed");
