@@ -70,9 +70,8 @@ static bool CGameMovement_IsValidMovementTrace(CGameMovement* gamemovement, trac
 #define	MAX_CLIP_PLANES		5
 static Symbols::MoveHelperServer func_MoveHelperServer = NULL;
 static Symbols::CGameMovement_ClipVelocity func_CGameMovement_ClipVelocity = NULL;
-static Symbols::CBaseEntity_GetGroundEntity func_CBaseEntity_GetGroundEntity = NULL;
 static Symbols::CTraceFilterSimple_ShouldHitEntity func_CTraceFilterSimple_ShouldHitEntity = NULL;
-inline IMoveHelper* HolyLib_MoveHelper()
+static inline IMoveHelper* HolyLib_MoveHelper()
 {
 	return (IMoveHelper*)func_MoveHelperServer();
 }
@@ -81,11 +80,6 @@ int CGameMovement::ClipVelocity(Vector& a, Vector& b, Vector& c, float d)
 {
 	VPROF_BUDGET("HolyLib - CGameMovement::ClipVelocity", VPROF_BUDGETGROUP_HOLYLIB);
 	return func_CGameMovement_ClipVelocity(this, a, b, c, d);
-}
-
-CBaseEntity* CBaseEntity::GetGroundEntity()
-{
-	return (CBaseEntity*)func_CBaseEntity_GetGroundEntity(this);
 }
 
 CTraceFilterSimple::CTraceFilterSimple(const IHandleEntity *passedict, int collisionGroup, ShouldHitFunc_t pExtraShouldHitFunc)
@@ -98,6 +92,32 @@ CTraceFilterSimple::CTraceFilterSimple(const IHandleEntity *passedict, int colli
 bool CTraceFilterSimple::ShouldHitEntity(IHandleEntity *pHandleEntity, int contentsMask)
 {
 	return func_CTraceFilterSimple_ShouldHitEntity(this, pHandleEntity, contentsMask);
+}
+
+// Why not define it as CBaseEntity::GetGroundEntity? Because then other modules could form accidental dependencies soo lets avoid that, though we should do it for thoes above us too
+static DTVarByOffset m_hGroundEntity_Offset("DT_LocalPlayerExclusive", "m_hGroundEntity");
+static inline CBaseEntity* GetGroundEntity(void* pPlayer)
+{
+	void* pGroundEntity = m_hGroundEntity_Offset.GetPointer(pPlayer);
+	if (!pGroundEntity)
+		return nullptr;
+
+	if (!g_pEntityList)
+		return Util::GetCBaseEntityFromIndex(((EHANDLE*)pGroundEntity)->GetEntryIndex());
+
+	return ((EHANDLE*)pGroundEntity)->Get();
+}
+
+// ToDo: Impending doom! With the CurTime double transition some member variables in CBaseEntity & such will shift the layout and break stuff
+// So let's stay ahead and use DTVarByOffset when we can to avoid this issue mostly
+static DTVarByOffset movetype_Offset("DT_BaseEntity", "movetype");
+static inline int GetMoveType(void* pPlayer)
+{
+	void* pMoveType = movetype_Offset.GetPointer(pPlayer);
+	if (!pMoveType)
+		return MoveType_t::MOVETYPE_NONE;
+
+	return *(int*)pMoveType;
 }
 
 inline void HolyLib_UTIL_TraceRay(const Ray_t &ray, unsigned int mask, const IHandleEntity *ignore, int collisionGroup, trace_t *ptr, ShouldHitFunc_t pExtraShouldHitCheckFn = NULL)
@@ -113,7 +133,6 @@ inline void HolyLib_UTIL_TraceRay(const Ray_t &ray, unsigned int mask, const IHa
 	//}
 }
 
-IEngineTrace *enginetrace = NULL;
 static Detouring::Hook detour_CGameMovement_TryPlayerMove;
 static int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector* pFirstDest, trace_t* pFirstTrace) // Raphael: We still need to support player->m_surfaceFriction or what it's name was. I removed it since I currently can't get it.
 {
@@ -300,7 +319,7 @@ static int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector*
 			}
 		}
 
-		if (bumpcount && sv_ramp_fix.GetBool() && gamemovement->player->GetGroundEntity() == nullptr && !CGameMovement_IsValidMovementTrace(gamemovement, pm))
+		if (bumpcount && sv_ramp_fix.GetBool() && GetGroundEntity(gamemovement->player) == nullptr && !CGameMovement_IsValidMovementTrace(gamemovement, pm))
 		{
 			has_valid_plane = false;
 			stuck_on_ramp = true;
@@ -322,7 +341,7 @@ static int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector*
 		//  zero the plane counter.
 		if (pm.fraction > 0.0f)
 		{
-			if ((!bumpcount || gamemovement->player->GetGroundEntity() != nullptr || !sv_ramp_fix.GetBool()) && numbumps > 0 && pm.fraction == 1.0f)
+			if ((!bumpcount || GetGroundEntity(gamemovement->player) != nullptr || !sv_ramp_fix.GetBool()) && numbumps > 0 && pm.fraction == 1.0f)
 			{
 				// There's a precision issue with terrain tracing that can cause a swept box to successfully trace
 				// when the end position is stuck in the triangle.  Re-run the test with an unswept box to catch that
@@ -425,8 +444,8 @@ static int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector*
 		// Only give this a try for first impact plane because you can get yourself stuck in an acute corner by jumping in place
 		//  and pressing forward and nobody was really using this bounce/reflection feature anyway...
 		if ( numplanes == 1 &&
-			gamemovement->player->GetMoveType() == MOVETYPE_WALK &&
-			gamemovement->player->GetGroundEntity() == NULL )	
+			GetMoveType(gamemovement->player) == MOVETYPE_WALK &&
+			GetGroundEntity(gamemovement->player) == NULL )	
 		{
 			for ( i = 0; i < numplanes; i++ )
 			{
@@ -522,6 +541,7 @@ static int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector*
 	return blocked;
 }
 
+IEngineTrace* enginetrace = NULL; // Not static since it's defined as extern in enginecallbacks.h
 void CSurfFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	enginetrace = (IEngineTrace*)appfn[0](INTERFACEVERSION_ENGINETRACE_SERVER, NULL);
@@ -545,9 +565,6 @@ void CSurfFixModule::InitDetour(bool bPreServer)
 
 	func_CGameMovement_ClipVelocity = (Symbols::CGameMovement_ClipVelocity)Detour::GetFunction(server_loader.GetModule(), Symbols::CGameMovement_ClipVelocitySym);
 	Detour::CheckFunction((void*)func_CGameMovement_ClipVelocity, "CGameMovement:ClipVelocity");
-
-	func_CBaseEntity_GetGroundEntity = (Symbols::CBaseEntity_GetGroundEntity)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseEntity_GetGroundEntitySym);
-	Detour::CheckFunction((void*)func_CBaseEntity_GetGroundEntity, "CBaseEntity::GetGroundEntity");
 
 	func_CTraceFilterSimple_ShouldHitEntity = (Symbols::CTraceFilterSimple_ShouldHitEntity)Detour::GetFunction(server_loader.GetModule(), Symbols::CTraceFilterSimple_ShouldHitEntitySym);
 	Detour::CheckFunction((void*)func_CTraceFilterSimple_ShouldHitEntity, "CTraceFilterSimple::ShouldHitEntitySym");

@@ -1079,6 +1079,7 @@ LUA_FUNCTION_STATIC(physenv_GetActiveEnvironmentByIndex)
 	return 1;
 }
 
+// ToDo: Check, does VPhysics even support simulation of multiple environments at once? I feel like it uses shared variables and would shit itself since most stuff doesn't use thread_local!
 static thread_local std::vector<ILuaPhysicsEnvironment*> g_pCurrentEnvironment;
 LUA_FUNCTION_STATIC(physenv_DestroyEnvironment)
 {
@@ -1471,6 +1472,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_EnableDeleteQueue)
 	return 0;
 }
 
+static Symbols::CCollisionProperty_MarkSurroundingBoundsDirty func_CCollisionProperty_MarkSurroundingBoundsDirty = nullptr;
 static Symbols::CCollisionEvent_FrameUpdate func_CCollisionEvent_FrameUpdate = nullptr;
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_Simulate)
 {
@@ -1484,6 +1486,9 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_Simulate)
 	{
 		LUA->ThrowError("Tried to simulate a IPhysicsEnvironment that is already simulating!");
 	}
+
+	if (!func_CCollisionProperty_MarkSurroundingBoundsDirty)
+		Msg(PROJECT_NAME " - physenv: Missing CCollisionProperty::MarkSurroundingBoundsDirty so collision bounds might not update properly!");
 
 	// Additional safety
 	// I've seen cursed shit happen like it somehow freeing all memory of the server & crashing instantly. Don't tempt IVP
@@ -1514,7 +1519,10 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_Simulate)
 			if ( pEntity )
 			{
 				if ( pEntity->CollisionProp()->DoesVPhysicsInvalidateSurroundingBox() )
-					pEntity->CollisionProp()->MarkSurroundingBoundsDirty();
+				{
+					if (func_CCollisionProperty_MarkSurroundingBoundsDirty)
+						func_CCollisionProperty_MarkSurroundingBoundsDirty(pEntity->CollisionProp());
+				}
 
 				pEntity->VPhysicsUpdate( pActiveList[i] );
 			}
@@ -2909,6 +2917,9 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 
 	func_CCollisionEvent_FrameUpdate = (Symbols::CCollisionEvent_FrameUpdate)Detour::GetFunction(server_loader.GetModule(), Symbols::CCollisionEvent_FrameUpdateSym);
 	Detour::CheckFunction((void*)func_CCollisionEvent_FrameUpdate, "CCollisionEvent::FrameUpdate");
+
+	func_CCollisionProperty_MarkSurroundingBoundsDirty = (Symbols::CCollisionProperty_MarkSurroundingBoundsDirty)Detour::GetFunction(server_loader.GetModule(), Symbols::CCollisionProperty_MarkSurroundingBoundsDirtySym);
+	Detour::CheckFunction((void*)func_CCollisionProperty_MarkSurroundingBoundsDirty, "CCollisionProperty::MarkSurroundingBoundsDirty");
 }
 
 void CPhysEnvModule::Shutdown()
