@@ -237,6 +237,8 @@ namespace Symbols
 	const std::vector<Symbol> CVEngineServer_PrecacheModelSym = {
 		Symbol::FromName("_ZN14CVEngineServer13PrecacheModelEPKcb"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x54\x44\x0F\xB6\xE2\x53\x48\x89\xF3\x44\x89\xE6\x48\x89\xDF"), // 55 48 89 E5 41 54 44 0F B6 E2 53 48 89 F3 44 89 E6 48 89
+		Symbol::FromSignature("\x55\x8B\xEC\x56\x8B\x75\x08\x57\x8B\x7D\x0C\x57\x56"), // 55 8B EC 56 8B 75 08 57 8B 7D 0C 57 56 - FUN_10156770
+		Symbol::FromSignature("\x48\x89\x5C\x24\x08\x57\x48\x83\xEC\x20\x48\x8B\xDA\x41\x0F\xB6\xF8"), // 48 89 5c 24 08 57 48 83 EC 20 48 8B DA 41 0F B6 F8 - FUN_180160f40
 	};
 
 	const std::vector<Symbol> CVEngineServer_PrecacheGenericSym = {
