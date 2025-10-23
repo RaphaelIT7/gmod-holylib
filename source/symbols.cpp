@@ -244,22 +244,22 @@ namespace Symbols
 	const std::vector<Symbol> CVEngineServer_PrecacheGenericSym = {
 		Symbol::FromName("_ZN14CVEngineServer15PrecacheGenericEPKcb"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x89\xF3\x48\x83\xEC\x08\x0F\xB6\xF2\x48\x89\xDF"), // 55 48 89 E5 53 48 89 F3 48 83 EC 08 0F B6 F2 48 89 DF
-		Symbol::FromSignature("\x55\x8B\xEC\xFF\xFF\x75\x0C\xFF\x75\x08\xE8"), // 55 8B EC ?? ?? 75 0C FF 75 08 E8
+		Symbol::FromSignature("\x55\x8B\xEC\xFF\x75\x0C\xFF\x08*****\x83\xC4\x08\x85\xC0\x79\x12"), // 55 8B EC FF 75 0C FF 75 08 ?? ?? ?? ?? ?? 83 C4 08 85 C0 79 12
 		Symbol::FromSignature("\x40\x53\x48\x83\xEC\x20\x48\x8B\xDA\x41\x0F\xB6\xD0\x48\x8B\xCB"), // 40 53 48 83 EC 20 48 8B DA 41 0F B6 D0 48 8B CB
 	};
 
 	const std::vector<Symbol> SV_FindOrAddModelSym = {
 		Symbol::FromName("_Z17SV_FindOrAddModelPKcb"),
 		Symbol::FromSignature("\x55\x40\x80\xFE\x01\x48\x89\xFE\x48\x89\xE5\x48\x8B\x3D****\x19\xD2\x5D\x83\xE2\xFE\x31\xC9\x83\xC2\x03"), // 55 40 80 FE 01 48 89 FE 48 89 E5 48 8B 3D ?? ?? ?? ?? 19 D2 5D 83 E2 FE 31 C9 83 C2 03
-		Symbol::FromSignature("\x55\x8B\xEC\x0F\xB6\x45\x0C\xB9\xA0\x9C\x6F\x10"), // 55 8B EC 0F B6 45 0C B9 A0 9C 6F 10
-		Symbol::FromSignature("\x44\x0F\xB6\xC2\x45\x33\xC9\x48\x8B\xD1"), // 44 0f b6 c2 45 33 c9 48 8b d1
+		Symbol::FromSignature("\x55\x8B\xEC\x0F\xB6\x45\x0C*****\x6A\x00"), // 55 8B EC 0F B6 45 0C ?? ?? ?? ?? ?? 6A 00
+		Symbol::FromSignature("\x44\x0F\xB6\xC2\x45\x33\xC9\x48\x8B\xD1"), // 44 0f B6 C2 45 33 C9 48 8B D1
 	};
 
 	const std::vector<Symbol> SV_FindOrAddGenericSym = {
 		Symbol::FromName("_Z19SV_FindOrAddGenericPKcb"),
 		Symbol::FromSignature("\x55\x40\x80\xFE\x01\x48\x89\xFE\x48\x89\xE5\x48\x8B\x3D\xC6***\x19\xD2"), // 55 40 80 FE 01 48 89 FE 48 89 E5 48 8B 3D C6 ?? ?? ?? 19 D2
-		Symbol::FromSignature("\x55\x8B\xEC\x51\x8B\x0D\xA0\xBE\x72\x10"), // 55 8B EC 51 8B 0D A0 BE 72 10
-		Symbol::FromSignature("\x48\x89\x5C\x24\x18\x56\x48\x83\xEC\x30\x48\x8B\xF1\x0F\xB6\xDA\x48\x8B\x0D\x89\x63\x71\x00"), // 48 89 5C 24 18 56 48 83 EC 30 48 8B F1 0F B6 DA 48 8B 0D 89 63 71 00
+		Symbol::FromSignature("\x55\x8B\xEC\x51******\x85\xC9\x75\x07"), // 55 8B EC 51 ?? ?? ?? ?? ?? ?? 85 C9 75 07
+		Symbol::FromSignature("\x48\x89\x5C\x24\x18\x56\x48\x83\xEC\x30\x48******\x48"), // 48 89 5C 24 18 56 48 83 EC 30 48 8B F1 0F B6 DA 48 ?? ?? ?? ?? ?? ?? 48
 	};
 
 	//---------------------------------------------------------------------------------
