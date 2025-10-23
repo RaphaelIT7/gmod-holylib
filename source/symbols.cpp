@@ -251,8 +251,8 @@ namespace Symbols
 	const std::vector<Symbol> SV_FindOrAddModelSym = {
 		Symbol::FromName("_Z17SV_FindOrAddModelPKcb"),
 		Symbol::FromSignature("\x55\x40\x80\xFE\x01\x48\x89\xFE\x48\x89\xE5\x48\x8B\x3D****\x19\xD2\x5D\x83\xE2\xFE\x31\xC9\x83\xC2\x03"), // 55 40 80 FE 01 48 89 FE 48 89 E5 48 8B 3D ?? ?? ?? ?? 19 D2 5D 83 E2 FE 31 C9 83 C2 03
-		Symbol::FromSignature(""), // 
-		Symbol::FromSignature(""), //
+		Symbol::FromSignature("\x55\x8B\xEC\x0F\xB6\x45\x0C\xB9\xA0\x9C\x6F\x10"), // 55 8B EC 0F B6 45 0C B9 A0 9C 6F 10
+		Symbol::FromSignature("\x44\x0F\xB6\xC2\x45\x33\xC9\x48\x8B\xD1"), // 44 0f b6 c2 45 33 c9 48 8b d1
 	};
 
 	const std::vector<Symbol> SV_FindOrAddGenericSym = {
