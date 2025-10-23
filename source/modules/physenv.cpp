@@ -843,6 +843,7 @@ void hook_CPhysicsEnvironment_DestroyObject(GMODSDK::CPhysicsEnvironment* pEnvir
 		return;
 	}
 
+#if ARCHITECTURE_X86
 	pEnv->m_objects.FastRemove(foundIndex);
 
 	UnregisterPhysicsObject(pLuaEnvironment, pObject);
@@ -866,6 +867,11 @@ void hook_CPhysicsEnvironment_DestroyObject(GMODSDK::CPhysicsEnvironment* pEnvir
 		pEnv->m_pSleepEvents->DeleteObject(pPhysics);
 		delete pObject;
 	}
+#else // Required since 64x uses a different vphysics build and we don't want to corrupt member variables of the CPhysicsEnvironment
+	detour_CPhysicsEnvironment_DestroyObject.GetTrampoline<Symbols::CPhysicsEnvironment_DestroyObject>()(pEnv, pObject);
+
+	UnregisterPhysicsObject(pLuaEnvironment, pObject);
+#endif
 }
 
 static Detouring::Hook detour_CPhysicsEnvironment_Restore;
