@@ -80,7 +80,7 @@ function HolyLib_RunPerformanceTest(name, callback, ...)
         body = util.TableToJSON({
             ["totalCalls"] = totalCalls,
             ["totalTime"] = totalTime,
-            ["gmodBranch"] = BRANCH,
+            ["gmodBranch"] = BRANCH .. " - " .. jit.version,
             ["name"] = name,
         })
     })
