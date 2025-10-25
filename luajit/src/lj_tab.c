@@ -14,6 +14,7 @@
 #include "lj_err.h"
 #include "lj_tab.h"
 #include "lj_lib.h"
+#include <stdio.h>
 
 /* -- Object hashing ------------------------------------------------------ */
 
@@ -91,7 +92,7 @@ static GCtab *newtab(lua_State *L, uint32_t asize, uint32_t hbits)
     t->nomm = (uint8_t)~0;
     t->colo = (int8_t)asize;
     setmref(t->array, (TValue *)((char *)t + sizeof(GCtab)));
-    setgcrefnull(t->metatable);
+    setrawgcrefnull(t->metatable);
     t->asize = asize;
     t->hmask = 0;
     nilnode = &G(L)->nilnode;
@@ -106,7 +107,7 @@ static GCtab *newtab(lua_State *L, uint32_t asize, uint32_t hbits)
     t->nomm = (uint8_t)~0;
     t->colo = 0;
     setmref(t->array, NULL);
-    setgcrefnull(t->metatable);
+    setrawgcrefnull(t->metatable);
     t->asize = 0;  /* In case the array allocation fails. */
     t->hmask = 0;
     nilnode = &G(L)->nilnode;
@@ -555,6 +556,7 @@ TValue *lj_tab_setstr(lua_State *L, GCtab *t, const GCstr *key)
     if (tvisstr(&n->key) && strV(&n->key) == key)
       return &n->val;
   } while ((n = nextnode(n)));
+  printf("tab_setstr %s\n", strdata(key));
   setstrV(L, &k, key);
   return lj_tab_newkey(L, t, &k);
 }

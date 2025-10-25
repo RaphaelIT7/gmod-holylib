@@ -282,6 +282,7 @@ static GCstr *lj_str_alloc(lua_State *L, const char *str, MSize len,
   s->gct = ~LJ_TSTR;
   s->len = len;
   s->hash = hash;
+  s->refcount = 0;
 #ifndef STRID_RESEED_INTERVAL
   s->sid = g->str.id++;
 #elif STRID_RESEED_INTERVAL
@@ -302,9 +303,10 @@ static GCstr *lj_str_alloc(lua_State *L, const char *str, MSize len,
   /* Add to string hash table. */
   hash &= g->str.mask;
   u = gcrefu(g->str.tab[hash]);
-  setgcrefp(s->nextgc, (u & ~(uintptr_t)1));
+  setrawgcrefnull(s->nextgc); // Gotta set it to 0 as else decr_ref will trigger
+  setrawgcrefp(s->nextgc, (u & ~(uintptr_t)1));
   /* NOBARRIER: The string table is a GC root. */
-  setgcrefp(g->str.tab[hash], ((uintptr_t)s | (u & 1)));
+  setrawgcrefp(g->str.tab[hash], ((uintptr_t)s | (u & 1)));
   if (g->str.num++ > g->str.mask)  /* Allow a 100% load factor. */
     lj_str_resize(L, (g->str.mask<<1)+1);  /* Grow string table. */
   return s;  /* Return newly interned string. */
