@@ -16,6 +16,62 @@ return {
             end
         },
         {
+            name = "Returns a valid table",
+            when = HolyLib_IsModuleEnabled( "bass" ),
+            async = true,
+            timeout = 2,
+            func = function()
+                local filePath = "sound/bass_testsound.wav"
+                local flags = ""
+        
+                bass.PlayFile( filePath, flags, function( channel, errorCode, errorMsg )
+
+                    local tbl = channel:GetTable()
+                    expect( tbl ).to.beA( "table" )
+                    
+                    done()
+                end)
+            end
+        },
+        {
+            name = "Table is unique per channel",
+            when = HolyLib_IsModuleEnabled( "bass" ),
+            async = true,
+            timeout = 2,
+            func = function()
+                local filePath = "sound/bass_testsound.wav"
+                local flags = ""
+        
+                bass.PlayFile( filePath, flags, function( channel1, errorCode1, errorMsg1 )
+
+                    bass.PlayFile( filePath, flags, function( channel2, errorCode2, errorMsg2 )
+
+                        local tbl1 = channel1:GetTable()
+                        local tbl2 = channel2:GetTable()
+                        expect( tbl1 ).toNot.equal( tbl2 )
+                        
+                        done()
+                    end)
+                end)
+            end
+        },
+        {
+            name = "Calling GetTable on an destroyed channel errors",
+            when = HolyLib_IsModuleEnabled( "bass" ),
+            async = true,
+            timeout = 2,
+            func = function()
+                local filePath = "sound/bass_testsound.wav"
+                local flags = ""
+        
+                bass.PlayFile( filePath, flags, function( channel, errorCode, errorMsg )
+                    channel:Destroy()
+                    expect( channel:GetTable ).to.errWith( "Tried to use a NULL IGModAudioChannel!" )
+                    done()
+                end)
+            end
+        },
+        {
             name = "Sets the right value",
             when = HolyLib_IsModuleEnabled( "bass" ),
             async = true,
