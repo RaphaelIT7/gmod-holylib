@@ -85,7 +85,7 @@ return {
                 local filePath = "sound/bass_testsound.wav"
                 local flags = "noblock"
         
-                bass.PlayFile(filePath, flags, function(channel, errorCode, errorMsg)
+                bass.PlayFile(filePath, flags, function( channel, errorCode, errorMsg )
                     expect( channel ).toNot.beNil()
                     expect( errorCode ).to.equal( 0 )
                     expect( errorMsg ).to.beNil()
@@ -105,7 +105,7 @@ return {
                 local filePath = "sound/bass_testsound.wav"
                 local flags = "holy noplay hello"
         
-                bass.PlayFile( filePath, flags, function(channel, errorCode, errorMsg )
+                bass.PlayFile( filePath, flags, function( channel, errorCode, errorMsg )
                     expect( channel ).toNot.beNil()
                     expect( errorCode ).to.equal( 0 )
                     expect( errorMsg ).to.beNil()
@@ -116,6 +116,8 @@ return {
                 end)
             end
         },
+        -- Test error handling based on BASS error codes
+        -- https://www.un4seen.com/doc/#bass/BASS_ErrorGetCode.html
         {
             name = "Handles invalid file paths gracefully",
             when = HolyLib_IsModuleEnabled( "bass" ),

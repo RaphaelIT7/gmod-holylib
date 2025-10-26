@@ -16,7 +16,7 @@ return {
             end
         },
         {
-            -- currently __tostring outputs the complete file path, but this may change in the future because it is not intended
+            -- currently __tostring outputs the complete file path, but this may change in the future because it's not intended
             -- be aware this tests will break if that happens
             name = "__tostring on valid channel returns correct representation",
             when = HolyLib_IsModuleEnabled( "bass" ),
