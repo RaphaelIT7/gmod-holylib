@@ -24,7 +24,7 @@ return {
                 local filePath = "sound/bass_testsound.wav"
                 local flags = ""
         
-                bass.PlayFile(filePath, flags, function(channel, errorCode, errorMsg)
+                bass.PlayFile( filePath, flags, function( channel, errorCode, errorMsg )
 
                     channel.test = "Hello World"
                     expect( channel:GetTable().test ).to.equal( "Hello World" )
