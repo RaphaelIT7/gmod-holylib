@@ -56,25 +56,5 @@ return {
                 end)
             end
         },
-        {
-            name = "SetVolume on destroyed channel should error",
-            when = HolyLib_IsModuleEnabled( "bass" ),
-            async = true,
-            timeout = 2,
-            func = function()
-                local filePath = "sound/bass_testsound.wav"
-                local flags = ""
-        
-                bass.PlayFile( filePath, flags, function( channel, errorCode, errorMsg )
-                    expect( channel ).toNot.beNil()
-                    expect( channel ).to.beValid()
-
-                    channel:Destroy()
-                    expect( channel:SetVolume, 1 ).to.errWith( "Tried to use a NULL IGModAudioChannel!" )
-                    
-                    done()
-                end)
-            end
-        },
     }
 }

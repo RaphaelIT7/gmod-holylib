@@ -29,7 +29,7 @@ return {
                     expect( channel ).to.beValid()
 
                     channel:Destroy()
-                    expect( channel:IsValid ).to.beFalse()
+                    expect( channel:IsValid() ).to.beFalse()
                     
                     done()
                 end)
