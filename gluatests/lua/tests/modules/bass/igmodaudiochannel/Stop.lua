@@ -31,7 +31,7 @@ return {
                     expect( channel:GetState() ).to.equal( 1 )
 
                     channel:Stop()
-                    timer.Simple(0.05, function()
+                    timer.Simple( 0.05, function()
                         expect( channel:GetState() ).to.equal( 0 )
                     end)
                     
@@ -53,7 +53,7 @@ return {
 
                     channel:Stop()
                     channel:Stop()
-                    timer.Simple(0.05, function()
+                    timer.Simple( 0.05, function()
                         expect( channel:GetState() ).to.equal( 0 )
                     end)
                     
@@ -96,17 +96,17 @@ return {
                     expect( channel:GetState() ).to.equal( 1 )
 
                     channel:Stop()
-                    timer.Simple(0.05, function()
+                    timer.Simple( 0.05, function()
                         expect( channel:GetState() ).to.equal( 0 )
                     end)
 
                     channel:Pause()
-                    timer.Simple(0.05, function()
+                    timer.Simple( 0.05, function()
                         expect( channel:GetState() ).to.equal( 0 )
                     end)
 
                     channel:Play()
-                    timer.Simple(0.05, function()
+                    timer.Simple( 0.05, function()
                         expect( channel:GetState() ).to.equal( 1 )
                     end)
                     
