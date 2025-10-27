@@ -13,7 +13,7 @@ return {
             name = "Function is nil when module disabled",
             when = not HolyLib_IsModuleEnabled( "bass" ),
             func = function()
-                expect( bass.PlayURL ).to.beA( "nil" )
+                expect( bass ).to.beA( "nil" )
             end
         },
     }

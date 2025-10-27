@@ -32,7 +32,7 @@ return {
                     expect( channel:GetVolume() ).to.equal( 0.5 )
                     
                     done()
-                end)
+                end )
             end
         },
         {
@@ -53,7 +53,7 @@ return {
                     expect( channel:GetVolume() ).to.equal( 1 )
                     
                     done()
-                end)
+                end )
             end
         },
     }

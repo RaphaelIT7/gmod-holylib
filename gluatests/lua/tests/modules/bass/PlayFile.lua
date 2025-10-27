@@ -13,7 +13,7 @@ return {
             name = "Function is nil when module disabled",
             when = not HolyLib_IsModuleEnabled( "bass" ),
             func = function()
-                expect( bass.PlayFile ).to.beA( "nil" )
+                expect( bass ).to.beA( "nil" )
             end
         },
         {
@@ -33,7 +33,7 @@ return {
                     expect( channel:GetState() ).to.equal( 1 )
                     
                     done()
-                end)
+                end )
             end
         },
         {
@@ -53,7 +53,7 @@ return {
                     expect( channel:GetState() ).to.equal( 1 )
                     
                     done()
-                end)
+                end )
             end
         },
         {
@@ -73,7 +73,7 @@ return {
                     expect( channel:GetState() ).to.equal( 0 )
                     
                     done()
-                end)
+                end )
             end
         },
         {
@@ -93,7 +93,7 @@ return {
                     expect( channel:GetState() ).to.equal( 1 )
                     
                     done()
-                end)
+                end )
             end
         },
         {
@@ -113,7 +113,7 @@ return {
                     expect( channel:GetState() ).to.equal( 0 )
                     
                     done()
-                end)
+                end )
             end
         },
         -- Test error handling based on BASS error codes
@@ -133,7 +133,7 @@ return {
                     expect( errorMsg ).to.equal( "BASS_ERROR_FILEOPEN" )
                     
                     done()
-                end)
+                end )
             end
         },
         {
@@ -151,7 +151,7 @@ return {
                     expect( errorMsg ).to.equal( "BASS_ERROR_NO3D" )
                     
                     done()
-                end)
+                end )
             end
         },
         {
@@ -169,7 +169,7 @@ return {
                     expect( errorMsg ).to.equal( "BASS_ERROR_FILEFORM" )
                     
                     done()
-                end)
+                end )
             end
         },
     }

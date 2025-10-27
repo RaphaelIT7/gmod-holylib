@@ -35,7 +35,7 @@ return {
                     expect( channel:GetState() ).to.equal( 1 )
                     
                     done()
-                end)
+                end )
             end
         },
         {
@@ -57,13 +57,13 @@ return {
                     channel:Pause()
                     timer.Simple( 0.05, function()
                         expect( channel:GetState() ).to.equal( 2 )
-                    end)
+                    end )
 
                     channel:Play()
                     expect( channel:GetState() ).to.equal( 1 )
                     
                     done()
-                end)
+                end )
             end
         },
         {
@@ -84,7 +84,7 @@ return {
                     expect( channel:GetState() ).to.equal( 1 )
                     
                     done()
-                end)
+                end )
             end
         },
         {
@@ -104,7 +104,7 @@ return {
                     expect( channel ).to.beValid()
                     
                     done()
-                end)
+                end )
             end
         },
     }
