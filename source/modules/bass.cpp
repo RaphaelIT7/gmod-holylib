@@ -22,10 +22,10 @@ public:
 	virtual bool SupportsMultipleLuaStates() { return true; };
 };
 
-CBassModule g_pBassModule;
+static CBassModule g_pBassModule;
 IModule* pBassModule = &g_pBassModule;
 
-IGMod_Audio* gGModAudio;
+static IGMod_Audio* gGModAudio;
 Push_LuaClass(IGModAudioChannel)
 Get_LuaClass(IGModAudioChannel, "IGModAudioChannel")
 
@@ -388,6 +388,13 @@ LUA_FUNCTION_STATIC(bass_PlayURL)
 	return 0;
 }
 
+extern CGlobalVars* gpGlobals;
+LUA_FUNCTION_STATIC(bass_Update)
+{
+	gGModAudio->Update((int)LUA->CheckNumberOpt(1, gpGlobals->absoluteframetime * 1000));
+	return 0;
+}
+
 void CBassModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	/*SourceSDK::FactoryLoader gmod_audio_loader("gmod_audio"); // Probably a broken dll/so file.
@@ -465,12 +472,13 @@ void CBassModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 		Util::AddFunc(pLua, IGModAudioChannel_NotImplemented, "SetPos");
 		Util::AddFunc(pLua, IGModAudioChannel_NotImplemented, "Get3DEnabled");
 		Util::AddFunc(pLua, IGModAudioChannel_NotImplemented, "Set3DEnabled");
-		pLua->Pop(1);
+	pLua->Pop(1);
 
-		Util::StartTable(pLua);
+	Util::StartTable(pLua);
 		Util::AddFunc(pLua, bass_PlayFile, "PlayFile");
 		Util::AddFunc(pLua, bass_PlayURL, "PlayURL");
-		Util::FinishTable(pLua, "bass");
+		Util::AddFunc(pLua, bass_Update, "Update");
+	Util::FinishTable(pLua, "bass");
 }
 
 void CBassModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
@@ -483,7 +491,6 @@ void CBassModule::Shutdown()
 	gGModAudio->Shutdown(); // If the engine didn't call Init, it most likely won't call shutdown.
 }
 
-extern CGlobalVars* gpGlobals;
 void CBassModule::Think(bool bSimulating)
 {
 	gGModAudio->Update((int)(gpGlobals->absoluteframetime * 1000)); // gpGlobals->absoluteframetime should be in seconds so we need to turn it to ms.
