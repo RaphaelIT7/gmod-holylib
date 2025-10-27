@@ -30,7 +30,7 @@ return {
                     expect( tbl ).to.beA( "table" )
                     
                     done()
-                end)
+                end )
             end
         },
         {
@@ -51,8 +51,8 @@ return {
                         expect( tbl1 ).toNot.equal( tbl2 )
                         
                         done()
-                    end)
-                end)
+                    end )
+                end )
             end
         },
         {
@@ -73,7 +73,7 @@ return {
                     expect( channel.test ).to.equal( "Hello World 2" )
                     
                     done()
-                end)
+                end )
             end
         },
     }

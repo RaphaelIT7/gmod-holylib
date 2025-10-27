@@ -30,7 +30,7 @@ return {
                     expect( channel:GetTable().test ).to.equal( "Hello World" )  
                     
                     done()
-                end)
+                end )
             end
         },
     }

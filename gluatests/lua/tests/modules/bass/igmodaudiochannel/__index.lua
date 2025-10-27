@@ -29,7 +29,7 @@ return {
                     expect( channel.test ).to.equal( "Hello World" )
                     
                     done()
-                end)
+                end )
             end
         },
         {
@@ -45,7 +45,7 @@ return {
                     expect( channel.None ).to.beNil()
                     
                     done()
-                end)
+                end )
             end
         },
     }

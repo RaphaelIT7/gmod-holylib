@@ -32,7 +32,7 @@ return {
                     expect( output ).to.equal( "IGModAudioChannel [/home/steam/gmodserver/garrysmod/addons/gluatests/sound/bass_testsound.wav]" )
                     
                     done()
-                end)
+                end )
             end
         },
         {
@@ -52,7 +52,7 @@ return {
                     expect( output ).to.equal( "IGModAudioChannel [NULL]" )
                     
                     done()
-                end)
+                end )
             end
         },
     }

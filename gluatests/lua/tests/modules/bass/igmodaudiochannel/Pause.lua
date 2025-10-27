@@ -34,10 +34,10 @@ return {
                     -- Give it a moment to process the pause or it might return state 3 aka channel is buffering
                     timer.Simple( 0.05, function()
                         expect( channel:GetState() ).to.equal( 2 )
-                    end)
+                    end )
                     
                     done()
-                end)
+                end )
             end
         },
         {
@@ -56,15 +56,15 @@ return {
                     channel:Pause()
                     timer.Simple( 0.05, function()
                         expect( channel:GetState() ).to.equal( 2 )
-                    end)
+                    end )
 
                     channel:Pause()
                     timer.Simple( 0.05, function()
                         expect( channel:GetState() ).to.equal( 2 )
-                    end)
+                    end )
                     
                     done()
-                end)
+                end )
             end
         },
         {
@@ -85,7 +85,7 @@ return {
                     expect( channel:GetState() ).to.equal( 0 )
                     
                     done()
-                end)
+                end )
             end
         },
     }

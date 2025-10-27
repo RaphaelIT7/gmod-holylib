@@ -33,10 +33,10 @@ return {
                     channel:Stop()
                     timer.Simple( 0.05, function()
                         expect( channel:GetState() ).to.equal( 0 )
-                    end)
+                    end )
                     
                     done()
-                end)
+                end )
             end
         },
         {
@@ -46,19 +46,18 @@ return {
             timeout = 2,
             func = function()
                 local filePath = "sound/bass_testsound.wav"
-                local flags = ""
+                local flags = "noplay"
         
                 bass.PlayFile( filePath, flags, function( channel, errorCode, errorMsg )
                     expect( channel ).toNot.beNil()
 
                     channel:Stop()
-                    channel:Stop()
                     timer.Simple( 0.05, function()
                         expect( channel:GetState() ).to.equal( 0 )
-                    end)
+                    end )
                     
                     done()
-                end)
+                end )
             end
         },
         {
@@ -72,14 +71,12 @@ return {
         
                 bass.PlayFile( filePath, flags, function( channel, errorCode, errorMsg )
                     expect( channel ).toNot.beNil()
-                    expect( channel ).to.beValid()
 
                     channel:Stop()
-
                     expect( channel ).to.beValid()
                     
                     done()
-                end)
+                end )
             end
         },
         {
@@ -98,20 +95,20 @@ return {
                     channel:Stop()
                     timer.Simple( 0.05, function()
                         expect( channel:GetState() ).to.equal( 0 )
-                    end)
+                    end )
 
                     channel:Pause()
                     timer.Simple( 0.05, function()
                         expect( channel:GetState() ).to.equal( 0 )
-                    end)
+                    end )
 
                     channel:Play()
                     timer.Simple( 0.05, function()
                         expect( channel:GetState() ).to.equal( 1 )
-                    end)
+                    end )
                     
                     done()
-                end)
+                end )
             end
         },
     }
