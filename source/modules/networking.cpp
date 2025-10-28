@@ -1226,12 +1226,12 @@ static void TransmitFastPathPlayer(CBasePlayer* pRecipientPlayer, int clientInde
 	// This was probably done since CBaseViewModel::ShouldTransmit determines if it would be sent or not.
 	// We can remove this once we have: https://github.com/Facepunch/garrysmod-requests/issues/2839
 	for (int iViewModel=0; iViewModel<MAX_VIEWMODELS; ++iViewModel)
-	{
+	/*{
 		CBaseViewModel* pViewModel = GetViewModel(pRecipientPlayer, iViewModel);
 		if (pViewModel)
 			pViewModel->SetTransmit(pInfo, true);
 	}
-
+	*/
 	CBaseEntity* pHandsEntity = GetGMODPlayerHands(pRecipientPlayer);
 	if (pHandsEntity)
 		pHandsEntity->SetTransmit(pInfo, true);
@@ -1415,7 +1415,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 			Plat_FastMemset(g_pPlayerTransmitTickCache, 0, sizeof(g_pPlayerTransmitTickCache));
 
 //#if NETWORKING_USE_ENTITYCACHE
-		g_nEntityTransmitCache.UpdateEntities(pEdictIndices, nEdicts);
+		//g_nEntityTransmitCache.UpdateEntities(pEdictIndices, nEdicts);
 //#endif
 		g_pGlobalTransmitTickCache.NewTick(gpGlobals->tickcount);
 
