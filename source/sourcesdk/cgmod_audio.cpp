@@ -7,9 +7,15 @@
 #include <tier2/tier2.h>
 #include <filesystem.h>
 #include "Platform.hpp"
+#include <detours.h>
+#include "bassenc.h"
+#include <dlfcn.h>
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
+
+// Set on interface init allowing us to possibly use newer features if available
+static bool g_bUsesLatestBass = false;
 
 const char* g_BASSErrorStrings[] = {
 	"BASS_OK",
@@ -206,7 +212,14 @@ CGMod_Audio::~CGMod_Audio()
 
 }
 
-#define DEDICATED // ToDo: Change this later.
+// Functions of BASSENC as we do not want to link against them
+// (we then couldn't load if they were missing!)
+static BASS_Encode_Start* func_BASS_Encode_Start;
+
+#define GetBassEncFunc(name) \
+func_##name = (name*)Detour::GetFunction(bassenc.GetModule(), Symbol::FromName(#name)); \
+Detour::CheckFunction((void*)func_##name, #name);
+
 bool CGMod_Audio::Init(CreateInterfaceFn interfaceFactory)
 {
 	ConnectTier1Libraries( &interfaceFactory, 1 );
@@ -254,17 +267,39 @@ bool CGMod_Audio::Init(CreateInterfaceFn interfaceFactory)
 	BASS_SetConfig(BASS_CONFIG_SRC, 2);
 	BASS_Set3DFactors(0.0680416f, 7.0f, 5.2f);
 
+	if (GetVersion() == 33821184L)
+	{
+		g_bUsesLatestBass = true;
+		Msg(PROJECT_NAME " - CGMod_Audio::Init found latets bass version :3\n");
+
+		SourceSDK::ModuleLoader bassenc(DLL_PREEXTENSION"bassenc");
+		if (bassenc.IsValid())
+		{
+			Msg(PROJECT_NAME " - CGMod_Audio::Init found bassenc, loading functions :3\n");
+			GetBassEncFunc(BASS_Encode_Start);
+		}
+	}
+
 	return 1;
 }
 
 const char* CGMod_Audio::GetErrorString(int id)
 {
+	constexpr int totalErrors = sizeof(g_BASSErrorStrings) / sizeof(const char*);
+	if (0 > id || id >= totalErrors)
+		return "BASS_ERROR_UNKNOWN";
+
 	const char* error = g_BASSErrorStrings[id];
 	if (error) {
 		return error;
 	}
 
 	return "BASS_ERROR_UNKNOWN";
+}
+
+unsigned long CGMod_Audio::GetVersion()
+{
+	return BASS_GetVersion();
 }
 
 void CGMod_Audio::Shutdown()
@@ -406,12 +441,25 @@ IGModAudioChannel* CGMod_Audio::PlayFile(const char* filePath, const char* flags
 		return NULL;
 	}
 
-	char fullPath[MAX_PATH];
-	g_pFullFileSystem->RelativePathToFullPath(filePath, "GAME", fullPath, sizeof(fullPath));
+	// char fullPath[MAX_PATH];
+	// g_pFullFileSystem->RelativePathToFullPath(filePath, "GAME", fullPath, sizeof(fullPath));
+
+	// This doesn't match gmod iirc though it should be fine
+	// This way it should fully work with vpk & gma files too without issue
+	// As it no longer relies on a file having to exist on disk.
+	FileHandle_t pHandle = g_pFullFileSystem->Open(filePath, "rb", "GAME");
+	if (!pHandle)
+	{
+		*errorCode = -1;
+		return NULL;
+	}
+	
+	BASS_FILEPROCS fileprocs={CBassAudioStream::FileClose, CBassAudioStream::FileLength, CBassAudioStream::FileRead, CBassAudioStream::FileSeek};
+	HSTREAM stream = BASS_StreamCreateFileUser(STREAMFILE_NOBUFFER, 0, &fileprocs, pHandle);
 
 	bool autoplay = true;
 	DWORD bassFlags = BASSFlagsFromString(flags, &autoplay);
-	HSTREAM stream = BASS_StreamCreateFile(FALSE, fullPath, 0, 0, bassFlags);
+	// HSTREAM stream = BASS_StreamCreateFile(FALSE, filePath, 0, 0, bassFlags);
 	//delete[] fullPath; // Causes a crash
 
 	if (stream == 0) {
@@ -425,18 +473,45 @@ IGModAudioChannel* CGMod_Audio::PlayFile(const char* filePath, const char* flags
 		return NULL;
 	}
 
-	return (IGModAudioChannel*)new CGModAudioChannel(stream, true);
+	return (IGModAudioChannel*)new CGModAudioChannel(stream, true, filePath);
+}
+
+bool CGMod_Audio::LoadPlugin(const char* pluginName)
+{
+	if (m_pLoadedPlugins.find(pluginName) != m_pLoadedPlugins.end())
+		return true;
+
+	HPLUGIN plugin = BASS_PluginLoad(pluginName, 0);
+	if (!plugin)
+	{
+		int nError = BASS_ErrorGetCode();
+		if (nError != BASS_ERROR_FILEOPEN) {
+			Warning(PROJECT_NAME " CGMod_Audio: Failed to load plugin %s (%s)\n", pluginName, GetErrorString(nError));
+		} else {
+			DevMsg(PROJECT_NAME " CGMod_Audio: Skipping plugin load %s since it was never installed\n", pluginName);
+		}
+
+		return false;
+	}
+
+	m_pLoadedPlugins[pluginName] = plugin;
+	DevMsg(PROJECT_NAME " CGMod_Audio: Successfully loaded plugin %s\n", pluginName);
+
+	return true;
 }
 
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CGMod_Audio, IGMod_Audio, "IGModAudio001", g_CGMod_Audio);
 
 
-CGModAudioChannel::CGModAudioChannel( DWORD handle, bool isfile )
+CGModAudioChannel::CGModAudioChannel( DWORD handle, bool isfile, const char* pFileName )
 {
 	BASS_ChannelSet3DAttributes(handle, BASS_3DMODE_NORMAL, 200, 1000000000, 360, 360, 0);
 	BASS_Apply3D();
-	this->m_pHandle = handle;
-	this->m_bIsFile = isfile;
+	m_pHandle = handle;
+	m_bIsFile = isfile;
+
+	if (pFileName)
+		m_strFileName = pFileName;
 }
 
 CGModAudioChannel::~CGModAudioChannel()
@@ -447,7 +522,7 @@ CGModAudioChannel::~CGModAudioChannel()
 #define OLD_BASS 1
 void CGModAudioChannel::Destroy()
 {
-#ifndef OLD_BASS
+#if !OLD_BASS
  	if (BASS_ChannelIsActive(m_pHandle) == 1) {
 		BASS_ChannelFree(m_pHandle);
 	} else 
@@ -659,15 +734,7 @@ double CGModAudioChannel::GetLength()
 
 const char* CGModAudioChannel::GetFileName()
 {
-	static char fileName[MAX_PATH];
-	BASS_CHANNELINFO info;
-	if (BASS_ChannelGetInfo(m_pHandle, &info)) {
-		strncpy(fileName, info.filename, sizeof(fileName));
-	} else {
-		strncpy(fileName, "NULL", sizeof(fileName));
-	}
-
-	return fileName;
+	return m_strFileName.c_str();
 }
 
 int CGModAudioChannel::GetSamplingRate()
@@ -755,4 +822,28 @@ bool CGModAudioChannel::Get3DEnabled()
 void CGModAudioChannel::Restart()
 {
 	BASS_ChannelPlay(m_pHandle, true);
+}
+
+void CALLBACK EncodeCallback(HENCODE handle, DWORD channel, const void *buffer, DWORD length, void *user) {
+	g_pFullFileSystem->Write(buffer, length, (FileHandle_t)user);
+}
+
+const char* CGModAudioChannel::EncodeToDisk(const char* pFileName, const char* pCommand, unsigned long nFlags)
+{
+	FileHandle_t pHandle = g_pFullFileSystem->Open(pFileName, "rb", "DATA");
+	if (!pHandle)
+		return g_CGMod_Audio.GetErrorString(BASS_ERROR_FILEOPEN);
+
+	if (!func_BASS_Encode_Start)
+		return "Missing BASSENC";
+
+	HENCODE encoder = func_BASS_Encode_Start(m_pHandle, pCommand, nFlags, EncodeCallback, pHandle);
+	if (!encoder) {
+		int err = BASS_ErrorGetCode();
+		g_pFullFileSystem->Close(pHandle);
+		return g_CGMod_Audio.GetErrorString(BASS_ErrorGetCode());
+	}
+
+	g_pFullFileSystem->Close(pHandle);
+	return NULL;
 }

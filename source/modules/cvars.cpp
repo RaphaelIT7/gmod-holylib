@@ -268,6 +268,7 @@ void CCVarsModule::InitDetour(bool bServerInit)
 	if (!bServerInit)
 		return;
 
+	// These detours are obsolete once the new gmod update is out, see: https://github.com/Facepunch/garrysmod-requests/issues/2600
 	SourceSDK::FactoryLoader vstdlib_loader("vstdlib");
 	Detour::Create(
 		&detour_CCvar_RegisterConCommand, "CCvar::RegisterConCommand",

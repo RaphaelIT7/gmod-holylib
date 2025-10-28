@@ -88,14 +88,6 @@ namespace GarrysMod::Lua
 
 struct ThreadPoolStartParams_t;
 
-/*
- * The symbols will have this order:
- * 0 - Linux 32x
- * 1 - Linux 64x
- * 2 - Windows 32x
- * 3 - Windows 64x
- */
-
 #if defined SYSTEM_WINDOWS
 #if defined ARCHITECTURE_X86_64
 #define GMCOMMON_CALLING_CONVENTION __fastcall
@@ -123,6 +115,14 @@ struct ThreadPoolStartParams_t;
   * Update: First, class hooks, don't have "this"/the first argument meaning you require a ClassProxy
   */
 
+
+/*
+ * The symbols will have this order:
+ * 0 - Linux 32x
+ * 1 - Linux 64x
+ * 2 - Windows 32x
+ * 3 - Windows 64x
+ */
 namespace Symbols
 {
 	//---------------------------------------------------------------------------------
@@ -133,6 +133,11 @@ namespace Symbols
 
 	typedef bool (GMCOMMON_CALLING_CONVENTION* CLuaInterface_Shutdown)(GarrysMod::Lua::ILuaInterface*);
 	extern const std::vector<Symbol> CLuaInterface_ShutdownSym;
+
+	typedef GarrysMod::Lua::CLuaObject* (*CBaseEntity_GetLuaEntity)(void* pEntity);
+	extern const std::vector<Symbol> CBaseEntity_GetLuaEntitySym;
+	// We use this one to directly push by reference to reduce overhead and improve performance.
+	// This one is required on windows since else it tries the ILuaObject which is broken rn and idk why
 
 	//---------------------------------------------------------------------------------
 	// Purpose: All Optional Base Symbols
@@ -145,9 +150,6 @@ namespace Symbols
 
 	typedef void (*CBaseEntity_PostConstructor)(void* ent, const char* szClassname);
 	extern const std::vector<Symbol> CBaseEntity_PostConstructorSym;
-
-	typedef void (*CCollisionProperty_MarkSurroundingBoundsDirty)(void* fancy_class);
-	extern const std::vector<Symbol> CCollisionProperty_MarkSurroundingBoundsDirtySym;
 
 	/*
 		NOTE FOR LUAJIT SYMBOLS
@@ -207,18 +209,12 @@ namespace Symbols
 	typedef const byte* (*CM_Vis)(byte* dest, int destlen, int cluster, int visType);
 	extern const std::vector<Symbol> CM_VisSym;
 
-	typedef GarrysMod::Lua::CLuaObject* (*CBaseEntity_GetLuaEntity)(void* pEntity);
-	extern const std::vector<Symbol> CBaseEntity_GetLuaEntitySym; // We use this one to directly push by reference to reduce overhead and improve performance.
-
 	typedef IGameEvent* (GMCOMMON_CALLING_CONVENTION* CGameEventManager_CreateEvent)(void* manager, const char* name, bool bForce);
 	extern const std::vector<Symbol> CGameEventManager_CreateEventSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: holylib Symbols
 	//---------------------------------------------------------------------------------
-	typedef bool (GMCOMMON_CALLING_CONVENTION* CServerGameDLL_ShouldHideServer)();
-	extern const std::vector<Symbol> CServerGameDLL_ShouldHideServerSym;
-
 	typedef void (GMCOMMON_CALLING_CONVENTION* GetGModServerTags)(char* pDest, int iMaxSize, bool unknown);
 	extern const std::vector<Symbol> GetGModServerTagsSym;
 
@@ -325,9 +321,6 @@ namespace Symbols
 
 	typedef int (GMCOMMON_CALLING_CONVENTION* CGameMovement_ClipVelocity)(void* gamemovement, Vector&, Vector&, Vector&, float);
 	extern const std::vector<Symbol> CGameMovement_ClipVelocitySym;
-
-	typedef void* (GMCOMMON_CALLING_CONVENTION* CBaseEntity_GetGroundEntity)(void* ent);
-	extern const std::vector<Symbol> CBaseEntity_GetGroundEntitySym;
 
 	typedef bool (GMCOMMON_CALLING_CONVENTION* CTraceFilterSimple_ShouldHitEntity)(void* tr, IHandleEntity*, int);
 	extern const std::vector<Symbol> CTraceFilterSimple_ShouldHitEntitySym;
@@ -523,6 +516,7 @@ namespace Symbols
 	typedef void (*SV_BroadcastVoiceData)(IClient*, int nBytes, char* data, int64 xuid);
 	extern const std::vector<Symbol> SV_BroadcastVoiceDataSym;
 
+	// These below are obsolete soon.
 	typedef void (*CVoiceGameMgr_Update)(CVoiceGameMgr*, double frametime);
 	extern const std::vector<Symbol> CVoiceGameMgr_UpdateSym;
 
@@ -594,6 +588,9 @@ namespace Symbols
 
 	typedef void (*CCollisionEvent_FrameUpdate)(void* pCollisionEvent);
 	extern const std::vector<Symbol> CCollisionEvent_FrameUpdateSym;
+
+	typedef void (*CCollisionProperty_MarkSurroundingBoundsDirty)(void* fancy_class);
+	extern const std::vector<Symbol> CCollisionProperty_MarkSurroundingBoundsDirtySym;
 
 #if PHYSENV_INCLUDEIVPFALLBACK
 	typedef GMODSDK::IVP_MRC_TYPE (*IVP_Mindist_Minimize_Solver_p_minimize_PP)(void* mindistMinimizeSolver, const GMODSDK::IVP_Compact_Edge *A, const GMODSDK::IVP_Compact_Edge *B, IVP_Cache_Ledge_Point *m_cache_A, IVP_Cache_Ledge_Point *m_cache_B);

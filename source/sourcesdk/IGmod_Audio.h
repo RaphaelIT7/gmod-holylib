@@ -56,6 +56,8 @@ public:
 	virtual void Set3DEnabled( bool ) = 0;
 	virtual bool Get3DEnabled() = 0;
 	virtual void Restart() = 0;
+	// HolyLib specific
+	virtual const char* EncodeToDisk( const char* pFileName, const char* pCommand, unsigned long nFlags ) = 0; // Uses the "DATA" path for writes! Returns NULL on success, else the error message
 };
 
 class IAudioStreamEvent;
@@ -94,6 +96,9 @@ public:
 	virtual void SetGlobalVolume( float ) = 0;
 	virtual void StopAllPlayback() = 0;
 	virtual const char* GetErrorString( int ) = 0;
+	// HolyLib specific ones
+	virtual unsigned long GetVersion() = 0; // Returns bass version
+	virtual bool LoadPlugin(const char* pluginName) = 0;
 };
 
 #undef CALLBACK // Solves another error with minwindef.h

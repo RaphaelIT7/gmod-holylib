@@ -34,7 +34,7 @@ public:
 	virtual void PreLuaModuleLoaded(lua_State* L, const char* pFileName) OVERRIDE;
 	virtual void PostLuaModuleLoaded(lua_State* L, const char* pFileName) OVERRIDE;
 	virtual const char* Name() { return "voicechat"; };
-	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32; };
+	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 	virtual bool SupportsMultipleLuaStates() { return true; };
 };
 

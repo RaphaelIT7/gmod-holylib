@@ -312,17 +312,6 @@ void CBaseEntity::CalcAbsolutePosition(void)
 	}
 }
 
-static Symbols::CCollisionProperty_MarkSurroundingBoundsDirty func_CCollisionProperty_MarkSurroundingBoundsDirty = nullptr;
-void CCollisionProperty::MarkSurroundingBoundsDirty()
-{
-	if (func_CCollisionProperty_MarkSurroundingBoundsDirty)
-	{
-		func_CCollisionProperty_MarkSurroundingBoundsDirty(this);
-	} else {
-		Warning(PROJECT_NAME " - Tried to use missing CCollisionProperty::MarkSurroundingBoundsDirty!\n");
-	}
-}
-
 CBaseEntity* Util::GetCBaseEntityFromEdict(edict_t* edict)
 {
 	if (!edict)
@@ -729,6 +718,9 @@ void Util::AddDetour()
 	func_CBaseEntity_GetLuaEntity = (Symbols::CBaseEntity_GetLuaEntity)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseEntity_GetLuaEntitySym);
 	Detour::CheckFunction((void*)func_CBaseEntity_GetLuaEntity, "CBaseEntity::GetLuaEntity");
 
+	func_CBaseEntity_CalcAbsolutePosition = (Symbols::CBaseEntity_CalcAbsolutePosition)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseEntity_CalcAbsolutePositionSym);
+	Detour::CheckFunction((void*)func_CBaseEntity_CalcAbsolutePosition, "CBaseEntity::CalcAbsolutePosition");
+
 	pEntityList = g_pModuleManager.FindModuleByName("entitylist");
 
 	/*
@@ -743,14 +735,6 @@ void Util::AddDetour()
 	 * 
 	 * New Idea: I'm updating everything. The goal is to support any realm & even multiple ILuaInterfaces at the same time (Preperation for lua_threaded support).
 	 */
-
-#ifndef SYSTEM_WINDOWS
-	func_CBaseEntity_CalcAbsolutePosition = (Symbols::CBaseEntity_CalcAbsolutePosition)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseEntity_CalcAbsolutePositionSym);
-	Detour::CheckFunction((void*)func_CBaseEntity_CalcAbsolutePosition, "CBaseEntity::CalcAbsolutePosition");
-
-	func_CCollisionProperty_MarkSurroundingBoundsDirty = (Symbols::CCollisionProperty_MarkSurroundingBoundsDirty)Detour::GetFunction(server_loader.GetModule(), Symbols::CCollisionProperty_MarkSurroundingBoundsDirtySym);
-	Detour::CheckFunction((void*)func_CCollisionProperty_MarkSurroundingBoundsDirty, "CCollisionProperty::MarkSurroundingBoundsDirty");
-#endif
 }
 
 void Util::RemoveDetour()

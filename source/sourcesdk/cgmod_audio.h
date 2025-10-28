@@ -6,6 +6,7 @@
 #include "vaudio/ivaudio.h"
 #include "IGmod_Audio.h"
 #include "bass.h"
+#include <unordered_map>
 
 class CBassAudioStream : IBassAudioStream
 {
@@ -71,13 +72,16 @@ public:
 	virtual void Set3DEnabled( bool );
 	virtual bool Get3DEnabled();
 	virtual void Restart();
+	// HolyLib specific
+	virtual const char* EncodeToDisk( const char* pFileName, const char* pCommand, unsigned long nFlags );
 public:
-	CGModAudioChannel( DWORD handle, bool isfile );
+	CGModAudioChannel( DWORD handle, bool isfile, const char* pFileName = NULL );
 	virtual ~CGModAudioChannel();
 
 private:
 	DWORD m_pHandle;
 	bool m_bIsFile;
+	std::string m_strFileName = "NULL"; // GMOD doesn't have this - HolyLib specific
 };
 
 extern IGMod_Audio* g_pGModAudio;
@@ -95,6 +99,11 @@ public:
 	virtual void SetGlobalVolume( float );
 	virtual void StopAllPlayback();
 	virtual const char* GetErrorString( int );
+	// HolyLib
+	virtual unsigned long GetVersion();
+	virtual bool LoadPlugin(const char* pluginName);
+private:
+	std::unordered_map<std::string, HPLUGIN> m_pLoadedPlugins;
 };
 
 extern const char* g_BASSErrorStrings[];
