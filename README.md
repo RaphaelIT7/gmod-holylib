@@ -2161,17 +2161,6 @@ This may be useful if you have `holylib_networking_transmit_all_weapons` set to 
 > [!NOTE]
 > If both `holylib_networking_transmit_all_weapons` and `holylib_networking_transmit_all_weapons_to_owner` are set to `0`, only the active weapon of the player will be networked.<br>
 
-#### holylib_networking_transmit_one_per_tick(default `0`)
-If enabled, one additional weapon is networked per tick, the slot always changes rotating through all weapons.<br>
-This allows you to have `holylib_networking_transmit_all_weapons` and `holylib_networking_transmit_all_weapons_to_owner` but still allow others to receive all weapons of a player over time.<br>
-This helps to reduce networking cost as networking all weapons of every player is very expensive easily being the most expensive thing<br>
-Setting it to `1` causes it to network the additional weapon to **all** players<br>
-Setting it to `2` causes it to network the additional weapon **only** to the owner<br>
-
-#### networking_bind_gmodhands_to_player(default `1`)
-If enabled, the GMOD Hands entity / the entity set with `Player:SetHands` will be bound to the player and only networked with the player himself.<br>
-Will become useless with https://github.com/Facepunch/garrysmod-requests/issues/2839<br>
-
 ## steamworks
 This module adds a few functions related to steam.<br>
 
