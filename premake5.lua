@@ -176,3 +176,4 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			disablewarnings({"unused-variable"})
 			targetextension(".so")
 			links({"dl", "tier0", "pthread", "bass"}) -- this fixes the undefined reference to `dlopen' errors.
+			defines("DEDICATED") -- All linux build focus Linux dedicated servers. Windows focus on the gmod client

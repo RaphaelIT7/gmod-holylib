@@ -206,11 +206,17 @@ CGMod_Audio::~CGMod_Audio()
 
 }
 
-#define DEDICATED // ToDo: Change this later.
+static bool g_bUsesLatestBass = false;
 bool CGMod_Audio::Init(CreateInterfaceFn interfaceFactory)
 {
 	ConnectTier1Libraries( &interfaceFactory, 1 );
 	ConnectTier2Libraries( &interfaceFactory, 1 );
+
+	if (GetVersion() == 33821184L)
+	{
+		g_bUsesLatestBass = true;
+		Msg(PROJECT_NAME " - CGMod_Audio::Init found latets bass version :3\n");
+	}
 
 	BASS_SetConfig(BASS_CONFIG_UPDATEPERIOD, 10);
 
