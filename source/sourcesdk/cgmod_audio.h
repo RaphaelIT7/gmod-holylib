@@ -6,6 +6,7 @@
 #include "vaudio/ivaudio.h"
 #include "IGmod_Audio.h"
 #include "bass.h"
+#include <unordered_map>
 
 class CBassAudioStream : IBassAudioStream
 {
@@ -98,6 +99,9 @@ public:
 	virtual const char* GetErrorString( int );
 	// HolyLib
 	virtual unsigned long GetVersion();
+	virtual bool LoadPlugin(const char* pluginName);
+private:
+	std::unordered_map<std::string, HPLUGIN> m_pLoadedPlugins;
 };
 
 extern const char* g_BASSErrorStrings[];

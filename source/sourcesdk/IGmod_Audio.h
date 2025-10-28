@@ -96,6 +96,7 @@ public:
 	virtual const char* GetErrorString( int ) = 0;
 	// HolyLib specific ones
 	virtual unsigned long GetVersion() = 0; // Returns bass version
+	virtual bool LoadPlugin(const char* pluginName) = 0;
 };
 
 #undef CALLBACK // Solves another error with minwindef.h

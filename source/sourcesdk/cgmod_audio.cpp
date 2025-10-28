@@ -7,9 +7,13 @@
 #include <tier2/tier2.h>
 #include <filesystem.h>
 #include "Platform.hpp"
+#include <detours.h>
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
+
+// Set on interface init allowing us to possibly use newer features if available
+static bool g_bUsesLatestBass = false;
 
 const char* g_BASSErrorStrings[] = {
 	"BASS_OK",
@@ -206,7 +210,6 @@ CGMod_Audio::~CGMod_Audio()
 
 }
 
-static bool g_bUsesLatestBass = false;
 bool CGMod_Audio::Init(CreateInterfaceFn interfaceFactory)
 {
 	ConnectTier1Libraries( &interfaceFactory, 1 );
@@ -265,6 +268,10 @@ bool CGMod_Audio::Init(CreateInterfaceFn interfaceFactory)
 
 const char* CGMod_Audio::GetErrorString(int id)
 {
+	constexpr int totalErrors = sizeof(g_BASSErrorStrings) / sizeof(const char*);
+	if (0 > id || id >= totalErrors)
+		return "BASS_ERROR_UNKNOWN";
+
 	const char* error = g_BASSErrorStrings[id];
 	if (error) {
 		return error;
@@ -450,6 +457,30 @@ IGModAudioChannel* CGMod_Audio::PlayFile(const char* filePath, const char* flags
 	}
 
 	return (IGModAudioChannel*)new CGModAudioChannel(stream, true, filePath);
+}
+
+bool CGMod_Audio::LoadPlugin(const char* pluginName)
+{
+	if (m_pLoadedPlugins.find(pluginName) != m_pLoadedPlugins.end())
+		return true;
+
+	HPLUGIN plugin = BASS_PluginLoad(pluginName, 0);
+	if (!plugin)
+	{
+		int nError = BASS_ErrorGetCode();
+		if (nError != BASS_ERROR_FILEOPEN) {
+			Warning(PROJECT_NAME " CGMod_Audio: Failed to load plugin %s (%s)\n", pluginName, GetErrorString(nError));
+		} else {
+			DevMsg(PROJECT_NAME " CGMod_Audio: Skipping plugin load %s since it was never installed\n", pluginName);
+		}
+
+		return false;
+	}
+
+	m_pLoadedPlugins[pluginName] = plugin;
+	DevMsg(PROJECT_NAME " CGMod_Audio: Successfully loaded plugin %s\n", pluginName);
+
+	return true;
 }
 
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CGMod_Audio, IGMod_Audio, "IGModAudio001", g_CGMod_Audio);
