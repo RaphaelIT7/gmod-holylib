@@ -302,7 +302,7 @@ namespace Util
 	extern int FindOffsetForNetworkVar(const char* pDTName, const char* pVarName);
 
 	// Returns a pointer to the given offset for the base, do the casting yourself.
-	inline void* GoToNetworkVarOffset(void* pBase, int nOffset)
+	inline void* GoToNetworkVarOffset(const void* pBase, int nOffset)
 	{
 		if (nOffset == -1)
 			return nullptr;
@@ -363,7 +363,7 @@ public:
 			Error(PROJECT_NAME ": Failed to find DTVar offset of var \"%s\" in DataTable \"%s\"!\n", m_pDTName, m_pVarName);
 	}
 
-	FORCEINLINE void* GetPointer(void* pBase)
+	FORCEINLINE void* GetPointer(const void* pBase)
 	{
 		if (m_nOffset == -1)
 			Init();
@@ -372,7 +372,7 @@ public:
 	}
 
 	// For DTVars that store a pointer like m_GMOD_DataTable
-	FORCEINLINE void* GetPointerDereferenced(void* pBase)
+	FORCEINLINE void* GetPointerDereferenced(const void* pBase)
 	{
 		if (m_nOffset == -1)
 			Init();
@@ -380,7 +380,7 @@ public:
 		return *(void**)Util::GoToNetworkVarOffset(pBase, m_nOffset);
 	}
 
-	FORCEINLINE void* GetPointerArray(void* pBase, int nArraySlot)
+	FORCEINLINE void* GetPointerArray(const void* pBase, int nArraySlot)
 	{
 		if (m_nOffset == -1)
 			Init();
