@@ -1225,12 +1225,12 @@ static void TransmitFastPathPlayer(CBasePlayer* pRecipientPlayer, int clientInde
 	// ENGINE BUG: CBaseCombatCharacter::SetTransmit doesn't network the player's viewmodel! So we need to do it ourself.
 	// This was probably done since CBaseViewModel::ShouldTransmit determines if it would be sent or not.
 	// We can remove this once we have: https://github.com/Facepunch/garrysmod-requests/issues/2839
-	for (int iViewModel=0; iViewModel<MAX_VIEWMODELS; ++iViewModel)
+	/*for (int iViewModel=0; iViewModel<MAX_VIEWMODELS; ++iViewModel)
 	{
 		CBaseViewModel* pViewModel = GetViewModel(pRecipientPlayer, iViewModel);
 		if (pViewModel)
 			pViewModel->SetTransmit(pInfo, true);
-	}
+	}*/
 
 	CBaseEntity* pHandsEntity = GetGMODPlayerHands(pRecipientPlayer);
 	if (pHandsEntity)
@@ -1247,12 +1247,12 @@ static void TransmitFastPathPlayer(CBasePlayer* pRecipientPlayer, int clientInde
 			{
 				// Time to network these shit again
 				CBasePlayer* pObserverPlayer = (CBasePlayer*)pObserverEntity;
-				for (int iViewModel=0; iViewModel<MAX_VIEWMODELS; ++iViewModel)
+				/*for (int iViewModel=0; iViewModel<MAX_VIEWMODELS; ++iViewModel)
 				{
 					CBaseViewModel* pViewModel = GetViewModel(pRecipientPlayer, iViewModel); // Secret dependency on g_pEntityList
 					if (pViewModel)
 						pViewModel->SetTransmit(pInfo, true);
-				}
+				}*/
 
 				pHandsEntity = GetGMODPlayerHands(pObserverPlayer);
 				if (pHandsEntity)
@@ -1415,7 +1415,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 			Plat_FastMemset(g_pPlayerTransmitTickCache, 0, sizeof(g_pPlayerTransmitTickCache));
 
 //#if NETWORKING_USE_ENTITYCACHE
-		g_nEntityTransmitCache.UpdateEntities(pEdictIndices, nEdicts);
+		//g_nEntityTransmitCache.UpdateEntities(pEdictIndices, nEdicts);
 //#endif
 		g_pGlobalTransmitTickCache.NewTick(gpGlobals->tickcount);
 
