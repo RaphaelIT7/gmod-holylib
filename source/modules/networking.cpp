@@ -1011,7 +1011,10 @@ struct GlobalTransmitTickCache
 	CBitVec<MAX_EDICTS> g_bWasSeenByPlayer;
 	bool g_bFilledDontTransmitWeaponCache[MAX_PLAYERS] = {0};
 };
-static GlobalTransmitTickCache g_pGlobalTransmitTickCache;
+
+static int g_iLastCheckTransmit = -1;
+static CBitVec<MAX_EDICTS> g_pAlwaysTransmitCacheBitVec;
+static CBitVec<MAX_EDICTS> g_bWasSeenByPlayer;
 static PlayerTransmitTickCache g_pPlayerTransmitTickCache[MAX_PLAYERS] = {0};
 
 static CBitVec<MAX_EDICTS> g_pDontTransmitCache; // Reset on every CServerGameEnts::CheckTransmit call
@@ -1161,7 +1164,7 @@ static void TransmitFastPathPlayer(CBasePlayer* pRecipientPlayer, int clientInde
 
 	// Since we optimized PackEntities_Normal using g_bWasSeenByPlayer, we need to now also perform this Or here.
 	// If we don't do this, Entities like the CBaseViewModel won't be packed by PackEntities_Normal causing a crash later deep inside SV_WriteEnterPVS
-	pInfo->m_pTransmitEdict->Or(g_pGlobalTransmitTickCache.g_bWasSeenByPlayer, &g_pGlobalTransmitTickCache.g_bWasSeenByPlayer);
+	pInfo->m_pTransmitEdict->Or(g_bWasSeenByPlayer, &g_bWasSeenByPlayer);
 }
 
 // Very expensive!
@@ -1301,7 +1304,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	// pRecipientPlayer->IsHLTV(); Why do we not use IsHLTV()? Because its NOT a virtual function & the variables are fked
 	const bool bIsHLTV = pInfo->m_pTransmitAlways != NULL;
 	const bool bFastPath = networking_fastpath.GetBool();
-	const bool bFirstTransmit = g_pGlobalTransmitTickCache.IsNewTick(gpGlobals->tickcount);
+	const bool bFirstTransmit = g_iLastCheckTransmit != gpGlobals->tickcount;
 	if (bFirstTransmit)
 	{
 		if (bFastPath)
@@ -1310,13 +1313,16 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 //#if NETWORKING_USE_ENTITYCACHE
 		//g_nEntityTransmitCache.UpdateEntities(pEdictIndices, nEdicts);
 //#endif
-		g_pGlobalTransmitTickCache.NewTick(gpGlobals->tickcount);
+		g_iLastCheckTransmit = gpGlobals->tickcount;
+		g_bWasSeenByPlayer.ClearAll();
+		g_pAlwaysTransmitCacheBitVec.ClearAll();
+		Plat_FastMemset(g_bFilledDontTransmitWeaponCache, 0, sizeof(g_bFilledDontTransmitWeaponCache));
 
 		g_pDontTransmitWeaponCache.ClearAll();
 	} else {
-		g_pGlobalTransmitTickCache.g_pAlwaysTransmitCacheBitVec.CopyTo(pInfo->m_pTransmitEdict);
+		g_pAlwaysTransmitCacheBitVec.CopyTo(pInfo->m_pTransmitEdict);
 		if (bIsHLTV)
-			g_pGlobalTransmitTickCache.g_pAlwaysTransmitCacheBitVec.CopyTo(pInfo->m_pTransmitAlways);
+			g_pAlwaysTransmitCacheBitVec.CopyTo(pInfo->m_pTransmitAlways);
 
 		if (bFastPath)
 		{
@@ -1427,7 +1433,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 			{
 				// mark entity for sending
 				pInfo->m_pTransmitEdict->Set( iEdict );
-				g_pGlobalTransmitTickCache.g_pAlwaysTransmitCacheBitVec.Set( iEdict );
+				g_pAlwaysTransmitCacheBitVec.Set( iEdict );
 	
 				if ( bIsHLTV )
 					pInfo->m_pTransmitAlways->Set( iEdict );
@@ -1480,7 +1486,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 		CBitVec_AndNot(&nTransmitCache.pClientBitVec, &pClientCache);
 		nTransmitCache.nAreaNum = clientArea;
 	}
-	pInfo->m_pTransmitEdict->Or(g_pGlobalTransmitTickCache.g_bWasSeenByPlayer, &g_pGlobalTransmitTickCache.g_bWasSeenByPlayer);
+	pInfo->m_pTransmitEdict->Or(g_bWasSeenByPlayer, &g_bWasSeenByPlayer);
 //	Msg("A:%i, N:%i, F: %i, P: %i\n", always, dontSend, fullCheck, PVS );
 
 	return true;
@@ -1543,7 +1549,7 @@ void PackEntities_Normal(int clientCount, CGameClient **clients, CFrameSnapshot 
 		since we use workItemCount to keep track of how many entries we actually have for this update.
 	*/
 
-	if (!gpGlobals || (g_pGlobalTransmitTickCache.IsNewTick(gpGlobals->tickcount)))
+	if (!gpGlobals || (g_iLastCheckTransmit != gpGlobals->tickcount))
 	{
 		bool seen[MAX_EDICTS] = {false};
 		for (int iClient = 0; iClient < clientCount; ++iClient)
@@ -1580,7 +1586,7 @@ void PackEntities_Normal(int clientCount, CGameClient **clients, CFrameSnapshot 
 
 			edict_t* edict = &world_edict[index];
 			SV_FillHLTVData(snapshot, edict, iValidEdict);
-			if (!g_pGlobalTransmitTickCache.g_bWasSeenByPlayer.IsBitSet(index))
+			if (!g_bWasSeenByPlayer.IsBitSet(index))
 				continue;
 
 			PackWork_t& w = workItems[workItemCount++];
