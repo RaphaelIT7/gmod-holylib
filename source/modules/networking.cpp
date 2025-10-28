@@ -1249,12 +1249,13 @@ static void TransmitFastPathPlayer(CBasePlayer* pRecipientPlayer, int clientInde
 			{
 				// Time to network these shit again
 				CBasePlayer* pObserverPlayer = (CBasePlayer*)pObserverEntity;
-				for (int iViewModel=0; iViewModel<MAX_VIEWMODELS; ++iViewModel)
+				/*for (int iViewModel=0; iViewModel<MAX_VIEWMODELS; ++iViewModel)
 				{
 					CBaseViewModel* pViewModel = GetViewModel(pRecipientPlayer, iViewModel); // Secret dependency on g_pEntityList
 					if (pViewModel)
 						pViewModel->SetTransmit(pInfo, true);
 				}
+				*/
 
 				pHandsEntity = GetGMODPlayerHands(pObserverPlayer);
 				if (pHandsEntity)
