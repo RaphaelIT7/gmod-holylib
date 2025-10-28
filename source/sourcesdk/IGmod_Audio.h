@@ -94,6 +94,8 @@ public:
 	virtual void SetGlobalVolume( float ) = 0;
 	virtual void StopAllPlayback() = 0;
 	virtual const char* GetErrorString( int ) = 0;
+	// HolyLib specific ones
+	virtual unsigned long GetVersion() = 0; // Returns bass version
 };
 
 #undef CALLBACK // Solves another error with minwindef.h

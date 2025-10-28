@@ -267,6 +267,11 @@ const char* CGMod_Audio::GetErrorString(int id)
 	return "BASS_ERROR_UNKNOWN";
 }
 
+unsigned long CGMod_Audio::GetVersion()
+{
+	return BASS_GetVersion();
+}
+
 void CGMod_Audio::Shutdown()
 {
 	BASS_Free();
@@ -463,7 +468,7 @@ CGModAudioChannel::~CGModAudioChannel()
 #define OLD_BASS 1
 void CGModAudioChannel::Destroy()
 {
-#ifndef OLD_BASS
+#if !OLD_BASS
  	if (BASS_ChannelIsActive(m_pHandle) == 1) {
 		BASS_ChannelFree(m_pHandle);
 	} else 

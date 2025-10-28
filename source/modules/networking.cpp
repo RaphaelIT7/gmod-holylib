@@ -324,7 +324,7 @@ static int hook_SendTable_CullPropsFromProxies(
 	int count = 0;
 	//auto pPrecalc = pTable->m_pPrecalc;
 	auto &prop_cull = GetServerClassCache(pTable)->prop_cull;
-	for (int i = 0; i <nStartProps; i++) {
+	for (int i = 0; i <nStartProps; ++i) {
 		int prop = pStartProps[i];
 		//DevMsg("prop %d %d", prop, player_prop_cull[prop]);
 		int proxyindex = prop_cull[prop];
@@ -344,7 +344,7 @@ static int hook_SendTable_CullPropsFromProxies(
 
 void AddOffsetToList(ServerClassCache &cache, int offset, int index, int element) {
 	int size = cache.prop_offset_sendtable.size();
-	for (int i = 0; i < size; i++) {
+	for (int i = 0; i < size; ++i) {
 		if (cache.prop_offset_sendtable[i].offset == (unsigned short) offset) {
 			cache.prop_offset_sendtable[i].index2 = (unsigned short) index;
 			return;
@@ -384,7 +384,7 @@ void RecurseStack(ServerClassCache &cache, unsigned char* stack, CSendNode *node
 	}
 			
 	//("data %d %d %s %d\n", node->m_RecursiveProxyIndex, stack[node->m_RecursiveProxyIndex], node->m_pTable->GetName(), node->m_nRecursiveProps);
-	for (int i = 0; i < node->m_Children.Count(); i++) {
+	for (int i = 0; i < node->m_Children.Count(); ++i) {
 		CSendNode *child = node->m_Children[i];
 		RecurseStack(cache, stack, child, precalc);
 	}
@@ -636,7 +636,7 @@ void hook_SendTable_WritePropList(
 
 		auto pPrecalc = pTable->m_pPrecalc;
 		auto offset_data = prop_write_offset[objectID].data();
-		for (int i = 0; i < nCheckProps; i++) {
+		for (int i = 0; i < nCheckProps; ++i) {
 			int propid = pCheckProps[i];
 			int offset = offset_data[propid].offset;
 			if (offset == 0 || offset == PROP_WRITE_OFFSET_ABSENT)
@@ -774,7 +774,7 @@ inline bool CCServerNetworkProperty::IsInPVS( const CCheckTransmitInfo *pInfo )
 	// Early out if the areas are connected
 	if ( !m_PVSInfo.m_nAreaNum2 )
 	{
-		for ( i=0; i< pInfo->m_AreasNetworked; i++ )
+		for ( i=0; i< pInfo->m_AreasNetworked; ++i )
 		{
 			int clientArea = pInfo->m_Areas[i];
 			if ( clientArea == m_PVSInfo.m_nAreaNum || CheckAreasConnected( clientArea, m_PVSInfo.m_nAreaNum ) )
@@ -785,7 +785,7 @@ inline bool CCServerNetworkProperty::IsInPVS( const CCheckTransmitInfo *pInfo )
 	{
 		// doors can legally straddle two areas, so
 		// we may need to check another one
-		for ( i=0; i< pInfo->m_AreasNetworked; i++ )
+		for ( i=0; i< pInfo->m_AreasNetworked; ++i )
 		{
 			int clientArea = pInfo->m_Areas[i];
 			if ( clientArea == m_PVSInfo.m_nAreaNum || clientArea == m_PVSInfo.m_nAreaNum2 )
@@ -977,7 +977,7 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 			}
 		}
 
-		for (int i=0; i < nEdicts; i++)
+		for (int i=0; i < nEdicts; ++i)
 		{
 			int iEdict = pEdictIndices[i];
 			edict_t *pEdict = &world_edict[iEdict];
@@ -1142,7 +1142,7 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 	if (pInfo->m_pTransmitEdict->Get(pEdict->m_EdictIndex)) // Already being networked!
 		return;
 
-	func_CBaseAnimating_SetTransmit(pCharacter, pInfo, bAlways ); // Base transmit
+	func_CBaseAnimating_SetTransmit(pCharacter, pInfo, bAlways); // Base transmit
 
 	if (networking_bind_gmodhands_to_player.GetBool())
 	{
@@ -1153,7 +1153,7 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 
 	if (networking_bind_viewmodels_to_player.GetBool())
 	{
-		for (int i=0; i < MAX_VIEWMODELS; i++)
+		for (int i=0; i < MAX_VIEWMODELS; ++i)
 		{
 			CBaseEntity* pViewModel = GetViewModel(pCharacter, i);
 			if (pViewModel)
@@ -1164,7 +1164,7 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 	bool bLocalPlayer = pInfo->m_pClientEnt == pEdict;
 	if (networking_transmit_all_weapons.GetBool() || (bLocalPlayer && networking_transmit_all_weapons_to_owner.GetBool()))
 	{
-		for (int i=0; i < MAX_WEAPONS; i++)
+		for (int i=0; i < MAX_WEAPONS; ++i)
 		{
 			CBaseEntity *pWeapon = GetMyWeapon(pCharacter, i);
 			if (!pWeapon)
@@ -1181,7 +1181,7 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 		int nEdictIndex = pEdict->m_EdictIndex-1;
 		if (!g_bFilledDontTransmitWeaponCache[nEdictIndex])
 		{
-			for ( int i=0; i < MAX_WEAPONS; i++ )
+			for ( int i=0; i < MAX_WEAPONS; ++i )
 			{
 				CBaseEntity *pWeapon = GetMyWeapon(pCharacter, i);
 				if ( !pWeapon )
@@ -1496,7 +1496,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 		DoTransmitPVSCheck(pEnt->edict(), pEnt, bIsHLTV, pInfo, bForceTransmit, skyBoxArea);
 	}
 #else
-	for ( int i=0; i < nEdicts; i++ )
+	for ( int i=0; i < nEdicts; ++i )
 	{
 		int iEdict = pEdictIndices[i];
 
@@ -1937,7 +1937,7 @@ void CNetworkingModule::ServerActivate(edict_t* pEdictList, int edictCount, int 
 	// We do this in ServerActivate since the engine only now hooked into the ServerClass allowing us to safely use them now.
 	g_SharedEdictChangeInfo = Util::engineserver->GetSharedEdictChangeInfo();
 	for(ServerClass *serverclass = Util::servergamedll->GetAllServerClasses(); serverclass->m_pNext != nullptr; serverclass = serverclass->m_pNext) {
-		for (int i = 0; i < serverclass->m_pTable->GetNumProps(); i++) {
+		for (int i = 0; i < serverclass->m_pTable->GetNumProps(); ++i) {
 			if (serverclass->m_pTable->GetProp(i)->GetDataTable() != nullptr && strcmp(serverclass->m_pTable->GetProp(i)->GetDataTable()->GetName(), "DT_BasePlayer") == 0 ) {
 				playerSendTable = serverclass->m_pTable;
 				playerServerClass = serverclass;
@@ -1978,7 +1978,7 @@ void CNetworkingModule::ServerActivate(edict_t* pEdictList, int edictCount, int 
 		RecurseStack(*serverClassCache, proxyStack, &sendTable->m_pPrecalc->m_Root , sendTable->m_pPrecalc);
 		serverClassCache->prop_cull = new unsigned char[sendTable->m_pPrecalc->m_Props.Count()];
 		serverClassCache->prop_propproxy_first = new unsigned short[sendTable->m_pPrecalc->m_nDataTableProxies];
-		for (int i = 0; i < sendTable->m_pPrecalc->m_nDataTableProxies; i++)
+		for (int i = 0; i < sendTable->m_pPrecalc->m_nDataTableProxies; ++i)
 			serverClassCache->prop_propproxy_first[i] = INVALID_PROP_INDEX;
 
 		for (int iToProp = 0; iToProp < sendTable->m_pPrecalc->m_Props.Count(); iToProp++)
@@ -2239,7 +2239,7 @@ void WriteSendProp(SendProp* pProp, int nIndex, int nIndent, FileHandle_t pHandl
 
 static void WriteSendTable(SendTable* pTable, FileHandle_t pHandle, std::unordered_set<SendTable*>& pWrittenTables)
 {
-	for (int i = 0; i < pTable->GetNumProps(); i++) {
+	for (int i = 0; i < pTable->GetNumProps(); ++i) {
 		SendProp* pProp = pTable->GetProp(i);
 		
 		WriteSendProp(pProp, i, 0, pHandle, pWrittenTables);
@@ -2270,7 +2270,7 @@ void WriteSendTable(SendTable* pTable, std::unordered_set<SendTable*>& pWrittenT
 		return;
 	}
 
-	for (int i = 0; i < pTable->GetNumProps(); i++) {
+	for (int i = 0; i < pTable->GetNumProps(); ++i) {
 		SendProp* pProp = pTable->GetProp(i);
 		
 		WriteSendProp(pProp, i, 0, pHandle, pWrittenTables);

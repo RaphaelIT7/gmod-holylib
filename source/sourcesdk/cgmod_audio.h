@@ -96,6 +96,7 @@ public:
 	virtual void SetGlobalVolume( float );
 	virtual void StopAllPlayback();
 	virtual const char* GetErrorString( int );
+	virtual unsigned long GetVersion();
 };
 
 extern const char* g_BASSErrorStrings[];

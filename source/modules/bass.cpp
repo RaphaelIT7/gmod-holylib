@@ -395,6 +395,12 @@ LUA_FUNCTION_STATIC(bass_Update)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(bass_GetVersion)
+{
+	LUA->PushString(std::to_string(gGModAudio->GetVersion()).c_str());
+	return 1;
+}
+
 void CBassModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	/*SourceSDK::FactoryLoader gmod_audio_loader("gmod_audio"); // Probably a broken dll/so file.
@@ -478,6 +484,7 @@ void CBassModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 		Util::AddFunc(pLua, bass_PlayFile, "PlayFile");
 		Util::AddFunc(pLua, bass_PlayURL, "PlayURL");
 		Util::AddFunc(pLua, bass_Update, "Update");
+		Util::AddFunc(pLua, bass_GetVersion, "GetVersion");
 	Util::FinishTable(pLua, "bass");
 }
 
