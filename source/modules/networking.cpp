@@ -1418,7 +1418,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 			Plat_FastMemset(g_pPlayerTransmitTickCache, 0, sizeof(g_pPlayerTransmitTickCache));
 
 //#if NETWORKING_USE_ENTITYCACHE
-		g_nEntityTransmitCache.UpdateEntities(pEdictIndices, nEdicts);
+		//g_nEntityTransmitCache.UpdateEntities(pEdictIndices, nEdicts);
 //#endif
 		g_pGlobalTransmitTickCache.NewTick(gpGlobals->tickcount);
 
