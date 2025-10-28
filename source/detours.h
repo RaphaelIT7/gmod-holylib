@@ -22,12 +22,14 @@
 #define DLL_LoadModule(name, _) LoadLibrary(name)
 #define DLL_UnloadModule(handle) FreeLibrary((DLL_Handle)handle)
 #define DLL_GetAddress(handle, name) GetProcAddress((DLL_Handle)handle, name)
+#define DLL_LASTERROR "LINUXONLY"
 #else
 #include <dlfcn.h>
 #define DLL_Handle void*
 #define DLL_LoadModule(name, type) dlopen(name, type)
 #define DLL_UnloadModule(handle) dlclose(handle)
 #define DLL_GetAddress(handle, name) dlsym(handle, name)
+#define DLL_LASTERROR dlerror()
 #endif
 #endif
 

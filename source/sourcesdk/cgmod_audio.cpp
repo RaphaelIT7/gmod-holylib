@@ -1,5 +1,6 @@
 // HOLYLIB_REQUIRES_MODULE=bass
 
+#define DLL_TOOLS
 #include "interface.h"
 #include "cgmod_audio.h"
 #include <stdio.h>
@@ -8,6 +9,7 @@
 #include <filesystem.h>
 #include "Platform.hpp"
 #include <detours.h>
+#include "bassenc.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -210,16 +212,18 @@ CGMod_Audio::~CGMod_Audio()
 
 }
 
+// Functions of BASSENC as we do not want to link against them
+// (we then couldn't load if they were missing!)
+static BASS_Encode_Start* func_BASS_Encode_Start;
+
+#define GetBassEncFunc(name) \
+func_##name = (name*)Detour::GetFunction(bassenc.GetModule(), Symbol::FromName(#name)); \
+Detour::CheckFunction((void*)func_##name, #name);
+
 bool CGMod_Audio::Init(CreateInterfaceFn interfaceFactory)
 {
 	ConnectTier1Libraries( &interfaceFactory, 1 );
 	ConnectTier2Libraries( &interfaceFactory, 1 );
-
-	if (GetVersion() == 33821184L)
-	{
-		g_bUsesLatestBass = true;
-		Msg(PROJECT_NAME " - CGMod_Audio::Init found latets bass version :3\n");
-	}
 
 	BASS_SetConfig(BASS_CONFIG_UPDATEPERIOD, 10);
 
@@ -262,6 +266,22 @@ bool CGMod_Audio::Init(CreateInterfaceFn interfaceFactory)
 	BASS_SetConfig(BASS_CONFIG_UPDATETHREADS, 0);
 	BASS_SetConfig(BASS_CONFIG_SRC, 2);
 	BASS_Set3DFactors(0.0680416f, 7.0f, 5.2f);
+
+	if (GetVersion() == 33821184L)
+	{
+		g_bUsesLatestBass = true;
+		Msg(PROJECT_NAME " - CGMod_Audio::Init found latets bass version :3\n");
+
+		// DLL_Handle handle = DLL_LoadModule(DLL_PREEXTENSION"bassenc" LIBRARY_EXTENSION, RTLD_LAZY);
+		// Msg("dlerror: %s\nhandle %p\n", DLL_LASTERROR, handle);
+		BASS_PluginLoad("bassenc", 0);
+		SourceSDK::ModuleLoader bassenc(DLL_PREEXTENSION"bassenc");
+		if (bassenc.IsValid())
+		{
+			Msg(PROJECT_NAME " - CGMod_Audio::Init found bassenc, loading functions :3\n");
+			GetBassEncFunc(BASS_Encode_Start);
+		}
+	}
 
 	return 1;
 }
@@ -805,4 +825,28 @@ bool CGModAudioChannel::Get3DEnabled()
 void CGModAudioChannel::Restart()
 {
 	BASS_ChannelPlay(m_pHandle, true);
+}
+
+void CALLBACK EncodeCallback(HENCODE handle, DWORD channel, const void *buffer, DWORD length, void *user) {
+	g_pFullFileSystem->Write(buffer, length, (FileHandle_t)user);
+}
+
+const char* CGModAudioChannel::EncodeToDisk(const char* pFileName, const char* pCommand, unsigned long nFlags)
+{
+	FileHandle_t pHandle = g_pFullFileSystem->Open(pFileName, "rb", "DATA");
+	if (!pHandle)
+		return g_CGMod_Audio.GetErrorString(BASS_ERROR_FILEOPEN);
+
+	if (!func_BASS_Encode_Start)
+		return "Missing BASSENC";
+
+	HENCODE encoder = func_BASS_Encode_Start(m_pHandle, pCommand, nFlags, EncodeCallback, pHandle);
+	if (!encoder) {
+		int err = BASS_ErrorGetCode();
+		g_pFullFileSystem->Close(pHandle);
+		return g_CGMod_Audio.GetErrorString(BASS_ErrorGetCode());
+	}
+
+	g_pFullFileSystem->Close(pHandle);
+	return NULL;
 }
