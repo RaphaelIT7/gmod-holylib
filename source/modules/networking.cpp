@@ -927,110 +927,8 @@ static inline CBaseViewModel* GetViewModel(const void* pPlayer, int nViewModelSl
 */
 static ConVar networking_bind_gmodhands_to_player("networking_bind_gmodhands_to_player", "1", 0, "Experimental - If enabled, the GMOD Hands / Player:SetHands entity will be bound to the player and only networked if the player is networked");
 static ConVar networking_bind_viewmodels_to_player("networking_bind_viewmodels_to_player", "1", 0, "Experimental - If enabled, the viewmodels will be bound to the player and only networked if the player is networked");
-struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, though its a good foundation now.
+struct EntityTransmitCache
 {
-	// Updates the cache for the current tick
-	void UpdateEntities(const unsigned short *pEdictIndices, int nEdicts)
-	{
-		Plat_FastMemset(&pAlwaysTransmitBits, 0, sizeof(pAlwaysTransmitBits) * 4); // Again, very "safe"
-		//pAlwaysTransmitBits.ClearAll();
-		//pNeverTransmitBits.ClearAll();
-		//pPVSTransmitBits.ClearAll();
-		//pFullTransmitBits.ClearAll();
-
-		nPVSEdictCount = -1;
-		nFullEdictCount = -1; // -1 so that we can use preincrement :hehe:
-		Plat_FastMemset(nPVSEntityList, 0, sizeof(nPVSEntityList) * 2); // * 2 to also clear nFullEdictList which lies directly after it in memory. I know. very "safe" but I want this in 1 call
-
-		// First we build data based off all players
-		bool bBindGmodHandsToPlayer = networking_bind_gmodhands_to_player.GetBool();
-		bool bBindViewModelsToPlayer = networking_bind_viewmodels_to_player.GetBool();
-		for (int iPlayerIndex = 1; iPlayerIndex <= gpGlobals->maxClients; ++iPlayerIndex)
-		{
-			CBaseEntity* pPlayer = g_pEntityCache[iPlayerIndex];
-			if (!pPlayer)
-				continue;
-
-			if (bBindGmodHandsToPlayer)
-			{
-				CBaseEntity* pHands = GetGMODPlayerHands(pPlayer);
-				if (pHands)
-					pNeverTransmitBits.Set(pHands->edict()->m_EdictIndex); // We make hands never transmit by default simply to save performance by reducing PVS checks.
-			}
-
-			if (bBindViewModelsToPlayer)
-			{
-				for (int i=0; i<MAX_VIEWMODELS; ++i)
-				{
-					CBaseEntity* pViewModel = GetViewModel(pPlayer, i);
-					if (pViewModel)
-						pNeverTransmitBits.Set(pViewModel->edict()->m_EdictIndex);
-				}
-			}
-
-			// Now let's also mark all weapons a player has so that they won't later enter into useless PVS checks.
-			for (int i=0; i<MAX_WEAPONS; ++i)
-			{
-				CBaseEntity *pWeapon = GetMyWeapon(pPlayer, i);
-				if (pWeapon)
-					pNeverTransmitBits.Set(pWeapon->edict()->m_EdictIndex);
-			}
-		}
-
-		for (int i=0; i < nEdicts; ++i)
-		{
-			int iEdict = pEdictIndices[i];
-			edict_t *pEdict = &world_edict[iEdict];
-
-			if (pNeverTransmitBits.IsBitSet(iEdict))
-				continue;
-
-			int nFlags = pEdict->m_fStateFlags & (FL_EDICT_DONTSEND|FL_EDICT_ALWAYS|FL_EDICT_PVSCHECK|FL_EDICT_FULLCHECK);
-			if (nFlags & FL_EDICT_DONTSEND)
-			{
-				pNeverTransmitBits.Set(iEdict);
-				continue;
-			}
-
-			if (nFlags & FL_EDICT_ALWAYS)
-			{
-				while (true)
-				{
-					pAlwaysTransmitBits.Set(iEdict);
-
-					CCServerNetworkProperty *pEnt = static_cast<CCServerNetworkProperty*>(pEdict->GetNetworkable());
-					if (!pEnt)
-						break;
-
-					CCServerNetworkProperty *pParent = pEnt->GetNetworkParent();
-					if (!pParent)
-						break;
-
-					pEdict = pParent->edict();
-					iEdict = pEdict->m_EdictIndex;
-				}
-				continue;
-			}
-
-			if (nFlags == FL_EDICT_FULLCHECK)
-			{
-				nFullEntityList[++nFullEdictCount] = g_pEntityCache[iEdict];
-				pFullTransmitBits.Set(iEdict);
-				continue;
-			}
-
-			if (nFlags == FL_EDICT_PVSCHECK)
-			{
-				nPVSEntityList[++nPVSEdictCount] = g_pEntityCache[iEdict];
-				pPVSTransmitBits.Set(iEdict);
-				continue;
-			}
-
-			// It remained? So never send it!
-			pNeverTransmitBits.Set(iEdict);
-		}
-	}
-
 	void EntityRemoved(edict_t* pEdict)
 	{
 		int nIndex = pEdict->m_EdictIndex;
@@ -1050,11 +948,6 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 
 	int nEntityCluster[MAX_EDICTS] = {0};
 	CBitVec<MAX_EDICTS> bDirtyEntities = {false}; // Their Cluster changed compared to last tick.
-
-	int nPVSEdictCount = -1;
-	int nFullEdictCount = -1;
-	CBaseEntity* nPVSEntityList[MAX_EDICTS] = {NULL};
-	CBaseEntity* nFullEntityList[MAX_EDICTS] = {NULL};
 };
 static EntityTransmitCache g_nEntityTransmitCache;
 
