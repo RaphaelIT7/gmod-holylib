@@ -13,6 +13,9 @@
 SymbolFinder Detour::symfinder;
 void* Detour::GetFunction(void* pModule, Symbol pSymbol)
 {
+	if (!pModule)
+		return NULL;
+
 	return symfinder.Resolve(pModule, pSymbol.name.c_str(), pSymbol.length);
 }
 

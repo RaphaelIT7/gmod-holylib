@@ -72,6 +72,8 @@ public:
 	virtual void Set3DEnabled( bool );
 	virtual bool Get3DEnabled();
 	virtual void Restart();
+	// HolyLib specific
+	virtual const char* EncodeToDisk( const char* pFileName, const char* pCommand, unsigned long nFlags );
 public:
 	CGModAudioChannel( DWORD handle, bool isfile, const char* pFileName = NULL );
 	virtual ~CGModAudioChannel();

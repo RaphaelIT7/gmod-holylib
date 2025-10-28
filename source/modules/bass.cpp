@@ -334,6 +334,23 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_Restart)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(IGModAudioChannel_EncodeToDisk)
+{
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
+	
+	const char* pErrorMsg = channel->EncodeToDisk(LUA->CheckString(1), LUA->CheckString(2), (unsigned long)LUA->CheckNumber(3));
+	if (!pErrorMsg)
+	{ // Success
+		LUA->PushBool(true);
+		LUA->PushNil();
+		return 2;
+	}
+
+	LUA->PushBool(false);
+	LUA->PushString(pErrorMsg);
+	return 2;
+}
+
 LUA_FUNCTION_STATIC(bass_PlayFile)
 {
 	const char* filePath = LUA->CheckString(1);
@@ -478,6 +495,9 @@ void CBassModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 		Util::AddFunc(pLua, IGModAudioChannel_NotImplemented, "SetPos");
 		Util::AddFunc(pLua, IGModAudioChannel_NotImplemented, "Get3DEnabled");
 		Util::AddFunc(pLua, IGModAudioChannel_NotImplemented, "Set3DEnabled");
+
+		// HolyLib specific
+		Util::AddFunc(pLua, IGModAudioChannel_EncodeToDisk, "EncodeToDisk");
 	pLua->Pop(1);
 
 	Util::StartTable(pLua);
