@@ -72,12 +72,13 @@ public:
 	virtual bool Get3DEnabled();
 	virtual void Restart();
 public:
-	CGModAudioChannel( DWORD handle, bool isfile );
+	CGModAudioChannel( DWORD handle, bool isfile, const char* pFileName = NULL );
 	virtual ~CGModAudioChannel();
 
 private:
 	DWORD m_pHandle;
 	bool m_bIsFile;
+	std::string m_strFileName = "NULL"; // GMOD doesn't have this - HolyLib specific
 };
 
 extern IGMod_Audio* g_pGModAudio;

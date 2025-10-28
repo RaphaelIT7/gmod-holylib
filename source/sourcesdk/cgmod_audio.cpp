@@ -406,12 +406,25 @@ IGModAudioChannel* CGMod_Audio::PlayFile(const char* filePath, const char* flags
 		return NULL;
 	}
 
-	char fullPath[MAX_PATH];
-	g_pFullFileSystem->RelativePathToFullPath(filePath, "GAME", fullPath, sizeof(fullPath));
+	// char fullPath[MAX_PATH];
+	// g_pFullFileSystem->RelativePathToFullPath(filePath, "GAME", fullPath, sizeof(fullPath));
+
+	// This doesn't match gmod iirc though it should be fine
+	// This way it should fully work with vpk & gma files too without issue
+	// As it no longer relies on a file having to exist on disk.
+	FileHandle_t pHandle = g_pFullFileSystem->Open(filePath, "rb", "GAME");
+	if (!pHandle)
+	{
+		*errorCode = -1;
+		return NULL;
+	}
+	
+	BASS_FILEPROCS fileprocs={CBassAudioStream::FileClose, CBassAudioStream::FileLength, CBassAudioStream::FileRead, CBassAudioStream::FileSeek};
+	HSTREAM stream = BASS_StreamCreateFileUser(STREAMFILE_NOBUFFER, 0, &fileprocs, pHandle);
 
 	bool autoplay = true;
 	DWORD bassFlags = BASSFlagsFromString(flags, &autoplay);
-	HSTREAM stream = BASS_StreamCreateFile(FALSE, fullPath, 0, 0, bassFlags);
+	// HSTREAM stream = BASS_StreamCreateFile(FALSE, filePath, 0, 0, bassFlags);
 	//delete[] fullPath; // Causes a crash
 
 	if (stream == 0) {
@@ -425,18 +438,21 @@ IGModAudioChannel* CGMod_Audio::PlayFile(const char* filePath, const char* flags
 		return NULL;
 	}
 
-	return (IGModAudioChannel*)new CGModAudioChannel(stream, true);
+	return (IGModAudioChannel*)new CGModAudioChannel(stream, true, filePath);
 }
 
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CGMod_Audio, IGMod_Audio, "IGModAudio001", g_CGMod_Audio);
 
 
-CGModAudioChannel::CGModAudioChannel( DWORD handle, bool isfile )
+CGModAudioChannel::CGModAudioChannel( DWORD handle, bool isfile, const char* pFileName )
 {
 	BASS_ChannelSet3DAttributes(handle, BASS_3DMODE_NORMAL, 200, 1000000000, 360, 360, 0);
 	BASS_Apply3D();
-	this->m_pHandle = handle;
-	this->m_bIsFile = isfile;
+	m_pHandle = handle;
+	m_bIsFile = isfile;
+
+	if (pFileName)
+		m_strFileName = pFileName;
 }
 
 CGModAudioChannel::~CGModAudioChannel()
@@ -659,15 +675,7 @@ double CGModAudioChannel::GetLength()
 
 const char* CGModAudioChannel::GetFileName()
 {
-	static char fileName[MAX_PATH];
-	BASS_CHANNELINFO info;
-	if (BASS_ChannelGetInfo(m_pHandle, &info)) {
-		strncpy(fileName, info.filename, sizeof(fileName));
-	} else {
-		strncpy(fileName, "NULL", sizeof(fileName));
-	}
-
-	return fileName;
+	return m_strFileName.c_str();
 }
 
 int CGModAudioChannel::GetSamplingRate()
