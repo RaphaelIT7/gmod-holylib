@@ -2,6 +2,7 @@
 #include <convar.h>
 #include <unordered_map>
 #include <unordered_set>
+#include "tier0/dbg.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -13,6 +14,10 @@
 SymbolFinder Detour::symfinder;
 void* Detour::GetFunction(void* pModule, Symbol pSymbol)
 {
+	// We don't ensure safety as if pModule is NULL we should have checked before calling, else debugging gets painful
+	// if (!pModule)
+	//	return NULL;
+
 	return symfinder.Resolve(pModule, pSymbol.name.c_str(), pSymbol.length);
 }
 

@@ -6,9 +6,12 @@
 #include "vaudio/ivaudio.h"
 #include "IGmod_Audio.h"
 #include "bass.h"
+#include "bassenc.h"
 #include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
-class CBassAudioStream : IBassAudioStream
+class CBassAudioStream : public IBassAudioStream
 {
 public:
 	virtual ~CBassAudioStream();
@@ -32,7 +35,45 @@ private:
 	HSTREAM m_hStream;
 };
 
-class CGModAudioChannel : IGModAudioChannel
+class CGModAudioChannel;
+class CGModAudioChannelEncoder : public IGModAudioChannelEncoder
+{
+public:
+	virtual ~CGModAudioChannelEncoder();
+
+	virtual void ProcessNow(bool bUseAnotherThread);
+	virtual void Stop(bool bProcessQueue);
+	// Returns true if there was an error, pErrorOut will either be filled or NULL
+	// If it returns true, it will also invalidate/free itself so the pointer becomes invalid!
+	virtual bool GetLastError(const char** pErrorOut);
+
+public: // Non virtual
+	CGModAudioChannelEncoder(DWORD pChannel, const char* pFileName, IGModEncoderCallback* pCallback );
+	void InitEncoder(unsigned long nEncoderFlags);
+	void HandleFinish(void* nSignalData); // Called each Update on the main thread, nSignalData is for the callback we store so that it can decide wether to force finish or not
+
+private:
+	static void ProcessChannel(CGModAudioChannelEncoder* pEncoder);
+	void WriteToFile(const void* buffer, unsigned long length);
+	void OnEncoderFreed();
+	void OnEncoderDied();
+
+	// Callbacks
+public:
+	static void CALLBACK EncoderProcessCallback(HENCODE handle, DWORD channel, const void *buffer, DWORD length, void *user);
+	static void CALLBACK EncoderProcessCallback2(HENCODE handle, DWORD channel, const void *buffer, DWORD length, QWORD offset, void *user); // MP3 & FLAC need this one
+	static void CALLBACK EncoderFreedCallback(HENCODE handle, DWORD status, void *user); // Also calls OnDecoderDied 
+
+	HENCODE m_pEncoder;
+	FileHandle_t m_pFileHandle;
+	std::string m_strFileName;
+	std::string m_strLastError;
+	DWORD m_pChannel;
+	GModEncoderStatus m_nStatus;
+	IGModEncoderCallback* m_pCallback;
+};
+
+class CGModAudioChannel : public IGModAudioChannel
 {
 public:
 	virtual void Destroy();
@@ -72,10 +113,17 @@ public:
 	virtual void Set3DEnabled( bool );
 	virtual bool Get3DEnabled();
 	virtual void Restart();
+	// HolyLib specific
+	virtual const char* EncodeToDisk2( const char* pFileName, unsigned long nFlags, IGModEncoderCallback* pCallback, const char** pErrorOut );
+	virtual IGModAudioChannelEncoder* CreateEncoder( const char* pFileName, unsigned long nFlags, IGModEncoderCallback* pCallback, const char** pErrorOut );
+	virtual void Update( unsigned long length );
+	virtual bool CreateLink( IGModAudioChannel* pChannel, const char** pErrorOut );
+	virtual bool DestroyLink( IGModAudioChannel* pChannel, const char** pErrorOut );
 public:
 	CGModAudioChannel( DWORD handle, bool isfile, const char* pFileName = NULL );
 	virtual ~CGModAudioChannel();
-
+	
+	bool IsDecode();
 private:
 	DWORD m_pHandle;
 	bool m_bIsFile;
@@ -99,9 +147,26 @@ public:
 	virtual const char* GetErrorString( int );
 	// HolyLib
 	virtual unsigned long GetVersion();
-	virtual bool LoadPlugin(const char* pluginName);
+	virtual bool LoadPlugin(const char* pluginName, const char** pErrorOut);
+	virtual void FinishAllAsync(void* nSignalData);
+
+public: // Non virtual holylib functions
+	void AddEncoder(CGModAudioChannelEncoder* pEncoder) {
+		m_pEncoders.insert(pEncoder);
+	}
+
+	void RemoveEncoder(CGModAudioChannelEncoder* pEncoder) {
+		auto it = m_pEncoders.find(pEncoder);
+		if (it != m_pEncoders.end())
+			m_pEncoders.erase(it);
+	}
+
 private:
+	bool LoadDLL(const char* pDLLName, void** pDLLHandle);
+
 	std::unordered_map<std::string, HPLUGIN> m_pLoadedPlugins;
+	std::vector<void*> m_pLoadedDLLs;
+	std::unordered_set<CGModAudioChannelEncoder*> m_pEncoders;
 };
 
-extern const char* g_BASSErrorStrings[];
+// extern const char* g_BASSErrorStrings[];

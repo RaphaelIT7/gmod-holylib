@@ -3196,6 +3196,12 @@ Creates a IGMODAudioChannel for the given file.<br>
 callback - function(IGMODAudioChannel channel, number errorCode, string error)<br>
 Creates a IGMODAudioChannel for the given url.<br>
 
+#### bass.Update(number time)
+Updates all bass channels processing as x(time) seconds passed.<br>
+
+#### string bass.GetVersion()
+Returns the bass version as a string.<br>
+
 ### IGModAudioChannel
 
 #### string IGModAudioChannel:\_\_tostring()
@@ -3306,6 +3312,32 @@ Restarts the channel.<br>
 #### (Soon)IGModAudioChannel:FFT(table output, number fft)
 Computes the DFT of the sound channel.<br>
 What even is that.<br>
+
+#### IGModAudioChannel:EncodeToDisk(string fileName, number bassFlags, function callback, bool async = false)
+Writes the channel into a file, the encoder internally used depends on the filename.<br>
+Valid encoders are:<br>
+- `.wav` (Requres `BASSENC` plugin)<br>
+- `.aiff` (Requres `BASSENC` plugin)<br>
+- `.mp3` (Requres `BASSENC_MP3` plugin)<br>
+- `.ogg` (Requres `BASSENC_OGG` plugin)<br>
+- `.opus` (Requres `BASSENC_OPUS` plugin)<br>
+- `.flac` (Requres `BASSENC_FLAC` plugin)<br>
+
+> [!NOTE]
+> This function requires the `BASSENC` plugin to work at all!<br>
+> You can find all the plugins at https://www.un4seen.com/ drop them into the `bin/` folder besides `libbass.so`<br>
+
+#### IGModAudioChannel:Update(number time)
+Updates the channel for the given time in seconds<br>
+See: https://www.un4seen.com/doc/#bass/BASS_ChannelUpdate.html<br>
+
+#### IGModAudioChannel:CreateLink(IGModAudioChannel otherChannel)
+Links the other channel to this channel one-way.<br>
+See https://www.un4seen.com/doc/#bass/BASS_ChannelSetLink.html (argument order is `this, otherChannel`)<br>
+
+#### IGModAudioChannel:DestroyLink(IGModAudioChannel otherChannel)
+Unlinks the other channel from this channel.<br>
+See https://www.un4seen.com/doc/#bass/BASS_ChannelRemoveLink.html (argument order is `this, otherChannel`)<br>
 
 ## entitiylist
 This module just adds a lua class.<br>

@@ -10,7 +10,6 @@
 #include "unordered_set"
 #include <shared_mutex>
 
-#define DEDICATED
 #include "vstdlib/jobthread.h"
 #include "../luajit/src/lua.hpp"
 
