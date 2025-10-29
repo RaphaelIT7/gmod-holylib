@@ -1049,11 +1049,15 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 
 	if (networking_bind_viewmodels_to_player.GetBool())
 	{
-		for (int i=0; i < MAX_VIEWMODELS; ++i)
+		// Seulement transmettre les viewmodels au joueur local
+		if (bLocalPlayer)
 		{
-			CBaseEntity* pViewModel = GetViewModel(pCharacter, i);
-			if (pViewModel)
-				pViewModel->SetTransmit(pInfo, bAlways);
+			for (int i=0; i < MAX_VIEWMODELS; ++i)
+			{
+				CBaseEntity* pViewModel = GetViewModel(pCharacter, i);
+				if (pViewModel)
+					pViewModel->SetTransmit(pInfo, bAlways);
+			}
 		}
 	}
 
