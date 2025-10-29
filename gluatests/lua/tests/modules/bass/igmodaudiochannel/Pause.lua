@@ -31,10 +31,8 @@ return {
                     expect( channel ).to.beValid()
 
                     channel:Pause()
-                    -- Give it a moment to process the pause or it might return state 3 aka channel is buffering
-                    timer.Simple( 0.05, function()
-                        expect( channel:GetState() ).to.equal( 2 )
-                    end )
+                    bass.Update()
+                    expect( channel:GetState() ).to.equal( 2 )
                     
                     done()
                 end )
@@ -54,21 +52,19 @@ return {
                     expect( channel ).to.beValid()
 
                     channel:Pause()
-                    timer.Simple( 0.05, function()
-                        expect( channel:GetState() ).to.equal( 2 )
-                    end )
+                    bass.Update()
+                    expect( channel:GetState() ).to.equal( 2 )
 
                     channel:Pause()
-                    timer.Simple( 0.05, function()
-                        expect( channel:GetState() ).to.equal( 2 )
-                    end )
+                    bass.Update()
+                    expect( channel:GetState() ).to.equal( 2 )
                     
                     done()
                 end )
             end
         },
         {
-            name = "Calling pause on a stopped channel is safe and remains stopped",
+            name = "Calling pause on a stopped and remains stopped",
             when = HolyLib_IsModuleEnabled( "bass" ),
             async = true,
             timeout = 2,
