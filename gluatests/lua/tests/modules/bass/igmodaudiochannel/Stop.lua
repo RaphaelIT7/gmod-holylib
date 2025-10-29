@@ -30,6 +30,7 @@ return {
                     expect( channel ).toNot.beNil()
                     expect( channel:GetState() ).to.equal( 1 )
 
+                    channel:Stop()
                     bass.Update()
                     expect( channel:GetState() ).to.equal( 0 )
                     
