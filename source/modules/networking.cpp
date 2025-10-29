@@ -1029,33 +1029,37 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 {
 	if (!func_CBaseAnimating_SetTransmit)
 	{
-		// Without it we won't do shit, simply because possibly missing a transmit can cause quite the issues.
 		detour_CBaseCombatCharacter_SetTransmit.GetTrampoline<Symbols::CBaseCombatCharacter_SetTransmit>()(pCharacter, pInfo, bAlways);
 		return;
 	}
 
 	edict_t* pEdict = pCharacter->edict();
-	if (pInfo->m_pTransmitEdict->Get(pEdict->m_EdictIndex)) // Already being networked!
+	if (pInfo->m_pTransmitEdict->Get(pEdict->m_EdictIndex))
 		return;
 
 	bool bLocalPlayer = pInfo->m_pClientEnt == pEdict;
 
-	func_CBaseAnimating_SetTransmit(pCharacter, pInfo, bAlways); // Base transmit
+	func_CBaseAnimating_SetTransmit(pCharacter, pInfo, bAlways);
 
-	if (networking_bind_gmodhands_to_player.GetBool())
+	// CORRECTION: Ne transmettre les GMOD Hands et Viewmodels QUE pour le joueur local
+	// Cela évite que les viewmodels d'ArcCW des autres joueurs soient transmis
+	if (bLocalPlayer)
 	{
-		CBaseEntity* pGMODHands = GetGMODPlayerHands(pCharacter);
-		if (pGMODHands)
-			pGMODHands->SetTransmit(pInfo, bAlways);
-	}
-
-	if (networking_bind_viewmodels_to_player.GetBool() && bLocalPlayer)
-	{
-		for (int i=0; i < MAX_VIEWMODELS; ++i)
+		if (networking_bind_gmodhands_to_player.GetBool())
 		{
-			CBaseViewModel* pViewModel = GetViewModel(pCharacter, i);
-			if (pViewModel)
-				pViewModel->SetTransmit(pInfo, bAlways);
+			CBaseEntity* pGMODHands = GetGMODPlayerHands(pCharacter);
+			if (pGMODHands)
+				pGMODHands->SetTransmit(pInfo, bAlways);
+		}
+
+		if (networking_bind_viewmodels_to_player.GetBool())
+		{
+			for (int i=0; i < MAX_VIEWMODELS; ++i)
+			{
+				CBaseViewModel* pViewModel = GetViewModel(pCharacter, i);
+				if (pViewModel)
+					pViewModel->SetTransmit(pInfo, bAlways);
+			}
 		}
 	}
 
@@ -1067,7 +1071,6 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 			if (!pWeapon)
 				continue;
 
-			// The local player is sent all of his weapons.
 			pWeapon->SetTransmit(pInfo, bAlways);
 		}
 	} else {
@@ -1100,7 +1103,6 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 				int entIndex = pWeapon->edict()->m_EdictIndex;
 				g_pDontTransmitCache.Clear(entIndex);
 				g_pDontTransmitWeaponCache.Clear(entIndex);
-				// We don't clear g_bFilledDontTransmitWeaponCache to avoid it setting the bits above again
 
 				pWeapon->SetTransmit(pInfo, bAlways);
 			}
