@@ -1142,26 +1142,30 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 	if (pInfo->m_pTransmitEdict->Get(pEdict->m_EdictIndex)) // Already being networked!
 		return;
 
+	bool bLocalPlayer = pInfo->m_pClientEnt == pEdict;
+
 	func_CBaseAnimating_SetTransmit(pCharacter, pInfo, bAlways); // Base transmit
 
-	if (networking_bind_gmodhands_to_player.GetBool())
+	if (bLocalPlayer)
 	{
-		CBaseEntity* pGMODHands = GetGMODPlayerHands(pCharacter);
-		if (pGMODHands)
-			pGMODHands->SetTransmit(pInfo, bAlways);
-	}
-
-	if (networking_bind_viewmodels_to_player.GetBool())
-	{
-		for (int i=0; i < MAX_VIEWMODELS; ++i)
+		if (networking_bind_gmodhands_to_player.GetBool())
 		{
-			CBaseEntity* pViewModel = GetViewModel(pCharacter, i);
-			if (pViewModel)
-				pViewModel->SetTransmit(pInfo, bAlways);
+			CBaseEntity* pGMODHands = GetGMODPlayerHands(pCharacter);
+			if (pGMODHands)
+				pGMODHands->SetTransmit(pInfo, bAlways);
+		}
+
+		if (networking_bind_viewmodels_to_player.GetBool())
+		{
+			for (int i=0; i < MAX_VIEWMODELS; ++i)
+			{
+				CBaseViewModel* pViewModel = GetViewModel(pCharacter, i);
+				if (pViewModel)
+					pViewModel->SetTransmit(pInfo, bAlways);
+			}
 		}
 	}
 
-	bool bLocalPlayer = pInfo->m_pClientEnt == pEdict;
 	if (networking_transmit_all_weapons.GetBool() || (bLocalPlayer && networking_transmit_all_weapons_to_owner.GetBool()))
 	{
 		for (int i=0; i < MAX_WEAPONS; ++i)
@@ -1202,7 +1206,7 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 			{
 				int entIndex = pWeapon->edict()->m_EdictIndex;
 				g_pDontTransmitCache.Clear(entIndex);
-				g_pDontTransmitCache.Clear(entIndex);
+				g_pDontTransmitWeaponCache.Clear(entIndex);
 				// We don't clear g_bFilledDontTransmitWeaponCache to avoid it setting the bits above again
 
 				pWeapon->SetTransmit(pInfo, bAlways);
