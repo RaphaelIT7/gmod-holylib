@@ -32,6 +32,7 @@ return {
                     expect( channel:GetState() ).to.equal( 0 )
 
                     channel:Play()
+                    bass.Update()
                     expect( channel:GetState() ).to.equal( 1 )
                     
                     done()
@@ -52,14 +53,15 @@ return {
                     expect( channel ).to.beValid()
 
                     channel:Play()
+                    bass.Update()
                     expect( channel:GetState() ).to.equal( 1 )
 
                     channel:Pause()
-                    timer.Simple( 0.05, function()
-                        expect( channel:GetState() ).to.equal( 2 )
-                    end )
+                    bass.Update()
+                    expect( channel:GetState() ).to.equal( 2 )
 
                     channel:Play()
+                    bass.Update()
                     expect( channel:GetState() ).to.equal( 1 )
                     
                     done()
