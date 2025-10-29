@@ -30,10 +30,8 @@ return {
                     expect( channel ).toNot.beNil()
                     expect( channel:GetState() ).to.equal( 1 )
 
-                    channel:Stop()
-                    timer.Simple( 0.05, function()
-                        expect( channel:GetState() ).to.equal( 0 )
-                    end )
+                    bass.Update()
+                    expect( channel:GetState() ).to.equal( 0 )
                     
                     done()
                 end )
@@ -52,9 +50,10 @@ return {
                     expect( channel ).toNot.beNil()
 
                     channel:Stop()
-                    timer.Simple( 0.05, function()
-                        expect( channel:GetState() ).to.equal( 0 )
-                    end )
+                    channel:Stop()
+
+                    bass.Update()
+                    expect( channel:GetState() ).to.equal( 0 )
                     
                     done()
                 end )
@@ -91,21 +90,18 @@ return {
                 bass.PlayFile( filePath, flags, function( channel, errorCode, errorMsg )
                     expect( channel ).toNot.beNil()
                     expect( channel:GetState() ).to.equal( 1 )
-
+                    
                     channel:Stop()
-                    timer.Simple( 0.05, function()
-                        expect( channel:GetState() ).to.equal( 0 )
-                    end )
+                    bass.Update()
+                    expect( channel:GetState() ).to.equal( 0 )
 
                     channel:Pause()
-                    timer.Simple( 0.05, function()
-                        expect( channel:GetState() ).to.equal( 0 )
-                    end )
+                    bass.Update()
+                    expect( channel:GetState() ).to.equal( 0 )
 
                     channel:Play()
-                    timer.Simple( 0.05, function()
-                        expect( channel:GetState() ).to.equal( 1 )
-                    end )
+                    bass.Update()
+                    expect( channel:GetState() ).to.equal( 1 )
                     
                     done()
                 end )
