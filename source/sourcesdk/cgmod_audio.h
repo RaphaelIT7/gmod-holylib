@@ -49,6 +49,14 @@ public:
 	virtual bool GetLastError(const char** pErrorOut);
 	virtual bool MakeServer( const char* port, unsigned long buffer, unsigned long burst, unsigned long flags, const char** pErrorOut );
 
+	virtual void SetPaused( bool bPaused );
+	virtual int GetState();
+
+	// virtual IGModAudioChannel* GetChannel();
+	virtual void SetChannel( IGModAudioChannel* pChannel, const char** pErrorOut );
+
+	virtual void WriteData(const void* pData, unsigned long nLength);
+
 public: // Non virtual
 	CGModAudioChannelEncoder(DWORD pChannel, const char* pFileName, IGModEncoderCallback* pCallback );
 	void InitEncoder(unsigned long nEncoderFlags);
@@ -126,6 +134,8 @@ public:
 	
 	bool IsDecode();
 private:
+	friend class CGModAudioChannelEncoder;
+
 	DWORD m_pHandle;
 	bool m_bIsFile;
 	std::string m_strFileName = "NULL"; // GMOD doesn't have this - HolyLib specific
@@ -151,6 +161,7 @@ public:
 	virtual bool LoadPlugin(const char* pluginName, const char** pErrorOut);
 
 	virtual void FinishAllAsync(void* nSignalData);
+	virtual IGModAudioChannel* CreateDummyChannel(int nSampleRate, int nChannels, unsigned long nFlags, const char** pErrorOut);
 
 public: // Non virtual holylib functions
 	void AddEncoder(CGModAudioChannelEncoder* pEncoder) {

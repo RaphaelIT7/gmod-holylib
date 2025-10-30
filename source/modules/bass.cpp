@@ -547,6 +547,63 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_CreateEncoder)
 	return 2;
 }
 
+LUA_FUNCTION_STATIC(IGModAudioChannelEncoder_SetPaused)
+{
+	IGModAudioChannelEncoder* encoder = Get_IGModAudioChannelEncoder(LUA, 1, true);
+
+	encoder->SetPaused(LUA->GetBool(2));
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(IGModAudioChannelEncoder_GetState)
+{
+	IGModAudioChannelEncoder* encoder = Get_IGModAudioChannelEncoder(LUA, 1, true);
+
+	LUA->PushNumber(encoder->GetState());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IGModAudioChannelEncoder_SetChannel)
+{
+	IGModAudioChannelEncoder* encoder = Get_IGModAudioChannelEncoder(LUA, 1, true);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 2, true);
+
+	const char* pErrorCode = nullptr;
+	encoder->SetChannel(channel, &pErrorCode);
+	LUA->PushBool(pErrorCode == nullptr);
+	if (pErrorCode) {
+		LUA->PushString(pErrorCode);
+	} else {
+		LUA->PushNil();
+	}
+	return 2;
+}
+
+LUA_FUNCTION_STATIC(IGModAudioChannelEncoder_InsertVoiceData)
+{
+	IGModAudioChannelEncoder* encoder = Get_IGModAudioChannelEncoder(LUA, 1, true);
+
+#if MODULE_EXISTS_VOICECHAT
+	VoiceData* pVoiceData = Get_VoiceData(LUA, 2, true);
+	extern char* VoiceData_GetDecompressedData(VoiceData* pData, int* pLength); // exposed for us :3
+
+	int nLength = -1;
+	char* pRawData = VoiceData_GetDecompressedData(pVoiceData, &nLength);
+	if (!pRawData)
+	{
+		LUA->PushBool(false);
+		return 1;
+	}
+
+	encoder->WriteData(pRawData, nLength);
+#else
+	MISSING_MODULE_ERROR(LUA, voicechat);
+#endif
+
+	LUA->PushBool(true);
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(bass_PlayFile)
 {
 	const char* filePath = LUA->CheckString(1);
@@ -614,6 +671,23 @@ LUA_FUNCTION_STATIC(bass_GetVersion)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(bass_CreateDummyChannel)
+{
+	int nSampleRate = LUA->CheckNumber(1);
+	int nChannels = LUA->CheckNumber(2);
+	unsigned long nFlags = (unsigned long)LUA->CheckNumber(3);
+
+	const char* pErrorCode = nullptr;
+	IGModAudioChannel* pChannel = gGModAudio->CreateDummyChannel(nSampleRate, nChannels, nFlags, &pErrorCode);
+	Push_IGModAudioChannel(LUA, pChannel);
+	if (pErrorCode) {
+		LUA->PushString(pErrorCode);
+	} else {
+		LUA->PushNil();
+	}
+	return 2;
+}
+
 LUA_FUNCTION_STATIC(bass_LoadPlugin)
 {
 	const char* pError = NULL;
@@ -666,6 +740,9 @@ void CBassModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 		Util::AddFunc(pLua, IGModAudioChannelEncoder__index, "__index");
 		Util::AddFunc(pLua, IGModAudioChannelEncoder__newindex, "__newindex");
 		Util::AddFunc(pLua, IGModAudioChannelEncoder_MakeServer, "MakeServer");
+		Util::AddFunc(pLua, IGModAudioChannelEncoder_SetPaused, "SetPaused");
+		Util::AddFunc(pLua, IGModAudioChannelEncoder_GetState, "GetState");
+		Util::AddFunc(pLua, IGModAudioChannelEncoder_SetChannel, "SetChannel");
 	pLua->Pop(1);
 
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::IGModAudioChannel, pLua->CreateMetaTable("IGModAudioChannel"));
@@ -726,6 +803,7 @@ void CBassModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 		Util::AddFunc(pLua, bass_PlayURL, "PlayURL");
 		Util::AddFunc(pLua, bass_Update, "Update");
 		Util::AddFunc(pLua, bass_GetVersion, "GetVersion");
+		Util::AddFunc(pLua, bass_CreateDummyChannel, "CreateDummyChannel");
 		// Util::AddFunc(pLua, bass_LoadPlugin, "LoadPlugin");
 	Util::FinishTable(pLua, "bass");
 }

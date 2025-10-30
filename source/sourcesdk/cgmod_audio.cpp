@@ -257,6 +257,10 @@ static BASS_Encode_StopEx* func_BASS_Encode_StopEx;
 static BASS_Encode_SetNotify* func_BASS_Encode_SetNotify;
 static BASS_Encode_IsActive* func_BASS_Encode_IsActive;
 static BASS_Encode_ServerInit* func_BASS_Encode_ServerInit;
+static BASS_Encode_SetPaused* func_BASS_Encode_SetPaused;
+static BASS_Encode_GetChannel* func_BASS_Encode_GetChannel;
+static BASS_Encode_SetChannel* func_BASS_Encode_SetChannel;
+static BASS_Encode_Write* func_BASS_Encode_Write;
 
 static BASS_Encode_MP3_Start* func_BASS_Encode_MP3_Start;
 static BASS_Encode_OGG_Start* func_BASS_Encode_OGG_Start;
@@ -336,6 +340,10 @@ bool CGMod_Audio::Init(CreateInterfaceFn interfaceFactory)
 		GetBassEncFunc(BASS_Encode_SetNotify, pBassEnc);
 		GetBassEncFunc(BASS_Encode_IsActive, pBassEnc);
 		GetBassEncFunc(BASS_Encode_ServerInit, pBassEnc);
+		GetBassEncFunc(BASS_Encode_SetPaused, pBassEnc);
+		GetBassEncFunc(BASS_Encode_GetChannel, pBassEnc);
+		GetBassEncFunc(BASS_Encode_SetChannel, pBassEnc);
+		GetBassEncFunc(BASS_Encode_Write, pBassEnc);
 		g_bUsesBassEnc = true;
 	}
 
@@ -635,6 +643,18 @@ void CGMod_Audio::FinishAllAsync(void* nSignalData)
 	Msg("FinishAllAsync done\n");
 }
 
+IGModAudioChannel* CGMod_Audio::CreateDummyChannel(int nSampleRate, int nChannels, unsigned long nFlags, const char** pErrorOut)
+{
+	HSTREAM pStream = BASS_StreamCreate(nSampleRate, nChannels, nFlags, STREAMPROC_DUMMY, NULL);
+	if (!pStream)
+	{
+		*pErrorOut = BassErrorToString(BASS_ErrorGetCode());
+		return NULL;
+	}
+
+	return new CGModAudioChannel(pStream, true, "DUMMY");
+}
+
 // We gotta load some DLLs first as bass won't load shit itself when using BASS_PluginLoad >:(
 bool CGMod_Audio::LoadDLL(const char* pDLLName, void** pDLLHandle)
 {
@@ -844,7 +864,7 @@ void CGModAudioChannel::Get3DCone(int* innerAngle, int* outerAngle, float* outer
 
 int CGModAudioChannel::GetState()
 {
-	return BASS_ChannelIsActive(m_pHandle);
+	return BASS_ChannelIsActive(m_pHandle)-1; // Why -1? Because their all shifted by +1 so they do not match gmod's expected enums
 }
 
 void CGModAudioChannel::SetLooping(bool looping)
@@ -1246,4 +1266,32 @@ bool CGModAudioChannelEncoder::MakeServer( const char* port, unsigned long buffe
 	}
 
 	return true;
+}
+
+void CGModAudioChannelEncoder::SetPaused(bool bPaused)
+{
+	func_BASS_Encode_SetPaused( m_pEncoder, bPaused );
+}
+
+int CGModAudioChannelEncoder::GetState()
+{
+	return (int)func_BASS_Encode_IsActive( m_pEncoder );
+}
+
+/*IGModAudioChannel* CGModAudioChannelEncoder::GetChannel()
+{
+	return func_BASS_Encode_GetChannel( m_pEncoder );
+}*/
+
+void CGModAudioChannelEncoder::SetChannel(IGModAudioChannel* pChannel, const char** pErrorOut)
+{
+	*pErrorOut = NULL;
+
+	if (func_BASS_Encode_SetChannel( m_pEncoder, ((CGModAudioChannel*)pChannel)->m_pHandle ) == 0)
+		*pErrorOut = BassErrorToString(BASS_ErrorGetCode());
+}
+
+void CGModAudioChannelEncoder::WriteData(const void* pData, unsigned long nLength)
+{
+	func_BASS_Encode_Write( m_pEncoder, pData, nLength );
 }

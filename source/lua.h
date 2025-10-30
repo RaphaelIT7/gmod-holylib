@@ -1022,6 +1022,12 @@ extern void Push_CBaseClient(GarrysMod::Lua::ILuaInterface* LUA, CBaseClient* tb
 extern CBaseClient* Get_CBaseClient(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
 #endif
 
+#if MODULE_EXISTS_VOICECHAT
+struct VoiceData;
+extern LuaUserData* Push_VoiceData(GarrysMod::Lua::ILuaInterface* LUA, VoiceData* tbl);
+extern VoiceData* Get_VoiceData(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
+#endif
+
 // NOTE: The angle itself is pushed, not a copy, any changes from lua will affect it!
 extern void Push_QAngle(GarrysMod::Lua::ILuaInterface* LUA, QAngle* var);
 

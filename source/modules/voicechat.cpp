@@ -302,6 +302,12 @@ private:
 	char* pDecompressedData = nullptr;
 };
 
+// For other modules to utilize since we don't expose the struct. Looking at you bass
+char* VoiceData_GetDecompressedData(VoiceData* pData, int* pLength)
+{
+	return pData->GetDecompressedData(pLength);	
+}
+
 Push_LuaClass(VoiceData)
 Get_LuaClass(VoiceData, "VoiceData")
 

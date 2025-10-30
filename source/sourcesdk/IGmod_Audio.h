@@ -24,22 +24,36 @@ enum GModEncoderStatus {
 };
 
 // HolyLib specific
-// NOTE: Always call GetLastError after any function call to check for errors!
+// NOTE: Always call GetLastError after any function call that throws one to check for errors!
+class IGModAudioChannel;
 class IGModAudioChannelEncoder
 {
 public:
 	virtual ~IGModAudioChannelEncoder() {};
 
 	// ProcessNow uses BASS_ChannelGetData to pull data, so this function only works on decode channels!
+	// Will throw an error to check with GetLastError
 	virtual void ProcessNow(bool bUseAnotherThread) = 0;
+
 	virtual void Stop(bool bProcessQueue) = 0;
+
 	// Returns true if there was an error, pErrorOut will either be filled or NULL
 	// If it returns true, it will also invalidate/free itself so the pointer becomes invalid!
+	// NOTE: This is only for fatal errors like on init, most other functions have a pErrorOut argument for light errors that can be ignored
 	virtual bool GetLastError(const char** pErrorOut) = 0;
+
 	// Wasn't exposed since CreateEncoder already calls it so it has no real use
 	// virtual void InitEncoder(unsigned long nEncoderFlags) = 0;
 
 	virtual bool MakeServer( const char* port, unsigned long buffer, unsigned long burst, unsigned long flags, const char** pErrorOut ) = 0;
+
+	virtual void SetPaused( bool bPaused ) = 0;
+	virtual int GetState() = 0;
+
+	// virtual IGModAudioChannel* GetChannel() = 0;
+	virtual void SetChannel( IGModAudioChannel* pChannel, const char** pErrorOut ) = 0;
+
+	virtual void WriteData(const void* pData, unsigned long nLength) = 0;
 };
 
 class IGModAudioChannelEncoder;
@@ -141,6 +155,7 @@ public:
 	virtual unsigned long GetVersion() = 0; // Returns bass version
 	virtual bool LoadPlugin(const char* pluginName, const char** pErrorOut) = 0;
 	virtual void FinishAllAsync(void* nSignalData) = 0; // Called on Lua shutdown to finish all callbacks/async tasks for that interface
+	virtual IGModAudioChannel* CreateDummyChannel(int nSampleRate, int nChannels, unsigned long nFlags, const char** pErrorOut) = 0;
 };
 
 #undef CALLBACK // Solves another error with minwindef.h
