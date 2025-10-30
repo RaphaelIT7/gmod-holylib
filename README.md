@@ -3327,6 +3327,11 @@ Valid encoders are:<br>
 > This function requires the `BASSENC` plugin to work at all!<br>
 > You can find all the plugins at https://www.un4seen.com/ drop them into the `bin/` folder besides `libbass.so`<br>
 
+> [!WARNING]
+> This function is a fucking gamble, I do not know why BASS decides this, though it behaves sometimes randomly.<br>
+> the current code for it seems to be somewhat stable, though any change like shifting it, adding arguments will cause issues<br>
+> until this is figured out this won't be changed in any way further (This could all point back to BASSENC itself having a bug specific to my usecase)<br>
+
 #### IGModAudioChannel:Update(number time)
 Updates the channel for the given time in seconds<br>
 See: https://www.un4seen.com/doc/#bass/BASS_ChannelUpdate.html<br>
