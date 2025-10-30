@@ -418,7 +418,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_EncodeToDisk)
 	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 
 	const char* pFileName = LUA->CheckString(2);
-	unsigned long nFlags = (unsigned long)LUA->CheckString(3);
+	unsigned long nFlags = (unsigned long)LUA->CheckNumber(3);
 	LUA->CheckType(4, GarrysMod::Lua::Type::Function);
 
 	LUA->Push(4);
@@ -493,7 +493,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_EncodeToDisk)
 	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 
 	const char* pFileName = LUA->CheckString(2);
-	unsigned long nFlags = (unsigned long)LUA->CheckString(3);
+	unsigned long nFlags = (unsigned long)LUA->CheckNumber(3);
 
 	/*BassEncoderCallback* pCallback = nullptr;
 	if (LUA->IsType(4, GarrysMod::Lua::Type::Function))
@@ -516,6 +516,19 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_EncodeToDisk)
 	LUA->PushBool(false);
 	LUA->PushString(pErrorMsg);
 	return 2;
+}
+
+LUA_FUNCTION_STATIC(IGModAudioChannel_MakeServer)
+{
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
+
+	const char* strPort = LUA->CheckString(2);
+	unsigned long nBuffer = (unsigned long)LUA->CheckString(3);
+	unsigned long nBurst = (unsigned long)LUA->CheckString(4);
+	unsigned long nFlags = (unsigned long)LUA->CheckString(5);
+
+	LUA->PushBool(channel->MakeServer(strPort, nBuffer, nBurst, nFlags));
+	return 1;
 }
 
 LUA_FUNCTION_STATIC(bass_PlayFile)
@@ -681,6 +694,7 @@ void CBassModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 		Util::AddFunc(pLua, IGModAudioChannel_Update, "Update");
 		Util::AddFunc(pLua, IGModAudioChannel_CreateLink, "CreateLink");
 		Util::AddFunc(pLua, IGModAudioChannel_DestroyLink, "DestroyLink");
+		Util::AddFunc(pLua, IGModAudioChannel_MakeServer, "MakeServer");
 	pLua->Pop(1);
 
 	Util::StartTable(pLua);

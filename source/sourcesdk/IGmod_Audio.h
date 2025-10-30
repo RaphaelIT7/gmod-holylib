@@ -102,6 +102,7 @@ public:
 	virtual void Update( unsigned long length ) = 0; // Updates the playback buffer
 	virtual bool CreateLink( IGModAudioChannel* pChannel, const char** pErrorOut ) = 0;
 	virtual bool DestroyLink( IGModAudioChannel* pChannel, const char** pErrorOut ) = 0;
+	virtual bool MakeServer(const char* port, unsigned long buffer, unsigned long burst, unsigned long flags) = 0;
 };
 
 class IAudioStreamEvent;

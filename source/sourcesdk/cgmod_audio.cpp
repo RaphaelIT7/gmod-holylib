@@ -245,6 +245,8 @@ static BASS_Encode_Start* func_BASS_Encode_Start;
 static BASS_Encode_StopEx* func_BASS_Encode_StopEx;
 static BASS_Encode_SetNotify* func_BASS_Encode_SetNotify;
 static BASS_Encode_IsActive* func_BASS_Encode_IsActive;
+static BASS_Encode_ServerInit* func_BASS_Encode_ServerInit;
+
 static BASS_Encode_MP3_Start* func_BASS_Encode_MP3_Start;
 static BASS_Encode_OGG_Start* func_BASS_Encode_OGG_Start;
 static BASS_Encode_OPUS_Start* func_BASS_Encode_OPUS_Start;
@@ -322,6 +324,7 @@ bool CGMod_Audio::Init(CreateInterfaceFn interfaceFactory)
 		GetBassEncFunc(BASS_Encode_StopEx, pBassEnc);
 		GetBassEncFunc(BASS_Encode_SetNotify, pBassEnc);
 		GetBassEncFunc(BASS_Encode_IsActive, pBassEnc);
+		GetBassEncFunc(BASS_Encode_ServerInit, pBassEnc);
 		g_bUsesBassEnc = true;
 	}
 
@@ -1013,6 +1016,15 @@ bool CGModAudioChannel::DestroyLink( IGModAudioChannel* pChannel, const char** p
 
 	*pErrorOut = BassErrorToString(BASS_ErrorGetCode());
 	return false;
+}
+
+bool CGModAudioChannel::MakeServer(const char* port, unsigned long buffer, unsigned long burst, unsigned long flags)
+{
+	HENCODE encoder = func_BASS_Encode_Start(m_pHandle, NULL, BASS_ENCODE_PCM | BASS_ENCODE_NOHEAD, NULL, NULL);
+	if (!encoder)
+		return false;
+
+	return func_BASS_Encode_ServerInit(encoder, port, buffer, burst, flags, NULL, NULL) != 0;
 }
 
 // What went wrong...

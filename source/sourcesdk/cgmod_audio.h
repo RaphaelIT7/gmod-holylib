@@ -123,6 +123,7 @@ public:
 	virtual void Update( unsigned long length );
 	virtual bool CreateLink( IGModAudioChannel* pChannel, const char** pErrorOut );
 	virtual bool DestroyLink( IGModAudioChannel* pChannel, const char** pErrorOut );
+	virtual bool MakeServer(const char* port, unsigned long buffer, unsigned long burst, unsigned long flags);
 public:
 	CGModAudioChannel( DWORD handle, bool isfile, const char* pFileName = NULL );
 	virtual ~CGModAudioChannel();
