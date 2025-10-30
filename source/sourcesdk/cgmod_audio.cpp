@@ -19,7 +19,6 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-#if ENABLE_UTTERLY_BROKEN_ENCODER_SHIT
 static IThreadPool* g_pGModAudioThreadPool = nullptr;
 static void OnGModAudioThreadsChange(IConVar* convar, const char* pOldValue, float flOldValue)
 {
@@ -32,7 +31,6 @@ static void OnGModAudioThreadsChange(IConVar* convar, const char* pOldValue, flo
 }
 
 static ConVar cgmod_audio_threads("holylib_bass_threads", "4", FCVAR_ARCHIVE, "The number of threads used for async functions", true, 1, true, 16, OnGModAudioThreadsChange);
-#endif
 
 // Set on interface init allowing us to possibly use newer features if available
 static bool g_bUsesLatestBass = false;
@@ -86,18 +84,31 @@ static const char* g_BASSErrorStrings[] = {
 	"BASS_ERROR_CODEC",
 	"BASS_ERROR_ENDED",
 	"BASS_ERROR_BUSY",
-	"BASS_ERROR_UNSTREAMABLE"
+	"BASS_ERROR_UNSTREAMABLE",
+	"BASS_ERROR_PROTOCOL",
+	"BASS_ERROR_DENIED",
+	"BASS_ERROR_FREEING",
+	"BASS_ERROR_CANCEL",
 };
 
 static const char* BassErrorToString(int errorCode) {
+	// BassEnc errors (can't add them normally since they use numbers like 2100)
+	if (errorCode == BASS_ERROR_ACM_CANCEL)
+		return "BASS_ERROR_ACM_CANCEL";
+
+	if (errorCode == BASS_ERROR_CAST_DENIED)
+		return "BASS_ERROR_CAST_DENIED";
+
+	if (errorCode == BASS_ERROR_SERVER_CERT)
+		return "BASS_ERROR_SERVER_CERT";
+
 	constexpr int totalErrors = sizeof(g_BASSErrorStrings) / sizeof(const char*);
 	if (0 > errorCode || errorCode >= totalErrors)
 		return "unknown error";
 
 	const char* error = g_BASSErrorStrings[errorCode];
-	if (error) {
+	if (error)
 		return error;
-	}
 
 	return "unknown error";
 }
@@ -356,10 +367,8 @@ bool CGMod_Audio::Init(CreateInterfaceFn interfaceFactory)
 		GetBassEncFunc(BASS_Encode_FLAC_Start, pBassEncFLAC);
 	}
 
-#if ENABLE_UTTERLY_BROKEN_ENCODER_SHIT
 	g_pGModAudioThreadPool = V_CreateThreadPool();
 	Util::StartThreadPool(g_pGModAudioThreadPool, cgmod_audio_threads.GetInt());
-#endif
 
 	return 1;
 }
@@ -385,24 +394,33 @@ unsigned long CGMod_Audio::GetVersion()
 
 void CGMod_Audio::Shutdown()
 {
-#if ENABLE_UTTERLY_BROKEN_ENCODER_SHIT
-	FinishAllAsync(NULL); // Finish all callbacks
+	Msg("CGMod_Audio::Shutdown start\n");
+	FinishAllAsync((void*)EncoderForceShutdownPointer); // Finish all callbacks
 
+	Msg("CGMod_Audio::Shutdown 2\n");
 	if (g_pGModAudioThreadPool)
 	{
+		Msg("CGMod_Audio::Shutdown %i\n", g_pGModAudioThreadPool->GetJobCount());
+		g_pGModAudioThreadPool->AbortAll();
+		g_pGModAudioThreadPool->Stop(1);
 		V_DestroyThreadPool(g_pGModAudioThreadPool);
 		g_pGModAudioThreadPool = nullptr;
 	}
-#endif
+
+	Msg("CGMod_Audio::Shutdown 3\n");
 
 	BASS_Free();
 	BASS_PluginFree(0);
+
+	Msg("CGMod_Audio::Shutdown 4\n");
 
 	for (void* pLoadedDLL : m_pLoadedDLLs)
 	{
 		DLL_UnloadModule((DLL_Handle)pLoadedDLL);
 	}
 	m_pLoadedDLLs.clear();
+
+	Msg("CGMod_Audio::Shutdown 5\n");
 }
 
 IBassAudioStream* CGMod_Audio::CreateAudioStream(IAudioStreamEvent* event)
@@ -439,11 +457,9 @@ void CGMod_Audio::Update(unsigned int updatePeriod)
 {
 	BASS_Update(updatePeriod);
 
-#if ENABLE_UTTERLY_BROKEN_ENCODER_SHIT
 	std::unordered_set<CGModAudioChannelEncoder*> pEncoders = m_pEncoders;
 	for (CGModAudioChannelEncoder* pEncoder : pEncoders)
 		pEncoder->HandleFinish(NULL);
-#endif
 }
 
 static Vector g_pLocalEarPosition;
@@ -607,17 +623,17 @@ bool CGMod_Audio::LoadPlugin(const char* pluginName, const char** pErrorOut)
 	return true;
 }
 
-#if ENABLE_UTTERLY_BROKEN_ENCODER_SHIT
 void CGMod_Audio::FinishAllAsync(void* nSignalData)
 {
+	Msg("FinishAllAsync start\n");
 	if (g_pGModAudioThreadPool)
 		g_pGModAudioThreadPool->ExecuteAll();
 
 	std::unordered_set<CGModAudioChannelEncoder*> pEncoders = m_pEncoders; // Copy to avoid issues with deletion while iterating
 	for (CGModAudioChannelEncoder* pEncoder : pEncoders)
 		pEncoder->HandleFinish(nSignalData); // Freed inside
+	Msg("FinishAllAsync done\n");
 }
-#endif
 
 // We gotta load some DLLs first as bass won't load shit itself when using BASS_PluginLoad >:(
 bool CGMod_Audio::LoadDLL(const char* pDLLName, void** pDLLHandle)
@@ -964,32 +980,22 @@ void CGModAudioChannel::Restart()
 	BASS_ChannelPlay(m_pHandle, true);
 }
 
-#if ENABLE_UTTERLY_BROKEN_ENCODER_SHIT
 IGModAudioChannelEncoder* CGModAudioChannel::CreateEncoder(
 	const char* pFileName, unsigned long nFlags,
 	IGModEncoderCallback* pCallback, const char** pErrorOut
 )
 {
+	*pErrorOut = NULL;
 	CGModAudioChannelEncoder* pEncoder = new CGModAudioChannelEncoder(m_pHandle, pFileName, pCallback);
-	pEncoder->InitEncoder(nFlags);
-	Msg("Starting test decode");
-	while (true) // Based off bassenc conver.c example
-	{
-		if (!func_BASS_Encode_IsActive(pEncoder->m_pEncoder)) {
-			printf("Error: The encoder died!");
-			break;
-		}
+	if (pEncoder->GetLastError(pErrorOut))
+		return NULL;
 
-		char buffer[1 << 16];
-		if (BASS_ChannelGetData(m_pHandle, buffer, sizeof(buffer)) == (unsigned long)-1)
-			break;
-	}
-	func_BASS_Encode_StopEx(pEncoder->m_pEncoder, true);
-	Msg("Finished test decode");
+	pEncoder->InitEncoder(nFlags);
+	if (pEncoder->GetLastError(pErrorOut))
+		return NULL;
 
 	return pEncoder;
 }
-#endif
 
 void CGModAudioChannel::Update( unsigned long nLength )
 {
@@ -1018,18 +1024,27 @@ bool CGModAudioChannel::DestroyLink( IGModAudioChannel* pChannel, const char** p
 	return false;
 }
 
-bool CGModAudioChannel::MakeServer(const char* port, unsigned long buffer, unsigned long burst, unsigned long flags)
+bool CGModAudioChannel::MakeServer( const char* port, unsigned long buffer, unsigned long burst, unsigned long flags, const char** pErrorOut )
 {
+	*pErrorOut = NULL;
 	HENCODE encoder = func_BASS_Encode_Start(m_pHandle, NULL, BASS_ENCODE_PCM | BASS_ENCODE_NOHEAD, NULL, NULL);
 	if (!encoder)
+	{
+		*pErrorOut = BassErrorToString(BASS_ErrorGetCode());
 		return false;
+	}
 
-	return func_BASS_Encode_ServerInit(encoder, port, buffer, burst, flags, NULL, NULL) != 0;
+	if (func_BASS_Encode_ServerInit(encoder, port, buffer, burst, flags, NULL, NULL) == 0)
+	{
+		*pErrorOut = BassErrorToString(BASS_ErrorGetCode());
+		return false;
+	}
+
+	return true;
 }
 
 // What went wrong...
 // I don't know why but BASS just shits itself, like when ProcessChannel gets called it does not work at all.
-#if ENABLE_UTTERLY_BROKEN_ENCODER_SHIT
 CGModAudioChannelEncoder::CGModAudioChannelEncoder(DWORD pChannel, const char* pFileName, IGModEncoderCallback* pCallback)
 {
 	m_pCallback = pCallback;
@@ -1077,7 +1092,6 @@ CGModAudioChannelEncoder::~CGModAudioChannelEncoder()
 		delete m_pCallback;
 		m_pCallback = nullptr;
 	}
-	Msg("Deleted ourselves!\n");
 }
 
 static inline bool IsDecodeChannel(DWORD handle)
@@ -1116,12 +1130,10 @@ void CGModAudioChannelEncoder::Stop(bool bProcessQueue)
 
 void CGModAudioChannelEncoder::ProcessChannel(CGModAudioChannelEncoder* pEncoder)
 {
-	while (true) // Based off bassenc conver.c example
+	while (true) // Based off bassenc convert.c example
 	{
-		if (!func_BASS_Encode_IsActive(pEncoder->m_pEncoder)) {
-			printf("Error: The encoder died!");
+		if (!func_BASS_Encode_IsActive(pEncoder->m_pEncoder))
 			break;
-		}
 
 		char buffer[1 << 16];
 		if (BASS_ChannelGetData(pEncoder->m_pChannel, buffer, sizeof(buffer)) == (unsigned long)-1)
@@ -1150,22 +1162,22 @@ void CGModAudioChannelEncoder::InitEncoder(unsigned long nEncoderFlags)
 
 	if (fname.size() >= 4 && fname.substr(fname.size() - 4) == ".wav") {
 		BASS_CheckFuncForPlugin(func_BASS_Encode_Start, "BASSENC")
-		m_pEncoder = func_BASS_Encode_Start(m_pChannel, nullptr, BASS_ENCODE_PCM | nEncoderFlags, EncoderProcessCallback, m_pFileHandle);
+		m_pEncoder = func_BASS_Encode_Start(m_pChannel, nullptr, BASS_ENCODE_PCM | nEncoderFlags, EncoderProcessCallback, this);
 	} else if (fname.size() >= 5 && fname.substr(fname.size() - 5) == ".aiff") {
 		BASS_CheckFuncForPlugin(func_BASS_Encode_Start, "BASSENC")
-		m_pEncoder = func_BASS_Encode_Start(m_pChannel, nullptr, BASS_ENCODE_PCM | BASS_ENCODE_AIFF | nEncoderFlags, EncoderProcessCallback, m_pFileHandle);
+		m_pEncoder = func_BASS_Encode_Start(m_pChannel, nullptr, BASS_ENCODE_PCM | BASS_ENCODE_AIFF | nEncoderFlags, EncoderProcessCallback, this);
 	} else if (fname.size() >= 4 && fname.substr(fname.size() - 4) == ".mp3") {
 		BASS_CheckFuncForPlugin(func_BASS_Encode_MP3_Start, "BASSENC_MP3")
-		m_pEncoder = func_BASS_Encode_MP3_Start(m_pChannel, nullptr, nEncoderFlags, EncoderProcessCallback2, m_pFileHandle);
+		m_pEncoder = func_BASS_Encode_MP3_Start(m_pChannel, nullptr, nEncoderFlags, EncoderProcessCallback, this);
 	} else if (fname.size() >= 4 && fname.substr(fname.size() - 4) == ".ogg") {
 		BASS_CheckFuncForPlugin(func_BASS_Encode_OGG_Start, "BASSENC_OGG")
-		m_pEncoder = func_BASS_Encode_OGG_Start(m_pChannel, nullptr, nEncoderFlags, EncoderProcessCallback, m_pFileHandle);
+		m_pEncoder = func_BASS_Encode_OGG_Start(m_pChannel, nullptr, nEncoderFlags, EncoderProcessCallback, this);
 	} else if (fname.size() >= 5 && fname.substr(fname.size() - 5) == ".opus") {
 		BASS_CheckFuncForPlugin(func_BASS_Encode_OPUS_Start, "BASSENC_OPUS")
-		m_pEncoder = func_BASS_Encode_OPUS_Start(m_pChannel, nullptr, nEncoderFlags, EncoderProcessCallback, m_pFileHandle);
+		m_pEncoder = func_BASS_Encode_OPUS_Start(m_pChannel, nullptr, nEncoderFlags, EncoderProcessCallback, this);
 	} else if (fname.size() >= 5 && fname.substr(fname.size() - 5) == ".flac") {
 		BASS_CheckFuncForPlugin(func_BASS_Encode_FLAC_Start, "BASSENC_FLAC")
-		m_pEncoder = func_BASS_Encode_FLAC_Start(m_pChannel, nullptr, nEncoderFlags, EncoderProcessCallback2, m_pFileHandle);
+		m_pEncoder = func_BASS_Encode_FLAC_Start(m_pChannel, nullptr, nEncoderFlags, EncoderProcessCallback, this);
 	} else {
 		m_strLastError = "Unknown encoder?";
 		return;
@@ -1184,10 +1196,9 @@ void CGModAudioChannelEncoder::InitEncoder(unsigned long nEncoderFlags)
 
 void CGModAudioChannelEncoder::HandleFinish(void* nSignalData)
 {
-	if (m_nStatus != GModEncoderStatus::FINISHED && (!m_pCallback || !m_pCallback->ShouldFinish(this, nSignalData)))
+	if (nSignalData == (void*)EncoderForceShutdownPointer || (m_nStatus != GModEncoderStatus::FINISHED && (!m_pCallback || !m_pCallback->ShouldForceFinish(this, nSignalData))))
 		return; // Not yet finished
 
-	Msg("HandleFinish (%s, %i)\n", m_strFileName.c_str(), m_nStatus);
 	if (m_pCallback)
 		m_pCallback->OnFinish(this, m_nStatus);
 
@@ -1196,23 +1207,21 @@ void CGModAudioChannelEncoder::HandleFinish(void* nSignalData)
 
 void CGModAudioChannelEncoder::WriteToFile(const void* pBuffer, unsigned long nLength)
 {
-	Msg("Writing to file %p %lu %p\n", pBuffer, nLength, m_pFileHandle);
 	g_pFullFileSystem->Write(pBuffer, nLength, (FileHandle_t)m_pFileHandle);
 }
 
 void CALLBACK CGModAudioChannelEncoder::EncoderProcessCallback(HENCODE handle, DWORD channel, const void* buffer, DWORD length, void* user)
 {
-	g_pFullFileSystem->Write(buffer, length, (FileHandle_t)user);
+	((CGModAudioChannelEncoder*)user)->WriteToFile(buffer, length);
 }
 
-void CALLBACK CGModAudioChannelEncoder::EncoderProcessCallback2(HENCODE handle, DWORD channel, const void* buffer, DWORD length, QWORD offset, void* user)
+void CALLBACK CGModAudioChannelEncoder::EncoderProcessCallback(HENCODE handle, DWORD channel, const void* buffer, DWORD length, QWORD offset, void* user)
 {
-	g_pFullFileSystem->Write(buffer, length, (FileHandle_t)user);
+	((CGModAudioChannelEncoder*)user)->WriteToFile(buffer, length);
 }
 
 void CGModAudioChannelEncoder::OnEncoderFreed()
 {
-	Msg("OnEncoderFreed (%s)\n", m_strFileName.c_str());
 	m_pEncoder = NULL;
 	
 	if (m_pFileHandle)
@@ -1229,7 +1238,6 @@ void CGModAudioChannelEncoder::OnEncoderFreed()
 
 void CGModAudioChannelEncoder::OnEncoderDied()
 {
-	Msg("OnEncoderDied (%s)\n", m_strFileName.c_str());
 	m_nStatus = GModEncoderStatus::DIED;
 	Stop(false); // Should free the channel triggering OnDecoderFreed
 }
@@ -1241,141 +1249,4 @@ void CALLBACK CGModAudioChannelEncoder::EncoderFreedCallback(HENCODE handle, DWO
 	} else if (status == BASS_ENCODE_NOTIFY_ENCODER) {
 		((CGModAudioChannelEncoder*)user)->OnEncoderDied();
 	}
-}
-#endif
-
-void CALLBACK EncoderProcessCallback(HENCODE handle, DWORD channel, const void* buffer, DWORD length, void* user)
-{
-	g_pFullFileSystem->Write(buffer, length, (FileHandle_t)user);
-}
-
-void CALLBACK EncoderProcessCallback(HENCODE handle, DWORD channel, const void* buffer, DWORD length, QWORD offset, void* user)
-{
-	g_pFullFileSystem->Write(buffer, length, (FileHandle_t)user);
-}
-
-void CALLBACK EncodeNotifyProcFreeFileHandle(HENCODE handle, DWORD status, void *user)
-{
-	if (status != BASS_ENCODE_NOTIFY_ENCODER && status != BASS_ENCODE_NOTIFY_FREE)
-		return;
-
-	g_pFullFileSystem->Close((FileHandle_t)user);
-	Msg("Freed file handle of decoder :D\n");
-}
-
-#define BASS_CheckFuncForPlugin2(func, plugin) \
-if (!func) { \
-	m_strLastError = "Missing plugin " plugin; \
-	return NULL; \
-}
-
-static HENCODE GetBassEncoderFromFileName(DWORD m_pChannel, const char* pFileName, unsigned long nEncoderFlags, FileHandle_t pHandle, const char** pErrorOut)
-{
-	FileHandle_t m_pFileHandle = g_pFullFileSystem->Open(pFileName, "wb", "DATA");
-	if (!m_pFileHandle) {
-		*pErrorOut = BassErrorToString(BASS_ERROR_FILEOPEN);
-		return NULL;
-	}
-
-	std::string fname(pFileName);
-	std::transform(fname.begin(), fname.end(), fname.begin(), ::tolower);
-
-	std::string m_strLastError = "";
-	HENCODE m_pEncoder;
-	if (fname.size() >= 4 && fname.substr(fname.size() - 4) == ".wav") {
-		BASS_CheckFuncForPlugin2(func_BASS_Encode_Start, "BASSENC")
-		m_pEncoder = func_BASS_Encode_Start(m_pChannel, nullptr, BASS_ENCODE_PCM | nEncoderFlags, EncoderProcessCallback, m_pFileHandle);
-	} else if (fname.size() >= 5 && fname.substr(fname.size() - 5) == ".aiff") {
-		BASS_CheckFuncForPlugin2(func_BASS_Encode_Start, "BASSENC")
-		m_pEncoder = func_BASS_Encode_Start(m_pChannel, nullptr, BASS_ENCODE_PCM | BASS_ENCODE_AIFF | nEncoderFlags, EncoderProcessCallback, m_pFileHandle);
-	} else if (fname.size() >= 4 && fname.substr(fname.size() - 4) == ".mp3") {
-		BASS_CheckFuncForPlugin2(func_BASS_Encode_MP3_Start, "BASSENC_MP3")
-		m_pEncoder = func_BASS_Encode_MP3_Start(m_pChannel, nullptr, nEncoderFlags, EncoderProcessCallback, m_pFileHandle);
-	} else if (fname.size() >= 4 && fname.substr(fname.size() - 4) == ".ogg") {
-		BASS_CheckFuncForPlugin2(func_BASS_Encode_OGG_Start, "BASSENC_OGG")
-		m_pEncoder = func_BASS_Encode_OGG_Start(m_pChannel, nullptr, nEncoderFlags, EncoderProcessCallback, m_pFileHandle);
-	} else if (fname.size() >= 5 && fname.substr(fname.size() - 5) == ".opus") {
-		BASS_CheckFuncForPlugin2(func_BASS_Encode_OPUS_Start, "BASSENC_OPUS")
-		m_pEncoder = func_BASS_Encode_OPUS_Start(m_pChannel, nullptr, nEncoderFlags, EncoderProcessCallback, m_pFileHandle);
-	} else if (fname.size() >= 5 && fname.substr(fname.size() - 5) == ".flac") {
-		BASS_CheckFuncForPlugin2(func_BASS_Encode_FLAC_Start, "BASSENC_FLAC")
-		m_pEncoder = func_BASS_Encode_FLAC_Start(m_pChannel, nullptr, nEncoderFlags, EncoderProcessCallback, m_pFileHandle);
-	} else {
-		m_strLastError = "Unknown encoder?";
-		return NULL;
-	}
-
-	if (m_strLastError.size() > 0)
-	{
-		*pErrorOut = m_strLastError.c_str();
-		return NULL;
-	}
-
-	if (!m_pEncoder)
-	{
-		*pErrorOut = BassErrorToString(BASS_ErrorGetCode());
-		return NULL;
-	}
-
-	func_BASS_Encode_SetNotify(m_pEncoder, EncodeNotifyProcFreeFileHandle, m_pFileHandle);
-	return m_pEncoder;
-}
-
-bool CGModAudioChannel::IsDecode()
-{
-	BASS_CHANNELINFO info;
-	BASS_ChannelGetInfo(m_pHandle, &info);
-
-	return (info.flags & BASS_STREAM_DECODE) == BASS_STREAM_DECODE;
-}
-
-struct EncoderTask
-{
-	HENCODE pEncoder;
-	DWORD pChannel;
-};
-
-static void ProcessEncoder(EncoderTask*& pTask)
-{
-	
-	delete pTask;
-}
-
-const char* CGModAudioChannel::EncodeToDisk(const char* pFileName, unsigned long nFlags)
-{
-	if (!IsDecode())
-		return "Not a decode channel! (Add decode as a flag when creating the channel!)";
-
-	if (!func_BASS_Encode_StopEx)
-		return "Missing plugin BASSENC";
-
-	FileHandle_t pHandle = g_pFullFileSystem->Open(pFileName, "wb", "DATA");
-	if (!pHandle)
-		return BassErrorToString(BASS_ERROR_FILEOPEN);
-
-	const char* pErrorCode;
-	HENCODE encoder = GetBassEncoderFromFileName(m_pHandle, pFileName, nFlags, pHandle, &pErrorCode);
-	if (!encoder) {
-		g_pFullFileSystem->Close(pHandle);
-		if (pErrorCode) // If pErrorCode is set, its one of our errors
-			return pErrorCode;
-
-		return BassErrorToString(BASS_ErrorGetCode());
-	}
-
-	func_BASS_Encode_SetNotify(encoder, EncodeNotifyProcFreeFileHandle, pHandle);
-
-	while (true) // Based off bassenc convert.c example
-	{
-		if (!func_BASS_Encode_IsActive(encoder))
-			break;
-
-		char buffer[1 << 16];
-		if (BASS_ChannelGetData(m_pHandle, buffer, sizeof(buffer)) == (unsigned long)-1)
-			break;
-	}
-
-	func_BASS_Encode_StopEx(encoder, true);
-	
-	return NULL;
 }

@@ -35,7 +35,7 @@ private:
 	HSTREAM m_hStream;
 };
 
-#if ENABLE_UTTERLY_BROKEN_ENCODER_SHIT
+constexpr unsigned int EncoderForceShutdownPointer = 0x1; // Pointer passed to HandleFinish when a forced shutdown for all is done
 class CGModAudioChannel;
 class CGModAudioChannelEncoder : public IGModAudioChannelEncoder
 {
@@ -62,7 +62,7 @@ private:
 	// Callbacks
 public:
 	static void CALLBACK EncoderProcessCallback(HENCODE handle, DWORD channel, const void *buffer, DWORD length, void *user);
-	static void CALLBACK EncoderProcessCallback2(HENCODE handle, DWORD channel, const void *buffer, DWORD length, QWORD offset, void *user); // MP3 & FLAC need this one
+	static void CALLBACK EncoderProcessCallback(HENCODE handle, DWORD channel, const void *buffer, DWORD length, QWORD offset, void *user); // MP3 & FLAC need this one
 	static void CALLBACK EncoderFreedCallback(HENCODE handle, DWORD status, void *user); // Also calls OnDecoderDied 
 
 	HENCODE m_pEncoder;
@@ -73,7 +73,6 @@ public:
 	GModEncoderStatus m_nStatus;
 	IGModEncoderCallback* m_pCallback;
 };
-#endif
 
 class CGModAudioChannel : public IGModAudioChannel
 {
@@ -116,14 +115,11 @@ public:
 	virtual bool Get3DEnabled();
 	virtual void Restart();
 	// HolyLib specific
-	virtual const char* EncodeToDisk( const char* pFileName, unsigned long nFlags);
-#if ENABLE_UTTERLY_BROKEN_ENCODER_SHIT
 	virtual IGModAudioChannelEncoder* CreateEncoder( const char* pFileName, unsigned long nFlags, IGModEncoderCallback* pCallback, const char** pErrorOut );
-#endif
 	virtual void Update( unsigned long length );
 	virtual bool CreateLink( IGModAudioChannel* pChannel, const char** pErrorOut );
 	virtual bool DestroyLink( IGModAudioChannel* pChannel, const char** pErrorOut );
-	virtual bool MakeServer(const char* port, unsigned long buffer, unsigned long burst, unsigned long flags);
+	virtual bool MakeServer( const char* port, unsigned long buffer, unsigned long burst, unsigned long flags, const char** pErrorOut );
 public:
 	CGModAudioChannel( DWORD handle, bool isfile, const char* pFileName = NULL );
 	virtual ~CGModAudioChannel();
@@ -154,7 +150,6 @@ public:
 	virtual unsigned long GetVersion();
 	virtual bool LoadPlugin(const char* pluginName, const char** pErrorOut);
 
-#if ENABLE_UTTERLY_BROKEN_ENCODER_SHIT
 	virtual void FinishAllAsync(void* nSignalData);
 
 public: // Non virtual holylib functions
@@ -167,16 +162,13 @@ public: // Non virtual holylib functions
 		if (it != m_pEncoders.end())
 			m_pEncoders.erase(it);
 	}
-#endif
 
 private:
 	bool LoadDLL(const char* pDLLName, void** pDLLHandle);
 
 	std::unordered_map<std::string, HPLUGIN> m_pLoadedPlugins;
 	std::vector<void*> m_pLoadedDLLs;
-#if ENABLE_UTTERLY_BROKEN_ENCODER_SHIT
 	std::unordered_set<CGModAudioChannelEncoder*> m_pEncoders;
-#endif
 };
 
 // extern const char* g_BASSErrorStrings[];

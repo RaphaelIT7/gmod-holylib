@@ -23,7 +23,6 @@ enum GModEncoderStatus {
 	DIED = 3,
 };
 
-#if ENABLE_UTTERLY_BROKEN_ENCODER_SHIT
 // HolyLib specific
 // NOTE: Always call GetLastError after any function call to check for errors!
 class IGModAudioChannelEncoder
@@ -40,7 +39,6 @@ public:
 	// Wasn't exposed since CreateEncoder already calls it so it has no real use
 	// virtual void InitEncoder(unsigned long nEncoderFlags) = 0;
 };
-#endif
 
 class IGModAudioChannelEncoder;
 class IGModEncoderCallback // Callback struct
@@ -95,14 +93,11 @@ public:
 	// Uses the "DATA" path for writes! Returns NULL on success, else the error message
 	// Does NOT require the channel to be a decoder channel!
 	// Call IGModAudioChannelEncoder->GetLastError and check if its even valid! (Else it will be invalidated/freed on the next tick)
-	virtual const char* EncodeToDisk( const char* pFileName, unsigned long nFlags ) = 0;
-#if ENABLE_UTTERLY_BROKEN_ENCODER_SHIT
 	virtual IGModAudioChannelEncoder* CreateEncoder( const char* pFileName, unsigned long nFlags, IGModEncoderCallback* pCallback, const char** pErrorOut ) = 0;
-#endif
 	virtual void Update( unsigned long length ) = 0; // Updates the playback buffer
 	virtual bool CreateLink( IGModAudioChannel* pChannel, const char** pErrorOut ) = 0;
 	virtual bool DestroyLink( IGModAudioChannel* pChannel, const char** pErrorOut ) = 0;
-	virtual bool MakeServer(const char* port, unsigned long buffer, unsigned long burst, unsigned long flags) = 0;
+	virtual bool MakeServer( const char* port, unsigned long buffer, unsigned long burst, unsigned long flags, const char** pErrorOut ) = 0;
 };
 
 class IAudioStreamEvent;
@@ -144,9 +139,7 @@ public:
 	// HolyLib specific ones
 	virtual unsigned long GetVersion() = 0; // Returns bass version
 	virtual bool LoadPlugin(const char* pluginName, const char** pErrorOut) = 0;
-#if ENABLE_UTTERLY_BROKEN_ENCODER_SHIT
 	virtual void FinishAllAsync(void* nSignalData) = 0; // Called on Lua shutdown to finish all callbacks/async tasks for that interface
-#endif
 };
 
 #undef CALLBACK // Solves another error with minwindef.h

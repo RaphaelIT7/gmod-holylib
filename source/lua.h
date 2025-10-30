@@ -151,6 +151,7 @@ namespace Lua
 		VProfCounter,
 		LuaInterface,
 		// WavAudioFile,
+		IGModAudioChannelEncoder,
 
 		_HOLYLIB_CORE_TEST = UCHAR_MAX-1,
 		TOTAL_TYPES = UCHAR_MAX,
@@ -713,7 +714,7 @@ inline LuaUserData* Get_##className##_Data(GarrysMod::Lua::ILuaInterface* LUA, i
 		if (bError) \
 			LUA->ThrowError(triedNull_##className.c_str()); \
 	\
-	if (!pVar || pVar->GetType() != luaType && pVar->GetType() != luaType2) \
+	if (!pVar || (pVar->GetType() != luaType && pVar->GetType() != luaType2)) \
 	{ \
 		if (bError) \
 			LUA->ThrowError(invalidType_##className.c_str()); \

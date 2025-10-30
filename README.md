@@ -3313,7 +3313,10 @@ Restarts the channel.<br>
 Computes the DFT of the sound channel.<br>
 What even is that.<br>
 
-#### IGModAudioChannel:EncodeToDisk(string fileName, number bassFlags, function callback, bool async = false)
+#### bool(success), string(errMsg - nil) IGModAudioChannel:EncodeToDisk(string fileName, number bassFlags, function callback, bool async = false)
+callback - `function(success, errMsg) end`<br>
+bassFlags - bitflags, see https://www.un4seen.com/doc/#bassenc/BASS_Encode_Start.html<br>
+
 Writes the channel into a file, the encoder internally used depends on the filename.<br>
 Valid encoders are:<br>
 - `.wav` (Requres `BASSENC` plugin)<br>
@@ -3326,11 +3329,6 @@ Valid encoders are:<br>
 > [!NOTE]
 > This function requires the `BASSENC` plugin to work at all!<br>
 > You can find all the plugins at https://www.un4seen.com/ drop them into the `bin/` folder besides `libbass.so`<br>
-
-> [!WARNING]
-> This function is a fucking gamble, I do not know why BASS decides this, though it behaves sometimes randomly.<br>
-> the current code for it seems to be somewhat stable, though any change like shifting it, adding arguments will cause issues<br>
-> until this is figured out this won't be changed in any way further (This could all point back to BASSENC itself having a bug specific to my usecase)<br>
 
 #### IGModAudioChannel:Update(number time)
 Updates the channel for the given time in seconds<br>
