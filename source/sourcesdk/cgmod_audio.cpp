@@ -1024,25 +1024,6 @@ bool CGModAudioChannel::DestroyLink( IGModAudioChannel* pChannel, const char** p
 	return false;
 }
 
-bool CGModAudioChannel::MakeServer( const char* port, unsigned long buffer, unsigned long burst, unsigned long flags, const char** pErrorOut )
-{
-	*pErrorOut = NULL;
-	HENCODE encoder = func_BASS_Encode_Start(m_pHandle, NULL, BASS_ENCODE_PCM | BASS_ENCODE_NOHEAD, NULL, NULL);
-	if (!encoder)
-	{
-		*pErrorOut = BassErrorToString(BASS_ErrorGetCode());
-		return false;
-	}
-
-	if (func_BASS_Encode_ServerInit(encoder, port, buffer, burst, flags, NULL, NULL) == 0)
-	{
-		*pErrorOut = BassErrorToString(BASS_ErrorGetCode());
-		return false;
-	}
-
-	return true;
-}
-
 // What went wrong...
 // I don't know why but BASS just shits itself, like when ProcessChannel gets called it does not work at all.
 CGModAudioChannelEncoder::CGModAudioChannelEncoder(DWORD pChannel, const char* pFileName, IGModEncoderCallback* pCallback)
@@ -1054,7 +1035,7 @@ CGModAudioChannelEncoder::CGModAudioChannelEncoder(DWORD pChannel, const char* p
 	m_nStatus = GModEncoderStatus::NONE;
 	m_strLastError = "";
 	m_pEncoder = NULL;
-	m_pFileHandle = NULL;
+	m_pFileHandle = NULL; // Can be NULL when given "" as a filename
 
 	g_CGMod_Audio.AddEncoder(this);
 
@@ -1080,9 +1061,7 @@ CGModAudioChannelEncoder::~CGModAudioChannelEncoder()
 	g_CGMod_Audio.RemoveEncoder(this);
 
 	if (m_pEncoder)
-	{
 		Stop(false); // Free encoder
-	}
 
 	// Invalidate pointers and such, fileHandle could still be valid
 	OnEncoderFreed();
@@ -1151,31 +1130,34 @@ if (!func) { \
 
 void CGModAudioChannelEncoder::InitEncoder(unsigned long nEncoderFlags)
 {
-	m_pFileHandle = g_pFullFileSystem->Open(m_strFileName.c_str(), "wb", "DATA");
-	if (!m_pFileHandle) {
-		m_strLastError = BassErrorToString(BASS_ERROR_FILEOPEN);
-		return;
+	if (m_strFileName.length() > 8)
+	{
+		m_pFileHandle = g_pFullFileSystem->Open(m_strFileName.c_str(), "wb", "DATA");
+		if (!m_pFileHandle) {
+			m_strLastError = BassErrorToString(BASS_ERROR_FILEOPEN);
+			return;
+		}
 	}
 
 	std::string fname(m_strFileName);
 	std::transform(fname.begin(), fname.end(), fname.begin(), ::tolower);
 
-	if (fname.size() >= 4 && fname.substr(fname.size() - 4) == ".wav") {
+	if (fname.size() >= 3 && fname.substr(fname.size() - 3) == "wav") {
 		BASS_CheckFuncForPlugin(func_BASS_Encode_Start, "BASSENC")
 		m_pEncoder = func_BASS_Encode_Start(m_pChannel, nullptr, BASS_ENCODE_PCM | nEncoderFlags, EncoderProcessCallback, this);
-	} else if (fname.size() >= 5 && fname.substr(fname.size() - 5) == ".aiff") {
+	} else if (fname.size() >= 4 && fname.substr(fname.size() - 4) == "aiff") {
 		BASS_CheckFuncForPlugin(func_BASS_Encode_Start, "BASSENC")
 		m_pEncoder = func_BASS_Encode_Start(m_pChannel, nullptr, BASS_ENCODE_PCM | BASS_ENCODE_AIFF | nEncoderFlags, EncoderProcessCallback, this);
-	} else if (fname.size() >= 4 && fname.substr(fname.size() - 4) == ".mp3") {
+	} else if (fname.size() >= 3 && fname.substr(fname.size() - 3) == "mp3") {
 		BASS_CheckFuncForPlugin(func_BASS_Encode_MP3_Start, "BASSENC_MP3")
 		m_pEncoder = func_BASS_Encode_MP3_Start(m_pChannel, nullptr, nEncoderFlags, EncoderProcessCallback, this);
-	} else if (fname.size() >= 4 && fname.substr(fname.size() - 4) == ".ogg") {
+	} else if (fname.size() >= 3 && fname.substr(fname.size() - 3) == "ogg") {
 		BASS_CheckFuncForPlugin(func_BASS_Encode_OGG_Start, "BASSENC_OGG")
 		m_pEncoder = func_BASS_Encode_OGG_Start(m_pChannel, nullptr, nEncoderFlags, EncoderProcessCallback, this);
-	} else if (fname.size() >= 5 && fname.substr(fname.size() - 5) == ".opus") {
+	} else if (fname.size() >= 4 && fname.substr(fname.size() - 4) == "opus") {
 		BASS_CheckFuncForPlugin(func_BASS_Encode_OPUS_Start, "BASSENC_OPUS")
 		m_pEncoder = func_BASS_Encode_OPUS_Start(m_pChannel, nullptr, nEncoderFlags, EncoderProcessCallback, this);
-	} else if (fname.size() >= 5 && fname.substr(fname.size() - 5) == ".flac") {
+	} else if (fname.size() >= 4 && fname.substr(fname.size() - 4) == "flac") {
 		BASS_CheckFuncForPlugin(func_BASS_Encode_FLAC_Start, "BASSENC_FLAC")
 		m_pEncoder = func_BASS_Encode_FLAC_Start(m_pChannel, nullptr, nEncoderFlags, EncoderProcessCallback, this);
 	} else {
@@ -1207,6 +1189,9 @@ void CGModAudioChannelEncoder::HandleFinish(void* nSignalData)
 
 void CGModAudioChannelEncoder::WriteToFile(const void* pBuffer, unsigned long nLength)
 {
+	if (!m_pFileHandle)
+		return;
+
 	g_pFullFileSystem->Write(pBuffer, nLength, (FileHandle_t)m_pFileHandle);
 }
 
@@ -1249,4 +1234,16 @@ void CALLBACK CGModAudioChannelEncoder::EncoderFreedCallback(HENCODE handle, DWO
 	} else if (status == BASS_ENCODE_NOTIFY_ENCODER) {
 		((CGModAudioChannelEncoder*)user)->OnEncoderDied();
 	}
+}
+
+bool CGModAudioChannelEncoder::MakeServer( const char* port, unsigned long buffer, unsigned long burst, unsigned long flags, const char** pErrorOut )
+{
+	*pErrorOut = NULL;
+	if (func_BASS_Encode_ServerInit(m_pEncoder, port, buffer, burst, flags, NULL, NULL) == 0)
+	{
+		*pErrorOut = BassErrorToString(BASS_ErrorGetCode());
+		return false;
+	}
+
+	return true;
 }

@@ -47,6 +47,7 @@ public:
 	// Returns true if there was an error, pErrorOut will either be filled or NULL
 	// If it returns true, it will also invalidate/free itself so the pointer becomes invalid!
 	virtual bool GetLastError(const char** pErrorOut);
+	virtual bool MakeServer( const char* port, unsigned long buffer, unsigned long burst, unsigned long flags, const char** pErrorOut );
 
 public: // Non virtual
 	CGModAudioChannelEncoder(DWORD pChannel, const char* pFileName, IGModEncoderCallback* pCallback );
@@ -119,7 +120,6 @@ public:
 	virtual void Update( unsigned long length );
 	virtual bool CreateLink( IGModAudioChannel* pChannel, const char** pErrorOut );
 	virtual bool DestroyLink( IGModAudioChannel* pChannel, const char** pErrorOut );
-	virtual bool MakeServer( const char* port, unsigned long buffer, unsigned long burst, unsigned long flags, const char** pErrorOut );
 public:
 	CGModAudioChannel( DWORD handle, bool isfile, const char* pFileName = NULL );
 	virtual ~CGModAudioChannel();

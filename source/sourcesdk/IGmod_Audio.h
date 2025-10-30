@@ -38,6 +38,8 @@ public:
 	virtual bool GetLastError(const char** pErrorOut) = 0;
 	// Wasn't exposed since CreateEncoder already calls it so it has no real use
 	// virtual void InitEncoder(unsigned long nEncoderFlags) = 0;
+
+	virtual bool MakeServer( const char* port, unsigned long buffer, unsigned long burst, unsigned long flags, const char** pErrorOut ) = 0;
 };
 
 class IGModAudioChannelEncoder;
@@ -97,7 +99,6 @@ public:
 	virtual void Update( unsigned long length ) = 0; // Updates the playback buffer
 	virtual bool CreateLink( IGModAudioChannel* pChannel, const char** pErrorOut ) = 0;
 	virtual bool DestroyLink( IGModAudioChannel* pChannel, const char** pErrorOut ) = 0;
-	virtual bool MakeServer( const char* port, unsigned long buffer, unsigned long burst, unsigned long flags, const char** pErrorOut ) = 0;
 };
 
 class IAudioStreamEvent;
