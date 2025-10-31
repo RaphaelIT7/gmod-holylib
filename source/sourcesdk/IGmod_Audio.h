@@ -54,6 +54,8 @@ public:
 	virtual void SetChannel( IGModAudioChannel* pChannel, const char** pErrorOut ) = 0;
 
 	virtual void WriteData(const void* pData, unsigned long nLength) = 0;
+
+	virtual const char* GetFileName() = 0;
 };
 
 class IGModAudioChannelEncoder;

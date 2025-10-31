@@ -1150,6 +1150,7 @@ if (!func) { \
 
 void CGModAudioChannelEncoder::InitEncoder(unsigned long nEncoderFlags)
 {
+	// Used so that an encoder can be created by passing "mp3" without needing it to be a valid file
 	if (m_strFileName.length() > 8)
 	{
 		m_pFileHandle = g_pFullFileSystem->Open(m_strFileName.c_str(), "wb", "DATA");

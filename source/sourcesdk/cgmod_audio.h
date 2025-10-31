@@ -57,6 +57,8 @@ public:
 
 	virtual void WriteData(const void* pData, unsigned long nLength);
 
+	virtual const char* GetFileName() { return m_strFileName.c_str(); };
+
 public: // Non virtual
 	CGModAudioChannelEncoder(DWORD pChannel, const char* pFileName, IGModEncoderCallback* pCallback );
 	void InitEncoder(unsigned long nEncoderFlags);

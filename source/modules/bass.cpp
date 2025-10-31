@@ -472,14 +472,24 @@ Default__gc(IGModAudioChannelEncoder,
 
 LUA_FUNCTION_STATIC(IGModAudioChannelEncoder__tostring)
 {
-	IGModAudioChannelEncoder* channel = Get_IGModAudioChannelEncoder(LUA, 1, false);
-	if (!channel)
+	IGModAudioChannelEncoder* encoder = Get_IGModAudioChannelEncoder(LUA, 1, false);
+	if (!encoder)
 	{
 		LUA->PushString("IGModAudioChannelEncoder [NULL]");
 		return 1;
 	}
 
-	LUA->PushString("IGModAudioChannelEncoder");
+	char szBuf[128] = {};
+	V_snprintf(szBuf, sizeof(szBuf), "IGModAudioChannelEncoder [%s]", encoder->GetFileName()); 
+	LUA->PushString(szBuf);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IGModAudioChannelEncoder_IsValid)
+{
+	IGModAudioChannelEncoder* encoder = Get_IGModAudioChannelEncoder(LUA, 1, false);
+
+	LUA->PushBool(encoder != nullptr);
 	return 1;
 }
 
@@ -735,14 +745,16 @@ void CBassModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 		return;
 
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::IGModAudioChannelEncoder, pLua->CreateMetaTable("IGModAudioChannelEncoder"));
-		// Util::AddFunc(pLua, IGModAudioChannelEncoder__tostring, "__tostring");
+		Util::AddFunc(pLua, IGModAudioChannelEncoder__tostring, "__tostring");
 		Util::AddFunc(pLua, IGModAudioChannelEncoder__gc, "__gc");
 		Util::AddFunc(pLua, IGModAudioChannelEncoder__index, "__index");
 		Util::AddFunc(pLua, IGModAudioChannelEncoder__newindex, "__newindex");
+		Util::AddFunc(pLua, IGModAudioChannelEncoder_IsValid, "IsValid");
 		Util::AddFunc(pLua, IGModAudioChannelEncoder_MakeServer, "MakeServer");
 		Util::AddFunc(pLua, IGModAudioChannelEncoder_SetPaused, "SetPaused");
 		Util::AddFunc(pLua, IGModAudioChannelEncoder_GetState, "GetState");
 		Util::AddFunc(pLua, IGModAudioChannelEncoder_SetChannel, "SetChannel");
+		Util::AddFunc(pLua, IGModAudioChannelEncoder_InsertVoiceData, "InsertVoiceData");
 	pLua->Pop(1);
 
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::IGModAudioChannel, pLua->CreateMetaTable("IGModAudioChannel"));
