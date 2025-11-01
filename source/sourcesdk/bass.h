@@ -1188,8 +1188,11 @@ BOOL BASSDEF(BASS_ChannelGetInfo)(DWORD handle, BASS_CHANNELINFO *info);
 const char *BASSDEF(BASS_ChannelGetTags)(DWORD handle, DWORD tags);
 DWORD BASSDEF(BASS_ChannelFlags)(DWORD handle, DWORD flags, DWORD mask);
 BOOL BASSDEF(BASS_ChannelLock)(DWORD handle, BOOL lock);
-// BOOL BASSDEF(BASS_ChannelRef)(DWORD handle, BOOL inc);
-// BOOL BASSDEF(BASS_ChannelFree)(DWORD handle);
+// newer bass functions
+// I want to use them sooo bad :sob:
+// but that would mean people have to update bass too which would conflict with steamcmd a lot..
+typedef BOOL BASSDEF(BASS_ChannelRef)(DWORD handle, BOOL inc);
+typedef BOOL BASSDEF(BASS_ChannelFree)(DWORD handle);
 BOOL BASSDEF(BASS_ChannelPlay)(DWORD handle, BOOL restart);
 // BOOL BASSDEF(BASS_ChannelStart)(DWORD handle);
 BOOL BASSDEF(BASS_ChannelStop)(DWORD handle);

@@ -356,7 +356,7 @@ void CServerPlugin::OnEdictFreed(const edict_t *edict)
 	g_pModuleManager.OnEdictFreed(edict);
 }
 
-class HolyLib_PluginThink : GarrysMod::Lua::ILuaThreadedCall
+class HolyLib_PluginThink : public GarrysMod::Lua::ILuaThreadedCall
 {
 public:
 	void SetLua(GarrysMod::Lua::ILuaInterface* pLua)
@@ -432,7 +432,7 @@ GMOD_MODULE_OPEN()
 	pPluginThink.SetLua(LUA);
 
 	// Add our Think hook.
-	LUA->AddThreadedCall((GarrysMod::Lua::ILuaThreadedCall*)&pPluginThink);
+	LUA->AddThreadedCall(&pPluginThink);
 
 	return 0;
 }
