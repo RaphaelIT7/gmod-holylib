@@ -1119,6 +1119,38 @@ bool CGModAudioChannel::DestroyLink( IGModAudioChannel* pChannel, const char** p
 	return false;
 }
 
+void CGModAudioChannel::SetAttribute(unsigned long nAttribute, float nValue, const char** pErrorOut)
+{
+	*pErrorOut = NULL;
+	if (!BASS_ChannelSetAttribute(m_pHandle, nAttribute, nValue))
+		*pErrorOut = BassErrorToString(BASS_ErrorGetCode());
+}
+
+void CGModAudioChannel::SetSlideAttribute(unsigned long nAttribute, float nValue, unsigned long nTime, const char** pErrorOut)
+{
+	*pErrorOut = NULL;
+	if (!BASS_ChannelSlideAttribute(m_pHandle, nAttribute, nValue, nTime))
+		*pErrorOut = BassErrorToString(BASS_ErrorGetCode());
+}
+
+float CGModAudioChannel::GetAttribute(unsigned long nAttribute, const char** pErrorOut)
+{
+	*pErrorOut = NULL;
+	float nRet = 0;
+	if (!BASS_ChannelGetAttribute(m_pHandle, nAttribute, &nRet))
+	{
+		*pErrorOut = BassErrorToString(BASS_ErrorGetCode());
+		return 0;
+	}
+
+	return nRet;
+}
+
+bool CGModAudioChannel::IsAttributeSliding(unsigned long nAttribute)
+{
+	return BASS_ChannelIsSliding(m_pHandle, nAttribute);
+}
+
 bool CGModAudioChannel::SetFX( const char* pFXName, unsigned long nType, int nPriority, void* pParams, const char** pErrorOut )
 {
 	*pErrorOut = NULL;

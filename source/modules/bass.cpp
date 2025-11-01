@@ -460,6 +460,68 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_DestroyLink)
 	return 2;
 }
 
+LUA_FUNCTION_STATIC(IGModAudioChannel_SetAttribute)
+{
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
+	unsigned long nAttribute = (unsigned long)LUA->CheckNumber(2);
+	float nValue = (float)LUA->CheckNumber(3);
+
+	const char* pError = NULL;
+	channel->SetAttribute(nAttribute, nValue, &pError);
+	LUA->PushBool(pError == NULL);
+	if (pError) {
+		LUA->PushString(pError);
+	} else {
+		LUA->PushNil();
+	}
+	return 2;
+}
+
+LUA_FUNCTION_STATIC(IGModAudioChannel_SetSlideAttribute)
+{
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
+	unsigned long nAttribute = (unsigned long)LUA->CheckNumber(2);
+	float nValue = (float)LUA->CheckNumber(3);
+	unsigned long nTime = (unsigned long)LUA->CheckNumber(4);
+
+	const char* pError = NULL;
+	channel->SetSlideAttribute(nAttribute, nValue, nTime, &pError);
+	LUA->PushBool(pError == NULL);
+	if (pError) {
+		LUA->PushString(pError);
+	} else {
+		LUA->PushNil();
+	}
+	return 2;
+}
+
+LUA_FUNCTION_STATIC(IGModAudioChannel_GetAttribute)
+{
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
+	unsigned long nAttribute = (unsigned long)LUA->CheckNumber(2);
+
+	const char* pError = NULL;
+	float nValue = channel->GetAttribute(nAttribute, &pError);
+	if (pError) {
+		LUA->PushNil();
+		LUA->PushString(pError);
+	} else {
+		LUA->PushNumber(nValue);
+		LUA->PushNil();
+	}
+	return 2;
+}
+
+LUA_FUNCTION_STATIC(IGModAudioChannel_IsAttributeSliding)
+{
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
+	unsigned long nAttribute = (unsigned long)LUA->CheckNumber(2);
+
+
+	LUA->PushBool(channel->IsAttributeSliding(nAttribute));
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(IGModAudioChannel_SetFX)
 {
 	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
@@ -1263,6 +1325,10 @@ void CBassModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 		Util::AddFunc(pLua, IGModAudioChannel_Update, "Update");
 		Util::AddFunc(pLua, IGModAudioChannel_CreateLink, "CreateLink");
 		Util::AddFunc(pLua, IGModAudioChannel_DestroyLink, "DestroyLink");
+		Util::AddFunc(pLua, IGModAudioChannel_SetAttribute, "SetAttribute");
+		Util::AddFunc(pLua, IGModAudioChannel_SetSlideAttribute, "SetSlideAttribute");
+		Util::AddFunc(pLua, IGModAudioChannel_GetAttribute, "GetAttribute");
+		Util::AddFunc(pLua, IGModAudioChannel_IsAttributeSliding, "IsAttributeSliding");
 
 		Util::AddFunc(pLua, IGModAudioChannel_SetFX, "SetFX");
 		Util::AddFunc(pLua, IGModAudioChannel_ResetFX, "ResetFX");
@@ -1344,7 +1410,32 @@ void CBassModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 		Util::AddValue(pLua, BASS_ENCODE_SERVER_SSL, "BASS_ENCODE_SERVER_SSL");
 		Util::AddValue(pLua, BASS_ENCODE_SERVER_SSLONLY, "BASS_ENCODE_SERVER_SSLONLY");
 
-		// ToDo: Check if we wanna expose CastInit & the BASS_ENCODE_CAST_ enums for BASS_Encode_CastInit
+		Util::AddValue(pLua, BASS_ENCODE_CAST_PUBLIC, "BASS_ENCODE_SERVER_SSLONLY");
+		Util::AddValue(pLua, BASS_ENCODE_CAST_PUT, "BASS_ENCODE_CAST_PUT");
+		Util::AddValue(pLua, BASS_ENCODE_CAST_SSL, "BASS_ENCODE_CAST_SSL");
+
+		Util::AddValue(pLua, BASS_ATTRIB_FREQ, "BASS_ATTRIB_FREQ");
+		Util::AddValue(pLua, BASS_ATTRIB_VOL, "BASS_ATTRIB_VOL");
+		Util::AddValue(pLua, BASS_ATTRIB_PAN, "BASS_ATTRIB_PAN");
+		Util::AddValue(pLua, BASS_ATTRIB_EAXMIX, "BASS_ATTRIB_EAXMIX");
+		Util::AddValue(pLua, BASS_ATTRIB_NOBUFFER, "BASS_ATTRIB_NOBUFFER");
+		Util::AddValue(pLua, BASS_ATTRIB_VBR, "BASS_ATTRIB_VBR");
+		Util::AddValue(pLua, BASS_ATTRIB_CPU, "BASS_ATTRIB_CPU");
+		Util::AddValue(pLua, BASS_ATTRIB_SRC, "BASS_ATTRIB_SRC");
+		Util::AddValue(pLua, BASS_ATTRIB_NET_RESUME, "BASS_ATTRIB_NET_RESUME");
+		Util::AddValue(pLua, BASS_ATTRIB_SCANINFO, "BASS_ATTRIB_SCANINFO");
+		Util::AddValue(pLua, BASS_ATTRIB_NORAMP, "BASS_ATTRIB_NORAMP");
+		Util::AddValue(pLua, BASS_ATTRIB_BITRATE, "BASS_ATTRIB_BITRATE");
+		Util::AddValue(pLua, BASS_ATTRIB_BUFFER, "BASS_ATTRIB_BUFFER");
+		Util::AddValue(pLua, BASS_ATTRIB_GRANULE, "BASS_ATTRIB_GRANULE");
+		Util::AddValue(pLua, BASS_ATTRIB_USER, "BASS_ATTRIB_USER");
+		Util::AddValue(pLua, BASS_ATTRIB_TAIL, "BASS_ATTRIB_TAIL");
+		Util::AddValue(pLua, BASS_ATTRIB_PUSH_LIMIT, "BASS_ATTRIB_PUSH_LIMIT");
+		Util::AddValue(pLua, BASS_ATTRIB_DOWNLOADPROC, "BASS_ATTRIB_DOWNLOADPROC");
+		Util::AddValue(pLua, BASS_ATTRIB_VOLDSP, "BASS_ATTRIB_VOLDSP");
+		Util::AddValue(pLua, BASS_ATTRIB_VOLDSP_PRIORITY, "BASS_ATTRIB_VOLDSP_PRIORITY");
+
+		Util::AddValue(pLua, BASS_SLIDE_LOG, "BASS_SLIDE_LOG");
 
 		Util::AddValue(pLua, BassFX::FX_CHORUS, "FX_CHORUS");
 		Util::AddValue(pLua, BassFX::FX_DISTORTION, "FX_DISTORTION");

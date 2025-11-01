@@ -164,6 +164,10 @@ public:
 	virtual void Update( unsigned long length );
 	virtual bool CreateLink( IGModAudioChannel* pChannel, const char** pErrorOut );
 	virtual bool DestroyLink( IGModAudioChannel* pChannel, const char** pErrorOut );
+	virtual void SetAttribute( unsigned long nAttribute, float nValue, const char** pErrorOut );
+	virtual void SetSlideAttribute( unsigned long nAttribute, float nValue, unsigned long nTime, const char** pErrorOut );
+	virtual float GetAttribute( unsigned long nAttribute, const char** pErrorOut );
+	virtual bool IsAttributeSliding( unsigned long nAttribute );
 	
 	// FX
 	virtual bool SetFX( const char* pFXName, unsigned long nType, int nPriority, void* pParams, const char** pErrorOut );

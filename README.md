@@ -3417,6 +3417,22 @@ See https://www.un4seen.com/doc/#bass/BASS_ChannelSetLink.html (argument order i
 Unlinks the other channel from this channel.<br>
 See https://www.un4seen.com/doc/#bass/BASS_ChannelRemoveLink.html (argument order is `this, otherChannel`)<br>
 
+#### bool(success), string(errMsg - nil) IGModAudioChannel:SetAttribute(number attribute, number value)
+Sets a channel attribute to the given value.<br>
+See https://www.un4seen.com/doc/#bass/BASS_ChannelSetAttribute.html (all `BASS_ATTRIB_` enums are exposed inside the `bass.` table)<br>
+
+#### bool(success), string(errMsg - nil) IGModAudioChannel:SetSlideAttribute(number attribute, number value, number time)
+Sets a channel attribute to the given value over a specific time.<br>
+See https://www.un4seen.com/doc/#bass/BASS_ChannelSlideAttribute.html (all `BASS_ATTRIB_` enums are exposed inside the `bass.` table)<br>
+
+#### number(value|nil on failure), string(errMsg - nil) IGModAudioChannel:SetAttribute(number attribute)
+Returns the channels attribute value.<br>
+See https://www.un4seen.com/doc/#bass/BASS_ChannelGetAttribute.html (all `BASS_ATTRIB_` enums are exposed inside the `bass.` table)<br>
+
+#### bool(sliding) IGModAudioChannel:SetAttribute(number attribute)
+Returns `true` if the given attribute is actively sliding to a value over time.<br>
+See https://www.un4seen.com/doc/#bass/BASS_ChannelIsSliding.html (all `BASS_ATTRIB_` enums are exposed inside the `bass.` table)<br>
+
 #### bool(success), string(errMsg - nil) IGModAudioChannel:SetFX(string fxName, number fxType, number priority, table fxParams)
 fxName - A unique name used for FX so that you can have multiple of the same fx type with unique names you assigned<br>
 
@@ -3431,13 +3447,13 @@ See https://www.un4seen.com/doc/#bass/BASS_FXReset.html<br>
 Removes the given FX from the channel<br>
 See https://www.un4seen.com/doc/#bass/BASS_FXReset.html<br>
 
-#### bool(success), string(errMsg) IGModAudioChannel:InsertVoiceData( VoiceData data )
+#### bool(success), string(errMsg - nil) IGModAudioChannel:InsertVoiceData( VoiceData data )
 Feeds the given voicedata into the channel.<br>
 
 > [!NOTE]
 > This function will throw an error if you call it on a non-push channel.
 
-#### bool(success), string(errMsg) IGModAudioChannel:FeedEmpty( number ms, number samplerate, number channels )
+#### bool(success), string(errMsg - nil) IGModAudioChannel:FeedEmpty( number ms, number samplerate, number channels )
 Feeds null data into the encoder for the given ms frame using the given samplerate and channels.<br>
 
 > [!NOTE]
@@ -3446,7 +3462,7 @@ Feeds null data into the encoder for the given ms frame using the given samplera
 > [!NOTE]
 > This function will throw an error if you call it on a non-push channel.
 
-#### bool(success), string(errMsg) IGModAudioChannel:FeedData( string data )
+#### bool(success), string(errMsg - nil) IGModAudioChannel:FeedData( string data )
 Feeds the given PCM data into the channel.<br>
 
 > [!NOTE]
@@ -3504,7 +3520,7 @@ Destorys the encoder.<br>
 #### bool IGModAudioChannelEncoder:IsValid()
 Returns `true` if the encoder is valid.<br>
 
-#### bool(success), string(errMsg) IGModAudioChannelEncoder:ServerInit(string port, nummber buffer, number burst, number flags)
+#### bool(success), string(errMsg - nil) IGModAudioChannelEncoder:ServerInit(string port, nummber buffer, number burst, number flags)
 Creates a BassEnc server where the encoder will sends its data to to send to clients who are connected to the port using `sound.PlayURL`<br>
 See: https://www.un4seen.com/doc/#bassenc/BASS_Encode_ServerInit.html<br>
 
@@ -3543,7 +3559,7 @@ Bind to https://www.un4seen.com/doc/#bassenc/BASS_Encode_SetPaused.html<br>
 Returns the state of the encoder<br>
 Binds to https://www.un4seen.com/doc/#bassenc/BASS_Encode_IsActive.html<br>
 
-#### bool(success), string(errMsg) IGModAudioChannelEncoder:SetChannel( IGModAudioChannel channel )
+#### bool(success), string(errMsg - nil) IGModAudioChannelEncoder:SetChannel( IGModAudioChannel channel )
 Moves this encoder to the given channel<br>
 Bind to https://www.un4seen.com/doc/#bassenc/BASS_Encode_SetChannel.html<br>
 
