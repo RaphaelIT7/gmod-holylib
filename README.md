@@ -2509,6 +2509,9 @@ Sets if the VoiceData is in proximity.<br>
 #### VoiceData VoiceData:CreateCopy()
 Creates a exact copy of the voice data.<br>
 
+#### VoiceData:Empty()
+Empties out the voice data.<br>
+
 ### VoiceStream
 VoiceStream is a userdata value that internally contains multiple VoiceData for specific ticks.<br>
 
