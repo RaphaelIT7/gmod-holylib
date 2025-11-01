@@ -15,6 +15,7 @@
 #include "bassenc_mp3.h"
 #include "bassenc_ogg.h"
 #include "bassenc_opus.h"
+#include "bassmix.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -257,6 +258,7 @@ static BASS_Encode_StopEx* func_BASS_Encode_StopEx;
 static BASS_Encode_SetNotify* func_BASS_Encode_SetNotify;
 static BASS_Encode_IsActive* func_BASS_Encode_IsActive;
 static BASS_Encode_ServerInit* func_BASS_Encode_ServerInit;
+static BASS_Encode_ServerKick* func_BASS_Encode_ServerKick;
 static BASS_Encode_SetPaused* func_BASS_Encode_SetPaused;
 static BASS_Encode_GetChannel* func_BASS_Encode_GetChannel;
 static BASS_Encode_SetChannel* func_BASS_Encode_SetChannel;
@@ -266,6 +268,13 @@ static BASS_Encode_MP3_Start* func_BASS_Encode_MP3_Start;
 static BASS_Encode_OGG_Start* func_BASS_Encode_OGG_Start;
 static BASS_Encode_OPUS_Start* func_BASS_Encode_OPUS_Start;
 static BASS_Encode_FLAC_Start* func_BASS_Encode_FLAC_Start;
+
+static BASS_Mixer_StreamCreate* func_BASS_Mixer_StreamCreate;
+static BASS_Mixer_StreamAddChannel* func_BASS_Mixer_StreamAddChannel;
+static BASS_Mixer_ChannelIsActive* func_BASS_Mixer_ChannelIsActive;
+static BASS_Mixer_ChannelRemove* func_BASS_Mixer_ChannelRemove;
+static BASS_Split_StreamCreate* func_BASS_Split_StreamCreate;
+static BASS_Split_StreamReset* func_BASS_Split_StreamReset;
 
 #define GetBassEncFunc(name, handle) \
 func_##name = (name*)DLL_GetAddress(handle, #name); \
@@ -340,6 +349,7 @@ bool CGMod_Audio::Init(CreateInterfaceFn interfaceFactory)
 		GetBassEncFunc(BASS_Encode_SetNotify, pBassEnc);
 		GetBassEncFunc(BASS_Encode_IsActive, pBassEnc);
 		GetBassEncFunc(BASS_Encode_ServerInit, pBassEnc);
+		GetBassEncFunc(BASS_Encode_ServerKick, pBassEnc);
 		GetBassEncFunc(BASS_Encode_SetPaused, pBassEnc);
 		GetBassEncFunc(BASS_Encode_GetChannel, pBassEnc);
 		GetBassEncFunc(BASS_Encode_SetChannel, pBassEnc);
@@ -375,6 +385,18 @@ bool CGMod_Audio::Init(CreateInterfaceFn interfaceFactory)
 		GetBassEncFunc(BASS_Encode_FLAC_Start, pBassEncFLAC);
 	}
 
+	DLL_Handle pBassMix;
+	if (LoadDLL("bassmix", (void**)&pBassMix))
+	{
+		Msg(PROJECT_NAME " - CGMod_Audio::Init found bassmix, loading functions :3\n");
+		GetBassEncFunc(BASS_Mixer_StreamCreate, pBassMix);
+		GetBassEncFunc(BASS_Mixer_StreamAddChannel, pBassMix);
+		GetBassEncFunc(BASS_Mixer_ChannelIsActive, pBassMix);
+		GetBassEncFunc(BASS_Mixer_ChannelRemove, pBassMix);
+		GetBassEncFunc(BASS_Split_StreamCreate, pBassMix);
+		GetBassEncFunc(BASS_Split_StreamReset, pBassMix);
+	}
+
 	g_pGModAudioThreadPool = V_CreateThreadPool();
 	Util::StartThreadPool(g_pGModAudioThreadPool, cgmod_audio_threads.GetInt());
 
@@ -402,25 +424,25 @@ unsigned long CGMod_Audio::GetVersion()
 
 void CGMod_Audio::Shutdown()
 {
-	Msg("CGMod_Audio::Shutdown start\n");
+	// Msg("CGMod_Audio::Shutdown start\n");
 	FinishAllAsync((void*)EncoderForceShutdownPointer); // Finish all callbacks
 
-	Msg("CGMod_Audio::Shutdown 2\n");
+	// Msg("CGMod_Audio::Shutdown 2\n");
 	if (g_pGModAudioThreadPool)
 	{
-		Msg("CGMod_Audio::Shutdown %i\n", g_pGModAudioThreadPool->GetJobCount());
-		g_pGModAudioThreadPool->AbortAll();
+		// Msg("CGMod_Audio::Shutdown %i\n", g_pGModAudioThreadPool->GetJobCount());
+		g_pGModAudioThreadPool->AbortAll(); // ToDo: Debug this and check why 64x shits itself when shutting down
 		g_pGModAudioThreadPool->Stop(1);
 		V_DestroyThreadPool(g_pGModAudioThreadPool);
 		g_pGModAudioThreadPool = nullptr;
 	}
 
-	Msg("CGMod_Audio::Shutdown 3\n");
+	// Msg("CGMod_Audio::Shutdown 3\n");
 
 	BASS_Free();
 	BASS_PluginFree(0);
 
-	Msg("CGMod_Audio::Shutdown 4\n");
+	// Msg("CGMod_Audio::Shutdown 4\n");
 
 	for (void* pLoadedDLL : m_pLoadedDLLs)
 	{
@@ -428,7 +450,7 @@ void CGMod_Audio::Shutdown()
 	}
 	m_pLoadedDLLs.clear();
 
-	Msg("CGMod_Audio::Shutdown 5\n");
+	// Msg("CGMod_Audio::Shutdown 5\n");
 }
 
 IBassAudioStream* CGMod_Audio::CreateAudioStream(IAudioStreamEvent* event)
@@ -645,6 +667,7 @@ void CGMod_Audio::FinishAllAsync(void* nSignalData)
 
 IGModAudioChannel* CGMod_Audio::CreateDummyChannel(int nSampleRate, int nChannels, unsigned long nFlags, const char** pErrorOut)
 {
+	*pErrorOut = NULL;
 	HSTREAM pStream = BASS_StreamCreate(nSampleRate, nChannels, nFlags, STREAMPROC_DUMMY, NULL);
 	if (!pStream)
 	{
@@ -653,6 +676,44 @@ IGModAudioChannel* CGMod_Audio::CreateDummyChannel(int nSampleRate, int nChannel
 	}
 
 	return new CGModAudioChannel(pStream, true, "DUMMY");
+}
+
+IGModAudioChannel* CGMod_Audio::CreateMixerChannel(int nSampleRate, int nChannels, unsigned long nFlags, const char** pErrorOut)
+{
+	*pErrorOut = NULL;
+	if (!func_BASS_Mixer_StreamCreate)
+	{
+		*pErrorOut = "Missing BassMix plugin to function!";
+		return NULL;
+	}
+
+	HSTREAM pStream = func_BASS_Mixer_StreamCreate(nSampleRate, nChannels, nFlags);
+	if (!pStream)
+	{
+		*pErrorOut = BassErrorToString(BASS_ErrorGetCode());
+		return NULL;
+	}
+
+	return new CGModAudioChannel(pStream, false, "MIXER", true);
+}
+
+IGModAudioChannel* CGMod_Audio::CreateSplitChannel(IGModAudioChannel* pChannel, unsigned long nFlags, const char** pErrorOut)
+{
+	*pErrorOut = NULL;
+	if (!func_BASS_Split_StreamCreate)
+	{
+		*pErrorOut = "Missing BassMix plugin to function!";
+		return NULL;
+	}
+
+	HSTREAM pStream = func_BASS_Split_StreamCreate(((CGModAudioChannel*)pChannel)->m_pHandle, nFlags, NULL);
+	if (!pStream)
+	{
+		*pErrorOut = BassErrorToString(BASS_ErrorGetCode());
+		return NULL;
+	}
+
+	return new CGModAudioChannel(pStream, false, "SPLIT", false, true);
 }
 
 // We gotta load some DLLs first as bass won't load shit itself when using BASS_PluginLoad >:(
@@ -678,13 +739,14 @@ bool CGMod_Audio::LoadDLL(const char* pDLLName, void** pDLLHandle)
 
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CGMod_Audio, IGMod_Audio, "IGModAudio001", g_CGMod_Audio);
 
-
-CGModAudioChannel::CGModAudioChannel( DWORD handle, bool isfile, const char* pFileName )
+CGModAudioChannel::CGModAudioChannel( DWORD handle, bool isfile, const char* pFileName, bool isMixer, bool isSplit )
 {
 	BASS_ChannelSet3DAttributes(handle, BASS_3DMODE_NORMAL, 200, 1000000000, 360, 360, 0);
 	BASS_Apply3D();
 	m_pHandle = handle;
 	m_bIsFile = isfile;
+	m_bIsMixer = isMixer;
+	m_bIsSplit = isSplit;
 
 	if (pFileName)
 		m_strFileName = pFileName;
@@ -864,7 +926,7 @@ void CGModAudioChannel::Get3DCone(int* innerAngle, int* outerAngle, float* outer
 
 int CGModAudioChannel::GetState()
 {
-	return BASS_ChannelIsActive(m_pHandle)-1; // Why -1? Because their all shifted by +1 so they do not match gmod's expected enums
+	return BASS_ChannelIsActive(m_pHandle);
 }
 
 void CGModAudioChannel::SetLooping(bool looping)
@@ -1042,6 +1104,111 @@ bool CGModAudioChannel::DestroyLink( IGModAudioChannel* pChannel, const char** p
 
 	*pErrorOut = BassErrorToString(BASS_ErrorGetCode());
 	return false;
+}
+
+bool CGModAudioChannel::SetFX( const char* pFXName, unsigned long nType, int nPriority, void* pParams, const char** pErrorOut )
+{
+	*pErrorOut = NULL;
+	auto it = m_pFX.find(pFXName);
+	if (it != m_pFX.end())
+	{
+		CGModAudioFX* pFX = it->second;
+		m_pFX.erase(it);
+		pFX->Free(this);
+	}
+
+	HFX pFX = BASS_ChannelSetFX( m_pHandle, nType, nPriority );
+	if (!pFX)
+	{
+		*pErrorOut = BassErrorToString(BASS_ErrorGetCode());
+		return false;
+	}
+
+	CGModAudioFX* pGModFX = new CGModAudioFX( pFX, true );
+	if (pParams && !pGModFX->SetParameters(pParams))
+	{
+		pGModFX->Free(this);
+		*pErrorOut = BassErrorToString(BASS_ErrorGetCode());
+		return false;
+	}
+
+	m_pFX[pFXName] = pGModFX;
+	return true;
+}
+
+void CGModAudioChannel::SetFXParameter( const char* pFXName, void* params, const char** pErrorOut )
+{
+	*pErrorOut = NULL;
+	auto it = m_pFX.find(pFXName);
+	if (it == m_pFX.end())
+	{
+		*pErrorOut = "FX was not found by given name";
+		return;
+	}
+
+	if (!it->second->SetParameters(params))
+	{
+		*pErrorOut = BassErrorToString(BASS_ErrorGetCode());
+		return;
+	}
+}
+
+bool CGModAudioChannel::FXReset( const char* pFXName )
+{
+	auto it = m_pFX.find(pFXName);
+	if (it == m_pFX.end())
+		return false;
+
+	it->second->Reset();
+}
+
+bool CGModAudioChannel::FXFree( const char* pFXName )
+{
+	auto it = m_pFX.find(pFXName);
+	if (it == m_pFX.end())
+		return false;
+
+	CGModAudioFX* pFX = it->second;
+	m_pFX.erase(it);
+	pFX->Free(this);
+}
+
+bool CGModAudioChannel::IsMixer()
+{
+	return m_bIsMixer;
+}
+
+void CGModAudioChannel::AddMixerChannel(IGModAudioChannel* pChannel, unsigned long nFlags, const char** pErrorOut)
+{
+	*pErrorOut = NULL;
+	if (func_BASS_Mixer_StreamAddChannel(m_pHandle, ((CGModAudioChannel*)pChannel)->m_pHandle, nFlags))
+		return;
+
+	*pErrorOut = BassErrorToString(BASS_ErrorGetCode());
+}
+
+void CGModAudioChannel::RemoveMixerChannel()
+{
+	if (func_BASS_Mixer_ChannelRemove)
+		func_BASS_Mixer_ChannelRemove(m_pHandle);
+}
+
+int CGModAudioChannel::GetMixerState()
+{
+	if (!func_BASS_Mixer_ChannelIsActive)
+		return BASS_ACTIVE_STOPPED;
+
+	return func_BASS_Mixer_ChannelIsActive(m_pHandle);
+}
+
+bool CGModAudioChannel::IsSplitter()
+{
+	return m_bIsSplit;
+}
+
+void CGModAudioChannel::ResetSplitStream()
+{
+	func_BASS_Split_StreamReset(m_pHandle);
 }
 
 // What went wrong...
@@ -1248,6 +1415,14 @@ void CGModAudioChannelEncoder::OnEncoderDied()
 	Stop(false); // Should free the channel triggering OnDecoderFreed
 }
 
+bool CGModAudioChannelEncoder::ServerCallback(bool connect, const char* client, char headers[1024])
+{
+	if (!m_pCallback)
+		return true;
+
+	return m_pCallback->OnServerClient(this, connect, client, headers);
+}
+
 void CALLBACK CGModAudioChannelEncoder::EncoderFreedCallback(HENCODE handle, DWORD status, void *user)
 {
 	if (status == BASS_ENCODE_NOTIFY_FREE) {
@@ -1257,16 +1432,26 @@ void CALLBACK CGModAudioChannelEncoder::EncoderFreedCallback(HENCODE handle, DWO
 	}
 }
 
+bool CGModAudioChannelEncoder::EncoderServerClientCallback(HENCODE handle, BOOL connect, const char* client, char headers[1024], void* user)
+{
+	return ((CGModAudioChannelEncoder*)user)->ServerCallback(connect, client, headers);
+}
+
 bool CGModAudioChannelEncoder::MakeServer( const char* port, unsigned long buffer, unsigned long burst, unsigned long flags, const char** pErrorOut )
 {
 	*pErrorOut = NULL;
-	if (func_BASS_Encode_ServerInit(m_pEncoder, port, buffer, burst, flags, NULL, NULL) == 0)
+	if (func_BASS_Encode_ServerInit(m_pEncoder, port, buffer, burst, flags, NULL, this) == 0)
 	{
 		*pErrorOut = BassErrorToString(BASS_ErrorGetCode());
 		return false;
 	}
 
 	return true;
+}
+
+bool CGModAudioChannelEncoder::ServerKick(const char * client)
+{
+	return func_BASS_Encode_ServerKick( m_pChannel, client );
 }
 
 void CGModAudioChannelEncoder::SetPaused(bool bPaused)
@@ -1295,4 +1480,43 @@ void CGModAudioChannelEncoder::SetChannel(IGModAudioChannel* pChannel, const cha
 void CGModAudioChannelEncoder::WriteData(const void* pData, unsigned long nLength)
 {
 	func_BASS_Encode_Write( m_pEncoder, pData, nLength );
+}
+
+CGModAudioFX::CGModAudioFX(DWORD pFXHandle, bool bIsFX)
+{
+	m_pHandle = pFXHandle;
+	m_bIsFX = bIsFX;
+}
+
+void CGModAudioFX::Free(IGModAudioChannel* pChannel)
+{
+	if (pChannel)
+	{
+		if (m_bIsFX) {
+			BASS_ChannelRemoveFX(((CGModAudioChannel*)pChannel)->m_pHandle, m_pHandle);
+		} else {
+			BASS_ChannelRemoveDSP(((CGModAudioChannel*)pChannel)->m_pHandle, m_pHandle);
+		}
+	}
+
+	delete this;
+}
+
+void CGModAudioFX::GetParameters(void* params)
+{
+	// Unused rn
+	Warning(PROJECT_NAME " - CGModAudioFX::GetParameters: Called an unfinished function\n");
+}
+
+void CGModAudioFX::Reset()
+{
+	BASS_FXReset( m_pHandle );
+}
+
+bool CGModAudioFX::SetParameters(void* params)
+{
+	if (!IsFX())
+		return true;
+
+	return BASS_FXSetParameters(m_pHandle, params);
 }
