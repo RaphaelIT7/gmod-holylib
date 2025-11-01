@@ -1142,26 +1142,36 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 	if (pInfo->m_pTransmitEdict->Get(pEdict->m_EdictIndex)) // Already being networked!
 		return;
 
-	bool bLocalPlayer = pInfo->m_pClientEnt == pEdict;
-
 	func_CBaseAnimating_SetTransmit(pCharacter, pInfo, bAlways); // Base transmit
 
-	if (bLocalPlayer)
+	bool bLocalPlayer = pInfo->m_pClientEnt == pEdict;
+	if (networking_bind_gmodhands_to_player.GetBool())
 	{
-		if (networking_bind_gmodhands_to_player.GetBool())
-		{
-			CBaseEntity* pGMODHands = GetGMODPlayerHands(pCharacter);
-			if (pGMODHands)
+		CBaseEntity* pGMODHands = GetGMODPlayerHands(pCharacter);
+		if (pGMODHands) {
+			if (bLocalPlayer) {
 				pGMODHands->SetTransmit(pInfo, bAlways);
+			} else { // Hands are only networked to the owner, so we can save some checks by skipping them when going over them later
+				int entIndex = pGMODHands->edict()->m_EdictIndex;
+				g_pDontTransmitCache.Set(entIndex);
+				g_pDontTransmitWeaponCache.Set(entIndex);
+			}
 		}
+	}
 
-		if (networking_bind_viewmodels_to_player.GetBool())
+	if (networking_bind_viewmodels_to_player.GetBool())
+	{
+		for (int i=0; i < MAX_VIEWMODELS; ++i)
 		{
-			for (int i=0; i < MAX_VIEWMODELS; ++i)
-			{
-				CBaseViewModel* pViewModel = GetViewModel(pCharacter, i);
-				if (pViewModel)
+			CBaseEntity* pViewModel = GetViewModel(pCharacter, i);
+			if (pViewModel) {
+				if (bLocalPlayer) {
 					pViewModel->SetTransmit(pInfo, bAlways);
+				} else {
+					int entIndex = pViewModel->edict()->m_EdictIndex;
+					g_pDontTransmitCache.Set(entIndex);
+					g_pDontTransmitWeaponCache.Set(entIndex);
+				}
 			}
 		}
 	}
