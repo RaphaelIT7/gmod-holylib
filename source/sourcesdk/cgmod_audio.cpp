@@ -532,8 +532,9 @@ static DWORD BASSFlagsFromString(const std::string& flagsString, bool* autoplay)
 		return flags;
 	}
 
-	if (flagsString.find("3d") != std::string::npos)
-		flags |= BASS_SAMPLE_3D | BASS_SAMPLE_MONO;
+	// No 3D for servers rn
+	//if (flagsString.find("3d") != std::string::npos)
+	//	flags |= BASS_SAMPLE_3D | BASS_SAMPLE_MONO;
 
 	if (flagsString.find("mono") != std::string::npos)
 		flags |= BASS_SAMPLE_MONO;
@@ -553,6 +554,7 @@ static DWORD BASSFlagsFromString(const std::string& flagsString, bool* autoplay)
 	return flags;
 }
 
+// ToDo: Rework this function? Shouldn't we only return when we actually got the channel?
 IGModAudioChannel* CGMod_Audio::PlayURL(const char* url, const char* flags, int* errorCode)
 {
 	*errorCode = 0;
@@ -576,7 +578,7 @@ IGModAudioChannel* CGMod_Audio::PlayURL(const char* url, const char* flags, int*
 		return NULL;
 	}
 
-	return new CGModAudioChannel(stream, false);
+	return new CGModAudioChannel(stream, ChannelType::CHANNEL_URL);
 }
 
 // The original function is too fucked up. https://i.imgur.com/xz5xAIJ.png
@@ -620,7 +622,7 @@ IGModAudioChannel* CGMod_Audio::PlayFile(const char* filePath, const char* flags
 		return NULL;
 	}
 
-	return new CGModAudioChannel(stream, true, filePath);
+	return new CGModAudioChannel(stream, ChannelType::CHANNEL_FILE, filePath);
 }
 
 bool CGMod_Audio::LoadPlugin(const char* pluginName, const char** pErrorOut)
@@ -675,7 +677,20 @@ IGModAudioChannel* CGMod_Audio::CreateDummyChannel(int nSampleRate, int nChannel
 		return NULL;
 	}
 
-	return new CGModAudioChannel(pStream, true, "DUMMY");
+	return new CGModAudioChannel(pStream, ChannelType::CHANNEL_DUMMY, "DUMMY");
+}
+
+IGModAudioChannel* CGMod_Audio::CreatePushChannel(int nSampleRate, int nChannels, unsigned long nFlags, const char** pErrorOut)
+{
+	*pErrorOut = NULL;
+	HSTREAM pStream = BASS_StreamCreate(nSampleRate, nChannels, nFlags, STREAMPROC_PUSH, NULL);
+	if (!pStream)
+	{
+		*pErrorOut = BassErrorToString(BASS_ErrorGetCode());
+		return NULL;
+	}
+
+	return new CGModAudioChannel(pStream, ChannelType::CHANNEL_PUSH, "PUSH");
 }
 
 IGModAudioChannel* CGMod_Audio::CreateMixerChannel(int nSampleRate, int nChannels, unsigned long nFlags, const char** pErrorOut)
@@ -694,7 +709,7 @@ IGModAudioChannel* CGMod_Audio::CreateMixerChannel(int nSampleRate, int nChannel
 		return NULL;
 	}
 
-	return new CGModAudioChannel(pStream, false, "MIXER", true);
+	return new CGModAudioChannel(pStream, ChannelType::CHANNEL_MIXER, "MIXER");
 }
 
 IGModAudioChannel* CGMod_Audio::CreateSplitChannel(IGModAudioChannel* pChannel, unsigned long nFlags, const char** pErrorOut)
@@ -713,7 +728,7 @@ IGModAudioChannel* CGMod_Audio::CreateSplitChannel(IGModAudioChannel* pChannel, 
 		return NULL;
 	}
 
-	return new CGModAudioChannel(pStream, false, "SPLIT", false, true);
+	return new CGModAudioChannel(pStream, ChannelType::CHANNEL_SPLIT, "SPLIT");
 }
 
 // We gotta load some DLLs first as bass won't load shit itself when using BASS_PluginLoad >:(
@@ -739,14 +754,12 @@ bool CGMod_Audio::LoadDLL(const char* pDLLName, void** pDLLHandle)
 
 EXPOSE_SINGLE_INTERFACE_GLOBALVAR(CGMod_Audio, IGMod_Audio, "IGModAudio001", g_CGMod_Audio);
 
-CGModAudioChannel::CGModAudioChannel( DWORD handle, bool isfile, const char* pFileName, bool isMixer, bool isSplit )
+CGModAudioChannel::CGModAudioChannel( DWORD handle, ChannelType nType, const char* pFileName )
 {
 	BASS_ChannelSet3DAttributes(handle, BASS_3DMODE_NORMAL, 200, 1000000000, 360, 360, 0);
 	BASS_Apply3D();
 	m_pHandle = handle;
-	m_bIsFile = isfile;
-	m_bIsMixer = isMixer;
-	m_bIsSplit = isSplit;
+	m_nType = nType;
 
 	if (pFileName)
 		m_strFileName = pFileName;
@@ -892,7 +905,7 @@ double CGModAudioChannel::GetTime()
 
 double CGModAudioChannel::GetBufferedTime()
 {
-	if (m_bIsFile)
+	if (m_nType == ChannelType::CHANNEL_FILE)
 	{
 		return GetLength();
 	} else {
@@ -943,7 +956,7 @@ bool CGModAudioChannel::IsLooping()
 
 bool CGModAudioChannel::IsOnline()
 {
-	return !m_bIsFile;
+	return m_nType == ChannelType::CHANNEL_URL;
 }
 
 bool CGModAudioChannel::Is3D()
@@ -1173,9 +1186,21 @@ bool CGModAudioChannel::FXFree( const char* pFXName )
 	pFX->Free(this);
 }
 
+bool CGModAudioChannel::IsPush()
+{
+	return m_nType == ChannelType::CHANNEL_PUSH;
+}
+
+void CGModAudioChannel::WriteData(const void* pData, unsigned long nLength, const char** pErrorOut)
+{
+	*pErrorOut = NULL;
+	if (BASS_StreamPutData( m_pHandle, pData, nLength ) == -1)
+		*pErrorOut = BassErrorToString(BASS_ErrorGetCode());
+}
+
 bool CGModAudioChannel::IsMixer()
 {
-	return m_bIsMixer;
+	return m_nType == ChannelType::CHANNEL_MIXER;
 }
 
 void CGModAudioChannel::AddMixerChannel(IGModAudioChannel* pChannel, unsigned long nFlags, const char** pErrorOut)
@@ -1203,7 +1228,7 @@ int CGModAudioChannel::GetMixerState()
 
 bool CGModAudioChannel::IsSplitter()
 {
-	return m_bIsSplit;
+	return m_nType == ChannelType::CHANNEL_SPLIT;
 }
 
 void CGModAudioChannel::ResetSplitStream()
@@ -1437,7 +1462,7 @@ bool CGModAudioChannelEncoder::EncoderServerClientCallback(HENCODE handle, BOOL 
 	return ((CGModAudioChannelEncoder*)user)->ServerCallback(connect, client, headers);
 }
 
-bool CGModAudioChannelEncoder::MakeServer( const char* port, unsigned long buffer, unsigned long burst, unsigned long flags, const char** pErrorOut )
+bool CGModAudioChannelEncoder::ServerInit( const char* port, unsigned long buffer, unsigned long burst, unsigned long flags, const char** pErrorOut )
 {
 	*pErrorOut = NULL;
 	if (func_BASS_Encode_ServerInit(m_pEncoder, port, buffer, burst, flags, NULL, this) == 0)

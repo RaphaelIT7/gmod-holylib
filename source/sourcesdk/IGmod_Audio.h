@@ -46,7 +46,7 @@ public:
 	// Wasn't exposed since CreateEncoder already calls it so it has no real use
 	// virtual void InitEncoder(unsigned long nEncoderFlags) = 0;
 
-	virtual bool MakeServer( const char* port, unsigned long buffer, unsigned long burst, unsigned long flags, const char** pErrorOut ) = 0;
+	virtual bool ServerInit( const char* port, unsigned long buffer, unsigned long burst, unsigned long flags, const char** pErrorOut ) = 0;
 	virtual bool ServerKick( const char* client ) = 0;
 
 	virtual void SetPaused( bool bPaused ) = 0;
@@ -152,6 +152,10 @@ public:
 	virtual bool FXReset( const char* pFXName ) = 0;
 	virtual bool FXFree( const char* pFXName ) = 0;
 
+	// Push functions
+	virtual bool IsPush() = 0;
+	virtual void WriteData(const void* pData, unsigned long nLength, const char** pErrorOut) = 0;
+
 	// Mixer functions
 	virtual bool IsMixer() = 0;
 	virtual void AddMixerChannel( IGModAudioChannel* pChannel, unsigned long nFlags, const char** pErrorOut ) = 0;
@@ -204,6 +208,7 @@ public:
 	virtual bool LoadPlugin(const char* pluginName, const char** pErrorOut) = 0;
 	virtual void FinishAllAsync(void* nSignalData) = 0; // Called on Lua shutdown to finish all callbacks/async tasks for that interface
 	virtual IGModAudioChannel* CreateDummyChannel(int nSampleRate, int nChannels, unsigned long nFlags, const char** pErrorOut) = 0;
+	virtual IGModAudioChannel* CreatePushChannel(int nSampleRate, int nChannels, unsigned long nFlags, const char** pErrorOut) = 0;
 	virtual IGModAudioChannel* CreateMixerChannel(int nSampleRate, int nChannels, unsigned long nFlags, const char** pErrorOut) = 0;
 	virtual IGModAudioChannel* CreateSplitChannel(IGModAudioChannel* pChannel, unsigned long nFlags, const char** pErrorOut) = 0;
 };

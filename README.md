@@ -3219,6 +3219,11 @@ Returns the bass version as a string.<br>
 
 #### IGModAudioChannel(or nil), string(errMsg) bass.CreateDummyChannel(number sampleRate, number channels, number flags)
 Creates a dummy channel<br>
+See https://www.un4seen.com/doc/#bass/BASS_StreamCreate.html with `STREAMPROC_DUMMY` for more details.<br>
+
+#### IGModAudioChannel(or nil), string(errMsg) bass.CreatePushChannel(number sampleRate, number channels, number flags)
+Creates a push channel into which you can write data<br>
+See https://www.un4seen.com/doc/#bass/BASS_StreamCreate.html with `STREAMPROC_PUSH` for more details.<br>
 
 #### IGModAudioChannel(or nil), string(errMsg) bass.CreateMixerChannel(number sampleRate, number channels, number flags)
 Creates a mixer channel into which other channels can be combined into<br>
@@ -3426,6 +3431,27 @@ See https://www.un4seen.com/doc/#bass/BASS_FXReset.html<br>
 Removes the given FX from the channel<br>
 See https://www.un4seen.com/doc/#bass/BASS_FXReset.html<br>
 
+#### bool(success), string(errMsg) IGModAudioChannel:InsertVoiceData( VoiceData data )
+Feeds the given voicedata into the channel.<br>
+
+> [!NOTE]
+> This function will throw an error if you call it on a non-push channel.
+
+#### bool(success), string(errMsg) IGModAudioChannel:FeedEmpty( number ms, number samplerate, number channels )
+Feeds null data into the encoder for the given ms frame using the given samplerate and channels.<br>
+
+> [!NOTE]
+> This is needed as encoders seem to frequently die if not feed data continuously<br>
+
+> [!NOTE]
+> This function will throw an error if you call it on a non-push channel.
+
+#### bool(success), string(errMsg) IGModAudioChannel:FeedData( string data )
+Feeds the given PCM data into the channel.<br>
+
+> [!NOTE]
+> This function will throw an error if you call it on a non-push channel.
+
 #### bool IGModAudioChannel:IsMixer()
 Returns `true` if the channel was created using `bass.CreateMixerChannel`<br>
 
@@ -3478,7 +3504,7 @@ Destorys the encoder.<br>
 #### bool IGModAudioChannelEncoder:IsValid()
 Returns `true` if the encoder is valid.<br>
 
-#### bool(success), string(errMsg) IGModAudioChannelEncoder:MakeServer(string port, nummber buffer, number burst, number flags)
+#### bool(success), string(errMsg) IGModAudioChannelEncoder:ServerInit(string port, nummber buffer, number burst, number flags)
 Creates a BassEnc server where the encoder will sends its data to to send to clients who are connected to the port using `sound.PlayURL`<br>
 See: https://www.un4seen.com/doc/#bassenc/BASS_Encode_ServerInit.html<br>
 
@@ -3490,7 +3516,7 @@ bass.PlayFile("data/exampleSound.wav", "", function(channel, a, b)
     local encode, errMsg = channel:CreateEncoder("ogg", 0)
 	g_Encoder = encode -- prevent gc here too else it will stop when gc hits
 	-- 20006 is the port to use (you cannot use the server port, you need a seperate one)
-    print(encode:MakeServer("20006/examplePath", 256000 * 8, 256000, 0))
+    print(encode:ServerInit("20006/examplePath", 256000 * 8, 256000, 0))
 end)
 
 --- Client code
@@ -3520,6 +3546,18 @@ Binds to https://www.un4seen.com/doc/#bassenc/BASS_Encode_IsActive.html<br>
 #### bool(success), string(errMsg) IGModAudioChannelEncoder:SetChannel( IGModAudioChannel channel )
 Moves this encoder to the given channel<br>
 Bind to https://www.un4seen.com/doc/#bassenc/BASS_Encode_SetChannel.html<br>
+
+#### bool(success) IGModAudioChannelEncoder:InsertVoiceData( VoiceData data )
+Feeds the given voicedata into the encoder skipping the channels effects & such.<br>
+
+#### bool(success) IGModAudioChannelEncoder:FeedEmpty( number ms, number samplerate, number channels )
+Feeds null data into the encoder for the given ms frame using the given samplerate and channels.<br>
+
+> [!NOTE]
+> This is needed as encoders seem to frequently die if not feed data continuously<br>
+
+#### bool(success) IGModAudioChannelEncoder:FeedData( string data )
+Feeds the given PCM data into the encoder skipping the channels effects & such.<br>
 
 ## entitiylist
 This module just adds a lua class.<br>

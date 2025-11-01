@@ -589,6 +589,104 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_RemoveFX)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(IGModAudioChannel_IsPush)
+{
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
+
+	LUA->PushBool(channel->IsPush());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IGModAudioChannel_InsertVoiceData)
+{
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
+
+	if (!channel->IsPush())
+		LUA->ThrowError("Tried to insert data into a non-push channel!");
+
+#if MODULE_EXISTS_VOICECHAT
+	VoiceData* pVoiceData = Get_VoiceData(LUA, 2, true);
+	extern char* VoiceData_GetDecompressedData(VoiceData* pData, int* pLength); // exposed for us :3
+
+	int nLength = -1;
+	char* pRawData = VoiceData_GetDecompressedData(pVoiceData, &nLength);
+	if (!pRawData)
+	{
+		LUA->PushBool(false);
+		LUA->PushNil();
+		return 2;
+	}
+
+	const char* pError = nullptr;
+	channel->WriteData(pRawData, nLength, &pError);
+
+	LUA->PushBool(pError == nullptr);
+	if (pError) {
+		LUA->PushString(pError);
+	} else {
+		LUA->PushNil();
+	}
+	return 2;
+#else
+	MISSING_MODULE_ERROR(LUA, voicechat);
+	return 0;
+#endif
+}
+
+LUA_FUNCTION_STATIC(IGModAudioChannel_FeedEmpty)
+{
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
+	int durationMs = (int)LUA->CheckNumber(2);
+	int sampleRate = (int)LUA->CheckNumber(3);
+	int channels = (int)LUA->CheckNumber(4);
+
+	if (!channel->IsPush())
+		LUA->ThrowError("Tried to insert data into a non-push channel!");
+
+	int nSamples = (sampleRate * durationMs) / 1000;
+	int nBytes = nSamples * channels * sizeof(short);
+	if (nBytes > 50000) // More than 50kb stackalloc? Hmmm... what are you doing...
+	{
+		LUA->PushBool(false);
+		LUA->PushNil();
+		return 2;
+	}
+
+	char* pSilence = (char*)_alloca(nBytes);
+	memset(pSilence, 0, nBytes);
+	
+	const char* pError = nullptr;
+	channel->WriteData(pSilence, nBytes, &pError);
+	LUA->PushBool(pError == nullptr);
+	if (pError) {
+		LUA->PushString(pError);
+	} else {
+		LUA->PushNil();
+	}
+
+	return 2;
+}
+
+LUA_FUNCTION_STATIC(IGModAudioChannel_FeedData)
+{
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
+	size_t nLength = -1;
+	const char* pData = Util::CheckLString(LUA, 2, &nLength);
+
+	if (!channel->IsPush())
+		LUA->ThrowError("Tried to insert data into a non-push channel!");
+
+	const char* pError = nullptr;
+	channel->WriteData(pData, nLength, &pError);
+	LUA->PushBool(pError == nullptr);
+	if (pError) {
+		LUA->PushString(pError);
+	} else {
+		LUA->PushNil();
+	}
+	return 2;
+}
+
 LUA_FUNCTION_STATIC(IGModAudioChannel_IsMixer)
 {
 	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
@@ -752,7 +850,7 @@ public:
 	int nServerClientCallback = -1;
 };
 
-LUA_FUNCTION_STATIC(IGModAudioChannelEncoder_MakeServer)
+LUA_FUNCTION_STATIC(IGModAudioChannelEncoder_ServerInit)
 {
 	IGModAudioChannelEncoder* encoder = Get_IGModAudioChannelEncoder(LUA, 1, true);
 
@@ -762,7 +860,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannelEncoder_MakeServer)
 	unsigned long nFlags = (unsigned long)LUA->CheckNumber(5);
 
 	const char* pErrorCode = nullptr;
-	LUA->PushBool(encoder->MakeServer(strPort, nBuffer, nBurst, nFlags, &pErrorCode));
+	LUA->PushBool(encoder->ServerInit(strPort, nBuffer, nBurst, nFlags, &pErrorCode));
 	if (pErrorCode) {
 		LUA->PushString(pErrorCode);
 	} else {
@@ -879,6 +977,41 @@ LUA_FUNCTION_STATIC(IGModAudioChannelEncoder_InsertVoiceData)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(IGModAudioChannelEncoder_FeedEmpty)
+{
+	IGModAudioChannelEncoder* encoder = Get_IGModAudioChannelEncoder(LUA, 1, true);
+	int durationMs = (int)LUA->CheckNumber(2);
+	int sampleRate = (int)LUA->CheckNumber(3);
+	int channels = (int)LUA->CheckNumber(4);
+
+	int nSamples = (sampleRate * durationMs) / 1000;
+	int nBytes = nSamples * channels * sizeof(short);
+	if (nBytes > 50000) // More than 50kb stackalloc? Hmmm... what are you doing...
+	{
+		LUA->PushBool(false);
+		return 1;
+	}
+
+	char* pSilence = (char*)_alloca(nBytes);
+	memset(pSilence, 0, nBytes);
+	encoder->WriteData(pSilence, nBytes);
+
+	LUA->PushBool(true);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IGModAudioChannelEncoder_FeedData)
+{
+	IGModAudioChannelEncoder* encoder = Get_IGModAudioChannelEncoder(LUA, 1, true);
+	size_t nLength = -1;
+	const char* pData = Util::CheckLString(LUA, 2, &nLength);
+
+	encoder->WriteData(pData, nLength);
+
+	LUA->PushBool(true);
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(bass_PlayFile)
 {
 	const char* filePath = LUA->CheckString(1);
@@ -954,6 +1087,23 @@ LUA_FUNCTION_STATIC(bass_CreateDummyChannel)
 
 	const char* pErrorCode = nullptr;
 	IGModAudioChannel* pChannel = gGModAudio->CreateDummyChannel(nSampleRate, nChannels, nFlags, &pErrorCode);
+	Push_IGModAudioChannel(LUA, pChannel);
+	if (pErrorCode) {
+		LUA->PushString(pErrorCode);
+	} else {
+		LUA->PushNil();
+	}
+	return 2;
+}
+
+LUA_FUNCTION_STATIC(bass_CreatePushChannel)
+{
+	int nSampleRate = LUA->CheckNumber(1);
+	int nChannels = LUA->CheckNumber(2);
+	unsigned long nFlags = (unsigned long)LUA->CheckNumber(3);
+
+	const char* pErrorCode = nullptr;
+	IGModAudioChannel* pChannel = gGModAudio->CreatePushChannel(nSampleRate, nChannels, nFlags, &pErrorCode);
 	Push_IGModAudioChannel(LUA, pChannel);
 	if (pErrorCode) {
 		LUA->PushString(pErrorCode);
@@ -1049,13 +1199,17 @@ void CBassModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 		Util::AddFunc(pLua, IGModAudioChannelEncoder__newindex, "__newindex");
 		Util::AddFunc(pLua, IGModAudioChannelEncoder_IsValid, "IsValid");
 		Util::AddFunc(pLua, IGModAudioChannelEncoder_GetTable, "GetTable");
-		Util::AddFunc(pLua, IGModAudioChannelEncoder_MakeServer, "MakeServer");
+		Util::AddFunc(pLua, IGModAudioChannelEncoder_ServerInit, "ServerInit");
 		Util::AddFunc(pLua, IGModAudioChannelEncoder_ServerKick, "ServerKick");
 		Util::AddFunc(pLua, IGModAudioChannelEncoder_SetServerCallback, "SetServerCallback");
 		Util::AddFunc(pLua, IGModAudioChannelEncoder_SetPaused, "SetPaused");
 		Util::AddFunc(pLua, IGModAudioChannelEncoder_GetState, "GetState");
 		Util::AddFunc(pLua, IGModAudioChannelEncoder_SetChannel, "SetChannel");
+
+		// Functions to push data
 		Util::AddFunc(pLua, IGModAudioChannelEncoder_InsertVoiceData, "InsertVoiceData");
+		Util::AddFunc(pLua, IGModAudioChannelEncoder_FeedEmpty, "FeedEmpty");
+		Util::AddFunc(pLua, IGModAudioChannelEncoder_FeedData, "FeedData");
 	pLua->Pop(1);
 
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::IGModAudioChannel, pLua->CreateMetaTable("IGModAudioChannel"));
@@ -1114,6 +1268,12 @@ void CBassModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 		Util::AddFunc(pLua, IGModAudioChannel_ResetFX, "ResetFX");
 		Util::AddFunc(pLua, IGModAudioChannel_RemoveFX, "RemoveFX");
 
+		// Functions to push data
+		Util::AddFunc(pLua, IGModAudioChannel_IsPush, "IsPush");
+		Util::AddFunc(pLua, IGModAudioChannel_InsertVoiceData, "InsertVoiceData");
+		Util::AddFunc(pLua, IGModAudioChannel_FeedEmpty, "FeedEmpty");
+		Util::AddFunc(pLua, IGModAudioChannel_FeedData, "FeedData");
+
 		Util::AddFunc(pLua, IGModAudioChannel_IsMixer, "IsMixer");
 		Util::AddFunc(pLua, IGModAudioChannel_AddMixerChannel, "AddMixerChannel");
 		Util::AddFunc(pLua, IGModAudioChannel_RemoveMixerChannel, "RemoveMixerChannel");
@@ -1129,6 +1289,7 @@ void CBassModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 		Util::AddFunc(pLua, bass_Update, "Update");
 		Util::AddFunc(pLua, bass_GetVersion, "GetVersion");
 		Util::AddFunc(pLua, bass_CreateDummyChannel, "CreateDummyChannel");
+		Util::AddFunc(pLua, bass_CreatePushChannel, "CreatePushChannel");
 		Util::AddFunc(pLua, bass_CreateMixerChannel, "CreateMixerChannel");
 		Util::AddFunc(pLua, bass_CreateSplitChannel, "CreateSplitChannel");
 		// Util::AddFunc(pLua, bass_LoadPlugin, "LoadPlugin");
@@ -1158,6 +1319,32 @@ void CBassModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 		Util::AddValue(pLua, BASS_STREAM_BLOCK, "BASS_STREAM_BLOCK");
 		Util::AddValue(pLua, BASS_STREAM_DECODE, "BASS_STREAM_DECODE");
 		Util::AddValue(pLua, BASS_STREAM_STATUS, "BASS_STREAM_STATUS");
+
+		Util::AddValue(pLua, BASS_ENCODE_NOHEAD, "BASS_ENCODE_NOHEAD");
+		Util::AddValue(pLua, BASS_ENCODE_FP_8BIT, "BASS_ENCODE_FP_8BIT");
+		Util::AddValue(pLua, BASS_ENCODE_FP_16BIT, "BASS_ENCODE_FP_16BIT");
+		Util::AddValue(pLua, BASS_ENCODE_FP_24BIT, "BASS_ENCODE_FP_24BIT");
+		Util::AddValue(pLua, BASS_ENCODE_FP_32BIT, "BASS_ENCODE_FP_32BIT");
+		Util::AddValue(pLua, BASS_ENCODE_FP_AUTO, "BASS_ENCODE_FP_AUTO");
+		Util::AddValue(pLua, BASS_ENCODE_BIGEND, "BASS_ENCODE_BIGEND");
+		Util::AddValue(pLua, BASS_ENCODE_PAUSE, "BASS_ENCODE_PAUSE");
+		Util::AddValue(pLua, BASS_ENCODE_PCM, "BASS_ENCODE_PCM");
+		Util::AddValue(pLua, BASS_ENCODE_RF64, "BASS_ENCODE_RF64");
+		Util::AddValue(pLua, BASS_ENCODE_MONO, "BASS_ENCODE_MONO");
+		Util::AddValue(pLua, BASS_ENCODE_QUEUE, "BASS_ENCODE_QUEUE");
+		Util::AddValue(pLua, BASS_ENCODE_WFEXT, "BASS_ENCODE_WFEXT");
+		Util::AddValue(pLua, BASS_ENCODE_CAST_NOLIMIT, "BASS_ENCODE_CAST_NOLIMIT");
+		Util::AddValue(pLua, BASS_ENCODE_LIMIT, "BASS_ENCODE_LIMIT");
+		Util::AddValue(pLua, BASS_ENCODE_AIFF, "BASS_ENCODE_AIFF");
+		Util::AddValue(pLua, BASS_ENCODE_DITHER, "BASS_ENCODE_DITHER");
+		Util::AddValue(pLua, BASS_ENCODE_AUTOFREE, "BASS_ENCODE_AUTOFREE");
+
+		Util::AddValue(pLua, BASS_ENCODE_SERVER_NOHTTP, "BASS_ENCODE_SERVER_NOHTTP");
+		Util::AddValue(pLua, BASS_ENCODE_SERVER_META, "BASS_ENCODE_SERVER_META");
+		Util::AddValue(pLua, BASS_ENCODE_SERVER_SSL, "BASS_ENCODE_SERVER_SSL");
+		Util::AddValue(pLua, BASS_ENCODE_SERVER_SSLONLY, "BASS_ENCODE_SERVER_SSLONLY");
+
+		// ToDo: Check if we wanna expose CastInit & the BASS_ENCODE_CAST_ enums for BASS_Encode_CastInit
 
 		Util::AddValue(pLua, BassFX::FX_CHORUS, "FX_CHORUS");
 		Util::AddValue(pLua, BassFX::FX_DISTORTION, "FX_DISTORTION");

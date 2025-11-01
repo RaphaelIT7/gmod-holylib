@@ -47,7 +47,7 @@ public:
 	// Returns true if there was an error, pErrorOut will either be filled or NULL
 	// If it returns true, it will also invalidate/free itself so the pointer becomes invalid!
 	virtual bool GetLastError(const char** pErrorOut);
-	virtual bool MakeServer( const char* port, unsigned long buffer, unsigned long burst, unsigned long flags, const char** pErrorOut );
+	virtual bool ServerInit( const char* port, unsigned long buffer, unsigned long burst, unsigned long flags, const char** pErrorOut );
 	virtual bool ServerKick( const char* client );
 
 	virtual void SetPaused( bool bPaused );
@@ -107,6 +107,16 @@ private:
 	bool m_bIsFX;
 };
 
+enum ChannelType
+{
+	CHANNEL_URL = 0,
+	CHANNEL_FILE = 1, // 1 so that CGModAudioChannel::m_nType is true/1 for files matching gmods previous var value
+	CHANNEL_DUMMY = 2,
+	CHANNEL_PUSH = 3,
+	CHANNEL_MIXER = 3,
+	CHANNEL_SPLIT = 4,
+};
+
 class CGMod_Audio;
 class CGModAudioChannel : public IGModAudioChannel
 {
@@ -164,6 +174,10 @@ public:
 	virtual bool FXReset( const char* pFXName );
 	virtual bool FXFree( const char* pFXName );
 
+	// Push functions
+	virtual bool IsPush();
+	virtual void WriteData(const void* pData, unsigned long nLength, const char** pErrorOut);
+
 	// Mixer functions
 	virtual bool IsMixer();
 	virtual void AddMixerChannel( IGModAudioChannel* pChannel, unsigned long nFlags, const char** pErrorOut );
@@ -175,7 +189,7 @@ public:
 	virtual void ResetSplitStream();
 
 public:
-	CGModAudioChannel( DWORD handle, bool isfile, const char* pFileName = NULL, bool isMixer = false, bool isSplit = false );
+	CGModAudioChannel( DWORD handle, ChannelType nType, const char* pFileName = NULL );
 	virtual ~CGModAudioChannel();
 
 private:
@@ -184,11 +198,9 @@ private:
 	friend class CGModAudioFX;
 
 	DWORD m_pHandle;
-	bool m_bIsFile;
+	ChannelType m_nType; //bool m_bIsFile;
 
 	// HolyLib specific
-	bool m_bIsMixer = false;
-	bool m_bIsSplit = false;
 	std::string m_strFileName = "NULL";
 	std::unordered_map<std::string, CGModAudioFX*> m_pFX;
 };
@@ -214,6 +226,7 @@ public:
 
 	virtual void FinishAllAsync(void* nSignalData);
 	virtual IGModAudioChannel* CreateDummyChannel(int nSampleRate, int nChannels, unsigned long nFlags, const char** pErrorOut);
+	virtual IGModAudioChannel* CreatePushChannel(int nSampleRate, int nChannels, unsigned long nFlags, const char** pErrorOut);
 	virtual IGModAudioChannel* CreateMixerChannel(int nSampleRate, int nChannels, unsigned long nFlags, const char** pErrorOut);
 	virtual IGModAudioChannel* CreateSplitChannel(IGModAudioChannel* pChannel, unsigned long nFlags, const char** pErrorOut);
 
