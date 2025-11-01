@@ -151,6 +151,7 @@ namespace Lua
 		VProfCounter,
 		LuaInterface,
 		// WavAudioFile,
+		IGModAudioChannelEncoder,
 
 		_HOLYLIB_CORE_TEST = UCHAR_MAX-1,
 		TOTAL_TYPES = UCHAR_MAX,
@@ -713,7 +714,7 @@ inline LuaUserData* Get_##className##_Data(GarrysMod::Lua::ILuaInterface* LUA, i
 		if (bError) \
 			LUA->ThrowError(triedNull_##className.c_str()); \
 	\
-	if (!pVar || pVar->GetType() != luaType && pVar->GetType() != luaType2) \
+	if (!pVar || (pVar->GetType() != luaType && pVar->GetType() != luaType2)) \
 	{ \
 		if (bError) \
 			LUA->ThrowError(invalidType_##className.c_str()); \
@@ -1019,6 +1020,12 @@ extern EntityList* Get_EntityList(GarrysMod::Lua::ILuaInterface* LUA, int iStack
 class CBaseClient;
 extern void Push_CBaseClient(GarrysMod::Lua::ILuaInterface* LUA, CBaseClient* tbl);
 extern CBaseClient* Get_CBaseClient(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
+#endif
+
+#if MODULE_EXISTS_VOICECHAT
+struct VoiceData;
+extern LuaUserData* Push_VoiceData(GarrysMod::Lua::ILuaInterface* LUA, VoiceData* tbl);
+extern VoiceData* Get_VoiceData(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
 #endif
 
 // NOTE: The angle itself is pushed, not a copy, any changes from lua will affect it!

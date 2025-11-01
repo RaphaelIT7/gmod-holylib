@@ -144,6 +144,11 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [#] Fixed some memory leaks from our own `CLuaInterface` since on shutdown they never cleared up on removal/shutdown<br>
 \- [#] Added a speedup for pushing networked entities to Lua (On 64x pushing entities became 2.6x faster)<br>
 \- [#] Fixed some issues where `Vector`s & `Angle`s pushed from HolyLib would be the original one instead of a copy causing issues like corruption when modified<br>
+\- [#] Fixed `IGModAudioChannel:__tostring()` including a full filepath, this also fixed `bass.PlayFile` being unable to play sounds mounted by the filesystem from GMAs or VPK files (See https://github.com/RaphaelIT7/gmod-holylib/issues/98)<br>
+\- [#] Fixed `DEDICATED` flag being set on Windows builds<br>
+\- [#] Fixed `util.FancyJSONToTable` not being unloaded when disabled causing a invalid function to remain in Lua that would crash on call<br>
+\- [#] Fixed `util.FancyJSONToTable` crashing when given sequential arrays (See: https://github.com/RaphaelIT7/gmod-holylib/issues/101)<br>
+\- [#] Fixed `util.FancyTableToJSON` being unable to handle `math.huge` causing the parser to stop leaving invalid json<br>
 \- [-] Removed some unused code of former fixes that were implemented into Gmod<br>
 
 You can see all changes/commits here:<br>
@@ -1276,6 +1281,10 @@ ignorecycle - If `true` it won't throw a lua error when you have a table that is
 Convers the given table to json.<br>
 Unlike Gmod's version, this function will turn the numbers to an integer if they are one/fit one.<br>
 This version is noticably faster than Gmod's version and uses less memory in the process.<br>
+
+> [!NOTE]
+> This implementation will include `null` for values it cannot handle.<br>
+> Gmod hides `null` but we don't meaning if for example we get `{math.huge}` as input, it will return `[null]` which still is valid json.<br>
 
 #### table util.FancyJSONToTable(string json)
 Convers the json into a table.<br>
@@ -2677,6 +2686,12 @@ hook.Add("HolyLib:PreProcessVoiceChat", "VoiceCHat_Engine", function(pClient, vo
 end)
 ```
 
+#### HolyLib:OnPlayerStartTalking(Player ply)
+Called when a player starts talking
+
+#### HolyLib:OnPlayerStoppedTalking(Player ply)
+Called when a player stops talking
+
 ### ConVars
 
 #### holylib_voicechat_hooks(default `1`)
@@ -3196,6 +3211,12 @@ Creates a IGMODAudioChannel for the given file.<br>
 callback - function(IGMODAudioChannel channel, number errorCode, string error)<br>
 Creates a IGMODAudioChannel for the given url.<br>
 
+#### bass.Update(number time)
+Updates all bass channels processing as x(time) seconds passed.<br>
+
+#### string bass.GetVersion()
+Returns the bass version as a string.<br>
+
 ### IGModAudioChannel
 
 #### string IGModAudioChannel:\_\_tostring()
@@ -3215,7 +3236,7 @@ Returns the lua table of this object.<br>
 You can store variables into it.<br>
 
 #### IGModAudioChannel:\_\_gc()
-ToDo / Doesn nothing yet.<br>
+Destorys the audio channel.<br>
 
 #### IGModAudioChannel:Destroy()
 Destroys the audio channel.<br>
@@ -3306,6 +3327,128 @@ Restarts the channel.<br>
 #### (Soon)IGModAudioChannel:FFT(table output, number fft)
 Computes the DFT of the sound channel.<br>
 What even is that.<br>
+
+#### bool(success), string(errMsg - nil) IGModAudioChannel:EncodeToDisk(string fileName, number bassFlags, function callback, bool async = false)
+callback - `function(success, errMsg) end`<br>
+bassFlags - bitflags, see https://www.un4seen.com/doc/#bassenc/BASS_Encode_Start.html<br>
+
+Writes the channel into a file, the encoder internally used depends on the filename.<br>
+Valid encoders for file extension are:<br>
+- `.wav` (Requres `BASSENC` plugin)<br>
+- `.aiff` (Requres `BASSENC` plugin)<br>
+- `.mp3` (Requres `BASSENC_MP3` plugin)<br>
+- `.ogg` (Requres `BASSENC_OGG` plugin)<br>
+- `.opus` (Requres `BASSENC_OPUS` plugin)<br>
+- `.flac` (Requres `BASSENC_FLAC` plugin)<br>
+
+> [!NOTE]
+> This function requires the `BASSENC` plugin to work at all!<br>
+> You can find all the plugins at https://www.un4seen.com/ drop them into the `bin/` folder besides `libbass.so`<br>
+
+> [!WARNING]
+> This function only works on `decode` channels, a channel needs to have `decode` set as a flag when being created<br>
+
+Example usage of having a `.wav` and making it a `.mp3`:
+```lua
+bass.PlayFile("data/exampleSong.wav", "decode", function(channel, a, b)
+    g_Channel = channel -- Prevent gc from hitting while were processing it
+    local flags = bit.bor(0x40000, 0x20000) -- BASS_ENCODE_AUTOFREE | BASS_ENCODE_PCM
+	print("Did the job manage to start?", channel:EncodeToDisk("exampleSong.mp3", flags, function(success, errMsg)
+       print("Did it work?", success, errMsg)         
+    end, true))
+end)
+```
+
+#### IGModAudioChannel, string(errMsg - nil) IGModAudioChannel:CreateEncoder(string fileName, number bassFlags)
+callback - `function(success, errMsg) end`<br>
+bassFlags - bitflags, see https://www.un4seen.com/doc/#bassenc/BASS_Encode_Start.html<br>
+
+Creates a encoder and returns it, on failure it returns `false` with the second return value containing the error reason<br>
+You can still provide a full filename into which the channel its bound to is slowly written<br>
+unlike `IGModAudioChannel:EncodeToDisk` this works on non-`decode` channels though it written bit by bit as the channel plays.<br>
+Valid encoders are:<br>
+- `wav` (Requres `BASSENC` plugin)<br>
+- `aiff` (Requres `BASSENC` plugin)<br>
+- `mp3` (Requres `BASSENC_MP3` plugin)<br>
+- `ogg` (Requres `BASSENC_OGG` plugin)<br>
+- `opus` (Requres `BASSENC_OPUS` plugin)<br>
+- `flac` (Requres `BASSENC_FLAC` plugin)<br>
+
+> [!NOTE]
+> This function requires the `BASSENC` plugin to work at all!<br>
+> You can find all the plugins at https://www.un4seen.com/ drop them into the `bin/` folder besides `libbass.so`<br>
+
+#### IGModAudioChannel:Update(number time)
+Updates the channel for the given time in seconds<br>
+See: https://www.un4seen.com/doc/#bass/BASS_ChannelUpdate.html<br>
+
+#### IGModAudioChannel:CreateLink(IGModAudioChannel otherChannel)
+Links the other channel to this channel one-way.<br>
+See https://www.un4seen.com/doc/#bass/BASS_ChannelSetLink.html (argument order is `this, otherChannel`)<br>
+
+#### IGModAudioChannel:DestroyLink(IGModAudioChannel otherChannel)
+Unlinks the other channel from this channel.<br>
+See https://www.un4seen.com/doc/#bass/BASS_ChannelRemoveLink.html (argument order is `this, otherChannel`)<br>
+
+### IGModAudioChannelEncoder
+A class used when encoding a channel<br>
+This entire class focuses around the `BassEnc` plugins<br>
+See https://www.un4seen.com/doc/#bassenc/bassenc.html for more information<r>
+
+#### string IGModAudioChannelEncoder:\_\_tostring()
+Returns `IGModAudioChannelEncoder [NULL]` if invalid.<br>
+Else it returns `IGModAudioChannelEncoder [FileName/Format]`.<br>
+
+#### IGModAudioChannelEncoder:\_\_newindex(string key, any value)
+Internally implemented and will set the values into the lua table.<br>
+
+#### any IGModAudioChannelEncoder:\_\_index(string key)
+Internally seaches first in the metatable table for the key.<br>
+If it fails to find it, it will search in the lua table before returning.<br>
+If you try to get multiple values from the lua table, just use `IGModAudioChannelEncoder:GetTable()`.<br>
+
+#### table IGModAudioChannelEncoder:GetTable()
+Returns the lua table of this object.<br>
+You can store variables into it.<br>
+
+#### IGModAudioChannelEncoder:\_\_gc()
+Destorys the encoder.<br>
+
+#### bool IGModAudioChannelEncoder:IsValid()
+Returns `true` if the encoder is valid.<br>
+
+#### bool(success), string(errMsg) IGModAudioChannelEncoder:MakeServer(string port, nummber buffer, number burst, number flags)
+Creates a BassEnc server where the encoder will sends its data to to send to clients who are connected to the port using `sound.PlayURL`<br>
+See: https://www.un4seen.com/doc/#bassenc/BASS_Encode_ServerInit.html<br>
+
+Example usage:
+```lua
+bass.PlayFile("data/exampleSound.wav", "", function(channel, a, b)
+    g_Channel = channel -- prevent gc
+	-- Important note, using wav or any raw format can cause bigger networking loads, so choose wisely which encoder you use
+    local encode, errMsg = channel:CreateEncoder("ogg", 0)
+	g_Encoder = encode -- prevent gc here too else it will stop when gc hits
+	-- 20006 is the port to use (you cannot use the server port, you need a seperate one)
+    print(encode:MakeServer("20006/examplePath", 256000 * 8, 256000, 0))
+end)
+
+--- Client code
+sound.PlayURL("http://yourserverip:20006/examplePath", "", function(channel)
+	g_Channel = channel -- prevent gc
+end)
+```
+
+#### IGModAudioChannelEncoder:SetPaused( bool paused = false )
+Pauses/Unpauses the encoder<br>
+Bind to https://www.un4seen.com/doc/#bassenc/BASS_Encode_SetPaused.html<br>
+
+#### number IGModAudioChannelEncoder:GetState()
+Returns the state of the encoder<br>
+Binds to https://www.un4seen.com/doc/#bassenc/BASS_Encode_IsActive.html<br>
+
+#### bool(success), string(errMsg) IGModAudioChannelEncoder:SetChannel( IGModAudioChannel channel )
+Moves this encoder to the given channel<br>
+Bind to https://www.un4seen.com/doc/#bassenc/BASS_Encode_SetChannel.html<br>
 
 ## entitiylist
 This module just adds a lua class.<br>

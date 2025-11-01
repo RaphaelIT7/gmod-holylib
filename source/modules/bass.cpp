@@ -334,21 +334,284 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_Restart)
 	return 0;
 }
 
-LUA_FUNCTION_STATIC(IGModAudioChannel_EncodeToDisk)
+class BassEncoderCallback : public IGModEncoderCallback
+{
+public:
+	BassEncoderCallback(GarrysMod::Lua::ILuaInterface* pLua)
+	{
+		m_pLua = pLua;
+		m_nCallbackReference = Util::ReferenceCreate(pLua, "BassEncoderCallback - callback reference");
+	}
+
+	virtual ~BassEncoderCallback() {
+		if (m_pLua && m_nCallbackReference != -1)
+		{
+			Msg("BassEncoderCallback deleted while still holding a reference!\n");
+			Util::ReferenceFree(m_pLua, m_nCallbackReference, "BassEncoderCallback - callback leftover deletion");
+			m_nCallbackReference = -1;
+			m_pLua = NULL;
+		}
+	};
+
+	virtual bool ShouldForceFinish(IGModAudioChannelEncoder* pEncoder, void* nSignalData) {
+		return m_pLua == nSignalData; // Force finish as this is our signal that our interface is shutting down!
+	};
+
+	virtual void OnFinish(IGModAudioChannelEncoder* pEncoder, GModEncoderStatus nStatus)
+	{
+		if (m_nCallbackReference == -1)
+			return;
+
+		Util::ReferencePush(m_pLua, m_nCallbackReference);
+		if (nStatus == GModEncoderStatus::FINISHED) {
+			m_pLua->PushBool(true);
+			m_pLua->PushNil();
+		} else {
+			m_pLua->PushBool(false);
+			m_pLua->PushString("Encoder was interrupted by Lua shutdown!");
+		}
+		m_pLua->CallFunctionProtected(2, 0, true);
+
+		Util::ReferenceFree(m_pLua, m_nCallbackReference, "BassEncoderCallback - callback deletion OnFinish");
+		m_nCallbackReference = -1;
+		m_pLua = NULL;
+	}
+
+private:
+	GarrysMod::Lua::ILuaInterface* m_pLua = nullptr;
+	int m_nCallbackReference = -1;
+};
+
+LUA_FUNCTION_STATIC(IGModAudioChannel_WriteToDisk)
 {
 	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
-	
-	const char* pErrorMsg = channel->EncodeToDisk(LUA->CheckString(1), LUA->CheckString(2), (unsigned long)LUA->CheckNumber(3));
-	if (!pErrorMsg)
-	{ // Success
-		LUA->PushBool(true);
-		LUA->PushNil();
+
+	const char* pFileName = LUA->CheckString(2);
+	// NOTE: Next time ensure I fucking use CheckNumber and not CheckString to then cast :sob: only took 8+ hours to figure out
+	unsigned long nFlags = (unsigned long)LUA->CheckNumber(3);
+	LUA->CheckType(4, GarrysMod::Lua::Type::Function);
+	bool bAsync = LUA->GetBool(5);
+
+	LUA->Push(4);
+	BassEncoderCallback* pCallback = new BassEncoderCallback(LUA);
+	// We do not manage this pointer! GModAudio does for us
+
+	const char* pErrorMsg = NULL;
+	IGModAudioChannelEncoder* pEncoder = channel->CreateEncoder(pFileName, nFlags, pCallback, &pErrorMsg);
+	if (pErrorMsg)
+	{
+		LUA->PushBool(false);
+		LUA->PushString(pErrorMsg);
 		return 2;
 	}
 
-	LUA->PushBool(false);
-	LUA->PushString(pErrorMsg);
+	pEncoder->ProcessNow(bAsync);
+	if (pEncoder->GetLastError(&pErrorMsg))
+	{
+		LUA->PushBool(false);
+		LUA->PushString(pErrorMsg);
+		return 2;
+	}
+
+	LUA->PushBool(true);
+	LUA->PushNil();
 	return 2;
+}
+
+LUA_FUNCTION_STATIC(IGModAudioChannel_Update)
+{
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
+	channel->Update(LUA->CheckNumber(2));
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(IGModAudioChannel_CreateLink)
+{
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
+	IGModAudioChannel* otherChannel = Get_IGModAudioChannel(LUA, 2, true);
+
+	const char* pError = NULL;
+	LUA->PushBool(channel->CreateLink(otherChannel, &pError));
+	if (pError) {
+		LUA->PushString(pError);
+	} else {
+		LUA->PushNil();
+	}
+
+	return 2;
+}
+
+LUA_FUNCTION_STATIC(IGModAudioChannel_DestroyLink)
+{
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
+	IGModAudioChannel* otherChannel = Get_IGModAudioChannel(LUA, 2, true);
+
+	const char* pError = NULL;
+	LUA->PushBool(channel->DestroyLink(otherChannel, &pError));
+	if (pError) {
+		LUA->PushString(pError);
+	} else {
+		LUA->PushNil();
+	}
+
+	return 2;
+}
+
+PushReferenced_LuaClass(IGModAudioChannelEncoder)
+Get_LuaClass(IGModAudioChannelEncoder, "IGModAudioChannelEncoder")
+
+Default__index(IGModAudioChannelEncoder);
+Default__newindex(IGModAudioChannelEncoder);
+Default__GetTable(IGModAudioChannelEncoder);
+Default__gc(IGModAudioChannelEncoder,
+	IGModAudioChannelEncoder* channel = (IGModAudioChannelEncoder*)pStoredData;
+	if (channel)
+		delete channel;
+)
+
+LUA_FUNCTION_STATIC(IGModAudioChannelEncoder__tostring)
+{
+	IGModAudioChannelEncoder* encoder = Get_IGModAudioChannelEncoder(LUA, 1, false);
+	if (!encoder)
+	{
+		LUA->PushString("IGModAudioChannelEncoder [NULL]");
+		return 1;
+	}
+
+	char szBuf[128] = {};
+	V_snprintf(szBuf, sizeof(szBuf), "IGModAudioChannelEncoder [%s]", encoder->GetFileName()); 
+	LUA->PushString(szBuf);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IGModAudioChannelEncoder_IsValid)
+{
+	IGModAudioChannelEncoder* encoder = Get_IGModAudioChannelEncoder(LUA, 1, false);
+
+	LUA->PushBool(encoder != nullptr);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IGModAudioChannelEncoder_MakeServer)
+{
+	IGModAudioChannelEncoder* encoder = Get_IGModAudioChannelEncoder(LUA, 1, true);
+
+	const char* strPort = LUA->CheckString(2);
+	unsigned long nBuffer = (unsigned long)LUA->CheckNumber(3);
+	unsigned long nBurst = (unsigned long)LUA->CheckNumber(4);
+	unsigned long nFlags = (unsigned long)LUA->CheckNumber(5);
+
+	const char* pErrorCode = nullptr;
+	LUA->PushBool(encoder->MakeServer(strPort, nBuffer, nBurst, nFlags, &pErrorCode));
+	if (pErrorCode) {
+		LUA->PushString(pErrorCode);
+	} else {
+		LUA->PushNil();
+	}
+	return 2;
+}
+
+class BassEncoderDeletionCallback : public IGModEncoderCallback
+{
+public:
+	BassEncoderDeletionCallback(GarrysMod::Lua::ILuaInterface* pLua) {
+		m_pLua = pLua;
+	}
+
+	virtual bool ShouldForceFinish(IGModAudioChannelEncoder* pEncoder, void* nSignalData) {
+		return m_pLua == nSignalData;
+	};
+
+	virtual void OnFinish(IGModAudioChannelEncoder* pEncoder, GModEncoderStatus nStatus)
+	{
+		// The IGModAudioChannelEncoder deletes itself, so we gotta ensure no invalid pointers are left in Lua
+		Delete_IGModAudioChannelEncoder(m_pLua, pEncoder);
+	}
+private:
+	GarrysMod::Lua::ILuaInterface* m_pLua;
+};
+
+LUA_FUNCTION_STATIC(IGModAudioChannel_CreateEncoder)
+{
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
+
+	const char* pFileName = LUA->CheckString(2);
+	// NOTE: Next time ensure I fucking use CheckNumber and not CheckString to then cast :sob: only took 8+ hours to figure out
+	unsigned long nFlags = (unsigned long)LUA->CheckNumber(3);
+
+	BassEncoderDeletionCallback* pCallback = new BassEncoderDeletionCallback(LUA);
+	// We do not manage this pointer! GModAudio does for us
+
+	const char* pErrorMsg = NULL;
+	IGModAudioChannelEncoder* pEncoder = channel->CreateEncoder(pFileName, nFlags, pCallback, &pErrorMsg);
+	if (pErrorMsg)
+	{
+		LUA->PushBool(false);
+		LUA->PushString(pErrorMsg);
+		return 2;
+	}
+
+	Push_IGModAudioChannelEncoder(LUA, pEncoder);
+	LUA->PushNil();
+	return 2;
+}
+
+LUA_FUNCTION_STATIC(IGModAudioChannelEncoder_SetPaused)
+{
+	IGModAudioChannelEncoder* encoder = Get_IGModAudioChannelEncoder(LUA, 1, true);
+
+	encoder->SetPaused(LUA->GetBool(2));
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(IGModAudioChannelEncoder_GetState)
+{
+	IGModAudioChannelEncoder* encoder = Get_IGModAudioChannelEncoder(LUA, 1, true);
+
+	LUA->PushNumber(encoder->GetState());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(IGModAudioChannelEncoder_SetChannel)
+{
+	IGModAudioChannelEncoder* encoder = Get_IGModAudioChannelEncoder(LUA, 1, true);
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 2, true);
+
+	const char* pErrorCode = nullptr;
+	encoder->SetChannel(channel, &pErrorCode);
+	LUA->PushBool(pErrorCode == nullptr);
+	if (pErrorCode) {
+		LUA->PushString(pErrorCode);
+	} else {
+		LUA->PushNil();
+	}
+	return 2;
+}
+
+LUA_FUNCTION_STATIC(IGModAudioChannelEncoder_InsertVoiceData)
+{
+	IGModAudioChannelEncoder* encoder = Get_IGModAudioChannelEncoder(LUA, 1, true);
+
+#if MODULE_EXISTS_VOICECHAT
+	VoiceData* pVoiceData = Get_VoiceData(LUA, 2, true);
+	extern char* VoiceData_GetDecompressedData(VoiceData* pData, int* pLength); // exposed for us :3
+
+	int nLength = -1;
+	char* pRawData = VoiceData_GetDecompressedData(pVoiceData, &nLength);
+	if (!pRawData)
+	{
+		LUA->PushBool(false);
+		return 1;
+	}
+
+	encoder->WriteData(pRawData, nLength);
+#else
+	MISSING_MODULE_ERROR(LUA, voicechat);
+#endif
+
+	LUA->PushBool(true);
+	return 1;
 }
 
 LUA_FUNCTION_STATIC(bass_PlayFile)
@@ -418,6 +681,36 @@ LUA_FUNCTION_STATIC(bass_GetVersion)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(bass_CreateDummyChannel)
+{
+	int nSampleRate = LUA->CheckNumber(1);
+	int nChannels = LUA->CheckNumber(2);
+	unsigned long nFlags = (unsigned long)LUA->CheckNumber(3);
+
+	const char* pErrorCode = nullptr;
+	IGModAudioChannel* pChannel = gGModAudio->CreateDummyChannel(nSampleRate, nChannels, nFlags, &pErrorCode);
+	Push_IGModAudioChannel(LUA, pChannel);
+	if (pErrorCode) {
+		LUA->PushString(pErrorCode);
+	} else {
+		LUA->PushNil();
+	}
+	return 2;
+}
+
+LUA_FUNCTION_STATIC(bass_LoadPlugin)
+{
+	const char* pError = NULL;
+	LUA->PushBool(gGModAudio->LoadPlugin(LUA->CheckString(1), &pError));
+	if (pError) {
+		LUA->PushString(pError);
+	} else {
+		LUA->PushNil();
+	}
+
+	return 2;
+}
+
 void CBassModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	/*SourceSDK::FactoryLoader gmod_audio_loader("gmod_audio"); // Probably a broken dll/so file.
@@ -450,6 +743,19 @@ void CBassModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
+
+	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::IGModAudioChannelEncoder, pLua->CreateMetaTable("IGModAudioChannelEncoder"));
+		Util::AddFunc(pLua, IGModAudioChannelEncoder__tostring, "__tostring");
+		Util::AddFunc(pLua, IGModAudioChannelEncoder__gc, "__gc");
+		Util::AddFunc(pLua, IGModAudioChannelEncoder__index, "__index");
+		Util::AddFunc(pLua, IGModAudioChannelEncoder__newindex, "__newindex");
+		Util::AddFunc(pLua, IGModAudioChannelEncoder_IsValid, "IsValid");
+		Util::AddFunc(pLua, IGModAudioChannelEncoder_MakeServer, "MakeServer");
+		Util::AddFunc(pLua, IGModAudioChannelEncoder_SetPaused, "SetPaused");
+		Util::AddFunc(pLua, IGModAudioChannelEncoder_GetState, "GetState");
+		Util::AddFunc(pLua, IGModAudioChannelEncoder_SetChannel, "SetChannel");
+		Util::AddFunc(pLua, IGModAudioChannelEncoder_InsertVoiceData, "InsertVoiceData");
+	pLua->Pop(1);
 
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::IGModAudioChannel, pLua->CreateMetaTable("IGModAudioChannel"));
 		Util::AddFunc(pLua, IGModAudioChannel__tostring, "__tostring");
@@ -497,7 +803,11 @@ void CBassModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 		Util::AddFunc(pLua, IGModAudioChannel_NotImplemented, "Set3DEnabled");
 
 		// HolyLib specific
-		Util::AddFunc(pLua, IGModAudioChannel_EncodeToDisk, "EncodeToDisk");
+		Util::AddFunc(pLua, IGModAudioChannel_WriteToDisk, "WriteToDisk");
+		Util::AddFunc(pLua, IGModAudioChannel_CreateEncoder, "CreateEncoder");
+		Util::AddFunc(pLua, IGModAudioChannel_Update, "Update");
+		Util::AddFunc(pLua, IGModAudioChannel_CreateLink, "CreateLink");
+		Util::AddFunc(pLua, IGModAudioChannel_DestroyLink, "DestroyLink");
 	pLua->Pop(1);
 
 	Util::StartTable(pLua);
@@ -505,11 +815,17 @@ void CBassModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 		Util::AddFunc(pLua, bass_PlayURL, "PlayURL");
 		Util::AddFunc(pLua, bass_Update, "Update");
 		Util::AddFunc(pLua, bass_GetVersion, "GetVersion");
+		Util::AddFunc(pLua, bass_CreateDummyChannel, "CreateDummyChannel");
+		// Util::AddFunc(pLua, bass_LoadPlugin, "LoadPlugin");
 	Util::FinishTable(pLua, "bass");
 }
 
 void CBassModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
+	// Finish all callbacks
+	// We pass pLua so that our BassEncoderCallback can check if its their state and force a finish
+	gGModAudio->FinishAllAsync(pLua);
+
 	Util::NukeTable(pLua, "bass");
 }
 

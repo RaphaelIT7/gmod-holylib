@@ -291,7 +291,7 @@ void TableToJSONRecursive(GarrysMod::Lua::ILuaInterface* pLua, LuaUtilModuleData
 	//}
 
 	while (pLua->Next(-2)) {
-		// In bootil, you just don't give a child a name to indicate that it's sequentail. 
+		// In bootil, you just don't give a child a name to indicate that it's sequential. 
 		// so we need to support that.
 		bool isSequential = false; 
 		int iKeyType = pLua->GetType(-2);
@@ -340,10 +340,14 @@ void TableToJSONRecursive(GarrysMod::Lua::ILuaInterface* pLua, LuaUtilModuleData
 			case GarrysMod::Lua::Type::Number:
 				{
 					double pNumber = pLua->GetNumber(-1);
-					if (IsInt(pNumber))
-						value.SetInt(pNumber);
-					else
-						value.SetDouble(pNumber);
+					if (isfinite(pNumber)) { // Needed for math.huge
+						if (IsInt(pNumber))
+							value.SetInt(pNumber);
+						else
+							value.SetDouble(pNumber);
+					} else {
+						value.SetNull();
+					}
 				}
 				break;
 			case GarrysMod::Lua::Type::Bool:
@@ -483,6 +487,9 @@ void PushJSONValue(GarrysMod::Lua::ILuaInterface* pLua, const rapidjson::Value& 
 void JSONToTableRecursive(GarrysMod::Lua::ILuaInterface* pLua, const rapidjson::Value& jsonValue, bool noSet)
 {
 	if (jsonValue.IsObject()) {
+		if (!noSet)
+			pLua->PreCreateTable(0, jsonValue.MemberCount());
+
 		for (rapidjson::Value::ConstMemberIterator itr = jsonValue.MemberBegin(); itr != jsonValue.MemberEnd(); ++itr) {
 			const rapidjson::Value& value = itr->value;
 
@@ -500,12 +507,11 @@ void JSONToTableRecursive(GarrysMod::Lua::ILuaInterface* pLua, const rapidjson::
 			PushJSONValue(pLua, itr->value);
 
 			if (!noSet)
-			{
 				pLua->SetTable(-3);
-			}
 		}
 	} else if (jsonValue.IsArray()) {
 		int idx = 0;
+		pLua->PreCreateTable(jsonValue.Size(), 0);
 		for (rapidjson::SizeType i = 0; i < jsonValue.Size(); ++i)
 		{
 			JSONToTableRecursive(pLua, jsonValue[i], true);
@@ -528,7 +534,6 @@ LUA_FUNCTION_STATIC(util_JSONToTable)
 		return 0;
     }
 
-	LUA->CreateTable();
 	JSONToTableRecursive(LUA, doc);
 	return 1;
 }
@@ -790,10 +795,11 @@ void CUtilModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 		Util::RemoveField(pLua, "AsyncCompress");
 		Util::RemoveField(pLua, "AsyncDecompress");
 		Util::RemoveField(pLua, "FancyTableToJSON");
+		Util::RemoveField(pLua, "FancyJSONToTable");
 		Util::RemoveField(pLua, "CompressLZ4");
 		Util::RemoveField(pLua, "DecompressLZ4");
 		Util::RemoveField(pLua, "AsyncTableToJSON");
-		Util::RemoveField(pLua, "AsyncJSONToTable");
+		// Util::RemoveField(pLua, "AsyncJSONToTable");
 		Util::PopTable(pLua);
 	}
 }
