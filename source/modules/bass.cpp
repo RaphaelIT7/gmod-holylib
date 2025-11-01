@@ -717,9 +717,9 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_FeedEmpty)
 	char* pSilence = (char*)_alloca(nBytes);
 	memset(pSilence, 0, nBytes);
 	
-	const char* pError = nullptr;
+	const char* pError = NULL;
 	channel->WriteData(pSilence, nBytes, &pError);
-	LUA->PushBool(pError == nullptr);
+	LUA->PushBool(pError == NULL);
 	if (pError) {
 		LUA->PushString(pError);
 	} else {
@@ -761,7 +761,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_AddMixerChannel)
 {
 	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 	IGModAudioChannel* otherChannel = Get_IGModAudioChannel(LUA, 2, true);
-	unsigned long nFlags = (unsigned long)LUA->CheckNumber(3);
+	unsigned long nFlags = (unsigned long)LUA->CheckNumberOpt(3, 0);
 
 	if (!channel->IsMixer())
 		LUA->ThrowError("Tried to call this on a non-mixer channel!");
@@ -963,7 +963,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_CreateEncoder)
 
 	const char* pFileName = LUA->CheckString(2);
 	// NOTE: Next time ensure I fucking use CheckNumber and not CheckString to then cast :sob: only took 8+ hours to figure out
-	unsigned long nFlags = (unsigned long)LUA->CheckNumber(3);
+	unsigned long nFlags = (unsigned long)LUA->CheckNumberOpt(3, 0);
 
 	BassEncoderDeletionCallback* pCallback = new BassEncoderDeletionCallback(LUA);
 	// We do not manage this pointer! GModAudio does for us

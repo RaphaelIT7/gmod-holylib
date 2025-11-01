@@ -3384,7 +3384,7 @@ bass.PlayFile("data/exampleSong.wav", "decode", function(channel, a, b)
 end)
 ```
 
-#### IGModAudioChannel, string(errMsg - nil) IGModAudioChannel:CreateEncoder(string fileName, number bassFlags)
+#### IGModAudioChannel, string(errMsg - nil) IGModAudioChannel:CreateEncoder(string fileName, number bassFlags = 0)
 callback - `function(success, errMsg) end`<br>
 bassFlags - bitflags, see https://www.un4seen.com/doc/#bassenc/BASS_Encode_Start.html<br>
 fileName - The filename to use to write, or just the encoder.<br>
@@ -3454,10 +3454,7 @@ Feeds the given voicedata into the channel.<br>
 > This function will throw an error if you call it on a non-push channel.
 
 #### bool(success), string(errMsg - nil) IGModAudioChannel:FeedEmpty( number ms, number samplerate, number channels )
-Feeds null data into the encoder for the given ms frame using the given samplerate and channels.<br>
-
-> [!NOTE]
-> This is needed as encoders seem to frequently die if not feed data continuously<br>
+Feeds null data into the channel for the given ms frame using the given samplerate and channels.<br>
 
 > [!NOTE]
 > This function will throw an error if you call it on a non-push channel.
@@ -3471,7 +3468,7 @@ Feeds the given PCM data into the channel.<br>
 #### bool IGModAudioChannel:IsMixer()
 Returns `true` if the channel was created using `bass.CreateMixerChannel`<br>
 
-#### bool IGModAudioChannel:AddMixerChannel( IGModAudioChannel otherChannel )
+#### bool IGModAudioChannel:AddMixerChannel( IGModAudioChannel otherChannel, number flags = 0 )
 Adds the given channel into our mixer.<br>
 Binds internally to https://www.un4seen.com/doc/#bassmix/BASS_Mixer_StreamAddChannel.html<br>
 
@@ -3568,9 +3565,6 @@ Feeds the given voicedata into the encoder skipping the channels effects & such.
 
 #### bool(success) IGModAudioChannelEncoder:FeedEmpty( number ms, number samplerate, number channels )
 Feeds null data into the encoder for the given ms frame using the given samplerate and channels.<br>
-
-> [!NOTE]
-> This is needed as encoders seem to frequently die if not feed data continuously<br>
 
 #### bool(success) IGModAudioChannelEncoder:FeedData( string data )
 Feeds the given PCM data into the encoder skipping the channels effects & such.<br>
