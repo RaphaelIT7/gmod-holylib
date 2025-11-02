@@ -116,6 +116,26 @@ return {
                 end )
             end
         },
+        {
+            name = "Correctly handles 3D audio flag",
+            when = HolyLib_IsModuleEnabled( "bass" ),
+            async = true,
+            timeout = 2,
+            func = function()
+                local filePath = "sound/bass_testsound.wav"
+                local flags = "3d mono"
+        
+                bass.PlayFile( filePath, flags, function( channel, errorCode, errorMsg )
+                    expect( channel ).toNot.beNil()
+                    expect( errorCode ).to.equal( 0 )
+                    expect( errorMsg ).to.beNil()
+
+                    expect( channel:GetState() ).to.equal( 1 )
+                    
+                    done()
+                end )
+            end
+        },
         -- Test error handling based on BASS error codes
         -- https://www.un4seen.com/doc/#bass/BASS_ErrorGetCode.html
         {
@@ -131,24 +151,6 @@ return {
                     expect( channel ).to.beNil()
                     expect( errorCode ).to.equal( 2 )
                     expect( errorMsg ).to.equal( "BASS_ERROR_FILEOPEN" )
-                    
-                    done()
-                end )
-            end
-        },
-        {
-            name = "Incorrect 3d flag usage",
-            when = HolyLib_IsModuleEnabled( "bass" ),
-            async = true,
-            timeout = 2,
-            func = function()
-                local filePath = "sound/bass_testsound.wav"
-                local flags = "3d mono"
-        
-                bass.PlayFile( filePath, flags, function( channel, errorCode, errorMsg )
-                    expect( channel ).to.beNil()
-                    expect( errorCode ).to.equal( 21 )
-                    expect( errorMsg ).to.equal( "BASS_ERROR_NO3D" )
                     
                     done()
                 end )

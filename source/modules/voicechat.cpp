@@ -70,11 +70,7 @@ IModule* pVoiceChatModule = &g_pVoiceChatModule;
 struct VoiceData
 {
 	~VoiceData() {
-		if (pData)
-			delete[] pData;
-
-		if (pDecompressedData)
-			delete[] pDecompressedData;
+		Empty();
 	}
 
 	inline void AllocData()
@@ -290,6 +286,25 @@ struct VoiceData
 		);
 	}
 
+	inline void Empty()
+	{
+		if (pData)
+		{
+			delete[] pData;
+			pData = NULL;
+		}
+
+		if (pDecompressedData)
+		{
+			delete[] pDecompressedData;
+			pDecompressedData = NULL;
+		}
+
+		iLength = 0;
+		iDecompressedLength = 0;
+		bDecompressedChanged = false;
+	}
+
 	int iPlayerSlot = 0; // What if it's an invalid one ;D (It doesn't care.......)
 	bool bProximity = true;
 	bool bDecompressedChanged = false;
@@ -466,6 +481,14 @@ LUA_FUNCTION_STATIC(VoiceData_CreateCopy)
 
 	Push_VoiceData(LUA, pData->CreateCopy());
 	return 1;
+}
+
+LUA_FUNCTION_STATIC(VoiceData_Empty)
+{
+	VoiceData* pData = Get_VoiceData(LUA, 1, true);
+
+	pData->Empty();
+	return 0;
 }
 
 struct WavAudioFile {
@@ -2301,6 +2324,7 @@ void CVoiceChatModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServer
 		Util::AddFunc(pLua, VoiceData_GetProximity, "GetProximity");
 		Util::AddFunc(pLua, VoiceData_SetProximity, "SetProximity");
 		Util::AddFunc(pLua, VoiceData_CreateCopy, "CreateCopy");
+		Util::AddFunc(pLua, VoiceData_Empty, "Empty");
 	pLua->Pop(1);
 
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::VoiceStream, pLua->CreateMetaTable("VoiceStream"));
