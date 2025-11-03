@@ -153,6 +153,15 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 
 	Msg("--- HolyLib Plugin finished loading ---\n");
 
+	Msg("--- HolyLib Threadpool test ---\n");
+	for (int i=0; i < 1000; ++i)
+	{
+		IThreadPool* pPool = V_CreateThreadPool();
+		Util::StartThreadPool(pPool, 2);
+		V_DestroyThreadPool(pPool);
+	}
+	Msg("--- HolyLib Threadpool test finished ---\n");
+
 	return true;
 }
 

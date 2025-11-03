@@ -424,25 +424,25 @@ unsigned long CGMod_Audio::GetVersion()
 
 void CGMod_Audio::Shutdown()
 {
-	// Msg("CGMod_Audio::Shutdown start\n");
+	Msg("CGMod_Audio::Shutdown start\n");
 	FinishAllAsync((void*)EncoderForceShutdownPointer); // Finish all callbacks
 
-	// Msg("CGMod_Audio::Shutdown 2\n");
+	Msg("CGMod_Audio::Shutdown 2\n");
 	if (g_pGModAudioThreadPool)
 	{
-		// Msg("CGMod_Audio::Shutdown %i\n", g_pGModAudioThreadPool->GetJobCount());
-		g_pGModAudioThreadPool->AbortAll(); // ToDo: Debug this and check why 64x shits itself when shutting down
-		g_pGModAudioThreadPool->Stop(1);
+		Msg("CGMod_Audio::Shutdown %i\n", g_pGModAudioThreadPool->GetJobCount());
+		// g_pGModAudioThreadPool->AbortAll(); // ToDo: Debug this and check why 64x shits itself when shutting down
+		// g_pGModAudioThreadPool->Stop(0);
 		V_DestroyThreadPool(g_pGModAudioThreadPool);
 		g_pGModAudioThreadPool = nullptr;
 	}
 
-	// Msg("CGMod_Audio::Shutdown 3\n");
+	Msg("CGMod_Audio::Shutdown 3\n");
 
 	BASS_Free();
 	BASS_PluginFree(0);
 
-	// Msg("CGMod_Audio::Shutdown 4\n");
+	Msg("CGMod_Audio::Shutdown 4\n");
 
 	for (void* pLoadedDLL : m_pLoadedDLLs)
 	{
@@ -450,7 +450,7 @@ void CGMod_Audio::Shutdown()
 	}
 	m_pLoadedDLLs.clear();
 
-	// Msg("CGMod_Audio::Shutdown 5\n");
+	Msg("CGMod_Audio::Shutdown 5\n");
 }
 
 IBassAudioStream* CGMod_Audio::CreateAudioStream(IAudioStreamEvent* event)
