@@ -32,6 +32,24 @@ return {
                 expect( actualTable ).to.deepEqual( expectedTable )
             end
         },
+        { -- This the second reported crash from: https://github.com/RaphaelIT7/gmod-holylib/issues/101
+            name = "Returns a proper result",
+            when = HolyLib_IsModuleEnabled("util"),
+            func = function()
+                local expectedTable = {
+                    {
+                        a = 1,
+                        b = 2,
+                    }
+                }
+
+                -- Input forces it to enter IsArray, which then recursively calls to IsObject internally as this focus on testing if the stack is properly taken account of
+                -- Formerly, this was screwed up as it handled pushing values wrong pushing more than one value onto the stack resulting in a stack leak and other weird behavior.
+                local actualTable = util.FancyJSONToTable( '[{"a":1,"b":2}]' )
+
+                expect( actualTable ).to.deepEqual( expectedTable )
+            end
+        },
         {
             name = "Performance",
             when = HolyLib_IsModuleEnabled("util"),
