@@ -297,7 +297,7 @@ void CAutoRefreshModule::Shutdown()
 {
 	if (pFileTimePool)
 	{
-		V_DestroyThreadPool(pFileTimePool);
+		Util::DestroyThreadPool(pFileTimePool);
 		pFileTimePool = nullptr;
 	}
 }

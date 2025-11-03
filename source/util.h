@@ -274,7 +274,7 @@ namespace Util
 
 	inline void StartThreadPool(IThreadPool* pool, ThreadPoolStartParams_t& startParams)
 	{
-#if ARCHITECTURE_IS_X86_64 && SYSTEM_LINUX
+#if ARCHITECTURE_IS_X86_64 && SYSTEM_LINUX && DEDICATED
 		startParams.bEnableOnLinuxDedicatedServer = true;
 #endif
 		pool->Start(startParams);
@@ -286,6 +286,14 @@ namespace Util
 		startParams.nThreads = iThreads;
 		startParams.nThreadsMax = startParams.nThreads;
 		Util::StartThreadPool(pool, startParams);
+	}
+
+	// Workaround until https://github.com/Facepunch/garrysmod-issues/issues/6583
+	// On 32x deleting a pool goes fine, on 64x it can randomly freeze indefinetly, its not even consistent. Its random.
+	inline void DestroyThreadPool(IThreadPool* pool)
+	{
+		pool->Stop();
+		::V_DestroyThreadPool(pool);
 	}
 
 	// Gameevent stuff

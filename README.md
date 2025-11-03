@@ -149,6 +149,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [#] Fixed `util.FancyJSONToTable` not being unloaded when disabled causing a invalid function to remain in Lua that would crash on call<br>
 \- [#] Fixed `util.FancyJSONToTable` crashing when given sequential arrays (See: https://github.com/RaphaelIT7/gmod-holylib/issues/101)<br>
 \- [#] Fixed `util.FancyTableToJSON` being unable to handle `math.huge` causing the parser to stop leaving invalid json<br>
+\- [#] Implemented a workaround for 64x possibly hanging indefinetly when a threadpool is deleted<br>
 \- [-] Removed some unused code of former fixes that were implemented into Gmod<br>
 
 You can see all changes/commits here:<br>

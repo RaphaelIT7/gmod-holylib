@@ -2379,8 +2379,11 @@ void CVoiceChatModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 
 void CVoiceChatModule::Shutdown()
 {
-	V_DestroyThreadPool(pVoiceThreadPool);
-	pVoiceThreadPool = NULL;
+	if (pVoiceThreadPool)
+	{
+		Util::DestroyThreadPool(pVoiceThreadPool);
+		pVoiceThreadPool = NULL;
+	}
 }
 
 IVoiceServer* g_pVoiceServer = NULL;

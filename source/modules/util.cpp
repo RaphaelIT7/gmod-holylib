@@ -823,11 +823,19 @@ void CUtilModule::Shutdown()
 {
 	if (pCompressPool)
 	{
-		V_DestroyThreadPool(pCompressPool);
-		V_DestroyThreadPool(pDecompressPool);
-		V_DestroyThreadPool(pJsonPool);
+		Util::DestroyThreadPool(pCompressPool);
 		pCompressPool = NULL;
+	}
+
+	if (pCompressPool)
+	{
+		Util::DestroyThreadPool(pDecompressPool);
 		pDecompressPool = NULL;
+	}
+
+	if (pJsonPool)
+	{
+		Util::DestroyThreadPool(pJsonPool);
 		pJsonPool = NULL;
 	}
 }

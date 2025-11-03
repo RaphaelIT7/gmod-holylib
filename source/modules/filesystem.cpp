@@ -80,7 +80,7 @@ static void OnThreadsChange(IConVar* convar, const char* pOldValue, float flOldV
 
 		if (pConVar->GetInt() <= 0)
 		{
-			V_DestroyThreadPool(pFileSystemPool);
+			Util::DestroyThreadPool(pFileSystemPool);
 			pFileSystemPool = NULL;
 		} else {
 			Util::StartThreadPool(pFileSystemPool, pConVar->GetInt());
@@ -2260,7 +2260,7 @@ void CFileSystemModule::Shutdown()
 	if (pFileSystemPool)
 	{
 		pFileSystemPool->ExecuteAll();
-		V_DestroyThreadPool(pFileSystemPool);
+		Util::DestroyThreadPool(pFileSystemPool);
 		pFileSystemPool = NULL;
 	}
 
