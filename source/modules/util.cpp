@@ -448,8 +448,8 @@ LUA_FUNCTION_STATIC(util_TableToJSON)
 }
 
 // When called, we expect the top of the stack to be the main table that we will be writing into
-// noSet = If true, we expect only the value to get pushed or nil, and the key will be ignored.
-extern void JSONToTableRecursive(GarrysMod::Lua::ILuaInterface* pLua, const rapidjson::Value& jsonValue, bool noSet = false);
+// nOutsideSet = If true, only one value is expected to be pushed which will be set/inserted into the caller
+extern void JSONToTableRecursive(GarrysMod::Lua::ILuaInterface* pLua, const rapidjson::Value& jsonValue, bool nOutsideSet = false);
 void PushJSONValue(GarrysMod::Lua::ILuaInterface* pLua, const rapidjson::Value& jsonValue)
 {
 	if (jsonValue.IsObject()) {
@@ -484,30 +484,24 @@ void PushJSONValue(GarrysMod::Lua::ILuaInterface* pLua, const rapidjson::Value& 
 	}
 }
 
-void JSONToTableRecursive(GarrysMod::Lua::ILuaInterface* pLua, const rapidjson::Value& jsonValue, bool noSet)
+void JSONToTableRecursive(GarrysMod::Lua::ILuaInterface* pLua, const rapidjson::Value& jsonValue, bool nOutsideSet)
 {
 	if (jsonValue.IsObject()) {
-		if (!noSet)
-			pLua->PreCreateTable(0, jsonValue.MemberCount());
-
+		pLua->PreCreateTable(0, jsonValue.MemberCount());
 		for (rapidjson::Value::ConstMemberIterator itr = jsonValue.MemberBegin(); itr != jsonValue.MemberEnd(); ++itr) {
 			const rapidjson::Value& value = itr->value;
 
-			if (!noSet)
-			{
-				if (itr->name.IsString()) {
-					pLua->PushString(itr->name.GetString());
-				} else if (itr->name.IsNumber()) {
-					pLua->PushNumber(itr->name.GetDouble());
-				} else if (itr->name.IsBool()) {
-					pLua->PushBool(itr->name.GetBool());
-				}
+			if (itr->name.IsString()) {
+				pLua->PushString(itr->name.GetString());
+			} else if (itr->name.IsNumber()) {
+				pLua->PushNumber(itr->name.GetDouble());
+			} else if (itr->name.IsBool()) {
+				pLua->PushBool(itr->name.GetBool());
 			}
 
 			PushJSONValue(pLua, itr->value);
 
-			if (!noSet)
-				pLua->SetTable(-3);
+			pLua->SetTable(-3);
 		}
 	} else if (jsonValue.IsArray()) {
 		int idx = 0;
@@ -517,7 +511,7 @@ void JSONToTableRecursive(GarrysMod::Lua::ILuaInterface* pLua, const rapidjson::
 			JSONToTableRecursive(pLua, jsonValue[i], true);
 			Util::RawSetI(pLua, -2, ++idx);
 		}
-	} else if (noSet) {
+	} else if (nOutsideSet) { // We got called by above jsonValue.IsArray(), so we expect ONLY ONE value to be pushed.
 		PushJSONValue(pLua, jsonValue);
 	}
 }
