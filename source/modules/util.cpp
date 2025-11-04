@@ -827,7 +827,7 @@ void CUtilModule::Shutdown()
 		pCompressPool = NULL;
 	}
 
-	if (pCompressPool)
+	if (pDecompressPool)
 	{
 		Util::DestroyThreadPool(pDecompressPool);
 		pDecompressPool = NULL;
