@@ -1121,7 +1121,7 @@ void CBitBufModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 		Util::AddFunc(pLua, bf_write_WriteBitAngle, "WriteBitAngle");
 		Util::AddFunc(pLua, bf_write_WriteBitAngles, "WriteBitAngles");
 		Util::AddFunc(pLua, bf_write_WriteBitVec3Coord, "WriteBitVec3Coord");
-		Util::AddFunc(pLua, bf_write_WriteBitVec3Normal, "WriteBitVec3normal");
+		Util::AddFunc(pLua, bf_write_WriteBitVec3Normal, "WriteBitVec3Normal");
 		Util::AddFunc(pLua, bf_write_WriteBits, "WriteBits");
 		Util::AddFunc(pLua, bf_write_WriteBitsFromBuffer, "WriteBitsFromBuffer");
 		Util::AddFunc(pLua, bf_write_WriteBitNormal, "WriteBitNormal");
