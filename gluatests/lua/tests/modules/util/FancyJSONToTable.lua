@@ -67,6 +67,21 @@ return {
             end
         },
         {
+            name = "Returns a proper result",
+            when = HolyLib_IsModuleEnabled("util"),
+            func = function()
+                local expectedTable = {
+                    [1] = "a",
+                    [2] = "b",
+                    ["0YHolyLibIsS0C00L"] = "c",
+                }
+
+                local actualTable = util.FancyJSONToTable( '{"1":"a","2":"b","0YHolyLibIsS0C00L":"c"}' )
+
+                expect( actualTable ).to.deepEqual( expectedTable )
+            end
+        },
+        {
             name = "Performance",
             when = HolyLib_IsModuleEnabled("util"),
             func = function()

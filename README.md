@@ -1280,7 +1280,7 @@ Works like util.Decompress but it's async.<br>
 #### string util.FancyTableToJSON(table tbl, bool pretty, bool ignorecycle)
 ignorecycle - If `true` it won't throw a lua error when you have a table that is recursive/cycle.<br>
 
-Convers the given table to json.<br>
+Converts the given table to json.<br>
 Unlike Gmod's version, this function will turn the numbers to an integer if they are one/fit one.<br>
 This version is noticably faster than Gmod's version and uses less memory in the process.<br>
 
@@ -1288,8 +1288,8 @@ This version is noticably faster than Gmod's version and uses less memory in the
 > This implementation will include `null` for values it cannot handle.<br>
 > Gmod hides `null` but we don't meaning if for example we get `{math.huge}` as input, it will return `[null]` which still is valid json.<br>
 
-#### table util.FancyJSONToTable(string json)
-Convers the json into a table.<br>
+#### table util.FancyJSONToTable(string json, bool ignoreConversions = false)
+Converts the json into a table.<br>
 This version is noticably faster than Gmod's version and uses less memory in the process.<br>
 
 #### string util.CompressLZ4(string data, number accelerationLevel = 1)
