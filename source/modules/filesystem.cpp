@@ -804,7 +804,7 @@ static const char* GetSplitPath(const char* pFileName, const char* pathID)
 		return NULL;
 
 	// We only enable split path for anything on the GAME path.
-	if (V_stricmp("GAME", pathID) != 0)
+	if (!pathID || V_stricmp("GAME", pathID) != 0)
 		return NULL;
 
 	std::string_view strFileName = pFileName;
