@@ -960,7 +960,7 @@ namespace Symbols
 		Symbol::FromName("_ZN6Bootil4File13ChangeMonitor10HasChangesEv"),
 	};
 
-	const std::vector<Symbol> Bootil_File_ChangeMonitor_HasChangedSym = {
+	const std::vector<Symbol> Bootil_File_ChangeMonitor_HasChangesSym = {
 		Symbol::FromName("_ZN6Bootil4File13ChangeMonitor10HasChangesEv"),
 	};
 
@@ -1012,6 +1012,7 @@ namespace Symbols
 	};
 
 	// Yay commands :3
+	// Becomes unessesary with https://github.com/Facepunch/garrysmod-requests/issues/2974
 	const std::vector<Symbol> writeipSym = {
 		Symbol::FromName("_ZL7writeipRK8CCommand"),
 	};

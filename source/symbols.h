@@ -717,8 +717,8 @@ namespace Symbols
 	typedef void (*Bootil_File_ChangeMonitor_CheckForChanges)(void* changeMonitor);
 	extern const std::vector<Symbol> Bootil_File_ChangeMonitor_CheckForChangesSym;
 
-	typedef bool (*Bootil_File_ChangeMonitor_HasChanged)(void* changeMonitor);
-	extern const std::vector<Symbol> Bootil_File_ChangeMonitor_HasChangedSym;
+	typedef bool (*Bootil_File_ChangeMonitor_HasChanges)(void* changeMonitor);
+	extern const std::vector<Symbol> Bootil_File_ChangeMonitor_HasChangesSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: soundscape Symbols

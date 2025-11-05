@@ -84,15 +84,15 @@ static void CheckFileTime(FileTimeJob* pJob)
 
 static Bootil::File::ChangeMonitor* g_pChangeMonitor = nullptr;
 static bool bForceHasChangedCall = false;
-static Detouring::Hook detour_Bootil_File_ChangeMonitor_HasChanged;
-static bool hook_Bootil_File_ChangeMonitor_HasChanged(Bootil::File::ChangeMonitor* pMonitor)
+static Detouring::Hook detour_Bootil_File_ChangeMonitor_HasChanges;
+static bool hook_Bootil_File_ChangeMonitor_HasChanges(Bootil::File::ChangeMonitor* pMonitor)
 {
 	g_pChangeMonitor = pMonitor; // We cannot just load g_pChangeMonitor since the symbol has an additional fked offset that can change with every gmod build making it unreliable.
 
 	if (bForceHasChangedCall)
 		return false;
 
-	return detour_Bootil_File_ChangeMonitor_HasChanged.GetTrampoline<Symbols::Bootil_File_ChangeMonitor_HasChanged>()(pMonitor);
+	return detour_Bootil_File_ChangeMonitor_HasChanges.GetTrampoline<Symbols::Bootil_File_ChangeMonitor_HasChanges>()(pMonitor);
 }
 
 static Detouring::Hook detour_Bootil_File_ChangeMonitor_CheckForChanges;
@@ -321,9 +321,9 @@ void CAutoRefreshModule::InitDetour(bool bPreServer)
 	);
 
 	Detour::Create(
-		&detour_Bootil_File_ChangeMonitor_HasChanged, "Bootil::File::ChangeMonitor::HasChanged",
-		server_loader.GetModule(), Symbols::Bootil_File_ChangeMonitor_HasChangedSym,
-		(void*)hook_Bootil_File_ChangeMonitor_HasChanged, m_pID
+		&detour_Bootil_File_ChangeMonitor_HasChanges, "Bootil::File::ChangeMonitor::HasChanges",
+		server_loader.GetModule(), Symbols::Bootil_File_ChangeMonitor_HasChangesSym,
+		(void*)hook_Bootil_File_ChangeMonitor_HasChanges, m_pID
 	);
 
 	func_GarrysMod_AutoRefresh_Init = (Symbols::GarrysMod_AutoRefresh_Init)Detour::GetFunction(server_loader.GetModule(), Symbols::GarrysMod_AutoRefresh_InitSym);
