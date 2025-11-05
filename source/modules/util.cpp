@@ -452,26 +452,26 @@ LUA_FUNCTION_STATIC(util_TableToJSON)
 extern void JSONToTableRecursive(GarrysMod::Lua::ILuaInterface* pLua, const rapidjson::Value& jsonValue, bool nOutsideSet = false);
 void PushJSONValue(GarrysMod::Lua::ILuaInterface* pLua, const rapidjson::Value& jsonValue)
 {
-	if (jsonValue.IsObject()) {
-		pLua->CreateTable();
+	if (jsonValue.IsObject() || jsonValue.IsArray()) {
 		JSONToTableRecursive(pLua, jsonValue, false);
-	} else if (jsonValue.IsArray()) {
-		pLua->PreCreateTable(jsonValue.Size(), 0);
-		int idx = 1;
-		for (rapidjson::SizeType i = 0; i < jsonValue.Size(); ++i) {
-			JSONToTableRecursive(pLua, jsonValue[i], true);
-			Util::RawSetI(pLua, -2, idx++);
-		}
 	} else if (jsonValue.IsString()) {
 		const char* valueStr = jsonValue.GetString();
 		if (jsonValue.GetStringLength() > 2 && valueStr[0] == '[' && valueStr[jsonValue.GetStringLength() - 1] == ']') {
 			Vector vec;
-			sscanf(valueStr + 1, "%f %f %f", &vec.x, &vec.y, &vec.z);
-			pLua->PushVector(vec);
+			int nParsed = sscanf(valueStr + 1, "%f %f %f", &vec.x, &vec.y, &vec.z);
+			if (nParsed == 3) {
+				pLua->PushVector(vec);
+			} else {
+				pLua->PushString(valueStr);
+			}
 		} else if (jsonValue.GetStringLength() > 2 && valueStr[0] == '{' && valueStr[jsonValue.GetStringLength() - 1] == '}') {
 			QAngle ang;
-			sscanf(valueStr + 1, "%f %f %f", &ang.x, &ang.y, &ang.z);
-			pLua->PushAngle(ang);
+			int nParsed = sscanf(valueStr + 1, "%f %f %f", &ang.x, &ang.y, &ang.z);
+			if (nParsed == 3) {
+				pLua->PushAngle(ang);
+			} else {
+				pLua->PushString(valueStr);
+			}
 		} else {
 			pLua->PushString(valueStr);
 		}
@@ -492,11 +492,11 @@ void JSONToTableRecursive(GarrysMod::Lua::ILuaInterface* pLua, const rapidjson::
 			const rapidjson::Value& value = itr->value;
 
 			if (itr->name.IsString()) {
-				pLua->PushString(itr->name.GetString());
+				pLua->PushString(itr->name.GetString(), itr->name.GetStringLength());
 			} else if (itr->name.IsNumber()) {
-				pLua->PushNumber(itr->name.GetDouble());
-			} else if (itr->name.IsBool()) {
-				pLua->PushBool(itr->name.GetBool());
+				char buffer[64];
+				snprintf(buffer, sizeof(buffer), "%.17g", itr->name.GetDouble());
+				pLua->PushString(buffer);
 			}
 
 			PushJSONValue(pLua, itr->value);
@@ -526,7 +526,7 @@ LUA_FUNCTION_STATIC(util_JSONToTable)
 	if (doc.HasParseError()) {
 		LUA->ThrowError("Invalid JSON string");
 		return 0;
-    }
+	}
 
 	JSONToTableRecursive(LUA, doc);
 	return 1;

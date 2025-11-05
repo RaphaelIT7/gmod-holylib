@@ -50,6 +50,22 @@ return {
                 expect( actualTable ).to.deepEqual( expectedTable )
             end
         },
+        { -- This the third reported issue from (it just never stops :sob:): https://github.com/RaphaelIT7/gmod-holylib/issues/101
+            name = "Returns a proper result",
+            when = HolyLib_IsModuleEnabled("util"),
+            func = function()
+                local expectedTable = {
+                	name = "[Important: HolyLibIsGoated]",
+                    pos = Vector(4, 2, 0)
+                }
+
+                -- Input uses [ ] though does not focus on being a vector, instead its just a normal string using it
+                -- This focuses on the internal validation ensuring no garbage vectors are returned (which they previously were)
+                local actualTable = util.FancyJSONToTable( '{"pos": "[4 2 0]", "name": "[Important: HolyLibIsGoated]"}' )
+
+                expect( actualTable ).to.deepEqual( expectedTable )
+            end
+        },
         {
             name = "Performance",
             when = HolyLib_IsModuleEnabled("util"),
