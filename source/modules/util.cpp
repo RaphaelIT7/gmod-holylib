@@ -242,7 +242,7 @@ LUA_FUNCTION_STATIC(util_AsyncDecompress)
 	return 0;
 }
 
-inline bool IsInt(float pNumber)
+inline bool IsInt(double pNumber)
 {
 	return static_cast<int>(pNumber) == pNumber && INT32_MAX >= pNumber && pNumber >= INT32_MIN;
 }
