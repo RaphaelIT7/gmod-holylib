@@ -4,6 +4,9 @@
 #include "Bootil/Bootil.h"
 #include <lz4/lz4_compression.h>
 
+#undef isdigit // Fix for 64x
+#include <charconv>
+
 #include "bootil/src/3rdParty/rapidjson/rapidjson.h"
 #include "bootil/src/3rdParty/rapidjson/document.h"
 #include "bootil/src/3rdParty/rapidjson/stringbuffer.h"
@@ -239,14 +242,15 @@ LUA_FUNCTION_STATIC(util_AsyncDecompress)
 	return 0;
 }
 
-inline bool IsInt(double pNumber)
+inline bool IsInt(float pNumber)
 {
 	return static_cast<int>(pNumber) == pNumber && INT32_MAX >= pNumber && pNumber >= INT32_MIN;
 }
 
-inline bool IsInt(float pNumber)
+inline bool StrToIntFast(const char* pStr, size_t iLen, long long& lOut)
 {
-	return static_cast<int>(pNumber) == pNumber && INT32_MAX >= pNumber && pNumber >= INT32_MIN;
+	auto [pEnd, ec] = std::from_chars(pStr, pStr + iLen, lOut);
+	return ec == std::errc() && pEnd == pStr + iLen;
 }
 
 extern void TableToJSONRecursive(GarrysMod::Lua::ILuaInterface* pLua, LuaUtilModuleData* pData, rapidjson::Value& outValue, rapidjson::Document::AllocatorType& allocator);
@@ -449,31 +453,33 @@ LUA_FUNCTION_STATIC(util_TableToJSON)
 
 // When called, we expect the top of the stack to be the main table that we will be writing into
 // nOutsideSet = If true, only one value is expected to be pushed which will be set/inserted into the caller
-extern void JSONToTableRecursive(GarrysMod::Lua::ILuaInterface* pLua, const rapidjson::Value& jsonValue, bool nOutsideSet = false);
-void PushJSONValue(GarrysMod::Lua::ILuaInterface* pLua, const rapidjson::Value& jsonValue)
+// nIgnoreConversions = If true, don't convert numeric string keys to numbers
+extern void JSONToTableRecursive(GarrysMod::Lua::ILuaInterface* pLua, const rapidjson::Value& jsonValue, bool nOutsideSet = false, bool nIgnoreConversions = false);
+void PushJSONValue(GarrysMod::Lua::ILuaInterface* pLua, const rapidjson::Value& jsonValue, bool nIgnoreConversions = false)
 {
 	if (jsonValue.IsObject() || jsonValue.IsArray()) {
-		JSONToTableRecursive(pLua, jsonValue, false);
+		JSONToTableRecursive(pLua, jsonValue, false, nIgnoreConversions);
 	} else if (jsonValue.IsString()) {
 		const char* valueStr = jsonValue.GetString();
-		if (jsonValue.GetStringLength() > 2 && valueStr[0] == '[' && valueStr[jsonValue.GetStringLength() - 1] == ']') {
+		size_t iStrLength = jsonValue.GetStringLength();
+		if (iStrLength > 2 && valueStr[0] == '[' && valueStr[iStrLength - 1] == ']') {
 			Vector vec;
 			int nParsed = sscanf(valueStr + 1, "%f %f %f", &vec.x, &vec.y, &vec.z);
 			if (nParsed == 3) {
 				pLua->PushVector(vec);
 			} else {
-				pLua->PushString(valueStr);
+				pLua->PushString(valueStr, iStrLength);
 			}
-		} else if (jsonValue.GetStringLength() > 2 && valueStr[0] == '{' && valueStr[jsonValue.GetStringLength() - 1] == '}') {
+		} else if (iStrLength > 2 && valueStr[0] == '{' && valueStr[iStrLength - 1] == '}') {
 			QAngle ang;
 			int nParsed = sscanf(valueStr + 1, "%f %f %f", &ang.x, &ang.y, &ang.z);
 			if (nParsed == 3) {
 				pLua->PushAngle(ang);
 			} else {
-				pLua->PushString(valueStr);
+				pLua->PushString(valueStr, iStrLength);
 			}
 		} else {
-			pLua->PushString(valueStr);
+			pLua->PushString(valueStr, iStrLength);
 		}
 	} else if (jsonValue.IsNumber()) {
 		pLua->PushNumber(jsonValue.GetDouble());
@@ -484,22 +490,26 @@ void PushJSONValue(GarrysMod::Lua::ILuaInterface* pLua, const rapidjson::Value& 
 	}
 }
 
-void JSONToTableRecursive(GarrysMod::Lua::ILuaInterface* pLua, const rapidjson::Value& jsonValue, bool nOutsideSet)
+void JSONToTableRecursive(GarrysMod::Lua::ILuaInterface* pLua, const rapidjson::Value& jsonValue, bool nOutsideSet, bool nIgnoreConversions)
 {
 	if (jsonValue.IsObject()) {
 		pLua->PreCreateTable(0, jsonValue.MemberCount());
 		for (rapidjson::Value::ConstMemberIterator itr = jsonValue.MemberBegin(); itr != jsonValue.MemberEnd(); ++itr) {
-			const rapidjson::Value& value = itr->value;
-
-			if (itr->name.IsString()) {
-				pLua->PushString(itr->name.GetString(), itr->name.GetStringLength());
-			} else if (itr->name.IsNumber()) {
-				char buffer[64];
-				snprintf(buffer, sizeof(buffer), "%.17g", itr->name.GetDouble());
-				pLua->PushString(buffer);
+			const char* pKeyStr = itr->name.GetString();
+			size_t iKeyLen = itr->name.GetStringLength();
+			
+			if (nIgnoreConversions) {
+				pLua->PushString(pKeyStr, iKeyLen);
+			} else {
+				long long lNum;
+				if (StrToIntFast(pKeyStr, iKeyLen, lNum)) {
+					pLua->PushNumber(lNum);
+				} else {
+					pLua->PushString(pKeyStr, iKeyLen);
+				}
 			}
 
-			PushJSONValue(pLua, itr->value);
+			PushJSONValue(pLua, itr->value, nIgnoreConversions);
 
 			pLua->SetTable(-3);
 		}
@@ -508,17 +518,18 @@ void JSONToTableRecursive(GarrysMod::Lua::ILuaInterface* pLua, const rapidjson::
 		pLua->PreCreateTable(jsonValue.Size(), 0);
 		for (rapidjson::SizeType i = 0; i < jsonValue.Size(); ++i)
 		{
-			JSONToTableRecursive(pLua, jsonValue[i], true);
+			JSONToTableRecursive(pLua, jsonValue[i], true, nIgnoreConversions);
 			Util::RawSetI(pLua, -2, ++idx);
 		}
 	} else if (nOutsideSet) { // We got called by above jsonValue.IsArray(), so we expect ONLY ONE value to be pushed.
-		PushJSONValue(pLua, jsonValue);
+		PushJSONValue(pLua, jsonValue, nIgnoreConversions);
 	}
 }
 
 LUA_FUNCTION_STATIC(util_JSONToTable)
 {
 	const char* jsonString = LUA->CheckString(1);
+	bool nIgnoreConversions = LUA->GetBool(2);
 
 	rapidjson::Document doc;
 	doc.Parse(jsonString);
@@ -528,7 +539,7 @@ LUA_FUNCTION_STATIC(util_JSONToTable)
 		return 0;
 	}
 
-	JSONToTableRecursive(LUA, doc);
+	JSONToTableRecursive(LUA, doc, false, nIgnoreConversions);
 	return 1;
 }
 
