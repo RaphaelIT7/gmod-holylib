@@ -367,9 +367,6 @@ namespace Symbols
 	typedef void (GMCOMMON_CALLING_CONVENTION* CBaseFileSystem_AddVPKFile)(void* filesystem, const char* pPath, const char* pathID, SearchPathAdd_t addType);
 	extern const std::vector<Symbol> CBaseFileSystem_AddVPKFileSym;
 
-	typedef void (GMCOMMON_CALLING_CONVENTION* CBaseFileSystem_RemoveAllMapSearchPaths)(void* filesystem);
-	extern const std::vector<Symbol> CBaseFileSystem_RemoveAllMapSearchPathsSym;
-
 	typedef void (GMCOMMON_CALLING_CONVENTION* CBaseFileSystem_Close)(void* filesystem, FileHandle_t);
 	extern const std::vector<Symbol> CBaseFileSystem_CloseSym;
 
