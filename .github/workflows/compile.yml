@@ -473,12 +473,11 @@ jobs:
           tar -xzf gluatest.tar.gz
 
           mv gmod_tests garrysmod/addons
-          mv ghostinj.dll ghostinj2.dll
           mkdir -p garrysmod/lua/bin/gmod_tests/maps
           mv garrysmod/addons/gluatests/maps garrysmod/addons/gmod_tests/maps
           rm -rf garrysmod/addons/gluatests
 
-          tar -czf gmod_tests.tar.gz ghostinj2.dll garrysmod/
+          tar -czf gmod_tests.tar.gz ghostinj.dll garrysmod/
           tar -czf gmod_tests_no_ghostinj.tar.gz garrysmod/
 
       - uses: actions/upload-artifact@v4
@@ -508,12 +507,14 @@ jobs:
           - dev
           - prerelease
         artifact:
-          - gmod_tests_32x
-          - gmod_tests_no_ghostinj_32x
+          - name: gmod_tests_32x
+            args: "-usegh"
+          - name: gmod_tests_no_ghostinj_32x
+            args: ""
     with:
       branch: ${{ matrix.branch }}
-      extra-startup-args: "-usegh -maxplayers 64"
-      download-artifact: ${{ matrix.artifact }}
+      extra-startup-args: "${{ matrix.artifact.args }} -maxplayers 64"
+      download-artifact: ${{ matrix.artifact.name }}
       no-checkout: "true"
       additional-setup: "wget -q https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux.tar.gz -O gluatest/docker/_gluatest_artifacts/linux.tar.gz"
       map: gm_glua_tests
@@ -525,12 +526,14 @@ jobs:
     strategy:
       matrix:
         artifact:
-          - gmod_tests_64x
-          - gmod_tests_no_ghostinj_64x
+          - name: gmod_tests_64x
+            args: "-usegh"
+          - name: gmod_tests_no_ghostinj_64x
+            args: ""
     with:
       branch: x86-64
-      extra-startup-args: "-usegh -maxplayers 64"
-      download-artifact: ${{ matrix.artifact }}
+      extra-startup-args: "${{ matrix.artifact.args }} -maxplayers 64"
+      download-artifact: ${{ matrix.artifact.name }}
       no-checkout: "true"
       additional-setup: "wget -q https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux.tar.gz -O gluatest/docker/_gluatest_artifacts/linux.tar.gz"
       map: gm_glua_tests
@@ -547,12 +550,14 @@ jobs:
           - dev
           - prerelease
         artifact:
-          - gmod_tests_32x
-          - gmod_tests_no_ghostinj_32x
+          - name: gmod_tests_32x
+            args: "-usegh"
+          - name: gmod_tests_no_ghostinj_32x
+            args: ""
     with:
       branch: ${{ matrix.branch }}
-      extra-startup-args: "-usegh -maxplayers 64 -holylib_replaceivp"
-      download-artifact: ${{ matrix.artifact }}
+      extra-startup-args: "${{ matrix.artifact.args }} -maxplayers 64 -holylib_replaceivp"
+      download-artifact: ${{ matrix.artifact.name }}
       no-checkout: "true"
       additional-setup: "wget -q https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux.tar.gz -O gluatest/docker/_gluatest_artifacts/linux.tar.gz"
       map: gm_glua_tests
@@ -565,12 +570,14 @@ jobs:
     strategy:
       matrix:
         artifact:
-          - gmod_tests_64x
-          - gmod_tests_no_ghostinj_64x
+          - name: gmod_tests_64x
+            args: "-usegh"
+          - name: gmod_tests_no_ghostinj_64x
+            args: ""
     with:
       branch: x86-64
-      extra-startup-args: "-usegh -maxplayers 64 -holylib_replaceivp"
-      download-artifact: ${{ matrix.artifact }}
+      extra-startup-args: "${{ matrix.artifact.args }} -maxplayers 64 -holylib_replaceivp"
+      download-artifact: ${{ matrix.artifact.name }}
       no-checkout: "true"
       additional-setup: "wget -q https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux.tar.gz -O gluatest/docker/_gluatest_artifacts/linux.tar.gz"
       map: gm_glua_tests
@@ -587,12 +594,14 @@ jobs:
           - dev
           - prerelease
         artifact:
-          - gmod_tests_32x
-          - gmod_tests_no_ghostinj_32x
+          - name: gmod_tests_32x
+            args: "-usegh"
+          - name: gmod_tests_no_ghostinj_32x
+            args: ""
     with:
       branch: ${{ matrix.branch }}
-      extra-startup-args: "-usegh -maxplayers 64 -holylib_enable_luajit 1"
-      download-artifact: ${{ matrix.artifact }}
+      extra-startup-args: "${{ matrix.artifact.args }} -maxplayers 64 -holylib_enable_luajit 1"
+      download-artifact: ${{ matrix.artifact.name }}
       no-checkout: "true"
       additional-setup: "wget -q https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux.tar.gz -O gluatest/docker/_gluatest_artifacts/linux.tar.gz"
       map: gm_glua_tests
@@ -605,12 +614,14 @@ jobs:
     strategy:
       matrix:
         artifact:
-          - gmod_tests_64x
-          - gmod_tests_no_ghostinj_64x
+          - name: gmod_tests_64x
+            args: "-usegh"
+          - name: gmod_tests_no_ghostinj_64x
+            args: ""
     with:
       branch: x86-64
-      extra-startup-args: "-usegh -maxplayers 64 -holylib_enable_luajit 1"
-      download-artifact: ${{ matrix.artifact }}
+      extra-startup-args: "${{ matrix.artifact.args }} -maxplayers 64 -holylib_enable_luajit 1"
+      download-artifact: ${{ matrix.artifact.name }}
       no-checkout: "true"
       additional-setup: "wget -q https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux.tar.gz -O gluatest/docker/_gluatest_artifacts/linux.tar.gz"
       map: gm_glua_tests
@@ -739,22 +750,6 @@ jobs:
           retention-days: 1
 
   test_exampledll_32bit:
-    name: "Test ExampleDLL 32x branches"
-    needs: setup_exampledll_artifacts
-    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
-    strategy:
-      matrix:
-        branch:
-          - public
-          - dev
-          - prerelease
-    with:
-      branch: ${{ matrix.branch }}
-      extra-startup-args: "-usegh"
-      download-artifact: "gluatest_exampledll_32x"
-      no-checkout: "true"
-
-  test_exampledll_32bit_noghostinj:
     name: "Test ExampleDLL 32x branches (No GhostInj)"
     needs: setup_exampledll_artifacts
     uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
@@ -764,26 +759,30 @@ jobs:
           - public
           - dev
           - prerelease
+        artifact:
+          - name: gluatest_exampledll_32x
+            args: "-usegh"
+          - name: gluatest_exampledll_no_ghostinj_32x
+            args: ""
     with:
       branch: ${{ matrix.branch }}
-      download-artifact: "gluatest_exampledll_no_ghostinj_32x"
+      extra-startup-args: "${{ matrix.artifact.args }} -maxplayers 64"
+      download-artifact: ${{ matrix.artifact.name }}
       no-checkout: "true"
 
   test_exampledll_64bit:
     name: "Test ExampleDLL x86-64 branch"
     needs: setup_exampledll_artifacts
     uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
+    strategy:
+      matrix:
+        artifact:
+          - name: gluatest_exampledll_64x
+            args: "-usegh"
+          - name: gluatest_exampledll_no_ghostinj_64x
+            args: ""
     with:
       branch: x86-64
-      extra-startup-args: "-usegh"
-      download-artifact: "gluatest_exampledll_64x"
-      no-checkout: "true"
-
-  test_exampledll_64bit_noghostinj:
-    name: "Test ExampleDLL x86-64 branch (No GhostInj)"
-    needs: setup_exampledll_artifacts
-    uses: RaphaelIT7/GLuaTest/.github/workflows/run_tests.yml@holylib_v2
-    with:
-      branch: x86-64
-      download-artifact: "gluatest_exampledll_no_ghostinj_64x"
+      extra-startup-args: "${{ matrix.artifact.args }} -maxplayers 64"
+      download-artifact: ${{ matrix.artifact.name }}
       no-checkout: "true"
