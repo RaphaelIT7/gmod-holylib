@@ -1074,6 +1074,45 @@ LUA_FUNCTION_STATIC(IGModAudioChannelEncoder_FeedData)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(IGModAudioChannelEncoder_CastInit)
+{
+	IGModAudioChannelEncoder* encoder = Get_IGModAudioChannelEncoder(LUA, 1, true);
+	const char* pServer = LUA->CheckString(2);
+	const char* pPassword = LUA->CheckString(3);
+	const char* pContent = LUA->CheckString(4);
+	const char* pName = LUA->CheckStringOpt(5, NULL);
+	const char* pURL = LUA->CheckStringOpt(6, NULL);
+	const char* pGenre = LUA->CheckStringOpt(7, NULL);
+	const char* pDesc = LUA->CheckStringOpt(8, NULL);
+	const char* pHeaders = LUA->CheckStringOpt(9, NULL);
+	int nBitRate = (int)LUA->CheckNumberOpt(10, 0);
+	unsigned long nFlags = (unsigned long)LUA->CheckNumberOpt(11, 0);
+
+	char headers[4096];
+	if (pHeaders)
+		V_strncpy(headers, pHeaders, sizeof(headers));
+
+	const char* pErrorCode = nullptr;
+	encoder->CastInit(pServer, pPassword, pContent, pName, pURL, pGenre, pDesc, pHeaders ? headers : NULL, nBitRate, nFlags, &pErrorCode);
+	LUA->PushBool(pErrorCode == nullptr);
+	if (pErrorCode) {
+		LUA->PushString(pErrorCode);
+	} else {
+		LUA->PushNil();
+	}
+	return 2;
+}
+
+LUA_FUNCTION_STATIC(IGModAudioChannelEncoder_CastSetTitle)
+{
+	IGModAudioChannelEncoder* encoder = Get_IGModAudioChannelEncoder(LUA, 1, true);
+	const char* pTitle = LUA->CheckStringOpt(2, NULL);
+	const char* pURL = LUA->CheckStringOpt(3, NULL);
+
+	encoder->CastSetTitle(pTitle, pURL);
+	return 0;
+}
+
 LUA_FUNCTION_STATIC(bass_PlayFile)
 {
 	const char* filePath = LUA->CheckString(1);
@@ -1272,6 +1311,10 @@ void CBassModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 		Util::AddFunc(pLua, IGModAudioChannelEncoder_InsertVoiceData, "InsertVoiceData");
 		Util::AddFunc(pLua, IGModAudioChannelEncoder_FeedEmpty, "FeedEmpty");
 		Util::AddFunc(pLua, IGModAudioChannelEncoder_FeedData, "FeedData");
+
+		// Cast functions
+		Util::AddFunc(pLua, IGModAudioChannelEncoder_CastInit, "CastInit");
+		Util::AddFunc(pLua, IGModAudioChannelEncoder_CastSetTitle, "CastSetTitle");
 	pLua->Pop(1);
 
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::IGModAudioChannel, pLua->CreateMetaTable("IGModAudioChannel"));

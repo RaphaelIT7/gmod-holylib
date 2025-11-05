@@ -263,6 +263,8 @@ static BASS_Encode_SetPaused* func_BASS_Encode_SetPaused;
 static BASS_Encode_GetChannel* func_BASS_Encode_GetChannel;
 static BASS_Encode_SetChannel* func_BASS_Encode_SetChannel;
 static BASS_Encode_Write* func_BASS_Encode_Write;
+static BASS_Encode_CastInit* func_BASS_Encode_CastInit;
+static BASS_Encode_CastSetTitle* func_BASS_Encode_CastSetTitle;
 
 static BASS_Encode_MP3_Start* func_BASS_Encode_MP3_Start;
 static BASS_Encode_OGG_Start* func_BASS_Encode_OGG_Start;
@@ -354,6 +356,8 @@ bool CGMod_Audio::Init(CreateInterfaceFn interfaceFactory)
 		GetBassEncFunc(BASS_Encode_GetChannel, pBassEnc);
 		GetBassEncFunc(BASS_Encode_SetChannel, pBassEnc);
 		GetBassEncFunc(BASS_Encode_Write, pBassEnc);
+		GetBassEncFunc(BASS_Encode_CastInit, pBassEnc);
+		GetBassEncFunc(BASS_Encode_CastSetTitle, pBassEnc);
 		g_bUsesBassEnc = true;
 	}
 
@@ -1524,6 +1528,28 @@ void CGModAudioChannelEncoder::SetChannel(IGModAudioChannel* pChannel, const cha
 void CGModAudioChannelEncoder::WriteData(const void* pData, unsigned long nLength)
 {
 	func_BASS_Encode_Write( m_pEncoder, pData, nLength );
+}
+
+bool CGModAudioChannelEncoder::CastInit(
+	const char* server, const char* password, const char* content,
+	const char* name, const char* url, const char* genre,
+	const char* desc, char headers[4096], unsigned long bitrate,
+	unsigned long flags, const char** pErrorOut
+)
+{
+	if (!func_BASS_Encode_CastInit( m_pEncoder, server, password, content, name, url, genre, desc, headers, bitrate, flags ))
+	{
+		*pErrorOut = BassErrorToString(BASS_ErrorGetCode());
+		return false;
+	}
+
+	*pErrorOut = NULL;
+	return true;
+}
+
+void CGModAudioChannelEncoder::CastSetTitle(const char* title,const char* url)
+{
+	func_BASS_Encode_CastSetTitle( m_pEncoder, title, url );
 }
 
 CGModAudioFX::CGModAudioFX(DWORD pFXHandle, bool bIsFX)

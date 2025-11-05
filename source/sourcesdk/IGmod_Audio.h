@@ -58,6 +58,13 @@ public:
 	virtual void WriteData(const void* pData, unsigned long nLength) = 0;
 	virtual const char* GetFileName() = 0;
 	virtual IGModEncoderCallback* GetCallback() = 0;
+
+	virtual bool CastInit(
+		const char* server, const char* password, const char* content,
+		const char* name, const char* url, const char* genre, const char* desc,
+		char headers[4096], unsigned long bitrate, unsigned long flags, const char** pErrorOut
+	) = 0;
+	virtual void CastSetTitle( const char* title, const char* url ) = 0;
 };
 
 class IGModAudioChannelEncoder;

@@ -60,6 +60,13 @@ public:
 	virtual const char* GetFileName() { return m_strFileName.c_str(); };
 	virtual IGModEncoderCallback* GetCallback() { return m_pCallback; };
 
+	virtual bool CastInit(
+		const char* server, const char* password, const char* content,
+		const char* name, const char* url, const char* genre, const char* desc,
+		char headers[4096], unsigned long bitrate, unsigned long flags, const char** pErrorOut
+	);
+	virtual void CastSetTitle( const char* title, const char* url );
+
 public: // Non virtual
 	CGModAudioChannelEncoder(DWORD pChannel, const char* pFileName, IGModEncoderCallback* pCallback );
 	void InitEncoder(unsigned long nEncoderFlags);

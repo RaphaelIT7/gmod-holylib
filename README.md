@@ -3574,6 +3574,26 @@ Feeds null data into the encoder for the given ms frame using the given samplera
 #### bool(success) IGModAudioChannelEncoder:FeedData( string data )
 Feeds the given PCM data into the encoder skipping the channels effects & such.<br>
 
+#### bool(success), string(errMsg - nil) IGModAudioChannelEncoder:CastInit( ... )
+Arguments:<br>
+1 - string server<br>
+2 - string password<br>
+3 - string content<br>
+4 - string name = nil<br>
+5 - string url = nil<br>
+6 - string genre = nil<br>
+7 - string desc = nil<br>
+8 - string headers = nil<br>
+9 - number bitrate = 0<br>
+10 - number flags = 0<br>
+
+Initializes sending an encoder's output to a Shoutcast or Icecast server - Official docs<br>
+See https://www.un4seen.com/doc/#bassenc/BASS_Encode_CastInit.html<br>
+
+#### IGModAudioChannelEncoder:CastSetTitle( string title = nil, string url = nil )
+Sets the cast title & url<br>
+See https://www.un4seen.com/doc/#bassenc/BASS_Encode_CastSetTitle.html<br>
+
 ## entitiylist
 This module just adds a lua class.<br>
 Only use their functions after entities were created or you might be missing entities in the returned tables!<br>
