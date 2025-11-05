@@ -46,7 +46,7 @@ static ConVar holylib_filesystem_predictpath("holylib_filesystem_predictpath", "
 	"If enabled, it will try to predict the path of a file");
 static ConVar holylib_filesystem_predictexistance("holylib_filesystem_predictexistance", "0", 0, 
 	"If enabled, it will try to predict the path of a file, but if the file doesn't exist in the predicted path, we'll just say it doesn't exist.");
-static ConVar holylib_filesystem_splitgamepath("holylib_filesystem_splitgamepath", "0", FCVAR_ARCHIVE, 
+static ConVar holylib_filesystem_splitgamepath("holylib_filesystem_splitgamepath", "1", FCVAR_ARCHIVE, 
 	"If enabled, it will create for each content type like models/, materials/ a game path which will be used to find that content.");
 static ConVar holylib_filesystem_splitluapath("holylib_filesystem_splitluapath", "0", 0, 
 	"If enabled, it will do the same thing holylib_filesystem_splitgamepath does but with lsv. Currently it breaks workshop addons.");
@@ -798,9 +798,13 @@ static bool shouldWeCare(const std::string_view& fileName) { // Skip models like
 	return true;
 }
 
-static const char* GetOverridePath(const char* pFileName, const char* pathID)
+static const char* GetSplitPath(const char* pFileName, const char* pathID)
 {
 	if (!holylib_filesystem_splitgamepath.GetBool())
+		return NULL;
+
+	// We only enable split path for anything on the GAME path.
+	if (V_stricmp("GAME", pathID) != 0)
 		return NULL;
 
 	std::string_view strFileName = pFileName;
@@ -916,7 +920,7 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 
 	bool splitPath = false;
 	const char* origPath = pathID;
-	const char* newPath = GetOverridePath(pFileName, pathID);
+	const char* newPath = GetSplitPath(pFileName, pathID);
 	if (newPath)
 	{
 		if (g_pFileSystemModule.InDebug())
@@ -1183,7 +1187,7 @@ static long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char
 	
 	bool bSplitPath = false;
 	const char* origPath = pPathID;
-	const char* newPath = GetOverridePath(pFileName, pPathID);
+	const char* newPath = GetSplitPath(pFileName, pPathID);
 	if (newPath)
 	{
 		if (g_pFileSystemModule.InDebug())
