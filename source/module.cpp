@@ -87,7 +87,13 @@ void CModule::SetupConfig()
 		return;
 
 	Bootil::Data::Tree& pData = pConfig->GetData().GetChild(m_pModule->Name());
-	m_bEnabled = pData.EnsureChildVar<bool>("enabled", m_bEnabled);
+	if (pData.EnsureChildVar<bool>("enabledByDefault", m_bEnabled) != m_bEnabled)
+	{ // Module was disabled by default, and now is enabled. Happens when compatibility changes
+		pData.GetChild("enabled").Var<bool>(m_bEnabled);
+	} else {
+		m_bEnabled = pData.EnsureChildVar<bool>("enabled", m_bEnabled);
+	}
+
 	m_pModule->SetDebug(pData.EnsureChildVar<int>("debugLevel", m_pModule->InDebug()));
 
 	m_pModule->OnConfigLoad(pData);
@@ -126,6 +132,7 @@ void CModule::SetModule(IModule* module)
 
 	m_bEnabled = m_pModule->IsEnabledByDefault() ? m_bCompatible : false;
 
+	// Setup here so that command line arguments do not intentionally change the config.
 	SetupConfig();
 
 	std::string pStrName = "holylib_enable_";
@@ -264,7 +271,7 @@ CModuleManager::CModuleManager()
 
 	if (!m_pConfig)
 	{
-		m_pConfig = g_pConfigSystem->LoadConfig("garrysmod/holylib/cfg/modules.json");
+		m_pConfig = g_pConfigSystem->LoadConfig(HOLYLIB_CONFIG_PATH "modules.json");
 		if (m_pConfig->GetState() == ConfigState::INVALID_JSON)
 		{
 			Warning(PROJECT_NAME " - modulesystem: Failed to load modules.json!\n- Check if the json is valid or delete the config to let a new one be generated!\n");

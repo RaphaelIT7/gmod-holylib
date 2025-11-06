@@ -37,7 +37,7 @@ public:
 
 	void LoadDLLs()
 	{
-		IConfig* pDllConfig = g_pConfigSystem->LoadConfig("garrysmod/holylib/cfg/dlls.json");
+		IConfig* pDllConfig = g_pConfigSystem->LoadConfig(HOLYLIB_CONFIG_PATH "dlls.json");
 		if (!pDllConfig)
 			return;
 
@@ -61,7 +61,7 @@ public:
 
 			if (pDLL.m_strPath.length() <= 3 || pDLL.m_strName.length() <= 3)
 			{
-				Warning(PROJECT_NAME " - DLLManager: not loading \"%s\" since it has no valid path or name!\nCheck your holylib/cfg/dlls.json!", pDLL.m_strName.c_str());
+				Warning(PROJECT_NAME " - DLLManager: not loading \"%s\" since it has no valid path or name!\nCheck your " HOLYLIB_CONFIG_PATH "dlls.json!",pDLL.m_strName.c_str());
 				continue;
 			}
 

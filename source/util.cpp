@@ -806,7 +806,7 @@ void Util::Load()
 
 	LoadDLLs();
 
-	IConfig* pConVarConfig = g_pConfigSystem->LoadConfig("garrysmod/holylib/cfg/convars.json");
+	IConfig* pConVarConfig = g_pConfigSystem->LoadConfig(HOLYLIB_CONFIG_PATH "convars.json");
 	if (pConVarConfig)
 	{
 		if (pConVarConfig->GetState() == ConfigState::INVALID_JSON)
@@ -871,7 +871,7 @@ void Util::Load()
 		pConVarConfig->Destroy();
 	}
 
-	IConfig* pCoreConfig = g_pConfigSystem->LoadConfig("garrysmod/holylib/cfg/core.json");
+	IConfig* pCoreConfig = g_pConfigSystem->LoadConfig(HOLYLIB_CONFIG_PATH "core.json");
 	if (pCoreConfig)
 	{
 		if (pCoreConfig->GetState() == ConfigState::INVALID_JSON)
@@ -886,7 +886,7 @@ void Util::Load()
 
 		// checkVersion block
 		Bootil::Data::Tree& pEntry = pData.GetChild("checkVersion");
-		pEntry.SetChildVar<Bootil::BString>("description", "(Unfinished implementation) If enabled, HolyLib will attempt to request the newest version from the wiki and compare them.");
+		pEntry.GetChild("description").Var<Bootil::BString>("(Unfinished implementation) If enabled, HolyLib will attempt to request the newest version from the wiki and compare them.");
 		if (pEntry.EnsureChildVar<bool>("enabled", false))
 		{
 			Util::CheckVersion();

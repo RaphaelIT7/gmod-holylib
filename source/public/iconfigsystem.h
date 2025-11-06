@@ -3,6 +3,12 @@
 #include "interface.h"
 #include "Bootil/Bootil.h"
 
+#ifdef PLATFORM_64BITS
+#define HOLYLIB_CONFIG_PATH "garrysmod/holylib/cfg/x64/"
+#else
+#define HOLYLIB_CONFIG_PATH "garrysmod/holylib/cfg/x86/"
+#endif
+
 /*
 	This is the exposed config system used by holylib for it's config files.
 */
