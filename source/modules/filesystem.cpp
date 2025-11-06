@@ -415,6 +415,7 @@ static void ReadSearchCache()
 		g_pFullFileSystem->Read(&searchCache, sizeof(SearchCache), handle);
 		if (searchCache.version != SearchCacheVersion)
 		{
+			g_pFullFileSystem->Close(handle);
 			Warning(PROJECT_NAME " - ReadSearchCache: Searchcache version didnt match  (File: %i, Current %i)\n", searchCache.version, SearchCacheVersion);
 			return;
 		}
