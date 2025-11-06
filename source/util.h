@@ -265,7 +265,7 @@ namespace Util
 	extern void ResetClusers(VisData* data);
 
 	extern bool ShouldLoad();
-	extern void CheckVersion();
+	extern void CheckVersion(bool bAutoUpdate);
 
 	// The main load/unload functions
 	extern void Load();

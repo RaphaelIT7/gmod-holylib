@@ -194,7 +194,7 @@ void Util::Push_Entity(GarrysMod::Lua::ILuaInterface* LUA, CBaseEntity* pEnt)
 		Util::ReferencePush(LUA, pObject->GetReference()); // Assuming the reference is always right.
 	} else {
 		Warning("holylib: tried to push a entity, but this wasn't implemented for other lua states yet!\n");
- 		LUA->PushNil();
+		LUA->PushNil();
 	}
 }
 
@@ -768,7 +768,19 @@ bool Util::ShouldLoad()
 	return true;
 }
 
-void Util::CheckVersion() // This is called only when holylib is initially loaded!
+// Checks if the given string contains illegal characters
+static inline bool ValidateURLVariable(Bootil::BString value)
+{
+	for (char c : value)
+	{
+		if (!std::isalnum(static_cast<unsigned char>(c)) && c != '-' && c != '_' && c != '.')
+			return false;
+	}
+
+	return true;
+}
+
+void Util::CheckVersion(bool bAutoUpdate) // This is called only when holylib is initially loaded!
 {
 	// ToDo: Implement this someday / finish this implementation
 	httplib::Client pClient("http://holylib.raphaelit7.com");
@@ -776,22 +788,110 @@ void Util::CheckVersion() // This is called only when holylib is initially loade
 	httplib::Headers headers = {
 		{ "HolyLib_Branch", HolyLib_GetBranch() },
 		{ "HolyLib_RunNumber", HolyLib_GetRunNumber() },
-		{ "HolyLib_Version", HolyLib_GetVersion() }
+		{ "HolyLib_Version", HolyLib_GetVersion() },
 	};
 
 	auto res = pClient.Get("/api/check_version");
-	if (res->status == 200)
+	if (res->status != 200)
+		return;
+
+	Bootil::Data::Tree pTree;
+	if (!Bootil::Data::Json::Import(pTree, res->body.c_str())) {
+		DevMsg(PROJECT_NAME " - versioncheck: Received invalid json!\n");
+		return;
+	}
+
+	if (pTree.GetChild("status").Value() == "ok")
 	{
-		Bootil::Data::Tree pTree;
-		if (Bootil::Data::Json::Import(pTree, res->body.c_str()))
+		Msg(PROJECT_NAME " - versioncheck: We are up to date\n");
+	} else if (pTree.GetChild("status").Value() == "custom") {
+		Msg(PROJECT_NAME " - versioncheck: We are running a custom version\n");
+	} else if (pTree.GetChild("status").Value() == "outdated") {
+		Msg(PROJECT_NAME " - versioncheck: We are running an outdated version\n");
+
+		if (!bAutoUpdate)
+			return;
+
+		// NOTE: We use GH releases as I do not at all want to use any other service that could be vulnerable.
+		// AutoUpdate should be absolutely safe with no external services
+		// the wiki may tell you if your outdated or not but it does not specify the download URL!
+		Bootil::BString releaseVersion = pTree.GetChild("releaseVersion").Value();
+		Bootil::BString releaseFile = pTree.GetChild("releaseFile").Value();
+		if (releaseFile.empty() || releaseVersion.empty())
 		{
-			if (pTree.GetChild("status").Value() == "ok")
-			{
-				Msg(PROJECT_NAME " - versioncheck: We are up to date\n");
-			}
-		} else {
-			DevMsg(PROJECT_NAME " - versioncheck: Received invalid json!\n");
+				Msg(PROJECT_NAME " - versioncheck: Auto update failed since we got no valid release response\n");
+				return;
 		}
+
+		if (!ValidateURLVariable(releaseVersion) || !ValidateURLVariable(releaseFile))
+		{
+			Msg(PROJECT_NAME " - versioncheck: Auto update was blocked due to malicious response!\n");
+			return;
+		}
+				
+		Bootil::BString downloadURL = Bootil::String::Format::Print(
+			"https://github.com/RaphaelIT7/gmod-holylib/releases/download/%s/%s",
+			releaseVersion.c_str(),
+			releaseFile.c_str()
+		);
+		pClient.set_follow_location(true); // GitHub does redirect one
+		auto pReleaseDownload = pClient.Get(downloadURL);
+
+		if (!pReleaseDownload || pReleaseDownload->status != 200)
+		{
+			Msg(PROJECT_NAME " - versioncheck: Autoupdate failed to download new version! (%i)\n", pReleaseDownload->status);
+			return;
+		}
+
+		std::string updaterPath = "holylib/autoupdater/";
+		std::string filePath = updaterPath;
+		filePath.append(releaseVersion);
+		filePath.append("-");
+		filePath.append(releaseFile);
+
+		g_pFullFileSystem->CreateDirHierarchy(updaterPath.c_str(), "MOD");
+		FileHandle_t pHandle = g_pFullFileSystem->Open(filePath.c_str(), "wb", "MOD");
+		if (!pHandle)
+		{
+			Msg(PROJECT_NAME " - versioncheck: Autoupdate failed to open file to write! (%s)\n", filePath.c_str());
+			return;
+		}
+
+		g_pFullFileSystem->Write(pReleaseDownload->body.c_str(), pReleaseDownload->body.length(), pHandle);
+		g_pFullFileSystem->Close(pHandle);
+
+		Bootil::BString outputFileName = "gmsv_holylib_" MODULE_EXTENSION "_updated." LIBRARY_EXTENSION;
+			
+		Bootil::BString outputRelativeFilePath = updaterPath; // For the filesystem
+		outputRelativeFilePath.append(outputFileName);
+
+		char fullFolderPath[MAX_PATH];
+		g_pFullFileSystem->RelativePathToFullPath(filePath.c_str(), "MOD", fullFolderPath, sizeof(fullFolderPath));
+		Bootil::BString outputFullFilePath = fullFolderPath; // For Bootil
+		outputFullFilePath.append(outputFileName);
+
+		Bootil::Compression::Zip::File pDownloadBuild(filePath.c_str());
+		for (int i=0; i<pDownloadBuild.GetNumItems(); ++i)
+		{
+			Bootil::BString pFileName = pDownloadBuild.GetFileName( i );
+			if (pFileName.find("gmsv_holylib_" MODULE_EXTENSION) == std::string::npos)
+				continue; // not our file
+
+			// Found our version file (this is in case future builds contain multiple platforms)
+			pDownloadBuild.ExtractFile(i, outputFullFilePath);
+		}
+
+		if (!g_pFullFileSystem->FileExists(outputRelativeFilePath.c_str(), "MOD"))
+		{
+			Msg(PROJECT_NAME " - versioncheck: Autoupdate failed to write output file! (%s)\n", outputRelativeFilePath.c_str());
+			return;
+		}
+
+		// Our location will be in the BASE_PATH so it'll end up besides the ghostinj
+		Bootil::File::Copy(outputFullFilePath.c_str(), outputFileName.c_str());
+		Msg(PROJECT_NAME " - versioncheck: Autoupdate succeeded, newer version will be installed on next boot\n");
+	} else if (pTree.GetChild("status").Value() == "toonew") {
+		Msg(PROJECT_NAME " - versioncheck: We are running a too new version? Damn...\n");
 	}
 }
 
@@ -887,9 +987,10 @@ void Util::Load()
 		// checkVersion block
 		Bootil::Data::Tree& pEntry = pData.GetChild("checkVersion");
 		pEntry.GetChild("description").Var<Bootil::BString>("(Unfinished implementation) If enabled, HolyLib will attempt to request the newest version from the wiki and compare them.");
+		bool bAllowAutoUpdate = pEntry.EnsureChildVar<bool>("autoUpdate", false);
 		if (pEntry.EnsureChildVar<bool>("enabled", false))
 		{
-			Util::CheckVersion();
+			Util::CheckVersion(bAllowAutoUpdate);
 		}
 
 		pCoreConfig->Save();

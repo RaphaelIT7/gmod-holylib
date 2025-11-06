@@ -112,9 +112,11 @@ namespace Detour
 #if ARCHITECTURE_IS_X86
 #define DLL_EXTENSION "_srv.so"
 #define DETOUR_SYMBOL_ID 0
+#define MODULE_EXTENSION "linux64"
 #else
 #define DLL_EXTENSION ".so"
 #define DETOUR_SYMBOL_ID 1
+#define MODULE_EXTENSION "linux"
 #endif
 #else
 #define DLL_PREEXTENSION ""
@@ -122,8 +124,10 @@ namespace Detour
 #define LIBRARY_EXTENSION ".dll"
 #if ARCHITECTURE_IS_X86
 #define DETOUR_SYMBOL_ID 2
+#define MODULE_EXTENSION "win32"
 #else
 #define DETOUR_SYMBOL_ID 3
+#define MODULE_EXTENSION "win64"
 #endif
 #endif
 
