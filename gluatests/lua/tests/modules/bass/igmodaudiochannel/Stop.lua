@@ -16,7 +16,7 @@ return {
             end
         },
         -- Enums returned from GetState()
-        -- https://wiki.facepunch.com/gmod/Enums/GMOD_CHANNEL
+        -- https://www.un4seen.com/doc/#bass/BASS_ChannelIsActive.html
         {
             name = "Stops playing the audio channel",
             when = HolyLib_IsModuleEnabled( "bass" ),
@@ -28,6 +28,7 @@ return {
         
                 bass.PlayFile( filePath, flags, function( channel, errorCode, errorMsg )
                     expect( channel ).toNot.beNil()
+                    expect( errorCode ).to.equal( 0 )
                     expect( channel:GetState() ).to.equal( 1 )
 
                     channel:Stop()
