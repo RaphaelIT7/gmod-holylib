@@ -194,8 +194,27 @@ FileHandle_t GetFileHandleFromCache(std::string_view strFilePath)
 	return it->second;
 }
 
+#if SYSTEM_WINDOWS
+// Only way on Windows... I hate this so much
+CSearchPath *CBaseFileSystem::FindSearchPathByStoreId( int storeId )
+{
+	FOR_EACH_LL( m_SearchPaths, i )
+	{
+		CSearchPath& pSearchPath = m_SearchPaths[i];
+		if ( pSearchPath.m_storeId == storeId )
+			return &pSearchPath;
+	}
+
+	return NULL;
+}
+
+static inline CSearchPath* FindSearchPathByStoreId(int iStoreID)
+{
+	return ((CBaseFileSystem*)g_pFullFileSystem)->FindSearchPathByStoreId(iStoreID);
+}
+#else
 static Symbols::CBaseFileSystem_FindSearchPathByStoreId func_CBaseFileSystem_FindSearchPathByStoreId;
-inline CSearchPath* FindSearchPathByStoreId(int iStoreID)
+static inline CSearchPath* FindSearchPathByStoreId(int iStoreID)
 {
 	if (!func_CBaseFileSystem_FindSearchPathByStoreId)
 	{
@@ -205,6 +224,7 @@ inline CSearchPath* FindSearchPathByStoreId(int iStoreID)
 
 	return func_CBaseFileSystem_FindSearchPathByStoreId(g_pFullFileSystem, iStoreID);
 }
+#endif
 
 std::string GetFullPath(const CSearchPath* pSearchPath, const char* strFileName) // ToDo: Possibly switch to string_view?
 {
@@ -230,6 +250,7 @@ static void ClearFileSearchCache()
 
 	m_SearchCache.clear();
 }
+
 
 static void AddFileToSearchCache(const char* pFileName, int path, const char* pathID) // pathID should never be deleted so we don't need to manage that memory.
 {
@@ -842,7 +863,8 @@ void AddOveridePath(const char* pFileName, const char* pPathID)
  * This is the OpenForRead implementation but faster.
  */
 static Detouring::Hook detour_CBaseFileSystem_OpenForRead;
-static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const char *pFileNameT, const char *pOptions, unsigned flags, const char *pathID, char **ppszResolvedFilename)
+static Symbols::CBaseFileSystem_FixUpPath func_CBaseFileSystem_FixUpPath;
+FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const char *pFileNameT, const char *pOptions, unsigned flags, const char *pathID, char **ppszResolvedFilename)
 {
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::OpenForRead", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
@@ -850,7 +872,7 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 	const char *pFileName = pFileNameBuff;
 
 #if ARCHITECTURE_X86 // This is a 32x only thing
-	filesystem->FixUpPath(pFileNameT, pFileNameBuff, sizeof(pFileNameBuff));
+	func_CBaseFileSystem_FixUpPath(filesystem, pFileNameT, pFileNameBuff, sizeof(pFileNameBuff));
 #endif
 
 	if (holylib_filesystem_savesearchcache.GetBool())
@@ -1114,9 +1136,16 @@ namespace IGamemodeSystem
  * GMOD Likes to use paths like "sandbox/gamemode/spawnmenu/sandbox/gamemode/spawnmenu/".
  * This wastes performance, so we fix them up to be "sandbox/gamemode/spawnmenu/"
  */
-static std::string_view fixGamemodePath(IFileSystem* filesystem, std::string_view path)
+static std::string_view fixGamemodePath(std::string_view path)
 {
-	std::string_view activeGamemode = ((const IGamemodeSystem::UpdatedInformation&)filesystem->Gamemodes()->Active()).name;
+	// BUG: I have no idea why... previously we passed filesystem as an agument
+	// that somehow corrupted itself, using g_pFullFileSystem though goes completely fine???
+
+	// Just debug stuff... The one line does these three things at once
+	//Gamemode::System* pGamemodeSystem = g_pFullFileSystem->Gamemodes();
+	//const IGamemodeSystem::UpdatedInformation& pActiveGamemode = (const IGamemodeSystem::UpdatedInformation&)pGamemodeSystem->Active();
+	//std::string_view activeGamemode = pActiveGamemode.name;
+	std::string_view activeGamemode = ((const IGamemodeSystem::UpdatedInformation&)g_pFullFileSystem->Gamemodes()->Active()).name;
 	if (activeGamemode.empty())
 		return path;
 
@@ -1156,7 +1185,7 @@ static long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char
 	std::string_view strFileName = pFileName; // Workaround for now.
 	if (origPath && V_stricmp(origPath, "lsv") == 0 && holylib_filesystem_fixgmodpath.GetBool()) // Some weird things happen in the lsv path.  
 	{
-		strFileName = fixGamemodePath(filesystem, strFileName);
+		strFileName = fixGamemodePath(strFileName);
 	}
 	pFileName = strFileName.data();
 
@@ -1238,6 +1267,9 @@ static void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const ch
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::AddSearchPath", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
 	detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, pathID, addType);
+
+	if (!pPath) // :BRUH:
+		return;
 
 	// Below is not dead code. It's code to try to solve the map contents but it currently doesn't work.
 	/*std::string_view extension = getFileExtension(pPath);
@@ -1346,6 +1378,9 @@ static void hook_CBaseFileSystem_AddVPKFile(IFileSystem* filesystem, const char 
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::AddVPKFile", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
 	detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, pathID, addType);
+
+	if (!pPath)
+		return;
 
 	if (V_stricmp(pathID, "GAME") == 0)
 	{
@@ -1656,8 +1691,24 @@ inline const char* CSearchPath::GetPathIDString() const
 static Symbols::CBaseFileSystem_CSearchPath_GetDebugString func_CBaseFileSystem_CSearchPath_GetDebugString;
 inline const char* CSearchPath::GetPathString() const
 {
+	if (!func_CBaseFileSystem_CSearchPath_GetDebugString)
+		return NULL;
+
 	return func_CBaseFileSystem_CSearchPath_GetDebugString((void*)this); // Look into this to possibly remove the GetDebugString function.
 }
+
+#if SYSTEM_WINDOWS
+DETOUR_THISCALL_START()
+	DETOUR_THISCALL_ADDRETFUNC5( hook_CBaseFileSystem_OpenForRead, FileHandle_t, OpenForRead, CBaseFileSystem*, const char*, const char*, unsigned, const char*, char** );
+	DETOUR_THISCALL_ADDRETFUNC1( hook_CBaseFileSystem_FindFileInSearchPath, FileHandle_t, FindFileInSearchPath, CBaseFileSystem*, CFileOpenInfo& );
+	DETOUR_THISCALL_ADDRETFUNC2( hook_CBaseFileSystem_IsDirectory, bool, IsDirectory, CBaseFileSystem*, const char*, const char* );
+	DETOUR_THISCALL_ADDRETFUNC2( hook_CBaseFileSystem_FastFileTime, long, FastFileTime, CBaseFileSystem*, const CSearchPath*, const char* );
+	DETOUR_THISCALL_ADDRETFUNC2( hook_CBaseFileSystem_GetFileTime, long, GetFileTime, CBaseFileSystem*, const char*, const char* );
+	DETOUR_THISCALL_ADDFUNC1( hook_CBaseFileSystem_Close, Close, CBaseFileSystem*, FileHandle_t );
+	DETOUR_THISCALL_ADDFUNC3( hook_CBaseFileSystem_AddSearchPath, AddSearchPath, CBaseFileSystem*, const char*, const char*, SearchPathAdd_t );
+	DETOUR_THISCALL_ADDFUNC3( hook_CBaseFileSystem_AddVPKFile, AddVPKFile, CBaseFileSystem*, const char*, const char*, SearchPathAdd_t );
+DETOUR_THISCALL_FINISH();
+#endif
 
 void CFileSystemModule::InitDetour(bool bPreServer)
 {
@@ -1675,69 +1726,82 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 		InitFileSystem(g_pFullFileSystem);
 
 	// ToDo: Redo EVERY Hook so that we'll abuse the vtable instead of symbols.  
-	// Use the ClassProxy or so which should also allow me to port this to windows.  
-	SourceSDK::ModuleLoader dedicated_loader("dedicated");
+	// Use the ClassProxy or so which should also allow me to port this to windows.
+#if SYSTEM_WINDOWS
+	SourceSDK::FactoryLoader filesystem_loader("filesystem_stdio");
+#else
+	SourceSDK::FactoryLoader filesystem_loader("dedicated");
+#endif
+	
+
+	// A total abomination to get the vtable so that we can pass the functions to use as hooks
+	// I hate and absolutely love that this actually works
+	DETOUR_PREPARE_THISCALL();
+	Detour::Create(
+		&detour_CBaseFileSystem_OpenForRead, "CBaseFileSystem::OpenForRead",
+		filesystem_loader.GetModule(), Symbols::CBaseFileSystem_OpenForReadSym,
+		(void*)DETOUR_THISCALL(hook_CBaseFileSystem_OpenForRead, OpenForRead), m_pID
+	);
+
 	Detour::Create(
 		&detour_CBaseFileSystem_FindFileInSearchPath, "CBaseFileSystem::FindFileInSearchPath",
-		dedicated_loader.GetModule(), Symbols::CBaseFileSystem_FindFileInSearchPathSym,
-		(void*)hook_CBaseFileSystem_FindFileInSearchPath, m_pID
+		filesystem_loader.GetModule(), Symbols::CBaseFileSystem_FindFileInSearchPathSym,
+		(void*)DETOUR_THISCALL(hook_CBaseFileSystem_FindFileInSearchPath, FindFileInSearchPath), m_pID
 	);
 
 	Detour::Create(
 		&detour_CBaseFileSystem_IsDirectory, "CBaseFileSystem::IsDirectory",
-		dedicated_loader.GetModule(), Symbols::CBaseFileSystem_IsDirectorySym,
-		(void*)hook_CBaseFileSystem_IsDirectory, m_pID
+		filesystem_loader.GetModule(), Symbols::CBaseFileSystem_IsDirectorySym,
+		(void*)DETOUR_THISCALL(hook_CBaseFileSystem_IsDirectory, IsDirectory), m_pID
 	);
 
 	Detour::Create(
 		&detour_CBaseFileSystem_FastFileTime, "CBaseFileSystem::FastFileTime",
-		dedicated_loader.GetModule(), Symbols::CBaseFileSystem_FastFileTimeSym,
-		(void*)hook_CBaseFileSystem_FastFileTime, m_pID
-	);
-
-	Detour::Create(
-		&detour_CBaseFileSystem_OpenForRead, "CBaseFileSystem::OpenForRead",
-		dedicated_loader.GetModule(), Symbols::CBaseFileSystem_OpenForReadSym,
-		(void*)hook_CBaseFileSystem_OpenForRead, m_pID
+		filesystem_loader.GetModule(), Symbols::CBaseFileSystem_FastFileTimeSym,
+		(void*)DETOUR_THISCALL(hook_CBaseFileSystem_FastFileTime, FastFileTime), m_pID
 	);
 
 	Detour::Create(
 		&detour_CBaseFileSystem_GetFileTime, "CBaseFileSystem::GetFileTime",
-		dedicated_loader.GetModule(), Symbols::CBaseFileSystem_GetFileTimeSym,
-		(void*)hook_CBaseFileSystem_GetFileTime, m_pID
-	);
-
-	Detour::Create(
-		&detour_CBaseFileSystem_AddSearchPath, "CBaseFileSystem::AddSearchPath",
-		dedicated_loader.GetModule(), Symbols::CBaseFileSystem_AddSearchPathSym,
-		(void*)hook_CBaseFileSystem_AddSearchPath, m_pID
-	);
-
-	Detour::Create(
-		&detour_CBaseFileSystem_AddVPKFile, "CBaseFileSystem::AddVPKFile",
-		dedicated_loader.GetModule(), Symbols::CBaseFileSystem_AddVPKFileSym,
-		(void*)hook_CBaseFileSystem_AddVPKFile, m_pID
+		filesystem_loader.GetModule(), Symbols::CBaseFileSystem_GetFileTimeSym,
+		(void*)DETOUR_THISCALL(hook_CBaseFileSystem_GetFileTime, GetFileTime), m_pID
 	);
 
 	Detour::Create(
 		&detour_CBaseFileSystem_Close, "CBaseFileSystem::Close",
-		dedicated_loader.GetModule(), Symbols::CBaseFileSystem_CloseSym,
-		(void*)hook_CBaseFileSystem_Close, m_pID
+		filesystem_loader.GetModule(), Symbols::CBaseFileSystem_CloseSym,
+		(void*)DETOUR_THISCALL(hook_CBaseFileSystem_Close, Close), m_pID
 	);
 
+	Detour::Create(
+		&detour_CBaseFileSystem_AddSearchPath, "CBaseFileSystem::AddSearchPath",
+		filesystem_loader.GetModule(), Symbols::CBaseFileSystem_AddSearchPathSym,
+		(void*)DETOUR_THISCALL(hook_CBaseFileSystem_AddSearchPath, AddSearchPath), m_pID
+	);
+
+	Detour::Create(
+		&detour_CBaseFileSystem_AddVPKFile, "CBaseFileSystem::AddVPKFile",
+		filesystem_loader.GetModule(), Symbols::CBaseFileSystem_AddVPKFileSym,
+		(void*)DETOUR_THISCALL(hook_CBaseFileSystem_AddVPKFile, AddVPKFile), m_pID
+	);
+
+#if SYSTEM_LINUX
 	// ToDo: Find symbols for this function :/
 	// NOTE: It's probably easier to recreate the filesystem class since the function isn't often used in the engine and there aren't any good ways to find it :/ (Maybe some function declared before or after it can be found and then I'll can search neat that?)
-	func_CBaseFileSystem_FindSearchPathByStoreId = (Symbols::CBaseFileSystem_FindSearchPathByStoreId)Detour::GetFunction(dedicated_loader.GetModule(), Symbols::CBaseFileSystem_FindSearchPathByStoreIdSym);
+	func_CBaseFileSystem_FindSearchPathByStoreId = (Symbols::CBaseFileSystem_FindSearchPathByStoreId)Detour::GetFunction(filesystem_loader.GetModule(), Symbols::CBaseFileSystem_FindSearchPathByStoreIdSym);
 	Detour::CheckFunction((void*)func_CBaseFileSystem_FindSearchPathByStoreId, "CBaseFileSystem::FindSearchPathByStoreId");
+#endif
 
-	func_CBaseFileSystem_CSearchPath_GetDebugString = (Symbols::CBaseFileSystem_CSearchPath_GetDebugString)Detour::GetFunction(dedicated_loader.GetModule(), Symbols::CBaseFileSystem_CSearchPath_GetDebugStringSym);
+	func_CBaseFileSystem_CSearchPath_GetDebugString = (Symbols::CBaseFileSystem_CSearchPath_GetDebugString)Detour::GetFunction(filesystem_loader.GetModule(), Symbols::CBaseFileSystem_CSearchPath_GetDebugStringSym);
 	Detour::CheckFunction((void*)func_CBaseFileSystem_CSearchPath_GetDebugString, "CBaseFileSystem::CSearchPath::GetDebugString");
 
+	func_CBaseFileSystem_FixUpPath = (Symbols::CBaseFileSystem_FixUpPath)Detour::GetFunction(filesystem_loader.GetModule(), Symbols::CBaseFileSystem_FixUpPathSym);
+	Detour::CheckFunction((void*)func_CBaseFileSystem_FixUpPath, "CBaseFileSystem::FixUpPath");
+
 #if ARCHITECTURE_IS_X86
-	SourceSDK::FactoryLoader dedicated_factory("dedicated_srv");
-	g_pPathIDTable = Detour::ResolveSymbol<CUtlSymbolTableMT>(dedicated_factory, Symbols::g_PathIDTableSym);
+	g_pPathIDTable = Detour::ResolveSymbol<CUtlSymbolTableMT>(filesystem_loader, Symbols::g_PathIDTableSym);
 #else
-	g_pPathIDTable = Detour::ResolveSymbolFromLea<CUtlSymbolTableMT>(dedicated_loader.GetModule(), Symbols::g_PathIDTableSym);
+	g_pPathIDTable = Detour::ResolveSymbolFromLea<CUtlSymbolTableMT>(filesystem_loader.GetModule(), Symbols::g_PathIDTableSym);
 #endif
 	Detour::CheckValue("get class", "g_PathIDTable", g_pPathIDTable != NULL);
 }

@@ -310,31 +310,43 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: filesystem Symbols
 	//---------------------------------------------------------------------------------
-	const std::vector<Symbol> CBaseFileSystem_FindFileInSearchPathSym = {
+	const std::vector<Symbol> CBaseFileSystem_FindFileInSearchPathSym = { // A function that contains "%s%s", "%s%c%s" and "VPC" inside of it
 		Symbol::FromName("_ZN15CBaseFileSystem20FindFileInSearchPathER13CFileOpenInfo"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x49\x89\xFF\x41\x56\x41\x55\x41\x54\x53\x48\x89\xF3"), // 55 48 89 E5 41 57 49 89 FF 41 56 41 55 41 54 53 48 89 F3
+		Symbol::FromSignature("\x55\x8B\xEC\x81\xEC\x38\x03\x00\x00\x53\x56\x57"), // 55 8B EC 81 EC 38 03 00 00 53 56 57
 	};
 
-	const std::vector<Symbol> CBaseFileSystem_IsDirectorySym = { // FS: Specified two path IDs (%s, %s).\n
+	const std::vector<Symbol> CBaseFileSystem_IsDirectorySym = { // FS:  Tried to IsOk NULL file pointer in & then in the vtable shift 3 up
 		Symbol::FromName("_ZN15CBaseFileSystem11IsDirectoryEPKcS1_"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x4C\x8D\xAD\x38***\x41\x54"), // 55 48 89 E5 41 57 41 56 41 55 4C 8D AD 38 ?? ?? ?? 41 54
-		Symbol::FromSignature("\x55\x8B\xEC\x53\x8B\x5D\x10\x8B\xD1\x57"), // 55 8B EC 53 8B 5D 10 8B D1 57
+		Symbol::FromSignature("\x55\x8B\xEC\x81\xEC\x90\x04\x00\x00\x8D"), // 55 8B EC 81 EC 90 04 00 00 8D
 	};
 
 	const std::vector<Symbol> CBaseFileSystem_FindSearchPathByStoreIdSym = {
 		// Find 'CBaseFileSystem::GetFileTime' then you have CBaseFileSystem__GetPathTime, go to xref and find in the vtable 3 function bellow, you'll get CBaseFileSystem__RegisterFileWhitelist which use CFileTracker2__GetFilesToUnloadForWhitelistChange which use it
 		Symbol::FromName("_ZN15CBaseFileSystem23FindSearchPathByStoreIdEi"),
 		Symbol::FromSignature("\x55\x0F\xB7\x87\x88\x00\x00\x00"), //55 0F B7 87 88 00 00 00
+		NULL_SIGNATURE,
+		// FUCK! The compiler inlined it into CFileTracker2::GetFilesToUnloadForWhitelistChange so we cannot access it!
+		// This is like the most important function that we use
 	};
 
 	const std::vector<Symbol> CBaseFileSystem_FastFileTimeSym = {// Find 'CBaseFileSystem::GetFileTime' then you have CBaseFileSystem__GetPathTime and it's there
 		Symbol::FromName("_ZN15CBaseFileSystem12FastFileTimeEPKNS_11CSearchPathEPKc"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x49\x89\xFD\x41\x54\x49\x89\xD4"), //55 48 89 E5 41 57 41 56 41 55 49 89 FD 41 54 49 89 D4
+		Symbol::FromSignature("\x55\x8B\xEC\x81\xEC\x40\x01\x00\x00\x53\x56\x8B\x75\x08"), // 55 8B EC 81 EC 40 01 00 00 53 56 8B 75 08
 	};
 
-	std::vector<Symbol> CBaseFileSystem_OpenForReadSym = {
+	const std::vector<Symbol> CBaseFileSystem_FixUpPathSym = {//Find 'BASE_PATH'
+		Symbol::FromName("_ZN15CBaseFileSystem9FixUpPathEPKcPci"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x56\x41\x55\x41\x54\x49\x89\xFC\x53\x48\x89\xD3\x48\x63\xD1"), //55 48 89 E5 41 56 41 55 41 54 49 89 FC 53 48 89 D3 48 63 D1
+		Symbol::FromSignature("\x55\x8B\xEC\x53\x56\xFF\x75\x10"), // 55 8B EC 53 56 FF 75 10
+	};
+
+	std::vector<Symbol> CBaseFileSystem_OpenForReadSym = { // [Failed]
 		Symbol::FromName("_ZN15CBaseFileSystem11OpenForReadEPKcS1_jS1_PPc"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x49\x89\xD7\x41\x56\x4D\x89\xC6\x41\x55\x4D\x89\xCD\x41\x54"), // 55 48 89 E5 41 57 49 89 D7 41 56 4D 89 C6 41 55 4D 89 CD 41 54
+		Symbol::FromSignature("\x55\x8B\xEC\x81\xEC\xB8\x03\x00\x00\x53\x56\x57"), // 55 8B EC 81 EC B8 03 00 00 53 56 57
 	};
 
 	const std::vector<Symbol> CBaseFileSystem_GetFileTimeSym = {
@@ -346,11 +358,14 @@ namespace Symbols
 	const std::vector<Symbol> CBaseFileSystem_AddSearchPathSym = {
 		Symbol::FromName("_ZN15CBaseFileSystem13AddSearchPathEPKcS1_j"),
 		Symbol::FromSignature("\x55\x45\x31\xC9\x41\xB8\x01\x00\x00\x00"), // 55 45 31 C9 41 B8 01 00 00 00
+		// On Windows AddSearchPath_Internal is merged into this one, you can search for ".bsp" or go down 8th in the vtable
+		Symbol::FromSignature("\x55\x8B\xEC\x81\xEC\x14\x01\x00\x00\x53\x8B\xD9\x56"), // 55 8B EC 81 EC 14 01 00 00 53 8B D9 56
 	};
 
 	const std::vector<Symbol> CBaseFileSystem_AddVPKFileSym = {//Search for 'DUPLICATE: [%s]\n'
 		Symbol::FromName("_ZN15CBaseFileSystem10AddVPKFileEPKcS1_j"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x49\x89\xD6\x41\x55\x41\x54\x53\x48\x89\xFB"), // 55 48 89 E5 41 57 41 56 49 89 D6 41 55 41 54 53 48 89 FB
+		Symbol::FromSignature("\x55\x8B\xEC\x81\xEC\x20\x03\x00\x00\x53\x56\x57"), // 55 8B EC 81 EC 20 03 00 00 53 56 57
 	};
 
 	const std::vector<Symbol> CBaseFileSystem_CloseSym = { //Search for 'CBaseFileSystem::Close'
@@ -367,6 +382,7 @@ namespace Symbols
 	const std::vector<Symbol> g_PathIDTableSym = {
 		Symbol::FromName("g_PathIDTable"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x53\x48\x89\xFB\x48\x81\xEC\x58\x01\x00\x00", 0x8E), // 55 48 89 E5 41 57 41 56 41 55 41 54 53 48 89 FB 48 81 EC 58 01 00 00
+		Symbol::FromSignature("****\x50\xE8****\xB9******\x0F\xB7\x45\xFE"), // ?? ?? ?? ?? 50 E8 ?? ?? ?? ?? B9 ?? ?? ?? ?? ?? ?? 0F B7 45 FE
 	};
 
 	//---------------------------------------------------------------------------------

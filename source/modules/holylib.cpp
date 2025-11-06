@@ -464,34 +464,44 @@ void CHolyLibModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 	Util::NukeTable(pLua, "holylib");
 }
 
+#if SYSTEM_WINDOWS
+DETOUR_THISCALL_START()
+	DETOUR_THISCALL_ADDFUNC1( hook_CBaseEntity_PostConstructor, PostConstructor, CBaseEntity*, const char* );
+	DETOUR_THISCALL_ADDFUNC1( hook_CFuncLadder_PlayerGotOn, PlayerGotOn, CBaseEntity*, CBasePlayer* );
+	DETOUR_THISCALL_ADDFUNC1( hook_CFuncLadder_PlayerGotOff, PlayerGotOff, CBaseEntity*, CBasePlayer* );
+	DETOUR_THISCALL_ADDFUNC2( hook_CBaseEntity_SetMoveType, SetMoveType, CBaseEntity*, int, int );
+DETOUR_THISCALL_FINISH();
+#endif
+
 void CHolyLibModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
 		return;
 
+	DETOUR_PREPARE_THISCALL();
 	SourceSDK::ModuleLoader server_loader("server");
 	Detour::Create(
 		&detour_CBaseEntity_PostConstructor, "CBaseEntity::PostConstructor",
 		server_loader.GetModule(), Symbols::CBaseEntity_PostConstructorSym,
-		(void*)hook_CBaseEntity_PostConstructor, m_pID
+		(void*)DETOUR_THISCALL(hook_CBaseEntity_PostConstructor, PostConstructor), m_pID
 	);
 
 	Detour::Create(
 		&detour_CFuncLadder_PlayerGotOn, "CFuncLadder::PlayerGotOn",
 		server_loader.GetModule(), Symbols::CFuncLadder_PlayerGotOnSym,
-		(void*)hook_CFuncLadder_PlayerGotOn, m_pID
+		(void*)DETOUR_THISCALL(hook_CFuncLadder_PlayerGotOn, PlayerGotOn), m_pID
 	);
 
 	Detour::Create(
 		&detour_CFuncLadder_PlayerGotOff, "CFuncLadder::PlayerGotOff",
 		server_loader.GetModule(), Symbols::CFuncLadder_PlayerGotOffSym,
-		(void*)hook_CFuncLadder_PlayerGotOff, m_pID
+		(void*)DETOUR_THISCALL(hook_CFuncLadder_PlayerGotOff, PlayerGotOff), m_pID
 	);
 
 	Detour::Create(
 		&detour_CBaseEntity_SetMoveType, "CBaseEntity::SetMoveType",
 		server_loader.GetModule(), Symbols::CBaseEntity_SetMoveTypeSym,
-		(void*)hook_CBaseEntity_SetMoveType, m_pID
+		(void*)DETOUR_THISCALL(hook_CBaseEntity_SetMoveType, SetMoveType), m_pID
 	);
 
 	SourceSDK::ModuleLoader engine_loader("engine");

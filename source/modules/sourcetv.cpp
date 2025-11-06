@@ -615,53 +615,66 @@ void CSourceTVLibModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 	DeleteAll_CHLTVClient(pLua);
 }
 
+#if SYSTEM_WINDOWS
+DETOUR_THISCALL_START()
+	DETOUR_THISCALL_ADDRETFUNC1(hook_CHLTVClient_ProcessGMod_ClientToServer, bool, ProcessGMod_ClientToServer, CHLTVClient*, CLC_GMod_ClientToServer*);
+	DETOUR_THISCALL_ADDRETFUNC1(hook_CHLTVClient_ExecuteStringCommand, bool, ExecuteStringCommand, CHLTVClient*, const char*);
+	DETOUR_THISCALL_ADDFUNC0(hook_CHLTVDirector_StartNewShot, StartNewShot, CHLTVDirector*);
+	DETOUR_THISCALL_ADDFUNC1(hook_CHLTVServer_BroadcastEvent, BroadcastEvent, CHLTVServer*, IGameEvent*);
+	DETOUR_THISCALL_ADDFUNC0(hook_CHLTVServer_CHLTVServer, ConstructCHLTVServer, CHLTVServer*);
+	DETOUR_THISCALL_ADDFUNC0(hook_CHLTVServer_DestroyCHLTVServer, DestroyCHLTVServer, CHLTVServer*);
+	DETOUR_THISCALL_ADDFUNC0(hook_CHLTVClient_Deconstructor, Deconstructor, CHLTVClient*);
+DETOUR_THISCALL_FINISH();
+#endif
+
 void CSourceTVLibModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
 		return;
 
+	DETOUR_PREPARE_THISCALL();
 	SourceSDK::ModuleLoader engine_loader("engine");
 	Detour::Create(
 		&detour_CHLTVClient_ProcessGMod_ClientToServer, "CHLTVClient::ProcessGMod_ClientToServer",
 		engine_loader.GetModule(), Symbols::CHLTVClient_ProcessGMod_ClientToServerSym,
-		(void*)hook_CHLTVClient_ProcessGMod_ClientToServer, m_pID
+		(void*)DETOUR_THISCALL(hook_CHLTVClient_ProcessGMod_ClientToServer, ProcessGMod_ClientToServer), m_pID
 	);
 
 	Detour::Create(
 		&detour_CHLTVClient_ExecuteStringCommand, "CHLTVClient::ExecuteStringCommand",
 		engine_loader.GetModule(), Symbols::CHLTVClient_ExecuteStringCommandSym,
-		(void*)hook_CHLTVClient_ExecuteStringCommand, m_pID
+		(void*)DETOUR_THISCALL(hook_CHLTVClient_ExecuteStringCommand, ExecuteStringCommand), m_pID
 	);
 
 	Detour::Create(
 		&detour_CHLTVServer_CHLTVServer, "CHLTVServer::CHLTVServer",
 		engine_loader.GetModule(), Symbols::CHLTVServer_CHLTVServerSym,
-		(void*)hook_CHLTVServer_CHLTVServer, m_pID
+		(void*)DETOUR_THISCALL(hook_CHLTVServer_CHLTVServer, ConstructCHLTVServer), m_pID
 	);
 
 	Detour::Create(
 		&detour_CHLTVServer_DestroyCHLTVServer, "CHLTVServer::~CHLTVServer",
 		engine_loader.GetModule(), Symbols::CHLTVServer_DestroyCHLTVServerSym,
-		(void*)hook_CHLTVServer_DestroyCHLTVServer, m_pID
+		(void*)DETOUR_THISCALL(hook_CHLTVServer_DestroyCHLTVServer, DestroyCHLTVServer), m_pID
 	);
 
 	Detour::Create(
 		&detour_CHLTVClient_Deconstructor, "CHLTVClient::~CHLTVClient",
 		engine_loader.GetModule(), Symbols::CHLTVClient_DeconstructorSym,
-		(void*)hook_CHLTVClient_Deconstructor, m_pID
+		(void*)DETOUR_THISCALL(hook_CHLTVClient_Deconstructor, Deconstructor), m_pID
 	);
 
 	Detour::Create(
 		&detour_CHLTVServer_BroadcastEvent, "CHLTVServer::BroadcastEvent",
 		engine_loader.GetModule(), Symbols::CHLTVServer_BroadcastEventSym,
-		(void*)hook_CHLTVServer_BroadcastEvent, m_pID
+		(void*)DETOUR_THISCALL(hook_CHLTVServer_BroadcastEvent, BroadcastEvent), m_pID
 	);
 
 	SourceSDK::ModuleLoader server_loader("server");
 	Detour::Create(
 		&detour_CHLTVDirector_StartNewShot, "CHLTVDirector::StartNewShot",
 		server_loader.GetModule(), Symbols::CHLTVDirector_StartNewShotSym,
-		(void*)hook_CHLTVDirector_StartNewShot, m_pID
+		(void*)DETOUR_THISCALL(hook_CHLTVDirector_StartNewShot, StartNewShot), m_pID
 	);
 
 	func_CHLTVDemoRecorder_StartRecording = (Symbols::CHLTVDemoRecorder_StartRecording)Detour::GetFunction(engine_loader.GetModule(), Symbols::CHLTVDemoRecorder_StartRecordingSym);

@@ -1447,7 +1447,7 @@ LUA_FUNCTION_STATIC(CNetChan_CanPacket)
 }
 
 static Detouring::Hook detour_CNetChan_D2;
-void hook_CNetChan_D2(CNetChan* pNetChan)
+static void hook_CNetChan_D2(CNetChan* pNetChan)
 {
 	if (!ThreadInMainThread())
 	{
@@ -2878,7 +2878,7 @@ static int FindFreeClientSlot()
 }
 
 static Detouring::Hook detour_CGameClient_SpawnPlayer;
-void hook_CGameClient_SpawnPlayer(CGameClient* client)
+static void hook_CGameClient_SpawnPlayer(CGameClient* client)
 {
 	if (client->m_nClientSlot <= MAX_PLAYERS && !gameserver_disablespawnsafety.GetBool())
 	{
@@ -2927,7 +2927,7 @@ void CGameServerModule::OnClientDisconnect(CBaseClient* pClient)
 }
 
 static Detouring::Hook detour_CNetChan_SendDatagram;
-int hook_CNetChan_SendDatagram(CNetChan* chan, bf_write *datagram)
+static int hook_CNetChan_SendDatagram(CNetChan* chan, bf_write *datagram)
 {
 	int sequenceNr = detour_CNetChan_SendDatagram.GetTrampoline<Symbols::CNetChan_SendDatagram>()(chan, datagram);
 
@@ -3029,48 +3029,66 @@ static void hook_NET_SetTime(double flRealtime) // We need this hook to keep net
 	net_time += frametime * (host_timescale ? host_timescale->GetFloat() : 1.0f);
 }
 
+#if SYSTEM_WINDOWS
+DETOUR_THISCALL_START()
+    DETOUR_THISCALL_ADDFUNC1(hook_CBaseServer_FillServerInfo, Base_FillServerInfo, CBaseServer*, SVC_ServerInfo&);
+    DETOUR_THISCALL_ADDFUNC1(hook_CHLTVServer_FillServerInfo, HLTV_FillServerInfo, CHLTVServer*, SVC_ServerInfo&);
+    DETOUR_THISCALL_ADDFUNC0(hook_CBaseServer_CheckTimeouts, CheckTimeouts, CBaseServer*);
+    DETOUR_THISCALL_ADDFUNC0(hook_CGameClient_SpawnPlayer, SpawnPlayer, CGameClient*);
+    DETOUR_THISCALL_ADDFUNC3(hook_CServerGameClients_GetPlayerLimit, GetPlayerLimit, void*, int&, int&, int&);
+    DETOUR_THISCALL_ADDRETFUNC2(hook_CBaseClient_SetSignonState, bool, SetSignonState, CBaseClient*, int, int);
+    DETOUR_THISCALL_ADDRETFUNC0(hook_CBaseServer_IsMultiplayer, bool, IsMultiplayer, CBaseServer*);
+    DETOUR_THISCALL_ADDRETFUNC0(hook_GModDataPack_IsSingleplayer, bool, IsSingleplayer, void*);
+    DETOUR_THISCALL_ADDRETFUNC0(hook_CBaseClient_ShouldSendMessages, bool, ShouldSendMessages, CBaseClient*);
+    DETOUR_THISCALL_ADDRETFUNC1(hook_CBaseServer_ProcessConnectionlessPacket, bool, ProcessConnectionlessPacket, IServer*, netpacket_s*);
+    DETOUR_THISCALL_ADDRETFUNC1(hook_CNetChan_SendDatagram, int, SendDatagram, CNetChan*, bf_write*);
+    DETOUR_THISCALL_ADDFUNC0(hook_CNetChan_D2, D2, CNetChan*);
+DETOUR_THISCALL_FINISH()
+#endif
+
 void CGameServerModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
 		return;
 
+	DETOUR_PREPARE_THISCALL();
 	SourceSDK::FactoryLoader engine_loader("engine");
 	Detour::Create(
 		&detour_CBaseServer_FillServerInfo, "CBaseServer::FillServerInfo",
 		engine_loader.GetModule(), Symbols::CBaseServer_FillServerInfoSym,
-		(void*)hook_CBaseServer_FillServerInfo, m_pID
+		(void*)DETOUR_THISCALL(hook_CBaseServer_FillServerInfo, Base_FillServerInfo), m_pID
 	);
 
 	Detour::Create(
 		&detour_CHLTVServer_FillServerInfo, "CHLTVServer::FillServerInfo",
 		engine_loader.GetModule(), Symbols::CHLTVServer_FillServerInfoSym,
-		(void*)hook_CHLTVServer_FillServerInfo, m_pID
+		(void*)DETOUR_THISCALL(hook_CHLTVServer_FillServerInfo, HLTV_FillServerInfo), m_pID
 	);
 
 	Detour::Create(
 		&detour_CBaseClient_SetSignonState, "CBaseClient::SetSignonState",
 		engine_loader.GetModule(), Symbols::CBaseClient_SetSignonStateSym,
-		(void*)hook_CBaseClient_SetSignonState, m_pID
+		(void*)DETOUR_THISCALL(hook_CBaseClient_SetSignonState, SetSignonState), m_pID
 	);
 
 #if ARCHITECTURE_IS_X86
 	Detour::Create(
 		&detour_CBaseClient_ShouldSendMessages, "CBaseClient::ShouldSendMessages",
 		engine_loader.GetModule(), Symbols::CBaseClient_ShouldSendMessagesSym,
-		(void*)hook_CBaseClient_ShouldSendMessages, m_pID
+		(void*)DETOUR_THISCALL(hook_CBaseClient_ShouldSendMessages, ShouldSendMessages), m_pID
 	);
 #endif
 
 	Detour::Create(
 		&detour_CBaseServer_CheckTimeouts, "CBaseServer::CheckTimeouts",
 		engine_loader.GetModule(), Symbols::CBaseServer_CheckTimeoutsSym,
-		(void*)hook_CBaseServer_CheckTimeouts, m_pID
+		(void*)DETOUR_THISCALL(hook_CBaseServer_CheckTimeouts, CheckTimeouts), m_pID
 	);
 
 	Detour::Create(
 		&detour_CGameClient_SpawnPlayer, "CGameClient::SpawnPlayer",
 		engine_loader.GetModule(), Symbols::CGameClient_SpawnPlayerSym,
-		(void*)hook_CGameClient_SpawnPlayer, m_pID
+		(void*)DETOUR_THISCALL(hook_CGameClient_SpawnPlayer, SpawnPlayer), m_pID
 	);
 
 	Detour::Create(
@@ -3085,26 +3103,26 @@ void CGameServerModule::InitDetour(bool bPreServer)
 		Detour::Create(
 			&detour_CBaseServer_IsMultiplayer, "CBaseServer::IsMultiplayer",
 			engine_loader.GetModule(), Symbols::CBaseServer_IsMultiplayerSym,
-			(void*)hook_CBaseServer_IsMultiplayer, m_pID
+			(void*)DETOUR_THISCALL(hook_CBaseServer_IsMultiplayer, IsMultiplayer), m_pID
 		);
 
 		Detour::Create(
 			&detour_GModDataPack_IsSingleplayer, "GModDataPack::IsSingleplayer",
 			server_loader.GetModule(), Symbols::GModDataPack_IsSingleplayerSym,
-			(void*)hook_GModDataPack_IsSingleplayer, m_pID
+			(void*)DETOUR_THISCALL(hook_GModDataPack_IsSingleplayer, IsSingleplayer), m_pID
 		);
 	}
 
 	Detour::Create(
 		&detour_CServerGameClients_GetPlayerLimit, "CServerGameClients::GetPlayerLimit",
 		server_loader.GetModule(), Symbols::CServerGameClients_GetPlayerLimitSym,
-		(void*)hook_CServerGameClients_GetPlayerLimit, m_pID
+		(void*)DETOUR_THISCALL(hook_CServerGameClients_GetPlayerLimit, GetPlayerLimit), m_pID
 	);
 
 	Detour::Create(
 		&detour_CBaseServer_ProcessConnectionlessPacket, "CBaseServer::ProcessConnectionlessPacket",
 		engine_loader.GetModule(), Symbols::CBaseServer_ProcessConnectionlessPacketSym,
-		(void*)hook_CBaseServer_ProcessConnectionlessPacket, m_pID
+		(void*)DETOUR_THISCALL(hook_CBaseServer_ProcessConnectionlessPacket, ProcessConnectionlessPacket), m_pID
 	);
 
 	func_CBaseClient_OnRequestFullUpdate = (Symbols::CBaseClient_OnRequestFullUpdate)Detour::GetFunction(engine_loader.GetModule(), Symbols::CBaseClient_OnRequestFullUpdateSym);
@@ -3117,7 +3135,7 @@ void CGameServerModule::InitDetour(bool bPreServer)
 	Detour::Create(
 		&detour_CNetChan_D2, "CNetChan::~CNetChan",
 		engine_loader.GetModule(), Symbols::CNetChan_D2Sym,
-		(void*)hook_CNetChan_D2, m_pID
+		(void*)DETOUR_THISCALL(hook_CNetChan_D2, D2), m_pID
 	);
 
 	func_NET_CreateNetChannel = (Symbols::NET_CreateNetChannel)Detour::GetFunction(engine_loader.GetModule(), Symbols::NET_CreateNetChannelSym);
@@ -3133,7 +3151,7 @@ void CGameServerModule::InitDetour(bool bPreServer)
 	Detour::Create(
 		&detour_CNetChan_SendDatagram, "CNetChan::SendDatagram",
 		engine_loader.GetModule(), Symbols::CNetChan_SendDatagramSym,
-		(void*)hook_CNetChan_SendDatagram, m_pID
+		(void*)DETOUR_THISCALL(hook_CNetChan_SendDatagram, SendDatagram), m_pID
 	);
 
 	Detour::Create(

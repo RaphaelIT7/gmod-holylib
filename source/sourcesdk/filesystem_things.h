@@ -1,3 +1,4 @@
+// ToDo: GET RID OF THIS FILE AND USE filesystem_base.h from the sourcesdk!!!
 #include <utlsymbol.h>
 #include <filesystem.h>
 #include <utlhashtable.h>
@@ -32,6 +33,7 @@
 	#define _alloca alloca
 	#define _S_IFDIR S_IFDIR
 #endif
+#include "threadsaferefcountedobject.h"
 
 class CPackedStoreRefCount;
 extern CUtlSymbolTableMT* g_PathIDTable;
@@ -53,48 +55,48 @@ class CPathIDInfo
 		const char *m_pDebugPathID;
 	};
 
+enum CPathGroupName_t
+{
+	GN_DEFAULT,
+	GN_ENGINECORE,
+	GN_LUA,
+	GN_MAP,
+	GN_ADDONCONTENT,
+	GN_GMCONTENT,
+	GN_GMODCORE,
+	GN_CURRENTGAME,
+	GN_SOURCESDK,
+	GN_BADDONCONTENT,
+	GN_GAMECONTENT,
+	GN_MOUNTCFG,
+	GN_DOWNLOADS,
+	GN_FALLBACKS
+};
+
+class CPackFile;
+class CPackedStore;
 class CSearchPath
 	{
 	public:
-							CSearchPath( void );
-							~CSearchPath( void );
+					CSearchPath( void );
+					~CSearchPath( void );
 
-		const char* GetPathString() const;
-		const char* GetDebugString() const;
+	const char* GetPathString() const;
+	const char* GetDebugString() const;
 		
-		// Path ID ("game", "mod", "gamebin") accessors.
-		const CUtlSymbol& GetPathID() const;
-		const char* GetPathIDString() const;
+	// Path ID ("game", "mod", "gamebin") accessors.
+	const CUtlSymbol& GetPathID() const;
+	const char* GetPathIDString() const;
 
-		// Search path (c:\hl2\hl2) accessors.
-		void SetPath( CUtlSymbol id );
-		const CUtlSymbol& GetPath() const;
-
-		void SetPackFile(void* *pPackFile) { m_pPackFile = pPackFile; }
-		void* *GetPackFile() const { return m_pPackFile; }
-
-		#ifdef SUPPORT_PACKED_STORE
-		void SetPackedStore( CPackedStoreRefCount *pPackedStore ) { /*m_pPackedStore = pPackedStore;*/ }
-		#endif
-		void* *GetPackedStore() const { return m_pPackedStore; }
-
-		bool IsMapPath() const;
-
-		int					m_storeId;
-
-		// Used to track if its search 
-		CPathIDInfo			*m_pPathIDInfo;
-
-		bool				m_bIsRemotePath;
-
-		bool				m_bIsTrustedForPureServer;
-
-	public:
-		CUtlSymbol			m_Path;
-		const char			*m_pDebugPath;
-		void*			*m_pPackFile;
-		void* *m_pPackedStore;
-	};
+	int32_t m_storeId;
+	CPathIDInfo *m_pPathIDInfo;
+	uint32_t _flag0;
+	CPathGroupName_t m_GroupID;
+	CUtlSymbol m_Path;
+	const char *m_pDebugPath;
+	CPackFile *m_pPackFile;
+	CPackedStore *m_pPackFile2;
+};
 
 //---------------------------------------------------------
 
@@ -450,6 +452,15 @@ private:
 	CMemoryFileHandle& operator=( const CMemoryFileHandle& ); // not defined
 };
 
+class CWhitelistSpecs
+{
+public:
+	IFileList *m_pWantCRCList;
+	IFileList *m_pAllowFromDiskList;
+};
+typedef CThreadSafeRefCountedObject<CWhitelistSpecs *> CWhitelistHolder;
+
+class CFileHandleTimer;
 abstract_class CBaseFileSystem : public CTier1AppSystem< IFileSystem >
 {
 	friend class CPackFileHandle;
@@ -725,14 +736,10 @@ public:
 
 	friend class CSearchPath;
 
-	IPureServerWhitelist	*m_pPureServerWhitelist;
-	int					m_WhitelistSpewFlags; // Combination of WHITELIST_SPEW_ flags.
-
-	// logging functions
-	CUtlVector< FileSystemLoggingFunc_t > m_LogFuncs;
-
+	CWhitelistHolder m_FileWhitelist;
+	CUtlVector<FileSystemLoggingFunc_t> m_LogFuncs;
 	CThreadMutex m_SearchPathsMutex;
-	CUtlVector< CSearchPath > m_SearchPaths;
+	CUtlLinkedList<CSearchPath> m_SearchPaths;
 	CUtlVector<CPathIDInfo*> m_PathIDInfos;
 	CUtlLinkedList<FindData_t> m_FindData;
 
@@ -746,7 +753,7 @@ public:
 	FILE *m_pLogFile;
 	bool m_bOutputDebugString;
 
-	IThreadPool *	m_pThreadPool;
+	IThreadPool*	m_pThreadPool;
 	CThreadFastMutex m_AsyncCallbackMutex;
 
 	// Statistics:

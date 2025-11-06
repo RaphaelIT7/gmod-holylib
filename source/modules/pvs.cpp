@@ -896,23 +896,31 @@ void CPVSModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 	Util::NukeTable(pLua, "pvs");
 }
 
+#if SYSTEM_WINDOWS && !defined(HOLYLIB_MANUALNETWORKING)
+DETOUR_THISCALL_START()
+	DETOUR_THISCALL_ADDFUNC2( hook_CGMOD_Player_SetupVisibility, SetupVisibility, void*, unsigned char*, int );
+	DETOUR_THISCALL_ADDFUNC3( hook_CServerGameEnts_CheckTransmit, CheckTransmit, IServerGameEnts*, CCheckTransmitInfo*, const unsigned short*, int );
+DETOUR_THISCALL_FINISH();
+#endif
+
 void CPVSModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
 		return;
 
 #ifndef HOLYLIB_MANUALNETWORKING
+	DETOUR_PREPARE_THISCALL();
 	SourceSDK::ModuleLoader server_loader("server");
 	Detour::Create(
 		&detour_CGMOD_Player_SetupVisibility, "CGMOD_Player::SetupVisibility",
 		server_loader.GetModule(), Symbols::CGMOD_Player_SetupVisibilitySym,
-		(void*)hook_CGMOD_Player_SetupVisibility, m_pID
+		(void*)DETOUR_THISCALL(hook_CGMOD_Player_SetupVisibility, SetupVisibility), m_pID
 	);
 
 	Detour::Create(
 		&detour_CServerGameEnts_CheckTransmit, "CServerGameEnts::CheckTransmit",
 		server_loader.GetModule(), Symbols::CServerGameEnts_CheckTransmitSym,
-		(void*)hook_CServerGameEnts_CheckTransmit, m_pID
+		(void*)DETOUR_THISCALL(hook_CServerGameEnts_CheckTransmit, CheckTransmit), m_pID
 	);
 #endif
 }

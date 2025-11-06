@@ -57,6 +57,110 @@ namespace Detour
 		(void*)hook_##name, m_pID \
 	)
 
+#if SYSTEM_WINDOWS
+/*
+	__thiscall is funky, the compiler LOVES to screw up registers causing invalid/corrupted arguments
+	and deny __thiscall directly as you are REQUIRED to only use it on a non-static method
+	so to workaround this, you can use these to let your hook be called properly by having a wrapper around it.
+
+	How this works:
+	
+	First you call 
+		DETOUR_THISCALL_START()
+	This will setup a static class into which then our wrapper functions are added.
+
+	Then use
+		DETOUR_THISCALL_ADDFUNC1( hook_Bla_ExampleHook, ExampleHook, CExampleClass*, const char* );
+	Which will translate to 
+		virtual void ExampleHook(const char* __arg1) {
+			realHook((CExampleClass*)this, __arg1); // this will always be your CExampleClass* given as the first argument to the hook
+		};
+
+	You can continue adding more, when your done, use
+		DETOUR_THISCALL_FINISH()
+	Which will close the class and setup a static g_pThisCallConversionWorkaround variable.
+
+	Now, when you do your Detour::Create calls, instead of just passing your hook directly, you instead use
+		DETOUR_THISCALL(hook_Bla_ExampleHook, ExampleHook) -- First is your normal hook, second is the name you used when calling AddFunc
+
+	Detour::Create(
+		&detour_CBaseFileSystem_GetFileTime, "CBaseFileSystem::GetFileTime",
+		filesystem_loader.GetModule(), Symbols::CBaseFileSystem_GetFileTimeSym,
+		(void*)DETOUR_THISCALL(hook_CBaseFileSystem_GetFileTime, GetFileTime), <------- Here you just use it
+		m_pID
+	);
+*/
+
+// Uses an anonymous namespace since else the compile LOVES to merge variables/vtable into one global class breaking everything and overriving vtable entries
+#define DETOUR_THISCALL_START() \
+namespace { \
+class ThisCallWorkaround \
+{ \
+public:
+
+#define DETOUR_THISCALL_FINISH() \
+}; \
+static ThisCallWorkaround g_pThisCallConversionWorkaround; \
+}
+
+#define DETOUR_THISCALL_ADDFUNC0( realHook, name, thisType ) \
+virtual void name() { realHook((thisType)this); }; \
+byte m_##name = 0;
+
+#define DETOUR_THISCALL_ADDFUNC1( realHook, name, thisType, arg1 ) \
+virtual void name(arg1 __arg1) { realHook((thisType)this, __arg1); };\
+byte m_##name = 0;
+
+#define DETOUR_THISCALL_ADDFUNC2( realHook, name, thisType, arg1, arg2 ) \
+virtual void name(arg1 __arg1, arg2 __arg2) { realHook((thisType)this, __arg1, __arg2); };\
+byte m_##name = 0;
+
+#define DETOUR_THISCALL_ADDFUNC3( realHook, name, thisType, arg1, arg2, arg3 ) \
+virtual void name(arg1 __arg1, arg2 __arg2, arg3 __arg3) { realHook((thisType)this, __arg1, __arg2, __arg3); };\
+byte m_##name = 0;
+
+#define DETOUR_THISCALL_ADDFUNC4( realHook, name, thisType, arg1, arg2, arg3, arg4 ) \
+virtual void name(arg1 __arg1, arg2 __arg2, arg3 __arg3, arg4 __arg4) { realHook((thisType)this, __arg1, __arg2, __arg3, __arg4); };\
+byte m_##name = 0;
+
+#define DETOUR_THISCALL_ADDRETFUNC0( realHook, returnValue, name, thisType ) \
+virtual returnValue name() { return realHook((thisType)this); };\
+byte m_##name = 0;
+
+#define DETOUR_THISCALL_ADDRETFUNC1( realHook, returnValue, name, thisType, arg1 ) \
+virtual returnValue name(arg1 __arg1) { return realHook((thisType)this, __arg1); };\
+byte m_##name = 0;
+
+#define DETOUR_THISCALL_ADDRETFUNC2( realHook, returnValue, name, thisType, arg1, arg2 ) \
+virtual returnValue name(arg1 __arg1, arg2 __arg2) { return realHook((thisType)this, __arg1, __arg2); };\
+byte m_##name = 0;
+
+#define DETOUR_THISCALL_ADDRETFUNC3( realHook, returnValue, name, thisType, arg1, arg2, arg3 ) \
+virtual returnValue name(arg1 __arg1, arg2 __arg2, arg3 __arg3) { return realHook((thisType)this, __arg1, __arg2, __arg3); };\
+byte m_##name = 0;
+
+#define DETOUR_THISCALL_ADDRETFUNC4( realHook, returnValue, name, thisType, arg1, arg2, arg3, arg4 ) \
+virtual returnValue name(arg1 __arg1, arg2 __arg2, arg3 __arg3, arg4 __arg4) { return realHook((thisType)this, __arg1, __arg2, __arg3, __arg4); };\
+byte m_##name = 0;
+
+#define DETOUR_THISCALL_ADDRETFUNC5( realHook, returnValue, name, thisType, arg1, arg2, arg3, arg4, arg5 ) \
+virtual returnValue name(arg1 __arg1, arg2 __arg2, arg3 __arg3, arg4 __arg4, arg5 __arg5) { return realHook((thisType)this, __arg1, __arg2, __arg3, __arg4, __arg5); };\
+byte m_##name = 0;
+
+#define DETOUR_PREPARE_THISCALL() void** pWorkaroundVTable = *(void***)&g_pThisCallConversionWorkaround
+/*
+	HACK
+	Since we cannot just get the index of a vtable function
+	I decided to use member variables as its straight forward and easy to get their offset
+	And since we create a virtual function and a variable together we can be 100% sure that the variable offset will match the vtable offset.
+	Since the vtable is always first, we also remove sizeof(void*) as thats the 4/8 bytes of the vtable.
+*/
+#define DETOUR_THISCALL( linuxHook, windowsHook ) pWorkaroundVTable[((size_t)&(((ThisCallWorkaround*)0)->m_##windowsHook)) - sizeof(void*)]
+#else
+#define DETOUR_PREPARE_THISCALL( varName )
+#define DETOUR_THISCALL( linuxHook, windowsHook ) linuxHook
+#endif
+
 	inline bool CheckValue(const char* strMsg, const char* strName, bool bRet)
 	{
 		if (!bRet) {

@@ -154,22 +154,30 @@ void CPrecacheFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamef
 	Detour::CheckValue("get interface", "INetworkStringTableContainer", networkStringTableContainerServer != NULL);
 }
 
+#if SYSTEM_WINDOWS
+DETOUR_THISCALL_START()
+	DETOUR_THISCALL_ADDRETFUNC2( hook_CVEngineServer_PrecacheModel, int, PrecacheModel, IVEngineServer*, const char*, bool );
+	DETOUR_THISCALL_ADDRETFUNC2( hook_CVEngineServer_PrecacheGeneric, int, PrecacheGeneric, IVEngineServer*, const char*, bool );
+DETOUR_THISCALL_FINISH();
+#endif
+
 void CPrecacheFixModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
 		return;
 
+	DETOUR_PREPARE_THISCALL();
 	SourceSDK::ModuleLoader engine_loader("engine");
 	Detour::Create(
 		&detour_CVEngineServer_PrecacheModel, "CVEngineServer::PrecacheModel",
 		engine_loader.GetModule(), Symbols::CVEngineServer_PrecacheModelSym,
-		(void*)hook_CVEngineServer_PrecacheModel, m_pID
+		(void*)DETOUR_THISCALL(hook_CVEngineServer_PrecacheModel, PrecacheModel), m_pID
 	);
 
 	Detour::Create(
 		&detour_CVEngineServer_PrecacheGeneric, "CVEngineServer::PrecacheGeneric",
 		engine_loader.GetModule(), Symbols::CVEngineServer_PrecacheGenericSym,
-		(void*)hook_CVEngineServer_PrecacheGeneric, m_pID
+		(void*)DETOUR_THISCALL(hook_CVEngineServer_PrecacheGeneric, PrecacheGeneric), m_pID
 	);
 
 	func_SV_FindOrAddModel = (Symbols::SV_FindOrAddModel)Detour::GetFunction(engine_loader.GetModule(), Symbols::SV_FindOrAddModelSym);

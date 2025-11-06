@@ -278,33 +278,43 @@ void CSteamWorksModule::LevelShutdown()
 	g_pApprovedSteamIDs.clear();
 }
 
+#if SYSTEM_WINDOWS
+DETOUR_THISCALL_START()
+	DETOUR_THISCALL_ADDFUNC1( hook_CSteam3Server_OnLoggedOff, OnLoggedOff, CSteam3Server*, SteamServersDisconnected_t* );
+	DETOUR_THISCALL_ADDFUNC1( hook_CSteam3Server_OnLogonSuccess, OnLogonSuccess, CSteam3Server*, SteamServersConnected_t* );
+	DETOUR_THISCALL_ADDRETFUNC5( hook_CSteam3Server_NotifyClientConnect, bool, NotifyClientConnect, CSteam3Server*, CBaseClient*, uint32, netadr_t&, const void*, uint32 );
+	DETOUR_THISCALL_ADDRETFUNC1( hook_CSteam3Server_CheckForDuplicateSteamID, bool, CheckForDuplicateSteamID, CSteam3Server*, CBaseClient* );
+DETOUR_THISCALL_FINISH();
+#endif
+
 void CSteamWorksModule::InitDetour(bool bPreServer)
 {
 	if ( bPreServer ) { return; }
 
+	DETOUR_PREPARE_THISCALL();
 	SourceSDK::ModuleLoader engine_loader("engine");
 	Detour::Create(
 		&detour_CSteam3Server_OnLoggedOff, "CSteam3Server::OnLoggedOff",
 		engine_loader.GetModule(), Symbols::CSteam3Server_OnLoggedOffSym,
-		(void*)hook_CSteam3Server_OnLoggedOff, m_pID
+		(void*)DETOUR_THISCALL(hook_CSteam3Server_OnLoggedOff, OnLoggedOff), m_pID
 	);
 
 	Detour::Create(
 		&detour_CSteam3Server_OnLogonSuccess, "CSteam3Server::OnLogonSuccess",
 		engine_loader.GetModule(), Symbols::CSteam3Server_OnLogonSuccessSym,
-		(void*)hook_CSteam3Server_OnLogonSuccess, m_pID
+		(void*)DETOUR_THISCALL(hook_CSteam3Server_OnLogonSuccess, OnLogonSuccess), m_pID
 	);
 
 	Detour::Create(
 		&detour_CSteam3Server_NotifyClientConnect, "CSteam3Server::NotifyClientConnect",
 		engine_loader.GetModule(), Symbols::CSteam3Server_NotifyClientConnectSym,
-		(void*)hook_CSteam3Server_NotifyClientConnect, m_pID
+		(void*)DETOUR_THISCALL(hook_CSteam3Server_NotifyClientConnect, NotifyClientConnect), m_pID
 	);
 
 	Detour::Create(
 		&detour_CSteam3Server_CheckForDuplicateSteamID, "CSteam3Server::CheckForDuplicateSteamID",
 		engine_loader.GetModule(), Symbols::CSteam3Server_CheckForDuplicateSteamIDSym,
-		(void*)hook_CSteam3Server_CheckForDuplicateSteamID, m_pID
+		(void*)DETOUR_THISCALL(hook_CSteam3Server_CheckForDuplicateSteamID, CheckForDuplicateSteamID), m_pID
 	);
 
 	func_Steam3Server = (Symbols::Steam3ServerT)Detour::GetFunction(engine_loader.GetModule(), Symbols::Steam3ServerSym);

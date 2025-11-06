@@ -570,6 +570,14 @@ int Util::FindOffsetForNetworkVar(const char* pDTName, const char* pVarName)
 	return -1;
 }
 
+#if SYSTEM_WINDOWS
+#undef CreateEvent // Where tf is that windows include >:(
+DETOUR_THISCALL_START()
+	DETOUR_THISCALL_ADDFUNC1( hook_CSteam3Server_NotifyClientDisconnect, NotifyClientDisconnect, void*, CBaseClient* );
+	DETOUR_THISCALL_ADDRETFUNC2( hook_CGameEventManager_CreateEvent, IGameEvent*, CreateEvent, void*, const char*, bool );
+DETOUR_THISCALL_FINISH();
+#endif
+
 IGet* Util::get = nullptr;
 CBaseEntityList* g_pEntityList = nullptr;
 Symbols::lua_rawseti Util::func_lua_rawseti = nullptr;
@@ -623,16 +631,17 @@ void Util::AddDetour()
 		servergamedll = server_loader.GetInterface<IServerGameDLL>(INTERFACEVERSION_SERVERGAMEDLL);
 	Detour::CheckValue("get interface", "IServerGameDLL", servergamedll != nullptr);
 
+	DETOUR_PREPARE_THISCALL();
 	Detour::Create(
 		&detour_CSteam3Server_NotifyClientDisconnect, "CSteam3Server::NotifyClientDisconnect",
 		engine_loader.GetModule(), Symbols::CSteam3Server_NotifyClientDisconnectSym,
-		(void*)hook_CSteam3Server_NotifyClientDisconnect, 0
+		(void*)DETOUR_THISCALL(hook_CSteam3Server_NotifyClientDisconnect, NotifyClientDisconnect), 0
 	);
 
 	Detour::Create(
 		&detour_CGameEventManager_CreateEvent, "CGameEventManager::CreateEvent",
 		engine_loader.GetModule(), Symbols::CGameEventManager_CreateEventSym,
-		(void*)hook_CGameEventManager_CreateEvent, 0
+		(void*)DETOUR_THISCALL(hook_CGameEventManager_CreateEvent, CreateEvent), 0
 	);
 
 	SourceSDK::ModuleLoader steam_api_loader("steam_api");

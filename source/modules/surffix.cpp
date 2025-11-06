@@ -133,6 +133,11 @@ inline void HolyLib_UTIL_TraceRay(const Ray_t &ray, unsigned int mask, const IHa
 	//}
 }
 
+/*
+	Momentum-Mod made this code!
+	Origin: https://github.com/momentum-mod/game/blob/develop/mp/src/game/shared/momentum/mom_gamemovement.cpp#L2393-L2993
+*/
+
 static Detouring::Hook detour_CGameMovement_TryPlayerMove;
 static int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector* pFirstDest, trace_t* pFirstTrace) // Raphael: We still need to support player->m_surfaceFriction or what it's name was. I removed it since I currently can't get it.
 {
@@ -548,16 +553,23 @@ void CSurfFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 	Detour::CheckValue("get interface", "enginetrace", enginetrace != NULL);
 }
 
+#if SYSTEM_WINDOWS
+DETOUR_THISCALL_START()
+	DETOUR_THISCALL_ADDRETFUNC2( hook_CGameMovement_TryPlayerMove, int, TryPlayerMove, CGameMovement*, Vector*, trace_t* );
+DETOUR_THISCALL_FINISH();
+#endif
+
 void CSurfFixModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer || !gpGlobals)
 		return;
 
+	DETOUR_PREPARE_THISCALL();
 	SourceSDK::FactoryLoader server_loader("server");
 	Detour::Create(
 		&detour_CGameMovement_TryPlayerMove, "CGameMovement::TryPlayerMove",
 		server_loader.GetModule(), Symbols::CGameMovement_TryPlayerMoveSym,
-		(void*)hook_CGameMovement_TryPlayerMove, m_pID
+		(void*)DETOUR_THISCALL(hook_CGameMovement_TryPlayerMove, TryPlayerMove), m_pID
 	);
 
 	func_MoveHelperServer = (Symbols::MoveHelperServer)Detour::GetFunction(server_loader.GetModule(), Symbols::MoveHelperServerSym);

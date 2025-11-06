@@ -409,12 +409,17 @@ GMOD_MODULE_OPEN()
 	bool bServer = LUA->GetBool(-1);
 	LUA->Pop(1);
 
-	if (bClient)
+	LUA->GetField(LUA_GLOBALSINDEX, "MENU_DLL");
+	bool bMenu = LUA->GetBool(-1);
+	LUA->Pop(1);
+
+	if (bMenu) // Checked first since CLIENT is also true in the menu state
+		g_pModuleManager.SetModuleRealm(Module_Realm::MENU);
+	else if (bClient)
 		g_pModuleManager.SetModuleRealm(Module_Realm::CLIENT);
 	else if (bServer)
 		g_pModuleManager.SetModuleRealm(Module_Realm::SERVER);
-	else
-		g_pModuleManager.SetModuleRealm(Module_Realm::MENU);
+		
 
 	g_pModuleManager.MarkAsBinaryModule();
 	Lua::SetManualShutdown();

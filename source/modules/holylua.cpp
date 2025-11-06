@@ -61,7 +61,12 @@ static ConCommand lua_run_holylib("lua_run_holylib", lua_run_holylibCmd, "Runs c
 static CGameEventManager* pGameEventManager = nullptr;
 void CHolyLuaModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
-	pGameEventManager = (CGameEventManager*)appfn[0](INTERFACEVERSION_GAMEEVENTSMANAGER2, NULL);
+	if (appfn[0]) {
+		pGameEventManager = (CGameEventManager*)appfn[0](INTERFACEVERSION_GAMEEVENTSMANAGER2, NULL);
+	} else {
+		SourceSDK::FactoryLoader engine_loader("engine");
+		pGameEventManager = engine_loader.GetInterface<CGameEventManager>(INTERFACEVERSION_GAMEEVENTSMANAGER2);
+	}
 	Detour::CheckValue("get interface", "CGameEventManager", pGameEventManager != NULL);
 
 	g_pHolyLuaModule.HolyLua_Init();

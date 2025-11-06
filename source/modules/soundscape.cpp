@@ -304,16 +304,23 @@ void CSoundscapeModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 {
 }
 
+#if SYSTEM_WINDOWS
+DETOUR_THISCALL_START()
+	DETOUR_THISCALL_ADDFUNC1( hook_CEnvSoundscape_UpdateForPlayer, UpdateForPlayer, CBaseEntity*, ss_update_t& );
+DETOUR_THISCALL_FINISH();
+#endif
+
 void CSoundscapeModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
 		return;
 
+	DETOUR_PREPARE_THISCALL();
 	SourceSDK::FactoryLoader server_loader("server");
 	Detour::Create(
 		&detour_CEnvSoundscape_UpdateForPlayer, "CEnvSoundscape::UpdateForPlayer",
 		server_loader.GetModule(), Symbols::CEnvSoundscape_UpdateForPlayerSym,
-		(void*)hook_CEnvSoundscape_UpdateForPlayer, m_pID
+		(void*)DETOUR_THISCALL(hook_CEnvSoundscape_UpdateForPlayer, UpdateForPlayer), m_pID
 	);
 
 	g_pSoundscapeSystem = Detour::ResolveSymbol<CSoundscapeSystem>(server_loader, Symbols::g_SoundscapeSystemSym);

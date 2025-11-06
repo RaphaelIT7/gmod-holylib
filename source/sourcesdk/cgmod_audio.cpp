@@ -284,8 +284,11 @@ Detour::CheckFunction((void*)func_##name, #name);
 
 bool CGMod_Audio::Init(CreateInterfaceFn interfaceFactory)
 {
-	ConnectTier1Libraries( &interfaceFactory, 1 );
-	ConnectTier2Libraries( &interfaceFactory, 1 );
+	if (interfaceFactory)
+	{
+		ConnectTier1Libraries( &interfaceFactory, 1 );
+		ConnectTier2Libraries( &interfaceFactory, 1 );
+	}
 
 	BASS_SetConfig(BASS_CONFIG_UPDATEPERIOD, 10);
 

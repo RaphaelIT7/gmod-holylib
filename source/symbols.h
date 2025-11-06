@@ -134,7 +134,7 @@ namespace Symbols
 	typedef bool (GMCOMMON_CALLING_CONVENTION* CLuaInterface_Shutdown)(GarrysMod::Lua::ILuaInterface*);
 	extern const std::vector<Symbol> CLuaInterface_ShutdownSym;
 
-	typedef GarrysMod::Lua::CLuaObject* (*CBaseEntity_GetLuaEntity)(void* pEntity);
+	typedef GarrysMod::Lua::CLuaObject* (GMCOMMON_CALLING_CONVENTION* CBaseEntity_GetLuaEntity)(void* pEntity);
 	extern const std::vector<Symbol> CBaseEntity_GetLuaEntitySym;
 	// We use this one to directly push by reference to reduce overhead and improve performance.
 	// This one is required on windows since else it tries the ILuaObject which is broken rn and idk why
@@ -142,13 +142,13 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: All Optional Base Symbols
 	//---------------------------------------------------------------------------------
-	typedef void (*CBaseEntity_CalcAbsolutePosition)(void* ent);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CBaseEntity_CalcAbsolutePosition)(void* ent);
 	extern const std::vector<Symbol> CBaseEntity_CalcAbsolutePositionSym;
 
-	typedef void (*CBaseAnimating_InvalidateBoneCache)(void* ent);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CBaseAnimating_InvalidateBoneCache)(void* ent);
 	extern const std::vector<Symbol> CBaseAnimating_InvalidateBoneCacheSym;
 
-	typedef void (*CBaseEntity_PostConstructor)(void* ent, const char* szClassname);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CBaseEntity_PostConstructor)(void* ent, const char* szClassname);
 	extern const std::vector<Symbol> CBaseEntity_PostConstructorSym;
 
 	/*
@@ -352,6 +352,9 @@ namespace Symbols
 	typedef long (GMCOMMON_CALLING_CONVENTION* CBaseFileSystem_FastFileTime)(void* filesystem, const CSearchPath* path, const char* pFileName);
 	extern const std::vector<Symbol> CBaseFileSystem_FastFileTimeSym;
 
+	typedef bool (GMCOMMON_CALLING_CONVENTION* CBaseFileSystem_FixUpPath)(void* filesystem, const char* pFileName, char* pFixedUpFileName, int sizeFixedUpFileName);
+	extern const std::vector<Symbol> CBaseFileSystem_FixUpPathSym;
+
 	typedef FileHandle_t(GMCOMMON_CALLING_CONVENTION* CBaseFileSystem_OpenForRead)(void* filesystem, const char* pFileNameT, const char* pOptions, unsigned flags, const char* pathID, char** ppszResolvedFilename);
 	extern std::vector<Symbol> CBaseFileSystem_OpenForReadSym;
 
@@ -438,16 +441,16 @@ namespace Symbols
 	typedef void (__cdecl* SV_DetermineUpdateType)(CEntityWriteInfo& u);
 	extern const std::vector<Symbol> SV_DetermineUpdateTypeSym;
 
-	typedef int (*PackedEntity_GetPropsChangedAfterTick)(PackedEntity*, int tick, int* iOutProps, int nMaxOutProps);
+	typedef int (GMCOMMON_CALLING_CONVENTION* PackedEntity_GetPropsChangedAfterTick)(PackedEntity*, int tick, int* iOutProps, int nMaxOutProps);
 	extern const std::vector<Symbol> PackedEntity_GetPropsChangedAfterTickSym;
 
-	typedef void (*CGameServer_SendClientMessages)(CBaseServer* pServer, bool sendSnapshots);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CGameServer_SendClientMessages)(CBaseServer* pServer, bool sendSnapshots);
 	extern const std::vector<Symbol> CGameServer_SendClientMessagesSym;
 
-	typedef void (*CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer)(CBaseEntity* pEnt, CBasePlayer* pPly, bool bPreventTransmit);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer)(CBaseEntity* pEnt, CBasePlayer* pPly, bool bPreventTransmit);
 	extern const std::vector<Symbol> CBaseEntity_GMOD_SetShouldPreventTransmitToPlayerSym;
 
-	typedef bool (*CBaseEntity_GMOD_ShouldPreventTransmitToPlayer)(CBaseEntity* pEnt, CBasePlayer* pPly);
+	typedef bool (GMCOMMON_CALLING_CONVENTION* CBaseEntity_GMOD_ShouldPreventTransmitToPlayer)(CBaseEntity* pEnt, CBasePlayer* pPly);
 	extern const std::vector<Symbol> CBaseEntity_GMOD_ShouldPreventTransmitToPlayerSym;
 
 	extern const std::vector<Symbol> g_FrameSnapshotManagerSym;
@@ -467,10 +470,10 @@ namespace Symbols
 	extern const std::vector<Symbol> InvalidateSharedEdictChangeInfosSym;
 	extern const std::vector<Symbol> PackEntities_NormalSym;
 
-	typedef void (*CGMOD_Player_CreateViewModel)(CBasePlayer* pPlayer, int viewmodelindex);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CGMOD_Player_CreateViewModel)(CBasePlayer* pPlayer, int viewmodelindex);
 	extern const std::vector<Symbol> CGMOD_Player_CreateViewModelSym;
 
-	typedef void (*CBaseCombatCharacter_SetTransmit)(CBaseCombatCharacter* pCharacter, CCheckTransmitInfo *pInfo, bool bAlways);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CBaseCombatCharacter_SetTransmit)(CBaseCombatCharacter* pCharacter, CCheckTransmitInfo *pInfo, bool bAlways);
 	extern const std::vector<Symbol> CBaseCombatCharacter_SetTransmitSym;
 	extern const std::vector<Symbol> CBaseAnimating_SetTransmitSym;
 
@@ -511,7 +514,7 @@ namespace Symbols
 	extern const std::vector<Symbol> SV_BroadcastVoiceDataSym;
 
 	// These below are obsolete soon.
-	typedef void (*CVoiceGameMgr_Update)(CVoiceGameMgr*, double frametime);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CVoiceGameMgr_Update)(CVoiceGameMgr*, double frametime);
 	extern const std::vector<Symbol> CVoiceGameMgr_UpdateSym;
 
 	extern const std::vector<Symbol> g_PlayerModEnableSym;
@@ -524,46 +527,46 @@ namespace Symbols
 	// Purpose: physenv Symbols
 	//---------------------------------------------------------------------------------
 #if PHYSENV_INCLUDEIVPFALLBACK
-	typedef void (*IVP_Mindist_do_impact)(void* mindist);
+	typedef void (GMCOMMON_CALLING_CONVENTION* IVP_Mindist_do_impact)(void* mindist);
 	extern const std::vector<Symbol> IVP_Mindist_do_impactSym;
 
-	typedef void (*IVP_Event_Manager_Standard_simulate_time_events)(void* eventmanager, void* timemanager, void* environment, GMODSDK::IVP_Time time);
+	typedef void (GMCOMMON_CALLING_CONVENTION* IVP_Event_Manager_Standard_simulate_time_events)(void* eventmanager, void* timemanager, void* environment, GMODSDK::IVP_Time time);
 	extern const std::vector<Symbol> IVP_Event_Manager_Standard_simulate_time_eventsSym;
 
-	typedef void (*IVP_Mindist_simulate_time_event)(void* mindist, void* environment);
+	typedef void (GMCOMMON_CALLING_CONVENTION* IVP_Mindist_simulate_time_event)(void* mindist, void* environment);
 	extern const std::vector<Symbol> IVP_Mindist_simulate_time_eventSym;
 
-	typedef void (*IVP_Mindist_update_exact_mindist_events)(void* mindist, GMODSDK::IVP_BOOL, GMODSDK::IVP_MINDIST_EVENT_HINT);
+	typedef void (GMCOMMON_CALLING_CONVENTION* IVP_Mindist_update_exact_mindist_events)(void* mindist, GMODSDK::IVP_BOOL, GMODSDK::IVP_MINDIST_EVENT_HINT);
 	extern const std::vector<Symbol> IVP_Mindist_update_exact_mindist_eventsSym;
 
-	typedef void (*CPhysicsEnvironment_DestroyObject)(IPhysicsEnvironment*, IPhysicsObject*);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CPhysicsEnvironment_DestroyObject)(IPhysicsEnvironment*, IPhysicsObject*);
 	extern const std::vector<Symbol> CPhysicsEnvironment_DestroyObjectSym;
 
-	typedef bool (*CPhysicsEnvironment_Restore)(IPhysicsEnvironment*, physrestoreparams_t const&);
+	typedef bool (GMCOMMON_CALLING_CONVENTION* CPhysicsEnvironment_Restore)(IPhysicsEnvironment*, physrestoreparams_t const&);
 	extern const std::vector<Symbol> CPhysicsEnvironment_RestoreSym;
 
-	typedef bool (*CPhysicsEnvironment_TransferObject)(IPhysicsEnvironment*, IPhysicsObject*, IPhysicsEnvironment*);
+	typedef bool (GMCOMMON_CALLING_CONVENTION* CPhysicsEnvironment_TransferObject)(IPhysicsEnvironment*, IPhysicsObject*, IPhysicsEnvironment*);
 	extern const std::vector<Symbol> CPhysicsEnvironment_TransferObjectSym;
 
-	typedef IPhysicsObject* (*CPhysicsEnvironment_CreateSphereObject)(IPhysicsEnvironment*, float radius, int materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams, bool isStatic);
+	typedef IPhysicsObject* (GMCOMMON_CALLING_CONVENTION* CPhysicsEnvironment_CreateSphereObject)(IPhysicsEnvironment*, float radius, int materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams, bool isStatic);
 	extern const std::vector<Symbol> CPhysicsEnvironment_CreateSphereObjectSym;
 
-	typedef IPhysicsObject* (*CPhysicsEnvironment_UnserializeObjectFromBuffer)(IPhysicsEnvironment*, void *pGameData, unsigned char *pBuffer, unsigned int bufferSize, bool enableCollisions);
+	typedef IPhysicsObject* (GMCOMMON_CALLING_CONVENTION* CPhysicsEnvironment_UnserializeObjectFromBuffer)(IPhysicsEnvironment*, void *pGameData, unsigned char *pBuffer, unsigned int bufferSize, bool enableCollisions);
 	extern const std::vector<Symbol> CPhysicsEnvironment_UnserializeObjectFromBufferSym;
 
-	typedef IPhysicsObject* (*CPhysicsEnvironment_CreatePolyObjectStatic)(IPhysicsEnvironment*, const CPhysCollide *pCollisionModel, int materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams);
+	typedef IPhysicsObject* (GMCOMMON_CALLING_CONVENTION* CPhysicsEnvironment_CreatePolyObjectStatic)(IPhysicsEnvironment*, const CPhysCollide *pCollisionModel, int materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams);
 	extern const std::vector<Symbol> CPhysicsEnvironment_CreatePolyObjectStaticSym;
 
-	typedef IPhysicsObject* (*CPhysicsEnvironment_CreatePolyObject)(IPhysicsEnvironment*, const CPhysCollide *pCollisionModel, int materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams);
+	typedef IPhysicsObject* (GMCOMMON_CALLING_CONVENTION* CPhysicsEnvironment_CreatePolyObject)(IPhysicsEnvironment*, const CPhysCollide *pCollisionModel, int materialIndex, const Vector& position, const QAngle& angles, objectparams_t *pParams);
 	extern const std::vector<Symbol> CPhysicsEnvironment_CreatePolyObjectSym;
 
-	typedef void (*CPhysicsEnvironment_D2)(IPhysicsEnvironment*); // Deconstructor
+	typedef void (GMCOMMON_CALLING_CONVENTION* CPhysicsEnvironment_D2)(IPhysicsEnvironment*); // Deconstructor
 	extern const std::vector<Symbol> CPhysicsEnvironment_D2Sym;
 
-	typedef void (*CPhysicsEnvironment_C2)(IPhysicsEnvironment*); // Constructor
+	typedef void (GMCOMMON_CALLING_CONVENTION* CPhysicsEnvironment_C2)(IPhysicsEnvironment*); // Constructor
 	extern const std::vector<Symbol> CPhysicsEnvironment_C2Sym;
 
-	typedef void (*IVP_Mindist_Manager_recheck_ov_element)(void* mindistManager, void* physObj); // Crash fix.
+	typedef void (GMCOMMON_CALLING_CONVENTION* IVP_Mindist_Manager_recheck_ov_element)(void* mindistManager, void* physObj); // Crash fix.
 	extern const std::vector<Symbol> IVP_Mindist_Manager_recheck_ov_elementSym;
 
 	// Stuff for our do_impact replacement
@@ -577,26 +580,26 @@ namespace Symbols
 	typedef bool (*GMod_Util_IsPhysicsObjectValid)(IPhysicsObject* obj);
 	extern const std::vector<Symbol> GMod_Util_IsPhysicsObjectValidSym;
 
-	typedef void (*CPhysicsHook_FrameUpdatePostEntityThink)(void* CPhysicsHook);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CPhysicsHook_FrameUpdatePostEntityThink)(void* CPhysicsHook);
 	extern const std::vector<Symbol> CPhysicsHook_FrameUpdatePostEntityThinkSym;
 
-	typedef void (*CCollisionEvent_FrameUpdate)(void* pCollisionEvent);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CCollisionEvent_FrameUpdate)(void* pCollisionEvent);
 	extern const std::vector<Symbol> CCollisionEvent_FrameUpdateSym;
 
-	typedef void (*CCollisionProperty_MarkSurroundingBoundsDirty)(void* fancy_class);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CCollisionProperty_MarkSurroundingBoundsDirty)(void* fancy_class);
 	extern const std::vector<Symbol> CCollisionProperty_MarkSurroundingBoundsDirtySym;
 
 #if PHYSENV_INCLUDEIVPFALLBACK
 	typedef GMODSDK::IVP_MRC_TYPE (*IVP_Mindist_Minimize_Solver_p_minimize_PP)(void* mindistMinimizeSolver, const GMODSDK::IVP_Compact_Edge *A, const GMODSDK::IVP_Compact_Edge *B, IVP_Cache_Ledge_Point *m_cache_A, IVP_Cache_Ledge_Point *m_cache_B);
 	extern const std::vector<Symbol> IVP_Mindist_Minimize_Solver_p_minimize_PPSym;
 
-	typedef void (*IVP_Mindist_Base_get_objects)(void* mindist, GMODSDK::IVP_Real_Object**);
+	typedef void (GMCOMMON_CALLING_CONVENTION* IVP_Mindist_Base_get_objects)(void* mindist, GMODSDK::IVP_Real_Object**);
 	extern const std::vector<Symbol> IVP_Mindist_Base_get_objectsSym;
 
-	typedef void (*IVP_OV_Element_add_oo_collision)(void* ovElement, GMODSDK::IVP_Collision* connector);
+	typedef void (GMCOMMON_CALLING_CONVENTION* IVP_OV_Element_add_oo_collision)(void* ovElement, GMODSDK::IVP_Collision* connector);
 	extern const std::vector<Symbol> IVP_OV_Element_add_oo_collisionSym;
 
-	typedef void (*IVP_OV_Element_remove_oo_collision)(void* ovElement, GMODSDK::IVP_Collision* connector);
+	typedef void (GMCOMMON_CALLING_CONVENTION* IVP_OV_Element_remove_oo_collision)(void* ovElement, GMODSDK::IVP_Collision* connector);
 	extern const std::vector<Symbol> IVP_OV_Element_remove_oo_collisionSym;
 #endif
 
@@ -610,52 +613,52 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: luajit Symbols
 	//---------------------------------------------------------------------------------
-	typedef int (*CLuaInterface_GetType)(GarrysMod::Lua::ILuaInterface* pLua);
+	typedef int (GMCOMMON_CALLING_CONVENTION* CLuaInterface_GetType)(GarrysMod::Lua::ILuaInterface* pLua);
 	extern const std::vector<Symbol> CLuaInterface_GetTypeSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: gameserver Symbols
 	//---------------------------------------------------------------------------------
-	typedef void (*CServerGameClients_GetPlayerLimit)(void*, int&, int&, int&);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CServerGameClients_GetPlayerLimit)(void*, int&, int&, int&);
 	extern const std::vector<Symbol> CServerGameClients_GetPlayerLimitSym;
 
-	typedef void (*CBaseServer_FillServerInfo)(void*, SVC_ServerInfo&);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CBaseServer_FillServerInfo)(void*, SVC_ServerInfo&);
 	extern const std::vector<Symbol> CBaseServer_FillServerInfoSym;
 
-	typedef void (*CHLTVServer_FillServerInfo)(void*, SVC_ServerInfo&);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CHLTVServer_FillServerInfo)(void*, SVC_ServerInfo&);
 	extern const std::vector<Symbol> CHLTVServer_FillServerInfoSym;
 
-	typedef bool (*CBaseClient_SetSignonState)(void* client, int state, int spawncount);
+	typedef bool (GMCOMMON_CALLING_CONVENTION* CBaseClient_SetSignonState)(void* client, int state, int spawncount);
 	extern const std::vector<Symbol> CBaseClient_SetSignonStateSym;
 
-	typedef bool (*CBaseServer_IsMultiplayer)(void* srv);
+	typedef bool (GMCOMMON_CALLING_CONVENTION* CBaseServer_IsMultiplayer)(void* srv);
 	extern const std::vector<Symbol> CBaseServer_IsMultiplayerSym;
 
-	typedef bool (*GModDataPack_IsSingleplayer)(void* datapack);
+	typedef bool (GMCOMMON_CALLING_CONVENTION* GModDataPack_IsSingleplayer)(void* datapack);
 	extern const std::vector<Symbol> GModDataPack_IsSingleplayerSym;
 
-	typedef bool (*CBaseClient_ShouldSendMessages)(void* client);
+	typedef bool (GMCOMMON_CALLING_CONVENTION* CBaseClient_ShouldSendMessages)(void* client);
 	extern const std::vector<Symbol> CBaseClient_ShouldSendMessagesSym;
 
-	typedef void (*CBaseServer_CheckTimeouts)(void* server);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CBaseServer_CheckTimeouts)(void* server);
 	extern const std::vector<Symbol> CBaseServer_CheckTimeoutsSym;
 
-	typedef void (*CBaseClient_OnRequestFullUpdate)(void* client);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CBaseClient_OnRequestFullUpdate)(void* client);
 	extern const std::vector<Symbol> CBaseClient_OnRequestFullUpdateSym;
 
-	typedef void (*CGameClient_SpawnPlayer)(void* client);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CGameClient_SpawnPlayer)(void* client);
 	extern const std::vector<Symbol> CGameClient_SpawnPlayerSym;
 
-	typedef bool (*CBaseServer_ProcessConnectionlessPacket)(void* server, netpacket_s* packet);
+	typedef bool (GMCOMMON_CALLING_CONVENTION* CBaseServer_ProcessConnectionlessPacket)(void* server, netpacket_s* packet);
 	extern const std::vector<Symbol> CBaseServer_ProcessConnectionlessPacketSym;
 
 	typedef int (*NET_SendPacket)(INetChannel *chan, int sock, const netadr_t &to, const unsigned char *data, int length, bf_write *pVoicePayload /* = NULL */, bool bUseCompression /*=false*/);
 	extern const std::vector<Symbol> NET_SendPacketSym;
 
-	typedef int (*CNetChan_SendDatagram)(CNetChan* chan, bf_write *datagram);
+	typedef int (GMCOMMON_CALLING_CONVENTION* CNetChan_SendDatagram)(CNetChan* chan, bf_write *datagram);
 	extern const std::vector<Symbol> CNetChan_SendDatagramSym;
 
-	typedef void (*CNetChan_D2)(CNetChan* chan);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CNetChan_D2)(CNetChan* chan);
 	extern const std::vector<Symbol> CNetChan_D2Sym;
 
 	typedef INetChannel* (*NET_CreateNetChannel)(int socket, netadr_t* adr, const char* name, INetChannelHandler* handler, bool bForceNewCHannel, int nProtocolVersion);
@@ -690,10 +693,10 @@ namespace Symbols
 	typedef void (*CCvar_UnregisterConCommands)(ICvar*, int);
 	extern const std::vector<Symbol> CCvar_UnregisterConCommandsSym;
 
-	typedef const ConCommandBase* (*CCvar_FindCommandBaseConst)(ICvar*, const char* name);
+	typedef const ConCommandBase* (GMCOMMON_CALLING_CONVENTION* CCvar_FindCommandBaseConst)(ICvar*, const char* name);
 	extern const std::vector<Symbol> CCvar_FindCommandBaseConstSym;
 
-	typedef ConCommandBase* (*CCvar_FindCommandBase)(ICvar*, const char* name);
+	typedef ConCommandBase* (GMCOMMON_CALLING_CONVENTION* CCvar_FindCommandBase)(ICvar*, const char* name);
 	extern const std::vector<Symbol> CCvar_FindCommandBaseSym;
 
 	//---------------------------------------------------------------------------------
@@ -708,19 +711,19 @@ namespace Symbols
 	typedef void (*GarrysMod_AutoRefresh_Cycle)();
 	extern const std::vector<Symbol> GarrysMod_AutoRefresh_CycleSym;
 
-	typedef void (*Bootil_File_ChangeMonitor_CheckForChanges)(void* changeMonitor);
+	typedef void (GMCOMMON_CALLING_CONVENTION* Bootil_File_ChangeMonitor_CheckForChanges)(void* changeMonitor);
 	extern const std::vector<Symbol> Bootil_File_ChangeMonitor_CheckForChangesSym;
 
-	typedef bool (*Bootil_File_ChangeMonitor_HasChanges)(void* changeMonitor);
+	typedef bool (GMCOMMON_CALLING_CONVENTION* Bootil_File_ChangeMonitor_HasChanges)(void* changeMonitor);
 	extern const std::vector<Symbol> Bootil_File_ChangeMonitor_HasChangesSym;
 
 	//---------------------------------------------------------------------------------
 	// Purpose: soundscape Symbols
 	//---------------------------------------------------------------------------------
-	typedef bool (*CEnvSoundscape_UpdateForPlayer)(CBaseEntity* pSoundScape, ss_update_t& update);
+	typedef bool (GMCOMMON_CALLING_CONVENTION* CEnvSoundscape_UpdateForPlayer)(CBaseEntity* pSoundScape, ss_update_t& update);
 	extern const std::vector<Symbol> CEnvSoundscape_UpdateForPlayerSym;
 
-	typedef bool (*CEnvSoundscape_WriteAudioParamsTo)(CBaseEntity* pSoundScape, audioparams_t& update);
+	typedef bool (GMCOMMON_CALLING_CONVENTION* CEnvSoundscape_WriteAudioParamsTo)(CBaseEntity* pSoundScape, audioparams_t& update);
 	extern const std::vector<Symbol> CEnvSoundscape_WriteAudioParamsToSym;
 
 	extern const std::vector<Symbol> g_SoundscapeSystemSym;
@@ -744,7 +747,7 @@ namespace Symbols
 	typedef CNetChan* (*NET_FindNetChannel)(int socket, netadr_t &adr);
 	extern const std::vector<Symbol> NET_FindNetChannelSym;
 
-	typedef void (*CNetChan_Constructor)(CNetChan* pChanenl);
+	typedef void (GMCOMMON_CALLING_CONVENTION* CNetChan_Constructor)(CNetChan* pChanenl);
 	extern const std::vector<Symbol> CNetChan_ConstructorSym;
 
 	typedef void (*NET_RemoveNetChannel)(INetChannel* pChannel, bool bShouldRemove);

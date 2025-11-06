@@ -214,6 +214,12 @@ bool Lua::PushHook(const char* hook, GarrysMod::Lua::ILuaInterface* pLua)
 		return false;
 	}
 
+	if (g_pModuleManager.GetModuleRealm() == Module_Realm::MENU)
+	{
+		DevMsg(PROJECT_NAME ": Lua::PushHook was blocked due to us being loaded by the Menu state, not server.\n");
+		return false;
+	}
+
 	pLua->GetField(LUA_GLOBALSINDEX, "hook");
 		if (pLua->GetType(-1) != GarrysMod::Lua::Type::Table)
 		{

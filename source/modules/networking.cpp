@@ -1794,6 +1794,15 @@ void CNetworkingModule::ClientDisconnect(edict_t* pPlayer)
 	g_pPlayerTransmitCache[pPlayer->m_EdictIndex-1].Reset();
 }
 
+#if SYSTEM_WINDOWS
+DETOUR_THISCALL_START()
+	DETOUR_THISCALL_ADDFUNC2( hook_CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer, GMOD_SetShouldPreventTransmitToPlayer, CBaseEntity*, CBasePlayer*, bool );
+	DETOUR_THISCALL_ADDRETFUNC1( hook_CBaseEntity_GMOD_ShouldPreventTransmitToPlayer, bool, GMOD_ShouldPreventTransmitToPlayer, CBaseEntity*, CBasePlayer* );
+	DETOUR_THISCALL_ADDFUNC1( hook_CGMOD_Player_CreateViewModel, CreateViewModel, CBasePlayer*, int );
+	DETOUR_THISCALL_ADDFUNC2( hook_CBaseCombatCharacter_SetTransmit, SetTransmit, CBaseCombatCharacter*, CCheckTransmitInfo*, bool );
+DETOUR_THISCALL_FINISH();
+#endif
+
 static SendTable* playerSendTable;
 static ServerClass* playerServerClass;
 static CFrameSnapshotManager* framesnapshotmanager = NULL;
@@ -1824,29 +1833,30 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 		(void*)hook_SendTable_CullPropsFromProxies, m_pID
 	);
 
+	DETOUR_PREPARE_THISCALL();
 	SourceSDK::FactoryLoader server_loader("server");
 	Detour::Create(
 		&detour_CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer, "CBaseEntity::GMOD_SetShouldPreventTransmitToPlayer",
 		server_loader.GetModule(), Symbols::CBaseEntity_GMOD_SetShouldPreventTransmitToPlayerSym,
-		(void*)hook_CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer, m_pID
+		(void*)DETOUR_THISCALL(hook_CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer, GMOD_SetShouldPreventTransmitToPlayer), m_pID
 	);
 
 	Detour::Create(
 		&detour_CBaseEntity_GMOD_ShouldPreventTransmitToPlayer, "CBaseEntity::GMOD_ShouldPreventTransmitToPlayer",
 		server_loader.GetModule(), Symbols::CBaseEntity_GMOD_ShouldPreventTransmitToPlayerSym,
-		(void*)hook_CBaseEntity_GMOD_ShouldPreventTransmitToPlayer, m_pID
+		(void*)DETOUR_THISCALL(hook_CBaseEntity_GMOD_ShouldPreventTransmitToPlayer, GMOD_ShouldPreventTransmitToPlayer), m_pID
 	);
 
 	Detour::Create(
 		&detour_CGMOD_Player_CreateViewModel, "CGMOD_Player::CreateViewModel",
 		server_loader.GetModule(), Symbols::CGMOD_Player_CreateViewModelSym,
-		(void*)hook_CGMOD_Player_CreateViewModel, m_pID
+		(void*)DETOUR_THISCALL(hook_CGMOD_Player_CreateViewModel, CreateViewModel), m_pID
 	);
 
 	Detour::Create(
 		&detour_CBaseCombatCharacter_SetTransmit, "CBaseCombatCharacter::SetTransmit",
 		server_loader.GetModule(), Symbols::CBaseCombatCharacter_SetTransmitSym,
-		(void*)hook_CBaseCombatCharacter_SetTransmit, m_pID
+		(void*)DETOUR_THISCALL(hook_CBaseCombatCharacter_SetTransmit, SetTransmit), m_pID
 	);
 
 #if SYSTEM_LINUX

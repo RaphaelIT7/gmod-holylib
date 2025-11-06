@@ -533,7 +533,12 @@ LUA_FUNCTION_STATIC(gameevent_BlockCreation)
 
 void CGameeventLibModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
-	pGameEventManager = (CGameEventManager*)appfn[0](INTERFACEVERSION_GAMEEVENTSMANAGER2, NULL);
+	if (appfn[0]) {
+		pGameEventManager = (CGameEventManager*)appfn[0](INTERFACEVERSION_GAMEEVENTSMANAGER2, NULL);
+	} else {
+		SourceSDK::FactoryLoader engine_loader("engine");
+		pGameEventManager = engine_loader.GetInterface<CGameEventManager>(INTERFACEVERSION_GAMEEVENTSMANAGER2);
+	}
 	Detour::CheckValue("get interface", "CGameEventManager", pGameEventManager != NULL);
 }
 
@@ -629,16 +634,23 @@ void CGameeventLibModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 	Util::PopTable(pLua);
 }
 
+#if SYSTEM_WINDOWS
+DETOUR_THISCALL_START()
+	DETOUR_THISCALL_ADDRETFUNC1( hook_CBaseClient_ProcessListenEvents, bool, ProcessListenEvents, CBaseClient*, CLC_ListenEvents* );
+DETOUR_THISCALL_FINISH();
+#endif
+
 void CGameeventLibModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
 		return;
 
+	DETOUR_PREPARE_THISCALL();
 	SourceSDK::ModuleLoader engine_loader("engine");
 	Detour::Create(
 		&detour_CBaseClient_ProcessListenEvents, "CBaseClient::ProcessListenEvents",
 		engine_loader.GetModule(), Symbols::CBaseClient_ProcessListenEventsSym,
-		(void*)hook_CBaseClient_ProcessListenEvents, m_pID
+		(void*)DETOUR_THISCALL(hook_CBaseClient_ProcessListenEvents, ProcessListenEvents), m_pID
 	);
 
 #if ARCHITECTURE_IS_X86

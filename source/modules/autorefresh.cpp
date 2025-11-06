@@ -302,6 +302,13 @@ void CAutoRefreshModule::Shutdown()
 	}
 }
 
+#if SYSTEM_WINDOWS
+DETOUR_THISCALL_START()
+	DETOUR_THISCALL_ADDFUNC0( hook_Bootil_File_ChangeMonitor_CheckForChanges, CheckForChanges, Bootil::File::ChangeMonitor* );
+	DETOUR_THISCALL_ADDRETFUNC0( hook_Bootil_File_ChangeMonitor_HasChanges, bool, HasChanges, Bootil::File::ChangeMonitor* );
+DETOUR_THISCALL_FINISH();
+#endif
+
 void CAutoRefreshModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
@@ -314,16 +321,17 @@ void CAutoRefreshModule::InitDetour(bool bPreServer)
 		(void*)hook_GarrysMod_AutoRefresh_HandleChange_Lua, m_pID
 	);
 
+	DETOUR_PREPARE_THISCALL();
 	Detour::Create(
 		&detour_Bootil_File_ChangeMonitor_CheckForChanges, "Bootil::File::ChangeMonitor::CheckForChanges",
 		server_loader.GetModule(), Symbols::Bootil_File_ChangeMonitor_CheckForChangesSym,
-		(void*)hook_Bootil_File_ChangeMonitor_CheckForChanges, m_pID
+		(void*)DETOUR_THISCALL(hook_Bootil_File_ChangeMonitor_CheckForChanges, CheckForChanges), m_pID
 	);
 
 	Detour::Create(
 		&detour_Bootil_File_ChangeMonitor_HasChanges, "Bootil::File::ChangeMonitor::HasChanges",
 		server_loader.GetModule(), Symbols::Bootil_File_ChangeMonitor_HasChangesSym,
-		(void*)hook_Bootil_File_ChangeMonitor_HasChanges, m_pID
+		(void*)DETOUR_THISCALL(hook_Bootil_File_ChangeMonitor_HasChanges, HasChanges), m_pID
 	);
 
 	func_GarrysMod_AutoRefresh_Init = (Symbols::GarrysMod_AutoRefresh_Init)Detour::GetFunction(server_loader.GetModule(), Symbols::GarrysMod_AutoRefresh_InitSym);
