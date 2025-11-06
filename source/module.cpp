@@ -247,6 +247,21 @@ CModuleManager::CModuleManager()
 		module_debug.SetValue("1");
 	}*/
 
+	if (CommandLine()->FindParm("-holylib_allowunsafe"))
+	{
+		Msg(PROJECT_NAME " - code: Found -holylib_allowunsafe enabling unsafe code...\n");
+		m_bEnabledUnsafeCode = true;
+	}
+
+	if (CommandLine()->FindParm("-holylib_denyunsafe"))
+	{
+		Msg(PROJECT_NAME " - code: Found -holylib_denyunsafe disabling unsafe code...\n");
+		m_bEnabledUnsafeCode = false;
+	}
+
+	if (CommandLine()->FindParm("-holylib_allowunsafe") && CommandLine()->FindParm("-holylib_denyunsafe"))
+		Msg(PROJECT_NAME " - code: Both -holylib_allowunsafe and -holylib_denyunsafe were found -holylib_denyunsafe takes priority! (But... Why... Why both...)\n");
+
 	if (!m_pConfig)
 	{
 		m_pConfig = g_pConfigSystem->LoadConfig("garrysmod/holylib/cfg/modules.json");

@@ -4,10 +4,13 @@ A library that contains some functions and optimizations for gmod.<br>
 If you need any function, make an issue for it, and I'll look into it.<br>
 When HolyLib was installed correctly, the variable `_HOLYLIB` should be set to `true` in Lua. (NOTE: This was **added** in the upcoming `0.8` release)<br>
 
-## Windows
-So currently to get it working on Windows, I would have to redo most of the hooks, and It would also take a good while.<br>
-Because of this, I'm not going to make it currently. I'm gonna slowly start adding all symbols and then someday I'm going to redo most hooks.<br>
-There will be a release but it will only contain some parts since many things don't work yet.<br>
+## Windows & Linux
+Linux 32 is the main targeted platform, with Linux 64x being the second target.<br>
+On Linux the focus lies on the dedicatd servers, not Linux clients.<br>
+
+On Windows things are differet, there the Windows **client** is targeted, not dedicated server builds.<br>
+Windows does not have the main attention though still is supported.<br>
+Does anyone even use windows srcds for actual servers?<br>
 
 > [!NOTE]
 > I'm not actively testing windows, so if I accidentally broke it, open a issue since I most likely didn't know about it.<br>
@@ -68,6 +71,13 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 > [!NOTE]
 > The threadpoolfix module currently does nothing as all of the fixes it contained were implemented into the Garry's Mod itself.
 
+> [!IMPORTANT]
+> Since HolyLib provides and exposes deep engine functions, it is not guaranteed to be safe, not all functions validate given input!<br>
+> There are plans to improve safety by locking things behind the `-holylib_allowunsafe` commandline argument which was only added recently and is barelly implemented!<br>
+> If there are any functions that should be locked behind it, please let me know as I might miss them.<br>
+> On Linux unsafe code is allowed by default, on windows it is blocked as were on a client and do not want to risk anything.<br>
+> You can disable unsafe code on linux using `-holylib_denyunsafe`<br>
+
 ## Next Update
 \- [+] Any files in `lua/autorun/_holylua/` are loaded by HolyLib on startup.<br>
 \- [+] Added a new modules `luathreads`, `networkthreading`, `soundscape`<br>
@@ -94,7 +104,8 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [+] Added a fallback method for HolyLib's internal `Util::PushEntity` function in case a Gmod update breaks our offsets which previously lead to undefined behavior<br>
 \- [+] Added a `ILuaThreadedCall` to call all modules Think function when HolyLib is loaded as a binary module/loaded using `require("holylib")`<br>
 \- [+] Added a new DLL system if anything wants to be loaded with HolyLib. (See: [example-module-dll](https://github.com/RaphaelIT7/gmod-holylib/tree/f937ba454b4d86edfc72df9cb3f8a689d7de2571/example-module-dll))<br>
-\- [#] Added some more safeguards to `IPhysicsEnvironment:Simulate` to prevent one from simulating a environment that is already being simulated.<br>
+\- [#] Added missing numeric key conversion to `util.FancyJSONToTable` (See https://github.com/RaphaelIT7/gmod-holylib/pull/105)<br>
+\- [#] Added some more safeguards to `IPhysicsEnvironment:Simulate` to prevent one from simulating a environment that is already being simulated. (else you might end up with all memory freed & a certain crash)<br>
 \- [#] Highly optimized `util` module's json code to be noticably faster and use noticably less memory.<br>
 \- [#] Better support for multiple Lua states<br>
 \- \- This required most of the lua setup to be changed >:(<br>
@@ -172,6 +183,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 \- [#] Fixed `bf_read:ReadBytes` and `bf_read:ReadBits` both failing to push the string properly to lua.<br>
 \- [#] Changed `voicechat.SaveVoiceStream` & `voicechat.LoadVoiceStream` to remove their 4th `sync` argument, if a callback is provided it will be async, else it'll run sync<br>
 \- [#] Renamed `HolyLib:OnPhysFrame` to `HolyLib:PrePhysFrame`<br>
+\- [#] Fixed a typo `bf_write:WriteBitVec3normal` -> `bf_write:WriteBitVec3Normal`<br>
 \- [-] Removed `VoiceData:GetUncompressedData` decompress size argument<br>
 \- [-] Removed `CBaseClient:Transmit` third argument `fragments`.<br>
 \- [-] Removed `gameserver.CalculateCPUUsage` and `gameserver.ApproximateProcessMemoryUsage` since they never worked.<br>
@@ -295,7 +307,7 @@ There is `-holylib_startdisabled` which will cause all modules to be disabled on
 And with `holylib_toggledetour` you can block specific detours from being created.<br>
 
 ## holylib
-This module contains the HolyLib library.<br> 
+This module contains the HolyLib library.<br>
 
 Supports: Linux32 | LINUX64<br>
 
@@ -354,7 +366,7 @@ Returns `true` on success.<br>
 > [!NOTE]
 > This function does normally **not** directly set the SignOnState.<br>
 > Instead it calls the responsible function for the given SignOnState like for `SIGNONSTATE_PRESPAWN` it will call `SpawnPlayer` on the client.<br>
-> Set the `rawSet` to `true` if you want to **directly** set the SignOnState.<br><br>
+> Set the `rawSet` to `true` if you want to **directly** set the SignOnState.	
 
 #### (Experimental - 32x safe only) HolyLib.ExitLadder(Player ply)
 Forces the player off the ladder.<br>
@@ -384,8 +396,8 @@ Internally its a direct binding to `IServerGameClients::GMOD_ReceiveClientMessag
 Example of faking a net message:<br>
 ```lua
 net.Receive("Example", function(len, ply)
-<br><br>print("Received example message: " .. tostring(ply) .. " (" .. len .. ")")
-<br><br>print("Message contained: " .. net.ReadString())
+	print("Received example message: " .. tostring(ply) .. " (" .. len .. ")")
+	print("Message contained: " .. net.ReadString())
 end)
 
 local bf = bitbuf.CreateWriteBuffer(64)
@@ -509,7 +521,7 @@ Fires the given event for only the given player.<br>
 Duplicates the given event.<br>
 
 #### gameevent.BlockCreation(string name, bool block)
-Blocks/Unblocks the creation of the given gameevent.<br> 
+Blocks/Unblocks the creation of the given gameevent.<br>
 
 ### IGameEvent
 
@@ -1155,7 +1167,7 @@ File: `cfg/game.cfg`<br>
 Path: `GAME`<br>
 becomes:<br>
 File: `cfg/game.cfg`<br>
-Path: `CONTENT_CONFIGS`<br><br>
+Path: `CONTENT_CONFIGS`	
 
 This will reduce the amount of searchpaths it has to go through which improves performance.<br>
 
@@ -1198,7 +1210,7 @@ If enabled, it will try to predict the path for a file.<br>
 Example:<br>
 Your loading a model.<br>
 First you load the `example.mdl` file.<br>
-Then you load the `example.phy` file.<br> 
+Then you load the `example.phy` file.<br>
 Here we can check if the `example.mdl` file is in the searchcache.<br>
 If so, we try to use the searchpath of that file for the `.phy` file and since all model files should be in the same folder, this will work for most cases.<br>
 If we fail to predict a path, it will end up using one additional search path.<br>
@@ -1602,7 +1614,7 @@ This module adds one function to the `cvars` library.<br>
 Supports: Linux32 | Linux64 | Windows32 | Windows64<br>
 
 > [!NOTE]
-> The lua library is named `cvar` because the `cvars` library is fully declared in Lua and were running before it even exists.<br> 
+> The lua library is named `cvar` because the `cvars` library is fully declared in Lua and were running before it even exists.<br>
 
 #### Functions
 
@@ -1874,7 +1886,7 @@ Returns the size of the data in bytes.<br>
 Returns the current position/bit.
 
 > [!NOTE]
-> This is only available for the 32x!<br><br>
+> This is only available for the 32x!	
 
 #### bool bf_read:IsOverflowed()
 Returns `true` if the buffer is overflowed.<br>
@@ -1891,22 +1903,22 @@ Reads and Angle.<br>
 #### number bf_read:ReadBitCoord()
 
 > [!NOTE]
-> This is only available for the 32x!<br><br>
+> This is only available for the 32x!	
 
 #### number bf_read:ReadBitCoordBits()
 
 > [!NOTE]
-> This is only available for the 32x!<br><br>
+> This is only available for the 32x!	
 
 #### number bf_read:ReadBitCoordMP(bool integral = false, bool lowPrecision = false)
 
 > [!NOTE]
-> This is only available for the 32x!<br><br>
+> This is only available for the 32x!	
 
 #### number bf_read:ReadBitCoordMPBits(bool integral = false, bool lowPrecision = false)
 
 > [!NOTE]
-> This is only available for the 32x!<br><br>
+> This is only available for the 32x!	
 
 #### number bf_read:ReadBitFloat()
 
@@ -1914,7 +1926,7 @@ Reads and Angle.<br>
 Reads a number with the given number of bits.<br>
 
 > [!NOTE]
-> This is only available for the 32x!<br><br>
+> This is only available for the 32x!	
 
 #### number bf_read:ReadBitNormal()
 
@@ -1981,7 +1993,7 @@ Returns `true` on success.<br>
 
 #### bool bf_read:SeekRelative(number pos)
 Sets the current position to the given position relative to the current position.
-Basicly `newPosition = currentPosition + iPos`<br><br>
+Basicly `newPosition = currentPosition + iPos`	
 Returns `true` on success.<br>
 
 ### bf_write<br>
@@ -2397,9 +2409,9 @@ If a `callback` is specified it **WONT** return **anything** and the `callback` 
 If you want it to **not** run async, simply provide **no** callback function<br>
 
 > [!NOTE]
-> It should be safe to modify/use the VoiceStream while it's saving async **BUT** you should try to avoid doing that. <br>
+> It should be safe to modify/use the VoiceStream while it's saving async **BUT** you should try to avoid doing that.<br>
 > This function also supports `.wav` files to write the data into since `0.8`.<br>
-> You should **always** inform your players if you save their voice! <br>
+> You should **always** inform your players if you save their voice!<br>
 > You can set both `fileName` and `returnWaveData` which will cause it to be written to disk and the data to be returned<br>
 > If `fileName` and `returnWaveData` are both not set then it will error as atleast one of them needs to be enabled.<br>
 
@@ -2775,7 +2787,7 @@ Enables/Disables the `HolyLib:OnPhysFrame` hook.<br>
 Returns the collision set by the given index.<br>
 
 > [!NOTE]
-> Only 32 collision sets can exist at the same time!<br> 
+> Only 32 collision sets can exist at the same time!<br>
 
 #### IPhysicsCollisionSet physenv.FindOrCreateCollisionSet(number index)
 Returns the collision set by the given index or creates it if needed.<br>
@@ -2836,7 +2848,7 @@ Returns the index of the physics model.<br>
 Sets the new mass center of the CPhysCollide.<br>
 
 #### physcollide.CollideSetOrthographicAreas(CPhysCollide collide, Vector area)
-I have no Idea....<br> 
+I have no Idea....<br>
 
 #### number physcollide.CollideSize(CPhysCollide collide)
 Returns the memory size of the CPhysCollide.<br>
@@ -2905,7 +2917,7 @@ Returns the lua table of this object.<br>
 You can store variables into it.<br>
 
 #### bool CPhysCollide:IsValid()
-Returns `true` if the CPhysCollide is still valid.<br> 
+Returns `true` if the CPhysCollide is still valid.<br>
 
 ### CPhysPolySoup
 
@@ -3189,7 +3201,7 @@ physenv.EnablePhysHook(true)
 local mainEnv = physenv.GetActiveEnvironmentByIndex(0)
 hook.Add("HolyLib:PrePhysFrame", "Example", function(deltaTime)
 	mainEnv:Simulate(deltaTime, true) -- the second argument will only cause the entities to update.
-<br><br>return true -- We stop the engine from running the simulation itself again as else it will result in issue like "Reset physics clock" being spammed
+	return true -- We stop the engine from running the simulation itself again as else it will result in issue like "Reset physics clock" being spammed
 end)
 ```
 
@@ -4120,7 +4132,7 @@ function BuildNetChannel(target, status) -- status should not be set when called
 
 	bf:WriteLong(-1) -- CONNECTIONLESS_HEADER
 	bf:WriteByte(REQUEST_CHANNEL) -- Our header
-<br><br>bf:WriteByte(status or 0) -- 0 = We requested it.
+	bf:WriteByte(status or 0) -- 0 = We requested it.
 
 	gameserver.SendConnectionlessPacket(bf, target)
 end
@@ -4137,19 +4149,19 @@ hook.Add("HolyLib:ProcessConnectionlessPacket", "ProcessResponse", function(bf, 
 	local status = bf:ReadByte()
 
 	local netChannel = gameserver.CreateNetChannel(ip)
-<br><br>netChannel:SetMessageCallback(function(bf, length)
-<br><br>	IncomingNetMessage(netChannel, bf, length)
-<br><br>end)
-<br><br>table.insert(netChannels, netChannel)
+	netChannel:SetMessageCallback(function(bf, length)
+		IncomingNetMessage(netChannel, bf, length)
+	end)
+	table.insert(netChannels, netChannel)
 
-<br><br>if status == 0 then
-<br><br>	print("Created a requested net channel to " .. ip)
+	if status == 0 then
+		print("Created a requested net channel to " .. ip)
 
-<br><br>	BuildNetChannel(ip, 1) -- Respond to the sender to confirm creation.
-<br><br>elseif status == 1 then
-<br><br>	print("Created our net channel to " .. ip)
-<br><br>end
-<br><br>
+		BuildNetChannel(ip, 1) -- Respond to the sender to confirm creation.
+	elseif status == 1 then
+		print("Created our net channel to " .. ip)
+	end
+	
 	return true
 end)
 
@@ -4420,17 +4432,17 @@ Returns `true` on success.<br>
 Exampe usage of this function:<br>
 ```lua
 concommand.Add("nukechannel", function(ply)
-<br> 	local string = ""
-<br><br>for k = 1, 65532 do
-<br><br><br><br>string = string .. "a"
-<br><br>end
-<br><br>util.AddNetworkString("Example")
-<br><br>for k = 1, 10 do
-<br><br><br><br>net.Start("Example", false)
-<br><br><br><br><br><br>net.WriteString(string)
-<br><br><br><br>net.Broadcast()
-<br><br><br><br>gameserver.GetClient(ply:EntIndex()-1):Transmit() -- Forces the message to be transmitted directly avoiding a overflow.
-<br><br>end 
+	local string = ""
+	for k = 1, 65532 do
+		string = string .. "a"
+	end
+	util.AddNetworkString("Example")
+	for k = 1, 10 do
+		net.Start("Example", false)
+			net.WriteString(string)
+		net.Broadcast()
+		gameserver.GetClient(ply:EntIndex()-1):Transmit() -- Forces the message to be transmitted directly avoiding a overflow.
+	end 
 end)
 ```
 
@@ -4472,8 +4484,8 @@ Example usage of this function.<br>
 ```lua
 concommand.Add("biggerBuffer", function(ply)
 	local client = gameserver.GetClient(ply:EntIndex()-1)
-<br><br>client:Transmit() -- Send everything out or else we lose data
-<br><br>client:SetMaxBufferSize(true, 524288) -- We resize the reliable stream
+	client:Transmit() -- Send everything out or else we lose data
+	client:SetMaxBufferSize(true, 524288) -- We resize the reliable stream
 end)
 ```
 
@@ -4770,26 +4782,26 @@ GetServerInfo("xxx.xxx.xxx.xxx:27015")
 
 Output:
 ```txt
-["Bots"]<br><br><br><br>=<br><br><br> 0
-["Environment"] =<br><br><br> l
-["ExtraDataFlag"]<br><br><br> =<br><br><br> 177
-["Folder"]<br><br><br>=<br><br><br> garrysmod
-["Game"]<br><br><br><br>=<br><br><br> Sandbox
-["GameID"]<br><br><br>=<br><br><br> 4000
-["Header"]<br><br><br>=<br><br><br> I
-["ID"]<br>=<br><br><br> 4000
-["Map"] =<br><br><br> gm_flatgrass
-["MaxPlayers"]<br>=<br><br><br> 128
-["Name"]<br><br><br><br>=<br><br><br> RaphaelIT7's Testing Hell
-["Players"]<br><br> =<br><br><br> 0
-["Port"]<br><br><br><br>=<br><br><br> 32108
-["Protocol"]<br><br>=<br><br><br> 17
-["ServerType"]<br>=<br><br><br> 100
-["SteamID"]<br><br> =<br><br><br> [steamid]
-["Tags"]<br><br><br><br>=<br><br><br><br>gm:sandbox gmc:other ver:250321
-["VAC"] =<br><br><br> 1
-["Version"]<br><br> =<br><br><br> 2024.10.29
-["Visibility"]<br>=<br><br><br> 1
+["Bots"]		=	0
+["Environment"] =	l
+["ExtraDataFlag"]	=	77
+["Folder"]		=	garrysmod
+["Game"]		=	Sandbox
+["GameID"]		=	4000
+["Header"]		=	I
+["ID"]			=	4000
+["Map"] 		=	gm_flatgrass
+["MaxPlayers"]	=	128
+["Name"]		=	RaphaelIT7's Testing Hell
+["Players"]	 	=	0
+["Port"]		=	32108
+["Protocol"]	=	17
+["ServerType"]	=	100
+["SteamID"]		=	[steamid]
+["Tags"]		=	gm:sandbox gmc:other ver:250321
+["VAC"]			=	1
+["Version"]		=	2024.10.29
+["Visibility"]	=	1
 ```
 
 Example of retrieving the `A2S_PLAYER` from a Source Engine Server.
@@ -4846,12 +4858,12 @@ GetServerPlayerInfo("xxx.xxx.xxx.xxx:27015")
 Output:
 ```txt
 [1]:
-<br><br><br><br><br><br><br><br>["Duration"]<br><br>=<br><br><br> 40.337387084961
-<br><br><br><br><br><br><br><br>["Index"]<br><br><br> =<br><br><br> 0
-<br><br><br><br><br><br><br><br>["Name"]<br><br><br><br>=<br><br><br> Raphael
-<br><br><br><br><br><br><br><br>["Score"]<br><br><br> =<br><br><br> 0
-["Header"]<br><br><br>=<br><br><br> D
-["Players"]<br><br> =<br><br><br> 1
+	["Duration"]	=	40.337387084961
+	["Index"]		=	0
+	["Name"]		=	Raphael
+	["Score"]		=	0
+["Header"]		=	D
+["Players"]		=	1
 ```
 
 #### number HolyLib:OnClientTimeout(CBaseClient pClient)
@@ -5102,7 +5114,7 @@ Supports: Linux32 | Linux64<br>
 `threadpoolfix` -> https://github.com/Facepunch/garrysmod-issues/issues/5932<br>
 `HolyLib.Reconnect(ply)` -> https://github.com/Facepunch/garrysmod-requests/issues/2089<br>
 `pvs.AddEntityToPVS(ent)` -> https://github.com/Facepunch/garrysmod-requests/issues/245<br>
-`util.AsyncCompress(data, nil, nil, callback)` -> https://github.com/Facepunch/garrysmod-requests/issues/2165<br> 
+`util.AsyncCompress(data, nil, nil, callback)` -> https://github.com/Facepunch/garrysmod-requests/issues/2165<br>
 It now throws a warning instead of crashing -> https://github.com/Facepunch/garrysmod-issues/issues/56<br>
 `HolyLib.Reconnect(ply)` -> https://github.com/Facepunch/garrysmod-requests/issues/2089<br>
 `concommand` module -> https://github.com/Facepunch/garrysmod-requests/issues/1534<br>
@@ -5138,7 +5150,7 @@ https://github.com/Facepunch/garrysmod-requests/issues/1323<br>
 https://github.com/Facepunch/garrysmod-requests/issues/1472<br>
 (Maybe)https://github.com/Facepunch/garrysmod-requests/issues/2129<br>
 (Maybe)https://github.com/Facepunch/garrysmod-requests/issues/1962<br>
-(Maybe)https://github.com/Facepunch/garrysmod-requests/issues/1699<br><br>
+(Maybe)https://github.com/Facepunch/garrysmod-requests/issues/1699	
 
 # Some things for later
 

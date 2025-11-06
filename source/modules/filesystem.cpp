@@ -1833,6 +1833,9 @@ void AsyncCallback(const FileAsyncRequest_t &request, int nBytesRead, FSAsyncSta
 
 LUA_FUNCTION_STATIC(filesystem_AsyncRead)
 {
+	Util::DoUnsafeCodeCheck(LUA);
+	// We don't have GMods file whitelist/blacklist and if you call this just use file.Open
+
 	const char* fileName = LUA->CheckString(1);
 	const char* gamePath = LUA->CheckString(2);
 	LUA->CheckType(3, GarrysMod::Lua::Type::Function);
@@ -1877,14 +1880,18 @@ void FileAsyncReadThink(GarrysMod::Lua::ILuaInterface* pLua)
 
 LUA_FUNCTION_STATIC(filesystem_CreateDir)
 {
-	g_pFullFileSystem->CreateDirHierarchy(LUA->CheckString(1), LUA->CheckStringOpt(2, "DATA"));
+	g_pFullFileSystem->CreateDirHierarchy(LUA->CheckString(1), 
+		g_pModuleManager.IsUnsafeCodeEnabled() ? LUA->CheckStringOpt(2, "DATA") : "DATA" // Force "DATA" path if unsafe is diabled
+	);
 
 	return 0;
 }
 
 LUA_FUNCTION_STATIC(filesystem_Delete)
 {
-	g_pFullFileSystem->RemoveFile(LUA->CheckString(1), LUA->CheckStringOpt(2, "DATA"));
+	g_pFullFileSystem->RemoveFile(LUA->CheckString(1),
+		g_pModuleManager.IsUnsafeCodeEnabled() ? LUA->CheckStringOpt(2, "DATA") : "DATA" // Force "DATA" path if unsafe is diabled
+	);
 
 	return 0;
 }
@@ -1930,14 +1937,14 @@ LUA_FUNCTION_STATIC(filesystem_Find)
 	std::vector<std::string> folders;
 
 	const char* filepath = LUA->CheckString(1);
-	const char* path = LUA->CheckString(2);
+	const char* gamePath = LUA->CheckString(2);
 	const char* sorting = LUA->CheckStringOpt(3, "");
 
 	FileFindHandle_t findHandle;
-	const char *pFilename = g_pFullFileSystem->FindFirstEx(filepath, path, &findHandle);
+	const char *pFilename = g_pFullFileSystem->FindFirstEx(filepath, gamePath, &findHandle);
 	while (pFilename)
 	{
-		if (g_pFullFileSystem->IsDirectory(((std::string)filepath + pFilename).c_str(), path)) {
+		if (g_pFullFileSystem->IsDirectory(((std::string)filepath + pFilename).c_str(), gamePath)) {
 			folders.push_back(pFilename);
 		} else {
 			files.push_back(pFilename);
@@ -1953,11 +1960,11 @@ LUA_FUNCTION_STATIC(filesystem_Find)
 			std::sort(files.begin(), files.end(), std::greater<std::string>());
 			std::sort(folders.begin(), folders.end(), std::greater<std::string>());
 		} else if (strcmp(sorting, "dateasc") == 0) { // sort the files ascending by date.
-			SortByDate(files, filepath, path, true);
-			SortByDate(folders, filepath, path, true);
+			SortByDate(files, filepath, gamePath, true);
+			SortByDate(folders, filepath, gamePath, true);
 		} else if (strcmp(sorting, "datedesc") == 0) { // sort the files descending by date.
-			SortByDate(files, filepath, path, false);
-			SortByDate(folders, filepath, path, false);
+			SortByDate(files, filepath, gamePath, false);
+			SortByDate(folders, filepath, gamePath, false);
 		} else { // Fallback to default: nameasc | sort the files ascending by name.
 			std::sort(files.begin(), files.end());
 			std::sort(folders.begin(), folders.end());
@@ -2002,11 +2009,14 @@ namespace Lua
 
 LUA_FUNCTION_STATIC(filesystem_Open)
 {
+	Util::DoUnsafeCodeCheck(LUA);
+	// We don't have GMods file whitelist/blacklist and if you call this just use file.Open
+
 	const char* filename = LUA->CheckString(1);
 	const char* fileMode = LUA->CheckString(2);
-	const char* path = LUA->CheckStringOpt(3, "GAME");
+	const char* gamePath = LUA->CheckStringOpt(3, "GAME");
 
-	FileHandle_t fh = g_pFullFileSystem->Open(filename, fileMode, path);
+	FileHandle_t fh = g_pFullFileSystem->Open(filename, fileMode, gamePath);
 	if (fh)
 	{
 		Lua::File* file = new Lua::File;
@@ -2024,6 +2034,9 @@ LUA_FUNCTION_STATIC(filesystem_Rename)
 	const char* original = LUA->CheckString(1);
 	const char* newname = LUA->CheckString(2);
 	const char* gamePath = LUA->CheckStringOpt(3, "DATA");
+
+	if (!g_pModuleManager.IsUnsafeCodeEnabled())
+		gamePath = "DATA"; // Force "DATA" path if unsafe is diabled
 
 	LUA->PushBool(g_pFullFileSystem->RenameFile(original, newname, gamePath));
 
@@ -2046,6 +2059,8 @@ LUA_FUNCTION_STATIC(filesystem_Time)
 
 LUA_FUNCTION_STATIC(filesystem_AddSearchPath)
 {
+	Util::DoUnsafeCodeCheck(LUA);
+
 	const char* folderPath = LUA->CheckString(1);
 	const char* gamePath = LUA->CheckString(2);
 	SearchPathAdd_t addType = LUA->GetBool(-1) ? SearchPathAdd_t::PATH_ADD_TO_HEAD : SearchPathAdd_t::PATH_ADD_TO_TAIL;
@@ -2056,6 +2071,8 @@ LUA_FUNCTION_STATIC(filesystem_AddSearchPath)
 
 LUA_FUNCTION_STATIC(filesystem_RemoveSearchPath)
 {
+	Util::DoUnsafeCodeCheck(LUA);
+
 	const char* folderPath = LUA->CheckString(1);
 	const char* gamePath = LUA->CheckString(2);
 	LUA->PushBool(g_pFullFileSystem->RemoveSearchPath(folderPath, gamePath));
@@ -2065,6 +2082,8 @@ LUA_FUNCTION_STATIC(filesystem_RemoveSearchPath)
 
 LUA_FUNCTION_STATIC(filesystem_RemoveSearchPaths)
 {
+	Util::DoUnsafeCodeCheck(LUA);
+
 	const char* gamePath = LUA->CheckString(1);
 	g_pFullFileSystem->RemoveSearchPaths(gamePath);
 
@@ -2073,6 +2092,8 @@ LUA_FUNCTION_STATIC(filesystem_RemoveSearchPaths)
 
 LUA_FUNCTION_STATIC(filesystem_RemoveAllSearchPaths)
 {
+	Util::DoUnsafeCodeCheck(LUA);
+
 	g_pFullFileSystem->RemoveAllSearchPaths();
 
 	return 0;
@@ -2080,6 +2101,8 @@ LUA_FUNCTION_STATIC(filesystem_RemoveAllSearchPaths)
 
 LUA_FUNCTION_STATIC(filesystem_RelativePathToFullPath)
 {
+	Util::DoUnsafeCodeCheck(LUA);
+
 	const char* filePath = LUA->CheckString(1);
 	const char* gamePath = LUA->CheckString(2);
 
@@ -2093,6 +2116,8 @@ LUA_FUNCTION_STATIC(filesystem_RelativePathToFullPath)
 
 LUA_FUNCTION_STATIC(filesystem_FullPathToRelativePath)
 {
+	Util::DoUnsafeCodeCheck(LUA);
+
 	const char* fullPath = LUA->CheckString(1);
 	const char* gamePath = LUA->CheckStringOpt(2, NULL);
 

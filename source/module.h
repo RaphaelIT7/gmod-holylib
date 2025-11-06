@@ -62,6 +62,9 @@ public:
 	virtual void MarkAsBinaryModule() { m_bMarkedAsBinaryModule = true;  };
 	virtual bool IsMarkedAsBinaryModule() { return m_bMarkedAsBinaryModule; };
 
+	virtual void EnableUnsafeCode() { m_bEnabledUnsafeCode = true;  };
+	virtual bool IsUnsafeCodeEnabled() { return m_bEnabledUnsafeCode; };
+
 	virtual void Setup(CreateInterfaceFn appfn, CreateInterfaceFn gamefn);
 	virtual void Init();
 	// bServerInit = true should never be called by a Interface itself, its called automatically
@@ -107,6 +110,11 @@ private:
 	CreateInterfaceFn m_pGameFactory = nullptr;
 	bool m_bGhostInj = false;
 	bool m_bMarkedAsBinaryModule = false;
+#if SYSTEM_LINUX
+	bool m_bEnabledUnsafeCode = true;
+#else
+	bool m_bEnabledUnsafeCode = false;
+#endif
 	IConfig* m_pConfig = nullptr; // Can be NULL at runtime so check for it!
 
 private: // ServerActivate stuff

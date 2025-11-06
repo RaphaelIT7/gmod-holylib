@@ -230,6 +230,13 @@ namespace Util
 		return LUA->IsType(-1, iType);
 	}
 
+	// Blocks execution by throwing an error if you tried to call a unsafe function
+	inline void DoUnsafeCodeCheck(GarrysMod::Lua::ILuaInterface* LUA)
+	{
+		if (!g_pModuleManager.IsUnsafeCodeEnabled())
+			LUA->ThrowError("Tried to use a unsafe code function while -holylib_allowunsafe is not active!");
+	}
+
 	// Gmod's functions:
 	extern CBasePlayer* Get_Player(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
 	extern CBaseEntity* Get_Entity(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
