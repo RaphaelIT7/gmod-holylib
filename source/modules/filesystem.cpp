@@ -723,53 +723,6 @@ static bool hook_CBaseFileSystem_IsDirectory(void* filesystem, const char* pFile
 	return detour_CBaseFileSystem_IsDirectory.GetTrampoline<Symbols::CBaseFileSystem_IsDirectory>()(filesystem, pFileName, pPathID);
 }
 
-static int pBaseLength = 0;
-static char pBaseDir[MAX_PATH];
-static Detouring::Hook detour_CBaseFileSystem_FixUpPath;
-static bool hook_CBaseFileSystem_FixUpPath(IFileSystem* filesystem, const char *pFileName, char *pFixedUpFileName, int sizeFixedUpFileName)
-{
-	// NOTE for future me: 64x doesn't see to have this function anymore.
-	if (!holylib_filesystem_optimizedfixpath.GetBool())
-		return detour_CBaseFileSystem_FixUpPath.GetTrampoline<Symbols::CBaseFileSystem_FixUpPath>()(filesystem, pFileName, pFixedUpFileName, sizeFixedUpFileName);
-
-	// This is already utterly fast, so we don't need vprof here.
-	//VPROF_BUDGET("HolyLib - CBaseFileSystem::FixUpPath", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
-
-	if (!g_pFullFileSystem)
-		InitFileSystem((IFileSystem*)filesystem);
-
-	V_strncpy( pFixedUpFileName, pFileName, sizeFixedUpFileName );
-	V_FixSlashes( pFixedUpFileName, CORRECT_PATH_SEPARATOR );
-	V_FixDoubleSlashes( pFixedUpFileName );
-
-	if ( !V_IsAbsolutePath( pFixedUpFileName ) )
-	{
-		V_strlower( pFixedUpFileName );
-	}
-	else 
-	{
-		/*
-		 * What changed here ?
-		 * Gmod calls GetSearchPath every time FixUpPath is called.
-		 * Now, we only call it once and then reuse the value, since the BASE_PATH shouldn't change at runtime.
-		 */
-
-		if ( pBaseLength < 3 )
-			pBaseLength = filesystem->GetSearchPath( "BASE_PATH", true, pBaseDir, sizeof( pBaseDir ) );
-
-		if ( pBaseLength )
-		{
-			if ( *pBaseDir && (pBaseLength+1 < V_strlen( pFixedUpFileName ) ) && (0 != V_strncmp( pBaseDir, pFixedUpFileName, pBaseLength ) )  )
-			{
-				V_strlower( &pFixedUpFileName[pBaseLength-1] );
-			}
-		}
-		
-	}
-
-	return true;
-}
-
 static std::string_view nukeFileExtension(const std::string_view& fileName) {
 	size_t lastDotPos = fileName.find_last_of('.');
 	if (lastDotPos == std::string::npos) 
@@ -895,7 +848,9 @@ static FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem
 	char pFileNameBuff[MAX_PATH];
 	const char *pFileName = pFileNameBuff;
 
-	hook_CBaseFileSystem_FixUpPath(filesystem, pFileNameT, pFileNameBuff, sizeof(pFileNameBuff));
+#if ARCHITECTURE_X86 // This is a 32x only thing
+	filesystem->FixUpPath(pFileNameT, pFileNameBuff, sizeof(pFileNameBuff));
+#endif
 
 	if (holylib_filesystem_savesearchcache.GetBool())
 	{
@@ -1592,6 +1547,8 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 	AddOveridePath("resource/modevents.res", "MOD_WRITE");
 	AddOveridePath("resource/hltvevents.res", "MOD_WRITE");
 
+	int pBaseLength = 0;
+	char pBaseDir[MAX_PATH];
 	if ( pBaseLength < 3 )
 		pBaseLength = g_pFullFileSystem->GetSearchPath( "BASE_PATH", true, pBaseDir, sizeof( pBaseDir ) );
 
@@ -1707,7 +1664,6 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 		return;
 
 	bShutdown = false;
-#if !defined(SYSTEM_WINDOWS)
 	if (holylib_filesystem_threads.GetInt() > 0)
 	{
 		pFileSystemPool = V_CreateThreadPool();
@@ -1736,12 +1692,6 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 		&detour_CBaseFileSystem_FastFileTime, "CBaseFileSystem::FastFileTime",
 		dedicated_loader.GetModule(), Symbols::CBaseFileSystem_FastFileTimeSym,
 		(void*)hook_CBaseFileSystem_FastFileTime, m_pID
-	);
-
-	Detour::Create(
-		&detour_CBaseFileSystem_FixUpPath, "CBaseFileSystem::FixUpPath",
-		dedicated_loader.GetModule(), Symbols::CBaseFileSystem_FixUpPathSym,
-		(void*)hook_CBaseFileSystem_FixUpPath, m_pID
 	);
 
 	Detour::Create(
@@ -1789,7 +1739,6 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 	g_pPathIDTable = Detour::ResolveSymbolFromLea<CUtlSymbolTableMT>(dedicated_loader.GetModule(), Symbols::g_PathIDTableSym);
 #endif
 	Detour::CheckValue("get class", "g_PathIDTable", g_pPathIDTable != NULL);
-#endif
 }
 
 /*

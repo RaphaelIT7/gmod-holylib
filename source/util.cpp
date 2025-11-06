@@ -17,6 +17,8 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#undef isalnum // 64x loves to shit on this one
+
 // Try not to use it. We want to move away from it.
 // Additionaly, we will add checks in many functions.
 GarrysMod::Lua::ILuaInterface* g_Lua = nullptr;

@@ -352,9 +352,6 @@ namespace Symbols
 	typedef long (GMCOMMON_CALLING_CONVENTION* CBaseFileSystem_FastFileTime)(void* filesystem, const CSearchPath* path, const char* pFileName);
 	extern const std::vector<Symbol> CBaseFileSystem_FastFileTimeSym;
 
-	typedef bool (GMCOMMON_CALLING_CONVENTION* CBaseFileSystem_FixUpPath)(void* filesystem, const char* pFileName, char* pFixedUpFileName, int sizeFixedUpFileName);
-	extern const std::vector<Symbol> CBaseFileSystem_FixUpPathSym;
-
 	typedef FileHandle_t(GMCOMMON_CALLING_CONVENTION* CBaseFileSystem_OpenForRead)(void* filesystem, const char* pFileNameT, const char* pOptions, unsigned flags, const char* pathID, char** ppszResolvedFilename);
 	extern std::vector<Symbol> CBaseFileSystem_OpenForReadSym;
 

@@ -696,10 +696,12 @@ jobs:
           - arch: 32x
             dll: gmsv_exampledll_linux.dll
             dll_artifact: gmsv_exampledll_linux.dll
+            config_path: x86
 
           - arch: 64x
             dll: gmsv_exampledll_linux64.dll
             dll_artifact: gmsv_exampledll_linux64.dll (64x)
+            config_path: x64
     steps:
       - uses: actions/download-artifact@v4
         name: "Download ${{ matrix.arch }} artifact"
@@ -715,11 +717,11 @@ jobs:
         run: |
           mkdir -p garrysmod/lua/bin
           mkdir -p garrysmod/addons
-          mkdir -p garrysmod/holylib/cfg/
+          mkdir -p garrysmod/holylib/cfg/${{ matrix.config_path }}/
 
           mv ${{ matrix.dll }} garrysmod/lua/bin/
 
-          cat <<EOF > garrysmod/holylib/cfg/dlls.json
+          cat <<EOF > garrysmod/holylib/cfg/${{ matrix.config_path }}/dlls.json
           [
             {
               "path": "garrysmod/lua/bin/${{ matrix.dll }}",

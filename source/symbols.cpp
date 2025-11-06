@@ -315,9 +315,10 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x49\x89\xFF\x41\x56\x41\x55\x41\x54\x53\x48\x89\xF3"), // 55 48 89 E5 41 57 49 89 FF 41 56 41 55 41 54 53 48 89 F3
 	};
 
-	const std::vector<Symbol> CBaseFileSystem_IsDirectorySym = {
+	const std::vector<Symbol> CBaseFileSystem_IsDirectorySym = { // FS: Specified two path IDs (%s, %s).\n
 		Symbol::FromName("_ZN15CBaseFileSystem11IsDirectoryEPKcS1_"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x4C\x8D\xAD\x38***\x41\x54"), // 55 48 89 E5 41 57 41 56 41 55 4C 8D AD 38 ?? ?? ?? 41 54
+		Symbol::FromSignature("\x55\x8B\xEC\x53\x8B\x5D\x10\x8B\xD1\x57"), // 55 8B EC 53 8B 5D 10 8B D1 57
 	};
 
 	const std::vector<Symbol> CBaseFileSystem_FindSearchPathByStoreIdSym = {
@@ -331,11 +332,6 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x49\x89\xFD\x41\x54\x49\x89\xD4"), //55 48 89 E5 41 57 41 56 41 55 49 89 FD 41 54 49 89 D4
 	};
 
-	const std::vector<Symbol> CBaseFileSystem_FixUpPathSym = {//Find 'BASE_PATH'
-		Symbol::FromName("_ZN15CBaseFileSystem9FixUpPathEPKcPci"),
-		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x56\x41\x55\x41\x54\x49\x89\xFC\x53\x48\x89\xD3\x48\x63\xD1"), //55 48 89 E5 41 56 41 55 41 54 49 89 FC 53 48 89 D3 48 63 D1
-	};
-
 	std::vector<Symbol> CBaseFileSystem_OpenForReadSym = {
 		Symbol::FromName("_ZN15CBaseFileSystem11OpenForReadEPKcS1_jS1_PPc"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x49\x89\xD7\x41\x56\x4D\x89\xC6\x41\x55\x4D\x89\xCD\x41\x54"), // 55 48 89 E5 41 57 49 89 D7 41 56 4D 89 C6 41 55 4D 89 CD 41 54
@@ -344,6 +340,7 @@ namespace Symbols
 	const std::vector<Symbol> CBaseFileSystem_GetFileTimeSym = {
 		Symbol::FromName("_ZN15CBaseFileSystem11GetFileTimeEPKcS1_"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x49\x89\xFE\x41\x55\x41\x54\x53\x48\x89\xD3"), // 55 48 89 E5 41 57 41 56 49 89 FE 41 55 41 54 53 48 89 D3
+		Symbol::FromSignature("\x55\x8B\xEC\x81\xEC\x70\x03\x00\x00\x53\x8B\xD9"), // 55 8B EC 81 EC 70 03 00 00 53 8B D9 - "CBaseFileSystem::GetFileTime"
 	};
 
 	const std::vector<Symbol> CBaseFileSystem_AddSearchPathSym = {
@@ -359,6 +356,7 @@ namespace Symbols
 	const std::vector<Symbol> CBaseFileSystem_CloseSym = { //Search for 'CBaseFileSystem::Close'
 		Symbol::FromName("_ZN15CBaseFileSystem5CloseEPv"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x49\x89\xFE\x41\x55\x41\x54\x49\x89\xF4\x53\x48\x83\xEC\x08\x48\x8B\x1D\x2A\x2A\x2A\x2A\x8B\x8B\x0C\x10\x00\x00\x85\xC9\x41\x0F\x95\xC5\x0F\x85\x2A\x2A\x2A\x2A\x4D\x85\xE4\x0F\x84\x2A\x2A\x2A\x2A\x49\x8B\x04\x24"), // 55 48 89 E5 41 57 41 56 49 89 FE 41 55 41 54 49 89 F4 53 48 83 EC 08 48 8B 1D ? ? ? ? 8B 8B 0C 10 00 00 85 C9 41 0F 95 C5 0F 85 ? ? ? ? 4D 85 E4 0F 84 ? ? ? ? 49 8B 04 24
+		Symbol::FromSignature("\x55\x8B\xEC\x56\x57\x8B\xF9\x8B*****\x8B\xB1\x0C\x10\x00\x00\x85\xF6************************\x8B\x4D\x08\x85\xC9**\x68****\x8D**\x6A*\x50\xE8****\x83****\x8B\x01\x6A\x01"), // 55 8B EC 56 57 8B F9 8B ?? ?? ?? ?? ?? 8B B1 0C 10 00 00 85 F6 ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? 8B 4D 08 85 C9 ?? ?? 68 ?? ?? ?? ?? 8D ?? ?? 6A ?? 50 E8 ?? ?? ?? ?? 83 ?? ?? ?? ?? 8B 01 6A 01
 	};
 
 	const std::vector<Symbol> CBaseFileSystem_CSearchPath_GetDebugStringSym = {
