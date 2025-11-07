@@ -60,7 +60,12 @@ static ConVar holylib_filesystem_precachehandle("holylib_filesystem_precachehand
 	"If enabled, it will try to predict which file it will open next and open the file to keep a handle ready to be opened.");
 static ConVar holylib_filesystem_savesearchcache("holylib_filesystem_savesearchcache", "1", FCVAR_ARCHIVE,
 	"If enabled, it will write the search cache into a file and restore it when starting, using it to improve performance.");
-
+static ConVar holylib_filesystem_mergesearchcache("holylib_filesystem_mergesearchcache", "1", FCVAR_ARCHIVE,
+	"If enabled, when saving the search cache it will not remove old entries and instead keep them even if they were unused this session");
+static ConVar holylib_filesystem_skipinvalidluapaths("holylib_filesystem_skipinvalidluapaths", "1", FCVAR_ARCHIVE,
+	"If enabled, invalid lua paths like include/include/ will be skipped instantly");
+static ConVar holylib_filesystem_tryalternativeluapath("holylib_filesystem_tryalternativeluapath", "1", FCVAR_ARCHIVE,
+	"If enabled, if it can't find a file in the search cache, it will remove the first folder and try again as when loading Lua gmod loves to test different folders first");
 
 // Optimization Idea: When Gmod calls GetFileTime, we could try to get the filehandle in parallel to have it ready when gmod calls it.
 // We could also cache every FULL searchpath to not have to look up a file every time.  
@@ -97,6 +102,14 @@ struct FilesystemJob
 	std::string gamePath;
 	void* pData = NULL;
 };
+
+#if SYSTEM_WINDOWS
+#define FILEPATH_SLASH "\\"
+#define FILEPATH_SLASH_CHAR '\\'
+#else
+#define FILEPATH_SLASH "/"
+#define FILEPATH_SLASH_CHAR '/'
+#endif
 
 static const char* nullPath = "NULL_PATH";
 extern void DeleteFileHandle(FileHandle_t handle);
@@ -334,13 +347,30 @@ static void NukeSearchCache() // NOTE: We actually never nuke it :D
 };*/
 
 #define SearchCacheVersion 2
-#define MaxSearchCacheEntries (1 << 16) // 64k max files
+// #define MaxSearchCacheEntries (1 << 16) // 64k max files
 struct SearchCache {
 	unsigned int version = SearchCacheVersion;
 	unsigned int usedPaths = 0;
 	//SearchCacheEntry paths[MaxSearchCacheEntries];
 };
 
+static inline void WriteStringIntoFile(FileHandle_t pHandle, const std::string_view& pValue)
+{
+	// NOTE: We use unsigned char which is NOT MAX_PATH, though I'm not gonna use 1 byte for just 5 extra length
+	unsigned char valueLength = (unsigned char)pValue.length();
+	const char* value = pValue.data();
+	g_pFullFileSystem->Write(&valueLength, sizeof(valueLength), pHandle);
+	g_pFullFileSystem->Write(value, valueLength, pHandle);
+}
+
+static inline void WriteStringIntoFile(FileHandle_t pHandle, const char* value, unsigned char valueLength)
+{
+	// NOTE: We use unsigned char which is NOT MAX_PATH, though I'm not gonna use 1 byte for just 5 extra length
+	g_pFullFileSystem->Write(&valueLength, sizeof(valueLength), pHandle);
+	g_pFullFileSystem->Write(value, valueLength, pHandle);
+}
+
+static std::unordered_map<std::string_view, std::unordered_map<std::string_view, std::string_view>> g_pAbsoluteSearchCache;
 static void WriteSearchCache()
 {
 	VPROF_BUDGET("HolyLib - WriteSearchCache", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
@@ -354,30 +384,76 @@ static void WriteSearchCache()
 		for (auto& [strPath, cache] : m_SearchCache)
 			searchCache.usedPaths += cache.size();
 
+		if (holylib_filesystem_mergesearchcache.GetBool())
+		{
+			for (auto& [strPath, cache] : g_pAbsoluteSearchCache)
+				searchCache.usedPaths += cache.size();
+		}
+
 		g_pFullFileSystem->Write(&searchCache, sizeof(SearchCache), handle);
 
-		char absolutePath[MAX_PATH];
-		for (auto& [strPath, cache] : m_SearchCache)
+		if (!holylib_filesystem_mergesearchcache.GetBool())
 		{
-			for (auto& [strEntry, storeID] : cache)
+			char absolutePath[MAX_PATH];
+			for (auto& [strPath, cache] : m_SearchCache)
 			{
-				unsigned char pathIDLength = (unsigned char)strPath.length();
-				const char* pathID = strPath.data();
-				g_pFullFileSystem->Write(&pathIDLength, sizeof(pathIDLength), handle);
-				g_pFullFileSystem->Write(pathID, pathIDLength, handle);
+				for (auto& [strEntry, storeID] : cache)
+				{
+					WriteStringIntoFile(handle, strPath);
+					WriteStringIntoFile(handle, strEntry);
 
-				unsigned char pathLength = (unsigned char)strEntry.length();
-				const char* path = strEntry.data();
-				g_pFullFileSystem->Write(&pathLength, sizeof(pathLength), handle);
-				g_pFullFileSystem->Write(path, pathLength, handle);
+					absolutePath[0] = '\0';
+					g_pFullFileSystem->RelativePathToFullPath(strEntry.data(), strPath.data(), absolutePath, sizeof(absolutePath));
 
-				memset(absolutePath, 0, sizeof(absolutePath));
-				g_pFullFileSystem->RelativePathToFullPath(path, strPath.data(), absolutePath, sizeof(absolutePath));
-
-				unsigned char absolutePathLength = (unsigned char)strlen(absolutePath);
-				g_pFullFileSystem->Write(&absolutePathLength, sizeof(absolutePathLength), handle);
-				g_pFullFileSystem->Write(absolutePath, absolutePathLength, handle);
+					WriteStringIntoFile(handle, absolutePath, (unsigned char)strlen(absolutePath));
+				}
 			}
+		} else {
+			// Our goal is to write the existing absolute cache now too
+			// Above we only write the search cache which only contains all files cached in this sesssion
+			// And it discards the previous cache entries which weren't used
+
+			// A COPY that we now fill
+			std::unordered_map<std::string_view, std::unordered_map<std::string_view, std::string_view>> pAbsoluteCache = g_pAbsoluteSearchCache;
+			std::vector<char*> pTempMemory;
+			// For the merge we allocate temporary memory, and since pAbsoluteCache is a copy, it would be deconstructed leaving the pointers leaking
+
+			unsigned int nUsedSearchCachePaths = 0;
+			for (auto& [strPath, cache] : m_SearchCache)
+				nUsedSearchCachePaths += cache.size();
+
+			pTempMemory.reserve(nUsedSearchCachePaths); // We reserve just for more SPEEED
+
+			char absolutePath[MAX_PATH];
+			for (auto& [strPath, cache] : m_SearchCache)
+			{
+				for (auto& [strEntry, storeID] : cache)
+				{
+					absolutePath[0] = '\0';
+					g_pFullFileSystem->RelativePathToFullPath(strEntry.data(), strPath.data(), absolutePath, sizeof(absolutePath));
+
+					unsigned char nLength = (unsigned char)strlen(absolutePath);
+					char* pAbsolutePath = new char[nLength + 1];
+					pTempMemory.push_back(pAbsolutePath);
+					memcpy(pAbsolutePath, absolutePath, nLength);
+					pAbsolutePath[nLength] = '\0';
+					pAbsoluteCache[strPath][strEntry] = std::string_view(pAbsolutePath, nLength);
+					// We override so that we don't get new entries instead at worse replacing them
+				}
+			}
+
+			for (auto& [strPath, cache] : pAbsoluteCache)
+			{
+				for (auto& [relativePath, absolutePath] : cache)
+				{
+					WriteStringIntoFile(handle, strPath);
+					WriteStringIntoFile(handle, relativePath);
+					WriteStringIntoFile(handle, absolutePath);
+				}
+			}
+
+			for (char* pData : pTempMemory)
+				delete[] pData;
 		}
 
 		g_pFullFileSystem->Close(handle);
@@ -387,7 +463,6 @@ static void WriteSearchCache()
 	}
 }
 
-static std::unordered_map<std::string_view, std::unordered_map<std::string_view, std::string_view>> g_pAbsoluteSearchCache;
 inline std::string_view* GetStringFromAbsoluteCache(const char* fileName, const char* pathID)
 {
 	if (!pathID)
@@ -424,6 +499,17 @@ static void ClearAbsoluteSearchCache()
 	g_pAbsoluteSearchCache.clear();
 }
 
+static inline const char* ReadStringFromFile(FileHandle_t pHandle, unsigned char* nLength)
+{
+	g_pFullFileSystem->Read(nLength, sizeof(*nLength), pHandle);
+
+	char* pValue = new char[*nLength + 1];
+	g_pFullFileSystem->Read(pValue, *nLength, pHandle);
+	pValue[*nLength] = '\0';
+
+	return pValue;
+}
+
 static void ReadSearchCache()
 {
 	VPROF_BUDGET("HolyLib - ReadSearchCache", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
@@ -447,27 +533,15 @@ static void ReadSearchCache()
 		{
 			// PathID
 			unsigned char pathIDLength;
-			g_pFullFileSystem->Read(&pathIDLength, sizeof(pathIDLength), handle);
-
-			char* pathID = new char[pathIDLength + 1];
-			g_pFullFileSystem->Read(pathID, pathIDLength, handle);
-			pathID[pathIDLength] = '\0';
+			const char* pathID = ReadStringFromFile(handle, &pathIDLength);
 
 			// relative file path
 			unsigned char pathLength;
-			g_pFullFileSystem->Read(&pathLength, sizeof(pathLength), handle);
-
-			char* path = new char[pathLength + 1];
-			g_pFullFileSystem->Read(path, pathLength, handle);
-			path[pathLength] = '\0'; // We null terminate it to keep it nice since things like Msg woukd print it with additional junk / random memory.
+			const char* path = ReadStringFromFile(handle, &pathLength);
 
 			// full file path
 			unsigned char absolutePathLength;
-			g_pFullFileSystem->Read(&absolutePathLength, sizeof(absolutePathLength), handle);
-
-			char* absolutePath = new char[absolutePathLength + 1];
-			g_pFullFileSystem->Read(absolutePath, absolutePathLength, handle);
-			absolutePath[absolutePathLength] = '\0';
+			const char* absolutePath = ReadStringFromFile(handle, &absolutePathLength);
 			
 			std::string_view pathIDStr(pathID, pathIDLength); // NOTE: We have to manually free it later
 			std::string_view pathStr(path, pathLength); // NOTE: We have to manually free it later
@@ -704,31 +778,35 @@ static long hook_CBaseFileSystem_FastFileTime(void* filesystem, const CSearchPat
 	if (g_pFileSystemModule.InDebug())
 		Msg("holylib - FastFileTime: trying to find %s -> %p\n", pFileName, path);
 
-	CSearchPath* cachePath = GetPathFromSearchCache(pFileName, path->GetPathIDString());
-	if (cachePath)
+	bool bIsAbsolute = V_IsAbsolutePath(pFileName);
+	if (!bIsAbsolute)
 	{
-		VPROF_BUDGET("HolyLib - CBaseFileSystem::FastFileTime - Cache", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
+		CSearchPath* cachePath = GetPathFromSearchCache(pFileName, path->GetPathIDString());
+		if (cachePath)
+		{
+			VPROF_BUDGET("HolyLib - CBaseFileSystem::FastFileTime - Cache", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
-		long time = detour_CBaseFileSystem_FastFileTime.GetTrampoline<Symbols::CBaseFileSystem_FastFileTime>()(filesystem, cachePath, pFileName);
-		if (time != 0L)
-			return time;
+			long time = detour_CBaseFileSystem_FastFileTime.GetTrampoline<Symbols::CBaseFileSystem_FastFileTime>()(filesystem, cachePath, pFileName);
+			if (time != 0L)
+				return time;
 
-		RemoveFileFromSearchCache(pFileName, path->GetPathIDString());
-	} else {
-		if (g_pFileSystemModule.InDebug())
-			Msg("holylib - FastFileTime: Failed to find cachePath! (%s)\n", pFileName);
+			RemoveFileFromSearchCache(pFileName, path->GetPathIDString());
+		} else {
+			if (g_pFileSystemModule.InDebug())
+				Msg("holylib - FastFileTime: Failed to find cachePath! (%s)\n", pFileName);
+		}
 	}
 
 	long time = detour_CBaseFileSystem_FastFileTime.GetTrampoline<Symbols::CBaseFileSystem_FastFileTime>()(filesystem, path, pFileName);
 
-	if (time != 0L)
+	if (time != 0L && !bIsAbsolute)
 		AddFileToSearchCache(pFileName, path->m_storeId, path->GetPathIDString());
 
 	return time;
 }
 
 static bool is_file(const char *path) {
-	const char *last_slash = strrchr(path, '/');
+	const char *last_slash = strrchr(path, FILEPATH_SLASH_CHAR);
 	const char *last_dot = strrchr(path, '.');
 
 	return last_dot != NULL && (last_slash == NULL || last_dot > last_slash);
@@ -762,11 +840,11 @@ static std::string_view getFileExtension(const std::string_view& fileName) {
 }
 
 static bool shouldWeCare(const std::string_view& fileName) { // Skip models like models/airboat.mdl
-	size_t firstSlash = fileName.find_first_of('/');
+	size_t firstSlash = fileName.find_first_of(FILEPATH_SLASH_CHAR);
 	if (firstSlash == std::string::npos)
 		return false;
 
-	size_t lastSlash = fileName.find_last_of('/');
+	size_t lastSlash = fileName.find_last_of(FILEPATH_SLASH_CHAR);
 	if (lastSlash == std::string::npos || firstSlash == lastSlash)
 		return false;
 
@@ -783,7 +861,7 @@ static const char* GetSplitPath(const char* pFileName, const char* pathID)
 		return NULL;
 
 	std::string_view strFileName = pFileName;
-	std::size_t pos = strFileName.find_first_of("/");
+	std::size_t pos = strFileName.find_first_of(FILEPATH_SLASH_CHAR);
 	if (pos == std::string::npos)
 		return NULL;
 
@@ -807,40 +885,40 @@ static const char* GetSplitPath(const char* pFileName, const char* pathID)
 
 	/*if (pathID && (V_stricmp(pathID, "lsv") == 0 || V_stricmp(pathID, "GAME") == 0) && holylib_filesystem_splitluapath.GetBool())
 	{
-		if (strFileName.rfind("lua/includes/") == 0)
+		if (strFileName.rfind("lua" FILEPATH_SLASH "includes" FILEPATH_SLASH) == 0)
 			return "LUA_INCLUDES";
 
-		if (strFileName.rfind("sandbox/") == 0)
+		if (strFileName.rfind("sandbox" FILEPATH_SLASH) == 0)
 			return "LUA_GAMEMODE_SANDBOX";
 
-		if (strFileName.rfind("effects/") == 0)
+		if (strFileName.rfind("effects" FILEPATH_SLASH) == 0)
 			return "LUA_EFFECTS";
 
-		if (strFileName.rfind("entities/") == 0)
+		if (strFileName.rfind("entities" FILEPATH_SLASH) == 0)
 			return "LUA_ENTITIES";
 
-		if (strFileName.rfind("weapons/") == 0)
+		if (strFileName.rfind("weapons" FILEPATH_SLASH) == 0)
 			return "LUA_WEAPONS";
 
-		if (strFileName.rfind("lua/derma/") == 0)
+		if (strFileName.rfind("lua" FILEPATH_SLASH "derma" FILEPATH_SLASH) == 0)
 			return "LUA_DERMA";
 
-		if (strFileName.rfind("lua/drive/") == 0)
+		if (strFileName.rfind("lua" FILEPATH_SLASH "drive" FILEPATH_SLASH) == 0)
 			return "LUA_DRIVE";
 
-		if (strFileName.rfind("lua/entities/") == 0)
+		if (strFileName.rfind("lua" FILEPATH_SLASH "entities" FILEPATH_SLASH) == 0)
 			return "LUA_LUA_ENTITIES"; // Why LUA_LUA?!?
 
-		if (strFileName.rfind("vgui/") == 0)
+		if (strFileName.rfind("vgui" FILEPATH_SLASH) == 0)
 			return "LUA_VGUI";
 
-		if (strFileName.rfind("postprocess/") == 0)
+		if (strFileName.rfind("postprocess" FILEPATH_SLASH) == 0)
 			return "LUA_POSTPROCESS";
 
-		if (strFileName.rfind("matproxy/") == 0)
+		if (strFileName.rfind("matproxy" FILEPATH_SLASH) == 0)
 			return "LUA_MATPROXY";
 
-		if (strFileName.rfind("autorun/") == 0)
+		if (strFileName.rfind("autorun" FILEPATH_SLASH) == 0)
 			return "LUA_AUTORUN";
 	}*/
 
@@ -1149,12 +1227,12 @@ static std::string_view fixGamemodePath(std::string_view path)
 	if (activeGamemode.empty())
 		return path;
 
-	if (path.rfind("gamemodes/") == 0)
+	if (path.rfind("gamemodes" FILEPATH_SLASH) == 0)
 		return path;
 
-	std::string searchStr = "/";
+	std::string searchStr = FILEPATH_SLASH;
 	searchStr.append(activeGamemode);
-	searchStr.append("/gamemode/"); // Final string should be /[Active Gamemode]/gamemode/
+	searchStr.append(FILEPATH_SLASH "gamemode" FILEPATH_SLASH); // Final string should be /[Active Gamemode]/gamemode/
 	size_t pos = path.find(searchStr);
 	if (pos == std::string::npos)
 		return path;
@@ -1166,9 +1244,17 @@ static std::string_view fixGamemodePath(std::string_view path)
 }
 
 static Detouring::Hook detour_CBaseFileSystem_GetFileTime;
-static long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char *pFileName, const char *pPathID)
+static long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char *pFileNameT, const char *pPathID)
 {
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::GetFileTime", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
+
+	// Fixes GetFileTime missing the caches since entries have different slashes
+	char pFileNameBuff[MAX_PATH];
+	const char *pFileName = pFileNameBuff;
+
+#if ARCHITECTURE_X86 // This is a 32x only thing
+	func_CBaseFileSystem_FixUpPath(filesystem, pFileNameT, pFileNameBuff, sizeof(pFileNameBuff));
+#endif
 	
 	bool bSplitPath = false;
 	const char* origPath = pPathID;
@@ -1189,17 +1275,23 @@ static long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char
 	}
 	pFileName = strFileName.data();
 
+	if (holylib_filesystem_skipinvalidluapaths.GetBool())
+	{
+		if (strFileName.rfind("include" FILEPATH_SLASH "include" FILEPATH_SLASH) == 0)
+			return 0L;
+	}
+
 	if (holylib_filesystem_forcepath.GetBool())
 	{
 		newPath = NULL;
 
-		if (!newPath && strFileName.rfind("gamemodes/base") == 0)
+		if (!newPath && strFileName.rfind("gamemodes" FILEPATH_SLASH "base") == 0)
 			newPath = "MOD_WRITE";
 
-		if (!newPath && strFileName.rfind("gamemodes/sandbox") == 0)
+		if (!newPath && strFileName.rfind("gamemodes" FILEPATH_SLASH "sandbox") == 0)
 			newPath = "MOD_WRITE";
 
-		if (!newPath && strFileName.rfind("gamemodes/terrortown") == 0)
+		if (!newPath && strFileName.rfind("gamemodes" FILEPATH_SLASH "terrortown") == 0)
 			newPath = "MOD_WRITE";
 
 		if (newPath)
@@ -1221,6 +1313,19 @@ static long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char
 	if (holylib_filesystem_savesearchcache.GetBool()) // why exactly was I doing this inside the forcepath check before? idk.
 	{
 		std::string_view* absoluteStr = GetStringFromAbsoluteCache(pFileName, pPathID);
+		if (!absoluteStr && holylib_filesystem_tryalternativeluapath.GetBool())
+		{
+			size_t nPos = strFileName.find_first_of(FILEPATH_SLASH_CHAR);
+			if (nPos != std::string_view::npos)
+			{
+				std::string_view altFileName = strFileName.substr(nPos + 1);
+				if (g_pFileSystemModule.InDebug())
+					Msg("holylib - GetFileTime: Trying alternative absolute path (%s -> %s)\n", strFileName.data(), altFileName.data());
+
+				absoluteStr = GetStringFromAbsoluteCache(altFileName.data(), pPathID);
+			}
+		}
+
 		if (absoluteStr)
 		{
 			if (g_pFileSystemModule.InDebug())
@@ -1277,25 +1382,25 @@ static void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const ch
 		const char* pPathID = "__TEMP_MAP_PATH";
 		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, pPathID, addType);
 
-		if (filesystem->IsDirectory("materials/", pPathID))
+		if (filesystem->IsDirectory("materials" FILEPATH_SLASH, pPathID))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_MATERIALS", addType);
 
-		if (filesystem->IsDirectory("models/", pPathID))
+		if (filesystem->IsDirectory("models" FILEPATH_SLASH, pPathID))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_MODELS", addType);
 	
-		if (filesystem->IsDirectory("sound/", pPathID))
+		if (filesystem->IsDirectory("sound" FILEPATH_SLASH, pPathID))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_SOUNDS", addType);
 	
-		if (filesystem->IsDirectory("maps/", pPathID))
+		if (filesystem->IsDirectory("maps" FILEPATH_SLASH, pPathID))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_MAPS", addType);
 	
-		if (filesystem->IsDirectory("resource/", pPathID))
+		if (filesystem->IsDirectory("resource" FILEPATH_SLASH, pPathID))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_RESOURCE", addType);
 
-		if (filesystem->IsDirectory("scripts/", pPathID))
+		if (filesystem->IsDirectory("scripts" FILEPATH_SLASH, pPathID))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_SCRIPTS", addType);
 
-		if (filesystem->IsDirectory("cfg/", pPathID))
+		if (filesystem->IsDirectory("cfg" FILEPATH_SLASH, pPathID))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_CONFIGS", addType);
 		
 		filesystem->RemoveSearchPath(pPath, pPathID);
@@ -1304,67 +1409,67 @@ static void hook_CBaseFileSystem_AddSearchPath(IFileSystem* filesystem, const ch
 	std::string strPath = pPath;
 	if (V_stricmp(pathID, "GAME") == 0)
 	{
-		if (filesystem->IsDirectory((strPath + "/materials").c_str()))
+		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "materials").c_str()))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_MATERIALS", addType);
 
-		if (filesystem->IsDirectory((strPath + "/models").c_str()))
+		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "models").c_str()))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_MODELS", addType);
 	
-		if (filesystem->IsDirectory((strPath + "/sound").c_str()))
+		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "sound").c_str()))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_SOUNDS", addType);
 	
-		if (filesystem->IsDirectory((strPath + "/maps").c_str()))
+		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "maps").c_str()))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_MAPS", addType);
 	
-		if (filesystem->IsDirectory((strPath + "/resource").c_str()))
+		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "resource").c_str()))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_RESOURCE", addType);
 
-		if (filesystem->IsDirectory((strPath + "/scripts").c_str()))
+		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "scripts").c_str()))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_SCRIPTS", addType);
 
-		if (filesystem->IsDirectory((strPath + "/cfg").c_str()))
+		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "cfg").c_str()))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "CONTENT_CONFIGS", addType);
 
-		if (filesystem->IsDirectory((strPath + "/gamemodes").c_str()))
+		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "gamemodes").c_str()))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_GAMEMODES", addType);
 
-		if (filesystem->IsDirectory((strPath + "/lua/includes").c_str()))
+		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "lua" FILEPATH_SLASH "includes").c_str()))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_INCLUDES", addType);
 	}
 	
 	if(V_stricmp(pathID, "lsv") == 0 || V_stricmp(pathID, "GAME") == 0)
 	{
-		if (filesystem->IsDirectory((strPath + "/sandbox").c_str()))
+		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "sandbox").c_str()))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_GAMEMODE_SANDBOX", addType);
 
-		if (filesystem->IsDirectory((strPath + "/effects").c_str()))
+		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "effects").c_str()))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_EFFECTS", addType);
 	
-		if (filesystem->IsDirectory((strPath + "/entities").c_str()))
+		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "entities").c_str()))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_ENTITIES", addType);
 
-		if (filesystem->IsDirectory((strPath + "/weapons").c_str()))
+		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "weapons").c_str()))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_WEAPONS", addType);
 
-		if (filesystem->IsDirectory((strPath + "/lua/derma").c_str()))
+		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "lua" FILEPATH_SLASH "derma").c_str()))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_DERMA", addType);
 
-		if (filesystem->IsDirectory((strPath + "/lua/drive").c_str()))
+		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "lua" FILEPATH_SLASH "drive").c_str()))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_DRIVE", addType);
 
-		if (filesystem->IsDirectory((strPath + "/lua/entities").c_str()))
+		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "lua" FILEPATH_SLASH "entities").c_str()))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_LUA_ENTITIES", addType);
 
-		if (filesystem->IsDirectory((strPath + "/vgui").c_str()))
+		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "vgui").c_str()))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_VGUI", addType);
 
-		if (filesystem->IsDirectory((strPath + "/postprocess").c_str()))
+		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "postprocess").c_str()))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_POSTPROCESS", addType);
 
-		if (filesystem->IsDirectory((strPath + "/matproxy").c_str()))
+		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "matproxy").c_str()))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_MATPROXY", addType);
 
-		if (filesystem->IsDirectory((strPath + "/autorun").c_str()))
+		if (filesystem->IsDirectory((strPath + FILEPATH_SLASH "autorun").c_str()))
 			detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(filesystem, pPath, "LUA_AUTORUN", addType);
 	}
 
@@ -1387,31 +1492,31 @@ static void hook_CBaseFileSystem_AddVPKFile(IFileSystem* filesystem, const char 
 		std::string_view vpkPath = getVPKFile(pPath);
 		detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, vpkPath.data(), addType);
 
-		if (filesystem->IsDirectory("materials/"), vpkPath.data())
+		if (filesystem->IsDirectory("materials" FILEPATH_SLASH), vpkPath.data())
 			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_MATERIALS", addType);
 
-		if (filesystem->IsDirectory("models/"), vpkPath.data())
+		if (filesystem->IsDirectory("models" FILEPATH_SLASH), vpkPath.data())
 			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_MODELS", addType);
 	
-		if (filesystem->IsDirectory("sound/"), vpkPath.data())
+		if (filesystem->IsDirectory("sound" FILEPATH_SLASH), vpkPath.data())
 			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_SOUNDS", addType);
 	
-		if (filesystem->IsDirectory("maps/"), vpkPath.data())
+		if (filesystem->IsDirectory("maps" FILEPATH_SLASH), vpkPath.data())
 			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_MAPS", addType);
 	
-		if (filesystem->IsDirectory("resource/"), vpkPath.data())
+		if (filesystem->IsDirectory("resource" FILEPATH_SLASH), vpkPath.data())
 			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_RESOURCE", addType);
 
-		if (filesystem->IsDirectory("scripts/"), vpkPath.data())
+		if (filesystem->IsDirectory("scripts" FILEPATH_SLASH), vpkPath.data())
 			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_SCRIPTS", addType);
 
-		if (filesystem->IsDirectory("cfg/"), vpkPath.data())
+		if (filesystem->IsDirectory("cfg" FILEPATH_SLASH), vpkPath.data())
 			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "CONTENT_CONFIGS", addType);
 
-		if (filesystem->IsDirectory("gamemodes/"), vpkPath.data())
+		if (filesystem->IsDirectory("gamemodes" FILEPATH_SLASH), vpkPath.data())
 			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "LUA_GAMEMODES", addType);
 
-		if (filesystem->IsDirectory("lua/includes/"), vpkPath.data())
+		if (filesystem->IsDirectory("lua" FILEPATH_SLASH "includes" FILEPATH_SLASH), vpkPath.data())
 			detour_CBaseFileSystem_AddVPKFile.GetTrampoline<Symbols::CBaseFileSystem_AddVPKFile>()(filesystem, pPath, "LUA_INCLUDES", addType);
 	
 		filesystem->RemoveSearchPath(pPath, vpkPath.data());
@@ -1561,27 +1666,27 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 
 
 	// We use MOD_WRITE because it doesn't have additional junk search paths.
-	AddOveridePath("cfg/server.cfg", "MOD_WRITE");
-	AddOveridePath("cfg/banned_ip.cfg", "MOD_WRITE");
-	AddOveridePath("cfg/banned_user.cfg", "MOD_WRITE");
-	AddOveridePath("cfg/skill2.cfg", "MOD_WRITE");
-	AddOveridePath("cfg/game.cfg", "MOD_WRITE");
-	AddOveridePath("cfg/trusted_keys_base.txt", "MOD_WRITE");
-	AddOveridePath("cfg/pure_server_minimal.txt", "MOD_WRITE");
-	AddOveridePath("cfg/skill_manifest.cfg", "MOD_WRITE");
-	AddOveridePath("cfg/skill.cfg", "MOD_WRITE");
-	AddOveridePath("cfg/mapcycle.txt", "MOD_WRITE");
+	AddOveridePath("cfg" FILEPATH_SLASH "server.cfg", "MOD_WRITE");
+	AddOveridePath("cfg" FILEPATH_SLASH "banned_ip.cfg", "MOD_WRITE");
+	AddOveridePath("cfg" FILEPATH_SLASH "banned_user.cfg", "MOD_WRITE");
+	AddOveridePath("cfg" FILEPATH_SLASH "skill2.cfg", "MOD_WRITE");
+	AddOveridePath("cfg" FILEPATH_SLASH "game.cfg", "MOD_WRITE");
+	AddOveridePath("cfg" FILEPATH_SLASH "trusted_keys_base.txt", "MOD_WRITE");
+	AddOveridePath("cfg" FILEPATH_SLASH "pure_server_minimal.txt", "MOD_WRITE");
+	AddOveridePath("cfg" FILEPATH_SLASH "skill_manifest.cfg", "MOD_WRITE");
+	AddOveridePath("cfg" FILEPATH_SLASH "skill.cfg", "MOD_WRITE");
+	AddOveridePath("cfg" FILEPATH_SLASH "mapcycle.txt", "MOD_WRITE");
 
 	AddOveridePath("stale.txt", "MOD_WRITE");
 	AddOveridePath("garrysmod.ver", "MOD_WRITE");
-	AddOveridePath("scripts/actbusy.txt", "MOD_WRITE");
+	AddOveridePath("scripts" FILEPATH_SLASH "actbusy.txt", "MOD_WRITE");
 	AddOveridePath("modelsounds.cache", "MOD_WRITE");
-	AddOveridePath("lua/send.txt", "MOD_WRITE");
+	AddOveridePath("lua" FILEPATH_SLASH "send.txt", "MOD_WRITE");
 
-	AddOveridePath("resource/serverevents.res", "MOD_WRITE");
-	AddOveridePath("resource/gameevents.res", "MOD_WRITE");
-	AddOveridePath("resource/modevents.res", "MOD_WRITE");
-	AddOveridePath("resource/hltvevents.res", "MOD_WRITE");
+	AddOveridePath("resource" FILEPATH_SLASH "serverevents.res", "MOD_WRITE");
+	AddOveridePath("resource" FILEPATH_SLASH "gameevents.res", "MOD_WRITE");
+	AddOveridePath("resource" FILEPATH_SLASH "modevents.res", "MOD_WRITE");
+	AddOveridePath("resource" FILEPATH_SLASH "hltvevents.res", "MOD_WRITE");
 
 	int pBaseLength = 0;
 	char pBaseDir[MAX_PATH];
@@ -1589,7 +1694,7 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 		pBaseLength = g_pFullFileSystem->GetSearchPath( "BASE_PATH", true, pBaseDir, sizeof( pBaseDir ) );
 
 	std::string workshopDir = pBaseDir;
-	workshopDir.append("garrysmod/workshop");
+	workshopDir.append("garrysmod" FILEPATH_SLASH "workshop");
 
 	if (g_pFullFileSystem != NULL)
 		InitFileSystem(g_pFullFileSystem);
@@ -1601,64 +1706,64 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 	}
 
 	// NOTE: Check the thing below again and redo it. I don't like how it looks :<
-	if (g_pFullFileSystem->IsDirectory("materials/", "workshop"))
+	if (g_pFullFileSystem->IsDirectory("materials" FILEPATH_SLASH, "workshop"))
 		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "CONTENT_MATERIALS", SearchPathAdd_t::PATH_ADD_TO_TAIL);
 
-	if (g_pFullFileSystem->IsDirectory("models/", "workshop"))
+	if (g_pFullFileSystem->IsDirectory("models" FILEPATH_SLASH, "workshop"))
 		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "CONTENT_MODELS", SearchPathAdd_t::PATH_ADD_TO_TAIL);
 	
-	if (g_pFullFileSystem->IsDirectory("sound/", "workshop"))
+	if (g_pFullFileSystem->IsDirectory("sound" FILEPATH_SLASH, "workshop"))
 		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "CONTENT_SOUNDS", SearchPathAdd_t::PATH_ADD_TO_TAIL);
 	
-	if (g_pFullFileSystem->IsDirectory("maps/", "workshop"))
+	if (g_pFullFileSystem->IsDirectory("maps" FILEPATH_SLASH, "workshop"))
 		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "CONTENT_MAPS", SearchPathAdd_t::PATH_ADD_TO_TAIL);
 	
-	if (g_pFullFileSystem->IsDirectory("resource/", "workshop"))
+	if (g_pFullFileSystem->IsDirectory("resource" FILEPATH_SLASH, "workshop"))
 		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "CONTENT_RESOURCE", SearchPathAdd_t::PATH_ADD_TO_TAIL);
 
-	if (g_pFullFileSystem->IsDirectory("scripts/", "workshop"))
+	if (g_pFullFileSystem->IsDirectory("scripts" FILEPATH_SLASH, "workshop"))
 		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "CONTENT_SCRIPTS", SearchPathAdd_t::PATH_ADD_TO_TAIL);
 
-	if (g_pFullFileSystem->IsDirectory("cfg/", "workshop"))
+	if (g_pFullFileSystem->IsDirectory("cfg" FILEPATH_SLASH, "workshop"))
 		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "CONTENT_CONFIGS", SearchPathAdd_t::PATH_ADD_TO_TAIL);
 
-	if (g_pFullFileSystem->IsDirectory("gamemodes/", "workshop"))
+	if (g_pFullFileSystem->IsDirectory("gamemodes" FILEPATH_SLASH, "workshop"))
 		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "LUA_GAMEMODES", SearchPathAdd_t::PATH_ADD_TO_TAIL);
 
-	if (g_pFullFileSystem->IsDirectory("lua/includes/", "workshop"))
+	if (g_pFullFileSystem->IsDirectory("lua" FILEPATH_SLASH "includes" FILEPATH_SLASH, "workshop"))
 		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "LUA_INCLUDES", SearchPathAdd_t::PATH_ADD_TO_TAIL);
 	
-	if (g_pFullFileSystem->IsDirectory("sandbox/", "workshop"))
+	if (g_pFullFileSystem->IsDirectory("sandbox" FILEPATH_SLASH, "workshop"))
 		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "LUA_GAMEMODE_SANDBOX", SearchPathAdd_t::PATH_ADD_TO_TAIL);
 
-	if (g_pFullFileSystem->IsDirectory("effects/", "workshop"))
+	if (g_pFullFileSystem->IsDirectory("effects" FILEPATH_SLASH, "workshop"))
 		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "LUA_EFFECTS", SearchPathAdd_t::PATH_ADD_TO_TAIL);
 	
-	if (g_pFullFileSystem->IsDirectory("entities/", "workshop"))
+	if (g_pFullFileSystem->IsDirectory("entities" FILEPATH_SLASH, "workshop"))
 		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "LUA_ENTITIES", SearchPathAdd_t::PATH_ADD_TO_TAIL);
 
-	if (g_pFullFileSystem->IsDirectory("weapons/", "workshop"))
+	if (g_pFullFileSystem->IsDirectory("weapons" FILEPATH_SLASH, "workshop"))
 		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "LUA_WEAPONS", SearchPathAdd_t::PATH_ADD_TO_TAIL);
 
-	if (g_pFullFileSystem->IsDirectory("lua/derma/", "workshop"))
+	if (g_pFullFileSystem->IsDirectory("lua" FILEPATH_SLASH "derma" FILEPATH_SLASH, "workshop"))
 		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "LUA_DERMA", SearchPathAdd_t::PATH_ADD_TO_TAIL);
 
-	if (g_pFullFileSystem->IsDirectory("lua/drive/", "workshop"))
+	if (g_pFullFileSystem->IsDirectory("lua" FILEPATH_SLASH "drive" FILEPATH_SLASH, "workshop"))
 		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "LUA_DRIVE", SearchPathAdd_t::PATH_ADD_TO_TAIL);
 
-	if (g_pFullFileSystem->IsDirectory("lua/entities/", "workshop"))
+	if (g_pFullFileSystem->IsDirectory("lua" FILEPATH_SLASH "entities" FILEPATH_SLASH, "workshop"))
 		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "LUA_LUA_ENTITIES", SearchPathAdd_t::PATH_ADD_TO_TAIL);
 
-	if (g_pFullFileSystem->IsDirectory("vgui/", "workshop"))
+	if (g_pFullFileSystem->IsDirectory("vgui" FILEPATH_SLASH, "workshop"))
 		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "LUA_VGUI", SearchPathAdd_t::PATH_ADD_TO_TAIL);
 
-	if (g_pFullFileSystem->IsDirectory("postprocess/", "workshop"))
+	if (g_pFullFileSystem->IsDirectory("postprocess" FILEPATH_SLASH, "workshop"))
 		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "LUA_POSTPROCESS", SearchPathAdd_t::PATH_ADD_TO_TAIL);
 
-	if (g_pFullFileSystem->IsDirectory("matproxy/", "workshop"))
+	if (g_pFullFileSystem->IsDirectory("matproxy" FILEPATH_SLASH, "workshop"))
 		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "LUA_MATPROXY", SearchPathAdd_t::PATH_ADD_TO_TAIL);
 
-	if (g_pFullFileSystem->IsDirectory("autorun/", "workshop"))
+	if (g_pFullFileSystem->IsDirectory("autorun" FILEPATH_SLASH, "workshop"))
 		detour_CBaseFileSystem_AddSearchPath.GetTrampoline<Symbols::CBaseFileSystem_AddSearchPath>()(g_pFullFileSystem, workshopDir.c_str(), "LUA_AUTORUN", SearchPathAdd_t::PATH_ADD_TO_TAIL);
 	
 	if (g_pFileSystemModule.InDebug())
