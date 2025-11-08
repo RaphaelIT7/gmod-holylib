@@ -223,7 +223,7 @@ public:
 	virtual ~CGMod_Audio();
 	virtual bool Init( CreateInterfaceFn );
 	virtual void Shutdown();
-	virtual void Update( unsigned int );
+	virtual bool Update( unsigned int );
 	virtual IBassAudioStream* CreateAudioStream( IAudioStreamEvent* );
 	virtual void SetEar( Vector*, Vector*, Vector*, Vector* );
 	virtual IGModAudioChannel* PlayURL( const char* url, const char* flags, int* );

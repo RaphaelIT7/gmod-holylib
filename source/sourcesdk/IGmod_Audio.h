@@ -206,7 +206,7 @@ public:
 	virtual ~IGMod_Audio() {};
 	virtual bool Init( CreateInterfaceFn ) = 0;
 	virtual void Shutdown() = 0;
-	virtual void Update( unsigned int ) = 0;
+	virtual bool Update( unsigned int ) = 0;
 	virtual IBassAudioStream* CreateAudioStream( IAudioStreamEvent* ) = 0;
 	virtual void SetEar( Vector*, Vector*, Vector*, Vector* ) = 0;
 	virtual IGModAudioChannel* PlayURL( const char* url, const char* flags, int* ) = 0;

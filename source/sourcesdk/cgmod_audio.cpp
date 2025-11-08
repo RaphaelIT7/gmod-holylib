@@ -479,13 +479,15 @@ void CGMod_Audio::StopAllPlayback()
 	BASS_Start();
 }
 
-void CGMod_Audio::Update(unsigned int updatePeriod)
+bool CGMod_Audio::Update(unsigned int updatePeriod)
 {
-	BASS_Update(updatePeriod);
+	bool retWasUpdated = BASS_Update(updatePeriod);
 
 	std::unordered_set<CGModAudioChannelEncoder*> pEncoders = m_pEncoders;
 	for (CGModAudioChannelEncoder* pEncoder : pEncoders)
 		pEncoder->HandleFinish(NULL);
+
+	return retWasUpdated;
 }
 
 static Vector g_pLocalEarPosition;
