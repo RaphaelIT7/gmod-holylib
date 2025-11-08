@@ -117,10 +117,8 @@ CBasePlayer* Util::Get_Player(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos,
 	return (CBasePlayer*)pEntity;
 }
 
-#if 0
 GCudata* g_pEntityReferences[MAX_EDICTS] = {nullptr}; // nulled out in Util::InitDetours
 int g_pEntitySerialNum[MAX_EDICTS] = {-1};
-#endif
 
 IModuleWrapper* Util::pEntityList;
 static Symbols::CBaseEntity_GetLuaEntity func_CBaseEntity_GetLuaEntity = nullptr;
@@ -134,7 +132,6 @@ void Util::Push_Entity(GarrysMod::Lua::ILuaInterface* LUA, CBaseEntity* pEnt)
 
 	if (LUA == g_Lua)
 	{
-#if 0
 		const CBaseHandle& pHandle = pEnt->GetRefEHandle(); // The only virtual function that would never dare to change
 		int nEntryIndex = pHandle.GetEntryIndex();
 		if (nEntryIndex >= 0 && MAX_EDICTS > nEntryIndex)
@@ -175,7 +172,6 @@ void Util::Push_Entity(GarrysMod::Lua::ILuaInterface* LUA, CBaseEntity* pEnt)
 				return;
 			}
 		}
-#endif
 
 		// In the case we are missing our symbol for CBaseEntity::GetLuaEntity, this will be slower though will still be fully functional.
 		if (!func_CBaseEntity_GetLuaEntity)
