@@ -3232,9 +3232,7 @@ Creates a IGMODAudioChannel for the given url.<br>
 Manually updates all BASS channels as if `time` milliseconds have passed.
 If no time is specified it defaults to [RealFrameTime()](https://wiki.facepunch.com/gmod/Global.RealFrameTime)
 It returns true on success, false if an update is already in progress.
-> [!NOTE]
-> For more detailed information, refer to the bass documentation.
-> [bass_Update documentation](https://www.un4seen.com/doc/#bass/BASS_Update.html)
+See https://www.un4seen.com/doc/#bass/BASS_Update.html for more teails.<br>
 
 #### string bass.GetVersion()
 Returns the bass version as a string.<br>
