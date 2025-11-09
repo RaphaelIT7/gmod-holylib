@@ -3233,6 +3233,7 @@ Manually updates all BASS channels as if `time` milliseconds have passed.
 If no time is specified it defaults to [RealFrameTime()](https://wiki.facepunch.com/gmod/Global.RealFrameTime)
 It returns true on success, false if an update is already in progress.
 > [!NOTE]
+> For more detailed information, refer to the bass documentation.
 > [bass_Update documentation](https://www.un4seen.com/doc/#bass/BASS_Update.html)
 
 #### string bass.GetVersion()
