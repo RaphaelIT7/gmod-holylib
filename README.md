@@ -3228,9 +3228,13 @@ Creates a IGMODAudioChannel for the given file.<br>
 callback - function(IGMODAudioChannel channel, number errorCode, string error)<br>
 Creates a IGMODAudioChannel for the given url.<br>
 
-#### bool bass.Update(number time)
+#### bool bass.Update(number time = RealFrameTime())
 Manually updates all BASS channels as if `time` milliseconds have passed.
+If no time is specified it defaults to (RealFrameTime())[https://wiki.facepunch.com/gmod/Global.RealFrameTime]
 It returns true on success, false if an update is already in progress.
+> [!NOTE]
+> The bass documentation recommends including a safety margin of 200 if the bass.Update functions is called every 100ms
+> (bass_Update documentation)[https://www.un4seen.com/doc/#bass/BASS_Update.html]
 
 #### string bass.GetVersion()
 Returns the bass version as a string.<br>
