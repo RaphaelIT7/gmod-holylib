@@ -393,7 +393,7 @@ enum udataFlags // we use bit flags so only a total of 8 are allowed.v
 	UDATA_NO_GC = 1 << 1, // Causes additional flags to be set onto "marked" GCHeader var
 	UDATA_NO_USERTABLE = 1 << 2,
 	UDATA_INLINED_DATA = 1 << 3,
-	UDATA_REFERENCED = 1 << 4,
+	UDATA_REFERENCED = 1 << 4, // This userdata is a ReferencedLuaUserData and NOT LuaUserData
 };
 
 /*
