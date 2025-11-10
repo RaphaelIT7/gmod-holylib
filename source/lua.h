@@ -153,6 +153,7 @@ namespace Lua
 		// WavAudioFile,
 		IGModAudioChannelEncoder,
 
+		_HOLYLIB_CORE_TEST_REFERENCED = UCHAR_MAX-2,
 		_HOLYLIB_CORE_TEST = UCHAR_MAX-1,
 		TOTAL_TYPES = UCHAR_MAX,
 	};
