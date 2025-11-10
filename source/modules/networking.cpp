@@ -929,6 +929,7 @@ static inline CBaseViewModel* GetViewModel(const void* pPlayer, int nViewModelSl
 static ConVar networking_bind_gmodhands_to_player("holylib_networking_bind_gmodhands_to_player", "1", 0, "Experimental - If enabled, the GMOD Hands / Player:SetHands entity will be bound to the player and only networked if the player is networked");
 static ConVar networking_bind_viewmodels_to_player("holylib_networking_bind_viewmodels_to_player", "1", 0, "Experimental - If enabled, the viewmodels will be bound to the player and only networked if the player is networked");
 static ConVar networking_cachedump("holylib_networking_cachedump", "0", 0, "Experimental - Debug. You wouldn't need this...");
+static ConVar networking_areasplit("holylib_networking_areasplit", "0", 0, "Experimental - PVS entities are split into areas");
 struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, though its a good foundation now.
 {
 	// Updates the cache for the current tick
@@ -943,6 +944,7 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 		nPVSEdictCount = -1;
 		nFullEdictCount = -1; // -1 so that we can use preincrement :hehe:
 		Plat_FastMemset(nPVSEntityList, 0, sizeof(nPVSEntityList) * 2); // * 2 to also clear nFullEdictList which lies directly after it in memory. I know. very "safe" but I want this in 1 call
+		Plat_FastMemset(nAreaEntities, 0, sizeof(nAreaEntities));
 
 		// First we build data based off all players
 		bool bBindGmodHandsToPlayer = networking_bind_gmodhands_to_player.GetBool();
@@ -975,16 +977,8 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 			{
 				CBaseEntity *pWeapon = GetMyWeapon(pPlayer, i);
 				if (pWeapon)
-				{
 					pNeverTransmitBits.Set(pWeapon->edict()->m_EdictIndex);
-
-					if (networking_cachedump.GetBool())
-						Msg("Blacklisting weapon %i of player %i\n", pWeapon->edict()->m_EdictIndex, iPlayerIndex);
-				}
 			}
-
-			if (networking_cachedump.GetBool())
-				Msg("Setup hands/viewmodels/weapons of player %i\n", iPlayerIndex);
 		}
 
 		for (int i=0; i < nEdicts; ++i)
@@ -994,9 +988,6 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 
 			if (pNeverTransmitBits.IsBitSet(iEdict))
 				continue;
-
-			if (networking_cachedump.GetBool())
-				Msg("Checking entity %i - %i\n", iEdict, pEdict->m_EdictIndex);
 
 			int nFlags = pEdict->m_fStateFlags & (FL_EDICT_DONTSEND|FL_EDICT_ALWAYS|FL_EDICT_PVSCHECK|FL_EDICT_FULLCHECK);
 			if (nFlags & FL_EDICT_DONTSEND)
@@ -1028,6 +1019,9 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 			CBaseEntity* pEnt = g_pEntityCache[iEdict];
 			if (pEnt)
 			{
+				if (pEnt->edict() != pEdict)
+					Warning(PROJECT_NAME " - networking: Entity chache is unreliable! We are cooked!\n");
+
 				if (nFlags == FL_EDICT_FULLCHECK)
 				{
 					nFullEntityList[++nFullEdictCount] = pEnt;
@@ -1037,7 +1031,12 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 
 				if (nFlags == FL_EDICT_PVSCHECK)
 				{
-					nPVSEntityList[++nPVSEdictCount] = pEnt;
+					if (networking_areasplit.GetBool())
+					{
+						AddPVSEntity(pEnt);
+					} else {
+						nPVSEntityList[++nPVSEdictCount] = pEnt;
+					}
 					pPVSTransmitBits.Set(iEdict);
 					continue;
 				}
@@ -1057,6 +1056,20 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 			for (int i=0; i<nPVSEdictCount; ++i)
 				Msg("    %i: %s[%i]\n", i, nPVSEntityList[i]->GetClassname(), nPVSEntityList[i]->edict()->m_EdictIndex);
 
+			if (networking_areasplit.GetBool())
+			{
+				for (int nArea = 0; nArea<MAX_MAP_AREAS; ++nArea)
+				{
+					AreaCache& pArea = nAreaEntities[nArea];
+					if (pArea.nCount == 0)
+						continue;
+
+					Msg("Area %i [%i]:\n", nArea, pArea.nCount);
+					for (int i=0; i<pArea.nCount; ++i)
+						Msg("    %i: %s[%i]\n", i, pArea.nEntities[i]->GetClassname(), pArea.nEntities[i]->edict()->m_EdictIndex);
+				}
+			}
+
 			networking_cachedump.SetValue(0);
 		}
 	}
@@ -1073,6 +1086,25 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 		bDirtyEntities.Clear(nIndex);
 	}
 
+	void AddPVSEntity(CBaseEntity* pEntity)
+	{
+		int nArea = Util::engineserver->GetArea(pEntity->GetAbsOrigin());
+		if (nArea >= MAX_MAP_AREAS || nArea < 0)
+		{
+			nPVSEntityList[++nPVSEdictCount] = pEntity;
+			return;
+		}
+
+		AreaCache& pArea = nAreaEntities[nArea];
+		if (pArea.nCount >= 512)
+		{
+			nPVSEntityList[++nPVSEdictCount] = pEntity;
+			return;
+		}
+
+		pArea.nEntities[pArea.nCount++] = pEntity;
+	}
+
 	CBitVec<MAX_EDICTS> pAlwaysTransmitBits;
 	CBitVec<MAX_EDICTS> pNeverTransmitBits;
 	CBitVec<MAX_EDICTS> pPVSTransmitBits;
@@ -1081,10 +1113,18 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 	int nEntityCluster[MAX_EDICTS] = {0};
 	CBitVec<MAX_EDICTS> bDirtyEntities = {false}; // Their Cluster changed compared to last tick.
 
-	int nPVSEdictCount = -1;
+	int nPVSEdictCount = -1; // NOTE: This will only contain entities that were unable to be fitted into an AreaCache! (only happens on overflow)
 	int nFullEdictCount = -1;
 	CBaseEntity* nPVSEntityList[MAX_EDICTS] = {NULL};
 	CBaseEntity* nFullEntityList[MAX_EDICTS] = {NULL};
+
+	struct AreaCache
+	{
+		CBaseEntity* nEntities[512];
+		int nCount = 0;
+	};
+
+	AreaCache nAreaEntities[MAX_MAP_AREAS];
 };
 static EntityTransmitCache g_nEntityTransmitCache;
 
@@ -1544,6 +1584,33 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 
 		// Now only PVS remains
 		DoTransmitPVSCheck(pEnt->edict(), pEnt, bIsHLTV, pInfo, bForceTransmit, skyBoxArea);
+	}
+
+	if (networking_areasplit.GetBool())
+	{
+		int nClientArea = Util::engineserver->GetArea(clientPosition);
+		for (int nArea = 0; nArea<MAX_MAP_AREAS; ++nArea)
+		{
+			EntityTransmitCache::AreaCache& pArea = g_nEntityTransmitCache.nAreaEntities[nArea];
+			if (pArea.nCount == 0)
+				continue;
+
+			if (!Util::engineserver->CheckAreasConnected(nClientArea, nArea))
+				continue;
+
+			for (int i=0; i<pArea.nCount; ++i)
+			{
+				CBaseEntity* pEnt = pArea.nEntities[i];
+
+				edict_t* pEdict = pEnt->edict();
+				int iEdict = pEdict->m_EdictIndex;
+				if (pInfo->m_pTransmitEdict->Get(iEdict) || g_pDontTransmitCache.Get(iEdict))
+					continue;
+
+				// Now only PVS remains
+				DoTransmitPVSCheck(pEdict, pEnt, bIsHLTV, pInfo, bForceTransmit, skyBoxArea);
+			}
+		}
 	}
 
 	for (int i=0; i<g_nEntityTransmitCache.nPVSEdictCount; ++i)

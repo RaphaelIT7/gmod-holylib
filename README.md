@@ -1250,7 +1250,16 @@ If enabled, it will cache the file handle and return it if needed.<br>
 > This is a noticeable improvement, but it seems to break .bsp files :/<br>
 
 ### (EXPERIMENTAL) holylib_filesystem_savesearchcache (default `1`)
-If enabled, the search cache will be written into a file and loaded on startup to improve startup times
+If enabled, the search cache will be written into a file and loaded on startup to improve startup times<br>
+
+### (EXPERIMENTAL) holylib_filesystem_mergesearchcache (default `1`)
+If enabled, when saving the search cache it will not remove old entries and instead keep them even if they were unused this session<br>
+
+### (EXPERIMENTAL) holylib_filesystem_skipinvalidluapaths (default `1`)
+If enabled, invalid lua paths like include/include/ will be skipped instantly<br>
+
+### (EXPERIMENTAL) holylib_filesystem_tryalternativeluapath (default `1`)
+If enabled, if it can't find a file in the search cache, it will remove the first folder and try again as when loading Lua gmod loves to test different folders first<br>
 
 #### holylib_debug_filesystem (default `0`)
 If enabled, it will print all filesyste suff.<br>
@@ -1366,7 +1375,7 @@ Supports: Linux32 | Linux64<br>
 If enabled, it completely disables the concommand/convar blacklist.<br>
 
 ## vprof
-This module adds VProf to gamemode calls, adds two convars and an entire library.
+This module adds VProf to gamemode calls, adds two convars and an entire library.<br>
 
 Supports: Linux32 | Linux64 | Windows32<br>
 
@@ -1841,7 +1850,7 @@ Useful if you want to read the userdata of the instancebaseline stringtable.<br>
 > This is because you could cause a crash if you were to create too many stack allocated buffers!<br>
 
 > [!NOTE]
-> The size is clamped internally between a minimum of `4` bytes and a maximum of `65536` bytes.
+> The size is clamped internally between a minimum of `4` bytes and a maximum of `65536` bytes on Linux and to `8192` on Windows.
 
 #### bf_write bitbuf.CreateStackWriteBuffer(number size or string data, function callback)
 callback = `function(bf) end`<br>
@@ -1852,7 +1861,7 @@ Create a write buffer with the given size or with the given data allocated on th
 > This is because you could cause a crash if you were to create too many stack allocated buffers!<br>
 
 > [!NOTE]
-> The size is clamped internally between a minimum of `4` bytes and a maximum of `65536` bytes.
+> The size is clamped internally between a minimum of `4` bytes and a maximum of `65536` bytes on Linux and to `8192` on Windows.
 
 ### bf_read
 This class will later be used to read net messages from HLTV clients.<br>
@@ -1882,7 +1891,7 @@ You can store variables into it.<br>
 Returns the number of bits left.<br>
 
 #### number bf_read:GetNumBitsRead()
-Returns the number of bits read.
+Returns the number of bits read.<br>
 
 #### number bf_read:GetNumBits()
 Returns the size of the data in bits.<br>
@@ -1897,7 +1906,7 @@ Returns the number of bytes read.<br>
 Returns the size of the data in bytes.<br>
 
 #### number bf_read:GetCurrentBit()
-Returns the current position/bit.
+Returns the current position/bit.<br>
 
 > [!NOTE]
 > This is only available for the 32x!	
@@ -1951,7 +1960,7 @@ Reads the given number of bits.<br>
 Reads a Vector.<br>
 
 #### vector bf_read:ReadBitVec3Normal()
-Reads a normalizted Vector.
+Reads a normalizted Vector.<br>
 
 #### number bf_read:ReadByte()
 Reads a byte.<br>
@@ -2006,8 +2015,8 @@ Sets the current position to the given position.<br>
 Returns `true` on success.<br>
 
 #### bool bf_read:SeekRelative(number pos)
-Sets the current position to the given position relative to the current position.
-Basicly `newPosition = currentPosition + iPos`	
+Sets the current position to the given position relative to the current position.<br>
+Basicly `newPosition = currentPosition + iPos`<br>
 Returns `true` on success.<br>
 
 ### bf_write<br>
@@ -2205,8 +2214,12 @@ This helps to reduce networking cost as networking all weapons of every player i
 Setting it to `1` causes it to network the additional weapon to **all** players<br>
 Setting it to `2` causes it to network the additional weapon **only** to the owner<br>
 
-#### networking_bind_gmodhands_to_player(default `1`)
+#### holylib_networking_bind_gmodhands_to_player(default `1`)
 If enabled, the GMOD Hands entity / the entity set with `Player:SetHands` will be bound to the player and only networked with the player himself.<br>
+Will become useless with https://github.com/Facepunch/garrysmod-requests/issues/2839<br>
+
+#### holylib_networking_bind_viewmodels_to_player(default `1`)
+If enabled, the viewmodels will be bound to the player and only networked if the player is networked.<br>
 Will become useless with https://github.com/Facepunch/garrysmod-requests/issues/2839<br>
 
 ## steamworks
