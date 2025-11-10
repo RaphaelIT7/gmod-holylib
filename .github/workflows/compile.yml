@@ -283,6 +283,7 @@ jobs:
       download-artifact: "gluatest_32x"
       no-checkout: "true"
       branch: ${{ matrix.branch }}
+      timeout: "3"
     secrets:
       secret-additional-setup: "mkdir -p garrysmod/ && mkdir -p garrysmod/_workflow/ && echo https://loki-public.raphaelit7.com > garrysmod/_workflow/loki_public_host.txt && echo ${{ github.repository }} > garrysmod/_workflow/github_repo.txt && echo ${{ secrets.LOKI_HOST }} > garrysmod/_workflow/loki_host.txt && echo ${{ secrets.LOKI_APIKEY }} > garrysmod/_workflow/loki_api.txt && tar -czf gluatest/docker/_gluatest_artifacts/gm_secrets.tar.gz -C . garrysmod && rm -rf garrysmod"
 
@@ -300,6 +301,7 @@ jobs:
       download-artifact: "gluatest_no_ghostinj_32x"
       no-checkout: "true"
       branch: ${{ matrix.branch }}
+      timeout: "3"
     secrets:
       secret-additional-setup: "mkdir -p garrysmod/ && mkdir -p garrysmod/_workflow/ && echo https://loki-public.raphaelit7.com > garrysmod/_workflow/loki_public_host.txt && echo ${{ github.repository }} > garrysmod/_workflow/github_repo.txt && echo ${{ secrets.LOKI_HOST }} > garrysmod/_workflow/loki_host.txt && echo ${{ secrets.LOKI_APIKEY }} > garrysmod/_workflow/loki_api.txt && tar -czf gluatest/docker/_gluatest_artifacts/gm_secrets.tar.gz -C . garrysmod && rm -rf garrysmod"
 
@@ -312,6 +314,7 @@ jobs:
       extra-startup-args: "-usegh"
       download-artifact: "gluatest_64x"
       no-checkout: "true"
+      timeout: "3"
     secrets:
       secret-additional-setup: "mkdir -p garrysmod/ && mkdir -p garrysmod/_workflow/ && echo https://loki-public.raphaelit7.com > garrysmod/_workflow/loki_public_host.txt && echo ${{ github.repository }} > garrysmod/_workflow/github_repo.txt && echo ${{ secrets.LOKI_HOST }} > garrysmod/_workflow/loki_host.txt && echo ${{ secrets.LOKI_APIKEY }} > garrysmod/_workflow/loki_api.txt && tar -czf gluatest/docker/_gluatest_artifacts/gm_secrets.tar.gz -C . garrysmod && rm -rf garrysmod"
 
@@ -323,6 +326,7 @@ jobs:
       branch: x86-64
       download-artifact: "gluatest_no_ghostinj_64x"
       no-checkout: "true"
+      timeout: "3"
     secrets:
       secret-additional-setup: "mkdir -p garrysmod/ && mkdir -p garrysmod/_workflow/ && echo https://loki-public.raphaelit7.com > garrysmod/_workflow/loki_public_host.txt && echo ${{ github.repository }} > garrysmod/_workflow/github_repo.txt && echo ${{ secrets.LOKI_HOST }} > garrysmod/_workflow/loki_host.txt && echo ${{ secrets.LOKI_APIKEY }} > garrysmod/_workflow/loki_api.txt && tar -czf gluatest/docker/_gluatest_artifacts/gm_secrets.tar.gz -C . garrysmod && rm -rf garrysmod"
 
@@ -341,6 +345,7 @@ jobs:
       download-artifact: "gluatest_32x"
       no-checkout: "true"
       branch: ${{ matrix.branch }}
+      timeout: "3"
     secrets:
       secret-additional-setup: "mkdir -p garrysmod/ && mkdir -p garrysmod/_workflow/ && echo https://loki-public.raphaelit7.com > garrysmod/_workflow/loki_public_host.txt && echo ${{ github.repository }} > garrysmod/_workflow/github_repo.txt && echo ${{ secrets.LOKI_HOST }} > garrysmod/_workflow/loki_host.txt && echo ${{ secrets.LOKI_APIKEY }} > garrysmod/_workflow/loki_api.txt && tar -czf gluatest/docker/_gluatest_artifacts/gm_secrets.tar.gz -C . garrysmod && rm -rf garrysmod"
 
@@ -359,6 +364,7 @@ jobs:
       download-artifact: "gluatest_no_ghostinj_32x"
       no-checkout: "true"
       branch: ${{ matrix.branch }}
+      timeout: "3"
     secrets:
       secret-additional-setup: "mkdir -p garrysmod/ && mkdir -p garrysmod/_workflow/ && echo https://loki-public.raphaelit7.com > garrysmod/_workflow/loki_public_host.txt && echo ${{ github.repository }} > garrysmod/_workflow/github_repo.txt && echo ${{ secrets.LOKI_HOST }} > garrysmod/_workflow/loki_host.txt && echo ${{ secrets.LOKI_APIKEY }} > garrysmod/_workflow/loki_api.txt && tar -czf gluatest/docker/_gluatest_artifacts/gm_secrets.tar.gz -C . garrysmod && rm -rf garrysmod"
 
@@ -371,6 +377,7 @@ jobs:
       extra-startup-args: "-usegh -holylib_lua +holylib_module_debug 0"
       download-artifact: "gluatest_64x"
       no-checkout: "true"
+      timeout: "3"
     secrets:
       secret-additional-setup: "mkdir -p garrysmod/ && mkdir -p garrysmod/_workflow/ && echo https://loki-public.raphaelit7.com > garrysmod/_workflow/loki_public_host.txt && echo ${{ github.repository }} > garrysmod/_workflow/github_repo.txt && echo ${{ secrets.LOKI_HOST }} > garrysmod/_workflow/loki_host.txt && echo ${{ secrets.LOKI_APIKEY }} > garrysmod/_workflow/loki_api.txt && tar -czf gluatest/docker/_gluatest_artifacts/gm_secrets.tar.gz -C . garrysmod && rm -rf garrysmod"
 
@@ -383,6 +390,7 @@ jobs:
       extra-startup-args: "-holylib_lua +holylib_module_debug 0"
       download-artifact: "gluatest_no_ghostinj_64x"
       no-checkout: "true"
+      timeout: "3"
     secrets:
       secret-additional-setup: "mkdir -p garrysmod/ && mkdir -p garrysmod/_workflow/ && echo https://loki-public.raphaelit7.com > garrysmod/_workflow/loki_public_host.txt && echo ${{ github.repository }} > garrysmod/_workflow/github_repo.txt && echo ${{ secrets.LOKI_HOST }} > garrysmod/_workflow/loki_host.txt && echo ${{ secrets.LOKI_APIKEY }} > garrysmod/_workflow/loki_api.txt && tar -czf gluatest/docker/_gluatest_artifacts/gm_secrets.tar.gz -C . garrysmod && rm -rf garrysmod"
 
@@ -401,6 +409,7 @@ jobs:
       download-artifact: "gluatest_32x"
       no-checkout: "true"
       branch: ${{ matrix.branch }}
+      timeout: "3"
     secrets:
       secret-additional-setup: "mkdir -p garrysmod/ && mkdir -p garrysmod/_workflow/ && echo https://loki-public.raphaelit7.com > garrysmod/_workflow/loki_public_host.txt && echo ${{ github.repository }} > garrysmod/_workflow/github_repo.txt && echo ${{ secrets.LOKI_HOST }} > garrysmod/_workflow/loki_host.txt && echo ${{ secrets.LOKI_APIKEY }} > garrysmod/_workflow/loki_api.txt && tar -czf gluatest/docker/_gluatest_artifacts/gm_secrets.tar.gz -C . garrysmod && rm -rf garrysmod"
 
@@ -413,6 +422,7 @@ jobs:
       extra-startup-args: "-usegh -holylib_enable_luajit 1 +holylib_module_debug 0"
       download-artifact: "gluatest_64x"
       no-checkout: "true"
+      timeout: "3"
     secrets:
       secret-additional-setup: "mkdir -p garrysmod/ && mkdir -p garrysmod/_workflow/ && echo https://loki-public.raphaelit7.com > garrysmod/_workflow/loki_public_host.txt && echo ${{ github.repository }} > garrysmod/_workflow/github_repo.txt && echo ${{ secrets.LOKI_HOST }} > garrysmod/_workflow/loki_host.txt && echo ${{ secrets.LOKI_APIKEY }} > garrysmod/_workflow/loki_api.txt && tar -czf gluatest/docker/_gluatest_artifacts/gm_secrets.tar.gz -C . garrysmod && rm -rf garrysmod"
 
@@ -771,6 +781,7 @@ jobs:
       extra-startup-args: "${{ matrix.artifact.args }} -maxplayers 64"
       download-artifact: ${{ matrix.artifact.name }}
       no-checkout: "true"
+      timeout: "3"
 
   test_exampledll_64bit:
     name: "Test ExampleDLL x86-64 branch"
@@ -788,3 +799,4 @@ jobs:
       extra-startup-args: "${{ matrix.artifact.args }} -maxplayers 64"
       download-artifact: ${{ matrix.artifact.name }}
       no-checkout: "true"
+      timeout: "3"

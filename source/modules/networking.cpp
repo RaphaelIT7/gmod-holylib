@@ -925,8 +925,10 @@ static inline CBaseViewModel* GetViewModel(const void* pPlayer, int nViewModelSl
 	Current state:
 	I still have not really any good plan/idea for this and just write random stuff and see how it'll go
 */
-static ConVar networking_bind_gmodhands_to_player("networking_bind_gmodhands_to_player", "1", 0, "Experimental - If enabled, the GMOD Hands / Player:SetHands entity will be bound to the player and only networked if the player is networked");
-static ConVar networking_bind_viewmodels_to_player("networking_bind_viewmodels_to_player", "1", 0, "Experimental - If enabled, the viewmodels will be bound to the player and only networked if the player is networked");
+#define NETWORKING_USE_ENTITYCACHE 1
+static ConVar networking_bind_gmodhands_to_player("holylib_networking_bind_gmodhands_to_player", "1", 0, "Experimental - If enabled, the GMOD Hands / Player:SetHands entity will be bound to the player and only networked if the player is networked");
+static ConVar networking_bind_viewmodels_to_player("holylib_networking_bind_viewmodels_to_player", "1", 0, "Experimental - If enabled, the viewmodels will be bound to the player and only networked if the player is networked");
+static ConVar networking_cachedump("holylib_networking_cachedump", "0", 0, "Experimental - Debug. You wouldn't need this...");
 struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, though its a good foundation now.
 {
 	// Updates the cache for the current tick
@@ -973,8 +975,16 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 			{
 				CBaseEntity *pWeapon = GetMyWeapon(pPlayer, i);
 				if (pWeapon)
+				{
 					pNeverTransmitBits.Set(pWeapon->edict()->m_EdictIndex);
+
+					if (networking_cachedump.GetBool())
+						Msg("Blacklisting weapon %i of player %i\n", pWeapon->edict()->m_EdictIndex, iPlayerIndex);
+				}
 			}
+
+			if (networking_cachedump.GetBool())
+				Msg("Setup hands/viewmodels/weapons of player %i\n", iPlayerIndex);
 		}
 
 		for (int i=0; i < nEdicts; ++i)
@@ -984,6 +994,9 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 
 			if (pNeverTransmitBits.IsBitSet(iEdict))
 				continue;
+
+			if (networking_cachedump.GetBool())
+				Msg("Checking entity %i - %i\n", iEdict, pEdict->m_EdictIndex);
 
 			int nFlags = pEdict->m_fStateFlags & (FL_EDICT_DONTSEND|FL_EDICT_ALWAYS|FL_EDICT_PVSCHECK|FL_EDICT_FULLCHECK);
 			if (nFlags & FL_EDICT_DONTSEND)
@@ -1012,22 +1025,39 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 				continue;
 			}
 
-			if (nFlags == FL_EDICT_FULLCHECK)
+			CBaseEntity* pEnt = g_pEntityCache[iEdict];
+			if (pEnt)
 			{
-				nFullEntityList[++nFullEdictCount] = g_pEntityCache[iEdict];
-				pFullTransmitBits.Set(iEdict);
-				continue;
-			}
+				if (nFlags == FL_EDICT_FULLCHECK)
+				{
+					nFullEntityList[++nFullEdictCount] = pEnt;
+					pFullTransmitBits.Set(iEdict);
+					continue;
+				}
 
-			if (nFlags == FL_EDICT_PVSCHECK)
-			{
-				nPVSEntityList[++nPVSEdictCount] = g_pEntityCache[iEdict];
-				pPVSTransmitBits.Set(iEdict);
-				continue;
+				if (nFlags == FL_EDICT_PVSCHECK)
+				{
+					nPVSEntityList[++nPVSEdictCount] = pEnt;
+					pPVSTransmitBits.Set(iEdict);
+					continue;
+				}
 			}
 
 			// It remained? So never send it!
 			pNeverTransmitBits.Set(iEdict);
+		}
+
+		if (networking_cachedump.GetBool())
+		{
+			Msg("Fullcheck:\n");
+			for (int i=0; i<nFullEdictCount; ++i)
+				Msg("    %i: %s[%i]\n", i, nFullEntityList[i]->GetClassname(), nFullEntityList[i]->edict()->m_EdictIndex);
+
+			Msg("PVS:\n");
+			for (int i=0; i<nPVSEdictCount; ++i)
+				Msg("    %i: %s[%i]\n", i, nPVSEntityList[i]->GetClassname(), nPVSEntityList[i]->edict()->m_EdictIndex);
+
+			networking_cachedump.SetValue(0);
 		}
 	}
 
@@ -1122,8 +1152,10 @@ static GlobalTransmitTickCache g_pGlobalTransmitTickCache;
 static PlayerTransmitTickCache g_pPlayerTransmitTickCache[MAX_PLAYERS] = {0};
 
 static CBitVec<MAX_EDICTS> g_pDontTransmitCache; // Reset on every CServerGameEnts::CheckTransmit call
+#if !NETWORKING_USE_ENTITYCACHE // Not needed since our cache already excludes all the things by default
 static CBitVec<MAX_EDICTS> g_pDontTransmitWeaponCache; // Per frame cache
 static bool g_bFilledDontTransmitWeaponCache[MAX_PLAYERS] = {0}; // Exists just to avoid lots of iterations over all the weapons of players
+#endif
 static Detouring::Hook detour_CBaseCombatCharacter_SetTransmit;
 static Symbols::CBaseCombatCharacter_SetTransmit func_CBaseAnimating_SetTransmit;
 static ConVar networking_transmit_all_weapons("holylib_networking_transmit_all_weapons", "1", 0, "Experimental - By default all weapons are networked based on their PVS, though normally if they have an owner you might only want the active weapon to be networked");
@@ -1151,11 +1183,14 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 		if (pGMODHands) {
 			if (bLocalPlayer) {
 				pGMODHands->SetTransmit(pInfo, bAlways);
-			} else { // Hands are only networked to the owner, so we can save some checks by skipping them when going over them later
+			}
+#if !NETWORKING_USE_ENTITYCACHE
+			else { // Hands are only networked to the owner, so we can save some checks by skipping them when going over them later
 				int entIndex = pGMODHands->edict()->m_EdictIndex;
 				g_pDontTransmitCache.Set(entIndex);
 				g_pDontTransmitWeaponCache.Set(entIndex);
 			}
+#endif
 		}
 	}
 
@@ -1167,11 +1202,14 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 			if (pViewModel) {
 				if (bLocalPlayer) {
 					pViewModel->SetTransmit(pInfo, bAlways);
-				} else {
+				}
+#if !NETWORKING_USE_ENTITYCACHE
+				else {
 					int entIndex = pViewModel->edict()->m_EdictIndex;
 					g_pDontTransmitCache.Set(entIndex);
 					g_pDontTransmitWeaponCache.Set(entIndex);
 				}
+#endif
 			}
 		}
 	}
@@ -1192,6 +1230,7 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 		if (pActiveWeapon)
 			pActiveWeapon->SetTransmit(pInfo, bAlways);
 
+#if !NETWORKING_USE_ENTITYCACHE // Our cache already removes them from transmit by default and expects us here to decide whos are networked.
 		int nEdictIndex = pEdict->m_EdictIndex-1;
 		if (!g_bFilledDontTransmitWeaponCache[nEdictIndex])
 		{
@@ -1207,6 +1246,7 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 			}
 			g_bFilledDontTransmitWeaponCache[nEdictIndex] = true;
 		}
+#endif
 
 		if (networking_transmit_one_per_tick.GetInt() == 1 || (networking_transmit_one_per_tick.GetInt() == 2 && bLocalPlayer))
 		{
@@ -1214,10 +1254,11 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 			CBaseEntity *pWeapon = GetMyWeapon(pCharacter, nSlot);
 			if ( pWeapon )
 			{
+#if !NETWORKING_USE_ENTITYCACHE
 				int entIndex = pWeapon->edict()->m_EdictIndex;
 				g_pDontTransmitCache.Clear(entIndex);
-				g_pDontTransmitCache.Clear(entIndex);
 				// We don't clear g_bFilledDontTransmitWeaponCache to avoid it setting the bits above again
+#endif
 
 				pWeapon->SetTransmit(pInfo, bAlways);
 			}
@@ -1263,7 +1304,7 @@ static void TransmitFastPathPlayer(CBasePlayer* pRecipientPlayer, int clientInde
 				CBasePlayer* pObserverPlayer = (CBasePlayer*)pObserverEntity;
 				for (int iViewModel=0; iViewModel<MAX_VIEWMODELS; ++iViewModel)
 				{
-					CBaseViewModel* pViewModel = GetViewModel(pRecipientPlayer, iViewModel); // Secret dependency on g_pEntityList
+					CBaseViewModel* pViewModel = GetViewModel(pRecipientPlayer, iViewModel);
 					if (pViewModel)
 						pViewModel->SetTransmit(pInfo, true);
 				}
@@ -1386,7 +1427,6 @@ static inline void DoTransmitPVSCheck(edict_t* pEdict, CBaseEntity* pEnt, const 
 	}
 }
 
-#define NETWORKING_USE_ENTITYCACHE 0
 static ConVar networking_fastpath("holylib_networking_fastpath", "0", 0, "Experimental - If two players are in the same area, then it will reuse the transmit state of the first calculated player saving a lot of time");
 static ConVar networking_fasttransmit("holylib_networking_fasttransmit", "1", 0, "Experimental - Replaces CServerGameEnts::CheckTransmit with our own implementation");
 static ConVar networking_fastpath_usecluster("holylib_networking_fastpath_usecluster", "1", 0, "Experimental - When using the fastpatth, it will compate against clients in the same cluster instead of area");
@@ -1395,7 +1435,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	if (!networking_fasttransmit.GetBool() || !gpGlobals || !engine || !mdlcache || !func_CBaseAnimating_SetTransmit)
 		return false;
 
-	// get recipient player's skybox:
+	// get recipient player's skybox: 3670181
 	CBaseEntity *pRecipientEntity = Util::servergameents->EdictToBaseEntity(pInfo->m_pClientEnt);
 	if (!pRecipientEntity)
 		return true;
@@ -1433,7 +1473,9 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 //#endif
 		g_pGlobalTransmitTickCache.NewTick(gpGlobals->tickcount);
 
+#if !NETWORKING_USE_ENTITYCACHE
 		g_pDontTransmitWeaponCache.ClearAll();
+#endif
 	} else {
 		g_pGlobalTransmitTickCache.g_pAlwaysTransmitCacheBitVec.CopyTo(pInfo->m_pTransmitEdict);
 		if (bIsHLTV)
@@ -1454,8 +1496,10 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	}
 
 	g_pShouldPrevent[clientIndex].CopyTo(&g_pDontTransmitCache); // We combine Gmod's prevent transmit with also our things to remove unessesary checks.
+#if !NETWORKING_USE_ENTITYCACHE
 	if (!bFirstTransmit)
 		g_pDontTransmitWeaponCache.Or(g_pDontTransmitCache, &g_pDontTransmitCache); // Now combine our cached weapon cache.
+#endif
 
 	g_nEntityTransmitCache.pNeverTransmitBits.Or(g_pDontTransmitCache, &g_pDontTransmitCache);
 
@@ -1464,11 +1508,25 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	const bool bForceTransmit = sv_force_transmit_ents->GetBool();
 	bool bWasTransmitToPlayer = false;
 #if NETWORKING_USE_ENTITYCACHE
+	pInfo->m_pTransmitEdict->Or(g_nEntityTransmitCache.pAlwaysTransmitBits, pInfo->m_pTransmitEdict);
+	if (bIsHLTV)
+		pInfo->m_pTransmitAlways->Or(g_nEntityTransmitCache.pAlwaysTransmitBits, pInfo->m_pTransmitAlways);
+
 	for (int i=0; i<g_nEntityTransmitCache.nFullEdictCount; ++i)
 	{
 		CBaseEntity* pEnt = g_nEntityTransmitCache.nFullEntityList[i];
 
 		int iEdict = pEnt->edict()->m_EdictIndex;
+		if (iEdict == clientEntIndex) {
+			pInfo->m_pTransmitEdict->CopyTo(&pClientCache);
+			bWasTransmitToPlayer = true;
+		} else if (bWasTransmitToPlayer) {
+			// We Xor it so that the pClientCache contains all bits / entities
+			// that were sent specifically to our client in it's transmit check.
+			pInfo->m_pTransmitEdict->Xor(pClientCache, &pClientCache);
+			bWasTransmitToPlayer = false;
+		}
+
 		if (pInfo->m_pTransmitEdict->Get(iEdict) || g_pDontTransmitCache.Get(iEdict))
 			continue;
 
@@ -1492,22 +1550,20 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	{
 		CBaseEntity* pEnt = g_nEntityTransmitCache.nPVSEntityList[i];
 
-		int iEdict = pEnt->edict()->m_EdictIndex;
-		if (iEdict == clientEntIndex) {
-			pInfo->m_pTransmitEdict->CopyTo(&pClientCache);
-			bWasTransmitToPlayer = true;
-		} else if (bWasTransmitToPlayer) {
-			// We Xor it so that the pClientCache contains all bits / entities
-			// that were sent specifically to our client in it's transmit check.
-			pInfo->m_pTransmitEdict->Xor(pClientCache, &pClientCache);
-			bWasTransmitToPlayer = false;
-		}
-
+		edict_t* pEdict = pEnt->edict();
+		int iEdict = pEdict->m_EdictIndex;
 		if (pInfo->m_pTransmitEdict->Get(iEdict) || g_pDontTransmitCache.Get(iEdict))
 			continue;
 
 		// Now only PVS remains
-		DoTransmitPVSCheck(pEnt->edict(), pEnt, bIsHLTV, pInfo, bForceTransmit, skyBoxArea);
+		DoTransmitPVSCheck(pEdict, pEnt, bIsHLTV, pInfo, bForceTransmit, skyBoxArea);
+	}
+
+	if (bWasTransmitToPlayer)
+	{
+		// Same here just in case the player was the only pvs thing (which should like almost never be the case tho)
+		pInfo->m_pTransmitEdict->Xor(pClientCache, &pClientCache);
+		bWasTransmitToPlayer = false;
 	}
 #else
 	for ( int i=0; i < nEdicts; ++i )

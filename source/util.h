@@ -365,6 +365,7 @@ public:
 	{
 		m_pDTName = pDTName;
 		m_pVarName = pVarName;
+		m_nArraySize = nArraySize;
 	}
 
 	inline void Init()
