@@ -945,7 +945,7 @@ LUA_FUNCTION_STATIC(bitbuf_CreateStackReadBuffer)
 	// Pushes it onto the stack, since we never use the Push_ HolyLib function.
 	// this will be untracked by the GC BUT you'll have to pop it off the stack BEFORE we leave the scope!
 	LuaUserData pStackLuaData;
-	pStackLuaData.Init(LUA, Lua::GetLuaData(LUA)->GetMetaEntry(Lua::bf_read), &pNewBf, true, true);
+	pStackLuaData.Init(LUA, Lua::GetLuaData(LUA)->GetMetaEntry(Lua::bf_read), &pNewBf, true);
 	pStackLuaData.Push(LUA);
 
 	if (bSimpleCall)
@@ -1015,7 +1015,7 @@ LUA_FUNCTION_STATIC(bitbuf_CreateStackWriteBuffer)
 	// Pushes it onto the stack, since we never use the Push_ HolyLib function.
 	// this will be untracked by the GC BUT you'll have to pop it off the stack BEFORE we leave the scope!
 	LuaUserData pStackLuaData;
-	pStackLuaData.Init(LUA, Lua::GetLuaData(LUA)->GetMetaEntry(Lua::bf_read), &pNewBf, true, true);
+	pStackLuaData.Init(LUA, Lua::GetLuaData(LUA)->GetMetaEntry(Lua::bf_read), &pNewBf, true);
 	pStackLuaData.Push(LUA);
 
 	LUA->CallFunctionProtected(1, 0, true);
