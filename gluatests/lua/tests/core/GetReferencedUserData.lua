@@ -77,7 +77,7 @@ return {
                         return u.test
                     end
 
-                    local userData = stringtable.GetTable(1)
+                    local userData = _HOLYLIB_CORE.PushReferencedTestUserData()
                     for n = 1, 1e4 do -- Generate those sweet GCtrace
                         trace_userdata(userData)
                     end
