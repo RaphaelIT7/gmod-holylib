@@ -184,6 +184,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 \- [#] Changed `voicechat.SaveVoiceStream` & `voicechat.LoadVoiceStream` to remove their 4th `sync` argument, if a callback is provided it will be async, else it'll run sync<br>
 \- [#] Renamed `HolyLib:OnPhysFrame` to `HolyLib:PrePhysFrame`<br>
 \- [#] Fixed a typo `bf_write:WriteBitVec3normal` -> `bf_write:WriteBitVec3Normal`<br>
+\- [#] Changed arguments and return value of `HolyLib:PostEntityConstructor`<br>
 \- [-] Removed `VoiceData:GetUncompressedData` decompress size argument<br>
 \- [-] Removed `CBaseClient:Transmit` third argument `fragments`.<br>
 \- [-] Removed `gameserver.CalculateCPUUsage` and `gameserver.ApproximateProcessMemoryUsage` since they never worked.<br>
@@ -434,12 +435,25 @@ hook.Add("HolyLib:GetGModTags", "Example", function()
 end)
 ```
 
-#### HolyLib:PostEntityConstructor(Entity ent, String className)
+#### bool(default = false, makeServerOnly) HolyLib:PostEntityConstructor(String className)
 Called before `CBaseEntity::PostConstructor` is called.<br>
-This should allow you to set the `EFL_SERVER_ONLY` flag properly.<br>
+Return `true` to make the entity being created a serverside only entity.<br>
+
+This for example is useful for `light` entities as they do not need to be networked since they use the `lightstyle` stringtable easily saving 1000+ entity slots.<br>
+Example:
+```lua
+hook.Add("HolyLib:PostEntityConstructor", "Example_ServerSide_Lights", function(class)
+	if class == "light" then
+		-- Return true makes these entities serverside only since they do not need networking at all
+		-- This is because they use the lightstyle stringtable for networking / use the IVEngineServer::LightStyle binding
+		return true 
+	end
+end)
+```
 
 > [!NOTE]
-> This may currently not work.
+> This may currently not work. Thanks past me...<br>
+> This hook is now fully functional though you cannot get the Entity itself inside of it due to it not being registered anywhere yet.<br>
 
 #### HolyLib:OnPlayerGotOnLadder(Entity ladder, Entity ply)
 Called when a gets onto a ladder -> Direct bind to `CFuncLadder::PlayerGotOn`<br>

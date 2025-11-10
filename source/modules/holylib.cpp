@@ -174,14 +174,28 @@ LUA_FUNCTION_STATIC(InvalidateBoneCache)
 	return 0;
 }
 
+// NOTE: This assumes that the field m_iEFlags is directly after the m_spawnflags field!
+static DTVarByOffset m_spawnflags_Offset("DT_BaseEntity", "m_spawnflags");
+static inline int* GetEntityEFlags(const void* pEnt)
+{
+	return (int*)((char*)m_spawnflags_Offset.GetPointer(pEnt) + sizeof(int));
+}
+
 static Detouring::Hook detour_CBaseEntity_PostConstructor;
 static void hook_CBaseEntity_PostConstructor(CBaseEntity* pEnt, const char* szClassname)
 {
 	if (Lua::PushHook("HolyLib:PostEntityConstructor"))
 	{
-		Util::Push_Entity(g_Lua, pEnt);
+		// Util::Push_Entity(g_Lua, pEnt); // Broken since Lua sees it as NULL
 		g_Lua->PushString(szClassname);
-		g_Lua->CallFunctionProtected(3, 0, true);
+		if (g_Lua->CallFunctionProtected(2, 1, true))
+		{
+			bool bMakeServerOnly = g_Lua->GetBool(-1);
+			g_Lua->Pop(1);
+
+			if (bMakeServerOnly)
+				*GetEntityEFlags(pEnt) |= EFL_SERVER_ONLY;
+		}
 
 		/*g_Lua->PushUserType(pEnt, GarrysMod::Lua::Type::Entity);
 		g_Lua->Push(-1);
