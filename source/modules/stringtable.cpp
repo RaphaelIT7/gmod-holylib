@@ -115,13 +115,13 @@ public:
 	const char *String( int index )
 	{
 		char* pString = tmpstr512();
-		g_pFullFileSystem->String( m_Items.Key( index ), pString, 512 );
+		g_pFullFileSystem->String( m_Items.Key( (unsigned short)index ), pString, 512 );
 		return pString;
 	}
 
 	bool IsValidIndex( int index )
 	{
-		return m_Items.IsValidIndex( index );
+		return m_Items.IsValidIndex( (unsigned short)index );
 	}
 
 	int Insert( const char *pString )
@@ -140,12 +140,12 @@ public:
 
 	CNetworkStringTableItem	&Element( int index )
 	{
-		return m_Items.Element( index );
+		return m_Items.Element( (unsigned short)index );
 	}
 
 	const CNetworkStringTableItem &Element( int index ) const
 	{
-		return m_Items.Element( index );
+		return m_Items.Element( (unsigned short)index );
 	}
 
 private:

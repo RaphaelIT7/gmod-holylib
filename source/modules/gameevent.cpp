@@ -603,12 +603,16 @@ void CGameeventLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bSer
 			pLua->PushString("vote_cast"); // Yes this is a valid gameevent.
 			pLua->CallFunctionProtected(1, 0, true);
 			CGameEventDescriptor* descriptor = pGameEventManager->GetEventDescriptor("vote_cast");
-			FOR_EACH_VEC(descriptor->listeners, i)
+			if (descriptor)
 			{
-				pLuaGameEventListener = (IGameEventListener2*)descriptor->listeners[i]->m_pCallback;
-				descriptor->listeners.Remove(i); // We also remove the listener again
-				break;
+				FOR_EACH_VEC(descriptor->listeners, i)
+				{
+					pLuaGameEventListener = (IGameEventListener2*)descriptor->listeners[i]->m_pCallback;
+					descriptor->listeners.Remove(i); // We also remove the listener again
+					break;
+				}
 			}
+
 			if (!pLuaGameEventListener)
 				Warning(PROJECT_NAME ": Failed to find pLuaGameEventListener!\n");
 		} else {

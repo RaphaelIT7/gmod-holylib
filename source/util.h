@@ -41,7 +41,7 @@ class IGameEventManager2;
 class IServer;
 class IServerGameDLL;
 class ISteamUser;
-struct CBaseHandle;
+class CBaseHandle;
 namespace Util
 {
 	#define LUA_REGISTRYINDEX	(-10000)

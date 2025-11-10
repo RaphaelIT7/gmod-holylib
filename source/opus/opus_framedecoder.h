@@ -48,6 +48,8 @@ namespace SteamOpus {
         }
 
         virtual bool Init(int quality, int sampleRate) {
+            (void)quality;
+            (void)sampleRate;
             return true;
         }
 
@@ -102,11 +104,11 @@ namespace SteamOpus {
 
                 CHK_BUF_WRITE(pCompressed, pCompressedEnd, uint16_t, m_encodeSeq++);
 
-                int bytes_written = opus_encode(enc, (opus_int16*)chunk, FRAME_SIZE_GMOD, (unsigned char*)pCompressed, std::min<uint64_t>(0x7FFF, pCompressedEnd - pCompressed));
+                int bytes_written = opus_encode(enc, (opus_int16*)chunk, FRAME_SIZE_GMOD, (unsigned char*)pCompressed, (opus_int32)std::min<uint64_t>(0x7FFF, pCompressedEnd - pCompressed));
                 if (bytes_written < 0)
                     return -1;
 
-                *chunk_len = bytes_written;
+                *chunk_len = (uint16_t)bytes_written;
                 pCompressed += bytes_written;
             }
 

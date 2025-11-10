@@ -88,7 +88,7 @@ LUA_FUNCTION_STATIC(markFFITypeAsValidUserData)
 	if (!pData)
 		return 0;
 
-	unsigned char nMetaID = LUA->CheckNumber(1);
+	unsigned char nMetaID = (unsigned char)LUA->CheckNumber(1);
 	uint16_t cTypeID = RawLua::GetCDataType(LUA->GetState(), 2);
 
 	Lua::GetLuaData(LUA)->GetCDataBridge().RegisterType(nMetaID, cTypeID);
@@ -117,7 +117,7 @@ LUA_FUNCTION_STATIC(getMetaTableByID)
 	if (!g_pLuaJITModule.m_bAllowFFI && overrideFFIReference == -1)
 		return 0;
 
-	return LUA->PushMetaTable(LUA->CheckNumber(1)) ? 1 : 0;
+	return LUA->PushMetaTable((int)LUA->CheckNumber(1)) ? 1 : 0;
 }
 
 static bool bOpenLibs = false;

@@ -187,7 +187,6 @@ void CheckPhysicsLag(const char* pFunctionName, CPhysicsObject* pObject1, CPhysi
 			{
 				auto ivp_vector = g_pPhysicsHolyLib->GetRecheckOVVector();
 				g_Lua->PreCreateTable(ivp_vector.len(), ivp_vector.len());
-				int i = 0;
 				for (int i=0; i< ivp_vector.len(); ++i)
 				{
 					IPhysicsObject* pCurrentOVObject = (IPhysicsObject*)ivp_vector.element_at(i)->client_data;
@@ -1917,7 +1916,9 @@ IPhysicsObject *PhysCreateWorld(IPhysicsEnvironment* pEnvironment, CBaseEntity* 
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_CreateWorldPhysics)
 {
+#if 0
 	ILuaPhysicsEnvironment* pLuaEnv = Get_ILuaPhysicsEnvironment(LUA, 1, true);
+#endif
 	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, true);
 	
 #if ARCHITECTURE_IS_X86

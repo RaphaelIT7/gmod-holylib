@@ -1201,6 +1201,7 @@ bool CGModAudioChannel::FXReset( const char* pFXName )
 		return false;
 
 	it->second->Reset();
+	return true;
 }
 
 bool CGModAudioChannel::FXFree( const char* pFXName )
@@ -1212,6 +1213,7 @@ bool CGModAudioChannel::FXFree( const char* pFXName )
 	CGModAudioFX* pFX = it->second;
 	m_pFX.erase(it);
 	pFX->Free(this);
+	return true;
 }
 
 bool CGModAudioChannel::IsPush()
@@ -1222,7 +1224,7 @@ bool CGModAudioChannel::IsPush()
 void CGModAudioChannel::WriteData(const void* pData, unsigned long nLength, const char** pErrorOut)
 {
 	*pErrorOut = NULL;
-	if (BASS_StreamPutData( m_pHandle, pData, nLength ) == -1)
+	if (BASS_StreamPutData( m_pHandle, pData, nLength ) == (DWORD)-1)
 		*pErrorOut = BassErrorToString(BASS_ErrorGetCode());
 }
 

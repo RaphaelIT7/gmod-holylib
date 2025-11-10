@@ -705,7 +705,6 @@ struct VoiceStream {
 		std::map<int, VoiceData*> sorted(pVoiceData.begin(), pVoiceData.end());
 
 		std::vector<char> wavePCM;
-		const float intervalPerTick = gpGlobals->interval_per_tick;
 		for (auto& [tick, voiceData] : sorted)
 		{
 			int iLength = 0;

@@ -883,7 +883,9 @@ LUA_FUNCTION_STATIC(vprof_AtRoot)
 LUA_FUNCTION_STATIC(vprof_FindOrCreateCounter)
 {
 	const char* pName = AddOrGetString(LUA->CheckString(1)); // Just to make sure
+#ifndef WIN32
 	CounterGroup_t group = (CounterGroup_t)LUA->CheckNumberOpt(2, COUNTER_GROUP_DEFAULT);
+#endif
 
 	LuaUserData* pUserData = PushInlined_VProfCounter(LUA);
 	VProfCounter* counter = (VProfCounter*)pUserData->GetData();

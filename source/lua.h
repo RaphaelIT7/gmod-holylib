@@ -189,7 +189,7 @@ namespace Lua
 		{
 			setgcrefnull(nErrorFunc);
 
-			for (int i=0; i<LuaTypes::TOTAL_TYPES; ++i)
+			for (unsigned char i=0; i<LuaTypes::TOTAL_TYPES; ++i)
 				pLuaTypes[i].iLuaType = i;
 		}
 
@@ -913,10 +913,10 @@ LUA_FUNCTION_STATIC(className ## __gc) \
 	LuaUserData* pData = Get_##className##_Data(LUA, 1, false); \
 	if (pData) \
 	{ \
-		int pFlags = pData->GetFlags(); \
-		bool bFlagExplicitDelete = pData->IsFlagExplicitDelete(); \
-		bool bIsInlined = pData->IsInlined(); \
-		void* pStoredData = pData->GetData(); \
+		[[maybe_unused]] int pFlags = pData->GetFlags(); \
+		[[maybe_unused]] bool bFlagExplicitDelete = pData->IsFlagExplicitDelete(); \
+		[[maybe_unused]] bool bIsInlined = pData->IsInlined(); \
+		[[maybe_unused]] void* pStoredData = pData->GetData(); \
 		if (pData->Release(LUA, true)) \
 		{ \
 			pData = NULL; /*Don't let any idiot(that's me) use it*/ \

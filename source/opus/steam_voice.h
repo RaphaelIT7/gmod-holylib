@@ -93,7 +93,7 @@ namespace SteamVoice {
 
 		*curWrite = OP_SAMPLERATE;
 		curWrite += sizeof(char);
-		*(uint16_t*)curWrite = sampleRate;
+		*(uint16_t*)curWrite = (uint16_t)sampleRate;
 		curWrite += sizeof(uint16_t);
 
 		//Write opus codec operation
@@ -113,7 +113,7 @@ namespace SteamVoice {
 			return -1;
 
 		curWrite += compressedBytes;
-		*outLenAddr = compressedBytes;
+		*outLenAddr = (uint16_t)compressedBytes;
 
 		if (curWrite + sizeof(CRC32_t) > maxWrite)
 			return -1;

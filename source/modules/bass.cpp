@@ -530,11 +530,19 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_SetFX)
 	int nPriority = (int)LUA->CheckNumber(4);
 	LUA->CheckType(5, GarrysMod::Lua::Type::Table);
 
-#define GETFXNUMFIELD(name) \
+#define GETFXFLOATFIELD(name) \
 	LUA->PushString(#name); \
 	LUA->RawGet(5); \
 	if (LUA->IsType(-1, GarrysMod::Lua::Type::Number)) { \
-		pParams.name = LUA->GetNumber(-1); \
+		pParams.name = (float)LUA->GetNumber(-1); \
+	} \
+	LUA->Pop(1);
+
+#define GETFXDWORDFIELD(name) \
+	LUA->PushString(#name); \
+	LUA->RawGet(5); \
+	if (LUA->IsType(-1, GarrysMod::Lua::Type::Number)) { \
+		pParams.name = (DWORD)LUA->GetNumber(-1); \
 	} \
 	LUA->Pop(1);
 
@@ -552,34 +560,34 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_SetFX)
 	case BassFX::FX_CHORUS:
 		{
 			BASS_DX8_CHORUS pParams;
-			GETFXNUMFIELD(fWetDryMix);
-			GETFXNUMFIELD(fDepth);
-			GETFXNUMFIELD(fFeedback);
-			GETFXNUMFIELD(fFrequency);
-			GETFXNUMFIELD(lWaveform);
-			GETFXNUMFIELD(fDelay);
-			GETFXNUMFIELD(lPhase);
+			GETFXFLOATFIELD(fWetDryMix);
+			GETFXFLOATFIELD(fDepth);
+			GETFXFLOATFIELD(fFeedback);
+			GETFXFLOATFIELD(fFrequency);
+			GETFXDWORDFIELD(lWaveform);
+			GETFXFLOATFIELD(fDelay);
+			GETFXDWORDFIELD(lPhase);
 			channel->SetFX(pFXName, BASS_FX_DX8_CHORUS, nPriority, &pParams, &pError);
 		}
 		break;
 	case BassFX::FX_DISTORTION:
 		{
 			BASS_DX8_DISTORTION pParams;
-			GETFXNUMFIELD(fGain);
-			GETFXNUMFIELD(fEdge);
-			GETFXNUMFIELD(fPostEQCenterFrequency);
-			GETFXNUMFIELD(fPostEQBandwidth);
-			GETFXNUMFIELD(fPreLowpassCutoff);
+			GETFXFLOATFIELD(fGain);
+			GETFXFLOATFIELD(fEdge);
+			GETFXFLOATFIELD(fPostEQCenterFrequency);
+			GETFXFLOATFIELD(fPostEQBandwidth);
+			GETFXFLOATFIELD(fPreLowpassCutoff);
 			channel->SetFX(pFXName, BASS_FX_DX8_DISTORTION, nPriority, &pParams, &pError);
 		}
 		break;
 	case BassFX::FX_ECHO:
 		{
 			BASS_DX8_ECHO pParams;
-			GETFXNUMFIELD(fWetDryMix);
-			GETFXNUMFIELD(fFeedback);
-			GETFXNUMFIELD(fLeftDelay);
-			GETFXNUMFIELD(fRightDelay);
+			GETFXFLOATFIELD(fWetDryMix);
+			GETFXFLOATFIELD(fFeedback);
+			GETFXFLOATFIELD(fLeftDelay);
+			GETFXFLOATFIELD(fRightDelay);
 			GETFXBOOLFIELD(lPanDelay);
 			channel->SetFX(pFXName, BASS_FX_DX8_ECHO, nPriority, &pParams, &pError);
 		}
@@ -587,32 +595,32 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_SetFX)
 	case BassFX::FX_FLANGER:
 		{
 			BASS_DX8_FLANGER pParams;
-			GETFXNUMFIELD(fWetDryMix);
-			GETFXNUMFIELD(fDepth);
-			GETFXNUMFIELD(fFeedback);
-			GETFXNUMFIELD(fFrequency);
-			GETFXNUMFIELD(lWaveform);
-			GETFXNUMFIELD(fDelay);
-			GETFXNUMFIELD(lPhase);
+			GETFXFLOATFIELD(fWetDryMix);
+			GETFXFLOATFIELD(fDepth);
+			GETFXFLOATFIELD(fFeedback);
+			GETFXFLOATFIELD(fFrequency);
+			GETFXDWORDFIELD(lWaveform);
+			GETFXFLOATFIELD(fDelay);
+			GETFXDWORDFIELD(lPhase);
 			channel->SetFX(pFXName, BASS_FX_DX8_FLANGER, nPriority, &pParams, &pError);
 		}
 		break;
 	case BassFX::FX_PARAMEQ:
 		{
 			BASS_DX8_PARAMEQ pParams;
-			GETFXNUMFIELD(fCenter);
-			GETFXNUMFIELD(fBandwidth);
-			GETFXNUMFIELD(fGain);
+			GETFXFLOATFIELD(fCenter);
+			GETFXFLOATFIELD(fBandwidth);
+			GETFXFLOATFIELD(fGain);
 			channel->SetFX(pFXName, BASS_FX_DX8_PARAMEQ, nPriority, &pParams, &pError);
 		}
 		break;
 	case BassFX::FX_REVERB:
 		{
 			BASS_DX8_REVERB pParams;
-			GETFXNUMFIELD(fInGain);
-			GETFXNUMFIELD(fReverbMix);
-			GETFXNUMFIELD(fReverbTime);
-			GETFXNUMFIELD(fHighFreqRTRatio);
+			GETFXFLOATFIELD(fInGain);
+			GETFXFLOATFIELD(fReverbMix);
+			GETFXFLOATFIELD(fReverbTime);
+			GETFXFLOATFIELD(fHighFreqRTRatio);
 			channel->SetFX(pFXName, BASS_FX_DX8_REVERB, nPriority, &pParams, &pError);
 		}
 		break;
@@ -620,7 +628,8 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_SetFX)
 		LUA->ThrowError("Unknown FX type! Use one of the bass.FX_ enums!");
 	}
 
-#undef GETFXNUMFIELD
+#undef GETFXFLOATFIELD
+#undef GETFXDWORDFIELD
 #undef GETFXBOOLFIELD
 
 	LUA->PushBool(pError == NULL);
@@ -732,7 +741,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_FeedEmpty)
 LUA_FUNCTION_STATIC(IGModAudioChannel_FeedData)
 {
 	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
-	size_t nLength = -1;
+	size_t nLength = (size_t)-1;
 	const char* pData = Util::CheckLString(LUA, 2, &nLength);
 
 	if (!channel->IsPush())
@@ -1065,7 +1074,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannelEncoder_FeedEmpty)
 LUA_FUNCTION_STATIC(IGModAudioChannelEncoder_FeedData)
 {
 	IGModAudioChannelEncoder* encoder = Get_IGModAudioChannelEncoder(LUA, 1, true);
-	size_t nLength = -1;
+	size_t nLength = (size_t)-1;
 	const char* pData = Util::CheckLString(LUA, 2, &nLength);
 
 	encoder->WriteData(pData, nLength);
@@ -1182,8 +1191,8 @@ LUA_FUNCTION_STATIC(bass_GetVersion)
 
 LUA_FUNCTION_STATIC(bass_CreateDummyChannel)
 {
-	int nSampleRate = LUA->CheckNumber(1);
-	int nChannels = LUA->CheckNumber(2);
+	int nSampleRate = (int)LUA->CheckNumber(1);
+	int nChannels = (int)LUA->CheckNumber(2);
 	unsigned long nFlags = (unsigned long)LUA->CheckNumber(3);
 
 	const char* pErrorCode = nullptr;
@@ -1199,8 +1208,8 @@ LUA_FUNCTION_STATIC(bass_CreateDummyChannel)
 
 LUA_FUNCTION_STATIC(bass_CreatePushChannel)
 {
-	int nSampleRate = LUA->CheckNumber(1);
-	int nChannels = LUA->CheckNumber(2);
+	int nSampleRate = (int)LUA->CheckNumber(1);
+	int nChannels = (int)LUA->CheckNumber(2);
 	unsigned long nFlags = (unsigned long)LUA->CheckNumber(3);
 
 	const char* pErrorCode = nullptr;
@@ -1216,8 +1225,8 @@ LUA_FUNCTION_STATIC(bass_CreatePushChannel)
 
 LUA_FUNCTION_STATIC(bass_CreateMixerChannel)
 {
-	int nSampleRate = LUA->CheckNumber(1);
-	int nChannels = LUA->CheckNumber(2);
+	int nSampleRate = (int)LUA->CheckNumber(1);
+	int nChannels = (int)LUA->CheckNumber(2);
 	unsigned long nFlags = (unsigned long)LUA->CheckNumber(3);
 
 	const char* pErrorCode = nullptr;
@@ -1247,6 +1256,7 @@ LUA_FUNCTION_STATIC(bass_CreateSplitChannel)
 	return 2;
 }
 
+#if 0
 LUA_FUNCTION_STATIC(bass_LoadPlugin)
 {
 	const char* pError = NULL;
@@ -1259,6 +1269,7 @@ LUA_FUNCTION_STATIC(bass_LoadPlugin)
 
 	return 2;
 }
+#endif
 
 void CBassModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {

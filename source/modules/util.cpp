@@ -346,7 +346,7 @@ void TableToJSONRecursive(GarrysMod::Lua::ILuaInterface* pLua, LuaUtilModuleData
 					double pNumber = pLua->GetNumber(-1);
 					if (isfinite(pNumber)) { // Needed for math.huge
 						if (IsInt(pNumber))
-							value.SetInt(pNumber);
+							value.SetInt((int)pNumber);
 						else
 							value.SetDouble(pNumber);
 					} else {
@@ -503,7 +503,7 @@ void JSONToTableRecursive(GarrysMod::Lua::ILuaInterface* pLua, const rapidjson::
 			} else {
 				long long lNum;
 				if (StrToIntFast(pKeyStr, iKeyLen, lNum)) {
-					pLua->PushNumber(lNum);
+					pLua->PushNumber((double)lNum);
 				} else {
 					pLua->PushString(pKeyStr, iKeyLen);
 				}

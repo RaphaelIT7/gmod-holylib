@@ -213,7 +213,7 @@ CSearchPath *CBaseFileSystem::FindSearchPathByStoreId( int storeId )
 {
 	FOR_EACH_LL( m_SearchPaths, i )
 	{
-		CSearchPath& pSearchPath = m_SearchPaths[i];
+		CSearchPath& pSearchPath = m_SearchPaths[(unsigned short)i];
 		if ( pSearchPath.m_storeId == storeId )
 			return &pSearchPath;
 	}
@@ -394,7 +394,7 @@ static void WriteSearchCache()
 
 		if (!holylib_filesystem_mergesearchcache.GetBool())
 		{
-			char absolutePath[MAX_PATH];
+			char absolutePathBuffer[MAX_PATH];
 			for (auto& [strPath, cache] : m_SearchCache)
 			{
 				for (auto& [strEntry, storeID] : cache)
@@ -402,10 +402,10 @@ static void WriteSearchCache()
 					WriteStringIntoFile(handle, strPath);
 					WriteStringIntoFile(handle, strEntry);
 
-					absolutePath[0] = '\0';
-					g_pFullFileSystem->RelativePathToFullPath(strEntry.data(), strPath.data(), absolutePath, sizeof(absolutePath));
+					absolutePathBuffer[0] = '\0';
+					g_pFullFileSystem->RelativePathToFullPath(strEntry.data(), strPath.data(), absolutePathBuffer, sizeof(absolutePathBuffer));
 
-					WriteStringIntoFile(handle, absolutePath, (unsigned char)strlen(absolutePath));
+					WriteStringIntoFile(handle, absolutePathBuffer, (unsigned char)strlen(absolutePathBuffer));
 				}
 			}
 		} else {
@@ -424,18 +424,18 @@ static void WriteSearchCache()
 
 			pTempMemory.reserve(nUsedSearchCachePaths); // We reserve just for more SPEEED
 
-			char absolutePath[MAX_PATH];
+			char absolutePathBuffer[MAX_PATH];
 			for (auto& [strPath, cache] : m_SearchCache)
 			{
 				for (auto& [strEntry, storeID] : cache)
 				{
-					absolutePath[0] = '\0';
-					g_pFullFileSystem->RelativePathToFullPath(strEntry.data(), strPath.data(), absolutePath, sizeof(absolutePath));
+					absolutePathBuffer[0] = '\0';
+					g_pFullFileSystem->RelativePathToFullPath(strEntry.data(), strPath.data(), absolutePathBuffer, sizeof(absolutePathBuffer));
 
-					unsigned char nLength = (unsigned char)strlen(absolutePath);
+					unsigned char nLength = (unsigned char)strlen(absolutePathBuffer);
 					char* pAbsolutePath = new char[nLength + 1];
 					pTempMemory.push_back(pAbsolutePath);
-					memcpy(pAbsolutePath, absolutePath, nLength);
+					memcpy(pAbsolutePath, absolutePathBuffer, nLength);
 					pAbsolutePath[nLength] = '\0';
 					pAbsoluteCache[strPath][strEntry] = std::string_view(pAbsolutePath, nLength);
 					// We override so that we don't get new entries instead at worse replacing them
@@ -920,9 +920,10 @@ static const char* GetSplitPath(const char* pFileName, const char* pathID)
 
 		if (strFileName.rfind("autorun" FILEPATH_SLASH) == 0)
 			return "LUA_AUTORUN";
-	}*/
-
+	}
+	
 	return NULL;
+	*/
 }
 
 static std::unordered_map<std::string_view, std::string_view> g_pOverridePaths;

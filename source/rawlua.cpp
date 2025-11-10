@@ -69,7 +69,7 @@ uint16_t RawLua::GetCDataType(lua_State* L, int idx)
 	if (tviscdata(o))
 		return cdataV(o)->ctypeid;
 	
-	return -1;
+	return (uint16_t)-1;
 }
 
 CTypeID ffi_checkctype(lua_State *L, CTState *cts, TValue* param, const char* pStr)

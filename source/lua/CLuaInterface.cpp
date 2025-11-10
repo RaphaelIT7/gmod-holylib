@@ -226,7 +226,7 @@ int AdvancedLuaErrorReporter(lua_State *L)
 	// VPROF AdvancedLuaErrorReporter GLua
 
 	if (lua_isstring(L, 1)) {
-		const char* str = lua_tostring(L, 1);
+		// const char* str = lua_tostring(L, 1);
 
 		// g_LastError.assign(str);
 
@@ -740,8 +740,6 @@ int CLuaInterface::CreateMetaTable(const char* strName) // Return value is proba
 		m_pMetaTables[m_iMetaTableIDCounter] = pObject;
 		return m_iMetaTableIDCounter;
 	}
-
-	return 0;
 }
 
 bool CLuaInterface::PushMetaTable(int iType)

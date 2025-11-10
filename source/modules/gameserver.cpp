@@ -1727,7 +1727,7 @@ LUA_FUNCTION_STATIC(CNetChan_SendFile)
 {
 	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
 	const char* pFileName = LUA->CheckString(2);
-	int transferID = LUA->CheckNumber(3);
+	int transferID = (int)LUA->CheckNumber(3);
 
 	LUA->PushBool(pNetChannel->SendFile(pFileName, transferID));
 	return 1;

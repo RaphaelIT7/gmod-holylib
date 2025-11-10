@@ -98,6 +98,8 @@ public:
 class CGModAudioFX : public IGModAudioFX
 {
 public:
+	virtual ~CGModAudioFX() {};
+
 	virtual void Free(IGModAudioChannel* pChannel);
 	virtual void GetParameters( void* params );
 	virtual void Reset();

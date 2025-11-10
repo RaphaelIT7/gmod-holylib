@@ -141,7 +141,7 @@ static HandleStatus ShouldHandlePacket(netpacket_s* pPacket, bool isConnectionle
 	if (isConnectionless)
 	{
 		bf_read msg = pPacket->message;
-		char c = msg.ReadChar();
+		char c = (char)msg.ReadChar();
 		if (c == 0) // Junk
 			return HandleStatus::DISCARD;
 

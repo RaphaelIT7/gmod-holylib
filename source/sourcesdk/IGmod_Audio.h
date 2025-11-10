@@ -91,6 +91,8 @@ enum BassFX // IDs match BASS_FX enums
 class IGModAudioFX
 {
 public:
+	virtual ~IGModAudioFX() {};
+
 	virtual void Free(IGModAudioChannel* pChannel) = 0;
 	virtual void GetParameters( void* params ) = 0;
 	virtual void Reset() = 0;

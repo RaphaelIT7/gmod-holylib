@@ -210,7 +210,7 @@ public:
 			return;
 
 		CLuaGameEventCallbackCall* pCallback = new CLuaGameEventCallbackCall(pGameEventManager->DuplicateEvent(pEvent));
-		m_pLua->AddThreadedCall((GarrysMod::Lua::ILuaThreadedCall*)pEvent);
+		m_pLua->AddThreadedCall((GarrysMod::Lua::ILuaThreadedCall*)pCallback);
 	}
 
 private:
