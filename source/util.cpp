@@ -27,19 +27,21 @@ IVEngineServer* engine = nullptr;
 CGlobalEntityList* Util::entitylist = nullptr;
 CUserMessages* Util::pUserMessages = nullptr;
 
-std::unordered_set<LuaUserData*> g_pLuaUserData;
+#if HOLYLIB_UTIL_DEBUG_LUAUSERDATA
+std::unordered_set<LuaUserData*> g_pLuaUserData; // Debug only use
+#endif
 
 std::unordered_set<int> Util::g_pReference;
 ConVar Util::holylib_debug_mainutil("holylib_debug_mainutil", "1");
 
 // We require this here since we depend on the Lua namespace
-void LuaUserData::ForceGlobalRelease(void* pData)
+void ReferencedLuaUserData::ForceGlobalRelease(void* pData)
 {
 	bool bFound = false;
 	const std::unordered_set<Lua::StateData*> pStateData = Lua::GetAllLuaData();
 	for (Lua::StateData* pState : pStateData)
 	{
-		std::unordered_map<void*, LuaUserData*> owningData = pState->GetPushedUserData(); // Copy it over in case it->second gets deleted while iterating
+		std::unordered_map<void*, ReferencedLuaUserData*> owningData = pState->GetPushedUserData(); // Copy it over in case it->second gets deleted while iterating
 		auto it2 = owningData.find(pData);
 		if (it2 == owningData.end())
 			continue;
@@ -63,7 +65,7 @@ void LuaUserData::ForceGlobalRelease(void* pData)
 	*/
 	for (Lua::StateData* pState : pStateData)
 	{
-		std::unordered_map<void*, LuaUserData*> owningData = pState->GetPushedUserData(); // Copy it over in case it->second gets deleted while iterating
+		std::unordered_map<void*, ReferencedLuaUserData*> owningData = pState->GetPushedUserData(); // Copy it over in case it->second gets deleted while iterating
 		auto it2 = owningData.find(pData);
 		if (it2 == owningData.end())
 			continue;

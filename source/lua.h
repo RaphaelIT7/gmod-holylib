@@ -79,6 +79,7 @@ namespace RawLua {
 }
 
 struct LuaUserData;
+struct ReferencedLuaUserData;
 class CLuaInterfaceProxy;
 namespace Lua
 {
@@ -176,7 +177,7 @@ namespace Lua
 		// It uses the assigned module IDs
 		Lua::ModuleData* pModuelData[Lua::Internal::pMaxEntries] = { NULL };
 		LuaMetaEntry pLuaTypes[LuaTypes::TOTAL_TYPES];
-		std::unordered_map<void*, LuaUserData*> pPushedUserData; // Would love to get rid of this
+		std::unordered_map<void*, ReferencedLuaUserData*> pPushedUserData; // Would love to get rid of this
 		GarrysMod::Lua::ILuaInterface* pLua = NULL;
 		CLuaInterfaceProxy* pProxy;
 		GCRef nErrorFunc;
@@ -284,7 +285,7 @@ namespace Lua
 			pModuelData[moduleID] = moduleData;
 		}
 
-		inline std::unordered_map<void*, LuaUserData*>& GetPushedUserData()
+		inline std::unordered_map<void*, ReferencedLuaUserData*>& GetPushedUserData()
 		{
 			return pPushedUserData;
 		}
@@ -392,6 +393,7 @@ enum udataFlags // we use bit flags so only a total of 8 are allowed.v
 	UDATA_NO_GC = 1 << 1, // Causes additional flags to be set onto "marked" GCHeader var
 	UDATA_NO_USERTABLE = 1 << 2,
 	UDATA_INLINED_DATA = 1 << 3,
+	UDATA_REFERENCED = 1 << 4,
 };
 
 /*
@@ -429,7 +431,8 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 	{
 		setgcrefnull(nextgc);
 		gct = 0x0;
-		marked = 0x4; // mark black. We are stack allocated, we are never white, never grey
+		marked = 0x4; // mark black. We are stack allocated, we are never white, never grey.
+		// tbh the gc doesn't even know we exist... so were fine anyways, though LuaJITs VM does care
 	}
 	
 	inline void Init(GarrysMod::Lua::ILuaInterface* LUA, const Lua::LuaMetaEntry& pMetaEntry, void* pData, bool bNoGC = false, bool bNoUserTable = false, bool bIsInline = false)
@@ -603,8 +606,6 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 		return udtype;
 	}
 
-	static void ForceGlobalRelease(void* pData);
-
 	inline bool IsFlagExplicitDelete()
 	{
 		return (flags & UDATA_EXPLICIT_DELETE) != 0;
@@ -631,6 +632,37 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 	}
 };
 static constexpr int udataSize = sizeof(LuaUserData) - sizeof(GCudata);
+
+struct ReferencedLuaUserData : LuaUserData {
+	inline void Init(GarrysMod::Lua::ILuaInterface* LUA, const Lua::LuaMetaEntry& pMetaEntry, void* pData, bool bNoGC = false, bool bNoUserTable = false, bool bIsInline = false)
+	{
+		LuaUserData::Init(LUA, pMetaEntry, pData, bNoGC, bNoUserTable, bIsInline);
+
+		flags |= UDATA_REFERENCED;
+
+		// Slow :sob:
+		LUA->Push(-1);
+		nReference = LUA->ReferenceCreate();
+	}
+	
+	inline bool Release(GarrysMod::Lua::ILuaInterface* pLua, bool bGCCall = false)
+	{
+		bool bReturn = LuaUserData::Release(pLua, bGCCall);
+
+		if (bReturn && nReference != -1)
+		{
+			pLua->ReferenceFree(nReference);
+			nReference = -1;
+		}
+
+		return bReturn;
+	}
+
+	static void ForceGlobalRelease(void* pData);
+
+	unsigned int nReference;
+};
+static constexpr int referencedUdataSize = sizeof(ReferencedLuaUserData) - sizeof(GCudata);
 
 #define TO_LUA_TYPE( className ) Lua::className
 
@@ -798,7 +830,7 @@ void Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
 		const Lua::LuaMetaEntry& pMeta = Lua::GetLuaData(LUA)->GetMetaEntry(TO_LUA_TYPE(className)); \
 		if (pMeta.iType == UCHAR_MAX) \
 			LUA->ThrowError(triedPushing_##className.c_str()); \
-		LuaUserData* userData = (LuaUserData*)((char*)LUA->NewUserdata(udataSize) - sizeof(GCudata)); \
+		ReferencedLuaUserData* userData = (ReferencedLuaUserData*)((char*)LUA->NewUserdata(udataSize) - sizeof(GCudata)); \
 		userData->Init(LUA, pMeta, var, true); \
 		pushedUserData[var] = userData; \
 	} \
@@ -834,7 +866,7 @@ void Push_##className(GarrysMod::Lua::ILuaInterface* LUA, className* var) \
 \
 [[maybe_unused]] static void DeleteGlobal_##className(className* var) \
 { \
-	LuaUserData::ForceGlobalRelease(var); \
+	ReferencedLuaUserData::ForceGlobalRelease(var); \
 }
 
 // A default index function for userData,
