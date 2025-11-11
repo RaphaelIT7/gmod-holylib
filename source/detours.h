@@ -314,7 +314,8 @@ byte m_##name = 0;
 		}
 #elif defined(SYSTEM_WINDOWS) && defined(ARCHITECTURE_X86_64)
 		Warning(PROJECT_NAME ": Win x64 ! %x %x\n", ip[0], ip[1]);
-		// LEA RCX, [imm32] (0x48 0x8D 0x0D + RVA)
+		// LEA RCX, [RIP+imm32] (0x48 0x8D 0x0D + RVA)
+		// LEA loads the effective address directly, no need to dereference
 		if (ip[0] == 0x48 && ip[1] == 0x8D && ip[2] == 0x0D) {
 			const size_t instrLen = 7;
 			int32_t rva = *reinterpret_cast<int32_t*>(ip + 3);
@@ -323,15 +324,16 @@ byte m_##name = 0;
 			Warning(PROJECT_NAME ": Win x64 next: %p\n", next);
 			symbolAddr = reinterpret_cast<void*>(next + rva);
 			Warning(PROJECT_NAME ": Win x64 symbolAddr: %p\n", symbolAddr);
+			// For LEA, symbolAddr is the direct address of the object
+			return reinterpret_cast<T*>(symbolAddr);
 		}
 #endif
 
 #if defined SYSTEM_WINDOWS
 	if (symbolAddr != nullptr)
 	{
-		Warning(PROJECT_NAME ": Win x64 symbolAddr: %p\n", symbolAddr);
+		// For MOV instructions, we need to dereference
 		auto iface = reinterpret_cast<T**>(symbolAddr);
-		Warning(PROJECT_NAME ": Win x64 iface: %p\n", iface);
 		return iface != nullptr ? *iface : nullptr;
 	}
 #elif defined SYSTEM_POSIX
