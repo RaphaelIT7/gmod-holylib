@@ -290,6 +290,22 @@ byte m_##name = 0;
 			symbolAddr = next + disp;                         // final address = next + disp32
 		}
 #elif defined(SYSTEM_WINDOWS) && defined(ARCHITECTURE_X86)
+    	// Primary: PUSH imm32 (0x68 + RVA) - g_BSPData pattern
+		if (ip[0] == 0x68)
+		{
+			const size_t instrLen = 5;
+			int32_t rva = *reinterpret_cast<uint32_t*>(ip + 1);
+			uint8_t* next = ip + instrLen;
+			symbolAddr = reinterpret_cast<void*>(next + rva);
+			return reinterpret_cast<T*>(symbolAddr);
+		}
+		if (ip[0] == 0xFF && ip[1] == 0x35) {
+			const size_t instrLen = 6;
+			int32_t rva = *reinterpret_cast<uint32_t*>(ip + 2);
+			uint8_t* next = ip + instrLen;
+			symbolAddr = reinterpret_cast<void*>(next + (uintptr_t)rva);  // Points to the pointer; data at [*symbolAddr]
+			return reinterpret_cast<T*>(symbolAddr);
+		}
 		// Primary: MOV ECX, imm32 (0xB9 + RVA as imm32) - your exact pattern
 		if (ip[0] == 0xB9) {
 			const size_t instrLen = 5;
