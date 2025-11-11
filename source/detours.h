@@ -13,6 +13,10 @@
 #include <unordered_set>
 #include <unordered_map>
 
+#if defined(SYSTEM_WINDOWS) && !defined(DLL_TOOLS)
+#include <Windows.h>
+#endif
+
 #ifdef DLL_TOOLS
 #ifdef WIN32
 #include <Windows.h>
@@ -327,14 +331,34 @@ byte m_##name = 0;
 #endif
 
 #if defined SYSTEM_WINDOWS
-		if (symbolAddr != nullptr)
-		{
-			auto iface = reinterpret_cast<T**>(symbolAddr);
-			return iface != nullptr ? *iface : nullptr;
+	if (symbolAddr != nullptr)
+	{
+		Warning(PROJECT_NAME ": About to read from symbolAddr: %p\n", symbolAddr);
+		
+		// Verify the address is readable using VirtualQuery
+		MEMORY_BASIC_INFORMATION mbi;
+		if (VirtualQuery(symbolAddr, &mbi, sizeof(mbi)) == 0) {
+			Warning(PROJECT_NAME ": VirtualQuery failed on symbolAddr %p\n", symbolAddr);
+			return nullptr;
 		}
+		
+		Warning(PROJECT_NAME ": Memory state: %lu, protect: %lu\n", mbi.State, mbi.Protect);
+		
+		if (mbi.State != MEM_COMMIT || 
+			!(mbi.Protect & (PAGE_READONLY | PAGE_READWRITE | PAGE_EXECUTE_READ | PAGE_EXECUTE_READWRITE))) {
+			Warning(PROJECT_NAME ": symbolAddr %p is not readable (State: %lu, Protect: %lu)\n", 
+				symbolAddr, mbi.State, mbi.Protect);
+			return nullptr;
+		}
+		
+		auto iface = reinterpret_cast<T**>(symbolAddr);
+		T* result = *iface;
+		Warning(PROJECT_NAME ": Read pointer value: %p\n", result);
+		return result;
+	}
 #elif defined SYSTEM_POSIX
-		if (symbolAddr != nullptr)
-			return reinterpret_cast<T*>(symbolAddr);
+	if (symbolAddr != nullptr)
+		return reinterpret_cast<T*>(symbolAddr);
 #endif
 
 		Warning(PROJECT_NAME ": Failed to match LEA bytes!\n");
