@@ -302,6 +302,12 @@ LUA_FUNCTION_STATIC(pvs_CheckAreasConnected)
 	int area1 = LUA->CheckNumber(1);
 	int area2 = LUA->CheckNumber(2);
 
+	if (area1 < 0 || area1 >= MAX_MAP_AREAS)
+		LUA->ThrowError("Bogus area1 value!");
+
+	if (area2 < 0 || area2 >= MAX_MAP_AREAS)
+		LUA->ThrowError("Bogus area2 value!");
+
 	LUA->PushBool(Util::engineserver->CheckAreasConnected(area1, area2));
 	return 1;
 }

@@ -1194,8 +1194,8 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 	*/
 	struct AreaCache
 	{
-		CBaseEntity* pEntities[512];
 		int nCount = 0;
+		CBaseEntity* pEntities[512];
 	};
 
 	AreaCache nAreaEntities[MAX_MAP_AREAS-1]; // -1 since Area 0 is not a valid one so we save some bytes
@@ -1286,7 +1286,7 @@ public:
 			return;
 		
 		int nPlayerSlot = pEvent->GetInt("index");
-		if (nPlayerSlot > MAX_PLAYERS || nPlayerSlot < 0)
+		if (nPlayerSlot >= MAX_PLAYERS || nPlayerSlot < 0)
 		{
 			Warning(PROJECT_NAME " - networking: Invalid OnRequestFullUpdate event! (Index: %i)\n", nPlayerSlot);
 			return;
@@ -1456,6 +1456,10 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 			NOTE:
 			If you pick up a weapon and it does not become your active weapon
 			it may happen that the client won't receive an update till that slot is reached leaving them unable to select the weapon
+
+			Newer NOTE:
+			If you don't need constant weapon updates, you can always keep networking_transmit_one_per_tick disabled and instead rely on
+			holylib_networking_transmit_newweapons which will ensure players always know which weapons they have but won't receive constant updates about them.
 		*/
 		if (networking_transmit_one_per_tick.GetInt() == 1 || (networking_transmit_one_per_tick.GetInt() == 2 && bLocalPlayer))
 		{
@@ -1845,6 +1849,10 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 		{
 			for (int iPlayerIndex = 1; iPlayerIndex <= gpGlobals->maxClients; ++iPlayerIndex)
 			{
+				// Lets avoid trying to network invalid entity slots as else we trigger a crash/engine error in CBaseServer::WriteDeltaEntities
+				if (!g_pEntityCache[iPlayerIndex])
+					continue;
+
 				// We mark all to transmit to they will receive the CBasePlayer's
 				// but not all their weapon since that could cause a overflow due to the amount of data that could be sent at once
 				pInfo->m_pTransmitEdict->Set(iPlayerIndex);
@@ -1937,6 +1945,19 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 			continue;
 
 		DoTransmitPVSCheck(pEdict, pEnt, bIsHLTV, pInfo, bForceTransmit, skyBoxArea);
+	}
+#endif
+
+#if 0 // I don't like this, useful for testing but not for actual prod
+	for (int i=0; i<MAX_EDICTS; ++i)
+	{
+		if (pInfo->m_pTransmitEdict->IsBitSet(i) && !g_pEntityCache[i])
+		{ // g_pEntityCache is basically just a quicker form of (CBaseEntity*)(&world_edict[i])->GetUnknown();
+			Warning(PROJECT_NAME " - networking: Tried to network an Entity that does not exist! (%i)\n", i);
+			pInfo->m_pTransmitEdict->Clear(i);
+			if (bIsHLTV)
+				pInfo->m_pTransmitAlways->Clear(i);
+		}
 	}
 #endif
 
