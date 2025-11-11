@@ -1862,7 +1862,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 			// simply because this ensures every player knows of every other players existance
 			for (int iPlayerIndex = 0; iPlayerIndex < gpGlobals->maxClients; ++iPlayerIndex)
 			{
-				if (g_pPlayerTransmitCache[iPlayerIndex].InFullUpdate(nCurrentTick))
+				if (g_pEntityCache[iPlayerIndex+1] && g_pPlayerTransmitCache[iPlayerIndex].InFullUpdate(nCurrentTick))
 					pInfo->m_pTransmitEdict->Set(iPlayerIndex);
 			}
 		}
