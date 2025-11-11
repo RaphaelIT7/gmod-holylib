@@ -94,9 +94,11 @@ namespace Symbols
 		Symbol::FromSignature("\x48\x89\x5C\x24\x08\x57\x48\x83\xEC\x40\x48\x8B\xFA\x48\x85\xC9", 0x1C),
 	};
 
-	const std::vector<Symbol> CSteam3Server_NotifyClientDisconnectSym = { // 64x = Search for "S3" and then go through every function upwards till you find one that somewhat matches the ASM of the 32x version.
+	const std::vector<Symbol> CSteam3Server_NotifyClientDisconnectSym = { // 64x = Search for "Dropped %s (%llu) from server (%s)\n"
 		Symbol::FromName("_ZN13CSteam3Server22NotifyClientDisconnectEP11CBaseClient"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x54\x53\x48\x89\xF3\x48\x83\xEC\x20\x48\x85\xF6"), // 55 48 89 E5 41 54 53 48 89 F3 48 83 EC 20 48 85 F6
+		Symbol::FromSignature("\x55\x8B\xEC\x83\xEC\x20\x53\x56\x8B\x75\x08"),
+		Symbol::FromSignature("\x48\x85\xD2\x0F\x84\x2A\x2A\x2A\x2A\x53\x57\x48\x83\xEC\x58"),
 	};
 
 	const Symbol SteamGameServer_ShutdownSym = Symbol::FromName("SteamGameServer_Shutdown"); // Same symbol for all versions.
@@ -106,6 +108,8 @@ namespace Symbols
 	const std::vector<Symbol> CM_VisSym = { // CM_Vis:
 		Symbol::FromName("_Z6CM_VisPhiii"),
 		Symbol::FromSignature("\x55\x83\xF9\x02\x48\x89\xE5\x41\x54\x53\x48\x89\xFB\x89\xD7\x89\xCA"), // 55 83 F9 02 48 89 E5 41 54 53 48 89 FB 89 D7 89 CA
+		Symbol::FromSignature("\x55\x8B\xEC\x51\x8B\x4D\x14"),
+		Symbol::FromSignature("\x40\x55\x48\x83\xEC\x30\x49\x63\xC1"),
 	};
 
 	const std::vector<Symbol> CBaseEntity_GetLuaEntitySym = {//Search for 'm_LuaEntity != ENTITY!'
@@ -115,9 +119,11 @@ namespace Symbols
 		Symbol::FromSignature("\x40\x57\x48\x83\xEC\x40********\x48\x8B\xF9"), // 40 57 48 83 EC 40 ?? ?? ?? ?? ?? ?? ?? ?? 48 8B F9
 	};
 
-	const std::vector<Symbol> CGameEventManager_CreateEventSym = {
+	const std::vector<Symbol> CGameEventManager_CreateEventSym = {// Search for "CreateEvent: event '%s' not registered."
 		Symbol::FromName("_ZN17CGameEventManager11CreateEventEPKcb"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x55\x41\x54\x53\x48\x89\xF3\x48\x83\xEC\x08\x48\x85\xF6**\x80\x3E\x00"), // 55 48 89 E5 41 55 41 54 53 48 89 F3 48 83 EC 08 48 85 F6 ?? ?? 80 3E 00
+		Symbol::FromSignature("\x55\x8B\xEC\x56\x8B\x75\x08\x57\x85\xF6\x74\x2A\x80\x3E\x00"),
+		Symbol::FromSignature("\x48\x89\x5C\x24\x08\x48\x89\x6C\x24\x10\x48\x89\x74\x24\x18\x57\x41\x56\x41\x57\x48\x83\xEC\x20\x45\x0F\xB6\xF8"),	
 	};
 
 	//---------------------------------------------------------------------------------

@@ -290,7 +290,6 @@ byte m_##name = 0;
 			symbolAddr = next + disp;                         // final address = next + disp32
 		}
 #elif defined(SYSTEM_WINDOWS) && defined(ARCHITECTURE_X86)
-		Warning(PROJECT_NAME ": Win x86 ! %x %x\n", ip[0], ip[1]);
 		// Primary: MOV ECX, imm32 (0xB9 + RVA as imm32) - your exact pattern
 		if (ip[0] == 0xB9) {
 			const size_t instrLen = 5;
@@ -313,17 +312,13 @@ byte m_##name = 0;
 			symbolAddr = reinterpret_cast<void*>(next + rva);
 		}
 #elif defined(SYSTEM_WINDOWS) && defined(ARCHITECTURE_X86_64)
-		Warning(PROJECT_NAME ": Win x64 ! %x %x\n", ip[0], ip[1]);
 		// LEA RCX, [RIP+imm32] (0x48 0x8D 0x0D + RVA)
 		// LEA loads the effective address directly, no need to dereference
 		if (ip[0] == 0x48 && ip[1] == 0x8D && ip[2] == 0x0D) {
 			const size_t instrLen = 7;
 			int32_t rva = *reinterpret_cast<int32_t*>(ip + 3);
-			Warning(PROJECT_NAME ": Win x64 LEA RCX, [imm32] (RVA: 0x%08X)\n", rva);
 			uint8_t* next = ip + instrLen;
-			Warning(PROJECT_NAME ": Win x64 next: %p\n", next);
 			symbolAddr = reinterpret_cast<void*>(next + rva);
-			Warning(PROJECT_NAME ": Win x64 symbolAddr: %p\n", symbolAddr);
 			// For LEA, symbolAddr is the direct address of the object
 			return reinterpret_cast<T*>(symbolAddr);
 		}
