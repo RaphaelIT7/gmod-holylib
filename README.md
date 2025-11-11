@@ -185,6 +185,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 \- [#] Renamed `HolyLib:OnPhysFrame` to `HolyLib:PrePhysFrame`<br>
 \- [#] Fixed a typo `bf_write:WriteBitVec3normal` -> `bf_write:WriteBitVec3Normal`<br>
 \- [#] Changed arguments and return value of `HolyLib:PostEntityConstructor`<br>
+\- [#] Changed `pvs.AddEntityToTransmit` to only work inside `HolyLib:PreCheckTransmit` due to safety & performance reasons<br>
 \- [-] Removed `VoiceData:GetUncompressedData` decompress size argument<br>
 \- [-] Removed `CBaseClient:Transmit` third argument `fragments`.<br>
 \- [-] Removed `gameserver.CalculateCPUUsage` and `gameserver.ApproximateProcessMemoryUsage` since they never worked.<br>
@@ -985,7 +986,8 @@ bool always - If the entity should always be transmitted? (Verify)<br>
 Adds the given Entity to be transmitted.
 
 > [!NOTE]
-> Only use this function inside the `HolyLib:[Pre/Post]CheckTransmit` hook!<br>
+> Only use this function inside the `HolyLib:PreCheckTransmit` hook!<br>
+> Do **not** use it inside `HolyLib:PostCheckTransmit` since its blocked there due to else needing some expensive changes.<br>
 
 #### (REMOVED AGAIN) pvs.IsEmptyBaseline()
 Returns `true` if the baseline is empty.<br>

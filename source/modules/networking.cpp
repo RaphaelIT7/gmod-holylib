@@ -1137,13 +1137,31 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 static EntityTransmitCache g_nEntityTransmitCache;
 
 // Full cache persisting across ticks, reset only when the player disconnects.
+static ConVar networking_check_empty_weaponslots("holylib_networking_check_empty_weaponslots", "0", 0, "Experimental - If enabled, it will also iterate over empty weapon slots reducing how frequently other weapons are transmitted by holylib_networking_transmit_one_per_tick");
 struct PlayerTransmitCache
 {
 	// Used for rotating weapon slots when networking
 	int nNextWeaponSlot = 0;
-	inline void NextTick()
+	int nHighestWeaponSlot = 0;
+	inline void NextTick(CBaseEntity* pPlayer)
 	{
-		if (++nNextWeaponSlot >= MAX_WEAPONS)
+		if (networking_check_empty_weaponslots.GetBool())
+		{
+			nHighestWeaponSlot = MAX_WEAPONS;
+			// Less frequent tramsits, though also better performance since we network less
+			// though in worst case it can cause CPU spikes if all players get a additional networked at the same time
+			// (though for that to happen they need to spawn all in the same tick, like when with testing bots)
+		} else {
+			for (int i=0; i<MAX_WEAPONS; ++i)
+			{
+				CBaseEntity *pWeapon = GetMyWeapon(pPlayer, i);
+				if (pWeapon)
+					nHighestWeaponSlot = i;
+			}
+		}
+
+		// If you have less weapons, they will be transmitted more frequently
+		if (++nNextWeaponSlot >= nHighestWeaponSlot)
 			nNextWeaponSlot = 0;
 	}
 
@@ -1198,6 +1216,15 @@ struct GlobalTransmitTickCache
 };
 static GlobalTransmitTickCache g_pGlobalTransmitTickCache;
 static PlayerTransmitTickCache g_pPlayerTransmitTickCache[MAX_PLAYERS] = {0};
+
+#if 0 // Would be needed for pvs.AddEntitiesToTransmit / this would need to be called after the HolyLib:PostCheckTransmit hook if we'd were to allow entity additions in there
+void Networking_DoPostTransmitCheck(CCheckTransmitInfo* pInfo)
+{
+	// Needed as else in PackEntities_Normal the entity may not be packed
+	// Causing a crash in CBaseServer::WriteDeltas as its missing the packed data then
+	pInfo->m_pTransmitEdict->Or(g_pGlobalTransmitTickCache.g_bWasSeenByPlayer, &g_pGlobalTransmitTickCache.g_bWasSeenByPlayer);
+}
+#endif
 
 static CBitVec<MAX_EDICTS> g_pDontTransmitCache; // Reset on every CServerGameEnts::CheckTransmit call
 #if !NETWORKING_USE_ENTITYCACHE // Not needed since our cache already excludes all the things by default
@@ -1510,7 +1537,6 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	if (clientIndex >= MAX_PLAYERS || clientIndex < 0)
 		return true; // We don't return false since we never want to transmit anything to a player in a invalid slot!
 
-	g_pPlayerTransmitCache[clientIndex].NextTick(); // Tick in advance
 	const Vector& clientPosition = (pRecipientPlayer->GetViewEntity() != NULL) ? pRecipientPlayer->GetViewEntity()->EyePosition() : pRecipientPlayer->EyePosition();
 	const int clientArea = networking_fastpath_usecluster.GetBool() ? Util::engineserver->GetClusterForOrigin(clientPosition) : Util::engineserver->GetArea(clientPosition);
 
@@ -1528,6 +1554,15 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	{
 		if (bFastPath)
 			Plat_FastMemset(g_pPlayerTransmitTickCache, 0, sizeof(g_pPlayerTransmitTickCache));
+
+		for (int iPlayerIndex = 1; iPlayerIndex <= gpGlobals->maxClients; ++iPlayerIndex)
+		{
+			CBaseEntity* pPlayer = g_pEntityCache[iPlayerIndex];
+			if (!pPlayer)
+				continue;
+
+			g_pPlayerTransmitCache[iPlayerIndex].NextTick(pPlayer);
+		}
 
 //#if NETWORKING_USE_ENTITYCACHE
 		g_nEntityTransmitCache.UpdateEntities(pEdictIndices, nEdicts);

@@ -51,6 +51,7 @@ static int pOriginalFlags[MAX_EDICTS];
 static CCheckTransmitInfo* g_pCurrentTransmitInfo = NULL;
 static const unsigned short *g_pCurrentEdictIndices = NULL;
 static int g_nCurrentEdicts = -1;
+static bool g_bBlockAdditonToTransmit = false;
 
 static Detouring::Hook detour_CServerGameEnts_CheckTransmit;
 #ifndef HOLYLIB_MANUALNETWORKING
@@ -126,12 +127,16 @@ static void hook_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheck
 		}
 	} else
 #endif
+	{
 		detour_CServerGameEnts_CheckTransmit.GetTrampoline<Symbols::CServerGameEnts_CheckTransmit>()(gameents, pInfo, pEdictIndices, nEdicts);
+	}
 
 	if(Lua::PushHook("HolyLib:PostCheckTransmit"))
 	{
+		g_bBlockAdditonToTransmit = true;
 		Util::Push_Entity(g_Lua, Util::servergameents->EdictToBaseEntity(pInfo->m_pClientEnt));
 		g_Lua->CallFunctionProtected(2, 0, true);
+		g_bBlockAdditonToTransmit = false;
 	}
 
 	if (bWasOverrideStateFlagsUsed)
@@ -625,6 +630,9 @@ static void AddEntityToTransmit(GarrysMod::Lua::ILuaInterface* pLua, CBaseEntity
 	if (!g_pCurrentTransmitInfo)
 		pLua->ThrowError("Tried to use pvs.RemoveEntityFromTransmit while not in a CheckTransmit call!");
 
+	if (g_bBlockAdditonToTransmit)
+		pLua->ThrowError("Tried to add a Entity to transmit! You should always do this inside HolyLib:PreCheckTransmit!");
+
 	ent->SetTransmit(g_pCurrentTransmitInfo, force);
 }
 
@@ -880,7 +888,7 @@ void CPVSModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 		Util::AddFunc(pLua, pvs_ForceFullUpdate, "ForceFullUpdate");
 		Util::AddFunc(pLua, pvs_GetEntitiesFromTransmit, "GetEntitiesFromTransmit");
 
-		// Use the functions below only inside the HolyLib:PostCheckTransmit hook.  
+		// Use the functions below only inside the HolyLib:[Pre/Post]CheckTransmit hook.  
 		Util::AddFunc(pLua, pvs_RemoveEntityFromTransmit, "RemoveEntityFromTransmit");
 		Util::AddFunc(pLua, pvs_RemoveAllEntityFromTransmit, "RemoveAllEntityFromTransmit");
 		Util::AddFunc(pLua, pvs_AddEntityToTransmit, "AddEntityToTransmit");
