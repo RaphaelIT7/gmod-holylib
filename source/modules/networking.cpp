@@ -2174,18 +2174,9 @@ DETOUR_THISCALL_START()
 DETOUR_THISCALL_FINISH();
 #endif
 
-static CGameEventManager* pGameEventManager = nullptr;
 void CNetworkingModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
-	if (appfn[0]) {
-		pGameEventManager = (CGameEventManager*)appfn[0](INTERFACEVERSION_GAMEEVENTSMANAGER2, NULL);
-	} else {
-		SourceSDK::FactoryLoader engine_loader("engine");
-		pGameEventManager = engine_loader.GetInterface<CGameEventManager>(INTERFACEVERSION_GAMEEVENTSMANAGER2);
-	}
-	Detour::CheckValue("get interface", "CGameEventManager", pGameEventManager != NULL);
-
-	pGameEventManager->AddListener(&g_pNetworkGameEventListener, "OnRequestFullUpdate", true);
+	Util::gameeventmanager->AddListener(&g_pNetworkGameEventListener, "OnRequestFullUpdate", true);
 }
 
 static SendTable* playerSendTable;
@@ -2488,7 +2479,7 @@ void CNetworkingModule::Shutdown()
 		return;
 	}
 
-	pGameEventManager->RemoveListener(&g_pNetworkGameEventListener);
+	Util::gameeventmanager->RemoveListener(&g_pNetworkGameEventListener);
 
 	/*
 	 * The code below to unload also belongs to sigsegv
