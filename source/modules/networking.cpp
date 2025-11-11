@@ -1118,6 +1118,14 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 	CBaseEntity* nPVSEntityList[MAX_EDICTS] = {NULL};
 	CBaseEntity* nFullEntityList[MAX_EDICTS] = {NULL};
 
+	/*
+		If holylib_networking_areasplit is enabled
+		we split all PVS entities into Areas
+		This allows us to first check if an area even connects to our and only if so, we check the entities inside
+		this save a LOT of performance as we heavily reduce PVS checks by checking areas first
+
+		ToDo: Think about if we should move Areas with 1-2 entities into the nPVSEntityList simply because its probably quicker to do a PVS check than area? (verify)
+	*/
 	struct AreaCache
 	{
 		CBaseEntity* nEntities[512];
@@ -1287,7 +1295,20 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 			g_bFilledDontTransmitWeaponCache[nEdictIndex] = true;
 		}
 #endif
+		/*
+			If your out for performance without wanting to loose default behavior the following settings can improve performance while having just a little downside
 
+			holylib_networking_transmit_all_weapons 0
+			holylib_networking_transmit_all_weapons_to_owner 0
+			holylib_networking_transmit_one_per_tick 1
+
+			This way, ONLY the active weapon is always networked and 1 weapon every tick is additionally networked
+			so after 255 Ticks a client will always have received an update for every weapon slot.
+
+			NOTE:
+			If you pick up a weapon and it does not become your active weapon
+			it may happen that the client won't receive an update till that slot is reached leaving them unable to select the weapon
+		*/
 		if (networking_transmit_one_per_tick.GetInt() == 1 || (networking_transmit_one_per_tick.GetInt() == 2 && bLocalPlayer))
 		{
 			int nSlot = g_pPlayerTransmitCache[pEdict->m_EdictIndex-1].nNextWeaponSlot;
