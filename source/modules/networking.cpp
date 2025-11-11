@@ -937,6 +937,8 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 	// Updates the cache for the current tick
 	void UpdateEntities(const unsigned short *pEdictIndices, int nEdicts)
 	{
+		m_bIsActivelyNetworking = true;
+
 		Plat_FastMemset(&pAlwaysTransmitBits, 0, sizeof(pAlwaysTransmitBits) * 4); // Again, very "safe"
 		//pAlwaysTransmitBits.ClearAll();
 		//pNeverTransmitBits.ClearAll();
@@ -1076,8 +1078,14 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 		}
 	}
 
-	void EntityRemoved(edict_t* pEdict)
+	void EntityRemoved(CBaseEntity* pEntity, edict_t* pEdict)
 	{
+		// Not networking? Then we can easily skip all this since everything is cleared on the next transmit anyways
+		if (!m_bIsActivelyNetworking)
+			return;
+
+		// Deleted during networking? Now you fked up.
+
 		int nIndex = pEdict->m_EdictIndex;
 		pAlwaysTransmitBits.Clear(nIndex);
 		pNeverTransmitBits.Clear(nIndex);
@@ -1086,6 +1094,56 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 
 		nEntityCluster[nIndex] = 0;
 		bDirtyEntities.Clear(nIndex);
+
+		for (int i = 0; i<nFullEdictCount; ++i)
+		{
+			CBaseEntity* pFullEnt = pFullEntityList[i];
+			if (pFullEnt != pEntity)
+				continue;
+
+			if (i < nFullEdictCount - 1)
+				memmove(&pFullEntityList[i], &pFullEntityList[i + 1], (nFullEdictCount - i - 1) * sizeof(CBaseEntity*));
+
+			--nFullEdictCount;
+			pFullEntityList[nFullEdictCount] = NULL;
+			break;
+		}
+
+		for (int i = 0; i<nPVSEdictCount; ++i)
+		{
+			CBaseEntity* pFullEnt = pFullEntityList[i];
+			if (pFullEnt != pEntity)
+				continue;
+
+			if (i < nPVSEdictCount - 1)
+				memmove(&pPVSEntityList[i], &pPVSEntityList[i + 1], (nPVSEdictCount - i - 1) * sizeof(CBaseEntity*));
+
+			--nPVSEdictCount;
+			pPVSEntityList[nPVSEdictCount] = NULL;
+			break;
+		}
+
+		for (int nArea = 0; nArea<MAX_MAP_AREAS-1; ++nArea)
+		{
+			AreaCache& pArea = nAreaEntities[nArea];
+			if (pArea.nCount == 0)
+				continue;
+
+			for (int i=0; i<pArea.nCount; ++i)
+			{
+				if (pArea.pEntities[i] != pEntity)
+					continue;
+
+				if (i < pArea.nCount - 1)
+					memmove(&pArea.pEntities[i], &pArea.pEntities[i + 1], (pArea.nCount - i - 1) * sizeof(CBaseEntity*));
+
+				--pArea.nCount;
+				pArea.pEntities[pArea.nCount] = NULL;
+				break;
+			}
+		}
+
+		DevMsg(PROJECT_NAME " - networking: An entity (class: %s) was deleted during networking! This is utterly expensive, stop this >:(\n", pEntity->GetClassname());
 	}
 
 	void AddPVSEntity(CBaseEntity* pEntity)
@@ -1170,6 +1228,13 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 
 		pArea.pEntities[pArea.nCount++] = pEntity;
 	}
+
+	inline void FinishNetworking()
+	{
+		m_bIsActivelyNetworking = false;
+	}
+
+	bool m_bIsActivelyNetworking = false;
 
 	CBitVec<MAX_EDICTS> pAlwaysTransmitBits;
 	CBitVec<MAX_EDICTS> pNeverTransmitBits;
@@ -2143,7 +2208,7 @@ void CNetworkingModule::OnEntityDeleted(CBaseEntity* pEntity)
 	if (!pEdict)
 		return;
 
-	g_nEntityTransmitCache.EntityRemoved(pEdict);
+	g_nEntityTransmitCache.EntityRemoved(pEntity, pEdict);
 	CleaupSetPreventTransmit(pEntity);
 	int entIndex = pEdict->m_EdictIndex;
 	g_pEntityCache[entIndex] = NULL;
