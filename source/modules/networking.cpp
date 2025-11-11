@@ -1203,51 +1203,37 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 static EntityTransmitCache g_nEntityTransmitCache;
 
 // Full cache persisting across ticks, reset only when the player disconnects.
-static ConVar networking_check_empty_weaponslots("holylib_networking_check_empty_weaponslots", "0", 0, "Experimental - If enabled, it will also iterate over empty weapon slots reducing how frequently other weapons are transmitted by holylib_networking_transmit_one_per_tick");
 static ConVar networking_transmit_newweapons("holylib_networking_transmit_newweapons", "1", 0, "Experimental - If enabled, weapons that a player equipped/was given are networked for the first x ticks");
 static ConVar networking_transmit_ticks("holylib_networking_transmit_ticks", "100", 0, "Experimental - How many ticks to use for transmit_newweapons & transmit_onfullupdate");
 static ConVar networking_transmit_onfullupdate("holylib_networking_transmit_onfullupdate", "1", 0, "Experimental - If enabled, players and their own weapons are transmitted for the first x ticks when they had a full update");
+static ConVar networking_transmit_onfullupdate_networktoothers("holylib_networking_transmit_onfullupdate_networktoothers", "1", 0, "Experimental - If enabled, any player that has a full update will be networked to everyone");
 struct PlayerTransmitCache
 {
 	inline void NextTick(const CBaseEntity* pPlayer, const int nTick)
 	{
-#if 0
-		if (networking_check_empty_weaponslots.GetBool())
+		int nTransmitTicks = networking_transmit_ticks.GetInt();
+		for (int i=0; i<MAX_WEAPONS; ++i)
 		{
-			nHighestWeaponSlot = MAX_WEAPONS;
-			// Less frequent tramsits, though also better performance since we network less
-			// though in worst case it can cause CPU spikes if all players get a additional networked at the same time
-			// (though for that to happen they need to spawn all in the same tick, like when with testing bots)
-		} else
-#endif
-		{
-			int nTransmitTicks = networking_transmit_ticks.GetInt();
-			for (int i=0; i<MAX_WEAPONS; ++i)
+			WeaponSlot& pSlot = pWeapons[i];
+			CBaseEntity *pWeapon = GetMyWeapon(pPlayer, i);
+			if (pWeapon)
 			{
-				WeaponSlot& pSlot = pWeapons[i];
-				CBaseEntity *pWeapon = GetMyWeapon(pPlayer, i);
-				if (pWeapon)
+				if (!pSlot.bIsValid || pWeapon != pSlot.pWeapon)
 				{
-					if (!pSlot.bIsValid || pWeapon != pSlot.pWeapon)
-					{
-						pSlot.bIsValid = true;
-						pSlot.bIsNew = true;
-						pSlot.nFreshTick = nTick + nTransmitTicks;
-						pSlot.pWeapon = pWeapon;
-					} else if (pSlot.nFreshTick < nTick) {
-						pSlot.bIsNew = false;
-					}
-
-					nHighestWeaponSlot = i;
-				} else {
-					pSlot.bIsValid = false;
+					pSlot.bIsValid = true;
+					pSlot.bIsNew = true;
+					pSlot.nFreshTick = nTick + nTransmitTicks;
+					pSlot.pWeapon = pWeapon;
+				} else if (pSlot.nFreshTick < nTick) {
 					pSlot.bIsNew = false;
 				}
+
+				nHighestWeaponSlot = i;
+			} else {
+				pSlot.bIsValid = false;
+				pSlot.bIsNew = false;
 			}
 		}
-
-		if (networking_check_empty_weaponslots.GetBool())
-			nHighestWeaponSlot = MAX_WEAPONS;
 
 		// If you have less weapons, they will be transmitted more frequently
 		if (++nNextWeaponSlot >= nHighestWeaponSlot)
@@ -1863,7 +1849,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 				// but not all their weapon since that could cause a overflow due to the amount of data that could be sent at once
 				pInfo->m_pTransmitEdict->Set(iPlayerIndex);
 			}
-		} else {
+		} else if (networking_transmit_onfullupdate_networktoothers.GetBool()) {
 			// In this case, if any other player is having a full update, we network them to all others
 			// simply because this ensures every player knows of every other players existance
 			for (int iPlayerIndex = 0; iPlayerIndex < gpGlobals->maxClients; ++iPlayerIndex)

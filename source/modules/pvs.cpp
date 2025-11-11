@@ -52,6 +52,8 @@ static CCheckTransmitInfo* g_pCurrentTransmitInfo = NULL;
 static const unsigned short *g_pCurrentEdictIndices = NULL;
 static int g_nCurrentEdicts = -1;
 static bool g_bBlockAdditonToTransmit = false;
+static bool g_bEnableLuaPreTransmitHook = false;
+static bool g_bEnableLuaPostTransmitHook = false;
 
 static Detouring::Hook detour_CServerGameEnts_CheckTransmit;
 #ifndef HOLYLIB_MANUALNETWORKING
@@ -64,7 +66,7 @@ static void hook_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheck
 	g_pCurrentEdictIndices = pEdictIndices;
 	g_nCurrentEdicts = nEdicts;
 
-	if(Lua::PushHook("HolyLib:PreCheckTransmit"))
+	if(g_bEnableLuaPreTransmitHook && Lua::PushHook("HolyLib:PreCheckTransmit"))
 	{
 		Util::Push_Entity(g_Lua, Util::servergameents->EdictToBaseEntity(pInfo->m_pClientEnt));
 		if (g_Lua->CallFunctionProtected(2, 1, true))
@@ -131,7 +133,7 @@ static void hook_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheck
 		detour_CServerGameEnts_CheckTransmit.GetTrampoline<Symbols::CServerGameEnts_CheckTransmit>()(gameents, pInfo, pEdictIndices, nEdicts);
 	}
 
-	if(Lua::PushHook("HolyLib:PostCheckTransmit"))
+	if(g_bEnableLuaPostTransmitHook && Lua::PushHook("HolyLib:PostCheckTransmit"))
 	{
 		g_bBlockAdditonToTransmit = true;
 		Util::Push_Entity(g_Lua, Util::servergameents->EdictToBaseEntity(pInfo->m_pClientEnt));
@@ -861,10 +863,29 @@ LUA_FUNCTION_STATIC(pvs_GetEntitiesFromTransmit)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(pvs_EnablePreTransmitHook)
+{
+	g_bEnableLuaPreTransmitHook = LUA->GetBool(1);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(pvs_EnablePostTransmitHook)
+{
+	g_bEnableLuaPostTransmitHook = LUA->GetBool(1);
+	return 0;
+}
+
 void CPVSModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
+
+	if (pLua == g_Lua)
+	{
+		// Resetting it on changelevel & such
+		g_bEnableLuaPreTransmitHook = false;
+		g_bEnableLuaPostTransmitHook = false;
+	}
 
 	mapPVSSize = ceil(Util::engineserver->GetClusterCount() / 8.0f);
 
@@ -892,6 +913,9 @@ void CPVSModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 		Util::AddFunc(pLua, pvs_RemoveEntityFromTransmit, "RemoveEntityFromTransmit");
 		Util::AddFunc(pLua, pvs_RemoveAllEntityFromTransmit, "RemoveAllEntityFromTransmit");
 		Util::AddFunc(pLua, pvs_AddEntityToTransmit, "AddEntityToTransmit");
+
+		Util::AddFunc(pLua, pvs_EnablePreTransmitHook, "EnablePreTransmitHook");
+		Util::AddFunc(pLua, pvs_EnablePostTransmitHook, "EnablePostTransmitHook");
 
 		Util::AddValue(pLua, LUA_FL_EDICT_DONTSEND, "FL_EDICT_DONTSEND");
 		Util::AddValue(pLua, LUA_FL_EDICT_ALWAYS, "FL_EDICT_ALWAYS");
