@@ -99,7 +99,8 @@ static void hook_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheck
 	{
 		for (int i=0; i<g_pAddEntityToPVS.GetNumBits(); ++i)
 		{
-			Util::servergameents->EdictToBaseEntity(&pWorld[i])->SetTransmit(pInfo, true);
+			if (g_pAddEntityToPVS.IsBitSet(i))
+				Util::servergameents->EdictToBaseEntity(&pWorld[i])->SetTransmit(pInfo, true);
 		}
 	}
 
