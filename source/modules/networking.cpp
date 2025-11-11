@@ -943,7 +943,7 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 
 		nPVSEdictCount = -1;
 		nFullEdictCount = -1; // -1 so that we can use preincrement :hehe:
-		Plat_FastMemset(nPVSEntityList, 0, sizeof(nPVSEntityList) * 2); // * 2 to also clear nFullEdictList which lies directly after it in memory. I know. very "safe" but I want this in 1 call
+		Plat_FastMemset(pPVSEntityList, 0, sizeof(pPVSEntityList) * 2); // * 2 to also clear nFullEdictList which lies directly after it in memory. I know. very "safe" but I want this in 1 call
 		Plat_FastMemset(nAreaEntities, 0, sizeof(nAreaEntities));
 
 		// First we build data based off all players
@@ -1024,7 +1024,7 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 
 				if (nFlags == FL_EDICT_FULLCHECK)
 				{
-					nFullEntityList[++nFullEdictCount] = pEnt;
+					pFullEntityList[++nFullEdictCount] = pEnt;
 					pFullTransmitBits.Set(iEdict);
 					continue;
 				}
@@ -1035,7 +1035,7 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 					{
 						AddPVSEntity(pEnt);
 					} else {
-						nPVSEntityList[++nPVSEdictCount] = pEnt;
+						pPVSEntityList[++nPVSEdictCount] = pEnt;
 					}
 					pPVSTransmitBits.Set(iEdict);
 					continue;
@@ -1050,23 +1050,23 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 		{
 			Msg("Fullcheck:\n");
 			for (int i=0; i<nFullEdictCount; ++i)
-				Msg("    %i: %s[%i]\n", i, nFullEntityList[i]->GetClassname(), nFullEntityList[i]->edict()->m_EdictIndex);
+				Msg("    %i: %s[%i]\n", i, pFullEntityList[i]->GetClassname(), pFullEntityList[i]->edict()->m_EdictIndex);
 
 			Msg("PVS:\n");
 			for (int i=0; i<nPVSEdictCount; ++i)
-				Msg("    %i: %s[%i]\n", i, nPVSEntityList[i]->GetClassname(), nPVSEntityList[i]->edict()->m_EdictIndex);
+				Msg("    %i: %s[%i]\n", i, pPVSEntityList[i]->GetClassname(), pPVSEntityList[i]->edict()->m_EdictIndex);
 
 			if (networking_areasplit.GetBool())
 			{
-				for (int nArea = 0; nArea<MAX_MAP_AREAS; ++nArea)
+				for (int nArea = 0; nArea<MAX_MAP_AREAS-1; ++nArea)
 				{
 					AreaCache& pArea = nAreaEntities[nArea];
 					if (pArea.nCount == 0)
 						continue;
 
-					Msg("Area %i [%i]:\n", nArea, pArea.nCount);
+					Msg("Area %i [%i]:\n", nArea+1, pArea.nCount);
 					for (int i=0; i<pArea.nCount; ++i)
-						Msg("    %i: %s[%i]\n", i, pArea.nEntities[i]->GetClassname(), pArea.nEntities[i]->edict()->m_EdictIndex);
+						Msg("    %i: %s[%i]\n", i, pArea.pEntities[i]->GetClassname(), pArea.pEntities[i]->edict()->m_EdictIndex);
 				}
 			}
 
@@ -1089,20 +1089,27 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 	void AddPVSEntity(CBaseEntity* pEntity)
 	{
 		int nArea = Util::engineserver->GetArea(pEntity->GetAbsOrigin());
-		if (nArea >= MAX_MAP_AREAS || nArea < 0)
+		if (nArea == 0)
 		{
-			nPVSEntityList[++nPVSEdictCount] = pEntity;
+			// Pray that this fallback works
+			nArea = Util::engineserver->GetArea(pEntity->WorldSpaceCenter());
+		}
+
+		if (nArea >= MAX_MAP_AREAS || nArea <= 0) // if == 0 then also invalid
+		{
+			pPVSEntityList[++nPVSEdictCount] = pEntity;
 			return;
 		}
 
-		AreaCache& pArea = nAreaEntities[nArea];
+		// We do -1 since nArea 0 is not actually an valid area
+		AreaCache& pArea = nAreaEntities[nArea-1];
 		if (pArea.nCount >= 512)
 		{
-			nPVSEntityList[++nPVSEdictCount] = pEntity;
+			pPVSEntityList[++nPVSEdictCount] = pEntity;
 			return;
 		}
 
-		pArea.nEntities[pArea.nCount++] = pEntity;
+		pArea.pEntities[pArea.nCount++] = pEntity;
 	}
 
 	CBitVec<MAX_EDICTS> pAlwaysTransmitBits;
@@ -1115,8 +1122,8 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 
 	int nPVSEdictCount = -1; // NOTE: This will only contain entities that were unable to be fitted into an AreaCache! (only happens on overflow)
 	int nFullEdictCount = -1;
-	CBaseEntity* nPVSEntityList[MAX_EDICTS] = {NULL};
-	CBaseEntity* nFullEntityList[MAX_EDICTS] = {NULL};
+	CBaseEntity* pPVSEntityList[MAX_EDICTS] = {NULL};
+	CBaseEntity* pFullEntityList[MAX_EDICTS] = {NULL};
 
 	/*
 		If holylib_networking_areasplit is enabled
@@ -1128,11 +1135,11 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 	*/
 	struct AreaCache
 	{
-		CBaseEntity* nEntities[512];
+		CBaseEntity* pEntities[512];
 		int nCount = 0;
 	};
 
-	AreaCache nAreaEntities[MAX_MAP_AREAS];
+	AreaCache nAreaEntities[MAX_MAP_AREAS-1]; // -1 since Area 0 is not a valid one so we save some bytes
 };
 static EntityTransmitCache g_nEntityTransmitCache;
 
@@ -1610,7 +1617,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 
 	for (int i=0; i<g_nEntityTransmitCache.nFullEdictCount; ++i)
 	{
-		CBaseEntity* pEnt = g_nEntityTransmitCache.nFullEntityList[i];
+		CBaseEntity* pEnt = g_nEntityTransmitCache.pFullEntityList[i];
 
 		int iEdict = pEnt->edict()->m_EdictIndex;
 		if (iEdict == clientEntIndex) {
@@ -1645,18 +1652,19 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	if (networking_areasplit.GetBool())
 	{
 		int nClientArea = Util::engineserver->GetArea(clientPosition);
-		for (int nArea = 0; nArea<MAX_MAP_AREAS; ++nArea)
+		for (int nArea = 0; nArea<MAX_MAP_AREAS-1; ++nArea)
 		{
 			EntityTransmitCache::AreaCache& pArea = g_nEntityTransmitCache.nAreaEntities[nArea];
 			if (pArea.nCount == 0)
 				continue;
 
-			if (!Util::engineserver->CheckAreasConnected(nClientArea, nArea))
+			// +1 since we shifted everythign by 1 to remove Area0 saving some KB
+			if (!Util::engineserver->CheckAreasConnected(nClientArea, nArea+1))
 				continue;
 
 			for (int i=0; i<pArea.nCount; ++i)
 			{
-				CBaseEntity* pEnt = pArea.nEntities[i];
+				CBaseEntity* pEnt = pArea.pEntities[i];
 
 				edict_t* pEdict = pEnt->edict();
 				int iEdict = pEdict->m_EdictIndex;
@@ -1671,7 +1679,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 
 	for (int i=0; i<g_nEntityTransmitCache.nPVSEdictCount; ++i)
 	{
-		CBaseEntity* pEnt = g_nEntityTransmitCache.nPVSEntityList[i];
+		CBaseEntity* pEnt = g_nEntityTransmitCache.pPVSEntityList[i];
 
 		edict_t* pEdict = pEnt->edict();
 		int iEdict = pEdict->m_EdictIndex;
