@@ -1907,7 +1907,7 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 #if ARCHITECTURE_IS_X86
 	g_pPathIDTable = Detour::ResolveSymbol<CUtlSymbolTableMT>(filesystem_loader, Symbols::g_PathIDTableSym);
 #else
-	g_pPathIDTable = Detour::ResolveSymbolFromLea<CUtlSymbolTableMT>(filesystem_loader.GetModule(), Symbols::g_PathIDTableSym);
+	g_pPathIDTable = Detour::ResolveSymbolWithOffset<CUtlSymbolTableMT>(filesystem_loader.GetModule(), Symbols::g_PathIDTableSym);
 #endif
 	Detour::CheckValue("get class", "g_PathIDTable", g_pPathIDTable != NULL);
 }

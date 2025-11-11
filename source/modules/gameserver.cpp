@@ -3172,7 +3172,7 @@ void CGameServerModule::InitDetour(bool bPreServer)
 #if ARCHITECTURE_IS_X86
 	s_NetChannels = Detour::ResolveSymbol<CUtlVectorMT<CUtlVector<CNetChan*>>>(engine_loader, Symbols::s_NetChannelsSym);
 #else
-	s_NetChannels = Detour::ResolveSymbolFromLea<CUtlVectorMT<CUtlVector<CNetChan*>>>(engine_loader.GetModule(), Symbols::s_NetChannelsSym);
+	s_NetChannels = Detour::ResolveSymbolWithOffset<CUtlVectorMT<CUtlVector<CNetChan*>>>(engine_loader.GetModule(), Symbols::s_NetChannelsSym);
 #endif
 
 	host_timescale = g_pCVar->FindVar("host_timescale");

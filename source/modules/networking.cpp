@@ -2054,14 +2054,14 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 #if ARCHITECTURE_IS_X86
 	PropTypeFns* pPropTypeFns = Detour::ResolveSymbol<PropTypeFns>(engine_loader, Symbols::g_PropTypeFnsSym);
 #else
-	PropTypeFns* pPropTypeFns = Detour::ResolveSymbolFromLea<PropTypeFns>(engine_loader.GetModule(), Symbols::g_PropTypeFnsSym);
+	PropTypeFns* pPropTypeFns = Detour::ResolveSymbolWithOffset<PropTypeFns>(engine_loader.GetModule(), Symbols::g_PropTypeFnsSym);
 #endif
 	Detour::CheckValue("get class", "pPropTypeFns", pPropTypeFns != NULL);
 
 #if ARCHITECTURE_IS_X86
 	g_BSPData = Detour::ResolveSymbol<CCollisionBSPData>(engine_loader, Symbols::g_BSPDataSym);
 #else
-	g_BSPData = Detour::ResolveSymbolFromLea<CCollisionBSPData>(engine_loader.GetModule(), Symbols::g_BSPDataSym);
+	g_BSPData = Detour::ResolveSymbolWithOffset<CCollisionBSPData>(engine_loader.GetModule(), Symbols::g_BSPDataSym);
 #endif
 	Detour::CheckValue("get class", "CCollisionBSPData", g_BSPData != NULL);
 	
