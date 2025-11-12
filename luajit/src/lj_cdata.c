@@ -40,8 +40,7 @@ GCcdata *lj_cdata_newv(lua_State *L, CTypeID id, CTSize sz, CTSize align)
   cdatav(cd)->extra = extra;
   cdatav(cd)->len = sz;
   g = G(L);
-  setgcrefr(cd->nextgc, g->gc.root);
-  setgcref(g->gc.root, obj2gco(cd));
+  lj_gc_addtoroot(g, obj2gco(cd));
   newwhite(g, obj2gco(cd));
   cd->marked |= LJ_GC_ISCDATA;
   cd->gct = ~LJ_TCDATA;
