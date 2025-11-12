@@ -1649,7 +1649,7 @@ Theses are the CounterGroup_t enums.<br>
 If enabled, vprof results will be dumped into a file in the vprof/ folder<br>
 
 ### cvars
-This module adds one function to the `cvars` library.<br>
+This module adds a seperate `cvar` library with new functions.<br>
 
 Supports: Linux32 | Linux64 | Windows32 | Windows64<br>
 
