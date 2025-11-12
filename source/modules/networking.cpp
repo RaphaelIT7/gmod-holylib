@@ -1338,6 +1338,7 @@ struct PlayerTransmitCache
 	int nHighestWeaponSlot = 0;
 	WeaponSlot pWeapons[MAX_WEAPONS];
 };
+// NOTE: Index is playerslot / entindex - 1
 static PlayerTransmitCache g_pPlayerTransmitCache[MAX_PLAYERS];
 
 class NetworkingGameEventListener : public IGameEventListener2
@@ -1748,6 +1749,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	MDLCACHE_CRITICAL_SECTION();
 	CBasePlayer *pRecipientPlayer = static_cast<CBasePlayer*>(pRecipientEntity);
 	const int skyBoxArea = GetSkybox3DArea(pRecipientPlayer);
+	// player index / entindex - 1
 	const int clientIndex = pInfo->m_pClientEnt->m_EdictIndex - 1;
 
 	// BUG: Can this even happen? Probably, when people screw with the gameserver module & disable spawn safety
@@ -1779,7 +1781,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 			if (!pPlayer)
 				continue;
 
-			g_pPlayerTransmitCache[iPlayerIndex].NextTick(pPlayer, nCurrentTick);
+			g_pPlayerTransmitCache[iPlayerIndex-1].NextTick(pPlayer, nCurrentTick);
 		}
 
 //#if NETWORKING_USE_ENTITYCACHE
