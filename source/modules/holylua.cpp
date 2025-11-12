@@ -58,17 +58,8 @@ static void lua_run_holylibCmd(const CCommand &args)
 }
 static ConCommand lua_run_holylib("lua_run_holylib", lua_run_holylibCmd, "Runs code in the holylib lua state", 0);
 
-static CGameEventManager* pGameEventManager = nullptr;
 void CHolyLuaModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
-	if (appfn[0]) {
-		pGameEventManager = (CGameEventManager*)appfn[0](INTERFACEVERSION_GAMEEVENTSMANAGER2, NULL);
-	} else {
-		SourceSDK::FactoryLoader engine_loader("engine");
-		pGameEventManager = engine_loader.GetInterface<CGameEventManager>(INTERFACEVERSION_GAMEEVENTSMANAGER2);
-	}
-	Detour::CheckValue("get interface", "CGameEventManager", pGameEventManager != NULL);
-
 	g_pHolyLuaModule.HolyLua_Init();
 }
 
@@ -186,8 +177,7 @@ public:
 			LUA->CallFunctionProtected(2, 0, true);
 		}
 
-		if (pGameEventManager)
-			pGameEventManager->FreeEvent(m_pEvent);
+		Util::gameeventmanager->FreeEvent(m_pEvent);
 	}
 
 private:
@@ -206,10 +196,7 @@ public:
 
 	void FireGameEvent(IGameEvent* pEvent)
 	{
-		if (!pGameEventManager)
-			return;
-
-		CLuaGameEventCallbackCall* pCallback = new CLuaGameEventCallbackCall(pGameEventManager->DuplicateEvent(pEvent));
+		CLuaGameEventCallbackCall* pCallback = new CLuaGameEventCallbackCall(Util::gameeventmanager->DuplicateEvent(pEvent));
 		m_pLua->AddThreadedCall((GarrysMod::Lua::ILuaThreadedCall*)pCallback);
 	}
 
@@ -228,8 +215,8 @@ LUA_FUNCTION_STATIC(gameevent_Listen) {
 	const char* name = LUA->CheckString(1);
 
 	auto pData = GetHolyLuaLuaData(LUA);
-	if (!pGameEventManager->FindListener(&pData->m_pEventListener, name))
-		pGameEventManager->AddListener(&pData->m_pEventListener, name, false);
+	if (!Util::gameeventmanager->FindListener(&pData->m_pEventListener, name))
+		Util::gameeventmanager->AddListener(&pData->m_pEventListener, name, false);
  
 	return 0;
 }
@@ -254,9 +241,6 @@ void CHolyLuaModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 	if (pLua != g_HolyLua)
 		return;
 
-	if (pGameEventManager)
-	{
-		auto pData = GetHolyLuaLuaData(pLua);
-		pGameEventManager->RemoveListener(&pData->m_pEventListener);
-	}
+	auto pData = GetHolyLuaLuaData(pLua);
+	Util::gameeventmanager->RemoveListener(&pData->m_pEventListener);
 }

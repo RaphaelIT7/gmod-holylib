@@ -185,6 +185,8 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 \- [#] Renamed `HolyLib:OnPhysFrame` to `HolyLib:PrePhysFrame`<br>
 \- [#] Fixed a typo `bf_write:WriteBitVec3normal` -> `bf_write:WriteBitVec3Normal`<br>
 \- [#] Changed arguments and return value of `HolyLib:PostEntityConstructor`<br>
+\- [#] Changed `pvs.AddEntityToTransmit` to only work inside `HolyLib:PreCheckTransmit` due to safety & performance reasons<br>
+\- [#] Changed `HolyLib:[Pre/Post]CheckTransmit` hooks to be disabled by default needing to be now enabled using `pvs.Enable[Pre/Post]TransmitHook`<br>
 \- [-] Removed `VoiceData:GetUncompressedData` decompress size argument<br>
 \- [-] Removed `CBaseClient:Transmit` third argument `fragments`.<br>
 \- [-] Removed `gameserver.CalculateCPUUsage` and `gameserver.ApproximateProcessMemoryUsage` since they never worked.<br>
@@ -985,7 +987,8 @@ bool always - If the entity should always be transmitted? (Verify)<br>
 Adds the given Entity to be transmitted.
 
 > [!NOTE]
-> Only use this function inside the `HolyLib:[Pre/Post]CheckTransmit` hook!<br>
+> Only use this function inside the `HolyLib:PreCheckTransmit` hook!<br>
+> Do **not** use it inside `HolyLib:PostCheckTransmit` since its blocked there due to else needing some expensive changes.<br>
 
 #### (REMOVED AGAIN) pvs.IsEmptyBaseline()
 Returns `true` if the baseline is empty.<br>
@@ -1018,6 +1021,14 @@ Forces a full update for the specific client.<br>
 #### table pvs.GetEntitesFromTransmit()
 Returns a table containing all entities that will be networked.<br>
 
+#### pvs.EnablePreTransmitHook(bool enable = false)
+Enables/Disables the `HolyLib:PreCheckTransmit` hook.<br>
+The internal value is reset on mapchange, so you need to set it always again on Lua startup.<br>
+
+#### pvs.EnablePostTransmitHook(bool enable = false)
+Enables/Disables the `HolyLib:PostCheckTransmit` hook.<br>
+The internal value is reset on mapchange, so you need to set it always again on Lua startup.<br>
+
 ### Enums
 
 #### pvs.FL_EDICT_DONTSEND = 1<br>
@@ -1040,8 +1051,14 @@ Return `true` to cancel it.<br>
 
 You could do the transmit stuff yourself inside this hook.<br>
 
+> [!NOTE]
+> This hook needs to be enabled first using `pvs.EnablePreTransmitHook(true)`<br>
+
 #### HolyLib:PostCheckTransmit(Entity ply)
 entity ply - The player that everything is transmitted to.<br>
+
+> [!NOTE]
+> This hook needs to be enabled first using `pvs.EnablePostTransmitHook(true)`<br>
 
 ## surffix
 This module ports over [Momentum Mod's](https://github.com/momentum-mod/game/blob/develop/mp/src/game/shared/momentum/mom_gamemovement.cpp#L2393-L2993) surf fixes.<br>
@@ -2221,6 +2238,23 @@ Will become useless with https://github.com/Facepunch/garrysmod-requests/issues/
 #### holylib_networking_bind_viewmodels_to_player(default `1`)
 If enabled, the viewmodels will be bound to the player and only networked if the player is networked.<br>
 Will become useless with https://github.com/Facepunch/garrysmod-requests/issues/2839<br>
+
+#### holylib_networking_transmit_newweapons(default `1`)
+If enabled, weapons that a player newly picked up will be networked to them.<br>
+Only functional/mean to be used with both `holylib_networking_transmit_all_weapons` and `holylib_networking_transmit_all_weapons_to_owner` being disabled<br>
+This saves lots of networking by only networking off hand weapons when they change/update and won't continously send updates about them<br>
+
+#### holylib_networking_transmit_onfullupdate(default `1`)
+If enabled, players and their own weapons are transmitted for the first x ticks when they had a full update<br>
+This means, if your client has a full update, you will be networked all other players(not their weapons only the player themselves due to performance reasons) and your own weapons.<br>
+
+#### holylib_networking_transmit_onfullupdate_networktoothers(default `1`)
+Depends on `holylib_networking_transmit_onfullupdate` being enabled.<br>
+For other players, if another player has a full update, they will be networked to everyone to ensure that every player knows of every other players existance.<br>
+
+#### holylib_networking_transmit_ticks(default `100`)
+How many ticks are used in which new weapons or full updates are networked.<br>
+This tick count is used by the `holylib_networking_transmit_newweapons`, `holylib_networking_transmit_onfullupdate` and `holylib_networking_transmit_onfullupdate_networktoothers` convars internally.<br>
 
 ## steamworks
 This module adds a few functions related to steam.<br>
@@ -5099,6 +5133,7 @@ Mostly only useful to influence which soundscape could be selected.<br>
 
 #### soundscape.EnableUpdateHook(bool enable = false)
 Enables/Disables the `HolyLib:OnSoundScapeUpdateForPlayer` hook.<br>
+The internal value is reset on mapchange, so you need to set it always again on Lua startup.<br>
 
 ### Hooks
 
