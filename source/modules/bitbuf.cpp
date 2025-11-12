@@ -3,6 +3,7 @@
 #include "module.h"
 #include "lua.h"
 #include "bitbuf.h"
+#include <memory>
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
