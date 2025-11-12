@@ -418,32 +418,39 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: vprof Symbols
 	//---------------------------------------------------------------------------------
-	const std::vector<Symbol> CLuaGamemode_CallFinishSym = {
+	const std::vector<Symbol> CLuaGamemode_CallFinishSym = {//Search for "CLuaGamemode::CallFinish"
 		Symbol::FromName("_ZN12CLuaGamemode10CallFinishEi"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x56\x41\x55\x41\x54\x41\x89\xF4\x53\x48\x8B\x1D****\x8B\x93\x0C\x10\x00\x00"), // 55 48 89 E5 41 56 41 55 41 54 41 89 F4 53 48 8B 1D ?? ?? ?? ?? 8B 93 0C 10 00 00
 		Symbol::FromSignature("\x55\x8B\xEC\x8B\x0D****\x53\x56\x8B\xB1\x0C\x10\x00\x00\x85\xF6**\x6A\x04\x6A\x00\x68****\x6A\x00\x68**********\x8B\x0D****\x8B\x45\x08"), //  55 8B EC 8B 0D ?? ?? ?? ?? 53 56 8B B1 0C 10 00 00 85 F6 ?? ?? 6A 04 6A 00 68 ?? ?? ?? ?? 6A 00 68 ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? 8B 0D ?? ?? ?? ?? 8B 45 08
+		Symbol::FromSignature("\x40\x53\x48\x83\xEC\x30\x48\x8B\x0D\x2A\x2A\x2A\x2A\x8D\x5A\x02"), //40 53 48 83 EC 30 48 8B 0D ? ? ? ? 8D 5A 02
 	};
 
 	const std::vector<Symbol> CLuaGamemode_CallWithArgsSym = { // int version - Look at the difference in the call to [GM:CallWithArgs - !ThreadInMainThread]
 		Symbol::FromName("_ZN12CLuaGamemode12CallWithArgsEi"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x89\xF7\x41\x56\x41\x55\x49\x89\xFD\x41\x54\x53\x48\x83\xEC\x18"), // 55 48 89 E5 41 57 41 89 F7 41 56 41 55 49 89 FD 41 54 53 48 83 EC 18
 		Symbol::FromSignature("\x55\x8B\xEC\x53\x56\x57\x8B\xF9\x8B\x0D****\x8B\xB1\x0C\x10\x00\x00\x85\xF6**\x6A\x04\x6A\x00\x68****\x6A\x00\x68**********\xFF\x15****\x84\xC0**\x8B\x0D****\xFF\x75\x08\x8B\x01\xFF\x90\xEC\x01\x00\x00\x50\x68****\xFF\x15****\x8B\x07\x8B\xCF\x8B\x80\x8C\x00\x00\x00\xFF\xD0\x84\xC0**\x8B\x47\x3C\x8D\x4F\x3C"), //  55 8B EC 53 56 57 8B F9 8B 0D ?? ?? ?? ?? 8B B1 0C 10 00 00 85 F6 ?? ?? 6A 04 6A 00 68 ?? ?? ?? ?? 6A 00 68 ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? FF 15 ?? ?? ?? ?? 84 C0 ?? ?? 8B 0D ?? ?? ?? ?? FF 75 08 8B 01 FF 90 EC 01 00 00 50 68 ?? ?? ?? ?? FF 15 ?? ?? ?? ?? 8B 07 8B CF 8B 80 8C 00 00 00 FF D0 84 C0 ?? ?? 8B 47 3C 8D 4F 3C
+		Symbol::FromSignature("\x40\x53\x48\x83\xEC\x30\x48\x89\x6C\x24\x40\x48\x8B\xD9\x48\x8B\x0D\x2A\x2A\x2A\x2A\x8B\xEA\x48\x89\x74\x24\x48\x8B\xB1\x0C\x10\x00\x00\x85\xF6\x74\x2A\xC7\x44\x24\x28\x04\x00\x00\x00\x4C\x8D\x0D\x2A\x2A\x2A\x2A\x45\x33\xC0\xC6\x44\x24\x20\x00\x48\x8D\x15\x2A\x2A\x2A\x2A\xFF\x15\x26\x23\x75\x00"), //  0 53 48 83 EC 30 48 89 6C 24 40 48 8B D9 48 8B 0D ? ? ? ? 8B EA 48 89 74 24 48 8B B1 0C 10 00 00 85 F6 74 ? C7 44 24 28 04 00 00 00 4C 8D 0D ? ? ? ? 45 33 C0 C6 44 24 20 00 48 8D 15 ? ? ? ? FF 15 26 23 75 00
 	};
 
-	const std::vector<Symbol> CLuaGamemode_CallWithArgsStrSym = {
+	const std::vector<Symbol> CLuaGamemode_CallWithArgsStrSym = { 
 		Symbol::FromName("_ZN12CLuaGamemode12CallWithArgsEPKc"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x49\x89\xF7\x41\x56\x41\x55\x49\x89\xFD\x41\x54\x53\x48\x83\xEC\x18*******\x8B\x93\x0C\x10\x00\x00\x85\xD2\x41\x0F\x95\xC6"), // 55 48 89 E5 41 57 49 89 F7 41 56 41 55 49 89 FD 41 54 53 48 83 EC 18 ?? ?? ?? ?? ?? ?? ?? 8B 93 0C 10 00 00 85 D2 41 0F 95 C6
+		Symbol::FromSignature("\x40\x53\x48\x83\xEC\x30\x48\x89\x6C\x24\x40\x48\x8B\xD9\x48\x8B\x0D\x2A\x2A\x2A\x2A\x48\x8B\xEA\x48\x89\x74\x24\x48\x8B\xB1\x0C\x10\x00\x00\x85\xF6\x74\x2A\xC7\x44\x24\x28\x04\x00\x00\x00\x4C\x8D\x0D\x2A\x2A\x2A\x2A\x45\x33\xC0\xC6\x44\x24\x20\x00\x48\x8D\x15\x2A\x2A\x2A\x2A\xFF\x15\x25\x22\x75\x00"), //40 53 48 83 EC 30 48 89 6C 24 40 48 8B D9 48 8B 0D ? ? ? ? 48 8B EA 48 89 74 24 48 8B B1 0C 10 00 00 85 F6 74 ? C7 44 24 28 04 00 00 00 4C 8D 0D ? ? ? ? 45 33 C0 C6 44 24 20 00 48 8D 15 ? ? ? ? FF 15 25 22 75 00
+		Symbol::FromSignature("\x40\x53\x48\x83\xEC\x30\x48\x89\x6C\x24\x40\x48\x8B\xD9\x48\x8B\x0D\x2A\x2A\x2A\x2A\x48\x8B\xEA\x48\x89\x74\x24\x48\x8B\xB1\x0C\x10\x00\x00\x85\xF6\x74\x2A\xC7\x44\x24\x28\x04\x00\x00\x00\x4C\x8D\x0D\x2A\x2A\x2A\x2A\x45\x33\xC0\xC6\x44\x24\x20\x00\x48\x8D\x15\x2A\x2A\x2A\x2A\xFF\x15\x25\x22\x75\x00"), //40 53 48 83 EC 30 48 89 6C 24 40 48 8B D9 48 8B 0D ? ? ? ? 48 8B EA 48 89 74 24 48 8B B1 0C 10 00 00 85 F6 74 ? C7 44 24 28 04 00 00 00 4C 8D 0D ? ? ? ? 45 33 C0 C6 44 24 20 00 48 8D 15 ? ? ? ? FF 15 25 22 75 00
 	};
 
 	const std::vector<Symbol> CLuaGamemode_CallStrSym = { // const char* version - Look at the difference in the call to [GM:CallWithArgs - !ThreadInMainThread] Also search for "CLuaGamemode::" not CLuaGamemode::Call on 64x
 		Symbol::FromName("_ZN12CLuaGamemode4CallEPKc"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x49\x89\xF6\x41\x55\x41\x54\x49\x89\xFC\x53\x48\x83\xEC\x08*******\x8B\x93\x0C\x10\x00\x00\x85\xD2\x41\x0F\x95\xC5******\xE8"), // 55 48 89 E5 41 57 41 56 49 89 F6 41 55 41 54 49 89 FC 53 48 83 EC 08 ?? ?? ?? ?? ?? ?? ?? 8B 93 0C 10 00 00 85 D2 41 0F 95 C5 ?? ?? ?? ?? ?? ?? E8
+		Symbol::FromSignature("\x40\x53\x48\x83\xEC\x30\x48\x89\x6C\x24\x40\x48\x8B\xD9\x48\x8B\x0D\x2A\x2A\x2A\x2A\x48\x8B\xEA\x48\x89\x74\x24\x48\x8B\xB1\x0C\x10\x00\x00\x85\xF6\x74\x2A\xC7\x44\x24\x28\x04\x00\x00\x00\x4C\x8D\x0D\x2A\x2A\x2A\x2A\x45\x33\xC0\xC6\x44\x24\x20\x00\x48\x8D\x15\x2A\x2A\x2A\x2A\xFF\x15\xD5\x24\x75\x00"), //40 53 48 83 EC 30 48 89 6C 24 40 48 8B D9 48 8B 0D ? ? ? ? 48 8B EA 48 89 74 24 48 8B B1 0C 10 00 00 85 F6 74 ? C7 44 24 28 04 00 00 00 4C 8D 0D ? ? ? ? 45 33 C0 C6 44 24 20 00 48 8D 15 ? ? ? ? FF 15 D5 24 75 00
+		Symbol::FromSignature("\x40\x53\x48\x83\xEC\x30\x48\x89\x6C\x24\x40\x48\x8B\xD9\x48\x8B\x0D\x2A\x2A\x2A\x2A\x48\x8B\xEA\x48\x89\x74\x24\x48\x8B\xB1\x0C\x10\x00\x00\x85\xF6\x74\x2A\xC7\x44\x24\x28\x04\x00\x00\x00\x4C\x8D\x0D\x2A\x2A\x2A\x2A\x45\x33\xC0\xC6\x44\x24\x20\x00\x48\x8D\x15\x2A\x2A\x2A\x2A\xFF\x15\xD5\x24\x75\x00"), //40 53 48 83 EC 30 48 89 6C 24 40 48 8B D9 48 8B 0D ? ? ? ? 48 8B EA 48 89 74 24 48 8B B1 0C 10 00 00 85 F6 74 ? C7 44 24 28 04 00 00 00 4C 8D 0D ? ? ? ? 45 33 C0 C6 44 24 20 00 48 8D 15 ? ? ? ? FF 15 D5 24 75 00
 	};
 
 	const std::vector<Symbol> CLuaGamemode_CallSym = {
 		Symbol::FromName("_ZN12CLuaGamemode4CallEi"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x89\xF6\x41\x55\x41\x54\x49\x89\xFC\x53\x48\x83\xEC\x08"), // 55 48 89 E5 41 57 41 56 41 89 F6 41 55 41 54 49 89 FC 53 48 83 EC 08
 		Symbol::FromSignature("\x55\x8B\xEC\x53\x56\x57\x8B\xF9\x8B\x0D****\x8B\xB1\x0C\x10\x00\x00\x85\xF6**\x6A\x04\x6A\x00\x68****\x6A\x00\x68**********\xFF\x15****\x84\xC0**\x8B\x0D****\xFF\x75\x08\x8B\x01\xFF\x90\xEC\x01\x00\x00\x50\x68****\xFF\x15****\x8B\x07\x8B\xCF\x8B\x80\x8C\x00\x00\x00\xFF\xD0\x84\xC0**\x8B\x47\x3C\x8D\x5F\x3C"), //  55 8B EC 53 56 57 8B F9 8B 0D ?? ?? ?? ?? 8B B1 0C 10 00 00 85 F6 ?? ?? 6A 04 6A 00 68 ?? ?? ?? ?? 6A 00 68 ?? ?? ?? ?? ?? ?? ?? ?? ?? ?? FF 15 ?? ?? ?? ?? 84 C0 ?? ?? 8B 0D ?? ?? ?? ?? FF 75 08 8B 01 FF 90 EC 01 00 00 50 68 ?? ?? ?? ?? FF 15 ?? ?? ?? ?? 8B 07 8B CF 8B 80 8C 00 00 00 FF D0 84 C0 ?? ?? 8B 47 3C 8D 5F 3C
+		Symbol::FromSignature("\x40\x53\x48\x83\xEC\x30\x48\x89\x6C\x24\x40\x48\x8B\xD9\x48\x8B\x0D\x2A\x2A\x2A\x2A\x8B\xEA\x48\x89\x74\x24\x48\x8B\xB1\x0C\x10\x00\x00\x85\xF6\x74\x2A\xC7\x44\x24\x28\x04\x00\x00\x00\x4C\x8D\x0D\x2A\x2A\x2A\x2A\x45\x33\xC0\xC6\x44\x24\x20\x00\x48\x8D\x15\x2A\x2A\x2A\x2A\xFF\x15\xE6\x25\x75\x00"), //40 53 48 83 EC 30 48 89 6C 24 40 48 8B D9 48 8B 0D ? ? ? ? 8B EA 48 89 74 24 48 8B B1 0C 10 00 00 85 F6 74 ? C7 44 24 28 04 00 00 00 4C 8D 0D ? ? ? ? 45 33 C0 C6 44 24 20 00 48 8D 15 ? ? ? ? FF 15 E6 25 75 00
 	};
 
 	const std::vector<Symbol> CVProfile_OutputReportSym = {
@@ -456,24 +463,28 @@ namespace Symbols
 		Symbol::FromName("_ZN15CScriptedEntity13StartFunctionEPKc"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x56\x49\x89\xF6\x41\x55\x41\x54\x49\x89\xFC\x53\xE8****\x84\xC0"), // 55 48 89 E5 41 56 49 89 F6 41 55 41 54 49 89 FC 53 E8 ?? ?? ?? ?? 84 C0
 		Symbol::FromSignature("\x55\x8B\xEC\x56\x8B\xF1\xFF\x15****\x84\xC0**\x80\x7E\x04\x00**\x8B\x4E\x0C\x8B\x01\xFF\x90\x84\x03\x00\x00\x8B\xC8\x8B\x10\xFF\x92\x84\x00\x00\x00\x8B\x0D****\xFF\x75\x08"), //  55 8B EC 56 8B F1 FF 15 ?? ?? ?? ?? 84 C0 ?? ?? 80 7E 04 00 ?? ?? 8B 4E 0C 8B 01 FF 90 84 03 00 00 8B C8 8B 10 FF 92 84 00 00 00 8B 0D ?? ?? ?? ?? FF 75 08
+		Symbol::FromSignature("\x48\x89\x5C\x24\x08\x57\x48\x83\xEC\x20\x48\x8B\xFA\x48\x8B\xD9\xFF\x15\xAA\x33\x74\x00"), // 48 89 5C 24 08 57 48 83 EC 20 48 8B FA 48 8B D9 FF 15 AA 33 74 00
 	};
 
-	const std::vector<Symbol> CScriptedEntity_StartFunctionSym = { // int version - SENT:AcceptInput
+	const std::vector<Symbol> CScriptedEntity_StartFunctionSym = { // int version - hasTraced
 		Symbol::FromName("_ZN15CScriptedEntity13StartFunctionEi"), 
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x56\x41\x89\xF6\x41\x55\x41\x54\x49\x89\xFC\x53\xE8****"), // 55 48 89 E5 41 56 41 89 F6 41 55 41 54 49 89 FC 53 E8 ?? ?? ?? ??
 		Symbol::FromSignature("\x55\x8B\xEC\x56\x8B\xF1\xFF\x15****\x84\xC0**\x80\x7E\x04\x00**\x8B\x4E\x0C\x8B\x01\xFF\x90\x84\x03\x00\x00\x8B\xC8\x8B\x10\xFF\x92\x84\x00\x00\x00\x8B\x0D****\x6A\x00"), //  55 8B EC 56 8B F1 FF 15 ?? ?? ?? ?? 84 C0 ?? ?? 80 7E 04 00 ?? ?? 8B 4E 0C 8B 01 FF 90 84 03 00 00 8B C8 8B 10 FF 92 84 00 00 00 8B 0D ?? ?? ?? ?? 6A 00
+		Symbol::FromSignature("\x48\x89\x5C\x24\x08\x57\x48\x83\xEC\x20\x8B\xFA\x48\x8B\xD9\xFF\x15\x7B\x34\x74\x00"), // 48 89 5C 24 08 57 48 83 EC 20 8B FA 48 8B D9 FF 15 7B 34 74 00
 	};
 
 	const std::vector<Symbol> CScriptedEntity_CallSym = { // SENT:AcceptInput
 		Symbol::FromName("_ZN15CScriptedEntity4CallEii"),
 		Symbol::FromSignature("\x48\x8B*****\x55\x83\xC6\x01\x85\xD2\x48\x89\xE5"), // 48 8B ?? ?? ?? ?? ?? 55 83 C6 01 85 D2 48 89 E5
 		Symbol::FromSignature("\x55\x8B\xEC\x8B\x0D****\x8B\x55\x0C\x56\x8B\x75\x08\x8B\x01\x46\x85\xD2"), //  55 8B EC 8B 0D ?? ?? ?? ?? 8B 55 0C 56 8B 75 08 8B 01 46 85 D2
+		Symbol::FromSignature("\x48\x83\xEC\x28\x48\x8B\x0D\x2A\x2A\x2A\x2A\xFF\xC2"), // 48 83 EC 28 48 8B 0D ? ? ? ? FF C2
 	};
 
 	const std::vector<Symbol> CScriptedEntity_CallFunctionStrSym = { // const char* version - SetupDataTables
 		Symbol::FromName("_ZN15CScriptedEntity12CallFunctionEPKc"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x55\x41\x54\x53\x48\x89\xFB\x48\x83\xEC\x38\x0F\xB6\x47\x08\x84\xC0"), // 55 48 89 E5 41 55 41 54 53 48 89 FB 48 83 EC 38 0F B6 47 08 84 C0
 		Symbol::FromSignature("\x55\x8B\xEC\x83\xEC\x14\x56\x8B\xF1\x80\x7E\x04\x00**\x32\xC0\x5E\x8B\xE5\x5D\xC2\x04\x00"), // 55 8B EC 83 EC 14 56 8B F1 80 7E 04 00 ?? ?? 32 C0 5E 8B E5 5D C2 04 00
+		Symbol::FromSignature("\x48\x89\x5C\x24\x08\x57\x48\x83\xEC\x40\x80\x79\x08\x00"), // 48 89 5C 24 08 57 48 83 EC 40 80 79 08 00
 	};
 
 	const std::vector<Symbol> CScriptedEntity_CallFunctionSym = { // int version. - Found no good identifyer to find it. Guess it by checking if a function has a similar signature
