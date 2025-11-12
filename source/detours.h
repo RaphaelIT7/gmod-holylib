@@ -299,6 +299,7 @@ byte m_##name = 0;
 			symbolAddr = reinterpret_cast<void*>(next + rva);
 			return reinterpret_cast<T*>(symbolAddr);
 		}
+		// Fallback: PUSH ds:[imm32] (0xFF 35 + RVA at +2) - indirect push
 		if (ip[0] == 0xFF && ip[1] == 0x35) {
 			const size_t instrLen = 6;
 			int32_t rva = *reinterpret_cast<uint32_t*>(ip + 2);
