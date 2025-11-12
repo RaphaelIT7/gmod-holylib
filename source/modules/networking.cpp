@@ -1921,14 +1921,20 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 				// We mark all to transmit to they will receive the CBasePlayer's
 				// but not all their weapon since that could cause a overflow due to the amount of data that could be sent at once
 				pInfo->m_pTransmitEdict->Set(iPlayerIndex);
+				if (bIsHLTV)
+					pInfo->m_pTransmitAlways->Set(iPlayerIndex);
 			}
 		} else if (networking_transmit_onfullupdate_networktoothers.GetBool()) {
 			// In this case, if any other player is having a full update, we network them to all others
 			// simply because this ensures every player knows of every other players existance
-			for (int iPlayerIndex = 0; iPlayerIndex < gpGlobals->maxClients; ++iPlayerIndex)
+			for (int iPlayerIndex = 1; iPlayerIndex <= gpGlobals->maxClients; ++iPlayerIndex)
 			{
-				if (g_pEntityCache[iPlayerIndex+1] && g_pPlayerTransmitCache[iPlayerIndex].InFullUpdate(nCurrentTick))
+				if (g_pEntityCache[iPlayerIndex] && g_pPlayerTransmitCache[iPlayerIndex-1].InFullUpdate(nCurrentTick))
+				{
 					pInfo->m_pTransmitEdict->Set(iPlayerIndex);
+					if (bIsHLTV)
+						pInfo->m_pTransmitAlways->Set(iPlayerIndex);
+				}
 			}
 		}
 	}
