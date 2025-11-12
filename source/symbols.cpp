@@ -565,11 +565,14 @@ namespace Symbols
 		Symbol::FromName("framesnapshotmanager"),
 		Symbol::FromSignature("\x48\x8B\x2A\x2A\x2A\x2A\x2A\x48\x8B\x38\x48\x8B\x07*\x50\x10\x48\x8D\x43\x15"), // 48 8B ?? ?? ?? ?? ?? 48 8B 38 48 8B 07 ?? 50 10 48 8D 43 15 || "framesnapshotmanager->LevelChanged()" || "sv.Clear()"
 		Symbol::FromSignature("\x2A\x2A\x2A\x2A\x83\xC4\x04\x8B\x01\xFF\x50\x04\x6A\x40"), // ?? ?? ?? ?? 83 C4 04 8B 01 FF 50 04 6A 40 || "framesnapshotmanager"
+		Symbol::FromSignature("\x40\x55\x53\x56\x57\x41\x55\x41\x56\x48\x8D\xAC\x24\x58\xFD\xFF\xFF", 0x3F6)
 	};
 
 	const std::vector<Symbol> g_PropTypeFnsSym = {
 		Symbol::FromName("g_PropTypeFns"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x49\x89\xF5\x41\x54\x53\x48\x83\xEC\x08\x4C\x8B\x67\x20\xE8\x2A\x2A\x2A\x2A\x41\x8B\x55\x1C", 0x51), // 55 48 89 E5 41 57 41 56 41 55 49 89 F5 41 54 53 48 83 EC 08 4C 8B 67 20 E8 ? ? ? ? 41 8B 55 1C
+		Symbol::FromSignature("\x55\x8B\xEC\x8B\x4D\x08\x83\xEC\x28", 0x10B), //55 8B EC 8B 4D 08 83 EC 28
+		Symbol::FromSignature("\x40\x55\x53\x56\x57\x41\x54\x41\x55\x41\x56\x41\x57\x48\x8D\xAC\x24\x88\xFB\xFF\xFF", 0x733), //40 55 53 56 57 41 54 41 55 41 56 41 57 48 8D AC 24 88 FB FF FF
 	};
 
 	const std::vector<Symbol> g_BSPDataSym = { // Search CM_Vis 
@@ -631,49 +634,65 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: steamworks Symbols
 	//---------------------------------------------------------------------------------
-	const std::vector<Symbol> CSteam3Server_OnLoggedOffSym = {
+	const std::vector<Symbol> CSteam3Server_OnLoggedOffSym = { // Search for "GSL token expired"
 		Symbol::FromName("_ZN13CSteam3Server11OnLoggedOffEP26SteamServersDisconnected_t"),
 		Symbol::FromSignature("\x83\xBF\x30****\x0F\x84\x7C***\x55\x48\x89\xE5"), // 83 BF 30 ?? ?? ?? ?? 0F 84 7C ?? ?? ?? 55 48 89 E5
+		Symbol::FromSignature("\x55\x8B\xEC\x8B\x4D\x0C\x83\xEC\x48"), // 55 8B EC 8B 4D 0C 83 EC 48
+		Symbol::FromSignature("\x48\x89\x5C\x24\x18\x57\x48\x81\xEC\x90\x00\x00\x00"), // 48 89 5C 24 18 57 48 81 EC 90 00 00 00
 	};
 
-	const std::vector<Symbol> CSteam3Server_OnLogonSuccessSym = {
+	const std::vector<Symbol> CSteam3Server_OnLogonSuccessSym = { //Search for ""Connection to Steam servers successful."
 		Symbol::FromName("_ZN13CSteam3Server14OnLogonSuccessEP23SteamServersConnected_t"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x89\xFB\x48\x83\xEC\x28\x64\x48\x8B"), // 55 48 89 E5 53 48 89 FB 48 83 EC 28 64 48 8B
+		Symbol::FromSignature("\x55\x8B\xEC\x83\xEC\x1C\x56\x8B\xF1\x8B\x4E\x04"), // 55 8B EC 83 EC 1C 56 8B F1 8B 4E 04
+		Symbol::FromSignature("\x40\x53\x48\x83\xEC\x60\x48\x8B\x05\x2A\x2A\x2A\x2A\x48\x33\xC4\x48\x89\x44\x24\x50\x48\x8B\xD9"), // 40 53 48 83 EC 60 48 8B 05 ? ? ? ? 48 33 C4 48 89 44 24 50 48 8B D9
 	};
 
-	const std::vector<Symbol> CSteam3Server_ShutdownSym = {
+	const std::vector<Symbol> CSteam3Server_ShutdownSym = {//Look into CSteam3Server_Activate
 		Symbol::FromName("_ZN13CSteam3Server8ShutdownEv"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x89\xFB\x48\x83\xEC\x08\x48\x83\x7F**\x74\x5A"), // 55 48 89 E5 53 48 89 FB 48 83 EC 08 48 83 7F ?? ?? 74 5A
+		Symbol::FromSignature("\x55\x8B\xEC\x83\xEC\x08\x56\x8B\xF1\x83\x7E\x04\x00"), // 55 8B EC 83 EC 08 56 8B F1 83 7E 04 00
+		//Inline in win64 unfortunatly
 	};
 
-	const std::vector<Symbol> CSteam3Server_ActivateSym = {
+	const std::vector<Symbol> CSteam3Server_ActivateSym = { //Search for "-steamport"
 		Symbol::FromName("_ZN13CSteam3Server8ActivateENS_11EServerTypeE"),
-		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x41\x89\xF4\x53\x48\x89\xFB\x48\x81\xEC") // 55 48 89 E5 41 57 41 56 41 55 41 54 41 89 F4 53 48 89 FB 48 81 EC
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x41\x89\xF4\x53\x48\x89\xFB\x48\x81\xEC"), // 55 48 89 E5 41 57 41 56 41 55 41 54 41 89 F4 53 48 89 FB 48 81 EC
+		Symbol::FromSignature("\x55\x8B\xEC\xA1\x2A\x2A\x2A\x2A\x81\xEC\x24\x01\x00\x00"), // 55 8B EC A1 ? ? ? ? 81 EC 24 01 00 00
+		Symbol::FromSignature("\x40\x55\x53\x56\x48\x8D\x6C\x24\x80"), // 40 55 53 56 48 8D 6C 24 80
 	};
 
 	const std::vector<Symbol> Steam3ServerSym = { // 64x = Found with "Warning: sv_steamgroup is not applicabl" and then find the unk_[xyz], search for it's usage and find a small function.
 		Symbol::FromName("_Z12Steam3Serverv"),
 		Symbol::FromSignature("\x55\x48\x8D\x05****\x48\x89\xE5\x5D\xC3\x90\x66\x90\x55\x31\xC0\xB9\x08"), // 55 48 8D 05 ?? ?? ?? ?? 48 89 E5 5D C3 90 66 90 55 31 C0 B9 08
+		Symbol::FromName("_Z12Steam3Serverv"),
+		Symbol::FromName("_Z12Steam3Serverv"),
 	};
 
 	const std::vector<Symbol> SV_InitGameServerSteamSym = {
 		Symbol::FromName("_Z22SV_InitGameServerSteamv"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x83\xEC\x08\x48\x8B\x1D********\x00\x00\x01"), // 55 48 89 E5 53 48 83 EC 08 48 8B 1D ?? ?? ?? ?? ?? ?? ?? ?? 00 00 01
+		//Inline in win unfortunatly
 	};
 
 	const std::vector<Symbol> CSteam3Server_NotifyClientConnectSym = { // 64x = "S3: Client"
 		Symbol::FromName("_ZN13CSteam3Server19NotifyClientConnectEP11CBaseClientjR8netadr_sPKvj"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x49\x89\xFC\x53\x48\x81\xEC\xB8\x00\x00\x00"), // 55 48 89 E5 41 57 41 56 41 55 41 54 49 89 FC 53 48 81 EC B8 00 00 00
+		Symbol::FromSignature("\x55\x8B\xEC\x83\xEC\x48\x56\x8B\xF1"), // 55 8B EC 83 EC 48 56 8B F1
+		Symbol::FromSignature("\x40\x55\x57\x41\x54\x41\x56"), // 40 55 57 41 54 41 56
 	};
 
 	const std::vector<Symbol> CSteam3Server_SendUpdatedServerDetailsSym = { // 64x = "steamblocking:%d"
 		Symbol::FromName("_ZN13CSteam3Server24SendUpdatedServerDetailsEv"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x49\x89\xFC\x53\x48\x83\xEC\x68\x64\x48\x8B\x04\x25\x28"), // 55 48 89 E5 41 57 41 56 41 55 41 54 49 89 FC 53 48 83 EC 68 64 48 8B 04 25 28
+		Symbol::FromSignature("\x55\x8B\xEC\x83\xEC\x48\x8B\xC1\x89\x45\xE4"), // 55 8B EC 83 EC 48 8B C1 89 45 E4
+		Symbol::FromSignature("\x4C\x8B\xDC\x56\x48\x81\xEC\x90\x00\x00\x00"), // 4C 8B DC 56 48 81 EC 90 00 00 00
 	};
 
 	const std::vector<Symbol> CSteam3Server_CheckForDuplicateSteamIDSym = { // 64x = "STEAM UserID"
 		Symbol::FromName("_ZN13CSteam3Server24CheckForDuplicateSteamIDEPK11CBaseClient"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x53\x48\x83\xEC\x68\x48\x89\x75\x80"), // 55 48 89 E5 41 57 41 56 41 55 41 54 53 48 83 EC 68 48 89 75 80
+		//Inline in win unfortunatly
 	};
 
 	//---------------------------------------------------------------------------------
