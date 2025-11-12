@@ -2404,6 +2404,12 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 
 void CNetworkingModule::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
 {
+	if (pEdictList)
+	{
+		for (int i=0; i<edictCount; ++i)
+			g_pEntityCache[i] = Util::GetCBaseEntityFromEdict(&pEdictList[i]);
+	}
+
 	sv_force_transmit_ents = g_pCVar->FindVar("sv_force_transmit_ents");
 
 	// Find player class (has DT_BasePlayer as a baseclass table)
