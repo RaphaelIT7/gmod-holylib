@@ -257,6 +257,28 @@ byte m_##name = 0;
 	#endif
 	}
 
+	/*
+	 * This function is used to resolve a global variable on a version without symbols.
+
+		Let's take per exemple g_PathIDTable
+
+		To retrive it on x86 we need to use the symbol cause it's the simplest way, but on x64 we need to find a workaround.
+
+		So i (and grok) end up with the idea to use the signature of a function that call g_PathIDTable somewhere and then use a offset to get the address of g_PathIDTable.
+
+		So g_PathIDTable is used inside CBaseFileSystem::OpenForRead, so we can use the signature of CBaseFileSystem::OpenForRead to get the address of g_PathIDTable.
+
+		Once we have CBaseFileSystem::OpenForRead, go to ida and find g_PathIDTable, you'll see that it's at the offset 0x67 (just click on the line where g_PathIDTable is used and look at bottom of IDA, it's written +something)
+
+		Then the line on x64 will be something like LEA, eax, g_PathIDTable
+
+		So my function will look the first byte and deduct what type is it and return you the address of the variable!
+
+		(Note: don't forget to add the offset at the 2nd argument of the signature)								|
+		ex: Symbol::FromSignature("\x48\x89\x5C\x24\x10\x57\x48\x83\xEC\x20\xB8\xFF\xFF\x00\x00\x48\x8B\xD9", 0x67)
+
+		Congratulations, you just learned how to resolve a global variable on a version without symbols!
+	 */
 	template<class T>
 	inline T* ResolveSymbolWithOffset(void* pModule, const std::vector<Symbol>& pSymbols)
 	{
@@ -268,7 +290,7 @@ byte m_##name = 0;
 		void* matchAddr = GetFunction(pModule, pSymbols[DETOUR_SYMBOL_ID]);
 		if (matchAddr == NULL)
 		{
-			Warning(PROJECT_NAME ": Failed to get matchAddr!\n");
+			Warning(PROJECT_NAME ": Failed to get matchAddr! %s\n", pSymbols[DETOUR_SYMBOL_ID].name.c_str());
 			return NULL;
 		}
 
