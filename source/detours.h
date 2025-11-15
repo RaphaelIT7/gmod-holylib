@@ -257,8 +257,30 @@ byte m_##name = 0;
 	#endif
 	}
 
+	/*
+	 * This function is used to resolve a global variable on a version without symbols.
+
+		Let's take per exemple g_PathIDTable
+
+		To retrive it on x86 we need to use the symbol cause it's the simplest way, but on x64 we need to find a workaround.
+
+		So i (and grok) end up with the idea to use the signature of a function that call g_PathIDTable somewhere and then use a offset to get the address of g_PathIDTable.
+
+		So g_PathIDTable is used inside CBaseFileSystem::OpenForRead, so we can use the signature of CBaseFileSystem::OpenForRead to get the address of g_PathIDTable.
+
+		Once we have CBaseFileSystem::OpenForRead, go to ida and find g_PathIDTable, you'll see that it's at the offset 0x67 (just click on the line where g_PathIDTable is used and look at bottom of IDA, it's written +something)
+
+		Then the line on x64 will be something like LEA, eax, g_PathIDTable
+
+		So my function will look the first byte and deduct what type is it and return you the address of the variable!
+
+		(Note: don't forget to add the offset at the 2nd argument of the signature)								|
+		ex: Symbol::FromSignature("\x48\x89\x5C\x24\x10\x57\x48\x83\xEC\x20\xB8\xFF\xFF\x00\x00\x48\x8B\xD9", 0x67)
+
+		Congratulations, you just learned how to resolve a global variable on a version without symbols!
+	 */
 	template<class T>
-	inline T* ResolveSymbolFromLea(void* pModule, const std::vector<Symbol>& pSymbols)
+	inline T* ResolveSymbolWithOffset(void* pModule, const std::vector<Symbol>& pSymbols)
 	{
 	#if DETOUR_SYMBOL_ID != 0
 		if ((pSymbols.size()-1) < DETOUR_SYMBOL_ID)
@@ -268,7 +290,7 @@ byte m_##name = 0;
 		void* matchAddr = GetFunction(pModule, pSymbols[DETOUR_SYMBOL_ID]);
 		if (matchAddr == NULL)
 		{
-			Warning(PROJECT_NAME ": Failed to get matchAddr!\n");
+			Warning(PROJECT_NAME ": Failed to get matchAddr! %s\n", pSymbols[DETOUR_SYMBOL_ID].name.c_str());
 			return NULL;
 		}
 
@@ -279,19 +301,79 @@ byte m_##name = 0;
 	#endif
 
 		//
+		void* symbolAddr = nullptr;
+
+#ifdef SYSTEM_LINUX
+
 		if (ip[0] == 0x48) {
 			const size_t instrLen = 7;
 			int32_t disp = *reinterpret_cast<int32_t*>(ip + 3); // disp32 at offset 3
 			uint8_t* next = ip + instrLen;                      // RIP after the instruction
-			void* gEntListAddr = next + disp;                   // final address = next + disp32
-
-		#if defined SYSTEM_WINDOWS
-			auto iface = reinterpret_cast<T**>(gEntListAddr);
-			return iface != nullptr ? *iface : nullptr;
-		#elif defined SYSTEM_POSIX
-			return reinterpret_cast<T*>(gEntListAddr);
-		#endif
+			symbolAddr = next + disp;                         // final address = next + disp32
 		}
+#elif defined(SYSTEM_WINDOWS) && defined(ARCHITECTURE_X86)
+    	// Primary: PUSH imm32 (0x68 + RVA) - g_BSPData pattern
+		if (ip[0] == 0x68)
+		{
+			const size_t instrLen = 5;
+			int32_t rva = *reinterpret_cast<uint32_t*>(ip + 1);
+			uint8_t* next = ip + instrLen;
+			symbolAddr = reinterpret_cast<void*>(next + rva);
+			return reinterpret_cast<T*>(symbolAddr);
+		}
+		// Fallback: PUSH ds:[imm32] (0xFF 35 + RVA at +2) - indirect push
+		if (ip[0] == 0xFF && ip[1] == 0x35) {
+			const size_t instrLen = 6;
+			int32_t rva = *reinterpret_cast<uint32_t*>(ip + 2);
+			uint8_t* next = ip + instrLen;
+			symbolAddr = reinterpret_cast<void*>(next + (uintptr_t)rva);  // Points to the pointer; data at [*symbolAddr]
+			return reinterpret_cast<T*>(symbolAddr);
+		}
+		// Primary: MOV ECX, imm32 (0xB9 + RVA as imm32) - your exact pattern
+		if (ip[0] == 0xB9) {
+			const size_t instrLen = 5;
+			int32_t rva = *reinterpret_cast<int32_t*>(ip + 1);
+			uint8_t* next = ip + instrLen;
+			symbolAddr = reinterpret_cast<void*>(next + rva);
+		}
+		// Fallback: MOV ECX, ds:[imm32] (0x8B 0D + RVA as address operand)
+		else if (ip[0] == 0x8B && ip[1] == 0x0D) {
+			const size_t instrLen = 6;
+			int32_t rva = *reinterpret_cast<int32_t*>(ip + 2);
+			uint8_t* next = ip + instrLen;
+			symbolAddr = reinterpret_cast<void*>(next + rva);
+		}
+		// Rare variant: LEA ECX, [imm32] (0x8D 0D + RVA)
+		else if (ip[0] == 0x8D && ip[1] == 0x0D) {
+			const size_t instrLen = 6;
+			int32_t rva = *reinterpret_cast<int32_t*>(ip + 2);
+			uint8_t* next = ip + instrLen;
+			symbolAddr = reinterpret_cast<void*>(next + rva);
+		}
+#elif defined(SYSTEM_WINDOWS) && defined(ARCHITECTURE_X86_64)
+		// LEA RCX, [RIP+imm32] (0x48 0x8D 0x0D + RVA)
+		// LEA loads the effective address directly, no need to dereference
+		if (ip[0] == 0x48 && ip[1] == 0x8D && ip[2] == 0x0D) {
+			const size_t instrLen = 7;
+			int32_t rva = *reinterpret_cast<int32_t*>(ip + 3);
+			uint8_t* next = ip + instrLen;
+			symbolAddr = reinterpret_cast<void*>(next + rva);
+			// For LEA, symbolAddr is the direct address of the object
+			return reinterpret_cast<T*>(symbolAddr);
+		}
+#endif
+
+#if defined SYSTEM_WINDOWS
+	if (symbolAddr != nullptr)
+	{
+		// For MOV instructions, we need to dereference
+		auto iface = reinterpret_cast<T**>(symbolAddr);
+		return iface != nullptr ? *iface : nullptr;
+	}
+#elif defined SYSTEM_POSIX
+	if (symbolAddr != nullptr)
+		return reinterpret_cast<T*>(symbolAddr);
+#endif
 
 		Warning(PROJECT_NAME ": Failed to match LEA bytes!\n");
 		return NULL;
