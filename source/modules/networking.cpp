@@ -1111,7 +1111,7 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 
 		for (int i = 0; i<nPVSEdictCount; ++i)
 		{
-			CBaseEntity* pFullEnt = pFullEntityList[i];
+			CBaseEntity* pFullEnt = pPVSEntityList[i];
 			if (pFullEnt != pEntity)
 				continue;
 
@@ -1146,6 +1146,7 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 		DevMsg(PROJECT_NAME " - networking: An entity (class: %s) was deleted during networking! This is utterly expensive, stop this >:(\n", pEntity->GetClassname());
 	}
 
+	// Only called with areasplit enabled
 	void AddPVSEntity(CBaseEntity* pEntity)
 	{
 #if 0
