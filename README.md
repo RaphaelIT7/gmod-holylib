@@ -2416,7 +2416,7 @@ It won't do any processing, it will just send it as it is.<br>
 
 #### voicechat.BroadcastVoiceData(VoiceData data, table plys = nil)
 Same as `voicechat.SendVoiceData` but broadcasts it to all players.<br>
-If given a table it will only send it to thoes players.<br>
+If given a table it will only send it to those players.<br>
 
 #### voicechat.ProcessVoiceData(Player ply, VoiceData data)
 Let's the server process the VoiceData like it was received from the client.<br>
