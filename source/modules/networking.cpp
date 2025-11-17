@@ -2023,7 +2023,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	}
 #endif
 
-#if 0 // I don't like this, useful for testing but not for actual prod
+#if 1 // I don't like this, useful for testing but not for actual prod
 	for (int i=0; i<MAX_EDICTS; ++i)
 	{
 		if (pInfo->m_pTransmitEdict->IsBitSet(i) && !g_pEntityCache[i])
