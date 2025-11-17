@@ -1578,10 +1578,14 @@ static void CheckTalkingState(int nPlayerSlot, bool bIsTalking)
 
 			if (Lua::PushHook("HolyLib:OnPlayerStartTalking"))
 			{
-				CBasePlayer* pPlayer = (CBasePlayer*)Util::GetCBaseEntityFromIndex(nPlayerSlot + 1);
-				Util::Push_Entity(g_Lua, pPlayer);
+				CBaseEntity* pEntity = Util::GetCBaseEntityFromIndex(nPlayerSlot + 1);
+				if (pEntity && pEntity->IsPlayer())
+				{
+					CBasePlayer* pPlayer = (CBasePlayer*)pEntity;
+					Util::Push_Entity(g_Lua, pPlayer);
 
-				g_Lua->CallFunctionProtected(2, 0, true);
+					g_Lua->CallFunctionProtected(2, 0, true);
+				}
 			}
 		}
 		g_fLastPlayerTalked2[nPlayerSlot] = gpGlobals->curtime;
@@ -1592,10 +1596,14 @@ static void CheckTalkingState(int nPlayerSlot, bool bIsTalking)
 
 			if (Lua::PushHook("HolyLib:OnPlayerStoppedTalking"))
 			{
-				CBasePlayer* pPlayer = (CBasePlayer*)Util::GetCBaseEntityFromIndex(nPlayerSlot + 1);
-				Util::Push_Entity(g_Lua, pPlayer);
+				CBaseEntity* pEntity = Util::GetCBaseEntityFromIndex(nPlayerSlot + 1);
+				if (pEntity && pEntity->IsPlayer())
+				{
+					CBasePlayer* pPlayer = (CBasePlayer*)pEntity;
+					Util::Push_Entity(g_Lua, pPlayer);
 
-				g_Lua->CallFunctionProtected(2, 0, true);
+					g_Lua->CallFunctionProtected(2, 0, true);
+				}
 			}
 		}
 	}
