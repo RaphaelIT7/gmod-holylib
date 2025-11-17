@@ -6,6 +6,8 @@
 #include "sourcesdk/baseserver.h"
 #include "sourcesdk/cnetchan.h"
 #include <atomic>
+#include <memory>
+#include <mutex>
 #include "sourcesdk/proto_oob.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
