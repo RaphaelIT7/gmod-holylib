@@ -1586,6 +1586,8 @@ static void CheckTalkingState(int nPlayerSlot, bool bIsTalking)
 					Util::Push_Entity(g_Lua, pPlayer);
 
 					g_Lua->CallFunctionProtected(2, 0, true);
+				} else {
+					g_Lua->Pop(2);
 				}
 			}
 		}
@@ -1604,6 +1606,8 @@ static void CheckTalkingState(int nPlayerSlot, bool bIsTalking)
 					Util::Push_Entity(g_Lua, pPlayer);
 
 					g_Lua->CallFunctionProtected(2, 0, true);
+				} else {
+					g_Lua->Pop(2);
 				}
 			}
 		}
