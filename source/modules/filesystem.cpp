@@ -25,7 +25,7 @@ public:
 	virtual void Shutdown() OVERRIDE;
 	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) OVERRIDE;
 	virtual const char* Name() { return "filesystem"; };
-	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32; };
+	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 	virtual bool SupportsMultipleLuaStates() { return true; };
 };
 
@@ -1833,7 +1833,7 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 
 	// ToDo: Redo EVERY Hook so that we'll abuse the vtable instead of symbols.  
 	// Use the ClassProxy or so which should also allow me to port this to windows.
-#if SYSTEM_WINDOWS
+#if SYSTEM_WINDOWS && defined(ARCHITECTURE_X86)
 	SourceSDK::FactoryLoader filesystem_loader("filesystem_stdio");
 #else
 	SourceSDK::FactoryLoader filesystem_loader("dedicated");
@@ -1904,10 +1904,10 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 	func_CBaseFileSystem_FixUpPath = (Symbols::CBaseFileSystem_FixUpPath)Detour::GetFunction(filesystem_loader.GetModule(), Symbols::CBaseFileSystem_FixUpPathSym);
 	Detour::CheckFunction((void*)func_CBaseFileSystem_FixUpPath, "CBaseFileSystem::FixUpPath");
 
-#if ARCHITECTURE_IS_X86
+#if defined(ARCHITECTURE_X86) && defined(SYSTEM_LINUX)
 	g_pPathIDTable = Detour::ResolveSymbol<CUtlSymbolTableMT>(filesystem_loader, Symbols::g_PathIDTableSym);
 #else
-	g_pPathIDTable = Detour::ResolveSymbolFromLea<CUtlSymbolTableMT>(filesystem_loader.GetModule(), Symbols::g_PathIDTableSym);
+	g_pPathIDTable = Detour::ResolveSymbolWithOffset<CUtlSymbolTableMT>(filesystem_loader.GetModule(), Symbols::g_PathIDTableSym);
 #endif
 	Detour::CheckValue("get class", "g_PathIDTable", g_pPathIDTable != NULL);
 }

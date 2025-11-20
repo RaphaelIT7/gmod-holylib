@@ -665,10 +665,10 @@ void Util::AddDetour()
 
 	if (!entitylist)
 	{
-		#ifdef ARCHITECTURE_X86
+		#if defined(ARCHITECTURE_X86) && defined(SYSTEM_LINUX)
 			entitylist = Detour::ResolveSymbol<CGlobalEntityList>(server_loader, Symbols::gEntListSym);
 		#else
-			entitylist = Detour::ResolveSymbolFromLea<CGlobalEntityList>(server_loader.GetModule(), Symbols::gEntListSym);
+			entitylist = Detour::ResolveSymbolWithOffset<CGlobalEntityList>(server_loader.GetModule(), Symbols::gEntListSym);
 		#endif
 	}
 
