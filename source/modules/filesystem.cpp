@@ -665,12 +665,15 @@ static void DumpSearchCacheCmd(const CCommand& args)
 static ConCommand dumpabsolutesearchcache("holylib_filesystem_dumpabsolutesearchcache", DumpSearchCacheCmd, "Dumps the absolute search cache", 0);
 
 static bool bShutdown = false;
+static bool bFileSystemInited = false;
+
 static void InitFileSystem(IFileSystem* pFileSystem)
 {		
-	if (!pFileSystem || bShutdown) // We refuse to init when this is called when it shouldn't. If it crashes, then give me a stacktrace to fix it.
+	if (!pFileSystem || bShutdown || bFileSystemInited) // We refuse to init when this is called when it shouldn't. If it crashes, then give me a stacktrace to fix it.
 		return;
-	
+
 	g_pFullFileSystem = pFileSystem;
+	bFileSystemInited = true;
 
 	if (holylib_filesystem_savesearchcache.GetBool())
 	{
@@ -950,9 +953,7 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 	char pFileNameBuff[MAX_PATH];
 	const char *pFileName = pFileNameBuff;
 
-#if ARCHITECTURE_X86 // This is a 32x only thing
 	func_CBaseFileSystem_FixUpPath(filesystem, pFileNameT, pFileNameBuff, sizeof(pFileNameBuff));
-#endif
 
 	if (holylib_filesystem_savesearchcache.GetBool())
 	{
@@ -1253,9 +1254,7 @@ static long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char
 	char pFileNameBuff[MAX_PATH];
 	const char *pFileName = pFileNameBuff;
 
-#if ARCHITECTURE_X86 // This is a 32x only thing
 	func_CBaseFileSystem_FixUpPath(filesystem, pFileNameT, pFileNameBuff, sizeof(pFileNameBuff));
-#endif
 	
 	bool bSplitPath = false;
 	const char* origPath = pPathID;
