@@ -395,7 +395,7 @@ public:
 		return *(void**)Util::GoToNetworkVarOffset(pBase, m_nOffset);
 	}
 
-	FORCEINLINE void* GetPointerArray(const void* pBase, int nArraySlot)
+	FORCEINLINE void* GetPointerArray(const void* pBase, const int nArraySlot)
 	{
 		if (m_nOffset == -1)
 			Init();

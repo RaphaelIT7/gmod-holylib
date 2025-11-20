@@ -32,7 +32,7 @@ public:
 static CNetworkThreadingModule g_pNetworkThreadingModule;
 IModule* pNetworkThreadingModule = &g_pNetworkThreadingModule;
 
-static ConVar networkthreading_parallelprocessing("holylib_networkthreading_parallelprocessing", "1", 0, "If enabled, some packets will be processed by the networking thread instead of the main thread");
+static ConVar networkthreading_parallelprocessing("holylib_networkthreading_parallelprocessing", "0", 0, "If enabled, some packets will be processed by the networking thread instead of the main thread");
 
 // NOTE: There is inside gcsteamdefines.h the AUTO_LOCK_WRITE which we could probably use
 //static CThreadRWLock g_pIPFilterMutex; // Idk if using a std::shared_mutex might be faster

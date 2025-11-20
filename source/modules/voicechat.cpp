@@ -1408,9 +1408,9 @@ static CPlayerBitVec* g_BanMasks;
 static CPlayerBitVec* g_SentGameRulesMasks;
 static CPlayerBitVec* g_SentBanMasks;
 static CPlayerBitVec* g_bWantModEnable;
-static double g_fLastPlayerTalked[ABSOLUTE_PLAYER_LIMIT] = {0};
-static double g_fLastPlayerUpdated[ABSOLUTE_PLAYER_LIMIT] = {0};
-static bool g_bIsPlayerTalking[ABSOLUTE_PLAYER_LIMIT] = {0};
+static double g_fLastPlayerTalked[MAX_PLAYERS] = {0};
+static double g_fLastPlayerUpdated[MAX_PLAYERS] = {0};
+static bool g_bIsPlayerTalking[MAX_PLAYERS] = {0};
 static CVoiceGameMgr* g_pManager = NULL;
 static ConVar voicechat_updateinterval("holylib_voicechat_updateinterval", "0.1", FCVAR_ARCHIVE, "How often we call PlayerCanHearPlayersVoice for the actively talking players. This interval is unique to each player");
 static ConVar voicechat_managerupdateinterval("holylib_voicechat_managerupdateinterval", "0.1", FCVAR_ARCHIVE, "How often we loop through all players to check their voice states. We still check the player's interval to reduce calls if they already have been updated in the last x(your defined interval) seconds.");
@@ -1566,8 +1566,8 @@ static void hook_CVoiceGameMgr_Update(CVoiceGameMgr* pManager, double frametime)
 }
 
 // This is seperate since most of the above code will be removed with the next gmod update as Rubat brought over our optimization :D
-static bool g_bIsPlayerTalking2[ABSOLUTE_PLAYER_LIMIT] = {0};
-static double g_fLastPlayerTalked2[ABSOLUTE_PLAYER_LIMIT] = {0};
+static bool g_bIsPlayerTalking2[MAX_PLAYERS] = {0};
+static double g_fLastPlayerTalked2[MAX_PLAYERS] = {0};
 static void CheckTalkingState(int nPlayerSlot, bool bIsTalking)
 {
 	if (bIsTalking)
@@ -1586,7 +1586,7 @@ static void CheckTalkingState(int nPlayerSlot, bool bIsTalking)
 		}
 		g_fLastPlayerTalked2[nPlayerSlot] = gpGlobals->curtime;
 	} else {
-		if (gpGlobals->curtime > (g_fLastPlayerTalked2[nPlayerSlot] + voicechat_stopdelay.GetFloat()))
+		if (gpGlobals->curtime > (g_fLastPlayerTalked2[nPlayerSlot] + voicechat_stopdelay.GetFloat()) && g_bIsPlayerTalking2[nPlayerSlot])
 		{ // Stopped talking, tied to holylib_voicechat_stopdelay convar
 			g_bIsPlayerTalking2[nPlayerSlot] = false;
 
@@ -1610,7 +1610,7 @@ void CVoiceChatModule::ClientDisconnect(edict_t* pClient)
 
 void CVoiceChatModule::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
 {
-	for (int i = 0; i < ABSOLUTE_PLAYER_LIMIT; ++i)
+	for (int i = 0; i < gpGlobals->maxClients; ++i)
 	{
 		g_fLastPlayerTalked[i] = 0.0;
 		g_fLastPlayerUpdated[i] = 0.0;
@@ -1623,7 +1623,7 @@ void CVoiceChatModule::ServerActivate(edict_t* pEdictList, int edictCount, int c
 
 void CVoiceChatModule::LevelShutdown()
 {
-	for (int i = 0; i < ABSOLUTE_PLAYER_LIMIT; ++i)
+	for (int i = 0; i < gpGlobals->maxClients; ++i)
 	{
 		g_fLastPlayerTalked[i] = 0.0;
 		g_fLastPlayerUpdated[i] = 0.0;
@@ -2161,7 +2161,7 @@ LUA_FUNCTION_STATIC(voicechat_IsPlayerTalking)
 		iClient = pPlayer->edict()->m_EdictIndex-1;
 	}
 
-	if (iClient < 0 || iClient > ABSOLUTE_PLAYER_LIMIT)
+	if (iClient < 0 || iClient >= gpGlobals->maxClients)
 		LUA->ThrowError("Failed to get a valid Client index!");
 
 	LUA->PushBool(g_bIsPlayerTalking[iClient]);
@@ -2179,7 +2179,7 @@ LUA_FUNCTION_STATIC(voicechat_LastPlayerTalked)
 		iClient = pPlayer->edict()->m_EdictIndex-1;
 	}
 
-	if (iClient < 0 || iClient > ABSOLUTE_PLAYER_LIMIT)
+	if (iClient < 0 || iClient >= gpGlobals->maxClients)
 		LUA->ThrowError("Failed to get a valid Client index!");
 
 	LUA->PushNumber(g_fLastPlayerTalked[iClient]);
@@ -2252,7 +2252,7 @@ void CVoiceChatModule::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	LuaVoiceModuleData* pData = GetVoiceChatLuaData(pLua);
 
-	for (int i=0; i<ABSOLUTE_PLAYER_LIMIT; ++i)
+	for (int i=0; i<gpGlobals->maxClients; ++i)
 		CheckTalkingState(i, false);
 
 	for (auto it = pData->pVoiceStreamTasks.begin(); it != pData->pVoiceStreamTasks.end(); )

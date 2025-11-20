@@ -19,7 +19,6 @@ class CUserCmd; // Fixes an error in igamesystem.h
 class CGameeventLibModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
 	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
 	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
@@ -531,21 +530,12 @@ LUA_FUNCTION_STATIC(gameevent_BlockCreation)
 	return 0;
 }
 
-void CGameeventLibModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
-{
-	if (appfn[0]) {
-		pGameEventManager = (CGameEventManager*)appfn[0](INTERFACEVERSION_GAMEEVENTSMANAGER2, NULL);
-	} else {
-		SourceSDK::FactoryLoader engine_loader("engine");
-		pGameEventManager = engine_loader.GetInterface<CGameEventManager>(INTERFACEVERSION_GAMEEVENTSMANAGER2);
-	}
-	Detour::CheckValue("get interface", "CGameEventManager", pGameEventManager != NULL);
-}
-
 void CGameeventLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
+
+	pGameEventManager = (CGameEventManager*)Util::gameeventmanager;
 
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::IGameEvent, pLua->CreateMetaTable("IGameEvent"));
 		Util::AddFunc(pLua, IGameEvent__tostring, "__tostring");

@@ -819,7 +819,7 @@ namespace Symbols
 
 	//---------------------------------------------------------------------------------
 	// Purpose: cvar Symbols
-	// All of these are soon obsolete! They are useless / will be dropped with the next gmod update.
+	// NOTE: Gmod has merged this optimization, though ours is still like 100x faster??? Nice
 	//---------------------------------------------------------------------------------
 	const std::vector<Symbol> CCvar_RegisterConCommandSym = {
 		Symbol::FromName("_ZN5CCvar18RegisterConCommandEP14ConCommandBase"),
