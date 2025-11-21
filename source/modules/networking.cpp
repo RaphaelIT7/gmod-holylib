@@ -1611,7 +1611,7 @@ static void TransmitFastPathPlayer(CBasePlayer* pRecipientPlayer, int clientInde
 				CBasePlayer* pObserverPlayer = (CBasePlayer*)pObserverEntity;
 				for (int iViewModel=0; iViewModel<MAX_VIEWMODELS; ++iViewModel)
 				{
-					CBaseViewModel* pViewModel = GetViewModel(pRecipientPlayer, iViewModel);
+					CBaseViewModel* pViewModel = GetViewModel(pObserverPlayer, iViewModel);
 					if (pViewModel)
 						pViewModel->SetTransmit(pInfo, true);
 				}
