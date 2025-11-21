@@ -2125,6 +2125,8 @@ void PackEntities_Normal(int clientCount, CGameClient **clients, CFrameSnapshot 
 	Assert( snapshot->m_nValidEntities >= 0 && snapshot->m_nValidEntities <= MAX_EDICTS );
 	// tmZoneFiltered( TELEMETRY_LEVEL0, 50, TMZF_NONE, "%s %d", __FUNCTION__, snapshot->m_nValidEntities );
 
+	g_nEntityTransmitCache.FinishNetworking();
+
 	int workItemCount = 0;
 	static PackWork_t workItems[MAX_EDICTS];
 	/*
