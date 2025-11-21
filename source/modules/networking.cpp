@@ -1102,7 +1102,7 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 				continue;
 
 			if (i < nFullEdictCount)
-				memmove(&pFullEntityList[i], &pFullEntityList[i + 1], (nFullEdictCount - i - 1) * sizeof(CBaseEntity*));
+				memmove(&pFullEntityList[i], &pFullEntityList[i + 1], (nFullEdictCount - i) * sizeof(CBaseEntity*));
 
 			--nFullEdictCount;
 			pFullEntityList[nFullEdictCount] = NULL;
@@ -1116,7 +1116,7 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 				continue;
 
 			if (i < nPVSEdictCount)
-				memmove(&pPVSEntityList[i], &pPVSEntityList[i + 1], (nPVSEdictCount - i - 1) * sizeof(CBaseEntity*));
+				memmove(&pPVSEntityList[i], &pPVSEntityList[i + 1], (nPVSEdictCount - i) * sizeof(CBaseEntity*));
 
 			--nPVSEdictCount;
 			pPVSEntityList[nPVSEdictCount] = NULL;
