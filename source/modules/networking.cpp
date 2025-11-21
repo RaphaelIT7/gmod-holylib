@@ -1494,7 +1494,7 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 			pActiveWeapon->SetTransmit(pInfo, bAlways);
 
 #if !NETWORKING_USE_ENTITYCACHE // Our cache already removes them from transmit by default and expects us here to decide whos are networked.
-		int nEdictIndex = pEdict->m_EdictIndex-1;
+		int nEdictIndex = pCharacterEdict->m_EdictIndex-1;
 		if (!g_bFilledDontTransmitWeaponCache[nEdictIndex])
 		{
 			for ( int i=0; i < MAX_WEAPONS; ++i )
