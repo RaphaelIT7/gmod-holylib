@@ -1273,6 +1273,7 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 static EntityTransmitCache g_nEntityTransmitCache;
 
 // Full cache persisting across ticks, reset only when the player disconnects.
+static ConVar* sv_stressbots = nullptr;
 static ConVar networking_transmit_newweapons("holylib_networking_transmit_newweapons", "1", 0, "Experimental - If enabled, weapons that a player equipped/was given are networked for the first x ticks");
 static ConVar networking_transmit_ticks("holylib_networking_transmit_ticks", "-1", 0, "Experimental - How many ticks to use for transmit_newweapons & transmit_onfullupdate. -1 will instead ensure they are networked until the client acknowledges them");
 static ConVar networking_transmit_onfullupdate("holylib_networking_transmit_onfullupdate", "1", 0, "Experimental - If enabled, players and their own weapons are transmitted for the first x ticks when they had a full update");
@@ -1281,11 +1282,19 @@ struct PlayerTransmitCache
 {
 	inline void NextTick(const CBaseEntity* pPlayer, const int nTick)
 	{
+		if (!sv_stressbots && g_pCVar)
+			sv_stressbots = g_pCVar->FindVar("sv_stressbots");
+
 		int nTransmitTicks = networking_transmit_ticks.GetInt();
 		if (nTransmitTicks == -1) {
 			CBaseClient* pClient = Util::GetClientByPlayer((const CBasePlayer*)pPlayer);
 			if (pClient) {
-				nLastAcknowledgedTick = pClient->GetMaxAckTickCount();
+				nLastAcknowledgedTick = pClient->GetMaxAckTickCount(); // pClient->m_nDeltaTick;
+				// Verify: GetMaxAckTickCount may be inaccurate for our use case since we need m_nDeltaTick?
+				// if (pClient->m_nDeltaTick != pClient->GetMaxAckTickCount())
+				// 	DevMsg(PROJECT_NAME " - networking: Interresting... for client %i (ent index) the delta tick %i differs from the MaxAckTick %i (%i)\n", pPlayer->edict()->m_EdictIndex, pClient->m_nDeltaTick, pClient->GetMaxAckTickCount(), nFullUpdateTick);
+				if (pClient->IsFakeClient() && sv_stressbots && !sv_stressbots->GetBool())
+					nLastAcknowledgedTick = gpGlobals->tickcount;
 			} else {
 				DevMsg(PROJECT_NAME " - networking: Failed to get CBaseClient for player %i (ent index)\n", pPlayer->edict()->m_EdictIndex);
 				nLastAcknowledgedTick = nTick - 100; // Fallback though should never happen
@@ -1293,7 +1302,6 @@ struct PlayerTransmitCache
 		} else {
 			nLastAcknowledgedTick = nTick - nTransmitTicks;
 		}
-
 		
 		for (int i=0; i<MAX_WEAPONS; ++i)
 		{
@@ -1330,6 +1338,7 @@ struct PlayerTransmitCache
 
 	void MarkFullUpdate()
 	{
+		// DevMsg(PROJECT_NAME " - networking: Triggered fullupdate %i\n", gpGlobals->tickcount);
 		nFullUpdateTick = gpGlobals->tickcount;
 	}
 
@@ -1341,7 +1350,8 @@ struct PlayerTransmitCache
 	// If the client relative to his own last acknowledged tick
 	bool InFullUpdate() const
 	{
-		return nFullUpdateTick > nLastAcknowledgedTick;
+		// DevMsg(PROJECT_NAME " - networking: InFullUpdate %i - %i\n", nFullUpdateTick, nLastAcknowledgedTick);
+		return nFullUpdateTick >= nLastAcknowledgedTick;
 	}
 
 	bool bIsValid = false;
@@ -1575,6 +1585,7 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 			const PlayerTransmitCache& pCache = g_pPlayerTransmitCache[pCharacterEdict->m_EdictIndex-1];
 			if (networking_transmit_onfullupdate.GetBool() && pCache.InFullUpdate())
 			{
+				// DevMsg(PROJECT_NAME " - networking: Doing full weapon transmit for %i...\n", pCharacterEdict->m_EdictIndex);
 				for (int i=0; i < MAX_WEAPONS; ++i)
 				{
 					CBaseEntity *pWeapon = GetMyWeapon(pCharacter, i);
