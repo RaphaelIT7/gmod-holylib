@@ -11,6 +11,7 @@
 #include "unordered_set"
 #include "server.h"
 #include "ivoiceserver.h"
+#include <memory>
 #define private public // Try me.
 #include "shareddefs.h"
 #include "voice_gamemgr.h"
@@ -1737,7 +1738,7 @@ LUA_FUNCTION_STATIC(voicechat_BroadcastVoiceData)
 
 	if (LUA->IsType(2, GarrysMod::Lua::Type::Table))
 	{
-		LUA->Push(1);
+		LUA->Push(2);
 		LUA->PushNil();
 		while (LUA->Next(-2))
 		{
