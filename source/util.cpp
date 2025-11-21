@@ -244,7 +244,8 @@ IServerGameEnts* Util::servergameents = nullptr;
 IServerGameClients* Util::servergameclients = nullptr;
 CBaseClient* Util::GetClientByPlayer(const CBasePlayer* ply)
 {
-	return Util::GetClientByUserID(Util::engineserver->GetPlayerUserId(((CBaseEntity*)ply)->edict()));
+	// Follows source engines assumption that CGameClient/player index == entindex - 1
+	return Util::GetClientByIndex(ply->edict()->m_EdictIndex - 1);
 }
 
 CBaseClient* Util::GetClientByIndex(int index)

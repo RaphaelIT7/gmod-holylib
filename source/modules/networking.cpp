@@ -1272,7 +1272,7 @@ static EntityTransmitCache g_nEntityTransmitCache;
 
 // Full cache persisting across ticks, reset only when the player disconnects.
 static ConVar networking_transmit_newweapons("holylib_networking_transmit_newweapons", "1", 0, "Experimental - If enabled, weapons that a player equipped/was given are networked for the first x ticks");
-static ConVar networking_transmit_ticks("holylib_networking_transmit_ticks", "100", 0, "Experimental - How many ticks to use for transmit_newweapons & transmit_onfullupdate");
+static ConVar networking_transmit_ticks("holylib_networking_transmit_ticks", "-1", 0, "Experimental - How many ticks to use for transmit_newweapons & transmit_onfullupdate. -1 will instead ensure they are networked until the client acknowledges them");
 static ConVar networking_transmit_onfullupdate("holylib_networking_transmit_onfullupdate", "1", 0, "Experimental - If enabled, players and their own weapons are transmitted for the first x ticks when they had a full update");
 static ConVar networking_transmit_onfullupdate_networktoothers("holylib_networking_transmit_onfullupdate_networktoothers", "1", 0, "Experimental - If enabled, any player that has a full update will be networked to everyone");
 struct PlayerTransmitCache
@@ -1280,6 +1280,19 @@ struct PlayerTransmitCache
 	inline void NextTick(const CBaseEntity* pPlayer, const int nTick)
 	{
 		int nTransmitTicks = networking_transmit_ticks.GetInt();
+		if (nTransmitTicks == -1) {
+			CBaseClient* pClient = Util::GetClientByPlayer((const CBasePlayer*)pPlayer);
+			if (pClient) {
+				nLastAcknowledgedTick = pClient->GetMaxAckTickCount();
+			} else {
+				DevMsg(PROJECT_NAME " - networking: Failed to get CBaseClient for player %i (ent index)\n", pPlayer->edict()->m_EdictIndex);
+				nLastAcknowledgedTick = nTick - 100; // Fallback though should never happen
+			}
+		} else {
+			nLastAcknowledgedTick = nTick - nTransmitTicks;
+		}
+
+		
 		for (int i=0; i<MAX_WEAPONS; ++i)
 		{
 			WeaponSlot& pSlot = pWeapons[i];
@@ -1290,9 +1303,9 @@ struct PlayerTransmitCache
 				{
 					pSlot.bIsValid = true;
 					pSlot.bIsNew = true;
-					pSlot.nFreshTick = nTick + nTransmitTicks;
+					pSlot.nCreationTick = nTick;
 					pSlot.pWeapon = pWeapon;
-				} else if (pSlot.nFreshTick < nTick) {
+				} else if (pSlot.nCreationTick < nLastAcknowledgedTick) {
 					pSlot.bIsNew = false;
 				}
 
@@ -1315,16 +1328,25 @@ struct PlayerTransmitCache
 
 	void MarkFullUpdate()
 	{
-		nFreshFullUpdate = gpGlobals->tickcount + networking_transmit_ticks.GetInt();
+		nFullUpdateTick = gpGlobals->tickcount;
 	}
 
-	bool InFullUpdate(const int nTick) const
+	bool InFullUpdate(int nTick) const
 	{
-		return nFreshFullUpdate > nTick;
+		return nFullUpdateTick > nTick;
 	}
 
-	int nFreshFullUpdate = 0;
+	// If the client relative to his own last acknowledged tick
+	bool InFullUpdate() const
+	{
+		return nFullUpdateTick > nLastAcknowledgedTick;
+	}
+
+	bool bIsValid = false;
+
+	int nFullUpdateTick = 0;
 	int nLastAreaNum = 0;
+	int nLastAcknowledgedTick = 0;
 	// CBitVec<MAX_EDICTS> pLastTransmitBits; // No use yet
 	// CBitVec<MAX_EDICTS> pWeaponTransmitBits; // These are ALWAYS transmitted (unused)
 
@@ -1332,7 +1354,7 @@ struct PlayerTransmitCache
 	{
 		bool bIsNew = false; // Exists for quick checking to not have to compare numbers
 		bool bIsValid = false;
-		int nFreshTick = 0; // For how many ticks a weapon is considered new
+		int nCreationTick = 0; // For how many ticks a weapon is considered new
 		CBaseEntity* pWeapon = NULL; // in case a weapon is removed/given onto the same slot in a tick
 	};
 
@@ -1549,7 +1571,7 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 		if (bLocalPlayer)
 		{
 			const PlayerTransmitCache& pCache = g_pPlayerTransmitCache[pCharacterEdict->m_EdictIndex-1];
-			if (networking_transmit_onfullupdate.GetBool() && pCache.InFullUpdate(gpGlobals->tickcount))
+			if (networking_transmit_onfullupdate.GetBool() && pCache.InFullUpdate())
 			{
 				for (int i=0; i < MAX_WEAPONS; ++i)
 				{
@@ -1752,7 +1774,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	MDLCACHE_CRITICAL_SECTION();
 	CBasePlayer *pRecipientPlayer = static_cast<CBasePlayer*>(pRecipientEntity);
 	const int skyBoxArea = GetSkybox3DArea(pRecipientPlayer);
-	// player index / entindex - 1
+	// current transmit client | player index / entindex - 1
 	const int clientIndex = pInfo->m_pClientEnt->m_EdictIndex - 1;
 
 	// BUG: Can this even happen? Probably, when people screw with the gameserver module & disable spawn safety
@@ -1916,7 +1938,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 
 	if (networking_transmit_onfullupdate.GetBool())
 	{
-		if (g_pPlayerTransmitCache[clientIndex].InFullUpdate(nCurrentTick))
+		if (g_pPlayerTransmitCache[clientIndex].InFullUpdate())
 		{
 			for (int iPlayerIndex = 1; iPlayerIndex <= gpGlobals->maxClients; ++iPlayerIndex)
 			{
@@ -1933,9 +1955,10 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 		} else if (networking_transmit_onfullupdate_networktoothers.GetBool()) {
 			// In this case, if any other player is having a full update, we network them to all others
 			// simply because this ensures every player knows of every other players existance
+			int nLastAcknowledgedTick = g_pPlayerTransmitCache[clientIndex].nLastAcknowledgedTick;
 			for (int iPlayerIndex = 1; iPlayerIndex <= gpGlobals->maxClients; ++iPlayerIndex)
 			{
-				if (g_pEntityCache[iPlayerIndex] && g_pPlayerTransmitCache[iPlayerIndex-1].InFullUpdate(nCurrentTick))
+				if (g_pEntityCache[iPlayerIndex] && g_pPlayerTransmitCache[iPlayerIndex-1].InFullUpdate(nLastAcknowledgedTick))
 				{
 					pInfo->m_pTransmitEdict->Set(iPlayerIndex);
 					if (bIsHLTV)
