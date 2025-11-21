@@ -1147,6 +1147,11 @@ bool CGModAudioChannel::IsAttributeSliding(unsigned long nAttribute)
 	return BASS_ChannelIsSliding(m_pHandle, nAttribute);
 }
 
+unsigned long CGModAudioChannel::GetChannelData(void* pBuffer, unsigned long nLength)
+{
+	return BASS_ChannelGetData(m_pHandle, pBuffer, nLength);
+}
+
 bool CGModAudioChannel::SetFX( const char* pFXName, unsigned long nType, int nPriority, void* pParams, const char** pErrorOut )
 {
 	*pErrorOut = NULL;

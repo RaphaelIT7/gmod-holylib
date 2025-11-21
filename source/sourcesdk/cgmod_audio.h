@@ -177,6 +177,7 @@ public:
 	virtual void SetSlideAttribute( unsigned long nAttribute, float nValue, unsigned long nTime, const char** pErrorOut );
 	virtual float GetAttribute( unsigned long nAttribute, const char** pErrorOut );
 	virtual bool IsAttributeSliding( unsigned long nAttribute );
+	virtual unsigned long GetChannelData( void* pBuffer, unsigned long nLength );
 	
 	// FX
 	virtual bool SetFX( const char* pFXName, unsigned long nType, int nPriority, void* pParams, const char** pErrorOut );

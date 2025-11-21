@@ -154,6 +154,7 @@ public:
 	virtual void SetSlideAttribute( unsigned long nAttribute, float nValue, unsigned long nTime, const char** pErrorOut ) = 0;
 	virtual float GetAttribute( unsigned long nAttribute, const char** pErrorOut ) = 0;
 	virtual bool IsAttributeSliding( unsigned long nAttribute ) = 0;
+	virtual unsigned long GetChannelData( void* pBuffer, unsigned long nLength ) = 0;
 
 	// FX Stuff, formerly I wanted to expose the IGModAudioFX
 	// though I did not like the idea of having to manage yet another independent but linked object

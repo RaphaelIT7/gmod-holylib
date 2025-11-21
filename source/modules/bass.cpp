@@ -522,6 +522,22 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_IsAttributeSliding)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(IGModAudioChannel_GetChannelData)
+{
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
+	unsigned short nSize = (unsigned short)LUA->CheckNumber(2);
+
+	void* pBuffer = alloca(nSize);
+	unsigned long nLength = channel->GetChannelData(pBuffer, nSize | BASS_DATA_FLOAT);
+	if (nLength == -1) {
+		LUA->PushNil();
+	} else {
+		LUA->PushString((char*)pBuffer, nLength);
+	}
+	LUA->PushNumber(nLength);
+	return 2;
+}
+
 LUA_FUNCTION_STATIC(IGModAudioChannel_SetFX)
 {
 	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
@@ -1383,6 +1399,7 @@ void CBassModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 		Util::AddFunc(pLua, IGModAudioChannel_SetSlideAttribute, "SetSlideAttribute");
 		Util::AddFunc(pLua, IGModAudioChannel_GetAttribute, "GetAttribute");
 		Util::AddFunc(pLua, IGModAudioChannel_IsAttributeSliding, "IsAttributeSliding");
+		Util::AddFunc(pLua, IGModAudioChannel_GetChannelData, "GetChannelData");
 
 		Util::AddFunc(pLua, IGModAudioChannel_SetFX, "SetFX");
 		Util::AddFunc(pLua, IGModAudioChannel_ResetFX, "ResetFX");
