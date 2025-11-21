@@ -1053,11 +1053,11 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 		if (networking_cachedump.GetBool())
 		{
 			Msg("Fullcheck:\n");
-			for (int i=0; i<nFullEdictCount; ++i)
+			for (int i=0; i<=nFullEdictCount; ++i)
 				Msg("    %i: %s[%i]\n", i, pFullEntityList[i]->GetClassname(), pFullEntityList[i]->edict()->m_EdictIndex);
 
 			Msg("PVS:\n");
-			for (int i=0; i<nPVSEdictCount; ++i)
+			for (int i=0; i<=nPVSEdictCount; ++i)
 				Msg("    %i: %s[%i]\n", i, pPVSEntityList[i]->GetClassname(), pPVSEntityList[i]->edict()->m_EdictIndex);
 
 			if (networking_areasplit.GetBool())
@@ -1095,13 +1095,13 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 		// nEntityCluster[nIndex] = 0;
 		// bDirtyEntities.Clear(nIndex);
 
-		for (int i = 0; i<nFullEdictCount; ++i)
+		for (int i = 0; i<=nFullEdictCount; ++i)
 		{
 			CBaseEntity* pFullEnt = pFullEntityList[i];
 			if (pFullEnt != pEntity)
 				continue;
 
-			if (i < nFullEdictCount - 1)
+			if (i < nFullEdictCount)
 				memmove(&pFullEntityList[i], &pFullEntityList[i + 1], (nFullEdictCount - i - 1) * sizeof(CBaseEntity*));
 
 			--nFullEdictCount;
@@ -1109,13 +1109,13 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 			break;
 		}
 
-		for (int i = 0; i<nPVSEdictCount; ++i)
+		for (int i = 0; i<=nPVSEdictCount; ++i)
 		{
 			CBaseEntity* pFullEnt = pPVSEntityList[i];
 			if (pFullEnt != pEntity)
 				continue;
 
-			if (i < nPVSEdictCount - 1)
+			if (i < nPVSEdictCount)
 				memmove(&pPVSEntityList[i], &pPVSEntityList[i + 1], (nPVSEdictCount - i - 1) * sizeof(CBaseEntity*));
 
 			--nPVSEdictCount;
@@ -1245,6 +1245,7 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 	// int nEntityCluster[MAX_EDICTS] = {0};
 	// CBitVec<MAX_EDICTS> bDirtyEntities = {false}; // Their Cluster changed compared to last tick.
 
+	// NOTE: They are preincrement, use <= in for loops!
 	int nPVSEdictCount = -1; // NOTE: This will only contain entities that were unable to be fitted into an AreaCache! (only happens on overflow)
 	int nFullEdictCount = -1;
 	CBaseEntity* pPVSEntityList[MAX_EDICTS] = {NULL};
@@ -1260,6 +1261,7 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 	*/
 	struct AreaCache
 	{
+		// Not preincremented - use < in for loops
 		int nCount = 0;
 		CBaseEntity* pEntities[512];
 	};
@@ -1830,7 +1832,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	if (bIsHLTV)
 		pInfo->m_pTransmitAlways->Or(g_nEntityTransmitCache.pAlwaysTransmitBits, pInfo->m_pTransmitAlways);
 
-	for (int i=0; i<g_nEntityTransmitCache.nFullEdictCount; ++i)
+	for (int i=0; i<=g_nEntityTransmitCache.nFullEdictCount; ++i)
 	{
 		CBaseEntity* pEnt = g_nEntityTransmitCache.pFullEntityList[i];
 
@@ -1892,7 +1894,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 		}
 	}
 
-	for (int i=0; i<g_nEntityTransmitCache.nPVSEdictCount; ++i)
+	for (int i=0; i<=g_nEntityTransmitCache.nPVSEdictCount; ++i)
 	{
 		CBaseEntity* pEnt = g_nEntityTransmitCache.pPVSEntityList[i];
 
