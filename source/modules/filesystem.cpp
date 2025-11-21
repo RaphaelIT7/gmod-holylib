@@ -371,11 +371,28 @@ static inline void WriteStringIntoFile(FileHandle_t pHandle, const char* value, 
 }
 
 static std::unordered_map<std::string_view, std::unordered_map<std::string_view, std::string_view>> g_pAbsoluteSearchCache;
+
+enum FileSystemStatus
+{
+	None,
+	Writing,
+	Reading
+};
+
+static FileSystemStatus eFileSystemStatus = None;
 static void WriteSearchCache()
 {
 	VPROF_BUDGET("HolyLib - WriteSearchCache", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 	if (!holylib_filesystem_savesearchcache.GetBool())
 		return;
+
+	if (eFileSystemStatus != FileSystemStatus::None)
+	{
+		Msg("HolyLib - WriteSearchCache | eFileSystemStatus is not none!\n");
+		return;
+	}
+
+	eFileSystemStatus = FileSystemStatus::Writing;
 
 	FileHandle_t handle = g_pFullFileSystem->Open("holylib_searchcache.dat", "wb", "MOD_WRITE");
 	if (handle)
@@ -461,6 +478,7 @@ static void WriteSearchCache()
 	} else {
 		Warning(PROJECT_NAME ": Failed to open searchcache file!\n");
 	}
+	eFileSystemStatus = FileSystemStatus::None;
 }
 
 inline std::string_view* GetStringFromAbsoluteCache(const char* fileName, const char* pathID)
@@ -513,6 +531,12 @@ static inline const char* ReadStringFromFile(FileHandle_t pHandle, unsigned char
 static void ReadSearchCache()
 {
 	VPROF_BUDGET("HolyLib - ReadSearchCache", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
+	if (eFileSystemStatus != FileSystemStatus::None)
+	{
+		Msg("HolyLib - ReadSearchCache | eFileSystemStatus is not none!\n");
+		return;
+	}
+	eFileSystemStatus = FileSystemStatus::Reading;
 	ClearAbsoluteSearchCache();
 
 	FileHandle_t handle = g_pFullFileSystem->Open("holylib_searchcache.dat", "rb", "MOD_WRITE");
@@ -524,6 +548,7 @@ static void ReadSearchCache()
 		{
 			g_pFullFileSystem->Close(handle);
 			Warning(PROJECT_NAME " - ReadSearchCache: Searchcache version didnt match  (File: %i, Current %i)\n", searchCache.version, SearchCacheVersion);
+			eFileSystemStatus = FileSystemStatus::None;
 			return;
 		}
 
@@ -563,6 +588,7 @@ static void ReadSearchCache()
 		if (g_pFileSystemModule.InDebug())
 			Msg("holylib - filesystem: Failed to find searchcache file\n");
 	}
+	eFileSystemStatus = FileSystemStatus::None;
 }
 
 void CFileSystemModule::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
@@ -665,11 +691,12 @@ static void DumpSearchCacheCmd(const CCommand& args)
 static ConCommand dumpabsolutesearchcache("holylib_filesystem_dumpabsolutesearchcache", DumpSearchCacheCmd, "Dumps the absolute search cache", 0);
 
 static bool bShutdown = false;
+
 static void InitFileSystem(IFileSystem* pFileSystem)
 {		
 	if (!pFileSystem || bShutdown) // We refuse to init when this is called when it shouldn't. If it crashes, then give me a stacktrace to fix it.
 		return;
-	
+
 	g_pFullFileSystem = pFileSystem;
 
 	if (holylib_filesystem_savesearchcache.GetBool())
@@ -950,9 +977,7 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 	char pFileNameBuff[MAX_PATH];
 	const char *pFileName = pFileNameBuff;
 
-#if ARCHITECTURE_X86 // This is a 32x only thing
 	func_CBaseFileSystem_FixUpPath(filesystem, pFileNameT, pFileNameBuff, sizeof(pFileNameBuff));
-#endif
 
 	if (holylib_filesystem_savesearchcache.GetBool())
 	{
@@ -1253,9 +1278,7 @@ static long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char
 	char pFileNameBuff[MAX_PATH];
 	const char *pFileName = pFileNameBuff;
 
-#if ARCHITECTURE_X86 // This is a 32x only thing
 	func_CBaseFileSystem_FixUpPath(filesystem, pFileNameT, pFileNameBuff, sizeof(pFileNameBuff));
-#endif
 	
 	bool bSplitPath = false;
 	const char* origPath = pPathID;

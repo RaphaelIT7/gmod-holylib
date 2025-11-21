@@ -26,3 +26,5 @@ source/_versioninfo.h
 source/_prebuildtools/http/*.txt
 source/_prebuildtools/generated_summary.md
 source/modules/_modules.cpp
+
+projects/windows/vs2022/

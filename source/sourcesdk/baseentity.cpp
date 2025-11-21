@@ -4,6 +4,9 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+// Define the static member of CBaseEntity
+bool CBaseEntity::s_bAbsQueriesValid = true;
+
 CBaseEntity* CGlobalEntityList::NextEnt(CBaseEntity* pCurrentEnt)
 {
 	if (!pCurrentEnt)

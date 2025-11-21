@@ -315,7 +315,8 @@ void Lua::Init(GarrysMod::Lua::ILuaInterface* LUA)
 	SetupCoreTestFunctions(g_Lua); // For Tests.
 
 	std::vector<GarrysMod::Lua::LuaFindResult> results;
-	GetShared()->FindScripts("lua/autorun/_holylib/*.lua", "GAME", results);
+
+	GarrysMod::Lua::FindScriptsSafe(GetShared(), "lua/autorun/_holylib/*.lua", "GAME", results);
 	for (GarrysMod::Lua::LuaFindResult& result : results)
 	{
 		std::string fileName = "lua/autorun/_holylib/";
