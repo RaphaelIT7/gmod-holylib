@@ -25,7 +25,7 @@ class CNetworkThreadingModule : public IModule
 public:
 	virtual void InitDetour(bool bPreServer) OVERRIDE;
 	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) OVERRIDE;
-	virtual void Shutdown() OVERRIDE;
+	virtual void LevelShutdown() OVERRIDE;
 	virtual const char* Name() { return "networkthreading"; };
 	virtual int Compatibility() { return LINUX32; };
 	virtual bool IsEnabledByDefault() { return true; };
@@ -336,7 +336,7 @@ void CNetworkThreadingModule::ServerActivate(edict_t* pEdictList, int edictCount
 	}
 }
 
-void CNetworkThreadingModule::Shutdown()
+void CNetworkThreadingModule::LevelShutdown()
 {
 	if (g_pNetworkThread == NULL)
 		return;
