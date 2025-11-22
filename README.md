@@ -1021,6 +1021,11 @@ Forces a full update for the specific client.<br>
 #### table pvs.GetEntitesFromTransmit()
 Returns a table containing all entities that will be networked.<br>
 
+#### pvs.ForceWeaponTransmit(Entity weapon, bool forceTransmit = false)
+Allows you to mark a weapon to be forcefully transmitted even when offhand.<br>
+The weapon will remain to be forcefully transmitted until this is called with false again or the weapon is removed!<br>
+This is only useful if you use the `networking` module with the `holylib_networking_transmit_all_weapons 0` and `holylib_networking_transmit_all_weapons_to_owner 0`<br>
+
 #### pvs.EnablePreTransmitHook(bool enable = false)
 Enables/Disables the `HolyLib:PreCheckTransmit` hook.<br>
 The internal value is reset on mapchange, so you need to set it always again on Lua startup.<br>

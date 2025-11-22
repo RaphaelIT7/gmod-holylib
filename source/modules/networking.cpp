@@ -1272,6 +1272,16 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 };
 static EntityTransmitCache g_nEntityTransmitCache;
 
+static CBitVec<MAX_EDICTS> g_pForceWeaponTransmitIndexes;
+void Networking_ForceWeaponTransmit(int entIndex, bool bForceTransmit) // Exposed for pvs.ForceWeaponTransmit
+{
+	if (bForceTransmit) {
+		g_pForceWeaponTransmitIndexes.Set(entIndex);
+	} else {
+		g_pForceWeaponTransmitIndexes.Clear(entIndex);
+	}
+}
+
 // Full cache persisting across ticks, reset only when the player disconnects.
 static ConVar* sv_stressbots = nullptr;
 static ConVar networking_transmit_newweapons("holylib_networking_transmit_newweapons", "1", 0, "Experimental - If enabled, weapons that a player equipped/was given are networked for the first x ticks");
@@ -1319,10 +1329,13 @@ struct PlayerTransmitCache
 					pSlot.bIsNew = false;
 				}
 
+				pSlot.bAlwaysNetwork = g_pForceWeaponTransmitIndexes.IsBitSet(pWeapon->edict()->m_EdictIndex);
+
 				nHighestWeaponSlot = i;
 			} else {
 				pSlot.bIsValid = false;
 				pSlot.bIsNew = false;
+				pSlot.bAlwaysNetwork = false;
 			}
 		}
 
@@ -1366,6 +1379,9 @@ struct PlayerTransmitCache
 	{
 		bool bIsNew = false; // Exists for quick checking to not have to compare numbers
 		bool bIsValid = false;
+		// Transmit state - in case an offhand weapon insists on being an ass requesting to be networked
+		// NOTE: For this to take effect, a weapon must return TRANSMIT_ALWAYS inside Entity:UpdateTransmitState
+		bool bAlwaysNetwork = false;
 		int nCreationTick = 0; // For how many ticks a weapon is considered new
 		CBaseEntity* pWeapon = NULL; // in case a weapon is removed/given onto the same slot in a tick
 	};
@@ -1580,9 +1596,9 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 			}
 		}
 
+		const PlayerTransmitCache& pCache = g_pPlayerTransmitCache[pCharacterEdict->m_EdictIndex-1];
 		if (bLocalPlayer)
 		{
-			const PlayerTransmitCache& pCache = g_pPlayerTransmitCache[pCharacterEdict->m_EdictIndex-1];
 			if (networking_transmit_onfullupdate.GetBool() && pCache.InFullUpdate())
 			{
 				// DevMsg(PROJECT_NAME " - networking: Doing full weapon transmit for %i...\n", pCharacterEdict->m_EdictIndex);
@@ -1606,6 +1622,15 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 						pWeaponSlot.pWeapon->SetTransmit(pInfo, bAlways);
 				}
 			}
+		}
+
+		// In some cases offhand weapons may want to be transmitted!
+		// This normally is shit! Why would anyone need offhand weapons? Idk, some do!
+		for (int i=0; i < MAX_WEAPONS; ++i)
+		{
+			const PlayerTransmitCache::WeaponSlot& pWeaponSlot = pCache.pWeapons[i];
+			if (pWeaponSlot.bAlwaysNetwork)
+				pWeaponSlot.pWeapon->SetTransmit(pInfo, bAlways);
 		}
 	}
 }
@@ -2226,32 +2251,6 @@ void PackEntities_Normal(int clientCount, CGameClient **clients, CFrameSnapshot 
 	func_InvalidateSharedEdictChangeInfos();
 }
 
-/*void SV_ComputeClientPacks( 
-	int clientCount, 
-	CGameClient **clients,
-	CFrameSnapshot *snapshot )
-{
-	MDLCACHE_CRITICAL_SECTION_(g_pMDLCache);
-
-	{
-		VPROF_BUDGET_FLAGS( "SV_ComputeClientPacks", "CheckTransmit", BUDGETFLAG_SERVER );
-
-		for (int iClient = 0; iClient < clientCount; ++iClient)
-		{
-			CCheckTransmitInfo *pInfo = &clients[iClient]->m_PackInfo;
-			clients[iClient]->SetupPackInfo( snapshot );
-			Util::servergameents->CheckTransmit( pInfo, snapshot->m_pValidEntities, snapshot->m_nValidEntities );
-			clients[iClient]->SetupPrevPackInfo();
-		}
-	}
-
-	VPROF_BUDGET_FLAGS( "SV_ComputeClientPacks", "ComputeClientPacks", BUDGETFLAG_SERVER );
-
-	// Fk local network backdoor, we expect holylib to rarely run on a local server so it's not worth to implement.
-
-	PackEntities_Normal( clientCount, clients, snapshot );
-}*/
-
 void CNetworkingModule::OnEntityDeleted(CBaseEntity* pEntity)
 {
 	edict_t* pEdict = pEntity->edict();
@@ -2261,12 +2260,11 @@ void CNetworkingModule::OnEntityDeleted(CBaseEntity* pEntity)
 	g_nEntityTransmitCache.EntityRemoved(pEntity, pEdict);
 	CleaupSetPreventTransmit(pEntity);
 	g_pEntityCache[pEdict->m_EdictIndex] = NULL;
+	g_pForceWeaponTransmitIndexes.Clear(pEdict->m_EdictIndex);
 }
 
 void CNetworkingModule::OnEntityCreated(CBaseEntity* pEntity)
 {
-	//auto mod = GetOrCreateEntityModule<SendpropOverrideModule>(pEntity, "sendpropoverride");
-	//mod->AddOverride(CallbackPluginCall, precalcIndex, prop, callbacks.size() - 1);
 	const edict_t* pEdict = pEntity->edict();
 	if (pEdict)
 		g_pEntityCache[pEdict->m_EdictIndex] = pEntity;

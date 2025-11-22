@@ -869,6 +869,24 @@ LUA_FUNCTION_STATIC(pvs_GetEntitiesFromTransmit)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(pvs_ForceWeaponTransmit)
+{
+	CBaseEntity* pWeapon = Util::Get_Entity(LUA, 1, true);
+	bool bForceTransmit = LUA->GetBool(2);
+
+	// If it isn't a weapon - we don't care.
+	// Why? Because then it simply has no effect!
+
+#if MODULE_EXISTS_NETWORKING
+	extern void Networking_ForceWeaponTransmit(int entIndex, bool bForceTransmit);
+	Networking_ForceWeaponTransmit(pWeapon->edict()->m_EdictIndex, bForceTransmit);
+#else
+	LUA->ThrowError("Networking module does not exist! This function has no purpose!");
+#endif
+	return 0;
+}
+
+
 LUA_FUNCTION_STATIC(pvs_EnablePreTransmitHook)
 {
 	g_bEnableLuaPreTransmitHook = LUA->GetBool(1);
@@ -914,6 +932,7 @@ void CPVSModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 		Util::AddFunc(pLua, pvs_TestPVS, "TestPVS");
 		Util::AddFunc(pLua, pvs_ForceFullUpdate, "ForceFullUpdate");
 		Util::AddFunc(pLua, pvs_GetEntitiesFromTransmit, "GetEntitiesFromTransmit");
+		Util::AddFunc(pLua, pvs_ForceWeaponTransmit, "ForceWeaponTransmit");
 
 		// Use the functions below only inside the HolyLib:[Pre/Post]CheckTransmit hook.  
 		Util::AddFunc(pLua, pvs_RemoveEntityFromTransmit, "RemoveEntityFromTransmit");
