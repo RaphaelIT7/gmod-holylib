@@ -114,6 +114,7 @@ GCfunc *lj_func_newC(lua_State *L, MSize nelems, GCtab *env)
   fn->c.gct = ~LJ_TFUNC;
   fn->c.ffid = FF_C;
   fn->c.nupvalues = (uint8_t)nelems;
+  setrawgcrefnull(fn->c.env); // Needed as else it would try to decrement a invalid gcref!
   /* NOBARRIER: The GCfunc is new (marked white). */
   setmref(fn->c.pc, &G(L)->bc_cfunc_ext);
   setgcref(fn->c.env, obj2gco(env));
@@ -127,6 +128,7 @@ static GCfunc *func_newL(lua_State *L, GCproto *pt, GCtab *env)
   fn->l.gct = ~LJ_TFUNC;
   fn->l.ffid = FF_LUA;
   fn->l.nupvalues = 0;  /* Set to zero until upvalues are initialized. */
+  setrawgcrefnull(fn->l.env); // Needed as else it would try to decrement a invalid gcref!
   /* NOBARRIER: Really a setgcref. But the GCfunc is new (marked white). */
   setmref(fn->l.pc, proto_bc(pt));
   setgcref(fn->l.env, obj2gco(env));
