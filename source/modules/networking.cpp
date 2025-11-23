@@ -881,7 +881,7 @@ static inline int GetSkybox3DArea(const void* pPlayer) // Fully safe access :3
 
 static inline CBaseEntity* IndexToEntity(const int nEntIndex)
 {
-	if (nEntIndex < 0 || nEntIndex > MAX_EDICTS)
+	if (nEntIndex < 0 || nEntIndex >= MAX_EDICTS)
 		return nullptr;
 
 	return g_pEntityCache[nEntIndex];
