@@ -527,6 +527,10 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetChannelData)
 	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 	unsigned short nSize = (unsigned short)LUA->CheckNumber(2);
 
+	// Max 64kb!
+	if (nSize > USHRT_MAX)
+		nSize = USHRT_MAX;
+
 	void* pBuffer = alloca(nSize);
 	unsigned long nLength = channel->GetChannelData(pBuffer, nSize | BASS_DATA_FLOAT);
 	if (nLength == -1) {
