@@ -1142,7 +1142,7 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 						}
 					}
 
-					std::string realStrFileName = strFileName.data();
+					std::string realStrFileName = std::string(strFileName);
 					auto it = m_PredictionCheck.find(realStrFileName); // This could cause additional slowdown :/
 					if (it != m_PredictionCheck.end())
 						return NULL;
