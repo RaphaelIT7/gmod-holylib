@@ -766,6 +766,12 @@ void Util::RemoveDetour()
 static bool g_pShouldLoad = false;
 bool Util::ShouldLoad()
 {
+	if (CommandLine()->FindParm("-holylib_disable"))
+	{
+		Msg(PROJECT_NAME " - core: Refusing to load due to -holylib_disable!\n");
+		return false;
+	}
+
 	if (CommandLine()->FindParm("-holylibexists") && !g_pShouldLoad) // Don't set this manually!
 		return false;
 

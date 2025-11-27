@@ -308,6 +308,7 @@ All hooks that get called use `hook.Run`. Gmod calls `gamemode.Call`.<br>
 ## Debug Stuff
 There is `-holylib_startdisabled` which will cause all modules to be disabled on startup.<br>
 And with `holylib_toggledetour` you can block specific detours from being created.<br>
+You can disable holylib entirely by adding the `-holylib_disable` command line option<br>
 
 ## holylib
 This module contains the HolyLib library.<br>
