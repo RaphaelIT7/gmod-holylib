@@ -22,7 +22,7 @@
 */
 
 class IHolyLib;
-typedef bool (*HolyLib_EntryPoint)(IHolyLib* pHolyLib);
+using HolyLib_EntryPoint = bool (*)(IHolyLib* pHolyLib);
 class DLLManager
 {
 public:
@@ -85,7 +85,7 @@ public:
 			}
 
 			HolyLib_EntryPoint pEntryPoint = (HolyLib_EntryPoint)DLL_GetAddress(pDLL.m_pHandle, "HolyLib_EntryPoint");
-			if (pEntryPoint == NULL)
+			if (pEntryPoint == nullptr)
 			{
 				Warning(PROJECT_NAME " - DLLManager: failed to load \"%s\", it's missing the entrypoint \"HolyLib_EntryPoint\"!\n", pDLL.m_strName.c_str());
 				DLL_UnloadModule(pDLL.m_pHandle);

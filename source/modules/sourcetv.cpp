@@ -16,13 +16,13 @@
 class CSourceTVLibModule : public IModule
 {
 public:
-	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
-	virtual void InitDetour(bool bPreServer) OVERRIDE;
-	virtual void OnClientDisconnect(CBaseClient* pClient) OVERRIDE;
-	virtual const char* Name() { return "sourcetv"; };
-	virtual int Compatibility() { return LINUX32; };
-	virtual bool SupportsMultipleLuaStates() { return true; };
+	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) override;
+	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
+	void InitDetour(bool bPreServer) override;
+	void OnClientDisconnect(CBaseClient* pClient) override;
+	const char* Name() override { return "sourcetv"; };
+	int Compatibility() override { return LINUX32; };
+	bool SupportsMultipleLuaStates() override { return true; };
 };
 
 static ConVar sourcetv_allownetworking("holylib_sourcetv_allownetworking", "0", 0, "Allows HLTV Clients to send net messages to the server.");
@@ -53,7 +53,7 @@ int CHLTVServer::GetHLTVSlot()
 	return m_nPlayerSlot;
 }
 
-CHLTVServer* hltv = NULL;
+CHLTVServer* hltv = nullptr;
 static Detouring::Hook detour_CHLTVServer_CHLTVServer;
 static void hook_CHLTVServer_CHLTVServer(CHLTVServer* srv)
 {
@@ -64,7 +64,7 @@ static void hook_CHLTVServer_CHLTVServer(CHLTVServer* srv)
 static Detouring::Hook detour_CHLTVServer_DestroyCHLTVServer;
 static void hook_CHLTVServer_DestroyCHLTVServer(CHLTVServer* srv)
 {
-	hltv = NULL;
+	hltv = nullptr;
 	detour_CHLTVServer_DestroyCHLTVServer.GetTrampoline<Symbols::CHLTVServer_DestroyCHLTVServer>()(srv);
 }
 
@@ -332,7 +332,7 @@ LUA_FUNCTION_STATIC(sourcetv_GetClient)
 
 	CHLTVClient* pClient = hltv->Client(iClientIndex);
 	if (pClient && !pClient->IsConnected())
-		pClient = NULL;
+		pClient = nullptr;
 
 	Push_CHLTVClient(LUA, pClient);
 

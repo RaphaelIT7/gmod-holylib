@@ -23,12 +23,12 @@
 class CNetworkThreadingModule : public IModule
 {
 public:
-	virtual void InitDetour(bool bPreServer) OVERRIDE;
-	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) OVERRIDE;
-	virtual void LevelShutdown() OVERRIDE;
-	virtual const char* Name() { return "networkthreading"; };
-	virtual int Compatibility() { return LINUX32; };
-	virtual bool IsEnabledByDefault() { return true; };
+	void InitDetour(bool bPreServer) override;
+	void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) override;
+	void LevelShutdown() override;
+	const char* Name() override { return "networkthreading"; };
+	int Compatibility() override { return LINUX32; };
+	bool IsEnabledByDefault() override { return true; };
 };
 
 static CNetworkThreadingModule g_pNetworkThreadingModule;
@@ -121,7 +121,7 @@ static void AddPacketToQueueForMainThread(netpacket_s* pPacket, bool bIsConnecti
 
 	pQueue->pPacket.data = pQueue->pBytes; // Update the pointer for later access
 	pQueue->pPacket.message.StartReading( pQueue->pPacket.data, pQueue->pPacket.size, pPacket->message.GetNumBitsRead() ); // also needs updating
-	pQueue->pPacket.pNext = NULL;
+	pQueue->pPacket.pNext = nullptr;
 
 	if (g_pNetworkThreadingModule.InDebug() == 1)
 		Msg(PROJECT_NAME " - networkthreading: Added %i bytes packet to queue (%p)\n", pPacket->size, pQueue);
@@ -196,7 +196,7 @@ static SIMPLETHREAD_RETURNVALUE NetworkThread(void* pThreadData)
 	netpacket_s* packet;
 	while (g_nThreadState.load() == NetworkThreadState::STATE_RUNNING)
 	{
-		while ((packet = func_NET_GetPacket(nSocket, pBuffer)) != NULL)
+		while ((packet = func_NET_GetPacket(nSocket, pBuffer)) != nullptr)
 		{
 			if (Filter_ShouldDiscard(packet->from)) // filtering is done by network layer
 			{
@@ -325,20 +325,20 @@ static void hook_NET_RemoveNetChannel(INetChannel* pChannel, bool bShouldRemove)
 	// We don't need to do any cleanup since any packets that can't be passed to a channel since they have been removed are simply dropped.
 }
 
-static ThreadHandle_t g_pNetworkThread = NULL;
+static ThreadHandle_t g_pNetworkThread = nullptr;
 void CNetworkThreadingModule::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
 {
 	g_nThreadState.store(NetworkThreadState::STATE_RUNNING);
-	if (g_pNetworkThread == NULL)
+	if (g_pNetworkThread == nullptr)
 	{
 		ConDMsg(PROJECT_NAME " - networkthreading: Starting network thread...\n");
-		g_pNetworkThread = CreateSimpleThread((ThreadFunc_t)NetworkThread, NULL);
+		g_pNetworkThread = CreateSimpleThread((ThreadFunc_t)NetworkThread, nullptr);
 	}
 }
 
 void CNetworkThreadingModule::LevelShutdown()
 {
-	if (g_pNetworkThread == NULL)
+	if (g_pNetworkThread == nullptr)
 		return;
 
 	ConDMsg(PROJECT_NAME " - networkthreading: Stopping network thread...\n");
@@ -349,7 +349,7 @@ void CNetworkThreadingModule::LevelShutdown()
 			ThreadSleep(0);
 	}
 	ReleaseThreadHandle(g_pNetworkThread);
-	g_pNetworkThread = NULL;
+	g_pNetworkThread = nullptr;
 }
 
 void CNetworkThreadingModule::InitDetour(bool bPreServer)

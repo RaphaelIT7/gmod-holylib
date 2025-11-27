@@ -13,8 +13,8 @@ namespace Bootil
 		{
 			public:
 
-				typedef TreeT<TString>						ThisClass;
-				typedef typename std::list< ThisClass >		List;
+				using ThisClass = TreeT<TString>;
+				using List = typename std::list< ThisClass >;
 
 			public:
 
@@ -111,8 +111,8 @@ namespace Bootil
 		// Although the wide version is probably a waste of time since
 		// nothing supports it right now.
 		//
-		typedef TreeT<Bootil::BString> Tree;
-		typedef TreeT<Bootil::WString> TreeW;
+		using Tree = TreeT<Bootil::BString>;
+		using TreeW = TreeT<Bootil::WString>;
 
 
 		//

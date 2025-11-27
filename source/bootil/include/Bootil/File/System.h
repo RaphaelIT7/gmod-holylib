@@ -8,7 +8,7 @@ namespace Bootil
 		{
 			public:
 
-				typedef std::list<BString> Paths;
+				using Paths = std::list<BString>;
 
 				System();
 				System( BString strInitalPath );

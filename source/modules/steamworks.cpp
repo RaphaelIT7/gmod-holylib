@@ -12,15 +12,15 @@
 class CSteamWorksModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
-	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
-	virtual void Think(bool bSimulating) OVERRIDE;
-	virtual void InitDetour(bool bPreServer) OVERRIDE;
-	virtual void LevelShutdown() OVERRIDE;
-	virtual const char* Name() { return "steamworks"; };
-	virtual int Compatibility() { return LINUX32 | LINUX64; };
-	virtual bool SupportsMultipleLuaStates() { return true; };
+	void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) override;
+	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) override;
+	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
+	void Think(bool bSimulating) override;
+	void InitDetour(bool bPreServer) override;
+	void LevelShutdown() override;
+	const char* Name() override { return "steamworks"; };
+	int Compatibility() override { return LINUX32 | LINUX64; };
+	bool SupportsMultipleLuaStates() override { return true; };
 };
 
 CSteamWorksModule g_pSteamWorksModule;
@@ -211,12 +211,12 @@ void CSteamWorksModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 {
 	if (appfn[0])
 	{
-		pServerPluginHandler = (CServerPlugin*)appfn[0](INTERFACEVERSION_ISERVERPLUGINHELPERS, NULL);
+		pServerPluginHandler = (CServerPlugin*)appfn[0](INTERFACEVERSION_ISERVERPLUGINHELPERS, nullptr);
 	} else {
 		SourceSDK::FactoryLoader engine_loader("engine");
 		pServerPluginHandler = engine_loader.GetInterface<CServerPlugin>(INTERFACEVERSION_ISERVERPLUGINHELPERS);
 	}
-	Detour::CheckValue("get interface", "pServerPluginHandler", pServerPluginHandler != NULL);
+	Detour::CheckValue("get interface", "pServerPluginHandler", pServerPluginHandler != nullptr);
 }
 
 void CSteamWorksModule::Think(bool bSimulating)

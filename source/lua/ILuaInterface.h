@@ -21,7 +21,7 @@ class CLuaInterface;
 struct lua_State;
 namespace GarrysMod::Lua
 {
-	typedef int ( *CFunc )( lua_State* L );
+	using CFunc = int (*)( lua_State* L );
 
 	// For use with ILuaBase::PushSpecial
 	enum

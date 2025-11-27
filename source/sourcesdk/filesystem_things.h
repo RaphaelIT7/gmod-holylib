@@ -458,7 +458,7 @@ public:
 	IFileList *m_pWantCRCList;
 	IFileList *m_pAllowFromDiskList;
 };
-typedef CThreadSafeRefCountedObject<CWhitelistSpecs *> CWhitelistHolder;
+using CWhitelistHolder = CThreadSafeRefCountedObject<CWhitelistSpecs *>;
 
 class CFileHandleTimer;
 abstract_class CBaseFileSystem : public CTier1AppSystem< IFileSystem >
@@ -472,7 +472,7 @@ abstract_class CBaseFileSystem : public CTier1AppSystem< IFileSystem >
 	friend class CFileTracker2;
 	friend class CFileOpenInfo;
 
-	typedef CTier1AppSystem< IFileSystem > BaseClass;
+	using BaseClass = CTier1AppSystem< IFileSystem >;
 
 public:
 	CBaseFileSystem();
@@ -585,7 +585,7 @@ public:
 	long						GetPathTime( const char *pFileName, const char *pPathID );
 	
 	virtual void				EnableWhitelistFileTracking( bool bEnable, bool bCacheAllVPKHashes, bool bRecalculateAndCheckHashes );
-	virtual void				RegisterFileWhitelist( IPureServerWhitelist *pWhiteList, IFileList **ppFilesToReload ) OVERRIDE;
+	virtual void				RegisterFileWhitelist( IPureServerWhitelist *pWhiteList, IFileList **ppFilesToReload ) override;
 	virtual	void				MarkAllCRCsUnverified();
 	virtual void				CacheFileCRCs( const char *pPathname, ECacheCRCType eType, IFileList *pFilter );
 	//void						CacheFileCRCs_R( const char *pPathname, ECacheCRCType eType, IFileList *pFilter, CUtlDict<int,int> &searchPathNames );
@@ -604,7 +604,7 @@ public:
 
 	virtual void				CacheAllVPKFileHashes( bool bCacheAllVPKHashes, bool bRecalculateAndCheckHashes );
 	virtual bool				CheckVPKFileHash( int PackFileID, int nPackFileNumber, int nFileFraction, MD5Value_t &md5Value );
-	virtual void				NotifyFileUnloaded( const char *pszFilename, const char *pPathId ) OVERRIDE;
+	virtual void				NotifyFileUnloaded( const char *pszFilename, const char *pPathId ) override;
 
 	// Returns the file system statistics retreived by the implementation.  Returns NULL if not supported.
 	virtual const FileSystemStatistics *GetFilesystemStatistics();

@@ -16,7 +16,7 @@
 
 CBasePlayer *UTIL_PlayerByIndex(int playerIndex)
 {
-	CBasePlayer *pPlayer = NULL;
+	CBasePlayer *pPlayer = nullptr;
 
 	if (playerIndex > 0 && playerIndex <= gpGlobals->maxClients)
 	{

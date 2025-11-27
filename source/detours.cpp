@@ -14,9 +14,9 @@
 SymbolFinder Detour::symfinder;
 void* Detour::GetFunction(void* pModule, Symbol pSymbol)
 {
-	// We don't ensure safety as if pModule is NULL we should have checked before calling, else debugging gets painful
+	// We don't ensure safety as if pModule is nullptr we should have checked before calling, else debugging gets painful
 	// if (!pModule)
-	//	return NULL;
+	//	return nullptr;
 
 	return symfinder.Resolve(pModule, pSymbol.name.c_str(), pSymbol.length);
 }

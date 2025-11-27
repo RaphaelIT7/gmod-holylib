@@ -10,11 +10,11 @@
 class CNWModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
-	virtual void InitDetour(bool bPreServer) OVERRIDE;
-	virtual const char* Name() { return "nw"; };
-	virtual int Compatibility() { return LINUX32; };
-	virtual bool IsEnabledByDefault() { return false; }; // This has no code at all.
+	void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) override;
+	void InitDetour(bool bPreServer) override;
+	const char* Name() override { return "nw"; };
+	int Compatibility() override { return LINUX32; };
+	bool IsEnabledByDefault() override { return false; }; // This has no code at all.
 };
 
 static CNWModule g_pNWModule;

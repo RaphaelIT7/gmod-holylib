@@ -85,7 +85,7 @@ public:
 #endif
 } IVP_ALIGN_16;
 
-typedef float IVP_U_MINLIST_FIXED_POINT;
+using IVP_U_MINLIST_FIXED_POINT = float;
 class IVP_U_Min_List_Element {
 	public:
 #ifdef IVP_U_MINLIST_USELONG

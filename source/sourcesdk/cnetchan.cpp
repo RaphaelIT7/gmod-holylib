@@ -137,7 +137,7 @@ void CNetChan::Clear()
 		if ( m_ReceiveList[i].buffer )
 		{
 			delete[] m_ReceiveList[i].buffer;
-			m_ReceiveList[i].buffer = NULL;
+			m_ReceiveList[i].buffer = nullptr;
 		}
 	}
 
@@ -428,7 +428,7 @@ void CNetChan::Shutdown(const char *pReason)
 	if ( m_MessageHandler )
 	{
 		m_MessageHandler->ConnectionClosing( pReason );
-		m_MessageHandler = NULL;
+		m_MessageHandler = nullptr;
 	}
 
 	// free new messages
@@ -441,7 +441,7 @@ void CNetChan::Shutdown(const char *pReason)
 
 	m_NetMessages.Purge();
 
-	m_DemoRecorder = NULL;
+	m_DemoRecorder = nullptr;
 
 	if ( m_bProcessingMessages )
 	{
@@ -470,8 +470,8 @@ CNetChan::CNetChan()
 	
 	Q_strncpy( m_Name, "", sizeof(m_Name) ); 
 
-	m_MessageHandler = NULL;
-	m_DemoRecorder = NULL;
+	m_MessageHandler = nullptr;
+	m_DemoRecorder = nullptr;
 
 	m_StreamUnreliable.SetDebugName( "netchan_t::unreliabledata" );
 	m_StreamReliable.SetDebugName( "netchan_t::reliabledata" );
@@ -583,8 +583,8 @@ void CNetChan::Setup(int sock, netadr_t *adr, const char * name, INetChannelHand
 	m_StreamSocket = 0;
 	m_StreamActive = false;
 
-	m_ReceiveList[FRAG_NORMAL_STREAM].buffer = NULL;
-	m_ReceiveList[FRAG_FILE_STREAM].buffer = NULL;
+	m_ReceiveList[FRAG_NORMAL_STREAM].buffer = nullptr;
+	m_ReceiveList[FRAG_FILE_STREAM].buffer = nullptr;
 
 	// init 8 subchannels
 	for ( int i=0; i<MAX_SUBCHANNELS; i++ )
@@ -825,7 +825,7 @@ void CNetChan::FlowNewPacket(int flow, int seqnr, int acknr, int nChoked, int nD
 	
 	// if frame_number != ( current + 1 ) mark frames between as invalid
 
-	netframe_t *pframe = NULL;
+	netframe_t *pframe = nullptr;
 
 	if ( seqnr > pflow->currentindex )
 	{
@@ -1002,7 +1002,7 @@ bool CNetChan::Transmit(bool onlyReliable )
 	if ( onlyReliable )
 		m_StreamUnreliable.Reset();
 
-	return (SendDatagram( NULL ) != 0);
+	return (SendDatagram( nullptr ) != 0);
 }
 
 bool CNetChan::IsFileInWaitingList( const char *filename )
@@ -1051,7 +1051,7 @@ bool CNetChan::CreateFragmentsFromBuffer( bf_write *buffer, int stream )
 	VPROF_BUDGET( "CNetChan::CreateFragmentsFromBuffer", VPROF_BUDGETGROUP_OTHER_NETWORKING );
 
 	bf_write bfwrite;
-	dataFragments_t *data = NULL;
+	dataFragments_t *data = nullptr;
 
 	// if we have more than one item in the waiting list, try to add the 
 	// reliable data to the last item. that doesn't work with the first item
@@ -1083,7 +1083,7 @@ bool CNetChan::CreateFragmentsFromBuffer( bf_write *buffer, int stream )
 		}
 		else
 		{
-			data = NULL; // reset to NULL
+			data = nullptr; // reset to NULL
 		}
 	}
 
@@ -1163,7 +1163,7 @@ bool CNetChan::CreateFragmentsFromFile( const char *filename, int stream, unsign
 	dataFragments_t *data = new dataFragments_t;
 	data->bytes = totalBytes;
 	data->bits = data->bytes * 8;
-	data->buffer = NULL;
+	data->buffer = nullptr;
 	data->isCompressed = false;
 	data->nUncompressedSize = 0;
 	data->file = g_pFullFileSystem->Open( filename, "rb", pPathID );
@@ -1212,7 +1212,7 @@ bool CNetChan::SendSubChannelData( bf_write &buf )
 {
 	VPROF_BUDGET( "CNetChan::SendSubChannelData", VPROF_BUDGETGROUP_OTHER_NETWORKING );
 
-	subChannel_s *subChan = NULL;
+	subChannel_s *subChan = nullptr;
 	int i;
 
 	CompressFragments();
@@ -1417,7 +1417,7 @@ bool CNetChan::ReadSubChannelData( bf_read &buf, int stream  )
 		{
 			// last transmission was aborted, free data
 			delete [] data->buffer;
-			data->buffer = NULL;
+			data->buffer = nullptr;
 			ConDMsg( "Fragment transmission aborted at %i/%i from %s.\n", data->ackedFragments, data->numFragments, GetAddress() );
 		}
 
@@ -1445,7 +1445,7 @@ bool CNetChan::ReadSubChannelData( bf_read &buf, int stream  )
 	}
 	else
 	{
-		if ( data->buffer == NULL )
+		if ( data->buffer == nullptr )
 		{
 			// This can occur if the packet containing the "header" (offset == 0) is dropped.  Since we need the header to arrive we'll just wait
 			//  for a retry
@@ -1475,7 +1475,7 @@ bool CNetChan::ReadSubChannelData( bf_read &buf, int stream  )
 	if ( length == 0 || ( offset + length > data->bytes ) )
 	{
 		delete[] data->buffer;
-		data->buffer = NULL;
+		data->buffer = nullptr;
 		ConMsg("Malformed fragment ofs %i len %d, buffer size %d from %s\n", offset, length, PAD_NUMBER(data->bytes, 4), remote_address.ToString() );
 		return false;
 	}
@@ -1495,7 +1495,7 @@ void CNetChan::UpdateSubChannels()
 	// first check if there is a free subchannel
 	subChannel_s * freeSubChan = GetFreeSubChannel();
 
-	if ( freeSubChan == NULL )
+	if ( freeSubChan == nullptr )
 		return; //all subchannels in use right now
 
 	int i, nSendMaxFragments = m_MaxReliablePayloadSize / FRAGMENT_SIZE;
@@ -1925,12 +1925,12 @@ bool CNetChan::ProcessMessages( bf_read &buf  )
 
 	if ( !Q_strcmp(showmsgname, "0") )
 	{
-		showmsgname = NULL;	// dont do strcmp all the time
+		showmsgname = nullptr;	// dont do strcmp all the time
 	}
 
 	if ( !Q_strcmp(blockmsgname, "0") )
 	{
-		blockmsgname = NULL;	// dont do strcmp all the time
+		blockmsgname = nullptr;	// dont do strcmp all the time
 	}
 
 	if ( net_showpeaks.GetInt() > 0 && net_showpeaks.GetInt() < buf.GetNumBytesLeft()	 )
@@ -2059,7 +2059,7 @@ void CNetChan::ProcessPlayback( void )
 #if !defined(SWDS) && !defined(_XBOX)
 	netpacket_t * packet;
 
-	while ( ( packet = demoplayer->ReadPacket() ) != NULL )
+	while ( ( packet = demoplayer->ReadPacket() ) != nullptr )
 	{
 		// Update data flow stats
 		FlowNewPacket( FLOW_INCOMING, m_nInSequenceNr, m_nOutSequenceNrAck, 0, 0, packet->wiresize );
@@ -2088,7 +2088,7 @@ CNetChan::subChannel_s *CNetChan::GetFreeSubChannel()
 			return &m_SubChannels[i];
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 void CNetChan::CheckWaitingList(int nList)
@@ -2152,14 +2152,14 @@ bool CNetChan::TestUpload( const char *filename )
 	data.ackedFragments = 0; 					// number of fragments send & acknowledged
 	data.pendingFragments = 0; 					// number of fragments send, but not acknowledged yet
 
-	return HandleUpload( &data, NULL );
+	return HandleUpload( &data, nullptr );
 }
 
 #endif // STAGING_ONLY
 
 bool CNetChan::HandleUpload( dataFragments_t *data, INetChannelHandler *MessageHandler )
 {
-	const char *szErrorStr = NULL;
+	const char *szErrorStr = nullptr;
 	static ConVar *s_pAllowUpload = g_pCVar->FindVar( "sv_allowupload" );
 
 	if ( !s_pAllowUpload || !s_pAllowUpload->GetBool() )
@@ -2232,7 +2232,7 @@ bool CNetChan::CheckReceivingList(int nList)
 {
 	dataFragments_t * data = &m_ReceiveList[nList]; // get list
 	
-	if ( data->buffer == NULL )
+	if ( data->buffer == nullptr )
 		return true;
 
 	if ( data->ackedFragments < data->numFragments )
@@ -2272,7 +2272,7 @@ bool CNetChan::CheckReceivingList(int nList)
 	if ( data->buffer )
 	{
 		delete [] data->buffer; 
-		data->buffer = NULL;
+		data->buffer = nullptr;
 	}
 
 	return true;
@@ -2616,7 +2616,7 @@ INetMessage *CNetChan::FindMessage(int type)
 			return m_NetMessages[i];
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 bool CNetChan::RegisterMessage(INetMessage *msg)
@@ -3055,7 +3055,7 @@ bool CNetChan::GetStreamProgress( int flow, int *received, int *total ) const
 	{
 		for ( int i = 0; i<MAX_STREAMS; i++ )
 		{
-			if ( m_ReceiveList[i].buffer != NULL )
+			if ( m_ReceiveList[i].buffer != nullptr )
 			{
 				(*total) += m_ReceiveList[i].numFragments * FRAGMENT_SIZE;
 				(*received) += m_ReceiveList[i].ackedFragments * FRAGMENT_SIZE;

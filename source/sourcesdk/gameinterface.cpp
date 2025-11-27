@@ -5,7 +5,7 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
-static bf_write* g_pMsgBuffer = NULL;
+static bf_write* g_pMsgBuffer = nullptr;
 
 bf_write* GetActiveMessage()
 {
@@ -43,7 +43,7 @@ void MessageEnd(void)
 
 	Util::engineserver->MessageEnd();
 
-	g_pMsgBuffer = NULL;
+	g_pMsgBuffer = nullptr;
 }
 
 void MessageWriteByte(int iValue)

@@ -149,7 +149,7 @@ public:
 	virtual void	FullLadderMove();
 
 	// The basic solid body movement clip that slides along multiple planes
-	virtual int		TryPlayerMove( Vector *pFirstDest=NULL, trace_t *pFirstTrace=NULL );
+	virtual int		TryPlayerMove( Vector *pFirstDest=nullptr, trace_t *pFirstTrace=nullptr );
 	
 	virtual bool	LadderMove( void );
 	virtual bool	OnLadder( trace_t &trace );

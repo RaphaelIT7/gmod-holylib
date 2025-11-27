@@ -10,19 +10,19 @@
 class CAutoRefreshModule : public IModule
 {
 public:
-	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
-	virtual void Shutdown() OVERRIDE;
-	virtual void InitDetour(bool bPreServer) OVERRIDE;
-	virtual const char* Name() { return "autorefresh"; };
-	virtual int Compatibility() { return LINUX32; };
-	virtual bool IsEnabledByDefault() { return false; };
+	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) override;
+	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
+	void Shutdown() override;
+	void InitDetour(bool bPreServer) override;
+	const char* Name() override { return "autorefresh"; };
+	int Compatibility() override { return LINUX32; };
+	bool IsEnabledByDefault() override { return false; };
 };
 
 CAutoRefreshModule g_pAutoRefreshModule;
 IModule* pAutoRefreshModule = &g_pAutoRefreshModule;
 
-static IThreadPool* pFileTimePool = NULL; // Used when checking the file times since the filesystem can be slow.
+static IThreadPool* pFileTimePool = nullptr; // Used when checking the file times since the filesystem can be slow.
 static void OnFileTimeThreadsChange(IConVar* convar, const char* pOldValue, float flOldValue)
 {
 	if (!pFileTimePool)

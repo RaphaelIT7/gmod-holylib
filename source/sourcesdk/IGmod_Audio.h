@@ -5,7 +5,7 @@
 
 #define INTERFACEVERSION_GMODAUDIO			"IGModAudio001"
 
-enum GModChannelFFT_t {
+enum class GModChannelFFT_t {
 	FFT_256 = 0,
 	FFT_512 = 1,
 	FFT_1024 = 2,
@@ -16,7 +16,7 @@ enum GModChannelFFT_t {
 	FFT_32768 = 7,
 };
 
-enum GModEncoderStatus {
+enum class GModEncoderStatus {
 	NONE = 0,
 	RUNNING = 1,
 	FINISHED = 2,
@@ -38,7 +38,7 @@ public:
 
 	virtual void Stop(bool bProcessQueue) = 0;
 
-	// Returns true if there was an error, pErrorOut will either be filled or NULL
+	// Returns true if there was an error, pErrorOut will either be filled or nullptr
 	// If it returns true, it will also invalidate/free itself so the pointer becomes invalid!
 	// NOTE: This is only for fatal errors like on init, most other functions have a pErrorOut argument for light errors that can be ignored
 	virtual bool GetLastError(const char** pErrorOut) = 0;
@@ -78,7 +78,7 @@ public:
 };
 
 // We left out COMPRESSOR, GARGLE, and I3DL2REVERB as those are not supported on other platforms than windows
-enum BassFX // IDs match BASS_FX enums
+enum class BassFX // IDs match BASS_FX enums
 {
 	FX_CHORUS = 0,
 	FX_DISTORTION = 2,
@@ -86,6 +86,7 @@ enum BassFX // IDs match BASS_FX enums
 	FX_FLANGER = 4,
 	FX_PARAMEQ = 7,
 	FX_REVERB = 8,
+	FX_MAX = 9,
 };
 
 class IGModAudioFX
@@ -143,7 +144,7 @@ public:
 	virtual bool Get3DEnabled() = 0;
 	virtual void Restart() = 0;
 	// HolyLib specific
-	// Uses the "DATA" path for writes! Returns NULL on success, else the error message
+	// Uses the "DATA" path for writes! Returns nullptr on success, else the error message
 	// Does NOT require the channel to be a decoder channel!
 	// Call IGModAudioChannelEncoder->GetLastError and check if its even valid! (Else it will be invalidated/freed on the next tick)
 	virtual IGModAudioChannelEncoder* CreateEncoder( const char* pFileName, unsigned long nFlags, IGModEncoderCallback* pCallback, const char** pErrorOut ) = 0;

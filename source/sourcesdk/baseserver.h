@@ -160,7 +160,7 @@ public: // protected - private, doesn't matter, I want access :3
 	
 	virtual CBaseClient *GetFreeClient( netadr_t &adr );
 
-	virtual CBaseClient *CreateNewClient( int slot ) { AssertMsg( 0, "CBaseServer::CreateNewClient() being called - must be implemented in derived class!" ); return NULL; }; // must be derived
+	virtual CBaseClient *CreateNewClient( int slot ) { AssertMsg( 0, "CBaseServer::CreateNewClient() being called - must be implemented in derived class!" ); return nullptr; }; // must be derived
 
 	
 	virtual bool	FinishCertificateCheck( netadr_t &adr, int nAuthProtocol, const char *szRawCertificate, int clientChallenge ) { return true; };

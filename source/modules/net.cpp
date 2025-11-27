@@ -10,20 +10,20 @@
 class CNetModule : public IModule
 {
 public:
-	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
-	virtual void InitDetour(bool bPreServer) OVERRIDE;
-	virtual const char* Name() { return "net"; };
-	virtual int Compatibility() { return LINUX32; };
-	virtual bool IsEnabledByDefault() OVERRIDE { return false; }; // Still Experimental
+	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) override;
+	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
+	void InitDetour(bool bPreServer) override;
+	const char* Name() override { return "net"; };
+	int Compatibility() override { return LINUX32; };
+	bool IsEnabledByDefault() override { return false; }; // Still Experimental
 };
 
 static CNetModule g_pNetModule;
 IModule* pNetModule = &g_pNetModule;
 
-bf_read** pReadBF = NULL;
-bf_write** pWriteBF = NULL;
-bool* bStarted = NULL;
+bf_read** pReadBF = nullptr;
+bf_write** pWriteBF = nullptr;
+bool* bStarted = nullptr;
 LUA_FUNCTION_STATIC(net_WriteSeek)
 {
 	int iPos = (int)LUA->CheckNumber(1);
@@ -82,11 +82,11 @@ void CNetModule::InitDetour(bool bPreServer)
 
 	SourceSDK::FactoryLoader server_loader("server");
 	pReadBF = Detour::ResolveSymbol<bf_read*>(server_loader, Symbols::g_NetIncomingSym);
-	Detour::CheckValue("get pointer", "g_NetIncoming", pReadBF != NULL);
+	Detour::CheckValue("get pointer", "g_NetIncoming", pReadBF != nullptr);
 
 	pWriteBF = Detour::ResolveSymbol<bf_write*>(server_loader, Symbols::g_WriteSym);
-	Detour::CheckValue("get pointer", "g_Write", pWriteBF != NULL);
+	Detour::CheckValue("get pointer", "g_Write", pWriteBF != nullptr);
 
 	bStarted = Detour::ResolveSymbol<bool>(server_loader, Symbols::g_StartedSym);
-	Detour::CheckValue("get pointer", "g_Started", bStarted != NULL);
+	Detour::CheckValue("get pointer", "g_Started", bStarted != nullptr);
 }

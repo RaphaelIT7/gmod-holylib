@@ -54,7 +54,7 @@ public: // netchan structurs
 	{
 		FileHandle_t	file;			// open file handle
 		char			filename[MAX_OSPATH]; // filename
-		char*			buffer;			// if NULL it's a file
+		char*			buffer;			// if nullptr it's a file
 		unsigned int	bytes;			// size in bytes
 		unsigned int	bits;			// size in bits
 		unsigned int	transferID;		// only for files
@@ -247,7 +247,7 @@ public: // Don't mind if I do
 	bool	CheckReceivingList(int nList);
 	void	RemoveHeadInWaitingList( int nList );
 	bool	IsFileInWaitingList( const char *filename );
-	subChannel_s *GetFreeSubChannel(); // NULL == all subchannels in use
+	subChannel_s *GetFreeSubChannel(); // nullptr == all subchannels in use
 	void	UpdateSubChannels( void );
 	void	SendTCPData( void );
 
@@ -345,7 +345,7 @@ public:
 
 	INetChannelHandler			*m_MessageHandler;	// who registers and processes messages
 	CUtlVector<INetMessage*>	m_NetMessages;		// list of registered message
-	IDemoRecorder				*m_DemoRecorder;			// if != NULL points to a recording/playback demo object
+	IDemoRecorder				*m_DemoRecorder;			// if != nullptr points to a recording/playback demo object
 	int							m_nQueuedPackets;
 
 	float						m_flInterpolationAmount;

@@ -17,7 +17,7 @@ void CHLTVDirector::RemoveEventsFromHistory(int tick)
 		if ( (dc.m_Tick < tick) || (tick == -1) )
 		{
 			Util::gameeventmanager->FreeEvent( dc.m_Event );
-			dc.m_Event = NULL;
+			dc.m_Event = nullptr;
 			m_EventHistory.RemoveAt( index );
 			index = m_EventHistory.FirstInorder();	// start again
 		}

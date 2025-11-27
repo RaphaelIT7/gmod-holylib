@@ -73,7 +73,7 @@ class CNetMessage : public INetMessage
 {
 public:
 	CNetMessage() {	m_bReliable = true;
-					m_NetChannel = NULL; }
+					m_NetChannel = nullptr; }
 
 	virtual ~CNetMessage() {};
 
@@ -128,7 +128,7 @@ class NET_StringCmd : public CNetMessage
 
 	int	GetGroup() const { return INetChannelInfo::STRINGCMD; }
 
-	NET_StringCmd() { m_szCommand = NULL; };
+	NET_StringCmd() { m_szCommand = nullptr; };
 	NET_StringCmd(const char *cmd) { m_szCommand = cmd; };
 
 public:	
@@ -323,7 +323,7 @@ public:
 class Base_CmdKeyValues : public CNetMessage
 {
 protected:
-	explicit Base_CmdKeyValues( KeyValues *pKeyValues = NULL ); // takes ownership
+	explicit Base_CmdKeyValues( KeyValues *pKeyValues = nullptr ); // takes ownership
 	~Base_CmdKeyValues();
 
 public:
@@ -344,7 +344,7 @@ public:
 	DECLARE_CLC_MESSAGE( CmdKeyValues );
 
 public:
-	explicit CLC_CmdKeyValues( KeyValues *pKeyValues = NULL );	// takes ownership
+	explicit CLC_CmdKeyValues( KeyValues *pKeyValues = nullptr );	// takes ownership
 };
 
 class SVC_CmdKeyValues : public Base_CmdKeyValues
@@ -353,7 +353,7 @@ public:
 	DECLARE_SVC_MESSAGE( CmdKeyValues );
 
 public:
-	explicit SVC_CmdKeyValues( KeyValues *pKeyValues = NULL );	// takes ownership
+	explicit SVC_CmdKeyValues( KeyValues *pKeyValues = nullptr );	// takes ownership
 };
 
 class CLC_GMod_ClientToServer : public CNetMessage
@@ -382,7 +382,7 @@ class SVC_Print : public CNetMessage
 {
 	DECLARE_SVC_MESSAGE( Print );
 
-	SVC_Print() { m_bReliable = false; m_szText = NULL; };
+	SVC_Print() { m_bReliable = false; m_szText = nullptr; };
 
 	SVC_Print(const char * text) { m_bReliable = false; m_szText = text; };
 
@@ -764,7 +764,7 @@ class SVC_Menu : public CNetMessage
 public:
 	DECLARE_SVC_MESSAGE( Menu );
 
-	SVC_Menu() { m_bReliable = true; m_Type = DIALOG_MENU; m_MenuKeyValues = NULL; };
+	SVC_Menu() { m_bReliable = true; m_Type = DIALOG_MENU; m_MenuKeyValues = nullptr; };
 	SVC_Menu( DIALOG_TYPE type, KeyValues *data ); 
 	~SVC_Menu();
 

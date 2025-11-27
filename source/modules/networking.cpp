@@ -32,15 +32,15 @@
 class CNetworkingModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn);
-	virtual void InitDetour(bool bPreServer) OVERRIDE;
-	virtual void Shutdown() OVERRIDE;
-	virtual void OnEntityCreated(CBaseEntity* pEntity) OVERRIDE;
-	virtual void OnEntityDeleted(CBaseEntity* pEntity) OVERRIDE;
-	virtual void ClientDisconnect(edict_t* pClient) OVERRIDE;
-	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) OVERRIDE;
-	virtual const char* Name() { return "networking"; };
-	virtual int Compatibility() { return LINUX32;  }; // ToDo: Fix CBaseClient offset being broken on 64x causing the access to CGameClient::m_pCurrentFrame to return a invalid pointer
+	void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) override;
+	void InitDetour(bool bPreServer) override;
+	void Shutdown() override;
+	void OnEntityCreated(CBaseEntity* pEntity) override;
+	void OnEntityDeleted(CBaseEntity* pEntity) override;
+	void ClientDisconnect(edict_t* pClient) override;
+	void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) override;
+	const char* Name() override { return "networking"; };
+	int Compatibility() override { return LINUX32;  }; // ToDo: Fix CBaseClient offset being broken on 64x causing the access to CGameClient::m_pCurrentFrame to return a invalid pointer
 };
 
 /*
@@ -477,7 +477,7 @@ CDatatableStack::CDatatableStack( CSendTablePrecalc *pPrecalc, unsigned char *pS
 	m_ObjectID = objectID;
 	
 	m_iCurProp = 0;
-	m_pCurProp = NULL;
+	m_pCurProp = nullptr;
 
 	m_bInitted = false;
 
@@ -559,7 +559,7 @@ public:
 			CSendNode *pCurChild = pNode->m_Children[iChild];
 			const SendProp *pChildProp = m_pPropMapStackPrecalc->m_DatatableProps[pCurChild->m_iDatatableProp];
 			
-			unsigned char *pNewStructBase = NULL;
+			unsigned char *pNewStructBase = nullptr;
 			if ( pStructBase )
 				pNewStructBase = CallPropProxy( pCurChild, pCurChild->m_iDatatableProp, pStructBase );
 
@@ -702,7 +702,7 @@ public:
 
 public:
 	inline void Init( CBaseEntity *pEntity );
-	inline void AttachEdict( edict_t *pRequiredEdict = NULL );
+	inline void AttachEdict( edict_t *pRequiredEdict = nullptr );
 	inline int	entindex() const { return m_pPev->m_EdictIndex; };
 	inline edict_t *edict() { return m_pPev; };
 	inline const edict_t *edict() const { return m_pPev; };
@@ -754,7 +754,7 @@ inline int CCServerNetworkProperty::AreaNum()
 inline CCServerNetworkProperty* CCServerNetworkProperty::GetNetworkParent()
 {
 	CBaseEntity *pParent = m_hParent.Get();
-	return pParent ? (CCServerNetworkProperty*)pParent->NetworkProp() : NULL;
+	return pParent ? (CCServerNetworkProperty*)pParent->NetworkProp() : nullptr;
 }
 
 static CCollisionBSPData* g_BSPData;
@@ -1106,7 +1106,7 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 
 			--nFullEdictCount;
 			if (nFullEdictCount >= 0)
-				pFullEntityList[nFullEdictCount] = NULL;
+				pFullEntityList[nFullEdictCount] = nullptr;
 			break;
 		}
 
@@ -1121,7 +1121,7 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 
 			--nPVSEdictCount;
 			if (nPVSEdictCount >= 0)
-				pPVSEntityList[nPVSEdictCount] = NULL;
+				pPVSEntityList[nPVSEdictCount] = nullptr;
 			break;
 		}
 
@@ -1140,7 +1140,7 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 					memmove(&pArea.pEntities[i], &pArea.pEntities[i + 1], (pArea.nCount - i - 1) * sizeof(CBaseEntity*));
 
 				--pArea.nCount;
-				pArea.pEntities[pArea.nCount] = NULL;
+				pArea.pEntities[pArea.nCount] = nullptr;
 				break;
 			}
 		}
@@ -1250,8 +1250,8 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 	// NOTE: They are preincrement, use <= in for loops!
 	int nPVSEdictCount = -1; // NOTE: This will only contain entities that were unable to be fitted into an AreaCache! (only happens on overflow)
 	int nFullEdictCount = -1;
-	CBaseEntity* pPVSEntityList[MAX_EDICTS] = {NULL};
-	CBaseEntity* pFullEntityList[MAX_EDICTS] = {NULL};
+	CBaseEntity* pPVSEntityList[MAX_EDICTS] = {nullptr};
+	CBaseEntity* pFullEntityList[MAX_EDICTS] = {nullptr};
 
 	/*
 		If holylib_networking_areasplit is enabled
@@ -1383,7 +1383,7 @@ struct PlayerTransmitCache
 		// NOTE: For this to take effect, a weapon must return TRANSMIT_ALWAYS inside Entity:UpdateTransmitState
 		bool bAlwaysNetwork = false;
 		int nCreationTick = 0; // For how many ticks a weapon is considered new
-		CBaseEntity* pWeapon = NULL; // in case a weapon is removed/given onto the same slot in a tick
+		CBaseEntity* pWeapon = nullptr; // in case a weapon is removed/given onto the same slot in a tick
 	};
 
 	// Used for rotating weapon slots when networking
@@ -1819,7 +1819,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	if (clientIndex >= MAX_PLAYERS || clientIndex < 0)
 		return true; // We don't return false since we never want to transmit anything to a player in a invalid slot!
 
-	const Vector& clientPosition = (pRecipientPlayer->GetViewEntity() != NULL) ? pRecipientPlayer->GetViewEntity()->EyePosition() : pRecipientPlayer->EyePosition();
+	const Vector& clientPosition = (pRecipientPlayer->GetViewEntity() != nullptr) ? pRecipientPlayer->GetViewEntity()->EyePosition() : pRecipientPlayer->EyePosition();
 	const int clientArea = networking_fastpath_usecluster.GetBool() ? Util::engineserver->GetClusterForOrigin(clientPosition) : Util::engineserver->GetArea(clientPosition);
 
 	// NOTE: We intentionally use GetArea and not GetCluster, since a Area is far bigger than a cluster & it should work good enouth.
@@ -1830,7 +1830,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 
 	// pRecipientPlayer->IsHLTV(); Why do we not use IsHLTV()? Because its NOT a virtual function & the variables are fked
 	const int nCurrentTick = gpGlobals->tickcount;
-	const bool bIsHLTV = pInfo->m_pTransmitAlways != NULL;
+	const bool bIsHLTV = pInfo->m_pTransmitAlways != nullptr;
 	const bool bFastPath = networking_fastpath.GetBool();
 	const bool bFirstTransmit = g_pGlobalTransmitTickCache.IsNewTick(nCurrentTick);
 	if (bFirstTransmit)
@@ -2259,7 +2259,7 @@ void CNetworkingModule::OnEntityDeleted(CBaseEntity* pEntity)
 
 	g_nEntityTransmitCache.EntityRemoved(pEntity, pEdict);
 	CleaupSetPreventTransmit(pEntity);
-	g_pEntityCache[pEdict->m_EdictIndex] = NULL;
+	g_pEntityCache[pEdict->m_EdictIndex] = nullptr;
 	g_pForceWeaponTransmitIndexes.Clear(pEdict->m_EdictIndex);
 }
 
@@ -2291,7 +2291,7 @@ void CNetworkingModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 
 static SendTable* playerSendTable;
 static ServerClass* playerServerClass;
-static CFrameSnapshotManager* framesnapshotmanager = NULL;
+static CFrameSnapshotManager* framesnapshotmanager = nullptr;
 static CSharedEdictChangeInfo* g_SharedEdictChangeInfo = nullptr;
 static ServerClassCache *player_class_cache = nullptr;
 static CStandardSendProxies* sendproxies;
@@ -2391,21 +2391,21 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 #endif
 
 	framesnapshotmanager = Detour::ResolveSymbol<CFrameSnapshotManager>(engine_loader, Symbols::g_FrameSnapshotManagerSym);
-	Detour::CheckValue("get class", "framesnapshotmanager", framesnapshotmanager != NULL);
+	Detour::CheckValue("get class", "framesnapshotmanager", framesnapshotmanager != nullptr);
 
 #if defined(ARCHITECTURE_X86) && defined(SYSTEM_LINUX)
 	PropTypeFns* pPropTypeFns = Detour::ResolveSymbol<PropTypeFns>(engine_loader, Symbols::g_PropTypeFnsSym);
 #else
 	PropTypeFns* pPropTypeFns = Detour::ResolveSymbolWithOffset<PropTypeFns>(engine_loader.GetModule(), Symbols::g_PropTypeFnsSym);
 #endif
-	Detour::CheckValue("get class", "pPropTypeFns", pPropTypeFns != NULL);
+	Detour::CheckValue("get class", "pPropTypeFns", pPropTypeFns != nullptr);
 
 #if defined(ARCHITECTURE_X86) && defined(SYSTEM_LINUX)
 	g_BSPData = Detour::ResolveSymbol<CCollisionBSPData>(engine_loader, Symbols::g_BSPDataSym);
 #else
 	g_BSPData = Detour::ResolveSymbolWithOffset<CCollisionBSPData>(engine_loader.GetModule(), Symbols::g_BSPDataSym);
 #endif
-	Detour::CheckValue("get class", "CCollisionBSPData", g_BSPData != NULL);
+	Detour::CheckValue("get class", "CCollisionBSPData", g_BSPData != nullptr);
 	
 	if (pPropTypeFns)
 	{
@@ -2656,7 +2656,7 @@ void WriteSendProp(SendProp* pProp, int nIndex, int nIndent, FileHandle_t pHandl
 	WriteString(pName, nIndent, pHandle);
 
 	std::string pExcludeDTName = "ExcludeName: ";
-	pExcludeDTName.append(pProp->GetExcludeDTName() != NULL ? pProp->GetExcludeDTName() : "NULL");
+	pExcludeDTName.append(pProp->GetExcludeDTName() != nullptr ? pProp->GetExcludeDTName() : "NULL");
 	WriteString(pExcludeDTName, nIndent, pHandle);
 
 	std::string pOffset = "Offset: ";

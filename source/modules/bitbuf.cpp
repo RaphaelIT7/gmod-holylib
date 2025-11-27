@@ -11,10 +11,10 @@
 class CBitBufModule : public IModule
 {
 public:
-	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
-	virtual const char* Name() { return "bitbuf"; };
-	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
+	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) override;
+	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
+	const char* Name() override { return "bitbuf"; };
+	int Compatibility() override { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 };
 
 static CBitBufModule g_pBitBufModule;
@@ -671,7 +671,7 @@ LUA_FUNCTION_STATIC(bf_write_WriteLongLong)
 
 	if (LUA->IsType(2, GarrysMod::Lua::Type::String))
 	{
-		pBF->WriteLongLong(strtoull(LUA->GetString(2), NULL, 0));
+		pBF->WriteLongLong(strtoull(LUA->GetString(2), nullptr, 0));
 	} else {
 		pBF->WriteLongLong((int64)LUA->CheckNumber(2));
 	}

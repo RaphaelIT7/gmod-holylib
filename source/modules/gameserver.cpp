@@ -17,13 +17,13 @@
 class CGameServerModule : public IModule
 {
 public:
-	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
-	virtual void InitDetour(bool bPreServer) OVERRIDE;
-	virtual void OnClientDisconnect(CBaseClient* pClient) OVERRIDE;
-	virtual const char* Name() { return "gameserver"; };
-	virtual int Compatibility() { return LINUX32 | LINUX64; };
-	virtual bool SupportsMultipleLuaStates() { return true; };
+	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) override;
+	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
+	void InitDetour(bool bPreServer) override;
+	void OnClientDisconnect(CBaseClient* pClient) override;
+	const char* Name() override { return "gameserver"; };
+	int Compatibility() override { return LINUX32 | LINUX64; };
+	bool SupportsMultipleLuaStates() override { return true; };
 };
 
 static ConVar gameserver_disablespawnsafety("holylib_gameserver_disablespawnsafety", "0", 0, "If enabled, players can spawn on slots above 128 but this WILL cause stability and many other issues!");
@@ -49,7 +49,7 @@ public:
 	int				GetType() const { return m_iType; }
 	const char		*GetName() const { return m_strName; }
 
-	INetMessageHandler *m_pMessageHandler = NULL;
+	INetMessageHandler *m_pMessageHandler = nullptr;
 	bool Process() { Warning(PROJECT_NAME ": Tried to process this message? This should never happen!\n"); return true; };
 
 	SVC_CustomMessage() { m_bReliable = false; }
@@ -121,7 +121,7 @@ LUA_FUNCTION_STATIC(CBaseClient_IsValid)
 {
 	CBaseClient* pClient = Get_CBaseClient(LUA, 1, false);
 	
-	LUA->PushBool(pClient != NULL && pClient->IsConnected());
+	LUA->PushBool(pClient != nullptr && pClient->IsConnected());
 	return 1;
 }
 
@@ -219,7 +219,7 @@ LUA_FUNCTION_STATIC(CBaseClient_Disconnect)
 	bool bNoEvent = LUA->GetBool(4);
 
 	if (bSilent)
-		pClient->GetNetChannel()->Shutdown(NULL); // NULL = Send no disconnect message
+		pClient->GetNetChannel()->Shutdown(nullptr); // nullptr = Send no disconnect message
 
 	if (bNoEvent)
 		Util::BlockGameEvent("player_disconnect");
@@ -495,7 +495,7 @@ LUA_FUNCTION_STATIC(CBaseClient_SendSnapshot)
 {
 	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
 
-	pClient->SendSnapshot(NULL);
+	pClient->SendSnapshot(nullptr);
 	return 0;
 }*/
 
@@ -575,7 +575,7 @@ LUA_FUNCTION_STATIC(CBaseClient_SetSteamID)
 {
 	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
 	const char* steamID64 = LUA->CheckString(2);
-	uint64 steamID = strtoull(steamID64, NULL, 0);
+	uint64 steamID = strtoull(steamID64, nullptr, 0);
 
 	if (steamID == 0)
 	{
@@ -1025,7 +1025,7 @@ LUA_FUNCTION_STATIC(CNetChan_IsValid)
 {
 	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, false);
 	
-	LUA->PushBool(pNetChannel != NULL);
+	LUA->PushBool(pNetChannel != nullptr);
 	return 1;
 }
 
@@ -1431,7 +1431,7 @@ LUA_FUNCTION_STATIC(CNetChan_GetMaxRoutablePayloadSize)
 LUA_FUNCTION_STATIC(CNetChan_Shutdown)
 {
 	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
-	const char* reason = LUA->CheckStringOpt(2, NULL);
+	const char* reason = LUA->CheckStringOpt(2, nullptr);
 
 	pNetChannel->Shutdown(reason);
 	return 0;
@@ -1466,24 +1466,24 @@ class ILuaNetMessageHandler : INetChannelHandler
 {
 public:
 	ILuaNetMessageHandler(GarrysMod::Lua::ILuaInterface* pLua);
-	virtual ~ILuaNetMessageHandler();
+	~ILuaNetMessageHandler();
 
-	virtual void ConnectionStart(INetChannel *chan);	// called first time network channel is established
-	virtual void ConnectionClosing(const char *reason); // network channel is being closed by remote site
-	virtual void ConnectionCrashed(const char *reason); // network error occured
-	virtual void PacketStart(int incoming_sequence, int outgoing_acknowledged);	// called each time a new packet arrived
-	virtual void PacketEnd(void); // all messages has been parsed
-	virtual void FileRequested(const char *fileName, unsigned int transferID ); // other side request a file for download
-	virtual void FileReceived(const char *fileName, unsigned int transferID ); // we received a file
-	virtual void FileDenied(const char *fileName, unsigned int transferID );	// a file request was denied by other side
-	virtual void FileSent(const char *fileName, unsigned int transferID );	// we sent a file
-	virtual bool ShouldAcceptFile(const char *fileName, unsigned int transferID);
+	void ConnectionStart(INetChannel *chan);	// called first time network channel is established
+	void ConnectionClosing(const char *reason); // network channel is being closed by remote site
+	void ConnectionCrashed(const char *reason); // network error occured
+	void PacketStart(int incoming_sequence, int outgoing_acknowledged);	// called each time a new packet arrived
+	void PacketEnd(void); // all messages has been parsed
+	void FileRequested(const char *fileName, unsigned int transferID ); // other side request a file for download
+	void FileReceived(const char *fileName, unsigned int transferID ); // we received a file
+	void FileDenied(const char *fileName, unsigned int transferID );	// a file request was denied by other side
+	void FileSent(const char *fileName, unsigned int transferID );	// we sent a file
+	bool ShouldAcceptFile(const char *fileName, unsigned int transferID);
 
-	virtual bool ProcessLuaNetChanMessage( [[maybe_unused]] NET_LuaNetChanMessage *msg );
+	bool ProcessLuaNetChanMessage( [[maybe_unused]] NET_LuaNetChanMessage *msg );
 
 public:
-	CNetChan* m_pChan = NULL;
-	NET_LuaNetChanMessage* m_pLuaNetChanMessage = NULL;
+	CNetChan* m_pChan = nullptr;
+	NET_LuaNetChanMessage* m_pLuaNetChanMessage = nullptr;
 	int m_iMessageCallbackFunction = -1;
 	int m_iConnectionStartFunction = -1;
 	int m_iConnectionClosingFunction = -1;
@@ -1519,7 +1519,7 @@ public:
 	int GetType() const { return net_LuaNetChanMessage; }
 	const char *GetName() const { return "NET_LuaNetChanMessage"; }
 
-	ILuaNetMessageHandler *m_pMessageHandler = NULL;
+	ILuaNetMessageHandler *m_pMessageHandler = nullptr;
 	bool Process() { return m_pMessageHandler->ProcessLuaNetChanMessage( this ); };
 
 	NET_LuaNetChanMessage() { m_bReliable = true; }
@@ -1545,7 +1545,7 @@ ILuaNetMessageHandler::~ILuaNetMessageHandler()
 	if (m_pLuaNetChanMessage)
 	{
 		delete m_pLuaNetChanMessage;
-		m_pLuaNetChanMessage = NULL;
+		m_pLuaNetChanMessage = nullptr;
 	}
 
 	g_pNetMessageHandlers.erase(this);
@@ -1925,7 +1925,7 @@ LUA_FUNCTION_STATIC(gameserver_GetClient)
 
 	CBaseClient* pClient = (CBaseClient*)((IServer*)Util::server)->GetClient(iClientIndex);
 	if (pClient && !pClient->IsConnected())
-		pClient = NULL;
+		pClient = nullptr;
 
 	Push_CBaseClient(LUA, pClient);
 
@@ -2236,21 +2236,21 @@ LUA_FUNCTION_STATIC(gameserver_SendConnectionlessPacket)
 	if (!func_NET_SendPacket)
 		LUA->ThrowError("Failed to load NET_SendPacket");
 
-	LUA->PushNumber(func_NET_SendPacket(NULL, nSocket, (netadr_t&)adr,
+	LUA->PushNumber(func_NET_SendPacket(nullptr, nSocket, (netadr_t&)adr,
 #if MODULE_EXISTS_BITBUF
 		msg->GetData(), msg->GetNumBytesWritten(),
 #else
 		(const unsigned char*)pData, nLength,
 #endif
-	NULL, false));
+	nullptr, false));
 	return 1;
 }
 
-static CUtlVectorMT<CUtlVector<CNetChan*>>* s_NetChannels = NULL;
+static CUtlVectorMT<CUtlVector<CNetChan*>>* s_NetChannels = nullptr;
 CNetChan* NET_CreateHolyLibNetChannel(int socket, netadrnew_t* adr, const char* name, INetChannelHandler* handler, bool bForceNewChannel, int nProtocolVersion)
 {
 	if (!s_NetChannels)
-		return NULL;
+		return nullptr;
 
 	CNetChan* pChan = new CNetChan;
 
@@ -2278,7 +2278,7 @@ LUA_FUNCTION_STATIC(gameserver_CreateNetChannel)
 
 	if (!adr.IsValid())
 	{
-		Push_CNetChan(LUA, NULL);
+		Push_CNetChan(LUA, nullptr);
 		return 1;
 	}
 
@@ -2814,7 +2814,7 @@ static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* tar
 			Base_CmdKeyValues* keyVal = (Base_CmdKeyValues*)msg;
 			if (keyVal->m_pKeyValues)
 			{
-				keyVal->m_pKeyValues = NULL; // Will leak memory but we can't safely delete it currently.
+				keyVal->m_pKeyValues = nullptr; // Will leak memory but we can't safely delete it currently.
 				// ToDo: Fix this small memory leak.
 			}
 		}
@@ -2824,8 +2824,8 @@ static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* tar
 	 * Nuke the origin client
 	 */
 
-	origin->m_NetChannel = NULL; // Nuke the net channel or else it might touch it.
-	//origin->m_ConVars = NULL; // Same here
+	origin->m_NetChannel = nullptr; // Nuke the net channel or else it might touch it.
+	//origin->m_ConVars = nullptr; // Same here
 	origin->Inactivate();
 	origin->Clear();
 
@@ -2977,7 +2977,7 @@ void NET_RemoveNetChannel(INetChannel* chan, bool bDeleteNetChan)
 	return func_NET_RemoveNetChannel(chan, bDeleteNetChan);
 }
 
-int NET_SendPacket(INetChannel *chan, int sock, const netadr_t &to, const unsigned char *data, int length, bf_write *pVoicePayload /* = NULL */, bool bUseCompression /*=false*/)
+int NET_SendPacket(INetChannel *chan, int sock, const netadr_t &to, const unsigned char *data, int length, bf_write *pVoicePayload /* = nullptr */, bool bUseCompression /*=false*/)
 {
 	if (!func_NET_SendPacket)
 		Error(PROJECT_NAME " - gameserver: Failed to load NET_SendPacket!\n");

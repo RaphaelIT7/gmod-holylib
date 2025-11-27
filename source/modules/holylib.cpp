@@ -20,13 +20,13 @@
 class CHolyLibModule : public IModule
 {
 public:
-	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
-	virtual void InitDetour(bool bPreServer) OVERRIDE;
-	virtual void LevelShutdown() OVERRIDE;
-	virtual const char* Name() { return "holylib"; };
-	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
-	virtual bool SupportsMultipleLuaStates() { return true; };
+	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) override;
+	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
+	void InitDetour(bool bPreServer) override;
+	void LevelShutdown() override;
+	const char* Name() override { return "holylib"; };
+	int Compatibility() override { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
+	bool SupportsMultipleLuaStates() override { return true; };
 };
 
 static CHolyLibModule g_pHolyLibModule;
@@ -206,7 +206,7 @@ static void hook_CBaseEntity_PostConstructor(CBaseEntity* pEnt, const char* szCl
 
 		Util::ReferencePush(iReference);
 		Util::ReferenceFree(iReference);
-		g_Lua->SetUserType(-1, NULL);
+		g_Lua->SetUserType(-1, nullptr);
 		g_Lua->Pop(1)*/
 	}
 
@@ -215,7 +215,7 @@ static void hook_CBaseEntity_PostConstructor(CBaseEntity* pEnt, const char* szCl
 
 LUA_FUNCTION_STATIC(SetSignOnState)
 {
-	CBaseClient* pClient = NULL;
+	CBaseClient* pClient = nullptr;
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Entity))
 	{
 		pClient = Util::GetClientByPlayer(Util::Get_Player(LUA, 1, true));
@@ -355,7 +355,7 @@ LUA_FUNCTION_STATIC(GetRegistry)
 
 LUA_FUNCTION_STATIC(Disconnect)
 {
-	CBaseClient* pClient = NULL;
+	CBaseClient* pClient = nullptr;
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Entity))
 	{
 		pClient = Util::GetClientByPlayer(Util::Get_Player(LUA, 1, true));
@@ -374,7 +374,7 @@ LUA_FUNCTION_STATIC(Disconnect)
 	}
 
 	if (bSilent)
-		pClient->GetNetChannel()->Shutdown(NULL); // NULL = Send no disconnect message
+		pClient->GetNetChannel()->Shutdown(nullptr); // nullptr = Send no disconnect message
 
 	if (bNoEvent)
 		Util::BlockGameEvent("player_disconnect");

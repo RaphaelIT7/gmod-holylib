@@ -9,9 +9,9 @@
 class CConCommandModule : public IModule
 {
 public:
-	virtual void InitDetour(bool bPreServer) OVERRIDE;
-	virtual const char* Name() { return "concommand"; };
-	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
+	void InitDetour(bool bPreServer) override;
+	const char* Name() override { return "concommand"; };
+	int Compatibility() override { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 };
 
 static ConVar holylib_concommand_disableblacklist("holylib_concommand_disableblacklist", "0", 0, "If enabled, it will allow you to run use RunConsoleCommand with any command/convar.");
@@ -23,14 +23,14 @@ static Detouring::Hook detour_ConCommand_IsBlocked;
 static const char* hook_ConCommand_IsBlocked(const char* cmd)
 {
 	if (holylib_concommand_disableblacklist.GetBool())
-		return NULL;
+		return nullptr;
 
 	// https://github.com/Facepunch/garrysmod-requests/issues/1534
 	if (V_stricmp(cmd, "quit") == 0)
-		return NULL;
+		return nullptr;
 
 	if (V_stricmp(cmd, "exit") == 0)
-		return NULL;
+		return nullptr;
 
 	if (V_stricmp(cmd, "holylib_concommand_disableblacklist") == 0)
 		return cmd;

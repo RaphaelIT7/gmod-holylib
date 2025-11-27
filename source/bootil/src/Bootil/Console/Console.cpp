@@ -137,7 +137,7 @@ namespace Bootil
 
 		struct PosInfo
 		{
-			typedef std::stack<PosInfo> Stack;
+			using Stack = std::stack<PosInfo>;
 			int x;
 			int y;
 		};

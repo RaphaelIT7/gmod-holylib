@@ -426,7 +426,7 @@ void ShutdownSteamUser()
 		}
 	}
 
-	g_pSteamUser = NULL;
+	g_pSteamUser = nullptr;
 	hSteamPipe = NULL;
 	hSteamUser = NULL;
 	// Warning("Nuked g_pSteamUser\n");
@@ -443,7 +443,7 @@ void CreateSteamUserIfMissing()
 			return;
 		}
 
-		//if (Util::get != NULL)
+		//if (Util::get != nullptr)
 		//	g_pSteamUser = Util::get->SteamUser();
 
 		ISteamClient* pSteamClient = SteamGameServerClient();
@@ -482,7 +482,7 @@ static IGameEvent* hook_CGameEventManager_CreateEvent(void* manager, const char*
 {
 	auto it = Util::pBlockedEvents.find(name);
 	if (it != Util::pBlockedEvents.end())
-		return NULL;
+		return nullptr;
 
 	return detour_CGameEventManager_CreateEvent.GetTrampoline<Symbols::CGameEventManager_CreateEvent>()(manager, name, bForce);
 }

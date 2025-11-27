@@ -131,8 +131,8 @@ void		NET_ProcessSocket( int sock, IConnectionlessPacketHandler * handler );
 void		NET_ListenSocket( int sock, bool listen );
 // Send connectionsless string over the wire
 void		NET_OutOfBandPrintf(int sock, const netadr_t &adr, PRINTF_FORMAT_STRING const char *format, ...) FMTFUNCTION( 3, 4 );
-// Send a raw packet, connectionless must be provided (chan can be NULL)
-int			NET_SendPacket ( INetChannel *chan, int sock,  const netadr_t &to, const  unsigned char *data, int length, bf_write *pVoicePayload = NULL, bool bUseCompression = false );
+// Send a raw packet, connectionless must be provided (chan can be nullptr)
+int			NET_SendPacket ( INetChannel *chan, int sock,  const netadr_t &to, const  unsigned char *data, int length, bf_write *pVoicePayload = nullptr, bool bUseCompression = false );
 // Called periodically to maybe send any queued packets (up to 4 per frame)
 void		NET_SendQueuedPackets();
 // Start set current network configuration

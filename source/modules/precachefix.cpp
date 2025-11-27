@@ -12,11 +12,11 @@
 class CPrecacheFixModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
-	virtual void InitDetour(bool bPreServer) OVERRIDE;
-	virtual void LevelShutdown() OVERRIDE;
-	virtual const char* Name() { return "precachefix"; };
-	virtual int Compatibility() { return LINUX32 | LINUX64; };
+	void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) override;
+	void InitDetour(bool bPreServer) override;
+	void LevelShutdown() override;
+	const char* Name() override { return "precachefix"; };
+	int Compatibility() override { return LINUX32 | LINUX64; };
 };
 
 ConVar model_fallback("holylib_precache_modelfallback", "-1", FCVAR_ARCHIVE, "The model index to fallback to if the precache failed");
@@ -33,9 +33,9 @@ static void PR_CheckEmptyString(const char *s)
 
 // NOTE: CVEngineServer::PrecacheDecal doesn't have this engine error. Why?
 
-static INetworkStringTableContainer* networkStringTableContainerServer = NULL;
-static INetworkStringTable* modelPrecache = NULL;
-static INetworkStringTable* genericPrecache = NULL;
+static INetworkStringTableContainer* networkStringTableContainerServer = nullptr;
+static INetworkStringTable* modelPrecache = nullptr;
+static INetworkStringTable* genericPrecache = nullptr;
 
 static Symbols::SV_FindOrAddModel func_SV_FindOrAddModel;
 static Detouring::Hook detour_CVEngineServer_PrecacheModel;
@@ -150,8 +150,8 @@ static int hook_CVEngineServer_PrecacheGeneric(IVEngineServer* eengine, const ch
 
 void CPrecacheFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
-	networkStringTableContainerServer = (INetworkStringTableContainer*)appfn[0](INTERFACENAME_NETWORKSTRINGTABLESERVER, NULL);
-	Detour::CheckValue("get interface", "INetworkStringTableContainer", networkStringTableContainerServer != NULL);
+	networkStringTableContainerServer = (INetworkStringTableContainer*)appfn[0](INTERFACENAME_NETWORKSTRINGTABLESERVER, nullptr);
+	Detour::CheckValue("get interface", "INetworkStringTableContainer", networkStringTableContainerServer != nullptr);
 }
 
 #if SYSTEM_WINDOWS
@@ -186,6 +186,6 @@ void CPrecacheFixModule::InitDetour(bool bPreServer)
 
 void CPrecacheFixModule::LevelShutdown()
 {
-	modelPrecache = NULL;
-	genericPrecache = NULL;
+	modelPrecache = nullptr;
+	genericPrecache = nullptr;
 }

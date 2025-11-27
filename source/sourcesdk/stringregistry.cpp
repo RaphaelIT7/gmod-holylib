@@ -73,7 +73,7 @@ char const *CStringRegistry::GetStringText( int stringID )
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 
@@ -83,7 +83,7 @@ char const *CStringRegistry::GetStringText( int stringID )
 char const *CStringRegistry::GetStringForKey( unsigned short key )
 {
 	if ( !m_pStringList->IsValidIndex( key ) )
-		return NULL;
+		return nullptr;
 
 	return m_pStringList->GetElementName( key );
 }

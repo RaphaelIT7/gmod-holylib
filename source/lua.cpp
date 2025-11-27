@@ -337,7 +337,7 @@ void Lua::Init(GarrysMod::Lua::ILuaInterface* LUA)
 
 void Lua::ServerInit()
 {
-	if (g_Lua == NULL) {
+	if (g_Lua == nullptr) {
 		DevMsg(1, "Lua::ServerInit failed! g_Lua is NULL\n");
 		return;
 	}
@@ -360,7 +360,7 @@ void Lua::FinalShutdown()
 	Lua::RemoveLuaData(g_Lua);
 
 	// g_Lua is bad at this point / the lua_State is already gone so we CAN'T allow any calls
-	g_Lua = NULL;
+	g_Lua = nullptr;
 
 	for (auto& ref : Util::g_pReference)
 	{
@@ -820,7 +820,7 @@ void Lua::RemoveLuaData(GarrysMod::Lua::ILuaInterface* LUA)
 
 	g_pLuaStates.erase(data);
 	delete data;
-	*reinterpret_cast<Lua::StateData**>((char*)LUA->GetPathID() + 24) = NULL;
+	*reinterpret_cast<Lua::StateData**>((char*)LUA->GetPathID() + 24) = nullptr;
 	Msg("holylib - Removed thread data %p\n", data);
 }
 
@@ -843,11 +843,11 @@ Lua::StateData::~StateData()
 	for (int i = 0; i < Lua::Internal::pMaxEntries; ++i)
 	{
 		Lua::ModuleData* pData = pModuelData[i];
-		if (pData == NULL)
+		if (pData == nullptr)
 			continue;
 
 		delete pData;
-		pModuelData[i] = NULL;
+		pModuelData[i] = nullptr;
 	}
 
 	if (pProxy)

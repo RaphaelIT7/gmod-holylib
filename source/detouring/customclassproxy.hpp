@@ -52,8 +52,8 @@
 
 namespace Detouring
 {
-	typedef std::unordered_map<void *, Member> CacheMap;
-	typedef std::unordered_map<void *, Detouring::Hook> HookMap;
+	using CacheMap = std::unordered_map<void *, Member>;
+	using HookMap = std::unordered_map<void *, Detouring::Hook>;
 
 	template<typename Target, typename Substitute>
 	class ClassProxy

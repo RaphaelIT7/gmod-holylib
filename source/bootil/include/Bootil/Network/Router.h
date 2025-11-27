@@ -8,7 +8,7 @@ namespace Bootil
 		// I'm undecided on what MessageID should be. 
 		// We could probably get away with an unsigned char.
 		//
-		typedef unsigned short MessageID;
+		using MessageID = unsigned short;
 
 		//
 		// This is the standard message that is passed from the Router
@@ -37,7 +37,7 @@ namespace Bootil
 		{
 			public:
 
-				typedef void ( MsgHandler::*FunctionWithData )( Message& data );
+				using FunctionWithData = void ( MsgHandler::* )( Message& data );
 		};
 
 
@@ -68,8 +68,8 @@ namespace Bootil
 
 				};
 
-				typedef std::map<TMessageType, FunctionCallback>	ProcessorMap;
-				typedef std::map<MessageID, FunctionCallback>		ResponderMap;
+				using ProcessorMap = std::map<TMessageType, FunctionCallback>;
+				using ResponderMap = std::map<MessageID, FunctionCallback>;
 
 				Router()
 				{

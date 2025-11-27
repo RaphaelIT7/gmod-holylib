@@ -18,12 +18,12 @@
 class CVProfModule : public IModule
 {
 public:
-	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
-	virtual void InitDetour(bool bPreServer) OVERRIDE;
-	virtual const char* Name() { return "vprof"; };
-	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32; };
-	virtual bool SupportsMultipleLuaStates() { return true; };
+	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) override;
+	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
+	void InitDetour(bool bPreServer) override;
+	const char* Name() override { return "vprof"; };
+	int Compatibility() override { return LINUX32 | LINUX64 | WINDOWS32; };
+	bool SupportsMultipleLuaStates() override { return true; };
 	// NOTE for myself: Linux64 seemingly doesn't have vprof enabled! so don't suppositly add compatbility!
 	// Update: Fk my old self, Linux64 is just broken and it crashed because I had the wrong symbols.
 };
@@ -53,7 +53,7 @@ static SpewRetval_t VProf_Spew(SpewType_t type, const char *msg)
 	return SPEW_CONTINUE;
 }
 
-static SpewOutputFunc_t originalSpew = NULL;
+static SpewOutputFunc_t originalSpew = nullptr;
 static void StartSpew()
 {
 	originalSpew = GetSpewOutputFunc();
@@ -63,7 +63,7 @@ static void StartSpew()
 static void FinishSpew()
 {
 	SpewOutputFunc(originalSpew);
-	originalSpew = NULL;
+	originalSpew = nullptr;
 }
 #else
 static Detouring::Hook detour_Msg; // Yes. I don't like this.
@@ -72,7 +72,7 @@ static void hook_Msg(PRINTF_FORMAT_STRING const tchar* pMsg, ...)
 	va_list args;
 	va_start(args, pMsg);
 
-	int size = vsnprintf(NULL, 0, pMsg, args);
+	int size = vsnprintf(nullptr, 0, pMsg, args);
 	if (size < 0) {
 		va_end(args);
 		return;
@@ -152,7 +152,7 @@ static void hook_CVProfile_OutputReport(void* fancy, int type, const tchar* pszS
  * The real performance will be shown in CLuaGamemode::CallFinish which should be the focus.  
  */
 
-static const char* pCurrentGamemodeFunction = NULL;
+static const char* pCurrentGamemodeFunction = nullptr;
 //static std::map<int, std::string> CallWithArgs_strs;
 static Detouring::Hook detour_CLuaGamemode_CallWithArgs;
 static void* hook_CLuaGamemode_CallWithArgs(void* funky_srv, int pool)
@@ -195,7 +195,7 @@ static void* hook_CLuaGamemode_CallFinish(void* funky_srv, int pArgs)
 	}
 
 	VPROF_BUDGET(pStr, "GMOD");
-	pCurrentGamemodeFunction = NULL;
+	pCurrentGamemodeFunction = nullptr;
 
 	return detour_CLuaGamemode_CallFinish.GetTrampoline<Symbols::CLuaGamemode_CallFinish>()(funky_srv, pArgs);
 }
@@ -370,7 +370,7 @@ static const char* AddOrGetString(const char* pString)
 }
 
 #if 0
-typedef struct lua_Debug {
+struct lua_Debug {
   int event;
   const char *name;
   const char *namewhat;
@@ -500,11 +500,11 @@ void CVProfModule::InitDetour(bool bPreServer)
 
 struct VProfCounter
 {
-	const char* strName = NULL;
+	const char* strName = nullptr;
 #if ARCHITECTURE_IS_X86_64
-	int* iValue = NULL;
+	int* iValue = nullptr;
 #else
-	int64* iValue = NULL;
+	int64* iValue = nullptr;
 #endif
 };
 
@@ -906,16 +906,16 @@ LUA_FUNCTION_STATIC(vprof_GetCounter)
 	VProfCounter* counter = (VProfCounter*)pUserData->GetData();
 
 	counter->strName = g_VProfCurrentProfile.GetCounterName(index);
-	if (!counter->strName)
-	{
-		LUA->PushNil();
-		return 1; // Not a valid counter. LIAR
-	}
-	
-#ifndef WIN32
-	counter->iValue = g_VProfCurrentProfile.FindOrCreateCounter(counter->strName);
 
-	Push_VProfCounter(LUA, counter);
+#ifndef WIN32
+	if (counter->strName)
+	{
+		counter->iValue = g_VProfCurrentProfile.FindOrCreateCounter(counter->strName);
+
+		Push_VProfCounter(LUA, counter);
+	} else {
+		LUA->PushNil();
+	}
 #else
 	LUA->PushNil();
 #endif

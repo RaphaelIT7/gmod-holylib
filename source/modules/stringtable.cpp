@@ -14,13 +14,13 @@
 class CStringTableModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
-	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
-	virtual void InitDetour(bool bPreServer) OVERRIDE;
-	virtual const char* Name() { return "stringtable"; };
-	virtual int Compatibility() { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
-	virtual bool SupportsMultipleLuaStates() { return true; };
+	void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) override;
+	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) override;
+	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
+	void InitDetour(bool bPreServer) override;
+	const char* Name() override { return "stringtable"; };
+	int Compatibility() override { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
+	bool SupportsMultipleLuaStates() override { return true; };
 };
 
 static CStringTableModule g_pStringTableFixModule;
@@ -32,13 +32,13 @@ IModule* pStringTableModule = &g_pStringTableFixModule;
 //-----------------------------------------------------------------------------
 CNetworkStringTableItem::CNetworkStringTableItem( void )
 {
-	m_pUserData = NULL;
+	m_pUserData = nullptr;
 	m_nUserDataLength = 0;
 	m_nTickChanged = 0;
 
 #ifndef SHARED_NET_STRING_TABLES
 	m_nTickCreated = 0;
-	m_pChangeList = NULL;
+	m_pChangeList = nullptr;
 #endif
 }
 
@@ -61,7 +61,7 @@ CNetworkStringTableItem::~CNetworkStringTableItem( void )
 
 		delete m_pChangeList; // destructor calls Purge()
 
-		m_pUserData = NULL;
+		m_pUserData = nullptr;
 	}
 #endif
 		
@@ -97,7 +97,7 @@ public:
 		m_Items.SetLessFunc( CNetworkStringTable_LessFunc );
 	}
 
-	virtual ~CNetworkStringFilenameDict()
+	~CNetworkStringFilenameDict()
 	{
 		Purge();
 	}
@@ -162,7 +162,7 @@ public:
 	{
 	}
 
-	virtual ~CNetworkStringDict() 
+	~CNetworkStringDict() 
 	{ 
 	}
 
@@ -177,7 +177,7 @@ public:
 
 	const char *String( int index )
 	{
-		return NULL;
+		return nullptr;
 	}
 
 	bool IsValidIndex( int index )
@@ -205,11 +205,11 @@ public:
 		return m_Items.Element( index );
 	}
 
-	virtual void UpdateDictionary( int index )
+	void UpdateDictionary( int index )
 	{
 	}
 
-	virtual int DictionaryIndex( int index )
+	int DictionaryIndex( int index )
 	{
 		return -1;
 	}
@@ -246,7 +246,7 @@ public:
 	{
 	}
 
-	virtual ~CNetworkStringDict() 
+	~CNetworkStringDict() 
 	{ 
 	}
 
@@ -345,18 +345,18 @@ void CNetworkStringTable::DeleteAllStrings( void )
 #endif
 #endif
 
-static CNetworkStringTableContainer* networkStringTableContainerServer = NULL;
+static CNetworkStringTableContainer* networkStringTableContainerServer = nullptr;
 void CStringTableModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	if (appfn[0])
 	{
-		networkStringTableContainerServer = (CNetworkStringTableContainer*)appfn[0](INTERFACENAME_NETWORKSTRINGTABLESERVER, NULL);
+		networkStringTableContainerServer = (CNetworkStringTableContainer*)appfn[0](INTERFACENAME_NETWORKSTRINGTABLESERVER, nullptr);
 	} else {
 		SourceSDK::FactoryLoader engine_loader("engine");
 		networkStringTableContainerServer = engine_loader.GetInterface<CNetworkStringTableContainer>(INTERFACENAME_NETWORKSTRINGTABLESERVER);
 	}
 
-	Detour::CheckValue("get interface", "networkStringTableContainerServer", networkStringTableContainerServer != NULL);
+	Detour::CheckValue("get interface", "networkStringTableContainerServer", networkStringTableContainerServer != nullptr);
 }
 
 PushReferenced_LuaClass(INetworkStringTable)
@@ -533,7 +533,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_DeleteAllStrings)
 		{
 			CPrecacheItem item = pServer->model_precache[i];
 			if (item.GetModel())
-				item.SetModel(NULL);
+				item.SetModel(nullptr);
 		}
 	} else if (!Q_stricmp(SOUND_PRECACHE_TABLENAME, table->GetTableName()))
 	{
@@ -542,7 +542,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_DeleteAllStrings)
 		{
 			CPrecacheItem item = pServer->sound_precache[i];
 			if (item.GetSound())
-				item.SetSound(NULL);
+				item.SetSound(nullptr);
 		}
 	} else if (!Q_stricmp(DECAL_PRECACHE_TABLENAME, table->GetTableName()))
 	{
@@ -551,7 +551,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_DeleteAllStrings)
 		{
 			CPrecacheItem item = pServer->decal_precache[i];
 			if (item.GetDecal())
-				item.SetDecal(NULL);
+				item.SetDecal(nullptr);
 		}
 	} else if (!Q_stricmp(GENERIC_PRECACHE_TABLENAME, table->GetTableName()))
 	{
@@ -560,7 +560,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_DeleteAllStrings)
 		{
 			CPrecacheItem item = pServer->generic_precache[i];
 			if (item.GetGeneric())
-				item.SetGeneric(NULL);
+				item.SetGeneric(nullptr);
 		}
 	}
 
@@ -584,8 +584,8 @@ LUA_FUNCTION_STATIC(INetworkStringTable_SetMaxEntries)
 
 struct StringTableEntry
 {
-	char* pName = NULL;
-	void* pUserData = NULL;
+	char* pName = nullptr;
+	void* pUserData = nullptr;
 	int iUserDataLength = 0;
 };
 
@@ -605,25 +605,25 @@ LUA_FUNCTION_STATIC(INetworkStringTable_DeleteString)
 		CGameServer* pServer = (CGameServer*)Util::server;
 		CPrecacheItem item = pServer->model_precache[strIndex];
 		if (item.GetModel())
-			item.SetModel(NULL);
+			item.SetModel(nullptr);
 	} else if (!Q_stricmp(SOUND_PRECACHE_TABLENAME, table->GetTableName()))
 	{
 		CGameServer* pServer = (CGameServer*)Util::server;
 		CPrecacheItem item = pServer->sound_precache[strIndex];
 		if (item.GetSound())
-			item.SetSound(NULL);
+			item.SetSound(nullptr);
 	} else if (!Q_stricmp(DECAL_PRECACHE_TABLENAME, table->GetTableName()))
 	{
 		CGameServer* pServer = (CGameServer*)Util::server;
 		CPrecacheItem item = pServer->decal_precache[strIndex];
 		if (item.GetDecal())
-			item.SetDecal(NULL);
+			item.SetDecal(nullptr);
 	} else if (!Q_stricmp(GENERIC_PRECACHE_TABLENAME, table->GetTableName()))
 	{
 		CGameServer* pServer = (CGameServer*)Util::server;
 		CPrecacheItem item = pServer->generic_precache[strIndex];
 		if (item.GetGeneric())
-			item.SetGeneric(NULL);
+			item.SetGeneric(nullptr);
 	}
 
 	std::vector<StringTableEntry*> pElements;
@@ -672,7 +672,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_IsValid)
 {
 	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(LUA, 1, false);
 	
-	LUA->PushBool(table != NULL);
+	LUA->PushBool(table != nullptr);
 	return 1;
 }
 
@@ -688,7 +688,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_SetStringUserData)
 
 	if (!pUserData)
 	{
-		table->SetStringUserData(idx, 0, NULL);
+		table->SetStringUserData(idx, 0, nullptr);
 		return 0;
 	}
 
@@ -891,18 +891,18 @@ LUA_FUNCTION_STATIC(stringtable_RemoveAllTables)
 	CGameServer* pServer = (CGameServer*)Util::server;
 	if (pServer)
 	{
-		pServer->m_pModelPrecacheTable = NULL;
-		pServer->m_pSoundPrecacheTable = NULL;
-		pServer->m_pGenericPrecacheTable = NULL;
-		pServer->m_pDecalPrecacheTable = NULL;
-		pServer->m_pDynamicModelsTable = NULL;
+		pServer->m_pModelPrecacheTable = nullptr;
+		pServer->m_pSoundPrecacheTable = nullptr;
+		pServer->m_pGenericPrecacheTable = nullptr;
+		pServer->m_pDecalPrecacheTable = nullptr;
+		pServer->m_pDynamicModelsTable = nullptr;
 
 		// CBaseServer tables.
-		pServer->m_pInstanceBaselineTable = NULL;
-		pServer->m_pLightStyleTable = NULL;
-		pServer->m_pUserInfoTable = NULL;
-		pServer->m_pServerStartupTable = NULL;
-		pServer->m_pDownloadableFileTable = NULL;
+		pServer->m_pInstanceBaselineTable = nullptr;
+		pServer->m_pLightStyleTable = nullptr;
+		pServer->m_pUserInfoTable = nullptr;
+		pServer->m_pServerStartupTable = nullptr;
+		pServer->m_pDownloadableFileTable = nullptr;
 	}
 
 	//Error("GG\n"); // Until we do exactly what we described above, this function will 100% cause a crash.
@@ -1034,40 +1034,40 @@ LUA_FUNCTION_STATIC(stringtable_RemoveTable)
 	{
 		if (pServer->m_pModelPrecacheTable == pTable)
 		{
-			pServer->m_pModelPrecacheTable = NULL;
+			pServer->m_pModelPrecacheTable = nullptr;
 		} else if (pServer->m_pSoundPrecacheTable == pTable)
 		{
-			pServer->m_pSoundPrecacheTable = NULL;
+			pServer->m_pSoundPrecacheTable = nullptr;
 		} else if (pServer->m_pDecalPrecacheTable == pTable)
 		{
-			pServer->m_pDecalPrecacheTable = NULL;
+			pServer->m_pDecalPrecacheTable = nullptr;
 		} else if (pServer->m_pGenericPrecacheTable == pTable)
 		{
-			pServer->m_pGenericPrecacheTable = NULL;
+			pServer->m_pGenericPrecacheTable = nullptr;
 		} else if (pServer->m_pDynamicModelsTable == pTable)
 		{
-			pServer->m_pDynamicModelsTable = NULL;
+			pServer->m_pDynamicModelsTable = nullptr;
 		}
 		// Additional CBaseServer tables
 		else if (pServer->m_pInstanceBaselineTable == pTable)
 		{
-			pServer->m_pInstanceBaselineTable = NULL;
+			pServer->m_pInstanceBaselineTable = nullptr;
 		}
 		else if (pServer->m_pLightStyleTable == pTable)
 		{
-			pServer->m_pLightStyleTable = NULL;
+			pServer->m_pLightStyleTable = nullptr;
 		}
 		else if (pServer->m_pUserInfoTable == pTable)
 		{
-			pServer->m_pUserInfoTable = NULL;
+			pServer->m_pUserInfoTable = nullptr;
 		}
 		else if (pServer->m_pServerStartupTable == pTable)
 		{
-			pServer->m_pServerStartupTable = NULL;
+			pServer->m_pServerStartupTable = nullptr;
 		}
 		else if (pServer->m_pDownloadableFileTable == pTable)
 		{
-			pServer->m_pDownloadableFileTable = NULL;
+			pServer->m_pDownloadableFileTable = nullptr;
 		}
 	}
 	delete pTable;

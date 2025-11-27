@@ -58,9 +58,9 @@ void* RawLua::GetUserDataOrFFIVar(lua_State* L, int idx, CDataBridge& cDataBridg
 		if (cDataBridge.IsRegistered(o))
 			return (void*)lj_obj_ptr(G(L), o); // won't mind the const void* -> void* it'll be fine
 		else
-			return NULL;
+			return nullptr;
 	else
-		return NULL;
+		return nullptr;
 }
 
 uint16_t RawLua::GetCDataType(lua_State* L, int idx)
@@ -92,7 +92,7 @@ CTypeID ffi_checkctype(lua_State *L, CTState *cts, TValue* param, const char* pS
 uint32_t RawLua::GetCTypeFromName(lua_State* L, const char* pName, CDataBridge* cDataBridge)
 {
 	CTState* cts = ctype_cts(L);
-	CTypeID pType = ffi_checkctype(L, cts, NULL, pName);
+	CTypeID pType = ffi_checkctype(L, cts, nullptr, pName);
 	CType* ct = ctype_raw(cts, pType);
 	GCtab* t = cts->miscmap;
 

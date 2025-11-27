@@ -26,7 +26,7 @@ namespace Bootil
 				int iLength;
 			};
 
-			typedef std::map< Bootil::BString, FileEntry > FileMap;
+			using FileMap = std::map< Bootil::BString, FileEntry >;
 
 			FileMap	m_FileMap;
 	};

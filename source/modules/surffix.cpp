@@ -11,10 +11,10 @@
 class CSurfFixModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
-	virtual void InitDetour(bool bPreServer) OVERRIDE;
-	virtual const char* Name() { return "surffix"; };
-	virtual int Compatibility() { return LINUX32; };
+	void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) override;
+	void InitDetour(bool bPreServer) override;
+	const char* Name() override { return "surffix"; };
+	int Compatibility() override { return LINUX32; };
 };
 
 static CSurfFixModule g_pSurfFixModule;
@@ -68,9 +68,9 @@ static bool CGameMovement_IsValidMovementTrace(CGameMovement* gamemovement, trac
 }
 
 #define	MAX_CLIP_PLANES		5
-static Symbols::MoveHelperServer func_MoveHelperServer = NULL;
-static Symbols::CGameMovement_ClipVelocity func_CGameMovement_ClipVelocity = NULL;
-static Symbols::CTraceFilterSimple_ShouldHitEntity func_CTraceFilterSimple_ShouldHitEntity = NULL;
+static Symbols::MoveHelperServer func_MoveHelperServer = nullptr;
+static Symbols::CGameMovement_ClipVelocity func_CGameMovement_ClipVelocity = nullptr;
+static Symbols::CTraceFilterSimple_ShouldHitEntity func_CTraceFilterSimple_ShouldHitEntity = nullptr;
 static inline IMoveHelper* HolyLib_MoveHelper()
 {
 	return (IMoveHelper*)func_MoveHelperServer();
@@ -120,7 +120,7 @@ static inline int GetMoveType(void* pPlayer)
 	return *(int*)pMoveType;
 }
 
-inline void HolyLib_UTIL_TraceRay(const Ray_t &ray, unsigned int mask, const IHandleEntity *ignore, int collisionGroup, trace_t *ptr, ShouldHitFunc_t pExtraShouldHitCheckFn = NULL)
+inline void HolyLib_UTIL_TraceRay(const Ray_t &ray, unsigned int mask, const IHandleEntity *ignore, int collisionGroup, trace_t *ptr, ShouldHitFunc_t pExtraShouldHitCheckFn = nullptr)
 {
 	VPROF_BUDGET("HolyLib - UTIL_TraceRay", VPROF_BUDGETGROUP_HOLYLIB);
 	CTraceFilterSimple traceFilter(ignore, collisionGroup, pExtraShouldHitCheckFn);
@@ -450,7 +450,7 @@ static int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector*
 		//  and pressing forward and nobody was really using this bounce/reflection feature anyway...
 		if ( numplanes == 1 &&
 			GetMoveType(gamemovement->player) == MOVETYPE_WALK &&
-			GetGroundEntity(gamemovement->player) == NULL )	
+			GetGroundEntity(gamemovement->player) == nullptr )	
 		{
 			for ( i = 0; i < numplanes; i++ )
 			{
@@ -546,11 +546,11 @@ static int hook_CGameMovement_TryPlayerMove(CGameMovement* gamemovement, Vector*
 	return blocked;
 }
 
-IEngineTrace* enginetrace = NULL; // Not static since it's defined as extern in enginecallbacks.h
+IEngineTrace* enginetrace = nullptr; // Not static since it's defined as extern in enginecallbacks.h
 void CSurfFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
-	enginetrace = (IEngineTrace*)appfn[0](INTERFACEVERSION_ENGINETRACE_SERVER, NULL);
-	Detour::CheckValue("get interface", "enginetrace", enginetrace != NULL);
+	enginetrace = (IEngineTrace*)appfn[0](INTERFACEVERSION_ENGINETRACE_SERVER, nullptr);
+	Detour::CheckValue("get interface", "enginetrace", enginetrace != nullptr);
 }
 
 #if SYSTEM_WINDOWS

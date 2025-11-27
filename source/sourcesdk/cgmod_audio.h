@@ -138,7 +138,7 @@ public:
 	virtual float GetVolume();
 	virtual void SetPlaybackRate(float);
 	virtual float GetPlaybackRate();
-	virtual void SetPos( Vector*, Vector* = NULL, Vector* = NULL );
+	virtual void SetPos( Vector*, Vector* = nullptr, Vector* = nullptr );
 	virtual void GetPos( Vector*, Vector*, Vector* );
 	virtual void SetTime( double, bool );
 	virtual double GetTime();
@@ -203,7 +203,7 @@ public:
 	virtual void ResetSplitStream();
 
 public:
-	CGModAudioChannel( DWORD handle, ChannelType nType, const char* pFileName = NULL );
+	CGModAudioChannel( DWORD handle, ChannelType nType, const char* pFileName = nullptr );
 	virtual ~CGModAudioChannel();
 
 private:

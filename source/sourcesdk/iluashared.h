@@ -109,7 +109,7 @@ namespace GarrysMod::Lua
 		void** vtable = *(void***)(shared);
 		// __fastcall: this in RCX, then params in RDX, R8, R9
 		// References are passed as pointers in x64
-		typedef void(__fastcall* FindScriptsFunc)(void* thisptr, const std::string*, const std::string*, std::vector<LuaFindResult>*);
+		using FindScriptsFunc = void(__fastcall*)(void* thisptr, const std::string*, const std::string*, std::vector<LuaFindResult>*);
 		FindScriptsFunc pFindScripts = reinterpret_cast<FindScriptsFunc>(vtable[15]);
 		pFindScripts(shared, &pattern, &pathId, &results);
 #else

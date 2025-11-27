@@ -164,7 +164,7 @@ inline void CLuaInterface_DebugPrint(int level, const char* fmt, ...)
 	va_start(args, fmt);
 	va_copy(argsCopy, args);
 
-	int size = vsnprintf(NULL, 0, fmt, args);
+	int size = vsnprintf(nullptr, 0, fmt, args);
 	if (size < 0) {
 		va_end(args);
 		va_end(argsCopy);
@@ -211,8 +211,8 @@ GarrysMod::Lua::ILuaGameCallback::CLuaError* ReadStackIntoError(lua_State* L)
 		++level;
 	}
 
-	const char* str = lua_tolstring(L, -1, NULL);
-	if (str != NULL) // Setting a std::string to NULL causes a crash. Don't care.
+	const char* str = lua_tolstring(L, -1, nullptr);
+	if (str != nullptr) // Setting a std::string to NULL causes a crash. Don't care.
 		lua_error->message = str;
 
 	CLuaInterface* LUA = (CLuaInterface*)L->luabase;
@@ -264,7 +264,7 @@ void Lua::CloseLuaInterface(GarrysMod::Lua::ILuaInterface* LuaInterface)
 
 CLuaInterface::~CLuaInterface()
 {
-	if (state != NULL)
+	if (state != nullptr)
 	{
 		Shutdown();
 		return;
@@ -637,9 +637,9 @@ void CLuaInterface::CreateMetaTableType(const char* strName, int iType)
 
 const char* CLuaInterface::CheckString(int iStackPos)
 {
-	LuaDebugPrint(4, "CLuaInterface::CheckString %i %s\n", iStackPos, luaL_checklstring(state, iStackPos, NULL));
+	LuaDebugPrint(4, "CLuaInterface::CheckString %i %s\n", iStackPos, luaL_checklstring(state, iStackPos, nullptr));
 
-	return luaL_checklstring(state, iStackPos, NULL);
+	return luaL_checklstring(state, iStackPos, nullptr);
 }
 
 double CLuaInterface::CheckNumber(int iStackPos)
@@ -804,9 +804,8 @@ bool CLuaInterface::Init( GarrysMod::Lua::ILuaGameCallback* callback, bool bIsSe
 
 	m_iMetaTableIDCounter = GarrysMod::Lua::Type::Type_Count;
 	for (int i=0; i<=254; ++i)
-	{
-		m_pMetaTables[i] = NULL;
-	}
+		m_pMetaTables[i] = nullptr;
+
 	m_iCurrentTempObject = 0;
 
 	m_bShutDownThreadedCalls = false;
@@ -904,7 +903,7 @@ void CLuaInterface::Shutdown()
 	ShutdownThreadedCalls();
 
 	lua_close(state);
-	state = NULL;
+	state = nullptr;
 
 	for (int i=0; i<255; ++i) {
 		if (m_pMetaTables[i])
@@ -930,7 +929,7 @@ void CLuaInterface::Cycle()
 
 	iLastTimeCheck = 0;
 	// someotherValue = 0;
-	// m_ProtectedFunctionReturns = NULL; // Why would we want this? Sounds like a possible memory leak.
+	// m_ProtectedFunctionReturns = nullptr; // Why would we want this? Sounds like a possible memory leak.
 	DoStackCheck();
 
 	RunThreadedCalls();
@@ -1107,7 +1106,7 @@ const char* CLuaInterface::CallInternalGetString(int args)
 {
 	LuaDebugPrint(2, "CLuaInterface::CallInternalGetString %i\n", args);
 
-	const char* ret = NULL;
+	const char* ret = nullptr;
 	if (CallFunctionProtected(args, 1, 1)) {
 		ret = GetString(-1);
 		Pop(1);
@@ -1176,7 +1175,7 @@ GarrysMod::Lua::ILuaObject* CLuaInterface::GetMetaTableObject(const char* name, 
 			CreateMetaTableType(name, type);
 			lua_getfield(state, LUA_REGISTRYINDEX, name);
 		} else {
-			return NULL;
+			return nullptr;
 		}
 	}
 
@@ -1198,7 +1197,7 @@ GarrysMod::Lua::ILuaObject* CLuaInterface::GetMetaTableObject(int iStackPos)
 		return obj;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 GarrysMod::Lua::ILuaObject* CLuaInterface::GetReturn(int iStackPos)
@@ -1208,7 +1207,7 @@ GarrysMod::Lua::ILuaObject* CLuaInterface::GetReturn(int iStackPos)
 	int idx = abs(iStackPos);
 	if (idx >= 0 && idx < 4)
 	{
-		if ( m_ProtectedFunctionReturns[idx] == NULL)
+		if ( m_ProtectedFunctionReturns[idx] == nullptr )
 		{
 			LuaDebugPrint(1, "CLuaInterface::GetReturn We could crash! (null object!)\n");
 #ifdef WIN32
@@ -1349,7 +1348,7 @@ int CLuaInterface::GetFlags(int iStackPos)
 
 bool CLuaInterface::FindOnObjectsMetaTable(int iStackPos, int keyIndex)
 {
-	LuaDebugPrint(2, "CLuaInterface::FindOnObjectsMetaTable %i %i %s\n", iStackPos, keyIndex, lua_tolstring(state, keyIndex, NULL));
+	LuaDebugPrint(2, "CLuaInterface::FindOnObjectsMetaTable %i %i %s\n", iStackPos, keyIndex, lua_tolstring(state, keyIndex, nullptr));
 
 	if (!lua_getmetatable(state, iStackPos))
 		return false;
@@ -1412,8 +1411,8 @@ void CLuaInterface::Error(const char* err)
 const char* CLuaInterface::GetStringOrError(int index)
 {
 	LuaDebugPrint(3, "CLuaInterface::GetStringOrError\n");
-	const char* string = lua_tolstring(state, index, NULL);
-	if (string == NULL)
+	const char* string = lua_tolstring(state, index, nullptr);
+	if (string == nullptr)
 	{
 		Error("You betraid me"); // ToDo: This should probably be an Arg error
 	}
@@ -1542,7 +1541,7 @@ void CLuaInterface::ErrorNoHalt( const char* fmt, ... )
 	va_list args;
 	va_start(args, fmt);
 
-	int size = vsnprintf(NULL, 0, fmt, args);
+	int size = vsnprintf(nullptr, 0, fmt, args);
 	if (size < 0) {
 		va_end(args);
 		return;
@@ -1690,7 +1689,7 @@ size_t CLuaInterface::GetDataString(int iStackPos, const char **pOutput)
 	LuaDebugPrint(2, "CLuaInterface::GetDataString\n");
 	
 	size_t length = 0;
-	*pOutput = NULL;
+	*pOutput = nullptr;
 	const char* pString = lua_tolstring(state, iStackPos, &length);
 	if (!pString)
 		return 0;
@@ -1708,7 +1707,7 @@ void CLuaInterface::ErrorFromLua(const char *fmt, ...)
 	va_list args;
 	va_start(args, fmt);
 
-	int size = vsnprintf(NULL, 0, fmt, args);
+	int size = vsnprintf(nullptr, 0, fmt, args);
 	if (size < 0) {
 		va_end(args);
 		return;
@@ -1989,7 +1988,7 @@ void* CLuaInterface::CreateConVar(const char* name, const char* defaultValue, co
 	FilterConVarFlags(flags);
 
 	Warning("holylib - CLuaInterface::CreateConVar was NOT implemented yet!\n"); // This function requires changes to work properly to support multiple states
-	return NULL;// LuaConVars()->CreateConVar(name, defaultValue, helpString, flags);
+	return nullptr; //return LuaConVars()->CreateConVar(name, defaultValue, helpString, flags);
 }
 
 void* CLuaInterface::CreateConCommand(const char* name, const char* helpString, int flags, FnCommandCallback_t callback, FnCommandCompletionCallback completionFunc)
@@ -2001,14 +2000,14 @@ void* CLuaInterface::CreateConCommand(const char* name, const char* helpString, 
 		flags |= FCVAR_CLIENTCMD_CAN_EXECUTE;
 
 	Warning("holylib - CLuaInterface::CreateConCommand was NOT implemented yet!\n");
-	return NULL; //return LuaConVars()->CreateConCommand(name, helpString, flags, callback, completionFunc);
+	return nullptr; //return LuaConVars()->CreateConCommand(name, helpString, flags, callback, completionFunc);
 }
 
 const char* CLuaInterface::CheckStringOpt( int iStackPos, const char* def )
 {
 	LuaDebugPrint(4, "CLuaInterface::CheckStringOpt %i %s\n", iStackPos, def);
 
-	return luaL_optlstring(state, iStackPos, def, NULL);
+	return luaL_optlstring(state, iStackPos, def, nullptr);
 }
 
 double CLuaInterface::CheckNumberOpt( int iStackPos, double def )
@@ -2074,14 +2073,16 @@ void GMOD_LoadBinaryModule(lua_State* L, const char* name)
 	//lua_pop(L, 1);
 
 	void* hDll = DLL_LoadModule(name, RTLD_LAZY);
-	if (hDll == NULL) {
+	if (hDll == nullptr)
+	{
 		lua_pushliteral(L, "Failed to load dll!");
 		lua_error(L);
 		return;
 	}
 
 	GarrysMod::Lua::CFunc gmod13_open = (GarrysMod::Lua::CFunc)DLL_GetAddress(hDll, "gmod13_open");
-	if (gmod13_open == NULL) {
+	if (gmod13_open == nullptr)
+	{
 		lua_pushliteral(L, "Failed to get gmod13_open!");
 		lua_error(L);
 		DLL_UnloadModule(hDll);
@@ -2096,10 +2097,11 @@ void GMOD_LoadBinaryModule(lua_State* L, const char* name)
 
 void GMOD_UnloadBinaryModule(lua_State* L, const char* module, GarrysMod::Lua::ILuaBase::UserData* udata)
 {
-	if (udata->data != NULL)
+	if (udata->data != nullptr)
 	{
 		GarrysMod::Lua::CFunc gmod13_close = (GarrysMod::Lua::CFunc)DLL_GetAddress(udata->data, "gmod13_close");
-		if (gmod13_close != NULL) {
+		if (gmod13_close != nullptr)
+		{
 			lua_pushcclosure(L, gmod13_close, 0);
 			lua_call(L, 0, 0);
 		}
@@ -2118,14 +2120,15 @@ void GMOD_UnloadBinaryModules(lua_State* L)
 	lua_pushvalue(L, LUA_REGISTRYINDEX);
 	lua_pushnil(L);
 
-	while (lua_next(L, -2) != 0) {
+	while (lua_next(L, -2) != 0)
+	{
 		if(lua_type(L, -2) == GarrysMod::Lua::Type::String && lua_type(L, -1) == GarrysMod::Lua::Type::UserData)
 		{
-			const char* module = lua_tolstring(L, -2, NULL);
-			if (strncmp(module, "LOADLIB: ", 8) == 0) // Why are we doing it like this (I forgot)
+			const char* moduleName = lua_tolstring(L, -2, nullptr);
+			if (strncmp(moduleName, "LOADLIB: ", 8) == 0) // Why are we doing it like this (I forgot)
 			{
-				Msg("Unloading %s\n", module);
-				GMOD_UnloadBinaryModule(L, module, (GarrysMod::Lua::ILuaBase::UserData*)lua_touserdata(L, -1));
+				Msg("Unloading %s\n", moduleName);
+				GMOD_UnloadBinaryModule(L, moduleName, (GarrysMod::Lua::ILuaBase::UserData*)lua_touserdata(L, -1));
 			}
 		}
 

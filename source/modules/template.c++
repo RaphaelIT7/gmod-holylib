@@ -5,14 +5,14 @@
 class CTemplateModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
-	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
-	virtual void InitDetour(bool bPreServer) OVERRIDE;
-	virtual void Think(bool bSimulating) OVERRIDE;
-	virtual void Shutdown() OVERRIDE;
-	virtual const char* Name() { return "template"; };
-	virtual int Compatibility() { return LINUX32; };
+	void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) override;
+	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) override;
+	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
+	void InitDetour(bool bPreServer) override;
+	void Think(bool bSimulating) override;
+	void Shutdown() override;
+	const char* Name() override { return "template"; };
+	int Compatibility() override { return LINUX32; };
 };
 
 CTemplateModule g_pTemplateModule;

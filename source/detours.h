@@ -242,7 +242,7 @@ byte m_##name = 0;
 	{
 	#if DETOUR_SYMBOL_ID != 0
 		if ((pSymbols.size()-1) < DETOUR_SYMBOL_ID)
-			return NULL;
+			return nullptr;
 	#endif
 
 	#if defined SYSTEM_WINDOWS
@@ -284,14 +284,14 @@ byte m_##name = 0;
 	{
 	#if DETOUR_SYMBOL_ID != 0
 		if ((pSymbols.size()-1) < DETOUR_SYMBOL_ID)
-			return NULL;
+			return nullptr;
 	#endif
 
 		void* matchAddr = GetFunction(pModule, pSymbols[DETOUR_SYMBOL_ID]);
-		if (matchAddr == NULL)
+		if (matchAddr == nullptr)
 		{
 			Warning(PROJECT_NAME ": Failed to get matchAddr! %s\n", pSymbols[DETOUR_SYMBOL_ID].name.c_str());
-			return NULL;
+			return nullptr;
 		}
 
 	#if defined(SYSTEM_WINDOWS)
@@ -376,14 +376,14 @@ byte m_##name = 0;
 #endif
 
 		Warning(PROJECT_NAME ": Failed to match LEA bytes!\n");
-		return NULL;
+		return nullptr;
 	}
 
 	inline void* GetFunction(void* pModule, std::vector<Symbol> pSymbols)
 	{
 #if DETOUR_SYMBOL_ID != 0
 		if ((pSymbols.size()-1) < DETOUR_SYMBOL_ID)
-			return NULL;
+			return nullptr;
 #endif
 
 		return GetFunction(pModule, pSymbols[DETOUR_SYMBOL_ID]);

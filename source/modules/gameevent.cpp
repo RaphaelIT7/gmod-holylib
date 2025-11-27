@@ -19,12 +19,12 @@ class CUserCmd; // Fixes an error in igamesystem.h
 class CGameeventLibModule : public IModule
 {
 public:
-	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
-	virtual void InitDetour(bool bPreServer) OVERRIDE;
-	virtual const char* Name() { return "gameevent"; };
-	virtual int Compatibility() { return LINUX32 | LINUX64; };
-	virtual bool SupportsMultipleLuaStates() { return true; };
+	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) override;
+	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
+	void InitDetour(bool bPreServer) override;
+	const char* Name() override { return "gameevent"; };
+	int Compatibility() override { return LINUX32 | LINUX64; };
+	bool SupportsMultipleLuaStates() override { return true; };
 };
 
 static ConVar gameevent_callhook("holylib_gameevent_callhook", "1", FCVAR_ARCHIVE, "If enabled, the HolyLib:Pre/PostListenGameEvent hooks get called");
@@ -177,7 +177,7 @@ LUA_FUNCTION_STATIC(gameevent_RemoveClientListener)
 		LUA->ThrowError("Tried to use a NULL Player!\n");
 
 	CBaseClient* pClient = Util::GetClientByPlayer(pEntity);
-	const char* strEvent = LUA->CheckStringOpt(2, NULL);
+	const char* strEvent = LUA->CheckStringOpt(2, nullptr);
 
 	bool bSuccess = false;
 	if (strEvent)

@@ -92,7 +92,7 @@ namespace Bootil
 					void* m_pRead;
 					void* m_Write;
 
-					typedef std::map<int, Entry> FileList;
+					using FileList = std::map<int, Entry>;
 					FileList	m_Files;
 			};
 		}

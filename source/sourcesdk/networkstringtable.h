@@ -60,7 +60,7 @@ public:
 	void			SetTick( int tick );
 	bool			ChangedSinceTick( int tick ) const;
 
-	int				AddString( bool bIsServer, const char *value, int length = -1, const void *userdata = NULL ); 
+	int				AddString( bool bIsServer, const char *value, int length = -1, const void *userdata = nullptr ); 
 	const char		*GetString( int stringNumber );
 
 	void			SetStringUserData( int stringNumber, int length, const void *userdata );

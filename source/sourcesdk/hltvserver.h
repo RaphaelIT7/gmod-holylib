@@ -159,7 +159,7 @@ public: // IDemoPlayer interface
 	void	ResumePlayback( void ) {}
 	void	StopPlayback( void ) {}
 	void	InterpolateViewpoint() {}
-	netpacket_t *ReadPacket( void ) { return NULL; }
+	netpacket_t *ReadPacket( void ) { return nullptr; }
 
 	void	ResetDemoInterpolation( void ) {}
 	int		GetProtocolVersion();
@@ -186,7 +186,7 @@ public:
 	void	LinkInstanceBaselines( void );
 	void	BroadcastEventLocal( IGameEvent *event, bool bReliable ); // broadcast event but not to relay proxies
 	void	BroadcastLocalChat( const char *pszChat, const char *pszGroup ); // broadcast event but not to relay proxies
-	void	BroadcastLocalTitle( CHLTVClient *client = NULL ); // NULL = broadcast to all
+	void	BroadcastLocalTitle( CHLTVClient *client = nullptr ); // NULL = broadcast to all
 	bool	DispatchToRelay( CHLTVClient *pClient);
 	bf_write *GetBuffer( int nBuffer);
 	CClientFrame *GetDeltaFrame( int nTick );
@@ -218,7 +218,7 @@ private:
 
 public:
 
-	CGameClient		*m_MasterClient;		// if != NULL, this is the master HLTV 
+	CGameClient		*m_MasterClient;		// if != nullptr, this is the master HLTV 
 	CHLTVClientState m_ClientState;
 	CHLTVDemoRecorder m_DemoRecorder;			// HLTV demo object for recording and playback
 	CGameServer		*m_Server;		// pointer to source server (sv.)

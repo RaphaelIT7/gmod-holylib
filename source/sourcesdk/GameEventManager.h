@@ -36,7 +36,7 @@ public:
 	{
 		name[0] = 0;
 		eventid = -1;
-		keys = NULL;
+		keys = nullptr;
 		local = false;
 		reliable = true;
 	}
@@ -58,14 +58,14 @@ public:
 	virtual ~CGameEvent();
 
 	const char *GetName() const;
-	bool  IsEmpty(const char *keyName = NULL);
+	bool  IsEmpty(const char *keyName = nullptr);
 	bool  IsLocal() const;
 	bool  IsReliable() const;
 
-	bool  GetBool( const char *keyName = NULL, bool defaultValue = false );
-	int   GetInt( const char *keyName = NULL, int defaultValue = 0 );
-	float GetFloat( const char *keyName = NULL, float defaultValue = 0.0f );
-	const char *GetString( const char *keyName = NULL, const char *defaultValue = "" );
+	bool  GetBool( const char *keyName = nullptr, bool defaultValue = false );
+	int   GetInt( const char *keyName = nullptr, int defaultValue = 0 );
+	float GetFloat( const char *keyName = nullptr, float defaultValue = 0.0f );
+	const char *GetString( const char *keyName = nullptr, const char *defaultValue = "" );
 
 	void SetBool( const char *keyName, bool value );
 	void SetInt( const char *keyName, int value );

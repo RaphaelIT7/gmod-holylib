@@ -90,7 +90,7 @@ public:
 
 
 	// Accessors to model precaching stuff
-	int			PrecacheModel( char const *name, int flags, model_t *model = NULL );
+	int			PrecacheModel( char const *name, int flags, model_t *model = nullptr );
 	model_t		*GetModel( int index );
 	int			LookupModelIndex( char const *name );
 

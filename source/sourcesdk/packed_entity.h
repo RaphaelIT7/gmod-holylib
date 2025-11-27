@@ -163,7 +163,7 @@ inline void PackedEntity::FreeData()
 	if ( m_pData )
 	{
 		free(m_pData);
-		m_pData = NULL;
+		m_pData = nullptr;
 	}
 }
 
@@ -181,7 +181,7 @@ inline IChangeFrameList* PackedEntity::GetChangeFrameList()
 inline IChangeFrameList* PackedEntity::SnagChangeFrameList()
 {
 	IChangeFrameList *pRet = m_pChangeFrameList;
-	m_pChangeFrameList = NULL;
+	m_pChangeFrameList = nullptr;
 	return pRet;
 }
 

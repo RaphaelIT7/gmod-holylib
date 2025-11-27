@@ -15,15 +15,15 @@
 class CSoundscapeModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
-	virtual void InitDetour(bool bPreServer) OVERRIDE;
-	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
-	virtual void Shutdown() OVERRIDE;
-	virtual void ClientDisconnect(edict_t* pClient) OVERRIDE;
-	virtual const char* Name() { return "soundscape"; };
-	virtual int Compatibility() { return LINUX32; };
-	virtual bool IsEnabledByDefault() { return true; };
+	void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) override;
+	void InitDetour(bool bPreServer) override;
+	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) override;
+	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
+	void Shutdown() override;
+	void ClientDisconnect(edict_t* pClient) override;
+	const char* Name() override { return "soundscape"; };
+	int Compatibility() override { return LINUX32; };
+	bool IsEnabledByDefault() override { return true; };
 };
 
 static CSoundscapeModule g_pSoundscapeModule;

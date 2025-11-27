@@ -79,10 +79,10 @@ DLL_EXPORT void HolyLib_PreLoad()
 //---------------------------------------------------------------------------------
 // Purpose: called when the plugin is loaded, load the interface we need from the engine
 //---------------------------------------------------------------------------------
-CGlobalVars *gpGlobals = NULL;
+CGlobalVars *gpGlobals = nullptr;
 static bool bIgnoreNextUnload = false;
 #if ARCHITECTURE_IS_X86
-IMDLCache *mdlcache = NULL;
+IMDLCache *mdlcache = nullptr;
 #endif
 bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn gameServerFactory)
 {
@@ -103,22 +103,22 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 		ConnectTier1Libraries(&interfaceFactory, 1);
 		ConnectTier2Libraries(&interfaceFactory, 1);
 
-		engine = (IVEngineServer*)interfaceFactory(INTERFACEVERSION_VENGINESERVER, NULL);
-		mdlcache = (IMDLCache*)interfaceFactory(MDLCACHE_INTERFACE_VERSION, NULL);
+		engine = (IVEngineServer*)interfaceFactory(INTERFACEVERSION_VENGINESERVER, nullptr);
+		mdlcache = (IMDLCache*)interfaceFactory(MDLCACHE_INTERFACE_VERSION, nullptr);
 	} else {
 		engine = InterfacePointers::VEngineServer();
 		g_pFullFileSystem = InterfacePointers::FileSystemServer();
 		g_pCVar = InterfacePointers::Cvar();
 	}
 
-	IPlayerInfoManager* playerinfomanager = NULL;
+	IPlayerInfoManager* playerinfomanager = nullptr;
 	if (gameServerFactory)
-		playerinfomanager = (IPlayerInfoManager*)gameServerFactory(INTERFACEVERSION_PLAYERINFOMANAGER, NULL);
+		playerinfomanager = (IPlayerInfoManager*)gameServerFactory(INTERFACEVERSION_PLAYERINFOMANAGER, nullptr);
 	else {
 		SourceSDK::FactoryLoader server_loader("server");
 		playerinfomanager = server_loader.GetInterface<IPlayerInfoManager>(INTERFACEVERSION_PLAYERINFOMANAGER);
 	}
-	Detour::CheckValue("get interface", "playerinfomanager", playerinfomanager != NULL);
+	Detour::CheckValue("get interface", "playerinfomanager", playerinfomanager != nullptr);
 
 	if (playerinfomanager)
 		gpGlobals = playerinfomanager->GetGlobalVars();
@@ -131,7 +131,7 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 	g_pModuleManager.Init();
 	g_pModuleManager.InitDetour(false);
 
-	GarrysMod::Lua::ILuaInterface* LUA = Lua::GetRealm(g_pModuleManager.GetModuleRealm());
+	GarrysMod::Lua::ILuaInterface* LUA = Lua::GetRealm((unsigned char)g_pModuleManager.GetModuleRealm());
 	if (LUA) // If we got loaded by plugin_load we need to manually call Lua::Init
 		Lua::Init(LUA);
 
@@ -224,7 +224,7 @@ void CServerPlugin::LevelInit(char const *pMapName)
 bool CServerPlugin::LuaInit()
 {
 	VPROF_BUDGET("HolyLib - CServerPlugin::LuaInit", VPROF_BUDGETGROUP_HOLYLIB);
-	GarrysMod::Lua::ILuaInterface* LUA = Lua::GetRealm(g_pModuleManager.GetModuleRealm());
+	GarrysMod::Lua::ILuaInterface* LUA = Lua::GetRealm((unsigned char)g_pModuleManager.GetModuleRealm());
 	if (LUA == nullptr) {
 		Warning(PROJECT_NAME ": Failed to get ILuaInterface! (Realm: %i)\n", (int)g_pModuleManager.GetModuleRealm());
 		return false;
@@ -423,7 +423,7 @@ GMOD_MODULE_OPEN()
 
 	g_pModuleManager.MarkAsBinaryModule();
 	Lua::SetManualShutdown();
-	g_HolyLibServerPlugin.Load(NULL, NULL); // Yes. I don't like it but I can't get thoes fancy interfaces.
+	g_HolyLibServerPlugin.Load(nullptr, nullptr); // Yes. I don't like it but I can't get thoes fancy interfaces.
 
 	if (Util::engineserver && Util::server)
 	{

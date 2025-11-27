@@ -2,8 +2,8 @@
 
 namespace Bootil
 {
-	typedef std::string BString;
-	typedef std::wstring WString;
+	using BString = std::string;
+	using WString = std::wstring;
 }
 
 #define BOOTIL_FOREACH( varname, arrayname, arraytype ) for ( arraytype::iterator varname = arrayname.begin(); varname != arrayname.end(); ++varname )

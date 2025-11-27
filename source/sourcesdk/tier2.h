@@ -79,7 +79,7 @@ void InitCommandLineProgram( int argc, char **argv );
 template< class IInterface, int ConVarFlag = 0 > 
 class CTier2AppSystem : public CTier1AppSystem< IInterface, ConVarFlag >
 {
-	typedef CTier1AppSystem< IInterface, ConVarFlag > BaseClass;
+	using BaseClass = CTier1AppSystem< IInterface, ConVarFlag >;
 
 public:
 	CTier2AppSystem( bool bIsPrimaryAppSystem = true ) : BaseClass( bIsPrimaryAppSystem )

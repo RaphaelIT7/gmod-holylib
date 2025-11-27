@@ -10,14 +10,14 @@ inline BString Get##_name_( BString str ) { _name_( str ); return str; }
 
 namespace Bootil
 {
-	typedef std::string BString;
-	typedef std::wstring WString;
+	using BString = std::string;
+	using WString = std::wstring;
 
 	namespace String
 	{
-		typedef std::vector<BString> List;
-		typedef std::map<BString, BString> Map;
-		typedef std::list<BString> Lines;
+		using List = std::vector<BString>;
+		using Map = std::map<BString, BString>;
+		using Lines = std::list<BString>;
 
 		namespace Convert
 		{

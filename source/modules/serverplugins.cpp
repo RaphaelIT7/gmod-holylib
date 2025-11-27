@@ -11,13 +11,13 @@
 class CServerPluginLibModule : public IModule
 {
 public:
-	virtual void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) OVERRIDE;
-	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
-	virtual void InitDetour(bool bPreServer) OVERRIDE;
-	virtual const char* Name() { return "serverplugin"; };
-	virtual int Compatibility() { return LINUX32 | LINUX64; };
-	virtual bool IsEnabledByDefault() { return false; }; // Broken rn if used with voicebox & xeon drm? (ToDo: Investigate)
+	void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) override;
+	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) override;
+	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
+	void InitDetour(bool bPreServer) override;
+	const char* Name() override { return "serverplugin"; };
+	int Compatibility() override { return LINUX32 | LINUX64; };
+	bool IsEnabledByDefault() override { return false; }; // Broken rn if used with voicebox & xeon drm? (ToDo: Investigate)
 };
 
 static CServerPluginLibModule g_pServerPluginLibModule;
@@ -45,7 +45,7 @@ IServerPluginCallbacks *CPlugin::GetCallback()
 	{
 		Assert(!"Unable to get plugin callback interface" );
 		Warning("Unable to get callback interface for \"%s\"\n", GetName());
-		return NULL;
+		return nullptr;
 	}
 }
 
@@ -81,19 +81,19 @@ static bool hook_CPlugin_Load(CPlugin* pPlugin, const char* fileName)
 		{
 			pPlugin->m_iPluginInterfaceVersion = 4;
 			pPlugin->m_bDisable = true;
-			pPlugin->m_pPlugin = (IServerPluginCallbacks*)pluginFactory(INTERFACEVERSION_ISERVERPLUGINCALLBACKS, NULL);
+			pPlugin->m_pPlugin = (IServerPluginCallbacks*)pluginFactory(INTERFACEVERSION_ISERVERPLUGINCALLBACKS, nullptr);
 			if (!pPlugin->m_pPlugin)
 			{
 				pPlugin->m_iPluginInterfaceVersion = 3;
-				pPlugin->m_pPlugin = (IServerPluginCallbacks*)pluginFactory(INTERFACEVERSION_ISERVERPLUGINCALLBACKS_VERSION_3, NULL);
+				pPlugin->m_pPlugin = (IServerPluginCallbacks*)pluginFactory(INTERFACEVERSION_ISERVERPLUGINCALLBACKS_VERSION_3, nullptr);
 				if (!pPlugin->m_pPlugin)
 				{
 					pPlugin->m_iPluginInterfaceVersion = 2;
-					pPlugin->m_pPlugin = (IServerPluginCallbacks*)pluginFactory(INTERFACEVERSION_ISERVERPLUGINCALLBACKS_VERSION_2, NULL);
+					pPlugin->m_pPlugin = (IServerPluginCallbacks*)pluginFactory(INTERFACEVERSION_ISERVERPLUGINCALLBACKS_VERSION_2, nullptr);
 					if (!pPlugin->m_pPlugin)
 					{
 						pPlugin->m_iPluginInterfaceVersion = 1;
-						pPlugin->m_pPlugin = (IServerPluginCallbacks*)pluginFactory(INTERFACEVERSION_ISERVERPLUGINCALLBACKS_VERSION_1, NULL);
+						pPlugin->m_pPlugin = (IServerPluginCallbacks*)pluginFactory(INTERFACEVERSION_ISERVERPLUGINCALLBACKS_VERSION_1, nullptr);
 						if (!pPlugin->m_pPlugin)
 						{				
 							Warning("Could not get IServerPluginCallbacks interface from plugin \"%s\"", fileName);
@@ -126,12 +126,12 @@ void CServerPluginLibModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* g
 {
 	if (appfn[0])
 	{
-		g_pServerPluginHandler = (CServerPlugin*)appfn[0](INTERFACEVERSION_ISERVERPLUGINHELPERS, NULL);
+		g_pServerPluginHandler = (CServerPlugin*)appfn[0](INTERFACEVERSION_ISERVERPLUGINHELPERS, nullptr);
 	} else {
 		SourceSDK::FactoryLoader engine_loader("engine");
 		g_pServerPluginHandler = engine_loader.GetInterface<CServerPlugin>(INTERFACEVERSION_ISERVERPLUGINHELPERS);
 	}
-	Detour::CheckValue("get interface", "g_pServerPluginHandler", g_pServerPluginHandler != NULL);
+	Detour::CheckValue("get interface", "g_pServerPluginHandler", g_pServerPluginHandler != nullptr);
 }
 
 void CServerPluginLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)

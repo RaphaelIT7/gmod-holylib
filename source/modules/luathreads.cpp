@@ -12,17 +12,17 @@
 class CLuaThreadsModule : public IModule
 {
 public:
-	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
-	virtual const char* Name() { return "luathreads"; };
-	virtual int Compatibility() { return LINUX32; };
-	virtual bool SupportsMultipleLuaStates() { return true; };
+	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) override;
+	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
+	const char* Name() override { return "luathreads"; };
+	int Compatibility() override { return LINUX32; };
+	bool SupportsMultipleLuaStates() override { return true; };
 };
 
 CLuaThreadsModule g_pLuaThreadsModule;
 IModule* pLuaThreadsModule = &g_pLuaThreadsModule;
 
-enum InterfaceStatus
+enum class InterfaceStatus
 {
 	INTERFACE_STOPPED = 0, // Set by the thread if it succesfully stopped
 	INTERFACE_RUNNING = 1,
@@ -33,7 +33,7 @@ struct LuaInterface;
 class InterfaceTask
 {
 public:
-	virtual ~InterfaceTask() = default;
+	~InterfaceTask() = default;
 	virtual void DoTask(LuaInterface* pData) = 0;
 };
 
@@ -42,19 +42,19 @@ class LuaInterface
 public:
 	~LuaInterface()
 	{
-		if (m_iStatus != INTERFACE_STOPPED)
+		if (m_iStatus != InterfaceStatus::INTERFACE_STOPPED)
 		{
-			m_iStatus = INTERFACE_STOPPING;
-			while (m_iStatus != INTERFACE_STOPPED)
+			m_iStatus = InterfaceStatus::INTERFACE_STOPPING;
+			while (m_iStatus != InterfaceStatus::INTERFACE_STOPPED)
 			{
 				ThreadSleep(0);
 			}
 		}
 
-		if (m_pThreadID != NULL)
+		if (m_pThreadID != nullptr)
 		{
 			ReleaseThreadHandle(m_pThreadID);
-			m_pThreadID = NULL;
+			m_pThreadID = nullptr;
 		}
 
 		if (m_pTasks.size() > 0)
@@ -104,8 +104,8 @@ private:
 	static SIMPLETHREAD_RETURNVALUE LuaInterfaceThread(void* data)
 	{
 		LuaInterface* pData = (LuaInterface*)data;
-		pData->m_iStatus = INTERFACE_RUNNING;
-		while (pData->m_iStatus == INTERFACE_RUNNING)
+		pData->m_iStatus = InterfaceStatus::INTERFACE_RUNNING;
+		while (pData->m_iStatus == InterfaceStatus::INTERFACE_RUNNING)
 		{
 			// Execute all tasks first
 			pData->m_pMutex.Lock();
@@ -126,13 +126,13 @@ private:
 			// eep
 			ThreadSleep(pData->m_iSleepTime);
 		}
-		pData->m_iStatus = INTERFACE_STOPPED;
+		pData->m_iStatus = InterfaceStatus::INTERFACE_STOPPED;
 	
 		return 0;
 	}
 
 	CLuaInterface* m_pInterface;
-	ThreadHandle_t m_pThreadID = NULL;
+	ThreadHandle_t m_pThreadID = nullptr;
 	InterfaceStatus m_iStatus = InterfaceStatus::INTERFACE_STOPPED;
 	unsigned int m_iSleepTime = 1; // Time in ms to sleep
 	std::vector<InterfaceTask*> m_pTasks;
@@ -144,7 +144,7 @@ class RunStringTask : public InterfaceTask
 {
 public:
 	~RunStringTask() = default;
-	virtual void DoTask(LuaInterface* pData)
+	void DoTask(LuaInterface* pData) override
 	{
 		pData->GetInterface()->RunString("RunString", "", strCode.c_str(), true, true);
 	}
@@ -155,7 +155,7 @@ public:
 
 void LuaInterface::EnsureThread()
 {
-	if (m_pThreadID != NULL)
+	if (m_pThreadID != nullptr)
 		return;
 
 	m_pThreadID = CreateSimpleThread((ThreadFunc_t)LuaInterfaceThread, this);
@@ -186,7 +186,7 @@ Default__GetTable(LuaInterface);
 // ToDo: Make a Default__IsValid macro
 LUA_FUNCTION_STATIC(LuaInterface_IsValid)
 {
-	LUA->PushBool(Get_LuaInterface(LUA, 1, false) != NULL);
+	LUA->PushBool(Get_LuaInterface(LUA, 1, false) != nullptr);
 	return 1;
 }
 

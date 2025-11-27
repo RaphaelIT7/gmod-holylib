@@ -13,7 +13,7 @@ CBaseEntity* CGlobalEntityList::NextEnt(CBaseEntity* pCurrentEnt)
 	{
 		const CEntInfo* pInfo = FirstEntInfo();
 		if (!pInfo)
-			return NULL;
+			return nullptr;
 
 		return (CBaseEntity*)pInfo->m_pEntity;
 	}
@@ -38,7 +38,7 @@ CBaseEntity* CGlobalEntityList::NextEnt(CBaseEntity* pCurrentEnt)
 #endif
 	}
 
-	return NULL;
+	return nullptr;
 
 }
 

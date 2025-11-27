@@ -8,7 +8,7 @@ namespace Bootil
 		{
 			public:
 
-				typedef std::list< IListener* > List;
+				using List = std::list< IListener* >;
 				static BOOTIL_EXPORT void Add( IListener* listener );
 				static BOOTIL_EXPORT void Remove( IListener* listener );
 
@@ -35,7 +35,7 @@ namespace Bootil
 
 		namespace Crash
 		{
-			typedef void (*MiniDumpFunction)( unsigned int nExceptionCode, void *pException );
+			using MiniDumpFunction = void (*)( unsigned int nExceptionCode, void *pException );
 
 			BOOTIL_EXPORT void SetMinidumpFunction( MiniDumpFunction func );
 			BOOTIL_EXPORT void SetupCallback();

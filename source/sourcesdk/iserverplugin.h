@@ -44,7 +44,7 @@ typedef enum
 	eQueryCvarValueStatus_CvarProtected=3	// The cvar was marked with FCVAR_SERVER_CAN_NOT_QUERY, so the server is not allowed to have its value.
 } EQueryCvarValueStatus;
 
-typedef int QueryCvarCookie_t;
+using QueryCvarCookie_t = int;
 #define InvalidQueryCvarCookie -1
 
 

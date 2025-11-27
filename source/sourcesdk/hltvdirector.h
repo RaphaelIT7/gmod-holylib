@@ -42,7 +42,7 @@ class CHLTVDirector : public CGameEventListener, public CBaseGameSystemPerFrame,
 public:
 	//DECLARE_CLASS_NOBASE( CHLTVDirector );
 
-	virtual char const *Name() { return "CHLTVDirector"; }
+	virtual char const *Name() override { return "CHLTVDirector"; }
 
 	CHLTVDirector();
 	virtual ~CHLTVDirector();

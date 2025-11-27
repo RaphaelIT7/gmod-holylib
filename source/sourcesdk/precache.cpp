@@ -53,7 +53,7 @@ char const *GetFlagString( int flags )
 //-----------------------------------------------------------------------------
 CPrecacheItem::CPrecacheItem( void )
 {
-	Init( TYPE_UNK, NULL );
+	Init( TYPE_UNK, nullptr );
 	ResetStats();
 }
 
@@ -106,7 +106,7 @@ void CPrecacheItem::Init( int type, void const *ptr )
 model_t *CPrecacheItem::GetModel( void )
 {
 	if ( !u.model )
-		return NULL;
+		return nullptr;
 
 	Assert( m_nType == TYPE_MODEL );
 
@@ -122,7 +122,7 @@ model_t *CPrecacheItem::GetModel( void )
 char const *CPrecacheItem::GetGeneric( void )
 {
 	if ( !u.generic )
-		return NULL;
+		return nullptr;
 
 	Assert( m_nType == TYPE_GENERIC );
 
@@ -138,7 +138,7 @@ char const *CPrecacheItem::GetGeneric( void )
 CSfxTable *CPrecacheItem::GetSound( void )
 {
 	if ( !u.sound )
-		return NULL;
+		return nullptr;
 
 	Assert( m_nType == TYPE_SOUND );
 
@@ -154,7 +154,7 @@ CSfxTable *CPrecacheItem::GetSound( void )
 char const *CPrecacheItem::GetName( void )
 {
 	if ( !u.name )
-		return NULL;
+		return nullptr;
 
 	Assert( m_nType == TYPE_SOUND );
 
@@ -170,7 +170,7 @@ char const *CPrecacheItem::GetName( void )
 char const *CPrecacheItem::GetDecal( void )
 {
 	if ( !u.name )
-		return NULL;
+		return nullptr;
 
 	Assert( m_nType == TYPE_DECAL );
 

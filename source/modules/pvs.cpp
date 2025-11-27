@@ -14,19 +14,19 @@
 class CPVSModule : public IModule
 {
 public:
-	virtual void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) OVERRIDE;
-	virtual void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) OVERRIDE;
-	virtual void InitDetour(bool bPreServer) OVERRIDE;
-	virtual const char* Name() { return "pvs"; };
-	virtual int Compatibility() { return LINUX32; };
-	virtual bool SupportsMultipleLuaStates() { return true; };
+	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) override;
+	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
+	void InitDetour(bool bPreServer) override;
+	const char* Name() override { return "pvs"; };
+	int Compatibility() override { return LINUX32; };
+	bool SupportsMultipleLuaStates() override { return true; };
 };
 
 static CPVSModule g_pPVSModule;
 IModule* pPVSModule = &g_pPVSModule;
 
 static int currentPVSSize = -1;
-static unsigned char* currentPVS = NULL;
+static unsigned char* currentPVS = nullptr;
 static int mapPVSSize = -1;
 #ifndef HOLYLIB_MANUALNETWORKING
 static Detouring::Hook detour_CGMOD_Player_SetupVisibility;
@@ -37,7 +37,7 @@ static void hook_CGMOD_Player_SetupVisibility(void* ent, unsigned char* pvs, int
 
 	detour_CGMOD_Player_SetupVisibility.GetTrampoline<Symbols::CGMOD_Player_SetupVisibility>()(ent, pvs, pvssize);
 
-	currentPVS = NULL;
+	currentPVS = nullptr;
 	currentPVSSize = -1;
 }
 #endif
@@ -48,8 +48,8 @@ static bool bWasOverrideStateFlagsUsed = false;
 static int g_pOverrideStateFlag[MAX_EDICTS];
 static int pOriginalFlags[MAX_EDICTS];
 
-static CCheckTransmitInfo* g_pCurrentTransmitInfo = NULL;
-static const unsigned short *g_pCurrentEdictIndices = NULL;
+static CCheckTransmitInfo* g_pCurrentTransmitInfo = nullptr;
+static const unsigned short *g_pCurrentEdictIndices = nullptr;
 static int g_nCurrentEdicts = -1;
 static bool g_bBlockAdditonToTransmit = false;
 static bool g_bEnableLuaPreTransmitHook = false;
@@ -89,8 +89,8 @@ static void hook_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheck
 					bWasAddedEntityUsed = false;
 				}
 
-				g_pCurrentTransmitInfo = NULL;
-				g_pCurrentEdictIndices = NULL;
+				g_pCurrentTransmitInfo = nullptr;
+				g_pCurrentEdictIndices = nullptr;
 				g_nCurrentEdicts = -1;
 				return;
 			}
@@ -159,8 +159,8 @@ static void hook_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheck
 		bWasAddedEntityUsed = false;
 	}
 
-	g_pCurrentTransmitInfo = NULL;
-	g_pCurrentEdictIndices = NULL;
+	g_pCurrentTransmitInfo = nullptr;
+	g_pCurrentEdictIndices = nullptr;
 	g_nCurrentEdicts = -1;
 }
 #else
@@ -172,7 +172,7 @@ void PreSetupVisibility(unsigned char* pvs, int pvssize)
 
 void PostSetupVisibility()
 {
-	currentPVS = NULL;
+	currentPVS = nullptr;
 	currentPVSSize = -1;
 }
 
@@ -197,8 +197,8 @@ void PreCheckTransmit(void* gameents, CCheckTransmitInfo *pInfo, const unsigned 
 				g_pAddEntityToPVS.clear();
 				g_pOverrideStateFlag.clear();
 
-				g_pCurrentTransmitInfo = NULL;
-				g_pCurrentEdictIndices = NULL;
+				g_pCurrentTransmitInfo = nullptr;
+				g_pCurrentEdictIndices = nullptr;
 				g_nCurrentEdicts = -1;
 				return;
 			}
@@ -217,8 +217,8 @@ void PreCheckTransmit(void* gameents, CCheckTransmitInfo *pInfo, const unsigned 
 		ent->m_fStateFlags = flag;
 	}
 
-	g_pCurrentTransmitInfo = NULL;
-	g_pCurrentEdictIndices = NULL;
+	g_pCurrentTransmitInfo = nullptr;
+	g_pCurrentEdictIndices = nullptr;
 	g_nCurrentEdicts = -1;
 }
 
@@ -244,8 +244,8 @@ void PostCheckTransmit(void* gameents, CCheckTransmitInfo *pInfo, const unsigned
 	g_pAddEntityToPVS.clear();
 	g_pOverrideStateFlag.clear();
 
-	g_pCurrentTransmitInfo = NULL;
-	g_pCurrentEdictIndices = NULL;
+	g_pCurrentTransmitInfo = nullptr;
+	g_pCurrentEdictIndices = nullptr;
 	g_nCurrentEdicts - 1;
 }
 #endif
@@ -675,7 +675,7 @@ LUA_FUNCTION_STATIC(pvs_AddEntityToTransmit)
 
 LUA_FUNCTION_STATIC(pvs_SetPreventTransmitBulk)
 {
-	CBasePlayer* ply = NULL;
+	CBasePlayer* ply = nullptr;
 	std::vector<CBasePlayer*> filterplys;
 	if (LUA->IsType(2, GarrysMod::Lua::Type::RecipientFilter))
 	{
@@ -776,7 +776,7 @@ LUA_FUNCTION_STATIC(pvs_FindInPVS) // Copy from pas.FindInPAS
 #endif
 
 	CBaseEntity* pEnt = Util::FirstEnt();
-	while (pEnt != NULL)
+	while (pEnt != nullptr)
 	{
 		if (Util::engineserver->CheckOriginInPVS(pEnt->GetAbsOrigin(), pVisCluster->cluster, sizeof(pVisCluster->cluster)))
 		{

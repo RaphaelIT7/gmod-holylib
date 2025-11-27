@@ -7,7 +7,7 @@
 CGameEventDescriptor *CGameEventManager::GetEventDescriptor(const char * name)
 {
 	if ( !name || !name[0] )
-		return NULL;
+		return nullptr;
 
 	for (int i=0; i < m_GameEvents.Count(); i++ )
 	{
@@ -17,13 +17,13 @@ CGameEventDescriptor *CGameEventManager::GetEventDescriptor(const char * name)
 			return descriptor;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
-CGameEventDescriptor *CGameEventManager::GetEventDescriptor(int eventid) // returns event name or NULL
+CGameEventDescriptor *CGameEventManager::GetEventDescriptor(int eventid) // returns event name or nullptr
 {
 	if ( eventid < 0 )
-		return NULL;
+		return nullptr;
 
 	for ( int i = 0; i < m_GameEvents.Count(); i++ )
 	{
@@ -33,7 +33,7 @@ CGameEventDescriptor *CGameEventManager::GetEventDescriptor(int eventid) // retu
 			return descriptor;
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 CGameEventCallback* CGameEventManager::FindEventListener( void* pCallback )
@@ -48,7 +48,7 @@ CGameEventCallback* CGameEventManager::FindEventListener( void* pCallback )
 		}
 	}
 
-	return NULL;
+	return nullptr;
 }
 
 bool CGameEventManager::AddListener( void *listener, CGameEventDescriptor *descriptor,  int nListenerType )
@@ -59,7 +59,7 @@ bool CGameEventManager::AddListener( void *listener, CGameEventDescriptor *descr
 	// check if we already know this listener
 	CGameEventCallback *pCallback = FindEventListener( listener );
 
-	if ( pCallback == NULL )
+	if ( pCallback == nullptr )
 	{
 		// add new callback 
 		pCallback = new CGameEventCallback;
