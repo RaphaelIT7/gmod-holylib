@@ -1045,13 +1045,13 @@ static void CreateDebugDump(const CCommand &args)
 		pInformation.EnsureChildVar<int>("tick", Util::server->GetTick());
 		pInformation.EnsureChildVar<int>("tickinterval", Util::server->GetTickInterval());
 
-		if (Util::get)
+		/*if (Util::get)
 		{
 			Bootil::Data::Tree& pGmodInformation = pData.GetChild("gmod");
 			pGmodInformation.EnsureChildVar<Bootil::BString>("version", Util::get->VersionStr());
 			pGmodInformation.EnsureChildVar<Bootil::BString>("versionTime", Util::get->VersionTimeStr());
 			pGmodInformation.EnsureChildVar<Bootil::BString>("branch", Util::get->SteamBranch());
-		}
+		}*/
 
 		// Dump all holylib convars.
 		{
