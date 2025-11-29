@@ -361,6 +361,7 @@ public:
 	int			GetNumDataTableProxies() const;
 	void		SetNumDataTableProxies( int count );
 
+	void		FillGModDataTableOffset();
 
 public:
 
@@ -410,6 +411,9 @@ public:
 	
 	// Map prop offsets to indices for properties that can use it.
 	CUtlMap<unsigned short, unsigned short> m_PropOffsetToIndexMap;
+
+	// Gmod specific, we calculate it once to avoid doing it in expensive code!
+	int						m_nGMODDataTableOffset = -1;
 };
 
 
@@ -452,8 +456,23 @@ inline int CSendTablePrecalc::GetNumDataTableProxies() const
 inline void CSendTablePrecalc::SetNumDataTableProxies( int count )
 {
 	m_nDataTableProxies = count;
-}					   
+}
 
+inline void CSendTablePrecalc::FillGModDataTableOffset()
+{
+	if (GetNumProps() > 0)
+	{
+		for (int i=0; i<GetNumProps(); ++i)
+		{
+			const SendProp* pProp = GetProp(i);
+			if (pProp->GetType() != DPT_GMODTable) 
+				continue;
+			
+			m_nGMODDataTableOffset = pProp->GetOffset();
+			break;
+		}
+	}
+}		
 
 // ------------------------------------------------------------------------ //
 // Helpers.
