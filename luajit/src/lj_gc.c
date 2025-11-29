@@ -28,6 +28,7 @@
 #include "lj_dispatch.h"
 #include "lj_vm.h"
 #include "lj_vmevent.h"
+#include <stdio.h>
 
 #define GCSTEPSIZE	1024u
 #define GCSWEEPMAX	40
@@ -84,6 +85,7 @@ static void gc_mark(global_State *g, GCobj *o)
     lj_assertG(gct == ~LJ_TFUNC || gct == ~LJ_TTAB ||
 	       gct == ~LJ_TTHREAD || gct == ~LJ_TPROTO || gct == ~LJ_TTRACE,
 	       "bad GC type %d", gct);
+    printf("Bad GC type %d - %d\n", gct, ~LJ_TTAB);
     setgcrefr(o->gch.gclist, g->gc.gray);
     setgcref(g->gc.gray, o);
   }
@@ -433,6 +435,7 @@ static void gc_sweepstr(global_State *g, GCRef *chain)
   int ow = otherwhite(g);
   uintptr_t u = gcrefu(*chain);
   GCRef q;
+  setrawgcrefnull(q);
   GCRef *p = &q;
   GCobj *o;
   setgcrefp(q, (u & ~(uintptr_t)1));
@@ -869,6 +872,10 @@ void *lj_mem_realloc(lua_State *L, void *p, GCSize osz, GCSize nsz)
   lj_assertG(checkptrGC(p),
 	     "allocated memory address %p outside required range", p);
   g->gc.total = (g->gc.total - osz) + nsz;
+#if LUA_ZERO_OUT_MEMORY
+  if (osz == 0)
+    memset(p, 0, nsz);
+#endif
   return p;
 }
 
@@ -882,8 +889,10 @@ void * LJ_FASTCALL lj_mem_newgco(lua_State *L, GCSize size)
   lj_assertG(checkptrGC(o),
 	     "allocated memory address %p outside required range", o);
   g->gc.total += size;
-  setgcrefr(o->gch.nextgc, g->gc.root);
-  setgcref(g->gc.root, o);
+#if LUA_ZERO_OUT_MEMORY
+  memset(o, 0, size);
+#endif
+  lj_gc_addtoroot(g, o);
   newwhite(g, o);
   return o;
 }
@@ -901,3 +910,61 @@ void *lj_mem_grow(lua_State *L, void *p, MSize *szp, MSize lim, MSize esz)
   return p;
 }
 
+/* GC Reference states (Old version) */
+
+/*LJ_FUNC void LJ_FASTCALL lj_mark_referenced(global_State *g, GCobj *obj)
+{
+  
+}*/
+
+/*
+Left out for now as I wanna make a try without this to maintain only two lists. And with the reference counter this should also be avoidable at the cost of 4 bytes of memory.
+LJ_FUNC void LJ_FASTCALL lj_mark_semireferenced(global_State *g, GCobj *obj)
+{
+
+}*/
+
+/*LJ_FUNC void LJ_FASTCALL lj_mark_nonreferenced(global_State *g, GCobj *obj)
+{
+  // Unlinking from previous list / referenced list.
+  GCobj* prev = gcref(obj->gch.lastgc);
+  if (prev)
+    prev->gch.nextgc = obj->gch.nextgc;
+
+  GCobj* next = gcref(obj->gch.nextgc);
+  if (next)
+    setgcref(next->gch.lastgc, prev); // Should be fine even if prev is null
+
+  obj->gch.refcount = 0; // Time to vanish, though normally we should check if its not 0, too lazy rn tho
+  setgcrefr(obj->gch.nextgc, g->gc.nonreferencedroot);
+  setgcrefr(obj->gch.nextgc, g->gc.nonreferencedroot);
+}*/
+
+// Should be called on a new fresh object
+LJ_FUNC void LJ_FASTCALL lj_gc_addtoroot(global_State *g, GCobj *obj)
+{
+  obj->gch.refcount = 0;
+  setrawgcrefr(obj->gch.nextgc, g->gc.root);
+  setrawgcref(g->gc.root, obj);
+}
+
+LJ_FUNC void LJ_FASTCALL lj_gc_incr_ref(GCobj *obj)
+{
+  printf("incr ref %i\n", ++obj->gch.refcount);
+}
+
+LJ_FUNC void LJ_FASTCALL lj_gc_decr_ref(GCobj *obj)
+{
+  if (!obj)
+    return;
+
+  printf("ref %i\n", obj->gch.refcount);
+  if (obj->gch.refcount > 100 || obj->gch.refcount <= 0)
+    __debugbreak();
+
+  if (--obj->gch.refcount <= 0)
+  {
+    // ToDo: Free it
+    printf("freeing reference\n");
+  }
+}
