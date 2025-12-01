@@ -1795,6 +1795,7 @@ static inline void DoTransmitPVSCheck(edict_t* pEdict, CBaseEntity* pEnt, const 
 	}
 }
 
+static ConVar networking_verifyshit("holylib_networking_verifyshit", "1", 0, "Experimental");
 static ConVar networking_fastpath("holylib_networking_fastpath", "0", 0, "Experimental - If two players are in the same area, then it will reuse the transmit state of the first calculated player saving a lot of time");
 static ConVar networking_fastpath_usecluster("holylib_networking_fastpath_usecluster", "1", 0, "Experimental - When using the fastpatth, it will compate against clients in the same cluster instead of area");
 bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts)
@@ -2085,15 +2086,112 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 #endif
 
 #if 1 // I don't like this, useful for testing but not for actual prod
-	for (int i=0; i<MAX_EDICTS; ++i)
+	if (networking_verifyshit.GetBool())
 	{
-		if (pInfo->m_pTransmitEdict->IsBitSet(i) && !g_pEntityCache[i])
-		{ // g_pEntityCache is basically just a quicker form of (CBaseEntity*)(&world_edict[i])->GetUnknown();
-			Warning(PROJECT_NAME " - networking: Tried to network an Entity that does not exist! (%i)\n", i);
-			pInfo->m_pTransmitEdict->Clear(i);
-			if (bIsHLTV)
-				pInfo->m_pTransmitAlways->Clear(i);
+		for (int i=0; i<MAX_EDICTS; ++i)
+		{
+			if (pInfo->m_pTransmitEdict->IsBitSet(i) && !g_pEntityCache[i])
+			{ // g_pEntityCache is basically just a quicker form of (CBaseEntity*)(&world_edict[i])->GetUnknown();
+				Warning(PROJECT_NAME " - networking: Tried to network an Entity that does not exist! (%i)\n", i);
+				pInfo->m_pTransmitEdict->Clear(i);
+				if (bIsHLTV)
+					pInfo->m_pTransmitAlways->Clear(i);
+			}
 		}
+
+		CBitVec<MAX_EDICTS> pCurrentTransmit;
+		pInfo->m_pTransmitEdict->CopyTo(&pCurrentTransmit);
+		pInfo->m_pTransmitEdict->ClearAll();
+
+		// Now we do a second transmit to compare against.
+
+		for ( int i=0; i < nEdicts; ++i )
+		{
+			int iEdict = pEdictIndices[i];
+
+			edict_t *pEdict = &world_edict[iEdict]; // world_edict is already cached.
+			// Assert( pEdict == engine->PEntityOfEntIndex( iEdict ) );
+			int nFlags = pEdict->m_fStateFlags & (FL_EDICT_DONTSEND|FL_EDICT_ALWAYS|FL_EDICT_PVSCHECK|FL_EDICT_FULLCHECK);
+
+			if ( iEdict == clientEntIndex )
+			{
+				pInfo->m_pTransmitEdict->CopyTo(&pClientCache);
+				bWasTransmitToPlayer = true;
+			} else if ( bWasTransmitToPlayer ) {
+				// We Xor it so that the pClientCache contains all bits / entities
+				// that were sent specifically to our client in it's transmit check.
+				pInfo->m_pTransmitEdict->Xor(pClientCache, &pClientCache);
+				bWasTransmitToPlayer = false;
+			}
+
+			// entity needs no transmit
+			if ( nFlags & FL_EDICT_DONTSEND )
+				continue;
+		
+			// entity is already marked for sending
+			if ( pInfo->m_pTransmitEdict->Get( iEdict ) )
+				continue;
+
+			if ( g_pDontTransmitCache.Get(iEdict) ) // Implements gmod's SetPreventTransmit but far faster.
+				continue;
+		
+			if ( nFlags & FL_EDICT_ALWAYS )
+			{
+				// FIXME: Hey! Shouldn't this be using SetTransmit so as 
+				// to also force network down dependent entities?
+				while ( true )
+				{
+					// mark entity for sending
+					pInfo->m_pTransmitEdict->Set( iEdict );
+					// g_pGlobalTransmitTickCache.g_pAlwaysTransmitCacheBitVec.Set( iEdict );
+	
+					if ( bIsHLTV )
+						pInfo->m_pTransmitAlways->Set( iEdict );
+
+					CCServerNetworkProperty *pEnt = static_cast<CCServerNetworkProperty*>( pEdict->GetNetworkable() );
+					if ( !pEnt )
+						break;
+
+					CCServerNetworkProperty *pParent = pEnt->GetNetworkParent();
+					if ( !pParent )
+						break;
+
+					pEdict = pParent->edict();
+					iEdict = pEdict->m_EdictIndex;
+				}
+				continue;
+			}
+
+			// FIXME: Would like to remove all dependencies
+			CBaseEntity *pEnt = g_pEntityCache[iEdict];
+			if ( nFlags == FL_EDICT_FULLCHECK )
+			{
+				// do a full ShouldTransmit() check, may return FL_EDICT_CHECKPVS
+				nFlags = pEnt->ShouldTransmit( pInfo );
+
+				if ( nFlags & FL_EDICT_ALWAYS )
+				{
+					pEnt->SetTransmit( pInfo, true );
+					// g_pAlwaysTransmitCacheBitVec.Set( iEdict ); We do NOT do this since view models and such would also be included.
+					continue;
+				}	
+			}
+
+			// don't send this entity
+			if ( !( nFlags & FL_EDICT_PVSCHECK ) )
+				continue;
+
+			DoTransmitPVSCheck(pEdict, pEnt, bIsHLTV, pInfo, bForceTransmit, skyBoxArea);
+		}
+
+		for (int i=0; i<MAX_EDICTS; ++i)
+		{
+			if (pCurrentTransmit.IsBitSet(i) != pInfo->m_pTransmitEdict->IsBitSet(i))
+				Msg(PROJECT_NAME " - networking: Entity failed our transmit code! Index %i (State: %i)\n", i, (&world_edict[i])->m_fStateFlags & (FL_EDICT_DONTSEND|FL_EDICT_ALWAYS|FL_EDICT_PVSCHECK|FL_EDICT_FULLCHECK));
+		}
+
+		// Use OUR transmit!
+		pCurrentTransmit.CopyTo(pInfo->m_pTransmitEdict);
 	}
 #endif
 
