@@ -261,7 +261,6 @@ void Lua::CloseLuaInterface(GarrysMod::Lua::ILuaInterface* LuaInterface)
 // =================================
 // ILuaBase / CBaseLuaInterface implementation
 // =================================
-
 CLuaInterface::~CLuaInterface()
 {
 	if (state != nullptr)
@@ -1059,10 +1058,10 @@ void CLuaInterface::CallInternal(int args, int rets)
 	if (!ThreadInMainThread())
 		Error("Calling Lua function in a thread other than main!");
 
-	if (rets > 4)
+	if (rets > LUA_MAX_RETURN_OBJECTS)
 		Error("[CLuaInterface::Call] Expecting more returns than possible\n");
 
-	for (int i=0; i<3; ++i)
+	for (int i=0; i<LUA_MAX_RETURN_OBJECTS; ++i)
 		m_ProtectedFunctionReturns[i] = nullptr;
 
 	if (IsType(-(args + 1), GarrysMod::Lua::Type::Function))
@@ -1205,7 +1204,7 @@ GarrysMod::Lua::ILuaObject* CLuaInterface::GetReturn(int iStackPos)
 	LuaDebugPrint(2, "CLuaInterface::GetReturn\n");
 	
 	int idx = abs(iStackPos);
-	if (idx >= 0 && idx < 4)
+	if (idx >= 0 && idx < LUA_MAX_RETURN_OBJECTS)
 	{
 		if ( m_ProtectedFunctionReturns[idx] == nullptr )
 		{

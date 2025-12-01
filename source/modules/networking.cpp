@@ -10,12 +10,6 @@
 #include "dt.h"
 #include "edict.h"
 #include "eiface.h"
-#define protected public // Need access to CBasePlayer::m_hViewModel
-#define private public // Need access to CBaseViewModel::m_hScreens
-#include "player.h"
-#include "vguiscreen.h"
-#undef protected
-#undef private
 #include "baseclient.h"
 #include <bitset>
 #include <unordered_set>
@@ -23,6 +17,9 @@
 #include <cmodel_private.h>
 #include "server.h"
 #include "hltvserver.h"
+#define protected public
+#include "player.h"
+#undef protected
 #include "SkyCamera.h"
 #include "sourcesdk/GameEventManager.h"
 
@@ -1172,7 +1169,7 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 
 			// We do -1 since nArea 0 is not actually an valid area
 			AreaCache& pArea = nAreaEntities[nArea-1];
-			if (pArea.nCount >= 512)
+			if (pArea.nCount >= nMaxEntitiesPerArea)
 			{
 				pPVSEntityList[++nPVSEdictCount] = pEntity;
 				return;
@@ -1223,7 +1220,7 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 	{
 		// We do -1 since nArea 0 is not actually an valid area and we shifted all by 1
 		AreaCache& pArea = nAreaEntities[areaNum-1];
-		if (pArea.nCount >= 512)
+		if (pArea.nCount >= nMaxEntitiesPerArea)
 		{
 			pPVSEntityList[++nPVSEdictCount] = pEntity;
 			return;
@@ -1261,11 +1258,12 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 
 		ToDo: Think about if we should move Areas with 1-2 entities into the nPVSEntityList simply because its probably quicker to do a PVS check than area? (verify)
 	*/
+	static constexpr int nMaxEntitiesPerArea = 512; // Max entities per area before we move them to PVS checks
 	struct AreaCache
 	{
 		// Not preincremented - use < in for loops
 		int nCount = 0;
-		CBaseEntity* pEntities[512];
+		CBaseEntity* pEntities[nMaxEntitiesPerArea];
 	};
 
 	AreaCache nAreaEntities[MAX_MAP_AREAS-1]; // -1 since Area 0 is not a valid one so we save some bytes

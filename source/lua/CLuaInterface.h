@@ -190,7 +190,7 @@ public: // We keep gmod's structure in case any modules depend on it.
 	int m_nLuaErrorReporter = -1; // Always 1 since it's always the first registry reference.
 	CUtlStack<Path> m_CurrentPaths;
 	std::list<GarrysMod::Lua::ILuaThreadedCall*> m_pThreadedCalls;
-	GarrysMod::Lua::ILuaObject* m_ProtectedFunctionReturns[4] = {nullptr};
+	GarrysMod::Lua::ILuaObject* m_ProtectedFunctionReturns[LUA_MAX_RETURN_OBJECTS] = {nullptr};
 	GarrysMod::Lua::ILuaObject* m_TempObjects[LUA_MAX_TEMP_OBJECTS] = {nullptr};
 	unsigned char m_iRealm = (unsigned char)2; // CLIENT = 0, SERVER = 1, MENU = 2
 	GarrysMod::Lua::ILuaGameCallback* m_pGameCallback = nullptr;

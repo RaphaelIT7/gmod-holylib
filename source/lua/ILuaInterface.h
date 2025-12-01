@@ -16,6 +16,7 @@ namespace Bootil
 }
 
 #define LUA_MAX_TEMP_OBJECTS 32
+#define LUA_MAX_RETURN_OBJECTS 4
 
 class CLuaInterface;
 struct lua_State;
