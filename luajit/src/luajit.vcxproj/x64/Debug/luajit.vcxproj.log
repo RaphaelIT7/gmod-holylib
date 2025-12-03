@@ -1,0 +1,165 @@
+﻿  minilua.c
+     Bibliothek "minilua.lib" und Objekt "minilua.exp" werden erstellt.
+  buildvm.c
+.\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  buildvm_asm.c
+  buildvm_fold.c
+.\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  buildvm_lib.c
+.\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  buildvm_peobj.c
+  Code wird generiert...
+     Bibliothek "buildvm.lib" und Objekt "buildvm.exp" werden erstellt.
+  lj_alloc.c
+  lj_api.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_asm.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_assert.c
+  lj_bc.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_bcread.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_bcwrite.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_buf.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_carith.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_ccall.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_ccallback.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+lj_ccallback.c(122): warning C5287: Operanden sind unterschiedliche Enumerationstypen „x86Op“ und „<unnamed-enum-RID_EAX>“. Verwenden Sie eine explizite Koersion, um diese Warnung zu unterdrücken.
+lj_ccallback.c(128): warning C5287: Operanden sind unterschiedliche Enumerationstypen „x86Op“ und „<unnamed-enum-RID_EAX>“. Verwenden Sie eine explizite Koersion, um diese Warnung zu unterdrücken.
+  lj_cconv.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_cdata.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_char.c
+  lj_clib.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_cparse.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_crecord.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_ctype.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_debug.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_dispatch.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  Code wird generiert...
+  Kompilieren...
+  lj_err.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_ffrecord.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_func.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_gc.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_gdbjit.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_ir.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_lex.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_lib.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_load.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_mcode.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_meta.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_obj.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_opt_dce.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_opt_fold.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_opt_loop.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_opt_mem.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_opt_narrow.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_opt_sink.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_opt_split.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_parse.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  Code wird generiert...
+  Kompilieren...
+  lj_prng.c
+  lj_profile.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_record.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_serialize.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_snap.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_state.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_str.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_strfmt.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_strfmt_num.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_strscan.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_tab.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_trace.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_udata.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_vmevent.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lj_vmmath.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lib_aux.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lib_base.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lib_bit.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lib_buffer.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lib_debug.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  Code wird generiert...
+  Kompilieren...
+  lib_ffi.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lib_init.c
+  lib_io.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lib_jit.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lib_math.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lib_os.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lib_package.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lib_string.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  lib_table.c
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): warning C4013: "setrawgcreft" undefiniert; Annahme: extern mit Rückgabetyp int
+  Code wird generiert...
+  Kompilieren...
+  gmod.cpp
+V:\GitHub\gmod-holylib\luajit\src\lj_obj.h(959): error C3861: "setrawgcreft": Bezeichner wurde nicht gefunden.
+gmod.cpp(20): warning C4099: "lua_Debug": Geben Sie den zuerst unter Verwendung von "struct" und jetzt unter Verwendung von "class" gesehenen Namen ein
+  V:\GitHub\gmod-holylib\luajit\src\lua.h(360): note: Siehe Deklaration von "lua_Debug"
+  Code wird generiert...
+  
+  *******************************************************
+  *** Build FAILED -- Please check the error messages ***
+  *******************************************************
+C:\Program Files\Microsoft Visual Studio\2022\Community\MSBuild\Microsoft\VC\v170\Microsoft.MakeFile.Targets(45,5): error MSB3073: Der Befehl "msvcbuild.bat" wurde mit dem Code -1 beendet.
