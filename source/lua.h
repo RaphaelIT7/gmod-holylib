@@ -27,7 +27,7 @@ namespace RawLua {
 		}
 
 		// Registers the ctype that represents HolyLib userdata.
-		void RegisterHolyLibUserData(int nTypeID)
+		void RegisterHolyLibUserData(uint16_t nTypeID)
 		{
 			nHolyLibUserDataTypeID = nTypeID;
 			pRegisteredTypes.Set(nTypeID); // Mark this too as else HolyLib's userdata would be seen as cdata and it'll shit everything
@@ -57,7 +57,7 @@ namespace RawLua {
 	private:
 		CBitVec<USHRT_MAX> pRegisteredTypes;
 		std::unordered_map<unsigned char, uint16_t> pMetaIDToCType = {};
-		uint32_t nHolyLibUserDataTypeID = 0; // cData TypeID of the HOLYLIB_UserData struct.
+		uint16_t nHolyLibUserDataTypeID = 0; // cData TypeID of the HOLYLIB_UserData struct.
 		TValue nHolyLibUserDataGC;
 		int nHolyLibUserDataGCFuncReference = -1;
 	};
