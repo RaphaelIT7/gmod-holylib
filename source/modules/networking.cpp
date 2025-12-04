@@ -2260,7 +2260,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 
 		for (int i=0; i<MAX_EDICTS; ++i)
 		{
-			if (pCurrentTransmit.IsBitSet(i) != pInfo->m_pTransmitEdict->IsBitSet(i))
+			if (pInfo->m_pTransmitEdict->IsBitSet(i) && !pCurrentTransmit.IsBitSet(i)) // ONLY trigger if an entity wasn't transmitted - if we transmit addititional entities its fine
 				Msg(PROJECT_NAME " - networking: Entity failed our transmit code! Index %i (State: %i - %s)\n", i, (&world_edict[i])->m_fStateFlags & (FL_EDICT_DONTSEND|FL_EDICT_ALWAYS|FL_EDICT_PVSCHECK|FL_EDICT_FULLCHECK), pEntityTransmitStates[i]);
 		}
 
