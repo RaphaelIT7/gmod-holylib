@@ -41,9 +41,15 @@ local function CompileModuleList()
 #include "module.h"
 
 ]]
-	for _, moduleName in ipairs(moduleList) do
+	--[[
+		IMPORTANT NOTE: The ModuleID is based off the design that the ID 0 is reserved by the core
+		So it starts at 1 for the first module which is why we can pass index directly.
+		Why will the ID be accurate? Because the IDs are handed out in RegisterModule order - and they'll be the same order
+	]]
+	for index, moduleName in ipairs(moduleList) do
 		moduleFile = moduleFile .. [[extern IModule* ]] .. moduleName[1] .. [[;
 #define MODULE_EXISTS_]] .. moduleName[2] .. [[ 1
+constexpr int HOLYLIB_MODULEID_]] .. moduleName[2] .. [[ = ]] .. index .. [[;
 
 ]]
 	end

@@ -225,6 +225,9 @@ public:
 	// Returns the IModuleWrapper from the given name.
 	virtual IModuleWrapper* FindModuleByName(const char* name) = 0;
 
+	// Returns the IModuleWrapper form the given module id
+	virtual IModuleWrapper* GetModuleByID(int nIndex) = 0;
+
 	// Marks us to be loaded by a ghostinj.
 	virtual void SetGhostInj() = 0;
 

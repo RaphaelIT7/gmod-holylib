@@ -1869,6 +1869,7 @@ static inline void DoTransmitPVSCheck(edict_t* pEdict, CBaseEntity* pEnt, const 
 	NETWORKING_SETSTATE(pEdict->m_EdictIndex, pFailedPVS)
 }
 
+static Detouring::Hook detour_CServerGameEnts_CheckTransmit;
 static ConVar networking_verifyshit("holylib_networking_verifyshit", "1", 0, "Experimental");
 static ConVar networking_fastpath("holylib_networking_fastpath", "0", 0, "Experimental - If two players are in the same area, then it will reuse the transmit state of the first calculated player saving a lot of time");
 static ConVar networking_fastpath_usecluster("holylib_networking_fastpath_usecluster", "1", 0, "Experimental - When using the fastpatth, it will compate against clients in the same cluster instead of area");
@@ -2464,12 +2465,32 @@ void CNetworkingModule::ClientDisconnect(edict_t* pPlayer)
 	g_pPlayerTransmitCache[pPlayer->m_EdictIndex-1].Reset();
 }
 
+#if MODULE_EXISTS_PVS
+void Networking_SwitchToPVSTransmit()
+{
+	detour_CServerGameEnts_CheckTransmit.Disable();
+	detour_CServerGameEnts_CheckTransmit.Destroy();
+}
+
+void Networking_SwitchToOURTransmit()
+{
+	SourceSDK::ModuleLoader server("server");
+	void* func = Detour::GetFunction(server.GetModule(), Symbols::CServerGameEnts_CheckTransmitSym);
+	if (!Detour::CheckFunction(func, "CServerGameEnts::CheckTransmit"))
+		return;
+
+	detour_CServerGameEnts_CheckTransmit.Create(func, New_CServerGameEnts_CheckTransmit);
+	detour_CServerGameEnts_CheckTransmit.Enable();
+}
+#endif
+
 #if SYSTEM_WINDOWS
 DETOUR_THISCALL_START()
 	DETOUR_THISCALL_ADDFUNC2( hook_CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer, GMOD_SetShouldPreventTransmitToPlayer, CBaseEntity*, CBasePlayer*, bool );
 	DETOUR_THISCALL_ADDRETFUNC1( hook_CBaseEntity_GMOD_ShouldPreventTransmitToPlayer, bool, GMOD_ShouldPreventTransmitToPlayer, CBaseEntity*, CBasePlayer* );
 	DETOUR_THISCALL_ADDFUNC1( hook_CGMOD_Player_CreateViewModel, CreateViewModel, CBasePlayer*, int );
 	DETOUR_THISCALL_ADDFUNC2( hook_CBaseCombatCharacter_SetTransmit, SetTransmit, CBaseCombatCharacter*, CCheckTransmitInfo*, bool );
+	DETOUR_THISCALL_ADDFUNC3( New_CServerGameEnts_CheckTransmit, CheckTransmit, IServerGameEnts*, CCheckTransmitInfo*, const unsigned short*, int );
 DETOUR_THISCALL_FINISH();
 #endif
 
@@ -2533,6 +2554,18 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 		server_loader.GetModule(), Symbols::CBaseCombatCharacter_SetTransmitSym,
 		(void*)DETOUR_THISCALL(hook_CBaseCombatCharacter_SetTransmit, SetTransmit), m_pID
 	);
+
+#if MODULE_EXISTS_PVS
+	IModuleWrapper* pPVS = g_pModuleManager.GetModuleByID(HOLYLIB_MODULEID_PVS);
+	if (pPVS && !pPVS->IsEnabled())
+#endif
+	{
+		Detour::Create(
+			&detour_CServerGameEnts_CheckTransmit, "CServerGameEnts::CheckTransmit",
+			server_loader.GetModule(), Symbols::CServerGameEnts_CheckTransmitSym,
+			(void*)DETOUR_THISCALL(New_CServerGameEnts_CheckTransmit, CheckTransmit), m_pID
+		);
+	}
 
 #if SYSTEM_LINUX
 	Detour::Create(

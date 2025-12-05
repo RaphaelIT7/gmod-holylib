@@ -17,6 +17,7 @@ public:
 	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) override;
 	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
 	void InitDetour(bool bPreServer) override;
+	void Shutdown() override;
 	const char* Name() override { return "pvs"; };
 	int Compatibility() override { return LINUX32; };
 	bool SupportsMultipleLuaStates() override { return true; };
@@ -184,7 +185,7 @@ void PreCheckTransmit(void* gameents, CCheckTransmitInfo *pInfo, const unsigned 
 	g_pCurrentEdictIndices = pEdictIndices;
 	g_nCurrentEdicts = nEdicts;
 
-	if(Lua::PushHook("HolyLib:PreCheckTransmit"))
+	if(g_bEnableLuaPreTransmitHook && Lua::PushHook("HolyLib:PreCheckTransmit"))
 	{
 		Util::Push_Entity(g_Lua, Util::servergameents->EdictToBaseEntity(pInfo->m_pClientEnt));
 		if (g_Lua->CallFunctionProtected(2, 1, true))
@@ -194,8 +195,18 @@ void PreCheckTransmit(void* gameents, CCheckTransmitInfo *pInfo, const unsigned 
 
 			if (bCancel)
 			{
-				g_pAddEntityToPVS.clear();
-				g_pOverrideStateFlag.clear();
+				if (bWasOverrideStateFlagsUsed)
+				{
+					memset(pOriginalFlags, 0, sizeof(pOriginalFlags));
+					memset(g_pOverrideStateFlag, 0, sizeof(g_pOverrideStateFlag));
+					bWasOverrideStateFlagsUsed = false;
+				}
+
+				if (bWasAddedEntityUsed)
+				{
+					g_pAddEntityToPVS.ClearAll();
+					bWasAddedEntityUsed = false;
+				}
 
 				g_pCurrentTransmitInfo = nullptr;
 				g_pCurrentEdictIndices = nullptr;
@@ -205,16 +216,27 @@ void PreCheckTransmit(void* gameents, CCheckTransmitInfo *pInfo, const unsigned 
 		}
 	}
 
-	for (edict_t* ent : g_pAddEntityToPVS)
+	edict_t* pWorld = Util::engineserver->PEntityOfEntIndex(0);
+	if (bWasAddedEntityUsed)
 	{
-		Util::servergameents->EdictToBaseEntity(ent)->SetTransmit(pInfo, true);
+		for (int i=0; i<g_pAddEntityToPVS.GetNumBits(); ++i)
+		{
+			if (g_pAddEntityToPVS.IsBitSet(i))
+				Util::servergameents->EdictToBaseEntity(&pWorld[i])->SetTransmit(pInfo, true);
+		}
 	}
-	
-	for (auto&[ent, flag] : g_pOverrideStateFlag)
+
+	if (bWasOverrideStateFlagsUsed)
 	{
-		pOriginalFlags[ent] = ent->m_fStateFlags;
-		Msg("Overriding ent(%i) flags for snapshot (%i -> %i)\n", ent->m_EdictIndex, ent->m_fStateFlags, flag);
-		ent->m_fStateFlags = flag;
+		for (int i=0; i<MAX_EDICTS; ++i)
+		{
+			edict_t* pEdict = &pWorld[i];
+			pOriginalFlags[i] = pEdict->m_fStateFlags;
+			if (g_pPVSModule.InDebug())
+				Msg("Overriding ent(%i) flags for snapshot (%i -> %i)\n", pEdict->m_EdictIndex, pEdict->m_fStateFlags, g_pOverrideStateFlag[i]);
+		
+			pEdict->m_fStateFlags = g_pOverrideStateFlag[i];
+		}
 	}
 
 	g_pCurrentTransmitInfo = nullptr;
@@ -230,23 +252,36 @@ void PostCheckTransmit(void* gameents, CCheckTransmitInfo *pInfo, const unsigned
 	g_pCurrentEdictIndices = pEdictIndices;
 	g_nCurrentEdicts = nEdicts;
 
-	if(Lua::PushHook("HolyLib:PostCheckTransmit"))
+	if(g_bEnableLuaPostTransmitHook && Lua::PushHook("HolyLib:PostCheckTransmit"))
 	{
+		g_bBlockAdditonToTransmit = true;
 		Util::Push_Entity(g_Lua, Util::servergameents->EdictToBaseEntity(pInfo->m_pClientEnt));
 		g_Lua->CallFunctionProtected(2, 0, true);
+		g_bBlockAdditonToTransmit = false;
 	}
 
-	for (auto&[ent, flag] : pOriginalFlags)
+	if (bWasOverrideStateFlagsUsed)
 	{
-		ent->m_fStateFlags = flag;
+		edict_t* pWorld = Util::engineserver->PEntityOfEntIndex(0);
+		for (int i=0; i<MAX_EDICTS; ++i)
+		{
+			(&pWorld[i])->m_fStateFlags = pOriginalFlags[i];
+		}
+
+		memset(pOriginalFlags, 0, sizeof(pOriginalFlags));
+		memset(g_pOverrideStateFlag, 0, sizeof(g_pOverrideStateFlag));
+		bWasOverrideStateFlagsUsed = false;
 	}
-	pOriginalFlags.clear();
-	g_pAddEntityToPVS.clear();
-	g_pOverrideStateFlag.clear();
+
+	if (bWasAddedEntityUsed)
+	{
+		g_pAddEntityToPVS.ClearAll();
+		bWasAddedEntityUsed = false;
+	}
 
 	g_pCurrentTransmitInfo = nullptr;
 	g_pCurrentEdictIndices = nullptr;
-	g_nCurrentEdicts - 1;
+	g_nCurrentEdicts = -1;
 }
 #endif
 
@@ -961,6 +996,11 @@ DETOUR_THISCALL_START()
 DETOUR_THISCALL_FINISH();
 #endif
 
+#if MODULE_EXISTS_NETWORKING
+extern void Networking_SwitchToPVSTransmit();
+extern void Networking_SwitchToOURTransmit();
+#endif
+
 void CPVSModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
@@ -975,10 +1015,26 @@ void CPVSModule::InitDetour(bool bPreServer)
 		(void*)DETOUR_THISCALL(hook_CGMOD_Player_SetupVisibility, SetupVisibility), m_pID
 	);
 
+#if MODULE_EXISTS_NETWORKING
+	IModuleWrapper* pNetworking = g_pModuleManager.GetModuleByID(HOLYLIB_MODULEID_PVS);
+	if (pNetworking && !pNetworking->IsEnabled())
+		Networking_SwitchToPVSTransmit();
+#endif
+
 	Detour::Create(
 		&detour_CServerGameEnts_CheckTransmit, "CServerGameEnts::CheckTransmit",
 		server_loader.GetModule(), Symbols::CServerGameEnts_CheckTransmitSym,
 		(void*)DETOUR_THISCALL(hook_CServerGameEnts_CheckTransmit, CheckTransmit), m_pID
 	);
+#endif
+}
+
+#if MODULE_EXISTS_NETWORKING
+extern void Networking_SwitchToOURTransmit();
+#endif
+void CPVSModule::Shutdown()
+{
+#if MODULE_EXISTS_NETWORKING
+	Networking_SwitchToOURTransmit();
 #endif
 }

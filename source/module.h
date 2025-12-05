@@ -52,6 +52,7 @@ public:
 	virtual IModuleWrapper* RegisterModule(IModule* mdl);
 	virtual IModuleWrapper* FindModuleByConVar(ConVar* convar);
 	virtual IModuleWrapper* FindModuleByName(const char* name);
+	virtual IModuleWrapper* GetModuleByID(int nIndex);
 
 	virtual void SetGhostInj() { m_bGhostInj = true; };
 	virtual bool IsUsingGhostInj() { return m_bGhostInj; };

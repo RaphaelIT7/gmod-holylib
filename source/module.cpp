@@ -349,6 +349,14 @@ IModuleWrapper* CModuleManager::FindModuleByName(const char* name)
 	return nullptr;
 }
 
+IModuleWrapper* CModuleManager::GetModuleByID(int nIndex)
+{
+	if (0 > nIndex || nIndex > m_pModules.size())
+		return nullptr;
+
+	return m_pModules[nIndex];
+}
+
 void CModuleManager::Setup(CreateInterfaceFn appfn, CreateInterfaceFn gamefn)
 {
 	m_pAppFactory = appfn;
