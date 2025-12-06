@@ -50,18 +50,6 @@ public:
 CNetworkingModule g_pNetworkingModule;
 IModule* pNetworkingModule = &g_pNetworkingModule;
 
-abstract_class IChangeFrameList
-{
-public:
-	virtual void	Release() = 0;
-	virtual int		GetNumProps() = 0;
-	virtual void	SetChangeTick( const int *pPropIndices, int nPropIndices, const int iTick ) = 0;
-	virtual int		GetPropsChangedAfterTick( int iTick, int *iOutProps, int nMaxOutProps ) = 0;
-	virtual IChangeFrameList* Copy() = 0;
-protected:
-	virtual			~IChangeFrameList() {}
-};	
-
 /*
 =============================================================================
 Simplified BSD License, see http://www.opensource.org/licenses/
@@ -171,7 +159,7 @@ private:
 // sigsegv part
 
 static Detouring::Hook detour_AllocChangeFrameList;
-static IChangeFrameList* hook_AllocChangeFrameList(int nProperties, int iCurTick)
+IChangeFrameList* hook_AllocChangeFrameList(int nProperties, int iCurTick)
 {
 	VPROF_BUDGET("AllocChangeFrameList", VPROF_BUDGETGROUP_OTHER_NETWORKING);
 	CChangeFrameList* pRet = new CChangeFrameList;
@@ -2327,6 +2315,10 @@ void SV_FillHLTVData( CFrameSnapshot *pSnapshot, edict_t *edict, int iValidEdict
 	}
 }
 
+#if MODULE_EXISTS_NETWORKINGREPLACEMENT
+extern bool g_bRedirectPackEntity;
+extern void NWR_SV_PackEntity(int edictIdx, edict_t* edict, ServerClass* pServerClass, CFrameSnapshot *pSnapshot);
+#endif
 static Symbols::PackWork_t_Process func_PackWork_t_Process;
 static Symbols::SV_PackEntity func_SV_PackEntity;
 struct PackWork_t
@@ -2337,6 +2329,14 @@ struct PackWork_t
 
 	static void Process( PackWork_t &item )
 	{
+#if MODULE_EXISTS_NETWORKINGREPLACEMENT
+		if (g_bRedirectPackEntity)
+		{
+			NWR_SV_PackEntity( item.nIdx, item.pEdict, item.pSnapshot->m_pEntities[ item.nIdx ].m_pClass, item.pSnapshot );
+			return;
+		}
+#endif
+
 #if SYSTEM_LINUX
 		func_PackWork_t_Process(item);
 #else
@@ -2430,11 +2430,7 @@ void PackEntities_Normal(int clientCount, CGameClient **clients, CFrameSnapshot 
 		for ( intp i = 0; i < c; ++i )
 		{
 			PackWork_t &w = workItems[ i ];
-#if SYSTEM_LINUX
-			func_PackWork_t_Process(w);
-#else
-			func_SV_PackEntity( w.nIdx, w.pEdict, w.pSnapshot->m_pEntities[ w.nIdx ].m_pClass, w.pSnapshot );
-#endif
+			PackWork_t::Process(w);
 		}
 	}
 
@@ -2479,7 +2475,7 @@ void Networking_SwitchToOURTransmit()
 	if (!Detour::CheckFunction(func, "CServerGameEnts::CheckTransmit"))
 		return;
 
-	detour_CServerGameEnts_CheckTransmit.Create(func, New_CServerGameEnts_CheckTransmit);
+	detour_CServerGameEnts_CheckTransmit.Create(func, (void*)New_CServerGameEnts_CheckTransmit);
 	detour_CServerGameEnts_CheckTransmit.Enable();
 }
 #endif
@@ -2616,19 +2612,19 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 	Detour::CheckValue("get class", "framesnapshotmanager", framesnapshotmanager != nullptr);
 
 #if defined(ARCHITECTURE_X86) && defined(SYSTEM_LINUX)
-	PropTypeFns* pPropTypeFns = Detour::ResolveSymbol<PropTypeFns>(engine_loader, Symbols::g_PropTypeFnsSym);
-#else
-	PropTypeFns* pPropTypeFns = Detour::ResolveSymbolWithOffset<PropTypeFns>(engine_loader.GetModule(), Symbols::g_PropTypeFnsSym);
-#endif
-	Detour::CheckValue("get class", "pPropTypeFns", pPropTypeFns != nullptr);
-
-#if defined(ARCHITECTURE_X86) && defined(SYSTEM_LINUX)
 	g_BSPData = Detour::ResolveSymbol<CCollisionBSPData>(engine_loader, Symbols::g_BSPDataSym);
 #else
 	g_BSPData = Detour::ResolveSymbolWithOffset<CCollisionBSPData>(engine_loader.GetModule(), Symbols::g_BSPDataSym);
 #endif
 	Detour::CheckValue("get class", "CCollisionBSPData", g_BSPData != nullptr);
 	
+#if defined(ARCHITECTURE_X86) && defined(SYSTEM_LINUX)
+	PropTypeFns* pPropTypeFns = Detour::ResolveSymbol<PropTypeFns>(engine_loader, Symbols::g_PropTypeFnsSym);
+#else
+	PropTypeFns* pPropTypeFns = Detour::ResolveSymbolWithOffset<PropTypeFns>(engine_loader.GetModule(), Symbols::g_PropTypeFnsSym);
+#endif
+	Detour::CheckValue("get class", "pPropTypeFns", pPropTypeFns != nullptr);
+
 	if (pPropTypeFns)
 	{
 		for (size_t i = 0; i < DPT_NUMSendPropTypes; ++i)

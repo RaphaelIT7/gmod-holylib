@@ -1120,4 +1120,28 @@ namespace Symbols
 	const std::vector<Symbol> Filter_Add_fSym = {
 		Symbol::FromName("_ZL12Filter_Add_fRK8CCommand"),
 	};
+
+	//---------------------------------------------------------------------------------
+	// Purpose: networkingreplacement Symbols
+	// NOTE: Way to complex for windows
+	//---------------------------------------------------------------------------------
+	const std::vector<Symbol> SV_EnsureInstanceBaselineSym = {
+		Symbol::FromName("_Z25SV_EnsureInstanceBaselineP11ServerClassiPKvi"),
+	};
+
+	const std::vector<Symbol> SendTable_EncodeSym = {
+		Symbol::FromName("_Z16SendTable_EncodePK9SendTablePKvP8bf_writeiP10CUtlMemoryI20CSendProxyRecipientsiEb"),
+	};
+
+	const std::vector<Symbol> CFrameSnapshotManager_GetPreviouslySentPacketSym = {
+		Symbol::FromName("_ZN21CFrameSnapshotManager23GetPreviouslySentPacketEii"),
+	};
+
+	const std::vector<Symbol> CFrameSnapshotManager_UsePreviouslySentPacketSym = {
+		Symbol::FromName("_ZN21CFrameSnapshotManager23UsePreviouslySentPacketEP14CFrameSnapshotii"),
+	};
+
+	const std::vector<Symbol> CFrameSnapshotManager_CreatePackedEntitySym = {
+		Symbol::FromName("_ZN21CFrameSnapshotManager18CreatePackedEntityEP14CFrameSnapshoti"),
+	};
 }

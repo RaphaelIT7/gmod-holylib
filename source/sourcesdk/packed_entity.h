@@ -51,6 +51,19 @@ class ClientClass;
 class IChangeFrameList;
 class CGMODDataTable;
 
+// HOLYLIB
+// I need this class somewhere and since it's used here, lets keep it here
+abstract_class IChangeFrameList
+{
+public:
+	virtual void	Release() = 0;
+	virtual int		GetNumProps() = 0;
+	virtual void	SetChangeTick( const int *pPropIndices, int nPropIndices, const int iTick ) = 0;
+	virtual int		GetPropsChangedAfterTick( int iTick, int *iOutProps, int nMaxOutProps ) = 0;
+	virtual IChangeFrameList* Copy() = 0;
+protected:
+	virtual			~IChangeFrameList() {}
+};	
 
 // Replaces entity_state_t.
 // This is what we send to clients.
