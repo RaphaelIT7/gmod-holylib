@@ -2479,7 +2479,7 @@ void Networking_SwitchToOURTransmit()
 	if (!Detour::CheckFunction(func, "CServerGameEnts::CheckTransmit"))
 		return;
 
-	detour_CServerGameEnts_CheckTransmit.Create(func, New_CServerGameEnts_CheckTransmit);
+	detour_CServerGameEnts_CheckTransmit.Create(func, (void*)New_CServerGameEnts_CheckTransmit);
 	detour_CServerGameEnts_CheckTransmit.Enable();
 }
 #endif

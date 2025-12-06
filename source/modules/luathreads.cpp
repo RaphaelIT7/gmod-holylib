@@ -33,7 +33,7 @@ struct LuaInterface;
 class InterfaceTask
 {
 public:
-	~InterfaceTask() = default;
+	virtual ~InterfaceTask() = default;
 	virtual void DoTask(LuaInterface* pData) = 0;
 };
 
