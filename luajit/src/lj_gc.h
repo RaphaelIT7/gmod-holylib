@@ -72,6 +72,13 @@ LJ_FUNC int LJ_FASTCALL lj_gc_step_jit(global_State *g, MSize steps);
 #endif
 LJ_FUNC void lj_gc_fullgc(lua_State *L);
 
+// Universal function so that not like 20 places do the exact same
+LJ_FUNC void LJ_FASTCALL lj_gc_addtoroot(global_State *g, GCobj *obj);
+
+// LJ_FUNC void LJ_FASTCALL lj_mark_referenced(global_State *g, GCobj *obj);
+// LJ_FUNC void LJ_FASTCALL lj_mark_semireferenced(global_State *g, GCobj *obj);
+// LJ_FUNC void LJ_FASTCALL lj_mark_nonreferenced(global_State *g, GCobj *obj);
+
 /* GC check: drive collector forward if the GC threshold has been reached. */
 #define lj_gc_check(L) \
   { if (LJ_UNLIKELY(G(L)->gc.total >= G(L)->gc.threshold)) \
