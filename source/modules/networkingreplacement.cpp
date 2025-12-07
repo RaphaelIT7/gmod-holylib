@@ -1,6 +1,3 @@
-#define private public
-#include "dt_send.h"
-#undef private
 #include "LuaInterface.h"
 #include "detours.h"
 #include "module.h"

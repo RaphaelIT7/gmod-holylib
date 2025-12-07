@@ -260,6 +260,7 @@ void CheckPhysicsLag(const char* pFunctionName, CPhysicsObject* pObject1, CPhysi
 	}
 }
 
+IPhysics* g_pPhysics = nullptr;
 static thread_local bool g_pIsInPostPhysicsLagCall = false;
 void PostPhysicsLag()
 {
@@ -270,12 +271,26 @@ void PostPhysicsLag()
 		g_Lua->PushNumber((double)pSimulationTime);
 
 		g_pIsInPostPhysicsLagCall = true;
+		// VERIFY: What if someone calls IPhysicsEnvironment:Simulate? I mean... it should kinda be fine... right?
+		// BUG: I hate that this is hard coded for the main environment... how the heck could one know which environment is lagging+
+		bool bPrevious = false;
+		CPhysicsEnvironment* pEnvironment = (CPhysicsEnvironment*)g_pPhysics->GetActiveEnvironmentByIndex(0);
+		if (pEnvironment)
+		{
+			bPrevious = pEnvironment->IsInSimulation();
+			pEnvironment->m_inSimulation = false; // ToDo: Jolt needs support
+		}
+
 		pCurrentTime = std::chrono::high_resolution_clock::now(); // Update timer.
 		if (g_Lua->CallFunctionProtected(2, 0, true))
 		{
 			if (g_pPhysEnvModule.InDebug() > 2)
 				Msg(PROJECT_NAME " - physenv: HolyLib:PostPhysicsLag hook called!\n");
 		}
+
+		if (pEnvironment)
+			pEnvironment->m_inSimulation = bPrevious;
+
 		g_pIsInPostPhysicsLagCall = false;
 	}
 }
@@ -493,7 +508,6 @@ public: // private? Naaaa I beg to differ
 
 IVModelInfo* modelinfo;
 IStaticPropMgrServer* staticpropmgr;
-IPhysics* g_pPhysics = nullptr;
 static IPhysicsCollision* g_pPhysCollide = nullptr;
 static IPhysicsSurfaceProps* g_pPhysProps;
 void CPhysEnvModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
