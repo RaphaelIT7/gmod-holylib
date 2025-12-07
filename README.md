@@ -2290,6 +2290,12 @@ Calls the `SV_InitGameServerSteam` function to activate the steam server exactly
 #### bool steamworks.ForceAuthenticate(number userID)
 Marks the given client as Authenticated even if they aren't.<br>
 
+#### string(steamID64) steamworks.GetGameServerSteamID()
+Returns the steamid of the set steam account by `sv_setsteamaccount`<br>
+
+> [!NOTE]
+> If something internally goes wrong this can throw an error.
+
 ### Hooks
 
 #### HolyLib:OnSteamDisconnect(number result)<br>

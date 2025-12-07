@@ -207,6 +207,19 @@ LUA_FUNCTION_STATIC(steamworks_ForceAuthenticate)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(steamworks_GetGameServerSteamID)
+{
+	if (!func_Steam3Server)
+		LUA->ThrowError("Failed to load Steam3Server!\n");
+
+	if (!func_Steam3Server().SteamGameServer())
+		LUA->ThrowError("Failed to get SteamGameServer!");
+
+	std::string steamID64 = std::to_string( func_Steam3Server().SteamGameServer()->GetSteamID().ConvertToUint64() );
+	LUA->PushString( steamID64.c_str() );
+	return 1;
+}
+
 void CSteamWorksModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
 	if (appfn[0])
@@ -256,6 +269,7 @@ void CSteamWorksModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, steamworks_IsConnected, "IsConnected");
 		Util::AddFunc(pLua, steamworks_ForceActivate, "ForceActivate");
 		Util::AddFunc(pLua, steamworks_ForceAuthenticate, "ForceAuthenticate");
+		Util::AddFunc(pLua, steamworks_GetGameServerSteamID, "GetGameServerSteamID");
 		Util::PopTable(pLua);
 	}
 }
