@@ -1,3 +1,6 @@
+#define private public
+#include "dt_send.h"
+#undef private
 #include "LuaInterface.h"
 #include "detours.h"
 #include "module.h"
@@ -138,11 +141,16 @@ class HolyLibSendPropPrecalc : public SendProp
 public:
 	static constexpr int BOOL_SIZE = -1;
 	static constexpr int DPT_BOOL = DPT_NUMSendPropTypes;
-	static constexpr int DPT_REALNUMSendPropTypes = DPT_NUMSendPropTypes+1;
+	static constexpr int DPT_INT24 = DPT_BOOL+1; // ungly, though useful to avoid branching - unused ToDo: Implement it into PrecalcSendProps, too lazy rn
+	static constexpr int DPT_INT16 = DPT_INT24+1;
+	static constexpr int DPT_INT8 = DPT_INT16+1;
+	static constexpr int DPT_REALNUMSendPropTypes = DPT_INT8+1;
 
 	int m_nNewOffset = 0; // We inherit m_Offset already, this is to map the old offset to our new one!
 	int m_nNewSize = 0; // Size in our new struct - in bytes! (if -1 then it's a bool!)
 	int m_nBitOffset = 0; // For bool types since we pack them into a byte
+	unsigned short m_nPropID = 0;
+	unsigned char m_nArrayElementSize = 0;
 };
 
 // ----------------------------------------------------------------------------- //
@@ -190,9 +198,19 @@ void HolyLibCSendTablePrecalc::PrecalcSendProps()
     
 		if (type >= 0 && type < DPT_NUMSendPropTypes)
 		{
+			int nBytes = ((pProp->m_nBits + 7) & ~7) / 8;
 			if (type == SendPropType::DPT_Int && pProp->m_nBits == 1)
 			{
 				pProps[HolyLibSendPropPrecalc::DPT_BOOL].AddToTail(pProp);
+			} else if (type == SendPropType::DPT_Int && nBytes == 1)
+			{
+				pProps[HolyLibSendPropPrecalc::DPT_INT8].AddToTail(pProp);
+			} else if (type == SendPropType::DPT_Int && nBytes == 2)
+			{
+				pProps[HolyLibSendPropPrecalc::DPT_INT16].AddToTail(pProp);
+			} else if (type == SendPropType::DPT_Int && nBytes == 3)
+			{
+				pProps[HolyLibSendPropPrecalc::DPT_INT24].AddToTail(pProp);
 			} else {
 				pProps[type].AddToTail(pProp);
 			}
@@ -201,6 +219,7 @@ void HolyLibCSendTablePrecalc::PrecalcSendProps()
 		}
 	}
 
+	int nPropID = -1; // Were using preincrement!
 	for (int nDPTType = 0; nDPTType < HolyLibSendPropPrecalc::DPT_REALNUMSendPropTypes; ++nDPTType)
 	{
 		SendPropStruct& pStruct = m_SendPropStruct[nDPTType];
@@ -249,6 +268,8 @@ void HolyLibCSendTablePrecalc::PrecalcSendProps()
 
 			HolyLibSendPropPrecalc* pPrecalc = new HolyLibSendPropPrecalc;
 			memcpy(pPrecalc, pProp, sizeof(SendProp));
+			pPrecalc->m_nPropID = ++nPropID;
+			pPrecalc->m_Type = (SendPropType)nDPTType; // Just to make the compiler happy...
 
 			if (nDPTType == HolyLibSendPropPrecalc::DPT_BOOL) // Bool, yay, we store them in bits :3
 			{
@@ -267,6 +288,21 @@ void HolyLibCSendTablePrecalc::PrecalcSendProps()
 				pStruct.m_pProps.AddToTail(pPrecalc);
 			} else if (nDPTType == SendPropType::DPT_GMODTable) {
 				pStruct.m_nGModDataTableProp = pPrecalc;
+			} else if (nDPTType == SendPropType::DPT_Array) {
+				SendProp* pArrayProp = pProp->GetArrayProp();
+
+				pPrecalc->m_Offset = pArrayProp->GetOffset(); // Inherit offset
+				pPrecalc->m_nNewOffset = pStruct.m_nBytes;
+
+				pPrecalc->m_nArrayElementSize = ((pArrayProp->m_nBits + 7) & ~7) / 8;
+				int nBytes = pPrecalc->GetNumElements() * pPrecalc->m_nArrayElementSize;
+				pPrecalc->m_nNewSize = nBytes;
+
+				if (pArrayProp->m_nBits == 1 && pArrayProp->m_Type == DPT_Int)
+					Error("Array %s is bool?\n", pArrayProp->GetName()); // Currently this shouldn't be the case - if it becomes the case I'll need to rework some shit
+
+				pStruct.m_nBytes += nBytes;
+				pStruct.m_pProps.AddToTail(pPrecalc);
 			} else {
 				pPrecalc->m_nNewOffset = pStruct.m_nBytes;
 
@@ -288,6 +324,21 @@ void HolyLibCSendTablePrecalc::PrecalcSendProps()
 	Functions for packing
 */
 
+struct int24
+{
+	int ToInt() const
+	{
+		int value = (val[0]) | (val[1] << 8 ) | (val[2] << 16);
+
+		if (value & 0x00800000)
+			value |= 0xFF000000;
+
+		return value;
+	}
+
+	char val[3];
+};
+
 /*
 	Layout we generate:
 
@@ -296,13 +347,18 @@ void HolyLibCSendTablePrecalc::PrecalcSendProps()
 	DPT_Vector chunk
 	DPT_VectorXY chunk
 	DPT_String pointer chunk - entires point to string data chunk - needed since these variable offsets need to be consistent! What they point at can be dynamic though
+	DPT_Array chunk
 	DPT_Bool chunk - bit flags are used
+	DPT_INT24 chunk
+	DPT_INT16 chunk
+	DPT_INT8 chunk
 	StringData chunk - contains all strings
 
 	Where do arrays go? Their entires were added to their given types - so not needed. Simplifies things :3
 */
 static int SendProp_FillSnapshot( HolyLibCSendTablePrecalc *pTable, void* pOutData, const void* pEntity )
 {
+	Msg("SendProp_FillSnapshot 1\n");
 	struct StringEntry
 	{
 		const char* pString;
@@ -315,13 +371,17 @@ static int SendProp_FillSnapshot( HolyLibCSendTablePrecalc *pTable, void* pOutDa
 	{
 		const HolyLibCSendTablePrecalc::SendPropStruct& pStruct = pTable->m_SendPropStruct[nDPTType];
 
-		if (nDPTType ==  HolyLibSendPropPrecalc::DPT_BOOL)
+		if (nDPTType == HolyLibSendPropPrecalc::DPT_BOOL)
 		{
+			memset((char*)pOutData + nCurrentByte, 0, pStruct.m_nBytes); // We use bit flags so we better ensure it starts with 0!
 			FOR_EACH_VEC( pStruct.m_pProps, i )
 			{
 				const HolyLibSendPropPrecalc* pProp = pStruct.m_pProps[i];
-				bool* pVar = (bool*)((char*)pEntity + pProp->GetOffset());
-				*((uint8*)((char*)pOutData + nCurrentByte + pProp->m_nNewOffset)) |= (*pVar ? 1 : 0) << pProp->m_nBitOffset;
+				DVariant pVar;
+				pProp->GetProxyFn()(pProp, pEntity, (char*)pEntity + pProp->GetOffset(), &pVar, 0, pProp->m_nPropID);
+
+				*((uint8*)((char*)pOutData + nCurrentByte + pProp->m_nNewOffset)) |= (pVar.m_Int ? 1 : 0) << pProp->m_nBitOffset;
+				Msg(PROJECT_NAME " - Wrote %i into %i (%s) (%s)\n", nDPTType, nCurrentByte, pVar.m_Int ? "true" : "false", pProp->GetName());
 			}
 
 			nCurrentByte += pStruct.m_nBytes;
@@ -329,25 +389,51 @@ static int SendProp_FillSnapshot( HolyLibCSendTablePrecalc *pTable, void* pOutDa
 			FOR_EACH_VEC( pStruct.m_pProps, i )
 			{
 				const HolyLibSendPropPrecalc* pProp = pStruct.m_pProps[i];
-				const char* pData = (const char*)((char*)pEntity + pProp->GetOffset());
-				if (*pData == '\0')
+				DVariant pVar;
+				pProp->GetProxyFn()(pProp, pEntity, (char*)pEntity + pProp->GetOffset(), &pVar, 0, pProp->m_nPropID);
+				if (*pVar.m_pString == '\0')
 				{
 					// This also allows quick CalcDelta checking since if it's Zero it'll be a nullptr
 					*((void**)((char*)pOutData + nCurrentByte)) = nullptr;
 				} else {
 					StringEntry& pEntry = pStringEnties.emplace_back();
 					pEntry.nDataOffset = nCurrentByte;
-					pEntry.pString = pData;
+					pEntry.pString = pVar.m_pString;
 				}
+				Msg(PROJECT_NAME " - Wrote %i into %i (%s) (%s)\n", nDPTType, nCurrentByte, pVar.m_pString, pProp->GetName());
 				nCurrentByte += pProp->m_nNewSize;
+			}
+		} else if (nDPTType == SendPropType::DPT_Array) {
+			FOR_EACH_VEC( pStruct.m_pProps, i )
+			{
+				const HolyLibSendPropPrecalc* pProp = pStruct.m_pProps[i];
+
+				DVariant pVar;
+				for (int nElement = 0; nElement < pProp->GetNumElements(); ++nElement)
+				{
+					pProp->GetProxyFn()(pProp, pEntity, (char*)pEntity + pProp->GetOffset(), &pVar, 0, pProp->m_nPropID);
+				
+					memcpy((char*)pOutData + nCurrentByte, &pVar, pProp->m_nNewSize);
+					nCurrentByte += pProp->m_nArrayElementSize;
+				}
+
+				Msg(PROJECT_NAME " - Wrote %i into %i (bytes: %i) (%s)\n", nDPTType, nCurrentByte, pProp->GetNumElements() * pProp->m_nArrayElementSize, pProp->GetName());
 			}
 		} else {
 			FOR_EACH_VEC( pStruct.m_pProps, i )
 			{
 				const HolyLibSendPropPrecalc* pProp = pStruct.m_pProps[i];
-				memcpy((char*)pOutData + nCurrentByte, (char*)pEntity + pProp->GetOffset(), pProp->m_nNewSize);
+				DVariant pVar;
+				pProp->GetProxyFn()(pProp, pEntity, (char*)pEntity + pProp->GetOffset(), &pVar, 0, pProp->m_nPropID);
+				
+				memcpy((char*)pOutData + nCurrentByte, &pVar, pProp->m_nNewSize);
+				if (pProp->m_Type == HolyLibSendPropPrecalc::DPT_INT8 || pProp->m_Type == HolyLibSendPropPrecalc::DPT_INT16 || pProp->m_Type == HolyLibSendPropPrecalc::DPT_INT24)
+					pVar.m_Type = DPT_Int;
+				else
+					pVar.m_Type = pProp->m_Type;
+
+				Msg(PROJECT_NAME " - Wrote %i into %i (%i) - %s (%s)\n", nDPTType, nCurrentByte, pProp->m_nNewSize, pVar.ToString(), pProp->GetName());
 				nCurrentByte += pProp->m_nNewSize;
-				Msg("Wrote %i into %i (%i) - %i (%s)\n", nDPTType, nCurrentByte, pProp->m_nNewSize, *(int*)((char*)pOutData + nCurrentByte), pProp->GetName());
 			}
 		}
 	}
@@ -365,43 +451,67 @@ static int SendProp_FillSnapshot( HolyLibCSendTablePrecalc *pTable, void* pOutDa
 			memcpy(pEntryOffset, pEntry.pString, nLength);
 			pEntryOffset[nLength] = '\0';
 			nCurrentByte += nLength + 1;
+			Msg(PROJECT_NAME " - Wrote string %s (%i)\n", pEntry.pString, nLength);
 		}
 	}
 
+	Msg("SendProp_FillSnapshot 2\n");
 	return nCurrentByte;
 }
 
-bool HolyLib_Int_IsEncodedZero( void* pData )
+bool HolyLib_Int_IsEncodedZero( const HolyLibSendPropPrecalc* pProp, const void* pData )
 {
 	return (*(int*)pData) == 0;
 }
 
-bool HolyLib_Float_IsEncodedZero( void* pData )
+bool HolyLib_Float_IsEncodedZero( const HolyLibSendPropPrecalc* pProp, const void* pData )
 {
 	return (*(float*)pData) == 0;
 }
 
-bool HolyLib_Vector_IsEncodedZero( void* pData )
+bool HolyLib_Vector_IsEncodedZero( const HolyLibSendPropPrecalc* pProp, const void* pData )
 {
 	Vector* pVec = (Vector*)pData;
 	return pVec->x == 0 && pVec->y == 0 && pVec->z == 0;
 }
 
-bool HolyLib_VectorXY_IsEncodedZero( void* pData )
+bool HolyLib_VectorXY_IsEncodedZero( const HolyLibSendPropPrecalc* pProp, const void* pData )
 {
 	Vector* pVec = (Vector*)pData;
 	return pVec->x == 0 && pVec->y == 0;
 }
 
-bool HolyLib_String_IsEncodedZero( void* pData )
+bool HolyLib_String_IsEncodedZero( const HolyLibSendPropPrecalc* pProp, const void* pData )
 {
 	// SPECIAL: Since we store a void* pointer IF the string has data we can check if it's null
 	return *(void**)pData == nullptr;
 }
 
+bool HolyLib_Array_IsEncodedZero( const HolyLibSendPropPrecalc* pProp, const void* pData )
+{
+	// Weh! I hate this though idk what to do rn
+	return false;
+}
+
+bool HolyLib_Int24_IsEncodedZero( const HolyLibSendPropPrecalc* pProp, const void* pData )
+{
+	int24* pVal = (int24*)pData;
+	return pVal->val[0] == 0 && pVal->val[1] == 0 && pVal->val[2] == 0;
+}
+
+bool HolyLib_Int16_IsEncodedZero( const HolyLibSendPropPrecalc* pProp, const void* pData )
+{
+	return (*(short*)pData) == 0;
+}
+
+bool HolyLib_Int8_IsEncodedZero( const HolyLibSendPropPrecalc* pProp, const void* pData )
+{
+	return (*(char*)pData) == 0;
+}
+
 typedef struct
 {
-	bool			(*IsEncodedZero) ( void* pData );
+	bool			(*IsEncodedZero) ( const HolyLibSendPropPrecalc* pProp, const void* pData );
 } HolyLibPropTypeFns;
 
 static HolyLibPropTypeFns pHolyLibPropTypeFns[HolyLibSendPropPrecalc::DPT_REALNUMSendPropTypes] = {
@@ -432,6 +542,15 @@ static HolyLibPropTypeFns pHolyLibPropTypeFns[HolyLibSendPropPrecalc::DPT_REALNU
 	{ // DPT_BOOL
 		NULL,
 	},
+	{ // DPT_INT24
+		NULL,
+	},
+	{ // DPT_INT16
+		NULL,
+	},
+	{ // DPT_INT8
+		NULL,
+	},
 };
 
 static PropTypeFns pPropTypeFns[DPT_NUMSendPropTypes];
@@ -439,10 +558,10 @@ int HolyLib_SendTable_CalcDelta( // For OUR data input! Not the compressed - our
 	const SendTable *pTable,
 	
 	const void *pFromState,
-	const int nFromData,
+	const int nFromBytes,
 
 	const void *pToState,
-	const int nToData,
+	const int nToBytes,
 	
 	int *pDeltaProps,
 	int nMaxDeltaProps,
@@ -464,7 +583,7 @@ int HolyLib_SendTable_CalcDelta( // For OUR data input! Not the compressed - our
 		{
 			const HolyLibCSendTablePrecalc::SendPropStruct& pStruct = pPrecalc->m_SendPropStruct[nDPTType];
 
-			if (nDPTType ==  HolyLibSendPropPrecalc::DPT_BOOL)
+			if (nDPTType == HolyLibSendPropPrecalc::DPT_BOOL)
 			{
 				FOR_EACH_VEC( pStruct.m_pProps, i )
 				{
@@ -473,10 +592,15 @@ int HolyLib_SendTable_CalcDelta( // For OUR data input! Not the compressed - our
 
 				nCurrentByte += pStruct.m_nBytes;
 			} else {
-				FOR_EACH_VEC( pStruct.m_pProps, i )
+				FOR_EACH_VEC( pStruct.m_pProps, iToProp )
 				{
-					const HolyLibSendPropPrecalc* pProp = pStruct.m_pProps[i];
-					 pProp->m_nNewOffset;
+					const HolyLibSendPropPrecalc* pProp = pStruct.m_pProps[iToProp];
+					if (pHolyLibPropTypeFns[pProp->m_Type].IsEncodedZero(pProp, (char*)pToState + nCurrentByte))
+					{
+						*pDeltaProps++ = iToProp;
+						if ( pDeltaProps >= pDeltaPropsEnd )
+							break;
+					}
 				}
 			}
 		}
@@ -516,6 +640,9 @@ void NWR_SV_PackEntity(int edictIdx, edict_t* edict, ServerClass* pServerClass, 
 	unsigned char tempData[ sizeof( CSendProxyRecipients ) * MAX_DATATABLE_PROXIES ];
 	CUtlMemory< CSendProxyRecipients > recip( (CSendProxyRecipients*)tempData, pSendTable->m_pPrecalc->GetNumDataTableProxies() );
 
+	Msg("Edict: %p\n", edict);
+	Msg("Entity: %p\n", edict->GetUnknown());
+	Msg("NWR_SV_PackEntity 1\n");
 	if (pServerClass->m_InstanceBaselineIndex == INVALID_STRING_INDEX)
 	{
 		/*
@@ -531,23 +658,27 @@ void NWR_SV_PackEntity(int edictIdx, edict_t* edict, ServerClass* pServerClass, 
 		if( !func_SendTable_Encode( pSendTable, edict->GetUnknown(), &writeBuf, edictIdx, &recip, false ) )						 
 			Error( "SV_PackEntity: SendTable_Encode returned false (ent %d).\n", edictIdx );
 
-		func_SV_EnsureInstanceBaseline( pServerClass, edictIdx, packedData, writeBuf.GetNumBytesWritten() );	
+		//func_SV_EnsureInstanceBaseline( pServerClass, edictIdx, packedData, writeBuf.GetNumBytesWritten() );	
 	}
 
-	SendProp_FillSnapshot( (HolyLibCSendTablePrecalc*)pSendTable->m_pPrecalc, packedData, edict->GetUnknown() );
+	Msg("NWR_SV_PackEntity 2\n");
+	// SendProp_FillSnapshot( (HolyLibCSendTablePrecalc*)pSendTable->m_pPrecalc, packedData, edict->GetUnknown() );
 
+	Msg("NWR_SV_PackEntity 3\n");
 	g_pFullFileSystem->CreateDirHierarchy("holylib/dump/newdt/", "MOD");
 	std::string fileName = "holylib/dump/newdt/";
 	fileName.append(pServerClass->GetName());
 	fileName.append(".dt");
 
+	Msg("NWR_SV_PackEntity 4\n");
 	FileHandle_t pPackDump = g_pFullFileSystem->Open(fileName.c_str(), "wb", "MOD");
 	if (pPackDump)
 	{
 		g_pFullFileSystem->Write(packedData, sizeof(packedData), pPackDump);
 		g_pFullFileSystem->Close(pPackDump);
 	}
-		
+	
+	Msg("NWR_SV_PackEntity 5\n");
 	#if 0
 	int nFlatProps = SendTable_GetNumFlatProps( pSendTable );
 	IChangeFrameList *pChangeFrame = NULL;
@@ -680,7 +811,7 @@ static HolyLibCSendTablePrecalc* AllocateNewPrecalc(CSendTablePrecalc* pPrecalc)
 	// Yes it very much is. But since at this point their static/nothing should change and should be read only were fine.
 	memcpy(pNew, pPrecalc, sizeof(CSendTablePrecalc));
 
-	pNew->PrecalcSendProps();
+	//pNew->PrecalcSendProps();
 
 	g_pReplacedProps[pPrecalc] = pNew;
 
@@ -714,8 +845,8 @@ void CNetworkingReplacementModule::ServerActivate(edict_t *pEdictList, int edict
 
 	Msg(PROJECT_NAME " - networkingreplacement: Injecting new SendPropPrecalc classes. Unloading this module is now unstable/should not be done!\n");
 
-	for(ServerClass *serverclass = Util::servergamedll->GetAllServerClasses(); serverclass->m_pNext != nullptr; serverclass = serverclass->m_pNext)
-		NWR_AddSendTable(serverclass->m_pTable);
+	//for(ServerClass *serverclass = Util::servergamedll->GetAllServerClasses(); serverclass->m_pNext != nullptr; serverclass = serverclass->m_pNext)
+	//	NWR_AddSendTable(serverclass->m_pTable);
 
 	g_bRedirectPackEntity = true;
 }
