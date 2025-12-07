@@ -260,22 +260,23 @@ void CheckPhysicsLag(const char* pFunctionName, CPhysicsObject* pObject1, CPhysi
 	}
 }
 
+static thread_local bool g_pIsInPostPhysicsLagCall = false;
 void PostPhysicsLag()
 {
-	if (pCurrentSkipType != IVP_SkipType::IVP_None && !g_pIsInPhysicsLagCall && Lua::PushHook("HolyLib:PostPhysicsLag"))
+	if (pCurrentSkipType != IVP_SkipType::IVP_None && !g_pIsInPostPhysicsLagCall && Lua::PushHook("HolyLib:PostPhysicsLag"))
 	{
 		auto pTime = std::chrono::high_resolution_clock::now();
 		auto pSimulationTime = std::chrono::duration_cast<std::chrono::milliseconds>(pTime - pCurrentTime).count();
 		g_Lua->PushNumber((double)pSimulationTime);
 
-		g_pIsInPhysicsLagCall = true;
+		g_pIsInPostPhysicsLagCall = true;
 		pCurrentTime = std::chrono::high_resolution_clock::now(); // Update timer.
 		if (g_Lua->CallFunctionProtected(2, 0, true))
 		{
 			if (g_pPhysEnvModule.InDebug() > 2)
 				Msg(PROJECT_NAME " - physenv: HolyLib:PostPhysicsLag hook called!\n");
 		}
-		g_pIsInPhysicsLagCall = false;
+		g_pIsInPostPhysicsLagCall = false;
 	}
 }
 
