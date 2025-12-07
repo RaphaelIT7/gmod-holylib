@@ -90,32 +90,31 @@ namespace GarrysMod::Lua
 		virtual void UnMountLua(const char*) = 0;                                                                                       // x86: 0x30, x64: 0x60
 		virtual void SetFileContents(const char*, const char*) = 0;                                                                     // x86: 0x34, x64: 0x68
 		virtual void SetLuaFindHook(LuaClientDatatableHook*) = 0;                                                                       // x86: 0x38, x64: 0x70
-		virtual void FindScripts(const std::string&, const std::string&, std::vector<GarrysMod::Lua::LuaFindResult>&) = 0;            // x86: 0x3C, x64: 0x78
+		virtual void __UnsafeFindScripts(const std::string&, const std::string&, std::vector<GarrysMod::Lua::LuaFindResult>&) = 0;      // x86: 0x3C, x64: 0x78
 		virtual const char* GetStackTraces() = 0;                                                                                       // x86: 0x40, x64: 0x80
 		virtual void InvalidateCache(const std::string&) = 0;                                                                           // x86: 0x44, x64: 0x88
 		virtual void EmptyCache() = 0;                                                                                                  // x86: 0x48, x64: 0x90
 		virtual bool ScriptExists(const std::string&, const std::string&, bool) = 0;                                                   // x86: 0x4C, x64: 0x98
+		
+	public:
+		// Helper function to safely call FindScripts that works on both x64 and x86
+		// In x64, this calls through the vtable with __fastcall to fix ABI issues
+		inline void FindScripts(const std::string& pattern, const std::string& pathId, std::vector<GarrysMod::Lua::LuaFindResult>& results) {
+	#if SYSTEM_WINDOWS
+			// In x64, the function uses __fastcall and references are passed as pointers
+			// Signature from IDA: __int64 __fastcall CLuaShared::FindScripts(__int64, _QWORD *, _QWORD *, __int64)
+			// FindScripts is at offset 0x78 in x64 vtable (index 15)
+			void** vtable = *(void***)(this);
+			// __fastcall: this in RCX, then params in RDX, R8, R9
+			// References are passed as pointers in x64
+			using FindScriptsFunc = void(__fastcall*)(void* thisptr, const std::string*, const std::string*, std::vector<LuaFindResult>*);
+			FindScriptsFunc pFindScripts = reinterpret_cast<FindScriptsFunc>(vtable[15]);
+			pFindScripts(this, &pattern, &pathId, &results);
+	#else
+			// x86: use normal virtual call
+			__UnsafeFindScripts(pattern, pathId, results);
+	#endif
+		}
 	};
-
-	// Helper function to safely call FindScripts that works on both x64 and x86
-	// In x64, this calls through the vtable with __fastcall to fix ABI issues
-	static inline void FindScriptsSafe(ILuaShared* shared, const std::string& pattern, const std::string& pathId, std::vector<GarrysMod::Lua::LuaFindResult>& results) {
-		if (!shared) return;
-
-#if SYSTEM_WINDOWS
-		// In x64, the function uses __fastcall and references are passed as pointers
-		// Signature from IDA: __int64 __fastcall CLuaShared::FindScripts(__int64, _QWORD *, _QWORD *, __int64)
-		// FindScripts is at offset 0x78 in x64 vtable (index 15)
-		void** vtable = *(void***)(shared);
-		// __fastcall: this in RCX, then params in RDX, R8, R9
-		// References are passed as pointers in x64
-		using FindScriptsFunc = void(__fastcall*)(void* thisptr, const std::string*, const std::string*, std::vector<LuaFindResult>*);
-		FindScriptsFunc pFindScripts = reinterpret_cast<FindScriptsFunc>(vtable[15]);
-		pFindScripts(shared, &pattern, &pathId, &results);
-#else
-		// x86: use normal virtual call
-		shared->FindScripts(pattern, pathId, results);
-#endif
-	}
 }
 #endif
