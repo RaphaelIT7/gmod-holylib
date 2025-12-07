@@ -13,6 +13,7 @@
 #include "hl2/hl2_player.h"
 #include "unordered_set"
 #include "host_state.h"
+#include "detouring/customclassproxy.hpp"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -439,6 +440,37 @@ void CHolyLibModule::LevelShutdown()
 	pLandmarkName[0] = '\0';
 }
 
+static Detouring::Hook detour_CLuaInterface_RunStringEx;
+static bool hook_CLuaInterface_RunStringEx(GarrysMod::Lua::ILuaInterface* pLua, const char *filename, const char *path, const char *stringToRun, bool run, bool printErrors, bool dontPushErrors, bool noReturns)
+{
+	if (Lua::PushHook("HolyLib:OnLuaRunString", pLua))
+	{
+		pLua->PushString(stringToRun);
+		pLua->PushString(filename);
+		pLua->PushString(path);
+		if (pLua->CallFunctionProtected(4, 1, true))
+		{
+			int nType = pLua->GetType(-1);
+			if (nType == GarrysMod::Lua::Type::String)
+			{
+				// We do it like this to avoid having to copy/allocate a space to store the string in as popping it and then using it is unsafe as the GC could have freed it.
+				const char* pCode = pLua->GetString(-1);
+				bool bRet = detour_CLuaInterface_RunStringEx.GetTrampoline<Symbols::CLuaInterface_RunStringEx>()(pLua, filename, path, pCode, run, printErrors, dontPushErrors, noReturns);
+				pLua->Pop(1);
+				return bRet;
+			} else if (nType == GarrysMod::Lua::Type::Bool) {
+				bool bRet = pLua->GetBool(-1);
+				pLua->Pop(1);
+				return bRet;
+			}
+
+			pLua->Pop(1);
+		}
+	}
+
+	return detour_CLuaInterface_RunStringEx.GetTrampoline<Symbols::CLuaInterface_RunStringEx>()(pLua, filename, path, stringToRun, run, printErrors, dontPushErrors, noReturns);;
+}
+
 void CHolyLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (!bServerInit)
@@ -484,6 +516,7 @@ DETOUR_THISCALL_START()
 	DETOUR_THISCALL_ADDFUNC1( hook_CFuncLadder_PlayerGotOn, PlayerGotOn, CBaseEntity*, CBasePlayer* );
 	DETOUR_THISCALL_ADDFUNC1( hook_CFuncLadder_PlayerGotOff, PlayerGotOff, CBaseEntity*, CBasePlayer* );
 	DETOUR_THISCALL_ADDFUNC2( hook_CBaseEntity_SetMoveType, SetMoveType, CBaseEntity*, int, int );
+	DETOUR_THISCALL_ADDRETFUNC7( hook_CLuaInterface_RunStringEx, bool, RunStringEx, GarrysMod::Lua::ILuaInterface*, const char*, const char*, const char*, bool, bool, bool, bool );
 DETOUR_THISCALL_FINISH();
 #endif
 
@@ -532,6 +565,13 @@ void CHolyLibModule::InitDetour(bool bPreServer)
 		(void*)hook_CHostState_State_ChangeLevelMP, m_pID
 	);
 #endif
+
+	SourceSDK::ModuleLoader lua_loader("lua_shared");
+	Detour::Create(
+		&detour_CLuaInterface_RunStringEx, "CLuaInterface::RunStringEx",
+		lua_loader.GetModule(), Symbols::CLuaInterface_RunStringExSym,
+		(void*)DETOUR_THISCALL(hook_CLuaInterface_RunStringEx, RunStringEx), m_pID
+	);
 
 	func_CBaseAnimating_InvalidateBoneCache = (Symbols::CBaseAnimating_InvalidateBoneCache)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseAnimating_InvalidateBoneCacheSym);
 	Detour::CheckFunction((void*)func_CBaseAnimating_InvalidateBoneCache, "CBaseAnimating::InvalidateBoneCache");

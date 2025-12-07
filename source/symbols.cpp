@@ -163,6 +163,10 @@ namespace Symbols
 		Symbol::FromSignature("\x48\x89\x5C\x24\x08\x57\x48\x83\xEC\x20\x48\x8B\xFA\x48\x8B\xD9*****\x48\x8B\xC8"), // 48 89 5C 24 08 57 48 83 EC 20 48 8B FA 48 8B D9 ?? ?? ?? ?? ?? 48 8B C8
 	};
 
+	const std::vector<Symbol> CLuaInterface_RunStringExSym = {
+		Symbol::FromName("_ZN13CLuaInterface11RunStringExEPKcS1_S1_bbbb"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: gameevent Symbols
 	//---------------------------------------------------------------------------------

@@ -233,6 +233,9 @@ namespace Symbols
 	using CHostState_State_ChangeLevelMP = void (GMCOMMON_CALLING_CONVENTION*)(const char* levelName, const char* LandmarkName);
 	extern const std::vector<Symbol> CHostState_State_ChangeLevelMPSym;
 
+	using CLuaInterface_RunStringEx = bool (GMCOMMON_CALLING_CONVENTION*)(GarrysMod::Lua::ILuaInterface* pLua, const char *filename, const char *path, const char *stringToRun, bool run, bool printErrors, bool dontPushErrors, bool noReturns);
+	extern const std::vector<Symbol> CLuaInterface_RunStringExSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: gameevent Symbols
 	//---------------------------------------------------------------------------------

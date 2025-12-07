@@ -123,6 +123,10 @@ byte m_##name = 0;
 virtual void name(arg1 __arg1, arg2 __arg2, arg3 __arg3, arg4 __arg4) { realHook((thisType)this, __arg1, __arg2, __arg3, __arg4); };\
 byte m_##name = 0;
 
+#define DETOUR_THISCALL_ADDFUNC8( realHook, name, thisType, arg1, arg2, arg3, arg4, arg5, arg6, arg7, arg8 ) \
+virtual void name(arg1 __arg1, arg2 __arg2, arg3 __arg3, arg4 __arg4, arg5 __arg5, arg6 __arg6, arg7 __arg7, arg8 __arg8) { realHook((thisType)this, __arg1, __arg2, __arg3, __arg4, __arg5, __arg6, __arg7, __arg8); };\
+byte m_##name = 0;
+
 #define DETOUR_THISCALL_ADDRETFUNC0( realHook, returnValue, name, thisType ) \
 virtual returnValue name() { return realHook((thisType)this); };\
 byte m_##name = 0;
@@ -145,6 +149,10 @@ byte m_##name = 0;
 
 #define DETOUR_THISCALL_ADDRETFUNC5( realHook, returnValue, name, thisType, arg1, arg2, arg3, arg4, arg5 ) \
 virtual returnValue name(arg1 __arg1, arg2 __arg2, arg3 __arg3, arg4 __arg4, arg5 __arg5) { return realHook((thisType)this, __arg1, __arg2, __arg3, __arg4, __arg5); };\
+byte m_##name = 0;
+
+#define DETOUR_THISCALL_ADDRETFUNC7( realHook, returnValue, name, thisType, arg1, arg2, arg3, arg4, arg5, arg6, arg7 ) \
+virtual returnValue name(arg1 __arg1, arg2 __arg2, arg3 __arg3, arg4 __arg4, arg5 __arg5, arg6 __arg6, arg7 __arg7) { return realHook((thisType)this, __arg1, __arg2, __arg3, __arg4, __arg5, __arg6, __arg7); };\
 byte m_##name = 0;
 
 #define DETOUR_PREPARE_THISCALL() void** pWorkaroundVTable = *(void***)&g_pThisCallConversionWorkaround

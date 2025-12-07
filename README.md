@@ -483,6 +483,12 @@ hook.Add("HolyLib:OnMapChange", "HelloThere", function(levelName, landmarkName)
 end)
 ```
 
+#### bool(executed) or string(code) HolyLib:OnLuaRunString(string code, string fileName, string gamePath)
+Called when Lua code is about to be loaded and executed.<br>
+This allows you to modify the code that will be executed, for example you can change the code and then return the new code which will be used instead.<br>
+If you return a bool, then `false` means the code failed to be executed, and `true` means the code was executed.<br>
+This is useful when you handle execution yourself - though if you want to let code silently fail just return `true` without executing code.<br>
+
 ## gameevent
 This module contains additional functions for the gameevent library.<br>
 With the Add/Get/RemoveClient* functions you can control the gameevents that are networked to a client which can be useful.<br>
