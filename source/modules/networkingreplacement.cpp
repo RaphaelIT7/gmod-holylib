@@ -1378,6 +1378,11 @@ void NWR_SV_PackEntity(int edictIdx, edict_t* edict, ServerClass* pServerClass, 
 	edict->ClearStateChanged();
 }
 
+IChangeInfoAccessor* CBaseEdict::GetChangeAccessor()
+{
+	return Util::engineserver->GetChangeAccessor( (edict_t*)this );
+}
+
 void PackedEntity::SetServerAndClientClass( ServerClass *pServerClass, ClientClass *pClientClass )
 {
 	m_pServerClass = pServerClass;
