@@ -190,8 +190,11 @@ byte m_##name = 0;
 	}
 
 	extern void* GetFunction(void* pModule, Symbol pSymbol);
-	extern void Create(Detouring::Hook* pHook, const char* strName, void* pModule, Symbol pSymbol, void* pHookFunc, unsigned int category = 0);
+	extern void Create(Detouring::Hook* pHook, const char* strName, void* pModule, Symbol pSymbol, void* pHookFunc, unsigned int category = 0, bool bEnable = true);
 	extern void Remove(unsigned int category); // 0 = All
+	// Only works with detours that went through Detour::Create!
+	extern void EnableHook(Detouring::Hook* pHook);
+	extern void DisableHook(Detouring::Hook* pHook);
 	extern void ReportLeak();
 	extern const std::unordered_set<std::string>& GetDisabledDetours();
 	extern const std::unordered_set<std::string>& GetFailedDetours();

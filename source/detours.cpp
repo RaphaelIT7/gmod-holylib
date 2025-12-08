@@ -21,11 +21,31 @@ void* Detour::GetFunction(void* pModule, Symbol pSymbol)
 	return symfinder.Resolve(pModule, pSymbol.name.c_str(), pSymbol.length);
 }
 
+
+struct DetourEntry
+{
+	DetourEntry() : detourName(""), nCategory(0), pHookFunc(nullptr), pTargetFunc(nullptr) {}
+
+	DetourEntry(std::string name, unsigned int category, void* hookFunc, void* targetFunc)
+	{
+		detourName = name;
+		nCategory = category;
+		pHookFunc = hookFunc;
+		pTargetFunc = targetFunc;
+	}
+
+	std::string detourName;
+	unsigned int nCategory;
+	void* pHookFunc;
+	void* pTargetFunc;
+};
+
 static std::unordered_set<std::string> pDisabledDetours;
 static std::unordered_set<std::string> pFailedDetours;
 static std::unordered_map<std::string, unsigned int> pLoadedDetours;
+static std::unordered_map<Detouring::Hook*, DetourEntry> pDetourInfo;
 static std::unordered_map<unsigned int, std::unordered_set<Detouring::Hook*>> g_pDetours = {};
-void Detour::Create(Detouring::Hook* pHook, const char* strName, void* pModule, Symbol pSymbol, void* pHookFunc, unsigned int category)
+void Detour::Create(Detouring::Hook* pHook, const char* strName, void* pModule, Symbol pSymbol, void* pHookFunc, unsigned int category, bool bEnable)
 {
 	if (pDisabledDetours.find(strName) != pDisabledDetours.end())
 	{
@@ -44,26 +64,61 @@ void Detour::Create(Detouring::Hook* pHook, const char* strName, void* pModule, 
 		return;
 
 	pHook->Create(func, pHookFunc);
-	pHook->Enable();
+
+	if (pDetourInfo.find(pHook) == pDetourInfo.end())
+		pDetourInfo[pHook] = {strName, category, pHookFunc, func};
 
 	if (!DETOUR_ISVALID((*pHook)))
 	{
-		Msg(PROJECT_NAME ": Failed to detour %s!\n", strName);
+		Warning(PROJECT_NAME ": Failed to detour %s!\n", strName);
 		if (pFailedDetours.find(strName) == pFailedDetours.end())
-		{
 			pFailedDetours.insert(strName);
-		}
 	} else { // Loaded successfully
 		if (g_pDetours[category].find(pHook) == g_pDetours[category].end())
-		{
 			g_pDetours[category].insert(pHook);
-		}
-
-		if (pLoadedDetours.find(strName) == pLoadedDetours.end())
-		{
-			pLoadedDetours[strName] = category;
-		}
 	}
+
+	if (bEnable)
+		Detour::EnableHook(pHook);
+	else
+		pHook->Destroy(); // We create dit just to verify.
+}
+
+void Detour::EnableHook(Detouring::Hook* pHook)
+{
+	auto it = pDetourInfo.find(pHook);
+	if (it == pDetourInfo.end())
+	{
+		Warning("Tried to use a hook that didn't go through Detour::Create!\n");
+		return;
+	}
+
+	pHook->Create(it->second.pTargetFunc, it->second.pHookFunc);
+	pHook->Enable();
+
+	if (pLoadedDetours.find(it->second.detourName) == pLoadedDetours.end())
+		pLoadedDetours[it->second.detourName] = it->second.nCategory;
+	else
+		Warning("Tried to use Detour::EnableHook on a hook that is already enabled! (%s)\n", it->second.detourName.c_str());
+}
+
+void Detour::DisableHook(Detouring::Hook* pHook)
+{
+	auto it = pDetourInfo.find(pHook);
+	if (it == pDetourInfo.end())
+	{
+		Warning("Tried to use a hook that didn't go through Detour::Create!\n");
+		return;
+	}
+
+	pHook->Disable();
+	pHook->Destroy();
+
+	auto loadedIT = pLoadedDetours.find(it->second.detourName);
+	if (loadedIT != pLoadedDetours.end())
+		pLoadedDetours.erase(loadedIT);
+	else
+		Warning("Tried to use Detour::DisableHook on a hook that is already enabled! (%s)\n", it->second.detourName.c_str());
 }
 
 void Detour::Remove(unsigned int category) // NOTE: Do we need to check if the provided category is valid?
@@ -74,6 +129,10 @@ void Detour::Remove(unsigned int category) // NOTE: Do we need to check if the p
 			hook->Disable();
 			hook->Destroy();
 		}
+
+		auto it = pDetourInfo.find(hook);
+		if (it != pDetourInfo.end())
+			pDetourInfo.erase(it);
 	}
 	g_pDetours[category].clear();
 
@@ -81,11 +140,9 @@ void Detour::Remove(unsigned int category) // NOTE: Do we need to check if the p
 	for (auto it = pLoadedDetours.begin(); it != pLoadedDetours.end(); )
 	{
 		if (it->second == category)
-		{
 			it = pLoadedDetours.erase(it);
-		} else {
+		else
 			it++;
-		}
 	}
 }
 

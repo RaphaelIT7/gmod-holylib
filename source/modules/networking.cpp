@@ -2464,19 +2464,12 @@ void CNetworkingModule::ClientDisconnect(edict_t* pPlayer)
 #if MODULE_EXISTS_PVS
 void Networking_SwitchToPVSTransmit()
 {
-	detour_CServerGameEnts_CheckTransmit.Disable();
-	detour_CServerGameEnts_CheckTransmit.Destroy();
+	Detour::DisableHook(&detour_CServerGameEnts_CheckTransmit);
 }
 
 void Networking_SwitchToOURTransmit()
 {
-	SourceSDK::ModuleLoader server("server");
-	void* func = Detour::GetFunction(server.GetModule(), Symbols::CServerGameEnts_CheckTransmitSym);
-	if (!Detour::CheckFunction(func, "CServerGameEnts::CheckTransmit"))
-		return;
-
-	detour_CServerGameEnts_CheckTransmit.Create(func, (void*)New_CServerGameEnts_CheckTransmit);
-	detour_CServerGameEnts_CheckTransmit.Enable();
+	Detour::EnableHook(&detour_CServerGameEnts_CheckTransmit);
 }
 #endif
 
