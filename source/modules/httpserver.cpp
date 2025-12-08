@@ -152,7 +152,7 @@ public:
 	{
 		if (!ThreadInMainThread())
 		{
-			Warning(PROJECT_NAME ": Something deleted a HttpServer from another thread!\n"); // Spooky leaking references.
+			Warning(PROJECT_NAME " - httpserver: Something deleted a HttpServer from another thread!\n"); // Spooky leaking references.
 			return;
 		}
 
@@ -605,7 +605,7 @@ void CallFunc(GarrysMod::Lua::ILuaInterface* pLua, int callbackFunction, HttpReq
 	Util::ReferencePush(pLua, callbackFunction);
 
 	if (g_pHttpServerModule.InDebug())
-		Msg(PROJECT_NAME ": pushed handler function %i with type %i\n", callbackFunction, pLua->GetType(-1));
+		Msg(PROJECT_NAME " - httpserver: pushed handler function %i with type %i\n", callbackFunction, pLua->GetType(-1));
 
 	Push_HttpRequest(pLua, request);
 	Push_HttpResponse(pLua, response);
@@ -715,7 +715,7 @@ httplib::Server::Handler HttpServer::CreateHandler(const char* path, int func, b
 		if (ipWhitelist && userID == -1)
 		{
 			if (g_pHttpServerModule.InDebug())
-				Msg("holylib - httpserver: Request was denied as the ipWhitelist is enabled and the client couldn't be found.\n");
+				Msg(PROJECT_NAME " - httpserver: Request was denied as the ipWhitelist is enabled and the client couldn't be found.\n");
 
 			return;
 		}
@@ -740,7 +740,7 @@ httplib::Server::Handler HttpServer::CreateHandler(const char* path, int func, b
 		m_pPreparedResponsesMutex.Unlock();
 
 		if (g_pHttpServerModule.InDebug())
-			Msg("holylib - httpserver: Waiting for Main thread to pick up request\n");
+			Msg(PROJECT_NAME " - httpserver: Waiting for Main thread to pick up request\n");
 
 		HttpRequest* request = new HttpRequest;
 		request->m_strPath = path;
@@ -760,7 +760,7 @@ httplib::Server::Handler HttpServer::CreateHandler(const char* path, int func, b
 		request->m_bDelete = true;
 
 		if (g_pHttpServerModule.InDebug())
-			Msg("holylib - httpserver: Finished request\n");
+			Msg(PROJECT_NAME " - httpserver: Finished request\n");
 	};
 }
 
