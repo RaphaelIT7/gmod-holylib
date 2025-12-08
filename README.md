@@ -190,6 +190,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 \- [#] Changed arguments and return value of `HolyLib:PostEntityConstructor`<br>
 \- [#] Changed `pvs.AddEntityToTransmit` to only work inside `HolyLib:PreCheckTransmit` due to safety & performance reasons<br>
 \- [#] Changed `HolyLib:[Pre/Post]CheckTransmit` hooks to be disabled by default needing to be now enabled using `pvs.Enable[Pre/Post]TransmitHook`<br>
+\- [#] Changed `HttpServer:[Get/Put/Post/OtherShit]` callback return value to be flipped, return `false` to mark a request as `NOT` handled, return `true` to mark it as handled<br>
 \- [#] Fixed `networking` module partially not working without the `pvs` module - it internally had depended on it.<br>
 \- [-] Removed `VoiceData:GetUncompressedData` decompress size argument<br>
 \- [-] Removed `CBaseClient:Transmit` third argument `fragments`.<br>
@@ -3900,12 +3901,16 @@ end, true)
 
 If you enable the IP Whitelist, only requests sent by connected players are processed.<br>
 
-#### HttpServer:Get(string path, function (HttpRequest, HttpResponse), bool ipWhitelist)
-#### HttpServer:Put(string path, function (HttpRequest, HttpResponse), bool ipWhitelist)
-#### HttpServer:Post(string path, function (HttpRequest, HttpResponse), bool ipWhitelist)
-#### HttpServer:Patch(string path, function (HttpRequest, HttpResponse), bool ipWhitelist)
-#### HttpServer:Delete(string path, function (HttpRequest, HttpResponse), bool ipWhitelist)
-#### HttpServer:Options(string path, function (HttpRequest, HttpResponse), bool ipWhitelist)
+> [!NOTE]
+> If you return `false` you mark a request as **not** handled.<br>
+> This means that the delay will **not** be responded to until you call `HttpRequest:MarkHandled`<br>
+
+#### bool(handled) HttpServer:Get(string path, function (HttpRequest, HttpResponse), bool ipWhitelist)
+#### bool(handled) HttpServer:Put(string path, function (HttpRequest, HttpResponse), bool ipWhitelist)
+#### bool(handled) HttpServer:Post(string path, function (HttpRequest, HttpResponse), bool ipWhitelist)
+#### bool(handled) HttpServer:Patch(string path, function (HttpRequest, HttpResponse), bool ipWhitelist)
+#### bool(handled) HttpServer:Delete(string path, function (HttpRequest, HttpResponse), bool ipWhitelist)
+#### bool(handled) HttpServer:Options(string path, function (HttpRequest, HttpResponse), bool ipWhitelist)
 
 ### HttpRequest
 A incoming Http Request.

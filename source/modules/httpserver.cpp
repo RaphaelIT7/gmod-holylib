@@ -612,10 +612,8 @@ void CallFunc(GarrysMod::Lua::ILuaInterface* pLua, int callbackFunction, HttpReq
 
 	if (pLua->CallFunctionProtected(2, 1, true))
 	{
-		if (!pLua->GetBool(-1))
-		{
+		if (!pLua->IsType(-1, GarrysMod::Lua::Type::Bool) || pLua->GetBool(-1))
 			request->MarkHandled();
-		}
 
 		pLua->Pop(1);
 	} else {
