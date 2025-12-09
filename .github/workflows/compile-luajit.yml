@@ -8,6 +8,7 @@ on:
       - 'libs/liblua_shared_lib_*'
       - 'libs/lua_shared_lib_*'
       - 'luajit/**'
+      - '!gmod-luajit/**'
 
 jobs:
   build-windows-64:

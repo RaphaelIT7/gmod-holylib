@@ -2,11 +2,14 @@
 
 #include "util.h"
 #include "bitvec.h"
-
-extern "C"
+#if !defined(DISABLE_GMODJIT)
+#include "../gmod-luajit/luajit.h"
+#else
+extern "C" // Our JIT build
 {
 	#include "../luajit/src/lj_obj.h"
 }
+#endif
 
 namespace GarrysMod::Lua
 {

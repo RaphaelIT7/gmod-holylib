@@ -19,7 +19,7 @@ public:
 	bool SupportsMultipleLuaStates() override { return true; };
 };
 
-CLuaThreadsModule g_pLuaThreadsModule;
+static CLuaThreadsModule g_pLuaThreadsModule;
 IModule* pLuaThreadsModule = &g_pLuaThreadsModule;
 
 enum class InterfaceStatus

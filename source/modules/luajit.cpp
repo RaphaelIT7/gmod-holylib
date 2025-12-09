@@ -1,5 +1,6 @@
 #include "module.h"
 #define LUAJIT
+#define DISABLE_GMODJIT
 #include "detours.h"
 #include <detouring/classproxy.hpp>
 #include "LuaInterface.h"

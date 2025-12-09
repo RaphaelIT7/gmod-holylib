@@ -23,7 +23,7 @@ public:
 	bool SupportsMultipleLuaStates() override { return true; };
 };
 
-CSteamWorksModule g_pSteamWorksModule;
+static CSteamWorksModule g_pSteamWorksModule;
 IModule* pSteamWorksModule = &g_pSteamWorksModule;
 
 static ConVar allow_duplicate_steamid("holylib_steamworks_allow_duplicate_steamid", "0", 0, "If enabled, the same steamid can be used multiple times.");

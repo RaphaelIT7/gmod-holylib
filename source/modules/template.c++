@@ -15,7 +15,7 @@ public:
 	int Compatibility() override { return LINUX32; };
 };
 
-CTemplateModule g_pTemplateModule;
+static CTemplateModule g_pTemplateModule;
 IModule* pTemplateModule = &g_pTemplateModule;
 
 void CTemplateModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)

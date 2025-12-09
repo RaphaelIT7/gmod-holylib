@@ -19,7 +19,7 @@ public:
 	bool IsEnabledByDefault() override { return false; };
 };
 
-CAutoRefreshModule g_pAutoRefreshModule;
+static CAutoRefreshModule g_pAutoRefreshModule;
 IModule* pAutoRefreshModule = &g_pAutoRefreshModule;
 
 static IThreadPool* pFileTimePool = nullptr; // Used when checking the file times since the filesystem can be slow.

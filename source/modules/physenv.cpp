@@ -60,7 +60,7 @@ public:
 	int Compatibility() override { return LINUX32 | LINUX64; };
 };
 
-CPhysEnvModule g_pPhysEnvModule;
+static CPhysEnvModule g_pPhysEnvModule;
 IModule* pPhysEnvModule = &g_pPhysEnvModule;
 
 // Useful when you need a stacktrace of what happens before HolyLib:OnPhysicsLag is called. Having it as a lua function causes the backtracing to fail in gdb :sob:

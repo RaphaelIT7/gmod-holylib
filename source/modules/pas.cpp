@@ -18,7 +18,7 @@ public:
 	bool SupportsMultipleLuaStates() override { return true; };
 };
 
-CPASModule g_pPASModule;
+static CPASModule g_pPASModule;
 IModule* pPASModule = &g_pPASModule;
 
 inline bool TestPAS(Util::VisData* pVisData, const Vector& hearPos)

@@ -20,7 +20,7 @@ public:
 	//bool SupportsMultipleLuaStates() override { return true; };
 };
 
-CEntListModule g_pEntListModule;
+static CEntListModule g_pEntListModule;
 IModule* pEntListModule = &g_pEntListModule;
 
 Push_LuaClass(EntityList)

@@ -47,7 +47,7 @@ public:
  * I need to restore and fix the code in Shutdown to allow proper unloading.
  */
 
-CNetworkingModule g_pNetworkingModule;
+static CNetworkingModule g_pNetworkingModule;
 IModule* pNetworkingModule = &g_pNetworkingModule;
 
 /*

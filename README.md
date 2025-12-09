@@ -80,7 +80,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 
 ## Next Update
 \- [+] Any files in `lua/autorun/_holylua/` are loaded by HolyLib on startup.<br>
-\- [+] Added a new modules `luathreads`, `networkthreading`, `soundscape`<br>
+\- [+] Added a new modules `luathreads`, `networkthreading`, `soundscape`, `luagc`<br>
 \- [+] Added `NS_` enums to `gameserver` module.<br>
 \- [+] Added missing `CNetChan:Shutdown` function to the `gameserver` module.<br>
 \- [+] Added LZ4 compression for newly implemented net channel.<br>
@@ -5191,6 +5191,98 @@ If enabled, some packets will be processed by the networking thread instead of t
 > [!NOTE]
 > This can cause the `HolyLib:ProcessConnectionlessPacket` to not be called for the affected packets!
 
+## luagc
+
+### Functions
+
+#### number luagc.GetGCCount()
+Returns the total count of GC objects.<br>
+
+#### table luagc.GetReferences(any object)
+Returns a table containing **all** GCObjects that have a reference stored to the given object.<br>
+
+#### table luagc.GetContainingReferences(any object, bool recursive = false)
+Returns all GCobjects that the given object stores.<br>
+Can be recursive to include all GCobjects referenced by all child objects.<br>
+
+#### table luagc.GetAllGCObjects(any targetObject = nil)
+Returns a table containing all GCobjects.<br>
+If given a `targetObject` object, it will return all GCobjects until it reached the `targetObject` after which it'll stop.<br>
+(the head **won't** be included in the result!)
+
+The GClist **always** goes from newest to oldest GCobjects due to how the GCobjects are chained.<br>
+
+> [!NOTE]
+> This function itself create a table which is why doing<br>
+> `luagc.GetAllGCObjects(luagc.GetCurrentGCHeadObject())`<br>
+> Will always have 1 object - which is the returned table.<br>
+> You can do `table.remove(gcList, 1)` to remove the first entry to get rid of it.<br>
+
+Example usage:
+```lua
+collectgarbage("stop") -- to not modify gc list
+local gcHead = luagc.GetCurrentGCHeadObject()
+
+function Example() -- 1 GCfunction
+  return {}
+end
+Example() -- Returns 1 GCtable
+debug.setfenv(Example, {}) -- to avoid printing _G below - also creates 1 GCtable
+
+-- Now print all new GC objects created by our code above
+local gcList = luagc.GetAllGCObjects(gcHead)
+table.remove(gcList, 1) -- remove the gcList table from itself since it included as the first entry.
+
+for _, gcObject in ipairs(gcList) do
+	print("object: " .. tostring(gcObject) .. " (type: " .. type(gcObject) .. ")") 
+end
+```
+
+Result:
+```lua
+object: table: 0xf0b9fdea (type: table)
+object: table: 0xf09ffc3a (type: table)
+object: function: 0xf0bf9cb2 (type: function)
+```
+
+#### any luagc.GetCurrentGCHeadObject()
+Returns the current GCobject that's at the head of the list.<br>
+
+> [!NOTE]
+> The head object is **always** the newest one.
+
+#### table luagc.GetFormattedGCObjectInfo(any object)
+Returns a nicely formatted table showing which fields store which GC references for the given object.<br>
+
+> [!NOTE]
+> Fields are not consistent and can be **nil** always check if a field exists!
+
+Example:
+```lua
+function test()
+end
+debug.setfenv(test, {hai = ":3"})
+
+local formatted = luagc.GetFormattedGCObjectInfo(test)
+PrintTable(formatted)
+PrintTable(formatted.proto) -- Let's also see the proto
+```
+
+Output:
+```lua
+["environment"]:
+                ["hai"] =       :3
+["object"]      =       function: 0xf09e29f2
+["proto"]       =       proto: 0xf0898ae2
+["type"]        =       function
+["upvalues"]:
+
+["constants"]:
+["name"]        =       @lua_run
+["object"]      =       proto: 0xefabbfb2
+["type"]        =       proto
+```
+
 # Unfinished Modules
 
 ## serverplugins
@@ -5206,6 +5298,15 @@ Supports: Linux32 | Linux64<br>
 
 > [!NOTE]
 > Windows doesn't have plugins / we won't support it there.<br>
+
+## net
+Was meant to provide extended functions like net.Seek and so on.
+
+## nw
+Purpose lost - will be removed soon
+
+## networkingreplacement
+Will implement the entire packed entity code and snapshot stuff with our own implementation to hopefully achieve better performance.
 
 # Issues implemented / fixed
 `gameevent.GetListeners` -> https://github.com/Facepunch/garrysmod-requests/issues/2377<br>

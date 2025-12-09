@@ -30,7 +30,7 @@ static ConVar gameserver_disablespawnsafety("holylib_gameserver_disablespawnsafe
 static ConVar gameserver_connectionlesspackethook("holylib_gameserver_connectionlesspackethook", "1", 0, "If enabled, the HolyLib:ProcessConnectionlessPacket hook is active and will be called.");
 ConVar sv_filter_nobanresponse("sv_filter_nobanresponse", "0", 0, "If enabled, a blocked ip won't be informed that its even blocked.");
 
-CGameServerModule g_pGameServerModule;
+static CGameServerModule g_pGameServerModule;
 IModule* pGameServerModule = &g_pGameServerModule;
 
 double net_time;

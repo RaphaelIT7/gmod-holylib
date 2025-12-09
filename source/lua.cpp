@@ -1,6 +1,7 @@
 #include <LuaInterface.h>
 #include <GarrysMod/FactoryLoader.hpp>
 #include "filesystem.h"
+#define DISABLE_GMODJIT
 #include "lua.h"
 #include "iluashared.h"
 #include <GarrysMod/InterfacePointers.hpp>
