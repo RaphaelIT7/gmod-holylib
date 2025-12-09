@@ -29,6 +29,12 @@ IModule* pNW2Module = &g_pNW2Module;
 	it happens/differs PER Entity class and NW2 MUST be used in the creation tick / when the entity is packed for the first time a NW2 Var Must exist.
 
 	Because then, the NW2 var is written into the Baseline and causes all these issues with copying.
+
+	IMPORTANT:
+	We are REQUIRED to call SendTable_Encode a second time - we cannot remove NW2 from the original transmit.
+	This is because that data is packed and sent out in a snapshot.
+	
+	So the data that is saved in the PackedEntity MUST include NW2 while the data we save in the baseline MUST SKIP it.
 */
 
 // MUST be thread_local as there are other threads that we DONT want to affect!
@@ -65,7 +71,7 @@ void hook_SV_EnsureInstanceBaseline(ServerClass *pServerClass, int iEdict, const
 	}
 	g_bSkipGMODTableEncode = false;
 
-	detour_SV_EnsureInstanceBaseline.GetTrampoline<Symbols::SV_EnsureInstanceBaseline>()(pServerClass, iEdict, pData, nBytes);
+	detour_SV_EnsureInstanceBaseline.GetTrampoline<Symbols::SV_EnsureInstanceBaseline>()(pServerClass, iEdict, writeBuffer, writeBuf.GetNumBytesWritten());
 }
 
 static constexpr int nGMODTableIndexBits = 12;
