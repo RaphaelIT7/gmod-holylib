@@ -5201,9 +5201,10 @@ Returns the total count of GC objects.<br>
 #### table luagc.GetReferences(any object)
 Returns a table containing **all** GCObjects that have a reference stored to the given object.<br>
 
-#### table luagc.GetContainingReferences(any object, bool recursive = false)
+#### table luagc.GetContainingReferences(any object, bool recursive = false, table ignoreGCObjects = nil)
 Returns all GCobjects that the given object stores.<br>
 Can be recursive to include all GCobjects referenced by all child objects.<br>
+ignoreGCObjects - A **sequential** table inside which you can provide GC objects that should be ignored like the global table/`_G`<br>
 
 #### table luagc.GetAllGCObjects(any targetObject = nil)
 Returns a table containing all GCobjects.<br>
@@ -5283,9 +5284,10 @@ Output:
 ["type"]        =       proto
 ```
 
-#### number luagc.GetSizeOfGCObject(any object, bool recursive = false)
+#### number luagc.GetSizeOfGCObject(any object, bool recursive = false, table ignoreGCObjects = nil)
 Returns the memory size of the given object.<br>
 If recursive is set, then the size of referenced objects is added to the total result.<br>
+ignoreGCObjects - A **sequential** table inside which you can provide GC objects that should be ignored like the global table/`_G`<br>
 
 # Unfinished Modules
 

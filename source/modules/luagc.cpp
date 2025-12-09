@@ -225,9 +225,7 @@ bool LuaGC_WalkReferenceCheck(GCobj* pTargetObj, GCobj* pObj, lua_State* L, bool
 
 LUA_FUNCTION_STATIC(luagc_GetReferences)
 {
-	std::unordered_set<GCobj*> nIterated;
 	LUA->PreCreateTable(0, 0);
-
 	lua_State* L = LUA->GetState();
 	global_State* pGState = G(L);
 	if (!pGState)
@@ -414,16 +412,29 @@ void LuaGC_WalkReferences(GCobj* pObj, std::unordered_set<GCobj*>& nWalkedObject
 LUA_FUNCTION_STATIC(luagc_GetContainingReferences)
 {
 	std::unordered_set<GCobj*> nWalkedObjects;
-	LUA->PreCreateTable(0, 0);
 
 	bool bRecursive = LUA->GetBool(2);
-
-	TValue* pVal = RawLua::index2adr(LUA->GetState(), 1);
-	if (tvisgcv(pVal))
+	lua_State* L = LUA->GetState();
+	if (LUA->IsType(3, GarrysMod::Lua::Type::Table))
 	{
-		int nCount = 0;
-		LuaGC_WalkReferences(gcV(pVal), nWalkedObjects, nCount, LUA->GetState(), LUA, false, bRecursive);
+		LUA->Push(3);
+		LUA->PushNil();
+		while (LUA->Next(-2))
+		{
+			TValue* pVal = RawLua::index2adr(L, -1);
+			if (tvisgcv(pVal))
+				nWalkedObjects.insert(gcV(pVal));
+
+			LUA->Pop(1);
+		}
+		LUA->Pop(1);
 	}
+
+	int nCount = 0;
+	LUA->PreCreateTable(0, 0);
+	TValue* pVal = RawLua::index2adr(L, 1);
+	if (tvisgcv(pVal))
+		LuaGC_WalkReferences(gcV(pVal), nWalkedObjects, nCount, L, LUA, false, bRecursive);
 
 	return 1;
 }
@@ -981,16 +992,30 @@ int LuaGC_RecursiveSize(GCobj* pObj, std::unordered_set<GCobj*>& nWalkedObjects,
 
 LUA_FUNCTION_STATIC(luagc_GetSizeOfGCObject)
 {
+	lua_State* L = LUA->GetState();
 	bool bRecursive = LUA->GetBool(2);
-	TValue* pVal = RawLua::index2adr(LUA->GetState(), 1);
-	if (!tvisgcv(pVal))
+	std::unordered_set<GCobj*> nWalkedObjects;
+	if (LUA->IsType(3, GarrysMod::Lua::Type::Table))
 	{
-		LUA->PushNumber(0);
-		return 1;
+		LUA->Push(3);
+		LUA->PushNil();
+		while (LUA->Next(-2))
+		{
+			TValue* pVal = RawLua::index2adr(L, -1);
+			if (tvisgcv(pVal))
+				nWalkedObjects.insert(gcV(pVal));
+
+			LUA->Pop(1);
+		}
+		LUA->Pop(1);
 	}
 
-	std::unordered_set<GCobj*> nWalkedObjects;
-	LUA->PushNumber(LuaGC_RecursiveSize(gcV(pVal), nWalkedObjects, LUA->GetState(), false, bRecursive));
+	TValue* pVal = RawLua::index2adr(L, 1);
+	if (tvisgcv(pVal))
+		LUA->PushNumber(LuaGC_RecursiveSize(gcV(pVal), nWalkedObjects, LUA->GetState(), false, bRecursive));
+	else
+		LUA->PushNumber(0);
+	
 	return 1;
 }
 
