@@ -5208,7 +5208,7 @@ Can be recursive to include all GCobjects referenced by all child objects.<br>
 #### table luagc.GetAllGCObjects(any targetObject = nil)
 Returns a table containing all GCobjects.<br>
 If given a `targetObject` object, it will return all GCobjects until it reached the `targetObject` after which it'll stop.<br>
-(the head **won't** be included in the result!)
+(the `targetObject` **won't** be included in the result!)
 
 The GClist **always** goes from newest to oldest GCobjects due to how the GCobjects are chained.<br>
 
@@ -5282,6 +5282,10 @@ Output:
 ["object"]      =       proto: 0xefabbfb2
 ["type"]        =       proto
 ```
+
+#### number luagc.GetSizeOfGCObject(any object, bool recursive = false)
+Returns the memory size of the given object.<br>
+If recursive is set, then the size of referenced objects is added to the total result.<br>
 
 # Unfinished Modules
 

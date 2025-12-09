@@ -6,10 +6,12 @@
 #include "../gmod-luajit/luajit21/lj_jit.h"
 #include "../gmod-luajit/luajit21/lj_dispatch.h"
 #include "../gmod-luajit/luajit21/lj_tab.h"
+#include "../gmod-luajit/luajit21/lj_gdbjit.h"
 #else
 #include "../gmod-luajit/luajit20/lj_jit.h"
 #include "../gmod-luajit/luajit20/lj_dispatch.h"
 #include "../gmod-luajit/luajit20/lj_tab.h"
+#include "../gmod-luajit/luajit20/lj_gdbjit.h"
 #endif
 
 class CLuaGCModule : public IModule
@@ -479,7 +481,8 @@ static inline void PushGCObject(GarrysMod::Lua::ILuaInterface* LUA, GCobj* pObj)
 	lua_State* L = LUA->GetState();
 
 	LUA->PushNil();
-	setgcV(L, L->top-1, pObj, ~pObj->gch.gct);
+	if (pObj)
+		setgcV(L, L->top-1, pObj, ~pObj->gch.gct);
 }
 
 static inline void PushGCTypeName(GarrysMod::Lua::ILuaInterface* LUA, const char* pName)
@@ -489,6 +492,7 @@ static inline void PushGCTypeName(GarrysMod::Lua::ILuaInterface* LUA, const char
 	LUA->RawSet(-3);
 }
 
+extern int LuaGC_RecursiveSize(GCobj* pObj, std::unordered_set<GCobj*>& nWalkedObjects, lua_State* L, bool bIsChild, bool bRecursive);
 static void LuaGC_ShowReferences(GarrysMod::Lua::ILuaInterface* LUA, GCobj* pObj)
 {
 	if (!pObj)
@@ -499,6 +503,13 @@ static void LuaGC_ShowReferences(GarrysMod::Lua::ILuaInterface* LUA, GCobj* pObj
 	LUA->PushString("object");
 	PushGCObject(LUA, pObj);
 	LUA->RawSet(-3);
+
+	{
+		std::unordered_set<GCobj*> nWalkedObjects;
+		LUA->PushString("size");
+		LUA->PushNumber(LuaGC_RecursiveSize(pObj, nWalkedObjects, LUA->GetState(), false, false));
+		LUA->RawSet(-3);
+	}
 
 	switch(pObj->gch.gct)
 	{
@@ -772,6 +783,217 @@ LUA_FUNCTION_STATIC(luagc_GetFormattedGCObjectInfo)
 	return 1;
 }
 
+int LuaGC_RecursiveSize(GCobj* pObj, std::unordered_set<GCobj*>& nWalkedObjects, lua_State* L, bool bIsChild, bool bRecursive)
+{
+	if (!pObj || nWalkedObjects.find(pObj) != nWalkedObjects.end())
+		return 0;
+
+	if (bIsChild && !bRecursive)
+		return 0;
+
+	nWalkedObjects.insert(pObj);
+
+	int nSize = 0;
+	switch(pObj->gch.gct)
+	{
+	case ~LJ_TUPVAL:
+		{
+			GCupval* pVal = gco2uv(pObj);
+			nSize += sizeof(GCupval);
+
+			TValue* pTV = uvval(pVal);
+			if (pTV && tvisgcv(pTV))
+				nSize += LuaGC_RecursiveSize(gcV(pTV), nWalkedObjects, L, true, bRecursive);
+		}
+		break;
+	case ~LJ_TUDATA:
+		{
+			GCudata* pVal = gco2ud(pObj);
+			nSize += sizeudata(pVal);
+
+			nSize += LuaGC_RecursiveSize(gcref(pVal->env), nWalkedObjects, L, true, bRecursive);
+			nSize += LuaGC_RecursiveSize(gcref(pVal->metatable), nWalkedObjects, L, true, bRecursive);
+		}
+		break;
+	case ~LJ_TTAB:
+		{
+			GCtab* pVal = gco2tab(pObj);
+			
+			if (pVal->hmask > 0)
+				nSize += (pVal->hmask+1) * sizeof(Node);
+
+			if (pVal->asize > 0 && LJ_MAX_COLOSIZE != 0 && pVal->colo <= 0)
+				nSize += pVal->asize * sizeof(TValue);
+
+			if (LJ_MAX_COLOSIZE != 0 && pVal->colo)
+				nSize += sizetabcolo((uint32_t)pVal->colo & 0x7f);
+			else
+				nSize += sizeof(GCtab);
+
+			nSize += LuaGC_RecursiveSize(gcref(pVal->metatable), nWalkedObjects, L, true, bRecursive);
+
+			MSize i, asize = pVal->asize;
+			for (i = 0; i < asize; i++)
+			{
+				TValue* pTV = arrayslot(pVal, i);
+				if (tvisgcv(pTV))
+					nSize += LuaGC_RecursiveSize(gcV(pTV), nWalkedObjects, L, true, bRecursive);
+			}
+
+			if (pVal->hmask > 0)
+			{
+				Node *node = noderef(pVal->node);
+				MSize i, hmask = pVal->hmask;
+				for (i = 0; i <= hmask; i++)
+				{
+					Node *n = &node[i];
+					if (!tvisnil(&n->val))
+					{
+						if (tvisgcv(&n->key))
+							nSize += LuaGC_RecursiveSize(gcV(&n->key), nWalkedObjects, L, true, bRecursive);
+
+						if (tvisgcv(&n->val))
+							nSize += LuaGC_RecursiveSize(gcV(&n->val), nWalkedObjects, L, true, bRecursive);
+					}
+				}
+			}
+		}
+		break;
+	case ~LJ_TFUNC:
+		{
+			GCfunc* pVal = gco2func(pObj);
+			nSize += LuaGC_RecursiveSize(gcref(pVal->c.env), nWalkedObjects, L, true, bRecursive);
+			
+			if (isluafunc(pVal))
+			{
+				nSize += sizeLfunc((MSize)pVal->l.nupvalues);
+				nSize += LuaGC_RecursiveSize(obj2gco(funcproto(pVal)), nWalkedObjects, L, true, bRecursive);
+				
+				for (uint32_t i = 0; i < pVal->l.nupvalues; i++)
+					nSize += LuaGC_RecursiveSize(obj2gco(&gcref(pVal->l.uvptr[i])->uv), nWalkedObjects, L, true, bRecursive);
+			} else {
+				nSize += sizeCfunc((MSize)pVal->c.nupvalues);
+				for (uint32_t i = 0; i < pVal->c.nupvalues; i++)
+				{
+					TValue* pTV = &pVal->c.upvalue[i];
+					if (tvisgcv(pTV))
+						nSize += LuaGC_RecursiveSize(gcV(pTV), nWalkedObjects, L, true, bRecursive);
+				}
+			}
+		}
+		break;
+	case ~LJ_TPROTO:
+		{
+			GCproto* pVal = gco2pt(pObj);
+			nSize += pVal->sizept; // Includes sizeof(GCproto) already!
+			nSize += LuaGC_RecursiveSize(obj2gco(proto_chunkname(pVal)), nWalkedObjects, L, true, bRecursive);
+
+			for (ptrdiff_t i = -(ptrdiff_t)pVal->sizekgc; i < 0; i++)
+				nSize += LuaGC_RecursiveSize(proto_kgc(pVal, i), nWalkedObjects, L, true, bRecursive);
+
+			global_State* g = G(L);
+			if (pVal->trace)
+				nSize += LuaGC_RecursiveSize(obj2gco(traceref(G2J(g), pVal->trace)), nWalkedObjects, L, true, bRecursive);
+		}
+		break;
+	case ~LJ_TTRACE:
+		{
+			GCtrace* pVal = gco2trace(pObj);
+			nSize += LuaGC_RecursiveSize(gcref(pVal->startpt), nWalkedObjects, L, true, bRecursive);
+
+			jit_State *J = G2J(G(L));
+			if (pVal->traceno)
+			{
+#if LUAJIT_USE_GDBJIT
+				GDBJITentryobj *eo = (GDBJITentryobj*)pVal->gdbjit_entry;
+				nSize += eo->sz;
+#endif
+			}
+			
+			nSize += ((sizeof(GCtrace)+7)&~7) + (pVal->nins-pVal->nk)*sizeof(IRIns) + pVal->nsnap*sizeof(SnapShot) + pVal->nsnapmap*sizeof(SnapEntry);
+
+			IRRef ref;
+			if (pVal->traceno == 0)
+				break;
+			
+			for (ref = pVal->nk; ref < REF_TRUE; ref++) {
+				IRIns *ir = &pVal->ir[ref];
+				if (ir->o == IR_KGC)
+					nSize += LuaGC_RecursiveSize(ir_kgc(ir), nWalkedObjects, L, true, bRecursive);
+
+				if (irt_is64(ir->t) && ir->o != IR_KNULL)
+					ref++;
+			}
+
+			global_State* g = G(L);
+			if (pVal->nextside)
+				nSize += LuaGC_RecursiveSize(obj2gco(traceref(G2J(g), pVal->nextside)), nWalkedObjects, L, true, bRecursive);
+
+			if (pVal->link)
+				nSize += LuaGC_RecursiveSize(obj2gco(traceref(G2J(g), pVal->link)), nWalkedObjects, L, true, bRecursive);
+
+			if (pVal->nextroot)
+				nSize += LuaGC_RecursiveSize(obj2gco(traceref(G2J(g), pVal->nextside)), nWalkedObjects, L, true, bRecursive);
+		}
+		break;
+	case ~LJ_TTHREAD:
+		{
+			lua_State* pVal = gco2th(pObj);
+			nSize += sizeof(lua_State);
+			nSize += pVal->stacksize * sizeof(TValue);
+
+			nSize += LuaGC_RecursiveSize(gcref(pVal->env), nWalkedObjects, L, true, bRecursive);
+
+			GCupval* pUpVal = gco2uv(gcref(pVal->openupval));
+			while (pUpVal)
+			{
+				nSize += LuaGC_RecursiveSize(obj2gco(gcV(uvval(pUpVal))), nWalkedObjects, L, true, bRecursive);
+
+				pUpVal = uvnext(pUpVal);
+			}
+
+			TValue* pBase = pVal->base;
+			int nTop = (int)(pVal->top - pVal->base);
+			for (int i=0; i<nTop; ++i)
+			{
+				if (tvisgcv(pBase))
+					nSize += LuaGC_RecursiveSize(gcval(pBase), nWalkedObjects, L, true, bRecursive);
+
+				pBase++;
+			}
+		}
+		break;
+	case ~LJ_TCDATA:
+		{
+			// Gmod has no FFI so we'll use our JIT version since it must be the luajit module's JIT version then
+			nSize += RawLua::GetCDataSize(L, gco2cd(pObj));
+		}
+		break;
+	case ~LJ_TSTR:
+		nSize += sizestring(gco2str(pObj));
+		break;
+	default:
+		break;
+	}
+
+	return nSize;
+}
+
+LUA_FUNCTION_STATIC(luagc_GetSizeOfGCObject)
+{
+	bool bRecursive = LUA->GetBool(2);
+	TValue* pVal = RawLua::index2adr(LUA->GetState(), 1);
+	if (!tvisgcv(pVal))
+	{
+		LUA->PushNumber(0);
+		return 1;
+	}
+
+	std::unordered_set<GCobj*> nWalkedObjects;
+	LUA->PushNumber(LuaGC_RecursiveSize(gcV(pVal), nWalkedObjects, LUA->GetState(), false, bRecursive));
+	return 1;
+}
+
 void CLuaGCModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
@@ -784,6 +1006,7 @@ void CLuaGCModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit
 		Util::AddFunc(pLua, luagc_GetAllGCObjects, "GetAllGCObjects"); // All GCobjs
 		Util::AddFunc(pLua, luagc_GetCurrentGCHeadObject, "GetCurrentGCHeadObject");
 		Util::AddFunc(pLua, luagc_GetFormattedGCObjectInfo, "GetFormattedGCObjectInfo");
+		Util::AddFunc(pLua, luagc_GetSizeOfGCObject, "GetSizeOfGCObject");
 	Util::FinishTable(pLua, "luagc");
 }
 

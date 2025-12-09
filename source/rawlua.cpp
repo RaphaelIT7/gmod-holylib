@@ -176,3 +176,15 @@ int func_isdebugblocked(lua_State* L)
 	lua_pushboolean(L, isblockdebug(func->c));
 	return 1;
 }
+
+int RawLua::GetCDataSize(lua_State* L, GCcdata* pVar)
+{
+	if (!cdataisv(pVar))
+	{
+		CType *ct = ctype_raw(ctype_ctsG(G(L)), pVar->ctypeid);
+		CTSize sz = ctype_hassize(ct->info) ? ct->size : CTSIZE_PTR;
+		return sizeof(GCcdata) + sz;
+	} else {
+		return sizecdatav(pVar);
+	}
+}
