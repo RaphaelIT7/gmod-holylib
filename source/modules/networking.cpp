@@ -1660,8 +1660,12 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 					const PlayerTransmitCache::WeaponSlot& pWeaponSlot = pCache.pWeapons[i];
 					if (pWeaponSlot.bIsNew)
 					{
-						pWeaponSlot.pWeapon->SetTransmit(pInfo, bAlways);
-						NETWORKING_SETSTATE(pWeaponSlot.pWeapon->edict()->m_EdictIndex, pOKPlayerTransmit)
+						CBaseEntity *pWeapon = GetMyWeapon(pCharacter, i);
+						if (!pWeapon)
+							continue;
+
+						pWeapon->SetTransmit(pInfo, bAlways);
+						NETWORKING_SETSTATE(pWeapon->edict()->m_EdictIndex, pOKPlayerTransmit)
 					}
 				}
 			}
@@ -1674,8 +1678,12 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 			const PlayerTransmitCache::WeaponSlot& pWeaponSlot = pCache.pWeapons[i];
 			if (pWeaponSlot.bAlwaysNetwork)
 			{
-				pWeaponSlot.pWeapon->SetTransmit(pInfo, bAlways);
-				NETWORKING_SETSTATE(pWeaponSlot.pWeapon->edict()->m_EdictIndex, pOKPlayerTransmit)
+				CBaseEntity *pWeapon = GetMyWeapon(pCharacter, i);
+				if (!pWeapon)
+					continue;
+
+				pWeapon->SetTransmit(pInfo, bAlways);
+				NETWORKING_SETSTATE(pWeapon->edict()->m_EdictIndex, pOKPlayerTransmit)
 			}
 		}
 	}

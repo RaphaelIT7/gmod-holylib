@@ -5305,6 +5305,11 @@ This storing into the base line **only** happens once for the first time an enti
 
 Now what this module does - it prevents writing NW2Vars into the baseline ensuring they won't be applied to all entites of the same class.<br>
 
+> [!NOTE]
+> The bug still exists clientside though seems to be rarer / variables don't seem to actually change?<br>
+> There still seems to be invalid proxy calls though nothing much I can do about that.<br>
+> This definetly needs more testing though it should be an improvement.<br>
+
 
 # Unfinished Modules
 
