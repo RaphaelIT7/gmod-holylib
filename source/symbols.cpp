@@ -1148,4 +1148,11 @@ namespace Symbols
 	const std::vector<Symbol> CFrameSnapshotManager_CreatePackedEntitySym = {
 		Symbol::FromName("_ZN21CFrameSnapshotManager18CreatePackedEntityEP14CFrameSnapshoti"),
 	};
+
+	//---------------------------------------------------------------------------------
+	// Purpose: nw2 Symbols
+	//---------------------------------------------------------------------------------
+	const std::vector<Symbol> GMODTable_EncodeSym = {
+		Symbol::FromName("_Z16GMODTable_EncodePKhP8DVariantPK8SendPropP8bf_writei"),
+	};
 }

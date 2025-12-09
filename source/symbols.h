@@ -72,6 +72,8 @@ struct audioparams_t;
 struct ss_update_t;
 class IConnectionlessPacketHandler;
 class CCommand;
+class DVariant;
+class SendProp;
 
 namespace GarrysMod::Lua
 {
@@ -783,4 +785,10 @@ namespace Symbols
 
 	using CFrameSnapshotManager_CreatePackedEntity = PackedEntity* (*)(void* framesnapshotmanager, CFrameSnapshot* pSnapshot, int entity);
 	extern const std::vector<Symbol> CFrameSnapshotManager_CreatePackedEntitySym;
+
+	//---------------------------------------------------------------------------------
+	// Purpose: nw2 Symbols
+	//---------------------------------------------------------------------------------
+	using GMODTable_Encode = PackedEntity* (*)(const unsigned char *pStruct, DVariant *pVar, const SendProp *pProp, bf_write *pOut, int objectID);
+	extern const std::vector<Symbol> GMODTable_EncodeSym;
 }

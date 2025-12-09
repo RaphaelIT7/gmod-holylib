@@ -80,7 +80,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 
 ## Next Update
 \- [+] Any files in `lua/autorun/_holylua/` are loaded by HolyLib on startup.<br>
-\- [+] Added a new modules `luathreads`, `networkthreading`, `soundscape`, `luagc`<br>
+\- [+] Added a new modules `luathreads`, `networkthreading`, `soundscape`, `luagc`, `nw2`<br>
 \- [+] Added `NS_` enums to `gameserver` module.<br>
 \- [+] Added missing `CNetChan:Shutdown` function to the `gameserver` module.<br>
 \- [+] Added LZ4 compression for newly implemented net channel.<br>
@@ -5291,6 +5291,21 @@ Returns the memory size of the given object.<br>
 If recursive is set, then the size of referenced objects is added to the total result.<br>
 ignoreGCObjects - A **sequential** table inside which you can provide GC objects that should be ignored like the global table/`_G`<br>
 
+## nw2
+Simple purpose - to fix NW2Vars from breaking.<br>
+This bug happens under the following scenario:<br>
+
+An new entity spawns the **first time** / no entity of it's class was created before.<br>
+Then on this new entity - a NW2Var is set with it's creation.<br>
+
+Now the issue is - when the engine packs the entity for networking, it'll store the packed data as the baseline.<br>
+This **includes** NW2Vars and this baseline is used for all entities of the same class meaning the NW2Var would be present for all of them.<br>
+This storing into the base line **only** happens once for the first time an entitiy was created - this is per entity class!<br>
+(C++ entities - Lua's all share one class meaning this bug would apply a NW2Var to all of them!)<br>
+
+Now what this module does - it prevents writing NW2Vars into the baseline ensuring they won't be applied to all entites of the same class.<br>
+
+
 # Unfinished Modules
 
 ## serverplugins
@@ -5309,9 +5324,6 @@ Supports: Linux32 | Linux64<br>
 
 ## net
 Was meant to provide extended functions like net.Seek and so on.
-
-## nw
-Purpose lost - will be removed soon
 
 ## networkingreplacement
 Will implement the entire packed entity code and snapshot stuff with our own implementation to hopefully achieve better performance.
