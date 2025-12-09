@@ -242,11 +242,11 @@ public:
 				int m_nBits; // Temporary only
 				int m_nBytes; // Final size of our block.
 			};
-			HolyLibSendPropPrecalc* m_nGModDataTableProp; // Saves us some bytes - used by DPT_GMODTable
 		};
 		CUtlVector<HolyLibSendPropPrecalc*> m_pProps; // All props of this type
 	} m_SendPropStruct[HolyLibSendPropPrecalc::DPT_REALNUMSendPropTypes]; // +1 for DPT_BOOL
 	int m_nSendPropDataSize = 0;
+	HolyLibSendPropPrecalc* m_nHolyLibGModDataTableProp; // Saves us some bytes - used by DPT_GMODTable
 };
 
 void HolyLibCSendTablePrecalc::PrecalcSendProps()
@@ -380,7 +380,7 @@ void HolyLibCSendTablePrecalc::PrecalcSendProps()
 				pPrecalc->m_nNewSize = sizeof(void*);
 
 				pStruct.m_nBytes += pPrecalc->m_nNewSize;
-				pStruct.m_nGModDataTableProp = pPrecalc;
+				m_nHolyLibGModDataTableProp = pPrecalc;
 			} else if (nDPTType == SendPropType::DPT_Array) {
 				SendProp* pArrayProp = pProp->GetArrayProp();
 
@@ -1273,7 +1273,7 @@ void NWR_SV_PackEntity(int edictIdx, edict_t* edict, ServerClass* pServerClass, 
 
 	// GMOD - m_nGMODDataTableOffset only exists on dev & 64x NOT MAIN till next update! See: https://github.com/Facepunch/garrysmod-requests/issues/2981
 	CGMODDataTable* pGMODDataTable = nullptr;
-	int nGMODDataTableOffset = pSendTablePrecalc->m_SendPropStruct->m_nGModDataTableProp->GetOffset(); // Since m_nGMODDataTableOffset isn't available
+	int nGMODDataTableOffset = pSendTablePrecalc->m_nHolyLibGModDataTableProp->GetOffset(); // Since m_nGMODDataTableOffset isn't available
 	if ( nGMODDataTableOffset != -1 ) // We use a precalculated offset, since finding it in here is uttelry expensive!
 		pGMODDataTable = *(CGMODDataTable**)((char*)edict->GetUnknown() + nGMODDataTableOffset);
 
