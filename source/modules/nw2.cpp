@@ -12,9 +12,8 @@
 class CNW2Module : public IModule
 {
 public:
-	void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) override;
 	void InitDetour(bool bPreServer) override;
-	const char* Name() override { return "nw"; };
+	const char* Name() override { return "nw2"; };
 	int Compatibility() override { return LINUX32; };
 };
 
@@ -81,11 +80,6 @@ void hook_GMODTable_Encode(const unsigned char *pStruct, DVariant *pVar, const S
 	}
 
 	detour_GMODTable_Encode.GetTrampoline<Symbols::GMODTable_Encode>()(pStruct, pVar, pProp, pOut, objectID);
-}
-
-void CNW2Module::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
-{
-
 }
 
 void CNW2Module::InitDetour(bool bPreServer)
