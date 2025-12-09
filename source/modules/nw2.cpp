@@ -99,4 +99,7 @@ void CNW2Module::InitDetour(bool bPreServer)
 		engine_loader.GetModule(), Symbols::GMODTable_EncodeSym,
 		(void*)hook_GMODTable_Encode, m_pID
 	);
+
+	func_SendTable_Encode = (Symbols::SendTable_Encode)Detour::GetFunction(engine_loader.GetModule(), Symbols::SendTable_EncodeSym);
+	Detour::CheckFunction((void*)func_SendTable_Encode, "SendTable_Encode");
 }
