@@ -5195,8 +5195,10 @@ If enabled, some packets will be processed by the networking thread instead of t
 
 ### Functions
 
-#### number luagc.GetGCCount()
+#### number luagc.GetGCCount(any targetObject = nil)
 Returns the total count of GC objects.<br>
+If given a `targetObject` object, it will count up all GCobjects until it reached the `targetObject` after which it'll stop.<br>
+(the `targetObject` **won't** be included in the result!)
 
 #### table luagc.GetReferences(any object)
 Returns a table containing **all** GCObjects that have a reference stored to the given object.<br>

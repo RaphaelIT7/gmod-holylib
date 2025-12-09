@@ -36,9 +36,16 @@ LUA_FUNCTION_STATIC(luagc_GetGCCount)
 		return 1;
 	}
 
+	// Allows you to pass this function an GC object
+	// This causes us to stop when we reach it
+	GCobj* pTargetObject = nullptr;
+	TValue* pVal = RawLua::index2adr(LUA->GetState(), 1);
+	if (tvisgcv(pVal))
+		pTargetObject = gcV(pVal);
+
 	int nCount = 0;
 	GCobj* pObj = gcref(pGState->gc.root);
-	while (pObj)
+	while (pObj && pObj != pTargetObject)
 	{
 		++nCount;
 		pObj = gcref(pObj->gch.nextgc);
