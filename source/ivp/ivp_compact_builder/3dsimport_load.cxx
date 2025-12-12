@@ -25,7 +25,7 @@ static jmp_buf EnvState;
 #ifdef FILELOAD
 #include <stdio.h>
 
-static FILE * InFile=0;
+static thread_local FILE * InFile=0;
 
 static void FileRead(void * dest, int len)
 {
@@ -55,8 +55,8 @@ static dword FileGetpos(void)
 #endif
 
 #ifdef MEMLOAD
-static byte * MemBuffer=0;
-static dword MemBufferLen=0, MemBufferIndex=0;
+static thread_local byte * MemBuffer=0;
+static thread_local dword MemBufferLen=0, MemBufferIndex=0;
 
 static void MemRead(void * dest, int len)
 {

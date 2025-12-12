@@ -65,7 +65,7 @@ IVP_U_MINLIST_INDEX IVP_U_Min_List::add(void *elem, IVP_U_MINLIST_FIXED_POINT va
 			nNewMallocSize = IVP_U_MINLIST_MAX_ALLOCATION;
 
 #ifdef _DEBUG
-		static int g_ErrorCount = 0;
+		static thread_local int g_ErrorCount = 0;
 		if (g_ErrorCount < 3)
 		{
 			if (nNewMallocSize > 2000)

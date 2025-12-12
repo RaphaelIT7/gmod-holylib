@@ -70,7 +70,7 @@ float *SolveCramer( const float *matrix, int rows, int columns )
 {
 	// max 4 equations, 4 unknowns (until determinant routine is more general)
 	float tmpMain[16*16], tmpSub[16*16];
-	static float solution[16];
+	static thread_local float solution[16];
 
 	int i, j;
 

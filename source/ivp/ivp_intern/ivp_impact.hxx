@@ -30,7 +30,7 @@ class IVP_Impact_System {
 
     void debug_check_all_dists_at_end();
 public:
-    static int sum_sys_impacts;
+    static thread_local int sum_sys_impacts;
     
     void init_and_solve_impact_system(IVP_Mindist *mindist, IVP_Friction_System *fs_system,IVP_Friction_Core_Pair *start_pair,IVP_Contact_Point *start_mdf);
 };

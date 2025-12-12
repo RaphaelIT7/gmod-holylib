@@ -403,7 +403,7 @@ bool IVP_Contact_Point::friction_force_local_constraint_2d_wheel( IVP_Core *core
 				if ( 1 ) // update reference point
 				{
 					//span_s_1 *= 0.95f;
-					static IVP_DOUBLE extra_factor = .9f;
+					static const IVP_DOUBLE extra_factor = .9f;
 					IVP_DOUBLE s_factor = extra_factor * impulses.k[1] / ( old1 * body_impulse_factor );
 					core_a->car_wheel->last_skid_value = 0.3f * ( 1.0f - s_factor ) * this->now_friction_pressure * solver->body_object->get_core()->get_inv_mass();
 					if ( s_factor < 1.0f )

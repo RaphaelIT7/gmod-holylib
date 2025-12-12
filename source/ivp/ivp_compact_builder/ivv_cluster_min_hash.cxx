@@ -134,7 +134,7 @@ void IVV_Cluster_Min_Hash::add(void *elem, IVP_DOUBLE val){
     int i = hash_index((char *)&elem);
     IVV_Cluster_Min_Hash_Elem *el = new IVV_Cluster_Min_Hash_Elem();//(IVV_Cluster_Min_Hash_Elem *)p_malloc(sizeof(IVV_Cluster_Min_Hash_Elem));
 #if defined(SORT_MINDIST_ELEMENTS)
-    static int sort_counter = 1;
+    static thread_local int sort_counter = 1;
     el->cmp_index = sort_counter++;
 #endif    
     el->elem = elem;

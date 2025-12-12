@@ -81,7 +81,7 @@ class hk_Stopwatch_qpt
 		bool		m_running_flag;
 		int			m_num_timings;
 
-		static hk_uint64	s_ticks_per_second;
+		static thread_local hk_uint64	s_ticks_per_second;
 };
 
 inline hk_Stopwatch_qpt::hk_Stopwatch_qpt()

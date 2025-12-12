@@ -142,7 +142,7 @@ void IVP_U_Min_Hash::add(void *elem, IVP_DOUBLE val){
     int i = hash_index((int *)&elem);
     IVP_U_Min_Hash_Elem *el = new IVP_U_Min_Hash_Elem();//(IVP_U_Min_Hash_Elem *)p_malloc(sizeof(IVP_U_Min_Hash_Elem));
 #if defined(SORT_MINDIST_ELEMENTS)
-    static int sort_counter = 1;
+    static thread_local int sort_counter = 1;
     el->cmp_index = sort_counter++;
 #endif    
     el->elem = elem;

@@ -334,7 +334,7 @@ void p_print_error() {
 }
 
 char *p_read_first_token(FILE *fp){
-    static char buffer[1024];
+    static thread_local char buffer[1024];
     while( fgets(buffer, 1000, fp) ){
 	if(buffer[0] == '#') continue;	//Comment
 	char *tok = p_str_tok(buffer, IVP_WHITESPACE);

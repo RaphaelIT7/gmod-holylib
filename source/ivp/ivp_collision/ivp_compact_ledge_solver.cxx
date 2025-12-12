@@ -234,7 +234,7 @@ void IVP_Compact_Ledge_Solver::calc_pos_other_space(const IVP_Compact_Edge *P,IV
 
 void IVP_Compact_Ledge_Solver::transform_vec_other_space(const IVP_U_Point *dir_os, IVP_Cache_Ledge_Point *m_cache_dir,
 						       IVP_Cache_Ledge_Point *m_cache_other_space, IVP_U_Point *res){
-  static IVP_U_Point dir_ws;
+  IVP_U_Point dir_ws;
   m_cache_dir->clp_cache_object->m_world_f_object.inline_vmult3(dir_os, &dir_ws);
   m_cache_other_space->clp_cache_object->m_world_f_object.inline_vimult3(&dir_ws, res);
 }

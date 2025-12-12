@@ -1029,7 +1029,7 @@ void IVP_Mindist::update_exact_mindist_events(IVP_BOOL allow_hull_conversion, IV
 	if (coll_dist_selector > 0)
 	{ 
 		// decrease collision distance
-		static int count = 0;
+		static thread_local int count = 0;
 		if (count ++ > 2)
 		{
 			coll_dist_selector-=1;

@@ -1180,7 +1180,7 @@ void CPhysics_Airboat::DoSimulationKeepUprightPitch( IVP_Raycast_Airboat_Impact 
 	Vector vecCurHL;
 	ConvertDirectionToHL(vecUpWS, vecCurHL);
 
-	static IVP_FLOAT flLastLen = 0;
+	static thread_local IVP_FLOAT flLastLen = 0;
 	IVP_FLOAT flDebugLen = vecAngularImpulse.real_length();
 	if ( flLastLen && ( fabs( flDebugLen - flLastLen ) > DEG2RAD( 1 )  * m_pCore->get_mass() ) )
 	{
@@ -1283,7 +1283,7 @@ void CPhysics_Airboat::DoSimulationKeepUprightRoll( IVP_Raycast_Airboat_Impact *
 	Vector vecCurHL;
 	ConvertDirectionToHL(vecUpWS, vecCurHL);
 
-	static IVP_FLOAT flLastLen = 0;
+	static thread_local IVP_FLOAT flLastLen = 0;
 	IVP_FLOAT flDebugLen = vecAngularImpulse.real_length();
 	if ( flLastLen && ( fabs( flDebugLen - flLastLen ) > ( DEG2RAD( 0.25 ) * m_pCore->get_mass() ) )
 	{
