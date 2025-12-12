@@ -1235,11 +1235,6 @@ static Symbols::SV_EnsureInstanceBaseline func_SV_EnsureInstanceBaseline = nullp
 static Symbols::CFrameSnapshotManager_CreatePackedEntity func_CFrameSnapshotManager_CreatePackedEntity = nullptr;
 static Symbols::CFrameSnapshotManager_GetPreviouslySentPacket func_CFrameSnapshotManager_GetPreviouslySentPacket = nullptr;
 static Symbols::CFrameSnapshotManager_UsePreviouslySentPacket func_CFrameSnapshotManager_UsePreviouslySentPacket = nullptr;
-PackedEntity* DoPacked(CFrameSnapshotManager* PManager, CFrameSnapshot* pSnap, int ent)
-{
-	return func_CFrameSnapshotManager_CreatePackedEntity(PManager, pSnap, ent);
-}
-
 void NWR_SV_PackEntity(int edictIdx, edict_t* edict, ServerClass* pServerClass, CFrameSnapshot *pSnapshot)
 {
 	Assert( edictIdx < pSnapshot->m_nNumEntities );
@@ -1283,6 +1278,7 @@ void NWR_SV_PackEntity(int edictIdx, edict_t* edict, ServerClass* pServerClass, 
 		func_SV_EnsureInstanceBaseline( pServerClass, edictIdx, writeBuffer, writeBuf.GetNumBytesWritten() );	
 	}
 
+#if 0
 	g_pFullFileSystem->CreateDirHierarchy("holylib/dump/newdt/", "MOD");
 	std::string fileName = "holylib/dump/newdt/";
 	fileName.append(pServerClass->GetName());
@@ -1294,6 +1290,7 @@ void NWR_SV_PackEntity(int edictIdx, edict_t* edict, ServerClass* pServerClass, 
 		g_pFullFileSystem->Write(packedData, sizeof(packedData), pPackDump);
 		g_pFullFileSystem->Close(pPackDump);
 	}
+#endif
 	
 	int nFlatProps = pSendTablePrecalc->GetNumProps();
 	IChangeFrameList *pChangeFrame = nullptr;
@@ -1403,7 +1400,7 @@ void NWR_SV_PackEntity(int edictIdx, edict_t* edict, ServerClass* pServerClass, 
 	}
 
 	// Now make a PackedEntity and store the new packed data in there.
-	PackedEntity *pPackedEntity = DoPacked( framesnapshotmanager, pSnapshot, edictIdx );
+	PackedEntity *pPackedEntity = func_CFrameSnapshotManager_CreatePackedEntity( framesnapshotmanager, pSnapshot, edictIdx );
 	pPackedEntity->SetChangeFrameList( pChangeFrame );
 	pPackedEntity->SetServerAndClientClass( pServerClass, nullptr );
 	pPackedEntity->AllocAndCopyPadded( packedData, nWrittenBytes );
