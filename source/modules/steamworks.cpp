@@ -282,6 +282,8 @@ void CSteamWorksModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 		Util::RemoveField(pLua, "Activate");
 		Util::RemoveField(pLua, "IsConnected");
 		Util::RemoveField(pLua, "ForceActivate");
+		Util::RemoveField(pLua, "ForceAuthenticate");
+		Util::RemoveField(pLua, "GetGameServerSteamID");
 		Util::PopTable(pLua);
 	}
 }
