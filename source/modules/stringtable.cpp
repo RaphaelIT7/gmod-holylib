@@ -438,8 +438,9 @@ LUA_FUNCTION_STATIC(INetworkStringTable_GetEntryBits)
 LUA_FUNCTION_STATIC(INetworkStringTable_SetTick)
 {
 	INetworkStringTable* table = Get_INetworkStringTable(LUA, 1, true);
-
 	int tick = (int)LUA->CheckNumber(2);
+
+	Util::DoUnsafeCodeCheck(LUA);
 
 	table->SetTick(tick);
 	return 0;
@@ -448,8 +449,8 @@ LUA_FUNCTION_STATIC(INetworkStringTable_SetTick)
 LUA_FUNCTION_STATIC(INetworkStringTable_ChangedSinceTick)
 {
 	INetworkStringTable* table = Get_INetworkStringTable(LUA, 1, true);
-
 	int tick = (int)LUA->CheckNumber(2);
+
 	LUA->PushBool(table->ChangedSinceTick(tick));
 	return 1;
 }
@@ -512,6 +513,8 @@ LUA_FUNCTION_STATIC(INetworkStringTable_DeleteAllStrings)
 {
 	INetworkStringTable* table = Get_INetworkStringTable(LUA, 1, true);
 	bool bNukePrecache = LUA->GetBool(2);
+
+	Util::DoUnsafeCodeCheck(LUA);
 
 #ifndef SYSTEM_WINDOWS
 	if (!func_CNetworkStringTable_DeleteAllStrings)
@@ -576,6 +579,8 @@ LUA_FUNCTION_STATIC(INetworkStringTable_SetMaxEntries)
 	if ((1 << maxEntryBits) != maxEntries)
 		LUA->ThrowError("String tables must be powers of two in size!");
 
+	Util::DoUnsafeCodeCheck(LUA);
+
 	table->m_nMaxEntries = maxEntries;
 	table->m_nEntryBits = maxEntryBits;
 
@@ -599,6 +604,8 @@ LUA_FUNCTION_STATIC(INetworkStringTable_DeleteString)
 		LUA->PushBool(false);
 		return 1;
 	}
+
+	Util::DoUnsafeCodeCheck(LUA);
 
 	if (!Q_stricmp(MODEL_PRECACHE_TABLENAME, table->GetTableName()))
 	{
@@ -686,6 +693,8 @@ LUA_FUNCTION_STATIC(INetworkStringTable_SetStringUserData)
 	if (nLength != 0)
 		iLength = nLength;
 
+	Util::DoUnsafeCodeCheck(LUA);
+
 	if (idx >= table->GetNumStrings())
 		return 0;
 
@@ -717,6 +726,8 @@ LUA_FUNCTION_STATIC(INetworkStringTable_SetNumberUserData)
 	int idx = (int)LUA->CheckNumber(2);
 	int pUserData = (int)LUA->CheckNumber(3);
 
+	Util::DoUnsafeCodeCheck(LUA);
+
 	if (idx >= table->GetNumStrings())
 		return 0;
 
@@ -744,6 +755,8 @@ LUA_FUNCTION_STATIC(INetworkStringTable_SetPrecacheUserData)
 	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(LUA, 1, true);
 	int idx = (int)LUA->CheckNumber(2);
 	int pFlags = (int)LUA->CheckNumber(3);
+
+	Util::DoUnsafeCodeCheck(LUA);
 
 	if (idx >= table->GetNumStrings())
 		return 0;
@@ -856,26 +869,34 @@ LUA_FUNCTION_STATIC(stringtable_CreateStringTable)
 
 	if (networkStringTableContainerServer->FindTable(name))
 	{
-		std::string err = "Tried to create a already existing stringtable! (";
-		err.append(name);
-		err.append(")");
-		LUA->ThrowError(err.c_str());
+		char err[255];
+		snprintf(err, sizeof(err), "Tried to create string table '%s' when it already exists!", name);
+		LUA->ThrowError(err);
+		return 0;
 	}
 
 	if ((1 << Q_log2(maxentries)) != maxentries)
 	{
-		std::string err = "String tables must be powers of two in size!, ";
-		err.append(std::to_string(maxentries));
-		err.append(" is not a power of 2\n");
-		LUA->ThrowError(err.c_str());
+		char err[255];
+		snprintf(err, sizeof(err), "Tried to create string table '%s' when the maxentries '%i' was NOT the power of two!", name, maxentries);
+		LUA->ThrowError(err);
+		return 0;
 	}
 
 	if (!networkStringTableContainerServer->m_bAllowCreation)
 	{
-		std::string err = "Tried to create string table '";
-		err.append(std::to_string(maxentries));
-		err.append("' at wrong time\n");
-		LUA->ThrowError(err.c_str());
+		char err[255];
+		snprintf(err, sizeof(err), "Tried to create string table '%s' at the wrong time!", name);
+		LUA->ThrowError(err);
+		return 0;
+	}
+
+	if (networkStringTableContainerServer->m_Tables.Count() >= MAX_TABLES)
+	{
+		char err[255];
+		snprintf(err, sizeof(err), "Tried to create string table '%s' when the total limit of %i was reached!", name, MAX_TABLES);
+		LUA->ThrowError(err);
+		return 0;
 	}
 
 	INetworkStringTable* pTable = networkStringTableContainerServer->CreateStringTable(name, maxentries, userdatafixedsize, userdatanetworkbits);
@@ -887,6 +908,8 @@ LUA_FUNCTION_STATIC(stringtable_CreateStringTable)
 
 LUA_FUNCTION_STATIC(stringtable_RemoveAllTables)
 {
+	Util::DoUnsafeCodeCheck(LUA);
+
 	networkStringTableContainerServer->RemoveAllTables();
 	DeleteAll_INetworkStringTable(LUA); // We don't need this since we hooked into the deconstructor. Update: I'm a idiot. We need it to delete the LuaUserData that else would enter a invalid state.
 	// ToDo: Nuke the stored stringtables inside CGameServer.
@@ -958,26 +981,34 @@ LUA_FUNCTION_STATIC(stringtable_CreateStringTableEx)
 
 	if (networkStringTableContainerServer->FindTable(name))
 	{
-		std::string err = "Tried to create a already existing stringtable! (";
-		err.append(name);
-		err.append(")");
-		LUA->ThrowError(err.c_str());
+		char err[255];
+		snprintf(err, sizeof(err), "Tried to create string table '%s' when it already exists!", name);
+		LUA->ThrowError(err);
+		return 0;
 	}
 
 	if ((1 << Q_log2(maxentries)) != maxentries)
 	{
-		std::string err = "String tables must be powers of two in size!, ";
-		err.append(std::to_string(maxentries));
-		err.append(" is not a power of 2\n");
-		LUA->ThrowError(err.c_str());
+		char err[255];
+		snprintf(err, sizeof(err), "Tried to create string table '%s' when the maxentries '%i' was NOT the power of two!", name, maxentries);
+		LUA->ThrowError(err);
+		return 0;
 	}
 
 	if (!networkStringTableContainerServer->m_bAllowCreation)
 	{
-		std::string err = "Tried to create string table '";
-		err.append(std::to_string(maxentries));
-		err.append("' at wrong time\n");
-		LUA->ThrowError(err.c_str());
+		char err[255];
+		snprintf(err, sizeof(err), "Tried to create string table '%s' at the wrong time!", name);
+		LUA->ThrowError(err);
+		return 0;
+	}
+
+	if (networkStringTableContainerServer->m_Tables.Count() >= MAX_TABLES)
+	{
+		char err[255];
+		snprintf(err, sizeof(err), "Tried to create string table '%s' when the total limit of %i was reached!", name, MAX_TABLES);
+		LUA->ThrowError(err);
+		return 0;
 	}
 
 	INetworkStringTable* pTable = networkStringTableContainerServer->CreateStringTableEx(name, maxentries, userdatafixedsize, userdatanetworkbits, bIsFilenames);
@@ -991,6 +1022,8 @@ LUA_FUNCTION_STATIC(stringtable_SetAllowClientSideAddString)
 {
 	INetworkStringTable* table = Get_INetworkStringTable(LUA, 1, true);
 	bool bAllowClientSideAddString = LUA->GetBool(2);
+
+	Util::DoUnsafeCodeCheck(LUA);
 
 	networkStringTableContainerServer->SetAllowClientSideAddString(table, bAllowClientSideAddString);
 
@@ -1013,6 +1046,8 @@ LUA_FUNCTION_STATIC(stringtable_IsLocked)
 
 LUA_FUNCTION_STATIC(stringtable_SetLocked)
 {
+	Util::DoUnsafeCodeCheck(LUA);
+
 	networkStringTableContainerServer->m_bLocked = LUA->GetBool(1);
 
 	return 0;
@@ -1028,6 +1063,8 @@ LUA_FUNCTION_STATIC(stringtable_AllowCreation)
 LUA_FUNCTION_STATIC(stringtable_RemoveTable)
 {
 	INetworkStringTable* pTable = Get_INetworkStringTable(LUA, 1, true);
+
+	Util::DoUnsafeCodeCheck(LUA);
 
 	networkStringTableContainerServer->m_Tables.FastRemove(pTable->GetTableId());
 	//DeleteGlobal_INetworkStringTable(pTable); // We don't need this since we hooked into the deconstructor.

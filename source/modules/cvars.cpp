@@ -204,6 +204,8 @@ LUA_FUNCTION_STATIC(cvars_GetAll)
 
 LUA_FUNCTION_STATIC(cvars_SetValue)
 {
+	Util::DoUnsafeCodeCheck(LUA);
+
 	const char* pName = LUA->CheckString(1);
 	ConVar* pConVar = g_pCVar->FindVar(pName);
 	if (!pConVar)
@@ -219,6 +221,8 @@ LUA_FUNCTION_STATIC(cvars_SetValue)
 
 LUA_FUNCTION_STATIC(cvars_Unregister)
 {
+	Util::DoUnsafeCodeCheck(LUA);
+
 	ConCommandBase* pConVar;
 	if (LUA->IsType(1, GarrysMod::Lua::Type::String))
 		pConVar = g_pCVar->FindCommandBase(LUA->GetString(1));

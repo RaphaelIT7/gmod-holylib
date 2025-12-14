@@ -192,6 +192,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 \- [#] Changed `HolyLib:[Pre/Post]CheckTransmit` hooks to be disabled by default needing to be now enabled using `pvs.Enable[Pre/Post]TransmitHook`<br>
 \- [#] Changed `HttpServer:[Get/Put/Post/OtherShit]` callback return value to be flipped, return `false` to mark a request as `NOT` handled, return `true` to mark it as handled<br>
 \- [#] Fixed `networking` module partially not working without the `pvs` module - it internally had depended on it.<br>
+\- [#] Fixed `stringtable.CreateStringTable` and `stringtable.CreateStringTableEx` both failing to catch the case in which all stringtable slots were used leading to a server error/shutdown.<br>
 \- [-] Removed `VoiceData:GetUncompressedData` decompress size argument<br>
 \- [-] Removed `CBaseClient:Transmit` third argument `fragments`.<br>
 \- [-] Removed `gameserver.CalculateCPUUsage` and `gameserver.ApproximateProcessMemoryUsage` since they never worked.<br>
