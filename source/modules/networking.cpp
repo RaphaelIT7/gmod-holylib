@@ -937,8 +937,11 @@ static const char* pFailedPVS = "FAILED_PVSCHECK"; // PVS check failed? GG
 static const char* pFullDontSend = "FULLCHECK_DONTSEND"; // Full check said were ghosts
 static const char* pEntityTransmitStates[MAX_EDICTS] = {nullptr}; // Debugging shit
 #define NETWORKING_SETSTATE(index, state) pEntityTransmitStates[index] = state;
+#define NETWORKING_SETSTATE_PRINT(index, state) pEntityTransmitStates[index] = state; \
+if ( state == pOKParent && !pInfo->m_pTransmitEdict->Get( index ) ) { Msg(PROJECT_NAME " - networking: Entity %i was set to transmit yet it was not???", index); }
 #else
 #define NETWORKING_SETSTATE(index, state)
+#define NETWORKING_SETSTATE_PRINT(index, state)
 #endif
 
 #define NETWORKING_USE_ENTITYCACHE 1
@@ -1802,7 +1805,7 @@ static inline void DoTransmitPVSCheck(edict_t* pEdict, CBaseEntity* pEnt, const 
 		if ( pInfo->m_pTransmitEdict->Get( checkIndex ) )
 		{
 			pEnt->SetTransmit( pInfo, true );
-			NETWORKING_SETSTATE(pEnt->edict()->m_EdictIndex, pOKParent)
+			NETWORKING_SETSTATE_PRINT(pEdict->m_EdictIndex, pOKParent)
 			return;
 		}
 
@@ -1813,14 +1816,14 @@ static inline void DoTransmitPVSCheck(edict_t* pEdict, CBaseEntity* pEnt, const 
 		const int checkFlags = checkEdict->m_fStateFlags & (FL_EDICT_DONTSEND|FL_EDICT_ALWAYS|FL_EDICT_PVSCHECK|FL_EDICT_FULLCHECK);
 		if ( checkFlags & FL_EDICT_DONTSEND )
 		{
-			NETWORKING_SETSTATE(pEnt->edict()->m_EdictIndex, pDontSend)
+			NETWORKING_SETSTATE(pEdict->m_EdictIndex, pDontSend)
 			return;
 		}
 
 		if ( checkFlags & FL_EDICT_ALWAYS )
 		{
 			pEnt->SetTransmit( pInfo, true );
-			NETWORKING_SETSTATE(pEnt->edict()->m_EdictIndex, pOKAlways)
+			NETWORKING_SETSTATE(pEdict->m_EdictIndex, pOKAlways)
 			return;
 		}
 
@@ -1835,7 +1838,7 @@ static inline void DoTransmitPVSCheck(edict_t* pEdict, CBaseEntity* pEnt, const 
 				pCheckEntity->SetTransmit( pInfo, true );
 				NETWORKING_SETSTATE(checkIndex, pOKFullAlways)
 				pEnt->SetTransmit( pInfo, true );
-				NETWORKING_SETSTATE(pEnt->edict()->m_EdictIndex, pOKFullAlways)
+				NETWORKING_SETSTATE(pEdict->m_EdictIndex, pOKFullAlways)
 			}
 			NETWORKING_SETSTATE(checkIndex, pFailedPVSFullParent)
 			// Msg("Fucking shit, why did this happen! (%i - %i)\n", checkIndex, pEdict->m_EdictIndex);
@@ -1853,7 +1856,7 @@ static inline void DoTransmitPVSCheck(edict_t* pEdict, CBaseEntity* pEnt, const 
 			if ( bMoveParentInPVS )
 			{
 				pEnt->SetTransmit( pInfo, true );
-				NETWORKING_SETSTATE(pEnt->edict()->m_EdictIndex, pOKPVS)
+				NETWORKING_SETSTATE(pEdict->m_EdictIndex, pOKPVS)
 				return;
 			}
 		}
@@ -2269,7 +2272,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 		for (int i=0; i<MAX_EDICTS; ++i)
 		{
 			if (pInfo->m_pTransmitEdict->IsBitSet(i) && !pCurrentTransmit.IsBitSet(i)) // ONLY trigger if an entity wasn't transmitted - if we transmit addititional entities its fine
-				Msg(PROJECT_NAME " - networking: Entity failed our transmit code! Index %i (State: %i - %s)\n", i, (&world_edict[i])->m_fStateFlags & (FL_EDICT_DONTSEND|FL_EDICT_ALWAYS|FL_EDICT_PVSCHECK|FL_EDICT_FULLCHECK), pEntityTransmitStates[i]);
+				Msg(PROJECT_NAME " - networking: Entity failed our transmit code! Index %i (%s) (State: %i - %s)\n", i, g_pEntityCache[i] ? g_pEntityCache[i]->GetClassname() : "NULL", (&world_edict[i])->m_fStateFlags & (FL_EDICT_DONTSEND|FL_EDICT_ALWAYS|FL_EDICT_PVSCHECK|FL_EDICT_FULLCHECK), pEntityTransmitStates[i]);
 		}
 
 		if (networking_verifyshit.GetInt() == 2)
