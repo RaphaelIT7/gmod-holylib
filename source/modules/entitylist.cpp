@@ -16,7 +16,7 @@ public:
 	void OnEntityCreated(CBaseEntity* pEntity) override;
 	void OnEntityDeleted(CBaseEntity* pEntity) override;
 	const char* Name() override { return "entitylist"; };
-	int Compatibility() override { return LINUX32 | LINUX64; };
+	int Compatibility() override { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 	//bool SupportsMultipleLuaStates() override { return true; };
 };
 
