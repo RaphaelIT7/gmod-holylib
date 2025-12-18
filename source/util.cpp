@@ -577,6 +577,7 @@ DETOUR_THISCALL_START()
 DETOUR_THISCALL_FINISH();
 #endif
 
+
 IGet* Util::get = nullptr;
 CBaseEntityList* g_pEntityList = nullptr;
 Symbols::lua_rawseti Util::func_lua_rawseti = nullptr;
@@ -650,7 +651,11 @@ void Util::AddDetour()
 		(void*)hook_SteamGameServer_Shutdown, 0
 	);
 
+#if SYSTEM_WINDOWS && ARCHITECTURE_X86_64
+	server = Detour::ResolveSymbolNoDereference<IServer>( engine_loader, Symbol::FromName( "?sv@@3VCGameServer@@A" ) );
+#else
 	server = InterfacePointers::Server();
+#endif
 	Detour::CheckValue("get class", "IServer", server != nullptr);
 
 	IServerTools* serverTools = nullptr;

@@ -22,7 +22,7 @@ public:
 	void InitDetour(bool bPreServer) override;
 	void OnClientDisconnect(CBaseClient* pClient) override;
 	const char* Name() override { return "gameserver"; };
-	int Compatibility() override { return LINUX32 | LINUX64; };
+	int Compatibility() override { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 	bool SupportsMultipleLuaStates() override { return true; };
 };
 
@@ -3175,5 +3175,5 @@ void CGameServerModule::InitDetour(bool bPreServer)
 	s_NetChannels = Detour::ResolveSymbolWithOffset<CUtlVectorMT<CUtlVector<CNetChan*>>>(engine_loader.GetModule(), Symbols::s_NetChannelsSym);
 #endif
 
-	host_timescale = g_pCVar->FindVar("host_timescale");
+	host_timescale = g_pCVar ? g_pCVar->FindVar("host_timescale") : nullptr;
 }
