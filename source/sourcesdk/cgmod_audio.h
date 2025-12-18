@@ -7,6 +7,7 @@
 #include "IGmod_Audio.h"
 #include "bass.h"
 #include "bassenc.h"
+#include "bassmix.h"
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
@@ -197,6 +198,9 @@ public:
 	virtual void AddMixerChannel( IGModAudioChannel* pChannel, unsigned long nFlags, const char** pErrorOut );
 	virtual void RemoveMixerChannel();
 	virtual int GetMixerState();
+	virtual const char* SetMatrix(float* pValues, float fTime);
+	virtual int GetChannelCount(const char** pErrorOut);
+	virtual int GetMixerChannelCount(const char** pErrorOut);
 
 	// Splitter functions
 	virtual bool IsSplitter();

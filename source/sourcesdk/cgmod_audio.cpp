@@ -275,6 +275,8 @@ static BASS_Mixer_StreamCreate* func_BASS_Mixer_StreamCreate;
 static BASS_Mixer_StreamAddChannel* func_BASS_Mixer_StreamAddChannel;
 static BASS_Mixer_ChannelIsActive* func_BASS_Mixer_ChannelIsActive;
 static BASS_Mixer_ChannelRemove* func_BASS_Mixer_ChannelRemove;
+static BASS_Mixer_ChannelSetMatrixEx* func_BASS_Mixer_ChannelSetMatrixEx;
+static BASS_Mixer_ChannelGetMixer* func_BASS_Mixer_ChannelGetMixer;
 static BASS_Split_StreamCreate* func_BASS_Split_StreamCreate;
 static BASS_Split_StreamReset* func_BASS_Split_StreamReset;
 
@@ -400,6 +402,8 @@ bool CGMod_Audio::Init(CreateInterfaceFn interfaceFactory)
 		GetBassEncFunc(BASS_Mixer_StreamAddChannel, pBassMix);
 		GetBassEncFunc(BASS_Mixer_ChannelIsActive, pBassMix);
 		GetBassEncFunc(BASS_Mixer_ChannelRemove, pBassMix);
+		GetBassEncFunc(BASS_Mixer_ChannelSetMatrixEx, pBassMix);
+		GetBassEncFunc(BASS_Mixer_ChannelGetMixer, pBassMix);
 		GetBassEncFunc(BASS_Split_StreamCreate, pBassMix);
 		GetBassEncFunc(BASS_Split_StreamReset, pBassMix);
 	}
@@ -1259,6 +1263,49 @@ int CGModAudioChannel::GetMixerState()
 		return BASS_ACTIVE_STOPPED;
 
 	return func_BASS_Mixer_ChannelIsActive(m_pHandle);
+}
+
+const char* CGModAudioChannel::SetMatrix(float* pValues, float fTime)
+{
+	if (!func_BASS_Mixer_ChannelSetMatrixEx(m_pHandle, pValues, fTime))
+		return BassErrorToString(BASS_ErrorGetCode());
+
+	return nullptr;
+}
+
+int CGModAudioChannel::GetChannelCount(const char** pErrorOut)
+{
+	*pErrorOut = nullptr;
+
+	BASS_CHANNELINFO info;
+	if (!BASS_ChannelGetInfo(m_pHandle, &info))
+	{
+		*pErrorOut = BassErrorToString(BASS_ErrorGetCode());
+		return -1;
+	}
+
+	return info.chans;
+}
+
+int CGModAudioChannel::GetMixerChannelCount(const char** pErrorOut)
+{
+	*pErrorOut = nullptr;
+
+	HSTREAM pMixer = func_BASS_Mixer_ChannelGetMixer(m_pHandle);
+	if (!pMixer)
+	{
+		*pErrorOut = BassErrorToString(BASS_ErrorGetCode());
+		return -1;
+	}
+
+	BASS_CHANNELINFO info;
+	if (!BASS_ChannelGetInfo(pMixer, &info))
+	{
+		*pErrorOut = BassErrorToString(BASS_ErrorGetCode());
+		return -1;
+	}
+
+	return info.chans;
 }
 
 bool CGModAudioChannel::IsSplitter()

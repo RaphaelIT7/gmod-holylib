@@ -176,6 +176,9 @@ public:
 	virtual void AddMixerChannel( IGModAudioChannel* pChannel, unsigned long nFlags, const char** pErrorOut ) = 0;
 	virtual void RemoveMixerChannel() = 0;
 	virtual int GetMixerState() = 0;
+	virtual const char* SetMatrix(float* pValues, float fTime) = 0;
+	virtual int GetChannelCount(const char** pErrorOut) = 0;
+	virtual int GetMixerChannelCount(const char** pErrorOut) = 0;
 
 	// Splitter functions
 	virtual bool IsSplitter() = 0;

@@ -830,6 +830,70 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetMixerState)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(IGModAudioChannel_SetMixerMatrix)
+{
+	IGModAudioChannel* pChannel = Get_IGModAudioChannel(LUA, 1, true);
+	LUA->CheckType(2, GarrysMod::Lua::Type::Table);
+	float fTime = (float)LUA->CheckNumberOpt(3, 0.0f);
+
+	const char* pError = nullptr;
+	int srcChans = pChannel->GetChannelCount(&pError);
+	if (pError)
+	{
+		LUA->PushBool(false);
+		LUA->PushString(pError);
+		return 2;
+	}
+
+	int dstChans = pChannel->GetMixerChannelCount(&pError);
+	if (pError)
+	{
+		LUA->PushBool(false);
+		LUA->PushString(pError);
+		return 2;
+	}
+
+	std::vector<float> matrix(srcChans * dstChans, 0.0f);
+	for (int i = 0; i < srcChans; ++i)
+	{
+		LUA->Push(2);
+		LUA->PushNumber(i + 1);
+		LUA->GetTable(-2);
+
+		if (LUA->IsType(-1, GarrysMod::Lua::Type::Table))
+		{
+			for (int j = 0; j < dstChans; ++j)
+			{
+				LUA->PushNumber(j + 1);
+				LUA->GetTable(-2);
+
+				if (LUA->IsType(-1, GarrysMod::Lua::Type::Number))
+					matrix[i * dstChans + j] = (float)LUA->GetNumber(-1);
+
+				LUA->Pop(1);
+			}
+		}
+		else if (LUA->IsType(-1, GarrysMod::Lua::Type::Number) && dstChans == 1)
+		{
+			matrix[i] = (float)LUA->GetNumber(-1);
+		}
+
+		LUA->Pop(2);
+	}
+
+	const char* result = pChannel->SetMatrix(matrix.data(), fTime);
+	if (result)
+	{
+		LUA->PushBool(false);
+		LUA->PushString(result);
+		return 2;
+	}
+
+	LUA->PushBool(true);
+	LUA->PushNil();
+	return 2;
+}
+
 LUA_FUNCTION_STATIC(IGModAudioChannel_IsSplitter)
 {
 	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
@@ -1429,6 +1493,7 @@ void CBassModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 		Util::AddFunc(pLua, IGModAudioChannel_AddMixerChannel, "AddMixerChannel");
 		Util::AddFunc(pLua, IGModAudioChannel_RemoveMixerChannel, "RemoveMixerChannel");
 		Util::AddFunc(pLua, IGModAudioChannel_GetMixerState, "GetMixerState");
+		Util::AddFunc(pLua, IGModAudioChannel_SetMixerMatrix, "SetMixerMatrix");
 
 		Util::AddFunc(pLua, IGModAudioChannel_IsSplitter, "IsSplitter");
 		Util::AddFunc(pLua, IGModAudioChannel_ResetSplitStream, "ResetSplitStream");
@@ -1521,6 +1586,13 @@ void CBassModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 		Util::AddValue(pLua, BASS_ATTRIB_VOLDSP_PRIORITY, "BASS_ATTRIB_VOLDSP_PRIORITY");
 
 		Util::AddValue(pLua, BASS_SLIDE_LOG, "BASS_SLIDE_LOG");
+
+		Util::AddValue(pLua, BASS_MIXER_CHAN_BUFFER, "BASS_MIXER_CHAN_BUFFER");
+		Util::AddValue(pLua, BASS_MIXER_CHAN_DOWNMIX, "BASS_MIXER_CHAN_DOWNMIX");
+		Util::AddValue(pLua, BASS_MIXER_CHAN_LIMIT, "BASS_MIXER_CHAN_LIMIT");
+		Util::AddValue(pLua, BASS_MIXER_CHAN_MATRIX, "BASS_MIXER_CHAN_MATRIX");
+		Util::AddValue(pLua, BASS_MIXER_CHAN_NORAMPIN, "BASS_MIXER_CHAN_NORAMPIN");
+		Util::AddValue(pLua, BASS_MIXER_CHAN_PAUSE, "BASS_MIXER_CHAN_PAUSE");
 
 		Util::AddValue(pLua, (int)BassFX::FX_CHORUS, "FX_CHORUS");
 		Util::AddValue(pLua, (int)BassFX::FX_DISTORTION, "FX_DISTORTION");

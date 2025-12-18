@@ -3595,6 +3595,10 @@ Binds internally to https://www.un4seen.com/doc/#bassmix/BASS_Mixer_ChannelRemov
 Returns how a mixer would see the channels current state which could differ when buffering<br>
 See https://www.un4seen.com/doc/#bassmix/BASS_Mixer_ChannelIsActive.html for more details<br>
 
+#### bool(success), string(errMsg - nil) IGModAudioChannel:SetMixerMatrix(table matrix, float time = 0)
+Sets the channel's mixer matrix.
+See https://www.un4seen.com/doc/#bassmix/BASS_Mixer_ChannelIsActive.html for more details<br>
+
 #### bool IGModAudioChannel:IsSplitter()
 Returns `true` if the channel was created using `bass.CreateSplitChannel`<br>
 
