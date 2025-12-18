@@ -548,6 +548,23 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetChannelData)
 	return 2;
 }
 
+LUA_FUNCTION_STATIC(IGModAudioChannel_GetChannelCount)
+{
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
+
+	const char* pError = nullptr;
+	int nChannelCount = channel->GetChannelCount(&pError);
+	if (pError)
+	{
+		LUA->PushNil();
+		LUA->PushString(pError);
+	} else {
+		LUA->PushNumber(nChannelCount);
+		LUA->PushNil();
+	}
+	return 2;
+}
+
 LUA_FUNCTION_STATIC(IGModAudioChannel_SetFX)
 {
 	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
@@ -892,6 +909,23 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_SetMixerMatrix)
 
 	LUA->PushBool(true);
 	LUA->PushNil();
+	return 2;
+}
+
+LUA_FUNCTION_STATIC(IGModAudioChannel_GetMixerChannelCount)
+{
+	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
+
+	const char* pError = nullptr;
+	int nChannelCount = channel->GetMixerChannelCount(&pError);
+	if (pError)
+	{
+		LUA->PushNil();
+		LUA->PushString(pError);
+	} else {
+		LUA->PushNumber(nChannelCount);
+		LUA->PushNil();
+	}
 	return 2;
 }
 
@@ -1479,6 +1513,7 @@ void CBassModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 		Util::AddFunc(pLua, IGModAudioChannel_GetAttribute, "GetAttribute");
 		Util::AddFunc(pLua, IGModAudioChannel_IsAttributeSliding, "IsAttributeSliding");
 		Util::AddFunc(pLua, IGModAudioChannel_GetChannelData, "GetChannelData");
+		Util::AddFunc(pLua, IGModAudioChannel_GetChannelCount, "GetChannelCount");
 
 		Util::AddFunc(pLua, IGModAudioChannel_SetFX, "SetFX");
 		Util::AddFunc(pLua, IGModAudioChannel_ResetFX, "ResetFX");
@@ -1495,6 +1530,7 @@ void CBassModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 		Util::AddFunc(pLua, IGModAudioChannel_RemoveMixerChannel, "RemoveMixerChannel");
 		Util::AddFunc(pLua, IGModAudioChannel_GetMixerState, "GetMixerState");
 		Util::AddFunc(pLua, IGModAudioChannel_SetMixerMatrix, "SetMixerMatrix");
+		Util::AddFunc(pLua, IGModAudioChannel_GetMixerChannelCount, "GetMixerChannelCount");
 
 		Util::AddFunc(pLua, IGModAudioChannel_IsSplitter, "IsSplitter");
 		Util::AddFunc(pLua, IGModAudioChannel_ResetSplitStream, "ResetSplitStream");

@@ -1156,6 +1156,21 @@ unsigned long CGModAudioChannel::GetChannelData(void* pBuffer, unsigned long nLe
 	return BASS_ChannelGetData(m_pHandle, pBuffer, nLength);
 }
 
+
+int CGModAudioChannel::GetChannelCount(const char** pErrorOut)
+{
+	*pErrorOut = nullptr;
+
+	BASS_CHANNELINFO info;
+	if (!BASS_ChannelGetInfo(m_pHandle, &info))
+	{
+		*pErrorOut = BassErrorToString(BASS_ErrorGetCode());
+		return -1;
+	}
+
+	return info.chans;
+}
+
 bool CGModAudioChannel::SetFX( const char* pFXName, unsigned long nType, int nPriority, void* pParams, const char** pErrorOut )
 {
 	*pErrorOut = nullptr;
@@ -1267,29 +1282,24 @@ int CGModAudioChannel::GetMixerState()
 
 const char* CGModAudioChannel::SetMatrix(float* pValues, float fTime)
 {
+	if (!func_BASS_Mixer_ChannelSetMatrixEx)
+		return "Missing BassMix plugin!  (Install it manually!)";
+
 	if (!func_BASS_Mixer_ChannelSetMatrixEx(m_pHandle, pValues, fTime))
 		return BassErrorToString(BASS_ErrorGetCode());
 
 	return nullptr;
 }
 
-int CGModAudioChannel::GetChannelCount(const char** pErrorOut)
-{
-	*pErrorOut = nullptr;
-
-	BASS_CHANNELINFO info;
-	if (!BASS_ChannelGetInfo(m_pHandle, &info))
-	{
-		*pErrorOut = BassErrorToString(BASS_ErrorGetCode());
-		return -1;
-	}
-
-	return info.chans;
-}
-
 int CGModAudioChannel::GetMixerChannelCount(const char** pErrorOut)
 {
 	*pErrorOut = nullptr;
+
+	if (!func_BASS_Mixer_ChannelGetMixer)
+	{
+		*pErrorOut = "Missing BassMix plugin!  (Install it manually!)";
+		return -1;
+	}
 
 	HSTREAM pMixer = func_BASS_Mixer_ChannelGetMixer(m_pHandle);
 	if (!pMixer)

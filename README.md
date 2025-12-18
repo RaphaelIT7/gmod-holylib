@@ -3545,6 +3545,9 @@ See https://www.un4seen.com/doc/#bass/BASS_ChannelGetData.html<br>
 > [!NOTE]
 > The nSize is limited to 64kb!
 
+#### number(channelCount|nil on failure), string(errMsg - nil) IGModAudioChannel:GetChannelCount()
+Returns the number of channels this channel has.<br>
+
 #### bool(success), string(errMsg - nil) IGModAudioChannel:SetFX(string fxName, number fxType, number priority, table fxParams)
 fxName - A unique name used for FX so that you can have multiple of the same fx type with unique names you assigned<br>
 
@@ -3598,6 +3601,9 @@ See https://www.un4seen.com/doc/#bassmix/BASS_Mixer_ChannelIsActive.html for mor
 #### bool(success), string(errMsg - nil) IGModAudioChannel:SetMixerMatrix(table matrix, float time = 0)
 Sets the channel's mixer matrix.
 See https://www.un4seen.com/doc/#bassmix/BASS_Mixer_ChannelIsActive.html for more details<br>
+
+#### number(channelCount|nil on failure), string(errMsg - nil) IGModAudioChannel:GetMixerChannelCount()
+Returns the number of channels the mixer channel that this channel is attached to has.<br>
 
 #### bool IGModAudioChannel:IsSplitter()
 Returns `true` if the channel was created using `bass.CreateSplitChannel`<br>

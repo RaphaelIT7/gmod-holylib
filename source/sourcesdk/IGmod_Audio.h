@@ -156,6 +156,7 @@ public:
 	virtual float GetAttribute( unsigned long nAttribute, const char** pErrorOut ) = 0;
 	virtual bool IsAttributeSliding( unsigned long nAttribute ) = 0;
 	virtual unsigned long GetChannelData( void* pBuffer, unsigned long nLength ) = 0;
+	virtual int GetChannelCount(const char** pErrorOut) = 0;
 
 	// FX Stuff, formerly I wanted to expose the IGModAudioFX
 	// though I did not like the idea of having to manage yet another independent but linked object
@@ -177,7 +178,6 @@ public:
 	virtual void RemoveMixerChannel() = 0;
 	virtual int GetMixerState() = 0;
 	virtual const char* SetMatrix(float* pValues, float fTime) = 0;
-	virtual int GetChannelCount(const char** pErrorOut) = 0;
 	virtual int GetMixerChannelCount(const char** pErrorOut) = 0;
 
 	// Splitter functions

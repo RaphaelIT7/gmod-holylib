@@ -180,6 +180,7 @@ public:
 	virtual float GetAttribute( unsigned long nAttribute, const char** pErrorOut );
 	virtual bool IsAttributeSliding( unsigned long nAttribute );
 	virtual unsigned long GetChannelData( void* pBuffer, unsigned long nLength );
+	virtual int GetChannelCount(const char** pErrorOut);
 	
 	// FX
 	virtual bool SetFX( const char* pFXName, unsigned long nType, int nPriority, void* pParams, const char** pErrorOut );
@@ -200,7 +201,6 @@ public:
 	virtual void RemoveMixerChannel();
 	virtual int GetMixerState();
 	virtual const char* SetMatrix(float* pValues, float fTime);
-	virtual int GetChannelCount(const char** pErrorOut);
 	virtual int GetMixerChannelCount(const char** pErrorOut);
 
 	// Splitter functions
