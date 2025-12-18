@@ -1533,17 +1533,9 @@ static void UpdatePlayerTalkingState(CBasePlayer* pPlayer, bool bIsTalking = fal
 }
 
 static Detouring::Hook detour_CVoiceGameMgr_Update;
-#if SYSTEM_WINDOWS && ARCHITECTURE_X86
-static void __fastcall hook_CVoiceGameMgr_Update(double frametime)
-{
-	__asm {
-		mov g_pManager, eax;
-	}
-#else
 static void hook_CVoiceGameMgr_Update(CVoiceGameMgr* pManager, double frametime)
 {
 	g_pManager = pManager;
-#endif
 	g_pManager->m_UpdateInterval += frametime;
 	if(g_pManager->m_UpdateInterval < voicechat_managerupdateinterval.GetFloat())
 		return;
@@ -1662,7 +1654,8 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 		pVoiceData->SetData(data, nBytes);
 		pVoiceData->iPlayerSlot = pClient->GetPlayerSlot();
 
-		Util::Push_Entity(g_Lua, (CBaseEntity*)Util::GetPlayerByClient((CBaseClient*)pClient));
+		CBaseEntity* pPlayer = (CBaseEntity*)Util::GetPlayerByClient((CBaseClient*)pClient);
+		Util::Push_Entity(g_Lua, pPlayer);
 		LuaUserData* pLuaData = Push_VoiceData(g_Lua, pVoiceData);
 
 		bool bHandled = false;
@@ -1678,6 +1671,8 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 		}
 
 		delete pVoiceData;
+
+		Util::servergameclients->GMOD_OnReceivedVoicePacket( pPlayer->edict() );
 
 		if (bHandled)
 			return;
@@ -2400,6 +2395,12 @@ void CVoiceChatModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 	Detour::CheckValue("get interface", "g_pVoiceServer", g_pVoiceServer != nullptr);
 }
 
+#if SYSTEM_WINDOWS
+DETOUR_THISCALL_START()
+	DETOUR_THISCALL_ADDFUNC1( hook_CVoiceGameMgr_Update, CVoiceGameMgr_Update, CVoiceGameMgr*, double );
+DETOUR_THISCALL_FINISH();
+#endif
+
 void CVoiceChatModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
@@ -2417,7 +2418,7 @@ void CVoiceChatModule::InitDetour(bool bPreServer)
 	Detour::Create(
 		&detour_CVoiceGameMgr_Update, "CVoiceGameMgr::Update",
 		server_loader.GetModule(), Symbols::CVoiceGameMgr_UpdateSym,
-		(void*)hook_CVoiceGameMgr_Update, m_pID
+		(void*)DETOUR_THISCALL(hook_CVoiceGameMgr_Update, CVoiceGameMgr_Update), m_pID
 	);
 
 	g_PlayerModEnable = Detour::ResolveSymbol<CPlayerBitVec>(server_loader, Symbols::g_PlayerModEnableSym);
