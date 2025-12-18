@@ -3458,7 +3458,7 @@ Restarts the channel.<br>
 Computes the DFT of the sound channel.<br>
 What even is that.<br>
 
-#### bool(success), string(errMsg - nil) IGModAudioChannel:EncodeToDisk(string fileName, number bassFlags, function callback, bool async = false)
+#### bool(success), string(errMsg - nil) IGModAudioChannel:WriteToDisk(string fileName, number bassFlags, function callback, bool async = false)
 callback - `function(success, errMsg) end`<br>
 bassFlags - bitflags, see https://www.un4seen.com/doc/#bassenc/BASS_Encode_Start.html<br>
 
