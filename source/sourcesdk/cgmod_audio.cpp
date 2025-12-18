@@ -1081,7 +1081,7 @@ IGModAudioChannelEncoder* CGModAudioChannel::CreateEncoder(
 )
 {
 	*pErrorOut = nullptr;
-	CGModAudioChannelEncoder* pEncoder = new CGModAudioChannelEncoder(m_pHandle, pFileName, pCallback);
+	CGModAudioChannelEncoder* pEncoder = new CGModAudioChannelEncoder(m_pHandle, m_nType, pFileName, pCallback);
 	if (pEncoder->GetLastError(pErrorOut))
 		return nullptr;
 
@@ -1320,10 +1320,11 @@ void CGModAudioChannel::ResetSplitStream()
 
 // What went wrong...
 // I don't know why but BASS just shits itself, like when ProcessChannel gets called it does not work at all.
-CGModAudioChannelEncoder::CGModAudioChannelEncoder(DWORD pChannel, const char* pFileName, IGModEncoderCallback* pCallback)
+CGModAudioChannelEncoder::CGModAudioChannelEncoder(DWORD pChannel, ChannelType nChannelType, const char* pFileName, IGModEncoderCallback* pCallback)
 {
 	m_pCallback = pCallback;
 	m_pChannel = pChannel;
+	m_nChannelType = nChannelType;
 	m_strFileName = pFileName;
 
 	m_nStatus = GModEncoderStatus::NONE;
@@ -1403,7 +1404,9 @@ void CGModAudioChannelEncoder::Stop(bool bProcessQueue)
 
 void CGModAudioChannelEncoder::ProcessChannel(CGModAudioChannelEncoder* pEncoder)
 {
-	while (true) // Based off bassenc convert.c example
+	QWORD nLength = BASS_ChannelGetLength(pEncoder->m_pChannel, BASS_POS_BYTE);
+	QWORD nPos = BASS_ChannelGetPosition(pEncoder->m_pChannel, BASS_POS_BYTE);
+	while (nLength > nPos)
 	{
 		if (!func_BASS_Encode_IsActive(pEncoder->m_pEncoder))
 			break;
@@ -1411,6 +1414,8 @@ void CGModAudioChannelEncoder::ProcessChannel(CGModAudioChannelEncoder* pEncoder
 		char buffer[1 << 16];
 		if (BASS_ChannelGetData(pEncoder->m_pChannel, buffer, sizeof(buffer)) == (unsigned long)-1)
 			break;
+
+		nPos = BASS_ChannelGetPosition(pEncoder->m_pChannel, BASS_POS_BYTE);
 	}
 
 	pEncoder->Stop(true);

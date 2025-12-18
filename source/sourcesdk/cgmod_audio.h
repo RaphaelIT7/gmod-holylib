@@ -36,6 +36,16 @@ private:
 	HSTREAM m_hStream;
 };
 
+enum ChannelType
+{
+	CHANNEL_URL = 0,
+	CHANNEL_FILE = 1, // 1 so that CGModAudioChannel::m_nType is true/1 for files matching gmods previous var value
+	CHANNEL_DUMMY = 2,
+	CHANNEL_PUSH = 3,
+	CHANNEL_MIXER = 3,
+	CHANNEL_SPLIT = 4,
+};
+
 constexpr unsigned int EncoderForceShutdownPointer = 0x1; // Pointer passed to HandleFinish when a forced shutdown for all is done
 class CGModAudioChannel;
 class CGModAudioChannelEncoder : public IGModAudioChannelEncoder
@@ -69,7 +79,7 @@ public:
 	virtual void CastSetTitle( const char* title, const char* url );
 
 public: // Non virtual
-	CGModAudioChannelEncoder(DWORD pChannel, const char* pFileName, IGModEncoderCallback* pCallback );
+	CGModAudioChannelEncoder(DWORD pChannel, ChannelType nChannelType, const char* pFileName, IGModEncoderCallback* pCallback );
 	void InitEncoder(unsigned long nEncoderFlags);
 	void HandleFinish(void* nSignalData); // Called each Update on the main thread, nSignalData is for the callback we store so that it can decide wether to force finish or not
 
@@ -92,6 +102,7 @@ public:
 	std::string m_strFileName;
 	std::string m_strLastError;
 	DWORD m_pChannel;
+	ChannelType m_nChannelType;
 	GModEncoderStatus m_nStatus;
 	IGModEncoderCallback* m_pCallback;
 };
@@ -115,16 +126,6 @@ private:
 
 	// If false, its a DSP handle.
 	bool m_bIsFX;
-};
-
-enum ChannelType
-{
-	CHANNEL_URL = 0,
-	CHANNEL_FILE = 1, // 1 so that CGModAudioChannel::m_nType is true/1 for files matching gmods previous var value
-	CHANNEL_DUMMY = 2,
-	CHANNEL_PUSH = 3,
-	CHANNEL_MIXER = 3,
-	CHANNEL_SPLIT = 4,
 };
 
 class CGMod_Audio;

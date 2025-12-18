@@ -347,7 +347,8 @@ public:
 	{
 		if (m_pLua && m_nCallbackReference != -1)
 		{
-			Msg("BassEncoderCallback deleted while still holding a reference!\n");
+			// Can happen if an error for example occurs inside WriteToDisk
+			DevMsg("BassEncoderCallback deleted while still holding a reference!\n");
 			Util::ReferenceFree(m_pLua, m_nCallbackReference, "BassEncoderCallback - callback leftover deletion");
 			m_nCallbackReference = -1;
 			m_pLua = nullptr;
