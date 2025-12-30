@@ -23,5 +23,5 @@ function IncludeIVP()
 	runFile("ivp_physics/premake5.lua")
 	runFile("ivp_compact_builder/premake5.lua")
 
-	dofile(current_dir .. "/vphysics/premake5.lua") -- Unlike the others, vphysics WONT be a seperate project
+	dofile(current_dir .. "/vphysics/premake5.lua") -- Unlike the others, vphysics WONT be a separate project
 end

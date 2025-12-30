@@ -24,8 +24,9 @@ public:
 	const char* Name() override { return "vprof"; };
 	int Compatibility() override { return LINUX32 | LINUX64 | WINDOWS32; };
 	bool SupportsMultipleLuaStates() override { return true; };
-	// NOTE for myself: Linux64 seemingly doesn't have vprof enabled! so don't suppositly add compatbility!
+	// NOTE for myself: Linux64 seemingly doesn't have vprof enabled! so don't suppositly add compatibility!
 	// Update: Fk my old self, Linux64 is just broken and it crashed because I had the wrong symbols.
+	// Update 2: The issues with vprof were fixed a good while ago on Linux64
 };
 
 static ConVar holylib_vprof_exportreport("holylib_vprof_exportreport", "1", FCVAR_ARCHIVE, "If enabled, vprof results will be dumped into a file in the vprof/ folder");

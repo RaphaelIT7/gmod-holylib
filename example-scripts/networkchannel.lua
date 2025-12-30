@@ -58,7 +58,7 @@ hook.Add("Think", "UpdateNetChannels", function()
     for _, channel in ipairs(netChannels) do
         if not channel:IsValid() then continue end
 
-        channel:ProcessStream() -- process any incomming messages
+        channel:ProcessStream() -- process any incoming messages
         channel:Transmit() -- Transmit out a update.
     end
 end)

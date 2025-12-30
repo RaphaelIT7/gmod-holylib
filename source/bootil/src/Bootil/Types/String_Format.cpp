@@ -79,7 +79,7 @@ namespace Bootil
 				return "No";
 			}
 
-			BOOTIL_EXPORT BString CommaSeperatedInt( int i )
+			BOOTIL_EXPORT BString CommaSeparatedInt( int i )
 			{
 				BString str = Print( "%i", i );
 				unsigned int iCommas = ( str.length() / 3 );

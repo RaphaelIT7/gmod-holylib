@@ -97,7 +97,7 @@ return {
             end
         },
         {
-            name = "Ingore unknown or non-sensical flags",
+            name = "Ignore unknown or non-sensical flags",
             when = HolyLib_IsModuleEnabled( "bass" ),
             async = true,
             timeout = 2,

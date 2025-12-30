@@ -11,7 +11,7 @@ namespace Bootil
 				using Paths = std::list<BString>;
 
 				System();
-				System( BString strInitalPath );
+				System( BString strInitialPath );
 
 				void AddPath( BString strPath );
 

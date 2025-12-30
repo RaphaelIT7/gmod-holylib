@@ -194,7 +194,7 @@ static void hook_luaL_openlibs(lua_State* L)
 }
 
 /*
-ToDo: Redo this entire class and move all LuaJIT specific stuff from lua.cpp into here to seperate shit from CORE code!
+ToDo: Redo this entire class and move all LuaJIT specific stuff from lua.cpp into here to separate shit from CORE code!
 class CLuaInterfaceProxy : public Detouring::ClassProxy<GarrysMod::Lua::ILuaInterface, CLuaInterfaceProxy> {
 public:
 	CLuaInterfaceProxy(GarrysMod::Lua::ILuaInterface* env) {

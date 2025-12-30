@@ -16,7 +16,7 @@
 // This is used, unless overridden in the registry
 #define VALVE_MASTER_ADDRESS "207.173.177.10:27011"
 
-#define PORT_RCON			27015	// defualt RCON port, TCP
+#define PORT_RCON			27015	// Default RCON port, TCP
 #define	PORT_MASTER			27011	// Default master port, UDP
 #define PORT_CLIENT			27005	// Default client port, UDP/TCP
 #define PORT_SERVER			27015	// Default server port, UDP/TCP
@@ -24,15 +24,15 @@
 #define PORT_MATCHMAKING	27025	// Default matchmaking port
 #define PORT_SYSTEMLINK		27030	// Default system link port
 #ifdef ENABLE_RPT
-#define PORT_RPT			27035	// default RPT (remote perf testing) port, TCP
-#define PORT_RPT_LISTEN		27036	// RPT connection listener (remote perf testing) port, TCP
+#define PORT_RPT			27035	// Default RPT (remote perf testing) port, TCP
+#define PORT_RPT_LISTEN		27036	// Default RPT connection listener (remote perf testing) port, TCP
 #endif // ENABLE_RPT
 #define PORT_REPLAY			27040	// Default replay port
 
 // out of band message id bytes
 
 // M = master, S = server, C = client, A = any
-// the second character will allways be \n if the message isn't a single
+// the second character will always be \n if the message isn't a single
 // byte long (?? not true anymore?)
 
 

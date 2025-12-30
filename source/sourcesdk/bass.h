@@ -615,8 +615,8 @@ user   : The 'user' parameter value given when calling BASS_StreamCreateURL */
 
 typedef void (CALLBACK SYNCPROC)(HSYNC handle, DWORD channel, DWORD data, void *user);
 /* Sync callback function.
-handle : The sync that has occured
-channel: Channel that the sync occured in
+handle : The sync that has occurred
+channel: Channel that the sync occurred in
 data   : Additional data associated with the sync's occurance
 user   : The 'user' parameter given when calling BASS_ChannelSetSync */
 
@@ -1241,7 +1241,7 @@ static inline HPLUGIN BASS_PluginLoad(const WCHAR *file, DWORD flags)
 	return BASS_PluginLoad((const char*)file, flags | BASS_UNICODE);
 }
 
-// NOTE: First agument filetype differs between versions!!!
+// NOTE: First argument filetype differs between versions!!!
 static inline HMUSIC BASS_MusicLoad(DWORD filetype, const WCHAR *file, QWORD offset, DWORD length, DWORD flags, DWORD freq)
 {
 	return BASS_MusicLoad(filetype, (const void*)file, offset, length, flags | BASS_UNICODE, freq);

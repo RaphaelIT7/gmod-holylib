@@ -6,10 +6,11 @@ When HolyLib was installed correctly, the variable `_HOLYLIB` should be set to `
 
 ## Windows & Linux
 Linux 32 is the main targeted platform, with Linux 64x being the second target.<br>
-On Linux the focus lies on the dedicatd servers, not Linux clients.<br>
+On Linux the focus lies on the dedicated servers, not Linux clients.<br>
 
-On Windows things are differet, there the Windows **client** is targeted, not dedicated server builds.<br>
-Windows does not have the main attention though still is supported.<br>
+On Windows things are different.
+There the Windows **client** is targeted, not dedicated server builds.<br>
+Windows does not have the main attention, though it still is supported.<br>
 Does anyone even use windows srcds for actual servers?<br>
 
 > [!NOTE]
@@ -21,7 +22,7 @@ Does anyone even use windows srcds for actual servers?<br>
 3. Put the `holylib.vdf` into the `garrysmod/addons/` directory.<br>
 4. Put the `gmsv_holylib_linux.so` into the `garrysmod/lua/bin/` directory.
 5. Add `-usegh` to the servers startup params.<br>
-If you use a panel like Pterodactyl or something similar, you can use the gamemode field(in most cases) like this: `sandbox -usegh`<br>
+If you use a panel like Pterodactyl or something similar, you can use the gamemode field (in most cases) like this: `sandbox -usegh`<br>
 
 If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it will be loaded by holylib's ghostinj.<br>
 
@@ -31,9 +32,9 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 3. Put the `gmsv_holylib_linux.so` into the `garrysmod/lua/bin/` directory.<br>
 
 ## Custom Builds (Linux Only)
-You can fork this repository and use the `Build Custom Version` to create a custom HolyLib version which only contains specific functions.<br>
+You can fork this repository and use the `Build Custom Version` to create a custom HolyLib version that only contains specific functions.<br>
 I heard from some that they don't want a huge DLL of which they only use a few functions of,<br>
-so by making a custom build anyone can include just the stuff they actually want and need, nothing else.<br>
+so by making a custom build, anyone can include just the stuff they actually want and need, nothing else.<br>
 
 ## How to update (Newer GhostInj)
 
@@ -44,7 +45,7 @@ so by making a custom build anyone can include just the stuff they actually want
 1. Append `_updated` to the new file to have a result like this `gmsv_holylib_linux_updated.so`.<br>
 2. Upload the file into the `lua/bin` folder
 3. Restart the server normally.<br>
-On the next startup the ghostinj will update holylib to use the new file.<br>
+On the next startup, the ghostinj will update holylib to use the new file.<br>
 This is done by first deleting the current `gmsv_holylib_linux[64].so` and then renaming the `_updated.so` essentially replacing the original file.<br>
 
 ## How to update (Older GhostInj versions)
@@ -53,7 +54,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 2. Upload the new file
 3. Enjoy it
 
-## What noticable things does HolyLib bring?
+## What noticeable things does HolyLib bring?
 \- A huge Lua API providing deep access to the engine.<br>
 \- Implements some bug fixes (some bug fixes were brought into gmod itself).<br>
 \- \- `ShouldCollide` won't break the entire physics engine and instead a warning is thrown `holylib: Someone forgot to call Entity:CollisionRulesChanged!`.<br>
@@ -66,7 +67,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- Improved ConVar's find code improving performance (done in the `cvars` module)<br>
 \- Server <-> Server connections using net channels (done in the `gameserver` module)<br>
 \- `CVoiceGameMgr` optimization to heavily reduce calls of the `GM:PlayerCanHearPlayersVoice` (done in the `voicechat` module)<br>
-\- Noticably improved `CServerGameEnts::CheckTransmit` (done in the `networking` module)<br>
+\- Noticeably improved `CServerGameEnts::CheckTransmit` (done in the `networking` module)<br>
 
 > [!NOTE]
 > The threadpoolfix module currently does nothing as all of the fixes it contained were implemented into the Garry's Mod itself.
@@ -106,12 +107,12 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [+] Added a new DLL system if anything wants to be loaded with HolyLib. (See: [example-module-dll](https://github.com/RaphaelIT7/gmod-holylib/tree/f937ba454b4d86edfc72df9cb3f8a689d7de2571/example-module-dll))<br>
 \- [#] Added missing numeric key conversion to `util.FancyJSONToTable` (See https://github.com/RaphaelIT7/gmod-holylib/pull/105)<br>
 \- [#] Added some more safeguards to `IPhysicsEnvironment:Simulate` to prevent one from simulating a environment that is already being simulated. (else you might end up with all memory freed & a certain crash)<br>
-\- [#] Highly optimized `util` module's json code to be noticably faster and use noticably less memory.<br>
+\- [#] Highly optimized `util` module's json code to be noticeably faster and use noticeably less memory.<br>
 \- [#] Better support for multiple Lua states<br>
 \- \- This required most of the lua setup to be changed >:(<br>
 \- [#] Solved a few possible stack issues<br>
 \- [#] Fixed a crash after a map change. See https://github.com/RaphaelIT7/gmod-holylib/issues/41<br>
-\- [#] Update internal `netadr` stuct to now properly support `loopback` and `localhost` inputs for IP's.<br>
+\- [#] Update internal `netadr` struct to now properly support `loopback` and `localhost` inputs for IP's.<br>
 \- [#] Possibly fixed memory issues caused by `IGModAudioChannel`'s being deleted & having undefined behavior.<br>
 \- [#] Fixed `HolyLib:OnPhysicsLag` possibly being called recursively causing a crash.<br>
 \- [#] Fixed every function from the `physenv` module not accepting gmod's PhysObj.<br>
@@ -120,14 +121,14 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- \- [+] Added support for the `stringtable` module on Windows.<br>
 \- \- [#] Fixed entitylist not being loaded on Windows<br>
 \- [#] Solved a few Bass bugs.<br>
-\- [#] Fixed possible undefined behavor & two buffer overflows in `gameserver` module.<br>
+\- [#] Fixed possible undefined behavior & two buffer overflows in `gameserver` module.<br>
 \- [#] Updated `VoiceStream` file structure to also save the server tickrate and include a file version.<br>
 \- \- The `VoiceStream` now properly updates the tickCount for the saved `VoiceData` to scale the tickCount when the server changed tickrate which should ensure the audio remains usable.<br>
-\- [#] Fixed a issue with the `gameserver` moduel causing random `Lost Connection` disconnects (See https://github.com/RaphaelIT7/gmod-holylib/issues/51)<br>
-\- [#] Extented `networking` module to include some new things.<br>
+\- [#] Fixed a issue with the `gameserver` module causing random `Lost Connection` disconnects (See https://github.com/RaphaelIT7/gmod-holylib/issues/51)<br>
+\- [#] Extended `networking` module to include some new things.<br>
 \- \- Made some optimization for `PackEntities_Normal` reducing overhead<br>
 \- \- Slightly optimized our own implementation of `CServerGameEnts::CheckTransmit`<br>
-\- \- Added `holylib_networking_fastpath` which will use a transmit cache for `CServerGameEnts::CheckTransmit` as a noticable optimization.<br>
+\- \- Added `holylib_networking_fastpath` which will use a transmit cache for `CServerGameEnts::CheckTransmit` as a noticeable optimization.<br>
 \- \- Added `holylib_networking_maxviewmodels` allowing one to limit view models to `1` for each player instead of each having `3` of which `2` often remain unused.<br>
 \- \- Added `holylib_networking_transmit_all_weapons`<br>
 \- \- Added `holylib_networking_transmit_all_weapons_to_owner`<br>
@@ -143,15 +144,15 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [#] Fixed possible memory leaks when using `bf_read` and `bf_write`<br>
 \- [#] Tried to improve out of memory handling of `bitbuf.Create[Read/Write]Buffer` and `bf_read:ReadString()` functions<br>
 \- [#] Fixed a regression with `util.FancyTableToJSON` crashing with the `0.8-pre` build when it falsely tried to become sequential while being already non-sequential. (Reported by @Noahbg)<br>
-\- [#] Fixed absolute search cache causing files from any search path to be returned / destroying seperation between search paths (See https://github.com/RaphaelIT7/gmod-holylib/issues/83)<br>
+\- [#] Fixed absolute search cache causing files from any search path to be returned / destroying separation between search paths (See https://github.com/RaphaelIT7/gmod-holylib/issues/83)<br>
 \- [#] Fixed HolyLua being unable to register any metatable causing crashes when trying to use them.<br>
 \- [#] Fixed some small memory leaks in HolyLibs CLuaInterface class<br>
 \- [#] Fixed `steamworks.ForceAuthenticate` being silently broken<br>
-\- [#] Fully seperated HolyLib's core from all modules allowing anyone to remove modules they don't want.<br>
+\- [#] Fully separated HolyLib's core from all modules allowing anyone to remove modules they don't want.<br>
 \- [#] Removed all dependencies modules had on each other allowing each module to compile without requiring another one.<br>
 \- [#] Fixed some issues in `luathreads` module that caused either crashes or simply were bugs<br>
 \- [#] Fixed lua error handler used by any `CLuaInterface` created by HolyLib failing (`error in error handler`)<br>
-\- [#] Moved `HolyLua` from HolyLib's core into a module to seperate it and allow anyone to remove it<br>
+\- [#] Moved `HolyLua` from HolyLib's core into a module to separate it and allow anyone to remove it<br>
 \- [#] Fixed some memory leaks from our own `CLuaInterface` since on shutdown they never cleared up on removal/shutdown<br>
 \- [#] Added a speedup for pushing networked entities to Lua (On 64x pushing entities became 2.6x faster)<br>
 \- [#] Fixed some issues where `Vector`s & `Angle`s pushed from HolyLib would be the original one instead of a copy causing issues like corruption when modified<br>
@@ -160,8 +161,8 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [#] Fixed `util.FancyJSONToTable` not being unloaded when disabled causing a invalid function to remain in Lua that would crash on call<br>
 \- [#] Fixed `util.FancyJSONToTable` crashing when given sequential arrays (See: https://github.com/RaphaelIT7/gmod-holylib/issues/101)<br>
 \- [#] Fixed `util.FancyTableToJSON` being unable to handle `math.huge` causing the parser to stop leaving invalid json<br>
-\- [#] Implemented a workaround for 64x possibly hanging indefinetly when a threadpool is deleted<br>
-\- [#] Fixed `holylib_filesystem_splitgamepath` breaking searchpath seperation. It now only takes effects for the `GAME` path<br>
+\- [#] Implemented a workaround for 64x possibly hanging indefinitely when a threadpool is deleted<br>
+\- [#] Fixed `holylib_filesystem_splitgamepath` breaking searchpath separation. It now only takes effects for the `GAME` path<br>
 \- [#] Fixed `INetworkStringTable:GetStringUserData` not fully pushing the userdata as a string<br>
 \- [-] Removed some unused code of former fixes that were implemented into Gmod<br>
 
@@ -171,7 +172,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 ### Existing Lua API Changes
 \- [+] Added third `protocolVersion` argument to `gameserver.CreateNetChannel`<br>
 \- [+] Added fourth `socket`(use `NS_` enums) argument to `gameserver.CreateNetChannel` & `gameserver.SendConnectionlessPacket`<br>
-\- [+] Added second and thrid arguments to `HolyLib:OnPhysicsLag` providing the entities it was working on when it triggered.<br>
+\- [+] Added second and third arguments to `HolyLib:OnPhysicsLag` providing the entities it was working on when it triggered.<br>
 \- [+] Added `voicechat.SaveVoiceStream` 4th argument `returnWaveData` (previously the 4th argument was `async` but that one was removed)<br>
 \- [+] Added `directData` argument to `VoiceStream:GetData`, `VoiceStream:GetIndex`, `VoiceStream:SetIndex` and `VoiceStream:SetData`<br>
 \- [+] Added overflow checks for `gameserver.BroadcastMessage`, `CNetChan:SendMessage` and `CBaseClient:SendNetMsg` when you try to use a overflowed buffer<br>
@@ -207,12 +208,12 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 \- Find out why ConVars are so broken. (Serverside `path` command breaks :<)<br>
 \- Look into filesystem handle optimization<br>
 \- Try to fix that one complex NW2 bug. NOTE: It seems to be related to baseline updates (Entity Creation/Deletion)<br>
-\- Look into StaticPropMgr stuff. May be interresting.<br>
+\- Look into StaticPropMgr stuff. May be interesting.<br>
 \- Add a bind to `CAI_NetworkManager::BuildNetworkGraph` or `StartRebuild`<br>
 \- Possibly allow on to force workshop download on next level change.<br>
-\- GO thru everything and use a more consistant codestyle. I created quiet the mess.<br>
+\- GO thru everything and use a more consistent codestyle. I created quiet the mess.<br>
 \- test/become compatible with vphysics-jolt (I'm quite sure that the `physenv` isn't compatible).<br>
-\- Check out `holylib_filesystem_predictexistance` as it seamingly broke, reportidly works in `0.6`.<br>
+\- Check out `holylib_filesystem_predictexistance` as it seamingly broke, reportedly works in `0.6`.<br>
 \- Check if gmod userdata pushed from HolyLib to Lua is invalid in the 0.7 release<br>
 \- `IModule::ServerActivate` is not called when were loaded using `require("holylib")`<br>
 
@@ -291,7 +292,7 @@ The convar was disabled by default now because of this.<br>
 ## HolyLib internally caches the TValue's of metatables
 This is like keeping a reference though faster but also more unsafe.<br>
 If a metatable is replaced with another table / the GC Object internally changes<br>
-HolyLib will most definetly experience issues / crashes<br>
+HolyLib will most definitely experience issues / crashes<br>
 though generally this should never happen unless you touch the Lua registry yourself<br>
 
 ## Compatibility
@@ -437,7 +438,7 @@ hook.Add("HolyLib:GetGModTags", "Example", function()
 		"ver:"..VERSION, -- Server version
 		"loc:de", -- server location
 		"hltv:1", -- mark the server as a hltv server.
-		"gmws:123456789", -- Gamemode workshop id (Do collectons work? idk)
+		"gmws:123456789", -- Gamemode workshop id (Do collections work? idk)
 	}
 
 	return table.concat(tags, " ")
@@ -555,7 +556,7 @@ Blocks/Unblocks the creation of the given gameevent.<br>
 ### IGameEvent
 
 #### string IGameEvent:\_\_tostring()
-Returns the a formated string.<br>
+Returns the a formatted string.<br>
 Format: `IGameEvent [%s]`<br>
 `%s` -> Gameevent name
 
@@ -758,7 +759,7 @@ Normally returns `INetworkStringTable [tableName]`.<br>
 Internally implemented and will set the values into the lua table.<br>
 
 #### any INetworkStringTable:\_\_index(string key)
-Internally seaches first in the metatable table for the key.<br>
+Internally searches first in the metatable table for the key.<br>
 If it fails to find it, it will search in the lua table before returning.<br>
 If you try to get multiple values from the lua table, just use `INetworkStringTable:GetTable()`.<br>
 
@@ -1022,7 +1023,7 @@ Adds the given Entity to be transmitted.<br>
 
 #### bool / table pvs.TestPVS(Entity ent / Vector origin, Entity ent / Vector pos / EntityList list)
 Returns `true` if the given entity / position is inside the PVS of the given origin.<br>
-If given a EntityList, it will return a table wich contains the result for each entity.<br>
+If given a EntityList, it will return a table which contains the result for each entity.<br>
 The key will be the entity and the value is the result.<br>
 
 #### table pvs.FindInPVS(Entity ent / Vector pos)
@@ -1031,7 +1032,7 @@ Returns a table containing all entities that are inside the pvs.<br>
 #### pvs.ForceFullUpdate(Player ply)
 Forces a full update for the specific client.<br>
 
-#### table pvs.GetEntitesFromTransmit()
+#### table pvs.GetEntitiesFromTransmit()
 Returns a table containing all entities that will be networked.<br>
 
 #### pvs.ForceWeaponTransmit(Entity weapon, bool forceTransmit = false)
@@ -1352,7 +1353,7 @@ ignorecycle - If `true` it won't throw a lua error when you have a table that is
 
 Converts the given table to json.<br>
 Unlike Gmod's version, this function will turn the numbers to an integer if they are one/fit one.<br>
-This version is noticably faster than Gmod's version and uses less memory in the process.<br>
+This version is noticeably faster than Gmod's version and uses less memory in the process.<br>
 
 > [!NOTE]
 > This implementation will include `null` for values it cannot handle.<br>
@@ -1360,7 +1361,7 @@ This version is noticably faster than Gmod's version and uses less memory in the
 
 #### table util.FancyJSONToTable(string json, bool ignoreConversions = false)
 Converts the json into a table.<br>
-This version is noticably faster than Gmod's version and uses less memory in the process.<br>
+This version is noticeably faster than Gmod's version and uses less memory in the process.<br>
 
 #### string util.CompressLZ4(string data, number accelerationLevel = 1)
 Compresses the given data using [LZ4](https://github.com/lz4/lz4)<br>
@@ -1544,7 +1545,7 @@ Increments the counter by one.<br>
 Decrements the counter by one.<br>
 
 ### VProfNode
-This object basicly fully exposes the `CVProfNode` class.<br>
+This object basically fully exposes the `CVProfNode` class.<br>
 
 #### string VProfNode:\_\_tostring()
 If called on a invalid object, it will return `VProfNode [NULL]`.<br>
@@ -1667,7 +1668,7 @@ Theses are the CounterGroup_t enums.<br>
 If enabled, vprof results will be dumped into a file in the vprof/ folder<br>
 
 ### cvars
-This module adds a seperate `cvar` library with new functions.<br>
+This module adds a separate `cvar` library with new functions.<br>
 
 Supports: Linux32 | Linux64 | Windows32 | Windows64<br>
 
@@ -1745,14 +1746,14 @@ Sends the `hltv_cameraman` event all clients and blocks the `HLTVDirector` from 
 Call it with `0` / `NULL` to reset it and let the `HLTVDirector` take control again.<br>
 
 > [!NOTE]
-> This won't set it for new clients. You have to call it again for thoes.<br>
+> This won't set it for new clients. You have to call it again for those.<br>
 
 ### CHLTVClient
 This is a metatable that is pushed by this module. It contains the functions listed below<br>
 This class is based off the `CBaseClient` class and inherits its functions.<br>
 
 #### string CHLTVClient:\_\_tostring()
-Returns the a formated string.<br>
+Returns the a formatted string.<br>
 Format: `CHLTVClient [%i][%s]`<br>
 `%i` -> UserID<br>
 `%s` -> ClientName<br>
@@ -1761,7 +1762,7 @@ Format: `CHLTVClient [%i][%s]`<br>
 Internally implemented and will set the values into the lua table.<br>
 
 #### any CHLTVClient:\_\_index(string key)
-Internally seaches first in the metatable table for the key.<br>
+Internally searches first in the metatable table for the key.<br>
 If it fails to find it, it will search in the lua table before returning.<br>
 If you try to get multiple values from the lua table, just use `CHLTVClient:GetTable()`.<br>
 
@@ -1903,7 +1904,7 @@ This class will later be used to read net messages from HLTV clients.<br>
 > ToDo: Finish the documentation below and make it more detailed.<br>
 
 #### string bf_read:\_\_tostring()
-Returns the a formated string.<br>
+Returns the a formatted string.<br>
 Format: `bf_read [%i]`<br>
 `%i` -> size of data in bits.<br>
 
@@ -1914,7 +1915,7 @@ Deletes the buffer internally.<br>
 Internally implemented and will set the values into the lua table.<br>
 
 #### any bf_read:\_\_index(string key)
-Internally seaches first in the metatable table for the key.<br>
+Internally searches first in the metatable table for the key.<br>
 If it fails to find it, it will search in the lua table before returning.<br>
 If you try to get multiple values from the lua table, just use `bf_read:GetTable()`.<br>
 
@@ -2019,7 +2020,7 @@ Reads a long long.<br>
 Reads one bit.<br>
 
 #### number bf_read:ReadSBitLong(number bits)
-Reads a number with the given amout of bits.<br>
+Reads a number with the given amount of bits.<br>
 
 #### number bf_read:ReadShort()
 Reads a short.<br>
@@ -2051,13 +2052,13 @@ Returns `true` on success.<br>
 
 #### bool bf_read:SeekRelative(number pos)
 Sets the current position to the given position relative to the current position.<br>
-Basicly `newPosition = currentPosition + iPos`<br>
+Basically `newPosition = currentPosition + iPos`<br>
 Returns `true` on success.<br>
 
 ### bf_write<br>
 
 #### string bf_write:\_\_tostring()
-Returns the a formated string.<br>
+Returns the a formatted string.<br>
 Format: `bf_write [%i]`<br>
 `%i` -> size of data in bits.<br>
 
@@ -2068,7 +2069,7 @@ Deletes the buffer internally.<br>
 Internally implemented and will set the values into the lua table.<br>
 
 #### any bf_write:\_\_index(string key)
-Internally seaches first in the metatable table for the key.<br>
+Internally searches first in the metatable table for the key.<br>
 If it fails to find it, it will search in the lua table before returning.<br>
 If you try to get multiple values from the lua table, just use `bf_write:GetTable()`.<br>
 
@@ -2211,7 +2212,7 @@ Supports: Linux32 | Linux64<br>
 
 #### holylib_networking_fastpath(default `0`)
 If enabled, it will cache the transmit data for players in the same engine area.<br>
-This can noticably improve performance of `CServerGameEnts::CheckTransmit` especially if players are in the same area.<br>
+This can noticeably improve performance of `CServerGameEnts::CheckTransmit` especially if players are in the same area.<br>
 In game, you can see the area you're in using `r_ShowViewerArea 1` which is used for the caching.<br>
 
 How to test around with it:<br>
@@ -2223,7 +2224,7 @@ The order is important since now, the bot will be the first player and will be c
 5. Test around and see if maybe anything is broken, like entities not being transmitted or such.<br>
 
 #### holylib_networking_fasttransmit(default `1`)
-If enabled, it will use our own version of `CServerGameEnts::CheckTransmit` which should be slighly faster.<br>
+If enabled, it will use our own version of `CServerGameEnts::CheckTransmit` which should be slightly faster.<br>
 It also slightly improves `PackEntities_Normal` performance.<br>
 This is **required** to be enabled if you intent on using `holylib_networking_fastpath`<br>
 
@@ -2260,7 +2261,7 @@ Will become useless with https://github.com/Facepunch/garrysmod-requests/issues/
 #### holylib_networking_transmit_newweapons(default `1`)
 If enabled, weapons that a player newly picked up will be networked to them.<br>
 Only functional/mean to be used with both `holylib_networking_transmit_all_weapons` and `holylib_networking_transmit_all_weapons_to_owner` being disabled<br>
-This saves lots of networking by only networking off hand weapons when they change/update and won't continously send updates about them<br>
+This saves lots of networking by only networking off hand weapons when they change/update and won't continuously send updates about them<br>
 
 #### holylib_networking_transmit_onfullupdate(default `1`)
 If enabled, players and their own weapons are transmitted for the first x ticks when they had a full update<br>
@@ -2268,7 +2269,7 @@ This means, if your client has a full update, you will be networked all other pl
 
 #### holylib_networking_transmit_onfullupdate_networktoothers(default `1`)
 Depends on `holylib_networking_transmit_onfullupdate` being enabled.<br>
-For other players, if another player has a full update, they will be networked to everyone to ensure that every player knows of every other players existance.<br>
+For other players, if another player has a full update, they will be networked to everyone to ensure that every player knows of every other players existence.<br>
 
 #### holylib_networking_transmit_ticks(default `100`)
 How many ticks are used in which new weapons or full updates are networked.<br>
@@ -2405,7 +2406,7 @@ Returns a sequential table containing all entities in that PAS.<br>
 Tests if the give hear position is inside the given pas.<br>
 Returns `true` if it is.<br>
 
-If given a EntityList, it will return a table wich contains the result for each entity.<br>
+If given a EntityList, it will return a table which contains the result for each entity.<br>
 The key will be the entity and the value is the result.<br>
 
 #### bool pas.CheckBoxInPAS(Vector mins, Vector maxs, Vector pas)
@@ -2414,7 +2415,7 @@ Returns `true` if it is.<br>
 
 ## voicechat
 This module contains a few things to control the voicechat.<br>
-You could probably completly rework the voicechat with this since you could completly handle it in lua.<br>
+You could probably completely rework the voicechat with this since you could completely handle it in lua.<br>
 
 Supports: Linux32 | Linux64 | Windows32<br>
 
@@ -2467,7 +2468,7 @@ callback = `function(VoiceStream loadedStream, number statusCode)`
 statusCode = `-4 = Invalid file, -3 = Invalid version, -2 = File not found, -1 = Invalid type, 0 = None, 1 = Done`<br>
 
 Tries to load a VoiceStream from the given file.<br>
-If a `callback` is specified it **WONT** return **anything** and the `callback` will be called, as it will execute everythign **async**.<br>
+If a `callback` is specified it **WONT** return **anything** and the `callback` will be called, as it will execute everything **async**.<br>
 If you want it to **not** run async, simply provide **no** callback function<br>
 
 > [!NOTE]
@@ -2479,7 +2480,7 @@ statusCode = `-4 = Invalid file, -3 = Invalid version, -2 = File not found, -1 =
 promiseToNeverModify = If set to `true`, it will reference the waveData instead of copying it reducing memory usage and improving speed though you need to keep your promise of never modifying it while it's in use!<br>
 
 Tries to load a VoiceStream from the given data.<br>
-If a `callback` is specified it **WONT** return **anything** and the `callback` will be called, as it will execute everythign **async**.<br>
+If a `callback` is specified it **WONT** return **anything** and the `callback` will be called, as it will execute everything **async**.<br>
 If you want it to **not** run async, simply provide **no** callback function<br>
 
 #### number(statusCode), string(waveData) voicechat.SaveVoiceStream(VoiceStream stream, string fileName = nil, string gamePath = "DATA", function callback = nil, bool returnWaveData = false)
@@ -2490,7 +2491,7 @@ returnWaveData = If set to true (or if `fileName` is nil), the function will whe
 Argument overload version (will **always** return wave data): `voicechat.SaveVoiceStream(VoiceStream stream, function callback = nil)`
 
 Tries to save a VoiceStream into the given file.<br>
-If a `callback` is specified it **WONT** return **anything** and the `callback` will be called, as it will execute everythign **async**.<br>
+If a `callback` is specified it **WONT** return **anything** and the `callback` will be called, as it will execute everything **async**.<br>
 If you want it to **not** run async, simply provide **no** callback function<br>
 
 > [!NOTE]
@@ -2527,7 +2528,7 @@ Example effectData:
 ```
 
 Applies the given effectData to the given Data/Stream.<br>
-If a `callback` is specified it **WONT** return **anything** and the `callback` will be called, as it will execute everythign **async**.<br>
+If a `callback` is specified it **WONT** return **anything** and the `callback` will be called, as it will execute everything **async**.<br>
 If you want it to **not** run async, simply provide **no** callback function, it will return `true` on success<br>
 
 > [!NOTE]
@@ -2548,7 +2549,7 @@ Garbage collection. Deletes the voice data internally.<br>
 Internally implemented and will set the values into the lua table.<br>
 
 #### any VoiceData:\_\_index(string key)
-Internally seaches first in the metatable table for the key.<br>
+Internally searches first in the metatable table for the key.<br>
 If it fails to find it, it will search in the lua table before returning.<br>
 If you try to get multiple values from the lua table, just use `VoiceData:GetTable()`.<br>
 
@@ -2615,7 +2616,7 @@ Empties out the voice data.<br>
 VoiceStream is a userdata value that internally contains multiple VoiceData for specific ticks.<br>
 
 #### string VoiceStream:\_\_tostring()
-Returns `VoiceStream [entires]`.<br>
+Returns `VoiceStream [entries]`.<br>
 
 #### VoiceStream:\_\_gc()
 Garbage collection. Deletes the voice data internally.<br>
@@ -2624,7 +2625,7 @@ Garbage collection. Deletes the voice data internally.<br>
 Internally implemented and will set the values into the lua table.<br>
 
 #### any VoiceStream:\_\_index(string key)
-Internally seaches first in the metatable table for the key.<br>
+Internally searches first in the metatable table for the key.<br>
 If it fails to find it, it will search in the lua table before returning.<br>
 If you try to get multiple values from the lua table, just use `VoiceStream:GetTable()`.<br>
 
@@ -2802,7 +2803,7 @@ If enabled, the VoiceChat hooks will be called.<br>
 #### holylib_voicechat_threads(default `1`)
 The number of threads the voicechat can use for async stuff.<br>
 voicechat.LoadVoiceStream and voicechat.SaveVoiceStream currently use it,<br>
-originally I expected thoes both functions to be far slower but they turned out to be quite fast.
+originally I expected those both functions to be far slower but they turned out to be quite fast.
 
 ### holylib_voicechat_updateinterval(default `0.1`)
 How often we call PlayerCanHearPlayersVoice for the actively talking players.<br>
@@ -2993,7 +2994,7 @@ Else it returns `CPhysCollide`.<br>
 Internally implemented and will set the values into the lua table.<br>
 
 #### any CPhysCollide:\_\_index(string key)
-Internally seaches first in the metatable table for the key.<br>
+Internally searches first in the metatable table for the key.<br>
 If it fails to find it, it will search in the lua table before returning.<br>
 If you try to get multiple values from the lua table, just use `CPhysCollide:GetTable()`.<br>
 
@@ -3014,7 +3015,7 @@ Else it returns `CPhysPolySoup`.<br>
 Internally implemented and will set the values into the lua table.<br>
 
 #### any CPhysPolySoup:\_\_index(string key)
-Internally seaches first in the metatable table for the key.<br>
+Internally searches first in the metatable table for the key.<br>
 If it fails to find it, it will search in the lua table before returning.<br>
 If you try to get multiple values from the lua table, just use `CPhysPolySoup:GetTable()`.<br>
 
@@ -3035,7 +3036,7 @@ Else it returns `CPhysConvex`.<br>
 Internally implemented and will set the values into the lua table.<br>
 
 #### any CPhysConvex:\_\_index(string key)
-Internally seaches first in the metatable table for the key.<br>
+Internally searches first in the metatable table for the key.<br>
 If it fails to find it, it will search in the lua table before returning.<br>
 If you try to get multiple values from the lua table, just use `CPhysConvex:GetTable()`.<br>
 
@@ -3056,7 +3057,7 @@ Else it returns `ICollisionQuery`.<br>
 Internally implemented and will set the values into the lua table.<br>
 
 #### any ICollisionQuery:\_\_index(string key)
-Internally seaches first in the metatable table for the key.<br>
+Internally searches first in the metatable table for the key.<br>
 If it fails to find it, it will search in the lua table before returning.<br>
 If you try to get multiple values from the lua table, just use `ICollisionQuery:GetTable()`.<br>
 
@@ -3082,7 +3083,7 @@ Sets the material index of the given triangle index.
 #### Vector, Vector, Vector ICollisionQuery:GetTriangleVerts(number convexIndex, number triangleIndex)
 Returns the three vectors that bukd the triangle at the given index.<br>
 
-#### ICollisonQuery:SetTriangleVerts(number convexIndex, number triangleIndex, Vector a, Vector b, Vector c)
+#### ICollisionQuery:SetTriangleVerts(number convexIndex, number triangleIndex, Vector a, Vector b, Vector c)
 Sets the three Vectors that build the triangle at the given index.<br>
 
 ### IPhysicsCollisionSet
@@ -3095,7 +3096,7 @@ Else it returns `IPhysicsCollisionSet`.<br>
 Internally implemented and will set the values into the lua table.<br>
 
 #### any IPhysicsCollisionSet:\_\_index(string key)
-Internally seaches first in the metatable table for the key.<br>
+Internally searches first in the metatable table for the key.<br>
 If it fails to find it, it will search in the lua table before returning.<br>
 If you try to get multiple values from the lua table, just use `IPhysicsCollisionSet:GetTable()`.<br>
 
@@ -3125,7 +3126,7 @@ Else it returns `IPhysicsEnvironment`.<br>
 Internally implemented and will set the values into the lua table.<br>
 
 #### any IPhysicsEnvironment:\_\_index(string key)
-Internally seaches first in the metatable table for the key.<br>
+Internally searches first in the metatable table for the key.<br>
 If it fails to find it, it will search in the lua table before returning.<br>
 If you try to get multiple values from the lua table, just use `IPhysicsEnvironment:GetTable()`.<br>
 
@@ -3357,7 +3358,7 @@ Else it returns `IGModAudioChannel [FileName/URL]`.<br>
 Internally implemented and will set the values into the lua table.<br>
 
 #### any IGModAudioChannel:\_\_index(string key)
-Internally seaches first in the metatable table for the key.<br>
+Internally searches first in the metatable table for the key.<br>
 If it fails to find it, it will search in the lua table before returning.<br>
 If you try to get multiple values from the lua table, just use `IGModAudioChannel:GetTable()`.<br>
 
@@ -3366,7 +3367,7 @@ Returns the lua table of this object.<br>
 You can store variables into it.<br>
 
 #### IGModAudioChannel:\_\_gc()
-Destorys the audio channel.<br>
+Destroys the audio channel.<br>
 
 #### IGModAudioChannel:Destroy()
 Destroys the audio channel.<br>
@@ -3464,12 +3465,12 @@ bassFlags - bitflags, see https://www.un4seen.com/doc/#bassenc/BASS_Encode_Start
 
 Writes the channel into a file, the encoder internally used depends on the filename.<br>
 Valid encoders for file extension are:<br>
-- `.wav` (Requres `BASSENC` plugin)<br>
-- `.aiff` (Requres `BASSENC` plugin)<br>
-- `.mp3` (Requres `BASSENC_MP3` plugin)<br>
-- `.ogg` (Requres `BASSENC_OGG` plugin)<br>
-- `.opus` (Requres `BASSENC_OPUS` plugin)<br>
-- `.flac` (Requres `BASSENC_FLAC` plugin)<br>
+- `.wav` (Requires `BASSENC` plugin)<br>
+- `.aiff` (Requires `BASSENC` plugin)<br>
+- `.mp3` (Requires `BASSENC_MP3` plugin)<br>
+- `.ogg` (Requires `BASSENC_OGG` plugin)<br>
+- `.opus` (Requires `BASSENC_OPUS` plugin)<br>
+- `.flac` (Requires `BASSENC_FLAC` plugin)<br>
 
 > [!NOTE]
 > This function requires the `BASSENC` plugin to work at all!<br>
@@ -3499,12 +3500,12 @@ Creates a encoder and returns it, on failure it returns `false` with the second 
 You can still provide a full filename into which the channel its bound to is slowly written<br>
 unlike `IGModAudioChannel:EncodeToDisk` this works on non-`decode` channels though it written bit by bit as the channel plays.<br>
 Valid encoders are:<br>
-- `wav` (Requres `BASSENC` plugin)<br>
-- `aiff` (Requres `BASSENC` plugin)<br>
-- `mp3` (Requres `BASSENC_MP3` plugin)<br>
-- `ogg` (Requres `BASSENC_OGG` plugin)<br>
-- `opus` (Requres `BASSENC_OPUS` plugin)<br>
-- `flac` (Requres `BASSENC_FLAC` plugin)<br>
+- `wav` (Requires `BASSENC` plugin)<br>
+- `aiff` (Requires `BASSENC` plugin)<br>
+- `mp3` (Requires `BASSENC_MP3` plugin)<br>
+- `ogg` (Requires `BASSENC_OGG` plugin)<br>
+- `opus` (Requires `BASSENC_OPUS` plugin)<br>
+- `flac` (Requires `BASSENC_FLAC` plugin)<br>
 
 > [!NOTE]
 > This function requires the `BASSENC` plugin to work at all!<br>
@@ -3625,7 +3626,7 @@ Else it returns `IGModAudioChannelEncoder [FileName/Format]`.<br>
 Internally implemented and will set the values into the lua table.<br>
 
 #### any IGModAudioChannelEncoder:\_\_index(string key)
-Internally seaches first in the metatable table for the key.<br>
+Internally searches first in the metatable table for the key.<br>
 If it fails to find it, it will search in the lua table before returning.<br>
 If you try to get multiple values from the lua table, just use `IGModAudioChannelEncoder:GetTable()`.<br>
 
@@ -3634,12 +3635,12 @@ Returns the lua table of this object.<br>
 You can store variables into it.<br>
 
 #### IGModAudioChannelEncoder:\_\_gc()
-Destorys the encoder.<br>
+Destroys the encoder.<br>
 
 #### bool IGModAudioChannelEncoder:IsValid()
 Returns `true` if the encoder is valid.<br>
 
-#### bool(success), string(errMsg - nil) IGModAudioChannelEncoder:ServerInit(string port, nummber buffer, number burst, number flags)
+#### bool(success), string(errMsg - nil) IGModAudioChannelEncoder:ServerInit(string port, number buffer, number burst, number flags)
 Creates a BassEnc server where the encoder will sends its data to to send to clients who are connected to the port using `sound.PlayURL`<br>
 See: https://www.un4seen.com/doc/#bassenc/BASS_Encode_ServerInit.html<br>
 
@@ -3650,7 +3651,7 @@ bass.PlayFile("data/exampleSound.wav", "", function(channel, a, b)
 	-- Important note, using wav or any raw format can cause bigger networking loads, so choose wisely which encoder you use
     local encode, errMsg = channel:CreateEncoder("ogg", 0)
 	g_Encoder = encode -- prevent gc here too else it will stop when gc hits
-	-- 20006 is the port to use (you cannot use the server port, you need a seperate one)
+	-- 20006 is the port to use (you cannot use the server port, you need a separate one)
     print(encode:ServerInit("20006/examplePath", 256000 * 8, 256000, 0))
 end)
 
@@ -3711,7 +3712,7 @@ See https://www.un4seen.com/doc/#bassenc/BASS_Encode_CastInit.html<br>
 Sets the cast title & url<br>
 See https://www.un4seen.com/doc/#bassenc/BASS_Encode_CastSetTitle.html<br>
 
-## entitiylist
+## entitylist
 This module just adds a lua class.<br>
 Only use their functions after entities were created or you might be missing entities in the returned tables!<br>
 
@@ -3741,7 +3742,7 @@ You should never use it after this was called.<br>
 Internally implemented and will set the values into the lua table.<br>
 
 #### any EntityList:\_\_index(string key)
-Internally seaches first in the metatable table for the key.<br>
+Internally searches first in the metatable table for the key.<br>
 If it fails to find it, it will search in the lua table before returning.<br>
 If you try to get multiple values from the lua table, just use `EntityList:GetTable()`.<br>
 
@@ -3801,7 +3802,7 @@ Normally returns `HttpServer [Address:Port - Name]`.<br>
 Internally implemented and will set the values into the lua table.<br>
 
 #### any HttpServer:\_\_index(string key)
-Internally seaches first in the metatable table for the key.<br>
+Internally searches first in the metatable table for the key.<br>
 If it fails to find it, it will search in the lua table before returning.<br>
 If you try to get multiple values from the lua table, just use `HttpServer:GetTable()`.<br>
 
@@ -3876,7 +3877,7 @@ The length of the name is limited to 64 characters.
 callback - function(HttpResponse response)<br>
 
 Adds a prepared response for the given userID.<br>
-A prepared response won't make any lua call when it matches a incoming request, multiple responses can be queued as their responsed in order.<br>
+A prepared response won't make any lua call when it matches a incoming request, multiple responses can be queued as their responses in order.<br>
 The callback function provides the HttpResponse object which you should use to set all return values.<br>
 
 > [!NOTE]
@@ -3884,7 +3885,7 @@ The callback function provides the HttpResponse object which you should use to s
 > Currently it doesn't have any real use except to remove the Thread overhead but I plan to make it more useful later.<br>
 
 #### HttpServer:AddProxyAddress(string proxyAddress, string headerName, bool useSecondAddress)
-useSecondAddress - If the given header provides two addresses seperated by a `,` it will use the second address. (proxies love to be funny. Now give me my Address!)<br>
+useSecondAddress - If the given header provides two addresses separated by a `,` it will use the second address. (proxies love to be funny. Now give me my Address!)<br>
 
 Registers the given proxyAddress to be recognized, in which case it will look for the given header name and use it as the real address of the request sender.
 
@@ -3931,13 +3932,13 @@ Returns `HttpRequest [NULL]` if given invalid list.<br>
 Normally returns `HttpRequest`.<br>
 
 #### HttpRequest:\_\_gc()
-When garbage collected, the request will be marked as hanled.<br>
+When garbage collected, the request will be marked as handled.<br>
 
 #### HttpRequest:\_\_newindex(string key, any value)
 Internally implemented and will set the values into the lua table.<br>
 
 #### any HttpRequest:\_\_index(string key)
-Internally seaches first in the metatable table for the key.<br>
+Internally searches first in the metatable table for the key.<br>
 If it fails to find it, it will search in the lua table before returning.<br>
 If you try to get multiple values from the lua table, just use `HttpRequest:GetTable()`.<br>
 
@@ -4005,7 +4006,7 @@ Normally returns `HttpResponse`.<br>
 Internally implemented and will set the values into the lua table.<br>
 
 #### any HttpResponse:\_\_index(string key)
-Internally seaches first in the metatable table for the key.<br>
+Internally searches first in the metatable table for the key.<br>
 If it fails to find it, it will search in the lua table before returning.<br>
 If you try to get multiple values from the lua table, just use `HttpResponse:GetTable()`.<br>
 
@@ -4056,7 +4057,7 @@ If ffi is enabled in the config, then this will return a valid table, else it wi
 If ffi is enabled in the config, then this will allow you to mark cdata to be compatible with gmod allowing you to mimic types.<br>
 
 #### jit.registerCreateHolyLibCDataFunc(string cTypeName)
-A **Internall** function used by HolyLib to register the given cdata as the base userdata created & used by all holylib classes.<br>
+A **Internal** function used by HolyLib to register the given cdata as the base userdata created & used by all holylib classes.<br>
 
 #### table jit.getMetaTableByID(int metaID)
 Pushes the metatable by their given metaID or returns `nil`.
@@ -4072,14 +4073,14 @@ This readonly logic was added into our LuaJIT build and does **not** exist in th
 Checks if the table is set to be read only.
 
 ### debug.setblocked(function func)
-Marks the function to be inaccessable by any debug function & `setfenv` & `getfenv`.<br>
+Marks the function to be inaccessible by any debug function & `setfenv` & `getfenv`.<br>
 This function is used internally for the FFI Scripts executed by HolyLib to prevent access to FFI functions when their disabled.<br>
 
 > [!NOTE]
 > Once set this intentionally cannot be reverted.
 
 ### bool debug.isblocked(function func)
-Checks if the function is set to be inaccessable by any debug function.<br>
+Checks if the function is set to be inaccessible by any debug function.<br>
 
 ### Config
 
@@ -4289,7 +4290,7 @@ hook.Add("Think", "UpdateNetChannels", function()
 	for _, channel in ipairs(netChannels) do
 		if not channel:IsValid() then continue end
 
-		channel:ProcessStream() -- process any incomming messages
+		channel:ProcessStream() -- process any incoming messages
 		channel:Transmit() -- Transmit out a update.
 	end
 end)
@@ -4322,7 +4323,7 @@ This class represents a client.
 Internally implemented and will set the values into the lua table.<br>
 
 #### any CBaseClient:\_\_index(string key)
-Internally seaches first in the metatable table for the key.<br>
+Internally searches first in the metatable table for the key.<br>
 If it fails to find it, it will search in the lua table before returning.<br>
 If you try to get multiple values from the lua table, just use `CBaseClient:GetTable()`.<br>
 
@@ -4602,7 +4603,7 @@ end)
 This class inherits CBaseClient.
 
 #### string CGameClient:\_\_tostring()
-Returns the a formated string.<br>
+Returns the a formatted string.<br>
 Format: `CGameClient [%i][%s]`<br>
 `%i` -> UserID<br>
 `%s` -> ClientName<br>
@@ -4611,7 +4612,7 @@ Format: `CGameClient [%i][%s]`<br>
 This class represents a client.
 
 #### string CNetChan:\_\_tostring()
-Returns the a formated string.<br>
+Returns the a formatted string.<br>
 Format: `CNetChan [%s]`<br>
 `%s` -> channel name[ip:port]<br>
 
@@ -4619,7 +4620,7 @@ Format: `CNetChan [%s]`<br>
 Internally implemented and will set the values into the lua table.<br>
 
 #### any CNetChan:\_\_index(string key)
-Internally seaches first in the metatable table for the key.<br>
+Internally searches first in the metatable table for the key.<br>
 If it fails to find it, it will search in the lua table before returning.<br>
 If you try to get multiple values from the lua table, just use `CNetChan:GetTable()`.<br>
 
@@ -4745,7 +4746,7 @@ Sends out the given buffer as a message.
 #### CNetChan:SetMessageCallback(function callback)
 callback -> `function(CNetChan channel/self, bf_read buffer, number length)`<br>
 
-Sets the callback function for any incomming messages.<br>
+Sets the callback function for any incoming messages.<br>
 
 #### function CNetChan:GetMessageCallback()
 Returns the current message callback function.<br>
@@ -4820,7 +4821,7 @@ function AskForServerInfo(targetIP, challenge)
 	bf:WriteString("Source Engine Query") -- Null terminated string
 
 	if challenge then
-		bf:WriteLong(challenge) -- Challange response if we got a S2C_CHALLENGE
+		bf:WriteLong(challenge) -- Challenge response if we got a S2C_CHALLENGE
 	end
 
 	gameserver.SendConnectionlessPacket(bf, targetIP)
@@ -4921,7 +4922,7 @@ function AskForServerPlayerInfo(targetIP, challenge)
 	bf:WriteLong(-1) -- CONNECTIONLESS_HEADER
 	bf:WriteByte(string.byte("U")) -- A2S_PLAYER Header
 
-	bf:WriteUBitLong(challenge or -1, 32) -- Challange response if we got a S2C_CHALLENGE
+	bf:WriteUBitLong(challenge or -1, 32) -- Challenge response if we got a S2C_CHALLENGE
 
 	gameserver.SendConnectionlessPacket(bf, targetIP)
 end
@@ -5097,7 +5098,7 @@ Called before a Lua file is being refreshed. If `true` is returned it will deny 
 hook.Add("HolyLib:PreLuaAutoRefresh", "ExamplePreAutoRefresh", function(filePath, fileName)
     print("[BEFORE] FileChanged: " .. filePath .. filename)
         
-    if filename == "bogos" then
+    if filename == "bogus" then
         print("Denying Refresh")
     	return true -- prevent refresh
     end
@@ -5122,7 +5123,7 @@ Supports: Linux32
 > This module is not yet finished and untested
 
 > [!NOTE]
-> This mostly is for env_soundscape and will not do much for trigger_soundscape as thoes work noticably different.
+> This mostly is for env_soundscape and will not do much for trigger_soundscape as those work noticeably different.
 
 ### Functions
 
@@ -5311,15 +5312,15 @@ Then on this new entity - a NW2Var is set with it's creation.<br>
 
 Now the issue is - when the engine packs the entity for networking, it'll store the packed data as the baseline.<br>
 This **includes** NW2Vars and this baseline is used for all entities of the same class meaning the NW2Var would be present for all of them.<br>
-This storing into the base line **only** happens once for the first time an entitiy was created - this is per entity class!<br>
+This storing into the base line **only** happens once for the first time an entity was created - this is per entity class!<br>
 (C++ entities - Lua's all share one class meaning this bug would apply a NW2Var to all of them!)<br>
 
-Now what this module does - it prevents writing NW2Vars into the baseline ensuring they won't be applied to all entites of the same class.<br>
+Now what this module does - it prevents writing NW2Vars into the baseline ensuring they won't be applied to all entities of the same class.<br>
 
 > [!NOTE]
 > The bug still exists clientside though seems to be rarer / variables don't seem to actually change?<br>
 > There still seems to be invalid proxy calls though nothing much I can do about that.<br>
-> This definetly needs more testing though it should be an improvement.<br>
+> This definitely needs more testing though it should be an improvement.<br>
 
 
 # Unfinished Modules
@@ -5331,7 +5332,7 @@ This module adds two new `IServerPluginCallbacks` functions:<br>
 
 For a plugin to be loaded by HolyLib, you need to expose HolyLib's Interface.<br>
 You can expose both HolyLib's and the normal interface since the order of the virtual functions are the same.<br>
-This should already work but I never tested it completly yet (Or I forgot that I did test it).<br>
+This should already work but I never tested it completely yet (Or I forgot that I did test it).<br>
 
 Supports: Linux32 | Linux64<br>
 
@@ -5382,7 +5383,7 @@ https://github.com/Facepunch/garrysmod-requests/issues/77<br>
 https://github.com/Facepunch/garrysmod-requests/issues/439<br>
 https://github.com/Facepunch/garrysmod-requests/issues/1323<br>
 (Should be possible?)https://github.com/Facepunch/garrysmod-requests/issues/756<br>
-(Gonna make a seperate ConVar for it)https://github.com/Facepunch/garrysmod-requests/issues/2120<br>
+(Gonna make a separate ConVar for it)https://github.com/Facepunch/garrysmod-requests/issues/2120<br>
 https://github.com/Facepunch/garrysmod-requests/issues/1472<br>
 (Maybe)https://github.com/Facepunch/garrysmod-requests/issues/2129<br>
 (Maybe)https://github.com/Facepunch/garrysmod-requests/issues/1962<br>
@@ -5402,7 +5403,7 @@ Write order:<br>
 NW2 writes it to the baseline.<br>
 Write order:<br>
 - 12 bits - Number of net messages networked.<br>
-- 1 bit - Magic bool. Idk if true, it wil call `GM:EntityNetworkedVarChanged` (Verify)<br>
+- 1 bit - Magic bool. Idk if true, it will call `GM:EntityNetworkedVarChanged` (Verify)<br>
 
 loop:<br>
 - 12 bits - var key index<br>
@@ -5410,7 +5411,7 @@ loop:<br>
 - x bits -var value<br>
 
 ## `client_lua_files` Stringtable behavior
-Key `0` contains **always** all datapack paths(`;` is used as a seperator).<br>
+Key `0` contains **always** all datapack paths(`;` is used as a separator).<br>
 Example:
 ```lua
 local client_lua_files = stringtable.FindTable("client_lua_files")
@@ -5424,7 +5425,7 @@ All other keys are a lua filename.<br>
 
 ### Singleplayer
 The engine merges all lua files into a single/multiple keys named `singleplayer_files%i`.<br>
-Inside the string's userdata a long string is stored representing all files(`:` is used as a seperator).<br>
+Inside the string's userdata a long string is stored representing all files(`:` is used as a separator).<br>
 Example(Won't work on a dedicated server):
 ```lua
 local client_lua_files = stringtable.FindTable("client_lua_files")
@@ -5436,4 +5437,4 @@ PrintTable(fileTable)
 ## Usage with vphysics jolt
 Currently there might be bugs when combining holylib with VPhysics-Jolt.<br>
 This mainly affects the `physenv` module and most other modules should be completely fine.<br>
-Only VPhysics-Jolt builds from https://github.com/RaphaelIT7/VPhysics-Jolt will be suppored for now due to holylib requiring extented functionality.<br>
+Only VPhysics-Jolt builds from https://github.com/RaphaelIT7/VPhysics-Jolt will be supported for now due to holylib requiring extended functionality.<br>

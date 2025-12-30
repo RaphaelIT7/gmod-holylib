@@ -59,7 +59,7 @@ namespace Bootil
 			BOOTIL_EXPORT void TrimAfter( Bootil::BString & str, const Bootil::BString & strFind, bool bIncluding = false );
 			inline BString GetTrimAfter( BString str, const Bootil::BString & strFind, bool bIncluding = false ) { TrimAfter( str, strFind, bIncluding ); return str; }
 
-			BOOTIL_EXPORT void Split( const BString & str, const BString & seperator, String::List & outbits );
+			BOOTIL_EXPORT void Split( const BString & str, const BString & separator, String::List & outbits );
 			BOOTIL_EXPORT void SplitLength( const BString & str, int iLength, String::List & outbits );
 			BOOTIL_EXPORT int Count( const BString & str, char chrFind );
 
@@ -112,7 +112,7 @@ namespace Bootil
 			BOOTIL_EXPORT BString Memory( int iBytes );
 			BOOTIL_EXPORT BString MemoryPerSecond( int iBytes );
 			BOOTIL_EXPORT BString YesNo( bool b );
-			BOOTIL_EXPORT BString CommaSeperatedInt( int i );
+			BOOTIL_EXPORT BString CommaSeparatedInt( int i );
 			BOOTIL_EXPORT BString Time( const BString & strFormat = "%y-%m-%d %H-%M-%S", unsigned int iTime = 0 );
 			BOOTIL_EXPORT BString NiceFloat( float f );
 			BOOTIL_EXPORT BString NiceDouble( double f );

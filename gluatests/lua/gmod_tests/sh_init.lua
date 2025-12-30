@@ -30,7 +30,7 @@ if reqwest then
 	print("Loaded reqwest")
 end
 
--- ConVar's don't work since thoes would need to exist before it tries to set all values from the command line. (Maybe make a gmod request? idk)
+-- ConVar's don't work since those would need to exist before it tries to set all values from the command line. (Maybe make a gmod request? idk)
 -- local loki_host = CreateConVar("holylib_loki_host", "", {FCVAR_DONTRECORD, FCVAR_PROTECTED, FCVAR_UNLOGGED}, "Loki host secret.")
 -- local loki_api = CreateConVar("holylib_loki_api", "", {FCVAR_DONTRECORD, FCVAR_PROTECTED, FCVAR_UNLOGGED}, "Loki api key secret.")
 

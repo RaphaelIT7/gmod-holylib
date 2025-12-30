@@ -180,7 +180,7 @@ namespace Lua
 		void* pOtherData[4]; // If any other plugin wants to use this, they can.
 		// ID 0 is used by HolyLib core!!!
 		// It uses the assigned module IDs
-		Lua::ModuleData* pModuelData[Lua::Internal::pMaxEntries] = { nullptr };
+		Lua::ModuleData* pModuleData[Lua::Internal::pMaxEntries] = { nullptr };
 		LuaMetaEntry pLuaTypes[LuaTypes::TOTAL_TYPES];
 		std::unordered_map<void*, ReferencedLuaUserData*> pPushedUserData; // Would love to get rid of this
 		GarrysMod::Lua::ILuaInterface* pLua = nullptr;
@@ -241,7 +241,7 @@ namespace Lua
 			}
 
 			setgcref(pLuaTypes[type].metatable, obj2gco(tabV(pVal)));
-			pLua->Pop(1); // Since metatables are stored in the registry, our refernce should never change and always be valid :3
+			pLua->Pop(1); // Since metatables are stored in the registry, our reference should never change and always be valid :3
 		}
 
 		inline unsigned char GetMetaTable(LuaTypes type)
@@ -273,7 +273,7 @@ namespace Lua
 			if (moduleID >= Lua::Internal::pMaxEntries || moduleID < 0) // out of bounds
 				return nullptr;
 
-			return (void*)pModuelData[moduleID];
+			return (void*)pModuleData[moduleID];
 		}
 
 		/*
@@ -287,7 +287,7 @@ namespace Lua
 				return;
 			}
 
-			pModuelData[moduleID] = moduleData;
+			pModuleData[moduleID] = moduleData;
 		}
 
 		inline std::unordered_map<void*, ReferencedLuaUserData*>& GetPushedUserData()
@@ -385,7 +385,7 @@ struct GCudata_holylib { // We cannot change layout/sizes.
 	GCHeader; // GCHeader
 	uint8_t udtype;	/* Userdata type. */
 	uint8_t flags;	/* Unused normally - we use it to store flags */
-	GCRef usertable;	/* Should be at same offset in GCfunc. Accessable using setfenv/getfenv though I don't think anyone knows xd */
+	GCRef usertable;	/* Should be at same offset in GCfunc. Accessible using setfenv/getfenv though I don't think anyone knows xd */
 	MSize len;		/* Size of payload. */
 	GCRef metatable;	/* Must be at same offset in GCtab. */
 	void* data;
@@ -401,7 +401,7 @@ enum class udataFlags // we use bit flags so only a total of 8 are allowed.v
 };
 
 /*
-	ToDo: Implement a proper class like gmod has with CLuaCLass/CLuaLibrary & use thoes instead for everything.
+	ToDo: Implement a proper class like gmod has with CLuaCLass/CLuaLibrary & use those instead for everything.
 */
 
 /*

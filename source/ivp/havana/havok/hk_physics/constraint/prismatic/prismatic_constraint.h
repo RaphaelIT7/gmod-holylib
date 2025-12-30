@@ -1,5 +1,5 @@
-#ifndef HK_PHYSICS_PRISMATIC_CONTRAINT_H
-#define HK_PHYSICS_PRISMATIC_CONTRAINT_H
+#ifndef HK_PHYSICS_PRISMATIC_CONSTRAINT_H
+#define HK_PHYSICS_PRISMATIC_CONSTRAINT_H
 
 class hk_Prismatic_BP;
 class hk_Local_Constraint_System;
@@ -54,4 +54,4 @@ class hk_Prismatic_Constraint : public hk_Constraint
 		hk_QTransform m_transform_Ros_Aos;
 };
 
-#endif /* HK_PHYSICS_PRISMATIC_CONTRAINT_H */
+#endif /* HK_PHYSICS_PRISMATIC_CONSTRAINT_H */

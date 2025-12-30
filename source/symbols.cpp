@@ -186,7 +186,7 @@ namespace Symbols
 	const std::vector<Symbol> CPlugin_LoadSym = {
 		Symbol::FromName("_ZN7CPlugin4LoadEPKc"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x56\x49\x89\xFE\x41\x55\x41\x54\x49\x89\xF4\xBE\x2E"), // 55 48 89 E5 41 56 49 89 FE 41 55 41 54 49 89 F4 BE 2E
-		// No windows since windows doens't have/support serverplugins at all
+		// No windows since windows doesn't have/support serverplugins at all
 	};
 
 	//---------------------------------------------------------------------------------
@@ -272,7 +272,7 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: stringtable Symbols
 	//---------------------------------------------------------------------------------
-	const std::vector<Symbol> CNetworkStringTable_DeleteAllStringsSym = { // Error reading string table %s\n - CNetworkStringTableContainer::ReadStringTables -> Fidn the CNetworkStringTable::ReadStringTable call -> Find the CNetworkStringTable::DeleteAllStrings call
+	const std::vector<Symbol> CNetworkStringTable_DeleteAllStringsSym = { // Error reading string table %s\n - CNetworkStringTableContainer::ReadStringTables -> Find the CNetworkStringTable::ReadStringTable call -> Find the CNetworkStringTable::DeleteAllStrings call
 		Symbol::FromName("_ZN19CNetworkStringTable16DeleteAllStringsEv"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x89\xFB\x48\x83\xEC\x08\x48\x8B\x7F\x50"), // 55 48 89 E5 53 48 89 FB 48 83 EC 08 48 8B 7F 50
 		// No windows since there we use a completely different and unholy setup since Rubat never bothered for https://github.com/Facepunch/garrysmod-requests/issues/2766 :sob:
@@ -507,7 +507,7 @@ namespace Symbols
 	// Purpose: networking Symbols
 	// NOTE: This is just optimizations, having CGMOD_Player_CreateViewModelSym on Windows would be good but all the other things are probably best for Linux only.
 	//---------------------------------------------------------------------------------
-	const std::vector<Symbol> AllocChangeFrameListSym = { // I'm still suprised I managed to get this one :^
+	const std::vector<Symbol> AllocChangeFrameListSym = { // I'm still surprised I managed to get this one :^
 		Symbol::FromName("_Z20AllocChangeFrameListii"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x55\x41\x54\x41\x89\xFC\xBF\x28"), // 55 48 89 E5 41 55 41 54 41 89 FC BF 28
 		Symbol::FromSignature("\x55\x8B\xEC\x56\x57\x6A\x18"),
@@ -669,7 +669,7 @@ namespace Symbols
 		Symbol::FromName("_ZN13CSteam3Server8ShutdownEv"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x89\xFB\x48\x83\xEC\x08\x48\x83\x7F**\x74\x5A"), // 55 48 89 E5 53 48 89 FB 48 83 EC 08 48 83 7F ?? ?? 74 5A
 		Symbol::FromSignature("\x55\x8B\xEC\x83\xEC\x08\x56\x8B\xF1\x83\x7E\x04\x00"), // 55 8B EC 83 EC 08 56 8B F1 83 7E 04 00
-		//Inline in win64 unfortunatly
+		//Inline in win64 unfortunately
 	};
 
 	const std::vector<Symbol> CSteam3Server_ActivateSym = { //Search for "-steamport"
@@ -689,7 +689,7 @@ namespace Symbols
 	const std::vector<Symbol> SV_InitGameServerSteamSym = {
 		Symbol::FromName("_Z22SV_InitGameServerSteamv"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x83\xEC\x08\x48\x8B\x1D********\x00\x00\x01"), // 55 48 89 E5 53 48 83 EC 08 48 8B 1D ?? ?? ?? ?? ?? ?? ?? ?? 00 00 01
-		//Inline in win unfortunatly
+		//Inline in win unfortunately
 	};
 
 	const std::vector<Symbol> CSteam3Server_NotifyClientConnectSym = { // 64x = "S3: Client"
@@ -709,7 +709,7 @@ namespace Symbols
 	const std::vector<Symbol> CSteam3Server_CheckForDuplicateSteamIDSym = { // 64x = "STEAM UserID"
 		Symbol::FromName("_ZN13CSteam3Server24CheckForDuplicateSteamIDEPK11CBaseClient"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x53\x48\x83\xEC\x68\x48\x89\x75\x80"), // 55 48 89 E5 41 57 41 56 41 55 41 54 53 48 83 EC 68 48 89 75 80
-		//Inline in win unfortunatly
+		//Inline in win unfortunately
 	};
 
 	//---------------------------------------------------------------------------------
@@ -723,7 +723,7 @@ namespace Symbols
 	};
 
 
-	// NOTE: All of thoes below are obsolete with the next gmod update, see https://github.com/Facepunch/garrysmod-requests/issues/2801 <3
+	// NOTE: All of those below are obsolete with the next gmod update, see https://github.com/Facepunch/garrysmod-requests/issues/2801 <3
 	const std::vector<Symbol> CVoiceGameMgr_UpdateSym = { // VoiceMask
 		Symbol::FromName("_ZN13CVoiceGameMgr6UpdateEd"),
 		NULL_SIGNATURE, //Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x89\xFB\x48\x83\xEC\x08\xF2\x0F\x58\x47\x18"), //55 48 89 E5 53 48 89 FB 48 83 EC 08 F2 0F 58 47 18

@@ -1,5 +1,5 @@
-#ifndef HK_LOCAL_BREAKABLE_CONTRAINT_H
-#define HK_LOCAL_BREAKABLE_CONTRAINT_H
+#ifndef HK_LOCAL_BREAKABLE_CONSTRAINT_H
+#define HK_LOCAL_BREAKABLE_CONSTRAINT_H
 
 class hk_Breakable_BP;
 class hk_Local_Constraint_System;
@@ -53,4 +53,4 @@ class hk_Breakable_Constraint : public hk_Constraint
 		bool	m_is_broken;
 };
 
-#endif //HK_LOCAL_BREAKABLE_CONTRAINT_H
+#endif //HK_LOCAL_BREAKABLE_CONSTRAINT_H

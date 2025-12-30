@@ -73,7 +73,7 @@ void EntityList::CreateReference(CBaseEntity* pEntity, bool bNoPop)
 	auto it = m_pEntReferences.find(pEntity);
 	if (it != m_pEntReferences.end())
 	{
-		if (IsValidReference(it->second)) // We initally set it to -1
+		if (IsValidReference(it->second)) // We initially set it to -1
 		{
 			Warning(PROJECT_NAME ": entitylist is leaking references! Report this!\n");
 		}

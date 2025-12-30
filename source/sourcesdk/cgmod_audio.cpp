@@ -337,7 +337,7 @@ bool CGMod_Audio::Init(CreateInterfaceFn interfaceFactory)
 	if (GetVersion() == 33821184L)
 	{
 		g_bUsesLatestBass = true;
-		Msg(PROJECT_NAME " - CGMod_Audio::Init found latets bass version :3\n");
+		Msg(PROJECT_NAME " - CGMod_Audio::Init found latest bass version :3\n");
 
 		DLL_Handle pBass = DLL_LoadModule(DLL_PREEXTENSION "bass" LIBRARY_EXTENSION, RTLD_LAZY | RTLD_NOLOAD);
 		if (pBass)

@@ -67,7 +67,7 @@ static ConVar voicechat_savedecompressed("holylib_voicechat_savedecompressed", "
 static CVoiceChatModule g_pVoiceChatModule;
 IModule* pVoiceChatModule = &g_pVoiceChatModule;
 
-// IMPORTANT: When changing this sturct, you also NEED to update the VoiceDataFFI.lua file!!!
+// IMPORTANT: When changing this struct, you also NEED to update the VoiceDataFFI.lua file!!!
 struct VoiceData
 {
 	~VoiceData() {
@@ -627,17 +627,17 @@ struct VoiceStream {
 	void Save(FileHandle_t fh)
 	{
 		// Create a copy so that the main thread can still party on it.
-		std::unordered_map<int, VoiceData*> voiceDataEnties = pVoiceData;
+		std::unordered_map<int, VoiceData*> voiceDataEntries = pVoiceData;
 
 		g_pFullFileSystem->Write(&VOICESTREAM_VERSION, sizeof(int), fh);
 
 		int tickRate = (int)std::ceil(1 / gpGlobals->interval_per_tick);
 		g_pFullFileSystem->Write(&tickRate, sizeof(int), fh);
 
-		int count = (int)voiceDataEnties.size();
+		int count = (int)voiceDataEntries.size();
 		g_pFullFileSystem->Write(&count, sizeof(int), fh); // First write the total number of voice data
 
-		for (auto& [tickNumber, voiceData] : voiceDataEnties)
+		for (auto& [tickNumber, voiceData] : voiceDataEntries)
 		{
 			g_pFullFileSystem->Write(&tickNumber, sizeof(int), fh);
 
@@ -1053,7 +1053,7 @@ struct VoiceStream {
 	 */
 	inline VoiceData* GetIndex(int index)
 	{
-		if (index < nLowestTick || index > nHightestTick)
+		if (index < nLowestTick || index > nHighestTick)
 			return nullptr;
 
 		auto it = pVoiceData.find(index);
@@ -1078,9 +1078,9 @@ struct VoiceStream {
 		pVoiceData[index] = pData;
 		pData->bAllowLuaGC = false;
 
-		if (index > nHightestTick)
+		if (index > nHighestTick)
 		{
-			nHightestTick = index;
+			nHighestTick = index;
 		}
 
 		// Idk, I feel like some insane people might insert negative indexes xD
@@ -1147,7 +1147,7 @@ private:
 	// We don't clamp it since people might for example set it to -100 and then call GetNextTick to delay the start for example.
 	int nCurrentTick = 0;
 	// The highest tick we have stored, we use it to skip lookups in pVoiceData to improve performance for Indexes we know don't exist.
-	int nHightestTick = 0;
+	int nHighestTick = 0;
 	int nLowestTick = 0;
 };
 
@@ -1558,7 +1558,7 @@ static void hook_CVoiceGameMgr_Update(CVoiceGameMgr* pManager, double frametime)
 	}
 }
 
-// This is seperate since most of the above code will be removed with the next gmod update as Rubat brought over our optimization :D
+// This is separate since most of the above code will be removed with the next gmod update as Rubat brought over our optimization :D
 static bool g_bIsPlayerTalking2[MAX_PLAYERS] = {0};
 static double g_fLastPlayerTalked2[MAX_PLAYERS] = {0};
 static void CheckTalkingState(int nPlayerSlot, bool bIsTalking)

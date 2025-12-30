@@ -24,7 +24,7 @@ IModule* pLuaThreadsModule = &g_pLuaThreadsModule;
 
 enum class InterfaceStatus
 {
-	INTERFACE_STOPPED = 0, // Set by the thread if it succesfully stopped
+	INTERFACE_STOPPED = 0, // Set by the thread if it successfully stopped
 	INTERFACE_RUNNING = 1,
 	INTERFACE_STOPPING = 2, // This should be set if you request it to stop.
 };

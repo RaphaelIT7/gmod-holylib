@@ -55,7 +55,7 @@ public:
 typedef struct
 {
 	PackedEntity	*pEntity;	// original packed entity
-	int				counter;	// increaseing counter to find LRU entries
+	int				counter;	// increasing counter to find LRU entries
 	int				bits;		// uncompressed data length in bits
 	char			data[MAX_PACKEDENTITY_DATA]; // uncompressed data cache
 } UnpackedDataCache_t;
@@ -146,7 +146,7 @@ public:
 	// if we are copying a Packed Entity, we have to increase the reference counter 
 	void			AddEntityReference( PackedEntityHandle_t handle );
 
-	// if we are removeing a Packed Entity, we have to decrease the reference counter
+	// if we are removing a Packed Entity, we have to decrease the reference counter
 	void			RemoveEntityReference( PackedEntityHandle_t handle );
 
 	// Uses a previously sent packet

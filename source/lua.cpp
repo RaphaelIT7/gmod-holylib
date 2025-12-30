@@ -39,12 +39,12 @@ LUA_FUNCTION_STATIC(Test_GetEntity)
 {
 	CBaseEntity* pEntity = Util::Get_Entity(LUA, 1, true);
 	EHANDLE* pEntHandle = LUA->GetUserType<EHANDLE>(1, GarrysMod::Lua::Type::Entity);
-	// If something broke, either we will return false, or we will crash which is intented to make the tests fail.
+	// If something broke, either we will return false, or we will crash which is intended to make the tests fail.
 	LUA->PushBool(pEntity && pEntity->edict() && pEntity->edict()->m_EdictIndex == pEntHandle->GetEntryIndex());
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(Test_GetPlayer) // Same as Test_GetEntity though calling Get_Player since it's a seperate independent function.
+LUA_FUNCTION_STATIC(Test_GetPlayer) // Same as Test_GetEntity though calling Get_Player since it's a separate independent function.
 {
 	CBasePlayer* pEntity = Util::Get_Player(LUA, 1, true);
 	EHANDLE* pEntHandle = LUA->GetUserType<EHANDLE>(1, GarrysMod::Lua::Type::Entity);
@@ -252,7 +252,7 @@ bool Lua::PushHook(const char* hook, GarrysMod::Lua::ILuaInterface* pLua)
 
 	if (!ThreadInMainThread() && pLua == g_Lua)
 	{
-		Warning(PROJECT_NAME ": Lua::PushHook was called ouside of the main thread! (%s)\n", hook);
+		Warning(PROJECT_NAME ": Lua::PushHook was called outside of the main thread! (%s)\n", hook);
 		return false;
 	}
 
@@ -843,12 +843,12 @@ Lua::StateData::~StateData()
 {
 	for (int i = 0; i < Lua::Internal::pMaxEntries; ++i)
 	{
-		Lua::ModuleData* pData = pModuelData[i];
+		Lua::ModuleData* pData = pModuleData[i];
 		if (pData == nullptr)
 			continue;
 
 		delete pData;
-		pModuelData[i] = nullptr;
+		pModuleData[i] = nullptr;
 	}
 
 	if (pProxy)

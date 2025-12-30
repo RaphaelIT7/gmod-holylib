@@ -32,7 +32,7 @@ bool		SendTable_Init( SendTable **pTables, int nTables );
 void		SendTable_Term();
 CRC32_t		SendTable_GetCRC();
 int			SendTable_GetNum();
-SendTable	*SendTabe_GetTable(int index);
+SendTable	*SendTable_GetTable(int index);
 
 
 // Return the number of unique properties in the table.

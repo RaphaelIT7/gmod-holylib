@@ -1,7 +1,7 @@
 --[[
 	This premake file is also loaded by our development/module/premake5.lua
 	If this happens the HOLYLIB_DEVELOPMENT will be set to true
-	I did this to have 1 premake file instead of 2 seperate ones.
+	I did this to have 1 premake file instead of 2 separate ones.
 ]]
 PROJECT_GENERATOR_VERSION = 3
 

@@ -1,5 +1,5 @@
-#ifndef HK_LOCAL_BALL_SOCKET_CONTRAINT_H
-#define HK_LOCAL_BALL_SOCKET_CONTRAINT_H
+#ifndef HK_LOCAL_BALL_SOCKET_CONSTRAINT_H
+#define HK_LOCAL_BALL_SOCKET_CONSTRAINT_H
 
 class hk_Ball_Socket_BP;
 class hk_Local_Constraint_System;
@@ -52,4 +52,4 @@ class hk_Ball_Socket_Constraint : public hk_Constraint
 		hk_real m_strength;       // 4
 };
 
-#endif //HK_LOCAL_BALL_SOCKET_CONTRAINT_H
+#endif //HK_LOCAL_BALL_SOCKET_CONSTRAINT_H

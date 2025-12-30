@@ -5,7 +5,7 @@
 
 dofile("utils.lua")
 
-local function CompileLuaScipts()
+local function CompileLuaScripts()
 	local path = "../lua/scripts/"
 	for _, fileName in ipairs(ScanDir(path, false)) do
 		if not EndsWith(fileName, ".lua") then continue end
@@ -20,7 +20,7 @@ local function CompileLuaScipts()
 		WriteFile(headerFileName, headerFile)
 	end
 end
-CompileLuaScipts()
+CompileLuaScripts()
 
 local function CompileModuleList()
 	local path = "../modules/"
@@ -80,7 +80,7 @@ end
 CompileModuleList()
 
 
-local function CompileVerionFile()
+local function CompileVersionFile()
 	local path = "../../workflow_info.txt"
 	local file = io.open(path, "r")
 	local run_id = file and file:read("*l") or "1"
@@ -102,4 +102,4 @@ local function CompileVerionFile()
 
 	WriteFile("../_versioninfo.h", string.Trim(versionFile))
 end
-CompileVerionFile()
+CompileVersionFile()

@@ -1,5 +1,5 @@
-#ifndef HK_PHYSICS_HINGE_CONTRAINT_H
-#define HK_PHYSICS_HINGE_CONTRAINT_H
+#ifndef HK_PHYSICS_HINGE_CONSTRAINT_H
+#define HK_PHYSICS_HINGE_CONSTRAINT_H
 
 // IVP_EXPORT_PUBLIC
 
@@ -59,5 +59,5 @@ class hk_Hinge_Constraint : public hk_Constraint
 		hk_Constraint_Limit m_limit; // XXX same as max_force for motor
 };
 
-#endif /* HK_PHYSICS_HINGE_CONTRAINT_H */
+#endif /* HK_PHYSICS_HINGE_CONSTRAINT_H */
 

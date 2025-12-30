@@ -1,5 +1,5 @@
-#ifndef HK_PHYSICS_RAGDOLL_CONTRAINT_H
-#define HK_PHYSICS_RAGDOLL_CONTRAINT_H
+#ifndef HK_PHYSICS_RAGDOLL_CONSTRAINT_H
+#define HK_PHYSICS_RAGDOLL_CONSTRAINT_H
 
 
 class hk_Ragdoll_Constraint_BP;
@@ -69,4 +69,4 @@ class hk_Ragdoll_Constraint : public hk_Constraint
 
 };
 
-#endif /* HK_PHYSICS_RAGDOLL_CONTRAINT_H */
+#endif /* HK_PHYSICS_RAGDOLL_CONSTRAINT_H */

@@ -24,7 +24,7 @@ enum UpdateType
 	PreserveEnt,	// Entity stays alive but no delta ( could be LOD, or just unchanged )
 	
 	Finished,		// finished parsing entities successfully
-	Failed,			// parsing error occured while reading entities
+	Failed,			// parsing error occurred while reading entities
 };
 
 // Flags for delta encoding header
@@ -115,9 +115,9 @@ enum
 
 #define	svc_SetView			18		// sets entity as point of view
 #define	svc_FixAngle		19		// sets/corrects players viewangle
-#define	svc_CrosshairAngle	20		// adjusts crosshair in auto aim mode to lock on traget
+#define	svc_CrosshairAngle	20		// adjusts crosshair in auto aim mode to lock on target
 
-#define	svc_BSPDecal		21		// add a static decal to the worl BSP
+#define	svc_BSPDecal		21		// add a static decal to the world BSP
 // NOTE: This is now unused!
 //#define	svc_TerrainMod		22		// modification to the terrain/displacement
 

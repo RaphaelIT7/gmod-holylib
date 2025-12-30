@@ -32,7 +32,7 @@ function HTTP_WaitForAllInternal()
 			if fileChanged or (tbl.raceConditionTime and os.clock() < tbl.raceConditionTime) then
 				tbl.fileSize = fileSize
 				if fileChanged then
-					tbl.raceConditionTime = os.clock() + 0.2 -- We add some delay since it can take a few miliseconds to finish outputting.
+					tbl.raceConditionTime = os.clock() + 0.2 -- We add some delay since it can take a few milliseconds to finish outputting.
 					print("Skipping result since it's sill being outputted (race condition)")
 				end
 				continue

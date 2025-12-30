@@ -91,9 +91,9 @@ public:
 		return Util::GetPlayerByClient(client);
 	}
 
-	virtual bool CM_Vis(byte* cluster, int clusterSize, int cluserID, int type)
+	virtual bool CM_Vis(byte* cluster, int clusterSize, int clusterID, int type)
 	{
-		return Util::CM_Vis(cluster, clusterSize, cluserID, type);
+		return Util::CM_Vis(cluster, clusterSize, clusterID, type);
 	}
 
 	virtual void BlockGameEvent(const char* pName)

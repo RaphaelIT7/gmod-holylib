@@ -109,8 +109,8 @@ Command execution takes a null terminated string, breaks it into tokens,
 then searches for a command or variable that matches the first token.
 
 Commands can come from three sources, but the handler functions may choose
-to dissallow the action or forward it to a remote server if the source is
-not apropriate.
+to disallow the action or forward it to a remote server if the source is
+not appropriate.
 
 */
 

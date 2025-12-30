@@ -52,7 +52,7 @@ static ConVar net_maxfragments( "holylib_net_maxfragments", "0", 0, "Forces a ma
 static std::string routable_default = std::to_string(MAX_ROUTABLE_PAYLOAD); // Let's try to not crash
 static ConVar holylib_net_maxroutable("holylib_net_maxroutable", routable_default.c_str(), 0, "Maximum payload size", true, 0, true, MAX_ROUTABLE_PAYLOAD);
 
-extern bool Q_RemoveAllEvilCharacters2( char *pch ); // Bcause 64x is shit
+extern bool Q_RemoveAllEvilCharacters2( char *pch ); // Because 64x is shit
 extern int  NET_SendStream( int nSock, const char * buf, int len, int flags );
 extern int  NET_ReceiveStream( int nSock, char * buf, int len, int flags );
 
@@ -339,7 +339,7 @@ unsigned int CNetChan::RequestFile(const char *filename)
 	m_StreamReliable.WriteUBitLong( net_File, NETMSG_TYPE_BITS );
 	m_StreamReliable.WriteUBitLong( m_FileRequestCounter, 32 );
 	m_StreamReliable.WriteString( filename );
-	m_StreamReliable.WriteOneBit( 1 ); // reqest this file
+	m_StreamReliable.WriteOneBit( 1 ); // request this file
 
 	return m_FileRequestCounter;
 }
@@ -397,7 +397,7 @@ bool CNetChan::SendFile(const char *filename, unsigned int transferID)
 
 void CNetChan::Shutdown(const char *pReason)
 {
-	// send discconect
+	// send disconnect
 
 	if ( m_Socket < 0 )
 		return;
@@ -498,7 +498,7 @@ CNetChan::CNetChan()
 	m_MaxReliablePayloadSize = 	NET_MAX_PAYLOAD;
 
 	m_FileRequestCounter = 0;
-	m_bFileBackgroundTranmission = true;
+	m_bFileBackgroundTransmission = true;
 	m_bUseCompression = false;
 	m_nQueuedPackets = 0;
 
@@ -752,7 +752,7 @@ void CNetChan::SetMaxBufferSize(bool bReliable, int nBytes, bool bVoice )
 
 void CNetChan::SetFileTransmissionMode( bool bBackgroundMode )
 {
-	m_bFileBackgroundTranmission = bBackgroundMode;
+	m_bFileBackgroundTransmission = bBackgroundMode;
 }
 
 void CNetChan::SetCompressionMode( bool bUseCompression )
@@ -1017,7 +1017,7 @@ bool CNetChan::IsFileInWaitingList( const char *filename )
 			dataFragments_t * data = m_WaitingList[stream][i]; 
 
 			if ( !Q_strcmp( data->filename, filename ) )
-				return true; // alread in list
+				return true; // already in list
 		}
 	}
 
@@ -1530,7 +1530,7 @@ void CNetChan::UpdateSubChannels()
 		int numFragments = MIN( nSendMaxFragments, data->numFragments - nSentFragments );
 
 		// if we are in file background transmission mode, just send one fragment per packet
-		if ( i == FRAG_FILE_STREAM && (net_filebackgroundtranmission.GetInt() == -1 ? m_bFileBackgroundTranmission : net_filebackgroundtranmission.GetInt() == 1) )
+		if ( i == FRAG_FILE_STREAM && (net_filebackgroundtranmission.GetInt() == -1 ? m_bFileBackgroundTransmission : net_filebackgroundtranmission.GetInt() == 1) )
 			numFragments = MIN( 1, numFragments );
 
 		// copy fragment data into subchannel
@@ -1615,7 +1615,7 @@ static ConVar net_minroutable( "net_minroutable", "16", 0, "Forces larger payloa
 CNetChan::TransmitBits
 
 tries to send an unreliable message to a connection, and handles the
-transmition / retransmition of the reliable messages.
+transmission / retransmission of the reliable messages.
 
 A 0 length will still generate a packet and deal with the reliable messages.
 ================
@@ -1649,7 +1649,7 @@ int CNetChan::SendDatagram(bf_write *datagram)
 		m_fClearTime = 0.0;		// no bandwidth delay
 		m_nChokedPackets = 0;	// Reset choke state
 		m_StreamReliable.Reset();		// clear current reliable buffer
-		m_StreamUnreliable.Reset();		// clear current unrelaible buffer
+		m_StreamUnreliable.Reset();		// clear current unreliable buffer
 		m_nOutSequenceNr++;
 		return m_nOutSequenceNr-1;
 	}
@@ -1722,7 +1722,7 @@ int CNetChan::SendDatagram(bf_write *datagram)
 		}
 		else
 		{
-			ConDMsg("CNetChan::SendDatagram:  data would overfow, ignoring\n");
+			ConDMsg("CNetChan::SendDatagram:  data would overflow, ignoring\n");
 		}
 	}
 
@@ -1733,7 +1733,7 @@ int CNetChan::SendDatagram(bf_write *datagram)
 	}
 	else
 	{
-		ConDMsg("CNetChan::SendDatagram:  Unreliable would overfow, ignoring\n");
+		ConDMsg("CNetChan::SendDatagram:  Unreliable would overflow, ignoring\n");
 	}
 
 	m_StreamUnreliable.Reset();	// clear unreliable data buffer
@@ -2539,7 +2539,7 @@ void CNetChan::ProcessPacket( netpacket_t * packet, bool bHasHeader )
 // Is there anything left to process?
 	if ( msg.GetNumBitsLeft() > 0 )
 	{
-		// parse and handle all messeges 
+		// parse and handle all messages 
 		if ( !ProcessMessages( msg ) )
 		{
 			return;	// disconnect or error
@@ -2654,7 +2654,7 @@ bool CNetChan::SendData( bf_write &msg, bool bReliable )
 	{
 		if (  bReliable )
 		{
-			ConMsg( "ERROR! SendData reliabe data too big (%i)", msg.GetNumBytesWritten() );
+			ConMsg( "ERROR! SendData reliable data too big (%i)", msg.GetNumBytesWritten() );
 		}
 
 		return false;
@@ -2742,7 +2742,7 @@ bool CNetChan::ProcessStream( void )
 
 	if ( m_SteamType==STREAM_CMD_AUTH )
 	{
-		// server accpeted connection, send challenge nr
+		// server accepted connection, send challenge nr
 		m_StreamActive = true;
 		
 		ResetStreaming();
@@ -2824,7 +2824,7 @@ bool CNetChan::ProcessStream( void )
 
 	if ( m_StreamReceived < m_StreamLength )
 	{
-		// read in 4kB chuncks
+		// read in 4kB chunks
 		int bytesLeft = ( m_StreamLength - m_StreamReceived );	
 
 		int bytesRecv = NET_ReceiveStream( m_StreamSocket, (char*)m_StreamData.Base() + m_StreamReceived, bytesLeft, 0 );

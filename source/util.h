@@ -261,8 +261,8 @@ namespace Util
 
 	// Returns new VisData, delete it after use
 	extern VisData* CM_Vis(const Vector& orig, int type);
-	extern bool CM_Vis(byte* cluster, int clusterSize, int cluserID, int type);
-	extern void ResetClusers(VisData* data);
+	extern bool CM_Vis(byte* cluster, int clusterSize, int clusterID, int type);
+	extern void ResetClusters(VisData* data);
 
 	extern bool ShouldLoad();
 	extern void CheckVersion(bool bAutoUpdate);
@@ -296,7 +296,7 @@ namespace Util
 	}
 
 	// Workaround until https://github.com/Facepunch/garrysmod-issues/issues/6583
-	// On 32x deleting a pool goes fine, on 64x it can randomly freeze indefinetly, its not even consistent. Its random.
+	// On 32x deleting a pool goes fine, on 64x it can randomly freeze indefinitely, its not even consistent. Its random.
 	inline void DestroyThreadPool(IThreadPool* pool)
 	{
 		pool->Stop();

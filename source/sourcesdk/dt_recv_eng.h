@@ -38,8 +38,8 @@ bool		RecvTable_RecvClassInfos( bf_read *pBuf, bool bNeedsDecoder, int nDemoProt
 // Returns false if there is an unrecoverable error.
 //
 // bAllowMismatches is true when playing demos back so we can change datatables without breaking demos.
-// If pAnyMisMatches is non-null, it will be set to true if the client's recv tables mismatched the server's ones.
-bool		RecvTable_CreateDecoders( const CStandardSendProxies *pSendProxies, bool bAllowMismatches, bool *pAnyMismatches=NULL );
+// If pAnyMissMatches is non-null, it will be set to true if the client's recv tables mismatched the server's ones.
+bool		RecvTable_CreateDecoders( const CStandardSendProxies *pSendProxies, bool bAllowMismatches, bool *pAnyMissMatches=NULL );
 
 // objectID gets passed into proxies and can be used to track data on particular objects.
 // NOTE: this function can ONLY decode a buffer outputted from RecvTable_MergeDeltas
@@ -71,7 +71,7 @@ int RecvTable_MergeDeltas(
 	
 	int	*pChangedProps = NULL,
 
-	bool updateDTI = false // enclude merge from newState in the DTI reports
+	bool updateDTI = false // include merge from newState in the DTI reports
 	);
 
 

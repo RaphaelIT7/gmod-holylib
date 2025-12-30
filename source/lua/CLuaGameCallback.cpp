@@ -188,7 +188,7 @@ Color col_error(136, 221, 255, 255);
 struct UnholyVTable
 {
 	// I think it only has like 50 virtual functions, but we take up more space just to be safe.
-	void* entry[128] = {nullptr}; // Hopefully this should be enouth for years to come.
+	void* entry[128] = {nullptr}; // Hopefully this should be enough for years to come.
 };
 UnholyVTable g_pGlobalObjctVTable;
 class UnholyLuaObject

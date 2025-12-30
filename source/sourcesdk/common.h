@@ -37,7 +37,7 @@ struct cache_user_t;
 #include "tier1/strtools.h"
 
 //============================================================================
-char *COM_StringCopy(const char *text);	// allocates memory and copys text
+char *COM_StringCopy(const char *text);	// allocates memory and copies text
 void COM_StringFree(const char *text);	// frees memory allocated by COM_StringCopy
 void COM_AddNoise( unsigned char *data, int length, int number ); // Changes n random bits in a data block
 

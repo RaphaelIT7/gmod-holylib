@@ -18,7 +18,7 @@
 
 // Another shit workaround since the vtable is off on Windows.
 // And until I get a response from Rubat I give up trying to properly fix the vtable.
-// This project already has enouth shitty workarounds and I hate to keep having to add some just because some updates breaks shit without the changes being announced.
+// This project already has enough shitty workarounds and I hate to keep having to add some just because some updates breaks shit without the changes being announced.
 class CSimpleLuaObject;
 inline CSimpleLuaObject* ToSimpleObject(GarrysMod::Lua::ILuaObject* pObj);
 class CSimpleLuaObject
@@ -253,7 +253,7 @@ void Lua::CloseLuaInterface(GarrysMod::Lua::ILuaInterface* LuaInterface)
 	LuaDebugPrint(1, "CloseLuaInterface\n");
 	// ToDo: Add all fancy operations and delete ILuaGameCallback? (Should we really delete it? No.)
 	// LuaInterface->Shutdown(); // BUG: Gmod doesn't do this in here... right?
-	// NOTE: We alreay call Shutdown from Lua::DestroyInterface so if your not careful you might call it twice and crash.
+	// NOTE: We already call Shutdown from Lua::DestroyInterface so if your not careful you might call it twice and crash.
 
 	delete LuaInterface;
 }

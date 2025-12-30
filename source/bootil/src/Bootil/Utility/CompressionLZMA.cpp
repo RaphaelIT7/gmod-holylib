@@ -102,7 +102,7 @@ namespace Bootil
 				size_t iRealDestLen = iDestLen;
 
 				//
-				// TODO: Santity check?
+				// TODO: Sanity check?
 				// Nice
 				//
 
@@ -160,7 +160,7 @@ namespace Bootil
 				//
 				size_t iDestLen = pSizeBuf[0] | ( pSizeBuf[1] << 8 ) | ( pSizeBuf[2] << 16 ) | ( pSizeBuf[3] << 24 );
 				//
-				// TODO: Santity check?
+				// TODO: Sanity check?
 				//
 				CLzmaDec state;
 				LzmaDec_Construct( &state );

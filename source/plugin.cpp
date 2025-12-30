@@ -423,7 +423,7 @@ GMOD_MODULE_OPEN()
 
 	g_pModuleManager.MarkAsBinaryModule();
 	Lua::SetManualShutdown();
-	g_HolyLibServerPlugin.Load(nullptr, nullptr); // Yes. I don't like it but I can't get thoes fancy interfaces.
+	g_HolyLibServerPlugin.Load(nullptr, nullptr); // Yes. I don't like it but I can't get those fancy interfaces.
 
 	if (Util::engineserver && Util::server)
 	{

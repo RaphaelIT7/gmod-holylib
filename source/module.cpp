@@ -275,7 +275,7 @@ CModuleManager::CModuleManager()
 		if (m_pConfig->GetState() == ConfigState::INVALID_JSON)
 		{
 			Warning(PROJECT_NAME " - modulesystem: Failed to load modules.json!\n- Check if the json is valid or delete the config to let a new one be generated!\n");
-			m_pConfig->Destroy(); // Our config is in a invaid state :/
+			m_pConfig->Destroy(); // Our config is in a invalid state :/
 			m_pConfig = nullptr;
 		}
 	}

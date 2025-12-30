@@ -20,7 +20,7 @@
 #undef isalnum // 64x loves to shit on this one
 
 // Try not to use it. We want to move away from it.
-// Additionaly, we will add checks in many functions.
+// Additionally, we will add checks in many functions.
 GarrysMod::Lua::ILuaInterface* g_Lua = nullptr;
 
 IVEngineServer* engine = nullptr;
@@ -278,7 +278,7 @@ CBasePlayer* Util::GetPlayerByClient(CBaseClient* client)
 	return (CBasePlayer*)servergameents->EdictToBaseEntity(engineserver->PEntityOfEntIndex(client->GetPlayerSlot() + 1));
 }
 
-void Util::ResetClusers(VisData* data)
+void Util::ResetClusters(VisData* data)
 {
 	Q_memset(data->cluster, 0, sizeof(data->cluster));
 }
@@ -287,7 +287,7 @@ Symbols::CM_Vis func_CM_Vis = nullptr;
 Util::VisData* Util::CM_Vis(const Vector& orig, int type)
 {
 	Util::VisData* data = new Util::VisData;
-	Util::ResetClusers(data);
+	Util::ResetClusters(data);
 
 	if (func_CM_Vis)
 		func_CM_Vis(data->cluster, sizeof(data->cluster), engine->GetClusterForOrigin(orig), type);
@@ -362,7 +362,7 @@ CBaseEntity* Util::NextEnt(CBaseEntity* pEnt)
 
 	int nextIndex = pEnt->edict()->m_EdictIndex + 1;
 	int totalCount = Util::engineserver->GetEntityCount();
-	if (totalCount <= nextIndex) // ToDo: Verify that we don't skip the last entitiy.
+	if (totalCount <= nextIndex) // ToDo: Verify that we don't skip the last entity.
 		return nullptr;
 
 	CBaseEntity* pEntity = Util::GetCBaseEntityFromEdict(Util::engineserver->PEntityOfEntIndex(nextIndex));
@@ -752,7 +752,7 @@ void Util::AddDetour()
 	 *		We also could introduce a Lua Flag so that modules can register for Menu/Client realm if wanted.
 	 *		But I won't really support client. At best only menu.
 	 * 
-	 * New Idea: I'm updating everything. The goal is to support any realm & even multiple ILuaInterfaces at the same time (Preperation for lua_threaded support).
+	 * New Idea: I'm updating everything. The goal is to support any realm & even multiple ILuaInterfaces at the same time (Preparation for lua_threaded support).
 	 */
 }
 
@@ -933,7 +933,7 @@ void Util::Load()
 		if (pConVarConfig->GetState() == ConfigState::INVALID_JSON)
 		{
 			Warning(PROJECT_NAME " - core: Failed to load convars.json!\n- Check if the json is valid or delete the config to let a new one be generated!\n");
-			pConVarConfig->Destroy(); // Our config is in a invaid state :/
+			pConVarConfig->Destroy(); // Our config is in a invalid state :/
 			pConVarConfig = nullptr;
 			return;
 		}
@@ -998,7 +998,7 @@ void Util::Load()
 		if (pCoreConfig->GetState() == ConfigState::INVALID_JSON)
 		{
 			Warning(PROJECT_NAME " - core: Failed to load core.json!\n- Check if the json is valid or delete the config to let a new one be generated!\n");
-			pCoreConfig->Destroy(); // Our config is in a invaid state :/
+			pCoreConfig->Destroy(); // Our config is in a invalid state :/
 			pCoreConfig = nullptr;
 			return;
 		}

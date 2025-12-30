@@ -37,7 +37,7 @@ struct ILuaTimer
 	unsigned int repetitions = 0;
 	int function = -1;
 
-	//We could make a seperate struct for timer simple :^
+	//We could make a separate struct for timer simple :^
 	int identifierReference = -1;
 	const char* identifier = nullptr;
 	bool active = true;
@@ -58,7 +58,7 @@ public:
 
 LUA_GetModuleData(LuaSysTimerModuleData, g_pSysTimerModule, SysTimer)
 
-static ILuaTimer* FindTimer(GarrysMod::Lua::ILuaInterface* pLua, const char* name) // We should pobably use a set or so to have faster look up. But my precious memory :(
+static ILuaTimer* FindTimer(GarrysMod::Lua::ILuaInterface* pLua, const char* name) // We should probably use a set or so to have faster look up. But my precious memory :(
 {
 	auto pData = GetSysTimerLuaData(pLua);
 

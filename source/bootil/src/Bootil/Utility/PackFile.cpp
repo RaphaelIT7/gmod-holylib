@@ -34,7 +34,7 @@ namespace Bootil
 
 	void PackFile::Load( const Bootil::BString & strName )
 	{
-		Msg( "LoadinG File!! %s\n", strName.c_str() );
+		Msg( "Loading File!! %s\n", strName.c_str() );
 		AutoBuffer buffer;
 
 		if ( !Bootil::File::Read( strName, buffer ) )

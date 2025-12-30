@@ -179,7 +179,7 @@ public:
 
 	static constexpr int BOOL_SIZE = -1;
 	static constexpr int DPT_BOOL = DPT_NUMSendPropTypes;
-	static constexpr int DPT_INT24 = DPT_BOOL+1; // ungly, though useful to avoid branching - unused ToDo: Implement it into PrecalcSendProps, too lazy rn
+	static constexpr int DPT_INT24 = DPT_BOOL+1; // ugly, though useful to avoid branching - unused ToDo: Implement it into PrecalcSendProps, too lazy rn
 	static constexpr int DPT_INT16 = DPT_INT24+1;
 	static constexpr int DPT_INT8 = DPT_INT16+1;
 	static constexpr int DPT_REALNUMSendPropTypes = DPT_INT8+1;
@@ -348,7 +348,7 @@ void HolyLibCSendTablePrecalc::PrecalcSendProps()
 				// If it's NULL then the string is empty - skip
 				// Else it points to the data string which can be used.
 				// In the PackedEntity this data string will be put onto the end of our block.
-				// Why not direclty keep it? We expect our build data to have constant offsets which wouldn't be possible with strings varying in length.
+				// Why not directly keep it? We expect our build data to have constant offsets which wouldn't be possible with strings varying in length.
 				nBits = sizeof(void*) * 8; 
 				break;
 			case SendPropType::DPT_Array:
@@ -469,7 +469,7 @@ struct PackState
 	int BuildPack();
 	inline void AddString(const char* pString, int nOffset)
 	{
-		StringEntry& pEntry = pStringEnties.emplace_back();
+		StringEntry& pEntry = pStringEntries.emplace_back();
 		pEntry.nDataOffset = nOffset;
 		pEntry.pString = pString;
 	}
@@ -483,7 +483,7 @@ struct PackState
 		const char* pString;
 		int nDataOffset; // To update the data pack entry
 	};
-	std::vector<StringEntry> pStringEnties;
+	std::vector<StringEntry> pStringEntries;
 };
 
 static int SendProp_FillSnapshot( HolyLibCSendTablePrecalc *pTable, void* pOutData, void* pEntity )
@@ -961,16 +961,16 @@ HolyLibPropTypeFns pHolyLibPropTypeFns[HolyLibSendPropPrecalc::DPT_REALNUMSendPr
 	DPT_Float chunk
 	DPT_Vector chunk
 	DPT_VectorXY chunk
-	DPT_String pointer chunk - entires point to string data chunk - needed since these variable offsets need to be consistent! What they point at can be dynamic though
+	DPT_String pointer chunk - entries point to string data chunk - needed since these variable offsets need to be consistent! What they point at can be dynamic though
 	DPT_Array chunk
 	DPT_Bool chunk - bit flags are used
 	DPT_INT24 chunk
 	DPT_INT16 chunk
 	DPT_INT8 chunk	
 	StringData chunk - contains all strings
-	GMODTable chunk - constains all data of the GMODTable.
+	GMODTable chunk - contains all data of the GMODTable.
 
-	Where do arrays go? Their entires were added to their given types - so not needed. Simplifies things :3
+	Where do arrays go? Their entries were added to their given types - so not needed. Simplifies things :3
 */
 
 int PackState::BuildPack()
@@ -1001,7 +1001,7 @@ int PackState::BuildPack()
 
 	int nTotalSize = m_pPrecalc->m_nSendPropDataSize;
 	// Written at the end since size is dynamic / can change while everything above is static in size
-	for (StringEntry& pEntry : pStringEnties)
+	for (StringEntry& pEntry : pStringEntries)
 	{
 		int nLength = strlen(pEntry.pString);
 		if (nLength == 0) // Should normally not even happen, though you can never be 100% sure xd

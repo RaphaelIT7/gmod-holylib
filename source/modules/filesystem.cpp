@@ -272,7 +272,7 @@ static void AddFileToSearchCache(const char* pFileName, int path, const char* pa
 		return;
 
 	if (g_pFileSystemModule.InDebug())
-		Msg("holylib - AddFileToSearchCache: Added file %s to seach cache (%i, %s)\n", pFileName, path, pathID);
+		Msg("holylib - AddFileToSearchCache: Added file %s to search cache (%i, %s)\n", pFileName, path, pathID);
 
 	char* cFileName = new char[MAX_PATH];
 	V_strncpy(cFileName, pFileName, MAX_PATH);
@@ -290,7 +290,7 @@ static void RemoveFileFromSearchCache(const char* pFileName, const char* pathID)
 		return;
 
 	if (g_pFileSystemModule.InDebug())
-		Msg("holylib - RemoveFileFromSearchCache: Removed file %s from seach cache! (%s)\n", pFileName, pathID);
+		Msg("holylib - RemoveFileFromSearchCache: Removed file %s from search cache! (%s)\n", pFileName, pathID);
 
 	auto mapIt = m_SearchCache.find(pathID);
 	if (mapIt == m_SearchCache.end())
@@ -425,7 +425,7 @@ static void WriteSearchCache()
 			}
 		} else {
 			// Our goal is to write the existing absolute cache now too
-			// Above we only write the search cache which only contains all files cached in this sesssion
+			// Above we only write the search cache which only contains all files cached in this session
 			// And it discards the previous cache entries which weren't used
 
 			// A COPY that we now fill
@@ -649,7 +649,7 @@ static void DumpFilecacheCmd(const CCommand &args)
 }
 static ConCommand dumpfilecache("holylib_filesystem_dumpfilecache", DumpFilecacheCmd, "Dumps the filecache", 0);
 
-static void ShowPredictionErrosCmd(const CCommand &args)
+static void ShowPredictionErrorsCmd(const CCommand &args)
 {
 	Msg("---- Prediction Errors ----\n");
 	for (const std::string& strFileName : m_PredictionCheck)
@@ -658,7 +658,7 @@ static void ShowPredictionErrosCmd(const CCommand &args)
 	}
 	Msg("---- End of Prediction Errors ----\n");
 }
-static ConCommand showpredictionerrors("holylib_filesystem_showpredictionerrors", ShowPredictionErrosCmd, "Shows all prediction errors that ocurred", 0);
+static ConCommand showpredictionerrors("holylib_filesystem_showpredictionerrors", ShowPredictionErrorsCmd, "Shows all prediction errors that occurred", 0);
 
 static void WriteSearchCacheCmd(const CCommand& args)
 {
@@ -952,7 +952,7 @@ static const char* GetSplitPath(const char* pFileName, const char* pathID)
 }
 
 static std::unordered_map<std::string_view, std::string_view> g_pOverridePaths;
-void AddOveridePath(const char* pFileName, const char* pPathID)
+void AddOverridePath(const char* pFileName, const char* pPathID)
 {
 	char* cFileName = new char[MAX_PATH];
 	V_strncpy(cFileName, pFileName, MAX_PATH);
@@ -1059,7 +1059,7 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 
 		if (isModel)
 		{
-			if (shouldWeCare(strFileName)) // Skip shitty files. I had enouth
+			if (shouldWeCare(strFileName)) // Skip shitty files. I had enough
 			{
 				std::string_view mdlPath = nukeFileExtension(strFileName);
 				if (extension == "vtx")
@@ -1240,7 +1240,7 @@ namespace IGamemodeSystem
  */
 static std::string_view fixGamemodePath(std::string_view path)
 {
-	// BUG: I have no idea why... previously we passed filesystem as an agument
+	// BUG: I have no idea why... previously we passed filesystem as an argument
 	// that somehow corrupted itself, using g_pFullFileSystem though goes completely fine???
 
 	// Just debug stuff... The one line does these three things at once
@@ -1669,7 +1669,7 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 		char* pChar = new char[iSize];
 		int iLength = g_pFullFileSystem->GetSearchPath("GAME", true, pChar, iSize);
 		if (iSize <= iLength)
-			Warning(PROJECT_NAME ": Not enouth space for search paths! please report this.\n");
+			Warning(PROJECT_NAME ": Not enough space for search paths! please report this.\n");
 
 		std::string pStr = pChar;
 		pStr = pStr.substr(0, iLength);
@@ -1688,27 +1688,27 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 
 
 	// We use MOD_WRITE because it doesn't have additional junk search paths.
-	AddOveridePath("cfg" FILEPATH_SLASH "server.cfg", "MOD_WRITE");
-	AddOveridePath("cfg" FILEPATH_SLASH "banned_ip.cfg", "MOD_WRITE");
-	AddOveridePath("cfg" FILEPATH_SLASH "banned_user.cfg", "MOD_WRITE");
-	AddOveridePath("cfg" FILEPATH_SLASH "skill2.cfg", "MOD_WRITE");
-	AddOveridePath("cfg" FILEPATH_SLASH "game.cfg", "MOD_WRITE");
-	AddOveridePath("cfg" FILEPATH_SLASH "trusted_keys_base.txt", "MOD_WRITE");
-	AddOveridePath("cfg" FILEPATH_SLASH "pure_server_minimal.txt", "MOD_WRITE");
-	AddOveridePath("cfg" FILEPATH_SLASH "skill_manifest.cfg", "MOD_WRITE");
-	AddOveridePath("cfg" FILEPATH_SLASH "skill.cfg", "MOD_WRITE");
-	AddOveridePath("cfg" FILEPATH_SLASH "mapcycle.txt", "MOD_WRITE");
+	AddOverridePath("cfg" FILEPATH_SLASH "server.cfg", "MOD_WRITE");
+	AddOverridePath("cfg" FILEPATH_SLASH "banned_ip.cfg", "MOD_WRITE");
+	AddOverridePath("cfg" FILEPATH_SLASH "banned_user.cfg", "MOD_WRITE");
+	AddOverridePath("cfg" FILEPATH_SLASH "skill2.cfg", "MOD_WRITE");
+	AddOverridePath("cfg" FILEPATH_SLASH "game.cfg", "MOD_WRITE");
+	AddOverridePath("cfg" FILEPATH_SLASH "trusted_keys_base.txt", "MOD_WRITE");
+	AddOverridePath("cfg" FILEPATH_SLASH "pure_server_minimal.txt", "MOD_WRITE");
+	AddOverridePath("cfg" FILEPATH_SLASH "skill_manifest.cfg", "MOD_WRITE");
+	AddOverridePath("cfg" FILEPATH_SLASH "skill.cfg", "MOD_WRITE");
+	AddOverridePath("cfg" FILEPATH_SLASH "mapcycle.txt", "MOD_WRITE");
 
-	AddOveridePath("stale.txt", "MOD_WRITE");
-	AddOveridePath("garrysmod.ver", "MOD_WRITE");
-	AddOveridePath("scripts" FILEPATH_SLASH "actbusy.txt", "MOD_WRITE");
-	AddOveridePath("modelsounds.cache", "MOD_WRITE");
-	AddOveridePath("lua" FILEPATH_SLASH "send.txt", "MOD_WRITE");
+	AddOverridePath("stale.txt", "MOD_WRITE");
+	AddOverridePath("garrysmod.ver", "MOD_WRITE");
+	AddOverridePath("scripts" FILEPATH_SLASH "actbusy.txt", "MOD_WRITE");
+	AddOverridePath("modelsounds.cache", "MOD_WRITE");
+	AddOverridePath("lua" FILEPATH_SLASH "send.txt", "MOD_WRITE");
 
-	AddOveridePath("resource" FILEPATH_SLASH "serverevents.res", "MOD_WRITE");
-	AddOveridePath("resource" FILEPATH_SLASH "gameevents.res", "MOD_WRITE");
-	AddOveridePath("resource" FILEPATH_SLASH "modevents.res", "MOD_WRITE");
-	AddOveridePath("resource" FILEPATH_SLASH "hltvevents.res", "MOD_WRITE");
+	AddOverridePath("resource" FILEPATH_SLASH "serverevents.res", "MOD_WRITE");
+	AddOverridePath("resource" FILEPATH_SLASH "gameevents.res", "MOD_WRITE");
+	AddOverridePath("resource" FILEPATH_SLASH "modevents.res", "MOD_WRITE");
+	AddOverridePath("resource" FILEPATH_SLASH "hltvevents.res", "MOD_WRITE");
 
 	int pBaseLength = 0;
 	char pBaseDir[MAX_PATH];
@@ -2022,7 +2022,7 @@ void FileAsyncReadThink(GarrysMod::Lua::ILuaInterface* pLua)
 LUA_FUNCTION_STATIC(filesystem_CreateDir)
 {
 	g_pFullFileSystem->CreateDirHierarchy(LUA->CheckString(1), 
-		g_pModuleManager.IsUnsafeCodeEnabled() ? LUA->CheckStringOpt(2, "DATA") : "DATA" // Force "DATA" path if unsafe is diabled
+		g_pModuleManager.IsUnsafeCodeEnabled() ? LUA->CheckStringOpt(2, "DATA") : "DATA" // Force "DATA" path if unsafe is disabled
 	);
 
 	return 0;
@@ -2031,7 +2031,7 @@ LUA_FUNCTION_STATIC(filesystem_CreateDir)
 LUA_FUNCTION_STATIC(filesystem_Delete)
 {
 	g_pFullFileSystem->RemoveFile(LUA->CheckString(1),
-		g_pModuleManager.IsUnsafeCodeEnabled() ? LUA->CheckStringOpt(2, "DATA") : "DATA" // Force "DATA" path if unsafe is diabled
+		g_pModuleManager.IsUnsafeCodeEnabled() ? LUA->CheckStringOpt(2, "DATA") : "DATA" // Force "DATA" path if unsafe is disabled
 	);
 
 	return 0;
@@ -2177,7 +2177,7 @@ LUA_FUNCTION_STATIC(filesystem_Rename)
 	const char* gamePath = LUA->CheckStringOpt(3, "DATA");
 
 	if (!g_pModuleManager.IsUnsafeCodeEnabled())
-		gamePath = "DATA"; // Force "DATA" path if unsafe is diabled
+		gamePath = "DATA"; // Force "DATA" path if unsafe is disabled
 
 	LUA->PushBool(g_pFullFileSystem->RenameFile(original, newname, gamePath));
 

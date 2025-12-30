@@ -24,7 +24,7 @@
  // Only send this many requests before timing out.
 #define CL_CONNECTION_RETRIES		4 
 
-// Mininum time gap (in seconds) before a subsequent connection request is sent.
+// Minimum time gap (in seconds) before a subsequent connection request is sent.
 #define CL_MIN_RESEND_TIME			1.5f   
 // Max time.  The cvar cl_resend is bounded by these.
 #define CL_MAX_RESEND_TIME			20.0f   
@@ -177,14 +177,14 @@ public:
 	INetChannel		*m_NetChannel;		// Our sequenced channel to the remote server.
 	unsigned int	m_nChallengeNr;	// connection challenge number
 	double			m_flConnectTime;	// If gap of connect_time to net_time > 3000, then resend connect packet
-	int				m_nRetryNumber;	// number of retry connection attemps
+	int				m_nRetryNumber;	// number of retry connection attempts
 	char			m_szRetryAddress[ MAX_OSPATH ];
 	CUtlString		m_sRetrySourceTag; // string that describes why we decided to connect to this server (empty for command line, "serverbrowser", "quickplay", etc)
 	int				m_retryChallenge; // challenge we sent to the server
 	int				m_nSignonState;	// see SIGNONSTATE_* definitions
 	double			m_flNextCmdTime; // When can we send the next command packet?
 	int				m_nServerCount;	// server identification for prespawns, must match the svs.spawncount which
-									// is incremented on server spawning.  This supercedes svs.spawn_issued, in that
+									// is incremented on server spawning.  This supersedes svs.spawn_issued, in that
 									// we can now spend a fair amount of time sitting connected to the server
 									// but downloading models, sounds, etc.  So much time that it is possible that the
 									// server might change levels again and, if so, we need to know that.
@@ -196,9 +196,9 @@ public:
 	int			m_nDeltaTick;		//	last valid received snapshot (server) tick
 	bool		m_bPaused;			// send over by server
 	float		m_flPausedExpireTime;
-	int			m_nViewEntity;		// cl_entitites[cl.viewentity] == player point of view
+	int			m_nViewEntity;		// cl_entities[cl.viewentity] == player point of view
 
-	int			m_nPlayerSlot;		// own player entity index-1. skips world. Add 1 to get cl_entitites index;
+	int			m_nPlayerSlot;		// own player entity index-1. skips world. Add 1 to get cl_entities index;
 
 	char		m_szLevelFileName[ 128 ];	// for display on solo scoreboard
 	char		m_szLevelBaseName[ 128 ]; // removes maps/ and .bsp extension

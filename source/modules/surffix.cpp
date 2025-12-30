@@ -94,7 +94,7 @@ bool CTraceFilterSimple::ShouldHitEntity(IHandleEntity *pHandleEntity, int conte
 	return func_CTraceFilterSimple_ShouldHitEntity(this, pHandleEntity, contentsMask);
 }
 
-// Why not define it as CBaseEntity::GetGroundEntity? Because then other modules could form accidental dependencies soo lets avoid that, though we should do it for thoes above us too
+// Why not define it as CBaseEntity::GetGroundEntity? Because then other modules could form accidental dependencies soo lets avoid that, though we should do it for those above us too
 static DTVarByOffset m_hGroundEntity_Offset("DT_LocalPlayerExclusive", "m_hGroundEntity");
 static inline CBaseEntity* GetGroundEntity(void* pPlayer)
 {

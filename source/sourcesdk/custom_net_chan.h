@@ -75,7 +75,7 @@ constexpr int MAX_SUBCHANNELS = (1 << SUBCHANNEL_BITS); // we have 16 alternativ
 class CNetChan : public INetChannel
 {
 
-public: // netchan structurs
+public: // netchan structures
 
 	typedef struct dataFragments_s
 	{
@@ -297,7 +297,7 @@ public:
 	int			m_nOutSequenceNr;
 	// last received incoming sequnec number
 	int			m_nInSequenceNr;
-	// last received acknowledge outgoing sequnce number
+	// last received acknowledge outgoing sequence number
 	int			m_nOutSequenceNrAck;
 	
 	// state of outgoing reliable data (0/1) flip flop used for loss detection
@@ -345,7 +345,7 @@ public:
 	subChannel_s					m_SubChannels[MAX_SUBCHANNELS];
 
 	unsigned int	m_FileRequestCounter;	// increasing counter with each file request
-	bool			m_bFileBackgroundTranmission; // if true, only send 1 fragment per packet
+	bool			m_bFileBackgroundTransmission; // if true, only send 1 fragment per packet
 	bool			m_bUseCompression;	// if true, larger reliable data will be bzip compressed
 	
 	// TCP stream state maschine:

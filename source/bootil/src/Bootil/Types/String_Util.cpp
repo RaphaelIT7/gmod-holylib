@@ -33,19 +33,19 @@ namespace Bootil
 				TrimRight( str, strChars );
 			}
 
-			BOOTIL_EXPORT void Split( const BString & str, const BString & seperator, String::List & outbits )
+			BOOTIL_EXPORT void Split( const BString & str, const BString & separator, String::List & outbits )
 			{
 				BString strBit;
 				int iOffset = 0;
 				int iLength = str.length();
-				int iSepLen = seperator.length();
-				int i = str.find( seperator, 0 );
+				int iSepLen = separator.length();
+				int i = str.find( separator, 0 );
 
 				while ( i != std::string::npos )
 				{
 					outbits.push_back( str.substr( iOffset, i - iOffset ) );
 					iOffset = i + iSepLen;
-					i = str.find( seperator, iOffset );
+					i = str.find( separator, iOffset );
 				}
 
 				outbits.push_back( str.substr( iOffset, iLength - iOffset ) );

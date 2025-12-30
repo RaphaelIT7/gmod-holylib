@@ -186,7 +186,7 @@ static bool hook_CBaseEntity_GMOD_ShouldPreventTransmitToPlayer(CBaseEntity* ent
 	return g_pShouldPrevent[pPlayerEdict->m_EdictIndex-1].IsBitSet(pEdict->m_EdictIndex);
 }
 
-static void CleaupSetPreventTransmit(const CBaseEntity* ent)
+static void CleanupSetPreventTransmit(const CBaseEntity* ent)
 {
 	const edict_t* pEdict = ent->edict();
 	if (!pEdict)
@@ -229,7 +229,7 @@ static void hook_CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer(CBaseEntity* 
 // HolyLib part
 
 static Detouring::Hook detour_CGMOD_Player_CreateViewModel;
-static ConVar networking_maxviewmodels("holylib_networking_maxviewmodels", "3", 0, "Determins how many view models each player gets.", true, 0, true, 3);
+static ConVar networking_maxviewmodels("holylib_networking_maxviewmodels", "3", 0, "Determines how many view models each player gets.", true, 0, true, 3);
 static void hook_CGMOD_Player_CreateViewModel(CBasePlayer* pPlayer, int viewmodelindex)
 {
 	if (viewmodelindex >= networking_maxviewmodels.GetInt())
@@ -838,7 +838,7 @@ static inline void CBitVec_AndNot(CBitVec<MAX_EDICTS>* a, const CBitVec<MAX_EDIC
 
 /*
  * For now this is called from the pvs module meaning we RELY on it.
- * What did we change? basicly nothing yet. I'm just testing around.
+ * What did we change? basically nothing yet. I'm just testing around.
  * 
  * NOTE: It's shit & somehow were loosing performance to something. Probably us detouring it is causing our performance loss.
  */
@@ -847,7 +847,7 @@ static CBaseEntity* g_pEntityCache[MAX_EDICTS] = {nullptr};
 bool g_pReplaceCServerGameEnts_CheckTransmit = false;
 static edict_t* world_edict = nullptr;
 
-// Offset & helper functins
+// Offset & helper functions
 
 static DTVarByOffset m_Local_Offset("DT_LocalPlayerExclusive", "m_Local");
 static DTVarByOffset m_SkyBox3DArea_Offset("DT_Local", "m_skybox3d.area");
@@ -1055,7 +1055,7 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 			if (pEnt)
 			{
 				if (pEnt->edict() != pEdict)
-					Warning(PROJECT_NAME " - networking: Entity chache is unreliable! We are cooked!\n");
+					Warning(PROJECT_NAME " - networking: Entity cache is unreliable! We are cooked!\n");
 
 				if (nFlags == FL_EDICT_FULLCHECK)
 				{
@@ -1337,7 +1337,7 @@ struct PlayerTransmitCache
 				nLastAcknowledgedTick = pClient->GetMaxAckTickCount(); // pClient->m_nDeltaTick;
 				// Verify: GetMaxAckTickCount may be inaccurate for our use case since we need m_nDeltaTick?
 				// if (pClient->m_nDeltaTick != pClient->GetMaxAckTickCount())
-				// 	DevMsg(PROJECT_NAME " - networking: Interresting... for client %i (ent index) the delta tick %i differs from the MaxAckTick %i (%i)\n", pPlayer->edict()->m_EdictIndex, pClient->m_nDeltaTick, pClient->GetMaxAckTickCount(), nFullUpdateTick);
+				// 	DevMsg(PROJECT_NAME " - networking: Interesting... for client %i (ent index) the delta tick %i differs from the MaxAckTick %i (%i)\n", pPlayer->edict()->m_EdictIndex, pClient->m_nDeltaTick, pClient->GetMaxAckTickCount(), nFullUpdateTick);
 				if (pClient->IsFakeClient() && sv_stressbots && !sv_stressbots->GetBool())
 					nLastAcknowledgedTick = gpGlobals->tickcount;
 			} else {
@@ -1586,7 +1586,7 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 			NETWORKING_SETSTATE(pActiveWeapon->edict()->m_EdictIndex, pOKPlayerTransmit)
 		}
 
-#if !NETWORKING_USE_ENTITYCACHE // Our cache already removes them from transmit by default and expects us here to decide whos are networked.
+#if !NETWORKING_USE_ENTITYCACHE // Our cache already removes them from transmit by default and expects us here to decide whose are networked.
 		int nEdictIndex = pCharacterEdict->m_EdictIndex-1;
 		if (!g_bFilledDontTransmitWeaponCache[nEdictIndex])
 		{
@@ -1699,7 +1699,7 @@ static void TransmitFastPathPlayer(CBasePlayer* pRecipientPlayer, int clientInde
 	if (pInfo->m_pTransmitAlways)
 		nOtherCache.pClientBitVec.CopyTo(pInfo->m_pTransmitAlways);
 
-	// g_pPlayerTransmitCacheBitVec won't contain any information about the client the cache was build upon, so we need to call SetTransmit ourselfs.
+	// g_pPlayerTransmitCacheBitVec won't contain any information about the client the cache was build upon, so we need to call SetTransmit ourselves.
 	// & yes, using the g_pEntityCache like this is safe, even if it doesn't look save - Time to see how long it'll take until I regret writing this
 	g_pEntityCache[iOtherClient+1]->SetTransmit(pInfo, true);
 	pRecipientPlayer->SetTransmit(pInfo, true);
@@ -1895,7 +1895,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	const Vector& clientPosition = (pRecipientPlayer->GetViewEntity() != nullptr) ? pRecipientPlayer->GetViewEntity()->EyePosition() : pRecipientPlayer->EyePosition();
 	const int clientArea = networking_fastpath_usecluster.GetBool() ? Util::engineserver->GetClusterForOrigin(clientPosition) : Util::engineserver->GetArea(clientPosition);
 
-	// NOTE: We intentionally use GetArea and not GetCluster, since a Area is far bigger than a cluster & it should work good enouth.
+	// NOTE: We intentionally use GetArea and not GetCluster, since a Area is far bigger than a cluster & it should work good enough.
 	// Possible BUG: The PVS might hate us for doing such a cruel thing to it. Anyways >:3
 
 	// ToDo: Bring over's CS:GO code for InitialSpawnTime
@@ -2013,7 +2013,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 			if (pArea.nCount == 0)
 				continue;
 
-			// +1 since we shifted everythign by 1 to remove Area0 saving some KB
+			// +1 since we shifted everything by 1 to remove Area0 saving some KB
 			if (!Util::engineserver->CheckAreasConnected(nClientArea, nArea+1))
 				continue;
 
@@ -2074,7 +2074,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 			}
 		} else if (networking_transmit_onfullupdate_networktoothers.GetBool()) {
 			// In this case, if any other player is having a full update, we network them to all others
-			// simply because this ensures every player knows of every other players existance
+			// simply because this ensures every player knows of every other players existence
 			int nLastAcknowledgedTick = g_pPlayerTransmitCache[clientIndex].nLastAcknowledgedTick;
 			for (int iPlayerIndex = 1; iPlayerIndex <= gpGlobals->maxClients; ++iPlayerIndex)
 			{
@@ -2293,7 +2293,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	if (bFastPath && !bIsHLTV && !(pRecipientPlayer->GetObserverMode() == OBS_MODE_IN_EYE && pRecipientPlayer->GetObserverTarget()))
 	{
 		PlayerTransmitTickCache& nTransmitCache = g_pPlayerTransmitTickCache[clientIndex];
-		// Remove player's viewmodels from the cache since thoes are supposed to only be networked to the recipient player
+		// Remove player's viewmodels from the cache since those are supposed to only be networked to the recipient player
 
 		pInfo->m_pTransmitEdict->CopyTo(&nTransmitCache.pClientBitVec);
 		CBitVec_AndNot(&nTransmitCache.pClientBitVec, &pClientCache);
@@ -2455,7 +2455,7 @@ void CNetworkingModule::OnEntityDeleted(CBaseEntity* pEntity)
 		return;
 
 	g_nEntityTransmitCache.EntityRemoved(pEntity, pEdict);
-	CleaupSetPreventTransmit(pEntity);
+	CleanupSetPreventTransmit(pEntity);
 	g_pEntityCache[pEdict->m_EdictIndex] = nullptr;
 	g_pForceWeaponTransmitIndexes.Clear(pEdict->m_EdictIndex);
 }
@@ -2952,9 +2952,9 @@ void WriteSendProp(SendProp* pProp, int nIndex, int nIndent, FileHandle_t pHandl
 	}
 	WriteString(pType, nIndent, pHandle);
 
-	std::string pElemets = "NumElement: ";
-	pElemets.append(std::to_string(pProp->GetNumElements()));
-	WriteString(pElemets, nIndent, pHandle);
+	std::string pElements = "NumElement: ";
+	pElements.append(std::to_string(pProp->GetNumElements()));
+	WriteString(pElements, nIndent, pHandle);
 
 	std::string pBits = "Bits: ";
 	pBits.append(std::to_string(pProp->m_nBits));

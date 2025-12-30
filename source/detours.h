@@ -288,9 +288,9 @@ byte m_##name = 0;
 	/*
 	 * This function is used to resolve a global variable on a version without symbols.
 
-		Let's take per exemple g_PathIDTable
+		Let's take per example g_PathIDTable
 
-		To retrive it on x86 we need to use the symbol cause it's the simplest way, but on x64 we need to find a workaround.
+		To retrieve it on x86 we need to use the symbol cause it's the simplest way, but on x64 we need to find a workaround.
 
 		So i (and grok) end up with the idea to use the signature of a function that call g_PathIDTable somewhere and then use a offset to get the address of g_PathIDTable.
 

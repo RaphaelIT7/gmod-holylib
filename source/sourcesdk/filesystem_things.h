@@ -606,7 +606,7 @@ public:
 	virtual bool				CheckVPKFileHash( int PackFileID, int nPackFileNumber, int nFileFraction, MD5Value_t &md5Value );
 	virtual void				NotifyFileUnloaded( const char *pszFilename, const char *pPathId ) override;
 
-	// Returns the file system statistics retreived by the implementation.  Returns NULL if not supported.
+	// Returns the file system statistics retrieved by the implementation.  Returns NULL if not supported.
 	virtual const FileSystemStatistics *GetFilesystemStatistics();
 	
 	// Load dlls

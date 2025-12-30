@@ -55,7 +55,7 @@ public:
 	void			ToSockadr(struct sockaddr *s) const;
 
 	// Returns 0xAABBCCDD for AA.BB.CC.DD on all platforms, which is the same format used by SetIP().
-	// (So why isn't it just named GetIP()?  Because previously there was a fucntion named GetIP(), and
+	// (So why isn't it just named GetIP()?  Because previously there was a function named GetIP(), and
 	// it did NOT return back what you put into SetIP().  So we nuked that guy.)
 	unsigned int	GetIPHostByteOrder() const;
 

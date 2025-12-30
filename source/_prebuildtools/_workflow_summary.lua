@@ -99,7 +99,7 @@ function FetchFromHolyLogs(github_repository, runNumber, host, apikey, previous_
 			end
 
 			-- We got newer shit :D
-			-- NOTE: This code previously was intented to be nuked in a for k=1, 100 loop though Loki's CPU usage spiked to 900% for 15 seconds :sob:
+			-- NOTE: This code previously was intended to be nuked in a for k=1, 100 loop though Loki's CPU usage spiked to 900% for 15 seconds :sob:
 			-- We could go back now since we no longer use Loki
 			lastRun = searchID
 			lastHolyLogsResults = jsonTable
@@ -213,7 +213,7 @@ function GenerateMarkdown(results, currentRun, previousRun, isPullRequest)
 Previous run: ]] .. previousRun .. "<br>")
 
 	if isPullRequest then
-		table.insert(markdown, "These Results are compared against the lastest main HolyLib build!")
+		table.insert(markdown, "These Results are compared against the latest main HolyLib build!")
 	end
 
 	for branch, funcs in SortedPairs(results) do

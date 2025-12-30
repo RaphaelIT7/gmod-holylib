@@ -78,7 +78,7 @@ LUA_FUNCTION_STATIC(FadeClientVolume)
 	float holdTime = LUA->CheckNumber(4);
 	float fadeInSeconds = LUA->CheckNumber(5);
 
-	// It basicly just runs a command clientside.
+	// It basically just runs a command clientside.
 	Util::engineserver->FadeClientVolume(pEdict, fadePercent, fadeOutSeconds, holdTime, fadeInSeconds);
 
 	return 1;

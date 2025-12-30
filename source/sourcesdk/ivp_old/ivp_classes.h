@@ -4,7 +4,7 @@
 #define IVP_HALFSPACE_OPTIMIZATION_ENABLED
 #define IVP_U_MINLIST_USELONG
 #define IVP_VECTOR_UNIT_FLOAT  /* set if extra data is inserted to support vector units */
-#define IVP_VECTOR_UNIT_DOUBLE /* set if extra data should be insersted to utilize double vector units */
+#define IVP_VECTOR_UNIT_DOUBLE /* set if extra data should be inserted to utilize double vector units */
 
 #if !defined(IVP_NO_DOUBLE) && (defined(PSXII) || defined(GEKKO) || defined(_XBOX))
 #define IVP_NO_DOUBLE
@@ -47,7 +47,7 @@ public:
   const IVP_Compact_Edge 	*edge;		// Note: all balls share one dummy edge
 
 
-	// has to be transfered to synapse_friction_polygon:
+	// has to be transferred to synapse_friction_polygon:
 
 	IVP_Real_Object *get_object(){ return l_obj; };
 	IVP_Synapse_Friction	   *get_next(){ return next;};
@@ -191,7 +191,7 @@ class IVP_Real_Object_Fast_Static: public IVP_Object {
 protected:
 	class IVP_Controller_Phantom *controller_phantom;
 	class IVP_Synapse_Real *exact_synapses;		// Linked list of all exact synapses, no sphere nor hull.
-	IVP_Synapse_Real	 *invalid_synapses;		 // Linkes list of all intruded synapses
+	IVP_Synapse_Real	 *invalid_synapses;		 // Linked list of all intruded synapses
 	IVP_Synapse_Friction *friction_synapses;	// Linked list of contact points.
 	IVP_U_Quat			 *q_core_f_object;	 // in object !!!!
 	IVP_U_Float_Point 	 shift_core_f_object;
@@ -235,7 +235,7 @@ private:
 	int ledgetree_node_offset;
 	int client_data;	// if indicates a non terminal ledge
 	};
-	unsigned int has_chilren_flag:2;
+	unsigned int has_children_flag:2;
 	IVP_BOOL is_compact_flag:2;  // if false than compact ledge uses points outside this piece of memory
 	unsigned int dummy:4;
 	unsigned int size_div_16:24; 
@@ -378,7 +378,7 @@ public:
 
 	///////// Core 
    // IVP_Core *physical_core; // Coordinate system, mass, speed, etc... (eventually merged)
-	//IVP_Core *friction_core; // Long term (merged) core for frictions, when objs are splitted make sure to call 'recheck_ov_element'
+	//IVP_Core *friction_core; // Long term (merged) core for frictions, when objs are split make sure to call 'recheck_ov_element'
 	//IVP_Core *original_core;
 	char offset[2];
 	void *client_data; //not used by physics, provided for customer

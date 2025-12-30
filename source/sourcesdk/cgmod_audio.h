@@ -81,7 +81,7 @@ public:
 public: // Non virtual
 	CGModAudioChannelEncoder(DWORD pChannel, ChannelType nChannelType, const char* pFileName, IGModEncoderCallback* pCallback );
 	void InitEncoder(unsigned long nEncoderFlags);
-	void HandleFinish(void* nSignalData); // Called each Update on the main thread, nSignalData is for the callback we store so that it can decide wether to force finish or not
+	void HandleFinish(void* nSignalData); // Called each Update on the main thread, nSignalData is for the callback we store so that it can decide weather to force finish or not
 
 private:
 	static void ProcessChannel(CGModAudioChannelEncoder* pEncoder);

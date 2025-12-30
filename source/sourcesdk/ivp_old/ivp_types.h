@@ -80,7 +80,7 @@ enum IVP_MINIMAL_DIST_STATUS {
 	IVP_MD_UNINITIALIZED = 0,
 	IVP_MD_INVALID = 2,   // invalid mindist, eg endless loop, collision
 	IVP_MD_EXACT = 3,
-	IVP_MD_HULL_RECURSIVE = 4,   // invalid recursive mindists which spawned childs
+	IVP_MD_HULL_RECURSIVE = 4,   // invalid recursive mindists which spawned children
 	IVP_MD_HULL = 5   // -> synapses = hull synapses
 };
 
@@ -99,7 +99,7 @@ enum IVP_COLL_TYPE {  // if last 4 bits == 0 then collision
 
 	IVP_COLL_PF_COLL  =0x20,
 	IVP_COLL_PF_NPF =0x21,
-	// PF_PK nicht noetig, da Flaeche Objekt abschirmt
+	// PF_PK not needed, since the Surface Object covers it
 
 	IVP_COLL_PK_COLL  =0x30,
 	IVP_COLL_PK_PF  =0x31,

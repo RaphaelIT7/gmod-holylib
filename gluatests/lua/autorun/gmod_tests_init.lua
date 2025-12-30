@@ -8,7 +8,7 @@ hook.Add("HolyLib:OnMapChange", "HookOnMapChangeTest", function(levelName, level
 	end
 end)
 
--- We change the level once and run everything again as in rare cases a crash might only ocurr after a map change.
+-- We change the level once and run everything again as in rare cases a crash might only occur after a map change.
 hook.Add("GLuaTest_Finished", "ChangeLevel", function()
 	if not file.Exists("waschanged.txt", "DATA") then
 		file.Write("waschanged.txt", "yes")

@@ -590,7 +590,7 @@ LUA_FUNCTION_STATIC(CBaseClient_SetSteamID)
 
 /*
  * CNetChannel exposed things.
- * I should probably move it into a seperate class...
+ * I should probably move it into a separate class...
  */
 LUA_FUNCTION_STATIC(CBaseClient_GetProcessingMessages)
 {
@@ -1470,7 +1470,7 @@ public:
 
 	void ConnectionStart(INetChannel *chan);	// called first time network channel is established
 	void ConnectionClosing(const char *reason); // network channel is being closed by remote site
-	void ConnectionCrashed(const char *reason); // network error occured
+	void ConnectionCrashed(const char *reason); // network error occurred
 	void PacketStart(int incoming_sequence, int outgoing_acknowledged);	// called each time a new packet arrived
 	void PacketEnd(void); // all messages has been parsed
 	void FileRequested(const char *fileName, unsigned int transferID ); // other side request a file for download
@@ -2723,7 +2723,7 @@ static void hook_CBaseServer_CheckTimeouts(CBaseServer* srv)
 	}
 }
 
-class CExtentedNetMessage : public CNetMessage
+class CExtendedNetMessage : public CNetMessage
 {
 public:
 	INetMessageHandler *m_pMessageHandler;
@@ -2806,7 +2806,7 @@ static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* tar
 
 	FOR_EACH_VEC(chan->m_NetMessages, i)
 	{
-		CExtentedNetMessage* msg = (CExtentedNetMessage*)chan->m_NetMessages[i];
+		CExtendedNetMessage* msg = (CExtendedNetMessage*)chan->m_NetMessages[i];
 		msg->m_pMessageHandler = target;
 
 		if (msg->GetType() == clc_CmdKeyValues)

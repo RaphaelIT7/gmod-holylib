@@ -37,11 +37,11 @@ LUA_FUNCTION_STATIC(gameevent_GetListeners)
 {
 	if (LUA->IsType(1, GarrysMod::Lua::Type::String))
 	{
-		CGameEventDescriptor* desciptor = pGameEventManager->GetEventDescriptor(LUA->GetString(1));
-		if (!desciptor)
+		CGameEventDescriptor* descriptor = pGameEventManager->GetEventDescriptor(LUA->GetString(1));
+		if (!descriptor)
 			return 0; // Return nothing -> nil on failure
 
-		LUA->PushNumber(desciptor->listeners.Count());
+		LUA->PushNumber(descriptor->listeners.Count());
 	} else {
 		LUA->CreateTable();
 			FOR_EACH_VEC(pGameEventManager->m_GameEvents, i)
@@ -64,16 +64,16 @@ LUA_FUNCTION_STATIC(gameevent_RemoveListener)
 	bool bSuccess = false;
 	if (pLuaGameEventListener)
 	{
-		CGameEventDescriptor* desciptor = pGameEventManager->GetEventDescriptor(strEvent);
-		if (!desciptor)
+		CGameEventDescriptor* descriptor = pGameEventManager->GetEventDescriptor(strEvent);
+		if (!descriptor)
 		{
 			LUA->PushBool(false);
 			return 1;
 		}
 
-		FOR_EACH_VEC(desciptor->listeners, i)
+		FOR_EACH_VEC(descriptor->listeners, i)
 		{
-			CGameEventCallback* callback = desciptor->listeners[i];
+			CGameEventCallback* callback = descriptor->listeners[i];
 			if (callback->m_nListenerType != CGameEventManager::SERVERSIDE)
 				continue;
 
@@ -83,7 +83,7 @@ LUA_FUNCTION_STATIC(gameevent_RemoveListener)
 
 			if (listener == pLuaGameEventListener)
 			{
-				desciptor->listeners.Remove(i); // ToDo: Verify that this doesn't cause a memory leak because CGameEventCallback isn't deleted.
+				descriptor->listeners.Remove(i); // ToDo: Verify that this doesn't cause a memory leak because CGameEventCallback isn't deleted.
 				bSuccess = true;
 				break;
 			}
@@ -182,23 +182,23 @@ LUA_FUNCTION_STATIC(gameevent_RemoveClientListener)
 	bool bSuccess = false;
 	if (strEvent)
 	{
-		CGameEventDescriptor* desciptor = pGameEventManager->GetEventDescriptor(strEvent);
-		if (!desciptor)
+		CGameEventDescriptor* descriptor = pGameEventManager->GetEventDescriptor(strEvent);
+		if (!descriptor)
 		{
 			LUA->PushBool(false);
 			return 1;
 		}
 
-		FOR_EACH_VEC(desciptor->listeners, i)
+		FOR_EACH_VEC(descriptor->listeners, i)
 		{
-			CGameEventCallback* callback = desciptor->listeners[i];
+			CGameEventCallback* callback = descriptor->listeners[i];
 			if (callback->m_nListenerType != CGameEventManager::CLIENTSTUB)
 				continue;
 
 			CBaseClient* listener = (CBaseClient*)callback->m_pCallback;
 			if (listener == pClient)
 			{
-				desciptor->listeners.Remove(i); // ToDo: Verify that this doesn't cause a memory leak because CGameEventCallback isn't deleted.
+				descriptor->listeners.Remove(i); // ToDo: Verify that this doesn't cause a memory leak because CGameEventCallback isn't deleted.
 				bSuccess = true;
 				break;
 			}
@@ -231,14 +231,14 @@ LUA_FUNCTION_STATIC(gameevent_AddClientListener)
 	if (!func_CGameEventManager_AddListener)
 		LUA->ThrowError("Failed to get CGameEventManager::AddListener");
 
-	CGameEventDescriptor* desciptor = pGameEventManager->GetEventDescriptor(strEvent);
-	if (!desciptor)
+	CGameEventDescriptor* descriptor = pGameEventManager->GetEventDescriptor(strEvent);
+	if (!descriptor)
 	{
 		LUA->PushBool(false);
 		return 1;
 	}
 
-	func_CGameEventManager_AddListener(pGameEventManager, Util::GetClientByPlayer(pEntity), desciptor, CGameEventManager::CLIENTSTUB);
+	func_CGameEventManager_AddListener(pGameEventManager, Util::GetClientByPlayer(pEntity), descriptor, CGameEventManager::CLIENTSTUB);
 
 	LUA->PushBool(true);
 	return 1;

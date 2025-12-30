@@ -12,9 +12,9 @@ namespace Bootil
 		{
 		}
 
-		System::System( BString strInitalPath )
+		System::System( BString strInitialPath )
 		{
-			AddPath( strInitalPath );
+			AddPath( strInitialPath );
 		}
 
 		void System::AddPath( BString strPath )

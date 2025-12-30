@@ -208,7 +208,7 @@ public:
 
 	MD5Value_t		worldmapMD5;		// For detecting that client has a hacked local copy of map, the client will be dropped if this occurs.
 	
-	CNetworkStringTableContainer *m_StringTables;	// newtork string table container
+	CNetworkStringTableContainer *m_StringTables;	// network string table container
 
 	INetworkStringTable *m_pInstanceBaselineTable; 
 	INetworkStringTable *m_pLightStyleTable;

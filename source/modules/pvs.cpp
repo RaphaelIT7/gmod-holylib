@@ -52,7 +52,7 @@ static int pOriginalFlags[MAX_EDICTS];
 static CCheckTransmitInfo* g_pCurrentTransmitInfo = nullptr;
 static const unsigned short *g_pCurrentEdictIndices = nullptr;
 static int g_nCurrentEdicts = -1;
-static bool g_bBlockAdditonToTransmit = false;
+static bool g_bBlockAdditionToTransmit = false;
 static bool g_bEnableLuaPreTransmitHook = false;
 static bool g_bEnableLuaPostTransmitHook = false;
 
@@ -136,10 +136,10 @@ static void hook_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheck
 
 	if(g_bEnableLuaPostTransmitHook && Lua::PushHook("HolyLib:PostCheckTransmit"))
 	{
-		g_bBlockAdditonToTransmit = true;
+		g_bBlockAdditionToTransmit = true;
 		Util::Push_Entity(g_Lua, Util::servergameents->EdictToBaseEntity(pInfo->m_pClientEnt));
 		g_Lua->CallFunctionProtected(2, 0, true);
-		g_bBlockAdditonToTransmit = false;
+		g_bBlockAdditionToTransmit = false;
 	}
 
 	if (bWasOverrideStateFlagsUsed)
@@ -673,7 +673,7 @@ static void AddEntityToTransmit(GarrysMod::Lua::ILuaInterface* pLua, CBaseEntity
 	if (!g_pCurrentTransmitInfo)
 		pLua->ThrowError("Tried to use pvs.RemoveEntityFromTransmit while not in a CheckTransmit call!");
 
-	if (g_bBlockAdditonToTransmit)
+	if (g_bBlockAdditionToTransmit)
 		pLua->ThrowError("Tried to add a Entity to transmit! You should always do this inside HolyLib:PreCheckTransmit!");
 
 	ent->SetTransmit(g_pCurrentTransmitInfo, force);
