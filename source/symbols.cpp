@@ -722,44 +722,6 @@ namespace Symbols
 		Symbol::FromSignature("\x48\x89\x5C\x24\x20\x56\x57\x41\x56\x48******\x8B\xF2\x4C\x8B\xF1"), // 48 89 5C 24 20 56 57 41 56 48 ?? ?? ?? ?? ?? ?? 8B F2 4C 8B F1
 	};
 
-
-	// NOTE: All of those below are obsolete with the next gmod update, see https://github.com/Facepunch/garrysmod-requests/issues/2801 <3
-	const std::vector<Symbol> CVoiceGameMgr_UpdateSym = { // VoiceMask
-		Symbol::FromName("_ZN13CVoiceGameMgr6UpdateEd"),
-		NULL_SIGNATURE, //Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x89\xFB\x48\x83\xEC\x08\xF2\x0F\x58\x47\x18"), //55 48 89 E5 53 48 89 FB 48 83 EC 08 F2 0F 58 47 18
-		Symbol::FromSignature("\x55\x8B\xEC\xDD\x45\x08\x56\x8B\xF1\xDC\x46\x10\xDD\x56\x10"), // 55 8B EC DD 45 08 56 8B F1 DC 46 10 DD 56 10
-	};
-
-	const std::vector<Symbol> g_PlayerModEnableSym = {
-		Symbol::FromName("g_PlayerModEnable"),
-		NULL_SIGNATURE,
-		Symbol::FromSignature("\x2A\x2A\x2A\x2A\x89\x5D\xFC\x2A\x2A\x2A\x2A\x2A\x83\xC4\x04"), // CVoiceGameMgr::ClientCommand: VModEnable - ?? ?? ?? ?? 89 5D FC ?? ?? ?? ?? ?? 83 C4 04
-	};
-
-	const std::vector<Symbol> g_BanMasksSym = {
-		Symbol::FromName("g_BanMasks"),
-		NULL_SIGNATURE,
-		Symbol::FromSignature("\x2A\x2A\x2A\x2A\x8B\x4D\x08\x46\x8B\x07"), // CVoiceGameMgr::ClientCommand: vban - ?? ?? ?? ?? 8B 4D 08 46 8B 07
-	};
-
-	const std::vector<Symbol> g_SentGameRulesMasksSym = {
-		Symbol::FromName("g_SentGameRulesMasks"),
-		NULL_SIGNATURE,
-		Symbol::FromSignature("\x2A\x2A\x2A\x2A\x89\x81\x2A\x2A\x2A\x2A\x8B\x81\x2A\x2A\x2A\x2A\x89\x81\x2A\x2A\x2A\x2A\x8B\x81\x2A\x2A\x2A\x2A\x89\x81\x2A\x2A\x2A\x2A\x8D\x45\xA0"), // Guess - ?? ?? ?? ?? 89 81 ?? ?? ?? ?? 8B 81 ?? ?? ?? ?? 89 81 ?? ?? ?? ?? 8B 81 ?? ?? ?? ?? 89 81 ?? ?? ?? ?? 8D 45 A0
-	};
-
-	const std::vector<Symbol> g_SentBanMasksSym = {
-		Symbol::FromName("g_SentBanMasks"),
-		NULL_SIGNATURE,
-		Symbol::FromSignature("\x2A\x2A\x2A\x2A\x89\x81\x2A\x2A\x2A\x2A\x8B\x81\x2A\x2A\x2A\x2A\x89\x81\x2A\x2A\x2A\x2A\x8D\x45\xA0"), // Guess - ?? ?? ?? ?? 89 81 ?? ?? ?? ?? 8B 81 ?? ?? ?? ?? 89 81 ?? ?? ?? ?? 8D 45 A0
-	};
-
-	const std::vector<Symbol> g_bWantModEnableSym = {
-		Symbol::FromName("g_bWantModEnable"),
-		NULL_SIGNATURE,
-		Symbol::FromSignature("\x2A\x2A\x2A\x2A\x89\x81\x2A\x2A\x2A\x2A\x8D\x45\xA0"), // Guess - ?? ?? ?? ?? 89 81 ?? ?? ?? ?? 8D 45 A0
-	};
-
 	//---------------------------------------------------------------------------------
 	// Purpose: physenv Symbols
 	// ToDo: Get the Linux64 and Windows32 symbols.

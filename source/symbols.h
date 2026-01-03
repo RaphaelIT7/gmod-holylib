@@ -515,16 +515,6 @@ namespace Symbols
 	using SV_BroadcastVoiceData = void (*)(IClient*, int nBytes, char* data, int64 xuid);
 	extern const std::vector<Symbol> SV_BroadcastVoiceDataSym;
 
-	// These below are obsolete soon.
-	using CVoiceGameMgr_Update = void (GMCOMMON_CALLING_CONVENTION*)(CVoiceGameMgr*, double frametime);
-	extern const std::vector<Symbol> CVoiceGameMgr_UpdateSym;
-
-	extern const std::vector<Symbol> g_PlayerModEnableSym;
-	extern const std::vector<Symbol> g_BanMasksSym;
-	extern const std::vector<Symbol> g_SentGameRulesMasksSym;
-	extern const std::vector<Symbol> g_SentBanMasksSym;
-	extern const std::vector<Symbol> g_bWantModEnableSym;
-
 	//---------------------------------------------------------------------------------
 	// Purpose: physenv Symbols
 	//---------------------------------------------------------------------------------

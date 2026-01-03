@@ -270,17 +270,22 @@ byte m_##name = 0;
 
 	template<class T>
 	inline T* ResolveSymbolNoDereference(
-		SourceSDK::FactoryLoader& pLoader, Symbol& pSymbol
+		SourceSDK::FactoryLoader& pLoader, const std::vector<Symbol>& pSymbols
 	)
 	{
+	#if DETOUR_SYMBOL_ID != 0
+		if ((pSymbols.size()-1) < DETOUR_SYMBOL_ID)
+			return nullptr;
+	#endif
+
 	#if defined SYSTEM_WINDOWS
 		auto iface = reinterpret_cast<T*>(symfinder.Resolve(
-			pLoader.GetModule(), pSymbol.name.c_str(), pSymbol.length
+			pLoader.GetModule(), pSymbols[DETOUR_SYMBOL_ID].name.c_str(), pSymbols[DETOUR_SYMBOL_ID].length
 		));
 		return iface != nullptr ? iface : nullptr;
 	#elif defined SYSTEM_POSIX
 		return reinterpret_cast<T*>(symfinder.Resolve(
-			pLoader.GetModule(), pSymbol.name.c_str(), pSymbol.length
+			pLoader.GetModule(), pSymbols[DETOUR_SYMBOL_ID].name.c_str(), pSymbols[DETOUR_SYMBOL_ID].length
 		));
 	#endif
 	}

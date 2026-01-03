@@ -66,7 +66,6 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- (Disabled by default) Updated LuaJIT version (done in the `luajit` module)<br>
 \- Improved ConVar's find code improving performance (done in the `cvars` module)<br>
 \- Server <-> Server connections using net channels (done in the `gameserver` module)<br>
-\- `CVoiceGameMgr` optimization to heavily reduce calls of the `GM:PlayerCanHearPlayersVoice` (done in the `voicechat` module)<br>
 \- Noticeably improved `CServerGameEnts::CheckTransmit` (done in the `networking` module)<br>
 
 > [!NOTE]
@@ -164,7 +163,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [#] Implemented a workaround for 64x possibly hanging indefinitely when a threadpool is deleted<br>
 \- [#] Fixed `holylib_filesystem_splitgamepath` breaking searchpath separation. It now only takes effects for the `GAME` path<br>
 \- [#] Fixed `INetworkStringTable:GetStringUserData` not fully pushing the userdata as a string<br>
-\- [-] Removed some unused code of former fixes that were implemented into Gmod<br>
+\- [-] Removed some unused code of former fixes that were implemented into GMod<br>
 
 You can see all changes/commits here:<br>
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
@@ -2416,18 +2415,9 @@ Returns `true` if it is.<br>
 ## voicechat
 This module contains a few things to control the voicechat.<br>
 You could probably completely rework the voicechat with this since you could completely handle it in lua.<br>
+This module once had also optimized how `GM:PlayerCanHearPlayersVoice` was called though it was removed as the optimization was suggested & implemented into GMod.<br>
 
 Supports: Linux32 | Linux64 | Windows32<br>
-
-### Optimizations
-
-This module improves `GM:PlayerCanHearPlayersVoice` by calling it only for actively speaking players.<br>
-The hook is additionally NOT called for all players which would result in `currentPlayers * currentPlayers` calls of the hook.<br>
-Instead now its called only once for the player that is speaking resulting in `1 * currentPlayers` calls of the hook.<br>
-
-> [!NOTE]
-> If you have any issues with this optimization, check if `sv_alltalk` is enabled as the lua hook is **not** called when the convar is enabled!<br>
-> In the default Gmod behavior, it would get called even when `sv_alltalk` was enabled which changed with our optimization.<br>
 
 ### Functions
 
