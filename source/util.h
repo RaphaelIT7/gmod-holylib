@@ -244,6 +244,7 @@ namespace Util
 	// Returns -1 on failure if bError = false
 	extern int Get_ClientIndex(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
 	extern CBaseClient* Get_Client(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
+	extern INetChannel* Get_NetChannel(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
 
 	extern CBaseEntity* GetCBaseEntityFromEdict(edict_t* edict);
 	extern CBaseEntity* GetCBaseEntityFromIndex(int nEntIndex);

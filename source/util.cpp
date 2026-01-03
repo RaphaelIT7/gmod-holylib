@@ -93,7 +93,7 @@ CBasePlayer* Util::Get_Player(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos,
 		CBaseEntity* pEntity = pObj->GetEntity();
 
 		if (!pEntity && bError)
-			LUA->ThrowError("Tried to use a NULL Entity!");
+			LUA->ArgError(iStackPos, "Tried to use a NULL Entity!");
 
 		return (CBasePlayer*)pEntity;
 	}
@@ -102,7 +102,7 @@ CBasePlayer* Util::Get_Player(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos,
 	if (!pEntHandle)
 	{
 		if (bError)
-			LUA->ThrowError("Tried to use a NULL Entity!");
+			LUA->ArgError(iStackPos, "Tried to use a NULL Entity!");
 
 		return nullptr;
 	}
@@ -111,7 +111,7 @@ CBasePlayer* Util::Get_Player(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos,
 	if (!pEntity->IsPlayer())
 	{
 		if (bError)
-			LUA->ThrowError("Player entity is NULL or not a player (!?)");
+			LUA->ArgError(iStackPos, "Player entity is NULL or not a player (!?)");
 
 		return nullptr;
 	}
@@ -207,20 +207,20 @@ CBaseEntity* Util::Get_Entity(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos,
 		CBaseEntity* pEntity = pObj->GetEntity();
 
 		if (!pEntity && bError)
-			LUA->ThrowError("Tried to use a NULL Entity!");
+			LUA->ArgError(iStackPos, "Tried to use a NULL Entity!");
 
 		return pEntity;
 	}
 
 	EHANDLE* pEntHandle = LUA->GetUserType<EHANDLE>(iStackPos, GarrysMod::Lua::Type::Entity);
 	if (!pEntHandle && bError)
-		LUA->ThrowError("Tried to use a NULL Entity!");
+		LUA->ArgError(iStackPos, "Tried to use a NULL Entity!");
 
 	CBaseEntity* pEntity = Util::entitylist->GetBaseEntity(*pEntHandle);
 	if (!pEntity && bError)
 	{
 		Warning(PROJECT_NAME ": EHANDLE Index %i - %i\n", pEntHandle->GetEntryIndex(), pEntHandle->GetSerialNumber());
-		LUA->ThrowError("Tried to use a NULL Entity! (The weird case?)");
+		LUA->ArgError(iStackPos, "Tried to use a NULL Entity! (The weird case?)");
 	}
 		
 	return pEntity;
@@ -345,6 +345,37 @@ CBaseClient* Util::Get_Client(GarrysMod::Lua::ILuaInterface* pLua, int iStackPos
 	}
 
 	return pClient;
+}
+
+INetChannel* Util::Get_NetChannel(GarrysMod::Lua::ILuaInterface* pLua, int iStackPos, bool bError)
+{
+	INetChannel* pChannel = nullptr;
+#if MODULE_EXISTS_GAMESERVER
+	CBaseClient* pClient = Get_CBaseClient(pLua, iStackPos, bError);
+	if (pClient)
+	{
+		pChannel = pClient->GetNetChannel();
+	}
+	else
+#endif
+	{
+		CBasePlayer* pPlayer = Get_Player(pLua, iStackPos, bError);
+		if (pPlayer)
+		{
+			CBaseClient* pClient = Util::GetClientByPlayer(pPlayer);
+			pChannel = pClient->GetNetChannel();
+		}
+	}
+
+	if (!pChannel)
+	{
+		if (bError)
+			pLua->ArgError(iStackPos, "Failed to get a valid INetChannel from player!");
+
+		return nullptr;
+	}
+
+	return pChannel;
 }
 
 void Util::ResetClusters(VisData* data)

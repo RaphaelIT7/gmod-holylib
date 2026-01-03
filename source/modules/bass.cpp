@@ -598,7 +598,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_SetFX)
 	LUA->Pop(1);
 
 	if (nFXType >= (int)BassFX::FX_MAX || nFXType < 0)
-		LUA->ThrowError("Unknown FX type! Use one of the bass.FX_ enums!");
+		LUA->ArgError(3, "Unknown FX type! Use one of the bass.FX_ enums!");
 
 	const char* pError = nullptr;
 	switch((BassFX)nFXType)
@@ -671,7 +671,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_SetFX)
 		}
 		break;
 	default:
-		LUA->ThrowError("Unknown FX type? How! Use one of the bass.FX_ enums!");
+		LUA->ArgError(3, "Unknown FX type? How! Use one of the bass.FX_ enums!");
 	}
 
 #undef GETFXFLOATFIELD

@@ -66,12 +66,9 @@ LUA_FUNCTION_STATIC(HideServer)
 LUA_FUNCTION_STATIC(FadeClientVolume)
 {
 	CBasePlayer* ent = Util::Get_Player(LUA, 1, true);
-	if (!ent)
-		LUA->ArgError(1, "Tried to use a NULL player!");
-
 	edict_t* pEdict = ent->edict();
 	if (!pEdict)
-		LUA->ThrowError("How....");
+		LUA->ArgError(1, "Failed to get edict?");
 
 	float fadePercent = LUA->CheckNumber(2);
 	float fadeOutSeconds = LUA->CheckNumber(3);
@@ -169,7 +166,7 @@ LUA_FUNCTION_STATIC(InvalidateBoneCache)
 
 	CBaseAnimating* pAnimating = pEnt->GetBaseAnimating();
 	if (!pAnimating)
-		LUA->ThrowError("Tried use use an Entity that isn't a CBaseAnimating");
+		LUA->ArgError(1, "Tried use use an Entity that isn't a CBaseAnimating");
 
 	func_CBaseAnimating_InvalidateBoneCache(pAnimating);
 	return 0;

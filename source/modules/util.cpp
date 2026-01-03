@@ -534,8 +534,9 @@ LUA_FUNCTION_STATIC(util_JSONToTable)
 	rapidjson::Document doc;
 	doc.Parse(jsonString);
 
-	if (doc.HasParseError()) {
-		LUA->ThrowError("Invalid JSON string");
+	if (doc.HasParseError())
+	{
+		LUA->ArgError(1, "Invalid JSON string");
 		return 0;
 	}
 

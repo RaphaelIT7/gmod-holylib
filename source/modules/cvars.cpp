@@ -230,7 +230,7 @@ LUA_FUNCTION_STATIC(cvars_Unregister)
 		pConVar = Get_ConVar(LUA, 1, true);
 
 	if (!pConVar)
-		LUA->ThrowError("Failed to find ConVar/ConCommand!");
+		LUA->ArgError(1, "Failed to find ConVar/ConCommand!");
 	
 	g_pCVar->UnregisterConCommand(pConVar);
 	return 0;

@@ -163,6 +163,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [#] Implemented a workaround for 64x possibly hanging indefinitely when a threadpool is deleted<br>
 \- [#] Fixed `holylib_filesystem_splitgamepath` breaking searchpath separation. It now only takes effects for the `GAME` path<br>
 \- [#] Fixed `INetworkStringTable:GetStringUserData` not fully pushing the userdata as a string<br>
+\- [#] Changed internal code to use `ArgError` instead of `ThrowError` where possible to improve Lua errors when invalid function arguments are given<br>
 \- [-] Removed some unused code of former fixes that were implemented into GMod<br>
 
 You can see all changes/commits here:<br>

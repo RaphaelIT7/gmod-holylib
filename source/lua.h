@@ -682,13 +682,13 @@ inline LuaUserData* Get_##className##_Data(GarrysMod::Lua::ILuaInterface* LUA, i
 	if (!Lua::CheckHolyLibType(LUA, iStackPos, luaType, &pVar)) \
 	{ \
 		if (bError) \
-			LUA->ThrowError(invalidType_##className.c_str()); \
+			LUA->ArgError(iStackPos, invalidType_##className.c_str()); \
 \
 		return nullptr; \
 	} \
 \
 	if ((!pVar || !pVar->GetData()) && bError) \
-		LUA->ThrowError(triedNull_##className.c_str()); \
+		LUA->ArgError(iStackPos, triedNull_##className.c_str()); \
 \
 	return pVar; \
 } \
@@ -723,13 +723,13 @@ className* Get_##className(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bo
 	if (!Lua::CheckGModType(LUA, iStackPos, luaType, (void**)&pVar)) \
 	{ \
 		if (bError) \
-			LUA->ThrowError(invalidType_##className.c_str()); \
+			LUA->ArgError(iStackPos, invalidType_##className.c_str()); \
 \
 		return nullptr; \
 	} \
 \
 	if (!pVar && bError) \
-		LUA->ThrowError(triedNull_##className.c_str()); \
+		LUA->ArgError(iStackPos, triedNull_##className.c_str()); \
 \
 	additional \
 \
@@ -749,12 +749,12 @@ inline LuaUserData* Get_##className##_Data(GarrysMod::Lua::ILuaInterface* LUA, i
 	LuaUserData* pVar = Lua::GetHolyLibUserData(LUA, iStackPos); \
 	if (!pVar) \
 		if (bError) \
-			LUA->ThrowError(triedNull_##className.c_str()); \
+			LUA->ArgError(iStackPos, triedNull_##className.c_str()); \
 	\
 	if (!pVar || (pVar->GetType() != luaType && pVar->GetType() != luaType2)) \
 	{ \
 		if (bError) \
-			LUA->ThrowError(invalidType_##className.c_str()); \
+			LUA->ArgError(iStackPos, invalidType_##className.c_str()); \
 \
 		return nullptr; \
 	} \
@@ -772,7 +772,7 @@ className* Get_##className(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bo
 	if (!pVar || !isvalid) \
 	{ \
 		if (bError) \
-			LUA->ThrowError(triedNull_##className.c_str()); \
+			LUA->ArgError(iStackPos, triedNull_##className.c_str()); \
 \
 		return nullptr; \
 	} \

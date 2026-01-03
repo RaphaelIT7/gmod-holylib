@@ -351,7 +351,7 @@ LUA_FUNCTION_STATIC(sourcetv_FireEvent)
 	hltv->FireGameEvent(pEvent);
 	g_bLuaGameEvent = false;
 #else
-	LUA->ThrowError("Missing gameevent module!");
+	MISSING_MODULE_ERROR(LUA, gameevent);
 #endif
 
 	return 0;

@@ -338,10 +338,10 @@ LUA_FUNCTION_STATIC(pvs_CheckAreasConnected)
 	int area2 = LUA->CheckNumber(2);
 
 	if (area1 < 0 || area1 >= MAX_MAP_AREAS)
-		LUA->ThrowError("Bogus area1 value!");
+		LUA->ArgError(1, "Bogus area1 value!");
 
 	if (area2 < 0 || area2 >= MAX_MAP_AREAS)
-		LUA->ThrowError("Bogus area2 value!");
+		LUA->ArgError(1, "Bogus area2 value!");
 
 	LUA->PushBool(Util::engineserver->CheckAreasConnected(area1, area2));
 	return 1;
@@ -872,10 +872,7 @@ LUA_FUNCTION_STATIC(pvs_TestPVS)
 
 LUA_FUNCTION_STATIC(pvs_ForceFullUpdate)
 {
-	CBasePlayer* ply = Util::Get_Player(LUA, 1, true);
-	CBaseClient* pClient = Util::GetClientByPlayer(ply);
-	if (!pClient)
-		LUA->ThrowError("Failed to get CBaseClient!");
+	CBaseClient* pClient = Util::Get_Client(LUA, 1, true);
 
 	pClient->ForceFullUpdate();
 	return 0;
@@ -916,7 +913,7 @@ LUA_FUNCTION_STATIC(pvs_ForceWeaponTransmit)
 	extern void Networking_ForceWeaponTransmit(int entIndex, bool bForceTransmit);
 	Networking_ForceWeaponTransmit(pWeapon->edict()->m_EdictIndex, bForceTransmit);
 #else
-	LUA->ThrowError("Networking module does not exist! This function has no purpose!");
+	MISSING_MODULE_ERROR(LUA, networking);
 #endif
 	return 0;
 }

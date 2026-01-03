@@ -101,11 +101,7 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 {
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Entity))
 	{
-		CBasePlayer* pEntity = Util::Get_Player(LUA, 1, false);
-		if (!pEntity)
-			LUA->ThrowError("Tried to use a NULL Player!\n");
-
-		CBaseClient* pClient = Util::GetClientByPlayer(pEntity);
+		CBaseClient* pClient = Util::Get_Client(LUA, 1, true);
 
 		LUA->CreateTable();
 		int idx = 0;
@@ -172,11 +168,7 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 
 LUA_FUNCTION_STATIC(gameevent_RemoveClientListener)
 {
-	CBasePlayer* pEntity = Util::Get_Player(LUA, 1, false);
-	if (!pEntity)
-		LUA->ThrowError("Tried to use a NULL Player!\n");
-
-	CBaseClient* pClient = Util::GetClientByPlayer(pEntity);
+	CBaseClient* pClient = Util::Get_Client(LUA, 1, true);
 	const char* strEvent = LUA->CheckStringOpt(2, nullptr);
 
 	bool bSuccess = false;
@@ -222,10 +214,7 @@ LUA_FUNCTION_STATIC(gameevent_AddClientListener)
 		return 0;
 	}
 
-	CBasePlayer* pEntity = Util::Get_Player(LUA, 1, true);
-	if (!pEntity)
-		LUA->ThrowError("Tried to use a NULL Player!\n");
-
+	CBaseClient* pClient = Util::Get_Client(LUA, 1, true);
 	const char* strEvent = LUA->CheckString(2);
 
 	if (!func_CGameEventManager_AddListener)
@@ -238,7 +227,7 @@ LUA_FUNCTION_STATIC(gameevent_AddClientListener)
 		return 1;
 	}
 
-	func_CGameEventManager_AddListener(pGameEventManager, Util::GetClientByPlayer(pEntity), descriptor, CGameEventManager::CLIENTSTUB);
+	func_CGameEventManager_AddListener(pGameEventManager, pClient, descriptor, CGameEventManager::CLIENTSTUB);
 
 	LUA->PushBool(true);
 	return 1;
@@ -496,13 +485,7 @@ LUA_FUNCTION_STATIC(gameevent_FireEvent)
 LUA_FUNCTION_STATIC(gameevent_FireClientEvent)
 {
 	IGameEvent* pEvent = Get_IGameEvent(LUA, 1, true);
-	CBasePlayer* pPlayer = Util::Get_Player(LUA, 2, true);
-	if (!pPlayer)
-		LUA->ArgError(2, "Tried to use a NULL player!");
-
-	CBaseClient* pClient = Util::GetClientByPlayer(pPlayer);
-	if (!pClient)
-		LUA->ThrowError("Failed to get CBaseClient from player!");
+	CBaseClient* pClient = Util::Get_Client(LUA, 2, true);
 
 	pClient->FireGameEvent(pEvent);
 	return 0;

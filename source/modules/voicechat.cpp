@@ -1528,10 +1528,7 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 
 LUA_FUNCTION_STATIC(voicechat_SendEmptyData)
 {
-	CBasePlayer* pPlayer = Util::Get_Player(LUA, 1, true); // Should error if given invalid player.
-	CBaseClient* pClient = Util::GetClientByPlayer(pPlayer);
-	if (!pClient)
-		LUA->ThrowError("Failed to get CBaseClient!\n");
+	CBaseClient* pClient = Util::Get_Client(LUA, 1, true);
 
 	SVC_VoiceData voiceData;
 	voiceData.m_nFromClient = (int)LUA->CheckNumberOpt(2, pClient->GetPlayerSlot());
@@ -1546,11 +1543,7 @@ LUA_FUNCTION_STATIC(voicechat_SendEmptyData)
 
 LUA_FUNCTION_STATIC(voicechat_SendVoiceData)
 {
-	CBasePlayer* pPlayer = Util::Get_Player(LUA, 1, true); // Should error if given invalid player.
-	IClient* pClient = Util::GetClientByPlayer(pPlayer);
-	if (!pClient)
-		LUA->ThrowError("Failed to get CBaseClient!\n");
-
+	CBaseClient* pClient = Util::Get_Client(LUA, 1, true);
 	VoiceData* pData = Get_VoiceData(LUA, 2, true);
 
 	SVC_VoiceData voiceData;
@@ -1582,11 +1575,7 @@ LUA_FUNCTION_STATIC(voicechat_BroadcastVoiceData)
 		LUA->PushNil();
 		while (LUA->Next(-2))
 		{
-			CBasePlayer* pPlayer = Util::Get_Player(LUA, -1, true);
-			CBaseClient* pClient = Util::GetClientByPlayer(pPlayer);
-			if (!pClient)
-				LUA->ThrowError("Failed to get CBaseClient!\n");
-
+			CBaseClient* pClient = Util::Get_Client(LUA, -1, true);
 			pClient->SendNetMsg(voiceData);
 
 			LUA->Pop(1);
@@ -1602,11 +1591,7 @@ LUA_FUNCTION_STATIC(voicechat_BroadcastVoiceData)
 
 LUA_FUNCTION_STATIC(voicechat_ProcessVoiceData)
 {
-	CBasePlayer* pPlayer = Util::Get_Player(LUA, 1, true); // Should error if given invalid player.
-	CBaseClient* pClient = Util::GetClientByPlayer(pPlayer);
-	if (!pClient)
-		LUA->ThrowError("Failed to get CBaseClient!\n");
-
+	CBaseClient* pClient = Util::Get_Client(LUA, 1, true);
 	VoiceData* pData = Get_VoiceData(LUA, 2, true);
 
 	if (!DETOUR_ISVALID(detour_SV_BroadcastVoiceData))
@@ -1647,15 +1632,8 @@ LUA_FUNCTION_STATIC(voicechat_CreateVoiceData)
 
 LUA_FUNCTION_STATIC(voicechat_IsHearingClient)
 {
-	CBasePlayer* pPlayer = Util::Get_Player(LUA, 1, true);
-	IClient* pClient = Util::GetClientByPlayer(pPlayer);
-	if (!pClient)
-		LUA->ThrowError("Failed to get CBaseClient!\n");
-
-	CBasePlayer* pTargetPlayer = Util::Get_Player(LUA, 2, true);
-	IClient* pTargetClient = Util::GetClientByPlayer(pTargetPlayer);
-	if (!pTargetClient)
-		LUA->ThrowError("Failed to get CBaseClient for target player!\n");
+	CBaseClient* pClient = Util::Get_Client(LUA, 1, true);
+	CBaseClient* pTargetClient = Util::Get_Client(LUA, 2, true);
 
 	LUA->PushBool(pClient->IsHearingClient(pTargetClient->GetPlayerSlot()));
 
@@ -1664,15 +1642,8 @@ LUA_FUNCTION_STATIC(voicechat_IsHearingClient)
 
 LUA_FUNCTION_STATIC(voicechat_IsProximityHearingClient)
 {
-	CBasePlayer* pPlayer = Util::Get_Player(LUA, 1, true);
-	IClient* pClient = Util::GetClientByPlayer(pPlayer);
-	if (!pClient)
-		LUA->ThrowError("Failed to get CBaseClient!\n");
-
-	CBasePlayer* pTargetPlayer = Util::Get_Player(LUA, 2, true);
-	IClient* pTargetClient = Util::GetClientByPlayer(pTargetPlayer);
-	if (!pTargetClient)
-		LUA->ThrowError("Failed to get CBaseClient for target player!\n");
+	CBaseClient* pClient = Util::Get_Client(LUA, 1, true);
+	CBaseClient* pTargetClient = Util::Get_Client(LUA, 2, true);
 
 	LUA->PushBool(pClient->IsProximityHearingClient(pTargetClient->GetPlayerSlot()));
 

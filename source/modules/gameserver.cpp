@@ -157,7 +157,7 @@ LUA_FUNCTION_STATIC(CBaseClient_FireGameEvent)
 
 	pClient->FireGameEvent(pEvent);
 #else
-	LUA->ThrowError("Missing gameevent module!");
+	MISSING_MODULE_ERROR(LUA, gameevent);
 #endif
 	return 0;
 }
@@ -307,9 +307,6 @@ LUA_FUNCTION_STATIC(CBaseClient_SendNetMsg)
 	int iType = (int)LUA->CheckNumber(2);
 	const char* strName = LUA->CheckString(3);
 
-	if (!pClient)
-		LUA->ThrowError("Failed to get IClient from player!");
-
 	SVC_CustomMessage msg;
 	msg.m_iType = iType;
 	strncpy(msg.m_strName, strName, sizeof(msg.m_strName));
@@ -318,14 +315,13 @@ LUA_FUNCTION_STATIC(CBaseClient_SendNetMsg)
 	bf_write* bf = Get_bf_write(LUA, 4, true);
 
 	if (bf->IsOverflowed())
-		LUA->ThrowError("Tried to use a buffer that is overflowed!");
+		LUA->ArgError(4, "Tried to use a buffer that is overflowed!");
 
 	msg.m_DataOut.StartWriting(bf->GetData(), 0, 0, bf->GetMaxNumBits());
 	msg.m_iLength = bf->GetNumBitsWritten();
-
 #else
 	size_t nLength;
-	const char* pData = Util::CheckLString(LUA, 1, &nLength);
+	const char* pData = Util::CheckLString(LUA, 4, &nLength);
 
 	msg.m_DataOut.StartWriting((void*)pData, nLength);
 	msg.m_iLength = nLength * 8;
@@ -594,10 +590,7 @@ LUA_FUNCTION_STATIC(CBaseClient_SetSteamID)
  */
 LUA_FUNCTION_STATIC(CBaseClient_GetProcessingMessages)
 {
-	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
-	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
-	if (!pNetChannel)
-		LUA->ThrowError("Failed to get a valid net channel");
+	CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
 
 	LUA->PushBool(pNetChannel->m_bProcessingMessages);
 	return 1;
@@ -605,10 +598,7 @@ LUA_FUNCTION_STATIC(CBaseClient_GetProcessingMessages)
 
 LUA_FUNCTION_STATIC(CBaseClient_GetClearedDuringProcessing)
 {
-	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
-	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
-	if (!pNetChannel)
-		LUA->ThrowError("Failed to get a valid net channel");
+	CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
 
 	LUA->PushBool(pNetChannel->m_bClearedDuringProcessing);
 	return 1;
@@ -617,10 +607,7 @@ LUA_FUNCTION_STATIC(CBaseClient_GetClearedDuringProcessing)
 // If anyone sees a point in having this function, open a issue and ask for it to be added.
 /*LUA_FUNCTION_STATIC(CBaseClient_GetShouldDelete)
 {
-	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
-	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
-	if (!pNetChannel)
-		LUA->ThrowError("Failed to get a valid net channel");
+	CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
 
 	LUA->PushBool(pNetChannel->m_bShouldDelete);
 	return 1;
@@ -628,10 +615,7 @@ LUA_FUNCTION_STATIC(CBaseClient_GetClearedDuringProcessing)
 
 LUA_FUNCTION_STATIC(CBaseClient_GetOutSequenceNr)
 {
-	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
-	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
-	if (!pNetChannel)
-		LUA->ThrowError("Failed to get a valid net channel");
+	CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
 
 	LUA->PushNumber(pNetChannel->m_nOutSequenceNr);
 	return 1;
@@ -639,10 +623,7 @@ LUA_FUNCTION_STATIC(CBaseClient_GetOutSequenceNr)
 
 LUA_FUNCTION_STATIC(CBaseClient_GetInSequenceNr)
 {
-	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
-	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
-	if (!pNetChannel)
-		LUA->ThrowError("Failed to get a valid net channel");
+	CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
 
 	LUA->PushNumber(pNetChannel->m_nInSequenceNr);
 	return 1;
@@ -650,10 +631,7 @@ LUA_FUNCTION_STATIC(CBaseClient_GetInSequenceNr)
 
 LUA_FUNCTION_STATIC(CBaseClient_GetOutSequenceNrAck)
 {
-	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
-	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
-	if (!pNetChannel)
-		LUA->ThrowError("Failed to get a valid net channel");
+	CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
 
 	LUA->PushNumber(pNetChannel->m_nOutSequenceNrAck);
 	return 1;
@@ -661,10 +639,7 @@ LUA_FUNCTION_STATIC(CBaseClient_GetOutSequenceNrAck)
 
 LUA_FUNCTION_STATIC(CBaseClient_GetOutReliableState)
 {
-	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
-	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
-	if (!pNetChannel)
-		LUA->ThrowError("Failed to get a valid net channel");
+	CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
 
 	LUA->PushNumber(pNetChannel->m_nOutReliableState);
 	return 1;
@@ -672,10 +647,7 @@ LUA_FUNCTION_STATIC(CBaseClient_GetOutReliableState)
 
 LUA_FUNCTION_STATIC(CBaseClient_GetInReliableState)
 {
-	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
-	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
-	if (!pNetChannel)
-		LUA->ThrowError("Failed to get a valid net channel");
+	CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
 
 	LUA->PushNumber(pNetChannel->m_nInReliableState);
 	return 1;
@@ -683,10 +655,7 @@ LUA_FUNCTION_STATIC(CBaseClient_GetInReliableState)
 
 LUA_FUNCTION_STATIC(CBaseClient_GetChokedPackets)
 {
-	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
-	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
-	if (!pNetChannel)
-		LUA->ThrowError("Failed to get a valid net channel");
+	CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
 
 	LUA->PushNumber(pNetChannel->m_nChokedPackets);
 	return 1;
@@ -695,10 +664,7 @@ LUA_FUNCTION_STATIC(CBaseClient_GetChokedPackets)
 LUA_FUNCTION_STATIC(CBaseClient_GetStreamReliable)
 {
 #if MODULE_EXISTS_BITBUF
-	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
-	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
-	if (!pNetChannel)
-		LUA->ThrowError("Failed to get a valid net channel");
+	CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
 
 	Push_bf_write(LUA, &pNetChannel->m_StreamReliable, false);
 #else
@@ -710,10 +676,7 @@ LUA_FUNCTION_STATIC(CBaseClient_GetStreamReliable)
 LUA_FUNCTION_STATIC(CBaseClient_GetStreamUnreliable)
 {
 #if MODULE_EXISTS_BITBUF
-	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
-	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
-	if (!pNetChannel)
-		LUA->ThrowError("Failed to get a valid net channel");
+	CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
 
 	Push_bf_write(LUA, &pNetChannel->m_StreamUnreliable, false);
 #else
@@ -725,10 +688,7 @@ LUA_FUNCTION_STATIC(CBaseClient_GetStreamUnreliable)
 LUA_FUNCTION_STATIC(CBaseClient_GetStreamVoice)
 {
 #if MODULE_EXISTS_BITBUF
-	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
-	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
-	if (!pNetChannel)
-		LUA->ThrowError("Failed to get a valid net channel");
+	CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
 
 	Push_bf_write(LUA, &pNetChannel->m_StreamVoice, false);
 #else
@@ -739,10 +699,7 @@ LUA_FUNCTION_STATIC(CBaseClient_GetStreamVoice)
 
 LUA_FUNCTION_STATIC(CBaseClient_GetStreamSocket)
 {
-	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
-	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
-	if (!pNetChannel)
-		LUA->ThrowError("Failed to get a valid net channel");
+	CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
 
 	LUA->PushNumber(pNetChannel->m_StreamSocket);
 	return 1;
@@ -750,10 +707,7 @@ LUA_FUNCTION_STATIC(CBaseClient_GetStreamSocket)
 
 LUA_FUNCTION_STATIC(CBaseClient_GetMaxReliablePayloadSize)
 {
-	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
-	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
-	if (!pNetChannel)
-		LUA->ThrowError("Failed to get a valid net channel");
+	CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
 
 	LUA->PushNumber(pNetChannel->m_MaxReliablePayloadSize);
 	return 1;
@@ -761,10 +715,7 @@ LUA_FUNCTION_STATIC(CBaseClient_GetMaxReliablePayloadSize)
 
 LUA_FUNCTION_STATIC(CBaseClient_GetLastReceived)
 {
-	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
-	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
-	if (!pNetChannel)
-		LUA->ThrowError("Failed to get a valid net channel");
+	CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
 
 	LUA->PushNumber(pNetChannel->last_received);
 	return 1;
@@ -772,10 +723,7 @@ LUA_FUNCTION_STATIC(CBaseClient_GetLastReceived)
 
 LUA_FUNCTION_STATIC(CBaseClient_GetConnectTime)
 {
-	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
-	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
-	if (!pNetChannel)
-		LUA->ThrowError("Failed to get a valid net channel");
+	CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
 
 	LUA->PushNumber(pNetChannel->connect_time);
 	return 1;
@@ -783,10 +731,7 @@ LUA_FUNCTION_STATIC(CBaseClient_GetConnectTime)
 
 LUA_FUNCTION_STATIC(CBaseClient_GetClearTime)
 {
-	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
-	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
-	if (!pNetChannel)
-		LUA->ThrowError("Failed to get a valid net channel");
+	CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
 
 	LUA->PushNumber(pNetChannel->m_fClearTime);
 	return 1;
@@ -794,10 +739,7 @@ LUA_FUNCTION_STATIC(CBaseClient_GetClearTime)
 
 LUA_FUNCTION_STATIC(CBaseClient_GetTimeout)
 {
-	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
-	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
-	if (!pNetChannel)
-		LUA->ThrowError("Failed to get a valid net channel");
+	CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
 
 	LUA->PushNumber(pNetChannel->m_Timeout);
 	return 1;
@@ -805,11 +747,8 @@ LUA_FUNCTION_STATIC(CBaseClient_GetTimeout)
 
 LUA_FUNCTION_STATIC(CBaseClient_SetTimeout)
 {
-	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
+	CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
 	float seconds = (float)LUA->CheckNumber(2);
-	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
-	if (!pNetChannel)
-		LUA->ThrowError("Failed to get a valid net channel");
 
 	pNetChannel->SetTimeout(seconds);
 	return 0;
@@ -818,12 +757,9 @@ LUA_FUNCTION_STATIC(CBaseClient_SetTimeout)
 static bool g_bFreeSubChannels = false;
 LUA_FUNCTION_STATIC(CBaseClient_Transmit)
 {
-	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
+	CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
 	bool bOnlyReliable = LUA->GetBool(2);
 	bool bFreeSubChannels = LUA->GetBool(3);
-	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
-	if (!pNetChannel)
-		LUA->ThrowError("Failed to get a valid net channel");
 
 	g_bFreeSubChannels = bFreeSubChannels;
 	LUA->PushBool(pNetChannel->Transmit(bOnlyReliable));
@@ -834,10 +770,7 @@ LUA_FUNCTION_STATIC(CBaseClient_Transmit)
 
 /*LUA_FUNCTION_STATIC(CBaseClient_HasQueuedPackets)
 {
-	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
-	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
-	if (!pNetChannel)
-		LUA->ThrowError("Failed to get a valid net channel");
+	CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
 
 	LUA->PushBool(pNetChannel->HasQueuedPackets());
 	return 1;
@@ -845,10 +778,7 @@ LUA_FUNCTION_STATIC(CBaseClient_Transmit)
 
 LUA_FUNCTION_STATIC(CBaseClient_ProcessStream)
 {
-	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
-	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
-	if (!pNetChannel)
-		LUA->ThrowError("Failed to get a valid net channel");
+	CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
 
 	LUA->PushBool(pNetChannel->ProcessStream());
 	return 1;
@@ -856,13 +786,10 @@ LUA_FUNCTION_STATIC(CBaseClient_ProcessStream)
 
 LUA_FUNCTION_STATIC(CBaseClient_SetMaxBufferSize)
 {
-	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
+	CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
 	bool bReliable = LUA->GetBool(2);
 	int nBytes = (int)LUA->CheckNumber(3);
 	bool bVoice = LUA->GetBool(4);
-	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
-	if (!pNetChannel)
-		LUA->ThrowError("Failed to get a valid net channel");
 
 	pNetChannel->SetMaxBufferSize(bReliable, nBytes, bVoice);
 	return 0;
@@ -871,10 +798,7 @@ LUA_FUNCTION_STATIC(CBaseClient_SetMaxBufferSize)
 // Purely debug function, has no real use.
 /*LUA_FUNCTION_STATIC(CBaseClient_GetRegisteredMessages)
 {
-	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
-	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
-	if (!pNetChannel)
-		LUA->ThrowError("Failed to get a valid net channel");
+	CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
 
 	LUA->PreCreateTable(pNetChannel->m_NetMessages.Count(), 0);
 		int idx = 0;
@@ -890,10 +814,7 @@ LUA_FUNCTION_STATIC(CBaseClient_SetMaxBufferSize)
 
 LUA_FUNCTION_STATIC(CBaseClient_GetMaxRoutablePayloadSize)
 {
-	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
-	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
-	if (!pNetChannel)
-		LUA->ThrowError("Failed to get a valid net channel");
+	CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
 
 	LUA->PushNumber(pNetChannel->GetMaxRoutablePayloadSize());
 	return 1;
@@ -1392,10 +1313,7 @@ LUA_FUNCTION_STATIC(CNetChan_Transmit)
 
 /*LUA_FUNCTION_STATIC(CNetChan_HasQueuedPackets)
 {
-	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
-	CNetChan* pNetChannel = (CNetChan*)pClient->GetNetChannel();
-	if (!pNetChannel)
-		LUA->ThrowError("Failed to get a valid net channel");
+	CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
 
 	LUA->PushBool(pNetChannel->HasQueuedPackets());
 	return 1;
@@ -1707,13 +1625,13 @@ LUA_FUNCTION_STATIC(CNetChan_SendMessage)
 	bf_write* bf = Get_bf_write(LUA, 2, true);
 
 	if (bf->IsOverflowed())
-		LUA->ThrowError("Tried to use a buffer that is overflowed!");
+		LUA->ArgError(2, "Tried to use a buffer that is overflowed!");
 
 	msg.m_DataOut.StartWriting(bf->GetData(), 0, 0, bf->GetMaxNumBits());
 	msg.m_iLength = bf->GetNumBitsWritten();
 #else
 	size_t nLength;
-	const char* pData = Util::CheckLString(LUA, 1, &nLength);
+	const char* pData = Util::CheckLString(LUA, 2, &nLength);
 
 	msg.m_DataOut.StartWriting((void*)pData, nLength);
 	msg.m_iLength = nLength * 8;
@@ -2195,13 +2113,13 @@ LUA_FUNCTION_STATIC(gameserver_BroadcastMessage)
 	bf_write* bf = Get_bf_write(LUA, 3, true);
 
 	if (bf->IsOverflowed())
-		LUA->ThrowError("Tried to use a buffer that is overflowed!");
+		LUA->ArgError(3, "Tried to use a buffer that is overflowed!");
 
 	msg.m_DataOut.StartWriting(bf->GetData(), 0, 0, bf->GetMaxNumBits());
 	msg.m_iLength = bf->GetNumBitsWritten();
 #else
 	size_t nLength;
-	const char* pData = Util::CheckLString(LUA, 1, &nLength);
+	const char* pData = Util::CheckLString(LUA, 3, &nLength);
 
 	msg.m_DataOut.StartWriting((void*)pData, nLength);
 	msg.m_iLength = nLength * 8;

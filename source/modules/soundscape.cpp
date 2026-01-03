@@ -96,7 +96,7 @@ LUA_FUNCTION_STATIC(soundscape_SetActiveSoundscape)
 	CBaseEntity* pPlayer = Util::Get_Player(LUA, 1, true);
 	CBaseEntity* pSoundscape = Util::Get_Entity(LUA, 2, true);
 	if (V_stricmp(pSoundscape->GetClassname(), "env_soundscape") != 0)
-		LUA->ThrowError("Tried to give a entity which wasn't a env_soundscape!");
+		LUA->ArgError(2, "Tried to give a entity which wasn't a env_soundscape!");
 
 	audioparams_t* pParams = GetAudioParams(pPlayer);
 	if (pParams && func_CEnvSoundscape_WriteAudioParamsTo)
@@ -278,7 +278,7 @@ LUA_FUNCTION_STATIC(soundscape_SetCurrentSoundscape)
 
 	CBaseEntity* pEntity = Util::Get_Entity(LUA, 1, true);
 	if (V_stricmp(pEntity->GetClassname(), "env_soundscape") != 0)
-		LUA->ThrowError("Tried to give a entity which wasn't a env_soundscape!");
+		LUA->ArgError(1, "Tried to give a entity which wasn't a env_soundscape!");
 
 	pCurrentUpdate->pCurrentSoundscape = (CEnvSoundscape*)pEntity;
 	return 0;

@@ -1115,7 +1115,7 @@ LUA_FUNCTION_STATIC(physenv_DestroyEnvironment)
 	for (ILuaPhysicsEnvironment* ppLuaEnv : g_pCurrentEnvironment)
 	{
 		if (pLuaEnv == ppLuaEnv)
-			LUA->ThrowError("Tried to delete a IPhysicsEnvironment that is simulating!"); // Don't even dare.....
+			LUA->ArgError(1, "Tried to delete a IPhysicsEnvironment that is simulating!"); // Don't even dare.....
 	}
 
 	CPhysicsEnvironment* pEnvironment = (CPhysicsEnvironment*)pLuaEnv->pEnvironment;
@@ -1508,9 +1508,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_Simulate)
 	bool onlyEntities = LUA->GetBool(3);
 
 	if (pEnvironment->IsInSimulation())
-	{
-		LUA->ThrowError("Tried to simulate a IPhysicsEnvironment that is already simulating!");
-	}
+		LUA->ArgError(1, "Tried to simulate a IPhysicsEnvironment that is already simulating!");
 
 	if (!func_CCollisionProperty_MarkSurroundingBoundsDirty)
 		Msg(PROJECT_NAME " - physenv: Missing CCollisionProperty::MarkSurroundingBoundsDirty so collision bounds might not update properly!");
@@ -1521,7 +1519,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment_Simulate)
 	{
 		if (pEnv == pLuaEnv)
 		{
-			LUA->ThrowError("Tried to simulate a IPhysicsEnvironment that is already simulating!");
+			LUA->ArgError(1, "Tried to simulate a IPhysicsEnvironment that is already simulating!");
 			return 0;
 		}
 	}

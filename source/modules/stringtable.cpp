@@ -577,7 +577,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable_SetMaxEntries)
 	int maxEntries = (int)LUA->CheckNumber(2);
 	int maxEntryBits = Q_log2(maxEntries);
 	if ((1 << maxEntryBits) != maxEntries)
-		LUA->ThrowError("String tables must be powers of two in size!");
+		LUA->ArgError(2, "String tables must be powers of two in size!");
 
 	Util::DoUnsafeCodeCheck(LUA);
 
@@ -871,7 +871,7 @@ LUA_FUNCTION_STATIC(stringtable_CreateStringTable)
 	{
 		char err[255];
 		snprintf(err, sizeof(err), "Tried to create string table '%s' when it already exists!", name);
-		LUA->ThrowError(err);
+		LUA->ArgError(1, err);
 		return 0;
 	}
 
@@ -879,7 +879,7 @@ LUA_FUNCTION_STATIC(stringtable_CreateStringTable)
 	{
 		char err[255];
 		snprintf(err, sizeof(err), "Tried to create string table '%s' when the maxentries '%i' was NOT the power of two!", name, maxentries);
-		LUA->ThrowError(err);
+		LUA->ArgError(2, err);
 		return 0;
 	}
 
@@ -983,7 +983,7 @@ LUA_FUNCTION_STATIC(stringtable_CreateStringTableEx)
 	{
 		char err[255];
 		snprintf(err, sizeof(err), "Tried to create string table '%s' when it already exists!", name);
-		LUA->ThrowError(err);
+		LUA->ArgError(1, err);
 		return 0;
 	}
 
@@ -991,7 +991,7 @@ LUA_FUNCTION_STATIC(stringtable_CreateStringTableEx)
 	{
 		char err[255];
 		snprintf(err, sizeof(err), "Tried to create string table '%s' when the maxentries '%i' was NOT the power of two!", name, maxentries);
-		LUA->ThrowError(err);
+		LUA->ArgError(2, err);
 		return 0;
 	}
 
