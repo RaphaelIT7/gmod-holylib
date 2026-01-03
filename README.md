@@ -2524,7 +2524,11 @@ If you want it to **not** run async, simply provide **no** callback function, it
 > [!NOTE]
 > It should be safe to modify/use the VoiceStream while it's being modified async **BUT** you should try to avoid doing that.
 
-####
+#### voicechat.IsPlayerMuted(Player ply/number playerSlot)
+Returns `true` if the given player was muted using `voicechat.SetPlayerMuted`<br>
+
+#### voicechat.SetPlayerMuted(Player ply/number playerSlot)
+Mutes the given player and stopping `GM:PlayerCanHearPlayersVoice` from being called.<br>
 
 ### VoiceData
 VoiceData is a userdata value that is used to manage the voicedata.<br>

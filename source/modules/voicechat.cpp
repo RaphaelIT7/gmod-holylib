@@ -1404,8 +1404,8 @@ static void VoiceEffect(VoiceEffectJob*& pJob)
 }
 }
 
-static bool g_bIsPlayerTalking[MAX_PLAYERS] = {0};
 static bool g_bIsPlayerMuted[MAX_PLAYERS] = {0};
+static bool g_bIsPlayerTalking[MAX_PLAYERS] = {0};
 static double g_fLastPlayerTalked[MAX_PLAYERS] = {0};
 static ConVar voicechat_stopdelay("holylib_voicechat_stopdelay", "1", FCVAR_ARCHIVE, "How many seconds before a player is marked as stopped talking");
 static void CheckTalkingState(int nPlayerSlot, bool bIsTalking)
@@ -1474,8 +1474,16 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 {
 	VPROF_BUDGET("HolyLib - SV_BroadcastVoiceData", VPROF_BUDGETGROUP_HOLYLIB);
 
+	if (g_bIsPlayerMuted[pClient->GetPlayerSlot()])
+	{
+		if (g_pVoiceChatModule.InDebug() == 1)
+			Msg(PROJECT_NAME " - voicechat: client %i voice packet was skipped since their muted!\n", pClient->GetPlayerSlot());
+
+		return;
+	}
+
 	if (g_pVoiceChatModule.InDebug() == 1)
-		Msg("cl: %p\nbytes: %i\ndata: %p\n", pClient, nBytes, data);
+		Msg(PROJECT_NAME " - voicechat: cl: %p\nbytes: %i\ndata: %p\n", pClient, nBytes, data);
 
 	CheckTalkingState(pClient->GetPlayerSlot(), true);
 
@@ -1984,17 +1992,7 @@ LUA_FUNCTION_STATIC(voicechat_SaveVoiceStream)
 
 LUA_FUNCTION_STATIC(voicechat_IsPlayerTalking)
 {
-	int iClient = -1;
-	if (LUA->IsType(1, GarrysMod::Lua::Type::Number))
-	{
-		iClient = (int)LUA->GetNumber(1);
-	} else {
-		CBasePlayer* pPlayer = Util::Get_Player(LUA, 1, true);
-		iClient = pPlayer->edict()->m_EdictIndex-1;
-	}
-
-	if (iClient < 0 || iClient >= gpGlobals->maxClients)
-		LUA->ThrowError("Failed to get a valid Client index!");
+	int iClient = Util::Get_ClientIndex(LUA, 1, true);
 
 	LUA->PushBool(g_bIsPlayerTalking[iClient]);
 	return 1;
@@ -2002,17 +2000,7 @@ LUA_FUNCTION_STATIC(voicechat_IsPlayerTalking)
 
 LUA_FUNCTION_STATIC(voicechat_LastPlayerTalked)
 {
-	int iClient = -1;
-	if (LUA->IsType(1, GarrysMod::Lua::Type::Number))
-	{
-		iClient = (int)LUA->GetNumber(1);
-	} else {
-		CBasePlayer* pPlayer = Util::Get_Player(LUA, 1, true);
-		iClient = pPlayer->edict()->m_EdictIndex-1;
-	}
-
-	if (iClient < 0 || iClient >= gpGlobals->maxClients)
-		LUA->ThrowError("Failed to get a valid Client index!");
+	int iClient = Util::Get_ClientIndex(LUA, 1, true);
 
 	LUA->PushNumber(g_fLastPlayerTalked[iClient]);
 	return 1;
@@ -2078,6 +2066,20 @@ LUA_FUNCTION_STATIC(voicechat_ApplyEffect)
 		delete pJob;
 		return 1;
 	}
+}
+
+LUA_FUNCTION_STATIC(voicechat_IsPlayerMuted)
+{
+	int iClient = Util::Get_ClientIndex(LUA, 1, true);
+	LUA->PushBool(g_bIsPlayerMuted[iClient]);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(voicechat_SetPlayerMuted)
+{
+	int iClient = Util::Get_ClientIndex(LUA, 1, true);
+	g_bIsPlayerMuted[iClient] = LUA->GetBool(2);
+	return 0;
 }
 
 void CVoiceChatModule::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
@@ -2200,6 +2202,8 @@ void CVoiceChatModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServer
 		Util::AddFunc(pLua, voicechat_IsPlayerTalking, "IsPlayerTalking");
 		Util::AddFunc(pLua, voicechat_LastPlayerTalked, "LastPlayerTalked");
 		Util::AddFunc(pLua, voicechat_ApplyEffect, "ApplyEffect");
+		Util::AddFunc(pLua, voicechat_SetPlayerMuted, "SetPlayerMuted");
+		Util::AddFunc(pLua, voicechat_IsPlayerMuted, "IsPlayerMuted");
 	Util::FinishTable(pLua, "voicechat");
 }
 

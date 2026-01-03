@@ -278,6 +278,75 @@ CBasePlayer* Util::GetPlayerByClient(CBaseClient* client)
 	return (CBasePlayer*)servergameents->EdictToBaseEntity(engineserver->PEntityOfEntIndex(client->GetPlayerSlot() + 1));
 }
 
+int Util::Get_ClientIndex(GarrysMod::Lua::ILuaInterface* pLua, int iStackPos, bool bError)
+{
+	int iClient = -1;
+	int nType = pLua->GetType(iStackPos);
+	if (nType == GarrysMod::Lua::Type::Number)
+	{
+		iClient = (int)pLua->GetNumber(iStackPos);
+	} else {
+#if MODULE_EXISTS_GAMESERVER
+		Lua::StateData* pState = Lua::GetLuaData(pLua);
+		if (pState->GetMetaTable(TO_LUA_TYPE(CBaseClient)) == nType)
+		{
+			CBaseClient* pClient = Get_CBaseClient(pLua, iStackPos, bError);
+			if (pClient)
+				iClient = pClient->GetPlayerSlot();
+		} else
+#endif
+		{
+			CBasePlayer* pPlayer = Util::Get_Player(pLua, iStackPos, bError);
+			if (pPlayer)
+				iClient = pPlayer->edict()->m_EdictIndex-1;
+		}
+	}
+
+	if (iClient < 0 || iClient >= gpGlobals->maxClients)
+	{
+		if (bError)
+			pLua->ArgError(iStackPos, "Failed to get a valid Client index!");
+
+		return -1;
+	}
+
+	return iClient;
+}
+
+CBaseClient* Util::Get_Client(GarrysMod::Lua::ILuaInterface* pLua, int iStackPos, bool bError)
+{
+	CBaseClient* pClient = nullptr;
+	int nType = pLua->GetType(iStackPos);
+	if (nType == GarrysMod::Lua::Type::Number)
+	{
+		int iClient = (int)pLua->GetNumber(iStackPos);
+		pClient = Util::GetClientByIndex(iClient);
+	} else {
+#if MODULE_EXISTS_GAMESERVER
+		Lua::StateData* pState = Lua::GetLuaData(pLua);
+		if (pState->GetMetaTable(TO_LUA_TYPE(CBaseClient)) == nType)
+		{
+			pClient = Get_CBaseClient(pLua, iStackPos, bError);
+		} else
+#endif
+		{
+			CBasePlayer* pPlayer = Util::Get_Player(pLua, iStackPos, bError);
+			if (pPlayer)
+				pClient = Util::GetClientByPlayer(pPlayer);
+		}
+	}
+
+	if (!pClient)
+	{
+		if (bError)
+			pLua->ArgError(iStackPos, "Failed to get a valid CBaseClient!");
+
+		return nullptr;
+	}
+
+	return pClient;
+}
+
 void Util::ResetClusters(VisData* data)
 {
 	Q_memset(data->cluster, 0, sizeof(data->cluster));

@@ -241,6 +241,10 @@ namespace Util
 	extern CBasePlayer* Get_Player(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
 	extern CBaseEntity* Get_Entity(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
 	extern void Push_Entity(GarrysMod::Lua::ILuaInterface* LUA, CBaseEntity* pEnt);
+	// Returns -1 on failure if bError = false
+	extern int Get_ClientIndex(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
+	extern CBaseClient* Get_Client(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
+
 	extern CBaseEntity* GetCBaseEntityFromEdict(edict_t* edict);
 	extern CBaseEntity* GetCBaseEntityFromIndex(int nEntIndex);
 	extern CBaseEntity* GetCBaseEntityFromHandle(const CBaseHandle& pHandle);
