@@ -283,6 +283,16 @@ byte m_##name = 0;
 		));
 	}
 
+	template<class T>
+	inline T* ResolveSymbolNoDereference(
+		SourceSDK::FactoryLoader& pLoader, Symbol& pSymbol
+	)
+	{
+		return reinterpret_cast<T*>(symfinder.Resolve(
+			pLoader.GetModule(), pSymbol.name.c_str(), pSymbol.length
+		));
+	}
+
 	/*
 	 * This function is used to resolve a global variable on a version without symbols.
 
