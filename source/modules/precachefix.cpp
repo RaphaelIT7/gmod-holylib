@@ -16,7 +16,7 @@ public:
 	void InitDetour(bool bPreServer) override;
 	void LevelShutdown() override;
 	const char* Name() override { return "precachefix"; };
-	int Compatibility() override { return LINUX32 | LINUX64; };
+	int Compatibility() override { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 };
 
 ConVar model_fallback("holylib_precache_modelfallback", "-1", FCVAR_ARCHIVE, "The model index to fallback to if the precache failed");
@@ -150,7 +150,13 @@ static int hook_CVEngineServer_PrecacheGeneric(IVEngineServer* eengine, const ch
 
 void CPrecacheFixModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 {
-	networkStringTableContainerServer = (INetworkStringTableContainer*)appfn[0](INTERFACENAME_NETWORKSTRINGTABLESERVER, nullptr);
+	if (appfn[0])
+		networkStringTableContainerServer = (INetworkStringTableContainer*)appfn[0](INTERFACENAME_NETWORKSTRINGTABLESERVER, nullptr);
+	else {
+		SourceSDK::FactoryLoader engine_loader("engine");
+		networkStringTableContainerServer = engine_loader.GetInterface<INetworkStringTableContainer>(INTERFACENAME_NETWORKSTRINGTABLESERVER);
+	}
+
 	Detour::CheckValue("get interface", "INetworkStringTableContainer", networkStringTableContainerServer != nullptr);
 }
 
