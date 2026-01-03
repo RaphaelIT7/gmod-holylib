@@ -278,16 +278,9 @@ byte m_##name = 0;
 			return nullptr;
 	#endif
 
-	#if defined SYSTEM_WINDOWS
-		auto iface = reinterpret_cast<T*>(symfinder.Resolve(
-			pLoader.GetModule(), pSymbols[DETOUR_SYMBOL_ID].name.c_str(), pSymbols[DETOUR_SYMBOL_ID].length
-		));
-		return iface != nullptr ? iface : nullptr;
-	#elif defined SYSTEM_POSIX
 		return reinterpret_cast<T*>(symfinder.Resolve(
 			pLoader.GetModule(), pSymbols[DETOUR_SYMBOL_ID].name.c_str(), pSymbols[DETOUR_SYMBOL_ID].length
 		));
-	#endif
 	}
 
 	/*

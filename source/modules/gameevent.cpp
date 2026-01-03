@@ -205,7 +205,7 @@ LUA_FUNCTION_STATIC(gameevent_RemoveClientListener)
 	return 1;
 }
 
-Symbols::CGameEventManager_AddListener func_CGameEventManager_AddListener;
+static Symbols::CGameEventManager_AddListener func_CGameEventManager_AddListener;
 LUA_FUNCTION_STATIC(gameevent_AddClientListener)
 {
 	if (!g_pGameeventLibModule.InDebug())

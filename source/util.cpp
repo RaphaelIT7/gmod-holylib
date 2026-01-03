@@ -350,8 +350,9 @@ CBaseClient* Util::Get_Client(GarrysMod::Lua::ILuaInterface* pLua, int iStackPos
 INetChannel* Util::Get_NetChannel(GarrysMod::Lua::ILuaInterface* pLua, int iStackPos, bool bError)
 {
 	INetChannel* pChannel = nullptr;
+	CBaseClient* pClient = nullptr;
 #if MODULE_EXISTS_GAMESERVER
-	CBaseClient* pClient = Get_CBaseClient(pLua, iStackPos, bError);
+	pClient = Get_CBaseClient(pLua, iStackPos, bError);
 	if (pClient)
 	{
 		pChannel = pClient->GetNetChannel();
@@ -362,7 +363,7 @@ INetChannel* Util::Get_NetChannel(GarrysMod::Lua::ILuaInterface* pLua, int iStac
 		CBasePlayer* pPlayer = Get_Player(pLua, iStackPos, bError);
 		if (pPlayer)
 		{
-			CBaseClient* pClient = Util::GetClientByPlayer(pPlayer);
+			pClient = Util::GetClientByPlayer(pPlayer);
 			pChannel = pClient->GetNetChannel();
 		}
 	}
@@ -771,7 +772,7 @@ void Util::AddDetour()
 
 	if (!entitylist)
 	{
-		#if defined(ARCHITECTURE_X86) && defined(SYSTEM_LINUX)
+		#if defined(ARCHITECTURE_X86)
 			entitylist = Detour::ResolveSymbol<CGlobalEntityList>(server_loader, Symbols::gEntListSym);
 		#else
 			entitylist = Detour::ResolveSymbolWithOffset<CGlobalEntityList>(server_loader.GetModule(), Symbols::gEntListSym);

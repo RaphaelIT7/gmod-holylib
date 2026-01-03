@@ -367,6 +367,7 @@ static void hook_CNetworkStringTable_Deconstructor(INetworkStringTable* tbl)
 {
 	DeleteGlobal_INetworkStringTable(tbl);
 	detour_CNetworkStringTable_Deconstructor.GetTrampoline<Symbols::CNetworkStringTable_Deconstructor>()(tbl);
+	// Loves to crash on Windows. Why? Idk.
 }
 
 LUA_FUNCTION_STATIC(INetworkStringTable__tostring)
@@ -1202,6 +1203,7 @@ void CStringTableModule::InitDetour(bool bPreServer)
 	if (bPreServer)
 		return;
 
+#if SYSTEM_LINUX
 	// Note: This hook exists for safety and if everything goes well we shouldn't even require it.
 	SourceSDK::ModuleLoader engine_loader("engine");
 	Detour::Create(
@@ -1212,4 +1214,5 @@ void CStringTableModule::InitDetour(bool bPreServer)
 
 	func_CNetworkStringTable_DeleteAllStrings = (Symbols::CNetworkStringTable_DeleteAllStrings)Detour::GetFunction(engine_loader.GetModule(), Symbols::CNetworkStringTable_DeleteAllStringsSym);
 	Detour::CheckFunction((void*)func_CNetworkStringTable_DeleteAllStrings, "CNetworkStringTable::DeleteAllStrings");
+#endif
 }

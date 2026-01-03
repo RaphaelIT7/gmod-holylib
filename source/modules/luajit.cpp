@@ -431,7 +431,9 @@ void CLuaJITModule::InitDetour(bool bPreServer)
 	Override(lua_rawseti);
 	Override(lua_remove);
 	Override(lua_replace);
+#ifdef ARCHITECTURE_X86
 	Override(lua_resume);
+#endif
 	Override(lua_setallocf);
 	Override(lua_setfenv);
 	Override(lua_setfield);
