@@ -4028,6 +4028,12 @@ Sets the given value for the given key in the header.
 Sets the status code of the response.<br>
 The code is clamped between 100 and 600 internally, you cannot go above or below as else the status code won't be set!<br>
 
+#### string HttpResponse:MarkHandled()
+Internally calls `HttpRequest:MarkHandled()` on the request.<br>
+
+#### HttpRequest HttpResponse:GetRequest()
+Returns the `HttpRequest` this response belongs to.<br>
+
 ## luajit
 This module updates luajit to a newer version.
 
