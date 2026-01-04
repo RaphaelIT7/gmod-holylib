@@ -35,7 +35,6 @@ struct HttpResponse {
 	std::string m_strContentType = "text/plain";
 	std::string m_strRedirect = "";
 	std::unordered_map<std::string, std::string> m_pHeaders;
-	HttpRequest* m_pRequest = nullptr; // Links back to the HttpRequest.
 
 	inline void DoResponse(httplib::Response& pResponse)
 	{
@@ -359,14 +358,13 @@ Get_LuaClass(HttpRequest, "HttpRequest")
 HttpRequest::~HttpRequest()
 {
 	Delete_HttpRequest(m_pLua, this);
-	Delete_HttpResponse(m_pLua , &this->m_pResponseData);
 }
 
 void HttpRequest::MarkHandled()
 {
 	m_bHandled = true;
 	Delete_HttpRequest(m_pLua, this);
-	Delete_HttpResponse(m_pLua, &m_pResponseData);
+	// NOTE: We don't delete the HttpResponse as it will NEVER be pushed to Lua for a HttpRequest
 }
 
 LUA_FUNCTION_STATIC(HttpResponse__tostring)
@@ -424,23 +422,6 @@ LUA_FUNCTION_STATIC(HttpResponse_SetStatusCode)
 	pData->m_iStatusCode = (int)LUA->CheckNumber(2);
 
 	return 0;
-}
-
-LUA_FUNCTION_STATIC(HttpResponse_MarkHandled)
-{
-	HttpResponse* pData = Get_HttpResponse(LUA, 1, true);
-	if (pData->m_pRequest)
-		pData->m_pRequest->MarkHandled();
-
-	return 0;
-}
-
-LUA_FUNCTION_STATIC(HttpResponse_GetRequest)
-{
-	HttpResponse* pData = Get_HttpResponse(LUA, 1, true);
-
-	Push_HttpRequest(LUA, pData->m_pRequest);
-	return 1;
 }
 
 LUA_FUNCTION_STATIC(HttpRequest__tostring)
@@ -618,6 +599,43 @@ LUA_FUNCTION_STATIC(HttpRequest_MarkHandled)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(HttpRequest_SetContent)
+{
+	HttpRequest* pData = Get_HttpRequest(LUA, 1, false);
+	pData->m_pResponseData.m_bSetContent = true;
+	pData->m_pResponseData.m_strContent = LUA->CheckString(2);
+	pData->m_pResponseData.m_strContentType = LUA->CheckStringOpt(3, "text/plain");
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(HttpRequest_SetRedirect)
+{
+	HttpRequest* pData = Get_HttpRequest(LUA, 1, false);
+	pData->m_pResponseData.m_bSetRedirect = true;
+	pData->m_pResponseData.m_strRedirect = LUA->CheckString(2);
+	pData->m_pResponseData.m_iRedirectCode = (int)LUA->CheckNumberOpt(3, 302);
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(HttpRequest_SetHeader)
+{
+	HttpRequest* pData = Get_HttpRequest(LUA, 1, false);
+	pData->m_pResponseData.m_bSetHeader = true;
+	pData->m_pResponseData.m_pHeaders[LUA->CheckString(2)] = LUA->CheckString(3);
+
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(HttpRequest_SetStatusCode)
+{
+	HttpRequest* pData = Get_HttpRequest(LUA, 1, false);
+	pData->m_pResponseData.m_iStatusCode = (int)LUA->CheckNumber(2);
+
+	return 0;
+}
+
 void CallFunc(GarrysMod::Lua::ILuaInterface* pLua, int callbackFunction, HttpRequest* request, HttpResponse* response)
 {
 	Util::ReferencePush(pLua, callbackFunction);
@@ -626,9 +644,8 @@ void CallFunc(GarrysMod::Lua::ILuaInterface* pLua, int callbackFunction, HttpReq
 		Msg(PROJECT_NAME " - httpserver: pushed handler function %i with type %i\n", callbackFunction, pLua->GetType(-1));
 
 	Push_HttpRequest(pLua, request);
-	Push_HttpResponse(pLua, response);
 
-	if (pLua->CallFunctionProtected(2, 1, true))
+	if (pLua->CallFunctionProtected(1, 1, true))
 	{
 		if (!pLua->IsType(-1, GarrysMod::Lua::Type::Bool) || pLua->GetBool(-1))
 			request->MarkHandled();
@@ -696,8 +713,8 @@ void HttpServer::Think()
 	m_bInUpdate = false;
 }
 
-static std::string localAddr = "127.0.0.1";
 static std::string loopBack = "loopback";
+static std::string localAddr = "127.0.0.1";
 httplib::Server::Handler HttpServer::CreateHandler(const char* path, int func, bool ipWhitelist)
 {
 	m_pHandlerReferences.push_back(func);
@@ -768,7 +785,6 @@ httplib::Server::Handler HttpServer::CreateHandler(const char* path, int func, b
 		request->m_pClientUserID = userID;
 		request->m_strAddress = remoteAddress;
 		request->m_pLua = m_pLua; // Inherit the Lua interface.
-		request->m_pResponseData.m_pRequest = request;
 		m_pRequests.push_back(request); // We should add a check here since we could write to it from multiple threads?
 		m_bUpdate = true;
 		while (!request->m_bHandled)
@@ -1188,6 +1204,7 @@ void CHTTPServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, HttpServer_AddProxyAddress, "AddProxyAddress");
 	pLua->Pop(1);
 
+	// This class purely exists just for the HttpServer:AddPreparedResponse callback!
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::HttpResponse, pLua->CreateMetaTable("HttpResponse"));
 		Util::AddFunc(pLua, HttpResponse__tostring, "__tostring");
 		Util::AddFunc(pLua, HttpResponse__index, "__index");
@@ -1199,8 +1216,6 @@ void CHTTPServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, HttpResponse_SetHeader, "SetHeader");
 		Util::AddFunc(pLua, HttpResponse_SetRedirect, "SetRedirect");
 		Util::AddFunc(pLua, HttpResponse_SetStatusCode, "SetStatusCode");
-		Util::AddFunc(pLua, HttpResponse_MarkHandled, "MarkHandled");
-		Util::AddFunc(pLua, HttpResponse_GetRequest, "GetRequest");
 	pLua->Pop(1);
 
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::HttpRequest, pLua->CreateMetaTable("HttpRequest"));
@@ -1228,6 +1243,12 @@ void CHTTPServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 
 		Util::AddFunc(pLua, HttpRequest_GetClient, "GetClient");
 		Util::AddFunc(pLua, HttpRequest_GetPlayer, "GetPlayer");
+
+		// Response functions - this decision was made to reduce the Lua GC.
+		Util::AddFunc(pLua, HttpRequest_SetContent, "SetContent");
+		Util::AddFunc(pLua, HttpRequest_SetHeader, "SetHeader");
+		Util::AddFunc(pLua, HttpRequest_SetRedirect, "SetRedirect");
+		Util::AddFunc(pLua, HttpRequest_SetStatusCode, "SetStatusCode");
 	pLua->Pop(1);
 
 	Util::StartTable(pLua);

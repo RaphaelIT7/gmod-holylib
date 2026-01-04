@@ -194,6 +194,8 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 \- [#] Changed `HttpServer:[Get/Put/Post/OtherShit]` callback return value to be flipped, return `false` to mark a request as `NOT` handled, return `true` to mark it as handled<br>
 \- [#] Fixed `networking` module partially not working without the `pvs` module - it internally had depended on it.<br>
 \- [#] Fixed `stringtable.CreateStringTable` and `stringtable.CreateStringTableEx` both failing to catch the case in which all stringtable slots were used leading to a server error/shutdown.<br>
+\- [#] Changed callback arguments of `HttpServer:[Get/Put/Post/Patch/Delete/Options]` to remove the `response`.<br>
+\- \-> The `HttpRequest` now contains all methods of the `HttpResponse` so you should use the `request` directly! (This was done to help the Lua GC a bit & slightly improve callback performance)<br>
 \- [-] Removed `VoiceData:GetUncompressedData` decompress size argument<br>
 \- [-] Removed `CBaseClient:Transmit` third argument `fragments`.<br>
 \- [-] Removed `gameserver.CalculateCPUUsage` and `gameserver.ApproximateProcessMemoryUsage` since they never worked.<br>
@@ -3895,14 +3897,14 @@ randomHttpServer:AddProxyAddress(ip, "X-Real-IP") -- This is an example where an
 ### Method Functions
 All Method functions add a listener for the given path and the given method, like this:<br>
 ```lua
-HttpServer:Get("/public", function(_, response)
-<br>print("Public GET request")
-<br>response.SetContent("You sent a GET request to a public site.", "text/plain")
+HttpServer:Get("/public", function(request)
+	print("Public GET request")
+	request.SetContent("You sent a GET request to a public site.", "text/plain")
 end, false)
 
-HttpServer:Get("/private", function(_, response)
-<br>print("Private GET request")
-<br>response.SetContent("You sent a GET request to a private site.", "text/plain")
+HttpServer:Get("/private", function(request)
+	print("Private GET request")
+	request.SetContent("You sent a GET request to a private site.", "text/plain")
 end, true)
 ```
 
@@ -3912,12 +3914,12 @@ If you enable the IP Whitelist, only requests sent by connected players are proc
 > If you return `false` you mark a request as **not** handled.<br>
 > This means that the delay will **not** be responded to until you call `HttpRequest:MarkHandled`<br>
 
-#### bool(handled) HttpServer:Get(string path, function (HttpRequest, HttpResponse), bool ipWhitelist)
-#### bool(handled) HttpServer:Put(string path, function (HttpRequest, HttpResponse), bool ipWhitelist)
-#### bool(handled) HttpServer:Post(string path, function (HttpRequest, HttpResponse), bool ipWhitelist)
-#### bool(handled) HttpServer:Patch(string path, function (HttpRequest, HttpResponse), bool ipWhitelist)
-#### bool(handled) HttpServer:Delete(string path, function (HttpRequest, HttpResponse), bool ipWhitelist)
-#### bool(handled) HttpServer:Options(string path, function (HttpRequest, HttpResponse), bool ipWhitelist)
+#### bool(handled) HttpServer:Get(string path, function (HttpRequest), bool ipWhitelist)
+#### bool(handled) HttpServer:Put(string path, function (HttpRequest), bool ipWhitelist)
+#### bool(handled) HttpServer:Post(string path, function (HttpRequest), bool ipWhitelist)
+#### bool(handled) HttpServer:Patch(string path, function (HttpRequest), bool ipWhitelist)
+#### bool(handled) HttpServer:Delete(string path, function (HttpRequest), bool ipWhitelist)
+#### bool(handled) HttpServer:Options(string path, function (HttpRequest), bool ipWhitelist)
 
 ### HttpRequest
 A incoming Http Request.
@@ -3990,6 +3992,22 @@ Returns the value of the given parameter or `nil` if it wasn't found.<br>
 Marks this request as handled, invalidating this object and the linked `HttpResponse`<br>
 This function is meant to be used when you `return true` in the HttpServer:[Get/Put/OtherStuff] callback function allowing you to delay a response.<br>
 
+#### HttpRequest:SetContent(string content, string contentType = "text/plain")
+Sets the content like this:
+```lua
+Response:SetContent("Hello World", "text/plain")
+```
+
+#### HttpRequest:SetRedirect(string url, number code = 302)
+Redirects one to the given URL and returns the given code.
+
+#### HttpRequest:SetHeader(string key, string value)
+Sets the given value for the given key in the header.
+
+#### HttpRequest:SetStatusCode(number statusCode)
+Sets the status code of the response.<br>
+The code is clamped between 100 and 600 internally, you cannot go above or below as else the status code won't be set!<br>
+
 ### HttpResponse
 A Http Response.
 
@@ -4027,12 +4045,6 @@ Sets the given value for the given key in the header.
 #### HttpResponse:SetStatusCode(number statusCode)
 Sets the status code of the response.<br>
 The code is clamped between 100 and 600 internally, you cannot go above or below as else the status code won't be set!<br>
-
-#### string HttpResponse:MarkHandled()
-Internally calls `HttpRequest:MarkHandled()` on the request.<br>
-
-#### HttpRequest HttpResponse:GetRequest()
-Returns the `HttpRequest` this response belongs to.<br>
 
 ## luajit
 This module updates luajit to a newer version.
