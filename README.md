@@ -2530,7 +2530,7 @@ If you want it to **not** run async, simply provide **no** callback function, it
 #### voicechat.IsPlayerMuted(Player ply/number playerSlot)
 Returns `true` if the given player was muted using `voicechat.SetPlayerMuted`<br>
 
-#### voicechat.SetPlayerMuted(Player ply/number playerSlot)
+#### voicechat.SetPlayerMuted(Player ply/number playerSlot, boolean muted = false)
 Mutes the given player and stopping `GM:PlayerCanHearPlayersVoice` from being called.<br>
 
 ### VoiceData
@@ -3487,13 +3487,13 @@ bass.PlayFile("data/exampleSong.wav", "decode", function(channel, a, b)
 end)
 ```
 
-#### IGModAudioChannel, string(errMsg - nil) IGModAudioChannel:CreateEncoder(string fileName, number bassFlags = 0)
+#### IGModAudioChannelEncoder, string(errMsg - nil) IGModAudioChannel:CreateEncoder(string fileName, number bassFlags = 0)
 callback - `function(success, errMsg) end`<br>
 bassFlags - bitflags, see https://www.un4seen.com/doc/#bassenc/BASS_Encode_Start.html<br>
 fileName - The filename to use to write, or just the encoder.<br>
 If a valid file name/above 8 characters, the file is written into the `DATA` path<br>
 
-Creates a encoder and returns it, on failure it returns `false` with the second return value containing the error reason<br>
+Creates a encoder and returns it, on failure it returns `nil` with the second return value containing the error reason<br>
 You can still provide a full filename into which the channel its bound to is slowly written<br>
 unlike `IGModAudioChannel:EncodeToDisk` this works on non-`decode` channels though it written bit by bit as the channel plays.<br>
 Valid encoders are:<br>
@@ -3536,7 +3536,7 @@ See https://www.un4seen.com/doc/#bass/BASS_ChannelGetAttribute.html (all `BASS_A
 Returns `true` if the given attribute is actively sliding to a value over time.<br>
 See https://www.un4seen.com/doc/#bass/BASS_ChannelIsSliding.html (all `BASS_ATTRIB_` enums are exposed inside the `bass.` table)<br>
 
-#### string(nil on failure), number(length) IGModAudioChannel:GetChannelData(number nSize)
+#### string(nil on failure), number(length) IGModAudioChannel:GetChannelData(number size)
 Returns the given bytes of channel data - you cannot specify `BASS_DATA_` flags!<br>
 See https://www.un4seen.com/doc/#bass/BASS_ChannelGetData.html<br>
 

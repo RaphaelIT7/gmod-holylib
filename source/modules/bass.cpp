@@ -1110,7 +1110,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_CreateEncoder)
 	IGModAudioChannelEncoder* pEncoder = channel->CreateEncoder(pFileName, nFlags, pCallback, &pErrorMsg);
 	if (pErrorMsg)
 	{
-		LUA->PushBool(false);
+		LUA->PushNil();
 		LUA->PushString(pErrorMsg);
 		return 2;
 	}
