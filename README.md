@@ -80,7 +80,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 
 ## Next Update
 \- [+] Any files in `lua/autorun/_holylua/` are loaded by HolyLib on startup.<br>
-\- [+] Added a new modules `luathreads`, `networkthreading`, `soundscape`, `luagc`, `nw2`<br>
+\- [+] Added a new modules `luathreads`, `networkthreading`, `soundscape`, `luagc`, `nw2`, `crashhandler`<br>
 \- [+] Added `NS_` enums to `gameserver` module.<br>
 \- [+] Added missing `CNetChan:Shutdown` function to the `gameserver` module.<br>
 \- [+] Added LZ4 compression for newly implemented net channel.<br>
@@ -5335,6 +5335,18 @@ Now what this module does - it prevents writing NW2Vars into the baseline ensuri
 > There still seems to be invalid proxy calls though nothing much I can do about that.<br>
 > This definitely needs more testing though it should be an improvement.<br>
 
+## crashhandler
+This is loaded as the first module and catches crashes to include more information about HolyLib at the time of the crash.<br>
+Unlike other crash handlers, ours won't affect the generated `debug.log` allowing us to create our own crash dump AND to also get a useful `debug.log` at the same time.<br>
+
+### Hooks
+
+#### HolyLib:OnServerCrash(string crashedModule)
+`crashedModule` - The full path to the binary file in which the crash occured in<br>
+
+Inside this hook, the server is in a weird state.<br>
+It allows you to attempt to save data **but** try not to cause memory allocations or such, as the entire server will be in a very fragile state.<br>
+The Lua GC is stopped when this hook is called to further reduce the chance of Lua crashing due to instability<br>
 
 # Unfinished Modules
 
