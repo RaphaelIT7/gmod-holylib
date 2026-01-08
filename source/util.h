@@ -334,6 +334,8 @@ namespace Util
 	extern Symbols::lua_setfenv func_lua_setfenv;
 	extern Symbols::lua_touserdata func_lua_touserdata;
 	extern Symbols::lua_type func_lua_type;
+	extern Symbols::lua_gc func_lua_gc;
+	extern Symbols::lua_setallocf func_lua_setallocf;
 
 	extern Symbols::lua_pcall func_lua_pcall;
 	extern Symbols::lua_insert func_lua_insert;

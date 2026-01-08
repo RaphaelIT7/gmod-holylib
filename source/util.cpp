@@ -691,6 +691,8 @@ Symbols::lj_tab_get Util::func_lj_tab_get = nullptr;
 Symbols::lua_setfenv Util::func_lua_setfenv = nullptr;
 Symbols::lua_touserdata Util::func_lua_touserdata = nullptr;
 Symbols::lua_type Util::func_lua_type = nullptr;
+Symbols::lua_gc Util::func_lua_gc = nullptr;
+Symbols::lua_setallocf Util::func_lua_setallocf = nullptr;
 Symbols::luaL_checklstring Util::func_luaL_checklstring = nullptr;
 Symbols::lua_pcall Util::func_lua_pcall = nullptr;
 Symbols::lua_insert Util::func_lua_insert = nullptr;
@@ -807,6 +809,12 @@ void Util::AddDetour()
 
 	func_lua_type = (Symbols::lua_type)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_typeSym);
 	Detour::CheckFunction((void*)func_lua_type, "lua_type");
+
+	func_lua_gc = (Symbols::lua_gc)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_gcSym);
+	Detour::CheckFunction((void*)func_lua_gc, "lua_gc");
+
+	func_lua_setallocf = (Symbols::lua_setallocf)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_setallocfSym);
+	Detour::CheckFunction((void*)func_lua_setallocf, "lua_setallocf");
 
 	func_lua_setfenv = (Symbols::lua_type)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_setfenvSym);
 	Detour::CheckFunction((void*)func_lua_setfenv, "lua_setfenv");

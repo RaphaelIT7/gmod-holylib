@@ -195,6 +195,14 @@ LUA_FUNCTION_STATIC(Test_DisableStressBots)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(Test_Crash)
+{
+	Util::DoUnsafeCodeCheck(LUA);
+
+	*((int*)nullptr) = 1;
+	return 0;
+}
+
 static void SetupCoreTestFunctions(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::_HOLYLIB_CORE_TEST, pLua->CreateMetaTable("_HOLYLIB_CORE_TEST"));
@@ -231,6 +239,7 @@ static void SetupCoreTestFunctions(GarrysMod::Lua::ILuaInterface* pLua)
 		
 		Util::AddFunc(pLua, Test_EnableStressBots, "EnableStressBots"); // Required until we get https://github.com/Facepunch/garrysmod-requests/issues/2948
 		Util::AddFunc(pLua, Test_DisableStressBots, "DisableStressBots");
+		Util::AddFunc(pLua, Test_Crash, "Crash");
 	Util::FinishTable(pLua, "_HOLYLIB_CORE");
 }
 
@@ -447,7 +456,8 @@ void Lua::SetManualShutdown()
 	bManualShutdown = true;
 }
 
-GarrysMod::Lua::ILuaInterface* Lua::GetRealm(unsigned char realm) {
+GarrysMod::Lua::ILuaInterface* Lua::GetRealm(unsigned char realm)
+{
 	SourceSDK::FactoryLoader luashared_loader("lua_shared");
 	GarrysMod::Lua::ILuaShared* LuaShared = (GarrysMod::Lua::ILuaShared*)luashared_loader.GetFactory()(GMOD_LUASHARED_INTERFACE, nullptr);
 	if (LuaShared == nullptr) {
@@ -458,7 +468,8 @@ GarrysMod::Lua::ILuaInterface* Lua::GetRealm(unsigned char realm) {
 	return LuaShared->GetLuaInterface(realm);
 }
 
-GarrysMod::Lua::ILuaShared* Lua::GetShared() {
+GarrysMod::Lua::ILuaShared* Lua::GetShared()
+{
 	SourceSDK::FactoryLoader luashared_loader("lua_shared");
 	if ( !luashared_loader.GetFactory() )
 		Msg(PROJECT_NAME ": About to crash!\n");

@@ -30,9 +30,16 @@ local function CompileModuleList()
 
 		local content = ReadFile(path .. fileName)
 		for moduleName in content:gmatch("IModule%s*%*%s*(%w+)%s*=%s*&%s*[%w_]+%s*") do
-			table.insert(moduleList, {moduleName, string.upper(RemoveEnd(fileName, ".cpp"))})
+			table.insert(moduleList, {
+				moduleName,
+				string.upper(RemoveEnd(fileName, ".cpp")),
+				-- If set this module will get a higher ID & will be loaded sooner
+				priority = string.find(content, "HOLYLIB_PRIORITY_MODULE") ~= nil,
+			})
 		end
 	end
+
+	table.sort(moduleList, function(a, b) return a.priority end)
 	
 	local moduleFile = [[
 // This file is generated! Do NOT touch this!
