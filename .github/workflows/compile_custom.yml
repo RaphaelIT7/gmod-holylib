@@ -14,7 +14,7 @@ on:
         type: boolean
 
 env:
-  MODULES_LIST: "autorefresh holylib gameevent serverplugin sourcetv stringtable precachefix pvs surffix filesystem util concommand vprof cvars bitbuf networking steamworks pas bass systimer voicechat physenv net entitylist httpserver gameserver soundscape luajit holylua"
+  MODULES_LIST: "autorefresh holylib gameevent serverplugin sourcetv stringtable precachefix pvs surffix filesystem util concommand vprof cvars bitbuf networking networkthreading networkingreplacement steamworks pas bass systimer voicechat physenv net entitylist httpserver gameserver soundscape luajit holylua nw2 crashhandler"
 
 jobs:
   build_custom_version:
