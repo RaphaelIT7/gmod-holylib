@@ -26,6 +26,7 @@ public:
 	void InitDetour(bool bPreServer) override;
 	void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) override;
 	void LevelShutdown() override;
+	void Think(bool bSimulating) override;
 	const char* Name() override { return "networkthreading"; };
 	int Compatibility() override { return LINUX32; };
 	bool IsEnabledByDefault() override { return true; };
@@ -35,6 +36,7 @@ static CNetworkThreadingModule g_pNetworkThreadingModule;
 IModule* pNetworkThreadingModule = &g_pNetworkThreadingModule;
 
 static ConVar networkthreading_parallelprocessing("holylib_networkthreading_parallelprocessing", "0", 0, "If enabled, some packets will be processed by the networking thread instead of the main thread");
+static ConVar networkthreading_forcechallenge("holylib_networkthreading_forcechallenge", "0", 0, "If enabled, clients are ALWAYS requested to have a challenge for A2S requests.");
 
 // NOTE: There is inside gcsteamdefines.h the AUTO_LOCK_WRITE which we could probably use
 //static CThreadRWLock g_pIPFilterMutex; // Idk if using a std::shared_mutex might be faster
@@ -103,7 +105,7 @@ struct QueuedPacket {
 
 static CThreadMutex g_pQueuePacketsMutex;
 static std::vector<QueuedPacket*> g_pQueuedPackets;
-static void AddPacketToQueueForMainThread(netpacket_s* pPacket, bool bIsConnectionless)
+static inline void AddPacketToQueueForMainThread(netpacket_s* pPacket, bool bIsConnectionless)
 {
 	if (pPacket->size > NET_MAX_MESSAGE)
 	{
@@ -138,7 +140,7 @@ enum HandleStatus
 };
 
 // Returning false will result in the packet being put into the queue and let for the main thread to handle.
-static HandleStatus ShouldHandlePacket(netpacket_s* pPacket, bool isConnectionless)
+static inline HandleStatus ShouldHandlePacket(netpacket_s* pPacket, bool isConnectionless)
 {
 	if (isConnectionless)
 	{
@@ -171,6 +173,53 @@ enum NetworkThreadState
 	STATE_RUNNING,
 	STATE_SHOULD_SHUTDOWN,
 };
+
+// BUG: GMod's CBaseServer::GetChallengeNr isn't thread safe
+static std::atomic<uint32> g_nChallengeNr = 0;
+static Symbols::NET_SendPacket func_NET_SendPacket = nullptr;
+static inline void SendChallenge(netpacket_s* pPacket)
+{
+	uint64 challenge = ((uint64)pPacket->from.GetIPNetworkByteOrder() << 32) + g_nChallengeNr.load();
+	CRC32_t hash;
+	CRC32_Init(&hash);
+	CRC32_ProcessBuffer(&hash, &challenge, sizeof(challenge));
+	CRC32_Final(&hash);
+	int challengeNr = (int)hash;
+
+	CBaseServer* pServer = (CBaseServer*)Util::server;
+
+	ALIGN4 char buffer[16] ALIGN4_POST;
+	bf_write msg(buffer,sizeof(buffer));
+	msg.WriteLong(CONNECTIONLESS_HEADER);
+	msg.WriteByte(S2C_CHALLENGE);
+	msg.WriteLong(challengeNr);
+	func_NET_SendPacket(NULL, pServer->m_Socket, pPacket->from, msg.GetData(), msg.GetNumBytesWritten(), nullptr, false);
+}
+
+static inline bool EnforceConnectionlessChallenge(netpacket_s* pPacket)
+{
+	if (!networkthreading_forcechallenge.GetBool() || !func_NET_SendPacket)
+		return false;
+
+	char c = (char)pPacket->message.ReadChar();
+	if (c == A2S_INFO)
+	{
+		constexpr int payload = sizeof("Source Engine Query\0") * 8;
+		if (!pPacket->message.SeekRelative(payload))
+			return false;
+	} else {
+		if (c != A2S_PLAYER && c != A2S_RULES)
+			return false;
+	}
+
+	// Now it can only be A2S_INFO, A2S_PLAYER, A2S_RULES
+	long challenge = pPacket->message.ReadLong();
+	if (challenge == 0xFFFFFFFF)
+	{
+		SendChallenge(pPacket);
+		return true;
+	}
+}
 
 static std::atomic<int> g_nThreadState = NetworkThreadState::STATE_NOTRUNNING;
 static Symbols::NET_GetPacket func_NET_GetPacket;
@@ -213,6 +262,9 @@ static SIMPLETHREAD_RETURNVALUE NetworkThread(void* pThreadData)
 			if (LittleLong(*(unsigned int *)packet->data) == CONNECTIONLESS_HEADER)
 			{
 				packet->message.ReadLong();	// read the -1
+				if (EnforceConnectionlessChallenge(packet))
+					continue;
+
 				if (net_showudp.GetInt())
 					Msg("UDP <- %s: sz=%i OOB '%c' wire=%i\n", packet->from.ToString(), packet->size, packet->data[4], packet->wiresize);
 
@@ -325,9 +377,20 @@ static void hook_NET_RemoveNetChannel(INetChannel* pChannel, bool bShouldRemove)
 	// We don't need to do any cleanup since any packets that can't be passed to a channel since they have been removed are simply dropped.
 }
 
+void CNetworkThreadingModule::Think(bool bSimulating)
+{
+	CBaseServer* pServer = (CBaseServer*)Util::server;
+	if (pServer)
+		g_nChallengeNr.store(pServer->m_CurrentRandomNonce);
+}
+
 static ThreadHandle_t g_pNetworkThread = nullptr;
 void CNetworkThreadingModule::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
 {
+	CBaseServer* pServer = (CBaseServer*)Util::server;
+	if (pServer)
+		g_nChallengeNr.store(pServer->m_CurrentRandomNonce);
+
 	g_nThreadState.store(NetworkThreadState::STATE_RUNNING);
 	if (g_pNetworkThread == nullptr)
 	{
@@ -387,6 +450,9 @@ void CNetworkThreadingModule::InitDetour(bool bPreServer)
 
 	func_NET_FindNetChannel = (Symbols::NET_FindNetChannel)Detour::GetFunction(engine_loader.GetModule(), Symbols::NET_FindNetChannelSym);
 	Detour::CheckFunction((void*)func_NET_FindNetChannel, "NET_FindNetChannel");
+
+	func_NET_SendPacket = (Symbols::NET_SendPacket)Detour::GetFunction(engine_loader.GetModule(), Symbols::NET_SendPacketSym);
+	Detour::CheckFunction((void*)func_NET_SendPacket, "NET_SendPacket");
 
 	// Command detours to make g_IPFilters threadsafe by applying a mutex
 	Detour::Create(
