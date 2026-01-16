@@ -843,8 +843,6 @@ LUA_FUNCTION_STATIC(pvs_TestPVS)
 	}
 
 	Util::VisData* pVisCluster = Util::CM_Vis(*orig, DVIS_PVS);
-
-	LUA->CheckType(2, GarrysMod::Lua::Type::Vector);
 	if (LUA->IsType(2, GarrysMod::Lua::Type::Vector))
 	{
 		LUA->PushBool(TestPVS(pVisCluster, *Get_Vector(LUA, 2)));

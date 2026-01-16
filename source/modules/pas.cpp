@@ -29,19 +29,17 @@ inline bool TestPAS(Util::VisData* pVisData, const Vector& hearPos)
 LUA_FUNCTION_STATIC(pas_TestPAS)
 {
 	Vector* orig;
-	LUA->CheckType(1, GarrysMod::Lua::Type::Vector);
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Vector))
 	{
 		orig = Get_Vector(LUA, 1);
 	} else {
-		CBaseEntity* ent = Util::Get_Entity(LUA, 1, false);
+		CBaseEntity* ent = Util::Get_Entity(LUA, 1, true);
 
 		orig = (Vector*)&ent->GetAbsOrigin();
 	}
 
 	Util::VisData* pVisCluster = Util::CM_Vis(*orig, DVIS_PAS);
 
-	LUA->CheckType(2, GarrysMod::Lua::Type::Vector);
 	if (LUA->IsType(2, GarrysMod::Lua::Type::Vector))
 	{
 		LUA->PushBool(TestPAS(pVisCluster, *Get_Vector(LUA, 2)));
@@ -57,8 +55,7 @@ LUA_FUNCTION_STATIC(pas_TestPAS)
 		}
 #endif
 	} else {
-		LUA->CheckType(2, GarrysMod::Lua::Type::Entity);
-		CBaseEntity* ent = Util::Get_Entity(LUA, 2, false);
+		CBaseEntity* ent = Util::Get_Entity(LUA, 2, true);
 
 		LUA->PushBool(TestPAS(pVisCluster, ent->GetAbsOrigin()));
 	}
