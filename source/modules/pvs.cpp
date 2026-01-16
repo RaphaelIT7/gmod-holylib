@@ -254,10 +254,10 @@ void PostCheckTransmit(void* gameents, CCheckTransmitInfo *pInfo, const unsigned
 
 	if(g_bEnableLuaPostTransmitHook && Lua::PushHook("HolyLib:PostCheckTransmit"))
 	{
-		g_bBlockAdditonToTransmit = true;
+		g_bBlockAdditionToTransmit = true;
 		Util::Push_Entity(g_Lua, Util::servergameents->EdictToBaseEntity(pInfo->m_pClientEnt));
 		g_Lua->CallFunctionProtected(2, 0, true);
-		g_bBlockAdditonToTransmit = false;
+		g_bBlockAdditionToTransmit = false;
 	}
 
 	if (bWasOverrideStateFlagsUsed)
