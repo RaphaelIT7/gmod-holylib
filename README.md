@@ -379,7 +379,7 @@ Returns `true` on success.<br>
 > [!NOTE]
 > This function does normally **not** directly set the SignOnState.<br>
 > Instead it calls the responsible function for the given SignOnState like for `SIGNONSTATE_PRESPAWN` it will call `SpawnPlayer` on the client.<br>
-> Set the `rawSet` to `true` if you want to **directly** set the SignOnState.	
+> Set the `rawSet` to `true` if you want to **directly** set the SignOnState.
 
 #### (Experimental - 32x safe only) HolyLib.ExitLadder(Player ply)
 Forces the player off the ladder.<br>
@@ -458,7 +458,7 @@ hook.Add("HolyLib:PostEntityConstructor", "Example_ServerSide_Lights", function(
 	if class == "light" then
 		-- Return true makes these entities serverside only since they do not need networking at all
 		-- This is because they use the lightstyle stringtable for networking / use the IVEngineServer::LightStyle binding
-		return true 
+		return true
 	end
 end)
 ```
@@ -488,7 +488,7 @@ Example usage:
 ```lua
 hook.Add("HolyLib:OnMapChange", "HelloThere", function(levelName, landmarkName)
     print("Next level name: " .. levelName)
-    print("Using landmark: " .. landmarkName) 
+    print("Using landmark: " .. landmarkName)
 end)
 ```
 
@@ -769,46 +769,46 @@ If you try to get multiple values from the lua table, just use `INetworkStringTa
 Returns the lua table of this object.<br>
 You can store variables into it.<br>
 
-#### string INetworkStringTable:GetTableName() 
+#### string INetworkStringTable:GetTableName()
 Returns the name of the stringtable<br>
 
-#### number INetworkStringTable:GetTableId() 
+#### number INetworkStringTable:GetTableId()
 Returns the id of the stringtable<br>
 
-#### number INetworkStringTable:GetNumStrings() 
+#### number INetworkStringTable:GetNumStrings()
 Returns the number of strings this stringtable has<br>
 
-#### number INetworkStringTable:GetMaxStrings() 
+#### number INetworkStringTable:GetMaxStrings()
 Returns the maximum number of string this stringtable has<br>
 
-#### number INetworkStringTable:GetEntryBits() 
+#### number INetworkStringTable:GetEntryBits()
 ToDo: I have no idea<br>
 
-#### INetworkStringTable:SetTick(number tick) 
+#### INetworkStringTable:SetTick(number tick)
 number tick - The tick to set the stringtable to<br>
 
 The current tick to used for networking
 
-#### bool INetworkStringTable:ChangedSinceTick(number tick) 
+#### bool INetworkStringTable:ChangedSinceTick(number tick)
 number tick - The tick to set the stringtable to<br>
 
 Returns whether or not the stringtable changed since that tick.<br>
 
-#### number INetworkStringTable:AddString(string value, bool isServer = true) 
+#### number INetworkStringTable:AddString(string value, bool isServer = true)
 string value - The string to add<br>
 bool isServer - Weather or not the server is adding this value? (Idk, added it so you have more control.)<br>
 
 Returns the index of the added string.<br>
 
-#### string INetworkStringTable:GetString(number index) 
+#### string INetworkStringTable:GetString(number index)
 number index - The index to get the string from<br>
 
 Returns the string from that index<br>
 
-#### table INetworkStringTable:GetAllStrings() 
+#### table INetworkStringTable:GetAllStrings()
 Returns a table containing all the strings.<br>
 
-#### number INetworkStringTable:FindStringIndex(string value) 
+#### number INetworkStringTable:FindStringIndex(string value)
 string value - The string to find the index of<br>
 
 Returns the index of the given string.<br>
@@ -1013,7 +1013,7 @@ This should always be the case after a full update.<br>
 > [!NOTE]
 > Only use this function inside the `HolyLib:[Pre/Post]CheckTransmit` hook!<br>
 
-> [!IMPORTANT] 
+> [!IMPORTANT]
 > This function was removed since I can't get it to work / It would be a bit more complicated than first anticipated.<br>
 
 #### pvs.SetPreventTransmitBulk(Entity ent / table ents / EntityList list, Player ply / table plys / RecipientFilter filter, bool notransmit)
@@ -1219,7 +1219,7 @@ File: `cfg/game.cfg`<br>
 Path: `GAME`<br>
 becomes:<br>
 File: `cfg/game.cfg`<br>
-Path: `CONTENT_CONFIGS`	
+Path: `CONTENT_CONFIGS`
 
 This will reduce the amount of searchpaths it has to go through which improves performance.<br>
 
@@ -1371,7 +1371,7 @@ Returns `nil` on failure.<br>
 
 #### string util.DecompressLZ4(string data)
 Decompresses the given data using [LZ4](https://github.com/lz4/lz4)<br>
-Returns `nil` on failure. 
+Returns `nil` on failure.
 
 #### util.AsyncTableToJSON(table tbl, function callback, bool pretty = false)
 callback = `function(json) end`
@@ -1947,7 +1947,7 @@ Returns the size of the data in bytes.<br>
 Returns the current position/bit.<br>
 
 > [!NOTE]
-> This is only available for the 32x!	
+> This is only available for the 32x!
 
 #### bool bf_read:IsOverflowed()
 Returns `true` if the buffer is overflowed.<br>
@@ -1964,22 +1964,22 @@ Reads and Angle.<br>
 #### number bf_read:ReadBitCoord()
 
 > [!NOTE]
-> This is only available for the 32x!	
+> This is only available for the 32x!
 
 #### number bf_read:ReadBitCoordBits()
 
 > [!NOTE]
-> This is only available for the 32x!	
+> This is only available for the 32x!
 
 #### number bf_read:ReadBitCoordMP(bool integral = false, bool lowPrecision = false)
 
 > [!NOTE]
-> This is only available for the 32x!	
+> This is only available for the 32x!
 
 #### number bf_read:ReadBitCoordMPBits(bool integral = false, bool lowPrecision = false)
 
 > [!NOTE]
-> This is only available for the 32x!	
+> This is only available for the 32x!
 
 #### number bf_read:ReadBitFloat()
 
@@ -1987,7 +1987,7 @@ Reads and Angle.<br>
 Reads a number with the given number of bits.<br>
 
 > [!NOTE]
-> This is only available for the 32x!	
+> This is only available for the 32x!
 
 #### number bf_read:ReadBitNormal()
 
@@ -2313,7 +2313,7 @@ Called when our Steam server loses connection to steams servers.<br>
 #### HolyLib:OnSteamConnect()<br>
 Called when our Steam server successfully connected to steams servers.<br>
 
-#### bool HolyLib:OnNotifyClientConnect(number nextUserID, string ip, string steamID64, number authResult) 
+#### bool HolyLib:OnNotifyClientConnect(number nextUserID, string ip, string steamID64, number authResult)
 authResult - The steam auth result, `0` if steam accepts the client.<br>
 
 | authResult | Description |
@@ -2745,12 +2745,12 @@ concommand.Add("play_me", function(ply)
 			return
 		end
 
-		voiceIdx = voiceIdx + 1 
+		voiceIdx = voiceIdx + 1
 		local voiceData = voiceTbl[ply][voiceIdx]
 		-- We play it back in the exact same tick delays we received it in to not speed it up affect it in any way.
-		if voiceData then 
+		if voiceData then
 			voicechat.ProcessVoiceData(player.GetBots()[1], voiceData)
-		end 
+		end
 	end)
 end)
 ```
@@ -3482,7 +3482,7 @@ bass.PlayFile("data/exampleSong.wav", "decode", function(channel, a, b)
     g_Channel = channel -- Prevent gc from hitting while were processing it
     local flags = bit.bor(0x40000, 0x20000) -- BASS_ENCODE_AUTOFREE | BASS_ENCODE_PCM
 	print("Did the job manage to start?", channel:EncodeToDisk("exampleSong.mp3", flags, function(success, errMsg)
-       print("Did it work?", success, errMsg)         
+       print("Did it work?", success, errMsg)
     end, true))
 end)
 ```
@@ -4284,7 +4284,7 @@ hook.Add("HolyLib:ProcessConnectionlessPacket", "ProcessResponse", function(bf, 
 	elseif status == 1 then
 		print("Created our net channel to " .. ip)
 	end
-	
+
 	return true
 end)
 
@@ -4363,7 +4363,7 @@ Reconnects the client.
 Prints the given message into the client's console.<br>
 
 > [!NOTE]
-> It **won't** add `\n` to the end, you have to add it yourself. 
+> It **won't** add `\n` to the end, you have to add it yourself.
 
 #### bool CBaseClient:IsValid()
 Returns `true` if the client is still valid.<br>
@@ -4565,7 +4565,7 @@ concommand.Add("nukechannel", function(ply)
 			net.WriteString(string)
 		net.Broadcast()
 		gameserver.GetClient(ply:EntIndex()-1):Transmit() -- Forces the message to be transmitted directly avoiding a overflow.
-	end 
+	end
 end)
 ```
 
@@ -5099,7 +5099,7 @@ Blocks or unblocks the given file from being autorefreshed.
 Resets autorefresh.<br>
 Useful when you added/removed folders.
 
-#### 
+####
 
 ### Hooks
 
@@ -5110,7 +5110,7 @@ Called before a Lua file is being refreshed. If `true` is returned it will deny 
 ```lua
 hook.Add("HolyLib:PreLuaAutoRefresh", "ExamplePreAutoRefresh", function(filePath, fileName)
     print("[BEFORE] FileChanged: " .. filePath .. filename)
-        
+
     if filename == "bogus" then
         print("Denying Refresh")
     	return true -- prevent refresh
@@ -5119,7 +5119,7 @@ end)
 ```
 
 #### HolyLib:PostLuaAutoRefresh(string filePath, string fileName)
-Called after a Lua file is refreshed. 
+Called after a Lua file is refreshed.
 Note that if a refresh is being denied by PreLuaAutorefresh or DenyLuaAutoRefresh, this hook won't be called.
 ```lua
 hook.Add("HolyLib:PostLuaAutoRefresh", "ExamplePostAutoRefresh", function(filePath, fileName)
@@ -5262,7 +5262,7 @@ local gcList = luagc.GetAllGCObjects(gcHead)
 table.remove(gcList, 1) -- remove the gcList table from itself since it included as the first entry.
 
 for _, gcObject in ipairs(gcList) do
-	print("object: " .. tostring(gcObject) .. " (type: " .. type(gcObject) .. ")") 
+	print("object: " .. tostring(gcObject) .. " (type: " .. type(gcObject) .. ")")
 end
 ```
 
@@ -5412,7 +5412,7 @@ https://github.com/Facepunch/garrysmod-requests/issues/1323<br>
 https://github.com/Facepunch/garrysmod-requests/issues/1472<br>
 (Maybe)https://github.com/Facepunch/garrysmod-requests/issues/2129<br>
 (Maybe)https://github.com/Facepunch/garrysmod-requests/issues/1962<br>
-(Maybe)https://github.com/Facepunch/garrysmod-requests/issues/1699	
+(Maybe)https://github.com/Facepunch/garrysmod-requests/issues/1699
 
 # Some things for later
 
