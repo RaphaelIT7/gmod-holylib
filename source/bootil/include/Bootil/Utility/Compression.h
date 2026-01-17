@@ -45,12 +45,6 @@ namespace Bootil
 			BOOTIL_EXPORT Job* ExtractInThread( const void* pData, unsigned int iLength, const Bootil::BString & strOutputFile );
 		}
 
-		namespace GZip
-		{
-			BOOTIL_EXPORT bool Compress( const void* pData, unsigned int iLength, Bootil::Buffer & output );
-			// BOOTIL_EXPORT bool Extract( const void* pData, unsigned int iLength, Bootil::Buffer & output, ProgressCallback* pProgress = NULL );
-		}
-
 		namespace Zip
 		{
 			class BOOTIL_EXPORT File

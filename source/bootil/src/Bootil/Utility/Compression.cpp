@@ -1,6 +1,5 @@
 
 #include "Bootil/Bootil.h"
-#include "zlib/zlib.h"
 
 #include "xzip/zip.h"
 #include "xzip/unzip.h"
@@ -296,34 +295,6 @@ namespace Bootil
 			{
 				return m_Files[ i ].Name;
 			}
-		}
-
-		namespace GZip
-		{
-			BOOTIL_EXPORT bool Compress( const void* pData, unsigned int iLength, Bootil::Buffer & output )
-			{
-				if ( !output.EnsureCapacity( iLength ) )
-					return false;
-
-				uLongf outputSize = output.GetSize();
-
-				if ( compress( (Bytef *) output.GetBase(), &outputSize, (const Bytef *)pData, iLength ) != Z_OK )
-				{
-					return false;
-				}
-
-				output.SetWritten( outputSize );
-				return true;
-			}
-
-/*
-			BOOTIL_EXPORT bool Extract( const void* pData, unsigned int iLength, Bootil::Buffer & output, ProgressCallback* pProgress )
-			{
-				// TODO.
-
-				return false;
-			}
-*/
 		}
 	}
 
