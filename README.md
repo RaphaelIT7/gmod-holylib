@@ -4407,6 +4407,8 @@ Disconnects the client.<br>
 
 #### number CBaseClient:GetRate()
 
+#### number, number CBaseClient:GetRemoteFramerate()
+
 #### CBaseClient:SetUpdateRate(number rate)
 
 #### number CBaseClient:GetUpdateRate()
@@ -4787,6 +4789,8 @@ Sets the callback function for when a connection has crashed.<br>
 
 #### function CNetChan:GetConnectionCrashedCallback()
 Returns the current connection crashed callback function.<br>
+
+#### number, number CNetChan:GetRemoteFramerate()
 
 ### Hooks
 
