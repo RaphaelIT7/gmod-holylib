@@ -56,6 +56,7 @@ static TValue *cpparser(lua_State *L, lua_CFunction dummy, void *ud)
     /* Non-native generation returns a dumpable, but non-runnable prototype. */
     setprotoV(L, L->top++, pt);
   }
+  gcrefdirect_decrement(pt);
   return NULL;
 }
 

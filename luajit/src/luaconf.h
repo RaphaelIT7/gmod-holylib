@@ -151,4 +151,6 @@
 #define luai_apicheck(L, o)	{ (void)L; }
 #endif
 
+#define LUA_ZERO_OUT_MEMORY 1
+
 #endif
