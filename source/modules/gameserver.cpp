@@ -120,7 +120,7 @@ LUA_FUNCTION_STATIC(CBaseClient_ClientPrint)
 LUA_FUNCTION_STATIC(CBaseClient_IsValid)
 {
 	CBaseClient* pClient = Get_CBaseClient(LUA, 1, false);
-	
+
 	LUA->PushBool(pClient != nullptr && pClient->IsConnected());
 	return 1;
 }
@@ -225,7 +225,7 @@ LUA_FUNCTION_STATIC(CBaseClient_Disconnect)
 		Util::BlockGameEvent("player_disconnect");
 
 	pClient->Disconnect(strReason);
-	
+
 	if (bNoEvent)
 		Util::UnblockGameEvent("player_disconnect");
 
@@ -754,6 +754,19 @@ LUA_FUNCTION_STATIC(CBaseClient_SetTimeout)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(CBaseClient_GetRemoteFramerate)
+{
+    CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
+
+    float framerate, deviation;
+    pNetChannel->GetRemoteFramerate(&framerate, &deviation);
+
+    LUA->PushNumber(framerate);
+    LUA->PushNumber(deviation);
+
+    return 2;
+}
+
 static bool g_bFreeSubChannels = false;
 LUA_FUNCTION_STATIC(CBaseClient_Transmit)
 {
@@ -897,6 +910,7 @@ void Push_CBaseClientMeta(GarrysMod::Lua::ILuaInterface* pLua)
 	Util::AddFunc(pLua, CBaseClient_GetClearTime, "GetClearTime");
 	Util::AddFunc(pLua, CBaseClient_GetTimeout, "GetTimeout");
 	Util::AddFunc(pLua, CBaseClient_SetTimeout, "SetTimeout");
+	Util::AddFunc(pLua, CBaseClient_GetRemoteFramerate, "GetRemoteFramerate");
 	Util::AddFunc(pLua, CBaseClient_Transmit, "Transmit");
 	Util::AddFunc(pLua, CBaseClient_ProcessStream, "ProcessStream");
 	//Util::AddFunc(pLua, CBaseClient_GetRegisteredMessages, "GetRegisteredMessages");
@@ -945,7 +959,7 @@ LUA_FUNCTION_STATIC(CNetChan__tostring)
 LUA_FUNCTION_STATIC(CNetChan_IsValid)
 {
 	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, false);
-	
+
 	LUA->PushBool(pNetChannel != nullptr);
 	return 1;
 }
@@ -1301,6 +1315,19 @@ LUA_FUNCTION_STATIC(CNetChan_SetRate)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(CNetChan_GetRemoteFramerate)
+{
+    CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
+
+    float framerate, deviation;
+    pNetChannel->GetRemoteFramerate(&framerate, &deviation);
+
+    LUA->PushNumber(framerate);
+    LUA->PushNumber(deviation);
+
+    return 2;
+}
+
 LUA_FUNCTION_STATIC(CNetChan_Transmit)
 {
 	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
@@ -1606,7 +1633,7 @@ bool ILuaNetMessageHandler::ProcessLuaNetChanMessage(NET_LuaNetChanMessage *msg)
 #endif
 	m_pLua->PushNumber(msg->m_iLength);
 	m_pLua->CallFunctionProtected(3, 0, true);
-	
+
 #if MODULE_EXISTS_BITBUF
 	if (pLuaData)
 		pLuaData->Release(m_pLua);
@@ -1656,7 +1683,7 @@ LUA_FUNCTION_STATIC(CNetChan_SetMessageCallback)
 	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
 	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler;
 	LUA->CheckType(2, GarrysMod::Lua::Type::Function);
-	
+
 	if (!pHandler)
 		return 0;
 
@@ -1674,7 +1701,7 @@ LUA_FUNCTION_STATIC(CNetChan_GetMessageCallback)
 {
 	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
 	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler;
-	
+
 	if (pHandler && pHandler->m_iMessageCallbackFunction != -1)
 	{
 		Util::ReferencePush(LUA, pHandler->m_iMessageCallbackFunction);
@@ -1689,7 +1716,7 @@ LUA_FUNCTION_STATIC(CNetChan_SetConnectionStartCallback)
 	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
 	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler;
 	LUA->CheckType(2, GarrysMod::Lua::Type::Function);
-	
+
 	if (!pHandler)
 		return 0;
 
@@ -1707,7 +1734,7 @@ LUA_FUNCTION_STATIC(CNetChan_GetConnectionStartCallback)
 {
 	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
 	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler;
-	
+
 	if (pHandler && pHandler->m_iConnectionStartFunction != -1)
 	{
 		Util::ReferencePush(LUA, pHandler->m_iConnectionStartFunction);
@@ -1722,7 +1749,7 @@ LUA_FUNCTION_STATIC(CNetChan_SetConnectionClosingCallback)
 	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
 	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler;
 	LUA->CheckType(2, GarrysMod::Lua::Type::Function);
-	
+
 	if (!pHandler)
 		return 0;
 
@@ -1740,7 +1767,7 @@ LUA_FUNCTION_STATIC(CNetChan_GetConnectionClosingCallback)
 {
 	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
 	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler;
-	
+
 	if (pHandler && pHandler->m_iConnectionClosingFunction != -1)
 	{
 		Util::ReferencePush(LUA, pHandler->m_iConnectionClosingFunction);
@@ -1755,7 +1782,7 @@ LUA_FUNCTION_STATIC(CNetChan_SetConnectionCrashedCallback)
 	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
 	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler;
 	LUA->CheckType(2, GarrysMod::Lua::Type::Function);
-	
+
 	if (!pHandler)
 		return 0;
 
@@ -1773,7 +1800,7 @@ LUA_FUNCTION_STATIC(CNetChan_GetConnectionCrashedCallback)
 {
 	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
 	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler;
-	
+
 	if (pHandler && pHandler->m_iConnectionCrashedFunction != -1)
 	{
 		Util::ReferencePush(LUA, pHandler->m_iConnectionCrashedFunction);
@@ -2308,6 +2335,7 @@ void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, CNetChan_SetTimeout, "SetTimeout");
 		Util::AddFunc(pLua, CNetChan_GetRate, "GetRate");
 		Util::AddFunc(pLua, CNetChan_SetRate, "SetRate");
+		Util::AddFunc(pLua, CNetChan_GetRemoteFramerate, "GetRemoteFramerate");
 		Util::AddFunc(pLua, CNetChan_Transmit, "Transmit");
 		Util::AddFunc(pLua, CNetChan_ProcessStream, "ProcessStream");
 		Util::AddFunc(pLua, CNetChan_SetMaxBufferSize, "SetMaxBufferSize");
@@ -2432,7 +2460,7 @@ static bool hook_CBaseServer_ProcessConnectionlessPacket(IServer* server, netpac
  * ToDo: Ask Rubat if were allowed to modify SVC_ServerInfo
  *	   I think it "could" be considered breaking gmod server operator rules.
  *	   "Do not fake server information. This mostly means player count, but other data also applies."
- * 
+ *
  * Update: Rubat said it's fine.
  */
 // static MD5Value_t worldmapMD5;
@@ -2554,7 +2582,7 @@ static bool hook_CBaseClient_ShouldSendMessages(CBaseClient* cl)
 	{
 		// we would like to send a message, but bandwidth isn't available yet
 		// tell netchannel that we are choking a packet
-		cl->m_NetChannel->SetChoked();	
+		cl->m_NetChannel->SetChoked();
 		// Record an ETW event to indicate that we are throttling.
 #if ARCHITECTURE_IS_X86
 		ETWThrottled();
@@ -2585,7 +2613,7 @@ static void hook_CBaseServer_CheckTimeouts(CBaseServer* srv)
 	for (i=0 ; i< srv->GetClientCount() ; i++ )
 	{
 		IClient	*cl = srv->GetClient(i);
-		
+
 		if ( cl->IsFakeClient() || !cl->IsConnected() )
 			continue;
 
@@ -2618,10 +2646,10 @@ static void hook_CBaseServer_CheckTimeouts(CBaseServer* srv)
 	for (i=0 ; i< srv->GetClientCount() ; i++ )
 	{
 		IClient	*cl = srv->GetClient(i);
-		
+
 		if ( cl->IsFakeClient() || !cl->IsConnected() )
 			continue;
-		
+
 		if ( cl->GetNetChannel() && cl->GetNetChannel()->IsOverflowed() )
 		{
 			if (Lua::PushHook("HolyLib:OnChannelOverflow"))
@@ -2651,7 +2679,7 @@ public:
  * Moving a entire CGameClient into another CGameClient to hopefully not make the engine too angry.
  * This is required to preserve the logic of m_nEntityIndex = m_nClientSlot + 1
  * We don't copy everything, like the baseline and such.
- * 
+ *
  * Current State: It works
  * Previous Bugs:
  * - The Client's LocalPlayer is a NULL Entity.....
@@ -2867,7 +2895,7 @@ static int hook_CNetChan_SendDatagram(CNetChan* chan, bf_write *datagram)
 				CNetChan::dataFragments_t * data = chan->m_WaitingList[j][0];
 
 				// tell waiting list, that we received the acknowledge
-				data->ackedFragments += subchan->numFragments[j]; 
+				data->ackedFragments += subchan->numFragments[j];
 				data->pendingFragments -= subchan->numFragments[j];
 			}
 
