@@ -85,7 +85,7 @@ function FetchFromHolyLogs(github_repository, runNumber, host, apikey, previous_
 	local lastHolyLogsResults = {} -- Results of the last run.
 	local lastRun = -1
 	nextSearchID = runNumber - 1
-	while (lastRun == -1) and ((runNumber - nextSearchID) < 100 and nextSearchID > 0) do -- NUKE IT >:3
+	while (lastRun == -1) and ((runNumber - nextSearchID) < 50 and nextSearchID > 0) do -- NUKE IT >:3
 		local searchID = nextSearchID
 		FetchHolyLogsResults(github_repository, searchID, function(jsonTable)
 			if not jsonTable then

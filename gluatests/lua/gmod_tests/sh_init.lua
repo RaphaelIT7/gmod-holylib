@@ -21,13 +21,13 @@ FCVAR_AVAILABLE1 = bit.lshift( 1, 26 )
 FCVAR_AVAILABLE2 = bit.lshift( 1, 27 )
 
 function HolyLib_IsModuleEnabled(name)
-	return GetConVar("holylib_enable_" .. name):GetBool()
+    return GetConVar("holylib_enable_" .. name):GetBool()
 end
 
 require("reqwest")
 HTTP = reqwest or HTTP
 if reqwest then
-	print("Loaded reqwest")
+    print("Loaded reqwest")
 end
 
 -- ConVar's don't work since those would need to exist before it tries to set all values from the command line. (Maybe make a gmod request? idk)
@@ -39,7 +39,7 @@ local loki_public_host = string.Trim(file.Read("_workflow/loki_public_host.txt",
 local loki_host = string.Trim(file.Read("_workflow/loki_host.txt", "MOD") or "")
 local loki_api = string.Trim(file.Read("_workflow/loki_api.txt", "MOD") or "")
 function HolyLib_RunPerformanceTest(name, callback, ...)
-	local usingPublic = (string.len(loki_host) < 3 or string.len(loki_api) < 3)
+    local usingPublic = (string.len(loki_host) < 3 or string.len(loki_api) < 3)
     if usingPublic and (string.len(loki_public_host) < 3) or string.len(github_repo) < 3 then
         print("Skipping performance test \"" .. name .. "\" since were missing Loki.")
         return
@@ -63,6 +63,32 @@ function HolyLib_RunPerformanceTest(name, callback, ...)
         loki_host = loki_public_host
     end
 
+    -- I am fking lazy rn, my issue: the public & private HolyLog servers can't know each other values meaning a pull request run can't compare against one of my commits.
+    -- So my lazy fix: we send results to both.
+    if not usingPublic then
+        HTTP({
+            blocking = true,
+            failed = function(reason, errExt)
+                print("Failed to send performance results to Loki!", reason, errExt)
+            end,
+            success = function(code, body, headers)
+                print("Successfully sent performance results to Loki :3", code)
+            end,
+            method = "POST",
+            url = loki_host .. "/AddEntry",
+            headers = {
+                ["entryIndex"] = github_repo .. "___" .. _HOLYLIB_RUN_NUMBER, -- Unique key for this run.
+                ["X-Api-Key"] = loki_api,
+            },
+            body = util.TableToJSON({
+                ["totalCalls"] = totalCalls,
+                ["totalTime"] = totalTime,
+                ["gmodBranch"] = BRANCH .. " - " .. jit.version,
+                ["name"] = name,
+            })
+        })
+    end
+
     HTTP({
         blocking = true,
         failed = function(reason, errExt)
@@ -72,10 +98,10 @@ function HolyLib_RunPerformanceTest(name, callback, ...)
             print("Successfully sent performance results to Loki :3", code)
         end,
         method = "POST",
-        url = loki_host .. "/AddEntry",
+        url = loki_public_host .. "/AddEntry",
         headers = {
             ["entryIndex"] = github_repo .. "___" .. _HOLYLIB_RUN_NUMBER, -- Unique key for this run.
-            ["X-Api-Key"] = loki_api,
+            ["X-Api-Key"] = "",
         },
         body = util.TableToJSON({
             ["totalCalls"] = totalCalls,
