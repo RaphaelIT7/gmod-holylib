@@ -19,7 +19,7 @@ public:
 	void InitDetour(bool bPreServer) override;
 	void Shutdown() override;
 	const char* Name() override { return "pvs"; };
-	int Compatibility() override { return LINUX32; };
+	int Compatibility() override { return LINUX32 | LINUX64 | WINDOWS32; };
 	bool SupportsMultipleLuaStates() override { return true; };
 };
 
@@ -372,6 +372,9 @@ LUA_FUNCTION_STATIC(pvs_CheckBoxInPVS)
 {
 	Vector* vec1 = Get_Vector(LUA, 1);
 	Vector* vec2 = Get_Vector(LUA, 2);
+
+	if (!currentPVS)
+		LUA->ThrowError("pvs: tried to call pvs.GetPVSForCluster with no active PVS!");
 
 	LUA->PushBool(engine->CheckBoxInPVS(*vec1, *vec2, currentPVS, currentPVSSize));
 	return 1;

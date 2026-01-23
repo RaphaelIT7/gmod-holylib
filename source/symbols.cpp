@@ -135,17 +135,19 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: holylib Symbols
 	//---------------------------------------------------------------------------------
-	const std::vector<Symbol> GetGModServerTagsSym = {
+	const std::vector<Symbol> GetGModServerTagsSym = { // "gmws:"
 		Symbol::FromName("_Z17GetGModServerTagsPcjb"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x4C\x8D\xAD\x30\xFF\xFF\xFF"), // 55 48 89 E5 41 57 41 56 41 55 4C 8D AD 30 FF FF FF
+		Symbol::FromSignature("\x55\x8B\xEC\x81\xEC\x80\x00\x00\x00\x8B*****\x53\xC7\x45\x84"), // 55 8B EC 81 EC 80 00 00 00 8B ?? ?? ?? ?? ?? 53 C7 45 84
+		Symbol::FromSignature("\x40\x55\x56\x57\x41\x55\x41\x56\x41\x57\x48\x8D\x6C\x24\xD1"), // 40 55 56 57 41 55 41 56 41 57 48 8D 6C 24 D1
 	};
 
-	const std::vector<Symbol> CFuncLadder_PlayerGotOnSym = { // "reserved_spot" -> Find function -> Find Caller
+	const std::vector<Symbol> CFuncLadder_PlayerGotOnSym = { // "reserved_spot" (big one?) -> Find function -> Find Caller
 		Symbol::FromName("_ZN11CFuncLadder11PlayerGotOnEP11CBasePlayer"),
 		Symbol::FromSignature("\x55\x48\x89\xF2\x0F\x57\xC0\x48\x89\xE5"), // 55 48 89 F2 0F 57 C0 48 89 E5
 	};
 
-	const std::vector<Symbol> CFuncLadder_PlayerGotOffSym = { // "reserved_spot" -> Find function -> Find Caller
+	const std::vector<Symbol> CFuncLadder_PlayerGotOffSym = { // "reserved_spot" (big one?) -> Find function -> Find Caller
 		Symbol::FromName("_ZN11CFuncLadder12PlayerGotOffEP11CBasePlayer"),
 		Symbol::FromSignature("\x55\x48\x89\xF8\x48\x89\xF2\x48\x8D\xBF"), // 55 48 89 F8 48 89 F2 48 8D BF
 	};
@@ -167,16 +169,20 @@ namespace Symbols
 		Symbol::FromSignature("\x48\x89\x5C\x24\x08\x57\x48\x83\xEC\x20\x48\x8B\xFA\x48\x8B\xD9*****\x48\x8B\xC8"), // 48 89 5C 24 08 57 48 83 EC 20 48 8B FA 48 8B D9 ?? ?? ?? ?? ?? 48 8B C8
 	};
 
-	const std::vector<Symbol> CLuaInterface_RunStringExSym = {
+	const std::vector<Symbol> CLuaInterface_RunStringExSym = { // @%s%s
 		Symbol::FromName("_ZN13CLuaInterface11RunStringExEPKcS1_S1_bbbb"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x49\x89\xF5\x41\x54\x53\x48\x89\xFB\x48\x81\xEC\x58\x01\x00\x00"), // 55 48 89 E5 41 57 41 56 41 55 49 89 F5 41 54 53 48 89 FB 48 81 EC 58 01 00 00
+		Symbol::FromSignature("\x55\x8B\xEC\x8B\x55\x10\x81\xEC\x4C\x01\x00\x00"), // 55 8B EC 8B 55 10 81 EC 4C 01 00 00
+		Symbol::FromSignature("\x40\x55\x53\x56\x57\x41\x54\x41\x56\x41\x57\x48\x8D\xAC\x24\x50\xFF\xFF\xFF"), // 40 55 53 56 57 41 54 41 56 41 57 48 8D AC 24 50 FF FF FF
 	};
 
 	//---------------------------------------------------------------------------------
 	// Purpose: gameevent Symbols
 	//---------------------------------------------------------------------------------
-	const std::vector<Symbol> CBaseClient_ProcessListenEventsSym = {
+	const std::vector<Symbol> CBaseClient_ProcessListenEventsSym = { // ProcessListenEvents
 		Symbol::FromName("_ZN11CBaseClient19ProcessListenEventsEP16CLC_ListenEvents"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x56\x41\x55\x41\x54\x49\x89\xF4\x53\x48\x8B\x1D****\x8B\x93\x0C\x10\x00\x00\x85\xD2\x41\x0F\x95\xC5******\x48"), // 55 48 89 E5 41 56 41 55 41 54 49 89 F4 53 48 8B 1D ?? ?? ?? ?? 8B 93 0C 10 00 00 85 D2 41 0F 95 C5 ?? ?? ?? ?? ?? ?? 48
+		Symbol::FromSignature("\x55\x8B\xEC\x53\x56\x57\x8D\x79\xF8\x8B*****\x57\x8B\x01"), // (ToDo: Verify!) 55 8B EC 53 56 57 8D 79 F8 8B ?? ?? ?? ?? ?? 57 8B 01
 	};
 
 	const std::vector<Symbol> CGameEventManager_AddListenerSym = { // Fk this. No 64x
@@ -311,6 +317,7 @@ namespace Symbols
 	const std::vector<Symbol> MoveHelperServerSym = {// Find 'CBasePlayer::PhysicsSimulate' and then you'll get CBasePlayer__PhysicsSimulate and then it's into it
 		Symbol::FromName("_Z16MoveHelperServerv"),
 		Symbol::FromSignature("\x80\x3D\x29\x2A\x2A\x01\x00"), // 80 3D 29 ?? ?? 01 00
+		Symbol::FromSignature("\xA1****\xA8\x01**\x83\xC8\x01\xC7*********\x68\x00\x30\x00\x00"), // A1 ?? ?? ?? ?? A8 01 ?? ?? 83 C8 01 C7 ?? ?? ?? ?? ?? ?? ?? ?? ?? 68 00 30 00 00
 	};
 
 	//---------------------------------------------------------------------------------
@@ -319,11 +326,13 @@ namespace Symbols
 	const std::vector<Symbol> CGMOD_Player_SetupVisibilitySym = {//Find 'predicted_' then search for CGMOD_Player::CreateViewModel and once you got it, find the function bellow it in the xref VTable and you got it
 		Symbol::FromName("_ZN12CGMOD_Player15SetupVisibilityEP11CBaseEntityPhi"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x55\x49\x89\xFD\x41\x54\x49\x89\xF4\x53\x48\x83\xEC\x08\xE8\x2A\x2A\x2A\x2A\x48\x8B\x1D\x2A\x2A\x2A\x2A"), // 55 48 89 E5 41 55 49 89 FD 41 54 49 89 F4 53 48 83 EC 08 E8 ? ? ? ? 48 8B 1D ? ? ? ?
+		Symbol::FromSignature("\x55\x8B\xEC\x56\xFF\x75\x10\x8B\xF1\xFF\x75\x0C\xFF\x75\x08*****\x8B*****\x85\xC9**\x68\x94\x00\x00\x00"), // 55 8B EC 56 FF 75 10 8B F1 FF 75 0C FF 75 08 ?? ?? ?? ?? ?? 8B ?? ?? ?? ?? ?? 85 C9 ?? ?? 68 94 00 00 00
 	};
 
 	const std::vector<Symbol> CServerGameEnts_CheckTransmitSym = { // Find 'cl_updaterate' and you'll find CServerGameClients__ClientSettingsChanged then search for xref to get vtable and it will be above
 		Symbol::FromName("_ZN15CServerGameEnts13CheckTransmitEP18CCheckTransmitInfoPKti"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x49\x89\xF6\x31\xF6"), //55 48 89 E5 41 57 41 56 49 89 F6 31 F6
+		Symbol::FromSignature("\x55\x8B\xEC\x83\xEC\x20\x8B*****\x6A*\x8B\x01\xFF"), // 55 8B EC 83 EC 20 8B ?? ?? ?? ?? ?? 6A ?? 8B 01 FF
 	};
 
 	//---------------------------------------------------------------------------------
@@ -899,6 +908,7 @@ namespace Symbols
 	const std::vector<Symbol> CServerGameClients_GetPlayerLimitSym = {
 		Symbol::FromName("_ZNK18CServerGameClients15GetPlayerLimitsERiS0_S0_"),
 		Symbol::FromSignature("\x55\xC7\x01\x80\x00\x00\x00"), // 55 C7 01 80 00 00 00
+		Symbol::FromSignature("\x55\x8B\xEC\x8B\x45\x10\xC7\x00\x80\x00\x00\x00"), // 55 8B EC 8B 45 10 C7 00 80 00 00 00
 	};
 
 	const std::vector<Symbol> CBaseServer_FillServerInfoSym = {
