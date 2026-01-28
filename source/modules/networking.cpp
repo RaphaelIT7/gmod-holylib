@@ -37,7 +37,7 @@ public:
 	void ClientDisconnect(edict_t* pClient) override;
 	void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) override;
 	const char* Name() override { return "networking"; };
-	int Compatibility() override { return LINUX32;  }; // ToDo: Fix CBaseClient offset being broken on 64x causing the access to CGameClient::m_pCurrentFrame to return a invalid pointer
+	int Compatibility() override { return LINUX32 | LINUX64;  }; // ToDo: Fix CBaseClient offset being broken on 64x causing the access to CGameClient::m_pCurrentFrame to return a invalid pointer
 };
 
 /*
@@ -2513,6 +2513,9 @@ static ServerClassCache *player_class_cache = nullptr;
 static CStandardSendProxies* sendproxies;
 static SendTableProxyFn datatable_sendtable_proxy;
 PropTypeFns g_PropTypeFns[DPT_NUMSendPropTypes];
+#if ARCHITECTURE_X86_64
+static ConVar networking_enableunsafe64x("holylib_networking_enableunsafe64x", "0", 0, "(only affects 64x) Enables 64x the full module code though it may crash on 64x.");
+#endif
 void CNetworkingModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
@@ -2528,6 +2531,11 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 		engine_loader.GetModule(), Symbols::AllocChangeFrameListSym,
 		(void*)hook_AllocChangeFrameList, m_pID
 	);
+
+#if ARCHITECTURE_X86_64
+	if (!networking_enableunsafe64x.GetBool()) // It exists so that when I get to working on it, I can easily test it.
+		return;
+#endif
 
 	Detour::Create(
 		&detour_SendTable_CullPropsFromProxies, "SendTable_CullPropsFromProxies",
