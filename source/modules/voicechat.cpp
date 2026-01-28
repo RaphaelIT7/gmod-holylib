@@ -1405,6 +1405,7 @@ static void VoiceEffect(VoiceEffectJob*& pJob)
 }
 
 static bool g_bIsPlayerMuted[MAX_PLAYERS] = {0};
+static bool g_bIsPlayerDeafened[MAX_PLAYERS] = {0};
 static bool g_bIsPlayerTalking[MAX_PLAYERS] = {0};
 static double g_fLastPlayerTalked[MAX_PLAYERS] = {0};
 static ConVar voicechat_stopdelay("holylib_voicechat_stopdelay", "1", FCVAR_ARCHIVE, "How many seconds before a player is marked as stopped talking");
@@ -1446,6 +1447,7 @@ void CVoiceChatModule::ClientDisconnect(edict_t* pClient)
 	// We gotta prevent the hook from firing when the player already disconnected, so we reset these here
 	g_bIsPlayerTalking[pClient->m_EdictIndex-1] = false;
 	g_bIsPlayerMuted[pClient->m_EdictIndex-1] = false;
+	g_bIsPlayerDeafened[pClient->m_EdictIndex-1] = false;
 	g_fLastPlayerTalked[pClient->m_EdictIndex-1] = 0.0;
 }
 
@@ -1455,6 +1457,7 @@ void CVoiceChatModule::ServerActivate(edict_t* pEdictList, int edictCount, int c
 	{
 		g_bIsPlayerTalking[i] = false;
 		g_bIsPlayerMuted[i] = false;
+		g_bIsPlayerDeafened[i] = false;
 		g_fLastPlayerTalked[i] = 0.0;
 	}
 }
@@ -1465,8 +1468,21 @@ void CVoiceChatModule::LevelShutdown()
 	{
 		g_bIsPlayerTalking[i] = false;
 		g_bIsPlayerMuted[i] = false;
+		g_bIsPlayerDeafened[i] = false;
 		g_fLastPlayerTalked[i] = 0.0;
 	}
+}
+
+static Detouring::Hook detour_CVoiceGameMgrHelper_CanPlayerHearPlayer;
+static bool hook_CVoiceGameMgrHelper_CanPlayerHearPlayer(void* voicegamemgrhelper, CBasePlayer* listener, CBasePlayer* talker, bool& bProximity)
+{
+	if (g_bIsPlayerDeafened[listener->edict()->m_EdictIndex-1])
+	{
+		bProximity = false;
+		return false;
+	}
+
+	return detour_CVoiceGameMgrHelper_CanPlayerHearPlayer.GetTrampoline<Symbols::CVoiceGameMgrHelper_CanPlayerHearPlayer>()(voicegamemgrhelper, listener, talker, bProximity);
 }
 
 static Detouring::Hook detour_SV_BroadcastVoiceData;
@@ -2053,6 +2069,20 @@ LUA_FUNCTION_STATIC(voicechat_SetPlayerMuted)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(voicechat_IsPlayerDeaf)
+{
+	int iClient = Util::Get_ClientIndex(LUA, 1, true);
+	LUA->PushBool(g_bIsPlayerDeafened[iClient]);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(voicechat_SetPlayerDeaf)
+{
+	int iClient = Util::Get_ClientIndex(LUA, 1, true);
+	g_bIsPlayerDeafened[iClient] = LUA->GetBool(2);
+	return 0;
+}
+
 void CVoiceChatModule::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	LuaVoiceModuleData* pData = GetVoiceChatLuaData(pLua);
@@ -2175,6 +2205,8 @@ void CVoiceChatModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServer
 		Util::AddFunc(pLua, voicechat_ApplyEffect, "ApplyEffect");
 		Util::AddFunc(pLua, voicechat_SetPlayerMuted, "SetPlayerMuted");
 		Util::AddFunc(pLua, voicechat_IsPlayerMuted, "IsPlayerMuted");
+		Util::AddFunc(pLua, voicechat_IsPlayerDeaf, "IsPlayerDeaf");
+		Util::AddFunc(pLua, voicechat_SetPlayerDeaf, "SetPlayerDeaf");
 	Util::FinishTable(pLua, "voicechat");
 }
 
@@ -2216,6 +2248,13 @@ void CVoiceChatModule::InitDetour(bool bPreServer)
 		&detour_SV_BroadcastVoiceData, "SV_BroadcastVoiceData",
 		engine_loader.GetModule(), Symbols::SV_BroadcastVoiceDataSym,
 		(void*)hook_SV_BroadcastVoiceData, m_pID
+	);
+
+	SourceSDK::ModuleLoader server_loader("server");
+	Detour::Create(
+		&detour_CVoiceGameMgrHelper_CanPlayerHearPlayer, "CVoiceGameMgrHelper::CanPlayerHearPlayer",
+		server_loader.GetModule(), Symbols::CVoiceGameMgrHelper_CanPlayerHearPlayerSym,
+		(void*)hook_CVoiceGameMgrHelper_CanPlayerHearPlayer, m_pID
 	);
 }
 

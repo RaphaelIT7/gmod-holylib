@@ -522,6 +522,9 @@ namespace Symbols
 	using SV_BroadcastVoiceData = void (*)(IClient*, int nBytes, char* data, int64 xuid);
 	extern const std::vector<Symbol> SV_BroadcastVoiceDataSym;
 
+	using CVoiceGameMgrHelper_CanPlayerHearPlayer = bool (GMCOMMON_CALLING_CONVENTION*)(void* voicegamemgrhelper, CBasePlayer* listener, CBasePlayer* talker, bool& bProximity);
+	extern const std::vector<Symbol> CVoiceGameMgrHelper_CanPlayerHearPlayerSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: physenv Symbols
 	//---------------------------------------------------------------------------------

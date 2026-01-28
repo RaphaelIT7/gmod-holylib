@@ -734,6 +734,11 @@ namespace Symbols
 		Symbol::FromSignature("\x48\x89\x5C\x24\x20\x56\x57\x41\x56\x48******\x8B\xF2\x4C\x8B\xF1"), // 48 89 5C 24 20 56 57 41 56 48 ?? ?? ?? ?? ?? ?? 8B F2 4C 8B F1
 	};
 
+	const std::vector<Symbol> CVoiceGameMgrHelper_CanPlayerHearPlayerSym = { // Good luck.
+		Symbol::FromName("_ZN19CVoiceGameMgrHelper19CanPlayerHearPlayerEP11CBasePlayerS1_Rb"),
+		// Needs all other platforms.
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: physenv Symbols
 	// ToDo: Get the Linux64 and Windows32 symbols.
