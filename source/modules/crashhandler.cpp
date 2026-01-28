@@ -305,6 +305,17 @@ static void GenerateCrashFileName(char* buffer, int bufferSize)
 	strftime(buffer, bufferSize, "garrysmod/holylib/crashes/crash_%Y-%m-%d_%H:%M:%S.log", &timeInfo);
 }
 
+static void DumpRegister(int fd, gregset_t& registers, const char* name, int idx)
+{
+	int32_t sval = (int32_t)registers[idx];
+	uint32_t uval = (uint32_t)registers[idx];
+
+	dprintf(fd,
+		"  %-8s 0x%08x  %d\n",
+		name, uval, sval
+	);
+};
+
 extern void AttemptLuaCallback();
 static thread_local bool g_bIsInSignalHandler = false;
 static void CrashHandler(int signal, siginfo_t* signalInfo, void* ucontext)
@@ -364,6 +375,39 @@ static void CrashHandler(int signal, siginfo_t* signalInfo, void* ucontext)
 	const ModuleInfo::Entry* mod = pModuleInfo.FindModule((uintptr_t)ip);
 	const char* moduleName = mod ? mod->path : "unknown";
 	dprintf(fileDescriptor, "Crashed in module: %s\n", moduleName);
+
+	dprintf(fileDescriptor, "Registers:\n");
+#if defined(__x86_64__)
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rax", REG_RAX);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rbx", REG_RBX);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rcx", REG_RCX);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rdx", REG_RDX);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rsi", REG_RSI);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rdi", REG_RDI);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rbp", REG_RBP);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rsp", REG_RSP);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r8",  REG_R8);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r9",  REG_R9);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r10", REG_R10);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r11", REG_R11);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r12", REG_R12);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r13", REG_R13);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r14", REG_R14);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r15", REG_R15);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rip", REG_RIP);
+#elif defined(__i386__)
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "eax", REG_EAX);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "ebx", REG_EBX);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "ecx", REG_ECX);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "edx", REG_EDX);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "esi", REG_ESI);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "edi", REG_EDI);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "ebp", REG_EBP);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "esp", REG_ESP);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "eip", REG_EIP);
+#else
+	dprintf(fileDescriptor, "  GG\n");
+#endif
 
 	// ToDo: backtrace is not really signal safe! It could deadlock!
 	constexpr int bufferSize = 64;
