@@ -160,7 +160,7 @@ private:
 // sigsegv part
 
 static Detouring::Hook detour_AllocChangeFrameList;
-static IChangeFrameList* hook_AllocChangeFrameList(int nProperties, int iCurTick)
+IChangeFrameList* hook_AllocChangeFrameList(int nProperties, int iCurTick)
 {
 	VPROF_BUDGET("AllocChangeFrameList", VPROF_BUDGETGROUP_OTHER_NETWORKING);
 	CChangeFrameList* pRet = new CChangeFrameList;
@@ -1046,6 +1046,16 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 };
 static EntityTransmitCache g_nEntityTransmitCache;
 
+static CBitVec<MAX_EDICTS> g_pForceWeaponTransmitIndexes; // TODO NOT IMPLEMENTED!
+void Networking_ForceWeaponTransmit(int entIndex, bool bForceTransmit) // Exposed for pvs.ForceWeaponTransmit
+{
+	if (bForceTransmit) {
+		g_pForceWeaponTransmitIndexes.Set(entIndex);
+	} else {
+		g_pForceWeaponTransmitIndexes.Clear(entIndex);
+	}
+}
+
 // Full cache persisting across ticks, reset only when the player disconnects.
 struct PlayerTransmitCache
 {
@@ -1375,6 +1385,7 @@ static inline void DoTransmitPVSCheck(edict_t* pEdict, CBaseEntity* pEnt, const 
 }
 
 #define NETWORKING_USE_ENTITYCACHE 0
+static Detouring::Hook detour_CServerGameEnts_CheckTransmit;
 static ConVar networking_fastpath("holylib_networking_fastpath", "0", 0, "Experimental - If two players are in the same area, then it will reuse the transmit state of the first calculated player saving a lot of time");
 static ConVar networking_fasttransmit("holylib_networking_fasttransmit", "1", 0, "Experimental - Replaces CServerGameEnts::CheckTransmit with our own implementation");
 static ConVar networking_fastpath_usecluster("holylib_networking_fastpath_usecluster", "1", 0, "Experimental - When using the fastpatth, it will compate against clients in the same cluster instead of area");
@@ -1782,6 +1793,28 @@ void CNetworkingModule::ClientDisconnect(edict_t* pPlayer)
 	g_pPlayerTransmitCache[pPlayer->m_EdictIndex-1].Reset();
 }
 
+#if MODULE_EXISTS_PVS
+void Networking_SwitchToPVSTransmit()
+{
+	Detour::DisableHook(&detour_CServerGameEnts_CheckTransmit);
+}
+
+void Networking_SwitchToOURTransmit()
+{
+	Detour::EnableHook(&detour_CServerGameEnts_CheckTransmit);
+}
+#endif
+
+#if SYSTEM_WINDOWS
+DETOUR_THISCALL_START()
+	DETOUR_THISCALL_ADDFUNC2( hook_CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer, GMOD_SetShouldPreventTransmitToPlayer, CBaseEntity*, CBasePlayer*, bool );
+	DETOUR_THISCALL_ADDRETFUNC1( hook_CBaseEntity_GMOD_ShouldPreventTransmitToPlayer, bool, GMOD_ShouldPreventTransmitToPlayer, CBaseEntity*, CBasePlayer* );
+	DETOUR_THISCALL_ADDFUNC1( hook_CGMOD_Player_CreateViewModel, CreateViewModel, CBasePlayer*, int );
+	DETOUR_THISCALL_ADDFUNC2( hook_CBaseCombatCharacter_SetTransmit, SetTransmit, CBaseCombatCharacter*, CCheckTransmitInfo*, bool );
+	DETOUR_THISCALL_ADDFUNC3( New_CServerGameEnts_CheckTransmit, CheckTransmit, IServerGameEnts*, CCheckTransmitInfo*, const unsigned short*, int );
+DETOUR_THISCALL_FINISH();
+#endif
+
 static SendTable* playerSendTable;
 static ServerClass* playerServerClass;
 static CFrameSnapshotManager* framesnapshotmanager = NULL;
@@ -1799,6 +1832,7 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 	for (int i=0; i<MAX_PLAYERS; ++i)
 		g_pShouldPrevent[i].ClearAll();
 
+	DETOUR_PREPARE_THISCALL();
 	SourceSDK::FactoryLoader engine_loader("engine");
 	Detour::Create(
 		&detour_AllocChangeFrameList, "AllocChangeFrameList",
@@ -1882,20 +1916,32 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 	CGameServer_SendClientMessages_func = detour_CGameServer_SendClientMessages.GetTrampoline<Symbols::CGameServer_SendClientMessages>();
 #endif
 
+#if MODULE_EXISTS_PVS
+	IModuleWrapper* pPVS = g_pModuleManager.GetModuleByID(HOLYLIB_MODULEID_PVS);
+	if (pPVS && !pPVS->IsEnabled())
+#endif
+	{
+		Detour::Create(
+			&detour_CServerGameEnts_CheckTransmit, "CServerGameEnts::CheckTransmit",
+			server_loader.GetModule(), Symbols::CServerGameEnts_CheckTransmitSym,
+			(void*)DETOUR_THISCALL(New_CServerGameEnts_CheckTransmit, CheckTransmit), m_pID
+		);
+	}
+
 	framesnapshotmanager = Detour::ResolveSymbol<CFrameSnapshotManager>(engine_loader, Symbols::g_FrameSnapshotManagerSym);
 	Detour::CheckValue("get class", "framesnapshotmanager", framesnapshotmanager != NULL);
 
 #if ARCHITECTURE_IS_X86
 	PropTypeFns* pPropTypeFns = Detour::ResolveSymbol<PropTypeFns>(engine_loader, Symbols::g_PropTypeFnsSym);
 #else
-	PropTypeFns* pPropTypeFns = Detour::ResolveSymbolFromLea<PropTypeFns>(engine_loader.GetModule(), Symbols::g_PropTypeFnsSym);
+	PropTypeFns* pPropTypeFns = Detour::ResolveSymbolWithOffset<PropTypeFns>(engine_loader.GetModule(), Symbols::g_PropTypeFnsSym);
 #endif
 	Detour::CheckValue("get class", "pPropTypeFns", pPropTypeFns != NULL);
 
 #if ARCHITECTURE_IS_X86
 	g_BSPData = Detour::ResolveSymbol<CCollisionBSPData>(engine_loader, Symbols::g_BSPDataSym);
 #else
-	g_BSPData = Detour::ResolveSymbolFromLea<CCollisionBSPData>(engine_loader.GetModule(), Symbols::g_BSPDataSym);
+	g_BSPData = Detour::ResolveSymbolWithOffset<CCollisionBSPData>(engine_loader.GetModule(), Symbols::g_BSPDataSym);
 #endif
 	Detour::CheckValue("get class", "CCollisionBSPData", g_BSPData != NULL);
 	
