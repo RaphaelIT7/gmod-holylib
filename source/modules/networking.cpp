@@ -2683,7 +2683,8 @@ void CNetworkingModule::ServerActivate(edict_t* pEdictList, int edictCount, int 
 			g_pEntityCache[i] = Util::GetCBaseEntityFromEdict(&pEdictList[i]);
 	}
 
-	sv_force_transmit_ents = g_pCVar->FindVar("sv_force_transmit_ents");
+	if (g_pCVar)
+		sv_force_transmit_ents = g_pCVar->FindVar("sv_force_transmit_ents");
 
 	// Find player class (has DT_BasePlayer as a baseclass table)
 	// We do this in ServerActivate since the engine only now hooked into the ServerClass allowing us to safely use them now.
