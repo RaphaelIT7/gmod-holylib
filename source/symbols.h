@@ -477,6 +477,8 @@ namespace Symbols
 
 	using InvalidateSharedEdictChangeInfos = void (*)();
 	extern const std::vector<Symbol> InvalidateSharedEdictChangeInfosSym;
+
+	using PackEntities_Normal = void (*)(int clientCount, void **clients, void *snapshot);
 	extern const std::vector<Symbol> PackEntities_NormalSym;
 
 	using CGMOD_Player_CreateViewModel = void (GMCOMMON_CALLING_CONVENTION*)(CBasePlayer* pPlayer, int viewmodelindex);
