@@ -1433,6 +1433,13 @@ public:
 	int m_iConnectionStartFunction = -1;
 	int m_iConnectionClosingFunction = -1;
 	int m_iConnectionCrashedFunction = -1;
+	int m_iPacketStartFunction = -1;
+	int m_iPacketEndFunction = -1;
+	int m_iFileRequestedFunction = -1;
+	int m_iFileReceivedFunction = -1;
+	int m_iFileDeniedFunction = -1;
+	int m_iFileSentFunction = -1;
+	int m_iShouldAcceptFileFunction = -1;
 	GarrysMod::Lua::ILuaInterface* m_pLua;
 };
 
@@ -1485,6 +1492,13 @@ ILuaNetMessageHandler::ILuaNetMessageHandler(GarrysMod::Lua::ILuaInterface* pLua
 	m_pLua = pLua;
 }
 
+#define HANDLER_FREE_LUA_REFERENCE(name) \
+if (name != -1) \
+{ \
+	Util::ReferenceFree(m_pLua, name, "ILuaNetMessageHandler::~ILuaNetMessageHandler"); \
+	name = -1; \
+} \
+
 ILuaNetMessageHandler::~ILuaNetMessageHandler()
 {
 	if (m_pLuaNetChanMessage)
@@ -1501,59 +1515,39 @@ ILuaNetMessageHandler::~ILuaNetMessageHandler()
 		return;
 	}
 
-	if (m_iMessageCallbackFunction != -1)
-	{
-		Util::ReferenceFree(m_pLua, m_iMessageCallbackFunction, "ILuaNetMessageHandler::~ILuaNetMessageHandler");
-		m_iMessageCallbackFunction = -1;
-	}
-
-	if (m_iConnectionStartFunction != -1)
-	{
-		Util::ReferenceFree(m_pLua, m_iConnectionStartFunction, "ILuaNetMessageHandler::~ILuaNetMessageHandler");
-		m_iConnectionStartFunction = -1;
-	}
-
-	if (m_iConnectionClosingFunction != -1)
-	{
-		Util::ReferenceFree(m_pLua, m_iConnectionClosingFunction, "ILuaNetMessageHandler::~ILuaNetMessageHandler");
-		m_iConnectionClosingFunction = -1;
-	}
-
-	if (m_iConnectionCrashedFunction != -1)
-	{
-		Util::ReferenceFree(m_pLua, m_iConnectionCrashedFunction, "ILuaNetMessageHandler::~ILuaNetMessageHandler");
-		m_iConnectionCrashedFunction = -1;
-	}
+	HANDLER_FREE_LUA_REFERENCE(m_iMessageCallbackFunction);
+	HANDLER_FREE_LUA_REFERENCE(m_iConnectionStartFunction);
+	HANDLER_FREE_LUA_REFERENCE(m_iConnectionClosingFunction);
+	HANDLER_FREE_LUA_REFERENCE(m_iConnectionCrashedFunction);
+	HANDLER_FREE_LUA_REFERENCE(m_iPacketStartFunction);
+	HANDLER_FREE_LUA_REFERENCE(m_iPacketEndFunction);
+	HANDLER_FREE_LUA_REFERENCE(m_iFileRequestedFunction);
+	HANDLER_FREE_LUA_REFERENCE(m_iFileReceivedFunction);
+	HANDLER_FREE_LUA_REFERENCE(m_iFileDeniedFunction);
+	HANDLER_FREE_LUA_REFERENCE(m_iFileSentFunction);
+	HANDLER_FREE_LUA_REFERENCE(m_iShouldAcceptFileFunction);
 }
+
+#define HANDLER_CALL_LUA_CALLBACK(name, returnVal) \
+if (!ThreadInMainThread()) \
+{ \
+	Warning(PROJECT_NAME ": Trying to call " #name " outside the main thread!\n"); \
+	return returnVal; \
+} \
+if (m_i##name##Function == -1) /*We have no callback function set. */ \
+	return returnVal; \
+m_pLua->ReferencePush(m_i##name##Function);
 
 void ILuaNetMessageHandler::ConnectionStart(INetChannel* pChan)
 {
-	if (!ThreadInMainThread())
-	{
-		Warning(PROJECT_NAME ": Trying to call ConnectionStart outside the main thread!\n");
-		return;
-	}
-
-	if (m_iConnectionStartFunction == -1) // We have no callback function set.
-		return;
-
-	m_pLua->ReferencePush(m_iConnectionStartFunction);
+	HANDLER_CALL_LUA_CALLBACK(ConnectionStart, )
 	Push_CNetChan(m_pLua, (CNetChan*)pChan);
 	m_pLua->CallFunctionProtected(1, 0, true);
 }
 
 void ILuaNetMessageHandler::ConnectionClosing(const char* reason)
 {
-	if (!ThreadInMainThread())
-	{
-		Warning(PROJECT_NAME ": Trying to call ConnectionStart outside the main thread!\n");
-		return;
-	}
-
-	if (m_iConnectionClosingFunction == -1) // We have no callback function set.
-		return;
-
-	m_pLua->ReferencePush(m_iConnectionClosingFunction);
+	HANDLER_CALL_LUA_CALLBACK(ConnectionClosing, )
 	Push_CNetChan(m_pLua, m_pChan);
 	m_pLua->PushString(reason);
 	m_pLua->CallFunctionProtected(2, 0, true);
@@ -1561,16 +1555,7 @@ void ILuaNetMessageHandler::ConnectionClosing(const char* reason)
 
 void ILuaNetMessageHandler::ConnectionCrashed(const char* reason)
 {
-	if (!ThreadInMainThread())
-	{
-		Warning(PROJECT_NAME ": Trying to call ConnectionStart outside the main thread!\n");
-		return;
-	}
-
-	if (m_iConnectionCrashedFunction == -1) // We have no callback function set.
-		return;
-
-	m_pLua->ReferencePush(m_iConnectionCrashedFunction);
+	HANDLER_CALL_LUA_CALLBACK(ConnectionCrashed, )
 	Push_CNetChan(m_pLua, m_pChan);
 	m_pLua->PushString(reason);
 	m_pLua->CallFunctionProtected(2, 0, true);
@@ -1579,37 +1564,76 @@ void ILuaNetMessageHandler::ConnectionCrashed(const char* reason)
 void ILuaNetMessageHandler::PacketStart(int incoming_sequence, int outgoing_acknowledged)
 {
 	//Msg("ILuaNetMessageHandler::PacketStart - %i | %i\n", incoming_sequence, outgoing_acknowledged);
+	HANDLER_CALL_LUA_CALLBACK(PacketStart, )
+	Push_CNetChan(m_pLua, m_pChan);
+	m_pLua->PushNumber(incoming_sequence);
+	m_pLua->PushNumber(outgoing_acknowledged);
+	m_pLua->CallFunctionProtected(3, 0, true);
 }
 
 void ILuaNetMessageHandler::PacketEnd()
 {
 	//Msg("ILuaNetMessageHandler::PacketEnd\n");
+	HANDLER_CALL_LUA_CALLBACK(PacketEnd, )
+	Push_CNetChan(m_pLua, m_pChan);
+	m_pLua->CallFunctionProtected(1, 0, true);
 }
 
 void ILuaNetMessageHandler::FileRequested(const char *fileName, unsigned int transferID)
 {
 	//Msg("ILuaNetMessageHandler::FileRequested - %s | %d\n", fileName, transferID);
+	HANDLER_CALL_LUA_CALLBACK(FileRequested, )
+	Push_CNetChan(m_pLua, m_pChan);
+	m_pLua->PushString(fileName);
+	m_pLua->PushNumber(transferID);
+	m_pLua->CallFunctionProtected(3, 0, true);
 }
 
 void ILuaNetMessageHandler::FileReceived(const char *fileName, unsigned int transferID)
 {
 	//Msg("ILuaNetMessageHandler::FileReceived - %s | %d\n", fileName, transferID);
+	HANDLER_CALL_LUA_CALLBACK(FileReceived, )
+	Push_CNetChan(m_pLua, m_pChan);
+	m_pLua->PushString(fileName);
+	m_pLua->PushNumber(transferID);
+	m_pLua->CallFunctionProtected(3, 0, true);
 }
 
 void ILuaNetMessageHandler::FileDenied(const char *fileName, unsigned int transferID)
 {
 	//Msg("ILuaNetMessageHandler::FileDenied - %s | %d\n", fileName, transferID);
+	HANDLER_CALL_LUA_CALLBACK(FileDenied, )
+	Push_CNetChan(m_pLua, m_pChan);
+	m_pLua->PushString(fileName);
+	m_pLua->PushNumber(transferID);
+	m_pLua->CallFunctionProtected(3, 0, true);
 }
 
 void ILuaNetMessageHandler::FileSent(const char *fileName, unsigned int transferID)
 {
 	//Msg("ILuaNetMessageHandler::FileSent - %s | %d\n", fileName, transferID);
+	HANDLER_CALL_LUA_CALLBACK(FileSent, )
+	Push_CNetChan(m_pLua, m_pChan);
+	m_pLua->PushString(fileName);
+	m_pLua->PushNumber(transferID);
+	m_pLua->CallFunctionProtected(3, 0, true);
 }
 
 bool ILuaNetMessageHandler::ShouldAcceptFile(const char *fileName, unsigned int transferID)
 {
 	//Msg("ILuaNetMessageHandler::ShouldAcceptFile - %s | %d\n", fileName, transferID);
-	return true;
+	HANDLER_CALL_LUA_CALLBACK(ShouldAcceptFile, false)
+	Push_CNetChan(m_pLua, m_pChan);
+	m_pLua->PushString(fileName);
+	m_pLua->PushNumber(transferID);
+	if (m_pLua->CallFunctionProtected(3, 1, true))
+	{
+		bool bAccept = m_pLua->GetBool(-1);
+		m_pLua->Pop(1);
+		return bAccept;
+	}
+
+	return false;
 }
 
 bool ILuaNetMessageHandler::ProcessLuaNetChanMessage(NET_LuaNetChanMessage *msg)
@@ -1678,137 +1702,59 @@ LUA_FUNCTION_STATIC(CNetChan_SendFile)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(CNetChan_SetMessageCallback)
+LUA_FUNCTION_STATIC(CNetChan_RequestFile)
 {
 	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
-	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler;
-	LUA->CheckType(2, GarrysMod::Lua::Type::Function);
+	const char* pFileName = LUA->CheckString(2);
 
-	if (!pHandler)
-		return 0;
-
-	if (pHandler->m_iMessageCallbackFunction != -1)
-	{
-		Util::ReferenceFree(LUA, pHandler->m_iMessageCallbackFunction, "CNetChan:SetCallback");
-	}
-
-	LUA->Push(2);
-	pHandler->m_iMessageCallbackFunction = Util::ReferenceCreate(LUA, "CNetChan:SetCallback");
-	return 0;
-}
-
-LUA_FUNCTION_STATIC(CNetChan_GetMessageCallback)
-{
-	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
-	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler;
-
-	if (pHandler && pHandler->m_iMessageCallbackFunction != -1)
-	{
-		Util::ReferencePush(LUA, pHandler->m_iMessageCallbackFunction);
-	} else {
-		LUA->PushNil();
-	}
+	LUA->PushNumber(pNetChannel->RequestFile(pFileName));
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(CNetChan_SetConnectionStartCallback)
-{
-	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
-	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler;
-	LUA->CheckType(2, GarrysMod::Lua::Type::Function);
-
-	if (!pHandler)
-		return 0;
-
-	if (pHandler->m_iConnectionStartFunction != -1)
-	{
-		Util::ReferenceFree(LUA, pHandler->m_iConnectionStartFunction, "CNetChan:SetCallback");
-	}
-
-	LUA->Push(2);
-	pHandler->m_iConnectionStartFunction = Util::ReferenceCreate(LUA, "CNetChan:SetCallback");
-	return 0;
+#define HANDLER_DEFINE_CALLBACK_FUNCTION(name) \
+LUA_FUNCTION_STATIC(CNetChan_Set##name) \
+{ \
+	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true); \
+	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler; \
+	LUA->CheckType(2, GarrysMod::Lua::Type::Function); \
+\
+	if (!pHandler) \
+		return 0; \
+\
+	if (pHandler->m_i##name##Function != -1) \
+	{ \
+		Util::ReferenceFree(LUA, pHandler->m_i##name##Function, "CNetChan:SetCallback"); \
+	} \
+\
+	LUA->Push(2); \
+	pHandler->m_i##name##Function = Util::ReferenceCreate(LUA, "CNetChan:SetCallback"); \
+	return 0; \
+} \
+LUA_FUNCTION_STATIC(CNetChan_Get##name) \
+{ \
+	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true); \
+	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler; \
+\
+	if (pHandler && pHandler->m_i##name##Function != -1) \
+	{ \
+		Util::ReferencePush(LUA, pHandler->m_i##name##Function); \
+	} else { \
+		LUA->PushNil(); \
+	} \
+	return 1; \
 }
 
-LUA_FUNCTION_STATIC(CNetChan_GetConnectionStartCallback)
-{
-	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
-	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler;
-
-	if (pHandler && pHandler->m_iConnectionStartFunction != -1)
-	{
-		Util::ReferencePush(LUA, pHandler->m_iConnectionStartFunction);
-	} else {
-		LUA->PushNil();
-	}
-	return 1;
-}
-
-LUA_FUNCTION_STATIC(CNetChan_SetConnectionClosingCallback)
-{
-	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
-	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler;
-	LUA->CheckType(2, GarrysMod::Lua::Type::Function);
-
-	if (!pHandler)
-		return 0;
-
-	if (pHandler->m_iConnectionClosingFunction != -1)
-	{
-		Util::ReferenceFree(LUA, pHandler->m_iConnectionClosingFunction, "CNetChan:SetCallback");
-	}
-
-	LUA->Push(2);
-	pHandler->m_iConnectionClosingFunction = Util::ReferenceCreate(LUA, "CNetChan:SetCallback");
-	return 0;
-}
-
-LUA_FUNCTION_STATIC(CNetChan_GetConnectionClosingCallback)
-{
-	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
-	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler;
-
-	if (pHandler && pHandler->m_iConnectionClosingFunction != -1)
-	{
-		Util::ReferencePush(LUA, pHandler->m_iConnectionClosingFunction);
-	} else {
-		LUA->PushNil();
-	}
-	return 1;
-}
-
-LUA_FUNCTION_STATIC(CNetChan_SetConnectionCrashedCallback)
-{
-	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
-	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler;
-	LUA->CheckType(2, GarrysMod::Lua::Type::Function);
-
-	if (!pHandler)
-		return 0;
-
-	if (pHandler->m_iConnectionCrashedFunction != -1)
-	{
-		Util::ReferenceFree(LUA, pHandler->m_iConnectionCrashedFunction, "CNetChan:SetCallback");
-	}
-
-	LUA->Push(2);
-	pHandler->m_iConnectionCrashedFunction = Util::ReferenceCreate(LUA, "CNetChan:SetCallback");
-	return 0;
-}
-
-LUA_FUNCTION_STATIC(CNetChan_GetConnectionCrashedCallback)
-{
-	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
-	ILuaNetMessageHandler* pHandler = (ILuaNetMessageHandler*)pNetChannel->m_MessageHandler;
-
-	if (pHandler && pHandler->m_iConnectionCrashedFunction != -1)
-	{
-		Util::ReferencePush(LUA, pHandler->m_iConnectionCrashedFunction);
-	} else {
-		LUA->PushNil();
-	}
-	return 1;
-}
+HANDLER_DEFINE_CALLBACK_FUNCTION(MessageCallback)
+HANDLER_DEFINE_CALLBACK_FUNCTION(ConnectionStart)
+HANDLER_DEFINE_CALLBACK_FUNCTION(ConnectionClosing)
+HANDLER_DEFINE_CALLBACK_FUNCTION(ConnectionCrashed)
+HANDLER_DEFINE_CALLBACK_FUNCTION(PacketStart)
+HANDLER_DEFINE_CALLBACK_FUNCTION(PacketEnd)
+HANDLER_DEFINE_CALLBACK_FUNCTION(FileRequested)
+HANDLER_DEFINE_CALLBACK_FUNCTION(FileReceived)
+HANDLER_DEFINE_CALLBACK_FUNCTION(FileDenied)
+HANDLER_DEFINE_CALLBACK_FUNCTION(FileSent)
+HANDLER_DEFINE_CALLBACK_FUNCTION(ShouldAcceptFile)
 
 /*
  * gameserver library
@@ -2342,18 +2288,33 @@ void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, CNetChan_GetMaxRoutablePayloadSize, "GetMaxRoutablePayloadSize");
 		Util::AddFunc(pLua, CNetChan_SendMessage, "SendMessage");
 		Util::AddFunc(pLua, CNetChan_SendFile, "SendFile");
+		Util::AddFunc(pLua, CNetChan_RequestFile, "RequestFile");
 		Util::AddFunc(pLua, CNetChan_Shutdown, "Shutdown");
 		Util::AddFunc(pLua, CNetChan_CanPacket, "CanPacket");
 
 		// Callbacks
 		Util::AddFunc(pLua, CNetChan_SetMessageCallback, "SetMessageCallback");
 		Util::AddFunc(pLua, CNetChan_GetMessageCallback, "GetMessageCallback");
-		Util::AddFunc(pLua, CNetChan_SetConnectionStartCallback, "SetConnectionStartCallback");
-		Util::AddFunc(pLua, CNetChan_GetConnectionStartCallback, "GetConnectionStartCallback");
-		Util::AddFunc(pLua, CNetChan_SetConnectionClosingCallback, "SetConnectionClosingCallback");
-		Util::AddFunc(pLua, CNetChan_GetConnectionClosingCallback, "GetConnectionClosingCallback");
-		Util::AddFunc(pLua, CNetChan_SetConnectionCrashedCallback, "SetConnectionCrashedCallback");
-		Util::AddFunc(pLua, CNetChan_GetConnectionCrashedCallback, "GetConnectionCrashedCallback");
+		Util::AddFunc(pLua, CNetChan_SetConnectionStart, "SetConnectionStartCallback");
+		Util::AddFunc(pLua, CNetChan_GetConnectionStart, "GetConnectionStartCallback");
+		Util::AddFunc(pLua, CNetChan_SetConnectionClosing, "SetConnectionClosingCallback");
+		Util::AddFunc(pLua, CNetChan_GetConnectionClosing, "GetConnectionClosingCallback");
+		Util::AddFunc(pLua, CNetChan_SetConnectionCrashed, "SetConnectionCrashedCallback");
+		Util::AddFunc(pLua, CNetChan_GetConnectionCrashed, "GetConnectionCrashedCallback");
+		Util::AddFunc(pLua, CNetChan_SetPacketStart, "SetPacketStartCallback");
+		Util::AddFunc(pLua, CNetChan_GetPacketStart, "GetPacketStartCallback");
+		Util::AddFunc(pLua, CNetChan_SetPacketEnd, "SetPacketEndCallback");
+		Util::AddFunc(pLua, CNetChan_GetPacketEnd, "GetPacketEndCallback");
+		Util::AddFunc(pLua, CNetChan_SetFileRequested, "SetFileRequestedCallback");
+		Util::AddFunc(pLua, CNetChan_GetFileRequested, "GetFileRequestedCallback");
+		Util::AddFunc(pLua, CNetChan_SetFileReceived, "SetFileReceivedCallback");
+		Util::AddFunc(pLua, CNetChan_GetFileReceived, "GetFileReceivedCallback");
+		Util::AddFunc(pLua, CNetChan_SetFileDenied, "SetFileDeniedCallback");
+		Util::AddFunc(pLua, CNetChan_GetFileDenied, "GetFileDeniedCallback");
+		Util::AddFunc(pLua, CNetChan_SetFileSent, "SetFileSentCallback");
+		Util::AddFunc(pLua, CNetChan_GetFileSent, "GetFileSentCallback");
+		Util::AddFunc(pLua, CNetChan_SetShouldAcceptFile, "SetShouldAcceptFileCallback");
+		Util::AddFunc(pLua, CNetChan_GetShouldAcceptFile, "GetShouldAcceptFileCallback");
 	pLua->Pop(1);
 
 	Util::StartTable(pLua);
