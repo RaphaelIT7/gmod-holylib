@@ -418,10 +418,10 @@ LUA_FUNCTION_STATIC(pvs_AddEntityToPVS)
 	return 0;
 }
 
-#define LUA_FL_EDICT_DONTSEND 1 << 0 // 0
-#define LUA_FL_EDICT_ALWAYS 1 << 1 // 1
-#define LUA_FL_EDICT_PVSCHECK 1 << 2 // 2
-#define LUA_FL_EDICT_FULLCHECK 1 << 3 // 4
+constexpr int LUA_FL_EDICT_DONTSEND = 1 << 0;
+constexpr int LUA_FL_EDICT_ALWAYS = 1 << 1; 
+constexpr int LUA_FL_EDICT_PVSCHECK = 1 << 2;
+constexpr int LUA_FL_EDICT_FULLCHECK = 1 << 3;
 static void SetOverrideStateFlags(GarrysMod::Lua::ILuaInterface* pLua, CBaseEntity* ent, int flags, bool force)
 {
 	edict_t* edict = ent->edict();

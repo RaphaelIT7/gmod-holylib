@@ -1025,7 +1025,8 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 			const int nFlags = pEdict->m_fStateFlags & (FL_EDICT_DONTSEND|FL_EDICT_ALWAYS|FL_EDICT_PVSCHECK|FL_EDICT_FULLCHECK);
 			if (nFlags & FL_EDICT_DONTSEND)
 			{
-				pNeverTransmitBits.Set(iEdict);
+				// RaphaelIT7: Just because FL_EDICT_DONTSEND is set, doesn't mean it cannot be transmitted....
+				//pNeverTransmitBits.Set(iEdict);
 				NETWORKING_SETSTATE(iEdict, pDontSend)
 				continue;
 			}
@@ -1057,7 +1058,7 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 				if (pEnt->edict() != pEdict)
 					Warning(PROJECT_NAME " - networking: Entity cache is unreliable! We are cooked!\n");
 
-				if (nFlags == FL_EDICT_FULLCHECK)
+				if (nFlags & FL_EDICT_FULLCHECK)
 				{
 					pFullEntityList[++nFullEdictCount] = pEnt;
 					pFullTransmitBits.Set(iEdict);
@@ -1065,7 +1066,7 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 					continue;
 				}
 
-				if (nFlags == FL_EDICT_PVSCHECK)
+				if (nFlags & FL_EDICT_PVSCHECK)
 				{
 					if (networking_areasplit.GetBool())
 					{
@@ -1080,7 +1081,7 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 			}
 
 			// It remained? So never send it!
-			pNeverTransmitBits.Set(iEdict);
+			// pNeverTransmitBits.Set(iEdict);
 			NETWORKING_SETSTATE(iEdict, pUnknownState)
 		}
 
@@ -1993,7 +1994,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 			continue;
 		}
 
-		if (nFlags & FL_EDICT_DONTSEND)
+		if (!(nFlags & FL_EDICT_PVSCHECK))
 		{
 			NETWORKING_SETSTATE(iEdict, pFullDontSend)
 			continue;
