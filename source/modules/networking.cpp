@@ -912,7 +912,7 @@ static inline CBaseViewModel* GetViewModel(const void* pPlayer, const int nViewM
 	Current state:
 	I still have not really any good plan/idea for this and just write random stuff and see how it'll go
 */
-#define NETWORKING_STATE_DEBUGGING 1
+#define NETWORKING_STATE_DEBUGGING 0
 #if NETWORKING_STATE_DEBUGGING
 static const char* pOKForce = "OK_FORCE"; // Forced because of hltv or something
 static const char* pOKFullUpdate = "OK_FULLUPDATE"; // Forced because of a full update
