@@ -221,6 +221,9 @@ namespace Symbols
 	using CGameEventManager_CreateEvent = IGameEvent* (GMCOMMON_CALLING_CONVENTION*)(void* manager, const char* name, bool bForce);
 	extern const std::vector<Symbol> CGameEventManager_CreateEventSym;
 
+	using Sys_Error_Internal = void (*)(bool bMinidump, const char *error, va_list argsList);
+	extern const std::vector<Symbol> Sys_Error_InternalSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: holylib Symbols
 	//---------------------------------------------------------------------------------

@@ -2387,6 +2387,9 @@ static void hook_CServerGameClients_GetPlayerLimit(void* funkyClass, int& minPla
 	minPlayers = 1;
 	maxPlayers = gameserver_maxplayers.GetInt(); // Allows one to go up to 255 slots.
 	defaultMaxPlayers = gameserver_maxplayers.GetInt();
+
+	if (maxPlayers > ABSOLUTE_PLAYER_LIMIT)
+		Util::SysError_IgnoreError("max players limited to", 1);
 }
 
 static Detouring::Hook detour_CBaseServer_ProcessConnectionlessPacket;

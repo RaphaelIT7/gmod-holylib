@@ -670,6 +670,39 @@ int Util::FindOffsetForNetworkVar(const char* pDTName, const char* pVarName)
 	return -1;
 }
 
+struct SysError_SkipInfo
+{
+	std::string msg;
+	uint32_t count;
+};
+
+static std::vector<SysError_SkipInfo> g_pErrorsToIgnore;
+void Util::SysError_IgnoreError(std::string msg, uint32_t count)
+{
+	SysError_SkipInfo& pError = g_pErrorsToIgnore.emplace_back();
+	pError.msg = msg;
+	pError.count = count;
+}
+
+static Detouring::Hook detour_Sys_Error_Internal;
+void hook_Sys_Error_Internal( bool bMinidump, const char *error, va_list argsList )
+{
+	std::string_view strError = error;
+	for (auto it = g_pErrorsToIgnore.begin(); it != g_pErrorsToIgnore.end(); ++it)
+	{
+		if (strError.find(it->msg) != std::string_view::npos)
+		{
+			if (--it->count == 0)
+			{
+				g_pErrorsToIgnore.erase(it);
+				return;
+			}
+		}
+	}
+
+	detour_Sys_Error_Internal.GetTrampoline<Symbols::Sys_Error_Internal>()(bMinidump, error, argsList);
+}
+
 #if SYSTEM_WINDOWS
 #undef CreateEvent // Where tf is that windows include >:(
 DETOUR_THISCALL_START()
@@ -745,6 +778,12 @@ void Util::AddDetour()
 		&detour_CGameEventManager_CreateEvent, "CGameEventManager::CreateEvent",
 		engine_loader.GetModule(), Symbols::CGameEventManager_CreateEventSym,
 		(void*)DETOUR_THISCALL(hook_CGameEventManager_CreateEvent, CreateEvent), 0
+	);
+
+	Detour::Create(
+		&detour_Sys_Error_Internal, "Sys_Error_Internal",
+		engine_loader.GetModule(), Symbols::Sys_Error_InternalSym,
+		(void*)hook_Sys_Error_Internal, 0
 	);
 
 	SourceSDK::ModuleLoader steam_api_loader("steam_api");

@@ -269,6 +269,10 @@ namespace Util
 	extern bool CM_Vis(byte* cluster, int clusterSize, int clusterID, int type);
 	extern void ResetClusters(VisData* data);
 
+	// API to block Sys_Error calls
+	// Registers a message that if an error contains it it'll be skipped x times
+	extern void SysError_IgnoreError(std::string msg, uint32_t count);
+
 	extern bool ShouldLoad();
 	extern void CheckVersion(bool bAutoUpdate);
 
