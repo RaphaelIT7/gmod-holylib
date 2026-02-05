@@ -2216,6 +2216,17 @@ LUA_FUNCTION_STATIC(gameserver_GetCreatedNetChannels)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(gameserver_CreateFakeClient)
+{
+	if (!Util::server || !Util::server->IsActive())
+		return 0;
+
+	const char* pName = LUA->CheckString(1);
+	CBaseServer* pServer = (CBaseServer*)Util::server;
+	Push_CBaseClient(LUA, pServer->CreateFakeClient(pName));
+	return 1;
+}
+
 extern CGlobalVars* gpGlobals;
 static ConVar* sv_stressbots;
 void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
@@ -2349,6 +2360,7 @@ void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, gameserver_SetPassword, "SetPassword");
 		Util::AddFunc(pLua, gameserver_BroadcastMessage, "BroadcastMessage");
 		Util::AddFunc(pLua, gameserver_SendConnectionlessPacket, "SendConnectionlessPacket");
+		Util::AddFunc(pLua, gameserver_CreateFakeClient, "CreateFakeClient");
 
 		Util::AddFunc(pLua, gameserver_CreateNetChannel, "CreateNetChannel");
 		Util::AddFunc(pLua, gameserver_RemoveNetChannel, "RemoveNetChannel");
