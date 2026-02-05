@@ -210,14 +210,14 @@ jobs:
           - arch: 32x
             plugin: gmsv_holylib_linux.so
             plugin_artifact: gmsv_holylib_linux.so
-            vdf: holylib.vdf
+            vdf: holylib_linux.vdf
             ghostinj: ghostinj.dll
             ghostinj_artifact: ghostinj.dll
 
           - arch: 64x
             plugin: gmsv_holylib_linux64.so
             plugin_artifact: gmsv_holylib_linux64.so (64x)
-            vdf: holylib_64.vdf
+            vdf: holylib_linux_64.vdf
             ghostinj: ghostinj.dll
             ghostinj_artifact: ghostinj.dll (64x)
 

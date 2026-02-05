@@ -331,11 +331,11 @@ static void CrashHandler(int signal, siginfo_t* signalInfo, void* ucontext)
 	char crashFileName[64];
 	GenerateCrashFileName(crashFileName, sizeof(crashFileName));
 
-	dprintf(STDERR_FILENO, "%s: Wrote crash log \"%s\"\n", PROJECT_NAME, crashFileName);
-
 	int fileDescriptor = ::open(crashFileName, O_CREAT | O_WRONLY | O_APPEND, 0644);
 	if (fileDescriptor < 0)
 		fileDescriptor = STDERR_FILENO;
+
+	dprintf(STDERR_FILENO, "%s: %s crash log \"%s\"\n", fileDescriptor == STDERR_FILENO ? "Dumping crash log to console - Failed to write" : "Wrote", PROJECT_NAME, crashFileName);
 
 	ModuleInfo pModuleInfo;
 
