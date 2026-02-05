@@ -227,7 +227,7 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: holylib Symbols
 	//---------------------------------------------------------------------------------
-	using GetGModServerTags = void (GMCOMMON_CALLING_CONVENTION*)(char* pDest, int iMaxSize, bool unknown);
+	using GetGModServerTags = void (*)(char* pDest, int iMaxSize, bool unknown);
 	extern const std::vector<Symbol> GetGModServerTagsSym;
 
 	using CFuncLadder_PlayerGotOn = void (GMCOMMON_CALLING_CONVENTION*)(void* ladder, void* ply);
