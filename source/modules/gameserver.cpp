@@ -2380,12 +2380,13 @@ void CGameServerModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 	DeleteAll_CNetChan(pLua);
 }
 
+static ConVar gameserver_maxplayers("holylib_gameserver_maxplayers", "255", 0, "Experimental - max client limit (above 255 cannot be networked, though may work if they remain purely as a CGameClient)", true, 1, true, 2048);
 static Detouring::Hook detour_CServerGameClients_GetPlayerLimit;
 static void hook_CServerGameClients_GetPlayerLimit(void* funkyClass, int& minPlayers, int& maxPlayers, int& defaultMaxPlayers)
 {
 	minPlayers = 1;
-	maxPlayers = 255; // Allows one to go up to 255 slots.
-	defaultMaxPlayers = 255;
+	maxPlayers = gameserver_maxplayers.GetInt(); // Allows one to go up to 255 slots.
+	defaultMaxPlayers = gameserver_maxplayers.GetInt();
 }
 
 static Detouring::Hook detour_CBaseServer_ProcessConnectionlessPacket;
