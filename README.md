@@ -27,14 +27,23 @@ If you use a panel like Pterodactyl or something similar, you can use the gamemo
 If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it will be loaded by holylib's ghostinj.<br>
 
 ## How to Install (Linux 64x)
-1. Download the `holylib.vdf` and `gmsv_holylib_linux.so` from the latest release.<br>
-2. Put the `holylib.vdf` into the `garrysmod/addons/` directory.<br>
+1. Download the `holylib_linux_64.vdf` and `gmsv_holylib_linux.so` from the latest release.<br>
+2. Put the `holylib_linux_64.vdf` into the `garrysmod/addons/` directory.<br>
 3. Put the `gmsv_holylib_linux.so` into the `garrysmod/lua/bin/` directory.<br>
+
+## How to Install (Windows)
+1. Download the `holylib_win.vdf`(or the `_64` one) and `gmsv_holylib_[win32/win64].dll` from the latest release.<br>
+2. Put the `holylib_win.vdf` into the `garrysmod/addons/` directory.<br>
+3. Put the `gmsv_holylib_[win32/win64].dll` into the `garrysmod/lua/bin/` directory.<br>
 
 ## Custom Builds (Linux Only)
 You can fork this repository and use the `Build Custom Version` to create a custom HolyLib version that only contains specific functions.<br>
 I heard from some that they don't want a huge DLL of which they only use a few functions of,<br>
 so by making a custom build, anyone can include just the stuff they actually want and need, nothing else.<br>
+
+## Dev Builds
+Every commit triggers a compile workflow, resulting in a dev build<br>
+All of those can be found under the `Actions` tab -> https://github.com/RaphaelIT7/gmod-holylib/actions<br>
 
 ## How to update (Newer GhostInj)
 
@@ -164,6 +173,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [#] Fixed `holylib_filesystem_splitgamepath` breaking searchpath separation. It now only takes effects for the `GAME` path<br>
 \- [#] Fixed `INetworkStringTable:GetStringUserData` not fully pushing the userdata as a string<br>
 \- [#] Changed internal code to use `ArgError` instead of `ThrowError` where possible to improve Lua errors when invalid function arguments are given<br>
+\- [#] Removed dependency on bass allowing HolyLib to be loaded on Windows srcds
 \- [-] Removed some unused code of former fixes that were implemented into GMod<br>
 
 You can see all changes/commits here:<br>

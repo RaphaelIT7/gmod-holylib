@@ -913,9 +913,6 @@ IGModAudioChannel* CGMod_Audio::CreateSplitChannel(IGModAudioChannel* pChannel, 
 // We gotta load some DLLs first as bass won't load shit itself when using BASS_PluginLoad >:(
 bool CGMod_Audio::LoadDLL(const char* pDLLName, void** pDLLHandle)
 {
-	if (!m_bInitialized)
-		return false;
-
 	if (pDLLHandle)
 		*pDLLHandle = nullptr;
 
