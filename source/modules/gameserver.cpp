@@ -29,6 +29,7 @@ public:
 static ConVar gameserver_disablespawnsafety("holylib_gameserver_disablespawnsafety", "0", 0, "If enabled, players can spawn on slots above 128 but this WILL cause stability and many other issues!");
 static ConVar gameserver_connectionlesspackethook("holylib_gameserver_connectionlesspackethook", "1", 0, "If enabled, the HolyLib:ProcessConnectionlessPacket hook is active and will be called.");
 ConVar sv_filter_nobanresponse("sv_filter_nobanresponse", "0", 0, "If enabled, a blocked ip won't be informed that its even blocked.");
+static ConVar gameserver_rawclients("holylib_gameserver_rawclients", "0", 0, "Experimental - Exposes the CBaseClient's even when their empty/have no clients connected");
 
 static CGameServerModule g_pGameServerModule;
 IModule* pGameServerModule = &g_pGameServerModule;
@@ -63,7 +64,7 @@ public:
 };
 
 PushReferenced_LuaClass(CBaseClient)
-SpecialGet_LuaClass(CBaseClient, CHLTVClient, "CBaseClient", pVar->IsConnected())
+SpecialGet_LuaClass(CBaseClient, CHLTVClient, "CBaseClient", (gameserver_rawclients.GetBool() || pVar->IsConnected()))
 
 Default__index(CBaseClient);
 Default__newindex(CBaseClient);
@@ -2227,6 +2228,30 @@ LUA_FUNCTION_STATIC(gameserver_CreateFakeClient)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(gameserver_CreateNewClient)
+{
+	if (!Util::server || !Util::server->IsActive())
+		return 0;
+
+	int nSlot = LUA->CheckNumber(1);
+	CBaseServer* pServer = (CBaseServer*)Util::server;
+	Push_CBaseClient(LUA, pServer->CreateNewClient(nSlot));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(gameserver_GetFreeClient)
+{
+	if (!Util::server || !Util::server->IsActive())
+		return 0;
+
+	netadrnew_t adr;
+	adr.SetFromString(LUA->CheckString(1), LUA->GetBool(2));
+
+	CBaseServer* pServer = (CBaseServer*)Util::server;
+	Push_CBaseClient(LUA, pServer->GetFreeClient(*((netadr_t*)&adr)));
+	return 1;
+}
+
 extern CGlobalVars* gpGlobals;
 static ConVar* sv_stressbots;
 void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
@@ -2361,6 +2386,8 @@ void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, gameserver_BroadcastMessage, "BroadcastMessage");
 		Util::AddFunc(pLua, gameserver_SendConnectionlessPacket, "SendConnectionlessPacket");
 		Util::AddFunc(pLua, gameserver_CreateFakeClient, "CreateFakeClient");
+		Util::AddFunc(pLua, gameserver_CreateNewClient, "CreateNewClient");
+		Util::AddFunc(pLua, gameserver_GetFreeClient, "GetFreeClient");
 
 		Util::AddFunc(pLua, gameserver_CreateNetChannel, "CreateNetChannel");
 		Util::AddFunc(pLua, gameserver_RemoveNetChannel, "RemoveNetChannel");
