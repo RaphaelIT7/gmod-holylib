@@ -266,6 +266,7 @@ private:
 	std::unordered_map<std::string, HPLUGIN> m_pLoadedPlugins;
 	std::vector<void*> m_pLoadedDLLs;
 	std::unordered_set<CGModAudioChannelEncoder*> m_pEncoders;
+	bool m_bInitialized = false;
 };
 
 // extern const char* g_BASSErrorStrings[];

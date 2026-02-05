@@ -2,54 +2,25 @@
 #include <stdio.h>
 #include <filesystem>
 
-#if SYSTEM_WINDOWS
-#ifndef DLFCN_H
-	#define DLFCN_H
-
-	#ifdef __cplusplus
-	extern "C" {
-	#endif
-
-	#if defined(DLFCN_WIN32_SHARED)
-	#if defined(DLFCN_WIN32_EXPORTS)
-	#   define DLFCN_EXPORT __declspec(dllexport)
-	#else
-	#   define DLFCN_EXPORT __declspec(dllimport)
-	#endif
-	#else
-	#   define DLFCN_EXPORT
-	#endif
-
-	#define RTLD_LAZY	0x00001
-	#define RTLD_NOW	0x00002
-	#define	RTLD_BINDING_MASK   0x3
-	#define RTLD_NOLOAD	0x00004
-	#define RTLD_DEEPBIND	0x00008	
-
-	typedef struct dl_info
-	{
-		const char* dli_fname;
-		void* dli_fbase;
-		const char* dli_sname;
-		void* dli_saddr;
-	} Dl_info;
-
-	DLFCN_EXPORT void* dlopen( const char* file, int mode );
-	DLFCN_EXPORT int dlclose( void* handle );
-	DLFCN_EXPORT void* dlsym( void* handle, const char* name );
-	DLFCN_EXPORT char* dlerror( void );
-	DLFCN_EXPORT int dladdr( const void* addr, Dl_info* info );
-
-	#ifdef __cplusplus
-	}
-	#endif
-
-	int usleep( int a ) { 
-		return a;
-	}
-#endif /* DLFCN_H */
+// Realized after adding windows support that usegh was linux only... well just in case for the future I guess... :sob:
+#ifdef WIN32
+#include <Windows.h>
+#undef GetObject
+#undef GetClassName
+#define DLL_Handle HMODULE
+#define DLL_LoadModule(name, _) LoadLibrary(name)
+#define DLL_UnloadModule(handle) FreeLibrary((DLL_Handle)handle)
+#define DLL_GetAddress(handle, name) GetProcAddress((DLL_Handle)handle, name)
+#define DLL_LASTERROR "LINUXONLY"
+#define DLL_EXTENSION ".dll"
 #else
 #include <dlfcn.h>
+#define DLL_Handle void*
+#define DLL_LoadModule(name, type) dlopen(name, type)
+#define DLL_UnloadModule(handle) dlclose(handle)
+#define DLL_GetAddress(handle, name) dlsym(handle, name)
+#define DLL_LASTERROR dlerror()
+#define DLL_EXTENSION ".so"
 #endif
 
 #ifdef ARCHITECTURE_X86
@@ -60,17 +31,17 @@
 
 void UpdateHolyLib()
 {
-	if ( std::filesystem::exists( "garrysmod/lua/bin/" HOLYLIB_FILENAME "_updated.so" ) )
+	if ( std::filesystem::exists( "garrysmod/lua/bin/" HOLYLIB_FILENAME "_updated" DLL_EXTENSION ) )
 	{
 		printf( "Found a updated holylib version.\n" );
-		std::filesystem::rename( "garrysmod/lua/bin/" HOLYLIB_FILENAME ".so", "garrysmod/lua/bin/" HOLYLIB_FILENAME "_previous.so" );
-		std::filesystem::rename( "garrysmod/lua/bin/" HOLYLIB_FILENAME "_updated.so", "garrysmod/lua/bin/" HOLYLIB_FILENAME ".so" );
+		std::filesystem::rename( "garrysmod/lua/bin/" HOLYLIB_FILENAME DLL_EXTENSION, "garrysmod/lua/bin/" HOLYLIB_FILENAME "_previous" DLL_EXTENSION );
+		std::filesystem::rename( "garrysmod/lua/bin/" HOLYLIB_FILENAME "_updated" DLL_EXTENSION, "garrysmod/lua/bin/" HOLYLIB_FILENAME DLL_EXTENSION );
 		printf( "Updated HolyLib\n" );
 	}
 }
 
-void* ghostinj2 = NULL;
-void* holylib = NULL;
+DLL_Handle ghostinj2 = NULL;
+DLL_Handle holylib = NULL;
 typedef void ( *plugin_main )();
 void Load()
 {
@@ -78,18 +49,18 @@ void Load()
 
 	UpdateHolyLib();
 
-	holylib = dlopen( "garrysmod/lua/bin/" HOLYLIB_FILENAME ".so", RTLD_NOW );
+	holylib = DLL_LoadModule( "garrysmod/lua/bin/" HOLYLIB_FILENAME DLL_EXTENSION, RTLD_NOW );
 	if ( !holylib )
-		printf( "Failed to open " HOLYLIB_FILENAME ".so (%s)\n", dlerror() );
+		printf( "Failed to open " HOLYLIB_FILENAME DLL_EXTENSION " (%s)\n", DLL_LASTERROR );
 
-	plugin_main plugin = reinterpret_cast< plugin_main >( dlsym( holylib, "HolyLib_PreLoad" ) );
+	plugin_main plugin = reinterpret_cast< plugin_main >( DLL_GetAddress( holylib, "HolyLib_PreLoad" ) );
 	if ( !plugin ) {
-		printf( "Failed to find HolyLib entry point (%s)\n", dlerror() );
+		printf( "Failed to find HolyLib entry point (%s)\n", DLL_LASTERROR );
 	} else {
 		plugin();
 	}
 
-	ghostinj2 = dlopen( "ghostinj2.dll", RTLD_NOW );
+	ghostinj2 = DLL_LoadModule( "ghostinj2.dll", RTLD_NOW );
 	if ( ghostinj2 )
 		printf( "Found and loaded ghostinj2.dll\n" );
 
@@ -101,10 +72,10 @@ void Unload()
 	printf( "--- HolyLib-GhostInj unloading ---\n" );
 
 	if ( holylib )
-		dlclose( holylib );
+		DLL_UnloadModule( holylib );
 
 	if ( ghostinj2 )
-		dlclose( ghostinj2 );
+		DLL_UnloadModule( ghostinj2 );
 
 	printf( "--- HolyLib-GhostInj unloaded ---\n" );
 }

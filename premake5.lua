@@ -105,6 +105,7 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 		defines("IVP_NO_PERFORMANCE_TIMER")
 		defines("PHYSENV_INCLUDEIVPFALLBACK")
 		defines("CPPHTTPLIB_NO_EXCEPTIONS") -- We don't want exceptions!
+		defines("NOBASSOVERLOADS")
 
 		prebuildcommands(prebuildCommand)
 
@@ -147,8 +148,6 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			disablewarnings({"4101"})
 			links({"lua51_32.lib"})
 			links({"lua51_64.lib"})
-			links({"bass_32.lib"})
-			links({"bass_64.lib"})
 			links({"opus_32.lib"})
 			links({"opus_64.lib"})
 
@@ -175,5 +174,5 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 		filter("system:linux")
 			disablewarnings({"unused-variable"})
 			targetextension(".so")
-			links({"dl", "tier0", "pthread", "bass"}) -- this fixes the undefined reference to `dlopen' errors.
+			links({"dl", "tier0", "pthread"}) -- this fixes the undefined reference to `dlopen' errors.
 			defines("DEDICATED") -- All linux build focus Linux dedicated servers. Windows focus on the gmod client

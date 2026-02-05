@@ -17,9 +17,9 @@ Does anyone even use windows srcds for actual servers?<br>
 > I'm not actively testing windows, so if I accidentally broke it, open a issue since I most likely didn't know about it.<br>
 
 ## How to Install (Linux 32x)
-1. Download the `ghostinj.dll`, `holylib.vdf` and `gmsv_holylib_linux.so` from the latest release.<br>
+1. Download the `ghostinj.dll`, `holyliblinux.vdf` and `gmsv_holylib_linux.so` from the latest release.<br>
 2. Put the `ghostinj.dll` into the main directory where `srcds_linux` is located.<br>
-3. Put the `holylib.vdf` into the `garrysmod/addons/` directory.<br>
+3. Put the `holylib_linux.vdf` into the `garrysmod/addons/` directory.<br>
 4. Put the `gmsv_holylib_linux.so` into the `garrysmod/lua/bin/` directory.
 5. Add `-usegh` to the servers startup params.<br>
 If you use a panel like Pterodactyl or something similar, you can use the gamemode field (in most cases) like this: `sandbox -usegh`<br>
