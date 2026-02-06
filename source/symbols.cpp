@@ -138,7 +138,7 @@ namespace Symbols
 	const std::vector<Symbol> GetGModServerTagsSym = { // "gmws:"
 		Symbol::FromName("_Z17GetGModServerTagsPcjb"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x4C\x8D\xAD\x30\xFF\xFF\xFF"), // 55 48 89 E5 41 57 41 56 41 55 4C 8D AD 30 FF FF FF
-		Symbol::FromSignature("\x55\x8B\xEC\x81\xEC\x80\x00\x00\x00\x8B*****\x53\xC7\x45\x84"), // 55 8B EC 81 EC 80 00 00 00 8B ?? ?? ?? ?? ?? 53 C7 45 84
+		Symbol::FromSignature("\x55\x8B\xEC\x81\xEC\x80\x00\x00\x00\x8B\x0D\x2A\x2A\x2A\x2A"), // 55 8B EC 81 EC 80 00 00 00 8B 0D ? ? ? ?
 		Symbol::FromSignature("\x40\x55\x56\x57\x41\x55\x41\x56\x41\x57\x48\x8D\x6C\x24\xD1"), // 40 55 56 57 41 55 41 56 41 57 48 8D 6C 24 D1
 	};
 
