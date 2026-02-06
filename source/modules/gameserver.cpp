@@ -922,7 +922,7 @@ void Push_CBaseClientMeta(GarrysMod::Lua::ILuaInterface* pLua)
 
 LUA_FUNCTION_STATIC(CGameClient__tostring)
 {
-	CBaseClient* pClient = Get_CBaseClient(LUA, 1, false);
+	CGameClient* pClient = (CGameClient*)Get_CBaseClient(LUA, 1, false);
 	if (!pClient || !pClient->IsConnected())
 	{
 		LUA->PushString("GameClient [NULL]");
