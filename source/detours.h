@@ -238,14 +238,14 @@ byte m_##name = 0;
 #define DLL_EXTENSION ".dll"
 #define LIBRARY_EXTENSION ".dll"
 #if ARCHITECTURE_IS_X86
-#ifdef DEDICATED
+#ifndef NOT_DEDICATED
 #define DETOUR_SYMBOL_ID 4
 #else
 #define DETOUR_SYMBOL_ID 2
 #endif
 #define MODULE_EXTENSION "win32"
 #else
-#ifdef DEDICATED
+#ifndef NOT_DEDICATED
 #define DETOUR_SYMBOL_ID 5
 #else
 #define DETOUR_SYMBOL_ID 3
