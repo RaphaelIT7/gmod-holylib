@@ -1854,10 +1854,10 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 
 	// ToDo: Redo EVERY Hook so that we'll abuse the vtable instead of symbols.  
 	// Use the ClassProxy or so which should also allow me to port this to windows.
-	#if defined( DEDICATED )
-		SourceSDK::FactoryLoader filesystem_loader("dedicated");
-	#else
+	#if defined( NOT_DEDICATED )
 		SourceSDK::FactoryLoader filesystem_loader("filesystem_stdio");
+	#else
+		SourceSDK::FactoryLoader filesystem_loader("dedicated");
 	#endif
 
 	// A total abomination to get the vtable so that we can pass the functions to use as hooks

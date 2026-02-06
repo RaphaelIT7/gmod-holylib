@@ -179,8 +179,8 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			defines("PLATFORM_64BITS")
 
 		filter("system:windows")
-			if HOLYLIB_DEDICATED then
-				defines("DEDICATED") -- Windows dedicated server build
+			if !HOLYLIB_DEDICATED then
+				defines("NOT_DEDICATED") -- Windows dedicated server build
 			end
 
 		filter("system:linux")
