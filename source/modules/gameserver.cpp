@@ -29,6 +29,7 @@ public:
 static ConVar gameserver_disablespawnsafety("holylib_gameserver_disablespawnsafety", "0", 0, "If enabled, players can spawn on slots above 128 but this WILL cause stability and many other issues!");
 static ConVar gameserver_connectionlesspackethook("holylib_gameserver_connectionlesspackethook", "1", 0, "If enabled, the HolyLib:ProcessConnectionlessPacket hook is active and will be called.");
 ConVar sv_filter_nobanresponse("sv_filter_nobanresponse", "0", 0, "If enabled, a blocked ip won't be informed that its even blocked.");
+static ConVar gameserver_rawclients("holylib_gameserver_rawclients", "0", 0, "Experimental - Exposes the CBaseClient's even when their empty/have no clients connected");
 
 static CGameServerModule g_pGameServerModule;
 IModule* pGameServerModule = &g_pGameServerModule;
@@ -63,7 +64,7 @@ public:
 };
 
 PushReferenced_LuaClass(CBaseClient)
-SpecialGet_LuaClass(CBaseClient, CHLTVClient, "CBaseClient", pVar->IsConnected())
+SpecialGet_LuaClass(CBaseClient, CHLTVClient, "CBaseClient", (gameserver_rawclients.GetBool() || pVar->IsConnected()))
 
 Default__index(CBaseClient);
 Default__newindex(CBaseClient);
@@ -921,7 +922,7 @@ void Push_CBaseClientMeta(GarrysMod::Lua::ILuaInterface* pLua)
 
 LUA_FUNCTION_STATIC(CGameClient__tostring)
 {
-	CBaseClient* pClient = Get_CBaseClient(LUA, 1, false);
+	CGameClient* pClient = (CGameClient*)Get_CBaseClient(LUA, 1, false);
 	if (!pClient || !pClient->IsConnected())
 	{
 		LUA->PushString("GameClient [NULL]");
@@ -2216,6 +2217,41 @@ LUA_FUNCTION_STATIC(gameserver_GetCreatedNetChannels)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(gameserver_CreateFakeClient)
+{
+	if (!Util::server || !Util::server->IsActive())
+		return 0;
+
+	const char* pName = LUA->CheckString(1);
+	CBaseServer* pServer = (CBaseServer*)Util::server;
+	Push_CBaseClient(LUA, pServer->CreateFakeClient(pName));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(gameserver_CreateNewClient)
+{
+	if (!Util::server || !Util::server->IsActive())
+		return 0;
+
+	int nSlot = LUA->CheckNumber(1);
+	CBaseServer* pServer = (CBaseServer*)Util::server;
+	Push_CBaseClient(LUA, pServer->CreateNewClient(nSlot));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(gameserver_GetFreeClient)
+{
+	if (!Util::server || !Util::server->IsActive())
+		return 0;
+
+	netadrnew_t adr;
+	adr.SetFromString(LUA->CheckString(1), LUA->GetBool(2));
+
+	CBaseServer* pServer = (CBaseServer*)Util::server;
+	Push_CBaseClient(LUA, pServer->GetFreeClient(*((netadr_t*)&adr)));
+	return 1;
+}
+
 extern CGlobalVars* gpGlobals;
 static ConVar* sv_stressbots;
 void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
@@ -2349,6 +2385,9 @@ void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, gameserver_SetPassword, "SetPassword");
 		Util::AddFunc(pLua, gameserver_BroadcastMessage, "BroadcastMessage");
 		Util::AddFunc(pLua, gameserver_SendConnectionlessPacket, "SendConnectionlessPacket");
+		Util::AddFunc(pLua, gameserver_CreateFakeClient, "CreateFakeClient");
+		Util::AddFunc(pLua, gameserver_CreateNewClient, "CreateNewClient");
+		Util::AddFunc(pLua, gameserver_GetFreeClient, "GetFreeClient");
 
 		Util::AddFunc(pLua, gameserver_CreateNetChannel, "CreateNetChannel");
 		Util::AddFunc(pLua, gameserver_RemoveNetChannel, "RemoveNetChannel");
@@ -2368,12 +2407,16 @@ void CGameServerModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 	DeleteAll_CNetChan(pLua);
 }
 
+static ConVar gameserver_maxplayers("holylib_gameserver_maxplayers", "255", 0, "Experimental - max client limit (above 255 cannot be networked, though may work if they remain purely as a CGameClient)", true, 1, true, 2048);
 static Detouring::Hook detour_CServerGameClients_GetPlayerLimit;
 static void hook_CServerGameClients_GetPlayerLimit(void* funkyClass, int& minPlayers, int& maxPlayers, int& defaultMaxPlayers)
 {
 	minPlayers = 1;
-	maxPlayers = 255; // Allows one to go up to 255 slots.
-	defaultMaxPlayers = 255;
+	maxPlayers = gameserver_maxplayers.GetInt(); // Allows one to go up to 255 slots.
+	defaultMaxPlayers = gameserver_maxplayers.GetInt();
+
+	if (maxPlayers > ABSOLUTE_PLAYER_LIMIT)
+		Util::SysError_IgnoreError("max players limited to", 1);
 }
 
 static Detouring::Hook detour_CBaseServer_ProcessConnectionlessPacket;

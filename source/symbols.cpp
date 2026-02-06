@@ -132,6 +132,10 @@ namespace Symbols
 		Symbol::FromSignature("\x48\x89\x5C\x24\x08\x48\x89\x6C\x24\x10\x48\x89\x74\x24\x18\x57\x41\x56\x41\x57\x48\x83\xEC\x20\x45\x0F\xB6\xF8"),	
 	};
 
+	const std::vector<Symbol> Sys_Error_InternalSym = {
+		Symbol::FromName("_Z18Sys_Error_InternalbPKcPc"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: holylib Symbols
 	//---------------------------------------------------------------------------------
