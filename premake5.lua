@@ -11,6 +11,13 @@ if not HOLYLIB_DEVELOPMENT then
 		description = "Sets the path to the garrysmod_common (https://github.com/danielga/garrysmod_common) directory",
 		default = "../garrysmod_common"
 	})
+
+	newoption({
+		trigger = "dedicated",
+		description = "Build for Windows dedicated server (defines DEDICATED)"
+	})
+
+	HOLYLIB_DEDICATED = _OPTIONS["dedicated"] and true or false
 end
 
 local gmcommon = assert(_OPTIONS.gmcommon or os.getenv("GARRYSMOD_COMMON"),
@@ -171,8 +178,13 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 		filter({"platforms:x86_64"})
 			defines("PLATFORM_64BITS")
 
+		filter("system:windows")
+			if HOLYLIB_DEDICATED then
+				defines("DEDICATED") -- Windows dedicated server build
+			end
+
 		filter("system:linux")
 			disablewarnings({"unused-variable"})
 			targetextension(".so")
 			links({"dl", "tier0", "pthread"}) -- this fixes the undefined reference to `dlopen' errors.
-			defines("DEDICATED") -- All linux build focus Linux dedicated servers. Windows focus on the gmod client
+			defines("DEDICATED") -- All linux build focus Linux dedicated servers.

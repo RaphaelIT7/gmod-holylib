@@ -16,7 +16,6 @@
 struct edict_t;
 #include "playerinfomanager.h"
 
-#define DEDICATED
 #include "vstdlib/jobthread.h"
 #include <eiface.h>
 #include <icommandline.h>
