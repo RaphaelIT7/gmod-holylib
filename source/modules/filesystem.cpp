@@ -60,7 +60,7 @@ static ConVar holylib_filesystem_precachehandle("holylib_filesystem_precachehand
 	"If enabled, it will try to predict which file it will open next and open the file to keep a handle ready to be opened.");
 static ConVar holylib_filesystem_savesearchcache("holylib_filesystem_savesearchcache", "1", FCVAR_ARCHIVE,
 	"If enabled, it will write the search cache into a file and restore it when starting, using it to improve performance.");
-static ConVar holylib_filesystem_mergesearchcache("holylib_filesystem_mergesearchcache", "1", FCVAR_ARCHIVE,
+static ConVar holylib_filesystem_mergesearchcache("holylib_filesystem_mergesearchcache", "0", FCVAR_ARCHIVE,
 	"If enabled, when saving the search cache it will not remove old entries and instead keep them even if they were unused this session");
 static ConVar holylib_filesystem_skipinvalidluapaths("holylib_filesystem_skipinvalidluapaths", "1", FCVAR_ARCHIVE,
 	"If enabled, invalid lua paths like include/include/ will be skipped instantly");
