@@ -557,6 +557,7 @@ static int GetStateFlags(GarrysMod::Lua::ILuaInterface* pLua, CBaseEntity* ent, 
 	int newFlags = flags;
 	if (!force)
 	{
+		flags = flags & (FL_EDICT_DONTSEND|FL_EDICT_ALWAYS|FL_EDICT_PVSCHECK|FL_EDICT_FULLCHECK);
 		newFlags = 0;
 		if (flags & FL_EDICT_DONTSEND)
 			newFlags |= LUA_FL_EDICT_DONTSEND;
@@ -567,7 +568,7 @@ static int GetStateFlags(GarrysMod::Lua::ILuaInterface* pLua, CBaseEntity* ent, 
 		if (flags & FL_EDICT_PVSCHECK)
 			newFlags |= LUA_FL_EDICT_PVSCHECK;
 
-		if (flags & FL_EDICT_FULLCHECK)
+		if (flags == FL_EDICT_FULLCHECK)
 			newFlags |= LUA_FL_EDICT_FULLCHECK;
 	}
 

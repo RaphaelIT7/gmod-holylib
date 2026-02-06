@@ -89,6 +89,11 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 
 	Msg("--- HolyLib Plugin loading ---\n");
 
+#if !defined(DEDICATED)
+	Msg("Tried to load a HolyLib build that wasn't made for a dedicated server!\n");
+	return false;
+#endif
+
 	if (!Util::ShouldLoad())
 	{
 		Msg("HolyLib already exists? Stopping.\n");
