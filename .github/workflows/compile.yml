@@ -51,7 +51,7 @@ jobs:
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
       BUILD_CACHE: "true"
       UPLOAD_PDB: "true"
-      BUILD_DEDICATED: "true"
+      BUILD_WINDOWS_DEDICATED: "true"
 
   build_plugin_linux:
     name: "Build Plugin"
