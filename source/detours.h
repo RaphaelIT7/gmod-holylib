@@ -238,32 +238,57 @@ byte m_##name = 0;
 #define DLL_EXTENSION ".dll"
 #define LIBRARY_EXTENSION ".dll"
 #if ARCHITECTURE_IS_X86
+#ifdef DEDICATED
+#define DETOUR_SYMBOL_ID 4
+#else
 #define DETOUR_SYMBOL_ID 2
+#endif
 #define MODULE_EXTENSION "win32"
 #else
+#ifdef DEDICATED
+#define DETOUR_SYMBOL_ID 5
+#else
 #define DETOUR_SYMBOL_ID 3
+#endif
 #define MODULE_EXTENSION "win64"
 #endif
 #endif
+
+	inline const Symbol* GetSymbolForID(const std::vector<Symbol>& pSymbols)
+	{
+	#if DETOUR_SYMBOL_ID != 4 && DETOUR_SYMBOL_ID != 5
+		if (pSymbols.size() <= DETOUR_SYMBOL_ID)
+			return nullptr;
+	#else
+		if (pSymbols.size() <= DETOUR_SYMBOL_ID)
+		{
+			if (pSymbols.size() <= (DETOUR_SYMBOL_ID - 2))
+				return nullptr;
+
+			return &pSymbols[DETOUR_SYMBOL_ID - 2];
+		}
+	#endif
+
+		return &pSymbols[DETOUR_SYMBOL_ID];
+	}
 
 	template<class T>
 	inline T* ResolveSymbol(
 		SourceSDK::FactoryLoader& pLoader, const std::vector<Symbol>& pSymbols
 	)
 	{
-	#if DETOUR_SYMBOL_ID != 0
-		if ((pSymbols.size()-1) < DETOUR_SYMBOL_ID)
+		const Symbol* pSymbol = GetSymbolForID(pSymbols);
+		if (!pSymbol)
 			return nullptr;
-	#endif
 
 	#if defined SYSTEM_WINDOWS
 		auto iface = reinterpret_cast<T**>(symfinder.Resolve(
-			pLoader.GetModule(), pSymbols[DETOUR_SYMBOL_ID].name.c_str(), pSymbols[DETOUR_SYMBOL_ID].length
+			pLoader.GetModule(), pSymbol->name.c_str(), pSymbol->length
 		));
 		return iface != nullptr ? *iface : nullptr;
 	#elif defined SYSTEM_POSIX
 		return reinterpret_cast<T*>(symfinder.Resolve(
-			pLoader.GetModule(), pSymbols[DETOUR_SYMBOL_ID].name.c_str(), pSymbols[DETOUR_SYMBOL_ID].length
+			pLoader.GetModule(), pSymbol->name.c_str(), pSymbol->length
 		));
 	#endif
 	}
@@ -273,13 +298,12 @@ byte m_##name = 0;
 		SourceSDK::FactoryLoader& pLoader, const std::vector<Symbol>& pSymbols
 	)
 	{
-	#if DETOUR_SYMBOL_ID != 0
-		if ((pSymbols.size()-1) < DETOUR_SYMBOL_ID)
+		const Symbol* pSymbol = GetSymbolForID(pSymbols);
+		if (!pSymbol)
 			return nullptr;
-	#endif
 
 		return reinterpret_cast<T*>(symfinder.Resolve(
-			pLoader.GetModule(), pSymbols[DETOUR_SYMBOL_ID].name.c_str(), pSymbols[DETOUR_SYMBOL_ID].length
+			pLoader.GetModule(), pSymbol->name.c_str(), pSymbol->length
 		));
 	}
 
@@ -318,22 +342,21 @@ byte m_##name = 0;
 	template<class T>
 	inline T* ResolveSymbolWithOffset(void* pModule, const std::vector<Symbol>& pSymbols)
 	{
-	#if DETOUR_SYMBOL_ID != 0
-		if ((pSymbols.size()-1) < DETOUR_SYMBOL_ID)
+		const Symbol* pSymbol = GetSymbolForID(pSymbols);
+		if (!pSymbol)
 			return nullptr;
-	#endif
 
-		void* matchAddr = GetFunction(pModule, pSymbols[DETOUR_SYMBOL_ID]);
+		void* matchAddr = GetFunction(pModule, *pSymbol);
 		if (matchAddr == nullptr)
 		{
-			Warning(PROJECT_NAME ": Failed to get matchAddr! %s\n", pSymbols[DETOUR_SYMBOL_ID].name.c_str());
+			Warning(PROJECT_NAME ": Failed to get matchAddr! %s\n", pSymbol->name.c_str());
 			return nullptr;
 		}
 
 	#if defined(SYSTEM_WINDOWS)
-		uint8_t* ip = reinterpret_cast<uint8_t*>((char*)(matchAddr) + pSymbols[DETOUR_SYMBOL_ID].offset);
+		uint8_t* ip = reinterpret_cast<uint8_t*>((char*)(matchAddr) + pSymbol->offset);
 	#else
-		uint8_t* ip = reinterpret_cast<uint8_t*>(matchAddr + pSymbols[DETOUR_SYMBOL_ID].offset);
+		uint8_t* ip = reinterpret_cast<uint8_t*>(matchAddr + pSymbol->offset);
 	#endif
 
 		//
@@ -417,24 +440,22 @@ byte m_##name = 0;
 
 	inline void* GetFunction(void* pModule, std::vector<Symbol> pSymbols)
 	{
-#if DETOUR_SYMBOL_ID != 0
-		if ((pSymbols.size()-1) < DETOUR_SYMBOL_ID)
+		const Symbol* pSymbol = GetSymbolForID(pSymbols);
+		if (!pSymbol)
 			return nullptr;
-#endif
 
-		return GetFunction(pModule, pSymbols[DETOUR_SYMBOL_ID]);
+		return GetFunction(pModule, *pSymbol);
 	}
 
 	inline void Create(Detouring::Hook* pHook, const char* strName, void* pModule, std::vector<Symbol> pSymbols, void* pHookFunc, unsigned int category = 0)
 	{
-#if DETOUR_SYMBOL_ID != 0
-		if ((pSymbols.size()-1) < DETOUR_SYMBOL_ID)
+		const Symbol* pSymbol = GetSymbolForID(pSymbols);
+		if (!pSymbol)
 		{
 			CheckFunction(nullptr, strName);
 			return;
 		}
-#endif
 
-		Create(pHook, strName, pModule, pSymbols[DETOUR_SYMBOL_ID], pHookFunc, category);
+		Create(pHook, strName, pModule, *pSymbol, pHookFunc, category);
 	}
 }

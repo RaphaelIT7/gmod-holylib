@@ -16,7 +16,6 @@
 struct edict_t;
 #include "playerinfomanager.h"
 
-#define DEDICATED
 #include "vstdlib/jobthread.h"
 #include <eiface.h>
 #include <icommandline.h>
@@ -89,6 +88,11 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 	VPROF_BUDGET("HolyLib - CServerPlugin::Load", VPROF_BUDGETGROUP_HOLYLIB);
 
 	Msg("--- HolyLib Plugin loading ---\n");
+
+#if !defined(DEDICATED)
+	Msg("Tried to load a HolyLib build that wasn't made for a dedicated server!\n");
+	return false;
+#endif
 
 	if (!Util::ShouldLoad())
 	{
