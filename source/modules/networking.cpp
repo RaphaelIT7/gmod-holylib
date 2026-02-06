@@ -1058,7 +1058,7 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 				if (pEnt->edict() != pEdict)
 					Warning(PROJECT_NAME " - networking: Entity cache is unreliable! We are cooked!\n");
 
-				if (nFlags & FL_EDICT_FULLCHECK)
+				if (nFlags == FL_EDICT_FULLCHECK)
 				{
 					pFullEntityList[++nFullEdictCount] = pEnt;
 					pFullTransmitBits.Set(iEdict);
