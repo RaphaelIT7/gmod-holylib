@@ -144,7 +144,7 @@ namespace Symbols
 	const std::vector<Symbol> GetGModServerTagsSym = { // "gmws:"
 		Symbol::FromName("_Z17GetGModServerTagsPcjb"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x4C\x8D\xAD\x30\xFF\xFF\xFF"), // 55 48 89 E5 41 57 41 56 41 55 4C 8D AD 30 FF FF FF
-		Symbol::FromSignature("\x55\x8B\xEC\x81\xEC\x80\x00\x00\x00\x8B*****\x53\xC7\x45\x84"), // 55 8B EC 81 EC 80 00 00 00 8B ?? ?? ?? ?? ?? 53 C7 45 84
+		Symbol::FromSignature("\x55\x8B\xEC\x81\xEC\x80\x00\x00\x00\x8B\x0D\x2A\x2A\x2A\x2A"), // 55 8B EC 81 EC 80 00 00 00 8B 0D ? ? ? ?
 		Symbol::FromSignature("\x40\x55\x56\x57\x41\x55\x41\x56\x41\x57\x48\x8D\x6C\x24\xD1"), // 40 55 56 57 41 55 41 56 41 57 48 8D 6C 24 D1
 	};
 
@@ -354,8 +354,9 @@ namespace Symbols
 	const std::vector<Symbol> CBaseFileSystem_IsDirectorySym = { // Search for "Unable to rename %s to %s!\n" to get CBaseFileSystem::RenameFile then xref and get the vtable and 2 bellow
 		Symbol::FromName("_ZN15CBaseFileSystem11IsDirectoryEPKcS1_"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x4C\x8D\xAD\x38***\x41\x54"), // 55 48 89 E5 41 57 41 56 41 55 4C 8D AD 38 ?? ?? ?? 41 54
-		Symbol::FromSignature("\x55\x8B\xEC\x81\xEC\x90\x04\x00\x00\x8D"), // 55 8B EC 81 EC 90 04 00 00 8D
+		Symbol::FromSignature("\x55\x8B\xEC\x81\xEC\x90\x04\x00\x00"), // 55 8B EC 81 EC 90 04 00 00
 		Symbol::FromSignature("\x40\x55\x53\x56\x57\x41\x57\x48\x8D\xAC\x24\x90\xFB\xFF\xFF"), // 40 55 53 56 57 41 57 48 8D AC 24 90 FB FF FF
+		Symbol::FromSignature("\x55\x8B\xEC\x81\xEC\x9C\x04\x00\x00") // 55 8B EC 81 EC 9C 04 00 00
 	};
 
 	const std::vector<Symbol> CBaseFileSystem_FindSearchPathByStoreIdSym = {
@@ -370,8 +371,9 @@ namespace Symbols
 	const std::vector<Symbol> CBaseFileSystem_FastFileTimeSym = {// Find 'CBaseFileSystem::GetFileTime' then you have CBaseFileSystem__GetPathTime and it's there
 		Symbol::FromName("_ZN15CBaseFileSystem12FastFileTimeEPKNS_11CSearchPathEPKc"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x49\x89\xFD\x41\x54\x49\x89\xD4"), //55 48 89 E5 41 57 41 56 41 55 49 89 FD 41 54 49 89 D4
-		Symbol::FromSignature("\x55\x8B\xEC\x81\xEC\x40\x01\x00\x00\x53\x56\x8B\x75\x08"), // 55 8B EC 81 EC 40 01 00 00 53 56 8B 75 08
+		Symbol::FromSignature("\x55\x8B\xEC\x81\xEC\x40\x01\x00\x00\x53\x56"), // 55 8B EC 81 EC 40 01 00 00 53 56
 		Symbol::FromSignature("\x40\x53\x56\x57\x48\x81\xEC\xA0\x01\x00\x00"), // 40 53 56 57 48 81 EC A0 01 00 00
+		Symbol::FromSignature("\x55\x8B\xEC\x81\xEC\x4C\x01\x00\x00\x53\x56") // 55 8B EC 81 EC 4C 01 00 00 53 56
 	};
 
 	const std::vector<Symbol> CBaseFileSystem_FixUpPathSym = {//Find 'BASE_PATH'
@@ -425,7 +427,7 @@ namespace Symbols
 	const std::vector<Symbol> g_PathIDTableSym = {
 		Symbol::FromName("g_PathIDTable"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x53\x48\x89\xFB\x48\x81\xEC\x58\x01\x00\x00", 0x8E), // 55 48 89 E5 41 57 41 56 41 55 41 54 53 48 89 FB 48 81 EC 58 01 00 00
-		Symbol::FromSignature("****\x50\xE8****\xB9******\x0F\xB7\x45\xFE"), // ?? ?? ?? ?? 50 E8 ?? ?? ?? ?? B9 ?? ?? ?? ?? ?? ?? 0F B7 45 FE
+		Symbol::FromSignature("\x55\x8B\xEC\x81\xEC\x08\x01\x00\x00\x53\x56\x57", 0x4d), // 55 8B EC 81 EC 08 01 00 00 53 56 57
 		Symbol::FromSignature("\x48\x89\x5C\x24\x10\x57\x48\x83\xEC\x20\xB8\xFF\xFF\x00\x00\x48\x8B\xD9", 0x67), // 48 89 5C 24 10 57 48 83 EC 20 B8 FF FF 00 00 48 8B D9
 	};
 

@@ -238,14 +238,14 @@ byte m_##name = 0;
 #define DLL_EXTENSION ".dll"
 #define LIBRARY_EXTENSION ".dll"
 #if ARCHITECTURE_IS_X86
-#ifdef DEDICATED
+#ifndef NOT_DEDICATED
 #define DETOUR_SYMBOL_ID 4
 #else
 #define DETOUR_SYMBOL_ID 2
 #endif
 #define MODULE_EXTENSION "win32"
 #else
-#ifdef DEDICATED
+#ifndef NOT_DEDICATED
 #define DETOUR_SYMBOL_ID 5
 #else
 #define DETOUR_SYMBOL_ID 3
@@ -371,43 +371,38 @@ byte m_##name = 0;
 			symbolAddr = next + disp;                         // final address = next + disp32
 		}
 #elif defined(SYSTEM_WINDOWS) && defined(ARCHITECTURE_X86)
-    	// Primary: PUSH imm32 (0x68 + RVA) - g_BSPData pattern
+		// NOTE: x86-32 uses absolute addresses in immediates (no RIP-relative addressing).
+		// The 4-byte operand IS the absolute virtual address directly.
+
+		// Primary: PUSH imm32 (0x68 + abs addr) - g_BSPData pattern
 		if (ip[0] == 0x68)
 		{
-			const size_t instrLen = 5;
-			int32_t rva = *reinterpret_cast<uint32_t*>(ip + 1);
-			uint8_t* next = ip + instrLen;
-			symbolAddr = reinterpret_cast<void*>(next + rva);
+			uint32_t addr = *reinterpret_cast<uint32_t*>(ip + 1);
+			symbolAddr = reinterpret_cast<void*>(static_cast<uintptr_t>(addr));
 			return reinterpret_cast<T*>(symbolAddr);
 		}
-		// Fallback: PUSH ds:[imm32] (0xFF 35 + RVA at +2) - indirect push
+		// Fallback: PUSH ds:[imm32] (0xFF 35 + abs addr at +2) - indirect push
 		if (ip[0] == 0xFF && ip[1] == 0x35) {
-			const size_t instrLen = 6;
-			int32_t rva = *reinterpret_cast<uint32_t*>(ip + 2);
-			uint8_t* next = ip + instrLen;
-			symbolAddr = reinterpret_cast<void*>(next + (uintptr_t)rva);  // Points to the pointer; data at [*symbolAddr]
+			uint32_t addr = *reinterpret_cast<uint32_t*>(ip + 2);
+			symbolAddr = reinterpret_cast<void*>(static_cast<uintptr_t>(addr));  // Points to the pointer; data at [*symbolAddr]
 			return reinterpret_cast<T*>(symbolAddr);
 		}
-		// Primary: MOV ECX, imm32 (0xB9 + RVA as imm32) - your exact pattern
+		// MOV ECX, offset <var> (0xB9 + abs addr) - loads address directly into ecx
+		// The immediate IS the address of the object, no dereference needed.
 		if (ip[0] == 0xB9) {
-			const size_t instrLen = 5;
-			int32_t rva = *reinterpret_cast<int32_t*>(ip + 1);
-			uint8_t* next = ip + instrLen;
-			symbolAddr = reinterpret_cast<void*>(next + rva);
+			uint32_t addr = *reinterpret_cast<uint32_t*>(ip + 1);
+			symbolAddr = reinterpret_cast<void*>(static_cast<uintptr_t>(addr));
+			return reinterpret_cast<T*>(symbolAddr);
 		}
-		// Fallback: MOV ECX, ds:[imm32] (0x8B 0D + RVA as address operand)
+		// Fallback: MOV ECX, ds:[imm32] (0x8B 0D + abs addr)
 		else if (ip[0] == 0x8B && ip[1] == 0x0D) {
-			const size_t instrLen = 6;
-			int32_t rva = *reinterpret_cast<int32_t*>(ip + 2);
-			uint8_t* next = ip + instrLen;
-			symbolAddr = reinterpret_cast<void*>(next + rva);
+			uint32_t addr = *reinterpret_cast<uint32_t*>(ip + 2);
+			symbolAddr = reinterpret_cast<void*>(static_cast<uintptr_t>(addr));
 		}
-		// Rare variant: LEA ECX, [imm32] (0x8D 0D + RVA)
+		// Rare variant: LEA ECX, [imm32] (0x8D 0D + abs addr)
 		else if (ip[0] == 0x8D && ip[1] == 0x0D) {
-			const size_t instrLen = 6;
-			int32_t rva = *reinterpret_cast<int32_t*>(ip + 2);
-			uint8_t* next = ip + instrLen;
-			symbolAddr = reinterpret_cast<void*>(next + rva);
+			uint32_t addr = *reinterpret_cast<uint32_t*>(ip + 2);
+			symbolAddr = reinterpret_cast<void*>(static_cast<uintptr_t>(addr));
 		}
 #elif defined(SYSTEM_WINDOWS) && defined(ARCHITECTURE_X86_64)
 		// LEA RCX, [RIP+imm32] (0x48 0x8D 0x0D + RVA)
