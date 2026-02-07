@@ -16,7 +16,6 @@
 struct edict_t;
 #include "playerinfomanager.h"
 
-#define DEDICATED
 #include "vstdlib/jobthread.h"
 #include <eiface.h>
 #include <icommandline.h>
@@ -90,10 +89,24 @@ bool CServerPlugin::Load(CreateInterfaceFn interfaceFactory, CreateInterfaceFn g
 
 	Msg("--- HolyLib Plugin loading ---\n");
 
-#if !defined(DEDICATED)
-	Msg("Tried to load a HolyLib build that wasn't made for a dedicated server!\n");
-	return false;
+	IVEngineServer* pEngineServer = InterfacePointers::VEngineServer();
+	if (pEngineServer)
+	{
+		
+#if defined(DEDICATED)
+		if (!pEngineServer->IsDedicatedServer())
+		{
+			Msg("Tried to load a HolyLib build that wasn't made for a dedicated server!\n");
+			return false;
+		}
+#else
+		if (pEngineServer->IsDedicatedServer())
+		{
+			Msg("Tried to load a HolyLib build that wasn't for a client!\n");
+			return false;
+		}
 #endif
+	}
 
 	if (!Util::ShouldLoad())
 	{
@@ -428,7 +441,11 @@ GMOD_MODULE_OPEN()
 
 	g_pModuleManager.MarkAsBinaryModule();
 	Lua::SetManualShutdown();
-	g_HolyLibServerPlugin.Load(nullptr, nullptr); // Yes. I don't like it but I can't get those fancy interfaces.
+	if (!g_HolyLibServerPlugin.Load(nullptr, nullptr)) // Yes. I don't like it but I can't get those fancy interfaces.
+	{
+		LUA->ThrowError("Failed to load HolyLib!");
+		return 0;
+	}
 
 	if (Util::engineserver && Util::server)
 	{
@@ -450,7 +467,8 @@ GMOD_MODULE_OPEN()
 GMOD_MODULE_CLOSE()
 {
 	pPluginThink.MarkAsDone();
-	g_Lua->Cycle(); // Just to get our ThreadedCall unloaded since when we are unloaded we expect to not leave any memory.
+	if (g_Lua)
+		g_Lua->Cycle(); // Just to get our ThreadedCall unloaded since when we are unloaded we expect to not leave any memory.
 	g_HolyLibServerPlugin.Unload();
 
 	return 0;

@@ -32,14 +32,20 @@ If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it
 3. Put the `gmsv_holylib_linux.so` into the `garrysmod/lua/bin/` directory.<br>
 
 ## How to Install (Windows dedicated)
-1. Download the `holylib_win.vdf`(or the `_64` one) and `gmsv_holylib_dedicated_[win32/win64].dll` from the latest release.<br>
+1. Download the `holylib_win.vdf`(or the `_64` one) and `gmsv_holylib_[win32/win64].dll` from the latest release.<br>
 2. Put the `holylib_win.vdf` into the `garrysmod/addons/` directory.<br>
-3. Put the `gmsv_holylib_dedicated_[win32/win64].dll` into the `garrysmod/lua/bin/` directory.<br>
+3. Put the `gmsv_holylib_[win32/win64].dll` into the `garrysmod/lua/bin/` directory.<br>
+
+> [!NOTE]
+> If you try to run a Windows client build on a dedicated server it will refuse to load.
 
 ## How to Install (Windows client)
 1. Download the `gmsv_holylib_[win32/win64].dll` from the latest release.<br>
 2. Put the `gmsv_holylib_[win32/win64].dll` into the `garrysmod/lua/bin/` directory.<br>
 3. Add into `garrysmod/lua/menu/menu.lua` at the end `require('holylib')`
+
+> [!NOTE]
+> If you try to run a Windows dedicated build on a Windows client it will refuse to load.
 
 ## Custom Builds (Linux Only)
 You can fork this repository and use the `Build Custom Version` to create a custom HolyLib version that only contains specific functions.<br>

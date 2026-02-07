@@ -462,6 +462,12 @@ void CModuleManager::Think(bool bSimulating)
 
 void CModuleManager::Shutdown()
 {
+	if (!(m_pStatus & LoadStatus_Init))
+	{
+		Msg(PROJECT_NAME " - Core: Refusing to call Shutdown on modules due to Init never having been called!\n");
+		return;
+	}
+
 	m_pStatus = 0;
 	CALL_ENABLED_MODULES(Shutdown());
 }
