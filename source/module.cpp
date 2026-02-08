@@ -203,6 +203,9 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 				}
 			}
 
+			if (status & LoadStatus_LevelInit)
+				m_pModule->LevelInit(g_pModuleManager.GetMapName());
+
 			if (status & LoadStatus_LuaServerInit)
 			{
 				for (auto& pLua : g_pModuleManager.GetLuaInterfaces())
@@ -219,6 +222,9 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 				Msg(PROJECT_NAME ": Enabled module %s\n", m_pModule->Name());
 		} else {
 			int status = g_pModuleManager.GetStatus();
+			if (status & LoadStatus_LevelInit)
+				m_pModule->LevelShutdown();
+
 			if (status & LoadStatus_LuaInit)
 			{
 				for (auto& pLua : g_pModuleManager.GetLuaInterfaces())
@@ -515,6 +521,14 @@ void CModuleManager::OnClientConnect(CBaseClient* pClient)
 void CModuleManager::OnClientDisconnect(CBaseClient* pClient)
 {
 	VCALL_ENABLED_MODULES(OnClientDisconnect(pClient));
+}
+
+void CModuleManager::LevelInit(const char* pMapName)
+{
+	m_pStatus |= LoadStatus_LevelInit;
+	m_strMapName = pMapName || "";
+
+	VCALL_ENABLED_MODULES(LevelInit(pMapName));
 }
 
 void CModuleManager::LevelShutdown()

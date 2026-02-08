@@ -83,6 +83,7 @@ public:
 	virtual void OnEntityDeleted(CBaseEntity* pEntity);
 	virtual void OnClientConnect(CBaseClient* pClient);
 	virtual void OnClientDisconnect(CBaseClient* pClient);
+	virtual void LevelInit(const char *pMapName);
 	virtual void LevelShutdown();
 	virtual void PreLuaModuleLoaded(lua_State* L, const char* pFileName);
 	virtual void PostLuaModuleLoaded(lua_State* L, const char* pFileName);
@@ -102,6 +103,7 @@ public:
 	inline std::vector<CModule*>& GetModules() { return m_pModules; };
 	inline std::unordered_set<GarrysMod::Lua::ILuaInterface*>& GetLuaInterfaces() { return m_pLuaInterfaces; };
 	inline IConfig* GetConfig() { return m_pConfig; };
+	inline const char* GetMapName() { return m_strMapName.c_str(); };
 
 private:
 	std::vector<CModule*> m_pModules;
@@ -122,6 +124,7 @@ private: // ServerActivate stuff
 	edict_t* m_pEdictList = nullptr;
 	int m_iEdictCount = 0;
 	int m_iClientMax = 0;
+	std::string m_strMapName;
 
 private:
 	// All Lua interfaces that were loaded.
