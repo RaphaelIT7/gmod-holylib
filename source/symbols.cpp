@@ -134,8 +134,11 @@ namespace Symbols
 		Symbol::FromSignature("\x48\x89\x5C\x24\x08\x48\x89\x6C\x24\x10\x48\x89\x74\x24\x18\x57\x41\x56\x41\x57\x48\x83\xEC\x20\x45\x0F\xB6\xF8"),	
 	};
 
-	const std::vector<Symbol> Sys_Error_InternalSym = {
+	const std::vector<Symbol> Sys_Error_InternalSym = { // Engine error: %s\n
 		Symbol::FromName("_Z18Sys_Error_InternalbPKcPc"),
+		Symbol::FromSignature("\x55\x48\x89\xD1\x48\x89\xF2\x48\x89\xE5\x41\x54*****\x53\x48\x8D*****\x48"), // 55 48 89 D1 48 89 F2 48 89 E5 41 54 ?? ?? ?? ?? ?? 53 48 8D ?? ?? ?? ?? ?? 48
+		Symbol::FromSignature("\x55\x8B\xEC**\x68****\x68****\x64*****\x50\x64"), // 55 8B EC ?? ?? 68 ?? ?? ?? ?? 68 ?? ?? ?? ?? 64 ?? ?? ?? ?? ?? 50 64
+		Symbol::FromSignature("\x48******\x48******\x48\x33\xC4\x48*******\x4D\x8B\xC8\x48****\x4C\x8B\xC2"), // 48 ?? ?? ?? ?? ?? ?? 48 ?? ?? ?? ?? ?? ?? 48 33 C4 48 ?? ?? ?? ?? ?? ?? ?? 4D 8B C8 48 ?? ?? ?? ?? 4C 8B C2
 	};
 
 	//---------------------------------------------------------------------------------
