@@ -1512,7 +1512,7 @@ static Symbols::CBaseCombatCharacter_SetTransmit func_CBaseAnimating_SetTransmit
 static ConVar networking_transmit_all_weapons("holylib_networking_transmit_all_weapons", "1", 0, "Experimental - By default all weapons are networked based on their PVS, though normally if they have an owner you might only want the active weapon to be networked");
 static ConVar networking_transmit_all_weapons_to_owner("holylib_networking_transmit_all_weapons_to_owner", "1", 0, "Experimental - By default all weapons are networked to the owner");
 static ConVar networking_transmit_one_per_tick("holylib_networking_transmit_one_per_tick", "0", 0, "Experimental - If enabled, one additional weapon is networked per tick");
-static ConVar networking_fasttransmit("holylib_networking_fasttransmit", "1", 0, "Experimental - Replaces CServerGameEnts::CheckTransmit with our own implementation");
+static ConVar networking_fasttransmit("holylib_networking_fasttransmit", "0", 0, "Experimental - Replaces CServerGameEnts::CheckTransmit with our own implementation");
 static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharacter, CCheckTransmitInfo *pInfo, bool bAlways)
 {
 	if (!func_CBaseAnimating_SetTransmit || !networking_fasttransmit.GetBool())
