@@ -2979,6 +2979,17 @@ static void hook_NET_SetTime(double flRealtime) // We need this hook to keep net
 	net_time += frametime * (host_timescale ? host_timescale->GetFloat() : 1.0f);
 }
 
+// Hotfix until GMod has it fixed - https://github.com/Facepunch/garrysmod-issues/issues/6722
+static Detouring::Hook detour_CVoiceGameMgr_ClientConnected;
+void hook_CVoiceGameMgr_ClientConnected(void* _this, edict_t* pEdict)
+{
+	if (!pEdict || (pEdict->m_EdictIndex-1) >= MAX_PLAYERS)
+		return;
+
+	Msg("Entity: %i\n", pEdict->m_EdictIndex-1);
+	detour_CVoiceGameMgr_ClientConnected.GetTrampoline<Symbols::CVoiceGameMgr_ClientConnected>()(_this, pEdict);
+}
+
 #if SYSTEM_WINDOWS
 DETOUR_THISCALL_START()
 	DETOUR_THISCALL_ADDFUNC1(hook_CBaseServer_FillServerInfo, Base_FillServerInfo, CBaseServer*, SVC_ServerInfo&);
@@ -3073,6 +3084,12 @@ void CGameServerModule::InitDetour(bool bPreServer)
 		&detour_CBaseServer_ProcessConnectionlessPacket, "CBaseServer::ProcessConnectionlessPacket",
 		engine_loader.GetModule(), Symbols::CBaseServer_ProcessConnectionlessPacketSym,
 		(void*)DETOUR_THISCALL(hook_CBaseServer_ProcessConnectionlessPacket, ProcessConnectionlessPacket), m_pID
+	);
+
+	Detour::Create(
+		&detour_CVoiceGameMgr_ClientConnected, "CVoiceGameMgr::ClientConnected",
+		server_loader.GetModule(), Symbols::CVoiceGameMgr_ClientConnectedSym,
+		(void*)hook_CVoiceGameMgr_ClientConnected, m_pID
 	);
 
 	func_CBaseClient_OnRequestFullUpdate = (Symbols::CBaseClient_OnRequestFullUpdate)Detour::GetFunction(engine_loader.GetModule(), Symbols::CBaseClient_OnRequestFullUpdateSym);

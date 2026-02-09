@@ -1027,6 +1027,10 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x66\x0F\x28\xC8"), // 55 66 0F 28 C8
 	};
 
+	const std::vector<Symbol> CVoiceGameMgr_ClientConnectedSym = {
+		Symbol::FromName("_ZN13CVoiceGameMgr15ClientConnectedEP7edict_t"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: AutoRefresh Symbols
 	//---------------------------------------------------------------------------------
