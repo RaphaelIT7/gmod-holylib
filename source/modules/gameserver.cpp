@@ -2830,7 +2830,7 @@ static int FindFreeClientSlot()
 static Detouring::Hook detour_CGameClient_SpawnPlayer;
 static void hook_CGameClient_SpawnPlayer(CGameClient* client)
 {
-	if (client->m_nClientSlot <= MAX_PLAYERS || gameserver_disablespawnsafety.GetBool())
+	if (client->m_nClientSlot < MAX_PLAYERS || gameserver_disablespawnsafety.GetBool())
 	{
 		detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(client);
 		return;
