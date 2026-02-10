@@ -921,20 +921,12 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: gameserver Symbols
 	//---------------------------------------------------------------------------------
-	const std::vector<Symbol> CServerGameClients_GetPlayerLimitSym = {
-		Symbol::FromName("_ZNK18CServerGameClients15GetPlayerLimitsERiS0_S0_"),
-		Symbol::FromSignature("\x55\xC7\x01\x80\x00\x00\x00"), // 55 C7 01 80 00 00 00
-		Symbol::FromSignature("\x55\x8B\xEC\x8B\x45\x10\xC7\x00\x80\x00\x00\x00"), // 55 8B EC 8B 45 10 C7 00 80 00 00 00
+	const std::vector<Symbol> CBaseServer_GetFreeClientSym = {
+		Symbol::FromName("_ZN11CBaseServer13GetFreeClientER8netadr_s"),
 	};
 
-	const std::vector<Symbol> CBaseServer_FillServerInfoSym = {
-		Symbol::FromName("_ZN11CBaseServer14FillServerInfoER14SVC_ServerInfo"),
-		Symbol::FromSignature("\x55\xBA\x04\x01\x00\x00\x48\x89\xE5\x41\x54\x49\x89\xF4\x53\x48\x8D\x35\x2A\x2A\x2A\x2A"), // 55 BA 04 01 00 00 48 89 E5 41 54 49 89 F4 53 48 8D 35 ? ? ? ?
-	};
-
-	const std::vector<Symbol> CHLTVServer_FillServerInfoSym = {
-		Symbol::FromName("_ZN11CHLTVServer14FillServerInfoER14SVC_ServerInfo"),
-		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x54\x49\x89\xFC\x53\x48\x8D\x7F\x08"), // 55 48 89 E5 41 54 49 89 FC 53 48 8D 7F 08
+	const std::vector<Symbol> CBaseServer_CreateFakeClientSym = {
+		Symbol::FromName("_ZN11CBaseServer16CreateFakeClientEPKc"),
 	};
 
 	const std::vector<Symbol> CBaseClient_SetSignonStateSym = {

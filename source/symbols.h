@@ -624,14 +624,11 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: gameserver Symbols
 	//---------------------------------------------------------------------------------
-	using CServerGameClients_GetPlayerLimit = void (GMCOMMON_CALLING_CONVENTION*)(void*, int&, int&, int&);
-	extern const std::vector<Symbol> CServerGameClients_GetPlayerLimitSym;
+	using CBaseServer_GetFreeClient = CBaseClient* (GMCOMMON_CALLING_CONVENTION*)(void*, netadr_t &adr);
+	extern const std::vector<Symbol> CBaseServer_GetFreeClientSym;
 
-	using CBaseServer_FillServerInfo = void (GMCOMMON_CALLING_CONVENTION*)(void*, SVC_ServerInfo&);
-	extern const std::vector<Symbol> CBaseServer_FillServerInfoSym;
-
-	using CHLTVServer_FillServerInfo = void (GMCOMMON_CALLING_CONVENTION*)(void*, SVC_ServerInfo&);
-	extern const std::vector<Symbol> CHLTVServer_FillServerInfoSym;
+	using CBaseServer_CreateFakeClient = CBaseClient* (GMCOMMON_CALLING_CONVENTION*)(void*, const char* pName);
+	extern const std::vector<Symbol> CBaseServer_CreateFakeClientSym;
 
 	using CBaseClient_SetSignonState = bool (GMCOMMON_CALLING_CONVENTION*)(void* client, int state, int spawncount);
 	extern const std::vector<Symbol> CBaseClient_SetSignonStateSym;
