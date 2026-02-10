@@ -2408,7 +2408,7 @@ void CGameServerModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 }
 
 #define MAX_PLAYERS 128
-static ConVar gameserver_maxplayers("holylib_gameserver_maxplayers", "255", 0, "Experimental - max client limit (above 255 cannot be networked, though may work if they remain purely as a CGameClient)", true, 1, true, 2048);
+static ConVar gameserver_maxplayers("holylib_gameserver_maxplayers", "255", 0, "Experimental - max client limit (above 255 cannot be networked, though may work if they remain purely as a CGameClient)", true, 1, true, 8192);
 static Detouring::Hook detour_CBaseServer_GetFreeClient;
 static CBaseClient* hook_CBaseServer_GetFreeClient(CBaseServer* _this, netadr_t& adr)
 {
@@ -2435,6 +2435,40 @@ static CBaseClient* hook_CBaseServer_CreateFakeClient(CBaseServer* _this, const 
 		return nullptr;
 
 	return detour_CBaseServer_CreateFakeClient.GetTrampoline<Symbols::CBaseServer_CreateFakeClient>()(_this, pName);
+}
+
+static Detouring::Hook detour_CBaseServer_UserInfoChanged;
+static void hook_CBaseServer_UserInfoChanged(CBaseServer* _this, int nClientIndex)
+{
+	if (nClientIndex >= MAX_PLAYERS)
+		return;
+
+	detour_CBaseServer_UserInfoChanged.GetTrampoline<Symbols::CBaseServer_UserInfoChanged>()(_this, nClientIndex);
+}
+
+static Detouring::Hook detour_CGameServer_RemoveClientFromGame;
+static void hook_CGameServer_RemoveClientFromGame(CBaseServer* _this, CBaseClient* pClient)
+{
+	if (pClient->m_nClientSlot >= MAX_PLAYERS)
+		return;
+
+	detour_CGameServer_RemoveClientFromGame.GetTrampoline<Symbols::CGameServer_RemoveClientFromGame>()(_this, pClient);
+}
+
+/*
+	ToDo: Ask Rubat if this is fine.
+	NOTE: This for now is only for testing!
+*/
+static Detouring::Hook detour_CSteam3Server_SendUpdatedServerDetails;
+static void hook_CSteam3Server_SendUpdatedServerDetails(void* _this)
+{
+	CBaseServer* pServer = (CBaseServer*)Util::server;
+	int nOrigMaxClients = pServer->m_nMaxclients; 
+	pServer->m_nMaxclients = gameserver_maxplayers.GetInt();
+
+	detour_CSteam3Server_SendUpdatedServerDetails.GetTrampoline<Symbols::CSteam3Server_SendUpdatedServerDetails>()(_this);
+
+	pServer->m_nMaxclients = nOrigMaxClients;
 }
 
 static Detouring::Hook detour_CBaseServer_ProcessConnectionlessPacket;
@@ -2972,6 +3006,9 @@ void hook_CVoiceGameMgr_ClientConnected(void* _this, edict_t* pEdict)
 DETOUR_THISCALL_START()
 	DETOUR_THISCALL_ADDFUNC1(hook_CBaseServer_GetFreeClient, Base_GetFreeClient, CBaseServer*, netadr_t&);
 	DETOUR_THISCALL_ADDFUNC1(hook_CBaseServer_CreateFakeClient, Base_CreateFakeClient, CBaseServer*, const char*);
+	DETOUR_THISCALL_ADDFUNC1(hook_CBaseServer_UserInfoChanged, Base_UserInfoChanged, CBaseServer*, int);
+	DETOUR_THISCALL_ADDFUNC1(hook_CGameServer_RemoveClientFromGame, Game_RemoveClientFromGame, CBaseServer*, CBaseClient*);
+	DETOUR_THISCALL_ADDFUNC0(hook_CSteam3Server_SendUpdatedServerDetails, Steam_SendUpdatedServerDetails, void*);
 	DETOUR_THISCALL_ADDFUNC0(hook_CBaseServer_CheckTimeouts, CheckTimeouts, CBaseServer*);
 	DETOUR_THISCALL_ADDFUNC0(hook_CGameClient_SpawnPlayer, SpawnPlayer, CGameClient*);
 	DETOUR_THISCALL_ADDRETFUNC2(hook_CBaseClient_SetSignonState, bool, SetSignonState, CBaseClient*, int, int);
@@ -3001,6 +3038,24 @@ void CGameServerModule::InitDetour(bool bPreServer)
 		&detour_CBaseServer_CreateFakeClient, "CBaseServer::CreateFakeClient",
 		engine_loader.GetModule(), Symbols::CBaseServer_CreateFakeClientSym,
 		(void*)DETOUR_THISCALL(hook_CBaseServer_CreateFakeClient, Base_CreateFakeClient), m_pID
+	);
+
+	Detour::Create(
+		&detour_CBaseServer_UserInfoChanged, "CBaseServer::UserInfoChanged",
+		engine_loader.GetModule(), Symbols::CBaseServer_UserInfoChangedSym,
+		(void*)DETOUR_THISCALL(hook_CBaseServer_UserInfoChanged, Base_UserInfoChanged), m_pID
+	);
+
+	Detour::Create(
+		&detour_CGameServer_RemoveClientFromGame, "CGameServer::RemoveClientFromGame",
+		engine_loader.GetModule(), Symbols::CGameServer_RemoveClientFromGameSym,
+		(void*)DETOUR_THISCALL(hook_CGameServer_RemoveClientFromGame, Game_RemoveClientFromGame), m_pID
+	);
+
+	Detour::Create(
+		&detour_CSteam3Server_SendUpdatedServerDetails, "CSteam3Server::SendUpdatedServerDetails",
+		engine_loader.GetModule(), Symbols::CSteam3Server_SendUpdatedServerDetailsSym,
+		(void*)DETOUR_THISCALL(hook_CSteam3Server_SendUpdatedServerDetails, Steam_SendUpdatedServerDetails), m_pID
 	);
 
 	Detour::Create(

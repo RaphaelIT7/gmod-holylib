@@ -630,6 +630,15 @@ namespace Symbols
 	using CBaseServer_CreateFakeClient = CBaseClient* (GMCOMMON_CALLING_CONVENTION*)(void*, const char* pName);
 	extern const std::vector<Symbol> CBaseServer_CreateFakeClientSym;
 
+	using CBaseServer_UserInfoChanged = void (GMCOMMON_CALLING_CONVENTION*)(void*, int nClientIndex);
+	extern const std::vector<Symbol> CBaseServer_UserInfoChangedSym;
+
+	using CGameServer_RemoveClientFromGame = void (GMCOMMON_CALLING_CONVENTION*)(void*, CBaseClient* pClient);
+	extern const std::vector<Symbol> CGameServer_RemoveClientFromGameSym;
+
+	using CSteam3Server_SendUpdatedServerDetails = void (GMCOMMON_CALLING_CONVENTION*)(void*);
+	extern const std::vector<Symbol> CSteam3Server_SendUpdatedServerDetailsSym;
+
 	using CBaseClient_SetSignonState = bool (GMCOMMON_CALLING_CONVENTION*)(void* client, int state, int spawncount);
 	extern const std::vector<Symbol> CBaseClient_SetSignonStateSym;
 

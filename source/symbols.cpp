@@ -929,6 +929,14 @@ namespace Symbols
 		Symbol::FromName("_ZN11CBaseServer16CreateFakeClientEPKc"),
 	};
 
+	const std::vector<Symbol> CBaseServer_UserInfoChangedSym = {
+		Symbol::FromName("_ZN11CBaseServer15UserInfoChangedEi"),
+	};
+
+	const std::vector<Symbol> CGameServer_RemoveClientFromGameSym = {
+		Symbol::FromName("_ZN11CGameServer20RemoveClientFromGameEP11CBaseClient"),
+	};
+
 	const std::vector<Symbol> CBaseClient_SetSignonStateSym = {
 		Symbol::FromName("_ZN11CBaseClient14SetSignonStateEii"),
 		Symbol::FromSignature("\x55\x8B\x87\xA8\x01\x00\x00"), // 55 8B 87 A8 01 00 00
