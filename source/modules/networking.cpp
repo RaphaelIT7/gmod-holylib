@@ -266,9 +266,7 @@ class ServerClassCache
 {
 public:
 	std::vector<PropIndexData> prop_offset_sendtable;
-
 	std::vector<SpecialSendPropCalc> prop_special;
-
 	std::unordered_map<const SendProp *, SpecialDataTableCalc> datatable_special;
 
 	unsigned short *prop_offsets;
@@ -307,25 +305,20 @@ static int hook_SendTable_CullPropsFromProxies(
 	int nMaxOutProps
 	)
 {
-	//memcpy(pOutProps, pStartProps, nStartProps * sizeof(int));
 	int count = 0;
-	//auto pPrecalc = pTable->m_pPrecalc;
 	auto &prop_cull = GetServerClassCache(pTable)->prop_cull;
 	for (int i = 0; i <nStartProps; ++i) {
 		int prop = pStartProps[i];
-		//DevMsg("prop %d %d", prop, player_prop_cull[prop]);
 		int proxyindex = prop_cull[prop];
-		//DevMsg("%s", pPrecalc->m_Props[prop]->GetName());
 		if (proxyindex < 254 ) {
-			//DevMsg("node %s\n", player_send_nodes[proxyindex]->m_pTable->GetName());
 			if (pNewStateProxies[proxyindex].m_Bits.IsBitSet(iClient)) {
 				pOutProps[count++] = prop;
 			}
 		} else {
-			//DevMsg("node none\n");
 			pOutProps[count++] = prop;
 		}
 	}
+
 	return count;
 }
 
@@ -564,106 +557,6 @@ public:
 	intptr_t m_iBaseOffset[MAX_PROXY_RESULTS] {0};
 };
 
-class CEntityWriteInfo
-{
-public:
-	virtual	~CEntityWriteInfo() {};
-	
-	bool			m_bAsDelta;
-	CClientFrame	*m_pFrom;
-	CClientFrame	*m_pTo;
-
-	int		m_UpdateType;
-
-	int				m_nOldEntity;	// current entity index in m_pFrom
-	int				m_nNewEntity;	// current entity index in m_pTo
-
-	int				m_nHeaderBase;
-	int				m_nHeaderCount;
-	bf_write		*m_pBuf;
-	int				m_nClientEntity;
-
-	PackedEntity	*m_pOldPack;
-	PackedEntity	*m_pNewPack;
-};
-
-/*#define PROP_WRITE_OFFSET_ABSENT 65535
-struct PropWriteOffset
-{
-	unsigned short offset;
-	unsigned short size;
-};
-
-static std::vector<PropWriteOffset> prop_write_offset[MAX_EDICTS];
-static std::atomic<unsigned int> rc_CHLTVClient_SendSnapshot;
-static Detouring::Hook detour_SendTable_WritePropList;
-static Symbols::SendTable_WritePropList SendTable_WritePropList_func;
-void hook_SendTable_WritePropList(
-	const SendTable *pTable,
-	const void *pState,
-	const int nBits,
-	bf_write *pOut,
-	const int objectID,
-	const int *pCheckProps,
-	const int nCheckProps
-	)
-{
-	if (rc_CHLTVClient_SendSnapshot.load() == 0 && objectID >= 0) {
-		if ( nCheckProps == 0 ) {
-			// Write single final zero bit, signifying that there no changed properties
-			pOut->WriteOneBit( 0 );
-			return;
-		}
-		if (prop_write_offset[objectID].empty()) {
-			SendTable_WritePropList_func(pTable, pState, nBits, pOut, objectID, pCheckProps, nCheckProps);
-			return;
-		}
-		CDeltaBitsWriter deltaBitsWriter( pOut );
-		bf_read inputBuffer( "SendTable_WritePropList->inputBuffer", pState, BitByte( nBits ), nBits );
-
-		auto pPrecalc = pTable->m_pPrecalc;
-		auto offset_data = prop_write_offset[objectID].data();
-		for (int i = 0; i < nCheckProps; ++i) {
-			int propid = pCheckProps[i];
-			int offset = offset_data[propid].offset;
-			if (offset == 0 || offset == PROP_WRITE_OFFSET_ABSENT)
-				continue;
-				
-
-			deltaBitsWriter.WritePropIndex(propid);
-
-			int len = offset_data[propid].size;
-			inputBuffer.Seek(offset);
-			pOut->WriteBitsFromBuffer(&inputBuffer, len);
-		}
-
-		return;
-	}
-
-	SendTable_WritePropList_func(pTable, pState, nBits, pOut, objectID, pCheckProps, nCheckProps);
-}*/
-
-static Detouring::Hook detour_SendTable_CalcDelta;
-int hook_SendTable_CalcDelta(
-	const SendTable *pTable,
-	
-	const void *pFromState,
-	const int nFromBits,
-	
-	const void *pToState,
-	const int nToBits,
-	
-	int *pDeltaProps,
-	int nMaxDeltaProps,
-
-	const int objectID
-	)
-{
-	int count = detour_SendTable_CalcDelta.GetTrampoline<Symbols::SendTable_CalcDelta>()(pTable, pFromState, nFromBits, pToState, nToBits, pDeltaProps, nMaxDeltaProps, objectID);
-
-	return count;
-}
-
 class CCServerNetworkProperty : public IServerNetworkable, public IEventRegisterCallback
 {
 public:
@@ -813,11 +706,6 @@ inline bool CCServerNetworkProperty::IsInPVS( const CCheckTransmitInfo *pInfo )
 	}
 
 	return false;		// not visible
-}
-
-inline CBaseEntity* CCServerNetworkProperty::GetBaseEntity()
-{
-	return m_pOuter;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -2511,8 +2399,6 @@ static ServerClass* playerServerClass;
 static CFrameSnapshotManager* framesnapshotmanager = nullptr;
 static CSharedEdictChangeInfo* g_SharedEdictChangeInfo = nullptr;
 static ServerClassCache *player_class_cache = nullptr;
-static CStandardSendProxies* sendproxies;
-static SendTableProxyFn datatable_sendtable_proxy;
 PropTypeFns g_PropTypeFns[DPT_NUMSendPropTypes];
 #if ARCHITECTURE_X86_64
 static ConVar networking_enableunsafe64x("holylib_networking_enableunsafe64x", "0", 0, "(only affects 64x) Enables 64x the full module code though it may crash on 64x.");
@@ -2590,43 +2476,6 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 	);
 #endif
 
-#if 0
-	Detour::Create(
-		&detour_SendTable_WritePropList, "SendTable_WritePropList",
-		engine_loader.GetModule(), Symbols::SendTable_WritePropListSym,
-		(void*)hook_SendTable_WritePropList, m_pID
-	);
-	SendTable_WritePropList_func = detour_SendTable_WritePropList.GetTrampoline<Symbols::SendTable_WritePropList>();
-
-	Detour::Create(
-		&detour_CBaseServer_WriteDeltaEntities, "CBaseServer::WriteDeltaEntities",
-		engine_loader.GetModule(), Symbols::CBaseServer_WriteDeltaEntitiesSym,
-		(void*)hook_CBaseServer_WriteDeltaEntities, m_pID
-	);
-	CBaseServer_WriteDeltaEntities_func = detour_CBaseServer_WriteDeltaEntities.GetTrampoline<Symbols::CBaseServer_WriteDeltaEntities>();
-
-	Detour::Create(
-		&detour_SV_DetermineUpdateType, "SV_DetermineUpdateType",
-		engine_loader.GetModule(), Symbols::SV_DetermineUpdateTypeSym,
-		(void*)hook_SV_DetermineUpdateType, m_pID
-	);
-	SV_DetermineUpdateType_func = detour_SV_DetermineUpdateType.GetTrampoline<Symbols::SV_DetermineUpdateType>();
-
-	Detour::Create(
-		&detour_PackedEntity_GetPropsChangedAfterTick, "PackedEntity::GetPropsChangedAfterTick",
-		engine_loader.GetModule(), Symbols::PackedEntity_GetPropsChangedAfterTickSym,
-		(void*)hook_PackedEntity_GetPropsChangedAfterTick, m_pID
-	);
-	PackedEntity_GetPropsChangedAfterTick_func = detour_PackedEntity_GetPropsChangedAfterTick.GetTrampoline<Symbols::PackedEntity_GetPropsChangedAfterTick>();
-
-	Detour::Create(
-		&detour_CGameServer_SendClientMessages, "CGameServer::SendClientMessages",
-		engine_loader.GetModule(), Symbols::CGameServer_SendClientMessagesSym,
-		(void*)hook_CGameServer_SendClientMessages, m_pID
-	);
-	CGameServer_SendClientMessages_func = detour_CGameServer_SendClientMessages.GetTrampoline<Symbols::CGameServer_SendClientMessages>();
-#endif
-
 	framesnapshotmanager = Detour::ResolveSymbol<CFrameSnapshotManager>(engine_loader, Symbols::g_FrameSnapshotManagerSym);
 	Detour::CheckValue("get class", "framesnapshotmanager", framesnapshotmanager != nullptr);
 
@@ -2700,13 +2549,11 @@ void CNetworkingModule::ServerActivate(edict_t* pEdictList, int edictCount, int 
 	}
 
 	world_edict = Util::engineserver->PEntityOfEntIndex(0);
-	sendproxies = Util::servergamedll->GetStandardSendProxies();
-	datatable_sendtable_proxy = sendproxies->m_DataTableToDataTable;
+	CStandardSendProxies* sendproxies = Util::servergamedll->GetStandardSendProxies();
 	local_sendtable_proxy = sendproxies->m_SendLocalDataTable;
 	player_local_exclusive_send_proxy = new bool[playerSendTable->m_pPrecalc ? playerSendTable->m_pPrecalc->m_nDataTableProxies: 255];
 	for(ServerClass *serverclass = Util::servergamedll->GetAllServerClasses(); serverclass->m_pNext != nullptr; serverclass = serverclass->m_pNext)
 	{
-		//DevMsg("Crash1\n");
 		SendTable *sendTable = serverclass->m_pTable;
 		auto serverClassCache = new ServerClassCache();
 		if (sendTable == playerSendTable) 
@@ -2715,16 +2562,11 @@ void CNetworkingModule::ServerActivate(edict_t* pEdictList, int edictCount, int 
 		// Reuse unused variable
 		sendTable->m_pPrecalc->m_pDTITable = (CDTISendTable*)serverClassCache;
 		int propcount = sendTable->m_pPrecalc->m_Props.Count();
-		//DevMsg("%s %d %d\n", pTable->GetName(), propcount, pTable->GetNumProps());
 				
 		CPropMapStack pmStack( sendTable->m_pPrecalc, sendproxies );
 		serverClassCache->prop_offsets = new unsigned short[propcount];
-		//serverClassCache.send_nodes = new CSendNode *[playerSendTable->m_pPrecalc->m_nDataTableProxies];
 		pmStack.Init();
 
-		//int reduce_coord_prop_offset = 0;
-
-		//DevMsg("Crash2\n");
 		int t = 0;
 		PropScan(0,sendTable, t);
 		unsigned char proxyStack[256];
@@ -2741,12 +2583,6 @@ void CNetworkingModule::ServerActivate(edict_t* pEdictList, int edictCount, int 
 
 			pmStack.SeekToProp( iToProp );
 
-			//player_local_exclusive_send_proxy[proxyStack[sendTable->m_pPrecalc->m_PropProxyIndices[iToProp]]] = player_prop_cull[iToProp] < 254 && pProp->GetDataTableProxyFn() == sendproxies->m_SendLocalDataTable;
-					
-			//bool local2 = pProp->GetDataTableProxyFn() == sendproxies->m_SendLocalDataTable;
-			// bool local = player_local_exclusive_send_proxy[player_prop_cull[iToProp]];
-			//Msg("Local %s %d %d %d %d\n",pProp->GetName(), local, local2, sendproxies->m_SendLocalDataTable, pProp->GetDataTableProxyFn());
-
 			auto dataTableIndex = proxyStack[sendTable->m_pPrecalc->m_PropProxyIndices[iToProp]];
 			serverClassCache->prop_cull[iToProp] = dataTableIndex;
 			if (dataTableIndex < sendTable->m_pPrecalc->m_nDataTableProxies)
@@ -2760,7 +2596,6 @@ void CNetworkingModule::ServerActivate(edict_t* pEdictList, int edictCount, int 
 				int elementStride = 0;
 				int propIdToUse = iToProp;
 				int offsetToUse = offset;
-				//auto arrayProp = pProp;
 				if ( pProp->GetType() == DPT_Array )
 				{
 					offset = pProp->GetArrayProp()->GetOffset() + (intptr_t)pmStack.GetCurStructBase() - 1;
@@ -2771,11 +2606,7 @@ void CNetworkingModule::ServerActivate(edict_t* pEdictList, int edictCount, int 
 				}
 
 				serverClassCache->prop_offsets[propIdToUse] = offsetToUse;
-
-				//if (pProp->GetType() == DPT_Vector || pProp->GetType() == DPT_Vector )
-				//	propIndex |= PROP_INDEX_VECTOR_ELEM_MARKER;
-						
-				if (offset != 0/*IsStandardPropProxy(pProp->GetProxyFn())*/)
+				if (offset != 0)
 				{
 					if (offset != 0)
 					{
@@ -2793,31 +2624,16 @@ void CNetworkingModule::ServerActivate(edict_t* pEdictList, int edictCount, int 
 						}
 					}
 				} else {
-					// if (sendTable == playerSendTable) {
-					//	 Msg("prop %d %s %d\n", iToProp, pProp->GetName(), offset);
-					// }
 					serverClassCache->prop_special.push_back({propIdToUse});
 				}
 			} else {
 				auto &datatableSpecial = serverClassCache->datatable_special[sendTable->m_pPrecalc->m_DatatableProps[pmStack.m_pIsPointerModifyingProxy[sendTable->m_pPrecalc->m_PropProxyIndices[iToProp]]->m_iDatatableProp]];
 						
-				//serverClassCache->prop_special.push_back({iToProp, pmStack.m_iBaseOffset[sendTable->m_pPrecalc->m_PropProxyIndices[iToProp]], pProp, pmStack.m_pIsPointerModifyingProxy[sendTable->m_pPrecalc->m_PropProxyIndices[iToProp]]});
 				datatableSpecial.propIndexes.push_back(iToProp);
 				datatableSpecial.baseOffset = pmStack.m_iBaseOffset[sendTable->m_pPrecalc->m_PropProxyIndices[iToProp]];
 
 				serverClassCache->prop_offsets[iToProp] = pProp->GetOffset();
 			}
-			//Msg("Data table for %d %s %d is %d %d %d %d\n", iToProp, pProp->GetName(),  pProp->GetOffset() + (int)pmStack.GetCurStructBase() - 1, (int)pmStack.GetCurStructBase(), pProp->GetProxyFn(), pProp->GetDataTableProxyFn(), pmStack.m_pIsPointerModifyingProxy[sendTable->m_pPrecalc->m_PropProxyIndices[iToProp]]) ;
-
-			//int bitsread_pre = toBits.GetNumBitsRead();
-
-			/*if (pProp->GetFlags() & SPROP_COORD_MP)) {
-				if ((int)pmStack.GetCurStructBase() != 0) {
-					reduce_coord_prop_offset += toBits.GetNumBitsRead() - bitsread_pre;
-					player_prop_coord.push_back(iToProp);
-					Msg("bits: %d\n", toBits.GetNumBitsRead() - bitsread_pre);
-				}
-			}*/
 		}
 	}
 }
