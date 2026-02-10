@@ -2464,7 +2464,7 @@ static void hook_CSteam3Server_SendUpdatedServerDetails(void* _this)
 {
 	CBaseServer* pServer = (CBaseServer*)Util::server;
 	int nOrigMaxClients = pServer->m_nMaxclients; 
-	pServer->m_nMaxclients = gameserver_maxplayers.GetInt();
+	pServer->m_nMaxclients = clamp(gameserver_maxplayers.GetInt(), nOrigMaxClients, ABSOLUTE_PLAYER_LIMIT);
 
 	detour_CSteam3Server_SendUpdatedServerDetails.GetTrampoline<Symbols::CSteam3Server_SendUpdatedServerDetails>()(_this);
 
