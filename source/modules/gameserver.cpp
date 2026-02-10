@@ -2830,12 +2830,14 @@ static int FindFreeClientSlot()
 static Detouring::Hook detour_CGameClient_SpawnPlayer;
 static void hook_CGameClient_SpawnPlayer(CGameClient* client)
 {
+	// m_nClientSlot = player slot! (entIndex - 1)
 	if (client->m_nClientSlot < MAX_PLAYERS || gameserver_disablespawnsafety.GetBool())
 	{
 		detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(client);
 		return;
 	}
 
+	// ent index! can be 128!
 	int nextFreeEntity = FindFreeClientSlot();
 	if (nextFreeEntity > MAX_PLAYERS)
 	{
@@ -2986,7 +2988,6 @@ void hook_CVoiceGameMgr_ClientConnected(void* _this, edict_t* pEdict)
 	if (!pEdict || (pEdict->m_EdictIndex-1) >= MAX_PLAYERS)
 		return;
 
-	Msg("Entity: %i\n", pEdict->m_EdictIndex-1);
 	detour_CVoiceGameMgr_ClientConnected.GetTrampoline<Symbols::CVoiceGameMgr_ClientConnected>()(_this, pEdict);
 }
 
