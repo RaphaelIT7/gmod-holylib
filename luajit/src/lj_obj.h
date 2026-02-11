@@ -324,11 +324,36 @@ typedef struct GCstr {
 
 /* -- Userdata object ----------------------------------------------------- */
 
+// If set, then the env field contains a table which is user-specific data
+// For example if you do data.myvalue = 1
+#define LJ_UDATA_FLAG_USERTABLE 0x01
+
+/*
+	If set, it will lookup functions in the metatable directly
+	Example:
+		local meta = {
+			Example = function(self)
+				print("I got called")
+			end,
+		}
+
+		local userData = newproxy()
+		debug.setmetatable(userData, meta)
+		
+		-- This works without a __index method / it won't call __index.
+		userData:Example()
+		
+		-- This would call __index if it exists as this method did not exist in the meta table
+		userData:ExampleMissing()
+*/
+#define LJ_UDATA_FLAG_USEMETAFORACCESS 0x02
+// NOTE: Both flags skip calling __index! USERTABLE skips calling __newindex! This is expected and intentional.
+
 /* Userdata object. Payload follows. */
 typedef struct GCudata {
   GCHeader;
   uint8_t udtype;	/* Userdata type. */
-  uint8_t unused2;
+  uint8_t flags;
   GCRef env;		/* Should be at same offset in GCfunc. */
   MSize len;		/* Size of payload. */
   GCRef metatable;	/* Must be at same offset in GCtab. */
@@ -346,6 +371,7 @@ enum {
 
 #define uddata(u)	((void *)((u)+1))
 #define sizeudata(u)	(sizeof(struct GCudata)+(u)->len)
+#define udata_isflagset(u, flag) ((u->flags & flag))
 
 /* -- C data object ------------------------------------------------------- */
 

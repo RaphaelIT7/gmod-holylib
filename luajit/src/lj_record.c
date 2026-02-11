@@ -1521,9 +1521,45 @@ TRef lj_record_idx(jit_State *J, RecordIndex *ix)
   IRType1 rbguard;
   cTValue *oldv;
 
+  if (tref_isudata(ix->tab)) {
+    GCudata* ud = udataV(&ix->tabv);
+    GCtab *t = gco2tab(gcref(ud->env));
+    TRef res = 0;
+    emitir(IRT(IR_FLOAD, IRT_U8), ix->tab, IRFL_UDATA_FLAGS);
+    if (ix->val == 0) { /* Indexed load */
+      if (udata_isflagset(ud, LJ_UDATA_FLAG_USERTABLE) && t) {
+        ix->tab = emitir(IRT(IR_FLOAD, IRT_TAB), ix->tab, IRFL_UDATA_ENV);
+        setgcVraw(&ix->tabv, obj2gco(t), LJ_TTAB);
+
+        res = lj_record_idx(J, ix);
+        if (res != TREF_NIL)
+          return res;
+      }
+
+      if (udata_isflagset(ud, LJ_UDATA_FLAG_USEMETAFORACCESS) && t) {
+        ix->tab = emitir(IRT(IR_FLOAD, IRT_TAB), ix->tab, IRFL_UDATA_META);
+        setgcVraw(&ix->tabv, obj2gco(t), LJ_TTAB);
+
+        res = lj_record_idx(J, ix);
+        if (res != TREF_NIL)
+          return res;
+      }
+
+      // Else proceed normally
+    } else { /* Indexed store. */
+      if (udata_isflagset(ud, LJ_UDATA_FLAG_USERTABLE) && t) {
+        ix->tab = emitir(IRT(IR_FLOAD, IRT_TAB), ix->tab, IRFL_UDATA_ENV);
+        setgcVraw(&ix->tabv, obj2gco(t), LJ_TTAB);
+
+        return lj_record_idx(J, ix);
+      }
+    }
+  }
+
   while (!tref_istab(ix->tab)) { /* Handle non-table lookup. */
     /* Never call raw lj_record_idx() on non-table. */
     lj_assertJ(ix->idxchain != 0, "bad usage");
+
     if (!lj_record_mm_lookup(J, ix, ix->val ? MM_newindex : MM_index))
       lj_trace_err(J, LJ_TRERR_NOMM);
   handlemm:
@@ -1589,13 +1625,18 @@ TRef lj_record_idx(jit_State *J, RecordIndex *ix)
     } else {
       res = emitir(IRTG(loadop, t), xref, 0);
     }
+  
     if (tref_ref(res) < rbref) {  /* HREFK + load forwarded? */
       lj_ir_rollback(J, rbref);  /* Rollback to eliminate hmask guard. */
       J->guardemit = rbguard;
     }
+  
     if (t == IRT_NIL && ix->idxchain && lj_record_mm_lookup(J, ix, MM_index))
       goto handlemm;
-    if (irtype_ispri(t)) res = TREF_PRI(t);  /* Canonicalize primitives. */
+  
+    if (irtype_ispri(t))
+      res = TREF_PRI(t);  /* Canonicalize primitives. */
+    
     return res;
   } else {  /* Indexed store. */
     GCtab *mt = tabref(tabV(&ix->tabv)->metatable);
@@ -1604,70 +1645,80 @@ TRef lj_record_idx(jit_State *J, RecordIndex *ix)
       lj_ir_rollback(J, rbref);  /* Rollback to eliminate hmask guard. */
       J->guardemit = rbguard;
     }
+  
     if (tvisnil(oldv)) {  /* Previous value was nil? */
       /* Need to duplicate the hasmm check for the early guards. */
       int hasmm = 0;
       if (ix->idxchain && mt) {
-	cTValue *mo = lj_tab_getstr(mt, mmname_str(J2G(J), MM_newindex));
-	hasmm = mo && !tvisnil(mo);
+        cTValue *mo = lj_tab_getstr(mt, mmname_str(J2G(J), MM_newindex));
+        hasmm = mo && !tvisnil(mo);
       }
+  
       if (hasmm)
-	emitir(IRTG(loadop, IRT_NIL), xref, 0);  /* Guard for nil value. */
+        emitir(IRTG(loadop, IRT_NIL), xref, 0);  /* Guard for nil value. */
       else if (xrefop == IR_HREF)
-	emitir(IRTG(oldv == niltvg(J2G(J)) ? IR_EQ : IR_NE, IRT_PGC),
-	       xref, lj_ir_kkptr(J, niltvg(J2G(J))));
+        emitir(IRTG(oldv == niltvg(J2G(J)) ? IR_EQ : IR_NE, IRT_PGC),
+             xref, lj_ir_kkptr(J, niltvg(J2G(J))));
+      
       if (ix->idxchain && lj_record_mm_lookup(J, ix, MM_newindex)) {
-	lj_assertJ(hasmm, "inconsistent metamethod handling");
-	goto handlemm;
+        lj_assertJ(hasmm, "inconsistent metamethod handling");
+        goto handlemm;
       }
+      
       lj_assertJ(!hasmm, "inconsistent metamethod handling");
       if (oldv == niltvg(J2G(J))) {  /* Need to insert a new key. */
-	TRef key = ix->key;
-	if (tref_isinteger(key)) {  /* NEWREF needs a TValue as a key. */
-	  key = emitir(IRTN(IR_CONV), key, IRCONV_NUM_INT);
-	} else if (tref_isnum(key)) {
-	  if (tref_isk(key)) {
-	    if (tvismzero(&ix->keyv))
-	      key = lj_ir_knum_zero(J);  /* Canonicalize -0.0 to +0.0. */
-	  } else {
-	    emitir(IRTG(IR_EQ, IRT_NUM), key, key);  /* Check for !NaN. */
-	  }
-	}
-	xref = emitir(IRT(IR_NEWREF, IRT_PGC), ix->tab, key);
-	keybarrier = 0;  /* NEWREF already takes care of the key barrier. */
+        TRef key = ix->key;
+        if (tref_isinteger(key)) {  /* NEWREF needs a TValue as a key. */
+          key = emitir(IRTN(IR_CONV), key, IRCONV_NUM_INT);
+        } else if (tref_isnum(key)) {
+          if (tref_isk(key)) {
+            if (tvismzero(&ix->keyv))
+              key = lj_ir_knum_zero(J);  /* Canonicalize -0.0 to +0.0. */
+          } else {
+            emitir(IRTG(IR_EQ, IRT_NUM), key, key);  /* Check for !NaN. */
+          }
+        }
+  
+        xref = emitir(IRT(IR_NEWREF, IRT_PGC), ix->tab, key);
+        keybarrier = 0;  /* NEWREF already takes care of the key barrier. */
 #ifdef LUAJIT_ENABLE_TABLE_BUMP
-	if ((J->flags & JIT_F_OPT_SINK))  /* Avoid a separate flag. */
-	  rec_idx_bump(J, ix);
+  	  if ((J->flags & JIT_F_OPT_SINK))  /* Avoid a separate flag. */
+  	    rec_idx_bump(J, ix);
 #endif
       }
     } else if (!lj_opt_fwd_wasnonnil(J, loadop, tref_ref(xref))) {
       /* Cannot derive that the previous value was non-nil, must do checks. */
       if (xrefop == IR_HREF)  /* Guard against store to niltv. */
-	emitir(IRTG(IR_NE, IRT_PGC), xref, lj_ir_kkptr(J, niltvg(J2G(J))));
+        emitir(IRTG(IR_NE, IRT_PGC), xref, lj_ir_kkptr(J, niltvg(J2G(J))));
+    
       if (ix->idxchain) {  /* Metamethod lookup required? */
-	/* A check for NULL metatable is cheaper (hoistable) than a load. */
-	if (!mt) {
-	  TRef mtref = emitir(IRT(IR_FLOAD, IRT_TAB), ix->tab, IRFL_TAB_META);
-	  emitir(IRTG(IR_EQ, IRT_TAB), mtref, lj_ir_knull(J, IRT_TAB));
-	} else {
-	  IRType t = itype2irt(oldv);
-	  emitir(IRTG(loadop, t), xref, 0);  /* Guard for non-nil value. */
-	}
+        /* A check for NULL metatable is cheaper (hoistable) than a load. */
+        if (!mt) {
+          TRef mtref = emitir(IRT(IR_FLOAD, IRT_TAB), ix->tab, IRFL_TAB_META);
+          emitir(IRTG(IR_EQ, IRT_TAB), mtref, lj_ir_knull(J, IRT_TAB));
+        } else {
+          IRType t = itype2irt(oldv);
+          emitir(IRTG(loadop, t), xref, 0);  /* Guard for non-nil value. */
+        }
       }
     } else {
       keybarrier = 0;  /* Previous non-nil value kept the key alive. */
     }
+  
     /* Convert int to number before storing. */
     if (!LJ_DUALNUM && tref_isinteger(ix->val))
       ix->val = emitir(IRTN(IR_CONV), ix->val, IRCONV_NUM_INT);
+  
     emitir(IRT(loadop+IRDELTA_L2S, tref_type(ix->val)), xref, ix->val);
     if (keybarrier || tref_isgcv(ix->val))
       emitir(IRT(IR_TBAR, IRT_NIL), ix->tab, 0);
+  
     /* Invalidate neg. metamethod cache for stores with certain string keys. */
     if (!nommstr(J, ix->key)) {
       TRef fref = emitir(IRT(IR_FREF, IRT_PGC), ix->tab, IRFL_TAB_NOMM);
       emitir(IRT(IR_FSTORE, IRT_U8), fref, lj_ir_kint(J, 0));
     }
+  
     J->needsnap = 1;
     return 0;
   }
