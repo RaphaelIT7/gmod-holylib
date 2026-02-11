@@ -416,6 +416,18 @@ LJLIB_CF(debug_traceback)
 
 /* ------------------------------------------------------------------------ */
 
+LJLIB_CF(debug_userdata_setusertable)
+{
+  lua_pushboolean(L, lua_userdata_setusertable(L, 1, lua_toboolean(L, 2)));
+  return 1;
+}
+
+LJLIB_CF(debug_userdata_setmetaaccess)
+{
+  lua_pushboolean(L, lua_userdata_setmetaaccess(L, 1, lua_toboolean(L, 2)));
+  return 1;
+}
+
 #include "lj_libdef.h"
 
 LUALIB_API int luaopen_debug(lua_State *L)

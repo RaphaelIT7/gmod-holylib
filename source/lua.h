@@ -4,6 +4,8 @@
 #include "bitvec.h"
 #if !defined(DISABLE_GMODJIT)
 #include "../gmod-luajit/luajit.h"
+#define LJ_UDATA_FLAG_USERTABLE 0x01 // from our JIT build
+#define LJ_UDATA_FLAG_USEMETAFORACCESS 0x02
 #else
 extern "C" // Our JIT build
 {
@@ -394,10 +396,11 @@ constexpr int GCudata_holylib_dataoffset = sizeof(GCudata_holylib) - sizeof(void
 
 enum class udataFlags // we use bit flags so only a total of 8 are allowed.v
 {
-	UDATA_EXPLICIT_DELETE = 1 << 0,
-	UDATA_NO_USERTABLE = 1 << 1,
-	UDATA_INLINED_DATA = 1 << 2,
-	UDATA_REFERENCED = 1 << 3, // This userdata is a ReferencedLuaUserData and NOT LuaUserData
+	// First two bits are reserved for HolyLib's LuaJIT built!
+	UDATA_EXPLICIT_DELETE = 1 << 2,
+	UDATA_NO_USERTABLE = 1 << 3,
+	UDATA_INLINED_DATA = 1 << 4,
+	UDATA_REFERENCED = 1 << 5, // This userdata is a ReferencedLuaUserData and NOT LuaUserData
 };
 
 /*
@@ -455,6 +458,9 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 			data = pData;
 		else
 			flags |= (int)udataFlags::UDATA_INLINED_DATA;
+
+		// Always set as we do not care about __index calls.
+		flags |= LJ_UDATA_FLAG_USEMETAFORACCESS;
 
 		udtype = pMetaEntry.iType;
 		metatable = pMetaEntry.metatable;
@@ -575,6 +581,9 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 				pLua->Pop(1);
 			}
 		}
+
+		// Set HolyLIb's LuaJIT flag to allow __index & __newindex to be JIT'd
+		flags |= LJ_UDATA_FLAG_USERTABLE;
 	}
 
 	inline void Push(GarrysMod::Lua::ILuaInterface* pLua)

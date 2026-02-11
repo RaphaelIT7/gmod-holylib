@@ -143,6 +143,27 @@ cTValue *lj_meta_tget(lua_State *L, cTValue *o, cTValue *k)
       if (!tvisnil(tv) ||
 	  !(mo = lj_meta_fast(L, tabref(t->metatable), MM_index)))
 	return tv;
+    } else if (tvisudata(o)) {
+      GCudata* ud = udataV(o);
+      GCtab* t = gco2tab(gcref(ud->env));
+      if (udata_isflagset(ud, LJ_UDATA_FLAG_USERTABLE) && t) {
+        cTValue *tv = lj_tab_get(L, t, k);
+        if (!tvisnil(tv))
+          return tv;
+      }
+
+      GCtab* mt = gco2tab(gcref(ud->metatable));
+      if (udata_isflagset(ud, LJ_UDATA_FLAG_USEMETAFORACCESS) && mt) {
+        cTValue *tv = lj_tab_get(L, mt, k);
+        if (!tvisnil(tv))
+          return tv;
+      }
+
+      mo = lj_meta_lookup(L, o, MM_index);
+      if (!mo) {
+        lj_err_optype(L, o, LJ_ERR_OPINDEX);
+        return NULL;  /* unreachable */
+      }
     } else if (tvisnil(mo = lj_meta_lookup(L, o, MM_index))) {
       lj_err_optype(L, o, LJ_ERR_OPINDEX);
       return NULL;  /* unreachable */
@@ -186,6 +207,36 @@ TValue *lj_meta_tset(lua_State *L, cTValue *o, cTValue *k)
 	else if (tvisint(k)) { setnumV(&tmp, (lua_Number)intV(k)); k = &tmp; }
 	else if (tvisnum(k) && tvisnan(k)) lj_err_msg(L, LJ_ERR_NANIDX);
 	return lj_tab_newkey(L, t, k);
+      }
+    } else if (tvisudata(o)) {
+      GCudata* ud = udataV(o);
+      GCtab *t = gco2tab(gcref(ud->env));
+      if (udata_isflagset(ud, LJ_UDATA_FLAG_USERTABLE) && t && !isreadonly(t)) {
+        cTValue *tv = lj_tab_get(L, t, k);
+        t->nomm = 0;  /* Invalidate negative metamethod cache. */
+        lj_gc_anybarriert(L, t);
+        if (LJ_LIKELY(!tvisnil(tv)))
+          return (TValue *)tv;
+        else {
+          if (tv != niltv(L))
+            return (TValue *)tv;
+
+          if (tvisnil(k))
+            lj_err_msg(L, LJ_ERR_NILIDX);
+          else if (tvisint(k)) {
+            setnumV(&tmp, (lua_Number)intV(k));
+            k = &tmp;
+          } else if (tvisnum(k) && tvisnan(k))
+            lj_err_msg(L, LJ_ERR_NANIDX);
+
+          return lj_tab_newkey(L, t, k);
+        }
+      }
+
+      mo = lj_meta_lookup(L, o, MM_newindex);
+      if (!mo) {
+        lj_err_optype(L, o, LJ_ERR_OPINDEX);
+        return NULL;  /* unreachable */
       }
     } else if (tvisnil(mo = lj_meta_lookup(L, o, MM_newindex))) {
       lj_err_optype(L, o, LJ_ERR_OPINDEX);

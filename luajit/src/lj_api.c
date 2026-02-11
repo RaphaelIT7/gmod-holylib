@@ -680,6 +680,74 @@ LUA_API void *lua_touserdata(lua_State *L, int idx)
     return NULL;
 }
 
+LUA_API int lua_userdata_setusertable(lua_State *L, int idx, int set)
+{
+  cTValue *o = index2adr(L, idx);
+  if (tvisudata(o))
+  {
+    GCudata* ud = udataV(o);
+    if (set) {
+      ud->flags |= LJ_UDATA_FLAG_USERTABLE;
+      setgcref(ud->env, obj2gco(lj_tab_new(L, 0, 0)));
+    } else {
+      ud->flags &= ~LJ_UDATA_FLAG_USERTABLE;
+      setgcrefnull(ud->env);
+    }
+    return 1;
+  }
+
+  return 0;
+}
+
+LUA_API int lua_userdata_setmetaaccess(lua_State *L, int idx, int set)
+{
+  cTValue *o = index2adr(L, idx);
+  if (tvisudata(o))
+  {
+    GCudata* ud = udataV(o);
+    if (set) {
+      ud->flags |= LJ_UDATA_FLAG_USEMETAFORACCESS;
+    } else {
+      ud->flags &= ~LJ_UDATA_FLAG_USEMETAFORACCESS;
+    }
+    return 1;
+  }
+
+  return 0;
+}
+
+// RaphaelIT7: This is HolyLib's __index method, I'm trying to see if I can get it JIT'd :hehe:
+LUA_API int lua_testudataindex(lua_State* L, int idx)
+{
+  TValue* val = index2adr(L, idx);
+  if (val && tvisudata(val))
+  {
+    GCudata* udata = udataV(val);
+    GCtab* meta = tabref(udata->metatable);
+    if (meta)
+    {
+      TValue* tabVal = (TValue*)lj_tab_get(L, meta, L->top-1);
+      if (!tvisnil(tabVal))
+      {
+        copyTV(L, L->top++, tabVal);
+        return 1;
+      }
+    }
+
+    settabV(L, L->top, tabref(udata->env));
+    incr_top(L);
+    lua_pushvalue(L, -1);
+    lua_pushvalue(L, 2);
+    if (!(lua_type(L, -1) != 0))
+      lua_pushnil(L);
+
+    lua_remove(L, -2);
+    return 1;
+  }
+
+  return 0;
+}
+
 LUA_API lua_State *lua_tothread(lua_State *L, int idx)
 {
   cTValue *o = index2adr(L, idx);

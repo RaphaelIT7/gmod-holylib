@@ -569,6 +569,21 @@ LJLIB_CF(print)
   return 0;
 }
 
+int test_func(lua_State* L)
+{
+  int val = lua_tonumber(L, 1);
+
+  lua_pushnumber(L, 500 + val);
+  return 1;
+}
+
+LJLIB_CF(test_cfunc)
+{
+  lua_pushcfunction(L, test_func);
+  return 1;
+}
+
+
 LJLIB_PUSH(top-3)
 LJLIB_SET(_VERSION)
 
