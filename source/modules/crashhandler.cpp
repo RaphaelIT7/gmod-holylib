@@ -464,6 +464,7 @@ void CCrashHandlerModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* game
 	(void)appfn;
 	(void)gamefn;
 
+	g_pFullFileSystem->CreateDirHierarchy("holylib/crashes/", "MOD");
 	SetupCrashHandler();
 }
 
