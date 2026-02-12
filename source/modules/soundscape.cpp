@@ -123,6 +123,9 @@ LUA_FUNCTION_STATIC(soundscape_BlockEngineChanges)
 
 void CSoundscapeModule::ClientDisconnect(edict_t* pClient)
 {
+	if (pClient->m_EdictIndex > MAX_PLAYERS)
+		return;
+
 	// We unset the bit so that the next client that gets this slot won't be affected by the previous player.
 	pBlockEngineAction.Clear(pClient->m_EdictIndex-1);
 }

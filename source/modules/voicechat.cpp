@@ -1444,6 +1444,9 @@ static void CheckTalkingState(int nPlayerSlot, bool bIsTalking)
 
 void CVoiceChatModule::ClientDisconnect(edict_t* pClient)
 {
+	if (pClient->m_EdictIndex > MAX_PLAYERS)
+		return;
+
 	// We gotta prevent the hook from firing when the player already disconnected, so we reset these here
 	g_bIsPlayerTalking[pClient->m_EdictIndex-1] = false;
 	g_bIsPlayerMuted[pClient->m_EdictIndex-1] = false;

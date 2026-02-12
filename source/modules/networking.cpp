@@ -1894,6 +1894,9 @@ void CNetworkingModule::OnEntityCreated(CBaseEntity* pEntity)
 
 void CNetworkingModule::ClientDisconnect(edict_t* pPlayer)
 {
+	if (pPlayer->m_EdictIndex > MAX_PLAYERS)
+		return;
+
 	g_pPlayerTransmitCache[pPlayer->m_EdictIndex-1].Reset();
 }
 
