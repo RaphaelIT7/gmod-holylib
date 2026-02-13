@@ -1525,13 +1525,14 @@ TRef lj_record_idx(jit_State *J, RecordIndex *ix)
     GCudata* ud = udataV(&ix->tabv);
     GCtab *t = gco2tab(gcref(ud->env));
     TRef res = 0;
-    emitir(IRT(IR_FLOAD, IRT_U8), ix->tab, IRFL_UDATA_FLAGS);
+    emitir(IRTG(IR_FLOAD, IRT_U8), ix->tab, IRFL_UDATA_FLAGS);
     if (ix->val == 0) { /* Indexed load */
       RecordIndex origix = *ix;
       RecordIndex mtix = *ix;
       if (udata_isflagset(ud, LJ_UDATA_FLAG_USERTABLE) && t) {
         ix->tab = emitir(IRT(IR_FLOAD, IRT_TAB), ix->tab, IRFL_UDATA_ENV);
         setgcVraw(&ix->tabv, obj2gco(t), LJ_TTAB);
+        ix->idxchain = 0;
 
         res = lj_record_idx(J, ix);
         if (res != TREF_NIL)
@@ -1542,6 +1543,7 @@ TRef lj_record_idx(jit_State *J, RecordIndex *ix)
       if (udata_isflagset(ud, LJ_UDATA_FLAG_USEMETAFORACCESS) && mt) {
         mtix.tab = emitir(IRT(IR_FLOAD, IRT_TAB), mtix.tab, IRFL_UDATA_META);
         setgcVraw(&mtix.tabv, obj2gco(mt), LJ_TTAB);
+        mtix.idxchain = 0;
 
         res = lj_record_idx(J, &mtix);
         if (res != TREF_NIL)
