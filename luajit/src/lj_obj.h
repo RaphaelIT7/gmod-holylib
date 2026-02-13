@@ -60,8 +60,26 @@ typedef struct GCRef {
 } GCRef;
 
 /* Common GC header for all collectable objects. */
-#define GCHeader	GCRef nextgc; uint8_t marked; uint8_t gct
-/* This occupies 6 bytes, so use the next 2 bytes for non-32 bit fields. */
+/* We got lastgc to double link it to make insertion/removal in the roots faster though I think I could get rid of that again later, just gonna keep it for now */
+/* Having the refcount be second allows structs like GCcdata on 64x to save 8 bytes alignment */
+/* as nextgc will be 8 bytes and refcount will be 4 with additional 4 one byte variables which all fit into 16 bytes in total */
+#define GCHeader	/*GCRef lastgc;*/ GCRef nextgc; uint32_t refcount; uint8_t marked; uint8_t gct
+/* This occupies 10 bytes, so use the next 2 bytes for non-32 bit fields. */
+
+typedef union GCobj GCobj;
+LJ_FUNC void LJ_FASTCALL lj_gc_decr_ref(GCobj *obj);
+#define gcrefdirect_decrement(gc) (lj_gc_decr_ref((GCobj*)gc))
+#define gcref_decrement(gc) (lj_gc_decr_ref(gcref(gc)))
+
+#define LJ_GC_REF_DEBUG
+#ifdef LJ_GC_REF_DEBUG
+LJ_FUNC void LJ_FASTCALL lj_gc_incr_ref(GCobj *obj);
+#define gcrefdirect_increment(gc) (lj_gc_incr_ref((GCobj*)gc))
+#define gcref_increment(gc) (lj_gc_incr_ref(gcref(gc)))
+#else
+#define gcrefdirect_increment(gc) (++gc->gch.refcount)
+#define gcref_increment(gc) (++gcref(gc)->gch.refcount)
+#endif
 
 #if LJ_GC64
 #define gcref(r)	((GCobj *)(r).gcptr64)
@@ -69,22 +87,32 @@ typedef struct GCRef {
 #define gcrefu(r)	((r).gcptr64)
 #define gcrefeq(r1, r2)	((r1).gcptr64 == (r2).gcptr64)
 
-#define setgcref(r, gc)	((r).gcptr64 = (uint64_t)&(gc)->gch)
+#define setrawgcref(r, gc)	((r).gcptr64 = (uint64_t)&(gc)->gch)
 #define setgcreft(r, gc, it) \
   (r).gcptr64 = (uint64_t)&(gc)->gch | (((uint64_t)(it)) << 47)
-#define setgcrefp(r, p)	((r).gcptr64 = (uint64_t)(p))
-#define setgcrefnull(r)	((r).gcptr64 = 0)
-#define setgcrefr(r, v)	((r).gcptr64 = (v).gcptr64)
+#define setrawgcrefp(r, p)	((r).gcptr64 = (uint64_t)(p))
+#define setrawgcrefnull(r)	((r).gcptr64 = 0)
+#define setrawgcrefr(r, v)	((r).gcptr64 = (v).gcptr64)
+
+#define setgcref(r, gc) do { gcref_decrement(r); setrawgcref(r, gc); if ((r).gcptr64 != 0) { gcref_increment(r); } } while(0)
+#define setgcrefp(r, p) do { gcref_decrement(r); setrawgcrefp(r, p); if ((r).gcptr64 != 0) { gcref_increment(r); } } while(0)
+#define setgcrefnull(r) do { gcref_decrement(r); setrawgcrefnull(r); } while(0)
+#define setgcrefr(r, v) do { gcref_decrement(r); setrawgcrefr(r, v); if ((r).gcptr64 != 0) { gcref_increment(r); } } while(0)
 #else
 #define gcref(r)	((GCobj *)(uintptr_t)(r).gcptr32)
 #define gcrefp(r, t)	((t *)(void *)(uintptr_t)(r).gcptr32)
 #define gcrefu(r)	((r).gcptr32)
 #define gcrefeq(r1, r2)	((r1).gcptr32 == (r2).gcptr32)
 
-#define setgcref(r, gc)	((r).gcptr32 = (uint32_t)(uintptr_t)&(gc)->gch)
-#define setgcrefp(r, p)	((r).gcptr32 = (uint32_t)(uintptr_t)(p))
-#define setgcrefnull(r)	((r).gcptr32 = 0)
-#define setgcrefr(r, v)	((r).gcptr32 = (v).gcptr32)
+#define setrawgcref(r, gc) ((r).gcptr32 = (uint32_t)(uintptr_t)&(gc)->gch)
+#define setrawgcrefp(r, p) ((r).gcptr32 = (uint32_t)(uintptr_t)(p))
+#define setrawgcrefnull(r) ((r).gcptr32 = 0)
+#define setrawgcrefr(r, v) ((r).gcptr32 = (v).gcptr32)
+
+#define setgcref(r, gc) do { gcref_decrement(r); setrawgcref(r, gc); if ((r).gcptr32 != 0) { gcref_increment(r); } } while(0)
+#define setgcrefp(r, p) do { gcref_decrement(r); setrawgcrefp(r, p); if ((r).gcptr32 != 0) { gcref_increment(r); } } while(0)
+#define setgcrefnull(r) do { gcref_decrement(r); setrawgcrefnull(r); } while(0)
+#define setgcrefr(r, v) do { gcref_decrement(r); setrawgcrefr(r, v); if ((r).gcptr32 != 0) { gcref_increment(r); } } while(0)
 #endif
 
 #define gcnext(gc)	(gcref((gc)->gch.nextgc))
@@ -634,6 +662,10 @@ typedef struct GCState {
 #endif
   MSize sweepstr;	/* Sweep position in string table. */
   GCRef root;		/* List of all collectable objects. */
+  // Old idea though maybe still worth a try later, but rn I wanna test it with a ref counter
+  // GCRef referencedroot; /* List of all objects that are referenced / shouldn't be collected */
+  // GCRef semireferencedroot; /* List of all objects that may be referenced / a sweep through referencedroot is needed to determen their state */
+  // GCRef nonreferencedroot; /* List of all objects that are not referenced / should be collected */
   MRef sweep;		/* Sweep position in root list. */
   GCRef gray;		/* List of gray objects. */
   GCRef grayagain;	/* List of objects for atomic traversal. */
@@ -919,7 +951,7 @@ static LJ_AINLINE void setrawlightudV(TValue *o, void *p)
 #elif LJ_64
   o->u64 = (uint64_t)p | (((uint64_t)0xffff) << 48);
 #else
-  setgcrefp(o->gcr, p); setitype(o, LJ_TLIGHTUD);
+  setrawgcrefp(o->gcr, p); setitype(o, LJ_TLIGHTUD);
 #endif
 }
 
@@ -950,9 +982,9 @@ static LJ_AINLINE void checklivetv(lua_State *L, TValue *o, const char *msg)
 static LJ_AINLINE void setgcVraw(TValue *o, GCobj *v, uint32_t itype)
 {
 #if LJ_GC64
-  setgcreft(o->gcr, v, itype);
+  setrawgcreft(o->gcr, v, itype);
 #else
-  setgcref(o->gcr, v); setitype(o, itype);
+  setrawgcref(o->gcr, v); setitype(o, itype);
 #endif
 }
 
@@ -962,10 +994,30 @@ static LJ_AINLINE void setgcV(lua_State *L, TValue *o, GCobj *v, uint32_t it)
   checklivetv(L, o, "store to dead GC object");
 }
 
+static LJ_AINLINE void setgcVRef(lua_State *L, TValue *o, GCobj *v, uint32_t it)
+{
+  if (!(tvisbool(o) || tvisnumber(o) || tvisnil(o)))
+  {
+    gcref_decrement(o->gcr);
+  }
+
+  setgcVraw(o, v, it);
+  checklivetv(L, o, "store to dead GC object");
+
+  if (!(tvisbool(o) || tvisnumber(o) || tvisnil(o)) && v)
+  {
+    gcref_increment(o->gcr);
+  }
+}
+
 #define define_setV(name, type, tag) \
 static LJ_AINLINE void name(lua_State *L, TValue *o, const type *v) \
 { \
   setgcV(L, o, obj2gco(v), tag); \
+} \
+static LJ_AINLINE void name##Ref(lua_State *L, TValue *o, const type *v) \
+{ \
+  setgcVRef(L, o, obj2gco(v), tag); \
 }
 define_setV(setstrV, GCstr, LJ_TSTR)
 define_setV(setthreadV, lua_State, LJ_TTHREAD)

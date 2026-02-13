@@ -1,0 +1,98 @@
+﻿  minilua.c
+     Bibliothek "minilua.lib" und Objekt "minilua.exp" werden erstellt.
+  buildvm.c
+  buildvm_asm.c
+  buildvm_fold.c
+  buildvm_lib.c
+  buildvm_peobj.c
+  Code wird generiert...
+     Bibliothek "buildvm.lib" und Objekt "buildvm.exp" werden erstellt.
+  lj_alloc.c
+  lj_api.c
+  lj_asm.c
+  lj_assert.c
+  lj_bc.c
+  lj_bcread.c
+  lj_bcwrite.c
+  lj_buf.c
+  lj_carith.c
+  lj_ccall.c
+  lj_ccallback.c
+lj_ccallback.c(122): warning C5287: Operanden sind unterschiedliche Enumerationstypen „x86Op“ und „<unnamed-enum-RID_EAX>“. Verwenden Sie eine explizite Koersion, um diese Warnung zu unterdrücken.
+lj_ccallback.c(131): warning C5287: Operanden sind unterschiedliche Enumerationstypen „x86Op“ und „<unnamed-enum-RID_EAX>“. Verwenden Sie eine explizite Koersion, um diese Warnung zu unterdrücken.
+  lj_cconv.c
+  lj_cdata.c
+  lj_char.c
+  lj_clib.c
+  lj_cparse.c
+  lj_crecord.c
+  lj_ctype.c
+  lj_debug.c
+  lj_dispatch.c
+  Code wird generiert...
+  Kompilieren...
+  lj_err.c
+  lj_ffrecord.c
+  lj_func.c
+  lj_gc.c
+  lj_gdbjit.c
+  lj_ir.c
+  lj_lex.c
+  lj_lib.c
+  lj_load.c
+  lj_mcode.c
+  lj_meta.c
+  lj_obj.c
+  lj_opt_dce.c
+  lj_opt_fold.c
+  lj_opt_loop.c
+  lj_opt_mem.c
+  lj_opt_narrow.c
+  lj_opt_sink.c
+  lj_opt_split.c
+  lj_parse.c
+  Code wird generiert...
+  Kompilieren...
+  lj_prng.c
+  lj_profile.c
+  lj_record.c
+  lj_serialize.c
+  lj_snap.c
+  lj_state.c
+  lj_str.c
+  lj_strfmt.c
+  lj_strfmt_num.c
+  lj_strscan.c
+  lj_tab.c
+  lj_trace.c
+  lj_udata.c
+  lj_vmevent.c
+  lj_vmmath.c
+  lib_aux.c
+  lib_base.c
+  lib_bit.c
+  lib_buffer.c
+  lib_debug.c
+  Code wird generiert...
+  Kompilieren...
+  lib_ffi.c
+  lib_init.c
+  lib_io.c
+  lib_jit.c
+  lib_math.c
+  lib_os.c
+  lib_package.c
+  lib_string.c
+  lib_table.c
+  Code wird generiert...
+  Kompilieren...
+  gmod.cpp
+gmod.cpp(20): warning C4099: "lua_Debug": Geben Sie den zuerst unter Verwendung von "struct" und jetzt unter Verwendung von "class" gesehenen Namen ein
+  V:\GitHub\gmod-holylib\luajit\src\lua.h(360): note: Siehe Deklaration von "lua_Debug"
+  Code wird generiert...
+     Bibliothek "lua51.lib" und Objekt "lua51.exp" werden erstellt.
+LINK : warning LNK4217: Das in "_lua_newuserdata" definierte Symbol "lj_api.obj" wird durch "gmod.obj" in die Funktion "_GMOD_LuaCreateEmptyUserdata" importiert.
+  luajit.c
+     Bibliothek "luajit.lib" und Objekt "luajit.exp" werden erstellt.
+  
+  === Successfully built LuaJIT for Windows/x86 ===
