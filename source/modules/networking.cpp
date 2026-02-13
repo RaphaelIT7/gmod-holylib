@@ -1780,6 +1780,12 @@ static ConVar* sv_parallel_packentities;
 static Detouring::Hook detour_PackEntities_Normal;
 void PackEntities_Normal(int clientCount, CGameClient **clients, CFrameSnapshot *snapshot)
 {
+	if (!networking_fasttransmit.GetBool())
+	{
+		detour_PackEntities_Normal.GetTrampoline<Symbols::PackEntities_Normal>()(clientCount, clients, snapshot);
+		return;
+	}
+
 	Assert( snapshot->m_nValidEntities >= 0 && snapshot->m_nValidEntities <= MAX_EDICTS );
 	// tmZoneFiltered( TELEMETRY_LEVEL0, 50, TMZF_NONE, "%s %d", __FUNCTION__, snapshot->m_nValidEntities );
 

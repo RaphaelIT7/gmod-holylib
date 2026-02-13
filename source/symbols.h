@@ -74,6 +74,7 @@ class IConnectionlessPacketHandler;
 class CCommand;
 class DVariant;
 class SendProp;
+class CGameClient;
 
 namespace GarrysMod::Lua
 {
@@ -480,6 +481,8 @@ namespace Symbols
 
 	using InvalidateSharedEdictChangeInfos = void (*)();
 	extern const std::vector<Symbol> InvalidateSharedEdictChangeInfosSym;
+
+	using PackEntities_Normal = void (*)(int clientCount, CGameClient **clients, CFrameSnapshot *snapshot);
 	extern const std::vector<Symbol> PackEntities_NormalSym;
 
 	using CGMOD_Player_CreateViewModel = void (GMCOMMON_CALLING_CONVENTION*)(CBasePlayer* pPlayer, int viewmodelindex);
