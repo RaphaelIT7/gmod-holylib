@@ -28,7 +28,7 @@ end
 
 generate_trace()
 
-local noJIT = true
+local noJIT = false
 
 local proxy = newproxy()
 debug.userdata_setusertable(proxy, true)
@@ -55,7 +55,7 @@ debug.setmetatable(test1, {
 })
 
 jit.flush()
-local loopCount = 1000000000 / (noJIT and 100 or 1)
+local loopCount = 10000000000 / (noJIT and 100 or 1)
 local a = os.clock()
 for k=1, loopCount/50 do // Less since I just want my test to work! I remove this if I need real comparison
 	test1.test = 123
