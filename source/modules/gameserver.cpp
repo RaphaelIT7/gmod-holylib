@@ -2252,6 +2252,16 @@ LUA_FUNCTION_STATIC(gameserver_GetFreeClient)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(gameserver_GetSocket)
+{
+	if (!Util::server || !Util::server->IsActive())
+		return 0;
+
+	CBaseServer* pServer = (CBaseServer*)Util::server;
+	LUA->PushNumber(pServer->m_Socket);
+	return 1;
+}
+
 extern CGlobalVars* gpGlobals;
 static ConVar* sv_stressbots;
 void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
@@ -2388,6 +2398,7 @@ void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, gameserver_CreateFakeClient, "CreateFakeClient");
 		Util::AddFunc(pLua, gameserver_CreateNewClient, "CreateNewClient");
 		Util::AddFunc(pLua, gameserver_GetFreeClient, "GetFreeClient");
+		Util::AddFunc(pLua, gameserver_GetSocket, "GetSocket");
 
 		Util::AddFunc(pLua, gameserver_CreateNetChannel, "CreateNetChannel");
 		Util::AddFunc(pLua, gameserver_RemoveNetChannel, "RemoveNetChannel");
