@@ -1031,6 +1031,14 @@ namespace Symbols
 		Symbol::FromName("_ZN13CVoiceGameMgr15ClientConnectedEP7edict_t"),
 	};
 
+	const std::vector<Symbol> NET_ReceiveDatagramSym = {
+		Symbol::FromName("_Z19NET_ReceiveDatagramiP11netpacket_s"),
+	};
+
+	const std::vector<Symbol> NET_GetLastErrorSym = {
+		Symbol::FromName("_Z16NET_GetLastErrorv"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: AutoRefresh Symbols
 	//---------------------------------------------------------------------------------

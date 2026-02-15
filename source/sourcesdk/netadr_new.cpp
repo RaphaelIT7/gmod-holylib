@@ -139,6 +139,10 @@ void netadrnew_s::ToString( char *pchBuffer, uint32 unBufferSize, bool onlyBase 
 			V_snprintf( pchBuffer, unBufferSize, "%i.%i.%i.%i:%i", ip[0], ip[1], ip[2], ip[3], ntohs(port));
 		}
 	}
+	else if (type == NA_STEAM)
+	{
+		V_snprintf( pchBuffer, unBufferSize, "p2p:%llu", m_SteamID.ConvertToUint64() );
+	}
 	else
 	{
 		V_strncpy( pchBuffer, "unknown", unBufferSize );
