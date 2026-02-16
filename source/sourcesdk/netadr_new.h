@@ -22,8 +22,8 @@ class bf_write;
 typedef struct netadrnew_s
 {
 public:
-	netadrnew_s() { SetIP( 0 ); SetPort( 0 ); SetType( NA_IP ); }
-	netadrnew_s( uint unIP, uint16 usPort ) { SetIP( unIP ); SetPort( usPort ); SetType( NA_IP ); }
+	netadrnew_s() { SetIP( 0 ); SetPort( 0 ); SetType( NA_IP ); m_SteamID.Clear(); }
+	netadrnew_s( uint unIP, uint16 usPort ) { SetIP( unIP ); SetPort( usPort ); SetType( NA_IP ); m_SteamID.Clear(); }
 	netadrnew_s( const char *pch ) { SetFromString( pch ); }
 	void	Clear();	// invalids Address
 

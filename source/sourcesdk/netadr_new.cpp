@@ -50,6 +50,11 @@ bool netadrnew_s::CompareAdr (const netadrnew_s &a, bool onlyBase) const
 			return true;
 	}
 
+	if ( type == NA_STEAM )
+	{
+		return m_SteamID == a.m_SteamID;
+	}
+
 	return false;
 }
 
@@ -106,15 +111,13 @@ bool netadrnew_s::IsReservedAdr () const
 const char * netadrnew_s::ToString( bool onlyBase ) const
 {
 	// Select a static buffer
-	static	char	s[4][64];
-	static int slot = 0;
-	int useSlot = ( slot++ ) % 4;
+	static thread_local char buffer[64];
 
 	// Render into it
-	ToString( s[useSlot], sizeof(s[0]), onlyBase );
+	ToString( buffer, sizeof(buffer), onlyBase );
 
 	// Pray the caller uses it before it gets clobbered
-	return s[useSlot];
+	return buffer;
 }
 
 void netadrnew_s::ToString( char *pchBuffer, uint32 unBufferSize, bool onlyBase ) const
@@ -166,6 +169,7 @@ void netadrnew_s::Clear()
 	ip[0] = ip[1] = ip[2] = ip[3] = 0;
 	port = 0;
 	type = NA_NULL;
+	m_SteamID.Clear();
 }
 
 void netadrnew_s::SetIP(uint8 b1, uint8 b2, uint8 b3, uint8 b4)
