@@ -925,7 +925,7 @@ void Push_CBaseClientMeta(GarrysMod::Lua::ILuaInterface* pLua)
 
 LUA_FUNCTION_STATIC(CGameClient__tostring)
 {
-	CBaseClient* pClient = Get_CBaseClient(LUA, 1, false);
+	CGameClient* pClient = (CGameClient*)Get_CBaseClient(LUA, 1, false);
 	if (!pClient || !pClient->IsConnected())
 	{
 		LUA->PushString("GameClient [NULL]");
@@ -2853,6 +2853,36 @@ static int FindFreeClientSlot()
 }
 
 static Detouring::Hook detour_CGameClient_SpawnPlayer;
+#if PLATFORM_64BITS
+static bool hook_CGameClient_SpawnPlayer(CGameClient* client)
+{
+	// m_nClientSlot = player slot! (entIndex - 1)
+	if (client->m_nClientSlot < MAX_PLAYERS || gameserver_disablespawnsafety.GetBool())
+	{
+		return detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(client);;
+	}
+
+	// ent index! can be 128!
+	int nextFreeEntity = FindFreeClientSlot();
+	if (nextFreeEntity > MAX_PLAYERS)
+	{
+		Warning(PROJECT_NAME ": Failed to find a valid player slot to use! Stopping client spawn! (%i, %i, %i)\n", client->m_nClientSlot, client->GetUserID(), nextFreeEntity);
+		return false;
+	}
+
+	CGameClient* pClient = (CGameClient*)Util::GetClientByIndex(nextFreeEntity - 1);
+	if (pClient->m_nSignonState != SIGNONSTATE_NONE)
+	{
+		// It really didn't like what we had planned.
+		Warning(PROJECT_NAME ": Client collision! fk. Client will be refused to spawn! (%i - %s, %i - %s)\n", pClient->m_nClientSlot, pClient->GetClientName(), client->m_nClientSlot, client->GetClientName());
+		return false;
+	}
+
+	MoveCGameClientIntoCGameClient(client, pClient);
+	return false;
+	//detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(pClient);
+}
+#else
 static void hook_CGameClient_SpawnPlayer(CGameClient* client)
 {
 	// m_nClientSlot = player slot! (entIndex - 1)
@@ -2881,6 +2911,7 @@ static void hook_CGameClient_SpawnPlayer(CGameClient* client)
 	MoveCGameClientIntoCGameClient(client, pClient);
 	//detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(pClient);
 }
+#endif
 
 // Called by Util from CSteam3Server::NotifyClientDisconnect
 void CGameServerModule::OnClientDisconnect(CBaseClient* pClient)

@@ -660,7 +660,11 @@ namespace Symbols
 	using CBaseClient_OnRequestFullUpdate = void (GMCOMMON_CALLING_CONVENTION*)(void* client);
 	extern const std::vector<Symbol> CBaseClient_OnRequestFullUpdateSym;
 
+#if PLATFORM_64BITS
+	using CGameClient_SpawnPlayer = bool (GMCOMMON_CALLING_CONVENTION*)(void* client);
+#else
 	using CGameClient_SpawnPlayer = void (GMCOMMON_CALLING_CONVENTION*)(void* client);
+#endif
 	extern const std::vector<Symbol> CGameClient_SpawnPlayerSym;
 
 	using CBaseServer_ProcessConnectionlessPacket = bool (GMCOMMON_CALLING_CONVENTION*)(void* server, netpacket_s* packet);
