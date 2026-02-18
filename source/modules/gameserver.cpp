@@ -2228,6 +2228,58 @@ LUA_FUNCTION_STATIC(gameserver_CreateFakeClient)
 	return 1;
 }
 
+static bool hook_CBaseClient_SetSignonState(CBaseClient* cl, int state, int spawncount);
+LUA_FUNCTION_STATIC(gameserver_CreateFakeQueueClient)
+{
+	if (!Util::server || !Util::server->IsActive())
+		return 0;
+
+	const char* pName = LUA->CheckString(1);
+	CBaseServer* pServer = (CBaseServer*)Util::server;
+
+	netadrnew_s adr;
+	CBaseClient* fakeclient = pServer->GetFreeClient(*((netadr_t*)&adr)); // Very "safe"
+	if (!fakeclient)
+		return 0;
+
+	// Fk sv_stressbots
+
+	int userID = ++pServer->m_nUserid;
+	pServer->m_nNumConnections++;
+
+	fakeclient->SetReportThisFakeClient( pServer->m_bReportNewFakeClients );
+	fakeclient->Connect( pName, userID, nullptr, true, 0 );
+
+	fakeclient->SetUserCVar( "rate", "30000" );
+	fakeclient->SetUserCVar( "cl_updaterate", "20" );
+	fakeclient->SetUserCVar( "cl_interp_ratio", "1.0" );
+	fakeclient->SetUserCVar( "cl_interp", "0.1" );
+	fakeclient->SetUserCVar( "cl_interpolate", "0" );
+	fakeclient->SetUserCVar( "cl_predict", "1" );
+	fakeclient->SetUserCVar( "cl_predictweapons", "1" );
+	fakeclient->SetUserCVar( "cl_lagcompensation", "1" );
+	fakeclient->SetUserCVar( "closecaption","0" );
+	fakeclient->SetUserCVar( "english", "1" );
+
+	fakeclient->SetUserCVar( "cl_clanid", "0" );
+	fakeclient->SetUserCVar( "cl_team", "blue" );
+	fakeclient->SetUserCVar( "hud_classautokill", "1" );
+	fakeclient->SetUserCVar( "tf_medigun_autoheal", "0" );
+	fakeclient->SetUserCVar( "cl_autorezoom", "1" );
+	fakeclient->SetUserCVar( "fov_desired", "75" );
+	fakeclient->SetUserCVar( "tf_remember_lastswitched", "0" );
+
+	fakeclient->SetUserCVar( "cl_autoreload", "0" );
+	fakeclient->SetUserCVar( "tf_remember_activeweapon", "0" );
+	fakeclient->SetUserCVar( "hud_combattext", "0" );
+	fakeclient->SetUserCVar( "cl_flipviewmodels", "0" );
+
+	hook_CBaseClient_SetSignonState(fakeclient, SIGNONSTATE_PRESPAWN, pServer->GetSpawnCount());
+
+	Push_CBaseClient(LUA, fakeclient);
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(gameserver_CreateNewClient)
 {
 	if (!Util::server || !Util::server->IsActive())
@@ -2395,6 +2447,7 @@ void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, gameserver_BroadcastMessage, "BroadcastMessage");
 		Util::AddFunc(pLua, gameserver_SendConnectionlessPacket, "SendConnectionlessPacket");
 		Util::AddFunc(pLua, gameserver_CreateFakeClient, "CreateFakeClient");
+		Util::AddFunc(pLua, gameserver_CreateFakeQueueClient, "CreateFakeQueueClient");
 		Util::AddFunc(pLua, gameserver_CreateNewClient, "CreateNewClient");
 		Util::AddFunc(pLua, gameserver_GetFreeClient, "GetFreeClient");
 		Util::AddFunc(pLua, gameserver_GetSocket, "GetSocket");
