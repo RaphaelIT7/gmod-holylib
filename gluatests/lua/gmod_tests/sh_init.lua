@@ -61,8 +61,8 @@ function HolyLib_RunPerformanceTest(name, callback, ...)
     while (SysTime() - startTime) < runTime do -- We spend a total of 1 seconds to run these
         for k=1, loopAmount do
             callback(...)
-            totalCalls = totalCalls + 1
         end
+        totalCalls = totalCalls + loopAmount
     end
     
     local totalTime = SysTime() - startTime -- Should almost always be 1 second
