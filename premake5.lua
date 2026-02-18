@@ -95,7 +95,7 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 		IncludeDetouring()
 		IncludeScanning()
 		if IncludeIVP then
-			IncludeIVP() -- Can be removed if anyone doesn't want it.
+			--IncludeIVP() -- Can be removed if anyone doesn't want it.
 		end
 		IncludeBootil()
 

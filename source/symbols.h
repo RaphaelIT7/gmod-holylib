@@ -98,7 +98,7 @@ struct ThreadPoolStartParams_t;
 #define GMCOMMON_CALLING_CONVENTION __thiscall
 #endif
 #define CALLING_CONVENTION_FASTCALL __fastcall
-#else // LInux
+#else // Linux
 #define CALLING_CONVENTION_FASTCALL __attribute__((fastcall))
 #define GMCOMMON_CALLING_CONVENTION
 #endif
@@ -799,7 +799,7 @@ namespace Symbols
 	using CFrameSnapshotManager_UsePreviouslySentPacket = bool (*)(void* framesnapshotmanager, CFrameSnapshot* pSnapshot, int entity, int entSerialNumber);
 	extern const std::vector<Symbol> CFrameSnapshotManager_UsePreviouslySentPacketSym;
 
-	using CFrameSnapshotManager_CreatePackedEntity = PackedEntity* (CALLING_CONVENTION_FASTCALL*)(void* framesnapshotmanager, CFrameSnapshot* pSnapshot, int entity);
+	using CFrameSnapshotManager_CreatePackedEntity = PackedEntity* (*)(void* framesnapshotmanager, CFrameSnapshot* pSnapshot, int entity);
 	extern const std::vector<Symbol> CFrameSnapshotManager_CreatePackedEntitySym;
 
 	//---------------------------------------------------------------------------------

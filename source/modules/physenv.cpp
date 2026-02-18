@@ -2740,9 +2740,9 @@ DETOUR_THISCALL_FINISH();
 static DLL_Handle g_pPhysicsModule = nullptr;
 void CPhysEnvModule::InitDetour(bool bPreServer)
 {
-#if CUSTOM_VPHYSICS_BUILD
 	if (bPreServer)
 	{
+#if CUSTOM_VPHYSICS_BUILD
 		if (CommandLine()->FindParm("-holylib_replaceivp"))
 		{
 			g_pPhysicsModule = DLL_LoadModule("vphysics" DLL_EXTENSION, RTLD_LAZY); // Load it manually since rn it wasn't loaded yet.
@@ -2758,9 +2758,9 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 		} else {
 			g_pPhysicsHolyLib = nullptr;
 		}
+#endif
 		return;
 	}
-#endif
 
 	if (g_pPhysicsModule)
 	{
