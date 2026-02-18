@@ -1027,18 +1027,6 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x66\x0F\x28\xC8"), // 55 66 0F 28 C8
 	};
 
-	const std::vector<Symbol> CVoiceGameMgr_ClientConnectedSym = {
-		Symbol::FromName("_ZN13CVoiceGameMgr15ClientConnectedEP7edict_t"),
-	};
-
-	const std::vector<Symbol> NET_ReceiveDatagramSym = {
-		Symbol::FromName("_Z19NET_ReceiveDatagramiP11netpacket_s"),
-	};
-
-	const std::vector<Symbol> NET_GetLastErrorSym = {
-		Symbol::FromName("_Z16NET_GetLastErrorv"),
-	};
-
 	//---------------------------------------------------------------------------------
 	// Purpose: AutoRefresh Symbols
 	//---------------------------------------------------------------------------------

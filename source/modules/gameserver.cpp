@@ -11,9 +11,6 @@
 #include <framesnapshot.h>
 #include <netadr_new.h> // Better than the normal sdk one as this one actually sets stuff properly.
 
-#include "sourcesdk/sv_steamauth.h"
-#include "steam/isteamnetworking.h"
-
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -2236,9 +2233,8 @@ LUA_FUNCTION_STATIC(gameserver_CreateNewClient)
 	if (!Util::server || !Util::server->IsActive())
 		return 0;
 
-	int nSlot = LUA->CheckNumber(1);
 	CBaseServer* pServer = (CBaseServer*)Util::server;
-	Push_CBaseClient(LUA, pServer->CreateNewClient(nSlot));
+	Push_CBaseClient(LUA, pServer->CreateNewClient(pServer->GetClientCount()));
 	return 1;
 }
 
@@ -3037,152 +3033,6 @@ static void hook_NET_SetTime(double flRealtime) // We need this hook to keep net
 	net_time += frametime * (host_timescale ? host_timescale->GetFloat() : 1.0f);
 }
 
-// Hotfix until GMod has it fixed - https://github.com/Facepunch/garrysmod-issues/issues/6722
-static Detouring::Hook detour_CVoiceGameMgr_ClientConnected;
-void hook_CVoiceGameMgr_ClientConnected(void* _this, edict_t* pEdict)
-{
-	if (!pEdict || (pEdict->m_EdictIndex-1) >= MAX_PLAYERS)
-		return;
-
-	detour_CVoiceGameMgr_ClientConnected.GetTrampoline<Symbols::CVoiceGameMgr_ClientConnected>()(_this, pEdict);
-}
-
-/*
-	Testing stuff for https://github.com/Facepunch/garrysmod-issues/issues/6461
-	Notes for myself:
-		- GMod uses the outdated ISteamNetworking interface
-		- Dedicated Server builds (linux atleast) are missing NET_ReceiveP2PDatagram
-		- 
-*/
-
-static Symbols::Steam3ServerT func_Steam3Server;
-static bool g_bIsSteamP2PEnabled = false;
-static Detouring::Hook detour_NET_ReceiveDatagram;
-static Symbols::NET_GetLastError func_NET_GetLastError = nullptr;
-static bool hook_NET_ReceiveDatagram(int sock, netpacket_t* packet)
-{
-	// Let UDP try- if it fails we check P2P
-	bool bRet = detour_NET_ReceiveDatagram.GetTrampoline<Symbols::NET_ReceiveDatagram>()(sock, packet);
-	if (func_NET_GetLastError() != 0 && func_NET_GetLastError() != 11 || bRet)
-		return bRet;
-
-	if (!Util::server || !Util::server->IsActive() || !func_Steam3Server)
-		return false; 
-
-	CBaseServer* pServer = (CBaseServer*)Util::server;
-	if (!g_bIsSteamP2PEnabled || sock != pServer->m_Socket)
-		return false; // Just to verify- GMod checks if (!SteamP2P() || sock != 1 && someMagicVar > 1)
-
-	uint32 size = 0;
-	if (!func_Steam3Server().SteamGameServerNetworking()->IsP2PPacketAvailable(&size, 0))
-		return false;
-
-	CSteamID sender;
-	bRet = func_Steam3Server().SteamGameServerNetworking()->ReadP2PPacket(
-		packet->data,
-		NET_MAX_MESSAGE,
-		&size,
-		&sender,
-		0
-	);
-
-	if (!bRet)
-		return false;
-
-	// ToDo: Update SourceSDK to use netadrnew_s as GMod seems to use that version.
-	netadrnew_s* addr = (netadrnew_s*)&packet->from;
-	addr->SetFromSteamID(sender);
-	
-	packet->wiresize = size;
-	packet->size = size;
-	return true; // Fk NET_LagPacket for now...
-}
-
-static ConVar* net_showudp;
-static ConVar* sv_maxroutable;
-static Detouring::Hook detour_NET_SendPacket;
-#define NET_COMPRESSION_STACKBUF_SIZE 16384
-#define MIN_USER_MAXROUTABLE_SIZE	576  // ( X.25 Networks )
-#define MAX_USER_MAXROUTABLE_SIZE	MAX_ROUTABLE_PAYLOAD
-static int hook_NET_SendPacket(INetChannel *chan, int sock, const netadr_t &to, const unsigned char *data, int length, bf_write *pVoicePayload, bool bUseCompression)
-{
-	if (to.GetType() != NA_STEAM || !g_bIsSteamP2PEnabled)
-		return detour_NET_SendPacket.GetTrampoline<Symbols::NET_SendPacket>()(chan, sock, to, data, length, pVoicePayload, bUseCompression);
-
-	VPROF_BUDGET( "NET_SendPacket", VPROF_BUDGETGROUP_OTHER_NETWORKING );
-
-	int net_socket;
-	if ( net_showudp && net_showudp->GetInt() && (*(const unsigned int*)data == CONNECTIONLESS_HEADER) )
-	{
-		Assert( !bUseCompression );
-		Msg("UDP -> %s: sz=%i OOB '%c'\n", to.ToString(), length, data[4] );
-	}
-
-	// Ignoring droppackets & fakeloss as this all just is to see if P2P works if implemented!
-	// We also ignore compression (Really not in the mood to get CLZSS)
-
-	MEM_ALLOC_CREDIT();
-	CUtlMemoryFixedGrowable< byte, NET_COMPRESSION_STACKBUF_SIZE > memCompressed( NET_COMPRESSION_STACKBUF_SIZE );
-	CUtlMemoryFixedGrowable< byte, NET_COMPRESSION_STACKBUF_SIZE > memCompressedVoice( NET_COMPRESSION_STACKBUF_SIZE );
-
-	int iGameDataLength = pVoicePayload ? length : -1;
-
-	bool bWroteVoice = false;
-	unsigned int nVoiceBytes = 0;
-
-	if ( pVoicePayload )
-	{
-		VPROF_BUDGET( "NET_SendPacket_CompressVoice", VPROF_BUDGETGROUP_OTHER_NETWORKING );
-		uint8 *pVoice = memCompressedVoice.Base();
-
-		unsigned short usVoiceBits = pVoicePayload->GetNumBitsWritten();
-		*( unsigned short * )pVoice = LittleShort( usVoiceBits );
-		pVoice += sizeof( unsigned short );
-		Q_memcpy( pVoice, pVoicePayload->GetData(), pVoicePayload->GetNumBytesWritten() );
-
-		nVoiceBytes = pVoicePayload->GetNumBytesWritten() + sizeof( unsigned short );
-	}
-	
-	if ( !bWroteVoice && pVoicePayload && pVoicePayload->GetNumBitsWritten() > 0 )
-	{
-		memCompressed.EnsureCapacity( length + nVoiceBytes );
-
-		uint8 *pVoice = memCompressed.Base();
-		Q_memcpy( pVoice, (const void *)data, length );
-		pVoice += length;
-		Q_memcpy( pVoice, memCompressedVoice.Base(), nVoiceBytes );
-		data	= memCompressed.Base();
-
-		length  += nVoiceBytes;
-	}
-
-	// Do we need to break this packet up?
-	int nMaxRoutable = MAX_ROUTABLE_PAYLOAD;
-	if ( chan )
-	{
-		nMaxRoutable = clamp( chan->GetMaxRoutablePayloadSize(), MIN_USER_MAXROUTABLE_SIZE, MIN( sv_maxroutable->GetInt(), MAX_USER_MAXROUTABLE_SIZE ) );
-	}
-
-	int bSent = func_Steam3Server().SteamGameServerNetworking()->SendP2PPacket(
-		to.GetSteamID(),
-		data,
-		length,
-		k_EP2PSendReliable,
-		0
-	);
-	
-	int ret;
-	if (!bSent)
-	{
-		ConDMsg ("NET_SendPacketToP2P Warning: Failed to send Packet to : %s\n", to.ToString() );
-		ret = -1;
-	} else {
-		ret = length;
-	}
-
-	return ret;
-}
-
 #if SYSTEM_WINDOWS
 DETOUR_THISCALL_START()
 	DETOUR_THISCALL_ADDFUNC1(hook_CBaseServer_GetFreeClient, Base_GetFreeClient, CBaseServer*, netadr_t&);
@@ -3207,8 +3057,6 @@ void CGameServerModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
 		return;
-
-	g_bIsSteamP2PEnabled = CommandLine()->FindParm("-p2p") != 0;
 
 	DETOUR_PREPARE_THISCALL();
 	SourceSDK::FactoryLoader engine_loader("engine");
@@ -3292,36 +3140,13 @@ void CGameServerModule::InitDetour(bool bPreServer)
 
 	Detour::Create(
 		&detour_CBaseServer_ProcessConnectionlessPacket, "CBaseServer::ProcessConnectionlessPacket",
+
 		engine_loader.GetModule(), Symbols::CBaseServer_ProcessConnectionlessPacketSym,
 		(void*)DETOUR_THISCALL(hook_CBaseServer_ProcessConnectionlessPacket, ProcessConnectionlessPacket), m_pID
 	);
 
-	Detour::Create(
-		&detour_CVoiceGameMgr_ClientConnected, "CVoiceGameMgr::ClientConnected",
-		server_loader.GetModule(), Symbols::CVoiceGameMgr_ClientConnectedSym,
-		(void*)hook_CVoiceGameMgr_ClientConnected, m_pID
-	);
-
-	Detour::Create(
-		&detour_NET_ReceiveDatagram, "NET_ReceiveDatagram",
-		engine_loader.GetModule(), Symbols::NET_ReceiveDatagramSym,
-		(void*)hook_NET_ReceiveDatagram, m_pID
-	);
-
-	Detour::Create(
-		&detour_NET_SendPacket, "NET_SendPacket",
-		engine_loader.GetModule(), Symbols::NET_SendPacketSym,
-		(void*)hook_NET_SendPacket, m_pID
-	);
-
 	func_CBaseClient_OnRequestFullUpdate = (Symbols::CBaseClient_OnRequestFullUpdate)Detour::GetFunction(engine_loader.GetModule(), Symbols::CBaseClient_OnRequestFullUpdateSym);
 	Detour::CheckFunction((void*)func_CBaseClient_OnRequestFullUpdate, "CBaseClient::OnRequestFullUpdate");
-
-	func_NET_GetLastError = (Symbols::NET_GetLastError)Detour::GetFunction(engine_loader.GetModule(), Symbols::NET_GetLastErrorSym);
-	Detour::CheckFunction((void*)func_NET_GetLastError, "NET_GetLastError");
-
-	func_Steam3Server = (Symbols::Steam3ServerT)Detour::GetFunction(engine_loader.GetModule(), Symbols::Steam3ServerSym);
-	Detour::CheckFunction((void*)func_Steam3Server, "Steam3Server");
 
 	/*
 	 * CNetChan related stuff
@@ -3371,6 +3196,4 @@ void CGameServerModule::InitDetour(bool bPreServer)
 #endif
 
 	host_timescale = g_pCVar ? g_pCVar->FindVar("host_timescale") : nullptr;
-	sv_maxroutable = g_pCVar ? g_pCVar->FindVar("sv_maxroutable") : nullptr;
-	net_showudp = g_pCVar ? g_pCVar->FindVar("net_showudp") : nullptr;
 }

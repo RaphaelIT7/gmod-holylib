@@ -697,15 +697,6 @@ namespace Symbols
 	using NET_SetTime = void (*)(double flRealtime);
 	extern const std::vector<Symbol> NET_SetTimeSym;
 
-	using CVoiceGameMgr_ClientConnected = void (GMCOMMON_CALLING_CONVENTION*)(void* voicegamemgr, edict_t*);
-	extern const std::vector<Symbol> CVoiceGameMgr_ClientConnectedSym;
-
-	using NET_ReceiveDatagram = bool (*)(int sock, netpacket_s* packet);
-	extern const std::vector<Symbol> NET_ReceiveDatagramSym;
-
-	using NET_GetLastError = int (*)();
-	extern const std::vector<Symbol> NET_GetLastErrorSym;
-
 	extern const std::vector<Symbol> s_NetChannelsSym;
 
 	//---------------------------------------------------------------------------------
