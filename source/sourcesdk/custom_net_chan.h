@@ -44,9 +44,6 @@ constexpr uint64_t MAX_FILE_SIZE = (1 << MAX_FILE_SIZE_BITS) - 1;	// maximum tra
 #define	NET_MAX_PAYLOAD				576000	// largest message we can send in bytes
 #define NET_MAX_DATAGRAM_PAYLOAD	8000	// = maximum unreliable payload size
 
-#define MAX_FRAGMENTS_BITS	5	// How many fragments we can send at once
-constexpr int MAX_FRAGMENTS = (1 << MAX_FRAGMENTS_BITS) - 1;  // Maximum number of fragments we can safely transmit. -1 as else we would go over MAX_FRAGMENTS_BITS
-
 #undef MAX_ROUTABLE_PAYLOAD
 constexpr int MAX_ROUTABLE_PAYLOAD = FRAGMENT_SIZE * FRAGMENT_SIZE;	// Matches x360 size(1260). Update: Won't match anymore
 

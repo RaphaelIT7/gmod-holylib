@@ -15,7 +15,7 @@
 #include "netmessages.h"
 #include "tier0/vprof.h"
 #include "filesystem_init.h"
-#include "custom_net_chan.h"
+#include "net_chan.h"
 #include <lz4/lz4_compression.h>
 #include <memory>
 

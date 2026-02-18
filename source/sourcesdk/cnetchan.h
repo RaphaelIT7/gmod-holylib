@@ -30,8 +30,21 @@
 #define NET_FRAMES_BACKUP	64	// must be power of 2
 #define NET_FRAMES_MASK		(NET_FRAMES_BACKUP-1)
 
-#define SUBCHANNEL_BITS		4	// raising it above 5 would require changes to m_nOutReliableState & m_nInReliableState as they couldn't hold the states anymore.
-#define MAX_SUBCHANNELS		(1 << SUBCHANNEL_BITS) // we have 16 alternative send&wait bits
+// RaphaelIT7: log function for constexpr numbers - mainly used to figure out how many bits for networking are needed for a limit
+constexpr int RequiredBits(int v)
+{
+    int bits = 0;
+    while ((1 << bits) < v)
+        ++bits;
+
+    return bits;
+}
+
+constexpr int MAX_SUBCHANNELS = 16;	// we have x alternative send&wait channels
+constexpr int SUBCHANNEL_BITS = RequiredBits(MAX_SUBCHANNELS);
+
+constexpr int MAX_FRAGMENTS_BITS = 5;	// How many fragments we can send at once
+constexpr int MAX_FRAGMENTS = (1 << MAX_FRAGMENTS_BITS) - 1;  // Maximum number of fragments we can safely transmit. -1 as else we would go over MAX_FRAGMENTS_BITS
 
 #define SUBCHANNEL_FREE		0	// subchannel is free to use
 #define SUBCHANNEL_TOSEND	1	// subchannel has data, but not send yet

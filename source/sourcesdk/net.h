@@ -24,7 +24,7 @@
 
 #define SIGNON_TIME_OUT				300.0f  // signon disconnect timeout
 
-#define FRAGMENT_BITS		8
+#define FRAGMENT_BITS		12
 #define FRAGMENT_SIZE		(1<<FRAGMENT_BITS)
 #define MAX_FILE_SIZE_BITS	26
 #define MAX_FILE_SIZE		((1<<MAX_FILE_SIZE_BITS)-1)	// maximum transferable size is	64MB
