@@ -56,10 +56,6 @@ so by making a custom build, anyone can include just the stuff they actually wan
 Every commit triggers a compile workflow, resulting in a dev build<br>
 All of those can be found under the `Actions` tab -> https://github.com/RaphaelIT7/gmod-holylib/actions<br>
 
-> ![IMPORTANT]
-> These builds focus on the GMod `dev` branch currently.<br>
-> If you attempt to use a build on a server running on the `public` branch you **may** experience issues or even crashes.<br>
-
 ## How to update (Newer GhostInj)
 
 > [!NOTE]
@@ -4266,18 +4262,6 @@ bf:WriteString("Hello World")
 -- We use NS_CLIENT as a socket because then the packet is queued into the Server loopback queue.
 gameserver.SendConnectionlessPacket(bf, "loopback:" .. gameserver.GetUDPPort(), false, gameserver.NS_CLIENT)
 ```
-
-#### CGameClient gameserver.CreateFakeClient(string name)
-Creates a fake client or returns NULL on failure<br>
-
-#### CGameClient gameserver.CreateNewClient()
-Creates a new client or returns NULL on failure<br>
-
-#### CGameClient gameserver.GetFreeClient(string address, bool useDNS = false)
-Searches if there is a `CGameClient` with the given address already and returns their object OR attempts to create a new client.<br>
-
-#### number gameserver.GetSocket()
-Returns the server's socket
 
 #### CNetChan gameserver.CreateNetChannel(string ip, bool useDNS = false, number protocolVersion = 1, number socket = NS_SERVER)
 ip - The target ip. Format `ip:port`<br>
