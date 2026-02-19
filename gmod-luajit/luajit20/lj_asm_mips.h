@@ -1,6 +1,6 @@
 /*
 ** MIPS IR assembler (SSA IR -> machine code).
-** Copyright (C) 2005-2025 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2015 Mike Pall. See Copyright Notice in luajit.h
 */
 
 /* -- Register allocator extensions --------------------------------------- */
@@ -65,9 +65,10 @@ static Reg ra_alloc2(ASMState *as, IRIns *ir, RegSet allow)
 static void asm_sparejump_setup(ASMState *as)
 {
   MCode *mxp = as->mcbot;
-  if (((uintptr_t)mxp & (LJ_PAGESIZE-1)) == sizeof(MCLink)) {
+  /* Assumes sizeof(MCLink) == 8. */
+  if (((uintptr_t)mxp & (LJ_PAGESIZE-1)) == 8) {
     lua_assert(MIPSI_NOP == 0);
-    memset(mxp, 0, MIPS_SPAREJUMP*2*sizeof(MCode));
+    memset(mxp+2, 0, MIPS_SPAREJUMP*8);
     mxp += MIPS_SPAREJUMP*2;
     lua_assert(mxp < as->mctop);
     lj_mcode_sync(as->mcbot, mxp);
@@ -290,7 +291,7 @@ static void asm_gencall(ASMState *as, const CCallInfo *ci, IRRef *args)
 static void asm_setupresult(ASMState *as, IRIns *ir, const CCallInfo *ci)
 {
   RegSet drop = RSET_SCRATCH;
-  int hiop = ((ir+1)->o == IR_HIOP && !irt_isnil((ir+1)->t));
+  int hiop = ((ir+1)->o == IR_HIOP);
   if ((ci->flags & CCI_NOFPRCLOBBER))
     drop &= ~RSET_FPR;
   if (ra_hasreg(ir->r))
@@ -398,7 +399,7 @@ static void asm_retf(ASMState *as, IRIns *ir)
   emit_addptr(as, base, -8*delta);
   asm_guard(as, MIPSI_BNE, RID_TMP,
 	    ra_allock(as, i32ptr(pc), rset_exclude(RSET_GPR, base)));
-  emit_tsi(as, MIPSI_LW, RID_TMP, base, LJ_BE ? -8 : -4);
+  emit_tsi(as, MIPSI_LW, RID_TMP, base, -8);
 }
 
 /* -- Type conversions ---------------------------------------------------- */
@@ -442,14 +443,18 @@ static void asm_conv(ASMState *as, IRIns *ir)
       /* y = (x ^ 0x8000000) + 2147483648.0 */
       Reg left = ra_alloc1(as, lref, RSET_GPR);
       Reg tmp = ra_scratch(as, rset_exclude(RSET_FPR, dest));
+      emit_fgh(as, irt_isfloat(ir->t) ? MIPSI_ADD_S : MIPSI_ADD_D,
+	       dest, dest, tmp);
+      emit_fg(as, irt_isfloat(ir->t) ? MIPSI_CVT_S_W : MIPSI_CVT_D_W,
+	      dest, dest);
       if (irt_isfloat(ir->t))
-	emit_fg(as, MIPSI_CVT_S_D, dest, dest);
-      /* Must perform arithmetic with doubles to keep the precision. */
-      emit_fgh(as, MIPSI_ADD_D, dest, dest, tmp);
-      emit_fg(as, MIPSI_CVT_D_W, dest, dest);
-      emit_lsptr(as, MIPSI_LDC1, (tmp & 31),
-		 (void *)lj_ir_k64_find(as->J, U64x(41e00000,00000000)),
-		 RSET_GPR);
+	emit_lsptr(as, MIPSI_LWC1, (tmp & 31),
+		   (void *)lj_ir_k64_find(as->J, U64x(4f000000,4f000000)),
+		   RSET_GPR);
+      else
+	emit_lsptr(as, MIPSI_LDC1, (tmp & 31),
+		   (void *)lj_ir_k64_find(as->J, U64x(41e00000,00000000)),
+		   RSET_GPR);
       emit_tg(as, MIPSI_MTC1, RID_TMP, dest);
       emit_dst(as, MIPSI_XOR, RID_TMP, RID_TMP, left);
       emit_ti(as, MIPSI_LUI, RID_TMP, 0x8000);
@@ -643,11 +648,9 @@ static void asm_href(ASMState *as, IRIns *ir)
   if (irt_isnum(kt)) {
     key = ra_alloc1(as, refkey, RSET_FPR);
     tmpnum = ra_scratch(as, rset_exclude(RSET_FPR, key));
-  } else {
-    if (!irt_ispri(kt)) {
-      key = ra_alloc1(as, refkey, allow);
-      rset_clear(allow, key);
-    }
+  } else if (!irt_ispri(kt)) {
+    key = ra_alloc1(as, refkey, allow);
+    rset_clear(allow, key);
     type = ra_allock(as, irt_toitype(irkey->t), allow);
     rset_clear(allow, type);
   }
@@ -790,6 +793,7 @@ static void asm_newref(ASMState *as, IRIns *ir)
 
 static void asm_uref(ASMState *as, IRIns *ir)
 {
+  /* NYI: Check that UREFO is still open and not aliasing a slot. */
   Reg dest = ra_dest(as, ir, RSET_GPR);
   if (irref_isk(ir->op1)) {
     GCfunc *fn = ir_kfunc(IR(ir->op1));
@@ -1227,7 +1231,7 @@ static void asm_arithov(ASMState *as, IRIns *ir)
   Reg right, left, tmp, dest = ra_dest(as, ir, RSET_GPR);
   if (irref_isk(ir->op2)) {
     int k = IR(ir->op2)->i;
-    if (ir->o == IR_SUBOV) k = (int)(~(unsigned int)k+1u);
+    if (ir->o == IR_SUBOV) k = -k;
     if (checki16(k)) {  /* (dest < left) == (k >= 0 ? 1 : 0) */
       left = ra_alloc1(as, ir->op1, RSET_GPR);
       asm_guard(as, k >= 0 ? MIPSI_BNE : MIPSI_BEQ, RID_TMP, RID_ZERO);
@@ -1667,9 +1671,6 @@ static void asm_stack_restore(ASMState *as, SnapShot *snap)
 
 /* -- GC handling --------------------------------------------------------- */
 
-/* Marker to prevent patching the GC check exit. */
-#define MIPS_NOPATCH_GC_CHECK	MIPSI_OR
-
 /* Check GC threshold and do one or more GC steps. */
 static void asm_gc_check(ASMState *as)
 {
@@ -1685,7 +1686,6 @@ static void asm_gc_check(ASMState *as)
   args[0] = ASMREF_TMP1;  /* global_State *g */
   args[1] = ASMREF_TMP2;  /* MSize steps     */
   asm_gencall(as, ci, args);
-  l_end[-3] = MIPS_NOPATCH_GC_CHECK;  /* Replace the nop after the call. */
   emit_tsi(as, MIPSI_ADDIU, ra_releasetmp(as, ASMREF_TMP1), RID_JGL, -32768);
   tmp = ra_releasetmp(as, ASMREF_TMP2);
   emit_loadi(as, tmp, as->gcsteps);
@@ -1732,7 +1732,7 @@ static void asm_head_root_base(ASMState *as)
 }
 
 /* Coalesce BASE register for a side trace. */
-static Reg asm_head_side_base(ASMState *as, IRIns *irp)
+static RegSet asm_head_side_base(ASMState *as, IRIns *irp, RegSet allow)
 {
   IRIns *ir = IR(REF_BASE);
   Reg r = ir->r;
@@ -1742,15 +1742,15 @@ static Reg asm_head_side_base(ASMState *as, IRIns *irp)
     if (rset_test(as->modset, r) || irt_ismarked(ir->t))
       ir->r = RID_INIT;  /* No inheritance for modified BASE register. */
     if (irp->r == r) {
-      return r;  /* Same BASE register already coalesced. */
+      rset_clear(allow, r);  /* Mark same BASE register as coalesced. */
     } else if (ra_hasreg(irp->r) && rset_test(as->freeset, irp->r)) {
+      rset_clear(allow, irp->r);
       emit_move(as, r, irp->r);  /* Move from coalesced parent reg. */
-      return irp->r;
     } else {
       emit_getgl(as, r, jit_base);  /* Otherwise reload BASE. */
     }
   }
-  return RID_NONE;
+  return allow;
 }
 
 /* -- Tail of trace ------------------------------------------------------- */
@@ -1938,12 +1938,7 @@ void lj_asm_patchexit(jit_State *J, GCtrace *T, ExitNo exitno, MCode *target)
   MCode tjump = MIPSI_J|(((uintptr_t)target>>2)&0x03ffffffu);
   for (p++; p < pe; p++) {
     if (*p == exitload) {  /* Look for load of exit number. */
-      /* Look for exitstub branch. Yes, this covers all used branch variants. */
-      if (((p[-1] ^ (px-p)) & 0xffffu) == 0 &&
-	  ((p[-1] & 0xf0000000u) == MIPSI_BEQ ||
-	   (p[-1] & 0xfc1e0000u) == MIPSI_BLTZ ||
-	   (p[-1] & 0xffe00000u) == MIPSI_BC1F) &&
-	  p[-2] != MIPS_NOPATCH_GC_CHECK) {
+      if (((p[-1] ^ (px-p)) & 0xffffu) == 0) {  /* Look for exitstub branch. */
 	ptrdiff_t delta = target - p;
 	if (((delta + 0x8000) >> 16) == 0) {  /* Patch in-range branch. */
 	patchbranch:
@@ -1953,9 +1948,7 @@ void lj_asm_patchexit(jit_State *J, GCtrace *T, ExitNo exitno, MCode *target)
 	  if (!cstart) cstart = p-1;
 	} else {  /* Branch out of range. Use spare jump slot in mcarea. */
 	  int i;
-	  for (i = (int)(sizeof(MCLink)/sizeof(MCode));
-	       i < (int)(sizeof(MCLink)/sizeof(MCode)+MIPS_SPAREJUMP*2);
-	       i += 2) {
+	  for (i = 2; i < 2+MIPS_SPAREJUMP*2; i += 2) {
 	    if (mcarea[i] == tjump) {
 	      delta = mcarea+i - p;
 	      goto patchbranch;

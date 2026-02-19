@@ -1,6 +1,6 @@
 /*
 ** Bytecode instruction format.
-** Copyright (C) 2005-2025 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2015 Mike Pall. See Copyright Notice in luajit.h
 */
 
 #ifndef _LJ_BC_H
@@ -253,11 +253,6 @@ typedef enum {
 static LJ_AINLINE int bc_isret(BCOp op)
 {
   return (op == BC_RETM || op == BC_RET || op == BC_RET0 || op == BC_RET1);
-}
-
-static LJ_AINLINE int bc_isret_or_tail(BCOp op)
-{
-  return (op == BC_CALLMT || op == BC_CALLT || bc_isret(op));
 }
 
 LJ_DATA const uint16_t lj_bc_mode[];

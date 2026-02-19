@@ -157,9 +157,11 @@ bool LuaGC_WalkReferenceCheck(GCobj* pTargetObj, GCobj* pObj, lua_State* L, bool
 					return true;
 
 			global_State* g = G(L);
-			if (pVal->trace)
+			if (pVal->trace) {
+				Msg("%p - %i - %p\n", G2J(g), (int)pVal->trace, G2J(g)->trace[pVal->trace]);
 				if (LuaGC_WalkReferenceCheck(pTargetObj, obj2gco(traceref(G2J(g), pVal->trace)), L, true))
 					return true;
+			}
 		}
 		break;
 	case ~LJ_TTRACE:
