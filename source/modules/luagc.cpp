@@ -205,8 +205,12 @@ bool LuaGC_WalkReferenceCheck(GCobj* pTargetObj, GCobj* pObj, lua_State* L, bool
 			GCupval* pUpVal = gco2uv(gcref(pVal->openupval));
 			while (pUpVal)
 			{
-				if (LuaGC_WalkReferenceCheck(pTargetObj, obj2gco(gcV(uvval(pUpVal))), L, true))
-					return true;
+				TValue* pUpValTV = uvval(pUpVal);
+				if (pUpValTV && tvisgcv(pUpValTV))
+				{
+					if (LuaGC_WalkReferenceCheck(pTargetObj, obj2gco(gcV(pUpValTV)), L, true))
+						return true;
+				}
 
 				pUpVal = uvnext(pUpVal);
 			}
@@ -395,7 +399,9 @@ void LuaGC_WalkReferences(GCobj* pObj, std::unordered_set<GCobj*>& nWalkedObject
 			GCupval* pUpVal = gco2uv(gcref(pVal->openupval));
 			while (pUpVal)
 			{
-				LuaGC_WalkReferences(obj2gco(gcV(uvval(pUpVal))), nWalkedObjects, nCount, L, LUA, true, bRecursive);
+				TValue* pUpValTV = uvval(pUpVal);
+				if (pUpValTV && tvisgcv(pUpValTV))
+					LuaGC_WalkReferences(obj2gco(gcV(pUpValTV)), nWalkedObjects, nCount, L, LUA, true, bRecursive);
 
 				pUpVal = uvnext(pUpVal);
 			}
@@ -758,8 +764,12 @@ static void LuaGC_ShowReferences(GarrysMod::Lua::ILuaInterface* LUA, GCobj* pObj
 			GCupval* pUpVal = gco2uv(gcref(pVal->openupval));
 			while (pUpVal)
 			{
-				PushGCObject(LUA, obj2gco(gcV(uvval(pUpVal))));
-				Util::RawSetI(LUA, -2, ++nCount);
+				TValue* pUpValTV = uvval(pUpVal);
+				if (pUpValTV && tvisgcv(pUpValTV))
+				{
+					PushGCObject(LUA, obj2gco(gcV(pUpValTV)));
+					Util::RawSetI(LUA, -2, ++nCount);
+				}
 
 				pUpVal = uvnext(pUpVal);
 			}
@@ -965,7 +975,14 @@ int LuaGC_RecursiveSize(GCobj* pObj, std::unordered_set<GCobj*>& nWalkedObjects,
 			GCupval* pUpVal = gco2uv(gcref(pVal->openupval));
 			while (pUpVal)
 			{
-				nSize += LuaGC_RecursiveSize(obj2gco(gcV(uvval(pUpVal))), nWalkedObjects, L, true, bRecursive);
+				TValue* pUpValTV = uvval(pUpVal);
+				if (pUpValTV)
+				{
+					if (tvisgcv(pUpValTV))
+						nSize += LuaGC_RecursiveSize(obj2gco(gcV(pUpValTV)), nWalkedObjects, L, true, bRecursive);
+					else
+						nSize += sizeof(TValue);
+				}
 
 				pUpVal = uvnext(pUpVal);
 			}
