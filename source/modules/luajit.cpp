@@ -43,7 +43,7 @@ public:
 	bool m_bIsEnabled = false;
 };
 
-CLuaJITModule g_pLuaJITModule;
+static CLuaJITModule g_pLuaJITModule;
 IModule* pLuaJITModule = &g_pLuaJITModule;
 
 //class CLuaInterfaceProxy;

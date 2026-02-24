@@ -27,6 +27,33 @@ public:
 static CLuaGCModule g_pLuaGCModule;
 IModule* pLuaGCModule = &g_pLuaGCModule;
 
+/*
+	We generate a luagc_jit file which will contain all luagc functions BUT build with the headers of OUR LuaJIT build.
+
+HOLYLIB_SETUP_FILE=sourcesdk/luagc_jit.cpp
+HOLYLIB_SETUP_FILE_DEPENDING_MODULE=luajit
+HOLYLIB_SETUP_FILE_REPLACE_PER_LINE=LUA_FUNCTION_STATIC(==>LUA_FUNCTION(luajit_
+HOLYLIB_SETUP_FILE_CONTENTS_BEGIN
+// THIS IS A GENERATED FILE!!! Modify this in modules/luagc.cpp
+#define DISABLE_GMODJIT
+#include "LuaInterface.h"
+#include "lua.h"
+
+extern "C"
+{
+	#include "../luajit/src/lj_jit.h"
+	#include "../luajit/src/lj_dispatch.h"
+	#include "../luajit/src/lj_tab.h"
+	#include "../luajit/src/lj_gdbjit.h"
+	#include "../luajit/src/lj_str.h"
+}
+
+// sizestring - previous macro in lj_obj but was removed in newer JIT versions
+#define sizestring(str) lj_str_size(str->len)
+
+HOLYLIB_SETUP_FILE_SKIPNEXTLINE // Skip the comment end below
+*/
+
 LUA_FUNCTION_STATIC(luagc_GetGCCount)
 {
 	global_State* pGState = G(LUA->GetState());
@@ -811,6 +838,7 @@ LUA_FUNCTION_STATIC(luagc_GetFormattedGCObjectInfo)
 	}
 
 	LuaGC_ShowReferences(LUA, gcV(pVal));
+
 	return 1;
 }
 
@@ -1046,19 +1074,48 @@ LUA_FUNCTION_STATIC(luagc_GetSizeOfGCObject)
 	return 1;
 }
 
+//HOLYLIB_SETUP_FILE_END
+
+
+
+#if MODULE_EXISTS_LUAJIT
+LUA_FUNCTION_EXTERN(luajit_luagc_GetGCCount)
+LUA_FUNCTION_EXTERN(luajit_luagc_GetReferences)
+LUA_FUNCTION_EXTERN(luajit_luagc_GetContainingReferences)
+LUA_FUNCTION_EXTERN(luajit_luagc_GetAllGCObjects)
+LUA_FUNCTION_EXTERN(luajit_luagc_GetCurrentGCHeadObject)
+LUA_FUNCTION_EXTERN(luajit_luagc_GetFormattedGCObjectInfo)
+LUA_FUNCTION_EXTERN(luajit_luagc_GetSizeOfGCObject)
+#endif
+
 void CLuaGCModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
 
 	Util::StartTable(pLua);
-		Util::AddFunc(pLua, luagc_GetGCCount, "GetGCCount"); // GCobj count
-		Util::AddFunc(pLua, luagc_GetReferences, "GetReferences"); // A table containing all GCobjs that reference the given GCobj
-		Util::AddFunc(pLua, luagc_GetContainingReferences, "GetContainingReferences"); // A table containing all GCobjs the given object references recursively
-		Util::AddFunc(pLua, luagc_GetAllGCObjects, "GetAllGCObjects"); // All GCobjs
-		Util::AddFunc(pLua, luagc_GetCurrentGCHeadObject, "GetCurrentGCHeadObject");
-		Util::AddFunc(pLua, luagc_GetFormattedGCObjectInfo, "GetFormattedGCObjectInfo");
-		Util::AddFunc(pLua, luagc_GetSizeOfGCObject, "GetSizeOfGCObject");
+#if MODULE_EXISTS_LUAJIT
+		IModuleWrapper* pWrapper = g_pModuleManager.GetModuleByID(pLuaJITModule->m_pID);
+		if (pWrapper && pWrapper->IsEnabled())
+		{
+			Util::AddFunc(pLua, luajit_luagc_GetGCCount, "GetGCCount"); // GCobj count
+			Util::AddFunc(pLua, luajit_luagc_GetReferences, "GetReferences"); // A table containing all GCobjs that reference the given GCobj
+			Util::AddFunc(pLua, luajit_luagc_GetContainingReferences, "GetContainingReferences"); // A table containing all GCobjs the given object references recursively
+			Util::AddFunc(pLua, luajit_luagc_GetAllGCObjects, "GetAllGCObjects"); // All GCobjs
+			Util::AddFunc(pLua, luajit_luagc_GetCurrentGCHeadObject, "GetCurrentGCHeadObject");
+			Util::AddFunc(pLua, luajit_luagc_GetFormattedGCObjectInfo, "GetFormattedGCObjectInfo");
+			Util::AddFunc(pLua, luajit_luagc_GetSizeOfGCObject, "GetSizeOfGCObject");
+		} else
+#endif
+		{
+			Util::AddFunc(pLua, luagc_GetGCCount, "GetGCCount"); // GCobj count
+			Util::AddFunc(pLua, luagc_GetReferences, "GetReferences"); // A table containing all GCobjs that reference the given GCobj
+			Util::AddFunc(pLua, luagc_GetContainingReferences, "GetContainingReferences"); // A table containing all GCobjs the given object references recursively
+			Util::AddFunc(pLua, luagc_GetAllGCObjects, "GetAllGCObjects"); // All GCobjs
+			Util::AddFunc(pLua, luagc_GetCurrentGCHeadObject, "GetCurrentGCHeadObject");
+			Util::AddFunc(pLua, luagc_GetFormattedGCObjectInfo, "GetFormattedGCObjectInfo");
+			Util::AddFunc(pLua, luagc_GetSizeOfGCObject, "GetSizeOfGCObject");
+		}
 	Util::FinishTable(pLua, "luagc");
 }
 
