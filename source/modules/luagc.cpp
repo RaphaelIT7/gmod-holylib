@@ -275,13 +275,12 @@ LUA_FUNCTION_STATIC(luagc_GetReferences)
 	if (!tvisgcv(pVal))
 		return 1;
 
-	std::unordered_set<GCobj*> nWalkedObjects;
 	GCobj* pTargetObject = gcV(pVal);
 	int nCount = 0;
 	GCobj* pObj = gcref(pGState->gc.root);
 	while (pObj)
 	{
-		nWalkedObjects.clear();
+		std::unordered_set<GCobj*> nWalkedObjects;
 		if (LuaGC_WalkReferenceCheck(pTargetObject, nWalkedObjects, pObj, L, false))
 		{
 			LUA->PushNil();
