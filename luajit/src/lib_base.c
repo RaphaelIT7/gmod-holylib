@@ -651,7 +651,7 @@ int test3_func(lua_State* L)
   return 1;
 }
 
-GCtab* __fastcall asm_test3_func(GCudata* ud)
+GCtab* LJ_FASTCALL asm_test3_func(GCudata* ud)
 {
   printf("JIT - %p\n", ud);
   return tabref(ud->metatable);
