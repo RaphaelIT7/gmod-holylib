@@ -208,7 +208,7 @@ IRFPMDEF(FPMENUM)
   _(UDATA_ENV,	offsetof(GCudata, env)) \
   _(UDATA_FLAGS, offsetof(GCudata, flags)) \
   _(UDATA_UDTYPE, offsetof(GCudata, udtype)) \
-  _(UDATA_FILE,	sizeof(GCudata)) \
+  _(UDATA_VALUE, sizeof(GCudata)) \
   _(SBUF_W,	sizeof(GCudata) + offsetof(SBufExt, w)) \
   _(SBUF_E,	sizeof(GCudata) + offsetof(SBufExt, e)) \
   _(SBUF_B,	sizeof(GCudata) + offsetof(SBufExt, b)) \
