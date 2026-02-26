@@ -25,6 +25,7 @@
 #include "lj_vm.h"
 #include "lj_strscan.h"
 #include "lj_strfmt.h"
+#include "lj_ircall.h"
 
 #include "lj_ctype.h"
 #include "lj_cconv.h"
@@ -754,48 +755,42 @@ LUA_API void lua_pushtracablecclosure(lua_State* L, lua_CFunctionInfo *info)
   lj_gc_check(L);
   fn = lj_func_newC(L, 0, getcurrenv(L));
   fn->c.f = info->func;
-  if (info->tracable)
-    fn->c.flags |= LJ_FUNC_TRACABLE;
-
-  if (info->can_error)
-    fn->c.flags |= LJ_FUNC_CANERROR;
-
-  fn->c.args = info->args;
-  for (int i=0; i<info->args; ++i)
-    fn->c.argTypes[i] = info->argTypes[i];
-
-  fn->c.rets = info->rets;
-  for (int i=0; i<info->rets; ++i)
-    fn->c.retTypes[i] = info->retTypes[i];
 
   setfuncV(L, L->top, fn);
   lj_assertL(iswhite(obj2gco(fn)), "new GC object is not white");
   incr_top(L);
-}
 
-LUA_API void lua_pushtracablecclosure2(lua_State* L, lua_CFunctionInfo2 *info)
-{
-  GCfunc *fn;
-  lj_gc_check(L);
-  fn = lj_func_newC(L, 0, getcurrenv(L));
-  fn->c.f = info->func;
-  if (info->tracable)
-    fn->c.flags |= LJ_FUNC_TRACABLE;
+  if (info->passstate && info->argType[0] != CFUNC_TYPE_LUASTATE)
+    return;
 
-  if (info->can_error)
-    fn->c.flags |= LJ_FUNC_CANERROR;
+  fn->c.callinfo.func = info->asmFunc;
+  fn->c.callinfo.retType = info->retType;
+  for (int args=0; args<LUA_CFUNCINFO_MAXARGS; ++args) {
+    fn->c.callinfo.argType[args] = info->argType[args];
+    if (info->argType[args] == CFUNC_TYPE_VOID) {
+      fn->c.callinfo.flags |= args;
+      break;
+    }
+  }
 
-  fn->c.args = info->args;
-  for (int i=0; i<info->args; ++i)
-    fn->c.argTypes[i] = info->argTypes[i];
+  fn->c.callinfo.flags |= CCI_CALL_N;
+  switch (info->callconv) {
+    case CFUNC_CALLCONV_FASTCALL:
+      fn->c.callinfo.flags |= CCI_CC_FASTCALL;
+      break;
+    case CFUNC_CALLCONV_STDCALL:
+      fn->c.callinfo.flags |= CCI_CC_STDCALL;
+      break;
+    case CFUNC_CALLCONV_THISCALL:
+      fn->c.callinfo.flags |= CCI_CC_THISCALL;
+      break;
+    default:
+      fn->c.callinfo.flags |= CCI_CC_CDECL;
+      break;
+  }
 
-  fn->c.rets = info->rets;
-  for (int i=0; i<info->rets; ++i)
-    fn->c.retTypes[i] = info->retTypes[i];
-
-  setfuncV(L, L->top, fn);
-  lj_assertL(iswhite(obj2gco(fn)), "new GC object is not white");
-  incr_top(L);
+  if (info->canerror)
+    fn->c.callinfo.flags |= CCI_T;
 }
 
 LUA_API lua_State *lua_tothread(lua_State *L, int idx)

@@ -191,8 +191,93 @@ static void LJ_FASTCALL recff_nyi(jit_State *J, RecordFFData *rd)
 /* Fallback handler for unsupported variants of fast functions. */
 #define recff_nyiu	recff_nyi
 
+#include "stdio.h"
+
+#define emitconv(a, dt, st, flags) \
+  emitir(IRT(IR_CONV, (dt)), (a), (st)|((dt) << 5)|(flags))
+
+static IRType CFunctionInfoTypeToIRType(lua_CFunctionInfoType type)
+{
+  switch(type) {
+    case CFUNC_TYPE_VOID:
+      return IRT_NIL;
+    case CFUNC_TYPE_LUASTATE:
+      return IRT_THREAD;
+    case CFUNC_TYPE_TABLE:
+      return IRT_TAB;
+    case CFUNC_TYPE_USERDATA:
+      return IRT_UDATA;
+    case CFUNC_TYPE_USERDATA_VALUE:
+      return IRT_UDATA;
+    case CFUNC_TYPE_INT:
+      return IRT_INT;
+    case CFUNC_TYPE_FLOAT:
+      return IRT_FLOAT;
+    case CFUNC_TYPE_DOUBLE:
+      return IRT_NUM;
+    case CFUNC_TYPE_STRING:
+      return IRT_STR;
+    case CFUNC_TYPE_CHARS:
+      return IRT_STR;
+    default:
+      return 0;
+  }
+}
+
+static TRef CFunctionProcessType(jit_State *J, TRef ref, TRef val, lua_CFunctionInfoType type)
+{
+  if (type == CFUNC_TYPE_CHARS) {
+    return emitir(IRT(IR_STRREF, IRT_PGC), val, lj_ir_kint(J, 0));
+  } else {
+    return val;
+  }
+}
+
 /* Must stop the trace for classic C functions with arbitrary side-effects. */
-#define recff_c		recff_nyi
+static void LJ_FASTCALL recff_c(jit_State *J, RecordFFData *rd)
+{
+  if (J->fn->c.callinfo.func == 0) {
+    recff_nyi(J, rd);
+    return;
+  }
+
+  GCfuncC* fn = &J->fn->c;
+  uint32_t args = CCI_NARGS(&fn->callinfo);
+  TRef tr = TREF_NIL;
+  if (args > 0) {
+    for (uint32_t i=0; i < args; ++i) {
+      if (!tref_istype(J->base[i], CFunctionInfoTypeToIRType(fn->callinfo.argType[i]))) {
+        recff_nyi(J, rd);
+        return;
+      }
+    }
+
+    tr = CFunctionProcessType(J, tr, J->base[0], fn->callinfo.argType[0]);
+    for (uint32_t i=1; i < args; ++i) {
+      tr = emitir(IRT(IR_CARG, IRT_NIL), tr, CFunctionProcessType(J, tr, J->base[i], fn->callinfo.argType[i]));
+    }
+  }
+
+  if (CCI_OP(&fn->callinfo) == IR_CALLS)
+    J->needsnap = 1;
+  
+  IRType retType = CFunctionInfoTypeToIRType(fn->callinfo.retType);
+  TRef funcPtr = lj_ir_kptr(J, fn->callinfo.func);
+  funcPtr = emitir(IRT(IR_CALLCC, IRT_NIL), funcPtr, lj_ir_kint(J, fn->callinfo.flags & CCI_CC_MASK));
+  TRef result = emitir(IRT(IR_CALLXS, retType), tr, funcPtr);
+  if (fn->callinfo.retType == CFUNC_TYPE_VOID) {
+    J->base[0] = TREF_NIL;
+    rd->nres = 0;
+  } else {
+    if (retType == IRT_FLOAT) {
+      result = emitconv(result, IRT_NUM, retType, 0);
+    }
+
+    J->base[0] = result;
+    rd->nres = 1;
+  }
+  UNUSED(rd);
+}
 
 /* Emit BUFHDR for the global temporary buffer. */
 static TRef recff_bufhdr(jit_State *J)

@@ -132,7 +132,7 @@ static void loop_emit_phi(jit_State *J, IRRef1 *subst, IRRef1 *phi, IRRef nphi,
       if (!irref_isk(ir->op1)) {
 	irt_clearmark(IR(ir->op1)->t);
 	if (ir->op1 < invar &&
-	    ir->o >= IR_CALLN && ir->o <= IR_CARG) {  /* ORDER IR */
+	    ir->o >= IR_CALLN && ir->o <= IR_CALLCC) {  /* ORDER IR */
 	  ir = IR(ir->op1);
 	  while (ir->o == IR_CARG) {
 	    if (!irref_isk(ir->op2)) irt_clearmark(IR(ir->op2)->t);
