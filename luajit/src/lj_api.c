@@ -760,7 +760,8 @@ LUA_API void lua_pushtracablecclosure(lua_State* L, lua_CFunctionInfo *info)
   lj_assertL(iswhite(obj2gco(fn)), "new GC object is not white");
   incr_top(L);
 
-  if (info->passstate && info->argType[0] != CFUNC_TYPE_LUASTATE)
+  // Technically not required (& we remove/skip it anyways below) - but I do require it, you should be AWARE of the args!
+  if (info->givestate && info->argType[0] != CFUNC_TYPE_LUASTATE)
     return;
 
   fn->c.callinfo.func = info->asmFunc;
@@ -791,6 +792,9 @@ LUA_API void lua_pushtracablecclosure(lua_State* L, lua_CFunctionInfo *info)
 
   if (info->canerror)
     fn->c.callinfo.flags |= CCI_T;
+
+  if (info->givestate)
+    fn->c.callinfo.givestate = 1; // We cannot use CCI_L as it seems very unreliable...
 }
 
 LUA_API lua_State *lua_tothread(lua_State *L, int idx)

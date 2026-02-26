@@ -606,6 +606,7 @@ LJLIB_CF(test_jitcfunc)
   info.retType = CFUNC_TYPE_DOUBLE;
   info.callconv = CFUNC_CALLCONV_CDECL;
   info.canerror = 0;
+  info.givestate = 0;
 
   lua_pushtracablecclosure(L, &info);
   return 1;
@@ -639,7 +640,7 @@ LJLIB_CF(test_jitcfunc2)
   info.retType = CFUNC_TYPE_INT;
   info.callconv = CFUNC_CALLCONV_CDECL;
   info.canerror = 0;
-  info.passstate = 0;
+  info.givestate = 0;
 
   lua_pushtracablecclosure(L, &info);
   return 1;
@@ -669,7 +670,36 @@ LJLIB_CF(test_jitcfunc3)
   info.retType = CFUNC_TYPE_TABLE;
   info.callconv = CFUNC_CALLCONV_FASTCALL;
   info.canerror = 0;
-  info.passstate = 0;
+  info.givestate = 0;
+
+  lua_pushtracablecclosure(L, &info);
+  return 1;
+}
+
+int test4_func(lua_State* L)
+{
+  printf("state - %p\n", L);
+  return 0;
+}
+
+void LJ_FASTCALL asm_test4_func(lua_State* L)
+{
+  printf("JIT state - %p\n", L);
+}
+
+LJLIB_CF(test_jitcfunc4)
+{
+  lua_CFunctionInfo info;
+  memset(&info, 0, sizeof(info));
+
+  info.func = test4_func;
+  info.asmFunc = asm_test4_func;
+  info.argType[0] = CFUNC_TYPE_LUASTATE;
+  info.argType[1] = CFUNC_TYPE_VOID;
+  info.retType = CFUNC_TYPE_VOID;
+  info.callconv = CFUNC_CALLCONV_FASTCALL;
+  info.canerror = 0;
+  info.givestate = 1;
 
   lua_pushtracablecclosure(L, &info);
   return 1;
