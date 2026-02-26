@@ -264,11 +264,11 @@ static void LJ_FASTCALL recff_c(jit_State *J, RecordFFData *rd)
       tr = emitir(IRT(IR_CARG, IRT_NIL), tr, CFunctionProcessType(J, tr, J->base[i], fn->callinfo.argType[i]));
     }
   }
-
-  if (CCI_OP(&fn->callinfo) == IR_CALLS)
-    J->needsnap = 1;
   
   IRType retType = CFunctionInfoTypeToIRType(fn->callinfo.retType);
+  if (CCI_OP(&fn->callinfo) == IR_CALLS)
+    J->needsnap = 1;
+
   TRef funcPtr = lj_ir_kptr(J, fn->callinfo.func);
   funcPtr = emitir(IRT(IR_CALLCC, IRT_NIL), funcPtr, lj_ir_kint(J, fn->callinfo.flags & CCI_CC_MASK));
   TRef result = emitir(IRT(IR_CALLXS, retType), tr, funcPtr);
@@ -281,7 +281,8 @@ static void LJ_FASTCALL recff_c(jit_State *J, RecordFFData *rd)
     }
 
     if (fn->callinfo.retType == CFUNC_TYPE_CHARS) {
-
+      TRef strlen = lj_ir_call(J, IRCALL_strlen, result);
+      result = emitir(IRT(IR_SNEW, IRT_STR), result, strlen);
     }
 
     J->base[0] = result;

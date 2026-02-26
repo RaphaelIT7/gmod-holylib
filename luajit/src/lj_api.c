@@ -774,7 +774,7 @@ LUA_API void lua_pushtracablecclosure(lua_State* L, lua_CFunctionInfo *info)
     }
   }
 
-  fn->c.callinfo.flags |= CCI_CALL_N;
+  fn->c.callinfo.flags |= CCI_CALL_S;
   switch (info->callconv) {
     case CFUNC_CALLCONV_FASTCALL:
       fn->c.callinfo.flags |= CCI_CC_FASTCALL;
