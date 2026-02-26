@@ -228,6 +228,8 @@ static TRef CFunctionProcessType(jit_State *J, TRef ref, TRef val, lua_CFunction
 {
   if (type == CFUNC_TYPE_CHARS) {
     return emitir(IRT(IR_STRREF, IRT_PGC), val, lj_ir_kint(J, 0));
+  } else if (type == CFUNC_TYPE_USERDATA_VALUE) {
+    return emitir(IRT(IR_FLOAD, IRT_PTR), val, IRFL_UDATA_VALUE);
   } else {
     return val;
   }
@@ -1633,7 +1635,7 @@ static TRef recff_io_fp(jit_State *J, TRef *udp, int32_t id)
     emitir(IRTGI(IR_EQ), tr, lj_ir_kint(J, UDTYPE_IO_FILE));
   }
   *udp = ud;
-  fp = emitir(IRT(IR_FLOAD, IRT_PTR), ud, IRFL_UDATA_FILE);
+  fp = emitir(IRT(IR_FLOAD, IRT_PTR), ud, IRFL_UDATA_VALUE);
   emitir(IRTG(IR_NE, IRT_PTR), fp, lj_ir_knull(J, IRT_PTR));
   return fp;
 }

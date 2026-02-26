@@ -115,9 +115,6 @@ GCfunc *lj_func_newC(lua_State *L, MSize nelems, GCtab *env)
   fn->c.ffid = FF_C;
   fn->c.callinfo.func = 0;
   fn->c.callinfo.flags = 0;
-//  fn->c.args = 0;
-//  fn->c.rets = 0;
-//  fn->c.flags = 0;
   fn->c.nupvalues = (uint8_t)nelems;
   /* NOBARRIER: The GCfunc is new (marked white). */
   setmref(fn->c.pc, &G(L)->bc_cfunc_ext);
