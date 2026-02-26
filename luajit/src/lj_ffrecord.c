@@ -247,14 +247,19 @@ static void LJ_FASTCALL recff_c(jit_State *J, RecordFFData *rd)
   uint32_t args = CCI_NARGS(&fn->callinfo);
   TRef tr = TREF_NIL;
   if (args > 0) {
-    for (uint32_t i=0; i < args; ++i) {
+    for (uint32_t i=(fn->callinfo.givestate ? 1 : 0); i < args; ++i) {
       if (!tref_istype(J->base[i], CFunctionInfoTypeToIRType(fn->callinfo.argType[i]))) {
         recff_nyi(J, rd);
         return;
       }
     }
 
-    tr = CFunctionProcessType(J, tr, J->base[0], fn->callinfo.argType[0]);
+    if (fn->callinfo.givestate) {
+      tr = emitir(IRT(IR_LREF, IRT_THREAD), 0, 0);
+    } else {
+      tr = CFunctionProcessType(J, tr, J->base[0], fn->callinfo.argType[0]);
+    }
+
     for (uint32_t i=1; i < args; ++i) {
       tr = emitir(IRT(IR_CARG, IRT_NIL), tr, CFunctionProcessType(J, tr, J->base[i], fn->callinfo.argType[i]));
     }
@@ -273,6 +278,10 @@ static void LJ_FASTCALL recff_c(jit_State *J, RecordFFData *rd)
   } else {
     if (retType == IRT_FLOAT) {
       result = emitconv(result, IRT_NUM, retType, 0);
+    }
+
+    if (fn->callinfo.retType == CFUNC_TYPE_CHARS) {
+
     }
 
     J->base[0] = result;

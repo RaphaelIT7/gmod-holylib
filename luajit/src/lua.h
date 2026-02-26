@@ -208,7 +208,7 @@ typedef struct lua_CFunctionInfo
   // ASMFunc settings
   lua_CFunctionInfoCallConv callconv;
   int canerror : 1;
-  int passstate : 1; // If 1, then the first argument will be lua_State* and you MUST set argType[0] = TYPE_LUASTATE!!!
+  int givestate : 1; // If 1, then the first argument will be lua_State* and you MUST set argType[0] = TYPE_LUASTATE!!!
   void* asmFunc; // Function to use inside a trace as an alternative to the C function
   lua_CFunctionInfoType retType;
   lua_CFunctionInfoType argType[LUA_CFUNCINFO_MAXARGS]; // 32 args max - if you got two args- set the third argument to TYPE_VOID or 0 to mark the end!

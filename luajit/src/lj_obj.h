@@ -492,6 +492,7 @@ typedef struct CFuncCallInfo {
   uint32_t flags;   /* Number of arguments and flags. */
   lua_CFunctionInfoType argType[32]; /* argument types */
   lua_CFunctionInfoType retType;
+  uint8_t givestate : 1;
 } CFuncCallInfo;
 
 typedef struct GCfuncC {

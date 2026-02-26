@@ -50,3 +50,9 @@ for k=1, 100 do
 	local tab = jit_func3(proxy)
 	print(mt, tab, mt == tab)
 end
+
+jit.flush()
+local jit_func4 = test_jitcfunc4()
+for k=1, 100 do
+	jit_func4()
+end
