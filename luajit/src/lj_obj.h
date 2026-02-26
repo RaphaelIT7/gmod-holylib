@@ -486,10 +486,28 @@ typedef struct GCupval {
   GCHeader; uint8_t ffid; uint8_t nupvalues; \
   GCRef env; GCRef gclist; MRef pc
 
+#define LJ_FUNC_TRACABLE  0x01
+#define LJ_FUNC_CANERROR  0x02
+#define LJ_FUNC_MAX_VARS 3
+
+// Extented version of CCallInfo - See lj_ircall.h
+typedef struct CFuncCallInfo {
+  ASMFunction func;   /* Function pointer. */
+  uint32_t flags;   /* Number of arguments and flags. */
+  
+} CFuncCallInfo;
+
 typedef struct GCfuncC {
   GCfuncHeader;
   lua_CFunction f;	/* C function to be called. */
-  TValue upvalue[1];	/* Array of upvalues (TValue). */
+  CFuncCallInfo callinfo;
+// Old stuff
+//  uint8_t args : 2;
+//  uint8_t rets : 2;
+//  uint8_t flags : 4;
+//  uint8_t argTypes[LJ_FUNC_MAX_VARS]; // LUA_T type!
+//  uint8_t retTypes[LJ_FUNC_MAX_VARS]; // LUA_T type!
+  TValue upvalue[1];  /* Array of upvalues (TValue). */
 } GCfuncC;
 
 typedef struct GCfuncL {

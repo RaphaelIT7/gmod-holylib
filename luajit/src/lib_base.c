@@ -583,6 +583,28 @@ LJLIB_CF(test_cfunc)
   return 1;
 }
 
+LJLIB_CF(test_jitcfunc)
+{
+  lua_CFunctionInfo info;
+  info.func = test_func;
+  info.args = 1;
+  info.rets = 1;
+  info.argTypes[0] = LUA_TNUMBER;
+  info.retTypes[0] = LUA_TNUMBER;
+  info.tracable = 1;
+  info.can_error = 0;
+
+  lua_pushtracablecclosure(L, &info);
+  return 1;
+}
+
+LJLIB_CF(give_userdata_table)
+{
+  int val = lua_tonumber(L, 1);
+
+  lua_pushnumber(L, 500 + val);
+  return 1;
+}
 
 LJLIB_PUSH(top-3)
 LJLIB_SET(_VERSION)

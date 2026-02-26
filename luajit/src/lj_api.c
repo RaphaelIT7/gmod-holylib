@@ -748,6 +748,56 @@ LUA_API int lua_testudataindex(lua_State* L, int idx)
   return 0;
 }
 
+LUA_API void lua_pushtracablecclosure(lua_State* L, lua_CFunctionInfo *info)
+{
+  GCfunc *fn;
+  lj_gc_check(L);
+  fn = lj_func_newC(L, 0, getcurrenv(L));
+  fn->c.f = info->func;
+  if (info->tracable)
+    fn->c.flags |= LJ_FUNC_TRACABLE;
+
+  if (info->can_error)
+    fn->c.flags |= LJ_FUNC_CANERROR;
+
+  fn->c.args = info->args;
+  for (int i=0; i<info->args; ++i)
+    fn->c.argTypes[i] = info->argTypes[i];
+
+  fn->c.rets = info->rets;
+  for (int i=0; i<info->rets; ++i)
+    fn->c.retTypes[i] = info->retTypes[i];
+
+  setfuncV(L, L->top, fn);
+  lj_assertL(iswhite(obj2gco(fn)), "new GC object is not white");
+  incr_top(L);
+}
+
+LUA_API void lua_pushtracablecclosure2(lua_State* L, lua_CFunctionInfo2 *info)
+{
+  GCfunc *fn;
+  lj_gc_check(L);
+  fn = lj_func_newC(L, 0, getcurrenv(L));
+  fn->c.f = info->func;
+  if (info->tracable)
+    fn->c.flags |= LJ_FUNC_TRACABLE;
+
+  if (info->can_error)
+    fn->c.flags |= LJ_FUNC_CANERROR;
+
+  fn->c.args = info->args;
+  for (int i=0; i<info->args; ++i)
+    fn->c.argTypes[i] = info->argTypes[i];
+
+  fn->c.rets = info->rets;
+  for (int i=0; i<info->rets; ++i)
+    fn->c.retTypes[i] = info->retTypes[i];
+
+  setfuncV(L, L->top, fn);
+  lj_assertL(iswhite(obj2gco(fn)), "new GC object is not white");
+  incr_top(L);
+}
+
 LUA_API lua_State *lua_tothread(lua_State *L, int idx)
 {
   cTValue *o = index2adr(L, idx);
