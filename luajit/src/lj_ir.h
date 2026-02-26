@@ -521,6 +521,7 @@ typedef uint32_t TRef;
 #define tref_isudata(tr)	(tref_istype((tr), IRT_UDATA))
 #define tref_isnum(tr)		(tref_istype((tr), IRT_NUM))
 #define tref_isint(tr)		(tref_istype((tr), IRT_INT))
+#define tref_isthread(tr)    (tref_istype((tr), IRT_THREAD))
 
 #define tref_isbool(tr)		(tref_typerange((tr), IRT_FALSE, IRT_TRUE))
 #define tref_ispri(tr)		(tref_typerange((tr), IRT_NIL, IRT_TRUE))

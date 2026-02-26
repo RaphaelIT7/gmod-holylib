@@ -1611,6 +1611,30 @@ static void LJ_FASTCALL recff_debug_getmetatable(jit_State *J, RecordFFData *rd)
   J->base[0] = mt ? mtref : TREF_NIL;
 }
 
+// NYI - We got the custom flag LJ_GC_BLOCKDEBUG which we need to handle for functions...
+static void LJ_FASTCALL recff_debug_getfenv(jit_State *J, RecordFFData *rd)
+{
+  GCtab *env;
+  TRef envref;
+  TRef tr = J->base[0];
+  if (tref_isfunc(tr)) {
+    env = tabref(funcV(&rd->argv[0])->c.env);
+    envref = emitir(IRT(IR_FLOAD, IRT_TAB), tr, IRFL_FUNC_ENV);
+  } else if (tref_isthread(tr)) {
+    env = tabref(threadV(&rd->argv[0])->env);
+    envref = emitir(IRT(IR_FLOAD, IRT_TAB), tr, IRFL_THREAD_ENV);
+  } else if (tref_isudata(tr)) {
+    env = tabref(udataV(&rd->argv[0])->env);
+    envref = emitir(IRT(IR_FLOAD, IRT_TAB), tr, IRFL_UDATA_ENV);
+  } else {
+    env = 0;
+    J->base[0] = TREF_NIL;
+    return;
+  }
+  emitir(IRTG(env ? IR_NE : IR_EQ, IRT_TAB), envref, lj_ir_knull(J, IRT_TAB));
+  J->base[0] = env ? envref : TREF_NIL;
+}
+
 /* -- Record calls to fast functions -------------------------------------- */
 
 #include "lj_recdef.h"
