@@ -161,6 +161,8 @@ namespace Symbols
 		This is because else we might call the loaded function from Gmod when in reality our luajit build has taken over which would cause a crash!
 	*/
 
+	using lua_pushtracablecclosure = void (*)(lua_State* L, void* info);
+
 	using lua_rawseti = void (*)(lua_State* L, int index, int i);
 	extern const Symbol lua_rawsetiSym;
 
