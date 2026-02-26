@@ -28,23 +28,25 @@ end
 
 generate_trace()
 
-local loopCount = 10000000
-
 jit.flush()
-local val = 0
-local nojit_func = test_cfunc()
-local a = os.clock()
-for k=1, loopCount do
-	val = val + nojit_func(k)
-end
-print("Normal CFunc:", os.clock() - a, val)
-
-jit.flush()
-local val2 = 0
 local jit_func = test_jitcfunc()
-local a = os.clock()
-for k=1, loopCount do
-	val2 = val2 + jit_func(k)
+for k=1, 100 do
+	jit_func(5, 10, 15)
 end
-print("JITd CFunc:", os.clock() - a, val2)
-print("Done")
+
+jit.flush()
+local jit_func2 = test_jitcfunc2()
+for k=1, 100 do
+	jit_func2("hello", "world")
+end
+
+jit.flush()
+local proxy = newproxy()
+local mt = {}
+debug.setmetatable(proxy, mt)
+
+local jit_func3 = test_jitcfunc3()
+for k=1, 100 do
+	local tab = jit_func3(proxy)
+	print(mt, tab, mt == tab)
+end

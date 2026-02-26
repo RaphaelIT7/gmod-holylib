@@ -577,6 +577,13 @@ int test_func(lua_State* L)
   return 1;
 }
 
+#include "stdio.h"
+double asm_test_func(int val, int val2, int val3)
+{
+  printf("1=%i 2=%i 3=%i\n", val, val2, val3);
+  return 500.0 + val;
+}
+
 LJLIB_CF(test_cfunc)
 {
   lua_pushcfunction(L, test_func);
@@ -586,13 +593,83 @@ LJLIB_CF(test_cfunc)
 LJLIB_CF(test_jitcfunc)
 {
   lua_CFunctionInfo info;
+  memset(&info, 0, sizeof(info));
+
   info.func = test_func;
-  info.args = 1;
-  info.rets = 1;
-  info.argTypes[0] = LUA_TNUMBER;
-  info.retTypes[0] = LUA_TNUMBER;
-  info.tracable = 1;
-  info.can_error = 0;
+  info.asmFunc = asm_test_func;
+  //info.argType[0] = CFUNC_TYPE_LUASTATE;
+  info.argType[0] = CFUNC_TYPE_INT;
+  info.argType[1] = CFUNC_TYPE_INT;
+  info.argType[2] = CFUNC_TYPE_INT;
+  //info.argType[2] = CFUNC_TYPE_INT;
+  info.argType[3] = CFUNC_TYPE_VOID;
+  info.retType = CFUNC_TYPE_DOUBLE;
+  info.callconv = CFUNC_CALLCONV_CDECL;
+  info.canerror = 0;
+
+  lua_pushtracablecclosure(L, &info);
+  return 1;
+}
+
+int test2_func(lua_State* L)
+{
+  const char* pStr = lua_tostring(L, 1);
+
+  printf("NORM - %s (%p)\n", pStr, (void*)pStr);
+  lua_pushnumber(L, 1);
+  return 1;
+}
+
+int asm_test2_func(const char* test, const char* pStr)
+{
+  printf("JIT (%s) - %s (%p)\n", test, pStr, (void*)pStr);
+  return 1;
+}
+
+LJLIB_CF(test_jitcfunc2)
+{
+  lua_CFunctionInfo info;
+  memset(&info, 0, sizeof(info));
+
+  info.func = test2_func;
+  info.asmFunc = asm_test2_func;
+  info.argType[0] = CFUNC_TYPE_CHARS;
+  info.argType[1] = CFUNC_TYPE_CHARS;
+  info.argType[2] = CFUNC_TYPE_VOID;
+  info.retType = CFUNC_TYPE_INT;
+  info.callconv = CFUNC_CALLCONV_CDECL;
+  info.canerror = 0;
+  info.passstate = 0;
+
+  lua_pushtracablecclosure(L, &info);
+  return 1;
+}
+
+int test3_func(lua_State* L)
+{
+  lua_getmetatable(L, 1);
+  return 1;
+}
+
+GCtab* __fastcall asm_test3_func(GCudata* ud)
+{
+  printf("JIT - %p\n", ud);
+  return tabref(ud->metatable);
+}
+
+LJLIB_CF(test_jitcfunc3)
+{
+  lua_CFunctionInfo info;
+  memset(&info, 0, sizeof(info));
+
+  info.func = test3_func;
+  info.asmFunc = asm_test3_func;
+  info.argType[0] = CFUNC_TYPE_USERDATA;
+  info.argType[1] = CFUNC_TYPE_VOID;
+  info.retType = CFUNC_TYPE_TABLE;
+  info.callconv = CFUNC_CALLCONV_FASTCALL;
+  info.canerror = 0;
+  info.passstate = 0;
 
   lua_pushtracablecclosure(L, &info);
   return 1;

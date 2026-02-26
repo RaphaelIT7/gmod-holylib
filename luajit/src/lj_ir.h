@@ -146,6 +146,7 @@
   _(CALLS,	S , ref, lit) \
   _(CALLXS,	S , ref, ref) \
   _(CARG,	N , ref, ref) \
+  _(CALLCC,	N , ref, ref) \
   \
   /* End of list. */
 
@@ -192,6 +193,7 @@ IRFPMDEF(FPMENUM)
 /* FLOAD fields. */
 #define IRFLDEF(_) \
   _(STR_LEN,	offsetof(GCstr, len)) \
+  _(STR_DATA,	sizeof(GCstr)) \
   _(FUNC_ENV,	offsetof(GCfunc, l.env)) \
   _(FUNC_PC,	offsetof(GCfunc, l.pc)) \
   _(FUNC_FFID,	offsetof(GCfunc, l.ffid)) \

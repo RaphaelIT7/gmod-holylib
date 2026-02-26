@@ -113,6 +113,8 @@ GCfunc *lj_func_newC(lua_State *L, MSize nelems, GCtab *env)
   GCfunc *fn = (GCfunc *)lj_mem_newgco(L, sizeCfunc(nelems));
   fn->c.gct = ~LJ_TFUNC;
   fn->c.ffid = FF_C;
+  fn->c.callinfo.func = 0;
+  fn->c.callinfo.flags = 0;
 //  fn->c.args = 0;
 //  fn->c.rets = 0;
 //  fn->c.flags = 0;

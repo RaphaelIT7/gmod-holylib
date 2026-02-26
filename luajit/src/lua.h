@@ -174,27 +174,32 @@ LUA_API int   (lua_pushthread) (lua_State *L);
 LUA_API int (lua_userdata_setusertable) (lua_State *L, int idx, int set);
 LUA_API int (lua_userdata_setmetaaccess) (lua_State *L, int idx, int set);
 
-enum lua_CFunctionInfoCallConv {
-  CALLCONV_CDECL, // Default
-  CALLCONV_FASTCALL,
-  CALLCONV_STDCALL,
-  CALLCONV_THISCALL,
-}
+typedef unsigned char lua_CFunctionInfoCallConv;
+enum {
+  CFUNC_CALLCONV_CDECL = 0, // Default
+  CFUNC_CALLCONV_FASTCALL,
+  CFUNC_CALLCONV_STDCALL,
+  CFUNC_CALLCONV_THISCALL,
+};
 
-enum lua_CFunctionInfoType {
-  TYPE_LUASTATE, // Only function as a argument - not return value!
-  TYPE_TABLE, // Only functional as a return value - not argument!
+typedef unsigned char lua_CFunctionInfoType;
+enum {
+  CFUNC_TYPE_VOID = 0, // Only functional as a return value - if set as an argument it marks the end of arguments!
+  CFUNC_TYPE_LUASTATE, // Raw lua_state
+  CFUNC_TYPE_TABLE, // Raw GCtable
   // IDEA - maybe also TYPE_REFERENCE_TABLE and such BUT I fear that if a reference may be wrong in type it would nuke LuaJIT
-  TYPE_USERDATA, // Userdata data pointer
-  TYPE_USERDATA_RAW, // Internal GCudata struct
-  TYPE_BOOL,
-  TYPE_INT,
-  TYPE_FLOAT,
-  TYPE_DOUBLE,
-  TYPE_STRING, // const char* - NULL Terminated! (will result in a Lua string alloc! -> lj_str_new)
-}
+  CFUNC_TYPE_USERDATA, // a GCudata
+  CFUNC_TYPE_USERDATA_VALUE, // The GCudata value / pointer and NOT the actual struct
+  CFUNC_TYPE_INT,
+  CFUNC_TYPE_FLOAT,
+  CFUNC_TYPE_DOUBLE,
+  CFUNC_TYPE_STRING, // a GCstr
+  CFUNC_TYPE_CHARS, // const char* - NULL Terminated! (will result in a Lua string alloc! -> lj_str_new)
+};
 
 // RaphaelIT7: Experimental - a C function can give information about itself to allow JIT hopefully
+// Limited to 32 by how CCallInfo stores the argument amount (specifically CCI_NARGS_MAX) - but why would you ever need more???
+#define LUA_CFUNCINFO_MAXARGS 32
 typedef struct lua_CFunctionInfo
 {
   lua_CFunction func;
@@ -203,25 +208,15 @@ typedef struct lua_CFunctionInfo
   // ASMFunc settings
   lua_CFunctionInfoCallConv callconv;
   int canerror : 1;
+  int passstate : 1; // If 1, then the first argument will be lua_State* and you MUST set argType[0] = TYPE_LUASTATE!!!
   void* asmFunc; // Function to use inside a trace as an alternative to the C function
- 
+  lua_CFunctionInfoType retType;
+  lua_CFunctionInfoType argType[LUA_CFUNCINFO_MAXARGS]; // 32 args max - if you got two args- set the third argument to TYPE_VOID or 0 to mark the end!
+
   void* traceFunc; // NYI - Function called when tracing given a trace builder to generate a trace for the function
 } lua_CFunctionInfo;
 
-typedef struct lua_CFunctionInfo2 // Old Idea- most likely would've failed.
-{
-  lua_CFunction func;
-  int upval;
-	int args : 2; // max should be like 3, if you need more go yap
-	int rets : 2; // same
-	int argTypes[3]; // LUA_T type!
-	int retTypes[3]; // LUA_T type!
-	int tracable : 1; // if marked then you guarrantee that the function does NOT make any LUA allocations!
-	int can_error : 1;
-} lua_CFunctionInfo;
-
 LUA_API void (lua_pushtracablecclosure) (lua_State *L, lua_CFunctionInfo *info);
-LUA_API void (lua_pushtracablecclosure2) (lua_State *L, lua_CFunctionInfo2 *info);
 
 LUA_API int (lua_makeuserdatatable) (lua_State *L, int idx);
 LUA_API int (lua_testudataindex) (lua_State *L, int idx);
