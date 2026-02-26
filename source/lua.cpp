@@ -16,6 +16,8 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+Symbols::lua_pushtracablecclosure Lua::func_lua_pushtracablecclosure = nullptr;
+
 // Testing functions
 
 static CBaseEntity* pTestWorld = nullptr;

@@ -2,6 +2,7 @@
 
 #include "util.h"
 #include "bitvec.h"
+#include "../luajit/src/lua.h"
 #if !defined(DISABLE_GMODJIT)
 #include "../gmod-luajit/luajit.h"
 #define LJ_UDATA_FLAG_USERTABLE 0x01 // from our JIT build
@@ -351,6 +352,93 @@ namespace Lua
 
 	// GMod specific fast type check
 	extern bool CheckGModType(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos, int nType, void** pUserData);
+
+	extern Symbols::lua_pushtracablecclosure func_lua_pushtracablecclosure;
+	inline void AddJITFunc(GarrysMod::Lua::ILuaInterface* LUA, GarrysMod::Lua::CFunc Func, const char* Name, lua_CFunctionInfoType retType, void* asmFunc)
+	{
+		LUA->PushString(Name);
+
+#if MODULE_EXISTS_LUAJIT
+		if (func_lua_pushtracablecclosure) {
+			lua_CFunctionInfo info;
+			memset(&info, 0, sizeof(info));
+
+			info.func = Func;
+			info.asmFunc = asmFunc;
+			info.argType[0] = CFUNC_TYPE_VOID;
+			info.retType = retType;
+			info.callconv = CFUNC_CALLCONV_CDECL;
+			info.canerror = 0;
+			info.givestate = 0;
+
+			func_lua_pushtracablecclosure(LUA->GetState(), (lua_CFunctionInfo*)&info);
+		} else
+#endif
+		{
+			LUA->PushCFunction(Func);
+		}
+
+		LUA->RawSet(-3);
+	}
+
+	inline void AddJITFunc(GarrysMod::Lua::ILuaInterface* LUA, GarrysMod::Lua::CFunc Func, const char* Name,
+		lua_CFunctionInfoType retType, void* asmFunc, lua_CFunctionInfoType arg1)
+	{
+		LUA->PushString(Name);
+
+#if MODULE_EXISTS_LUAJIT
+		if (func_lua_pushtracablecclosure) {
+			lua_CFunctionInfo info;
+			memset(&info, 0, sizeof(info));
+
+			info.func = Func;
+			info.asmFunc = asmFunc;
+			info.argType[0] = arg1;
+			info.argType[1] = CFUNC_TYPE_VOID;
+			info.retType = retType;
+			info.callconv = CFUNC_CALLCONV_CDECL;
+			info.canerror = 0;
+			info.givestate = 0;
+
+			func_lua_pushtracablecclosure(LUA->GetState(), (lua_CFunctionInfo*)&info);
+		} else
+#endif
+		{
+			LUA->PushCFunction(Func);
+		}
+
+		LUA->RawSet(-3);
+	}
+
+	inline void AddJITFunc(GarrysMod::Lua::ILuaInterface* LUA, GarrysMod::Lua::CFunc Func, const char* Name,
+		lua_CFunctionInfoType retType, void* asmFunc, lua_CFunctionInfoType arg1, lua_CFunctionInfoType arg2)
+	{
+		LUA->PushString(Name);
+
+#if MODULE_EXISTS_LUAJIT
+		if (func_lua_pushtracablecclosure) {
+			lua_CFunctionInfo info;
+			memset(&info, 0, sizeof(info));
+
+			info.func = Func;
+			info.asmFunc = asmFunc;
+			info.argType[0] = arg1;
+			info.argType[1] = arg2;
+			info.argType[2] = CFUNC_TYPE_VOID;
+			info.retType = retType;
+			info.callconv = CFUNC_CALLCONV_CDECL;
+			info.canerror = 0;
+			info.givestate = 0;
+
+			func_lua_pushtracablecclosure(LUA->GetState(), (lua_CFunctionInfo*)&info);
+		} else
+#endif
+		{
+			LUA->PushCFunction(Func);
+		}
+
+		LUA->RawSet(-3);
+	}
 
 	// ToDo
 	// - EnterLockdown
