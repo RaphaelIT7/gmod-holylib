@@ -56,3 +56,14 @@ local jit_func4 = test_jitcfunc4()
 for k=1, 100 do
 	jit_func4()
 end
+
+jit.flush()
+local val = {}
+local jit_func5 = test_jitcfunc5()
+for k=1, 100 do
+	val[k] = jit_func5()
+end
+
+for k=1, 100 do
+	print(val[k])
+end

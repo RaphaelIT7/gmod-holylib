@@ -705,6 +705,34 @@ LJLIB_CF(test_jitcfunc4)
   return 1;
 }
 
+int test5_func(lua_State* L)
+{
+  lua_pushstring(L, "Lua Hello World");
+  return 1;
+}
+
+const char* LJ_FASTCALL asm_test5_func()
+{
+  return "JIT Hello World";
+}
+
+LJLIB_CF(test_jitcfunc5)
+{
+  lua_CFunctionInfo info;
+  memset(&info, 0, sizeof(info));
+
+  info.func = test5_func;
+  info.asmFunc = asm_test5_func;
+  info.argType[0] = CFUNC_TYPE_VOID;
+  info.retType = CFUNC_TYPE_CHARS;
+  info.callconv = CFUNC_CALLCONV_FASTCALL;
+  info.canerror = 0;
+  info.givestate = 0;
+
+  lua_pushtracablecclosure(L, &info);
+  return 1;
+}
+
 LJLIB_CF(give_userdata_table)
 {
   int val = lua_tonumber(L, 1);
