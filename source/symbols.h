@@ -162,6 +162,7 @@ namespace Symbols
 	*/
 
 	using lua_pushtracablecclosure = void (*)(lua_State* L, void* info);
+	using lua_settracablecclosure = void (*)(lua_State* L, int idx, void* info);
 
 	using lua_rawseti = void (*)(lua_State* L, int index, int i);
 	extern const Symbol lua_rawsetiSym;

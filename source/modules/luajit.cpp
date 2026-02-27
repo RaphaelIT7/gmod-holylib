@@ -193,6 +193,11 @@ static void hook_luaL_openlibs(lua_State* L)
 	bOpenLibs = true;
 }
 
+double ASM_SysTime()
+{
+	return Plat_FloatTime();
+}
+
 /*
 ToDo: Redo this entire class and move all LuaJIT specific stuff from lua.cpp into here to separate shit from CORE code!
 class CLuaInterfaceProxy : public Detouring::ClassProxy<GarrysMod::Lua::ILuaInterface, CLuaInterfaceProxy> {
@@ -323,6 +328,14 @@ void CLuaJITModule::PostLuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		luaL_unref(L, LUA_REGISTRYINDEX, overrideFFIReference);
 		overrideFFIReference = -1;
 	}
+
+	pLua->GetField(LUA_GLOBALSINDEX, "SysTime");
+	if (pLua->IsType(-1, GarrysMod::Lua::Type::Function)) {
+		lua_CFunctionInfo info = Lua::MakeJITFunc(CFUNC_TYPE_DOUBLE, (void*)&ASM_SysTime);
+		lua_settracablecclosure(pLua->GetState(), -1, (lua_CFunctionInfo*)&info);
+		Msg(PROJECT_NAME " - jit: Added JIT support for SysTime\n");
+	}
+	pLua->Pop(1);
 }
 
 void CLuaJITModule::InitDetour(bool bPreServer)
@@ -483,6 +496,7 @@ void CLuaJITModule::InitDetour(bool bPreServer)
 	Util::func_lj_gc_barrierf = (Symbols::lj_gc_barrierf)&lj_gc_barrierf;
 	Util::func_lj_tab_get = (Symbols::lj_tab_get)&lj_tab_get;
 	Lua::func_lua_pushtracablecclosure = (Symbols::lua_pushtracablecclosure)&lua_pushtracablecclosure;
+	Lua::func_lua_settracablecclosure = (Symbols::lua_settracablecclosure)&lua_settracablecclosure;
 
 	m_bIsEnabled = true;
 }
