@@ -217,6 +217,8 @@ typedef struct lua_CFunctionInfo
 } lua_CFunctionInfo;
 
 LUA_API void (lua_pushtracablecclosure) (lua_State *L, lua_CFunctionInfo *info);
+// To set the internal callinfo of an already existing CFunc
+LUA_API void (lua_settracablecclosure) (lua_State *L, int idx, lua_CFunctionInfo *info);
 
 LUA_API int (lua_makeuserdatatable) (lua_State *L, int idx);
 LUA_API int (lua_testudataindex) (lua_State *L, int idx);
