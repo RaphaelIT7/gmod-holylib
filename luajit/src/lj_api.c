@@ -749,17 +749,8 @@ LUA_API int lua_testudataindex(lua_State* L, int idx)
   return 0;
 }
 
-LUA_API void lua_pushtracablecclosure(lua_State* L, lua_CFunctionInfo *info)
+static void lua_fillCFuncInfo(lua_State* L, GCfunc* fn, lua_CFunctionInfo* info)
 {
-  GCfunc *fn;
-  lj_gc_check(L);
-  fn = lj_func_newC(L, 0, getcurrenv(L));
-  fn->c.f = info->func;
-
-  setfuncV(L, L->top, fn);
-  lj_assertL(iswhite(obj2gco(fn)), "new GC object is not white");
-  incr_top(L);
-
   // Technically not required (& we remove/skip it anyways below) - but I do require it, you should be AWARE of the args!
   if (info->givestate && info->argType[0] != CFUNC_TYPE_LUASTATE)
     return;
@@ -795,6 +786,28 @@ LUA_API void lua_pushtracablecclosure(lua_State* L, lua_CFunctionInfo *info)
 
   if (info->givestate)
     fn->c.callinfo.givestate = 1; // We cannot use CCI_L as it seems very unreliable...
+}
+
+LUA_API void lua_pushtracablecclosure(lua_State* L, lua_CFunctionInfo *info)
+{
+  GCfunc *fn;
+  lj_gc_check(L);
+  fn = lj_func_newC(L, 0, getcurrenv(L));
+  fn->c.f = info->func;
+
+  setfuncV(L, L->top, fn);
+  lj_assertL(iswhite(obj2gco(fn)), "new GC object is not white");
+  incr_top(L);
+
+  lua_fillCFuncInfo(L, fn, info);
+}
+
+LUA_API void lua_settracablecclosure(lua_State* L, int idx, lua_CFunctionInfo *info)
+{
+  cTValue *o = index2adr_check(L, idx);
+  if (tvisfunc(o) && isluafunc(funcV(o))) {
+    lua_fillCFuncInfo(L, funcV(o), info);
+  }
 }
 
 LUA_API lua_State *lua_tothread(lua_State *L, int idx)
