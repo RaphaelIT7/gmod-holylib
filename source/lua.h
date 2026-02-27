@@ -426,81 +426,62 @@ namespace Lua
 	};
 
 	extern Symbols::lua_pushtracablecclosure func_lua_pushtracablecclosure;
-	inline void AddJITFunc(GarrysMod::Lua::ILuaInterface* LUA, GarrysMod::Lua::CFunc Func, const char* Name, lua_CFunctionInfoType retType, void* asmFunc)
+	extern Symbols::lua_settracablecclosure func_lua_settracablecclosure;
+	inline lua_CFunctionInfo MakeJITFunc(lua_CFunctionInfoType retType, void* asmFunc)
 	{
-		LUA->PushString(Name);
+		lua_CFunctionInfo info;
+		memset(&info, 0, sizeof(info));
 
-#if MODULE_EXISTS_LUAJIT
-		if (func_lua_pushtracablecclosure) {
-			lua_CFunctionInfo info;
-			memset(&info, 0, sizeof(info));
+		info.asmFunc = asmFunc;
+		info.argType[0] = CFUNC_TYPE_VOID;
+		info.retType = retType;
+		info.callconv = CFUNC_CALLCONV_CDECL;
+		info.canerror = 0;
+		info.givestate = 0;
 
-			info.func = Func;
-			info.asmFunc = asmFunc;
-			info.argType[0] = CFUNC_TYPE_VOID;
-			info.retType = retType;
-			info.callconv = CFUNC_CALLCONV_CDECL;
-			info.canerror = 0;
-			info.givestate = 0;
-
-			func_lua_pushtracablecclosure(LUA->GetState(), (lua_CFunctionInfo*)&info);
-		} else
-#endif
-		{
-			LUA->PushCFunction(Func);
-		}
-
-		LUA->RawSet(-3);
+		return info;
 	}
 
-	inline void AddJITFunc(GarrysMod::Lua::ILuaInterface* LUA, GarrysMod::Lua::CFunc Func, const char* Name,
-		lua_CFunctionInfoType retType, void* asmFunc, lua_CFunctionInfoType arg1)
+	inline lua_CFunctionInfo MakeJITFunc(lua_CFunctionInfoType retType, void* asmFunc, lua_CFunctionInfoType arg1)
 	{
-		LUA->PushString(Name);
+		lua_CFunctionInfo info;
+		memset(&info, 0, sizeof(info));
 
-#if MODULE_EXISTS_LUAJIT
-		if (func_lua_pushtracablecclosure) {
-			lua_CFunctionInfo info;
-			memset(&info, 0, sizeof(info));
+		info.asmFunc = asmFunc;
+		info.argType[0] = arg1;
+		info.argType[1] = CFUNC_TYPE_VOID;
+		info.retType = retType;
+		info.callconv = CFUNC_CALLCONV_CDECL;
+		info.canerror = 0;
+		info.givestate = 0;
 
-			info.func = Func;
-			info.asmFunc = asmFunc;
-			info.argType[0] = arg1;
-			info.argType[1] = CFUNC_TYPE_VOID;
-			info.retType = retType;
-			info.callconv = CFUNC_CALLCONV_CDECL;
-			info.canerror = 0;
-			info.givestate = 0;
-
-			func_lua_pushtracablecclosure(LUA->GetState(), (lua_CFunctionInfo*)&info);
-		} else
-#endif
-		{
-			LUA->PushCFunction(Func);
-		}
-
-		LUA->RawSet(-3);
+		return info;
 	}
 
-	inline void AddJITFunc(GarrysMod::Lua::ILuaInterface* LUA, GarrysMod::Lua::CFunc Func, const char* Name,
-		lua_CFunctionInfoType retType, void* asmFunc, lua_CFunctionInfoType arg1, lua_CFunctionInfoType arg2)
+	inline lua_CFunctionInfo MakeJITFunc(lua_CFunctionInfoType retType, void* asmFunc, lua_CFunctionInfoType arg1, lua_CFunctionInfoType arg2)
+	{
+		lua_CFunctionInfo info;
+		memset(&info, 0, sizeof(info));
+
+		info.asmFunc = asmFunc;
+		info.argType[0] = arg1;
+		info.argType[1] = arg2;
+		info.argType[2] = CFUNC_TYPE_VOID;
+		info.retType = retType;
+		info.callconv = CFUNC_CALLCONV_CDECL;
+		info.canerror = 0;
+		info.givestate = 0;
+
+		return info;
+	}
+
+	inline void AddJITFunc(GarrysMod::Lua::ILuaInterface* LUA, GarrysMod::Lua::CFunc Func, const char* Name, lua_CFunctionInfo info)
 	{
 		LUA->PushString(Name);
 
 #if MODULE_EXISTS_LUAJIT
 		if (func_lua_pushtracablecclosure) {
-			lua_CFunctionInfo info;
-			memset(&info, 0, sizeof(info));
-
 			info.func = Func;
-			info.asmFunc = asmFunc;
-			info.argType[0] = arg1;
-			info.argType[1] = arg2;
-			info.argType[2] = CFUNC_TYPE_VOID;
-			info.retType = retType;
-			info.callconv = CFUNC_CALLCONV_CDECL;
-			info.canerror = 0;
-			info.givestate = 0;
 
 			func_lua_pushtracablecclosure(LUA->GetState(), (lua_CFunctionInfo*)&info);
 		} else

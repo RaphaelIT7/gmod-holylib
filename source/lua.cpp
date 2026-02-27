@@ -22,6 +22,7 @@ extern "C"
 #include "tier0/memdbgon.h"
 
 Symbols::lua_pushtracablecclosure Lua::func_lua_pushtracablecclosure = nullptr;
+Symbols::lua_settracablecclosure Lua::func_lua_settracablecclosure = nullptr;
 
 // Testing functions
 
