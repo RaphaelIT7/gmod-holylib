@@ -224,11 +224,18 @@ static IRType CFunctionInfoTypeToIRType(lua_CFunctionInfoType type)
   }
 }
 
-static TRef CFunctionProcessType(jit_State *J, TRef ref, TRef val, lua_CFunctionInfoType type)
+static TRef CFunctionProcessType(jit_State *J, TRef ref, TRef val, TValue* value, lua_CFunctionInfoType type)
 {
   if (type == CFUNC_TYPE_CHARS) {
     return emitir(IRT(IR_STRREF, IRT_PGC), val, lj_ir_kint(J, 0));
+  } else if (type == CFUNC_TYPE_USERDATA) {
+    // We guard on the type as we don't possibly want to get passed different userdata's and re-use the same trace
+    TRef tr = emitir(IRT(IR_FLOAD, IRT_U8), val, IRFL_UDATA_UDTYPE);
+    emitir(IRTGI(IR_EQ), tr, lj_ir_kint(J, udataV(value)->udtype));
+    return val;
   } else if (type == CFUNC_TYPE_USERDATA_VALUE) {
+    TRef tr = emitir(IRT(IR_FLOAD, IRT_U8), val, IRFL_UDATA_UDTYPE);
+    emitir(IRTGI(IR_EQ), tr, lj_ir_kint(J, udataV(value)->udtype));
     return emitir(IRT(IR_FLOAD, IRT_PTR), val, IRFL_UDATA_VALUE);
   } else {
     return val;
@@ -257,11 +264,11 @@ static void LJ_FASTCALL recff_c(jit_State *J, RecordFFData *rd)
     if (fn->callinfo.givestate) {
       tr = emitir(IRT(IR_LREF, IRT_THREAD), 0, 0);
     } else {
-      tr = CFunctionProcessType(J, tr, J->base[0], fn->callinfo.argType[0]);
+      tr = CFunctionProcessType(J, tr, J->base[0], &rd->argv[0], fn->callinfo.argType[0]);
     }
 
     for (uint32_t i=1; i < args; ++i) {
-      tr = emitir(IRT(IR_CARG, IRT_NIL), tr, CFunctionProcessType(J, tr, J->base[i], fn->callinfo.argType[i]));
+      tr = emitir(IRT(IR_CARG, IRT_NIL), tr, CFunctionProcessType(J, tr, J->base[i], &rd->argv[i], fn->callinfo.argType[i]));
     }
   }
   
@@ -278,9 +285,7 @@ static void LJ_FASTCALL recff_c(jit_State *J, RecordFFData *rd)
   } else {
     if (retType == IRT_FLOAT) {
       result = emitconv(result, IRT_NUM, retType, 0);
-    }
-
-    if (fn->callinfo.retType == CFUNC_TYPE_CHARS) {
+    } else if (fn->callinfo.retType == CFUNC_TYPE_CHARS) {
       TRef strlen = lj_ir_call(J, IRCALL_strlen, result);
       result = emitir(IRT(IR_SNEW, IRT_STR), result, strlen);
     }
