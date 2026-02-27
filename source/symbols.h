@@ -97,9 +97,9 @@ struct ThreadPoolStartParams_t;
 #else // x86
 #define GMCOMMON_CALLING_CONVENTION __thiscall
 #endif
-#define CALLING_CONVENTION_FASTCALL __fastcall
+#define FUNC_FASTCALL __fastcall
 #else // Linux
-#define CALLING_CONVENTION_FASTCALL __attribute__((fastcall))
+#define FUNC_FASTCALL __attribute__((fastcall))
 #define GMCOMMON_CALLING_CONVENTION
 #endif
 
