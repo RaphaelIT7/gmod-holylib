@@ -369,7 +369,7 @@ LUA_FUNCTION_STATIC(VoiceData_GetPlayerSlot)
 	return 1;
 }
 
-int ASM_VoiceData_GetPlayerSlot(LuaUserData* ud)
+int FUNC_FASTCALL ASM_VoiceData_GetPlayerSlot(LuaUserData* ud)
 {
 	VoiceData* pData = (VoiceData*)ud->GetData();
 	return pData ? pData->iPlayerSlot : 0;
@@ -384,7 +384,7 @@ LUA_FUNCTION_STATIC(VoiceData_GetLength)
 	return 1;
 }
 
-int ASM_VoiceData_GetLength(LuaUserData* ud)
+int FUNC_FASTCALL ASM_VoiceData_GetLength(LuaUserData* ud)
 {
 	VoiceData* pData = (VoiceData*)ud->GetData();
 	return pData ? pData->GetLength() : 0;
@@ -443,7 +443,7 @@ LUA_FUNCTION_STATIC(VoiceData_GetProximity)
 	return 1;
 }
 
-int ASM_VoiceData_GetProximity(LuaUserData* ud)
+int FUNC_FASTCALL ASM_VoiceData_GetProximity(LuaUserData* ud)
 {
 	VoiceData* pData = (VoiceData*)ud->GetData();
 	return pData ? pData->bProximity : 0;

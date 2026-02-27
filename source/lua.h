@@ -435,7 +435,7 @@ namespace Lua
 		info.asmFunc = asmFunc;
 		info.argType[0] = CFUNC_TYPE_VOID;
 		info.retType = retType;
-		info.callconv = CFUNC_CALLCONV_CDECL;
+		info.callconv = CFUNC_CALLCONV_FASTCALL;
 		info.canerror = 0;
 		info.givestate = 0;
 
@@ -451,7 +451,7 @@ namespace Lua
 		info.argType[0] = arg1;
 		info.argType[1] = CFUNC_TYPE_VOID;
 		info.retType = retType;
-		info.callconv = CFUNC_CALLCONV_CDECL;
+		info.callconv = CFUNC_CALLCONV_FASTCALL;
 		info.canerror = 0;
 		info.givestate = 0;
 
@@ -468,7 +468,7 @@ namespace Lua
 		info.argType[1] = arg2;
 		info.argType[2] = CFUNC_TYPE_VOID;
 		info.retType = retType;
-		info.callconv = CFUNC_CALLCONV_CDECL;
+		info.callconv = CFUNC_CALLCONV_FASTCALL;
 		info.canerror = 0;
 		info.givestate = 0;
 

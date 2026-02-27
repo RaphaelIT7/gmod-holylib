@@ -193,7 +193,7 @@ static void hook_luaL_openlibs(lua_State* L)
 	bOpenLibs = true;
 }
 
-double ASM_SysTime()
+double FUNC_FASTCALL ASM_SysTime()
 {
 	return Plat_FloatTime();
 }
