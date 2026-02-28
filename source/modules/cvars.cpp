@@ -17,7 +17,7 @@ public:
 	void Shutdown() override;
 #endif
 	const char* Name() override { return "cvars"; };
-	int Compatibility() override { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
+	int Compatibility() override { return LINUX32 | WINDOWS32; };
 	bool SupportsMultipleLuaStates() override { return true; };
 };
 
