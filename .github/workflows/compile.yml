@@ -545,7 +545,7 @@ jobs:
       extra-startup-args: "${{ matrix.artifact.args }} -maxplayers 64"
       download-artifact: ${{ matrix.artifact.name }}
       no-checkout: "true"
-      additional-setup: "wget -q https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux.tar.gz -O gluatest/docker/_gluatest_artifacts/linux.tar.gz"
+      additional-setup: "curl -L -o gluatest/docker/_gluatest_artifacts/linux.tar.gz https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux.tar.gz"
       map: gm_glua_tests
 
   test_gmod_tests_64bit:
@@ -564,7 +564,7 @@ jobs:
       extra-startup-args: "${{ matrix.artifact.args }} -maxplayers 64"
       download-artifact: ${{ matrix.artifact.name }}
       no-checkout: "true"
-      additional-setup: "wget -q https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux.tar.gz -O gluatest/docker/_gluatest_artifacts/linux.tar.gz"
+      additional-setup: "curl -L -o gluatest/docker/_gluatest_artifacts/linux.tar.gz https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux.tar.gz"
       map: gm_glua_tests
 
   test_gmod_tests_32bit_with_ivpreplacement:
@@ -588,7 +588,7 @@ jobs:
       extra-startup-args: "${{ matrix.artifact.args }} -maxplayers 64 -holylib_replaceivp"
       download-artifact: ${{ matrix.artifact.name }}
       no-checkout: "true"
-      additional-setup: "wget -q https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux.tar.gz -O gluatest/docker/_gluatest_artifacts/linux.tar.gz"
+      additional-setup: "curl -L -o gluatest/docker/_gluatest_artifacts/linux.tar.gz https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux.tar.gz"
       map: gm_glua_tests
 
   test_gmod_tests_64bit_with_ivpreplacement:
@@ -608,7 +608,7 @@ jobs:
       extra-startup-args: "${{ matrix.artifact.args }} -maxplayers 64 -holylib_replaceivp"
       download-artifact: ${{ matrix.artifact.name }}
       no-checkout: "true"
-      additional-setup: "wget -q https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux.tar.gz -O gluatest/docker/_gluatest_artifacts/linux.tar.gz"
+      additional-setup: "curl -L -o gluatest/docker/_gluatest_artifacts/linux.tar.gz https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux.tar.gz"
       map: gm_glua_tests
 
   test_gmod_tests_32bit_with_luajit:
@@ -632,7 +632,7 @@ jobs:
       extra-startup-args: "${{ matrix.artifact.args }} -maxplayers 64 -holylib_enable_luajit 1"
       download-artifact: ${{ matrix.artifact.name }}
       no-checkout: "true"
-      additional-setup: "wget -q https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux.tar.gz -O gluatest/docker/_gluatest_artifacts/linux.tar.gz"
+      additional-setup: "curl -L -o gluatest/docker/_gluatest_artifacts/linux.tar.gz https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux.tar.gz"
       map: gm_glua_tests
 
   test_gmod_tests_64bit_with_luajit:
@@ -652,7 +652,7 @@ jobs:
       extra-startup-args: "${{ matrix.artifact.args }} -maxplayers 64 -holylib_enable_luajit 1"
       download-artifact: ${{ matrix.artifact.name }}
       no-checkout: "true"
-      additional-setup: "wget -q https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux.tar.gz -O gluatest/docker/_gluatest_artifacts/linux.tar.gz"
+      additional-setup: "curl -L -o gluatest/docker/_gluatest_artifacts/linux.tar.gz https://github.com/RaphaelIT7/gmod-holytest/releases/latest/download/linux.tar.gz"
       map: gm_glua_tests
 
   test_32bit_find_crash:
