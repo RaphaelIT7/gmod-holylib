@@ -349,8 +349,12 @@ static void CrashHandler(int signal, siginfo_t* signalInfo, void* ucontext)
 		case SEGV_MAPERR:
 			if (signalInfo->si_addr == nullptr)
 				dprintf(fileDescriptor, "Null pointer access\n");
-			else
-				dprintf(fileDescriptor, "Invalid pointer access\n");
+			else {
+				if ((uintptr_t)signalInfo->si_addr < 0x5000)
+					dprintf(fileDescriptor, "Invalid pointer access (probably accessed a null pointer offset)\n");
+				else
+					dprintf(fileDescriptor, "Invalid pointer access\n");
+			}
 			break;
 		case SEGV_ACCERR:
 			dprintf(fileDescriptor, "Invalid permissions memory access\n");
