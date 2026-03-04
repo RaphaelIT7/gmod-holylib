@@ -3,6 +3,7 @@
 #include "detours.h"
 #include "module.h"
 #include "lua.h"
+#include "versioninfo.h"
 
 #if SYSTEM_LINUX
 #include <dlfcn.h>
@@ -375,6 +376,8 @@ static void CrashHandler(int signal, siginfo_t* signalInfo, void* ucontext)
 	const ModuleInfo::Entry* mod = pModuleInfo.FindModule((uintptr_t)ip);
 	const char* moduleName = mod ? mod->path : "unknown";
 	dprintf(fileDescriptor, "Crashed in module: %s\n", moduleName);
+
+	dprintf(fileDescriptor, "HolyLib: %s\n", HolyLib_GetPluginDescription());
 
 	dprintf(fileDescriptor, "Registers:\n");
 #if defined(__x86_64__)
