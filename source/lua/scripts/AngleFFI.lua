@@ -27,6 +27,16 @@ local function Angle(x, y, z)
     if isangle(ang) then
         return CreateAngle(ang.x, ang.y, ang.z)
     end
+
+    if isstring(ang) then
+        local vals = ang:Split(" ")
+        if #vals == 3 then
+            x = vals[1]
+            y = vals[2]
+            z = vals[3]
+        end
+    end
+
     return CreateAngle(tonumber(x) or 0, tonumber(y) or 0, tonumber(z) or 0)
 end
 _G.GMOD_Angle = _G.Angle -- let's keep the original around

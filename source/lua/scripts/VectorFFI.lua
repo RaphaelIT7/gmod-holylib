@@ -27,6 +27,16 @@ local function Vector(x, y, z)
     if isvector(vec) then
         return CreateVector(vec.x, vec.y, vec.z)
     end
+
+    if isstring(vec) then
+        local vals = vec:Split(" ")
+        if #vals == 3 then
+            x = vals[1]
+            y = vals[2]
+            z = vals[3]
+        end
+    end
+
     return CreateVector(tonumber(x) or 0, tonumber(y) or 0, tonumber(z) or 0)
 end
 _G.GMOD_Vector = _G.Vector -- let's keep the original around
