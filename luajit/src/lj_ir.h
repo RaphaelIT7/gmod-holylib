@@ -146,6 +146,7 @@
   _(CALLS,	S , ref, lit) \
   _(CALLXS,	S , ref, ref) \
   _(CARG,	N , ref, ref) \
+  _(CALLCSE,	N , ref, ref) /* flag to allow CSE for a CALLXS */\
   _(CALLCC,	N , ref, ref) \
   \
   /* End of list. */

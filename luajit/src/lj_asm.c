@@ -1904,6 +1904,7 @@ static void asm_ir(ASMState *as, IRIns *ir)
   case IR_CALLN: case IR_CALLL: case IR_CALLS: asm_call(as, ir); break;
   case IR_CALLXS: asm_callx(as, ir); break;
   case IR_CARG:
+  case IR_CALLCSE:
   case IR_CALLCC: break;
 
   default:

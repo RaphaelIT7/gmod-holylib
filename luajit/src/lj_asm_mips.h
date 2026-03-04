@@ -406,7 +406,7 @@ static void asm_callx(ASMState *as, IRIns *ir)
   asm_collectargs(as, ir, &ci, args);
   asm_setupresult(as, ir, &ci);
   func = ir->op2; irf = IR(func);
-  if (irf->o == IR_CARG || irf->o == IR_CALLCC) { func = irf->op1; irf = IR(func); }
+  while (irf->o == IR_CARG || irf->o == IR_CALLCC || irf->o == IR_CALLCSE) { func = irf->op1; irf = IR(func); }
   if (irref_isk(func)) {  /* Call to constant address. */
     ci.func = (ASMFunction)(void *)get_kval(as, func);
   } else {  /* Need specific register for indirect calls. */
