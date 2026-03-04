@@ -786,6 +786,9 @@ static void lua_fillCFuncInfo(lua_State* L, GCfunc* fn, lua_CFunctionInfo* info)
 
   if (info->givestate)
     fn->c.callinfo.givestate = 1; // We cannot use CCI_L as it seems very unreliable...
+
+  if (info->allowoptout)
+    fn->c.callinfo.allowoptout = 1;
 }
 
 LUA_API void lua_pushtracablecclosure(lua_State* L, lua_CFunctionInfo *info)

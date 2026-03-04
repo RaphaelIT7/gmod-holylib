@@ -211,6 +211,8 @@ static IRType CFunctionInfoTypeToIRType(lua_CFunctionInfoType type)
       return IRT_UDATA;
     case CFUNC_TYPE_INT:
       return IRT_INT;
+    //case CFUNC_TYPE_BOOL:
+    //  return IRT_INT;
     case CFUNC_TYPE_FLOAT:
       return IRT_FLOAT;
     case CFUNC_TYPE_DOUBLE:
@@ -278,6 +280,10 @@ static void LJ_FASTCALL recff_c(jit_State *J, RecordFFData *rd)
 
   TRef funcPtr = lj_ir_kptr(J, fn->callinfo.func);
   funcPtr = emitir(IRT(IR_CALLCC, IRT_NIL), funcPtr, lj_ir_kint(J, fn->callinfo.flags & CCI_CC_MASK));
+
+  if (fn->callinfo.allowoptout)
+    funcPtr = emitir(IRT(IR_CALLCSE, IRT_NIL), funcPtr, lj_ir_kint(J, 0));
+  
   TRef result = emitir(IRT(IR_CALLXS, retType), tr, funcPtr);
   if (fn->callinfo.retType == CFUNC_TYPE_VOID) {
     J->base[0] = TREF_NIL;
@@ -288,7 +294,10 @@ static void LJ_FASTCALL recff_c(jit_State *J, RecordFFData *rd)
     } else if (fn->callinfo.retType == CFUNC_TYPE_CHARS) {
       TRef strlen = lj_ir_call(J, IRCALL_strlen, result);
       result = emitir(IRT(IR_SNEW, IRT_STR), result, strlen);
-    }
+    } //else if (fn->callinfo.retType == CFUNC_TYPE_BOOL) {
+      //RaphaelIT7: GG - You can't specify a bool return value / I got no idea yet
+      //result = emitir(IRT(IR_NE, IRT_TRUE), result, lj_ir_kint(J, 0));
+    //}
 
     J->base[0] = result;
     rd->nres = 1;

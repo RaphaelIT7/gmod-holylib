@@ -2454,6 +2454,21 @@ LJFOLDF(prof)
   return EMITFOLD;
 }
 
+/* -- Extern function calls ----------------------------------------------- */
+
+LJFOLD(CALLXS any any)
+LJFOLDF(callxs_cse_on_pure_hint)
+{
+  if (!(J->flags & JIT_F_OPT_CSE) || !fins->op2)
+    return lj_ir_emit(J);
+
+  IRIns *irf = IR(fins->op2); // Normally CALLCSE should always be directly after CALLXS! in op2
+  if (irf->o == IR_CALLCSE)
+    return lj_opt_cse(J);
+
+  return lj_ir_emit(J);
+}
+
 /* -- Stores and allocations ---------------------------------------------- */
 
 /* Stores and allocations cannot be folded or passed on to CSE in general.
@@ -2480,7 +2495,6 @@ LJFOLD(TMPREF any any)
 LJFOLD(CALLA any any)
 LJFOLD(CALLL any any)  /* Safeguard fallback. */
 LJFOLD(CALLS any any)
-LJFOLD(CALLXS any any)
 LJFOLD(XBAR)
 LJFOLD(RETF any any)  /* Modifies BASE. */
 LJFOLD(TNEW any any)
