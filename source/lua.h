@@ -366,6 +366,7 @@ namespace Lua
 		info.callconv = CFUNC_CALLCONV_FASTCALL;
 		info.canerror = 0;
 		info.givestate = 0;
+		info.allowoptout = 0;
 
 		return info;
 	}
@@ -382,6 +383,7 @@ namespace Lua
 		info.callconv = CFUNC_CALLCONV_FASTCALL;
 		info.canerror = 0;
 		info.givestate = 0;
+		info.allowoptout = 0;
 
 		return info;
 	}
@@ -399,7 +401,14 @@ namespace Lua
 		info.callconv = CFUNC_CALLCONV_FASTCALL;
 		info.canerror = 0;
 		info.givestate = 0;
+		info.allowoptout = 0;
 
+		return info;
+	}
+
+	inline lua_CFunctionInfo AllowOptOut(lua_CFunctionInfo info)
+	{
+		info.allowoptout = 1;
 		return info;
 	}
 
