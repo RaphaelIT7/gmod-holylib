@@ -439,7 +439,6 @@ LUA_FUNCTION_STATIC(VoiceData_GetProximity)
 	VoiceData* pData = Get_VoiceData(LUA, 1, true);
 
 	LUA->PushBool(pData->bProximity);
-
 	return 1;
 }
 
@@ -454,7 +453,6 @@ LUA_FUNCTION_STATIC(VoiceData_SetPlayerSlot)
 	VoiceData* pData = Get_VoiceData(LUA, 1, true);
 
 	pData->iPlayerSlot = (int)LUA->CheckNumber(2);
-
 	return 0;
 }
 
@@ -463,7 +461,6 @@ LUA_FUNCTION_STATIC(VoiceData_SetLength)
 	VoiceData* pData = Get_VoiceData(LUA, 1, true);
 
 	pData->SetLength((int)LUA->CheckNumber(2));
-
 	return 0;
 }
 
@@ -490,7 +487,6 @@ LUA_FUNCTION_STATIC(VoiceData_SetProximity)
 	VoiceData* pData = Get_VoiceData(LUA, 1, true);
 
 	pData->bProximity = LUA->GetBool(2);
-
 	return 0;
 }
 
@@ -2169,14 +2165,14 @@ void CVoiceChatModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServer
 		Util::AddFunc(pLua, VoiceData_GetTable, "GetTable");
 		Util::AddFunc(pLua, VoiceData_IsValid, "IsValid");
 		Util::AddFunc(pLua, VoiceData_GetData, "GetData");
-		Lua::AddJITFunc(pLua, VoiceData_GetLength, "GetLength", Lua::MakeJITFunc(CFUNC_TYPE_INT, (void*)&ASM_VoiceData_GetLength, CFUNC_TYPE_USERDATA));
-		Lua::AddJITFunc(pLua, VoiceData_GetPlayerSlot, "GetPlayerSlot", Lua::MakeJITFunc(CFUNC_TYPE_INT, (void*)&ASM_VoiceData_GetPlayerSlot, CFUNC_TYPE_USERDATA));
+		Lua::AddJITFunc(pLua, VoiceData_GetLength, "GetLength", Lua::AllowOptOut(Lua::MakeJITFunc(CFUNC_TYPE_INT, (void*)&ASM_VoiceData_GetLength, CFUNC_TYPE_USERDATA)));
+		Lua::AddJITFunc(pLua, VoiceData_GetPlayerSlot, "GetPlayerSlot", Lua::AllowOptOut(Lua::MakeJITFunc(CFUNC_TYPE_INT, (void*)&ASM_VoiceData_GetPlayerSlot, CFUNC_TYPE_USERDATA)));
 		Util::AddFunc(pLua, VoiceData_SetData, "SetData");
 		Util::AddFunc(pLua, VoiceData_SetLength, "SetLength");
 		Util::AddFunc(pLua, VoiceData_SetPlayerSlot, "SetPlayerSlot");
 		Util::AddFunc(pLua, VoiceData_GetUncompressedData, "GetUncompressedData");
 		Util::AddFunc(pLua, VoiceData_SetUncompressedData, "SetUncompressedData");
-		Lua::AddJITFunc(pLua, VoiceData_GetProximity, "GetProximity", Lua::MakeJITFunc(CFUNC_TYPE_INT, (void*)&ASM_VoiceData_GetProximity, CFUNC_TYPE_USERDATA));
+		Lua::AddJITFunc(pLua, VoiceData_GetProximity, "GetProximity", Lua::AllowOptOut(Lua::MakeJITFunc(CFUNC_TYPE_INT, (void*)&ASM_VoiceData_GetProximity, CFUNC_TYPE_USERDATA)));
 		Util::AddFunc(pLua, VoiceData_SetProximity, "SetProximity");
 		Util::AddFunc(pLua, VoiceData_CreateCopy, "CreateCopy");
 		Util::AddFunc(pLua, VoiceData_Empty, "Empty");
