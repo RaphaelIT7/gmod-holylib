@@ -194,6 +194,7 @@ namespace Lua
 #if LUA_CDATA_SUPPORT
 		RawLua::CDataBridge pBridge;
 #endif
+		std::mutex pThreadingMutex;
 
 		StateData()
 		{
@@ -355,6 +356,73 @@ namespace Lua
 	// GMod specific fast type check
 	extern bool CheckGModType(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos, int nType, void** pUserData);
 	extern const char* TValueToString(TValue* pVal);
+
+	/*
+		Threading access for a lua state, weird but it should work.
+
+		You first define
+		ScopedInterfaceThreadAccess pThreadScope;
+
+		Then you GET the target interface and do:
+		InterfaceThreadAccess pScope(pLua);
+
+		This is done as ScopedInterfaceThreadAccess will lock and ensure that the next call to GET the Lua interface is safe
+		after which you can call InterfaceThreadAccess which will lock the interface mutex allowing you to call lua functions safely
+
+		CriticalInterfaceThreadAccess is meant to be used when you need to delete an interface, this will block all ScopedInterfaceThreadAccess
+	*/
+	extern std::shared_mutex g_pThreadAccessMutex;
+	class ThreadAccess
+	{
+	public:
+		ThreadAccess(GarrysMod::Lua::ILuaInterface* pLua)
+		{
+			if (!pLua)
+				return;
+
+			m_pState = GetLuaData(pLua);
+			// ToDo: Maybe verify the state is valid? But that would imply we'd be using an invalid interface.
+			m_pState->pThreadingMutex.lock();
+			m_pLua = pLua;
+		}
+
+		~ThreadAccess()
+		{
+			if (m_pState)
+				m_pState->pThreadingMutex.unlock();
+		}
+
+		inline bool IsValid()
+		{
+			return m_pState != nullptr;
+		}
+
+		inline GarrysMod::Lua::ILuaInterface* GetLua()
+		{
+			if (!IsValid())
+				return nullptr;
+
+			return m_pLua;
+		}
+
+	private:
+		GarrysMod::Lua::ILuaInterface* m_pLua = nullptr;
+		StateData* m_pState = nullptr;
+	};
+
+	class ScopedThreadAccess
+	{
+	public:
+		ScopedThreadAccess() { g_pThreadAccessMutex.lock_shared(); }
+		~ScopedThreadAccess() { g_pThreadAccessMutex.unlock_shared(); }
+	};
+
+	class CriticalThreadAccess
+	{
+	public:
+		CriticalThreadAccess() { g_pThreadAccessMutex.lock(); }
+		~CriticalThreadAccess() { g_pThreadAccessMutex.unlock(); }
+	};
 
 	// ToDo
 	// - EnterLockdown
@@ -1076,6 +1144,10 @@ extern CBaseClient* Get_CBaseClient(GarrysMod::Lua::ILuaInterface* LUA, int iSta
 struct VoiceData;
 extern LuaUserData* Push_VoiceData(GarrysMod::Lua::ILuaInterface* LUA, VoiceData* tbl);
 extern VoiceData* Get_VoiceData(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
+#endif
+
+#if MODULE_EXISTS_HOLYLUA
+GarrysMod::Lua::ILuaInterface* GetHolyLuaInterface();
 #endif
 
 // NOTE: The angle itself is pushed, not a copy, any changes from lua will affect it!

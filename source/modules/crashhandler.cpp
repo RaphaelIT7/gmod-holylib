@@ -16,6 +16,7 @@
 #include <execinfo.h>
 #endif
 #include <atomic>
+#include <deque>
 #include "iluashared.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -32,10 +33,9 @@
 class CCrashHandlerModule : public IModule
 {
 public:
-#if SYSTEM_LINUX
 	void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) override;
 	void Shutdown() override;
-#endif
+	void InitDetour(bool bPreServer) override;
 	void Think(bool bSimulating) override;
 	const char* Name() override { return "crashhandler"; };
 	int Compatibility() override { return LINUX32 | LINUX64; };
@@ -330,52 +330,65 @@ static void DumpRegister(int fd, gregset_t& registers, const char* name, int idx
 	);
 };
 
+static void SetupCrashHandler();
 static void AttemptLuaCallback(bool bMainThreadCrash);
 static thread_local bool g_bIsInSignalHandler = false;
+static thread_local bool g_bAttemptedBacktrace = false;
 static void CrashHandler(int signal, siginfo_t* signalInfo, void* ucontext)
 {
 	// If this happens, we crashed in our handler, so let's skip that and let gdb catch the original crash
-	if (g_bIsInSignalHandler)
+	if (g_bIsInSignalHandler && !g_bAttemptedBacktrace)
 	{
 		ReturnSignal();
 		return;
 	}
 
+	if (!g_bAttemptedBacktrace)
+		SetupCrashHandler();
+
 	g_bIsInSignalHandler = true;
-
-	char crashFileName[64];
-	GenerateCrashFileName(crashFileName, sizeof(crashFileName));
-
-	int fileDescriptor = ::open(crashFileName, O_CREAT | O_WRONLY | O_APPEND, 0644);
-	if (fileDescriptor < 0)
-		fileDescriptor = STDERR_FILENO;
-
-	dprintf(STDERR_FILENO, "%s: %s crash log \"%s\"\n", fileDescriptor == STDERR_FILENO ? "Dumping crash log to console - Failed to write" : "Wrote", PROJECT_NAME, crashFileName);
+	g_bAttemptedBacktrace = false;
 
 	ModuleInfo pModuleInfo;
 
-	dprintf(fileDescriptor, "===== CRASH REPORT =====\n");
-	dprintf(fileDescriptor, "Signal: %d (%s)\n", signal, strsignal(signal));
-	dprintf(fileDescriptor, "Fault address: %p\n", signalInfo->si_addr);
-	dprintf(fileDescriptor, "Fault reason: ");
-	switch(signalInfo->si_code)
+	bool bReEntered = false;
+	static thread_local int fileDescriptor = -1;
+	if (fileDescriptor == -1)
 	{
-		case SEGV_MAPERR:
-			if (signalInfo->si_addr == nullptr)
-				dprintf(fileDescriptor, "Null pointer access\n");
-			else {
-				if ((uintptr_t)signalInfo->si_addr < 0x5000)
-					dprintf(fileDescriptor, "Invalid pointer access (probably accessed a null pointer offset)\n");
-				else
-					dprintf(fileDescriptor, "Invalid pointer access\n");
-			}
-			break;
-		case SEGV_ACCERR:
-			dprintf(fileDescriptor, "Invalid permissions memory access\n");
-			break;
-		default:
-			dprintf(fileDescriptor, "Unknown\n");
-			break;
+		char crashFileName[64];
+		GenerateCrashFileName(crashFileName, sizeof(crashFileName));
+
+		fileDescriptor = ::open(crashFileName, O_CREAT | O_WRONLY | O_APPEND, 0644);
+		if (fileDescriptor < 0)
+			fileDescriptor = STDERR_FILENO;
+
+		dprintf(STDERR_FILENO, "%s: %s crash log \"%s\"\n", fileDescriptor == STDERR_FILENO ? "Dumping crash log to console - Failed to write" : "Wrote", PROJECT_NAME, crashFileName);
+
+		dprintf(fileDescriptor, "===== CRASH REPORT =====\n");
+		dprintf(fileDescriptor, "Signal: %d (%s)\n", signal, strsignal(signal));
+		dprintf(fileDescriptor, "Fault address: %p\n", signalInfo->si_addr);
+		dprintf(fileDescriptor, "Fault reason: ");
+		switch(signalInfo->si_code)
+		{
+			case SEGV_MAPERR:
+				if (signalInfo->si_addr == nullptr)
+					dprintf(fileDescriptor, "Null pointer access\n");
+				else {
+					if ((uintptr_t)signalInfo->si_addr < 0x5000)
+						dprintf(fileDescriptor, "Invalid pointer access (probably accessed a null pointer offset)\n");
+					else
+						dprintf(fileDescriptor, "Invalid pointer access\n");
+				}
+				break;
+			case SEGV_ACCERR:
+				dprintf(fileDescriptor, "Invalid permissions memory access\n");
+				break;
+			default:
+				dprintf(fileDescriptor, "Unknown\n");
+				break;
+		}
+	} else {
+		bReEntered = true;
 	}
 
 	ucontext_t* uc = (ucontext_t*)ucontext;
@@ -386,64 +399,74 @@ static void CrashHandler(int signal, siginfo_t* signalInfo, void* ucontext)
 #else
 #error "Unsupported architecture"
 #endif
-	dprintf(fileDescriptor, "Instruction pointer: %p\n", ip);
+	if (!bReEntered)
+		dprintf(fileDescriptor, "Instruction pointer: %p\n", ip);
 
 	// Later goal is to figure out if we can safely call to Lua.
 	// bool in_vphysics = strstr(module_name, "vphysics") != nullptr;
 
 	const ModuleInfo::Entry* mod = pModuleInfo.FindModule((uintptr_t)ip);
 	const char* moduleName = mod ? mod->path : "unknown";
-	dprintf(fileDescriptor, "Crashed in module: %s\n", moduleName);
-
-	dprintf(fileDescriptor, "HolyLib: %s\n", HolyLib_GetPluginDescription());
-
-	dprintf(fileDescriptor, "Registers:\n");
-#if defined(__x86_64__)
-	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rax", REG_RAX);
-	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rbx", REG_RBX);
-	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rcx", REG_RCX);
-	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rdx", REG_RDX);
-	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rsi", REG_RSI);
-	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rdi", REG_RDI);
-	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rbp", REG_RBP);
-	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rsp", REG_RSP);
-	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r8",  REG_R8);
-	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r9",  REG_R9);
-	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r10", REG_R10);
-	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r11", REG_R11);
-	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r12", REG_R12);
-	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r13", REG_R13);
-	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r14", REG_R14);
-	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r15", REG_R15);
-	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rip", REG_RIP);
-#elif defined(__i386__)
-	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "eax", REG_EAX);
-	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "ebx", REG_EBX);
-	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "ecx", REG_ECX);
-	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "edx", REG_EDX);
-	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "esi", REG_ESI);
-	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "edi", REG_EDI);
-	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "ebp", REG_EBP);
-	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "esp", REG_ESP);
-	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "eip", REG_EIP);
-#else
-	dprintf(fileDescriptor, "  GG\n");
-#endif
-
-	// ToDo: backtrace is not really signal safe! It could deadlock!
-	constexpr int bufferSize = 64;
-	void* buffer[bufferSize];
-	int nptrs = backtrace(buffer, bufferSize);
-	dprintf(fileDescriptor, "Backtrace (%d frames):\n", nptrs);
-	for (int i = 0; i < nptrs; ++i)
+	if (!bReEntered)
 	{
-		uintptr_t addr = (uintptr_t)buffer[i];
-		const ModuleInfo::Entry* fmod = pModuleInfo.FindModule(addr);
-		uintptr_t offset = 0;
-		const char* fileName;
-		pModuleInfo.FindFunctionInfo(fmod, addr, &fileName, &offset);
+		dprintf(fileDescriptor, "Crashed in module: %s\n", moduleName);
 
-		dprintf(fileDescriptor, "  %p: %s + 0x%lx [%s]\n", (void*)addr, fileName, offset, fmod ? fmod->path : "UNKNOWN");
+		dprintf(fileDescriptor, "HolyLib: %s\n", HolyLib_GetPluginDescription());
+
+		dprintf(fileDescriptor, "Registers:\n");
+#if defined(__x86_64__)
+		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rax", REG_RAX);
+		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rbx", REG_RBX);
+		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rcx", REG_RCX);
+		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rdx", REG_RDX);
+		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rsi", REG_RSI);
+		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rdi", REG_RDI);
+		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rbp", REG_RBP);
+		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rsp", REG_RSP);
+		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r8",  REG_R8);
+		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r9",  REG_R9);
+		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r10", REG_R10);
+		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r11", REG_R11);
+		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r12", REG_R12);
+		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r13", REG_R13);
+		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r14", REG_R14);
+		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r15", REG_R15);
+		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rip", REG_RIP);
+#elif defined(__i386__)
+		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "eax", REG_EAX);
+		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "ebx", REG_EBX);
+		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "ecx", REG_ECX);
+		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "edx", REG_EDX);
+		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "esi", REG_ESI);
+		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "edi", REG_EDI);
+		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "ebp", REG_EBP);
+		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "esp", REG_ESP);
+		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "eip", REG_EIP);
+#else
+		dprintf(fileDescriptor, "  GG\n");
+#endif
+	}
+
+	// If we re-entered it's 99% that we crashed when calling backtrace!
+	if (!bReEntered)
+	{
+		// ToDo: backtrace is not really signal safe! It could deadlock!
+		constexpr int bufferSize = 64;
+		void* buffer[bufferSize];
+		g_bAttemptedBacktrace = true;
+		int nptrs = backtrace(buffer, bufferSize);
+		g_bAttemptedBacktrace = false;
+		dprintf(fileDescriptor, "Backtrace (%d frames):\n", nptrs);
+		for (int i = 0; i < nptrs; ++i)
+		{
+			uintptr_t addr = (uintptr_t)buffer[i];
+			const ModuleInfo::Entry* fmod = pModuleInfo.FindModule(addr);
+			uintptr_t offset = 0;
+			const char* fileName;
+			pModuleInfo.FindFunctionInfo(fmod, addr, &fileName, &offset);
+
+			dprintf(fileDescriptor, "  %p: %s + 0x%lx [%s]\n", (void*)addr, fileName, offset, fmod ? fmod->path : "UNKNOWN");
+		}
 	}
 
 	SignalData signalData;
@@ -460,7 +483,7 @@ static void CrashHandler(int signal, siginfo_t* signalInfo, void* ucontext)
 	g_bIsInSignalHandler = false;
 }
 
-static void SetupCrashHandler()
+static void SetupCrashHandlerStack()
 {
 	static uint8_t signalStackBuffer[200000 + sizeof(ModuleInfo) + sizeof(SignalData)];
 	stack_t signalStack{};
@@ -468,26 +491,15 @@ static void SetupCrashHandler()
 	signalStack.ss_size = sizeof(signalStackBuffer);
 	signalStack.ss_flags = 0;
 	sigaltstack(&signalStack, nullptr);
+}
 
+static void SetupCrashHandler()
+{
 	struct sigaction signalAction{};
 	signalAction.sa_sigaction = CrashHandler;
 	sigemptyset(&signalAction.sa_mask);
-	signalAction.sa_flags = SA_SIGINFO | SA_ONSTACK;
+	signalAction.sa_flags = SA_SIGINFO | SA_ONSTACK | SA_NODEFER;
 	sigaction(SIGSEGV, &signalAction, nullptr);
-}
-
-void CCrashHandlerModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
-{
-	(void)appfn;
-	(void)gamefn;
-
-	g_pFullFileSystem->CreateDirHierarchy("holylib/crashes/", "MOD");
-	SetupCrashHandler();
-}
-
-void CCrashHandlerModule::Shutdown()
-{
-	RestoreDefaultHandler();
 }
 #endif
 
@@ -561,10 +573,282 @@ static void AttemptLuaCallback(bool bMainThreadCrash)
 	}
 }
 
+static ThreadId_t g_nMainThreadID = -1;
+static bool ShoudExecuteThreadedCommand(const char* cmd, int cmdLen)
+{
+	std::string_view strCmd(cmd, cmdLen);
+	if (strCmd.rfind("holylib_crash", 0) == 0)
+	{
+		Warning(PROJECT_NAME " - crashhandler: Called holylib_crash, nuking main thread!\n");
+#if SYSTEM_LINUX
+		pthread_kill(g_nMainThreadID, SIGSEGV);
+#endif
+		return true;
+	}
+#if MODULE_EXISTS_HOLYLUA
+	else if (strCmd.rfind("lua_run_holylib", 0) == 0) {
+		std::string_view args = strCmd.substr(15);
+		while (!args.empty() && args.front() == ' ') args.remove_prefix(1);
+
+		Lua::ScopedThreadAccess pThreadScope();
+		Lua::ThreadAccess pAccess(GetHolyLuaInterface());
+		if (pAccess.IsValid())
+			pAccess.GetLua()->RunString("RunString", "", args.data(), true, true);
+
+		return true;
+	}
+#endif
+	
+	return false;
+}
+
+#if ARCHITECTURE_X86_64
+static std::mutex g_pConsoleMutex;
+static std::deque<const char*> g_pConsoleBuffer;
+static std::atomic<void*> g_pConsole = nullptr;
+static std::atomic<int> g_nConsoleThreadState = ThreadState::STATE_NOTRUNNING;
+static Detouring::Hook detour_CTextConsoleUnix_GetLine;
+// This thread effectively only exists on 64x since it uses an older or newer? implementation of CTextConsoleUnix
+static SIMPLETHREAD_RETURNVALUE ConsoleThread(void* data)
+{
+	// Got no valid detour!
+	Symbols::CTextConsoleUnix_GetLine func_CTextConsoleUnix_GetLine = detour_CTextConsoleUnix_GetLine.GetTrampoline<Symbols::CTextConsoleUnix_GetLine>();
+	if (!func_CTextConsoleUnix_GetLine)
+	{
+		g_nConsoleThreadState.store(ThreadState::STATE_NOTRUNNING);
+		return 0;
+	}
+
+	while (g_nConsoleThreadState.load() == ThreadState::STATE_RUNNING)
+	{
+		std::vector<const char*> pCommandBuffer;
+		char szBuf[ 256 ];
+		void* pConsole = g_pConsole.load();
+		if (pConsole)
+		{
+			char* cmd = func_CTextConsoleUnix_GetLine(pConsole);
+			while (cmd)
+			{
+				V_snprintf( szBuf, sizeof( szBuf ), "%s\n", cmd);
+				cmd = func_CTextConsoleUnix_GetLine(pConsole);
+
+				int cmdlen = strlen(szBuf)+1;
+				if (ShoudExecuteThreadedCommand(cmd, cmdlen))
+					continue;
+
+				char* pStr = new char[cmdlen];
+				V_strncpy(pStr, szBuf, cmdlen);
+
+				pCommandBuffer.push_back(pStr);
+			}
+		}
+
+		if (!pCommandBuffer.empty())
+		{
+			std::lock_guard<std::mutex> lock(g_pConsoleMutex);
+			for (const char* cmd : pCommandBuffer)
+				g_pConsoleBuffer.push_back(cmd);
+		}
+
+		ThreadSleep(5);
+	}
+
+	g_nConsoleThreadState.store(ThreadState::STATE_NOTRUNNING);
+	return 0;
+}
+
+// it get's called all the way until NULL is returned.
+static const char* hook_CTextConsoleUnix_GetLine(void* _this)
+{
+	if (g_pConsole.load() == nullptr)
+		g_pConsole.store(_this);
+
+	static thread_local std::deque<const char*> pLocalBuffer;
+	static thread_local char pBuffer[256];
+
+	if (pLocalBuffer.empty())
+	{
+		std::lock_guard<std::mutex> lock(g_pConsoleMutex);
+		if (g_pConsoleBuffer.empty())
+			return nullptr;
+
+		// We copy it over to avoid performance issues from locking so often
+		std::swap(pLocalBuffer, g_pConsoleBuffer);
+		g_pConsoleBuffer.clear();
+	}
+
+	const char* cmd = pLocalBuffer.front();
+	V_strncpy(pBuffer, cmd, sizeof(pBuffer));
+
+	delete[] cmd;
+	pLocalBuffer.pop_front();
+
+	return pBuffer;
+}
+#endif
+
+#if ARCHITECTURE_X86
+// add_command is threaded in the engine already! See editline_threadproc in dedicated/console/TextConsoleUnix.cpp
+static Detouring::Hook detour_add_command;
+static bool
+#if SYSTEM_LINUX
+__attribute__((regparm(2)))
+#endif
+hook_add_command(const char *cmd, int cmd_len) // yay this is a fking __usercall
+{
+	// printf("cmd: %s\n", cmd);
+	if (ShoudExecuteThreadedCommand(cmd, cmd_len))
+		return true;
+
+	return detour_add_command.GetTrampoline<Symbols::add_command>()(cmd, cmd_len);
+}
+#endif
+
+static ConVar crashhandler_crashtime("holylib_crashhandler_crashtime", "10000", 0, "Time in ms after which the crash handler will catch and nuke the server");
+static constexpr int g_nThreadSleep = 10;
+static std::atomic<int> g_nLagCount = 0; // one count = (g_nThreadSleep)ms lag.
+static std::atomic<int> g_nWatcherThreadState = ThreadState::STATE_NOTRUNNING;
+static SIMPLETHREAD_RETURNVALUE CrashWatcherThread(void* data)
+{
+	// ThreadSetDebugName(ThreadGetCurrentId(), PROJECT_NAME " - CrashWatcher");
+	while (g_nWatcherThreadState.load() == ThreadState::STATE_RUNNING)
+	{
+		ThreadSleep(g_nThreadSleep);
+
+		if (g_pModuleManager.GetServerState() != ServerState::RUNNING)
+		{
+			g_nLagCount.store(0);
+			continue;
+		}
+
+		if (++g_nLagCount > (crashhandler_crashtime.GetInt() / g_nThreadSleep))
+		{
+#if MODULE_EXISTS_HOLYLUA
+			// Let's consult the HolyLua state to determine whether to force a crash or not
+			{
+				Lua::ScopedThreadAccess pThreadScope;
+				Lua::ThreadAccess pAccess(GetHolyLuaInterface());
+				if (pAccess.IsValid())
+				{
+					GarrysMod::Lua::ILuaInterface* pLua = pAccess.GetLua();
+					if (Lua::PushHook("HolyLib:DetermineServerCrash", pLua))
+					{
+						pLua->PushNumber(g_nLagCount.load() * g_nThreadSleep); // Push lag time in ms
+						if (pLua->CallFunctionProtected(2, 1, true))
+						{
+							bool bDontCrash = pLua->GetBool(-1);
+							pLua->Pop(1);
+
+							if (bDontCrash)
+							{
+								g_nLagCount.store(0);
+								continue;
+							}
+						}
+					}
+				}
+			}
+#endif
+			printf(PROJECT_NAME " - crashhandler: Detected a freeze, Terminating...\n");
+			ThreadSleep(5);
+#if SYSTEM_LINUX
+			pthread_kill(g_nMainThreadID, SIGTRAP);
+			pthread_kill(g_nMainThreadID, SIGSEGV);
+#endif
+			break;
+		}
+	}
+
+	g_nWatcherThreadState.store(ThreadState::STATE_NOTRUNNING);
+	return 0;
+}
+
 void CCrashHandlerModule::Think(bool bSimulating)
 {
 	(void)bSimulating;
 
 	if (g_bThreadAwaitingLua.load())
 		AttemptLuaCallback(false);
+
+	g_nLagCount.store(0);
+}
+
+static ThreadHandle_t g_pCrashWatcher = nullptr;
+static ThreadHandle_t g_pThreadedConsole = nullptr;
+void CCrashHandlerModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
+{
+	(void)appfn;
+	(void)gamefn;
+
+	g_nMainThreadID = ThreadGetCurrentId();
+
+	g_nWatcherThreadState.store(ThreadState::STATE_RUNNING);
+	g_pCrashWatcher = CreateSimpleThread((ThreadFunc_t)CrashWatcherThread, this);
+
+#if ARCHITECTURE_X86_64
+	g_nWatcherThreadState.store(ThreadState::STATE_RUNNING);
+	g_pThreadedConsole = CreateSimpleThread((ThreadFunc_t)ConsoleThread, this);
+#endif
+
+	g_pFullFileSystem->CreateDirHierarchy("holylib/crashes/", "MOD");
+#if SYSTEM_LINUX
+	SetupCrashHandlerStack();
+	SetupCrashHandler();
+#endif
+}
+
+void CCrashHandlerModule::Shutdown()
+{
+	if (g_pCrashWatcher)
+	{
+		if (g_nWatcherThreadState.load() != ThreadState::STATE_NOTRUNNING)
+		{
+			g_nWatcherThreadState.store(ThreadState::STATE_SHOULD_SHUTDOWN);
+			while (g_nWatcherThreadState.load() != ThreadState::STATE_NOTRUNNING) // Wait for shutdown
+				ThreadSleep(0);
+		}
+
+		ReleaseThreadHandle(g_pCrashWatcher);
+		g_pCrashWatcher = nullptr;
+	}
+
+#if ARCHITECTURE_X86_64
+	if (g_pThreadedConsole)
+	{
+		if (g_nConsoleThreadState.load() != ThreadState::STATE_NOTRUNNING)
+		{
+			g_nConsoleThreadState.store(ThreadState::STATE_SHOULD_SHUTDOWN);
+			while (g_nConsoleThreadState.load() != ThreadState::STATE_NOTRUNNING) // Wait for shutdown
+				ThreadSleep(0);
+		}
+
+		ReleaseThreadHandle(g_pThreadedConsole);
+		g_pThreadedConsole = nullptr;
+	}
+#endif
+
+#if SYSTEM_LINUX
+	RestoreDefaultHandler();
+#endif
+}
+
+void CCrashHandlerModule::InitDetour(bool bPreServer)
+{
+	if (bPreServer)
+		return;
+
+	SourceSDK::FactoryLoader dedicated_loader("dedicated");
+#if ARCHITECTURE_X86
+	Detour::Create(
+		&detour_add_command, "add_command",
+		dedicated_loader.GetModule(), Symbols::add_commandSym,
+		(void*)hook_add_command, m_pID
+	);
+#else
+	//Detour::Create(
+	//	&detour_CTextConsoleUnix_GetLine, "CTextConsoleUnix::GetLine",
+	//	dedicated_loader.GetModule(), Symbols::CTextConsoleUnix_GetLineSym,
+	//	(void*)hook_CTextConsoleUnix_GetLine, m_pID
+	//);
+#endif
 }

@@ -391,6 +391,8 @@ void CModuleManager::Setup(CreateInterfaceFn appfn, CreateInterfaceFn gamefn)
 
 void CModuleManager::Init()
 {
+	m_nServerState = ServerState::STARTING;
+
 	if (!(m_pStatus & LoadStatus_PreDetourInit))
 	{
 		DevMsg(PROJECT_NAME ": ghostinj didn't call InitDetour! Calling it now\n");
@@ -474,12 +476,15 @@ void CModuleManager::Shutdown()
 		return;
 	}
 
+	m_nServerState = ServerState::SHUTDOWN;
 	m_pStatus = 0;
 	CALL_ENABLED_MODULES(Shutdown());
 }
 
 void CModuleManager::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
 {
+	m_nServerState = ServerState::RUNNING;
+
 	m_pEdictList = pEdictList;
 	m_iEdictCount = edictCount;
 	m_iClientMax = clientMax;
@@ -533,6 +538,8 @@ void CModuleManager::LevelInit(const char* pMapName)
 
 void CModuleManager::LevelShutdown()
 {
+	m_nServerState = ServerState::CHANGELEVEL;
+
 	VCALL_ENABLED_MODULES(LevelShutdown());
 }
 

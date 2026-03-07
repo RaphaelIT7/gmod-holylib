@@ -41,6 +41,14 @@ protected:
 	char* m_strDebugValue; // Workaround for a crash.
 };
 
+enum class ServerState : unsigned char
+{
+	RUNNING = 0,
+	STARTING,
+	CHANGELEVEL,
+	SHUTDOWN,
+};
+
 class CModuleManager : public IModuleManager
 {
 public:
@@ -104,6 +112,7 @@ public:
 	inline std::unordered_set<GarrysMod::Lua::ILuaInterface*>& GetLuaInterfaces() { return m_pLuaInterfaces; };
 	inline IConfig* GetConfig() { return m_pConfig; };
 	inline const char* GetMapName() { return m_strMapName.c_str(); };
+	inline ServerState GetServerState() { return m_nServerState; };
 
 private:
 	std::vector<CModule*> m_pModules;
@@ -119,6 +128,7 @@ private:
 	bool m_bEnabledUnsafeCode = false;
 #endif
 	IConfig* m_pConfig = nullptr; // Can be nullptr at runtime so check for it!
+	ServerState m_nServerState = ServerState::STARTING;
 
 private: // ServerActivate stuff
 	edict_t* m_pEdictList = nullptr;

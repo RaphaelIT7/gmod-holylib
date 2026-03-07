@@ -228,6 +228,18 @@ if SERVER then
 
         return "testTable-" .. StringTableCounter
     end
+
+    hook.Add("GLuaTest_StartedTestRun", "HolyLib:MarkStart", function()
+        if holylua then
+            holylua.RunString("IsRunningTest = true print([[IsRunningTest]], IsRunningTest)")
+        end
+    end)
+
+    hook.Add("GLuaTest_Finished", "HolyLib:MarkFinish", function()
+        if holylua then
+            holylua.RunString("IsRunningTest = false print([[IsRunningTest]], IsRunningTest)")
+        end
+    end)
 end
 
 -- Helper utility to isolate test groups

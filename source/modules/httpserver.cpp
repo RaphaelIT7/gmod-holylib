@@ -186,6 +186,8 @@ public:
 
 	static SIMPLETHREAD_RETURNVALUE Server(void* params)
 	{
+		// ThreadSetDebugName(ThreadGetCurrentId(), PROJECT_NAME " - HttpServer::Server");
+
 		HttpServer* pServer = (HttpServer*)params;
 		pServer->GetServer().listen(pServer->GetAddress(), pServer->GetPort());
 

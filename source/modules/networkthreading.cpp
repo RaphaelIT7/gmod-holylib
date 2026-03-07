@@ -167,13 +167,6 @@ static inline HandleStatus ShouldHandlePacket(netpacket_s* pPacket, bool isConne
 extern ConVar sv_filter_nobanresponse;
 #endif
 
-enum NetworkThreadState
-{
-	STATE_NOTRUNNING,
-	STATE_RUNNING,
-	STATE_SHOULD_SHUTDOWN,
-};
-
 // BUG: GMod's CBaseServer::GetChallengeNr isn't thread safe
 static std::atomic<uint32> g_nChallengeNr = 0;
 static Symbols::NET_SendPacket func_NET_SendPacket = nullptr;
@@ -221,16 +214,17 @@ static inline bool EnforceConnectionlessChallenge(netpacket_s* pPacket)
 	}
 }
 
-static std::atomic<int> g_nThreadState = NetworkThreadState::STATE_NOTRUNNING;
+static std::atomic<int> g_nThreadState = ThreadState::STATE_NOTRUNNING;
 static Symbols::NET_GetPacket func_NET_GetPacket;
 static Symbols::Filter_SendBan func_Filter_SendBan;
 static Symbols::NET_FindNetChannel func_NET_FindNetChannel;
 static SIMPLETHREAD_RETURNVALUE NetworkThread(void* pThreadData)
 {
+	// ThreadSetDebugName(ThreadGetCurrentId(), PROJECT_NAME " - NetworkThread");
 	if (!Util::server || !func_NET_GetPacket || !func_Filter_SendBan || !func_NET_FindNetChannel)
 	{
 		Msg(PROJECT_NAME " - networkthreading: Shutting down thread since were missing some functions!\n");
-		g_nThreadState.store(NetworkThreadState::STATE_NOTRUNNING);
+		g_nThreadState.store(ThreadState::STATE_NOTRUNNING);
 		return 0;
 	}
 
@@ -243,7 +237,7 @@ static SIMPLETHREAD_RETURNVALUE NetworkThread(void* pThreadData)
 	ConVarRef net_showudp("net_showudp");
 
 	netpacket_s* packet;
-	while (g_nThreadState.load() == NetworkThreadState::STATE_RUNNING)
+	while (g_nThreadState.load() == ThreadState::STATE_RUNNING)
 	{
 		while ((packet = func_NET_GetPacket(nSocket, pBuffer)) != nullptr)
 		{
@@ -301,7 +295,7 @@ static SIMPLETHREAD_RETURNVALUE NetworkThread(void* pThreadData)
 		ThreadSleep(1); // hoping to not make it use like 100% CPU without slowing down networking
 	}
 
-	g_nThreadState.store(NetworkThreadState::STATE_NOTRUNNING);
+	g_nThreadState.store(ThreadState::STATE_NOTRUNNING);
 	return 0;
 }
 
@@ -309,7 +303,7 @@ static Detouring::Hook detour_NET_ProcessSocket;
 static std::unordered_set<INetChannel*> g_pNetChannels; // No mutex since only the main thread parties on it... hopefully
 static void hook_NET_ProcessSocket(int nSocket, IConnectionlessPacketHandler* pHandler)
 {
-	if (!Util::server || nSocket != ((CBaseServer*)Util::server)->m_Socket || g_nThreadState.load() == NetworkThreadState::STATE_NOTRUNNING)
+	if (!Util::server || nSocket != ((CBaseServer*)Util::server)->m_Socket || g_nThreadState.load() == ThreadState::STATE_NOTRUNNING)
 	{
 		detour_NET_ProcessSocket.GetTrampoline<Symbols::NET_ProcessSocket>()(nSocket, pHandler);
 		return;
@@ -391,7 +385,7 @@ void CNetworkThreadingModule::ServerActivate(edict_t* pEdictList, int edictCount
 	if (pServer)
 		g_nChallengeNr.store(pServer->m_CurrentRandomNonce);
 
-	g_nThreadState.store(NetworkThreadState::STATE_RUNNING);
+	g_nThreadState.store(ThreadState::STATE_RUNNING);
 	if (g_pNetworkThread == nullptr)
 	{
 		ConDMsg(PROJECT_NAME " - networkthreading: Starting network thread...\n");
@@ -405,10 +399,10 @@ void CNetworkThreadingModule::LevelShutdown()
 		return;
 
 	ConDMsg(PROJECT_NAME " - networkthreading: Stopping network thread...\n");
-	if (g_nThreadState.load() != NetworkThreadState::STATE_NOTRUNNING)
+	if (g_nThreadState.load() != ThreadState::STATE_NOTRUNNING)
 	{
-		g_nThreadState.store(NetworkThreadState::STATE_SHOULD_SHUTDOWN);
-		while (g_nThreadState.load() != NetworkThreadState::STATE_NOTRUNNING) // Wait for shutdown
+		g_nThreadState.store(ThreadState::STATE_SHOULD_SHUTDOWN);
+		while (g_nThreadState.load() != ThreadState::STATE_NOTRUNNING) // Wait for shutdown
 			ThreadSleep(0);
 	}
 	ReleaseThreadHandle(g_pNetworkThread);

@@ -103,6 +103,7 @@ public:
 private:
 	static SIMPLETHREAD_RETURNVALUE LuaInterfaceThread(void* data)
 	{
+		// ThreadSetDebugName(ThreadGetCurrentId(), PROJECT_NAME " - LuaInterfaceThread");
 		LuaInterface* pData = (LuaInterface*)data;
 		pData->m_iStatus = InterfaceStatus::INTERFACE_RUNNING;
 		while (pData->m_iStatus == InterfaceStatus::INTERFACE_RUNNING)

@@ -27,6 +27,13 @@ extern IVEngineServer* engine;
 
 extern GarrysMod::Lua::ILuaInterface* g_Lua;
 
+enum ThreadState
+{
+	STATE_NOTRUNNING,
+	STATE_RUNNING,
+	STATE_SHOULD_SHUTDOWN,
+};
+
 struct edict_t;
 class IGet;
 class CBaseEntity;

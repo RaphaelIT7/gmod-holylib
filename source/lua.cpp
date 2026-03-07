@@ -280,7 +280,7 @@ bool Lua::PushHook(const char* hook, GarrysMod::Lua::ILuaInterface* pLua)
 		if (pLua->GetType(-1) != GarrysMod::Lua::Type::Table)
 		{
 			pLua->Pop(1);
-			DevMsg(PROJECT_NAME ": Missing hook table!\n");
+			DevMsg(PROJECT_NAME ": Missing hook table for \"%s\"!\n", hook);
 			return false;
 		}
 
@@ -288,7 +288,7 @@ bool Lua::PushHook(const char* hook, GarrysMod::Lua::ILuaInterface* pLua)
 			if (pLua->GetType(-1) != GarrysMod::Lua::Type::Function)
 			{
 				pLua->Pop(2);
-				DevMsg(PROJECT_NAME ": Missing hook.Run function!\n");
+				DevMsg(PROJECT_NAME ": Missing hook.Run function for \"%s\"!\n", hook);
 				return false;
 			} else {
 				pLua->Remove(-2);
@@ -298,6 +298,7 @@ bool Lua::PushHook(const char* hook, GarrysMod::Lua::ILuaInterface* pLua)
 	return true;
 }
 
+std::shared_mutex Lua::g_pThreadAccessMutex;
 extern void SetupUnHolyVTableForThisShit(GarrysMod::Lua::ILuaInterface* pLua);
 void Lua::Init(GarrysMod::Lua::ILuaInterface* LUA)
 {

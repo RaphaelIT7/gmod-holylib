@@ -807,4 +807,17 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	using GMODTable_Encode = PackedEntity* (*)(const unsigned char *pStruct, DVariant *pVar, const SendProp *pProp, bf_write *pOut, int objectID);
 	extern const std::vector<Symbol> GMODTable_EncodeSym;
+
+	//---------------------------------------------------------------------------------
+	// Purpose: crashhandler Symbols
+	//---------------------------------------------------------------------------------
+#if defined(SYSTEM_LINUX) && ARCHITECTURE_X86
+	using add_command = bool (__attribute__((regparm(2))) *)(const char* cmd, int cmd_len);
+#else
+	using add_command = bool (*)(const char* cmd, int cmd_len);
+#endif
+	extern const std::vector<Symbol> add_commandSym;
+
+	using CTextConsoleUnix_GetLine = char* (*)(void* _this);
+	extern const std::vector<Symbol> CTextConsoleUnix_GetLineSym;
 }
