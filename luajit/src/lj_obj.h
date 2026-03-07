@@ -486,10 +486,21 @@ typedef struct GCupval {
   GCHeader; uint8_t ffid; uint8_t nupvalues; \
   GCRef env; GCRef gclist; MRef pc
 
+// Extented version of CCallInfo - See lj_ircall.h
+typedef struct CFuncCallInfo {
+  ASMFunction func;   /* Function pointer. 0 if this entire struct wasn't set yet */
+  uint32_t flags;   /* Number of arguments and flags. */
+  lua_CFunctionInfoType argType[32]; /* argument types */
+  lua_CFunctionInfoType retType;
+  uint8_t givestate : 1;
+  uint8_t allowoptout : 1;
+} CFuncCallInfo;
+
 typedef struct GCfuncC {
   GCfuncHeader;
   lua_CFunction f;	/* C function to be called. */
-  TValue upvalue[1];	/* Array of upvalues (TValue). */
+  CFuncCallInfo callinfo;
+  TValue upvalue[1];  /* Array of upvalues (TValue). */
 } GCfuncC;
 
 typedef struct GCfuncL {

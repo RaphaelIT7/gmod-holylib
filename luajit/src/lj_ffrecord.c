@@ -191,8 +191,119 @@ static void LJ_FASTCALL recff_nyi(jit_State *J, RecordFFData *rd)
 /* Fallback handler for unsupported variants of fast functions. */
 #define recff_nyiu	recff_nyi
 
+#include "stdio.h"
+
+#define emitconv(a, dt, st, flags) \
+  emitir(IRT(IR_CONV, (dt)), (a), (st)|((dt) << 5)|(flags))
+
+static IRType CFunctionInfoTypeToIRType(lua_CFunctionInfoType type)
+{
+  switch(type) {
+    case CFUNC_TYPE_VOID:
+      return IRT_NIL;
+    case CFUNC_TYPE_LUASTATE:
+      return IRT_THREAD;
+    case CFUNC_TYPE_TABLE:
+      return IRT_TAB;
+    case CFUNC_TYPE_USERDATA:
+      return IRT_UDATA;
+    case CFUNC_TYPE_USERDATA_VALUE:
+      return IRT_UDATA;
+    case CFUNC_TYPE_INT:
+      return IRT_INT;
+    //case CFUNC_TYPE_BOOL:
+    //  return IRT_INT;
+    case CFUNC_TYPE_FLOAT:
+      return IRT_FLOAT;
+    case CFUNC_TYPE_DOUBLE:
+      return IRT_NUM;
+    case CFUNC_TYPE_STRING:
+      return IRT_STR;
+    case CFUNC_TYPE_CHARS:
+      return IRT_STR;
+    default:
+      return 0;
+  }
+}
+
+static TRef CFunctionProcessType(jit_State *J, TRef ref, TRef val, TValue* value, lua_CFunctionInfoType type)
+{
+  if (type == CFUNC_TYPE_CHARS) {
+    return emitir(IRT(IR_STRREF, IRT_PGC), val, lj_ir_kint(J, 0));
+  } else if (type == CFUNC_TYPE_USERDATA) {
+    // We guard on the type as we don't possibly want to get passed different userdata's and re-use the same trace
+    TRef tr = emitir(IRT(IR_FLOAD, IRT_U8), val, IRFL_UDATA_UDTYPE);
+    emitir(IRTGI(IR_EQ), tr, lj_ir_kint(J, udataV(value)->udtype));
+    return val;
+  } else if (type == CFUNC_TYPE_USERDATA_VALUE) {
+    TRef tr = emitir(IRT(IR_FLOAD, IRT_U8), val, IRFL_UDATA_UDTYPE);
+    emitir(IRTGI(IR_EQ), tr, lj_ir_kint(J, udataV(value)->udtype));
+    return emitir(IRT(IR_FLOAD, IRT_PTR), val, IRFL_UDATA_VALUE);
+  } else {
+    return val;
+  }
+}
+
 /* Must stop the trace for classic C functions with arbitrary side-effects. */
-#define recff_c		recff_nyi
+static void LJ_FASTCALL recff_c(jit_State *J, RecordFFData *rd)
+{
+  if (J->fn->c.callinfo.func == 0) {
+    recff_nyi(J, rd);
+    return;
+  }
+
+  GCfuncC* fn = &J->fn->c;
+  uint32_t args = CCI_NARGS(&fn->callinfo);
+  TRef tr = TREF_NIL;
+  if (args > 0) {
+    for (uint32_t i=(fn->callinfo.givestate ? 1 : 0); i < args; ++i) {
+      if (!tref_istype(J->base[i], CFunctionInfoTypeToIRType(fn->callinfo.argType[i]))) {
+        recff_nyi(J, rd);
+        return;
+      }
+    }
+
+    if (fn->callinfo.givestate) {
+      tr = emitir(IRT(IR_LREF, IRT_THREAD), 0, 0);
+    } else {
+      tr = CFunctionProcessType(J, tr, J->base[0], &rd->argv[0], fn->callinfo.argType[0]);
+    }
+
+    for (uint32_t i=1; i < args; ++i) {
+      tr = emitir(IRT(IR_CARG, IRT_NIL), tr, CFunctionProcessType(J, tr, J->base[i], &rd->argv[i], fn->callinfo.argType[i]));
+    }
+  }
+  
+  IRType retType = CFunctionInfoTypeToIRType(fn->callinfo.retType);
+  if (CCI_OP(&fn->callinfo) == IR_CALLS)
+    J->needsnap = 1;
+
+  TRef funcPtr = lj_ir_kptr(J, fn->callinfo.func);
+  funcPtr = emitir(IRT(IR_CALLCC, IRT_NIL), funcPtr, lj_ir_kint(J, fn->callinfo.flags & CCI_CC_MASK));
+
+  if (fn->callinfo.allowoptout)
+    funcPtr = emitir(IRT(IR_CALLCSE, IRT_NIL), funcPtr, lj_ir_kint(J, 0));
+  
+  TRef result = emitir(IRT(IR_CALLXS, retType), tr, funcPtr);
+  if (fn->callinfo.retType == CFUNC_TYPE_VOID) {
+    J->base[0] = TREF_NIL;
+    rd->nres = 0;
+  } else {
+    if (retType == IRT_FLOAT) {
+      result = emitconv(result, IRT_NUM, retType, 0);
+    } else if (fn->callinfo.retType == CFUNC_TYPE_CHARS) {
+      TRef strlen = lj_ir_call(J, IRCALL_strlen, result);
+      result = emitir(IRT(IR_SNEW, IRT_STR), result, strlen);
+    } //else if (fn->callinfo.retType == CFUNC_TYPE_BOOL) {
+      //RaphaelIT7: GG - You can't specify a bool return value / I got no idea yet
+      //result = emitir(IRT(IR_NE, IRT_TRUE), result, lj_ir_kint(J, 0));
+    //}
+
+    J->base[0] = result;
+    rd->nres = 1;
+  }
+  UNUSED(rd);
+}
 
 /* Emit BUFHDR for the global temporary buffer. */
 static TRef recff_bufhdr(jit_State *J)
@@ -1548,7 +1659,7 @@ static TRef recff_io_fp(jit_State *J, TRef *udp, int32_t id)
     emitir(IRTGI(IR_EQ), tr, lj_ir_kint(J, UDTYPE_IO_FILE));
   }
   *udp = ud;
-  fp = emitir(IRT(IR_FLOAD, IRT_PTR), ud, IRFL_UDATA_FILE);
+  fp = emitir(IRT(IR_FLOAD, IRT_PTR), ud, IRFL_UDATA_VALUE);
   emitir(IRTG(IR_NE, IRT_PTR), fp, lj_ir_knull(J, IRT_PTR));
   return fp;
 }

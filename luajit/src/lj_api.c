@@ -25,6 +25,7 @@
 #include "lj_vm.h"
 #include "lj_strscan.h"
 #include "lj_strfmt.h"
+#include "lj_ircall.h"
 
 #include "lj_ctype.h"
 #include "lj_cconv.h"
@@ -746,6 +747,70 @@ LUA_API int lua_testudataindex(lua_State* L, int idx)
   }
 
   return 0;
+}
+
+static void lua_fillCFuncInfo(lua_State* L, GCfunc* fn, lua_CFunctionInfo* info)
+{
+  // Technically not required (& we remove/skip it anyways below) - but I do require it, you should be AWARE of the args!
+  if (info->givestate && info->argType[0] != CFUNC_TYPE_LUASTATE)
+    return;
+
+  fn->c.callinfo.func = info->asmFunc;
+  fn->c.callinfo.retType = info->retType;
+  for (int args=0; args<LUA_CFUNCINFO_MAXARGS; ++args) {
+    fn->c.callinfo.argType[args] = info->argType[args];
+    if (info->argType[args] == CFUNC_TYPE_VOID) {
+      fn->c.callinfo.flags |= args;
+      break;
+    }
+  }
+
+  fn->c.callinfo.flags |= CCI_CALL_S;
+  switch (info->callconv) {
+    case CFUNC_CALLCONV_FASTCALL:
+      fn->c.callinfo.flags |= CCI_CC_FASTCALL;
+      break;
+    case CFUNC_CALLCONV_STDCALL:
+      fn->c.callinfo.flags |= CCI_CC_STDCALL;
+      break;
+    case CFUNC_CALLCONV_THISCALL:
+      fn->c.callinfo.flags |= CCI_CC_THISCALL;
+      break;
+    default:
+      fn->c.callinfo.flags |= CCI_CC_CDECL;
+      break;
+  }
+
+  if (info->canerror)
+    fn->c.callinfo.flags |= CCI_T;
+
+  if (info->givestate)
+    fn->c.callinfo.givestate = 1; // We cannot use CCI_L as it seems very unreliable...
+
+  if (info->allowoptout)
+    fn->c.callinfo.allowoptout = 1;
+}
+
+LUA_API void lua_pushtracablecclosure(lua_State* L, lua_CFunctionInfo *info)
+{
+  GCfunc *fn;
+  lj_gc_check(L);
+  fn = lj_func_newC(L, 0, getcurrenv(L));
+  fn->c.f = info->func;
+
+  setfuncV(L, L->top, fn);
+  lj_assertL(iswhite(obj2gco(fn)), "new GC object is not white");
+  incr_top(L);
+
+  lua_fillCFuncInfo(L, fn, info);
+}
+
+LUA_API void lua_settracablecclosure(lua_State* L, int idx, lua_CFunctionInfo *info)
+{
+  cTValue *o = index2adr_check(L, idx);
+  if (tvisfunc(o) && isluafunc(funcV(o))) {
+    lua_fillCFuncInfo(L, funcV(o), info);
+  }
 }
 
 LUA_API lua_State *lua_tothread(lua_State *L, int idx)

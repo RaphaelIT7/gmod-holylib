@@ -21,7 +21,7 @@ return {
             func = function()
                 local voiceData = voicechat.CreateVoiceData()
 
-                expect( voiceData:GetProximity() ).to.beTrue()
+                expect( voiceData:GetProximity() ).to.equal( 1 )
             end
         },
         {
@@ -31,7 +31,7 @@ return {
                 local voiceData = voicechat.CreateVoiceData()
 
                 voiceData:SetProximity( false )
-                expect( voiceData:GetProximity() ).to.beFalse()
+                expect( voiceData:GetProximity() ).to.equal( 0 )
             end
         },
         {

@@ -752,7 +752,7 @@ static void asm_callx(ASMState *as, IRIns *ir)
     spadj = 4 * asm_count_call_slots(as, &ci, args);
 #endif
   func = ir->op2; irf = IR(func);
-  if (irf->o == IR_CARG) { func = irf->op1; irf = IR(func); }
+  while (irf->o == IR_CARG || irf->o == IR_CALLCC || irf->o == IR_CALLCSE) { func = irf->op1; irf = IR(func); }
   ci.func = (ASMFunction)asm_callx_func(as, irf, func);
   if (!(void *)ci.func) {
     /* Use a (hoistable) non-scratch register for indirect calls. */

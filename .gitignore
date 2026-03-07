@@ -29,3 +29,4 @@ source/modules/_modules.cpp
 source/sourcesdk/luagc_jit.cpp
 
 projects/windows/vs2022/
+**.pdb

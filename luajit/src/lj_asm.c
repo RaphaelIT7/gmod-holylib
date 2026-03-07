@@ -1395,11 +1395,11 @@ static void asm_collectargs(ASMState *as, IRIns *ir,
   if ((ci->flags & CCI_L)) { *args++ = ASMREF_L; n--; }
   while (n-- > 1) {
     ir = IR(ir->op1);
-    lj_assertA(ir->o == IR_CARG, "malformed CALL arg tree");
+    lj_assertA(ir->o == IR_CARG || ir->o == IR_CALLCC, "malformed CALL arg tree");
     args[n] = ir->op2 == REF_NIL ? 0 : ir->op2;
   }
   args[0] = ir->op1 == REF_NIL ? 0 : ir->op1;
-  lj_assertA(IR(ir->op1)->o != IR_CARG, "malformed CALL arg tree");
+  lj_assertA(IR(ir->op1)->o != IR_CARG && IR(ir->op1)->o != IR_CALLCC, "malformed CALL arg tree");
 }
 
 /* Reconstruct CCallInfo flags for CALLX*. */
@@ -1421,6 +1421,11 @@ static uint32_t asm_callx_flags(ASMState *as, IRIns *ir)
 #endif
   }
 #endif
+
+  if (IR(ir->op2)->o == IR_CALLCC) {
+    nargs |= IR(IR(ir->op2)->op2)->i;
+  }
+
   return (nargs | (ir->t.irt << CCI_OTSHIFT));
 }
 
@@ -1898,7 +1903,9 @@ static void asm_ir(ASMState *as, IRIns *ir)
     /* fallthrough */
   case IR_CALLN: case IR_CALLL: case IR_CALLS: asm_call(as, ir); break;
   case IR_CALLXS: asm_callx(as, ir); break;
-  case IR_CARG: break;
+  case IR_CARG:
+  case IR_CALLCSE:
+  case IR_CALLCC: break;
 
   default:
     setintV(&as->J->errinfo, ir->o);
