@@ -13,6 +13,11 @@
 #include "eiface.h"
 #include "player.h"
 
+extern "C"
+{
+	#include "../luajit/src/lj_strfmt.h"
+}
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
@@ -573,6 +578,67 @@ bool Lua::CheckGModType(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos, int n
 
 	*pUserData = nullptr;
 	return false;
+}
+
+const char* Lua::TValueToString(TValue* pVal)
+{
+	static thread_local char pBuffer[64];
+	char pTempBuffer[64]; // Should at minimum be STRFMT_MAXBUF_PTR
+	if (tvisbool(pVal)) {
+		snprintf(pBuffer, sizeof(pBuffer), "(bool) %s\n", tvistrue(pVal) ? "true" : "false");
+	} else if (tvisstr(pVal)) {
+		// We don't want to dump a 2k+ long strings, so we limit to 255! (also avoids possibly corrupted strings if the value is fked)
+		GCstr* pStr = strV(pVal);
+		char pTemp[255];
+		int nLength = strnlen(strdata(pStr), sizeof(pTemp)-1);
+		V_strncpy(pTemp, strdata(pStr), nLength);
+
+		snprintf(pBuffer, sizeof(pBuffer), "(string) %s\n", pTemp);
+	} else if (tvisnil(pVal)) {
+		snprintf(pBuffer, sizeof(pBuffer), "(nil)\n");
+	} else if (tvisfunc(pVal)) {
+		*lj_strfmt_wptr(pTempBuffer, funcV(pVal)) = '\0';
+		snprintf(pBuffer, sizeof(pBuffer), "(function) %s\n", pTempBuffer);
+	} else if (tvisthread(pVal)) {
+		*lj_strfmt_wptr(pTempBuffer, threadV(pVal)) = '\0';
+		snprintf(pBuffer, sizeof(pBuffer), "(thread) %s\n", pTempBuffer);
+	} else if (tvisproto(pVal)) {
+		*lj_strfmt_wptr(pTempBuffer, protoV(pVal)) = '\0';
+		snprintf(pBuffer, sizeof(pBuffer), "(proto) %s\n", pTempBuffer);
+	} else if (tviscdata(pVal)) {
+		GCcdata* pCData = cdataV(pVal);
+		*lj_strfmt_wptr(pTempBuffer, cdataV(pVal)) = '\0';
+		snprintf(pBuffer, sizeof(pBuffer), "(cdata - type %i) %s\n", (int)pCData->ctypeid, pTempBuffer);
+	} else if (tvistab(pVal)) {
+		GCtab* pTab = tabV(pVal);
+		snprintf(pBuffer, sizeof(pBuffer), "(table) N/A\n");
+	} else if (tvisudata(pVal)) {
+		GCudata* pUD = udataV(pVal);
+
+		int nType = 0;
+		void* pData = nullptr;
+		if (pUD->udtype >= GarrysMod::Lua::Type::UserData) { // HolyLib userdata differs!
+			LuaUserData* pLuaData = (LuaUserData*)pUD;
+			pData = pLuaData->GetData();
+			nType = pLuaData->GetType();
+		} else {
+			pData = uddata(pUD);
+			if (pData)
+			{
+				GarrysMod::Lua::ILuaBase::UserData* pLuaData = (GarrysMod::Lua::ILuaBase::UserData*)pData;
+				nType = pLuaData->type;
+				pData = pLuaData->data;
+			}
+		}
+
+		snprintf(pBuffer, sizeof(pBuffer), "(userdata - type %i) %p\n", nType, pData);
+	} else if (tvisnan(pVal)) {
+		snprintf(pBuffer, sizeof(pBuffer), "(number) N/A\n");
+	} else if (tvisnum(pVal)) {
+		snprintf(pBuffer, sizeof(pBuffer), "(number) %.14g\n", numV(pVal));
+	}
+
+	return pBuffer;
 }
 
 // NOTE: This Only works on stack values that are on the top!!!

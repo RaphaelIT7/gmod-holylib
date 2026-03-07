@@ -23,6 +23,10 @@
 
 /*
 	HolyLib's crash handler to hopefully create a useful crash dump without needing gdb setup
+	The goal of the crash handler is to ATTEMPT crash dumping even with unsafe signal functions!
+	Once it's done, it'll trigger the original crash to let any attached gdb also trigger for a proper debug log yet not all servers have gdb installed.
+
+	If we fail, it's fine, if we succeed, yay.
 */
 
 class CCrashHandlerModule : public IModule
@@ -36,6 +40,11 @@ public:
 	const char* Name() override { return "crashhandler"; };
 	int Compatibility() override { return LINUX32 | LINUX64; };
 };
+
+#if _WIN32
+// Stuff for VS to not complain
+#define dprintf(num, ...) printf(__VA_ARGS__)
+#endif
 
 static CCrashHandlerModule g_pCrashHandlerModule;
 IModule* pCrashHandlerModule = &g_pCrashHandlerModule;
@@ -63,6 +72,7 @@ private:
 struct SignalData
 {
 	const char* crashOrigin;
+	int fileDescriptor;
 	LuaAlloc luaAlloc;
 };
 
@@ -92,6 +102,9 @@ private:
 
 	Useful:
 		https://en.wikipedia.org/wiki/Executable_and_Linkable_Format
+
+	ToDo:
+		Implement DWARF reading - https://en.wikipedia.org/wiki/DWARF
 */
 struct ElfSection
 {
@@ -317,10 +330,11 @@ static void DumpRegister(int fd, gregset_t& registers, const char* name, int idx
 	);
 };
 
-extern void AttemptLuaCallback();
+static void AttemptLuaCallback(bool bMainThreadCrash);
 static thread_local bool g_bIsInSignalHandler = false;
 static void CrashHandler(int signal, siginfo_t* signalInfo, void* ucontext)
 {
+	// If this happens, we crashed in our handler, so let's skip that and let gdb catch the original crash
 	if (g_bIsInSignalHandler)
 	{
 		ReturnSignal();
@@ -432,19 +446,15 @@ static void CrashHandler(int signal, siginfo_t* signalInfo, void* ucontext)
 		dprintf(fileDescriptor, "  %p: %s + 0x%lx [%s]\n", (void*)addr, fileName, offset, fmod ? fmod->path : "UNKNOWN");
 	}
 
-	GarrysMod::Lua::ILuaShared* pLuaShared = Lua::GetShared();
-	if (pLuaShared)
-		dprintf(fileDescriptor, pLuaShared->GetStackTraces());
-
-
 	SignalData signalData;
 	memset(&signalData, 0, sizeof(SignalData));
 	signalData.crashOrigin = moduleName;
+	signalData.fileDescriptor = fileDescriptor;
 
 	// Safe since we know 100% that the stack remains.
 	g_pSignalData.store(&signalData);
 
-	AttemptLuaCallback();
+	AttemptLuaCallback(true);
 	ReturnSignal();
 
 	g_bIsInSignalHandler = false;
@@ -491,18 +501,39 @@ void CCrashHandlerModule::Shutdown()
 static int g_nHookRegistry = -1;
 static std::atomic<bool> g_bExpectingCrash = false; // Something crashed and Lua was called / attempted. Now we allow to rest in piece
 static std::atomic<bool> g_bThreadAwaitingLua = false; // A thread crashed and is waiting for the main thread
-static void DoLuaCallback()
+static void DoLuaCallback(bool bMainThreadCrash)
 {
 	if (!g_Lua)
 		return;
-
-	// We stop the GC in case a crash is related to an memory allocator or some bs
-	Util::func_lua_gc(g_Lua->GetState(), LUA_GCSTOP, 0);
 
 	SignalData* signalData = g_pSignalData.load();
 	if (!signalData) // No signal data GG
 		return;
 
+	if (bMainThreadCrash)
+	{
+		GarrysMod::Lua::ILuaShared* pLuaShared = Lua::GetShared();
+		if (pLuaShared)
+		{
+			dprintf(signalData->fileDescriptor, "Lua Stack trace:\n");
+			dprintf(signalData->fileDescriptor, pLuaShared->GetStackTraces());
+		}
+
+		dprintf(signalData->fileDescriptor, "Lua Stack values:\n");
+
+		lua_State* pState = g_Lua->GetState();
+		TValue* pBase = pState->base;
+		int nTop = (int)(pState->top - pState->base);
+		dprintf(signalData->fileDescriptor, "  Stack size: %i\n", nTop);
+		for (int i=0; i<nTop; ++i)
+		{
+			dprintf(signalData->fileDescriptor, "  %i: %s\n", i, Lua::TValueToString(pBase));
+			pBase++;
+		}
+	}
+
+	// We stop the GC in case a crash is related to an memory allocator or some bs
+	Util::func_lua_gc(g_Lua->GetState(), LUA_GCSTOP, 0);
 	Util::func_lua_setallocf(g_Lua->GetState(), LuaAlloc::alloc, &signalData->luaAlloc);
 
 	if (Lua::PushHook("HolyLib:OnServerCrash"))
@@ -512,14 +543,14 @@ static void DoLuaCallback()
 	}
 }
 
-void AttemptLuaCallback()
+static void AttemptLuaCallback(bool bMainThreadCrash)
 {
 	if (g_bExpectingCrash.load())
 		return;
 
 	if (ThreadInMainThread())
 	{
-		DoLuaCallback();
+		DoLuaCallback(bMainThreadCrash);
 		g_bThreadAwaitingLua.store(false);
 		g_bExpectingCrash.store(true);
 	} else {
@@ -535,5 +566,5 @@ void CCrashHandlerModule::Think(bool bSimulating)
 	(void)bSimulating;
 
 	if (g_bThreadAwaitingLua.load())
-		AttemptLuaCallback();
+		AttemptLuaCallback(false);
 }

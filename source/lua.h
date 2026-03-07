@@ -21,7 +21,10 @@ namespace GarrysMod::Lua
 // Enables support for cdata to be used as userdata
 // See the RawLua::CDataBridge to know how it works
 #define LUA_CDATA_SUPPORT 1
-namespace RawLua {
+namespace RawLua { 
+	// Raw Lua interface for OUR LuaJIT build!
+	// Functions like SetReadOnly only work if the LuaJIT module is enabled due to those being specific features to our version!
+
 	struct CDataBridge
 	{
 		// Registers the given cdata type to be treated as the given metaID
@@ -351,6 +354,7 @@ namespace Lua
 
 	// GMod specific fast type check
 	extern bool CheckGModType(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos, int nType, void** pUserData);
+	extern const char* TValueToString(TValue* pVal);
 
 	// ToDo
 	// - EnterLockdown
