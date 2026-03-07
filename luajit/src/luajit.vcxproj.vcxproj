@@ -1,0 +1,241 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>17.0</VCProjectVersion>
+    <ProjectGuid>{CC4A9E1A-1380-CC74-30A1-0648E5D47BFE}</ProjectGuid>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <UseDebugLibraries>true</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Makefile</ConfigurationType>
+    <UseDebugLibraries>false</UseDebugLibraries>
+    <PlatformToolset>v143</PlatformToolset>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <NMakeBuildCommandLine>msvcbuild.bat</NMakeBuildCommandLine>
+    <NMakeOutput>LuaJIT.exe</NMakeOutput>
+    <NMakePreprocessorDefinitions>_DEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <NMakeBuildCommandLine>msvcbuild.bat</NMakeBuildCommandLine>
+    <NMakeOutput>LuaJIT.exe</NMakeOutput>
+    <NMakePreprocessorDefinitions>_DEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+    <NMakeBuildCommandLine>msvcbuild.bat</NMakeBuildCommandLine>
+    <NMakeOutput>LuaJIT.exe</NMakeOutput>
+    <NMakePreprocessorDefinitions>NDEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <NMakeBuildCommandLine>msvcbuild_86.bat</NMakeBuildCommandLine>
+    <NMakeOutput>LuaJIT.exe</NMakeOutput>
+    <NMakePreprocessorDefinitions>NDEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="gmod.cpp" />
+    <ClCompile Include="lib_aux.c" />
+    <ClCompile Include="lib_base.c" />
+    <ClCompile Include="lib_bit.c" />
+    <ClCompile Include="lib_buffer.c" />
+    <ClCompile Include="lib_debug.c" />
+    <ClCompile Include="lib_ffi.c" />
+    <ClCompile Include="lib_init.c" />
+    <ClCompile Include="lib_io.c" />
+    <ClCompile Include="lib_jit.c" />
+    <ClCompile Include="lib_math.c" />
+    <ClCompile Include="lib_os.c" />
+    <ClCompile Include="lib_package.c" />
+    <ClCompile Include="lib_string.c" />
+    <ClCompile Include="lib_table.c" />
+    <ClCompile Include="ljamalg.c" />
+    <ClCompile Include="lj_alloc.c" />
+    <ClCompile Include="lj_api.c" />
+    <ClCompile Include="lj_asm.c" />
+    <ClCompile Include="lj_assert.c" />
+    <ClCompile Include="lj_bc.c" />
+    <ClCompile Include="lj_bcread.c" />
+    <ClCompile Include="lj_bcwrite.c" />
+    <ClCompile Include="lj_buf.c" />
+    <ClCompile Include="lj_carith.c" />
+    <ClCompile Include="lj_ccall.c" />
+    <ClCompile Include="lj_ccallback.c" />
+    <ClCompile Include="lj_cconv.c" />
+    <ClCompile Include="lj_cdata.c" />
+    <ClCompile Include="lj_char.c" />
+    <ClCompile Include="lj_clib.c" />
+    <ClCompile Include="lj_cparse.c" />
+    <ClCompile Include="lj_crecord.c" />
+    <ClCompile Include="lj_ctype.c" />
+    <ClCompile Include="lj_debug.c" />
+    <ClCompile Include="lj_dispatch.c" />
+    <ClCompile Include="lj_err.c" />
+    <ClCompile Include="lj_ffrecord.c" />
+    <ClCompile Include="lj_func.c" />
+    <ClCompile Include="lj_gc.c" />
+    <ClCompile Include="lj_gdbjit.c" />
+    <ClCompile Include="lj_ir.c" />
+    <ClCompile Include="lj_lex.c" />
+    <ClCompile Include="lj_lib.c" />
+    <ClCompile Include="lj_load.c" />
+    <ClCompile Include="lj_mcode.c" />
+    <ClCompile Include="lj_meta.c" />
+    <ClCompile Include="lj_obj.c" />
+    <ClCompile Include="lj_opt_dce.c" />
+    <ClCompile Include="lj_opt_fold.c" />
+    <ClCompile Include="lj_opt_loop.c" />
+    <ClCompile Include="lj_opt_mem.c" />
+    <ClCompile Include="lj_opt_narrow.c" />
+    <ClCompile Include="lj_opt_sink.c" />
+    <ClCompile Include="lj_opt_split.c" />
+    <ClCompile Include="lj_parse.c" />
+    <ClCompile Include="lj_prng.c" />
+    <ClCompile Include="lj_profile.c" />
+    <ClCompile Include="lj_record.c" />
+    <ClCompile Include="lj_serialize.c" />
+    <ClCompile Include="lj_snap.c" />
+    <ClCompile Include="lj_state.c" />
+    <ClCompile Include="lj_str.c" />
+    <ClCompile Include="lj_strfmt.c" />
+    <ClCompile Include="lj_strfmt_num.c" />
+    <ClCompile Include="lj_strscan.c" />
+    <ClCompile Include="lj_tab.c" />
+    <ClCompile Include="lj_trace.c" />
+    <ClCompile Include="lj_udata.c" />
+    <ClCompile Include="lj_vmevent.c" />
+    <ClCompile Include="lj_vmmath.c" />
+    <ClCompile Include="luajit.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="gmod.h" />
+    <ClInclude Include="lauxlib.h" />
+    <ClInclude Include="lj_alloc.h" />
+    <ClInclude Include="lj_arch.h" />
+    <ClInclude Include="lj_asm.h" />
+    <ClInclude Include="lj_asm_arm.h" />
+    <ClInclude Include="lj_asm_arm64.h" />
+    <ClInclude Include="lj_asm_mips.h" />
+    <ClInclude Include="lj_asm_ppc.h" />
+    <ClInclude Include="lj_asm_x86.h" />
+    <ClInclude Include="lj_bc.h" />
+    <ClInclude Include="lj_bcdump.h" />
+    <ClInclude Include="lj_buf.h" />
+    <ClInclude Include="lj_carith.h" />
+    <ClInclude Include="lj_ccall.h" />
+    <ClInclude Include="lj_ccallback.h" />
+    <ClInclude Include="lj_cconv.h" />
+    <ClInclude Include="lj_cdata.h" />
+    <ClInclude Include="lj_char.h" />
+    <ClInclude Include="lj_clib.h" />
+    <ClInclude Include="lj_cparse.h" />
+    <ClInclude Include="lj_crecord.h" />
+    <ClInclude Include="lj_ctype.h" />
+    <ClInclude Include="lj_debug.h" />
+    <ClInclude Include="lj_def.h" />
+    <ClInclude Include="lj_dispatch.h" />
+    <ClInclude Include="lj_emit_arm.h" />
+    <ClInclude Include="lj_emit_arm64.h" />
+    <ClInclude Include="lj_emit_mips.h" />
+    <ClInclude Include="lj_emit_ppc.h" />
+    <ClInclude Include="lj_emit_x86.h" />
+    <ClInclude Include="lj_err.h" />
+    <ClInclude Include="lj_errmsg.h" />
+    <ClInclude Include="lj_ff.h" />
+    <ClInclude Include="lj_ffrecord.h" />
+    <ClInclude Include="lj_frame.h" />
+    <ClInclude Include="lj_func.h" />
+    <ClInclude Include="lj_gc.h" />
+    <ClInclude Include="lj_gdbjit.h" />
+    <ClInclude Include="lj_ir.h" />
+    <ClInclude Include="lj_ircall.h" />
+    <ClInclude Include="lj_iropt.h" />
+    <ClInclude Include="lj_jit.h" />
+    <ClInclude Include="lj_lex.h" />
+    <ClInclude Include="lj_lib.h" />
+    <ClInclude Include="lj_mcode.h" />
+    <ClInclude Include="lj_meta.h" />
+    <ClInclude Include="lj_obj.h" />
+    <ClInclude Include="lj_parse.h" />
+    <ClInclude Include="lj_prng.h" />
+    <ClInclude Include="lj_profile.h" />
+    <ClInclude Include="lj_record.h" />
+    <ClInclude Include="lj_serialize.h" />
+    <ClInclude Include="lj_snap.h" />
+    <ClInclude Include="lj_state.h" />
+    <ClInclude Include="lj_str.h" />
+    <ClInclude Include="lj_strfmt.h" />
+    <ClInclude Include="lj_strscan.h" />
+    <ClInclude Include="lj_tab.h" />
+    <ClInclude Include="lj_target.h" />
+    <ClInclude Include="lj_target_arm.h" />
+    <ClInclude Include="lj_target_arm64.h" />
+    <ClInclude Include="lj_target_mips.h" />
+    <ClInclude Include="lj_target_ppc.h" />
+    <ClInclude Include="lj_target_x86.h" />
+    <ClInclude Include="lj_trace.h" />
+    <ClInclude Include="lj_traceerr.h" />
+    <ClInclude Include="lj_udata.h" />
+    <ClInclude Include="lj_vm.h" />
+    <ClInclude Include="lj_vmevent.h" />
+    <ClInclude Include="lua.h" />
+    <ClInclude Include="lua.hpp" />
+    <ClInclude Include="luaconf.h" />
+    <ClInclude Include="luajit_rolling.h" />
+    <ClInclude Include="lualib.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

@@ -1588,6 +1588,8 @@ static GCproto *fs_finish(LexState *ls, BCLine line)
   pt->flags = (uint8_t)(fs->flags & ~(PROTO_HAS_RETURN|PROTO_FIXUP_RETURN));
   pt->numparams = fs->numparams;
   pt->framesize = fs->framesize;
+  gcrefdirect_increment(pt);
+  setrawgcrefnull(pt->chunkname);
   setgcref(pt->chunkname, obj2gco(ls->chunkname));
 
   /* Close potentially uninitialized gap between bc and kgc. */
