@@ -30,11 +30,9 @@ local function Angle(x, y, z)
 
     if isstring(ang) then
         local vals = ang:Split(" ")
-        if #vals == 3 then
-            x = vals[1]
-            y = vals[2]
-            z = vals[3]
-        end
+        x = vals[1] or 0
+        y = vals[2] or 0
+        z = vals[3] or 0
     end
 
     return CreateAngle(tonumber(x) or 0, tonumber(y) or 0, tonumber(z) or 0)
