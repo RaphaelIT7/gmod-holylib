@@ -244,8 +244,8 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 
 void CModule::Shutdown()
 {
-	Detour::Remove(m_pModule->m_pID);
 	m_pModule->Shutdown();
+	Detour::Remove(m_pModule->m_pID);
 }
 
 /*

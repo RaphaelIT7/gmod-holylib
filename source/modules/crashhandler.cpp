@@ -77,6 +77,7 @@ struct SignalData
 };
 
 static std::atomic<SignalData*> g_pSignalData;
+static std::atomic<bool> g_bInducedCrash = false;
 
 #if SYSTEM_LINUX
 /*
@@ -330,12 +331,12 @@ static void DumpRegister(int fd, gregset_t& registers, const char* name, int idx
 	);
 };
 
-static void SetupCrashHandler();
 static void AttemptLuaCallback(bool bMainThreadCrash);
-static thread_local bool g_bIsInSignalHandler = false;
-static thread_local bool g_bAttemptedBacktrace = false;
 static void CrashHandler(int signal, siginfo_t* signalInfo, void* ucontext)
 {
+	static thread_local bool g_bIsInSignalHandler = false;
+	static thread_local bool g_bAttemptedBacktrace = false;
+
 	// If this happens, we crashed in our handler, so let's skip that and let gdb catch the original crash
 	if (g_bIsInSignalHandler && !g_bAttemptedBacktrace)
 	{
@@ -343,52 +344,42 @@ static void CrashHandler(int signal, siginfo_t* signalInfo, void* ucontext)
 		return;
 	}
 
-	if (!g_bAttemptedBacktrace)
-		SetupCrashHandler();
-
 	g_bIsInSignalHandler = true;
 	g_bAttemptedBacktrace = false;
 
 	ModuleInfo pModuleInfo;
 
-	bool bReEntered = false;
-	static thread_local int fileDescriptor = -1;
-	if (fileDescriptor == -1)
+	char crashFileName[64];
+	GenerateCrashFileName(crashFileName, sizeof(crashFileName));
+
+	int fileDescriptor = ::open(crashFileName, O_CREAT | O_WRONLY | O_APPEND, 0644);
+	if (fileDescriptor < 0)
+		fileDescriptor = STDERR_FILENO;
+
+	dprintf(STDERR_FILENO, "%s: %s crash log \"%s\"\n", fileDescriptor == STDERR_FILENO ? "Dumping crash log to console - Failed to write" : "Wrote", PROJECT_NAME, crashFileName);
+
+	dprintf(fileDescriptor, "===== CRASH REPORT =====\n");
+	dprintf(fileDescriptor, "Signal: %d (%s)\n", signal, strsignal(signal));
+	dprintf(fileDescriptor, "Fault address: %p\n", signalInfo->si_addr);
+	dprintf(fileDescriptor, "Fault reason: ");
+	switch(signalInfo->si_code)
 	{
-		char crashFileName[64];
-		GenerateCrashFileName(crashFileName, sizeof(crashFileName));
-
-		fileDescriptor = ::open(crashFileName, O_CREAT | O_WRONLY | O_APPEND, 0644);
-		if (fileDescriptor < 0)
-			fileDescriptor = STDERR_FILENO;
-
-		dprintf(STDERR_FILENO, "%s: %s crash log \"%s\"\n", fileDescriptor == STDERR_FILENO ? "Dumping crash log to console - Failed to write" : "Wrote", PROJECT_NAME, crashFileName);
-
-		dprintf(fileDescriptor, "===== CRASH REPORT =====\n");
-		dprintf(fileDescriptor, "Signal: %d (%s)\n", signal, strsignal(signal));
-		dprintf(fileDescriptor, "Fault address: %p\n", signalInfo->si_addr);
-		dprintf(fileDescriptor, "Fault reason: ");
-		switch(signalInfo->si_code)
-		{
-			case SEGV_MAPERR:
-				if (signalInfo->si_addr == nullptr)
-					dprintf(fileDescriptor, "Null pointer access\n");
-				else {
-					if ((uintptr_t)signalInfo->si_addr < 0x5000)
-						dprintf(fileDescriptor, "Invalid pointer access (probably accessed a null pointer offset)\n");
-					else
-						dprintf(fileDescriptor, "Invalid pointer access\n");
-				}
-				break;
-			case SEGV_ACCERR:
-				dprintf(fileDescriptor, "Invalid permissions memory access\n");
-				break;
-			default:
-				dprintf(fileDescriptor, "Unknown\n");
-				break;
-		}
-	} else {
-		bReEntered = true;
+		case SEGV_MAPERR:
+			if (signalInfo->si_addr == nullptr)
+				dprintf(fileDescriptor, "Null pointer access\n");
+			else {
+				if ((uintptr_t)signalInfo->si_addr < 0x5000)
+					dprintf(fileDescriptor, "Invalid pointer access (probably accessed a null pointer offset)\n");
+				else
+					dprintf(fileDescriptor, "Invalid pointer access\n");
+			}
+			break;
+		case SEGV_ACCERR:
+			dprintf(fileDescriptor, "Invalid permissions memory access\n");
+			break;
+		default:
+			dprintf(fileDescriptor, "Unknown\n");
+			break;
 	}
 
 	ucontext_t* uc = (ucontext_t*)ucontext;
@@ -399,59 +390,55 @@ static void CrashHandler(int signal, siginfo_t* signalInfo, void* ucontext)
 #else
 #error "Unsupported architecture"
 #endif
-	if (!bReEntered)
-		dprintf(fileDescriptor, "Instruction pointer: %p\n", ip);
+	dprintf(fileDescriptor, "Instruction pointer: %p\n", ip);
 
 	// Later goal is to figure out if we can safely call to Lua.
 	// bool in_vphysics = strstr(module_name, "vphysics") != nullptr;
 
 	const ModuleInfo::Entry* mod = pModuleInfo.FindModule((uintptr_t)ip);
 	const char* moduleName = mod ? mod->path : "unknown";
-	if (!bReEntered)
-	{
-		dprintf(fileDescriptor, "Crashed in module: %s\n", moduleName);
+	dprintf(fileDescriptor, "Crashed in module: %s\n", moduleName);
 
-		dprintf(fileDescriptor, "HolyLib: %s\n", HolyLib_GetPluginDescription());
+	dprintf(fileDescriptor, "HolyLib: %s\n", HolyLib_GetPluginDescription());
 
-		dprintf(fileDescriptor, "Registers:\n");
+	dprintf(fileDescriptor, "Registers:\n");
 #if defined(__x86_64__)
-		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rax", REG_RAX);
-		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rbx", REG_RBX);
-		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rcx", REG_RCX);
-		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rdx", REG_RDX);
-		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rsi", REG_RSI);
-		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rdi", REG_RDI);
-		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rbp", REG_RBP);
-		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rsp", REG_RSP);
-		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r8",  REG_R8);
-		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r9",  REG_R9);
-		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r10", REG_R10);
-		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r11", REG_R11);
-		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r12", REG_R12);
-		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r13", REG_R13);
-		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r14", REG_R14);
-		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r15", REG_R15);
-		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rip", REG_RIP);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rax", REG_RAX);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rbx", REG_RBX);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rcx", REG_RCX);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rdx", REG_RDX);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rsi", REG_RSI);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rdi", REG_RDI);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rbp", REG_RBP);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rsp", REG_RSP);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r8",  REG_R8);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r9",  REG_R9);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r10", REG_R10);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r11", REG_R11);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r12", REG_R12);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r13", REG_R13);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r14", REG_R14);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "r15", REG_R15);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rip", REG_RIP);
 #elif defined(__i386__)
-		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "eax", REG_EAX);
-		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "ebx", REG_EBX);
-		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "ecx", REG_ECX);
-		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "edx", REG_EDX);
-		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "esi", REG_ESI);
-		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "edi", REG_EDI);
-		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "ebp", REG_EBP);
-		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "esp", REG_ESP);
-		DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "eip", REG_EIP);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "eax", REG_EAX);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "ebx", REG_EBX);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "ecx", REG_ECX);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "edx", REG_EDX);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "esi", REG_ESI);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "edi", REG_EDI);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "ebp", REG_EBP);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "esp", REG_ESP);
+	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "eip", REG_EIP);
 #else
-		dprintf(fileDescriptor, "  GG\n");
+	dprintf(fileDescriptor, "  GG\n");
 #endif
-	}
 
 	// If we re-entered it's 99% that we crashed when calling backtrace!
-	if (!bReEntered)
+	if (!g_bInducedCrash.load())
 	{
 		// ToDo: backtrace is not really signal safe! It could deadlock!
-		constexpr int bufferSize = 64;
+		constexpr int bufferSize = 255;
 		void* buffer[bufferSize];
 		g_bAttemptedBacktrace = true;
 		int nptrs = backtrace(buffer, bufferSize);
@@ -466,6 +453,28 @@ static void CrashHandler(int signal, siginfo_t* signalInfo, void* ucontext)
 			pModuleInfo.FindFunctionInfo(fmod, addr, &fileName, &offset);
 
 			dprintf(fileDescriptor, "  %p: %s + 0x%lx [%s]\n", (void*)addr, fileName, offset, fmod ? fmod->path : "UNKNOWN");
+		}
+	} else {
+		dprintf(fileDescriptor, "No Backtrace (unsafe conditions)\n");
+
+		// Unsafe but we want to dump the main state!
+		GarrysMod::Lua::ILuaShared* pLuaShared = Lua::GetShared();
+		if (pLuaShared)
+		{
+			dprintf(fileDescriptor, "Lua Stack trace:\n");
+			dprintf(fileDescriptor, pLuaShared->GetStackTraces());
+		}
+
+		dprintf(fileDescriptor, "Lua Stack values:\n");
+
+		lua_State* pState = g_Lua->GetState();
+		TValue* pBase = pState->base;
+		int nTop = (int)(pState->top - pState->base);
+		dprintf(fileDescriptor, "  Stack size: %i\n", nTop);
+		for (int i=0; i<nTop; ++i)
+		{
+			dprintf(fileDescriptor, "  %i: %s\n", i, Lua::TValueToString(pBase));
+			pBase++;
 		}
 	}
 
@@ -498,7 +507,7 @@ static void SetupCrashHandler()
 	struct sigaction signalAction{};
 	signalAction.sa_sigaction = CrashHandler;
 	sigemptyset(&signalAction.sa_mask);
-	signalAction.sa_flags = SA_SIGINFO | SA_ONSTACK | SA_NODEFER;
+	signalAction.sa_flags = SA_SIGINFO | SA_ONSTACK;
 	sigaction(SIGSEGV, &signalAction, nullptr);
 }
 #endif
@@ -574,15 +583,27 @@ static void AttemptLuaCallback(bool bMainThreadCrash)
 }
 
 static ThreadId_t g_nMainThreadID = -1;
+static inline void ExecuteMainThread() // So you have chosen... death
+{
+	// ToDo: Figure out why backtrace in the handler crashes - maybe skip it if we were the one forcing it
+	//       & dump lua regardless of if were on the main thread or not?
+	g_bInducedCrash.store(true);
+#if SYSTEM_LINUX
+	pthread_kill(g_nMainThreadID, SIGTRAP);
+	pthread_kill(g_nMainThreadID, SIGSEGV); // idk why but SIGTRAP works far better though seems to break the backtracing?
+#endif
+}
+
 static bool ShoudExecuteThreadedCommand(const char* cmd, int cmdLen)
 {
+	if (!cmd || cmdLen <= 0)
+		return false;
+
 	std::string_view strCmd(cmd, cmdLen);
 	if (strCmd.rfind("holylib_crashserver", 0) == 0)
 	{
 		Warning(PROJECT_NAME " - crashhandler: Called holylib_crashserver, nuking main thread!\n");
-#if SYSTEM_LINUX
-		pthread_kill(g_nMainThreadID, SIGSEGV);
-#endif
+		ExecuteMainThread();
 		return true;
 	}
 #if MODULE_EXISTS_HOLYLUA
@@ -602,12 +623,12 @@ static bool ShoudExecuteThreadedCommand(const char* cmd, int cmdLen)
 	return false;
 }
 
-#if ARCHITECTURE_X86_64
 static std::mutex g_pConsoleMutex;
 static std::deque<const char*> g_pConsoleBuffer;
 static std::atomic<void*> g_pConsole = nullptr;
-static std::atomic<int> g_nConsoleThreadState = ThreadState::STATE_NOTRUNNING;
 static Detouring::Hook detour_CTextConsoleUnix_GetLine;
+#if ARCHITECTURE_X86_64
+static std::atomic<int> g_nConsoleThreadState = ThreadState::STATE_NOTRUNNING;
 // This thread effectively only exists on 64x since it uses an older or newer? implementation of CTextConsoleUnix
 static SIMPLETHREAD_RETURNVALUE ConsoleThread(void* data)
 {
@@ -615,6 +636,7 @@ static SIMPLETHREAD_RETURNVALUE ConsoleThread(void* data)
 	Symbols::CTextConsoleUnix_GetLine func_CTextConsoleUnix_GetLine = detour_CTextConsoleUnix_GetLine.GetTrampoline<Symbols::CTextConsoleUnix_GetLine>();
 	if (!func_CTextConsoleUnix_GetLine)
 	{
+		Warning(PROJECT_NAME " - crashhandler: ConsoleThread stopped due to missing CTextConsoleUnix::GetLine\n");
 		g_nConsoleThreadState.store(ThreadState::STATE_NOTRUNNING);
 		return 0;
 	}
@@ -622,18 +644,18 @@ static SIMPLETHREAD_RETURNVALUE ConsoleThread(void* data)
 	while (g_nConsoleThreadState.load() == ThreadState::STATE_RUNNING)
 	{
 		std::vector<const char*> pCommandBuffer;
-		char szBuf[ 256 ];
+		char szBuf[511];
 		void* pConsole = g_pConsole.load();
 		if (pConsole)
 		{
 			char* cmd = func_CTextConsoleUnix_GetLine(pConsole);
 			while (cmd)
 			{
-				V_snprintf( szBuf, sizeof( szBuf ), "%s\n", cmd);
+				V_snprintf(szBuf, sizeof(szBuf), "%s\n", cmd);
 				cmd = func_CTextConsoleUnix_GetLine(pConsole);
 
-				int cmdlen = strlen(szBuf)+1;
-				if (ShoudExecuteThreadedCommand(cmd, cmdlen))
+				int cmdlen = strlen(szBuf) + 1;
+				if (ShoudExecuteThreadedCommand(szBuf, cmdlen))
 					continue;
 
 				char* pStr = new char[cmdlen];
@@ -656,15 +678,54 @@ static SIMPLETHREAD_RETURNVALUE ConsoleThread(void* data)
 	g_nConsoleThreadState.store(ThreadState::STATE_NOTRUNNING);
 	return 0;
 }
+#endif
+
+#if ARCHITECTURE_X86
+// add_command is threaded in the engine already! See editline_threadproc in dedicated/console/TextConsoleUnix.cpp
+// NOTE: add_command blocks the thread it's running in until the main thread handles the command, so for our case we just put them into the buffer.
+static Detouring::Hook detour_add_command;
+static bool
+#if SYSTEM_LINUX
+__attribute__((regparm(2)))
+#endif
+hook_add_command(const char *cmd, int cmd_len) // yay this is a fking __usercall
+{
+	if (!cmd || cmd_len <= 0)
+		return false;
+
+	if (ShoudExecuteThreadedCommand(cmd, cmd_len))
+		return true;
+
+	std::lock_guard<std::mutex> lock(g_pConsoleMutex);
+
+	char* pStr = new char[cmd_len];
+	V_strncpy(pStr, cmd, cmd_len);
+
+	g_pConsoleBuffer.push_back(pStr);
+	return true;
+}
+#endif
 
 // it get's called all the way until NULL is returned.
+#if ARCHITECTURE_X86
+static const char* hook_CTextConsoleUnix_GetLine(void* _this, int index, char *buf, size_t buflen)
+#else
 static const char* hook_CTextConsoleUnix_GetLine(void* _this)
+#endif
 {
 	if (g_pConsole.load() == nullptr)
 		g_pConsole.store(_this);
 
+#if ARCHITECTURE_X86_64
+	// Fallback to avoid breaking the entire console input when our thread dies
+	if (g_nConsoleThreadState.load() == ThreadState::STATE_NOTRUNNING)
+		return detour_CTextConsoleUnix_GetLine.GetTrampoline<Symbols::CTextConsoleUnix_GetLine>()(_this);
+#endif
+
 	static thread_local std::deque<const char*> pLocalBuffer;
-	static thread_local char pBuffer[256];
+#if ARCHITECTURE_X86_64
+	static thread_local char pBuffer[511];
+#endif
 
 	if (pLocalBuffer.empty())
 	{
@@ -678,31 +739,21 @@ static const char* hook_CTextConsoleUnix_GetLine(void* _this)
 	}
 
 	const char* cmd = pLocalBuffer.front();
+#if ARCHITECTURE_X86
+	V_strncpy(buf, cmd, buflen);
+#else
 	V_strncpy(pBuffer, cmd, sizeof(pBuffer));
+#endif
 
 	delete[] cmd;
 	pLocalBuffer.pop_front();
 
-	return pBuffer;
-}
-#endif
-
 #if ARCHITECTURE_X86
-// add_command is threaded in the engine already! See editline_threadproc in dedicated/console/TextConsoleUnix.cpp
-static Detouring::Hook detour_add_command;
-static bool
-#if SYSTEM_LINUX
-__attribute__((regparm(2)))
+	return buf;
+#else
+	return pBuffer;
 #endif
-hook_add_command(const char *cmd, int cmd_len) // yay this is a fking __usercall
-{
-	// printf("cmd: %s\n", cmd);
-	if (ShoudExecuteThreadedCommand(cmd, cmd_len))
-		return true;
-
-	return detour_add_command.GetTrampoline<Symbols::add_command>()(cmd, cmd_len);
 }
-#endif
 
 static ConVar crashhandler_crashtime("holylib_crashhandler_crashtime", "10000", 0, "Time in ms after which the crash handler will catch and nuke the server");
 static constexpr int g_nThreadSleep = 10;
@@ -750,11 +801,8 @@ static SIMPLETHREAD_RETURNVALUE CrashWatcherThread(void* data)
 			}
 #endif
 			printf(PROJECT_NAME " - crashhandler: Detected a freeze, Terminating...\n");
-			ThreadSleep(5);
-#if SYSTEM_LINUX
-			pthread_kill(g_nMainThreadID, SIGTRAP);
-			pthread_kill(g_nMainThreadID, SIGSEGV);
-#endif
+			ThreadSleep(5); // Sleep for the printf to reach the console (in testing it sometimes just never appeared)
+			ExecuteMainThread();
 			break;
 		}
 	}
@@ -786,7 +834,7 @@ void CCrashHandlerModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* game
 	g_pCrashWatcher = CreateSimpleThread((ThreadFunc_t)CrashWatcherThread, this);
 
 #if ARCHITECTURE_X86_64
-	g_nWatcherThreadState.store(ThreadState::STATE_RUNNING);
+	g_nConsoleThreadState.store(ThreadState::STATE_RUNNING);
 	g_pThreadedConsole = CreateSimpleThread((ThreadFunc_t)ConsoleThread, this);
 #endif
 
@@ -834,7 +882,7 @@ void CCrashHandlerModule::Shutdown()
 
 void CCrashHandlerModule::InitDetour(bool bPreServer)
 {
-	if (bPreServer)
+	if (!bPreServer)
 		return;
 
 	SourceSDK::FactoryLoader dedicated_loader("dedicated");
@@ -844,11 +892,11 @@ void CCrashHandlerModule::InitDetour(bool bPreServer)
 		dedicated_loader.GetModule(), Symbols::add_commandSym,
 		(void*)hook_add_command, m_pID
 	);
-#else
-	//Detour::Create(
-	//	&detour_CTextConsoleUnix_GetLine, "CTextConsoleUnix::GetLine",
-	//	dedicated_loader.GetModule(), Symbols::CTextConsoleUnix_GetLineSym,
-	//	(void*)hook_CTextConsoleUnix_GetLine, m_pID
-	//);
 #endif
+
+	Detour::Create(
+		&detour_CTextConsoleUnix_GetLine, "CTextConsoleUnix::GetLine",
+		dedicated_loader.GetModule(), Symbols::CTextConsoleUnix_GetLineSym,
+		(void*)hook_CTextConsoleUnix_GetLine, m_pID
+	);
 }
