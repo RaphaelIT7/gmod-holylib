@@ -577,9 +577,9 @@ static ThreadId_t g_nMainThreadID = -1;
 static bool ShoudExecuteThreadedCommand(const char* cmd, int cmdLen)
 {
 	std::string_view strCmd(cmd, cmdLen);
-	if (strCmd.rfind("holylib_crash", 0) == 0)
+	if (strCmd.rfind("holylib_crashserver", 0) == 0)
 	{
-		Warning(PROJECT_NAME " - crashhandler: Called holylib_crash, nuking main thread!\n");
+		Warning(PROJECT_NAME " - crashhandler: Called holylib_crashserver, nuking main thread!\n");
 #if SYSTEM_LINUX
 		pthread_kill(g_nMainThreadID, SIGSEGV);
 #endif
