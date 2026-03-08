@@ -191,8 +191,6 @@ static void LJ_FASTCALL recff_nyi(jit_State *J, RecordFFData *rd)
 /* Fallback handler for unsupported variants of fast functions. */
 #define recff_nyiu	recff_nyi
 
-#include "stdio.h"
-
 #define emitconv(a, dt, st, flags) \
   emitir(IRT(IR_CONV, (dt)), (a), (st)|((dt) << 5)|(flags))
 
