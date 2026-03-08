@@ -14,6 +14,7 @@
 #include <fcntl.h>
 #include <elf.h>
 #include <execinfo.h>
+#include <ucontext.h>
 #endif
 #include <atomic>
 #include <deque>
@@ -312,12 +313,18 @@ static void ReturnSignal()
 
 static void GenerateCrashFileName(char* buffer, int bufferSize)
 {
+	static std::atomic<int> g_nGenerationCount = 0;
+	int count = g_nGenerationCount.load();
+	g_nGenerationCount.store(count+1);
+
 	time_t t = time(nullptr);
 
 	struct tm timeInfo;
 	localtime_r(&t, &timeInfo);
 
-	strftime(buffer, bufferSize, "garrysmod/holylib/crashes/crash_%Y-%m-%d_%H:%M:%S.log", &timeInfo);
+	char pTemp[255];
+	strftime(pTemp, sizeof(pTemp), "garrysmod/holylib/crashes/crash_%Y-%m-%d_%H:%M:%S", &timeInfo);
+	snprintf(buffer, bufferSize, "%s-%i.log", pTemp, count);
 }
 
 static void DumpRegister(int fd, gregset_t& registers, const char* name, int idx)
@@ -331,21 +338,42 @@ static void DumpRegister(int fd, gregset_t& registers, const char* name, int idx
 	);
 };
 
+struct SavedCrash
+{
+    int signal;
+    siginfo_t info;
+    ucontext_t context;
+};
+
+static SavedCrash g_pSavedCrash;
+static std::atomic<bool> g_bAttemptedBacktrace = false;
+
 static void AttemptLuaCallback(bool bMainThreadCrash);
 static void CrashHandler(int signal, siginfo_t* signalInfo, void* ucontext)
 {
+	// ToDo: Fix this in the future
+	// If we hit this, we- the handler crashed in backtrace, so we restore the original signal for the core dump / gdb to be right.
+	if (g_bAttemptedBacktrace.load())
+	{
+		setcontext(&g_pSavedCrash.context);
+		ReturnSignal();
+		return;
+	} else {
+		g_pSavedCrash.signal = signal;
+		memcpy(&g_pSavedCrash.info, signalInfo, sizeof(siginfo_t));
+		memcpy(&g_pSavedCrash.context, (ucontext_t*)ucontext, sizeof(ucontext_t));
+	}
+
 	static thread_local bool g_bIsInSignalHandler = false;
-	static thread_local bool g_bAttemptedBacktrace = false;
 
 	// If this happens, we crashed in our handler, so let's skip that and let gdb catch the original crash
-	if (g_bIsInSignalHandler && !g_bAttemptedBacktrace)
+	if (g_bIsInSignalHandler)
 	{
 		ReturnSignal();
 		return;
 	}
 
 	g_bIsInSignalHandler = true;
-	g_bAttemptedBacktrace = false;
 
 	ModuleInfo pModuleInfo;
 
@@ -435,28 +463,8 @@ static void CrashHandler(int signal, siginfo_t* signalInfo, void* ucontext)
 #endif
 
 	// If we re-entered it's 99% that we crashed when calling backtrace!
-	if (!g_bInducedCrash.load())
+	if (g_bInducedCrash.load())
 	{
-		// ToDo: backtrace is not really signal safe! It could deadlock!
-		constexpr int bufferSize = 255;
-		void* buffer[bufferSize];
-		g_bAttemptedBacktrace = true;
-		int nptrs = backtrace(buffer, bufferSize);
-		g_bAttemptedBacktrace = false;
-		dprintf(fileDescriptor, "Backtrace (%d frames):\n", nptrs);
-		for (int i = 0; i < nptrs; ++i)
-		{
-			uintptr_t addr = (uintptr_t)buffer[i];
-			const ModuleInfo::Entry* fmod = pModuleInfo.FindModule(addr);
-			uintptr_t offset = 0;
-			const char* fileName;
-			pModuleInfo.FindFunctionInfo(fmod, addr, &fileName, &offset);
-
-			dprintf(fileDescriptor, "  %p: %s + 0x%lx [%s]\n", (void*)addr, fileName, offset, fmod ? fmod->path : "UNKNOWN");
-		}
-	} else {
-		dprintf(fileDescriptor, "No Backtrace (unsafe conditions)\n");
-
 		// Unsafe but we want to dump the main state!
 		GarrysMod::Lua::ILuaShared* pLuaShared = Lua::GetShared();
 		if (pLuaShared)
@@ -475,6 +483,26 @@ static void CrashHandler(int signal, siginfo_t* signalInfo, void* ucontext)
 		{
 			dprintf(fileDescriptor, "  %i: %s\n", i, Lua::TValueToString(pBase));
 			pBase++;
+		}
+
+		dprintf(fileDescriptor, "Backtrace generation skipped due to unsafe conditions!\n");
+	} else {
+		// ToDo: backtrace is not really signal safe! It could deadlock!
+		constexpr int bufferSize = 255;
+		void* buffer[bufferSize];
+		g_bAttemptedBacktrace.store(true);
+		int nptrs = backtrace(buffer, bufferSize);
+		g_bAttemptedBacktrace.store(false);
+		dprintf(fileDescriptor, "Backtrace (%d frames):\n", nptrs);
+		for (int i = 0; i < nptrs; ++i)
+		{
+			uintptr_t addr = (uintptr_t)buffer[i];
+			const ModuleInfo::Entry* fmod = pModuleInfo.FindModule(addr);
+			uintptr_t offset = 0;
+			const char* fileName;
+			pModuleInfo.FindFunctionInfo(fmod, addr, &fileName, &offset);
+
+			dprintf(fileDescriptor, "  %p: %s + 0x%lx [%s]\n", (void*)addr, fileName, offset, fmod ? fmod->path : "UNKNOWN");
 		}
 	}
 
@@ -507,7 +535,7 @@ static void SetupCrashHandler()
 	struct sigaction signalAction{};
 	signalAction.sa_sigaction = CrashHandler;
 	sigemptyset(&signalAction.sa_mask);
-	signalAction.sa_flags = SA_SIGINFO | SA_ONSTACK;
+	signalAction.sa_flags = SA_SIGINFO | SA_ONSTACK | SA_NODEFER;
 	sigaction(SIGSEGV, &signalAction, nullptr);
 }
 #endif
@@ -589,7 +617,7 @@ static inline void ExecuteMainThread() // So you have chosen... death
 	//       & dump lua regardless of if were on the main thread or not?
 	g_bInducedCrash.store(true);
 #if SYSTEM_LINUX
-	pthread_kill(g_nMainThreadID, SIGTRAP);
+	// pthread_kill(g_nMainThreadID, SIGTRAP); // SIGTRAP seems more responsive, yet our signal handler will never be called :sob:
 	pthread_kill(g_nMainThreadID, SIGSEGV); // idk why but SIGTRAP works far better though seems to break the backtracing?
 #endif
 }
