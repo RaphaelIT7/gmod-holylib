@@ -146,6 +146,8 @@
   _(CALLS,	S , ref, lit) \
   _(CALLXS,	S , ref, ref) \
   _(CARG,	N , ref, ref) \
+  _(CALLCSE,	N , ref, ref) /* flag to allow CSE for a CALLXS */\
+  _(CALLCC,	N , ref, ref) \
   \
   /* End of list. */
 
@@ -192,6 +194,7 @@ IRFPMDEF(FPMENUM)
 /* FLOAD fields. */
 #define IRFLDEF(_) \
   _(STR_LEN,	offsetof(GCstr, len)) \
+  _(STR_DATA,	sizeof(GCstr)) \
   _(FUNC_ENV,	offsetof(GCfunc, l.env)) \
   _(FUNC_PC,	offsetof(GCfunc, l.pc)) \
   _(FUNC_FFID,	offsetof(GCfunc, l.ffid)) \
@@ -206,7 +209,7 @@ IRFPMDEF(FPMENUM)
   _(UDATA_ENV,	offsetof(GCudata, env)) \
   _(UDATA_FLAGS, offsetof(GCudata, flags)) \
   _(UDATA_UDTYPE, offsetof(GCudata, udtype)) \
-  _(UDATA_FILE,	sizeof(GCudata)) \
+  _(UDATA_VALUE, sizeof(GCudata)) \
   _(SBUF_W,	sizeof(GCudata) + offsetof(SBufExt, w)) \
   _(SBUF_E,	sizeof(GCudata) + offsetof(SBufExt, e)) \
   _(SBUF_B,	sizeof(GCudata) + offsetof(SBufExt, b)) \

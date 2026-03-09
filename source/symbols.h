@@ -97,9 +97,9 @@ struct ThreadPoolStartParams_t;
 #else // x86
 #define GMCOMMON_CALLING_CONVENTION __thiscall
 #endif
-#define CALLING_CONVENTION_FASTCALL __fastcall
+#define FUNC_FASTCALL __fastcall
 #else // Linux
-#define CALLING_CONVENTION_FASTCALL __attribute__((fastcall))
+#define FUNC_FASTCALL __attribute__((fastcall))
 #define GMCOMMON_CALLING_CONVENTION
 #endif
 
@@ -160,6 +160,9 @@ namespace Symbols
 		When we load any functions like lua_ or lj_ we NEED to also update the luajit module (luajit.cpp) to update the pointer when the module is enabled.
 		This is because else we might call the loaded function from Gmod when in reality our luajit build has taken over which would cause a crash!
 	*/
+
+	using lua_pushtracablecclosure = void (*)(lua_State* L, void* info);
+	using lua_settracablecclosure = void (*)(lua_State* L, int idx, void* info);
 
 	using lua_rawseti = void (*)(lua_State* L, int index, int i);
 	extern const Symbol lua_rawsetiSym;
