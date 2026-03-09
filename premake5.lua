@@ -128,6 +128,8 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			sourcePath .. [[lz4/*.h]],
 			sourcePath .. [[lz4/*.c]],
 			sourcePath .. [[lz4/*.cpp]],
+			sourcePath .. [[uwebsockets/*.h]],
+			sourcePath .. [[uwebsockets/*.cpp]],
 
 			rootDir .. "lua/*.h",
 			rootDir .. "source/lua/scripts/*.lua",
@@ -139,6 +141,7 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			["Source files/sourcesdk/"] = gmcommon .. "/**.*",
 			["Lua Headers"] = rootDir .. "lua/*.h",
 			["Lua Scrips"] = rootDir .. "source/lua/scripts/*.lua",
+			["uWebSockets"] = sourcePath .. "uwebsockets/*.*",
 			["README"] = rootDir .. "README.md",
 			["Workflows"] = rootDir .. ".github/workflows/**.yml",
 		})
@@ -147,7 +150,7 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 
 		includedirs({
 			sourcePath .. [[sourcesdk/]],
-			sourcePath .. [[lua]]
+			sourcePath .. [[lua]],
 		})
 
 		filter("system:windows")
