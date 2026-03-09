@@ -39,6 +39,7 @@ LUA_FUNCTION_STATIC(pas_TestPAS)
 	}
 
 	Util::VisData* pVisCluster = Util::CM_Vis(*orig, DVIS_PAS);
+	Util::ScopedValue pScope(pVisCluster);
 
 	if (LUA->IsType(2, GarrysMod::Lua::Type::Vector))
 	{
@@ -59,7 +60,6 @@ LUA_FUNCTION_STATIC(pas_TestPAS)
 
 		LUA->PushBool(TestPAS(pVisCluster, ent->GetAbsOrigin()));
 	}
-	delete pVisCluster;
 
 	return 1;
 }
@@ -71,9 +71,9 @@ LUA_FUNCTION_STATIC(pas_CheckBoxInPAS)
 	Vector* orig = Get_Vector(LUA, 3, true);
 
 	Util::VisData* pVisCluster = Util::CM_Vis(*orig, DVIS_PAS);
+	Util::ScopedValue pScope(pVisCluster);
 
 	LUA->PushBool(Util::engineserver->CheckBoxInPVS(*mins, *maxs, pVisCluster->cluster, sizeof(pVisCluster->cluster)));
-	delete pVisCluster;
 
 	return 1;
 }
@@ -92,6 +92,7 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 	}
 
 	Util::VisData* pVisCluster = Util::CM_Vis(*orig, DVIS_PAS);
+	Util::ScopedValue pScope(pVisCluster);
 
 	LUA->PreCreateTable(MAX_EDICTS / 16, 0);
 	int idx = 0;
@@ -108,7 +109,7 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 				Util::RawSetI(LUA, -2, ++idx);
 			}
 		}
-		delete pVisCluster;
+
 		return 1;
 	}
 #endif
@@ -125,7 +126,6 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 		pEnt = Util::NextEnt(pEnt);
 	}
 
-	delete pVisCluster;
 	return 1;
 }
 

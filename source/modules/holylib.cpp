@@ -81,12 +81,12 @@ LUA_FUNCTION_STATIC(FadeClientVolume)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(ServerExecute)
+LUA_ASM_FUNCTION_STATIC(ServerExecute)
 {
 	VPROF_BUDGET("HolyLib(Lua) - HolyLib.ServerExecute", VPROF_BUDGETGROUP_HOLYLIB);
 	Util::engineserver->ServerExecute();
 
-	return 0;
+	return;
 }
 
 LUA_FUNCTION_STATIC(IsMapValid)
@@ -126,10 +126,10 @@ LUA_FUNCTION_STATIC(_UserMessageBegin)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(_MessageEnd)
+LUA_ASM_FUNCTION_STATIC(_MessageEnd)
 {
 	MessageEnd();
-	return 0;
+	return;
 }
 
 static Detouring::Hook detour_GetGModServerTags;
@@ -476,7 +476,7 @@ void CHolyLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 			Util::AddFunc(pLua, HideServer, "HideServer");
 			Util::AddFunc(pLua, Reconnect, "Reconnect");
 			Util::AddFunc(pLua, FadeClientVolume, "FadeClientVolume");
-			Util::AddFunc(pLua, ServerExecute, "ServerExecute");
+			LUA_AddJITFunc(pLua, CFUNC_TYPE_VOID, ServerExecute, "ServerExecute");
 			Util::AddFunc(pLua, IsMapValid, "IsMapValid");
 			Util::AddFunc(pLua, InvalidateBoneCache, "InvalidateBoneCache");
 			Util::AddFunc(pLua, SetSignOnState, "SetSignOnState");
@@ -489,7 +489,7 @@ void CHolyLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 			// Networking stuff
 			Util::AddFunc(pLua, _EntityMessageBegin, "EntityMessageBegin");
 			Util::AddFunc(pLua, _UserMessageBegin, "UserMessageBegin");
-			Util::AddFunc(pLua, _MessageEnd, "MessageEnd");
+			LUA_AddJITFunc(pLua, CFUNC_TYPE_VOID, _MessageEnd, "MessageEnd");
 			Util::AddFunc(pLua, ReceiveClientMessage, "ReceiveClientMessage");
 		Util::FinishTable(pLua, "HolyLib");
 	} else {

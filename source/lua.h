@@ -502,6 +502,39 @@ namespace Lua
 		LUA->RawSet(-3);
 	}
 
+#define LUA_ASM_FUNCTION_STATIC(funcName) \
+static void ASM_##funcName(); \
+LUA_FUNCTION_STATIC(funcName) \
+{ \
+	ASM_##funcName(); \
+	return 0; \
+} \
+static void ASM_##funcName()
+
+#define LUA_ASM_SFUNCTION_STATIC(funcName) \
+static const char* ASM_##funcName(); \
+LUA_FUNCTION_STATIC(funcName) \
+{ \
+	LUA->PushString(ASM_##funcName()); \
+	return 1; \
+} \
+static const char* ASM_##funcName()
+
+#define LUA_ASM_IFUNCTION_STATIC(funcName) \
+static int ASM_##funcName(); \
+LUA_FUNCTION_STATIC(funcName) \
+{ \
+	LUA->PushNumber(ASM_##funcName()); \
+	return 0; \
+} \
+static int ASM_##funcName()
+
+#define LUA_AddJITFunc(pLua, ret, funcName, name) \
+	Lua::AddJITFunc(pLua, funcName, name, Lua::AllowOptOut(Lua::MakeJITFunc(CFUNC_TYPE_VOID, (void*)&ASM_##funcName)));
+
+#define LUA_AddJITFunc2(pLua, ret, funcName, name, arg1) \
+	Lua::AddJITFunc(pLua, funcName, name, Lua::AllowOptOut(Lua::MakeJITFunc(CFUNC_TYPE_VOID, (void*)&ASM_##funcName, arg1)));
+
 	// ToDo
 	// - EnterLockdown
 	// - LeaveLockdown

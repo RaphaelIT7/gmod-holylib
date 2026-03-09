@@ -1921,22 +1921,20 @@ LUA_FUNCTION_STATIC(gameserver_GetTickInterval)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(gameserver_GetName)
+LUA_ASM_SFUNCTION_STATIC(gameserver_GetName)
 {
 	if (!Util::server || !Util::server->IsActive())
-		return 0;
+		return nullptr;
 
-	LUA->PushString(Util::server->GetName());
-	return 1;
+	return Util::server->GetName();
 }
 
-LUA_FUNCTION_STATIC(gameserver_GetMapName)
+LUA_ASM_SFUNCTION_STATIC(gameserver_GetMapName)
 {
 	if (!Util::server || !Util::server->IsActive())
-		return 0;
+		return nullptr;
 
-	LUA->PushString(Util::server->GetMapName());
-	return 1;
+	return Util::server->GetMapName();
 }
 
 LUA_FUNCTION_STATIC(gameserver_GetSpawnCount)
@@ -2428,8 +2426,8 @@ void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, gameserver_GetTime, "GetTime");
 		Util::AddFunc(pLua, gameserver_GetTick, "GetTick");
 		Util::AddFunc(pLua, gameserver_GetTickInterval, "GetTickInterval");
-		Util::AddFunc(pLua, gameserver_GetName, "GetName");
-		Util::AddFunc(pLua, gameserver_GetMapName, "GetMapName");
+		LUA_AddJITFunc(pLua, CFUNC_TYPE_STRING, gameserver_GetName, "GetName");
+		LUA_AddJITFunc(pLua, CFUNC_TYPE_STRING, gameserver_GetMapName, "GetMapName");
 		Util::AddFunc(pLua, gameserver_GetSpawnCount, "GetSpawnCount");
 		Util::AddFunc(pLua, gameserver_GetNumClasses, "GetNumClasses");
 		Util::AddFunc(pLua, gameserver_GetClassBits, "GetClassBits");

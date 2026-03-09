@@ -843,26 +843,26 @@ static SIMPLETHREAD_RETURNVALUE CrashWatcherThread(void* data)
 }
 
 // I don't like exposing these as now people could mishandle the watcher :/
-LUA_FUNCTION_STATIC(crashhandler_DisableWatcher)
+LUA_ASM_FUNCTION_STATIC(crashhandler_DisableWatcher)
 {
 	g_bSkipWatcher.store(true);
 	g_nLagCount.store(0);
-	return 0;
+	return;
 }
 
 // We also reset the counter to avoid issues
 // in tests once they were done the watcher thread immediately catched in some cases as the counter was high.
-LUA_FUNCTION_STATIC(crashhandler_EnableWatcher)
+LUA_ASM_FUNCTION_STATIC(crashhandler_EnableWatcher)
 {
 	g_bSkipWatcher.store(false);
 	g_nLagCount.store(0);
-	return 0;
+	return;
 }
 
-LUA_FUNCTION_STATIC(crashhandler_ResetWatcher)
+LUA_ASM_FUNCTION_STATIC(crashhandler_ResetWatcher)
 {
 	g_nLagCount.store(0);
-	return 0;
+	return;
 }
 
 void CCrashHandlerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
@@ -871,9 +871,9 @@ void CCrashHandlerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bSer
 		return;
 
 	Util::StartTable(pLua);
-		Util::AddFunc(pLua, crashhandler_DisableWatcher, "DisableWatcher");
-		Util::AddFunc(pLua, crashhandler_EnableWatcher, "EnableWatcher");
-		Util::AddFunc(pLua, crashhandler_ResetWatcher, "ResetWatcher");
+		LUA_AddJITFunc(pLua, CFUNC_TYPE_VOID, crashhandler_DisableWatcher, "DisableWatcher");
+		LUA_AddJITFunc(pLua, CFUNC_TYPE_VOID, crashhandler_EnableWatcher, "EnableWatcher");
+		LUA_AddJITFunc(pLua, CFUNC_TYPE_VOID, crashhandler_ResetWatcher, "ResetWatcher");
 	Util::FinishTable(pLua, "crashhandler");
 }
 

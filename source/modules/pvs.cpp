@@ -794,6 +794,7 @@ LUA_FUNCTION_STATIC(pvs_FindInPVS) // Copy from pas.FindInPAS
 	}
 
 	Util::VisData* pVisCluster = Util::CM_Vis(*orig, DVIS_PVS);
+	Util::ScopedValue pScope(pVisCluster);
 
 	LUA->PreCreateTable(MAX_EDICTS / 16, 0); // Should we reduce this later? (Currently: 512)
 	int idx = 0;
@@ -809,7 +810,7 @@ LUA_FUNCTION_STATIC(pvs_FindInPVS) // Copy from pas.FindInPAS
 				Util::RawSetI(LUA, -2, ++idx);
 			}
 		}
-		delete pVisCluster;
+
 		return 1;
 	}
 #endif
@@ -826,7 +827,6 @@ LUA_FUNCTION_STATIC(pvs_FindInPVS) // Copy from pas.FindInPAS
 		pEnt = Util::NextEnt(pEnt);
 	}
 
-	delete pVisCluster;
 	return 1;
 }
 
@@ -847,6 +847,8 @@ LUA_FUNCTION_STATIC(pvs_TestPVS)
 	}
 
 	Util::VisData* pVisCluster = Util::CM_Vis(*orig, DVIS_PVS);
+	Util::ScopedValue pScope(pVisCluster);
+
 	if (LUA->IsType(2, GarrysMod::Lua::Type::Vector))
 	{
 		LUA->PushBool(TestPVS(pVisCluster, *Get_Vector(LUA, 2)));
@@ -868,7 +870,6 @@ LUA_FUNCTION_STATIC(pvs_TestPVS)
 		LUA->PushBool(TestPVS(pVisCluster, ent->GetAbsOrigin()));
 	}
 
-	delete pVisCluster;
 	return 1;
 }
 
