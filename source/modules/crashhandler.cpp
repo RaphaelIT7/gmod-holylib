@@ -34,6 +34,8 @@
 class CCrashHandlerModule : public IModule
 {
 public:
+	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) override;
+	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
 	void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) override;
 	void Shutdown() override;
 	void InitDetour(bool bPreServer) override;
@@ -786,6 +788,7 @@ static const char* hook_CTextConsoleUnix_GetLine(void* _this)
 static ConVar crashhandler_crashtime("holylib_crashhandler_crashtime", "10000", 0, "Time in ms after which the crash handler will catch and nuke the server");
 static constexpr int g_nThreadSleep = 10;
 static std::atomic<int> g_nLagCount = 0; // one count = (g_nThreadSleep)ms lag.
+static std::atomic<bool> g_bSkipWatcher = false;
 static std::atomic<int> g_nWatcherThreadState = ThreadState::STATE_NOTRUNNING;
 static SIMPLETHREAD_RETURNVALUE CrashWatcherThread(void* data)
 {
@@ -794,7 +797,7 @@ static SIMPLETHREAD_RETURNVALUE CrashWatcherThread(void* data)
 	{
 		ThreadSleep(g_nThreadSleep);
 
-		if (g_pModuleManager.GetServerState() != ServerState::RUNNING)
+		if (g_bSkipWatcher.load() || g_pModuleManager.GetServerState() != ServerState::RUNNING)
 		{
 			g_nLagCount.store(0);
 			continue;
@@ -837,6 +840,46 @@ static SIMPLETHREAD_RETURNVALUE CrashWatcherThread(void* data)
 
 	g_nWatcherThreadState.store(ThreadState::STATE_NOTRUNNING);
 	return 0;
+}
+
+// I don't like exposing these as now people could mishandle the watcher :/
+LUA_FUNCTION_STATIC(crashhandler_DisableWatcher)
+{
+	g_bSkipWatcher.store(true);
+	g_nLagCount.store(0);
+	return 0;
+}
+
+// We also reset the counter to avoid issues
+// in tests once they were done the watcher thread immediately catched in some cases as the counter was high.
+LUA_FUNCTION_STATIC(crashhandler_EnableWatcher)
+{
+	g_bSkipWatcher.store(false);
+	g_nLagCount.store(0);
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(crashhandler_ResetWatcher)
+{
+	g_nLagCount.store(0);
+	return 0;
+}
+
+void CCrashHandlerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
+{
+	if (bServerInit)
+		return;
+
+	Util::StartTable(pLua);
+		Util::AddFunc(pLua, crashhandler_DisableWatcher, "DisableWatcher");
+		Util::AddFunc(pLua, crashhandler_EnableWatcher, "EnableWatcher");
+		Util::AddFunc(pLua, crashhandler_ResetWatcher, "ResetWatcher");
+	Util::FinishTable(pLua, "crashhandler");
+}
+
+void CCrashHandlerModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
+{
+	Util::NukeTable(pLua, "crashhandler");
 }
 
 void CCrashHandlerModule::Think(bool bSimulating)

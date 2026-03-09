@@ -230,15 +230,17 @@ if SERVER then
     end
 
     hook.Add("GLuaTest_StartedTestRun", "HolyLib:MarkStart", function()
-        if holylua then
-            holylua.RunString("IsRunningTest = true print([[IsRunningTest]], IsRunningTest)")
-        end
+        --[[if holylua then
+            holylua.RunString("IsRunningTest = true print('IsRunningTest', IsRunningTest)")
+        end]]
+        crashhandler.DisableWatcher()
     end)
 
     hook.Add("GLuaTest_Finished", "HolyLib:MarkFinish", function()
-        if holylua then
-            holylua.RunString("IsRunningTest = false print([[IsRunningTest]], IsRunningTest)")
-        end
+        --[[if holylua then
+            holylua.RunString("IsRunningTest = false print('IsRunningTest', IsRunningTest)")
+        end]]
+        crashhandler.EnableWatcher()
     end)
 end
 
