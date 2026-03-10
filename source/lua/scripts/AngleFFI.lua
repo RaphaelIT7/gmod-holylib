@@ -323,12 +323,17 @@ do
 
     debug.setblocked(CreateAngle)
 
+    _G.GMOD_isangle = _G.GMOD_isangle or _G.isangle
+    local GMOD_isangle = _G.GMOD_isangle
     function isangle(v)
+        if GMOD_isangle(v) then
+            return true
+        end
+
         return ffi.istype("GMOD_AngUserData", v)
     end
 
     debug.setblocked(isangle)
-    _G.GMOD_isangle = _G.isangle
     _G.isangle = isangle
 end
 

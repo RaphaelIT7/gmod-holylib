@@ -457,12 +457,17 @@ do
 
     debug.setblocked(CreateVector)
 
+    _G.GMOD_isvector = _G.GMOD_isvector or _G.isvector
+    local GMOD_isvector = _G.GMOD_isvector
     function isvector(v)
+        if GMOD_isvector(v) then
+            return true
+        end
+
         return ffi.istype("GMOD_VecUserData", v)
     end
 
     debug.setblocked(isvector)
-    _G.GMOD_isvector = _G.isvector
     _G.isvector = isvector
 end
 
