@@ -416,7 +416,7 @@ LJLIB_CF(jit_util_ircalladdr)
 
 #include "lj_libdef.h"
 
-static int luaopen_jit_util(lua_State *L)
+int luaopen_jit_util(lua_State *L)
 {
   LJ_LIB_REG(L, NULL, jit_util);
   return 1;
