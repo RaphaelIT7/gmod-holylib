@@ -350,7 +350,30 @@ struct SavedCrash
 static SavedCrash g_pSavedCrash;
 static std::atomic<bool> g_bAttemptedBacktrace = false;
 
-static void AttemptLuaCallback(bool bMainThreadCrash);
+static void DumpLuaState(int fileDescriptor)
+{
+	// Unsafe but we want to dump the main state!
+	GarrysMod::Lua::ILuaShared* pLuaShared = Lua::GetShared();
+	if (pLuaShared)
+	{
+		dprintf(fileDescriptor, "Lua Stack trace:\n");
+		dprintf(fileDescriptor, pLuaShared->GetStackTraces());
+	}
+
+	dprintf(fileDescriptor, "Lua Stack values:\n");
+
+	lua_State* pState = g_Lua->GetState();
+	TValue* pBase = pState->base;
+	int nTop = (int)(pState->top - pState->base);
+	dprintf(fileDescriptor, "  Stack size: %i\n", nTop);
+	for (int i=0; i<nTop; ++i)
+	{
+		dprintf(fileDescriptor, "  %i: %s\n", i, Lua::TValueToString(pBase));
+		pBase++;
+	}
+}
+
+static bool AttemptLuaCallback(bool bMainThreadCrash);
 static void CrashHandler(int signal, siginfo_t* signalInfo, void* ucontext)
 {
 	// ToDo: Fix this in the future
@@ -467,25 +490,7 @@ static void CrashHandler(int signal, siginfo_t* signalInfo, void* ucontext)
 	// If we re-entered it's 99% that we crashed when calling backtrace!
 	if (g_bInducedCrash.load())
 	{
-		// Unsafe but we want to dump the main state!
-		GarrysMod::Lua::ILuaShared* pLuaShared = Lua::GetShared();
-		if (pLuaShared)
-		{
-			dprintf(fileDescriptor, "Lua Stack trace:\n");
-			dprintf(fileDescriptor, pLuaShared->GetStackTraces());
-		}
-
-		dprintf(fileDescriptor, "Lua Stack values:\n");
-
-		lua_State* pState = g_Lua->GetState();
-		TValue* pBase = pState->base;
-		int nTop = (int)(pState->top - pState->base);
-		dprintf(fileDescriptor, "  Stack size: %i\n", nTop);
-		for (int i=0; i<nTop; ++i)
-		{
-			dprintf(fileDescriptor, "  %i: %s\n", i, Lua::TValueToString(pBase));
-			pBase++;
-		}
+		DumpLuaState(fileDescriptor);
 
 		dprintf(fileDescriptor, "Backtrace generation skipped due to unsafe conditions!\n");
 	} else {
@@ -516,7 +521,9 @@ static void CrashHandler(int signal, siginfo_t* signalInfo, void* ucontext)
 	// Safe since we know 100% that the stack remains.
 	g_pSignalData.store(&signalData);
 
-	AttemptLuaCallback(true);
+	if (!AttemptLuaCallback(true) && !g_bInducedCrash.load())
+		DumpLuaState(fileDescriptor);
+
 	ReturnSignal();
 
 	g_bIsInSignalHandler = false;
@@ -594,21 +601,29 @@ static void DoLuaCallback(bool bMainThreadCrash)
 	}
 }
 
-static void AttemptLuaCallback(bool bMainThreadCrash)
+static bool AttemptLuaCallback(bool bMainThreadCrash)
 {
 	if (g_bExpectingCrash.load())
-		return;
+		return false;
 
 	if (ThreadInMainThread())
 	{
 		DoLuaCallback(bMainThreadCrash);
 		g_bThreadAwaitingLua.store(false);
 		g_bExpectingCrash.store(true);
+		return true;
 	} else {
 		// We crashed on another thread - so Lua should be good to use
 		g_bThreadAwaitingLua.store(true);
-		while (g_bThreadAwaitingLua.load())
+		// We wait at best 100ms before just continuing, BUT as fallback behavior, we will then dump the main lua state into the dump too
+		for (int i=0; i<10; ++i)
+		{
 			ThreadSleep(10);
+			if (!g_bThreadAwaitingLua.load())
+				break;
+		}
+
+		return !g_bThreadAwaitingLua.load();
 	}
 }
 
