@@ -1586,6 +1586,8 @@ static void LJ_FASTCALL recff_table_insert(jit_State *J, RecordFFData *rd)
       setintV(&ix.keyv, lj_tab_len(t) + 1);
       ix.idxchain = 0;
       lj_record_idx(J, &ix);  /* Set new value. */
+      J->base[0] = ix.key;
+      rd->nres = 1;
     } else {  /* Complex case: insert in the middle. */
       recff_nyiu(J, rd);
       return;
