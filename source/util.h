@@ -34,6 +34,15 @@ enum ThreadState
 	STATE_SHOULD_SHUTDOWN,
 };
 
+namespace GarrysMod::NetworkMessage
+{
+	constexpr int LuaFileDownload = 4;
+	constexpr int RequestLuaFiles = 3; // Calls GModDataPack::OnFilesRequested
+	constexpr int ClientLuaError = 2;
+	// 1 does not exist
+	constexpr int LuaNetMessage = 0;
+}
+
 struct edict_t;
 class IGet;
 class CBaseEntity;

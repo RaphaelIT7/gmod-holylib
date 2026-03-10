@@ -412,18 +412,15 @@ static bool hook_CHLTVClient_ProcessGMod_ClientToServer(CHLTVClient* pClient, CL
 	/*
 	 * ToDo: Verify this again as it might have changed?
 	 * 
-	 * Type is 8 bits instead of 4,
-	 * Lua net message is type 0 instead of 2
-	 * 30 bits padding were removed?
+	 * Do we need to skip the 26 bits???
 	 */
 
 	pBf->m_DataIn.Seek(0);
-	int iType = pBf->m_DataIn.ReadUBitLong(4);
-	if (iType != 2) // Only handle type 2 -> Lua net message.
+	int iType = pBf->m_DataIn.ReadByte();
+	if (iType != GarrysMod::NetworkMessage::LuaNetMessage)
 		return true;
 
-	pBf->m_DataIn.ReadUBitLong(8);
-	pBf->m_DataIn.ReadUBitLong(22); // Skipping to the header
+	pBf->m_DataIn.ReadUBitLong(26); // Skipping to the header
 	//pBf->m_DataIn.ReadBitLong(16, false); // The header -> the string. Why not an 12 bits? (This will be read by net.ReadHeader())
 
 	if (Lua::PushHook("HolyLib:OnSourceTVNetMessage")) // Maybe change the name? I don't have a better one rn :/

@@ -347,6 +347,8 @@ LUA_FUNCTION_STATIC(HideMsg) // ToDo: Final logic is still missing.
 
 LUA_FUNCTION_STATIC(GetRegistry)
 {
+	Util::DoUnsafeCodeCheck(LUA);
+
 	LUA->PushSpecial(GarrysMod::Lua::SPECIAL_REG);
 	return 1;
 }

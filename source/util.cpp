@@ -384,7 +384,7 @@ void Util::ResetClusters(VisData* data)
 	Q_memset(data->cluster, 0, sizeof(data->cluster));
 }
 
-Symbols::CM_Vis func_CM_Vis = nullptr;
+static Symbols::CM_Vis func_CM_Vis = nullptr;
 Util::VisData* Util::CM_Vis(const Vector& orig, int type)
 {
 	Util::VisData* data = new Util::VisData;
@@ -573,7 +573,7 @@ static void hook_SteamGameServer_Shutdown()
 	// Previous Bug: The voicechat caused a crash because this function was called before we were shutting down which caused us to later try to release a invalid steam user.
 	ShutdownSteamUser();
 
-	Warning("SteamGameServer_Shutdown called!\n");
+	// Warning("SteamGameServer_Shutdown called!\n");
 	detour_SteamGameServer_Shutdown.GetTrampoline<Symbols::SteamGameServer_Shutdown>()();
 }
 
