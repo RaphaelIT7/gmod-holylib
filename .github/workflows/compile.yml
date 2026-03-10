@@ -31,6 +31,7 @@ jobs:
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
       SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
+      GARRYSMOD_COMMON_BRANCH: "holylib"
       BUILD_CACHE: "true"
       UPLOAD_PDB: "true"
 
@@ -49,6 +50,7 @@ jobs:
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
       SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
+      GARRYSMOD_COMMON_BRANCH: "holylib"
       BUILD_CACHE: "true"
       UPLOAD_PDB: "true"
       BUILD_WINDOWS_DEDICATED: "true"
@@ -67,6 +69,7 @@ jobs:
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
       SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
+      GARRYSMOD_COMMON_BRANCH: "holylib"
       BUILD_CACHE: "true"
 
   build_testingarea:
@@ -88,6 +91,7 @@ jobs:
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
       SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
+      GARRYSMOD_COMMON_BRANCH: "holylib"
       PTERODACTYL_RESTART_SLEEPTIME: "0"
       PTERODACTYL_RESTART: "true"
       BUILD_CACHE: "true"
@@ -112,6 +116,7 @@ jobs:
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
       SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
+      GARRYSMOD_COMMON_BRANCH: "holylib"
       PTERODACTYL_RESTART_SLEEPTIME: "0"
       PTERODACTYL_RESTART: "true"
       BUILD_CACHE: "true"
@@ -137,6 +142,7 @@ jobs:
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
       SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
+      GARRYSMOD_COMMON_BRANCH: "holylib"
       PTERODACTYL_RESTART_SLEEPTIME: "0"
       PTERODACTYL_RESTART: "true"
       BUILD_CACHE: "true"
@@ -157,6 +163,7 @@ jobs:
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
       SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
+      GARRYSMOD_COMMON_BRANCH: "holylib"
       BUILD_CACHE: "true"
 
   build_stripped_module:
@@ -215,6 +222,7 @@ jobs:
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
       SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
+      GARRYSMOD_COMMON_BRANCH: "holylib"
       ADDITIONAL_LINUX_32_SETUP: 'rm -rf source/ivp && cd source/modules/ && ls | grep -xvF ${{ matrix.module }}.cpp | xargs rm -f -- && cd ../../'
       ADDITIONAL_LINUX_64_SETUP: 'rm -rf source/ivp && cd source/modules/ && ls | grep -xvF ${{ matrix.module }}.cpp | xargs rm -f -- && cd ../../'
 
