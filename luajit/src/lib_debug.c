@@ -303,13 +303,13 @@ LJLIB_CF(debug_setuservalue)
 
 /* ------------------------------------------------------------------------ */
 
-#define KEY_HOOK	(U64x(80000000,00000000)|'h')
+static const char KEY_HOOK = 'h';
 
 static void hookf(lua_State *L, lua_Debug *ar)
 {
   static const char *const hooknames[] =
     {"call", "return", "line", "count", "tail return"};
-  (L->top++)->u64 = KEY_HOOK;
+  lua_pushlightuserdata(L, (void *)&KEY_HOOK);
   lua_rawget(L, LUA_REGISTRYINDEX);
   if (lua_isfunction(L, -1)) {
     lua_pushstring(L, hooknames[(int)ar->event]);
@@ -354,7 +354,7 @@ LJLIB_CF(debug_sethook)
     count = luaL_optint(L, arg+3, 0);
     func = hookf; mask = makemask(smask, count);
   }
-  (L->top++)->u64 = KEY_HOOK;
+  lua_pushlightuserdata(L, (void *)&KEY_HOOK);
   lua_pushvalue(L, arg+1);
   lua_rawset(L, LUA_REGISTRYINDEX);
   lua_sethook(L, func, mask, count);
@@ -369,7 +369,7 @@ LJLIB_CF(debug_gethook)
   if (hook != NULL && hook != hookf) {  /* external hook? */
     lua_pushliteral(L, "external hook");
   } else {
-    (L->top++)->u64 = KEY_HOOK;
+    lua_pushlightuserdata(L, (void *)&KEY_HOOK);
     lua_rawget(L, LUA_REGISTRYINDEX);   /* get hook */
   }
   lua_pushstring(L, unmakemask(mask, buff));
