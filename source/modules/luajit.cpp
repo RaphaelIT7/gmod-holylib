@@ -285,6 +285,9 @@ void CLuaJITModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 	lua_pushnil(L);
 	lua_setfield(L, LUA_GLOBALSINDEX, "test");
 
+	// Disable default debug hook
+	lua_sethook(L, nullptr, 0, 0);
+
 	LuaJITModuleData* pData = new LuaJITModuleData;
 	//pData->pLuaInterfaceProxy = std::make_unique<CLuaInterfaceProxy>(pLua);
 	Lua::GetLuaData(pLua)->SetModuleData(m_pID, pData);
