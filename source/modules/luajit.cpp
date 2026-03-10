@@ -188,6 +188,10 @@ static void hook_luaL_openlibs(lua_State* L)
 		lua_pushcfunction(L, luaopen_jit_profile);
 		lua_call(L, 0, 1);
 		lua_setfield(L, -2, "profile");
+
+		lua_pushcfunction(L, luaopen_jit_util);
+		lua_call(L, 0, 1);
+		lua_setfield(L, -2, "util");
 	lua_pop(L, 1);
 
 	bOpenLibs = true;
@@ -276,6 +280,10 @@ void CLuaJITModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 		lua_setfield(L, -2, "isblocked");
 	}
 	lua_pop(L, 1);
+
+	// Remove the test table from our LuaJIT build
+	lua_pushnil(L);
+	lua_setfield(L, -2, "test");
 
 	LuaJITModuleData* pData = new LuaJITModuleData;
 	//pData->pLuaInterfaceProxy = std::make_unique<CLuaInterfaceProxy>(pLua);
