@@ -283,7 +283,7 @@ void CLuaJITModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 
 	// Remove the test table from our LuaJIT build
 	lua_pushnil(L);
-	lua_setfield(L, -2, "test");
+	lua_setfield(L, LUA_GLOBALSINDEX, "test");
 
 	LuaJITModuleData* pData = new LuaJITModuleData;
 	//pData->pLuaInterfaceProxy = std::make_unique<CLuaInterfaceProxy>(pLua);
