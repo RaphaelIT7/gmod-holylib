@@ -271,15 +271,6 @@ namespace Util
 		byte cluster[MAX_MAP_LEAFS / 8];
 	};
 
-	class ScopedValue
-	{
-	public:
-		ScopedValue(void* value) : m_pValue(value) {};
-		~ScopedValue() { if (m_pValue) { delete m_pValue; } };
-	private:
-		void* m_pValue;
-	};
-
 	// Returns new VisData, delete it after use
 	extern VisData* CM_Vis(const Vector& orig, int type);
 	extern bool CM_Vis(byte* cluster, int clusterSize, int clusterID, int type);
