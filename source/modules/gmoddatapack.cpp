@@ -244,29 +244,6 @@ std::string ProcessTokens(std::vector<Token> &tokens)
 	return ss.str();
 }
 
-LUA_FUNCTION_STATIC(gmoddatapack_StripCode)
-{
-	size_t nLength = -1;
-	const char* pContent = Util::CheckLString(LUA, 1, &nLength);
-
-	lua_State* L = luaL_newstate();
-	if (luaL_loadbuffer(L, pContent, nLength, "gmoddatapack.StripCode") != LUA_OK)
-	{
-		LUA->PushNil();
-		LUA->PushString(lua_tolstring(L, -1, nullptr));
-		lua_close(L);
-		return 2;
-	} else {
-		std::string strContent = pContent;
-		std::vector<Token> tokens = TokenizeContent(strContent);
-		std::string finalCode = ProcessTokens(tokens);
-		LUA->PushString(finalCode.c_str(), finalCode.length());
-	}
-	lua_close(L);
-
-	return 1;
-}
-
 // Copies what GMod does in GModDataPack::GetHashFromString
 static std::vector<unsigned char> HashString(const char* pData, unsigned int nLength)
 {
@@ -299,14 +276,10 @@ public:
 
 		inline bool Compress()
 		{
-			bool bSuccess = Bootil::Compression::LZMA::Compress(content.data(), content.length() + 1, compressed);
-			if (bSuccess)
-			{
-				std::vector<unsigned char> pHash = HashString((const char*)compressed.GetBase(), compressed.GetWritten());
-				compressed.Write(pHash.data(), pHash.size());
-			}
+			std::vector<unsigned char> pHash = HashString((const char*)content.data(), content.length() + 1);
+			compressed.Write(pHash.data(), pHash.size());
 
-			return bSuccess;
+			return Bootil::Compression::LZMA::Compress(content.data(), content.length() + 1, compressed);
 		}
 
 		inline void Clear()
@@ -614,6 +587,56 @@ static void hook_GModDataPack_SendFileToClient(GModDataPack* pDataPack, int user
 	}
 }
 
+
+LUA_FUNCTION_STATIC(gmoddatapack_StripCode)
+{
+	size_t nLength = -1;
+	const char* pContent = Util::CheckLString(LUA, 1, &nLength);
+
+	lua_State* L = luaL_newstate();
+	if (luaL_loadbuffer(L, pContent, nLength, "gmoddatapack.StripCode") != LUA_OK)
+	{
+		LUA->PushNil();
+		LUA->PushString(lua_tolstring(L, -1, nullptr));
+		lua_close(L);
+		return 2;
+	} else {
+		std::string strContent = pContent;
+		std::vector<Token> tokens = TokenizeContent(strContent);
+		std::string finalCode = ProcessTokens(tokens);
+		LUA->PushString(finalCode.c_str(), finalCode.length());
+	}
+	lua_close(L);
+
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(gmoddatapack_GetStoredCode)
+{
+	const char* pFileName = LUA->CheckString(1);
+	if (!g_pDataPack)
+	{
+		LUA->PushNil();
+		return 1;
+	}
+
+	int fileID = g_pDataPack->m_pClientLuaFiles->FindStringIndex(pFileName);
+	if (fileID == INVALID_STRING_INDEX)
+	{
+		LUA->PushNil();
+		return 1;
+	}
+
+	std::string content = "";
+	{ // Really don't want a lua error to possibly cause a deadlock
+		std::lock_guard<std::shared_mutex> lock(g_pLuaDataPack.m_pLuaFileCacheMutex);
+		content = g_pLuaDataPack.GetPackEntry(fileID)->content;
+	}
+
+	LUA->PushString(content.c_str(), content.length());
+	return 1;
+}
+
 void CGModDataPackModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
@@ -643,6 +666,7 @@ void CGModDataPackModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bSer
 
 	Util::StartTable(pLua);
 		Util::AddFunc(pLua, gmoddatapack_StripCode, "StripCode");
+		Util::AddFunc(pLua, gmoddatapack_GetStoredCode, "GetStoredCode");
 	Util::FinishTable(pLua, "gmoddatapack");
 }
 
