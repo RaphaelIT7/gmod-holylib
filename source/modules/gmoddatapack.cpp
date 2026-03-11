@@ -14,6 +14,7 @@
 #include "tier0/memdbgon.h"
 
 #undef isalnum // 64x loves to shit on this one AGAIN
+#undef isalpha // 64x loves to shit on this one AGAIN FUCKING HELL
 
 class CGModDataPackModule : public IModule
 {
