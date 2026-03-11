@@ -35,7 +35,7 @@ namespace GarrysMod::Lua
 		inline const char* GetName() { return name.c_str(); }
 		inline const char* GetSource() { return source.c_str(); }
 		inline const char* GetContents() { return contents.c_str(); }
-		inline void SetContents(const char* pContent) { contents = pContent; }
+		inline void SetContents(std::string pContent) { contents = pContent; }
 		Bootil::AutoBuffer compressed;
 	#ifndef WIN32
 		int random = 1; // Unknown thing

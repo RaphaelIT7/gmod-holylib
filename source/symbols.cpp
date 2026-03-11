@@ -1158,4 +1158,15 @@ namespace Symbols
 		Symbol::FromName("_ZN16CTextConsoleUnix7GetLineEiPci"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x53\x48\x89\xFB\x48\x81\xEC\x98\x00\x00\x00*****\x31\xD2\x85\xC0"), // 55 48 89 E5 41 57 41 56 41 55 41 54 53 48 89 FB 48 81 EC 98 00 00 00 ?? ?? ?? ?? ?? 31 D2 85 C0
 	};
+
+	//---------------------------------------------------------------------------------
+	// Purpose: gmoddatapack Symbols
+	//---------------------------------------------------------------------------------
+	const std::vector<Symbol> GModDataPack_SendFileToClientSym = {
+		Symbol::FromName("_ZN12GModDataPack16SendFileToClientEii"),
+	};
+
+	const std::vector<Symbol> GModDataPack_AddOrUpdateFileSym = {
+		Symbol::FromName("_ZN12GModDataPack15AddOrUpdateFileEP7LuaFileb"),
+	};
 }

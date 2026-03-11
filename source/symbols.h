@@ -823,4 +823,13 @@ namespace Symbols
 
 	using CTextConsoleUnix_GetLine = char* (*)(void* _this);
 	extern const std::vector<Symbol> CTextConsoleUnix_GetLineSym;
+
+	//---------------------------------------------------------------------------------
+	// Purpose: gmoddatapack Symbols
+	//---------------------------------------------------------------------------------
+	using GModDataPack_SendFileToClient = void (*)(void* dataPack, int userID, int fileID);
+	extern const std::vector<Symbol> GModDataPack_SendFileToClientSym;
+
+	using GModDataPack_AddOrUpdateFile = void (*)(void* dataPack, void* luaFile, bool);
+	extern const std::vector<Symbol> GModDataPack_AddOrUpdateFileSym;
 }

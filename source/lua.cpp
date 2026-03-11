@@ -467,23 +467,21 @@ void Lua::SetManualShutdown()
 
 GarrysMod::Lua::ILuaInterface* Lua::GetRealm(unsigned char realm)
 {
-	SourceSDK::FactoryLoader luashared_loader("lua_shared");
-	GarrysMod::Lua::ILuaShared* LuaShared = (GarrysMod::Lua::ILuaShared*)luashared_loader.GetFactory()(GMOD_LUASHARED_INTERFACE, nullptr);
-	if (LuaShared == nullptr) {
-		Msg(PROJECT_NAME ": failed to get ILuaShared!\n");
-		return nullptr;
-	}
-
-	return LuaShared->GetLuaInterface(realm);
+	return Lua::GetShared()->GetLuaInterface(realm);
 }
 
 GarrysMod::Lua::ILuaShared* Lua::GetShared()
 {
+	static GarrysMod::Lua::ILuaShared* g_pLuaShared = nullptr;
+	if (g_pLuaShared)
+		return g_pLuaShared;
+
 	SourceSDK::FactoryLoader luashared_loader("lua_shared");
 	if ( !luashared_loader.GetFactory() )
 		Msg(PROJECT_NAME ": About to crash!\n");
 
-	return luashared_loader.GetInterface<GarrysMod::Lua::ILuaShared>(GMOD_LUASHARED_INTERFACE);
+	g_pLuaShared = luashared_loader.GetInterface<GarrysMod::Lua::ILuaShared>(GMOD_LUASHARED_INTERFACE);
+	return g_pLuaShared;
 }
 
 GarrysMod::Lua::ILuaInterface* Lua::CreateInterface()
