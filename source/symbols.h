@@ -581,11 +581,6 @@ namespace Symbols
 	extern const std::vector<Symbol> IVP_Mindist_Manager_recheck_ov_elementSym;
 
 	// Stuff for our do_impact replacement
-	using IVP_Mindist_D2 = void (*)(void* mindist);
-	extern const std::vector<Symbol> IVP_Mindist_D2Sym;
-
-	extern const std::vector<Symbol> g_pCurrentMindistSym;
-	extern const std::vector<Symbol> g_fDeferDeleteMindistSym;
 #endif
 
 	using GMod_Util_IsPhysicsObjectValid = bool (*)(IPhysicsObject* obj);

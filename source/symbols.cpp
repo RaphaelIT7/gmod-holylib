@@ -772,10 +772,6 @@ namespace Symbols
 		Symbol::FromName("_ZN11IVP_Mindist27update_exact_mindist_eventsE8IVP_BOOL22IVP_MINDIST_EVENT_HINT"),
 	};
 
-	const std::vector<Symbol> IVP_Mindist_D2Sym = {
-		Symbol::FromName("_ZN11IVP_MindistD2Ev"),
-	};
-
 	const std::vector<Symbol> g_pCurrentMindistSym = {
 		Symbol::FromName("g_pCurrentMindist"),
 	};
