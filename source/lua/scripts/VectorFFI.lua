@@ -273,7 +273,7 @@ end
 function methods:GetNormalized()
     local length = math.sqrt(self.x * self.x + self.y * self.y + self.z * self.z)
     if length == 0 then
-        return 0, 0, 0
+        return Vector(0, 0, 0)
     end
 
     return Vector(self.x / length, self.y / length, self.z / length)
