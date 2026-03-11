@@ -85,14 +85,48 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 			size_t start = i;
 			i += 2;
 
-			if (i+1 < content.size() && content[i] == '[' && content[i+1] == '[')
+			if (i+1 < content.size() && content[i] == '[')
 			{
-				i += 2;
-				while (i+1 < content.size() && !(content[i] == ']' && content[i+1] == ']'))
+				i += 1;
+				int count = 0;
+				while (i+1 < content.size() && content[i]=='=')
+				{
 					i++;
+					count++;
+				}
 
-				if (i+1 < content.size())
-					i += 2;
+				if (content[i] == '[')
+				{
+					while (i+1 < content.size())
+					{
+						i++;
+						if (content[i] == ']')
+						{
+							if (count == 0 && i+1 < content.size() && content[i+1] == ']')
+								break;
+
+							i++;
+							int nextCount = 0;
+							while (i+1 < content.size() && content[i]=='=')
+							{
+								i++;
+								nextCount++;
+							}
+
+							if (nextCount == count && content[i] == ']')
+								break;
+
+							i--;
+						}
+					}
+
+					while (i+1 < content.size() && content[i] == ']')
+						i++; // Skip second ]
+				} else
+				{
+					while (i < content.size() && content[i] != '\n')
+						i++;
+				}
 			} else
 			{
 				while (i < content.size() && content[i] != '\n')
@@ -125,11 +159,11 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 			continue;
 		}
 
-		if (c == '"' && (i == 0 || content[i-1] != '\\'))
+		if ((c == '\'' || c == '"') && (i == 0 || (content[i-1] != '\\' || i >= 2 && content[i-2] == '\\')))
 		{
 			int start = i;
 			i++;
-			while (i < content.size() && (content[i] != '"' || content[i-1] == '\\'))
+			while (i < content.size() && (content[i] != c || (content[i-1] == '\\' && content[i-2] != '\\')))
 				i++;
 
 			// String
@@ -138,19 +172,50 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 			continue;
 		}
 
-		if (c == '[' && i+1 < content.size() && (content[i+1]=='['))
+		if (c == '[' && (i == 0 || content[i-1] != '\\') && i+1 < content.size())
 		{
 			int start = i;
-			i += 2;
-			while (i+1 < content.size() && !(content[i]==']' && content[i+1]==']'))
+			i += 1;
+			int count = 0;
+			while (i+1 < content.size() && content[i]=='=')
+			{
 				i++;
+				count++;
+			}
 
-			if (i+1 < content.size())
-				i += 2;
+			if (content[i]=='[')
+			{
+				while (i+1 < content.size())
+				{
+					i++;
+					if (content[i] == ']')
+					{
+						if (count == 0 && i+1 < content.size() && content[i+1] == ']')
+							break;
 
-			// Long String
-			tokens.push_back({TK_SOMETHING, content.substr(start, i-start)});
-			continue;
+						i++;
+						int nextCount = 0;
+						while (i+1 < content.size() && content[i]=='=')
+						{
+							i++;
+							nextCount++;
+						}
+
+						if (nextCount == count && content[i] == ']')
+							break;
+
+						i--;
+					}
+				}
+
+				while (i+1 < content.size() && content[i] == ']')
+					i++; // Skip second ]
+
+				// Long String
+				tokens.push_back({TK_SOMETHING, content.substr(start, i-start)});
+				continue;
+			}
+			i = start;
 		}
 
 		if (std::isalpha(c) || c == '_')
@@ -181,6 +246,47 @@ static size_t SkipEmpty(const std::vector<Token> &tokens, size_t start)
 }
 
 // The goal is to remove parts of a Lua script without changing the line code (so that errors remain easy to debug!)
+static size_t RemoveScoped(size_t i, size_t j, std::vector<Token> &tokens, std::stringstream& ss, TokenType tok)
+{
+	int depth = 1;
+	i = j + 1;
+	while (i < tokens.size() && depth > 0)
+	{
+		if (tokens[i].type == TK_THEN || tokens[i].type == TK_DO || tokens[i].type == TK_FUNCTION)
+			depth++;
+		else if (tokens[i].type == TK_END)
+			depth--;
+			if (tok == TK_ELSEIF && depth <= 0)
+				continue;
+		else if (tokens[i].type == TK_SOMETHING && tokens[i].content == "\n")
+			ss << '\n';
+		else if (tokens[i].type == TK_COMMENT)
+		{
+			for (char c : tokens[i].content)
+				if (c=='\n') ss << '\n';
+		}
+		else if (tokens[i].type == TK_ELSE && depth == 1)
+		{
+			tokens[i].content = "do";
+			depth--;
+			continue;
+		}
+		else if (tokens[i].type == TK_ELSEIF)
+		{
+			depth--;
+			if (depth <= 0)
+			{
+				tokens[i].content = tok == TK_IF ? "if" : "elseif";
+				continue;
+			}
+		}
+
+		i++;
+	}
+
+	return i;
+}
+
 std::string ProcessTokens(std::vector<Token> &tokens)
 {
 	std::stringstream ss;
@@ -207,29 +313,23 @@ std::string ProcessTokens(std::vector<Token> &tokens)
 				j = SkipEmpty(tokens, j);
 				if (j < tokens.size() && tokens[j].type == TK_THEN)
 				{
-					int depth = 1;
-					i = j + 1;
-					while (i < tokens.size() && depth > 0)
-					{
-						if (tokens[i].type == TK_THEN || tokens[i].type == TK_DO || tokens[i].type == TK_FUNCTION)
-							depth++;
-						else if (tokens[i].type == TK_END || tokens[i].type == TK_ELSEIF)
-							depth--;
-						else if (tokens[i].type == TK_SOMETHING && tokens[i].content == "\n")
-							ss << '\n';
-						else if (tokens[i].type == TK_COMMENT)
-						{
-							for (char c : tokens[i].content)
-								if (c=='\n') ss << '\n';
-						}
-						else if (tokens[i].type == TK_ELSE && depth == 1) {
-							tokens[i].content = "do";
-							depth--;
-							continue;
-						}
+					i = RemoveScoped(i, j, tokens, ss, TK_IF);
+					continue;
+				}
+			}
+		}
 
-						i++;
-					}
+		if (gmoddatapack_removeserverif.GetBool() && tok.type == TK_ELSEIF)
+		{
+			size_t j = i + 1;
+			j = SkipEmpty(tokens, j);
+			if (j < tokens.size() && tokens[j].type == TK_SOMETHING && tokens[j].content == "SERVER")
+			{
+				j++;
+				j = SkipEmpty(tokens, j);
+				if (j < tokens.size() && tokens[j].type == TK_THEN)
+				{
+					i = RemoveScoped(i, j, tokens, ss, TK_ELSEIF);
 					continue;
 				}
 			}
@@ -276,6 +376,7 @@ public:
 
 		inline bool Compress()
 		{
+			// Leading 32 bytes are the SHA256, used by the client to verify if the content matches the hash in the fileID's string userdata!
 			std::vector<unsigned char> pHash = HashString((const char*)content.data(), content.length() + 1);
 			compressed.Write(pHash.data(), pHash.size());
 
