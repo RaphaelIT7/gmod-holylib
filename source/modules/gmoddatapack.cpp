@@ -245,7 +245,7 @@ static size_t SkipEmpty(const std::vector<Token> &tokens, size_t start)
 	return start;
 }
 
-// The goal is to remove parts of a Lua script without changing the line code (so that errors remain easy to debug!)
+// The goal is to remove parts of a Lua script without changing the line number (so that errors remain easy to debug!)
 static size_t RemoveScoped(size_t i, size_t j, std::vector<Token> &tokens, std::stringstream& ss, TokenType tok)
 {
 	int depth = 1;
@@ -380,7 +380,7 @@ public:
 			std::vector<unsigned char> pHash = HashString((const char*)content.data(), content.length() + 1);
 			compressed.Write(pHash.data(), pHash.size());
 
-			return Bootil::Compression::LZMA::Compress(content.data(), content.length() + 1, compressed);
+			return Bootil::Compression::LZMA::Compress(content.data(), content.length() + 1, compressed, 9);
 		}
 
 		inline void Clear()
@@ -416,15 +416,6 @@ public:
 			return;
 		}
 
-		bool bError;
-		std::string strippedContent = StripContent(content, &bError);
-		if (bError)
-		{
-			Warning(PROJECT_NAME " - gmoddatapack: Failed to strip file due to lua errors! (%s)", strippedContent.c_str());
-		} else {
-			content = strippedContent;
-		}
-
 		std::lock_guard<std::shared_mutex> lock(m_pLuaFileCacheMutex);
 		LuaPackEntry& pEntry = m_pLuaFileCache[fileID];
 		if (pEntry.content == content) // Nothing changed
@@ -432,9 +423,6 @@ public:
 
 		pEntry.compressed.Clear();
 		pEntry.content = content;
-
-		std::vector<unsigned char> pHash = HashString(content.c_str(), content.length() + 1);
-		g_pDataPack->m_pClientLuaFiles->SetStringUserData(fileID, pHash.size(), pHash.data()); // New hash
 
 		std::lock_guard<std::mutex> queueLock(m_pCompressQueueMutex);
 		m_pCompressQueue.push_back(fileID);
@@ -469,6 +457,18 @@ public:
 		//{
 		//	pEntry->content
 		//}
+
+		bool bError;
+		std::string strippedContent = StripContent(pEntry->content, &bError);
+		if (bError)
+		{
+			Warning(PROJECT_NAME " - gmoddatapack: Failed to strip fileID \"%i\" due to lua errors! (%s)", fileID, strippedContent.c_str());
+		} else {
+			pEntry->content = strippedContent;
+		}
+
+		std::vector<unsigned char> pHash = HashString(pEntry->content.c_str(), pEntry->content.length() + 1);
+		g_pDataPack->m_pClientLuaFiles->SetStringUserData(fileID, pHash.size(), pHash.data()); // New hash
 
 		bool bSuccess = pEntry->Compress();
 		if (!bSuccess)
