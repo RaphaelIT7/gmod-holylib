@@ -292,15 +292,6 @@ public:
 	class LuaPackEntry
 	{
 	public:
-		~LuaPackEntry() // Lazy handling to save some bytes by not using std::string
-		{
-			if (content.data())
-			{
-				delete[] content.data();
-				content = nullptr;
-			}
-		}
-
 		inline bool IsReady() const
 		{
 			return compressed.GetWritten() != 0;
@@ -308,21 +299,28 @@ public:
 
 		inline bool Compress()
 		{
-			return Bootil::Compression::LZMA::Compress(content.data(), content.length(), compressed);
+			bool bSuccess = Bootil::Compression::LZMA::Compress(content.data(), content.length() + 1, compressed);
+			if (bSuccess)
+			{
+				std::vector<unsigned char> pHash = HashString((const char*)compressed.GetBase(), compressed.GetWritten());
+				compressed.Write(pHash.data(), pHash.size());
+			}
+
+			return bSuccess;
 		}
 
 		inline void Clear()
 		{
-			if (content.data())
+			if (content.length() > 0)
 			{
 				delete[] content.data();
-				content = nullptr;
+				content = "";
 			}
 
 			compressed.Clear();
 		}
 
-		std::string_view content;
+		std::string content = "";
 		Bootil::AutoBuffer compressed;
 	};
 
@@ -355,10 +353,13 @@ public:
 
 		std::lock_guard<std::shared_mutex> lock(m_pLuaFileCacheMutex);
 		LuaPackEntry& pEntry = m_pLuaFileCache[fileID];
+		if (pEntry.content == content) // Nothing changed
+			return;
+
 		pEntry.compressed.Clear();
 		pEntry.content = content;
 
-		std::vector<unsigned char> pHash = HashString(content.c_str(), content.length());
+		std::vector<unsigned char> pHash = HashString(content.c_str(), content.length() + 1);
 		g_pDataPack->m_pClientLuaFiles->SetStringUserData(fileID, pHash.size(), pHash.data()); // New hash
 
 		std::lock_guard<std::mutex> queueLock(m_pCompressQueueMutex);
@@ -397,7 +398,9 @@ public:
 
 		bool bSuccess = pEntry->Compress();
 		if (!bSuccess)
-			Warning(PROJECT_NAME " - gmoddatapack: Failed to compress lua file %i", fileID);
+			Warning(PROJECT_NAME " - gmoddatapack: Failed to compress lua file %i\n", fileID);
+		else
+			DevMsg(PROJECT_NAME " - gmoddatapack: Compressed lua file %i (compressed/uncompressed: %i/%i)\n", fileID, pEntry->compressed.GetWritten(), pEntry->content.length());
 
 		return bSuccess;
 	}
@@ -495,14 +498,17 @@ void LuaDataPack::Shutdown()
 		m_pWorkerThread = nullptr;
 	}
 
-	for (int i=0; i<MAX_LUA_FILES; ++i)
-		m_pLuaFileCache[i].Clear();
+	// We keep it, simply because then we can re-use stuff
+	//for (int i=0; i<MAX_LUA_FILES; ++i)
+	//	m_pLuaFileCache[i].Clear();
 }
 
 static Detouring::Hook detour_GModDataPack_AddOrUpdateFile;
 static void hook_GModDataPack_AddOrUpdateFile(GModDataPack* pDataPack, GarrysMod::Lua::LuaFile* file, bool bReCompress)
 {
 	g_pDataPack = pDataPack;
+	g_pLuaDataPack.AddFileContents(file->GetName(), file->GetContents());
+	/*
 	if (g_Lua && Lua::PushHook("HolyLib:AddOrUpdateFileToDataPack")) // Allows one to override the clientside content
 	{
 		g_Lua->PushString(file->GetName());
@@ -530,7 +536,7 @@ static void hook_GModDataPack_AddOrUpdateFile(GModDataPack* pDataPack, GarrysMod
 		// We restore the original content in case it's a shared file.
 		// Since we forced it to re-compress the file buffer now contains our processed content, which will be sent to clients.
 	}
-	lua_close(L);
+	lua_close(L);*/
 
 	//if (!pDataPack->m_pClientLuaFiels)
 	//	return;
