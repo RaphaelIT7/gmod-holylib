@@ -584,7 +584,7 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 
 			if (nFlags & FL_EDICT_ALWAYS)
 			{
-				while (true)
+				while (pEdict) // Stop if we got no edict / for example have no further parent
 				{
 					pAlwaysTransmitBits.Set(iEdict);
 					NETWORKING_SETSTATE(iEdict, pOKAlways)
@@ -598,7 +598,8 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 						break;
 
 					pEdict = pParent->edict();
-					iEdict = pEdict->m_EdictIndex;
+					if (pEdict)
+						iEdict = pEdict->m_EdictIndex; // Source engine normally uses pParent->entindex() which needs no null check due to it using ENTINDEX internally
 				}
 				continue;
 			}
@@ -1644,7 +1645,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 			{
 				// FIXME: Hey! Shouldn't this be using SetTransmit so as 
 				// to also force network down dependent entities?
-				while ( true )
+				while ( pEdict ) // Stop if we got no edict / for example have no further parent
 				{
 					// mark entity for sending
 					pInfo->m_pTransmitEdict->Set( iEdict );
@@ -1662,7 +1663,8 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 						break;
 
 					pEdict = pParent->edict();
-					iEdict = pEdict->m_EdictIndex;
+					if (pEdict)
+						iEdict = pEdict->m_EdictIndex; // Source engine normally uses pParent->entindex() which needs no null check due to it using ENTINDEX internally
 				}
 				continue;
 			}
