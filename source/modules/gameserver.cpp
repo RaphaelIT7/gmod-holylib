@@ -2573,6 +2573,9 @@ static bool hook_CBaseServer_ProcessConnectionlessPacket(IServer* server, netpac
 	return detour_CBaseServer_ProcessConnectionlessPacket.GetTrampoline<Symbols::CBaseServer_ProcessConnectionlessPacket>()(server, packet);
 }
 
+#if MODULE_EXISTS_GMODDATAPACK
+extern bool GMODDataPack_SetSignOnState(CBaseClient* cl, int state);
+#endif
 static Detouring::Hook detour_CBaseClient_SetSignonState;
 static bool hook_CBaseClient_SetSignonState(CBaseClient* cl, int state, int spawncount)
 {
@@ -2590,6 +2593,11 @@ static bool hook_CBaseClient_SetSignonState(CBaseClient* cl, int state, int spaw
 				return false;
 		}
 	}
+
+#if MODULE_EXISTS_GMODDATAPACK
+	if (GMODDataPack_SetSignOnState(cl, state))
+		return false;
+#endif
 
 	return detour_CBaseClient_SetSignonState.GetTrampoline<Symbols::CBaseClient_SetSignonState>()(cl, state, spawncount);
 }
