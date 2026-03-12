@@ -509,6 +509,7 @@ static void gc_call_finalizer(global_State *g, lua_State *L,
   GCSize oldt = g->gc.threshold;
   int errcode;
   lua_State *VL = vmthread(g);
+  lua_init_stack_gmod(VL, L);
   TValue *top;
   lj_trace_abort(g);
   hook_entergc(g);  /* Disable hooks and new traces during __gc. */
