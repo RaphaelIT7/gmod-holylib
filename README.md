@@ -4125,6 +4125,9 @@ Checks if the function is set to be inaccessible by any debug function.<br>
 #### `luajit.enableFFI = false`
 If set to `true`, `jit.require` will exist and `jit.getffi` will return ffi.<br>
 
+#### `luajit.enableFFIOverrides = true`
+If set to `true` the `VectorFFI`, `AngleFFI` and other scripts are loaded as class overrides for improved performance<br>
+
 #### `luajit.keepRemovedDebugFunctions = false`
 If set to `true`, all debug function listed below are restored.<br>
 `debug.setlocal`, `debug.setupvalue`, `debug.upvalueid` and `debug.upvaluejoin`<br>

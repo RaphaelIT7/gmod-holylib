@@ -34,11 +34,13 @@ public:
 	void OnConfigLoad(Bootil::Data::Tree& pConfig) override
 	{
 		m_bAllowFFI = pConfig.EnsureChildVar<bool>("enableFFI", m_bAllowFFI);
+		m_bEnableFFIOverrides = pConfig.EnsureChildVar<bool>("enableFFIOverrides", m_bEnableFFIOverrides);
 		m_bKeepRemovedDebugFunctions = pConfig.EnsureChildVar<bool>("keepRemovedDebugFunctions", m_bKeepRemovedDebugFunctions);
 	};
 
 public:
 	bool m_bAllowFFI = false;
+	bool m_bEnableFFIOverrides = true;
 	bool m_bKeepRemovedDebugFunctions = false;
 	bool m_bIsEnabled = false;
 };
@@ -310,28 +312,31 @@ void CLuaJITModule::PostLuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		overrideFFIReference = luaL_ref(L, LUA_REGISTRYINDEX);
 	}
 
-	if (!pLua->RunStringEx("HolyLib:HolyLibUserDataFFI.lua", "", luaHolyLibUserDataFFI, true, true, true, true))
+	if (g_pLuaJITModule.m_bEnableFFIOverrides)
 	{
-		Warning(PROJECT_NAME " - luajit: Failed to load HolyLibUserData script!\n");
-	}
+		if (!pLua->RunStringEx("HolyLib:HolyLibUserDataFFI.lua", "", luaHolyLibUserDataFFI, true, true, true, true))
+		{
+			Warning(PROJECT_NAME " - luajit: Failed to load HolyLibUserData script!\n");
+		}
 
-	if (!pLua->RunStringEx("HolyLib:VectorFFI.lua", "", luaVectorFFI, true, true, true, true))
-	{
-		Warning(PROJECT_NAME " - luajit: Failed to load VectorFFI script!\n");
-	}
+		if (!pLua->RunStringEx("HolyLib:VectorFFI.lua", "", luaVectorFFI, true, true, true, true))
+		{
+			Warning(PROJECT_NAME " - luajit: Failed to load VectorFFI script!\n");
+		}
 
-	if (!pLua->RunStringEx("HolyLib:AngleFFI.lua", "", luaAngleFFI, true, true, true, true))
-	{
-		Warning(PROJECT_NAME " - luajit: Failed to load AngleFFI script!\n");
-	}
+		if (!pLua->RunStringEx("HolyLib:AngleFFI.lua", "", luaAngleFFI, true, true, true, true))
+		{
+			Warning(PROJECT_NAME " - luajit: Failed to load AngleFFI script!\n");
+		}
 
-	if (!pLua->RunStringEx("HolyLib:VoiceDataFFI.lua", "", luaVoiceDataFFI, true, true, true, true))
-	{
-		Warning(PROJECT_NAME " - luajit: Failed to load VoiceDataFFI script!\n");
-	}
+		if (!pLua->RunStringEx("HolyLib:VoiceDataFFI.lua", "", luaVoiceDataFFI, true, true, true, true))
+		{
+			Warning(PROJECT_NAME " - luajit: Failed to load VoiceDataFFI script!\n");
+		}
 
-	pLua->PushNil();
-	pLua->SetField(GarrysMod::Lua::INDEX_GLOBAL, "__HOLYLIB_FFI"); // A table that the script could have used to share data between them.
+		pLua->PushNil();
+		pLua->SetField(GarrysMod::Lua::INDEX_GLOBAL, "__HOLYLIB_FFI"); // A table that the script could have used to share data between them.
+	}
 
 	// Remove FFI again.
 	if (overrideFFIReference != -1)
