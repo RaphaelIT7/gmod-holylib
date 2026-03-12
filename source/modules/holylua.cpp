@@ -7,6 +7,7 @@
 #include "iluashared.h"
 #include "sourcesdk/GameEventManager.h"
 #include <atomic>
+#include <xmmintrin.h>
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -281,10 +282,30 @@ LUA_FUNCTION(holylua_RunString)
     return 1;
 }
 
+LUA_FUNCTION_STATIC(GetMXCSR)
+{
+	unsigned int mxcsr = _mm_getcsr();
+	printf("MXCSR: %08x\n", mxcsr);
+ 
+	return 0;
+}
+
+LUA_FUNCTION_STATIC(SetMXCSR)
+{
+	unsigned int csr = _mm_getcsr();
+	csr &= ~(1 << 15); // disable FTZ
+	csr &= ~(1 << 6);  // disable DAZ
+	_mm_setcsr(csr);
+ 
+	return 0;
+}
+
 void CHolyLuaModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	Util::StartTable(pLua);
 		Util::AddFunc(pLua, holylua_RunString, "RunString");
+		Util::AddFunc(pLua, GetMXCSR, "GetMXCSR");
+		Util::AddFunc(pLua, SetMXCSR, "SetMXCSR");
 	Util::FinishTable(pLua, "holylua");
 
 	Lua::ScopedThreadAccess pThreadScope;
