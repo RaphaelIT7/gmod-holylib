@@ -125,8 +125,11 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 						}
 					}
 
-					while (i+1 < content.size() && content[i] == ']')
-						i++; // Skip second ]
+					if (content[i] == ']')
+						if (count > 0)
+							i++; // Skip second ]
+						else
+							i=i+2;
 				} else
 				{
 					while (i < content.size() && content[i] != '\n')
@@ -213,8 +216,11 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 					}
 				}
 
-				while (i+1 < content.size() && content[i] == ']')
-					i++; // Skip second ]
+				if (content[i] == ']')
+					if (count > 0)
+						i++; // Skip second ]
+					else
+						i=i+2;
 
 				// Long String
 				tokens.push_back({TK_SOMETHING, content.substr(start, i-start)});
