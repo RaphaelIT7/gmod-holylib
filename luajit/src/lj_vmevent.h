@@ -32,27 +32,23 @@ typedef enum {
 } VMEvent;
 
 #ifdef LUAJIT_DISABLE_VMEVENT
-#define lj_vmevent_send(g, ev, args)		UNUSED(g)
-#define lj_vmevent_send_(g, ev, args, post)	UNUSED(g)
+#define lj_vmevent_send(L, ev, args)		UNUSED(L)
+#define lj_vmevent_send_(L, ev, args, post)	UNUSED(L)
 #else
-#define lj_vmevent_send(g, ev, args) \
-  if ((g)->vmevmask & VMEVENT_MASK(LJ_VMEVENT_##ev)) { \
-    lua_State *V = vmthread(g); \
-    lua_init_stack_gmod(V, mainthread(g)); \
-    ptrdiff_t argbase = lj_vmevent_prepare(V, LJ_VMEVENT_##ev); \
+#define lj_vmevent_send(L, ev, args) \
+  if (G(L)->vmevmask & VMEVENT_MASK(LJ_VMEVENT_##ev)) { \
+    ptrdiff_t argbase = lj_vmevent_prepare(L, LJ_VMEVENT_##ev); \
     if (argbase) { \
       args \
-      lj_vmevent_call(V, argbase); \
+      lj_vmevent_call(L, argbase); \
     } \
   }
-#define lj_vmevent_send_(g, ev, args, post) \
-  if ((g)->vmevmask & VMEVENT_MASK(LJ_VMEVENT_##ev)) { \
-    lua_State *V = vmthread(g); \
-    lua_init_stack_gmod(V, mainthread(g)); \
-    ptrdiff_t argbase = lj_vmevent_prepare(V, LJ_VMEVENT_##ev); \
+#define lj_vmevent_send_(L, ev, args, post) \
+  if (G(L)->vmevmask & VMEVENT_MASK(LJ_VMEVENT_##ev)) { \
+    ptrdiff_t argbase = lj_vmevent_prepare(L, LJ_VMEVENT_##ev); \
     if (argbase) { \
       args \
-      lj_vmevent_call(V, argbase); \
+      lj_vmevent_call(L, argbase); \
       post \
     } \
   }

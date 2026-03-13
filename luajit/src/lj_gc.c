@@ -106,7 +106,6 @@ static void gc_mark_start(global_State *g)
   setgcrefnull(g->gc.weak);
   gc_markobj(g, mainthread(g));
   gc_markobj(g, tabref(mainthread(g)->env));
-  gc_markobj(g, vmthread(g));
   gc_marktv(g, &g->registrytv);
   gc_mark_gcroot(g);
   g->gc.state = GCSpropagate;
@@ -508,26 +507,24 @@ static void gc_call_finalizer(global_State *g, lua_State *L,
   uint8_t oldh = hook_save(g);
   GCSize oldt = g->gc.threshold;
   int errcode;
-  lua_State *VL = vmthread(g);
-  lua_init_stack_gmod(VL, L);
   TValue *top;
   lj_trace_abort(g);
   hook_entergc(g);  /* Disable hooks and new traces during __gc. */
   if (LJ_HASPROFILE && (oldh & HOOK_PROFILE)) lj_dispatch_update(g);
   g->gc.threshold = LJ_MAX_MEM;  /* Prevent GC steps. */
-  top = VL->top;
-  copyTV(VL, top++, mo);
+  top = L->top;
+  copyTV(L, top++, mo);
   if (LJ_FR2) setnilV(top++);
-  setgcV(VL, top, o, ~o->gch.gct);
-  VL->top = top+1;
-  errcode = lj_vm_pcall(VL, top, 1+0, -1);  /* Stack: |mo|o| -> | */
-  setgcref(g->cur_L, obj2gco(L));
+  setgcV(L, top, o, ~o->gch.gct);
+  L->top = top+1;
+  errcode = lj_vm_pcall(L, top, 1+0, -1);  /* Stack: |mo|o| -> | */
   hook_restore(g, oldh);
   if (LJ_HASPROFILE && (oldh & HOOK_PROFILE)) lj_dispatch_update(g);
   g->gc.threshold = oldt;  /* Restore GC threshold. */
   if (errcode) {
-    lj_vmevent_send(g, ERRFIN,
-      copyTV(V, V->top++, L->top-1);
+    ptrdiff_t errobj = savestack(L, L->top-1);  /* Stack may be resized. */
+    lj_vmevent_send(L, ERRFIN,
+      copyTV(L, L->top++, restorestack(L, errobj));
     );
     L->top--;
   }
