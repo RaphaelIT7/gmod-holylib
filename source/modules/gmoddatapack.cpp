@@ -279,7 +279,7 @@ static size_t RemoveScoped(size_t i, size_t j, std::vector<Token> &tokens, std::
 		}
 		else if (tokens[i].type == TK_ELSE && depth == 1)
 		{
-			if (TK_IF)
+			if (tok == TK_IF)
 				tokens[i].content = "do";
 
 			depth--;
