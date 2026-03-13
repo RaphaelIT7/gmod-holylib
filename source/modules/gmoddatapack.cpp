@@ -851,7 +851,6 @@ static void SendFileThroughUnreliable(int clientIdx, int fileID)
 			return;
 	}
 
-	Msg("clientIDX: %i\n", clientIdx);
 	// Idea: What if... we simply nuke the unreliable stream to send it?
 	// The client wouldn't really complain if we send both reliable and unreliable... right?
 	// Also, I am like 99% sure we can just send RequestLuaFiles once we assumed we sent everything and the client will tell us what is missing
