@@ -792,7 +792,7 @@ LUA_API void lua_pushtracablecclosure(lua_State* L, lua_CFunctionInfo *info)
 LUA_API void lua_settracablecclosure(lua_State* L, int idx, lua_CFunctionInfo *info)
 {
   cTValue *o = index2adr_check(L, idx);
-  if (tvisfunc(o) && isluafunc(funcV(o))) {
+  if (tvisfunc(o) && !isluafunc(funcV(o))) {
     lua_fillCFuncInfo(L, funcV(o), info);
   }
 }
