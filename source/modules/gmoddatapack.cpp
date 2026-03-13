@@ -17,6 +17,7 @@
 
 #undef isalnum // 64x loves to shit on this one AGAIN
 #undef isalpha // 64x loves to shit on this one AGAIN FUCKING HELL
+#undef isspace // 64x SHAT AGAIN! OMFG
 
 class CGModDataPackModule : public IModule
 {
@@ -278,8 +279,17 @@ static size_t RemoveScoped(size_t i, size_t j, std::vector<Token> &tokens, std::
 		}
 		else if (tokens[i].type == TK_ELSE && depth == 1)
 		{
-			tokens[i].content = "do";
+			if (TK_IF)
+				tokens[i].content = "do";
+
 			depth--;
+			if (depth <= 0)
+			{
+				// If we had for example "	elseif xx then" we want to restore the space before it.
+				while (i-1 > 0 && tokens[i-1].isEmpty && !(tokens[i-1].type == TK_SOMETHING && tokens[i-1].content == "\n"))
+					i--;
+			}
+
 			continue;
 		}
 		else if (tokens[i].type == TK_ELSEIF)
@@ -288,6 +298,10 @@ static size_t RemoveScoped(size_t i, size_t j, std::vector<Token> &tokens, std::
 			if (depth <= 0)
 			{
 				tokens[i].content = tok == TK_IF ? "if" : "elseif";
+				// If we had for example "	elseif xx then" we want to restore the space before it.
+				while (i-1 > 0 && tokens[i-1].isEmpty && !(tokens[i-1].type == TK_SOMETHING && tokens[i-1].content == "\n"))
+					i--;
+
 				continue;
 			}
 		}
@@ -352,7 +366,21 @@ std::string ProcessTokens(std::vector<Token> &tokens)
 		i++;
 	}
 
-	return ss.str();
+	std::string pCode = ss.str();
+	bool bHasCode = false;
+	for (char c : pCode)
+	{
+		if (!std::isspace(static_cast<unsigned char>(c)))
+		{
+			bHasCode = true;
+			break;
+		}
+	}
+
+	if (!bHasCode)
+		pCode = "--"; // Nothing to see :3
+
+	return pCode;
 }
 
 // Copies what GMod does in GModDataPack::GetHashFromString
