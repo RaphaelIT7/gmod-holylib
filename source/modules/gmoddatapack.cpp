@@ -56,6 +56,7 @@ struct Token {
 	TokenType type;
 	std::string content;
 	bool isEmpty = false;
+	bool canBacktrace = false; // If we can backtrace this one safely without triggering a lua error
 };
 
 static inline TokenType KeywordType(const std::string &word)
@@ -81,7 +82,7 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 		char c = content[i];
 		if (c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '(' || c == ')')
 		{
-			tokens.push_back({TK_SOMETHING, std::string(1, c), true});
+			tokens.push_back({TK_SOMETHING, std::string(1, c), true, (c != '(' && c != ')')});
 			i++;
 			continue;
 		}
@@ -262,6 +263,7 @@ static size_t RemoveScoped(size_t i, size_t j, std::vector<Token> &tokens, std::
 {
 	int depth = 1;
 	i = j + 1;
+	bool bHasLineBreaks = false; // If it's a one line if -> "if x then x else x end" then we won't restore spaces
 	while (i < tokens.size() && depth > 0)
 	{
 		if (tokens[i].type == TK_THEN || tokens[i].type == TK_DO || tokens[i].type == TK_FUNCTION)
@@ -271,7 +273,10 @@ static size_t RemoveScoped(size_t i, size_t j, std::vector<Token> &tokens, std::
 			if (tok == TK_ELSEIF && depth <= 0)
 				continue;
 		else if (tokens[i].type == TK_SOMETHING && tokens[i].content == "\n")
+		{
+			bHasLineBreaks = true;
 			ss << '\n';
+		}
 		else if (tokens[i].type == TK_COMMENT)
 		{
 			for (char c : tokens[i].content)
@@ -282,14 +287,11 @@ static size_t RemoveScoped(size_t i, size_t j, std::vector<Token> &tokens, std::
 			if (tok == TK_IF)
 				tokens[i].content = "do";
 
-			depth--;
-			if (depth <= 0)
-			{
-				// If we had for example "	elseif xx then" we want to restore the space before it.
-				while (i-1 > 0 && tokens[i-1].isEmpty && !(tokens[i-1].type == TK_SOMETHING && tokens[i-1].content == "\n"))
-					i--;
-			}
+			// If we had for example "	elseif xx then" we want to restore the space before it.
+			while (bHasLineBreaks && i-1 > 0 && tokens[i-1].canBacktrace && !(tokens[i-1].type == TK_SOMETHING && tokens[i-1].content == "\n"))
+				i--;
 
+			depth--;
 			continue;
 		}
 		else if (tokens[i].type == TK_ELSEIF)
@@ -299,7 +301,7 @@ static size_t RemoveScoped(size_t i, size_t j, std::vector<Token> &tokens, std::
 			{
 				tokens[i].content = tok == TK_IF ? "if" : "elseif";
 				// If we had for example "	elseif xx then" we want to restore the space before it.
-				while (i-1 > 0 && tokens[i-1].isEmpty && !(tokens[i-1].type == TK_SOMETHING && tokens[i-1].content == "\n"))
+				while (bHasLineBreaks && i-1 > 0 && tokens[i-1].canBacktrace && !(tokens[i-1].type == TK_SOMETHING && tokens[i-1].content == "\n"))
 					i--;
 
 				continue;
@@ -312,14 +314,14 @@ static size_t RemoveScoped(size_t i, size_t j, std::vector<Token> &tokens, std::
 	return i;
 }
 
-std::string ProcessTokens(std::vector<Token> &tokens)
+std::string ProcessTokens(std::vector<Token> &tokens, bool bRemoveServerCode, bool bRemoveComments)
 {
 	std::stringstream ss;
 	size_t i = 0;
 
 	while (i < tokens.size()) {
 		const Token &tok = tokens[i];
-		if (gmoddatapack_removecomments.GetBool() && tok.type == TK_COMMENT)
+		if (bRemoveComments && tok.type == TK_COMMENT)
 		{
 			for (char c : tok.content)
 				if (c == '\n') ss << '\n';
@@ -328,7 +330,7 @@ std::string ProcessTokens(std::vector<Token> &tokens)
 			continue;
 		}
 
-		if (gmoddatapack_removeserverif.GetBool() && tok.type == TK_IF)
+		if (bRemoveServerCode && tok.type == TK_IF)
 		{
 			size_t j = i + 1;
 			j = SkipEmpty(tokens, j);
@@ -484,7 +486,7 @@ public:
 			lua_close(L);
 
 			std::vector<Token> tokens = TokenizeContent(content);
-			return ProcessTokens(tokens);
+			return ProcessTokens(tokens, gmoddatapack_removeserverif.GetBool(), gmoddatapack_removecomments.GetBool());
 		}
 	}
 
@@ -747,6 +749,8 @@ LUA_FUNCTION_STATIC(gmoddatapack_StripCode)
 {
 	size_t nLength = -1;
 	const char* pContent = Util::CheckLString(LUA, 1, &nLength);
+	bool bRemoveServerCode = Util::CheckBoolOpt(LUA, 2, gmoddatapack_removeserverif.GetBool());
+	bool bRemoveComments = Util::CheckBoolOpt(LUA, 3, gmoddatapack_removecomments.GetBool());
 
 	lua_State* L = luaL_newstate();
 	if (luaL_loadbuffer(L, pContent, nLength, "gmoddatapack.StripCode") != LUA_OK)
@@ -758,7 +762,7 @@ LUA_FUNCTION_STATIC(gmoddatapack_StripCode)
 	} else {
 		std::string strContent = pContent;
 		std::vector<Token> tokens = TokenizeContent(strContent);
-		std::string finalCode = ProcessTokens(tokens);
+		std::string finalCode = ProcessTokens(tokens, bRemoveServerCode, bRemoveComments);
 		LUA->PushString(finalCode.c_str(), finalCode.length());
 	}
 	lua_close(L);
@@ -775,7 +779,14 @@ LUA_FUNCTION_STATIC(gmoddatapack_GetStoredCode)
 		return 1;
 	}
 
-	int fileID = g_pDataPack->m_pClientLuaFiles->FindStringIndex(pFileName);
+	GarrysMod::Lua::LuaFile* luaFile = Lua::GetShared()->GetCache(pFileName);
+	if (!luaFile)
+	{
+		LUA->PushNil();
+		return 1;
+	}
+
+	int fileID = g_pDataPack->m_pClientLuaFiles->FindStringIndex(luaFile->GetName());
 	if (fileID == INVALID_STRING_INDEX)
 	{
 		LUA->PushNil();
@@ -796,14 +807,21 @@ LUA_FUNCTION_STATIC(gmoddatapack_GetStoredCode)
 
 LUA_FUNCTION_STATIC(gmoddatapack_GetCompressedSize)
 {
-const char* pFileName = LUA->CheckString(1);
+	const char* pFileName = LUA->CheckString(1);
 	if (!g_pDataPack)
 	{
 		LUA->PushNil();
 		return 1;
 	}
 
-	int fileID = g_pDataPack->m_pClientLuaFiles->FindStringIndex(pFileName);
+	GarrysMod::Lua::LuaFile* luaFile = Lua::GetShared()->GetCache(pFileName);
+	if (!luaFile)
+	{
+		LUA->PushNil();
+		return 1;
+	}
+
+	int fileID = g_pDataPack->m_pClientLuaFiles->FindStringIndex(luaFile->GetName());
 	if (fileID == INVALID_STRING_INDEX)
 	{
 		LUA->PushNil();
