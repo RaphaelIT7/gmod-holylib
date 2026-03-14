@@ -2254,6 +2254,9 @@ LUA_FUNCTION_STATIC(gameserver_GetFreeClient)
 
 LUA_FUNCTION_STATIC(gameserver_GetCPUUsage)
 {
+	if (!Util::server || !Util::server->IsActive())
+		return 0;
+
 	CBaseServer* pServer = (CBaseServer*)Util::server;
 	LUA->PushNumber(pServer->GetCPUUsage());
 
