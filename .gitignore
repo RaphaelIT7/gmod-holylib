@@ -1,3 +1,6 @@
+# clangd
+.cache
+compile_commands.json
 
 Bootil/projects/obj/
 Bootil/projects/release_x64_windows/
