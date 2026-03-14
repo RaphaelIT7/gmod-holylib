@@ -2459,11 +2459,8 @@ void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, gameserver_CreateFakeQueueClient, "CreateFakeQueueClient");
 		Util::AddFunc(pLua, gameserver_CreateNewClient, "CreateNewClient");
 		Util::AddFunc(pLua, gameserver_GetFreeClient, "GetFreeClient");
-<<<<<<< HEAD
 		Util::AddFunc(pLua, gameserver_GetCPUUsage, "GetCPUUsage");
-=======
 		Util::AddFunc(pLua, gameserver_GetSocket, "GetSocket");
->>>>>>> ebe9eca034378e82c7ca52640db2276f9b106b3c
 
 		Util::AddFunc(pLua, gameserver_CreateNetChannel, "CreateNetChannel");
 		Util::AddFunc(pLua, gameserver_RemoveNetChannel, "RemoveNetChannel");
