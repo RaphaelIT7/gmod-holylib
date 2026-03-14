@@ -4155,7 +4155,10 @@ Returns the CGameClient for the given userID or `nil` on failure.<br>
 Returns the CGameClient for the given steamID or `nil` on failure. (steamID not steamID64!)<br>
 
 #### number gameserver.GetClientCount()
-returns client count for iteration of `gameserver.GetClient`<br>
+Returns client count for iteration of `gameserver.GetClient`<br>
+
+#### number gameserver.GetCPUUsage()
+Returns current CPU usage: number [0-1]<br>
 
 > [!NOTE]
 > This will include inactive `CGameClient`'s since the engine re-uses them and doesn't delete them on disconnect.<br>
