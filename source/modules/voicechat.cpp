@@ -369,6 +369,12 @@ LUA_FUNCTION_STATIC(VoiceData_GetPlayerSlot)
 	return 1;
 }
 
+int FUNC_FASTCALL ASM_VoiceData_GetPlayerSlot(LuaUserData* ud)
+{
+	VoiceData* pData = (VoiceData*)ud->GetData();
+	return pData ? pData->iPlayerSlot : 0;
+}
+
 LUA_FUNCTION_STATIC(VoiceData_GetLength)
 {
 	VoiceData* pData = Get_VoiceData(LUA, 1, true);
@@ -376,6 +382,12 @@ LUA_FUNCTION_STATIC(VoiceData_GetLength)
 	LUA->PushNumber(pData->GetLength());
 
 	return 1;
+}
+
+int FUNC_FASTCALL ASM_VoiceData_GetLength(LuaUserData* ud)
+{
+	VoiceData* pData = (VoiceData*)ud->GetData();
+	return pData ? pData->GetLength() : 0;
 }
 
 LUA_FUNCTION_STATIC(VoiceData_GetData)
@@ -427,8 +439,13 @@ LUA_FUNCTION_STATIC(VoiceData_GetProximity)
 	VoiceData* pData = Get_VoiceData(LUA, 1, true);
 
 	LUA->PushBool(pData->bProximity);
-
 	return 1;
+}
+
+int FUNC_FASTCALL ASM_VoiceData_GetProximity(LuaUserData* ud)
+{
+	VoiceData* pData = (VoiceData*)ud->GetData();
+	return pData ? pData->bProximity : 0;
 }
 
 LUA_FUNCTION_STATIC(VoiceData_SetPlayerSlot)
@@ -436,7 +453,6 @@ LUA_FUNCTION_STATIC(VoiceData_SetPlayerSlot)
 	VoiceData* pData = Get_VoiceData(LUA, 1, true);
 
 	pData->iPlayerSlot = (int)LUA->CheckNumber(2);
-
 	return 0;
 }
 
@@ -445,7 +461,6 @@ LUA_FUNCTION_STATIC(VoiceData_SetLength)
 	VoiceData* pData = Get_VoiceData(LUA, 1, true);
 
 	pData->SetLength((int)LUA->CheckNumber(2));
-
 	return 0;
 }
 
@@ -472,7 +487,6 @@ LUA_FUNCTION_STATIC(VoiceData_SetProximity)
 	VoiceData* pData = Get_VoiceData(LUA, 1, true);
 
 	pData->bProximity = LUA->GetBool(2);
-
 	return 0;
 }
 
@@ -1444,6 +1458,9 @@ static void CheckTalkingState(int nPlayerSlot, bool bIsTalking)
 
 void CVoiceChatModule::ClientDisconnect(edict_t* pClient)
 {
+	if (pClient->m_EdictIndex > MAX_PLAYERS)
+		return;
+
 	// We gotta prevent the hook from firing when the player already disconnected, so we reset these here
 	g_bIsPlayerTalking[pClient->m_EdictIndex-1] = false;
 	g_bIsPlayerMuted[pClient->m_EdictIndex-1] = false;
@@ -2148,14 +2165,14 @@ void CVoiceChatModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServer
 		Util::AddFunc(pLua, VoiceData_GetTable, "GetTable");
 		Util::AddFunc(pLua, VoiceData_IsValid, "IsValid");
 		Util::AddFunc(pLua, VoiceData_GetData, "GetData");
-		Util::AddFunc(pLua, VoiceData_GetLength, "GetLength");
-		Util::AddFunc(pLua, VoiceData_GetPlayerSlot, "GetPlayerSlot");
+		Lua::AddJITFunc(pLua, VoiceData_GetLength, "GetLength", Lua::AllowOptOut(Lua::MakeJITFunc(CFUNC_TYPE_INT, (void*)&ASM_VoiceData_GetLength, CFUNC_TYPE_USERDATA)));
+		Lua::AddJITFunc(pLua, VoiceData_GetPlayerSlot, "GetPlayerSlot", Lua::AllowOptOut(Lua::MakeJITFunc(CFUNC_TYPE_INT, (void*)&ASM_VoiceData_GetPlayerSlot, CFUNC_TYPE_USERDATA)));
 		Util::AddFunc(pLua, VoiceData_SetData, "SetData");
 		Util::AddFunc(pLua, VoiceData_SetLength, "SetLength");
 		Util::AddFunc(pLua, VoiceData_SetPlayerSlot, "SetPlayerSlot");
 		Util::AddFunc(pLua, VoiceData_GetUncompressedData, "GetUncompressedData");
 		Util::AddFunc(pLua, VoiceData_SetUncompressedData, "SetUncompressedData");
-		Util::AddFunc(pLua, VoiceData_GetProximity, "GetProximity");
+		Lua::AddJITFunc(pLua, VoiceData_GetProximity, "GetProximity", Lua::AllowOptOut(Lua::MakeJITFunc(CFUNC_TYPE_INT, (void*)&ASM_VoiceData_GetProximity, CFUNC_TYPE_USERDATA)));
 		Util::AddFunc(pLua, VoiceData_SetProximity, "SetProximity");
 		Util::AddFunc(pLua, VoiceData_CreateCopy, "CreateCopy");
 		Util::AddFunc(pLua, VoiceData_Empty, "Empty");

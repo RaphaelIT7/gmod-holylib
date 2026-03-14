@@ -298,21 +298,6 @@ void PostPhysicsLag()
 #if PHYSENV_INCLUDEIVPFALLBACK
 static bool bIsJoltPhysics = false; // if were using jolt, a lot of things need to change.
 class IVP_Mindist;
-static thread_local bool g_bInImpactCall = false;
-static thread_local IVP_Mindist** g_pCurrentMindist;
-static thread_local bool* g_fDeferDeleteMindist;
-
-static Detouring::Hook detour_IVP_Mindist_D2;
-static void hook_IVP_Mindist_D2(IVP_Mindist* mindist)
-{
-	if (g_bInImpactCall && *g_fDeferDeleteMindist && *g_pCurrentMindist == nullptr)
-	{
-		*g_fDeferDeleteMindist = false; // The single thing missing in the physics engine that causes it to break.....
-		Warning(PROJECT_NAME " - physenv: Someone forgot to call Entity:CollisionRulesChanged!\n");
-	}
-
-	detour_IVP_Mindist_D2.GetTrampoline<Symbols::IVP_Mindist_D2>()(mindist);
-}
 
 static Detouring::Hook detour_IVP_Mindist_do_impact;
 static void hook_IVP_Mindist_do_impact(IVP_Mindist* mindist)
@@ -323,9 +308,7 @@ static void hook_IVP_Mindist_do_impact(IVP_Mindist* mindist)
 	if (pCurrentSkipType == IVP_SkipType::IVP_SkipImpact)
 		return;
 
-	g_bInImpactCall = true; // Verify: Do we actually need this?
 	detour_IVP_Mindist_do_impact.GetTrampoline<Symbols::IVP_Mindist_do_impact>()(mindist);
-	g_bInImpactCall = false;
 }
 
 static Detouring::Hook detour_IVP_Event_Manager_Standard_simulate_time_events;
@@ -2740,9 +2723,9 @@ DETOUR_THISCALL_FINISH();
 static DLL_Handle g_pPhysicsModule = nullptr;
 void CPhysEnvModule::InitDetour(bool bPreServer)
 {
-#if CUSTOM_VPHYSICS_BUILD
 	if (bPreServer)
 	{
+#if CUSTOM_VPHYSICS_BUILD
 		if (CommandLine()->FindParm("-holylib_replaceivp"))
 		{
 			g_pPhysicsModule = DLL_LoadModule("vphysics" DLL_EXTENSION, RTLD_LAZY); // Load it manually since rn it wasn't loaded yet.
@@ -2758,9 +2741,9 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 		} else {
 			g_pPhysicsHolyLib = nullptr;
 		}
+#endif
 		return;
 	}
-#endif
 
 	if (g_pPhysicsModule)
 	{
@@ -2802,14 +2785,6 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 			vphysics_loader.GetModule(), Symbols::IVP_Mindist_do_impactSym,
 			(void*)hook_IVP_Mindist_do_impact, m_pID
 		);
-
-#if defined(ARCHITECTURE_X86)
-		Detour::Create(
-			&detour_IVP_Mindist_D2, "IVP_Mindist::~IVP_Mindist",
-			vphysics_loader.GetModule(), Symbols::IVP_Mindist_D2Sym,
-			(void*)hook_IVP_Mindist_D2, m_pID
-		);
-#endif
 
 		Detour::Create(
 			&detour_IVP_Event_Manager_Standard_simulate_time_events, "IVP_Event_Manager_Standard::simulate_time_events",
@@ -2906,14 +2881,6 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 			vphysics_loader.GetModule(), Symbols::IVP_Mindist_Manager_recheck_ov_elementSym,
 			(void*)hook_IVP_Mindist_Manager_recheck_ov_element, m_pID
 		);
-
-#if defined(ARCHITECTURE_X86) 
-		g_pCurrentMindist = Detour::ResolveSymbol<IVP_Mindist*>(vphysics_loader, Symbols::g_pCurrentMindistSym);
-		Detour::CheckValue("get class", "g_pCurrentMindist", g_pCurrentMindist != nullptr);
-
-		g_fDeferDeleteMindist = Detour::ResolveSymbol<bool>(vphysics_loader, Symbols::g_fDeferDeleteMindistSym);
-		Detour::CheckValue("get class", "g_fDeferDeleteMindist", g_fDeferDeleteMindist != nullptr);
-#endif
 
 		func_IVP_Mindist_Base_get_objects = (Symbols::IVP_Mindist_Base_get_objects)Detour::GetFunction(vphysics_loader.GetModule(), Symbols::IVP_Mindist_Base_get_objectsSym);
 		Detour::CheckFunction((void*)func_IVP_Mindist_Base_get_objects, "IVP_Mindist_Base::get_objects");

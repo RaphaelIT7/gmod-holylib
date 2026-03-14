@@ -22,6 +22,7 @@ local function CompileLuaScripts()
 end
 CompileLuaScripts()
 
+local existingModules = {}
 local function CompileModuleList()
 	local path = "../modules/"
 	local moduleList = {}
@@ -59,6 +60,7 @@ local function CompileModuleList()
 constexpr int HOLYLIB_MODULEID_]] .. moduleName[2] .. [[ = ]] .. index .. [[;
 
 ]]
+		existingModules[moduleName[2]] = true
 	end
 
 	moduleFile = string.Trim(moduleFile) .. [[
@@ -86,6 +88,71 @@ void CModuleManager::LoadModules()
 end
 CompileModuleList()
 
+local function ExecuteModuleMacros()
+	local path = "../modules/"
+	local moduleList = {}
+	for _, fileName in ipairs(ScanDir(path, false)) do
+		if not EndsWith(fileName, ".cpp") then continue end
+
+		local processState = {
+			mode = "none",
+			phase = "none",
+			outputFile = nil,
+			buffer = {},
+			replacePerLine = nil,
+			dependsOnModule = nil,
+		}
+
+		local content = OpenFile(path .. fileName, "rb")
+		for line in content:lines() do
+			if line:match("HOLYLIB_SETUP_FILE=([^\r\n]+)") then
+				if processState.mode ~= "none" then
+					error("Process state wasn't complete yet!")
+				end
+
+				processState.mode = "generateFile"
+				processState.outputFile = string.Trim(line:match("HOLYLIB_SETUP_FILE=([^\r\n]+)"))
+			elseif line:match("HOLYLIB_SETUP_FILE_END") then
+				if processState.replacePerLine then
+					local rep = processState.replacePerLine
+					for idx, line in ipairs(processState.buffer) do
+						processState.buffer[idx] = string.Replace(line, rep.from, rep.to)
+					end
+				end
+
+				if not processState.dependsOnModule or existingModules[string.upper(processState.dependsOnModule)] then
+					WriteFile("../" .. processState.outputFile, table.concat(processState.buffer, NewLine))
+				end
+
+				processState.mode = "none"
+			elseif line:match("HOLYLIB_SETUP_FILE_CONTENTS_BEGIN") then
+				processState.phase = "content"
+			elseif line:match("HOLYLIB_SETUP_FILE_CONTENTS_END") then
+				processState.phase = "none"
+			elseif line:match("HOLYLIB_SETUP_FILE_DEPENDING_MODULE=([^\r\n]+)") then
+				processState.dependsOnModule = string.Trim(line:match("HOLYLIB_SETUP_FILE_DEPENDING_MODULE=([^\r\n]+)"))
+			elseif line:match("HOLYLIB_SETUP_FILE_REPLACE_PER_LINE=([^\r\n]+)") then
+				local info = string.Trim(line:match("HOLYLIB_SETUP_FILE_REPLACE_PER_LINE=([^\r\n]+)"))
+				local middle, middle_end = string.find(info, "==>")
+				if middle then
+					processState.replacePerLine = {
+						from = string.sub(info, 0, middle-1),
+						to = string.sub(info, middle_end+1),
+					}
+				end
+			elseif line:match("HOLYLIB_SETUP_FILE_SKIPNEXTLINE") then
+				processState.phase = "skipLine"
+			else
+				if processState.phase == "skipLine" then
+					processState.phase = "content"
+				elseif processState.phase == "content" then
+					table.insert(processState.buffer, line)
+				end
+			end
+		end
+	end
+end
+ExecuteModuleMacros()
 
 local function CompileVersionFile()
 	local path = "../../workflow_info.txt"

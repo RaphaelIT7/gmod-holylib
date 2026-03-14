@@ -44,6 +44,10 @@ function WriteFile(path, content)
 	end
 end
 
+function OpenFile(path, mode)
+	return io.open(path, mode)
+end
+
 function ScanDir(directory, recursive) -- NOTE: Recursive is super slow!
 	local i, t, popen = 0, {}, io.popen
 	local pfile
@@ -200,3 +204,7 @@ function PrintTable(tbl, indent)
 		end
 	end
 end
+
+NewLine = [[
+
+]]

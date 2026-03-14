@@ -283,12 +283,7 @@ public:
 	// Default time to wait for next message
 	float		  m_fSnapshotInterval;  
 
-	enum
-	{
-		SNAPSHOT_SCRATCH_BUFFER_SIZE = 1048576,
-	};
-
-	unsigned int		m_SnapshotScratchBuffer[ SNAPSHOT_SCRATCH_BUFFER_SIZE / 4 ];
+	static constexpr uint32_t SNAPSHOT_SCRATCH_BUFFER_SIZE = 1048576;
 
 	CSteamID m_OwnerSteamID; // Verify: Could be owner steamid for Player:OwnerSteamID64()
 

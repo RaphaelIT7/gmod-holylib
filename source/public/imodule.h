@@ -131,7 +131,10 @@ public:
 	// You can load any custom fields from here.
 	virtual void OnConfigLoad(Bootil::Data::Tree& pConfig) { (void)pConfig; };
 
-	// Called on level shutdown
+	// Called on level init
+	virtual void LevelInit(const char *pMapName) { (void)pMapName; };
+
+	// Called on level shutdown (this can get called multiple times per map change)
 	virtual void LevelShutdown() {};
 
 	// Called when Lua tries to load a gmod binary module
@@ -202,6 +205,7 @@ public:
 #define LoadStatus_LuaInit (1<<3)
 #define LoadStatus_LuaServerInit (1<<4)
 #define LoadStatus_ServerActivate (1<<5)
+#define LoadStatus_LevelInit (1<<6)
 
 enum class Module_Realm : unsigned char
 {
@@ -278,6 +282,7 @@ public:
 	virtual void OnEntityDeleted(CBaseEntity* pEntity) = 0;
 	virtual void OnClientConnect(CBaseClient* pClient) = 0;
 	virtual void OnClientDisconnect(CBaseClient* pClient) = 0;
+	virtual void LevelInit(const char *pMapName) = 0;
 	virtual void LevelShutdown() = 0;
 	virtual void PreLuaModuleLoaded(lua_State* L, const char* pFileName) = 0;
 	virtual void PostLuaModuleLoaded(lua_State* L, const char* pFileName) = 0;

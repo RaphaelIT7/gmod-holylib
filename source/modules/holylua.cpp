@@ -6,6 +6,8 @@
 #include "tier0/icommandline.h"
 #include "iluashared.h"
 #include "sourcesdk/GameEventManager.h"
+#include <atomic>
+#include <xmmintrin.h>
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -29,21 +31,33 @@ public: // Just to make it easier with the ConVar callback.
 static CHolyLuaModule g_pHolyLuaModule;
 IModule* pHolyLuaModule = &g_pHolyLuaModule;
 
-static GarrysMod::Lua::ILuaInterface* g_HolyLua = nullptr;
+static std::atomic<GarrysMod::Lua::ILuaInterface*> g_HolyLua = nullptr;
+GarrysMod::Lua::ILuaInterface* GetHolyLuaInterface()
+{
+	return g_HolyLua.load();
+}
+
 static void OnLuaChange(IConVar* convar, const char* pOldValue, float flOldValue)
 {
+	// Util::Load may load convars and set them, meaning this may be called before we're even ready!
+	if (!(g_pModuleManager.GetStatus() & LoadStatus_Init))
+		return;
+
 	bool bNewValue = ((ConVar*)convar)->GetBool();
 
-	if (!bNewValue && g_HolyLua)
+	bool bExists = false;
 	{
-		g_pHolyLuaModule.HolyLua_Shutdown();
+		Lua::ScopedThreadAccess pThreadScope;
+		bExists = GetHolyLuaInterface() != nullptr;
 	}
-	else if (bNewValue && !g_HolyLua)
-	{
+
+	if (!bNewValue && bExists) {
+		g_pHolyLuaModule.HolyLua_Shutdown();
+	} else if (bNewValue && !bExists) {
 		g_pHolyLuaModule.HolyLua_Init();
 	}
 }
-static ConVar holylib_lua("holylib_lua", "0", 0, "If enabled, it will create a new lua interface that will exist until holylib is unloaded", OnLuaChange);
+static ConVar holylib_lua("holylib_lua", "1", 0, "If enabled, it will create a new lua interface that will exist until holylib is unloaded", OnLuaChange);
 
 static void lua_run_holylibCmd(const CCommand &args)
 {
@@ -53,8 +67,10 @@ static void lua_run_holylibCmd(const CCommand &args)
 		return;
 	}
 
-	if (g_HolyLua)
-		g_HolyLua->RunString("RunString", "", args.ArgS(), true, true);
+	Lua::ScopedThreadAccess pThreadScope;
+	Lua::ThreadAccess pAccess(GetHolyLuaInterface());
+	if (pAccess.IsValid())
+		pAccess.GetLua()->RunString("RunString", "", args.ArgS(), true, true);
 }
 static ConCommand lua_run_holylib("lua_run_holylib", lua_run_holylibCmd, "Runs code in the holylib lua state", 0);
 
@@ -65,11 +81,13 @@ void CHolyLuaModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 
 void CHolyLuaModule::Think(bool bSimulating)
 {
-	if (!g_HolyLua)
-		return;
-
-	g_pModuleManager.LuaThink(g_HolyLua);
-	g_HolyLua->Cycle();
+	Lua::ScopedThreadAccess pThreadScope;
+	Lua::ThreadAccess pAccess(GetHolyLuaInterface());
+	if (pAccess.IsValid())
+	{
+		g_pModuleManager.LuaThink(pAccess.GetLua());
+		pAccess.GetLua()->Cycle();
+	}
 }
 
 void CHolyLuaModule::Shutdown()
@@ -82,16 +100,22 @@ void CHolyLuaModule::HolyLua_Init()
 	if (!holylib_lua.GetBool() && !CommandLine()->FindParm("-holylib_lua"))
 		return;
 
-	if (g_HolyLua)
+	bool bShutdown = false;
+	{
+		Lua::ScopedThreadAccess pThreadScope;
+		bShutdown = GetHolyLuaInterface() != nullptr;
+	}
+
+	if (bShutdown)
 	{
 		Warning(PROJECT_NAME " - HolyLua: Called init while already having an interface!\n");
 		HolyLua_Shutdown();
 	}
 
-	g_HolyLua = Lua::CreateInterface();
+	GarrysMod::Lua::ILuaInterface* pHolyLua = Lua::CreateInterface();
 
 	// Now add all supported HolyLib modules into the new interface.
-	g_pModuleManager.LuaInit(g_HolyLua, false);
+	g_pModuleManager.LuaInit(pHolyLua, false);
 
 	// Finally, load any holylua scripts
 	std::vector<GarrysMod::Lua::LuaFindResult> results;
@@ -109,23 +133,28 @@ void CHolyLuaModule::HolyLua_Init()
 			g_pFullFileSystem->Read(buffer, length, fh);
 			buffer[length] = 0;
 
-			g_Lua->RunStringEx(fileName.c_str(), "", buffer, true, true, true, true);
+			pHolyLua->RunStringEx(fileName.c_str(), "", buffer, true, true, true, true);
 
 			delete[] buffer;
 
 			g_pFullFileSystem->Close(fh);
 		}
 	}
+
+	Lua::CriticalThreadAccess pThreadScope;
+	g_HolyLua.store(pHolyLua);
 }
 
 void CHolyLuaModule::HolyLua_Shutdown()
 {
-	if (!g_HolyLua)
-		return;
-
-	g_pModuleManager.LuaShutdown(g_HolyLua);
-	Lua::DestroyInterface(g_HolyLua);
-	g_HolyLua = nullptr;
+	Lua::CriticalThreadAccess pThreadScope;
+	Lua::ThreadAccess pScope(GetHolyLuaInterface());
+	if (pScope.IsValid())
+	{
+		g_pModuleManager.LuaShutdown(pScope.GetLua());
+		Lua::DestroyInterface(pScope.GetLua());
+		g_HolyLua.store(nullptr);
+	}
 }
 
 static inline void PushEvent(GarrysMod::Lua::ILuaInterface* pLua, CGameEvent* event)
@@ -204,6 +233,17 @@ private:
 	GarrysMod::Lua::ILuaInterface* m_pLua = nullptr;
 };
 
+struct ILuaValue
+{
+	unsigned char type = -1;
+
+	double number = -1;
+	const char* string = "";
+	std::unordered_map<ILuaValue*, ILuaValue*> tbl;
+	float x, y, z;
+	void* data = nullptr; // Used for LUA_File
+};
+
 class HolyLuaModuleData : public Lua::ModuleData
 {
 public:
@@ -211,7 +251,8 @@ public:
 };
 LUA_GetModuleData(HolyLuaModuleData, g_pHolyLuaModule, HolyLua)
 
-LUA_FUNCTION_STATIC(gameevent_Listen) {
+LUA_FUNCTION_STATIC(gameevent_Listen)
+{
 	const char* name = LUA->CheckString(1);
 
 	auto pData = GetHolyLuaLuaData(LUA);
@@ -221,15 +262,39 @@ LUA_FUNCTION_STATIC(gameevent_Listen) {
 	return 0;
 }
 
+LUA_FUNCTION(holylua_RunString)
+{
+	const char* pCode = LUA->CheckString(1);
+
+	Lua::ScopedThreadAccess pThreadScope;
+	Lua::ThreadAccess pAccess(GetHolyLuaInterface());
+	if (pAccess.IsValid())
+	{
+		if (LUA == pAccess.GetLua())
+			return 0;
+
+		pAccess.GetLua()->RunString("RunString", "", pCode, true, true);
+		LUA->PushBool(true);
+		return 1;
+	}
+
+	LUA->PushBool(false);
+    return 1;
+}
+
 void CHolyLuaModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
-	if (pLua != g_HolyLua)
+	Util::StartTable(pLua);
+		Util::AddFunc(pLua, holylua_RunString, "RunString");
+	Util::FinishTable(pLua, "holylua");
+
+	Lua::ScopedThreadAccess pThreadScope;
+	if (pLua != GetHolyLuaInterface())
 		return;
 
-	Lua::GetLuaData(pLua)->SetModuleData(m_pID, new HolyLuaModuleData);
-
-	auto pData = GetHolyLuaLuaData(pLua);
-	pData->m_pEventListener.SetLua(pLua);
+	HolyLuaModuleData* pLuaData = new HolyLuaModuleData;
+	Lua::GetLuaData(pLua)->SetModuleData(m_pID, pLuaData);
+	pLuaData->m_pEventListener.SetLua(pLua);
 
 	Util::StartTable(pLua);
 		Util::AddFunc(pLua, gameevent_Listen, "Listen");
@@ -238,7 +303,8 @@ void CHolyLuaModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 
 void CHolyLuaModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	if (pLua != g_HolyLua)
+	// No Scope lock since were always called from HolyLua_Shutdown
+	if (pLua != GetHolyLuaInterface())
 		return;
 
 	auto pData = GetHolyLuaLuaData(pLua);

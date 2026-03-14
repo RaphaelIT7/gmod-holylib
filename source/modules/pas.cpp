@@ -38,11 +38,11 @@ LUA_FUNCTION_STATIC(pas_TestPAS)
 		orig = (Vector*)&ent->GetAbsOrigin();
 	}
 
-	Util::VisData* pVisCluster = Util::CM_Vis(*orig, DVIS_PAS);
+	std::unique_ptr<Util::VisData> pVisCluster(Util::CM_Vis(*orig, DVIS_PAS));
 
 	if (LUA->IsType(2, GarrysMod::Lua::Type::Vector))
 	{
-		LUA->PushBool(TestPAS(pVisCluster, *Get_Vector(LUA, 2)));
+		LUA->PushBool(TestPAS(pVisCluster.get(), *Get_Vector(LUA, 2)));
 #if MODULE_EXISTS_ENTITYLIST
 	} else if (Is_EntityList(LUA, 2)) {
 		LUA->CreateTable();
@@ -50,16 +50,15 @@ LUA_FUNCTION_STATIC(pas_TestPAS)
 		for (auto& [pEnt, iReference]: entList->GetReferences())
 		{
 			entList->PushReference(pEnt, iReference);
-			LUA->PushBool(TestPAS(pVisCluster, pEnt->GetAbsOrigin()));
+			LUA->PushBool(TestPAS(pVisCluster.get(), pEnt->GetAbsOrigin()));
 			LUA->RawSet(-3);
 		}
 #endif
 	} else {
 		CBaseEntity* ent = Util::Get_Entity(LUA, 2, true);
 
-		LUA->PushBool(TestPAS(pVisCluster, ent->GetAbsOrigin()));
+		LUA->PushBool(TestPAS(pVisCluster.get(), ent->GetAbsOrigin()));
 	}
-	delete pVisCluster;
 
 	return 1;
 }
@@ -70,10 +69,9 @@ LUA_FUNCTION_STATIC(pas_CheckBoxInPAS)
 	Vector* maxs = Get_Vector(LUA, 2, true);
 	Vector* orig = Get_Vector(LUA, 3, true);
 
-	Util::VisData* pVisCluster = Util::CM_Vis(*orig, DVIS_PAS);
+	std::unique_ptr<Util::VisData> pVisCluster(Util::CM_Vis(*orig, DVIS_PAS));
 
 	LUA->PushBool(Util::engineserver->CheckBoxInPVS(*mins, *maxs, pVisCluster->cluster, sizeof(pVisCluster->cluster)));
-	delete pVisCluster;
 
 	return 1;
 }
@@ -91,7 +89,7 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 		orig = (Vector*)&ent->GetAbsOrigin();
 	}
 
-	Util::VisData* pVisCluster = Util::CM_Vis(*orig, DVIS_PAS);
+	std::unique_ptr<Util::VisData> pVisCluster(Util::CM_Vis(*orig, DVIS_PAS));
 
 	LUA->PreCreateTable(MAX_EDICTS / 16, 0);
 	int idx = 0;
@@ -108,7 +106,7 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 				Util::RawSetI(LUA, -2, ++idx);
 			}
 		}
-		delete pVisCluster;
+
 		return 1;
 	}
 #endif
@@ -125,7 +123,6 @@ LUA_FUNCTION_STATIC(pas_FindInPAS)
 		pEnt = Util::NextEnt(pEnt);
 	}
 
-	delete pVisCluster;
 	return 1;
 }
 

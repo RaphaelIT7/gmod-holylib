@@ -186,6 +186,8 @@ public:
 
 	static SIMPLETHREAD_RETURNVALUE Server(void* params)
 	{
+		// ThreadSetDebugName(ThreadGetCurrentId(), PROJECT_NAME " - HttpServer::Server");
+
 		HttpServer* pServer = (HttpServer*)params;
 		pServer->GetServer().listen(pServer->GetAddress(), pServer->GetPort());
 
@@ -452,7 +454,7 @@ LUA_FUNCTION_STATIC(HttpRequest_IsValid)
 
 LUA_FUNCTION_STATIC(HttpRequest_HasHeader)
 {
-	HttpRequest* pData = Get_HttpRequest(LUA, 1, false);
+	HttpRequest* pData = Get_HttpRequest(LUA, 1, true);
 
 	LUA->PushBool(pData->m_pRequest.has_header(LUA->CheckString(2)));
 	return 1;
@@ -460,7 +462,7 @@ LUA_FUNCTION_STATIC(HttpRequest_HasHeader)
 
 LUA_FUNCTION_STATIC(HttpRequest_HasParam)
 {
-	HttpRequest* pData = Get_HttpRequest(LUA, 1, false);
+	HttpRequest* pData = Get_HttpRequest(LUA, 1, true);
 
 	LUA->PushBool(pData->m_pRequest.has_param(LUA->CheckString(2)));
 	return 1;
@@ -468,7 +470,7 @@ LUA_FUNCTION_STATIC(HttpRequest_HasParam)
 
 LUA_FUNCTION_STATIC(HttpRequest_GetHeader)
 {
-	HttpRequest* pData = Get_HttpRequest(LUA, 1, false);
+	HttpRequest* pData = Get_HttpRequest(LUA, 1, true);
 	const char* header = LUA->CheckString(2);
 
 	LUA->PushString(pData->m_pRequest.get_header_value(header).c_str());
@@ -477,7 +479,7 @@ LUA_FUNCTION_STATIC(HttpRequest_GetHeader)
 
 LUA_FUNCTION_STATIC(HttpRequest_GetParam)
 {
-	HttpRequest* pData = Get_HttpRequest(LUA, 1, false);
+	HttpRequest* pData = Get_HttpRequest(LUA, 1, true);
 	const char* param = LUA->CheckString(2);
 
 	LUA->PushString(pData->m_pRequest.get_param_value(param).c_str());
@@ -486,7 +488,7 @@ LUA_FUNCTION_STATIC(HttpRequest_GetParam)
 
 LUA_FUNCTION_STATIC(HttpRequest_GetPathParam)
 {
-	HttpRequest* pData = Get_HttpRequest(LUA, 1, false);
+	HttpRequest* pData = Get_HttpRequest(LUA, 1, true);
 	const char* param = LUA->CheckString(2);
 
 	auto it = pData->m_pRequest.path_params.find(param);
@@ -502,7 +504,7 @@ LUA_FUNCTION_STATIC(HttpRequest_GetPathParam)
 
 LUA_FUNCTION_STATIC(HttpRequest_GetBody)
 {
-	HttpRequest* pData = Get_HttpRequest(LUA, 1, false);
+	HttpRequest* pData = Get_HttpRequest(LUA, 1, true);
 
 	LUA->PushString(pData->m_pRequest.body.c_str());
 	return 1;
@@ -510,7 +512,7 @@ LUA_FUNCTION_STATIC(HttpRequest_GetBody)
 
 LUA_FUNCTION_STATIC(HttpRequest_GetRemoteAddr)
 {
-	HttpRequest* pData = Get_HttpRequest(LUA, 1, false);
+	HttpRequest* pData = Get_HttpRequest(LUA, 1, true);
 
 	LUA->PushString(pData->m_strAddress.c_str());
 	return 1;
@@ -518,7 +520,7 @@ LUA_FUNCTION_STATIC(HttpRequest_GetRemoteAddr)
 
 LUA_FUNCTION_STATIC(HttpRequest_GetRemotePort)
 {
-	HttpRequest* pData = Get_HttpRequest(LUA, 1, false);
+	HttpRequest* pData = Get_HttpRequest(LUA, 1, true);
 
 	LUA->PushNumber(pData->m_pRequest.remote_port);
 	return 1;
@@ -526,7 +528,7 @@ LUA_FUNCTION_STATIC(HttpRequest_GetRemotePort)
 
 LUA_FUNCTION_STATIC(HttpRequest_GetLocalAddr)
 {
-	HttpRequest* pData = Get_HttpRequest(LUA, 1, false);
+	HttpRequest* pData = Get_HttpRequest(LUA, 1, true);
 
 	LUA->PushString(pData->m_pRequest.local_addr.c_str());
 	return 1;
@@ -534,7 +536,7 @@ LUA_FUNCTION_STATIC(HttpRequest_GetLocalAddr)
 
 LUA_FUNCTION_STATIC(HttpRequest_GetLocalPort)
 {
-	HttpRequest* pData = Get_HttpRequest(LUA, 1, false);
+	HttpRequest* pData = Get_HttpRequest(LUA, 1, true);
 
 	LUA->PushNumber(pData->m_pRequest.local_port);
 	return 1;
@@ -542,7 +544,7 @@ LUA_FUNCTION_STATIC(HttpRequest_GetLocalPort)
 
 LUA_FUNCTION_STATIC(HttpRequest_GetMethod)
 {
-	HttpRequest* pData = Get_HttpRequest(LUA, 1, false);
+	HttpRequest* pData = Get_HttpRequest(LUA, 1, true);
 
 	LUA->PushString(pData->m_pRequest.method.c_str());
 	return 1;
@@ -550,7 +552,7 @@ LUA_FUNCTION_STATIC(HttpRequest_GetMethod)
 
 LUA_FUNCTION_STATIC(HttpRequest_GetAuthorizationCount)
 {
-	HttpRequest* pData = Get_HttpRequest(LUA, 1, false);
+	HttpRequest* pData = Get_HttpRequest(LUA, 1, true);
 
 	LUA->PushNumber(pData->m_pRequest.authorization_count_);
 	return 1;
@@ -558,7 +560,7 @@ LUA_FUNCTION_STATIC(HttpRequest_GetAuthorizationCount)
 
 LUA_FUNCTION_STATIC(HttpRequest_GetContentLength)
 {
-	HttpRequest* pData = Get_HttpRequest(LUA, 1, false);
+	HttpRequest* pData = Get_HttpRequest(LUA, 1, true);
 
 	LUA->PushNumber(pData->m_pRequest.content_length_);
 	return 1;
@@ -566,7 +568,7 @@ LUA_FUNCTION_STATIC(HttpRequest_GetContentLength)
 
 LUA_FUNCTION_STATIC(HttpRequest_GetClient)
 {
-	HttpRequest* pData = Get_HttpRequest(LUA, 1, false);
+	HttpRequest* pData = Get_HttpRequest(LUA, 1, true);
 
 #if MODULE_EXISTS_GAMESERVER
 	Push_CBaseClient(LUA, Util::GetClientByUserID(pData->m_pClientUserID));
@@ -579,7 +581,7 @@ LUA_FUNCTION_STATIC(HttpRequest_GetClient)
 
 LUA_FUNCTION_STATIC(HttpRequest_GetPlayer)
 {
-	HttpRequest* pData = Get_HttpRequest(LUA, 1, false);
+	HttpRequest* pData = Get_HttpRequest(LUA, 1, true);
 	CBaseClient* pClient = Util::GetClientByUserID(pData->m_pClientUserID);
 	CBasePlayer* pPlayer = pClient ? Util::GetPlayerByClient(pClient) : nullptr;
 
@@ -593,7 +595,7 @@ LUA_FUNCTION_STATIC(HttpRequest_GetPlayer)
 
 LUA_FUNCTION_STATIC(HttpRequest_MarkHandled)
 {
-	HttpRequest* pData = Get_HttpRequest(LUA, 1, false);
+	HttpRequest* pData = Get_HttpRequest(LUA, 1, true);
 	pData->MarkHandled();
 
 	return 0;
@@ -601,7 +603,7 @@ LUA_FUNCTION_STATIC(HttpRequest_MarkHandled)
 
 LUA_FUNCTION_STATIC(HttpRequest_SetContent)
 {
-	HttpRequest* pData = Get_HttpRequest(LUA, 1, false);
+	HttpRequest* pData = Get_HttpRequest(LUA, 1, true);
 	pData->m_pResponseData.m_bSetContent = true;
 	pData->m_pResponseData.m_strContent = LUA->CheckString(2);
 	pData->m_pResponseData.m_strContentType = LUA->CheckStringOpt(3, "text/plain");
@@ -611,7 +613,7 @@ LUA_FUNCTION_STATIC(HttpRequest_SetContent)
 
 LUA_FUNCTION_STATIC(HttpRequest_SetRedirect)
 {
-	HttpRequest* pData = Get_HttpRequest(LUA, 1, false);
+	HttpRequest* pData = Get_HttpRequest(LUA, 1, true);
 	pData->m_pResponseData.m_bSetRedirect = true;
 	pData->m_pResponseData.m_strRedirect = LUA->CheckString(2);
 	pData->m_pResponseData.m_iRedirectCode = (int)LUA->CheckNumberOpt(3, 302);
@@ -621,7 +623,7 @@ LUA_FUNCTION_STATIC(HttpRequest_SetRedirect)
 
 LUA_FUNCTION_STATIC(HttpRequest_SetHeader)
 {
-	HttpRequest* pData = Get_HttpRequest(LUA, 1, false);
+	HttpRequest* pData = Get_HttpRequest(LUA, 1, true);
 	pData->m_pResponseData.m_bSetHeader = true;
 	pData->m_pResponseData.m_pHeaders[LUA->CheckString(2)] = LUA->CheckString(3);
 
@@ -630,7 +632,7 @@ LUA_FUNCTION_STATIC(HttpRequest_SetHeader)
 
 LUA_FUNCTION_STATIC(HttpRequest_SetStatusCode)
 {
-	HttpRequest* pData = Get_HttpRequest(LUA, 1, false);
+	HttpRequest* pData = Get_HttpRequest(LUA, 1, true);
 	pData->m_pResponseData.m_iStatusCode = (int)LUA->CheckNumber(2);
 
 	return 0;

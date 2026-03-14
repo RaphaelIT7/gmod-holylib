@@ -27,6 +27,14 @@ local function Vector(x, y, z)
     if isvector(vec) then
         return CreateVector(vec.x, vec.y, vec.z)
     end
+
+    if isstring(vec) then
+        local vals = vec:Split(" ")
+        x = vals[1] or 0
+        y = vals[2] or 0
+        z = vals[3] or 0
+    end
+
     return CreateVector(tonumber(x) or 0, tonumber(y) or 0, tonumber(z) or 0)
 end
 _G.GMOD_Vector = _G.Vector -- let's keep the original around
@@ -265,7 +273,7 @@ end
 function methods:GetNormalized()
     local length = math.sqrt(self.x * self.x + self.y * self.y + self.z * self.z)
     if length == 0 then
-        return 0, 0, 0
+        return Vector(0, 0, 0)
     end
 
     return Vector(self.x / length, self.y / length, self.z / length)
@@ -449,12 +457,17 @@ do
 
     debug.setblocked(CreateVector)
 
+    _G.GMOD_isvector = _G.GMOD_isvector or _G.isvector
+    local GMOD_isvector = _G.GMOD_isvector
     function isvector(v)
+        if GMOD_isvector(v) then
+            return true
+        end
+
         return ffi.istype("GMOD_VecUserData", v)
     end
 
     debug.setblocked(isvector)
-    _G.GMOD_isvector = _G.isvector
     _G.isvector = isvector
 end
 

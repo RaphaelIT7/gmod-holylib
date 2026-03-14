@@ -27,6 +27,22 @@ extern IVEngineServer* engine;
 
 extern GarrysMod::Lua::ILuaInterface* g_Lua;
 
+enum ThreadState
+{
+	STATE_NOTRUNNING,
+	STATE_RUNNING,
+	STATE_SHOULD_SHUTDOWN,
+};
+
+namespace GarrysMod::NetworkMessage
+{
+	constexpr int LuaFileDownload = 4; // Client told us which files he needs, so we must provide (IDs are sent in shorts / 2 bytes and the last one is ID 0!)
+	constexpr int RequestLuaFiles = 3; // Calls GModDataPack::OnFilesRequested - Tells the client to check the client_lua_files stringtable and to tell us which files they need
+	constexpr int ClientLuaError = 2;
+	// 1 does not exist
+	constexpr int LuaNetMessage = 0;
+}
+
 struct edict_t;
 class IGet;
 class CBaseEntity;
@@ -228,6 +244,14 @@ namespace Util
 	{
 		LUA->GetField(-1, pName);
 		return LUA->IsType(-1, iType);
+	}
+
+	inline bool CheckBoolOpt(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bFallback = false)
+	{
+		if (!LUA->IsType(iStackPos, GarrysMod::Lua::Type::Bool))
+			return bFallback;
+
+		return LUA->GetBool(iStackPos);
 	}
 
 	// Blocks execution by throwing an error if you tried to call a unsafe function

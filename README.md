@@ -56,6 +56,10 @@ so by making a custom build, anyone can include just the stuff they actually wan
 Every commit triggers a compile workflow, resulting in a dev build<br>
 All of those can be found under the `Actions` tab -> https://github.com/RaphaelIT7/gmod-holylib/actions<br>
 
+> ![IMPORTANT]
+> These builds focus on the GMod `dev` branch currently.<br>
+> If you attempt to use a build on a server running on the `public` branch you **may** experience issues or even crashes.<br>
+
 ## How to update (Newer GhostInj)
 
 > [!NOTE]
@@ -297,6 +301,9 @@ Wiki: https://holylib.raphaelit7.com/
 \- [autorefresh](https://github.com/RaphaelIT7/gmod-holylib#autorefresh)<br>
 \- [soundscape](https://github.com/RaphaelIT7/gmod-holylib#soundscape)<br>
 \- [networkthreading](https://github.com/RaphaelIT7/gmod-holylib#networkthreading)<br>
+\- [luagc](https://github.com/RaphaelIT7/gmod-holylib#luagc)<br>
+\- [crashhandler](https://github.com/RaphaelIT7/gmod-holylib#crashhandler)<br>
+\- [gmoddatapack](https://github.com/RaphaelIT7/gmod-holylib#gmoddatapack)<br>
 
 [Unfinished Modules](https://github.com/RaphaelIT7/gmod-holylib#unfinished-modules)<br>
 \- [serverplugins](https://github.com/RaphaelIT7/gmod-holylib#serverplugins)<br>
@@ -4121,6 +4128,9 @@ Checks if the function is set to be inaccessible by any debug function.<br>
 #### `luajit.enableFFI = false`
 If set to `true`, `jit.require` will exist and `jit.getffi` will return ffi.<br>
 
+#### `luajit.enableFFIOverrides = true`
+If set to `true` the `VectorFFI`, `AngleFFI` and other scripts are loaded as class overrides for improved performance<br>
+
 #### `luajit.keepRemovedDebugFunctions = false`
 If set to `true`, all debug function listed below are restored.<br>
 `debug.setlocal`, `debug.setupvalue`, `debug.upvalueid` and `debug.upvaluejoin`<br>
@@ -4265,6 +4275,18 @@ bf:WriteString("Hello World")
 -- We use NS_CLIENT as a socket because then the packet is queued into the Server loopback queue.
 gameserver.SendConnectionlessPacket(bf, "loopback:" .. gameserver.GetUDPPort(), false, gameserver.NS_CLIENT)
 ```
+
+#### CGameClient gameserver.CreateFakeClient(string name)
+Creates a fake client or returns NULL on failure<br>
+
+#### CGameClient gameserver.CreateNewClient()
+Creates a new client or returns NULL on failure<br>
+
+#### CGameClient gameserver.GetFreeClient(string address, bool useDNS = false)
+Searches if there is a `CGameClient` with the given address already and returns their object OR attempts to create a new client.<br>
+
+#### number gameserver.GetSocket()
+Returns the server's socket
 
 #### CNetChan gameserver.CreateNetChannel(string ip, bool useDNS = false, number protocolVersion = 1, number socket = NS_SERVER)
 ip - The target ip. Format `ip:port`<br>
@@ -5375,6 +5397,40 @@ Unlike other crash handlers, ours won't affect the generated `debug.log` allowin
 Inside this hook, the server is in a weird state.<br>
 It allows you to attempt to save data **but** try not to cause memory allocations or such, as the entire server will be in a very fragile state.<br>
 The Lua GC is stopped when this hook is called to further reduce the chance of Lua crashing due to instability<br>
+
+## gmoddatapack
+
+### Functions
+
+#### string gmoddatapack.StripCode(string code, bool removeServerCode = (ConVar Setting), bool removeComments = (ConVar Setting))
+`removeServerCode` fallback value is the convar value `holylib_gmoddatapack_removeserverif`<br>
+`removeComments` fallback value is the convar value `holylib_gmoddatapack_removecomments`<br>
+
+Strips the code based off the settings and returns the new stripped code.<br>
+
+#### string gmoddatapack.GetStoredCode(string fileName)
+Returns the processed code that is stored, this will be the code that is sent to clients.<br>
+Returns `nil` if it didn't find the file or something else went wrong.<br>
+
+### number gmoddatapack.GetCompressedSize(string fileName)
+Returns the compressed size of the code, this is the size that is sent to the client.<br>
+Returns `nil` if it didn't find the file or something else went wrong.<br>
+
+### ConVars
+
+#### holylib_gmoddatapack_removeserverif = 0
+If enabled, server code will be removed from the lua files before they are sent to clients.<br>
+Currently this only works for `if SERVER then` or `elseif SERVER then`, yes you can use `( )` but if you do `if !CLIENT then` it won't recognize it!<br>
+
+#### holylib_gmoddatapack_removecomments = 0
+If enabled, comments from lua files will be removed before they are sent to clients.<br>
+
+#### holylib_gmoddatapack_fastnetworking = 0
+(Very Experimental)<br>
+If enabled, it'll attempt a faster method of sending lua files to the client.<br>
+
+> [!NOTE]
+> This internally depends on the `gameserver` module being enabled!<br>
 
 # Unfinished Modules
 

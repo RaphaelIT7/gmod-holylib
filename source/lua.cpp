@@ -13,8 +13,16 @@
 #include "eiface.h"
 #include "player.h"
 
+extern "C"
+{
+	#include "../luajit/src/lj_strfmt.h"
+}
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
+
+Symbols::lua_pushtracablecclosure Lua::func_lua_pushtracablecclosure = nullptr;
+Symbols::lua_settracablecclosure Lua::func_lua_settracablecclosure = nullptr;
 
 // Testing functions
 
@@ -275,7 +283,7 @@ bool Lua::PushHook(const char* hook, GarrysMod::Lua::ILuaInterface* pLua)
 		if (pLua->GetType(-1) != GarrysMod::Lua::Type::Table)
 		{
 			pLua->Pop(1);
-			DevMsg(PROJECT_NAME ": Missing hook table!\n");
+			DevMsg(PROJECT_NAME ": Missing hook table for \"%s\"!\n", hook);
 			return false;
 		}
 
@@ -283,7 +291,7 @@ bool Lua::PushHook(const char* hook, GarrysMod::Lua::ILuaInterface* pLua)
 			if (pLua->GetType(-1) != GarrysMod::Lua::Type::Function)
 			{
 				pLua->Pop(2);
-				DevMsg(PROJECT_NAME ": Missing hook.Run function!\n");
+				DevMsg(PROJECT_NAME ": Missing hook.Run function for \"%s\"!\n", hook);
 				return false;
 			} else {
 				pLua->Remove(-2);
@@ -293,6 +301,7 @@ bool Lua::PushHook(const char* hook, GarrysMod::Lua::ILuaInterface* pLua)
 	return true;
 }
 
+std::shared_mutex Lua::g_pThreadAccessMutex;
 extern void SetupUnHolyVTableForThisShit(GarrysMod::Lua::ILuaInterface* pLua);
 void Lua::Init(GarrysMod::Lua::ILuaInterface* LUA)
 {
@@ -458,23 +467,21 @@ void Lua::SetManualShutdown()
 
 GarrysMod::Lua::ILuaInterface* Lua::GetRealm(unsigned char realm)
 {
-	SourceSDK::FactoryLoader luashared_loader("lua_shared");
-	GarrysMod::Lua::ILuaShared* LuaShared = (GarrysMod::Lua::ILuaShared*)luashared_loader.GetFactory()(GMOD_LUASHARED_INTERFACE, nullptr);
-	if (LuaShared == nullptr) {
-		Msg(PROJECT_NAME ": failed to get ILuaShared!\n");
-		return nullptr;
-	}
-
-	return LuaShared->GetLuaInterface(realm);
+	return Lua::GetShared()->GetLuaInterface(realm);
 }
 
 GarrysMod::Lua::ILuaShared* Lua::GetShared()
 {
+	static GarrysMod::Lua::ILuaShared* g_pLuaShared = nullptr;
+	if (g_pLuaShared)
+		return g_pLuaShared;
+
 	SourceSDK::FactoryLoader luashared_loader("lua_shared");
 	if ( !luashared_loader.GetFactory() )
 		Msg(PROJECT_NAME ": About to crash!\n");
 
-	return luashared_loader.GetInterface<GarrysMod::Lua::ILuaShared>(GMOD_LUASHARED_INTERFACE);
+	g_pLuaShared = luashared_loader.GetInterface<GarrysMod::Lua::ILuaShared>(GMOD_LUASHARED_INTERFACE);
+	return g_pLuaShared;
 }
 
 GarrysMod::Lua::ILuaInterface* Lua::CreateInterface()
@@ -573,6 +580,67 @@ bool Lua::CheckGModType(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos, int n
 
 	*pUserData = nullptr;
 	return false;
+}
+
+const char* Lua::TValueToString(TValue* pVal)
+{
+	static thread_local char pBuffer[64];
+	char pTempBuffer[64]; // Should at minimum be STRFMT_MAXBUF_PTR
+	if (tvisbool(pVal)) {
+		snprintf(pBuffer, sizeof(pBuffer), "(bool) %s\n", tvistrue(pVal) ? "true" : "false");
+	} else if (tvisstr(pVal)) {
+		// We don't want to dump a 2k+ long strings, so we limit to 255! (also avoids possibly corrupted strings if the value is fked)
+		GCstr* pStr = strV(pVal);
+		char pTemp[255];
+		int nLength = strnlen(strdata(pStr), sizeof(pTemp)-1);
+		V_strncpy(pTemp, strdata(pStr), nLength);
+
+		snprintf(pBuffer, sizeof(pBuffer), "(string) %s\n", pTemp);
+	} else if (tvisnil(pVal)) {
+		snprintf(pBuffer, sizeof(pBuffer), "(nil)\n");
+	} else if (tvisfunc(pVal)) {
+		*lj_strfmt_wptr(pTempBuffer, funcV(pVal)) = '\0';
+		snprintf(pBuffer, sizeof(pBuffer), "(function) %s\n", pTempBuffer);
+	} else if (tvisthread(pVal)) {
+		*lj_strfmt_wptr(pTempBuffer, threadV(pVal)) = '\0';
+		snprintf(pBuffer, sizeof(pBuffer), "(thread) %s\n", pTempBuffer);
+	} else if (tvisproto(pVal)) {
+		*lj_strfmt_wptr(pTempBuffer, protoV(pVal)) = '\0';
+		snprintf(pBuffer, sizeof(pBuffer), "(proto) %s\n", pTempBuffer);
+	} else if (tviscdata(pVal)) {
+		GCcdata* pCData = cdataV(pVal);
+		*lj_strfmt_wptr(pTempBuffer, cdataV(pVal)) = '\0';
+		snprintf(pBuffer, sizeof(pBuffer), "(cdata - type %i) %s\n", (int)pCData->ctypeid, pTempBuffer);
+	} else if (tvistab(pVal)) {
+		GCtab* pTab = tabV(pVal);
+		snprintf(pBuffer, sizeof(pBuffer), "(table) N/A\n");
+	} else if (tvisudata(pVal)) {
+		GCudata* pUD = udataV(pVal);
+
+		int nType = 0;
+		void* pData = nullptr;
+		if (pUD->udtype >= GarrysMod::Lua::Type::UserData) { // HolyLib userdata differs!
+			LuaUserData* pLuaData = (LuaUserData*)pUD;
+			pData = pLuaData->GetData();
+			nType = pLuaData->GetType();
+		} else {
+			pData = uddata(pUD);
+			if (pData)
+			{
+				GarrysMod::Lua::ILuaBase::UserData* pLuaData = (GarrysMod::Lua::ILuaBase::UserData*)pData;
+				nType = pLuaData->type;
+				pData = pLuaData->data;
+			}
+		}
+
+		snprintf(pBuffer, sizeof(pBuffer), "(userdata - type %i) %p\n", nType, pData);
+	} else if (tvisnan(pVal)) {
+		snprintf(pBuffer, sizeof(pBuffer), "(number) N/A\n");
+	} else if (tvisnum(pVal)) {
+		snprintf(pBuffer, sizeof(pBuffer), "(number) %.14g\n", numV(pVal));
+	}
+
+	return pBuffer;
 }
 
 // NOTE: This Only works on stack values that are on the top!!!

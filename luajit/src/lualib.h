@@ -1,6 +1,6 @@
 /*
 ** Standard library header.
-** Copyright (C) 2005-2025 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2026 Mike Pall. See Copyright Notice in luajit.h
 */
 
 #ifndef _LUALIB_H
@@ -37,6 +37,9 @@ LUALIB_API int luaopen_string_buffer(lua_State *L);
 
 // Internal JIT function, this one is NOT loaded by luaL_openlibs
 LUALIB_API int luaopen_jit_profile(lua_State *L);
+
+// Internal JIT function, this one is NOT loaded by luaL_openlibs
+LUALIB_API int luaopen_jit_util(lua_State *L);
 
 LUALIB_API void luaL_openlibs(lua_State *L);
 

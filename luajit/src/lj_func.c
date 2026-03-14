@@ -1,6 +1,6 @@
 /*
 ** Function handling (prototypes, functions and upvalues).
-** Copyright (C) 2005-2025 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2026 Mike Pall. See Copyright Notice in luajit.h
 **
 ** Portions taken verbatim or adapted from the Lua interpreter.
 ** Copyright (C) 1994-2008 Lua.org, PUC-Rio. See Copyright Notice in lua.h
@@ -113,6 +113,9 @@ GCfunc *lj_func_newC(lua_State *L, MSize nelems, GCtab *env)
   GCfunc *fn = (GCfunc *)lj_mem_newgco(L, sizeCfunc(nelems));
   fn->c.gct = ~LJ_TFUNC;
   fn->c.ffid = FF_C;
+  fn->c.callinfo.func = 0;
+  fn->c.callinfo.flags = 0;
+  fn->c.callinfo.givestate = 0;
   fn->c.nupvalues = (uint8_t)nelems;
   /* NOBARRIER: The GCfunc is new (marked white). */
   setmref(fn->c.pc, &G(L)->bc_cfunc_ext);

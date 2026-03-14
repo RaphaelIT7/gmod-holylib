@@ -67,6 +67,19 @@ struct lua_GmodState
 				return FUNC##__Imp( LUA );							  \
 			}														   \
 			static int FUNC##__Imp( [[maybe_unused]] GarrysMod::Lua::ILuaInterface* LUA )
+
+		#define LUA_FUNCTION( FUNC )							 \
+			static int FUNC##__Imp( GarrysMod::Lua::ILuaInterface* LUA );	\
+			int FUNC( lua_State* L )							 \
+			{														   \
+				GarrysMod::Lua::ILuaInterface* LUA = ((lua_GmodState*)L)->luabase;			 \
+				LUA->SetState(L);									   \
+				return FUNC##__Imp( LUA );							  \
+			}														   \
+			static int FUNC##__Imp( [[maybe_unused]] GarrysMod::Lua::ILuaInterface* LUA )
+
+		#define LUA_FUNCTION_EXTERN( FUNC )							 \
+			extern int FUNC( lua_State* L );
 	#endif
 #endif
 

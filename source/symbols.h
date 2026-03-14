@@ -74,6 +74,7 @@ class IConnectionlessPacketHandler;
 class CCommand;
 class DVariant;
 class SendProp;
+class CGameClient;
 
 namespace GarrysMod::Lua
 {
@@ -96,9 +97,9 @@ struct ThreadPoolStartParams_t;
 #else // x86
 #define GMCOMMON_CALLING_CONVENTION __thiscall
 #endif
-#define CALLING_CONVENTION_FASTCALL __fastcall
-#else // LInux
-#define CALLING_CONVENTION_FASTCALL __attribute__((fastcall))
+#define FUNC_FASTCALL __fastcall
+#else // Linux
+#define FUNC_FASTCALL __attribute__((fastcall))
 #define GMCOMMON_CALLING_CONVENTION
 #endif
 
@@ -159,6 +160,9 @@ namespace Symbols
 		When we load any functions like lua_ or lj_ we NEED to also update the luajit module (luajit.cpp) to update the pointer when the module is enabled.
 		This is because else we might call the loaded function from Gmod when in reality our luajit build has taken over which would cause a crash!
 	*/
+
+	using lua_pushtracablecclosure = void (*)(lua_State* L, void* info);
+	using lua_settracablecclosure = void (*)(lua_State* L, int idx, void* info);
 
 	using lua_rawseti = void (*)(lua_State* L, int index, int i);
 	extern const Symbol lua_rawsetiSym;
@@ -480,6 +484,8 @@ namespace Symbols
 
 	using InvalidateSharedEdictChangeInfos = void (*)();
 	extern const std::vector<Symbol> InvalidateSharedEdictChangeInfosSym;
+
+	using PackEntities_Normal = void (*)(int clientCount, CGameClient **clients, CFrameSnapshot *snapshot);
 	extern const std::vector<Symbol> PackEntities_NormalSym;
 
 	using CGMOD_Player_CreateViewModel = void (GMCOMMON_CALLING_CONVENTION*)(CBasePlayer* pPlayer, int viewmodelindex);
@@ -575,11 +581,6 @@ namespace Symbols
 	extern const std::vector<Symbol> IVP_Mindist_Manager_recheck_ov_elementSym;
 
 	// Stuff for our do_impact replacement
-	using IVP_Mindist_D2 = void (*)(void* mindist);
-	extern const std::vector<Symbol> IVP_Mindist_D2Sym;
-
-	extern const std::vector<Symbol> g_pCurrentMindistSym;
-	extern const std::vector<Symbol> g_fDeferDeleteMindistSym;
 #endif
 
 	using GMod_Util_IsPhysicsObjectValid = bool (*)(IPhysicsObject* obj);
@@ -624,14 +625,20 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: gameserver Symbols
 	//---------------------------------------------------------------------------------
-	using CServerGameClients_GetPlayerLimit = void (GMCOMMON_CALLING_CONVENTION*)(void*, int&, int&, int&);
-	extern const std::vector<Symbol> CServerGameClients_GetPlayerLimitSym;
+	using CBaseServer_GetFreeClient = CBaseClient* (GMCOMMON_CALLING_CONVENTION*)(void*, netadr_t &adr);
+	extern const std::vector<Symbol> CBaseServer_GetFreeClientSym;
 
-	using CBaseServer_FillServerInfo = void (GMCOMMON_CALLING_CONVENTION*)(void*, SVC_ServerInfo&);
-	extern const std::vector<Symbol> CBaseServer_FillServerInfoSym;
+	using CBaseServer_CreateFakeClient = CBaseClient* (GMCOMMON_CALLING_CONVENTION*)(void*, const char* pName);
+	extern const std::vector<Symbol> CBaseServer_CreateFakeClientSym;
 
-	using CHLTVServer_FillServerInfo = void (GMCOMMON_CALLING_CONVENTION*)(void*, SVC_ServerInfo&);
-	extern const std::vector<Symbol> CHLTVServer_FillServerInfoSym;
+	using CBaseServer_UserInfoChanged = void (GMCOMMON_CALLING_CONVENTION*)(void*, int nClientIndex);
+	extern const std::vector<Symbol> CBaseServer_UserInfoChangedSym;
+
+	using CGameServer_RemoveClientFromGame = void (GMCOMMON_CALLING_CONVENTION*)(void*, CBaseClient* pClient);
+	extern const std::vector<Symbol> CGameServer_RemoveClientFromGameSym;
+
+	using CSteam3Server_SendUpdatedServerDetails = void (GMCOMMON_CALLING_CONVENTION*)(void*);
+	extern const std::vector<Symbol> CSteam3Server_SendUpdatedServerDetailsSym;
 
 	using CBaseClient_SetSignonState = bool (GMCOMMON_CALLING_CONVENTION*)(void* client, int state, int spawncount);
 	extern const std::vector<Symbol> CBaseClient_SetSignonStateSym;
@@ -651,7 +658,11 @@ namespace Symbols
 	using CBaseClient_OnRequestFullUpdate = void (GMCOMMON_CALLING_CONVENTION*)(void* client);
 	extern const std::vector<Symbol> CBaseClient_OnRequestFullUpdateSym;
 
+#if PLATFORM_64BITS
+	using CGameClient_SpawnPlayer = bool (GMCOMMON_CALLING_CONVENTION*)(void* client);
+#else
 	using CGameClient_SpawnPlayer = void (GMCOMMON_CALLING_CONVENTION*)(void* client);
+#endif
 	extern const std::vector<Symbol> CGameClient_SpawnPlayerSym;
 
 	using CBaseServer_ProcessConnectionlessPacket = bool (GMCOMMON_CALLING_CONVENTION*)(void* server, netpacket_s* packet);
@@ -786,7 +797,7 @@ namespace Symbols
 	using CFrameSnapshotManager_UsePreviouslySentPacket = bool (*)(void* framesnapshotmanager, CFrameSnapshot* pSnapshot, int entity, int entSerialNumber);
 	extern const std::vector<Symbol> CFrameSnapshotManager_UsePreviouslySentPacketSym;
 
-	using CFrameSnapshotManager_CreatePackedEntity = PackedEntity* (CALLING_CONVENTION_FASTCALL*)(void* framesnapshotmanager, CFrameSnapshot* pSnapshot, int entity);
+	using CFrameSnapshotManager_CreatePackedEntity = PackedEntity* (*)(void* framesnapshotmanager, CFrameSnapshot* pSnapshot, int entity);
 	extern const std::vector<Symbol> CFrameSnapshotManager_CreatePackedEntitySym;
 
 	//---------------------------------------------------------------------------------
@@ -794,4 +805,26 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	using GMODTable_Encode = PackedEntity* (*)(const unsigned char *pStruct, DVariant *pVar, const SendProp *pProp, bf_write *pOut, int objectID);
 	extern const std::vector<Symbol> GMODTable_EncodeSym;
+
+	//---------------------------------------------------------------------------------
+	// Purpose: crashhandler Symbols
+	//---------------------------------------------------------------------------------
+#if defined(SYSTEM_LINUX) && ARCHITECTURE_X86
+	using add_command = bool (__attribute__((regparm(2))) *)(const char* cmd, int cmd_len);
+#else
+	using add_command = bool (*)(const char* cmd, int cmd_len);
+#endif
+	extern const std::vector<Symbol> add_commandSym;
+
+	using CTextConsoleUnix_GetLine = char* (*)(void* _this);
+	extern const std::vector<Symbol> CTextConsoleUnix_GetLineSym;
+
+	//---------------------------------------------------------------------------------
+	// Purpose: gmoddatapack Symbols
+	//---------------------------------------------------------------------------------
+	using GModDataPack_SendFileToClient = void (*)(void* dataPack, int userID, int fileID);
+	extern const std::vector<Symbol> GModDataPack_SendFileToClientSym;
+
+	using GModDataPack_AddOrUpdateFile = void (*)(void* dataPack, void* luaFile, bool);
+	extern const std::vector<Symbol> GModDataPack_AddOrUpdateFileSym;
 }

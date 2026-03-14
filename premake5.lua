@@ -69,7 +69,7 @@ prebuildCommand = basePath .. prebuildCommand -- We add this after execute since
 --[[
 	Project setup
 ]]
-CreateWorkspace({name = "holylib", abi_compatible = false})
+CreateWorkspace({name = "holylib", abi_compatible = true})
 	-- Serverside module (gmsv prefix)
 	-- Can define "source_path", where the source files are located
 	-- Can define "manual_files", which allows you to manually add files to the project,
@@ -95,7 +95,7 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 		IncludeDetouring()
 		IncludeScanning()
 		if IncludeIVP then
-			IncludeIVP() -- Can be removed if anyone doesn't want it.
+			--IncludeIVP() -- Can be removed if anyone doesn't want it.
 		end
 		IncludeBootil()
 
@@ -128,6 +128,8 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			sourcePath .. [[lz4/*.h]],
 			sourcePath .. [[lz4/*.c]],
 			sourcePath .. [[lz4/*.cpp]],
+			sourcePath .. [[uwebsockets/*.h]],
+			sourcePath .. [[uwebsockets/*.cpp]],
 
 			rootDir .. "lua/*.h",
 			rootDir .. "source/lua/scripts/*.lua",
@@ -139,6 +141,7 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 			["Source files/sourcesdk/"] = gmcommon .. "/**.*",
 			["Lua Headers"] = rootDir .. "lua/*.h",
 			["Lua Scrips"] = rootDir .. "source/lua/scripts/*.lua",
+			["uWebSockets"] = sourcePath .. "uwebsockets/*.*",
 			["README"] = rootDir .. "README.md",
 			["Workflows"] = rootDir .. ".github/workflows/**.yml",
 		})
@@ -147,7 +150,7 @@ CreateWorkspace({name = "holylib", abi_compatible = false})
 
 		includedirs({
 			sourcePath .. [[sourcesdk/]],
-			sourcePath .. [[lua]]
+			sourcePath .. [[lua]],
 		})
 
 		filter("system:windows")

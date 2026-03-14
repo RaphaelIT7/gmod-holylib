@@ -97,6 +97,7 @@ LUA_FUNCTION_STATIC(gameevent_RemoveListener)
 	return 1;
 }
 
+extern CGlobalVars *gpGlobals;
 LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 {
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Entity))
@@ -128,7 +129,7 @@ LUA_FUNCTION_STATIC(gameevent_GetClientListeners)
 		}
 	} else {
 		LUA->CreateTable();
-		for (int iClient = 0; iClient<Util::server->GetMaxClients(); ++iClient)
+		for (int iClient = 0; iClient<gpGlobals->maxClients; ++iClient)
 		{
 			CBaseEntity* ent = Util::GetCBaseEntityFromEdict(Util::engineserver->PEntityOfEntIndex(iClient+1));
 			if (!ent)

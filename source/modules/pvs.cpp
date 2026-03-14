@@ -793,7 +793,7 @@ LUA_FUNCTION_STATIC(pvs_FindInPVS) // Copy from pas.FindInPAS
 		orig = (Vector*)&ent->GetAbsOrigin();
 	}
 
-	Util::VisData* pVisCluster = Util::CM_Vis(*orig, DVIS_PVS);
+	std::unique_ptr<Util::VisData> pVisCluster(Util::CM_Vis(*orig, DVIS_PVS));
 
 	LUA->PreCreateTable(MAX_EDICTS / 16, 0); // Should we reduce this later? (Currently: 512)
 	int idx = 0;
@@ -809,7 +809,7 @@ LUA_FUNCTION_STATIC(pvs_FindInPVS) // Copy from pas.FindInPAS
 				Util::RawSetI(LUA, -2, ++idx);
 			}
 		}
-		delete pVisCluster;
+
 		return 1;
 	}
 #endif
@@ -826,7 +826,6 @@ LUA_FUNCTION_STATIC(pvs_FindInPVS) // Copy from pas.FindInPAS
 		pEnt = Util::NextEnt(pEnt);
 	}
 
-	delete pVisCluster;
 	return 1;
 }
 
@@ -846,10 +845,11 @@ LUA_FUNCTION_STATIC(pvs_TestPVS)
 		orig = (Vector*)&ent->GetAbsOrigin();
 	}
 
-	Util::VisData* pVisCluster = Util::CM_Vis(*orig, DVIS_PVS);
+	std::unique_ptr<Util::VisData> pVisCluster(Util::CM_Vis(*orig, DVIS_PVS));
+
 	if (LUA->IsType(2, GarrysMod::Lua::Type::Vector))
 	{
-		LUA->PushBool(TestPVS(pVisCluster, *Get_Vector(LUA, 2)));
+		LUA->PushBool(TestPVS(pVisCluster.get(), *Get_Vector(LUA, 2)));
 #if MODULE_EXISTS_ENTITYLIST
 	} else if (Is_EntityList(LUA, 2)) {
 		EntityList* entList = Get_EntityList(LUA, 2, true);
@@ -857,7 +857,7 @@ LUA_FUNCTION_STATIC(pvs_TestPVS)
 		for (auto& [pEnt, iReference] : entList->GetReferences())
 		{
 			entList->PushReference(pEnt, iReference);
-			LUA->PushBool(TestPVS(pVisCluster, pEnt->GetAbsOrigin()));
+			LUA->PushBool(TestPVS(pVisCluster.get(), pEnt->GetAbsOrigin()));
 			LUA->RawSet(-3);
 		}
 #endif
@@ -865,10 +865,9 @@ LUA_FUNCTION_STATIC(pvs_TestPVS)
 		LUA->CheckType(2, GarrysMod::Lua::Type::Entity);
 		CBaseEntity* ent = Util::Get_Entity(LUA, 2, false);
 
-		LUA->PushBool(TestPVS(pVisCluster, ent->GetAbsOrigin()));
+		LUA->PushBool(TestPVS(pVisCluster.get(), ent->GetAbsOrigin()));
 	}
 
-	delete pVisCluster;
 	return 1;
 }
 

@@ -22,6 +22,8 @@
 #undef protected
 #include "SkyCamera.h"
 #include "sourcesdk/GameEventManager.h"
+#include "sourcesdk/ccservernetworkproperty.h"
+#include "sourcesdk/datatablestack.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -266,9 +268,7 @@ class ServerClassCache
 {
 public:
 	std::vector<PropIndexData> prop_offset_sendtable;
-
 	std::vector<SpecialSendPropCalc> prop_special;
-
 	std::unordered_map<const SendProp *, SpecialDataTableCalc> datatable_special;
 
 	unsigned short *prop_offsets;
@@ -307,25 +307,20 @@ static int hook_SendTable_CullPropsFromProxies(
 	int nMaxOutProps
 	)
 {
-	//memcpy(pOutProps, pStartProps, nStartProps * sizeof(int));
 	int count = 0;
-	//auto pPrecalc = pTable->m_pPrecalc;
 	auto &prop_cull = GetServerClassCache(pTable)->prop_cull;
 	for (int i = 0; i <nStartProps; ++i) {
 		int prop = pStartProps[i];
-		//DevMsg("prop %d %d", prop, player_prop_cull[prop]);
 		int proxyindex = prop_cull[prop];
-		//DevMsg("%s", pPrecalc->m_Props[prop]->GetName());
 		if (proxyindex < 254 ) {
-			//DevMsg("node %s\n", player_send_nodes[proxyindex]->m_pTable->GetName());
 			if (pNewStateProxies[proxyindex].m_Bits.IsBitSet(iClient)) {
 				pOutProps[count++] = prop;
 			}
 		} else {
-			//DevMsg("node none\n");
 			pOutProps[count++] = prop;
 		}
 	}
+
 	return count;
 }
 
@@ -375,449 +370,6 @@ void RecurseStack(ServerClassCache &cache, unsigned char* stack, CSendNode *node
 		CSendNode *child = node->m_Children[i];
 		RecurseStack(cache, stack, child, precalc);
 	}
-}
-
-abstract_class CDatatableStack
-{
-public:
-	CDatatableStack( CSendTablePrecalc *pPrecalc, unsigned char *pStructBase, int objectID );
-
-	// This must be called before accessing properties.
-	void Init( bool bExplicitRoutes=false );
-
-	// The stack is meant to be used by calling SeekToProp with increasing property
-	// numbers.
-	void			SeekToProp( int iProp );
-
-	bool			IsCurProxyValid() const;
-	bool			IsPropProxyValid(int iProp ) const;
-	int				GetCurPropIndex() const;
-	
-	unsigned char*	GetCurStructBase() const;
-	
-	int				GetObjectID() const;
-
-	// Derived classes must implement this. The server gets one and the client gets one.
-	// It calls the proxy to move to the next datatable's data.
-	virtual void RecurseAndCallProxies( CSendNode *pNode, unsigned char *pStructBase ) = 0;
-
-public:
-	CSendTablePrecalc *m_pPrecalc;
-	
-	enum
-	{
-		MAX_PROXY_RESULTS = 256
-	};
-
-	// These point at the various values that the proxies returned. They are setup once, then 
-	// the properties index them.
-	unsigned char *m_pProxies[MAX_PROXY_RESULTS];
-	unsigned char *m_pStructBase;
-	int m_iCurProp;
-
-protected:
-	const SendProp *m_pCurProp;
-	int m_ObjectID;
-	bool m_bInitted;
-};
-
-inline bool CDatatableStack::IsPropProxyValid(int iProp ) const
-{
-	return m_pProxies[m_pPrecalc->m_PropProxyIndices[iProp]] != 0;
-}
-
-inline bool CDatatableStack::IsCurProxyValid() const
-{
-	return m_pProxies[m_pPrecalc->m_PropProxyIndices[m_iCurProp]] != 0;
-}
-
-inline int CDatatableStack::GetCurPropIndex() const
-{
-	return m_iCurProp;
-}
-
-inline unsigned char* CDatatableStack::GetCurStructBase() const
-{
-	return m_pProxies[m_pPrecalc->m_PropProxyIndices[m_iCurProp]]; 
-}
-
-inline void CDatatableStack::SeekToProp( int iProp )
-{
-	Assert( m_bInitted );
-	
-	m_iCurProp = iProp;
-	m_pCurProp = m_pPrecalc->m_Props[iProp];
-}
-
-inline int CDatatableStack::GetObjectID() const
-{
-	return m_ObjectID;
-}
-
-CDatatableStack::CDatatableStack( CSendTablePrecalc *pPrecalc, unsigned char *pStructBase, int objectID )
-{
-	m_pPrecalc = pPrecalc;
-
-	m_pStructBase = pStructBase;
-	m_ObjectID = objectID;
-	
-	m_iCurProp = 0;
-	m_pCurProp = nullptr;
-
-	m_bInitted = false;
-
-#ifdef _DEBUG
-	memset( m_pProxies, 0xFF, sizeof( m_pProxies ) );
-#endif
-}
-
-void CDatatableStack::Init( bool bExplicitRoutes )
-{
-	if ( bExplicitRoutes )
-	{
-		memset( m_pProxies, 0xFF, sizeof( m_pProxies[0] ) * m_pPrecalc->m_ProxyPaths.Count() );
-	}
-	else
-	{
-		// Walk down the tree and call all the datatable proxies as we hit them.
-		RecurseAndCallProxies( &m_pPrecalc->m_Root, m_pStructBase );
-	}
-
-	m_bInitted = true;
-}
-
-class CPropMapStack : public CDatatableStack
-{
-public:
-	CPropMapStack( CSendTablePrecalc *pPrecalc, const CStandardSendProxies *pSendProxies ) :
-		CDatatableStack( pPrecalc, (unsigned char*)1, -1 )
-	{
-		m_pPropMapStackPrecalc = pPrecalc;
-		m_pSendProxies = pSendProxies;
-	}
-
-	static inline bool IsNonPointerModifyingProxy( SendTableProxyFn fn, const CStandardSendProxies *pSendProxies )
-	{
-		if ( fn == pSendProxies->m_DataTableToDataTable || fn == pSendProxies->m_SendLocalDataTable )
-			return true;
-		
-		if( pSendProxies->m_ppNonModifiedPointerProxies )
-		{
-			CNonModifiedPointerProxy *pCur = *pSendProxies->m_ppNonModifiedPointerProxies;
-			while ( pCur )
-			{
-				if ( pCur->m_Fn == fn )
-					return true;
-
-				pCur = pCur->m_pNext;
-			}
-		}
-
-		return false;
-	}
-
-	inline unsigned char*	CallPropProxy( CSendNode *pNode, int iProp, unsigned char *pStructBase )
-	{
-		if ( !pStructBase )
-			return 0;
-		
-		const SendProp *pProp = m_pPropMapStackPrecalc->m_DatatableProps[iProp];
-		if ( IsNonPointerModifyingProxy( pProp->GetDataTableProxyFn(), m_pSendProxies ) )
-		{
-			// Note: these are offset by 1 (see the constructor), otherwise it won't recurse
-			// during the Init call because pCurStructBase is 0.
-			return pStructBase + pProp->GetOffset();
-		} else {
-			return 0;
-		}
-	}
-
-	virtual void RecurseAndCallProxies( CSendNode *pNode, unsigned char *pStructBase )
-	{
-		// Remember where the game code pointed us for this datatable's data so 
-		m_pProxies[ pNode->m_RecursiveProxyIndex ] = pStructBase;
-		
-		//const SendProp *pProp = m_pPropMapStackPrecalc->m_DatatableProps[pNode->m_iDatatableProp];
-
-		for ( int iChild=0; iChild < pNode->m_Children.Count(); iChild++ )
-		{
-			CSendNode *pCurChild = pNode->m_Children[iChild];
-			const SendProp *pChildProp = m_pPropMapStackPrecalc->m_DatatableProps[pCurChild->m_iDatatableProp];
-			
-			unsigned char *pNewStructBase = nullptr;
-			if ( pStructBase )
-				pNewStructBase = CallPropProxy( pCurChild, pCurChild->m_iDatatableProp, pStructBase );
-
-			m_pIsPointerModifyingProxy[pCurChild->m_RecursiveProxyIndex] = 
-				IsNonPointerModifyingProxy(pChildProp->GetDataTableProxyFn(), m_pSendProxies) ? 
-					m_pIsPointerModifyingProxy[pNode->m_RecursiveProxyIndex] : pCurChild;
-			m_iBaseOffset[pCurChild->m_RecursiveProxyIndex] = reinterpret_cast<intptr_t>(pStructBase);
-
-			RecurseAndCallProxies( pCurChild, pNewStructBase );
-		}
-	}
-
-public:
-	CSendTablePrecalc *m_pPropMapStackPrecalc;
-	const CStandardSendProxies *m_pSendProxies;
-	const CSendNode *m_pIsPointerModifyingProxy[MAX_PROXY_RESULTS] {nullptr};
-	intptr_t m_iBaseOffset[MAX_PROXY_RESULTS] {0};
-};
-
-class CEntityWriteInfo
-{
-public:
-	virtual	~CEntityWriteInfo() {};
-	
-	bool			m_bAsDelta;
-	CClientFrame	*m_pFrom;
-	CClientFrame	*m_pTo;
-
-	int		m_UpdateType;
-
-	int				m_nOldEntity;	// current entity index in m_pFrom
-	int				m_nNewEntity;	// current entity index in m_pTo
-
-	int				m_nHeaderBase;
-	int				m_nHeaderCount;
-	bf_write		*m_pBuf;
-	int				m_nClientEntity;
-
-	PackedEntity	*m_pOldPack;
-	PackedEntity	*m_pNewPack;
-};
-
-/*#define PROP_WRITE_OFFSET_ABSENT 65535
-struct PropWriteOffset
-{
-	unsigned short offset;
-	unsigned short size;
-};
-
-static std::vector<PropWriteOffset> prop_write_offset[MAX_EDICTS];
-static std::atomic<unsigned int> rc_CHLTVClient_SendSnapshot;
-static Detouring::Hook detour_SendTable_WritePropList;
-static Symbols::SendTable_WritePropList SendTable_WritePropList_func;
-void hook_SendTable_WritePropList(
-	const SendTable *pTable,
-	const void *pState,
-	const int nBits,
-	bf_write *pOut,
-	const int objectID,
-	const int *pCheckProps,
-	const int nCheckProps
-	)
-{
-	if (rc_CHLTVClient_SendSnapshot.load() == 0 && objectID >= 0) {
-		if ( nCheckProps == 0 ) {
-			// Write single final zero bit, signifying that there no changed properties
-			pOut->WriteOneBit( 0 );
-			return;
-		}
-		if (prop_write_offset[objectID].empty()) {
-			SendTable_WritePropList_func(pTable, pState, nBits, pOut, objectID, pCheckProps, nCheckProps);
-			return;
-		}
-		CDeltaBitsWriter deltaBitsWriter( pOut );
-		bf_read inputBuffer( "SendTable_WritePropList->inputBuffer", pState, BitByte( nBits ), nBits );
-
-		auto pPrecalc = pTable->m_pPrecalc;
-		auto offset_data = prop_write_offset[objectID].data();
-		for (int i = 0; i < nCheckProps; ++i) {
-			int propid = pCheckProps[i];
-			int offset = offset_data[propid].offset;
-			if (offset == 0 || offset == PROP_WRITE_OFFSET_ABSENT)
-				continue;
-				
-
-			deltaBitsWriter.WritePropIndex(propid);
-
-			int len = offset_data[propid].size;
-			inputBuffer.Seek(offset);
-			pOut->WriteBitsFromBuffer(&inputBuffer, len);
-		}
-
-		return;
-	}
-
-	SendTable_WritePropList_func(pTable, pState, nBits, pOut, objectID, pCheckProps, nCheckProps);
-}*/
-
-static Detouring::Hook detour_SendTable_CalcDelta;
-int hook_SendTable_CalcDelta(
-	const SendTable *pTable,
-	
-	const void *pFromState,
-	const int nFromBits,
-	
-	const void *pToState,
-	const int nToBits,
-	
-	int *pDeltaProps,
-	int nMaxDeltaProps,
-
-	const int objectID
-	)
-{
-	int count = detour_SendTable_CalcDelta.GetTrampoline<Symbols::SendTable_CalcDelta>()(pTable, pFromState, nFromBits, pToState, nToBits, pDeltaProps, nMaxDeltaProps, objectID);
-
-	return count;
-}
-
-class CCServerNetworkProperty : public IServerNetworkable, public IEventRegisterCallback
-{
-public:
-	DECLARE_CLASS_NOBASE( CServerNetworkProperty );
-	DECLARE_DATADESC();
-
-public:
-	CCServerNetworkProperty();
-	virtual	~CCServerNetworkProperty();
-
-public:
-	inline IHandleEntity  *GetEntityHandle( );
-	inline edict_t			*GetEdict() const;
-	inline CBaseNetworkable* GetBaseNetworkable();
-	inline CBaseEntity*	GetBaseEntity();
-	inline ServerClass*	GetServerClass();
-	inline const char*		GetClassName() const;
-	inline void			Release();
-	inline int		AreaNum();
-	inline PVSInfo_t*		GetPVSInfo();
-
-public:
-	inline void Init( CBaseEntity *pEntity );
-	inline void AttachEdict( edict_t *pRequiredEdict = nullptr );
-	inline int	entindex() const { return m_pPev->m_EdictIndex; };
-	inline edict_t *edict() { return m_pPev; };
-	inline const edict_t *edict() const { return m_pPev; };
-	inline void SetEdict( edict_t *pEdict );
-	inline void NetworkStateForceUpdate();
-	inline void NetworkStateChanged();
-	inline void NetworkStateChanged( unsigned short offset );
-	inline void MarkPVSInformationDirty();
-	inline void MarkForDeletion();
-	inline bool IsMarkedForDeletion() const;
-	inline void SetNetworkParent( EHANDLE hParent );
-	inline CCServerNetworkProperty* GetNetworkParent();
-	inline void			SetUpdateInterval( float N );
-	inline bool IsInPVS( const CCheckTransmitInfo *pInfo );
-	inline bool IsInPVS( const edict_t *pRecipient, const void *pvs, int pvssize );
-	inline virtual void FireEvent();
-	inline void RecomputePVSInformation();
-
-private:
-	void DetachEdict();
-	CBaseEntity *GetOuter();
-	void SetTransmit( CCheckTransmitInfo *pInfo );
-
-public:
-	CBaseEntity *m_pOuter;
-	edict_t	*m_pPev;
-	PVSInfo_t m_PVSInfo;
-	ServerClass *m_pServerClass;
-	EHANDLE m_hParent;
-	CEventRegister	m_TimerEvent;
-	bool m_bPendingStateChange : 1;
-};
-
-inline void CCServerNetworkProperty::RecomputePVSInformation()
-{
-	if ( m_pPev && ( ( m_pPev->m_fStateFlags & FL_EDICT_DIRTY_PVS_INFORMATION ) != 0 ) )
-	{
-		m_pPev->m_fStateFlags &= ~FL_EDICT_DIRTY_PVS_INFORMATION;
-		engine->BuildEntityClusterList( m_pPev, &m_PVSInfo );
-	}
-}
-
-inline int CCServerNetworkProperty::AreaNum()
-{
-	RecomputePVSInformation();
-	return m_PVSInfo.m_nAreaNum;
-}
-
-inline CCServerNetworkProperty* CCServerNetworkProperty::GetNetworkParent()
-{
-	CBaseEntity *pParent = m_hParent.Get();
-	return pParent ? (CCServerNetworkProperty*)pParent->NetworkProp() : nullptr;
-}
-
-static CCollisionBSPData* g_BSPData;
-inline bool CheckAreasConnected(int area1, int area2)
-{
-	if (!g_BSPData) // WEH!
-		return Util::engineserver->CheckAreasConnected(area1, area2);
-
-	return g_BSPData->map_areas[area1].floodnum == g_BSPData->map_areas[area2].floodnum;
-}
-
-inline bool CCServerNetworkProperty::IsInPVS( const CCheckTransmitInfo *pInfo )
-{
-	// PVS data must be up to date
-	// Assert( !m_pPev || ( ( m_pPev->m_fStateFlags & FL_EDICT_DIRTY_PVS_INFORMATION ) == 0 ) );
-	
-	int i;
-
-	// Early out if the areas are connected
-	if ( !m_PVSInfo.m_nAreaNum2 )
-	{
-		for ( i=0; i< pInfo->m_AreasNetworked; ++i )
-		{
-			int clientArea = pInfo->m_Areas[i];
-			if ( clientArea == m_PVSInfo.m_nAreaNum || CheckAreasConnected( clientArea, m_PVSInfo.m_nAreaNum ) )
-				break;
-		}
-	}
-	else
-	{
-		// doors can legally straddle two areas, so
-		// we may need to check another one
-		for ( i=0; i< pInfo->m_AreasNetworked; ++i )
-		{
-			int clientArea = pInfo->m_Areas[i];
-			if ( clientArea == m_PVSInfo.m_nAreaNum || clientArea == m_PVSInfo.m_nAreaNum2 )
-				break;
-
-			if ( CheckAreasConnected( clientArea, m_PVSInfo.m_nAreaNum ) )
-				break;
-
-			if ( CheckAreasConnected( clientArea, m_PVSInfo.m_nAreaNum2 ) )
-				break;
-		}
-	}
-
-	if ( i == pInfo->m_AreasNetworked )
-	{
-		// areas not connected
-		return false;
-	}
-
-	// ignore if not touching a PV leaf
-	// negative leaf count is a node number
-	// If no pvs, add any entity
-
-	//Assert( edict() != pInfo->m_pClientEnt );
-
-	unsigned char *pPVS = ( unsigned char * )pInfo->m_PVS;
-	
-	if ( m_PVSInfo.m_nClusterCount < 0 )   // too many clusters, use headnode
-	{
-		return (engine->CheckHeadnodeVisible( m_PVSInfo.m_nHeadNode, pPVS, pInfo->m_nPVSSize ) != 0);
-	}
-	
-	for ( i = m_PVSInfo.m_nClusterCount; --i >= 0; )
-	{
-		int nCluster = m_PVSInfo.m_pClusters[i];
-		if ( ((int)(pPVS[nCluster >> 3])) & BitVec_BitInByte( nCluster ) )
-			return true;
-	}
-
-	return false;		// not visible
-}
-
-inline CBaseEntity* CCServerNetworkProperty::GetBaseEntity()
-{
-	return m_pOuter;
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -944,7 +496,6 @@ if ( state == pOKParent && !pInfo->m_pTransmitEdict->Get( index ) ) { Msg(PROJEC
 #define NETWORKING_SETSTATE_PRINT(index, state)
 #endif
 
-#define NETWORKING_USE_ENTITYCACHE 1
 static ConVar networking_bind_gmodhands_to_player("holylib_networking_bind_gmodhands_to_player", "1", 0, "Experimental - If enabled, the GMOD Hands / Player:SetHands entity will be bound to the player and only networked if the player is networked");
 static ConVar networking_bind_viewmodels_to_player("holylib_networking_bind_viewmodels_to_player", "1", 0, "Experimental - If enabled, the viewmodels will be bound to the player and only networked if the player is networked");
 static ConVar networking_cachedump("holylib_networking_cachedump", "0", 0, "Experimental - Debug. You wouldn't need this...");
@@ -1033,7 +584,7 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 
 			if (nFlags & FL_EDICT_ALWAYS)
 			{
-				while (true)
+				while (pEdict) // Stop if we got no edict / for example have no further parent
 				{
 					pAlwaysTransmitBits.Set(iEdict);
 					NETWORKING_SETSTATE(iEdict, pOKAlways)
@@ -1047,7 +598,8 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 						break;
 
 					pEdict = pParent->edict();
-					iEdict = pEdict->m_EdictIndex;
+					if (pEdict)
+						iEdict = pEdict->m_EdictIndex; // Source engine normally uses pParent->entindex() which needs no null check due to it using ENTINDEX internally
 				}
 				continue;
 			}
@@ -1503,16 +1055,12 @@ void Networking_DoPostTransmitCheck(CCheckTransmitInfo* pInfo)
 #endif
 
 static CBitVec<MAX_EDICTS> g_pDontTransmitCache; // Reset on every CServerGameEnts::CheckTransmit call
-#if !NETWORKING_USE_ENTITYCACHE // Not needed since our cache already excludes all the things by default
-static CBitVec<MAX_EDICTS> g_pDontTransmitWeaponCache; // Per frame cache
-static bool g_bFilledDontTransmitWeaponCache[MAX_PLAYERS] = {0}; // Exists just to avoid lots of iterations over all the weapons of players
-#endif
 static Detouring::Hook detour_CBaseCombatCharacter_SetTransmit;
 static Symbols::CBaseCombatCharacter_SetTransmit func_CBaseAnimating_SetTransmit;
 static ConVar networking_transmit_all_weapons("holylib_networking_transmit_all_weapons", "1", 0, "Experimental - By default all weapons are networked based on their PVS, though normally if they have an owner you might only want the active weapon to be networked");
 static ConVar networking_transmit_all_weapons_to_owner("holylib_networking_transmit_all_weapons_to_owner", "1", 0, "Experimental - By default all weapons are networked to the owner");
 static ConVar networking_transmit_one_per_tick("holylib_networking_transmit_one_per_tick", "0", 0, "Experimental - If enabled, one additional weapon is networked per tick");
-static ConVar networking_fasttransmit("holylib_networking_fasttransmit", "1", 0, "Experimental - Replaces CServerGameEnts::CheckTransmit with our own implementation");
+static ConVar networking_fasttransmit("holylib_networking_fasttransmit", "0", 0, "Experimental - Replaces CServerGameEnts::CheckTransmit with our own implementation");
 static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharacter, CCheckTransmitInfo *pInfo, bool bAlways)
 {
 	if (!func_CBaseAnimating_SetTransmit || !networking_fasttransmit.GetBool())
@@ -1537,13 +1085,6 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 				pGMODHands->SetTransmit(pInfo, bAlways);
 				NETWORKING_SETSTATE(pGMODHands->edict()->m_EdictIndex, pOKPlayerTransmit)
 			}
-#if !NETWORKING_USE_ENTITYCACHE
-			else { // Hands are only networked to the owner, so we can save some checks by skipping them when going over them later
-				int entIndex = pGMODHands->edict()->m_EdictIndex;
-				g_pDontTransmitCache.Set(entIndex);
-				g_pDontTransmitWeaponCache.Set(entIndex);
-			}
-#endif
 		}
 	}
 
@@ -1557,13 +1098,6 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 					pViewModel->SetTransmit(pInfo, bAlways);
 					NETWORKING_SETSTATE(pViewModel->edict()->m_EdictIndex, pOKPlayerTransmit)
 				}
-#if !NETWORKING_USE_ENTITYCACHE
-				else {
-					int entIndex = pViewModel->edict()->m_EdictIndex;
-					g_pDontTransmitCache.Set(entIndex);
-					g_pDontTransmitWeaponCache.Set(entIndex);
-				}
-#endif
 			}
 		}
 	}
@@ -1587,23 +1121,6 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 			NETWORKING_SETSTATE(pActiveWeapon->edict()->m_EdictIndex, pOKPlayerTransmit)
 		}
 
-#if !NETWORKING_USE_ENTITYCACHE // Our cache already removes them from transmit by default and expects us here to decide whose are networked.
-		int nEdictIndex = pCharacterEdict->m_EdictIndex-1;
-		if (!g_bFilledDontTransmitWeaponCache[nEdictIndex])
-		{
-			for ( int i=0; i < MAX_WEAPONS; ++i )
-			{
-				CBaseEntity *pWeapon = GetMyWeapon(pCharacter, i);
-				if ( !pWeapon )
-					continue;
-
-				int entIndex = pWeapon->edict()->m_EdictIndex;
-				g_pDontTransmitCache.Set(entIndex);
-				g_pDontTransmitWeaponCache.Set(entIndex);
-			}
-			g_bFilledDontTransmitWeaponCache[nEdictIndex] = true;
-		}
-#endif
 		/*
 			If your out for performance without wanting to loose default behavior the following settings can improve performance while having just a little downside
 
@@ -1628,12 +1145,6 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 			CBaseEntity *pWeapon = GetMyWeapon(pCharacter, nSlot);
 			if ( pWeapon )
 			{
-#if !NETWORKING_USE_ENTITYCACHE
-				int entIndex = pWeapon->edict()->m_EdictIndex;
-				g_pDontTransmitCache.Clear(entIndex);
-				// We don't clear g_bFilledDontTransmitWeaponCache to avoid it setting the bits above again
-#endif
-
 				pWeapon->SetTransmit(pInfo, bAlways);
 				NETWORKING_SETSTATE(pWeapon->edict()->m_EdictIndex, pOKPlayerTransmit)
 			}
@@ -1921,14 +1432,9 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 			g_pPlayerTransmitCache[iPlayerIndex-1].NextTick(pPlayer, nCurrentTick);
 		}
 
-//#if NETWORKING_USE_ENTITYCACHE
 		g_nEntityTransmitCache.UpdateEntities(pEdictIndices, nEdicts);
-//#endif
 		g_pGlobalTransmitTickCache.NewTick(nCurrentTick);
 
-#if !NETWORKING_USE_ENTITYCACHE
-		g_pDontTransmitWeaponCache.ClearAll();
-#endif
 	} else {
 		// We got g_nEntityTransmitCache for this already
 		// g_pGlobalTransmitTickCache.g_pAlwaysTransmitCacheBitVec.CopyTo(pInfo->m_pTransmitEdict);
@@ -1950,18 +1456,12 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	}
 
 	g_pShouldPrevent[clientIndex].CopyTo(&g_pDontTransmitCache); // We combine Gmod's prevent transmit with also our things to remove unessesary checks.
-#if !NETWORKING_USE_ENTITYCACHE
-	if (!bFirstTransmit)
-		g_pDontTransmitWeaponCache.Or(g_pDontTransmitCache, &g_pDontTransmitCache); // Now combine our cached weapon cache.
-#endif
-
 	g_nEntityTransmitCache.pNeverTransmitBits.Or(g_pDontTransmitCache, &g_pDontTransmitCache);
 
 	const int clientEntIndex = pInfo->m_pClientEnt->m_EdictIndex;
 	static CBitVec<MAX_EDICTS> pClientCache; // Temporary cache used when we are calculating the transmit to the current pRecipientPlayer
 	const bool bForceTransmit = sv_force_transmit_ents->GetBool();
 	bool bWasTransmitToPlayer = false;
-#if NETWORKING_USE_ENTITYCACHE
 	pInfo->m_pTransmitEdict->Or(g_nEntityTransmitCache.pAlwaysTransmitBits, pInfo->m_pTransmitEdict);
 	if (bIsHLTV)
 		pInfo->m_pTransmitAlways->Or(g_nEntityTransmitCache.pAlwaysTransmitBits, pInfo->m_pTransmitAlways);
@@ -2090,86 +1590,6 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 			}
 		}
 	}
-#else
-	for ( int i=0; i < nEdicts; ++i )
-	{
-		int iEdict = pEdictIndices[i];
-
-		edict_t *pEdict = &world_edict[iEdict]; // world_edict is already cached.
-		// Assert( pEdict == engine->PEntityOfEntIndex( iEdict ) );
-		int nFlags = pEdict->m_fStateFlags & (FL_EDICT_DONTSEND|FL_EDICT_ALWAYS|FL_EDICT_PVSCHECK|FL_EDICT_FULLCHECK);
-
-		if ( iEdict == clientEntIndex )
-		{
-			pInfo->m_pTransmitEdict->CopyTo(&pClientCache);
-			bWasTransmitToPlayer = true;
-		} else if ( bWasTransmitToPlayer ) {
-			// We Xor it so that the pClientCache contains all bits / entities
-			// that were sent specifically to our client in it's transmit check.
-			pInfo->m_pTransmitEdict->Xor(pClientCache, &pClientCache);
-			bWasTransmitToPlayer = false;
-		}
-
-		// entity needs no transmit
-		if ( nFlags & FL_EDICT_DONTSEND )
-			continue;
-		
-		// entity is already marked for sending
-		if ( pInfo->m_pTransmitEdict->Get( iEdict ) )
-			continue;
-
-		if ( g_pDontTransmitCache.Get(iEdict) ) // Implements gmod's SetPreventTransmit but far faster.
-			continue;
-		
-		if ( nFlags & FL_EDICT_ALWAYS )
-		{
-			// FIXME: Hey! Shouldn't this be using SetTransmit so as 
-			// to also force network down dependent entities?
-			while ( true )
-			{
-				// mark entity for sending
-				pInfo->m_pTransmitEdict->Set( iEdict );
-				g_pGlobalTransmitTickCache.g_pAlwaysTransmitCacheBitVec.Set( iEdict );
-	
-				if ( bIsHLTV )
-					pInfo->m_pTransmitAlways->Set( iEdict );
-
-				CCServerNetworkProperty *pEnt = static_cast<CCServerNetworkProperty*>( pEdict->GetNetworkable() );
-				if ( !pEnt )
-					break;
-
-				CCServerNetworkProperty *pParent = pEnt->GetNetworkParent();
-				if ( !pParent )
-					break;
-
-				pEdict = pParent->edict();
-				iEdict = pEdict->m_EdictIndex;
-			}
-			continue;
-		}
-
-		// FIXME: Would like to remove all dependencies
-		CBaseEntity *pEnt = g_pEntityCache[iEdict];
-		if ( nFlags == FL_EDICT_FULLCHECK )
-		{
-			// do a full ShouldTransmit() check, may return FL_EDICT_CHECKPVS
-			nFlags = pEnt->ShouldTransmit( pInfo );
-
-			if ( nFlags & FL_EDICT_ALWAYS )
-			{
-				pEnt->SetTransmit( pInfo, true );
-				// g_pAlwaysTransmitCacheBitVec.Set( iEdict ); We do NOT do this since view models and such would also be included.
-				continue;
-			}	
-		}
-
-		// don't send this entity
-		if ( !( nFlags & FL_EDICT_PVSCHECK ) )
-			continue;
-
-		DoTransmitPVSCheck(pEdict, pEnt, bIsHLTV, pInfo, bForceTransmit, skyBoxArea);
-	}
-#endif
 
 #if NETWORKING_STATE_DEBUGGING // I don't like this, useful for testing but not for actual prod
 	if (networking_verifyshit.GetBool())
@@ -2225,7 +1645,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 			{
 				// FIXME: Hey! Shouldn't this be using SetTransmit so as 
 				// to also force network down dependent entities?
-				while ( true )
+				while ( pEdict ) // Stop if we got no edict / for example have no further parent
 				{
 					// mark entity for sending
 					pInfo->m_pTransmitEdict->Set( iEdict );
@@ -2243,7 +1663,8 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 						break;
 
 					pEdict = pParent->edict();
-					iEdict = pEdict->m_EdictIndex;
+					if (pEdict)
+						iEdict = pEdict->m_EdictIndex; // Source engine normally uses pParent->entindex() which needs no null check due to it using ENTINDEX internally
 				}
 				continue;
 			}
@@ -2301,7 +1722,6 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 		nTransmitCache.nAreaNum = clientArea;
 	}
 	pInfo->m_pTransmitEdict->Or(g_pGlobalTransmitTickCache.g_bWasSeenByPlayer, &g_pGlobalTransmitTickCache.g_bWasSeenByPlayer);
-//	Msg("A:%i, N:%i, F: %i, P: %i\n", always, dontSend, fullCheck, PVS );
 
 	return true;
 }
@@ -2362,6 +1782,12 @@ static ConVar* sv_parallel_packentities;
 static Detouring::Hook detour_PackEntities_Normal;
 void PackEntities_Normal(int clientCount, CGameClient **clients, CFrameSnapshot *snapshot)
 {
+	if (!networking_fasttransmit.GetBool())
+	{
+		detour_PackEntities_Normal.GetTrampoline<Symbols::PackEntities_Normal>()(clientCount, clients, snapshot);
+		return;
+	}
+
 	Assert( snapshot->m_nValidEntities >= 0 && snapshot->m_nValidEntities <= MAX_EDICTS );
 	// tmZoneFiltered( TELEMETRY_LEVEL0, 50, TMZF_NONE, "%s %d", __FUNCTION__, snapshot->m_nValidEntities );
 
@@ -2476,6 +1902,9 @@ void CNetworkingModule::OnEntityCreated(CBaseEntity* pEntity)
 
 void CNetworkingModule::ClientDisconnect(edict_t* pPlayer)
 {
+	if (pPlayer->m_EdictIndex > MAX_PLAYERS)
+		return;
+
 	g_pPlayerTransmitCache[pPlayer->m_EdictIndex-1].Reset();
 }
 
@@ -2511,8 +1940,6 @@ static ServerClass* playerServerClass;
 static CFrameSnapshotManager* framesnapshotmanager = nullptr;
 static CSharedEdictChangeInfo* g_SharedEdictChangeInfo = nullptr;
 static ServerClassCache *player_class_cache = nullptr;
-static CStandardSendProxies* sendproxies;
-static SendTableProxyFn datatable_sendtable_proxy;
 PropTypeFns g_PropTypeFns[DPT_NUMSendPropTypes];
 #if ARCHITECTURE_X86_64
 static ConVar networking_enableunsafe64x("holylib_networking_enableunsafe64x", "0", 0, "(only affects 64x) Enables 64x the full module code though it may crash on 64x.");
@@ -2590,43 +2017,6 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 	);
 #endif
 
-#if 0
-	Detour::Create(
-		&detour_SendTable_WritePropList, "SendTable_WritePropList",
-		engine_loader.GetModule(), Symbols::SendTable_WritePropListSym,
-		(void*)hook_SendTable_WritePropList, m_pID
-	);
-	SendTable_WritePropList_func = detour_SendTable_WritePropList.GetTrampoline<Symbols::SendTable_WritePropList>();
-
-	Detour::Create(
-		&detour_CBaseServer_WriteDeltaEntities, "CBaseServer::WriteDeltaEntities",
-		engine_loader.GetModule(), Symbols::CBaseServer_WriteDeltaEntitiesSym,
-		(void*)hook_CBaseServer_WriteDeltaEntities, m_pID
-	);
-	CBaseServer_WriteDeltaEntities_func = detour_CBaseServer_WriteDeltaEntities.GetTrampoline<Symbols::CBaseServer_WriteDeltaEntities>();
-
-	Detour::Create(
-		&detour_SV_DetermineUpdateType, "SV_DetermineUpdateType",
-		engine_loader.GetModule(), Symbols::SV_DetermineUpdateTypeSym,
-		(void*)hook_SV_DetermineUpdateType, m_pID
-	);
-	SV_DetermineUpdateType_func = detour_SV_DetermineUpdateType.GetTrampoline<Symbols::SV_DetermineUpdateType>();
-
-	Detour::Create(
-		&detour_PackedEntity_GetPropsChangedAfterTick, "PackedEntity::GetPropsChangedAfterTick",
-		engine_loader.GetModule(), Symbols::PackedEntity_GetPropsChangedAfterTickSym,
-		(void*)hook_PackedEntity_GetPropsChangedAfterTick, m_pID
-	);
-	PackedEntity_GetPropsChangedAfterTick_func = detour_PackedEntity_GetPropsChangedAfterTick.GetTrampoline<Symbols::PackedEntity_GetPropsChangedAfterTick>();
-
-	Detour::Create(
-		&detour_CGameServer_SendClientMessages, "CGameServer::SendClientMessages",
-		engine_loader.GetModule(), Symbols::CGameServer_SendClientMessagesSym,
-		(void*)hook_CGameServer_SendClientMessages, m_pID
-	);
-	CGameServer_SendClientMessages_func = detour_CGameServer_SendClientMessages.GetTrampoline<Symbols::CGameServer_SendClientMessages>();
-#endif
-
 	framesnapshotmanager = Detour::ResolveSymbol<CFrameSnapshotManager>(engine_loader, Symbols::g_FrameSnapshotManagerSym);
 	Detour::CheckValue("get class", "framesnapshotmanager", framesnapshotmanager != nullptr);
 
@@ -2700,13 +2090,11 @@ void CNetworkingModule::ServerActivate(edict_t* pEdictList, int edictCount, int 
 	}
 
 	world_edict = Util::engineserver->PEntityOfEntIndex(0);
-	sendproxies = Util::servergamedll->GetStandardSendProxies();
-	datatable_sendtable_proxy = sendproxies->m_DataTableToDataTable;
+	CStandardSendProxies* sendproxies = Util::servergamedll->GetStandardSendProxies();
 	local_sendtable_proxy = sendproxies->m_SendLocalDataTable;
 	player_local_exclusive_send_proxy = new bool[playerSendTable->m_pPrecalc ? playerSendTable->m_pPrecalc->m_nDataTableProxies: 255];
 	for(ServerClass *serverclass = Util::servergamedll->GetAllServerClasses(); serverclass->m_pNext != nullptr; serverclass = serverclass->m_pNext)
 	{
-		//DevMsg("Crash1\n");
 		SendTable *sendTable = serverclass->m_pTable;
 		auto serverClassCache = new ServerClassCache();
 		if (sendTable == playerSendTable) 
@@ -2715,16 +2103,11 @@ void CNetworkingModule::ServerActivate(edict_t* pEdictList, int edictCount, int 
 		// Reuse unused variable
 		sendTable->m_pPrecalc->m_pDTITable = (CDTISendTable*)serverClassCache;
 		int propcount = sendTable->m_pPrecalc->m_Props.Count();
-		//DevMsg("%s %d %d\n", pTable->GetName(), propcount, pTable->GetNumProps());
 				
 		CPropMapStack pmStack( sendTable->m_pPrecalc, sendproxies );
 		serverClassCache->prop_offsets = new unsigned short[propcount];
-		//serverClassCache.send_nodes = new CSendNode *[playerSendTable->m_pPrecalc->m_nDataTableProxies];
 		pmStack.Init();
 
-		//int reduce_coord_prop_offset = 0;
-
-		//DevMsg("Crash2\n");
 		int t = 0;
 		PropScan(0,sendTable, t);
 		unsigned char proxyStack[256];
@@ -2741,12 +2124,6 @@ void CNetworkingModule::ServerActivate(edict_t* pEdictList, int edictCount, int 
 
 			pmStack.SeekToProp( iToProp );
 
-			//player_local_exclusive_send_proxy[proxyStack[sendTable->m_pPrecalc->m_PropProxyIndices[iToProp]]] = player_prop_cull[iToProp] < 254 && pProp->GetDataTableProxyFn() == sendproxies->m_SendLocalDataTable;
-					
-			//bool local2 = pProp->GetDataTableProxyFn() == sendproxies->m_SendLocalDataTable;
-			// bool local = player_local_exclusive_send_proxy[player_prop_cull[iToProp]];
-			//Msg("Local %s %d %d %d %d\n",pProp->GetName(), local, local2, sendproxies->m_SendLocalDataTable, pProp->GetDataTableProxyFn());
-
 			auto dataTableIndex = proxyStack[sendTable->m_pPrecalc->m_PropProxyIndices[iToProp]];
 			serverClassCache->prop_cull[iToProp] = dataTableIndex;
 			if (dataTableIndex < sendTable->m_pPrecalc->m_nDataTableProxies)
@@ -2760,7 +2137,6 @@ void CNetworkingModule::ServerActivate(edict_t* pEdictList, int edictCount, int 
 				int elementStride = 0;
 				int propIdToUse = iToProp;
 				int offsetToUse = offset;
-				//auto arrayProp = pProp;
 				if ( pProp->GetType() == DPT_Array )
 				{
 					offset = pProp->GetArrayProp()->GetOffset() + (intptr_t)pmStack.GetCurStructBase() - 1;
@@ -2771,11 +2147,7 @@ void CNetworkingModule::ServerActivate(edict_t* pEdictList, int edictCount, int 
 				}
 
 				serverClassCache->prop_offsets[propIdToUse] = offsetToUse;
-
-				//if (pProp->GetType() == DPT_Vector || pProp->GetType() == DPT_Vector )
-				//	propIndex |= PROP_INDEX_VECTOR_ELEM_MARKER;
-						
-				if (offset != 0/*IsStandardPropProxy(pProp->GetProxyFn())*/)
+				if (offset != 0)
 				{
 					if (offset != 0)
 					{
@@ -2793,31 +2165,16 @@ void CNetworkingModule::ServerActivate(edict_t* pEdictList, int edictCount, int 
 						}
 					}
 				} else {
-					// if (sendTable == playerSendTable) {
-					//	 Msg("prop %d %s %d\n", iToProp, pProp->GetName(), offset);
-					// }
 					serverClassCache->prop_special.push_back({propIdToUse});
 				}
 			} else {
 				auto &datatableSpecial = serverClassCache->datatable_special[sendTable->m_pPrecalc->m_DatatableProps[pmStack.m_pIsPointerModifyingProxy[sendTable->m_pPrecalc->m_PropProxyIndices[iToProp]]->m_iDatatableProp]];
 						
-				//serverClassCache->prop_special.push_back({iToProp, pmStack.m_iBaseOffset[sendTable->m_pPrecalc->m_PropProxyIndices[iToProp]], pProp, pmStack.m_pIsPointerModifyingProxy[sendTable->m_pPrecalc->m_PropProxyIndices[iToProp]]});
 				datatableSpecial.propIndexes.push_back(iToProp);
 				datatableSpecial.baseOffset = pmStack.m_iBaseOffset[sendTable->m_pPrecalc->m_PropProxyIndices[iToProp]];
 
 				serverClassCache->prop_offsets[iToProp] = pProp->GetOffset();
 			}
-			//Msg("Data table for %d %s %d is %d %d %d %d\n", iToProp, pProp->GetName(),  pProp->GetOffset() + (int)pmStack.GetCurStructBase() - 1, (int)pmStack.GetCurStructBase(), pProp->GetProxyFn(), pProp->GetDataTableProxyFn(), pmStack.m_pIsPointerModifyingProxy[sendTable->m_pPrecalc->m_PropProxyIndices[iToProp]]) ;
-
-			//int bitsread_pre = toBits.GetNumBitsRead();
-
-			/*if (pProp->GetFlags() & SPROP_COORD_MP)) {
-				if ((int)pmStack.GetCurStructBase() != 0) {
-					reduce_coord_prop_offset += toBits.GetNumBitsRead() - bitsread_pre;
-					player_prop_coord.push_back(iToProp);
-					Msg("bits: %d\n", toBits.GetNumBitsRead() - bitsread_pre);
-				}
-			}*/
 		}
 	}
 }

@@ -34,16 +34,18 @@ public:
 	void OnConfigLoad(Bootil::Data::Tree& pConfig) override
 	{
 		m_bAllowFFI = pConfig.EnsureChildVar<bool>("enableFFI", m_bAllowFFI);
+		m_bEnableFFIOverrides = pConfig.EnsureChildVar<bool>("enableFFIOverrides", m_bEnableFFIOverrides);
 		m_bKeepRemovedDebugFunctions = pConfig.EnsureChildVar<bool>("keepRemovedDebugFunctions", m_bKeepRemovedDebugFunctions);
 	};
 
 public:
 	bool m_bAllowFFI = false;
+	bool m_bEnableFFIOverrides = true;
 	bool m_bKeepRemovedDebugFunctions = false;
 	bool m_bIsEnabled = false;
 };
 
-CLuaJITModule g_pLuaJITModule;
+static CLuaJITModule g_pLuaJITModule;
 IModule* pLuaJITModule = &g_pLuaJITModule;
 
 //class CLuaInterfaceProxy;
@@ -188,9 +190,18 @@ static void hook_luaL_openlibs(lua_State* L)
 		lua_pushcfunction(L, luaopen_jit_profile);
 		lua_call(L, 0, 1);
 		lua_setfield(L, -2, "profile");
+
+		lua_pushcfunction(L, luaopen_jit_util);
+		lua_call(L, 0, 1);
+		lua_setfield(L, -2, "util");
 	lua_pop(L, 1);
 
 	bOpenLibs = true;
+}
+
+double FUNC_FASTCALL ASM_SysTime()
+{
+	return Plat_FloatTime();
 }
 
 /*
@@ -272,6 +283,13 @@ void CLuaJITModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 	}
 	lua_pop(L, 1);
 
+	// Remove the test table from our LuaJIT build
+	lua_pushnil(L);
+	lua_setfield(L, LUA_GLOBALSINDEX, "test");
+
+	// Disable default debug hook
+	lua_sethook(L, nullptr, 0, 0);
+
 	LuaJITModuleData* pData = new LuaJITModuleData;
 	//pData->pLuaInterfaceProxy = std::make_unique<CLuaInterfaceProxy>(pLua);
 	Lua::GetLuaData(pLua)->SetModuleData(m_pID, pData);
@@ -294,28 +312,31 @@ void CLuaJITModule::PostLuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		overrideFFIReference = luaL_ref(L, LUA_REGISTRYINDEX);
 	}
 
-	if (!pLua->RunStringEx("HolyLib:HolyLibUserDataFFI.lua", "", luaHolyLibUserDataFFI, true, true, true, true))
+	if (g_pLuaJITModule.m_bEnableFFIOverrides)
 	{
-		Warning(PROJECT_NAME " - luajit: Failed to load HolyLibUserData script!\n");
-	}
+		if (!pLua->RunStringEx("HolyLib:HolyLibUserDataFFI.lua", "", luaHolyLibUserDataFFI, true, true, true, true))
+		{
+			Warning(PROJECT_NAME " - luajit: Failed to load HolyLibUserData script!\n");
+		}
 
-	if (!pLua->RunStringEx("HolyLib:VectorFFI.lua", "", luaVectorFFI, true, true, true, true))
-	{
-		Warning(PROJECT_NAME " - luajit: Failed to load VectorFFI script!\n");
-	}
+		if (!pLua->RunStringEx("HolyLib:VectorFFI.lua", "", luaVectorFFI, true, true, true, true))
+		{
+			Warning(PROJECT_NAME " - luajit: Failed to load VectorFFI script!\n");
+		}
 
-	if (!pLua->RunStringEx("HolyLib:AngleFFI.lua", "", luaAngleFFI, true, true, true, true))
-	{
-		Warning(PROJECT_NAME " - luajit: Failed to load AngleFFI script!\n");
-	}
+		if (!pLua->RunStringEx("HolyLib:AngleFFI.lua", "", luaAngleFFI, true, true, true, true))
+		{
+			Warning(PROJECT_NAME " - luajit: Failed to load AngleFFI script!\n");
+		}
 
-	if (!pLua->RunStringEx("HolyLib:VoiceDataFFI.lua", "", luaVoiceDataFFI, true, true, true, true))
-	{
-		Warning(PROJECT_NAME " - luajit: Failed to load VoiceDataFFI script!\n");
-	}
+		if (!pLua->RunStringEx("HolyLib:VoiceDataFFI.lua", "", luaVoiceDataFFI, true, true, true, true))
+		{
+			Warning(PROJECT_NAME " - luajit: Failed to load VoiceDataFFI script!\n");
+		}
 
-	pLua->PushNil();
-	pLua->SetField(GarrysMod::Lua::INDEX_GLOBAL, "__HOLYLIB_FFI"); // A table that the script could have used to share data between them.
+		pLua->PushNil();
+		pLua->SetField(GarrysMod::Lua::INDEX_GLOBAL, "__HOLYLIB_FFI"); // A table that the script could have used to share data between them.
+	}
 
 	// Remove FFI again.
 	if (overrideFFIReference != -1)
@@ -323,6 +344,14 @@ void CLuaJITModule::PostLuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		luaL_unref(L, LUA_REGISTRYINDEX, overrideFFIReference);
 		overrideFFIReference = -1;
 	}
+
+	pLua->GetField(LUA_GLOBALSINDEX, "SysTime");
+	if (pLua->IsType(-1, GarrysMod::Lua::Type::Function)) {
+		lua_CFunctionInfo info = Lua::MakeJITFunc(CFUNC_TYPE_DOUBLE, (void*)&ASM_SysTime);
+		lua_settracablecclosure(pLua->GetState(), -1, (lua_CFunctionInfo*)&info);
+		Msg(PROJECT_NAME " - jit: Added JIT support for SysTime\n");
+	}
+	pLua->Pop(1);
 }
 
 void CLuaJITModule::InitDetour(bool bPreServer)
@@ -482,6 +511,8 @@ void CLuaJITModule::InitDetour(bool bPreServer)
 	Util::func_lua_setallocf = &lua_setallocf;
 	Util::func_lj_gc_barrierf = (Symbols::lj_gc_barrierf)&lj_gc_barrierf;
 	Util::func_lj_tab_get = (Symbols::lj_tab_get)&lj_tab_get;
+	Lua::func_lua_pushtracablecclosure = (Symbols::lua_pushtracablecclosure)&lua_pushtracablecclosure;
+	Lua::func_lua_settracablecclosure = (Symbols::lua_settracablecclosure)&lua_settracablecclosure;
 
 	m_bIsEnabled = true;
 }

@@ -452,7 +452,7 @@ GMOD_MODULE_OPEN()
 		edict_t* pEdict = Util::engineserver->PEntityOfEntIndex(0);
 		if (Util::GetCBaseEntityFromEdict(pEdict))
 		{
-			g_pModuleManager.ServerActivate(pEdict, Util::engineserver->GetEntityCount(), Util::server->GetMaxClients());
+			g_pModuleManager.ServerActivate(pEdict, Util::engineserver->GetEntityCount(), gpGlobals->maxClients);
 		}
 	}
 

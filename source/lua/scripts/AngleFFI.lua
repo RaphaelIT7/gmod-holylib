@@ -27,6 +27,14 @@ local function Angle(x, y, z)
     if isangle(ang) then
         return CreateAngle(ang.x, ang.y, ang.z)
     end
+
+    if isstring(ang) then
+        local vals = ang:Split(" ")
+        x = vals[1] or 0
+        y = vals[2] or 0
+        z = vals[3] or 0
+    end
+
     return CreateAngle(tonumber(x) or 0, tonumber(y) or 0, tonumber(z) or 0)
 end
 _G.GMOD_Angle = _G.Angle -- let's keep the original around
@@ -315,12 +323,17 @@ do
 
     debug.setblocked(CreateAngle)
 
+    _G.GMOD_isangle = _G.GMOD_isangle or _G.isangle
+    local GMOD_isangle = _G.GMOD_isangle
     function isangle(v)
+        if GMOD_isangle(v) then
+            return true
+        end
+
         return ffi.istype("GMOD_AngUserData", v)
     end
 
     debug.setblocked(isangle)
-    _G.GMOD_isangle = _G.isangle
     _G.isangle = isangle
 end
 

@@ -29,21 +29,13 @@ namespace GarrysMod::Lua
 	{
 		~LuaFile();
 		int time;
-	#ifdef WIN32
 		std::string name;
 		std::string source;
 		std::string contents;
 		inline const char* GetName() { return name.c_str(); }
 		inline const char* GetSource() { return source.c_str(); }
 		inline const char* GetContents() { return contents.c_str(); }
-	#else
-		const char* name;
-		const char* source;
-		const char* contents;
-		inline const char* GetName() { return name; }
-		inline const char* GetSource() { return source; }
-		inline const char* GetContents() { return contents; }
-	#endif
+		inline void SetContents(std::string pContent) { contents = pContent; }
 		Bootil::AutoBuffer compressed;
 	#ifndef WIN32
 		int random = 1; // Unknown thing
@@ -54,13 +46,8 @@ namespace GarrysMod::Lua
 
 	struct LuaFindResult
 	{
-	#ifdef WIN32
 		std::string fileName;
 		inline const char* GetFileName() { return fileName.c_str(); }
-	#else
-		const char* fileName;
-		inline const char* GetFileName() { return fileName; }
-	#endif
 		bool isFolder;
 	};
 }

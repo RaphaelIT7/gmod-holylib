@@ -1,6 +1,6 @@
 /*
 ** ARM64 instruction emitter.
-** Copyright (C) 2005-2025 Mike Pall. See Copyright Notice in luajit.h
+** Copyright (C) 2005-2026 Mike Pall. See Copyright Notice in luajit.h
 **
 ** Contributed by Djordje Kovacevic and Stefan Pejic from RT-RK.com.
 ** Sponsored by Cisco Systems, Inc.
@@ -408,6 +408,13 @@ static void emit_call(ASMState *as, ASMFunction target)
     *p = A64I_BLR_AUTH | A64F_N(r);
   }
 }
+
+#if LJ_ABI_BRANCH_TRACK
+static void emit_branch_track(ASMState *as)
+{
+  *--as->mcp = A64I_BTI_J;
+}
+#endif
 
 /* -- Emit generic operations --------------------------------------------- */
 

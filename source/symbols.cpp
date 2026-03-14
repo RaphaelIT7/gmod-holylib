@@ -134,8 +134,11 @@ namespace Symbols
 		Symbol::FromSignature("\x48\x89\x5C\x24\x08\x48\x89\x6C\x24\x10\x48\x89\x74\x24\x18\x57\x41\x56\x41\x57\x48\x83\xEC\x20\x45\x0F\xB6\xF8"),	
 	};
 
-	const std::vector<Symbol> Sys_Error_InternalSym = {
+	const std::vector<Symbol> Sys_Error_InternalSym = { // Engine error: %s\n
 		Symbol::FromName("_Z18Sys_Error_InternalbPKcPc"),
+		Symbol::FromSignature("\x55\x48\x89\xD1\x48\x89\xF2\x48\x89\xE5\x41\x54*****\x53\x48\x8D*****\x48"), // 55 48 89 D1 48 89 F2 48 89 E5 41 54 ?? ?? ?? ?? ?? 53 48 8D ?? ?? ?? ?? ?? 48
+		Symbol::FromSignature("\x55\x8B\xEC**\x68****\x68****\x64*****\x50\x64"), // 55 8B EC ?? ?? 68 ?? ?? ?? ?? 68 ?? ?? ?? ?? 64 ?? ?? ?? ?? ?? 50 64
+		Symbol::FromSignature("\x48******\x48******\x48\x33\xC4\x48*******\x4D\x8B\xC8\x48****\x4C\x8B\xC2"), // 48 ?? ?? ?? ?? ?? ?? 48 ?? ?? ?? ?? ?? ?? 48 33 C4 48 ?? ?? ?? ?? ?? ?? ?? 4D 8B C8 48 ?? ?? ?? ?? 4C 8B C2
 	};
 
 	//---------------------------------------------------------------------------------
@@ -769,10 +772,6 @@ namespace Symbols
 		Symbol::FromName("_ZN11IVP_Mindist27update_exact_mindist_eventsE8IVP_BOOL22IVP_MINDIST_EVENT_HINT"),
 	};
 
-	const std::vector<Symbol> IVP_Mindist_D2Sym = {
-		Symbol::FromName("_ZN11IVP_MindistD2Ev"),
-	};
-
 	const std::vector<Symbol> g_pCurrentMindistSym = {
 		Symbol::FromName("g_pCurrentMindist"),
 	};
@@ -918,20 +917,20 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: gameserver Symbols
 	//---------------------------------------------------------------------------------
-	const std::vector<Symbol> CServerGameClients_GetPlayerLimitSym = {
-		Symbol::FromName("_ZNK18CServerGameClients15GetPlayerLimitsERiS0_S0_"),
-		Symbol::FromSignature("\x55\xC7\x01\x80\x00\x00\x00"), // 55 C7 01 80 00 00 00
-		Symbol::FromSignature("\x55\x8B\xEC\x8B\x45\x10\xC7\x00\x80\x00\x00\x00"), // 55 8B EC 8B 45 10 C7 00 80 00 00 00
+	const std::vector<Symbol> CBaseServer_GetFreeClientSym = {
+		Symbol::FromName("_ZN11CBaseServer13GetFreeClientER8netadr_s"),
 	};
 
-	const std::vector<Symbol> CBaseServer_FillServerInfoSym = {
-		Symbol::FromName("_ZN11CBaseServer14FillServerInfoER14SVC_ServerInfo"),
-		Symbol::FromSignature("\x55\xBA\x04\x01\x00\x00\x48\x89\xE5\x41\x54\x49\x89\xF4\x53\x48\x8D\x35\x2A\x2A\x2A\x2A"), // 55 BA 04 01 00 00 48 89 E5 41 54 49 89 F4 53 48 8D 35 ? ? ? ?
+	const std::vector<Symbol> CBaseServer_CreateFakeClientSym = {
+		Symbol::FromName("_ZN11CBaseServer16CreateFakeClientEPKc"),
 	};
 
-	const std::vector<Symbol> CHLTVServer_FillServerInfoSym = {
-		Symbol::FromName("_ZN11CHLTVServer14FillServerInfoER14SVC_ServerInfo"),
-		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x54\x49\x89\xFC\x53\x48\x8D\x7F\x08"), // 55 48 89 E5 41 54 49 89 FC 53 48 8D 7F 08
+	const std::vector<Symbol> CBaseServer_UserInfoChangedSym = {
+		Symbol::FromName("_ZN11CBaseServer15UserInfoChangedEi"),
+	};
+
+	const std::vector<Symbol> CGameServer_RemoveClientFromGameSym = {
+		Symbol::FromName("_ZN11CGameServer20RemoveClientFromGameEP11CBaseClient"),
 	};
 
 	const std::vector<Symbol> CBaseClient_SetSignonStateSym = {
@@ -974,7 +973,7 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x49\x89\xFE\x41\x55\x41\x54\x53\x48\x89\xF3\x48\x81\xEC\xC8\x0A\x00\x00"), // 55 48 89 E5 41 57 41 56 49 89 FE 41 55 41 54 53 48 89 F3 48 81 EC C8 0A 00 00
 	};
 
-	const std::vector<Symbol> NET_SendPacketSym = {
+	const std::vector<Symbol> NET_SendPacketSym = { // Search for "NET_SendPacket"
 		Symbol::FromName("_Z14NET_SendPacketP11INetChanneliRK8netadr_sPKhiP8bf_writeb"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x49\x89\xD5\x41\x54\x4D\x89\xCC"), // 55 48 89 E5 41 57 41 56 41 55 49 89 D5 41 54 4D 89 CC
 	};
@@ -1142,5 +1141,28 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	const std::vector<Symbol> GMODTable_EncodeSym = {
 		Symbol::FromName("_Z16GMODTable_EncodePKhP8DVariantPK8SendPropP8bf_writei"),
+	};
+
+	//---------------------------------------------------------------------------------
+	// Purpose: crashhandler Symbols
+	//---------------------------------------------------------------------------------
+	const std::vector<Symbol> add_commandSym = {
+		Symbol::FromName("_ZL11add_commandPKci"),
+	};
+
+	const std::vector<Symbol> CTextConsoleUnix_GetLineSym = { // on Linux 64x search for usage of "sigprocmask"
+		Symbol::FromName("_ZN16CTextConsoleUnix7GetLineEiPci"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x53\x48\x89\xFB\x48\x81\xEC\x98\x00\x00\x00*****\x31\xD2\x85\xC0"), // 55 48 89 E5 41 57 41 56 41 55 41 54 53 48 89 FB 48 81 EC 98 00 00 00 ?? ?? ?? ?? ?? 31 D2 85 C0
+	};
+
+	//---------------------------------------------------------------------------------
+	// Purpose: gmoddatapack Symbols
+	//---------------------------------------------------------------------------------
+	const std::vector<Symbol> GModDataPack_SendFileToClientSym = {
+		Symbol::FromName("_ZN12GModDataPack16SendFileToClientEii"),
+	};
+
+	const std::vector<Symbol> GModDataPack_AddOrUpdateFileSym = {
+		Symbol::FromName("_ZN12GModDataPack15AddOrUpdateFileEP7LuaFileb"),
 	};
 }

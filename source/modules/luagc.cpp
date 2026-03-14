@@ -27,6 +27,33 @@ public:
 static CLuaGCModule g_pLuaGCModule;
 IModule* pLuaGCModule = &g_pLuaGCModule;
 
+/*
+	We generate a luagc_jit file which will contain all luagc functions BUT build with the headers of OUR LuaJIT build.
+
+HOLYLIB_SETUP_FILE=sourcesdk/luagc_jit.cpp
+HOLYLIB_SETUP_FILE_DEPENDING_MODULE=luajit
+HOLYLIB_SETUP_FILE_REPLACE_PER_LINE=LUA_FUNCTION_STATIC(==>LUA_FUNCTION(luajit_
+HOLYLIB_SETUP_FILE_CONTENTS_BEGIN
+// THIS IS A GENERATED FILE!!! Modify this in modules/luagc.cpp
+#define DISABLE_GMODJIT
+#include "LuaInterface.h"
+#include "lua.h"
+
+extern "C"
+{
+	#include "../luajit/src/lj_jit.h"
+	#include "../luajit/src/lj_dispatch.h"
+	#include "../luajit/src/lj_tab.h"
+	#include "../luajit/src/lj_gdbjit.h"
+	#include "../luajit/src/lj_str.h"
+}
+
+// sizestring - previous macro in lj_obj but was removed in newer JIT versions
+#define sizestring(str) lj_str_size(str->len)
+
+HOLYLIB_SETUP_FILE_SKIPNEXTLINE // Skip the comment end below
+*/
+
 LUA_FUNCTION_STATIC(luagc_GetGCCount)
 {
 	global_State* pGState = G(LUA->GetState());
@@ -55,7 +82,7 @@ LUA_FUNCTION_STATIC(luagc_GetGCCount)
 	return 1;
 }
 
-bool LuaGC_WalkReferenceCheck(GCobj* pTargetObj, GCobj* pObj, lua_State* L, bool bChild)
+static bool LuaGC_WalkReferenceCheck(GCobj* pTargetObj, GCobj* pObj, lua_State* L, bool bChild = true)
 {
 	if (!pObj)
 		return false;
@@ -205,8 +232,12 @@ bool LuaGC_WalkReferenceCheck(GCobj* pTargetObj, GCobj* pObj, lua_State* L, bool
 			GCupval* pUpVal = gco2uv(gcref(pVal->openupval));
 			while (pUpVal)
 			{
-				if (LuaGC_WalkReferenceCheck(pTargetObj, obj2gco(gcV(uvval(pUpVal))), L, true))
-					return true;
+				TValue* pUpValTV = uvval(pUpVal);
+				if (pUpValTV && tvisgcv(pUpValTV))
+				{
+					if (LuaGC_WalkReferenceCheck(pTargetObj, obj2gco(gcV(pUpValTV)), L, true))
+						return true;
+				}
 
 				pUpVal = uvnext(pUpVal);
 			}
@@ -260,8 +291,7 @@ LUA_FUNCTION_STATIC(luagc_GetReferences)
 	return 1;
 }
 
-extern void LuaGC_WalkReferences(GCobj* pObj, std::unordered_set<GCobj*>& nWalkedObjects, int& nCount, lua_State* L, GarrysMod::Lua::ILuaInterface* LUA, bool bIsChild, bool bRecursive);
-void LuaGC_WalkReferences(GCobj* pObj, std::unordered_set<GCobj*>& nWalkedObjects, int& nCount, lua_State* L, GarrysMod::Lua::ILuaInterface* LUA, bool bIsChild, bool bRecursive)
+static void LuaGC_WalkReferences(GCobj* pObj, std::unordered_set<GCobj*>& nWalkedObjects, int& nCount, lua_State* L, GarrysMod::Lua::ILuaInterface* LUA, bool bIsChild, bool bRecursive)
 {
 	if (!pObj || nWalkedObjects.find(pObj) != nWalkedObjects.end())
 		return;
@@ -395,7 +425,9 @@ void LuaGC_WalkReferences(GCobj* pObj, std::unordered_set<GCobj*>& nWalkedObject
 			GCupval* pUpVal = gco2uv(gcref(pVal->openupval));
 			while (pUpVal)
 			{
-				LuaGC_WalkReferences(obj2gco(gcV(uvval(pUpVal))), nWalkedObjects, nCount, L, LUA, true, bRecursive);
+				TValue* pUpValTV = uvval(pUpVal);
+				if (pUpValTV && tvisgcv(pUpValTV))
+					LuaGC_WalkReferences(obj2gco(gcV(pUpValTV)), nWalkedObjects, nCount, L, LUA, true, bRecursive);
 
 				pUpVal = uvnext(pUpVal);
 			}
@@ -510,7 +542,7 @@ static inline void PushGCTypeName(GarrysMod::Lua::ILuaInterface* LUA, const char
 	LUA->RawSet(-3);
 }
 
-extern int LuaGC_RecursiveSize(GCobj* pObj, std::unordered_set<GCobj*>& nWalkedObjects, lua_State* L, bool bIsChild, bool bRecursive);
+static int LuaGC_RecursiveSize(GCobj* pObj, std::unordered_set<GCobj*>& nWalkedObjects, lua_State* L, bool bIsChild, bool bRecursive);
 static void LuaGC_ShowReferences(GarrysMod::Lua::ILuaInterface* LUA, GCobj* pObj)
 {
 	if (!pObj)
@@ -758,8 +790,12 @@ static void LuaGC_ShowReferences(GarrysMod::Lua::ILuaInterface* LUA, GCobj* pObj
 			GCupval* pUpVal = gco2uv(gcref(pVal->openupval));
 			while (pUpVal)
 			{
-				PushGCObject(LUA, obj2gco(gcV(uvval(pUpVal))));
-				Util::RawSetI(LUA, -2, ++nCount);
+				TValue* pUpValTV = uvval(pUpVal);
+				if (pUpValTV && tvisgcv(pUpValTV))
+				{
+					PushGCObject(LUA, obj2gco(gcV(pUpValTV)));
+					Util::RawSetI(LUA, -2, ++nCount);
+				}
 
 				pUpVal = uvnext(pUpVal);
 			}
@@ -798,10 +834,11 @@ LUA_FUNCTION_STATIC(luagc_GetFormattedGCObjectInfo)
 	}
 
 	LuaGC_ShowReferences(LUA, gcV(pVal));
+
 	return 1;
 }
 
-int LuaGC_RecursiveSize(GCobj* pObj, std::unordered_set<GCobj*>& nWalkedObjects, lua_State* L, bool bIsChild, bool bRecursive)
+static int LuaGC_RecursiveSize(GCobj* pObj, std::unordered_set<GCobj*>& nWalkedObjects, lua_State* L, bool bIsChild, bool bRecursive)
 {
 	if (!pObj || nWalkedObjects.find(pObj) != nWalkedObjects.end())
 		return 0;
@@ -965,7 +1002,14 @@ int LuaGC_RecursiveSize(GCobj* pObj, std::unordered_set<GCobj*>& nWalkedObjects,
 			GCupval* pUpVal = gco2uv(gcref(pVal->openupval));
 			while (pUpVal)
 			{
-				nSize += LuaGC_RecursiveSize(obj2gco(gcV(uvval(pUpVal))), nWalkedObjects, L, true, bRecursive);
+				TValue* pUpValTV = uvval(pUpVal);
+				if (pUpValTV)
+				{
+					if (tvisgcv(pUpValTV))
+						nSize += LuaGC_RecursiveSize(obj2gco(gcV(pUpValTV)), nWalkedObjects, L, true, bRecursive);
+					else
+						nSize += sizeof(TValue);
+				}
 
 				pUpVal = uvnext(pUpVal);
 			}
@@ -1026,19 +1070,48 @@ LUA_FUNCTION_STATIC(luagc_GetSizeOfGCObject)
 	return 1;
 }
 
+//HOLYLIB_SETUP_FILE_END
+
+
+
+#if MODULE_EXISTS_LUAJIT
+LUA_FUNCTION_EXTERN(luajit_luagc_GetGCCount)
+LUA_FUNCTION_EXTERN(luajit_luagc_GetReferences)
+LUA_FUNCTION_EXTERN(luajit_luagc_GetContainingReferences)
+LUA_FUNCTION_EXTERN(luajit_luagc_GetAllGCObjects)
+LUA_FUNCTION_EXTERN(luajit_luagc_GetCurrentGCHeadObject)
+LUA_FUNCTION_EXTERN(luajit_luagc_GetFormattedGCObjectInfo)
+LUA_FUNCTION_EXTERN(luajit_luagc_GetSizeOfGCObject)
+#endif
+
 void CLuaGCModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (bServerInit)
 		return;
 
 	Util::StartTable(pLua);
-		Util::AddFunc(pLua, luagc_GetGCCount, "GetGCCount"); // GCobj count
-		Util::AddFunc(pLua, luagc_GetReferences, "GetReferences"); // A table containing all GCobjs that reference the given GCobj
-		Util::AddFunc(pLua, luagc_GetContainingReferences, "GetContainingReferences"); // A table containing all GCobjs the given object references recursively
-		Util::AddFunc(pLua, luagc_GetAllGCObjects, "GetAllGCObjects"); // All GCobjs
-		Util::AddFunc(pLua, luagc_GetCurrentGCHeadObject, "GetCurrentGCHeadObject");
-		Util::AddFunc(pLua, luagc_GetFormattedGCObjectInfo, "GetFormattedGCObjectInfo");
-		Util::AddFunc(pLua, luagc_GetSizeOfGCObject, "GetSizeOfGCObject");
+#if MODULE_EXISTS_LUAJIT
+		IModuleWrapper* pWrapper = g_pModuleManager.GetModuleByID(pLuaJITModule->m_pID);
+		if (pWrapper && pWrapper->IsEnabled())
+		{
+			Util::AddFunc(pLua, luajit_luagc_GetGCCount, "GetGCCount"); // GCobj count
+			Util::AddFunc(pLua, luajit_luagc_GetReferences, "GetReferences"); // A table containing all GCobjs that reference the given GCobj
+			Util::AddFunc(pLua, luajit_luagc_GetContainingReferences, "GetContainingReferences"); // A table containing all GCobjs the given object references recursively
+			Util::AddFunc(pLua, luajit_luagc_GetAllGCObjects, "GetAllGCObjects"); // All GCobjs
+			Util::AddFunc(pLua, luajit_luagc_GetCurrentGCHeadObject, "GetCurrentGCHeadObject");
+			Util::AddFunc(pLua, luajit_luagc_GetFormattedGCObjectInfo, "GetFormattedGCObjectInfo");
+			Util::AddFunc(pLua, luajit_luagc_GetSizeOfGCObject, "GetSizeOfGCObject");
+		} else
+#endif
+		{
+			Util::AddFunc(pLua, luagc_GetGCCount, "GetGCCount"); // GCobj count
+			Util::AddFunc(pLua, luagc_GetReferences, "GetReferences"); // A table containing all GCobjs that reference the given GCobj
+			Util::AddFunc(pLua, luagc_GetContainingReferences, "GetContainingReferences"); // A table containing all GCobjs the given object references recursively
+			Util::AddFunc(pLua, luagc_GetAllGCObjects, "GetAllGCObjects"); // All GCobjs
+			Util::AddFunc(pLua, luagc_GetCurrentGCHeadObject, "GetCurrentGCHeadObject");
+			Util::AddFunc(pLua, luagc_GetFormattedGCObjectInfo, "GetFormattedGCObjectInfo");
+			Util::AddFunc(pLua, luagc_GetSizeOfGCObject, "GetSizeOfGCObject");
+		}
 	Util::FinishTable(pLua, "luagc");
 }
 

@@ -212,6 +212,16 @@ struct int24
 		return value;
 	}
 
+	bool operator==(const int24& other) const
+	{
+		return ToInt() == other.ToInt();
+	}
+
+	bool operator!=(const int24& other) const
+	{
+		return ToInt() != other.ToInt();
+	}
+
 	char val[3];
 };
 
@@ -359,13 +369,13 @@ void HolyLibCSendTablePrecalc::PrecalcSendProps()
 			case HolyLibSendPropPrecalc::DPT_BOOL:
 				break;
 			case HolyLibSendPropPrecalc::DPT_INT24:
-				nBits = sizeof(int24);
+				nBits = sizeof(int24) * 8;
 				break;
 			case HolyLibSendPropPrecalc::DPT_INT16:
-				nBits = sizeof(short);
+				nBits = sizeof(short) * 8;
 				break;
 			case HolyLibSendPropPrecalc::DPT_INT8:
-				nBits = sizeof(char);
+				nBits = sizeof(char) * 8;
 				break;
 			default:
 				Warning(PROJECT_NAME " - HolyLibCSendTablePrecalc::PrecalcSendProps: No idea for size of %s!\n", pProp->GetName());
@@ -1059,6 +1069,13 @@ bool DVariantMismatch( DVariant& a, DVariant& b )
 
 	switch (a.m_Type)
 	{
+	case HolyLibSendPropPrecalc::DPT_INT24:
+		return (int24)a.m_Int != (int24)b.m_Int;
+	case HolyLibSendPropPrecalc::DPT_INT16:
+		return (short)a.m_Int != (short)b.m_Int;
+	case HolyLibSendPropPrecalc::DPT_INT8:
+		return (char)a.m_Int != (char)b.m_Int;
+	case HolyLibSendPropPrecalc::DPT_BOOL:
 	case SendPropType::DPT_Int:
 		return a.m_Int != b.m_Int;
 	case SendPropType::DPT_Float:
@@ -1090,7 +1107,7 @@ static void HolyLib_SendTable_EncodeProp( EncodeState* pState, const HolyLibSend
 		var
 	);
 
-	/*DVariant var2;
+	DVariant var2;
 	pProp->GetProxyFn()(
 		pProp,
 		pState->m_pStructBase,
@@ -1107,8 +1124,7 @@ static void HolyLib_SendTable_EncodeProp( EncodeState* pState, const HolyLibSend
 	var2.m_Type = pProp->m_Type;
 	std::string varStr = var.ToString(); // Yes .ToString can only be used one at a time
 	if ( DVariantMismatch(var, var2) )
-		Msg("Diff: %s (%i) - %s | %s\n", pProp->GetName(), pProp->m_nHolyLibType, varStr.c_str(), var2.ToString());
-	*/
+		Msg("Diff: %s (%i - %i - %i) - %s | %s\n", pProp->GetName(), pProp->m_nHolyLibType, pProp->m_nNewTotalOffset, pProp->m_nNewSize, varStr.c_str(), var2.ToString());
 
 	// Write the index.
 	pState->WritePropIndex( iProp );
@@ -1297,9 +1313,13 @@ void NWR_SV_PackEntity(int edictIdx, edict_t* edict, ServerClass* pServerClass, 
 
 	// GMOD - m_nGMODDataTableOffset only exists on dev & 64x NOT MAIN till next update! See: https://github.com/Facepunch/garrysmod-requests/issues/2981
 	CGMODDataTable* pGMODDataTable = nullptr;
-	int nGMODDataTableOffset = pSendTablePrecalc->m_nHolyLibGModDataTableProp->GetOffset(); // Since m_nGMODDataTableOffset isn't available
-	if ( nGMODDataTableOffset != -1 ) // We use a precalculated offset, since finding it in here is uttelry expensive!
-		pGMODDataTable = *(CGMODDataTable**)((char*)edict->GetUnknown() + nGMODDataTableOffset);
+	HolyLibSendPropPrecalc* pGMODDataTableProp = pSendTablePrecalc->m_nHolyLibGModDataTableProp;
+	if ( pGMODDataTableProp )
+	{
+		int nGMODDataTableOffset = pGMODDataTableProp->GetOffset(); // Since m_nGMODDataTableOffset isn't available
+		if ( nGMODDataTableOffset != -1 ) // We use a precalculated offset, since finding it in here is uttelry expensive!
+			pGMODDataTable = *(CGMODDataTable**)((char*)edict->GetUnknown() + nGMODDataTableOffset);
+	}
 
 	// If this entity was previously in there, then it should have a valid IChangeFrameList 
 	// which we can delta against to figure out which properties have changed.
@@ -1516,11 +1536,14 @@ void CNetworkingReplacementModule::InitDetour(bool bPreServer)
 	
 	func_CFrameSnapshotManager_GetPreviouslySentPacket = (Symbols::CFrameSnapshotManager_GetPreviouslySentPacket)Detour::GetFunction(engine_loader.GetModule(), Symbols::CFrameSnapshotManager_GetPreviouslySentPacketSym);
 	Detour::CheckFunction((void*)func_CFrameSnapshotManager_GetPreviouslySentPacket, "CFrameSnapshotManager::GetPreviouslySentPacket");
+
+	func_CFrameSnapshotManager_UsePreviouslySentPacket = (Symbols::CFrameSnapshotManager_UsePreviouslySentPacket)Detour::GetFunction(engine_loader.GetModule(), Symbols::CFrameSnapshotManager_UsePreviouslySentPacketSym);
+	Detour::CheckFunction((void*)func_CFrameSnapshotManager_UsePreviouslySentPacket, "CFrameSnapshotManager::UsePreviouslySentPacket");
 	
 	func_CFrameSnapshotManager_CreatePackedEntity = (Symbols::CFrameSnapshotManager_CreatePackedEntity)Detour::GetFunction(engine_loader.GetModule(), Symbols::CFrameSnapshotManager_CreatePackedEntitySym);
 	Detour::CheckFunction((void*)func_CFrameSnapshotManager_CreatePackedEntity, "CFrameSnapshotManager::CreatePackedEntity");
 
-	framesnapshotmanager = Detour::ResolveSymbol<CFrameSnapshotManager>(engine_loader, Symbols::g_FrameSnapshotManagerSym);
+	framesnapshotmanager = *Detour::ResolveSymbol<CFrameSnapshotManager*>(engine_loader, Symbols::g_FrameSnapshotManagerSym);
 	Detour::CheckValue("get class", "framesnapshotmanager", framesnapshotmanager != nullptr);
 
 #if defined(ARCHITECTURE_X86) && defined(SYSTEM_LINUX)

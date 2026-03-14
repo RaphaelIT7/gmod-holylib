@@ -757,15 +757,15 @@ LUA_FUNCTION_STATIC(CBaseClient_SetTimeout)
 
 LUA_FUNCTION_STATIC(CBaseClient_GetRemoteFramerate)
 {
-    CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
+	CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
 
-    float framerate, deviation;
-    pNetChannel->GetRemoteFramerate(&framerate, &deviation);
+	float framerate, deviation;
+	pNetChannel->GetRemoteFramerate(&framerate, &deviation);
 
-    LUA->PushNumber(framerate);
-    LUA->PushNumber(deviation);
+	LUA->PushNumber(framerate);
+	LUA->PushNumber(deviation);
 
-    return 2;
+	return 2;
 }
 
 static bool g_bFreeSubChannels = false;
@@ -922,7 +922,7 @@ void Push_CBaseClientMeta(GarrysMod::Lua::ILuaInterface* pLua)
 
 LUA_FUNCTION_STATIC(CGameClient__tostring)
 {
-	CBaseClient* pClient = Get_CBaseClient(LUA, 1, false);
+	CGameClient* pClient = (CGameClient*)Get_CBaseClient(LUA, 1, false);
 	if (!pClient || !pClient->IsConnected())
 	{
 		LUA->PushString("GameClient [NULL]");
@@ -1318,15 +1318,15 @@ LUA_FUNCTION_STATIC(CNetChan_SetRate)
 
 LUA_FUNCTION_STATIC(CNetChan_GetRemoteFramerate)
 {
-    CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
+	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, true);
 
-    float framerate, deviation;
-    pNetChannel->GetRemoteFramerate(&framerate, &deviation);
+	float framerate, deviation;
+	pNetChannel->GetRemoteFramerate(&framerate, &deviation);
 
-    LUA->PushNumber(framerate);
-    LUA->PushNumber(deviation);
+	LUA->PushNumber(framerate);
+	LUA->PushNumber(deviation);
 
-    return 2;
+	return 2;
 }
 
 LUA_FUNCTION_STATIC(CNetChan_Transmit)
@@ -1921,22 +1921,20 @@ LUA_FUNCTION_STATIC(gameserver_GetTickInterval)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(gameserver_GetName)
+LUA_ASM_SFUNCTION_STATIC(gameserver_GetName)
 {
 	if (!Util::server || !Util::server->IsActive())
-		return 0;
+		return nullptr;
 
-	LUA->PushString(Util::server->GetName());
-	return 1;
+	return Util::server->GetName();
 }
 
-LUA_FUNCTION_STATIC(gameserver_GetMapName)
+LUA_ASM_SFUNCTION_STATIC(gameserver_GetMapName)
 {
 	if (!Util::server || !Util::server->IsActive())
-		return 0;
+		return nullptr;
 
-	LUA->PushString(Util::server->GetMapName());
-	return 1;
+	return Util::server->GetMapName();
 }
 
 LUA_FUNCTION_STATIC(gameserver_GetSpawnCount)
@@ -2228,14 +2226,65 @@ LUA_FUNCTION_STATIC(gameserver_CreateFakeClient)
 	return 1;
 }
 
+static bool hook_CBaseClient_SetSignonState(CBaseClient* cl, int state, int spawncount);
+LUA_FUNCTION_STATIC(gameserver_CreateFakeQueueClient)
+{
+	if (!Util::server || !Util::server->IsActive())
+		return 0;
+
+	const char* pName = LUA->CheckString(1);
+	CBaseServer* pServer = (CBaseServer*)Util::server;
+
+	netadrnew_s adr;
+	CBaseClient* fakeclient = pServer->GetFreeClient(*((netadr_t*)&adr)); // Very "safe"
+	if (!fakeclient)
+		return 0;
+
+	// Fk sv_stressbots
+
+	int userID = ++pServer->m_nUserid;
+	pServer->m_nNumConnections++;
+
+	fakeclient->SetReportThisFakeClient( pServer->m_bReportNewFakeClients );
+	fakeclient->Connect( pName, userID, nullptr, true, 0 );
+
+	fakeclient->SetUserCVar( "rate", "30000" );
+	fakeclient->SetUserCVar( "cl_updaterate", "20" );
+	fakeclient->SetUserCVar( "cl_interp_ratio", "1.0" );
+	fakeclient->SetUserCVar( "cl_interp", "0.1" );
+	fakeclient->SetUserCVar( "cl_interpolate", "0" );
+	fakeclient->SetUserCVar( "cl_predict", "1" );
+	fakeclient->SetUserCVar( "cl_predictweapons", "1" );
+	fakeclient->SetUserCVar( "cl_lagcompensation", "1" );
+	fakeclient->SetUserCVar( "closecaption","0" );
+	fakeclient->SetUserCVar( "english", "1" );
+
+	fakeclient->SetUserCVar( "cl_clanid", "0" );
+	fakeclient->SetUserCVar( "cl_team", "blue" );
+	fakeclient->SetUserCVar( "hud_classautokill", "1" );
+	fakeclient->SetUserCVar( "tf_medigun_autoheal", "0" );
+	fakeclient->SetUserCVar( "cl_autorezoom", "1" );
+	fakeclient->SetUserCVar( "fov_desired", "75" );
+	fakeclient->SetUserCVar( "tf_remember_lastswitched", "0" );
+
+	fakeclient->SetUserCVar( "cl_autoreload", "0" );
+	fakeclient->SetUserCVar( "tf_remember_activeweapon", "0" );
+	fakeclient->SetUserCVar( "hud_combattext", "0" );
+	fakeclient->SetUserCVar( "cl_flipviewmodels", "0" );
+
+	hook_CBaseClient_SetSignonState(fakeclient, SIGNONSTATE_PRESPAWN, pServer->GetSpawnCount());
+
+	Push_CBaseClient(LUA, fakeclient);
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(gameserver_CreateNewClient)
 {
 	if (!Util::server || !Util::server->IsActive())
 		return 0;
 
-	int nSlot = LUA->CheckNumber(1);
 	CBaseServer* pServer = (CBaseServer*)Util::server;
-	Push_CBaseClient(LUA, pServer->CreateNewClient(nSlot));
+	Push_CBaseClient(LUA, pServer->CreateNewClient(pServer->GetClientCount()));
 	return 1;
 }
 
@@ -2249,6 +2298,16 @@ LUA_FUNCTION_STATIC(gameserver_GetFreeClient)
 
 	CBaseServer* pServer = (CBaseServer*)Util::server;
 	Push_CBaseClient(LUA, pServer->GetFreeClient(*((netadr_t*)&adr)));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(gameserver_GetSocket)
+{
+	if (!Util::server || !Util::server->IsActive())
+		return 0;
+
+	CBaseServer* pServer = (CBaseServer*)Util::server;
+	LUA->PushNumber(pServer->m_Socket);
 	return 1;
 }
 
@@ -2378,8 +2437,8 @@ void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, gameserver_GetTime, "GetTime");
 		Util::AddFunc(pLua, gameserver_GetTick, "GetTick");
 		Util::AddFunc(pLua, gameserver_GetTickInterval, "GetTickInterval");
-		Util::AddFunc(pLua, gameserver_GetName, "GetName");
-		Util::AddFunc(pLua, gameserver_GetMapName, "GetMapName");
+		LUA_AddJITFunc(pLua, CFUNC_TYPE_STRING, gameserver_GetName, "GetName");
+		LUA_AddJITFunc(pLua, CFUNC_TYPE_STRING, gameserver_GetMapName, "GetMapName");
 		Util::AddFunc(pLua, gameserver_GetSpawnCount, "GetSpawnCount");
 		Util::AddFunc(pLua, gameserver_GetNumClasses, "GetNumClasses");
 		Util::AddFunc(pLua, gameserver_GetClassBits, "GetClassBits");
@@ -2397,9 +2456,14 @@ void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, gameserver_BroadcastMessage, "BroadcastMessage");
 		Util::AddFunc(pLua, gameserver_SendConnectionlessPacket, "SendConnectionlessPacket");
 		Util::AddFunc(pLua, gameserver_CreateFakeClient, "CreateFakeClient");
+		Util::AddFunc(pLua, gameserver_CreateFakeQueueClient, "CreateFakeQueueClient");
 		Util::AddFunc(pLua, gameserver_CreateNewClient, "CreateNewClient");
 		Util::AddFunc(pLua, gameserver_GetFreeClient, "GetFreeClient");
+<<<<<<< HEAD
 		Util::AddFunc(pLua, gameserver_GetCPUUsage, "GetCPUUsage");
+=======
+		Util::AddFunc(pLua, gameserver_GetSocket, "GetSocket");
+>>>>>>> ebe9eca034378e82c7ca52640db2276f9b106b3c
 
 		Util::AddFunc(pLua, gameserver_CreateNetChannel, "CreateNetChannel");
 		Util::AddFunc(pLua, gameserver_RemoveNetChannel, "RemoveNetChannel");
@@ -2419,16 +2483,68 @@ void CGameServerModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 	DeleteAll_CNetChan(pLua);
 }
 
-static ConVar gameserver_maxplayers("holylib_gameserver_maxplayers", "255", 0, "Experimental - max client limit (above 255 cannot be networked, though may work if they remain purely as a CGameClient)", true, 1, true, 2048);
-static Detouring::Hook detour_CServerGameClients_GetPlayerLimit;
-static void hook_CServerGameClients_GetPlayerLimit(void* funkyClass, int& minPlayers, int& maxPlayers, int& defaultMaxPlayers)
+#define MAX_PLAYERS 128
+static ConVar gameserver_maxplayers("holylib_gameserver_maxplayers", "255", 0, "Experimental - max client limit (above 255 cannot be networked, though may work if they remain purely as a CGameClient)", true, 1, true, 8192);
+static Detouring::Hook detour_CBaseServer_GetFreeClient;
+static CBaseClient* hook_CBaseServer_GetFreeClient(CBaseServer* _this, netadr_t& adr)
 {
-	minPlayers = 1;
-	maxPlayers = gameserver_maxplayers.GetInt(); // Allows one to go up to 255 slots.
-	defaultMaxPlayers = gameserver_maxplayers.GetInt();
+	CBaseClient* pClient = detour_CBaseServer_GetFreeClient.GetTrampoline<Symbols::CBaseServer_GetFreeClient>()(_this, adr);
+	if (!pClient)
+	{
+		if (_this->GetClientCount() > gameserver_maxplayers.GetInt())
+			return nullptr;
 
-	if (maxPlayers > ABSOLUTE_PLAYER_LIMIT)
-		Util::SysError_IgnoreError("max players limited to", 1);
+		pClient = _this->CreateNewClient(_this->GetClientCount());
+		if (pClient)
+			_this->m_Clients.AddToTail(pClient);
+	}
+
+	return pClient;
+}
+
+static Detouring::Hook detour_CBaseServer_CreateFakeClient;
+static CBaseClient* hook_CBaseServer_CreateFakeClient(CBaseServer* _this, const char* pName)
+{
+	netadr_t adr;
+	CBaseClient* pClient = detour_CBaseServer_GetFreeClient.GetTrampoline<Symbols::CBaseServer_GetFreeClient>()(_this, adr);
+	if (!pClient || pClient->m_nClientSlot >= MAX_PLAYERS)
+		return nullptr;
+
+	return detour_CBaseServer_CreateFakeClient.GetTrampoline<Symbols::CBaseServer_CreateFakeClient>()(_this, pName);
+}
+
+static Detouring::Hook detour_CBaseServer_UserInfoChanged;
+static void hook_CBaseServer_UserInfoChanged(CBaseServer* _this, int nClientIndex)
+{
+	if (nClientIndex >= MAX_PLAYERS)
+		return;
+
+	detour_CBaseServer_UserInfoChanged.GetTrampoline<Symbols::CBaseServer_UserInfoChanged>()(_this, nClientIndex);
+}
+
+static Detouring::Hook detour_CGameServer_RemoveClientFromGame;
+static void hook_CGameServer_RemoveClientFromGame(CBaseServer* _this, CBaseClient* pClient)
+{
+	if (pClient->m_nClientSlot >= MAX_PLAYERS)
+		return;
+
+	detour_CGameServer_RemoveClientFromGame.GetTrampoline<Symbols::CGameServer_RemoveClientFromGame>()(_this, pClient);
+}
+
+/*
+	ToDo: Ask Rubat if this is fine.
+	NOTE: This for now is only for testing!
+*/
+static Detouring::Hook detour_CSteam3Server_SendUpdatedServerDetails;
+static void hook_CSteam3Server_SendUpdatedServerDetails(void* _this)
+{
+	CBaseServer* pServer = (CBaseServer*)Util::server;
+	int nOrigMaxClients = pServer->m_nMaxclients;
+	pServer->m_nMaxclients = clamp(gameserver_maxplayers.GetInt(), nOrigMaxClients, ABSOLUTE_PLAYER_LIMIT);
+
+	detour_CSteam3Server_SendUpdatedServerDetails.GetTrampoline<Symbols::CSteam3Server_SendUpdatedServerDetails>()(_this);
+
+	pServer->m_nMaxclients = nOrigMaxClients;
 }
 
 static Detouring::Hook detour_CBaseServer_ProcessConnectionlessPacket;
@@ -2472,46 +2588,9 @@ static bool hook_CBaseServer_ProcessConnectionlessPacket(IServer* server, netpac
 	return detour_CBaseServer_ProcessConnectionlessPacket.GetTrampoline<Symbols::CBaseServer_ProcessConnectionlessPacket>()(server, packet);
 }
 
-/*
- * ToDo: Ask Rubat if were allowed to modify SVC_ServerInfo
- *	   I think it "could" be considered breaking gmod server operator rules.
- *	   "Do not fake server information. This mostly means player count, but other data also applies."
- *
- * Update: Rubat said it's fine.
- */
-// static MD5Value_t worldmapMD5;
-static Detouring::Hook detour_CBaseServer_FillServerInfo;
-static void hook_CBaseServer_FillServerInfo(void* srv, SVC_ServerInfo& info)
-{
-	detour_CBaseServer_FillServerInfo.GetTrampoline<Symbols::CBaseServer_FillServerInfo>()(srv, info);
-
-	// Fixes a crash("UpdatePlayerName with bogus slot 129") when joining a server which has more than 128 slots / is over MAX_PLAYERS
-	if ( info.m_nMaxClients > 128 )
-		info.m_nMaxClients = 128;
-
-	if ( info.m_nMaxClients <= 1 )
-	{
-		// Fixes clients denying the serverinfo on singleplayer games.
-		info.m_nMaxClients = 2;
-
-		// singleplayer games don't create a MD5, so we have to do it ourself.
-		// V_memcpy( info.m_nMapMD5.bits, worldmapMD5.bits, MD5_DIGEST_LENGTH );
-	}
-}
-
-static Detouring::Hook detour_CHLTVServer_FillServerInfo;
-static void hook_CHLTVServer_FillServerInfo(void* srv, SVC_ServerInfo& info)
-{
-	detour_CHLTVServer_FillServerInfo.GetTrampoline<Symbols::CHLTVServer_FillServerInfo>()(srv, info);
-
-	// HLTVServer changes the m_nMaxClients so we need to set this again :(
-	if ( info.m_nMaxClients > 128 )
-		info.m_nMaxClients = 128;
-
-	if ( info.m_nMaxClients <= 1 )
-		info.m_nMaxClients = 2;
-}
-
+#if MODULE_EXISTS_GMODDATAPACK
+extern bool GMODDataPack_SetSignOnState(CBaseClient* cl, int state);
+#endif
 static Detouring::Hook detour_CBaseClient_SetSignonState;
 static bool hook_CBaseClient_SetSignonState(CBaseClient* cl, int state, int spawncount)
 {
@@ -2529,6 +2608,11 @@ static bool hook_CBaseClient_SetSignonState(CBaseClient* cl, int state, int spaw
 				return false;
 		}
 	}
+
+#if MODULE_EXISTS_GMODDATAPACK
+	if (GMODDataPack_SetSignOnState(cl, state))
+		return false;
+#endif
 
 	return detour_CBaseClient_SetSignonState.GetTrampoline<Symbols::CBaseClient_SetSignonState>()(cl, state, spawncount);
 }
@@ -2817,7 +2901,6 @@ static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* tar
 	target->Reconnect();
 }
 
-#define MAX_PLAYERS 128
 static int FindFreeClientSlot()
 {
 	int nextFreeEntity = 255;
@@ -2840,14 +2923,46 @@ static int FindFreeClientSlot()
 }
 
 static Detouring::Hook detour_CGameClient_SpawnPlayer;
+#if PLATFORM_64BITS
+static bool hook_CGameClient_SpawnPlayer(CGameClient* client)
+{
+	// m_nClientSlot = player slot! (entIndex - 1)
+	if (client->m_nClientSlot < MAX_PLAYERS || gameserver_disablespawnsafety.GetBool())
+	{
+		return detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(client);;
+	}
+
+	// ent index! can be 128!
+	int nextFreeEntity = FindFreeClientSlot();
+	if (nextFreeEntity > MAX_PLAYERS)
+	{
+		Warning(PROJECT_NAME ": Failed to find a valid player slot to use! Stopping client spawn! (%i, %i, %i)\n", client->m_nClientSlot, client->GetUserID(), nextFreeEntity);
+		return false;
+	}
+
+	CGameClient* pClient = (CGameClient*)Util::GetClientByIndex(nextFreeEntity - 1);
+	if (pClient->m_nSignonState != SIGNONSTATE_NONE)
+	{
+		// It really didn't like what we had planned.
+		Warning(PROJECT_NAME ": Client collision! fk. Client will be refused to spawn! (%i - %s, %i - %s)\n", pClient->m_nClientSlot, pClient->GetClientName(), client->m_nClientSlot, client->GetClientName());
+		return false;
+	}
+
+	MoveCGameClientIntoCGameClient(client, pClient);
+	return false;
+	//detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(pClient);
+}
+#else
 static void hook_CGameClient_SpawnPlayer(CGameClient* client)
 {
-	if (client->m_nClientSlot <= MAX_PLAYERS || gameserver_disablespawnsafety.GetBool())
+	// m_nClientSlot = player slot! (entIndex - 1)
+	if (client->m_nClientSlot < MAX_PLAYERS || gameserver_disablespawnsafety.GetBool())
 	{
 		detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(client);
 		return;
 	}
 
+	// ent index! can be 128!
 	int nextFreeEntity = FindFreeClientSlot();
 	if (nextFreeEntity > MAX_PLAYERS)
 	{
@@ -2866,6 +2981,7 @@ static void hook_CGameClient_SpawnPlayer(CGameClient* client)
 	MoveCGameClientIntoCGameClient(client, pClient);
 	//detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(pClient);
 }
+#endif
 
 // Called by Util from CSteam3Server::NotifyClientDisconnect
 void CGameServerModule::OnClientDisconnect(CBaseClient* pClient)
@@ -2993,11 +3109,13 @@ static void hook_NET_SetTime(double flRealtime) // We need this hook to keep net
 
 #if SYSTEM_WINDOWS
 DETOUR_THISCALL_START()
-	DETOUR_THISCALL_ADDFUNC1(hook_CBaseServer_FillServerInfo, Base_FillServerInfo, CBaseServer*, SVC_ServerInfo&);
-	DETOUR_THISCALL_ADDFUNC1(hook_CHLTVServer_FillServerInfo, HLTV_FillServerInfo, CHLTVServer*, SVC_ServerInfo&);
+	DETOUR_THISCALL_ADDFUNC1(hook_CBaseServer_GetFreeClient, Base_GetFreeClient, CBaseServer*, netadr_t&);
+	DETOUR_THISCALL_ADDFUNC1(hook_CBaseServer_CreateFakeClient, Base_CreateFakeClient, CBaseServer*, const char*);
+	DETOUR_THISCALL_ADDFUNC1(hook_CBaseServer_UserInfoChanged, Base_UserInfoChanged, CBaseServer*, int);
+	DETOUR_THISCALL_ADDFUNC1(hook_CGameServer_RemoveClientFromGame, Game_RemoveClientFromGame, CBaseServer*, CBaseClient*);
+	DETOUR_THISCALL_ADDFUNC0(hook_CSteam3Server_SendUpdatedServerDetails, Steam_SendUpdatedServerDetails, void*);
 	DETOUR_THISCALL_ADDFUNC0(hook_CBaseServer_CheckTimeouts, CheckTimeouts, CBaseServer*);
 	DETOUR_THISCALL_ADDFUNC0(hook_CGameClient_SpawnPlayer, SpawnPlayer, CGameClient*);
-	DETOUR_THISCALL_ADDFUNC3(hook_CServerGameClients_GetPlayerLimit, GetPlayerLimit, void*, int&, int&, int&);
 	DETOUR_THISCALL_ADDRETFUNC2(hook_CBaseClient_SetSignonState, bool, SetSignonState, CBaseClient*, int, int);
 	DETOUR_THISCALL_ADDRETFUNC0(hook_CBaseServer_IsMultiplayer, bool, IsMultiplayer, CBaseServer*);
 	DETOUR_THISCALL_ADDRETFUNC0(hook_GModDataPack_IsSingleplayer, bool, IsSingleplayer, void*);
@@ -3008,6 +3126,7 @@ DETOUR_THISCALL_START()
 DETOUR_THISCALL_FINISH()
 #endif
 
+#include "tier0/icommandline.h"
 void CGameServerModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
@@ -3016,15 +3135,33 @@ void CGameServerModule::InitDetour(bool bPreServer)
 	DETOUR_PREPARE_THISCALL();
 	SourceSDK::FactoryLoader engine_loader("engine");
 	Detour::Create(
-		&detour_CBaseServer_FillServerInfo, "CBaseServer::FillServerInfo",
-		engine_loader.GetModule(), Symbols::CBaseServer_FillServerInfoSym,
-		(void*)DETOUR_THISCALL(hook_CBaseServer_FillServerInfo, Base_FillServerInfo), m_pID
+		&detour_CBaseServer_GetFreeClient, "CBaseServer::GetFreeClient",
+		engine_loader.GetModule(), Symbols::CBaseServer_GetFreeClientSym,
+		(void*)DETOUR_THISCALL(hook_CBaseServer_GetFreeClient, Base_GetFreeClient), m_pID
 	);
 
 	Detour::Create(
-		&detour_CHLTVServer_FillServerInfo, "CHLTVServer::FillServerInfo",
-		engine_loader.GetModule(), Symbols::CHLTVServer_FillServerInfoSym,
-		(void*)DETOUR_THISCALL(hook_CHLTVServer_FillServerInfo, HLTV_FillServerInfo), m_pID
+		&detour_CBaseServer_CreateFakeClient, "CBaseServer::CreateFakeClient",
+		engine_loader.GetModule(), Symbols::CBaseServer_CreateFakeClientSym,
+		(void*)DETOUR_THISCALL(hook_CBaseServer_CreateFakeClient, Base_CreateFakeClient), m_pID
+	);
+
+	Detour::Create(
+		&detour_CBaseServer_UserInfoChanged, "CBaseServer::UserInfoChanged",
+		engine_loader.GetModule(), Symbols::CBaseServer_UserInfoChangedSym,
+		(void*)DETOUR_THISCALL(hook_CBaseServer_UserInfoChanged, Base_UserInfoChanged), m_pID
+	);
+
+	Detour::Create(
+		&detour_CGameServer_RemoveClientFromGame, "CGameServer::RemoveClientFromGame",
+		engine_loader.GetModule(), Symbols::CGameServer_RemoveClientFromGameSym,
+		(void*)DETOUR_THISCALL(hook_CGameServer_RemoveClientFromGame, Game_RemoveClientFromGame), m_pID
+	);
+
+	Detour::Create(
+		&detour_CSteam3Server_SendUpdatedServerDetails, "CSteam3Server::SendUpdatedServerDetails",
+		engine_loader.GetModule(), Symbols::CSteam3Server_SendUpdatedServerDetailsSym,
+		(void*)DETOUR_THISCALL(hook_CSteam3Server_SendUpdatedServerDetails, Steam_SendUpdatedServerDetails), m_pID
 	);
 
 	Detour::Create(
@@ -3076,13 +3213,8 @@ void CGameServerModule::InitDetour(bool bPreServer)
 	}
 
 	Detour::Create(
-		&detour_CServerGameClients_GetPlayerLimit, "CServerGameClients::GetPlayerLimit",
-		server_loader.GetModule(), Symbols::CServerGameClients_GetPlayerLimitSym,
-		(void*)DETOUR_THISCALL(hook_CServerGameClients_GetPlayerLimit, GetPlayerLimit), m_pID
-	);
-
-	Detour::Create(
 		&detour_CBaseServer_ProcessConnectionlessPacket, "CBaseServer::ProcessConnectionlessPacket",
+
 		engine_loader.GetModule(), Symbols::CBaseServer_ProcessConnectionlessPacketSym,
 		(void*)DETOUR_THISCALL(hook_CBaseServer_ProcessConnectionlessPacket, ProcessConnectionlessPacket), m_pID
 	);

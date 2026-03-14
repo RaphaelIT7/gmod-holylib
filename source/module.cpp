@@ -203,6 +203,9 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 				}
 			}
 
+			if (status & LoadStatus_LevelInit)
+				m_pModule->LevelInit(g_pModuleManager.GetMapName());
+
 			if (status & LoadStatus_LuaServerInit)
 			{
 				for (auto& pLua : g_pModuleManager.GetLuaInterfaces())
@@ -219,6 +222,9 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 				Msg(PROJECT_NAME ": Enabled module %s\n", m_pModule->Name());
 		} else {
 			int status = g_pModuleManager.GetStatus();
+			if (status & LoadStatus_LevelInit)
+				m_pModule->LevelShutdown();
+
 			if (status & LoadStatus_LuaInit)
 			{
 				for (auto& pLua : g_pModuleManager.GetLuaInterfaces())
@@ -238,8 +244,8 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 
 void CModule::Shutdown()
 {
-	Detour::Remove(m_pModule->m_pID);
 	m_pModule->Shutdown();
+	Detour::Remove(m_pModule->m_pID);
 }
 
 /*
@@ -385,6 +391,8 @@ void CModuleManager::Setup(CreateInterfaceFn appfn, CreateInterfaceFn gamefn)
 
 void CModuleManager::Init()
 {
+	m_nServerState = ServerState::STARTING;
+
 	if (!(m_pStatus & LoadStatus_PreDetourInit))
 	{
 		DevMsg(PROJECT_NAME ": ghostinj didn't call InitDetour! Calling it now\n");
@@ -468,12 +476,15 @@ void CModuleManager::Shutdown()
 		return;
 	}
 
+	m_nServerState = ServerState::SHUTDOWN;
 	m_pStatus = 0;
 	CALL_ENABLED_MODULES(Shutdown());
 }
 
 void CModuleManager::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
 {
+	m_nServerState = ServerState::RUNNING;
+
 	m_pEdictList = pEdictList;
 	m_iEdictCount = edictCount;
 	m_iClientMax = clientMax;
@@ -517,8 +528,18 @@ void CModuleManager::OnClientDisconnect(CBaseClient* pClient)
 	VCALL_ENABLED_MODULES(OnClientDisconnect(pClient));
 }
 
+void CModuleManager::LevelInit(const char* pMapName)
+{
+	m_pStatus |= LoadStatus_LevelInit;
+	m_strMapName = pMapName || "";
+
+	VCALL_ENABLED_MODULES(LevelInit(pMapName));
+}
+
 void CModuleManager::LevelShutdown()
 {
+	m_nServerState = ServerState::CHANGELEVEL;
+
 	VCALL_ENABLED_MODULES(LevelShutdown());
 }
 
