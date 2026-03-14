@@ -2311,6 +2311,17 @@ LUA_FUNCTION_STATIC(gameserver_GetSocket)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(gameserver_GetCPUUsage)
+{
+	if (!Util::server || !Util::server->IsActive())
+		return 0;
+
+	CBaseServer* pServer = (CBaseServer*)Util::server;
+	LUA->PushNumber(pServer->GetCPUUsage());
+
+	return 1;
+}
+
 extern CGlobalVars* gpGlobals;
 static ConVar* sv_stressbots;
 void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
@@ -2448,6 +2459,7 @@ void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, gameserver_CreateFakeQueueClient, "CreateFakeQueueClient");
 		Util::AddFunc(pLua, gameserver_CreateNewClient, "CreateNewClient");
 		Util::AddFunc(pLua, gameserver_GetFreeClient, "GetFreeClient");
+		Util::AddFunc(pLua, gameserver_GetCPUUsage, "GetCPUUsage");
 		Util::AddFunc(pLua, gameserver_GetSocket, "GetSocket");
 
 		Util::AddFunc(pLua, gameserver_CreateNetChannel, "CreateNetChannel");
@@ -2524,7 +2536,7 @@ static Detouring::Hook detour_CSteam3Server_SendUpdatedServerDetails;
 static void hook_CSteam3Server_SendUpdatedServerDetails(void* _this)
 {
 	CBaseServer* pServer = (CBaseServer*)Util::server;
-	int nOrigMaxClients = pServer->m_nMaxclients; 
+	int nOrigMaxClients = pServer->m_nMaxclients;
 	pServer->m_nMaxclients = clamp(gameserver_maxplayers.GetInt(), nOrigMaxClients, ABSOLUTE_PLAYER_LIMIT);
 
 	detour_CSteam3Server_SendUpdatedServerDetails.GetTrampoline<Symbols::CSteam3Server_SendUpdatedServerDetails>()(_this);
