@@ -5044,6 +5044,10 @@ Called when a client is marked as timing out.<br>
 Return a time in seconds to extent his timeout duration.<br>
 If `0` or a number below `0` is returned, the client will be kicked normally for timing out.<br>
 
+#### bool HolyLib:OnClientExecuteStringCommand(CGameClient client, string command)
+Called when a client attempts to execute a console command.<br>
+Return `true` to block/cancel execution.<br>
+
 ### ConVars
 
 #### holylib_gameserver_disablespawnsafety (default `0`)

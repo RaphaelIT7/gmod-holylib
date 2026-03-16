@@ -697,6 +697,9 @@ namespace Symbols
 
 	extern const std::vector<Symbol> s_NetChannelsSym;
 
+	using CGameClient_ExecuteStringCommand = bool (GMCOMMON_CALLING_CONVENTION*)(void* client, const char* pCmd);
+	extern const std::vector<Symbol> CGameClient_ExecuteStringCommandSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: cvar Symbols
 	//---------------------------------------------------------------------------------

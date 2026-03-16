@@ -3104,6 +3104,26 @@ static void hook_NET_SetTime(double flRealtime) // We need this hook to keep net
 	net_time += frametime * (host_timescale ? host_timescale->GetFloat() : 1.0f);
 }
 
+static Detouring::Hook detour_CGameClient_ExecuteStringCommand;
+static bool hook_CGameClient_ExecuteStringCommand(CGameClient* pClient, const char* pCmd)
+{
+	if (Lua::PushHook("HolyLib:OnClientExecuteStringCommand"))
+	{
+		Push_CBaseClient(g_Lua, pClient);
+		g_Lua->PushString(pCmd);
+		if (g_Lua->CallFunctionProtected(3, 1, true))
+		{
+			bool bSkip = g_Lua->GetBool(-1);
+			g_Lua->Pop(1);
+
+			if (bSkip)
+				return false;
+		}
+	}
+
+	return detour_CGameClient_ExecuteStringCommand.GetTrampoline<Symbols::CGameClient_ExecuteStringCommand>()(pClient, pCmd);
+}
+
 #if SYSTEM_WINDOWS
 DETOUR_THISCALL_START()
 	DETOUR_THISCALL_ADDFUNC1(hook_CBaseServer_GetFreeClient, Base_GetFreeClient, CBaseServer*, netadr_t&);
@@ -3120,6 +3140,7 @@ DETOUR_THISCALL_START()
 	DETOUR_THISCALL_ADDRETFUNC1(hook_CBaseServer_ProcessConnectionlessPacket, bool, ProcessConnectionlessPacket, IServer*, netpacket_s*);
 	DETOUR_THISCALL_ADDRETFUNC1(hook_CNetChan_SendDatagram, int, SendDatagram, CNetChan*, bf_write*);
 	DETOUR_THISCALL_ADDFUNC0(hook_CNetChan_D2, D2, CNetChan*);
+	DETOUR_THISCALL_ADDRETFUNC1(hook_CGameClient_ExecuteStringCommand, int, ExecuteStringCommand, CGameClient*, const char*);
 DETOUR_THISCALL_FINISH()
 #endif
 
@@ -3191,6 +3212,12 @@ void CGameServerModule::InitDetour(bool bPreServer)
 		&detour_NET_SetTime, "NET_SetTime",
 		engine_loader.GetModule(), Symbols::NET_SetTimeSym,
 		(void*)hook_NET_SetTime, m_pID
+	);
+
+	Detour::Create(
+		&detour_CGameClient_ExecuteStringCommand, "CGameClient::ExecuteStringCommand",
+		engine_loader.GetModule(), Symbols::CGameClient_ExecuteStringCommandSym,
+		(void*)DETOUR_THISCALL(hook_CGameClient_ExecuteStringCommand, ExecuteStringCommand), m_pID
 	);
 
 	SourceSDK::FactoryLoader server_loader("server");

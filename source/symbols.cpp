@@ -1023,6 +1023,11 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x66\x0F\x28\xC8"), // 55 66 0F 28 C8
 	};
 
+	const std::vector<Symbol> CGameClient_ExecuteStringCommandSym = {
+		Symbol::FromName("_ZN11CGameClient20ExecuteStringCommandEPKc"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x49\x89\xF5\x41\x54\x53\x48\x89\xFB\x48\x81\xEC\x38\x06\x00\x00"), // 55 48 89 E5 41 57 41 56 41 55 49 89 F5 41 54 53 48 89 FB 48 81 EC 38 06 00 00
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: AutoRefresh Symbols
 	//---------------------------------------------------------------------------------
