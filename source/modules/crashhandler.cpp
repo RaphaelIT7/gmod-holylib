@@ -568,7 +568,7 @@ static void DoLuaCallback(bool bMainThreadCrash)
 	if (!signalData) // No signal data GG
 		return;
 
-	if (bMainThreadCrash)
+	if (bMainThreadCrash && !g_bInducedCrash.load())
 	{
 		GarrysMod::Lua::ILuaShared* pLuaShared = Lua::GetShared();
 		if (pLuaShared)
