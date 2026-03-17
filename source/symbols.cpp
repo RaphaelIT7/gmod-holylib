@@ -917,20 +917,24 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: gameserver Symbols
 	//---------------------------------------------------------------------------------
-	const std::vector<Symbol> CBaseServer_GetFreeClientSym = {
+	const std::vector<Symbol> CBaseServer_GetFreeClientSym = { // Search for "%s:reconnect\n"
 		Symbol::FromName("_ZN11CBaseServer13GetFreeClientER8netadr_s"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x49\x89\xFF\x41\x56\x41\x55\x41\x54\x53\x48\x83\xEC\x18\x48\x89\x75\xC8"), // 55 48 89 E5 41 57 49 89 FF 41 56 41 55 41 54 53 48 83 EC 18 48 89 75 C8
 	};
 
-	const std::vector<Symbol> CBaseServer_CreateFakeClientSym = {
+	const std::vector<Symbol> CBaseServer_CreateFakeClientSym = { // Use found CBaseServer_GetFreeClientSym and go in the vtable 8 up | or search for "cl_predictweapons"
 		Symbol::FromName("_ZN11CBaseServer16CreateFakeClientEPKc"),
+		Symbol::FromSignature("\x55\x31\xD2\x48\x89\xE5\x41\x56\x41\x55\x49\x89\xF5"), // 55 31 D2 48 89 E5 41 56 41 55 49 89 F5
 	};
 
-	const std::vector<Symbol> CBaseServer_UserInfoChangedSym = {
+	const std::vector<Symbol> CBaseServer_UserInfoChangedSym = { // Use found CBaseServer_GetFreeClientSym and go in the vtable 4 up
 		Symbol::FromName("_ZN11CBaseServer15UserInfoChangedEi"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x49\x89\xFE\x41\x55\x41\x89\xF5\x31\xF6\x41\x54"), // 55 48 89 E5 41 57 41 56 49 89 FE 41 55 41 89 F5 31 F6 41 54
 	};
 
-	const std::vector<Symbol> CGameServer_RemoveClientFromGameSym = {
+	const std::vector<Symbol> CGameServer_RemoveClientFromGameSym = { // Use found CBaseServer_GetFreeClientSym and go in the vtable 7 up
 		Symbol::FromName("_ZN11CGameServer20RemoveClientFromGameEP11CBaseClient"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x54\x53\x48\x89\xF3\x48\x83\xBE\x70\x07\x00\x00\x00"), // 55 48 89 E5 41 54 53 48 89 F3 48 83 BE 70 07 00 00 00
 	};
 
 	const std::vector<Symbol> CBaseClient_SetSignonStateSym = {
@@ -960,7 +964,7 @@ namespace Symbols
 
 	const std::vector<Symbol> CBaseClient_OnRequestFullUpdateSym = {//Search for 'CBaseClient::OnRequestFullUpdate'
 		Symbol::FromName("_ZN11CBaseClient19OnRequestFullUpdateEv"),
-		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x53\x48\x89\xFB\x48\x83\xEC\x18\x4C\x8B\x25\x2A\x2A\x2A\x2A"), //55 48 89 E5 41 57 41 56 41 55 41 54 53 48 89 FB 48 83 EC 18 4C 8B 25 ? ? ? ?
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x56\x41\x55\x41\x54*******\x53\x48\x89\xFB\x41\x8B\x94\x24\x0C\x10\x00\x00\x85\xD2\x41\x0F\x95\xC5"), // 55 48 89 E5 41 56 41 55 41 54 ?? ?? ?? ?? ?? ?? ?? 53 48 89 FB 41 8B 94 24 0C 10 00 00 85 D2 41 0F 95 C5
 	};
 
 	const std::vector<Symbol> CGameClient_SpawnPlayerSym = {
@@ -975,7 +979,7 @@ namespace Symbols
 
 	const std::vector<Symbol> NET_SendPacketSym = { // Search for "NET_SendPacket"
 		Symbol::FromName("_Z14NET_SendPacketP11INetChanneliRK8netadr_sPKhiP8bf_writeb"),
-		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x49\x89\xD5\x41\x54\x4D\x89\xCC"), // 55 48 89 E5 41 57 41 56 41 55 49 89 D5 41 54 4D 89 CC
+		Symbol::FromSignature("\x55\x48\x63\xD2\x48\x89\xE5\x41\x54\x53*****\x48\x89\xC3"), // 55 48 63 D2 48 89 E5 41 54 53 ?? ?? ?? ?? ?? 48 89 C3
 	};
 
 	const std::vector<Symbol> CNetChan_SendDatagramSym = {
@@ -1010,7 +1014,7 @@ namespace Symbols
 
 	const std::vector<Symbol> NET_ReceiveStreamSym = {
 		Symbol::FromName("_Z17NET_ReceiveStreamiPcii"),
-		Symbol::FromSignature("\x55\x48\x63\xD2\x48\x89\xE5\x53\x48\x83\xEC\x08\xE8\x2A\x2A\x2A\x2A\x83\xF8\xFF"), // 55 48 63 D2 48 89 E5 53 48 83 EC 08 E8 ? ? ? ? 83 F8 FF
+		Symbol::FromSignature("\x55\x48\x63\xD2\x48\x89\xE5\x41\x54\x53\xE8****\x83\xF8\xFF"), // 55 48 63 D2 48 89 E5 41 54 53 E8 ? ? ? ? 83 F8 FF
 	};
 
 	const std::vector<Symbol> s_NetChannelsSym = {
