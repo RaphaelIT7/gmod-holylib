@@ -1009,12 +1009,12 @@ namespace Symbols
 
 	const std::vector<Symbol> NET_SendStreamSym = {
 		Symbol::FromName("_Z14NET_SendStreamiPKcii"),
-		Symbol::FromSignature("\x55\x48\x63\xD2\x48\x89\xE5\x53\x48\x83\xEC\x08\xE8\x2A\x2A\x2A\x2A\x48\x89\xC3"), // 55 48 63 D2 48 89 E5 53 48 83 EC 08 E8 ? ? ? ? 48 89 C3
+		Symbol::FromSignature("\x55\x48\x63\xD2\x48\x89\xE5\x41\x54\x53*****\x48\x89\xC3"), // 55 48 63 D2 48 89 E5 41 54 53 ?? ?? ?? ?? ?? 48 89 C3
 	};
 
 	const std::vector<Symbol> NET_ReceiveStreamSym = {
 		Symbol::FromName("_Z17NET_ReceiveStreamiPcii"),
-		Symbol::FromSignature("\x55\x48\x63\xD2\x48\x89\xE5\x41\x54\x53\xE8****\x83\xF8\xFF"), // 55 48 63 D2 48 89 E5 41 54 53 E8 ? ? ? ? 83 F8 FF
+		Symbol::FromSignature("\x55\x48\x63\xD2\x48\x89\xE5\x41\x54\x53\xE8****\x83\xF8\xFF"), // 55 48 63 D2 48 89 E5 41 54 53 E8 ?? ?? ?? ?? 83 F8 FF
 	};
 
 	const std::vector<Symbol> s_NetChannelsSym = {
@@ -1169,9 +1169,12 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	const std::vector<Symbol> GModDataPack_SendFileToClientSym = {
 		Symbol::FromName("_ZN12GModDataPack16SendFileToClientEii"),
+		Symbol::FromName("_ZN12GModDataPack16SendFileToClientEii"), // huh, that's a first
 	};
 
-	const std::vector<Symbol> GModDataPack_AddOrUpdateFileSym = {
+	const std::vector<Symbol> GModDataPack_AddOrUpdateFileSym = { // search for singleplayer_files%i
 		Symbol::FromName("_ZN12GModDataPack15AddOrUpdateFileEP7LuaFileb"),
+		Symbol::FromName("_ZN12GModDataPack15AddOrUpdateFileEP7LuaFileb"),
+		Symbol::FromSignature("\x55\x8B\xEC\x83\xEC\x7C\x53\x8B\xD9\x56\x57\x8B\x7D\x08\x8B\x03"), // 55 8B EC 83 EC 7C 53 8B D9 56 57 8B 7D 08 8B 03
 	};
 }

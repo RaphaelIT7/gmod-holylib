@@ -29,7 +29,7 @@ public:
 	void InitDetour(bool bPreServer) override;
 	void OnClientDisconnect(CBaseClient* pClient) override;
 	const char* Name() override { return "gmoddatapack"; };
-	int Compatibility() override { return LINUX32; };
+	int Compatibility() override { return LINUX32 | LINUX64; };
 };
 
 static ConVar gmoddatapack_removeserverif("holylib_gmoddatapack_removeserverif", "0", 0, "If enabled, \"if SERVER then\" code blocks are removed from client files");
@@ -969,22 +969,30 @@ bool GMODDataPack_SetSignOnState(CBaseClient* cl, int state)
 	return !g_pLuaDataPack.m_pPlayerQueue[slot].pQueue.empty();
 }
 
+#if SYSTEM_WINDOWS
+DETOUR_THISCALL_START()
+	DETOUR_THISCALL_ADDFUNC2(hook_GModDataPack_AddOrUpdateFile, AddOrUpdateFile, GModDataPack*, GarrysMod::Lua::LuaFile*, bool);
+	DETOUR_THISCALL_ADDFUNC2(hook_GModDataPack_SendFileToClient, SendFileToClient, GModDataPack*, int, int);
+DETOUR_THISCALL_FINISH()
+#endif
+
 void CGModDataPackModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
 		return;
 
+	DETOUR_PREPARE_THISCALL();
 	SourceSDK::FactoryLoader server_loader("server");
 	Detour::Create(
 		&detour_GModDataPack_AddOrUpdateFile, "GModDataPack::AddOrUpdateFile",
 		server_loader.GetModule(), Symbols::GModDataPack_AddOrUpdateFileSym,
-		(void*)hook_GModDataPack_AddOrUpdateFile, m_pID
+		(void*)DETOUR_THISCALL(hook_GModDataPack_AddOrUpdateFile, AddOrUpdateFile), m_pID
 	);
 
 	Detour::Create(
 		&detour_GModDataPack_SendFileToClient, "GModDataPack::SendFileToClient",
 		server_loader.GetModule(), Symbols::GModDataPack_SendFileToClientSym,
-		(void*)hook_GModDataPack_SendFileToClient, m_pID
+		(void*)DETOUR_THISCALL(hook_GModDataPack_SendFileToClient, SendFileToClient), m_pID
 	);
 }
 
