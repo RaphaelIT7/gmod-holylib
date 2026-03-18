@@ -539,7 +539,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_GetChannelData)
 
 	void* pBuffer = alloca(nSize);
 	unsigned long nLength = channel->GetChannelData(pBuffer, nSize | BASS_DATA_FLOAT);
-	if (nLength == -1) {
+	if (nLength == (unsigned long)-1) {
 		LUA->PushNil();
 	} else {
 		LUA->PushString((char*)pBuffer, nLength);

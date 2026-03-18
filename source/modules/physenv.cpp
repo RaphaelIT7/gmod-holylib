@@ -426,6 +426,7 @@ static void hook_IVP_Mindist_Manager_recheck_ov_element(void* mindistManager, GM
 #endif
 
 bool g_pForceOriginalIVP = false;
+#if CUSTOM_VPHYSICS_BUILD
 static Detouring::Hook detour_CreateInterface;
 static void* hook_CreateInterface(const char *pName, int *pReturnCode)
 {
@@ -438,6 +439,7 @@ static void* hook_CreateInterface(const char *pName, int *pReturnCode)
 
 	return Sys_GetFactoryThis()(pName, pReturnCode);
 }
+#endif
 
 LUA_FUNCTION_STATIC(physenv_SetLagThreshold)
 {

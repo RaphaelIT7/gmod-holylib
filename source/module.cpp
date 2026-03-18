@@ -357,7 +357,8 @@ IModuleWrapper* CModuleManager::FindModuleByName(const char* name)
 
 IModuleWrapper* CModuleManager::GetModuleByID(int nIndex)
 {
-	if (0 > nIndex || nIndex > m_pModules.size())
+	// nIndex can be == m_pModules.size()! (since we start at 1!)
+	if (0 >= nIndex || nIndex > (int)m_pModules.size())
 		return nullptr;
 
 	return m_pModules[nIndex];

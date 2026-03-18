@@ -447,6 +447,8 @@ namespace GarrysMod::Lua
 	class ILuaInterface;
 	abstract_class ILuaThreadedCall {
 	public:
+		virtual ~ILuaThreadedCall() = default;
+
 		// Called every frame, to check if the call is done. Return true to mark them as done.
 		// NOTE: Don't call AddThreadedCall from inside here as it could break the iteration that the ILuaInterface is internally doing while calling this.
 		virtual bool IsDone() = 0;

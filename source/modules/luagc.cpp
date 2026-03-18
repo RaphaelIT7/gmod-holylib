@@ -130,7 +130,7 @@ static bool LuaGC_WalkReferenceCheck(GCobj* pTargetObj, GCobj* pObj, lua_State* 
 			if (pVal->hmask > 0)
 			{
 				Node *node = noderef(pVal->node);
-				MSize i, hmask = pVal->hmask;
+				MSize hmask = pVal->hmask;
 				for (i = 0; i <= hmask; i++)
 				{
 					Node *n = &node[i];
@@ -340,7 +340,7 @@ static void LuaGC_WalkReferences(GCobj* pObj, std::unordered_set<GCobj*>& nWalke
 			if (pVal->hmask > 0)
 			{
 				Node *node = noderef(pVal->node);
-				MSize i, hmask = pVal->hmask;
+				MSize hmask = pVal->hmask;
 				for (i = 0; i <= hmask; i++)
 				{
 					Node *n = &node[i];
@@ -623,7 +623,7 @@ static void LuaGC_ShowReferences(GarrysMod::Lua::ILuaInterface* LUA, GCobj* pObj
 			{
 				LUA->PushString("hashSlots");
 				Node *node = noderef(pVal->node);
-				MSize i, hmask = pVal->hmask;
+				MSize hmask = pVal->hmask;
 				LUA->PreCreateTable(hmask, 0);
 				int nCount = 0;
 				for (i = 0; i <= hmask; i++)
@@ -738,7 +738,7 @@ static void LuaGC_ShowReferences(GarrysMod::Lua::ILuaInterface* LUA, GCobj* pObj
 			
 			LUA->PushString("constants");
 			LUA->PreCreateTable(0, 0);
-			int nCount;
+			int nCount = 0;
 			for (ref = pVal->nk; ref < REF_TRUE; ref++) {
 				IRIns *ir = &pVal->ir[ref];
 				if (ir->o == IR_KGC)
@@ -898,7 +898,7 @@ static int LuaGC_RecursiveSize(GCobj* pObj, std::unordered_set<GCobj*>& nWalkedO
 			if (pVal->hmask > 0)
 			{
 				Node *node = noderef(pVal->node);
-				MSize i, hmask = pVal->hmask;
+				MSize hmask = pVal->hmask;
 				for (i = 0; i <= hmask; i++)
 				{
 					Node *n = &node[i];

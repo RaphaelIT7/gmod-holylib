@@ -1093,7 +1093,6 @@ bool DVariantMismatch( DVariant& a, DVariant& b )
 	return false;
 }
 
-static PropTypeFns pPropTypeFns[DPT_NUMSendPropTypes];
 // This is special - why? Because we DON'T pull data from the entity, instead we use the packed data which already was passed through the proxies.
 // This allows us to possibly encode snapshots from the past as the source engine normally can't do this (the proxies would return different results)
 // BUG: This is only partially true - due to the GMODTable and how it's not really saved / fked up we can only partially do this.

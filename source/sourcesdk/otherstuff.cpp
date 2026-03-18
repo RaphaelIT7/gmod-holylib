@@ -2,9 +2,12 @@
 #include <tier1/strtools.h>
 #include "Platform.hpp"
 #include "sourcesdk/baseclient.h"
+#include "sourcesdk/dt_encode.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
+
+PropTypeFns g_PropTypeFns[DPT_NUMSendPropTypes];
 
 //-----------------------------------------------------------------------------
 // Purpose: returns true if a wide character is a "mean" space; that is,

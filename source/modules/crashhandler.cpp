@@ -19,6 +19,7 @@
 #include <atomic>
 #include <deque>
 #include "iluashared.h"
+#include <inttypes.h>
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -509,7 +510,7 @@ static void CrashHandler(int signal, siginfo_t* signalInfo, void* ucontext)
 			const char* fileName;
 			pModuleInfo.FindFunctionInfo(fmod, addr, &fileName, &offset);
 
-			dprintf(fileDescriptor, "  %p: %s + 0x%lx [%s]\n", (void*)addr, fileName, offset, fmod ? fmod->path : "UNKNOWN");
+			dprintf(fileDescriptor, "  %p: %s + 0x%" PRIxPTR " [%s]\n", (void*)addr, fileName, offset, fmod ? fmod->path : "UNKNOWN");
 		}
 	}
 

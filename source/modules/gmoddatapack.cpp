@@ -183,11 +183,12 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 						}
 					}
 
-					if (content[i] == ']')
+					if (content[i] == ']') {
 						if (count > 0)
 							i++; // Skip second ]
 						else
 							i=i+2;
+					}
 				} else
 				{
 					while (i < content.size() && content[i] != '\n')
@@ -225,7 +226,7 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 			continue;
 		}
 
-		if ((c == '\'' || c == '"') && (i == 0 || (content[i-1] != '\\' || i >= 2 && content[i-2] == '\\')))
+		if ((c == '\'' || c == '"') && (i == 0 || (content[i-1] != '\\' || (i >= 2 && content[i-2] == '\\'))))
 		{
 			int start = i;
 			i++;
@@ -274,11 +275,12 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 					}
 				}
 
-				if (content[i] == ']')
+				if (content[i] == ']') {
 					if (count > 0)
 						i++; // Skip second ]
 					else
 						i=i+2;
+				}
 
 				// Long String
 				tokens.push_back({TK_STRING, content.substr(start, i-start)});
@@ -293,8 +295,8 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 			while (i < content.size() && (std::isalnum(content[i]) || content[i]=='_'))
 				i++;
 
-			std::string word = content.substr(start, i - start);
-			tokens.push_back({KeywordType(word), word});
+			std::string strWord = content.substr(start, i - start);
+			tokens.push_back({KeywordType(strWord), strWord});
 			continue;
 		}
 
@@ -337,7 +339,7 @@ static bool CanServerConditionBeRemoved(const std::vector<Token> &tokens, size_t
 
 static size_t SkipEmpty(const std::vector<Token> &tokens, size_t start)
 {
-	while (start < tokens.size() && tokens[start].isSpace || tokens[start].type == TK_PARENTHESIS)
+	while (start < tokens.size() && (tokens[start].isSpace || tokens[start].type == TK_PARENTHESIS))
 		start++;
 
 	return start;
@@ -354,9 +356,11 @@ static size_t RemoveScoped(size_t i, size_t j, std::vector<Token> &tokens, std::
 		if (tokens[i].type == TK_THEN || tokens[i].type == TK_DO || tokens[i].type == TK_FUNCTION)
 			depth++;
 		else if (tokens[i].type == TK_END)
+		{
 			depth--;
 			if (tok == TK_ELSEIF && depth <= 0)
 				continue;
+		}
 		else if (tokens[i].type == TK_SOMETHING && tokens[i].content == "\n")
 		{
 			bHasLineBreaks = true;

@@ -1043,7 +1043,7 @@ struct GlobalTransmitTickCache
 	// bool g_bFilledDontTransmitWeaponCache[MAX_PLAYERS] = {0};
 };
 static GlobalTransmitTickCache g_pGlobalTransmitTickCache;
-static PlayerTransmitTickCache g_pPlayerTransmitTickCache[MAX_PLAYERS] = {0};
+static PlayerTransmitTickCache g_pPlayerTransmitTickCache[MAX_PLAYERS] = {};
 
 #if 0 // Would be needed for pvs.AddEntitiesToTransmit / this would need to be called after the HolyLib:PostCheckTransmit hook if we'd were to allow entity additions in there
 void Networking_DoPostTransmitCheck(CCheckTransmitInfo* pInfo)
@@ -1940,7 +1940,6 @@ static ServerClass* playerServerClass;
 static CFrameSnapshotManager* framesnapshotmanager = nullptr;
 static CSharedEdictChangeInfo* g_SharedEdictChangeInfo = nullptr;
 static ServerClassCache *player_class_cache = nullptr;
-PropTypeFns g_PropTypeFns[DPT_NUMSendPropTypes];
 #if ARCHITECTURE_X86_64
 static ConVar networking_enableunsafe64x("holylib_networking_enableunsafe64x", "0", 0, "(only affects 64x) Enables 64x the full module code though it may crash on 64x.");
 #endif

@@ -180,7 +180,7 @@ static inline void PushEvent(GarrysMod::Lua::ILuaInterface* pLua, CGameEvent* ev
 	}
 }
 
-class CLuaGameEventCallbackCall : GarrysMod::Lua::ILuaThreadedCall
+class CLuaGameEventCallbackCall : public GarrysMod::Lua::ILuaThreadedCall
 {
 public:
 	CLuaGameEventCallbackCall(IGameEvent* pEvent)

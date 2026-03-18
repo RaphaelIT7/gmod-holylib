@@ -71,7 +71,7 @@ static ConVar jsonthreads("holylib_util_jsonthreads", "1", FCVAR_ARCHIVE, "The n
 class IJobEntry
 {
 public:
-	~IJobEntry() = default;
+	virtual ~IJobEntry() = default;
 	virtual bool OnThink(GarrysMod::Lua::ILuaInterface* pLua) = 0;
 
 	bool m_bCancel = false;
