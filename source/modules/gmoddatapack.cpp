@@ -45,9 +45,17 @@ enum TokenType {
 	TK_THEN,
 	TK_END,
 	TK_DO,
+	TK_OR,
+	TK_AND,
+	TK_GREATER_OR_EQUAL,
+	TK_GREATER,
+	TK_LESS_OR_EQUAL,
+	TK_PARENTHESIS,
+	TK_LESS,
 	TK_ELSE,
 	TK_ELSEIF,
 	TK_COMMENT,
+	TK_STRING,
 	TK_SOMETHING,
 	TK_EOF
 };
@@ -55,8 +63,7 @@ enum TokenType {
 struct Token {
 	TokenType type;
 	std::string content;
-	bool isEmpty = false;
-	bool canBacktrace = false; // If we can backtrace this one safely without triggering a lua error
+	bool isSpace = false;
 };
 
 static inline TokenType KeywordType(const std::string &word)
@@ -80,10 +87,59 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 	while (i < content.size())
 	{
 		char c = content[i];
-		if (c == ' ' || c == '\t' || c == '\r' || c == '\n' || c == '(' || c == ')')
+		if (c == ' ' || c == '\t' || c == '\r' || c == '\n')
 		{
-			tokens.push_back({TK_SOMETHING, std::string(1, c), true, (c != '(' && c != ')')});
+			tokens.push_back({TK_SOMETHING, std::string(1, c), true});
 			i++;
+			continue;
+		}
+
+		if (c == '(' || c == ')')
+		{
+			tokens.push_back({TK_PARENTHESIS, std::string(1, c), true});
+			i++;
+			continue;
+		}
+
+		if (c == '>' && i+1 < content.size() && content[i+1] == '=')
+		{
+			tokens.push_back({TK_GREATER_OR_EQUAL, content.substr(i, 2), true});
+			i+=2;
+			continue;
+		}
+
+		if (c == '>')
+		{
+			tokens.push_back({TK_GREATER, std::string(1, c), true});
+			i++;
+			continue;
+		}
+
+		if (c == '<' && i+1 < content.size() && content[i+1] == '=')
+		{
+			tokens.push_back({TK_LESS_OR_EQUAL, content.substr(i, 2), true});
+			i+=2;
+			continue;
+		}
+
+		if (c == '<')
+		{
+			tokens.push_back({TK_LESS, std::string(1, c), true});
+			i++;
+			continue;
+		}
+
+		if (i+1 < content.size() && ((c == '|' && content[i+1] == '|') || (c == 'o' && content[i+1] == 'r')))
+		{
+			tokens.push_back({TK_OR, content.substr(i, 2), true});
+			i+=2;
+			continue;
+		}
+
+		if (i+1 < content.size() && ((c == '&' && content[i+1] == '&') || (c == 'a' && content[i+1] == 'n' && i+2 < content.size() && content[i+2] == 'd')))
+		{
+			tokens.push_back({TK_AND, content.substr(i, c == '&' ? 2 : 3), true});
+			i+= c == '&' ? 2 : 3;
 			continue;
 		}
 
@@ -178,7 +234,7 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 
 			// String
 			i++;
-			tokens.push_back({TK_SOMETHING, content.substr(start, i-start)});
+			tokens.push_back({TK_STRING, content.substr(start, i-start)});
 			continue;
 		}
 
@@ -225,7 +281,7 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 						i=i+2;
 
 				// Long String
-				tokens.push_back({TK_SOMETHING, content.substr(start, i-start)});
+				tokens.push_back({TK_STRING, content.substr(start, i-start)});
 				continue;
 			}
 			i = start;
@@ -250,9 +306,38 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 	return tokens;
 }
 
+static bool CanServerConditionBeRemoved(const std::vector<Token> &tokens, size_t start)
+{
+	bool isServer = false;
+	int depth = 0;
+	while (tokens[start].type != TK_THEN && tokens[start].type != TK_DO)
+	{
+		if (depth == 0)
+		{
+			if (tokens[start].type == TK_SOMETHING && tokens[start].content == "SERVER")
+				isServer = true;
+
+			if (tokens[start].type == TK_OR) // We don't know yet
+				isServer = false;
+		}
+
+		if (tokens[start].type == TK_PARENTHESIS)
+		{
+			if (tokens[start].content == "(")
+				++depth;
+			else
+				--depth;
+		}
+
+		start++;
+	}
+
+	return isServer;
+}
+
 static size_t SkipEmpty(const std::vector<Token> &tokens, size_t start)
 {
-	while (start < tokens.size() && tokens[start].isEmpty)
+	while (start < tokens.size() && tokens[start].isSpace || tokens[start].type == TK_PARENTHESIS)
 		start++;
 
 	return start;
@@ -288,7 +373,7 @@ static size_t RemoveScoped(size_t i, size_t j, std::vector<Token> &tokens, std::
 				tokens[i].content = "do";
 
 			// If we had for example "	elseif xx then" we want to restore the space before it.
-			while (bHasLineBreaks && i-1 > 0 && tokens[i-1].canBacktrace && !(tokens[i-1].type == TK_SOMETHING && tokens[i-1].content == "\n"))
+			while (bHasLineBreaks && i-1 > 0 && tokens[i-1].isSpace && !(tokens[i-1].type == TK_SOMETHING && tokens[i-1].content == "\n"))
 				i--;
 
 			depth--;
@@ -301,7 +386,7 @@ static size_t RemoveScoped(size_t i, size_t j, std::vector<Token> &tokens, std::
 			{
 				tokens[i].content = tok == TK_IF ? "if" : "elseif";
 				// If we had for example "	elseif xx then" we want to restore the space before it.
-				while (bHasLineBreaks && i-1 > 0 && tokens[i-1].canBacktrace && !(tokens[i-1].type == TK_SOMETHING && tokens[i-1].content == "\n"))
+				while (bHasLineBreaks && i-1 > 0 && tokens[i-1].isSpace && !(tokens[i-1].type == TK_SOMETHING && tokens[i-1].content == "\n"))
 					i--;
 
 				continue;
@@ -334,7 +419,7 @@ std::string ProcessTokens(std::vector<Token> &tokens, bool bRemoveServerCode, bo
 		{
 			size_t j = i + 1;
 			j = SkipEmpty(tokens, j);
-			if (j < tokens.size() && tokens[j].type == TK_SOMETHING && tokens[j].content == "SERVER")
+			if (CanServerConditionBeRemoved(tokens, j))
 			{
 				j++;
 				j = SkipEmpty(tokens, j);
@@ -350,7 +435,7 @@ std::string ProcessTokens(std::vector<Token> &tokens, bool bRemoveServerCode, bo
 		{
 			size_t j = i + 1;
 			j = SkipEmpty(tokens, j);
-			if (j < tokens.size() && tokens[j].type == TK_SOMETHING && tokens[j].content == "SERVER")
+			if (CanServerConditionBeRemoved(tokens, j))
 			{
 				j++;
 				j = SkipEmpty(tokens, j);
