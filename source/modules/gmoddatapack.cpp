@@ -515,8 +515,8 @@ public:
 		bool bSuccess = pEntry->Compress();
 		if (!bSuccess)
 			Warning(PROJECT_NAME " - gmoddatapack: Failed to compress lua file %i\n", fileID);
-		else
-			DevMsg(PROJECT_NAME " - gmoddatapack: Compressed lua file %i (compressed/uncompressed: %i/%i)\n", fileID, pEntry->compressed.GetWritten(), pEntry->content.length());
+		else if (g_pGModDataPackModule.InDebug())
+			Msg(PROJECT_NAME " - gmoddatapack: Compressed lua file %i (compressed/uncompressed: %i/%i)\n", fileID, pEntry->compressed.GetWritten(), pEntry->content.length());
 
 		return bSuccess;
 	}
@@ -686,6 +686,9 @@ static void SendLuaFile(int clientIdx, int fileID, LuaDataPack::LuaPackEntry* pE
 	msg.WriteBytes(pEntry->compressed.GetBase(), pEntry->compressed.GetWritten());
 
 	Util::engineserver->GMOD_SendToClient( clientIdx, msg.GetData(), msg.GetNumBitsWritten() );
+
+	if (g_pGModDataPackModule.InDebug())
+		Msg(PROJECT_NAME " - gmoddatapack: Sent FileID %i though reliable stream!\n", fileID);
 }
 
 static Detouring::Hook detour_GModDataPack_SendFileToClient;
@@ -876,9 +879,12 @@ static void SendFileThroughUnreliable(int clientIdx, int fileID)
 			// This is like the most common convar to limit us when sending out a lot of data.
 			// So let's raise it and take the speed :hehe:
 			ConVar* pVar = g_pCVar->FindVar("net_splitrate");
-			if (pVar)
+			if (pVar && V_stricmp(pVar->GetString(), pVar->GetDefault()) == 0)
 				pVar->SetValue(100); // 100 was too much o.o let's lower it, I'm not trying to send 20MB all at once :skull: - nevermind, works now
 		}
+
+		if (g_pGModDataPackModule.InDebug())
+			Msg(PROJECT_NAME " - gmoddatapack: Sent FileID %i though unreliable stream!\n", fileID);
 
 		pChannel->Transmit(false);
 		pChannel->m_fClearTime = pChannel->GetTime() + 10; // Screw you! We don't want to proceed into the SignOnState before were done!
@@ -893,7 +899,6 @@ void CGModDataPackModule::OnClientDisconnect(CBaseClient* pClient)
 
 	g_pLuaDataPack.m_pPlayerQueue[slot].pQueue.clear();
 	g_pLuaDataPack.m_pPlayerQueue[slot].reconnectTime = -1;
-	Msg("Cleared entry due to disconnect!\n");
 }
 
 static double g_nLastSend = 0;
