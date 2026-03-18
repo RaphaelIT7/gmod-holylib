@@ -846,7 +846,7 @@ static SIMPLETHREAD_RETURNVALUE CrashWatcherThread(void* data)
 				}
 			}
 #endif
-			printf(PROJECT_NAME " - crashhandler: Detected a freeze, Terminating...\n");
+			printf(PROJECT_NAME " - crashhandler: Detected a freeze, attempting termination...\n");
 			ThreadSleep(5); // Sleep for the printf to reach the console (in testing it sometimes just never appeared)
 			ExecuteMainThread();
 			break;
