@@ -304,6 +304,7 @@ Wiki: https://holylib.raphaelit7.com/
 \- [luagc](https://github.com/RaphaelIT7/gmod-holylib#luagc)<br>
 \- [crashhandler](https://github.com/RaphaelIT7/gmod-holylib#crashhandler)<br>
 \- [gmoddatapack](https://github.com/RaphaelIT7/gmod-holylib#gmoddatapack)<br>
+\- [unholylib](https://github.com/RaphaelIT7/gmod-holylib#unholylib)<br>
 
 [Unfinished Modules](https://github.com/RaphaelIT7/gmod-holylib#unfinished-modules)<br>
 \- [serverplugins](https://github.com/RaphaelIT7/gmod-holylib#serverplugins)<br>
@@ -5435,6 +5436,19 @@ If enabled, it'll attempt a faster method of sending lua files to the client.<br
 
 > [!NOTE]
 > This internally depends on the `gameserver` module being enabled!<br>
+
+## unholylib
+This is an unsafe library with the purpose of providing different ways to mess with the engine for fun.<br>
+
+### Functions
+
+#### unholylib.SetCurTime(number time)
+Attempts to set CurTime to the given value
+
+#### unholylib.SetEntIndex(entity ent, number index)
+Sets the EntIndex of the given entity, internally it will attempt to move the entity into the given edict slot.<br>
+If the edict slot is already used, it will **swap** the entities.<br>
+If the new index is `-1` then it will make the entity a server-only entity.<br>
 
 # Unfinished Modules
 

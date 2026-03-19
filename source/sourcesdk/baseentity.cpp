@@ -82,3 +82,30 @@ bool CCollisionProperty::DoesVPhysicsInvalidateSurroundingBox( ) const
 		return true;
 	}
 }
+
+//-----------------------------------------------------------------------------
+// Connects, disconnects edicts
+//-----------------------------------------------------------------------------
+void CServerNetworkProperty::AttachEdict( edict_t *pRequiredEdict )
+{
+	Assert ( !m_pPev );
+
+	// see if there is an edict allocated for it, otherwise get one from the engine
+	if ( !pRequiredEdict )
+	{
+		pRequiredEdict = engine->CreateEdict();
+	}
+
+	m_pPev = pRequiredEdict;
+	m_pPev->SetEdict( GetBaseEntity(), true );
+}
+
+void CServerNetworkProperty::DetachEdict()
+{
+	if ( m_pPev )
+	{
+		m_pPev->SetEdict( NULL, false );
+		engine->RemoveEdict( m_pPev );
+		m_pPev = NULL;
+	}
+}

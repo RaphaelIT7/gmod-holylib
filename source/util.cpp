@@ -737,6 +737,7 @@ void Util::AddDetour()
 	else
 		engineserver = InterfacePointers::VEngineServer();
 	Detour::CheckValue("get interface", "IVEngineServer", engineserver != nullptr);
+	engine = engineserver;
 	
 	SourceSDK::FactoryLoader engine_loader("engine");
 	if (g_pModuleManager.GetAppFactory())
