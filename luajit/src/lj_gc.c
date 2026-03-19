@@ -403,7 +403,7 @@ static const GCFreeFunc gc_freefunc[] = {
 /* Partial sweep of a GC list. */
 static GCRef *gc_sweep(global_State *g, GCRef *p, uint32_t lim)
 {
-  /* Mask with other white and LJ_GC_FIXED. Or LJ_GC_SFIXED on shutdown. */
+  /* Mask with other white and LJ_GC_FIXED. Or LJ_GC_FIXED on shutdown. */
   int ow = otherwhite(g);
   GCobj *o;
   while ((o = gcref(*p)) != NULL && lim-- > 0) {
@@ -415,7 +415,7 @@ static GCRef *gc_sweep(global_State *g, GCRef *p, uint32_t lim)
       makewhite(g, o);  /* Value is alive, change to the current white. */
       p = &o->gch.nextgc;
     } else {  /* Otherwise value is dead, free it. */
-      lj_assertG(isdead(g, o) || ow == LJ_GC_SFIXED,
+      lj_assertG(isdead(g, o) || ow == LJ_GC_FIXED,
 		 "sweep of unlive object");
       setgcrefr(*p, o->gch.nextgc);
       if (o == gcref(g->gc.root))
@@ -429,7 +429,7 @@ static GCRef *gc_sweep(global_State *g, GCRef *p, uint32_t lim)
 /* Sweep one string interning table chain. Preserves hashalg bit. */
 static void gc_sweepstr(global_State *g, GCRef *chain)
 {
-  /* Mask with other white and LJ_GC_FIXED. Or LJ_GC_SFIXED on shutdown. */
+  /* Mask with other white and LJ_GC_FIXED. Or LJ_GC_FIXED on shutdown. */
   int ow = otherwhite(g);
   uintptr_t u = gcrefu(*chain);
   GCRef q;
@@ -443,7 +443,7 @@ static void gc_sweepstr(global_State *g, GCRef *chain)
       makewhite(g, o);  /* String is alive, change to the current white. */
       p = &o->gch.nextgc;
     } else {  /* Otherwise string is dead, free it. */
-      lj_assertG(isdead(g, o) || ow == LJ_GC_SFIXED,
+      lj_assertG(isdead(g, o) || ow == LJ_GC_FIXED,
 		 "sweep of unlive string");
       setgcrefr(*p, o->gch.nextgc);
       lj_str_free(g, gco2str(o));
@@ -605,7 +605,7 @@ void lj_gc_freeall(global_State *g)
 {
   MSize i;
   /* Free everything, except super-fixed objects (the main thread). */
-  g->gc.currentwhite = LJ_GC_WHITES | LJ_GC_SFIXED;
+  g->gc.currentwhite = LJ_GC_WHITES | LJ_GC_FIXED;
   gc_fullsweep(g, &g->gc.root);
   for (i = g->str.mask; i != ~(MSize)0; i--)  /* Free all string hash chains. */
     gc_sweepstr(g, &g->str.tab[i]);

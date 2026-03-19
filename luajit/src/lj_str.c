@@ -237,7 +237,7 @@ static LJ_NOINLINE GCstr *lj_str_rehash_chain(lua_State *L, StrHash hashc,
 		   "sweep of undead string");
 	makewhite(g, o);
       } else {  /* Free dead string. */
-	lj_assertG(isdead(g, o) || ow == LJ_GC_SFIXED,
+	lj_assertG(isdead(g, o) || ow == LJ_GC_FIXED,
 		   "sweep of unlive string");
 	lj_str_free(g, s);
 	o = next;
