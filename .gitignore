@@ -33,3 +33,4 @@ source/sourcesdk/luagc_jit.cpp
 
 projects/windows/vs2022/
 **.pdb
+luajit/src/luajit.vcxproj/**
