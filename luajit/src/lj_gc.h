@@ -14,9 +14,11 @@ enum {
 };
 
 /* Bitmasks for marked field of GCobj. */
-#define LJ_GC_WHITE0	0x01
-#define LJ_GC_WHITE1	0x02
-#define LJ_GC_BLACK	0x08
+#define LJ_GC_WHITE     0x01
+#define LJ_GC_LIGHTGRAY 0x02
+#define LJ_GC_DARKGRAY  0x04
+#define LJ_GC_BLACK     0x08
+
 #define LJ_GC_FINALIZED	0x10
 #define LJ_GC_WEAKKEY	0x10
 #define LJ_GC_WEAKVAL	0x20
@@ -26,14 +28,17 @@ enum {
 #define LJ_GC_READONLY	0x80
 #define LJ_GC_BLOCKDEBUG  0x10 // Same as LJ_GC_WEAKKEY but we can use it for functions
 
-#define LJ_GC_WHITES	(LJ_GC_WHITE0 | LJ_GC_WHITE1)
-#define LJ_GC_COLORS	(LJ_GC_WHITES | LJ_GC_BLACK)
+#define LJ_GC_GRAYMASK (LJ_GC_LIGHTGRAY | LJ_GC_DARKGRAY)
+#define LJ_GC_COLORS (LJ_GC_WHITE | LJ_GC_LIGHTGRAY | LJ_GC_DARKGRAY | LJ_GC_BLACK)
 #define LJ_GC_WEAK	(LJ_GC_WEAKKEY | LJ_GC_WEAKVAL)
 
 /* Macros to test and set GCobj colors. */
 #define iswhite(x)	((x)->gch.marked & LJ_GC_WHITES)
+#define islightgray(x)  ((x)->gch.marked & LJ_GC_LIGHTGRAY)
+#define isdarkgray(x)  ((x)->gch.marked & LJ_GC_DARKGRAY)
 #define isblack(x)	((x)->gch.marked & LJ_GC_BLACK)
-#define isgray(x)	(!((x)->gch.marked & (LJ_GC_BLACK|LJ_GC_WHITES)))
+#define isgray(x)	(!((x)->gch.marked & LJ_GC_GRAYMASK))
+
 #define tviswhite(x)	(tvisgcv(x) && iswhite(gcV(x)))
 #define otherwhite(g)	(g->gc.currentwhite ^ LJ_GC_WHITES)
 #define isdead(g, v)	((v)->gch.marked & otherwhite(g) & LJ_GC_WHITES)
