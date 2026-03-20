@@ -979,7 +979,7 @@ namespace Symbols
 
 	const std::vector<Symbol> NET_SendPacketSym = { // Search for "NET_SendPacket"
 		Symbol::FromName("_Z14NET_SendPacketP11INetChanneliRK8netadr_sPKhiP8bf_writeb"),
-		Symbol::FromSignature("\x55\x48\x63\xD2\x48\x89\xE5\x41\x54\x53*****\x48\x89\xC3"), // 55 48 63 D2 48 89 E5 41 54 53 ?? ?? ?? ?? ?? 48 89 C3
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x49\x89\xD5\x41\x54\x4D\x89\xCC\x53"), // 55 48 89 E5 41 57 41 56 41 55 49 89 D5 41 54 4D 89 CC 53
 	};
 
 	const std::vector<Symbol> CNetChan_SendDatagramSym = {
