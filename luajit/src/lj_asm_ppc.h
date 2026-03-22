@@ -1286,7 +1286,7 @@ static void asm_obar(ASMState *as, IRIns *ir)
   emit_condbranch(as, PPCI_BC|PPCF_Y, CC_EQ, l_end);
   emit_asi(as, PPCI_ANDIDOT, tmp, tmp, LJ_GC_BLACK);
   emit_condbranch(as, PPCI_BC, CC_EQ, l_end);
-  emit_asi(as, PPCI_ANDIDOT, RID_TMP, RID_TMP, LJ_GC_WHITES);
+  emit_asi(as, PPCI_ANDIDOT, RID_TMP, RID_TMP, LJ_GC_WHITE);
   val = ra_alloc1(as, ir->op2, rset_exclude(RSET_GPR, obj));
   emit_tai(as, PPCI_LBZ, tmp, obj,
 	   (int32_t)offsetof(GCupval, marked)-(int32_t)offsetof(GCupval, tv));

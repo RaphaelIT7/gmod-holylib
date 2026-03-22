@@ -4190,7 +4190,7 @@ static void build_ins(BuildCtx *ctx, BCOp op, int defop)
     |  sub RD, LJ_TISGCV
     |  cmp RD, LJ_TNUMX - LJ_TISGCV			// tvisgcv(v)
     |  jbe <1
-    |  test byte GCOBJ:RA->gch.marked, LJ_GC_WHITES	// iswhite(v)
+    |  test byte GCOBJ:RA->gch.marked, LJ_GC_WHITE	// iswhite(v)
     |  jz <1
     |  // Crossed a write barrier. Move the barrier forward.
     |.if X64 and not X64WIN
@@ -4219,7 +4219,7 @@ static void build_ins(BuildCtx *ctx, BCOp op, int defop)
     |  ins_next
     |
     |2:  // Check if string is white and ensure upvalue is closed.
-    |  test byte GCOBJ:RA->gch.marked, LJ_GC_WHITES	// iswhite(str)
+    |  test byte GCOBJ:RA->gch.marked, LJ_GC_WHITE	// iswhite(str)
     |  jz <1
     |  cmp byte UPVAL:RB->closed, 0
     |  jz <1
