@@ -15,6 +15,11 @@
 #include <elf.h>
 #include <execinfo.h>
 #include <ucontext.h>
+#include <linux/prctl.h>
+#include <sys/ptrace.h>
+#include <sys/prctl.h>
+#include <sys/wait.h>
+#include <sys/user.h>
 #endif
 #include <atomic>
 #include <deque>
@@ -53,6 +58,11 @@ public:
 static CCrashHandlerModule g_pCrashHandlerModule;
 IModule* pCrashHandlerModule = &g_pCrashHandlerModule;
 
+/*
+	This a custom lua allocator due to Lua being highly unstable when it crashed.
+	So to reach mostly stable conditions we use our own simple allocator.
+	It is not meant to be complex in any way, it purely exists for the temporary use inside the signal handler.
+*/
 class LuaAlloc
 {
 public:
@@ -70,9 +80,17 @@ public:
 
 private:
 	char buffer[64 * 1024];
-    size_t offset;
+	size_t offset;
 };
 
+/*
+	NOTE:
+	This is always stack allocated inside the signal handler thread
+	this is due to the signal handler having his own dedicated stack which we've setup
+	This is safe only because the signal handler thread sleeps while we call back to the main thread and use the SignalData.
+	If the signal thread ever proceeds before the main thread finished using the SignalData (specifically the luaAlloc for the lua callback) then we will definitely die.
+	Though that cannot happen at all with our current code as the signal handler only proceeds once the main thread set that it's done.
+*/
 struct SignalData
 {
 	const char* crashOrigin;
@@ -343,9 +361,9 @@ static void DumpRegister(int fd, gregset_t& registers, const char* name, int idx
 
 struct SavedCrash
 {
-    int signal;
-    siginfo_t info;
-    ucontext_t context;
+	int signal;
+	siginfo_t info;
+	ucontext_t context;
 };
 
 static SavedCrash g_pSavedCrash;
@@ -547,6 +565,9 @@ static void SetupCrashHandler()
 	sigemptyset(&signalAction.sa_mask);
 	signalAction.sa_flags = SA_SIGINFO | SA_ONSTACK | SA_NODEFER;
 	sigaction(SIGSEGV, &signalAction, nullptr);
+	sigaction(SIGUSR1, &signalAction, nullptr);
+
+	prctl(PR_SET_PTRACER, PR_SET_PTRACER_ANY); // Just in case
 }
 #endif
 
@@ -629,6 +650,28 @@ static bool AttemptLuaCallback(bool bMainThreadCrash)
 }
 
 static ThreadId_t g_nMainThreadID = -1;
+// Unlike our crash handler, we here will be in a more "safe" context.
+// ToDo / WIP:
+// We want to attach ourselves to the thread and attempt to get a backtrace, BUT we need to figure out a way to get the stack frames safely for unwinding :/
+// I would maybe use libunwind, BUT that is not installed in containers, so we must find our own way as I don't think GMod compiles with frame pointers...
+static void DumpMainThread()
+{
+#if SYSTEM_LINUX
+	if (ptrace(PTRACE_ATTACH, g_nMainThreadID, nullptr, nullptr) == -1)
+		return;
+
+	int status = 0;
+	waitpid(g_nMainThreadID, &status, __WALL);
+
+	if (!WIFSTOPPED(status))
+		return;
+
+	user_regs_struct regs;
+    if (ptrace(PTRACE_GETREGS, g_nMainThreadID, nullptr, &regs) == -1)
+        return;
+#endif
+}
+
 static inline void ExecuteMainThread() // So you have chosen... death
 {
 	// ToDo: Figure out why backtrace in the handler crashes - maybe skip it if we were the one forcing it
@@ -637,6 +680,8 @@ static inline void ExecuteMainThread() // So you have chosen... death
 #if SYSTEM_LINUX
 	// pthread_kill(g_nMainThreadID, SIGTRAP); // SIGTRAP seems more responsive, yet our signal handler will never be called :sob:
 	pthread_kill(g_nMainThreadID, SIGSEGV); // idk why but SIGTRAP works far better though seems to break the backtracing?
+	ThreadSleep(3);
+	pthread_kill(g_nMainThreadID, SIGUSR1);
 #endif
 }
 
