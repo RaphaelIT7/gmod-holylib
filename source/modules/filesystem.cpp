@@ -977,24 +977,58 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 
 	func_CBaseFileSystem_FixUpPath(filesystem, pFileNameT, pFileNameBuff, sizeof(pFileNameBuff));
 
+	bool isBspFileEarly = getFileExtension(pFileNameT) == "bsp";
+
+	// For .bsp files, prioritize local garrysmod/maps/ over workshop
+	// The engine's search path order may have workshop first, so we check local explicitly
+	if (isBspFileEarly && !V_IsAbsolutePath(pFileName))
+	{
+		std::string_view strFileName = pFileName;
+		if (strFileName.rfind("maps" FILEPATH_SLASH, 0) == 0) // starts with maps/
+		{
+			char pBaseDir[MAX_PATH];
+			int baseLen = g_pFullFileSystem->GetSearchPath("BASE_PATH", true, pBaseDir, sizeof(pBaseDir));
+			if (baseLen > 0)
+			{
+				// Remove trailing semicolon/path separator if present
+				if (baseLen > 0 && (pBaseDir[baseLen-1] == ';' || pBaseDir[baseLen-1] == ':'))
+					pBaseDir[baseLen-1] = '\0';
+				
+				std::string localPath = pBaseDir;
+				localPath.append("garrysmod" FILEPATH_SLASH);
+				localPath.append(pFileName);
+
+				// Try to open the local file directly
+				FileHandle_t localHandle = detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, localPath.c_str(), pOptions, flags, nullptr, ppszResolvedFilename);
+				if (localHandle)
+					return localHandle;
+			}
+		}
+	}
+
 	if (holylib_filesystem_savesearchcache.GetBool())
 	{
-		std::string_view* absoluteStr = GetStringFromAbsoluteCache(pFileName, pathID);
-		if (absoluteStr)
+		// Skip absolute cache for .bsp files - path priority matters more than cache performance
+		// Workshop paths may be cached but local /garrysmod/maps/ should take priority
+		if (!isBspFileEarly)
 		{
-			if (g_pFileSystemModule.InDebug())
-				Msg("holylib - OpenForRead: Found file in absolute path (%s, %s)\n", pFileName, absoluteStr->data());
+			std::string_view* absoluteStr = GetStringFromAbsoluteCache(pFileName, pathID);
+			if (absoluteStr)
+			{
+				if (g_pFileSystemModule.InDebug())
+					Msg("holylib - OpenForRead: Found file in absolute path (%s, %s)\n", pFileName, absoluteStr->data());
 
-			FileHandle_t handle = detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, absoluteStr->data(), pOptions, flags, pathID, ppszResolvedFilename);
-			if (handle)
-				return handle;
+				FileHandle_t handle = detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, absoluteStr->data(), pOptions, flags, pathID, ppszResolvedFilename);
+				if (handle)
+					return handle;
 
-			if (g_pFileSystemModule.InDebug())
-				Msg("holylib - OpenForRead: Invalid absolute path! (%s, %s)\n", pFileName, absoluteStr->data());
-		}
-		else {
-			if (g_pFileSystemModule.InDebug())
-				Msg("holylib - OpenForRead: Failed to find file in absolute path (%s, %s)\n", pFileName, pFileNameT);
+				if (g_pFileSystemModule.InDebug())
+					Msg("holylib - OpenForRead: Invalid absolute path! (%s, %s)\n", pFileName, absoluteStr->data());
+			}
+			else {
+				if (g_pFileSystemModule.InDebug())
+					Msg("holylib - OpenForRead: Failed to find file in absolute path (%s, %s)\n", pFileName, pFileNameT);
+			}
 		}
 	}
 
@@ -1164,31 +1198,35 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 
 	// So we now got the issue that CBaseFileSystem::CSearchPathsIterator::CSearchPathsIterator is way too slow.
 	// so we need to skip it. We do this by checking if we got the file in the search cache before we call the OpenForRead function.
-	CSearchPath* cachePath = GetPathFromSearchCache(pFileName, pathID);
-	if (cachePath)
+	// Skip search cache for .bsp files - path priority matters, the cached path may be workshop instead of local
+	if (!isBspFileEarly)
 	{
-		VPROF_BUDGET("HolyLib - SearchCache::OpenForRead", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
-
-		if (holylib_filesystem_cachefilehandle.GetBool())
+		CSearchPath* cachePath = GetPathFromSearchCache(pFileName, pathID);
+		if (cachePath)
 		{
-			FileHandle_t cacheFile = GetFileHandleFromCache(GetFullPath(cachePath, pFileName));
-			if (cacheFile)
-				return cacheFile;
-		}
+			VPROF_BUDGET("HolyLib - SearchCache::OpenForRead", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
-		CFileOpenInfo openInfo( filesystem, pFileName, nullptr, pOptions, flags, ppszResolvedFilename );
-		openInfo.m_pSearchPath = cachePath;
-		FileHandle_t file = detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
-		if (file)
-		{
 			if (holylib_filesystem_cachefilehandle.GetBool())
-				AddFileHandleToCache(GetFullPath(openInfo.m_pSearchPath, openInfo.m_pFileName), file);
+			{
+				FileHandle_t cacheFile = GetFileHandleFromCache(GetFullPath(cachePath, pFileName));
+				if (cacheFile)
+					return cacheFile;
+			}
 
-			return file;
+			CFileOpenInfo openInfo( filesystem, pFileName, nullptr, pOptions, flags, ppszResolvedFilename );
+			openInfo.m_pSearchPath = cachePath;
+			FileHandle_t file = detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
+			if (file)
+			{
+				if (holylib_filesystem_cachefilehandle.GetBool())
+					AddFileHandleToCache(GetFullPath(openInfo.m_pSearchPath, openInfo.m_pFileName), file);
+
+				return file;
+			}
+		} else {
+			if (g_pFileSystemModule.InDebug())
+				Msg("holylib - OpenForRead: Failed to find cachePath! (%s)\n", pFileName);
 		}
-	} else {
-		if (g_pFileSystemModule.InDebug())
-			Msg("holylib - OpenForRead: Failed to find cachePath! (%s)\n", pFileName);
 	}
 	
 	if (splitPath && holylib_filesystem_splitfallback.GetBool())
