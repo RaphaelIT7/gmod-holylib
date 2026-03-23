@@ -23,6 +23,7 @@ extern "C"
 
 Symbols::lua_pushtracablecclosure Lua::func_lua_pushtracablecclosure = nullptr;
 Symbols::lua_settracablecclosure Lua::func_lua_settracablecclosure = nullptr;
+std::atomic<ThreadId_t> Lua::LuaMutex::owner = 0;
 
 // Testing functions
 

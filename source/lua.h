@@ -2,6 +2,7 @@
 
 #include "util.h"
 #include "bitvec.h"
+#include <atomic>
 #include "../luajit/src/lua.h"
 #if !defined(DISABLE_GMODJIT)
 #include "../gmod-luajit/luajit.h"
@@ -186,11 +187,16 @@ namespace Lua
 	class LuaMutex
 	{
 	public:
-		LuaMutex() : waitingCount(0), active(false) {}
-
 		void lock()
 		{
 			std::unique_lock<std::mutex> lock(mtx);
+			ThreadId_t currentThread = ThreadGetCurrentId();
+			if (owner.load() == currentThread)
+			{
+				++reUseCount;
+				return;
+			}
+
 			waitingCount++;
 
 			cv.wait(lock, [this]() {
@@ -198,12 +204,19 @@ namespace Lua
 			});
 			waitingCount--;
 			active = true;
+			owner.store(ThreadGetCurrentId());
 		}
 
 		void unlock()
 		{
 			{
 				std::lock_guard<std::mutex> lock(mtx);
+				if (reUseCount > 0)
+				{
+					--reUseCount;
+					return;
+				}
+
 				active = false;
 			}
 			cv.notify_one();
@@ -219,11 +232,13 @@ namespace Lua
 		}
 
 	private:
+		static std::atomic<ThreadId_t> owner; // To avoid deadlocks we check if we own it already
 		std::mutex mtx;
 		std::condition_variable cv;
 		std::condition_variable cvAllDone;
-		size_t waitingCount;
-		bool active;
+		size_t waitingCount = 0;
+		size_t reUseCount = 0;
+		bool active = false;
 	};
 
 	// A structure in which modules can store data specific to a ILuaInterface.
