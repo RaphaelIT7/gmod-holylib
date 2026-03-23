@@ -23,7 +23,6 @@ extern "C"
 
 Symbols::lua_pushtracablecclosure Lua::func_lua_pushtracablecclosure = nullptr;
 Symbols::lua_settracablecclosure Lua::func_lua_settracablecclosure = nullptr;
-std::atomic<ThreadId_t> Lua::LuaMutex::owner = 0;
 
 // Testing functions
 
@@ -996,9 +995,15 @@ void Lua::ThinkMainInterface()
 	if (!pData)
 		return;
 
+	if (!pData->pThreadingMutex.hasWaiting())
+		return;
+
 	// Release for any threads to start working
 	pData->pThreadingMutex.unlock();
 
+	ThreadSleep(1);
+	// I hate this :(
+
 	// Lock once they are done
-	pData->pThreadingMutex.lockWhenDone();
+	pData->pThreadingMutex.lock();
 }

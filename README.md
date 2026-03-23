@@ -5407,9 +5407,10 @@ The Lua GC is stopped when this hook is called to further reduce the chance of L
 
 ### Functions
 
-#### string gmoddatapack.StripCode(string code, bool removeServerCode = (ConVar Setting), bool removeComments = (ConVar Setting))
+#### string gmoddatapack.StripCode(string code, bool removeServerCode = (ConVar Setting), bool removeComments = (ConVar Setting), function tokenizeContent = nil)
 `removeServerCode` fallback value is the convar value `holylib_gmoddatapack_removeserverif`<br>
 `removeComments` fallback value is the convar value `holylib_gmoddatapack_removecomments`<br>
+`tokenizeContent` if given a function it is called exactly like `HolyLib:OnTokenizeContent` allowing you to modify the tokens.<br>
 
 Strips the code based off the settings and returns the new stripped code.<br>
 

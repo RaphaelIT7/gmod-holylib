@@ -488,6 +488,95 @@ static std::vector<unsigned char> HashString(const char* pData, unsigned int nLe
 	return hash;
 }
 
+static inline void CallLuaTokenizeContent(GarrysMod::Lua::ILuaInterface* LUA, std::vector<Token>& tokens, int fileID, bool bIsHook)
+{
+	LUA->PushNumber(fileID);
+	LUA->PreCreateTable(tokens.size(), 0);
+	int idx = 0;
+	for (const Token& tok : tokens)
+	{
+		LUA->PreCreateTable(0, 3);
+
+		LUA->PushString("isSpace");
+		LUA->PushBool(tok.isSpace);
+		LUA->RawSet(-3);
+
+		LUA->PushString("type");
+		LUA->PushNumber(tok.type);
+		LUA->RawSet(-3);
+
+		LUA->PushString("content");
+		LUA->PushString(tok.content.c_str(), tok.content.length());
+		LUA->RawSet(-3);
+
+		Util::RawSetI(LUA, -2, ++idx);
+	}
+
+	if (LUA->CallFunctionProtected(2 + (bIsHook ? 1 : 0), 1, true))
+	{
+		if (LUA->IsType(-1, GarrysMod::Lua::Type::Table))
+		{
+			bool bInvalid = false;
+			std::vector<Token> pNewTokens;
+
+			LUA->Push(-1);
+			LUA->PushNil();
+			while (LUA->Next(-2))
+			{
+				if (!LUA->IsType(-1, GarrysMod::Lua::Type::Table))
+				{
+					bInvalid = true;
+					LUA->Pop(2);
+					break;
+				}
+
+				Token newToken;
+
+				LUA->PushString("isSpace");
+				LUA->RawGet(-2);
+				newToken.isSpace = LUA->GetBool(-1);
+				LUA->Pop(1);
+
+				LUA->PushString("type");
+				LUA->RawGet(-2);
+				newToken.type = (TokenType)LUA->GetNumber(-1);
+				LUA->Pop(1);
+				if (newToken.type <= TK_INVALID || newToken.type > TK_EOF)
+				{
+					bInvalid = true;
+					LUA->Pop(2);
+					break;
+				}
+
+				LUA->PushString("content");
+				LUA->RawGet(-2);
+
+				unsigned int nLength;
+				const char* pContent = LUA->GetString(-1, &nLength);
+				LUA->Pop(1);
+				if (!pContent)
+				{
+					bInvalid = true;
+					LUA->Pop(2);
+					break;
+				}
+
+				newToken.content = std::string(pContent, nLength);
+				pNewTokens.push_back(newToken);
+				LUA->Pop(1);
+			}
+			LUA->Pop(1);
+
+			if (!bInvalid)
+			{
+				tokens.clear();
+				tokens = std::move(pNewTokens);
+			}
+		}
+		LUA->Pop(1);
+	}
+}
+
 /*
 	The goal of our LuaDataPack is to avoid compressing files on the main thread.
 	Especially if you got many files & huge ones too, then it can easily take ages for them all to compres
@@ -561,7 +650,7 @@ public:
 	}
 
 	// We only strip it, if it's valid lua (yes my token stuff is highly sensitive!)
-	std::string StripContent(std::string content, bool* bError)
+	std::string StripContent(std::string content, bool* bError, int fileID)
 	{
 		*bError = false;
 		lua_State* L = luaL_newstate();
@@ -589,91 +678,7 @@ public:
 			Lua::ThreadAccess pScope(LUA);
 			if (Lua::PushHook("HolyLib:OnTokenizeContent", LUA))
 			{
-				LUA->PreCreateTable(tokens.size(), 0);
-				int idx = 0;
-				for (const Token& tok : tokens)
-				{
-					LUA->PreCreateTable(0, 3);
-
-					LUA->PushString("isSpace");
-					LUA->PushBool(tok.isSpace);
-					LUA->RawSet(-3);
-
-					LUA->PushString("type");
-					LUA->PushNumber(tok.type);
-					LUA->RawSet(-3);
-
-					LUA->PushString("content");
-					LUA->PushString(tok.content.c_str(), tok.content.length());
-					LUA->RawSet(-3);
-
-					Util::RawSetI(LUA, -2, ++idx);
-				}
-
-				if (LUA->CallFunctionProtected(2, 1, true))
-				{
-					if (LUA->IsType(-1, GarrysMod::Lua::Type::Table))
-					{
-						bool bInvalid = false;
-						std::vector<Token> pNewTokens;
-
-						LUA->Push(-1);
-						LUA->PushNil();
-						while (LUA->Next(-2))
-						{
-							if (!LUA->IsType(-1, GarrysMod::Lua::Type::Table))
-							{
-								bInvalid = true;
-								LUA->Pop(2);
-								break;
-							}
-
-							Token newToken;
-
-							LUA->PushString("isSpace");
-							LUA->RawGet(-2);
-							newToken.isSpace = LUA->GetBool(-1);
-							LUA->Pop(1);
-
-							LUA->PushString("type");
-							LUA->RawGet(-2);
-							newToken.type = (TokenType)LUA->GetNumber(-1);
-							LUA->Pop(1);
-							if (newToken.type <= TK_INVALID || newToken.type > TK_EOF)
-							{
-								bInvalid = true;
-								LUA->Pop(2);
-								break;
-							}
-
-							LUA->PushString("content");
-							LUA->RawGet(-2);
-
-							unsigned int nLength;
-							const char* pContent = LUA->GetString(-1, &nLength);
-							LUA->Pop(1);
-							if (!pContent)
-							{
-								bInvalid = true;
-								LUA->Pop(2);
-								break;
-							}
-
-							newToken.content = std::string(pContent, nLength);
-
-							pNewTokens.push_back(newToken);
-							LUA->Pop(1);
-						}
-						LUA->Pop(1);
-
-						if (!bInvalid)
-						{
-							tokens.clear();
-							tokens = std::move(pNewTokens);
-						}
-					}
-					LUA->Pop(1);
-				}
+				CallLuaTokenizeContent(LUA, tokens, fileID, true);
 			}
 		}
 
@@ -691,7 +696,7 @@ public:
 		//}
 
 		bool bError;
-		std::string strippedContent = StripContent(pEntry->content, &bError);
+		std::string strippedContent = StripContent(pEntry->content, &bError, fileID);
 		if (bError)
 		{
 			Warning(PROJECT_NAME " - gmoddatapack: Failed to strip fileID \"%i\" due to lua errors! (%s)", fileID, strippedContent.c_str());
@@ -947,6 +952,7 @@ LUA_FUNCTION_STATIC(gmoddatapack_StripCode)
 	bool bRemoveServerCode = Util::CheckBoolOpt(LUA, 2, gmoddatapack_removeserverif.GetBool());
 	bool bRemoveComments = Util::CheckBoolOpt(LUA, 3, gmoddatapack_removecomments.GetBool());
 
+
 	lua_State* L = luaL_newstate();
 	if (luaL_loadbuffer(L, pContent, nLength, "gmoddatapack.StripCode") != LUA_OK)
 	{
@@ -957,6 +963,12 @@ LUA_FUNCTION_STATIC(gmoddatapack_StripCode)
 	} else {
 		std::string strContent = pContent;
 		std::vector<Token> tokens = TokenizeContent(strContent);
+		if (LUA->IsType(3, GarrysMod::Lua::Type::Function))
+		{
+			LUA->Push(3);
+			CallLuaTokenizeContent(LUA, tokens, -1, false);
+		}
+
 		std::string finalCode = ProcessTokens(tokens, bRemoveServerCode, bRemoveComments);
 		LUA->PushString(finalCode.c_str(), finalCode.length());
 	}

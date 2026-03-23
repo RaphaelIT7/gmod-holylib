@@ -3,6 +3,7 @@
 #include "util.h"
 #include "bitvec.h"
 #include <atomic>
+#include <mutex>
 #include "../luajit/src/lua.h"
 #if !defined(DISABLE_GMODJIT)
 #include "../gmod-luajit/luajit.h"
@@ -189,56 +190,29 @@ namespace Lua
 	public:
 		void lock()
 		{
-			std::unique_lock<std::mutex> lock(mtx);
-			ThreadId_t currentThread = ThreadGetCurrentId();
-			if (owner.load() == currentThread)
-			{
-				++reUseCount;
-				return;
-			}
-
-			waitingCount++;
-
-			cv.wait(lock, [this]() {
-				return !active;
-			});
-			waitingCount--;
-			active = true;
-			owner.store(ThreadGetCurrentId());
+			waiting.fetch_add(1, std::memory_order_relaxed);
+			mutex.lock();
+			waiting.fetch_sub(1, std::memory_order_relaxed);
 		}
 
 		void unlock()
 		{
-			{
-				std::lock_guard<std::mutex> lock(mtx);
-				if (reUseCount > 0)
-				{
-					--reUseCount;
-					return;
-				}
+			mutex.unlock();
+		}
 
-				active = false;
-			}
-			cv.notify_one();
-			cvAllDone.notify_all();
+		bool hasWaiting()
+		{
+			return waiting.load() != 0;
 		}
 
 		void lockWhenDone()
 		{
-			std::unique_lock<std::mutex> lock(mtx);
-			cvAllDone.wait(lock, [this]() {
-				return !active && waitingCount == 0;
-			});
+			// ToDo
 		}
 
 	private:
-		static std::atomic<ThreadId_t> owner; // To avoid deadlocks we check if we own it already
-		std::mutex mtx;
-		std::condition_variable cv;
-		std::condition_variable cvAllDone;
-		size_t waitingCount = 0;
-		size_t reUseCount = 0;
-		bool active = false;
+		std::atomic<unsigned int> waiting; // Hacky... there surely is a better way
+		std::recursive_mutex mutex;
 	};
 
 	// A structure in which modules can store data specific to a ILuaInterface.
