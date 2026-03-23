@@ -977,57 +977,63 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 
 	func_CBaseFileSystem_FixUpPath(filesystem, pFileNameT, pFileNameBuff, sizeof(pFileNameBuff));
 
-	bool isBspFileEarly = getFileExtension(pFileNameT) == "bsp";
+	bool isBspFile = getFileExtension(pFileNameT) == "bsp";
 
-	// For .bsp files, prioritize local garrysmod/maps/ over workshop
-	// The engine's search path order may have workshop first, so we check local explicitly
-	if (isBspFileEarly && !V_IsAbsolutePath(pFileName))
+	// Check absolute cache FIRST (even for BSP files) - cache already has correct priority from first lookup
+	if (holylib_filesystem_savesearchcache.GetBool())
+	{
+		std::string_view* absoluteStr = GetStringFromAbsoluteCache(pFileName, pathID);
+		if (absoluteStr)
+		{
+			if (g_pFileSystemModule.InDebug())
+				Msg("holylib - OpenForRead: Found file in absolute path (%s, %s)\n", pFileName, absoluteStr->data());
+
+			FileHandle_t handle = detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, absoluteStr->data(), pOptions, flags, pathID, ppszResolvedFilename);
+			if (handle)
+				return handle;
+
+			if (g_pFileSystemModule.InDebug())
+				Msg("holylib - OpenForRead: Invalid absolute path! (%s, %s)\n", pFileName, absoluteStr->data());
+		}
+		else {
+			if (g_pFileSystemModule.InDebug())
+				Msg("holylib - OpenForRead: Failed to find file in absolute path (%s, %s)\n", pFileName, pFileNameT);
+		}
+	}
+
+	// For .bsp files NOT in cache, prioritize local garrysmod/maps/ over workshop
+	// This ensures first lookup gets the local file, which then gets cached
+	static std::string s_cachedBasePath;
+	if (isBspFile && !V_IsAbsolutePath(pFileName))
 	{
 		std::string_view strFileName = pFileName;
 		if (strFileName.rfind("maps" FILEPATH_SLASH, 0) == 0) // starts with maps/
 		{
-			char pBaseDir[MAX_PATH];
-			int baseLen = g_pFullFileSystem->GetSearchPath("BASE_PATH", true, pBaseDir, sizeof(pBaseDir));
-			if (baseLen > 0)
+			// Cache BASE_PATH on first use (GetSearchPath is slow)
+			if (s_cachedBasePath.empty())
 			{
-				// Remove trailing semicolon/path separator if present
-				if (baseLen > 0 && (pBaseDir[baseLen-1] == ';' || pBaseDir[baseLen-1] == ':'))
-					pBaseDir[baseLen-1] = '\0';
-				
-				std::string localPath = pBaseDir;
-				localPath.append("garrysmod" FILEPATH_SLASH);
+				char pBaseDir[MAX_PATH];
+				int baseLen = g_pFullFileSystem->GetSearchPath("BASE_PATH", true, pBaseDir, sizeof(pBaseDir));
+				if (baseLen > 0)
+				{
+					// Remove trailing semicolon/path separator if present
+					if (pBaseDir[baseLen-1] == ';' || pBaseDir[baseLen-1] == ':')
+						pBaseDir[baseLen-1] = '\0';
+					
+					s_cachedBasePath = pBaseDir;
+					s_cachedBasePath.append("garrysmod" FILEPATH_SLASH);
+				}
+			}
+
+			if (!s_cachedBasePath.empty())
+			{
+				std::string localPath = s_cachedBasePath;
 				localPath.append(pFileName);
 
 				// Try to open the local file directly
 				FileHandle_t localHandle = detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, localPath.c_str(), pOptions, flags, nullptr, ppszResolvedFilename);
 				if (localHandle)
 					return localHandle;
-			}
-		}
-	}
-
-	if (holylib_filesystem_savesearchcache.GetBool())
-	{
-		// Skip absolute cache for .bsp files - path priority matters more than cache performance
-		// Workshop paths may be cached but local /garrysmod/maps/ should take priority
-		if (!isBspFileEarly)
-		{
-			std::string_view* absoluteStr = GetStringFromAbsoluteCache(pFileName, pathID);
-			if (absoluteStr)
-			{
-				if (g_pFileSystemModule.InDebug())
-					Msg("holylib - OpenForRead: Found file in absolute path (%s, %s)\n", pFileName, absoluteStr->data());
-
-				FileHandle_t handle = detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, absoluteStr->data(), pOptions, flags, pathID, ppszResolvedFilename);
-				if (handle)
-					return handle;
-
-				if (g_pFileSystemModule.InDebug())
-					Msg("holylib - OpenForRead: Invalid absolute path! (%s, %s)\n", pFileName, absoluteStr->data());
-			}
-			else {
-				if (g_pFileSystemModule.InDebug())
-					Msg("holylib - OpenForRead: Failed to find file in absolute path (%s, %s)\n", pFileName, pFileNameT);
 			}
 		}
 	}
@@ -1198,8 +1204,7 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 
 	// So we now got the issue that CBaseFileSystem::CSearchPathsIterator::CSearchPathsIterator is way too slow.
 	// so we need to skip it. We do this by checking if we got the file in the search cache before we call the OpenForRead function.
-	// Skip search cache for .bsp files - path priority matters, the cached path may be workshop instead of local
-	if (!isBspFileEarly)
+	// Note: BSP files also use the cache - the local path priority check above ensures first lookup gets cached correctly
 	{
 		CSearchPath* cachePath = GetPathFromSearchCache(pFileName, pathID);
 		if (cachePath)
