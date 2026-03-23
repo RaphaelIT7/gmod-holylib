@@ -662,6 +662,7 @@ public:
 							newToken.content = std::string(pContent, nLength);
 
 							pNewTokens.push_back(newToken);
+							LUA->Pop(1);
 						}
 						LUA->Pop(1);
 
