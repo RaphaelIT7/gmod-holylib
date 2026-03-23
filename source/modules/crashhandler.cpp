@@ -702,8 +702,8 @@ static bool ShoudExecuteThreadedCommand(const char* cmd, int cmdLen)
 		std::string_view args = strCmd.substr(15);
 		while (!args.empty() && args.front() == ' ') args.remove_prefix(1);
 
-		Lua::ScopedThreadAccess pThreadScope();
-		Lua::ThreadAccess pAccess(GetHolyLuaInterface());
+		Lua::ScopedThreadAccess pThreadScope;
+		Lua::StateAccess pAccess(GetHolyLuaInterface());
 		if (pAccess.IsValid())
 			pAccess.GetLua()->RunString("RunString", "", args.data(), true, true);
 
@@ -870,7 +870,7 @@ static SIMPLETHREAD_RETURNVALUE CrashWatcherThread(void* data)
 			// Let's consult the HolyLua state to determine whether to force a crash or not
 			{
 				Lua::ScopedThreadAccess pThreadScope;
-				Lua::ThreadAccess pAccess(GetHolyLuaInterface());
+				Lua::StateAccess pAccess(GetHolyLuaInterface());
 				if (pAccess.IsValid())
 				{
 					GarrysMod::Lua::ILuaInterface* pLua = pAccess.GetLua();

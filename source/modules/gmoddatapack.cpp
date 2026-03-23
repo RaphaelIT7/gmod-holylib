@@ -676,7 +676,7 @@ public:
 		auto LUA = pInterface.GetLua();
 		if (LUA)
 		{
-			Lua::ThreadAccess pScope(LUA);
+			Lua::StateAccess pScope(LUA);
 			if (pScope.IsValid() && Lua::PushHook("HolyLib:OnTokenizeContent", LUA))
 			{
 				CallLuaTokenizeContent(LUA, tokens, fileID, true);

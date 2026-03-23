@@ -311,7 +311,10 @@ bool Lua::PushHook(const char* hook, GarrysMod::Lua::ILuaInterface* pLua)
 	return true;
 }
 
-std::shared_mutex Lua::g_pThreadAccessMutex;
+Lua::ThreadAccessMutex Lua::g_pThreadAccessMutex;
+thread_local unsigned int Lua::ThreadAccessMutex::shared_locks = 0;
+thread_local unsigned int Lua::ThreadAccessMutex::exclusive_locks = 0;
+
 extern void SetupUnHolyVTableForThisShit(GarrysMod::Lua::ILuaInterface* pLua);
 void Lua::Init(GarrysMod::Lua::ILuaInterface* LUA)
 {
@@ -875,6 +878,7 @@ public:
 static std::unordered_set<Lua::StateData*> g_pLuaStates;
 void Lua::CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA, bool bNullOut)
 {
+	Lua::CriticalThreadAccess pThreadScope;
 	if (bNullOut)
 	{
 		char* pathID = (char*)LUA->GetPathID();
@@ -910,6 +914,7 @@ void Lua::CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA, bool bNullOut)
 
 void Lua::RemoveLuaData(GarrysMod::Lua::ILuaInterface* LUA)
 {
+	Lua::CriticalThreadAccess pThreadScope;
 	auto data = Lua::GetLuaData(LUA);
 	if (!data)
 		return;
@@ -961,6 +966,11 @@ Lua::StateData::~StateData()
 		pProxy->DeInit();
 		delete pProxy;
 	}
+
+	// If this ever happens, this will most definetly corrupt memory, so we Error!
+	// IMPORTANT: We check for g_Lua != pLua as the global lua state is always locked by default!
+	if (pThreadingMutex.isLocked() && g_Lua != pLua)
+		Error(PROJECT_NAME " - core: StateData was deleted but the threading mutex is still locked! Report this!\n");
 }
 
 void Lua::AddLuaInterfaceReference(GarrysMod::Lua::ILuaInterface* pLua, ILuaInterfaceReference* pReference)

@@ -68,7 +68,7 @@ static void lua_run_holylibCmd(const CCommand &args)
 	}
 
 	Lua::ScopedThreadAccess pThreadScope;
-	Lua::ThreadAccess pAccess(GetHolyLuaInterface());
+	Lua::StateAccess pAccess(GetHolyLuaInterface());
 	if (pAccess.IsValid())
 		pAccess.GetLua()->RunString("RunString", "", args.ArgS(), true, true);
 }
@@ -82,7 +82,7 @@ void CHolyLuaModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
 void CHolyLuaModule::Think(bool bSimulating)
 {
 	Lua::ScopedThreadAccess pThreadScope;
-	Lua::ThreadAccess pAccess(GetHolyLuaInterface());
+	Lua::StateAccess pAccess(GetHolyLuaInterface());
 	if (pAccess.IsValid())
 	{
 		g_pModuleManager.LuaThink(pAccess.GetLua());
@@ -148,13 +148,10 @@ void CHolyLuaModule::HolyLua_Init()
 void CHolyLuaModule::HolyLua_Shutdown()
 {
 	Lua::CriticalThreadAccess pThreadScope;
-	Lua::ThreadAccess pScope(GetHolyLuaInterface());
-	if (pScope.IsValid())
-	{
-		g_pModuleManager.LuaShutdown(pScope.GetLua());
-		Lua::DestroyInterface(pScope.GetLua());
-		g_HolyLua.store(nullptr);
-	}
+	auto LUA = GetHolyLuaInterface();
+	g_pModuleManager.LuaShutdown(LUA);
+	Lua::DestroyInterface(LUA);
+	g_HolyLua.store(nullptr);
 }
 
 static inline void PushEvent(GarrysMod::Lua::ILuaInterface* pLua, CGameEvent* event)
@@ -267,7 +264,7 @@ LUA_FUNCTION(holylua_RunString)
 	const char* pCode = LUA->CheckString(1);
 
 	Lua::ScopedThreadAccess pThreadScope;
-	Lua::ThreadAccess pAccess(GetHolyLuaInterface());
+	Lua::StateAccess pAccess(GetHolyLuaInterface());
 	if (pAccess.IsValid())
 	{
 		if (LUA == pAccess.GetLua())

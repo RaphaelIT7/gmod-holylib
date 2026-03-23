@@ -143,7 +143,7 @@ public:
 		m_pMutex.Unlock();
 
 		Lua::ScopedThreadAccess pThreadScope;
-		Lua::ThreadAccess pScope(m_pInterface);
+		Lua::StateAccess pScope(m_pInterface);
 		if (pScope.IsValid())
 		{
 			for (auto& task : pTasks)

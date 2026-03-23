@@ -194,14 +194,14 @@ namespace Lua
 			mutex.lock();
 			waiting.fetch_sub(1, std::memory_order_relaxed);
 
-			owner = ThreadGetCurrentId();
+			owner.store(ThreadGetCurrentId());
 			++recursion;
 		}
 
 		void unlock()
 		{
 			if (--recursion == 0)
-				owner = 0;
+				owner.store(0);
 
 			mutex.unlock();
 		}
@@ -213,7 +213,12 @@ namespace Lua
 
 		bool isOwning()
 		{
-			return owner == ThreadGetCurrentId();
+			return owner.load() == ThreadGetCurrentId();
+		}
+
+		bool isLocked()
+		{
+			return owner.load() != 0;
 		}
 
 		void lockWhenDone()
@@ -226,7 +231,7 @@ namespace Lua
 		std::recursive_mutex mutex;
 
 		// I hate that we need to track this ourselves
-		ThreadId_t owner = 0;
+		std::atomic<ThreadId_t> owner = 0;
 		unsigned int recursion = 0;
 	};
 
@@ -411,6 +416,72 @@ namespace Lua
 	extern bool CheckGModType(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos, int nType, void** pUserData);
 	extern const char* TValueToString(TValue* pVal);
 
+	// A recursive shared_mutex
+	// This is only meant for our g_pThreadAccessMutex
+	class ThreadAccessMutex
+	{
+	public:
+		void lock_shared()
+		{
+			if (exclusive_locks > 0)
+				return;
+
+			if (shared_locks > 0)
+			{
+				++shared_locks;
+				return;
+			}
+
+			mutex.lock_shared();
+			++shared_locks;
+		}
+
+		void unlock_shared()
+		{
+			if (exclusive_locks > 0)
+				return;
+
+			if (--shared_locks > 0)
+				return;
+
+			mutex.unlock_shared();
+		}
+
+		void lock()
+		{
+			if (exclusive_locks > 0)
+			{
+				++exclusive_locks;
+				return;
+			}
+
+			if (shared_locks > 0 && exclusive_locks == 0)
+				mutex.unlock_shared();
+
+			mutex.lock();
+			++exclusive_locks;
+		}
+
+		void unlock()
+		{
+			if (--exclusive_locks > 0)
+				return;
+
+			mutex.unlock();
+
+			if (shared_locks > 0)
+				mutex.lock_shared();
+		}
+
+	private:
+		std::shared_mutex mutex;
+
+		static thread_local unsigned int shared_locks;
+		static thread_local unsigned int exclusive_locks;
+		//std::atomic<unsigned int> locks = 0;
+		//std::atomic<bool> 
+	};
+
 	/*
 		Threading access for a lua state, weird but it should work.
 
@@ -418,18 +489,24 @@ namespace Lua
 		Lua::ScopedThreadAccess pThreadScope;
 
 		Then you GET the target interface and do:
-		Lua::ThreadAccess pScope(pLua);
+		Lua::StateAccess pScope(pLua);
 
 		This is done as ScopedInterfaceThreadAccess will lock and ensure that the next call to GET the Lua interface is safe
 		after which you can call InterfaceThreadAccess which will lock the interface mutex allowing you to call lua functions safely
 
-		CriticalInterfaceThreadAccess is meant to be used when you need to delete an interface, this will block all ScopedInterfaceThreadAccess
+		CriticalThreadAccess is meant to be used when you need to delete an interface, this will block all ScopedThreadAccess
+
+		IMPORTANT:
+		Never use Lua::CriticalThreadAccess combined with Lua::StateAccess
+		When you use Lua::CriticalThreadAccess you already hold an exclusive mutex to ALL interfaces!
+		If you use Lua::StateAccess inside there and then for example, delete the Lua state, then when StateAccess unlocks,
+		It may try to unlock the mutex even though that memory was freed, leading to memory corruption!
 	*/
-	extern std::shared_mutex g_pThreadAccessMutex;
-	class ThreadAccess
+	extern ThreadAccessMutex g_pThreadAccessMutex;
+	class StateAccess
 	{
 	public:
-		ThreadAccess(GarrysMod::Lua::ILuaInterface* pLua)
+		StateAccess(GarrysMod::Lua::ILuaInterface* pLua)
 		{
 			if (!pLua)
 				return;
@@ -443,7 +520,7 @@ namespace Lua
 			m_pLua = pLua;
 		}
 
-		~ThreadAccess()
+		~StateAccess()
 		{
 			if (m_pState && !(ThreadInMainThread() && g_Lua == m_pLua))
 				m_pState->pThreadingMutex.unlock();
