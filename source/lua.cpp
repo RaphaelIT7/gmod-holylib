@@ -1005,14 +1005,18 @@ void Lua::ThinkMainInterface()
 	if (!pData)
 		return;
 
-	if (!pData->pThreadingMutex.hasWaiting())
-		return;
-
 	// Release for any threads to start working
 	pData->pThreadingMutex.unlock();
 
-	ThreadSleep(1);
-	// I hate this :(
+	// At worse we let another thread lock us for 20ms per tick
+	for (int i=0; i<20; ++i)
+	{
+		if (!pData->pThreadingMutex.hasWaiting())
+			break;
+
+		ThreadSleep(1);
+		// I hate this :(
+	}
 
 	// Lock once they are done
 	pData->pThreadingMutex.lock();

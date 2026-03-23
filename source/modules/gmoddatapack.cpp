@@ -688,14 +688,6 @@ public:
 
 	bool CompressFile(LuaPackEntry* pEntry, int fileID)
 	{
-		// We do it already in AddFileContents
-		//bool bError;
-		//std::string strippedContent = StripContent(pEntry->content.data(), &bError);
-		//if (!bError)
-		//{
-		//	pEntry->content
-		//}
-
 		bool bError;
 		std::string strippedContent = StripContent(pEntry->content, &bError, fileID);
 		if (bError)
@@ -766,6 +758,9 @@ static SIMPLETHREAD_RETURNVALUE WorkerThread(void* pData)
 
 		for (int fileID : pWorkEntires)
 		{
+			if (g_pLuaDataPack.m_pWorkerThreadState.load() != ThreadState::STATE_RUNNING)
+				break;
+
 			LuaDataPack::LuaPackEntry* pEntry = &g_pLuaDataPack.m_pLuaFileCache[fileID];
 			std::lock_guard<std::shared_mutex> lock(pEntry->mutex);
 			if (pEntry->IsReady()) // Already done? Either we did it, or the main thread.
