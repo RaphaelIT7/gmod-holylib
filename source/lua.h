@@ -193,16 +193,27 @@ namespace Lua
 			waiting.fetch_add(1, std::memory_order_relaxed);
 			mutex.lock();
 			waiting.fetch_sub(1, std::memory_order_relaxed);
+
+			owner = ThreadGetCurrentId();
+			++recursion;
 		}
 
 		void unlock()
 		{
+			if (--recursion == 0)
+				owner = 0;
+
 			mutex.unlock();
 		}
 
 		bool hasWaiting()
 		{
 			return waiting.load() != 0;
+		}
+
+		bool isOwning()
+		{
+			return owner == ThreadGetCurrentId();
 		}
 
 		void lockWhenDone()
@@ -213,6 +224,10 @@ namespace Lua
 	private:
 		std::atomic<unsigned int> waiting; // Hacky... there surely is a better way
 		std::recursive_mutex mutex;
+
+		// I hate that we need to track this ourselves
+		ThreadId_t owner = 0;
+		unsigned int recursion = 0;
 	};
 
 	// A structure in which modules can store data specific to a ILuaInterface.

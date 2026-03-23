@@ -677,7 +677,7 @@ public:
 		if (LUA)
 		{
 			Lua::ThreadAccess pScope(LUA);
-			if (Lua::PushHook("HolyLib:OnTokenizeContent", LUA))
+			if (pScope.IsValid() && Lua::PushHook("HolyLib:OnTokenizeContent", LUA))
 			{
 				CallLuaTokenizeContent(LUA, tokens, fileID, true);
 			}

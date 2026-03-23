@@ -267,10 +267,20 @@ bool Lua::PushHook(const char* hook, GarrysMod::Lua::ILuaInterface* pLua)
 		return false;
 	}
 
-	if (!ThreadInMainThread() && pLua == g_Lua)
+	if (!ThreadInMainThread())
 	{
-		Warning(PROJECT_NAME ": Lua::PushHook was called outside of the main thread! (%s)\n", hook);
-		return false;
+		Lua::StateData* pState = Lua::GetLuaData(pLua);
+		if (!pState)
+		{
+			Warning(PROJECT_NAME ": Lua::PushHook was called in an invalid state1 (%s)\n", hook);
+			return false;
+		}
+
+		if (!pState->pThreadingMutex.isOwning())
+		{
+			Warning(PROJECT_NAME ": Lua::PushHook was called without respecting the mutex! (%s)\n", hook);
+			return false;
+		}
 	}
 
 	if (g_pModuleManager.GetModuleRealm() == Module_Realm::MENU)
