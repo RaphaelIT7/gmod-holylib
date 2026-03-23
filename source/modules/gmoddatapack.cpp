@@ -490,7 +490,6 @@ static std::vector<unsigned char> HashString(const char* pData, unsigned int nLe
 
 static inline void CallLuaTokenizeContent(GarrysMod::Lua::ILuaInterface* LUA, std::vector<Token>& tokens, int fileID, bool bIsHook)
 {
-	LUA->PushNumber(fileID);
 	LUA->PreCreateTable(tokens.size(), 0);
 	int idx = 0;
 	for (const Token& tok : tokens)
@@ -511,6 +510,8 @@ static inline void CallLuaTokenizeContent(GarrysMod::Lua::ILuaInterface* LUA, st
 
 		Util::RawSetI(LUA, -2, ++idx);
 	}
+
+	LUA->PushNumber(fileID);
 
 	if (LUA->CallFunctionProtected(2 + (bIsHook ? 1 : 0), 1, true))
 	{

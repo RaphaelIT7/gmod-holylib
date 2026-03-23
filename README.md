@@ -5427,7 +5427,7 @@ Marks **this** lua state to be the one called for the `HolyLib:OnTokenizeContent
 
 ### Hooks
 
-#### table HolyLib:OnTokenizeContent(table tokens)
+#### table HolyLib:OnTokenizeContent(table tokens, number fileID)
 This hook is called while the contents of a Lua file are being processed.<br>
 Table entries are sequential - each entry is a table with the following fields:<br>
 \- bool isSpace<br>
