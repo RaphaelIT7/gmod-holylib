@@ -5421,6 +5421,23 @@ Returns `nil` if it didn't find the file or something else went wrong.<br>
 Returns the compressed size of the code, this is the size that is sent to the client.<br>
 Returns `nil` if it didn't find the file or something else went wrong.<br>
 
+### gmoddatapack.MarkAsTokenizeThread()
+Marks **this** lua state to be the one called for the `HolyLib:OnTokenizeContent` hook.<br>
+
+### Hooks
+
+#### table HolyLib:OnTokenizeContent(table tokens)
+This hook is called while the contents of a Lua file are being processed.<br>
+Table entries are sequential - each entry is a table with the following fields:<br>
+\- bool isSpace<br>
+\- number type<br>
+\- string content<br>
+
+Return value can be a new table of tokens, which will be used as the new contents, or return nil for no change<br>
+
+> [!NOTE]
+> This hook is called by the worker thread, and only one lua state can be marked for calling it!
+
 ### ConVars
 
 #### holylib_gmoddatapack_removeserverif = 0

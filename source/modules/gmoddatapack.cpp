@@ -40,6 +40,7 @@ static CGModDataPackModule g_pGModDataPackModule;
 IModule* pGModDataPackModule = &g_pGModDataPackModule;
 
 enum TokenType {
+	TK_INVALID = 0,
 	TK_IF,
 	TK_FUNCTION,
 	TK_THEN,
@@ -566,17 +567,116 @@ public:
 		lua_State* L = luaL_newstate();
 		if (luaL_loadbuffer(L, content.c_str(), content.length(), "StripContent") != LUA_OK)
 		{
-			std::string pError = lua_tolstring(L, -1, nullptr);
+			std::string pError = "";
+			size_t nLength;
+			const char* err = lua_tolstring(L, -1, &nLength);
+			if (err)
+				pError = std::string(err, nLength);
+
 			lua_close(L);
 
 			*bError = true;
 			return pError;
-		} else {
-			lua_close(L);
-
-			std::vector<Token> tokens = TokenizeContent(content);
-			return ProcessTokens(tokens, gmoddatapack_removeserverif.GetBool(), gmoddatapack_removecomments.GetBool());
 		}
+		lua_close(L);
+
+		std::vector<Token> tokens = TokenizeContent(content);
+
+		Lua::ScopedThreadAccess pThreadScope;
+		auto LUA = pInterface.GetLua();
+		if (LUA)
+		{
+			Lua::ThreadAccess pScope(LUA);
+			if (Lua::PushHook("HolyLib:OnTokenizeContent", LUA))
+			{
+				LUA->PreCreateTable(tokens.size(), 0);
+				int idx = 0;
+				for (const Token& tok : tokens)
+				{
+					LUA->PreCreateTable(0, 3);
+
+					LUA->PushString("isSpace");
+					LUA->PushBool(tok.isSpace);
+					LUA->RawSet(-3);
+
+					LUA->PushString("type");
+					LUA->PushNumber(tok.type);
+					LUA->RawSet(-3);
+
+					LUA->PushString("content");
+					LUA->PushString(tok.content.c_str(), tok.content.length());
+					LUA->RawSet(-3);
+
+					Util::RawSetI(LUA, -2, ++idx);
+				}
+
+				if (LUA->CallFunctionProtected(2, 1, true))
+				{
+					if (LUA->IsType(-1, GarrysMod::Lua::Type::Table))
+					{
+						bool bInvalid = false;
+						std::vector<Token> pNewTokens;
+
+						LUA->Push(-1);
+						LUA->PushNil();
+						while (LUA->Next(-2))
+						{
+							if (!LUA->IsType(-1, GarrysMod::Lua::Type::Table))
+							{
+								bInvalid = true;
+								LUA->Pop(2);
+								break;
+							}
+
+							Token newToken;
+
+							LUA->PushString("isSpace");
+							LUA->RawGet(-2);
+							newToken.isSpace = LUA->GetBool(-1);
+							LUA->Pop(1);
+
+							LUA->PushString("type");
+							LUA->RawGet(-2);
+							newToken.type = (TokenType)LUA->GetNumber(-1);
+							LUA->Pop(1);
+							if (newToken.type <= TK_INVALID || newToken.type > TK_EOF)
+							{
+								bInvalid = true;
+								LUA->Pop(2);
+								break;
+							}
+
+							LUA->PushString("content");
+							LUA->RawGet(-2);
+
+							unsigned int nLength;
+							const char* pContent = LUA->GetString(-1, &nLength);
+							LUA->Pop(1);
+							if (!pContent)
+							{
+								bInvalid = true;
+								LUA->Pop(2);
+								break;
+							}
+
+							newToken.content = std::string(pContent, nLength);
+
+							pNewTokens.push_back(newToken);
+						}
+						LUA->Pop(1);
+
+						if (!bInvalid)
+						{
+							tokens.clear();
+							tokens = std::move(pNewTokens);
+						}
+					}
+					LUA->Pop(1);
+				}
+			}
+		}
+
+		return ProcessTokens(tokens, gmoddatapack_removeserverif.GetBool(), gmoddatapack_removecomments.GetBool());
 	}
 
 	bool CompressFile(LuaPackEntry* pEntry, int fileID)
@@ -636,6 +736,8 @@ public:
 
 	std::atomic<ThreadState> m_pWorkerThreadState;
 	ThreadHandle_t m_pWorkerThread = nullptr;
+
+	Lua::ILuaInterfaceReference pInterface;
 };
 static LuaDataPack g_pLuaDataPack;
 
@@ -932,6 +1034,16 @@ LUA_FUNCTION_STATIC(gmoddatapack_GetCompressedSize)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(gmoddatapack_MarkAsTokenizeThread)
+{
+	Lua::ScopedThreadAccess pThreadScope;
+	if (g_pLuaDataPack.pInterface.GetLua())
+		Lua::RemoveLuaInterfaceReference(&g_pLuaDataPack.pInterface);
+
+	Lua::AddLuaInterfaceReference(LUA, &g_pLuaDataPack.pInterface);
+	return 0;
+}
+
 static void SendFileThroughUnreliable(int clientIdx, int fileID)
 {
 	LuaDataPack::LuaPackEntry* pEntry = g_pLuaDataPack.GetPackEntry(fileID);
@@ -1102,6 +1214,7 @@ void CGModDataPackModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bSer
 		Util::AddFunc(pLua, gmoddatapack_StripCode, "StripCode");
 		Util::AddFunc(pLua, gmoddatapack_GetStoredCode, "GetStoredCode");
 		Util::AddFunc(pLua, gmoddatapack_GetCompressedSize, "GetCompressedSize");
+		Util::AddFunc(pLua, gmoddatapack_MarkAsTokenizeThread, "MarkAsTokenizeThread");
 	Util::FinishTable(pLua, "gmoddatapack");
 }
 

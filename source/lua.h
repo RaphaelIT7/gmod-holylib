@@ -98,6 +98,7 @@ namespace Lua
 	extern void Shutdown();
 	extern void FinalShutdown();
 	extern void ServerInit();
+	extern void ThinkMainInterface();
 
 	/*
 	   Hooks ALWAYS run on g_Lua.
@@ -179,8 +180,55 @@ namespace Lua
 		static constexpr int pMaxEntries = 64;
 	}
 
+	// I was thinking of using a std::binary_semaphore but that's C++20
+	// and I don't wanna upgrade as it might break ABI
+	// So this is kinda some magic class to hopefully achieve the same
+	class LuaMutex
+	{
+	public:
+		LuaMutex() : waitingCount(0), active(false) {}
+
+		void lock()
+		{
+			std::unique_lock<std::mutex> lock(mtx);
+			waitingCount++;
+
+			cv.wait(lock, [this]() {
+				return !active;
+			});
+			waitingCount--;
+			active = true;
+		}
+
+		void unlock()
+		{
+			{
+				std::lock_guard<std::mutex> lock(mtx);
+				active = false;
+			}
+			cv.notify_one();
+			cvAllDone.notify_all();
+		}
+
+		void lockWhenDone()
+		{
+			std::unique_lock<std::mutex> lock(mtx);
+			cvAllDone.wait(lock, [this]() {
+				return !active && waitingCount == 0;
+			});
+		}
+
+	private:
+		std::mutex mtx;
+		std::condition_variable cv;
+		std::condition_variable cvAllDone;
+		size_t waitingCount;
+		bool active;
+	};
+
 	// A structure in which modules can store data specific to a ILuaInterface.
 	// This will be required when we work with multiple ILuaInterface's
+	class ILuaInterfaceReference;
 	struct StateData
 	{
 		void* pOtherData[4]; // If any other plugin wants to use this, they can.
@@ -189,13 +237,14 @@ namespace Lua
 		Lua::ModuleData* pModuleData[Lua::Internal::pMaxEntries] = { nullptr };
 		LuaMetaEntry pLuaTypes[LuaTypes::TOTAL_TYPES];
 		std::unordered_map<void*, ReferencedLuaUserData*> pPushedUserData; // Would love to get rid of this
+		std::unordered_set<ILuaInterfaceReference*> pReferences;
 		GarrysMod::Lua::ILuaInterface* pLua = nullptr;
 		CLuaInterfaceProxy* pProxy;
 		GCRef nErrorFunc;
 #if LUA_CDATA_SUPPORT
 		RawLua::CDataBridge pBridge;
 #endif
-		std::mutex pThreadingMutex;
+		LuaMutex pThreadingMutex;
 
 		StateData()
 		{
@@ -362,10 +411,10 @@ namespace Lua
 		Threading access for a lua state, weird but it should work.
 
 		You first define
-		ScopedInterfaceThreadAccess pThreadScope;
+		Lua::ScopedThreadAccess pThreadScope;
 
 		Then you GET the target interface and do:
-		InterfaceThreadAccess pScope(pLua);
+		Lua::ThreadAccess pScope(pLua);
 
 		This is done as ScopedInterfaceThreadAccess will lock and ensure that the next call to GET the Lua interface is safe
 		after which you can call InterfaceThreadAccess which will lock the interface mutex allowing you to call lua functions safely
@@ -383,13 +432,16 @@ namespace Lua
 
 			m_pState = GetLuaData(pLua);
 			// ToDo: Maybe verify the state is valid? But that would imply we'd be using an invalid interface.
-			m_pState->pThreadingMutex.lock();
+			// The Mutex of the main state is almost always kept locked except when ThinkMainInterface is called
+			if (!(ThreadInMainThread() && g_Lua == m_pLua))
+				m_pState->pThreadingMutex.lock();
+
 			m_pLua = pLua;
 		}
 
 		~ThreadAccess()
 		{
-			if (m_pState)
+			if (m_pState && !(ThreadInMainThread() && g_Lua == m_pLua))
 				m_pState->pThreadingMutex.unlock();
 		}
 
@@ -534,6 +586,30 @@ static int ASM_##funcName()
 
 #define LUA_AddJITFunc2(pLua, ret, funcName, name, arg1) \
 	Lua::AddJITFunc(pLua, funcName, name, Lua::AllowOptOut(Lua::MakeJITFunc(CFUNC_TYPE_VOID, (void*)&ASM_##funcName, arg1)));
+
+	void AddLuaInterfaceReference(GarrysMod::Lua::ILuaInterface* pLua, ILuaInterfaceReference* pReference);
+	void RemoveLuaInterfaceReference(ILuaInterfaceReference* pReference);
+	/*
+		Helper class for keeping a reference to a lua interface.
+		In your implementation, you MUST override the deconstructor in which you unset your reference.
+	*/
+	class ILuaInterfaceReference
+	{
+	public:
+		virtual ~ILuaInterfaceReference() = default;
+		// Do NOT call delete this in here! return true instead!
+		// true = we should delete this - false = no delete!
+		virtual bool OnInterfaceShutdown() { return false; };
+		inline GarrysMod::Lua::ILuaInterface* GetLua() { return m_pLua; }
+		inline void InvalidateInterface() { m_pLua = nullptr; }
+
+	protected:
+		friend void AddLuaInterfaceReference(GarrysMod::Lua::ILuaInterface* pLua, ILuaInterfaceReference* pReference);
+		friend void RemoveLuaInterfaceReference(ILuaInterfaceReference* pReference);
+
+	private:
+		GarrysMod::Lua::ILuaInterface* m_pLua = nullptr;
+	};
 
 	// ToDo
 	// - EnterLockdown

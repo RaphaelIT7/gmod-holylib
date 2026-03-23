@@ -887,6 +887,12 @@ void Lua::CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA, bool bNullOut)
 	LUA->ReferencePush(pLua->m_nLuaErrorReporter);
 	data->SetErrorFunc();
 
+	if (pLua == g_Lua)
+	{
+		// The main thread is always locked and only released for a short time in Lua::ThinkMainInterface
+		data->pThreadingMutex.lock();
+	}
+
 	*reinterpret_cast<Lua::StateData**>(pathID + 24) = data;
 	g_pLuaStates.insert(data);
 	Msg("holylib - Created thread data %p (%s)\n", data, pathID);
@@ -920,6 +926,16 @@ static ConCommand luacheck("holylib_luacheck", LuaCheck, "Temp", 0);
 
 Lua::StateData::~StateData()
 {
+	for (ILuaInterfaceReference* pReference : pReferences)
+	{
+		if (pReference->OnInterfaceShutdown())
+			delete pReference;
+		else
+			pReference->InvalidateInterface();
+	}
+
+	pReferences.clear();
+
 	for (int i = 0; i < Lua::Internal::pMaxEntries; ++i)
 	{
 		Lua::ModuleData* pData = pModuleData[i];
@@ -935,4 +951,53 @@ Lua::StateData::~StateData()
 		pProxy->DeInit();
 		delete pProxy;
 	}
+}
+
+void Lua::AddLuaInterfaceReference(GarrysMod::Lua::ILuaInterface* pLua, ILuaInterfaceReference* pReference)
+{
+	if (!pLua)
+		return;
+
+	pReference->m_pLua = pLua;
+	Lua::StateData* pData = Lua::GetLuaData(pLua);
+	if (!pData)
+		return;
+
+	auto it = pData->pReferences.find(pReference);
+	if (it == pData->pReferences.end())
+		pData->pReferences.insert(pReference);
+}
+
+void Lua::RemoveLuaInterfaceReference(ILuaInterfaceReference* pReference)
+{
+	if (!pReference->m_pLua)
+		return;
+
+	Lua::StateData* pData = Lua::GetLuaData(pReference->m_pLua);
+	pReference->m_pLua = nullptr;
+	if (!pData)
+		return;
+
+	auto it = pData->pReferences.find(pReference);
+	if (it != pData->pReferences.end())
+		pData->pReferences.erase(it);
+}
+
+void Lua::ThinkMainInterface()
+{
+	if (!g_Lua)
+		return;
+
+	VPROF_BUDGET("HolyLib - Lua::ThinkMainInterface", VPROF_BUDGETGROUP_HOLYLIB);
+
+	Lua::ScopedThreadAccess pThreadScope;
+	Lua::StateData* pData = Lua::GetLuaData(g_Lua);
+	if (!pData)
+		return;
+
+	// Release for any threads to start working
+	pData->pThreadingMutex.unlock();
+
+	// Lock once they are done
+	pData->pThreadingMutex.lockWhenDone();
 }
