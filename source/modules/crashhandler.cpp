@@ -329,7 +329,10 @@ static void ReturnSignal()
 {
 	RestoreDefaultHandler();
 
-	sigreturn(nullptr);
+	if (g_bInducedCrash.load())
+		abort();
+	else
+		sigreturn(nullptr);
 }
 
 static void GenerateCrashFileName(char* buffer, int bufferSize)
@@ -680,8 +683,8 @@ static inline void ExecuteMainThread() // So you have chosen... death
 #if SYSTEM_LINUX
 	// pthread_kill(g_nMainThreadID, SIGTRAP); // SIGTRAP seems more responsive, yet our signal handler will never be called :sob:
 	pthread_kill(g_nMainThreadID, SIGSEGV); // idk why but SIGTRAP works far better though seems to break the backtracing?
-	ThreadSleep(3);
-	pthread_kill(g_nMainThreadID, SIGUSR1);
+	//ThreadSleep(3);
+	//pthread_kill(g_nMainThreadID, SIGUSR1);
 #endif
 }
 
