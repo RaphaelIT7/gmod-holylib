@@ -5425,6 +5425,9 @@ Returns `nil` if it didn't find the file or something else went wrong.<br>
 ### gmoddatapack.MarkAsTokenizeThread()
 Marks **this** lua state to be the one called for the `HolyLib:OnTokenizeContent` hook.<br>
 
+### Enums
+Inside the `gmoddatapack` table you can find all `TK_` enums like `TK_INVALID = 0`, `TK_FUNCTION = 2` and such.<br>
+
 ### Hooks
 
 #### table HolyLib:OnTokenizeContent(table tokens, number fileID)

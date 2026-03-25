@@ -15,9 +15,11 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+// Were doing it the Lumi way, eat all of it
 #undef isalnum // 64x loves to shit on this one AGAIN
 #undef isalpha // 64x loves to shit on this one AGAIN FUCKING HELL
 #undef isspace // 64x SHAT AGAIN! OMFG
+#undef isdigit // 64x really wants to be fucking ass
 
 class CGModDataPackModule : public IModule
 {
@@ -39,26 +41,49 @@ static ConVar gmoddatapack_fastnetworking("holylib_gmoddatapack_fastnetworking",
 static CGModDataPackModule g_pGModDataPackModule;
 IModule* pGModDataPackModule = &g_pGModDataPackModule;
 
-enum TokenType {
-	TK_INVALID = 0,
-	TK_IF,
-	TK_FUNCTION,
-	TK_THEN,
-	TK_END,
-	TK_DO,
-	TK_OR,
-	TK_AND,
-	TK_GREATER_OR_EQUAL,
-	TK_GREATER,
-	TK_LESS_OR_EQUAL,
-	TK_PARENTHESIS,
-	TK_LESS,
-	TK_ELSE,
-	TK_ELSEIF,
-	TK_COMMENT,
-	TK_STRING,
-	TK_SOMETHING,
-	TK_EOF
+#define TK_LIST \
+	TK(TK_INVALID) \
+	TK(TK_IF) \
+	TK(TK_FUNCTION) \
+	TK(TK_RETURN) \
+	TK(TK_THEN) \
+	TK(TK_END) \
+	TK(TK_DO) \
+	TK(TK_OR) \
+	TK(TK_AND) \
+	TK(TK_GREATER_OR_EQUAL) \
+	TK(TK_GREATER) \
+	TK(TK_LESS_OR_EQUAL) \
+	TK(TK_PARENTHESIS) \
+	TK(TK_LESS) \
+	TK(TK_ELSE) \
+	TK(TK_ELSEIF) \
+	TK(TK_COMMENT) \
+	TK(TK_STRING) \
+	TK(TK_NUMBER) \
+	TK(TK_TRUE) \
+	TK(TK_FALSE) \
+	TK(TK_SOMETHING) \
+	TK(TK_ADD) \
+	TK(TK_SUB) \
+	TK(TK_DIV) \
+	TK(TK_MUL) \
+	TK(TK_LOCAL) \
+	TK(TK_LINEEND) \
+	TK(TK_EOF)
+
+enum TokenType
+{
+#define TK(token) token,
+	TK_LIST
+#undef TK
+};
+
+static const char* g_TokenNames[] =
+{
+#define TK(token) #token,
+	TK_LIST
+#undef TK
 };
 
 struct Token {
@@ -71,14 +96,19 @@ static inline TokenType KeywordType(const std::string &word)
 {
 	if (word == "if") return TK_IF;
 	if (word == "function") return TK_FUNCTION;
+	if (word == "return") return TK_RETURN;
 	if (word == "then") return TK_THEN;
 	if (word == "end") return TK_END;
 	if (word == "do") return TK_DO;
 	if (word == "elseif") return TK_ELSEIF;
 	if (word == "else") return TK_ELSE;
+	if (word == "true") return TK_TRUE;
+	if (word == "false") return TK_FALSE;
+	if (word == "local") return TK_LOCAL;
 	return TK_SOMETHING;
 }
 
+// NOTE: I kinda want to keep this function synconized with HolyScript's Tokenizer
 static std::vector<Token> TokenizeContent(const std::string& content)
 {
 	std::vector<Token> tokens;
@@ -88,7 +118,14 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 	while (i < content.size())
 	{
 		char c = content[i];
-		if (c == ' ' || c == '\t' || c == '\r' || c == '\n')
+		if (c == '\n')
+		{
+			tokens.push_back({TK_LINEEND, std::string(1, c), true});
+			i++;
+			continue;
+		}
+
+		if (c == ' ' || c == '\t' || c == '\r')
 		{
 			tokens.push_back({TK_SOMETHING, std::string(1, c), true});
 			i++;
@@ -141,6 +178,34 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 		{
 			tokens.push_back({TK_AND, content.substr(i, c == '&' ? 2 : 3), true});
 			i+= c == '&' ? 2 : 3;
+			continue;
+		}
+
+		if (c == '+')
+		{
+			tokens.push_back({TK_ADD, std::string(1, c), true});
+			i++;
+			continue;
+		}
+
+		if (c == '-')
+		{
+			tokens.push_back({TK_SUB, std::string(1, c), true});
+			i++;
+			continue;
+		}
+
+		if (c == '*')
+		{
+			tokens.push_back({TK_MUL, std::string(1, c), true});
+			i++;
+			continue;
+		}
+
+		if (c == '/')
+		{
+			tokens.push_back({TK_DIV, std::string(1, c), true});
+			i++;
 			continue;
 		}
 
@@ -288,6 +353,18 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 				continue;
 			}
 			i = start;
+		}
+
+		// if it starts with a number, it is a number.
+		if (std::isdigit(c))
+		{
+			size_t start = i;
+			while (i < content.size() && std::isdigit(content[i]))
+				i++;
+
+			std::string strWord = content.substr(start, i - start);
+			tokens.push_back({TK_NUMBER, strWord});
+			continue;
 		}
 
 		if (std::isalpha(c) || c == '_')
@@ -1224,6 +1301,10 @@ void CGModDataPackModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bSer
 		Util::AddFunc(pLua, gmoddatapack_GetStoredCode, "GetStoredCode");
 		Util::AddFunc(pLua, gmoddatapack_GetCompressedSize, "GetCompressedSize");
 		Util::AddFunc(pLua, gmoddatapack_MarkAsTokenizeThread, "MarkAsTokenizeThread");
+
+		for (size_t i=0; i<(size_t)TK_EOF; ++i)
+			Util::AddValue(pLua, (double)i, g_TokenNames[i]);
+
 	Util::FinishTable(pLua, "gmoddatapack");
 }
 
