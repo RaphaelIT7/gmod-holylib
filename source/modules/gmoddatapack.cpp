@@ -390,7 +390,7 @@ static bool CanServerConditionBeRemoved(const std::vector<Token> &tokens, size_t
 {
 	bool isServer = false;
 	int depth = 0;
-	while (tokens[start].type != TK_THEN && tokens[start].type != TK_DO)
+	while (tokens[start].type != TK_THEN && tokens[start].type != TK_DO && start < tokens.size())
 	{
 		if (depth == 0)
 		{
