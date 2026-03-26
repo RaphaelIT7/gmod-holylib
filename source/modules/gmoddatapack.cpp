@@ -672,6 +672,11 @@ public:
 			return compressed.GetWritten() != 0;
 		}
 
+		inline bool IsContentReady()
+		{
+			return content.length() != 0;
+		}
+
 		inline bool Compress()
 		{
 			// Leading 32 bytes are the SHA256, used by the client to verify if the content matches the hash in the fileID's string userdata!
@@ -763,7 +768,7 @@ public:
 		return ProcessTokens(tokens, gmoddatapack_removeserverif.GetBool(), gmoddatapack_removecomments.GetBool());
 	}
 
-	bool CompressFile(LuaPackEntry* pEntry, int fileID)
+	void ProcessContent(LuaPackEntry* pEntry, int fileID)
 	{
 		bool bError;
 		std::string strippedContent = StripContent(pEntry->content, &bError, fileID);
@@ -773,7 +778,10 @@ public:
 		} else {
 			pEntry->content = strippedContent;
 		}
+	}
 
+	bool CompressFile(LuaPackEntry* pEntry, int fileID)
+	{
 		std::vector<unsigned char> pHash = HashString(pEntry->content.c_str(), pEntry->content.length() + 1);
 		g_pDataPack->m_pClientLuaFiles->SetStringUserData(fileID, pHash.size(), pHash.data()); // New hash
 
@@ -833,6 +841,8 @@ static SIMPLETHREAD_RETURNVALUE WorkerThread(void* pData)
 			}
 		}
 
+		// First pass
+		// We do this first to have less overhead by being able to faster call from this thread to the main thread
 		for (int fileID : pWorkEntires)
 		{
 			if (g_pLuaDataPack.m_pWorkerThreadState.load() != ThreadState::STATE_RUNNING)
@@ -840,7 +850,21 @@ static SIMPLETHREAD_RETURNVALUE WorkerThread(void* pData)
 
 			LuaDataPack::LuaPackEntry* pEntry = &g_pLuaDataPack.m_pLuaFileCache[fileID];
 			std::lock_guard<std::shared_mutex> lock(pEntry->mutex);
-			if (pEntry->IsReady()) // Already done? Either we did it, or the main thread.
+			if (pEntry->IsContentReady()) // Already done? Either we did it, or the main thread.
+				continue;
+				
+			g_pLuaDataPack.ProcessContent(pEntry, fileID);
+		}
+
+		// Second pass
+		for (int fileID : pWorkEntires)
+		{
+			if (g_pLuaDataPack.m_pWorkerThreadState.load() != ThreadState::STATE_RUNNING)
+				break;
+
+			LuaDataPack::LuaPackEntry* pEntry = &g_pLuaDataPack.m_pLuaFileCache[fileID];
+			std::lock_guard<std::shared_mutex> lock(pEntry->mutex);
+			if (pEntry->IsReady() || !pEntry->IsContentReady()) // Already done? Either we did it, or the main thread.
 				continue;
 				
 			g_pLuaDataPack.CompressFile(pEntry, fileID);
@@ -1010,7 +1034,10 @@ static void hook_GModDataPack_SendFileToClient(GModDataPack* pDataPack, int clie
 	}
 
 	DevMsg(PROJECT_NAME " - gmoddatapack: File \"%s\" isn't yet ready to be sent! Compressing on main thread...\n", fileName.c_str());
-	if (g_pLuaDataPack.CompressFile(pEntry, fileID))
+	if (!pEntry->IsContentReady())
+		g_pLuaDataPack.ProcessContent(pEntry, fileID);
+
+	if (pEntry->IsContentReady() && g_pLuaDataPack.CompressFile(pEntry, fileID))
 	{
 		SendLuaFile(clientIdx, fileID, pEntry);
 		return;
@@ -1137,7 +1164,10 @@ static void SendFileThroughUnreliable(int clientIdx, int fileID)
 	if (!pEntry->IsReady())
 	{
 		DevMsg(PROJECT_NAME " - gmoddatapack: File \"%i\" isn't yet ready to be sent! Compressing on main thread...\n", fileID);
-		if (!g_pLuaDataPack.CompressFile(pEntry, fileID))
+		if (!pEntry->IsContentReady())
+			g_pLuaDataPack.ProcessContent(pEntry, fileID);
+
+		if (!pEntry->IsContentReady() || !g_pLuaDataPack.CompressFile(pEntry, fileID))
 			return;
 	}
 

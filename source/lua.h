@@ -691,15 +691,6 @@ static int ASM_##funcName()
 	private:
 		GarrysMod::Lua::ILuaInterface* m_pLua = nullptr;
 	};
-
-	// ToDo
-	// - EnterLockdown
-	// - LeaveLockdown
-	// What do they do?
-	// Their used when All ILuaInterfaces need to be locked in cases like a referenced userdata being deleted.
-	// This is because, a referenced userdata can be shared across threads.
-	// This sounds like a dumb idea, because it is.
-	// it would be painful to implement differently.
 }
 
 // Creates a function Get[funcName]LuaData and returns the stored module data from the given module.
