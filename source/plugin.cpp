@@ -48,18 +48,6 @@ CServerPlugin::~CServerPlugin()
 {
 }
 
-#if SYSTEM_LINUX
-static void Disable_FTZ_AND_DAZ()
-{
-	// GMod's libtier0_srv.so is compiled with ffast-math so it enables FTZ & DAZ causing issues.
-	// See: https://github.com/RaphaelIT7/gmod-holylib/issues/129
-	unsigned int csr = _mm_getcsr();
-	csr &= ~(1 << 15); // disable FTZ
-	csr &= ~(1 << 6);  // disable DAZ
-	_mm_setcsr(csr);
-}
-#endif
-
 void CServerPlugin::GhostInj()
 {
 	if (!Util::ShouldLoad())
@@ -67,10 +55,6 @@ void CServerPlugin::GhostInj()
 		Msg("HolyLib already exists? Stopping.\n");
 		return;
 	}
-
-#if SYSTEM_LINUX
-	Disable_FTZ_AND_DAZ();
-#endif
 
 #ifdef LIB_HOLYLIB
 	g_pModuleManager.LoadModules();
@@ -250,10 +234,6 @@ const char* CServerPlugin::GetPluginDescription(void)
 //---------------------------------------------------------------------------------
 void CServerPlugin::LevelInit(char const *pMapName)
 {
-#if SYSTEM_LINUX
-	// In case some stupid stuff tries to re-enable it
-	Disable_FTZ_AND_DAZ();
-#endif
 	g_pModuleManager.LevelInit(pMapName);
 }
 
@@ -302,11 +282,6 @@ void CServerPlugin::ServerActivate(edict_t *pEdictList, int edictCount, int clie
 void CServerPlugin::GameFrame(bool simulating)
 {
 	VPROF_BUDGET("HolyLib - CServerPlugin::GameFrame", VPROF_BUDGETGROUP_HOLYLIB);
-
-#if SYSTEM_LINUX
-	// In case some stupid stuff tries to re-enable it
-	Disable_FTZ_AND_DAZ();
-#endif
 
 	g_pModuleManager.Think(simulating);
 	g_pModuleManager.LuaThink(g_Lua);
