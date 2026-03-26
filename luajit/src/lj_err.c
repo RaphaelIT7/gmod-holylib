@@ -195,8 +195,7 @@ static void *err_unwind(lua_State *L, void *stopcf, int errcode)
     L->base = tvref(L->stack)+1+LJ_FR2;
     L->cframe = NULL;
     unwindstack(L, L->base);
-    if (G(L)->panic)
-      G(L)->panic(L);
+	lj_panic(L);
     exit(EXIT_FAILURE);
   }
   return L;  /* Anything non-NULL will do. */
@@ -780,8 +779,7 @@ LJ_NOINLINE void LJ_FASTCALL lj_err_throw(lua_State *L, int errcode)
   ** This may happen if you've manually enabled LUAJIT_UNWIND_EXTERNAL
   ** and forgot to recompile *every* non-C++ file with -funwind-tables.
   */
-  if (G(L)->panic)
-    G(L)->panic(L);
+  lj_panic(L);
 #else
 #if LJ_HASJIT
   setmref(g->jit_base, NULL);

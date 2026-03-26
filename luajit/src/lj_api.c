@@ -30,6 +30,9 @@
 #include "lj_ctype.h"
 #include "lj_cconv.h"
 
+// RaphaelIT7: idk where to put this yet
+#include <immintrin.h>
+
 /* -- Common helper functions --------------------------------------------- */
 
 #define lj_checkapi_slot(idx) \
@@ -107,11 +110,55 @@ static void check_vm_sandwich(lua_State *L)
   /* Forbid Lua world re-entry while running the trace */
   if (tvref(g->jit_base)) {
     setstrV(L, L->top++, lj_err_str(L, LJ_ERR_JITREVM));
-    if (g->panic) g->panic(L);
+    lj_panic(L);
     exit(EXIT_FAILURE);
   }
   lj_trace_abort(g);  /* Never record across Lua VM entrance */
 }
+
+// RaphaelIT7: We save the XMCSR flags and disable FTZ and DAZ to avoid issues in the vm
+#if LJ_TARGET_X86ORX64
+// Kinda hacky since we return & store it, we store it in the case of lj_panic, and return for proper VM_CALL history since, for example cpcall won't be blocked by jit_base
+static uint32_t save_xmcsr(lua_State *L)
+{
+	global_State *g = G(L);
+	if (tvref(g->jit_base))
+		return (uint32_t)-1;
+
+	uint32_t flags = _mm_getcsr();
+	g->mxcsr = flags;
+	flags &= ~(1 << 15); // DAZ
+	flags &= ~(1 << 6); // FTZ
+	_mm_setcsr(flags);
+
+	return g->mxcsr;
+}
+
+static void restore_xmcsr(lua_State *L, uint32_t mxcsr)
+{
+	if (mxcsr == (uint32_t)-1)
+		return;
+
+	_mm_setcsr(mxcsr);
+}
+#else
+#define save_xmcsr(L)
+#define restore_xmcsr(L)
+#endif
+
+// RaphaelIT7: Apparently before places just called the panic function directly :/
+LJ_FUNC void lj_panic(lua_State *L)
+{
+	restore_xmcsr(L, G(L)->mxcsr);
+	if (G(L)->panic)
+		G(L)->panic(L);
+}
+
+#define VM_CALL(L, call) \
+	check_vm_sandwich(L); \
+	uint32_t _mxcsr = save_xmcsr(L); \
+	call; \
+	restore_xmcsr(L, _mxcsr);
 
 /* -- Miscellaneous API functions ----------------------------------------- */
 
@@ -379,8 +426,7 @@ LUA_API int lua_equal(lua_State *L, int idx1, int idx2)
       return (int)(uintptr_t)base;
     } else {
       L->top = base+2;
-      check_vm_sandwich(L);
-      lj_vm_call(L, base, 1+1);
+      VM_CALL(L, lj_vm_call(L, base, 1+1))
       L->top -= 2+LJ_FR2;
       return tvistruecond(L->top+1+LJ_FR2);
     }
@@ -403,8 +449,7 @@ LUA_API int lua_lessthan(lua_State *L, int idx1, int idx2)
       return (int)(uintptr_t)base;
     } else {
       L->top = base+2;
-      check_vm_sandwich(L);
-      lj_vm_call(L, base, 1+1);
+      VM_CALL(L, lj_vm_call(L, base, 1+1))
       L->top -= 2+LJ_FR2;
       return tvistruecond(L->top+1+LJ_FR2);
     }
@@ -981,8 +1026,7 @@ LUA_API void lua_concat(lua_State *L, int n)
       }
       n -= (int)(L->top - (top - 2*LJ_FR2));
       L->top = top+2;
-      check_vm_sandwich(L);
-      lj_vm_call(L, top, 1+1);
+      VM_CALL(L, lj_vm_call(L, top, 1+1))
       L->top -= 1+LJ_FR2;
       copyTV(L, L->top-1, L->top+LJ_FR2);
     } while (--n > 0);
@@ -1001,8 +1045,7 @@ LUA_API void lua_gettable(lua_State *L, int idx)
   cTValue *v = lj_meta_tget(L, t, L->top-1);
   if (v == NULL) {
     L->top += 2;
-    check_vm_sandwich(L);
-    lj_vm_call(L, L->top-2, 1+1);
+    VM_CALL(L, lj_vm_call(L, L->top-2, 1+1))
     L->top -= 2+LJ_FR2;
     v = L->top+1+LJ_FR2;
   }
@@ -1017,8 +1060,7 @@ LUA_API void lua_getfield(lua_State *L, int idx, const char *k)
   v = lj_meta_tget(L, t, &key);
   if (v == NULL) {
     L->top += 2;
-    check_vm_sandwich(L);
-    lj_vm_call(L, L->top-2, 1+1);
+    VM_CALL(L, lj_vm_call(L, L->top-2, 1+1))
     L->top -= 2+LJ_FR2;
     v = L->top+1+LJ_FR2;
   }
@@ -1176,8 +1218,7 @@ LUA_API void lua_settable(lua_State *L, int idx)
     TValue *base = L->top;
     copyTV(L, base+2, base-3-2*LJ_FR2);
     L->top = base+3;
-    check_vm_sandwich(L);
-    lj_vm_call(L, base, 0+1);
+    VM_CALL(L, lj_vm_call(L, base, 0+1))
     L->top -= 3+LJ_FR2;
   }
 }
@@ -1197,8 +1238,7 @@ LUA_API void lua_setfield(lua_State *L, int idx, const char *k)
     TValue *base = L->top;
     copyTV(L, base+2, base-3-2*LJ_FR2);
     L->top = base+3;
-    check_vm_sandwich(L);
-    lj_vm_call(L, base, 0+1);
+    VM_CALL(L, lj_vm_call(L, base, 0+1))
     L->top -= 2+LJ_FR2;
   }
 }
@@ -1330,8 +1370,7 @@ LUA_API void lua_call(lua_State *L, int nargs, int nresults)
   lj_checkapi(L->status == LUA_OK || L->status == LUA_ERRERR,
 	      "thread called in wrong state %d", L->status);
   lj_checkapi_slot(nargs+1);
-  check_vm_sandwich(L);
-  lj_vm_call(L, api_call_base(L, nargs), nresults+1);
+  VM_CALL(L, lj_vm_call(L, api_call_base(L, nargs), nresults+1))
 }
 
 LUA_API int lua_pcall(lua_State *L, int nargs, int nresults, int errfunc)
@@ -1349,8 +1388,9 @@ LUA_API int lua_pcall(lua_State *L, int nargs, int nresults, int errfunc)
     cTValue *o = index2adr_stack(L, errfunc);
     ef = savestack(L, o);
   }
-  check_vm_sandwich(L);
-  status = lj_vm_pcall(L, api_call_base(L, nargs), nresults+1, ef);
+  VM_CALL(L,
+  	status = lj_vm_pcall(L, api_call_base(L, nargs), nresults+1, ef)
+  )
   if (status) hook_restore(g, oldh);
   return status;
 }
@@ -1378,8 +1418,9 @@ LUA_API int lua_cpcall(lua_State *L, lua_CFunction func, void *ud)
   int status;
   lj_checkapi(L->status == LUA_OK || L->status == LUA_ERRERR,
 	      "thread called in wrong state %d", L->status);
-  check_vm_sandwich(L);
-  status = lj_vm_cpcall(L, func, ud, cpcall);
+  VM_CALL(L, 
+  	status = lj_vm_cpcall(L, func, ud, cpcall)
+  )
   if (status) hook_restore(g, oldh);
   return status;
 }
@@ -1391,8 +1432,7 @@ LUALIB_API int luaL_callmeta(lua_State *L, int idx, const char *field)
     if (LJ_FR2) setnilV(top++);
     copyTV(L, top++, index2adr(L, idx));
     L->top = top;
-    check_vm_sandwich(L);
-    lj_vm_call(L, top-1, 1+1);
+    VM_CALL(L, lj_vm_call(L, top-1, 1+1))
     return 1;
   }
   return 0;

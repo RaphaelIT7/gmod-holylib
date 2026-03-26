@@ -71,7 +71,7 @@ static LJ_NORET LJ_NOINLINE void mcode_protfail(jit_State *J)
   if (panic) {
     lua_State *L = J->L;
     setstrV(L, L->top++, lj_err_str(L, LJ_ERR_JITPROT));
-    panic(L);
+    lj_panic(L);
   }
   exit(EXIT_FAILURE);
 }

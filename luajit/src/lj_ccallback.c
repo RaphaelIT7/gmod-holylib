@@ -720,7 +720,7 @@ lua_State * LJ_FASTCALL lj_ccallback_enter(CTState *cts, void *cf)
   lj_assertG(L != NULL, "uninitialized cts->L in callback");
   if (tvref(g->jit_base)) {
     setstrV(L, L->top++, lj_err_str(L, LJ_ERR_FFI_BADCBACK));
-    if (g->panic) g->panic(L);
+    lj_panic(L);
     exit(EXIT_FAILURE);
   }
   lj_trace_abort(g);  /* Never record across callback. */

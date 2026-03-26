@@ -56,4 +56,9 @@ LJ_FUNC void lj_err_verify(void);
 #define lj_err_verify()		((void)0)
 #endif
 
+// RaphaelIT7:
+// I feel like there is no good point to put this function, though this seems the most reasonable place I could think of.
+// Even though the function is actually defined in lj_api.c but there is no lj_api.h
+LJ_FUNC void lj_panic(lua_State *L);
+
 #endif

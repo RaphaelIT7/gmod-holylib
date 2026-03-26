@@ -556,7 +556,7 @@ static void jit_profile_callback(lua_State *L2, lua_State *L, int samples,
     setstrV(L2, L2->top++, lj_str_new(L2, &vmst, 1));
     status = lua_pcall(L2, 3, 0, 0);  /* callback(thread, samples, vmstate) */
     if (status) {
-      if (G(L2)->panic) G(L2)->panic(L2);
+	  lj_panic(L2);
       exit(EXIT_FAILURE);
     }
     lj_trace_abort(G(L2));
