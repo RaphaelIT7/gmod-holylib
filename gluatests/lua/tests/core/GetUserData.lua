@@ -38,5 +38,20 @@ return {
                 HolyLib_RunPerformanceTest("_HOLYLIB_CORE.__index", function(userdata) return userdata.example end, userdata)
             end
         },
+        {
+            name = "GMod Performance",
+            func = function()
+                local ent = game.GetWorld()
+                debug.setfenv(ent, ent:GetTable()) -- we must fill the GCudata::env field
+
+                if debug.userdata_setusertable and debug.userdata_setmetaaccess then
+                    debug.userdata_setusertable(ent, true)
+                    debug.userdata_setmetaaccess(ent, true)
+                end
+
+                HolyLib_RunPerformanceTest("_HOLYLIB_CORE.__newindex", function(ent) ent.example = "Hello World" end, ent)
+                HolyLib_RunPerformanceTest("_HOLYLIB_CORE.__index", function(ent) return ent.example end, ent)
+            end
+        },
     }
 }
