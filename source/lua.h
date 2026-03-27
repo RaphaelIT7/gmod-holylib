@@ -611,6 +611,9 @@ namespace Lua
 		return info;
 	}
 
+	// BUG:
+	// This currently causes JIT to nuke something (CSE being funky) causing a crash as arguments are being screwed up - so only use this if the function has no arguments
+	// Of course, CSE probably wasn't intended for external function calls, but the possible improvement with it could be great.
 	inline lua_CFunctionInfo AllowOptOut(lua_CFunctionInfo info)
 	{
 		info.allowoptout = 1;
