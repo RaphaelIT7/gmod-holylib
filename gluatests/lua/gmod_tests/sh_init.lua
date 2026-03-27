@@ -84,7 +84,7 @@ local function PerformanceTest(callback, a, b, c)
         totalCalls = totalCalls + loopAmount
     end
 
-    return totalCalls
+    return (SysTime() - startTime), totalCalls
 end
 
 local github_repo = string.Trim(file.Read("_workflow/github_repo.txt", "MOD") or "")
@@ -141,8 +141,8 @@ function HolyLib_RunPerformanceTest(name, callback, ...)
                 body = util.TableToJSON({
                     ["totalCalls"] = totalCalls,
                     ["totalTime"] = totalTime,
-                    ["gmodBranch"] = BRANCH .. " - " .. jit.version .. " (JIT: " .. (useJIT and "ON" or "OFF") .. ")",
-                    ["name"] = name,
+                    ["gmodBranch"] = BRANCH .. " - " .. jit.version,
+                    ["name"] = name .. " (JIT: " .. (useJIT and "ON" or "OFF") .. ")",
                 })
             })
         end
@@ -164,8 +164,8 @@ function HolyLib_RunPerformanceTest(name, callback, ...)
             body = util.TableToJSON({
                 ["totalCalls"] = totalCalls,
                 ["totalTime"] = totalTime,
-                ["gmodBranch"] = BRANCH .. " - " .. jit.version .. " (JIT: " .. (useJIT and "ON" or "OFF") .. ")",
-                ["name"] = name,
+                ["gmodBranch"] = BRANCH .. " - " .. jit.version,
+                ["name"] = name .. " (JIT: " .. (useJIT and "ON" or "OFF") .. ")",
             })
         })
     end
