@@ -63,12 +63,23 @@ function generate_trace()
     end, "trace")
 end
 
---- IMPORTANT: LuaJIT does not trace vararg functions!
-local function PerformanceTest(startTime, runTime, loopAmount, callback, a, b, c, d)
+local runTime = 1 -- How long in seconds we run each test
+local function PerformanceTest(callback, a, b, c)
+    -- This is a loop to warm JIT & reach the full potential
+    local avgTime = 0
+    local avgTimeTest = 250
+    local avgStartTime = SysTime()
+    for k=1, avgTimeTest do
+        callback(a, b, c)
+    end
+    local avgTime = (SysTime() - avgStartTime) / avgTimeTest
+    local loopAmount = math.max(1 / 20 / avgTime, 1) -- We do 1 / 20 so that it at wose will run 1/20 of a second longer than wanted
+
     local totalCalls = 0
+    local startTime = SysTime()
     while (SysTime() - startTime) < runTime do -- We spend a total of 1 seconds to run these
         for k=1, loopAmount do
-            callback(a, b, c, d)
+            callback(a, b, c)
         end
         totalCalls = totalCalls + loopAmount
     end
@@ -100,21 +111,7 @@ function HolyLib_RunPerformanceTest(name, callback, ...)
         jit.opt.start("hotloop=1", "hotexit=1")
         jit.flush()
 
-        -- This is a loop to warm JIT & reach the full potential
-        local avgTime = 0
-        local avgTimeTest = 250
-        local avgStartTime = SysTime()
-        for k=1, avgTimeTest do
-            callback(...)
-        end
-        local avgTime = (SysTime() - avgStartTime) / avgTimeTest
-        local loopAmount = math.max(1 / 20 / avgTime, 1) -- We do 1 / 20 so that it at wose will run 1/20 of a second longer than wanted
-
-        local startTime = SysTime()
-        local runTime = 1 -- How long in seconds we run each test
-        local totalCalls = PerformanceTest(startTime, runTime, loopAmount, callback, ...)
-        
-        local totalTime = SysTime() - startTime -- Should almost always be 1 second
+        local totalTime, totalCalls = PerformanceTest(callback, ...)
         local timePerCall = totalTime / totalCalls
         print("Finished performance test for \"" .. name .. "\". Took " .. totalTime .. "s with a total of " .. totalCalls .." calls (" .. timePerCall .. "s per call)")
 
@@ -144,7 +141,7 @@ function HolyLib_RunPerformanceTest(name, callback, ...)
                 body = util.TableToJSON({
                     ["totalCalls"] = totalCalls,
                     ["totalTime"] = totalTime,
-                    ["gmodBranch"] = BRANCH .. " - " .. jit.version,
+                    ["gmodBranch"] = BRANCH .. " - " .. jit.version .. " (JIT: " .. (useJIT and "ON" or "OFF") .. ")",
                     ["name"] = name,
                 })
             })
@@ -172,6 +169,7 @@ function HolyLib_RunPerformanceTest(name, callback, ...)
             })
         })
     end
+    rec = false
 end
 
 if SERVER then
