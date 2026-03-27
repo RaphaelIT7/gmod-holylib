@@ -34,6 +34,48 @@ end
 -- local loki_host = CreateConVar("holylib_loki_host", "", {FCVAR_DONTRECORD, FCVAR_PROTECTED, FCVAR_UNLOGGED}, "Loki host secret.")
 -- local loki_api = CreateConVar("holylib_loki_api", "", {FCVAR_DONTRECORD, FCVAR_PROTECTED, FCVAR_UNLOGGED}, "Loki api key secret.")
 
+local rec = false
+function generate_trace()
+    jit.opt.start("hotloop=1", "hotexit=1")
+    jit.flush()
+
+    jit.attach(function(what, traceno, func, pc, exitno)
+        if not rec then return end
+        if exitno ~= nil then what = "abort" end
+
+        local src = "<unknown>"
+        if type(func) == "function" or type(func) == "proto" then
+            local info = jit.util.funcinfo(func)
+            if info then
+                src = string.format("%s:%d", info.source or "C", info.linedefined or 0)
+            end
+        elseif func ~= nil then
+            src = tostring(func)
+        end
+
+        print(string.format("[TRACE] %-6s %s %-35s pc=%s exit=%s",
+            tostring(what),
+            tostring(traceno or "?"),
+            tostring(src),
+            tostring(pc or "-"),
+            tostring(exitno or "-")
+        ))
+    end, "trace")
+end
+
+--- IMPORTANT: LuaJIT does not trace vararg functions!
+local function PerformanceTest(startTime, runTime, loopAmount, callback, a, b, c, d)
+    local totalCalls = 0
+    while (SysTime() - startTime) < runTime do -- We spend a total of 1 seconds to run these
+        for k=1, loopAmount do
+            callback(a, b, c, d)
+        end
+        totalCalls = totalCalls + loopAmount
+    end
+
+    return totalCalls
+end
+
 local github_repo = string.Trim(file.Read("_workflow/github_repo.txt", "MOD") or "")
 local loki_public_host = string.Trim(file.Read("_workflow/loki_public_host.txt", "MOD") or "")
 local loki_host = string.Trim(file.Read("_workflow/loki_host.txt", "MOD") or "")
@@ -45,6 +87,8 @@ function HolyLib_RunPerformanceTest(name, callback, ...)
         return
     end
 
+    rec = true
+    --generate_trace()
     for k=1, 2 do
         local useJIT = k == 2
         if not useJIT then
@@ -67,14 +111,8 @@ function HolyLib_RunPerformanceTest(name, callback, ...)
         local loopAmount = math.max(1 / 20 / avgTime, 1) -- We do 1 / 20 so that it at wose will run 1/20 of a second longer than wanted
 
         local startTime = SysTime()
-        local totalCalls = 0
         local runTime = 1 -- How long in seconds we run each test
-        while (SysTime() - startTime) < runTime do -- We spend a total of 1 seconds to run these
-            for k=1, loopAmount do
-                callback(...)
-            end
-            totalCalls = totalCalls + loopAmount
-        end
+        local totalCalls = PerformanceTest(startTime, runTime, loopAmount, callback, ...)
         
         local totalTime = SysTime() - startTime -- Should almost always be 1 second
         local timePerCall = totalTime / totalCalls
