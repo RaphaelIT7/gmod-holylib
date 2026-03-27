@@ -442,12 +442,6 @@ LUA_FUNCTION_STATIC(VoiceData_GetProximity)
 	return 1;
 }
 
-int FUNC_FASTCALL ASM_VoiceData_GetProximity(LuaUserData* ud)
-{
-	VoiceData* pData = (VoiceData*)ud->GetData();
-	return pData ? pData->bProximity : 0;
-}
-
 LUA_FUNCTION_STATIC(VoiceData_SetPlayerSlot)
 {
 	VoiceData* pData = Get_VoiceData(LUA, 1, true);
@@ -2172,7 +2166,7 @@ void CVoiceChatModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServer
 		Util::AddFunc(pLua, VoiceData_SetPlayerSlot, "SetPlayerSlot");
 		Util::AddFunc(pLua, VoiceData_GetUncompressedData, "GetUncompressedData");
 		Util::AddFunc(pLua, VoiceData_SetUncompressedData, "SetUncompressedData");
-		Lua::AddJITFunc(pLua, VoiceData_GetProximity, "GetProximity", Lua::AllowOptOut(Lua::MakeJITFunc(CFUNC_TYPE_INT, (void*)&ASM_VoiceData_GetProximity, CFUNC_TYPE_USERDATA)));
+		Util::AddFunc(pLua, VoiceData_GetProximity, "GetProximity");
 		Util::AddFunc(pLua, VoiceData_SetProximity, "SetProximity");
 		Util::AddFunc(pLua, VoiceData_CreateCopy, "CreateCopy");
 		Util::AddFunc(pLua, VoiceData_Empty, "Empty");
