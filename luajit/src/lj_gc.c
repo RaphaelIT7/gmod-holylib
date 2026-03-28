@@ -65,7 +65,8 @@ static void gc_mark(global_State *g, GCobj *o)
     GCtab *mt = tabref(gco2ud(o)->metatable);
     gray2black(o);  /* Userdata are never gray. */
     if (mt) gc_markobj(g, mt);
-    gc_markobj(g, tabref(gco2ud(o)->env));
+    GCtab *env = tabref(gco2ud(o)->env);
+    if (env) gc_markobj(g, env);
     if (LJ_HASBUFFER && gco2ud(o)->udtype == UDTYPE_BUFFER) {
       SBufExt *sbx = (SBufExt *)uddata(gco2ud(o));
       if (sbufiscow(sbx) && gcref(sbx->cowref))
@@ -527,7 +528,6 @@ static void gc_call_finalizer(global_State *g, lua_State *L,
     lj_vmevent_send_novmthread(L, ERRFIN,
       copyTV(L, L->top++, restorestack(L, errobj));
     );
-    L->top--;
   }
 }
 

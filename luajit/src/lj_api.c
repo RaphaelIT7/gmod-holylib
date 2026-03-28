@@ -719,6 +719,7 @@ LUA_API int lua_userdata_setusertable(lua_State *L, int idx, int set)
     if (set) {
       ud->flags |= LJ_UDATA_FLAG_USERTABLE;
       setgcref(ud->env, obj2gco(lj_tab_new(L, 0, 0)));
+      lj_gc_anybarriert(L, ud);
     } else {
       ud->flags &= ~LJ_UDATA_FLAG_USERTABLE;
       setgcrefnull(ud->env);
