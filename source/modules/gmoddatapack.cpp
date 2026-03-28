@@ -841,10 +841,16 @@ static SIMPLETHREAD_RETURNVALUE WorkerThread(void* pData)
 
 		// First pass
 		// We do this first to have less overhead by being able to faster call from this thread to the main thread
+		if (!pWorkEntires.empty())
 		{
 			// We lock the lua state if we have one set.
 			// We mainly split this into two passes to avoid blocking the main thread for long!
 			Lua::ScopedThreadAccess pThreadScope;
+			
+			// Let's try to avoid an deadlock, we check here due to the main thread possibly shutting down so we cannot expect the StateAccess below to work.
+			if (g_pLuaDataPack.m_pWorkerThreadState.load() != ThreadState::STATE_RUNNING)
+				break;
+
 			auto LUA = g_pLuaDataPack.pInterface.GetLua();
 			Lua::StateAccess pState(LUA);
 			for (int fileID : pWorkEntires)

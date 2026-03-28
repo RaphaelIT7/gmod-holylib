@@ -447,6 +447,29 @@ namespace Lua
 			mutex.unlock_shared();
 		}
 
+		bool try_lock_shared()
+		{
+			if (exclusive_locks > 0)
+				return true;
+
+			if (shared_locks > 0)
+			{
+				++shared_locks;
+				return true;
+			}
+
+			bool success = mutex.try_lock_shared();
+			if (success)
+				++shared_locks;
+
+			return success;
+		}
+
+		bool isLocked()
+		{
+			return exclusive_locks > 0 || shared_locks > 0;
+		}
+
 		void lock()
 		{
 			if (exclusive_locks > 0)
