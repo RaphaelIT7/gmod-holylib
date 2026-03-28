@@ -674,7 +674,7 @@ public:
 
 		inline bool IsContentReady()
 		{
-			return content.length() != 0;
+			return processed;
 		}
 
 		inline bool Compress()
@@ -688,18 +688,15 @@ public:
 
 		inline void Clear()
 		{
-			if (content.length() > 0)
-			{
-				delete[] content.data();
-				content = "";
-			}
-
+			content = "";
 			compressed.Clear();
+			processed = false;
 		}
 
 		std::string content = "";
 		Bootil::AutoBuffer compressed;
 		std::shared_mutex mutex; // Per entry instead of a global mutex to avoid blocking the main thread for other entries while compressing
+		bool processed = false;
 	};
 
 	void Initialize();
@@ -778,6 +775,7 @@ public:
 		} else {
 			pEntry->content = strippedContent;
 		}
+		pEntry->processed = true;
 	}
 
 	bool CompressFile(LuaPackEntry* pEntry, int fileID)
