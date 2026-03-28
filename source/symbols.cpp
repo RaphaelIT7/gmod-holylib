@@ -1167,14 +1167,17 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: gmoddatapack Symbols
 	//---------------------------------------------------------------------------------
-	const std::vector<Symbol> GModDataPack_SendFileToClientSym = {
+	const std::vector<Symbol> GModDataPack_SendFileToClientSym = { // "Client requesting crazy file number (%i)\n"
 		Symbol::FromName("_ZN12GModDataPack16SendFileToClientEii"),
 		Symbol::FromName("_ZN12GModDataPack16SendFileToClientEii"), // huh, that's a first
+		Symbol::FromSignature("\x55\x8B\xEC\x83\xEC\x4C\x53\x8B\x5D\x0C\x56\x8B\xF1\x89\x75\xF8"), // 55 8B EC 83 EC 4C 53 8B 5D 0C 56 8B F1 89 75 F8
+		Symbol::FromName("?SendFileToClient@GModDataPack@@QEAAXHH@Z"),
 	};
 
 	const std::vector<Symbol> GModDataPack_AddOrUpdateFileSym = { // search for singleplayer_files%i
 		Symbol::FromName("_ZN12GModDataPack15AddOrUpdateFileEP7LuaFileb"),
 		Symbol::FromName("_ZN12GModDataPack15AddOrUpdateFileEP7LuaFileb"),
 		Symbol::FromSignature("\x55\x8B\xEC\x83\xEC\x7C\x53\x8B\xD9\x56\x57\x8B\x7D\x08\x8B\x03"), // 55 8B EC 83 EC 7C 53 8B D9 56 57 8B 7D 08 8B 03
+		Symbol::FromName("?AddOrUpdateFile@GModDataPack@@QEAAXPEAULuaFile@@_N@Z"),
 	};
 }

@@ -31,7 +31,7 @@ public:
 	void InitDetour(bool bPreServer) override;
 	void OnClientDisconnect(CBaseClient* pClient) override;
 	const char* Name() override { return "gmoddatapack"; };
-	int Compatibility() override { return LINUX32 | LINUX64; };
+	int Compatibility() override { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 };
 
 static ConVar gmoddatapack_removeserverif("holylib_gmoddatapack_removeserverif", "0", 0, "If enabled, \"if SERVER then\" code blocks are removed from client files");
