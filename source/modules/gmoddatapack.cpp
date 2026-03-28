@@ -841,17 +841,24 @@ static SIMPLETHREAD_RETURNVALUE WorkerThread(void* pData)
 
 		// First pass
 		// We do this first to have less overhead by being able to faster call from this thread to the main thread
-		for (int fileID : pWorkEntires)
 		{
-			if (g_pLuaDataPack.m_pWorkerThreadState.load() != ThreadState::STATE_RUNNING)
-				break;
+			// We lock the lua state if we have one set.
+			// We mainly split this into two passes to avoid blocking the main thread for long!
+			Lua::ScopedThreadAccess pThreadScope;
+			auto LUA = g_pLuaDataPack.pInterface.GetLua();
+			Lua::StateAccess pState(LUA);
+			for (int fileID : pWorkEntires)
+			{
+				if (g_pLuaDataPack.m_pWorkerThreadState.load() != ThreadState::STATE_RUNNING)
+					break;
 
-			LuaDataPack::LuaPackEntry* pEntry = &g_pLuaDataPack.m_pLuaFileCache[fileID];
-			std::lock_guard<std::shared_mutex> lock(pEntry->mutex);
-			if (pEntry->IsContentReady()) // Already done? Either we did it, or the main thread.
-				continue;
+				LuaDataPack::LuaPackEntry* pEntry = &g_pLuaDataPack.m_pLuaFileCache[fileID];
+				std::lock_guard<std::shared_mutex> lock(pEntry->mutex);
+				if (pEntry->IsContentReady()) // Already done? Either we did it, or the main thread.
+					continue;
 				
-			g_pLuaDataPack.ProcessContent(pEntry, fileID);
+				g_pLuaDataPack.ProcessContent(pEntry, fileID);
+			}
 		}
 
 		// Second pass

@@ -1021,6 +1021,7 @@ void Lua::ThinkMainInterface()
 	// At worse we let another thread lock us for 20ms per tick
 	for (int i=0; i<20; ++i)
 	{
+		// If we are locked then something is doing work- so we count it as waiting too!
 		if (!pData->pThreadingMutex.hasWaiting())
 			break;
 
