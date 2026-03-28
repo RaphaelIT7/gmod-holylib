@@ -403,6 +403,15 @@ LUA_FUNCTION_STATIC(ReceiveClientMessage)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(GetEnvironmentValue)
+{
+	Util::DoUnsafeCodeCheck(LUA);
+	const char* pVarName = LUA->CheckString(1);
+	const char* pValue = getenv(pVarName);
+	LUA->PushString(pValue);
+	return 1;
+}
+
 static char pLevelName[256], pLandmarkName[256] = {0};
 static Detouring::Hook detour_CHostState_State_ChangeLevelMP;
 static void hook_CHostState_State_ChangeLevelMP(const char* levelName, const char* landmarkName)
@@ -487,6 +496,7 @@ void CHolyLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 			Util::AddFunc(pLua, HideMsg, "HideMsg");
 			Util::AddFunc(pLua, GetRegistry, "GetRegistry");
 			Util::AddFunc(pLua, Disconnect, "Disconnect");
+			Util::AddFunc(pLua, GetEnvironmentValue, "GetEnvironmentValue");
 
 			// Networking stuff
 			Util::AddFunc(pLua, _EntityMessageBegin, "EntityMessageBegin");
