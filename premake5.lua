@@ -182,7 +182,9 @@ CreateWorkspace({name = "holylib", abi_compatible = true})
 			defines("PLATFORM_64BITS")
 
 		filter("system:windows")
-			if not HOLYLIB_DEDICATED then
+			if HOLYLIB_DEDICATED then
+				defines("DEDICATED")
+			else
 				defines("NOT_DEDICATED") -- Windows client build
 			end
 
