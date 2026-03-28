@@ -51,8 +51,8 @@ return {
 
                 debug.setfenv(ent, tab) -- we must fill the GCudata::env field
 
-                HolyLib_RunPerformanceTest("_HOLYLIB_CORE.__newindex", function(ent) ent.example = "Hello World" end, ent)
-                HolyLib_RunPerformanceTest("_HOLYLIB_CORE.__index", function(ent) return ent.example end, ent)
+                HolyLib_RunPerformanceTest("(GMOD) Entity.__newindex", function(ent) ent.example = "Hello World" end, ent)
+                HolyLib_RunPerformanceTest("(GMOD) Entity.__index", function(ent) return ent.example end, ent)
             end
         },
     }
