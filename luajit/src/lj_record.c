@@ -1567,7 +1567,7 @@ TRef lj_record_idx(jit_State *J, RecordIndex *ix)
       GCtab *mt = gco2tab(gcref(ud->metatable));
       if (udata_isflagset(ud, LJ_UDATA_FLAG_USEMETAFORACCESS) && mt) {
         mtix.tab = lj_ir_kgc(J, obj2gco(mt), IRT_TAB);
-        settabV(J->L, &ix->tabv, t);
+        settabV(J->L, &mtix.tabv, mt);
         mtix.idxchain = 0;
 
         res = lj_record_idx(J, &mtix);
