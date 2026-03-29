@@ -726,6 +726,9 @@ public:
 		pEntry.compressed.Clear();
 		pEntry.content = content;
 
+		if (g_pGModDataPackModule.InDebug())
+			Msg(PROJECT_NAME " - gmoddatapack: Added fileID %i into compression queue!\n", fileID);
+
 		std::lock_guard<std::mutex> queueLock(m_pCompressQueueMutex);
 		m_pCompressQueue.push_back(fileID);
 	}
@@ -842,7 +845,14 @@ static SIMPLETHREAD_RETURNVALUE WorkerThread(void* pData)
 
 		// First pass
 		// We do this first to have less overhead by being able to faster call from this thread to the main thread
-		if (!pWorkEntires.empty())
+		if (pWorkEntires.empty())
+		{
+			if (g_pGModDataPackModule.InDebug() >= 2)
+				Msg(PROJECT_NAME " - gmoddatapack: Worker thread got no work!\n");
+
+			continue;
+		}
+
 		{
 			// We lock the lua state if we have one set.
 			// We mainly split this into two passes to avoid blocking the main thread for long!

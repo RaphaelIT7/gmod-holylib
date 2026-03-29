@@ -391,6 +391,7 @@ public:
 		{
 			g_pModuleManager.Think(true);
 			g_pModuleManager.LuaThink(m_pLua);
+			Lua::ThinkMainInterface();
 		}
 
 		return m_bDone;
