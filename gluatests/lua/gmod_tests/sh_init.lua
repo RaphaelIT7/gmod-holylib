@@ -67,7 +67,7 @@ local runTime = 1 -- How long in seconds we run each test
 local function PerformanceTest(callback, a, b, c)
     -- This is a loop to warm JIT & reach the full potential
     local avgTime = 0
-    local avgTimeTest = 250
+    local avgTimeTest = 5000
     local avgStartTime = SysTime()
     for k=1, avgTimeTest do
         callback(a, b, c)

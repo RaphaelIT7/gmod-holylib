@@ -220,7 +220,7 @@ Previous run: ]] .. previousRun .. "<br>")
 		table.insert(markdown, "")
 		table.insert(markdown, "# Branch: " .. branch)
 		table.insert(markdown, "| Function Name | Total Calls | Time Per Call | Difference to Previous Build |")
-		table.insert(markdown, "| ------------- | ----------- | ------------- | ---------------------------- |")
+		table.insert(markdown, "| ------------- | ----------: | ------------: | ---------------------------: |")
 
 		for funcName, funcResults in SortedPairs(funcs) do
 			local diff = funcResults.diffTimePerCall
@@ -231,7 +231,7 @@ Previous run: ]] .. previousRun .. "<br>")
 				print("::warning title=" .. funcName .. "::Performance is worse beyond expectation (" .. string.format("%.2fx", diff) .. " slower)")
 			end
 
-			table.insert(markdown, "| " .. funcName .. " | " .. funcResults.totalCalls .. " | " .. funcResults.timePerCall .. " | " .. funcResults.diffTimePerCall .. "x |")
+			table.insert(markdown, "| " .. funcName .. " | " .. math.floor(funcResults.totalCalls) .. " | " .. funcResults.timePerCall .. " | " .. funcResults.diffTimePerCall .. "x |")
 		end
 	end
 
