@@ -53,6 +53,12 @@ return {
 
                 HolyLib_RunPerformanceTest("(GMOD) Entity.__newindex", function(ent) ent.example = "Hello World" end, ent)
                 HolyLib_RunPerformanceTest("(GMOD) Entity.__index", function(ent) return ent.example end, ent)
+
+                -- BUG: IDK why but JIT dies :sob:
+                if debug.userdata_setusertable and debug.userdata_setmetaaccess then
+                    debug.userdata_setusertable(ent, false)
+                    debug.userdata_setmetaaccess(ent, false)
+                end
             end
         },
     }
