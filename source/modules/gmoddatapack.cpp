@@ -188,23 +188,9 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 			continue;
 		}
 
-		if (c == '-')
-		{
-			tokens.push_back({TK_SUB, std::string(1, c), true});
-			i++;
-			continue;
-		}
-
 		if (c == '*')
 		{
 			tokens.push_back({TK_MUL, std::string(1, c), true});
-			i++;
-			continue;
-		}
-
-		if (c == '/')
-		{
-			tokens.push_back({TK_DIV, std::string(1, c), true});
 			i++;
 			continue;
 		}
@@ -375,6 +361,21 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 
 			std::string strWord = content.substr(start, i - start);
 			tokens.push_back({KeywordType(strWord), strWord});
+			continue;
+		}
+
+		// NOTE: We check - and / down here since they may else conflict with -- or //
+		if (c == '-')
+		{
+			tokens.push_back({TK_SUB, std::string(1, c), true});
+			i++;
+			continue;
+		}
+
+		if (c == '/')
+		{
+			tokens.push_back({TK_DIV, std::string(1, c), true});
+			i++;
 			continue;
 		}
 
