@@ -331,13 +331,16 @@ public:
 
 private:
 	unsigned short m_iPort = 0;
-	bool m_bUpdate = false;
+	std::atomic<bool> m_bUpdate = false;
 	bool m_bInUpdate = false;
 	unsigned char m_iStatus = HTTPSERVER_OFFLINE;
 	// 3 bytes free here.
 	unsigned int m_iThreadSleep = 5; // How long the threads sleep / wait for a request to be handled
 	std::string m_strAddress = "";
+
+	std::shared_mutex m_pRequestMutex;
 	std::vector<HttpRequest*> m_pRequests;
+
 	std::vector<int> m_pHandlerReferences; // Contains the Lua references to the handler functions.
 	std::unordered_map<std::string, ProxyEntry> m_pAllowedProxies;
 	httplib::Server m_pServer;
@@ -684,7 +687,7 @@ void HttpServer::Stop()
 
 void HttpServer::Think()
 {
-	if (m_iStatus == HTTPSERVER_OFFLINE || !m_bUpdate)
+	if (m_iStatus == HTTPSERVER_OFFLINE || !m_bUpdate.load())
 		return;
 
 	/*
@@ -695,6 +698,7 @@ void HttpServer::Think()
 	 */
 
 	m_bInUpdate = true;
+	std::lock_guard<std::shared_mutex> lock(m_pRequestMutex);
 	for (auto it = m_pRequests.begin(); it != m_pRequests.end();)
 	{
 		auto pEntry = *it;
@@ -711,7 +715,7 @@ void HttpServer::Think()
 		++it;
 	}
 
-	m_bUpdate = false;
+	m_bUpdate.store(false);
 	m_bInUpdate = false;
 }
 
@@ -787,8 +791,11 @@ httplib::Server::Handler HttpServer::CreateHandler(const char* path, int func, b
 		request->m_pClientUserID = userID;
 		request->m_strAddress = remoteAddress;
 		request->m_pLua = m_pLua; // Inherit the Lua interface.
-		m_pRequests.push_back(request); // We should add a check here since we could write to it from multiple threads?
-		m_bUpdate = true;
+		{
+			std::lock_guard<std::shared_mutex> lock(m_pRequestMutex);
+			m_pRequests.push_back(request); // We should add a check here since we could write to it from multiple threads?
+		}
+		m_bUpdate.store(true);
 		while (!request->m_bHandled)
 			ThreadSleep(m_iThreadSleep);
 
