@@ -930,15 +930,6 @@ const std::unordered_set<Lua::StateData*>& Lua::GetAllLuaData()
 	return g_pLuaStates;
 }
 
-static void LuaCheck(const CCommand& args)
-{
-	if (!g_Lua)
-		return;
-
-	Msg("holylib - Found data %p\n", Lua::GetLuaData(g_Lua));
-}
-static ConCommand luacheck("holylib_luacheck", LuaCheck, "Temp", 0);
-
 Lua::StateData::~StateData()
 {
 	for (ILuaInterfaceReference* pReference : pReferences)
