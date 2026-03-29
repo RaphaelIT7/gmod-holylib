@@ -978,7 +978,7 @@ void Lua::AddLuaInterfaceReference(GarrysMod::Lua::ILuaInterface* pLua, ILuaInte
 	if (!pLua)
 		return;
 
-	pReference->m_pLua = pLua;
+	pReference->m_pLua.store(pLua);
 	Lua::StateData* pData = Lua::GetLuaData(pLua);
 	if (!pData)
 		return;
@@ -990,11 +990,12 @@ void Lua::AddLuaInterfaceReference(GarrysMod::Lua::ILuaInterface* pLua, ILuaInte
 
 void Lua::RemoveLuaInterfaceReference(ILuaInterfaceReference* pReference)
 {
-	if (!pReference->m_pLua)
+	GarrysMod::Lua::ILuaInterface* pLua = pReference->m_pLua.load();
+	if (!pLua)
 		return;
 
-	Lua::StateData* pData = Lua::GetLuaData(pReference->m_pLua);
-	pReference->m_pLua = nullptr;
+	Lua::StateData* pData = Lua::GetLuaData(pLua);
+	pReference->m_pLua.store(nullptr);
 	if (!pData)
 		return;
 

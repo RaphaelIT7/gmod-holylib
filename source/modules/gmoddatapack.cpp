@@ -914,6 +914,7 @@ void LuaDataPack::Initialize()
 
 void LuaDataPack::Shutdown()
 {
+	g_pLuaDataPack.pInterface.InvalidateInterface();
 	if (m_pWorkerThread)
 	{
 		if (m_pWorkerThreadState.load() != ThreadState::STATE_NOTRUNNING)

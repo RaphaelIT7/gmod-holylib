@@ -707,15 +707,15 @@ static int ASM_##funcName()
 		// Do NOT call delete this in here! return true instead!
 		// true = we should delete this - false = no delete!
 		virtual bool OnInterfaceShutdown() { return false; };
-		inline GarrysMod::Lua::ILuaInterface* GetLua() { return m_pLua; }
-		inline void InvalidateInterface() { m_pLua = nullptr; }
+		inline GarrysMod::Lua::ILuaInterface* GetLua() { return m_pLua.load(); }
+		inline void InvalidateInterface() { m_pLua.store(nullptr); }
 
 	protected:
 		friend void AddLuaInterfaceReference(GarrysMod::Lua::ILuaInterface* pLua, ILuaInterfaceReference* pReference);
 		friend void RemoveLuaInterfaceReference(ILuaInterfaceReference* pReference);
 
 	private:
-		GarrysMod::Lua::ILuaInterface* m_pLua = nullptr;
+		std::atomic<GarrysMod::Lua::ILuaInterface*> m_pLua = nullptr;
 	};
 }
 
