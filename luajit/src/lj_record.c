@@ -1555,7 +1555,8 @@ TRef lj_record_idx(jit_State *J, RecordIndex *ix)
       RecordIndex mtix = *ix;
       if (udata_isflagset(ud, LJ_UDATA_FLAG_USERTABLE) && t) {
         ix->tab = emitir(IRT(IR_FLOAD, IRT_TAB), ix->tab, IRFL_UDATA_ENV);
-        setgcVraw(&ix->tabv, obj2gco(t), LJ_TTAB);
+        emitir(IRTG(IR_NE, IRT_TAB), ix->tab, lj_ir_knull(J, IRT_TAB));
+        settabV(J->L, &ix->tabv, t);
         ix->idxchain = 0;
 
         res = lj_record_idx(J, ix);
@@ -1566,7 +1567,7 @@ TRef lj_record_idx(jit_State *J, RecordIndex *ix)
       GCtab *mt = gco2tab(gcref(ud->metatable));
       if (udata_isflagset(ud, LJ_UDATA_FLAG_USEMETAFORACCESS) && mt) {
         mtix.tab = lj_ir_kgc(J, obj2gco(mt), IRT_TAB);
-        setgcVraw(&mtix.tabv, obj2gco(mt), LJ_TTAB);
+        settabV(J->L, &ix->tabv, t);
         mtix.idxchain = 0;
 
         res = lj_record_idx(J, &mtix);
@@ -1577,7 +1578,8 @@ TRef lj_record_idx(jit_State *J, RecordIndex *ix)
     } else { /* Indexed store. */
       if (udata_isflagset(ud, LJ_UDATA_FLAG_USERTABLE) && t) {
         ix->tab = emitir(IRT(IR_FLOAD, IRT_TAB), ix->tab, IRFL_UDATA_ENV);
-        setgcVraw(&ix->tabv, obj2gco(t), LJ_TTAB);
+        emitir(IRTG(IR_NE, IRT_TAB), ix->tab, lj_ir_knull(J, IRT_TAB));
+        settabV(J->L, &ix->tabv, t);
 
         return lj_record_idx(J, ix);
       }
