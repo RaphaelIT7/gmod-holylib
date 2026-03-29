@@ -514,7 +514,7 @@ std::string ProcessTokens(std::vector<Token> &tokens, bool bRemoveServerCode, bo
 			}
 		}
 
-		if (gmoddatapack_removeserverif.GetBool() && tok.type == TK_ELSEIF)
+		if (bRemoveServerCode && tok.type == TK_ELSEIF)
 		{
 			size_t j = i + 1;
 			j = SkipEmpty(tokens, j);
