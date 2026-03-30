@@ -392,41 +392,60 @@ LUA_FUNCTION_STATIC(HttpResponse_IsValid)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(HttpResponse_SetContent)
+LUA_JIT_WRAPPED_3(HttpResponse_SetContent,
+	LuaUserData*, pUD, Get_HttpResponse_Data(LUA, 1, true),
+	const char*, pContent, LUA->CheckString(2),
+	const char*, pContentType, LUA->CheckStringOpt(3, "text/plain")
+)
 {
-	HttpResponse* pData = Get_HttpResponse(LUA, 1, true);
+	HttpResponse* pData = (HttpResponse*)pUD->GetData();
+	if (!pData)
+		return;
+
 	pData->m_bSetContent = true;
-	pData->m_strContent = LUA->CheckString(2);
-	pData->m_strContentType = LUA->CheckStringOpt(3, "text/plain");
-
-	return 0;
+	pData->m_strContent = pContent;
+	pData->m_strContentType = pContentType ? pContentType : "text/plain";
 }
 
-LUA_FUNCTION_STATIC(HttpResponse_SetRedirect)
+LUA_JIT_WRAPPED_3(HttpResponse_SetRedirect,
+	LuaUserData*, pUD, Get_HttpResponse_Data(LUA, 1, true),
+	const char*, pRedirect, LUA->CheckString(2),
+	int, iRedirectCode, (int)LUA->CheckNumberOpt(3, 302)
+)
 {
-	HttpResponse* pData = Get_HttpResponse(LUA, 1, true);
+	HttpResponse* pData = (HttpResponse*)pUD->GetData();
+	if (!pData)
+		return;
+
 	pData->m_bSetRedirect = true;
-	pData->m_strRedirect = LUA->CheckString(2);
-	pData->m_iRedirectCode = (int)LUA->CheckNumberOpt(3, 302);
-
-	return 0;
+	pData->m_strRedirect = pRedirect;
+	pData->m_iRedirectCode = iRedirectCode;
 }
 
-LUA_FUNCTION_STATIC(HttpResponse_SetHeader)
+LUA_JIT_WRAPPED_3(HttpResponse_SetHeader,
+	LuaUserData*, pUD, Get_HttpResponse_Data(LUA, 1, true),
+	const char*, pHeader, LUA->CheckString(2),
+	const char*, pHeaderValue, LUA->CheckString(3)
+)
 {
-	HttpResponse* pData = Get_HttpResponse(LUA, 1, true);
+	HttpResponse* pData = (HttpResponse*)pUD->GetData();
+	if (!pData)
+		return;
+
 	pData->m_bSetHeader = true;
-	pData->m_pHeaders[LUA->CheckString(2)] = LUA->CheckString(3);
-
-	return 0;
+	pData->m_pHeaders[pHeader] = pHeaderValue;
 }
 
-LUA_FUNCTION_STATIC(HttpResponse_SetStatusCode)
+LUA_JIT_WRAPPED_2(HttpResponse_SetStatusCode,
+	LuaUserData*, pUD, Get_HttpResponse_Data(LUA, 1, true),
+	int, iStatusCode, (int)LUA->CheckNumber(2)
+)
 {
-	HttpResponse* pData = Get_HttpResponse(LUA, 1, true);
-	pData->m_iStatusCode = (int)LUA->CheckNumber(2);
+	HttpResponse* pData = (HttpResponse*)pUD->GetData();
+	if (!pData)
+		return;
 
-	return 0;
+	pData->m_iStatusCode = iStatusCode;
 }
 
 LUA_FUNCTION_STATIC(HttpRequest__tostring)
@@ -1221,10 +1240,10 @@ void CHTTPServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, HttpResponse_GetTable, "GetTable");
 		Util::AddFunc(pLua, HttpResponse_IsValid, "IsValid");
 
-		Util::AddFunc(pLua, HttpResponse_SetContent, "SetContent");
-		Util::AddFunc(pLua, HttpResponse_SetHeader, "SetHeader");
-		Util::AddFunc(pLua, HttpResponse_SetRedirect, "SetRedirect");
-		Util::AddFunc(pLua, HttpResponse_SetStatusCode, "SetStatusCode");
+		LUA_REGISTER_JIT(pLua, HttpResponse_SetContent, "SetContent");
+		LUA_REGISTER_JIT(pLua, HttpResponse_SetHeader, "SetHeader");
+		LUA_REGISTER_JIT(pLua, HttpResponse_SetRedirect, "SetRedirect");
+		LUA_REGISTER_JIT(pLua, HttpResponse_SetStatusCode, "SetStatusCode");
 	pLua->Pop(1);
 
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::HttpRequest, pLua->CreateMetaTable("HttpRequest"));

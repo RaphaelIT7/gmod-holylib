@@ -279,7 +279,7 @@ LUA_FUNCTION(holylua_RunString)
 	}
 
 	LUA->PushBool(false);
-    return 1;
+	return 1;
 }
 
 void CHolyLuaModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)

@@ -684,7 +684,7 @@ static bool HolyLib_String_CompareDeltas( const HolyLibSendPropPrecalc* pProp, c
 	if (strlen(pStringPointerFrom) != strlen(pStringPointerTo))
 		return true;
 
-    return V_stricmp( pStringPointerFrom, pStringPointerTo ) != 0;
+	return V_stricmp( pStringPointerFrom, pStringPointerTo ) != 0;
 }
 
 static bool HolyLib_Array_IsEncodedZero( const HolyLibSendPropPrecalc* pProp, const void* pPackedData )

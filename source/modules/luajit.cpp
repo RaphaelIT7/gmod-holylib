@@ -199,7 +199,7 @@ static void hook_luaL_openlibs(lua_State* L)
 	bOpenLibs = true;
 }
 
-double FUNC_FASTCALL ASM_SysTime()
+LUA_JIT_ASM_0R(SysTime, double)
 {
 	return Plat_FloatTime();
 }
@@ -347,8 +347,7 @@ void CLuaJITModule::PostLuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 
 	pLua->GetField(LUA_GLOBALSINDEX, "SysTime");
 	if (pLua->IsType(-1, GarrysMod::Lua::Type::Function)) {
-		lua_CFunctionInfo info = Lua::MakeJITFunc(CFUNC_TYPE_DOUBLE, (void*)&ASM_SysTime);
-		lua_settracablecclosure(pLua->GetState(), -1, (lua_CFunctionInfo*)&info);
+		lua_settracablecclosure(pLua->GetState(), -1, (lua_CFunctionInfo*)&ASMINFO_SysTime);
 		Msg(PROJECT_NAME " - jit: Added JIT support for SysTime\n");
 	}
 	pLua->Pop(1);

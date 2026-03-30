@@ -26,27 +26,27 @@ IModule* pCVarsModule = &g_pCVarsModule;
 
 #if ARCHITECTURE_IS_X86
 struct CaseInsensitiveHash {
-    size_t operator()(const std::string_view& s) const noexcept {
-        size_t h = 0;
-        for (char c : s) {
-            char lower = (c >= 'A' && c <= 'Z') ? c + 32 : c;
-            h = h * 31 + lower;
-        }
-        return h;
-    }
+	size_t operator()(const std::string_view& s) const noexcept {
+		size_t h = 0;
+		for (char c : s) {
+			char lower = (c >= 'A' && c <= 'Z') ? c + 32 : c;
+			h = h * 31 + lower;
+		}
+		return h;
+	}
 };
 
 struct CaseInsensitiveEqual {
-    bool operator()(const std::string_view& a, const std::string_view& b) const noexcept {
-        if (a.size() != b.size())
-            return false;
-        for (size_t i = 0; i < a.size(); ++i) {
-            char ca = (a[i] >= 'A' && a[i] <= 'Z') ? a[i] + 32 : a[i];
-            char cb = (b[i] >= 'A' && b[i] <= 'Z') ? b[i] + 32 : b[i];
-            if (ca != cb) return false;
-        }
-        return true;
-    }
+	bool operator()(const std::string_view& a, const std::string_view& b) const noexcept {
+		if (a.size() != b.size())
+			return false;
+		for (size_t i = 0; i < a.size(); ++i) {
+			char ca = (a[i] >= 'A' && a[i] <= 'Z') ? a[i] + 32 : a[i];
+			char cb = (b[i] >= 'A' && b[i] <= 'Z') ? b[i] + 32 : b[i];
+			if (ca != cb) return false;
+		}
+		return true;
+	}
 };
 
 static ankerl::unordered_dense::map<std::string_view, ConCommandBase*, CaseInsensitiveHash, CaseInsensitiveEqual> g_pCommandBaseNames;

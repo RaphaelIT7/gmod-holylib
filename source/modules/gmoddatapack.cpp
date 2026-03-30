@@ -92,19 +92,19 @@ struct Token {
 	bool isSpace = false;
 };
 
-static inline TokenType KeywordType(const std::string &word)
+static inline TokenType KeywordType(const std::string& strWord)
 {
-	if (word == "if") return TK_IF;
-	if (word == "function") return TK_FUNCTION;
-	if (word == "return") return TK_RETURN;
-	if (word == "then") return TK_THEN;
-	if (word == "end") return TK_END;
-	if (word == "do") return TK_DO;
-	if (word == "elseif") return TK_ELSEIF;
-	if (word == "else") return TK_ELSE;
-	if (word == "true") return TK_TRUE;
-	if (word == "false") return TK_FALSE;
-	if (word == "local") return TK_LOCAL;
+	if (strWord == "if") return TK_IF;
+	if (strWord == "function") return TK_FUNCTION;
+	if (strWord == "return") return TK_RETURN;
+	if (strWord == "then") return TK_THEN;
+	if (strWord == "end") return TK_END;
+	if (strWord == "do") return TK_DO;
+	if (strWord == "elseif") return TK_ELSEIF;
+	if (strWord == "else") return TK_ELSE;
+	if (strWord == "true") return TK_TRUE;
+	if (strWord == "false") return TK_FALSE;
+	if (strWord == "local") return TK_LOCAL;
 	return TK_SOMETHING;
 }
 

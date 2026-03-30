@@ -360,34 +360,28 @@ LUA_FUNCTION_STATIC(VoiceData_IsValid)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(VoiceData_GetPlayerSlot)
+LUA_JIT_WRAPPED_1R(VoiceData_GetPlayerSlot,
+	int, iPlayerSlot, LUA->PushNumber(iPlayerSlot),
+	LuaUserData*, pUD, Get_VoiceData_Data(LUA, 1, true)
+)
 {
-	VoiceData* pData = Get_VoiceData(LUA, 1, true);
+	VoiceData* pData = (VoiceData*)pUD->GetData();
+	if (!pData)
+		return -1;
 
-	LUA->PushNumber(pData->iPlayerSlot);
-
-	return 1;
+	return pData->iPlayerSlot;
 }
 
-int FUNC_FASTCALL ASM_VoiceData_GetPlayerSlot(LuaUserData* ud)
+LUA_JIT_WRAPPED_1R(VoiceData_GetLength,
+	int, iPlayerSlot, LUA->PushNumber(iPlayerSlot),
+	LuaUserData*, pUD, Get_VoiceData_Data(LUA, 1, true)
+)
 {
-	VoiceData* pData = (VoiceData*)ud->GetData();
-	return pData ? pData->iPlayerSlot : 0;
-}
+	VoiceData* pData = (VoiceData*)pUD->GetData();
+	if (!pData)
+		return -1;
 
-LUA_FUNCTION_STATIC(VoiceData_GetLength)
-{
-	VoiceData* pData = Get_VoiceData(LUA, 1, true);
-
-	LUA->PushNumber(pData->GetLength());
-
-	return 1;
-}
-
-int FUNC_FASTCALL ASM_VoiceData_GetLength(LuaUserData* ud)
-{
-	VoiceData* pData = (VoiceData*)ud->GetData();
-	return pData ? pData->GetLength() : 0;
+	return pData->GetLength();
 }
 
 LUA_FUNCTION_STATIC(VoiceData_GetData)
@@ -2159,8 +2153,8 @@ void CVoiceChatModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServer
 		Util::AddFunc(pLua, VoiceData_GetTable, "GetTable");
 		Util::AddFunc(pLua, VoiceData_IsValid, "IsValid");
 		Util::AddFunc(pLua, VoiceData_GetData, "GetData");
-		Lua::AddJITFunc(pLua, VoiceData_GetLength, "GetLength", Lua::MakeJITFunc(CFUNC_TYPE_INT, (void*)&ASM_VoiceData_GetLength, CFUNC_TYPE_USERDATA));
-		Lua::AddJITFunc(pLua, VoiceData_GetPlayerSlot, "GetPlayerSlot", Lua::MakeJITFunc(CFUNC_TYPE_INT, (void*)&ASM_VoiceData_GetPlayerSlot, CFUNC_TYPE_USERDATA));
+		LUA_REGISTER_JIT(pLua, VoiceData_GetLength, "GetLength");
+		LUA_REGISTER_JIT(pLua, VoiceData_GetPlayerSlot, "GetPlayerSlot");
 		Util::AddFunc(pLua, VoiceData_SetData, "SetData");
 		Util::AddFunc(pLua, VoiceData_SetLength, "SetLength");
 		Util::AddFunc(pLua, VoiceData_SetPlayerSlot, "SetPlayerSlot");

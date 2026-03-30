@@ -583,56 +583,6 @@ namespace Lua
 
 	extern Symbols::lua_pushtracablecclosure func_lua_pushtracablecclosure;
 	extern Symbols::lua_settracablecclosure func_lua_settracablecclosure;
-	inline lua_CFunctionInfo MakeJITFunc(lua_CFunctionInfoType retType, void* asmFunc)
-	{
-		lua_CFunctionInfo info;
-		memset(&info, 0, sizeof(info));
-
-		info.asmFunc = asmFunc;
-		info.argType[0] = CFUNC_TYPE_VOID;
-		info.retType = retType;
-		info.callconv = CFUNC_CALLCONV_FASTCALL;
-		info.canerror = 0;
-		info.givestate = 0;
-		info.allowoptout = 0;
-
-		return info;
-	}
-
-	inline lua_CFunctionInfo MakeJITFunc(lua_CFunctionInfoType retType, void* asmFunc, lua_CFunctionInfoType arg1)
-	{
-		lua_CFunctionInfo info;
-		memset(&info, 0, sizeof(info));
-
-		info.asmFunc = asmFunc;
-		info.argType[0] = arg1;
-		info.argType[1] = CFUNC_TYPE_VOID;
-		info.retType = retType;
-		info.callconv = CFUNC_CALLCONV_FASTCALL;
-		info.canerror = 0;
-		info.givestate = 0;
-		info.allowoptout = 0;
-
-		return info;
-	}
-
-	inline lua_CFunctionInfo MakeJITFunc(lua_CFunctionInfoType retType, void* asmFunc, lua_CFunctionInfoType arg1, lua_CFunctionInfoType arg2)
-	{
-		lua_CFunctionInfo info;
-		memset(&info, 0, sizeof(info));
-
-		info.asmFunc = asmFunc;
-		info.argType[0] = arg1;
-		info.argType[1] = arg2;
-		info.argType[2] = CFUNC_TYPE_VOID;
-		info.retType = retType;
-		info.callconv = CFUNC_CALLCONV_FASTCALL;
-		info.canerror = 0;
-		info.givestate = 0;
-		info.allowoptout = 0;
-
-		return info;
-	}
 
 	// BUG:
 	// This currently causes JIT to nuke something (CSE being funky) causing a crash as arguments are being screwed up - so only use this if the function has no arguments
@@ -661,38 +611,160 @@ namespace Lua
 		LUA->RawSet(-3);
 	}
 
-#define LUA_ASM_FUNCTION_STATIC(funcName) \
-static void ASM_##funcName(); \
-LUA_FUNCTION_STATIC(funcName) \
-{ \
-	ASM_##funcName(); \
-	return 0; \
-} \
-static void ASM_##funcName()
+	/*
+		New C JIT functions
+	*/
 
-#define LUA_ASM_SFUNCTION_STATIC(funcName) \
-static const char* ASM_##funcName(); \
-LUA_FUNCTION_STATIC(funcName) \
+	template<typename T> struct LuaTypeMap;
+	template<> struct LuaTypeMap<const char*> { static constexpr auto value = CFUNC_TYPE_CHARS; };
+	template<> struct LuaTypeMap<int> { static constexpr auto value = CFUNC_TYPE_INT; };
+	template<> struct LuaTypeMap<float> { static constexpr auto value = CFUNC_TYPE_FLOAT; };
+	template<> struct LuaTypeMap<double> { static constexpr auto value = CFUNC_TYPE_DOUBLE; };
+	template<> struct LuaTypeMap<void> { static constexpr auto value = CFUNC_TYPE_VOID; };
+	template<> struct LuaTypeMap<LuaUserData*> { static constexpr auto value = CFUNC_TYPE_USERDATA; };
+
+	template<typename Ret, typename... Args>
+	constexpr lua_CFunctionInfo MakeJITInfo(void* fn)
+	{
+		lua_CFunctionInfo info{};
+		info.asmFunc = fn;
+		info.retType = LuaTypeMap<Ret>::value;
+		info.callconv = CFUNC_CALLCONV_FASTCALL;
+
+		lua_CFunctionInfoType types[] = { LuaTypeMap<Args>::value..., CFUNC_TYPE_VOID };
+
+		for (size_t i = 0; i < sizeof...(Args) + 1; ++i)
+			info.argType[i] = types[i];
+
+		return info;
+	}
+
+// R = returns! Though JITable functions can currently only return 1 value!
+#define LUA_JIT_WRAPPED_0R(name, R1, ret1, SET1) \
+static R1 FUNC_FASTCALL ASM_##name(); \
+\
+static lua_CFunctionInfo ASMINFO_##name = [] { \
+	auto info = Lua::MakeJITInfo<R1>((void*)&ASM_##name); \
+	/*info.allowoptout = 1;*/ \
+	return info; \
+}(); \
+\
+LUA_FUNCTION_STATIC(name) \
 { \
-	LUA->PushString(ASM_##funcName()); \
+	R1 ret1 = ASM_##name(); \
+	(SET1); \
 	return 1; \
 } \
-static const char* ASM_##funcName()
+\
+static R1 FUNC_FASTCALL ASM_##name()
 
-#define LUA_ASM_IFUNCTION_STATIC(funcName) \
-static int ASM_##funcName(); \
-LUA_FUNCTION_STATIC(funcName) \
+#define LUA_JIT_WRAPPED_0(name) \
+static void FUNC_FASTCALL ASM_##name(); \
+\
+static lua_CFunctionInfo ASMINFO_##name = [] { \
+	auto info = Lua::MakeJITInfo<void>((void*)&ASM_##name); \
+	/*info.allowoptout = 1;*/ \
+	return info; \
+}(); \
+\
+LUA_FUNCTION_STATIC(name) \
 { \
-	LUA->PushNumber(ASM_##funcName()); \
+	ASM_##name(); \
 	return 0; \
 } \
-static int ASM_##funcName()
+\
+static void FUNC_FASTCALL ASM_##name()
 
-#define LUA_AddJITFunc(pLua, ret, funcName, name) \
-	Lua::AddJITFunc(pLua, funcName, name, Lua::AllowOptOut(Lua::MakeJITFunc(CFUNC_TYPE_VOID, (void*)&ASM_##funcName)));
+#define LUA_JIT_ASM_0R(name, R1) \
+static R1 FUNC_FASTCALL ASM_##name(); \
+\
+static lua_CFunctionInfo ASMINFO_##name = [] { \
+	auto info = Lua::MakeJITInfo<R1>((void*)&ASM_##name); \
+	/*info.allowoptout = 1;*/ \
+	return info; \
+}(); \
+\
+static R1 FUNC_FASTCALL ASM_##name()
 
-#define LUA_AddJITFunc2(pLua, ret, funcName, name, arg1) \
-	Lua::AddJITFunc(pLua, funcName, name, Lua::AllowOptOut(Lua::MakeJITFunc(CFUNC_TYPE_VOID, (void*)&ASM_##funcName, arg1)));
+// R = returns! Though JITable functions can currently only return 1 value!
+#define LUA_JIT_WRAPPED_1R(name, R1, ret1, SET1, T1, arg1, GET1) \
+static R1 FUNC_FASTCALL ASM_##name(T1 arg1); \
+\
+static lua_CFunctionInfo ASMINFO_##name = [] { \
+	auto info = Lua::MakeJITInfo<R1, T1>((void*)&ASM_##name); \
+	/*info.allowoptout = 1;*/ \
+	return info; \
+}(); \
+\
+LUA_FUNCTION_STATIC(name) \
+{ \
+	T1 arg1 = (GET1); \
+	R1 ret1 = ASM_##name(arg1); \
+	(SET1); \
+	return 1; \
+} \
+\
+static R1 FUNC_FASTCALL ASM_##name(T1 arg1)
+
+#define LUA_JIT_WRAPPED_1(name, R1, ret1, SET1, T1, arg1, GET1) \
+static void FUNC_FASTCALL ASM_##name(T1 arg1); \
+\
+static lua_CFunctionInfo ASMINFO_##name = [] { \
+	auto info = Lua::MakeJITInfo<void, T1>((void*)&ASM_##name); \
+	/*info.allowoptout = 1;*/ \
+	return info; \
+}(); \
+\
+LUA_FUNCTION_STATIC(name) \
+{ \
+	T1 arg1 = (GET1); \
+	ASM_##name(arg1); \
+	return 0; \
+} \
+\
+static void FUNC_FASTCALL ASM_##name(T1 arg1)
+
+#define LUA_JIT_WRAPPED_2(name, T1, arg1, GET1, T2, arg2, GET2) \
+static void FUNC_FASTCALL ASM_##name(T1 arg1, T2 arg2); \
+\
+static lua_CFunctionInfo ASMINFO_##name = [] { \
+	auto info = Lua::MakeJITInfo<void, T1, T2>((void*)&ASM_##name); \
+	/*info.allowoptout = 1;*/ \
+	return info; \
+}(); \
+\
+LUA_FUNCTION_STATIC(name) \
+{ \
+	T1 arg1 = (GET1); \
+	T2 arg2 = (GET2); \
+	ASM_##name(arg1, arg2); \
+	return 0; \
+} \
+\
+static void FUNC_FASTCALL ASM_##name(T1 arg1, T2 arg2)
+
+#define LUA_JIT_WRAPPED_3(name, T1, arg1, GET1, T2, arg2, GET2, T3, arg3, GET3) \
+static void FUNC_FASTCALL ASM_##name(T1 arg1, T2 arg2, T3 arg3); \
+\
+static lua_CFunctionInfo ASMINFO_##name = [] { \
+	auto info = Lua::MakeJITInfo<void, T1, T2, T3>((void*)&ASM_##name); \
+	/*info.allowoptout = 1;*/ \
+	return info; \
+}(); \
+\
+LUA_FUNCTION_STATIC(name) \
+{ \
+	T1 arg1 = (GET1); \
+	T2 arg2 = (GET2); \
+	T3 arg3 = (GET3); \
+	ASM_##name(arg1, arg2, arg3); \
+	return 0; \
+} \
+\
+static void FUNC_FASTCALL ASM_##name(T1 arg1, T2 arg2, T3 arg3)
+
+#define LUA_REGISTER_JIT(LUA, funcName, name) \
+	Lua::AddJITFunc(LUA, funcName, name, ASMINFO_##funcName)
 
 	void AddLuaInterfaceReference(GarrysMod::Lua::ILuaInterface* pLua, ILuaInterfaceReference* pReference);
 	void RemoveLuaInterfaceReference(ILuaInterfaceReference* pReference);
