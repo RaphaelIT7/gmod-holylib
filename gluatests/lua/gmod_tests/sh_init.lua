@@ -67,13 +67,33 @@ local runTime = 1 -- How long in seconds we run each test
 local function PerformanceTest(callback, a, b, c)
     -- This is a loop to warm JIT & reach the full potential
     local avgTime = 0
-    local avgTimeTest = 5000
+    local avgTimeTest = 500
     local avgStartTime = SysTime()
     for k=1, avgTimeTest do
+        callback(a, b, c)
+        callback(a, b, c)
+        callback(a, b, c)
+        callback(a, b, c)
+        callback(a, b, c)
+        callback(a, b, c)
+        callback(a, b, c)
+        callback(a, b, c)
+        callback(a, b, c)
+        callback(a, b, c)
+        callback(a, b, c)
+        callback(a, b, c)
+        callback(a, b, c)
+        callback(a, b, c)
+        callback(a, b, c)
+        callback(a, b, c)
+        callback(a, b, c)
+        callback(a, b, c)
+        callback(a, b, c)
         callback(a, b, c)
     end
     local avgTime = (SysTime() - avgStartTime) / avgTimeTest
     local loopAmount = math.max(1 / 20 / avgTime, 1) -- We do 1 / 20 so that it at wose will run 1/20 of a second longer than wanted
+    local callsPerLoop = loopAmount * 20
 
     local totalCalls = 0
     local startTime = SysTime()
@@ -81,7 +101,7 @@ local function PerformanceTest(callback, a, b, c)
         for k=1, loopAmount do
             callback(a, b, c)
         end
-        totalCalls = totalCalls + loopAmount
+        totalCalls = totalCalls + callsPerLoop
     end
 
     return (SysTime() - startTime), totalCalls
