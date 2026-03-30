@@ -1086,9 +1086,9 @@ LUA_FUNCTION_STATIC(gmoddatapack_StripCode)
 	} else {
 		std::string strContent = pContent;
 		std::vector<Token> tokens = TokenizeContent(strContent);
-		if (LUA->IsType(3, GarrysMod::Lua::Type::Function))
+		if (LUA->IsType(4, GarrysMod::Lua::Type::Function))
 		{
-			LUA->Push(3);
+			LUA->Push(4);
 			CallLuaTokenizeContent(LUA, tokens, -1, false);
 		}
 
