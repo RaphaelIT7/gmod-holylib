@@ -11,6 +11,7 @@
 #include "networkstringtable.h"
 #include "picosha2/picosha2.h"
 #include <atomic>
+#include <deque>
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -51,6 +52,9 @@ IModule* pGModDataPackModule = &g_pGModDataPackModule;
 	TK(TK_DO) \
 	TK(TK_OR) \
 	TK(TK_AND) \
+	TK(TK_NOT) \
+	TK(TK_EQUAL) \
+	TK(TK_NOT_EQUAL) \
 	TK(TK_GREATER_OR_EQUAL) \
 	TK(TK_GREATER) \
 	TK(TK_LESS_OR_EQUAL) \
@@ -99,6 +103,7 @@ static inline TokenType KeywordType(const std::string& strWord)
 	if (strWord == "return") return TK_RETURN;
 	if (strWord == "then") return TK_THEN;
 	if (strWord == "end") return TK_END;
+	if (strWord == "not") return TK_NOT;
 	if (strWord == "do") return TK_DO;
 	if (strWord == "elseif") return TK_ELSEIF;
 	if (strWord == "else") return TK_ELSE;
@@ -171,6 +176,20 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 		{
 			tokens.push_back({TK_OR, content.substr(i, 2), true});
 			i+=2;
+			continue;
+		}
+
+		if (i+1 < content.size() && ((c == '!' && content[i+1] == '=') || (c == '~' && content[i+1] == '=')))
+		{
+			tokens.push_back({TK_NOT_EQUAL, content.substr(i, 2), true});
+			i+= 2;
+			continue;
+		}
+
+		if (i+1 < content.size() && ((c == '=' && content[i+1] == '=')))
+		{
+			tokens.push_back({TK_EQUAL, content.substr(i, 2), true});
+			i+= 2;
 			continue;
 		}
 
@@ -379,41 +398,19 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 			continue;
 		}
 
+		if (c == '!')
+		{
+			tokens.push_back({TK_NOT, std::string(1, c), true});
+			i++;
+			continue;
+		}
+
 		tokens.push_back({TK_SOMETHING, std::string(1, c)});
 		i++;
 	}
 
 	tokens.push_back({TK_EOF, ""});
 	return tokens;
-}
-
-static bool CanServerConditionBeRemoved(const std::vector<Token> &tokens, size_t start)
-{
-	bool isServer = false;
-	int depth = 0;
-	while (tokens[start].type != TK_THEN && tokens[start].type != TK_DO && start < tokens.size())
-	{
-		if (depth == 0)
-		{
-			if (tokens[start].type == TK_SOMETHING && tokens[start].content == "SERVER")
-				isServer = true;
-
-			if (tokens[start].type == TK_OR) // We don't know yet
-				isServer = false;
-		}
-
-		if (tokens[start].type == TK_PARENTHESIS)
-		{
-			if (tokens[start].content == "(")
-				++depth;
-			else
-				--depth;
-		}
-
-		start++;
-	}
-
-	return isServer;
 }
 
 static size_t SkipEmpty(const std::vector<Token> &tokens, size_t start)
@@ -424,12 +421,130 @@ static size_t SkipEmpty(const std::vector<Token> &tokens, size_t start)
 	return start;
 }
 
+static bool IsNotTK(const std::vector<Token>& tokens, size_t i)
+{
+	TokenType tk = tokens[i].type;
+	if (tk == TK_NOT) // Backtracking time... yay
+	{
+		while (i > 0)
+		{
+			--i;
+			if (tokens[i].isSpace)
+				continue;
+
+			if (tokens[i].type != TK_NOT)
+				break;
+
+			tk = tk == TK_NOT ? TK_INVALID : TK_NOT;
+		}
+	}
+
+	return tk == TK_NOT;
+}
+
+struct ScopeEvalInfo
+{
+	bool isEmpty = true;
+	TokenType evalToken = TokenType::TK_INVALID;
+	size_t start;
+	size_t end;
+	std::vector<bool> isServer = {false}; // if we got an or we must check every side
+};
+
+// Input start must be advanced by 1!
+// We expect that the start argument was moved to the TK_THEN or TK_DO when were done!
+static bool CanServerConditionBeRemoved(const std::vector<Token> &tokens, size_t& start)
+{
+	std::deque<size_t> pScopeIDs;
+	std::vector<ScopeEvalInfo> pScopes;
+	pScopes.emplace_back();
+	pScopes[0].start = start;
+	pScopeIDs.push_back(0);
+
+	int lastNonEmpty = 0; // To avoid backtracking! (Now it just is a very small save in backtracking I guess)
+	while (tokens[start].type != TK_THEN && tokens[start].type != TK_DO && start < tokens.size())
+	{
+		if (!tokens[start].isSpace && tokens[start].type != TK_PARENTHESIS)
+			pScopes[pScopeIDs.back()].isEmpty = false;
+
+		if (tokens[start].type == TK_SOMETHING)
+		{
+			if (tokens[start].content == "SERVER" && !IsNotTK(tokens, lastNonEmpty))
+			{
+				pScopes[pScopeIDs.back()].isServer[pScopes[pScopeIDs.back()].isServer.size()-1] = true;
+			} else if (tokens[start].content == "CLIENT" && IsNotTK(tokens, lastNonEmpty))
+			{
+				pScopes[pScopeIDs.back()].isServer[pScopes[pScopeIDs.back()].isServer.size()-1] = true;
+			}
+		}
+
+		if (tokens[start].type == TK_OR)
+		{
+			pScopes[pScopeIDs.back()].isServer.push_back(false);
+		}
+
+		if (tokens[start].type == TK_PARENTHESIS)
+		{
+			if (tokens[start].content == "(") {
+				pScopes.emplace_back();
+				pScopeIDs.push_back(pScopes.size()-1);
+				pScopes[pScopeIDs.back()].start = start;
+
+				pScopes[pScopeIDs.back()].evalToken = IsNotTK(tokens, lastNonEmpty) ? TK_NOT : TK_INVALID;
+			} else {
+				size_t prevID = pScopeIDs.back();
+				pScopes[prevID].end = start;
+				
+				bool wasServer = pScopes[prevID].evalToken != TK_NOT;
+				for (bool bServer : pScopes[prevID].isServer)
+				{
+					if (bServer)
+						continue;
+
+					wasServer = false;
+					break;
+				}
+
+				pScopeIDs.pop_back();
+				pScopes[pScopeIDs.back()].isServer[pScopes[pScopeIDs.back()].isServer.size()-1] = wasServer;
+			}
+		}
+
+		if (!tokens[start].isSpace)
+			lastNonEmpty = start;
+
+		start++;
+	}
+	pScopes[0].end = start;
+	pScopeIDs.pop_back();
+
+	bool isServer = true;
+	for (const ScopeEvalInfo& info : pScopes)
+	{
+		if (info.isEmpty)
+			continue;
+
+		for (bool bServer : info.isServer)
+		{
+			if (bServer)
+				continue;
+
+			isServer = false;
+			break;
+		}
+
+		break;
+	}
+
+	return isServer;
+}
+
 // The goal is to remove parts of a Lua script without changing the line number (so that errors remain easy to debug!)
-static size_t RemoveScoped(size_t i, size_t j, std::vector<Token> &tokens, std::stringstream& ss, TokenType tok)
+static size_t RemoveScoped(size_t i, std::vector<Token> &tokens, std::stringstream& ss, TokenType tok, bool& hasLineBreaks)
 {
 	int depth = 1;
-	i = j + 1;
-	bool bHasLineBreaks = false; // If it's a one line if -> "if x then x else x end" then we won't restore spaces
+	++i;
+	hasLineBreaks = false; // If it's a one line if -> "if x then x else x end" then we won't restore spaces
 	while (i < tokens.size() && depth > 0)
 	{
 		if (tokens[i].type == TK_THEN || tokens[i].type == TK_DO || tokens[i].type == TK_FUNCTION)
@@ -440,9 +555,9 @@ static size_t RemoveScoped(size_t i, size_t j, std::vector<Token> &tokens, std::
 			if (tok == TK_ELSEIF && depth <= 0)
 				continue;
 		}
-		else if (tokens[i].type == TK_SOMETHING && tokens[i].content == "\n")
+		else if (tokens[i].type == TK_LINEEND)
 		{
-			bHasLineBreaks = true;
+			hasLineBreaks = true;
 			ss << '\n';
 		}
 		else if (tokens[i].type == TK_COMMENT)
@@ -452,13 +567,6 @@ static size_t RemoveScoped(size_t i, size_t j, std::vector<Token> &tokens, std::
 		}
 		else if (tokens[i].type == TK_ELSE && depth == 1)
 		{
-			if (tok == TK_IF)
-				tokens[i].content = "do";
-
-			// If we had for example "	elseif xx then" we want to restore the space before it.
-			while (bHasLineBreaks && i-1 > 0 && tokens[i-1].isSpace && !(tokens[i-1].type == TK_SOMETHING && tokens[i-1].content == "\n"))
-				i--;
-
 			depth--;
 			continue;
 		}
@@ -466,18 +574,28 @@ static size_t RemoveScoped(size_t i, size_t j, std::vector<Token> &tokens, std::
 		{
 			depth--;
 			if (depth <= 0)
-			{
-				tokens[i].content = tok == TK_IF ? "if" : "elseif";
-				// If we had for example "	elseif xx then" we want to restore the space before it.
-				while (bHasLineBreaks && i-1 > 0 && tokens[i-1].isSpace && !(tokens[i-1].type == TK_SOMETHING && tokens[i-1].content == "\n"))
-					i--;
-
 				continue;
-			}
 		}
 
 		i++;
 	}
+
+	return i;
+}
+
+static size_t RemoveServerScoped(size_t j, std::vector<Token> &tokens, std::stringstream& ss, TokenType tok)
+{
+	bool hasLineBreaks = false;
+	size_t i = RemoveScoped(j, tokens, ss, TK_IF, hasLineBreaks);
+
+	if (tokens[i].type == TK_ELSEIF)
+		tokens[i].content = tok == TK_IF ? "if" : "elseif";
+	else if (tokens[i].type == TK_ELSE)
+		tokens[i].content = "do";
+
+	// If we had for example "	elseif xx then" we want to restore the space before it.
+	while (hasLineBreaks && i-1 > 0 && tokens[i-1].isSpace && tokens[i-1].type != TK_LINEEND)
+		i--;
 
 	return i;
 }
@@ -500,15 +618,12 @@ std::string ProcessTokens(std::vector<Token> &tokens, bool bRemoveServerCode, bo
 
 		if (bRemoveServerCode && tok.type == TK_IF)
 		{
-			size_t j = i + 1;
-			j = SkipEmpty(tokens, j);
+			size_t j = i+1;
 			if (CanServerConditionBeRemoved(tokens, j))
 			{
-				j++;
-				j = SkipEmpty(tokens, j);
 				if (j < tokens.size() && tokens[j].type == TK_THEN)
 				{
-					i = RemoveScoped(i, j, tokens, ss, TK_IF);
+					i = RemoveServerScoped(j, tokens, ss, TK_IF);
 					continue;
 				}
 			}
@@ -516,15 +631,12 @@ std::string ProcessTokens(std::vector<Token> &tokens, bool bRemoveServerCode, bo
 
 		if (bRemoveServerCode && tok.type == TK_ELSEIF)
 		{
-			size_t j = i + 1;
-			j = SkipEmpty(tokens, j);
+			size_t j = i+1;
 			if (CanServerConditionBeRemoved(tokens, j))
 			{
-				j++;
-				j = SkipEmpty(tokens, j);
 				if (j < tokens.size() && tokens[j].type == TK_THEN)
 				{
-					i = RemoveScoped(i, j, tokens, ss, TK_ELSEIF);
+					i = RemoveServerScoped(j, tokens, ss, TK_ELSEIF);
 					continue;
 				}
 			}

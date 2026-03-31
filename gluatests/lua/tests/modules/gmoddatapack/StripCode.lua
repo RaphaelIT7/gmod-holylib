@@ -29,9 +29,32 @@ end
 if CLIENT then
 	print("client")
 else
-	print("server") -- NOTE: if CLIENT isn't supported yet
+	print("server")-- NOTE: if CLIENT isn't supported yet
 end
-]===]
+
+if not CLIENT then
+	print("server")-- This does work
+else
+	print("client")
+end
+
+if not CLIENT or SERVER then -- should be valid
+	print("server")-- This does work
+else
+	print("client")
+end
+
+if not CLIENT or xyz then-- Should fail due to xyz
+	print("server")
+else
+	print("client")
+end
+
+if (not CLIENT) or (SERVER) then-- Should work too
+	print("server")
+else
+	print("client")
+end]===]
 
 local resultCode = [===[
 
@@ -66,7 +89,30 @@ if CLIENT then
 else
 	print("server")
 end
-]===]
+
+
+
+do
+	print("client")
+end
+
+
+
+do
+	print("client")
+end
+
+if not CLIENT or xyz then
+	print("server")
+else
+	print("client")
+end
+
+
+
+do
+	print("client")
+end]===]
 
 return {
     groupName = "gmoddatapack.StripCode",
@@ -86,7 +132,7 @@ return {
             end
         },
         {
-            name = "Properly creates a buffer from a string",
+            name = "Properly strips out comments and server code",
             when = HolyLib_IsModuleEnabled("gmoddatapack"),
             func = function()
                 expect( gmoddatapack.StripCode(testCode, true, true) ).to.equal( resultCode )
