@@ -586,7 +586,7 @@ static size_t RemoveScoped(size_t i, std::vector<Token> &tokens, std::stringstre
 static size_t RemoveServerScoped(size_t j, std::vector<Token> &tokens, std::stringstream& ss, TokenType tok)
 {
 	bool hasLineBreaks = false;
-	size_t i = RemoveScoped(j, tokens, ss, TK_IF, hasLineBreaks);
+	size_t i = RemoveScoped(j, tokens, ss, tok, hasLineBreaks);
 
 	if (tokens[i].type == TK_ELSEIF)
 		tokens[i].content = tok == TK_IF ? "if" : "elseif";

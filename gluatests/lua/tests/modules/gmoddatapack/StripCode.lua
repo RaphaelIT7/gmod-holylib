@@ -54,6 +54,20 @@ if (not CLIENT) or (SERVER) then-- Should work too
 	print("server")
 else
 	print("client")
+end
+
+if CLIENT then
+	print("server")-- This does work
+elseif SERVER then
+	print("server")
+end
+
+if CLIENT then
+	print("server")-- This does work
+elseif SERVER then
+	print("server")
+elseif xyz then
+	print("shared")
 end]===]
 
 local resultCode = [===[
@@ -112,6 +126,20 @@ end
 
 do
 	print("client")
+end
+
+if CLIENT then
+	print("server")
+
+
+end
+
+if CLIENT then
+	print("server")
+
+
+elseif xyz then
+	print("shared")
 end]===]
 
 return {
