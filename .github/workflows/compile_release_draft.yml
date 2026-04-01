@@ -1,0 +1,343 @@
+# ToDo: Update https://github.com/RaphaelIT7/gmod-common-module-base/blob/workflow/.github/workflows/compile-release.yml once I made up my mind how to handle win dedicated servers
+name: Build Release Draft
+
+on: 
+  workflow_dispatch:
+
+jobs:
+  build_holylib:
+    uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
+    with:
+      PROJECT_NAME: "holylib"
+      BUILD_64x: "true"
+      REALM: "sv"
+      LINUX_FILEEXTENTION: "so"
+      BUILD_WINDOWS: "true"
+      ARTIFACT_EXPIRE: "7"
+      SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
+      SOURCESDK_MINIMAL_BRANCH: "patch-7"
+      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
+      GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
+      GARRYSMOD_COMMON_BRANCH: "holylib"
+      ADDITIONAL_DATA: "1"
+      UPLOAD_PDB: "true"
+
+  build_holylib_windows_dedicated:
+    name: "Build Plugin (Dedicated)"
+    uses: polepie/gmod-common-module-base/.github/workflows/compile.yml@workflow
+    with:
+      PROJECT_NAME: "holylib"
+      BUILD_64x: "true"
+      REALM: "sv"
+      BUILD_WINDOWS: "true"
+      BUILD_LINUX: "false"
+      ARTIFACT_EXPIRE: "7"
+      SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
+      SOURCESDK_MINIMAL_BRANCH: "patch-7"
+      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
+      GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
+      GARRYSMOD_COMMON_BRANCH: "holylib"
+      UPLOAD_PDB: "true"
+      BUILD_WINDOWS_DEDICATED: "true"
+
+  build_ghostinj:
+    uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
+    with:
+      PROJECT_PATH: "ghostinj-dll/"
+      PROJECT_NAME: "ghostinj"
+      BUILD_64x: "true"
+      LINUX_FILEEXTENTION: "dll"
+      BUILD_WINDOWS: "false"
+      USE_PREFIX: "false"
+      ARTIFACT_EXPIRE: "7"
+      ADDITIONAL_DATA: "1"
+      SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
+      SOURCESDK_MINIMAL_BRANCH: "patch-7"
+      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
+      GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
+
+  release:
+    runs-on: ubuntu-latest
+    needs: [build_holylib, build_holylib_windows_dedicated, build_ghostinj]
+    if: ${{ always() }}
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        name: "Checkout required files"
+        with:
+          sparse-checkout: |
+            holylib_linux.vdf
+            holylib_linux_64.vdf
+
+      - name: Create folders
+        run: |
+          mkdir linux32
+          mkdir linux64
+          mkdir win32
+          mkdir win64
+          mkdir win32dedicated
+          mkdir win64dedicated
+          mkdir ghostinj32
+          mkdir ghostinj64
+
+      - uses: actions/download-artifact@v4
+        name: Download gmsv_holylib_linux.so
+        with:
+          name: "gmsv_holylib_linux.so"
+          path: "linux32/"
+          run-id: ${{inputs.ARTIFACT_ID}}
+
+      - uses: actions/download-artifact@v4
+        name: Download gmsv_holylib_linux64.so (64x)
+        with:
+          name: "gmsv_holylib_linux64.so (64x)"
+          path: "linux64/"
+          run-id: ${{inputs.ARTIFACT_ID}}
+
+      - uses: actions/download-artifact@v4
+        name: Download gmsv_holylib_win32.dll
+        with:
+          name: "gmsv_holylib_win32.dll"
+          path: "win32/"
+          run-id: ${{inputs.ARTIFACT_ID}}
+
+      - uses: actions/download-artifact@v4
+        name: Download gmsv_holylib_win64.dll (64x)
+        with:
+          name: "gmsv_holylib_win64.dll (64x)"
+          path: "win64/"
+          run-id: ${{inputs.ARTIFACT_ID}}
+
+      - uses: actions/download-artifact@v4
+        name: Download gmsv_holylib_win32.dll (Dedicated)
+        with:
+          name: "gmsv_holylib_win32.dll (Dedicated)"
+          path: "win32dedicated/"
+          run-id: ${{inputs.ARTIFACT_ID}}
+
+      - uses: actions/download-artifact@v4
+        name: Download gmsv_holylib_win64.dll (64x) (Dedicated)
+        with:
+          name: "gmsv_holylib_win64.dll (64x) (Dedicated)"
+          path: "win64dedicated/"
+          run-id: ${{inputs.ARTIFACT_ID}}
+
+      - uses: actions/download-artifact@v4
+        name: Download gmsv_holylib_win32.pdb
+        with:
+          name: "gmsv_holylib_win32.pdb"
+          path: "win32/"
+          run-id: ${{inputs.ARTIFACT_ID}}
+
+      - uses: actions/download-artifact@v4
+        name: Download gmsv_holylib_win64.pdb (64x)
+        with:
+          name: "gmsv_holylib_win64.pdb (64x)"
+          path: "win64/"
+          run-id: ${{inputs.ARTIFACT_ID}}
+
+      - uses: actions/download-artifact@v4
+        name: Download gmsv_holylib_win32.pdb (Dedicated)
+        with:
+          name: "gmsv_holylib_win32.pdb (Dedicated)"
+          path: "win32dedicated/"
+          run-id: ${{inputs.ARTIFACT_ID}}
+
+      - uses: actions/download-artifact@v4
+        name: Download gmsv_holylib_win64.pdb (64x) (Dedicated)
+        with:
+          name: "gmsv_holylib_win64.pdb (64x) (Dedicated)"
+          path: "win64dedicated/"
+          run-id: ${{inputs.ARTIFACT_ID}}
+
+      - uses: actions/download-artifact@v4
+        name: Download ghostinj.dll
+        with:
+          name: "ghostinj.dll"
+          path: "ghostinj32/"
+          run-id: ${{inputs.ARTIFACT_ID}}
+
+      - uses: actions/download-artifact@v4
+        name: Download ghostinj.dll (64x)
+        with:
+          name: "ghostinj.dll (64x)"
+          path: "ghostinj64/"
+          run-id: ${{inputs.ARTIFACT_ID}}
+
+      - name: Create sha256
+        run: |
+          echo -n "linux32/gmsv_holylib_linux.so" | sha256sum
+          echo -n "linux64/gmsv_holylib_linux64.so" | sha256sum
+          echo -n "win32/gmsv_holylib_win32.dll" | sha256sum
+          echo -n "win64/gmsv_holylib_win64.dll" | sha256sum
+          echo -n "win32dedicated/gmsv_holylib_win32.dll" | sha256sum
+          echo -n "win64dedicated/gmsv_holylib_win64.dll" | sha256sum
+          echo -n "ghostinj32/ghostinj.dll" | sha256sum
+          echo -n "ghostinj64/ghostinj.dll" | sha256sum
+
+      - name: Create Release
+        id: create_release
+        uses: shogo82148/actions-create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.run_id }}
+          release_name: Release ${{ github.run_id }}
+          draft: true
+          prerelease: false
+          make_latest: false
+
+      - name: Upload gmsv_holylib_linux.so
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: linux32/gmsv_holylib_linux.so
+          asset_name: gmsv_holylib_linux.so
+          asset_content_type: application/octet-stream
+
+      - name: Upload gmsv_holylib_linux64.so (64x)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: linux64/gmsv_holylib_linux64.so
+          asset_name: gmsv_holylib_linux64.so
+          asset_content_type: application/octet-stream
+
+      - name: Upload gmsv_holylib_win32.dll
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: win32/gmsv_holylib_win32.dll
+          asset_name: gmsv_holylib_win32.dll
+          asset_content_type: application/octet-stream
+
+      - name: Upload gmsv_holylib_win64.dll (64x)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: win64/gmsv_holylib_win64.dll
+          asset_name: gmsv_holylib_win64.dll
+          asset_content_type: application/octet-stream
+
+      - name: Upload gmsv_holylib_win32.dll (Dedicated)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: win32dedicated/gmsv_holylib_win32.dll
+          asset_name: gmsv_holylib_win32.dll (Dedicated)
+          asset_content_type: application/octet-stream
+
+      - name: Upload gmsv_holylib_win64.dll (64x) (Dedicated)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: win64dedicated/gmsv_holylib_win64.dll
+          asset_name: gmsv_holylib_win64.dll (Dedicated)
+          asset_content_type: application/octet-stream
+
+      - name: Upload gmsv_holylib_win32.pdb
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: win32/gmsv_holylib_win32.pdb
+          asset_name: gmsv_holylib_win32.pdb
+          asset_content_type: application/octet-stream
+
+      - name: Upload gmsv_holylib_win64.pdb (64x)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: win64/gmsv_holylib_win64.pdb
+          asset_name: gmsv_holylib_win64.pdb
+          asset_content_type: application/octet-stream
+
+      - name: Upload gmsv_holylib_win32.pdb (Dedicated)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: win32dedicated/gmsv_holylib_win32.pdb
+          asset_name: gmsv_holylib_win32.pdb (Dedicated)
+          asset_content_type: application/octet-stream
+
+      - name: Upload gmsv_holylib_win64.pdb (64x) (Dedicated)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: win64dedicated/gmsv_holylib_win64.pdb
+          asset_name: gmsv_holylib_win64.pdb (Dedicated)
+          asset_content_type: application/octet-stream
+
+      - name: Upload ghostinj.dll
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ghostinj32/ghostinj.dll
+          asset_name: ghostinj.dll
+          asset_content_type: application/octet-stream
+
+      - name: Upload ghostinj.dll (64x)
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ghostinj64/ghostinj.dll
+          asset_name: ghostinj.dll (64x)
+          asset_content_type: application/octet-stream
+
+      - name: Upload holylib_linux.vdf
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: holylib_linux.vdf
+          asset_name: holylib_linux.vdf
+          asset_content_type: application/octet-stream
+
+      - name: Upload holylib_linux_64.vdf
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: holylib_linux_64.vdf
+          asset_name: holylib_linux_64.vdf
+          asset_content_type: application/octet-stream
+
+      - uses: geekyeggo/delete-artifact@v5
+        with:
+          name: |
+            "gmsv_holylib_linux.so"
+            "gmsv_holylib_linux64.so (64x)"
+            "gmsv_holylib_win32.dll"
+            "gmsv_holylib_win64.dll (64x)"
+            "gmsv_holylib_win32.dll (Dedicated)"
+            "gmsv_holylib_win64.dll (64x) (Dedicated)"
+            "gmsv_holylib_win32.pdb (Dedicated)"
+            "gmsv_holylib_win64.pdb (64x) (Dedicated)"
+            "ghostinj.dll"
+            "ghostinj.dll (64x)"

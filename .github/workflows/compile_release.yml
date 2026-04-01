@@ -1,4 +1,4 @@
-name: Build Release
+name: Build Release Build
 
 on: 
   workflow_dispatch:
@@ -17,7 +17,28 @@ jobs:
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
       SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
+      GARRYSMOD_COMMON_BRANCH: "holylib"
       ADDITIONAL_DATA: "1"
+
+  build_plugin_windows_dedicated:
+    name: "Build Plugin (Dedicated)"
+    uses: polepie/gmod-common-module-base/.github/workflows/compile.yml@workflow
+    with:
+      PROJECT_NAME: "holylib"
+      BUILD_64x: "true"
+      REALM: "sv"
+      LINUX_FILEEXTENTION: "so"
+      BUILD_WINDOWS: "true"
+      BUILD_LINUX: "false"
+      ARTIFACT_EXPIRE: "7"
+      SOURCESDK_MINIMAL: "RaphaelIT7/sourcesdk-minimal"
+      SOURCESDK_MINIMAL_BRANCH: "patch-7"
+      SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
+      GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
+      GARRYSMOD_COMMON_BRANCH: "holylib"
+      BUILD_CACHE: "true"
+      UPLOAD_PDB: "true"
+      BUILD_WINDOWS_DEDICATED: "true"
 
   build_ghostinj:
     uses: RaphaelIT7/gmod-common-module-base/.github/workflows/compile.yml@workflow
@@ -34,3 +55,4 @@ jobs:
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
       SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
+      GARRYSMOD_COMMON_BRANCH: "holylib"
