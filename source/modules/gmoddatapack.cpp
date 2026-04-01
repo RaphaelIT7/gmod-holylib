@@ -413,14 +413,6 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 	return tokens;
 }
 
-static size_t SkipEmpty(const std::vector<Token> &tokens, size_t start)
-{
-	while (start < tokens.size() && (tokens[start].isSpace || tokens[start].type == TK_PARENTHESIS))
-		start++;
-
-	return start;
-}
-
 static bool IsNotTK(const std::vector<Token>& tokens, size_t i)
 {
 	TokenType tk = tokens[i].type;

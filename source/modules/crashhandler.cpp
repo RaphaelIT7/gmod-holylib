@@ -653,6 +653,7 @@ static bool AttemptLuaCallback(bool bMainThreadCrash)
 }
 
 static ThreadId_t g_nMainThreadID = -1;
+#if 0
 // Unlike our crash handler, we here will be in a more "safe" context.
 // ToDo / WIP:
 // We want to attach ourselves to the thread and attempt to get a backtrace, BUT we need to figure out a way to get the stack frames safely for unwinding :/
@@ -674,6 +675,7 @@ static void DumpMainThread()
 		return;
 #endif
 }
+#endif
 
 static inline void ExecuteMainThread() // So you have chosen... death
 {
