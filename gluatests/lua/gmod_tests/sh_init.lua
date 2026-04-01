@@ -63,23 +63,13 @@ function generate_trace()
     end, "trace")
 end
 
-local runTime = 1 -- How long in seconds we run each test
+local runTime = 0.2 -- How long in seconds we run each test
 local function PerformanceTest(callback, a, b, c)
     -- This is a loop to warm JIT & reach the full potential
     local avgTime = 0
-    local avgTimeTest = 500
+    local avgTimeTest = 100
     local avgStartTime = SysTime()
     for k=1, avgTimeTest do
-        callback(a, b, c)
-        callback(a, b, c)
-        callback(a, b, c)
-        callback(a, b, c)
-        callback(a, b, c)
-        callback(a, b, c)
-        callback(a, b, c)
-        callback(a, b, c)
-        callback(a, b, c)
-        callback(a, b, c)
         callback(a, b, c)
         callback(a, b, c)
         callback(a, b, c)
@@ -93,12 +83,21 @@ local function PerformanceTest(callback, a, b, c)
     end
     local avgTime = (SysTime() - avgStartTime) / avgTimeTest
     local loopAmount = math.max(1 / 20 / avgTime, 1) -- We do 1 / 20 so that it at wose will run 1/20 of a second longer than wanted
-    local callsPerLoop = loopAmount * 20
+    local callsPerLoop = loopAmount * 10
 
     local totalCalls = 0
     local startTime = SysTime()
     while (SysTime() - startTime) < runTime do -- We spend a total of 1 seconds to run these
         for k=1, loopAmount do
+            callback(a, b, c)
+            callback(a, b, c)
+            callback(a, b, c)
+            callback(a, b, c)
+            callback(a, b, c)
+            callback(a, b, c)
+            callback(a, b, c)
+            callback(a, b, c)
+            callback(a, b, c)
             callback(a, b, c)
         end
         totalCalls = totalCalls + callsPerLoop

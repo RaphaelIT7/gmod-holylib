@@ -110,15 +110,14 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [+] Added LZ4 compression for newly implemented net channel.<br>
 \- [+] Added `util.CompressLZ4` & `util.DecompressLZ4` to `util` module.<br>
 \- [+] Implemented a custom `CNetChan` for faster Server <-> Server connections. See https://github.com/RaphaelIT7/gmod-holylib/issues/42<br>
-\- [+] Added `HolyLib.ReceiveClientMessage` to `HolyLib` module.<br>
+\- [+] Added `HolyLib.ReceiveClientMessage` & `HolyLib.GetEnvironmentValue` (See https://github.com/RaphaelIT7/gmod-holylib/issues/139) to `HolyLib` module.<br>
 \- [+] Added `physenv.IVP_NONE` flag to `physenv` module.<br>
 \- [+] Added a few stringtable related functions to the `stringtable` module.<br>
-\- [+] Added a new hook `HolyLib:OnClientTimeout` to the `gameserver` module.<br>
-\- [+] Optimized `GM:PlayerCanHearPlayersVoice` by **only** calling it for actively speaking players/when a voice packet is received.<br>
+\- [+] Added a new hook `HolyLib:OnClientTimeout` & `HolyLib:OnClientExecuteStringCommand` to the `gameserver` module.<br>
 \- [+] Added `voicechat.LoadVoiceStreamFromWaveString`, `voicechat.ApplyEffect`, `voicechat.IsPlayerTalking` & `voicechat.LastPlayerTalked` to the `voicechat` module.<br>
 \- [+] Added `VoiceStream:ResetTick`, `VoiceStream:GetNextTick`, `VoiceStream:GetCurrentTick`, `VoiceStream:GetPreviousTick` to the `voicechat` module.<br>
 \- [+] Added `util.FancyJSONToTable` & `util.AsyncTableToJSON` to the `util` module.<br>
-\- [+] Added `gameserver.GetClientByUserID` & `gameserver.GetClientBySteamID` to the `gameserver` module.<br>
+\- [+] Added `gameserver.GetClientByUserID` & `gameserver.GetClientBySteamID` & `gameserver.GetCPUUsage` (See https://github.com/RaphaelIT7/gmod-holylib/pull/136) to the `gameserver` module.<br>
 \- [+] Added a config system allowing one to set convars without using the command line.<br>
 \- [+] Added `IPhysicsEnvironment:SetInSimulation` to the `physenv` module.<br>
 \- [+] Added `HttpResponse:SetStatusCode` to `httpserver` module. (See https://github.com/RaphaelIT7/gmod-holylib/pull/62)<br>
@@ -128,6 +127,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [+] Added a fallback method for HolyLib's internal `Util::PushEntity` function in case a Gmod update breaks our offsets which previously lead to undefined behavior<br>
 \- [+] Added a `ILuaThreadedCall` to call all modules Think function when HolyLib is loaded as a binary module/loaded using `require("holylib")`<br>
 \- [+] Added a new DLL system if anything wants to be loaded with HolyLib. (See: [example-module-dll](https://github.com/RaphaelIT7/gmod-holylib/tree/f937ba454b4d86edfc72df9cb3f8a689d7de2571/example-module-dll))<br>
+\- [+] Added JIT support to some C functions & to our `__index` and `__newindex` functions.<br>
 \- [#] Added missing numeric key conversion to `util.FancyJSONToTable` (See https://github.com/RaphaelIT7/gmod-holylib/pull/105)<br>
 \- [#] Added some more safeguards to `IPhysicsEnvironment:Simulate` to prevent one from simulating a environment that is already being simulated. (else you might end up with all memory freed & a certain crash)<br>
 \- [#] Highly optimized `util` module's json code to be noticeably faster and use noticeably less memory.<br>
@@ -189,6 +189,12 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [#] Fixed `INetworkStringTable:GetStringUserData` not fully pushing the userdata as a string<br>
 \- [#] Changed internal code to use `ArgError` instead of `ThrowError` where possible to improve Lua errors when invalid function arguments are given<br>
 \- [#] Removed dependency on bass allowing HolyLib to be loaded on Windows srcds
+\- [#] Fixed LuaJIT breaking with FTZ & DAZ XMCSR flags<br>
+\- \- Our LuaJIT build will now save, override and restore the flags when entering and exiting the VM<br>
+\- [#] Fixed our FFI Vector & Angle implementations failing to handle input strings<br>
+\- [#] Fixed our FFI Vector's `:GetNormalized` function returning a number instead of a vector (See https://github.com/RaphaelIT7/gmod-holylib/issues/130)<br>
+\- [#] Improved thread safety for lua state access<br>
+\- [#] Fixed workshop map being prioritied over local map version (See https://github.com/RaphaelIT7/gmod-holylib/issues/138)<br>
 \- [-] Removed some unused code of former fixes that were implemented into GMod<br>
 
 You can see all changes/commits here:<br>
@@ -453,6 +459,9 @@ local entity = Entity(0) -- We can use the world but normally we shouldn't.
 local userID = entity:IsPlayer() and entity:UserID() or -1
 HolyLib.ReceiveClientMessage(userID, entity, readBF, readBF:GetNumBits())
 ```
+
+#### string HolyLib.GetEnvironmentValue(string name)
+Returns the found environment variable or returns `nil`<br>
 
 ### Hooks
 
