@@ -908,11 +908,85 @@ public:
 		return &m_pLuaFileCache[fileID];
 	}
 
+	static constexpr size_t MIN_TRANSFER_RATE = 1024 * 64; // If we cannot achieve this speed we just let GMod handle it since it'll be faster at that point
+	static constexpr size_t MAX_TRANSFER_RATE = 1024 * 512;
 	struct PlayerQueue
 	{
 		std::vector<int> pQueue;
+		size_t sentFiles = 0; // This connection count (Since they are reconnected each time)
+		size_t requestCount = 0; // Total file count of this attempt
+		size_t previousCount = 0; // Total file count of this attempt
+		size_t totalSentFiles = 0; // Total sent count
+		size_t targetRate = MAX_TRANSFER_RATE; // Default rate which we will attempt to hit (and go a bit over) - this rate has no effect when useReliable = true
+		// If we sent anything unreliable at any point through this attempt we must reconnect at the end!
+		// I hate this but GMod doesn't provide a way to request which files are left & Rubat never answered in the binary-modules channel :(
 		bool usedUnreliable = false;
+		bool usedReliable = false; // We don't need to reconnect them once were done since we used the reliable stream
+		bool useReliable = false; // We may force reliable networking if the loss through unreliable is too great
+		float successRate = -1.0f;
 		double reconnectTime = -1;
+
+		void Clear()
+		{
+			pQueue.clear();
+			sentFiles = 0;
+			requestCount = 0;
+			previousCount = 0;
+			totalSentFiles = 0;
+			targetRate = MAX_TRANSFER_RATE;
+			usedUnreliable = false;
+			usedReliable = false;
+			useReliable = false;
+			reconnectTime = -1;
+			successRate = -1.0f;
+		}
+
+		// Player was reconnected... prepare for a new attempt
+		void Reconnect()
+		{
+			reconnectTime = -1;
+			successRate = -1.0f;
+			useReliable = false,
+			usedReliable = false;
+			usedUnreliable = false;
+			previousCount = requestCount;
+			requestCount = 0;
+		}
+
+		// Before sending we always recalculate
+		void RecalculateRate()
+		{
+			if (successRate != -1.0f)
+				return;
+
+			successRate = ((float)requestCount / (float)previousCount);
+			if (successRate > 0.9f)
+			{
+				// We always have some loss, to avoid issues we sent the last few through reliable to avoid wasting time with reconnecting just to find the few lost files
+				if (requestCount < 50)
+					useReliable = true;
+
+				return; // No adjustment needed
+			}
+
+			// If we got only a few files left it's not worth with this success rate to keep using the unrelibale method
+			if (requestCount < 150)
+			{
+				useReliable = true;
+				return;
+			}
+
+			// GG, loss is too high
+			if (targetRate == MIN_TRANSFER_RATE)
+			{
+				useReliable = true;
+				return;
+			}
+
+			targetRate = targetRate * successRate;
+			if (targetRate < MIN_TRANSFER_RATE)
+				targetRate = MIN_TRANSFER_RATE;
+		}
 	};
 
 public:
@@ -1095,7 +1169,12 @@ static void SendLuaFile(int clientIdx, int fileID, LuaDataPack::LuaPackEntry* pE
 {
 	if (!bNoFastTransmit && gmoddatapack_fastnetworking.GetBool() && clientIdx < ABSOLUTE_PLAYER_LIMIT)
 	{
-		g_pLuaDataPack.m_pPlayerQueue[clientIdx].pQueue.push_back(fileID);
+		if (g_pGModDataPackModule.InDebug())
+			Msg(PROJECT_NAME " - gmoddatapack: Client requested fileID %i! adding to queue...\n", fileID);
+
+		LuaDataPack::PlayerQueue& pQueue = g_pLuaDataPack.m_pPlayerQueue[clientIdx];
+		pQueue.pQueue.push_back(fileID);
+		++pQueue.requestCount;
 		return;
 	}
 
@@ -1284,10 +1363,8 @@ LUA_FUNCTION_STATIC(gmoddatapack_MarkAsTokenizeThread)
 	return 0;
 }
 
-static void SendFileThroughUnreliable(int clientIdx, int fileID)
+static bool SendFileThroughUnreliable(int clientIdx, LuaDataPack::LuaPackEntry* pEntry, int fileID)
 {
-	LuaDataPack::LuaPackEntry* pEntry = g_pLuaDataPack.GetPackEntry(fileID);
-	std::lock_guard<std::shared_mutex> lock(pEntry->mutex);
 	if (!pEntry->IsReady())
 	{
 		DevMsg(PROJECT_NAME " - gmoddatapack: File \"%i\" isn't yet ready to be sent! Compressing on main thread...\n", fileID);
@@ -1295,7 +1372,7 @@ static void SendFileThroughUnreliable(int clientIdx, int fileID)
 			g_pLuaDataPack.ProcessContent(pEntry, fileID);
 
 		if (!pEntry->IsContentReady() || !g_pLuaDataPack.CompressFile(pEntry, fileID))
-			return;
+			return false;
 	}
 
 	// Idea: What if... we simply nuke the unreliable stream to send it?
@@ -1333,6 +1410,8 @@ static void SendFileThroughUnreliable(int clientIdx, int fileID)
 		pChannel->Transmit(false);
 		pChannel->m_fClearTime = pChannel->GetTime() + 10; // Screw you! We don't want to proceed into the SignOnState before were done!
 	}
+
+	return true;
 }
 
 void CGModDataPackModule::OnClientDisconnect(CBaseClient* pClient)
@@ -1341,8 +1420,7 @@ void CGModDataPackModule::OnClientDisconnect(CBaseClient* pClient)
 	if (slot < 0 || slot >= ABSOLUTE_PLAYER_LIMIT)
 		return;
 
-	g_pLuaDataPack.m_pPlayerQueue[slot].pQueue.clear();
-	g_pLuaDataPack.m_pPlayerQueue[slot].reconnectTime = -1;
+	g_pLuaDataPack.m_pPlayerQueue[slot].Clear();
 }
 
 static double g_nLastSend = 0;
@@ -1362,29 +1440,45 @@ void CGModDataPackModule::Think(bool bSimulating)
 			if (pClient && pClient->GetNetChannel())
 				pClient->Reconnect();
 
-			pPlayerInfo.reconnectTime = -1;
-			pPlayerInfo.usedUnreliable = false;
+			pPlayerInfo.Reconnect();
 		}
 
 		if (pPlayerInfo.pQueue.empty())
 			continue;
 
+		pPlayerInfo.RecalculateRate();
 		// As the name SendFileThroughUnreliable implies, it's not reliable, when only a few files are left, it's more efficient to send them though the slower reliable stream.
-		if (pPlayerInfo.pQueue.size() < 100 && !pPlayerInfo.usedUnreliable)
+		if (pPlayerInfo.useReliable && !pPlayerInfo.usedUnreliable)
 		{
 			for (int fileID : pPlayerInfo.pQueue)
 			{
 				LuaDataPack::LuaPackEntry* pEntry = g_pLuaDataPack.GetPackEntry(fileID);
 				std::lock_guard<std::shared_mutex> lock(pEntry->mutex);
+
+				++pPlayerInfo.sentFiles;
+				++pPlayerInfo.totalSentFiles;
 				SendLuaFile(i, fileID, pEntry, true);
 			}
 			pPlayerInfo.pQueue.clear();
+			pPlayerInfo.usedReliable = true;
 		} else {
 			pPlayerInfo.usedUnreliable = true;
-			for (int j=0; j<10; ++j)
+			size_t networkedSize = 0;
+			while (networkedSize < pPlayerInfo.targetRate)
 			{
-				SendFileThroughUnreliable(i, pPlayerInfo.pQueue.back());
+				int fileID = pPlayerInfo.pQueue.back();
 				pPlayerInfo.pQueue.pop_back();
+
+				LuaDataPack::LuaPackEntry* pEntry = g_pLuaDataPack.GetPackEntry(fileID);
+				std::lock_guard<std::shared_mutex> lock(pEntry->mutex);
+
+				// We "could" try to do some work and see if any file would fit next but meeh, not worth it.
+				if (SendFileThroughUnreliable(i, pEntry, fileID))
+				{
+					networkedSize += pEntry->compressed.GetWritten();
+					++pPlayerInfo.sentFiles;
+					++pPlayerInfo.totalSentFiles;
+				}
 
 				if (pPlayerInfo.pQueue.empty())
 					break;
@@ -1396,8 +1490,13 @@ void CGModDataPackModule::Think(bool bSimulating)
 				CNetChan* pChannel = (CNetChan*)pClient->GetNetChannel();
 				pChannel->ProcessStream();
 
-				if (pPlayerInfo.pQueue.empty())
+				if (pPlayerInfo.pQueue.empty() && !pPlayerInfo.usedReliable)
 				{
+					//char pBuffer[1 << 13];
+					//bf_write msg(pBuffer, sizeof(pBuffer));
+					//msg.WriteByte(GarrysMod::NetworkMessage::RequestLuaFiles);
+					//Util::engineserver->GMOD_SendToClient( i, msg.GetData(), msg.GetNumBitsWritten() );
+
 					pPlayerInfo.reconnectTime = currentTime + 1; // Give some time for processing
 					DevMsg(PROJECT_NAME " - gmoddatapack: Marked for reconnect! (%s)\n", pClient->GetClientName());
 				}
