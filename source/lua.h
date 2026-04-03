@@ -830,6 +830,9 @@ enum class udataFlags // we use bit flags so only a total of 8 are allowed.v
 	UDATA_NO_USERTABLE = 1 << 3,
 	UDATA_INLINED_DATA = 1 << 4,
 	UDATA_REFERENCED = 1 << 5, // This userdata is a ReferencedLuaUserData and NOT LuaUserData
+	// We use this so that LuaJIT aborts traces due to the flags having changed avoiding any possible issue (even if there are none already)
+	// This was an intentional design choice for most JIT changes to guard on the GCudata::flags so they should never change frequently!
+	UDATA_INVALID = 1 << 6,
 };
 
 /*
@@ -883,9 +886,13 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 		// Since Lua creates our userdata, we need to set all the fields ourself!
 
 		flags = 0;
-		if (!bIsInline)
+		if (!bIsInline) {
 			data = pData;
-		else
+			if (data)
+				flags &= ~(int)udataFlags::UDATA_INVALID;
+			else
+				flags |= (int)udataFlags::UDATA_INVALID;
+		} else
 			flags |= (int)udataFlags::UDATA_INLINED_DATA;
 
 		// Always set as we do not care about __index calls.
@@ -944,6 +951,10 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 		}
 
 		data = pData;
+		if (data)
+			flags &= ~(int)udataFlags::UDATA_INVALID;
+		else
+			flags |= (int)udataFlags::UDATA_INVALID;
 	}
 
 	inline void PushLuaTable(GarrysMod::Lua::ILuaInterface* pLua)
@@ -1034,7 +1045,10 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 		g_pLuaUserData.erase(this);
 #endif
 		if (!(flags & (int)udataFlags::UDATA_INLINED_DATA))
+		{
 			data = nullptr;
+			flags |= (int)udataFlags::UDATA_INVALID;
+		}
 
 		return true;
 	}
