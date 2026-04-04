@@ -171,7 +171,7 @@ namespace Symbols
 		NULL_SIGNATURE, // Symbol::FromSignature("\x55\x48\x89\xE5\x41\x56\x41\x55\x41\x54\x53\x48\x89\xFB\x48\x83\xEC\x10\x0F\xB6\x87\xF6\x01\x00\x00"), // 55 48 89 E5 41 56 41 55 41 54 53 48 89 FB 48 83 EC 10 0F B6 87 F6 01 00 00
 	};
 
-	const std::vector<Symbol> CHostState_State_ChangeLevelMPSym = {
+	const std::vector<Symbol> HostState_ChangeLevelMPSym = { // Search for "changelevel" & see the function it calls at the end
 		Symbol::FromName("_Z23HostState_ChangeLevelMPPKcS0_"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x54\x49\x89\xFC\x53\x48\x89\xF3*****\x48\x89\xC7"), // 55 48 89 E5 41 54 49 89 FC 53 48 89 F3 ?? ?? ?? ?? ?? 48 89 C7
 		Symbol::FromSignature("\x55\x8B\xEC*****\x8B\xC8*****\x68\x00\x01\x00\x00\xFF\x75\x08"), // 55 8B EC ?? ?? ?? ?? ?? 8B C8 ?? ?? ?? ?? ?? 68 00 01 00 00 FF 75 08
@@ -269,7 +269,7 @@ namespace Symbols
 	const std::vector<Symbol> CVEngineServer_PrecacheGenericSym = {
 		Symbol::FromName("_ZN14CVEngineServer15PrecacheGenericEPKcb"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x89\xF3\x48\x83\xEC\x08\x0F\xB6\xF2\x48\x89\xDF"), // 55 48 89 E5 53 48 89 F3 48 83 EC 08 0F B6 F2 48 89 DF
-		Symbol::FromSignature("\x55\x8B\xEC\xFF\x75\x0C\xFF\x08*****\x83\xC4\x08\x85\xC0\x79\x12"), // 55 8B EC FF 75 0C FF 75 08 ?? ?? ?? ?? ?? 83 C4 08 85 C0 79 12
+		Symbol::FromSignature("\x55\x8B\xEC\xFF\x75\x0C\xFF\x75\x08*****\x83\xC4\x08\x85\xC0\x79\x12"), // 55 8B EC FF 75 0C FF 75 08 ?? ?? ?? ?? ?? 83 C4 08 85 C0 79 12
 		Symbol::FromSignature("\x40\x53\x48\x83\xEC\x20\x48\x8B\xDA\x41\x0F\xB6\xD0\x48\x8B\xCB"), // 40 53 48 83 EC 20 48 8B DA 41 0F B6 D0 48 8B CB
 	};
 
@@ -406,6 +406,8 @@ namespace Symbols
 		// On Windows AddSearchPath_Internal is merged into this one, you can search for ".bsp" or go down 8th in the vtable
 		Symbol::FromSignature("\x55\x8B\xEC\x81\xEC\x14\x01\x00\x00\x53\x8B\xD9\x56"), // 55 8B EC 81 EC 14 01 00 00 53 8B D9 56
 		Symbol::FromSignature("\x48\x83\xEC\x38\xC6\x44\x24\x28\x00"), // 48 83 EC 38 C6 44 24 28 00
+		// On Windows DS they are seperate again!
+		Symbol::FromSignature("\x55\x8B\xEC\x6A\x00\x6A\x01\xFF\x75\x10"), // 55 8B EC 6A 00 6A 01 FF 75 10
 	};
 
 	const std::vector<Symbol> CBaseFileSystem_AddVPKFileSym = { //Search for 'DUPLICATE: [%s]\n'

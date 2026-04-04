@@ -802,6 +802,7 @@ static inline className* Get##funcName##LuaData(GarrysMod::Lua::ILuaInterface* p
 	return (className*)Lua::GetLuaData(pLua)->GetModuleData(id); \
 }
 
+// Normally you can expect this to never return NULL if an Lua Interface was properly initialized. BUUT in the case that something is broken, it can return NULL.
 #define LUA_GetModuleData(className, moduleName, funcName) LUA_GetModuleDataWithID(className, funcName, moduleName.m_pID)
 
 /*

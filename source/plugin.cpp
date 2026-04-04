@@ -284,8 +284,14 @@ void CServerPlugin::GameFrame(bool simulating)
 	VPROF_BUDGET("HolyLib - CServerPlugin::GameFrame", VPROF_BUDGETGROUP_HOLYLIB);
 
 	g_pModuleManager.Think(simulating);
-	g_pModuleManager.LuaThink(g_Lua);
-	Lua::ThinkMainInterface();
+	// BUG!
+	// To a previous bug we managed to level shutdown and also not... shutdown???
+	// The WinDS server ended up running without Lua... and crashed later on (we also crashed... a lot)
+	if (g_Lua)
+	{
+		g_pModuleManager.LuaThink(g_Lua);
+		Lua::ThinkMainInterface();
+	}
 }
 
 //---------------------------------------------------------------------------------

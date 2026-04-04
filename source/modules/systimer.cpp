@@ -357,6 +357,9 @@ void CSysTimerModule::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
 
 	double time = GetTime();
 	auto pData = GetSysTimerLuaData(pLua);
+	if (!pData)
+		return;
+
 	for (ILuaTimer* timer : pData->pLuaTimers)
 	{
 		if (!timer->active)

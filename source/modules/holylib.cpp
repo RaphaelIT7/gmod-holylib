@@ -410,8 +410,8 @@ LUA_FUNCTION_STATIC(GetEnvironmentValue)
 }
 
 static char pLevelName[256], pLandmarkName[256] = {0};
-static Detouring::Hook detour_CHostState_State_ChangeLevelMP;
-static void hook_CHostState_State_ChangeLevelMP(const char* levelName, const char* landmarkName)
+static Detouring::Hook detour_HostState_ChangeLevelMP;
+static void hook_HostState_ChangeLevelMP(const char* levelName, const char* landmarkName)
 {
 	if (levelName) 
 	{
@@ -425,7 +425,7 @@ static void hook_CHostState_State_ChangeLevelMP(const char* levelName, const cha
 		pLandmarkName[0] = '\0';
 	}
 
-	detour_CHostState_State_ChangeLevelMP.GetTrampoline<Symbols::CHostState_State_ChangeLevelMP>()(levelName, landmarkName);
+	detour_HostState_ChangeLevelMP.GetTrampoline<Symbols::HostState_ChangeLevelMP>()(levelName, landmarkName);
 }
 
 void CHolyLibModule::LevelShutdown()
@@ -566,9 +566,9 @@ void CHolyLibModule::InitDetour(bool bPreServer)
 
 #if ARCHITECTURE_IS_X86
 	Detour::Create(
-		&detour_CHostState_State_ChangeLevelMP, "CHostState_State_ChangeLevelMP",
-		engine_loader.GetModule(), Symbols::CHostState_State_ChangeLevelMPSym,
-		(void*)hook_CHostState_State_ChangeLevelMP, m_pID
+		&detour_HostState_ChangeLevelMP, "HostState_ChangeLevelMP",
+		engine_loader.GetModule(), Symbols::HostState_ChangeLevelMPSym,
+		(void*)hook_HostState_ChangeLevelMP, m_pID
 	);
 #endif
 

@@ -246,8 +246,12 @@ namespace Symbols
 	using CBaseEntity_SetMoveType = void (GMCOMMON_CALLING_CONVENTION*)(void* ent, int, int);
 	extern const std::vector<Symbol> CBaseEntity_SetMoveTypeSym;
 
-	using CHostState_State_ChangeLevelMP = void (GMCOMMON_CALLING_CONVENTION*)(const char* levelName, const char* LandmarkName);
-	extern const std::vector<Symbol> CHostState_State_ChangeLevelMPSym;
+#if SYSTEM_LINUX
+	using HostState_ChangeLevelMP = void (GMCOMMON_CALLING_CONVENTION*)(const char* levelName, const char* LandmarkName);
+#else
+	using HostState_ChangeLevelMP = void (*)(const char* levelName, const char* LandmarkName);
+#endif
+	extern const std::vector<Symbol> HostState_ChangeLevelMPSym;
 
 	using CLuaInterface_RunStringEx = bool (GMCOMMON_CALLING_CONVENTION*)(GarrysMod::Lua::ILuaInterface* pLua, const char *filename, const char *path, const char *stringToRun, bool run, bool printErrors, bool dontPushErrors, bool noReturns);
 	extern const std::vector<Symbol> CLuaInterface_RunStringExSym;

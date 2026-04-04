@@ -815,7 +815,7 @@ void CUtilModule::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
 	VPROF_BUDGET("HolyLib - CUtilModule::LuaThink", VPROF_BUDGETGROUP_HOLYLIB);
 
 	auto pData = GetUtilLuaData(pLua);
-	if (pData->pEntries.size() == 0)
+	if (!pData || pData->pEntries.size() == 0)
 		return;
 
 	for(auto it = pData->pEntries.begin(); it != pData->pEntries.end(); )

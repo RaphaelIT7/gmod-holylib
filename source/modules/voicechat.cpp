@@ -2091,6 +2091,8 @@ LUA_FUNCTION_STATIC(voicechat_SetPlayerDeaf)
 void CVoiceChatModule::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	LuaVoiceModuleData* pData = GetVoiceChatLuaData(pLua);
+	if (!pData)
+		return;
 
 	for (int i=0; i<gpGlobals->maxClients; ++i)
 		CheckTalkingState(i, false);

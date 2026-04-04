@@ -84,7 +84,7 @@ void CUnHolyLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServer
 {
 	if (!g_pModuleManager.IsUnsafeCodeEnabled())
 	{
-		Warning(PROJECT_NAME " - unholylib: Tried to use an unsafe library while -holylib_allowunsafe is not active!");
+		Warning(PROJECT_NAME " - unholylib: Tried to use an unsafe library while -holylib_allowunsafe is not active!\n");
 		return;
 	}
 
