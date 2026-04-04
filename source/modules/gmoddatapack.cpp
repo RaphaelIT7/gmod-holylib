@@ -139,77 +139,77 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 
 		if (c == '(' || c == ')')
 		{
-			tokens.push_back({TK_PARENTHESIS, std::string(1, c), true});
+			tokens.push_back({TK_PARENTHESIS, std::string(1, c)});
 			i++;
 			continue;
 		}
 
 		if (c == '>' && i+1 < content.size() && content[i+1] == '=')
 		{
-			tokens.push_back({TK_GREATER_OR_EQUAL, content.substr(i, 2), true});
+			tokens.push_back({TK_GREATER_OR_EQUAL, content.substr(i, 2)});
 			i+=2;
 			continue;
 		}
 
 		if (c == '>')
 		{
-			tokens.push_back({TK_GREATER, std::string(1, c), true});
+			tokens.push_back({TK_GREATER, std::string(1, c)});
 			i++;
 			continue;
 		}
 
 		if (c == '<' && i+1 < content.size() && content[i+1] == '=')
 		{
-			tokens.push_back({TK_LESS_OR_EQUAL, content.substr(i, 2), true});
+			tokens.push_back({TK_LESS_OR_EQUAL, content.substr(i, 2)});
 			i+=2;
 			continue;
 		}
 
 		if (c == '<')
 		{
-			tokens.push_back({TK_LESS, std::string(1, c), true});
+			tokens.push_back({TK_LESS, std::string(1, c)});
 			i++;
 			continue;
 		}
 
 		if (i+1 < content.size() && ((c == '|' && content[i+1] == '|') || (c == 'o' && content[i+1] == 'r')))
 		{
-			tokens.push_back({TK_OR, content.substr(i, 2), true});
+			tokens.push_back({TK_OR, content.substr(i, 2)});
 			i+=2;
 			continue;
 		}
 
 		if (i+1 < content.size() && ((c == '!' && content[i+1] == '=') || (c == '~' && content[i+1] == '=')))
 		{
-			tokens.push_back({TK_NOT_EQUAL, content.substr(i, 2), true});
+			tokens.push_back({TK_NOT_EQUAL, content.substr(i, 2)});
 			i+= 2;
 			continue;
 		}
 
 		if (i+1 < content.size() && ((c == '=' && content[i+1] == '=')))
 		{
-			tokens.push_back({TK_EQUAL, content.substr(i, 2), true});
+			tokens.push_back({TK_EQUAL, content.substr(i, 2)});
 			i+= 2;
 			continue;
 		}
 
 		if (i+1 < content.size() && ((c == '&' && content[i+1] == '&') || (c == 'a' && content[i+1] == 'n' && i+2 < content.size() && content[i+2] == 'd')))
 		{
-			tokens.push_back({TK_AND, content.substr(i, c == '&' ? 2 : 3), true});
+			tokens.push_back({TK_AND, content.substr(i, c == '&' ? 2 : 3)});
 			i+= c == '&' ? 2 : 3;
 			continue;
 		}
 
 		if (c == '+')
 		{
-			tokens.push_back({TK_ADD, std::string(1, c), true});
+			tokens.push_back({TK_ADD, std::string(1, c)});
 			i++;
 			continue;
 		}
 
 		if (c == '*')
 		{
-			tokens.push_back({TK_MUL, std::string(1, c), true});
+			tokens.push_back({TK_MUL, std::string(1, c)});
 			i++;
 			continue;
 		}
@@ -386,21 +386,21 @@ static std::vector<Token> TokenizeContent(const std::string& content)
 		// NOTE: We check - and / down here since they may else conflict with -- or //
 		if (c == '-')
 		{
-			tokens.push_back({TK_SUB, std::string(1, c), true});
+			tokens.push_back({TK_SUB, std::string(1, c)});
 			i++;
 			continue;
 		}
 
 		if (c == '/')
 		{
-			tokens.push_back({TK_DIV, std::string(1, c), true});
+			tokens.push_back({TK_DIV, std::string(1, c)});
 			i++;
 			continue;
 		}
 
 		if (c == '!')
 		{
-			tokens.push_back({TK_NOT, std::string(1, c), true});
+			tokens.push_back({TK_NOT, std::string(1, c)});
 			i++;
 			continue;
 		}

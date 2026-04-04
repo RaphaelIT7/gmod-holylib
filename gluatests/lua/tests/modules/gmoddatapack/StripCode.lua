@@ -68,6 +68,12 @@ elseif SERVER then
 	print("server")
 elseif xyz then
 	print("shared")
+end
+
+function test()
+	print("hello")
+	if !SERVER then return end
+	print("world")
 end]===]
 
 local resultCode = [===[
@@ -140,6 +146,12 @@ if CLIENT then
 
 elseif xyz then
 	print("shared")
+end
+
+function test()
+	print("hello")
+	if !SERVER then return end
+	print("world")
 end]===]
 
 return {
