@@ -70,6 +70,14 @@ elseif xyz then
 	print("shared")
 end
 
+if CLIENT then
+	print("server")-- This does work
+elseif SERVER then
+	print("server")
+else
+	print("shared")
+end
+
 function test()
 	print("hello")
 	if !SERVER then return end
@@ -145,6 +153,14 @@ if CLIENT then
 
 
 elseif xyz then
+	print("shared")
+end
+
+if CLIENT then
+	print("server")
+
+
+else
 	print("shared")
 end
 

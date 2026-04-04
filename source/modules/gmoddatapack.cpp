@@ -582,7 +582,7 @@ static size_t RemoveServerScoped(size_t j, std::vector<Token> &tokens, std::stri
 
 	if (tokens[i].type == TK_ELSEIF)
 		tokens[i].content = tok == TK_IF ? "if" : "elseif";
-	else if (tokens[i].type == TK_ELSE)
+	else if (tokens[i].type == TK_ELSE && tok == TK_IF)
 		tokens[i].content = "do";
 
 	// If we had for example "	elseif xx then" we want to restore the space before it.
