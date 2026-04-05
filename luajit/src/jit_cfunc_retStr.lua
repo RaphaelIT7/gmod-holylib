@@ -28,18 +28,13 @@ end
 
 generate_trace()
 
-local loopCount = 100
-
 jit.flush()
-local res = {}
-local jit_func = test_jitcfunc6()
-local a = os.clock()
-for k=1, loopCount do
-	res[k] = jit_func()
+local val = {}
+local jit_func = test_jitcfunc7()
+for k=1, 100 do
+	val[k] = jit_func()
 end
-print("JITd CFunc:", os.clock() - a)
-print("Done")
 
-for k=1, loopCount do
-	print(k, res[k])
+for k=1, 100 do
+	print(val[k])
 end

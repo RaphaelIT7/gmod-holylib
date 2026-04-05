@@ -207,9 +207,11 @@ IRFPMDEF(FPMENUM)
   _(TAB_NOMM,	offsetof(GCtab, nomm)) \
   _(UDATA_META,	offsetof(GCudata, metatable)) \
   _(UDATA_ENV,	offsetof(GCudata, env)) \
-  _(UDATA_FLAGS, offsetof(GCudata, flags)) \
+  _(UDATA_FLAGS, offsetof(GCudata, flags)) /* You can use U16 for load if when needing to guard on both type and flags :) */ \
   _(UDATA_UDTYPE, offsetof(GCudata, udtype)) \
   _(UDATA_VALUE, sizeof(GCudata)) \
+  _(LSTR_DATA, offsetof(lua_String, data)) \
+  _(LSTR_LEN, offsetof(lua_String, length)) \
   _(SBUF_W,	sizeof(GCudata) + offsetof(SBufExt, w)) \
   _(SBUF_E,	sizeof(GCudata) + offsetof(SBufExt, e)) \
   _(SBUF_B,	sizeof(GCudata) + offsetof(SBufExt, b)) \

@@ -735,15 +735,18 @@ LJLIB_CF(test_jitcfunc5)
   return 1;
 }
 
+static int flipFun = 0;
 int test6_func(lua_State* L)
 {
-  lua_pushboolean(L, 1);
+  flipFun++;
+  lua_pushboolean(L, flipFun < 80);
   return 1;
 }
 
 int LJ_FASTCALL asm_test6_func()
 {
-  return 1;
+  flipFun++;
+  return flipFun < 80;
 }
 
 LJLIB_CF(test_jitcfunc6)
@@ -754,7 +757,38 @@ LJLIB_CF(test_jitcfunc6)
   info.func = test6_func;
   info.asmFunc = asm_test6_func;
   info.argType[0] = CFUNC_TYPE_VOID;
-  info.retType = CFUNC_TYPE_INT; //CFUNC_TYPE_BOOL;
+  info.retType = CFUNC_TYPE_BOOL;
+  info.callconv = CFUNC_CALLCONV_FASTCALL;
+  info.canerror = 0;
+  info.givestate = 0;
+
+  lua_pushtracablecclosure(L, &info);
+  return 1;
+}
+
+int test7_func(lua_State* L)
+{
+  lua_pushlstring(L, "Hello World", 4);
+  return 1;
+}
+
+lua_String* LJ_FASTCALL asm_test7_func()
+{
+  static lua_String pStr;
+  pStr.data = "Hello World";
+  pStr.length = 8;
+  return &pStr;
+}
+
+LJLIB_CF(test_jitcfunc7)
+{
+  lua_CFunctionInfo info;
+  memset(&info, 0, sizeof(info));
+
+  info.func = test7_func;
+  info.asmFunc = asm_test7_func;
+  info.argType[0] = CFUNC_TYPE_VOID;
+  info.retType = CFUNC_TYPE_STRING; //CFUNC_TYPE_BOOL;
   info.callconv = CFUNC_CALLCONV_FASTCALL;
   info.canerror = 0;
   info.givestate = 0;

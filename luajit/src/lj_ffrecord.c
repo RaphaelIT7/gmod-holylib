@@ -209,8 +209,8 @@ static IRType CFunctionInfoTypeToIRType(lua_CFunctionInfoType type)
       return IRT_UDATA;
     case CFUNC_TYPE_INT:
       return IRT_INT;
-    //case CFUNC_TYPE_BOOL:
-    //  return IRT_INT;
+    case CFUNC_TYPE_BOOL:
+      return IRT_U8;
     case CFUNC_TYPE_FLOAT:
       return IRT_FLOAT;
     case CFUNC_TYPE_DOUBLE:
@@ -230,12 +230,12 @@ static TRef CFunctionProcessType(jit_State *J, TRef ref, TRef val, TValue* value
     return emitir(IRT(IR_STRREF, IRT_PGC), val, lj_ir_kint(J, 0));
   } else if (type == CFUNC_TYPE_USERDATA) {
     // We guard on the type as we don't possibly want to get passed different userdata's and re-use the same trace
-    TRef tr = emitir(IRT(IR_FLOAD, IRT_U8), val, IRFL_UDATA_UDTYPE);
-    emitir(IRTGI(IR_EQ), tr, lj_ir_kint(J, udataV(value)->udtype));
+    TRef tr = emitir(IRT(IR_FLOAD, IRT_U16), val, IRFL_UDATA_UDTYPE);
+    emitir(IRTGI(IR_EQ), tr, lj_ir_kint(J, udataV(value)->guard));
     return val;
   } else if (type == CFUNC_TYPE_USERDATA_VALUE) {
-    TRef tr = emitir(IRT(IR_FLOAD, IRT_U8), val, IRFL_UDATA_UDTYPE);
-    emitir(IRTGI(IR_EQ), tr, lj_ir_kint(J, udataV(value)->udtype));
+    TRef tr = emitir(IRT(IR_FLOAD, IRT_U16), val, IRFL_UDATA_UDTYPE);
+    emitir(IRTGI(IR_EQ), tr, lj_ir_kint(J, udataV(value)->guard));
     return emitir(IRT(IR_FLOAD, IRT_PTR), val, IRFL_UDATA_VALUE);
   } else {
     return val;
@@ -243,14 +243,15 @@ static TRef CFunctionProcessType(jit_State *J, TRef ref, TRef val, TValue* value
 }
 
 /* Must stop the trace for classic C functions with arbitrary side-effects. */
+/* RaphaelIT7: We now support tracing of C functions :hehe: */
 static void LJ_FASTCALL recff_c(jit_State *J, RecordFFData *rd)
 {
-  if (J->fn->c.callinfo.func == 0) {
+  GCfuncC* fn = &J->fn->c;
+  if (!fn->callinfo.func) {
     recff_nyi(J, rd);
     return;
   }
 
-  GCfuncC* fn = &J->fn->c;
   uint32_t args = CCI_NARGS(&fn->callinfo);
   TRef tr = TREF_NIL;
   if (args > 0) {
@@ -292,10 +293,18 @@ static void LJ_FASTCALL recff_c(jit_State *J, RecordFFData *rd)
     } else if (fn->callinfo.retType == CFUNC_TYPE_CHARS) {
       TRef strlen = lj_ir_call(J, IRCALL_strlen, result);
       result = emitir(IRT(IR_SNEW, IRT_STR), result, strlen);
-    } //else if (fn->callinfo.retType == CFUNC_TYPE_BOOL) {
+    } else if (fn->callinfo.retType == CFUNC_TYPE_STRING) {
+      emitir(IRTG(IR_NE, IRT_TRUE), result, lj_ir_kint(J, 0)); // GUARD to avoid null pointer crashes
+      TRef strlen = emitir(IRT(IR_FLOAD, IRT_UINTP), result, IRFL_LSTR_LEN);
+      result = emitir(IRT(IR_FLOAD, IRT_PTR), result, IRFL_LSTR_DATA);
+      result = emitir(IRT(IR_SNEW, IRT_STR), result, strlen);
+    } else if (fn->callinfo.retType == CFUNC_TYPE_BOOL) {
       //RaphaelIT7: GG - You can't specify a bool return value / I got no idea yet
-      //result = emitir(IRT(IR_NE, IRT_TRUE), result, lj_ir_kint(J, 0));
-    //}
+      //WARNING: This is EXPENSIVE!!! If we return false we will mismatch & die (not really but it'll exit the trace)
+      result = emitir(IRTG(fn->callinfo.retbool == 1 ? IR_NE : IR_EQ, IRT_TRUE), result, lj_ir_kint(J, 0));
+      //result = emitconv(result, IRT_BOOL, retType, 0); // yes... I did attempt to add IRT_BOOL... didn't go well
+      //result = emitir(IRTG(IR_NE, IRT_U8), result, lj_ir_kint(J, 0));
+    }
 
     J->base[0] = result;
     rd->nres = 1;
@@ -1729,8 +1738,10 @@ static void LJ_FASTCALL recff_debug_getfenv(jit_State *J, RecordFFData *rd)
   TRef envref;
   TRef tr = J->base[0];
   if (tref_isfunc(tr)) {
-    env = tabref(funcV(&rd->argv[0])->c.env);
-    envref = emitir(IRT(IR_FLOAD, IRT_TAB), tr, IRFL_FUNC_ENV);
+    recff_nyiu(J, rd);
+    return;
+    //env = tabref(funcV(&rd->argv[0])->c.env);
+    //envref = emitir(IRT(IR_FLOAD, IRT_TAB), tr, IRFL_FUNC_ENV);
   } else if (tref_isthread(tr)) {
     env = tabref(threadV(&rd->argv[0])->env);
     envref = emitir(IRT(IR_FLOAD, IRT_TAB), tr, IRFL_THREAD_ENV);

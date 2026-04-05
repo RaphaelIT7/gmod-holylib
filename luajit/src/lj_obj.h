@@ -348,16 +348,22 @@ typedef struct GCstr {
 */
 #define LJ_UDATA_FLAG_USEMETAFORACCESS 0x02
 // NOTE: Both flags skip calling __index! USERTABLE skips calling __newindex! This is expected and intentional.
+// NOTE: The userdata is always looked up first and only then the meta access is done! This is to allow people to override functions per object using the usertable!
 
 /* Userdata object. Payload follows. */
 typedef struct GCudata {
   GCHeader;
-  uint8_t udtype;	/* Userdata type. */
-  uint8_t flags;
+  union {
+    struct {
+      uint8_t udtype;	/* Userdata type. */
+      uint8_t flags;
+    };
+    uint16_t guard; /* Useful for guarding on both type & flags */
+  };
   GCRef env;		/* Should be at same offset in GCfunc. */
   MSize len;		/* Size of payload. */
   GCRef metatable;	/* Must be at same offset in GCtab. */
-  uint32_t align1;	/* To force 8 byte alignment of the payload. */
+  uint32_t align1;	/* To force 8 byte alignment of the payload. In HolyLib we make use of this though to store data - no bytes are wasted :3 */
 } GCudata;
 
 /* Userdata types. */
@@ -494,6 +500,7 @@ typedef struct CFuncCallInfo {
   lua_CFunctionInfoType retType;
   uint8_t givestate : 1;
   uint8_t allowoptout : 1;
+  uint8_t retbool : 1;
 } CFuncCallInfo;
 
 typedef struct GCfuncC {

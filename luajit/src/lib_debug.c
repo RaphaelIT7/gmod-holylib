@@ -62,7 +62,7 @@ void blockDebug(lua_State* L, GCfunc* func)
     lj_err_arg(L, 1, LJ_ERR_BLOCKDEBUG);
 }
 
-LJLIB_CF(debug_getfenv)
+LJLIB_CF(debug_getfenv)		LJLIB_REC(.)
 {
   TValue* o = lj_lib_checkany(L, 1);
   if (o && tvisfunc(o))

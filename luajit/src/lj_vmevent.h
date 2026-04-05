@@ -7,6 +7,7 @@
 #define _LJ_VMEVENT_H
 
 #include "lj_obj.h"
+#include "gmod.h"
 
 /* Registry key for VM event handler table. */
 #define LJ_VMEVENTS_REGKEY	"_VMEVENTS"

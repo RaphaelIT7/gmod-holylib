@@ -1549,7 +1549,8 @@ TRef lj_record_idx(jit_State *J, RecordIndex *ix)
     GCudata* ud = udataV(&ix->tabv);
     GCtab *t = gco2tab(gcref(ud->env));
     TRef res = 0;
-    emitir(IRTG(IR_FLOAD, IRT_U8), ix->tab, IRFL_UDATA_FLAGS);
+    TRef tr = emitir(IRT(IR_FLOAD, IRT_U8), ix->tab, IRFL_UDATA_FLAGS);
+    emitir(IRTGI(IR_EQ), tr, lj_ir_kint(J, ud->flags));
     if (ix->val == 0) { /* Indexed load */
       RecordIndex origix = *ix;
       RecordIndex mtix = *ix;

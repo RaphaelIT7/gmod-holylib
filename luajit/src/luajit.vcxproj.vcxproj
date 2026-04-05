@@ -68,9 +68,9 @@
     <NMakePreprocessorDefinitions>_DEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
-    <NMakeBuildCommandLine>msvcbuild.bat</NMakeBuildCommandLine>
+    <NMakeBuildCommandLine>msvcbuild.bat debug</NMakeBuildCommandLine>
     <NMakeOutput>LuaJIT.exe</NMakeOutput>
-    <NMakePreprocessorDefinitions>_DEBUG;$(NMakePreprocessorDefinitions)</NMakePreprocessorDefinitions>
+    <NMakePreprocessorDefinitions>_DEBUG;$(NMakePreprocessorDefinitions);LUA_USE_ASSERT</NMakePreprocessorDefinitions>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <NMakeBuildCommandLine>msvcbuild.bat</NMakeBuildCommandLine>

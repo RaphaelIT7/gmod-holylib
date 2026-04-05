@@ -190,11 +190,11 @@ enum {
   // IDEA - maybe also TYPE_REFERENCE_TABLE and such BUT I fear that if a reference may be wrong in type it would nuke LuaJIT
   CFUNC_TYPE_USERDATA, // a GCudata
   CFUNC_TYPE_USERDATA_VALUE, // The GCudata value / pointer and NOT the actual struct
-  // CFUNC_TYPE_BOOL,
+  CFUNC_TYPE_BOOL,
   CFUNC_TYPE_INT,
   CFUNC_TYPE_FLOAT,
   CFUNC_TYPE_DOUBLE,
-  CFUNC_TYPE_STRING, // a GCstr
+  CFUNC_TYPE_STRING, // a GCstr when input, lua_String when output!
   CFUNC_TYPE_CHARS, // const char* - NULL Terminated! (will result in a Lua string alloc! -> lj_str_new)
 };
 
@@ -206,18 +206,30 @@ enum {
   CFUNC_LOAD_UDATA_POINTER_FIELD // Same as above BUT the data of the udata is expected to be a pointer to something
 };
 
+typedef struct lua_String
+{
+	const char* data;
+	size_t length;
+} lua_String;
+
 // RaphaelIT7: Experimental - a C function can give information about itself to allow JIT hopefully
 // Limited to 32 by how CCallInfo stores the argument amount (specifically CCI_NARGS_MAX) - but why would you ever need more???
 #define LUA_CFUNCINFO_MAXARGS 32
 typedef struct lua_CFunctionInfo
 {
   lua_CFunction func;
-  int upval;
+  unsigned int upval;
 
   // ASMFunc settings
   lua_CFunctionInfoCallConv callconv;
-  int canerror : 1;
-  int givestate : 1; // If 1, then the first argument will be lua_State* and you MUST set argType[0] = TYPE_LUASTATE!!!
+  unsigned int canerror : 1;
+  unsigned int givestate : 1; // If 1, then the first argument will be lua_State* and you MUST set argType[0] = TYPE_LUASTATE!!!
+  unsigned int constant : 1; // If 1, then we assume the function itself won't mutate anything and won't do an snapshot
+
+  // Used when the retType is CFUNC_TYPE_BOOL - this is the boolean value that is the most likely result!
+  // This is due to booleans being weird- we MUST assume either true or false, so we assume boolValue where 0 = FALSE and 1 = TRUE
+  // If the result does not match our expected type we will fail the trace! (That's why booleans suck)
+  unsigned int retbool : 1;
 
   // If 1, then you're telling JIT the C call can be optimized out if the return value isn't used and the return value could be reused
   // If retType == CFUNC_TYPE_VOID then you can expect the function to probably always be optimized out!
@@ -227,7 +239,7 @@ typedef struct lua_CFunctionInfo
   // You should really only set this when - the function does NOT require to ALWAYS be called
   // Additionally calls may be reduced as the results may be reused!
   // INTERNAL: Internally this enables LuaJIT's CSE (Common Subexpression Elimination) to be applied onto the call (IR_CALLXS)
-  int allowoptout : 1;
+  unsigned int allowoptout : 1;
   void* asmFunc; // Function to use inside a trace as an alternative to the C function
   lua_CFunctionInfoType retType;
   lua_CFunctionInfoType argType[LUA_CFUNCINFO_MAXARGS]; // 32 args max - if you got two args- set the third argument to TYPE_VOID or 0 to mark the end!
@@ -238,9 +250,6 @@ typedef struct lua_CFunctionInfo
 LUA_API void (lua_pushtracablecclosure) (lua_State *L, lua_CFunctionInfo *info);
 // To set the internal callinfo of an already existing CFunc
 LUA_API void (lua_settracablecclosure) (lua_State *L, int idx, lua_CFunctionInfo *info);
-
-LUA_API int (lua_makeuserdatatable) (lua_State *L, int idx);
-LUA_API int (lua_testudataindex) (lua_State *L, int idx);
 
 /*
 ** get functions (Lua -> stack)
