@@ -57,21 +57,6 @@ return {
 
                 HolyLib_RunPerformanceTest("(HolyLib) Entity.__newindex", function(ent) ent.example = "Hello World" end, ent)
                 HolyLib_RunPerformanceTest("(HolyLib) Entity.__index", function(ent) return ent.example end, ent)
-
-                -- BUG: IDK why but JIT dies :sob:
-                if debug.userdata_setusertable and debug.userdata_setmetaaccess then
-                    debug.userdata_setusertable(ent, false)
-                    debug.userdata_setmetaaccess(ent, false)
-                end
-
-                debug.setfenv(ent, prevEnv) -- Restore original since the GC does not like in GCudata::env (In default JIT it would crash! but fixed in our version)
-
-                -- Let's try to flush out those broken traces as GMod's userdata really hates these flags.
-                -- They are used for HolyLib's userdata and work just fine there- but try it on GMod's? GGs
-                jit.flush()
-                for k=1, 10 do
-               	    collectgarbage("collect")
-               	end
             end
         },
     }
