@@ -1044,6 +1044,17 @@ Adds the given Entity to be transmitted.
 > Only use this function inside the `HolyLib:PreCheckTransmit` hook!<br>
 > Do **not** use it inside `HolyLib:PostCheckTransmit` since its blocked there due to else needing some expensive changes.<br>
 
+#### pvs.PreventTransmitAllExcept(Entity ent / table ents / EntityList list)
+table ents - A sequential table containing all the entities that should be transmitted.<br>
+
+Sets the `DONTSEND` flag on all entities that are **NOT** inside the given table for the current transmit.<br>
+This function is basically the same as calling `pvs.OverrideStateFlags(ents, pvs.FL_EDICT_DONTSEND)` but excluding the entities you want to network<br>
+saving some overhead since you only have to give us a table with entities that you want to be networked while all others are excluded.<br>
+
+> [!NOTE]
+> Only use this function inside the `HolyLib:PreCheckTransmit` hook!<br>
+> It has no effect when used in `HolyLib:PostCheckTransmit`<br>
+
 #### (REMOVED AGAIN) pvs.IsEmptyBaseline()
 Returns `true` if the baseline is empty.<br>
 This should always be the case after a full update.<br>

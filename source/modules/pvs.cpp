@@ -422,12 +422,8 @@ constexpr int LUA_FL_EDICT_DONTSEND = 1 << 0;
 constexpr int LUA_FL_EDICT_ALWAYS = 1 << 1; 
 constexpr int LUA_FL_EDICT_PVSCHECK = 1 << 2;
 constexpr int LUA_FL_EDICT_FULLCHECK = 1 << 3;
-static void SetOverrideStateFlags(GarrysMod::Lua::ILuaInterface* pLua, CBaseEntity* ent, int flags, bool force)
+static void SetOverrideStateFlagsEdict(edict_t* edict, int flags, bool force)
 {
-	edict_t* edict = ent->edict();
-	if (!edict)
-		pLua->ThrowError("Failed to get edict?");
-
 	int newFlags = flags;
 	if (!force)
 	{
@@ -452,6 +448,15 @@ static void SetOverrideStateFlags(GarrysMod::Lua::ILuaInterface* pLua, CBaseEnti
 
 	g_pOverrideStateFlag[edict->m_EdictIndex] = newFlags;
 	bWasOverrideStateFlagsUsed = true;
+}
+
+static void SetOverrideStateFlags(GarrysMod::Lua::ILuaInterface* pLua, CBaseEntity* ent, int flags, bool force)
+{
+	edict_t* edict = ent->edict();
+	if (!edict)
+		pLua->ThrowError("Failed to get edict?");
+
+	SetOverrideStateFlagsEdict(edict, flags, force);
 }
 
 LUA_FUNCTION_STATIC(pvs_OverrideStateFlags)
@@ -919,6 +924,56 @@ LUA_FUNCTION_STATIC(pvs_ForceWeaponTransmit)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(pvs_PreventTransmitAllExcept)
+{
+	if (!g_pCurrentTransmitInfo)
+		LUA->ThrowError("Tried to use pvs.RemoveEntityFromTransmit while not in a CheckTransmit call!");
+
+	CBitVec<MAX_EDICTS> pEntities;
+	const int flags = LUA_FL_EDICT_DONTSEND;
+	if (LUA->IsType(1, GarrysMod::Lua::Type::Table))
+	{
+		LUA->Push(1);
+		LUA->PushNil();
+		while (LUA->Next(-2))
+		{
+			edict_t* pEdict = Util::Get_Entity(LUA, -1, true)->edict();
+			if (pEdict)
+				pEntities.Set(pEdict->m_EdictIndex);
+		}
+		LUA->Pop(1);
+#if MODULE_EXISTS_ENTITYLIST
+	} else if (Is_EntityList(LUA, 1)) {
+		EntityList* entList = Get_EntityList(LUA, 1, true);
+		for (CBaseEntity* ent : entList->GetEntities())
+		{
+			edict_t* pEdict = ent->edict();
+			if (pEdict)
+				pEntities.Set(pEdict->m_EdictIndex);
+		}
+#endif
+	} else {
+		edict_t* pEdict = Util::Get_Entity(LUA, 1, true)->edict();
+		if (pEdict)
+			pEntities.Set(pEdict->m_EdictIndex);
+	}
+
+	int idx = 0;
+	edict_t *pBaseEdict = Util::engineserver->PEntityOfEntIndex(0);
+	for (int i=0; i<g_nCurrentEdicts; ++i)
+	{
+		int iEdict = g_pCurrentEdictIndices[i];
+		edict_t *pEdict = &pBaseEdict[iEdict];
+
+		if (pEntities.IsBitSet(iEdict))
+			continue;
+
+		SetOverrideStateFlagsEdict(pEdict, flags, false);
+	}
+
+	return 0;
+}
+
 
 LUA_FUNCTION_STATIC(pvs_EnablePreTransmitHook)
 {
@@ -966,6 +1021,7 @@ void CPVSModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 		Util::AddFunc(pLua, pvs_ForceFullUpdate, "ForceFullUpdate");
 		Util::AddFunc(pLua, pvs_GetEntitiesFromTransmit, "GetEntitiesFromTransmit");
 		Util::AddFunc(pLua, pvs_ForceWeaponTransmit, "ForceWeaponTransmit");
+		Util::AddFunc(pLua, pvs_PreventTransmitAllExcept, "PreventTransmitAllExcept");
 
 		// Use the functions below only inside the HolyLib:[Pre/Post]CheckTransmit hook.  
 		Util::AddFunc(pLua, pvs_RemoveEntityFromTransmit, "RemoveEntityFromTransmit");
