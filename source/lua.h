@@ -5,6 +5,7 @@
 #include <atomic>
 #include <mutex>
 #include "../luajit/src/lua.h"
+#include <ankerl/unordered_dense.h>
 #if !defined(DISABLE_GMODJIT)
 #include "../gmod-luajit/luajit.h"
 #define LJ_UDATA_FLAG_USERTABLE 0x01 // from our JIT build
@@ -1593,7 +1594,7 @@ struct EntityList // entitylist module.
 			m_pEntReferences[pEntity] = nullptr;
 	}
 
-	inline const std::unordered_map<CBaseEntity*, GCudata*>& GetReferences()
+	inline const ankerl::unordered_dense::map<CBaseEntity*, GCudata*>& GetReferences()
 	{
 		return m_pEntReferences;
 	}
@@ -1616,7 +1617,7 @@ struct EntityList // entitylist module.
 
 private:
 	// NOTE: The Entity will always be valid but the reference can be -1!
-	std::unordered_map<CBaseEntity*, GCudata*> m_pEntReferences;
+	ankerl::unordered_dense::map<CBaseEntity*, GCudata*> m_pEntReferences;
 	std::vector<CBaseEntity*> m_pEntities;
 	GarrysMod::Lua::ILuaInterface* m_pLua = nullptr;
 };
