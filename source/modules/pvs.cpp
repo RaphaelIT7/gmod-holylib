@@ -949,6 +949,8 @@ LUA_FUNCTION_STATIC(pvs_PreventTransmitAllExcept)
 				if (!(flags & ignoreFlags))
 					pEntities.Set(pEdict->m_EdictIndex);
 			}
+
+			LUA->Pop(1);
 		}
 		LUA->Pop(1);
 #if MODULE_EXISTS_ENTITYLIST
