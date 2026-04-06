@@ -69,6 +69,7 @@ SpecialGet_LuaClass(CBaseClient, CHLTVClient, "CBaseClient", (gameserver_rawclie
 Default__index(CBaseClient);
 Default__newindex(CBaseClient);
 Default__GetTable(CBaseClient);
+Default__IsValidEXT(CBaseClient, if (!gameserver_rawclients.GetBool() && pData->IsConnected()) return false; );
 
 LUA_FUNCTION_STATIC(CBaseClient_GetPlayerSlot)
 {
@@ -116,14 +117,6 @@ LUA_FUNCTION_STATIC(CBaseClient_ClientPrint)
 
 	pClient->ClientPrintf(LUA->CheckString(2));
 	return 0;
-}
-
-LUA_FUNCTION_STATIC(CBaseClient_IsValid)
-{
-	CBaseClient* pClient = Get_CBaseClient(LUA, 1, false);
-
-	LUA->PushBool(pClient != nullptr && pClient->IsConnected());
-	return 1;
 }
 
 LUA_FUNCTION_STATIC(CBaseClient_SendLua)
@@ -840,6 +833,7 @@ void Push_CBaseClientMeta(GarrysMod::Lua::ILuaInterface* pLua)
 	Util::AddFunc(pLua, CBaseClient__newindex, "__newindex");
 	Util::AddFunc(pLua, CBaseClient__index, "__index");
 	Util::AddFunc(pLua, CBaseClient_GetTable, "GetTable");
+	LUA_REGISTER_JIT(pLua, CBaseClient_IsValid, "IsValid");
 
 	Util::AddFunc(pLua, CBaseClient_GetPlayerSlot, "GetPlayerSlot");
 	Util::AddFunc(pLua, CBaseClient_GetUserID, "GetUserID");
@@ -847,7 +841,6 @@ void Push_CBaseClientMeta(GarrysMod::Lua::ILuaInterface* pLua)
 	Util::AddFunc(pLua, CBaseClient_GetSteamID, "GetSteamID");
 	Util::AddFunc(pLua, CBaseClient_Reconnect, "Reconnect");
 	Util::AddFunc(pLua, CBaseClient_ClientPrint, "ClientPrint");
-	Util::AddFunc(pLua, CBaseClient_IsValid, "IsValid");
 	Util::AddFunc(pLua, CBaseClient_SendLua, "SendLua");
 	Util::AddFunc(pLua, CBaseClient_FireGameEvent, "FireGameEvent");
 	Util::AddFunc(pLua, CBaseClient_GetFriendsID, "GetFriendsID");
@@ -925,7 +918,10 @@ LUA_FUNCTION_STATIC(CGameClient__tostring)
 	CGameClient* pClient = (CGameClient*)Get_CBaseClient(LUA, 1, false);
 	if (!pClient || !pClient->IsConnected())
 	{
-		LUA->PushString("GameClient [NULL]");
+		if (pClient && gameserver_rawclients.GetBool())
+			LUA->PushString("GameClient [EMPTY]");
+		else
+			LUA->PushString("GameClient [NULL]");
 	} else {
 		char szBuf[128] = {};
 		V_snprintf(szBuf, sizeof(szBuf),"GameClient [%i][%s]", pClient->GetPlayerSlot(), pClient->GetClientName());
@@ -941,6 +937,7 @@ Get_LuaClass(CNetChan, "CNetChan")
 Default__index(CNetChan);
 Default__newindex(CNetChan);
 Default__GetTable(CNetChan);
+Default__IsValid(CNetChan);
 
 LUA_FUNCTION_STATIC(CNetChan__tostring)
 {
@@ -954,14 +951,6 @@ LUA_FUNCTION_STATIC(CNetChan__tostring)
 		LUA->PushString(szBuf);
 	}
 
-	return 1;
-}
-
-LUA_FUNCTION_STATIC(CNetChan_IsValid)
-{
-	CNetChan* pNetChannel = Get_CNetChan(LUA, 1, false);
-
-	LUA->PushBool(pNetChannel != nullptr);
 	return 1;
 }
 
@@ -2347,8 +2336,8 @@ void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, CNetChan__tostring, "__tostring");
 		Util::AddFunc(pLua, CNetChan__index, "__index");
 		Util::AddFunc(pLua, CNetChan__newindex, "__newindex");
-		Util::AddFunc(pLua, CNetChan_IsValid, "IsValid");
 		Util::AddFunc(pLua, CNetChan_GetTable, "GetTable");
+		LUA_REGISTER_JIT(pLua, CNetChan_IsValid, "IsValid");
 		Util::AddFunc(pLua, CNetChan_GetAvgLoss, "GetAvgLoss");
 		Util::AddFunc(pLua, CNetChan_GetAvgChoke, "GetAvgChoke");
 		Util::AddFunc(pLua, CNetChan_GetAvgData, "GetAvgData");

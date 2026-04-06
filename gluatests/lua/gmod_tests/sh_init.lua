@@ -110,7 +110,7 @@ local github_repo = string.Trim(file.Read("_workflow/github_repo.txt", "MOD") or
 local loki_public_host = string.Trim(file.Read("_workflow/loki_public_host.txt", "MOD") or "")
 local loki_host = string.Trim(file.Read("_workflow/loki_host.txt", "MOD") or "")
 local loki_api = string.Trim(file.Read("_workflow/loki_api.txt", "MOD") or "")
-function HolyLib_RunPerformanceTest(name, callback, ...)
+function HolyLib_RunPerformanceTest(name, callback, a, b, c)
     local usingPublic = (string.len(loki_host) < 3 or string.len(loki_api) < 3)
     if usingPublic and (string.len(loki_public_host) < 3) or string.len(github_repo) < 3 then
         print("Skipping performance test \"" .. name .. "\" since were missing Loki.")
@@ -130,7 +130,7 @@ function HolyLib_RunPerformanceTest(name, callback, ...)
         jit.opt.start("hotloop=1", "hotexit=1")
         jit.flush()
 
-        local totalTime, totalCalls = PerformanceTest(callback, ...)
+        local totalTime, totalCalls = PerformanceTest(callback, a, b, c)
         local timePerCall = totalTime / totalCalls
         print("Finished performance test for \"" .. name .. "\". Took " .. totalTime .. "s with a total of " .. totalCalls .." calls (" .. timePerCall .. "s per call)")
 

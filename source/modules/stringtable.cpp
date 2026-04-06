@@ -395,6 +395,7 @@ LUA_FUNCTION_STATIC(INetworkStringTable__tostring)
 Default__index(INetworkStringTable);
 Default__newindex(INetworkStringTable);
 Default__GetTable(INetworkStringTable);
+Default__IsValid(INetworkStringTable);
 
 LUA_FUNCTION_STATIC(INetworkStringTable_GetTableName)
 {
@@ -673,14 +674,6 @@ LUA_FUNCTION_STATIC(INetworkStringTable_DeleteString)
 	pElements.clear();
 
 	LUA->PushBool(true);
-	return 1;
-}
-
-LUA_FUNCTION_STATIC(INetworkStringTable_IsValid)
-{
-	CNetworkStringTable* table = (CNetworkStringTable*)Get_INetworkStringTable(LUA, 1, false);
-	
-	LUA->PushBool(table != nullptr);
 	return 1;
 }
 
@@ -1129,6 +1122,7 @@ void CStringTableModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServ
 			Util::AddFunc(pLua, INetworkStringTable__newindex, "__newindex");
 			Util::AddFunc(pLua, INetworkStringTable__index, "__index");
 			Util::AddFunc(pLua, INetworkStringTable_GetTable, "GetTable");
+			LUA_REGISTER_JIT(pLua, INetworkStringTable_IsValid, "IsValid");
 
 			Util::AddFunc(pLua, INetworkStringTable_GetTableName, "GetTableName");
 			Util::AddFunc(pLua, INetworkStringTable_GetTableId, "GetTableId");
@@ -1144,7 +1138,6 @@ void CStringTableModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServ
 			Util::AddFunc(pLua, INetworkStringTable_DeleteAllStrings, "DeleteAllStrings");
 			Util::AddFunc(pLua, INetworkStringTable_SetMaxEntries, "SetMaxEntries");
 			Util::AddFunc(pLua, INetworkStringTable_DeleteString, "DeleteString");
-			Util::AddFunc(pLua, INetworkStringTable_IsValid, "IsValid");
 			Util::AddFunc(pLua, INetworkStringTable_SetStringUserData, "SetStringUserData");
 			Util::AddFunc(pLua, INetworkStringTable_GetStringUserData, "GetStringUserData");
 			Util::AddFunc(pLua, INetworkStringTable_SetNumberUserData, "SetNumberUserData");

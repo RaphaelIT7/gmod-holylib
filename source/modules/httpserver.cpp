@@ -385,12 +385,7 @@ LUA_FUNCTION_STATIC(HttpResponse__tostring)
 Default__index(HttpResponse);
 Default__newindex(HttpResponse);
 Default__GetTable(HttpResponse);
-
-LUA_FUNCTION_STATIC(HttpResponse_IsValid)
-{
-	LUA->PushBool(Get_HttpResponse(LUA, 1, false) != nullptr);
-	return 1;
-}
+Default__IsValid(HttpResponse);
 
 LUA_JIT_WRAPPED_3(HttpResponse_SetContent,
 	LuaUserData*, pUD, Get_HttpResponse_Data(LUA, 1, true),
@@ -467,12 +462,7 @@ Default__gc(HttpRequest,
 Default__index(HttpRequest);
 Default__newindex(HttpRequest);
 Default__GetTable(HttpRequest);
-
-LUA_FUNCTION_STATIC(HttpRequest_IsValid)
-{
-	LUA->PushBool(Get_HttpRequest(LUA, 1, false) != nullptr);
-	return 1;
-}
+Default__IsValid(HttpRequest);
 
 LUA_FUNCTION_STATIC(HttpRequest_HasHeader)
 {
@@ -873,12 +863,7 @@ LUA_FUNCTION_STATIC(HttpServer__tostring)
 Default__index(HttpServer);
 Default__newindex(HttpServer);
 Default__GetTable(HttpServer);
-
-LUA_FUNCTION_STATIC(HttpServer_IsValid)
-{
-	LUA->PushBool(Get_HttpServer(LUA, 1, false) != nullptr);
-	return 1;
-}
+Default__IsValid(HttpServer);
 
 LUA_FUNCTION_STATIC(HttpServer_Get)
 {
@@ -1198,7 +1183,7 @@ void CHTTPServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, HttpServer__index, "__index");
 		Util::AddFunc(pLua, HttpServer__newindex, "__newindex");
 		Util::AddFunc(pLua, HttpServer_GetTable, "GetTable");
-		Util::AddFunc(pLua, HttpServer_IsValid, "IsValid");
+		LUA_REGISTER_JIT(pLua, HttpServer_IsValid, "IsValid");
 
 		Util::AddFunc(pLua, HttpServer_Think, "Think");
 		Util::AddFunc(pLua, HttpServer_Start, "Start");
@@ -1238,7 +1223,7 @@ void CHTTPServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, HttpResponse__index, "__index");
 		Util::AddFunc(pLua, HttpResponse__newindex, "__newindex");
 		Util::AddFunc(pLua, HttpResponse_GetTable, "GetTable");
-		Util::AddFunc(pLua, HttpResponse_IsValid, "IsValid");
+		LUA_REGISTER_JIT(pLua, HttpResponse_IsValid, "IsValid");
 
 		LUA_REGISTER_JIT(pLua, HttpResponse_SetContent, "SetContent");
 		LUA_REGISTER_JIT(pLua, HttpResponse_SetHeader, "SetHeader");
@@ -1252,7 +1237,7 @@ void CHTTPServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, HttpRequest__index, "__index");
 		Util::AddFunc(pLua, HttpRequest__newindex, "__newindex");
 		Util::AddFunc(pLua, HttpRequest_GetTable, "GetTable");
-		Util::AddFunc(pLua, HttpRequest_IsValid, "IsValid");
+		LUA_REGISTER_JIT(pLua, HttpRequest_IsValid, "IsValid");
 
 		Util::AddFunc(pLua, HttpRequest_HasHeader, "HasHeader");
 		Util::AddFunc(pLua, HttpRequest_HasParam, "HasParam");

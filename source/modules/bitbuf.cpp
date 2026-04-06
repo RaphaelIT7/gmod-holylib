@@ -62,6 +62,7 @@ LUA_FUNCTION_STATIC(bf_read__tostring)
 Default__index(bf_read);
 Default__newindex(bf_read);
 Default__GetTable(bf_read);
+Default__IsValid(bf_read);
 Default__gc(bf_read, 
 	bf_read* bf = (bf_read*)pStoredData;
 	if (bf && bFlagExplicitDelete && !bIsInlined)
@@ -70,14 +71,6 @@ Default__gc(bf_read,
 		delete bf;
 	}
 )
-
-LUA_FUNCTION_STATIC(bf_read_IsValid)
-{
-	bf_read* bf = Get_bf_read(LUA, 1, false);
-	
-	LUA->PushBool(bf != nullptr);
-	return 1;
-}
 
 LUA_FUNCTION_STATIC(bf_read_GetNumBitsLeft)
 {
@@ -528,6 +521,7 @@ LUA_FUNCTION_STATIC(bf_write__tostring)
 Default__index(bf_write);
 Default__newindex(bf_write);
 Default__GetTable(bf_write);
+Default__IsValid(bf_write);
 Default__gc(bf_write, 
 	bf_write* bf = (bf_write*)pStoredData;
 	if (bf && bFlagExplicitDelete)
@@ -536,14 +530,6 @@ Default__gc(bf_write,
 		delete bf;
 	}
 )
-
-LUA_FUNCTION_STATIC(bf_write_IsValid)
-{
-	bf_write* bf = Get_bf_write(LUA, 1, false);
-
-	LUA->PushBool(bf != nullptr);
-	return 1;
-}
 
 LUA_FUNCTION_STATIC(bf_write_GetData)
 {
@@ -1036,7 +1022,7 @@ void CBitBufModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 		Util::AddFunc(pLua, bf_read__newindex, "__newindex");
 		Util::AddFunc(pLua, bf_read__gc, "__gc");
 		Util::AddFunc(pLua, bf_read_GetTable, "GetTable");
-		Util::AddFunc(pLua, bf_read_IsValid, "IsValid");
+		LUA_REGISTER_JIT(pLua, bf_read_IsValid, "IsValid");
 		Util::AddFunc(pLua, bf_read_GetNumBitsLeft, "GetNumBitsLeft");
 		Util::AddFunc(pLua, bf_read_GetNumBitsRead, "GetNumBitsRead");
 		Util::AddFunc(pLua, bf_read_GetNumBits, "GetNumBits");
@@ -1091,7 +1077,7 @@ void CBitBufModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 		Util::AddFunc(pLua, bf_write__newindex, "__newindex");
 		Util::AddFunc(pLua, bf_write__gc, "__gc");
 		Util::AddFunc(pLua, bf_write_GetTable, "GetTable");
-		Util::AddFunc(pLua, bf_write_IsValid, "IsValid");
+		LUA_REGISTER_JIT(pLua, bf_write_IsValid, "IsValid");
 		Util::AddFunc(pLua, bf_write_GetData, "GetData");
 		Util::AddFunc(pLua, bf_write_GetNumBytesWritten, "GetNumBytesWritten");
 		Util::AddFunc(pLua, bf_write_GetNumBytesLeft, "GetNumBytesLeft");

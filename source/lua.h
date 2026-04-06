@@ -89,6 +89,10 @@ namespace RawLua {
 	extern void* AllocateCDataOrUserData(GarrysMod::Lua::ILuaInterface* pLua, int nMetaID, int nSize);
 
 	extern int GetCDataSize(lua_State* L, GCcdata* pVar);
+
+	// These versions specifically are for OUR LuaJIT version since the GCstr struct changed in versions!
+	extern const char* GetGCStrData(GCstr* str);
+	extern size_t GetGCStrLength(GCstr* str);
 }
 
 struct LuaUserData;
@@ -611,12 +615,62 @@ namespace Lua
 		LUA->RawSet(-3);
 	}
 
+	inline void AddJITOverload(GarrysMod::Lua::ILuaInterface* LUA, const char* Name, lua_CFunctionInfo info)
+	{
+		LUA->PushString(Name);
+		LUA->RawGet(-2);
+		if (LUA->IsType(-1, GarrysMod::Lua::Type::Function))
+		{
+#if MODULE_EXISTS_LUAJIT
+		if (func_lua_settracablecclosure) {
+			info.func = LUA->GetCFunction();
+			func_lua_settracablecclosure(LUA->GetState(), -1, (lua_CFunctionInfo*)&info);
+		}
+#endif
+		}
+
+		LUA->Pop(1);
+	}
+
+	inline GCstr* GetGCStr(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos)
+	{
+		LUA->CheckType(iStackPos, GarrysMod::Lua::Type::String);
+		return strV(RawLua::index2adr(LUA->GetState(), iStackPos));
+	}
+
+	// ONLY use the two GetGCStr functions below when being inside a LUA_JIT_WRAPPED function!
+	extern bool g_bUsingLuaJIT; // Hacky workaround for the LuaJIT module- this is due to GCstr being different between old 2.1 and new
+	extern thread_local GarrysMod::Lua::ILuaInterface* pExecutingInterface; // Another hacky thingy...
+	extern thread_local bool bIsCallingASM; // Only if this value is true - then we can trust Lua::pExecutingInterface
+	// NOTE: Why don't we check for global_State::cur_L? because we know that our C tracing implementation only exists in our JIT build sooo that makes things atleast easier :)
+	inline const char* GetGCStrData(GCstr* str)
+	{
+		if (!Lua::g_bUsingLuaJIT && (Lua::bIsCallingASM && Lua::pExecutingInterface == g_Lua))
+			return strdata(str);
+
+		return RawLua::GetGCStrData(str);
+	}
+
+	inline size_t GetGCStrLength(GCstr* str)
+	{
+		if (!Lua::g_bUsingLuaJIT && (Lua::bIsCallingASM && Lua::pExecutingInterface == g_Lua))
+			return str->len;
+
+		return RawLua::GetGCStrLength(str);
+	}
+
 	/*
 		New C JIT functions
 	*/
 
+	// Temp storage to avoid scope issues
+	extern thread_local lua_String pTempStr;
+
 	template<typename T> struct LuaTypeMap;
 	template<> struct LuaTypeMap<const char*> { static constexpr auto value = CFUNC_TYPE_CHARS; };
+	template<> struct LuaTypeMap<lua_String*> { static constexpr auto value = CFUNC_TYPE_STRING; };
+	template<> struct LuaTypeMap<GCstr*> { static constexpr auto value = CFUNC_TYPE_STRING; };
+	template<> struct LuaTypeMap<bool> { static constexpr auto value = CFUNC_TYPE_BOOL; };
 	template<> struct LuaTypeMap<int> { static constexpr auto value = CFUNC_TYPE_INT; };
 	template<> struct LuaTypeMap<float> { static constexpr auto value = CFUNC_TYPE_FLOAT; };
 	template<> struct LuaTypeMap<double> { static constexpr auto value = CFUNC_TYPE_DOUBLE; };
@@ -630,6 +684,7 @@ namespace Lua
 		info.asmFunc = fn;
 		info.retType = LuaTypeMap<Ret>::value;
 		info.callconv = CFUNC_CALLCONV_FASTCALL;
+		info.retbool = true; // By default in case any function returns a bool, we assume it'll most likely be true
 
 		lua_CFunctionInfoType types[] = { LuaTypeMap<Args>::value..., CFUNC_TYPE_VOID };
 
@@ -638,6 +693,18 @@ namespace Lua
 
 		return info;
 	}
+
+// We set in here Lua::pExecutingInterface because why not
+#define LUA_FUNCTION_STATIC_EXEC( FUNC ) \
+static int FUNC##__Imp( GarrysMod::Lua::ILuaInterface* LUA ); \
+static int FUNC( lua_State* L ) \
+{ \
+	GarrysMod::Lua::ILuaInterface* LUA = ((lua_GmodState*)L)->luabase; \
+	LUA->SetState(L); \
+	Lua::pExecutingInterface = LUA; \
+	return FUNC##__Imp( LUA ); \
+} \
+static int FUNC##__Imp( [[maybe_unused]] GarrysMod::Lua::ILuaInterface* LUA )
 
 // R = returns! Though JITable functions can currently only return 1 value!
 #define LUA_JIT_WRAPPED_0R(name, R1, ret1, SET1) \
@@ -649,9 +716,11 @@ static lua_CFunctionInfo ASMINFO_##name = [] { \
 	return info; \
 }(); \
 \
-LUA_FUNCTION_STATIC(name) \
+LUA_FUNCTION_STATIC_EXEC(name) \
 { \
+	Lua::bIsCallingASM = true; \
 	R1 ret1 = ASM_##name(); \
+	Lua::bIsCallingASM = false; \
 	(SET1); \
 	return 1; \
 } \
@@ -667,9 +736,11 @@ static lua_CFunctionInfo ASMINFO_##name = [] { \
 	return info; \
 }(); \
 \
-LUA_FUNCTION_STATIC(name) \
+LUA_FUNCTION_STATIC_EXEC(name) \
 { \
+	Lua::bIsCallingASM = true; \
 	ASM_##name(); \
+	Lua::bIsCallingASM = false; \
 	return 0; \
 } \
 \
@@ -696,17 +767,19 @@ static lua_CFunctionInfo ASMINFO_##name = [] { \
 	return info; \
 }(); \
 \
-LUA_FUNCTION_STATIC(name) \
+LUA_FUNCTION_STATIC_EXEC(name) \
 { \
-	T1 arg1 = (GET1); \
+	T1 arg1 = GET1; \
+	Lua::bIsCallingASM = true; \
 	R1 ret1 = ASM_##name(arg1); \
-	(SET1); \
+	Lua::bIsCallingASM = false; \
+	SET1; \
 	return 1; \
 } \
 \
 static R1 FUNC_FASTCALL ASM_##name(T1 arg1)
 
-#define LUA_JIT_WRAPPED_1(name, R1, ret1, SET1, T1, arg1, GET1) \
+#define LUA_JIT_WRAPPED_1(name, T1, arg1, GET1) \
 static void FUNC_FASTCALL ASM_##name(T1 arg1); \
 \
 static lua_CFunctionInfo ASMINFO_##name = [] { \
@@ -715,10 +788,12 @@ static lua_CFunctionInfo ASMINFO_##name = [] { \
 	return info; \
 }(); \
 \
-LUA_FUNCTION_STATIC(name) \
+LUA_FUNCTION_STATIC_EXEC(name) \
 { \
 	T1 arg1 = (GET1); \
+	Lua::bIsCallingASM = true; \
 	ASM_##name(arg1); \
+	Lua::bIsCallingASM = false; \
 	return 0; \
 } \
 \
@@ -733,13 +808,26 @@ static lua_CFunctionInfo ASMINFO_##name = [] { \
 	return info; \
 }(); \
 \
-LUA_FUNCTION_STATIC(name) \
+LUA_FUNCTION_STATIC_EXEC(name) \
 { \
-	T1 arg1 = (GET1); \
-	T2 arg2 = (GET2); \
+	T1 arg1 = GET1; \
+	T2 arg2 = GET2; \
+	Lua::bIsCallingASM = true; \
 	ASM_##name(arg1, arg2); \
+	Lua::bIsCallingASM = false; \
 	return 0; \
 } \
+\
+static void FUNC_FASTCALL ASM_##name(T1 arg1, T2 arg2)
+
+#define LUA_JIT_RAW_2(name, T1, arg1, T2, arg2) \
+static void FUNC_FASTCALL ASM_##name(T1 arg1, T2 arg2); \
+\
+static lua_CFunctionInfo ASMINFO_##name = [] { \
+	auto info = Lua::MakeJITInfo<void, T1, T2>((void*)&ASM_##name); \
+	/*info.allowoptout = 1;*/ \
+	return info; \
+}(); \
 \
 static void FUNC_FASTCALL ASM_##name(T1 arg1, T2 arg2)
 
@@ -752,12 +840,14 @@ static lua_CFunctionInfo ASMINFO_##name = [] { \
 	return info; \
 }(); \
 \
-LUA_FUNCTION_STATIC(name) \
+LUA_FUNCTION_STATIC_EXEC(name) \
 { \
 	T1 arg1 = (GET1); \
 	T2 arg2 = (GET2); \
 	T3 arg3 = (GET3); \
+	Lua::bIsCallingASM = true; \
 	ASM_##name(arg1, arg2, arg3); \
+	Lua::bIsCallingASM = false; \
 	return 0; \
 } \
 \
@@ -765,6 +855,9 @@ static void FUNC_FASTCALL ASM_##name(T1 arg1, T2 arg2, T3 arg3)
 
 #define LUA_REGISTER_JIT(LUA, funcName, name) \
 	Lua::AddJITFunc(LUA, funcName, name, ASMINFO_##funcName)
+
+#define LUA_REGISTER_OVERLOAD(LUA, funcName, name) \
+	Lua::AddJITOverload(LUA, name, ASMINFO_##funcName)
 
 	void AddLuaInterfaceReference(GarrysMod::Lua::ILuaInterface* pLua, ILuaInterfaceReference* pReference);
 	void RemoveLuaInterfaceReference(ILuaInterfaceReference* pReference);
@@ -1358,6 +1451,34 @@ LUA_FUNCTION_STATIC(className ## __newindex) \
 	LUA->Pop(1); \
 \
 	return 0; \
+}
+
+// A default IsValid function simply checking if the stored data is not null (With JIT support)
+#define Default__IsValid(className) \
+LUA_JIT_WRAPPED_1R(className ## _IsValid, \
+	bool, pIsValid, LUA->PushBool(pIsValid), \
+	LuaUserData*, pUD, Get_##className##_Data(LUA, 1, false) \
+) \
+{ \
+	className* pData = (className*)pUD->GetData(); \
+	if (!pData) \
+		return false; \
+\
+	return true; \
+}
+
+#define Default__IsValidEXT(className, extra) \
+LUA_JIT_WRAPPED_1R(className ## _IsValid, \
+	bool, pIsValid, LUA->PushBool(pIsValid), \
+	LuaUserData*, pUD, Get_##className##_Data(LUA, 1, false) \
+) \
+{ \
+	className* pData = (className*)pUD->GetData(); \
+	if (!pData) \
+		return false; \
+\
+	extra \
+	return true; \
 }
 
 // A default gc function for userData,

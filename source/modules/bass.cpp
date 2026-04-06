@@ -47,6 +47,7 @@ LUA_FUNCTION_STATIC(IGModAudioChannel__tostring)
 Default__index(IGModAudioChannel);
 Default__newindex(IGModAudioChannel);
 Default__GetTable(IGModAudioChannel);
+Default__IsValidEXT(IGModAudioChannel, if (!pData->IsValid()) return false; );
 Default__gc(IGModAudioChannel,
 	CGModAudioChannel* channel = (CGModAudioChannel*)pStoredData;
 	if (channel)
@@ -199,14 +200,6 @@ LUA_FUNCTION_STATIC(IGModAudioChannel_IsBlockStreamed)
 	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, true);
 
 	LUA->PushBool(channel->IsBlockStreamed());
-	return 1;
-}
-
-LUA_FUNCTION_STATIC(IGModAudioChannel_IsValid)
-{
-	IGModAudioChannel* channel = Get_IGModAudioChannel(LUA, 1, false);
-
-	LUA->PushBool(channel && channel->IsValid());
 	return 1;
 }
 
@@ -954,6 +947,7 @@ Get_LuaClass(IGModAudioChannelEncoder, "IGModAudioChannelEncoder")
 Default__index(IGModAudioChannelEncoder);
 Default__newindex(IGModAudioChannelEncoder);
 Default__GetTable(IGModAudioChannelEncoder);
+Default__IsValid(IGModAudioChannelEncoder);
 Default__gc(IGModAudioChannelEncoder,
 	IGModAudioChannelEncoder* channel = (IGModAudioChannelEncoder*)pStoredData;
 	if (channel)
@@ -972,14 +966,6 @@ LUA_FUNCTION_STATIC(IGModAudioChannelEncoder__tostring)
 	char szBuf[128] = {};
 	V_snprintf(szBuf, sizeof(szBuf), "IGModAudioChannelEncoder [%s]", encoder->GetFileName()); 
 	LUA->PushString(szBuf);
-	return 1;
-}
-
-LUA_FUNCTION_STATIC(IGModAudioChannelEncoder_IsValid)
-{
-	IGModAudioChannelEncoder* encoder = Get_IGModAudioChannelEncoder(LUA, 1, false);
-
-	LUA->PushBool(encoder != nullptr);
 	return 1;
 }
 
@@ -1438,7 +1424,7 @@ void CBassModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 		Util::AddFunc(pLua, IGModAudioChannelEncoder__gc, "__gc");
 		Util::AddFunc(pLua, IGModAudioChannelEncoder__index, "__index");
 		Util::AddFunc(pLua, IGModAudioChannelEncoder__newindex, "__newindex");
-		Util::AddFunc(pLua, IGModAudioChannelEncoder_IsValid, "IsValid");
+		LUA_REGISTER_JIT(pLua, IGModAudioChannelEncoder_IsValid, "IsValid");
 		Util::AddFunc(pLua, IGModAudioChannelEncoder_GetTable, "GetTable");
 		Util::AddFunc(pLua, IGModAudioChannelEncoder_ServerInit, "ServerInit");
 		Util::AddFunc(pLua, IGModAudioChannelEncoder_ServerKick, "ServerKick");
@@ -1463,6 +1449,7 @@ void CBassModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 		Util::AddFunc(pLua, IGModAudioChannel__index, "__index");
 		Util::AddFunc(pLua, IGModAudioChannel__newindex, "__newindex");
 		Util::AddFunc(pLua, IGModAudioChannel_GetTable, "GetTable");
+		LUA_REGISTER_JIT(pLua, IGModAudioChannel_IsValid, "IsValid");
 		Util::AddFunc(pLua, IGModAudioChannel_Destroy, "Destroy");
 		Util::AddFunc(pLua, IGModAudioChannel_Stop, "Stop");
 		Util::AddFunc(pLua, IGModAudioChannel_Pause, "Pause");
@@ -1480,7 +1467,6 @@ void CBassModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 		Util::AddFunc(pLua, IGModAudioChannel_IsOnline, "IsOnline");
 		Util::AddFunc(pLua, IGModAudioChannel_Is3D, "Is3D");
 		Util::AddFunc(pLua, IGModAudioChannel_IsBlockStreamed, "IsBlockStreamed");
-		Util::AddFunc(pLua, IGModAudioChannel_IsValid, "IsValid");
 		Util::AddFunc(pLua, IGModAudioChannel_GetLength, "GetLength");
 		Util::AddFunc(pLua, IGModAudioChannel_GetFileName, "GetFileName");
 		Util::AddFunc(pLua, IGModAudioChannel_GetSamplingRate, "GetSamplingRate");

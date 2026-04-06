@@ -1180,14 +1180,7 @@ LUA_FUNCTION_STATIC(IPhysicsCollisionSet__tostring)
 Default__index(IPhysicsCollisionSet);
 Default__newindex(IPhysicsCollisionSet);
 Default__GetTable(IPhysicsCollisionSet);
-
-LUA_FUNCTION_STATIC(IPhysicsCollisionSet_IsValid)
-{
-	IPhysicsCollisionSet* pCollideSet = Get_IPhysicsCollisionSet(LUA, 1, false);
-
-	LUA->PushBool(pCollideSet != nullptr);
-	return 1;
-}
+Default__IsValid(IPhysicsCollisionSet);
 
 LUA_FUNCTION_STATIC(IPhysicsCollisionSet_EnableCollisions)
 {
@@ -1233,14 +1226,7 @@ LUA_FUNCTION_STATIC(IPhysicsEnvironment__tostring)
 Default__index(ILuaPhysicsEnvironment);
 Default__newindex(ILuaPhysicsEnvironment);
 Default__GetTable(ILuaPhysicsEnvironment);
-
-LUA_FUNCTION_STATIC(IPhysicsEnvironment_IsValid)
-{
-	IPhysicsEnvironment* pEnvironment = GetPhysicsEnvironmentFromLua(LUA, 1, false);
-
-	LUA->PushBool(pEnvironment != nullptr);
-	return 1;
-}
+Default__IsValidEXT(ILuaPhysicsEnvironment, if(!pData->pEnvironment) return false;);
 
 LUA_FUNCTION_STATIC(IPhysicsEnvironment_TransferObject)
 {
@@ -1951,17 +1937,10 @@ LUA_FUNCTION_STATIC(CPhysCollide__tostring)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(CPhysCollide_IsValid)
-{
-	CPhysCollide* pCollide = Get_CPhysCollide(LUA, 1, false);
-
-	LUA->PushBool(pCollide != nullptr);
-	return 1;
-}
-
 Default__index(CPhysCollide);
 Default__newindex(CPhysCollide);
 Default__GetTable(CPhysCollide);
+Default__IsValid(CPhysCollide);
 
 LUA_FUNCTION_STATIC(CPhysPolysoup__tostring)
 {
@@ -1974,17 +1953,10 @@ LUA_FUNCTION_STATIC(CPhysPolysoup__tostring)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(CPhysPolysoup_IsValid)
-{
-	CPhysPolysoup* pPolySoup = Get_CPhysPolysoup(LUA, 1, false);
-
-	LUA->PushBool(pPolySoup != nullptr);
-	return 1;
-}
-
 Default__index(CPhysPolysoup);
 Default__newindex(CPhysPolysoup);
 Default__GetTable(CPhysPolysoup);
+Default__IsValid(CPhysPolysoup);
 
 LUA_FUNCTION_STATIC(CPhysConvex__tostring)
 {
@@ -1997,17 +1969,10 @@ LUA_FUNCTION_STATIC(CPhysConvex__tostring)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(CPhysConvex_IsValid)
-{
-	CPhysConvex* pConvex = Get_CPhysConvex(LUA, 1, false);
-
-	LUA->PushBool(pConvex != nullptr);
-	return 1;
-}
-
 Default__index(CPhysConvex);
 Default__newindex(CPhysConvex);
 Default__GetTable(CPhysConvex);
+Default__IsValid(CPhysConvex);
 
 LUA_FUNCTION_STATIC(ICollisionQuery__tostring)
 {
@@ -2020,17 +1985,10 @@ LUA_FUNCTION_STATIC(ICollisionQuery__tostring)
 	return 1;
 }
 
-LUA_FUNCTION_STATIC(ICollisionQuery_IsValid)
-{
-	ICollisionQuery* pQuery = Get_ICollisionQuery(LUA, 1, false);
-
-	LUA->PushBool(pQuery != nullptr);
-	return 1;
-}
-
 Default__index(ICollisionQuery);
 Default__newindex(ICollisionQuery);
 Default__GetTable(ICollisionQuery);
+Default__IsValid(ICollisionQuery);
 
 LUA_FUNCTION_STATIC(ICollisionQuery_ConvexCount)
 {
@@ -2544,7 +2502,7 @@ void CPhysEnvModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 		Util::AddFunc(pLua, CPhysCollide__tostring, "__tostring");
 		Util::AddFunc(pLua, CPhysCollide__index, "__index");
 		Util::AddFunc(pLua, CPhysCollide__newindex, "__newindex");
-		Util::AddFunc(pLua, CPhysCollide_IsValid, "IsValid");
+		LUA_REGISTER_JIT(pLua, CPhysCollide_IsValid, "IsValid");
 		Util::AddFunc(pLua, CPhysCollide_GetTable, "GetTable");
 	pLua->Pop(1);
 
@@ -2552,7 +2510,7 @@ void CPhysEnvModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 		Util::AddFunc(pLua, CPhysPolysoup__tostring, "__tostring");
 		Util::AddFunc(pLua, CPhysPolysoup__index, "__index");
 		Util::AddFunc(pLua, CPhysPolysoup__newindex, "__newindex");
-		Util::AddFunc(pLua, CPhysPolysoup_IsValid, "IsValid");
+		LUA_REGISTER_JIT(pLua, CPhysPolysoup_IsValid, "IsValid");
 		Util::AddFunc(pLua, CPhysPolysoup_GetTable, "GetTable");
 	pLua->Pop(1);
 
@@ -2560,7 +2518,7 @@ void CPhysEnvModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 		Util::AddFunc(pLua, CPhysConvex__tostring, "__tostring");
 		Util::AddFunc(pLua, CPhysConvex__index, "__index");
 		Util::AddFunc(pLua, CPhysConvex__newindex, "__newindex");
-		Util::AddFunc(pLua, CPhysConvex_IsValid, "IsValid");
+		LUA_REGISTER_JIT(pLua, CPhysConvex_IsValid, "IsValid");
 		Util::AddFunc(pLua, CPhysConvex_GetTable, "GetTable");
 	pLua->Pop(1);
 
@@ -2568,7 +2526,7 @@ void CPhysEnvModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 		Util::AddFunc(pLua, ICollisionQuery__tostring, "__tostring");
 		Util::AddFunc(pLua, ICollisionQuery__index, "__index");
 		Util::AddFunc(pLua, ICollisionQuery__newindex, "__newindex");
-		Util::AddFunc(pLua, ICollisionQuery_IsValid, "IsValid");
+		LUA_REGISTER_JIT(pLua, ICollisionQuery_IsValid, "IsValid");
 		Util::AddFunc(pLua, ICollisionQuery_GetTable, "GetTable");
 		Util::AddFunc(pLua, ICollisionQuery_ConvexCount, "ConvexCount");
 		Util::AddFunc(pLua, ICollisionQuery_TriangleCount, "TriangleCount");
@@ -2582,7 +2540,7 @@ void CPhysEnvModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 		Util::AddFunc(pLua, IPhysicsCollisionSet__tostring, "__tostring");
 		Util::AddFunc(pLua, IPhysicsCollisionSet__index, "__index");
 		Util::AddFunc(pLua, IPhysicsCollisionSet__newindex, "__newindex");
-		Util::AddFunc(pLua, IPhysicsCollisionSet_IsValid, "IsValid");
+		LUA_REGISTER_JIT(pLua, IPhysicsCollisionSet_IsValid, "IsValid");
 		Util::AddFunc(pLua, IPhysicsCollisionSet_GetTable, "GetTable");
 		Util::AddFunc(pLua, IPhysicsCollisionSet_EnableCollisions, "EnableCollisions");
 		Util::AddFunc(pLua, IPhysicsCollisionSet_DisableCollisions, "DisableCollisions");
@@ -2594,7 +2552,7 @@ void CPhysEnvModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 		Util::AddFunc(pLua, ILuaPhysicsEnvironment__index, "__index");
 		Util::AddFunc(pLua, ILuaPhysicsEnvironment__newindex, "__newindex");
 		Util::AddFunc(pLua, ILuaPhysicsEnvironment_GetTable, "GetTable");
-		Util::AddFunc(pLua, IPhysicsEnvironment_IsValid, "IsValid");
+		LUA_REGISTER_JIT(pLua, ILuaPhysicsEnvironment_IsValid, "IsValid");
 		Util::AddFunc(pLua, IPhysicsEnvironment_TransferObject, "TransferObject");
 		Util::AddFunc(pLua, IPhysicsEnvironment_SetGravity, "SetGravity");
 		Util::AddFunc(pLua, IPhysicsEnvironment_GetGravity, "GetGravity");

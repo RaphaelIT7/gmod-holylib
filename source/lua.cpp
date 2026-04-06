@@ -23,6 +23,10 @@ extern "C"
 
 Symbols::lua_pushtracablecclosure Lua::func_lua_pushtracablecclosure = nullptr;
 Symbols::lua_settracablecclosure Lua::func_lua_settracablecclosure = nullptr;
+thread_local lua_String Lua::pTempStr;
+bool Lua::g_bUsingLuaJIT = false;
+thread_local GarrysMod::Lua::ILuaInterface* Lua::pExecutingInterface = nullptr;
+thread_local bool Lua::bIsCallingASM = false;
 
 // Testing functions
 
@@ -605,8 +609,8 @@ const char* Lua::TValueToString(TValue* pVal)
 		// We don't want to dump a 2k+ long strings, so we limit to 255! (also avoids possibly corrupted strings if the value is fked)
 		GCstr* pStr = strV(pVal);
 		char pTemp[255];
-		int nLength = strnlen(strdata(pStr), sizeof(pTemp)-1);
-		V_strncpy(pTemp, strdata(pStr), nLength);
+		int nLength = MIN(pStr->len, sizeof(pTemp)-1);
+		V_strncpy(pTemp, Lua::GetGCStrData(pStr), nLength);
 
 		snprintf(pBuffer, sizeof(pBuffer), "(string) %s", pTemp);
 	} else if (tvisnil(pVal)) {

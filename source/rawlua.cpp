@@ -13,6 +13,7 @@ extern "C" {
 #include "../luajit/src/lj_cparse.h"
 }
 
+#define DISABLE_GMODJIT
 #include "lua.h"
 
 TValue* RawLua::index2adr(lua_State* L, int idx)
@@ -187,4 +188,14 @@ int RawLua::GetCDataSize(lua_State* L, GCcdata* pVar)
 	} else {
 		return sizecdatav(pVar);
 	}
+}
+
+const char* RawLua::GetGCStrData(GCstr* str)
+{
+	return strdata(str);
+}
+
+size_t RawLua::GetGCStrLength(GCstr* str)
+{
+	return str->len;
 }

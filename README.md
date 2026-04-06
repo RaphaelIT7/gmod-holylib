@@ -5067,6 +5067,13 @@ Added to satisfy curiosity & test around with slots above 128.
 #### holylib_gameserver_connectionlesspackethook (default `1`)
 If enabled, the HolyLib:ProcessConnectionlessPacket hook is active and will be called.
 
+#### holylib_gameserver_rawclients (default `0`)
+If enabled, `CGameClient` that are empty / have no active player are still considered valid allowing you to access them<br>
+`CGameClient:__tostring()` will return `CGameClient [EMPTY]` for empty clients!<br>
+
+> [!NOTE]
+> Internally it checks using `CBaseClient:IsConnected()` to see if a client is empty or not!
+
 ### sv_filter_nobanresponse (default `0`)
 If enabled, a blocked ip won't be informed that its even blocked.
 

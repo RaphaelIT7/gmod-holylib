@@ -1451,7 +1451,7 @@ void PackedEntity::SetServerAndClientClass( ServerClass *pServerClass, ClientCla
 static Detouring::Hook detour_CBaseServer_WriteDeltaEntities;
 static void hook_CBaseServer_WriteDeltaEntities(CBaseServer* pServer, CBaseClient *client, CClientFrame *to, CClientFrame *from, bf_write &pBuf)
 {
-
+	Msg(PROJECT_NAME " - networkingreplacement: Send snapshot :3\n");
 }
 
 /*

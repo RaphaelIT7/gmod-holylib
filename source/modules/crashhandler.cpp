@@ -593,8 +593,14 @@ static void DoLuaCallback(bool bMainThreadCrash)
 	if (!signalData) // No signal data GG
 		return;
 
+	lua_State* pState = g_Lua->GetState();
+	if (!pState)
+		return;
+
 	if (bMainThreadCrash && !g_bInducedCrash.load())
 	{
+		dprintf(signalData->fileDescriptor, "Inside Trace?: %s\n", (G(pState) && tvref(G(pState)->jit_base)) ? "true" : "false");
+
 		GarrysMod::Lua::ILuaShared* pLuaShared = Lua::GetShared();
 		if (pLuaShared)
 		{
@@ -604,7 +610,7 @@ static void DoLuaCallback(bool bMainThreadCrash)
 
 		dprintf(signalData->fileDescriptor, "Lua Stack values:\n");
 
-		lua_State* pState = g_Lua->GetState();
+		Lua::pExecutingInterface = g_Lua; // Set since TValueToString uses GetGCStrData
 		TValue* pBase = pState->base;
 		int nTop = (int)(pState->top - pState->base);
 		dprintf(signalData->fileDescriptor, "  Stack size: %i\n", nTop);
@@ -616,8 +622,8 @@ static void DoLuaCallback(bool bMainThreadCrash)
 	}
 
 	// We stop the GC in case a crash is related to an memory allocator or some bs
-	Util::func_lua_gc(g_Lua->GetState(), LUA_GCSTOP, 0);
-	Util::func_lua_setallocf(g_Lua->GetState(), LuaAlloc::alloc, &signalData->luaAlloc);
+	Util::func_lua_gc(pState, LUA_GCSTOP, 0);
+	Util::func_lua_setallocf(pState, LuaAlloc::alloc, &signalData->luaAlloc);
 
 	if (Lua::PushHook("HolyLib:OnServerCrash"))
 	{

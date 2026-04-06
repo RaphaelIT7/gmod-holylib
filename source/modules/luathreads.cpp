@@ -227,13 +227,7 @@ LUA_FUNCTION_STATIC(LuaInterface__tostring)
 Default__index(LuaInterface);
 Default__newindex(LuaInterface);
 Default__GetTable(LuaInterface);
-
-// ToDo: Make a Default__IsValid macro
-LUA_FUNCTION_STATIC(LuaInterface_IsValid)
-{
-	LUA->PushBool(Get_LuaInterface(LUA, 1, false) != nullptr);
-	return 1;
-}
+Default__IsValid(LuaInterface);
 
 LUA_FUNCTION_STATIC(LuaInterface_RunString)
 {
@@ -365,7 +359,7 @@ void CLuaThreadsModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, LuaInterface__index, "__index");
 		Util::AddFunc(pLua, LuaInterface__newindex, "__newindex");
 		Util::AddFunc(pLua, LuaInterface_GetTable, "GetTable");
-		Util::AddFunc(pLua, LuaInterface_IsValid, "IsValid");
+		LUA_REGISTER_JIT(pLua, LuaInterface_IsValid, "IsValid");
 		Util::AddFunc(pLua, LuaInterface_RunString, "RunString");
 		Util::AddFunc(pLua, LuaInterface_GetName, "GetName");
 		Util::AddFunc(pLua, LuaInterface_SetName, "SetName");

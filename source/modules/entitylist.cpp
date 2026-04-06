@@ -124,6 +124,7 @@ LUA_FUNCTION_STATIC(EntityList__tostring)
 Default__index(EntityList);
 Default__newindex(EntityList);
 Default__GetTable(EntityList);
+Default__IsValid(EntityList);
 Default__gc(EntityList,
 	EntityList* pList = (EntityList*)pStoredData;
 	if (pList)
@@ -134,12 +135,6 @@ Default__gc(EntityList,
 		delete pList;
 	}
 )
-
-LUA_FUNCTION_STATIC(EntityList_IsValid)
-{
-	LUA->PushBool(Get_EntityList(LUA, 1, false) != nullptr);
-	return 1;
-}
 
 LUA_FUNCTION_STATIC(EntityList_GetEntities)
 {
@@ -303,7 +298,7 @@ void CEntListModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 		Util::AddFunc(pLua, EntityList__newindex, "__newindex");
 		Util::AddFunc(pLua, EntityList__gc, "__gc");
 		Util::AddFunc(pLua, EntityList_GetTable, "GetTable");
-		Util::AddFunc(pLua, EntityList_IsValid, "IsValid");
+		LUA_REGISTER_JIT(pLua, EntityList_IsValid, "IsValid");
 		Util::AddFunc(pLua, EntityList_GetEntities, "GetEntities");
 		Util::AddFunc(pLua, EntityList_SetEntities, "SetEntities");
 		Util::AddFunc(pLua, EntityList_AddEntities, "AddEntities");

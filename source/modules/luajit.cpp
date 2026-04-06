@@ -512,6 +512,7 @@ void CLuaJITModule::InitDetour(bool bPreServer)
 	Util::func_lj_tab_get = (Symbols::lj_tab_get)&lj_tab_get;
 	Lua::func_lua_pushtracablecclosure = (Symbols::lua_pushtracablecclosure)&lua_pushtracablecclosure;
 	Lua::func_lua_settracablecclosure = (Symbols::lua_settracablecclosure)&lua_settracablecclosure;
+	Lua::g_bUsingLuaJIT = true;
 
 	m_bIsEnabled = true;
 }
