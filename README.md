@@ -3758,6 +3758,9 @@ Supports: Linux32 | Linux64 | Windows32 | Windows64<br>
 #### EntityList CreateEntityList()
 Creates a new EntityList.
 
+#### EntityList CreateEntityListFromGlobal()
+Creates a new EntityList containing all entities the internal global entity list contains<br>
+
 #### table GetGlobalEntityList()
 Returns all entities that are in the global entity list.<br>
 
@@ -3808,6 +3811,9 @@ Adds the given entity to the list.<br>
 
 #### EntityList:RemoveEntity(Entity ent)
 Removes the given entity from the list.<br>
+
+#### EntityList EntityList:CreateCopy()
+Returns a new EntityList that contains the exact same values as this list (This is way faster than manually creating a copy)<br>
 
 ## httpserver
 This module adds a library with functions to create and run a httpserver.<br>
