@@ -797,6 +797,60 @@ LJLIB_CF(test_jitcfunc7)
   return 1;
 }
 
+int test8_func(lua_State* L)
+{
+  lua_pushlstring(L, "Hello World", 4);
+  return 1;
+}
+
+lua_String* LJ_FASTCALL asm_test8_func1(int test1)
+{
+  static lua_String pStr;
+  pStr.data = "Hello World";
+  pStr.length = 8;
+  return &pStr;
+}
+
+lua_String* LJ_FASTCALL asm_test8_func2(int test1, int test2)
+{
+  static lua_String pStr;
+  pStr.data = "Nice";
+  pStr.length = 4;
+  return &pStr;
+}
+
+LJLIB_CF(test_jitcfunc8)
+{
+  lua_CFunctionInfo info;
+  memset(&info, 0, sizeof(info));
+
+  info.func = test8_func;
+  info.asmFunc = asm_test8_func2;
+  info.argType[0] = CFUNC_TYPE_INT;
+  info.argType[1] = CFUNC_TYPE_INT;
+  info.argType[2] = CFUNC_TYPE_VOID;
+  info.retType = CFUNC_TYPE_STRING;
+  info.callconv = CFUNC_CALLCONV_FASTCALL;
+  info.canerror = 0;
+  info.givestate = 0;
+
+  lua_pushtracablecclosure(L, &info);
+
+   lua_CFunctionInfo info2;
+  memset(&info2, 0, sizeof(info2));
+
+  info2.func = test8_func;
+  info2.asmFunc = asm_test8_func1;
+  info2.argType[0] = CFUNC_TYPE_INT;
+  info2.argType[1] = CFUNC_TYPE_VOID;
+  info2.retType = CFUNC_TYPE_STRING;
+  info2.callconv = CFUNC_CALLCONV_FASTCALL;
+  info2.canerror = 0;
+  info2.givestate = 0;
+  lua_settracablecclosure(L, -1, &info2);
+  return 1;
+}
+
 LJLIB_CF(give_userdata_table)
 {
   int val = lua_tonumber(L, 1);

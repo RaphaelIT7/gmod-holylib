@@ -198,13 +198,7 @@ enum {
   CFUNC_TYPE_CHARS, // const char* - NULL Terminated! (will result in a Lua string alloc! -> lj_str_new)
 };
 
-// NYI
-typedef unsigned char lua_CFunctionInfoType;
-enum {
-  CFUNC_CALLASM = 0, // Default - Calls the set asmFunc
-  CFUNC_LOAD_UDATA_FIELD, // Loads the given field by offset with the given type
-  CFUNC_LOAD_UDATA_POINTER_FIELD // Same as above BUT the data of the udata is expected to be a pointer to something
-};
+// ToDo: Implement an external recorder
 
 typedef struct lua_String
 {
@@ -231,6 +225,9 @@ typedef struct lua_CFunctionInfo
   // If the result does not match our expected type we will fail the trace! (That's why booleans suck)
   unsigned int retbool : 1;
 
+  // If for example someone provides too many arguments then we won't accept it and the C function won't be traced
+  unsigned int exactargs : 1;
+
   // If 1, then you're telling JIT the C call can be optimized out if the return value isn't used and the return value could be reused
   // If retType == CFUNC_TYPE_VOID then you can expect the function to probably always be optimized out!
   // If your function does something, for example like File:Close() then you DONT want to set this!
@@ -247,6 +244,7 @@ typedef struct lua_CFunctionInfo
   void* traceFunc; // NYI - Function called when tracing given a trace builder to generate a trace for the function
 } lua_CFunctionInfo;
 
+// NOTE: Using lua_settracablecclosure you can stack asm functions allowing you to implement stuff like optional arguments
 LUA_API void (lua_pushtracablecclosure) (lua_State *L, lua_CFunctionInfo *info);
 // To set the internal callinfo of an already existing CFunc
 LUA_API void (lua_settracablecclosure) (lua_State *L, int idx, lua_CFunctionInfo *info);

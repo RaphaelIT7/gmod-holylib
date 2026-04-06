@@ -247,61 +247,96 @@ static TRef CFunctionProcessType(jit_State *J, TRef ref, TRef val, TValue* value
 static void LJ_FASTCALL recff_c(jit_State *J, RecordFFData *rd)
 {
   GCfuncC* fn = &J->fn->c;
-  if (!fn->callinfo.func) {
+  CFuncCallInfo* callinfo = NULL;
+  uint32_t stackargs = 0;
+  for (stackargs = 0; stackargs < LUA_CFUNCINFO_MAXARGS; ++stackargs) {
+    if (tref_isnil(J->base[stackargs]))
+      break;
+  }
+
+  uint32_t mostargs = 0;
+  for (uint32_t idx = 0; idx < MAX_CFUNC_CALLINFOS; ++idx) {
+    CFuncCallInfo* ci = &fn->callinfo[idx];
+    if (!ci->func)
+      continue;
+
+    int mismatch = 0;
+    uint32_t nargs = CCI_NARGS(ci);
+    if (callinfo && nargs <= mostargs || nargs > stackargs)
+      continue;
+
+    for (uint32_t arg = (ci->givestate ? 1 : 0); arg < nargs; ++arg) {
+      if (!tref_istype(J->base[arg], CFunctionInfoTypeToIRType(ci->argType[arg]))) {
+        mismatch = 1;
+        break;
+      }
+    }
+
+    if (!mismatch && stackargs > nargs && ci->exactargs)
+      mismatch = 1;
+
+
+    if (!mismatch && nargs > mostargs) {
+      callinfo = ci;
+      mostargs = nargs;
+    }
+  }
+
+  if (!callinfo || !callinfo->func) {
     recff_nyi(J, rd);
     return;
   }
 
-  uint32_t args = CCI_NARGS(&fn->callinfo);
+  uint32_t args = CCI_NARGS(callinfo);
   TRef tr = TREF_NIL;
   if (args > 0) {
-    for (uint32_t i=(fn->callinfo.givestate ? 1 : 0); i < args; ++i) {
-      if (!tref_istype(J->base[i], CFunctionInfoTypeToIRType(fn->callinfo.argType[i]))) {
+    for (uint32_t i=(callinfo->givestate ? 1 : 0); i < args; ++i) {
+      if (!tref_istype(J->base[i], CFunctionInfoTypeToIRType(callinfo->argType[i]))) {
         recff_nyi(J, rd);
         return;
       }
     }
 
-    if (fn->callinfo.givestate) {
+    if (callinfo->givestate) {
       tr = emitir(IRT(IR_LREF, IRT_THREAD), 0, 0);
     } else {
-      tr = CFunctionProcessType(J, tr, J->base[0], &rd->argv[0], fn->callinfo.argType[0]);
+      tr = CFunctionProcessType(J, tr, J->base[0], &rd->argv[0], callinfo->argType[0]);
     }
 
     for (uint32_t i=1; i < args; ++i) {
-      tr = emitir(IRT(IR_CARG, IRT_NIL), tr, CFunctionProcessType(J, tr, J->base[i], &rd->argv[i], fn->callinfo.argType[i]));
+      tr = emitir(IRT(IR_CARG, IRT_NIL), tr, CFunctionProcessType(J, tr, J->base[i], &rd->argv[i], callinfo->argType[i]));
     }
   }
   
-  IRType retType = CFunctionInfoTypeToIRType(fn->callinfo.retType);
-  if (CCI_OP(&fn->callinfo) == IR_CALLS)
+  IRType retType = CFunctionInfoTypeToIRType(callinfo->retType);
+  if (CCI_OP(callinfo) == IR_CALLS)
     J->needsnap = 1;
 
-  TRef funcPtr = lj_ir_kptr(J, fn->callinfo.func);
-  funcPtr = emitir(IRT(IR_CALLCC, IRT_NIL), funcPtr, lj_ir_kint(J, fn->callinfo.flags & CCI_CC_MASK));
+  TRef funcPtr = lj_ir_kptr(J, callinfo->func);
+  funcPtr = emitir(IRT(IR_CALLCC, IRT_NIL), funcPtr, lj_ir_kint(J, callinfo->flags & CCI_CC_MASK));
 
-  if (fn->callinfo.allowoptout)
+  if (callinfo->allowoptout)
     funcPtr = emitir(IRT(IR_CALLCSE, IRT_NIL), funcPtr, lj_ir_kint(J, 0));
   
   TRef result = emitir(IRT(IR_CALLXS, retType), tr, funcPtr);
-  if (fn->callinfo.retType == CFUNC_TYPE_VOID) {
+  if (callinfo->retType == CFUNC_TYPE_VOID) {
     J->base[0] = TREF_NIL;
     rd->nres = 0;
   } else {
     if (retType == IRT_FLOAT) {
       result = emitconv(result, IRT_NUM, retType, 0);
-    } else if (fn->callinfo.retType == CFUNC_TYPE_CHARS) {
+    } else if (callinfo->retType == CFUNC_TYPE_CHARS) {
       TRef strlen = lj_ir_call(J, IRCALL_strlen, result);
       result = emitir(IRT(IR_SNEW, IRT_STR), result, strlen);
-    } else if (fn->callinfo.retType == CFUNC_TYPE_STRING) {
+    } else if (callinfo->retType == CFUNC_TYPE_STRING) {
       emitir(IRTG(IR_NE, IRT_TRUE), result, lj_ir_kint(J, 0)); // GUARD to avoid null pointer crashes
       TRef strlen = emitir(IRT(IR_FLOAD, IRT_UINTP), result, IRFL_LSTR_LEN);
       result = emitir(IRT(IR_FLOAD, IRT_PTR), result, IRFL_LSTR_DATA);
       result = emitir(IRT(IR_SNEW, IRT_STR), result, strlen);
-    } else if (fn->callinfo.retType == CFUNC_TYPE_BOOL) {
+    } else if (callinfo->retType == CFUNC_TYPE_BOOL) {
       //RaphaelIT7: GG - You can't specify a bool return value / I got no idea yet
       //WARNING: This is EXPENSIVE!!! If we return false we will mismatch & die (not really but it'll exit the trace)
-      result = emitir(IRTG(fn->callinfo.retbool == 1 ? IR_NE : IR_EQ, IRT_TRUE), result, lj_ir_kint(J, 0));
+      result = emitir(IRTG(callinfo->retbool == 1 ? IR_NE : IR_EQ, IRT_TRUE), result, lj_ir_kint(J, 0));
       //result = emitconv(result, IRT_BOOL, retType, 0); // yes... I did attempt to add IRT_BOOL... didn't go well
       //result = emitir(IRTG(IR_NE, IRT_U8), result, lj_ir_kint(J, 0));
     }

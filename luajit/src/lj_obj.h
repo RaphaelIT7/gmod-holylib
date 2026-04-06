@@ -501,12 +501,15 @@ typedef struct CFuncCallInfo {
   uint8_t givestate : 1;
   uint8_t allowoptout : 1;
   uint8_t retbool : 1;
+  uint8_t exactargs : 1;
 } CFuncCallInfo;
 
+/* We allow up to 10 alternative functions */
+#define MAX_CFUNC_CALLINFOS 10
 typedef struct GCfuncC {
   GCfuncHeader;
   lua_CFunction f;	/* C function to be called. */
-  CFuncCallInfo callinfo;
+  CFuncCallInfo callinfo[MAX_CFUNC_CALLINFOS];
   TValue upvalue[1];  /* Array of upvalues (TValue). */
 } GCfuncC;
 

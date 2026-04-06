@@ -113,9 +113,12 @@ GCfunc *lj_func_newC(lua_State *L, MSize nelems, GCtab *env)
   GCfunc *fn = (GCfunc *)lj_mem_newgco(L, sizeCfunc(nelems));
   fn->c.gct = ~LJ_TFUNC;
   fn->c.ffid = FF_C;
-  fn->c.callinfo.func = 0;
-  fn->c.callinfo.flags = 0;
-  fn->c.callinfo.givestate = 0;
+  for (int idx=0; idx<MAX_CFUNC_CALLINFOS; ++idx)
+  {
+    fn->c.callinfo[idx].func = 0;
+    fn->c.callinfo[idx].flags = 0;
+    fn->c.callinfo[idx].givestate = 0;
+  }
   fn->c.nupvalues = (uint8_t)nelems;
   /* NOBARRIER: The GCfunc is new (marked white). */
   setmref(fn->c.pc, &G(L)->bc_cfunc_ext);
