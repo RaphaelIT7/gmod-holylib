@@ -40,7 +40,12 @@ local function CompileModuleList()
 		end
 	end
 
-	table.sort(moduleList, function(a, b) return a.priority end)
+	table.sort(moduleList, function(a, b)
+		if a.priority ~= b.priority then
+			return a.priority and not b.priority
+		end
+		return a[1] < b[1]
+	end)
 	
 	local moduleFile = [[
 // This file is generated! Do NOT touch this!

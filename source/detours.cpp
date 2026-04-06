@@ -89,7 +89,7 @@ void Detour::EnableHook(Detouring::Hook* pHook)
 	auto it = pDetourInfo.find(pHook);
 	if (it == pDetourInfo.end())
 	{
-		Warning("Tried to use a hook that didn't go through Detour::Create!\n");
+		Warning(PROJECT_NAME " - Detour::EnableHook: Tried to use a hook that didn't go through Detour::Create!\n");
 		return;
 	}
 
@@ -99,7 +99,7 @@ void Detour::EnableHook(Detouring::Hook* pHook)
 	if (pLoadedDetours.find(it->second.detourName) == pLoadedDetours.end())
 		pLoadedDetours[it->second.detourName] = it->second.nCategory;
 	else
-		Warning("Tried to use Detour::EnableHook on a hook that is already enabled! (%s)\n", it->second.detourName.c_str());
+		Warning(PROJECT_NAME " - Detour::EnableHook: Tried to use Detour::EnableHook on a hook that is already enabled! (%s)\n", it->second.detourName.c_str());
 }
 
 void Detour::DisableHook(Detouring::Hook* pHook)
@@ -107,7 +107,7 @@ void Detour::DisableHook(Detouring::Hook* pHook)
 	auto it = pDetourInfo.find(pHook);
 	if (it == pDetourInfo.end())
 	{
-		Warning("Tried to use a hook that didn't go through Detour::Create!\n");
+		Warning(PROJECT_NAME " - Detour::DisableHook: Tried to use a hook that didn't go through Detour::Create!\n");
 		return;
 	}
 

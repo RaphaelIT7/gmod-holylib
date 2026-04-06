@@ -1081,22 +1081,19 @@ void CPVSModule::InitDetour(bool bPreServer)
 	);
 
 #if MODULE_EXISTS_NETWORKING
-	IModuleWrapper* pNetworking = g_pModuleManager.GetModuleByID(HOLYLIB_MODULEID_PVS);
-	if (pNetworking && !pNetworking->IsEnabled())
+	IModuleWrapper* pNetworking = g_pModuleManager.GetModuleByID(HOLYLIB_MODULEID_NETWORKING);
+	if (pNetworking && pNetworking->IsEnabled())
 		Networking_SwitchToPVSTransmit();
 #endif
 
 	Detour::Create(
-		&detour_CServerGameEnts_CheckTransmit, "CServerGameEnts::CheckTransmit",
+		&detour_CServerGameEnts_CheckTransmit, "CServerGameEnts::CheckTransmit(PVS)",
 		server_loader.GetModule(), Symbols::CServerGameEnts_CheckTransmitSym,
 		(void*)DETOUR_THISCALL(hook_CServerGameEnts_CheckTransmit, CheckTransmit), m_pID
 	);
 #endif
 }
 
-#if MODULE_EXISTS_NETWORKING
-extern void Networking_SwitchToOURTransmit();
-#endif
 void CPVSModule::Shutdown()
 {
 #if MODULE_EXISTS_NETWORKING

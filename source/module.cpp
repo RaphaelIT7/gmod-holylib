@@ -77,7 +77,7 @@ void OnModuleDebugConVarChange(IConVar* convar, const char* pOldValue, float flO
 
 bool CModule::IsEnabled()
 {
-	return m_bEnabled;
+	return m_bEnabled && !m_bIsShutdown;
 }
 
 void CModule::SetupConfig()
@@ -184,6 +184,7 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 					return;
 			}
 
+			m_bIsShutdown = false;
 			int status = g_pModuleManager.GetStatus();
 			if (status & LoadStatus_PreDetourInit)
 				m_pModule->InitDetour(true); // I want every module to be able to be disabled/enabled properly
@@ -231,8 +232,7 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 					m_pModule->LuaShutdown(pLua);
 			}
 
-			if (status & LoadStatus_Init)
-				Shutdown();
+			Shutdown();
 
 			if (!m_bStartup)
 				Msg(PROJECT_NAME ": Disabled module %s\n", m_pModule->Name());
@@ -246,6 +246,7 @@ void CModule::Shutdown()
 {
 	m_pModule->Shutdown();
 	Detour::Remove(m_pModule->m_pID);
+	m_bIsShutdown = true;
 }
 
 /*

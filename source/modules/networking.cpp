@@ -1374,11 +1374,18 @@ void CNetworkingModule::ClientDisconnect(edict_t* pPlayer)
 #if MODULE_EXISTS_PVS
 void Networking_SwitchToPVSTransmit()
 {
+	if (!detour_CServerGameEnts_CheckTransmit.IsEnabled())
+		return;
+
 	Detour::DisableHook(&detour_CServerGameEnts_CheckTransmit);
 }
 
 void Networking_SwitchToOURTransmit()
 {
+	IModuleWrapper* pNetworking = g_pModuleManager.GetModuleByID(HOLYLIB_MODULEID_NETWORKING);
+	if (detour_CServerGameEnts_CheckTransmit.IsEnabled() || (!pNetworking || !pNetworking->IsEnabled()))
+		return;
+
 	Detour::EnableHook(&detour_CServerGameEnts_CheckTransmit);
 }
 #endif
