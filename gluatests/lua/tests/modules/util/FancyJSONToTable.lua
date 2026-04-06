@@ -85,14 +85,14 @@ return {
             name = "Performance",
             when = HolyLib_IsModuleEnabled("util"),
             func = function()
-                HolyLib_RunPerformanceTest("util.FancyJSONToTable", util.FancyJSONToTable, "[[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [\"Hello World\", \"World2\", \"World3\"]]")
+                HolyLib_RunPerformanceTest("util.FancyJSONToTable", function() util.FancyJSONToTable("[[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [\"Hello World\", \"World2\", \"World3\"]]") end)
             end
         },
         {
             name = "Performance",
             when = HolyLib_IsModuleEnabled("util"),
             func = function()
-                HolyLib_RunPerformanceTest("util.JSONToTable(GMOD)", util.JSONToTable, "[[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [\"Hello World\", \"World2\", \"World3\"]]")
+                HolyLib_RunPerformanceTest("util.JSONToTable(GMOD)", function() util.JSONToTable("[[1, 2, 3, 4, 5, 6, 7, 8, 9, 10], [\"Hello World\", \"World2\", \"World3\"]]") end)
             end
         },
     }

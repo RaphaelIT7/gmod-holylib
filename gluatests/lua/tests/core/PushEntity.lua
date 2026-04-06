@@ -19,7 +19,7 @@ return {
         {
             name = "Performance",
             func = function()
-                HolyLib_RunPerformanceTest("_HOLYLIB_CORE.PushEntity", _HOLYLIB_CORE.PushEntity)
+                HolyLib_RunPerformanceTest("_HOLYLIB_CORE.PushEntity", function() _HOLYLIB_CORE.PushEntity() end)
             end
         },
     }

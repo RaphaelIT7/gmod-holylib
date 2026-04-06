@@ -52,7 +52,7 @@ return {
 
                 voiceData:SetData( "Hello World", 5 ) -- Length of 5 / everything after Hello is cut away
 
-                HolyLib_RunPerformanceTest("VoiceData:GetLength", voiceData.GetLength, voiceData)
+                HolyLib_RunPerformanceTest("VoiceData:GetLength", function() voiceData:GetLength() end)
             end
         },
     }

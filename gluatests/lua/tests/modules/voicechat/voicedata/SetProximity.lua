@@ -31,7 +31,7 @@ return {
             func = function()
                 local voiceData = voicechat.CreateVoiceData()
 
-                HolyLib_RunPerformanceTest("VoiceData:SetProximity", voiceData.SetProximity, voiceData, false)
+                HolyLib_RunPerformanceTest("VoiceData:SetProximity", function() voiceData:SetProximity(false) end)
             end
         },
     }

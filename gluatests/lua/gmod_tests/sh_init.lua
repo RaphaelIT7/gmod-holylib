@@ -63,23 +63,23 @@ function generate_trace()
     end, "trace")
 end
 
-local runTime = 0.2 -- How long in seconds we run each test
-local function PerformanceTest(callback, a, b, c)
+local runTime = string.find(jit.version, "HolyLib") ~= nil and 0.5 or 0.2 -- How long in seconds we run each test
+local function PerformanceTest(callback)
     -- This is a loop to warm JIT & reach the full potential
     local avgTime = 0
     local avgTimeTest = 100
     local avgStartTime = SysTime()
     for k=1, avgTimeTest do
-        callback(a, b, c)
-        callback(a, b, c)
-        callback(a, b, c)
-        callback(a, b, c)
-        callback(a, b, c)
-        callback(a, b, c)
-        callback(a, b, c)
-        callback(a, b, c)
-        callback(a, b, c)
-        callback(a, b, c)
+        callback()
+        callback()
+        callback()
+        callback()
+        callback()
+        callback()
+        callback()
+        callback()
+        callback()
+        callback()
     end
     local avgTime = (SysTime() - avgStartTime) / avgTimeTest
     local loopAmount = math.max(1 / 20 / avgTime, 1) -- We do 1 / 20 so that it at wose will run 1/20 of a second longer than wanted
@@ -89,16 +89,16 @@ local function PerformanceTest(callback, a, b, c)
     local startTime = SysTime()
     while (SysTime() - startTime) < runTime do -- We spend a total of 1 seconds to run these
         for k=1, loopAmount do
-            callback(a, b, c)
-            callback(a, b, c)
-            callback(a, b, c)
-            callback(a, b, c)
-            callback(a, b, c)
-            callback(a, b, c)
-            callback(a, b, c)
-            callback(a, b, c)
-            callback(a, b, c)
-            callback(a, b, c)
+            callback()
+            callback()
+            callback()
+            callback()
+            callback()
+            callback()
+            callback()
+            callback()
+            callback()
+            callback()
         end
         totalCalls = totalCalls + callsPerLoop
     end
@@ -110,7 +110,7 @@ local github_repo = string.Trim(file.Read("_workflow/github_repo.txt", "MOD") or
 local loki_public_host = string.Trim(file.Read("_workflow/loki_public_host.txt", "MOD") or "")
 local loki_host = string.Trim(file.Read("_workflow/loki_host.txt", "MOD") or "")
 local loki_api = string.Trim(file.Read("_workflow/loki_api.txt", "MOD") or "")
-function HolyLib_RunPerformanceTest(name, callback, a, b, c)
+function HolyLib_RunPerformanceTest(name, callback)
     local usingPublic = (string.len(loki_host) < 3 or string.len(loki_api) < 3)
     if usingPublic and (string.len(loki_public_host) < 3) or string.len(github_repo) < 3 then
         print("Skipping performance test \"" .. name .. "\" since were missing Loki.")
@@ -130,7 +130,7 @@ function HolyLib_RunPerformanceTest(name, callback, a, b, c)
         jit.opt.start("hotloop=1", "hotexit=1")
         jit.flush()
 
-        local totalTime, totalCalls = PerformanceTest(callback, a, b, c)
+        local totalTime, totalCalls = PerformanceTest(callback)
         local timePerCall = totalTime / totalCalls
         print("Finished performance test for \"" .. name .. "\". Took " .. totalTime .. "s with a total of " .. totalCalls .." calls (" .. timePerCall .. "s per call)")
 

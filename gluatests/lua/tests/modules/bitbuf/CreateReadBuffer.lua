@@ -29,7 +29,7 @@ return {
             name = "Properly creates a buffer from a string",
             when = HolyLib_IsModuleEnabled("bitbuf"),
             func = function()
-                HolyLib_RunPerformanceTest("bitbuf.CreateReadBuffer", bitbuf.CreateReadBuffer, "Test123")
+                HolyLib_RunPerformanceTest("bitbuf.CreateReadBuffer", function() bitbuf.CreateReadBuffer("Test123") end)
             end
         },
     }

@@ -32,10 +32,10 @@ return {
             name = "Performance",
             func = function()
                 local userdata = _HOLYLIB_CORE.PushTestUserData()
-                HolyLib_RunPerformanceTest("_HOLYLIB_CORE.GetTestUserData", _HOLYLIB_CORE.RawGetTestUserData, userdata)
+                HolyLib_RunPerformanceTest("_HOLYLIB_CORE.GetTestUserData", function() _HOLYLIB_CORE.RawGetTestUserData(userdata) end)
 
-                HolyLib_RunPerformanceTest("_HOLYLIB_CORE.__newindex", function(userdata) userdata.example = "Hello World" end, userdata)
-                HolyLib_RunPerformanceTest("_HOLYLIB_CORE.__index", function(userdata) return userdata.example end, userdata)
+                HolyLib_RunPerformanceTest("_HOLYLIB_CORE.__newindex", function() userdata.example = "Hello World" end)
+                HolyLib_RunPerformanceTest("_HOLYLIB_CORE.__index", function() return userdata.example end)
             end
         },
         {
@@ -45,8 +45,8 @@ return {
                 local tab = ent:GetTable()
                 local prevEnv = debug.getfenv(ent)
 
-                HolyLib_RunPerformanceTest("(GMOD) Entity.__newindex", function(ent) ent.example = "Hello World" end, ent)
-                HolyLib_RunPerformanceTest("(GMOD) Entity.__index", function(ent) return ent.example end, ent)
+                HolyLib_RunPerformanceTest("(GMOD) Entity.__newindex", function() ent.example = "Hello World" end)
+                HolyLib_RunPerformanceTest("(GMOD) Entity.__index", function() return ent.example end)
 
                 if debug.userdata_setusertable and debug.userdata_setmetaaccess then
                     debug.userdata_setusertable(ent, true) -- IMPORTANT: This creates and sets an empty table into GCudata::env so do NOT use debug.fenv before this!
@@ -55,8 +55,8 @@ return {
 
                 debug.setfenv(ent, tab) -- we must fill the GCudata::env field
 
-                HolyLib_RunPerformanceTest("(HolyLib) Entity.__newindex", function(ent) ent.example = "Hello World" end, ent)
-                HolyLib_RunPerformanceTest("(HolyLib) Entity.__index", function(ent) return ent.example end, ent)
+                HolyLib_RunPerformanceTest("(HolyLib) Entity.__newindex", function() ent.example = "Hello World" end)
+                HolyLib_RunPerformanceTest("(HolyLib) Entity.__index", function() return ent.example end)
             end
         },
     }

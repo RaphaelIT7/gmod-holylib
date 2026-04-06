@@ -37,7 +37,8 @@ return {
             func = function()
             	local entityList = CreateEntityList()
 
-                HolyLib_RunPerformanceTest("EntityList:GetEntities", entityList.SetEntities, entityList, ents.GetAll())
+				local entities = ents.GetAll()
+                HolyLib_RunPerformanceTest("EntityList:SetEntities", function() entityList:SetEntities(entities) end)
             end
         },
     }

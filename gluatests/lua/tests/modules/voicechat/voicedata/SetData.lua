@@ -41,7 +41,7 @@ return {
             func = function()
                 local voiceData = voicechat.CreateVoiceData()
 
-                HolyLib_RunPerformanceTest("VoiceData:SetData", voiceData.SetData, voiceData, "Hello World", 5)
+                HolyLib_RunPerformanceTest("VoiceData:SetData", function() voiceData:SetData("Hello World", 5) end)
             end
         },
     }

@@ -32,10 +32,10 @@ return {
             name = "Performance",
             func = function()
                 local userdata = _HOLYLIB_CORE.PushReferencedTestUserData()
-                HolyLib_RunPerformanceTest("_HOLYLIB_CORE.GetReferencedTestUserData", _HOLYLIB_CORE.RawReferencedGetTestUserData, userdata)
+                HolyLib_RunPerformanceTest("_HOLYLIB_CORE.GetReferencedTestUserData", function() _HOLYLIB_CORE.RawReferencedGetTestUserData(userdata) end)
 
-                HolyLib_RunPerformanceTest("_HOLYLIB_CORE.__newindex", function(userdata) userdata.example = "Hello World" end, userdata)
-                HolyLib_RunPerformanceTest("_HOLYLIB_CORE.__index", function(userdata) return userdata.example end, userdata)
+                HolyLib_RunPerformanceTest("_HOLYLIB_CORE(ref).__newindex", function() userdata.example = "Hello World" end)
+                HolyLib_RunPerformanceTest("_HOLYLIB_CORE(ref).__index", function() return userdata.example end)
             end
         },
         {

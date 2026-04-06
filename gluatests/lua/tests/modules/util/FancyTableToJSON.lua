@@ -57,14 +57,14 @@ return {
             name = "Performance",
             when = HolyLib_IsModuleEnabled("util"),
             func = function()
-                HolyLib_RunPerformanceTest("util.FancyTableToJSON", util.FancyTableToJSON, exampleTable)
+                HolyLib_RunPerformanceTest("util.FancyTableToJSON", function() util.FancyTableToJSON(exampleTable) end)
             end
         },
         {
             name = "Performance",
             when = HolyLib_IsModuleEnabled("util"),
             func = function()
-                HolyLib_RunPerformanceTest("util.TableToJSON(GMOD)", util.TableToJSON, exampleTable)
+                HolyLib_RunPerformanceTest("util.TableToJSON(GMOD)", function() util.TableToJSON(exampleTable) end)
             end
         },
     }

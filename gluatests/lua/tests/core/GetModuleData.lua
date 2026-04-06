@@ -17,7 +17,7 @@ return {
         {
             name = "Performance",
             func = function()
-                HolyLib_RunPerformanceTest("_HOLYLIB_CORE.GetModuleData", _HOLYLIB_CORE.RawGetModuleData)
+                HolyLib_RunPerformanceTest("_HOLYLIB_CORE.GetModuleData", function() _HOLYLIB_CORE.RawGetModuleData end)
             end
         },
     }

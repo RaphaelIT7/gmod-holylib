@@ -27,7 +27,7 @@ return {
             name = "Test performance of creating EntityLists",
             when = HolyLib_IsModuleEnabled("entitylist"),
             func = function()
-                HolyLib_RunPerformanceTest("CreateEntityList", CreateEntityList)
+                HolyLib_RunPerformanceTest("CreateEntityList", function() CreateEntityList() end)
             end
         },
     }

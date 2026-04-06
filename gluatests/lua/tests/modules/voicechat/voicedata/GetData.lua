@@ -51,8 +51,8 @@ return {
                 local voiceData = voicechat.CreateVoiceData()
 
                 voiceData:SetData( "Hello World", 5 ) -- Length of 5 / everything after Hello is cut away
-
-                HolyLib_RunPerformanceTest("VoiceData:GetData", voiceData.GetData, voiceData)
+				
+                HolyLib_RunPerformanceTest("VoiceData:GetData", function() voiceData:GetData() end)
             end
         },
     }

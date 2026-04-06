@@ -29,7 +29,8 @@ return {
             name = "Performance when convar exists",
             when = HolyLib_IsModuleEnabled("pvs") and player.GetCount() > 0,
             func = function()
-                HolyLib_RunPerformanceTest("pvs.FindInPVS", pvs.FindInPVS, player.GetAll()[1]:GetPos())
+				local pos = player.GetAll()[1]:GetPos()
+                HolyLib_RunPerformanceTest("pvs.FindInPVS", function() pvs.FindInPVS(pos) end)
             end
         },
     }

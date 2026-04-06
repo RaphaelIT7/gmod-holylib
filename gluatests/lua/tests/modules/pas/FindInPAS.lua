@@ -29,7 +29,8 @@ return {
             name = "Performance when convar exists",
             when = HolyLib_IsModuleEnabled("pas") and player.GetCount() > 0,
             func = function()
-                HolyLib_RunPerformanceTest("pas.FindInPAS", pas.FindInPAS, player.GetAll()[1]:GetPos())
+				local pos = player.GetAll()[1]:GetPos()
+                HolyLib_RunPerformanceTest("pas.FindInPAS", function() pas.FindInPAS(pos) end)
             end
         },
     }

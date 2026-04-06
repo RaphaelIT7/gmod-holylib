@@ -19,7 +19,7 @@ return {
             name = "Performance",
             when = HolyLib_IsModuleEnabled("voicechat"),
             func = function()
-                HolyLib_RunPerformanceTest("voicechat.CreateVoiceData", voicechat.CreateVoiceData)
+                HolyLib_RunPerformanceTest("voicechat.CreateVoiceData", function() voicechat.CreateVoiceData() end)
             end
         },
     }

@@ -27,14 +27,14 @@ return {
             name = "Performance when folder exists",
             when = HolyLib_IsModuleEnabled("filesystem"),
             func = function()
-                HolyLib_RunPerformanceTest("filesystem.IsDir(Hit)", filesystem.IsDir, "lua", "GAME")
+                HolyLib_RunPerformanceTest("filesystem.IsDir(Hit)", function() filesystem.IsDir("lua", "GAME") end)
             end
         },
         {
             name = "Performance when folder is missing",
             when = HolyLib_IsModuleEnabled("filesystem"),
             func = function()
-                HolyLib_RunPerformanceTest("filesystem.IsDir(Miss)", filesystem.IsDir, "luarrrr", "GAME")
+                HolyLib_RunPerformanceTest("filesystem.IsDir(Miss)", function() filesystem.IsDir("luarrrr", "GAME") end)
             end
         },
     }

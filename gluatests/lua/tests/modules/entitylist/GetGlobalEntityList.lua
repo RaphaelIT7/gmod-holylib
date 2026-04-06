@@ -31,7 +31,7 @@ return {
             name = "Performance",
             when = HolyLib_IsModuleEnabled("entitylist"),
             func = function()
-                HolyLib_RunPerformanceTest("GetGlobalEntityList", GetGlobalEntityList)
+                HolyLib_RunPerformanceTest("GetGlobalEntityList", function() GetGlobalEntityList() end)
             end
         },
     }

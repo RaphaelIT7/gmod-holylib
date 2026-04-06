@@ -17,7 +17,7 @@ return {
         {
             name = "Performance",
             func = function()
-                HolyLib_RunPerformanceTest("_HOLYLIB_CORE.PushTestUserData", _HOLYLIB_CORE.PushTestUserData)
+                HolyLib_RunPerformanceTest("_HOLYLIB_CORE.PushTestUserData", function() _HOLYLIB_CORE.PushTestUserData() end)
             end
         },
     }

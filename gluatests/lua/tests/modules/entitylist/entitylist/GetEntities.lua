@@ -39,7 +39,7 @@ return {
 
             	entityList:SetEntities(ents.GetAll())
 
-                HolyLib_RunPerformanceTest("EntityList:GetEntities", entityList.GetEntities, entityList)
+                HolyLib_RunPerformanceTest("EntityList:GetEntities", function() entityList:GetEntities() end)
             end
         },
     }
