@@ -70,6 +70,14 @@ IModule* pVoiceChatModule = &g_pVoiceChatModule;
 // IMPORTANT: When changing this struct, you also NEED to update the VoiceDataFFI.lua file!!!
 struct VoiceData
 {
+	VoiceData()
+	{
+		bProximity = true;
+		bDecompressedChanged = false;
+		bAllowLuaGC = true;
+		bTempValue = false;
+	}
+
 	~VoiceData() {
 		Empty();
 	}
@@ -86,9 +94,9 @@ struct VoiceData
 			pData = new char[iLength]; // We won't need additional space right?
 	}
 
-	inline void SetData(const char* pNewData, int iNewLength)
+	inline void SetData(const char* pNewData, uint16_t iNewLength)
 	{
-		iLength = iNewLength;
+		iLength = iDataLength = iNewLength;
 		AllocData();
 		if (pData)
 			memcpy(pData, pNewData, iLength);
@@ -183,6 +191,13 @@ struct VoiceData
 				return pData; // We failed to update. GG
 			}
 
+			// Compressed they are like 3kb soo 64kb should never be hit
+			if (bytes > USHRT_MAX)
+			{
+				Warning(PROJECT_NAME " - voicechat: Compressed voice data is too large! (%i)\n", bytes);
+				return pData;
+			}
+
 			SetData(pCompressed, bytes);
 			bDecompressedChanged = false;
 		}
@@ -234,9 +249,9 @@ struct VoiceData
 		return pDecompressedData;
 	}
 
-	inline void SetLength(int iNewLength)
+	inline void SetLength(uint16_t iNewLength)
 	{
-		iLength = iNewLength;
+		iLength = MIN(iDataLength, iNewLength);
 	}
 
 	inline int GetLength()
@@ -317,15 +332,16 @@ struct VoiceData
 		bDecompressedChanged = false;
 	}
 
-	int iPlayerSlot = 0; // What if it's an invalid one ;D (It doesn't care.......)
-	bool bProximity = true;
-	bool bDecompressedChanged = false;
-	bool bAllowLuaGC = true;
-	bool bTempValue = false;
+	uint8_t iPlayerSlot = 0; // What if it's an invalid one ;D (It doesn't care.......)
+	unsigned char bProximity : 1;
+	unsigned char bDecompressedChanged : 1;
+	unsigned char bAllowLuaGC : 1;
+	unsigned char bTempValue : 1;
 
 private:
-	int iLength = 0;
-	int iDecompressedLength = 0;
+	uint16_t iLength = 0;
+	uint16_t iDataLength = 0;
+	uint32_t iDecompressedLength = 0;
 
 	char* pData = nullptr;
 	char* pDecompressedData = nullptr;
@@ -467,7 +483,7 @@ LUA_JIT_WRAPPED_2(VoiceData_SetLength,
 	if (!pData)
 		return;
 
-	pData->SetLength((int)iLength);
+	pData->SetLength((uint16_t)iLength);
 }
 
 LUA_JIT_WRAPPED_3(VoiceData_SetData,
@@ -480,7 +496,7 @@ LUA_JIT_WRAPPED_3(VoiceData_SetData,
 	if (!pData || !pCompressedData)
 		return;
 
-	pData->SetData(Lua::GetGCStrData(pCompressedData), iNewLength != -1 ? iNewLength : Lua::GetGCStrLength(pCompressedData));
+	pData->SetData(Lua::GetGCStrData(pCompressedData), (uint16_t)(iNewLength != -1 ? iNewLength : Lua::GetGCStrLength(pCompressedData)));
 }
 
 // This is the JIT version with (userdata, string) args while the above is (userdata, string, int)
@@ -494,7 +510,7 @@ LUA_JIT_RAW_2(VoiceData_SetData_NoLength,
 	if (!pData || !pCompressedData)
 		return;
 
-	pData->SetData(Lua::GetGCStrData(pCompressedData), Lua::GetGCStrLength(pCompressedData));
+	pData->SetData(Lua::GetGCStrData(pCompressedData), (uint16_t)Lua::GetGCStrLength(pCompressedData));
 }
 
 LUA_FUNCTION_STATIC(VoiceData_SetProximity)
@@ -635,7 +651,8 @@ Default__gc(WavAudioFile,
 )*/
 
 static const int VOICESTREAM_VERSION_1 = 1;
-static const int VOICESTREAM_VERSION = 1; // Current version
+static const int VOICESTREAM_VERSION_2 = 2;
+static const int VOICESTREAM_VERSION = 2; // Current version
 struct VoiceStream {
 	~VoiceStream()
 	{
@@ -691,7 +708,7 @@ struct VoiceStream {
 
 		double scaleRate = 1;
 		int count = version;
-		if (version == VOICESTREAM_VERSION_1) // Were doing this to stay compatible with the older version in the 0.7 release.
+		if (version == VOICESTREAM_VERSION_1 || version == VOICESTREAM_VERSION_2) // Were doing this to stay compatible with the older version in the 0.7 release.
 		{
 			int tickRate;
 			g_pFullFileSystem->Read(&tickRate, sizeof(int), fh);
@@ -711,8 +728,22 @@ struct VoiceStream {
 			int tickNumber;
 			g_pFullFileSystem->Read(&tickNumber, sizeof(int), fh);
 
-			int length;
-			g_pFullFileSystem->Read(&length, sizeof(int), fh);
+			uint16_t length;
+			if (version == VOICESTREAM_VERSION_1)
+			{
+				int tempLength;
+				g_pFullFileSystem->Read(&tempLength, sizeof(int), fh);
+				if (tempLength > USHRT_MAX)
+				{
+					Warning(PROJECT_NAME " - voicechat: Tried to load a voice stream that had a too large voice entry! (%i)\n", tempLength);
+					delete pStream;
+					return nullptr;
+				}
+
+				length = (uint16_t)tempLength;
+			} else {
+				g_pFullFileSystem->Read(&length, sizeof(uint16_t), fh);
+			}
 
 			char* data = new char[length];
 			g_pFullFileSystem->Read(data, length, fh);
