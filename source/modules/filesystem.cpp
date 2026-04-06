@@ -381,7 +381,7 @@ static FileSystemStatus eFileSystemStatus = FileSystemStatus::None;
 static void WriteSearchCache()
 {
 	VPROF_BUDGET("HolyLib - WriteSearchCache", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
-	if (!holylib_filesystem_savesearchcache.GetBool())
+	if (!holylib_filesystem_savesearchcache.GetBool() || !g_pFullFileSystem)
 		return;
 
 	if (eFileSystemStatus != FileSystemStatus::None)

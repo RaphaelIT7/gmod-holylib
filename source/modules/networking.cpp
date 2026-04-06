@@ -1659,7 +1659,8 @@ void CNetworkingModule::Shutdown()
 		return;
 	}
 
-	Util::gameeventmanager->RemoveListener(&g_pNetworkGameEventListener);
+	if (Util::gameeventmanager)
+		Util::gameeventmanager->RemoveListener(&g_pNetworkGameEventListener);
 
 	/*
 	 * The code below to unload also belongs to sigsegv

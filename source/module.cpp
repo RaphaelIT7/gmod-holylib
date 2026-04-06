@@ -232,7 +232,9 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 					m_pModule->LuaShutdown(pLua);
 			}
 
-			Shutdown();
+			// If we did any setup at all (PreDetourInit is the earliest) then we must call Shutdown
+			if (status & LoadStatus_PreDetourInit)
+				Shutdown();
 
 			if (!m_bStartup)
 				Msg(PROJECT_NAME ": Disabled module %s\n", m_pModule->Name());
