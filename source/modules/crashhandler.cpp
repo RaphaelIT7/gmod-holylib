@@ -919,7 +919,6 @@ LUA_JIT_WRAPPED_0(crashhandler_DisableWatcher)
 {
 	g_bSkipWatcher.store(true);
 	g_nLagCount.store(0);
-	return;
 }
 
 // We also reset the counter to avoid issues
@@ -928,13 +927,11 @@ LUA_JIT_WRAPPED_0(crashhandler_EnableWatcher)
 {
 	g_bSkipWatcher.store(false);
 	g_nLagCount.store(0);
-	return;
 }
 
 LUA_JIT_WRAPPED_0(crashhandler_ResetWatcher)
 {
 	g_nLagCount.store(0);
-	return;
 }
 
 void CCrashHandlerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)

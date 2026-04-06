@@ -2616,8 +2616,6 @@ Returns the length of the data.<br>
 Returns the slot of the player this voicedata is originally from.<br>
 
 #### string VoiceData:GetUncompressedData()
-number decompressSize - The number of bytes to allocate for decompression.<br>
-
 Returns the uncompressed voice data or an empty string if the VoiceData had no data.<br>
 On failure it will return the number for the status code, see the list below:<br>
 ```cpp
@@ -2636,6 +2634,9 @@ enum EVoiceResult
 	k_EVoiceResultReceiverDidNotAnswer = 9,
 };
 ```
+
+#### VoiceData:SetUncompressedData(string data)
+Sets the uncompressed voice data<br>
 
 #### bool VoiceData:GetProximity()
 Returns if the VoiceData is in proximity.<br>
@@ -5427,6 +5428,17 @@ Now what this module does - it prevents writing NW2Vars into the baseline ensuri
 This is loaded as the first module and catches crashes to include more information about HolyLib at the time of the crash.<br>
 Unlike other crash handlers, ours won't affect the generated `debug.log` allowing us to create our own crash dump AND to also get a useful `debug.log` at the same time.<br>
 
+### Functions
+
+#### crashhandler.DisableWatcher()
+Disables the watcher thread useful when you for example, have to do a lot of work and may freeze the main thread for many seconds<br>
+
+#### crashhandler.EnableWatcher()
+Enables the watcher thread after you've disabled it & internally resets the waiting time.<br>
+
+#### crashhandler.ResetWatcher()
+Resets the watcher thread's waiting time<br>
+
 ### Hooks
 
 #### HolyLib:OnServerCrash(string crashedModule)
@@ -5436,7 +5448,15 @@ Inside this hook, the server is in a weird state.<br>
 It allows you to attempt to save data **but** try not to cause memory allocations or such, as the entire server will be in a very fragile state.<br>
 The Lua GC is stopped when this hook is called to further reduce the chance of Lua crashing due to instability<br>
 
+### ConVars
+
+#### holylib_crashhandler_crashtime = 10000
+Time in ms after which the crash handler will catch and nuke the server
+
 ## gmoddatapack
+This module changes how GMod's data pack compresses files by compressing them once set instead of delaying the compression until a person joins to avoid having a lag spike and increased loading times when initially joining. <br>
+This is not that useful by itself, though when you're developing and do lots of map changes or restarts this can save a bit of time.<br>
+Additionally using the <page>holylib_gmoddatapack_removeserverif</page> and <page>holylib_gmoddatapack_removecomments</page> convars, it can strip files reducing size further.
 
 ### Functions
 

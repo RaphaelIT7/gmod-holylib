@@ -473,6 +473,7 @@ jobs:
           cd source/_prebuildtools
           chmod +x luajit_64
           ./luajit_64 _workflow_summary.lua "${{github.repository}}" "${{env.LOKI_PUBLIC}}" "${{secrets.LOKI_HOST}}" "${{secrets.LOKI_APIKEY}}" "${{github.run_number}}" "0" "${{github.event_name}}"
+          curl -X POST https://holylib.raphaelit7.com/api/set_perf_results -H "Content-Type: application/json" -H "Authorization: ${{secrets.WIKI_GENKEY}}" --data-binary @generated_summary.md
 
           echo "$(cat generated_summary.md)" > $GITHUB_STEP_SUMMARY
 
