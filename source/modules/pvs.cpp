@@ -944,11 +944,7 @@ LUA_FUNCTION_STATIC(pvs_PreventTransmitAllExcept)
 		{
 			edict_t* pEdict = Util::Get_Entity(LUA, -1, true)->edict();
 			if (pEdict)
-			{
-				int flags = GetStateFlagsEdict(pEdict, false);
-				if (!(flags & ignoreFlags))
-					pEntities.Set(pEdict->m_EdictIndex);
-			}
+				pEntities.Set(pEdict->m_EdictIndex);
 
 			LUA->Pop(1);
 		}
@@ -960,21 +956,13 @@ LUA_FUNCTION_STATIC(pvs_PreventTransmitAllExcept)
 		{
 			edict_t* pEdict = ent->edict();
 			if (pEdict)
-			{
-				int flags = GetStateFlagsEdict(pEdict, false);
-				if (!(flags & ignoreFlags))
-					pEntities.Set(pEdict->m_EdictIndex);
-			}
+				pEntities.Set(pEdict->m_EdictIndex);
 		}
 #endif
 	} else {
 		edict_t* pEdict = Util::Get_Entity(LUA, 1, true)->edict();
 		if (pEdict)
-		{
-			int flags = GetStateFlagsEdict(pEdict, false);
-			if (!(flags & ignoreFlags))
-				pEntities.Set(pEdict->m_EdictIndex);
-		}
+			pEntities.Set(pEdict->m_EdictIndex);
 	}
 
 	int idx = 0;
@@ -985,6 +973,10 @@ LUA_FUNCTION_STATIC(pvs_PreventTransmitAllExcept)
 		edict_t *pEdict = &pBaseEdict[iEdict];
 
 		if (pEntities.IsBitSet(iEdict))
+			continue;
+
+		int flags = GetStateFlagsEdict(pEdict, false);
+		if (!(flags & ignoreFlags))
 			continue;
 
 		SetOverrideStateFlagsEdict(pEdict, LUA_FL_EDICT_DONTSEND, false);
