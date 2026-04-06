@@ -1044,7 +1044,7 @@ Adds the given Entity to be transmitted.
 > Only use this function inside the `HolyLib:PreCheckTransmit` hook!<br>
 > Do **not** use it inside `HolyLib:PostCheckTransmit` since its blocked there due to else needing some expensive changes.<br>
 
-#### pvs.PreventTransmitAllExcept(Entity ent / table ents / EntityList list)
+#### pvs.PreventTransmitAllExcept(Entity ent / table ents / EntityList list, int ignoreFlags = 0)
 table ents - A sequential table containing all the entities that should be transmitted.<br>
 
 Sets the `DONTSEND` flag on all entities that are **NOT** inside the given table for the current transmit.<br>

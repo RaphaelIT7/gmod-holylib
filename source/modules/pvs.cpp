@@ -552,12 +552,8 @@ LUA_FUNCTION_STATIC(pvs_SetStateFlags)
 	return 0;
 }
 
-static int GetStateFlags(GarrysMod::Lua::ILuaInterface* pLua, CBaseEntity* ent, bool force)
+static int GetStateFlagsEdict(edict_t* edict, bool force)
 {
-	edict_t* edict = ent->edict();
-	if (!edict)
-		pLua->ThrowError("Failed to get edict?");
-
 	int flags = edict->m_fStateFlags;
 	int newFlags = flags;
 	if (!force)
@@ -578,6 +574,15 @@ static int GetStateFlags(GarrysMod::Lua::ILuaInterface* pLua, CBaseEntity* ent, 
 	}
 
 	return newFlags;
+}
+
+static int GetStateFlags(GarrysMod::Lua::ILuaInterface* pLua, CBaseEntity* ent, bool force)
+{
+	edict_t* edict = ent->edict();
+	if (!edict)
+		pLua->ThrowError("Failed to get edict?");
+
+	return GetStateFlagsEdict(edict, force);
 }
 
 LUA_FUNCTION_STATIC(pvs_GetStateFlags)
@@ -929,8 +934,8 @@ LUA_FUNCTION_STATIC(pvs_PreventTransmitAllExcept)
 	if (!g_pCurrentTransmitInfo)
 		LUA->ThrowError("Tried to use pvs.RemoveEntityFromTransmit while not in a CheckTransmit call!");
 
+	int ignoreFlags = LUA->CheckNumberOpt(2, 0);
 	CBitVec<MAX_EDICTS> pEntities;
-	const int flags = LUA_FL_EDICT_DONTSEND;
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Table))
 	{
 		LUA->Push(1);
@@ -939,7 +944,11 @@ LUA_FUNCTION_STATIC(pvs_PreventTransmitAllExcept)
 		{
 			edict_t* pEdict = Util::Get_Entity(LUA, -1, true)->edict();
 			if (pEdict)
-				pEntities.Set(pEdict->m_EdictIndex);
+			{
+				int flags = GetStateFlagsEdict(pEdict, false);
+				if (!(flags & ignoreFlags))
+					pEntities.Set(pEdict->m_EdictIndex);
+			}
 		}
 		LUA->Pop(1);
 #if MODULE_EXISTS_ENTITYLIST
@@ -949,13 +958,21 @@ LUA_FUNCTION_STATIC(pvs_PreventTransmitAllExcept)
 		{
 			edict_t* pEdict = ent->edict();
 			if (pEdict)
-				pEntities.Set(pEdict->m_EdictIndex);
+			{
+				int flags = GetStateFlagsEdict(pEdict, false);
+				if (!(flags & ignoreFlags))
+					pEntities.Set(pEdict->m_EdictIndex);
+			}
 		}
 #endif
 	} else {
 		edict_t* pEdict = Util::Get_Entity(LUA, 1, true)->edict();
 		if (pEdict)
-			pEntities.Set(pEdict->m_EdictIndex);
+		{
+			int flags = GetStateFlagsEdict(pEdict, false);
+			if (!(flags & ignoreFlags))
+				pEntities.Set(pEdict->m_EdictIndex);
+		}
 	}
 
 	int idx = 0;
@@ -968,7 +985,7 @@ LUA_FUNCTION_STATIC(pvs_PreventTransmitAllExcept)
 		if (pEntities.IsBitSet(iEdict))
 			continue;
 
-		SetOverrideStateFlagsEdict(pEdict, flags, false);
+		SetOverrideStateFlagsEdict(pEdict, LUA_FL_EDICT_DONTSEND, false);
 	}
 
 	return 0;
