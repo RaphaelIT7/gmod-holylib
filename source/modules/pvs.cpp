@@ -46,6 +46,8 @@ static void hook_CGMOD_Player_SetupVisibility(void* ent, unsigned char* pvs, int
 static bool bWasAddedEntityUsed = false;
 static CBitVec<MAX_EDICTS> g_pAddEntityToPVS;
 static bool bWasOverrideStateFlagsUsed = false;
+
+static CBitVec<MAX_EDICTS> g_pOverrideSet;
 static int g_pOverrideStateFlag[MAX_EDICTS];
 static int pOriginalFlags[MAX_EDICTS];
 
@@ -79,8 +81,7 @@ static void hook_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheck
 			{
 				if (bWasOverrideStateFlagsUsed)
 				{
-					memset(pOriginalFlags, 0, sizeof(pOriginalFlags));
-					memset(g_pOverrideStateFlag, 0, sizeof(g_pOverrideStateFlag));
+					g_pOverrideSet.ClearAll();
 					bWasOverrideStateFlagsUsed = false;
 				}
 
@@ -113,9 +114,14 @@ static void hook_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheck
 		for (int i=0; i<MAX_EDICTS; ++i)
 		{
 			edict_t* pEdict = &pWorld[i];
+			if (!g_pOverrideSet.IsBitSet(i))
+				continue;
+
+			int nFlags = g_pOverrideStateFlag[i] & (FL_EDICT_DONTSEND|FL_EDICT_ALWAYS|FL_EDICT_PVSCHECK|FL_EDICT_FULLCHECK);
+
 			pOriginalFlags[i] = pEdict->m_fStateFlags;
 			if (g_pPVSModule.InDebug())
-				Msg("Overriding ent(%i) flags for snapshot (%i -> %i)\n", pEdict->m_EdictIndex, pEdict->m_fStateFlags, g_pOverrideStateFlag[i]);
+				Msg("Overriding ent(%i) flags for snapshot (%i -> %i | %s)\n", pEdict->m_EdictIndex, pEdict->m_fStateFlags, g_pOverrideStateFlag[i], (nFlags & FL_EDICT_DONTSEND) != 0 ? "true" : "false");
 		
 			pEdict->m_fStateFlags = g_pOverrideStateFlag[i];
 		}
@@ -146,11 +152,14 @@ static void hook_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheck
 	{
 		for (int i=0; i<MAX_EDICTS; ++i)
 		{
-			(&pWorld[i])->m_fStateFlags = pOriginalFlags[i];
+			edict_t* pEdict = &pWorld[i];
+			if (!g_pOverrideSet.IsBitSet(i))
+				continue;
+
+			pEdict->m_fStateFlags = pOriginalFlags[i];
 		}
 
-		memset(pOriginalFlags, 0, sizeof(pOriginalFlags));
-		memset(g_pOverrideStateFlag, 0, sizeof(g_pOverrideStateFlag));
+		g_pOverrideSet.ClearAll();
 		bWasOverrideStateFlagsUsed = false;
 	}
 
@@ -197,8 +206,7 @@ void PreCheckTransmit(void* gameents, CCheckTransmitInfo *pInfo, const unsigned 
 			{
 				if (bWasOverrideStateFlagsUsed)
 				{
-					memset(pOriginalFlags, 0, sizeof(pOriginalFlags));
-					memset(g_pOverrideStateFlag, 0, sizeof(g_pOverrideStateFlag));
+					g_pOverrideSet.ClearAll();
 					bWasOverrideStateFlagsUsed = false;
 				}
 
@@ -231,6 +239,9 @@ void PreCheckTransmit(void* gameents, CCheckTransmitInfo *pInfo, const unsigned 
 		for (int i=0; i<MAX_EDICTS; ++i)
 		{
 			edict_t* pEdict = &pWorld[i];
+			if (!g_pOverrideSet.IsBitSet(i))
+				continue;
+
 			pOriginalFlags[i] = pEdict->m_fStateFlags;
 			if (g_pPVSModule.InDebug())
 				Msg("Overriding ent(%i) flags for snapshot (%i -> %i)\n", pEdict->m_EdictIndex, pEdict->m_fStateFlags, g_pOverrideStateFlag[i]);
@@ -265,11 +276,14 @@ void PostCheckTransmit(void* gameents, CCheckTransmitInfo *pInfo, const unsigned
 		edict_t* pWorld = Util::engineserver->PEntityOfEntIndex(0);
 		for (int i=0; i<MAX_EDICTS; ++i)
 		{
-			(&pWorld[i])->m_fStateFlags = pOriginalFlags[i];
+			edict_t* pEdict = &pWorld[i];
+			if (!g_pOverrideSet.IsBitSet(i))
+				continue;
+
+			pEdict->m_fStateFlags = pOriginalFlags[i];
 		}
 
-		memset(pOriginalFlags, 0, sizeof(pOriginalFlags));
-		memset(g_pOverrideStateFlag, 0, sizeof(g_pOverrideStateFlag));
+		g_pOverrideSet.ClearAll();
 		bWasOverrideStateFlagsUsed = false;
 	}
 
@@ -431,7 +445,6 @@ static void SetOverrideStateFlagsEdict(edict_t* edict, int flags, bool force)
 		newFlags = newFlags & ~FL_EDICT_DONTSEND;
 		newFlags = newFlags & ~FL_EDICT_ALWAYS;
 		newFlags = newFlags & ~FL_EDICT_PVSCHECK;
-		newFlags = newFlags & ~FL_EDICT_FULLCHECK;
 
 		if (flags & LUA_FL_EDICT_DONTSEND)
 			newFlags |= FL_EDICT_DONTSEND;
@@ -443,10 +456,11 @@ static void SetOverrideStateFlagsEdict(edict_t* edict, int flags, bool force)
 			newFlags |= FL_EDICT_PVSCHECK;
 
 		if (flags & LUA_FL_EDICT_FULLCHECK)
-			newFlags |= FL_EDICT_FULLCHECK;
+			newFlags = FL_EDICT_FULLCHECK;
 	}
 
 	g_pOverrideStateFlag[edict->m_EdictIndex] = newFlags;
+	g_pOverrideSet.Set(edict->m_EdictIndex);
 	bWasOverrideStateFlagsUsed = true;
 }
 
@@ -515,7 +529,7 @@ static void SetStateFlags(GarrysMod::Lua::ILuaInterface* pLua, CBaseEntity* ent,
 			newFlags |= FL_EDICT_PVSCHECK;
 
 		if (flags & LUA_FL_EDICT_FULLCHECK)
-			newFlags |= FL_EDICT_FULLCHECK;
+			newFlags = FL_EDICT_FULLCHECK;
 	}
 
 	edict->m_fStateFlags = newFlags;
@@ -570,7 +584,7 @@ static int GetStateFlagsEdict(edict_t* edict, bool force)
 			newFlags |= LUA_FL_EDICT_PVSCHECK;
 
 		if (flags == FL_EDICT_FULLCHECK)
-			newFlags |= LUA_FL_EDICT_FULLCHECK;
+			newFlags = LUA_FL_EDICT_FULLCHECK;
 	}
 
 	return newFlags;
@@ -902,7 +916,7 @@ LUA_FUNCTION_STATIC(pvs_GetEntitiesFromTransmit)
 		int iEdict = g_pCurrentEdictIndices[i];
 		edict_t *pEdict = &pBaseEdict[iEdict];
 
-		if (!g_pCurrentTransmitInfo->m_pTransmitEdict->Get(i))
+		if (!g_pCurrentTransmitInfo->m_pTransmitEdict->Get(iEdict))
 			continue;
 
 		Util::Push_Entity(LUA, Util::servergameents->EdictToBaseEntity(pEdict));
@@ -976,7 +990,7 @@ LUA_FUNCTION_STATIC(pvs_PreventTransmitAllExcept)
 			continue;
 
 		int flags = GetStateFlagsEdict(pEdict, false);
-		if (!(flags & ignoreFlags))
+		if (flags & ignoreFlags)
 			continue;
 
 		SetOverrideStateFlagsEdict(pEdict, LUA_FL_EDICT_DONTSEND, false);
