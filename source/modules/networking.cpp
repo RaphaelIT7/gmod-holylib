@@ -851,7 +851,10 @@ void Networking_SetNextTransmitRange(vec_t nRange)
 }
 
 // Very expensive!
-static inline void DoTransmitPVSCheck(edict_t* pEdict, CBaseEntity* pEnt, const bool bIsHLTV, CCheckTransmitInfo *pInfo, const bool bForceTransmit, const int skyBoxArea, const Vector& clientPosition)
+static inline void DoTransmitPVSCheck(
+	edict_t* pEdict, CBaseEntity* pEnt, const bool bIsHLTV, CCheckTransmitInfo *pInfo,
+	const bool bForceTransmit, const int skyBoxArea, const Vector& clientPosition, const vec_t maxTransmitRange
+)
 {
 	CCServerNetworkProperty *netProp = static_cast<CCServerNetworkProperty*>( pEdict->GetNetworkable() );
 	if ( !netProp )
@@ -877,7 +880,7 @@ static inline void DoTransmitPVSCheck(edict_t* pEdict, CBaseEntity* pEnt, const 
 	}
 
 	// Check if we have a range set and if so skip transmit
-	if (g_nTransmitRange != -1.0f && pEnt->GetAbsOrigin().DistTo(clientPosition) > g_nTransmitRange)
+	if (maxTransmitRange != -1.0f && pEnt->GetAbsOrigin().DistTo(clientPosition) > maxTransmitRange)
 		return;
 
 	const bool bInPVS = netProp->IsInPVS( pInfo );
@@ -963,6 +966,9 @@ static ConVar networking_fastpath("holylib_networking_fastpath", "0", 0, "Experi
 static ConVar networking_fastpath_usecluster("holylib_networking_fastpath_usecluster", "1", 0, "Experimental - When using the fastpatth, it will compate against clients in the same cluster instead of area");
 bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts)
 {
+	vec_t maxTransmitRange = g_nTransmitRange;
+	g_nTransmitRange = -1.0f;
+
 	if (!networking_fasttransmit.GetBool() || !gpGlobals || !engine || !mdlcache || !func_CBaseAnimating_SetTransmit)
 		return false;
 
@@ -982,6 +988,9 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 		return true; // We don't return false since we never want to transmit anything to a player in a invalid slot!
 
 	CGameClient* pGameClient = (CGameClient*)Util::GetClientByIndex(clientIndex);
+	if (!pGameClient) // Something is wrong... definetly...
+		return true;
+
 	CBaseEntity* pViewEntity = Util::GetCBaseEntityFromEdict((edict_t*)pGameClient->m_pViewEntity);
 
 	const Vector& clientPosition = pViewEntity ? pViewEntity->EyePosition() : pRecipientPlayer->EyePosition();
@@ -1187,7 +1196,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 		if ( !( nFlags & FL_EDICT_PVSCHECK ) )
 			continue;
 
-		DoTransmitPVSCheck(pEdict, pEnt, bIsHLTV, pInfo, bForceTransmit, skyBoxArea, clientPosition);
+		DoTransmitPVSCheck(pEdict, pEnt, bIsHLTV, pInfo, bForceTransmit, skyBoxArea, clientPosition, maxTransmitRange);
 	}
 
 	// HLTV has different networking! Some things might transmit when for normal players they wouldn't!
