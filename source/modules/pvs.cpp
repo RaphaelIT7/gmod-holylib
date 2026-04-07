@@ -999,6 +999,21 @@ LUA_FUNCTION_STATIC(pvs_PreventTransmitAllExcept)
 	return 0;
 }
 
+#if MODULE_EXISTS_NETWORKING
+extern void Networking_SetNextTransmitRange(vec_t nRange);
+#endif
+LUA_FUNCTION_STATIC(pvs_SetMaxViewDistance)
+{
+	if ((!currentPVS && !g_pCurrentTransmitInfo) || g_bBlockAdditionToTransmit)
+		LUA->ThrowError("Tried to use pvs.SetMaxViewDistance outside of HolyLib:PreCheckTransmit or GM:SetupPlayerVisibility");
+
+#if MODULE_EXISTS_NETWORKING
+	Networking_SetNextTransmitRange(LUA->CheckNumber(1));
+#else
+	MISSING_MODULE_ERROR(LUA, networking);
+#endif
+	return 0;
+}
 
 LUA_FUNCTION_STATIC(pvs_EnablePreTransmitHook)
 {
@@ -1047,6 +1062,7 @@ void CPVSModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 		Util::AddFunc(pLua, pvs_GetEntitiesFromTransmit, "GetEntitiesFromTransmit");
 		Util::AddFunc(pLua, pvs_ForceWeaponTransmit, "ForceWeaponTransmit");
 		Util::AddFunc(pLua, pvs_PreventTransmitAllExcept, "PreventTransmitAllExcept");
+		Util::AddFunc(pLua, pvs_SetMaxViewDistance, "SetMaxViewDistance");
 
 		// Use the functions below only inside the HolyLib:[Pre/Post]CheckTransmit hook.  
 		Util::AddFunc(pLua, pvs_RemoveEntityFromTransmit, "RemoveEntityFromTransmit");

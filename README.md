@@ -1091,6 +1091,17 @@ Allows you to mark a weapon to be forcefully transmitted even when offhand.<br>
 The weapon will remain to be forcefully transmitted until this is called with false again or the weapon is removed!<br>
 This is only useful if you use the `networking` module with the `holylib_networking_transmit_all_weapons 0` and `holylib_networking_transmit_all_weapons_to_owner 0`<br>
 
+#### pvs.SetMaxViewDistance(number range)
+Sets the maximum range in which PVS entities should be transmitted in for the **NEXT** transmit<br>
+The range check is implemented just before the IsInPVS check internally, so it will respect previous checks like if it's in the 3d skybox.<br>
+
+> [!IMPORTANT]
+> This function requires the `networking` module and will throw an error if it's missing<br>
+> Additionally it requires `holylib_networking_fasttransmit 1` as else it won't have an effect!<br>
+
+> [!NOTE]
+> Only use this function inside the `HolyLib:PreCheckTransmit` or `GM:SetupPlayerVisibility` hook or it will throw an error!<br>
+
 #### pvs.EnablePreTransmitHook(bool enable = false)
 Enables/Disables the `HolyLib:PreCheckTransmit` hook.<br>
 The internal value is reset on mapchange, so you need to set it always again on Lua startup.<br>

@@ -843,8 +843,15 @@ static void TransmitFastPathPlayer(CBasePlayer* pRecipientPlayer, int clientInde
 	pInfo->m_pTransmitEdict->Or(g_pGlobalTransmitTickCache.g_bWasSeenByPlayer, &g_pGlobalTransmitTickCache.g_bWasSeenByPlayer);
 }
 
+static vec_t g_nTransmitRange = -1.0f;
+// Will only work for ONE transmit!
+void Networking_SetNextTransmitRange(vec_t nRange)
+{
+	g_nTransmitRange = nRange;
+}
+
 // Very expensive!
-static inline void DoTransmitPVSCheck(edict_t* pEdict, CBaseEntity* pEnt, const bool bIsHLTV, CCheckTransmitInfo *pInfo, const bool bForceTransmit, const int skyBoxArea)
+static inline void DoTransmitPVSCheck(edict_t* pEdict, CBaseEntity* pEnt, const bool bIsHLTV, CCheckTransmitInfo *pInfo, const bool bForceTransmit, const int skyBoxArea, const Vector& clientPosition)
 {
 	CCServerNetworkProperty *netProp = static_cast<CCServerNetworkProperty*>( pEdict->GetNetworkable() );
 	if ( !netProp )
@@ -868,6 +875,10 @@ static inline void DoTransmitPVSCheck(edict_t* pEdict, CBaseEntity* pEnt, const 
 		pEnt->SetTransmit( pInfo, true );
 		return;
 	}
+
+	// Check if we have a range set and if so skip transmit
+	if (g_nTransmitRange != -1.0f && pEnt->GetAbsOrigin().DistTo(clientPosition) > g_nTransmitRange)
+		return;
 
 	const bool bInPVS = netProp->IsInPVS( pInfo );
 	if ( bInPVS || bForceTransmit )
@@ -1173,7 +1184,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 		if ( !( nFlags & FL_EDICT_PVSCHECK ) )
 			continue;
 
-		DoTransmitPVSCheck(pEdict, pEnt, bIsHLTV, pInfo, bForceTransmit, skyBoxArea);
+		DoTransmitPVSCheck(pEdict, pEnt, bIsHLTV, pInfo, bForceTransmit, skyBoxArea, clientPosition);
 	}
 
 	// HLTV has different networking! Some things might transmit when for normal players they wouldn't!
