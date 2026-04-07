@@ -199,45 +199,55 @@ namespace Lua
 			mutex.lock();
 			waiting.fetch_sub(1, std::memory_order_relaxed);
 
-			owner.store(ThreadGetCurrentId());
+			owner.store(ThreadGetCurrentId(), std::memory_order_release);
 			++recursion;
 		}
 
 		void unlock()
 		{
 			if (--recursion == 0)
-				owner.store(0);
+				owner.store(0, std::memory_order_release);
 
 			mutex.unlock();
+			cv.notify_all();
 		}
 
 		bool hasWaiting()
 		{
-			return waiting.load() != 0;
+			return waiting.load(std::memory_order_relaxed) != 0;
 		}
 
 		bool isOwning()
 		{
-			return owner.load() == ThreadGetCurrentId();
+			return owner.load(std::memory_order_acquire) == ThreadGetCurrentId();
 		}
 
 		bool isLocked()
 		{
-			return owner.load() != 0;
+			return owner.load(std::memory_order_acquire) != 0;
 		}
 
 		void lockWhenDone()
 		{
-			// ToDo
+			std::unique_lock<std::mutex> ulock(cvMutex);
+			cv.wait(ulock, [&]()
+			{
+				return waiting.load(std::memory_order_relaxed) == 0 && !isLocked();
+			});
+
+			lock();
 		}
 
 	private:
-		std::atomic<unsigned int> waiting; // Hacky... there surely is a better way
+		std::atomic<size_t> waiting{0}; // Hacky... there surely is a better way
 		std::recursive_mutex mutex;
+
+		std::condition_variable cv;
+		std::mutex cvMutex;
 
 		// I hate that we need to track this ourselves
 		std::atomic<ThreadId_t> owner = 0;
-		unsigned int recursion = 0;
+		size_t recursion = 0;
 	};
 
 	// A structure in which modules can store data specific to a ILuaInterface.

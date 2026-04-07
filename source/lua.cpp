@@ -999,6 +999,7 @@ void Lua::RemoveLuaInterfaceReference(ILuaInterfaceReference* pReference)
 		pData->pReferences.erase(it);
 }
 
+// This function is responsibe for a thread calling back to the main state
 void Lua::ThinkMainInterface()
 {
 	if (!g_Lua)
@@ -1008,23 +1009,12 @@ void Lua::ThinkMainInterface()
 
 	Lua::ScopedThreadAccess pThreadScope;
 	Lua::StateData* pData = Lua::GetLuaData(g_Lua);
-	if (!pData)
+	if (!pData || !pData->pThreadingMutex.hasWaiting())
 		return;
 
 	// Release for any threads to start working
 	pData->pThreadingMutex.unlock();
 
-	// At worse we let another thread lock us for 20ms per tick
-	for (int i=0; i<20; ++i)
-	{
-		// If we are locked then something is doing work- so we count it as waiting too!
-		if (!pData->pThreadingMutex.hasWaiting())
-			break;
-
-		ThreadSleep(1);
-		// I hate this :(
-	}
-
 	// Lock once they are done
-	pData->pThreadingMutex.lock();
+	pData->pThreadingMutex.lockWhenDone();
 }
