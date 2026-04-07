@@ -364,7 +364,7 @@ IModuleWrapper* CModuleManager::GetModuleByID(int nIndex)
 	if (0 >= nIndex || nIndex > (int)m_pModules.size())
 		return nullptr;
 
-	return m_pModules[nIndex];
+	return m_pModules[nIndex-1];
 }
 
 void CModuleManager::Setup(CreateInterfaceFn appfn, CreateInterfaceFn gamefn)
