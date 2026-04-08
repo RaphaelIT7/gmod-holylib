@@ -598,13 +598,13 @@ LJLIB_CF(test_jitcfunc)
 
   info.func = test_func;
   info.asmFunc = asm_test_func;
-  //info.argType[0] = CFUNC_TYPE_LUASTATE;
-  //info.argType[0] = CFUNC_TYPE_INT;
-  //info.argType[1] = CFUNC_TYPE_INT;
-  //info.argType[2] = CFUNC_TYPE_INT;
-  //info.argType[2] = CFUNC_TYPE_INT;
-  info.argType[0] = CFUNC_TYPE_VOID;
-  info.retType = CFUNC_TYPE_INT;
+  //info.argType[0] = TR_TYPE_LUASTATE;
+  //info.argType[0] = TR_TYPE_INT;
+  //info.argType[1] = TR_TYPE_INT;
+  //info.argType[2] = TR_TYPE_INT;
+  //info.argType[2] = TR_TYPE_INT;
+  info.argType[0] = TR_TYPE_VOID;
+  info.retType = TR_TYPE_INT;
   info.callconv = CFUNC_CALLCONV_FASTCALL;
   info.canerror = 0;
   info.givestate = 0;
@@ -636,10 +636,10 @@ LJLIB_CF(test_jitcfunc2)
 
   info.func = test2_func;
   info.asmFunc = asm_test2_func;
-  info.argType[0] = CFUNC_TYPE_CHARS;
-  info.argType[1] = CFUNC_TYPE_CHARS;
-  info.argType[2] = CFUNC_TYPE_VOID;
-  info.retType = CFUNC_TYPE_INT;
+  info.argType[0] = TR_TYPE_CHARS;
+  info.argType[1] = TR_TYPE_CHARS;
+  info.argType[2] = TR_TYPE_VOID;
+  info.retType = TR_TYPE_INT;
   info.callconv = CFUNC_CALLCONV_CDECL;
   info.canerror = 0;
   info.givestate = 0;
@@ -667,9 +667,9 @@ LJLIB_CF(test_jitcfunc3)
 
   info.func = test3_func;
   info.asmFunc = asm_test3_func;
-  info.argType[0] = CFUNC_TYPE_USERDATA;
-  info.argType[1] = CFUNC_TYPE_VOID;
-  info.retType = CFUNC_TYPE_TABLE;
+  info.argType[0] = TR_TYPE_USERDATA;
+  info.argType[1] = TR_TYPE_VOID;
+  info.retType = TR_TYPE_TABLE;
   info.callconv = CFUNC_CALLCONV_FASTCALL;
   info.canerror = 0;
   info.givestate = 0;
@@ -696,9 +696,9 @@ LJLIB_CF(test_jitcfunc4)
 
   info.func = test4_func;
   info.asmFunc = asm_test4_func;
-  info.argType[0] = CFUNC_TYPE_LUASTATE;
-  info.argType[1] = CFUNC_TYPE_VOID;
-  info.retType = CFUNC_TYPE_VOID;
+  info.argType[0] = TR_TYPE_LUASTATE;
+  info.argType[1] = TR_TYPE_VOID;
+  info.retType = TR_TYPE_VOID;
   info.callconv = CFUNC_CALLCONV_FASTCALL;
   info.canerror = 0;
   info.givestate = 1;
@@ -725,8 +725,8 @@ LJLIB_CF(test_jitcfunc5)
 
   info.func = test5_func;
   info.asmFunc = asm_test5_func;
-  info.argType[0] = CFUNC_TYPE_VOID;
-  info.retType = CFUNC_TYPE_CHARS;
+  info.argType[0] = TR_TYPE_VOID;
+  info.retType = TR_TYPE_CHARS;
   info.callconv = CFUNC_CALLCONV_FASTCALL;
   info.canerror = 0;
   info.givestate = 0;
@@ -756,8 +756,8 @@ LJLIB_CF(test_jitcfunc6)
 
   info.func = test6_func;
   info.asmFunc = asm_test6_func;
-  info.argType[0] = CFUNC_TYPE_VOID;
-  info.retType = CFUNC_TYPE_BOOL;
+  info.argType[0] = TR_TYPE_VOID;
+  info.retType = TR_TYPE_BOOL;
   info.callconv = CFUNC_CALLCONV_FASTCALL;
   info.canerror = 0;
   info.givestate = 0;
@@ -787,8 +787,8 @@ LJLIB_CF(test_jitcfunc7)
 
   info.func = test7_func;
   info.asmFunc = asm_test7_func;
-  info.argType[0] = CFUNC_TYPE_VOID;
-  info.retType = CFUNC_TYPE_STRING; //CFUNC_TYPE_BOOL;
+  info.argType[0] = TR_TYPE_VOID;
+  info.retType = TR_TYPE_STRING; //TR_TYPE_BOOL;
   info.callconv = CFUNC_CALLCONV_FASTCALL;
   info.canerror = 0;
   info.givestate = 0;
@@ -826,10 +826,10 @@ LJLIB_CF(test_jitcfunc8)
 
   info.func = test8_func;
   info.asmFunc = asm_test8_func2;
-  info.argType[0] = CFUNC_TYPE_INT;
-  info.argType[1] = CFUNC_TYPE_INT;
-  info.argType[2] = CFUNC_TYPE_VOID;
-  info.retType = CFUNC_TYPE_STRING;
+  info.argType[0] = TR_TYPE_INT;
+  info.argType[1] = TR_TYPE_INT;
+  info.argType[2] = TR_TYPE_VOID;
+  info.retType = TR_TYPE_STRING;
   info.callconv = CFUNC_CALLCONV_FASTCALL;
   info.canerror = 0;
   info.givestate = 0;
@@ -841,9 +841,9 @@ LJLIB_CF(test_jitcfunc8)
 
   info2.func = test8_func;
   info2.asmFunc = asm_test8_func1;
-  info2.argType[0] = CFUNC_TYPE_INT;
-  info2.argType[1] = CFUNC_TYPE_VOID;
-  info2.retType = CFUNC_TYPE_STRING;
+  info2.argType[0] = TR_TYPE_INT;
+  info2.argType[1] = TR_TYPE_VOID;
+  info2.retType = TR_TYPE_STRING;
   info2.callconv = CFUNC_CALLCONV_FASTCALL;
   info2.canerror = 0;
   info2.givestate = 0;

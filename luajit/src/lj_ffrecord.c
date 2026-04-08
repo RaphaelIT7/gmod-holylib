@@ -194,46 +194,64 @@ static void LJ_FASTCALL recff_nyi(jit_State *J, RecordFFData *rd)
 #define emitconv(a, dt, st, flags) \
   emitir(IRT(IR_CONV, (dt)), (a), (st)|((dt) << 5)|(flags))
 
-static IRType CFunctionInfoTypeToIRType(lua_CFunctionInfoType type)
+static IRType CFunctionInfoTypeToIRType(lua_TraceRecorderType type)
 {
   switch(type) {
-    case CFUNC_TYPE_VOID:
+    case TR_TYPE_VOID:
       return IRT_NIL;
-    case CFUNC_TYPE_LUASTATE:
+    case TR_TYPE_LUASTATE:
       return IRT_THREAD;
-    case CFUNC_TYPE_TABLE:
+    case TR_TYPE_TABLE:
       return IRT_TAB;
-    case CFUNC_TYPE_USERDATA:
+    case TR_TYPE_USERDATA:
       return IRT_UDATA;
-    case CFUNC_TYPE_USERDATA_VALUE:
+    case TR_TYPE_USERDATA_VALUE:
       return IRT_UDATA;
-    case CFUNC_TYPE_INT:
-      return IRT_INT;
-    case CFUNC_TYPE_BOOL:
+    case TR_TYPE_I8:
+      return IRT_I8;
+    case TR_TYPE_U8:
       return IRT_U8;
-    case CFUNC_TYPE_FLOAT:
+    case TR_TYPE_I16:
+      return IRT_I16;
+    case TR_TYPE_U16:
+      return IRT_U16;
+    case TR_TYPE_INT:
+      return IRT_INT;
+    case TR_TYPE_U32:
+      return IRT_U32;
+    case TR_TYPE_I64:
+      return IRT_I64;
+    case TR_TYPE_U64:
+      return IRT_U64;
+    case TR_TYPE_BOOL:
+      return IRT_U8;
+    case TR_TYPE_TRUE:
+      return IRT_TRUE;
+    case TR_TYPE_FALSE:
+      return IRT_FALSE;
+    case TR_TYPE_FLOAT:
       return IRT_FLOAT;
-    case CFUNC_TYPE_DOUBLE:
+    case TR_TYPE_DOUBLE:
       return IRT_NUM;
-    case CFUNC_TYPE_STRING:
+    case TR_TYPE_STRING:
       return IRT_STR;
-    case CFUNC_TYPE_CHARS:
+    case TR_TYPE_CHARS:
       return IRT_STR;
     default:
       return 0;
   }
 }
 
-static TRef CFunctionProcessType(jit_State *J, TRef ref, TRef val, TValue* value, lua_CFunctionInfoType type)
+static TRef CFunctionProcessType(jit_State *J, TRef ref, TRef val, TValue* value, lua_TraceRecorderType type)
 {
-  if (type == CFUNC_TYPE_CHARS) {
+  if (type == TR_TYPE_CHARS) {
     return emitir(IRT(IR_STRREF, IRT_PGC), val, lj_ir_kint(J, 0));
-  } else if (type == CFUNC_TYPE_USERDATA) {
+  } else if (type == TR_TYPE_USERDATA) {
     // We guard on the type as we don't possibly want to get passed different userdata's and re-use the same trace
     TRef tr = emitir(IRT(IR_FLOAD, IRT_U16), val, IRFL_UDATA_UDTYPE);
     emitir(IRTGI(IR_EQ), tr, lj_ir_kint(J, udataV(value)->guard));
     return val;
-  } else if (type == CFUNC_TYPE_USERDATA_VALUE) {
+  } else if (type == TR_TYPE_USERDATA_VALUE) {
     TRef tr = emitir(IRT(IR_FLOAD, IRT_U16), val, IRFL_UDATA_UDTYPE);
     emitir(IRTGI(IR_EQ), tr, lj_ir_kint(J, udataV(value)->guard));
     return emitir(IRT(IR_FLOAD, IRT_PTR), val, IRFL_UDATA_VALUE);
@@ -282,7 +300,28 @@ static void LJ_FASTCALL recff_c(jit_State *J, RecordFFData *rd)
     }
   }
 
-  if (!callinfo || !callinfo->func) {
+  if (!callinfo) {
+    recff_nyi(J, rd);
+    return;
+  }
+
+  if (callinfo->retType == TR_RETURN_USERDATA_ENV)
+  {
+  	TRef tr = J->base[0];
+  	if (!tref_isudata(tr) || !tabref(udataV(&rd->argv[0])->env)) // Can't trace if GCudata::env is null
+  	{
+      recff_nyi(J, rd);
+  		return;
+  	}
+
+    // For loading ENV we only guard on GCudata::flags since HolyLib has the UDATA_NO_USERTABLE in case any userdata will not have env set to something valid
+  	TRef loadtr = emitir(IRT(IR_FLOAD, IRT_U8), tr, IRFL_UDATA_FLAGS);
+  	emitir(IRTGI(IR_EQ), loadtr, lj_ir_kint(J, udataV(&rd->argv[0])->flags));
+    J->base[0] = emitir(IRT(IR_FLOAD, IRT_TAB), tr, IRFL_UDATA_ENV);
+  	return;
+  }
+
+  if (!callinfo->func) {
     recff_nyi(J, rd);
     return;
   }
@@ -308,9 +347,8 @@ static void LJ_FASTCALL recff_c(jit_State *J, RecordFFData *rd)
     }
   }
   
-  IRType retType = CFunctionInfoTypeToIRType(callinfo->retType);
-  if (CCI_OP(callinfo) == IR_CALLS)
-    J->needsnap = 1;
+  //if (CCI_OP(callinfo) == IR_CALLS)
+  //  J->needsnap = 1;
 
   TRef funcPtr = lj_ir_kptr(J, callinfo->func);
   funcPtr = emitir(IRT(IR_CALLCC, IRT_NIL), funcPtr, lj_ir_kint(J, callinfo->flags & CCI_CC_MASK));
@@ -318,22 +356,23 @@ static void LJ_FASTCALL recff_c(jit_State *J, RecordFFData *rd)
   if (callinfo->allowoptout)
     funcPtr = emitir(IRT(IR_CALLCSE, IRT_NIL), funcPtr, lj_ir_kint(J, 0));
   
+  IRType retType = CFunctionInfoTypeToIRType(callinfo->retType);
   TRef result = emitir(IRT(IR_CALLXS, retType), tr, funcPtr);
-  if (callinfo->retType == CFUNC_TYPE_VOID) {
+  if (callinfo->retType == TR_TYPE_VOID) {
     J->base[0] = TREF_NIL;
     rd->nres = 0;
   } else {
     if (retType == IRT_FLOAT) {
       result = emitconv(result, IRT_NUM, retType, 0);
-    } else if (callinfo->retType == CFUNC_TYPE_CHARS) {
+    } else if (callinfo->retType == TR_TYPE_CHARS) {
       TRef strlen = lj_ir_call(J, IRCALL_strlen, result);
       result = emitir(IRT(IR_SNEW, IRT_STR), result, strlen);
-    } else if (callinfo->retType == CFUNC_TYPE_STRING) {
+    } else if (callinfo->retType == TR_TYPE_STRING) {
       emitir(IRTG(IR_NE, IRT_TRUE), result, lj_ir_kint(J, 0)); // GUARD to avoid null pointer crashes
       TRef strlen = emitir(IRT(IR_FLOAD, IRT_UINTP), result, IRFL_LSTR_LEN);
       result = emitir(IRT(IR_FLOAD, IRT_PTR), result, IRFL_LSTR_DATA);
       result = emitir(IRT(IR_SNEW, IRT_STR), result, strlen);
-    } else if (callinfo->retType == CFUNC_TYPE_BOOL) {
+    } else if (callinfo->retType == TR_TYPE_BOOL) {
       //RaphaelIT7: GG - You can't specify a bool return value / I got no idea yet
       //WARNING: This is EXPENSIVE!!! If we return false we will mismatch & die (not really but it'll exit the trace)
       result = emitir(IRTG(callinfo->retbool == 1 ? IR_NE : IR_EQ, IRT_TRUE), result, lj_ir_kint(J, 0));
@@ -1614,6 +1653,15 @@ static void LJ_FASTCALL recff_buffer_decode(jit_State *J, RecordFFData *rd)
 #endif
 
 /* -- Table library fast functions ---------------------------------------- */
+
+static void LJ_FASTCALL recff_table_maxn(jit_State *J, RecordFFData *rd)
+{
+  TRef tr = J->base[0];
+  if (tref_istab(tr)) {
+    rd->nres = 1;
+    J->base[0] = lj_ir_call(J, IRCALL_lj_tab_maxn, tr);
+  }
+}
 
 static void LJ_FASTCALL recff_table_insert(jit_State *J, RecordFFData *rd)
 {

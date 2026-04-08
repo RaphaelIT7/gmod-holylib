@@ -89,6 +89,7 @@ LJ_FUNC uint32_t LJ_FASTCALL lj_tab_keyindex(GCtab *t, cTValue *key);
 LJ_FUNCA int lj_tab_next(GCtab *t, cTValue *key, TValue *o);
 LJ_FUNCA MSize LJ_FASTCALL lj_tab_len(GCtab *t);
 #if LJ_HASJIT
+LJ_FUNC lua_Number LJ_FASTCALL lj_tab_maxn(GCtab *t);
 LJ_FUNC MSize LJ_FASTCALL lj_tab_len_hint(GCtab *t, size_t hint);
 #endif
 

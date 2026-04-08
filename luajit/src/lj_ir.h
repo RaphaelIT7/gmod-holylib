@@ -209,6 +209,7 @@ IRFPMDEF(FPMENUM)
   _(UDATA_ENV,	offsetof(GCudata, env)) \
   _(UDATA_FLAGS, offsetof(GCudata, flags)) /* You can use U16 for load if when needing to guard on both type and flags :) */ \
   _(UDATA_UDTYPE, offsetof(GCudata, udtype)) \
+  _(UDATA_HVALUE, offsetof(GCudata, align1)) /* This field is used by HolyLib to store the userdata value */ \
   _(UDATA_VALUE, sizeof(GCudata)) \
   _(LSTR_DATA, offsetof(lua_String, data)) \
   _(LSTR_LEN, offsetof(lua_String, length)) \

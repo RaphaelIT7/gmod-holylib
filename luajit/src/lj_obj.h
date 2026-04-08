@@ -496,8 +496,8 @@ typedef struct GCupval {
 typedef struct CFuncCallInfo {
   ASMFunction func;   /* Function pointer. 0 if this entire struct wasn't set yet */
   uint32_t flags;   /* Number of arguments and flags. */
-  lua_CFunctionInfoType argType[32]; /* argument types */
-  lua_CFunctionInfoType retType;
+  lua_TraceRecorderType argType[32]; /* argument types */
+  lua_TraceRecorderType retType;
   uint8_t givestate : 1;
   uint8_t allowoptout : 1;
   uint8_t retbool : 1;

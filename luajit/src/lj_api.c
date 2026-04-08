@@ -758,7 +758,7 @@ static int lua_CFunc_info(lua_State* L, GCfunc* fn, lua_CFunctionInfo* info)
     int args = 0;
     int invalid = 0;
     for (args=0; args<LUA_CFUNCINFO_MAXARGS; ++args) {
-      if (info->argType[args] == CFUNC_TYPE_VOID && fn->c.callinfo[infoIDX].argType[args] == CFUNC_TYPE_VOID)
+      if (info->argType[args] == TR_TYPE_VOID && fn->c.callinfo[infoIDX].argType[args] == TR_TYPE_VOID)
         break;
 
       if (fn->c.callinfo[infoIDX].argType[args] != info->argType[args])
@@ -788,14 +788,14 @@ static void lua_fillCFuncInfo(lua_State* L, GCfunc* fn, lua_CFunctionInfo* info)
   	return;
 
   // Technically not required (& we remove/skip it anyways below) - but I do require it, you should be AWARE of the args!
-  if (info->givestate && info->argType[0] != CFUNC_TYPE_LUASTATE)
+  if (info->givestate && info->argType[0] != TR_TYPE_LUASTATE)
     return;
 
   fn->c.callinfo[infoIDX].func = (ASMFunction)info->asmFunc;
   fn->c.callinfo[infoIDX].retType = info->retType;
   for (int args=0; args<LUA_CFUNCINFO_MAXARGS; ++args) {
     fn->c.callinfo[infoIDX].argType[args] = info->argType[args];
-    if (info->argType[args] == CFUNC_TYPE_VOID) {
+    if (info->argType[args] == TR_TYPE_VOID) {
       fn->c.callinfo[infoIDX].flags |= args;
       break;
     }
