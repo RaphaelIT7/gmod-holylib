@@ -880,8 +880,13 @@ static inline void DoTransmitPVSCheck(
 	}
 
 	// Check if we have a range set and if so skip transmit
-	if (maxTransmitRange != -1.0f && pEnt->GetAbsOrigin().DistTo(clientPosition) > maxTransmitRange)
-		return;
+	if (maxTransmitRange != -1.0f)
+	{
+		const vec_t dist = pEnt->CollisionProp()->WorldSpaceCenter().DistTo(clientPosition);
+		float radius = pEnt->CollisionProp()->BoundingRadius();
+		if ((dist - radius) > maxTransmitRange)
+			return;
+	}
 
 	const bool bInPVS = netProp->IsInPVS( pInfo );
 	if ( bInPVS || bForceTransmit )
