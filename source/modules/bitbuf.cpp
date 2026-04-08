@@ -1021,7 +1021,7 @@ void CBitBufModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 		Util::AddFunc(pLua, bf_read__index, "__index");
 		Util::AddFunc(pLua, bf_read__newindex, "__newindex");
 		Util::AddFunc(pLua, bf_read__gc, "__gc");
-		Util::AddFunc(pLua, bf_read_GetTable, "GetTable");
+		LUA_REGISTER_JIT(pLua, bf_read_GetTable, "GetTable");
 		LUA_REGISTER_JIT(pLua, bf_read_IsValid, "IsValid");
 		Util::AddFunc(pLua, bf_read_GetNumBitsLeft, "GetNumBitsLeft");
 		Util::AddFunc(pLua, bf_read_GetNumBitsRead, "GetNumBitsRead");
@@ -1076,7 +1076,7 @@ void CBitBufModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 		Util::AddFunc(pLua, bf_write__index, "__index");
 		Util::AddFunc(pLua, bf_write__newindex, "__newindex");
 		Util::AddFunc(pLua, bf_write__gc, "__gc");
-		Util::AddFunc(pLua, bf_write_GetTable, "GetTable");
+		LUA_REGISTER_JIT(pLua, bf_write_GetTable, "GetTable");
 		LUA_REGISTER_JIT(pLua, bf_write_IsValid, "IsValid");
 		Util::AddFunc(pLua, bf_write_GetData, "GetData");
 		Util::AddFunc(pLua, bf_write_GetNumBytesWritten, "GetNumBytesWritten");

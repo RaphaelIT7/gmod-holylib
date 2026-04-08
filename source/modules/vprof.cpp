@@ -1098,7 +1098,7 @@ void CVProfModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit
 		Util::AddFunc(pLua, VProfCounter__index, "__index");
 		Util::AddFunc(pLua, VProfCounter__newindex, "__newindex");
 		Util::AddFunc(pLua, VProfCounter__gc, "__gc");
-		Util::AddFunc(pLua, VProfCounter_GetTable, "GetTable");
+		LUA_REGISTER_JIT(pLua, VProfCounter_GetTable, "GetTable");
 		Util::AddFunc(pLua, VProfCounter_Set, "Set");
 		Util::AddFunc(pLua, VProfCounter_Get, "Get");
 		Util::AddFunc(pLua, VProfCounter_Increment, "Increment");
@@ -1111,7 +1111,7 @@ void CVProfModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit
 		Util::AddFunc(pLua, CVProfNode__index, "__index");
 		Util::AddFunc(pLua, CVProfNode__newindex, "__newindex");
 		Util::AddFunc(pLua, CVProfNode__gc, "__gc");
-		Util::AddFunc(pLua, CVProfNode_GetTable, "GetTable");
+		LUA_REGISTER_JIT(pLua, CVProfNode_GetTable, "GetTable");
 		Util::AddFunc(pLua, VProfNode_GetName, "GetName");
 		Util::AddFunc(pLua, VProfNode_GetBudgetGroupID, "GetBudgetGroupID");
 		Util::AddFunc(pLua, VProfNode_GetCurTime, "GetCurTime");

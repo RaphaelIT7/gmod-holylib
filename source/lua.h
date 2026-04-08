@@ -678,15 +678,22 @@ namespace Lua
 	extern thread_local lua_String pTempStr;
 
 	template<typename T> struct LuaTypeMap;
-	template<> struct LuaTypeMap<const char*> { static constexpr auto value = CFUNC_TYPE_CHARS; };
-	template<> struct LuaTypeMap<lua_String*> { static constexpr auto value = CFUNC_TYPE_STRING; };
-	template<> struct LuaTypeMap<GCstr*> { static constexpr auto value = CFUNC_TYPE_STRING; };
-	template<> struct LuaTypeMap<bool> { static constexpr auto value = CFUNC_TYPE_BOOL; };
-	template<> struct LuaTypeMap<int> { static constexpr auto value = CFUNC_TYPE_INT; };
-	template<> struct LuaTypeMap<float> { static constexpr auto value = CFUNC_TYPE_FLOAT; };
-	template<> struct LuaTypeMap<double> { static constexpr auto value = CFUNC_TYPE_DOUBLE; };
-	template<> struct LuaTypeMap<void> { static constexpr auto value = CFUNC_TYPE_VOID; };
-	template<> struct LuaTypeMap<LuaUserData*> { static constexpr auto value = CFUNC_TYPE_USERDATA; };
+	template<> struct LuaTypeMap<const char*> { static constexpr auto value = TR_TYPE_CHARS; };
+	template<> struct LuaTypeMap<lua_String*> { static constexpr auto value = TR_TYPE_STRING; };
+	template<> struct LuaTypeMap<GCstr*> { static constexpr auto value = TR_TYPE_STRING; };
+	template<> struct LuaTypeMap<bool> { static constexpr auto value = TR_TYPE_BOOL; };
+	template<> struct LuaTypeMap<char> { static constexpr auto value = TR_TYPE_I8; };
+	template<> struct LuaTypeMap<unsigned char> { static constexpr auto value = TR_TYPE_U8; };
+	template<> struct LuaTypeMap<short> { static constexpr auto value = TR_TYPE_I16; };
+	template<> struct LuaTypeMap<unsigned short> { static constexpr auto value = TR_TYPE_U16; };
+	template<> struct LuaTypeMap<int> { static constexpr auto value = TR_TYPE_INT; };
+	template<> struct LuaTypeMap<unsigned int> { static constexpr auto value = TR_TYPE_U32; };
+	template<> struct LuaTypeMap<int64_t> { static constexpr auto value = TR_TYPE_I64; };
+	template<> struct LuaTypeMap<uint64_t> { static constexpr auto value = TR_TYPE_U64; };
+	template<> struct LuaTypeMap<float> { static constexpr auto value = TR_TYPE_FLOAT; };
+	template<> struct LuaTypeMap<double> { static constexpr auto value = TR_TYPE_DOUBLE; };
+	template<> struct LuaTypeMap<void> { static constexpr auto value = TR_TYPE_VOID; };
+	template<> struct LuaTypeMap<LuaUserData*> { static constexpr auto value = TR_TYPE_USERDATA; };
 
 	template<typename Ret, typename... Args>
 	constexpr lua_CFunctionInfo MakeJITInfo(void* fn)
@@ -697,7 +704,7 @@ namespace Lua
 		info.callconv = CFUNC_CALLCONV_FASTCALL;
 		info.retbool = true; // By default in case any function returns a bool, we assume it'll most likely be true
 
-		lua_CFunctionInfoType types[] = { LuaTypeMap<Args>::value..., CFUNC_TYPE_VOID };
+		lua_TraceRecorderType types[] = { LuaTypeMap<Args>::value..., TR_TYPE_VOID };
 
 		for (size_t i = 0; i < sizeof...(Args) + 1; ++i)
 			info.argType[i] = types[i];
@@ -1517,8 +1524,13 @@ LUA_FUNCTION_STATIC(className ## __gc) \
 	return 0; \
 } \
 
-// Default function for GetTable. Simple.
+// Default function for GetTable. Simple. Uses a special TR type
 #define Default__GetTable(className) \
+static lua_CFunctionInfo ASMINFO_##className##_GetTable = [] { \
+	lua_CFunctionInfo info{}; \
+	info.retType = TR_RETURN_USERDATA_ENV; \
+	return info; \
+}(); \
 LUA_FUNCTION_STATIC(className ## _GetTable) \
 { \
 	Get_##className##_Data(LUA, 1, true)->PushLuaTable(LUA); \

@@ -221,13 +221,13 @@ static void SetupCoreTestFunctions(GarrysMod::Lua::ILuaInterface* pLua)
 		Util::AddFunc(pLua, _HOLYLIB_CORE_TEST__index, "__index");
 		Util::AddFunc(pLua, _HOLYLIB_CORE_TEST__newindex, "__newindex");
 		Util::AddFunc(pLua, _HOLYLIB_CORE_TEST__gc, "__gc");
-		Util::AddFunc(pLua, _HOLYLIB_CORE_TEST_GetTable, "GetTable");
+		LUA_REGISTER_JIT(pLua, _HOLYLIB_CORE_TEST_GetTable, "GetTable");
 	pLua->Pop(1);
 
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::_HOLYLIB_CORE_TEST_REFERENCED, pLua->CreateMetaTable("_HOLYLIB_CORE_TEST_REFERENCED"));
 		Util::AddFunc(pLua, _HOLYLIB_CORE_TEST_REFERENCED__index, "__index");
 		Util::AddFunc(pLua, _HOLYLIB_CORE_TEST_REFERENCED__newindex, "__newindex");
-		Util::AddFunc(pLua, _HOLYLIB_CORE_TEST_REFERENCED_GetTable, "GetTable");
+		LUA_REGISTER_JIT(pLua, _HOLYLIB_CORE_TEST_REFERENCED_GetTable, "GetTable");
 	pLua->Pop(1);
 
 	Lua::GetLuaData(pLua)->SetModuleData(0, new LuaCoreTestModuleData);

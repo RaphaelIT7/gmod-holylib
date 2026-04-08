@@ -358,7 +358,7 @@ void CLuaThreadsModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, LuaInterface__tostring, "__tostring");
 		Util::AddFunc(pLua, LuaInterface__index, "__index");
 		Util::AddFunc(pLua, LuaInterface__newindex, "__newindex");
-		Util::AddFunc(pLua, LuaInterface_GetTable, "GetTable");
+		LUA_REGISTER_JIT(pLua, LuaInterface_GetTable, "GetTable");
 		LUA_REGISTER_JIT(pLua, LuaInterface_IsValid, "IsValid");
 		Util::AddFunc(pLua, LuaInterface_RunString, "RunString");
 		Util::AddFunc(pLua, LuaInterface_GetName, "GetName");

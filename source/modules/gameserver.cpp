@@ -832,7 +832,7 @@ void Push_CBaseClientMeta(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	Util::AddFunc(pLua, CBaseClient__newindex, "__newindex");
 	Util::AddFunc(pLua, CBaseClient__index, "__index");
-	Util::AddFunc(pLua, CBaseClient_GetTable, "GetTable");
+	LUA_REGISTER_JIT(pLua, CBaseClient_GetTable, "GetTable");
 	LUA_REGISTER_JIT(pLua, CBaseClient_IsValid, "IsValid");
 
 	Util::AddFunc(pLua, CBaseClient_GetPlayerSlot, "GetPlayerSlot");
@@ -2336,7 +2336,7 @@ void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, CNetChan__tostring, "__tostring");
 		Util::AddFunc(pLua, CNetChan__index, "__index");
 		Util::AddFunc(pLua, CNetChan__newindex, "__newindex");
-		Util::AddFunc(pLua, CNetChan_GetTable, "GetTable");
+		LUA_REGISTER_JIT(pLua, CNetChan_GetTable, "GetTable");
 		LUA_REGISTER_JIT(pLua, CNetChan_IsValid, "IsValid");
 		Util::AddFunc(pLua, CNetChan_GetAvgLoss, "GetAvgLoss");
 		Util::AddFunc(pLua, CNetChan_GetAvgChoke, "GetAvgChoke");

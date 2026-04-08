@@ -2212,7 +2212,7 @@ void CVoiceChatModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServer
 		Util::AddFunc(pLua, VoiceData__index, "__index");
 		Util::AddFunc(pLua, VoiceData__newindex, "__newindex");
 		Util::AddFunc(pLua, VoiceData__gc, "__gc");
-		Util::AddFunc(pLua, VoiceData_GetTable, "GetTable");
+		LUA_REGISTER_JIT(pLua, VoiceData_GetTable, "GetTable");
 		LUA_REGISTER_JIT(pLua, VoiceData_IsValid, "IsValid");
 		LUA_REGISTER_JIT(pLua, VoiceData_GetData, "GetData");
 		LUA_REGISTER_JIT(pLua, VoiceData_GetLength, "GetLength");
@@ -2234,7 +2234,7 @@ void CVoiceChatModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServer
 		Util::AddFunc(pLua, VoiceStream__index, "__index");
 		Util::AddFunc(pLua, VoiceStream__newindex, "__newindex");
 		Util::AddFunc(pLua, VoiceStream__gc, "__gc");
-		Util::AddFunc(pLua, VoiceStream_GetTable, "GetTable");
+		LUA_REGISTER_JIT(pLua, VoiceStream_GetTable, "GetTable");
 		LUA_REGISTER_JIT(pLua, VoiceStream_IsValid, "IsValid");
 		Util::AddFunc(pLua, VoiceStream_GetData, "GetData");
 		Util::AddFunc(pLua, VoiceStream_SetData, "SetData");
@@ -2253,7 +2253,7 @@ void CVoiceChatModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServer
 		Util::AddFunc(pLua, WavAudioFile__index, "__index");
 		Util::AddFunc(pLua, WavAudioFile__newindex, "__newindex");
 		Util::AddFunc(pLua, WavAudioFile__gc, "__gc");
-		Util::AddFunc(pLua, WavAudioFile_GetTable, "GetTable");
+		LUA_REGISTER_JIT(pLua, WavAudioFile_GetTable, "GetTable");
 	pLua->Pop(1);*/
 
 	Util::StartTable(pLua);

@@ -334,7 +334,7 @@ void CEntListModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 		Util::AddFunc(pLua, EntityList__index, "__index");
 		Util::AddFunc(pLua, EntityList__newindex, "__newindex");
 		Util::AddFunc(pLua, EntityList__gc, "__gc");
-		Util::AddFunc(pLua, EntityList_GetTable, "GetTable");
+		LUA_REGISTER_JIT(pLua, EntityList_GetTable, "GetTable");
 		LUA_REGISTER_JIT(pLua, EntityList_IsValid, "IsValid");
 		Util::AddFunc(pLua, EntityList_GetEntities, "GetEntities");
 		Util::AddFunc(pLua, EntityList_SetEntities, "SetEntities");

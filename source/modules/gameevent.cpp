@@ -520,7 +520,7 @@ void CGameeventLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bSer
 		Util::AddFunc(pLua, IGameEvent__newindex, "__newindex");
 		Util::AddFunc(pLua, IGameEvent__gc, "__gc");
 		LUA_REGISTER_JIT(pLua, IGameEvent_IsValid, "IsValid");
-		Util::AddFunc(pLua, IGameEvent_GetTable, "GetTable");
+		LUA_REGISTER_JIT(pLua, IGameEvent_GetTable, "GetTable");
 		Util::AddFunc(pLua, IGameEvent_IsEmpty, "IsEmpty");
 		Util::AddFunc(pLua, IGameEvent_IsReliable, "IsReliable");
 		Util::AddFunc(pLua, IGameEvent_IsLocal, "IsLocal");

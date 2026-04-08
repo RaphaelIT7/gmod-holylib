@@ -1121,7 +1121,7 @@ void CStringTableModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServ
 			Util::AddFunc(pLua, INetworkStringTable__tostring, "__tostring");
 			Util::AddFunc(pLua, INetworkStringTable__newindex, "__newindex");
 			Util::AddFunc(pLua, INetworkStringTable__index, "__index");
-			Util::AddFunc(pLua, INetworkStringTable_GetTable, "GetTable");
+			LUA_REGISTER_JIT(pLua, INetworkStringTable_GetTable, "GetTable");
 			LUA_REGISTER_JIT(pLua, INetworkStringTable_IsValid, "IsValid");
 
 			Util::AddFunc(pLua, INetworkStringTable_GetTableName, "GetTableName");

@@ -2503,7 +2503,7 @@ void CPhysEnvModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 		Util::AddFunc(pLua, CPhysCollide__index, "__index");
 		Util::AddFunc(pLua, CPhysCollide__newindex, "__newindex");
 		LUA_REGISTER_JIT(pLua, CPhysCollide_IsValid, "IsValid");
-		Util::AddFunc(pLua, CPhysCollide_GetTable, "GetTable");
+		LUA_REGISTER_JIT(pLua, CPhysCollide_GetTable, "GetTable");
 	pLua->Pop(1);
 
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::CPhysPolysoup, pLua->CreateMetaTable("CPhysPolysoup"));
@@ -2511,7 +2511,7 @@ void CPhysEnvModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 		Util::AddFunc(pLua, CPhysPolysoup__index, "__index");
 		Util::AddFunc(pLua, CPhysPolysoup__newindex, "__newindex");
 		LUA_REGISTER_JIT(pLua, CPhysPolysoup_IsValid, "IsValid");
-		Util::AddFunc(pLua, CPhysPolysoup_GetTable, "GetTable");
+		LUA_REGISTER_JIT(pLua, CPhysPolysoup_GetTable, "GetTable");
 	pLua->Pop(1);
 
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::CPhysCollide, pLua->CreateMetaTable("CPhysCollide"));
@@ -2519,7 +2519,7 @@ void CPhysEnvModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 		Util::AddFunc(pLua, CPhysConvex__index, "__index");
 		Util::AddFunc(pLua, CPhysConvex__newindex, "__newindex");
 		LUA_REGISTER_JIT(pLua, CPhysConvex_IsValid, "IsValid");
-		Util::AddFunc(pLua, CPhysConvex_GetTable, "GetTable");
+		LUA_REGISTER_JIT(pLua, CPhysConvex_GetTable, "GetTable");
 	pLua->Pop(1);
 
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::ICollisionQuery, pLua->CreateMetaTable("ICollisionQuery"));
@@ -2527,7 +2527,7 @@ void CPhysEnvModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 		Util::AddFunc(pLua, ICollisionQuery__index, "__index");
 		Util::AddFunc(pLua, ICollisionQuery__newindex, "__newindex");
 		LUA_REGISTER_JIT(pLua, ICollisionQuery_IsValid, "IsValid");
-		Util::AddFunc(pLua, ICollisionQuery_GetTable, "GetTable");
+		LUA_REGISTER_JIT(pLua, ICollisionQuery_GetTable, "GetTable");
 		Util::AddFunc(pLua, ICollisionQuery_ConvexCount, "ConvexCount");
 		Util::AddFunc(pLua, ICollisionQuery_TriangleCount, "TriangleCount");
 		Util::AddFunc(pLua, ICollisionQuery_GetTriangleMaterialIndex, "GetTriangleMaterialIndex");
@@ -2541,7 +2541,7 @@ void CPhysEnvModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 		Util::AddFunc(pLua, IPhysicsCollisionSet__index, "__index");
 		Util::AddFunc(pLua, IPhysicsCollisionSet__newindex, "__newindex");
 		LUA_REGISTER_JIT(pLua, IPhysicsCollisionSet_IsValid, "IsValid");
-		Util::AddFunc(pLua, IPhysicsCollisionSet_GetTable, "GetTable");
+		LUA_REGISTER_JIT(pLua, IPhysicsCollisionSet_GetTable, "GetTable");
 		Util::AddFunc(pLua, IPhysicsCollisionSet_EnableCollisions, "EnableCollisions");
 		Util::AddFunc(pLua, IPhysicsCollisionSet_DisableCollisions, "DisableCollisions");
 		Util::AddFunc(pLua, IPhysicsCollisionSet_ShouldCollide, "ShouldCollide");
@@ -2551,7 +2551,7 @@ void CPhysEnvModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 		Util::AddFunc(pLua, IPhysicsEnvironment__tostring, "__tostring");
 		Util::AddFunc(pLua, ILuaPhysicsEnvironment__index, "__index");
 		Util::AddFunc(pLua, ILuaPhysicsEnvironment__newindex, "__newindex");
-		Util::AddFunc(pLua, ILuaPhysicsEnvironment_GetTable, "GetTable");
+		LUA_REGISTER_JIT(pLua, ILuaPhysicsEnvironment_GetTable, "GetTable");
 		LUA_REGISTER_JIT(pLua, ILuaPhysicsEnvironment_IsValid, "IsValid");
 		Util::AddFunc(pLua, IPhysicsEnvironment_TransferObject, "TransferObject");
 		Util::AddFunc(pLua, IPhysicsEnvironment_SetGravity, "SetGravity");

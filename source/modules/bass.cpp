@@ -1425,7 +1425,7 @@ void CBassModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 		Util::AddFunc(pLua, IGModAudioChannelEncoder__index, "__index");
 		Util::AddFunc(pLua, IGModAudioChannelEncoder__newindex, "__newindex");
 		LUA_REGISTER_JIT(pLua, IGModAudioChannelEncoder_IsValid, "IsValid");
-		Util::AddFunc(pLua, IGModAudioChannelEncoder_GetTable, "GetTable");
+		LUA_REGISTER_JIT(pLua, IGModAudioChannelEncoder_GetTable, "GetTable");
 		Util::AddFunc(pLua, IGModAudioChannelEncoder_ServerInit, "ServerInit");
 		Util::AddFunc(pLua, IGModAudioChannelEncoder_ServerKick, "ServerKick");
 		Util::AddFunc(pLua, IGModAudioChannelEncoder_SetServerCallback, "SetServerCallback");
@@ -1448,7 +1448,7 @@ void CBassModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 		Util::AddFunc(pLua, IGModAudioChannel__gc, "__gc");
 		Util::AddFunc(pLua, IGModAudioChannel__index, "__index");
 		Util::AddFunc(pLua, IGModAudioChannel__newindex, "__newindex");
-		Util::AddFunc(pLua, IGModAudioChannel_GetTable, "GetTable");
+		LUA_REGISTER_JIT(pLua, IGModAudioChannel_GetTable, "GetTable");
 		LUA_REGISTER_JIT(pLua, IGModAudioChannel_IsValid, "IsValid");
 		Util::AddFunc(pLua, IGModAudioChannel_Destroy, "Destroy");
 		Util::AddFunc(pLua, IGModAudioChannel_Stop, "Stop");
