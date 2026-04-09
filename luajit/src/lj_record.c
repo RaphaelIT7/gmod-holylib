@@ -1552,19 +1552,7 @@ TRef lj_record_idx(jit_State *J, RecordIndex *ix)
     TRef tr = emitir(IRT(IR_FLOAD, IRT_U8), ix->tab, IRFL_UDATA_FLAGS);
     emitir(IRTGI(IR_EQ), tr, lj_ir_kint(J, ud->flags));
     if (ix->val == 0) { /* Indexed load */
-      RecordIndex origix = *ix;
       RecordIndex mtix = *ix;
-      if (udata_isflagset(ud, LJ_UDATA_FLAG_USERTABLE) && t) {
-        ix->tab = emitir(IRT(IR_FLOAD, IRT_TAB), ix->tab, IRFL_UDATA_ENV);
-        emitir(IRTG(IR_NE, IRT_TAB), ix->tab, lj_ir_knull(J, IRT_TAB));
-        settabV(J->L, &ix->tabv, t);
-        ix->idxchain = 0;
-
-        res = lj_record_idx(J, ix);
-        if (res != TREF_NIL)
-          return res;
-      }
-
       GCtab *mt = gco2tab(gcref(ud->metatable));
       if (udata_isflagset(ud, LJ_UDATA_FLAG_USEMETAFORACCESS) && mt) {
         mtix.tab = lj_ir_kgc(J, obj2gco(mt), IRT_TAB);
@@ -1575,7 +1563,18 @@ TRef lj_record_idx(jit_State *J, RecordIndex *ix)
         if (res != TREF_NIL)
           return res;
       }
-      *ix = origix;
+
+      RecordIndex utix = *ix;
+      if (udata_isflagset(ud, LJ_UDATA_FLAG_USERTABLE) && t) {
+        utix.tab = emitir(IRT(IR_FLOAD, IRT_TAB), utix.tab, IRFL_UDATA_ENV);
+        emitir(IRTG(IR_NE, IRT_TAB), utix.tab, lj_ir_knull(J, IRT_TAB));
+        settabV(J->L, &utix.tabv, t);
+        utix.idxchain = 0;
+
+        res = lj_record_idx(J, &utix);
+        if (res != TREF_NIL)
+          return res;
+      }
     } else { /* Indexed store. */
       if (udata_isflagset(ud, LJ_UDATA_FLAG_USERTABLE) && t) {
         ix->tab = emitir(IRT(IR_FLOAD, IRT_TAB), ix->tab, IRFL_UDATA_ENV);

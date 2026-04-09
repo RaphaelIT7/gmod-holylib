@@ -348,7 +348,8 @@ typedef struct GCstr {
 */
 #define LJ_UDATA_FLAG_USEMETAFORACCESS 0x02
 // NOTE: Both flags skip calling __index! USERTABLE skips calling __newindex! This is expected and intentional.
-// NOTE: The userdata is always looked up first and only then the meta access is done! This is to allow people to override functions per object using the usertable!
+// NOTE: The meta access is always looked up first and only then the userdata lookup is done!
+// Originally we looked up the usertable first to allow people to override functions per object using the usertable BUT that would be inconsistent behavior with GMod
 
 /* Userdata object. Payload follows. */
 typedef struct GCudata {

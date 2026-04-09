@@ -145,16 +145,16 @@ cTValue *lj_meta_tget(lua_State *L, cTValue *o, cTValue *k)
 	return tv;
     } else if (tvisudata(o)) {
       GCudata* ud = udataV(o);
-      GCtab* t = gco2tab(gcref(ud->env));
-      if (udata_isflagset(ud, LJ_UDATA_FLAG_USERTABLE) && t) {
-        cTValue *tv = lj_tab_get(L, t, k);
-        if (!tvisnil(tv))
-          return tv;
-      }
-
       GCtab* mt = gco2tab(gcref(ud->metatable));
       if (udata_isflagset(ud, LJ_UDATA_FLAG_USEMETAFORACCESS) && mt) {
         cTValue *tv = lj_tab_get(L, mt, k);
+        if (!tvisnil(tv))
+          return tv;
+      }
+      
+      GCtab* t = gco2tab(gcref(ud->env));
+      if (udata_isflagset(ud, LJ_UDATA_FLAG_USERTABLE) && t) {
+        cTValue *tv = lj_tab_get(L, t, k);
         if (!tvisnil(tv))
           return tv;
       }
