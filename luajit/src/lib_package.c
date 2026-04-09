@@ -287,7 +287,16 @@ static int lj_cf_package_loadlib(lua_State *L)
 static int lj_cf_package_unloadlib(lua_State *L)
 {
   void **lib = (void **)luaL_checkudata(L, 1, "_LOADLIB");
-  if (*lib) ll_unloadlib(*lib);
+  if (*lib)
+  {
+  	// GMod specific!!! GMod implements GMOD_LoadBinaryModule in the lua_shared but the unload part is implemented here!
+  	lua_CFunction gmod13_close = ll_sym(L, *lib, "gmod13_close");
+  	if (gmod13_close) {
+      lua_pushcfunction(L, gmod13_close);
+      lua_call(L, 0, 0);
+    }
+  	ll_unloadlib(*lib);
+  }
   *lib = NULL;  /* mark library as closed */
   return 0;
 }
