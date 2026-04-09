@@ -21,6 +21,7 @@ public:
 	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
 	void InitDetour(bool bPreServer) override;
 	void OnClientDisconnect(CBaseClient* pClient) override;
+	void Think(bool bSimulating) override;
 	const char* Name() override { return "gameserver"; };
 	int Compatibility() override { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 	bool SupportsMultipleLuaStates() override { return true; };
@@ -34,6 +35,8 @@ static ConVar gameserver_rawclients("holylib_gameserver_rawclients", "0", 0, "Ex
 static CGameServerModule g_pGameServerModule;
 IModule* pGameServerModule = &g_pGameServerModule;
 
+static std::vector<CGameClient*> g_pQueueClients;
+
 double net_time;
 class SVC_CustomMessage : public CNetMessage
 {
@@ -44,6 +47,10 @@ public:
 			m_iLength = m_DataOut.GetNumBitsWritten();
 
 		buffer.WriteUBitLong(GetType(), NETMSG_TYPE_BITS);
+
+		if (m_iLengthBits != -1)
+			buffer.WriteUBitLong(m_iLength, m_iLengthBits);
+
 		return buffer.WriteBits(m_DataOut.GetData(), m_iLength);
 	};
 	const char		*ToString() const { return PROJECT_NAME ":CustomMessage"; };
@@ -61,6 +68,7 @@ public:
 	int m_iLength = -1;
 	char m_strName[64] = "";
 	bf_write m_DataOut;
+	int m_iLengthBits = -1;
 };
 
 PushReferenced_LuaClass(CBaseClient)
@@ -1802,14 +1810,24 @@ LUA_FUNCTION_STATIC(gameserver_GetClient)
 
 	int iClientIndex = (int)LUA->CheckNumber(1);
 	if (iClientIndex >= Util::server->GetClientCount())
-		return 0;
+	{
+		iClientIndex -= Util::server->GetClientCount();
+		if (iClientIndex >= g_pQueueClients.size())
+			return 0;
+
+		CBaseClient* pClient = g_pQueueClients[iClientIndex];
+		if (pClient && !pClient->IsConnected())
+			pClient = nullptr;
+
+		Push_CBaseClient(LUA, pClient);
+		return 1;
+	}
 
 	CBaseClient* pClient = (CBaseClient*)((IServer*)Util::server)->GetClient(iClientIndex);
 	if (pClient && !pClient->IsConnected())
 		pClient = nullptr;
 
 	Push_CBaseClient(LUA, pClient);
-
 	return 1;
 }
 
@@ -1825,6 +1843,15 @@ LUA_FUNCTION_STATIC(gameserver_GetClientByUserID)
 	for(int iClientIndex=0; iClientIndex<Util::server->GetClientCount(); ++iClientIndex)
 	{
 		CBaseClient* pClient = (CBaseClient*)Util::server->GetClient(iClientIndex);
+		if (!pClient->IsConnected() || pClient->GetUserID() != userID)
+			continue;
+
+		Push_CBaseClient(LUA, pClient);
+		return 1;
+	}
+
+	for (CBaseClient* pClient : g_pQueueClients)
+	{
 		if (!pClient->IsConnected() || pClient->GetUserID() != userID)
 			continue;
 
@@ -1851,6 +1878,15 @@ LUA_FUNCTION_STATIC(gameserver_GetClientBySteamID)
 		return 1;
 	}
 
+	for (CBaseClient* pClient : g_pQueueClients)
+	{
+		if (!pClient->IsConnected() || V_stricmp(pClient->GetNetworkIDString(), steamID) != 0)
+			continue;
+
+		Push_CBaseClient(LUA, pClient);
+		return 1;
+	}
+
 	return 0;
 }
 
@@ -1859,7 +1895,7 @@ LUA_FUNCTION_STATIC(gameserver_GetClientCount)
 	if (!Util::server || !Util::server->IsActive())
 		return 0;
 
-	LUA->PushNumber(Util::server->GetClientCount());
+	LUA->PushNumber(Util::server->GetClientCount() + g_pQueueClients.size());
 	return 1;
 }
 
@@ -1873,6 +1909,15 @@ LUA_FUNCTION_STATIC(gameserver_GetAll)
 		for (int iClientIndex=0; iClientIndex<Util::server->GetClientCount(); ++iClientIndex)
 		{
 			CBaseClient* pClient = (CBaseClient*)Util::server->GetClient(iClientIndex);
+			if (!pClient->IsConnected())
+				continue;
+
+			Push_CBaseClient(LUA, pClient);
+			Util::RawSetI(LUA, -2, ++iTableIndex);
+		}
+
+		for (CBaseClient* pClient : g_pQueueClients)
+		{
 			if (!pClient->IsConnected())
 				continue;
 
@@ -2266,6 +2311,9 @@ LUA_FUNCTION_STATIC(gameserver_CreateFakeQueueClient)
 	fakeclient->SetUserCVar( "cl_flipviewmodels", "0" );
 
 	hook_CBaseClient_SetSignonState(fakeclient, SIGNONSTATE_PRESPAWN, pServer->GetSpawnCount());
+	CGameClient* pClient = (CGameClient*)fakeclient;
+	pClient->edict = nullptr;
+	pClient->m_bConVarsChanged = false;
 
 	Push_CBaseClient(LUA, fakeclient);
 	return 1;
@@ -2479,17 +2527,42 @@ static Detouring::Hook detour_CBaseServer_GetFreeClient;
 static CBaseClient* hook_CBaseServer_GetFreeClient(CBaseServer* _this, netadr_t& adr)
 {
 	CBaseClient* pClient = detour_CBaseServer_GetFreeClient.GetTrampoline<Symbols::CBaseServer_GetFreeClient>()(_this, adr);
-	if (!pClient)
-	{
-		if (_this->GetClientCount() > gameserver_maxplayers.GetInt())
-			return nullptr;
+	if (pClient)
+		return pClient;
 
-		pClient = _this->CreateNewClient(_this->GetClientCount());
-		if (pClient)
-			_this->m_Clients.AddToTail(pClient);
+	CBaseClient* freeclient = nullptr;
+	for (CBaseClient* pClient : g_pQueueClients)
+	{
+		if (pClient->IsFakeClient())
+			continue;
+
+		if (pClient->IsConnected())
+		{
+			if (adr.CompareAdr(pClient->m_NetChannel->GetRemoteAddress()))
+			{
+				pClient->m_NetChannel->Shutdown( NULL );
+				pClient->m_NetChannel = NULL;
+		
+				pClient->Clear();
+				return pClient;
+			}
+		} else {
+			if (!freeclient)
+				freeclient = pClient;
+		}
 	}
 
-	return pClient;
+	if (!freeclient)
+	{
+		if ((_this->GetClientCount() + g_pQueueClients.size()) > gameserver_maxplayers.GetInt())
+			return nullptr;
+
+		freeclient = _this->CreateNewClient(_this->GetClientCount() + g_pQueueClients.size());
+		g_pQueueClients.push_back((CGameClient*)freeclient);
+	}
+	// We do not register it to m_Clients of the CBaseServer
+
+	return freeclient;
 }
 
 static Detouring::Hook detour_CBaseServer_CreateFakeClient;
@@ -2497,7 +2570,7 @@ static CBaseClient* hook_CBaseServer_CreateFakeClient(CBaseServer* _this, const 
 {
 	netadr_t adr;
 	CBaseClient* pClient = detour_CBaseServer_GetFreeClient.GetTrampoline<Symbols::CBaseServer_GetFreeClient>()(_this, adr);
-	if (!pClient || pClient->m_nClientSlot >= MAX_PLAYERS)
+	if (!pClient || pClient->m_nClientSlot >= _this->m_nMaxclients)
 		return nullptr;
 
 	return detour_CBaseServer_CreateFakeClient.GetTrampoline<Symbols::CBaseServer_CreateFakeClient>()(_this, pName);
@@ -2506,7 +2579,7 @@ static CBaseClient* hook_CBaseServer_CreateFakeClient(CBaseServer* _this, const 
 static Detouring::Hook detour_CBaseServer_UserInfoChanged;
 static void hook_CBaseServer_UserInfoChanged(CBaseServer* _this, int nClientIndex)
 {
-	if (nClientIndex >= MAX_PLAYERS)
+	if (nClientIndex >= _this->m_nMaxclients)
 		return;
 
 	detour_CBaseServer_UserInfoChanged.GetTrampoline<Symbols::CBaseServer_UserInfoChanged>()(_this, nClientIndex);
@@ -2515,10 +2588,123 @@ static void hook_CBaseServer_UserInfoChanged(CBaseServer* _this, int nClientInde
 static Detouring::Hook detour_CGameServer_RemoveClientFromGame;
 static void hook_CGameServer_RemoveClientFromGame(CBaseServer* _this, CBaseClient* pClient)
 {
-	if (pClient->m_nClientSlot >= MAX_PLAYERS)
+	if (pClient->m_nClientSlot >= _this->m_nMaxclients)
 		return;
 
 	detour_CGameServer_RemoveClientFromGame.GetTrampoline<Symbols::CGameServer_RemoveClientFromGame>()(_this, pClient);
+}
+
+static Detouring::Hook detour_CSteam3Server_ClientFindFromSteamID;
+static CBaseClient* hook_CSteam3Server_ClientFindFromSteamID(void* _this, CSteamID* steamID)
+{
+	CBaseClient* pClient = detour_CSteam3Server_ClientFindFromSteamID.GetTrampoline<Symbols::CSteam3Server_ClientFindFromSteamID>()(_this, steamID);
+	if (pClient)
+		return pClient;
+
+	for (CBaseClient* pClient : g_pQueueClients)
+	{
+		if (!pClient->IsConnected() || pClient->IsFakeClient())
+			continue;
+
+		USERID_t id = pClient->GetNetworkID();
+		if (pClient->m_SteamID == *steamID)
+			return pClient;
+	}
+
+	return nullptr;
+}
+
+static Detouring::Hook detour_CServerPlugin_ClientSettingsChanged;
+static void hook_CServerPlugin_ClientSettingsChanged(void* _this, edict_t* pEdict)
+{
+	if (pEdict->m_EdictIndex > MAX_PLAYERS)
+		return;
+
+	detour_CServerPlugin_ClientSettingsChanged.GetTrampoline<Symbols::CServerPlugin_ClientSettingsChanged>()(_this, pEdict);
+}
+
+static Detouring::Hook detour_CVEngineServer_GMOD_SendToClient;
+static void hook_CVEngineServer_GMOD_SendToClient(void* _this, int client, void *data, int dataSize)
+{
+	if (client < MAX_PLAYERS)
+	{
+		detour_CVEngineServer_GMOD_SendToClient.GetTrampoline<Symbols::CVEngineServer_GMOD_SendToClient>()(_this, client, data, dataSize);
+		return;
+	}
+
+	CBaseServer* pServer = (CBaseServer*)Util::server;
+	client -= pServer->m_nMaxclients;
+	if (client >= g_pQueueClients.size())
+		return; // Invalid?
+
+	CBaseClient* pClient = g_pQueueClients[client];
+	if (pClient->IsFakeClient())
+	{
+		DevMsg(PROJECT_NAME " - gameserver: Not sending to fake client '%s'.\n", pClient->GetClientName());
+		return;
+	}
+
+	if (!pClient->IsConnected())
+	{
+		Msg(PROJECT_NAME " - gameserver: Not sending to null client.\n");
+		return;
+	}
+
+	// Not 1:1 to GMod but should be good enouth
+
+	SVC_CustomMessage msg;
+	msg.m_DataOut.StartWriting(data, 0, 0, dataSize);
+	msg.m_iLength = dataSize;
+	msg.m_iLengthBits = 20;
+	msg.m_iType = svc_GMod_ServerToClient;
+	
+	pClient->m_NetChannel->SendNetMsg(msg, true, false);
+}
+
+static void SendPendingServerInfos(CBaseServer* pServer)
+{
+	for (CBaseClient* pClient : g_pQueueClients)
+	{
+		if (pClient->m_bSendServerInfo)
+		{
+			INetChannel* pChan = pClient->m_NetChannel;
+			if (pChan)
+			{
+				netadrnew_s addr = *(netadrnew_s*)&pChan->GetRemoteAddress();
+				if (pClient->m_bFullyAuthenticated || 
+					addr.IsLocalhost() ||
+					addr.IsLoopback() ||
+					addr.IsReservedAdr() ||
+					pServer->m_nMaxclients == 1
+				) // Also checks something for Steam3Server() but naah.
+				{
+					pClient->SendServerInfo();
+				}
+			}
+		}
+	}
+}
+
+static void SendClientMessages()
+{
+	for (CBaseClient* pClient : g_pQueueClients)
+	{
+		if (!pClient->ShouldSendMessages() || !pClient->m_NetChannel)
+			continue;
+
+		pClient->m_NetChannel->Transmit();
+		pClient->UpdateSendState();
+	}
+}
+
+// Since the Engine can't handle our queue clients, we instead handle them ourselves. Take that engine >:3c
+void CGameServerModule::Think(bool bSimulating)
+{
+	VPROF_BUDGET("HolyLib - CGameServerModule::Think", VPROF_BUDGETGROUP_HOLYLIB);
+
+	CBaseServer* pServer = (CBaseServer*)Util::server;
+	SendPendingServerInfos(pServer);
+	SendClientMessages();
 }
 
 /*
@@ -3122,7 +3308,10 @@ DETOUR_THISCALL_START()
 	DETOUR_THISCALL_ADDFUNC1(hook_CBaseServer_GetFreeClient, Base_GetFreeClient, CBaseServer*, netadr_t&);
 	DETOUR_THISCALL_ADDFUNC1(hook_CBaseServer_CreateFakeClient, Base_CreateFakeClient, CBaseServer*, const char*);
 	DETOUR_THISCALL_ADDFUNC1(hook_CBaseServer_UserInfoChanged, Base_UserInfoChanged, CBaseServer*, int);
+	DETOUR_THISCALL_ADDFUNC1(hook_CServerPlugin_ClientSettingsChanged, Plugin_ClientSettingsChanged, void*, edict_t*);
+	DETOUR_THISCALL_ADDRETFUNC1(hook_CSteam3Server_ClientFindFromSteamID, CBaseClient*, Steam_ClientFindFromSteamID, void*, CSteamID*);
 	DETOUR_THISCALL_ADDFUNC1(hook_CGameServer_RemoveClientFromGame, Game_RemoveClientFromGame, CBaseServer*, CBaseClient*);
+	DETOUR_THISCALL_ADDFUNC3(hook_CVEngineServer_GMOD_SendToClient, Engine_GMOD_SendToClient, IVEngineServer*, int, void*, int);
 	DETOUR_THISCALL_ADDFUNC0(hook_CSteam3Server_SendUpdatedServerDetails, Steam_SendUpdatedServerDetails, void*);
 	DETOUR_THISCALL_ADDFUNC0(hook_CBaseServer_CheckTimeouts, CheckTimeouts, CBaseServer*);
 	DETOUR_THISCALL_ADDFUNC0(hook_CGameClient_SpawnPlayer, SpawnPlayer, CGameClient*);
@@ -3167,6 +3356,24 @@ void CGameServerModule::InitDetour(bool bPreServer)
 		&detour_CGameServer_RemoveClientFromGame, "CGameServer::RemoveClientFromGame",
 		engine_loader.GetModule(), Symbols::CGameServer_RemoveClientFromGameSym,
 		(void*)DETOUR_THISCALL(hook_CGameServer_RemoveClientFromGame, Game_RemoveClientFromGame), m_pID
+	);
+
+	Detour::Create(
+		&detour_CServerPlugin_ClientSettingsChanged, "CServerPlugin::ClientSettingsChanged",
+		engine_loader.GetModule(), Symbols::CServerPlugin_ClientSettingsChangedSym,
+		(void*)DETOUR_THISCALL(hook_CServerPlugin_ClientSettingsChanged, Plugin_ClientSettingsChanged), m_pID
+	);
+
+	Detour::Create(
+		&detour_CSteam3Server_ClientFindFromSteamID, "CSteam3Server::ClientFindFromSteamID",
+		engine_loader.GetModule(), Symbols::CSteam3Server_ClientFindFromSteamIDSym,
+		(void*)DETOUR_THISCALL(hook_CSteam3Server_ClientFindFromSteamID, Steam_ClientFindFromSteamID), m_pID
+	);
+
+	Detour::Create(
+		&detour_CVEngineServer_GMOD_SendToClient, "CVEngineServer::GMOD_SendToClient",
+		engine_loader.GetModule(), Symbols::CVEngineServer_GMOD_SendToClientSym,
+		(void*)DETOUR_THISCALL(hook_CVEngineServer_GMOD_SendToClient, Engine_GMOD_SendToClient), m_pID
 	);
 
 	Detour::Create(

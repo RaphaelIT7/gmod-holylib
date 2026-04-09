@@ -943,6 +943,18 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x54\x53\x48\x89\xF3\x48\x83\xBE\x70\x07\x00\x00\x00"), // 55 48 89 E5 41 54 53 48 89 F3 48 83 BE 70 07 00 00 00
 	};
 
+	const std::vector<Symbol> CServerPlugin_ClientSettingsChangedSym = {
+		Symbol::FromName("_ZN13CServerPlugin21ClientSettingsChangedEP7edict_t"),
+	};
+
+	const std::vector<Symbol> CSteam3Server_ClientFindFromSteamIDSym = {
+		Symbol::FromName("_ZN13CSteam3Server21ClientFindFromSteamIDER8CSteamID"),
+	};
+
+	const std::vector<Symbol> CVEngineServer_GMOD_SendToClientSym = {
+		Symbol::FromName("_ZN14CVEngineServer17GMOD_SendToClientEiPvi"),
+	};
+
 	const std::vector<Symbol> CBaseClient_SetSignonStateSym = {
 		Symbol::FromName("_ZN11CBaseClient14SetSignonStateEii"),
 		Symbol::FromSignature("\x55\x8B\x87\xA8\x01\x00\x00"), // 55 8B 87 A8 01 00 00

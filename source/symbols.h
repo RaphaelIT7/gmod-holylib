@@ -75,6 +75,7 @@ class CCommand;
 class DVariant;
 class SendProp;
 class CGameClient;
+class CSteamID;
 
 namespace GarrysMod::Lua
 {
@@ -646,6 +647,15 @@ namespace Symbols
 
 	using CGameServer_RemoveClientFromGame = void (GMCOMMON_CALLING_CONVENTION*)(void*, CBaseClient* pClient);
 	extern const std::vector<Symbol> CGameServer_RemoveClientFromGameSym;
+
+	using CServerPlugin_ClientSettingsChanged = void (GMCOMMON_CALLING_CONVENTION*)(void*, edict_t* pEdict);
+	extern const std::vector<Symbol> CServerPlugin_ClientSettingsChangedSym;
+
+	using CSteam3Server_ClientFindFromSteamID = CBaseClient* (GMCOMMON_CALLING_CONVENTION*)(void*, CSteamID* id);
+	extern const std::vector<Symbol> CSteam3Server_ClientFindFromSteamIDSym;
+
+	using CVEngineServer_GMOD_SendToClient = void (GMCOMMON_CALLING_CONVENTION*)(void*, int client, void *data, int dataSize);
+	extern const std::vector<Symbol> CVEngineServer_GMOD_SendToClientSym;
 
 	using CSteam3Server_SendUpdatedServerDetails = void (GMCOMMON_CALLING_CONVENTION*)(void*);
 	extern const std::vector<Symbol> CSteam3Server_SendUpdatedServerDetailsSym;
