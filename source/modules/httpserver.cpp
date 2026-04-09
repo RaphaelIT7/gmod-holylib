@@ -329,6 +329,8 @@ public:
 		bool bUnshitAddress = false; // If true, it will use the second ip provided (if there is one) in the given header because proxies love to be shit.
 	};
 
+	void HandleRequests();
+
 private:
 	unsigned short m_iPort = 0;
 	std::atomic<bool> m_bUpdate = false;
@@ -352,7 +354,16 @@ private:
 	CThreadFastMutex m_pPreparedResponsesMutex;
 
 	GarrysMod::Lua::ILuaInterface* m_pLua = nullptr;
+	HttpRequest* m_pLastHandledRequest = nullptr; // For error handling+
 };
+
+class LuaHttpServerModuleData : public Lua::ModuleData
+{
+public:
+	int nProtectedCallRef = -1;
+};
+
+LUA_GetModuleData(LuaHttpServerModuleData, g_pHttpServerModule, HttpServer)
 
 PushReferenced_LuaClass(HttpResponse)
 Get_LuaClass(HttpResponse, "HttpResponse")
@@ -659,15 +670,11 @@ void CallFunc(GarrysMod::Lua::ILuaInterface* pLua, int callbackFunction, HttpReq
 
 	Push_HttpRequest(pLua, request);
 
-	if (pLua->CallFunctionProtected(1, 1, true))
-	{
-		if (!pLua->IsType(-1, GarrysMod::Lua::Type::Bool) || pLua->GetBool(-1))
-			request->MarkHandled();
+	Util::func_lua_call(pLua->GetState(), 1, 1);
+	if (!pLua->IsType(-1, GarrysMod::Lua::Type::Bool) || pLua->GetBool(-1))
+		request->MarkHandled();
 
-		pLua->Pop(1);
-	} else {
-		request->MarkHandled(); // Lua error? Nah mark it as handled.
-	}
+	pLua->Pop(1);
 }
 
 void HttpServer::Start(const char* address, unsigned short port)
@@ -694,6 +701,41 @@ void HttpServer::Stop()
 	m_pServerThread = nullptr;
 }
 
+PushReferenced_LuaClass(HttpServer)
+Get_LuaClass(HttpServer, "HttpServer")
+
+void HttpServer::HandleRequests()
+{
+	for (auto it = m_pRequests.begin(); it != m_pRequests.end();)
+	{
+		auto pEntry = *it;
+		if (pEntry->m_bDelete)
+		{
+			it = m_pRequests.erase(it);
+			delete pEntry;
+			continue;
+		}
+
+		if (!pEntry->m_bHandled)
+		{
+			m_pLastHandledRequest = pEntry;
+			CallFunc(m_pLua, pEntry->m_iFunction, pEntry, &pEntry->m_pResponseData);
+			m_pLastHandledRequest = nullptr;
+		}
+
+		++it;
+	}
+}
+
+// We setup the barrier once instead of per call for performance :)
+LUA_FUNCTION_STATIC(HttpServer_ProtectedCalls)
+{
+	HttpServer* pServer = Get_HttpServer(LUA, 1, true);
+	pServer->HandleRequests();
+
+	return 0;
+}
+
 void HttpServer::Think()
 {
 	if (m_iStatus == HTTPSERVER_OFFLINE || !m_bUpdate.load())
@@ -707,21 +749,17 @@ void HttpServer::Think()
 	 */
 
 	m_bInUpdate = true;
+	auto pData = GetHttpServerLuaData(m_pLua);
 	std::lock_guard<std::shared_mutex> lock(m_pRequestMutex);
-	for (auto it = m_pRequests.begin(); it != m_pRequests.end();)
+	if (m_pRequests.size() > 0 && pData)
 	{
-		auto pEntry = *it;
-		if (pEntry->m_bDelete)
+		Util::ReferencePush(m_pLua, pData->nProtectedCallRef);
+		Push_HttpServer(m_pLua, this);
+		if (!m_pLua->CallFunctionProtected(1, 0, true) && m_pLastHandledRequest)
 		{
-			it = m_pRequests.erase(it);
-			delete pEntry;
-			continue;
+			m_pLastHandledRequest->MarkHandled(); // Lua error? Nah mark it as handled.
+			m_pLastHandledRequest = nullptr;
 		}
-
-		if (!pEntry->m_bHandled)
-			CallFunc(m_pLua, pEntry->m_iFunction, pEntry, &pEntry->m_pResponseData);
-
-		++it;
 	}
 
 	m_bUpdate.store(false);
@@ -816,9 +854,6 @@ httplib::Server::Handler HttpServer::CreateHandler(const char* path, int func, b
 			Msg(PROJECT_NAME " - httpserver: Finished request\n");
 	};
 }
-
-PushReferenced_LuaClass(HttpServer)
-Get_LuaClass(HttpServer, "HttpServer")
 
 LUA_FUNCTION_STATIC(HttpServer_Think)
 {
@@ -1178,6 +1213,11 @@ void CHTTPServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 	if (bServerInit)
 		return;
 
+	LuaHttpServerModuleData* pModuleData = new LuaHttpServerModuleData;
+	Lua::GetLuaData(pLua)->SetModuleData(m_pID, pModuleData);
+	pLua->PushCFunction(HttpServer_ProtectedCalls);
+	pModuleData->nProtectedCallRef = Util::ReferenceCreate(pLua, "HttpServer - ProtectedCall");
+
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::HttpServer, pLua->CreateMetaTable("HttpServer"));
 		Util::AddFunc(pLua, HttpServer__tostring, "__tostring");
 		Util::AddFunc(pLua, HttpServer__index, "__index");
@@ -1287,6 +1327,10 @@ void CHTTPServerModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 
 	for (auto server : httpServers)
 		delete server;
+
+	auto pData = GetHttpServerLuaData(pLua);
+	if (pData->nProtectedCallRef != -1)
+		Util::ReferenceFree(pLua, pData->nProtectedCallRef, "HttpServer - ProtectedCall");
 }
 
 void CHTTPServerModule::Think(bool simulating)

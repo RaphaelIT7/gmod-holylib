@@ -85,7 +85,11 @@ namespace Symbols
 
 	const Symbol luaL_checklstringSym = Symbol::FromName("luaL_checklstring");
 
+	const Symbol lua_callSym = Symbol::FromName("lua_call");
+
 	const Symbol lua_pcallSym = Symbol::FromName("lua_pcall");
+
+	const Symbol lua_cpcallSym = Symbol::FromName("lua_cpcall");
 
 	const Symbol lua_insertSym = Symbol::FromName("lua_insert");
 

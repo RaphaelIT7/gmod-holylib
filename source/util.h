@@ -365,7 +365,9 @@ namespace Util
 	extern Symbols::lua_gc func_lua_gc;
 	extern Symbols::lua_setallocf func_lua_setallocf;
 
+	extern Symbols::lua_call func_lua_call;
 	extern Symbols::lua_pcall func_lua_pcall;
+	extern Symbols::lua_cpcall func_lua_cpcall;
 	extern Symbols::lua_insert func_lua_insert;
 	extern Symbols::lua_toboolean func_lua_toboolean;
 

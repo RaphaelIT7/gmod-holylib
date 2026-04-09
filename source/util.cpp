@@ -727,7 +727,9 @@ Symbols::lua_type Util::func_lua_type = nullptr;
 Symbols::lua_gc Util::func_lua_gc = nullptr;
 Symbols::lua_setallocf Util::func_lua_setallocf = nullptr;
 Symbols::luaL_checklstring Util::func_luaL_checklstring = nullptr;
+Symbols::lua_call Util::func_lua_call = nullptr;
 Symbols::lua_pcall Util::func_lua_pcall = nullptr;
+Symbols::lua_cpcall Util::func_lua_cpcall = nullptr;
 Symbols::lua_insert Util::func_lua_insert = nullptr;
 Symbols::lua_toboolean Util::func_lua_toboolean = nullptr;
 void Util::AddDetour()
@@ -867,8 +869,14 @@ void Util::AddDetour()
 	func_luaL_checklstring = (Symbols::luaL_checklstring)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::luaL_checklstringSym);
 	Detour::CheckFunction((void*)func_luaL_checklstring, "luaL_checklstring");
 
+	func_lua_call = (Symbols::lua_call)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_callSym);
+	Detour::CheckFunction((void*)func_lua_call, "lua_call");
+
 	func_lua_pcall = (Symbols::lua_pcall)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_pcallSym);
 	Detour::CheckFunction((void*)func_lua_pcall, "lua_pcall");
+
+	func_lua_cpcall = (Symbols::lua_cpcall)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_cpcallSym);
+	Detour::CheckFunction((void*)func_lua_cpcall, "lua_cpcall");
 
 	func_lua_insert = (Symbols::lua_insert)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_insertSym);
 	Detour::CheckFunction((void*)func_lua_insert, "lua_insert");
@@ -882,7 +890,7 @@ void Util::AddDetour()
 	func_lj_tab_get = (Symbols::lj_tab_get)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lj_tab_getSym);
 	Detour::CheckFunction((void*)func_lj_tab_get, "lj_tab_get");
 
-	if (!func_lua_touserdata || !func_lua_type || !func_lua_setfenv || !func_luaL_checklstring || !func_lua_pcall || !func_lua_insert || !func_lua_toboolean)
+	if (!func_lua_touserdata || !func_lua_type || !func_lua_setfenv || !func_luaL_checklstring || !func_lua_call || !func_lua_pcall || !func_lua_cpcall || !func_lua_insert || !func_lua_toboolean)
 	{
 		// This is like the ONLY dependency we have on symbols that without we cannot function.
 		Error(PROJECT_NAME " - core: Failed to load an important symbol which we utterly depend on.\n");

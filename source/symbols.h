@@ -198,8 +198,14 @@ namespace Symbols
 	using luaL_checklstring = const char* (*)(lua_State *L, int idx, size_t* len);
 	extern const Symbol luaL_checklstringSym;
 
+	using lua_call = void (*)(lua_State *L, int nArgs, int nRets);
+	extern const Symbol lua_callSym;
+
 	using lua_pcall = int (*)(lua_State *L, int nArgs, int nRets, int nErrorFunc);
 	extern const Symbol lua_pcallSym;
+
+	using lua_cpcall = int (*)(lua_State *L, void* func, void* ud);
+	extern const Symbol lua_cpcallSym;
 
 	using lua_insert = void (*)(lua_State *L, int idx);
 	extern const Symbol lua_insertSym;
