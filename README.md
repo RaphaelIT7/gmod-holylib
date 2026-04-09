@@ -128,6 +128,9 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [+] Added a `ILuaThreadedCall` to call all modules Think function when HolyLib is loaded as a binary module/loaded using `require("holylib")`<br>
 \- [+] Added a new DLL system if anything wants to be loaded with HolyLib. (See: [example-module-dll](https://github.com/RaphaelIT7/gmod-holylib/tree/f937ba454b4d86edfc72df9cb3f8a689d7de2571/example-module-dll))<br>
 \- [+] Added JIT support to some C functions & to our `__index` and `__newindex` functions.<br>
+\- [+] Added `steamworks.GetGameServerSteamID` to the `steamworks` module.<br>
+\- [+] Added `HolyLib:OnLuaRunString` hook to the `holylib` module.<br>
+\- [+] Added `pvs.SetMaxViewDistance` & `pvs.PreventTransmitAllExcept` to the `pvs` module.<br>
 \- [#] Added missing numeric key conversion to `util.FancyJSONToTable` (See https://github.com/RaphaelIT7/gmod-holylib/pull/105)<br>
 \- [#] Added some more safeguards to `IPhysicsEnvironment:Simulate` to prevent one from simulating a environment that is already being simulated. (else you might end up with all memory freed & a certain crash)<br>
 \- [#] Highly optimized `util` module's json code to be noticeably faster and use noticeably less memory.<br>
@@ -209,8 +212,6 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 \- [+] Added `directData` argument to `VoiceStream:GetData`, `VoiceStream:GetIndex`, `VoiceStream:SetIndex` and `VoiceStream:SetData`<br>
 \- [+] Added overflow checks for `gameserver.BroadcastMessage`, `CNetChan:SendMessage` and `CBaseClient:SendNetMsg` when you try to use a overflowed buffer<br>
 \- [+] Added a few more arguments to `HolyLib:OnPhysicsLag` like `phys1`, `phys2`, `recalcPhys`, `callerFunction` and the arguments `ent1` & `ent2` were removed since you can call `PhysObj:GetEntity`<br>
-\- [+] Added `steamworks.GetGameServerSteamID` to the `steamworks` module.<br>
-\- [+] Added `HolyLib:OnLuaRunString` hook to the `holylib` module.<br>
 \- [#] Fixed `addonsystem.ShouldMount` & `addonsystem.SetShouldMount` `workshopID` arguments being a number when they should have been a string.<br>
 \- [#] Changed `VoiceData:GetUncompressedData` to now returns a statusCode/a number on failure instead of possibly returning a garbage string.<br>
 \- [#] Limited `HttpServer:SetName` to have a length limit of `64` characters.<br>
@@ -226,6 +227,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 \- [#] Changed `HttpServer:[Get/Put/Post/OtherShit]` callback return value to be flipped, return `false` to mark a request as `NOT` handled, return `true` to mark it as handled<br>
 \- [#] Fixed `networking` module partially not working without the `pvs` module - it internally had depended on it.<br>
 \- [#] Fixed `stringtable.CreateStringTable` and `stringtable.CreateStringTableEx` both failing to catch the case in which all stringtable slots were used leading to a server error/shutdown.<br>
+\- [#] Fixed pvs.GetEntitiesFromTransmit failing internally due to it using the wrong value<br>
 \- [#] Changed callback arguments of `HttpServer:[Get/Put/Post/Patch/Delete/Options]` to remove the `response`.<br>
 \- \-> The `HttpRequest` now contains all methods of the `HttpResponse` so you should use the `request` directly! (This was done to help the Lua GC a bit & slightly improve callback performance)<br>
 \- [-] Removed `VoiceData:GetUncompressedData` decompress size argument<br>

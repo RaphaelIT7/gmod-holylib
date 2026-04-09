@@ -884,13 +884,19 @@ public:
 			pEntry->content = strippedContent;
 		}
 		pEntry->processed = true;
+
+		if (ThreadInMainThread()) // SetStringUserData is NOT thread safe!
+		{
+			std::vector<unsigned char> pHash = HashString(pEntry->content.c_str(), pEntry->content.length() + 1);
+			g_pDataPack->m_pClientLuaFiles->SetStringUserData(fileID, pHash.size(), pHash.data());
+		} else {
+			std::lock_guard<std::mutex> lock(m_pStringTableUpdateQueueMutex);
+			m_pStringTableUpdateQueue.push_back(fileID);
+		}
 	}
 
 	bool CompressFile(LuaPackEntry* pEntry, int fileID)
 	{
-		std::vector<unsigned char> pHash = HashString(pEntry->content.c_str(), pEntry->content.length() + 1);
-		g_pDataPack->m_pClientLuaFiles->SetStringUserData(fileID, pHash.size(), pHash.data()); // New hash
-
 		bool bSuccess = pEntry->Compress();
 		if (!bSuccess)
 			Warning(PROJECT_NAME " - gmoddatapack: Failed to compress lua file %i\n", fileID);
@@ -997,6 +1003,9 @@ public:
 
 	std::vector<int> m_pCompressQueue;
 	std::mutex m_pCompressQueueMutex;
+
+	std::vector<int> m_pStringTableUpdateQueue;
+	std::mutex m_pStringTableUpdateQueueMutex;
 
 	std::atomic<ThreadState> m_pWorkerThreadState;
 	ThreadHandle_t m_pWorkerThread = nullptr;
@@ -1426,6 +1435,20 @@ void CGModDataPackModule::OnClientDisconnect(CBaseClient* pClient)
 static double g_nLastSend = 0;
 void CGModDataPackModule::Think(bool bSimulating)
 {
+	{
+		// We do this since SetStringUserData isn't thread safe and may crash in very rare race conditions
+		std::lock_guard<std::mutex> lock(g_pLuaDataPack.m_pStringTableUpdateQueueMutex);
+		for (int fileID : g_pLuaDataPack.m_pStringTableUpdateQueue)
+		{
+			LuaDataPack::LuaPackEntry* pEntry = g_pLuaDataPack.GetPackEntry(fileID);
+			std::lock_guard<std::shared_mutex> lock(pEntry->mutex);
+
+			std::vector<unsigned char> pHash = HashString(pEntry->content.c_str(), pEntry->content.length() + 1);
+			g_pDataPack->m_pClientLuaFiles->SetStringUserData(fileID, pHash.size(), pHash.data());
+		}
+		g_pLuaDataPack.m_pStringTableUpdateQueue.clear();
+	}
+
 	double currentTime = Util::engineserver->Time();
 	if (currentTime < (g_nLastSend + 0.05))
 		return;
