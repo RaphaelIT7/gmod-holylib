@@ -195,6 +195,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [#] Fixed our FFI Vector's `:GetNormalized` function returning a number instead of a vector (See https://github.com/RaphaelIT7/gmod-holylib/issues/130)<br>
 \- [#] Improved thread safety for lua state access<br>
 \- [#] Fixed workshop map being prioritied over local map version (See https://github.com/RaphaelIT7/gmod-holylib/issues/138)<br>
+\- [#] Fixed our LuaJIT build failing to call `gmod13_unload` when closing a module (See https://github.com/RaphaelIT7/gmod-holylib/issues/140)<br>
 \- [-] Removed some unused code of former fixes that were implemented into GMod<br>
 
 You can see all changes/commits here:<br>
