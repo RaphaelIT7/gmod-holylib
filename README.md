@@ -131,6 +131,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [+] Added `steamworks.GetGameServerSteamID` to the `steamworks` module.<br>
 \- [+] Added `HolyLib:OnLuaRunString` hook to the `holylib` module.<br>
 \- [+] Added `pvs.SetMaxViewDistance` & `pvs.PreventTransmitAllExcept` to the `pvs` module.<br>
+\- [+] Added the `-norcon` option for the `httpserver` module to disable RCON and free the TCP port, allowing one to run an httpserver on the gameserver port instead.<br>
 \- [#] Added missing numeric key conversion to `util.FancyJSONToTable` (See https://github.com/RaphaelIT7/gmod-holylib/pull/105)<br>
 \- [#] Added some more safeguards to `IPhysicsEnvironment:Simulate` to prevent one from simulating a environment that is already being simulated. (else you might end up with all memory freed & a certain crash)<br>
 \- [#] Highly optimized `util` module's json code to be noticeably faster and use noticeably less memory.<br>
@@ -231,6 +232,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 \- [#] Fixed pvs.GetEntitiesFromTransmit failing internally due to it using the wrong value<br>
 \- [#] Changed callback arguments of `HttpServer:[Get/Put/Post/Patch/Delete/Options]` to remove the `response`.<br>
 \- \-> The `HttpRequest` now contains all methods of the `HttpResponse` so you should use the `request` directly! (This was done to help the Lua GC a bit & slightly improve callback performance)<br>
+\- [#] Fixed `HttpServer:IsRunning()` falsely reporting `true` even if it failed to start.<br>
 \- [-] Removed `VoiceData:GetUncompressedData` decompress size argument<br>
 \- [-] Removed `CBaseClient:Transmit` third argument `fragments`.<br>
 \- [-] Removed `gameserver.CalculateCPUUsage` and `gameserver.ApproximateProcessMemoryUsage` since they never worked.<br>
@@ -3844,6 +3846,10 @@ Returns a new EntityList that contains the exact same values as this list (This 
 
 ## httpserver
 This module adds a library with functions to create and run a httpserver.<br>
+
+> [!NOTE]
+> If you want to run an httpserver on your gameserver port, then you **must** add `-norcon` to the command line.<br>
+> This is due to RCON creating a TCP socket blocking the httpserver from using that so you must disable RCON to use an httpserver on the gameserver port!<br>
 
 ### Functions
 

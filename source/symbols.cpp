@@ -1198,4 +1198,11 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x8B\xEC\x83\xEC\x7C\x53\x8B\xD9\x56\x57\x8B\x7D\x08\x8B\x03"), // 55 8B EC 83 EC 7C 53 8B D9 56 57 8B 7D 08 8B 03
 		Symbol::FromName("?AddOrUpdateFile@GModDataPack@@QEAAXPEAULuaFile@@_N@Z"),
 	};
+
+	//---------------------------------------------------------------------------------
+	// Purpose: httpserver Symbols
+	//---------------------------------------------------------------------------------
+	const std::vector<Symbol> CRConServer_CreateSocketSym = {
+		Symbol::FromName("_ZN11CRConServer12CreateSocketEv"),
+	};
 }

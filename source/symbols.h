@@ -850,4 +850,10 @@ namespace Symbols
 
 	using GModDataPack_AddOrUpdateFile = void (*)(void* dataPack, void* luaFile, bool);
 	extern const std::vector<Symbol> GModDataPack_AddOrUpdateFileSym;
+
+	//---------------------------------------------------------------------------------
+	// Purpose: httpserver Symbols
+	//---------------------------------------------------------------------------------
+	using CRConServer_CreateSocket = bool (GMCOMMON_CALLING_CONVENTION*)(void* _this);
+	extern const std::vector<Symbol> CRConServer_CreateSocketSym;
 }

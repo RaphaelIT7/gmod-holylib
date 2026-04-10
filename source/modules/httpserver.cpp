@@ -1,4 +1,5 @@
 #include "httplib.h"
+#include "detours.h"
 #include "LuaInterface.h"
 #include "module.h"
 #include "lua.h"
@@ -6,6 +7,7 @@
 #include <inetchannel.h>
 #include <netadr.h>
 #include "unordered_set"
+#include "icommandline.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -13,6 +15,7 @@
 class CHTTPServerModule : public IModule
 {
 public:
+	void InitDetour(bool bPreServer) override;
 	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) override;
 	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
 	void Think(bool bSimulating) override;
@@ -107,12 +110,6 @@ struct HttpRequest {
 	httplib::Request m_pRequest;
 	int m_pClientUserID = -1;
 	GarrysMod::Lua::ILuaInterface* m_pLua = nullptr;
-};
-
-enum
-{
-	HTTPSERVER_ONLINE,
-	HTTPSERVER_OFFLINE
 };
 
 #undef isspace // unfuck 64x
@@ -246,7 +243,6 @@ public:
 
 public:
 	httplib::Server& GetServer() { return m_pServer; };
-	unsigned char GetStatus() { return m_iStatus; };
 	std::string& GetAddress() { return m_strAddress; };
 	unsigned short GetPort() { return m_iPort; };
 	void SetThreadSleep(unsigned int threadSleep) { m_iThreadSleep = threadSleep; };
@@ -335,7 +331,7 @@ private:
 	unsigned short m_iPort = 0;
 	std::atomic<bool> m_bUpdate = false;
 	bool m_bInUpdate = false;
-	unsigned char m_iStatus = HTTPSERVER_OFFLINE;
+
 	// 3 bytes free here.
 	unsigned int m_iThreadSleep = 5; // How long the threads sleep / wait for a request to be handled
 	std::string m_strAddress = "";
@@ -679,22 +675,20 @@ void CallFunc(GarrysMod::Lua::ILuaInterface* pLua, int callbackFunction, HttpReq
 
 void HttpServer::Start(const char* address, unsigned short port)
 {
-	if (m_iStatus != HTTPSERVER_OFFLINE)
+	if (GetServer().is_running())
 		Stop();
 
 	m_strAddress = address;
 	m_iPort = port;
 	m_pServerThread = CreateSimpleThread((ThreadFunc_t)HttpServer::Server, this);
-	m_iStatus = HTTPSERVER_ONLINE;
 }
 
 void HttpServer::Stop()
 {
-	if (m_iStatus == HTTPSERVER_OFFLINE)
+	if (!GetServer().is_running())
 		return;
 
 	m_pServer.stop();
-	m_iStatus = HTTPSERVER_OFFLINE;
 
 	ThreadJoin(m_pServerThread, 100);
 	ReleaseThreadHandle(m_pServerThread);
@@ -738,7 +732,7 @@ LUA_FUNCTION_STATIC(HttpServer_ProtectedCalls)
 
 void HttpServer::Think()
 {
-	if (m_iStatus == HTTPSERVER_OFFLINE || !m_bUpdate.load())
+	if (!GetServer().is_running() || !m_bUpdate.load())
 		return;
 
 	/*
@@ -975,7 +969,7 @@ LUA_FUNCTION_STATIC(HttpServer_Options)
 LUA_FUNCTION_STATIC(HttpServer_IsRunning)
 {
 	HttpServer* pServer = Get_HttpServer(LUA, 1, true);
-	LUA->PushBool(pServer->GetStatus() == HTTPSERVER_ONLINE);
+	LUA->PushBool(pServer->GetServer().is_running());
 
 	return 1;
 }
@@ -1157,7 +1151,7 @@ LUA_FUNCTION_STATIC(httpserver_Destroy)
 {
 	HttpServer* pServer = Get_HttpServer(LUA, 1, true);
 
-	if (pServer->GetStatus() == HTTPSERVER_ONLINE)
+	if (pServer->GetServer().is_running())
 		pServer->Stop();
 
 	Delete_HttpServer(LUA, pServer);
@@ -1206,6 +1200,28 @@ void CHTTPServerModule::OnClientDisconnect(CBaseClient* pClient)
 	{
 		server->ClearDisconnectedClient(userID);
 	}
+}
+
+static Detouring::Hook detour_CRConServer_CreateSocket;
+bool hook_CRConServer_CreateSocket(void* _this)
+{
+	if (CommandLine()->FindParm("-norcon"))
+		return false;
+
+	return detour_CRConServer_CreateSocket.GetTrampoline<Symbols::CRConServer_CreateSocket>()(_this);
+}
+
+void CHTTPServerModule::InitDetour(bool bPreServer)
+{
+	if (bPreServer)
+		return;
+
+	SourceSDK::FactoryLoader engine_loader("engine");
+	Detour::Create(
+		&detour_CRConServer_CreateSocket, "CRConServer::CreateSocket",
+		engine_loader.GetModule(), Symbols::CRConServer_CreateSocketSym,
+		(void*)hook_CRConServer_CreateSocket, m_pID
+	);
 }
 
 void CHTTPServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
