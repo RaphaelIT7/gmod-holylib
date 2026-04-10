@@ -475,6 +475,7 @@ static void CrashHandler(int signal, siginfo_t* signalInfo, void* ucontext)
 	dprintf(fileDescriptor, "Crashed in module: %s\n", moduleName);
 
 	dprintf(fileDescriptor, "HolyLib: %s\n", HolyLib_GetPluginDescription());
+	dprintf(fileDescriptor, "Triggered by watcher?: %s\n", g_bInducedCrash.load() ? "true" : "false");
 
 	dprintf(fileDescriptor, "Registers:\n");
 #if defined(__x86_64__)
