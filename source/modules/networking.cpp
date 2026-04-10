@@ -705,7 +705,7 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 			pActiveWeapon->SetTransmit(pInfo, bAlways);
 
 		/*
-			If your out for performance without wanting to loose default behavior the following settings can improve performance while having just a little downside
+			If you're out for performance without wanting to lose default behavior, the following settings can improve performance while having just a little downside
 
 			holylib_networking_transmit_all_weapons 0
 			holylib_networking_transmit_all_weapons_to_owner 0
