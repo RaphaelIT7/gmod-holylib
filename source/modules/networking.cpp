@@ -651,9 +651,10 @@ static ConVar networking_transmit_all_weapons("holylib_networking_transmit_all_w
 static ConVar networking_transmit_all_weapons_to_owner("holylib_networking_transmit_all_weapons_to_owner", "1", 0, "Experimental - By default all weapons are networked to the owner");
 static ConVar networking_transmit_one_per_tick("holylib_networking_transmit_one_per_tick", "0", 0, "Experimental - If enabled, one additional weapon is networked per tick");
 static ConVar networking_fasttransmit("holylib_networking_fasttransmit", "1", 0, "Experimental - Replaces CServerGameEnts::CheckTransmit with our own implementation");
+static ConVar networking_fastcharactertransmit("holylib_networking_fastcharactertransmit", "1", 0, "Experimental");
 static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharacter, CCheckTransmitInfo *pInfo, bool bAlways)
 {
-	if (!func_CBaseAnimating_SetTransmit || !networking_fasttransmit.GetBool())
+	if (!func_CBaseAnimating_SetTransmit || !networking_fasttransmit.GetBool() || !networking_fastcharactertransmit.GetBool())
 	{
 		// Without it we won't do shit, simply because possibly missing a transmit can cause quite the issues.
 		detour_CBaseCombatCharacter_SetTransmit.GetTrampoline<Symbols::CBaseCombatCharacter_SetTransmit>()(pCharacter, pInfo, bAlways);
@@ -966,7 +967,6 @@ static inline void DoTransmitPVSCheck(
 }
 
 static Detouring::Hook detour_CServerGameEnts_CheckTransmit;
-static ConVar networking_verifyshit("holylib_networking_verifyshit", "0", 0, "Experimental");
 static ConVar networking_fastpath("holylib_networking_fastpath", "0", 0, "Experimental - If two players are in the same area, then it will reuse the transmit state of the first calculated player saving a lot of time");
 static ConVar networking_fastpath_usecluster("holylib_networking_fastpath_usecluster", "1", 0, "Experimental - When using the fastpatth, it will compate against clients in the same cluster instead of area");
 bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts)
@@ -1273,9 +1273,10 @@ struct PackWork_t
 static Symbols::InvalidateSharedEdictChangeInfos func_InvalidateSharedEdictChangeInfos;
 static ConVar* sv_parallel_packentities;
 static Detouring::Hook detour_PackEntities_Normal;
+static ConVar networking_fastpacking("holylib_networking_fastpacking", "1", 0, "Makes PackEntities_Normal slightly faster");
 void PackEntities_Normal(int clientCount, CGameClient **clients, CFrameSnapshot *snapshot)
 {
-	if (!networking_fasttransmit.GetBool())
+	if (!networking_fasttransmit.GetBool() || !networking_fastpacking.GetBool())
 	{
 		detour_PackEntities_Normal.GetTrampoline<Symbols::PackEntities_Normal>()(clientCount, clients, snapshot);
 		return;
