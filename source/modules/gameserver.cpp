@@ -586,6 +586,14 @@ LUA_FUNCTION_STATIC(CBaseClient_SetSteamID)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(CBaseClient_HasNetChannel)
+{
+	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
+
+	LUA->PushBool(pClient->GetNetChannel() != nullptr);
+	return 1;
+}
+
 /*
  * CNetChannel exposed things.
  * I should probably move it into a separate class...
@@ -835,6 +843,32 @@ LUA_FUNCTION_STATIC(CBaseClient_GetMaxRoutablePayloadSize)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(CBaseClient_GetTimeConnected)
+{
+	CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
+
+	LUA->PushNumber(pNetChannel->GetTimeConnected());
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CBaseClient_GetAvgLatency)
+{
+	CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
+	int flow = (int)LUA->CheckNumber(2);
+
+	LUA->PushNumber(pNetChannel->GetAvgLatency(flow));
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(CBaseClient_GetAvgLoss)
+{
+	CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
+	int flow = (int)LUA->CheckNumber(2);
+
+	LUA->PushNumber(pNetChannel->GetAvgLoss(flow));
+	return 1;
+}
+
 // Added for CHLTVClient to inherit functions.
 void Push_CBaseClientMeta(GarrysMod::Lua::ILuaInterface* pLua)
 {
@@ -891,6 +925,7 @@ void Push_CBaseClientMeta(GarrysMod::Lua::ILuaInterface* pLua)
 	Util::AddFunc(pLua, CBaseClient_FreeBaselines, "FreeBaselines");
 	Util::AddFunc(pLua, CBaseClient_OnRequestFullUpdate, "OnRequestFullUpdate");
 	Util::AddFunc(pLua, CBaseClient_SetSteamID, "SetSteamID");
+	Util::AddFunc(pLua, CBaseClient_HasNetChannel, "HasNetChannel");
 
 	// CNetChan related functions
 	Util::AddFunc(pLua, CBaseClient_GetProcessingMessages, "GetProcessingMessages");
@@ -919,6 +954,9 @@ void Push_CBaseClientMeta(GarrysMod::Lua::ILuaInterface* pLua)
 	Util::AddFunc(pLua, CBaseClient_SetMaxBufferSize, "SetMaxBufferSize");
 	//Util::AddFunc(pLua, CBaseClient_HasQueuedPackets, "HasQueuedPackets");
 	Util::AddFunc(pLua, CBaseClient_GetMaxRoutablePayloadSize, "GetMaxRoutablePayloadSize");
+	Util::AddFunc(pLua, CBaseClient_GetTimeConnected, "GetTimeConnected");
+	Util::AddFunc(pLua, CBaseClient_GetAvgLatency, "GetAvgLatency");
+	Util::AddFunc(pLua, CBaseClient_GetAvgLoss, "GetAvgLoss");
 }
 
 LUA_FUNCTION_STATIC(CGameClient__tostring)
@@ -2510,6 +2548,9 @@ void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddValue(pLua, NS_CLIENT, "NS_CLIENT");
 		Util::AddValue(pLua, NS_SERVER, "NS_SERVER");
 		Util::AddValue(pLua, NS_HLTV, "NS_HLTV");
+
+		Util::AddValue(pLua, FLOW_OUTGOING, "FLOW_OUTGOING");
+		Util::AddValue(pLua, FLOW_INCOMING, "FLOW_INCOMING");
 	Util::FinishTable(pLua, "gameserver");
 }
 
@@ -2522,7 +2563,7 @@ void CGameServerModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 }
 
 #define MAX_PLAYERS 128
-static ConVar gameserver_maxplayers("holylib_gameserver_maxplayers", "255", 0, "Experimental - max client limit (above 255 cannot be networked, though may work if they remain purely as a CGameClient)", true, 1, true, 8192);
+static ConVar gameserver_maxplayers("holylib_gameserver_maxplayers", "128", 0, "Experimental - max client limit (above 255 cannot be networked, though may work if they remain purely as a CGameClient)", true, 1, true, 8192);
 static Detouring::Hook detour_CBaseServer_GetFreeClient;
 static CBaseClient* hook_CBaseServer_GetFreeClient(CBaseServer* _this, netadr_t& adr)
 {

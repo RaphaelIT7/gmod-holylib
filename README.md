@@ -212,7 +212,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 \- [+] Added `directData` argument to `VoiceStream:GetData`, `VoiceStream:GetIndex`, `VoiceStream:SetIndex` and `VoiceStream:SetData`<br>
 \- [+] Added overflow checks for `gameserver.BroadcastMessage`, `CNetChan:SendMessage` and `CBaseClient:SendNetMsg` when you try to use a overflowed buffer<br>
 \- [+] Added a few more arguments to `HolyLib:OnPhysicsLag` like `phys1`, `phys2`, `recalcPhys`, `callerFunction` and the arguments `ent1` & `ent2` were removed since you can call `PhysObj:GetEntity`<br>
-\- [+] Added `holylib_gameserver_maxplayers` allowing the player queue to in theory support up to 64k clients (BUT IS CURRENTLY UNSTABLE ABOVE 255!)<br>
+\- [+] Added `holylib_gameserver_maxplayers` allowing the player queue to support up to 8192 players (in theory more but you'd never need more)<br>
 \- [#] Fixed `addonsystem.ShouldMount` & `addonsystem.SetShouldMount` `workshopID` arguments being a number when they should have been a string.<br>
 \- [#] Changed `VoiceData:GetUncompressedData` to now returns a statusCode/a number on failure instead of possibly returning a garbage string.<br>
 \- [#] Limited `HttpServer:SetName` to have a length limit of `64` characters.<br>
@@ -4418,6 +4418,12 @@ Server socket.
 #### gameserver.NS_HLTV = 2
 HLTV socket.
 
+#### gameserver.FLOW_OUTGOING = 0
+Outgoing flow
+
+#### gameserver.FLOW_INCOMING = 1
+Incoming flow
+
 ### CBaseClient
 This class represents a client.
 
@@ -4587,6 +4593,10 @@ Returns `true` on success.<br>
 > Gmod seamingly has some backup code inside `CBaseClient::ProcessClientInfo`,<br>
 > that kicks a player with `Server connection error, please try again` if they don't have a valid steamid.
 
+#### bool CBaseClient:HasNetChannel()
+Returns `true` if the client has a net channel.<br>
+This is useful for example, when working with fake clients and using `sv_stressbots`<br>
+
 ---
 
 ### CBaseClient (CNetChannel functions)
@@ -4702,6 +4712,18 @@ concommand.Add("biggerBuffer", function(ply)
 	client:SetMaxBufferSize(true, 524288) -- We resize the reliable stream
 end)
 ```
+
+#### number CBaseClient:GetMaxRoutablePayloadSize()
+Returns the max routable payload size - this is the MTU for packets before they are fragmented!<br>
+
+#### number CBaseClient:GetTimeConnected()
+Returns the time they connected.<br>
+
+#### number CBaseClient:GetAvgLatency(number flow)
+Returns the average latency for the given flow. (Use the `gameserver.FLOW_` enums!)<br>
+
+#### number CBaseClient:GetAvgLoss(number flow)
+Returns the average loss for the given flow. (Use the `gameserver.FLOW_` enums!)<br>
 
 ### CGameClient
 This class inherits CBaseClient.
@@ -5107,6 +5129,10 @@ If enabled, `CGameClient` that are empty / have no active player are still consi
 > [!NOTE]
 > Internally it checks using `CBaseClient:IsConnected()` to see if a client is empty or not!
 
+#### holylib_gameserver_maxplayers (default `128`)
+The amount of max players a server can have.<br>
+Going above `128` will result in queue slots, which are slots into which players can join but won't be able to spawn as.<br>
+
 ### sv_filter_nobanresponse (default `0`)
 If enabled, a blocked ip won't be informed that its even blocked.
 
@@ -5122,8 +5148,17 @@ Use the `HolyLib:OnSetSignonState` to keep players at the `SIGNONSTATE_NEW` unti
 ### Player Queue System
 Using this module's functionality you can implement a player queue were players wait in the loading screen until they spawn when a slot gets free.
 
-Example implementation:
+> [!IMPORTANT]
+> Queued clients do not occupy a "real" server slot, instead they hold a slot created and fully managed by HolyLib.<br>
+> This results in the server having **no idea** that the client even exists, resulting in things like `status` or `kickid` not working for queued clients.<br>
+> The `gameserver` functions do, however, account for queued clients and will return and work with them, meaning you'd have to implement your own kick command.<br>
+> This was done for two reasons:<br>
+> 1) the old implementation wasted edicts and was quite unstable due to the engine not liking that many clients (going above m_nMaxclients)<br>
+> 2) if Rubat increased the player limit, our previous queue slots (which were the unused 127 slots) would have been gone.<br>
+
+Example implementation (includes an example `status_queue` command):
 ```lua
+RunConsoleCommand("holylib_gameserver_maxplayers", "255") -- Raise player limit
 playerQueue = playerQueue or {
 	count = 0
 }
@@ -5164,6 +5199,48 @@ end)
 
 hook.Add("HolyLib:OnPlayerChangedSlot", "Example", function(oldPlayerSlot, newPlayerSlot)
 	print("Client was moved from slot " .. oldPlayerSlot .. " to slot " .. newPlayerSlot)
+end)
+
+concommand.Add("status_queue", function(ply, cmd, args)
+	if IsValid(ply) then return end -- Only for console
+
+	// We won't provide version & udp/ip & steamid.
+	// The gameserver API will already account for the queue and include them in results
+	MsgN("hostname: " .. gameserver.GetName())
+	MsgN("map: " .. gameserver.GetMapName())
+	MsgN("players : " .. gameserver.GetNumClients() .. " humans, " .. gameserver.GetNumFakeClients() .. "bots (" .. gameserver.GetMaxClients() .. " max)")
+	MsgN(string.format(
+		"%-3s %-8s %-20s %-20s %-10s %-5s %-5s %-10s",
+		"#", "userid", "name", "uniqueid", "connected", "ping", "loss", "state"
+	))
+
+	for _, client in ipairs(gameserver.GetAll()) do
+		local state = "challenging"
+		if client:IsActive() then
+			state = "active"
+		elseif client:GetSignonState() == SIGNONSTATE_PRESPAWN and client:GetPlayerSlot() >= game.MaxPlayers() then
+			-- If the client is in an above max players slot and at PRESPAWN they have been blocked for spawning
+			-- and are now waiting for your Lua script to let them be spawned
+			state = "queued"
+		elseif client:IsSpawned() then
+			state = "spawning"
+		elseif client:IsConnected() then
+			state = "connecting"
+		end
+
+		local hasNetChannel = client:HasNetChannel()
+		MsgN(string.format(
+			"%-3s %-8d %-20s %-20s %-10s %-5d %-5d %-10s",
+			"#",
+			client:GetUserID(),
+			"\"" .. client:GetName() .. "\"",
+			client:GetSteamID(),
+			hasNetChannel and tostring(math.floor(CurTime() - client:GetTimeConnected())) or "",
+			hasNetChannel and math.floor(client:GetAvgLatency(gameserver.FLOW_OUTGOING)) or 0,
+			hasNetChannel and math.floor(client:GetAvgLatency(gameserver.FLOW_INCOMING)) or 0,
+			state
+		))
+	end
 end)
 ```
 
