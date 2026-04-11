@@ -583,7 +583,7 @@ public:
 			return;
 		
 		int nPlayerSlot = pEvent->GetInt("index");
-		if (nPlayerSlot >= MAX_PLAYERS || nPlayerSlot < 0)
+		if (nPlayerSlot >= gpGlobals->maxClients || nPlayerSlot < 0)
 		{
 			Warning(PROJECT_NAME " - networking: Invalid OnRequestFullUpdate event! (Index: %i)\n", nPlayerSlot);
 			return;
@@ -656,7 +656,7 @@ static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharact
 {
 	// IMPORANT: Apparently CBaseCombatCharacter is inherited by more than just the player, so we MUST check m_EdictIndex!
 	edict_t* pCharacterEdict = pCharacter->edict();
-	if (!func_CBaseAnimating_SetTransmit || !networking_fasttransmit.GetBool() || !networking_fastcharactertransmit.GetBool() || pCharacterEdict->m_EdictIndex <= 0 || pCharacterEdict->m_EdictIndex > MAX_PLAYERS)
+	if (!func_CBaseAnimating_SetTransmit || !networking_fasttransmit.GetBool() || !networking_fastcharactertransmit.GetBool() || pCharacterEdict->m_EdictIndex <= 0 || pCharacterEdict->m_EdictIndex > gpGlobals->maxClients)
 	{
 		// Without it we won't do shit, simply because possibly missing a transmit can cause quite the issues.
 		detour_CBaseCombatCharacter_SetTransmit.GetTrampoline<Symbols::CBaseCombatCharacter_SetTransmit>()(pCharacter, pInfo, bAlways);
@@ -990,7 +990,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	const int clientIndex = pInfo->m_pClientEnt->m_EdictIndex - 1;
 
 	// BUG: Can this even happen? Probably, when people screw with the gameserver module & disable spawn safety
-	if (clientIndex >= MAX_PLAYERS || clientIndex < 0)
+	if (clientIndex >= gpGlobals->maxClients || clientIndex < 0)
 		return true; // We don't return false since we never want to transmit anything to a player in a invalid slot!
 
 	CGameClient* pGameClient = (CGameClient*)Util::GetClientByIndex(clientIndex);
@@ -1035,7 +1035,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 
 		if (bFastPath)
 		{
-			for (int iOtherClient = 0; iOtherClient<MAX_PLAYERS; ++iOtherClient)
+			for (int iOtherClient = 0; iOtherClient<gpGlobals->maxClients; ++iOtherClient)
 			{
 				const PlayerTransmitTickCache& nOtherCache = g_pPlayerTransmitTickCache[iOtherClient];
 				if (nOtherCache.nAreaNum != clientArea)
@@ -1394,7 +1394,7 @@ void CNetworkingModule::OnEntityCreated(CBaseEntity* pEntity)
 
 void CNetworkingModule::ClientDisconnect(edict_t* pPlayer)
 {
-	if (pPlayer->m_EdictIndex > MAX_PLAYERS)
+	if (pPlayer->m_EdictIndex > gpGlobals->maxClients)
 		return;
 
 	g_pPlayerTransmitCache[pPlayer->m_EdictIndex-1].Reset();
