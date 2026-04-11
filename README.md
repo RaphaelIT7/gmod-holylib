@@ -3950,8 +3950,9 @@ Returns the name set by `HttpServer:SetName()`, defaults to `NONAME`
 Sets the name of the HttpServer.<br>
 The length of the name is limited to 64 characters.
 
-#### (Experimental) HttpServer:AddPreparedResponse(number userID, string path, string method, table headers, function callback)
+#### (Experimental) HttpServer:AddPreparedResponse(number userID, string path, string method, table headers, function callback, number uses = 1)
 callback - function(HttpResponse response)<br>
+uses - How often this prepared response is used before it's discarded.<br>
 
 Adds a prepared response for the given userID.<br>
 A prepared response won't make any lua call when it matches a incoming request, multiple responses can be queued as their responses in order.<br>

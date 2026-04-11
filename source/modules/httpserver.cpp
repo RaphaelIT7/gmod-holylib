@@ -58,6 +58,7 @@ struct HttpResponse {
 
 struct PreparedHttpResponse {
 	HttpResponse m_pResponse;
+	std::atomic<size_t> m_iUses = 0;
 	std::string m_strPath = "";
 	std::string m_strMethod = "";
 	std::string m_strBody = "";
@@ -65,6 +66,9 @@ struct PreparedHttpResponse {
 
 	inline bool ShouldRespond(const httplib::Request& pRequest)
 	{
+		if (m_iUses.load() == 0)
+			return false;
+
 		if (pRequest.method != m_strMethod)
 			return false;
 
@@ -87,6 +91,7 @@ struct PreparedHttpResponse {
 			}
 		}
 
+		m_iUses.fetch_sub(1);
 		return true;
 	}
 
@@ -225,7 +230,7 @@ public:
 
 	void AddPreparedResponse(int userID, PreparedHttpResponse* pResponse)
 	{
-		m_pPreparedResponsesMutex.Lock();
+		m_pPreparedResponsesMutex.lock();
 		auto it = m_pPreparedResponses.find(userID);
 		if (it == m_pPreparedResponses.end())
 		{
@@ -233,12 +238,12 @@ public:
 			pResponses.push_back(pResponse);
 
 			m_pPreparedResponses[userID] = pResponses;
-			m_pPreparedResponsesMutex.Unlock();
+			m_pPreparedResponsesMutex.unlock();
 			return;
 		}
 
 		it->second.push_back(pResponse);
-		m_pPreparedResponsesMutex.Unlock();
+		m_pPreparedResponsesMutex.unlock();
 	}
 
 public:
@@ -260,11 +265,11 @@ public:
 
 	void ClearDisconnectedClient(int userID)
 	{
-		m_pPreparedResponsesMutex.Lock();
+		m_pPreparedResponsesMutex.lock();
 		auto it = m_pPreparedResponses.find(userID);
 		if (it == m_pPreparedResponses.end())
 		{
-			m_pPreparedResponsesMutex.Unlock();
+			m_pPreparedResponsesMutex.unlock();
 			return;
 		}
 
@@ -274,7 +279,7 @@ public:
 		}
 
 		m_pPreparedResponses.erase(it);
-		m_pPreparedResponsesMutex.Unlock();
+		m_pPreparedResponsesMutex.unlock();
 	}
 
 	inline std::string GetAddressFromRequest(httplib::Request pRequest)
@@ -347,7 +352,8 @@ private:
 
 	// userID - Response pairs.
 	std::unordered_map<int, std::vector<PreparedHttpResponse*>> m_pPreparedResponses;
-	CThreadFastMutex m_pPreparedResponsesMutex;
+	std::shared_mutex m_pPreparedResponsesMutex;
+	std::atomic<bool> m_bHandledPreparedResponse = false; // Set to true if any prepared response needs to be deleted
 
 	GarrysMod::Lua::ILuaInterface* m_pLua = nullptr;
 	HttpRequest* m_pLastHandledRequest = nullptr; // For error handling+
@@ -740,7 +746,32 @@ LUA_FUNCTION_STATIC(HttpServer_ProtectedCalls)
 
 void HttpServer::Think()
 {
-	if (!GetServer().is_running() || !m_bUpdate.load())
+	if (!GetServer().is_running())
+		return;
+
+	if (m_bHandledPreparedResponse.load())
+	{
+		m_pPreparedResponsesMutex.lock();
+		for (auto& [userid, responses] : m_pPreparedResponses)
+		{
+			for (auto it = responses.begin(); it != responses.end();)
+			{
+				if ((*it)->m_iUses.load() == 0)
+				{
+					delete *it;
+					it = responses.erase(it);
+					continue;
+				}
+
+				++it;
+			}
+		}
+
+		m_bHandledPreparedResponse.store(false);
+		m_pPreparedResponsesMutex.unlock();
+	}
+
+	if (!m_bUpdate.load())
 		return;
 
 	/*
@@ -810,24 +841,24 @@ httplib::Server::Handler HttpServer::CreateHandler(const char* path, int func, b
 			return;
 		}
 
-		m_pPreparedResponsesMutex.Lock();
+		m_pPreparedResponsesMutex.lock_shared();
 		auto it = m_pPreparedResponses.find(userID);
 		if (it != m_pPreparedResponses.end())
 		{
-			for (auto vecIT = it->second.begin(); vecIT != it->second.end(); it++)
+			for (auto& pPrepared : it->second)
 			{
-				auto pPrepared = *vecIT;
 				if (!pPrepared->ShouldRespond(req))
 					continue;
 
 				pPrepared->DoResponse(res);
-				delete pPrepared;
-				it->second.erase(vecIT);
-				m_pPreparedResponsesMutex.Unlock();
+				if (pPrepared->m_iUses.load() == 0)
+					m_bHandledPreparedResponse.store(true);
+
+				m_pPreparedResponsesMutex.unlock_shared();
 				return;
 			}
 		}
-		m_pPreparedResponsesMutex.Unlock();
+		m_pPreparedResponsesMutex.unlock_shared();
 
 		if (g_pHttpServerModule.InDebug())
 			Msg(PROJECT_NAME " - httpserver: Waiting for Main thread to pick up request\n");
@@ -1113,10 +1144,12 @@ LUA_FUNCTION_STATIC(HttpServer_AddPreparedResponse)
 	const char* pMethod = LUA->CheckString(4);
 	LUA->CheckType(5, GarrysMod::Lua::Type::Table);
 	LUA->CheckType(6, GarrysMod::Lua::Type::Function);
+	int uses = (int)LUA->CheckNumberOpt(7, 1);
 
 	PreparedHttpResponse* pResponse = new PreparedHttpResponse;
 	pResponse->m_strPath = pPath;
 	pResponse->m_strMethod = pMethod;
+	pResponse->m_iUses = uses;
 
 	LUA->Push(5);
 	LUA->PushNil();
