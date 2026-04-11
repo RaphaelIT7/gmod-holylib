@@ -521,6 +521,14 @@ LUA_FUNCTION_STATIC(HttpRequest_GetPathParam)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(HttpRequest_GetPath)
+{
+	HttpRequest* pData = Get_HttpRequest(LUA, 1, true);
+
+	LUA->PushString(pData->m_pRequest.path.c_str());
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(HttpRequest_GetBody)
 {
 	HttpRequest* pData = Get_HttpRequest(LUA, 1, true);
@@ -1311,6 +1319,7 @@ void CHTTPServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, HttpRequest_GetHeader, "GetHeader");
 		Util::AddFunc(pLua, HttpRequest_GetParam, "GetParam");
 		Util::AddFunc(pLua, HttpRequest_GetPathParam, "GetPathParam");
+		Util::AddFunc(pLua, HttpRequest_GetPath, "GetPath");
 		Util::AddFunc(pLua, HttpRequest_GetBody, "GetBody");
 		Util::AddFunc(pLua, HttpRequest_GetRemoteAddr, "GetRemoteAddr");
 		Util::AddFunc(pLua, HttpRequest_GetRemotePort, "GetRemotePort");

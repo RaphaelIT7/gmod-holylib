@@ -4068,6 +4068,9 @@ Returns the player who sent the HTTP Request or `nil` if it didn't find it.<br>
 #### string HttpRequest:GetPathParam(string param)
 Returns the value of the given parameter or `nil` if it wasn't found.<br>
 
+#### string HttpRequest:GetPath(string name)
+Returns the path of the request
+
 #### string HttpRequest:MarkHandled()
 Marks this request as handled, invalidating this object and the linked `HttpResponse`<br>
 This function is meant to be used when you `return true` in the HttpServer:[Get/Put/OtherStuff] callback function allowing you to delay a response.<br>
