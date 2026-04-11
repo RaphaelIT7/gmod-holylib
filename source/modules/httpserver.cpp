@@ -1141,6 +1141,16 @@ LUA_FUNCTION_STATIC(HttpServer_AddProxyAddress)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(HttpServer_SetThreads)
+{
+	HttpServer* pServer = Get_HttpServer(LUA, 1, true);
+	size_t minThreads = (size_t)LUA->CheckNumber(2);
+	size_t maxThreads = (size_t)LUA->CheckNumber(3);
+
+	pServer->GetServer().new_task_queue = [minThreads, maxThreads] { return new httplib::ThreadPool(minThreads, maxThreads); };
+	return 0;
+}
+
 LUA_FUNCTION_STATIC(httpserver_Create)
 {
 	Push_HttpServer(LUA, new HttpServer(LUA));
@@ -1253,6 +1263,7 @@ void CHTTPServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, HttpServer_SetKeepAliveTimeout, "SetKeepAliveTimeout");
 		Util::AddFunc(pLua, HttpServer_SetKeepAliveMaxCount, "SetKeepAliveMaxCount");
 		Util::AddFunc(pLua, HttpServer_SetThreadSleep, "SetThreadSleep");
+		Util::AddFunc(pLua, HttpServer_SetThreads, "SetThreads");
 
 		Util::AddFunc(pLua, HttpServer_SetMountPoint, "SetMountPoint");
 		Util::AddFunc(pLua, HttpServer_RemoveMountPoint, "RemoveMountPoint");

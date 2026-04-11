@@ -3925,6 +3925,9 @@ Sets the maximum amount of connections that can be kept alive at the same time.
 The number of ms threads sleep before checking again if a request was handled.<br>
 Useful to raise it when you let requests wait for a while.
 
+#### HttpServer:SetThreads(number minThreads, number maxThreads)
+Sets how many threads the httpserver can use.<br>
+
 #### HttpServer:SetMountPoint(string mountPoint, string folder)
 This mounts the given folder to the given path.
 
