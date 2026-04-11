@@ -136,13 +136,13 @@ void RemoveFileHandleFromCache(FileHandle_t pHandle)
 	if (it == m_FileStringCache.end())
 		return;
 
-	m_FileCache.erase(it->second);
-	m_FileStringCache.erase(it);
-
 	if (g_pFileSystemModule.InDebug())
 		Msg("holylib - RemoveFileHandleFromCache: Removed file %s from filehandle cache\n", it->second.data());
 
 	delete[] it->second.data();
+
+	m_FileCache.erase(it->second);
+	m_FileStringCache.erase(it);
 }
 
 static void ClearFileHandleSearchCache()
@@ -301,8 +301,8 @@ static void RemoveFileFromSearchCache(const char* pFileName, const char* pathID)
 	if (it == map.end())
 		return;
 
-	map.erase(it);
 	delete[] it->first.data(); // Allocated in AddFileToSearchCache
+	map.erase(it);
 }
 
 static CSearchPath* GetPathFromSearchCache(const char* pFileName, const char* pathID)
