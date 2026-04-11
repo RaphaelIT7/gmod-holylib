@@ -305,20 +305,84 @@ static void LJ_FASTCALL recff_c(jit_State *J, RecordFFData *rd)
     return;
   }
 
+  if (callinfo->traceFunc)
+  {
+    lua_TraceRecorder recorder;
+    lj_tr_init(&recorder, 16);
+    callinfo->traceFunc(&recorder);
+    if (recorder.aborted) // We failed.
+    {
+      lj_tr_free(&recorder);
+      recff_nyi(J, rd);
+      return;
+    }
+
+    // ToDo: implement processing
+    lj_tr_free(&recorder);
+    rd->nres = recorder.returns;
+    return;
+  }
+
   if (callinfo->retType == TR_RETURN_USERDATA_ENV)
   {
-  	TRef tr = J->base[0];
-  	if (!tref_isudata(tr) || !tabref(udataV(&rd->argv[0])->env)) // Can't trace if GCudata::env is null
-  	{
+    TRef tr = J->base[0];
+    if (!tref_isudata(tr) || !tabref(udataV(&rd->argv[0])->env)) // Can't trace if GCudata::env is null
+    {
       recff_nyi(J, rd);
-  		return;
-  	}
+      return;
+    }
 
     // For loading ENV we only guard on GCudata::flags since HolyLib has the UDATA_NO_USERTABLE in case any userdata will not have env set to something valid
-  	TRef loadtr = emitir(IRT(IR_FLOAD, IRT_U8), tr, IRFL_UDATA_FLAGS);
-  	emitir(IRTGI(IR_EQ), loadtr, lj_ir_kint(J, udataV(&rd->argv[0])->flags));
+    TRef loadtr = emitir(IRT(IR_FLOAD, IRT_U8), tr, IRFL_UDATA_FLAGS);
+    emitir(IRTGI(IR_EQ), loadtr, lj_ir_kint(J, udataV(&rd->argv[0])->flags));
     J->base[0] = emitir(IRT(IR_FLOAD, IRT_TAB), tr, IRFL_UDATA_ENV);
-  	return;
+    return;
+  }
+
+  if (callinfo->retType == TR_RETURN_TYPEID)
+  {
+    TRef tr = J->base[0];
+#define typecheck(func, type) \
+    if (func(tr)) { J->base[0] = lj_ir_kint(J, type); return; }
+
+    typecheck(tref_isnil, LUA_TNIL)
+    typecheck(tref_isbool, LUA_TBOOLEAN)
+    typecheck(tref_islightud, LUA_TLIGHTUSERDATA)
+    typecheck(tref_isnumber, LUA_TNUMBER)
+    typecheck(tref_isstr, LUA_TSTRING)
+    typecheck(tref_istab, LUA_TTABLE)
+    typecheck(tref_isfunc, LUA_TFUNCTION)
+    typecheck(tref_isthread, LUA_TTHREAD)
+
+    if (tref_isudata(tr))
+    {
+      GCudata* ud = udataV(&rd->argv[0]);
+      void* uddata = uddata(ud);
+      uint8_t type = ud->udtype;
+
+      TRef typetr = emitir(IRT(IR_FLOAD, IRT_U8), tr, IRFL_UDATA_UDTYPE);
+      emitir(IRTGI(IR_EQ), typetr, lj_ir_kint(J, udataV(&rd->argv[0])->udtype));
+
+      if (type == UDTYPE_USERDATA && uddata(ud)) // GMod Userdata
+      {
+        GMODudata* gmodUD = uddata(ud);
+        TRef valuetr = emitir(IRT(IR_FLOAD, IRT_U8), tr, IRFL_UDATA_UDTYPE);
+        emitir(IRTGI(gmodUD ? IR_NE : IR_EQ), valuetr, lj_ir_kint(J, 0)); // We guard as safety
+        if (gmodUD)
+          J->base[0] = emitir(IRT(IR_FLOAD, IRT_U8), valuetr, IRFL_GMOD_UDATA_TYPE);
+      } else if (type > UDTYPE__MAX) { // HolyLib userdata
+        J->base[0] = lj_ir_kint(J, type); // We just return the type since we already guard on it.
+      }
+
+      J->base[0] = lj_ir_kint(J, LUA_TUSERDATA);
+      return;
+    }
+
+#undef typecheck
+
+    // HolyLib also uses cdata though idk how to handle that yet
+    recff_nyi(J, rd);
+    return;
   }
 
   if (!callinfo->func) {

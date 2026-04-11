@@ -211,6 +211,7 @@ IRFPMDEF(FPMENUM)
   _(UDATA_UDTYPE, offsetof(GCudata, udtype)) \
   _(UDATA_HVALUE, offsetof(GCudata, align1)) /* This field is used by HolyLib to store the userdata value */ \
   _(UDATA_VALUE, sizeof(GCudata)) \
+  _(GMOD_UDATA_TYPE, offsetof(GMODudata, type)) \
   _(LSTR_DATA, offsetof(lua_String, data)) \
   _(LSTR_LEN, offsetof(lua_String, length)) \
   _(SBUF_W,	sizeof(GCudata) + offsetof(SBufExt, w)) \

@@ -367,6 +367,12 @@ typedef struct GCudata {
   uint32_t align1;	/* To force 8 byte alignment of the payload. In HolyLib we make use of this though to store data - no bytes are wasted :3 */
 } GCudata;
 
+// This is the data GMod stores for userdata, I've added it here so that our JIT build can make use of it when needed
+typedef struct GMODudata {
+  void* data;
+  unsigned char type;
+} GMODudata;
+
 /* Userdata types. */
 enum {
   UDTYPE_USERDATA,	/* Regular userdata. */
@@ -496,6 +502,7 @@ typedef struct GCupval {
 // Extented version of CCallInfo - See lj_ircall.h
 typedef struct CFuncCallInfo {
   ASMFunction func;   /* Function pointer. 0 if this entire struct wasn't set yet */
+  lua_TraceRecorderFunction traceFunc;
   uint32_t flags;   /* Number of arguments and flags. */
   lua_TraceRecorderType argType[32]; /* argument types */
   lua_TraceRecorderType retType;

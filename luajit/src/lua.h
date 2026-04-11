@@ -207,6 +207,7 @@ enum {
   TR_TYPE_CHARS, // const char* - NULL Terminated! (will result in a Lua string alloc! -> lj_str_new)
   // TEMP special return - since the recorder isn't finished yet
   TR_RETURN_USERDATA_ENV,
+  TR_RETURN_TYPEID,
 };
 
 typedef unsigned char lua_TraceRecorderOP;
@@ -222,21 +223,31 @@ enum {
 typedef struct lua_TraceRecorderEntry
 {
   lua_TraceRecorderOP op;
-  lua_TraceRecorderType optype;
-  size_t value;
+  lua_TraceRecorderType type;
+  size_t a;
+  size_t b;
+  size_t c;
 } lua_TraceRecorderEntry;
 
 // ToDo: Implement an external recorder
 typedef struct lua_TraceRecorder
 {
-	size_t entries;
-	lua_TraceRecorderEntry entry;
+  lua_TraceRecorderEntry* entries;
+  size_t count;
+  size_t capacity;
+  unsigned int aborted : 1;
+  unsigned int returns : 7; // How many values it returns
 } lua_TraceRecorder;
+
+typedef void (*lua_TraceRecorderFunction) (lua_TraceRecorder *tr);
+LUA_API void (lj_tr_init) (lua_TraceRecorder* tr, size_t initial);
+LUA_API void (lj_tr_free) (lua_TraceRecorder* tr);
+LUA_API size_t (lj_tr_emit) (lua_TraceRecorder* tr, lua_TraceRecorderOP op, lua_TraceRecorderType type, size_t a, size_t b, size_t c);
 
 typedef struct lua_String
 {
-	const char* data;
-	size_t length;
+  const char* data;
+  size_t length;
 } lua_String;
 
 // RaphaelIT7: Experimental - a C function can give information about itself to allow JIT hopefully
@@ -274,7 +285,7 @@ typedef struct lua_CFunctionInfo
   lua_TraceRecorderType retType;
   lua_TraceRecorderType argType[LUA_CFUNCINFO_MAXARGS]; // 32 args max - if you got two args- set the third argument to TYPE_VOID or 0 to mark the end!
 
-  void* traceFunc; // NYI - Function called when tracing given a trace builder to generate a trace for the function
+  lua_TraceRecorderFunction traceFunc; // NYI - Function called when tracing given a trace builder to generate a trace for the function
 } lua_CFunctionInfo;
 
 // NOTE: Using lua_settracablecclosure you can stack asm functions allowing you to implement stuff like optional arguments

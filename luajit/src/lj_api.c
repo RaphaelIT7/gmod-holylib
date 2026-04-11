@@ -791,6 +791,7 @@ static void lua_fillCFuncInfo(lua_State* L, GCfunc* fn, lua_CFunctionInfo* info)
   if (info->givestate && info->argType[0] != TR_TYPE_LUASTATE)
     return;
 
+  fn->c.callinfo[infoIDX].traceFunc = (ASMFunction)info->traceFunc;
   fn->c.callinfo[infoIDX].func = (ASMFunction)info->asmFunc;
   fn->c.callinfo[infoIDX].retType = info->retType;
   for (int args=0; args<LUA_CFUNCINFO_MAXARGS; ++args) {
@@ -1571,3 +1572,60 @@ LUA_API void lua_setallocf(lua_State *L, lua_Alloc f, void *ud)
   g->allocf = f;
 }
 
+/* -- Trace recorder ------------------------------------------------------ */
+
+LUALIB_API void lj_tr_init(lua_TraceRecorder* tr, size_t initial)
+{
+  tr->count = 0;
+  tr->capacity = initial ? initial : 16;
+  tr->entries = (lua_TraceRecorderEntry*)
+    malloc(sizeof(lua_TraceRecorderEntry) * tr->capacity);
+
+  tr->aborted = 0;
+}
+
+LUALIB_API void lj_tr_free(lua_TraceRecorder* tr)
+{
+  if (tr->entries)
+    free(tr->entries);
+
+  tr->entries = NULL;
+  tr->count = 0;
+  tr->capacity = 0;
+}
+
+static void lj_tr_grow(lua_TraceRecorder* tr)
+{
+  size_t newcap = tr->capacity * 2;
+  lua_TraceRecorderEntry* entries = (lua_TraceRecorderEntry*)realloc(tr->entries, sizeof(lua_TraceRecorderEntry) * newcap);
+
+  if (!entries) {
+    tr->aborted = 1;
+    return;
+  }
+
+  tr->entries = entries;
+  tr->capacity = newcap;
+}
+
+LUALIB_API size_t lj_tr_emit(lua_TraceRecorder* tr, lua_TraceRecorderOP op, lua_TraceRecorderType type, size_t a, size_t b, size_t c)
+{
+  if (tr->aborted)
+    return 0;
+
+  if (tr->count >= tr->capacity)
+    lj_tr_grow(tr);
+
+  if (tr->aborted)
+    return 0;
+
+  size_t ref = tr->count;
+  lua_TraceRecorderEntry* e = &tr->entries[tr->count++];
+  e->op = op;
+  e->type = type;
+  e->a = a;
+  e->b = b;
+  e->c = c;
+
+  return ref;
+}

@@ -115,6 +115,7 @@ GCfunc *lj_func_newC(lua_State *L, MSize nelems, GCtab *env)
   fn->c.ffid = FF_C;
   for (int idx=0; idx<MAX_CFUNC_CALLINFOS; ++idx)
   {
+  	fn->c.callinfo[idx].traceFunc = 0;
     fn->c.callinfo[idx].func = 0;
     fn->c.callinfo[idx].flags = 0;
     fn->c.callinfo[idx].givestate = 0;
