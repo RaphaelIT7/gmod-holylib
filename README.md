@@ -56,7 +56,7 @@ so by making a custom build, anyone can include just the stuff they actually wan
 Every commit triggers a compile workflow, resulting in a dev build<br>
 All of those can be found under the `Actions` tab -> https://github.com/RaphaelIT7/gmod-holylib/actions<br>
 
-> ![IMPORTANT]
+> [!IMPORTANT]
 > These builds focus on the GMod `dev` branch currently.<br>
 > If you attempt to use a build on a server running on the `public` branch you **may** experience issues or even crashes.<br>
 
