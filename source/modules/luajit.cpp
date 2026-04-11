@@ -26,7 +26,6 @@ class CLuaJITModule : public IModule
 public:
 	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) override;
 	void PostLuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) override;
-	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
 	void InitDetour(bool bPreServer) override;
 	const char* Name() override { return "luajit"; };
 	int Compatibility() override { return LINUX32 | LINUX64; };
@@ -47,15 +46,6 @@ public:
 
 static CLuaJITModule g_pLuaJITModule;
 IModule* pLuaJITModule = &g_pLuaJITModule;
-
-//class CLuaInterfaceProxy;
-class LuaJITModuleData : public Lua::ModuleData
-{
-public:
-	//std::unique_ptr<CLuaInterfaceProxy> pLuaInterfaceProxy;
-};
-
-LUA_GetModuleData(LuaJITModuleData, g_pLuaJITModule, LuaJIT)
 
 #define ManualOverride(name, hook) \
 static Detouring::Hook detour_##name; \
@@ -204,33 +194,11 @@ LUA_JIT_ASM_0R(SysTime, double)
 	return Plat_FloatTime();
 }
 
-/*
-ToDo: Redo this entire class and move all LuaJIT specific stuff from lua.cpp into here to separate shit from CORE code!
-class CLuaInterfaceProxy : public Detouring::ClassProxy<GarrysMod::Lua::ILuaInterface, CLuaInterfaceProxy> {
-public:
-	CLuaInterfaceProxy(GarrysMod::Lua::ILuaInterface* env) {
-		if (Detour::CheckValue("initialize", "CLuaInterfaceProxy", Initialize(env)))
-		{
-			Detour::CheckValue("CLuaInterface::GetUserdata", Hook(&GarrysMod::Lua::ILuaInterface::GetUserdata, &CLuaInterfaceProxy::GetUserdata));
-		}
-	}
-
-	void DeInit()
-	{
-		UnHook(&GarrysMod::Lua::ILuaInterface::GetUserdata);
-	}
-
-	GarrysMod::Lua::ILuaBase::UserData* GetUserdata(int iStackPos)
-	{
-		bool bFutureVar;
-		return (GarrysMod::Lua::ILuaBase::UserData*)RawLua::GetUserDataOrFFIVar(This()->GetState(), iStackPos, GetLuaJITLuaData(This())->pBridge, &bFutureVar);
-	}
-};*/
-
-void CLuaJITModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
-{
-	//GetLuaJITLuaData(pLua)->pLuaInterfaceProxy->DeInit();
-}
+static lua_CFunctionInfo ASMINFO_TypeID = [] { \
+	lua_CFunctionInfo info{}; \
+	info.retType = TR_RETURN_TYPEID; \
+	return info; \
+}();
 
 extern int table_setreadonly(lua_State* L);
 extern int table_isreadonly(lua_State* L);
@@ -290,10 +258,6 @@ void CLuaJITModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 	// Disable default debug hook
 	lua_sethook(L, nullptr, 0, 0);
 
-	LuaJITModuleData* pData = new LuaJITModuleData;
-	//pData->pLuaInterfaceProxy = std::make_unique<CLuaInterfaceProxy>(pLua);
-	Lua::GetLuaData(pLua)->SetModuleData(m_pID, pData);
-
 	bOpenLibs = false;
 }
 
@@ -349,6 +313,13 @@ void CLuaJITModule::PostLuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 	if (pLua->IsType(-1, GarrysMod::Lua::Type::Function)) {
 		lua_settracablecclosure(pLua->GetState(), -1, (lua_CFunctionInfo*)&ASMINFO_SysTime);
 		Msg(PROJECT_NAME " - jit: Added JIT support for SysTime\n");
+	}
+	pLua->Pop(1);
+
+	pLua->GetField(LUA_GLOBALSINDEX, "TypeID");
+	if (pLua->IsType(-1, GarrysMod::Lua::Type::Function)) {
+		lua_settracablecclosure(pLua->GetState(), -1, (lua_CFunctionInfo*)&ASMINFO_TypeID);
+		Msg(PROJECT_NAME " - jit: Added JIT support for TypeID\n");
 	}
 	pLua->Pop(1);
 }
