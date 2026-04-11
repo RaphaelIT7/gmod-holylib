@@ -1,6 +1,6 @@
 #include "httplib.h"
-#include "detours.h"
 #include "LuaInterface.h"
+#include "detours.h"
 #include "module.h"
 #include "lua.h"
 #include <baseclient.h>

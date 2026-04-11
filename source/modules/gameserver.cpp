@@ -2658,7 +2658,7 @@ static CBaseClient* hook_CSteam3Server_ClientFindFromSteamID(void* _this, CSteam
 static Detouring::Hook detour_CServerPlugin_ClientSettingsChanged;
 static void hook_CServerPlugin_ClientSettingsChanged(void* _this, edict_t* pEdict)
 {
-	if (pEdict->m_EdictIndex > MAX_PLAYERS)
+	if (pEdict->m_EdictIndex > gpGlobals->maxClients)
 		return;
 
 	detour_CServerPlugin_ClientSettingsChanged.GetTrampoline<Symbols::CServerPlugin_ClientSettingsChanged>()(_this, pEdict);
