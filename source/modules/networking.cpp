@@ -654,14 +654,15 @@ static ConVar networking_fasttransmit("holylib_networking_fasttransmit", "1", 0,
 static ConVar networking_fastcharactertransmit("holylib_networking_fastcharactertransmit", "1", 0, "Experimental");
 static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharacter, CCheckTransmitInfo *pInfo, bool bAlways)
 {
-	if (!func_CBaseAnimating_SetTransmit || !networking_fasttransmit.GetBool() || !networking_fastcharactertransmit.GetBool())
+	// IMPORANT: Apparently CBaseCombatCharacter is inherited by more than just the player, so we MUST check m_EdictIndex!
+	edict_t* pCharacterEdict = pCharacter->edict();
+	if (!func_CBaseAnimating_SetTransmit || !networking_fasttransmit.GetBool() || !networking_fastcharactertransmit.GetBool() || pCharacterEdict->m_EdictIndex <= 0 || pCharacterEdict->m_EdictIndex > MAX_PLAYERS)
 	{
 		// Without it we won't do shit, simply because possibly missing a transmit can cause quite the issues.
 		detour_CBaseCombatCharacter_SetTransmit.GetTrampoline<Symbols::CBaseCombatCharacter_SetTransmit>()(pCharacter, pInfo, bAlways);
 		return;
 	}
 
-	edict_t* pCharacterEdict = pCharacter->edict();
 	if (pInfo->m_pTransmitEdict->Get(pCharacterEdict->m_EdictIndex)) // Already being networked!
 		return;
 
