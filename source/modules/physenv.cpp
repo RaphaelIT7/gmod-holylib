@@ -765,8 +765,8 @@ static inline void UnregisterPhysicsEnvironment(IPhysicsEnvironment* pEnv)
 	auto it = g_pEnvironmentToLua.find(pEnv);
 	if (it != g_pEnvironmentToLua.end())
 	{
-		g_pEnvironmentToLua.erase(it);
 		delete it->second;
+		g_pEnvironmentToLua.erase(it);
 	}
 }
 
