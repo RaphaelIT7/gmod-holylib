@@ -2667,7 +2667,7 @@ static void hook_CServerPlugin_ClientSettingsChanged(void* _this, edict_t* pEdic
 static Detouring::Hook detour_CVEngineServer_GMOD_SendToClient;
 static void hook_CVEngineServer_GMOD_SendToClient(void* _this, int client, void *data, int dataSize)
 {
-	if (client < MAX_PLAYERS)
+	if (client < gpGlobals->maxClients)
 	{
 		detour_CVEngineServer_GMOD_SendToClient.GetTrampoline<Symbols::CVEngineServer_GMOD_SendToClient>()(_this, client, data, dataSize);
 		return;
@@ -3122,8 +3122,8 @@ static int FindFreeClientSlot()
 {
 	int nextFreeEntity = 255;
 	int count = Util::server->GetClientCount();
-	if (count > MAX_PLAYERS)
-		count = MAX_PLAYERS;
+	if (count > gpGlobals->maxClients)
+		count = gpGlobals->maxClients;
 
 	for (int iClientIndex=0; iClientIndex<count; ++iClientIndex)
 	{
@@ -3144,14 +3144,14 @@ static Detouring::Hook detour_CGameClient_SpawnPlayer;
 static bool hook_CGameClient_SpawnPlayer(CGameClient* client)
 {
 	// m_nClientSlot = player slot! (entIndex - 1)
-	if (client->m_nClientSlot < MAX_PLAYERS || gameserver_disablespawnsafety.GetBool())
+	if (client->m_nClientSlot < gpGlobals->maxClients || gameserver_disablespawnsafety.GetBool())
 	{
 		return detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(client);;
 	}
 
 	// ent index! can be 128!
 	int nextFreeEntity = FindFreeClientSlot();
-	if (nextFreeEntity > MAX_PLAYERS)
+	if (nextFreeEntity > gpGlobals->maxClients)
 	{
 		Warning(PROJECT_NAME ": Failed to find a valid player slot to use! Stopping client spawn! (%i, %i, %i)\n", client->m_nClientSlot, client->GetUserID(), nextFreeEntity);
 		return false;
@@ -3173,7 +3173,7 @@ static bool hook_CGameClient_SpawnPlayer(CGameClient* client)
 static void hook_CGameClient_SpawnPlayer(CGameClient* client)
 {
 	// m_nClientSlot = player slot! (entIndex - 1)
-	if (client->m_nClientSlot < MAX_PLAYERS || gameserver_disablespawnsafety.GetBool())
+	if (client->m_nClientSlot < gpGlobals->maxClients || gameserver_disablespawnsafety.GetBool())
 	{
 		detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(client);
 		return;
@@ -3181,7 +3181,7 @@ static void hook_CGameClient_SpawnPlayer(CGameClient* client)
 
 	// ent index! can be 128!
 	int nextFreeEntity = FindFreeClientSlot();
-	if (nextFreeEntity > MAX_PLAYERS)
+	if (nextFreeEntity > gpGlobals->maxClients)
 	{
 		Warning(PROJECT_NAME ": Failed to find a valid player slot to use! Stopping client spawn! (%i, %i, %i)\n", client->m_nClientSlot, client->GetUserID(), nextFreeEntity);
 		return;
