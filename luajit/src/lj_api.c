@@ -1018,7 +1018,7 @@ LUA_API void *lua_newuserdata(lua_State *L, size_t size)
   lj_gc_check(L);
   if (size > LJ_MAX_UDATA)
     lj_err_msg(L, LJ_ERR_UDATAOV);
-  ud = lj_udata_new(L, (MSize)size, getcurrenv(L));
+  ud = lj_udata_new(L, (MSize)size, 0);
   setudataV(L, L->top, ud);
   incr_top(L);
   return uddata(ud);
@@ -1135,7 +1135,11 @@ LUA_API void lua_getfenv(lua_State *L, int idx)
   if (tvisfunc(o)) {
     settabV(L, L->top, tabref(funcV(o)->c.env));
   } else if (tvisudata(o)) {
-    settabV(L, L->top, tabref(udataV(o)->env));
+    GCtab* tab = tabref(udataV(o)->env);
+    if (tab)
+      settabV(L, L->top, tabref(udataV(o)->env));
+    else
+      setnilV(L->top);
   } else if (tvisthread(o)) {
     settabV(L, L->top, tabref(threadV(o)->env));
   } else {
@@ -1326,6 +1330,12 @@ LUALIB_API void luaL_setmetatable(lua_State *L, const char *tname)
 LUA_API int lua_setfenv(lua_State *L, int idx)
 {
   cTValue *o = index2adr_check(L, idx);
+  if (tvisnil(L->top-1) && tvisudata(o)) {
+    setgcrefnull(udataV(o)->env);
+    L->top--;
+    return 1;
+  }
+
   GCtab *t;
   lj_checkapi_slot(1);
   lj_checkapi(tvistab(L->top-1), "top stack slot is not a table");

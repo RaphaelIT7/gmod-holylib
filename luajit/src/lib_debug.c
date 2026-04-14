@@ -76,7 +76,11 @@ LJLIB_CF(debug_setfenv)
   TValue* o = lj_lib_checkany(L, 1);
   if (o && tvisfunc(o))
     blockDebug(L, funcV(o));
-  lj_lib_checktab(L, 2);
+
+  lj_lib_checktabornil(L, 2);
+  if (!tvisudata(L->base) && tvisnil(L->base+1))
+    lj_err_argt(L, 2, LUA_TTABLE);
+
   L->top = L->base+2;
   if (!lua_setfenv(L, 1))
     lj_err_caller(L, LJ_ERR_SETFENV);
