@@ -124,7 +124,7 @@ LUA_FUNCTION_STATIC(bf_read_GetCurrentBit)
 {
 	bf_read* bf = Get_bf_read(LUA, 1, true);
 
-	LUA->PushNumber(bf->m_iCurBit);
+	LUA->PushNumber(bf->GetNumBitsRead());
 	return 1;
 }
 

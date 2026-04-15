@@ -205,6 +205,7 @@ static inline bool IsValidChallenge(netadr_t &adr, int nChallengeValue)
 	CRC32_Init(&hash);
 	CRC32_ProcessBuffer(&hash, &challenge, sizeof(challenge));
 	CRC32_Final(&hash);
+	//Msg("g_nChallengeNr: %i == %i (%s)\n", (int)hash, nChallengeValue, adr.ToString());
 	if ((int)hash == nChallengeValue)
 		return true;
 
@@ -215,40 +216,43 @@ static inline bool IsValidChallenge(netadr_t &adr, int nChallengeValue)
 	CRC32_ProcessBuffer(&hash, &challenge, sizeof(challenge));
 	CRC32_Final(&hash);
 
+	//Msg("g_nLastChallengeNr: %i == %i (%s)\n", (int)hash, nChallengeValue, adr.ToString());
 	return (int)hash == nChallengeValue;
 }
 
-static inline bool IsValidConnectionlessPacket(netpacket_s* pPacket, bool bOnlyA2S)
+static inline int IsValidConnectionlessPacket(netpacket_s* pPacket, bool bOnlyA2S)
 {
 	char c = (char)pPacket->message.ReadChar();
 	if (c == A2S_INFO)
 	{
-		constexpr int payload = sizeof("Source Engine Query\0") * 8;
+		constexpr int payload = sizeof("Source Engine Query") * 8;
 		if (!pPacket->message.SeekRelative(payload))
-			return false;
+			return -1;
 	} else {
-		if (c != A2S_PLAYER && c != A2S_RULES && (bOnlyA2S || c != C2S_CONNECT))
-			return false;
+		if (c != A2S_GETCHALLENGE && c != A2S_SERVERQUERY_GETCHALLENGE && c != A2S_PLAYER && c != A2S_RULES && (bOnlyA2S || c != C2S_CONNECT))
+			return -1;
 	}
 
-	return true;
+	return c;
 }
 
-static inline bool EnforceConnectionlessChallenge(netpacket_s* pPacket)
+static inline bool EnforceConnectionlessChallenge(netpacket_s* pPacket, int type)
 {
 	if (!networkthreading_forcechallenge.GetBool() || !func_NET_SendPacket)
 		return false;
 
-	if (!IsValidConnectionlessPacket(pPacket, true))
+	if (type != A2S_PLAYER && type != A2S_RULES && type != A2S_INFO)
 		return false;
 
+	//Msg("verifying challenge! (%s - %i)\n", pPacket->from.ToString(), type);
 	// Now it can only be A2S_INFO, A2S_PLAYER, A2S_RULES
 	int challenge = (int)pPacket->message.ReadLong();
 	if (IsValidChallenge(pPacket->from, challenge))
-	{
-		SendChallenge(pPacket);
-		return true;
-	}
+		return false;
+
+	//Msg("Requesting challenge! (%s - %i)\n", pPacket->from.ToString(), type);
+	SendChallenge(pPacket);
+	return true;
 }
 
 static std::atomic<int> g_nThreadState = ThreadState::STATE_NOTRUNNING;
@@ -293,14 +297,14 @@ static SIMPLETHREAD_RETURNVALUE NetworkThread(void* pThreadData)
 			if (LittleLong(*(unsigned int *)packet->data) == CONNECTIONLESS_HEADER)
 			{
 				packet->message.SeekRelative(sizeof(long)*8);	// read the -1
-				size_t curPos = packet->message.m_iCurBit;
-				if (networkthreading_strictpackets.GetBool() && !IsValidConnectionlessPacket(packet, false))
+				int nPacketType = IsValidConnectionlessPacket(packet, false);
+				if (networkthreading_strictpackets.GetBool() && nPacketType == -1)
 					continue;
 
-				if (EnforceConnectionlessChallenge(packet))
+				if (EnforceConnectionlessChallenge(packet, nPacketType))
 					continue;
 
-				packet->message.m_iCurBit = curPos; // We saved and now restored the buffer position since we modified it!
+				packet->message.StartReading( packet->data, packet->size ); // Reset buffer
 				if (net_showudp.GetInt())
 					Msg("UDP <- %s: sz=%i OOB '%c' wire=%i\n", packet->from.ToString(), packet->size, packet->data[4], packet->wiresize);
 
@@ -507,9 +511,10 @@ bool hook_NET_ReceiveDatagram(const intp sock, netpacket_t* packet)
 		if ( ret < NET_MAX_MESSAGE )
 		{
 			bool isConnected = !networkthreading_strictpackets.GetBool() || packet->from.IsLoopback() || func_NET_FindNetChannel(pServer->m_Socket, packet->from);
-			if (!isConnected && ret > NET_MAX_CONNECTIONLESS && *((char*)packet->data + sizeof(unsigned int)) != C2S_CONNECT)
+			char packetType = *((char*)packet->data + sizeof(unsigned int));
+			if (!isConnected && ret > NET_MAX_CONNECTIONLESS && packetType != C2S_CONNECT)
 			{
-				DevMsg(PROJECT_NAME " - networkthreading: Blocked a large packet from an address that is not connected to the server! (%s)\n", packet->from.ToString());
+				DevMsg(PROJECT_NAME " - networkthreading: Blocked a large packet from an address that is not connected to the server! (%s - %i - %i)\n", packet->from.ToString(), ret, (int)packetType);
 				return false;
 			}
 
