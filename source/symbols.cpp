@@ -1020,6 +1020,34 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x55\x41\x54\x53\x48\x89\xFB\x48\x83\xEC\x08\x48\x85\xFF\x0F\x84\x2A\x2A\x2A\x2A\x4C\x8D\x25\x2A\x2A\x2A\x2A"), // 55 48 89 E5 41 55 41 54 53 48 89 FB 48 83 EC 08 48 85 FF 0F 84 ? ? ? ? 4C 8D 25 ? ? ? ?
 	};
 
+	const std::vector<Symbol> NET_GetLastErrorSym = {
+		Symbol::FromName("_Z16NET_GetLastErrorv"),
+	};
+
+	const std::vector<Symbol> NET_ErrorStringSym = {
+		Symbol::FromName("_Z15NET_ErrorStringi"),
+	};
+
+	const std::vector<Symbol> NET_ReceiveDatagramSym = {
+		Symbol::FromName("_Z19NET_ReceiveDatagramiP11netpacket_s"),
+	};
+
+	const std::vector<Symbol> NET_GetLongSym = {
+		Symbol::FromName("_Z11NET_GetLongiP11netpacket_s"),
+	};
+
+	const std::vector<Symbol> NET_LagPacketSym = {
+		Symbol::FromName("_Z13NET_LagPacketbP11netpacket_s"),
+	};
+
+	const std::vector<Symbol> COM_BufferToBufferDecompressSym = {
+		Symbol::FromName("_Z28COM_BufferToBufferDecompressPcPjPKcj"),
+	};
+
+	const std::vector<Symbol> net_socketsSym = {
+		Symbol::FromName("_ZL11net_sockets"),
+	};
+
 	const std::vector<Symbol> Filter_SendBanSym = {
 		Symbol::FromName("_Z14Filter_SendBanRK8netadr_s"),
 		Symbol::FromSignature("\x55\x48\x89\xFE\xB9\x6C\x00\x00\x00"), // 55 48 89 FE B9 6C 00 00 00

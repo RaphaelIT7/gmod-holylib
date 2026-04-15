@@ -792,6 +792,26 @@ namespace Symbols
 	using NET_RemoveNetChannel = void (*)(INetChannel* pChannel, bool bShouldRemove);
 	extern const std::vector<Symbol> NET_RemoveNetChannelSym;
 
+	using NET_ReceiveDatagram = bool (*)(int sock, netpacket_s* packet);
+	extern const std::vector<Symbol> NET_ReceiveDatagramSym;
+
+	using NET_GetLastError = int (*)();
+	extern const std::vector<Symbol> NET_GetLastErrorSym;
+
+	using NET_ErrorString = const char* (*)(int code);
+	extern const std::vector<Symbol> NET_ErrorStringSym;
+
+	using NET_GetLong = bool (*)(const int sock, netpacket_t *packet);
+	extern const std::vector<Symbol> NET_GetLongSym;
+
+	using NET_LagPacket = bool (*)(bool newdata, netpacket_s* packet);
+	extern const std::vector<Symbol> NET_LagPacketSym;
+
+	using COM_BufferToBufferDecompress = bool (*)(void *dest, unsigned int *destLen, const void *source, unsigned int sourceLen);
+	extern const std::vector<Symbol> COM_BufferToBufferDecompressSym;
+
+	extern const std::vector<Symbol> net_socketsSym;
+
 	// Now come some commands that party on g_IPFilters as we need to make it thread safe to avoid crashes :3
 	using writeip = void (*)(const CCommand* pCommand);
 	extern const std::vector<Symbol> writeipSym;
