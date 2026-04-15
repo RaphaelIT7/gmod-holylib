@@ -480,7 +480,7 @@ bool hook_NET_ReceiveDatagram(const intp sock, netpacket_t* packet)
 		if ( ret < NET_MAX_MESSAGE )
 		{
 			bool isConnected = !networkthreading_strictpackets.GetBool() || func_NET_FindNetChannel(pServer->m_Socket, packet->from);
-			if (!isConnected && ret > NET_MAX_CONNECTIONLESS)
+			if (!isConnected && ret > NET_MAX_CONNECTIONLESS && *((char*)packet->data + sizeof(unsigned int)) != C2S_CONNECT)
 			{
 				DevMsg(PROJECT_NAME " - networkthreading: Blocked a large packet from an address that is not connected to the server! (%s)\n", packet->from.ToString());
 				return false;
