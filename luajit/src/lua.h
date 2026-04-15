@@ -197,7 +197,7 @@ enum {
   TR_TYPE_U8,
   TR_TYPE_I16,
   TR_TYPE_U16,
-  TR_TYPE_INT,
+  TR_TYPE_INT, // INT32
   TR_TYPE_U32,
   TR_TYPE_I64,
   TR_TYPE_U64,
@@ -205,9 +205,34 @@ enum {
   TR_TYPE_DOUBLE,
   TR_TYPE_STRING, // a GCstr when input, lua_String when output!
   TR_TYPE_CHARS, // const char* - NULL Terminated! (will result in a Lua string alloc! -> lj_str_new)
+  TR_TYPE_NIL,
   // TEMP special return - since the recorder isn't finished yet
   TR_RETURN_USERDATA_ENV,
   TR_RETURN_TYPEID,
+};
+
+typedef unsigned char lua_TraceField;
+enum {
+  TR_FIELD_NONE = 0,
+  TR_FIELD_STR_LEN,
+  TR_FIELD_STR_DATA,
+  TR_FIELD_FUNC_ENV,
+  TR_FIELD_THREAD_ENV,
+  TR_FIELD_TAB_META,
+  TR_FIELD_TAB_ARRAY,
+  TR_FIELD_TAB_ARRAY_SIZE,
+  TR_FIELD_TAB_NODE,
+  TR_FIELD_TAB_HMASK,
+  TR_FIELD_TAB_NOMM,
+  TR_FIELD_UDATA_META,
+  TR_FIELD_UDATA_ENV,
+  TR_FIELD_UDATA_FLAGS,
+  TR_FIELD_UDATA_TYPE,
+  TR_FIELD_UDATA_HVALUE, // HolyLib udata value!
+  TR_FIELD_UDATA_VALUE,
+  TR_FIELD_GMOD_UDATA_TYPE,
+  TR_FIELD_LSTR_DATA,
+  TR_FIELD_LSTR_LEN,
 };
 
 typedef unsigned char lua_TraceRecorderOP;
@@ -216,8 +241,18 @@ enum {
   TR_GUARD_USERDATA, // Guards on both type & flags
   TR_GUARD_USERDATA_TYPE,
   TR_GUARD_USERDATA_FLAGS,
+  TR_CALL_ARG,
+  TR_CALL_CC, // a = function ptr, b = lua_CFunctionInfoCallConv
+  TR_CALL_EXT, // a = arg chain, b = function ptr or TR_CALL_CC
   TR_LOAD_USERDATA_VAL, // Loads the data - IMPORTANT: In HolyLib we make use of the GCudata::align1 so this function will load that field!
-  TR_RETURN,
+  TR_FLOAD, // a = value, b = lua_TraceField
+  TR_FSTORE,
+  TR_EQ, // compares a against b
+  TR_ADD,
+  TR_SUB,
+  TR_MUL,
+  TR_DIV,
+  TR_RETURN, // a = value, b = return slot
 };
 
 typedef struct lua_TraceRecorderEntry
@@ -227,22 +262,25 @@ typedef struct lua_TraceRecorderEntry
   size_t a;
   size_t b;
   size_t c;
+  unsigned int guard : 1;
 } lua_TraceRecorderEntry;
 
 // ToDo: Implement an external recorder
-typedef struct lua_TraceRecorder
-{
-  lua_TraceRecorderEntry* entries;
-  size_t count;
-  size_t capacity;
-  unsigned int aborted : 1;
-  unsigned int returns : 7; // How many values it returns
-} lua_TraceRecorder;
+typedef void* lua_TraceRecorder;
+typedef size_t lua_TraceEntry;
 
 typedef void (*lua_TraceRecorderFunction) (lua_TraceRecorder *tr);
-LUA_API void (lj_tr_init) (lua_TraceRecorder* tr, size_t initial);
-LUA_API void (lj_tr_free) (lua_TraceRecorder* tr);
-LUA_API size_t (lj_tr_emit) (lua_TraceRecorder* tr, lua_TraceRecorderOP op, lua_TraceRecorderType type, size_t a, size_t b, size_t c);
+#if 0
+LUA_API lua_TraceEntry (lj_tr_abort) (lua_TraceRecorder* tr);
+LUA_API lua_TraceEntry (lj_tr_emit) (lua_TraceRecorder* tr, lua_TraceRecorderEntry entry);
+LUA_API lua_TraceEntry (lj_tr_kint) (lua_TraceRecorder* tr, int val);
+LUA_API lua_TraceEntry (lj_tr_k64) (lua_TraceRecorder* tr, size_t val); // unsigned
+LUA_API lua_TraceEntry (lj_tr_kint64) (lua_TraceRecorder* tr, size_t val); // signed!
+LUA_API lua_TraceEntry (lj_tr_knum) (lua_TraceRecorder* tr, lua_Number val);
+LUA_API lua_TraceEntry (lj_tr_kptr) (lua_TraceRecorder* tr, void* val);
+LUA_API lua_TraceEntry (lj_tr_knull) (lua_TraceRecorder* tr, lua_TraceRecorderType type);
+LUA_API lua_TraceRecorderType (lj_tr_type) (lua_TraceEntry entry);
+#endif
 
 typedef struct lua_String
 {

@@ -307,7 +307,7 @@ static void LJ_FASTCALL recff_c(jit_State *J, RecordFFData *rd)
 
   if (callinfo->traceFunc)
   {
-    lua_TraceRecorder recorder;
+    /*lua_TraceRecorder recorder;
     lj_tr_init(&recorder, 16);
     callinfo->traceFunc(&recorder);
     if (recorder.aborted) // We failed.
@@ -319,7 +319,8 @@ static void LJ_FASTCALL recff_c(jit_State *J, RecordFFData *rd)
 
     // ToDo: implement processing
     lj_tr_free(&recorder);
-    rd->nres = recorder.returns;
+    rd->nres = recorder.returns;*/
+    recff_nyi(J, rd);
     return;
   }
 
