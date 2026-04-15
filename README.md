@@ -2012,9 +2012,6 @@ Returns the size of the data in bytes.<br>
 #### number bf_read:GetCurrentBit()
 Returns the current position/bit.<br>
 
-> [!NOTE]
-> This is only available for the 32x!
-
 #### bool bf_read:IsOverflowed()
 Returns `true` if the buffer is overflowed.<br>
 

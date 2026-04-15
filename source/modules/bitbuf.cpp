@@ -122,15 +122,9 @@ LUA_FUNCTION_STATIC(bf_read_GetNumBytes)
 
 LUA_FUNCTION_STATIC(bf_read_GetCurrentBit)
 {
-#if ARCHITECTURE_IS_X86
 	bf_read* bf = Get_bf_read(LUA, 1, true);
-#endif
 
-#if ARCHITECTURE_IS_X86_64
-	LUA->ThrowError("This is 32x only.");
-#else
 	LUA->PushNumber(bf->m_iCurBit);
-#endif
 	return 1;
 }
 
