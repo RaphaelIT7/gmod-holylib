@@ -171,6 +171,7 @@ extern ConVar sv_filter_nobanresponse;
 
 // BUG: GMod's CBaseServer::GetChallengeNr isn't thread safe
 static std::atomic<uint32> g_nChallengeNr = 0;
+static std::atomic<uint32> g_nLastChallengeNr = 0;
 static Symbols::NET_SendPacket func_NET_SendPacket = nullptr;
 static inline void SendChallenge(netpacket_s* pPacket)
 {
@@ -189,6 +190,32 @@ static inline void SendChallenge(netpacket_s* pPacket)
 	msg.WriteByte(S2C_CHALLENGE);
 	msg.WriteLong(challengeNr);
 	func_NET_SendPacket(NULL, pServer->m_Socket, pPacket->from, msg.GetData(), msg.GetNumBytesWritten(), nullptr, false);
+}
+
+static inline bool IsValidChallenge(netadr_t &adr, int nChallengeValue)
+{
+	if (adr.IsLoopback())
+		return true;
+
+	if (nChallengeValue == 0xFFFFFFFF)
+		return false;
+
+	uint64 challenge = ((uint64)adr.GetIPNetworkByteOrder() << 32) + g_nChallengeNr.load();
+	CRC32_t hash;
+	CRC32_Init(&hash);
+	CRC32_ProcessBuffer(&hash, &challenge, sizeof(challenge));
+	CRC32_Final(&hash);
+	if ((int)hash == nChallengeValue)
+		return true;
+
+	challenge &= 0xffffffff00000000ull;
+	challenge += g_nLastChallengeNr.load();
+	hash = 0;
+	CRC32_Init(&hash);
+	CRC32_ProcessBuffer(&hash, &challenge, sizeof(challenge));
+	CRC32_Final(&hash);
+
+	return (int)hash == nChallengeValue;
 }
 
 static inline bool IsValidConnectionlessPacket(netpacket_s* pPacket, bool bOnlyA2S)
@@ -216,8 +243,8 @@ static inline bool EnforceConnectionlessChallenge(netpacket_s* pPacket)
 		return false;
 
 	// Now it can only be A2S_INFO, A2S_PLAYER, A2S_RULES
-	long challenge = pPacket->message.ReadLong();
-	if (challenge == 0xFFFFFFFF)
+	int challenge = (int)pPacket->message.ReadLong();
+	if (IsValidChallenge(pPacket->from, challenge))
 	{
 		SendChallenge(pPacket);
 		return true;
@@ -479,7 +506,7 @@ bool hook_NET_ReceiveDatagram(const intp sock, netpacket_t* packet)
 
 		if ( ret < NET_MAX_MESSAGE )
 		{
-			bool isConnected = !networkthreading_strictpackets.GetBool() || func_NET_FindNetChannel(pServer->m_Socket, packet->from);
+			bool isConnected = !networkthreading_strictpackets.GetBool() || packet->from.IsLoopback() || func_NET_FindNetChannel(pServer->m_Socket, packet->from);
 			if (!isConnected && ret > NET_MAX_CONNECTIONLESS && *((char*)packet->data + sizeof(unsigned int)) != C2S_CONNECT)
 			{
 				DevMsg(PROJECT_NAME " - networkthreading: Blocked a large packet from an address that is not connected to the server! (%s)\n", packet->from.ToString());
@@ -572,7 +599,10 @@ void CNetworkThreadingModule::Think(bool bSimulating)
 {
 	CBaseServer* pServer = (CBaseServer*)Util::server;
 	if (pServer)
+	{
 		g_nChallengeNr.store(pServer->m_CurrentRandomNonce);
+		g_nLastChallengeNr.store(pServer->m_LastRandomNonce);
+	}
 }
 
 static ThreadHandle_t g_pNetworkThread = nullptr;
@@ -580,7 +610,10 @@ void CNetworkThreadingModule::ServerActivate(edict_t* pEdictList, int edictCount
 {
 	CBaseServer* pServer = (CBaseServer*)Util::server;
 	if (pServer)
+	{
 		g_nChallengeNr.store(pServer->m_CurrentRandomNonce);
+		g_nLastChallengeNr.store(pServer->m_LastRandomNonce);
+	}
 
 	g_nThreadState.store(ThreadState::STATE_RUNNING);
 	if (g_pNetworkThread == nullptr)
