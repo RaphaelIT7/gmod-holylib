@@ -191,11 +191,8 @@ static inline void SendChallenge(netpacket_s* pPacket)
 	func_NET_SendPacket(NULL, pServer->m_Socket, pPacket->from, msg.GetData(), msg.GetNumBytesWritten(), nullptr, false);
 }
 
-static inline bool EnforceConnectionlessChallenge(netpacket_s* pPacket)
+static inline bool IsValidConnectionlessPacket(netpacket_s* pPacket, bool bOnlyA2S)
 {
-	if (!networkthreading_forcechallenge.GetBool() || !func_NET_SendPacket)
-		return false;
-
 	char c = (char)pPacket->message.ReadChar();
 	if (c == A2S_INFO)
 	{
@@ -203,9 +200,20 @@ static inline bool EnforceConnectionlessChallenge(netpacket_s* pPacket)
 		if (!pPacket->message.SeekRelative(payload))
 			return false;
 	} else {
-		if (c != A2S_PLAYER && c != A2S_RULES)
+		if (c != A2S_PLAYER && c != A2S_RULES && (bOnlyA2S || c != C2S_CONNECT))
 			return false;
 	}
+
+	return true;
+}
+
+static inline bool EnforceConnectionlessChallenge(netpacket_s* pPacket)
+{
+	if (!networkthreading_forcechallenge.GetBool() || !func_NET_SendPacket)
+		return false;
+
+	if (!IsValidConnectionlessPacket(pPacket, true))
+		return false;
 
 	// Now it can only be A2S_INFO, A2S_PLAYER, A2S_RULES
 	long challenge = pPacket->message.ReadLong();
@@ -257,10 +265,15 @@ static SIMPLETHREAD_RETURNVALUE NetworkThread(void* pThreadData)
 			// check for connectionless packet (0xffffffff) first
 			if (LittleLong(*(unsigned int *)packet->data) == CONNECTIONLESS_HEADER)
 			{
-				packet->message.ReadLong();	// read the -1
+				packet->message.SeekRelative(sizeof(long)*8);	// read the -1
+				size_t curPos = packet->message.m_iCurBit;
+				if (networkthreading_strictpackets.GetBool() && !IsValidConnectionlessPacket(packet, false))
+					continue;
+
 				if (EnforceConnectionlessChallenge(packet))
 					continue;
 
+				packet->message.m_iCurBit = curPos; // We saved and now restored the buffer position since we modified it!
 				if (net_showudp.GetInt())
 					Msg("UDP <- %s: sz=%i OOB '%c' wire=%i\n", packet->from.ToString(), packet->size, packet->data[4], packet->wiresize);
 

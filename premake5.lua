@@ -113,6 +113,7 @@ CreateWorkspace({name = "holylib", abi_compatible = true})
 		defines("PHYSENV_INCLUDEIVPFALLBACK")
 		defines("CPPHTTPLIB_NO_EXCEPTIONS") -- We don't want exceptions!
 		defines("NOBASSOVERLOADS")
+		defines("USE_OLD_BF_READ")
 
 		prebuildcommands(prebuildCommand)
 
