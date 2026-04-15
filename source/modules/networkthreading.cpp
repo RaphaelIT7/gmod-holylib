@@ -103,7 +103,7 @@ struct QueuedPacket {
 	unsigned char* pBytes = nullptr;
 };
 
-static CThreadMutex g_pQueuePacketsMutex;
+static std::mutex g_pQueuePacketsMutex;
 static std::vector<QueuedPacket*> g_pQueuedPackets;
 static inline void AddPacketToQueueForMainThread(netpacket_s* pPacket, bool bIsConnectionless)
 {
@@ -128,7 +128,7 @@ static inline void AddPacketToQueueForMainThread(netpacket_s* pPacket, bool bIsC
 	if (g_pNetworkThreadingModule.InDebug() == 1)
 		Msg(PROJECT_NAME " - networkthreading: Added %i bytes packet to queue (%p)\n", pPacket->size, pQueue);
 
-	AUTO_LOCK(g_pQueuePacketsMutex);
+	std::lock_guard<std::mutex> lock(g_pQueuePacketsMutex);
 	g_pQueuedPackets.push_back(pQueue);
 }
 
@@ -323,8 +323,13 @@ static void hook_NET_ProcessSocket(int nSocket, IConnectionlessPacketHandler* pH
 			netchan->GetMsgHandler()->ConnectionCrashed("TCP connection failed.");
 	}
 
-	AUTO_LOCK(g_pQueuePacketsMutex);
-	for (QueuedPacket* pQueuePacket : g_pQueuedPackets)
+	std::vector<QueuedPacket*> pPackets;
+	{
+		std::lock_guard<std::mutex> lock(g_pQueuePacketsMutex);
+		pPackets = std::move(g_pQueuedPackets);
+	}
+
+	for (QueuedPacket* pQueuePacket : pPackets)
 	{
 		if (pQueuePacket->bIsConnectionless) {
 			if (g_pNetworkThreadingModule.InDebug() == 1)
@@ -342,7 +347,6 @@ static void hook_NET_ProcessSocket(int nSocket, IConnectionlessPacketHandler* pH
 
 		delete pQueuePacket;
 	}
-	g_pQueuedPackets.clear();
 }
 
 static Detouring::Hook detour_CNetChan_Constructor;
