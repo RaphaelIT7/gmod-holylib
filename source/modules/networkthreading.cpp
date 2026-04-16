@@ -463,7 +463,10 @@ int COM_GetUncompressedSize( IN_BYTECAP(compressedLen) const void *compressed, u
 
 // We do 8+ as padding for slight free room.
 // I've used A2S_INFO as the largest one since no other query is larger than that.
-static constexpr size_t NET_MAX_CONNECTIONLESS = 1 + sizeof("Source Engine Query") + 4 + 8;
+static constexpr size_t NET_MAX_CONNECTIONLESS_SIZE = 1 + sizeof("Source Engine Query") + 4 + 8;
+// 16 for 4x ReadLong, 2x ReadString with 256 buffers, ReadString with 32 buffer, 2 for ReadShort, STEAM_KEYSIZE = 2048, 8 for slight free room
+// IMPORTANT: A C2S_CONNECT packet may be split or compressed (I hate this- fuck that, we won't let it)
+static constexpr size_t NET_MAX_CONNECT_PACKET_SIZE = 16 + 256 + 256 + 32 + 2 + STEAM_KEYSIZE + 8;
 
 static CUtlVector<netsocket_t>* net_sockets; // This one is mostly thread safe unless NET_AddExtraSocket / NET_RemoveAllExtraSockets are called but those seem completely unused
 static Symbols::NET_GetLong func_NET_GetLong = nullptr;
@@ -512,7 +515,7 @@ bool hook_NET_ReceiveDatagram(const intp sock, netpacket_t* packet)
 		{
 			bool isConnected = !networkthreading_strictpackets.GetBool() || packet->from.IsLoopback() || func_NET_FindNetChannel(pServer->m_Socket, packet->from);
 			char packetType = *((char*)packet->data + sizeof(unsigned int));
-			if (!isConnected && ret > NET_MAX_CONNECTIONLESS && packetType != C2S_CONNECT)
+			if (!isConnected && ret > NET_MAX_CONNECTIONLESS_SIZE && (packetType != C2S_CONNECT || ret > NET_MAX_CONNECT_PACKET_SIZE))
 			{
 				DevMsg(PROJECT_NAME " - networkthreading: Blocked a large packet from an address that is not connected to the server! (%s - %i - %i)\n", packet->from.ToString(), ret, (int)packetType);
 				return false;
