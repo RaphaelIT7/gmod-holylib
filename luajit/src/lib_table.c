@@ -70,7 +70,11 @@ LJLIB_CF(table_insert)		LJLIB_REC(.)
     if (nargs != 3*sizeof(TValue))
       lj_err_caller(L, LJ_ERR_TABINS);
     /* NOBARRIER: This just moves existing elements around. */
-    for (n = lj_lib_checkint(L, 2); i > n; i--) {
+    // RaphaelIT7:
+    // In Lua 5.1 using negative numbers is not prevented
+    // but it results in weird/undefined behavior and performance issues.
+    // In Lua 5.5 it'll error properly, so we do it like 5.5 and deny any out of range numbers.
+    for (n = lj_lib_checkintrange(L, 2, 1, INT_MAX); i > n; i--) {
       /* The set may invalidate the get pointer, so need to do it first! */
       TValue *dst = lj_tab_setint(L, t, i);
       cTValue *src = lj_tab_getint(t, i-1);
