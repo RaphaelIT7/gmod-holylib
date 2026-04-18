@@ -305,6 +305,7 @@ static SIMPLETHREAD_RETURNVALUE NetworkThread(void* pThreadData)
 					continue;
 
 				packet->message.StartReading( packet->data, packet->size ); // Reset buffer
+				packet->message.SeekRelative(sizeof(long)*8); // Read it again
 				if (net_showudp.GetInt())
 					Msg("UDP <- %s: sz=%i OOB '%c' wire=%i\n", packet->from.ToString(), packet->size, packet->data[4], packet->wiresize);
 

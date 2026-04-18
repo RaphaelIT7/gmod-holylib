@@ -24,8 +24,8 @@ return {
             func = function()
                 hook.Add( "HolyLib:ProcessConnectionlessPacket", "ProcessResponse", function( bf, ip )
                     expect( ip ).to.equal( "loopback" )
-                    --expect( bf:ReadChar() ).to.equal( 84 )
-                    --expect( bf:ReadString() ).to.equal( "Source Engine Query" )
+                    expect( bf:ReadChar() ).to.equal( 84 )
+                    expect( bf:ReadString() ).to.equal( "Source Engine Query" )
 
                     done()
                     return true

@@ -2401,6 +2401,28 @@ LUA_FUNCTION_STATIC(gameserver_GetCPUUsage)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(gameserver_GetCurrentRandomNonce)
+{
+	Util::DoUnsafeCodeCheck(LUA);
+	if (!Util::server || !Util::server->IsActive())
+		return 0;
+
+	CBaseServer* pServer = (CBaseServer*)Util::server;
+	LUA->PushNumber(pServer->m_CurrentRandomNonce);
+	return 1;
+}
+
+LUA_FUNCTION_STATIC(gameserver_GetLastRandomNonce)
+{
+	Util::DoUnsafeCodeCheck(LUA);
+	if (!Util::server || !Util::server->IsActive())
+		return 0;
+
+	CBaseServer* pServer = (CBaseServer*)Util::server;
+	LUA->PushNumber(pServer->m_LastRandomNonce);
+	return 1;
+}
+
 extern CGlobalVars* gpGlobals;
 static ConVar* sv_stressbots;
 void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
@@ -2540,6 +2562,8 @@ void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Util::AddFunc(pLua, gameserver_GetFreeClient, "GetFreeClient");
 		Util::AddFunc(pLua, gameserver_GetCPUUsage, "GetCPUUsage");
 		Util::AddFunc(pLua, gameserver_GetSocket, "GetSocket");
+		Util::AddFunc(pLua, gameserver_GetCurrentRandomNonce, "GetCurrentRandomNonce");
+		Util::AddFunc(pLua, gameserver_GetLastRandomNonce, "GetLastRandomNonce");
 
 		Util::AddFunc(pLua, gameserver_CreateNetChannel, "CreateNetChannel");
 		Util::AddFunc(pLua, gameserver_RemoveNetChannel, "RemoveNetChannel");
