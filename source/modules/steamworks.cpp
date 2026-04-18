@@ -166,6 +166,15 @@ LUA_FUNCTION_STATIC(steamworks_Activate)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(steamworks_IsSecure)
+{
+	if (!func_Steam3Server)
+		LUA->ThrowError("Failed to load Steam3Server!\n");
+
+	LUA->PushBool(func_Steam3Server().BSecure());
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(steamworks_IsConnected)
 {
 	if (!func_Steam3Server)
@@ -266,6 +275,7 @@ void CSteamWorksModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 	{
 		Util::AddFunc(pLua, steamworks_Shutdown, "Shutdown");
 		Util::AddFunc(pLua, steamworks_Activate, "Activate");
+		Util::AddFunc(pLua, steamworks_IsSecure, "IsSecure");
 		Util::AddFunc(pLua, steamworks_IsConnected, "IsConnected");
 		Util::AddFunc(pLua, steamworks_ForceActivate, "ForceActivate");
 		Util::AddFunc(pLua, steamworks_ForceAuthenticate, "ForceAuthenticate");
@@ -281,6 +291,7 @@ void CSteamWorksModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 		Util::RemoveField(pLua, "Shutdown");
 		Util::RemoveField(pLua, "Activate");
 		Util::RemoveField(pLua, "IsConnected");
+		Util::RemoveField(pLua, "IsSecure");
 		Util::RemoveField(pLua, "ForceActivate");
 		Util::RemoveField(pLua, "ForceAuthenticate");
 		Util::RemoveField(pLua, "GetGameServerSteamID");
