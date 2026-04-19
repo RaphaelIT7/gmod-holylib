@@ -869,6 +869,14 @@ LUA_FUNCTION_STATIC(CBaseClient_GetAvgLoss)
 	return 1;
 }
 
+LUA_FUNCTION_STATIC(CBaseClient_GetAddress)
+{
+	CNetChan* pNetChannel = (CNetChan*)Util::Get_NetChannel(LUA, 1, true);
+
+	LUA->PushString(pNetChannel->GetAddress());
+	return 1;
+}
+
 // Added for CHLTVClient to inherit functions.
 void Push_CBaseClientMeta(GarrysMod::Lua::ILuaInterface* pLua)
 {
@@ -957,6 +965,7 @@ void Push_CBaseClientMeta(GarrysMod::Lua::ILuaInterface* pLua)
 	Util::AddFunc(pLua, CBaseClient_GetTimeConnected, "GetTimeConnected");
 	Util::AddFunc(pLua, CBaseClient_GetAvgLatency, "GetAvgLatency");
 	Util::AddFunc(pLua, CBaseClient_GetAvgLoss, "GetAvgLoss");
+	Util::AddFunc(pLua, CBaseClient_GetAddress, "GetAddress");
 }
 
 LUA_FUNCTION_STATIC(CGameClient__tostring)
