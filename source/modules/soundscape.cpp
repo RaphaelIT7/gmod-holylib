@@ -140,8 +140,8 @@ LUA_FUNCTION_STATIC(soundscape_GetAll)
 
 	for (auto nIndex=g_pSoundscapeSystem->m_soundscapes.First(); nIndex != g_pSoundscapeSystem->m_soundscapes.InvalidIndex(); nIndex = g_pSoundscapeSystem->m_soundscapes.Next(nIndex))
 	{
-		LUA->PushString(g_pSoundscapeSystem->m_soundscapes.GetStringForKey(nIndex));
 		LUA->PushNumber(g_pSoundscapeSystem->m_soundscapes.GetIDForKey(nIndex));
+		LUA->PushString(g_pSoundscapeSystem->m_soundscapes.GetStringForKey(nIndex));
 		
 		LUA->RawSet(-3);
 	}
