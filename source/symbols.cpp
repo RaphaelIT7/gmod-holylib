@@ -1233,4 +1233,12 @@ namespace Symbols
 	const std::vector<Symbol> CRConServer_CreateSocketSym = {
 		Symbol::FromName("_ZN11CRConServer12CreateSocketEv"),
 	};
+
+	//---------------------------------------------------------------------------------
+	// Purpose: networkdebugging Symbols
+	//---------------------------------------------------------------------------------
+	const std::vector<Symbol> CNetChan_SendNetMsgSym = { // Search for "55 48 89 E5 41 57 49 89 F7 41 56 41 55 41 54 53 48 89 FB 48 81 EC E8 00 04 00" then find the vtable of CNetChan and go up 6 to find "sub_153BA0"
+		NULL_SIGNATURE,
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x56\x41\x89\xD6\x41\x55\x41\x89\xCD\x41\x54\x49\x89\xF4\x53\x48\x89\xFB\x48\x8D"), // 55 48 89 E5 41 56 41 89 D6 41 55 41 89 CD 41 54 49 89 F4 53 48 89 FB 48 8D
+	};
 }

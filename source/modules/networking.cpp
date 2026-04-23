@@ -1803,6 +1803,7 @@ void WriteSendProp(SendProp* pProp, int nIndex, int nIndent, FileHandle_t pHandl
 		pType.append("DPT_Vector");
 		break;
 	case SendPropType::DPT_VectorXY:
+		// IMPORTANT: GMod uses this to network doubles! See SendPropTime64 which just redirects to SendPropVectorXY
 		pType.append("DPT_VectorXY");
 		break;
 	case SendPropType::DPT_String:

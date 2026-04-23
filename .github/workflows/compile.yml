@@ -179,10 +179,8 @@ jobs:
       fail-fast: false
       matrix:
         module:
-          - autorefresh
           - holylib
           - gameevent
-          - serverplugin
           - sourcetv
           - stringtable
           - precachefix
@@ -190,7 +188,6 @@ jobs:
           - surffix
           - filesystem
           - util
-          - concommand
           - vprof
           - cvars
           - bitbuf
@@ -201,13 +198,13 @@ jobs:
           - systimer
           - voicechat
           - physenv
-          - net
           - entitylist
           - httpserver
           - gameserver
           - soundscape
           - luajit
           - holylua
+          - networkdebugging
     with:
       PROJECT_NAME: "holylib"
       BUILD_64x: "true"

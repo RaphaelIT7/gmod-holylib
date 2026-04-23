@@ -10,10 +10,10 @@
 #include <mutex>
 #include "sourcesdk/proto_oob.h"
 #include "sourcesdk/net_ws_headers.h"
+#include <netadr_new.h>
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
-#include <netadr_new.h>
 
 /*
 	Current purpose:

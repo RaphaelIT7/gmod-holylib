@@ -876,4 +876,10 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	using CRConServer_CreateSocket = bool (GMCOMMON_CALLING_CONVENTION*)(void* _this);
 	extern const std::vector<Symbol> CRConServer_CreateSocketSym;
+
+	//---------------------------------------------------------------------------------
+	// Purpose: httpserver Symbols
+	//---------------------------------------------------------------------------------
+	using CNetChan_SendNetMsg = bool (GMCOMMON_CALLING_CONVENTION*)(void* _this, INetMessage &msg, bool bForceReliable, bool bVoice);
+	extern const std::vector<Symbol> CNetChan_SendNetMsgSym;
 }
