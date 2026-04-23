@@ -9,6 +9,9 @@
 #define lib_table_c
 #define LUA_LIB
 
+// RaphaelIT7: Idk where else to put it
+#include <limits.h>
+
 #include "lua.h"
 #include "lauxlib.h"
 #include "lualib.h"
