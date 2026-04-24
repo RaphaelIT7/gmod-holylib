@@ -213,13 +213,25 @@ function methods:IsZero()
     return self.x == 0 and self.y == 0 and self.z == 0
 end
 
-function methods:Normalize()
-    local length = math.sqrt(self.x * self.x + self.y * self.y + self.z * self.z)
-    if length == 0 then return end
+-- 1:1 What GMod does since it uses the SDK AngleNormalize function
+local function AngleNormalize(angle)
+    angle = math.fmod(angle, 360)
 
-    self.x = self.x / length
-    self.y = self.y / length
-    self.z = self.z / length
+    if angle > 180 then
+        angle = angle - 360
+    end
+
+    if angle < -180 then
+        angle = angle + 360
+    end
+
+    return angle
+end
+
+function methods:Normalize()
+    self.x = AngleNormalize(self.x)
+    self.y = AngleNormalize(self.y)
+    self.z = AngleNormalize(self.z)
 end
 
 function methods:Random(min, max)
