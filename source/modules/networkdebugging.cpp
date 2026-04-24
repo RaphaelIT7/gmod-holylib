@@ -32,6 +32,7 @@ struct NetEntry
 	std::pmr::vector<std::byte> pData;
 };
 
+extern bool SteamIDFromSteam2String( const char *pchSteam2ID, EUniverse eUniverse, CSteamID *pSteamIDOut );
 struct NetHistory
 {
 	// Let's avoid memory fragmentation since we'd be doing a heck of inserts & erasing
@@ -55,7 +56,7 @@ struct NetHistory
 	void DumpToDisk(const char* steamid)
 	{
 		CSteamID steamID;
-		steamID.SetFromString(steamid, EUniverse::k_EUniversePublic);
+		SteamIDFromSteam2String(steamid, EUniverse::k_EUniversePublic, &steamID);
 		uint64_t steamID64 = steamID.ConvertToUint64();
 
 		char pFileName[MAX_PATH];
