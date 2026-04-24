@@ -95,6 +95,12 @@ public:
 	// Whether the module should be enabled by default.
 	virtual bool IsEnabledByDefault() { return true; };
 
+	// Whether the module can be enabled at runtime
+	virtual bool CanEnableAtRuntime() { return true; };
+
+	// Whether the module can be disabled at runtime
+	virtual bool CanDisableAtRuntime() { return true; };
+
 	// Called when the Server is ready to accept players.
 	virtual void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) { (void)pEdictList; (void)edictCount; (void)clientMax; };
 

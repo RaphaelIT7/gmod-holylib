@@ -35,7 +35,7 @@ public:
 	// Saves the config
 	virtual bool Save() = 0;
 
-	// Loads the config from disk. Returns false if any issues occured on loading.
+	// Loads the config from disk. Returns false if any issues occurred on loading.
 	virtual bool Load() = 0;
 
 	// destroys the config invalidating it without saving!

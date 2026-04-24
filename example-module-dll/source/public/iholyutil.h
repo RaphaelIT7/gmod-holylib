@@ -67,7 +67,7 @@ public: // Then all functions
 
 	// A bind to CM_Vis allowing you to load the PVS/PAS into the given cluster.
 	// type = DVIS_PAS(1) or DVIS_PVS(0)
-	virtual bool CM_Vis(byte* cluster, int clusterSize, int cluserID, int type) = 0;
+	virtual bool CM_Vis(byte* cluster, int clusterSize, int clusterID, int type) = 0;
 
 	// Blocks the creation of the given gameevent.
 	// Does nothing if the the gameevent is already blocked.

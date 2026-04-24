@@ -36,6 +36,8 @@ public:
 		m_bEnableFFIOverrides = pConfig.EnsureChildVar<bool>("enableFFIOverrides", m_bEnableFFIOverrides);
 		m_bKeepRemovedDebugFunctions = pConfig.EnsureChildVar<bool>("keepRemovedDebugFunctions", m_bKeepRemovedDebugFunctions);
 	};
+	bool CanEnableAtRuntime() override { return false; };
+	bool CanDisableAtRuntime() override { return false; };
 
 public:
 	bool m_bAllowFFI = false;

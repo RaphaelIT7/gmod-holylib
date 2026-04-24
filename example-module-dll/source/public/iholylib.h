@@ -33,7 +33,7 @@ public:
 	// Calls the ghostinj entrypoint
 	virtual void PreLoad() = 0;
 
-	// For thoes who don't want to get it by the interface
+	// For those who don't want to get it by the interface
 	virtual IHolyUtil* GetHolyUtil() = 0;
 
 	// Same here

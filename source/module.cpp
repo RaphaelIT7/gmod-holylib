@@ -184,6 +184,12 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 					return;
 			}
 
+			if (!m_bStartup && !m_pModule->CanEnableAtRuntime())
+			{
+				Warning(PROJECT_NAME ": module %s cannot be enabled at runtime!\n", m_pModule->Name());
+				return;
+			}
+
 			m_bIsShutdown = false;
 			int status = g_pModuleManager.GetStatus();
 			if (status & LoadStatus_PreDetourInit)
@@ -222,6 +228,12 @@ void CModule::SetEnabled(bool bEnabled, bool bForced)
 			if (!m_bStartup)
 				Msg(PROJECT_NAME ": Enabled module %s\n", m_pModule->Name());
 		} else {
+			if (g_pModuleManager.GetServerState() != ServerState::SHUTDOWN && !m_pModule->CanDisableAtRuntime())
+			{
+				Warning(PROJECT_NAME ": module %s cannot be disabled at runtime!\n", m_pModule->Name());
+				return;
+			}
+
 			int status = g_pModuleManager.GetStatus();
 			if (status & LoadStatus_LevelInit)
 				m_pModule->LevelShutdown();
