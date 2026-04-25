@@ -495,7 +495,7 @@ struct PlayerTransmitCache
 		{
 			WeaponSlot& pSlot = pWeapons[i];
 			CBaseEntity *pWeapon = GetMyWeapon(pPlayer, i);
-			if (pWeapon)
+			if (pWeapon && pWeapon->edict())
 			{
 				if (!pSlot.bIsValid || pWeapon != pSlot.pWeapon)
 				{
