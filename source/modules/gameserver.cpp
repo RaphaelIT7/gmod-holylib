@@ -1863,7 +1863,7 @@ LUA_FUNCTION_STATIC(gameserver_GetClient)
 			return 0;
 
 		CBaseClient* pClient = g_pQueueClients[iClientIndex];
-		if (pClient && !pClient->IsConnected())
+		if (pClient && (!gameserver_rawclients.GetBool() && !pClient->IsConnected()))
 			pClient = nullptr;
 
 		Push_CBaseClient(LUA, pClient);
@@ -1956,7 +1956,7 @@ LUA_FUNCTION_STATIC(gameserver_GetAll)
 		for (int iClientIndex=0; iClientIndex<Util::server->GetClientCount(); ++iClientIndex)
 		{
 			CBaseClient* pClient = (CBaseClient*)Util::server->GetClient(iClientIndex);
-			if (!pClient->IsConnected())
+			if (!gameserver_rawclients.GetBool() && !pClient->IsConnected())
 				continue;
 
 			Push_CBaseClient(LUA, pClient);
@@ -1965,7 +1965,7 @@ LUA_FUNCTION_STATIC(gameserver_GetAll)
 
 		for (CBaseClient* pClient : g_pQueueClients)
 		{
-			if (!pClient->IsConnected())
+			if (!gameserver_rawclients.GetBool() && !pClient->IsConnected())
 				continue;
 
 			Push_CBaseClient(LUA, pClient);
@@ -3250,7 +3250,10 @@ void CGameServerModule::OnClientDisconnect(CBaseClient* pClient)
 				pData->ClearLuaTable(g_Lua);
 		}
 
-		Delete_CBaseClient(g_Lua, pClient);
+		// Our IsValid function checks for IsConnected, so technically we don't need to delete the userdata at all
+		// But we still usually do because why not
+		if (!gameserver_rawclients.GetBool())
+			Delete_CBaseClient(g_Lua, pClient);
 	}
 }
 
