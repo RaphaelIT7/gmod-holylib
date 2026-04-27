@@ -77,7 +77,7 @@ SpecialGet_LuaClass(CBaseClient, CHLTVClient, "CBaseClient", (gameserver_rawclie
 Default__index(CBaseClient);
 Default__newindex(CBaseClient);
 Default__GetTable(CBaseClient);
-Default__IsValidEXT(CBaseClient, if (!gameserver_rawclients.GetBool() && pData->IsConnected()) return false; );
+Default__IsValidEXT(CBaseClient, if (!gameserver_rawclients.GetBool() && !pData->IsConnected()) { return false; } );
 
 LUA_FUNCTION_STATIC(CBaseClient_GetPlayerSlot)
 {
