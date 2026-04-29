@@ -308,11 +308,19 @@ static Detouring::Hook detour_CBaseEntity_SetMoveType;
 static void hook_CBaseEntity_SetMoveType(CBaseEntity* pEnt, int iMoveType, int iMoveCollide)
 {
 	int iCurrentMoveType = pEnt->GetMoveType();
-	if (!bInMoveTypeCall && iCurrentMoveType != iMoveType && Lua::PushHook("HolyLib:OnMoveTypeChange"))
+	CBaseHandle pEntHandle = pEnt->GetRefEHandle();
+	if (!bInMoveTypeCall && iCurrentMoveType != iMoveType && pEntHandle.IsValid() && Lua::PushHook("HolyLib:OnMoveTypeChange"))
 	{
 		// Uncomment the code below to see if the entity is valid. GetClassname should almost always return a valid class
 		// Msg("hook_CBaseEntity_SetMoveType: %p - %s\n", pEnt, pEnt->GetClassname());
-		Util::Push_Entity(g_Lua, pEnt);
+		
+		EHANDLE* pHandle = g_Lua->NewUserType<EHANDLE>(GarrysMod::Lua::Type::Entity);
+		pHandle->Init(pEntHandle.GetEntryIndex(), pEntHandle.GetSerialNumber());
+
+		// BUG: We apparently can't push reliably to Lua when being inside the CBaseEntity::CBaseEntity constructor!
+		// See https://github.com/Facepunch/garrysmod-requests/issues/3198
+		//Util::Push_Entity(g_Lua, pEnt);
+
 		g_Lua->PushNumber(iCurrentMoveType);
 		g_Lua->PushNumber(iMoveType);
 		g_Lua->PushNumber(iMoveCollide);
