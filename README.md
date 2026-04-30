@@ -103,143 +103,16 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 > You can disable unsafe code on linux using `-holylib_denyunsafe`<br>
 
 ## Next Update
-\- [+] Any files in `lua/autorun/_holylua/` are loaded by HolyLib on startup.<br>
-\- [+] Added a new modules `luathreads`, `networkthreading`, `soundscape`, `luagc`, `nw2`, `crashhandler`<br>
-\- [+] Added `NS_` enums to `gameserver` module.<br>
-\- [+] Added missing `CNetChan:Shutdown` function to the `gameserver` module.<br>
-\- [+] Added LZ4 compression for newly implemented net channel.<br>
-\- [+] Added `util.CompressLZ4` & `util.DecompressLZ4` to `util` module.<br>
-\- [+] Implemented a custom `CNetChan` for faster Server <-> Server connections. See https://github.com/RaphaelIT7/gmod-holylib/issues/42<br>
-\- [+] Added `HolyLib.ReceiveClientMessage` & `HolyLib.GetEnvironmentValue` (See https://github.com/RaphaelIT7/gmod-holylib/issues/139) to `HolyLib` module.<br>
-\- [+] Added `physenv.IVP_NONE` flag to `physenv` module.<br>
-\- [+] Added a few stringtable related functions to the `stringtable` module.<br>
-\- [+] Added a new hook `HolyLib:OnClientTimeout` & `HolyLib:OnClientExecuteStringCommand` to the `gameserver` module.<br>
-\- [+] Added `voicechat.LoadVoiceStreamFromWaveString`, `voicechat.ApplyEffect`, `voicechat.IsPlayerTalking` & `voicechat.LastPlayerTalked` to the `voicechat` module.<br>
-\- [+] Added `VoiceStream:ResetTick`, `VoiceStream:GetNextTick`, `VoiceStream:GetCurrentTick`, `VoiceStream:GetPreviousTick` to the `voicechat` module.<br>
-\- [+] Added `util.FancyJSONToTable` & `util.AsyncTableToJSON` to the `util` module.<br>
-\- [+] Added `gameserver.GetClientByUserID` & `gameserver.GetClientBySteamID` & `gameserver.GetCPUUsage` (See https://github.com/RaphaelIT7/gmod-holylib/pull/136) to the `gameserver` module.<br>
-\- [+] Added a config system allowing one to set convars without using the command line.<br>
-\- [+] Added `IPhysicsEnvironment:SetInSimulation` to the `physenv` module.<br>
-\- [+] Added `HttpResponse:SetStatusCode` to `httpserver` module. (See https://github.com/RaphaelIT7/gmod-holylib/pull/62)<br>
-\- [+] Added `HttpRequest:GetPathParam` to `httpserver` module. (See https://github.com/RaphaelIT7/gmod-holylib/pull/63)<br>
-\- [+] Added `HttpServer:AddProxyAddress` to `httpserver` module.<br>
-\- [+] Added `bitbuf.CreateStackReadBuffer` & `bitbuf.CreateStackWriteBuffer` to `bitbuf` module.<br>
-\- [+] Added a fallback method for HolyLib's internal `Util::PushEntity` function in case a Gmod update breaks our offsets which previously lead to undefined behavior<br>
-\- [+] Added a `ILuaThreadedCall` to call all modules Think function when HolyLib is loaded as a binary module/loaded using `require("holylib")`<br>
-\- [+] Added a new DLL system if anything wants to be loaded with HolyLib. (See: [example-module-dll](https://github.com/RaphaelIT7/gmod-holylib/tree/f937ba454b4d86edfc72df9cb3f8a689d7de2571/example-module-dll))<br>
-\- [+] Added JIT support to some C functions & to our `__index` and `__newindex` functions.<br>
-\- [+] Added `steamworks.GetGameServerSteamID` to the `steamworks` module.<br>
-\- [+] Added `HolyLib:OnLuaRunString` hook to the `holylib` module.<br>
-\- [+] Added `pvs.SetMaxViewDistance` & `pvs.PreventTransmitAllExcept` to the `pvs` module.<br>
-\- [+] Added the `-norcon` option for the `httpserver` module to disable RCON and free the TCP port, allowing one to run an httpserver on the gameserver port instead.<br>
-\- [#] Added missing numeric key conversion to `util.FancyJSONToTable` (See https://github.com/RaphaelIT7/gmod-holylib/pull/105)<br>
-\- [#] Added some more safeguards to `IPhysicsEnvironment:Simulate` to prevent one from simulating a environment that is already being simulated. (else you might end up with all memory freed & a certain crash)<br>
-\- [#] Highly optimized `util` module's json code to be noticeably faster and use noticeably less memory.<br>
-\- [#] Better support for multiple Lua states<br>
-\- \- This required most of the lua setup to be changed >:(<br>
-\- [#] Solved a few possible stack issues<br>
-\- [#] Fixed a crash after a map change. See https://github.com/RaphaelIT7/gmod-holylib/issues/41<br>
-\- [#] Update internal `netadr` struct to now properly support `loopback` and `localhost` inputs for IP's.<br>
-\- [#] Possibly fixed memory issues caused by `IGModAudioChannel`'s being deleted & having undefined behavior.<br>
-\- [#] Fixed `HolyLib:OnPhysicsLag` possibly being called recursively causing a crash.<br>
-\- [#] Fixed every function from the `physenv` module not accepting gmod's PhysObj.<br>
-\- [#] Fixed a crash caused by `comcommand` module since Gmod's `ConCommand_IsBlocked` changed. (See https://github.com/RaphaelIT7/gmod-holylib/issues/45)<br>
-\- [#] Fixed a few Windows issues.<br>
-\- \- [+] Added support for the `stringtable` module on Windows.<br>
-\- \- [#] Fixed entitylist not being loaded on Windows<br>
-\- [#] Solved a few Bass bugs.<br>
-\- [#] Fixed possible undefined behavior & two buffer overflows in `gameserver` module.<br>
-\- [#] Updated `VoiceStream` file structure to also save the server tickrate and include a file version.<br>
-\- \- The `VoiceStream` now properly updates the tickCount for the saved `VoiceData` to scale the tickCount when the server changed tickrate which should ensure the audio remains usable.<br>
-\- [#] Fixed a issue with the `gameserver` module causing random `Lost Connection` disconnects (See https://github.com/RaphaelIT7/gmod-holylib/issues/51)<br>
-\- [#] Extended `networking` module to include some new things.<br>
-\- \- Made some optimization for `PackEntities_Normal` reducing overhead<br>
-\- \- Slightly optimized our own implementation of `CServerGameEnts::CheckTransmit`<br>
-\- \- Added `holylib_networking_fastpath` which will use a transmit cache for `CServerGameEnts::CheckTransmit` as a noticeable optimization.<br>
-\- \- Added `holylib_networking_maxviewmodels` allowing one to limit view models to `1` for each player instead of each having `3` of which `2` often remain unused.<br>
-\- \- Added `holylib_networking_transmit_all_weapons`<br>
-\- \- Added `holylib_networking_transmit_all_weapons_to_owner`<br>
-\- [#] Slightly improved memory usage & performance for UserData created by HolyLib<br>
-\- [#] Updated `VoiceStream` `Load/Save` function to be able to read/write `.wav` files<br>
-\- [#] Fixed `IModule::ServerActivate` not being called when being loaded as a binary module<br>
-\- [#] Fixed `HolyLib:ProcessConnectionlessPacket` being called for SourceTV packets<br>
-\- [#] Fixed `gameserver.SendConnectionlessPacket` crashing instead of throwing a lua error when NET_SendPacket couldn't be loaded<br>
-\- [#] Fixed `HttpServer` not properly shutting down and possibly crashing<br>
-\- [#] Fixed `CGameClient` & `CHLTVClient` possibly crashing when accessed after the client already disconnected<br>
-\- [#] Reduced HolyLib's userdata size by 16 bytes.<br>
-\- [#] Improved `bitbuf.CreateStackReadBuffer` thanks to our userdata changes making it 3x faster<br>
-\- [#] Fixed possible memory leaks when using `bf_read` and `bf_write`<br>
-\- [#] Tried to improve out of memory handling of `bitbuf.Create[Read/Write]Buffer` and `bf_read:ReadString()` functions<br>
-\- [#] Fixed a regression with `util.FancyTableToJSON` crashing with the `0.8-pre` build when it falsely tried to become sequential while being already non-sequential. (Reported by @Noahbg)<br>
-\- [#] Fixed absolute search cache causing files from any search path to be returned / destroying separation between search paths (See https://github.com/RaphaelIT7/gmod-holylib/issues/83)<br>
-\- [#] Fixed HolyLua being unable to register any metatable causing crashes when trying to use them.<br>
-\- [#] Fixed some small memory leaks in HolyLibs CLuaInterface class<br>
-\- [#] Fixed `steamworks.ForceAuthenticate` being silently broken<br>
-\- [#] Fully separated HolyLib's core from all modules allowing anyone to remove modules they don't want.<br>
-\- [#] Removed all dependencies modules had on each other allowing each module to compile without requiring another one.<br>
-\- [#] Fixed some issues in `luathreads` module that caused either crashes or simply were bugs<br>
-\- [#] Fixed lua error handler used by any `CLuaInterface` created by HolyLib failing (`error in error handler`)<br>
-\- [#] Moved `HolyLua` from HolyLib's core into a module to separate it and allow anyone to remove it<br>
-\- [#] Fixed some memory leaks from our own `CLuaInterface` since on shutdown they never cleared up on removal/shutdown<br>
-\- [#] Added a speedup for pushing networked entities to Lua (On 64x pushing entities became 2.6x faster)<br>
-\- [#] Fixed some issues where `Vector`s & `Angle`s pushed from HolyLib would be the original one instead of a copy causing issues like corruption when modified<br>
-\- [#] Fixed `IGModAudioChannel:__tostring()` including a full filepath, this also fixed `bass.PlayFile` being unable to play sounds mounted by the filesystem from GMAs or VPK files (See https://github.com/RaphaelIT7/gmod-holylib/issues/98)<br>
-\- [#] Fixed `DEDICATED` flag being set on Windows builds<br>
-\- [#] Fixed `util.FancyJSONToTable` not being unloaded when disabled causing a invalid function to remain in Lua that would crash on call<br>
-\- [#] Fixed `util.FancyJSONToTable` crashing when given sequential arrays (See: https://github.com/RaphaelIT7/gmod-holylib/issues/101)<br>
-\- [#] Fixed `util.FancyTableToJSON` being unable to handle `math.huge` causing the parser to stop leaving invalid json<br>
-\- [#] Implemented a workaround for 64x possibly hanging indefinitely when a threadpool is deleted<br>
-\- [#] Fixed `holylib_filesystem_splitgamepath` breaking searchpath separation. It now only takes effects for the `GAME` path<br>
-\- [#] Fixed `INetworkStringTable:GetStringUserData` not fully pushing the userdata as a string<br>
-\- [#] Changed internal code to use `ArgError` instead of `ThrowError` where possible to improve Lua errors when invalid function arguments are given<br>
-\- [#] Removed dependency on bass allowing HolyLib to be loaded on Windows srcds
-\- [#] Fixed LuaJIT breaking with FTZ & DAZ XMCSR flags<br>
-\- \- Our LuaJIT build will now save, override and restore the flags when entering and exiting the VM<br>
-\- [#] Fixed our FFI Vector & Angle implementations failing to handle input strings<br>
-\- [#] Fixed our FFI Vector's `:GetNormalized` function returning a number instead of a vector (See https://github.com/RaphaelIT7/gmod-holylib/issues/130)<br>
-\- [#] Improved thread safety for lua state access<br>
-\- [#] Fixed workshop map being prioritied over local map version (See https://github.com/RaphaelIT7/gmod-holylib/issues/138)<br>
-\- [#] Fixed our LuaJIT build failing to call `gmod13_unload` when closing a module (See https://github.com/RaphaelIT7/gmod-holylib/issues/140)<br>
-\- [-] Removed some unused code of former fixes that were implemented into GMod<br>
+None
 
 You can see all changes/commits here:<br>
-https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
+https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.8...main
 
 ### Existing Lua API Changes
-\- [+] Added third `protocolVersion` argument to `gameserver.CreateNetChannel`<br>
-\- [+] Added fourth `socket`(use `NS_` enums) argument to `gameserver.CreateNetChannel` & `gameserver.SendConnectionlessPacket`<br>
-\- [+] Added second and third arguments to `HolyLib:OnPhysicsLag` providing the entities it was working on when it triggered.<br>
-\- [+] Added `voicechat.SaveVoiceStream` 4th argument `returnWaveData` (previously the 4th argument was `async` but that one was removed)<br>
-\- [+] Added `directData` argument to `VoiceStream:GetData`, `VoiceStream:GetIndex`, `VoiceStream:SetIndex` and `VoiceStream:SetData`<br>
-\- [+] Added overflow checks for `gameserver.BroadcastMessage`, `CNetChan:SendMessage` and `CBaseClient:SendNetMsg` when you try to use a overflowed buffer<br>
-\- [+] Added a few more arguments to `HolyLib:OnPhysicsLag` like `phys1`, `phys2`, `recalcPhys`, `callerFunction` and the arguments `ent1` & `ent2` were removed since you can call `PhysObj:GetEntity`<br>
-\- [+] Added `holylib_gameserver_maxplayers` allowing the player queue to support up to 8192 players (in theory more but you'd never need more)<br>
-\- [#] Fixed `addonsystem.ShouldMount` & `addonsystem.SetShouldMount` `workshopID` arguments being a number when they should have been a string.<br>
-\- [#] Changed `VoiceData:GetUncompressedData` to now returns a statusCode/a number on failure instead of possibly returning a garbage string.<br>
-\- [#] Limited `HttpServer:SetName` to have a length limit of `64` characters.<br>
-\- [#] Fixed `IGModAudioChannel:IsValid` throwing a error when it's NULL instead of returning false.<br>
-\- [#] Fixed `HttpServer:SetWriteTimeout` using the wrong arguments. (See https://github.com/RaphaelIT7/gmod-holylib/pull/65)<br>
-\- [#] Fixed `bf_read:ReadBytes` and `bf_read:ReadBits` both failing to push the string properly to lua.<br>
-\- [#] Changed `voicechat.SaveVoiceStream` & `voicechat.LoadVoiceStream` to remove their 4th `sync` argument, if a callback is provided it will be async, else it'll run sync<br>
-\- [#] Renamed `HolyLib:OnPhysFrame` to `HolyLib:PrePhysFrame`<br>
-\- [#] Fixed a typo `bf_write:WriteBitVec3normal` -> `bf_write:WriteBitVec3Normal`<br>
-\- [#] Changed arguments and return value of `HolyLib:PostEntityConstructor`<br>
-\- [#] Changed `pvs.AddEntityToTransmit` to only work inside `HolyLib:PreCheckTransmit` due to safety & performance reasons<br>
-\- [#] Changed `HolyLib:[Pre/Post]CheckTransmit` hooks to be disabled by default needing to be now enabled using `pvs.Enable[Pre/Post]TransmitHook`<br>
-\- [#] Changed `HttpServer:[Get/Put/Post/OtherShit]` callback return value to be flipped, return `false` to mark a request as `NOT` handled, return `true` to mark it as handled<br>
-\- [#] Fixed `networking` module partially not working without the `pvs` module - it internally had depended on it.<br>
-\- [#] Fixed `stringtable.CreateStringTable` and `stringtable.CreateStringTableEx` both failing to catch the case in which all stringtable slots were used leading to a server error/shutdown.<br>
-\- [#] Fixed pvs.GetEntitiesFromTransmit failing internally due to it using the wrong value<br>
-\- [#] Changed callback arguments of `HttpServer:[Get/Put/Post/Patch/Delete/Options]` to remove the `response`.<br>
-\- \-> The `HttpRequest` now contains all methods of the `HttpResponse` so you should use the `request` directly! (This was done to help the Lua GC a bit & slightly improve callback performance)<br>
-\- [#] Fixed `HttpServer:IsRunning()` falsely reporting `true` even if it failed to start.<br>
-\- [-] Removed `VoiceData:GetUncompressedData` decompress size argument<br>
-\- [-] Removed `CBaseClient:Transmit` third argument `fragments`.<br>
-\- [-] Removed `gameserver.CalculateCPUUsage` and `gameserver.ApproximateProcessMemoryUsage` since they never worked.<br>
+None
 
 ### QoL updates
-\- [#] Changed some console message to be more consistent.<br>
-\- [#] Solved a possible crash caused by a `CGameClient` disconnecting after `g_Lua` became `NULL`<br>
+None
 
 ## ToDo
 
@@ -253,7 +126,6 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.7...main
 \- GO thru everything and use a more consistent codestyle. I created quiet the mess.<br>
 \- test/become compatible with vphysics-jolt (I'm quite sure that the `physenv` isn't compatible).<br>
 \- Check out `holylib_filesystem_predictexistance` as it seamingly broke, reportedly works in `0.6`.<br>
-\- Check if gmod userdata pushed from HolyLib to Lua is invalid in the 0.7 release<br>
 \- `IModule::ServerActivate` is not called when were loaded using `require("holylib")`<br>
 
 # New Documentation
