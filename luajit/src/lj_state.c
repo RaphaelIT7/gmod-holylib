@@ -273,11 +273,11 @@ LUA_API lua_State *lua_newstate(lua_Alloc allocf, void *allocd)
   L = &GG->L;
   g = &GG->g;
   L->gct = ~LJ_TTHREAD;
-  L->marked = LJ_GC_WHITE0 | LJ_GC_FIXED | LJ_GC_SFIXED;  /* Prevent free. */
+  L->marked = LJ_GC_WHITE | LJ_GC_FIXED;  /* Prevent free. */
   L->dummy_ffid = FF_C;
   setmref(L->glref, g);
-  g->gc.currentwhite = LJ_GC_WHITE0 | LJ_GC_FIXED;
-  g->strempty.marked = LJ_GC_WHITE0;
+  g->gc.currentwhite = LJ_GC_WHITE | LJ_GC_FIXED;
+  g->strempty.marked = LJ_GC_WHITE;
   g->strempty.gct = ~LJ_TSTR;
   g->allocf = allocf;
   g->allocd = allocd;
