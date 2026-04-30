@@ -608,7 +608,7 @@ LJLIB_CF(test_jitcfunc)
   info.callconv = CFUNC_CALLCONV_FASTCALL;
   info.canerror = 0;
   info.givestate = 0;
-  info.allowoptout = 1;
+  info.allowoptout = 0;
 
   lua_pushtracablecclosure(L, &info);
   return 1;

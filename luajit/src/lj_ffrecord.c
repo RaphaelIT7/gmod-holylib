@@ -293,8 +293,7 @@ static void LJ_FASTCALL recff_c(jit_State *J, RecordFFData *rd)
     if (!mismatch && stackargs > nargs && ci->exactargs)
       mismatch = 1;
 
-
-    if (!mismatch && nargs > mostargs) {
+    if (!mismatch && ((nargs > mostargs) || (nargs == mostargs && !callinfo))) {
       callinfo = ci;
       mostargs = nargs;
     }

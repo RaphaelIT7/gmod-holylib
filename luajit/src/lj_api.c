@@ -755,9 +755,8 @@ static int lua_CFunc_info(lua_State* L, GCfunc* fn, lua_CFunctionInfo* info)
     if (!fn->c.callinfo[infoIDX].func)
       continue;
 
-    int args = 0;
     int invalid = 0;
-    for (args=0; args<LUA_CFUNCINFO_MAXARGS; ++args) {
+    for (int args=0; args<LUA_CFUNCINFO_MAXARGS; ++args) {
       if (info->argType[args] == TR_TYPE_VOID && fn->c.callinfo[infoIDX].argType[args] == TR_TYPE_VOID)
         break;
 
