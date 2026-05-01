@@ -37,19 +37,19 @@ local ffi = require("ffi")
 ffi.cdef[[
 int __fastcall asm_test_func();
 ]]
-local ffi_func = ffi.C.asm_test_func
+local ffi_C = ffi.C
 local a = os.clock()
 for k=1, loopCount do
-	val = val + ffi_func()
-	ffi_func()
-	ffi_func()
-	ffi_func()
-	ffi_func()
-	ffi_func()
-	ffi_func()
-	ffi_func()
-	ffi_func()
-	ffi_func()
+	val = val + ffi_C.asm_test_func()
+	ffi_C.asm_test_func()
+	ffi_C.asm_test_func()
+	ffi_C.asm_test_func()
+	ffi_C.asm_test_func()
+	ffi_C.asm_test_func()
+	ffi_C.asm_test_func()
+	ffi_C.asm_test_func()
+	ffi_C.asm_test_func()
+	ffi_C.asm_test_func()
 end
 print("FFI Func:", os.clock() - a, val)
 
