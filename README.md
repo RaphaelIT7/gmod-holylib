@@ -103,7 +103,9 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 > You can disable unsafe code on linux using `-holylib_denyunsafe`<br>
 
 ## Next Update
-None
+\- [#] Fixed in our LuaJIT version failing to trace C functions with `0` arguments.<br>
+\- [#] Fixed in our LuaJIT version `table.insert` trying to shift values when inserting into negatives causing performance issues<br>
+\- [#] In our LuaJIT allow `debug.setfenv` to set the `env` of a userdata to `nil` & initialize userdata's env as `nil`<br>
 
 You can see all changes/commits here:<br>
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.8...main
