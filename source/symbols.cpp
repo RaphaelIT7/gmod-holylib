@@ -95,6 +95,8 @@ namespace Symbols
 
 	const Symbol lua_tobooleanSym = Symbol::FromName("lua_toboolean");
 
+	const Symbol lua_newuserdataSym = Symbol::FromName("lua_newuserdata");
+
 	const std::vector<Symbol> CGetSym = { // 64x ToDo
 		Symbol::FromName("get"),
 	};

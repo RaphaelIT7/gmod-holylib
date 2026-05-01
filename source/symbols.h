@@ -214,6 +214,9 @@ namespace Symbols
 	using lua_toboolean = int (*)(lua_State *L, int idx);
 	extern const Symbol lua_tobooleanSym;
 
+	using lua_newuserdata = void* (*)(lua_State *L, size_t sz);
+	extern const Symbol lua_newuserdataSym;
+
 	extern const std::vector<Symbol> CGetSym;
 	extern const std::vector<Symbol> gEntListSym;
 

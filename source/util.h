@@ -360,21 +360,37 @@ namespace Util
 
 	// More Lua stuff for UserData (NEVER NULL)
 	extern Symbols::lua_setfenv func_lua_setfenv;
-	extern Symbols::lua_touserdata func_lua_touserdata;
+	extern Symbols::lua_touserdata func_lua_touserdata;  // Unused for now
 	extern Symbols::lua_type func_lua_type;
 	extern Symbols::lua_gc func_lua_gc;
 	extern Symbols::lua_setallocf func_lua_setallocf;
+	extern Symbols::lua_newuserdata func_lua_newuserdata;
 
-	extern Symbols::lua_call func_lua_call;
+	extern Symbols::lua_call func_lua_call; // Unused for now
 	extern Symbols::lua_pcall func_lua_pcall;
-	extern Symbols::lua_cpcall func_lua_cpcall;
-	extern Symbols::lua_insert func_lua_insert;
-	extern Symbols::lua_toboolean func_lua_toboolean;
+	extern Symbols::lua_cpcall func_lua_cpcall; // Unused for now
+	extern Symbols::lua_insert func_lua_insert; // Unused for now
+	extern Symbols::lua_toboolean func_lua_toboolean; // Unused for now
 
 	// These can be NULL. Why? Because on 64x all the names are mangled making shit far more difficult...
 	extern Symbols::lj_tab_new func_lj_tab_new;
 	extern Symbols::lj_gc_barrierf func_lj_gc_barrierf;
 	extern Symbols::lj_tab_get func_lj_tab_get;
+
+	// I hate this :sob:
+	// Once we actually need it / there is a confirmed issue then we can enable it
+	/*inline int lua_setfenv(lua_State *L, int idx)
+	{ if (g_Lua && L == g_Lua->GetState()) { return func_lua_setfenv(L, idx); } else { return ::lua_setfenv(L, idx); } }
+	inline void* lua_touserdata(lua_State *L, int idx)
+	{ if (g_Lua && L == g_Lua->GetState()) { return func_lua_touserdata(L, idx); } else { return ::lua_touserdata(L, idx); } }
+	inline int lua_type(lua_State *L, int idx)
+	{ if (g_Lua && L == g_Lua->GetState()) { return func_lua_type(L, idx); } else { return ::lua_type(L, idx); } }
+	inline int lua_gc(lua_State *L, int what, int data)
+	{ if (g_Lua && L == g_Lua->GetState()) { return func_lua_gc(L, what, data); } else { return ::lua_gc(L, what, data); } }
+	inline void lua_setallocf(lua_State *L, Symbols::lua_allocf f, void* ud)
+	{ if (g_Lua && L == g_Lua->GetState()) { func_lua_setallocf(L, f, ud); } else { ::lua_setallocf(L, f, ud); } }
+	inline int lua_pcall(lua_State *L, int nArgs, int nRets, int nErrorFunc)
+	{ if (g_Lua && L == g_Lua->GetState()) { return func_lua_pcall(L, nArgs, nRets, nErrorFunc); } else { return ::lua_pcall(L, nArgs, nRets, nErrorFunc); } }*/
 
 	extern IVEngineServer* engineserver;
 	extern IServerGameClients* servergameclients;

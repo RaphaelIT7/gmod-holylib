@@ -726,6 +726,7 @@ Symbols::lua_touserdata Util::func_lua_touserdata = nullptr;
 Symbols::lua_type Util::func_lua_type = nullptr;
 Symbols::lua_gc Util::func_lua_gc = nullptr;
 Symbols::lua_setallocf Util::func_lua_setallocf = nullptr;
+Symbols::lua_newuserdata Util::func_lua_newuserdata = nullptr;
 Symbols::luaL_checklstring Util::func_luaL_checklstring = nullptr;
 Symbols::lua_call Util::func_lua_call = nullptr;
 Symbols::lua_pcall Util::func_lua_pcall = nullptr;
@@ -890,7 +891,13 @@ void Util::AddDetour()
 	func_lj_tab_get = (Symbols::lj_tab_get)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lj_tab_getSym);
 	Detour::CheckFunction((void*)func_lj_tab_get, "lj_tab_get");
 
-	if (!func_lua_touserdata || !func_lua_type || !func_lua_setfenv || !func_luaL_checklstring || !func_lua_call || !func_lua_pcall || !func_lua_cpcall || !func_lua_insert || !func_lua_toboolean)
+	func_lua_newuserdata = (Symbols::lua_newuserdata)Detour::GetFunction(lua_shared_loader.GetModule(), Symbols::lua_newuserdataSym);
+	Detour::CheckFunction((void*)func_lua_newuserdata, "lua_newuserdata");
+
+	if (
+		!func_lua_touserdata || !func_lua_type || !func_lua_setfenv || !func_luaL_checklstring || !func_lua_call ||
+		!func_lua_pcall || !func_lua_cpcall || !func_lua_insert || !func_lua_toboolean || !func_lua_newuserdata
+		)
 	{
 		// This is like the ONLY dependency we have on symbols that without we cannot function.
 		Error(PROJECT_NAME " - core: Failed to load an important symbol which we utterly depend on.\n");
