@@ -17,6 +17,7 @@ ghostinj-dll/projects/**
 development/64x/
 development/garrysmod_common/
 development/module/projects/**
+_builds/**
 
 # generated files
 source/modules/_modules.h

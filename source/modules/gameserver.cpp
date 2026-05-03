@@ -3103,6 +3103,9 @@ static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* tar
 	FOR_EACH_VEC(chan->m_NetMessages, i)
 	{
 		CExtendedNetMessage* msg = (CExtendedNetMessage*)chan->m_NetMessages[i];
+		if (!msg)
+			continue;
+
 		msg->m_pMessageHandler = target;
 
 		if (msg->GetType() == clc_CmdKeyValues)
