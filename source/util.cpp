@@ -799,11 +799,7 @@ void Util::AddDetour()
 
 	// Why must getting IServer be an inconsistent hell :sob:
 #if SYSTEM_WINDOWS
-#if ARCHITECTURE_X86_64
 	server = Detour::ResolveSymbolNoDereference<IServer>( engine_loader, Symbol::FromName( "?sv@@3VCGameServer@@A" ) );
-#else
-	server = *(IServer**)InterfacePointers::Server();
-#endif
 #else
 	server = InterfacePointers::Server();
 #endif
