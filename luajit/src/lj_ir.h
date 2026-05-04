@@ -122,6 +122,7 @@
   _(TDUP,	AW, ref, ___) \
   _(CNEW,	AW, ref, ref) \
   _(CNEWI,	NW, ref, ref)  /* CSE is ok, not marked as A. */ \
+  _(UDNEW,  AW, ref, ref) \
   \
   /* Buffer operations. */ \
   _(BUFHDR,	L , ref, lit) \
@@ -212,6 +213,9 @@ IRFPMDEF(FPMENUM)
   _(UDATA_HVALUE, offsetof(GCudata, align1)) /* This field is used by HolyLib to store the userdata value */ \
   _(UDATA_VALUE, sizeof(GCudata)) \
   _(GMOD_UDATA_TYPE, offsetof(GMODudata, type)) \
+  _(GMOD_UDATA_DATA, offsetof(GMODudata, data)) \
+  _(GMOD_UDATA_TYPE_DIRECT, (sizeof(GCudata) + offsetof(GMODudata, data))) \
+  _(GMOD_UDATA_DATA_DIRECT, (sizeof(GCudata) + offsetof(GMODudata, type))) \
   _(LSTR_DATA, offsetof(lua_String, data)) \
   _(LSTR_LEN, offsetof(lua_String, length)) \
   _(SBUF_W,	sizeof(GCudata) + offsetof(SBufExt, w)) \

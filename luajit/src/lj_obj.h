@@ -367,6 +367,8 @@ typedef struct GCudata {
   uint32_t align1;	/* To force 8 byte alignment of the payload. In HolyLib we make use of this though to store data - no bytes are wasted :3 */
 } GCudata;
 
+// ToDo: Let us repurpose GCudata::align1 by default to be part of the 4 byte chunk of userdata that is stored
+
 // This is the data GMod stores for userdata, I've added it here so that our JIT build can make use of it when needed
 typedef struct GMODudata {
   void* data;

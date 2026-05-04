@@ -230,6 +230,7 @@ enum {
   TR_FIELD_UDATA_TYPE,
   TR_FIELD_UDATA_HVALUE, // HolyLib udata value!
   TR_FIELD_UDATA_VALUE,
+  TR_FIELD_GMOD_UDATA_DATA,
   TR_FIELD_GMOD_UDATA_TYPE,
   TR_FIELD_LSTR_DATA,
   TR_FIELD_LSTR_LEN,
@@ -246,7 +247,9 @@ enum {
   TR_CALL_EXT, // a = arg chain, b = function ptr or TR_CALL_CC
   TR_LOAD_USERDATA_VAL, // Loads the data - IMPORTANT: In HolyLib we make use of the GCudata::align1 so this function will load that field!
   TR_FLOAD, // a = value, b = lua_TraceField
-  TR_FSTORE,
+  TR_FOFFSET, // a = value, b = lua_TraceField
+  TR_FSTORE, // a = FOFFSET, b = value
+  TR_NEWUDATA,
   TR_EQ, // compares a against b
   TR_ADD,
   TR_SUB,

@@ -165,6 +165,7 @@ typedef IRRef (LJ_FASTCALL *FoldFunc)(jit_State *J);
    (J->chain[IR_SNEW] || J->chain[IR_XSNEW] || \
     J->chain[IR_TNEW] || J->chain[IR_TDUP] || \
     J->chain[IR_CNEW] || J->chain[IR_CNEWI] || \
+	J->chain[IR_UDNEW] || \
     J->chain[IR_BUFSTR] || J->chain[IR_TOSTR] || J->chain[IR_CALLA]))
 
 /* -- Constant folding for FP numbers ------------------------------------- */
@@ -2507,6 +2508,7 @@ LJFOLD(TNEW any any)
 LJFOLD(TDUP any)
 LJFOLD(CNEW any any)
 LJFOLD(XSNEW any any)
+LJFOLD(UDNEW any any)
 LJFOLDX(lj_ir_emit)
 
 /* -- Miscellaneous ------------------------------------------------------- */

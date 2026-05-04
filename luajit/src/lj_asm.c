@@ -1177,6 +1177,19 @@ static void asm_tdup(ASMState *as, IRIns *ir)
   asm_gencall(as, ci, args);
 }
 
+static void asm_udatanew(ASMState *as, IRIns *ir)
+{
+  const CCallInfo *ci = &lj_ir_callinfo[IRCALL_lj_udata_new];
+  IRRef args[3];
+  asm_snap_prep(as);
+  args[0] = ASMREF_L; /* lua_State *L  */
+  args[1] = ir->op1;      /* uint32_t size */
+  args[2] = ir->op2;     /* GCtab env */   
+  as->gcsteps++;
+  asm_setupresult(as, ir, ci);  /* GCudata * */
+  asm_gencall(as, ci, args);
+}
+
 static void asm_gc_check(ASMState *as);
 
 /* Explicit GC step. */
@@ -1184,7 +1197,7 @@ static void asm_gcstep(ASMState *as, IRIns *ir)
 {
   IRIns *ira;
   for (ira = IR(as->stopins+1); ira < ir; ira++)
-    if ((ira->o == IR_TNEW || ira->o == IR_TDUP ||
+    if ((ira->o == IR_TNEW || ira->o == IR_TDUP || ira->o == IR_UDNEW ||
 	 (LJ_HASFFI && (ira->o == IR_CNEW || ira->o == IR_CNEWI))) &&
 	ra_used(ira))
       as->gcsteps++;
@@ -1891,6 +1904,8 @@ static void asm_ir(ASMState *as, IRIns *ir)
 		  (int)(ir - as->ir) - REF_BIAS, ir->o);
 #endif
     break;
+	
+  case IR_UDNEW: asm_udatanew(as, ir); break;
 
   /* Buffer operations. */
   case IR_BUFHDR: asm_bufhdr(as, ir); break;
@@ -2360,7 +2375,7 @@ static void asm_setup_regsp(ASMState *as)
     case IR_CNEW:
 #endif
       /* fallthrough */
-    case IR_TNEW: case IR_TDUP: case IR_CNEWI: case IR_TOSTR:
+    case IR_TNEW: case IR_TDUP: case IR_CNEWI: case IR_UDNEW: case IR_TOSTR:
     case IR_BUFSTR:
       ir->prev = REGSP_HINT(RID_RET);
       if (inloop)

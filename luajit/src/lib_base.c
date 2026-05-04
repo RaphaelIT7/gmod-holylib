@@ -493,7 +493,7 @@ LJLIB_CF(collectgarbage)
 /* -- Base library: miscellaneous functions ------------------------------- */
 
 LJLIB_PUSH(top-2)  /* Upvalue holds weak table. */
-LJLIB_CF(newproxy)
+LJLIB_CF(newproxy)    LJLIB_REC(.)
 {
   lua_settop(L, 1);
   GMOD_LuaCreateEmptyUserdata(L);

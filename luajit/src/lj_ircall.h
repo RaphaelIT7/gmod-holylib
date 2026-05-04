@@ -197,6 +197,7 @@ typedef struct CCallInfo {
   _(ANY,	lj_mem_newgco,		2,  FA, PGC, CCI_L|CCI_T) \
   _(ANY,	lj_prng_u64d,		1,  FS, NUM, CCI_CASTU64) \
   _(ANY,	lj_vm_modi,		2,  FN, INT, 0) \
+  _(ANY,	lj_udata_new,	3,  A, UDATA, CCI_L|CCI_T) \
   _(ANY,	log10,			1,   N, NUM, XA_FP) \
   _(ANY,	exp,			1,   N, NUM, XA_FP) \
   _(ANY,	sin,			1,   N, NUM, XA_FP) \

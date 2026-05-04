@@ -241,6 +241,7 @@ static void sink_sweep_ins(jit_State *J)
 	ir->prev = REGSP_INIT;
       }
       break;
+	case IR_UDNEW:
 #if LJ_HASFFI
     case IR_CNEW: case IR_CNEWI:
 #endif
