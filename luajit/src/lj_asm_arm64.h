@@ -1331,7 +1331,7 @@ static void asm_obar(ASMState *as, IRIns *ir)
   tmp = ra_scratch(as, rset_exclude(RSET_GPR, obj));
   emit_tnb(as, A64I_TBZ, tmp, lj_ffs(LJ_GC_BLACK), l_end);
   emit_cond_branch(as, CC_EQ, l_end);
-  emit_n(as, A64I_TSTw^emit_isk13(LJ_GC_WHITES, 0), RID_TMP);
+  emit_n(as, A64I_TSTw^emit_isk13(LJ_GC_WHITE, 0), RID_TMP);
   val = ra_alloc1(as, ir->op2, rset_exclude(RSET_GPR, obj));
   emit_lso(as, A64I_LDRB, tmp, obj,
 	   (int32_t)offsetof(GCupval, marked)-(int32_t)offsetof(GCupval, tv));

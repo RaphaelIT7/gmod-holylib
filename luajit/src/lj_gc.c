@@ -35,7 +35,7 @@
 #define GCFINALIZECOST	100
 
 /* Macros to set GCobj colors and flags. */
-#define white2gray(x)		((x)->gch.marked &= (uint8_t)~LJ_GC_WHITES)
+#define white2gray(x)		((x)->gch.marked &= (uint8_t)~LJ_GC_WHITE)
 #define gray2black(x)		((x)->gch.marked |= LJ_GC_BLACK)
 #define isfinalized(u)		((u)->marked & LJ_GC_FINALIZED)
 
@@ -52,7 +52,7 @@
   { if (iswhite(obj2gco(o))) gc_mark(g, obj2gco(o)); }
 
 /* Mark a string object. */
-#define gc_mark_str(s)		((s)->marked &= (uint8_t)~LJ_GC_WHITES)
+#define gc_mark_str(s)		((s)->marked &= (uint8_t)~LJ_GC_WHITE)
 
 /* Mark a white GCobj. */
 static void gc_mark(global_State *g, GCobj *o)
@@ -405,19 +405,19 @@ static const GCFreeFunc gc_freefunc[] = {
 /* Partial sweep of a GC list. */
 static GCRef *gc_sweep(global_State *g, GCRef *p, uint32_t lim)
 {
-  /* Mask with other white and LJ_GC_FIXED. Or LJ_GC_SFIXED on shutdown. */
+  /* Mask with other white and LJ_GC_FIXED. Or LJ_GC_FIXED on shutdown. */
   int ow = otherwhite(g);
   GCobj *o;
   while ((o = gcref(*p)) != NULL && lim-- > 0) {
     if (o->gch.gct == ~LJ_TTHREAD)  /* Need to sweep open upvalues, too. */
       gc_fullsweep(g, &gco2th(o)->openupval);
-    if (((o->gch.marked ^ LJ_GC_WHITES) & ow)) {  /* Black or current white? */
+    if (((o->gch.marked ^ LJ_GC_WHITE) & ow)) {  /* Black or current white? */
       lj_assertG(!isdead(g, o) || (o->gch.marked & LJ_GC_FIXED),
 		 "sweep of undead object");
       makewhite(g, o);  /* Value is alive, change to the current white. */
       p = &o->gch.nextgc;
     } else {  /* Otherwise value is dead, free it. */
-      lj_assertG(isdead(g, o) || ow == LJ_GC_SFIXED,
+      lj_assertG(isdead(g, o) || ow == LJ_GC_FIXED,
 		 "sweep of unlive object");
       setgcrefr(*p, o->gch.nextgc);
       if (o == gcref(g->gc.root))
@@ -431,7 +431,7 @@ static GCRef *gc_sweep(global_State *g, GCRef *p, uint32_t lim)
 /* Sweep one string interning table chain. Preserves hashalg bit. */
 static void gc_sweepstr(global_State *g, GCRef *chain)
 {
-  /* Mask with other white and LJ_GC_FIXED. Or LJ_GC_SFIXED on shutdown. */
+  /* Mask with other white and LJ_GC_FIXED. Or LJ_GC_FIXED on shutdown. */
   int ow = otherwhite(g);
   uintptr_t u = gcrefu(*chain);
   GCRef q;
@@ -439,13 +439,13 @@ static void gc_sweepstr(global_State *g, GCRef *chain)
   GCobj *o;
   setgcrefp(q, (u & ~(uintptr_t)1));
   while ((o = gcref(*p)) != NULL) {
-    if (((o->gch.marked ^ LJ_GC_WHITES) & ow)) {  /* Black or current white? */
+    if (((o->gch.marked ^ LJ_GC_WHITE) & ow)) {  /* Black or current white? */
       lj_assertG(!isdead(g, o) || (o->gch.marked & LJ_GC_FIXED),
 		 "sweep of undead string");
       makewhite(g, o);  /* String is alive, change to the current white. */
       p = &o->gch.nextgc;
     } else {  /* Otherwise string is dead, free it. */
-      lj_assertG(isdead(g, o) || ow == LJ_GC_SFIXED,
+      lj_assertG(isdead(g, o) || ow == LJ_GC_FIXED,
 		 "sweep of unlive string");
       setgcrefr(*p, o->gch.nextgc);
       lj_str_free(g, gco2str(o));
@@ -606,7 +606,7 @@ void lj_gc_freeall(global_State *g)
 {
   MSize i;
   /* Free everything, except super-fixed objects (the main thread). */
-  g->gc.currentwhite = LJ_GC_WHITES | LJ_GC_SFIXED;
+  g->gc.currentwhite = LJ_GC_WHITE | LJ_GC_FIXED;
   gc_fullsweep(g, &g->gc.root);
   for (i = g->str.mask; i != ~(MSize)0; i--)  /* Free all string hash chains. */
     gc_sweepstr(g, &g->str.tab[i]);

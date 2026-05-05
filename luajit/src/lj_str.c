@@ -232,12 +232,12 @@ static LJ_NOINLINE GCstr *lj_str_rehash_chain(lua_State *L, StrHash hashc,
     GCstr *s = gco2str(o);
     StrHash hash;
     if (ow) {  /* Must sweep while rechaining. */
-      if (((o->gch.marked ^ LJ_GC_WHITES) & ow)) {  /* String alive? */
+      if (((o->gch.marked ^ LJ_GC_WHITE) & ow)) {  /* String alive? */
 	lj_assertG(!isdead(g, o) || (o->gch.marked & LJ_GC_FIXED),
 		   "sweep of undead string");
 	makewhite(g, o);
       } else {  /* Free dead string. */
-	lj_assertG(isdead(g, o) || ow == LJ_GC_SFIXED,
+	lj_assertG(isdead(g, o) || ow == LJ_GC_FIXED,
 		   "sweep of unlive string");
 	lj_str_free(g, s);
 	o = next;
