@@ -5120,8 +5120,8 @@ concommand.Add("status_queue", function(ply, cmd, args)
 			"\"" .. client:GetName() .. "\"",
 			client:GetSteamID(),
 			hasNetChannel and tostring(math.floor(CurTime() - client:GetTimeConnected())) or "",
-			hasNetChannel and math.floor(client:GetAvgLatency(gameserver.FLOW_OUTGOING)) or 0,
-			hasNetChannel and math.floor(client:GetAvgLatency(gameserver.FLOW_INCOMING)) or 0,
+			hasNetChannel and math.floor(1000*client:GetAvgLatency(gameserver.FLOW_OUTGOING)) or 0,
+			hasNetChannel and math.floor(100*client:GetAvgLoss(gameserver.FLOW_INCOMING)) or 0,
 			state
 		))
 	end
