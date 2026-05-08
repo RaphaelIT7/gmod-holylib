@@ -1542,6 +1542,9 @@ static bool hook_CVoiceGameMgrHelper_CanPlayerHearPlayer(void* voicegamemgrhelpe
 {
 	if (g_bIsPlayerDeafened[listener->edict()->m_EdictIndex-1])
 	{
+		if (g_pVoiceChatModule.InDebug() == 1)
+			Msg(PROJECT_NAME " - voicechat: client %i voice packet was skipped since their deaf!\n", listener->edict()->m_EdictIndex-1);
+
 		bProximity = false;
 		return false;
 	}
@@ -1562,7 +1565,7 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 		return;
 	}
 
-	if (g_pVoiceChatModule.InDebug() == 1)
+	if (g_pVoiceChatModule.InDebug() >= 2)
 		Msg(PROJECT_NAME " - voicechat: cl: %p\nbytes: %i\ndata: %p\n", pClient, nBytes, data);
 
 	CheckTalkingState(pClient->GetPlayerSlot(), true);
