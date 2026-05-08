@@ -803,11 +803,11 @@ public:
 			removeComments = false;
 		}
 
-		bool hasSourceContent = false;
 		std::string sourceContent = "";
 		std::string content = "";
 		Bootil::AutoBuffer compressed;
 		std::shared_mutex mutex; // Per entry instead of a global mutex to avoid blocking the main thread for other entries while compressing
+		bool hasSourceContent = false;
 		bool processed = false;
 		bool removeServerCode = false;
 		bool removeComments = false;
@@ -849,6 +849,8 @@ public:
 		pEntry.hasSourceContent = true;
 		pEntry.sourceContent = content;
 		pEntry.content = content;
+		pEntry.removeServerCode = bRemoveServerCode;
+		pEntry.removeComments = bRemoveComments;
 		pEntry.processed = false;
 		if (ThreadInMainThread())
 			ProcessContent(&pEntry, fileID);
@@ -861,7 +863,7 @@ public:
 	}
 
 	// We only strip it, if it's valid lua (yes my token stuff is highly sensitive!)
-	std::string StripContent(std::string content, bool* bError, int fileID)
+	std::string StripContent(std::string content, bool* bError, int fileID, bool bRemoveServerCode, bool bRemoveComments)
 	{
 		*bError = false;
 		lua_State* L = luaL_newstate();
@@ -893,13 +895,13 @@ public:
 			}
 		}
 
-		return ProcessTokens(tokens, gmoddatapack_removeserverif.GetBool(), gmoddatapack_removecomments.GetBool());
+		return ProcessTokens(tokens, bRemoveServerCode, bRemoveComments);
 	}
 
 	void ProcessContent(LuaPackEntry* pEntry, int fileID)
 	{
 		bool bError;
-		std::string strippedContent = StripContent(pEntry->content, &bError, fileID);
+		std::string strippedContent = StripContent(pEntry->content, &bError, fileID, pEntry->removeServerCode, pEntry->removeComments);
 		if (bError)
 		{
 			Warning(PROJECT_NAME " - gmoddatapack: Failed to strip fileID \"%i\" due to lua errors! (%s)", fileID, strippedContent.c_str());
@@ -907,8 +909,6 @@ public:
 			pEntry->content = strippedContent;
 		}
 		pEntry->processed = true;
-		pEntry->removeServerCode = gmoddatapack_removeserverif.GetBool();
-		pEntry->removeComments = gmoddatapack_removecomments.GetBool();
 
 		if (ThreadInMainThread()) // SetStringUserData is NOT thread safe!
 		{
