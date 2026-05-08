@@ -794,15 +794,23 @@ public:
 
 		inline void Clear()
 		{
+			hasSourceContent = false;
+			sourceContent = "";
 			content = "";
 			compressed.Clear();
 			processed = false;
+			removeServerCode = false;
+			removeComments = false;
 		}
 
+		bool hasSourceContent = false;
+		std::string sourceContent = "";
 		std::string content = "";
 		Bootil::AutoBuffer compressed;
 		std::shared_mutex mutex; // Per entry instead of a global mutex to avoid blocking the main thread for other entries while compressing
 		bool processed = false;
+		bool removeServerCode = false;
+		bool removeComments = false;
 	};
 
 	void Initialize();
@@ -825,11 +833,25 @@ public:
 
 		LuaPackEntry& pEntry = m_pLuaFileCache[fileID];
 		std::lock_guard<std::shared_mutex> lock(pEntry.mutex);
-		if (pEntry.content == content) // Nothing changed
+		bool bRemoveServerCode = gmoddatapack_removeserverif.GetBool();
+		bool bRemoveComments = gmoddatapack_removecomments.GetBool();
+		bool bSameSource = pEntry.hasSourceContent && pEntry.sourceContent == content;
+		bool bSameProcessConfig = pEntry.removeServerCode == bRemoveServerCode && pEntry.removeComments == bRemoveComments;
+		if (bSameSource && pEntry.IsContentReady() && bSameProcessConfig) // Nothing changed
+		{
+			std::vector<unsigned char> pHash = HashString(pEntry.content.c_str(), pEntry.content.length() + 1);
+			g_pDataPack->m_pClientLuaFiles->SetStringUserData(fileID, pHash.size(), pHash.data());
+
 			return;
+		}
 
 		pEntry.compressed.Clear();
+		pEntry.hasSourceContent = true;
+		pEntry.sourceContent = content;
 		pEntry.content = content;
+		pEntry.processed = false;
+		if (ThreadInMainThread())
+			ProcessContent(&pEntry, fileID);
 
 		if (g_pGModDataPackModule.InDebug())
 			Msg(PROJECT_NAME " - gmoddatapack: Added fileID %i into compression queue!\n", fileID);
@@ -885,6 +907,8 @@ public:
 			pEntry->content = strippedContent;
 		}
 		pEntry->processed = true;
+		pEntry->removeServerCode = gmoddatapack_removeserverif.GetBool();
+		pEntry->removeComments = gmoddatapack_removecomments.GetBool();
 
 		if (ThreadInMainThread()) // SetStringUserData is NOT thread safe!
 		{
