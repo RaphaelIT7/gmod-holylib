@@ -5171,12 +5171,12 @@ Useful when you added/removed folders.
 #### bool HolyLib:PreLuaAutoRefresh(string filePath, string fileName)
 Called before a Lua file is being refreshed. If `true` is returned it will deny the refresh of the lua file.
 - string filePath — is the filePath provided relative to the garrysmod folder
-- string filename — is the filename without the extension
+- string fileName — is the filename without the extension
 ```lua
 hook.Add("HolyLib:PreLuaAutoRefresh", "ExamplePreAutoRefresh", function(filePath, fileName)
-    print("[BEFORE] FileChanged: " .. filePath .. filename)
+    print("[BEFORE] FileChanged: " .. filePath .. fileName)
 
-    if filename == "bogus" then
+    if fileName == "bogus" then
         print("Denying Refresh")
     	return true -- prevent refresh
     end
@@ -5188,7 +5188,7 @@ Called after a Lua file is refreshed.
 Note that if a refresh is being denied by PreLuaAutorefresh or DenyLuaAutoRefresh, this hook won't be called.
 ```lua
 hook.Add("HolyLib:PostLuaAutoRefresh", "ExamplePostAutoRefresh", function(filePath, fileName)
-    print("[AFTER] FileChanged: " .. filePath .. filename)
+    print("[AFTER] FileChanged: " .. filePath .. fileName)
 end)
 ```
 

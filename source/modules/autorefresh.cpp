@@ -3,7 +3,7 @@
 #include "lua.h"
 #include "detours.h"
 
-#include <unordered_map>
+#include <unordered_set>
 
 #include "tier0/memdbgon.h"
 
@@ -41,6 +41,7 @@ struct FileTimeJob {
 		strFileName = fileName;
 
 		nFileTime = g_pFullFileSystem->GetFileTime(strFileName.c_str(), "MOD");
+		bChanged = false;
 	}
 
 	Bootil::BString strFileName;
@@ -56,7 +57,7 @@ static bool AddFileToAutoRefresh(Bootil::BString pFilename)
 			return false;
 	}
 
-	auto newEntry = pFileTimestamps.emplace_back();
+	auto& newEntry = pFileTimestamps.emplace_back();
 	newEntry.Init(pFilename);
 	return true;
 }
@@ -79,7 +80,9 @@ static bool RemoveFileFromAutoRefresh(Bootil::BString pFilename)
 
 static void CheckFileTime(FileTimeJob* pJob)
 {
-	pJob->nFileTime = g_pFullFileSystem->GetFileTime(pJob->strFileName.c_str(), "MOD");
+	long nFileTime = g_pFullFileSystem->GetFileTime(pJob->strFileName.c_str(), "MOD");
+	pJob->bChanged = nFileTime != pJob->nFileTime;
+	pJob->nFileTime = nFileTime;
 }
 
 static Bootil::File::ChangeMonitor* g_pChangeMonitor = nullptr;
@@ -127,7 +130,8 @@ static void hook_Bootil_File_ChangeMonitor_CheckForChanges(Bootil::File::ChangeM
 			{
 				pFileJob.bChanged = false;
 				CheckFileTime(&pFileJob);
-				pMonitor->NoteFileChanged(pFileJob.strFileName);
+				if (pFileJob.bChanged)
+					pMonitor->NoteFileChanged(pFileJob.strFileName);
 				pFileJob.bChanged = false;
 			}
 		}
@@ -159,7 +163,7 @@ static bool hook_GarrysMod_AutoRefresh_HandleChange_Lua(const std::string* pfile
 		}
 	}
 
-	if (pBlacklistedFiles.find(*const_cast<Bootil::BString*>(pfileRelPath)) != pBlacklistedFiles.end())
+	if (pBlacklistedFiles.find(*pfileRelPath) != pBlacklistedFiles.end())
 	{
 		bDenyRefresh = true;
 	}
