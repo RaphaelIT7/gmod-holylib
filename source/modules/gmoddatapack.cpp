@@ -852,8 +852,6 @@ public:
 		pEntry.removeServerCode = bRemoveServerCode;
 		pEntry.removeComments = bRemoveComments;
 		pEntry.processed = false;
-		if (ThreadInMainThread())
-			ProcessContent(&pEntry, fileID);
 
 		if (g_pGModDataPackModule.InDebug())
 			Msg(PROJECT_NAME " - gmoddatapack: Added fileID %i into compression queue!\n", fileID);
