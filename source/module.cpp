@@ -335,7 +335,7 @@ IModuleWrapper* CModuleManager::RegisterModule(IModule* pModule)
 	module->SetModule(pModule);
 	module->SetID(g_pIDs);
 	Msg(PROJECT_NAME ": Registered module %-*s (%-*i Enabled: %s Compatible: %s MultiLua: %s)\n", 
-		20,
+		21,
 		module->FastGetModule()->Name(), 
 		2,
 		g_pIDs,
