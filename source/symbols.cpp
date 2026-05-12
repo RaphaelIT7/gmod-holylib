@@ -458,8 +458,8 @@ namespace Symbols
 	const std::vector<Symbol> CLuaGamemode_CallFinishSym = {//Search for "CLuaGamemode::CallFinish"
 		Symbol::FromName("_ZN12CLuaGamemode10CallFinishEi"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x56\x41\x55\x41\x54\x41\x89\xF4\x53\x48\x8B\x1D****\x8B\x93\x0C\x10\x00\x00"), // 55 48 89 E5 41 56 41 55 41 54 41 89 F4 53 48 8B 1D ?? ?? ?? ?? 8B 93 0C 10 00 00
-		Symbol::FromSignature("\x55\x8B\xEC\x8B\x0D\x2A\x2A\x2A\x2A\x57\x8B\x7D\x08"), //55 8B EC 8B 0D ? ? ? ? 57 8B 7D 08
-		Symbol::FromSignature("\x48\x89\x5C\x24\x08\x57\x48\x83\xEC\x30\x48\x8B\x0D\x2A\x2A\x2A\x2A"), //48 89 5C 24 08 57 48 83 EC 30 48 8B 0D ? ? ? ?
+		Symbol::FromSignature("\x55\x8B\xEC\x8B\x0D\x2A\x2A\x2A\x2A\x56\x8B\x75\x08\x83\xC6\x02"), // 55 8B EC 8B 0D ? ? ? ? 56 8B 75 08 83 C6 02
+		Symbol::FromSignature("\x40\x53\x48\x83\xEC\x30\x48\x8B\x0D\x2A\x2A\x2A\x2A\x8D\x5A\x02"), // 40 53 48 83 EC 30 48 8B 0D ? ? ? ? 8D 5A 02
 	};
 
 	const std::vector<Symbol> CLuaGamemode_CallWithArgsSym = { // int version - Look at the difference in the call to [GM:CallWithArgs - !ThreadInMainThread]
