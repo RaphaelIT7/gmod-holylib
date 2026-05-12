@@ -108,17 +108,17 @@ static void FinishSpew()
 #endif
 
 static Detouring::Hook detour_CVProfile_OutputReport;
-static void hook_CVProfile_OutputReport(void* fancy, int type, const tchar* pszStartMode, int budgetGroupID)
+static void hook_CVProfile_OutputReport(void* pProfile, int type, const tchar* pszStartMode, int budgetGroupID)
 {
 	if (!holylib_vprof_exportreport.GetBool())
 	{
-		detour_CVProfile_OutputReport.GetTrampoline<Symbols::CVProfile_OutputReport>()(fancy, type, pszStartMode, budgetGroupID);
+		detour_CVProfile_OutputReport.GetTrampoline<Symbols::CVProfile_OutputReport>()(pProfile, type, pszStartMode, budgetGroupID);
 		return;
 	}
 
 	StartSpew();
 
-	detour_CVProfile_OutputReport.GetTrampoline<Symbols::CVProfile_OutputReport>()(fancy, type, pszStartMode, budgetGroupID);
+	detour_CVProfile_OutputReport.GetTrampoline<Symbols::CVProfile_OutputReport>()(pProfile, type, pszStartMode, budgetGroupID);
 
 	FinishSpew();
 
@@ -147,12 +147,6 @@ static void hook_CVProfile_OutputReport(void* fancy, int type, const tchar* pszS
 
 	ss.str("");
 }
-
-#if SYSTEM_WINDOWS
-DETOUR_THISCALL_START()
-	DETOUR_THISCALL_ADDFUNC3(hook_CVProfile_OutputReport, OutputReport, void*, int, const tchar*, int);
-DETOUR_THISCALL_FINISH()
-#endif
 
 /*
  * There is no point in adding VPROF to CallWithArgs since it's useless.  
@@ -360,6 +354,22 @@ static void* hook_CScriptedEntity_CallFunction(void* funky_srv, int pool)
 	return detour_CScriptedEntity_CallFunction.GetTrampoline<Symbols::CScriptedEntity_CallFunction>()(funky_srv, pool);
 }
 
+#if SYSTEM_WINDOWS
+DETOUR_THISCALL_START()
+	DETOUR_THISCALL_ADDFUNC3( hook_CVProfile_OutputReport, OutputReport, void*, int, const tchar*, int );
+	DETOUR_THISCALL_ADDRETFUNC1( hook_CLuaGamemode_CallWithArgs, void*, CallWithArgs, void*, int );
+	DETOUR_THISCALL_ADDRETFUNC1( hook_CLuaGamemode_CallWithArgsStr, void*, CallWithArgsStr, void*, const char* );
+	DETOUR_THISCALL_ADDRETFUNC1( hook_CLuaGamemode_CallFinish, void*, CallFinish, void*, int );
+	DETOUR_THISCALL_ADDRETFUNC1( hook_CLuaGamemode_Call, void*, CallInt, void*, int );
+	DETOUR_THISCALL_ADDRETFUNC1( hook_CLuaGamemode_CallStr, void*, CallStr, void*, const char* );
+	DETOUR_THISCALL_ADDRETFUNC1( hook_CScriptedEntity_StartFunctionStr, void*, StartFunctionStr, void*, const char* );
+	DETOUR_THISCALL_ADDRETFUNC1( hook_CScriptedEntity_StartFunction, void*, StartFunctionInt, void*, int );
+	DETOUR_THISCALL_ADDRETFUNC2( hook_CScriptedEntity_Call, void*, ScriptedCall, void*, int, int );
+	DETOUR_THISCALL_ADDRETFUNC1( hook_CScriptedEntity_CallFunctionStr, void*, CallFunctionStr, void*, const char* );
+	DETOUR_THISCALL_ADDRETFUNC1( hook_CScriptedEntity_CallFunction, void*, CallFunctionInt, void*, int );
+DETOUR_THISCALL_FINISH();
+#endif
+
 static std::unordered_set<std::string> pLuaStrings; // Theses will almost never be freed!
 // VPROF doesn't manage the memory of the strings that are used in scopes!
 // So we need to make sure that they will always be valid.
@@ -416,72 +426,73 @@ void CVProfModule::InitDetour(bool bPreServer)
 	if (bPreServer)
 		return;
 
+	DETOUR_PREPARE_THISCALL();
 	SourceSDK::ModuleLoader tier0_loader("tier0");
 	Detour::Create(
 		&detour_CVProfile_OutputReport, "CVProfile::OutputReport",
 		tier0_loader.GetModule(), Symbols::CVProfile_OutputReportSym,
-		(void*)hook_CVProfile_OutputReport, m_pID
+		(void*)DETOUR_THISCALL( hook_CVProfile_OutputReport, OutputReport ), m_pID
 	);
 	
 	SourceSDK::ModuleLoader server_loader("server");
 	Detour::Create(
 		&detour_CLuaGamemode_CallStr, "CLuaGamemode::Call(const char*)",
 		server_loader.GetModule(), Symbols::CLuaGamemode_CallStrSym,
-		(void*)hook_CLuaGamemode_CallStr, m_pID
+		(void*)DETOUR_THISCALL( hook_CLuaGamemode_CallStr, CallStr ), m_pID
 	);
 
 	Detour::Create(
 		&detour_CLuaGamemode_Call, "CLuaGamemode::Call(int)",
 		server_loader.GetModule(), Symbols::CLuaGamemode_CallSym,
-		(void*)hook_CLuaGamemode_Call, m_pID
+		(void*)DETOUR_THISCALL( hook_CLuaGamemode_Call, CallInt ), m_pID
 	);
 
 	Detour::Create(
 		&detour_CLuaGamemode_CallFinish, "CLuaGamemode::CallFinish",
 		server_loader.GetModule(), Symbols::CLuaGamemode_CallFinishSym,
-		(void*)hook_CLuaGamemode_CallFinish, m_pID
+		(void*)DETOUR_THISCALL( hook_CLuaGamemode_CallFinish, CallFinish ), m_pID
 	);
 
 	Detour::Create(
 		&detour_CLuaGamemode_CallWithArgsStr, "CLuaGamemode::CallWithArgs(const char*)",
 		server_loader.GetModule(), Symbols::CLuaGamemode_CallWithArgsStrSym,
-		(void*)hook_CLuaGamemode_CallWithArgsStr, m_pID
+		(void*)DETOUR_THISCALL( hook_CLuaGamemode_CallWithArgsStr, CallWithArgsStr ), m_pID
 	);
 
 	Detour::Create(
 		&detour_CLuaGamemode_CallWithArgs, "CLuaGamemode::CallWithArgs(int)",
 		server_loader.GetModule(), Symbols::CLuaGamemode_CallWithArgsSym,
-		(void*)hook_CLuaGamemode_CallWithArgs, m_pID
+		(void*)DETOUR_THISCALL( hook_CLuaGamemode_CallWithArgs, CallWithArgs ), m_pID
 	);
 
 	Detour::Create(
 		&detour_CScriptedEntity_StartFunctionStr, "CScriptedEntity::StartFunction(const char*)",
 		server_loader.GetModule(), Symbols::CScriptedEntity_StartFunctionStrSym,
-		(void*)hook_CScriptedEntity_StartFunctionStr, m_pID
+		(void*)DETOUR_THISCALL( hook_CScriptedEntity_StartFunctionStr, StartFunctionStr ), m_pID
 	);
 
 	Detour::Create(
 		&detour_CScriptedEntity_StartFunction, "CScriptedEntity::StartFunction(int)",
 		server_loader.GetModule(), Symbols::CScriptedEntity_StartFunctionSym,
-		(void*)hook_CScriptedEntity_StartFunction, m_pID
+		(void*)DETOUR_THISCALL( hook_CScriptedEntity_StartFunction, StartFunctionInt ), m_pID
 	);
 
 	Detour::Create(
 		&detour_CScriptedEntity_Call, "CScriptedEntity::Call",
 		server_loader.GetModule(), Symbols::CScriptedEntity_CallSym,
-		(void*)hook_CScriptedEntity_Call, m_pID
+		(void*)DETOUR_THISCALL( hook_CScriptedEntity_Call, ScriptedCall ), m_pID
 	);
 
 	Detour::Create(
 		&detour_CScriptedEntity_CallFunctionStr, "CScriptedEntity::CallFunction(const char*)",
 		server_loader.GetModule(), Symbols::CScriptedEntity_CallFunctionStrSym,
-		(void*)hook_CScriptedEntity_CallFunctionStr, m_pID
+		(void*)DETOUR_THISCALL( hook_CScriptedEntity_CallFunctionStr, CallFunctionStr ), m_pID
 	);
 
 	Detour::Create(
 		&detour_CScriptedEntity_CallFunction, "CScriptedEntity::CallFunction(int)",
 		server_loader.GetModule(), Symbols::CScriptedEntity_CallFunctionSym,
-		(void*)hook_CScriptedEntity_CallFunction, m_pID
+		(void*)DETOUR_THISCALL( hook_CScriptedEntity_CallFunction, CallFunctionInt ), m_pID
 	);
 
 #if defined(ARCHITECTURE_X86) && 0
