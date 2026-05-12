@@ -22,7 +22,7 @@ public:
 	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
 	void InitDetour(bool bPreServer) override;
 	const char* Name() override { return "vprof"; };
-	int Compatibility() override { return LINUX32 | LINUX64 | WINDOWS32; };
+	int Compatibility() override { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 	bool SupportsMultipleLuaStates() override { return true; };
 	// NOTE for myself: Linux64 seemingly doesn't have vprof enabled! so don't suppositly add compatibility!
 	// Update: Fk my old self, Linux64 is just broken and it crashed because I had the wrong symbols.
@@ -409,14 +409,13 @@ void CVProfModule::InitDetour(bool bPreServer)
 	if (bPreServer)
 		return;
 
-#ifndef SYSTEM_WINDOWS
 	SourceSDK::ModuleLoader tier0_loader("tier0");
 	Detour::Create(
 		&detour_CVProfile_OutputReport, "CVProfile::OutputReport",
 		tier0_loader.GetModule(), Symbols::CVProfile_OutputReportSym,
 		(void*)hook_CVProfile_OutputReport, m_pID
 	);
-
+	
 	SourceSDK::ModuleLoader server_loader("server");
 	Detour::Create(
 		&detour_CLuaGamemode_CallStr, "CLuaGamemode::Call(const char*)",
@@ -477,7 +476,6 @@ void CVProfModule::InitDetour(bool bPreServer)
 		server_loader.GetModule(), Symbols::CScriptedEntity_CallFunctionSym,
 		(void*)hook_CScriptedEntity_CallFunction, m_pID
 	);
-#endif
 
 #if defined(ARCHITECTURE_X86) && 0
 	Detour::Create(
