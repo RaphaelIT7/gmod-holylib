@@ -147,6 +147,13 @@ static void hook_CVProfile_OutputReport(void* fancy, int type, const tchar* pszS
 
 	ss.str("");
 }
+
+#if SYSTEM_WINDOWS
+DETOUR_THISCALL_START()
+	DETOUR_THISCALL_ADDFUNC3(hook_CVProfile_OutputReport, OutputReport, void*, int, const tchar*, int);
+DETOUR_THISCALL_FINISH()
+#endif
+
 /*
  * There is no point in adding VPROF to CallWithArgs since it's useless.  
  * It isn't performance intensive since it only pushes the gamemode.Call thingy with the given hook.  
