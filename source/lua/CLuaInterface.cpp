@@ -1841,6 +1841,8 @@ bool CLuaInterface::CallFunctionProtected(int iArgs, int iRets, bool showError)
 	lua_insert(state, nPos);
 	int ret = PCall(iArgs, iRets, nPos);
 	lua_remove(state, nPos);
+	if (ret != 0)
+		Pop(1); // We expect our error handler to have taken care of it!
 
 	return ret == 0;
 }
