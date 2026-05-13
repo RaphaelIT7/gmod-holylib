@@ -115,6 +115,8 @@ public:
 	inline const char* GetMapName() { return m_strMapName.c_str(); };
 	inline ServerState GetServerState() { return m_nServerState; };
 
+	void DumpModule(CModule* module);
+
 private:
 	std::vector<CModule*> m_pModules;
 	int m_pStatus = 0;

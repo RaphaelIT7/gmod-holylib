@@ -334,16 +334,8 @@ IModuleWrapper* CModuleManager::RegisterModule(IModule* pModule)
 	m_pModules.push_back(module); // Add it first in case any ConVar callbacks get called in SetModule.
 	module->SetModule(pModule);
 	module->SetID(g_pIDs);
-	Msg(PROJECT_NAME ": Registered module %-*s (%-*i Enabled: %s Compatible: %s MultiLua: %s)\n", 
-		21,
-		module->FastGetModule()->Name(), 
-		2,
-		g_pIDs,
-		module->IsEnabled() ? "true, " : "false,", 
-		module->FastIsCompatible() ? "true, " : "false,",
-		module->GetModule()->SupportsMultipleLuaStates() ? "true " : "false"
-	);
-
+	DumpModule(module);
+	
 	return module;
 }
 
@@ -620,6 +612,19 @@ MODULE_RESULT CModuleManager::NetworkIDValidated(const char *pszUserName, const 
 	return result;
 }
 
+void CModuleManager::DumpModule(CModule* module)
+{
+	Msg(PROJECT_NAME ": Registered module %-*s (%-*i Enabled: %s Compatible: %s MultiLua: %s)\n", 
+		21,
+		module->FastGetModule()->Name(), 
+		2,
+		g_pIDs,
+		module->IsEnabled() ? "true, " : "false,", 
+		module->FastIsCompatible() ? "true, " : "false,",
+		module->GetModule()->SupportsMultipleLuaStates() ? "true " : "false"
+	);
+}
+
 CModuleManager g_pModuleManager;
 
 static void NukeModules(const CCommand &args)
@@ -634,17 +639,7 @@ static void ModuleStatus(const CCommand &args)
 	Msg("------- Modules -------\n");
 
 	for (CModule* module : g_pModuleManager.GetModules())
-	{
-		Msg(PROJECT_NAME ": Registered module %-*s (%-*i Enabled: %s Compatible: %s MultiLua: %s)\n", 
-			15,
-			module->FastGetModule()->Name(), 
-			2,
-			g_pIDs,
-			module->IsEnabled() ? "true, " : "false,", 
-			module->FastIsCompatible() ? "true " : "false",
-			module->GetModule()->SupportsMultipleLuaStates() ? "true " : "false"
-		);
-	}
+		g_pModuleManager.DumpModule(module);
 
 	Msg("------- Lua Interfaces -------\n");
 	Msg("Count: %i\n", (int)g_pModuleManager.GetLuaInterfaces().size());
