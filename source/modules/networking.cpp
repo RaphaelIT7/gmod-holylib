@@ -448,6 +448,12 @@ static inline CBaseViewModel* GetViewModel(const void* pPlayer, const int nViewM
 	return (CBaseViewModel*)IndexToEntity(((CBasePlayer::CBaseViewModelHandle*)m_hViewModel_Offset.GetPointerArray(pPlayer, nViewModelSlot))->GetEntryIndex());
 }
 
+static DTVarByOffset m_Collision_Offset("DT_BaseEntity", "m_Collision");
+static inline CCollisionProperty* GetEntityCollisionProperty(const void* pEnt)
+{
+	return (CCollisionProperty*)m_Collision_Offset.GetPointer(pEnt);
+}
+
 static ConVar networking_bind_gmodhands_to_player("holylib_networking_bind_gmodhands_to_player", "1", 0, "Experimental - If enabled, the GMOD Hands / Player:SetHands entity will be bound to the player and only networked if the player is networked");
 static ConVar networking_bind_viewmodels_to_player("holylib_networking_bind_viewmodels_to_player", "1", 0, "Experimental - If enabled, the viewmodels will be bound to the player and only networked if the player is networked");
 static CBitVec<MAX_EDICTS> g_pForceWeaponTransmitIndexes;
@@ -884,10 +890,14 @@ static inline void DoTransmitPVSCheck(
 	// Check if we have a range set and if so skip transmit
 	if (maxTransmitRange != -1.0f)
 	{
-		const vec_t dist = pEnt->CollisionProp()->WorldSpaceCenter().DistTo(clientPosition);
-		float radius = pEnt->CollisionProp()->BoundingRadius();
-		if ((dist - radius) > maxTransmitRange)
-			return;
+		CCollisionProperty* pCollision = GetEntityCollisionProperty(pEnt);
+		if (pCollision)
+		{
+			const vec_t dist = pCollision->WorldSpaceCenter().DistTo(clientPosition);
+			float radius = pCollision->BoundingRadius();
+			if ((dist - radius) > maxTransmitRange)
+				return;
+		}
 	}
 
 	const bool bInPVS = netProp->IsInPVS( pInfo );
