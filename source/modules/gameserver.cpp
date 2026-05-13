@@ -2891,8 +2891,11 @@ static bool hook_CBaseClient_ShouldSendMessages(CBaseClient* cl)
 	if ( !cl->IsConnected() )
 		return false;
 
+	// RaphaelIT7: We want to avoid accessing cl->m_NetChannel directly as it may move in rare cases.
+	INetChannel* netChannel = cl->GetNetChannel();
+
 	// if the reliable message overflowed, drop the client
-	if ( cl->m_NetChannel && cl->m_NetChannel->IsOverflowed() )
+	if ( netChannel && netChannel->IsOverflowed() )
 	{
 		bool bKick = true;
 		if (Lua::PushHook("HolyLib:OnChannelOverflow"))
@@ -2907,14 +2910,14 @@ static bool hook_CBaseClient_ShouldSendMessages(CBaseClient* cl)
 
 		if (bKick)
 		{
-			cl->m_NetChannel->Reset();
+			netChannel->Reset();
 			cl->Disconnect( "%s overflowed reliable buffer", cl->m_Name);
 			return false;
 		}
 	}
 
-	if ( cl->m_NetChannel )
-		net_time = cl->m_NetChannel->GetTime(); // Required as we use net_time below.
+	if ( netChannel )
+		net_time = netChannel->GetTime(); // Required as we use net_time below.
 
 	// check, if it's time to send the next packet
 	bool bSendMessage = cl->m_fNextMessageTime <= net_time;
@@ -2922,17 +2925,17 @@ static bool hook_CBaseClient_ShouldSendMessages(CBaseClient* cl)
 	{
 		// if we are in signon modem instantly reply if
 		// we got a answer and have reliable data waiting
-		if ( cl->m_bReceivedPacket && cl->m_NetChannel && cl->m_NetChannel->HasPendingReliableData() )
+		if ( cl->m_bReceivedPacket && netChannel && netChannel->HasPendingReliableData() )
 		{
 			bSendMessage = true;
 		}
 	}
 
-	if ( bSendMessage && cl->m_NetChannel && !cl->m_NetChannel->CanPacket() )
+	if ( bSendMessage && netChannel && !netChannel->CanPacket() )
 	{
 		// we would like to send a message, but bandwidth isn't available yet
 		// tell netchannel that we are choking a packet
-		cl->m_NetChannel->SetChoked();
+		netChannel->SetChoked();
 		// Record an ETW event to indicate that we are throttling.
 #if ARCHITECTURE_IS_X86
 		ETWThrottled();
