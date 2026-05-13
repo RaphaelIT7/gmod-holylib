@@ -224,7 +224,6 @@ GarrysMod::Lua::ILuaGameCallback::CLuaError* ReadStackIntoError(lua_State* L)
 int AdvancedLuaErrorReporter(lua_State *L) 
 {
 	// VPROF AdvancedLuaErrorReporter GLua
-	printf("Error123\n");
 	if (lua_isstring(L, 1)) {
 		// const char* str = lua_tostring(L, 1);
 
@@ -232,7 +231,9 @@ int AdvancedLuaErrorReporter(lua_State *L)
 
 		CLuaInterface* LUA = (CLuaInterface*)L->luabase;
 		lua_pushvalue(L, 1);
-		LUA->GetLuaGameCallback()->LuaError(ReadStackIntoError(L));
+		GarrysMod::Lua::ILuaGameCallback::CLuaError* pError = ReadStackIntoError(L);
+		LUA->GetLuaGameCallback()->LuaError(pError);
+		delete pError;
 		lua_pop(L, 1);
 
 		// lua_pushstring(L, g_LastError.c_str());
@@ -1838,18 +1839,8 @@ bool CLuaInterface::CallFunctionProtected(int iArgs, int iRets, bool showError)
 	int nPos = lua_gettop(state) - iArgs;
 	lua_rawgeti(state, LUA_REGISTRYINDEX, m_nLuaErrorReporter);
 	lua_insert(state, nPos);
-	int ret = PCall(iArgs, iRets, -1);
+	int ret = PCall(iArgs, iRets, nPos);
 	lua_remove(state, nPos);
-	if (ret != 0)
-	{
-		printf("Test123\n");
-		GarrysMod::Lua::ILuaGameCallback::CLuaError* err = ReadStackIntoError(state);
-		if (showError)
-			m_pGameCallback->LuaError(err);
-
-		delete err;
-		Pop(1);
-	}
 
 	return ret == 0;
 }
