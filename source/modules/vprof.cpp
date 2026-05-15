@@ -1,3 +1,11 @@
+// We must include them first since else windows starts yapping about private being a macro in STL headers
+#include <threadtools.h>
+#include <dbg.h>
+#define private public
+#include <vprof.h>
+#undef private
+#include <ivprofexport.h>
+
 #include "filesystem_base.h" // Has to be before symbols.h
 #include "LuaInterface.h"
 #include "detours.h"
@@ -7,10 +15,10 @@
 #include <sstream>
 #include <iomanip>
 #include <map>
-#include <vprof.h>
 #include <unordered_set>
 #include <unordered_map>
 #include "color.h"
+#include "ankerl/unordered_dense.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -35,7 +43,14 @@ static ConVar holylib_vprof_exportreport("holylib_vprof_exportreport", "1", FCVA
 static CVProfModule g_pVProfModule;
 IModule* pVProfModule = &g_pVProfModule;
 
-static std::string GetCurrentTime() { // Yoink from vprof module
+/*
+	Some notes for VPROF:
+		- For Nodes it compares the name POINTER not the contents! If no pointer matches a new node is created!
+		- VProf crashes when reaching a depth of ~1024
+*/
+
+static std::string GetCurrentTime()
+{ // Yoink from vprof module
 	auto now = std::chrono::system_clock::now();
 	std::time_t now_time = std::chrono::system_clock::to_time_t(now);
 
@@ -179,7 +194,7 @@ static void* hook_CLuaGamemode_CallWithArgsStr(void* funky_srv, const char* str)
 	return detour_CLuaGamemode_CallWithArgsStr.GetTrampoline<Symbols::CLuaGamemode_CallWithArgsStr>()(funky_srv, str);
 }
 
-static std::map<std::string_view, std::string> CallFinish_strs;
+static ankerl::unordered_dense::map<std::string_view, std::string> CallFinish_strs;
 static Detouring::Hook detour_CLuaGamemode_CallFinish;
 static void* hook_CLuaGamemode_CallFinish(void* funky_srv, int pArgs)
 {
@@ -202,7 +217,7 @@ static void* hook_CLuaGamemode_CallFinish(void* funky_srv, int pArgs)
 	return detour_CLuaGamemode_CallFinish.GetTrampoline<Symbols::CLuaGamemode_CallFinish>()(funky_srv, pArgs);
 }
 
-static std::map<int, std::string> Call_strs;
+static ankerl::unordered_dense::map<uint32_t, std::string> Call_strs;
 static Detouring::Hook detour_CLuaGamemode_Call;
 static void* hook_CLuaGamemode_Call(void* funky_srv, int pool)
 {
@@ -224,7 +239,7 @@ static void* hook_CLuaGamemode_Call(void* funky_srv, int pool)
 	return detour_CLuaGamemode_Call.GetTrampoline<Symbols::CLuaGamemode_Call>()(funky_srv, pool);
 }
 
-static std::map<std::string_view, std::string> CallStr_strs;
+static ankerl::unordered_dense::map<std::string_view, std::string> CallStr_strs;
 static Detouring::Hook detour_CLuaGamemode_CallStr;
 static void* hook_CLuaGamemode_CallStr(void* funky_srv, const char* str)
 {
@@ -254,11 +269,11 @@ static void* hook_CLuaGamemode_CallStr(void* funky_srv, const char* str)
  * - CScriptedEntity::Call(int iPooledString) - Unlike the function above, we call a function that has no args & return values like Think.
  */
 static const char* pCurrentScriptFunction = nullptr;
-static std::map<std::string_view, std::string> ScriptedEntity_StartFunctionStr_strs;
+static ankerl::unordered_dense::map<std::string_view, std::string> ScriptedEntity_StartFunctionStr_strs;
 static Detouring::Hook detour_CScriptedEntity_StartFunctionStr;
 static void* hook_CScriptedEntity_StartFunctionStr(void* funky_srv, const char* str) // Only used by GetSoundInterests
 {
-	if (!g_Lua)
+	if (!g_Lua || !ThreadInMainThread())
 		return detour_CScriptedEntity_StartFunctionStr.GetTrampoline<Symbols::CScriptedEntity_StartFunctionStr>()(funky_srv, str);
 
 	const char* pStr = nullptr;
@@ -276,7 +291,7 @@ static void* hook_CScriptedEntity_StartFunctionStr(void* funky_srv, const char* 
 	return detour_CScriptedEntity_StartFunctionStr.GetTrampoline<Symbols::CScriptedEntity_StartFunctionStr>()(funky_srv, str);
 }
 
-static std::map<int, std::string> CScriptedEntity_StartFunction_strs;
+static ankerl::unordered_dense::map<int, std::string> CScriptedEntity_StartFunction_strs;
 static Detouring::Hook detour_CScriptedEntity_StartFunction;
 static void* hook_CScriptedEntity_StartFunction(void* funky_srv, int pool)
 {
@@ -310,7 +325,7 @@ static void* hook_CScriptedEntity_Call(void* funky_srv, int iArgs, int iRets)
 	return detour_CScriptedEntity_Call.GetTrampoline<Symbols::CScriptedEntity_Call>()(funky_srv, iArgs, iRets);
 }
 
-static std::map<std::string_view, std::string> CScriptedEntity_CallFunctionStr_strs;
+static ankerl::unordered_dense::map<std::string_view, std::string> CScriptedEntity_CallFunctionStr_strs;
 static Detouring::Hook detour_CScriptedEntity_CallFunctionStr;
 static void* hook_CScriptedEntity_CallFunctionStr(void* funky_srv, const char* str)
 {
@@ -332,7 +347,7 @@ static void* hook_CScriptedEntity_CallFunctionStr(void* funky_srv, const char* s
 	return detour_CScriptedEntity_CallFunctionStr.GetTrampoline<Symbols::CScriptedEntity_CallFunctionStr>()(funky_srv, str);
 }
 
-static std::map<int, std::string> CScriptedEntity_CallFunction_strs;
+static ankerl::unordered_dense::map<int, std::string> CScriptedEntity_CallFunction_strs;
 static Detouring::Hook detour_CScriptedEntity_CallFunction;
 static void* hook_CScriptedEntity_CallFunction(void* funky_srv, int pool)
 {
@@ -370,21 +385,33 @@ DETOUR_THISCALL_START()
 DETOUR_THISCALL_FINISH();
 #endif
 
-static std::unordered_set<std::string> pLuaStrings; // Theses will almost never be freed!
+struct StringHash {
+	using is_transparent = void;
+	size_t operator()(std::string_view sv) const noexcept {
+		return std::hash<std::string_view>{}(sv);
+	}
+};
+
+struct StringEq {
+	using is_transparent = void;
+	bool operator()(std::string_view a, std::string_view b) const noexcept {
+		return a == b;
+	}
+};
+
+static ankerl::unordered_dense::set<std::string, StringHash, StringEq> pLuaStrings; // Theses will almost never be freed!
 // VPROF doesn't manage the memory of the strings that are used in scopes!
 // So we need to make sure that they will always be valid.
 // It does manage the strings of counters and budget groups
 static const char* AddOrGetString(const char* pString)
 {
-	std::string strValue = pString;
+	std::string_view strValue = pString;
 	auto it = pLuaStrings.find(strValue);
 	if (it != pLuaStrings.end())
 		return it->c_str();
 
-	pLuaStrings.insert(strValue);
-	auto it2 = pLuaStrings.find(strValue); // Get the new std::string to return
-
-	return it2->c_str();
+	auto [newIt, inserted] = pLuaStrings.emplace(strValue);
+	return newIt->c_str();
 }
 
 #if 0
@@ -420,6 +447,302 @@ static void* hook_lj_BC_FUNCC(void* arg) // Find out the luajit function later.
 	return ret;
 }
 #endif
+
+#if defined(ARCHITECTURE_X86) && defined(SYSTEM_LINUX)
+// HACK!
+// GMod's libtier0_srv.so is fucked
+// All CL2Cache are LOCAL and not GLOBAL (inside .symtab) and do NOT exist inside .dynsym causing the linker to NOT link against them!
+// This probably happens because CVProfNode::CVProfNode is inlined and since only the CVProfNode class uses CL2Cache
+// And CVProfNode is only created inside CVProfNode::GetSubNode which is defined in tier0 the compiler decided to hide it? I dunno
+static Symbols::CL2Cache_Constructor func_CL2Cache_Constructor = nullptr;
+CL2Cache::CL2Cache()
+{
+	if (func_CL2Cache_Constructor)
+		func_CL2Cache_Constructor(this);
+}
+
+static Symbols::CL2Cache_Deconstructor func_CL2Cache_Deconstructor = nullptr;
+CL2Cache::~CL2Cache()
+{
+	if (func_CL2Cache_Deconstructor)
+		func_CL2Cache_Deconstructor(this);
+}
+#endif
+
+/*
+	IMPORTANT:
+		Our class MUST not make the engine depend on HolyLib
+		We must initialize the normal node BUT can store additional things in our
+		BUT we can never expect all nodes to be from HolyLib!
+		This design then also allows one to enable/disable this module at runtime without issues :)
+*/
+static constexpr int NODEID_OFFSET = 1 << 28;
+class HolyLib_CVProfNode : public CVProfNode
+{
+public:
+	HolyLib_CVProfNode(const tchar* pszName, int detailLevel, HolyLib_CVProfNode *pParent, const tchar *pBudgetGroupName, int budgetFlags)
+		: CVProfNode(pszName, detailLevel, pParent, pBudgetGroupName, budgetFlags)
+	{
+		m_iUniqueNodeID += NODEID_OFFSET;
+
+		if (pParent->IsHolyLibNode())
+			pParent->AddChildNode(this);
+	}
+
+	inline bool IsHolyLibNode()
+	{
+		return m_iUniqueNodeID > NODEID_OFFSET;
+	}
+
+	// ONLY use these on HolyLib nodes!
+
+	inline HolyLib_CVProfNode* FindChildNode(const char* name)
+	{
+		auto it = m_pChildren.find(name);
+		if (it != m_pChildren.end())
+			return it->second;
+
+		return nullptr;
+	}
+
+	inline void AddChildNode(HolyLib_CVProfNode* pChild)
+	{
+		m_pChildren[pChild->GetName()] = pChild;
+	}
+
+	inline size_t ChildCount()
+	{
+		return m_pChildren.size();
+	}
+
+	inline void SetCachedParent(CVProfNode* pParent, int budgetFlagsFilter)
+	{
+		m_pCachedParent = pParent;
+		m_nCachedParentFilter = budgetFlagsFilter;
+	}
+
+	inline CVProfNode* GetCachedParent(int budgetFlagsFilter)
+	{
+		if (budgetFlagsFilter == m_nCachedParentFilter)
+			return m_pCachedParent;
+
+		return nullptr;
+	}
+
+private:
+	ankerl::unordered_dense::map<const char*, HolyLib_CVProfNode*> m_pChildren;
+
+	CVProfNode* m_pCachedParent = nullptr;
+	// If our filter changes our parent may no longer be valid
+	// Though this usually only happens on a client when the budget panel is used.
+	int m_nCachedParentFilter = 0;
+};
+
+static Detouring::Hook detour_CVProfNode_GetSubNode;
+static CVProfNode* hook_CVProfNode_GetSubNode(HolyLib_CVProfNode* _this, const tchar* pszName, int detailLevel, const tchar* pBudgetGroupName, int budgetFlags)
+{
+	if (_this->IsHolyLibNode() && _this->ChildCount() > 10)
+	{
+		// For wider nodes (one with many children) this will be faster
+		HolyLib_CVProfNode* pChild = _this->FindChildNode(pszName);
+		if (pChild)
+			return pChild;
+	} else {
+		// Try to find this sub node
+		CVProfNode* child = _this->m_pChild;
+		while (child) 
+		{
+			if (child->m_pszName == pszName) 
+				return child;
+
+			child = child->m_pSibling;
+		}
+	}
+
+	// We didn't find it, so add it
+	auto * node = new HolyLib_CVProfNode( pszName, detailLevel, _this, pBudgetGroupName, budgetFlags );
+	node->m_pSibling = _this->m_pChild;
+	_this->m_pChild = node;
+
+	return node;
+}
+
+class CVProfExport : public IVProfExport
+{
+public:
+	inline bool CanShowBudgetGroup(int iGroup)
+	{
+		return (g_VProfCurrentProfile.GetBudgetGroupFlags(iGroup) & m_BudgetFlagsFilter) != 0;
+	}
+
+public:
+	CUtlVector<float> m_Times;	// Times from the most recent snapshot.
+	int m_nListeners;
+	int m_BudgetFlagsFilter;	// We can only capture one type of filtered data at a time.
+	bool m_bStart;
+	bool m_bStop;
+};
+
+// CVProfNode::MarkFrame() is also recursive though shouldn't become a performance issue
+
+static bool g_bUsingCVProfExport = false;
+// static so that we don't keep freeing & allocating
+// We use this also for hook_CVProfNode_MarkFrame to avoid ending up with two static large vectors
+static std::vector<CVProfNode*> g_pNodeStack;
+static Symbols::VProfRecord_IsPlayingBack func_VProfRecord_IsPlayingBack;
+static Detouring::Hook detour_CVProfExport_CalculateBudgetGroupTimes_Recursive;
+void hook_CVProfExport_CalculateBudgetGroupTimes_Recursive(CVProfExport* pExport, HolyLib_CVProfNode *pNode);
+void hook_CVProfExport_CalculateBudgetGroupTimes_Recursive(CVProfExport* pExport, HolyLib_CVProfNode *pNode)
+{
+	// RaphaelIT7:
+	// for servers this entire function is basically useless and eats performance like hell
+	// though I won't just break it as there is a VProfExport001 interface 
+	// NOTE: We also don't need to call ClearPrevTime here because first, it's unused, and second MarkFrame overrides it anyways
+	if (pExport->m_nListeners <= 0)
+	{
+		g_bUsingCVProfExport = false;
+		return;
+	}
+
+	g_bUsingCVProfExport = true;
+
+	// We don't do this recursively anymore as I did encounter a stack overflow crash
+	bool bIsNotPlayingBack = func_VProfRecord_IsPlayingBack && !func_VProfRecord_IsPlayingBack();
+	g_pNodeStack.push_back(pNode);
+	while (!g_pNodeStack.empty())
+	{
+		HolyLib_CVProfNode* pNode = (HolyLib_CVProfNode*)g_pNodeStack.back();
+		g_pNodeStack.pop_back();
+
+		if (!pNode)
+			continue;
+
+		// If this node's info is filtered out, then put it in its parent's budget group.
+		bool bDoParentSearch = true;
+		CVProfNode* pTestNode = pNode;
+		if (pNode->IsHolyLibNode())
+		{
+			pTestNode = pNode->GetCachedParent(pExport->m_BudgetFlagsFilter);
+			if (pTestNode)
+				bDoParentSearch = false;
+			else
+				pTestNode = pNode;
+		}
+
+		while ( bDoParentSearch && pTestNode != g_VProfCurrentProfile.GetRoot() && 
+				( !pExport->CanShowBudgetGroup( pTestNode->GetBudgetGroupID() ) || 
+					( g_VProfCurrentProfile.GetBudgetGroupFlags( pTestNode->GetBudgetGroupID() ) & BUDGETFLAG_HIDDEN ) != 0 ) )
+		{
+			pTestNode = pTestNode->GetParent();
+		}
+
+		if (!bDoParentSearch)
+			pNode->SetCachedParent(pNode, pExport->m_BudgetFlagsFilter);
+
+		int groupID = pTestNode->GetBudgetGroupID();
+		if (groupID >= 0 && groupID < MIN(pExport->m_Times.Count(), (intp)IVProfExport::MAX_BUDGETGROUP_TIMES))
+			pExport->m_Times[groupID] += pNode->GetPrevTimeLessChildren();
+		else
+			Assert(false);
+
+		if(pNode->GetSibling())
+			g_pNodeStack.push_back((HolyLib_CVProfNode*)pNode->GetSibling());
+
+		if(pNode->GetChild())
+			g_pNodeStack.push_back((HolyLib_CVProfNode*)pNode->GetChild());
+
+		if (bIsNotPlayingBack)
+			pNode->ClearPrevTime();
+	}
+}
+
+static Detouring::Hook detour_CVProfNode_MarkFrame;
+static void hook_CVProfNode_MarkFrame(CVProfNode* pNode)
+{
+	g_pNodeStack.push_back(pNode);
+
+	if (g_bUsingCVProfExport)
+	{
+		// This is quite "expensive" simply due to how much we read-write
+		// expensive in quotes since I was testing with 6750000 nodes
+		while (!g_pNodeStack.empty())
+		{
+			pNode = g_pNodeStack.back();
+			g_pNodeStack.pop_back();
+
+			pNode->m_nPrevFrameCalls = pNode->m_nCurFrameCalls;
+			pNode->m_PrevFrameTime = pNode->m_CurFrameTime;
+			pNode->m_iPrevL2CacheMiss = pNode->m_iCurL2CacheMiss;
+
+			pNode->m_nTotalCalls += pNode->m_nCurFrameCalls;
+			pNode->m_TotalTime += pNode->m_CurFrameTime;
+
+			if (pNode->m_PeakTime.IsLessThan(pNode->m_CurFrameTime))
+				pNode->m_PeakTime = pNode->m_CurFrameTime;
+
+			pNode->m_CurFrameTime.Init();
+			pNode->m_nCurFrameCalls = 0;
+
+			pNode->m_iTotalL2CacheMiss += pNode->m_iCurL2CacheMiss;
+			pNode->m_iCurL2CacheMiss = 0;
+
+			if (pNode->m_pSibling)
+				g_pNodeStack.push_back(pNode->m_pSibling);
+
+			if (pNode->m_pChild)
+				g_pNodeStack.push_back(pNode->m_pChild);
+		}
+	} else {
+		// Simple MarkFrame when we don't need all values
+		// Stuff like L2Cache, PrevFrame are not set in here
+		while (!g_pNodeStack.empty())
+		{
+			pNode = g_pNodeStack.back();
+			g_pNodeStack.pop_back();
+
+			if (pNode->m_pSibling)
+				g_pNodeStack.push_back(pNode->m_pSibling);
+
+			// HUGE: This saves a HUGE amount of calls as we skip nodes that weren't touched.
+			if (pNode->m_nCurFrameCalls == 0)
+				continue;
+
+			pNode->m_nTotalCalls += pNode->m_nCurFrameCalls;
+			pNode->m_TotalTime += pNode->m_CurFrameTime;
+
+			if (pNode->m_PeakTime.IsLessThan(pNode->m_CurFrameTime))
+				pNode->m_PeakTime = pNode->m_CurFrameTime;
+
+			pNode->m_CurFrameTime.Init();
+			pNode->m_nCurFrameCalls = 0;
+
+			if (pNode->m_pChild)
+				g_pNodeStack.push_back(pNode->m_pChild);
+		}
+	}
+}
+
+static Detouring::Hook detour_CVProfile_FreeNodes_R;
+static void hook_CVProfile_FreeNodes_R(CVProfile* profile, HolyLib_CVProfNode* pNode);
+static void hook_CVProfile_FreeNodes_R(CVProfile* profile, HolyLib_CVProfNode* pNode)
+{
+	CVProfNode *pNext;
+	for (CVProfNode *pChild = pNode->GetChild(); pChild; pChild = pNext)
+	{
+		pNext = pChild->GetSibling();
+		hook_CVProfile_FreeNodes_R( profile, (HolyLib_CVProfNode*)pChild );
+	}
+	
+	if ( pNode == profile->GetRoot() )
+		pNode->m_pChild = nullptr;
+	else {
+		// We check and cast properly since CVProfNode::~CVProfNode is NOT a virtual deconstructor!
+		if (pNode->IsHolyLibNode())
+			delete (HolyLib_CVProfNode*)pNode;
+		else
+			delete (CVProfNode*)pNode;
+	}
+}
 
 void CVProfModule::InitDetour(bool bPreServer)
 {
@@ -494,6 +817,44 @@ void CVProfModule::InitDetour(bool bPreServer)
 		server_loader.GetModule(), Symbols::CScriptedEntity_CallFunctionSym,
 		(void*)DETOUR_THISCALL( hook_CScriptedEntity_CallFunction, CallFunctionInt ), m_pID
 	);
+
+#if defined(ARCHITECTURE_X86) 
+	SourceSDK::ModuleLoader engine_loader("engine");
+	Detour::Create(
+		&detour_CVProfNode_GetSubNode, "CVProfNode::GetSubNode",
+		tier0_loader.GetModule(), Symbols::CVProfNode_GetSubNodeSym,
+		(void*)hook_CVProfNode_GetSubNode, m_pID
+	);
+
+	Detour::Create(
+		&detour_CVProfExport_CalculateBudgetGroupTimes_Recursive, "CVProfExport::CalculateBudgetGroupTimes_Recursive",
+		engine_loader.GetModule(), Symbols::CVProfExport_CalculateBudgetGroupTimes_RecursiveSym,
+		(void*)hook_CVProfExport_CalculateBudgetGroupTimes_Recursive, m_pID
+	);
+
+	Detour::Create(
+		&detour_CVProfNode_MarkFrame, "CVProfNode::MarkFrame",
+		tier0_loader.GetModule(), Symbols::CVProfNode_MarkFrameSym,
+		(void*)hook_CVProfNode_MarkFrame, m_pID
+	);
+
+	Detour::Create(
+		&detour_CVProfile_FreeNodes_R, "CVProfile::FreeNodes_R",
+		tier0_loader.GetModule(), Symbols::CVProfile_FreeNodes_RSym,
+		(void*)hook_CVProfile_FreeNodes_R, m_pID
+	);
+
+	func_VProfRecord_IsPlayingBack = (Symbols::VProfRecord_IsPlayingBack)Detour::GetFunction(engine_loader.GetModule(), Symbols::VProfRecord_IsPlayingBackSym);
+	Detour::CheckFunction((void*)func_VProfRecord_IsPlayingBack, "VProfRecord_IsPlayingBack");
+
+#if defined(SYSTEM_LINUX)
+	func_CL2Cache_Constructor = (Symbols::CL2Cache_Constructor)Detour::GetFunction(tier0_loader.GetModule(), Symbols::CL2Cache_ConstructorSym);
+	Detour::CheckFunction((void*)func_CL2Cache_Constructor, "CL2Cache::Constructor");
+
+	func_CL2Cache_Deconstructor = (Symbols::CL2Cache_Deconstructor)Detour::GetFunction(tier0_loader.GetModule(), Symbols::CL2Cache_DeconstructorSym);
+	Detour::CheckFunction((void*)func_CL2Cache_Deconstructor, "CL2Cache::Deconstructor");
+#endif
+#endif
 
 #if defined(ARCHITECTURE_X86) && 0
 	Detour::Create(
@@ -1057,6 +1418,9 @@ LUA_FUNCTION_STATIC(vprof_MarkFrame)
 	return 0;
 }
 
+// ToDo:
+//   1) Maybe we should consider to add a block to depth to avoid a crash?
+//   2) We should probably hook into CLuaInterface::CallFunctionProtected to then restore vprof in case of a lua error
 LUA_FUNCTION_STATIC(vprof_EnterScope)
 {
 	const char* pName = AddOrGetString(LUA->CheckString(1));

@@ -453,6 +453,27 @@ namespace Symbols
 	using lj_BC_FUNCC = void* (GMCOMMON_CALLING_CONVENTION*)(void* idk);
 	extern const std::vector<Symbol> lj_BC_FUNCCSym;
 
+	using CVProfNode_GetSubNode = void* (*)(void* node, const tchar *pszName, int detailLevel, const tchar *pBudgetGroupName, int budgetFlags);
+	extern const std::vector<Symbol> CVProfNode_GetSubNodeSym;
+	
+	using CVProfile_FreeNodes_R = void (*)(void* profile, void *pNode);
+	extern const std::vector<Symbol> CVProfile_FreeNodes_RSym;
+	
+	using CL2Cache_Constructor = void (*)(void* cache);
+	extern const std::vector<Symbol> CL2Cache_ConstructorSym;
+	
+	using CL2Cache_Deconstructor = void (*)(void* cache);
+	extern const std::vector<Symbol> CL2Cache_DeconstructorSym;
+	
+	using CVProfNode_MarkFrame = void (*)(void* node);
+	extern const std::vector<Symbol> CVProfNode_MarkFrameSym;
+
+	using CVProfExport_CalculateBudgetGroupTimes_Recursive = void (*)(void* vprofExport, void* node);
+	extern const std::vector<Symbol> CVProfExport_CalculateBudgetGroupTimes_RecursiveSym;
+
+	using VProfRecord_IsPlayingBack = bool (*)();
+	extern const std::vector<Symbol> VProfRecord_IsPlayingBackSym;
+
 	//---------------------------------------------------------------------------------
 	// Purpose: networking Symbols
 	//---------------------------------------------------------------------------------

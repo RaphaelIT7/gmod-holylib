@@ -162,9 +162,9 @@ ExecuteModuleMacros()
 local function CompileVersionFile()
 	local path = "../../workflow_info.txt"
 	local file = io.open(path, "r")
-	local run_id = file and file:read("*l") or "1"
-	local run_number = file and file:read("*l") or "1"
-	local branch = file and file:read("*l") or "main"
+	local run_id = string.Trim(file and file:read("*l") or "1")
+	local run_number = string.Trim(file and file:read("*l") or "1")
+	local branch = string.Trim(file and file:read("*l") or "main")
 	--local additional = file and file:read("*l") or "0"
 
 	local versionFile = [[

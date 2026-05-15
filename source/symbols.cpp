@@ -536,6 +536,34 @@ namespace Symbols
 		Symbol::FromSignature("\x8B\x6A\xF8\x8B\x7D\x14\x8B\x6C\x24\x30\x8D\x44\xC2\xF8\x89\x55\x10\x8D\x88\xA0\x00\x00\x00\x3B\x4D\x18\x89\x45\x14\x89\x2C\x24"), // 8B 6A F8 8B 7D 14 8B 6C 24 30 8D 44 C2 F8 89 55 10 8D 88 A0 00 00 00 3B 4D 18 89 45 14 89 2C 24
 	};
 
+	const std::vector<Symbol> CVProfNode_GetSubNodeSym = {
+		Symbol::FromName("_ZN10CVProfNode10GetSubNodeEPKciS1_i"),
+	};
+
+	const std::vector<Symbol> CVProfile_FreeNodes_RSym = {
+		Symbol::FromName("_ZN9CVProfile11FreeNodes_REP10CVProfNode"),
+	};
+
+	const std::vector<Symbol> CL2Cache_ConstructorSym = {
+		Symbol::FromName("_ZN8CL2CacheC2Ev"),
+	};
+
+	const std::vector<Symbol> CL2Cache_DeconstructorSym = {
+		Symbol::FromName("_ZN8CL2CacheD1Ev"),
+	};
+
+	const std::vector<Symbol> CVProfNode_MarkFrameSym = {
+		Symbol::FromName("_ZN10CVProfNode9MarkFrameEv"),
+	};
+
+	const std::vector<Symbol> CVProfExport_CalculateBudgetGroupTimes_RecursiveSym = {
+		Symbol::FromName("_ZN12CVProfExport35CalculateBudgetGroupTimes_RecursiveEP10CVProfNode"),
+	};
+
+	const std::vector<Symbol> VProfRecord_IsPlayingBackSym = {
+		Symbol::FromName("_Z25VProfRecord_IsPlayingBackv"),
+	};
+
 	//---------------------------------------------------------------------------------
 	// Purpose: networking Symbols
 	// NOTE: This is just optimizations, having CGMOD_Player_CreateViewModelSym on Windows would be good but all the other things are probably best for Linux only.
