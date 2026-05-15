@@ -83,24 +83,6 @@ private:
 	size_t offset;
 };
 
-/*
-	NOTE:
-	This is always stack allocated inside the signal handler thread
-	this is due to the signal handler having his own dedicated stack which we've setup
-	This is safe only because the signal handler thread sleeps while we call back to the main thread and use the SignalData.
-	If the signal thread ever proceeds before the main thread finished using the SignalData (specifically the luaAlloc for the lua callback) then we will definitely die.
-	Though that cannot happen at all with our current code as the signal handler only proceeds once the main thread set that it's done.
-*/
-struct SignalData
-{
-	const char* crashOrigin;
-	int fileDescriptor;
-	LuaAlloc luaAlloc;
-};
-
-static std::atomic<SignalData*> g_pSignalData;
-static std::atomic<bool> g_bInducedCrash = false;
-
 #if SYSTEM_LINUX
 /*
 	Helper class since I am lazy
@@ -313,6 +295,69 @@ private:
 	char m_strReturnBuffer[270];
 };
 
+struct SavedCrash
+{
+	int signal;
+	siginfo_t info;
+	ucontext_t context;
+
+	void Store(int signal, siginfo_t* signalInfo, void* ucontext)
+	{
+		this->signal = signal;
+		memcpy(&this->info, signalInfo, sizeof(siginfo_t));
+		memcpy(&this->context, (ucontext_t*)ucontext, sizeof(ucontext_t));
+	}
+};
+
+static SavedCrash g_pSavedCrash;
+static std::atomic<bool> g_bAttemptedBacktrace = false;
+#endif
+
+/*
+	NOTE:
+	This is always stack allocated inside the signal handler thread
+	this is due to the signal handler having his own dedicated stack which we've setup
+	This is safe only because the signal handler thread sleeps while we call back to the main thread and use the SignalData.
+	If the signal thread ever proceeds before the main thread finished using the SignalData (specifically the luaAlloc for the lua callback) then we will definitely die.
+	Though that cannot happen at all with our current code as the signal handler only proceeds once the main thread set that it's done.
+*/
+struct SignalData
+{
+	const char* crashOrigin;
+	int fileDescriptor;
+	LuaAlloc luaAlloc;
+#if SYSTEM_LINUX
+	SavedCrash savedCrash;
+#endif
+};
+
+static std::atomic<SignalData*> g_pSignalData;
+static std::atomic<bool> g_bInducedCrash = false;
+
+static void DumpLuaState(int fileDescriptor)
+{
+	// Unsafe but we want to dump the main state!
+	GarrysMod::Lua::ILuaShared* pLuaShared = Lua::GetShared();
+	if (pLuaShared)
+	{
+		dprintf(fileDescriptor, "Lua Stack trace:\n");
+		dprintf(fileDescriptor, pLuaShared->GetStackTraces());
+	}
+
+	dprintf(fileDescriptor, "Lua Stack values:\n");
+
+	lua_State* pState = g_Lua->GetState();
+	TValue* pBase = pState->base;
+	int nTop = (int)(pState->top - pState->base);
+	dprintf(fileDescriptor, "  Stack size: %i\n", nTop);
+	for (int i=0; i<nTop; ++i)
+	{
+		dprintf(fileDescriptor, "  %i: %s\n", i, Lua::TValueToString(pBase));
+		pBase++;
+	}
+}
+
+#if SYSTEM_LINUX
 static void RestoreDefaultHandler()
 {
 	struct sigaction sa{};
@@ -362,39 +407,6 @@ static void DumpRegister(int fd, gregset_t& registers, const char* name, int idx
 	);
 };
 
-struct SavedCrash
-{
-	int signal;
-	siginfo_t info;
-	ucontext_t context;
-};
-
-static SavedCrash g_pSavedCrash;
-static std::atomic<bool> g_bAttemptedBacktrace = false;
-
-static void DumpLuaState(int fileDescriptor)
-{
-	// Unsafe but we want to dump the main state!
-	GarrysMod::Lua::ILuaShared* pLuaShared = Lua::GetShared();
-	if (pLuaShared)
-	{
-		dprintf(fileDescriptor, "Lua Stack trace:\n");
-		dprintf(fileDescriptor, pLuaShared->GetStackTraces());
-	}
-
-	dprintf(fileDescriptor, "Lua Stack values:\n");
-
-	lua_State* pState = g_Lua->GetState();
-	TValue* pBase = pState->base;
-	int nTop = (int)(pState->top - pState->base);
-	dprintf(fileDescriptor, "  Stack size: %i\n", nTop);
-	for (int i=0; i<nTop; ++i)
-	{
-		dprintf(fileDescriptor, "  %i: %s\n", i, Lua::TValueToString(pBase));
-		pBase++;
-	}
-}
-
 static bool AttemptLuaCallback(bool bMainThreadCrash);
 static void CrashHandler(int signal, siginfo_t* signalInfo, void* ucontext)
 {
@@ -405,17 +417,25 @@ static void CrashHandler(int signal, siginfo_t* signalInfo, void* ucontext)
 		setcontext(&g_pSavedCrash.context);
 		ReturnSignal();
 		return;
-	} else {
-		g_pSavedCrash.signal = signal;
-		memcpy(&g_pSavedCrash.info, signalInfo, sizeof(siginfo_t));
-		memcpy(&g_pSavedCrash.context, (ucontext_t*)ucontext, sizeof(ucontext_t));
-	}
+	} else
+		g_pSavedCrash.Store(signal, signalInfo, ucontext);
 
 	static thread_local bool g_bIsInSignalHandler = false;
 
 	// If this happens, we crashed in our handler, so let's skip that and let gdb catch the original crash
 	if (g_bIsInSignalHandler)
 	{
+		SignalData* signalData = g_pSignalData.load();
+		if (signalData)
+		{
+			dprintf(signalData->fileDescriptor, "CrashHandler crashed while attempting Lua callback!\n");
+			// iirc it is not expected that this function returns since it jumps straight to execution anyways
+			// We DID crash, BUT we want GDB to not be messed up by us having tried to call Lua
+			// So we attempt to restore the previous crash
+			RestoreDefaultHandler();
+			setcontext(&signalData->savedCrash.context);
+		}
+
 		ReturnSignal();
 		return;
 	}
@@ -540,6 +560,7 @@ static void CrashHandler(int signal, siginfo_t* signalInfo, void* ucontext)
 	memset(&signalData, 0, sizeof(SignalData));
 	signalData.crashOrigin = moduleName;
 	signalData.fileDescriptor = fileDescriptor;
+	signalData.savedCrash.Store(signal, signalInfo, ucontext);
 
 	// Safe since we know 100% that the stack remains.
 	g_pSignalData.store(&signalData);
