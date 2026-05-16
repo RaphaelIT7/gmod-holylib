@@ -34,7 +34,6 @@ public:
 	void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) override;
 	void InitDetour(bool bPreServer) override;
 	void Shutdown() override;
-	void OnEntityCreated(CBaseEntity* pEntity) override;
 	void OnEntityDeleted(CBaseEntity* pEntity) override;
 	void ClientDisconnect(edict_t* pClient) override;
 	void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) override;
@@ -395,7 +394,6 @@ static inline void CBitVec_AndNot(CBitVec<MAX_EDICTS>* a, const CBitVec<MAX_EDIC
  * NOTE: It's shit & somehow were loosing performance to something. Probably us detouring it is causing our performance loss.
  */
 static ConVar* sv_force_transmit_ents = nullptr;
-static CBaseEntity* g_pEntityCache[MAX_EDICTS] = {nullptr};
 bool g_pReplaceCServerGameEnts_CheckTransmit = false;
 static edict_t* world_edict = nullptr;
 
@@ -421,7 +419,7 @@ static inline CBaseEntity* IndexToEntity(const int nEntIndex)
 	if (nEntIndex < 0 || nEntIndex >= MAX_EDICTS)
 		return nullptr;
 
-	return g_pEntityCache[nEntIndex];
+	return Util::GetCBaseEntityFromIndex(nEntIndex);
 }
 
 static DTVarByOffset m_Hands_Offset("DT_GMOD_Player", "m_Hands");
@@ -800,7 +798,7 @@ static void TransmitFastPathPlayer(CBasePlayer* pRecipientPlayer, int clientInde
 
 	// g_pPlayerTransmitCacheBitVec won't contain any information about the client the cache was build upon, so we need to call SetTransmit ourselves.
 	// & yes, using the g_pEntityCache like this is safe, even if it doesn't look save - Time to see how long it'll take until I regret writing this
-	g_pEntityCache[iOtherClient+1]->SetTransmit(pInfo, true);
+	Util::GetCBaseEntityFromIndex(iOtherClient+1)->SetTransmit(pInfo, true);
 	pRecipientPlayer->SetTransmit(pInfo, true);
 	// ENGINE BUG: CBaseCombatCharacter::SetTransmit doesn't network the player's viewmodel! So we need to do it ourself.
 	// This was probably done since CBaseViewModel::ShouldTransmit determines if it would be sent or not.
@@ -945,7 +943,7 @@ static inline void DoTransmitPVSCheck(
 		if ( checkFlags == FL_EDICT_FULLCHECK )
 		{
 			// do a full ShouldTransmit() check, may return FL_EDICT_CHECKPVS
-			CBaseEntity *pCheckEntity = g_pEntityCache[checkIndex];
+			CBaseEntity *pCheckEntity = Util::GetCBaseEntityFromIndex(checkIndex);
 			const int nFlags = pCheckEntity->ShouldTransmit( pInfo );
 			// Assert( !(nFlags & FL_EDICT_FULLCHECK) );
 			if ( nFlags & FL_EDICT_ALWAYS )
@@ -1029,7 +1027,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 
 		for (int iPlayerIndex = 1; iPlayerIndex <= gpGlobals->maxClients; ++iPlayerIndex)
 		{
-			CBaseEntity* pPlayer = g_pEntityCache[iPlayerIndex];
+			CBaseEntity* pPlayer = Util::GetCBaseEntityFromIndex(iPlayerIndex);
 			if (!pPlayer)
 				continue;
 
@@ -1074,7 +1072,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 			for (int iPlayerIndex = 1; iPlayerIndex <= gpGlobals->maxClients; ++iPlayerIndex)
 			{
 				// Lets avoid trying to network invalid entity slots as else we trigger a crash/engine error in CBaseServer::WriteDeltaEntities
-				if (!g_pEntityCache[iPlayerIndex])
+				if (!Util::GetCBaseEntityFromIndex(iPlayerIndex))
 					continue;
 
 				// We mark all to transmit to they will receive the CBasePlayer's
@@ -1089,7 +1087,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 			int nLastAcknowledgedTick = g_pPlayerTransmitCache[clientIndex].nLastAcknowledgedTick;
 			for (int iPlayerIndex = 1; iPlayerIndex <= gpGlobals->maxClients; ++iPlayerIndex)
 			{
-				if (g_pEntityCache[iPlayerIndex] && g_pPlayerTransmitCache[iPlayerIndex-1].InFullUpdate(nLastAcknowledgedTick))
+				if (Util::GetCBaseEntityFromIndex(iPlayerIndex) && g_pPlayerTransmitCache[iPlayerIndex-1].InFullUpdate(nLastAcknowledgedTick))
 				{
 					pInfo->m_pTransmitEdict->Set(iPlayerIndex);
 					if (bIsHLTV)
@@ -1104,7 +1102,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	bool bBindViewModelsToPlayer = networking_bind_viewmodels_to_player.GetBool();
 	for (int iPlayerIndex = 1; iPlayerIndex <= gpGlobals->maxClients; ++iPlayerIndex)
 	{
-		CBaseEntity* pPlayer = g_pEntityCache[iPlayerIndex];
+		CBaseEntity* pPlayer = Util::GetCBaseEntityFromIndex(iPlayerIndex);
 		if (!pPlayer)
 			continue;
 
@@ -1193,7 +1191,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 		}
 
 		// FIXME: Would like to remove all dependencies
-		CBaseEntity *pEnt = g_pEntityCache[iEdict];
+		CBaseEntity *pEnt = Util::GetCBaseEntityFromEdict(&world_edict[iEdict]);
 		if ( nFlags == FL_EDICT_FULLCHECK )
 		{
 			// do a full ShouldTransmit() check, may return FL_EDICT_CHECKPVS
@@ -1391,15 +1389,7 @@ void CNetworkingModule::OnEntityDeleted(CBaseEntity* pEntity)
 		return;
 
 	CleanupSetPreventTransmit(pEntity);
-	g_pEntityCache[pEdict->m_EdictIndex] = nullptr;
 	g_pForceWeaponTransmitIndexes.Clear(pEdict->m_EdictIndex);
-}
-
-void CNetworkingModule::OnEntityCreated(CBaseEntity* pEntity)
-{
-	const edict_t* pEdict = pEntity->edict();
-	if (pEdict)
-		g_pEntityCache[pEdict->m_EdictIndex] = pEntity;
 }
 
 void CNetworkingModule::ClientDisconnect(edict_t* pPlayer)
@@ -1457,7 +1447,6 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 	if (bPreServer)
 		return;
 
-	Plat_FastMemset(g_pEntityCache, 0, sizeof(g_pEntityCache));
 	for (int i=0; i<MAX_PLAYERS; ++i)
 		g_pShouldPrevent[i].ClearAll();
 
@@ -1576,12 +1565,6 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 
 void CNetworkingModule::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
 {
-	if (pEdictList)
-	{
-		for (int i=0; i<edictCount; ++i)
-			g_pEntityCache[i] = Util::GetCBaseEntityFromEdict(&pEdictList[i]);
-	}
-
 	if (g_pCVar)
 		sv_force_transmit_ents = g_pCVar->FindVar("sv_force_transmit_ents");
 
