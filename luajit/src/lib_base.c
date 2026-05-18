@@ -571,6 +571,9 @@ LJLIB_CF(print)
   return 0;
 }
 
+#if 0
+// When testing you must rename DISABLED to "LJ LIB_CF" (without the space there)
+// due to LuaJIT searching for that in source files or something
 int test_func(lua_State* L)
 {
   int val = lua_tonumber(L, 1);
@@ -585,13 +588,13 @@ LUA_API int LJ_FASTCALL asm_test_func()
   return 500;
 }
 
-LJLIB_CF(test_cfunc)
+DISABLED(test_cfunc)
 {
   lua_pushcfunction(L, test_func);
   return 1;
 }
 
-LJLIB_CF(test_jitcfunc)
+DISABLED(test_jitcfunc)
 {
   lua_CFunctionInfo info;
   memset(&info, 0, sizeof(info));
@@ -629,7 +632,7 @@ int asm_test2_func(const char* test, const char* pStr)
   return 1;
 }
 
-LJLIB_CF(test_jitcfunc2)
+DISABLED(test_jitcfunc2)
 {
   lua_CFunctionInfo info;
   memset(&info, 0, sizeof(info));
@@ -660,7 +663,7 @@ GCtab* LJ_FASTCALL asm_test3_func(GCudata* ud)
   return tabref(ud->metatable);
 }
 
-LJLIB_CF(test_jitcfunc3)
+DISABLED(test_jitcfunc3)
 {
   lua_CFunctionInfo info;
   memset(&info, 0, sizeof(info));
@@ -689,7 +692,7 @@ void LJ_FASTCALL asm_test4_func(lua_State* L)
   printf("JIT state - %p\n", L);
 }
 
-LJLIB_CF(test_jitcfunc4)
+DISABLED(test_jitcfunc4)
 {
   lua_CFunctionInfo info;
   memset(&info, 0, sizeof(info));
@@ -718,7 +721,7 @@ const char* LJ_FASTCALL asm_test5_func()
   return "JIT Hello World";
 }
 
-LJLIB_CF(test_jitcfunc5)
+DISABLED(test_jitcfunc5)
 {
   lua_CFunctionInfo info;
   memset(&info, 0, sizeof(info));
@@ -749,7 +752,7 @@ int LJ_FASTCALL asm_test6_func()
   return flipFun < 80;
 }
 
-LJLIB_CF(test_jitcfunc6)
+DISABLED(test_jitcfunc6)
 {
   lua_CFunctionInfo info;
   memset(&info, 0, sizeof(info));
@@ -780,7 +783,7 @@ lua_String* LJ_FASTCALL asm_test7_func()
   return &pStr;
 }
 
-LJLIB_CF(test_jitcfunc7)
+DISABLED(test_jitcfunc7)
 {
   lua_CFunctionInfo info;
   memset(&info, 0, sizeof(info));
@@ -819,7 +822,7 @@ lua_String* LJ_FASTCALL asm_test8_func2(int test1, int test2)
   return &pStr;
 }
 
-LJLIB_CF(test_jitcfunc8)
+DISABLED(test_jitcfunc8)
 {
   lua_CFunctionInfo info;
   memset(&info, 0, sizeof(info));
@@ -851,13 +854,14 @@ LJLIB_CF(test_jitcfunc8)
   return 1;
 }
 
-LJLIB_CF(give_userdata_table)
+DISABLED(give_userdata_table)
 {
   int val = lua_tonumber(L, 1);
 
   lua_pushnumber(L, 500 + val);
   return 1;
 }
+#endif
 
 LJLIB_PUSH(top-3)
 LJLIB_SET(_VERSION)

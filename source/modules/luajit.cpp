@@ -16,6 +16,7 @@ extern "C"
 {
 	#include "../luajit/src/lj_gc.h"
 	#include "../luajit/src/lj_tab.h"
+	#include "../luajit/src/lj_extrecord.h"
 }
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -194,6 +195,54 @@ static void hook_luaL_openlibs(lua_State* L)
 LUA_JIT_ASM_0R(SysTime, double)
 {
 	return Plat_FloatTime();
+}
+
+static int TypeID_TraceRecord(lua_TraceRecorder* rec)
+{
+	lua_TraceEntry tr = lj_tr_getbase(rec, 0);
+#define typecheck(func, type) \
+	if (func(tr)) { lj_tr_setbase(rec, 1, lj_tr_kint(rec, type)); return 1; }
+
+	typecheck(tref_isnil, LUA_TNIL)
+	typecheck(tref_isbool, LUA_TBOOLEAN)
+	typecheck(tref_islightud, LUA_TLIGHTUSERDATA)
+	typecheck(tref_isnumber, LUA_TNUMBER)
+	typecheck(tref_isstr, LUA_TSTRING)
+	typecheck(tref_istab, LUA_TTABLE)
+	typecheck(tref_isfunc, LUA_TFUNCTION)
+	typecheck(tref_isthread, LUA_TTHREAD)
+
+	if (tref_isudata(tr))
+	{
+		GCudata* ud = udataV((TValue*)lj_tr_getrtbase(rec, 0));
+		void* uddata = uddata(ud);
+		uint8_t type = ud->udtype;
+
+		lua_TraceEntry typetr = LJTR_EMIT(rec, TR_FLOAD, TR_TYPE_U8, tr, TR_FIELD_UDATA_UDTYPE);
+		LJTR_EMIT(rec, TR_EQ, TR_TYPE_INT, typetr, lj_tr_kint(rec, ud->udtype));
+
+		if (type == UDTYPE_USERDATA && uddata) // GMod Userdata
+		{
+			GMODudata* gmodUD = (GMODudata*)uddata;
+			lua_TraceEntry valuetr = LJTR_EMIT(rec, TR_FLOAD, TR_TYPE_U8, tr, TR_FIELD_UDATA_UDTYPE);
+			LJTR_GEMIT(rec, (gmodUD ? TR_NE : TR_EQ), TR_TYPE_INT, valuetr, lj_tr_kint(rec, 0)); // We guard as safety
+			if (gmodUD) {
+				lj_tr_setbase(rec, 0, LJTR_EMIT(rec, TR_FLOAD, TR_TYPE_U8, tr, TR_FIELD_GMOD_UDATA_TYPE));
+				return 1;
+			}
+		} else if (type > UDTYPE__MAX) { // HolyLib userdata
+			lj_tr_setbase(rec, 0, lj_tr_kint(rec, type)); // We just return the type since we already guard on it.
+			return 1;
+		}
+
+		lj_tr_setbase(rec, 0, lj_tr_kint(rec, LUA_TUSERDATA));
+		return;
+	}
+
+#undef typecheck
+
+	// HolyLib also uses cdata though idk how to handle that yet
+	return -1; // Abort with NYI
 }
 
 static lua_CFunctionInfo ASMINFO_TypeID = [] { \

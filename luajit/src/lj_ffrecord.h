@@ -19,6 +19,8 @@ typedef struct RecordFFData {
 
 LJ_FUNC int32_t lj_ffrecord_select_mode(jit_State *J, TRef tr, TValue *tv);
 LJ_FUNC void lj_ffrecord_func(jit_State *J);
+LJ_FUNC void LJ_FASTCALL lj_recff_nyi(jit_State *J, RecordFFData *rd);
+
 #endif
 
 #endif

@@ -122,6 +122,7 @@
     <ClCompile Include="lj_debug.c" />
     <ClCompile Include="lj_dispatch.c" />
     <ClCompile Include="lj_err.c" />
+    <ClCompile Include="lj_extrecord.c" />
     <ClCompile Include="lj_ffrecord.c" />
     <ClCompile Include="lj_func.c" />
     <ClCompile Include="lj_gc.c" />
@@ -192,6 +193,7 @@
     <ClInclude Include="lj_emit_x86.h" />
     <ClInclude Include="lj_err.h" />
     <ClInclude Include="lj_errmsg.h" />
+    <ClInclude Include="lj_extrecord.h" />
     <ClInclude Include="lj_ff.h" />
     <ClInclude Include="lj_ffrecord.h" />
     <ClInclude Include="lj_frame.h" />

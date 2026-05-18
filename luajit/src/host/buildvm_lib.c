@@ -454,7 +454,7 @@ void emit_lib(BuildCtx *ctx)
     char *p = (char *)obuf;
     fprintf(ctx->fp, "\n};\n\n");
     fprintf(ctx->fp, "static const RecordFunc recff_func[] = {\n"
-	    "recff_nyi,\n"
+	    "lj_recff_nyi,\n"
 	    "recff_c");
     while (*p) {
       fprintf(ctx->fp, ",\nrecff_%s", p);
