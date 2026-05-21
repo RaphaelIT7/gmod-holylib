@@ -364,7 +364,7 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: pvs Symbols
 	//---------------------------------------------------------------------------------
-	using CGMOD_Player_SetupVisibility = int (GMCOMMON_CALLING_CONVENTION*)(void* ent, unsigned char* pvs, int pvssize);
+	using CGMOD_Player_SetupVisibility = int (GMCOMMON_CALLING_CONVENTION*)(void* ply, void* viewEntity, unsigned char* pvs, int pvssize);
 	extern const std::vector<Symbol> CGMOD_Player_SetupVisibilitySym;
 
 	using CServerGameEnts_CheckTransmit = void (GMCOMMON_CALLING_CONVENTION*)(void* gameents, CCheckTransmitInfo*, const unsigned short*, int);
