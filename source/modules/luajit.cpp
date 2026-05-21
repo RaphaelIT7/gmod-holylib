@@ -197,6 +197,7 @@ LUA_JIT_ASM_0R(SysTime, double)
 	return Plat_FloatTime();
 }
 
+#if 0
 static int TypeID_TraceRecord(lua_TraceRecorder* rec)
 {
 	lua_TraceEntry tr = lj_tr_getbase(rec, 0);
@@ -250,6 +251,7 @@ static lua_CFunctionInfo ASMINFO_TypeID = [] { \
 	info.retType = TR_RETURN_TYPEID; \
 	return info; \
 }();
+#endif
 
 extern int table_setreadonly(lua_State* L);
 extern int table_isreadonly(lua_State* L);
@@ -367,12 +369,14 @@ void CLuaJITModule::PostLuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 	}
 	pLua->Pop(1);
 
+#if 0
 	pLua->GetField(LUA_GLOBALSINDEX, "TypeID");
 	if (pLua->IsType(-1, GarrysMod::Lua::Type::Function)) {
 		lua_settracablecclosure(pLua->GetState(), -1, (lua_CFunctionInfo*)&ASMINFO_TypeID);
 		Msg(PROJECT_NAME " - jit: Added JIT support for TypeID\n");
 	}
 	pLua->Pop(1);
+#endif
 }
 
 void CLuaJITModule::InitDetour(bool bPreServer)

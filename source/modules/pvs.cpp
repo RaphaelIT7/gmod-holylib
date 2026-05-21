@@ -36,7 +36,13 @@ static void hook_CGMOD_Player_SetupVisibility(void* ent, unsigned char* pvs, int
 	currentPVS = pvs;
 	currentPVSSize = pvssize;
 
+	if (g_pPVSModule.InDebug())
+		Msg("Entered SetupVisibility\n");
+
 	detour_CGMOD_Player_SetupVisibility.GetTrampoline<Symbols::CGMOD_Player_SetupVisibility>()(ent, pvs, pvssize);
+
+	if (g_pPVSModule.InDebug())
+		Msg("Left SetupVisibility\n");
 
 	currentPVS = nullptr;
 	currentPVSSize = -1;
