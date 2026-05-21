@@ -1720,7 +1720,7 @@ static void asm_obar(ASMState *as, IRIns *ir)
   emit_branch(as, MIPSI_BEQ, RID_TMP, RID_ZERO, l_end);
   emit_tsi(as, MIPSI_ANDI, tmp, tmp, LJ_GC_BLACK);
   emit_branch(as, MIPSI_BEQ, RID_TMP, RID_ZERO, l_end);
-  emit_tsi(as, MIPSI_ANDI, RID_TMP, RID_TMP, LJ_GC_WHITES);
+  emit_tsi(as, MIPSI_ANDI, RID_TMP, RID_TMP, LJ_GC_WHITE);
   val = ra_alloc1(as, ir->op2, rset_exclude(RSET_GPR, obj));
   emit_tsi(as, MIPSI_LBU, tmp, obj,
 	   (int32_t)offsetof(GCupval, marked)-(int32_t)offsetof(GCupval, tv));

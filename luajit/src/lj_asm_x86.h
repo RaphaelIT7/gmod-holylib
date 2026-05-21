@@ -1916,7 +1916,7 @@ static void asm_cnew(ASMState *as, IRIns *ir)
   emit_movtomro(as, RID_ECX, RID_RET, offsetof(GCcdata, marked));
   emit_gri(as, XG_ARITHi(XOg_OR), RID_ECX,
 	   (int32_t)((~LJ_TCDATA<<8)+(id<<16)));
-  emit_gri(as, XG_ARITHi(XOg_AND), RID_ECX, LJ_GC_WHITES);
+  emit_gri(as, XG_ARITHi(XOg_AND), RID_ECX, LJ_GC_WHITE);
   emit_opgl(as, XO_MOVZXb, RID_ECX, gc.currentwhite);
 
   args[0] = ASMREF_L;     /* lua_State *L */
@@ -1959,7 +1959,7 @@ static void asm_obar(ASMState *as, IRIns *ir)
   emit_loada(as, ra_releasetmp(as, ASMREF_TMP1), J2G(as->J));
   obj = IR(ir->op1)->r;
   emit_sjcc(as, CC_Z, l_end);
-  emit_i8(as, LJ_GC_WHITES);
+  emit_i8(as, LJ_GC_WHITE);
   if (irref_isk(ir->op2)) {
     GCobj *vp = ir_kgc(IR(ir->op2));
     emit_rma(as, XO_GROUP3b, XOg_TEST, &vp->gch.marked);

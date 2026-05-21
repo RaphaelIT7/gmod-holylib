@@ -1420,7 +1420,7 @@ static void asm_obar(ASMState *as, IRIns *ir)
   obj = IR(ir->op1)->r;
   tmp = ra_scratch(as, rset_exclude(RSET_GPR, obj));
   emit_n(as, ARMF_CC(ARMI_TST, CC_NE)|ARMI_K12|LJ_GC_BLACK, tmp);
-  emit_n(as, ARMI_TST|ARMI_K12|LJ_GC_WHITES, RID_TMP);
+  emit_n(as, ARMI_TST|ARMI_K12|LJ_GC_WHITE, RID_TMP);
   val = ra_alloc1(as, ir->op2, rset_exclude(RSET_GPR, obj));
   emit_lso(as, ARMI_LDRB, tmp, obj,
 	   (int32_t)offsetof(GCupval, marked)-(int32_t)offsetof(GCupval, tv));
