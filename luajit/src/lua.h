@@ -206,34 +206,41 @@ enum {
   TR_TYPE_STRING, // a GCstr when input, lua_String when output!
   TR_TYPE_CHARS, // const char* - NULL Terminated! (will result in a Lua string alloc! -> lj_str_new)
   TR_TYPE_NIL,
-  // TEMP special return - since the recorder isn't finished yet
-  TR_RETURN_USERDATA_ENV,
-  TR_RETURN_TYPEID,
+  TR_TYPE_PTR,
 };
 
 typedef unsigned char lua_TraceField;
+// All TR_FIELD_NAME enums. (They are like this to make internal mapping easier)
+// IMPORTANT: Theses names must match the names in lj_ir.h -> IRFLDEF
+// ToDo: Consider if maybe we should move IRFLDEF into a lua_tr.h file, include it here and have it shared to avoid having now two lists
+#define TR_FIELDS(_) \
+  _(STR_LEN) \
+  _(STR_DATA) \
+  _(FUNC_ENV) \
+  _(THREAD_ENV) \
+  _(TAB_META) \
+  _(TAB_ARRAY) \
+  _(TAB_ASIZE) /* Array Size */ \
+  _(TAB_NODE) \
+  _(TAB_HMASK) \
+  _(TAB_NOMM) \
+  _(UDATA_META) \
+  _(UDATA_ENV) \
+  _(UDATA_FLAGS) \
+  _(UDATA_UDTYPE) \
+  _(UDATA_HVALUE) /* HolyLib udata value) */ \
+  _(UDATA_VALUE) \
+  _(GMOD_UDATA_DATA) \
+  _(GMOD_UDATA_TYPE) \
+  _(GMOD_UDATA_DATA_DIRECT) \
+  _(GMOD_UDATA_TYPE_DIRECT) \
+  _(LSTR_DATA) \
+  _(LSTR_LEN)
+
 enum {
-  TR_FIELD_NONE = 0,
-  TR_FIELD_STR_LEN,
-  TR_FIELD_STR_DATA,
-  TR_FIELD_FUNC_ENV,
-  TR_FIELD_THREAD_ENV,
-  TR_FIELD_TAB_META,
-  TR_FIELD_TAB_ARRAY,
-  TR_FIELD_TAB_ARRAY_SIZE,
-  TR_FIELD_TAB_NODE,
-  TR_FIELD_TAB_HMASK,
-  TR_FIELD_TAB_NOMM,
-  TR_FIELD_UDATA_META,
-  TR_FIELD_UDATA_ENV,
-  TR_FIELD_UDATA_FLAGS,
-  TR_FIELD_UDATA_TYPE,
-  TR_FIELD_UDATA_HVALUE, // HolyLib udata value!
-  TR_FIELD_UDATA_VALUE,
-  TR_FIELD_GMOD_UDATA_DATA,
-  TR_FIELD_GMOD_UDATA_TYPE,
-  TR_FIELD_LSTR_DATA,
-  TR_FIELD_LSTR_LEN,
+#define DEF_FIELD(field) TR_FIELD_##field,
+TR_FIELDS(DEF_FIELD)
+#undef DEF_FIELD
 };
 
 typedef unsigned char lua_TraceRecorderOP;
@@ -242,39 +249,213 @@ enum {
   TR_GUARD_USERDATA, // Guards on both type & flags
   TR_GUARD_USERDATA_TYPE,
   TR_GUARD_USERDATA_FLAGS,
+
+  // Call stuff
   TR_CALL_ARG,
   TR_CALL_CC, // a = function ptr, b = lua_CFunctionInfoCallConv
   TR_CALL_EXT, // a = arg chain, b = function ptr or TR_CALL_CC
+  // IMPORTANT if the callinfo has a trace function too it could become recursive!
+  // Currently there is no way to know if it aborts or not! Good luck!
+  TR_CALL_INFO, // Emits the whole calling chain based off the callinfo. a = lua_CFunctionInfo*
   TR_LOAD_USERDATA_VAL, // Loads the data - IMPORTANT: In HolyLib we make use of the GCudata::align1 so this function will load that field!
+  
+  // Field Save-Load
   TR_FLOAD, // a = value, b = lua_TraceField
-  TR_FOFFSET, // a = value, b = lua_TraceField
-  TR_FSTORE, // a = FOFFSET, b = value
-  TR_NEWUDATA,
-  TR_EQ, // compares a against b
+  TR_FREF, // a = value, b = lua_TraceField - This OP acts as a reference for the FSTORE
+  TR_FSTORE, // a = TR_FREF, b = store value
+  // IMPORTANT! Our TR_XLOAD/XSTORE functions work differently from JITs IR_XLOAD/STORE!
+  TR_XLOAD, // a = value, b = size_t offset of the value
+  TR_XREF, // a = value, b = size_t offset of the value
+  TR_XSTORE, // a = TR_XREF, b = store value
+
+  // ToDo: Later consider HSTORE, HLOAD and the A variants, maybe something like TR_LOOKUP to call record_idx
+
+  // Math
   TR_ADD,
   TR_SUB,
   TR_MUL,
   TR_DIV,
-  TR_RETURN, // a = value, b = return slot
+  TR_MOD,
+  TR_NEG,
+  TR_ABS,
+  TR_MIN,
+  TR_MAX,
+
+  // Bit stuff
+  TR_BAND,
+  TR_BOR,
+  TR_BXOR,
+  TR_BNOT,
+  TR_BSHL,
+  TR_BSHR,
+  TR_BSAR,
+  TR_BROL,
+  TR_BROR,
+  TR_BSWAP,
+
+  // Comparisons
+  TR_EQ,
+  TR_NE,
+  TR_LT,
+  TR_LE,
+  TR_GT,
+  TR_GE,
+
+  TR_ULT,
+  TR_ULE,
+  TR_UGT,
+  TR_UGE,
+
+  // Conversions
+  TR_CONV,
+  TR_TOSTR,
+  TR_STRTO,
+  TR_TOBIT,
+
+  // Refs
+  TR_AREF,
+  TR_HREF,
+  TR_HREFK,
+  TR_UREFO,
+  TR_UREFC,
+  TR_TMPREF,
+  TR_STRREF,
+  TR_LREF,
+
+  // Allocations
+  TR_SNEW,
+  TR_TNEW,
+  TR_TDUP,
+  TR_CNEW,
+  TR_CNEWI,
+  TR_UDNEW,
+
+  // Barriers
+  TR_TBAR,
+  TR_OBAR,
+  TR_XBAR,
+};
+
+enum {
+  TRCONV_SEXT,
+  TRCONV_ZEXT,
+  TRCONV_CHECK,
+  TRCONV_INDEX,
 };
 
 typedef struct lua_TraceRecorderEntry
 {
   lua_TraceRecorderOP op;
   lua_TraceRecorderType type;
-  size_t a;
-  size_t b;
-  size_t c;
+  union {
+    size_t a;
+    void* aptr;
+  };
+  union {
+    size_t b;
+    void* bptr;
+  };
+  /*union {
+    size_t c;
+    void* cptr;
+  };*/
   unsigned int guard : 1;
 } lua_TraceRecorderEntry;
 
-// ToDo: Implement an external recorder
-typedef void* lua_TraceRecorder;
-typedef size_t lua_TraceEntry;
+// These are internal values, you should never use/modify them.
+// I could keep them internal though I don't see a reason why
+typedef struct lua_TraceRecorder {
+  void* J; // jit_State
+  void* rd; // RecordFFData
+} lua_TraceRecorder;
 
-typedef void (*lua_TraceRecorderFunction) (lua_TraceRecorder *tr);
-#if 0
-LUA_API lua_TraceEntry (lj_tr_abort) (lua_TraceRecorder* tr);
+typedef size_t lua_TraceEntry; // Internally represents a TRef
+
+// Return value is the number of returns! Return -1 to abort!
+typedef int (*lua_TraceRecorderFunction) (lua_TraceRecorder* tr);
+
+// Were with C++17 here, so we must replace it for now
+#if __cplusplus
+inline lua_TraceRecorderEntry LJTR_ENTRY(
+    lua_TraceRecorderOP op,
+    lua_TraceRecorderType type,
+    size_t a,
+    size_t b)
+{
+    lua_TraceRecorderEntry e{};
+    e.op = op;
+    e.type = type;
+    e.a = a;
+    e.b = b;
+    e.guard = 0;
+    return e;
+}
+
+inline lua_TraceRecorderEntry LJTR_GENTRY(
+    lua_TraceRecorderOP op,
+    lua_TraceRecorderType type,
+    size_t a,
+    size_t b)
+{
+    lua_TraceRecorderEntry e{};
+    e.op = op;
+    e.type = type;
+    e.a = a;
+    e.b = b;
+    e.guard = 1;
+    return e;
+}
+#else
+
+#define LJTR_ENTRY(op_, type_, a_, b_) \
+  ((lua_TraceRecorderEntry){ \
+    .op = (op_), \
+    .type = (type_), \
+    .a = (size_t)(a_), \
+    .b = (size_t)(b_) \
+  })
+
+#define LJTR_GENTRY(op_, type_, a_, b_) \
+  ((lua_TraceRecorderEntry){ \
+    .op = (op_), \
+    .type = (type_), \
+    .a = (size_t)(a_), \
+    .b = (size_t)(b_), \
+    .guard = 1 \
+  })
+
+#endif
+
+#define LJTR_EMIT(tr_, op_, type_, a_, b_) \
+  lj_tr_emit((tr_), LJTR_ENTRY(op_, type_, a_, b_))
+
+#define LJTR_GEMIT(tr_, op_, type_, a_, b_) \
+  lj_tr_emit((tr_), LJTR_GENTRY(op_, type_, a_, b_))
+
+/*
+  An example would be
+
+  int exampleTrace(lua_TraceRecorder tr)
+  {
+    lua_TraceEntry entry = lj_tr_getbase(0);
+    if (lj_tr_type(entry) == TR_TYPE_STRING)
+    {
+      lua_TraceRecorderEntry entry;
+      entry.op = TR_FLOAD;
+      entry.type = TR_TYPE_U32;
+      entry.a = (size_t)TR_FIELD_STR_LEN;
+
+      lj_tr_setbase(lj_tr_emit(tr, entry));
+      return 1;
+    } else {
+      return -1; // Not a string- abort tracing!
+    }
+  }
+*/
+
+// The tracing API is close to the internal LuaJIT!
+// It acts more as a wrapper exposing it.
+// You must have atleast some knowledge to use it properly.
 LUA_API lua_TraceEntry (lj_tr_emit) (lua_TraceRecorder* tr, lua_TraceRecorderEntry entry);
 LUA_API lua_TraceEntry (lj_tr_kint) (lua_TraceRecorder* tr, int val);
 LUA_API lua_TraceEntry (lj_tr_k64) (lua_TraceRecorder* tr, size_t val); // unsigned
@@ -282,8 +463,17 @@ LUA_API lua_TraceEntry (lj_tr_kint64) (lua_TraceRecorder* tr, size_t val); // si
 LUA_API lua_TraceEntry (lj_tr_knum) (lua_TraceRecorder* tr, lua_Number val);
 LUA_API lua_TraceEntry (lj_tr_kptr) (lua_TraceRecorder* tr, void* val);
 LUA_API lua_TraceEntry (lj_tr_knull) (lua_TraceRecorder* tr, lua_TraceRecorderType type);
+LUA_API lua_TraceEntry (lj_tr_refnil) (lua_TraceRecorder* tr); // TREF_NIL
+LUA_API lua_TraceEntry (lj_tr_reffalse) (lua_TraceRecorder* tr); // TREF_FALSE
+LUA_API lua_TraceEntry (lj_tr_reftrue) (lua_TraceRecorder* tr); // TREF_TRUE
 LUA_API lua_TraceRecorderType (lj_tr_type) (lua_TraceEntry entry);
-#endif
+// To get a argument
+LUA_API lua_TraceEntry (lj_tr_getbase) (lua_TraceRecorder* tr, int idx);
+// To set a argument/return value
+LUA_API void (lj_tr_setbase) (lua_TraceRecorder* tr, int idx, lua_TraceEntry value);
+// To get a runtime argument
+// Returns a TValue*
+LUA_API void* (lj_tr_getrtbase) (lua_TraceRecorder* tr, int idx);
 
 typedef struct lua_String
 {

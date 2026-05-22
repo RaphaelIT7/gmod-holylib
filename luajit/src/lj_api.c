@@ -26,6 +26,7 @@
 #include "lj_strscan.h"
 #include "lj_strfmt.h"
 #include "lj_ircall.h"
+#include "lj_extrecord.h"
 
 #include "lj_ctype.h"
 #include "lj_cconv.h"
@@ -790,7 +791,7 @@ static void lua_fillCFuncInfo(lua_State* L, GCfunc* fn, lua_CFunctionInfo* info)
   if (info->givestate && info->argType[0] != TR_TYPE_LUASTATE)
     return;
 
-  fn->c.callinfo[infoIDX].traceFunc = (ASMFunction)info->traceFunc;
+  fn->c.callinfo[infoIDX].traceFunc = (lua_TraceRecorderFunction)info->traceFunc;
   fn->c.callinfo[infoIDX].func = (ASMFunction)info->asmFunc;
   fn->c.callinfo[infoIDX].retType = info->retType;
   for (int args=0; args<LUA_CFUNCINFO_MAXARGS; ++args) {
@@ -805,20 +806,7 @@ static void lua_fillCFuncInfo(lua_State* L, GCfunc* fn, lua_CFunctionInfo* info)
   fn->c.callinfo[infoIDX].exactargs = info->exactargs;
 
   fn->c.callinfo[infoIDX].flags |= CCI_CALL_S;
-  switch (info->callconv) {
-    case CFUNC_CALLCONV_FASTCALL:
-      fn->c.callinfo[infoIDX].flags |= CCI_CC_FASTCALL;
-      break;
-    case CFUNC_CALLCONV_STDCALL:
-      fn->c.callinfo[infoIDX].flags |= CCI_CC_STDCALL;
-      break;
-    case CFUNC_CALLCONV_THISCALL:
-      fn->c.callinfo[infoIDX].flags |= CCI_CC_THISCALL;
-      break;
-    default:
-      fn->c.callinfo[infoIDX].flags |= CCI_CC_CDECL;
-      break;
-  }
+  fn->c.callinfo[infoIDX].flags |= lj_extrec_callconv_to_cci(info->callconv);
 
   if (info->canerror)
     fn->c.callinfo[infoIDX].flags |= CCI_T;
