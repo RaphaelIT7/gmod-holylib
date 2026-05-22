@@ -1018,3 +1018,19 @@ void Lua::ThinkMainInterface()
 	// Lock once they are done
 	pData->pThreadingMutex.lockWhenDone();
 }
+
+int Lua::TraceRecord_UserData_GetEnv(lua_TraceRecorder* rec)
+{
+	lua_TraceEntry ud = lj_tr_getbase(rec, 0);
+	if (lj_tr_type(ud) != TR_TYPE_USERDATA)
+		return -1; // Not userdata!
+
+
+	GCtab* env = tabref(udataV((TValue*)lj_tr_getrtbase(rec, 0))->env);
+	lua_TraceEntry nullTab = lj_tr_knull(rec, TR_TYPE_TABLE);
+	lua_TraceEntry envLoad = LJTR_EMIT(rec, TR_FLOAD, TR_TYPE_TABLE, ud, TR_FIELD_UDATA_ENV);
+	LJTR_GEMIT(rec, (env ? TR_NE : TR_EQ), TR_TYPE_TABLE, envLoad, nullTab);
+
+	lj_tr_setbase(rec, 0, env ? envLoad : lj_tr_refnil(rec));
+	return 1;
+}

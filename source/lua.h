@@ -900,6 +900,8 @@ static void FUNC_FASTCALL ASM_##name(T1 arg1, T2 arg2, T3 arg3)
 	private:
 		std::atomic<GarrysMod::Lua::ILuaInterface*> m_pLua = nullptr;
 	};
+
+	extern int TraceRecord_UserData_GetEnv(lua_TraceRecorder* rec);
 }
 
 // Creates a function Get[funcName]LuaData and returns the stored module data from the given module.
@@ -1528,7 +1530,7 @@ LUA_FUNCTION_STATIC(className ## __gc) \
 #define Default__GetTable(className) \
 static lua_CFunctionInfo ASMINFO_##className##_GetTable = [] { \
 	lua_CFunctionInfo info{}; \
-	info.retType = TR_RETURN_USERDATA_ENV; \
+	info.traceFunc = Lua::TraceRecord_UserData_GetEnv; \
 	return info; \
 }(); \
 LUA_FUNCTION_STATIC(className ## _GetTable) \
