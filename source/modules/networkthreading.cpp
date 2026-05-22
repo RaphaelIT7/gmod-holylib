@@ -192,12 +192,13 @@ static inline void SendChallenge(netpacket_s* pPacket)
 	func_NET_SendPacket(NULL, pServer->m_Socket, pPacket->from, msg.GetData(), msg.GetNumBytesWritten(), nullptr, false);
 }
 
+static constexpr int INVALID_CHALLENGE = -1;
 static inline bool IsValidChallenge(netadr_t &adr, int nChallengeValue)
 {
 	if (adr.IsLoopback())
 		return true;
 
-	if (nChallengeValue == 0xFFFFFFFF)
+	if (nChallengeValue == INVALID_CHALLENGE)
 		return false;
 
 	uint64 challenge = ((uint64)adr.GetIPNetworkByteOrder() << 32) + g_nChallengeNr.load();
@@ -464,10 +465,11 @@ int COM_GetUncompressedSize( IN_BYTECAP(compressedLen) const void *compressed, u
 
 // We do 8+ as padding for slight free room.
 // I've used A2S_INFO as the largest one since no other query is larger than that.
-static constexpr size_t NET_MAX_CONNECTIONLESS_SIZE = 1 + sizeof("Source Engine Query") + 4 + 8;
+static constexpr int NET_MAX_CONNECTIONLESS_SIZE = 1 + sizeof("Source Engine Query") + 4 + 8;
 // 16 for 4x ReadLong, 2x ReadString with 256 buffers, ReadString with 32 buffer, 2 for ReadShort, STEAM_KEYSIZE = 2048, 8 for slight free room
 // IMPORTANT: A C2S_CONNECT packet may be split or compressed (I hate this- fuck that, we won't let it)
-static constexpr size_t NET_MAX_CONNECT_PACKET_SIZE = 16 + 256 + 256 + 32 + 2 + STEAM_KEYSIZE + 8;
+// usually C2S_CONNECT packets are like ~300 bytes, maybe a bit more depending on client settings
+static constexpr int NET_MAX_CONNECT_PACKET_SIZE = 16 + 256 + 256 + 32 + 2 + STEAM_KEYSIZE + 8;
 
 static CUtlVector<netsocket_t>* net_sockets; // This one is mostly thread safe unless NET_AddExtraSocket / NET_RemoveAllExtraSockets are called but those seem completely unused
 static Symbols::NET_GetLong func_NET_GetLong = nullptr;

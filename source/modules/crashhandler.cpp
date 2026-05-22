@@ -301,9 +301,9 @@ struct SavedCrash
 	siginfo_t info;
 	ucontext_t context;
 
-	void Store(int signal, siginfo_t* signalInfo, void* ucontext)
+	void Store(int signalCode, siginfo_t* signalInfo, void* ucontext)
 	{
-		this->signal = signal;
+		this->signal = signalCode;
 		memcpy(&this->info, signalInfo, sizeof(siginfo_t));
 		memcpy(&this->context, (ucontext_t*)ucontext, sizeof(ucontext_t));
 	}

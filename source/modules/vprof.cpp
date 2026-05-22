@@ -611,7 +611,7 @@ void hook_CVProfExport_CalculateBudgetGroupTimes_Recursive(CVProfExport* pExport
 	g_pNodeStack.push_back(pNode);
 	while (!g_pNodeStack.empty())
 	{
-		HolyLib_CVProfNode* pNode = (HolyLib_CVProfNode*)g_pNodeStack.back();
+		pNode = (HolyLib_CVProfNode*)g_pNodeStack.back();
 		g_pNodeStack.pop_back();
 
 		if (!pNode)

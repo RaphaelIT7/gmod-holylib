@@ -1464,7 +1464,7 @@ void CGModDataPackModule::Think(bool bSimulating)
 		for (int fileID : g_pLuaDataPack.m_pStringTableUpdateQueue)
 		{
 			LuaDataPack::LuaPackEntry* pEntry = g_pLuaDataPack.GetPackEntry(fileID);
-			std::lock_guard<std::shared_mutex> lock(pEntry->mutex);
+			std::lock_guard<std::shared_mutex> entryLock(pEntry->mutex);
 
 			std::vector<unsigned char> pHash = HashString(pEntry->content.c_str(), pEntry->content.length() + 1);
 			g_pDataPack->m_pClientLuaFiles->SetStringUserData(fileID, pHash.size(), pHash.data());

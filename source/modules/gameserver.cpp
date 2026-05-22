@@ -1859,7 +1859,7 @@ LUA_FUNCTION_STATIC(gameserver_GetClient)
 	if (iClientIndex >= Util::server->GetClientCount())
 	{
 		iClientIndex -= Util::server->GetClientCount();
-		if (iClientIndex >= g_pQueueClients.size())
+		if (iClientIndex >= (int)g_pQueueClients.size())
 			return 0;
 
 		CBaseClient* pClient = g_pQueueClients[iClientIndex];
@@ -2600,11 +2600,10 @@ static ConVar gameserver_maxplayers("holylib_gameserver_maxplayers", "128", 0, "
 static Detouring::Hook detour_CBaseServer_GetFreeClient;
 static CBaseClient* hook_CBaseServer_GetFreeClient(CBaseServer* _this, netadr_t& adr)
 {
-	CBaseClient* pClient = detour_CBaseServer_GetFreeClient.GetTrampoline<Symbols::CBaseServer_GetFreeClient>()(_this, adr);
-	if (pClient)
-		return pClient;
+	CBaseClient* freeclient = detour_CBaseServer_GetFreeClient.GetTrampoline<Symbols::CBaseServer_GetFreeClient>()(_this, adr);
+	if (freeclient)
+		return freeclient;
 
-	CBaseClient* freeclient = nullptr;
 	for (CBaseClient* pClient : g_pQueueClients)
 	{
 		if (pClient->IsFakeClient())
@@ -2671,16 +2670,16 @@ static void hook_CGameServer_RemoveClientFromGame(CBaseServer* _this, CBaseClien
 static Detouring::Hook detour_CSteam3Server_ClientFindFromSteamID;
 static CBaseClient* hook_CSteam3Server_ClientFindFromSteamID(void* _this, CSteamID* steamID)
 {
-	CBaseClient* pClient = detour_CSteam3Server_ClientFindFromSteamID.GetTrampoline<Symbols::CSteam3Server_ClientFindFromSteamID>()(_this, steamID);
-	if (pClient)
-		return pClient;
+	CBaseClient* pFoundClient = detour_CSteam3Server_ClientFindFromSteamID.GetTrampoline<Symbols::CSteam3Server_ClientFindFromSteamID>()(_this, steamID);
+	if (pFoundClient)
+		return pFoundClient;
 
 	for (CBaseClient* pClient : g_pQueueClients)
 	{
 		if (!pClient->IsConnected() || pClient->IsFakeClient())
 			continue;
 
-		USERID_t id = pClient->GetNetworkID();
+		// USERID_t id = pClient->GetNetworkID();
 		if (pClient->m_SteamID == *steamID)
 			return pClient;
 	}
