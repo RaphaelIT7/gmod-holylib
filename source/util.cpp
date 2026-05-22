@@ -641,16 +641,25 @@ void AddSendTable(SendTable* pTable)
 	g_pSendProps[pTable->GetName()] = pSendProp;
 }
 
+static std::vector<DTVarByOffset*>& GetDTVarRegistry()
+{
+    static std::vector<DTVarByOffset*> pVars;
+    return pVars;
+}
+
+static inline void InitSendPropTables()
+{
+	for(ServerClass *serverclass = Util::servergamedll->GetAllServerClasses(); serverclass->m_pNext != nullptr; serverclass = serverclass->m_pNext)
+		AddSendTable(serverclass->m_pTable);
+
+	for (DTVarByOffset* pVar : GetDTVarRegistry())
+		pVar->Init();
+}
+
 int Util::FindOffsetForNetworkVar(const char* pDTName, const char* pVarName)
 {
 	if (!Util::servergamedll)
 		return -1;
-
-	if (g_pSendProps.size() == 0)
-	{
-		for(ServerClass *serverclass = Util::servergamedll->GetAllServerClasses(); serverclass->m_pNext != nullptr; serverclass = serverclass->m_pNext)
-			AddSendTable(serverclass->m_pTable);
-	}
 
 	auto it = g_pSendProps.find(pDTName);
 	if (it != g_pSendProps.end())
@@ -668,6 +677,11 @@ int Util::FindOffsetForNetworkVar(const char* pDTName, const char* pVarName)
 	}
 
 	return -1;
+}
+
+void Util::AddDTVarToLoad(DTVarByOffset* pVar)
+{
+	GetDTVarRegistry().push_back(pVar);
 }
 
 struct SysError_SkipInfo
@@ -906,6 +920,8 @@ void Util::AddDetour()
 	Detour::CheckFunction((void*)func_CBaseEntity_CalcAbsolutePosition, "CBaseEntity::CalcAbsolutePosition");
 
 	pEntityList = g_pModuleManager.FindModuleByName("entitylist");
+
+	InitSendPropTables();
 
 	/*
 	 * IMPORTANT TODO

@@ -58,6 +58,7 @@ class IServer;
 class IServerGameDLL;
 class ISteamUser;
 class CBaseHandle;
+class DTVarByOffset;
 namespace Util
 {
 	#define LUA_REGISTRYINDEX	(-10000)
@@ -351,12 +352,14 @@ namespace Util
 	// Returns a pointer to the given offset for the base, do the casting yourself.
 	inline void* GoToNetworkVarOffset(const void* pBase, int nOffset)
 	{
-		if (nOffset == -1)
-			return nullptr;
+		//if (nOffset == -1)
+		//	return nullptr;
 
 		// NOTE: Normally I'd use *(void**) to dereference it but apparently it's only a thing needed for vars that store a pointer / only m_GMOD_DataTable
 		return (void*)((char*)pBase + nOffset);
 	}
+
+	extern void AddDTVarToLoad(DTVarByOffset* pVar);
 
 	// More Lua stuff for UserData (NEVER NULL)
 	extern Symbols::lua_setfenv func_lua_setfenv;
@@ -408,17 +411,13 @@ namespace Util
 class DTVarByOffset
 {
 public:
-	DTVarByOffset(const char* pDTName, const char* pVarName)
-	{
-		m_pDTName = pDTName;
-		m_pVarName = pVarName;
-	}
-
-	DTVarByOffset(const char* pDTName, const char* pVarName, int nArraySize)
+	DTVarByOffset(const char* pDTName, const char* pVarName, int nArraySize = 0)
 	{
 		m_pDTName = pDTName;
 		m_pVarName = pVarName;
 		m_nArraySize = nArraySize;
+
+		Util::AddDTVarToLoad(this);
 	}
 
 	inline void Init()
@@ -433,26 +432,17 @@ public:
 
 	FORCEINLINE void* GetPointer(const void* pBase)
 	{
-		if (m_nOffset == -1)
-			Init();
-
 		return Util::GoToNetworkVarOffset(pBase, m_nOffset);
 	}
 
 	// For DTVars that store a pointer like m_GMOD_DataTable
 	FORCEINLINE void* GetPointerDereferenced(const void* pBase)
 	{
-		if (m_nOffset == -1)
-			Init();
-
 		return *(void**)Util::GoToNetworkVarOffset(pBase, m_nOffset);
 	}
 
 	FORCEINLINE void* GetPointerArray(const void* pBase, const int nArraySlot)
 	{
-		if (m_nOffset == -1)
-			Init();
-
 		return Util::GoToNetworkVarOffset(pBase, m_nOffset + (m_nArraySize * nArraySlot));
 	}
 
