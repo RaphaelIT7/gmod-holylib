@@ -9,10 +9,10 @@
 #include "sourcesdk/ivp_old/ivp_classes.h"
 #endif
 
-#if ARCHITECTURE_IS_X86_64
-using ThreadId_t = uint64;
+#ifdef PLATFORM_64BITS
+typedef uint64 ThreadId_t;
 #else
-using ThreadId_t = unsigned long;
+typedef uint32 ThreadId_t;
 #endif
 
 using FileHandle_t = void*;
