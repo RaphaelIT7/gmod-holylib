@@ -1102,35 +1102,38 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	// A bit expensive BUUUT it should be fast enouth for us
 	bool bBindGmodHandsToPlayer = networking_bind_gmodhands_to_player.GetBool();
 	bool bBindViewModelsToPlayer = networking_bind_viewmodels_to_player.GetBool();
-	for (int iPlayerIndex = 1; iPlayerIndex <= gpGlobals->maxClients; ++iPlayerIndex)
+	if (networking_fastcharactertransmit.GetBool())
 	{
-		CBaseEntity* pPlayer = g_pEntityCache[iPlayerIndex];
-		if (!pPlayer)
-			continue;
-
-		if (bBindGmodHandsToPlayer)
+		for (int iPlayerIndex = 1; iPlayerIndex <= gpGlobals->maxClients; ++iPlayerIndex)
 		{
-			CBaseEntity* pHands = GetGMODPlayerHands(pPlayer);
-			if (pHands)
-				g_pDontTransmitCache.Set(pHands->edict()->m_EdictIndex); // We make hands never transmit by default simply to save performance by reducing PVS checks.
-		}
+			CBaseEntity* pPlayer = g_pEntityCache[iPlayerIndex];
+			if (!pPlayer)
+				continue;
 
-		if (bBindViewModelsToPlayer)
-		{
-			for (int i=0; i<MAX_VIEWMODELS; ++i)
+			if (bBindGmodHandsToPlayer)
 			{
-				CBaseEntity* pViewModel = GetViewModel(pPlayer, i);
-				if (pViewModel)
-					g_pDontTransmitCache.Set(pViewModel->edict()->m_EdictIndex);
+				CBaseEntity* pHands = GetGMODPlayerHands(pPlayer);
+				if (pHands)
+					g_pDontTransmitCache.Set(pHands->edict()->m_EdictIndex); // We make hands never transmit by default simply to save performance by reducing PVS checks.
 			}
-		}
 
-		// Now let's also mark all weapons a player has so that they won't later enter into useless PVS checks.
-		for (int i=0; i<MAX_WEAPONS; ++i)
-		{
-			CBaseEntity *pWeapon = GetMyWeapon(pPlayer, i);
-			if (pWeapon)
-				g_pDontTransmitCache.Set(pWeapon->edict()->m_EdictIndex);
+			if (bBindViewModelsToPlayer)
+			{
+				for (int i=0; i<MAX_VIEWMODELS; ++i)
+				{
+					CBaseEntity* pViewModel = GetViewModel(pPlayer, i);
+					if (pViewModel)
+						g_pDontTransmitCache.Set(pViewModel->edict()->m_EdictIndex);
+				}
+			}
+
+			// Now let's also mark all weapons a player has so that they won't later enter into useless PVS checks.
+			for (int i=0; i<MAX_WEAPONS; ++i)
+			{
+				CBaseEntity *pWeapon = GetMyWeapon(pPlayer, i);
+				if (pWeapon)
+					g_pDontTransmitCache.Set(pWeapon->edict()->m_EdictIndex);
+			}
 		}
 	}
 
