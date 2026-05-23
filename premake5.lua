@@ -75,7 +75,14 @@ CreateWorkspace({name = "holylib", abi_compatible = true})
 	-- Can define "manual_files", which allows you to manually add files to the project,
 	-- instead of automatically including them from the "source_path"
 	-- Can also define "abi_compatible", for project specific compatibility
+
+	-- To make gmod-common generate the post build command to put the generated binary into GMod
+	-- This is broken as premake5 does not allow you to use an empty option as "" is treated as no value, but I'm too lazy to fix it properly rn xD
+	_OPTIONS["autoinstall"] = HOLYLIB_DEVELOPMENT and "" or nil
+
 	CreateProject({serverside = true, manual_files = false, source_path = sourcePath:sub(0, -2)})
+		_OPTIONS["autoinstall"] = nil
+
 		kind "SharedLib"
 		symbols "On"
 
