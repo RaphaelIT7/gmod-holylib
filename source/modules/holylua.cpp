@@ -239,7 +239,7 @@ struct ILuaValue
 
 	double number = -1;
 	const char* string = "";
-	std::unordered_map<ILuaValue*, ILuaValue*> tbl;
+	unordered_map<ILuaValue*, ILuaValue*> tbl;
 	float x, y, z;
 	void* data = nullptr; // Used for LUA_File
 };

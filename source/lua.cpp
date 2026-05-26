@@ -879,7 +879,7 @@ public:
 	}
 };
 
-static std::unordered_set<Lua::StateData*> g_pLuaStates;
+static unordered_set<Lua::StateData*> g_pLuaStates;
 void Lua::CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA, bool bNullOut)
 {
 	Lua::CriticalThreadAccess pThreadScope;
@@ -929,7 +929,7 @@ void Lua::RemoveLuaData(GarrysMod::Lua::ILuaInterface* LUA)
 	Msg("holylib - Removed thread data %p\n", data);
 }
 
-const std::unordered_set<Lua::StateData*>& Lua::GetAllLuaData()
+const unordered_set<Lua::StateData*>& Lua::GetAllLuaData()
 {
 	return g_pLuaStates;
 }

@@ -1528,7 +1528,7 @@ public:
 	bf_read m_DataIn;
 };
 
-static std::unordered_set<ILuaNetMessageHandler*> g_pNetMessageHandlers;
+static unordered_set<ILuaNetMessageHandler*> g_pNetMessageHandlers;
 ILuaNetMessageHandler::ILuaNetMessageHandler(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	m_pLuaNetChanMessage = new NET_LuaNetChanMessage;

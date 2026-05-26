@@ -645,8 +645,8 @@ public:
 };
 #endif
 
-static std::unordered_map<IPhysicsEnvironment*, ILuaPhysicsEnvironment*> g_pEnvironmentToLua;
-static std::unordered_map<IPhysicsObject*, ILuaPhysicsEnvironment*> g_pObjects; // contains all IPhysicsObject that exist
+static unordered_map<IPhysicsEnvironment*, ILuaPhysicsEnvironment*> g_pEnvironmentToLua;
+static unordered_map<IPhysicsObject*, ILuaPhysicsEnvironment*> g_pObjects; // contains all IPhysicsObject that exist
 #if PHYSENV_INCLUDEIVPFALLBACK
 static inline void RegisterPhysicsObject(ILuaPhysicsEnvironment* pEnv, IPhysicsObject* pObject);
 #endif
@@ -731,7 +731,7 @@ struct ILuaPhysicsEnvironment
 
 	bool bCreatedEnvironment = false; // If we were the one that created the environment.
 #if PHYSENV_INCLUDEIVPFALLBACK
-	std::unordered_set<IPhysicsObject*> pObjects;
+	unordered_set<IPhysicsObject*> pObjects;
 #endif
 	
 	IPhysicsEnvironment* pEnvironment = nullptr;

@@ -630,7 +630,7 @@ bool CGMod_Audio::Update(unsigned int updatePeriod)
 
 	bool retWasUpdated = func_BASS_Update(updatePeriod);
 
-	std::unordered_set<CGModAudioChannelEncoder*> pEncoders = m_pEncoders;
+	unordered_set<CGModAudioChannelEncoder*> pEncoders = m_pEncoders;
 	for (CGModAudioChannelEncoder* pEncoder : pEncoders)
 		pEncoder->HandleFinish(nullptr);
 
@@ -817,7 +817,7 @@ void CGMod_Audio::FinishAllAsync(void* nSignalData)
 	if (g_pGModAudioThreadPool)
 		g_pGModAudioThreadPool->ExecuteAll();
 
-	std::unordered_set<CGModAudioChannelEncoder*> pEncoders = m_pEncoders; // Copy to avoid issues with deletion while iterating
+	unordered_set<CGModAudioChannelEncoder*> pEncoders = m_pEncoders; // Copy to avoid issues with deletion while iterating
 	for (CGModAudioChannelEncoder* pEncoder : pEncoders)
 		pEncoder->HandleFinish(nSignalData); // Freed inside
 }

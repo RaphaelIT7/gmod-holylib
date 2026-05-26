@@ -2,7 +2,7 @@
 
 #include "public/imodule.h"
 #include <vector>
-#include "unordered_set"
+#include "unordered_stuff.h"
 #include "public/iconfigsystem.h"
 
 class CModuleManager;
@@ -110,7 +110,7 @@ public:
 	inline int GetEdictCount() { return m_iEdictCount; };
 	inline int GetClientMax() { return m_iClientMax; };
 	inline std::vector<CModule*>& GetModules() { return m_pModules; };
-	inline std::unordered_set<GarrysMod::Lua::ILuaInterface*>& GetLuaInterfaces() { return m_pLuaInterfaces; };
+	inline unordered_set<GarrysMod::Lua::ILuaInterface*>& GetLuaInterfaces() { return m_pLuaInterfaces; };
 	inline IConfig* GetConfig() { return m_pConfig; };
 	inline const char* GetMapName() { return m_strMapName.c_str(); };
 	inline ServerState GetServerState() { return m_nServerState; };
@@ -141,7 +141,7 @@ private: // ServerActivate stuff
 
 private:
 	// All Lua interfaces that were loaded.
-	std::unordered_set<GarrysMod::Lua::ILuaInterface*> m_pLuaInterfaces;
+	unordered_set<GarrysMod::Lua::ILuaInterface*> m_pLuaInterfaces;
 	
 	inline void AddLuaInterface(GarrysMod::Lua::ILuaInterface* pLua)
 	{

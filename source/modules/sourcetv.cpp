@@ -5,8 +5,6 @@
 #include "lua.h"
 #include "player.h"
 #include "sourcesdk/hltvserver.h"
-#include <unordered_map>
-#include <unordered_set>
 #include "usermessages.h"
 #include "sourcesdk/hltvdirector.h"
 
@@ -114,7 +112,7 @@ LUA_FUNCTION_STATIC(CHLTVClient__tostring)
  * 
  * We can clear it later by looping thru all clients and then nuking and recreating it with only the current clients values.
  */
-static std::unordered_map<int, int> g_iTarget;
+static unordered_map<int, int> g_iTarget;
 LUA_FUNCTION_STATIC(CHLTVClient_SetCameraMan)
 {
 	CHLTVClient* pClient = Get_CHLTVClient(LUA, 1, true);
@@ -506,7 +504,7 @@ static void hook_CHLTVDirector_StartNewShot(CHLTVDirector* director)
 
 static ConVar* ref_tv_debug;
 static Detouring::Hook detour_CHLTVServer_BroadcastEvent;
-/*static std::unordered_set<std::string> g_pShotEvents = {
+/*static unordered_set<std::string> g_pShotEvents = {
 	"hltv_fixed",
 	"hltv_chase",
 	"hltv_cameraman",

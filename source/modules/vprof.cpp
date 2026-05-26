@@ -15,10 +15,7 @@
 #include <sstream>
 #include <iomanip>
 #include <map>
-#include <unordered_set>
-#include <unordered_map>
 #include "color.h"
-#include "ankerl/unordered_dense.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -194,7 +191,7 @@ static void* hook_CLuaGamemode_CallWithArgsStr(void* funky_srv, const char* str)
 	return detour_CLuaGamemode_CallWithArgsStr.GetTrampoline<Symbols::CLuaGamemode_CallWithArgsStr>()(funky_srv, str);
 }
 
-static ankerl::unordered_dense::map<std::string_view, std::string> CallFinish_strs;
+static unordered_map<std::string_view, std::string> CallFinish_strs;
 static Detouring::Hook detour_CLuaGamemode_CallFinish;
 static void* hook_CLuaGamemode_CallFinish(void* funky_srv, int pArgs)
 {
@@ -217,7 +214,7 @@ static void* hook_CLuaGamemode_CallFinish(void* funky_srv, int pArgs)
 	return detour_CLuaGamemode_CallFinish.GetTrampoline<Symbols::CLuaGamemode_CallFinish>()(funky_srv, pArgs);
 }
 
-static ankerl::unordered_dense::map<uint32_t, std::string> Call_strs;
+static unordered_map<uint32_t, std::string> Call_strs;
 static Detouring::Hook detour_CLuaGamemode_Call;
 static void* hook_CLuaGamemode_Call(void* funky_srv, int pool)
 {
@@ -239,7 +236,7 @@ static void* hook_CLuaGamemode_Call(void* funky_srv, int pool)
 	return detour_CLuaGamemode_Call.GetTrampoline<Symbols::CLuaGamemode_Call>()(funky_srv, pool);
 }
 
-static ankerl::unordered_dense::map<std::string_view, std::string> CallStr_strs;
+static unordered_map<std::string_view, std::string> CallStr_strs;
 static Detouring::Hook detour_CLuaGamemode_CallStr;
 static void* hook_CLuaGamemode_CallStr(void* funky_srv, const char* str)
 {
@@ -269,7 +266,7 @@ static void* hook_CLuaGamemode_CallStr(void* funky_srv, const char* str)
  * - CScriptedEntity::Call(int iPooledString) - Unlike the function above, we call a function that has no args & return values like Think.
  */
 static const char* pCurrentScriptFunction = nullptr;
-static ankerl::unordered_dense::map<std::string_view, std::string> ScriptedEntity_StartFunctionStr_strs;
+static unordered_map<std::string_view, std::string> ScriptedEntity_StartFunctionStr_strs;
 static Detouring::Hook detour_CScriptedEntity_StartFunctionStr;
 static void* hook_CScriptedEntity_StartFunctionStr(void* funky_srv, const char* str) // Only used by GetSoundInterests
 {
@@ -291,7 +288,7 @@ static void* hook_CScriptedEntity_StartFunctionStr(void* funky_srv, const char* 
 	return detour_CScriptedEntity_StartFunctionStr.GetTrampoline<Symbols::CScriptedEntity_StartFunctionStr>()(funky_srv, str);
 }
 
-static ankerl::unordered_dense::map<int, std::string> CScriptedEntity_StartFunction_strs;
+static unordered_map<int, std::string> CScriptedEntity_StartFunction_strs;
 static Detouring::Hook detour_CScriptedEntity_StartFunction;
 static void* hook_CScriptedEntity_StartFunction(void* funky_srv, int pool)
 {
@@ -325,7 +322,7 @@ static void* hook_CScriptedEntity_Call(void* funky_srv, int iArgs, int iRets)
 	return detour_CScriptedEntity_Call.GetTrampoline<Symbols::CScriptedEntity_Call>()(funky_srv, iArgs, iRets);
 }
 
-static ankerl::unordered_dense::map<std::string_view, std::string> CScriptedEntity_CallFunctionStr_strs;
+static unordered_map<std::string_view, std::string> CScriptedEntity_CallFunctionStr_strs;
 static Detouring::Hook detour_CScriptedEntity_CallFunctionStr;
 static void* hook_CScriptedEntity_CallFunctionStr(void* funky_srv, const char* str)
 {
@@ -347,7 +344,7 @@ static void* hook_CScriptedEntity_CallFunctionStr(void* funky_srv, const char* s
 	return detour_CScriptedEntity_CallFunctionStr.GetTrampoline<Symbols::CScriptedEntity_CallFunctionStr>()(funky_srv, str);
 }
 
-static ankerl::unordered_dense::map<int, std::string> CScriptedEntity_CallFunction_strs;
+static unordered_map<int, std::string> CScriptedEntity_CallFunction_strs;
 static Detouring::Hook detour_CScriptedEntity_CallFunction;
 static void* hook_CScriptedEntity_CallFunction(void* funky_srv, int pool)
 {
@@ -399,7 +396,7 @@ struct StringEq {
 	}
 };
 
-static ankerl::unordered_dense::set<std::string, StringHash, StringEq> pLuaStrings; // Theses will almost never be freed!
+static unordered_set<std::string, StringHash, StringEq> pLuaStrings; // Theses will almost never be freed!
 // VPROF doesn't manage the memory of the strings that are used in scopes!
 // So we need to make sure that they will always be valid.
 // It does manage the strings of counters and budget groups
@@ -530,7 +527,7 @@ public:
 	}
 
 private:
-	ankerl::unordered_dense::map<const char*, HolyLib_CVProfNode*> m_pChildren;
+	unordered_map<const char*, HolyLib_CVProfNode*> m_pChildren;
 
 	CVProfNode* m_pCachedParent = nullptr;
 	// If our filter changes our parent may no longer be valid

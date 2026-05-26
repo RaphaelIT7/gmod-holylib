@@ -10,8 +10,7 @@
 #include "Platform.hpp"
 #include "tier0/dbg.h"
 #include <vector>
-#include <unordered_set>
-#include <unordered_map>
+#include "unordered_stuff.h"
 
 #ifdef DLL_TOOLS
 #ifdef WIN32
@@ -196,9 +195,9 @@ byte m_##name = 0;
 	extern void EnableHook(Detouring::Hook* pHook);
 	extern void DisableHook(Detouring::Hook* pHook);
 	extern void ReportLeak();
-	extern const std::unordered_set<std::string>& GetDisabledDetours();
-	extern const std::unordered_set<std::string>& GetFailedDetours();
-	extern const std::unordered_map<std::string, unsigned int>& GetLoadedDetours();
+	extern const unordered_set<std::string>& GetDisabledDetours();
+	extern const unordered_set<std::string>& GetFailedDetours();
+	extern const unordered_map<std::string, unsigned int>& GetLoadedDetours();
 
 	extern SymbolFinder symfinder;
 	template<class T>

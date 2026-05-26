@@ -1457,7 +1457,7 @@ static void hook_CBaseServer_WriteDeltaEntities(CBaseServer* pServer, CBaseClien
 /*
 	Replacement part of CSendTablePrecalc with HolyLibCSendTablePrecalc into gmod
 */
-static std::unordered_map<CSendTablePrecalc*, HolyLibCSendTablePrecalc*> g_pReplacedProps;
+static unordered_map<CSendTablePrecalc*, HolyLibCSendTablePrecalc*> g_pReplacedProps;
 static HolyLibCSendTablePrecalc* AllocateNewPrecalc(CSendTablePrecalc* pPrecalc)
 {
 	if (!pPrecalc)

@@ -49,7 +49,7 @@ struct CaseInsensitiveEqual {
 	}
 };
 
-static ankerl::unordered_dense::map<std::string_view, ConCommandBase*, CaseInsensitiveHash, CaseInsensitiveEqual> g_pCommandBaseNames;
+static unordered_map<std::string_view, ConCommandBase*, CaseInsensitiveHash, CaseInsensitiveEqual> g_pCommandBaseNames;
 
 /*
  * BUG: The Source engine uses Q_stricmp -> V_stricmp which is case insensitive, so we need to account for that.

@@ -5,7 +5,6 @@
 #include "networkstringtabledefs.h"
 #include <sourcesdk/networkstringtable.h>
 #include <sourcesdk/server.h>
-#include <unordered_map>
 #include "networkstringtableitem.h"
 
 // memdbgon must be the last include file in a .cpp file!!!

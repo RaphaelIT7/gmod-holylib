@@ -940,7 +940,7 @@ void CLuaInterface::RunThreadedCalls()
 	LuaDebugPrint(3, "CLuaInterface::RunThreadedCalls\n");
 
 	// unordered_set instead of a vector to improve performance of the second pass
-	std::unordered_set<GarrysMod::Lua::ILuaThreadedCall*> pFinishedCalls;
+	unordered_set<GarrysMod::Lua::ILuaThreadedCall*> pFinishedCalls;
 
 	// We create a copy for the rare case that a task might call AddThreadedCall inside IsDone, if we didn't do this it could break iteration!
 	m_pThreadedCallsMutex.Lock(); // We don't need to keep it locked for longer thanks to our copy.

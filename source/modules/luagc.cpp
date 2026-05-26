@@ -291,7 +291,7 @@ LUA_FUNCTION_STATIC(luagc_GetReferences)
 	return 1;
 }
 
-static void LuaGC_WalkReferences(GCobj* pObj, std::unordered_set<GCobj*>& nWalkedObjects, int& nCount, lua_State* L, GarrysMod::Lua::ILuaInterface* LUA, bool bIsChild, bool bRecursive)
+static void LuaGC_WalkReferences(GCobj* pObj, unordered_set<GCobj*>& nWalkedObjects, int& nCount, lua_State* L, GarrysMod::Lua::ILuaInterface* LUA, bool bIsChild, bool bRecursive)
 {
 	if (!pObj || nWalkedObjects.find(pObj) != nWalkedObjects.end())
 		return;
@@ -450,7 +450,7 @@ static void LuaGC_WalkReferences(GCobj* pObj, std::unordered_set<GCobj*>& nWalke
 
 LUA_FUNCTION_STATIC(luagc_GetContainingReferences)
 {
-	std::unordered_set<GCobj*> nWalkedObjects;
+	unordered_set<GCobj*> nWalkedObjects;
 
 	bool bRecursive = LUA->GetBool(2);
 	lua_State* L = LUA->GetState();
@@ -542,7 +542,7 @@ static inline void PushGCTypeName(GarrysMod::Lua::ILuaInterface* LUA, const char
 	LUA->RawSet(-3);
 }
 
-static int LuaGC_RecursiveSize(GCobj* pObj, std::unordered_set<GCobj*>& nWalkedObjects, lua_State* L, bool bIsChild, bool bRecursive);
+static int LuaGC_RecursiveSize(GCobj* pObj, unordered_set<GCobj*>& nWalkedObjects, lua_State* L, bool bIsChild, bool bRecursive);
 static void LuaGC_ShowReferences(GarrysMod::Lua::ILuaInterface* LUA, GCobj* pObj)
 {
 	if (!pObj)
@@ -555,7 +555,7 @@ static void LuaGC_ShowReferences(GarrysMod::Lua::ILuaInterface* LUA, GCobj* pObj
 	LUA->RawSet(-3);
 
 	{
-		std::unordered_set<GCobj*> nWalkedObjects;
+		unordered_set<GCobj*> nWalkedObjects;
 		LUA->PushString("size");
 		LUA->PushNumber(LuaGC_RecursiveSize(pObj, nWalkedObjects, LUA->GetState(), false, false));
 		LUA->RawSet(-3);
@@ -838,7 +838,7 @@ LUA_FUNCTION_STATIC(luagc_GetFormattedGCObjectInfo)
 	return 1;
 }
 
-static int LuaGC_RecursiveSize(GCobj* pObj, std::unordered_set<GCobj*>& nWalkedObjects, lua_State* L, bool bIsChild, bool bRecursive)
+static int LuaGC_RecursiveSize(GCobj* pObj, unordered_set<GCobj*>& nWalkedObjects, lua_State* L, bool bIsChild, bool bRecursive)
 {
 	if (!pObj || nWalkedObjects.find(pObj) != nWalkedObjects.end())
 		return 0;
@@ -1045,7 +1045,7 @@ LUA_FUNCTION_STATIC(luagc_GetSizeOfGCObject)
 {
 	lua_State* L = LUA->GetState();
 	bool bRecursive = LUA->GetBool(2);
-	std::unordered_set<GCobj*> nWalkedObjects;
+	unordered_set<GCobj*> nWalkedObjects;
 	if (LUA->IsType(3, GarrysMod::Lua::Type::Table))
 	{
 		LUA->Push(3);

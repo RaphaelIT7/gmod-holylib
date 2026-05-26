@@ -1,7 +1,5 @@
 #include "detours.h"
 #include <convar.h>
-#include <unordered_map>
-#include <unordered_set>
 #include "tier0/dbg.h"
 
 // memdbgon must be the last include file in a .cpp file!!!
@@ -40,11 +38,11 @@ struct DetourEntry
 	void* pTargetFunc;
 };
 
-static std::unordered_set<std::string> pDisabledDetours;
-static std::unordered_set<std::string> pFailedDetours;
-static std::unordered_map<std::string, unsigned int> pLoadedDetours;
-static std::unordered_map<Detouring::Hook*, DetourEntry> pDetourInfo;
-static std::unordered_map<unsigned int, std::unordered_set<Detouring::Hook*>> g_pDetours = {};
+static unordered_set<std::string> pDisabledDetours;
+static unordered_set<std::string> pFailedDetours;
+static unordered_map<std::string, unsigned int> pLoadedDetours;
+static unordered_map<Detouring::Hook*, DetourEntry> pDetourInfo;
+static unordered_map<unsigned int, unordered_set<Detouring::Hook*>> g_pDetours = {};
 void Detour::Create(Detouring::Hook* pHook, const char* strName, void* pModule, Symbol pSymbol, void* pHookFunc, unsigned int category, bool bEnable)
 {
 	if (pDisabledDetours.find(strName) != pDisabledDetours.end())
@@ -153,17 +151,17 @@ void Detour::ReportLeak()
 			Msg(PROJECT_NAME ": ID %d failed to shutdown it's detours!\n", id);
 }
 
-const std::unordered_set<std::string>& Detour::GetDisabledDetours()
+const unordered_set<std::string>& Detour::GetDisabledDetours()
 {
 	return pDisabledDetours;
 }
 
-const std::unordered_set<std::string>& Detour::GetFailedDetours()
+const unordered_set<std::string>& Detour::GetFailedDetours()
 {
 	return pFailedDetours;
 }
 
-const std::unordered_map<std::string, unsigned int>& Detour::GetLoadedDetours()
+const unordered_map<std::string, unsigned int>& Detour::GetLoadedDetours()
 {
 	return pLoadedDetours;
 }

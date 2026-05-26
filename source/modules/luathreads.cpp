@@ -53,7 +53,7 @@ public:
 };
 
 class LuaInterface;
-static std::unordered_set<LuaInterface*> g_pLuaInterfaces;
+static unordered_set<LuaInterface*> g_pLuaInterfaces;
 class LuaInterface
 {
 public:

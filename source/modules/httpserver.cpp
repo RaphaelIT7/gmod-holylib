@@ -37,7 +37,7 @@ struct HttpResponse {
 	std::string m_strContent = "";
 	std::string m_strContentType = "text/plain";
 	std::string m_strRedirect = "";
-	std::unordered_map<std::string, std::string> m_pHeaders;
+	unordered_map<std::string, std::string> m_pHeaders;
 
 	inline void DoResponse(httplib::Response& pResponse)
 	{
@@ -62,7 +62,7 @@ struct PreparedHttpResponse {
 	std::string m_strPath = "";
 	std::string m_strMethod = "";
 	std::string m_strBody = "";
-	std::unordered_map<std::string, std::string> m_pRequiredHeaders;
+	unordered_map<std::string, std::string> m_pRequiredHeaders;
 
 	inline bool ShouldRespond(const httplib::Request& pRequest)
 	{
@@ -139,7 +139,7 @@ namespace stringstuff
 }
 
 class HttpServer;
-static std::unordered_set<HttpServer*> g_pHttpServers;
+static unordered_set<HttpServer*> g_pHttpServers;
 class HttpServer
 {
 public:
@@ -345,13 +345,13 @@ private:
 	std::vector<HttpRequest*> m_pRequests;
 
 	std::vector<int> m_pHandlerReferences; // Contains the Lua references to the handler functions.
-	std::unordered_map<std::string, ProxyEntry> m_pAllowedProxies;
+	unordered_map<std::string, ProxyEntry> m_pAllowedProxies;
 	httplib::Server m_pServer;
 	char m_strName[64] = {0};
 	ThreadHandle_t m_pServerThread = nullptr;
 
 	// userID - Response pairs.
-	std::unordered_map<int, std::vector<PreparedHttpResponse*>> m_pPreparedResponses;
+	unordered_map<int, std::vector<PreparedHttpResponse*>> m_pPreparedResponses;
 	std::shared_mutex m_pPreparedResponsesMutex;
 	std::atomic<bool> m_bHandledPreparedResponse = false; // Set to true if any prepared response needs to be deleted
 

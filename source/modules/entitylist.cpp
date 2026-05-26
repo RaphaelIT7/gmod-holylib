@@ -26,7 +26,7 @@ IModule* pEntListModule = &g_pEntListModule;
 Push_LuaClass(EntityList)
 Get_LuaClass(EntityList, "EntityList")
 
-static std::unordered_set<EntityList*> pEntityLists; // Fk... Now we have multiple threads partying on here. ToDo: Mutex
+static unordered_set<EntityList*> pEntityLists; // Fk... Now we have multiple threads partying on here. ToDo: Mutex
 
 class LuaEntityModuleData : public Lua::ModuleData
 {

@@ -113,11 +113,11 @@ struct FilesystemJob
 
 static const char* nullPath = "NULL_PATH";
 extern void DeleteFileHandle(FileHandle_t handle);
-static std::unordered_map<FileHandle_t, std::string_view> m_FileStringCache;
-static std::unordered_map<std::string_view, FileHandle_t> m_FileCache;
-static std::unordered_set<FileHandle_t> m_WriteFileHandle;
-static std::unordered_set<std::string> m_PredictionCheck;
-std::unordered_map<FileHandle_t, float> pFileDeletionList;
+static unordered_map<FileHandle_t, std::string_view> m_FileStringCache;
+static unordered_map<std::string_view, FileHandle_t> m_FileCache;
+static unordered_set<FileHandle_t> m_WriteFileHandle;
+static unordered_set<std::string> m_PredictionCheck;
+unordered_map<FileHandle_t, float> pFileDeletionList;
 void AddFileHandleToCache(std::string_view strFilePath, FileHandle_t pHandle)
 {
 	char* pFilePath = new char[MAX_PATH];
@@ -250,7 +250,7 @@ std::string GetFullPath(const CSearchPath* pSearchPath, const char* strFileName)
 	return pPath;
 }
 
-static std::unordered_map<std::string_view, std::unordered_map<std::string_view, int>> m_SearchCache;
+static unordered_map<std::string_view, unordered_map<std::string_view, int>> m_SearchCache;
 static void ClearFileSearchCache()
 {
 	for (auto& [key, valMap] : m_SearchCache)
@@ -368,7 +368,7 @@ static inline void WriteStringIntoFile(FileHandle_t pHandle, const char* value, 
 	g_pFullFileSystem->Write(value, valueLength, pHandle);
 }
 
-static std::unordered_map<std::string_view, std::unordered_map<std::string_view, std::string_view>> g_pAbsoluteSearchCache;
+static unordered_map<std::string_view, unordered_map<std::string_view, std::string_view>> g_pAbsoluteSearchCache;
 
 enum class FileSystemStatus
 {
@@ -429,7 +429,7 @@ static void WriteSearchCache()
 			// And it discards the previous cache entries which weren't used
 
 			// A COPY that we now fill
-			std::unordered_map<std::string_view, std::unordered_map<std::string_view, std::string_view>> pAbsoluteCache = g_pAbsoluteSearchCache;
+			unordered_map<std::string_view, unordered_map<std::string_view, std::string_view>> pAbsoluteCache = g_pAbsoluteSearchCache;
 			std::vector<char*> pTempMemory;
 			// For the merge we allocate temporary memory, and since pAbsoluteCache is a copy, it would be deconstructed leaving the pointers leaking
 
@@ -891,7 +891,7 @@ static const char* GetSplitPath(const char* pFileName, const char* pathID)
 		return nullptr;
 
 	std::string_view strStart = strFileName.substr(0, pos);
-	static const std::unordered_map<std::string_view, std::string_view> pOverridePaths = {
+	static const unordered_map<std::string_view, std::string_view> pOverridePaths = {
 		{"materials",	"CONTENT_MATERIALS"},
 		{"models",		"CONTENT_MODELS"},
 		{"sound",		"CONTENT_SOUNDS"},
@@ -951,7 +951,7 @@ static const char* GetSplitPath(const char* pFileName, const char* pathID)
 	*/
 }
 
-static std::unordered_map<std::string_view, std::string_view> g_pOverridePaths;
+static unordered_map<std::string_view, std::string_view> g_pOverridePaths;
 void AddOverridePath(const char* pFileName, const char* pPathID)
 {
 	char* cFileName = new char[MAX_PATH];
@@ -2098,7 +2098,7 @@ std::string extractDirectoryPath(const std::string& filepath) {
 std::vector<std::string> SortByDate(std::vector<std::string> files, const char* filepath, const char* path, bool ascending)
 {
 	std::string str_filepath = extractDirectoryPath((std::string)filepath);
-	std::unordered_map<std::string_view, long> dates;
+	unordered_map<std::string_view, long> dates;
 	for (std::string file : files) {
 		dates[file] = g_pFullFileSystem->GetFileTime((str_filepath + file).c_str(), path);
 	}

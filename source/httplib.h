@@ -8,6 +8,8 @@
 #ifndef CPPHTTPLIB_HTTPLIB_H
 #define CPPHTTPLIB_HTTPLIB_H
 
+#include "unordered_stuff.h"
+
 #define CPPHTTPLIB_VERSION "0.19.0"
 
 /*
@@ -633,7 +635,7 @@ struct Request {
   MultipartFormDataMap files;
   Ranges ranges;
   Match matches;
-  std::unordered_map<std::string, std::string> path_params;
+  unordered_map<std::string, std::string> path_params;
   std::function<bool()> is_connection_closed = []() { return true; };
 
   // for client
@@ -6157,7 +6159,7 @@ inline PathParamsMatcher::PathParamsMatcher(const std::string &pattern) {
   // construction
   // If exceptions are disabled, only last duplicate path
   // parameter will be set
-  std::unordered_set<std::string> param_name_set;
+  unordered_set<std::string> param_name_set;
 #endif
 
   while (true) {

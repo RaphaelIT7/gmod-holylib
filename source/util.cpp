@@ -28,20 +28,20 @@ CGlobalEntityList* Util::entitylist = nullptr;
 CUserMessages* Util::pUserMessages = nullptr;
 
 #if HOLYLIB_UTIL_DEBUG_LUAUSERDATA
-std::unordered_set<LuaUserData*> g_pLuaUserData; // Debug only use
+unordered_set<LuaUserData*> g_pLuaUserData; // Debug only use
 #endif
 
-std::unordered_set<int> Util::g_pReference;
+unordered_set<int> Util::g_pReference;
 ConVar Util::holylib_debug_mainutil("holylib_debug_mainutil", "1");
 
 // We require this here since we depend on the Lua namespace
 void ReferencedLuaUserData::ForceGlobalRelease(void* pData)
 {
 	bool bFound = false;
-	const std::unordered_set<Lua::StateData*> pStateData = Lua::GetAllLuaData();
+	const auto& pStateData = Lua::GetAllLuaData();
 	for (Lua::StateData* pState : pStateData)
 	{
-		std::unordered_map<void*, ReferencedLuaUserData*> owningData = pState->GetPushedUserData(); // Copy it over in case it->second gets deleted while iterating
+		const auto& owningData = pState->GetPushedUserData(); // Copy it over in case it->second gets deleted while iterating
 		auto it2 = owningData.find(pData);
 		if (it2 == owningData.end())
 			continue;
@@ -65,7 +65,7 @@ void ReferencedLuaUserData::ForceGlobalRelease(void* pData)
 	*/
 	for (Lua::StateData* pState : pStateData)
 	{
-		std::unordered_map<void*, ReferencedLuaUserData*> owningData = pState->GetPushedUserData(); // Copy it over in case it->second gets deleted while iterating
+		auto& owningData = pState->GetPushedUserData(); // Copy it over in case it->second gets deleted while iterating
 		auto it2 = owningData.find(pData);
 		if (it2 == owningData.end())
 			continue;
@@ -577,7 +577,7 @@ static void hook_SteamGameServer_Shutdown()
 	detour_SteamGameServer_Shutdown.GetTrampoline<Symbols::SteamGameServer_Shutdown>()();
 }
 
-std::unordered_set<std::string> Util::pBlockedEvents;
+unordered_set<std::string> Util::pBlockedEvents;
 static Detouring::Hook detour_CGameEventManager_CreateEvent;
 static IGameEvent* hook_CGameEventManager_CreateEvent(void* manager, const char* name, bool bForce)
 {
@@ -614,10 +614,10 @@ void Util::UnblockGameEvent(const char* pName)
 	Because they are the most reliable and secure way to get offsets to variables even across platforms.
 	We normally try to avoid offsets, but these offset are our love.
 */
-static std::unordered_map<std::string, std::unordered_set<SendProp*>> g_pSendProps;
-extern void AddSendProp(SendProp* pProp, std::unordered_set<SendProp*>& pSendProp);
+static unordered_map<std::string, unordered_set<SendProp*>> g_pSendProps;
+extern void AddSendProp(SendProp* pProp, unordered_set<SendProp*>& pSendProp);
 extern void AddSendTable(SendTable* pTables);
-void AddSendProp(SendProp* pProp, std::unordered_set<SendProp*>& pSendProp)
+void AddSendProp(SendProp* pProp, unordered_set<SendProp*>& pSendProp)
 {
 	if (pSendProp.find(pProp) == pSendProp.end())
 		pSendProp.insert(pProp);
@@ -631,7 +631,7 @@ void AddSendProp(SendProp* pProp, std::unordered_set<SendProp*>& pSendProp)
 
 void AddSendTable(SendTable* pTable)
 {
-	std::unordered_set<SendProp*> pSendProp;
+	unordered_set<SendProp*> pSendProp;
 	for (int i = 0; i < pTable->GetNumProps(); i++) {
 		SendProp* pProp = &pTable->m_pProps[i]; // Windows screwing with GetProp
 		
@@ -1119,7 +1119,7 @@ void Util::Load()
 			return;
 		}
 
-		std::unordered_set<ConVar*> pSkipConVars;
+		unordered_set<ConVar*> pSkipConVars;
 		for (CModule* pWrapper : g_pModuleManager.GetModules())
 		{
 			if (pWrapper->GetConVar())

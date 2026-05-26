@@ -2,7 +2,6 @@
 #include "detours.h"
 #include "module.h"
 #include "lua.h"
-#include "unordered_map"
 #include "player.h"
 #include "iserver.h"
 #include "sourcesdk/baseclient.h"

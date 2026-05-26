@@ -4,11 +4,10 @@
 #include <lua/ILuaInterface.h>
 #include "Platform.hpp"
 #include "vprof.h"
-#include <unordered_map>
 #include <algorithm>
 #include "symbols.h"
-#include "unordered_set"
 #include <shared_mutex>
+#include "unordered_stuff.h"
 
 #include "vstdlib/jobthread.h"
 #include "../luajit/src/lua.hpp"
@@ -154,7 +153,7 @@ namespace Util
 	 * Pure debugging
 	 */
 #define HOLYLIB_UTIL_DEBUG_REFERENCES 0
-	extern std::unordered_set<int> g_pReference;
+	extern unordered_set<int> g_pReference;
 	extern ConVar holylib_debug_mainutil;
 	inline int ReferenceCreate(GarrysMod::Lua::ILuaInterface* LUA, const char* reason)
 	{
@@ -338,7 +337,7 @@ namespace Util
 	}
 
 	// Gameevent stuff
-	extern std::unordered_set<std::string> pBlockedEvents; // For direct access
+	extern unordered_set<std::string> pBlockedEvents; // For direct access
 	extern void BlockGameEvent(const char* pName);
 	extern void UnblockGameEvent(const char* pName);
 

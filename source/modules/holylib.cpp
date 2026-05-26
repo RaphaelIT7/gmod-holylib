@@ -332,7 +332,7 @@ static void hook_CBaseEntity_SetMoveType(CBaseEntity* pEnt, int iMoveType, int i
 	detour_CBaseEntity_SetMoveType.GetTrampoline<Symbols::CBaseEntity_SetMoveType>()(pEnt, iMoveType, iMoveCollide);
 }
 
-static std::unordered_set<std::string> g_pHideMsg;
+static unordered_set<std::string> g_pHideMsg;
 LUA_FUNCTION_STATIC(HideMsg) // ToDo: Final logic is still missing.
 {
 	std::string pRegex = LUA->CheckString(1);

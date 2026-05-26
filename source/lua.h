@@ -5,7 +5,6 @@
 #include <atomic>
 #include <mutex>
 #include "../luajit/src/lua.h"
-#include <ankerl/unordered_dense.h>
 #if !defined(DISABLE_GMODJIT)
 #include "../gmod-luajit/luajit.h"
 #define LJ_UDATA_FLAG_USERTABLE 0x01 // from our JIT build
@@ -68,7 +67,7 @@ namespace RawLua {
 
 	private:
 		CBitVec<USHRT_MAX> pRegisteredTypes;
-		std::unordered_map<unsigned char, uint16_t> pMetaIDToCType = {};
+		unordered_map<unsigned char, uint16_t> pMetaIDToCType = {};
 		uint16_t nHolyLibUserDataTypeID = 0; // cData TypeID of the HOLYLIB_UserData struct.
 		TValue nHolyLibUserDataGC;
 		int nHolyLibUserDataGCFuncReference = -1;
@@ -260,8 +259,8 @@ namespace Lua
 		// It uses the assigned module IDs
 		Lua::ModuleData* pModuleData[Lua::Internal::pMaxEntries] = { nullptr };
 		LuaMetaEntry pLuaTypes[LuaTypes::TOTAL_TYPES];
-		std::unordered_map<void*, ReferencedLuaUserData*> pPushedUserData; // Would love to get rid of this
-		std::unordered_set<ILuaInterfaceReference*> pReferences;
+		unordered_map<void*, ReferencedLuaUserData*> pPushedUserData; // Would love to get rid of this
+		unordered_set<ILuaInterfaceReference*> pReferences;
 		GarrysMod::Lua::ILuaInterface* pLua = nullptr;
 		CLuaInterfaceProxy* pProxy;
 		GCRef nErrorFunc;
@@ -370,7 +369,7 @@ namespace Lua
 			pModuleData[moduleID] = moduleData;
 		}
 
-		inline std::unordered_map<void*, ReferencedLuaUserData*>& GetPushedUserData()
+		inline unordered_map<void*, ReferencedLuaUserData*>& GetPushedUserData()
 		{
 			return pPushedUserData;
 		}
@@ -419,7 +418,7 @@ namespace Lua
 	}
 	extern void CreateLuaData(GarrysMod::Lua::ILuaInterface* LUA, bool bNullOut = false);
 	extern void RemoveLuaData(GarrysMod::Lua::ILuaInterface* LUA);
-	extern const std::unordered_set<Lua::StateData*>& GetAllLuaData();
+	extern const unordered_set<Lua::StateData*>& GetAllLuaData();
 
 	// In a single call checks the type and returns the userdata saving some work.
 	extern bool CheckHolyLibType(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos, int nType, LuaUserData** pUserData);
@@ -983,7 +982,7 @@ enum class udataFlags // we use bit flags so only a total of 8 are allowed.v
 
 #if HOLYLIB_UTIL_DEBUG_LUAUSERDATA
 struct LuaUserData;
-extern std::unordered_set<LuaUserData*> g_pLuaUserData; // A set containing all LuaUserData that actually hold a reference.
+extern unordered_set<LuaUserData*> g_pLuaUserData; // A set containing all LuaUserData that actually hold a reference.
 #endif
 struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its managed by Lua!
 	// Will only be called when you stack allocate it.
@@ -1618,7 +1617,7 @@ struct EntityList // entitylist module.
 			m_pEntReferences[pEntity] = nullptr;
 	}
 
-	inline const ankerl::unordered_dense::map<CBaseEntity*, GCudata*>& GetReferences()
+	inline const unordered_map<CBaseEntity*, GCudata*>& GetReferences()
 	{
 		return m_pEntReferences;
 	}
@@ -1641,7 +1640,7 @@ struct EntityList // entitylist module.
 
 private:
 	// NOTE: The Entity will always be valid but the reference can be -1!
-	ankerl::unordered_dense::map<CBaseEntity*, GCudata*> m_pEntReferences;
+	unordered_map<CBaseEntity*, GCudata*> m_pEntReferences;
 	std::vector<CBaseEntity*> m_pEntities;
 	GarrysMod::Lua::ILuaInterface* m_pLua = nullptr;
 };

@@ -269,7 +269,7 @@ class ServerClassCache
 public:
 	std::vector<PropIndexData> prop_offset_sendtable;
 	std::vector<SpecialSendPropCalc> prop_special;
-	std::unordered_map<const SendProp *, SpecialDataTableCalc> datatable_special;
+	unordered_map<const SendProp *, SpecialDataTableCalc> datatable_special;
 
 	unsigned short *prop_offsets;
 
@@ -2073,8 +2073,8 @@ static void WriteString(std::string str, int nIndent, FileHandle_t pHandle)
 }
 
 #define APPEND_IF_PFLAGS_CONTAINS_SPROP(sprop) if(flags & SPROP_##sprop) pFlags.append(" " #sprop)
-extern void WriteSendTable(SendTable* pTable, std::unordered_set<SendTable*>& pWrittenTables);
-void WriteSendProp(SendProp* pProp, int nIndex, int nIndent, FileHandle_t pHandle, std::unordered_set<SendTable*>& pWrittenTables)
+extern void WriteSendTable(SendTable* pTable, unordered_set<SendTable*>& pWrittenTables);
+void WriteSendProp(SendProp* pProp, int nIndex, int nIndent, FileHandle_t pHandle, unordered_set<SendTable*>& pWrittenTables)
 {
 	std::string pIndex = "Index: ";
 	pIndex.append(std::to_string(nIndex));
@@ -2185,7 +2185,7 @@ void WriteSendProp(SendProp* pProp, int nIndex, int nIndent, FileHandle_t pHandl
 	}
 }
 
-static void WriteSendTable(SendTable* pTable, FileHandle_t pHandle, std::unordered_set<SendTable*>& pWrittenTables)
+static void WriteSendTable(SendTable* pTable, FileHandle_t pHandle, unordered_set<SendTable*>& pWrittenTables)
 {
 	for (int i = 0; i < pTable->GetNumProps(); ++i) {
 		SendProp* pProp = pTable->GetProp(i);
@@ -2202,7 +2202,7 @@ static void WriteSendTable(SendTable* pTable, FileHandle_t pHandle, std::unorder
 }
 
 static std::string baseDTDumpFilePath = "holylib/dump/dt/";
-void WriteSendTable(SendTable* pTable, std::unordered_set<SendTable*>& pWrittenTables)
+void WriteSendTable(SendTable* pTable, unordered_set<SendTable*>& pWrittenTables)
 {
 	if (pWrittenTables.find(pTable) != pWrittenTables.end())
 		return; // Already wrote it. Skipping...
@@ -2238,7 +2238,7 @@ static void DumpDT(const CCommand &args)
 {
 	g_pFullFileSystem->CreateDirHierarchy(baseDTDumpFilePath.c_str(), "MOD");
 
-	std::unordered_set<SendTable*> pWrittenTables;
+	unordered_set<SendTable*> pWrittenTables;
 	int nClassIndex = 0;
 	for(ServerClass *serverclass = Util::servergamedll->GetAllServerClasses(); serverclass->m_pNext != nullptr; serverclass = serverclass->m_pNext) {
 		std::string fileName = baseDTDumpFilePath;

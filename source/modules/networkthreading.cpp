@@ -348,7 +348,7 @@ static SIMPLETHREAD_RETURNVALUE NetworkThread(void* pThreadData)
 }
 
 static Detouring::Hook detour_NET_ProcessSocket;
-static std::unordered_set<INetChannel*> g_pNetChannels; // No mutex since only the main thread parties on it... hopefully
+static unordered_set<INetChannel*> g_pNetChannels; // No mutex since only the main thread parties on it... hopefully
 static void hook_NET_ProcessSocket(int nSocket, IConnectionlessPacketHandler* pHandler)
 {
 	if (!Util::server || nSocket != ((CBaseServer*)Util::server)->m_Socket || g_nThreadState.load() == ThreadState::STATE_NOTRUNNING)

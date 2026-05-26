@@ -8,8 +8,6 @@
 #include "bass.h"
 #include "bassenc.h"
 #include "bassmix.h"
-#include <unordered_map>
-#include <unordered_set>
 #include <vector>
 
 class CBassAudioStream : public IBassAudioStream
@@ -221,7 +219,7 @@ private:
 
 	// HolyLib specific
 	std::string m_strFileName = "NULL";
-	std::unordered_map<std::string, CGModAudioFX*> m_pFX;
+	unordered_map<std::string, CGModAudioFX*> m_pFX;
 };
 
 extern IGMod_Audio* g_pGModAudio;
@@ -263,9 +261,9 @@ public: // Non virtual holylib functions
 private:
 	bool LoadDLL(const char* pDLLName, void** pDLLHandle);
 
-	std::unordered_map<std::string, HPLUGIN> m_pLoadedPlugins;
+	unordered_map<std::string, HPLUGIN> m_pLoadedPlugins;
 	std::vector<void*> m_pLoadedDLLs;
-	std::unordered_set<CGModAudioChannelEncoder*> m_pEncoders;
+	unordered_set<CGModAudioChannelEncoder*> m_pEncoders;
 	bool m_bInitialized = false;
 };
 

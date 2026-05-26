@@ -57,7 +57,7 @@ static void hook_CSteam3Server_OnLogonSuccess(CSteam3Server* srv, SteamServersCo
 }
 
 static std::vector<CBaseClient*> g_pApprovedClients;
-static std::unordered_set<uint64> g_pApprovedSteamIDs;
+static unordered_set<uint64> g_pApprovedSteamIDs;
 static Detouring::Hook detour_CSteam3Server_NotifyClientConnect;
 static Symbols::CSteam3Server_SendUpdatedServerDetails func_CSteam3Server_SendUpdatedServerDetails;
 static bool hook_CSteam3Server_NotifyClientConnect(CSteam3Server* srv, CBaseClient* client, uint32 unUserID, netadr_t& adr, const void *pvCookie, uint32 ucbCookie)
