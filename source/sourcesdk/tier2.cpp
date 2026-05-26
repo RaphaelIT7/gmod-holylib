@@ -28,7 +28,7 @@
 // It is hoped that setting this, and using this library will be the common mechanism for
 // allowing link libraries to access tier2 library interfaces
 //-----------------------------------------------------------------------------
-#if ARCHITECTURE_IS_X86
+#if !defined(GMOD_X86_64)
 IFileSystem *g_pFullFileSystem = nullptr;
 IMaterialSystem *materials = nullptr;
 IMaterialSystem *g_pMaterialSystem = nullptr;

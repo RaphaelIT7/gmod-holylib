@@ -19,7 +19,7 @@ extern IVEngineServer* engine;
 
 #define VPROF_BUDGETGROUP_HOLYLIB _T("HolyLib")
 
-#if ARCHITECTURE_IS_X86_64
+#if defined(GMOD_X86_64)
 #define V_CreateThreadPool CreateNewThreadPool
 #define V_DestroyThreadPool DestroyThreadPool
 #endif

@@ -247,7 +247,11 @@ byte m_##name = 0;
 #ifndef NOT_DEDICATED
 #define DETOUR_SYMBOL_ID 5
 #else
+#if defined(GMOD_X86_64)
 #define DETOUR_SYMBOL_ID 3
+#else
+#define DETOUR_SYMBOL_ID 6
+#endif
 #endif
 #define MODULE_EXTENSION "win64"
 #endif

@@ -13,6 +13,7 @@ static const Symbol NULL_SIGNATURE = Symbol::FromSignature("");
  * 3 - Windows 64x
  * 4 - Windows Dedicated 32x (falls back to Windows 32x if non existent)
  * 5 - Windows Dedicated 64x (falls back to Windows 64x if non existent)
+ * 6 - Windows 64x DEV
  */
 namespace Symbols
 {

@@ -1689,7 +1689,7 @@ void PackEntities_Normal(int clientCount, CGameClient **clients, CFrameSnapshot 
 	// Process work
 	if ( sv_parallel_packentities && sv_parallel_packentities->GetBool() )
 	{
-#if ARCHITECTURE_X86
+#if !defined(GMOD_X86_64)
 		ParallelProcess( "PackWork_t::Process", workItems, workItemCount, &PackWork_t::Process );
 #else
 		ParallelProcess( workItems, workItemCount, &PackWork_t::Process );

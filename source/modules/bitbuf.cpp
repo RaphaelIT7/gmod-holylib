@@ -841,7 +841,7 @@ LUA_FUNCTION_STATIC(bf_write_WriteBitCoordMP)
 
 	bool bIntegral = LUA->GetBool(2);
 	bool bLowPrecision = LUA->GetBool(3);
-#if ARCHITECTURE_IS_X86_64
+#if defined(GMOD_X86_64)
 	EBitCoordType pType = kCW_None;
 	if (bIntegral)
 		pType = EBitCoordType::kCW_Integral;

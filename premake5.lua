@@ -5,6 +5,7 @@
 ]]
 PROJECT_GENERATOR_VERSION = 3
 
+EXCLUDE_COMMON_PROJECT = true
 if not HOLYLIB_DEVELOPMENT then
 	newoption({
 		trigger = "gmcommon",
@@ -121,6 +122,9 @@ CreateWorkspace({name = "holylib", abi_compatible = true})
 		defines("CPPHTTPLIB_NO_EXCEPTIONS") -- We don't want exceptions!
 		defines("NOBASSOVERLOADS")
 		defines("USE_OLD_BF_READ")
+		if GMOD_X86_64 then
+			defines("GMOD_X86_64")
+		end
 
 		prebuildcommands(prebuildCommand)
 
@@ -162,18 +166,19 @@ CreateWorkspace({name = "holylib", abi_compatible = true})
 		})
 
 		filter("system:windows")
-			defines("IVP_NO_MATH_INL")
+			defines({"IVP_NO_MATH_INL", "COMPILER_MSVC"})
 			disablewarnings({"4101"})
-			links({"lua51_32.lib"})
-			links({"lua51_64.lib"})
-			links({"opus_32.lib"})
-			links({"opus_64.lib"})
 
-		filter("system:windows", "platforms:x86")
+		filter({"system:windows", "platforms:x86"})
 			libdirs(rootDir .. "libs/win32")
+			links({"lua51_32.lib"})
+			links({"opus_32.lib"})
 
-		filter("system:windows", "platforms:x86_64")
+		filter({"system:windows", "platforms:x86_64"})
 			libdirs(rootDir .. "libs/win64")
+			defines({"COMPILER_MSVC64", "WIN64"})
+			links({"lua51_64.lib"})
+			links({"opus_64.lib"})
 
 		filter({"system:linux", "platforms:x86_64"})
 			libdirs(rootDir .. "libs/linux64")
