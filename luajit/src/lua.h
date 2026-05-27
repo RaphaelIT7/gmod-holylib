@@ -188,8 +188,8 @@ enum {
   TR_TYPE_LUASTATE, // Raw lua_state
   TR_TYPE_TABLE, // Raw GCtable
   // IDEA - maybe also TYPE_REFERENCE_TABLE and such BUT I fear that if a reference may be wrong in type it would nuke LuaJIT
-  TR_TYPE_USERDATA, // a GCudata
-  TR_TYPE_USERDATA_VALUE, // The GCudata value / pointer and NOT the actual struct
+  TR_TYPE_USERDATA, // a GCudata (guards on flags & type)
+  TR_TYPE_USERDATA_VALUE, // The GCudata value / pointer and NOT the actual struct guaranteed to be valid (guards on flags & type and the value not being null)
   TR_TYPE_BOOL,
   TR_TYPE_TRUE,
   TR_TYPE_FALSE,
@@ -228,7 +228,6 @@ typedef unsigned char lua_TraceField;
   _(UDATA_ENV) \
   _(UDATA_FLAGS) \
   _(UDATA_UDTYPE) \
-  _(UDATA_HVALUE) /* HolyLib udata value) */ \
   _(UDATA_VALUE) \
   _(GMOD_UDATA_DATA) \
   _(GMOD_UDATA_TYPE) \
@@ -249,6 +248,11 @@ enum {
   TR_GUARD_USERDATA, // Guards on both type & flags
   TR_GUARD_USERDATA_TYPE,
   TR_GUARD_USERDATA_FLAGS,
+  // a = userdata ref, b = runtime userdata
+  // Loads the userdata pointer
+  // Guards on both type & flags and on value not being null
+  // May return lua_TraceEntry_Invalid in which case you must abort!
+  TR_LOAD_USERDATA_VAL,
 
   // Call stuff
   TR_CALL_ARG,
@@ -257,7 +261,6 @@ enum {
   // IMPORTANT if the callinfo has a trace function too it could become recursive!
   // Currently there is no way to know if it aborts or not! Good luck!
   TR_CALL_INFO, // Emits the whole calling chain based off the callinfo. a = lua_CFunctionInfo*
-  TR_LOAD_USERDATA_VAL, // Loads the data - IMPORTANT: In HolyLib we make use of the GCudata::align1 so this function will load that field!
   
   // Field Save-Load
   TR_FLOAD, // a = value, b = lua_TraceField
@@ -348,11 +351,11 @@ typedef struct lua_TraceRecorderEntry
   lua_TraceRecorderOP op;
   lua_TraceRecorderType type;
   union {
-    size_t a;
+    unsigned int a;
     void* aptr;
   };
   union {
-    size_t b;
+    unsigned int b;
     void* bptr;
   };
   /*union {
@@ -369,7 +372,9 @@ typedef struct lua_TraceRecorder {
   void* rd; // RecordFFData
 } lua_TraceRecorder;
 
-typedef size_t lua_TraceEntry; // Internally represents a TRef
+typedef unsigned int lua_TraceEntry; // Internally represents a TRef
+// An invalid entry
+#define lua_TraceEntry_Invalid 0
 
 // Return value is the number of returns! Return -1 to abort!
 typedef int (*lua_TraceRecorderFunction) (lua_TraceRecorder* tr);

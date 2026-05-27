@@ -160,9 +160,15 @@ static TRef recext_processtype(jit_State *J, TRef ref, TRef val, TValue* value, 
     emitir(IRTGI(IR_EQ), tr, lj_ir_kint(J, udataV(value)->guard));
     return val;
   } else if (type == TR_TYPE_USERDATA_VALUE) {
+    if (!uddata(udataV(value)))
+        return TREF_INVALID; // We do not allow null values for this type!
+
+    // Maybe we could skip the guard on type? and only guard on the value not being nullptr
     TRef tr = emitir(IRT(IR_FLOAD, IRT_U16), val, IRFL_UDATA_UDTYPE);
     emitir(IRTGI(IR_EQ), tr, lj_ir_kint(J, udataV(value)->guard));
-    return emitir(IRT(IR_FLOAD, IRT_PTR), val, IRFL_UDATA_VALUE);
+    TRef udValue = emitir(IRT(IR_FLOAD, IRT_PTR), val, IRFL_UDATA_VALUE);
+    emitir(IRTG(IR_NE, IRT_PTR), udValue, lj_ir_knull(J, IRT_PTR));
+    return udValue;
   } else {
     return val;
   }
@@ -210,8 +216,17 @@ lua_TraceEntry lj_tr_emit(lua_TraceRecorder* tr, lua_TraceRecorderEntry entry)
     }
     case TR_LOAD_USERDATA_VAL:
     {
-      TRef obj = (TRef)entry.a;
-      return (lua_TraceEntry)emitir(EMIT_IRT(IR_FLOAD, IRT_PTR), obj, IRFL_UDATA_VALUE);
+      TRef val = (TRef)entry.a;
+      GCudata* ud = (GCudata*)entry.bptr;
+      if (!ud || !uddata(ud))
+        return lua_TraceEntry_Invalid; // We do not allow null values for this type!
+
+      // Verify: JIT may erase many of these guards when it deems them useless (for example when you use this multiple times)
+      TRef tr = emitir(IRT(IR_FLOAD, IRT_U16), val, IRFL_UDATA_UDTYPE);
+      emitir(IRTGI(IR_EQ), tr, lj_ir_kint(J, ud->guard));
+      TRef udValue = emitir(IRT(IR_FLOAD, IRT_PTR), val, IRFL_UDATA_VALUE);
+      emitir(IRTG(IR_NE, IRT_PTR), udValue, lj_ir_knull(J, IRT_PTR));
+      return udValue;
     }
     case TR_FLOAD:
     {
@@ -724,10 +739,20 @@ void LJ_FASTCALL lj_recext_cfunc(jit_State *J, RecordFFData *rd, CFuncCallInfo* 
       tr = emitir(IRT(IR_LREF, IRT_THREAD), 0, 0);
     } else {
       tr = recext_processtype(J, tr, J->base[0], &rd->argv[0], callinfo->argType[0]);
+      if (tr == TREF_INVALID) // processing failed. Abort!
+      {
+        lj_recff_nyi(J, rd);
+        return;
+      }
     }
 
     for (uint32_t i=1; i < args; ++i) {
       tr = emitir(IRT(IR_CARG, IRT_NIL), tr, recext_processtype(J, tr, J->base[i], &rd->argv[i], callinfo->argType[i]));
+      if (tr == TREF_INVALID) // processing failed. Abort!
+      {
+        lj_recff_nyi(J, rd);
+        return;
+      }
     }
   }
   

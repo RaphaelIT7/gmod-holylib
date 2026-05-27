@@ -210,7 +210,6 @@ IRFPMDEF(FPMENUM)
   _(UDATA_ENV,	offsetof(GCudata, env)) \
   _(UDATA_FLAGS, offsetof(GCudata, flags)) /* You can use U16 for load if when needing to guard on both type and flags :) */ \
   _(UDATA_UDTYPE, offsetof(GCudata, udtype)) \
-  _(UDATA_HVALUE, offsetof(GCudata, align1)) /* This field is used by HolyLib to store the userdata value */ \
   _(UDATA_VALUE, sizeof(GCudata)) \
   _(GMOD_UDATA_TYPE, offsetof(GMODudata, type)) \
   _(GMOD_UDATA_DATA, offsetof(GMODudata, data)) \
@@ -507,6 +506,7 @@ enum {
 */
 typedef uint32_t TRef;
 
+#define TREF_INVALID 0
 #define TREF_REFMASK		0x0000ffff
 #define TREF_FRAME		0x00010000
 #define TREF_CONT		0x00020000

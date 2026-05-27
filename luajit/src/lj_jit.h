@@ -251,13 +251,15 @@ typedef struct GCtrace {
   GCHeader;
   uint16_t nsnap;	/* Number of snapshots. */
   IRRef nins;		/* Next IR instruction. Biased with REF_BIAS. */
-#if LJ_GC64
-  uint32_t unused_gc64;
-#endif
-  GCRef gclist;
   IRIns *ir;		/* IR instructions/constants. Biased with REF_BIAS. */
+#if !LJ_GC64
+  GCRef gclist;
+#endif
   IRRef nk;		/* Lowest IR constant. Biased with REF_BIAS. */
   uint32_t nsnapmap;	/* Number of snapshot map elements. */
+#if LJ_GC64
+  GCRef gclist;
+#endif
   SnapShot *snap;	/* Snapshot array. */
   SnapEntry *snapmap;	/* Snapshot map. */
   GCRef startpt;	/* Starting prototype. */
