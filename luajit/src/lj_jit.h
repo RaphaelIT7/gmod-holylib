@@ -102,6 +102,9 @@
 #define JIT_F_OPT_DEFAULT	JIT_F_OPT_3
 /* Note: FMA is not set by default. */
 
+// Additional JIT flags
+#define JIT_AF_CHECKHOOK (1 << 0) /* Enables LUAJIT_ENABLE_CHECKHOOK at runtime */
+
 /* -- JIT engine parameters ----------------------------------------------- */
 
 /* Optimization parameters and their defaults. Length is a char in octal! */
@@ -471,6 +474,7 @@ typedef struct jit_State {
   uint8_t needsplit;	/* Need SPLIT pass. */
 #endif
   uint8_t retryrec;	/* Retry recording. */
+  uint8_t additionalflags; /* additional flags for JIT compilation */
 
   GCRef *trace;		/* Array of traces. */
   TraceNo freetrace;	/* Start of scan for next free trace. */
