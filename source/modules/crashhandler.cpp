@@ -477,6 +477,9 @@ static void CrashHandler(int signal, siginfo_t* signalInfo, void* ucontext)
 			break;
 	}
 
+	if (Util::GetCurrentSysError())
+		dprintf(fileDescriptor, "Engine error: %s\n", Util::GetCurrentSysError());
+
 	ucontext_t* uc = (ucontext_t*)ucontext;
 #if defined(__x86_64__)
 	void* ip = (void*)uc->uc_mcontext.gregs[REG_RIP];

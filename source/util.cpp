@@ -690,6 +690,15 @@ struct SysError_SkipInfo
 	uint32_t count;
 };
 
+static char g_pCurrentSysError[2048]{};
+const char* Util::GetCurrentSysError()
+{
+	if (g_pCurrentSysError[0] == '\0')
+		return nullptr;
+
+	return g_pCurrentSysError;
+}
+
 static std::vector<SysError_SkipInfo> g_pErrorsToIgnore;
 void Util::SysError_IgnoreError(std::string msg, uint32_t count)
 {
@@ -699,7 +708,7 @@ void Util::SysError_IgnoreError(std::string msg, uint32_t count)
 }
 
 static Detouring::Hook detour_Sys_Error_Internal;
-void hook_Sys_Error_Internal( bool bMinidump, const char *error, va_list argsList )
+void hook_Sys_Error_Internal_ignore_this_function_in_crashes_check_your_logs_( bool bMinidump, const char *error, va_list argsList )
 {
 	std::string_view strError = error;
 	for (auto it = g_pErrorsToIgnore.begin(); it != g_pErrorsToIgnore.end(); ++it)
@@ -714,7 +723,9 @@ void hook_Sys_Error_Internal( bool bMinidump, const char *error, va_list argsLis
 		}
 	}
 
+	vsnprintf(g_pCurrentSysError, sizeof(g_pCurrentSysError), error, argsList);
 	detour_Sys_Error_Internal.GetTrampoline<Symbols::Sys_Error_Internal>()(bMinidump, error, argsList);
+	memset(g_pCurrentSysError, 0, sizeof(g_pCurrentSysError));
 }
 
 #if SYSTEM_WINDOWS
@@ -801,7 +812,7 @@ void Util::AddDetour()
 	Detour::Create(
 		&detour_Sys_Error_Internal, "Sys_Error_Internal",
 		engine_loader.GetModule(), Symbols::Sys_Error_InternalSym,
-		(void*)hook_Sys_Error_Internal, 0
+		(void*)hook_Sys_Error_Internal_ignore_this_function_in_crashes_check_your_logs_, 0
 	);
 
 	SourceSDK::ModuleLoader steam_api_loader("steam_api");

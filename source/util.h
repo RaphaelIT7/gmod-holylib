@@ -296,6 +296,7 @@ namespace Util
 	// API to block Sys_Error calls
 	// Registers a message that if an error contains it it'll be skipped x times
 	extern void SysError_IgnoreError(std::string msg, uint32_t count);
+	extern const char* GetCurrentSysError();
 
 	extern bool ShouldLoad();
 	extern void CheckVersion(bool bAutoUpdate);
