@@ -665,6 +665,11 @@ namespace Lua
 
 	// ONLY use the two GetGCStr functions below when being inside a LUA_JIT_WRAPPED function!
 	extern bool g_bUsingLuaJIT; // Hacky workaround for the LuaJIT module- this is due to GCstr being different between old 2.1 and new
+	FORCEINLINE bool IsHolyLibState(GarrysMod::Lua::ILuaInterface* LUA)
+	{
+		return g_bUsingLuaJIT || LUA != g_Lua;
+	}
+
 	extern thread_local GarrysMod::Lua::ILuaInterface* pExecutingInterface; // Another hacky thingy...
 	extern thread_local bool bIsCallingASM; // Only if this value is true - then we can trust Lua::pExecutingInterface
 	// NOTE: Why don't we check for global_State::cur_L? because we know that our C tracing implementation only exists in our JIT build sooo that makes things atleast easier :)
@@ -940,7 +945,7 @@ static inline className* Get##funcName##LuaData(GarrysMod::Lua::ILuaInterface* p
 
 // Lua's GCudata struct, same on 2.1 & 2.0 so this should work everywere.
 // We use our own version of it because we can save memory by doing so, gmod could do the same yet they chose to not to??? idk.
-struct GCudata_holylib { // We cannot change layout/sizes.
+struct GCudata_GMod { // We cannot change layout/sizes.
 	GCHeader; // GCHeader
 	uint8_t udtype;	/* Userdata type. */
 	uint8_t flags;	/* Unused normally - we use it to store flags */
@@ -949,7 +954,23 @@ struct GCudata_holylib { // We cannot change layout/sizes.
 	GCRef metatable;	/* Must be at same offset in GCtab. */
 	void* data;
 };
-constexpr int GCudata_holylib_dataoffset = sizeof(GCudata_holylib) - sizeof(void*);
+constexpr int GCudata_GMod_dataoffset = sizeof(GCudata_GMod) - sizeof(void*);
+
+struct GCudata_HolyLib { // Layout changed!
+	GCHeader; // GCHeader
+	uint8_t udtype;	/* Userdata type. */
+	uint8_t flags;	/* Unused normally - we use it to store flags */
+#if LJ_GC64
+	MSize len;		/* Size of payload. */
+#endif
+	GCRef usertable;	/* Should be at same offset in GCfunc. Accessible using setfenv/getfenv though I don't think anyone knows xd */
+	GCRef metatable;	/* Must be at same offset in GCtab. */
+#if !LJ_GC64
+	MSize len;		/* Size of payload. */
+#endif
+	void* data;
+};
+constexpr int GCudata_HolyLib_dataoffset = sizeof(GCudata_HolyLib) - sizeof(void*);
 
 enum class udataFlags // we use bit flags so only a total of 8 are allowed.v
 {
@@ -961,7 +982,7 @@ enum class udataFlags // we use bit flags so only a total of 8 are allowed.v
 	// We use this so that LuaJIT aborts traces due to the flags having changed avoiding any possible issue (even if there are none already)
 	// This was an intentional design choice for most JIT changes to guard on the GCudata::flags so they should never change frequently!
 	UDATA_INVALID = 1 << 6,
-	UDATA_HOLYLIB = 1 << 7, // Always set- used to distinguish between GMod and HolyLib userdata
+	UDATA_HOLYLIB = 1 << 7, // Always set- used to distinguish between GMod and HolyLib GCudata
 };
 
 /*
@@ -1000,13 +1021,19 @@ enum class udataFlags // we use bit flags so only a total of 8 are allowed.v
 struct LuaUserData;
 extern unordered_set<LuaUserData*> g_pLuaUserData; // A set containing all LuaUserData that actually hold a reference.
 #endif
-struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its managed by Lua!
+struct LuaUserData { // No constructor/deconstructor since its managed by Lua!
+	union {
+		GCudata_GMod GMod;
+		GCudata_HolyLib HolyLib;
+		// Everything after flags may differ!
+	};
+
 	// Will only be called when you stack allocate it.
 	LuaUserData()
 	{
-		setgcrefnull(nextgc);
-		gct = 0x0;
-		marked = 0x4; // mark black. We are stack allocated, we are never white, never grey.
+		setgcrefnull(HolyLib.nextgc);
+		HolyLib.gct = 0x0;
+		HolyLib.marked = 0x4; // mark black. We are stack allocated, we are never white, never grey.
 		// tbh the gc doesn't even know we exist... so were fine anyways, though LuaJITs VM does care
 	}
 	
@@ -1014,21 +1041,29 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 	{
 		// Since Lua creates our userdata, we need to set all the fields ourself!
 
-		flags = 0;
+		HolyLib.flags = Lua::IsHolyLibState(LUA) ? (int)udataFlags::UDATA_HOLYLIB : 0;
 		if (!bIsInline) {
-			data = pData;
-			if (data)
-				flags &= ~(int)udataFlags::UDATA_INVALID;
+			if (IsHolyLib())
+				HolyLib.data = pData;
 			else
-				flags |= (int)udataFlags::UDATA_INVALID;
+				GMod.data = pData;
+
+			if (pData)
+				HolyLib.flags &= ~(int)udataFlags::UDATA_INVALID;
+			else
+				HolyLib.flags |= (int)udataFlags::UDATA_INVALID;
 		} else
-			flags |= (int)udataFlags::UDATA_INLINED_DATA;
+			HolyLib.flags |= (int)udataFlags::UDATA_INLINED_DATA;
 
 		// Always set as we do not care about __index calls.
-		flags |= LJ_UDATA_FLAG_USEMETAFORACCESS;
+		HolyLib.flags |= LJ_UDATA_FLAG_USEMETAFORACCESS;
 
-		udtype = pMetaEntry.iType;
-		metatable = pMetaEntry.metatable;
+		HolyLib.udtype = pMetaEntry.iType;
+
+		if (IsHolyLib())
+			HolyLib.metatable = pMetaEntry.metatable;
+		else
+			GMod.metatable = pMetaEntry.metatable;
 
 		if (pMetaEntry.iType == UCHAR_MAX)
 		{
@@ -1037,7 +1072,7 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 
 		if (bNoUserTable)
 		{
-			flags |= (int)udataFlags::UDATA_NO_USERTABLE;
+			HolyLib.flags |= (int)udataFlags::UDATA_NO_USERTABLE;
 			// setgcrefnull(usertable); // Verify: Do we need to always have a valid usertable? iirc the gc is missing a null check
 		} else {
 			ClearLuaTable(LUA, true);
@@ -1061,13 +1096,13 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 
 	inline void* GetData()
 	{
-		if (flags & (int)udataFlags::UDATA_INLINED_DATA)
-			return (void*)((char*)this + GCudata_holylib_dataoffset);
+		if (HolyLib.flags & (int)udataFlags::UDATA_INLINED_DATA)
+			return (void*)((char*)this + (IsHolyLib() ? GCudata_HolyLib_dataoffset : GCudata_GMod_dataoffset));
 
-		//if (!(flags & (int)udataFlags::UDATA_HOLYLIB))
-		//	return uddata(this);
-
-		return data;
+		if (IsHolyLib())
+			return HolyLib.data;
+		else
+			return GMod.data;
 	}
 
 	inline void SetData(void* pData)
@@ -1076,23 +1111,27 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 		Msg("holylib - util: LuaUserdata got new data %p - %p\n", this, data);
 #endif
 
-		if (flags & (int)udataFlags::UDATA_INLINED_DATA)
+		if (HolyLib.flags & (int)udataFlags::UDATA_INLINED_DATA)
 		{
 			Warning(PROJECT_NAME " - LuaUserData: Tried to call SetData when the data is inlined into the userdata!\n");
 			return;
 		}
 
-		data = pData;
-		if (data)
-			flags &= ~(int)udataFlags::UDATA_INVALID;
+		if (IsHolyLib())
+			HolyLib.data = pData;
 		else
-			flags |= (int)udataFlags::UDATA_INVALID;
+			GMod.data = pData;
+
+		if (pData)
+			HolyLib.flags &= ~(int)udataFlags::UDATA_INVALID;
+		else
+			HolyLib.flags |= (int)udataFlags::UDATA_INVALID;
 	}
 
 	inline void PushLuaTable(GarrysMod::Lua::ILuaInterface* pLua)
 	{
 		lua_State* L = pLua->GetState();
-		if (flags & (int)udataFlags::UDATA_NO_USERTABLE)
+		if (HolyLib.flags & (int)udataFlags::UDATA_NO_USERTABLE)
 		{
 			setnilV(L->top++);
 		} else {
@@ -1106,17 +1145,21 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 					setgcref(usertable, obj2gco(tabV(L->top-1)));
 				}
 			} else {*/
-				settabV(L, L->top++, gco2tab(gcref(usertable)));
+				if (IsHolyLib())
+					settabV(L, L->top++, gco2tab(gcref(HolyLib.usertable)));
+				else
+					settabV(L, L->top++, gco2tab(gcref(GMod.usertable)));
 			//}
 		}
 	}
 
 	inline void ClearLuaTable(GarrysMod::Lua::ILuaInterface* pLua, bool bFresh = false) // bFresh = if we got freshly created / are in a white state
 	{
-		if (flags & (int)udataFlags::UDATA_NO_USERTABLE)
+		if (HolyLib.flags & (int)udataFlags::UDATA_NO_USERTABLE)
 			return;
 
 		lua_State* L = pLua->GetState();
+		GCRef& usertable = GetUserTable();
 		if (Util::func_lj_tab_new && (bFresh || Util::func_lj_gc_barrierf))
 		{
 			// We cannot free it since the GC would kill itself... We also SHOULDN'T since the gc handles it already, so NO touching >:(
@@ -1155,7 +1198,7 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 		}
 
 		// Set HolyLIb's LuaJIT flag to allow __index & __newindex to be JIT'd
-		flags |= LJ_UDATA_FLAG_USERTABLE;
+		HolyLib.flags |= LJ_UDATA_FLAG_USERTABLE;
 	}
 
 	inline void Push(GarrysMod::Lua::ILuaInterface* pLua)
@@ -1176,43 +1219,60 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 #if HOLYLIB_UTIL_DEBUG_LUAUSERDATA
 		g_pLuaUserData.erase(this);
 #endif
-		if (!(flags & (int)udataFlags::UDATA_INLINED_DATA))
+		if (!(HolyLib.flags & (int)udataFlags::UDATA_INLINED_DATA))
 		{
-			data = nullptr;
-			flags |= (int)udataFlags::UDATA_INVALID;
+			if (IsHolyLib())
+				HolyLib.data = nullptr;
+			else
+				GMod.data = nullptr;
+
+			HolyLib.flags |= (int)udataFlags::UDATA_INVALID;
 		}
 
 		return true;
 	}
 
-	inline unsigned char GetType()
+	FORCEINLINE unsigned char GetType()
 	{
-		return udtype;
+		return HolyLib.udtype;
 	}
 
-	inline bool IsFlagExplicitDelete()
+	FORCEINLINE bool IsFlagExplicitDelete()
 	{
-		return (flags & (int)udataFlags::UDATA_EXPLICIT_DELETE) != 0;
+		return (HolyLib.flags & (int)udataFlags::UDATA_EXPLICIT_DELETE) != 0;
 	}
 
-	inline void SetFlagExplicitDelete()
+	FORCEINLINE void SetFlagExplicitDelete()
 	{
-		flags |= (int)udataFlags::UDATA_EXPLICIT_DELETE;
+		HolyLib.flags |= (int)udataFlags::UDATA_EXPLICIT_DELETE;
 	}
 
-	inline bool IsInlined()
+	FORCEINLINE bool IsInlined()
 	{
-		return (flags & (int)udataFlags::UDATA_INLINED_DATA) != 0;
+		return (HolyLib.flags & (int)udataFlags::UDATA_INLINED_DATA) != 0;
 	}
 
-	inline void SetAsInlined()
+	FORCEINLINE void SetAsInlined()
 	{
-		flags |= (int)udataFlags::UDATA_INLINED_DATA;
+		HolyLib.flags |= (int)udataFlags::UDATA_INLINED_DATA;
 	}
 
-	inline int GetFlags()
+	FORCEINLINE int GetFlags()
 	{
-		return flags;
+		return HolyLib.flags;
+	}
+
+	FORCEINLINE bool IsHolyLib()
+	{
+		return (HolyLib.flags & (int)udataFlags::UDATA_HOLYLIB) != 0;
+	}
+
+	FORCEINLINE GCRef& GetUserTable()
+	{
+		if (IsHolyLib())
+			return HolyLib.usertable;
+		else
+			return GMod.usertable;
 	}
 };
 static constexpr int udataSize = sizeof(LuaUserData) - sizeof(GCudata);
@@ -1222,7 +1282,7 @@ struct ReferencedLuaUserData : LuaUserData {
 	{
 		LuaUserData::Init(LUA, pMetaEntry, pData, bNoUserTable, bIsInline);
 
-		flags |= (int)udataFlags::UDATA_REFERENCED;
+		HolyLib.flags |= (int)udataFlags::UDATA_REFERENCED;
 
 		// NOTE:
 		// In the past I set the 0x20 & 0x40 flags into marked for the GC_FIXED & GC_SFIXED but those do not ensure that userdata won't be cleared

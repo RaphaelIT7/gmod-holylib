@@ -792,7 +792,7 @@ public:
 		}
 
 		LuaUserData* luaData = (LuaUserData*)udataV(val); // Very "safe" I know :3
-		if (luaData->udtype >= GarrysMod::Lua::Type::UserData)
+		if (luaData->GetType() >= GarrysMod::Lua::Type::UserData)
 		{
 			return nullptr; // We do NOT support this as we do NOT match the ILuaBase::UserData! (Adding that one byte would fk up alignment)
 		}
@@ -832,7 +832,7 @@ public:
 		}
 
 		LuaUserData* luaData = (LuaUserData*)udataV(val); // Very "safe" I know :3
-		if (luaData->udtype >= GarrysMod::Lua::Type::UserData)
+		if (luaData->GetType() >= GarrysMod::Lua::Type::UserData)
 		{
 			luaData->SetData(data); // Yes, we support this just for sake of my future stupidity when I try to use this on our stuff.
 			return;
