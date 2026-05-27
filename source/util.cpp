@@ -226,6 +226,15 @@ CBaseEntity* Util::Get_Entity(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos,
 	return pEntity;
 }
 
+CBaseEntity* Util::Get_Entity_JIT(GarrysMod::Lua::ILuaInterface* LUA, LuaUserData* ud)
+{
+	EHANDLE* pEntHandle = (EHANDLE*)ud->GetData();
+	if (!pEntHandle)
+		return nullptr;
+
+	return Util::entitylist->GetBaseEntity(*pEntHandle);;
+}
+
 IServer* Util::server = nullptr;
 CBaseClient* Util::GetClientByUserID(int userid)
 {

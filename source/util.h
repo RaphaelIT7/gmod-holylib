@@ -58,6 +58,7 @@ class IServerGameDLL;
 class ISteamUser;
 class CBaseHandle;
 class DTVarByOffset;
+struct LuaUserData;
 namespace Util
 {
 	#define LUA_REGISTRYINDEX	(-10000)
@@ -269,6 +270,7 @@ namespace Util
 	extern int Get_ClientIndex(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
 	extern CBaseClient* Get_Client(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
 	extern INetChannel* Get_NetChannel(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
+	extern CBaseEntity* Get_Entity_JIT(GarrysMod::Lua::ILuaInterface* LUA, LuaUserData* ud);
 
 	extern CBaseEntity* GetCBaseEntityFromEdict(edict_t* edict);
 	extern CBaseEntity* GetCBaseEntityFromIndex(int nEntIndex);

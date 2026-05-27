@@ -642,6 +642,21 @@ namespace Lua
 		LUA->Pop(1);
 	}
 
+	inline LuaUserData* GetUserData(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos)
+	{
+		TValue* val = RawLua::index2adr(LUA->GetState(), iStackPos);
+		if (!tvisudata(val))
+		  LUA->CheckType(iStackPos, GarrysMod::Lua::Type::UserData);
+
+		return (LuaUserData*)udataV(val);
+	}
+
+	inline LuaUserData* GetUserDataEntity(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos)
+	{
+		LUA->CheckType(iStackPos, GarrysMod::Lua::Type::Entity);
+		return (LuaUserData*)udataV(RawLua::index2adr(LUA->GetState(), iStackPos));
+	}
+
 	inline GCstr* GetGCStr(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos)
 	{
 		LUA->CheckType(iStackPos, GarrysMod::Lua::Type::String);
@@ -946,6 +961,7 @@ enum class udataFlags // we use bit flags so only a total of 8 are allowed.v
 	// We use this so that LuaJIT aborts traces due to the flags having changed avoiding any possible issue (even if there are none already)
 	// This was an intentional design choice for most JIT changes to guard on the GCudata::flags so they should never change frequently!
 	UDATA_INVALID = 1 << 6,
+	UDATA_HOLYLIB = 1 << 7, // Always set- used to distinguish between GMod and HolyLib userdata
 };
 
 /*
@@ -1047,6 +1063,9 @@ struct LuaUserData : GCudata_holylib { // No constructor/deconstructor since its
 	{
 		if (flags & (int)udataFlags::UDATA_INLINED_DATA)
 			return (void*)((char*)this + GCudata_holylib_dataoffset);
+
+		//if (!(flags & (int)udataFlags::UDATA_HOLYLIB))
+		//	return uddata(this);
 
 		return data;
 	}

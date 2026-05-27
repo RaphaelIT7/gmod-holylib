@@ -215,14 +215,17 @@ LUA_FUNCTION_STATIC(EntityList_RemoveEntities)
 	return 0;
 }
 
-LUA_FUNCTION_STATIC(EntityList_AddEntity)
+LUA_JIT_WRAPPED_2(EntityList_AddEntity,
+	LuaUserData*, pUD, Get_EntityList_Data(LUA, 1, true),
+	LuaUserData*, pUDEntity, Lua::GetUserDataEntity(LUA, 2)
+)
 {
-	EntityList* pData = Get_EntityList(LUA, 1, true);
-	CBaseEntity* pEntity = Util::Get_Entity(LUA, 2, true);
+	EntityList* pData = (EntityList*)pUD->GetData();
+	CBaseEntity* pEntity = (CBaseEntity*)pUDEntity->GetData();
+	if (!pData || !pEntity)
+		return;
 
 	pData->AddEntity(pEntity, true);
-
-	return 0;
 }
 
 LUA_FUNCTION_STATIC(EntityList_RemoveEntity)
@@ -340,7 +343,7 @@ void CEntListModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 		Util::AddFunc(pLua, EntityList_SetEntities, "SetEntities");
 		Util::AddFunc(pLua, EntityList_AddEntities, "AddEntities");
 		Util::AddFunc(pLua, EntityList_RemoveEntities, "RemoveEntities");
-		Util::AddFunc(pLua, EntityList_AddEntity, "AddEntity");
+		LUA_REGISTER_JIT(pLua, EntityList_AddEntity, "AddEntity");
 		Util::AddFunc(pLua, EntityList_RemoveEntity, "RemoveEntity");
 		Util::AddFunc(pLua, EntityList_CreateCopy, "CreateCopy");
 	pLua->Pop(1);
