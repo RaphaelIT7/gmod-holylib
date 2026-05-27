@@ -500,6 +500,44 @@ static void CrashHandler(int signal, siginfo_t* signalInfo, void* ucontext)
 	dprintf(fileDescriptor, "HolyLib: %s\n", HolyLib_GetPluginDescription());
 	dprintf(fileDescriptor, "Triggered by watcher?: %s\n", g_bInducedCrash.load() ? "true" : "false");
 
+	int gmodVersionDescriptor = ::open("garrysmod/garrysmod.ver", O_RDONLY);
+	if (gmodVersionDescriptor > 0)
+	{
+		char readBuffer[128];
+		char readData[3][32] = {0}; // 0 = versionDate, 1 = verionNum, 2 = branch
+		int readDataLength[3] = {0};
+
+		int currentLine = 0;
+		while (currentLine < 3)
+		{
+			ssize_t readNum = ::read(gmodVersionDescriptor, readBuffer, sizeof(readBuffer));
+			if (readNum <= 0)
+				break;
+
+			for (ssize_t i=0; i<readNum; ++i)
+			{
+				char c = readBuffer[i];
+				if (c == '\n')
+				{
+					if (currentLine < 3)
+						readData[currentLine][readDataLength[currentLine]] = '\0';
+
+					currentLine++;
+					if (currentLine >= 3)
+						break;
+				} else {
+					if (currentLine < 3 && readDataLength[currentLine] < 31)
+						readData[currentLine][readDataLength[currentLine]++] = c;
+				}
+			}
+		}
+
+		::close(gmodVersionDescriptor);
+
+		dprintf(fileDescriptor, "GMod Branch: %s\n", readData[2]);
+		dprintf(fileDescriptor, "GMod Version: %s\n", readData[0]);
+	}
+
 	dprintf(fileDescriptor, "Registers:\n");
 #if defined(__x86_64__)
 	DumpRegister(fileDescriptor, uc->uc_mcontext.gregs, "rax", REG_RAX);
