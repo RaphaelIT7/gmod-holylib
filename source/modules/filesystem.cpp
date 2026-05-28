@@ -231,7 +231,10 @@ static inline CSearchPath* FindSearchPathByStoreId(int iStoreID)
 {
 	if (!func_CBaseFileSystem_FindSearchPathByStoreId)
 	{
-		Warning(PROJECT_NAME ": Failed to get CBaseFileSystem::FindSearchPathByStoreId!\n");
+		static size_t pYappingCounter = 0;
+		if (++pYappingCounter < 100)
+			Warning(PROJECT_NAME ": Failed to get CBaseFileSystem::FindSearchPathByStoreId!\n");
+		
 		return nullptr;
 	}
 
