@@ -1193,7 +1193,7 @@ struct LuaUserData { // No constructor/deconstructor since its managed by Lua!
 		lua_State* L = pLua->GetState();
 		if (HolyLib.flags & (int)udataFlags::UDATA_NO_USERTABLE)
 		{
-			setnilV(L->top++);
+			setnilV(Lua::LuaIncrTop(L));
 		} else {
 			/*if (gcrefu(usertable) == 0)
 			{
@@ -1202,13 +1202,13 @@ struct LuaUserData { // No constructor/deconstructor since its managed by Lua!
 					setgcref(usertable, obj2gco(Util::func_lj_tab_new(L, 0, 0)));
 				} else { // Slower on 64x though I won't deal with that shit for this improvement.
 					pLua->CreateTable();
-					setgcref(usertable, obj2gco(tabV(L->top-1)));
+					setgcref(usertable, obj2gco(tabV(Lua::LuaTop(L)-1)));
 				}
 			} else {*/
 				if (IsHolyLib())
-					settabV(L, L->top++, gco2tab(gcref(HolyLib.usertable)));
+					settabV(L, Lua::LuaIncrTop(L), gco2tab(gcref(HolyLib.usertable)));
 				else
-					settabV(L, L->top++, gco2tab(gcref(GMod.usertable)));
+					settabV(L, Lua::LuaIncrTop(L), gco2tab(gcref(GMod.usertable)));
 			//}
 		}
 	}
@@ -1241,7 +1241,7 @@ struct LuaUserData { // No constructor/deconstructor since its managed by Lua!
 			{
 				if (Util::func_lj_gc_barrierf)
 				{
-					setgcref(usertable, obj2gco(tabV(L->top-1)));
+					setgcref(usertable, obj2gco(tabV(Lua::LuaTop(L)-1)));
 
 					{ // lj_gc_objbarrier unwrapped since we need to change the call to lj_gc_barrierf -> Util::func_lj_gc_barrierf
 						if (((((GCobj*)(gcref(usertable))))->gch.marked & (0x01 | 0x02)) && ((((GCobj*)(this)))->gch.marked & 0x04))
@@ -1252,7 +1252,7 @@ struct LuaUserData { // No constructor/deconstructor since its managed by Lua!
 					Util::func_lua_setfenv(L, -2); // Internally has the gc barrier
 				}
 			} else {
-				setgcref(usertable, obj2gco(tabV(L->top-1)));
+				setgcref(usertable, obj2gco(tabV(Lua::LuaTop(L)-1)));
 				pLua->Pop(1);
 			}
 		}
@@ -1406,8 +1406,9 @@ struct ReferencedLuaUserData : LuaUserData {
 
 	int nReference;
 };
-static constexpr int referencedUdataSizeGMod = sizeof(GCudata_GMod) - sizeof(GCudata_GMod_Default) + (sizeof(ReferencedLuaUserData) - sizeof(LuaUserData));
-static constexpr int referencedUdataSizeHolyLib = sizeof(GCudata_HolyLib) - sizeof(GCudata_HolyLib_Default) + (sizeof(ReferencedLuaUserData) - sizeof(LuaUserData));
+static constexpr int referencedUdataSize = sizeof(ReferencedLuaUserData) - sizeof(LuaUserData);
+static constexpr int referencedUdataSizeGMod = sizeof(GCudata_GMod) - sizeof(GCudata_GMod_Default) + referencedUdataSize;
+static constexpr int referencedUdataSizeHolyLib = sizeof(GCudata_HolyLib) - sizeof(GCudata_HolyLib_Default) + referencedUdataSize;
 
 FORCEINLINE int GetReferencedUdataSize(GarrysMod::Lua::ILuaInterface* LUA)
 {
