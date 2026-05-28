@@ -29,6 +29,8 @@ namespace GModLua {
 	extern TValue* LuaIncrTop(lua_State* L);
 }
 
+typedef void* LuaUserDataValue;
+
 // Enables support for cdata to be used as userdata
 // See the RawLua::CDataBridge to know how it works
 #define LUA_CDATA_SUPPORT 1
@@ -707,12 +709,6 @@ namespace Lua
 		return (LuaUserData*)udataV(val);
 	}
 
-	inline LuaUserData* GetUserDataEntity(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos)
-	{
-		LUA->CheckType(iStackPos, GarrysMod::Lua::Type::Entity);
-		return (LuaUserData*)udataV(Lua::index2adr(LUA->GetState(), iStackPos));
-	}
-
 	inline GCstr* GetGCStr(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos)
 	{
 		LUA->CheckType(iStackPos, GarrysMod::Lua::Type::String);
@@ -768,6 +764,7 @@ namespace Lua
 	template<> struct LuaTypeMap<double> { static constexpr auto value = TR_TYPE_DOUBLE; };
 	template<> struct LuaTypeMap<void> { static constexpr auto value = TR_TYPE_VOID; };
 	template<> struct LuaTypeMap<LuaUserData*> { static constexpr auto value = TR_TYPE_USERDATA; };
+	template<> struct LuaTypeMap<LuaUserDataValue> { static constexpr auto value = TR_TYPE_USERDATA_VALUE; };
 
 	template<typename Ret, typename... Args>
 	constexpr lua_CFunctionInfo MakeJITInfo(void* fn)
@@ -1427,6 +1424,15 @@ FORCEINLINE LuaUserData* GetGCudataFromData(GarrysMod::Lua::ILuaInterface* LUA, 
 		return (LuaUserData*)((char*)udata - sizeof(GCudata_GMod_Default));
 	else
 		return (LuaUserData*)((char*)udata - sizeof(GCudata_HolyLib_Default));
+}
+
+namespace Lua
+{
+	inline LuaUserDataValue GetUserDataEntity(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos)
+	{
+		LUA->CheckType(iStackPos, GarrysMod::Lua::Type::Entity);
+		return ((LuaUserData*)udataV(Lua::index2adr(LUA->GetState(), iStackPos)))->GetGModData(LUA);
+	}
 }
 
 #define TO_LUA_TYPE( className ) Lua::className

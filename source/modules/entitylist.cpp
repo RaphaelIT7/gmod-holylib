@@ -70,6 +70,7 @@ void EntityList::Clear()
 
 void EntityList::CreateReference(CBaseEntity* pEntity, bool bNoPop)
 {
+	Util::Push_Entity(m_pLua, pEntity);
 	auto it = m_pEntReferences.find(pEntity);
 	if (it != m_pEntReferences.end())
 	{
@@ -77,10 +78,12 @@ void EntityList::CreateReference(CBaseEntity* pEntity, bool bNoPop)
 		{
 			Warning(PROJECT_NAME ": entitylist is leaking references! Report this!\n");
 		}
+
+		it->second = udataV(Lua::LuaTop(m_pLua->GetState())-1);
+	} else {
+		m_pEntReferences[pEntity] = udataV(Lua::LuaTop(m_pLua->GetState())-1);
 	}
 
-	Util::Push_Entity(m_pLua, pEntity);
-	m_pEntReferences[pEntity] = udataV(Lua::LuaTop(m_pLua->GetState())-1);
 	if (!bNoPop)
 		m_pLua->Pop(1);
 }
@@ -189,7 +192,7 @@ LUA_FUNCTION_STATIC(EntityList_AddEntities)
 			continue;
 		}
 
-		pData->AddEntity(pEntity, true);
+		pData->AddEntity(pEntity, false);
 
 		LUA->Pop(1);
 	}
@@ -215,18 +218,31 @@ LUA_FUNCTION_STATIC(EntityList_RemoveEntities)
 	return 0;
 }
 
-LUA_JIT_WRAPPED_2(EntityList_AddEntity,
+/*LUA_JIT_WRAPPED_2(EntityList_AddEntity,
 	LuaUserData*, pUD, Get_EntityList_Data(LUA, 1, true),
-	LuaUserData*, pUDEntity, Lua::GetUserDataEntity(LUA, 2)
+	LuaUserDataValue, pUDEntity, Lua::GetUserDataEntity(LUA, 2)
 )
 {
 	EntityList* pData = (EntityList*)pUD->GetData();
-	CBaseEntity* pEntity = (CBaseEntity*)pUDEntity->GetData();
-	if (!pData || !pEntity)
+	if (!pData)
 		return;
 
-	pData->AddEntity(pEntity, true);
+	CBaseEntity* pEntity = Util::GetCBaseEntityFromHandle(*(EHANDLE*)pUDEntity);
+	if (pEntity)
+		pData->AddEntity(pEntity, false);
+}*/
+
+// The Above ASM is broken for some reason (ToDo: Check why BUT FIRST get g_pEntityList on 64x!)
+LUA_FUNCTION_STATIC(EntityList_AddEntity)
+{
+	EntityList* pData = Get_EntityList(LUA, 1, true);
+	CBaseEntity* pEntity = Util::Get_Entity(LUA, 2, true);
+
+	pData->AddEntity(pEntity, false);
+
+	return 0;
 }
+
 
 LUA_FUNCTION_STATIC(EntityList_RemoveEntity)
 {
@@ -343,7 +359,7 @@ void CEntListModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 		Util::AddFunc(pLua, EntityList_SetEntities, "SetEntities");
 		Util::AddFunc(pLua, EntityList_AddEntities, "AddEntities");
 		Util::AddFunc(pLua, EntityList_RemoveEntities, "RemoveEntities");
-		LUA_REGISTER_JIT(pLua, EntityList_AddEntity, "AddEntity");
+		Util::AddFunc(pLua, EntityList_AddEntity, "AddEntity");
 		Util::AddFunc(pLua, EntityList_RemoveEntity, "RemoveEntity");
 		Util::AddFunc(pLua, EntityList_CreateCopy, "CreateCopy");
 	pLua->Pop(1);
