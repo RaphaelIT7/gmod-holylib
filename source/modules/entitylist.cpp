@@ -80,7 +80,7 @@ void EntityList::CreateReference(CBaseEntity* pEntity, bool bNoPop)
 	}
 
 	Util::Push_Entity(m_pLua, pEntity);
-	m_pEntReferences[pEntity] = udataV(m_pLua->GetState()->top-1);
+	m_pEntReferences[pEntity] = udataV(Lua::LuaTop(m_pLua->GetState())-1);
 	if (!bNoPop)
 		m_pLua->Pop(1);
 }

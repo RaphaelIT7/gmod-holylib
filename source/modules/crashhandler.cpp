@@ -347,8 +347,8 @@ static void DumpLuaState(int fileDescriptor)
 	dprintf(fileDescriptor, "Lua Stack values:\n");
 
 	lua_State* pState = g_Lua->GetState();
-	TValue* pBase = pState->base;
-	int nTop = (int)(pState->top - pState->base);
+	TValue* pBase = Lua::LuaBase(pState);
+	int nTop = (int)(Lua::LuaTop(pState) - pBase);
 	dprintf(fileDescriptor, "  Stack size: %i\n", nTop);
 	for (int i=0; i<nTop; ++i)
 	{
@@ -674,8 +674,8 @@ static void DoLuaCallback(bool bMainThreadCrash)
 		dprintf(signalData->fileDescriptor, "Lua Stack values:\n");
 
 		Lua::pExecutingInterface = g_Lua; // Set since TValueToString uses GetGCStrData
-		TValue* pBase = pState->base;
-		int nTop = (int)(pState->top - pState->base);
+		TValue* pBase = Lua::LuaBase(pState);
+		int nTop = (int)(Lua::LuaTop(pState) - pBase);
 		dprintf(signalData->fileDescriptor, "  Stack size: %i\n", nTop);
 		for (int i=0; i<nTop; ++i)
 		{

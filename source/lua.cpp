@@ -517,10 +517,10 @@ void Lua::DestroyInterface(GarrysMod::Lua::ILuaInterface* LUA)
 	Lua::CloseLuaInterface(LUA);
 }
 
-LuaUserData* Lua::GetHolyLibUserData(GarrysMod::Lua::ILuaInterface * LUA, int nStackPos)
+LuaUserData* Lua::GetHolyLibUserData(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos)
 {
 	lua_State* L = LUA->GetState();
-	TValue* val = RawLua::index2adr(L, nStackPos);
+	TValue* val = Lua::index2adr(L, nStackPos);
 	if (!val)
 		return nullptr;
 
@@ -538,11 +538,9 @@ LuaUserData* Lua::GetHolyLibUserData(GarrysMod::Lua::ILuaInterface * LUA, int nS
 		return nullptr;
 	}
 
-	GCudata* luaData = udataV(val); // Very "safe" I know :3
-	if (luaData->udtype >= GarrysMod::Lua::Type::UserData)
-	{
-		return static_cast<LuaUserData*>(static_cast<void*>(luaData));
-	}
+	LuaUserData* luaData = (LuaUserData*)udataV(val); // Very "safe" I know :3
+	if (luaData->GetType() >= GarrysMod::Lua::Type::UserData)
+		return luaData;
 
 	return nullptr;
 }
@@ -564,13 +562,14 @@ bool Lua::CheckHolyLibType(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos, in
 bool Lua::CheckGModType(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos, int nType, void** pUserData)
 {
 	lua_State* L = LUA->GetState();
-	TValue* val = RawLua::index2adr(L, nStackPos);
+	TValue* val = Lua::index2adr(L, nStackPos);
 
 	if (val)
 	{
 		if (tvisudata(val))
 		{
-			GarrysMod::Lua::ILuaBase::UserData* pData = (GarrysMod::Lua::ILuaBase::UserData*)uddata(udataV(val));
+			LuaUserData* ud = (LuaUserData*)udataV(val);
+			GarrysMod::Lua::ILuaBase::UserData* pData = (GarrysMod::Lua::ILuaBase::UserData*)ud->GetGModData(LUA);
 			if (pData && pData->type == nType)
 			{
 				*pUserData = pData->data;
@@ -632,16 +631,15 @@ const char* Lua::TValueToString(TValue* pVal)
 		GCtab* pTab = tabV(pVal);
 		snprintf(pBuffer, sizeof(pBuffer), "(table) N/A");
 	} else if (tvisudata(pVal)) {
-		GCudata* pUD = udataV(pVal);
+		LuaUserData* pUD = (LuaUserData*)udataV(pVal);
 
 		int nType = 0;
 		void* pData = nullptr;
-		if (pUD->udtype >= GarrysMod::Lua::Type::UserData) { // HolyLib userdata differs!
-			LuaUserData* pLuaData = (LuaUserData*)pUD;
-			pData = pLuaData->GetData();
-			nType = pLuaData->GetType();
+		if (pUD->GetType() >= GarrysMod::Lua::Type::UserData) { // HolyLib userdata differs!
+			pData = pUD->GetData();
+			nType = pUD->GetType();
 		} else {
-			pData = uddata(pUD);
+			pData = pUD->GetGModData(g_Lua);
 			if (pData)
 			{
 				GarrysMod::Lua::ILuaBase::UserData* pLuaData = (GarrysMod::Lua::ILuaBase::UserData*)pData;
@@ -660,30 +658,23 @@ const char* Lua::TValueToString(TValue* pVal)
 	return pBuffer;
 }
 
-// NOTE: This Only works on stack values that are on the top!!!
-static inline TValue* FastIndex2Addr(lua_State* L, int nStackPos)
-{
-	TValue *o = L->base + (nStackPos - 1);
-	return o < L->top ? o : niltv(L);
-}
-
 // Should only be called by Default__index!
 bool Lua::FindOnObjectsMetaTable(lua_State* L, int nStackPos, int nKeyPos)
 {
 	if (Util::func_lj_tab_get)
 	{
-		TValue* val = FastIndex2Addr(L, nStackPos);
+		TValue* val = Lua::FastIndex2Addr(L, nStackPos);
 
 		if (val && tvisudata(val))
 		{
-			GCudata* udata = udataV(val);
-			GCtab* meta = tabref(udata->metatable);
+			LuaUserData* udata = (LuaUserData*)udataV(val);
+			GCtab* meta = tabref(udata->GetMetaTable((GarrysMod::Lua::ILuaInterface*)L->luabase));
 			if (meta)
 			{
-				TValue* tabVal = (TValue*)Util::func_lj_tab_get(L, meta, L->top-1);
+				TValue* tabVal = (TValue*)Util::func_lj_tab_get(L, meta, Lua::LuaTop(L)-1);
 				if (!tvisnil(tabVal))
 				{
-					copyTV(L, L->top++, tabVal);
+					copyTV(L, Lua::LuaIncrTop(L), tabVal);
 					return true;
 				}
 			}
@@ -733,7 +724,7 @@ public:
 	int GetUserDataType(int iStackPos)
 	{
 		lua_State* L = This()->GetState();
-		TValue* val = RawLua::index2adr(L, iStackPos);
+		TValue* val = Lua::index2adr(L, iStackPos);
 		if (!val)
 			return -1;
 
@@ -757,13 +748,13 @@ public:
 			return -1;
 		}
 
-		GCudata* luaData = udataV(val); // Very "safe" I know :3
-		if (luaData->udtype >= GarrysMod::Lua::Type::UserData)
+		LuaUserData* luaData = (LuaUserData*)udataV(val); // Very "safe" I know :3
+		if (luaData->GetType() >= GarrysMod::Lua::Type::UserData)
 		{
-			return luaData->udtype;
+			return luaData->GetType();
 		}
-		
-		GarrysMod::Lua::ILuaBase::UserData* uData = (GarrysMod::Lua::ILuaBase::UserData*)uddata(luaData);
+
+		GarrysMod::Lua::ILuaBase::UserData* uData = (GarrysMod::Lua::ILuaBase::UserData*)luaData->GetGModData(This());
 		if (!uData)
 			return -1;
 
@@ -773,7 +764,7 @@ public:
 	virtual void* GetUserdata(int iStackPos)
 	{
 		lua_State* L = This()->GetState();
-		TValue* val = RawLua::index2adr(L, iStackPos);
+		TValue* val = Lua::index2adr(L, iStackPos);
 		if (!val)
 			return nullptr;
 
@@ -797,7 +788,7 @@ public:
 			return nullptr; // We do NOT support this as we do NOT match the ILuaBase::UserData! (Adding that one byte would fk up alignment)
 		}
 		
-		void* uData = uddata(luaData);
+		void* uData = luaData->GetGModData(This());
 		if (!uData)
 			return nullptr;
 
@@ -807,7 +798,7 @@ public:
 	virtual void SetUserType(int iStackPos, void* data)
 	{
 		lua_State* L = This()->GetState();
-		TValue* val = RawLua::index2adr(L, iStackPos);
+		TValue* val = Lua::index2adr(L, iStackPos);
 		if (!val)
 			return;
 
@@ -838,7 +829,7 @@ public:
 			return;
 		}
 		
-		GarrysMod::Lua::ILuaBase::UserData* uData = (GarrysMod::Lua::ILuaBase::UserData*)uddata(luaData);
+		GarrysMod::Lua::ILuaBase::UserData* uData = (GarrysMod::Lua::ILuaBase::UserData*)luaData->GetGModData(This());
 		if (!uData)
 			return;
 

@@ -709,7 +709,7 @@ LUA_FUNCTION_STATIC(util_AsyncTableToJSON)
 	entry->m_iCallback = LUA->ReferenceCreate();
 
 	LUA->Push(1);
-	entry->m_pObject = RawLua::CopyTValue(LUA->GetState(), RawLua::index2adr(LUA->GetState(), -1));
+	entry->m_pObject = RawLua::CopyTValue(LUA->GetState(), Lua::index2adr(LUA->GetState(), -1));
 	entry->m_iReference = LUA->ReferenceCreate();
 	entry->m_pLua = LUA;
 

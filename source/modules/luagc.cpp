@@ -66,7 +66,7 @@ LUA_FUNCTION_STATIC(luagc_GetGCCount)
 	// Allows you to pass this function an GC object
 	// This causes us to stop when we reach it
 	GCobj* pTargetObject = nullptr;
-	TValue* pVal = RawLua::index2adr(LUA->GetState(), 1);
+	TValue* pVal = Lua::index2adr(LUA->GetState(), 1);
 	if (tvisgcv(pVal))
 		pTargetObject = gcV(pVal);
 
@@ -242,8 +242,8 @@ static bool LuaGC_WalkReferenceCheck(GCobj* pTargetObj, GCobj* pObj, lua_State* 
 				pUpVal = uvnext(pUpVal);
 			}
 
-			TValue* pBase = pVal->base;
-			int nTop = (int)(pVal->top - pVal->base);
+			TValue* pBase = Lua::LuaBase(pVal);
+			int nTop = (int)(Lua::LuaTop(pVal) - pBase);
 			for (int i=0; i<nTop; ++i)
 			{
 				if (tvisgcv(pBase))
@@ -269,7 +269,7 @@ LUA_FUNCTION_STATIC(luagc_GetReferences)
 	if (!pGState)
 		return 1;
 
-	TValue* pVal = RawLua::index2adr(L, 1);
+	TValue* pVal = Lua::index2adr(L, 1);
 	if (!tvisgcv(pVal))
 		return 1;
 
@@ -281,7 +281,7 @@ LUA_FUNCTION_STATIC(luagc_GetReferences)
 		if (LuaGC_WalkReferenceCheck(pTargetObject, pObj, L, false))
 		{
 			LUA->PushNil();
-			setgcV(L, L->top-1, pObj, ~pObj->gch.gct);
+			setgcV(L, Lua::LuaTop(L)-1, pObj, ~pObj->gch.gct);
 			Util::RawSetI(LUA, -2, ++nCount);
 		}
 
@@ -300,7 +300,7 @@ static void LuaGC_WalkReferences(GCobj* pObj, unordered_set<GCobj*>& nWalkedObje
 
 	// Top of the stack MUST have a table
 	LUA->PushNil();
-	setgcV(L, L->top-1, pObj, ~pObj->gch.gct);
+	setgcV(L, Lua::LuaTop(L)-1, pObj, ~pObj->gch.gct);
 	Util::RawSetI(LUA, -2, ++nCount);
 
 	if (bIsChild && !bRecursive)
@@ -432,8 +432,8 @@ static void LuaGC_WalkReferences(GCobj* pObj, unordered_set<GCobj*>& nWalkedObje
 				pUpVal = uvnext(pUpVal);
 			}
 
-			TValue* pBase = pVal->base;
-			int nTop = (int)(pVal->top - pVal->base);
+			TValue* pBase = Lua::LuaBase(pVal);
+			int nTop = (int)(Lua::LuaTop(pVal) - pBase);
 			for (int i=0; i<nTop; ++i)
 			{
 				if (tvisgcv(pBase))
@@ -460,7 +460,7 @@ LUA_FUNCTION_STATIC(luagc_GetContainingReferences)
 		LUA->PushNil();
 		while (LUA->Next(-2))
 		{
-			TValue* pVal = RawLua::index2adr(L, -1);
+			TValue* pVal = Lua::index2adr(L, -1);
 			if (tvisgcv(pVal))
 				nWalkedObjects.insert(gcV(pVal));
 
@@ -471,7 +471,7 @@ LUA_FUNCTION_STATIC(luagc_GetContainingReferences)
 
 	int nCount = 0;
 	LUA->PreCreateTable(0, 0);
-	TValue* pVal = RawLua::index2adr(L, 1);
+	TValue* pVal = Lua::index2adr(L, 1);
 	if (tvisgcv(pVal))
 		LuaGC_WalkReferences(gcV(pVal), nWalkedObjects, nCount, L, LUA, false, bRecursive);
 
@@ -490,7 +490,7 @@ LUA_FUNCTION_STATIC(luagc_GetAllGCObjects)
 	// Allows you to pass this function an GC object
 	// This causes us to stop when we reach it
 	GCobj* pTargetObject = nullptr;
-	TValue* pVal = RawLua::index2adr(L, 1);
+	TValue* pVal = Lua::index2adr(L, 1);
 	if (tvisgcv(pVal))
 		pTargetObject = gcV(pVal);
 
@@ -499,7 +499,7 @@ LUA_FUNCTION_STATIC(luagc_GetAllGCObjects)
 	while (pObj && pObj != pTargetObject)
 	{
 		LUA->PushNil();
-		setgcV(L, L->top-1, pObj, ~pObj->gch.gct);
+		setgcV(L, Lua::LuaTop(L)-1, pObj, ~pObj->gch.gct);
 		Util::RawSetI(LUA, -2, ++nCount);
 
 		pObj = gcref(pObj->gch.nextgc);
@@ -521,7 +521,7 @@ LUA_FUNCTION_STATIC(luagc_GetCurrentGCHeadObject)
 	LUA->PushNil();
 	GCobj* pObj = gcref(pGState->gc.root);
 	if (pObj)
-		setgcV(L, L->top-1, pObj, ~pObj->gch.gct);
+		setgcV(L, Lua::LuaTop(L)-1, pObj, ~pObj->gch.gct);
 
 	return 1;
 }
@@ -532,7 +532,7 @@ static inline void PushGCObject(GarrysMod::Lua::ILuaInterface* LUA, GCobj* pObj)
 
 	LUA->PushNil();
 	if (pObj)
-		setgcV(L, L->top-1, pObj, ~pObj->gch.gct);
+		setgcV(L, Lua::LuaTop(L)-1, pObj, ~pObj->gch.gct);
 }
 
 static inline void PushGCTypeName(GarrysMod::Lua::ILuaInterface* LUA, const char* pName)
@@ -804,8 +804,8 @@ static void LuaGC_ShowReferences(GarrysMod::Lua::ILuaInterface* LUA, GCobj* pObj
 			LUA->PushString("stack");
 			LUA->PreCreateTable(0, 0);
 			nCount = 0;
-			TValue* pBase = pVal->base;
-			int nTop = (int)(pVal->top - pVal->base);
+			TValue* pBase = Lua::LuaBase(pVal);
+			int nTop = (int)(Lua::LuaTop(pVal) - pBase);
 			for (int i=0; i<nTop; ++i)
 			{
 				if (tvisgcv(pBase))
@@ -826,7 +826,7 @@ static void LuaGC_ShowReferences(GarrysMod::Lua::ILuaInterface* LUA, GCobj* pObj
 
 LUA_FUNCTION_STATIC(luagc_GetFormattedGCObjectInfo)
 {
-	TValue* pVal = RawLua::index2adr(LUA->GetState(), 1);
+	TValue* pVal = Lua::index2adr(LUA->GetState(), 1);
 	if (!tvisgcv(pVal))
 	{
 		LUA->PushNil();
@@ -1014,8 +1014,8 @@ static int LuaGC_RecursiveSize(GCobj* pObj, unordered_set<GCobj*>& nWalkedObject
 				pUpVal = uvnext(pUpVal);
 			}
 
-			TValue* pBase = pVal->base;
-			int nTop = (int)(pVal->top - pVal->base);
+			TValue* pBase = Lua::LuaBase(pVal);
+			int nTop = (int)(Lua::LuaTop(pVal) - pBase);
 			for (int i=0; i<nTop; ++i)
 			{
 				if (tvisgcv(pBase))
@@ -1052,7 +1052,7 @@ LUA_FUNCTION_STATIC(luagc_GetSizeOfGCObject)
 		LUA->PushNil();
 		while (LUA->Next(-2))
 		{
-			TValue* pVal = RawLua::index2adr(L, -1);
+			TValue* pVal = Lua::index2adr(L, -1);
 			if (tvisgcv(pVal))
 				nWalkedObjects.insert(gcV(pVal));
 
@@ -1061,7 +1061,7 @@ LUA_FUNCTION_STATIC(luagc_GetSizeOfGCObject)
 		LUA->Pop(1);
 	}
 
-	TValue* pVal = RawLua::index2adr(L, 1);
+	TValue* pVal = Lua::index2adr(L, 1);
 	if (tvisgcv(pVal))
 		LUA->PushNumber(LuaGC_RecursiveSize(gcV(pVal), nWalkedObjects, LUA->GetState(), false, bRecursive));
 	else
