@@ -1006,6 +1006,7 @@ namespace Symbols
 	const std::vector<Symbol> CBaseClient_ShouldSendMessagesSym = {//Search for '%s overflowed reliable buffer (%i bytes, %s in, %s out)'
 		Symbol::FromName("_ZN11CBaseClient18ShouldSendMessagesEv"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x53\x48\x89\xFB\x48\x83\xEC\x18\x48\x8B\x07"), // 55 48 89 E5 41 57 41 56 41 55 41 54 53 48 89 FB 48 83 EC 18 48 8B 07
+		Symbol::FromSignature("\x55\x8B\xEC\x83\xEC\x0C\x56\x57\x8B\xF9\x8B\x47\x04\x8D\x77\x04\x8B\xCE"), // 55 8B EC 83 EC 0C 56 57 8B F9 8B 47 04 8D 77 04 8B CE
 	};
 
 	const std::vector<Symbol> CBaseServer_CheckTimeoutsSym = {//Search for 'CBaseServer::CheckTimeouts'

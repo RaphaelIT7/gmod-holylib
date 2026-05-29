@@ -21,7 +21,7 @@
 #include "const.h"
 #include "inetchannel.h"
 
-#define MAX_FRAGMENTS_BITS	3	// How many fragments we can send at once
+#define MAX_FRAGMENTS_BITS	5	// How many fragments we can send at once
 #define MAX_FRAGMENTS	(1 << MAX_FRAGMENTS_BITS) - 1  // Maximum number of fragments we can safely transmit. -1 as else we would go over MAX_FRAGMENTS_BITS
 
 #undef MAX_ROUTABLE_PAYLOAD
@@ -91,7 +91,7 @@ public: // netchan structures
 	typedef struct netframe_s
 	{
 		// Data received from server
-		float			time;			// net_time received/send
+		double			time;			// net_time received/send
 		int				size;			// total size in bytes
 		float			latency;		// raw ping for this packet, not cleaned. set when acknowledged otherwise -1.
 		float			avg_latency;	// averaged ping for this packet
@@ -357,6 +357,10 @@ public:
 	bool						m_bStreamContainsChallenge;  // true if PACKET_FLAG_CHALLENGE was set when receiving packets from the sender
 
 	int							m_nProtocolVersion;		// PROTOCOL_VERSION if we're not playing a demo - otherwise, whatever was in the demo header's networkprotocol if the CNetChan instance was created by a demo player.
+	
+	// GMod Only - Network settings used.
+	int fragmentSize; // How big one fragment is
+	int subchanCount; // How many total subchannels are used
 };
 
 

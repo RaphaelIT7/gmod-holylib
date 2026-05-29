@@ -4,7 +4,7 @@
 #include "lua.h"
 #include "tier0/threadtools.h"
 #include "sourcesdk/baseserver.h"
-#include "sourcesdk/cnetchan.h"
+#include "sourcesdk/net_chan.h"
 #include <atomic>
 #include <memory>
 #include <mutex>

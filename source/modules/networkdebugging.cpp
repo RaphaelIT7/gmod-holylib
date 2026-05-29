@@ -7,7 +7,7 @@
 #include <deque>
 #include "netmessages.h"
 #include <convar.h>
-#include "cnetchan.h"
+#include "net_chan.h"
 #include <atomic>
 
 // memdbgon must be the last include file in a .cpp file!!!

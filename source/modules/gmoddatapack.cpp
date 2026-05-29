@@ -7,7 +7,7 @@
 #include "sourcesdk/GModDataPack.h"
 #include "sourcesdk/iluashared.h"
 #include "sourcesdk/baseclient.h"
-#include "sourcesdk/cnetchan.h"
+#include "sourcesdk/net_chan.h"
 #include "networkstringtable.h"
 #include "picosha2/picosha2.h"
 #include <atomic>
