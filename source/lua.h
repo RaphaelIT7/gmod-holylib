@@ -1690,6 +1690,9 @@ LUA_JIT_WRAPPED_1R(className ## _IsValid, \
 	LuaUserData*, pUD, Get_##className##_Data(LUA, 1, false) \
 ) \
 { \
+	if (!pUD) \
+		return false; \
+\
 	className* pData = (className*)pUD->GetData(); \
 	if (!pData) \
 		return false; \
@@ -1703,6 +1706,9 @@ LUA_JIT_WRAPPED_1R(className ## _IsValid, \
 	LuaUserData*, pUD, Get_##className##_Data(LUA, 1, false) \
 ) \
 { \
+	if (!pUD) \
+		return false; \
+\
 	className* pData = (className*)pUD->GetData(); \
 	if (!pData) \
 		return false; \
