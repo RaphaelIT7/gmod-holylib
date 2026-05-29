@@ -139,10 +139,18 @@ namespace Lua
 	extern GarrysMod::Lua::ILuaInterface* CreateInterface();
 	extern void DestroyInterface(GarrysMod::Lua::ILuaInterface* LUA);
 
+	// IMPORTANT:
+	// We currently assume that the GCHeader is the same for ALL JIT versions!
+	// If that ever changes the access for dummy_ffid will break!
+	// The old method was: if (!g_bUsingLuaJIT && (g_Lua && L == g_Lua->GetState()))
+	// But it didn't work on Windows clients as we do also interact with both server and client state
+	// yet g_Lua is only the state HolyLib was loaded in effectively breaking the other state
+	// So now we simply mark our own states.
+
 	extern bool g_bUsingLuaJIT; // Hacky workaround for the LuaJIT module- this is due to GCstr being different between old 2.1 and new
 	FORCEINLINE TValue* index2adr(lua_State* L, int iStackPos)
 	{
-		if (!g_bUsingLuaJIT && (g_Lua && L == g_Lua->GetState()))
+		if (L->dummy_ffid == FF_C)
 			return GModLua::index2adr(L, iStackPos);
 		else
 			return RawLua::index2adr(L, iStackPos);
@@ -151,7 +159,7 @@ namespace Lua
 	// NOTE: This version only works on stack values that are on the top!!!
 	FORCEINLINE TValue* FastIndex2Addr(lua_State* L, int iStackPos)
 	{
-		if (!g_bUsingLuaJIT && (g_Lua && L == g_Lua->GetState()))
+		if (L->dummy_ffid == FF_C)
 			return GModLua::FastIndex2Addr(L, iStackPos);
 		else
 			return RawLua::FastIndex2Addr(L, iStackPos);
@@ -160,7 +168,7 @@ namespace Lua
 	// Returns L->top
 	FORCEINLINE TValue* LuaTop(lua_State* L)
 	{
-		if (!g_bUsingLuaJIT && (g_Lua && L == g_Lua->GetState()))
+		if (L->dummy_ffid == FF_C)
 			return GModLua::LuaTop(L);
 		else
 			return RawLua::LuaTop(L);
@@ -168,7 +176,7 @@ namespace Lua
 
 	FORCEINLINE TValue* LuaIncrTop(lua_State* L)
 	{
-		if (!g_bUsingLuaJIT && (g_Lua && L == g_Lua->GetState()))
+		if (L->dummy_ffid == FF_C)
 			return GModLua::LuaIncrTop(L);
 		else
 			return RawLua::LuaIncrTop(L);
@@ -177,7 +185,7 @@ namespace Lua
 	// Returns L->base
 	FORCEINLINE TValue* LuaBase(lua_State* L)
 	{
-		if (!g_bUsingLuaJIT && (g_Lua && L == g_Lua->GetState()))
+		if (L->dummy_ffid == FF_C)
 			return GModLua::LuaBase(L);
 		else
 			return RawLua::LuaBase(L);
@@ -717,7 +725,7 @@ namespace Lua
 
 	FORCEINLINE bool IsHolyLibState(GarrysMod::Lua::ILuaInterface* LUA)
 	{
-		return g_bUsingLuaJIT || LUA != g_Lua;
+		return LUA->GetState()->dummy_ffid != FF_C;
 	}
 
 	// ONLY use the two GetGCStr functions below when being inside a LUA_JIT_WRAPPED function!
@@ -1367,7 +1375,7 @@ static constexpr int udataSizeGMod = sizeof(GCudata_GMod) - sizeof(GCudata_GMod_
 static constexpr int udataSizeHolyLib = sizeof(GCudata_HolyLib) - sizeof(GCudata_HolyLib_Default);
 FORCEINLINE int GetUDataSize(GarrysMod::Lua::ILuaInterface* LUA)
 {
-	if (!Lua::g_bUsingLuaJIT && LUA == g_Lua)
+	if (LUA->GetState()->dummy_ffid == FF_C)
 		return udataSizeGMod;
 	else
 		return udataSizeHolyLib;
@@ -1412,7 +1420,7 @@ static constexpr int referencedUdataSizeHolyLib = sizeof(GCudata_HolyLib) - size
 
 FORCEINLINE int GetReferencedUdataSize(GarrysMod::Lua::ILuaInterface* LUA)
 {
-	if (!Lua::g_bUsingLuaJIT && LUA == g_Lua)
+	if (LUA->GetState()->dummy_ffid == FF_C)
 		return referencedUdataSizeGMod;
 	else
 		return referencedUdataSizeHolyLib;
@@ -1421,7 +1429,7 @@ FORCEINLINE int GetReferencedUdataSize(GarrysMod::Lua::ILuaInterface* LUA)
 // Helper function to shift the uddata pointer back to the GCudata
 FORCEINLINE LuaUserData* GetGCudataFromData(GarrysMod::Lua::ILuaInterface* LUA, void* udata)
 {
-	if (!Lua::g_bUsingLuaJIT && LUA == g_Lua)
+	if (LUA->GetState()->dummy_ffid == FF_C)
 		return (LuaUserData*)((char*)udata - sizeof(GCudata_GMod_Default));
 	else
 		return (LuaUserData*)((char*)udata - sizeof(GCudata_HolyLib_Default));

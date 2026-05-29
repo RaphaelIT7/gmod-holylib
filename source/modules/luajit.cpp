@@ -119,6 +119,7 @@ LUA_FUNCTION_STATIC(getMetaTableByID)
 static bool bOpenLibs = false;
 static void hook_luaL_openlibs(lua_State* L)
 {
+	L->dummy_ffid = 3; // This field is initialized in JIT but also unused
 	luaL_openlibs(L);
 
 	if (g_pLuaJITModule.m_bAllowFFI)

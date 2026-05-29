@@ -812,6 +812,7 @@ bool CLuaInterface::Init( GarrysMod::Lua::ILuaGameCallback* callback, bool bIsSe
 
 	state = luaL_newstate();
 	luaL_openlibs(state);
+	state->dummy_ffid = 3;
 
 	state->luabase = this;
 	SetState(state);
