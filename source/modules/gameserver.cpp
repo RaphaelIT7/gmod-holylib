@@ -2611,7 +2611,7 @@ static CBaseClient* hook_CBaseServer_GetFreeClient(CBaseServer* _this, netadr_t&
 
 		if (pClient->IsConnected())
 		{
-			if (adr.CompareAdr(pClient->m_NetChannel->GetRemoteAddress()))
+			if (pClient->m_NetChannel && adr.CompareAdr(pClient->m_NetChannel->GetRemoteAddress()))
 			{
 				pClient->m_NetChannel->Shutdown( NULL );
 				pClient->m_NetChannel = NULL;
