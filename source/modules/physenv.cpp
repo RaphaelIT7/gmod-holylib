@@ -2514,7 +2514,7 @@ void CPhysEnvModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIn
 		LUA_REGISTER_JIT(pLua, CPhysPolysoup_GetTable, "GetTable");
 	pLua->Pop(1);
 
-	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::CPhysCollide, pLua->CreateMetaTable("CPhysCollide"));
+	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::CPhysConvex, pLua->CreateMetaTable("CPhysConvex"));
 		Util::AddFunc(pLua, CPhysConvex__tostring, "__tostring");
 		Util::AddFunc(pLua, CPhysConvex__index, "__index");
 		Util::AddFunc(pLua, CPhysConvex__newindex, "__newindex");
