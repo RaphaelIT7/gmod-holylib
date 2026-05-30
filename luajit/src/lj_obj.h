@@ -561,7 +561,7 @@ typedef struct Node {
 #endif
 } Node;
 
-//LJ_STATIC_ASSERT(offsetof(Node, val) == 0);
+LJ_STATIC_ASSERT(offsetof(Node, val) == 0);
 
 typedef struct GCtab {
   GCHeader;
