@@ -1097,7 +1097,12 @@ enum class udataFlags // we use bit flags so only a total of 8 are allowed.v
 struct LuaUserData;
 extern unordered_set<LuaUserData*> g_pLuaUserData; // A set containing all LuaUserData that actually hold a reference.
 #endif
-struct LuaUserData { // No constructor/deconstructor since its managed by Lua!
+// No constructor/deconstructor since its managed by Lua!
+// IMPORTANT:
+// You cannot inherit this struct and add more member variables!
+// You would end up causing memory corruption!
+// See the approach ReferencedLuaUserData took if you want to add member variables!
+struct LuaUserData {
 	union {
 		GCudata_GMod GMod;
 		GCudata_HolyLib HolyLib;
@@ -1381,7 +1386,22 @@ FORCEINLINE int GetUDataSize(GarrysMod::Lua::ILuaInterface* LUA)
 		return udataSizeHolyLib;
 }
 
-struct ReferencedLuaUserData : LuaUserData {
+struct GCudata_HolyLib_Referenced : GCudata_HolyLib {
+	int nReference;
+	// We also got 4 bytes padding here on 64x if we ever need more :)
+};
+
+struct GCudata_GMod_Referenced : GCudata_GMod {
+	int nReference;
+};
+
+struct ReferencedLuaUserData : LuaUserData
+{
+	// IMPORTANT:
+	// We can never define raw member variables as then the memory offsets may be completely wrong!
+	// This is because in LuaUserData we use union!
+	// See SetReference below as an example how we work around this issue!
+
 	inline void Init(GarrysMod::Lua::ILuaInterface* LUA, const Lua::LuaMetaEntry& pMetaEntry, void* pData, bool bNoUserTable = false, bool bIsInline = false)
 	{
 		LuaUserData::Init(LUA, pMetaEntry, pData, bNoUserTable, bIsInline);
@@ -1394,17 +1414,18 @@ struct ReferencedLuaUserData : LuaUserData {
 
 		// Slow :sob:
 		LUA->Push(-1);
-		nReference = LUA->ReferenceCreate();
+		SetReference(LUA, LUA->ReferenceCreate());
 	}
 	
 	inline bool Release(GarrysMod::Lua::ILuaInterface* pLua, bool bGCCall = false)
 	{
 		bool bReturn = LuaUserData::Release(pLua, bGCCall);
 
+		int nReference = GetReference(pLua);
 		if (bReturn && nReference != -1)
 		{
 			pLua->ReferenceFree(nReference);
-			nReference = -1;
+			SetReference(pLua, -1);
 		}
 
 		return bReturn;
@@ -1412,11 +1433,24 @@ struct ReferencedLuaUserData : LuaUserData {
 
 	static void ForceGlobalRelease(void* pData);
 
-	int nReference;
+	FORCEINLINE void SetReference(GarrysMod::Lua::ILuaInterface* pLua, int nReference)
+	{
+		if (Lua::IsHolyLibState(pLua))
+			((GCudata_HolyLib_Referenced*)this)->nReference = nReference;
+		else
+			((GCudata_GMod_Referenced*)this)->nReference = nReference;
+	}
+
+	FORCEINLINE int GetReference(GarrysMod::Lua::ILuaInterface* pLua)
+	{
+		if (Lua::IsHolyLibState(pLua))
+			return ((GCudata_HolyLib_Referenced*)this)->nReference;
+		else
+			return ((GCudata_GMod_Referenced*)this)->nReference;
+	}
 };
-static constexpr int referencedUdataSize = sizeof(ReferencedLuaUserData) - sizeof(LuaUserData);
-static constexpr int referencedUdataSizeGMod = sizeof(GCudata_GMod) - sizeof(GCudata_GMod_Default) + referencedUdataSize;
-static constexpr int referencedUdataSizeHolyLib = sizeof(GCudata_HolyLib) - sizeof(GCudata_HolyLib_Default) + referencedUdataSize;
+static constexpr int referencedUdataSizeGMod = sizeof(GCudata_GMod_Referenced) - sizeof(GCudata_GMod_Default);
+static constexpr int referencedUdataSizeHolyLib = sizeof(GCudata_HolyLib_Referenced) - sizeof(GCudata_HolyLib_Default);
 
 FORCEINLINE int GetReferencedUdataSize(GarrysMod::Lua::ILuaInterface* LUA)
 {
