@@ -648,10 +648,13 @@ static std::vector<DTVarByOffset*>& GetDTVarRegistry()
     return pVars;
 }
 
+static bool g_bLoadedSendPropTables = false;
 static inline void InitSendPropTables()
 {
 	for(ServerClass *serverclass = Util::servergamedll->GetAllServerClasses(); serverclass->m_pNext != nullptr; serverclass = serverclass->m_pNext)
 		AddSendTable(serverclass->m_pTable);
+
+	g_bLoadedSendPropTables = true;
 
 	for (DTVarByOffset* pVar : GetDTVarRegistry())
 		pVar->Init();
@@ -682,6 +685,9 @@ int Util::FindOffsetForNetworkVar(const char* pDTName, const char* pVarName)
 
 void Util::AddDTVarToLoad(DTVarByOffset* pVar)
 {
+	if (g_bLoadedSendPropTables)
+		pVar->Init();
+
 	GetDTVarRegistry().push_back(pVar);
 }
 
