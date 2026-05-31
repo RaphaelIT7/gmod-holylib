@@ -17,6 +17,7 @@ class CUnHolyLibModule : public IModule
 public:
 	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) override;
 	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
+	void InitDetour(bool bPreServer) override;
 	const char* Name() override { return "unholylib"; };
 	int Compatibility() override { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 };
@@ -80,6 +81,15 @@ LUA_FUNCTION_STATIC(unholylib_SetEntIndex)
 	return 0;
 }
 
+static Symbols::Lua_Kill func_Lua_Kill = nullptr;
+LUA_FUNCTION_STATIC(unholylib_KillLua)
+{
+	if (func_Lua_Kill)
+		func_Lua_Kill();
+
+	return 0;
+}
+
 void CUnHolyLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
 	if (!g_pModuleManager.IsUnsafeCodeEnabled())
@@ -91,10 +101,21 @@ void CUnHolyLibModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServer
 	Util::StartTable(pLua);
 		Util::AddFunc(pLua, unholylib_SetCurTime, "SetCurTime");
 		Util::AddFunc(pLua, unholylib_SetEntIndex, "SetEntIndex");
+		Util::AddFunc(pLua, unholylib_KillLua, "KillLua");
 	Util::FinishTable(pLua, "unholylib");
 }
 
 void CUnHolyLibModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	Util::NukeTable(pLua, "unholylib");
+}
+
+void CUnHolyLibModule::InitDetour(bool bPreServer)
+{
+	if (bPreServer)
+		return;
+
+	SourceSDK::FactoryLoader server_loader("server");
+	func_Lua_Kill = (Symbols::Lua_Kill)Detour::GetFunction(server_loader.GetModule(), Symbols::Lua_KillSym);
+	Detour::CheckFunction((void*)func_Lua_Kill, "Lua::Kill");
 }

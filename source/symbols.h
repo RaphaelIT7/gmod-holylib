@@ -909,4 +909,10 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	using CNetChan_SendNetMsg = bool (GMCOMMON_CALLING_CONVENTION*)(void* _this, INetMessage &msg, bool bForceReliable, bool bVoice);
 	extern const std::vector<Symbol> CNetChan_SendNetMsgSym;
+
+	//---------------------------------------------------------------------------------
+	// Purpose: unholylib Symbols
+	//---------------------------------------------------------------------------------
+	using Lua_Kill = void (*)();
+	extern const std::vector<Symbol> Lua_KillSym;
 }

@@ -5500,6 +5500,9 @@ Sets the EntIndex of the given entity, internally it will attempt to move the en
 If the edict slot is already used, it will **swap** the entities.<br>
 If the new index is `-1` then it will make the entity a server-only entity.<br>
 
+#### unholylib.KillLua()
+Kills Lua. Good Luck >:3<br>
+
 # Unfinished Modules
 
 ## serverplugins
