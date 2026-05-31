@@ -2924,7 +2924,7 @@ static bool hook_GModDataPack_IsSingleplayer(void* dataPack)
 }
 
 static Detouring::Hook detour_CBaseClient_ShouldSendMessages;
-static bool hook_CBaseClient_ShouldSendMessages(CBaseClient* cl)
+static bool hook_CBaseClient_ShouldSendMessages(CGameClient* cl) // NOTE: We use a CGameClient so that in a debug break I can verify the class here xd
 {
 	if ( !cl->IsConnected() )
 		return false;
@@ -3439,7 +3439,7 @@ DETOUR_THISCALL_START()
 	DETOUR_THISCALL_ADDRETFUNC2(hook_CBaseClient_SetSignonState, bool, SetSignonState, CBaseClient*, int, int);
 	DETOUR_THISCALL_ADDRETFUNC0(hook_CBaseServer_IsMultiplayer, bool, IsMultiplayer, CBaseServer*);
 	DETOUR_THISCALL_ADDRETFUNC0(hook_GModDataPack_IsSingleplayer, bool, IsSingleplayer, void*);
-	DETOUR_THISCALL_ADDRETFUNC0(hook_CBaseClient_ShouldSendMessages, bool, ShouldSendMessages, CBaseClient*);
+	DETOUR_THISCALL_ADDRETFUNC0(hook_CBaseClient_ShouldSendMessages, bool, ShouldSendMessages, CGameClient*);
 	DETOUR_THISCALL_ADDRETFUNC1(hook_CBaseServer_ProcessConnectionlessPacket, bool, ProcessConnectionlessPacket, IServer*, netpacket_s*);
 	DETOUR_THISCALL_ADDRETFUNC1(hook_CNetChan_SendDatagram, int, SendDatagram, CNetChan*, bf_write*);
 	DETOUR_THISCALL_ADDFUNC0(hook_CNetChan_D2, D2, CNetChan*);

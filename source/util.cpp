@@ -418,12 +418,12 @@ void CBaseEntity::CalcAbsolutePosition(void)
 	}
 }
 
-CBaseEntity* Util::GetCBaseEntityFromEdict(edict_t* edict)
+CBaseEntity* Util::GetCBaseEntityFromEdict(const edict_t* edict)
 {
 	if (!edict)
 		return nullptr;
 
-	return Util::servergameents->EdictToBaseEntity(edict);
+	return Util::servergameents->EdictToBaseEntity((edict_t*)edict);
 }
 
 CBaseEntity* Util::GetCBaseEntityFromIndex(int nEntIndex)

@@ -1358,7 +1358,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	if (!pGameClient) // Something is wrong... definetly...
 		return true;
 
-	CBaseEntity* pViewEntity = pGameClient->m_pViewEntity ? Util::GetCBaseEntityFromEdict((edict_t*)pGameClient->m_pViewEntity) : nullptr;
+	CBaseEntity* pViewEntity = pGameClient->m_pViewEntity ? Util::GetCBaseEntityFromEdict(pGameClient->m_pViewEntity) : nullptr;
 	const Vector& clientPosition = pViewEntity ? pViewEntity->EyePosition() : pRecipientPlayer->EyePosition();
 	const int clientArea = networking_fastpath_usecluster.GetBool() ? Util::engineserver->GetClusterForOrigin(clientPosition) : Util::engineserver->GetArea(clientPosition);
 
