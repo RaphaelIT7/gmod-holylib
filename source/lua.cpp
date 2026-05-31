@@ -215,6 +215,12 @@ LUA_FUNCTION_STATIC(Test_Crash)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(Test_IsPlayer)
+{
+	LUA->PushBool(Util::Get_Entity(LUA, 1, true)->IsPlayer());
+	return 1;
+}
+
 static void SetupCoreTestFunctions(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	Lua::GetLuaData(pLua)->RegisterMetaTable(Lua::_HOLYLIB_CORE_TEST, pLua->CreateMetaTable("_HOLYLIB_CORE_TEST"));
@@ -252,6 +258,7 @@ static void SetupCoreTestFunctions(GarrysMod::Lua::ILuaInterface* pLua)
 		Util::AddFunc(pLua, Test_EnableStressBots, "EnableStressBots"); // Required until we get https://github.com/Facepunch/garrysmod-requests/issues/2948
 		Util::AddFunc(pLua, Test_DisableStressBots, "DisableStressBots");
 		Util::AddFunc(pLua, Test_Crash, "Crash");
+		Util::AddFunc(pLua, Test_IsPlayer, "IsPlayer");
 	Util::FinishTable(pLua, "_HOLYLIB_CORE");
 }
 
