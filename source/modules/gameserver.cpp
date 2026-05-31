@@ -505,6 +505,25 @@ LUA_FUNCTION_STATIC(CBaseClient_SendServerInfo)
 	return 0;
 }
 
+extern CGlobalVars* gpGlobals;
+LUA_FUNCTION_STATIC(CBaseClient_FillServerInfo)
+{
+	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
+	int clientIndex = (int)LUA->CheckNumberOpt(2, -1);
+	if (clientIndex != -1 && !g_pModuleManager.IsUnsafeCodeEnabled() && !(clientIndex > 0 && clientIndex <= gpGlobals->maxClients))
+		LUA->ArgError(2, "client index is out of range!");
+
+	SVC_ServerInfo info;
+	CBaseServer* pServer = (CBaseServer*)pClient->GetServer();
+	pServer->FillServerInfo(info);
+
+	if (clientIndex != -1)
+		info.m_nPlayerSlot = clientIndex;
+
+	pClient->SendNetMsg(info, true);
+	return 0;
+}
+
 LUA_FUNCTION_STATIC(CBaseClient_SendSignonData)
 {
 	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
@@ -592,6 +611,24 @@ LUA_FUNCTION_STATIC(CBaseClient_HasNetChannel)
 
 	LUA->PushBool(pClient->GetNetChannel() != nullptr);
 	return 1;
+}
+
+static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* target);
+LUA_FUNCTION_STATIC(CBaseClient_MoveIntoClient)
+{
+	Util::DoUnsafeCodeCheck(LUA);
+
+	CBaseClient* pSourceClient = Get_CBaseClient(LUA, 1, true);
+	CBaseClient* pTargetClient = Get_CBaseClient(LUA, 2, true);
+
+	if (pSourceClient->GetServer()->IsHLTV())
+		LUA->ArgError(1, "the source client is a HLTV client!");
+
+	if (pTargetClient->GetServer()->IsHLTV())
+		LUA->ArgError(1, "the target client is a HLTV client!");
+
+	MoveCGameClientIntoCGameClient((CGameClient*)pSourceClient, (CGameClient*)pTargetClient);
+	return 0;
 }
 
 /*
@@ -925,6 +962,7 @@ void Push_CBaseClientMeta(GarrysMod::Lua::ILuaInterface* pLua)
 	Util::AddFunc(pLua, CBaseClient_SetSignonState, "SetSignonState");
 	Util::AddFunc(pLua, CBaseClient_WriteGameSounds, "WriteGameSounds");
 	Util::AddFunc(pLua, CBaseClient_SendServerInfo, "SendServerInfo");
+	Util::AddFunc(pLua, CBaseClient_FillServerInfo, "FillServerInfo");
 	Util::AddFunc(pLua, CBaseClient_SendSignonData, "SendSignonData");
 	Util::AddFunc(pLua, CBaseClient_SpawnPlayer, "SpawnPlayer");
 	Util::AddFunc(pLua, CBaseClient_ActivatePlayer, "ActivatePlayer");
@@ -934,6 +972,7 @@ void Push_CBaseClientMeta(GarrysMod::Lua::ILuaInterface* pLua)
 	Util::AddFunc(pLua, CBaseClient_OnRequestFullUpdate, "OnRequestFullUpdate");
 	Util::AddFunc(pLua, CBaseClient_SetSteamID, "SetSteamID");
 	Util::AddFunc(pLua, CBaseClient_HasNetChannel, "HasNetChannel");
+	Util::AddFunc(pLua, CBaseClient_MoveIntoClient, "MoveIntoClient");
 
 	// CNetChan related functions
 	Util::AddFunc(pLua, CBaseClient_GetProcessingMessages, "GetProcessingMessages");

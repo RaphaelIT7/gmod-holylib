@@ -4453,6 +4453,11 @@ Returns `true` on success.<br>
 
 #### CBaseClient:SendServerInfo()
 
+#### CBaseClient:FillServerInfo(int clientIndex = -1)
+Fills and sends the server info.<br>
+This function allows you to specify the client index that is sent out or it falls back to the normal one.<br>
+This function intentionally does not clamp the clientIndex when unsafe code is enabled because who knows what you may try- you got all the freedom.<br>
+
 #### CBaseClient:SendSignonData()
 
 #### CBaseClient:SpawnPlayer()
@@ -4480,6 +4485,10 @@ Returns `true` on success.<br>
 #### bool CBaseClient:HasNetChannel()
 Returns `true` if the client has a net channel.<br>
 This is useful for example, when working with fake clients and using `sv_stressbots`<br>
+
+#### CBaseClient:MoveIntoClient(CBaseClient targetClient)
+Moves the client it's called on into the target client.<br>
+This function calls HolyLib's internal `MoveCGameClientIntoCGameClient` which will move all values, patch the net channel, and reconnect the client.<br>
 
 ---
 
