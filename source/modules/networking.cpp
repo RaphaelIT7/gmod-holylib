@@ -1344,7 +1344,6 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	if (!pRecipientEntity)
 		return true;
 	
-	MDLCACHE_CRITICAL_SECTION();
 	CBasePlayer *pRecipientPlayer = static_cast<CBasePlayer*>(pRecipientEntity);
 	const int skyBoxArea = GetSkybox3DArea(pRecipientPlayer);
 	// current transmit client | player index / entindex - 1
@@ -1367,6 +1366,8 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 
 	// ToDo: Bring over's CS:GO code for InitialSpawnTime
 	//const bool bIsFreshlySpawned = pRecipientPlayer->GetInitialSpawnTime()+3.0f > gpGlobals->curtime;
+
+	MDLCACHE_CRITICAL_SECTION();
 
 	// pRecipientPlayer->IsHLTV(); Why do we not use IsHLTV()? Because its NOT a virtual function & the variables are fked
 	const int nCurrentTick = gpGlobals->tickcount;
