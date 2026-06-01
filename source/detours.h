@@ -260,8 +260,18 @@ byte m_##name = 0;
 	inline const Symbol* GetSymbolForID(const std::vector<Symbol>& pSymbols)
 	{
 	#if DETOUR_SYMBOL_ID != 4 && DETOUR_SYMBOL_ID != 5
+	#if DETOUR_SYMBOL_ID != 6
 		if (pSymbols.size() <= DETOUR_SYMBOL_ID)
 			return nullptr;
+	#else
+		if (pSymbols.size() <= DETOUR_SYMBOL_ID)
+		{
+			if (pSymbols.size() <= 3)
+				return nullptr;
+
+			return &pSymbols[3]; // 3 = GMOD 64x
+		}
+	#endif
 	#else
 		if (pSymbols.size() <= DETOUR_SYMBOL_ID)
 		{
