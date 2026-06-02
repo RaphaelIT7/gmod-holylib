@@ -472,6 +472,7 @@ static ConVar networking_bind_viewmodels_to_player("holylib_networking_bind_view
 static ConVar networking_cachedump("holylib_networking_cachedump", "0", 0, "Experimental - Debug. You wouldn't need this...");
 static ConVar networking_areasplit("holylib_networking_areasplit", "0", 0, "Experimental - PVS entities are split into areas");
 static ConVar networking_fastcharactertransmit("holylib_networking_fastcharactertransmit", "1", 0, "Experimental");
+static ConVar networking_test_noremoveweapon("holylib_networking_test_noremoveweapon", "0", 0, "Experimental");
 struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, though its a good foundation now.
 {
 	// Updates the cache for the current tick
@@ -521,12 +522,15 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 					}
 				}
 
-				// Now let's also mark all weapons a player has so that they won't later enter into useless PVS checks.
-				for (int i=0; i<MAX_WEAPONS; ++i)
+				if (!networking_test_noremoveweapon.GetBool())
 				{
-					CBaseEntity *pWeapon = GetMyWeapon(pPlayer, i);
-					if (pWeapon)
-						pNeverTransmitBits.Set(pWeapon->edict()->m_EdictIndex);
+					// Now let's also mark all weapons a player has so that they won't later enter into useless PVS checks.
+					for (int i=0; i<MAX_WEAPONS; ++i)
+					{
+						CBaseEntity *pWeapon = GetMyWeapon(pPlayer, i);
+						if (pWeapon)
+							pNeverTransmitBits.Set(pWeapon->edict()->m_EdictIndex);
+					}
 				}
 			}
 		}
@@ -606,6 +610,20 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 			Msg("PVS:\n");
 			for (int i=0; i<=nPVSEdictCount; ++i)
 				Msg("    %i: %s[%i]\n", i, pPVSEntityList[i]->GetClassname(), pPVSEntityList[i]->edict()->m_EdictIndex);
+
+			Msg("Never:\n");
+			for (int i=0; i<=pNeverTransmitBits.GetNumBits(); ++i)
+			{
+				if (pNeverTransmitBits.IsBitSet(i))
+					Msg("    %i\n", i);
+			}
+
+			Msg("Always:\n");
+			for (int i=0; i<=pAlwaysTransmitBits.GetNumBits(); ++i)
+			{
+				if (pAlwaysTransmitBits.IsBitSet(i))
+					Msg("    %i\n", i);
+			}
 
 			if (networking_areasplit.GetBool())
 			{
