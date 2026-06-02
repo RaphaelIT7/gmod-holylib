@@ -455,6 +455,18 @@ static inline CCollisionProperty* GetEntityCollisionProperty(const void* pEnt)
 	return (CCollisionProperty*)m_Collision_Offset.GetPointer(pEnt);
 }
 
+static DTVarByOffset m_CollisionMins_Offset("DT_CollisionProperty", "m_vecMins");
+static inline const Vector& GetCollisionPropertyMins(const void* pCollisionProp)
+{
+	return *(Vector*)m_CollisionMins_Offset.GetPointer(pCollisionProp);
+}
+
+static DTVarByOffset m_CollisionMaxs_Offset("DT_CollisionProperty", "m_vecMaxs");
+static inline const Vector& GetCollisionPropertyMaxs(const void* pCollisionProp)
+{
+	return *(Vector*)m_CollisionMaxs_Offset.GetPointer(pCollisionProp);
+}
+
 static ConVar networking_bind_gmodhands_to_player("holylib_networking_bind_gmodhands_to_player", "1", 0, "Experimental - If enabled, the GMOD Hands / Player:SetHands entity will be bound to the player and only networked if the player is networked");
 static ConVar networking_bind_viewmodels_to_player("holylib_networking_bind_viewmodels_to_player", "1", 0, "Experimental - If enabled, the viewmodels will be bound to the player and only networked if the player is networked");
 static ConVar networking_cachedump("holylib_networking_cachedump", "0", 0, "Experimental - Debug. You wouldn't need this...");
@@ -694,7 +706,7 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 			nArea = Util::engineserver->GetArea(pEntity->WorldSpaceCenter());
 		}
 #endif
-		const CCollisionProperty* pCollision = pEntity->CollisionProp();
+		const CCollisionProperty* pCollision = GetEntityCollisionProperty(pEntity);
 		if (!pCollision)
 		{
 			int nArea = Util::engineserver->GetArea(pEntity->GetAbsOrigin());
@@ -717,19 +729,25 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 			return;
 		}
 
-		Vector &vecResult = AllocTempVector();
-		pCollision->CollisionToWorldSpace( pCollision->OBBMins(), &vecResult );
+		const Vector& mins = GetCollisionPropertyMins( pCollision );
+		const Vector& maxs = GetCollisionPropertyMaxs( pCollision );
+
+		Vector vecResult;
+		pCollision->CollisionToWorldSpace( mins, &vecResult );
 		int minsArea = Util::engineserver->GetArea(vecResult);
 		bool bMinsValid = minsArea < MAX_MAP_AREAS && minsArea > 0; // Area 0 is also invalid, thats why > 0
 
-		pCollision->CollisionToWorldSpace( pCollision->OBBMaxs(), &vecResult );
+		pCollision->CollisionToWorldSpace( maxs, &vecResult );
 		int maxsArea = Util::engineserver->GetArea(vecResult);
 		bool bMaxsValid = maxsArea < MAX_MAP_AREAS && maxsArea > 0;
 
 		if (!bMinsValid && !bMaxsValid)
 		{
+			Vector obbCenter;
+			VectorLerp( mins, maxs, 0.5f, obbCenter );
+
 			// Test center, in case you have things like a vent door where the mins/maxs may be out of bounds but not the center
-			pCollision->CollisionToWorldSpace( pCollision->OBBCenter(), &vecResult );
+			pCollision->CollisionToWorldSpace( obbCenter, &vecResult );
 			minsArea = Util::engineserver->GetArea(vecResult);
 			bMinsValid = minsArea < MAX_MAP_AREAS && minsArea > 0;
 		}
