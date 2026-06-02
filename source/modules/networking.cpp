@@ -449,6 +449,13 @@ static inline CBaseViewModel* GetViewModel(const void* pPlayer, const int nViewM
 	return (CBaseViewModel*)IndexToEntity(((CBasePlayer::CBaseViewModelHandle*)m_hViewModel_Offset.GetPointerArray(pPlayer, nViewModelSlot))->GetEntryIndex());
 }
 
+// DT_LocalPlayerExclusive is based off CBasePlayer! So we don't need to get it first as offsets are all for CBasePlayer
+static DTVarByOffset m_hViewEntity_Offset("DT_LocalPlayerExclusive", "m_hViewEntity");
+static inline CBaseEntity* GetViewEntity(void* pPlayer)
+{
+	return IndexToEntity(((CBaseHandle*)m_hViewEntity_Offset.GetPointer(pPlayer))->GetEntryIndex());
+}
+
 static DTVarByOffset m_Collision_Offset("DT_BaseEntity", "m_Collision");
 static inline CCollisionProperty* GetEntityCollisionProperty(const void* pEnt)
 {
@@ -1389,11 +1396,7 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	if (clientIndex >= gpGlobals->maxClients || clientIndex < 0)
 		return true; // We don't return false since we never want to transmit anything to a player in a invalid slot!
 
-	CGameClient* pGameClient = (CGameClient*)Util::GetClientByIndex(clientIndex);
-	if (!pGameClient) // Something is wrong... definetly...
-		return true;
-
-	CBaseEntity* pViewEntity = pGameClient->m_pViewEntity ? Util::GetCBaseEntityFromEdict(pGameClient->m_pViewEntity) : nullptr;
+	CBaseEntity* pViewEntity = GetViewEntity(pRecipientPlayer);
 	const Vector& clientPosition = pViewEntity ? pViewEntity->EyePosition() : pRecipientPlayer->EyePosition();
 	const int clientArea = networking_fastpath_usecluster.GetBool() ? Util::engineserver->GetClusterForOrigin(clientPosition) : Util::engineserver->GetArea(clientPosition);
 
