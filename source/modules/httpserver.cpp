@@ -18,7 +18,7 @@ public:
 	void InitDetour(bool bPreServer) override;
 	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) override;
 	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
-	void Think(bool bSimulating) override;
+	void LuaThink(GarrysMod::Lua::ILuaInterface* pLua) override;
 	void OnClientDisconnect(CBaseClient* pClient) override;
 	const char* Name() override { return "httpserver"; };
 	int Compatibility() override { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
@@ -140,14 +140,17 @@ namespace stringstuff
 
 class HttpServer;
 static unordered_set<HttpServer*> g_pHttpServers;
+static std::shared_mutex g_pHttpServersMutex;
 class HttpServer
 {
 public:
 	HttpServer(GarrysMod::Lua::ILuaInterface* pLua) {
 		m_pLua = pLua;
-		g_pHttpServers.insert(this);
 
 		SetName("NONAME");
+
+		std::unique_lock<std::shared_mutex> lock(g_pHttpServersMutex);
+		g_pHttpServers.insert(this);
 	}
 
 	~HttpServer()
@@ -179,6 +182,7 @@ public:
 		}
 		m_pPreparedResponses.clear();
 
+		std::unique_lock<std::shared_mutex> lock(g_pHttpServersMutex);
 		g_pHttpServers.erase(this);
 	}
 
@@ -263,23 +267,18 @@ public:
 		V_strncpy(m_strName, strName, sizeof(m_strName));
 	};
 
+	// This function may be called by non-main threads!
 	void ClearDisconnectedClient(int userID)
 	{
-		m_pPreparedResponsesMutex.lock();
+		std::unique_lock<std::shared_mutex> lock(m_pPreparedResponsesMutex);
 		auto it = m_pPreparedResponses.find(userID);
 		if (it == m_pPreparedResponses.end())
-		{
-			m_pPreparedResponsesMutex.unlock();
 			return;
-		}
 
 		for (auto& pPreparedResponse : it->second)
-		{
 			delete pPreparedResponse;
-		}
 
 		m_pPreparedResponses.erase(it);
-		m_pPreparedResponsesMutex.unlock();
 	}
 
 	inline std::string GetAddressFromRequest(httplib::Request pRequest)
@@ -363,6 +362,7 @@ class LuaHttpServerModuleData : public Lua::ModuleData
 {
 public:
 	int nProtectedCallRef = -1;
+	unordered_set<HttpServer*> pServers;
 };
 
 LUA_GetModuleData(LuaHttpServerModuleData, g_pHttpServerModule, HttpServer)
@@ -703,8 +703,12 @@ void HttpServer::Stop()
 		return;
 
 	m_pServer.stop();
+	while (GetServer().is_running())
+	{
+		ThreadSleep(0);
+		Think();
+	}
 
-	ThreadJoin(m_pServerThread, 100);
 	ReleaseThreadHandle(m_pServerThread);
 	m_pServerThread = nullptr;
 }
@@ -751,7 +755,7 @@ void HttpServer::Think()
 
 	if (m_bHandledPreparedResponse.load())
 	{
-		m_pPreparedResponsesMutex.lock();
+		std::unique_lock<std::shared_mutex> lock(m_pPreparedResponsesMutex);
 		for (auto& [userid, responses] : m_pPreparedResponses)
 		{
 			for (auto it = responses.begin(); it != responses.end();)
@@ -768,7 +772,6 @@ void HttpServer::Think()
 		}
 
 		m_bHandledPreparedResponse.store(false);
-		m_pPreparedResponsesMutex.unlock();
 	}
 
 	if (!m_bUpdate.load())
@@ -1194,7 +1197,11 @@ LUA_FUNCTION_STATIC(HttpServer_SetThreads)
 
 LUA_FUNCTION_STATIC(httpserver_Create)
 {
-	Push_HttpServer(LUA, new HttpServer(LUA));
+	LuaHttpServerModuleData* pLuaData = GetHttpServerLuaData(LUA);
+	HttpServer* pServer = new HttpServer(LUA);
+	pLuaData->pServers.insert(pServer);
+
+	Push_HttpServer(LUA, pServer);
 	return 1;
 }
 
@@ -1213,9 +1220,10 @@ LUA_FUNCTION_STATIC(httpserver_Destroy)
 
 LUA_FUNCTION_STATIC(httpserver_GetAll)
 {
-	LUA->PreCreateTable(g_pHttpServers.size(), 0);
+	LuaHttpServerModuleData* pLuaData = GetHttpServerLuaData(LUA);
+	LUA->PreCreateTable(pLuaData->pServers.size(), 0);
 		int idx = 0;
-		for (auto& server : g_pHttpServers)
+		for (auto& server : pLuaData->pServers)
 		{
 			Push_HttpServer(LUA, server);
 			Util::RawSetI(LUA, -2, ++idx);
@@ -1228,7 +1236,8 @@ LUA_FUNCTION_STATIC(httpserver_FindByName)
 {
 	std::string strName = LUA->CheckString(1);
 	bool bPushed = false;
-	for (auto& server : g_pHttpServers)
+	LuaHttpServerModuleData* pLuaData = GetHttpServerLuaData(LUA);
+	for (auto& server : pLuaData->pServers)
 	{
 		if (server->GetName() == strName)
 		{
@@ -1383,6 +1392,10 @@ void CHTTPServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 
 void CHTTPServerModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 {
+	LuaHttpServerModuleData* pLuaData = GetHttpServerLuaData(pLua);
+	for (auto& httpserver : pLuaData->pServers)
+		httpserver->Stop();
+
 	Util::NukeTable(pLua, "httpserver");
 
 	// HttpServers WILL persist across map changes.
@@ -1390,22 +1403,21 @@ void CHTTPServerModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 	DeleteAll_HttpRequest(pLua);
 	DeleteAll_HttpServer(pLua);
 
-	std::vector<HttpServer*> httpServers; // Copy of g_pHttpServers as when deleting we can't iterate over it.
-	for (auto server : g_pHttpServers)
-		httpServers.push_back(server);
+	for (auto& httpserver : pLuaData->pServers)
+		delete httpserver;
 
-	for (auto server : httpServers)
-		delete server;
-
-	auto pData = GetHttpServerLuaData(pLua);
-	if (pData->nProtectedCallRef != -1)
-		Util::ReferenceFree(pLua, pData->nProtectedCallRef, "HttpServer - ProtectedCall");
+	if (pLuaData->nProtectedCallRef != -1)
+		Util::ReferenceFree(pLua, pLuaData->nProtectedCallRef, "HttpServer - ProtectedCall");
 }
 
-void CHTTPServerModule::Think(bool simulating)
+void CHTTPServerModule::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
 {
-	VPROF_BUDGET("HolyLib - CHTTPServerModule::Think", VPROF_BUDGETGROUP_HOLYLIB);
+	VPROF_BUDGET("HolyLib - CHTTPServerModule::LuaThink", VPROF_BUDGETGROUP_HOLYLIB);
 
-	for (auto& httpserver : g_pHttpServers)
+	LuaHttpServerModuleData* pLuaData = GetHttpServerLuaData(pLua);
+	if (!pLuaData)
+		return;
+
+	for (auto& httpserver : pLuaData->pServers)
 		httpserver->Think();
 }
