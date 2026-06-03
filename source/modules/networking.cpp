@@ -646,6 +646,10 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 				}
 			}
 
+			Msg("EntityCache:\n");
+			for (int i=0; i<MAX_EDICTS; ++i)
+				Msg("    %i: %s[%i]\n", i, g_pEntityCache[i] ? g_pEntityCache[i]->GetClassname() : "NULL", g_pEntityCache[i] ? g_pEntityCache[i]->edict()->m_EdictIndex : -1);
+
 			networking_cachedump.SetValue(0);
 		}
 	}
