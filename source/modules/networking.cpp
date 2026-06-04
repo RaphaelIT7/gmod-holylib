@@ -425,35 +425,53 @@ static inline CBaseEntity* IndexToEntity(const int nEntIndex)
 	return g_pEntityCache[nEntIndex];
 }
 
+static inline CBaseEntity* EHandleToEntity(const CBaseHandle* pHandle)
+{
+	if (!g_pEntityList)
+	{
+		const int nEntIndex = pHandle->GetEntryIndex();
+		if (nEntIndex < 0 || nEntIndex >= MAX_EDICTS)
+			return nullptr;
+
+		CBaseEntity* pEnt = g_pEntityCache[pHandle->GetEntryIndex()];
+		if (pEnt && pEnt->GetRefEHandle() != *pHandle) // To compare the serial number mimicking CBaseEntityList::LookupEntity
+			return nullptr;
+
+		return pEnt;
+	}
+
+	return (CBaseEntity*)pHandle->Get();
+}
+
 static DTVarByOffset m_Hands_Offset("DT_GMOD_Player", "m_Hands");
 static inline CBaseEntity* GetGMODPlayerHands(const void* pPlayer)
 {
-	return IndexToEntity(((CBaseHandle*)m_Hands_Offset.GetPointer(pPlayer))->GetEntryIndex());
+	return EHandleToEntity((CBaseHandle*)m_Hands_Offset.GetPointer(pPlayer));
 }
 
 static DTVarByOffset m_hActiveWeapon_Offset("DT_BaseCombatCharacter", "m_hActiveWeapon");
 static inline CBaseEntity* GetActiveWeapon(const void* pPlayer)
 {
-	return IndexToEntity(((CBaseHandle*)m_hActiveWeapon_Offset.GetPointer(pPlayer))->GetEntryIndex());
+	return EHandleToEntity((CBaseHandle*)m_hActiveWeapon_Offset.GetPointer(pPlayer));
 }
 
 static DTVarByOffset m_hMyWeapons_Offset("DT_BaseCombatCharacter", "m_hMyWeapons", sizeof(CBaseCombatWeaponHandle));
 static inline CBaseEntity* GetMyWeapon(const void* pPlayer, const int nWeaponSlot)
 {
-	return IndexToEntity(((CBaseCombatWeaponHandle*)m_hMyWeapons_Offset.GetPointerArray(pPlayer, nWeaponSlot))->GetEntryIndex());
+	return EHandleToEntity((CBaseCombatWeaponHandle*)m_hMyWeapons_Offset.GetPointerArray(pPlayer, nWeaponSlot));
 }
 
 static DTVarByOffset m_hViewModel_Offset("DT_BasePlayer", "m_hViewModel", sizeof(CBasePlayer::CBaseViewModelHandle));
 static inline CBaseViewModel* GetViewModel(const void* pPlayer, const int nViewModelSlot)
 {
-	return (CBaseViewModel*)IndexToEntity(((CBasePlayer::CBaseViewModelHandle*)m_hViewModel_Offset.GetPointerArray(pPlayer, nViewModelSlot))->GetEntryIndex());
+	return (CBaseViewModel*)EHandleToEntity((CBasePlayer::CBaseViewModelHandle*)m_hViewModel_Offset.GetPointerArray(pPlayer, nViewModelSlot));
 }
 
 // DT_LocalPlayerExclusive is based off CBasePlayer! So we don't need to get it first as offsets are all for CBasePlayer
 static DTVarByOffset m_hViewEntity_Offset("DT_LocalPlayerExclusive", "m_hViewEntity");
 static inline CBaseEntity* GetViewEntity(void* pPlayer)
 {
-	return IndexToEntity(((CBaseHandle*)m_hViewEntity_Offset.GetPointer(pPlayer))->GetEntryIndex());
+	return EHandleToEntity((CBaseHandle*)m_hViewEntity_Offset.GetPointer(pPlayer));
 }
 
 static DTVarByOffset m_Collision_Offset("DT_BaseEntity", "m_Collision");
