@@ -650,6 +650,48 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 			for (int i=0; i<MAX_EDICTS; ++i)
 				Msg("    %i: %s[%i]\n", i, g_pEntityCache[i] ? g_pEntityCache[i]->GetClassname() : "NULL", g_pEntityCache[i] ? g_pEntityCache[i]->edict()->m_EdictIndex : -1);
 
+			if (networking_fastcharactertransmit.GetBool())
+			{
+				for (int iPlayerIndex = 1; iPlayerIndex <= gpGlobals->maxClients; ++iPlayerIndex)
+				{
+					CBaseEntity* pPlayer = g_pEntityCache[iPlayerIndex];
+					if (!pPlayer)
+						continue;
+
+					Msg("Player - %i - %p:\n", iPlayerIndex, pPlayer);
+					if (bBindGmodHandsToPlayer)
+					{
+						CBaseHandle* pHandsHandle = (CBaseHandle*)m_Hands_Offset.GetPointer(pPlayer);
+						CBaseEntity* pHands = GetGMODPlayerHands(pPlayer);
+						if (pHands)
+							Msg("	GModHands - %p %i %i %i\n", pHandsHandle, pHandsHandle->ToInt(), pHandsHandle->GetEntryIndex(), pHandsHandle->GetSerialNumber());
+					}
+
+					if (bBindViewModelsToPlayer)
+					{
+						for (int i=0; i<MAX_VIEWMODELS; ++i)
+						{
+							CBasePlayer::CBaseViewModelHandle* pViewModelHandle = (CBasePlayer::CBaseViewModelHandle*)m_hViewModel_Offset.GetPointerArray(pPlayer, i);
+							CBaseEntity* pViewModel = GetViewModel(pPlayer, i);
+							if (pViewModel)
+								Msg("	ViewModel: %i - %p %i %i %i\n", i, pViewModelHandle, pViewModelHandle->ToInt(), pViewModelHandle->GetEntryIndex(), pViewModelHandle->GetSerialNumber());
+						}
+					}
+
+					if (!networking_test_noremoveweapon.GetBool())
+					{
+						// Now let's also mark all weapons a player has so that they won't later enter into useless PVS checks.
+						for (int i=0; i<MAX_WEAPONS; ++i)
+						{
+							CBaseCombatWeaponHandle* pWeaponHandle = (CBaseCombatWeaponHandle*)m_hMyWeapons_Offset.GetPointerArray(pPlayer, i);
+							CBaseEntity *pWeapon = GetMyWeapon(pPlayer, i);
+							if (pWeapon)
+								Msg("	Weapon: %i - %p %i %i %i\n", i, pWeaponHandle, pWeaponHandle->ToInt(), pWeaponHandle->GetEntryIndex(), pWeaponHandle->GetSerialNumber());
+						}
+					}
+				}
+			}
+
 			networking_cachedump.SetValue(0);
 		}
 	}
