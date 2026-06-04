@@ -715,7 +715,7 @@ void Util::SysError_IgnoreError(std::string msg, uint32_t count)
 }
 
 static Detouring::Hook detour_Sys_Error_Internal;
-void hook_Sys_Error_Internal_ignore_this_function_in_crashes_check_your_logs_( bool bMinidump, const char *error, va_list argsList )
+DLL_EXPORT void hook_Sys_Error_Internal_ignore_this_function_in_crashes_check_your_logs_( bool bMinidump, const char *error, va_list argsList )
 {
 	std::string_view strError = error;
 	for (auto it = g_pErrorsToIgnore.begin(); it != g_pErrorsToIgnore.end(); ++it)

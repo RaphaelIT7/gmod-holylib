@@ -119,13 +119,27 @@ struct ElfSection
 
 struct ElfSections
 {
+	ElfSection dynsym;
+	ElfSection dynstr;
+	ElfSection symtab;
+	ElfSection strtab;
 	ElfSection debug_info;
 	ElfSection debug_line;
 	ElfSection debug_abbrev;
+	ElfSection debug_str;
+	uint16_t dwarf_version;
 };
 
+#pragma pack(push,1)
+struct DWARF_BasicCUHeader
+{
+	uint32_t unit_length;
+	uint16_t version;
+};
+#pragma pack(pop)
+
 // Opens & Reads the file to find the debug sections
-static void ReadElfSections(char* filePath, ElfSections& sections)
+static void ReadElfSections(const char* filePath, ElfSections& sections)
 {
 	if (!filePath || !filePath[0])
 		return;
@@ -187,7 +201,96 @@ static void ReadElfSections(char* filePath, ElfSections& sections)
 		{
 			sections.debug_line.offset = shdrs[i].sh_offset;
 			sections.debug_line.size = shdrs[i].sh_size;
+		} else if (!strcmp(name, ".debug_str"))
+		{
+			sections.debug_str.offset = shdrs[i].sh_offset;
+			sections.debug_str.size = shdrs[i].sh_size;
+		} else if (!strcmp(name, ".symtab"))
+		{
+			sections.symtab.offset = shdrs[i].sh_offset;
+			sections.symtab.size = shdrs[i].sh_size;
+		} else if (!strcmp(name, ".strtab"))
+		{
+			sections.strtab.offset = shdrs[i].sh_offset;
+			sections.strtab.size = shdrs[i].sh_size;
+		} else if (!strcmp(name, ".dynstr"))
+		{
+			sections.dynstr.offset = shdrs[i].sh_offset;
+			sections.dynstr.size = shdrs[i].sh_size;
+		} else if (!strcmp(name, ".dynsym"))
+		{
+			sections.dynsym.offset = shdrs[i].sh_offset;
+			sections.dynsym.size = shdrs[i].sh_size;
 		}
+	}
+
+	if (sections.debug_info.offset > 0)
+	{
+		lseek(fd, sections.debug_info.offset, SEEK_SET);
+		DWARF_BasicCUHeader header;
+		read(fd, &header, sizeof(header));
+		sections.dwarf_version = header.version;
+	}
+}
+
+#if !PLATFORM_64BITS
+#define ELF_ST_TYPE ELF32_ST_TYPE
+#else
+#define ELF_ST_TYPE ELF64_ST_TYPE
+#endif
+
+static void ReadElfName(const char* filePath, const ElfSections& sections, uintptr_t searchAddress, uintptr_t& foundAddress, char* pOutputName, size_t pOutputSize)
+{
+	if (!filePath || !filePath[0] || sections.symtab.offset == 0)
+		return;
+
+	int fd = open(filePath, O_RDONLY);
+	if (fd < 0)
+		return;
+
+	ScopedFileDescriptor scopedFD(fd);
+	lseek(fd, sections.symtab.offset, SEEK_SET);
+
+	size_t closestOffset = 0;
+	size_t closestOffsetName = 0;
+
+	ElfW(Sym) symtab;
+	size_t count = sections.symtab.size / sizeof(symtab);
+	for (size_t i=0; i<count; ++i)
+	{
+		read(fd, &symtab, sizeof(symtab));
+
+		if (ELF_ST_TYPE(symtab.st_info) != STT_FUNC)
+			continue;
+
+		if (symtab.st_value == searchAddress)
+		{
+			closestOffset = symtab.st_value;
+			closestOffsetName = symtab.st_name;
+			break;
+		}
+
+		if (closestOffset < symtab.st_value && symtab.st_value < searchAddress)
+		{
+			closestOffset = symtab.st_value;
+			closestOffsetName = symtab.st_name;
+
+			/*off_t curPos = lseek(fd, 0, SEEK_CUR);
+			lseek(fd, sections.strtab.offset + symtab.st_name, SEEK_SET);
+			read(fd, pOutputName, pOutputSize);
+			lseek(fd, curPos, SEEK_SET);
+
+			printf("%s 0x%lx size=%lu\n", pOutputName, symtab.st_value, symtab.st_size);*/
+		}
+	}
+
+	if (closestOffset > 0 && closestOffsetName > 0)
+	{
+		foundAddress = closestOffset;
+		lseek(fd, sections.strtab.offset + closestOffsetName, SEEK_SET);
+		read(fd, pOutputName, pOutputSize);
+		// printf("%s 0x%lx size=%lu\n", pOutputName, symtab.st_value, symtab.st_size);
+		// NOTE: It is already null terminated in strtab!
 	}
 }
 
@@ -277,6 +380,17 @@ public:
 		}
 
 		uintptr_t offset = pEntry ? (nAddress - pEntry->base) : nAddress;
+		if (pEntry)
+		{
+			uintptr_t foundAddress = -1;
+			ReadElfName(pEntry->path, pEntry->sections, offset, foundAddress, m_strReturnBuffer, sizeof(m_strReturnBuffer));
+			if (foundAddress != -1)
+			{
+				*outName = m_strReturnBuffer;
+				*outOffset = nAddress - pEntry->base - foundAddress;
+				return;
+			}
+		}
 
 		m_strReturnBuffer[0] = '?';
 		m_strReturnBuffer[1] = '?';
