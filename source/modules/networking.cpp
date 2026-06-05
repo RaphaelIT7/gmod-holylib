@@ -433,7 +433,7 @@ static inline CBaseEntity* EHandleToEntity(const CBaseHandle* pHandle)
 		if (nEntIndex < 0 || nEntIndex >= MAX_EDICTS)
 			return nullptr;
 
-		CBaseEntity* pEnt = g_pEntityCache[pHandle->GetEntryIndex()];
+		CBaseEntity* pEnt = g_pEntityCache[nEntIndex];
 		if (pEnt && pEnt->GetRefEHandle() != *pHandle) // To compare the serial number mimicking CBaseEntityList::LookupEntity
 			return nullptr;
 
@@ -740,24 +740,20 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 			if (i < nFullEdictCount)
 				memmove(&pFullEntityList[i], &pFullEntityList[i + 1], (nFullEdictCount - i) * sizeof(CBaseEntity*));
 
-			--nFullEdictCount;
-			if (nFullEdictCount >= 0)
-				pFullEntityList[nFullEdictCount] = nullptr;
+			pFullEntityList[nFullEdictCount--] = nullptr;
 			break;
 		}
 
 		for (int i = 0; i<=nPVSEdictCount; ++i)
 		{
-			CBaseEntity* pFullEnt = pPVSEntityList[i];
-			if (pFullEnt != pEntity)
+			CBaseEntity* pPVSEnt = pPVSEntityList[i];
+			if (pPVSEnt != pEntity)
 				continue;
 
 			if (i < nPVSEdictCount)
 				memmove(&pPVSEntityList[i], &pPVSEntityList[i + 1], (nPVSEdictCount - i) * sizeof(CBaseEntity*));
 
-			--nPVSEdictCount;
-			if (nPVSEdictCount >= 0)
-				pPVSEntityList[nPVSEdictCount] = nullptr;
+			pPVSEntityList[nPVSEdictCount--] = nullptr;
 			break;
 		}
 
@@ -775,8 +771,7 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 				if (i < (pArea.nCount - 1))
 					memmove(&pArea.pEntities[i], &pArea.pEntities[i + 1], (pArea.nCount - i - 1) * sizeof(CBaseEntity*));
 
-				--pArea.nCount;
-				pArea.pEntities[pArea.nCount] = nullptr;
+				pArea.pEntities[pArea.nCount--] = nullptr;
 				break;
 			}
 		}
@@ -1375,6 +1370,9 @@ static inline void DoTransmitPVSCheck(
 	while ( check )
 	{
 		edict_t *checkEdict = check->edict();
+		if ( !checkEdict ) // RaphelIT7: This can happen when a server-only entity is parented to a networked entity!
+			return;
+
 		int checkIndex = checkEdict->m_EdictIndex;
 
 		// Parent already being sent
