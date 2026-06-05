@@ -103,9 +103,54 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 > You can disable unsafe code on linux using `-holylib_denyunsafe`<br>
 
 ## Next Update
-\- [#] Fixed in our LuaJIT version failing to trace C functions with `0` arguments.<br>
-\- [#] Fixed in our LuaJIT version `table.insert` trying to shift values when inserting into negatives causing performance issues<br>
-\- [#] In our LuaJIT allow `debug.setfenv` to set the `env` of a userdata to `nil` & initialize userdata's env as `nil`<br>
+\- [+] Support `dev` branch x64<br>
+\- [+] Added new functions to `gameserver` module -> `CBaseClient:FillServerInfo` & `CBaseClient:MoveIntoClient`<br>
+\- [+] Added new function to `unholylib` module -> `KillLua`<br>
+\- [#] Multiple changes to our LuaJIT version<br>
+\- \-> Fixed failing to trace C functions with `0` arguments.<br>
+\- \-> Fixed `table.insert` trying to shift values when inserting into negatives, causing performance issues<br>
+\- \-> Allow `debug.setfenv` to set the `env` of a userdata to `nil` & initialize userdata's env as `nil`<br>
+\- \-> Made `newproxy` JITd & added new `IR_UDNEW` opcode<br>
+\- \-> Finished external trace recorder and moved traced functions from LuaJIT into HolyLib.<br>
+\- \-> Reduced `GCudata`, `GCtrace`, `GCproto`, `global_State` sizes saving memory.<br>
+\- \-> Implement `LUAJIT_ENABLE_CHECKHOOK` as a runtime toggle (See: https://github.com/RaphaelIT7/gmod-holylib/issues/151)<br>
+\- [#] Fixed `gameserver` module causing a crash when `MoveCGameClientIntoCGameClient` is hit due to `CNetChan` class being outdated (See: https://github.com/RaphaelIT7/gmod-holylib/issues/160 & https://github.com/RaphaelIT7/gmod-holylib/issues/173)<br>
+\- [#] Fixed `gameserver` module crashing due to a missing null check (See: https://github.com/RaphaelIT7/gmod-holylib/issues/171)<br>
+\- [#] Avoid direct `CBaseClient::m_NetChannel` to avoid future crashes from layouts changing.<br>
+\- [#] Multiple crash fixes in `networking` module<br>
+\- \-> Fixed `CollisionProp()` access crashing in two places.<br>
+\- \-> Fixed outdated `IMDLCache` interfaces causing `MDLCACHE_CRITICAL_SECTION` to crash (See: https://github.com/RaphaelIT7/gmod-holylib/issues/172)<br>
+\- \-> Re-implemented 0.8-pre CheckTransmit version since it is way better in performance (it was removed before the release due to having been assumed to be broken)<br>
+\- \-> Fixed `areasplit` causing a crash.<br>
+\- \-> Made viewentity lookup save across GMod Updates (See: https://github.com/RaphaelIT7/gmod-holylib/issues/172)<br>
+\- \-> Fixed `hook_CServerGameEnts_CheckTransmit` never falling back to engine. (See: a0454c8d87d4bcfb609a47f2306d6c26648e9146)<br>
+\- [#] Fixed broken error handling in our own Lua states.<br>
+\- [#] Fixed `gmoddatapack` module (See: https://github.com/RaphaelIT7/gmod-holylib/pull/165)<br>
+\- \-> Compare processed Lua content instead of raw file contents<br>
+\- \-> Fixed cache invalidation when changing the removeserverif or removecomments settings<br>
+\- [#] Fixed `autorefresh` module (See: https://github.com/RaphaelIT7/gmod-holylib/pull/164)<br>
+\- \-> Fixed manually watched autorefresh files being incorrectly detected as changed on every check<br>
+\- \-> Fixed autorefresh timestamp tracking failing to update stored file entries<br>
+\- \-> Updated autorefresh include to use `unordered_set` for blacklist storage<br>
+\- \-> Fixed symbol for `Bootil::File::ChangeMonitor::CheckForChanges`<br>
+\- [#] Fixed `CPhysCollide` metatable being overwritten by `CPhysConvex` (See: https://github.com/RaphaelIT7/gmod-holylib/issues/170)<br>
+\- [#] Fixed IsValid function crashing due to missing a null check (See: https://github.com/RaphaelIT7/gmod-holylib/issues/170)<br>
+\- [#] Fixed `vprof` for Windows (See: https://github.com/RaphaelIT7/gmod-holylib/pull/168)<br>
+\- [#] Multiple `crashhandler` changes<br>
+\- \-> Allow the handler to handle itself crashing when attempting Lua callbacks<br>
+\- \-> Log engine errors in crash logs.<br>
+\- \-> Include the GMod branch & version in the crash log.<br>
+\- \-> Read `.symtab` to lookup function names to make backtraces more useful (fixes all the `??` results)<br>
+\- [#] Optimized `vprof` to now be blazingly fast and support more than a million scopes without impact (See: https://github.com/RaphaelIT7/gmod-holylib/issues/54)<br>
+\- [#] Fixed broken hook causing all `pvs` functions that were supposed to work inside `SetupPlayerVisibility` to not be functional. (See: https://github.com/RaphaelIT7/gmod-holylib/issues/169)<br>
+\- [#] Fixed an outdated SDK causing x86-64x builds to deadlock / corrupt a mutex.<br>
+\- [#] Slightly Optimized `DTVarByOffset` to avoid branches & improve initializing of them<br>
+\- [#] Fully switched HolyLib over from using `std::unordere_` to using `ankerl::unordered_dense::` for better performance.<br>
+\- [#] Removed almost all dependencies on a specific JIT version.<br>
+\- \-> Previously, HolyLib depended on a specific layout between all three JIT versions it must support.<br>
+\- [#] Fixed an issue with `holylua` with how we locked on shutdown.<br>
+\- [#] Fixed `httpserver` module possibly deadlocking on shutdown & fixed other threading issues (See: https://github.com/RaphaelIT7/gmod-holylib/issues/174)<br>
+
 
 You can see all changes/commits here:<br>
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.8...main
@@ -114,7 +159,7 @@ https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.8...main
 None
 
 ### QoL updates
-None
+\- [#] Unified module dumping code & fixed names being too long by 1.<br>
 
 ## ToDo
 
