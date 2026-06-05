@@ -6,7 +6,6 @@
 #include <baseclient.h>
 #include <inetchannel.h>
 #include <netadr.h>
-#include "unordered_set"
 #include "icommandline.h"
 
 // memdbgon must be the last include file in a .cpp file!!!

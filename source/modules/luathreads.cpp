@@ -3,7 +3,6 @@
 #include "module.h"
 #include "lua.h"
 #include "player.h"
-#include "unordered_set"
 #include "lua/CLuaInterface.h"
 
 // memdbgon must be the last include file in a .cpp file!!!

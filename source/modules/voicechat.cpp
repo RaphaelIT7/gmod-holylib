@@ -8,7 +8,6 @@
 #include "sourcesdk/baseclient.h"
 #include "steam/isteamclient.h"
 #include <isteamutils.h>
-#include "unordered_set"
 #include "server.h"
 #include "ivoiceserver.h"
 #include <memory>

@@ -3,8 +3,6 @@
 #include "lua.h"
 #include "detours.h"
 
-#include <unordered_set>
-
 #include "tier0/memdbgon.h"
 
 class CAutoRefreshModule : public IModule

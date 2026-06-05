@@ -4,10 +4,8 @@
 #include "detours.h"
 #include "module.h"
 #include "lua.h"
-#include <unordered_map>
 #include <algorithm>
 #include <cstring>
-#include <unordered_set>
 #include "edict.h"
 
 // memdbgon must be the last include file in a .cpp file!!!

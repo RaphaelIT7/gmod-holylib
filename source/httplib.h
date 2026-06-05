@@ -8,8 +8,6 @@
 #ifndef CPPHTTPLIB_HTTPLIB_H
 #define CPPHTTPLIB_HTTPLIB_H
 
-#include "unordered_stuff.h"
-
 #define CPPHTTPLIB_VERSION "0.19.0"
 
 /*
@@ -263,8 +261,10 @@ using socket_t = int;
 #include <string>
 #include <sys/stat.h>
 #include <thread>
-#include <unordered_map>
-#include <unordered_set>
+// RaphaelIT7: We switch this over to use HolyLib's!
+#include <unordered_stuff.h>
+#include <unordered_map> // needed for std::unordered_multimap
+//#include <unordered_set>
 #include <utility>
 
 #ifdef CPPHTTPLIB_OPENSSL_SUPPORT

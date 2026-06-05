@@ -12,7 +12,6 @@
 #include "eiface.h"
 #include "baseclient.h"
 #include <bitset>
-#include <unordered_set>
 #include <datacache/imdlcache.h>
 #include <cmodel_private.h>
 #include "server.h"

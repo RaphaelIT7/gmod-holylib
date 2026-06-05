@@ -17,7 +17,6 @@
 //#include "sourcesdk/cphysicsobject.h"
 //#include "sourcesdk/cphysicsenvironment.h"
 #include <detouring/classproxy.hpp>
-#include "unordered_set"
 #include "player.h"
 #include "tier1/tier1.h"
 #define DLL_TOOLS

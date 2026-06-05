@@ -11,7 +11,6 @@
 #include "net.h"
 #include "sourcesdk/baseclient.h"
 #include "hl2/hl2_player.h"
-#include "unordered_set"
 #include "host_state.h"
 #include "detouring/customclassproxy.hpp"
 
