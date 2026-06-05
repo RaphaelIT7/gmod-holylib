@@ -145,7 +145,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- [#] Fixed broken hook causing all `pvs` functions that were supposed to work inside `SetupPlayerVisibility` to not be functional. (See: https://github.com/RaphaelIT7/gmod-holylib/issues/169)<br>
 \- [#] Fixed an outdated SDK causing x86-64x builds to deadlock / corrupt a mutex.<br>
 \- [#] Slightly Optimized `DTVarByOffset` to avoid branches & improve initializing of them<br>
-\- [#] Fully switched HolyLib over from using `std::unordere_` to using `ankerl::unordered_dense::` for better performance.<br>
+\- [#] Fully switched HolyLib over from using `std::unordered_` to using `ankerl::unordered_dense::` for better performance.<br>
 \- [#] Removed almost all dependencies on a specific JIT version.<br>
 \- \-> Previously, HolyLib depended on a specific layout between all three JIT versions it must support.<br>
 \- [#] Fixed an issue with `holylua` with how we locked on shutdown.<br>
