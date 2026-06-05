@@ -1404,6 +1404,9 @@ static inline void DoTransmitPVSCheck(
 		{
 			// do a full ShouldTransmit() check, may return FL_EDICT_CHECKPVS
 			CBaseEntity *pCheckEntity = g_pEntityCache[checkIndex];
+			if (!pCheckEntity)
+				return; // RaphaelIT7: ABORT! We got a garbage edict?
+
 			const int nFlags = pCheckEntity->ShouldTransmit( pInfo );
 			// Assert( !(nFlags & FL_EDICT_FULLCHECK) );
 			if ( nFlags & FL_EDICT_ALWAYS )
