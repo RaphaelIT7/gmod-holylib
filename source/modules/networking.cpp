@@ -1438,7 +1438,6 @@ static inline void DoTransmitPVSCheck(
 	}
 }
 
-static Detouring::Hook detour_CServerGameEnts_CheckTransmit;
 static ConVar networking_fastpath("holylib_networking_fastpath", "0", 0, "Experimental - If two players are in the same area, then it will reuse the transmit state of the first calculated player saving a lot of time");
 static ConVar networking_fastpath_usecluster("holylib_networking_fastpath_usecluster", "1", 0, "Experimental - When using the fastpatth, it will compate against clients in the same cluster instead of area");
 bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts)
@@ -1815,6 +1814,13 @@ void PackEntities_Normal(int clientCount, CGameClient **clients, CFrameSnapshot 
 	func_InvalidateSharedEdictChangeInfos();
 }
 
+static Detouring::Hook detour_CServerGameEnts_CheckTransmit;
+void hook_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmitInfo *pInfo, const unsigned short *pEdictIndices, int nEdicts)
+{
+	if (!New_CServerGameEnts_CheckTransmit(gameents, pInfo, pEdictIndices, nEdicts))
+		detour_CServerGameEnts_CheckTransmit.GetTrampoline<Symbols::CServerGameEnts_CheckTransmit>()(gameents, pInfo, pEdictIndices, nEdicts);
+}
+
 void CNetworkingModule::OnEntityDeleted(CBaseEntity* pEntity)
 {
 	edict_t* pEdict = pEntity->edict();
@@ -1867,7 +1873,7 @@ DETOUR_THISCALL_START()
 	DETOUR_THISCALL_ADDRETFUNC1( hook_CBaseEntity_GMOD_ShouldPreventTransmitToPlayer, bool, GMOD_ShouldPreventTransmitToPlayer, CBaseEntity*, CBasePlayer* );
 	DETOUR_THISCALL_ADDFUNC1( hook_CGMOD_Player_CreateViewModel, CreateViewModel, CBasePlayer*, int );
 	DETOUR_THISCALL_ADDFUNC2( hook_CBaseCombatCharacter_SetTransmit, SetTransmit, CBaseCombatCharacter*, CCheckTransmitInfo*, bool );
-	DETOUR_THISCALL_ADDFUNC3( New_CServerGameEnts_CheckTransmit, CheckTransmit, IServerGameEnts*, CCheckTransmitInfo*, const unsigned short*, int );
+	DETOUR_THISCALL_ADDFUNC3( hook_CServerGameEnts_CheckTransmit, CheckTransmit, IServerGameEnts*, CCheckTransmitInfo*, const unsigned short*, int );
 DETOUR_THISCALL_FINISH();
 #endif
 
@@ -1945,7 +1951,7 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 		Detour::Create(
 			&detour_CServerGameEnts_CheckTransmit, "CServerGameEnts::CheckTransmit",
 			server_loader.GetModule(), Symbols::CServerGameEnts_CheckTransmitSym,
-			(void*)DETOUR_THISCALL(New_CServerGameEnts_CheckTransmit, CheckTransmit), m_pID
+			(void*)DETOUR_THISCALL(hook_CServerGameEnts_CheckTransmit, CheckTransmit), m_pID
 		);
 	}
 
