@@ -440,7 +440,11 @@ CBaseEntity* Util::GetCBaseEntityFromHandle(const CBaseHandle& pHandle)
 		return (CBaseEntity*)pHandle.Get();
 
 	// BUG! We cannot add server-only entities without g_pEntityList!
-	return Util::GetCBaseEntityFromIndex(pHandle.GetEntryIndex());
+	CBaseEntity* pEntity = Util::GetCBaseEntityFromIndex(pHandle.GetEntryIndex());
+	if (pEntity->GetRefEHandle() != pHandle) // Serial number may not match! A Handle can contain an outdated entity!
+		return nullptr;
+
+	return pEntity;
 }
 
 CBaseEntity* Util::FirstEnt()

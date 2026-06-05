@@ -52,7 +52,7 @@ LUA_FUNCTION_STATIC(Test_GetEntity)
 	CBaseEntity* pEntity = Util::Get_Entity(LUA, 1, true);
 	EHANDLE* pEntHandle = LUA->GetUserType<EHANDLE>(1, GarrysMod::Lua::Type::Entity);
 	// If something broke, either we will return false, or we will crash which is intended to make the tests fail.
-	LUA->PushBool(pEntity && pEntity->edict() && pEntity->edict()->m_EdictIndex == pEntHandle->GetEntryIndex());
+	LUA->PushBool(pEntity && pEntity->edict() && pEntity->edict()->m_EdictIndex == pEntHandle->GetEntryIndex() && pEntity->GetRefEHandle() == *pEntHandle);
 	return 1;
 }
 
@@ -60,7 +60,7 @@ LUA_FUNCTION_STATIC(Test_GetPlayer) // Same as Test_GetEntity though calling Get
 {
 	CBasePlayer* pEntity = Util::Get_Player(LUA, 1, true);
 	EHANDLE* pEntHandle = LUA->GetUserType<EHANDLE>(1, GarrysMod::Lua::Type::Entity);
-	LUA->PushBool(pEntity && pEntity->edict() && pEntity->edict()->m_EdictIndex == pEntHandle->GetEntryIndex());
+	LUA->PushBool(pEntity && pEntity->edict() && pEntity->edict()->m_EdictIndex == pEntHandle->GetEntryIndex() && pEntity->GetRefEHandle() == *pEntHandle);
 	return 1;
 }
 

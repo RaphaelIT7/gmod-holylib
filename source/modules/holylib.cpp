@@ -289,10 +289,7 @@ static inline CBaseEntity* GetLadder(void* pPlayer)
 	if (!pLadder)
 		return nullptr;
 
-	if (!g_pEntityList)
-		return Util::GetCBaseEntityFromIndex(((EHANDLE*)pLadder)->GetEntryIndex());
-
-	return ((EHANDLE*)pLadder)->Get();
+	return Util::GetCBaseEntityFromHandle(*(EHANDLE*)pLadder);
 }
 
 LUA_FUNCTION_STATIC(GetLadder)

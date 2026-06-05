@@ -102,10 +102,7 @@ static inline CBaseEntity* GetGroundEntity(void* pPlayer)
 	if (!pGroundEntity)
 		return nullptr;
 
-	if (!g_pEntityList)
-		return Util::GetCBaseEntityFromIndex(((EHANDLE*)pGroundEntity)->GetEntryIndex());
-
-	return ((EHANDLE*)pGroundEntity)->Get();
+	return Util::GetCBaseEntityFromHandle(*(EHANDLE*)pGroundEntity);
 }
 
 // ToDo: Impending doom! With the CurTime double transition some member variables in CBaseEntity & such will shift the layout and break stuff
