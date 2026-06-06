@@ -269,6 +269,9 @@ public:
 
 	void MarkFileMissing(const char* pFileName, const char* pGamePath)
 	{
+		if (!pGamePath)
+			pGamePath = nullPath;
+
 		std::unique_lock<std::shared_mutex> lock(m_CacheMutex);
 		FileEntry* pFileEntry = GetFileEntry(pFileName, pGamePath);
 		if (!pFileEntry)

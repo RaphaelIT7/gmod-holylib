@@ -10,6 +10,8 @@ on:
       - 'premake5.lua'
       - '!source/public/README.md'
   pull_request:
+    branches-ignore:
+      - 'new_filesystem'  
   workflow_dispatch:
 
 env:
