@@ -17,7 +17,8 @@
 
 #include "steam/steam_gameserver.h"
 
-class CSteam3Server : public CSteamGameServerAPIContext
+// RaphaelIT7 (ToDo): In newer steamworks versions CSteamGameServerAPIContext is gone???
+class CSteam3Server //: public CSteamGameServerAPIContext
 {
 public:
 	CSteam3Server();
