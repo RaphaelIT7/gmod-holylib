@@ -491,12 +491,11 @@ static inline const Vector& GetCollisionPropertyMaxs(const void* pCollisionProp)
 	return *(Vector*)m_CollisionMaxs_Offset.GetPointer(pCollisionProp);
 }
 
-static ConVar networking_bind_gmodhands_to_player("holylib_networking_bind_gmodhands_to_player", "1", 0, "Experimental - If enabled, the GMOD Hands / Player:SetHands entity will be bound to the player and only networked if the player is networked");
-static ConVar networking_bind_viewmodels_to_player("holylib_networking_bind_viewmodels_to_player", "1", 0, "Experimental - If enabled, the viewmodels will be bound to the player and only networked if the player is networked");
-static ConVar networking_cachedump("holylib_networking_cachedump", "0", 0, "Experimental - Debug. You wouldn't need this...");
-static ConVar networking_areasplit("holylib_networking_areasplit", "0", 0, "Experimental - PVS entities are split into areas");
+static ConVar networking_bind_gmodhands_to_player("holylib_networking_bind_gmodhands_to_player", "1", 0, "If enabled, the GMOD Hands / Player:SetHands entity will be bound to the player and only networked if the player is networked");
+static ConVar networking_bind_viewmodels_to_player("holylib_networking_bind_viewmodels_to_player", "1", 0, "If enabled, the viewmodels will be bound to the player and only networked if the player is networked");
+static ConVar networking_cachedump("holylib_networking_cachedump", "0", 0, "Debug. You wouldn't need this...");
+static ConVar networking_areasplit("holylib_networking_areasplit", "0", 0, "PVS entities are split into areas");
 static ConVar networking_fastcharactertransmit("holylib_networking_fastcharactertransmit", "1", 0, "Experimental");
-static ConVar networking_test_noremoveweapon("holylib_networking_test_noremoveweapon", "0", 0, "Experimental");
 struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, though its a good foundation now.
 {
 	// Updates the cache for the current tick
@@ -546,15 +545,12 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 					}
 				}
 
-				if (!networking_test_noremoveweapon.GetBool())
+				// Now let's also mark all weapons a player has so that they won't later enter into useless PVS checks.
+				for (int i=0; i<MAX_WEAPONS; ++i)
 				{
-					// Now let's also mark all weapons a player has so that they won't later enter into useless PVS checks.
-					for (int i=0; i<MAX_WEAPONS; ++i)
-					{
-						CBaseEntity *pWeapon = GetMyWeapon(pPlayer, i);
-						if (pWeapon)
-							pNeverTransmitBits.Set(pWeapon->edict()->m_EdictIndex);
-					}
+					CBaseEntity *pWeapon = GetMyWeapon(pPlayer, i);
+					if (pWeapon)
+						pNeverTransmitBits.Set(pWeapon->edict()->m_EdictIndex);
 				}
 			}
 		}
@@ -695,16 +691,13 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 						}
 					}
 
-					if (!networking_test_noremoveweapon.GetBool())
+					// Now let's also mark all weapons a player has so that they won't later enter into useless PVS checks.
+					for (int i=0; i<MAX_WEAPONS; ++i)
 					{
-						// Now let's also mark all weapons a player has so that they won't later enter into useless PVS checks.
-						for (int i=0; i<MAX_WEAPONS; ++i)
-						{
-							CBaseCombatWeaponHandle* pWeaponHandle = (CBaseCombatWeaponHandle*)m_hMyWeapons_Offset.GetPointerArray(pPlayer, i);
-							CBaseEntity *pWeapon = GetMyWeapon(pPlayer, i);
-							if (pWeapon)
-								Msg("	Weapon: %i - %p %i %i %i\n", i, pWeaponHandle, pWeaponHandle->ToInt(), pWeaponHandle->GetEntryIndex(), pWeaponHandle->GetSerialNumber());
-						}
+						CBaseCombatWeaponHandle* pWeaponHandle = (CBaseCombatWeaponHandle*)m_hMyWeapons_Offset.GetPointerArray(pPlayer, i);
+						CBaseEntity *pWeapon = GetMyWeapon(pPlayer, i);
+						if (pWeapon)
+							Msg("	Weapon: %i - %p %i %i %i\n", i, pWeaponHandle, pWeaponHandle->ToInt(), pWeaponHandle->GetEntryIndex(), pWeaponHandle->GetSerialNumber());
 					}
 				}
 			}
@@ -921,10 +914,10 @@ void Networking_ForceWeaponTransmit(int entIndex, bool bForceTransmit) // Expose
 
 // Full cache persisting across ticks, reset only when the player disconnects.
 static ConVar* sv_stressbots = nullptr;
-static ConVar networking_transmit_newweapons("holylib_networking_transmit_newweapons", "1", 0, "Experimental - If enabled, weapons that a player equipped/was given are networked for the first x ticks");
-static ConVar networking_transmit_ticks("holylib_networking_transmit_ticks", "-1", 0, "Experimental - How many ticks to use for transmit_newweapons & transmit_onfullupdate. -1 will instead ensure they are networked until the client acknowledges them");
-static ConVar networking_transmit_onfullupdate("holylib_networking_transmit_onfullupdate", "1", 0, "Experimental - If enabled, players and their own weapons are transmitted for the first x ticks when they had a full update");
-static ConVar networking_transmit_onfullupdate_networktoothers("holylib_networking_transmit_onfullupdate_networktoothers", "1", 0, "Experimental - If enabled, any player that has a full update will be networked to everyone");
+static ConVar networking_transmit_newweapons("holylib_networking_transmit_newweapons", "1", 0, "If enabled, weapons that a player equipped/was given are networked for the first x ticks");
+static ConVar networking_transmit_ticks("holylib_networking_transmit_ticks", "-1", 0, "How many ticks to use for transmit_newweapons & transmit_onfullupdate. -1 will instead ensure they are networked until the client acknowledges them");
+static ConVar networking_transmit_onfullupdate("holylib_networking_transmit_onfullupdate", "1", 0, "If enabled, players and their own weapons are transmitted for the first x ticks when they had a full update");
+static ConVar networking_transmit_onfullupdate_networktoothers("holylib_networking_transmit_onfullupdate_networktoothers", "1", 0, "If enabled, any player that has a full update will be networked to everyone");
 struct PlayerTransmitCache
 {
 	inline void NextTick(const CBaseEntity* pPlayer, const int nTick)
@@ -1106,10 +1099,10 @@ void Networking_DoPostTransmitCheck(CCheckTransmitInfo* pInfo)
 static CBitVec<MAX_EDICTS> g_pDontTransmitCache; // Reset on every CServerGameEnts::CheckTransmit call
 static Detouring::Hook detour_CBaseCombatCharacter_SetTransmit;
 static Symbols::CBaseCombatCharacter_SetTransmit func_CBaseAnimating_SetTransmit;
-static ConVar networking_transmit_all_weapons("holylib_networking_transmit_all_weapons", "1", 0, "Experimental - By default all weapons are networked based on their PVS, though normally if they have an owner you might only want the active weapon to be networked");
-static ConVar networking_transmit_all_weapons_to_owner("holylib_networking_transmit_all_weapons_to_owner", "1", 0, "Experimental - By default all weapons are networked to the owner");
-static ConVar networking_transmit_one_per_tick("holylib_networking_transmit_one_per_tick", "0", 0, "Experimental - If enabled, one additional weapon is networked per tick");
-static ConVar networking_fasttransmit("holylib_networking_fasttransmit", "0", 0, "Experimental - Replaces CServerGameEnts::CheckTransmit with our own implementation");
+static ConVar networking_transmit_all_weapons("holylib_networking_transmit_all_weapons", "1", 0, "By default all weapons are networked based on their PVS, though normally if they have an owner you might only want the active weapon to be networked");
+static ConVar networking_transmit_all_weapons_to_owner("holylib_networking_transmit_all_weapons_to_owner", "1", 0, "By default all weapons are networked to the owner");
+static ConVar networking_transmit_one_per_tick("holylib_networking_transmit_one_per_tick", "0", 0, "If enabled, one additional weapon is networked per tick");
+static ConVar networking_fasttransmit("holylib_networking_fasttransmit", "1", 0, "Replaces CServerGameEnts::CheckTransmit with our own implementation");
 static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharacter, CCheckTransmitInfo *pInfo, bool bAlways)
 {
 	// IMPORANT: Apparently CBaseCombatCharacter is inherited by more than just the player, so we MUST check m_EdictIndex!
