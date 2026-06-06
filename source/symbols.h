@@ -409,6 +409,12 @@ namespace Symbols
 	using CBaseFileSystem_CSearchPath_GetDebugString = const char* (GMCOMMON_CALLING_CONVENTION*)(void* searchpath);
 	extern const std::vector<Symbol> CBaseFileSystem_CSearchPath_GetDebugStringSym;
 
+	using CBaseFileSystem_HandleOpenRegularFile = void (GMCOMMON_CALLING_CONVENTION*)(void* fs, CFileOpenInfo&, bool bIsAbsolutePath);
+	extern const std::vector<Symbol> CBaseFileSystem_HandleOpenRegularFileSym;
+
+	using CBaseFileSystem_Trace_FOpen = void* (GMCOMMON_CALLING_CONVENTION*)(void* fs, const char *filenameT, const char *options, unsigned flags, int64 *size);
+	extern const std::vector<Symbol> CBaseFileSystem_Trace_FOpenSym;
+
 	extern const std::vector<Symbol> g_PathIDTableSym;
 
 	//---------------------------------------------------------------------------------
