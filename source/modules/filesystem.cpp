@@ -368,8 +368,9 @@ private:
 			if (m_strAbsolutePath.data() != pInvalidAbsolutePath)
 				return;
 
-			char* pFile = new char[pFileName.length()+1];
-			V_strncpy(pFile, pFileName.data(), pFileName.length());
+			const size_t nFileNameLength = pFileName.length() + 1;
+			char* pFile = new char[nFileNameLength];
+			V_strncpy(pFile, pFileName.data(), nFileNameLength);
 
 			//if (m_strAbsolutePath.data() != pInvalidAbsolutePath)
 			//	delete[] m_strAbsolutePath.data();
@@ -408,6 +409,7 @@ private:
 			return nullptr;
 		}
 
+		// pOutput = new std::string_view containing a pointer to a newly allocated const char* that won't be freed
 		FORCEINLINE FileEntry* AddFile(std::string_view pFileName, std::string_view* pOutput)
 		{
 			auto it = m_pFiles.find(pFileName);
@@ -417,8 +419,11 @@ private:
 				return it->second;
 			}
 
-			char* pFile = new char[pFileName.length()+1];
-			V_strncpy(pFile, pFileName.data(), pFileName.length());
+			const size_t nFileNameLength = pFileName.length() + 1;
+			char* pFile = new char[nFileNameLength];
+			V_strncpy(pFile, pFileName.data(), nFileNameLength);
+
+			// IMPORTANT: We do not include the null terminator in std::string_view!
 			*pOutput = std::string_view(pFile, pFileName.length());
 
 			FileEntry* pEntry = new FileEntry;
