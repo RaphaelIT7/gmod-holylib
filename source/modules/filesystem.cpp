@@ -93,6 +93,8 @@ struct FilesystemJob
 
 static void DeleteFileHandle(FileHandle_t handle);
 static inline CSearchPath* FindSearchPathByStoreId(int iStoreID);
+
+// VS2022 falsely claims the out buffer may not be null terminated...
 static FORCEINLINE void GetFullPath(const CSearchPath* pSearchPath, const char* strFileName, char (&out)[MAX_PATH])
 {
 	V_strcpy_safe(out, pSearchPath->GetPathString());
@@ -154,6 +156,8 @@ static thread_local CacheResult g_pCacheResult;
 		4) Disk Saves
 		   -> It should save onto disk what order files are accessed at and we must also dump search paths and priorities to never break expected order!
 		   -> It should also save a filesystem state dictating stuff like which search paths should be created on startup and so on
+		5) Assume static files
+		   -> We can assume that files from GMod only change when garrysmod.ver changed allowing us to partially implement a static filesystem across reboots
 
 	Important:
 		It should always assume that on server startup the filesystem may have entirely changed
@@ -161,6 +165,10 @@ static thread_local CacheResult g_pCacheResult;
 
 		We could though cache VPC files and we could cache GMod version and have a convar like _staticfilesystem?
 		Needs more thought on how to handle this!
+
+	Design choices:
+		No usage of std::string- instead we use std::string_view which is performance and memory wise way better.
+		We just have to manage the memory ourselves right which is easyyyy (I'll hate myself in a year)
 */
 
 static const char* nullPath = "NULL_PATH";
@@ -179,13 +187,13 @@ public:
 			pGamePath = nullPath;
 
 		std::shared_lock<std::shared_mutex> lock(m_CacheMutex);
-		FileEntry* pEntry = GetFileEntry(pFileName, pGamePath);
-		if (!pEntry)
+		FileEntry* pFileEntry = GetFileEntry(pFileName, pGamePath);
+		if (!pFileEntry)
 			return false;
 
-		pEntry->m_nAccessCount.fetch_add(1);
-		g_pCacheResult.m_bIsValid = pEntry->m_bIsValid.load();
-		g_pCacheResult.m_strAbsolute = pEntry->m_strAbsolutePath.data();
+		pFileEntry->m_nAccessCount.fetch_add(1);
+		g_pCacheResult.m_bIsValid = pFileEntry->m_bIsValid.load();
+		g_pCacheResult.m_strAbsolute = pFileEntry->m_strAbsolutePath.data();
 		return true;
 	}
 
@@ -193,26 +201,39 @@ public:
 	bool FindCacheEntry(const char* pFileName, const CSearchPath* pPath)
 	{
 		std::shared_lock<std::shared_mutex> lock(m_CacheMutex);
-		return false;
+		
+		auto foundEntry = m_Cache.find(pPath->m_storeId);
+		if (foundEntry == m_Cache.end())
+			return false;
+
+		CacheEntry* pCacheEntry = foundEntry->second;
+		FileEntry* pFileEntry = pCacheEntry->FindFile(pFileName);
+		if (!pFileEntry)
+			return false;
+
+		pFileEntry->m_nAccessCount.fetch_add(1);
+		g_pCacheResult.m_bIsValid = pFileEntry->m_bIsValid.load();
+		g_pCacheResult.m_strAbsolute = pFileEntry->m_strAbsolutePath.data();
+		return true;
 	}
 
 	void AddFileToCache(const char* pFileName, const CSearchPath* pPath, const char* pOptions)
 	{
 		std::unique_lock<std::shared_mutex> lock(m_CacheMutex);
-		CacheEntry* pEntry;
+		CacheEntry* pCacheEntry;
 		auto foundEntry = m_Cache.find(pPath->m_storeId);
 		if (foundEntry == m_Cache.end())
 		{
-			pEntry = new CacheEntry;
-			m_Cache[pPath->m_storeId] = pEntry;
+			pCacheEntry = new CacheEntry;
+			m_Cache[pPath->m_storeId] = pCacheEntry;
 		} else
-			pEntry = foundEntry->second;
+			pCacheEntry = foundEntry->second;
 
 		if (pOptions && *pOptions == 'w')
-			pEntry->MarkWrite();
+			pCacheEntry->MarkWrite();
 
 		std::string_view permanentFileName;
-		FileEntry* pFileEntry = pEntry->AddFile(pFileName, &permanentFileName);
+		FileEntry* pFileEntry = pCacheEntry->AddFile(pFileName, &permanentFileName);
 		
 		char pBuffer[MAX_PATH];
 		GetFullPath(pPath, pFileName, pBuffer);
@@ -229,6 +250,9 @@ public:
 		auto fileMapIT = pFileMap->find(permanentFileName);
 		if (fileMapIT == pFileMap->end())
 			(*pFileMap)[permanentFileName] = pFileEntry;
+
+		Msg("Added file %s to cache (%s)\n", pFileName, pBuffer);
+
 		// ToDo: Let the search paths fight for priority!
 	}
 
@@ -236,17 +260,17 @@ public:
 	void InvalidateFileFromCache(const char* pFileName, const CSearchPath* pPath)
 	{
 		std::unique_lock<std::shared_mutex> lock(m_CacheMutex);
-		CacheEntry* pEntry;
+		CacheEntry* pCacheEntry;
 		auto foundEntry = m_Cache.find(pPath->m_storeId);
 		if (foundEntry == m_Cache.end())
 		{
-			pEntry = new CacheEntry;
-			m_Cache[pPath->m_storeId] = pEntry;
+			pCacheEntry = new CacheEntry;
+			m_Cache[pPath->m_storeId] = pCacheEntry;
 		} else
-			pEntry = foundEntry->second;
+			pCacheEntry = foundEntry->second;
 
 		std::string_view permanentFileName;
-		FileEntry* pFileEntry = pEntry->AddFile(pFileName, &permanentFileName);
+		FileEntry* pFileEntry = pCacheEntry->AddFile(pFileName, &permanentFileName);
 		pFileEntry->MarkMissing();
 		// Invalid entries aren't added here to m_GamePathCache as this is specific to this search path.
 		// There may be more, MarkFileMissing will be the one to add it if it's missing everywhere.
@@ -278,6 +302,7 @@ public:
 			return;
 
 		pFileEntry->MarkMissing();
+		Msg("Marked file missing %s - %s\n", pFileName, pGamePath);
 	}
 
 	bool ShouldCloseHandle(FileHandle_t pHandle)
@@ -309,7 +334,14 @@ public:
 
 	void Dump()
 	{
-	
+		std::shared_lock<std::shared_mutex> lock(m_CacheMutex);
+		Msg("Game Cache:\n");
+		for (auto& [gamePath, fileList] : m_GamePathCache)
+		{
+			Msg("-> %s:\n", gamePath.data());
+			for (auto& [fileName, fileEntry] : fileList)
+				Msg("	%s -> %s\n", fileName.data(), fileEntry->m_strAbsolutePath.data());
+		}
 	}
 
 private:
