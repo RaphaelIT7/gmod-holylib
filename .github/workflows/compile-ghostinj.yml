@@ -6,9 +6,6 @@ on:
       - '.github/workflows/compile-ghostinj.yml'
       - 'ghostinj-dll/source/**'
       - 'ghostinj-dll/premake5.lua'
-  pull_request:
-    branches-ignore:
-      - 'new_filesystem'
   workflow_dispatch:
 
 jobs:
