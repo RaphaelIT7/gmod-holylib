@@ -164,6 +164,8 @@ static thread_local CacheResult g_pCacheResult;
 		   -> It should also save a filesystem state dictating stuff like which search paths should be created on startup and so on
 		5) Assume static files
 		   -> We can assume that files from GMod only change when garrysmod.ver changed allowing us to partially implement a static filesystem across reboots
+		6) Priorities
+		   -> We shoul store and account for priorities- if a new search path is added to the head of a gamepath it should take priority!
 
 	Important:
 		It should always assume that on server startup the filesystem may have entirely changed
@@ -358,7 +360,7 @@ public:
 		{
 			Msg("-> \"%s\":\n", gamePath.data());
 			for (auto& [fileName, fileEntry] : fileList)
-				Msg("	\"%s\" -> \"%s\"\n", fileName.data(), fileEntry->m_strAbsolutePath.data());
+				Msg("	\"%s\" -> \"%s\"\n", fileName.data(), fileEntry->m_bIsValid.load() ? fileEntry->m_strAbsolutePath.data() : "MISSING");
 		}
 	}
 
