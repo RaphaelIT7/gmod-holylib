@@ -116,7 +116,7 @@ class CachedFileSystem;
 class CacheResult
 {
 public:
-	FORCEINLINE CSearchPath* GetSearchPath()
+	FORCEINLINE const CSearchPath* GetSearchPath()
 	{
 		return m_pPath;
 	}
@@ -137,7 +137,7 @@ private:
 	friend class CachedFileSystem;
 
 	const char* m_strAbsolute;
-	CSearchPath* m_pPath;
+	const CSearchPath* m_pPath;
 	bool m_bIsValid;
 };
 // I don't feel like dealing with many return values soo let's do it the lazy way xd
@@ -218,7 +218,7 @@ public:
 
 		pFileEntry->m_nAccessCount.fetch_add(1);
 		g_pCacheResult.m_bIsValid = pFileEntry->m_bIsValid.load();
-		g_pCacheResult.m_strAbsolute = pFileEntry->m_strAbsolutePath.data();
+		g_pCacheResult.m_pPath = pPath;
 		return true;
 	}
 
