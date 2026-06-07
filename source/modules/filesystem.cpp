@@ -128,11 +128,17 @@ public:
 		return m_strAbsolute;
 	}
 
+	FORCEINLINE unsigned short GetAbsolutePathLength()
+	{
+		return m_nAbsoluteLength;
+	}
+
 private:
 	friend class CachedFileSystem;
 
-	const char* m_strAbsolute;
 	const CSearchPath* m_pPath;
+	const char* m_strAbsolute;
+	unsigned short m_nAbsoluteLength; // includes NULL terminator!
 	bool m_bIsValid;
 };
 // I don't feel like dealing with many return values soo let's do it the lazy way xd
@@ -194,12 +200,18 @@ public:
 		pFileEntry->m_nAccessCount.fetch_add(1);
 		g_pCacheResult.m_bIsValid = pFileEntry->m_bIsValid.load();
 		g_pCacheResult.m_strAbsolute = pFileEntry->m_strAbsolutePath.data();
+
+		// + 1 for null terminator!
+		g_pCacheResult.m_nAbsoluteLength = (unsigned short)pFileEntry->m_strAbsolutePath.length() + 1;
 		return true;
 	}
 
 	// This is the smaller one- we check for this specific search path
 	bool FindCacheEntry(const char* pFileName, const CSearchPath* pPath)
 	{
+		if (!pPath)
+			return false;
+
 		std::shared_lock<std::shared_mutex> lock(m_CacheMutex);
 		
 		auto foundEntry = m_Cache.find(pPath->m_storeId);
@@ -219,6 +231,9 @@ public:
 
 	void AddFileToCache(const char* pFileName, const CSearchPath* pPath, const char* pOptions)
 	{
+		if (!pPath)
+			return;
+
 		std::unique_lock<std::shared_mutex> lock(m_CacheMutex);
 		CacheEntry* pCacheEntry;
 		auto foundEntry = m_Cache.find(pPath->m_storeId);
@@ -259,6 +274,9 @@ public:
 	// Call this when you encounter a faulty cache result!
 	void InvalidateFileFromCache(const char* pFileName, const CSearchPath* pPath)
 	{
+		if (!pPath)
+			return;
+
 		std::unique_lock<std::shared_mutex> lock(m_CacheMutex);
 		CacheEntry* pCacheEntry;
 		auto foundEntry = m_Cache.find(pPath->m_storeId);
@@ -338,9 +356,9 @@ public:
 		Msg("Game Cache:\n");
 		for (auto& [gamePath, fileList] : m_GamePathCache)
 		{
-			Msg("-> %s:\n", gamePath.data());
+			Msg("-> \"%s\":\n", gamePath.data());
 			for (auto& [fileName, fileEntry] : fileList)
-				Msg("	%s -> %s\n", fileName.data(), fileEntry->m_strAbsolutePath.data());
+				Msg("	\"%s\" -> \"%s\"\n", fileName.data(), fileEntry->m_strAbsolutePath.data());
 		}
 	}
 
@@ -447,15 +465,15 @@ private:
 
 	FORCEINLINE FileEntry* GetFileEntry(const char* pFileName, const char* pGamePath)
 	{
-		auto foundSet = m_GamePathCache.find(pGamePath);
-		if (foundSet == m_GamePathCache.end())
+		auto fileList = m_GamePathCache.find(pGamePath);
+		if (fileList == m_GamePathCache.end())
 			return nullptr;
 
-		auto foundEntry = foundSet->second.find(pFileName);
-		if (foundEntry == foundSet->second.end())
+		auto fileEntry = fileList->second.find(pFileName);
+		if (fileEntry == fileList->second.end())
 			return nullptr;
 		
-		return foundEntry->second;
+		return fileEntry->second;
 	}
 
 	// key = CSearchPath::m_storeId
@@ -522,7 +540,7 @@ static Detouring::Hook detour_CBaseFileSystem_HandleOpenRegularFile;
 static void hook_CBaseFileSystem_HandleOpenRegularFile(void* fs, CFileOpenInfo& info, bool bIsAbsolutePath)
 {
 	detour_CBaseFileSystem_HandleOpenRegularFile.GetTrampoline<Symbols::CBaseFileSystem_HandleOpenRegularFile>()(fs, info, bIsAbsolutePath);
-	if (info.m_pFileHandle && info.m_pSearchPath)
+	if (info.m_pFileHandle && info.m_pSearchPath && !bIsAbsolutePath)
 		g_pCachedFileSystem.AddFileToCache(info.m_pFileName, info.m_pSearchPath, info.m_pOptions);
 }
 
@@ -841,13 +859,19 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 		if (!g_pCacheResult.IsValid())
 			return nullptr;
 
+		if (g_pFileSystemModule.InDebug())
+			Msg("Found Cache Entry %s -> %s\n", pFileName, g_pCacheResult.GetAbsolutePath());
+
 		if (g_pCacheResult.GetAbsolutePath())
 		{
-			CFileOpenInfo openInfo( filesystem, g_pCacheResult.GetAbsolutePath(), nullptr, pOptions, flags, ppszResolvedFilename );
+			CFileOpenInfo openInfo(filesystem, g_pCacheResult.GetAbsolutePath(), nullptr, pOptions, flags, ppszResolvedFilename);
+			V_strncpy(openInfo.m_AbsolutePath, g_pCacheResult.GetAbsolutePath(), MIN(g_pCacheResult.GetAbsolutePathLength(), sizeof(openInfo.m_AbsolutePath)));
+
 			hook_CBaseFileSystem_HandleOpenRegularFile(filesystem, openInfo, true);
 			if (openInfo.m_pFileHandle)
 				return openInfo.m_pFileHandle;
 
+			Msg("Absolute Path Cache miss! (%s)\n", openInfo.m_AbsolutePath);
 			// g_pCachedFileSystem.InvalidateFileFromCache()
 		}
 	}
