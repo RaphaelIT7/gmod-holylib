@@ -976,7 +976,7 @@ static void CrashHandler(int signal, siginfo_t* signalInfo, void* ucontext)
 			funcResult.nAddress = addr;
 			pModuleInfo.FindFunctionInfo(funcResult);
 
-			dprintf(fileDescriptor, "  %p: %s + 0x%" PRIxPTR " [%s - %p]\n", (void*)addr, funcResult.funcName, funcResult.funcOffset, fmod ? fmod->path : "UNKNOWN", (void*)funcResult.fileOffset);
+			dprintf(fileDescriptor, "  %-10p: %s + 0x%" PRIxPTR " [%s - %p]\n", (void*)addr, funcResult.funcName, funcResult.funcOffset, fmod ? fmod->path : "UNKNOWN", (void*)funcResult.fileOffset);
 		}
 	}
 
