@@ -29,6 +29,8 @@
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
+#undef isdigit // Fix for 64x
+
 /*
 	HolyLib's crash handler to hopefully create a useful crash dump without needing gdb setup
 	The goal of the crash handler is to ATTEMPT crash dumping even with unsafe signal functions!
@@ -82,6 +84,252 @@ private:
 	char buffer[64 * 1024];
 	size_t offset;
 };
+
+static constexpr size_t bufferSize = 270;
+static constexpr size_t maxArguments = 32;
+static FORCEINLINE int Mangle_ParseLength(const char (&pInput)[bufferSize], size_t& nInputPos)
+{
+	size_t nLength = 0;
+	while (pInput[nInputPos] >= '0' && pInput[nInputPos] <= '9')
+		nLength = nLength * 10 + (pInput[nInputPos++] - '0');
+
+	return nLength;
+}
+
+/*
+	A signal safe method simple to demangle C++ names
+*/
+static FORCEINLINE void UnmangleCppName(const char (&pInput)[bufferSize], char (&pOutput)[bufferSize])
+{
+	char pTempBuffer[bufferSize]; // pInput may equal pOutput! So we must write into a temporary buffer
+	unsigned short argPos[maxArguments] = {0};
+	size_t currentArg = 0;
+
+	size_t nInputPos = 0;
+	size_t nOutputPos = 0;
+	if (pInput[nInputPos++] != '_' || pInput[nInputPos++] != 'Z')
+	{
+		if (pInput != pOutput)
+			memcpy(pOutput, pInput, bufferSize);
+
+		return;
+	}
+
+#define SAFE_CHECK(pos) if ((pos) >= bufferSize) return;
+
+	// Got a namespace / class
+	if (pInput[nInputPos] == 'N')
+	{
+		++nInputPos;
+		while (pInput[nInputPos] != 'E')
+		{
+			int len = Mangle_ParseLength(pInput, nInputPos);
+			SAFE_CHECK(nOutputPos+len)
+			for (int i=0; i<len; i++)
+				pTempBuffer[nOutputPos++] = pInput[nInputPos++];
+
+			if (pInput[nInputPos] != 'E')
+			{
+				SAFE_CHECK(nOutputPos+2)
+				pTempBuffer[nOutputPos++] = ':';
+				pTempBuffer[nOutputPos++] = ':';
+			}
+		}
+		++nInputPos;
+	} else {
+		// We must skip any other flag like
+		// L = local symbol
+		// T = type info?
+		// V = vtable?
+		// J, G, M = magic?
+		while (!isdigit(pInput[nInputPos]))
+			SAFE_CHECK(nInputPos++)
+
+		int len = Mangle_ParseLength(pInput, nInputPos);
+		SAFE_CHECK(nOutputPos+len)
+		for (int i=0; i<len; i++)
+			pTempBuffer[nOutputPos++] = pInput[nInputPos++];
+	}
+
+	SAFE_CHECK(nOutputPos+1)
+	pTempBuffer[nOutputPos++] = '(';
+	argPos[currentArg] = nInputPos;
+
+	bool bIsNext = false;
+	size_t rewindPos = 0;
+	char pAddAfterNext = 0;
+	while (pInput[nInputPos])
+	{
+		if (pAddAfterNext)
+			bIsNext = true;
+
+		switch (pInput[nInputPos])
+		{
+			case 'v':
+				SAFE_CHECK(nOutputPos+4)
+				memcpy(pTempBuffer + nOutputPos, "void", 4);
+				nOutputPos += 4;
+				++nInputPos;
+				break;
+
+			case 'i':
+				SAFE_CHECK(nOutputPos+3)
+				memcpy(pTempBuffer + nOutputPos, "int", 3);
+				nOutputPos += 3;
+				++nInputPos;
+				break;
+
+			case 'f':
+				SAFE_CHECK(nOutputPos+5)
+				memcpy(pTempBuffer + nOutputPos, "float", 5);
+				nOutputPos += 5;
+				++nInputPos;
+				break;
+
+			case 'd':
+				SAFE_CHECK(nOutputPos+6)
+				memcpy(pTempBuffer + nOutputPos, "double", 6);
+				nOutputPos += 6;
+				++nInputPos;
+				break;
+
+			case 'b':
+				SAFE_CHECK(nOutputPos+4)
+				memcpy(pTempBuffer + nOutputPos, "bool", 4);
+				nOutputPos += 4;
+				++nInputPos;
+				break;
+
+			case 'c':
+				SAFE_CHECK(nOutputPos+4)
+				memcpy(pTempBuffer + nOutputPos, "char", 4);
+				nOutputPos += 4;
+				++nInputPos;
+				break;
+
+			case 'l':
+				SAFE_CHECK(nOutputPos+4)
+				memcpy(pTempBuffer + nOutputPos, "long", 4);
+				nOutputPos += 4;
+				++nInputPos;
+				break;
+
+			case 'P':
+				pAddAfterNext = '*';
+				++nInputPos;
+				break;
+
+			case 'R':
+				pAddAfterNext = '&';
+				++nInputPos;
+				break;
+
+			case 'K':
+				SAFE_CHECK(nOutputPos+6)
+				memcpy(pTempBuffer + nOutputPos, "const ", 6);
+				nOutputPos += 6;
+				++nInputPos;
+				bIsNext = false;
+				break;
+
+			case 'S': // substitution
+				{
+					int subName = Mangle_ParseLength(pInput, ++nInputPos);
+					if (pInput[nInputPos++] != '_' || subName < 0)
+						return; // Invalid!
+
+					rewindPos = nInputPos;
+					if (currentArg >= --subName)
+						nInputPos = argPos[subName];
+					else // If a substitution is unknown then we must reuse the previous one?
+						nInputPos = argPos[currentArg-1];
+					continue;
+				}
+
+			case '0':
+			case '1':
+			case '2':
+			case '3':
+			case '4':
+			case '5':
+			case '6':
+			case '7':
+			case '8':
+			case '9':
+				{
+					int len = Mangle_ParseLength(pInput, nInputPos);
+					SAFE_CHECK(nOutputPos+len)
+					for (int i=0; i<len; i++)
+						pTempBuffer[nOutputPos++] = pInput[nInputPos++];
+
+					break;
+				}
+
+			case 'N':
+				{
+					++nInputPos;
+					while (pInput[nInputPos] != 'E')
+					{
+						int len = Mangle_ParseLength(pInput, nInputPos);
+						SAFE_CHECK(nOutputPos+len)
+						for (int i=0; i<len; i++)
+							pTempBuffer[nOutputPos++] = pInput[nInputPos++];
+
+						if (pInput[nInputPos] != 'E')
+						{
+							SAFE_CHECK(nOutputPos+2)
+							pTempBuffer[nOutputPos++] = ':';
+							pTempBuffer[nOutputPos++] = ':';
+						}
+					}
+					++nInputPos;
+				}
+				break;
+
+			default:
+				++nInputPos;
+				break;
+		}
+
+		if (pAddAfterNext && bIsNext)
+		{
+			SAFE_CHECK(nOutputPos+1)
+			pTempBuffer[nOutputPos++] = pAddAfterNext;
+			pAddAfterNext = 0;
+			bIsNext = false;
+		}
+		
+		if (pInput[nInputPos] && !pAddAfterNext)
+		{
+			SAFE_CHECK(nOutputPos+2)
+			pTempBuffer[nOutputPos++] = ',';
+			pTempBuffer[nOutputPos++] = ' ';
+
+			if (rewindPos > 0)
+			{
+				nInputPos = rewindPos;
+				rewindPos = 0;
+			} else {
+				argPos[++currentArg] = nInputPos;
+				if (currentArg >= maxArguments)
+					return; // Too many args >:(
+			}
+		}
+	}
+
+	SAFE_CHECK(nOutputPos+2)
+	pTempBuffer[nOutputPos++] = ')';
+	pTempBuffer[nOutputPos++] = '\0';
+
+	// We clear all remaining since it may mess up stuff
+	// Turns out- I was missing ++ when adding the null terminator :sob:
+	//size_t leftOver = sizeof(pOutput) - nOutputPos;
+	//if (pInput == pOutput && leftOver > 0)
+	//	memset(pOutput + nOutputPos, 0, leftOver);
+
+	memcpy(pOutput, pTempBuffer, nOutputPos);
+#undef SAFE_CHECK
+}
 
 #if SYSTEM_LINUX
 /*
@@ -239,7 +487,7 @@ static void ReadElfSections(const char* filePath, ElfSections& sections)
 #define ELF_ST_TYPE ELF64_ST_TYPE
 #endif
 
-static void ReadElfName(const char* filePath, const ElfSections& sections, uintptr_t searchAddress, uintptr_t& foundAddress, char* pOutputName, size_t pOutputSize)
+static void ReadElfName(const char* filePath, const ElfSections& sections, uintptr_t searchAddress, uintptr_t& foundAddress, char (&pOutputName)[bufferSize])
 {
 	if (!filePath || !filePath[0] || sections.symtab.offset == 0)
 		return;
@@ -277,7 +525,7 @@ static void ReadElfName(const char* filePath, const ElfSections& sections, uintp
 
 			/*off_t curPos = lseek(fd, 0, SEEK_CUR);
 			lseek(fd, sections.strtab.offset + symtab.st_name, SEEK_SET);
-			read(fd, pOutputName, pOutputSize);
+			read(fd, pOutputName, sizeof(pOutputName));
 			lseek(fd, curPos, SEEK_SET);
 
 			printf("%s 0x%lx size=%lu\n", pOutputName, symtab.st_value, symtab.st_size);*/
@@ -288,32 +536,50 @@ static void ReadElfName(const char* filePath, const ElfSections& sections, uintp
 	{
 		foundAddress = closestOffset;
 		lseek(fd, sections.strtab.offset + closestOffsetName, SEEK_SET);
-		read(fd, pOutputName, pOutputSize);
+		read(fd, pOutputName, sizeof(pOutputName));
 		// printf("%s 0x%lx size=%lu\n", pOutputName, symtab.st_value, symtab.st_size);
 		// NOTE: It is already null terminated in strtab!
 	}
 }
 
+struct ModuleEntry
+{
+	uintptr_t base; // Base in memory
+	char path[270];
+	ElfSections sections;
+};
+
+struct FunctionResult
+{
+	// Input
+	const ModuleEntry* pEntry = nullptr;
+	uintptr_t nAddress = 0;
+
+	FORCEINLINE uintptr_t GetFileOffset()
+	{
+		fileOffset = pEntry ? (nAddress - pEntry->base) : nAddress;
+		return fileOffset;
+	}
+
+	// Outputs
+	const char* funcName = nullptr;
+	uintptr_t funcOffset = 0;
+	uintptr_t fileOffset = 0;
+};
+
 // Intended to live on the stack to be unaffected in case of memory corruption
 class ModuleInfo
 {
 public:
-	struct Entry
-	{
-		uintptr_t base;
-		char path[270];
-		ElfSections sections;
-	};
-
 	ModuleInfo()
 	{
 		memset(this, 0, sizeof(ModuleInfo));
 		dl_iterate_phdr(ModuleInfo::PHDRCallback, this);
 	}
 
-	Entry* AddModule(uintptr_t baseAddress, const char* pFileName)
+	ModuleEntry* AddModule(uintptr_t baseAddress, const char* pFileName)
 	{
-		Entry& pEntry = m_pModules[m_nModules++];
+		ModuleEntry& pEntry = m_pModules[m_nModules++];
 		if (m_nModules >= MAX_MODULES)
 			return nullptr;
 
@@ -342,13 +608,13 @@ public:
 		return 0;
 	}
 
-	const Entry* FindModule(uintptr_t nAddress)
+	const ModuleEntry* FindModule(uintptr_t nAddress)
 	{
-		Entry* foundEntry = nullptr;
+		ModuleEntry* foundEntry = nullptr;
 		uintptr_t foundAddress = -1;
 		for (int nModule = 0; nModule < m_nModules; ++nModule)
 		{
-			Entry& pEntry = m_pModules[nModule];
+			ModuleEntry& pEntry = m_pModules[nModule];
 			// Find the closest base to our address
 			if (nAddress >= pEntry.base && pEntry.base > foundAddress) 
 			{
@@ -368,49 +634,48 @@ public:
 	}
 
 	// pEntry can be a nullptr!
-	void FindFunctionInfo(const Entry* pEntry, uintptr_t nAddress, const char** outFuncName, uintptr_t* outFuncOffset, uintptr_t* outFileOffset)
+	void FindFunctionInfo(FunctionResult& pResult)
 	{
-		*outFileOffset = 0;
-		uintptr_t offset = pEntry ? (nAddress - pEntry->base) : nAddress;
-		if (pEntry)
+		uintptr_t fileOffset = pResult.GetFileOffset();
+		if (pResult.pEntry)
 		{
-			*outFileOffset = offset;
-
 			uintptr_t foundAddress = -1;
-			ReadElfName(pEntry->path, pEntry->sections, offset, foundAddress, m_strReturnBuffer, sizeof(m_strReturnBuffer));
+			ReadElfName(pResult.pEntry->path, pResult.pEntry->sections, fileOffset, foundAddress, m_strReturnBuffer);
 			if (foundAddress != -1)
 			{
-				*outFuncName = m_strReturnBuffer;
-				*outFuncOffset = nAddress - pEntry->base - foundAddress;
+				UnmangleCppName(m_strReturnBuffer, m_strReturnBuffer);
+				pResult.funcName = m_strReturnBuffer;
+				pResult.funcOffset = fileOffset - foundAddress;
 				return;
 			}
 		}
 
 		// We push dladdr back since our implementation above gives more control of the information
-		Dl_info dlInfo;
+		// We dropped it since were better >:3
+		/*Dl_info dlInfo;
 		if (dladdr((void*)nAddress, &dlInfo) && dlInfo.dli_sname)
 		{
 			strncpy(m_strReturnBuffer, dlInfo.dli_sname, sizeof(m_strReturnBuffer));
-			*outFuncName = m_strReturnBuffer;
-			*outFuncOffset = nAddress - (uintptr_t)dlInfo.dli_saddr;
+			pResult.funcName = m_strReturnBuffer;
+			pResult.funcOffset = nAddress - (uintptr_t)dlInfo.dli_saddr;
 			return;
-		}
+		}*/
 
 		m_strReturnBuffer[0] = '?';
 		m_strReturnBuffer[1] = '?';
 		m_strReturnBuffer[2] = '\0';
 
-		*outFuncName = m_strReturnBuffer;
-		*outFuncOffset = offset;
+		pResult.funcName = m_strReturnBuffer;
+		pResult.funcOffset = fileOffset;
 	}
 
 private:
 	static constexpr int MAX_MODULES = 64;
-	Entry m_pModules[MAX_MODULES];
+	ModuleEntry m_pModules[MAX_MODULES];
 	int m_nModules = 0;
 
 	// For FindFunctionName as when we return we still want it to be valid
-	char m_strReturnBuffer[270];
+	char m_strReturnBuffer[bufferSize];
 };
 
 struct SavedCrash
@@ -611,7 +876,7 @@ static void CrashHandler(int signal, siginfo_t* signalInfo, void* ucontext)
 	// Later goal is to figure out if we can safely call to Lua.
 	// bool in_vphysics = strstr(module_name, "vphysics") != nullptr;
 
-	const ModuleInfo::Entry* mod = pModuleInfo.FindModule((uintptr_t)ip);
+	const ModuleEntry* mod = pModuleInfo.FindModule((uintptr_t)ip);
 	const char* moduleName = mod ? mod->path : "unknown";
 	dprintf(fileDescriptor, "Crashed in module: %s\n", moduleName);
 
@@ -697,7 +962,6 @@ static void CrashHandler(int signal, siginfo_t* signalInfo, void* ucontext)
 		dprintf(fileDescriptor, "Backtrace generation skipped due to unsafe conditions!\n");
 	} else {
 		// ToDo: backtrace is not really signal safe! It could deadlock!
-		constexpr int bufferSize = 255;
 		void* buffer[bufferSize];
 		g_bAttemptedBacktrace.store(true);
 		int nptrs = backtrace(buffer, bufferSize);
@@ -706,13 +970,13 @@ static void CrashHandler(int signal, siginfo_t* signalInfo, void* ucontext)
 		for (int i = 0; i < nptrs; ++i)
 		{
 			uintptr_t addr = (uintptr_t)buffer[i];
-			const ModuleInfo::Entry* fmod = pModuleInfo.FindModule(addr);
-			uintptr_t funcOffset = 0;
-			uintptr_t fileOffset = 0;
-			const char* fileName;
-			pModuleInfo.FindFunctionInfo(fmod, addr, &fileName, &funcOffset, &fileOffset);
+			const ModuleEntry* fmod = pModuleInfo.FindModule(addr);
+			FunctionResult funcResult;
+			funcResult.pEntry = fmod;
+			funcResult.nAddress = addr;
+			pModuleInfo.FindFunctionInfo(funcResult);
 
-			dprintf(fileDescriptor, "  %p (%p): %s + 0x%" PRIxPTR " [%s]\n", (void*)addr, (void*)fileOffset, fileName, funcOffset, fmod ? fmod->path : "UNKNOWN");
+			dprintf(fileDescriptor, "  %p: %s + 0x%" PRIxPTR " [%s - %p]\n", (void*)addr, funcResult.funcName, funcResult.funcOffset, fmod ? fmod->path : "UNKNOWN", (void*)funcResult.fileOffset);
 		}
 	}
 
