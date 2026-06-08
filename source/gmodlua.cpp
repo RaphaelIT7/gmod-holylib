@@ -47,3 +47,8 @@ TValue* GModLua::LuaBase(lua_State* L)
 {
   return L->base;
 }
+
+TValue* GModLua::GlobalJITBase(lua_State * L)
+{
+    return tvref(G(L)->jit_base);
+}

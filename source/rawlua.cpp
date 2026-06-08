@@ -42,6 +42,11 @@ TValue* RawLua::LuaBase(lua_State* L)
   return L->base;
 }
 
+TValue* RawLua::GlobalJITBase(lua_State * L)
+{
+    return tvref(G(L)->jit_base);
+}
+
 TValue* RawLua::CopyTValue(lua_State* L, TValue* o)
 {
 	TValue* newO = new TValue;

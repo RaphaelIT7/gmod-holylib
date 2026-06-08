@@ -25,8 +25,9 @@ namespace GModLua {
 	extern TValue* index2adr(lua_State *L, int idx);
 	extern TValue* FastIndex2Addr(lua_State* L, int nStackPos);
 	extern TValue* LuaTop(lua_State* L);
-	extern TValue* LuaBase(lua_State* L);
 	extern TValue* LuaIncrTop(lua_State* L);
+	extern TValue* LuaBase(lua_State* L);
+	extern TValue* GlobalJITBase(lua_State* L);
 }
 
 typedef void* LuaUserDataValue;
@@ -105,8 +106,9 @@ namespace RawLua {
 	extern size_t GetGCStrLength(GCstr* str);
 	extern TValue* FastIndex2Addr(lua_State* L, int nStackPos);
 	extern TValue* LuaTop(lua_State* L);
-	extern TValue* LuaBase(lua_State* L);
 	extern TValue* LuaIncrTop(lua_State* L);
+	extern TValue* LuaBase(lua_State* L);
+	extern TValue* GlobalJITBase(lua_State* L);
 }
 
 struct LuaUserData;
@@ -189,6 +191,15 @@ namespace Lua
 			return GModLua::LuaBase(L);
 		else
 			return RawLua::LuaBase(L);
+	}
+
+	// Returns tvref(G(L)->base)
+	FORCEINLINE TValue* GlobalJITBase(lua_State* L)
+	{
+		if (L->dummy_ffid == FF_C)
+			return GModLua::GlobalJITBase(L);
+		else
+			return RawLua::GlobalJITBase(L);
 	}
 
 	// Each new metatable has this entry.

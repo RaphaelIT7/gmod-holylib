@@ -368,36 +368,40 @@ public:
 	}
 
 	// pEntry can be a nullptr!
-	void FindFunctionInfo(const Entry* pEntry, uintptr_t nAddress, const char** outName, uintptr_t* outOffset)
+	void FindFunctionInfo(const Entry* pEntry, uintptr_t nAddress, const char** outFuncName, uintptr_t* outFuncOffset, uintptr_t* outFileOffset)
 	{
-		Dl_info dlInfo;
-		if (dladdr((void*)nAddress, &dlInfo) && dlInfo.dli_sname)
-		{
-			strncpy(m_strReturnBuffer, dlInfo.dli_sname, sizeof(m_strReturnBuffer));
-			*outName = m_strReturnBuffer;
-			*outOffset = nAddress - (uintptr_t)dlInfo.dli_saddr;
-			return;
-		}
-
+		*outFileOffset = 0;
 		uintptr_t offset = pEntry ? (nAddress - pEntry->base) : nAddress;
 		if (pEntry)
 		{
+			*outFileOffset = offset;
+
 			uintptr_t foundAddress = -1;
 			ReadElfName(pEntry->path, pEntry->sections, offset, foundAddress, m_strReturnBuffer, sizeof(m_strReturnBuffer));
 			if (foundAddress != -1)
 			{
-				*outName = m_strReturnBuffer;
-				*outOffset = nAddress - pEntry->base - foundAddress;
+				*outFuncName = m_strReturnBuffer;
+				*outFuncOffset = nAddress - pEntry->base - foundAddress;
 				return;
 			}
+		}
+
+		// We push dladdr back since our implementation above gives more control of the information
+		Dl_info dlInfo;
+		if (dladdr((void*)nAddress, &dlInfo) && dlInfo.dli_sname)
+		{
+			strncpy(m_strReturnBuffer, dlInfo.dli_sname, sizeof(m_strReturnBuffer));
+			*outFuncName = m_strReturnBuffer;
+			*outFuncOffset = nAddress - (uintptr_t)dlInfo.dli_saddr;
+			return;
 		}
 
 		m_strReturnBuffer[0] = '?';
 		m_strReturnBuffer[1] = '?';
 		m_strReturnBuffer[2] = '\0';
 
-		*outName = m_strReturnBuffer;
-		*outOffset = offset;
+		*outFuncName = m_strReturnBuffer;
+		*outFuncOffset = offset;
 	}
 
 private:
@@ -703,11 +707,12 @@ static void CrashHandler(int signal, siginfo_t* signalInfo, void* ucontext)
 		{
 			uintptr_t addr = (uintptr_t)buffer[i];
 			const ModuleInfo::Entry* fmod = pModuleInfo.FindModule(addr);
-			uintptr_t offset = 0;
+			uintptr_t funcOffset = 0;
+			uintptr_t fileOffset = 0;
 			const char* fileName;
-			pModuleInfo.FindFunctionInfo(fmod, addr, &fileName, &offset);
+			pModuleInfo.FindFunctionInfo(fmod, addr, &fileName, &funcOffset, &fileOffset);
 
-			dprintf(fileDescriptor, "  %p: %s + 0x%" PRIxPTR " [%s]\n", (void*)addr, fileName, offset, fmod ? fmod->path : "UNKNOWN");
+			dprintf(fileDescriptor, "  %p (%p): %s + 0x%" PRIxPTR " [%s]\n", (void*)addr, (void*)fileOffset, fileName, funcOffset, fmod ? fmod->path : "UNKNOWN");
 		}
 	}
 
@@ -776,7 +781,7 @@ static void DoLuaCallback(bool bMainThreadCrash)
 
 	if (bMainThreadCrash && !g_bInducedCrash.load())
 	{
-		dprintf(signalData->fileDescriptor, "Inside Trace?: %s\n", (G(pState) && tvref(G(pState)->jit_base)) ? "true" : "false");
+		dprintf(signalData->fileDescriptor, "Inside Trace?: %s\n", (Lua::GlobalJITBase(pState) ? "true" : "false"));
 
 		GarrysMod::Lua::ILuaShared* pLuaShared = Lua::GetShared();
 		if (pLuaShared)
