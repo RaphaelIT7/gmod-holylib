@@ -107,6 +107,16 @@ When I started it, I had lots of free time as I had no active work, though not t
 I've maintained and worked on it for fun, but I do not promise constant/permanent maintenance, as there is really no incentive to always continue since this project never was aimed to provide me any real benefit and it never gave me any benefit other than satisfying my fun / curiosity while everyone can benefit themselves from HolyLib binaries.<br>
 You can sponsor the project to support its development, though it will never be a requirement to do so for continued maintainance- while it does provide incentive and perhaps in the future allows me to spend more time on it, I won't make HolyLib depend on sponsors and to be clear sponsoring does not provide any additional rights or special benefits.<br>
 
+## HolyLib config
+You can find HolyLib's config files under `garrysmod/holylib/cfg/[x86 or x64]/`<br>
+
+### modules.json
+In this file, you find all modules and their configs. <br>
+`enabledByDefault` - Do not modify this one, this is used by HolyLib to keep track of if a module was enabled/disabled with a HolyLib update. <br>
+`enabled` - With this you can freely control if a module is enabled or disabled. <br>
+`debugLevel` - Controls which debug level the module will start in. <br>
+There may be further options which will control other module specific functions.<br>
+
 ## Next Update
 \- [+] Support `dev` branch x64 on Windows<br>
 \- [+] Added new functions & hooks to `gameserver` module<br>
