@@ -60,7 +60,7 @@ All of those can be found under the `Actions` tab -> https://github.com/RaphaelI
 > These builds focus on the GMod `dev` branch currently.<br>
 > If you attempt to use a build on a server running on the `public` branch you **may** experience issues or even crashes.<br>
 
-## How to update (Newer GhostInj)
+## How to update
 
 > [!NOTE]
 > Don't try to use plugin_unload since it might not work because of things like the networking module which currently can't be unloaded.<br>
@@ -71,12 +71,6 @@ All of those can be found under the `Actions` tab -> https://github.com/RaphaelI
 3. Restart the server normally.<br>
 On the next startup, the ghostinj will update holylib to use the new file.<br>
 This is done by first deleting the current `gmsv_holylib_linux[64].so` and then renaming the `_updated.so` essentially replacing the original file.<br>
-
-## How to update (Older GhostInj versions)
-
-1. Shutdown the server
-2. Upload the new file
-3. Enjoy it
 
 ## What noticeable things does HolyLib bring?
 \- A huge Lua API providing deep access to the engine.<br>
@@ -102,8 +96,19 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 > On Linux unsafe code is allowed by default, on windows it is blocked as were on a client and do not want to risk anything.<br>
 > You can disable unsafe code on linux using `-holylib_denyunsafe`<br>
 
+## Reporting issues / asking Questions
+If you have encountered a bug or crash, please open an issue, if you only have a question or are unsure if something is a bug, then open a discussion.<br>
+While you can write to me on discord (`raphaelit7`) I may lose track there or your message may be lost, which is why I prefer to keep things on GitHub unless it involves stuff like private code or other things that shouldn't be shared publicly.<br>
+
+## Clarification about HolyLib & its maintenance
+HolyLib has been a hobby project since the very beginning.<br>
+I've made it as a fun project to expose engine functions, optimize the engine, and other things just for mainly my own curiosity or because someone asked for it.<br>
+When I started it, I had lots of free time as I had no active work, though not too long after that I did get a job and since then have had far less time to spend on it, which is how it currently reached this slow pace.<br>
+I've maintained and worked on it for fun, but I do not promise constant/permanent maintenance, as there is really no incentive to always continue since this project never was aimed to provide me any real benefit and it never gave me any benefit other than satisfying my fun / curiosity while everyone can benefit themselves from HolyLib binaries.<br>
+You can sponsor the project to support its development, though it will never be a requirement to do so for continued maintainance- while it does provide incentive and perhaps in the future allows me to spend more time on it, I won't make HolyLib depend on sponsors and to be clear sponsoring does not provide any additional rights or special benefits.<br>
+
 ## Next Update
-\- [+] Support `dev` branch x64<br>
+\- [+] Support `dev` branch x64 on Windows<br>
 \- [+] Added new functions to `gameserver` module -> `CBaseClient:FillServerInfo` & `CBaseClient:MoveIntoClient`<br>
 \- [+] Added new function to `unholylib` module -> `KillLua`<br>
 \- [#] Multiple changes to our LuaJIT version<br>
@@ -141,6 +146,7 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 \- \-> Log engine errors in crash logs.<br>
 \- \-> Include the GMod branch & version in the crash log.<br>
 \- \-> Read `.symtab` to lookup function names to make backtraces more useful (fixes all the `??` results)<br>
+\- \-> Added an unmangler for function names to make backtraces more readable.<br>
 \- [#] Optimized `vprof` to now be blazingly fast and support more than a million scopes without impact (See: https://github.com/RaphaelIT7/gmod-holylib/issues/54)<br>
 \- [#] Fixed broken hook causing all `pvs` functions that were supposed to work inside `SetupPlayerVisibility` to not be functional. (See: https://github.com/RaphaelIT7/gmod-holylib/issues/169)<br>
 \- [#] Fixed an outdated SDK causing x86-64x builds to deadlock / corrupt a mutex.<br>
