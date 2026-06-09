@@ -1583,14 +1583,14 @@ inline LuaUserData* Get_##className##_Data(GarrysMod::Lua::ILuaInterface* LUA, i
 	return pVar; \
 } \
 \
-className* Get_##className(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError) \
+className* Get_##className(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError, bool bIgnoreIsValid) \
 { \
 	LuaUserData* pLuaData = Get_##className##_Data(LUA, iStackPos, bError); \
 	if (!pLuaData) \
 		return nullptr; \
  \
 	className* pVar = (className*)pLuaData->GetData(); \
-	if (!pVar || !isvalid) \
+	if (!pVar || (!(isvalid) && bIgnoreIsValid)) \
 	{ \
 		if (bError) \
 			LUA->ArgError(iStackPos, triedNull_##className.c_str()); \
@@ -1916,7 +1916,7 @@ extern EntityList* Get_EntityList(GarrysMod::Lua::ILuaInterface* LUA, int iStack
 #if MODULE_EXISTS_GAMESERVER
 class CBaseClient;
 extern void Push_CBaseClient(GarrysMod::Lua::ILuaInterface* LUA, CBaseClient* tbl);
-extern CBaseClient* Get_CBaseClient(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError);
+extern CBaseClient* Get_CBaseClient(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bool bError, bool bIgnoreIsValid = false);
 #endif
 
 #if MODULE_EXISTS_VOICECHAT

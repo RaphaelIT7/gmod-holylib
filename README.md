@@ -109,7 +109,10 @@ You can sponsor the project to support its development, though it will never be 
 
 ## Next Update
 \- [+] Support `dev` branch x64 on Windows<br>
-\- [+] Added new functions to `gameserver` module -> `CBaseClient:FillServerInfo` & `CBaseClient:MoveIntoClient`<br>
+\- [+] Added new functions & hooks to `gameserver` module<br>
+\- \-> `CBaseClient:FillServerInfo`, `:MoveIntoClient`, `:AddToQueueList`, `:RemoveFromAllLists`<br>
+\- \-> `gameserver.GetFreeQueueClient`<br>
+\- \-> `HolyLib:GetFreeClient`<br>
 \- [+] Added new function to `unholylib` module -> `KillLua`<br>
 \- [#] Multiple changes to our LuaJIT version<br>
 \- \-> Fixed failing to trace C functions with `0` arguments.<br>
@@ -4259,9 +4262,15 @@ Creates a fake client or returns NULL on failure<br>
 
 #### CGameClient gameserver.CreateNewClient()
 Creates a new client or returns NULL on failure<br>
+Use this only if you know what you're doing, as if you lose track of the client, you'll leak memory!<br>
+A client once created is never meant to be deleted.<br>
+Use `CBaseClient:AddToQueueList` or `CBaseClient:AddToServerList` to register the client into the proper list unless you're manually controlling them!<br>
 
-#### CGameClient gameserver.GetFreeClient(string address, bool useDNS = false)
+#### CGameClient gameserver.GetFreeClient(string address, bool useDNS = false, bool noQueueClients = false)
 Searches if there is a `CGameClient` with the given address already and returns their object OR attempts to create a new client.<br>
+
+#### CGameClient gameserver.GetFreeQueueClient(string address, bool useDNS = false)
+Searches if there is a queue `CGameClient` with the given address already and returns their object OR attempts to create a new queue client.<br>
 
 #### number gameserver.GetSocket()
 Returns the server's socket
@@ -4540,6 +4549,17 @@ This is useful for example, when working with fake clients and using `sv_stressb
 #### CBaseClient:MoveIntoClient(CBaseClient targetClient)
 Moves the client it's called on into the target client.<br>
 This function calls HolyLib's internal `MoveCGameClientIntoCGameClient` which will move all values, patch the net channel, and reconnect the client.<br>
+
+#### CBaseClient:AddToQueueList()
+Adds the client to the queue list, allowing the queue system to use the slot!<br>
+
+#### CBaseClient:AddToServerList()
+Adds the client to the server list, treating it like a usable game client!<br>
+
+#### CBaseClient:RemoveFromAllLists()
+Removes the client from both server and queue list, meaning nothing will use the client!<br>
+Use this only if you know what you're doing, as if you lose track of the client, you'll leak memory!<br>
+A client once created is never meant to be deleted.<br>
 
 ---
 
@@ -5056,6 +5076,10 @@ If `0` or a number below `0` is returned, the client will be kicked normally for
 #### bool HolyLib:OnClientExecuteStringCommand(CGameClient client, string command)
 Called when a client attempts to execute a console command.<br>
 Return `true` to block/cancel execution.<br>
+
+#### CBaseClient HolyLib:GetFreeClient(string address)
+Called when the engine is searching for a free client slot.<br>
+You can return your own `CBaseClient` or return `nil` to let the engine handle selection.<br>
 
 ### ConVars
 
