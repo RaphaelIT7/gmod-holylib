@@ -122,6 +122,7 @@ CreateWorkspace({name = "holylib", abi_compatible = true})
 		defines("CPPHTTPLIB_NO_EXCEPTIONS") -- We don't want exceptions!
 		defines("NOBASSOVERLOADS")
 		defines("USE_OLD_BF_READ")
+		defines("ENABLE_LATEST_BASS") -- Since the last GMod update bass was updated!
 		if GMOD_X86_64 then
 			defines("GMOD_X86_64")
 		end
