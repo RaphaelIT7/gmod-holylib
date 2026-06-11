@@ -2502,7 +2502,7 @@ LUA_FUNCTION_STATIC(gameserver_GetFreeQueueClient)
 	adr.SetFromString(LUA->CheckString(1), LUA->GetBool(2));
 
 	CBaseServer* pServer = (CBaseServer*)Util::server;
-	Push_CBaseClient(LUA, pServer->GetFreeClient(*((netadr_t*)&adr)));
+	Push_CBaseClient(LUA, GetFreeQueueClient(pServer, *((netadr_t*)&adr)));
 	return 1;
 }
 
