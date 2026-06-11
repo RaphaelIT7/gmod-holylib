@@ -32,7 +32,6 @@ static Symbols::Steam3ServerT func_Steam3Server;
 static Symbols::CSteam3Server_Shutdown func_CSteam3Server_Shutdown;
 static Symbols::CSteam3Server_Activate func_CSteam3Server_Activate;
 static Symbols::SV_InitGameServerSteam func_SV_InitGameServerSteam;
-static ISteamGameServer* g_pSteamGameServer = nullptr;
 
 static Detouring::Hook detour_CSteam3Server_OnLoggedOff;
 static void hook_CSteam3Server_OnLoggedOff(CSteam3Server* srv, SteamServersDisconnected_t* info)
@@ -167,21 +166,18 @@ LUA_FUNCTION_STATIC(steamworks_Activate)
 	return 1;
 }
 
+// Fetch SteamGameServer() fresh per call; a cached pointer goes stale across SteamGameServer_Init/Shutdown cycles
 LUA_FUNCTION_STATIC(steamworks_IsSecure)
 {
-	if (!g_pSteamGameServer)
-		LUA->ThrowError("Failed to get SteamGameServer!");
-
-	LUA->PushBool(g_pSteamGameServer->BSecure());
+	ISteamGameServer* pGameServer = SteamGameServer();
+	LUA->PushBool(pGameServer && pGameServer->BSecure());
 	return 1;
 }
 
 LUA_FUNCTION_STATIC(steamworks_IsConnected)
 {
-	if (!g_pSteamGameServer)
-		LUA->ThrowError("Failed to get SteamGameServer!");
-
-	LUA->PushBool(g_pSteamGameServer->BLoggedOn());
+	ISteamGameServer* pGameServer = SteamGameServer();
+	LUA->PushBool(pGameServer && pGameServer->BLoggedOn());
 	return 1;
 }
 
@@ -219,10 +215,11 @@ LUA_FUNCTION_STATIC(steamworks_ForceAuthenticate)
 
 LUA_FUNCTION_STATIC(steamworks_GetGameServerSteamID)
 {
-	if (!g_pSteamGameServer)
+	ISteamGameServer* pGameServer = SteamGameServer();
+	if (!pGameServer)
 		LUA->ThrowError("Failed to get SteamGameServer!");
 
-	std::string steamID64 = std::to_string( g_pSteamGameServer->GetSteamID().ConvertToUint64() );
+	std::string steamID64 = std::to_string( pGameServer->GetSteamID().ConvertToUint64() );
 	LUA->PushString( steamID64.c_str() );
 	return 1;
 }
@@ -316,8 +313,6 @@ void CSteamWorksModule::InitDetour(bool bPreServer)
 {
 	if ( bPreServer )
 		return;
-
-	g_pSteamGameServer = SteamGameServer();
 
 	DETOUR_PREPARE_THISCALL();
 	SourceSDK::ModuleLoader engine_loader("engine");
