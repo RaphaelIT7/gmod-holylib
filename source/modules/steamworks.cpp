@@ -81,7 +81,9 @@ static bool hook_CSteam3Server_NotifyClientConnect(CSteam3Server* srv, CBaseClie
 		if (!bRet)
 		{
 			// Try it again so that we get the reason why it failed.
-			status = SteamGameServer()->BeginAuthSession( pvCookie, ucbCookie, steamID );
+			ISteamGameServer* pGameServer = SteamGameServer();
+			if (pGameServer)
+				status = pGameServer->BeginAuthSession( pvCookie, ucbCookie, steamID );
 		}
 		g_Lua->PushNumber(status);
 
