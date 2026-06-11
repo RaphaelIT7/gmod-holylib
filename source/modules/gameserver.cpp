@@ -2474,7 +2474,7 @@ LUA_FUNCTION_STATIC(gameserver_CreateNewClient)
 }
 
 static thread_local bool g_bNoQueueLookup = false;
-static thread_local bool g_bLuaCallingFreeClient = false;
+static thread_local bool g_bDontRunLuaInFreeClient = false;
 LUA_FUNCTION_STATIC(gameserver_GetFreeClient)
 {
 	if (!Util::server || !Util::server->IsActive())
@@ -2484,10 +2484,10 @@ LUA_FUNCTION_STATIC(gameserver_GetFreeClient)
 	adr.SetFromString(LUA->CheckString(1), LUA->GetBool(2));
 
 	g_bNoQueueLookup = LUA->GetBool(3);
-	g_bLuaCallingFreeClient = true;
+	g_bDontRunLuaInFreeClient = true;
 	CBaseServer* pServer = (CBaseServer*)Util::server;
 	CBaseClient* pClient = pServer->GetFreeClient(*((netadr_t*)&adr));
-	g_bLuaCallingFreeClient = false;
+	g_bDontRunLuaInFreeClient = false;
 	g_bNoQueueLookup = false;
 
 	Push_CBaseClient(LUA, pClient);
@@ -2743,6 +2743,7 @@ static CBaseClient* GetFreeQueueClient(CBaseServer* _this, netadr_t& adr)
 
 	if (!freeclient)
 	{
+		// IMPORTANT: Queue slots MUST be above maxClients!
 		if ((gpGlobals->maxClients + g_pQueueClients.size()) > gameserver_maxplayers.GetInt())
 			return nullptr;
 
@@ -2757,7 +2758,7 @@ static CBaseClient* GetFreeQueueClient(CBaseServer* _this, netadr_t& adr)
 static Detouring::Hook detour_CBaseServer_GetFreeClient;
 static CBaseClient* hook_CBaseServer_GetFreeClient(CBaseServer* _this, netadr_t& adr)
 {
-	if (!g_bLuaCallingFreeClient && Lua::PushHook("HolyLib:GetFreeClient"))
+	if (!g_bDontRunLuaInFreeClient && Lua::PushHook("HolyLib:GetFreeClient"))
 	{
 		g_Lua->PushString(adr.ToString());
 		if (g_Lua->CallFunctionProtected(2, 1, true))
@@ -3322,6 +3323,30 @@ static int FindFreeClientSlot()
 			continue;
 
 		if (pClient->m_nEntityIndex < nextFreeEntity)
+			nextFreeEntity = pClient->m_nEntityIndex;
+	}
+
+	// We didn't fully fill yet soo the server has an free slot yet no allocated CGameClient
+	// ToDo:
+	// Consider if we want to just always call GetFreeClient instead of iterating ourselves.
+	// This was done originally like this, as the original queue implementation mixed server game clients and queue clients into the same list.
+	if (count < gpGlobals->maxClients && nextFreeEntity > MAX_PLAYERS)
+	{
+		CBaseServer* pServer = (CBaseServer*)Util::server;
+
+		// We must fill the adr with some random stuff just to avoid that any fake clients may be falsely kicked
+		netadrnew_s adr;
+		adr.SetType(netadrtype_t::NA_IP);
+		adr.SetIP(127, 0, 0, 1);
+		adr.SetPort(count);
+
+		// We call GetFreeClient as it will create a new CGameClient as no slots are free
+		g_bDontRunLuaInFreeClient = true; // Don't let lua mess with us!
+		g_bNoQueueLookup = true; // Don't return queue slots
+		CBaseClient* pClient = pServer->GetFreeClient(*((netadr_t*)&adr));
+		g_bNoQueueLookup = false;
+		g_bDontRunLuaInFreeClient = false;
+		if (pClient)
 			nextFreeEntity = pClient->m_nEntityIndex;
 	}
 

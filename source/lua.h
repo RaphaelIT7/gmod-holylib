@@ -1590,7 +1590,7 @@ className* Get_##className(GarrysMod::Lua::ILuaInterface* LUA, int iStackPos, bo
 		return nullptr; \
  \
 	className* pVar = (className*)pLuaData->GetData(); \
-	if (!pVar || (!(isvalid) && bIgnoreIsValid)) \
+	if (!pVar || (!(isvalid) && !bIgnoreIsValid)) \
 	{ \
 		if (bError) \
 			LUA->ArgError(iStackPos, triedNull_##className.c_str()); \
