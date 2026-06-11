@@ -4,6 +4,7 @@
 #include "bitvec.h"
 #include <atomic>
 #include <mutex>
+#include <condition_variable>
 #include "../luajit/src/lua.h"
 #if !defined(DISABLE_GMODJIT)
 #include "../gmod-luajit/luajit.h"
