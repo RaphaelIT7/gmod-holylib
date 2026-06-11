@@ -2474,6 +2474,7 @@ LUA_FUNCTION_STATIC(gameserver_CreateNewClient)
 }
 
 static thread_local bool g_bNoQueueLookup = false;
+static thread_local bool g_bLuaCallingFreeClient = false;
 LUA_FUNCTION_STATIC(gameserver_GetFreeClient)
 {
 	if (!Util::server || !Util::server->IsActive())
@@ -2483,9 +2484,10 @@ LUA_FUNCTION_STATIC(gameserver_GetFreeClient)
 	adr.SetFromString(LUA->CheckString(1), LUA->GetBool(2));
 
 	g_bNoQueueLookup = LUA->GetBool(3);
-
+	g_bLuaCallingFreeClient = true;
 	CBaseServer* pServer = (CBaseServer*)Util::server;
 	CBaseClient* pClient = pServer->GetFreeClient(*((netadr_t*)&adr));
+	g_bLuaCallingFreeClient = false;
 	g_bNoQueueLookup = false;
 
 	Push_CBaseClient(LUA, pClient);
@@ -2741,10 +2743,10 @@ static CBaseClient* GetFreeQueueClient(CBaseServer* _this, netadr_t& adr)
 
 	if (!freeclient)
 	{
-		if ((_this->GetClientCount() + g_pQueueClients.size()) > gameserver_maxplayers.GetInt())
+		if ((gpGlobals->maxClients + g_pQueueClients.size()) > gameserver_maxplayers.GetInt())
 			return nullptr;
 
-		freeclient = _this->CreateNewClient(_this->GetClientCount() + g_pQueueClients.size());
+		freeclient = _this->CreateNewClient(gpGlobals->maxClients + g_pQueueClients.size());
 		g_pQueueClients.push_back((CGameClient*)freeclient);
 	}
 	// We do not register it to m_Clients of the CBaseServer
@@ -2755,7 +2757,7 @@ static CBaseClient* GetFreeQueueClient(CBaseServer* _this, netadr_t& adr)
 static Detouring::Hook detour_CBaseServer_GetFreeClient;
 static CBaseClient* hook_CBaseServer_GetFreeClient(CBaseServer* _this, netadr_t& adr)
 {
-	if (Lua::PushHook("HolyLib:GetFreeClient"))
+	if (!g_bLuaCallingFreeClient && Lua::PushHook("HolyLib:GetFreeClient"))
 	{
 		g_Lua->PushString(adr.ToString());
 		if (g_Lua->CallFunctionProtected(2, 1, true))
