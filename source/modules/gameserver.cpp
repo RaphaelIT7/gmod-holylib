@@ -79,6 +79,15 @@ Default__newindex(CBaseClient);
 Default__GetTable(CBaseClient);
 Default__IsValidEXT(CBaseClient, if (!gameserver_rawclients.GetBool() && !pData->IsConnected()) { return false; } );
 
+// While IsValid obeys gameserver_rawclients this function will allow one to know if the pointer is truly invalid
+LUA_FUNCTION_STATIC(CBaseClient_IsInvalid)
+{
+	CBaseClient* pClient = Get_CBaseClient(LUA, 1, false, true);
+
+	LUA->PushBool(!pClient);
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(CBaseClient_GetPlayerSlot)
 {
 	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
@@ -976,6 +985,7 @@ void Push_CBaseClientMeta(GarrysMod::Lua::ILuaInterface* pLua)
 	Util::AddFunc(pLua, CBaseClient__index, "__index");
 	LUA_REGISTER_JIT(pLua, CBaseClient_GetTable, "GetTable");
 	LUA_REGISTER_JIT(pLua, CBaseClient_IsValid, "IsValid");
+	Util::AddFunc(pLua, CBaseClient_IsInvalid, "IsInvalid");
 
 	Util::AddFunc(pLua, CBaseClient_GetPlayerSlot, "GetPlayerSlot");
 	Util::AddFunc(pLua, CBaseClient_GetUserID, "GetUserID");
@@ -1070,7 +1080,8 @@ LUA_FUNCTION_STATIC(CGameClient__tostring)
 	CGameClient* pClient = (CGameClient*)Get_CBaseClient(LUA, 1, false);
 	if (!pClient || !pClient->IsConnected())
 	{
-		if (pClient && gameserver_rawclients.GetBool())
+		// I removed the gameserver_rawclients check just to make things easier for developers :)
+		if (pClient /*&& gameserver_rawclients.GetBool()*/)
 			LUA->PushString("GameClient [EMPTY]");
 		else
 			LUA->PushString("GameClient [NULL]");

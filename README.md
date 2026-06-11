@@ -4417,6 +4417,16 @@ Prints the given message into the client's console.<br>
 #### bool CBaseClient:IsValid()
 Returns `true` if the client is still valid.<br>
 
+> [!IMPORTANT]
+> This function obeys `holylib_gameserver_rawclients` so a empty slot is treated as Invalid!<br>
+
+#### bool CBaseClient:IsInvalid()
+Returns `true` if the client is truly invalid.<br>
+It can return `false` meaning the pointer internally is just an empty client, while `CBaseClient:IsValid` returns `false`.<br>
+
+> [!IMPORTANT]
+> This function does **NOT** obey `holylib_gameserver_rawclients` and exists for code to know if the object internally has a valid `CBaseClient` but is empty.<br>
+
 #### bool (Experimental) CBaseClient:SendLua(string code)
 Sends the given code to the client to be executed.<br>
 Returns `true` on success.<br>
@@ -4707,6 +4717,9 @@ Returns the a formatted string.<br>
 Format: `CGameClient [%i][%s]`<br>
 `%i` -> UserID<br>
 `%s` -> ClientName<br>
+
+> [!IMPORTANT]
+> If it returns `CGameClient [EMPTY]` it means the object has no client connected and is basically **invalid** depending on `holylib_gameserver_rawclients` at the current time!<br>
 
 ### CNetChan
 This class represents a client.
@@ -5106,6 +5119,10 @@ If enabled, `CGameClient` that are empty / have no active player are still consi
 
 > [!NOTE]
 > Internally it checks using `CBaseClient:IsConnected()` to see if a client is empty or not!
+
+> [!WARNING]
+> I highly discurrage enabling this as it removes any IsValid checks possibly exposing garbage or resulting in crashes when calling any functions on Empty slots!<br>
+> If you want to use a function on a Empty but not Invalid client please open a issue and request that the function supports that.<br>
 
 #### holylib_gameserver_maxplayers (default `128`)
 The amount of max players a server can have.<br>

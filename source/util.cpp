@@ -353,7 +353,7 @@ INetChannel* Util::Get_NetChannel(GarrysMod::Lua::ILuaInterface* pLua, int iStac
 	CBaseClient* pClient = nullptr;
 #if MODULE_EXISTS_GAMESERVER
 	pClient = Get_CBaseClient(pLua, iStackPos, bError);
-	if (pClient)
+	if (pClient && pClient->IsConnected())
 	{
 		pChannel = pClient->GetNetChannel();
 	}
