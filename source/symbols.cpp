@@ -370,15 +370,15 @@ namespace Symbols
 	};
 
 	const std::vector<Symbol> CBaseFileSystem_FindSearchPathByStoreIdSym = {
-		// Find 'CBaseFileSystem::GetFileTime' then you have CBaseFileSystem__GetPathTime, go to xref and find in the vtable 3 function bellow, you'll get CBaseFileSystem__RegisterFileWhitelist which use CFileTracker2__GetFilesToUnloadForWhitelistChange which use it
+		// Find 'CBaseFileSystem::GetPathTime' then you have CBaseFileSystem__GetPathTime, go to xref and find in the vtable 3 function bellow, you'll get CBaseFileSystem__RegisterFileWhitelist which use CFileTracker2__GetFilesToUnloadForWhitelistChange which use it
 		Symbol::FromName("_ZN15CBaseFileSystem23FindSearchPathByStoreIdEi"),
-		Symbol::FromSignature("\x55\x0F\xB7\x87\x88\x00\x00\x00"), //55 0F B7 87 88 00 00 00
+		Symbol::FromSignature("\x55\x0F******\x48\x89\xE5\x66"), // 55 0F ?? ?? ?? ?? ?? ?? 48 89 E5 66
 		NULL_SIGNATURE,
 		// FUCK! The compiler inlined it into CFileTracker2::GetFilesToUnloadForWhitelistChange so we cannot access it!
 		// This is like the most important function that we use
 	};
 
-	const std::vector<Symbol> CBaseFileSystem_FastFileTimeSym = {// Find 'CBaseFileSystem::GetFileTime' then you have CBaseFileSystem__GetPathTime and it's there
+	const std::vector<Symbol> CBaseFileSystem_FastFileTimeSym = {// Find 'CBaseFileSystem::GetPathTime' then you have CBaseFileSystem__GetPathTime and it's there
 		Symbol::FromName("_ZN15CBaseFileSystem12FastFileTimeEPKNS_11CSearchPathEPKc"),
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x49\x89\xFD\x41\x54\x49\x89\xD4"), //55 48 89 E5 41 57 41 56 41 55 49 89 FD 41 54 49 89 D4
 		Symbol::FromSignature("\x55\x8B\xEC\x81\xEC\x40\x01\x00\x00\x53\x56"), // 55 8B EC 81 EC 40 01 00 00 53 56
