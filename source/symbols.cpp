@@ -448,7 +448,7 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	const std::vector<Symbol> ConCommand_IsBlockedSym = { // "crosshair_setup" && "hud_fastswitch" && "retry" in the same sub_
 		Symbol::FromName("_Z20ConCommand_IsBlockedPKc"),
-		Symbol::FromSignature("\x48\x8B\x05****\x55\x48\x89\xE5\x41\x54\x49\x89\xFC\x53\x48\x8B*\x80\x78\x70\x00"), // 48 8B 05 ?? ?? ?? ?? 55 48 89 E5 41 54 49 89 FC 53 48 8B ?? 80 78 70 00
+		Symbol::FromSignature("\x48\x8B\x05****\x55\x48\x89\xE5\x41\x54\x49\x89\xFC\x53\x48\x8B*\x80\x78*\x00"), // 48 8B 05 ?? ?? ?? ?? 55 48 89 E5 41 54 49 89 FC 53 48 8B ?? 80 78 ?? 00
 		Symbol::FromSignature("\x55\x8B\xEC\xA1****\x57\x8B\x7D\x08"), // 55 8B EC A1 ?? ?? ?? ?? 57 8B 7D 08
 		Symbol::FromSignature("\x40\x57\x48\x83\xEC\x20\x48******\x48\x8B\xF9\x80\xB8\x90\x00\x00\x00\x00"), // 40 57 48 83 EC 20 48 ?? ?? ?? ?? ?? ?? 48 8B F9 80 B8 90 00 00 00 00
 	};
@@ -583,7 +583,7 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	const std::vector<Symbol> AllocChangeFrameListSym = { // I'm still surprised I managed to get this one :^
 		Symbol::FromName("_Z20AllocChangeFrameListii"),
-		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x55\x41\x54\x41\x89\xFC\xBF\x28"), // 55 48 89 E5 41 55 41 54 41 89 FC BF 28
+		NULL_SIGNATURE,
 		Symbol::FromSignature("\x55\x8B\xEC\x56\x57\x6A\x18"),
 		Symbol::FromSignature("\x48\x89\x74\x24\x18\x48\x89\x7C\x24\x20\x41\x56\x48\x83\xEC\x20\x48\x89\x6C\x24\x38"),
 		//Search for "SV_PackEntity: SnagChangeFrameList mi"
@@ -725,16 +725,16 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: steamworks Symbols
 	//---------------------------------------------------------------------------------
-	const std::vector<Symbol> CSteam3Server_OnLoggedOffSym = { // Search for "GSL token expired"
+	const std::vector<Symbol> CSteam3Server_OnLoggedOffSym = { // Search for "Connection to Steam servers lost."
 		Symbol::FromName("_ZN13CSteam3Server11OnLoggedOffEP26SteamServersDisconnected_t"),
-		Symbol::FromSignature("\x83\xBF\x30****\x0F\x84\x7C***\x55\x48\x89\xE5"), // 83 BF 30 ?? ?? ?? ?? 0F 84 7C ?? ?? ?? 55 48 89 E5
+		Symbol::FromSignature("\x83\xBF*****\x0F\x84\x7C***\x55\x48\x89\xE5"), // 83 BF ?? ?? ?? ?? ?? 0F 84 7C ?? ?? ?? 55 48 89 E5
 		Symbol::FromSignature("\x55\x8B\xEC\x8B\x4D\x0C\x83\xEC\x48"), // 55 8B EC 8B 4D 0C 83 EC 48
 		Symbol::FromSignature("\x48\x89\x5C\x24\x18\x57\x48\x81\xEC\x90\x00\x00\x00"), // 48 89 5C 24 18 57 48 81 EC 90 00 00 00
 	};
 
-	const std::vector<Symbol> CSteam3Server_OnLogonSuccessSym = { //Search for ""Connection to Steam servers successful."
+	const std::vector<Symbol> CSteam3Server_OnLogonSuccessSym = { //Search for "Connection to Steam servers successful."
 		Symbol::FromName("_ZN13CSteam3Server14OnLogonSuccessEP23SteamServersConnected_t"),
-		Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x89\xFB\x48\x83\xEC\x28\x64\x48\x8B"), // 55 48 89 E5 53 48 89 FB 48 83 EC 28 64 48 8B
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x54\x53\x48\x89\xFB\x48******\x48***\x64********\x48***\x31\xC0\xE8"), // 55 48 89 E5 41 54 53 48 89 FB 48 ?? ?? ?? ?? ?? ?? 48 ?? ?? ?? 64 ?? ?? ?? ?? ?? ?? ?? ?? 48 ?? ?? ?? 31 C0 E8
 		Symbol::FromSignature("\x55\x8B\xEC\x83\xEC\x1C\x56\x8B\xF1\x8B\x4E\x04"), // 55 8B EC 83 EC 1C 56 8B F1 8B 4E 04
 		Symbol::FromSignature("\x40\x53\x48\x83\xEC\x60\x48\x8B\x05\x2A\x2A\x2A\x2A\x48\x33\xC4\x48\x89\x44\x24\x50\x48\x8B\xD9"), // 40 53 48 83 EC 60 48 8B 05 ? ? ? ? 48 33 C4 48 89 44 24 50 48 8B D9
 	};
@@ -768,7 +768,7 @@ namespace Symbols
 
 	const std::vector<Symbol> CSteam3Server_NotifyClientConnectSym = { // 64x = "S3: Client"
 		Symbol::FromName("_ZN13CSteam3Server19NotifyClientConnectEP11CBaseClientjR8netadr_sPKvj"),
-		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x49\x89\xFC\x53\x48\x81\xEC\xB8\x00\x00\x00"), // 55 48 89 E5 41 57 41 56 41 55 41 54 49 89 FC 53 48 81 EC B8 00 00 00
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x89\xD7\x41\x56\x45\x89\xCE\x41\x55\x49\x89\xFD\x41\x54"), // 55 48 89 E5 41 57 41 89 D7 41 56 45 89 CE 41 55 49 89 FD 41 54
 		Symbol::FromSignature("\x55\x8B\xEC\x83\xEC\x48\x56\x8B\xF1"), // 55 8B EC 83 EC 48 56 8B F1
 		Symbol::FromSignature("\x40\x55\x57\x41\x54\x41\x56"), // 40 55 57 41 54 41 56
 	};
@@ -983,9 +983,11 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x49\x89\xFE\x41\x55\x41\x89\xF5\x31\xF6\x41\x54"), // 55 48 89 E5 41 57 41 56 49 89 FE 41 55 41 89 F5 31 F6 41 54
 	};
 
-	const std::vector<Symbol> CGameServer_RemoveClientFromGameSym = { // Use found CBaseServer_GetFreeClientSym and go in the vtable 7 up
+	// Use found CBaseServer_GetFreeClientSym and go in the vtable 7 up
+	// Alternative: Find "Forcing client reconnect" CBaseClient::Reconnect then xref -> CGameClient::Reconnect -> CGameServer::RemoveClientFromGame
+	const std::vector<Symbol> CGameServer_RemoveClientFromGameSym = {
 		Symbol::FromName("_ZN11CGameServer20RemoveClientFromGameEP11CBaseClient"),
-		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x54\x53\x48\x89\xF3\x48\x83\xBE\x70\x07\x00\x00\x00"), // 55 48 89 E5 41 54 53 48 89 F3 48 83 BE 70 07 00 00 00
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x54\x53\x48\x89\xF3\x48*********\x48\x8B\x06"), // 55 48 89 E5 41 54 53 48 89 F3 48 ?? ?? ?? ?? ?? ?? ?? ?? ?? 48 8B 06
 	};
 
 	const std::vector<Symbol> CServerPlugin_ClientSettingsChangedSym = {
@@ -1036,9 +1038,9 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x31\xC0\x48\x89\xE5\x53\x48\x89\xFB\x48\x8D\x3D\x2A\x2A\x2A\x2A\x48\x83\xEC\x78"), // 55 31 C0 48 89 E5 53 48 89 FB 48 8D 3D ? ? ? ? 48 83 EC 78
 	};
 
-	const std::vector<Symbol> CBaseServer_ProcessConnectionlessPacketSym = {
+	const std::vector<Symbol> CBaseServer_ProcessConnectionlessPacketSym = { // Search for "Source Engine Query" to find CHLTVServer::ProcessConnectionlessPacket which will call CBaseServer::ProcessConnectionlessPacket
 		Symbol::FromName("_ZN11CBaseServer27ProcessConnectionlessPacketEP11netpacket_s"),
-		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x49\x89\xFE\x41\x55\x41\x54\x53\x48\x89\xF3\x48\x81\xEC\xC8\x0A\x00\x00"), // 55 48 89 E5 41 57 41 56 49 89 FE 41 55 41 54 53 48 89 F3 48 81 EC C8 0A 00 00
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x49\x89\xFD\x41\x54\x53\x48\x89\xF3\x48\x81*****\x64********\x48\x89\x45\xC8\x31\xC0\x48\x8B\x46\x28"), // 55 48 89 E5 41 57 41 56 41 55 49 89 FD 41 54 53 48 89 F3 48 81 ?? ?? ?? ?? ?? 64 ?? ?? ?? ?? ?? ?? ?? ?? 48 89 45 C8 31 C0 48 8B 46 28
 	};
 
 	const std::vector<Symbol> NET_SendPacketSym = { // Search for "NET_SendPacket"
@@ -1276,8 +1278,9 @@ namespace Symbols
 	//---------------------------------------------------------------------------------
 	// Purpose: httpserver Symbols
 	//---------------------------------------------------------------------------------
-	const std::vector<Symbol> CRConServer_CreateSocketSym = {
+	const std::vector<Symbol> CRConServer_CreateSocketSym = { // Find "Network: IP" then check the last function in the if branch before the print
 		Symbol::FromName("_ZN11CRConServer12CreateSocketEv"),
+		Symbol::FromSignature("\x55\x48\x8D*****\x48\x83\xC7\x08\x48\x89\xE5"), // 55 48 8D ?? ?? ?? ?? ?? 48 83 C7 08 48 89 E5
 	};
 
 	//---------------------------------------------------------------------------------

@@ -1890,11 +1890,13 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 		g_pShouldPrevent[i].ClearAll();
 
 	SourceSDK::FactoryLoader engine_loader("engine");
+#if !defined(GMOD_X86_64) // x86-64 does not have this function / ChangeFrameLists don't use virtual functions!
 	Detour::Create(
 		&detour_AllocChangeFrameList, "AllocChangeFrameList",
 		engine_loader.GetModule(), Symbols::AllocChangeFrameListSym,
 		(void*)hook_AllocChangeFrameList, m_pID
 	);
+#endif
 
 #if ARCHITECTURE_X86_64
 	if (!networking_enableunsafe64x.GetBool()) // It exists so that when I get to working on it, I can easily test it.
