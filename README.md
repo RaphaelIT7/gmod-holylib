@@ -98,7 +98,8 @@ This is done by first deleting the current `gmsv_holylib_linux[64].so` and then 
 
 ## Reporting issues / asking Questions
 If you have encountered a bug or crash, please open an issue, if you only have a question or are unsure if something is a bug, then open a discussion.<br>
-While you can write to me on discord (`raphaelit7`) I may lose track there or your message may be lost, which is why I prefer to keep things on GitHub unless it involves stuff like private code or other things that shouldn't be shared publicly.<br>
+There is also a discord(https://discord.gg/Cz3ZQvjcQs) since people seem to prefer it a lot more than GitHub for asking questions xD<br>
+Any announcement or poll will still be posted on GitHub but also mentioned in Discord- I still prefer GitHub since it's open for anyone.<br>
 
 ## Clarification about HolyLib & its maintenance
 HolyLib has been a hobby project since the very beginning.<br>
