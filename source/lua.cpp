@@ -173,6 +173,12 @@ LUA_FUNCTION_STATIC(Test_RawGetGModVector)
 	return 0;
 }
 
+LUA_FUNCTION_STATIC(Test_IsHolyLibState)
+{
+	LUA->PushBool(Lua::IsHolyLibState(LUA));
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(Test_EnableStressBots)
 {
 	if (!g_pCVar)
@@ -254,6 +260,7 @@ static void SetupCoreTestFunctions(GarrysMod::Lua::ILuaInterface* pLua)
 		Util::AddFunc(pLua, Test_RawGetModuleData, "RawGetModuleData");
 		Util::AddFunc(pLua, Test_GetGModVector, "GetGModVector");
 		Util::AddFunc(pLua, Test_RawGetGModVector, "RawGetGModVector");
+		Util::AddFunc(pLua, Test_IsHolyLibState, "IsHolyLibState");
 		
 		Util::AddFunc(pLua, Test_EnableStressBots, "EnableStressBots"); // Required until we get https://github.com/Facepunch/garrysmod-requests/issues/2948
 		Util::AddFunc(pLua, Test_DisableStressBots, "DisableStressBots");
