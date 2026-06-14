@@ -756,6 +756,9 @@ typedef struct global_State {
 #define hook_restore(g, h) \
   ((g)->hookmask = ((g)->hookmask & HOOK_EVENTMASK) | (h))
 
+// RaphaelIT7: I use the dummy_ffid field as an identifier to distinguish between GMod Lua states and HolyLib Lua states at runtime, as HolyLib must deal with two JIT versions.
+#define LJ_DUMMY_FFID		3
+
 /* Per-thread state object. */
 struct lua_State {
   GCHeader;
