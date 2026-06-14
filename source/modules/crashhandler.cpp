@@ -1063,7 +1063,7 @@ static void DoLuaCallback(bool bMainThreadCrash)
 			dprintf(signalData->fileDescriptor, pLuaShared->GetStackTraces());
 		}
 
-		for (int flip=0; flip<2; ++flip)
+		for (int flip=0; flip<(pMainState != pState ? 2 : 1); ++flip)
 		{
 			lua_State* pCurrentState = flip == 0 ? pState : pMainState;
 			if (!pCurrentState)
