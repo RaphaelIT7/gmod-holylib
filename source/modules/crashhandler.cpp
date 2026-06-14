@@ -1042,6 +1042,15 @@ static void DoLuaCallback(bool bMainThreadCrash)
 	lua_State* pState = g_Lua->GetState();
 	if (!pState)
 		return;
+	
+	bool isCoroutine = false;
+	lua_State* pMainState = Lua::MainState(pState);
+	if (!pMainState)
+		dprintf(signalData->fileDescriptor, "Invalid Main state!\n");
+	else {
+		isCoroutine = pMainState != pState;
+		dprintf(signalData->fileDescriptor, "Inside Coroutine?: %s\n", isCoroutine ? "true" : "false");
+	}
 
 	if (bMainThreadCrash && !g_bInducedCrash.load())
 	{
@@ -1054,22 +1063,37 @@ static void DoLuaCallback(bool bMainThreadCrash)
 			dprintf(signalData->fileDescriptor, pLuaShared->GetStackTraces());
 		}
 
-		dprintf(signalData->fileDescriptor, "Lua Stack values:\n");
-
-		Lua::pExecutingInterface = g_Lua; // Set since TValueToString uses GetGCStrData
-		TValue* pBase = Lua::LuaBase(pState);
-		int nTop = (int)(Lua::LuaTop(pState) - pBase);
-		dprintf(signalData->fileDescriptor, "  Stack size: %i\n", nTop);
-		for (int i=0; i<nTop; ++i)
+		for (int flip=0; flip<2; ++flip)
 		{
-			dprintf(signalData->fileDescriptor, "  %i: %s\n", i, Lua::TValueToString(pBase));
-			pBase++;
+			lua_State* pCurrentState = flip == 0 ? pState : pMainState;
+			if (!pCurrentState)
+				break;
+
+			dprintf(signalData->fileDescriptor, "Lua Stack values (%s):\n", (isCoroutine && pState == pCurrentState) ? "Current Coroutine state" : "Main State");
+
+			Lua::pExecutingInterface = g_Lua; // Set since TValueToString uses GetGCStrData
+			TValue* pBase = Lua::LuaBase(pCurrentState);
+			int nTop = (int)(Lua::LuaTop(pCurrentState) - pBase);
+			dprintf(signalData->fileDescriptor, "  Stack size: %i\n", nTop);
+			if (nTop < 0)
+				dprintf(signalData->fileDescriptor, "  Invalid Stack! No Dump!\n");
+			else {
+				for (int i=0; i<nTop; ++i)
+				{
+					dprintf(signalData->fileDescriptor, "  %i: %s\n", i, Lua::TValueToString(pBase));
+					pBase++;
+				}
+			}
 		}
 	}
 
 	// We stop the GC in case a crash is related to an memory allocator or some bs
 	Util::func_lua_gc(pState, LUA_GCSTOP, 0);
 	Util::func_lua_setallocf(pState, LuaAlloc::alloc, &signalData->luaAlloc);
+
+	// We don't want to callback if were in a coroutine!
+	if (pMainState)
+		g_Lua->SetState(pMainState);
 
 	if (Lua::PushHook("HolyLib:OnServerCrash"))
 	{

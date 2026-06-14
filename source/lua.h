@@ -29,6 +29,7 @@ namespace GModLua {
 	extern TValue* LuaIncrTop(lua_State* L);
 	extern TValue* LuaBase(lua_State* L);
 	extern TValue* GlobalJITBase(lua_State* L);
+	extern lua_State* MainState(lua_State* L);
 }
 
 typedef void* LuaUserDataValue;
@@ -110,6 +111,7 @@ namespace RawLua {
 	extern TValue* LuaIncrTop(lua_State* L);
 	extern TValue* LuaBase(lua_State* L);
 	extern TValue* GlobalJITBase(lua_State* L);
+	extern lua_State* MainState(lua_State* L);
 }
 
 struct LuaUserData;
@@ -201,6 +203,15 @@ namespace Lua
 			return GModLua::GlobalJITBase(L);
 		else
 			return RawLua::GlobalJITBase(L);
+	}
+
+	// Returns mainthread(G(L))
+	FORCEINLINE lua_State* MainState(lua_State* L)
+	{
+		if (L->dummy_ffid == FF_C)
+			return GModLua::MainState(L);
+		else
+			return RawLua::MainState(L);
 	}
 
 	// Each new metatable has this entry.

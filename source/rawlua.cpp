@@ -42,9 +42,14 @@ TValue* RawLua::LuaBase(lua_State* L)
   return L->base;
 }
 
-TValue* RawLua::GlobalJITBase(lua_State * L)
+TValue* RawLua::GlobalJITBase(lua_State* L)
 {
     return tvref(G(L)->jit_base);
+}
+
+lua_State* RawLua::MainState(lua_State* L)
+{
+    return mainthread(G(L));
 }
 
 TValue* RawLua::CopyTValue(lua_State* L, TValue* o)
