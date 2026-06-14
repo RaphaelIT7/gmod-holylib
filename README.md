@@ -4470,6 +4470,8 @@ Disconnects the client.<br>
 #### number, number CBaseClient:GetRemoteFramerate()
 
 #### CBaseClient:SetUpdateRate(number rate)
+Normally, the update rate is controlled by the client's `cl_updaterate` and this controlls how many snapshots per second are sent to clients.<br>
+Snapshots are quite expensive- so you could force it to a lower value, which can help performance noticeably.<br>
 
 #### number CBaseClient:GetUpdateRate()
 
