@@ -133,6 +133,7 @@ There may be further options which will control other module specific functions.
 \- \-> Finished external trace recorder and moved traced functions from LuaJIT into HolyLib.<br>
 \- \-> Reduced `GCudata`, `GCtrace`, `GCproto`, `global_State` sizes saving memory.<br>
 \- \-> Implement `LUAJIT_ENABLE_CHECKHOOK` as a runtime toggle (See: https://github.com/RaphaelIT7/gmod-holylib/issues/151)<br>
+\- \-> Fixed coroutines crashing due to HolYLib not recognizing the lua state correctly (See: https://github.com/RaphaelIT7/gmod-holylib/issues/177)<br>
 \- [#] Fixed `gameserver` module causing a crash when `MoveCGameClientIntoCGameClient` is hit due to `CNetChan` class being outdated (See: https://github.com/RaphaelIT7/gmod-holylib/issues/160 & https://github.com/RaphaelIT7/gmod-holylib/issues/173)<br>
 \- [#] Fixed `gameserver` module crashing due to a missing null check (See: https://github.com/RaphaelIT7/gmod-holylib/issues/171)<br>
 \- [#] Avoid direct `CBaseClient::m_NetChannel` to avoid future crashes from layouts changing.<br>
