@@ -55,6 +55,7 @@ jobs:
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
       SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
+      GARRYSMOD_COMMON_BRANCH: "holylib"
       ADDITIONAL_DATA: "1"
       ADDITIONAL_LINUX_32_SETUP: ${{ needs.build_custom_version.outputs.COMMAND }}
       ADDITIONAL_LINUX_64_SETUP: ${{ needs.build_custom_version.outputs.COMMAND }}
@@ -74,3 +75,4 @@ jobs:
       SOURCESDK_MINIMAL_BRANCH: "patch-7"
       SOURCESDK_MINIMAL_64XBRANCH: "x86-64-patch-3"
       GARRYSMOD_COMMON: "RaphaelIT7/garrysmod_common"
+      GARRYSMOD_COMMON_BRANCH: "holylib"
