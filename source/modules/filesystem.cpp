@@ -34,28 +34,10 @@ static ConVar holylib_filesystem_easydircheck("holylib_filesystem_easydircheck",
 	"Checks if the folder CBaseFileSystem::IsDirectory checks has a . in the name after the last /. if so assume it's a file extension.");
 static ConVar holylib_filesystem_searchcache("holylib_filesystem_searchcache", "1", FCVAR_ARCHIVE, 
 	"If enabled, it will cache the search path a file was located in and if the same file is requested, it will use that search path directly.");
-static ConVar holylib_filesystem_optimizedfixpath("holylib_filesystem_optimizedfixpath", "1", FCVAR_ARCHIVE, 
-	"If enabled, it will optimize CBaseFilesystem::FixUpPath by caching the BASE_PATH search cache.");
 static ConVar holylib_filesystem_earlysearchcache("holylib_filesystem_earlysearchcache", "1", FCVAR_ARCHIVE, 
 	"If enabled, it will check early in CBaseFilesystem::OpenForRead if the file is in the search cache.");
-static ConVar holylib_filesystem_forcepath("holylib_filesystem_forcepath", "1", FCVAR_ARCHIVE, 
-	"If enabled, it will change the paths of some specific files");
-static ConVar holylib_filesystem_predictpath("holylib_filesystem_predictpath", "1", FCVAR_ARCHIVE, 
-	"If enabled, it will try to predict the path of a file");
-static ConVar holylib_filesystem_predictexistance("holylib_filesystem_predictexistance", "0", 0, 
-	"If enabled, it will try to predict the path of a file, but if the file doesn't exist in the predicted path, we'll just say it doesn't exist.");
-static ConVar holylib_filesystem_splitgamepath("holylib_filesystem_splitgamepath", "1", FCVAR_ARCHIVE, 
-	"If enabled, it will create for each content type like models/, materials/ a game path which will be used to find that content.");
-static ConVar holylib_filesystem_splitluapath("holylib_filesystem_splitluapath", "0", 0, 
-	"If enabled, it will do the same thing holylib_filesystem_splitgamepath does but with lsv. Currently it breaks workshop addons.");
-static ConVar holylib_filesystem_splitfallback("holylib_filesystem_splitfallback", "1", FCVAR_ARCHIVE, 
-	"If enabled, it will fallback to the original searchpath if the split path failed.");
 static ConVar holylib_filesystem_fixgmodpath("holylib_filesystem_fixgmodpath", "1", FCVAR_ARCHIVE, 
 	"If enabled, it will fix up weird gamemode paths like sandbox/gamemode/sandbox/gamemode which gmod likes to use.");
-static ConVar holylib_filesystem_cachefilehandle("holylib_filesystem_cachefilehandle", "0", 0, 
-	"If enabled, it will cache the file handle and return it if needed. This will probably cause issues if you open the same file multiple times.");
-static ConVar holylib_filesystem_precachehandle("holylib_filesystem_precachehandle", "1", 0,
-	"If enabled, it will try to predict which file it will open next and open the file to keep a handle ready to be opened.");
 static ConVar holylib_filesystem_savesearchcache("holylib_filesystem_savesearchcache", "1", FCVAR_ARCHIVE,
 	"If enabled, it will write the search cache into a file and restore it when starting, using it to improve performance.");
 static ConVar holylib_filesystem_mergesearchcache("holylib_filesystem_mergesearchcache", "0", FCVAR_ARCHIVE,
@@ -109,102 +91,410 @@ struct FilesystemJob
 #define FILEPATH_SLASH_CHAR '/'
 #endif
 
+static void DeleteFileHandle(FileHandle_t handle);
+static inline CSearchPath* FindSearchPathByStoreId(int iStoreID);
+
+// VS2022 falsely claims the out buffer may not be null terminated...
+static FORCEINLINE void GetFullPath(const CSearchPath* pSearchPath, const char* strFileName, char (&out)[MAX_PATH])
+{
+	V_strcpy_safe(out, pSearchPath->GetPathString());
+	size_t len = strlen(out);
+	V_strncpy(out + len, strFileName, sizeof(out) - len);
+	V_strlower(out + len);
+}
+
+/*
+	Cached Filesystem
+*/
+
+class CachedFileSystem;
+class CacheResult
+{
+public:
+	FORCEINLINE const CSearchPath* GetSearchPath()
+	{
+		return m_pPath;
+	}
+
+	// We may have found an entry, doesn't mean it's valid.
+	// We also support missing files on disk / to skip checking the disk.
+	FORCEINLINE bool IsValid()
+	{
+		return m_bIsValid;
+	}
+
+	FORCEINLINE const char* GetAbsolutePath()
+	{
+		return m_strAbsolute;
+	}
+
+	FORCEINLINE unsigned short GetAbsolutePathLength()
+	{
+		return m_nAbsoluteLength;
+	}
+
+private:
+	friend class CachedFileSystem;
+
+	const CSearchPath* m_pPath;
+	const char* m_strAbsolute;
+	unsigned short m_nAbsoluteLength; // includes NULL terminator!
+	bool m_bIsValid;
+};
+// I don't feel like dealing with many return values soo let's do it the lazy way xd
+// Though we must keep it small due to the TLS limits!
+static thread_local CacheResult g_pCacheResult;
+
+/*
+	ToDo:
+		The new filesystem should learn and save behavior files to know what to do.
+		1) Find most accessed folders and in all paths
+		   -> Using this it then should be able to add search paths like CONTENT_MATERIAL without them being hard coded
+		2) Prioritize most accessed files
+		   -> If a file is frequently accessed it should be able to notice and somehow put it earlier in the cache
+		3) Misses on disk
+		   -> We should be able to avoid disk lookups when we know it does not exist
+		   -> CHECK: This must work with autorefresh! Maybe hook into it to clear cache valid flag when autorefresh hits?
+		3) Override search paths for lookups when possible
+		   -> If a file is always on disk and for example always looked up with "GAME" when it's the stale.txt
+		   -> it should be able to figure it out and by itself decide to override the path to "MOD_WRITE" or whatever path is the best to look it up
+		   -> Best case: It doesn't override path though instead just directly opens it and returns the handle avoiding further filesystem work entirely
+		4) Disk Saves
+		   -> It should save onto disk what order files are accessed at and we must also dump search paths and priorities to never break expected order!
+		   -> It should also save a filesystem state dictating stuff like which search paths should be created on startup and so on
+		5) Assume static files
+		   -> We can assume that files from GMod only change when garrysmod.ver changed allowing us to partially implement a static filesystem across reboots
+		6) Priorities
+		   -> We shoul store and account for priorities- if a new search path is added to the head of a gamepath it should take priority!
+
+	Important:
+		It should always assume that on server startup the filesystem may have entirely changed
+		So never assume that a file may be missing on disk without having checked once!
+
+		We could though cache VPC files and we could cache GMod version and have a convar like _staticfilesystem?
+		Needs more thought on how to handle this!
+
+	Design choices:
+		No usage of std::string- instead we use std::string_view which is performance and memory wise way better.
+		We just have to manage the memory ourselves right which is easyyyy (I'll hate myself in a year)
+*/
+
 static const char* nullPath = "NULL_PATH";
-extern void DeleteFileHandle(FileHandle_t handle);
-static unordered_map<FileHandle_t, std::string_view> m_FileStringCache;
-static unordered_map<std::string_view, FileHandle_t> m_FileCache;
-static unordered_set<FileHandle_t> m_WriteFileHandle;
-static unordered_set<std::string> m_PredictionCheck;
-unordered_map<FileHandle_t, float> pFileDeletionList;
-void AddFileHandleToCache(std::string_view strFilePath, FileHandle_t pHandle)
+class CachedFileSystem
 {
-	char* pFilePath = new char[MAX_PATH];
-	V_strncpy(pFilePath, strFilePath.data(), MAX_PATH);
-
-	m_FileCache[pFilePath] = pHandle;
-	m_FileStringCache[pHandle] = pFilePath;
-
-	if (g_pFileSystemModule.InDebug())
-		Msg("holylib - AddFileHandleToCache: Added file %s to filehandle cache\n", pFilePath);
-}
-
-void RemoveFileHandleFromCache(FileHandle_t pHandle)
-{
-	auto it = m_FileStringCache.find(pHandle);
-	if (it == m_FileStringCache.end())
-		return;
-
-	if (g_pFileSystemModule.InDebug())
-		Msg("holylib - RemoveFileHandleFromCache: Removed file %s from filehandle cache\n", it->second.data());
-
-	delete[] it->second.data();
-
-	m_FileCache.erase(it->second);
-	m_FileStringCache.erase(it);
-}
-
-static void ClearFileHandleSearchCache()
-{
-	for (auto& [key, val] : m_FileCache)
+public:
+	~CachedFileSystem()
 	{
-		delete[] key.data();
-		// ToDo: Also free handles
+	
 	}
 
-	m_FileCache.clear();
-	m_FileStringCache.clear();
-}
-
-extern CGlobalVars* gpGlobals;
-FileHandle_t GetFileHandleFromCache(std::string_view strFilePath)
-{
-	auto it = m_FileCache.find(strFilePath);
-	if (it == m_FileCache.end())
+	// This is the main call- we aren't iterating search paths yet.
+	bool FindCacheEntry(const char* pFileName, const char* pGamePath)
 	{
-		if (g_pFileSystemModule.InDebug())
-			Msg("holylib - GetFileHandleFromCache: Failed to find %s in filehandle cache\n", strFilePath.data());
+		if (!pGamePath)
+			pGamePath = nullPath;
 
-		return nullptr;
+		std::shared_lock<std::shared_mutex> lock(m_CacheMutex);
+		FileEntry* pFileEntry = GetFileEntry(pFileName, pGamePath);
+		if (!pFileEntry)
+			return false;
+
+		pFileEntry->m_nAccessCount.fetch_add(1);
+		g_pCacheResult.m_bIsValid = pFileEntry->m_bIsValid.load();
+		g_pCacheResult.m_strAbsolute = pFileEntry->m_strAbsolutePath.data();
+
+		// + 1 for null terminator!
+		g_pCacheResult.m_nAbsoluteLength = (unsigned short)pFileEntry->m_strAbsolutePath.length() + 1;
+		return true;
 	}
 
-	auto it2 = pFileDeletionList.find(it->second);
-	if (it2 != pFileDeletionList.end())
+	// This is the smaller one- we check for this specific search path
+	bool FindCacheEntry(const char* pFileName, const CSearchPath* pPath)
 	{
-		pFileDeletionList.erase(it2);
-		if (g_pFileSystemModule.InDebug())
-			Msg("holylib - GetFileHandleFromCache: Removed handle for deletion! (%p)\n", it->second);
-	} else {
-		Msg("holylib - GetFileHandleFromCache: File wasn't marked for deletion? (%p)\n", it->second); // This could mean that were actively using it.
+		if (!pPath)
+			return false;
+
+		std::shared_lock<std::shared_mutex> lock(m_CacheMutex);
+		
+		auto foundEntry = m_Cache.find(pPath->m_storeId);
+		if (foundEntry == m_Cache.end())
+			return false;
+
+		CacheEntry* pCacheEntry = foundEntry->second;
+		FileEntry* pFileEntry = pCacheEntry->FindFile(pFileName);
+		if (!pFileEntry)
+			return false;
+
+		pFileEntry->m_nAccessCount.fetch_add(1);
+		g_pCacheResult.m_bIsValid = pFileEntry->m_bIsValid.load();
+		g_pCacheResult.m_pPath = pPath;
+		return true;
 	}
 
-	int iPos = (int)g_pFullFileSystem->Tell(it->second);
-	if (iPos != 0)
+	void AddFileToCache(const char* pFileName, const CSearchPath* pPath, const char* pOptions)
 	{
-		if (g_pFileSystemModule.InDebug())
-			Msg("holylib - GetFileHandleFromCache: Pos: %u\n", g_pFullFileSystem->Tell(it->second));
-		
-		g_pFullFileSystem->Seek(it->second, 0, FILESYSTEM_SEEK_HEAD); // Why doesn't it reset?
-		
-		if (g_pFileSystemModule.InDebug())
-			Msg("holylib - GetFileHandleFromCache: Rewind pos: %u\n", g_pFullFileSystem->Tell(it->second));
-		
-		int iNewPos = (int)g_pFullFileSystem->Tell(it->second);
-		if (iNewPos != 0)
+		if (!pPath)
+			return;
+
+		std::unique_lock<std::shared_mutex> lock(m_CacheMutex);
+		CacheEntry* pCacheEntry;
+		auto foundEntry = m_Cache.find(pPath->m_storeId);
+		if (foundEntry == m_Cache.end())
 		{
-			if (g_pFileSystemModule.InDebug())
-				Msg("holylib - GetFileHandleFromCache: Failed to reset pointer!\n");
-			
-			pFileDeletionList[it->second] = gpGlobals->curtime; // Force delete. it's broken
+			pCacheEntry = new CacheEntry;
+			m_Cache[pPath->m_storeId] = pCacheEntry;
+		} else
+			pCacheEntry = foundEntry->second;
+
+		if (pOptions && *pOptions == 'w')
+			pCacheEntry->MarkWrite();
+
+		std::string_view permanentFileName;
+		FileEntry* pFileEntry = pCacheEntry->AddFile(pFileName, &permanentFileName);
+		
+		char pBuffer[MAX_PATH];
+		GetFullPath(pPath, pFileName, pBuffer);
+		pFileEntry->SetAbsolutePath(pBuffer);
+
+		unordered_map<std::string_view, FileEntry*>* pFileMap;
+		const char* pGamePath = pPath->GetPathIDString();
+		auto gamePathIT = m_GamePathCache.find(pGamePath);
+		if (gamePathIT == m_GamePathCache.end())
+			pFileMap = &m_GamePathCache.emplace(pGamePath, unordered_map<std::string_view, FileEntry*>()).first->second;
+		else
+			pFileMap = &gamePathIT->second;
+
+		auto fileMapIT = pFileMap->find(permanentFileName);
+		if (fileMapIT == pFileMap->end())
+			(*pFileMap)[permanentFileName] = pFileEntry;
+
+		Msg("Added file %s to cache (%s)\n", pFileName, pBuffer);
+
+		// ToDo: Let the search paths fight for priority!
+	}
+
+	// Call this when you encounter a faulty cache result!
+	void InvalidateFileFromCache(const char* pFileName, const CSearchPath* pPath)
+	{
+		if (!pPath)
+			return;
+
+		std::unique_lock<std::shared_mutex> lock(m_CacheMutex);
+		CacheEntry* pCacheEntry;
+		auto foundEntry = m_Cache.find(pPath->m_storeId);
+		if (foundEntry == m_Cache.end())
+		{
+			pCacheEntry = new CacheEntry;
+			m_Cache[pPath->m_storeId] = pCacheEntry;
+		} else
+			pCacheEntry = foundEntry->second;
+
+		std::string_view permanentFileName;
+		FileEntry* pFileEntry = pCacheEntry->AddFile(pFileName, &permanentFileName);
+		pFileEntry->MarkMissing();
+		// Invalid entries aren't added here to m_GamePathCache as this is specific to this search path.
+		// There may be more, MarkFileMissing will be the one to add it if it's missing everywhere.
+		// Update:
+		// I need to think more, it would be too hacky to add it inside MarkFileMissing
+		// So for now, we do it here
+
+		unordered_map<std::string_view, FileEntry*>* pFileMap;
+		const char* pGamePath = pPath->GetPathIDString();
+		auto gamePathIT = m_GamePathCache.find(pGamePath);
+		if (gamePathIT == m_GamePathCache.end())
+			pFileMap = &m_GamePathCache.emplace(pGamePath, unordered_map<std::string_view, FileEntry*>()).first->second;
+		else
+			pFileMap = &gamePathIT->second;
+
+		auto fileMapIT = pFileMap->find(permanentFileName);
+		if (fileMapIT == pFileMap->end())
+			(*pFileMap)[permanentFileName] = pFileEntry;
+	}
+
+	void MarkFileMissing(const char* pFileName, const char* pGamePath)
+	{
+		if (!pGamePath)
+			pGamePath = nullPath;
+
+		std::unique_lock<std::shared_mutex> lock(m_CacheMutex);
+		FileEntry* pFileEntry = GetFileEntry(pFileName, pGamePath);
+		if (!pFileEntry)
+			return;
+
+		pFileEntry->MarkMissing();
+		Msg("Marked file missing %s - %s\n", pFileName, pGamePath);
+	}
+
+	bool ShouldCloseHandle(FileHandle_t pHandle)
+	{
+		return true;
+	}
+
+	void Shutdown()
+	{
+	
+	}
+
+	void Init()
+	{
+	
+	}
+
+	// Main Thread Think
+	void MainThink()
+	{
+	
+	}
+
+	void Nuke()
+	{
+		std::unique_lock<std::shared_mutex> lock(m_CacheMutex);
+		m_Cache.clear();
+	}
+
+	void Dump()
+	{
+		std::shared_lock<std::shared_mutex> lock(m_CacheMutex);
+		Msg("Game Cache:\n");
+		for (auto& [gamePath, fileList] : m_GamePathCache)
+		{
+			Msg("-> \"%s\":\n", gamePath.data());
+			for (auto& [fileName, fileEntry] : fileList)
+				Msg("	\"%s\" -> \"%s\"\n", fileName.data(), fileEntry->m_bIsValid.load() ? fileEntry->m_strAbsolutePath.data() : "MISSING");
+		}
+	}
+
+private:
+	static constexpr const char* pInvalidAbsolutePath = "";
+	// We got one expectation here... A FileEntry is never deleted.
+	struct FileEntry
+	{
+		// If false then the file is known to not exist.
+		std::atomic<bool> m_bIsValid{true};
+		std::atomic<size_t> m_nAccessCount{0};
+		const std::string_view m_strAbsolutePath = pInvalidAbsolutePath;
+
+		~FileEntry()
+		{
+			if (m_strAbsolutePath.data() != pInvalidAbsolutePath)
+				delete[] m_strAbsolutePath.data();
+		}
+
+		void SetAbsolutePath(const std::string_view pFileName)
+		{
+			// Once it was set it should never change!
+			if (m_strAbsolutePath.data() != pInvalidAbsolutePath)
+				return;
+
+			const size_t nFileNameLength = pFileName.length() + 1;
+			char* pFile = new char[nFileNameLength];
+			V_strncpy(pFile, pFileName.data(), nFileNameLength);
+
+			//if (m_strAbsolutePath.data() != pInvalidAbsolutePath)
+			//	delete[] m_strAbsolutePath.data();
+
+			// We only made m_strAbsolutePath const so that no other place will touch it!
+			*((std::string_view*)&m_strAbsolutePath) = std::string_view(pFile, pFileName.length());
+		}
+
+		FORCEINLINE void MarkMissing()
+		{
+			m_bIsValid.store(false);
+		}
+
+		FORCEINLINE void MarkExisting()
+		{
+			m_bIsValid.store(true);
+		}
+	};
+
+	// A Entry always belongs to a search path!
+	class CacheEntry
+	{
+	public:
+		~CacheEntry()
+		{
+			for (auto& [pFile, pFileEntry] : m_pFiles)
+				delete[] pFile.data();
+		}
+
+		FORCEINLINE FileEntry* FindFile(std::string_view pFileName)
+		{
+			auto it = m_pFiles.find(pFileName);
+			if (it != m_pFiles.end())
+				return it->second;
+
 			return nullptr;
 		}
-		// BUG: .bsp files seem to have funny behavior :/
-		// BUG2: We need to account for rb and wb since wb can't read and rb can't write.  
-		// How will we account for that? were gonna need to get the CFileHandle class
+
+		// pOutput = new std::string_view containing a pointer to a newly allocated const char* that won't be freed
+		FORCEINLINE FileEntry* AddFile(std::string_view pFileName, std::string_view* pOutput)
+		{
+			auto it = m_pFiles.find(pFileName);
+			if (it != m_pFiles.end())
+			{
+				*pOutput = it->first;
+				return it->second;
+			}
+
+			const size_t nFileNameLength = pFileName.length() + 1;
+			char* pFile = new char[nFileNameLength];
+			V_strncpy(pFile, pFileName.data(), nFileNameLength);
+
+			// IMPORTANT: We do not include the null terminator in std::string_view!
+			*pOutput = std::string_view(pFile, pFileName.length());
+
+			FileEntry* pEntry = new FileEntry;
+			m_pFiles[*pOutput] = pEntry;
+			return pEntry;
+		}
+
+		FORCEINLINE const unordered_map<std::string_view, FileEntry*>& GetFiles()
+		{
+			return m_pFiles;
+		}
+
+		FORCEINLINE void MarkWrite()
+		{
+			m_bCanWrite = true;
+		}
+
+	private:
+		std::string_view m_strGamePath;
+		unordered_map<std::string_view, FileEntry*> m_pFiles;
+		bool m_bCanWrite = false;
+	};
+
+	FORCEINLINE FileEntry* GetFileEntry(const char* pFileName, const char* pGamePath)
+	{
+		auto fileList = m_GamePathCache.find(pGamePath);
+		if (fileList == m_GamePathCache.end())
+			return nullptr;
+
+		auto fileEntry = fileList->second.find(pFileName);
+		if (fileEntry == fileList->second.end())
+			return nullptr;
+		
+		return fileEntry->second;
 	}
 
-	return it->second;
-}
+	// key = CSearchPath::m_storeId
+	unordered_map<int, CacheEntry*> m_Cache;
 
+	// key = game path, set = all files found!
+	// Important! CacheEntry & the key of unordered_map share memory!
+	unordered_map<std::string_view, unordered_map<std::string_view, FileEntry*>> m_GamePathCache;
+
+	std::shared_mutex m_CacheMutex;
+};
+static CachedFileSystem g_pCachedFileSystem;
+
+/*
+	FileSystem module
+*/
+
+// IMPORTANT BUG!
+// Source is missing a mutex for FindSearchPathByStoreId as m_SearchPathsMutex is never locked!
 #if SYSTEM_WINDOWS
 // Only way on Windows... I hate this so much
 CSearchPath *CBaseFileSystem::FindSearchPathByStoreId( int storeId )
@@ -240,101 +530,20 @@ static inline CSearchPath* FindSearchPathByStoreId(int iStoreID)
 }
 #endif
 
-std::string GetFullPath(const CSearchPath* pSearchPath, const char* strFileName) // ToDo: Possibly switch to string_view?
+static Detouring::Hook detour_CBaseFileSystem_Trace_FOpen;
+static void* hook_CBaseFileSystem_Trace_FOpen(void* fs, const char *filenameT, const char *options, unsigned flags, int64 *size)
 {
-	char szLowercaseFilename[MAX_PATH];
-	V_strcpy_safe(szLowercaseFilename, strFileName);
-	V_strlower(szLowercaseFilename);
-
-	std::string pPath = pSearchPath->GetPathString();
-	pPath.append(szLowercaseFilename);
-	return pPath;
+	return detour_CBaseFileSystem_Trace_FOpen.GetTrampoline<Symbols::CBaseFileSystem_Trace_FOpen>()(fs, filenameT, options, flags, size);
 }
 
-static unordered_map<std::string_view, unordered_map<std::string_view, int>> m_SearchCache;
-static void ClearFileSearchCache()
+// IMPORTANT:
+// GMod touched HandleOpenRegularFile and of course put a std::string in there causing an allocation every fking time it's called and a file is missing on disk!
+static Detouring::Hook detour_CBaseFileSystem_HandleOpenRegularFile;
+static void hook_CBaseFileSystem_HandleOpenRegularFile(void* fs, CFileOpenInfo& info, bool bIsAbsolutePath)
 {
-	for (auto& [key, valMap] : m_SearchCache)
-	{
-		for (auto& [val, _] : valMap)
-			delete[] val.data();
-	}
-
-	m_SearchCache.clear();
-}
-
-
-static void AddFileToSearchCache(const char* pFileName, int path, const char* pathID) // pathID should never be deleted so we don't need to manage that memory.
-{
-	if (!pathID)
-		pathID = nullPath;
-
-	if (!pFileName)
-		return;
-
-	if (g_pFileSystemModule.InDebug())
-		Msg("holylib - AddFileToSearchCache: Added file %s to search cache (%i, %s)\n", pFileName, path, pathID);
-
-	char* cFileName = new char[MAX_PATH];
-	V_strncpy(cFileName, pFileName, MAX_PATH);
-
-	m_SearchCache[pathID][cFileName] = path;
-}
-
-
-static void RemoveFileFromSearchCache(const char* pFileName, const char* pathID)
-{
-	if (!pathID)
-		pathID = nullPath;
-
-	if (!pFileName)
-		return;
-
-	if (g_pFileSystemModule.InDebug())
-		Msg("holylib - RemoveFileFromSearchCache: Removed file %s from search cache! (%s)\n", pFileName, pathID);
-
-	auto mapIt = m_SearchCache.find(pathID);
-	if (mapIt == m_SearchCache.end())
-		return;
-	
-	auto& map = mapIt->second;
-	auto it = map.find(pFileName);
-	if (it == map.end())
-		return;
-
-	delete[] it->first.data(); // Allocated in AddFileToSearchCache
-	map.erase(it);
-}
-
-static CSearchPath* GetPathFromSearchCache(const char* pFileName, const char* pathID)
-{
-	if (!pathID)
-		pathID = nullPath;
-
-	if (!pFileName)
-		return nullptr; // ??? can this even happen?
-
-	auto mapIt = m_SearchCache.find(pathID);
-	if (mapIt == m_SearchCache.end())
-		return nullptr;
-	
-	auto& map = mapIt->second;
-	auto it = map.find(pFileName);
-	if (it == map.end())
-		return nullptr; // We should add a debug print to see if we make a mistake somewhere
-
-	if (g_pFileSystemModule.InDebug())
-		Msg("holylib - GetPathFromSearchCache: Getting search path for file %s from cache!\n", pFileName);
-
-	return FindSearchPathByStoreId(it->second);
-}
-
-static void NukeSearchCache() // NOTE: We actually never nuke it :D
-{
-	if (g_pFileSystemModule.InDebug())
-		Msg("holylib - NukeSearchCache: Search cache got nuked\n");
-
-	m_SearchCache.clear(); // Now causes a memory leak :D (Should I try to solve it? naaaaaa :^)
+	detour_CBaseFileSystem_HandleOpenRegularFile.GetTrampoline<Symbols::CBaseFileSystem_HandleOpenRegularFile>()(fs, info, bIsAbsolutePath);
+	if (info.m_pFileHandle && info.m_pSearchPath && !bIsAbsolutePath)
+		g_pCachedFileSystem.AddFileToCache(info.m_pFileName, info.m_pSearchPath, info.m_pOptions);
 }
 
 /*struct SearchCacheEntry
@@ -369,8 +578,6 @@ static inline void WriteStringIntoFile(FileHandle_t pHandle, const char* value, 
 	g_pFullFileSystem->Write(value, valueLength, pHandle);
 }
 
-static unordered_map<std::string_view, unordered_map<std::string_view, std::string_view>> g_pAbsoluteSearchCache;
-
 enum class FileSystemStatus
 {
 	None,
@@ -397,80 +604,7 @@ static void WriteSearchCache()
 	if (handle)
 	{
 		SearchCache searchCache;
-		for (auto& [strPath, cache] : m_SearchCache)
-			searchCache.usedPaths += cache.size();
-
-		if (holylib_filesystem_mergesearchcache.GetBool())
-		{
-			for (auto& [strPath, cache] : g_pAbsoluteSearchCache)
-				searchCache.usedPaths += cache.size();
-		}
-
 		g_pFullFileSystem->Write(&searchCache, sizeof(SearchCache), handle);
-
-		if (!holylib_filesystem_mergesearchcache.GetBool())
-		{
-			char absolutePathBuffer[MAX_PATH];
-			for (auto& [strPath, cache] : m_SearchCache)
-			{
-				for (auto& [strEntry, storeID] : cache)
-				{
-					WriteStringIntoFile(handle, strPath);
-					WriteStringIntoFile(handle, strEntry);
-
-					absolutePathBuffer[0] = '\0';
-					g_pFullFileSystem->RelativePathToFullPath(strEntry.data(), strPath.data(), absolutePathBuffer, sizeof(absolutePathBuffer));
-
-					WriteStringIntoFile(handle, absolutePathBuffer, (unsigned char)strlen(absolutePathBuffer));
-				}
-			}
-		} else {
-			// Our goal is to write the existing absolute cache now too
-			// Above we only write the search cache which only contains all files cached in this session
-			// And it discards the previous cache entries which weren't used
-
-			// A COPY that we now fill
-			unordered_map<std::string_view, unordered_map<std::string_view, std::string_view>> pAbsoluteCache = g_pAbsoluteSearchCache;
-			std::vector<char*> pTempMemory;
-			// For the merge we allocate temporary memory, and since pAbsoluteCache is a copy, it would be deconstructed leaving the pointers leaking
-
-			unsigned int nUsedSearchCachePaths = 0;
-			for (auto& [strPath, cache] : m_SearchCache)
-				nUsedSearchCachePaths += cache.size();
-
-			pTempMemory.reserve(nUsedSearchCachePaths); // We reserve just for more SPEEED
-
-			char absolutePathBuffer[MAX_PATH];
-			for (auto& [strPath, cache] : m_SearchCache)
-			{
-				for (auto& [strEntry, storeID] : cache)
-				{
-					absolutePathBuffer[0] = '\0';
-					g_pFullFileSystem->RelativePathToFullPath(strEntry.data(), strPath.data(), absolutePathBuffer, sizeof(absolutePathBuffer));
-
-					unsigned char nLength = (unsigned char)strlen(absolutePathBuffer);
-					char* pAbsolutePath = new char[nLength + 1];
-					pTempMemory.push_back(pAbsolutePath);
-					memcpy(pAbsolutePath, absolutePathBuffer, nLength);
-					pAbsolutePath[nLength] = '\0';
-					pAbsoluteCache[strPath][strEntry] = std::string_view(pAbsolutePath, nLength);
-					// We override so that we don't get new entries instead at worse replacing them
-				}
-			}
-
-			for (auto& [strPath, cache] : pAbsoluteCache)
-			{
-				for (auto& [relativePath, absolutePath] : cache)
-				{
-					WriteStringIntoFile(handle, strPath);
-					WriteStringIntoFile(handle, relativePath);
-					WriteStringIntoFile(handle, absolutePath);
-				}
-			}
-
-			for (char* pData : pTempMemory)
-				delete[] pData;
-		}
 
 		g_pFullFileSystem->Close(handle);
 		Msg(PROJECT_NAME ": successfully wrote searchcache file (%i)\n", searchCache.usedPaths);
@@ -478,42 +612,6 @@ static void WriteSearchCache()
 		Warning(PROJECT_NAME ": Failed to open searchcache file!\n");
 	}
 	eFileSystemStatus = FileSystemStatus::None;
-}
-
-inline std::string_view* GetStringFromAbsoluteCache(const char* fileName, const char* pathID)
-{
-	if (!pathID)
-		pathID = nullPath;
-
-	if (!fileName)
-		return nullptr; // ??? can this even happen?
-
-	auto pathIT = g_pAbsoluteSearchCache.find(pathID);
-	if (pathIT == g_pAbsoluteSearchCache.end())
-		return nullptr;
-
-	auto it = pathIT->second.find(fileName);
-	if (it == pathIT->second.end())
-		return nullptr;
-
-	return &it->second;
-}
-
-static void ClearAbsoluteSearchCache()
-{
-	VPROF_BUDGET("HolyLib - ClearAbsoluteSearchCache", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
-
-	for (auto& [key, val] : g_pAbsoluteSearchCache)
-	{
-		delete[] key.data(); // Free the memory.
-		for (auto& [key2, val2] : val)
-		{
-			delete[] key2.data();
-			delete[] val2.data();
-		}
-	}
-
-	g_pAbsoluteSearchCache.clear();
 }
 
 static inline const char* ReadStringFromFile(FileHandle_t pHandle, unsigned char* nLength)
@@ -536,7 +634,6 @@ static void ReadSearchCache()
 		return;
 	}
 	eFileSystemStatus = FileSystemStatus::Reading;
-	ClearAbsoluteSearchCache();
 
 	FileHandle_t handle = g_pFullFileSystem->Open("holylib_searchcache.dat", "rb", "MOD_WRITE");
 	if (handle)
@@ -549,28 +646,6 @@ static void ReadSearchCache()
 			Warning(PROJECT_NAME " - ReadSearchCache: Searchcache version didnt match  (File: %i, Current %i)\n", searchCache.version, SearchCacheVersion);
 			eFileSystemStatus = FileSystemStatus::None;
 			return;
-		}
-
-		g_pAbsoluteSearchCache.reserve(searchCache.usedPaths);
-
-		for (unsigned int i = 0; i < searchCache.usedPaths; ++i)
-		{
-			// PathID
-			unsigned char pathIDLength;
-			const char* pathID = ReadStringFromFile(handle, &pathIDLength);
-
-			// relative file path
-			unsigned char pathLength;
-			const char* path = ReadStringFromFile(handle, &pathLength);
-
-			// full file path
-			unsigned char absolutePathLength;
-			const char* absolutePath = ReadStringFromFile(handle, &absolutePathLength);
-			
-			std::string_view pathIDStr(pathID, pathIDLength); // NOTE: We have to manually free it later
-			std::string_view pathStr(path, pathLength); // NOTE: We have to manually free it later
-			std::string_view absolutePathStr(absolutePath, absolutePathLength); // NOTE: We have to manually free it later
-			g_pAbsoluteSearchCache[pathIDStr][pathStr] = absolutePathStr;
 		}
 
 		g_pFullFileSystem->Close(handle);
@@ -598,21 +673,6 @@ void CFileSystemModule::ServerActivate(edict_t* pEdictList, int edictCount, int 
 		WriteSearchCache();
 }
 
-static void DumpSearchcacheCmd(const CCommand &args)
-{
-	Msg("---- Search cache ----\n");
-	for (auto&[strPath, cache] : m_SearchCache)
-	{
-		Msg("	\"%s\":\n", strPath.data());
-		for (auto&[entry, storeID] : cache)
-		{
-			Msg("		\"%s\": %i\n", entry.data(), storeID);
-		}
-	}
-	Msg("---- End of Search cache ----\n");
-}
-static ConCommand dumpsearchcache("holylib_filesystem_dumpsearchcache", DumpSearchcacheCmd, "Dumps the searchcache", 0);
-
 static void GetPathFromIDCmd(const CCommand &args)
 {
 	if ( args.ArgC() < 1 || V_stricmp(args.Arg(1), "") == 0 )
@@ -635,31 +695,17 @@ static ConCommand getpathfromid("holylib_filesystem_getpathfromid", GetPathFromI
 
 static void NukeSearchcacheCmd(const CCommand &args)
 {
-	NukeSearchCache();
+	g_pCachedFileSystem.Nuke();
 }
 static ConCommand nukesearchcache("holylib_filesystem_nukesearchcache", NukeSearchcacheCmd, "Nukes the searchcache", 0);
 
-static void DumpFilecacheCmd(const CCommand &args)
+static void DumpCacheCmd(const CCommand &args)
 {
 	Msg("---- FileHandle cache ----\n");
-	for (auto&[strPath, handle] : m_FileCache)
-	{
-		Msg("	\"%s\": %p\n", strPath.data(), handle);
-	}
+	g_pCachedFileSystem.Dump();
 	Msg("---- End of Search cache ----\n");
 }
-static ConCommand dumpfilecache("holylib_filesystem_dumpfilecache", DumpFilecacheCmd, "Dumps the filecache", 0);
-
-static void ShowPredictionErrorsCmd(const CCommand &args)
-{
-	Msg("---- Prediction Errors ----\n");
-	for (const std::string& strFileName : m_PredictionCheck)
-	{
-		Msg("- \"%s\"", strFileName.c_str());
-	}
-	Msg("---- End of Prediction Errors ----\n");
-}
-static ConCommand showpredictionerrors("holylib_filesystem_showpredictionerrors", ShowPredictionErrorsCmd, "Shows all prediction errors that occurred", 0);
+static ConCommand dumpfilecache("holylib_filesystem_dumpcache", DumpCacheCmd, "Dumps the filecache", 0);
 
 static void WriteSearchCacheCmd(const CCommand& args)
 {
@@ -675,19 +721,6 @@ static void ReadSearchCacheCmd(const CCommand& args)
 	ReadSearchCache();
 }
 static ConCommand readsearchcache("holylib_filesystem_readsearchcache", ReadSearchCacheCmd, "Reads the search cache from a file", 0);
-
-static void DumpSearchCacheCmd(const CCommand& args)
-{
-	for (auto& [key, val] : g_pAbsoluteSearchCache)
-	{
-		Msg("	\"%s\":\n", key.data());
-		for (auto&[relativeFilePath, fullFilePath] : val)
-		{
-			Msg("		\"%s\": %s\n", relativeFilePath.data(), fullFilePath.data());
-		}
-	}
-}
-static ConCommand dumpabsolutesearchcache("holylib_filesystem_dumpabsolutesearchcache", DumpSearchCacheCmd, "Dumps the absolute search cache", 0);
 
 static bool bShutdown = false;
 
@@ -710,14 +743,6 @@ static void InitFileSystem(IFileSystem* pFileSystem)
 		Msg("holylib - filesystem: Initialized filesystem\n");
 }
 
-inline void OnFileHandleOpen(FileHandle_t handle, const char* pFileMode)
-{
-	if (pFileMode[0] == 'r') // I see a potential crash, but this should never happen... right?
-		return;
-
-	m_WriteFileHandle.insert(handle);
-}
-
 static Detouring::Hook detour_CBaseFileSystem_FindFileInSearchPath;
 static FileHandle_t hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, CFileOpenInfo &openInfo)
 {
@@ -732,64 +757,30 @@ static FileHandle_t hook_CBaseFileSystem_FindFileInSearchPath(void* filesystem, 
 	if (g_pFileSystemModule.InDebug())
 		Msg("FindFileInSearchPath: trying to find %s -> %p (%s)\n", openInfo.m_pFileName, openInfo.m_pSearchPath, openInfo.m_pSearchPath->GetPathIDString());
 
-	CSearchPath* cachePath = GetPathFromSearchCache(openInfo.m_pFileName, openInfo.m_pSearchPath->GetPathIDString());
-	if (cachePath)
+	if (g_pCachedFileSystem.FindCacheEntry(openInfo.m_pFileName, openInfo.m_pSearchPath))
 	{
+		if (!g_pCacheResult.IsValid())
+			return nullptr;
+
 		VPROF_BUDGET("HolyLib - CBaseFileSystem::FindFile - Cache", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
-		if (holylib_filesystem_cachefilehandle.GetBool())
-		{
-			FileHandle_t cacheFile = GetFileHandleFromCache(GetFullPath(cachePath, openInfo.m_pFileName));
-			if (cacheFile)
-			{
-				OnFileHandleOpen(cacheFile, openInfo.m_pOptions);
-				return cacheFile;
-			}
-		}
-
 		const CSearchPath* origPath = openInfo.m_pSearchPath;
-		openInfo.m_pSearchPath = cachePath;
+		openInfo.m_pSearchPath = g_pCacheResult.GetSearchPath();
 		FileHandle_t file = detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
 		if (file)
-		{
-			if (holylib_filesystem_cachefilehandle.GetBool())
-				AddFileHandleToCache(GetFullPath(openInfo.m_pSearchPath, openInfo.m_pFileName), file);
-
-			OnFileHandleOpen(file, openInfo.m_pOptions);
 			return file;
-		}
 
 		openInfo.m_pSearchPath = origPath;
-		RemoveFileFromSearchCache(openInfo.m_pFileName, openInfo.m_pSearchPath->GetPathIDString());
+		g_pCachedFileSystem.InvalidateFileFromCache(openInfo.m_pFileName, openInfo.m_pSearchPath);
 	} else {
-		if (holylib_filesystem_cachefilehandle.GetBool())
-		{
-			FileHandle_t cacheFile = GetFileHandleFromCache(GetFullPath(openInfo.m_pSearchPath, openInfo.m_pFileName));
-			if (cacheFile)
-			{
-				OnFileHandleOpen(cacheFile, openInfo.m_pOptions);
-				return cacheFile;
-			}
-		}
-
 		if (g_pFileSystemModule.InDebug())
 			Msg("FindFileInSearchPath: Failed to find cachePath! (%s)\n", openInfo.m_pFileName);
 	}
 
-	FileHandle_t file = detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
-
-	if (file)
-	{
-		AddFileToSearchCache(openInfo.m_pFileName, openInfo.m_pSearchPath->m_storeId, openInfo.m_pSearchPath->GetPathIDString());
-		if (holylib_filesystem_cachefilehandle.GetBool())
-			AddFileHandleToCache(GetFullPath(openInfo.m_pSearchPath, openInfo.m_pFileName), file);
-	
-		OnFileHandleOpen(file, openInfo.m_pOptions);
-	}
-
-	return file;
+	return detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
 }
 
+// Future note: When using an absolute path the search path should not be a packed file! And it doesn't matter what search path it is! Just not a pack!
 static Detouring::Hook detour_CBaseFileSystem_FastFileTime;
 static long hook_CBaseFileSystem_FastFileTime(void* filesystem, const CSearchPath* path, const char* pFileName)
 {
@@ -807,16 +798,18 @@ static long hook_CBaseFileSystem_FastFileTime(void* filesystem, const CSearchPat
 	bool bIsAbsolute = V_IsAbsolutePath(pFileName);
 	if (!bIsAbsolute)
 	{
-		CSearchPath* cachePath = GetPathFromSearchCache(pFileName, path->GetPathIDString());
-		if (cachePath)
+		if (g_pCachedFileSystem.FindCacheEntry(pFileName, path))
 		{
+			if (!g_pCacheResult.IsValid())
+				return 0L;
+
 			VPROF_BUDGET("HolyLib - CBaseFileSystem::FastFileTime - Cache", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
-			long time = detour_CBaseFileSystem_FastFileTime.GetTrampoline<Symbols::CBaseFileSystem_FastFileTime>()(filesystem, cachePath, pFileName);
+			long time = detour_CBaseFileSystem_FastFileTime.GetTrampoline<Symbols::CBaseFileSystem_FastFileTime>()(filesystem, g_pCacheResult.GetSearchPath(), pFileName);
 			if (time != 0L)
 				return time;
 
-			RemoveFileFromSearchCache(pFileName, path->GetPathIDString());
+			g_pCachedFileSystem.InvalidateFileFromCache(pFileName, path);
 		} else {
 			if (g_pFileSystemModule.InDebug())
 				Msg("holylib - FastFileTime: Failed to find cachePath! (%s)\n", pFileName);
@@ -824,14 +817,14 @@ static long hook_CBaseFileSystem_FastFileTime(void* filesystem, const CSearchPat
 	}
 
 	long time = detour_CBaseFileSystem_FastFileTime.GetTrampoline<Symbols::CBaseFileSystem_FastFileTime>()(filesystem, path, pFileName);
-
 	if (time != 0L && !bIsAbsolute)
-		AddFileToSearchCache(pFileName, path->m_storeId, path->GetPathIDString());
+		g_pCachedFileSystem.AddFileToCache(pFileName, path, "rb");
 
 	return time;
 }
 
-static bool is_file(const char *path) {
+static FORCEINLINE bool is_file(const char *path)
+{
 	const char *last_slash = strrchr(path, FILEPATH_SLASH_CHAR);
 	const char *last_dot = strrchr(path, '.');
 
@@ -849,121 +842,6 @@ static bool hook_CBaseFileSystem_IsDirectory(void* filesystem, const char* pFile
 	return detour_CBaseFileSystem_IsDirectory.GetTrampoline<Symbols::CBaseFileSystem_IsDirectory>()(filesystem, pFileName, pPathID);
 }
 
-static std::string_view nukeFileExtension(const std::string_view& fileName) {
-	size_t lastDotPos = fileName.find_last_of('.');
-	if (lastDotPos == std::string::npos) 
-		return fileName;
-
-	return fileName.substr(0, lastDotPos);
-}
-
-static std::string_view getFileExtension(const std::string_view& fileName) {
-	size_t lastDotPos = fileName.find_last_of('.');
-	if (lastDotPos == std::string::npos || lastDotPos == fileName.length() - 1)
-		return "";
-
-	return fileName.substr(lastDotPos + 1);
-}
-
-static bool shouldWeCare(const std::string_view& fileName) { // Skip models like models/airboat.mdl
-	size_t firstSlash = fileName.find_first_of(FILEPATH_SLASH_CHAR);
-	if (firstSlash == std::string::npos)
-		return false;
-
-	size_t lastSlash = fileName.find_last_of(FILEPATH_SLASH_CHAR);
-	if (lastSlash == std::string::npos || firstSlash == lastSlash)
-		return false;
-
-	return true;
-}
-
-static const char* GetSplitPath(const char* pFileName, const char* pathID)
-{
-	if (!holylib_filesystem_splitgamepath.GetBool())
-		return nullptr;
-
-	// We only enable split path for anything on the GAME path.
-	if (!pathID || V_stricmp("GAME", pathID) != 0)
-		return nullptr;
-
-	std::string_view strFileName = pFileName;
-	std::size_t pos = strFileName.find_first_of(FILEPATH_SLASH_CHAR);
-	if (pos == std::string::npos)
-		return nullptr;
-
-	std::string_view strStart = strFileName.substr(0, pos);
-	static const unordered_map<std::string_view, std::string_view> pOverridePaths = {
-		{"materials",	"CONTENT_MATERIALS"},
-		{"models",		"CONTENT_MODELS"},
-		{"sound",		"CONTENT_SOUNDS"},
-		{"maps",		"CONTENT_MAPS"},
-		{"resource",	"CONTENT_RESOURCE"},
-		{"scripts",		"CONTENT_SCRIPTS"},
-		{"cfg",			"CONTENT_CONFIGS"},
-		{"gamemodes",	"LUA_GAMEMODES"}
-	};
-
-	auto it = pOverridePaths.find(strStart);
-	if (it != pOverridePaths.end())
-		return it->second.data();
-
-	return nullptr;
-
-	/*if (pathID && (V_stricmp(pathID, "lsv") == 0 || V_stricmp(pathID, "GAME") == 0) && holylib_filesystem_splitluapath.GetBool())
-	{
-		if (strFileName.rfind("lua" FILEPATH_SLASH "includes" FILEPATH_SLASH) == 0)
-			return "LUA_INCLUDES";
-
-		if (strFileName.rfind("sandbox" FILEPATH_SLASH) == 0)
-			return "LUA_GAMEMODE_SANDBOX";
-
-		if (strFileName.rfind("effects" FILEPATH_SLASH) == 0)
-			return "LUA_EFFECTS";
-
-		if (strFileName.rfind("entities" FILEPATH_SLASH) == 0)
-			return "LUA_ENTITIES";
-
-		if (strFileName.rfind("weapons" FILEPATH_SLASH) == 0)
-			return "LUA_WEAPONS";
-
-		if (strFileName.rfind("lua" FILEPATH_SLASH "derma" FILEPATH_SLASH) == 0)
-			return "LUA_DERMA";
-
-		if (strFileName.rfind("lua" FILEPATH_SLASH "drive" FILEPATH_SLASH) == 0)
-			return "LUA_DRIVE";
-
-		if (strFileName.rfind("lua" FILEPATH_SLASH "entities" FILEPATH_SLASH) == 0)
-			return "LUA_LUA_ENTITIES"; // Why LUA_LUA?!?
-
-		if (strFileName.rfind("vgui" FILEPATH_SLASH) == 0)
-			return "LUA_VGUI";
-
-		if (strFileName.rfind("postprocess" FILEPATH_SLASH) == 0)
-			return "LUA_POSTPROCESS";
-
-		if (strFileName.rfind("matproxy" FILEPATH_SLASH) == 0)
-			return "LUA_MATPROXY";
-
-		if (strFileName.rfind("autorun" FILEPATH_SLASH) == 0)
-			return "LUA_AUTORUN";
-	}
-	
-	return nullptr;
-	*/
-}
-
-static unordered_map<std::string_view, std::string_view> g_pOverridePaths;
-void AddOverridePath(const char* pFileName, const char* pPathID)
-{
-	char* cFileName = new char[MAX_PATH];
-	V_strncpy(cFileName, pFileName, MAX_PATH);
-
-	char* cPathID = new char[MAX_PATH];
-	V_strncpy(cPathID, pPathID, MAX_PATH);
-
-	g_pOverridePaths[cFileName] = cPathID;
-}
-
 /*
  * This is the OpenForRead implementation but faster.
  */
@@ -978,281 +856,37 @@ FileHandle_t hook_CBaseFileSystem_OpenForRead(CBaseFileSystem* filesystem, const
 
 	func_CBaseFileSystem_FixUpPath(filesystem, pFileNameT, pFileNameBuff, sizeof(pFileNameBuff));
 
-	bool isBspFile = getFileExtension(pFileNameT) == "bsp";
-
-	// Check absolute cache FIRST (even for BSP files) - cache already has correct priority from first lookup
-	if (holylib_filesystem_savesearchcache.GetBool())
+	if (g_pCachedFileSystem.FindCacheEntry(pFileName, pathID))
 	{
-		std::string_view* absoluteStr = GetStringFromAbsoluteCache(pFileName, pathID);
-		if (absoluteStr)
-		{
-			if (g_pFileSystemModule.InDebug())
-				Msg("holylib - OpenForRead: Found file in absolute path (%s, %s)\n", pFileName, absoluteStr->data());
+		if (!g_pCacheResult.IsValid())
+			return nullptr;
 
-			FileHandle_t handle = detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, absoluteStr->data(), pOptions, flags, pathID, ppszResolvedFilename);
-			if (handle)
-				return handle;
-
-			if (g_pFileSystemModule.InDebug())
-				Msg("holylib - OpenForRead: Invalid absolute path! (%s, %s)\n", pFileName, absoluteStr->data());
-		}
-		else {
-			if (g_pFileSystemModule.InDebug())
-				Msg("holylib - OpenForRead: Failed to find file in absolute path (%s, %s)\n", pFileName, pFileNameT);
-		}
-	}
-
-	// For .bsp files NOT in cache, prioritize local garrysmod/maps/ over workshop
-	// This ensures first lookup gets the local file, which then gets cached
-	static std::string s_cachedBasePath;
-	if (isBspFile && !V_IsAbsolutePath(pFileName))
-	{
-		std::string_view strFileName = pFileName;
-		if (strFileName.rfind("maps" FILEPATH_SLASH, 0) == 0) // starts with maps/
-		{
-			// Cache BASE_PATH on first use (GetSearchPath is slow)
-			if (s_cachedBasePath.empty())
-			{
-				char pBaseDir[MAX_PATH];
-				int baseLen = g_pFullFileSystem->GetSearchPath("BASE_PATH", true, pBaseDir, sizeof(pBaseDir));
-				if (baseLen > 0)
-				{
-					// Remove trailing semicolon/path separator if present
-					if (pBaseDir[baseLen-1] == ';' || pBaseDir[baseLen-1] == ':')
-						pBaseDir[baseLen-1] = '\0';
-					
-					s_cachedBasePath = pBaseDir;
-					s_cachedBasePath.append("garrysmod" FILEPATH_SLASH);
-				}
-			}
-
-			if (!s_cachedBasePath.empty())
-			{
-				std::string localPath = s_cachedBasePath;
-				localPath.append(pFileName);
-
-				// Try to open the local file directly
-				FileHandle_t localHandle = detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, localPath.c_str(), pOptions, flags, nullptr, ppszResolvedFilename);
-				if (localHandle)
-					return localHandle;
-			}
-		}
-	}
-
-	bool splitPath = false;
-	const char* origPath = pathID;
-	const char* newPath = GetSplitPath(pFileName, pathID);
-	if (newPath)
-	{
 		if (g_pFileSystemModule.InDebug())
-			Msg("holylib - OpenForRead: Found split path! switching (%s, %s)\n", pathID, newPath);
+			Msg("Found Cache Entry %s -> %s\n", pFileName, g_pCacheResult.GetAbsolutePath());
 
-		pathID = newPath;
-		splitPath = true;
-	}
-
-	if (holylib_filesystem_forcepath.GetBool())
-	{
-		newPath = nullptr;
-		std::string_view strFileName = pFileName;
-
-		auto it = g_pOverridePaths.find(strFileName);
-		if (it != g_pOverridePaths.end())
-			newPath = it->second.data();
-
-		if (newPath)
+		if (g_pCacheResult.GetAbsolutePath())
 		{
-			FileHandle_t handle = detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
-			if (handle) {
-				if (g_pFileSystemModule.InDebug())
-					Msg("holylib - OpenForRead: Found file in forced path! (%s, %s, %s)\n", pFileNameT, pathID, newPath);
+			CFileOpenInfo openInfo(filesystem, g_pCacheResult.GetAbsolutePath(), nullptr, pOptions, flags, ppszResolvedFilename);
+			V_strncpy(openInfo.m_AbsolutePath, g_pCacheResult.GetAbsolutePath(), MIN(g_pCacheResult.GetAbsolutePathLength(), sizeof(openInfo.m_AbsolutePath)));
 
-				return handle;
-			} else {
-				if (g_pFileSystemModule.InDebug())
-					Msg("holylib - OpenForRead: Failed to find file in forced path! (%s, %s, %s)\n", pFileNameT, pathID, newPath);
-			}
-		} else {
-			if (g_pFileSystemModule.InDebug())
-				Msg("holylib - OpenForRead: File is not in overridePaths (%s, %s)\n", pFileNameT, pathID);
+			hook_CBaseFileSystem_HandleOpenRegularFile(filesystem, openInfo, true);
+			if (openInfo.m_pFileHandle)
+				return openInfo.m_pFileHandle;
+
+			Msg("Absolute Path Cache miss! (%s)\n", openInfo.m_AbsolutePath);
+			// g_pCachedFileSystem.InvalidateFileFromCache()
 		}
 	}
 
-	/*
-	 * The Prediction
-	 * --------------
-	 * 
-	 * I predict that all files are inside the same search paths.
-	 * With this prediction I can now get the search path of the .mdl file
-	 * and search in that one to find a file. If It's not found we say it doesn't exist.
-	 * 
-	 * The prediction currently is only implemented for models 
-	 * -> .mdl .vdd .vtx .phy .ani and the other fancy formats.
-	 */
-	if (holylib_filesystem_predictpath.GetBool() || holylib_filesystem_predictexistance.GetBool())
-	{
-		std::string_view strFileName = pFileNameT;
-		std::string_view extension = getFileExtension(strFileName);
-		CSearchPath* path = nullptr;
-		bool isModel = false;
-		if (extension == "vvd" || extension == "vtx" || extension == "phy" || extension == "ani")
-			isModel = true;
+	FileHandle_t fh = detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
+	if (!fh)
+		g_pCachedFileSystem.MarkFileMissing(pFileName, pathID);
 
-		if (isModel)
-		{
-			if (shouldWeCare(strFileName)) // Skip shitty files. I had enough
-			{
-				std::string_view mdlPath = nukeFileExtension(strFileName);
-				if (extension == "vtx")
-					mdlPath = nukeFileExtension(mdlPath); // "dx90.vtx" -> "dx90" -> ""
-
-				std::string finalMDLPath = (std::string)mdlPath + ".mdl";
-				path = GetPathFromSearchCache(finalMDLPath.c_str(), pathID);
-				if (!path)
-					if (g_pFileSystemModule.InDebug())
-						Msg("holylib - Prediction: failed to build a path? (%s, %s, %s)\n", finalMDLPath.c_str(), pathID, strFileName.data());
-			} else
-				if (g_pFileSystemModule.InDebug())
-					Msg("holylib - Prediction: We decided to not care about this specific file! (%s)\n", strFileName.data());
-		}
-
-		if (extension == "lmp") // .lmp -> map lump
-		{
-			// ToDo
-		}
-
-		if (extension == "vmt")
-		{
-			// ToDo. I got no plan how but I'll come up with one hopefully
-		}
-
-		if (extension == "lua")
-		{
-			// ToDo. Time to predict lua. We actually need to do this in FastFileTime or so
-		}
-
-		if (holylib_filesystem_savesearchcache.GetBool() && holylib_filesystem_predictexistance.GetBool())
-		{
-			std::string_view* absoluteStr = GetStringFromAbsoluteCache(pFileName, pathID);
-			if (!absoluteStr) // It didn't exist in the last cache, so most likely it won't exist now.
-			{
-				if (g_pFileSystemModule.InDebug())
-				{
-					Msg("holylib - Prediction(Combo): predicting that the file doesn't exist.\n");
-					FileHandle_t file2 = detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
-					if (file2)
-					{
-						Msg("holylib - Prediction(Combo) Error!: We predicted it to not exist, but it exists\n");
-						g_pFullFileSystem->Close(file2);
-					}
-				}
-
-				return nullptr;
-			}
-		}
-
-		if (path)
-		{
-			CFileOpenInfo openInfo( filesystem, pFileName, nullptr, pOptions, flags, ppszResolvedFilename );
-			openInfo.m_pSearchPath = path;
-			FileHandle_t file = hook_CBaseFileSystem_FindFileInSearchPath(filesystem, openInfo);
-			if (file) {
-				if (g_pFileSystemModule.InDebug())
-					Msg("holylib - Prediction: Found file in predicted path! (%s, %s)\n", pFileNameT, pathID);
-
-				if (holylib_filesystem_cachefilehandle.GetBool())
-					AddFileHandleToCache(GetFullPath(openInfo.m_pSearchPath, openInfo.m_pFileName), file);
-
-				return file;
-			} else {
-				if (g_pFileSystemModule.InDebug())
-					Msg("holylib - Prediction: Failed to predict file path! (%s, %s)\n", pFileNameT, pathID);
-
-				if (holylib_filesystem_predictexistance.GetBool())
-				{
-					if (g_pFileSystemModule.InDebug())
-					{
-						Msg("holylib - Prediction: predicted path failed. Let's say it doesn't exist.\n");
-						FileHandle_t file2 = detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
-						if (file2) // Verify in debug that the predictions we make are correct.
-						{
-							Msg("holylib - Prediction Error!: We predicted it to not exist, but it exists\n");
-							g_pFullFileSystem->Close(file2); // We still return nullptr!
-						}
-					}
-
-					std::string realStrFileName = std::string(strFileName);
-					auto it = m_PredictionCheck.find(realStrFileName); // This could cause additional slowdown :/
-					if (it != m_PredictionCheck.end())
-						return nullptr;
-
-					m_PredictionCheck.insert(realStrFileName);
-
-					return nullptr;
-				}
-			}
-		} else {
-			if (g_pFileSystemModule.InDebug())
-				Msg("holylib - Prediction: Not predicting it! (%s, %s, %s)\n", pFileNameT, pathID, extension.data());
-		}
-	}
-
-	if (!holylib_filesystem_earlysearchcache.GetBool())
-		return detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
-
-	if (V_IsAbsolutePath(pFileName))
-		return detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
-
-	// So we now got the issue that CBaseFileSystem::CSearchPathsIterator::CSearchPathsIterator is way too slow.
-	// so we need to skip it. We do this by checking if we got the file in the search cache before we call the OpenForRead function.
-	// Note: BSP files also use the cache - the local path priority check above ensures first lookup gets cached correctly
-	{
-		CSearchPath* cachePath = GetPathFromSearchCache(pFileName, pathID);
-		if (cachePath)
-		{
-			VPROF_BUDGET("HolyLib - SearchCache::OpenForRead", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
-
-			if (holylib_filesystem_cachefilehandle.GetBool())
-			{
-				FileHandle_t cacheFile = GetFileHandleFromCache(GetFullPath(cachePath, pFileName));
-				if (cacheFile)
-					return cacheFile;
-			}
-
-			CFileOpenInfo openInfo( filesystem, pFileName, nullptr, pOptions, flags, ppszResolvedFilename );
-			openInfo.m_pSearchPath = cachePath;
-			FileHandle_t file = detour_CBaseFileSystem_FindFileInSearchPath.GetTrampoline<Symbols::CBaseFileSystem_FindFileInSearchPath>()(filesystem, openInfo);
-			if (file)
-			{
-				if (holylib_filesystem_cachefilehandle.GetBool())
-					AddFileHandleToCache(GetFullPath(openInfo.m_pSearchPath, openInfo.m_pFileName), file);
-
-				return file;
-			}
-		} else {
-			if (g_pFileSystemModule.InDebug())
-				Msg("holylib - OpenForRead: Failed to find cachePath! (%s)\n", pFileName);
-		}
-	}
-	
-	if (splitPath && holylib_filesystem_splitfallback.GetBool())
-	{
-		FileHandle_t file = detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
-		if (file)
-			return file;
-
-		// ToDo: Find out why map content isn't found properly.
-		if (g_pFileSystemModule.InDebug())
-			Msg("holylib - OpenForRead: Failed to find file in splitPath! Failling back to original. This is slow! (%s)\n", pFileName);
-
-		pathID = origPath;
-	}
-
-	return detour_CBaseFileSystem_OpenForRead.GetTrampoline<Symbols::CBaseFileSystem_OpenForRead>()(filesystem, pFileNameT, pOptions, flags, pathID, ppszResolvedFilename);
+	return fh;
 }
 
 /*
- * GMOD first calls GetFileTime and then OpenForRead, so we need to make changes for lua in GetFileTime.
+ * GMod first calls GetFileTime and then OpenForRead, so we need to make changes for Lua in GetFileTime.
  */
 
 namespace IGamemodeSystem
@@ -1261,19 +895,12 @@ namespace IGamemodeSystem
 	{
 		bool exists;
 		bool menusystem;
-#ifndef WIN32
-		const char* title;
-		const char* name;
-		const char* maps;
-		const char* basename;
-		const char* category;
-#else
+		// Differences where due to ABI!
 		std::string title;
 		std::string name;
 		std::string maps;
 		std::string basename;
 		std::string category;
-#endif
 		uint64_t workshopid;
 	};
 }
@@ -1321,105 +948,16 @@ static long hook_CBaseFileSystem_GetFileTime(IFileSystem* filesystem, const char
 	const char *pFileName = pFileNameBuff;
 
 	func_CBaseFileSystem_FixUpPath(filesystem, pFileNameT, pFileNameBuff, sizeof(pFileNameBuff));
-	
-	bool bSplitPath = false;
-	const char* origPath = pPathID;
-	const char* newPath = GetSplitPath(pFileName, pPathID);
-	if (newPath)
-	{
-		if (g_pFileSystemModule.InDebug())
-			Msg("holylib - GetFileTime: Found split path! switching (%s, %s)\n", pPathID, newPath);
-
-		pPathID = newPath;
-		bSplitPath = true;
-	}
 
 	std::string_view strFileName = pFileName; // Workaround for now.
-	if (origPath && V_stricmp(origPath, "lsv") == 0 && holylib_filesystem_fixgmodpath.GetBool()) // Some weird things happen in the lsv path.  
-	{
+	if (pPathID && V_stricmp(pPathID, "lsv") == 0 && holylib_filesystem_fixgmodpath.GetBool()) // Some weird things happen in the lsv path.  
 		strFileName = fixGamemodePath(strFileName);
-	}
-	pFileName = strFileName.data();
 
+	pFileName = strFileName.data();
 	if (holylib_filesystem_skipinvalidluapaths.GetBool())
 	{
 		if (strFileName.rfind("include" FILEPATH_SLASH "include" FILEPATH_SLASH) == 0)
 			return 0L;
-	}
-
-	if (holylib_filesystem_forcepath.GetBool())
-	{
-		newPath = nullptr;
-
-		if (!newPath && strFileName.rfind("gamemodes" FILEPATH_SLASH "base") == 0)
-			newPath = "MOD_WRITE";
-
-		if (!newPath && strFileName.rfind("gamemodes" FILEPATH_SLASH "sandbox") == 0)
-			newPath = "MOD_WRITE";
-
-		if (!newPath && strFileName.rfind("gamemodes" FILEPATH_SLASH "terrortown") == 0)
-			newPath = "MOD_WRITE";
-
-		if (newPath)
-		{
-			long time = detour_CBaseFileSystem_GetFileTime.GetTrampoline<Symbols::CBaseFileSystem_GetFileTime>()(filesystem, pFileName, pPathID);
-			if (time != 0L) {
-				if (g_pFileSystemModule.InDebug())
-					Msg("holylib - GetFileTime: Found file in forced path! (%s, %s, %s)\n", pFileName, pPathID, newPath);
-				return time;
-			} else
-				if (g_pFileSystemModule.InDebug())
-					Msg("holylib - GetFileTime: Failed to find file in forced path! (%s, %s, %s)\n", pFileName, pPathID, newPath);
-		} else {
-			if (g_pFileSystemModule.InDebug())
-				Msg("holylib - GetFileTime: File is not in overridePaths (%s, %s)\n", pFileName, pPathID);
-		}
-	}
-
-	if (holylib_filesystem_savesearchcache.GetBool()) // why exactly was I doing this inside the forcepath check before? idk.
-	{
-		std::string_view* absoluteStr = GetStringFromAbsoluteCache(pFileName, pPathID);
-		if (!absoluteStr && holylib_filesystem_tryalternativeluapath.GetBool())
-		{
-			size_t nPos = strFileName.find_first_of(FILEPATH_SLASH_CHAR);
-			if (nPos != std::string_view::npos)
-			{
-				std::string_view altFileName = strFileName.substr(nPos + 1);
-				if (g_pFileSystemModule.InDebug())
-					Msg("holylib - GetFileTime: Trying alternative absolute path (%s -> %s)\n", strFileName.data(), altFileName.data());
-
-				absoluteStr = GetStringFromAbsoluteCache(altFileName.data(), pPathID);
-			}
-		}
-
-		if (absoluteStr)
-		{
-			if (g_pFileSystemModule.InDebug())
-				Msg("holylib - GetFileTime: Found file in absolute path (%s, %s)\n", pFileName, absoluteStr->data());
-
-			// We pass it a absolute path which will be used in ::FastFileTime
-			long time = detour_CBaseFileSystem_GetFileTime.GetTrampoline<Symbols::CBaseFileSystem_GetFileTime>()(filesystem, absoluteStr->data(), pPathID);
-			if (time != 0L)
-				return time;
-
-			if (g_pFileSystemModule.InDebug())
-				Msg("holylib - GetFileTime: Invalid absolute path? (%s, %s)\n", pFileName, absoluteStr->data());
-		} else {
-			if (g_pFileSystemModule.InDebug())
-				Msg("holylib - GetFileTime: Failed to find file in absolute path (%s)\n", pFileName);
-		}
-	}
-
-	if (bSplitPath)
-	{
-		long pTime = detour_CBaseFileSystem_GetFileTime.GetTrampoline<Symbols::CBaseFileSystem_GetFileTime>()(filesystem, pFileName, pPathID);
-		if (pTime != 0L)
-			return pTime;
-
-		if (g_pFileSystemModule.InDebug())
-			Msg("holylib - GetFileTime: Splitpath failed! (%s, %s, %s)\n", pFileName, pPathID, origPath);
-
-		pPathID = origPath;
 	}
 
 	return detour_CBaseFileSystem_GetFileTime.GetTrampoline<Symbols::CBaseFileSystem_GetFileTime>()(filesystem, pFileName, pPathID);
@@ -1592,9 +1130,8 @@ static void hook_CBaseFileSystem_AddVPKFile(IFileSystem* filesystem, const char 
 		Msg("holylib - Added vpk: %s %s %i\n", pPath, pathID, (int)addType);
 }
 
-#define FILE_HANDLE_DELETION_DELAY 5 // 5 sec
 static Detouring::Hook detour_CBaseFileSystem_Close;
-void DeleteFileHandle(FileHandle_t handle) // NOTE for myself: This is declared extern! so no static!!!
+static void DeleteFileHandle(FileHandle_t handle)
 {
 	detour_CBaseFileSystem_Close.GetTrampoline<Symbols::CBaseFileSystem_Close>()(g_pFullFileSystem, handle);
 }
@@ -1603,76 +1140,15 @@ static void hook_CBaseFileSystem_Close(IFileSystem* filesystem, FileHandle_t fil
 {
 	VPROF_BUDGET("HolyLib - CBaseFileSystem::Close", VPROF_BUDGETGROUP_OTHER_FILESYSTEM);
 
-	if (holylib_filesystem_cachefilehandle.GetBool())
-	{
-		auto it2 = m_WriteFileHandle.find(file);
-		if (it2 != m_WriteFileHandle.end())
-		{
-			m_WriteFileHandle.erase(it2);
-			detour_CBaseFileSystem_Close.GetTrampoline<Symbols::CBaseFileSystem_Close>()(filesystem, file);
-			return;
-		}
-
-		auto it = pFileDeletionList.find(file);
-		if (it == pFileDeletionList.end()) // File is being used again.
-			pFileDeletionList[file] = gpGlobals->curtime + FILE_HANDLE_DELETION_DELAY;
-		else
-			it->second = FILE_HANDLE_DELETION_DELAY;
-
-		if (g_pFileSystemModule.InDebug())
-			Msg("holylib - CBaseFileSystem::Close: Marked handle for deletion! (%p)\n", file);
-
+	if (!g_pCachedFileSystem.ShouldCloseHandle(file))
 		return;
-	}
 
 	detour_CBaseFileSystem_Close.GetTrampoline<Symbols::CBaseFileSystem_Close>()(filesystem, file);
 }
 
 void CFileSystemModule::Think(bool bSimulating)
 {
-	if (!holylib_filesystem_cachefilehandle.GetBool())
-		return;
-
-	std::vector<FileHandle_t> pDeletionList;
-	for (auto& [file, time] : pFileDeletionList)
-	{
-		if (gpGlobals->curtime > time)
-		{
-			pDeletionList.push_back(file);
-			if (g_pFileSystemModule.InDebug())
-				Msg("holylib - FileThread: Preparing filehandle for deletion! (%p, %f)\n", file, time);
-		}
-	}
-
-	if (pDeletionList.size() > 0)
-	{
-		for (FileHandle_t handle : pDeletionList)
-		{
-			auto it = pFileDeletionList.find(handle);
-			if (it == pFileDeletionList.end()) // File is being used again.
-				continue;
-
-			pFileDeletionList.erase(it);
-
-			RemoveFileHandleFromCache(handle); // Remove & Free the memory of the string.
-		}
-
-		for (FileHandle_t handle : pDeletionList) // We delete them outside the mutex to not block the main thread.
-		{
-			if (g_pFileSystemModule.InDebug())
-				Msg("holylib - FileThread: Deleted handle! (%p)\n", handle);
-
-			CFileHandle* fh = (CFileHandle*)handle;
-			if (!fh->m_pFile)
-			{
-				Msg("holylib - filesystem think: Tried to delete an already deleted handle!\n");
-				continue;
-			}
-
-			DeleteFileHandle(handle); // BUG! We somehow delete the same handle twice :/
-		}
-		pDeletionList.clear();
-	}
+	g_pCachedFileSystem.MainThink();
 }
 
 std::vector<std::string> splitString(std::string str, std::string_view delimiter)
@@ -1729,30 +1205,6 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 
 		delete[] pChar;
 	}
-
-
-	// We use MOD_WRITE because it doesn't have additional junk search paths.
-	AddOverridePath("cfg" FILEPATH_SLASH "server.cfg", "MOD_WRITE");
-	AddOverridePath("cfg" FILEPATH_SLASH "banned_ip.cfg", "MOD_WRITE");
-	AddOverridePath("cfg" FILEPATH_SLASH "banned_user.cfg", "MOD_WRITE");
-	AddOverridePath("cfg" FILEPATH_SLASH "skill2.cfg", "MOD_WRITE");
-	AddOverridePath("cfg" FILEPATH_SLASH "game.cfg", "MOD_WRITE");
-	AddOverridePath("cfg" FILEPATH_SLASH "trusted_keys_base.txt", "MOD_WRITE");
-	AddOverridePath("cfg" FILEPATH_SLASH "pure_server_minimal.txt", "MOD_WRITE");
-	AddOverridePath("cfg" FILEPATH_SLASH "skill_manifest.cfg", "MOD_WRITE");
-	AddOverridePath("cfg" FILEPATH_SLASH "skill.cfg", "MOD_WRITE");
-	AddOverridePath("cfg" FILEPATH_SLASH "mapcycle.txt", "MOD_WRITE");
-
-	AddOverridePath("stale.txt", "MOD_WRITE");
-	AddOverridePath("garrysmod.ver", "MOD_WRITE");
-	AddOverridePath("scripts" FILEPATH_SLASH "actbusy.txt", "MOD_WRITE");
-	AddOverridePath("modelsounds.cache", "MOD_WRITE");
-	AddOverridePath("lua" FILEPATH_SLASH "send.txt", "MOD_WRITE");
-
-	AddOverridePath("resource" FILEPATH_SLASH "serverevents.res", "MOD_WRITE");
-	AddOverridePath("resource" FILEPATH_SLASH "gameevents.res", "MOD_WRITE");
-	AddOverridePath("resource" FILEPATH_SLASH "modevents.res", "MOD_WRITE");
-	AddOverridePath("resource" FILEPATH_SLASH "hltvevents.res", "MOD_WRITE");
 
 	int pBaseLength = 0;
 	char pBaseDir[MAX_PATH];
@@ -1878,6 +1330,8 @@ DETOUR_THISCALL_START()
 	DETOUR_THISCALL_ADDFUNC1( hook_CBaseFileSystem_Close, Close, CBaseFileSystem*, FileHandle_t );
 	DETOUR_THISCALL_ADDFUNC3( hook_CBaseFileSystem_AddSearchPath, AddSearchPath, CBaseFileSystem*, const char*, const char*, SearchPathAdd_t );
 	DETOUR_THISCALL_ADDFUNC3( hook_CBaseFileSystem_AddVPKFile, AddVPKFile, CBaseFileSystem*, const char*, const char*, SearchPathAdd_t );
+	DETOUR_THISCALL_ADDFUNC2( hook_CBaseFileSystem_HandleOpenRegularFile, HandleOpenRegularFile, CBaseFileSystem*, CFileOpenInfo&, bool);
+	DETOUR_THISCALL_ADDRETFUNC4( hook_CBaseFileSystem_Trace_FOpen, void*, Trace_FOpen, CBaseFileSystem*, const char*, const char*, unsigned, int64*);
 DETOUR_THISCALL_FINISH();
 #endif
 
@@ -1953,6 +1407,18 @@ void CFileSystemModule::InitDetour(bool bPreServer)
 		&detour_CBaseFileSystem_AddVPKFile, "CBaseFileSystem::AddVPKFile",
 		filesystem_loader.GetModule(), Symbols::CBaseFileSystem_AddVPKFileSym,
 		(void*)DETOUR_THISCALL(hook_CBaseFileSystem_AddVPKFile, AddVPKFile), m_pID
+	);
+
+	Detour::Create(
+		&detour_CBaseFileSystem_HandleOpenRegularFile, "CBaseFileSystem::HandleOpenRegularFile",
+		filesystem_loader.GetModule(), Symbols::CBaseFileSystem_HandleOpenRegularFileSym,
+		(void*)DETOUR_THISCALL(hook_CBaseFileSystem_HandleOpenRegularFile, HandleOpenRegularFile), m_pID
+	);
+
+	Detour::Create(
+		&detour_CBaseFileSystem_Trace_FOpen, "CBaseFileSystem::Trace_FOpen",
+		filesystem_loader.GetModule(), Symbols::CBaseFileSystem_Trace_FOpenSym,
+		(void*)DETOUR_THISCALL(hook_CBaseFileSystem_Trace_FOpen, Trace_FOpen), m_pID
 	);
 
 #if SYSTEM_LINUX
@@ -2048,7 +1514,8 @@ LUA_FUNCTION_STATIC(filesystem_AsyncRead)
 void FileAsyncReadThink(GarrysMod::Lua::ILuaInterface* pLua)
 {
 	std::vector<IAsyncFile*> files;
-	for(IAsyncFile* file : asyncCallback) {
+	for(IAsyncFile* file : asyncCallback)
+	{
 		Util::ReferencePush(pLua, file->callback);
 		pLua->PushString(file->req->pszFilename);
 		pLua->PushString(file->req->pszPathID);
@@ -2089,11 +1556,10 @@ LUA_FUNCTION_STATIC(filesystem_Exists)
 
 std::string extractDirectoryPath(const std::string& filepath) {
 	size_t lastSlashPos = filepath.find_last_of('/');
-	if (lastSlashPos != std::string::npos) {
+	if (lastSlashPos != std::string::npos)
 		return filepath.substr(0, lastSlashPos + 1);
-	} else {
+	else
 		return "";
-	}
 }
 
 std::vector<std::string> SortByDate(std::vector<std::string> files, const char* filepath, const char* path, bool ascending)
@@ -2108,9 +1574,8 @@ std::vector<std::string> SortByDate(std::vector<std::string> files, const char* 
 		return dates[a] < dates[b];
 	});
 
-	if (!ascending) {
+	if (!ascending)
 		std::reverse(files.begin(), files.end());
-	}
 
 	return files;
 }
@@ -2245,6 +1710,11 @@ LUA_FUNCTION_STATIC(filesystem_AddSearchPath)
 {
 	Util::DoUnsafeCodeCheck(LUA);
 
+	// The Source Filesystem does not lock on the main thread that often!
+	// Soo the assumption is that the main thread is the only one modifying search paths!
+	if (!ThreadInMainThread())
+		LUA->ThrowError("Thread must be on the main thread due to filesystem assumptions!");
+
 	const char* folderPath = LUA->CheckString(1);
 	const char* gamePath = LUA->CheckString(2);
 	SearchPathAdd_t addType = LUA->GetBool(-1) ? SearchPathAdd_t::PATH_ADD_TO_HEAD : SearchPathAdd_t::PATH_ADD_TO_TAIL;
@@ -2257,6 +1727,9 @@ LUA_FUNCTION_STATIC(filesystem_RemoveSearchPath)
 {
 	Util::DoUnsafeCodeCheck(LUA);
 
+	if (!ThreadInMainThread())
+		LUA->ThrowError("Thread must be on the main thread due to filesystem assumptions!");
+
 	const char* folderPath = LUA->CheckString(1);
 	const char* gamePath = LUA->CheckString(2);
 	LUA->PushBool(g_pFullFileSystem->RemoveSearchPath(folderPath, gamePath));
@@ -2268,6 +1741,9 @@ LUA_FUNCTION_STATIC(filesystem_RemoveSearchPaths)
 {
 	Util::DoUnsafeCodeCheck(LUA);
 
+	if (!ThreadInMainThread())
+		LUA->ThrowError("Thread must be on the main thread due to filesystem assumptions!");
+
 	const char* gamePath = LUA->CheckString(1);
 	g_pFullFileSystem->RemoveSearchPaths(gamePath);
 
@@ -2277,6 +1753,9 @@ LUA_FUNCTION_STATIC(filesystem_RemoveSearchPaths)
 LUA_FUNCTION_STATIC(filesystem_RemoveAllSearchPaths)
 {
 	Util::DoUnsafeCodeCheck(LUA);
+
+	if (!ThreadInMainThread())
+		LUA->ThrowError("Thread must be on the main thread due to filesystem assumptions!");
 
 	g_pFullFileSystem->RemoveAllSearchPaths();
 
@@ -2459,12 +1938,7 @@ void CFileSystemModule::Shutdown()
 		pFileSystemPool = nullptr;
 	}
 
-	WriteSearchCache();
-	ClearAbsoluteSearchCache();
-	ClearFileSearchCache();
-	ClearFileHandleSearchCache();
-	bShutdown = true;
+	g_pCachedFileSystem.Shutdown();
 
-	m_PredictionCheck.clear();
-	// ToDo: Also clear there other shit.
+	bShutdown = true;
 }
