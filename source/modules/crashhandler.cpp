@@ -101,8 +101,14 @@ static FORCEINLINE int Mangle_ParseLength(const char (&pInput)[bufferSize], size
 */
 static FORCEINLINE void UnmangleCppName(const char (&pInput)[bufferSize], char (&pOutput)[bufferSize])
 {
+	struct Argument
+	{
+		unsigned short pos;
+		unsigned char length;
+	};
+
 	char pTempBuffer[bufferSize]; // pInput may equal pOutput! So we must write into a temporary buffer
-	unsigned short argPos[maxArguments] = {0};
+	Argument argPos[maxArguments] = {0};
 	size_t currentArg = 0;
 
 	size_t nInputPos = 0;
@@ -153,13 +159,17 @@ static FORCEINLINE void UnmangleCppName(const char (&pInput)[bufferSize], char (
 
 	SAFE_CHECK(nOutputPos+1)
 	pTempBuffer[nOutputPos++] = '(';
-	argPos[currentArg] = nInputPos;
+	argPos[currentArg].pos = nOutputPos;
 
 	bool bIsNext = false;
-	size_t rewindPos = 0;
 	char pAddAfterNext = 0;
+	size_t totalIterations = 0;
 	while (pInput[nInputPos])
 	{
+		// We took way too many iterations! So we failed
+		if (++totalIterations > 10000)
+			break;
+
 		if (pAddAfterNext)
 			bIsNext = true;
 
@@ -238,12 +248,21 @@ static FORCEINLINE void UnmangleCppName(const char (&pInput)[bufferSize], char (
 					if (pInput[nInputPos++] != '_' || subName < 0)
 						return; // Invalid!
 
-					rewindPos = nInputPos;
-					if (currentArg >= --subName)
-						nInputPos = argPos[subName];
-					else // If a substitution is unknown then we must reuse the previous one?
-						nInputPos = argPos[currentArg-1];
-					continue;
+					// FK THESE!
+					// Substitutions suck as it is fking unknown what is one
+					// How the heck should I know when there is nothing clear about that shit
+					if (currentArg > --subName)
+						return;
+
+					// If a substitution is unknown then we must reuse the previous one?
+					Argument& pArgument = argPos[currentArg-1];
+					if (pArgument.length == 0)
+						return; // Invalid argument was used
+
+					SAFE_CHECK(nOutputPos + pArgument.length);
+					memcpy(pTempBuffer + nOutputPos, pTempBuffer + pArgument.pos, pArgument.length);
+					nOutputPos += pArgument.length;
+					break;
 				}
 
 			case '0':
@@ -301,19 +320,16 @@ static FORCEINLINE void UnmangleCppName(const char (&pInput)[bufferSize], char (
 		
 		if (pInput[nInputPos] && !pAddAfterNext)
 		{
+			argPos[currentArg].length = nOutputPos - argPos[currentArg].pos;
+
 			SAFE_CHECK(nOutputPos+2)
 			pTempBuffer[nOutputPos++] = ',';
 			pTempBuffer[nOutputPos++] = ' ';
 
-			if (rewindPos > 0)
-			{
-				nInputPos = rewindPos;
-				rewindPos = 0;
-			} else {
-				argPos[++currentArg] = nInputPos;
-				if (currentArg >= maxArguments)
-					return; // Too many args >:(
-			}
+			argPos[++currentArg].pos = nOutputPos;
+
+			if (currentArg >= maxArguments)
+				return; // Too many args >:(
 		}
 	}
 
