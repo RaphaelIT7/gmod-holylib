@@ -422,6 +422,19 @@ static void hook_IVP_Mindist_Manager_recheck_ov_element(void* mindistManager, GM
 
 	g_pCurrentRecheckOVElement.pop_back();
 }
+
+static Detouring::Hook detour_IVP_Mindist_Minimize_Solver_p_minimize_PK;
+GMODSDK::IVP_MRC_TYPE hook_IVP_Mindist_Minimize_Solver_p_minimize_PK(void* _this, const GMODSDK::IVP_Compact_Edge* P, const GMODSDK::IVP_Compact_Edge* K, IVP_Cache_Ledge_Point* m_cache_P, IVP_Cache_Ledge_Point* m_cache_K)
+{
+	if (!K)
+	{
+		DevMsg(PROJECT_NAME " - physenv: Invalid Edge(K)!\n");
+		// Returning IVP_MRC_ALREADY_CALCULATED or IVP_MRC_ILLEGAL would result in an engine errror!
+		return GMODSDK::IVP_MRC_TYPE::IVP_MRC_ENDLESS_LOOP;
+	}
+
+	return detour_IVP_Mindist_Minimize_Solver_p_minimize_PK.GetTrampoline<Symbols::IVP_Mindist_Minimize_Solver_p_minimize_PK>()(_this, P, K, m_cache_P, m_cache_K);
+}
 #endif
 
 bool g_pForceOriginalIVP = false;
@@ -2839,6 +2852,12 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 			&detour_IVP_Mindist_Manager_recheck_ov_element, "IVP_Mindist_Manager::recheck_ov_element",
 			vphysics_loader.GetModule(), Symbols::IVP_Mindist_Manager_recheck_ov_elementSym,
 			(void*)hook_IVP_Mindist_Manager_recheck_ov_element, m_pID
+		);
+
+		Detour::Create(
+			&detour_IVP_Mindist_Minimize_Solver_p_minimize_PK, "IVP_Mindist_Minimize_Solver::p_minimize_PK",
+			vphysics_loader.GetModule(), Symbols::IVP_Mindist_Minimize_Solver_p_minimize_PKSym,
+			(void*)hook_IVP_Mindist_Minimize_Solver_p_minimize_PK, m_pID
 		);
 
 		func_IVP_Mindist_Base_get_objects = (Symbols::IVP_Mindist_Base_get_objects)Detour::GetFunction(vphysics_loader.GetModule(), Symbols::IVP_Mindist_Base_get_objectsSym);

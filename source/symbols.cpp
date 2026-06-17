@@ -896,6 +896,10 @@ namespace Symbols
 		Symbol::FromName("_ZN19IVP_Mindist_Manager18recheck_ov_elementEP15IVP_Real_Object"),
 	};
 
+	const std::vector<Symbol> IVP_Mindist_Minimize_Solver_p_minimize_PKSym = {
+		Symbol::FromName("_ZN27IVP_Mindist_Minimize_Solver13p_minimize_PKEPK16IVP_Compact_EdgeS2_P21IVP_Cache_Ledge_PointS4_"),
+	};
+
 	const std::vector<Symbol> IVP_Mindist_Minimize_Solver_p_minimize_PPSym = {
 		Symbol::FromName("_ZN27IVP_Mindist_Minimize_Solver13p_minimize_PPEPK16IVP_Compact_EdgeS2_P21IVP_Cache_Ledge_PointS4_"),
 	};

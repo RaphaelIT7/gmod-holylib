@@ -618,6 +618,9 @@ namespace Symbols
 	using IVP_Mindist_Manager_recheck_ov_element = void (GMCOMMON_CALLING_CONVENTION*)(void* mindistManager, void* physObj); // Crash fix.
 	extern const std::vector<Symbol> IVP_Mindist_Manager_recheck_ov_elementSym;
 
+	using IVP_Mindist_Minimize_Solver_p_minimize_PK = GMODSDK::IVP_MRC_TYPE (GMCOMMON_CALLING_CONVENTION*)(void* _this, const GMODSDK::IVP_Compact_Edge* P, const GMODSDK::IVP_Compact_Edge* K, IVP_Cache_Ledge_Point* m_cache_P, IVP_Cache_Ledge_Point* m_cache_K); // Crash fix.
+	extern const std::vector<Symbol> IVP_Mindist_Minimize_Solver_p_minimize_PKSym;
+
 	// Stuff for our do_impact replacement
 #endif
 
