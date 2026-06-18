@@ -426,9 +426,9 @@ static void hook_IVP_Mindist_Manager_recheck_ov_element(void* mindistManager, GM
 static Detouring::Hook detour_IVP_Mindist_Minimize_Solver_p_minimize_PK;
 GMODSDK::IVP_MRC_TYPE hook_IVP_Mindist_Minimize_Solver_p_minimize_PK(void* _this, const GMODSDK::IVP_Compact_Edge* P, const GMODSDK::IVP_Compact_Edge* K, IVP_Cache_Ledge_Point* m_cache_P, IVP_Cache_Ledge_Point* m_cache_K)
 {
-	if (!P || !K)
+	if (!P || !K || !m_cache_P || !m_cache_K)
 	{
-		DevMsg(PROJECT_NAME " - physenv: Invalid Edge(P - %p | K - %p)!\n", P, K);
+		DevMsg(PROJECT_NAME " - physenv: Invalid Edge(P - %p | K - %p | m_cache_P - %p | m_cache_K - %p)!\n", P, K, m_cache_P, m_cache_K);
 		// Returning IVP_MRC_ALREADY_CALCULATED or IVP_MRC_ILLEGAL would result in an engine errror!
 		return GMODSDK::IVP_MRC_TYPE::IVP_MRC_ENDLESS_LOOP;
 	}
