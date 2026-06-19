@@ -134,13 +134,16 @@ struct VoiceData
 	}
 
 	// This does NOT use the g_pDataBuffer
-	inline void SetDecompressedData(const char* pNewData, int iNewLength)
+	// pCodec lets the live FX path supply a per-player codec instead of the shared thread_local
+	// one (so concurrent talkers don't share opus encoder/seq state). nullptr -> shared codec.
+	inline void SetDecompressedData(const char* pNewData, int iNewLength, IVoiceCodec* pCodec = nullptr)
 	{
+		IVoiceCodec* codec = pCodec ? pCodec : &g_pOpusDecoder;
 		if (!voicechat_savedecompressed.GetBool())
 		{
 			char pCompressed[g_nCompressedSize];
 			int bytes = SteamVoice::CompressIntoBuffer(
-				fakeSteamID, &g_pOpusDecoder,
+				fakeSteamID, codec,
 				pNewData, iNewLength,
 				pCompressed, sizeof(pCompressed),
 				SAMPLERATE_GMOD_OPUS
@@ -168,13 +171,14 @@ struct VoiceData
 		bDecompressedChanged = true;
 	}
 
-	inline char* GetData()
+	inline char* GetData(IVoiceCodec* pCodec = nullptr)
 	{
 		if ((bDecompressedChanged || !pData) && pDecompressedData)
 		{
+			IVoiceCodec* codec = pCodec ? pCodec : &g_pOpusDecoder;
 			char pCompressed[g_nCompressedSize];
 			int bytes = SteamVoice::CompressIntoBuffer(
-				fakeSteamID, &g_pOpusDecoder,
+				fakeSteamID, codec,
 				pDecompressedData, iDecompressedLength,
 				pCompressed, sizeof(pCompressed),
 				SAMPLERATE_GMOD_OPUS
@@ -205,7 +209,8 @@ struct VoiceData
 	}
 
 	// If you call this expect g_pDataBuffer to be changed.
-	inline char* GetDecompressedData(int* pLength)
+	// pCodec lets the live FX path supply a per-player codec (see SetDecompressedData).
+	inline char* GetDecompressedData(int* pLength, IVoiceCodec* pCodec = nullptr)
 	{
 		if (pDecompressedData)
 		{
@@ -220,7 +225,7 @@ struct VoiceData
 		}
 
 		int bytes = SteamVoice::DecompressIntoBuffer(
-			&g_pOpusDecoder,
+			pCodec ? pCodec : &g_pOpusDecoder,
 			pData, iLength,
 			g_pDataBuffer.get(), g_pDataBufferSize
 		);
@@ -242,7 +247,7 @@ struct VoiceData
 			return g_pDataBuffer.get();
 		}
 
-		SetDecompressedData(g_pDataBuffer.get(), bytes);
+		SetDecompressedData(g_pDataBuffer.get(), bytes, pCodec);
 
 		*pLength = iDecompressedLength;
 		return pDecompressedData;
@@ -253,13 +258,14 @@ struct VoiceData
 		iLength = MIN(iDataLength, iNewLength);
 	}
 
-	inline int GetLength()
+	inline int GetLength(IVoiceCodec* pCodec = nullptr)
 	{
 		if (bDecompressedChanged && pDecompressedData)
 		{
+			IVoiceCodec* codec = pCodec ? pCodec : &g_pOpusDecoder;
 			char pCompressed[g_nCompressedSize];
 			int bytes = SteamVoice::CompressIntoBuffer(
-				fakeSteamID, &g_pOpusDecoder,
+				fakeSteamID, codec,
 				pDecompressedData, iDecompressedLength,
 				pCompressed, sizeof(pCompressed),
 				SAMPLERATE_GMOD_OPUS
@@ -1446,6 +1452,53 @@ static void ResetPlayerEffectState(int nPlayerSlot)
 	ResetPlayerEffectState(g_PlayerEffectState[nPlayerSlot]);
 }
 
+/*
+ * Per-player-slot opus codec for the LIVE (main-thread) FX path.
+ *
+ * The voice re-encode/decode goes through an Opus_FrameDecoder which holds STATEFUL opus
+ * encoder/decoder objects plus monotonic per-frame sequence counters (m_encodeSeq / m_seq).
+ * The default codec (g_pOpusDecoder) is a single thread_local instance, so on the main thread
+ * ALL talkers would share it: with 2+ concurrent FX talkers their frames interleave through one
+ * encoder+decoder, polluting opus inter-frame prediction and making each talker's wire sequence
+ * numbers non-contiguous -> every other frame looks "lost" to clients and triggers PLC
+ * concealment. Giving each player slot its own codec makes every talker an independent stream,
+ * exactly like the working single-talker case.
+ *
+ * Main-thread-only (the live SV_BroadcastVoiceData path). Worker-thread effect jobs (async /
+ * offline VoiceStream) keep using the thread_local g_pOpusDecoder, which is already per-thread.
+ * Lazily created, freed on disconnect / level change / shutdown.
+ */
+static SteamOpus::Opus_FrameDecoder* g_pLiveCodecs[MAX_PLAYERS] = { nullptr };
+
+static IVoiceCodec* GetLiveCodec(int nPlayerSlot)
+{
+	if (nPlayerSlot < 0 || nPlayerSlot >= MAX_PLAYERS)
+		return nullptr; // caller falls back to the shared thread_local codec
+
+	if (!g_pLiveCodecs[nPlayerSlot])
+		g_pLiveCodecs[nPlayerSlot] = new SteamOpus::Opus_FrameDecoder();
+
+	return g_pLiveCodecs[nPlayerSlot];
+}
+
+static void FreeLiveCodec(int nPlayerSlot)
+{
+	if (nPlayerSlot < 0 || nPlayerSlot >= MAX_PLAYERS)
+		return;
+
+	if (g_pLiveCodecs[nPlayerSlot])
+	{
+		delete g_pLiveCodecs[nPlayerSlot];
+		g_pLiveCodecs[nPlayerSlot] = nullptr;
+	}
+}
+
+static void FreeAllLiveCodecs()
+{
+	for (int i = 0; i < MAX_PLAYERS; ++i)
+		FreeLiveCodec(i);
+}
+
 // ===========================================================================================
 // DSP primitives. fs is ALWAYS SAMPLERATE_GMOD_OPUS (the rate the opus framedecoder uses).
 // ===========================================================================================
@@ -1460,9 +1513,13 @@ static inline double FlushDenormal(double v)
 	return (v > -1.0e-15 && v < 1.0e-15) ? 0.0 : v;
 }
 
-// Round-to-nearest then clamp into the int16 range.
+// Round-to-nearest then clamp into the int16 range. NaN-safe: a NaN sample (which would make
+// the float->int conversion undefined behavior) is treated as silence. +/-Inf fall through to
+// the range clamps below. This is the single sink for every DSP stage, so guarding it here
+// hardens all effects against a bad (NaN/Inf) parameter coming from Lua.
 static inline int16_t ClampToInt16(double v)
 {
+	if (v != v) return 0; // NaN
 	v += (v < 0.0) ? -0.5 : 0.5;
 	if (v > 32767.0) return 32767;
 	if (v < -32768.0) return -32768;
@@ -1540,8 +1597,11 @@ static void ApplyBiquad(int16_t* samples, int nSamples, const BiquadCoeffs& c, E
 // Soft-clip waveshaper: out = makeup * ((1-mix)*x + mix*tanh(drive*x)), x normalized to [-1,1].
 static void ApplyDistortion(int16_t* samples, int nSamples, float drive, float mix, float makeup)
 {
-	if (drive < 1.0f) drive = 1.0f;
-	mix = std::clamp(mix, 0.0f, 1.0f);
+	// Sanitize params (Lua can pass NaN/Inf). Note `drive < 1.0f` is false for NaN, so the
+	// isfinite check must come first. Mirrors the NaN rejection ComputeBiquad already does.
+	if (!std::isfinite(drive) || drive < 1.0f) drive = 1.0f;
+	if (!std::isfinite(makeup)) makeup = 1.0f;
+	mix = std::isfinite(mix) ? std::clamp(mix, 0.0f, 1.0f) : 0.0f;
 
 	const double d = drive, m = mix, mk = makeup;
 	for (int i = 0; i < nSamples; ++i)
@@ -1556,11 +1616,15 @@ static void ApplyDistortion(int16_t* samples, int nSamples, float drive, float m
 // (mod 2*pi) so the carrier is phase-continuous and doesn't click at frame boundaries.
 static void ApplyRingMod(int16_t* samples, int nSamples, float carrier, float mix, EffectStageState& st)
 {
-	mix = std::clamp(mix, 0.0f, 1.0f);
+	// Sanitize params: a non-finite carrier would make `inc` NaN and permanently poison the
+	// persistent phase accumulator (st.phase) for this slot until the next reset.
+	if (!std::isfinite(carrier)) carrier = 0.0f;
+	mix = std::isfinite(mix) ? std::clamp(mix, 0.0f, 1.0f) : 0.0f;
 
 	const double inc = kTwoPi * (double)carrier / (double)SAMPLERATE_GMOD_OPUS;
 	const double m = mix;
 	double phase = st.phase;
+	if (!std::isfinite(phase)) phase = 0.0; // recover a previously-poisoned state
 	for (int i = 0; i < nSamples; ++i)
 	{
 		double s = (double)samples[i];
@@ -1608,7 +1672,7 @@ static void ApplySingleEffect(int16_t* samples, int nSamples, const VoiceEffectD
 // Decompresses ONCE, applies the whole effect chain in order over the int16 PCM, then marks
 // the data dirty ONCE (recompress is lazy via GetData/GetLength). pState carries the per-chain
 // filter state; pass nullptr to run stateless (each stage gets a fresh zeroed state).
-static bool ApplyVoiceEffectChain(VoiceData* pData, const VoiceEffectData* pEffects, int nCount, PlayerEffectState* pState)
+static bool ApplyVoiceEffectChain(VoiceData* pData, const VoiceEffectData* pEffects, int nCount, PlayerEffectState* pState, IVoiceCodec* pCodec = nullptr)
 {
 	ISteamUser* pSteamUser = Util::GetSteamUser();
 	if (!pSteamUser)
@@ -1618,7 +1682,7 @@ static bool ApplyVoiceEffectChain(VoiceData* pData, const VoiceEffectData* pEffe
 		return false;
 
 	int nDecompressedLength = 0;
-	char* pDecompressedData = pData->GetDecompressedData(&nDecompressedLength);
+	char* pDecompressedData = pData->GetDecompressedData(&nDecompressedLength, pCodec);
 
 	if (pDecompressedData == nullptr || nDecompressedLength == 0)
 		return false;
@@ -1639,7 +1703,7 @@ static bool ApplyVoiceEffectChain(VoiceData* pData, const VoiceEffectData* pEffe
 
 	if (!voicechat_savedecompressed.GetBool())
 	{
-		pData->SetDecompressedData(pDecompressedData, nDecompressedLength);
+		pData->SetDecompressedData(pDecompressedData, nDecompressedLength, pCodec);
 		return true;
 	}
 
@@ -1690,12 +1754,17 @@ static void VoiceEffect(VoiceEffectJob*& pJob)
 		ResetPlayerEffectState(streamState);
 
 		std::map<int, VoiceData*> sorted(pJob->pStreamData->GetData().begin(), pJob->pStreamData->GetData().end());
+		bool bAnyFailed = false;
 		for (auto& [tick, voiceData] : sorted)
 		{
-			pJob->bFailed = !ApplyVoiceEffectChain(voiceData, pJob->pEffects, pJob->nEffectCount, &streamState);
-			if (pJob->bFailed && !pJob->bContinueOnFailure)
-				break;
+			if (!ApplyVoiceEffectChain(voiceData, pJob->pEffects, pJob->nEffectCount, &streamState))
+			{
+				bAnyFailed = true; // accumulate; don't let a later success mask an earlier failure
+				if (!pJob->bContinueOnFailure)
+					break;
+			}
 		}
+		pJob->bFailed = bAnyFailed;
 	} else {
 		if (pJob->pVoiceData)
 		{
@@ -1705,16 +1774,18 @@ static void VoiceEffect(VoiceEffectJob*& pJob)
 			// throwaway local state instead.
 			PlayerEffectState localState;
 			PlayerEffectState* pState;
+			IVoiceCodec* pCodec = nullptr; // nullptr -> shared thread_local codec (offline/async)
 			int slot = pJob->pVoiceData->iPlayerSlot; // uint8_t -> always >= 0
 			if (!pJob->bAsync && slot < MAX_PLAYERS)
 			{
 				pState = &g_PlayerEffectState[slot];
+				pCodec = GetLiveCodec(slot); // per-talker codec on the live main-thread path
 			} else {
 				ResetPlayerEffectState(localState);
 				pState = &localState;
 			}
 
-			pJob->bFailed = !ApplyVoiceEffectChain(pJob->pVoiceData, pJob->pEffects, pJob->nEffectCount, pState);
+			pJob->bFailed = !ApplyVoiceEffectChain(pJob->pVoiceData, pJob->pEffects, pJob->nEffectCount, pState, pCodec);
 		} else {
 			pJob->bFailed = true;
 		}
@@ -1777,6 +1848,7 @@ void CVoiceChatModule::ClientDisconnect(edict_t* pClient)
 	g_bIsPlayerDeafened[pClient->m_EdictIndex-1] = false;
 	g_fLastPlayerTalked[pClient->m_EdictIndex-1] = 0.0;
 	VoiceEffects::ResetPlayerEffectState(pClient->m_EdictIndex-1);
+	VoiceEffects::FreeLiveCodec(pClient->m_EdictIndex-1);
 }
 
 void CVoiceChatModule::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
@@ -1788,6 +1860,7 @@ void CVoiceChatModule::ServerActivate(edict_t* pEdictList, int edictCount, int c
 		g_bIsPlayerDeafened[i] = false;
 		g_fLastPlayerTalked[i] = 0.0;
 		VoiceEffects::ResetPlayerEffectState(i);
+		VoiceEffects::FreeLiveCodec(i);
 	}
 }
 
@@ -1800,6 +1873,7 @@ void CVoiceChatModule::LevelShutdown()
 		g_bIsPlayerDeafened[i] = false;
 		g_fLastPlayerTalked[i] = 0.0;
 		VoiceEffects::ResetPlayerEffectState(i);
+		VoiceEffects::FreeLiveCodec(i);
 	}
 }
 
@@ -1947,8 +2021,12 @@ LUA_FUNCTION_STATIC(voicechat_ProcessVoiceData)
 	if (!DETOUR_ISVALID(detour_SV_BroadcastVoiceData))
 		LUA->ThrowError("Missing valid detour for SV_BroadcastVoiceData!\n");
 
+	// Re-encode through the talker's per-slot live codec so this matches the decode done in
+	// ApplyEffect and stays independent of other concurrent talkers (see GetLiveCodec). For an
+	// invalid slot GetLiveCodec returns nullptr -> the shared codec (unchanged behavior).
+	IVoiceCodec* pCodec = VoiceEffects::GetLiveCodec(pData->iPlayerSlot);
 	detour_SV_BroadcastVoiceData.GetTrampoline<Symbols::SV_BroadcastVoiceData>()(
-		pClient, pData->GetLength(), pData->GetData(), 0
+		pClient, pData->GetLength(pCodec), pData->GetData(pCodec), 0
 	);
 
 	return 0;
@@ -2644,6 +2722,8 @@ void CVoiceChatModule::Shutdown()
 		Util::DestroyThreadPool(pVoiceThreadPool);
 		pVoiceThreadPool = nullptr;
 	}
+
+	VoiceEffects::FreeAllLiveCodecs();
 }
 
 IVoiceServer* g_pVoiceServer = nullptr;

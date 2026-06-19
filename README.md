@@ -2562,6 +2562,13 @@ If you want it to **not** run async, simply provide **no** callback function, it
 > [!NOTE]
 > It should be safe to modify/use the VoiceStream while it's being modified async **BUT** you should try to avoid doing that.
 
+> [!WARNING]
+> When you pass a **VoiceData** with a `callback` (async), the effect runs on a worker thread and
+> mutates that same object's buffers. Do **NOT** read or modify the VoiceData from Lua (`:GetData`,
+> `:SetData`, `:GetUncompressedData`, `:Empty`, …) until the callback fires, or you risk a data race
+> on its internal buffers. The live voice-FX path uses the **synchronous** form (no callback), which
+> runs on the main thread and is unaffected.
+
 #### voicechat.IsPlayerMuted(Player ply/number playerSlot)
 Returns `true` if the given player was muted using `voicechat.SetPlayerMuted`<br>
 
