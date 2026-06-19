@@ -1360,16 +1360,114 @@ namespace VoiceEffects
 {
 enum Effects {
 	None = 0,
-	Volume,
+	Volume,		// "Gain" is parsed as an alias of this.
+	Lowpass,	// RBJ biquad low-pass filter
+	Highpass,	// RBJ biquad high-pass filter
+	Bandpass,	// RBJ biquad band-pass filter (constant 0 dB peak gain)
+	Distortion,	// tanh soft-clip waveshaper
+	RingMod,	// sample * sin(2*pi*carrier*n/fs)
 };
+
+// A "preset" (e.g. HL2 radio) is just an array of primitive effects applied in order on
+// ONE decompress/recompress pass. This caps the length of such a chain.
+static constexpr int MAX_VOICE_EFFECT_CHAIN = 16;
 
 struct VoiceEffectData
 {
 	Effects type;
 	union {
-		float volume;
+		float volume;									// Volume / Gain
+		struct { float freq; float q; } biquad;			// Lowpass / Highpass / Bandpass
+		struct { float drive; float mix; float makeup; } distortion;	// Distortion
+		struct { float carrier; float mix; } ringmod;		// RingMod
 	} data;
 };
+
+/*
+ * ===========================================================================================
+ * Per-stream filter state
+ * ===========================================================================================
+ * Biquads (IIR delay line) and RingMod (phase accumulator) are STATEFUL. Voice arrives in
+ * many small frames per talk-burst; if the filter state reset on every frame you'd get an
+ * audible click/crackle at each frame boundary. So the state must persist ACROSS ApplyEffect
+ * calls within a single talk session.
+ *
+ * EffectStageState  = the delay line / phase for ONE position in an effect chain.
+ * PlayerEffectState = one EffectStageState per chain position (so e.g. Highpass->Lowpass each
+ *                     keep their own independent delay line).
+ *
+ * LIVE path (one ApplyEffect call == one voice frame, run synchronously on the MAIN thread
+ *   from inside HolyLib:PreProcessVoiceChat): state is kept in g_PlayerEffectState[], keyed by
+ *   player slot, and reset on the HolyLib:OnPlayerStartTalking boundary (see CheckTalkingState)
+ *   and on disconnect / level change. Because this path is always main-thread + synchronous,
+ *   the shared array needs no locking.
+ *
+ * OFFLINE VoiceStream path (one ApplyEffect call processes the whole stream): a single
+ *   PlayerEffectState lives on the stack of VoiceEffect() and is carried across the stream's
+ *   ticks, so the stream is filtered as one continuous signal and it NEVER touches the shared
+ *   per-slot array (safe to run on the voicechat thread pool).
+ *
+ * ASYNC single-VoiceData path also uses a job-local state (no cross-call continuity is possible
+ *   for a one-shot async call anyway), keeping the per-slot array strictly main-thread-only.
+ */
+struct EffectStageState
+{
+	double x1, x2, y1, y2;	// Biquad Direct Form I delay line (double for IIR precision)
+	double phase;			// RingMod phase accumulator, radians, kept in [0, 2*pi)
+};
+
+struct PlayerEffectState
+{
+	EffectStageState stages[MAX_VOICE_EFFECT_CHAIN];
+};
+
+// Keyed by player slot. Only ever touched on the main thread (the live
+// SV_BroadcastVoiceData -> PreProcessVoiceChat -> sync ApplyEffect path).
+static PlayerEffectState g_PlayerEffectState[MAX_PLAYERS];
+
+static inline void ResetStageState(EffectStageState& s)
+{
+	s.x1 = s.x2 = s.y1 = s.y2 = 0.0;
+	s.phase = 0.0;
+}
+
+static inline void ResetPlayerEffectState(PlayerEffectState& state)
+{
+	for (int i = 0; i < MAX_VOICE_EFFECT_CHAIN; ++i)
+		ResetStageState(state.stages[i]);
+}
+
+// Called on talk-start / disconnect / level change to clear a slot's filter state.
+static void ResetPlayerEffectState(int nPlayerSlot)
+{
+	if (nPlayerSlot < 0 || nPlayerSlot >= MAX_PLAYERS)
+		return;
+
+	ResetPlayerEffectState(g_PlayerEffectState[nPlayerSlot]);
+}
+
+// ===========================================================================================
+// DSP primitives. fs is ALWAYS SAMPLERATE_GMOD_OPUS (the rate the opus framedecoder uses).
+// ===========================================================================================
+static constexpr double kPi = 3.14159265358979323846;
+static constexpr double kTwoPi = 2.0 * kPi;
+
+// IIR feedback on decaying/near-silent voice can produce subnormal doubles which are
+// pathologically slow on x86; flush them. The threshold is far below int16 quantization (1.0)
+// so it is completely inaudible.
+static inline double FlushDenormal(double v)
+{
+	return (v > -1.0e-15 && v < 1.0e-15) ? 0.0 : v;
+}
+
+// Round-to-nearest then clamp into the int16 range.
+static inline int16_t ClampToInt16(double v)
+{
+	v += (v < 0.0) ? -0.5 : 0.5;
+	if (v > 32767.0) return 32767;
+	if (v < -32768.0) return -32768;
+	return (int16_t)v;
+}
 
 static void AdjustVolume(int16_t* audioData, size_t dataSize, float volume) {
 	for (size_t i = 0; i < dataSize; ++i) {
@@ -1378,10 +1476,145 @@ static void AdjustVolume(int16_t* audioData, size_t dataSize, float volume) {
 	}
 }
 
-static bool ApplyVoiceEffect(VoiceData* pData, VoiceEffectData& pEffect, int index = -1)
+// RBJ "Audio EQ Cookbook" biquad coefficients, already normalized by a0.
+struct BiquadCoeffs { double b0, b1, b2, a1, a2; };
+
+static BiquadCoeffs ComputeBiquad(Effects type, double freq, double q)
+{
+	BiquadCoeffs c = { 1.0, 0.0, 0.0, 0.0, 0.0 }; // identity / pass-through fallback
+
+	const double fs = (double)SAMPLERATE_GMOD_OPUS;
+	if (!(freq > 0.0) || freq >= fs * 0.5 || !(q > 0.0)) // bad params -> pass-through (don't blow up)
+		return c;
+
+	const double w0 = kTwoPi * freq / fs;
+	const double cosw0 = std::cos(w0);
+	const double sinw0 = std::sin(w0);
+	const double alpha = sinw0 / (2.0 * q);
+	const double a0 = 1.0 + alpha;
+	const double inv = 1.0 / a0;
+
+	double b0, b1, b2;
+	switch (type)
+	{
+	case Effects::Lowpass:
+		b0 = (1.0 - cosw0) * 0.5; b1 = (1.0 - cosw0); b2 = (1.0 - cosw0) * 0.5;
+		break;
+	case Effects::Highpass:
+		b0 = (1.0 + cosw0) * 0.5; b1 = -(1.0 + cosw0); b2 = (1.0 + cosw0) * 0.5;
+		break;
+	case Effects::Bandpass: // constant 0 dB peak gain variant
+		b0 = alpha; b1 = 0.0; b2 = -alpha;
+		break;
+	default:
+		return c;
+	}
+
+	c.b0 = b0 * inv;
+	c.b1 = b1 * inv;
+	c.b2 = b2 * inv;
+	c.a1 = (-2.0 * cosw0) * inv;
+	c.a2 = (1.0 - alpha) * inv;
+	return c;
+}
+
+// Direct Form I biquad, in-place over the int16 buffer. The IIR feedback uses the UNCLAMPED
+// floating output (true filter math); only the stored int16 is rounded/clamped.
+static void ApplyBiquad(int16_t* samples, int nSamples, const BiquadCoeffs& c, EffectStageState& st)
+{
+	double x1 = st.x1, x2 = st.x2, y1 = st.y1, y2 = st.y2;
+	for (int i = 0; i < nSamples; ++i)
+	{
+		double x0 = (double)samples[i];
+		double y0 = c.b0 * x0 + c.b1 * x1 + c.b2 * x2 - c.a1 * y1 - c.a2 * y2;
+		y0 = FlushDenormal(y0);
+
+		x2 = x1; x1 = x0;
+		y2 = y1; y1 = y0;
+
+		samples[i] = ClampToInt16(y0);
+	}
+	st.x1 = x1; st.x2 = x2; st.y1 = y1; st.y2 = y2;
+}
+
+// Soft-clip waveshaper: out = makeup * ((1-mix)*x + mix*tanh(drive*x)), x normalized to [-1,1].
+static void ApplyDistortion(int16_t* samples, int nSamples, float drive, float mix, float makeup)
+{
+	if (drive < 1.0f) drive = 1.0f;
+	mix = std::clamp(mix, 0.0f, 1.0f);
+
+	const double d = drive, m = mix, mk = makeup;
+	for (int i = 0; i < nSamples; ++i)
+	{
+		double x = (double)samples[i] / 32768.0;
+		double shaped = (1.0 - m) * x + m * std::tanh(d * x);
+		samples[i] = ClampToInt16(mk * shaped * 32768.0);
+	}
+}
+
+// Ring modulation against a sine carrier. The phase accumulator is carried across frames
+// (mod 2*pi) so the carrier is phase-continuous and doesn't click at frame boundaries.
+static void ApplyRingMod(int16_t* samples, int nSamples, float carrier, float mix, EffectStageState& st)
+{
+	mix = std::clamp(mix, 0.0f, 1.0f);
+
+	const double inc = kTwoPi * (double)carrier / (double)SAMPLERATE_GMOD_OPUS;
+	const double m = mix;
+	double phase = st.phase;
+	for (int i = 0; i < nSamples; ++i)
+	{
+		double s = (double)samples[i];
+		double mod = std::sin(phase);
+		samples[i] = ClampToInt16((1.0 - m) * s + m * (s * mod));
+
+		phase += inc;
+		if (phase >= kTwoPi || phase < 0.0)
+		{
+			phase = std::fmod(phase, kTwoPi);
+			if (phase < 0.0) phase += kTwoPi;
+		}
+	}
+	st.phase = phase;
+}
+
+// Applies ONE primitive effect over the int16 buffer, using the given persistent stage state
+// for stateful effects (biquad / ringmod). Stateless effects ignore `st`.
+static void ApplySingleEffect(int16_t* samples, int nSamples, const VoiceEffectData& e, EffectStageState& st)
+{
+	switch (e.type)
+	{
+	case Effects::Volume:
+		AdjustVolume(samples, (size_t)nSamples, e.data.volume);
+		break;
+	case Effects::Lowpass:
+	case Effects::Highpass:
+	case Effects::Bandpass:
+	{
+		BiquadCoeffs c = ComputeBiquad(e.type, e.data.biquad.freq, e.data.biquad.q);
+		ApplyBiquad(samples, nSamples, c, st);
+		break;
+	}
+	case Effects::Distortion:
+		ApplyDistortion(samples, nSamples, e.data.distortion.drive, e.data.distortion.mix, e.data.distortion.makeup);
+		break;
+	case Effects::RingMod:
+		ApplyRingMod(samples, nSamples, e.data.ringmod.carrier, e.data.ringmod.mix, st);
+		break;
+	default:
+		break;
+	}
+}
+
+// Decompresses ONCE, applies the whole effect chain in order over the int16 PCM, then marks
+// the data dirty ONCE (recompress is lazy via GetData/GetLength). pState carries the per-chain
+// filter state; pass nullptr to run stateless (each stage gets a fresh zeroed state).
+static bool ApplyVoiceEffectChain(VoiceData* pData, const VoiceEffectData* pEffects, int nCount, PlayerEffectState* pState)
 {
 	ISteamUser* pSteamUser = Util::GetSteamUser();
 	if (!pSteamUser)
+		return false;
+
+	if (nCount <= 0)
 		return false;
 
 	int nDecompressedLength = 0;
@@ -1390,16 +1623,18 @@ static bool ApplyVoiceEffect(VoiceData* pData, VoiceEffectData& pEffect, int ind
 	if (pDecompressedData == nullptr || nDecompressedLength == 0)
 		return false;
 
-	// NOTE: Our effects already use it as int_16 so DONT pass g_pDataBufferSize since that is meant for function that treat it as char*
-	// if you fk this up you'll modify the 20kb directly after our buffer which will fk up shit
-	int uncompressedSizeForInt16 = nDecompressedLength / sizeof(int16_t); // Divided by int16_t since our g_pDataBuffer uses int16_t and not char!
-	switch(pEffect.type)
+	// NOTE: Our effects use the buffer as int16 so the count is bytes/2. DON'T pass byte lengths
+	// to the per-sample loops or you'll run off the end of the decompressed buffer.
+	int16_t* samples = (int16_t*)pDecompressedData;
+	int nSamples = nDecompressedLength / (int)sizeof(int16_t);
+
+	EffectStageState scratch;
+	ResetStageState(scratch);
+	for (int i = 0; i < nCount; ++i)
 	{
-	case Effects::Volume:
-		AdjustVolume((int16_t*)pDecompressedData, uncompressedSizeForInt16, pEffect.data.volume);
-		break;
-	default:
-		break;
+		// Each chain position has its own persistent stage state (IIR delay / ringmod phase).
+		EffectStageState& st = (pState && i < MAX_VOICE_EFFECT_CHAIN) ? pState->stages[i] : scratch;
+		ApplySingleEffect(samples, nSamples, pEffects[i], st);
 	}
 
 	if (!voicechat_savedecompressed.GetBool())
@@ -1407,7 +1642,7 @@ static bool ApplyVoiceEffect(VoiceData* pData, VoiceEffectData& pEffect, int ind
 		pData->SetDecompressedData(pDecompressedData, nDecompressedLength);
 		return true;
 	}
-	
+
 	pData->MarkDecompressedChanged();
 	// We don't call SetDecompressedData since we never changed the size. We only modify the existing data
 
@@ -1430,13 +1665,15 @@ struct VoiceEffectJob {
 		}
 	}
 
-	VoiceEffectData pEffect;
+	VoiceEffectData pEffects[MAX_VOICE_EFFECT_CHAIN];	// The chain of primitives to apply, in order.
+	int nEffectCount = 0;
 	VoiceData* pVoiceData = nullptr;
 	VoiceStream* pStreamData = nullptr;
 	int iCallbackReference = -1;
 	int iReference = -1; // Reference to the VoiceData or VoiceStream
 	GarrysMod::Lua::ILuaInterface* pLua = nullptr;
 	bool bContinueOnFailure = true;
+	bool bAsync = false; // If true this runs on the thread pool -> must NOT touch g_PlayerEffectState.
 	bool bIsDone = false; // Will be true, if we failed bFailed will also be true
 	bool bFailed = false;
 };
@@ -1445,16 +1682,39 @@ static void VoiceEffect(VoiceEffectJob*& pJob)
 {
 	if (pJob->pStreamData != nullptr)
 	{
-		for (auto it = pJob->pStreamData->GetData().begin(); it != pJob->pStreamData->GetData().end(); ++it)
+		// Offline stream: carry ONE filter state across the whole stream so the IIR filters
+		// stay continuous (no click at every tick boundary). This state is local to the job
+		// (never the shared per-slot array) so it is safe even on the thread pool. Iterate in
+		// ascending tick order for the IIR/phase state to be meaningful.
+		PlayerEffectState streamState;
+		ResetPlayerEffectState(streamState);
+
+		std::map<int, VoiceData*> sorted(pJob->pStreamData->GetData().begin(), pJob->pStreamData->GetData().end());
+		for (auto& [tick, voiceData] : sorted)
 		{
-			pJob->bFailed = !ApplyVoiceEffect(it->second, pJob->pEffect, it->first);
+			pJob->bFailed = !ApplyVoiceEffectChain(voiceData, pJob->pEffects, pJob->nEffectCount, &streamState);
 			if (pJob->bFailed && !pJob->bContinueOnFailure)
 				break;
 		}
 	} else {
 		if (pJob->pVoiceData)
 		{
-			pJob->bFailed = !ApplyVoiceEffect(pJob->pVoiceData, pJob->pEffect);
+			// Live per-frame path uses the persistent per-slot state (continuous across the
+			// many small frames of a talk burst, reset on HolyLib:OnPlayerStartTalking). Only
+			// the synchronous main-thread path may touch the shared array; async jobs use a
+			// throwaway local state instead.
+			PlayerEffectState localState;
+			PlayerEffectState* pState;
+			int slot = pJob->pVoiceData->iPlayerSlot; // uint8_t -> always >= 0
+			if (!pJob->bAsync && slot < MAX_PLAYERS)
+			{
+				pState = &g_PlayerEffectState[slot];
+			} else {
+				ResetPlayerEffectState(localState);
+				pState = &localState;
+			}
+
+			pJob->bFailed = !ApplyVoiceEffectChain(pJob->pVoiceData, pJob->pEffects, pJob->nEffectCount, pState);
 		} else {
 			pJob->bFailed = true;
 		}
@@ -1476,6 +1736,10 @@ static void CheckTalkingState(int nPlayerSlot, bool bIsTalking)
 		if (!g_bIsPlayerTalking[nPlayerSlot]) // Started to talk
 		{
 			g_bIsPlayerTalking[nPlayerSlot] = true;
+
+			// New talk burst -> clear any leftover per-stream filter state so the first frame
+			// starts from a clean delay line / phase (prevents a click on the burst boundary).
+			VoiceEffects::ResetPlayerEffectState(nPlayerSlot);
 
 			if (Lua::PushHook("HolyLib:OnPlayerStartTalking"))
 			{
@@ -1512,6 +1776,7 @@ void CVoiceChatModule::ClientDisconnect(edict_t* pClient)
 	g_bIsPlayerMuted[pClient->m_EdictIndex-1] = false;
 	g_bIsPlayerDeafened[pClient->m_EdictIndex-1] = false;
 	g_fLastPlayerTalked[pClient->m_EdictIndex-1] = 0.0;
+	VoiceEffects::ResetPlayerEffectState(pClient->m_EdictIndex-1);
 }
 
 void CVoiceChatModule::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
@@ -1522,6 +1787,7 @@ void CVoiceChatModule::ServerActivate(edict_t* pEdictList, int edictCount, int c
 		g_bIsPlayerMuted[i] = false;
 		g_bIsPlayerDeafened[i] = false;
 		g_fLastPlayerTalked[i] = 0.0;
+		VoiceEffects::ResetPlayerEffectState(i);
 	}
 }
 
@@ -1533,6 +1799,7 @@ void CVoiceChatModule::LevelShutdown()
 		g_bIsPlayerMuted[i] = false;
 		g_bIsPlayerDeafened[i] = false;
 		g_fLastPlayerTalked[i] = 0.0;
+		VoiceEffects::ResetPlayerEffectState(i);
 	}
 }
 
@@ -2060,12 +2327,82 @@ LUA_FUNCTION_STATIC(voicechat_LastPlayerTalked)
 	return 1;
 }
 
+// Reads a number field from the effect table at absolute stack index `idx`, falling back if
+// it isn't present / isn't a number. Leaves the stack balanced.
+static float GetEffectNumber(GarrysMod::Lua::ILuaInterface* LUA, int idx, const char* field, float fallback)
+{
+	LUA->GetField(idx, field);
+	float v = LUA->IsType(-1, GarrysMod::Lua::Type::Number) ? (float)LUA->GetNumber(-1) : fallback;
+	LUA->Pop(1);
+	return v;
+}
+
+// Parses ONE effect table at absolute stack index `idx` into `out`. Returns true if the
+// "EffectName" named a known effect. Leaves the stack balanced.
+static bool ParseVoiceEffectTable(GarrysMod::Lua::ILuaInterface* LUA, int idx, VoiceEffects::VoiceEffectData& out)
+{
+	using namespace VoiceEffects;
+	out.type = Effects::None;
+
+	LUA->GetField(idx, "EffectName");
+	const char* pEffectName = LUA->IsType(-1, GarrysMod::Lua::Type::String) ? LUA->GetString(-1) : nullptr;
+	LUA->Pop(1);
+
+	if (!pEffectName)
+		return false;
+
+	if (V_stricmp(pEffectName, "Volume") == 0 || V_stricmp(pEffectName, "Gain") == 0)
+	{
+		out.type = Effects::Volume; // Gain is an alias of Volume
+		out.data.volume = GetEffectNumber(LUA, idx, "Volume", GetEffectNumber(LUA, idx, "volume", 1.0f));
+		return true;
+	}
+	else if (V_stricmp(pEffectName, "Lowpass") == 0)
+	{
+		out.type = Effects::Lowpass;
+		out.data.biquad.freq = GetEffectNumber(LUA, idx, "freq", 3400.0f);
+		out.data.biquad.q = GetEffectNumber(LUA, idx, "q", 0.707f);
+		return true;
+	}
+	else if (V_stricmp(pEffectName, "Highpass") == 0)
+	{
+		out.type = Effects::Highpass;
+		out.data.biquad.freq = GetEffectNumber(LUA, idx, "freq", 300.0f);
+		out.data.biquad.q = GetEffectNumber(LUA, idx, "q", 0.707f);
+		return true;
+	}
+	else if (V_stricmp(pEffectName, "Bandpass") == 0)
+	{
+		out.type = Effects::Bandpass;
+		out.data.biquad.freq = GetEffectNumber(LUA, idx, "freq", 1700.0f);
+		out.data.biquad.q = GetEffectNumber(LUA, idx, "q", 0.707f);
+		return true;
+	}
+	else if (V_stricmp(pEffectName, "Distortion") == 0)
+	{
+		out.type = Effects::Distortion;
+		out.data.distortion.drive = GetEffectNumber(LUA, idx, "drive", 2.0f);
+		out.data.distortion.mix = GetEffectNumber(LUA, idx, "mix", 0.5f);
+		out.data.distortion.makeup = GetEffectNumber(LUA, idx, "makeup", 1.0f);
+		return true;
+	}
+	else if (V_stricmp(pEffectName, "RingMod") == 0)
+	{
+		out.type = Effects::RingMod;
+		out.data.ringmod.carrier = GetEffectNumber(LUA, idx, "carrier", 30.0f);
+		out.data.ringmod.mix = GetEffectNumber(LUA, idx, "mix", 1.0f);
+		return true;
+	}
+
+	return false;
+}
+
 LUA_FUNCTION_STATIC(voicechat_ApplyEffect)
 {
 	LuaVoiceModuleData* pData = GetVoiceChatLuaData(LUA);
 
 	LUA->CheckType(1, GarrysMod::Lua::Type::Table);
-	
+
 	bool bIsAsync = LUA->IsType(3, GarrysMod::Lua::Type::Function);
 	bool bIsVoiceData = true;
 	if (!LUA->IsType(2, Lua::GetLuaData(LUA)->GetMetaTable(Lua::LuaTypes::VoiceData)))
@@ -2076,7 +2413,7 @@ LUA_FUNCTION_STATIC(voicechat_ApplyEffect)
 
 	VoiceEffects::VoiceEffectJob* pJob = new VoiceEffects::VoiceEffectJob();
 	pJob->pLua = LUA;
-	pJob->pEffect.type = VoiceEffects::Effects::None;
+	pJob->bAsync = bIsAsync;
 	if (bIsVoiceData)
 	{
 		pJob->pVoiceData = Get_VoiceData(LUA, 2, false);
@@ -2084,17 +2421,32 @@ LUA_FUNCTION_STATIC(voicechat_ApplyEffect)
 		pJob->pStreamData = Get_VoiceStream(LUA, 2, false);
 	}
 
+	// Argument 1 is EITHER a single effect table { EffectName = ... } OR an array of them
+	// { {EffectName=...}, {EffectName=...}, ... } applied in order. We detect a single effect
+	// by the presence of a string "EffectName" field at the top level.
 	LUA->GetField(1, "EffectName");
-	const char* pEffectName = LUA->GetString(-1);
-	if (V_stricmp(pEffectName, "Volume") == 0)
-	{
-		pJob->pEffect.type = VoiceEffects::Effects::Volume;
-
-		LUA->GetField(1, "Volume");
-		pJob->pEffect.data.volume = (float)LUA->GetNumber(-1);
-		LUA->Pop(1);
-	}
+	bool bSingleEffect = LUA->IsType(-1, GarrysMod::Lua::Type::String);
 	LUA->Pop(1);
+
+	if (bSingleEffect)
+	{
+		if (ParseVoiceEffectTable(LUA, 1, pJob->pEffects[0]))
+			pJob->nEffectCount = 1;
+	} else {
+		int nEntries = LUA->ObjLen(1);
+		for (int i = 1; i <= nEntries && pJob->nEffectCount < VoiceEffects::MAX_VOICE_EFFECT_CHAIN; ++i)
+		{
+			LUA->PushNumber(i);
+			LUA->RawGet(1);
+			if (LUA->IsType(-1, GarrysMod::Lua::Type::Table))
+			{
+				int top = LUA->Top(); // absolute index of the element we just pushed
+				if (ParseVoiceEffectTable(LUA, top, pJob->pEffects[pJob->nEffectCount]))
+					++pJob->nEffectCount;
+			}
+			LUA->Pop(1);
+		}
+	}
 
 	LUA->GetField(1, "ContinueOnFailure");
 	if (LUA->IsType(-1, GarrysMod::Lua::Type::Bool))

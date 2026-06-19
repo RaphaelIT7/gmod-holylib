@@ -2512,16 +2512,48 @@ Returns when the player last talked.
 #### bool voicechat.ApplyEffect(table effectData, VoiceStream/VoiceData stream, function callback = nil)
 callback = `function(VoiceStream/Voicedata data, bool success)`
 
-Example effectData:
+`effectData` is EITHER a single effect table OR an **array of effect tables** that are applied
+in order in a single decompress/recompress pass (so a "preset" = a chain of primitives without
+repeated codec round-trips, capped at 16 entries).
+
+Example single effect:
 ```lua
 {
-	ContinueOnFailure = true, -- If you process a VoiceStream and it fails to apply a effect for some reason it will still proceed and ignore the failure
+	ContinueOnFailure = true, -- If you process a VoiceStream and an effect fails it will still proceed and ignore the failure
 
-	-- Volume effect
 	EffectName = "Volume",
 	Volume = 1.0, -- The volume for the audio
 }
 ```
+
+Example effect chain (an "HL2 radio" preset):
+```lua
+{
+	{ EffectName = "Highpass",   freq = 400,  q = 0.7 },
+	{ EffectName = "Lowpass",    freq = 3400, q = 0.7 },
+	{ EffectName = "Distortion", drive = 2.5, mix = 0.5, makeup = 1.1 },
+}
+```
+
+Available effects:
+
+| EffectName | Parameters | Notes |
+| --- | --- | --- |
+| `Volume` / `Gain` | `Volume`/`volume` (number, default 1.0) | `Gain` is an alias of `Volume`. |
+| `Lowpass` | `freq` (Hz), `q` (default 0.707) | RBJ biquad low-pass. |
+| `Highpass` | `freq` (Hz), `q` (default 0.707) | RBJ biquad high-pass. |
+| `Bandpass` | `freq` (Hz), `q` (default 0.707) | RBJ biquad band-pass, constant 0 dB peak gain. |
+| `Distortion` | `drive` (>=1), `mix` (0..1), `makeup` | Soft-clip: `makeup * ((1-mix)*x + mix*tanh(drive*x))`. |
+| `RingMod` | `carrier` (Hz), `mix` (0..1) | `sample * sin(2*pi*carrier*n/fs)`. |
+
+All DSP runs at `fs = SAMPLERATE_GMOD_OPUS` on the mono int16 PCM, in place.
+
+The biquads and `RingMod` are **stateful** (IIR delay line / phase accumulator). For the live
+`HolyLib:PreProcessVoiceChat` path the filter state is kept **per player slot** and is reset on
+`HolyLib:OnPlayerStartTalking` (and on disconnect / level change), so a multi-frame talk burst is
+filtered as one continuous signal with no clicks at frame boundaries. When applied to a
+`VoiceStream` the state is carried across the stream's ticks instead. State is keyed by
+`VoiceData:GetPlayerSlot()` on the live path.
 
 Applies the given effectData to the given Data/Stream.<br>
 If a `callback` is specified it **WONT** return **anything** and the `callback` will be called, as it will execute everything **async**.<br>
