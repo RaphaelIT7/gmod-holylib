@@ -534,7 +534,7 @@ static void ReadElfName(const char* filePath, const ElfSections& sections, uintp
 			break;
 		}
 
-		if (closestOffset < symtab.st_value && symtab.st_value < searchAddress)
+		if (closestOffset < symtab.st_value && symtab.st_value < searchAddress && (symtab.st_value + symtab.st_size) >= searchAddress)
 		{
 			closestOffset = symtab.st_value;
 			closestOffsetName = symtab.st_name;
@@ -668,14 +668,16 @@ public:
 
 		// We push dladdr back since our implementation above gives more control of the information
 		// We dropped it since were better >:3
-		/*Dl_info dlInfo;
-		if (dladdr((void*)nAddress, &dlInfo) && dlInfo.dli_sname)
+		// Actually- we still use it as this can read libc.so.6
+		Dl_info dlInfo;
+		if (dladdr((void*)fileOffset, &dlInfo) && dlInfo.dli_sname)
 		{
 			strncpy(m_strReturnBuffer, dlInfo.dli_sname, sizeof(m_strReturnBuffer));
+			UnmangleCppName(m_strReturnBuffer, m_strReturnBuffer);
 			pResult.funcName = m_strReturnBuffer;
-			pResult.funcOffset = nAddress - (uintptr_t)dlInfo.dli_saddr;
+			pResult.funcOffset = fileOffset - (uintptr_t)dlInfo.dli_saddr;
 			return;
-		}*/
+		}
 
 		m_strReturnBuffer[0] = '?';
 		m_strReturnBuffer[1] = '?';
