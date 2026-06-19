@@ -1860,8 +1860,11 @@ void CVoiceChatModule::ServerActivate(edict_t* pEdictList, int edictCount, int c
 		g_bIsPlayerDeafened[i] = false;
 		g_fLastPlayerTalked[i] = 0.0;
 		VoiceEffects::ResetPlayerEffectState(i);
-		VoiceEffects::FreeLiveCodec(i);
 	}
+
+	// Free ALL live codecs (full slot range, not just [0, maxClients)): a codec can be lazily
+	// allocated for a manually-set high VoiceData slot via Lua, which the per-client loop misses.
+	VoiceEffects::FreeAllLiveCodecs();
 }
 
 void CVoiceChatModule::LevelShutdown()
@@ -1873,8 +1876,11 @@ void CVoiceChatModule::LevelShutdown()
 		g_bIsPlayerDeafened[i] = false;
 		g_fLastPlayerTalked[i] = 0.0;
 		VoiceEffects::ResetPlayerEffectState(i);
-		VoiceEffects::FreeLiveCodec(i);
 	}
+
+	// Free ALL live codecs (full slot range, not just [0, maxClients)): a codec can be lazily
+	// allocated for a manually-set high VoiceData slot via Lua, which the per-client loop misses.
+	VoiceEffects::FreeAllLiveCodecs();
 }
 
 static Detouring::Hook detour_CVoiceGameMgrHelper_CanPlayerHearPlayer;
