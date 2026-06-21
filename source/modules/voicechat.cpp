@@ -1381,6 +1381,7 @@ enum Effects {
 	Tremolo,	// amplitude LFO (cos) - wobble/comms flutter
 	Bitcrush,	// bit-depth + sample-rate reduction - degraded/digital comms
 	Noise,		// envelope-gated additive white noise - radio static/hiss
+	Echo,		// feedback delay line - slapback / room echo (PA, intercom)
 };
 
 // A "preset" (e.g. HL2 radio) is just an array of primitive effects applied in order on
@@ -1399,6 +1400,7 @@ struct VoiceEffectData
 		struct { float rate; float depth; } tremolo;		// Tremolo (LFO amplitude)
 		struct { float bits; float downsample; } bitcrush;	// Bitcrush (bit + rate reduction)
 		struct { float level; } noise;						// Noise (gated static level 0..1)
+		struct { float delay; float feedback; float mix; } echo;	// Echo (delay s, feedback 0..1, wet mix 0..1)
 	} data;
 };
 
@@ -1437,6 +1439,17 @@ struct EffectStageState
 	double env;				// Noise squelch envelope follower (normalized |x|)
 	double hold;			// Bitcrush sample-and-hold value (int16 scale)
 	int holdCount;			// Bitcrush samples remaining on the current held value
+
+	// Echo delay line. Lazily allocated (only stages that actually run an Echo pay for it), sized to
+	// the delay length in samples. The default member initializers guarantee a freshly-constructed
+	// (even stack-local) state starts with a null buffer, so the destructor / ResetStageState free
+	// is always safe. The struct is never copied (states are held by reference in the per-slot
+	// arrays), so a plain owning pointer needs no copy/move handling.
+	float* echoBuf = nullptr;
+	int echoLen = 0;		// ring length in samples (== delay)
+	int echoPos = 0;		// write cursor
+
+	~EffectStageState() { delete[] echoBuf; }
 };
 
 struct PlayerEffectState
@@ -1461,6 +1474,13 @@ static inline void ResetStageState(EffectStageState& s)
 	s.env = 0.0;
 	s.hold = 0.0;
 	s.holdCount = 0;
+	// Drop the echo delay line: clears any lingering tail and frees the buffer on talk-start /
+	// disconnect / level change. (echoBuf is nullptr on a fresh state via the member initializer,
+	// so this is safe even before the first ApplyEcho.) ApplyEcho re-allocates on next use.
+	delete[] s.echoBuf;
+	s.echoBuf = nullptr;
+	s.echoLen = 0;
+	s.echoPos = 0;
 }
 
 static inline void ResetPlayerEffectState(PlayerEffectState& state)
@@ -1792,8 +1812,49 @@ static void ApplyBitcrush(int16_t* samples, int nSamples, float bitsF, float dow
 	st.holdCount = hc;
 }
 
+// Feedback delay line (echo). delaySec = tap time, feedback = how much of the delayed signal is
+// fed back into the line (0..0.95, controls how many repeats), mix = wet level added to the dry
+// signal. The ring buffer lives in the stage state so the echo tail carries across the many small
+// frames of a talk burst (and is cleared on talk-start via ResetStageState). Lazily (re)allocated
+// when the delay length changes. Single-threaded per stage state (per-player worker affinity / main
+// thread), so the raw buffer needs no locking.
+static void ApplyEcho(int16_t* samples, int nSamples, float delaySec, float feedback, float mix, EffectStageState& st)
+{
+	delaySec = std::isfinite(delaySec) ? std::clamp(delaySec, 0.005f, 0.5f) : 0.0f;
+	feedback = std::isfinite(feedback) ? std::clamp(feedback, 0.0f, 0.95f) : 0.0f;
+	mix = std::isfinite(mix) ? std::clamp(mix, 0.0f, 1.0f) : 0.0f;
+	if (delaySec <= 0.0f || mix <= 0.0f)
+		return;
+
+	int len = (int)((double)delaySec * (double)SAMPLERATE_GMOD_OPUS);
+	if (len < 1) len = 1;
+
+	if (st.echoBuf == nullptr || st.echoLen != len)
+	{
+		delete[] st.echoBuf;
+		st.echoBuf = new float[len](); // zero-initialised (silent line); matches codebase new[] usage
+		st.echoLen = len;
+		st.echoPos = 0;
+	}
+
+	float* buf = st.echoBuf;
+	int pos = st.echoPos;
+	const int L = st.echoLen;
+	const double m = (double)mix;
+	const double fb = (double)feedback;
+	for (int i = 0; i < nSamples; ++i)
+	{
+		double dry = (double)samples[i];
+		double delayed = (double)buf[pos];           // signal from `len` samples ago
+		buf[pos] = (float)(dry + fb * delayed);      // write input + feedback back into the line
+		samples[i] = ClampToInt16(dry + m * delayed);// dry + wet echo
+		if (++pos >= L) pos = 0;
+	}
+	st.echoPos = pos;
+}
+
 // Applies ONE primitive effect over the int16 buffer, using the given persistent stage state
-// for stateful effects (biquad / ringmod / tremolo / noise / bitcrush). Stateless effects ignore `st`.
+// for stateful effects (biquad / ringmod / tremolo / noise / bitcrush / echo). Stateless effects ignore `st`.
 static void ApplySingleEffect(int16_t* samples, int nSamples, const VoiceEffectData& e, EffectStageState& st)
 {
 	switch (e.type)
@@ -1829,6 +1890,9 @@ static void ApplySingleEffect(int16_t* samples, int nSamples, const VoiceEffectD
 		break;
 	case Effects::Noise:
 		ApplyNoise(samples, nSamples, e.data.noise.level, st);
+		break;
+	case Effects::Echo:
+		ApplyEcho(samples, nSamples, e.data.echo.delay, e.data.echo.feedback, e.data.echo.mix, st);
 		break;
 	default:
 		break;
@@ -2963,6 +3027,14 @@ static bool ParseVoiceEffectTable(GarrysMod::Lua::ILuaInterface* LUA, int idx, V
 	{
 		out.type = Effects::Noise;
 		out.data.noise.level = GetEffectNumber(LUA, idx, "level", GetEffectNumber(LUA, idx, "noise", 0.02f));
+		return true;
+	}
+	else if (V_stricmp(pEffectName, "Echo") == 0 || V_stricmp(pEffectName, "Delay") == 0)
+	{
+		out.type = Effects::Echo;
+		out.data.echo.delay = GetEffectNumber(LUA, idx, "delay", 0.15f);     // seconds
+		out.data.echo.feedback = GetEffectNumber(LUA, idx, "feedback", 0.4f); // 0..0.95
+		out.data.echo.mix = GetEffectNumber(LUA, idx, "mix", 0.5f);          // wet 0..1
 		return true;
 	}
 
