@@ -11,6 +11,11 @@
 #include "server.h"
 #include "ivoiceserver.h"
 #include <memory>
+#include <thread>
+#include <mutex>
+#include <condition_variable>
+#include <atomic>
+#include <deque>
 #define private public // Try me.
 #include "shareddefs.h"
 #include "voice_gamemgr.h"
@@ -1837,6 +1842,10 @@ static void CheckTalkingState(int nPlayerSlot, bool bIsTalking)
 	}
 }
 
+// Forward declarations: the threaded voice-FX pipeline is defined further down (it needs the
+// SV_BroadcastVoiceData detour declared below), but these module lifecycle hooks reference it.
+namespace ThreadedVoiceFX { static void FreeSlot(int slot); static void StopWorkers(); }
+
 void CVoiceChatModule::ClientDisconnect(edict_t* pClient)
 {
 	if (pClient->m_EdictIndex > MAX_PLAYERS)
@@ -1849,6 +1858,7 @@ void CVoiceChatModule::ClientDisconnect(edict_t* pClient)
 	g_fLastPlayerTalked[pClient->m_EdictIndex-1] = 0.0;
 	VoiceEffects::ResetPlayerEffectState(pClient->m_EdictIndex-1);
 	VoiceEffects::FreeLiveCodec(pClient->m_EdictIndex-1);
+	ThreadedVoiceFX::FreeSlot(pClient->m_EdictIndex-1);
 }
 
 void CVoiceChatModule::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
@@ -1864,6 +1874,7 @@ void CVoiceChatModule::ServerActivate(edict_t* pEdictList, int edictCount, int c
 
 	// Free ALL live codecs (full slot range, not just [0, maxClients)): a codec can be lazily
 	// allocated for a manually-set high VoiceData slot via Lua, which the per-client loop misses.
+	ThreadedVoiceFX::StopWorkers(); // join FX workers + free their per-slot codecs/state
 	VoiceEffects::FreeAllLiveCodecs();
 }
 
@@ -1880,6 +1891,7 @@ void CVoiceChatModule::LevelShutdown()
 
 	// Free ALL live codecs (full slot range, not just [0, maxClients)): a codec can be lazily
 	// allocated for a manually-set high VoiceData slot via Lua, which the per-client loop misses.
+	ThreadedVoiceFX::StopWorkers(); // join FX workers + free their per-slot codecs/state
 	VoiceEffects::FreeAllLiveCodecs();
 }
 
@@ -1954,6 +1966,245 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 	}
 
 	detour_SV_BroadcastVoiceData.GetTrampoline<Symbols::SV_BroadcastVoiceData>()(pClient, nBytes, data, xuid);
+}
+
+// ===========================================================================================
+// Threaded voice-FX pipeline. Moves the expensive opus decode + DSP + re-encode OFF the main
+// thread while keeping per-talker quality and the broadcast itself on the main thread.
+//
+// Correctness model (this is the whole point -- it avoids the 3 failure modes of HolyLib's
+// generic async path):
+//   * Per-player WORKER AFFINITY (slot % N). Every frame for a given player is handled by the
+//     SAME worker, in FIFO order. That worker therefore has EXCLUSIVE, lock-free access to that
+//     player's opus codec (g_codecs[slot]) and IIR/ring-mod filter state (g_state[slot]) -> no
+//     data race, no shared-codec opus corruption, and frame ORDER is preserved.
+//   * Only decode/DSP/encode run on the worker. The actual SV_BroadcastVoiceData runs on the
+//     MAIN thread in LuaThink (DrainAndBroadcast), where Source networking is safe. Adds at most
+//     ~1 tick of latency (imperceptible for voice).
+//   * Codec/state for a slot are created, used and freed ONLY by its owning worker (free is sent
+//     as an in-band job on disconnect), so the main thread never touches them while a worker might.
+// ===========================================================================================
+namespace ThreadedVoiceFX
+{
+	struct FXJob
+	{
+		int slot = 0;
+		int inLen = 0;
+		char in[g_nCompressedSize];
+		VoiceEffects::VoiceEffectData effects[VoiceEffects::MAX_VOICE_EFFECT_CHAIN];
+		int nEffects = 0;
+		bool resetFirst = false; // new talk burst -> zero the filter state before this frame
+		bool freeSlot = false;   // teardown marker: free this slot's codec+state, do not broadcast
+		// filled by the worker:
+		int outLen = 0;
+		char out[g_nCompressedSize];
+		bool broadcast = false;
+	};
+
+	static const int kMaxWorkers = 8;
+	static SteamOpus::Opus_FrameDecoder* g_codecs[MAX_PLAYERS] = { nullptr }; // worker-owned (per slot)
+	static VoiceEffects::PlayerEffectState g_state[MAX_PLAYERS];              // worker-owned (per slot)
+
+	struct Worker
+	{
+		std::thread th;
+		std::mutex m;
+		std::condition_variable cv;
+		std::deque<FXJob*> q;
+		char pcm[g_pDataBufferSize]; // worker-local decode scratch
+	};
+	static Worker g_workers[kMaxWorkers];
+	static int g_nWorkers = 0;
+	static std::atomic<bool> g_run{ false };
+
+	static std::mutex g_doneM;
+	static std::deque<FXJob*> g_done; // completed jobs awaiting main-thread broadcast (per-player order preserved)
+
+	static double g_lastEnqueue[MAX_PLAYERS] = { 0 }; // main-thread only: burst-start detection
+
+	static void ProcessOne(Worker& w, FXJob* job)
+	{
+		const int slot = job->slot;
+		if (slot < 0 || slot >= MAX_PLAYERS)
+			return;
+
+		if (job->freeSlot)
+		{
+			if (g_codecs[slot]) { delete g_codecs[slot]; g_codecs[slot] = nullptr; }
+			VoiceEffects::ResetPlayerEffectState(g_state[slot]);
+			job->broadcast = false;
+			return;
+		}
+
+		if (!g_codecs[slot])
+			g_codecs[slot] = new SteamOpus::Opus_FrameDecoder();
+		SteamOpus::Opus_FrameDecoder* codec = g_codecs[slot];
+
+		if (job->resetFirst)
+			VoiceEffects::ResetPlayerEffectState(g_state[slot]);
+
+		int nbytes = SteamVoice::DecompressIntoBuffer(codec, job->in, job->inLen, w.pcm, g_pDataBufferSize);
+		if (nbytes <= 0)
+		{
+			// Degenerate/near-silent frame (too small to hold a valid opus chunk). Pass the original
+			// bytes through unmodified, exactly like the sync path's ProcessVoiceData-on-failure.
+			memcpy(job->out, job->in, job->inLen);
+			job->outLen = job->inLen;
+			job->broadcast = true;
+			return;
+		}
+
+		int16_t* samples = (int16_t*)w.pcm;
+		int nSamples = nbytes / (int)sizeof(int16_t);
+		for (int i = 0; i < job->nEffects && i < VoiceEffects::MAX_VOICE_EFFECT_CHAIN; ++i)
+			VoiceEffects::ApplySingleEffect(samples, nSamples, job->effects[i], g_state[slot].stages[i]);
+
+		int outBytes = SteamVoice::CompressIntoBuffer(fakeSteamID, codec, w.pcm, nbytes, job->out, g_nCompressedSize, SAMPLERATE_GMOD_OPUS);
+		if (outBytes <= 0)
+		{
+			memcpy(job->out, job->in, job->inLen); // re-encode failed -> fall back to original
+			job->outLen = job->inLen;
+		} else {
+			job->outLen = outBytes;
+		}
+		job->broadcast = true;
+	}
+
+	static void WorkerLoop(Worker* w)
+	{
+		for (;;)
+		{
+			FXJob* job = nullptr;
+			{
+				std::unique_lock<std::mutex> lk(w->m);
+				w->cv.wait(lk, [&]{ return !g_run.load() || !w->q.empty(); });
+				if (!g_run.load() && w->q.empty())
+					return;
+				job = w->q.front();
+				w->q.pop_front();
+			}
+			ProcessOne(*w, job);
+			{
+				std::lock_guard<std::mutex> lk(g_doneM);
+				g_done.push_back(job);
+			}
+		}
+	}
+
+	static void EnsureWorkers()
+	{
+		if (g_run.load())
+			return;
+		g_nWorkers = voicechat_threads.GetInt();
+		if (g_nWorkers < 1) g_nWorkers = 1;
+		if (g_nWorkers > kMaxWorkers) g_nWorkers = kMaxWorkers;
+		g_run.store(true);
+		for (int i = 0; i < g_nWorkers; ++i)
+			g_workers[i].th = std::thread(WorkerLoop, &g_workers[i]);
+	}
+
+	static void StopWorkers()
+	{
+		if (!g_run.load())
+			return;
+		g_run.store(false);
+		for (int i = 0; i < g_nWorkers; ++i)
+			g_workers[i].cv.notify_all();
+		for (int i = 0; i < g_nWorkers; ++i)
+			if (g_workers[i].th.joinable())
+				g_workers[i].th.join();
+
+		// Workers are stopped -> safe to free everything from the main thread.
+		for (int i = 0; i < g_nWorkers; ++i)
+		{
+			for (FXJob* j : g_workers[i].q) delete j;
+			g_workers[i].q.clear();
+		}
+		{
+			std::lock_guard<std::mutex> lk(g_doneM);
+			for (FXJob* j : g_done) delete j;
+			g_done.clear();
+		}
+		for (int i = 0; i < MAX_PLAYERS; ++i)
+		{
+			if (g_codecs[i]) { delete g_codecs[i]; g_codecs[i] = nullptr; }
+		}
+	}
+
+	// Main thread. Snapshots the compressed packet + effect chain and queues it to the slot's worker.
+	static void Enqueue(int slot, const char* data, int len, const VoiceEffects::VoiceEffectData* fx, int nfx)
+	{
+		if (slot < 0 || slot >= MAX_PLAYERS || nfx <= 0)
+			return;
+		if (len <= 0 || len > g_nCompressedSize)
+			return; // oversized/empty packet -> skip FX (extremely rare; engine still sent nothing extra)
+
+		EnsureWorkers();
+
+		FXJob* j = new FXJob();
+		j->slot = slot;
+		j->inLen = len;
+		memcpy(j->in, data, len);
+		j->nEffects = (nfx > VoiceEffects::MAX_VOICE_EFFECT_CHAIN) ? VoiceEffects::MAX_VOICE_EFFECT_CHAIN : nfx;
+		for (int i = 0; i < j->nEffects; ++i)
+			j->effects[i] = fx[i];
+
+		double now = gpGlobals->curtime;
+		if (now - g_lastEnqueue[slot] > 0.5) // gap since last frame -> treat as a fresh talk burst
+			j->resetFirst = true;
+		g_lastEnqueue[slot] = now;
+
+		Worker& w = g_workers[slot % g_nWorkers];
+		{
+			std::lock_guard<std::mutex> lk(w.m);
+			w.q.push_back(j);
+		}
+		w.cv.notify_one();
+	}
+
+	// Main thread. Queue an in-band teardown so the owning worker frees this slot's codec/state.
+	static void FreeSlot(int slot)
+	{
+		if (slot < 0 || slot >= MAX_PLAYERS || !g_run.load())
+			return;
+		FXJob* j = new FXJob();
+		j->slot = slot;
+		j->freeSlot = true;
+		Worker& w = g_workers[slot % g_nWorkers];
+		{
+			std::lock_guard<std::mutex> lk(w.m);
+			w.q.push_back(j);
+		}
+		w.cv.notify_one();
+	}
+
+	// Main thread (LuaThink). Broadcast every finished frame in order via the engine trampoline.
+	static void DrainAndBroadcast()
+	{
+		std::deque<FXJob*> done;
+		{
+			std::lock_guard<std::mutex> lk(g_doneM);
+			if (g_done.empty())
+				return;
+			done.swap(g_done);
+		}
+
+		const bool bValidDetour = DETOUR_ISVALID(detour_SV_BroadcastVoiceData);
+		for (FXJob* j : done)
+		{
+			if (j->broadcast && bValidDetour)
+			{
+				CBaseClient* cl = Util::GetClientByIndex(j->slot);
+				if (cl && cl->IsConnected())
+				{
+					detour_SV_BroadcastVoiceData.GetTrampoline<Symbols::SV_BroadcastVoiceData>()(
+						(IClient*)cl, j->outLen, j->out, 0
+					);
+				}
+			}
+			delete j;
+		}
+	}
 }
 
 LUA_FUNCTION_STATIC(voicechat_SendEmptyData)
@@ -2558,6 +2809,63 @@ LUA_FUNCTION_STATIC(voicechat_ApplyEffect)
 	}
 }
 
+// voicechat.ApplyEffect runs the decode/DSP/encode synchronously on the main thread. For the live
+// per-frame broadcast path under load (many simultaneous FX talkers) that opus work can dominate
+// the tick. ApplyEffectThreaded(client, voiceData, effectChain) instead snapshots the packet +
+// chain and hands the heavy work to a per-player worker thread; the result is broadcast on the next
+// main-thread tick (see ThreadedVoiceFX). Quality is identical (same codec, same DSP) -- only the
+// timing moves off-thread. Call it from HolyLib:PreProcessVoiceChat and return true to suppress the
+// original packet, exactly like ApplyEffect + ProcessVoiceData. Returns true if the job was queued.
+LUA_FUNCTION_STATIC(voicechat_ApplyEffectThreaded)
+{
+	CBaseClient* pClient = Util::Get_Client(LUA, 1, true);
+	VoiceData* pData = Get_VoiceData(LUA, 2, true);
+	LUA->CheckType(3, GarrysMod::Lua::Type::Table);
+
+	// Parse the chain: argument 3 is EITHER a single { EffectName = ... } OR an array of them
+	// (mirrors voicechat_ApplyEffect's detection).
+	VoiceEffects::VoiceEffectData effects[VoiceEffects::MAX_VOICE_EFFECT_CHAIN];
+	int nEffects = 0;
+
+	LUA->GetField(3, "EffectName");
+	bool bSingleEffect = LUA->IsType(-1, GarrysMod::Lua::Type::String);
+	LUA->Pop(1);
+
+	if (bSingleEffect)
+	{
+		if (ParseVoiceEffectTable(LUA, 3, effects[0]))
+			nEffects = 1;
+	} else {
+		int nEntries = LUA->ObjLen(3);
+		for (int i = 1; i <= nEntries && nEffects < VoiceEffects::MAX_VOICE_EFFECT_CHAIN; ++i)
+		{
+			LUA->PushNumber(i);
+			LUA->RawGet(3);
+			if (LUA->IsType(-1, GarrysMod::Lua::Type::Table))
+			{
+				int top = LUA->Top();
+				if (ParseVoiceEffectTable(LUA, top, effects[nEffects]))
+					++nEffects;
+			}
+			LUA->Pop(1);
+		}
+	}
+
+	// Snapshot the raw compressed packet via the public accessors (the members are private). The
+	// hook's VoiceData is unmodified here, so GetData()/GetLength() return the original bytes.
+	char* raw = pData->GetData();
+	int rawLen = pData->GetLength();
+	if (nEffects <= 0 || !raw || rawLen <= 0)
+	{
+		LUA->PushBool(false);
+		return 1;
+	}
+
+	ThreadedVoiceFX::Enqueue(pClient->GetPlayerSlot(), raw, rawLen, effects, nEffects);
+	LUA->PushBool(true);
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(voicechat_IsPlayerMuted)
 {
 	int iClient = Util::Get_ClientIndex(LUA, 1, true);
@@ -2588,6 +2896,9 @@ LUA_FUNCTION_STATIC(voicechat_SetPlayerDeaf)
 
 void CVoiceChatModule::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
 {
+	// Broadcast any voice frames the FX worker threads finished since last tick (main thread).
+	ThreadedVoiceFX::DrainAndBroadcast();
+
 	LuaVoiceModuleData* pData = GetVoiceChatLuaData(pLua);
 	if (!pData)
 		return;
@@ -2709,6 +3020,7 @@ void CVoiceChatModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServer
 		Util::AddFunc(pLua, voicechat_IsPlayerTalking, "IsPlayerTalking");
 		Util::AddFunc(pLua, voicechat_LastPlayerTalked, "LastPlayerTalked");
 		Util::AddFunc(pLua, voicechat_ApplyEffect, "ApplyEffect");
+		Util::AddFunc(pLua, voicechat_ApplyEffectThreaded, "ApplyEffectThreaded");
 		Util::AddFunc(pLua, voicechat_SetPlayerMuted, "SetPlayerMuted");
 		Util::AddFunc(pLua, voicechat_IsPlayerMuted, "IsPlayerMuted");
 		Util::AddFunc(pLua, voicechat_IsPlayerDeaf, "IsPlayerDeaf");
@@ -2729,6 +3041,7 @@ void CVoiceChatModule::Shutdown()
 		pVoiceThreadPool = nullptr;
 	}
 
+	ThreadedVoiceFX::StopWorkers(); // join FX workers + free their per-slot codecs/state
 	VoiceEffects::FreeAllLiveCodecs();
 }
 
