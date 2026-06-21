@@ -1377,6 +1377,10 @@ enum Effects {
 	Bandpass,	// RBJ biquad band-pass filter (constant 0 dB peak gain)
 	Distortion,	// tanh soft-clip waveshaper
 	RingMod,	// sample * sin(2*pi*carrier*n/fs)
+	Peaking,	// RBJ peaking EQ (resonant boost/cut at a frequency) - megaphone/phone tone
+	Tremolo,	// amplitude LFO (cos) - wobble/comms flutter
+	Bitcrush,	// bit-depth + sample-rate reduction - degraded/digital comms
+	Noise,		// envelope-gated additive white noise - radio static/hiss
 };
 
 // A "preset" (e.g. HL2 radio) is just an array of primitive effects applied in order on
@@ -1391,6 +1395,10 @@ struct VoiceEffectData
 		struct { float freq; float q; } biquad;			// Lowpass / Highpass / Bandpass
 		struct { float drive; float mix; float makeup; } distortion;	// Distortion
 		struct { float carrier; float mix; } ringmod;		// RingMod
+		struct { float freq; float q; float gainDb; } peaking;	// Peaking EQ
+		struct { float rate; float depth; } tremolo;		// Tremolo (LFO amplitude)
+		struct { float bits; float downsample; } bitcrush;	// Bitcrush (bit + rate reduction)
+		struct { float level; } noise;						// Noise (gated static level 0..1)
 	} data;
 };
 
@@ -1424,7 +1432,11 @@ struct VoiceEffectData
 struct EffectStageState
 {
 	double x1, x2, y1, y2;	// Biquad Direct Form I delay line (double for IIR precision)
-	double phase;			// RingMod phase accumulator, radians, kept in [0, 2*pi)
+	double phase;			// RingMod / Tremolo phase accumulator, radians, kept in [0, 2*pi)
+	uint32_t rng;			// Noise LCG state (per stage)
+	double env;				// Noise squelch envelope follower (normalized |x|)
+	double hold;			// Bitcrush sample-and-hold value (int16 scale)
+	int holdCount;			// Bitcrush samples remaining on the current held value
 };
 
 struct PlayerEffectState
@@ -1440,6 +1452,10 @@ static inline void ResetStageState(EffectStageState& s)
 {
 	s.x1 = s.x2 = s.y1 = s.y2 = 0.0;
 	s.phase = 0.0;
+	s.rng = 0x9E3779B9u;	// non-zero LCG seed (0 would stay 0)
+	s.env = 0.0;
+	s.hold = 0.0;
+	s.holdCount = 0;
 }
 
 static inline void ResetPlayerEffectState(PlayerEffectState& state)
@@ -1580,6 +1596,30 @@ static BiquadCoeffs ComputeBiquad(Effects type, double freq, double q)
 	return c;
 }
 
+// RBJ peaking EQ: a resonant boost/cut of `gainDb` dB centered at `freq`, bandwidth set by `q`.
+// Used for the megaphone "honk" and the telephone mid presence. Reuses the biquad delay line.
+static BiquadCoeffs ComputePeaking(double freq, double q, double gainDb)
+{
+	BiquadCoeffs c = { 1.0, 0.0, 0.0, 0.0, 0.0 }; // pass-through fallback
+	const double fs = (double)SAMPLERATE_GMOD_OPUS;
+	if (!(freq > 0.0) || freq >= fs * 0.5 || !(q > 0.0) || !std::isfinite(gainDb))
+		return c;
+
+	const double A = std::pow(10.0, gainDb / 40.0);
+	const double w0 = kTwoPi * freq / fs;
+	const double cosw0 = std::cos(w0);
+	const double alpha = std::sin(w0) / (2.0 * q);
+	const double a0 = 1.0 + alpha / A;
+	const double inv = 1.0 / a0;
+
+	c.b0 = (1.0 + alpha * A) * inv;
+	c.b1 = (-2.0 * cosw0) * inv;
+	c.b2 = (1.0 - alpha * A) * inv;
+	c.a1 = (-2.0 * cosw0) * inv;
+	c.a2 = (1.0 - alpha / A) * inv;
+	return c;
+}
+
 // Direct Form I biquad, in-place over the int16 buffer. The IIR feedback uses the UNCLAMPED
 // floating output (true filter math); only the stored int16 is rounded/clamped.
 static void ApplyBiquad(int16_t* samples, int nSamples, const BiquadCoeffs& c, EffectStageState& st)
@@ -1646,8 +1686,79 @@ static void ApplyRingMod(int16_t* samples, int nSamples, float carrier, float mi
 	st.phase = phase;
 }
 
+// Additive white noise gated by a speech-activity envelope: it only hisses while the speaker is
+// actually talking (silence stays clean), giving a believable radio static/squelch. level is
+// 0..1 of full scale. Per-stage LCG + envelope live in the stage state (carried across frames).
+static void ApplyNoise(int16_t* samples, int nSamples, float level, EffectStageState& st)
+{
+	level = std::isfinite(level) ? std::clamp(level, 0.0f, 1.0f) : 0.0f;
+	if (level <= 0.0f)
+		return;
+
+	double env = st.env;
+	uint32_t rng = st.rng ? st.rng : 0x9E3779B9u;
+	for (int i = 0; i < nSamples; ++i)
+	{
+		double x = (double)samples[i] / 32768.0;
+		env += 0.002 * (std::fabs(x) - env);          // speech-activity follower
+		double gate = env * 20.0; if (gate > 1.0) gate = 1.0;
+		rng = rng * 1664525u + 1013904223u;            // LCG white noise
+		double white = (double)(int32_t)rng * (1.0 / 2147483648.0); // -1..1
+		samples[i] = ClampToInt16((x + white * (double)level * gate) * 32768.0);
+	}
+	st.env = env;
+	st.rng = rng;
+}
+
+// Tremolo: amplitude LFO. depth 0..1 = how deep the level dips; rate in Hz. Phase carried across
+// frames so the wobble is continuous (no click at frame boundaries).
+static void ApplyTremolo(int16_t* samples, int nSamples, float rate, float depth, EffectStageState& st)
+{
+	depth = std::isfinite(depth) ? std::clamp(depth, 0.0f, 1.0f) : 0.0f;
+	if (!std::isfinite(rate) || rate <= 0.0f || depth <= 0.0f)
+		return;
+
+	const double inc = kTwoPi * (double)rate / (double)SAMPLERATE_GMOD_OPUS;
+	double phase = st.phase;
+	if (!std::isfinite(phase)) phase = 0.0;
+	for (int i = 0; i < nSamples; ++i)
+	{
+		double lfo = 0.5 - 0.5 * std::cos(phase);     // 0..1
+		samples[i] = ClampToInt16((double)samples[i] * (1.0 - (double)depth * lfo));
+		phase += inc;
+		if (phase >= kTwoPi) phase -= kTwoPi;
+	}
+	st.phase = phase;
+}
+
+// Bitcrush: quantize to `bits` bits and sample-and-hold each value for `downsample` output
+// samples (sample-rate reduction). Gives a degraded / digital-comms character.
+static void ApplyBitcrush(int16_t* samples, int nSamples, float bitsF, float downsampleF, EffectStageState& st)
+{
+	int bits = std::isfinite(bitsF) ? (int)bitsF : 16; if (bits < 1) bits = 1; if (bits > 16) bits = 16;
+	int ds = std::isfinite(downsampleF) ? (int)downsampleF : 1; if (ds < 1) ds = 1; if (ds > 64) ds = 64;
+	if (bits >= 16 && ds <= 1)
+		return; // no-op config
+
+	const double step = 65536.0 / (double)(1 << bits); // quantization step in int16 units
+	double hold = st.hold;
+	int hc = st.holdCount;
+	for (int i = 0; i < nSamples; ++i)
+	{
+		if (hc <= 0)
+		{
+			hold = std::floor((double)samples[i] / step + 0.5) * step; // requantize
+			hc = ds;
+		}
+		--hc;
+		samples[i] = ClampToInt16(hold);
+	}
+	st.hold = hold;
+	st.holdCount = hc;
+}
+
 // Applies ONE primitive effect over the int16 buffer, using the given persistent stage state
-// for stateful effects (biquad / ringmod). Stateless effects ignore `st`.
+// for stateful effects (biquad / ringmod / tremolo / noise / bitcrush). Stateless effects ignore `st`.
 static void ApplySingleEffect(int16_t* samples, int nSamples, const VoiceEffectData& e, EffectStageState& st)
 {
 	switch (e.type)
@@ -1668,6 +1779,21 @@ static void ApplySingleEffect(int16_t* samples, int nSamples, const VoiceEffectD
 		break;
 	case Effects::RingMod:
 		ApplyRingMod(samples, nSamples, e.data.ringmod.carrier, e.data.ringmod.mix, st);
+		break;
+	case Effects::Peaking:
+	{
+		BiquadCoeffs c = ComputePeaking(e.data.peaking.freq, e.data.peaking.q, e.data.peaking.gainDb);
+		ApplyBiquad(samples, nSamples, c, st);
+		break;
+	}
+	case Effects::Tremolo:
+		ApplyTremolo(samples, nSamples, e.data.tremolo.rate, e.data.tremolo.depth, st);
+		break;
+	case Effects::Bitcrush:
+		ApplyBitcrush(samples, nSamples, e.data.bitcrush.bits, e.data.bitcrush.downsample, st);
+		break;
+	case Effects::Noise:
+		ApplyNoise(samples, nSamples, e.data.noise.level, st);
 		break;
 	default:
 		break;
@@ -2726,6 +2852,34 @@ static bool ParseVoiceEffectTable(GarrysMod::Lua::ILuaInterface* LUA, int idx, V
 		out.type = Effects::RingMod;
 		out.data.ringmod.carrier = GetEffectNumber(LUA, idx, "carrier", 30.0f);
 		out.data.ringmod.mix = GetEffectNumber(LUA, idx, "mix", 1.0f);
+		return true;
+	}
+	else if (V_stricmp(pEffectName, "Peaking") == 0)
+	{
+		out.type = Effects::Peaking;
+		out.data.peaking.freq = GetEffectNumber(LUA, idx, "freq", 1000.0f);
+		out.data.peaking.q = GetEffectNumber(LUA, idx, "q", 1.0f);
+		out.data.peaking.gainDb = GetEffectNumber(LUA, idx, "gainDb", GetEffectNumber(LUA, idx, "gain", 6.0f));
+		return true;
+	}
+	else if (V_stricmp(pEffectName, "Tremolo") == 0)
+	{
+		out.type = Effects::Tremolo;
+		out.data.tremolo.rate = GetEffectNumber(LUA, idx, "rate", 8.0f);
+		out.data.tremolo.depth = GetEffectNumber(LUA, idx, "depth", 0.5f);
+		return true;
+	}
+	else if (V_stricmp(pEffectName, "Bitcrush") == 0)
+	{
+		out.type = Effects::Bitcrush;
+		out.data.bitcrush.bits = GetEffectNumber(LUA, idx, "bits", 8.0f);
+		out.data.bitcrush.downsample = GetEffectNumber(LUA, idx, "downsample", 2.0f);
+		return true;
+	}
+	else if (V_stricmp(pEffectName, "Noise") == 0 || V_stricmp(pEffectName, "Static") == 0)
+	{
+		out.type = Effects::Noise;
+		out.data.noise.level = GetEffectNumber(LUA, idx, "level", GetEffectNumber(LUA, idx, "noise", 0.02f));
 		return true;
 	}
 
