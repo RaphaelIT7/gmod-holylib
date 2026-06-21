@@ -1447,6 +1447,11 @@ struct PlayerEffectState
 // Keyed by player slot. Only ever touched on the main thread (the live
 // SV_BroadcastVoiceData -> PreProcessVoiceChat -> sync ApplyEffect path).
 static PlayerEffectState g_PlayerEffectState[MAX_PLAYERS];
+// Second per-slot DSP state, for the comm (channel 1) render in per-listener routing. The comm
+// stream is a separate IIR/phase context from the primary (channel 0) team/proximity stream so the
+// two renders of one talker frame don't trample each other's filter delay lines. Reset in lockstep
+// with g_PlayerEffectState (talk-start / disconnect / level change). Main-thread only.
+static PlayerEffectState g_CommEffectState[MAX_PLAYERS];
 
 static inline void ResetStageState(EffectStageState& s)
 {
@@ -1471,6 +1476,7 @@ static void ResetPlayerEffectState(int nPlayerSlot)
 		return;
 
 	ResetPlayerEffectState(g_PlayerEffectState[nPlayerSlot]);
+	ResetPlayerEffectState(g_CommEffectState[nPlayerSlot]); // comm (channel 1) render state
 }
 
 /*
@@ -1490,6 +1496,9 @@ static void ResetPlayerEffectState(int nPlayerSlot)
  * Lazily created, freed on disconnect / level change / shutdown.
  */
 static SteamOpus::Opus_FrameDecoder* g_pLiveCodecs[MAX_PLAYERS] = { nullptr };
+// Second per-slot codec for per-listener comm routing (radio/phone) -- see the long note at
+// GetCommCodec below. Declared here so FreeLiveCodec can release it alongside the primary codec.
+static SteamOpus::Opus_FrameDecoder* g_pCommCodecs[MAX_PLAYERS] = { nullptr };
 
 static IVoiceCodec* GetLiveCodec(int nPlayerSlot)
 {
@@ -1512,6 +1521,32 @@ static void FreeLiveCodec(int nPlayerSlot)
 		delete g_pLiveCodecs[nPlayerSlot];
 		g_pLiveCodecs[nPlayerSlot] = nullptr;
 	}
+
+	if (g_pCommCodecs[nPlayerSlot])
+	{
+		delete g_pCommCodecs[nPlayerSlot];
+		g_pCommCodecs[nPlayerSlot] = nullptr;
+	}
+}
+
+// Second per-slot codec, used for per-listener comm routing (radio/phone). A single talker frame
+// can need TWO different effect renders simultaneously -- e.g. proximity listeners hear the
+// talker's in-person team FX while radio recipients hear a radio-processed version. Each render is
+// an independent opus stream; encoding both through ONE codec would interleave two different audio
+// contents through one encoder, making each listener's wire sequence numbers non-contiguous ->
+// every other frame triggers PLC concealment (the exact bug GetLiveCodec fixes for concurrent
+// talkers). So the comm render gets its own per-slot codec, fully independent of the primary
+// (team/proximity) stream's g_pLiveCodecs codec. Freed in lockstep with the live codec
+// (FreeLiveCodec). The array itself is declared up next to g_pLiveCodecs.
+static IVoiceCodec* GetCommCodec(int nPlayerSlot)
+{
+	if (nPlayerSlot < 0 || nPlayerSlot >= MAX_PLAYERS)
+		return nullptr; // caller falls back to the shared thread_local codec
+
+	if (!g_pCommCodecs[nPlayerSlot])
+		g_pCommCodecs[nPlayerSlot] = new SteamOpus::Opus_FrameDecoder();
+
+	return g_pCommCodecs[nPlayerSlot];
 }
 
 static void FreeAllLiveCodecs()
@@ -2396,6 +2431,54 @@ LUA_FUNCTION_STATIC(voicechat_BroadcastVoiceData)
 	return 0;
 }
 
+// voicechat.BroadcastVoiceDataChannel(VoiceData, recipientTable, channel)
+//
+// Like BroadcastVoiceData, but re-encodes through a per-talker-slot codec selected by `channel`
+// instead of the shared thread_local codec. This is what makes per-listener comm routing possible:
+// a single talker frame can be broadcast as TWO independent streams in the same tick -- e.g. the
+// in-person/team FX to proximity listeners on channel 0 and a radio-processed copy to radio
+// recipients on channel 1 -- without the two encodes polluting each other's opus sequence numbers
+// (which would cause PLC concealment every other frame). See GetCommCodec.
+//
+//   channel 0 -> g_pLiveCodecs[slot]  (the primary/proximity stream; same codec ProcessVoiceData
+//                                       uses, so a talker's in-person voice stays one continuous
+//                                       stream whether or not they are also on comms this tick)
+//   channel 1 -> g_pCommCodecs[slot]  (the comm/radio/phone stream)
+//
+// A recipient table is REQUIRED -- comm routing is always targeted. The VoiceData's bProximity
+// flag is honored (set it false for radio/phone so the client plays it flat/2D, true for the
+// in-person stream so it stays positional).
+LUA_FUNCTION_STATIC(voicechat_BroadcastVoiceDataChannel)
+{
+	VoiceData* pData = Get_VoiceData(LUA, 1, true);
+	LUA->CheckType(2, GarrysMod::Lua::Type::Table);
+	int channel = (int)LUA->CheckNumberOpt(3, 0);
+
+	IVoiceCodec* pCodec = (channel == 1)
+		? VoiceEffects::GetCommCodec(pData->iPlayerSlot)
+		: VoiceEffects::GetLiveCodec(pData->iPlayerSlot);
+
+	SVC_VoiceData voiceData;
+	voiceData.m_nFromClient = pData->iPlayerSlot;
+	voiceData.m_nLength = pData->GetLength(pCodec) * 8; // In Bits...
+	voiceData.m_DataOut = pData->GetData(pCodec);
+	voiceData.m_bProximity = pData->bProximity;
+	voiceData.m_xuid = 0;
+
+	LUA->Push(2);
+	LUA->PushNil();
+	while (LUA->Next(-2))
+	{
+		CBaseClient* pClient = Util::Get_Client(LUA, -1, true);
+		pClient->SendNetMsg(voiceData);
+
+		LUA->Pop(1);
+	}
+	LUA->Pop(1);
+
+	return 0;
+}
+
 LUA_FUNCTION_STATIC(voicechat_ProcessVoiceData)
 {
 	CBaseClient* pClient = Util::Get_Client(LUA, 1, true);
@@ -3020,6 +3103,84 @@ LUA_FUNCTION_STATIC(voicechat_ApplyEffectThreaded)
 	return 1;
 }
 
+// voicechat.ApplyEffectChannel(VoiceData, effectChain, channel)
+//
+// Like ApplyEffect, but routes the decode + (deferred) encode and the DSP filter state through a
+// per-talker-slot channel selected by `channel`, instead of always using the primary one. This is
+// what makes per-listener comm routing correct: a single talker frame can be rendered TWO different
+// ways in the same tick -- e.g. team FX for proximity listeners (channel 0) and radio FX for radio
+// recipients (channel 1) -- as two fully independent opus streams. Pair each render with
+// BroadcastVoiceDataChannel(VoiceData, recipients, channel) using the SAME channel so the deferred
+// encode picks the matching codec. Reusing ApplyEffect (always channel 0) for both renders would
+// run both through one encoder + one DSP state and corrupt each other (PLC every other frame +
+// smeared filters). Returns true on success.
+//
+//   channel 0 -> g_pLiveCodecs[slot] + g_PlayerEffectState[slot]  (identical to ApplyEffect)
+//   channel 1 -> g_pCommCodecs[slot] + g_CommEffectState[slot]
+//
+// Synchronous, main-thread only (mirrors the sync ApplyEffect path). Do NOT mix with the threaded
+// path for the same talker on the same frame.
+LUA_FUNCTION_STATIC(voicechat_ApplyEffectChannel)
+{
+	VoiceData* pData = Get_VoiceData(LUA, 1, true);
+	LUA->CheckType(2, GarrysMod::Lua::Type::Table);
+	int channel = (int)LUA->CheckNumberOpt(3, 0);
+
+	// Parse the chain: argument 2 is EITHER a single { EffectName = ... } OR an array of them
+	// (mirrors voicechat_ApplyEffect / voicechat_ApplyEffectThreaded).
+	VoiceEffects::VoiceEffectData effects[VoiceEffects::MAX_VOICE_EFFECT_CHAIN];
+	int nEffects = 0;
+
+	LUA->GetField(2, "EffectName");
+	bool bSingleEffect = LUA->IsType(-1, GarrysMod::Lua::Type::String);
+	LUA->Pop(1);
+
+	if (bSingleEffect)
+	{
+		if (ParseVoiceEffectTable(LUA, 2, effects[0]))
+			nEffects = 1;
+	} else {
+		int nEntries = LUA->ObjLen(2);
+		for (int i = 1; i <= nEntries && nEffects < VoiceEffects::MAX_VOICE_EFFECT_CHAIN; ++i)
+		{
+			LUA->PushNumber(i);
+			LUA->RawGet(2);
+			if (LUA->IsType(-1, GarrysMod::Lua::Type::Table))
+			{
+				int top = LUA->Top();
+				if (ParseVoiceEffectTable(LUA, top, effects[nEffects]))
+					++nEffects;
+			}
+			LUA->Pop(1);
+		}
+	}
+
+	if (nEffects <= 0)
+	{
+		LUA->PushBool(false);
+		return 1;
+	}
+
+	int slot = pData->iPlayerSlot; // uint8_t -> always >= 0
+	VoiceEffects::PlayerEffectState* pState = nullptr;
+	IVoiceCodec* pCodec = nullptr; // nullptr -> shared thread_local codec (invalid slot)
+	if (slot < MAX_PLAYERS)
+	{
+		if (channel == 1)
+		{
+			pState = &VoiceEffects::g_CommEffectState[slot];
+			pCodec = VoiceEffects::GetCommCodec(slot);
+		} else {
+			pState = &VoiceEffects::g_PlayerEffectState[slot];
+			pCodec = VoiceEffects::GetLiveCodec(slot);
+		}
+	}
+
+	bool ok = VoiceEffects::ApplyVoiceEffectChain(pData, effects, nEffects, pState, pCodec);
+	LUA->PushBool(ok);
+	return 1;
+}
+
 LUA_FUNCTION_STATIC(voicechat_IsPlayerMuted)
 {
 	int iClient = Util::Get_ClientIndex(LUA, 1, true);
@@ -3163,6 +3324,7 @@ void CVoiceChatModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServer
 		Util::AddFunc(pLua, voicechat_SendEmptyData, "SendEmptyData");
 		Util::AddFunc(pLua, voicechat_SendVoiceData, "SendVoiceData");
 		Util::AddFunc(pLua, voicechat_BroadcastVoiceData, "BroadcastVoiceData");
+		Util::AddFunc(pLua, voicechat_BroadcastVoiceDataChannel, "BroadcastVoiceDataChannel");
 		Util::AddFunc(pLua, voicechat_ProcessVoiceData, "ProcessVoiceData");
 		Util::AddFunc(pLua, voicechat_CreateVoiceData, "CreateVoiceData");
 		Util::AddFunc(pLua, voicechat_IsHearingClient, "IsHearingClient");
@@ -3175,6 +3337,7 @@ void CVoiceChatModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServer
 		Util::AddFunc(pLua, voicechat_LastPlayerTalked, "LastPlayerTalked");
 		Util::AddFunc(pLua, voicechat_ApplyEffect, "ApplyEffect");
 		Util::AddFunc(pLua, voicechat_ApplyEffectThreaded, "ApplyEffectThreaded");
+		Util::AddFunc(pLua, voicechat_ApplyEffectChannel, "ApplyEffectChannel");
 		Util::AddFunc(pLua, voicechat_SetPlayerMuted, "SetPlayerMuted");
 		Util::AddFunc(pLua, voicechat_IsPlayerMuted, "IsPlayerMuted");
 		Util::AddFunc(pLua, voicechat_IsPlayerDeaf, "IsPlayerDeaf");
