@@ -1382,6 +1382,7 @@ enum Effects {
 	Bitcrush,	// bit-depth + sample-rate reduction - degraded/digital comms
 	Noise,		// envelope-gated additive white noise - radio static/hiss
 	Echo,		// feedback delay line - slapback / room echo (PA, intercom)
+	PitchShift,	// formant-naive pitch-UP (child / high voice) via lag-based dual-tap delay-line resampling
 };
 
 // A "preset" (e.g. HL2 radio) is just an array of primitive effects applied in order on
@@ -1401,6 +1402,7 @@ struct VoiceEffectData
 		struct { float bits; float downsample; } bitcrush;	// Bitcrush (bit + rate reduction)
 		struct { float level; } noise;						// Noise (gated static level 0..1)
 		struct { float delay; float feedback; float mix; } echo;	// Echo (delay s, feedback 0..1, wet mix 0..1)
+		struct { float ratio; float mix; float grainMs; } pitch;	// PitchShift: ratio>1 = higher; mix 0..1 dry/wet; grainMs grain length
 	} data;
 };
 
@@ -1449,7 +1451,25 @@ struct EffectStageState
 	int echoLen = 0;		// ring length in samples (== delay)
 	int echoPos = 0;		// write cursor
 
-	~EffectStageState() { delete[] echoBuf; }
+	// PitchShift lag-based dual-tap delay line. Lazily allocated (only stages that actually run a
+	// PitchShift pay for it), exactly like echoBuf. Ring length is keyed on the grain param, NEVER on
+	// the live nSamples, so it is allocated once per talk burst and reused (the ApplyEcho invariant).
+	// Default member initializers make a fresh (even stack-local) state start null/zero, so the
+	// destructor / ResetStageState free is always safe.
+	float* pitchBuf = nullptr;	// ring: grain history + one worst-case frame of fresh writes
+	int pitchLen = 0;			// ring length in samples (allocation size; 0 = unallocated)
+	int pitchGrain = 0;			// current grain length in samples (G); realloc is keyed on THIS only
+	int pitchWrite = 0;			// integer write cursor (unity-rate input head)
+	double pitchLag1 = 0.0;		// tap-1 lag behind the writer, kept in (0, G]
+	double pitchLag2 = 0.0;		// tap-2 lag, held ~G/2 out of phase with tap-1
+
+	// Set true ONLY on the shared stack-local `scratch` in ApplyVoiceEffectChain (the stateless,
+	// no-cross-frame-continuity path). A delay-line pitch shifter needs that continuity, so PitchShift
+	// pass-throughs (and does NOT allocate) when this is set. Default false; all per-slot array states
+	// leave it false. Costs 1 byte, absorbed by struct padding.
+	bool stateless = false;
+
+	~EffectStageState() { delete[] echoBuf; delete[] pitchBuf; }
 };
 
 struct PlayerEffectState
@@ -1481,6 +1501,19 @@ static inline void ResetStageState(EffectStageState& s)
 	s.echoBuf = nullptr;
 	s.echoLen = 0;
 	s.echoPos = 0;
+
+	// Drop the pitch-shifter delay line too (clears any tail and frees on talk-start / disconnect /
+	// level change; null on a fresh state, so safe before the first ApplyPitchShift). ApplyPitchShift
+	// re-allocates on next use. NOTE: do NOT touch s.stateless here -- it is a path marker set once on
+	// the scratch state by ApplyVoiceEffectChain, not per-burst DSP state, and ResetStageState runs on
+	// scratch too (clearing it would un-mark the scratch).
+	delete[] s.pitchBuf;
+	s.pitchBuf = nullptr;
+	s.pitchLen = 0;
+	s.pitchGrain = 0;
+	s.pitchWrite = 0;
+	s.pitchLag1 = 0.0;
+	s.pitchLag2 = 0.0;
 }
 
 static inline void ResetPlayerEffectState(PlayerEffectState& state)
@@ -1853,6 +1886,132 @@ static void ApplyEcho(int16_t* samples, int nSamples, float delaySec, float feed
 	st.echoPos = pos;
 }
 
+// ===========================================================================================
+// Lag-based two-tap delay-line pitch shifter. Constant-length, in-place, FFT-free.
+// Pitch by `ratioIn` (parser converts 2^(semitones/12)); `mixIn` dry/wet; `grainMsIn` grain length.
+// Formant-naive ON PURPOSE: formants ride up with pitch (chipmunk timbre) == the desired child voice.
+//
+// State (ring + integer write cursor + two fractional tap LAGS + grain) lives in EffectStageState and
+// persists across the ~480-sample frames of one talk burst, exactly like ApplyEcho. Two read taps are
+// tracked as explicit lags behind the writer, held G/2 apart; each is weighted by its OWN triangular
+// window (1 at mid-grain, 0 at the lag wrap) and summed, so the one-grain lag-wrap of either tap
+// happens while that tap's window is ~0 -> inaudible: no per-frame click and the read NEVER overtakes
+// the writer. The two windows sum to ~1 over a grain, so a plain sum (no normalization divide) is
+// energy-correct. fs = SAMPLERATE_GMOD_OPUS = 24000, mono.
+//
+// Ring length depends ONLY on params (grain + a fixed worst-case frame bound), NEVER on nSamples, so
+// it is allocated once per burst and reused (the ApplyEcho invariant); realloc is keyed on grain only.
+static void ApplyPitchShift(int16_t* samples, int nSamples, float ratioIn, float mixIn, float grainMsIn, EffectStageState& st)
+{
+	if (nSamples <= 0)
+		return;
+
+	// A delay-line pitch shifter cannot work without cross-frame continuity. On the stateless path
+	// (shared stack `scratch`) leave the audio untouched and DO NOT allocate -> no per-frame heap
+	// churn, no garbage output. (scratch.stateless is set in ApplyVoiceEffectChain.)
+	if (st.stateless)
+		return;
+
+	// Param sanitation (never trust Lua; never poison a persistent cursor); pass-through on bad input,
+	// matching the ApplyEcho / ComputeBiquad convention.
+	if (!std::isfinite(ratioIn))
+		return;												// bad ratio -> pass-through
+	double ratio = std::clamp((double)ratioIn, 0.5, 2.0);	// +/-1 octave band; child preset ~1.5
+	double mix = std::isfinite(mixIn) ? std::clamp((double)mixIn, 0.0, 1.0) : 0.0;
+	if (mix <= 0.0 || (ratio > 0.998 && ratio < 1.002))
+		return;												// fully dry or ~unity pitch -> no-op (no alloc)
+
+	// Grain floor is 20 ms so G >= one 20 ms frame (480 @24kHz): grains smaller than a frame warble
+	// heavily (a read tap can sweep a full grain within one call). 20..50 ms is the useful band.
+	double grainMs = std::isfinite(grainMsIn) ? std::clamp((double)grainMsIn, 20.0, 50.0) : 24.0;
+	int grain = (int)(grainMs * 0.001 * (double)SAMPLERATE_GMOD_OPUS);
+	if (grain < 2)
+		grain = 2;
+
+	// Ring holds a full grain of history PLUS one worst-case decoded frame of fresh writes, so a read
+	// tap (which lags the writer) is never overrun within one call. The frame bound is the COMPILE-TIME
+	// decode buffer cap, NOT the live nSamples, so the ring is sized once per burst and reused even when
+	// nSamples varies (final/DTX frames, offline whole-stream path).
+	constexpr int kMaxFrameSamples = g_pDataBufferSize / (int)sizeof(int16_t); // decode buffer cap (8192)
+	int len = grain + kMaxFrameSamples + 2;
+
+	// Lazy (re)alloc, mirroring ApplyEcho; keyed on GRAIN only (len is a pure function of grain), so a
+	// varying nSamples never triggers a mid-burst realloc / state-wipe.
+	if (st.pitchBuf == nullptr || st.pitchGrain != grain)
+	{
+		delete[] st.pitchBuf;
+		st.pitchBuf = new float[len]();		// zero-initialised (silent line); matches codebase new[] usage
+		st.pitchLen = len;
+		st.pitchGrain = grain;
+		st.pitchWrite = 0;
+		// Seed the taps near the writer so the first output samples read freshly-written input, not the
+		// zero region -> no swallowed first consonant on burst onset. Hold them G/2 apart, in (0, G].
+		st.pitchLag1 = (double)grain;		// counts down to mid-grain immediately
+		st.pitchLag2 = (double)grain * 0.5;
+	}
+
+	float* buf = st.pitchBuf;
+	const int L = st.pitchLen;
+	const double G = (double)st.pitchGrain;
+	const double half = G * 0.5;			// tap-2 offset AND half the crossfade period
+	const double invHalf = 1.0 / half;		// triangular slope, precomputed (no inner-loop division)
+	const double dec = ratio - 1.0;			// per-sample lag change (>0 shrinks lag = pitch up)
+	const double m = mix;
+	const double dry = 1.0 - mix;
+
+	int w = st.pitchWrite;
+	double lag1 = st.pitchLag1;
+	double lag2 = st.pitchLag2;
+	// Recover poisoned lags (cf. ApplyRingMod phase guard); keep them in (0, G].
+	if (!std::isfinite(lag1) || lag1 <= 0.0 || lag1 > G) lag1 = G;
+	if (!std::isfinite(lag2) || lag2 <= 0.0 || lag2 > G) lag2 = half;
+
+	for (int i = 0; i < nSamples; ++i)
+	{
+		double in = (double)samples[i];
+
+		// 1) write unity-rate input at the integer write head.
+		buf[w] = (float)in;
+
+		// 2) tap 1: read at (w - lag1), fractional, linear interp. Adding L before the floor keeps the
+		//    index non-negative without a modulo (Echo-style cheap wrap); rp1 < 2L so one subtract wraps.
+		double rp1 = (double)w - lag1 + (double)L;
+		int i1 = (int)rp1;
+		double f1 = rp1 - (double)i1;
+		i1 -= (i1 >= L) ? L : 0;
+		int i1b = i1 + 1; if (i1b >= L) i1b = 0;
+		double s1 = (double)buf[i1] + ((double)buf[i1b] - (double)buf[i1]) * f1;
+
+		// 3) tap 2: same, offset by half a grain in lag.
+		double rp2 = (double)w - lag2 + (double)L;
+		int i2 = (int)rp2;
+		double f2 = rp2 - (double)i2;
+		i2 -= (i2 >= L) ? L : 0;
+		int i2b = i2 + 1; if (i2b >= L) i2b = 0;
+		double s2 = (double)buf[i2] + ((double)buf[i2b] - (double)buf[i2]) * f2;
+
+		// 4) each tap's OWN triangular window from its OWN lag: 1 at mid-grain (lag==G/2), 0 at the grain
+		//    edges (lag->0 or lag->G, i.e. the wrap). Taps are G/2 apart so the windows sum to ~1 -> a
+		//    plain sum is energy-correct, no normalization divide.
+		double win1 = 1.0 - std::fabs(lag1 - half) * invHalf; if (win1 < 0.0) win1 = 0.0;
+		double win2 = 1.0 - std::fabs(lag2 - half) * invHalf; if (win2 < 0.0) win2 = 0.0;
+		double wet = win1 * s1 + win2 * s2;
+
+		// 5) dry/wet, single clamp sink.
+		samples[i] = ClampToInt16(dry * in + m * wet);
+
+		// 6) advance: writer +1 (unity); each lag -= (ratio-1). When a lag reaches a grain edge wrap it
+		//    by +-G (a one-grain jump) -> happens while its window is ~0, so it is inaudible.
+		if (++w >= L) w = 0;
+		lag1 -= dec; if (lag1 <= 0.0) lag1 += G; else if (lag1 > G) lag1 -= G;
+		lag2 -= dec; if (lag2 <= 0.0) lag2 += G; else if (lag2 > G) lag2 -= G;
+	}
+
+	st.pitchWrite = w;
+	st.pitchLag1 = lag1;
+	st.pitchLag2 = lag2;
+}
+
 // Applies ONE primitive effect over the int16 buffer, using the given persistent stage state
 // for stateful effects (biquad / ringmod / tremolo / noise / bitcrush / echo). Stateless effects ignore `st`.
 static void ApplySingleEffect(int16_t* samples, int nSamples, const VoiceEffectData& e, EffectStageState& st)
@@ -1894,6 +2053,9 @@ static void ApplySingleEffect(int16_t* samples, int nSamples, const VoiceEffectD
 	case Effects::Echo:
 		ApplyEcho(samples, nSamples, e.data.echo.delay, e.data.echo.feedback, e.data.echo.mix, st);
 		break;
+	case Effects::PitchShift:
+		ApplyPitchShift(samples, nSamples, e.data.pitch.ratio, e.data.pitch.mix, e.data.pitch.grainMs, st);
+		break;
 	default:
 		break;
 	}
@@ -1924,6 +2086,7 @@ static bool ApplyVoiceEffectChain(VoiceData* pData, const VoiceEffectData* pEffe
 
 	EffectStageState scratch;
 	ResetStageState(scratch);
+	scratch.stateless = true;	// PitchShift (delay-line) is a no-op without cross-frame continuity
 	for (int i = 0; i < nCount; ++i)
 	{
 		// Each chain position has its own persistent stage state (IIR delay / ringmod phase).
@@ -3035,6 +3198,21 @@ static bool ParseVoiceEffectTable(GarrysMod::Lua::ILuaInterface* LUA, int idx, V
 		out.data.echo.delay = GetEffectNumber(LUA, idx, "delay", 0.15f);     // seconds
 		out.data.echo.feedback = GetEffectNumber(LUA, idx, "feedback", 0.4f); // 0..0.95
 		out.data.echo.mix = GetEffectNumber(LUA, idx, "mix", 0.5f);          // wet 0..1
+		return true;
+	}
+	else if (V_stricmp(pEffectName, "PitchShift") == 0 || V_stricmp(pEffectName, "Pitch") == 0)
+	{
+		out.type = Effects::PitchShift;
+		// semitones is the intuitive control (>0 = higher); an explicit "ratio" key overrides it. Clamp
+		// semitones to +/-1 octave before powf so a wild value can't produce Inf; the DSP-side range
+		// guards live in ApplyPitchShift (the GetEffectNumber/ComputeBiquad convention).
+		float semis = GetEffectNumber(LUA, idx, "semitones", 7.0f);              // ~+7 st = child voice
+		if (!std::isfinite(semis)) semis = 0.0f;
+		semis = std::clamp(semis, -12.0f, 12.0f);
+		float ratioFromSemis = powf(2.0f, semis / 12.0f);
+		out.data.pitch.ratio = GetEffectNumber(LUA, idx, "ratio", ratioFromSemis); // explicit ratio wins
+		out.data.pitch.mix = GetEffectNumber(LUA, idx, "mix", 1.0f);               // fully wet by default
+		out.data.pitch.grainMs = GetEffectNumber(LUA, idx, "grain", 24.0f);        // grain/window length, ms
 		return true;
 	}
 
