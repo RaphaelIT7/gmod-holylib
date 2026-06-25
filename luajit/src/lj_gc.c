@@ -512,7 +512,7 @@ static void gc_call_finalizer(global_State *g, lua_State *L,
   TValue *top;
   lj_trace_abort(g);
   hook_entergc(g);  /* Disable hooks and new traces during __gc. */
-  if (LJ_HASPROFILE && (oldh & HOOK_PROFILE)) lj_dispatch_update(g);
+  if (LJ_HASPROFILE && (oldh & HOOK_PROFILE)) lj_dispatch_update(g, 0);
   g->gc.threshold = LJ_MAX_MEM;  /* Prevent GC steps. */
   top = L->top;
   copyTV(L, top++, mo);
@@ -521,7 +521,7 @@ static void gc_call_finalizer(global_State *g, lua_State *L,
   L->top = top+1;
   errcode = lj_vm_pcall(L, top, 1+0, -1);  /* Stack: |mo|o| -> | */
   hook_restore(g, oldh);
-  if (LJ_HASPROFILE && (oldh & HOOK_PROFILE)) lj_dispatch_update(g);
+  if (LJ_HASPROFILE && (oldh & HOOK_PROFILE)) lj_dispatch_update(g, 0);
   g->gc.threshold = oldt;  /* Restore GC threshold. */
   if (errcode) {
     ptrdiff_t errobj = savestack(L, L->top-1);  /* Stack may be resized. */
