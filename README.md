@@ -125,6 +125,7 @@ There may be further options which will control other module specific functions.
 \- \-> `gameserver.GetFreeQueueClient`<br>
 \- \-> `HolyLib:GetFreeClient`<br>
 \- [+] Added new function to `unholylib` module -> `KillLua`<br>
+\- [+] Added a fix for a specific `vphysics` crash to `physenv` module.<br>
 \- [#] Multiple changes to our LuaJIT version<br>
 \- \-> Fixed failing to trace C functions with `0` arguments.<br>
 \- \-> Fixed `table.insert` trying to shift values when inserting into negatives, causing performance issues<br>
@@ -133,7 +134,9 @@ There may be further options which will control other module specific functions.
 \- \-> Finished external trace recorder and moved traced functions from LuaJIT into HolyLib.<br>
 \- \-> Reduced `GCudata`, `GCtrace`, `GCproto`, `global_State` sizes saving memory.<br>
 \- \-> Implement `LUAJIT_ENABLE_CHECKHOOK` as a runtime toggle (See: https://github.com/RaphaelIT7/gmod-holylib/issues/151)<br>
-\- \-> Fixed coroutines crashing due to HolYLib not recognizing the lua state correctly (See: https://github.com/RaphaelIT7/gmod-holylib/issues/177)<br>
+\- \-> Fixed coroutines crashing due to HolyLib not recognizing the lua state correctly (See: https://github.com/RaphaelIT7/gmod-holylib/issues/177)<br>
+\- \-> Fixed FFI Angles `__eq` method being broken when the order `non Angle == Angle` was used<br>
+\- \-> Updated it to the current upstream LuaJIT version<br>
 \- [#] Fixed `gameserver` module causing a crash when `MoveCGameClientIntoCGameClient` is hit due to `CNetChan` class being outdated (See: https://github.com/RaphaelIT7/gmod-holylib/issues/160 & https://github.com/RaphaelIT7/gmod-holylib/issues/173)<br>
 \- [#] Fixed `gameserver` module crashing due to a missing null check (See: https://github.com/RaphaelIT7/gmod-holylib/issues/171)<br>
 \- [#] Avoid direct `CBaseClient::m_NetChannel` to avoid future crashes from layouts changing.<br>
@@ -171,7 +174,7 @@ There may be further options which will control other module specific functions.
 \- \-> Previously, HolyLib depended on a specific layout between all three JIT versions it must support.<br>
 \- [#] Fixed an issue with `holylua` with how we locked on shutdown.<br>
 \- [#] Fixed `httpserver` module possibly deadlocking on shutdown & fixed other threading issues (See: https://github.com/RaphaelIT7/gmod-holylib/issues/174)<br>
-
+\- [#] In our VPhysics build fixed Ragdoll jitter (Thanks @ZehMatt <3)
 
 You can see all changes/commits here:<br>
 https://github.com/RaphaelIT7/gmod-holylib/compare/Release0.8...main
