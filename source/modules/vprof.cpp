@@ -40,6 +40,21 @@ static ConVar holylib_vprof_exportreport("holylib_vprof_exportreport", "1", FCVA
 static CVProfModule g_pVProfModule;
 IModule* pVProfModule = &g_pVProfModule;
 
+// Hashes to avoid allocating a std::string for a lookup!
+struct StringHash {
+	using is_transparent = void;
+	size_t operator()(std::string_view sv) const noexcept {
+		return ankerl::unordered_dense::hash<std::string_view>{}(sv);
+	}
+};
+
+struct StringEq {
+	using is_transparent = void;
+	bool operator()(std::string_view a, std::string_view b) const noexcept {
+		return a == b;
+	}
+};
+
 /*
 	Some notes for VPROF:
 		- For Nodes it compares the name POINTER not the contents! If no pointer matches a new node is created!
@@ -381,20 +396,6 @@ DETOUR_THISCALL_START()
 	DETOUR_THISCALL_ADDRETFUNC1( hook_CScriptedEntity_CallFunction, void*, CallFunctionInt, void*, int );
 DETOUR_THISCALL_FINISH();
 #endif
-
-struct StringHash {
-	using is_transparent = void;
-	size_t operator()(std::string_view sv) const noexcept {
-		return std::hash<std::string_view>{}(sv);
-	}
-};
-
-struct StringEq {
-	using is_transparent = void;
-	bool operator()(std::string_view a, std::string_view b) const noexcept {
-		return a == b;
-	}
-};
 
 static unordered_set<std::string, StringHash, StringEq> pLuaStrings; // Theses will almost never be freed!
 // VPROF doesn't manage the memory of the strings that are used in scopes!
