@@ -2420,11 +2420,25 @@ LUA_FUNCTION_STATIC(physcollide_DestroyCollide)
  * Gmod does this because it can't invalidate the userdata properly which means that calling a function like PhysObj:Wake could be called on a invalid pointer.
  * So they seem to have added this function as a workaround to check if the pointer Lua has is still valid.
  */
+// vphysics-jolt exposes an O(1) IPhysics::IsValidPhysicsObject (the last IPhysics virtual, GMod-only).
+// HolyLib's bundled SDK doesn't declare it, but both SDKs' IPhysics are byte-identical through
+// DestroyAllCollisionSets(), so deriving here places IsValidPhysicsObject at jolt's exact vtable slot.
+class IPhysics_GMod : public IPhysics
+{
+public:
+	virtual bool IsValidPhysicsObject( IPhysicsObject* pObject ) = 0;
+};
+
 static Detouring::Hook detour_GMod_Util_IsPhysicsObjectValid;
 static bool hook_GMod_Util_IsPhysicsObjectValid(IPhysicsObject* pObject)
 {
 	if (!pObject)
 		return false;
+
+	// On vphysics-jolt the IVP CPhysicsEnvironment create/destroy detours are never installed, so
+	// HolyLib's own g_pObjects registry stays empty. Route to jolt's own O(1) IPhysics::IsValidPhysicsObject.
+	if (bIsJoltPhysics && g_pPhysics)
+		return static_cast<IPhysics_GMod*>(g_pPhysics)->IsValidPhysicsObject(pObject);
 
 	// This is what Gmod does. Gmod loops thru all physics objects of the main environment to check if the specific IPhysicsObject is part of it.
 	/*int iCount = 0;
@@ -2879,7 +2893,9 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 		(void*)hook_GMod_Util_IsPhysicsObjectValid, m_pID
 	);
 
-	if (!detour_CPhysicsEnvironment_DestroyObject.IsValid() || !detour_CPhysicsEnvironment_CreatePolyObject.IsValid() || !detour_CPhysicsEnvironment_CreatePolyObjectStatic.IsValid())
+	// On jolt the IVP CPhysicsEnvironment detours are intentionally never created, so their !IsValid()
+	// must NOT tear down the IsPhysicsObjectValid detour — the hook routes to jolt's O(1) check instead.
+	if (!bIsJoltPhysics && (!detour_CPhysicsEnvironment_DestroyObject.IsValid() || !detour_CPhysicsEnvironment_CreatePolyObject.IsValid() || !detour_CPhysicsEnvironment_CreatePolyObjectStatic.IsValid()))
 	{
 		detour_GMod_Util_IsPhysicsObjectValid.Disable();
 		detour_GMod_Util_IsPhysicsObjectValid.Destroy();
