@@ -2230,6 +2230,46 @@ static void CheckTalkingState(int nPlayerSlot, bool bIsTalking)
 	}
 }
 
+// PlayerCanHearPlayersVoice C-side result cache.
+// The engine resolves voice hearability through CVoiceGameMgrHelper::CanPlayerHearPlayer,
+// which enters the Lua PlayerCanHearPlayersVoice hook chain on EVERY query. GMod already
+// throttles the queries (actively-talking rows a few times per second, idle pairs on a slow
+// background sweep) but on a full 128-slot server that is still >10k Lua chain walks/s
+// through hook.Call and every registered listener. Hearability rarely changes faster than a
+// few hundred ms, so we memoize the (listener, talker) result for a configurable TTL and
+// answer repeat queries without touching Lua at all.
+// The deaf check stays ABOVE the cache so voicechat.SetPlayerDeaf keeps applying instantly.
+// gpGlobals->curtime is the clock; it resets across levels, so the cache is flushed in
+// ServerActivate/LevelShutdown, and a disconnecting slot flushes its rows (slot reuse would
+// otherwise inherit up-to-TTL-stale results). Queries run on the main thread only (voice
+// manager update + SV_BroadcastVoiceData), so no locking is needed.
+struct HearCacheEntry
+{
+	double fExpire = 0.0; // curtime deadline; 0 = empty
+	bool bCanHear = false;
+	bool bProximity = false;
+};
+static HearCacheEntry g_pHearCache[MAX_PLAYERS][MAX_PLAYERS]; // [listener slot][talker slot]
+static ConVar voicechat_hearcache("holylib_voicechat_hearcache", "0", FCVAR_ARCHIVE,
+	"Seconds a PlayerCanHearPlayersVoice result is cached in C++ before the Lua hook chain is asked again. 0 = off (every engine query enters Lua).");
+
+static inline void ClearHearCache()
+{
+	memset(g_pHearCache, 0, sizeof(g_pHearCache));
+}
+
+static inline void ClearHearCacheForSlot(int nPlayerSlot)
+{
+	if (nPlayerSlot < 0 || nPlayerSlot >= MAX_PLAYERS)
+		return;
+
+	for (int i = 0; i < MAX_PLAYERS; ++i)
+	{
+		g_pHearCache[nPlayerSlot][i].fExpire = 0.0;
+		g_pHearCache[i][nPlayerSlot].fExpire = 0.0;
+	}
+}
+
 // Forward declarations: the threaded voice-FX pipeline is defined further down (it needs the
 // SV_BroadcastVoiceData detour declared below), but these module lifecycle hooks reference it.
 namespace ThreadedVoiceFX { static void FreeSlot(int slot); static void StopWorkers(); }
@@ -2244,6 +2284,7 @@ void CVoiceChatModule::ClientDisconnect(edict_t* pClient)
 	g_bIsPlayerMuted[pClient->m_EdictIndex-1] = false;
 	g_bIsPlayerDeafened[pClient->m_EdictIndex-1] = false;
 	g_fLastPlayerTalked[pClient->m_EdictIndex-1] = 0.0;
+	ClearHearCacheForSlot(pClient->m_EdictIndex-1);
 	VoiceEffects::ResetPlayerEffectState(pClient->m_EdictIndex-1);
 	VoiceEffects::FreeLiveCodec(pClient->m_EdictIndex-1);
 	ThreadedVoiceFX::FreeSlot(pClient->m_EdictIndex-1);
@@ -2259,6 +2300,8 @@ void CVoiceChatModule::ServerActivate(edict_t* pEdictList, int edictCount, int c
 		g_fLastPlayerTalked[i] = 0.0;
 		VoiceEffects::ResetPlayerEffectState(i);
 	}
+
+	ClearHearCache(); // curtime restarted with the level; stale fExpire deadlines would otherwise persist
 
 	// Free ALL live codecs (full slot range, not just [0, maxClients)): a codec can be lazily
 	// allocated for a manually-set high VoiceData slot via Lua, which the per-client loop misses.
@@ -2277,6 +2320,8 @@ void CVoiceChatModule::LevelShutdown()
 		VoiceEffects::ResetPlayerEffectState(i);
 	}
 
+	ClearHearCache(); // curtime restarted with the level; stale fExpire deadlines would otherwise persist
+
 	// Free ALL live codecs (full slot range, not just [0, maxClients)): a codec can be lazily
 	// allocated for a manually-set high VoiceData slot via Lua, which the per-client loop misses.
 	ThreadedVoiceFX::StopWorkers(); // join FX workers + free their per-slot codecs/state
@@ -2286,16 +2331,33 @@ void CVoiceChatModule::LevelShutdown()
 static Detouring::Hook detour_CVoiceGameMgrHelper_CanPlayerHearPlayer;
 static bool hook_CVoiceGameMgrHelper_CanPlayerHearPlayer(void* voicegamemgrhelper, CBasePlayer* listener, CBasePlayer* talker, bool& bProximity)
 {
-	if (g_bIsPlayerDeafened[listener->edict()->m_EdictIndex-1])
+	int nListenerSlot = listener->edict()->m_EdictIndex-1;
+	if (g_bIsPlayerDeafened[nListenerSlot])
 	{
 		if (g_pVoiceChatModule.InDebug() == 1)
-			Msg(PROJECT_NAME " - voicechat: client %i voice packet was skipped since their deaf!\n", listener->edict()->m_EdictIndex-1);
+			Msg(PROJECT_NAME " - voicechat: client %i voice packet was skipped since their deaf!\n", nListenerSlot);
 
 		bProximity = false;
 		return false;
 	}
 
-	return detour_CVoiceGameMgrHelper_CanPlayerHearPlayer.GetTrampoline<Symbols::CVoiceGameMgrHelper_CanPlayerHearPlayer>()(voicegamemgrhelper, listener, talker, bProximity);
+	double fCacheTTL = voicechat_hearcache.GetFloat();
+	int nTalkerSlot = talker->edict()->m_EdictIndex-1;
+	if (fCacheTTL <= 0 || nListenerSlot < 0 || nListenerSlot >= MAX_PLAYERS || nTalkerSlot < 0 || nTalkerSlot >= MAX_PLAYERS)
+		return detour_CVoiceGameMgrHelper_CanPlayerHearPlayer.GetTrampoline<Symbols::CVoiceGameMgrHelper_CanPlayerHearPlayer>()(voicegamemgrhelper, listener, talker, bProximity);
+
+	HearCacheEntry& cacheEntry = g_pHearCache[nListenerSlot][nTalkerSlot];
+	if (cacheEntry.fExpire > gpGlobals->curtime)
+	{
+		bProximity = cacheEntry.bProximity;
+		return cacheEntry.bCanHear;
+	}
+
+	bool bCanHear = detour_CVoiceGameMgrHelper_CanPlayerHearPlayer.GetTrampoline<Symbols::CVoiceGameMgrHelper_CanPlayerHearPlayer>()(voicegamemgrhelper, listener, talker, bProximity);
+	cacheEntry.bCanHear = bCanHear;
+	cacheEntry.bProximity = bProximity;
+	cacheEntry.fExpire = gpGlobals->curtime + fCacheTTL;
+	return bCanHear;
 }
 
 static Detouring::Hook detour_SV_BroadcastVoiceData;
