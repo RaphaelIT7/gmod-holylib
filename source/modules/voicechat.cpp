@@ -2193,6 +2193,51 @@ static bool g_bIsPlayerDeafened[MAX_PLAYERS] = {0};
 static bool g_bIsPlayerTalking[MAX_PLAYERS] = {0};
 static double g_fLastPlayerTalked[MAX_PLAYERS] = {0};
 static ConVar voicechat_stopdelay("holylib_voicechat_stopdelay", "1", FCVAR_ARCHIVE, "How many seconds before a player is marked as stopped talking");
+
+// PlayerCanHearPlayersVoice C-side result cache.
+// The engine resolves voice hearability through CVoiceGameMgrHelper::CanPlayerHearPlayer,
+// which enters the Lua PlayerCanHearPlayersVoice hook chain on EVERY query. GMod already
+// throttles the queries (actively-talking rows a few times per second, idle pairs on a slow
+// background sweep) but on a full 128-slot server that is still >10k Lua chain walks/s
+// through hook.Call and every registered listener. Hearability rarely changes faster than a
+// few hundred ms, so we memoize the (listener, talker) result for a configurable TTL and
+// answer repeat queries without touching Lua at all. Idle talkers (the background sweep)
+// use the longer _idle TTL: their result is unused until they speak, and the start-talking
+// edge in CheckTalkingState flushes their column so the first packet is decided fresh.
+// The deaf check stays ABOVE the cache so voicechat.SetPlayerDeaf keeps applying instantly.
+// gpGlobals->curtime is the clock; it resets across levels, so the cache is flushed in
+// ServerActivate/LevelShutdown, and a disconnecting slot flushes its rows (slot reuse would
+// otherwise inherit up-to-TTL-stale results). Queries run on the main thread only (voice
+// manager update + SV_BroadcastVoiceData), so no locking is needed.
+struct HearCacheEntry
+{
+	double fExpire = 0.0; // curtime deadline; 0 = empty
+	bool bCanHear = false;
+	bool bProximity = false;
+};
+static HearCacheEntry g_pHearCache[MAX_PLAYERS][MAX_PLAYERS]; // [listener slot][talker slot]
+static ConVar voicechat_hearcache("holylib_voicechat_hearcache", "0", FCVAR_ARCHIVE,
+	"Seconds a PlayerCanHearPlayersVoice result is cached in C++ before the Lua hook chain is asked again. 0 = off (every engine query enters Lua).");
+static ConVar voicechat_hearcache_idle("holylib_voicechat_hearcache_idle", "5", FCVAR_ARCHIVE,
+	"Cache TTL used instead of holylib_voicechat_hearcache while the TALKER is not talking. Their result is unused until they speak, and their column is flushed on the start-talking edge, so this can be much higher. Only active when holylib_voicechat_hearcache > 0.");
+
+static inline void ClearHearCache()
+{
+	memset(g_pHearCache, 0, sizeof(g_pHearCache));
+}
+
+static inline void ClearHearCacheForSlot(int nPlayerSlot)
+{
+	if (nPlayerSlot < 0 || nPlayerSlot >= MAX_PLAYERS)
+		return;
+
+	for (int i = 0; i < MAX_PLAYERS; ++i)
+	{
+		g_pHearCache[nPlayerSlot][i].fExpire = 0.0;
+		g_pHearCache[i][nPlayerSlot].fExpire = 0.0;
+	}
+}
+
 static void CheckTalkingState(int nPlayerSlot, bool bIsTalking)
 {
 	if (bIsTalking)
@@ -2200,6 +2245,10 @@ static void CheckTalkingState(int nPlayerSlot, bool bIsTalking)
 		if (!g_bIsPlayerTalking[nPlayerSlot]) // Started to talk
 		{
 			g_bIsPlayerTalking[nPlayerSlot] = true;
+
+			// Their idle-TTL cache column may be stale - re-decide hearability fresh for
+			// the first packets of this talk burst.
+			ClearHearCacheForSlot(nPlayerSlot);
 
 			// New talk burst -> clear any leftover per-stream filter state so the first frame
 			// starts from a clean delay line / phase (prevents a click on the burst boundary).
@@ -2227,46 +2276,6 @@ static void CheckTalkingState(int nPlayerSlot, bool bIsTalking)
 				g_Lua->CallFunctionProtected(2, 0, true);
 			}
 		}
-	}
-}
-
-// PlayerCanHearPlayersVoice C-side result cache.
-// The engine resolves voice hearability through CVoiceGameMgrHelper::CanPlayerHearPlayer,
-// which enters the Lua PlayerCanHearPlayersVoice hook chain on EVERY query. GMod already
-// throttles the queries (actively-talking rows a few times per second, idle pairs on a slow
-// background sweep) but on a full 128-slot server that is still >10k Lua chain walks/s
-// through hook.Call and every registered listener. Hearability rarely changes faster than a
-// few hundred ms, so we memoize the (listener, talker) result for a configurable TTL and
-// answer repeat queries without touching Lua at all.
-// The deaf check stays ABOVE the cache so voicechat.SetPlayerDeaf keeps applying instantly.
-// gpGlobals->curtime is the clock; it resets across levels, so the cache is flushed in
-// ServerActivate/LevelShutdown, and a disconnecting slot flushes its rows (slot reuse would
-// otherwise inherit up-to-TTL-stale results). Queries run on the main thread only (voice
-// manager update + SV_BroadcastVoiceData), so no locking is needed.
-struct HearCacheEntry
-{
-	double fExpire = 0.0; // curtime deadline; 0 = empty
-	bool bCanHear = false;
-	bool bProximity = false;
-};
-static HearCacheEntry g_pHearCache[MAX_PLAYERS][MAX_PLAYERS]; // [listener slot][talker slot]
-static ConVar voicechat_hearcache("holylib_voicechat_hearcache", "0", FCVAR_ARCHIVE,
-	"Seconds a PlayerCanHearPlayersVoice result is cached in C++ before the Lua hook chain is asked again. 0 = off (every engine query enters Lua).");
-
-static inline void ClearHearCache()
-{
-	memset(g_pHearCache, 0, sizeof(g_pHearCache));
-}
-
-static inline void ClearHearCacheForSlot(int nPlayerSlot)
-{
-	if (nPlayerSlot < 0 || nPlayerSlot >= MAX_PLAYERS)
-		return;
-
-	for (int i = 0; i < MAX_PLAYERS; ++i)
-	{
-		g_pHearCache[nPlayerSlot][i].fExpire = 0.0;
-		g_pHearCache[i][nPlayerSlot].fExpire = 0.0;
 	}
 }
 
@@ -2345,6 +2354,16 @@ static bool hook_CVoiceGameMgrHelper_CanPlayerHearPlayer(void* voicegamemgrhelpe
 	int nTalkerSlot = talker->edict()->m_EdictIndex-1;
 	if (fCacheTTL <= 0 || nListenerSlot < 0 || nListenerSlot >= MAX_PLAYERS || nTalkerSlot < 0 || nTalkerSlot >= MAX_PLAYERS)
 		return detour_CVoiceGameMgrHelper_CanPlayerHearPlayer.GetTrampoline<Symbols::CVoiceGameMgrHelper_CanPlayerHearPlayer>()(voicegamemgrhelper, listener, talker, bProximity);
+
+	// An idle talker's result is unused until they speak (their column is flushed on the
+	// start-talking edge in CheckTalkingState), so it may stay stale for much longer -
+	// this is what starves the engine's idle background sweep out of Lua.
+	if (!g_bIsPlayerTalking[nTalkerSlot])
+	{
+		double fIdleTTL = voicechat_hearcache_idle.GetFloat();
+		if (fIdleTTL > fCacheTTL)
+			fCacheTTL = fIdleTTL;
+	}
 
 	HearCacheEntry& cacheEntry = g_pHearCache[nListenerSlot][nTalkerSlot];
 	if (cacheEntry.fExpire > gpGlobals->curtime)
