@@ -355,7 +355,7 @@ class ScopedFileDescriptor
 {
 public:
 	ScopedFileDescriptor(int fileDescriptor) : m_nFileDescriptor(fileDescriptor) {};
-	~ScopedFileDescriptor() { if (m_nFileDescriptor < 0 && m_nFileDescriptor != STDERR_FILENO) { close(m_nFileDescriptor); } }
+	~ScopedFileDescriptor() { if (m_nFileDescriptor >= 0 && m_nFileDescriptor != STDERR_FILENO) { close(m_nFileDescriptor); } }
 	ScopedFileDescriptor(const ScopedFileDescriptor&) = delete;
 	ScopedFileDescriptor& operator=(const ScopedFileDescriptor&) = delete;
 	operator int() const { return m_nFileDescriptor; }

@@ -326,6 +326,7 @@ LUA_FUNCTION_STATIC(luathreads_FindInterface)
 	for (LuaInterface* pInterface : g_pLuaInterfaces)
 	{
 		if (V_stricmp(pName, pInterface->GetName()) != 0)
+			continue;
 
 		Push_LuaInterface(LUA, pInterface);
 		return 1;

@@ -213,8 +213,8 @@ IRFPMDEF(FPMENUM)
   _(UDATA_VALUE, sizeof(GCudata)) \
   _(GMOD_UDATA_TYPE, offsetof(GMODudata, type)) \
   _(GMOD_UDATA_DATA, offsetof(GMODudata, data)) \
-  _(GMOD_UDATA_TYPE_DIRECT, (sizeof(GCudata) + offsetof(GMODudata, data))) \
-  _(GMOD_UDATA_DATA_DIRECT, (sizeof(GCudata) + offsetof(GMODudata, type))) \
+  _(GMOD_UDATA_TYPE_DIRECT, (sizeof(GCudata) + offsetof(GMODudata, type))) \
+  _(GMOD_UDATA_DATA_DIRECT, (sizeof(GCudata) + offsetof(GMODudata, data))) \
   _(LSTR_DATA, offsetof(lua_String, data)) \
   _(LSTR_LEN, offsetof(lua_String, length)) \
   _(SBUF_W,	sizeof(GCudata) + offsetof(SBufExt, w)) \

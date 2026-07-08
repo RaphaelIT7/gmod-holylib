@@ -21,7 +21,8 @@ FCVAR_AVAILABLE1 = bit.lshift( 1, 26 )
 FCVAR_AVAILABLE2 = bit.lshift( 1, 27 )
 
 function HolyLib_IsModuleEnabled(name)
-    return GetConVar("holylib_enable_" .. name):GetBool()
+    local convar = GetConVar("holylib_enable_" .. string.lower(name))
+    return convar and convar:GetBool() or false
 end
 
 require("reqwest")

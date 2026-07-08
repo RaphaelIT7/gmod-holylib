@@ -114,6 +114,9 @@ public:
 
 	virtual int GetPropsChangedAfterTick(int iTick, int *iOutProps, int nMaxOutProps)
 	{
+		if (nMaxOutProps <= 0)
+			return 0;
+
 		// Should we remove vprof here? It could slow this entire thing down since it's called so often
 		// VPROF_BUDGET("CChangeFrameList::GetPropsChangedAfterTick", VPROF_BUDGETGROUP_OTHER_NETWORKING);
 		int nOutProps = 0;
@@ -122,7 +125,7 @@ public:
 			if (iTick >= m_LastChangeTickNum)
 				return 0;
 
-			nOutProps = m_LastChangeTicks.size();
+			nOutProps = MIN((int)m_LastChangeTicks.size(), nMaxOutProps);
 			for (int i=0; i < nOutProps; ++i)
 				iOutProps[i] = m_LastChangeTicks[i];
 
@@ -135,6 +138,8 @@ public:
 				{
 					iOutProps[nOutProps] = i;
 					++nOutProps;
+					if (nOutProps >= nMaxOutProps)
+						break;
 				}
 			}
 
@@ -632,14 +637,14 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 				Msg("    %i: %s[%i]\n", i, pPVSEntityList[i]->GetClassname(), pPVSEntityList[i]->edict()->m_EdictIndex);
 
 			Msg("Never:\n");
-			for (int i=0; i<=pNeverTransmitBits.GetNumBits(); ++i)
+			for (int i=0; i<pNeverTransmitBits.GetNumBits(); ++i)
 			{
 				if (pNeverTransmitBits.IsBitSet(i))
 					Msg("    %i\n", i);
 			}
 
 			Msg("Always:\n");
-			for (int i=0; i<=pAlwaysTransmitBits.GetNumBits(); ++i)
+			for (int i=0; i<pAlwaysTransmitBits.GetNumBits(); ++i)
 			{
 				if (pAlwaysTransmitBits.IsBitSet(i))
 					Msg("    %i\n", i);
@@ -763,7 +768,8 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 				if (i < (pArea.nCount - 1))
 					memmove(&pArea.pEntities[i], &pArea.pEntities[i + 1], (pArea.nCount - i - 1) * sizeof(CBaseEntity*));
 
-				pArea.pEntities[pArea.nCount--] = nullptr;
+				--pArea.nCount;
+				pArea.pEntities[pArea.nCount] = nullptr;
 				break;
 			}
 		}

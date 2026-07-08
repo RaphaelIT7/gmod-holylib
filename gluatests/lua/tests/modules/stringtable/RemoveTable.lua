@@ -35,7 +35,7 @@ return {
             when = HolyLib_IsModuleEnabled("stringtable"),
             func = function()
                 stringtable.AllowCreation( true )
-                local table = stringtable.CreateStringTable( GetTestStringTableName() 4096, 0, 0 )
+                local table = stringtable.CreateStringTable( GetTestStringTableName(), 4096, 0, 0 )
                 stringtable.AllowCreation( false )
 
                 expect( table:IsValid() ).to.beTrue()

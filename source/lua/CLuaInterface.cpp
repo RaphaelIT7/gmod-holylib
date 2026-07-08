@@ -610,7 +610,7 @@ const char* CLuaInterface::GetTypeName(int iType)
 		return "none";
 
 	constexpr int typeCount = sizeof(GarrysMod::Lua::Type::Name) / sizeof(const char*);
-	if (iType <= typeCount)
+	if (iType < typeCount)
 		return GarrysMod::Lua::Type::Name[iType];
 
 	return "unknown";
@@ -620,7 +620,7 @@ void CLuaInterface::CreateMetaTableType(const char* strName, int iType)
 {
 	LuaDebugPrint(1, "CLuaInterface::CreateMetaTableType(%s, %i)\n", strName, iType);
 	int ret = luaL_newmetatable_type(state, strName, iType);
-	if (ret && iType <= 254)
+	if (ret && iType >= 0 && iType < (int)(sizeof(m_pMetaTables) / sizeof(m_pMetaTables[0])))
 	{
 		GarrysMod::Lua::ILuaObject* pObject = m_pMetaTables[iType];
 		if (!pObject)
@@ -745,7 +745,7 @@ int CLuaInterface::CreateMetaTable(const char* strName) // Return value is proba
 bool CLuaInterface::PushMetaTable(int iType)
 {
 	LuaDebugPrint(2, "CLuaInterface::PushMetaTable %i\n", iType);
-	if (iType <= 254)
+	if (iType >= 0 && iType < (int)(sizeof(m_pMetaTables) / sizeof(m_pMetaTables[0])))
 	{
 		GarrysMod::Lua::ILuaObject* pMetaObject = m_pMetaTables[iType];
 		if (pMetaObject)
@@ -1539,20 +1539,24 @@ void CLuaInterface::ErrorNoHalt( const char* fmt, ... )
 	GarrysMod::Lua::ILuaGameCallback::CLuaError* error = ReadStackIntoError(state);
 
 	va_list args;
+	va_list argsCopy;
 	va_start(args, fmt);
+	va_copy(argsCopy, args);
 
 	int size = vsnprintf(nullptr, 0, fmt, args);
 	if (size < 0) {
 		va_end(args);
+		va_end(argsCopy);
 		return;
 	}
 
 	char* buffer = new char[size + 1];
-	vsnprintf(buffer, size + 1, fmt, args);
+	vsnprintf(buffer, size + 1, fmt, argsCopy);
 	buffer[size] = '\0';
 
 	error->message = buffer;
 	va_end(args);
+	va_end(argsCopy);
 
 	m_pGameCallback->LuaError(error);
 
@@ -1705,20 +1709,24 @@ void CLuaInterface::ErrorFromLua(const char *fmt, ...)
 	GarrysMod::Lua::ILuaGameCallback::CLuaError* error = ReadStackIntoError(state);
 
 	va_list args;
+	va_list argsCopy;
 	va_start(args, fmt);
+	va_copy(argsCopy, args);
 
 	int size = vsnprintf(nullptr, 0, fmt, args);
 	if (size < 0) {
 		va_end(args);
+		va_end(argsCopy);
 		return;
 	}
 
 	char* buffer = new char[size + 1];
-	vsnprintf(buffer, size + 1, fmt, args);
+	vsnprintf(buffer, size + 1, fmt, argsCopy);
 	buffer[size] = '\0';
 
 	error->message = buffer;
 	va_end(args);
+	va_end(argsCopy);
 	
 	/* NOTE: This is already done in ReadStackIntoError
 	

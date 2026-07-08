@@ -2005,9 +2005,11 @@ void AsyncCallback(const FileAsyncRequest_t &request, int nBytesRead, FSAsyncSta
 	{
 		async->nBytesRead = nBytesRead;
 		async->status = err;
-		char* content = new char[nBytesRead + 1];
-		std::memcpy(static_cast<void*>(content), request.pData, nBytesRead);
-		content[nBytesRead] = '\0';
+		int nContentLength = nBytesRead > 0 && request.pData ? nBytesRead : 0;
+		char* content = new char[nContentLength + 1];
+		if (nContentLength > 0)
+			std::memcpy(static_cast<void*>(content), request.pData, nContentLength);
+		content[nContentLength] = '\0';
 		async->content = content;
 		asyncCallback.push_back(async);
 	} else {
@@ -2144,11 +2146,11 @@ LUA_FUNCTION_STATIC(filesystem_Find)
 			std::sort(files.begin(), files.end(), std::greater<std::string>());
 			std::sort(folders.begin(), folders.end(), std::greater<std::string>());
 		} else if (strcmp(sorting, "dateasc") == 0) { // sort the files ascending by date.
-			SortByDate(files, filepath, gamePath, true);
-			SortByDate(folders, filepath, gamePath, true);
+			files = SortByDate(files, filepath, gamePath, true);
+			folders = SortByDate(folders, filepath, gamePath, true);
 		} else if (strcmp(sorting, "datedesc") == 0) { // sort the files descending by date.
-			SortByDate(files, filepath, gamePath, false);
-			SortByDate(folders, filepath, gamePath, false);
+			files = SortByDate(files, filepath, gamePath, false);
+			folders = SortByDate(folders, filepath, gamePath, false);
 		} else { // Fallback to default: nameasc | sort the files ascending by name.
 			std::sort(files.begin(), files.end());
 			std::sort(folders.begin(), folders.end());

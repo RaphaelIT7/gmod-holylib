@@ -49,6 +49,12 @@ static thread_local SteamOpus::Opus_FrameDecoder g_pOpusDecoder;
 static uint64_t fakeSteamID = 0x0110000100000001; // STEAM_0:1:0
 // static inline void ClearDataBuffer() { memset(g_pDataBuffer, 0, g_pDefaultDecompressedSize); }
 
+static uint16_t ClampVoiceDataLength(int iLength, size_t iDataLength)
+{
+	size_t iClampedLength = iLength <= 0 ? iDataLength : MIN((size_t)iLength, iDataLength);
+	return (uint16_t)MIN(iClampedLength, (size_t)0xFFFF);
+}
+
 static IThreadPool* pVoiceThreadPool = nullptr;
 static void OnVoiceThreadsChange(IConVar* convar, const char* pOldValue, float flOldValue)
 {
@@ -495,7 +501,8 @@ LUA_JIT_WRAPPED_3(VoiceData_SetData,
 	if (!pData || !pCompressedData)
 		return;
 
-	pData->SetData(Lua::GetGCStrData(pCompressedData), (uint16_t)(iNewLength != -1 ? iNewLength : Lua::GetGCStrLength(pCompressedData)));
+	size_t iDataLength = Lua::GetGCStrLength(pCompressedData);
+	pData->SetData(Lua::GetGCStrData(pCompressedData), ClampVoiceDataLength(iNewLength, iDataLength));
 }
 
 // This is the JIT version with (userdata, string) args while the above is (userdata, string, int)
@@ -509,7 +516,8 @@ LUA_JIT_RAW_2(VoiceData_SetData_NoLength,
 	if (!pData || !pCompressedData)
 		return;
 
-	pData->SetData(Lua::GetGCStrData(pCompressedData), (uint16_t)Lua::GetGCStrLength(pCompressedData));
+	size_t iDataLength = Lua::GetGCStrLength(pCompressedData);
+	pData->SetData(Lua::GetGCStrData(pCompressedData), ClampVoiceDataLength(-1, iDataLength));
 }
 
 LUA_FUNCTION_STATIC(VoiceData_SetProximity)
@@ -551,7 +559,7 @@ struct WavAudioFile {
 
 	void WriteData(const void* pData, int nDataLength)
 	{
-		if ((currentPos + nDataLength) >= dataSize)
+		if (nDataLength < 0 || nDataLength > dataSize - currentPos)
 		{
 			//if (g_pVoiceChatModule.InDebug() == 1)
 			{
@@ -1698,14 +1706,8 @@ LUA_FUNCTION_STATIC(voicechat_CreateVoiceData)
 
 	if (pStr)
 	{
-		int iStrLength = LUA->ObjLen(2);
-		if (iLength && iLength > iStrLength)
-			iLength = iStrLength;
-
-		if (!iLength)
-			iLength = iStrLength;
-
-		pData->SetData(pStr, iLength);
+		size_t iStrLength = LUA->ObjLen(2);
+		pData->SetData(pStr, ClampVoiceDataLength(iLength, iStrLength));
 	}
 
 	Push_VoiceData(LUA, pData);
