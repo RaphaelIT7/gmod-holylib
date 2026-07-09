@@ -2429,6 +2429,20 @@ public:
 	virtual bool IsValidPhysicsObject( IPhysicsObject* pObject ) = 0;
 };
 
+static Detouring::Hook detour_PhysCreateBbox;
+static CPhysCollide* hook_PhysCreateBbox(const Vector& mins, const Vector& maxs)
+{
+	// Stock PhysCreateBbox is physcollision->BBoxToCollide + g_pPhysSaveRestoreManager->NoteBBox.
+	// NoteBBox records every unique bbox forever in a CUtlRBTree indexed by unsigned short, purely
+	// for game save/restore which never runs on a dedicated MP server, and Sys_Error()s the whole
+	// server at 65535 entries ("CUtlRBTree overflow!") once Lua streams enough unique hull sizes
+	// at it (pac3 size mutators, per-tick SetHull offsets). Skip it so the tree can never grow.
+	if (g_pPhysCollide)
+		return g_pPhysCollide->BBoxToCollide(mins, maxs);
+
+	return detour_PhysCreateBbox.GetTrampoline<Symbols::PhysCreateBbox>()(mins, maxs);
+}
+
 static Detouring::Hook detour_GMod_Util_IsPhysicsObjectValid;
 static bool hook_GMod_Util_IsPhysicsObjectValid(IPhysicsObject* pObject)
 {
@@ -2901,6 +2915,12 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 		detour_GMod_Util_IsPhysicsObjectValid.Destroy();
 		Warning(PROJECT_NAME " - physenv: Removed GMod::Util::IsPhysicsObjectValid due to other detours failing to hook!\n");
 	}
+
+	Detour::Create(
+		&detour_PhysCreateBbox, "PhysCreateBbox",
+		server_loader.GetModule(), Symbols::PhysCreateBboxSym,
+		(void*)hook_PhysCreateBbox, m_pID
+	);
 
 	Detour::Create(
 		&detour_CPhysicsHook_FrameUpdatePostEntityThink, "CPhysicsHook::FrameUpdatePostEntityThink",
