@@ -3003,9 +3003,56 @@ static bool hook_CBaseServer_ProcessConnectionlessPacket(IServer* server, netpac
 #if MODULE_EXISTS_GMODDATAPACK
 extern bool GMODDataPack_SetSignOnState(CBaseClient* cl, int state);
 #endif
+/*
+ * NCG: validity guard for the client-lifecycle detours below.
+ *
+ * During a mass-disconnect storm (20-30+ clients dropped in the same frame —
+ * e.g. gluapack kicking every mid-download client at repack start, or a queue
+ * eviction burst), these detours can be handed a CBaseClient pointer that no
+ * live container owns anymore. Any dereference of such a pointer — the virtual
+ * GetServer() call, name/SteamID reads for the Lua push — is a use-after-free;
+ * through a freed vtable it produces the recurring `segfault at 0 ip 0` /
+ * libc GPF crash pair seen during hotfix autorefresh storms.
+ *
+ * This helper establishes liveness WITHOUT dereferencing the candidate: it is
+ * a pure pointer-IDENTITY scan over the two containers that own every client
+ * this module works with (the main server's client list + our queue list).
+ * Engine slot clients persist in m_Clients across disconnects, so normal
+ * clients always pass — behavior is unchanged for them. A freed-then-reused
+ * allocation also passes, but then the pointer refers to a valid live object
+ * again and dereferencing it is memory-safe (worst case a hook sees the
+ * successor client — a bookkeeping error, not a crash).
+ */
+static bool IsKnownClient(CBaseClient* pClient)
+{
+	if (!pClient)
+		return false;
+
+	for (CBaseClient* pQueueClient : g_pQueueClients)
+		if (pQueueClient == pClient)
+			return true;
+
+	if (!Util::server)
+		return false;
+
+	int count = Util::server->GetClientCount();
+	for (int i = 0; i < count; ++i)
+		if ((CBaseClient*)Util::server->GetClient(i) == pClient)
+			return true;
+
+	return false;
+}
+
 static Detouring::Hook detour_CBaseClient_SetSignonState;
 static bool hook_CBaseClient_SetSignonState(CBaseClient* cl, int state, int spawncount)
 {
+	// NCG: UAF guard (see IsKnownClient above). An unknown pointer is handed
+	// straight to the engine untouched — HolyLib (Lua hook + datapack) stays
+	// off it entirely. Note this also skips clients owned by other server
+	// instances (HLTV); we don't run SourceTV.
+	if (!IsKnownClient(cl))
+		return detour_CBaseClient_SetSignonState.GetTrampoline<Symbols::CBaseClient_SetSignonState>()(cl, state, spawncount);
+
 	if (Lua::PushHook("HolyLib:OnSetSignonState"))
 	{
 		Push_CBaseClient(g_Lua, cl);
@@ -3456,6 +3503,14 @@ static void hook_CGameClient_SpawnPlayer(CGameClient* client)
 // Called by Util from CSteam3Server::NotifyClientDisconnect
 void CGameServerModule::OnClientDisconnect(CBaseClient* pClient)
 {
+	// NCG: UAF guard (see IsKnownClient) — pClient->GetServer() below is a
+	// virtual call, i.e. a jump through the vtable of possibly-freed memory
+	// (`segfault at 0 ip 0`). Establish pointer liveness before ANY deref.
+	// Membership normally implies GetServer()==Util::server, but keep the
+	// original check for its fake/HLTV edge semantics.
+	if (!IsKnownClient(pClient))
+		return;
+
 	if (pClient->GetServer() != Util::server) // Not our main server
 		return;
 
