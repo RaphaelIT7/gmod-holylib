@@ -112,7 +112,7 @@ local mt = {
         end
     end,
     __eq = function(a, b)
-        if type(b) ~= "Angle" then
+        if type(b) ~= "Angle" or type(a) ~= "Angle" then
             return false
         end
         return a.x == b.x and a.y == b.y and a.z == b.z

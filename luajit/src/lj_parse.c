@@ -2434,7 +2434,7 @@ static void parse_while(LexState *ls, BCLine line)
   lex_check(ls, TK_do);
   loop = bcemit_AD(fs, BC_LOOP, fs->nactvar, 0);
   parse_block(ls);
-  if(fs->bl->flags | FSCOPE_CONTINUE) {
+  if(fs->bl->flags & FSCOPE_CONTINUE) {
     MSize idx = gola_new(ls, NAME_CONTINUE, VSTACK_LABEL, fs->pc);
     gola_resolve(ls, fs->bl, idx);
   }
@@ -2457,7 +2457,7 @@ static void parse_repeat(LexState *ls, BCLine line)
   lj_lex_next(ls);  /* Skip 'repeat'. */
   bcemit_AD(fs, BC_LOOP, fs->nactvar, 0);
   parse_chunk(ls);
-  if(fs->bl->flags | FSCOPE_CONTINUE) {
+  if(fs->bl->flags & FSCOPE_CONTINUE) {
     MSize idx = gola_new(ls, NAME_CONTINUE, VSTACK_LABEL, fs->pc);
     gola_resolve(ls, fs->bl, idx);
   }
@@ -2506,7 +2506,7 @@ static void parse_for_num(LexState *ls, GCstr *varname, BCLine line)
   var_add(ls, 1);
   bcreg_reserve(fs, 1);
   parse_block(ls);
-  if(fs->bl->flags | FSCOPE_CONTINUE) {
+  if(fs->bl->flags & FSCOPE_CONTINUE) {
     MSize idx = gola_new(ls, NAME_CONTINUE, VSTACK_LABEL, fs->pc);
     gola_resolve(ls, fs->bl, idx);
   }
@@ -2583,7 +2583,7 @@ static void parse_for_iter(LexState *ls, GCstr *indexname)
   var_add(ls, nvars-3);
   bcreg_reserve(fs, nvars-3);
   parse_block(ls);
-  if(fs->bl->flags | FSCOPE_CONTINUE) {
+  if(fs->bl->flags & FSCOPE_CONTINUE) {
     MSize idx = gola_new(ls, NAME_CONTINUE, VSTACK_LABEL, fs->pc);
     gola_resolve(ls, fs->bl, idx);
   }
