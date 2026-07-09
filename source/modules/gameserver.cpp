@@ -3262,24 +3262,33 @@ static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* tar
 	 * Update CNetChan and CNetMessage's properly to not crash.
 	 */
 
+	// NCG: guard the netchannel deref. origin->m_NetChannel is handed to target
+	// via Connect() above; if the origin was a queue client in a transient
+	// half-connected state its channel can be NULL, and dereferencing
+	// chan->m_MessageHandler segfaults. The SpawnPlayer detour below refuses a
+	// null-channel client before reaching here, but MoveCGameClientIntoCGameClient
+	// is also reachable via the MoveIntoClient Lua binding, so guard defensively.
 	CNetChan* chan = (CNetChan*)target->m_NetChannel;
-	chan->m_MessageHandler = (INetChannelHandler*)target;
-
-	FOR_EACH_VEC(chan->m_NetMessages, i)
+	if (chan)
 	{
-		CExtendedNetMessage* msg = (CExtendedNetMessage*)chan->m_NetMessages[i];
-		if (!msg)
-			continue;
+		chan->m_MessageHandler = (INetChannelHandler*)target;
 
-		msg->m_pMessageHandler = target;
-
-		if (msg->GetType() == clc_CmdKeyValues)
+		FOR_EACH_VEC(chan->m_NetMessages, i)
 		{
-			Base_CmdKeyValues* keyVal = (Base_CmdKeyValues*)msg;
-			if (keyVal->m_pKeyValues)
+			CExtendedNetMessage* msg = (CExtendedNetMessage*)chan->m_NetMessages[i];
+			if (!msg)
+				continue;
+
+			msg->m_pMessageHandler = target;
+
+			if (msg->GetType() == clc_CmdKeyValues)
 			{
-				keyVal->m_pKeyValues = nullptr; // Will leak memory but we can't safely delete it currently.
-				// ToDo: Fix this small memory leak.
+				Base_CmdKeyValues* keyVal = (Base_CmdKeyValues*)msg;
+				if (keyVal->m_pKeyValues)
+				{
+					keyVal->m_pKeyValues = nullptr; // Will leak memory but we can't safely delete it currently.
+					// ToDo: Fix this small memory leak.
+				}
 			}
 		}
 	}
@@ -3390,6 +3399,17 @@ static bool hook_CGameClient_SpawnPlayer(CGameClient* client)
 		return false;
 	}
 
+	// NCG: a queue client can lose its netchannel (mid-disconnect / already nuked)
+	// while still passing IsConnected(). MoveCGameClientIntoCGameClient hands
+	// origin->m_NetChannel to the target slot and then dereferences it unguarded
+	// (target->m_NetChannel->m_MessageHandler = ...) -> segfault. Refuse the spawn;
+	// the ply_queue PendingMoves/RecoverFailedSpawn path re-queues it cleanly.
+	if (!client->m_NetChannel)
+	{
+		Warning(PROJECT_NAME ": Refusing spawn - client has NULL netchannel! (slot %i, uid %i)\n", client->m_nClientSlot, client->GetUserID());
+		return false;
+	}
+
 	MoveCGameClientIntoCGameClient(client, pClient);
 	return false;
 	//detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(pClient);
@@ -3417,6 +3437,14 @@ static void hook_CGameClient_SpawnPlayer(CGameClient* client)
 	{
 		// It really didn't like what we had planned.
 		Warning(PROJECT_NAME ": Client collision! fk. Client will be refused to spawn! (%i - %s, %i - %s)\n", pClient->m_nClientSlot, pClient->GetClientName(), client->m_nClientSlot, client->GetClientName());
+		return;
+	}
+
+	// NCG: see 64-bit variant above — refuse to relocate a client with no
+	// netchannel, which MoveCGameClientIntoCGameClient would dereference unguarded.
+	if (!client->m_NetChannel)
+	{
+		Warning(PROJECT_NAME ": Refusing spawn - client has NULL netchannel! (slot %i, uid %i)\n", client->m_nClientSlot, client->GetUserID());
 		return;
 	}
 
