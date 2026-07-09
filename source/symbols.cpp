@@ -347,7 +347,7 @@ namespace Symbols
 
 	const std::vector<Symbol> CServerGameEnts_CheckTransmitSym = { // Find 'cl_updaterate' and you'll find CServerGameClients__ClientSettingsChanged then search for xref to get vtable and it will be above
 		Symbol::FromName("_ZN15CServerGameEnts13CheckTransmitEP18CCheckTransmitInfoPKti"),
-		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x49\x89\xF6\x31\xF6"), //55 48 89 E5 41 57 41 56 49 89 F6 31 F6
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x49\x89\xD4\x53\x89"), // 55 48 89 E5 41 57 41 56 41 55 41 54 49 89 D4 53 89 (x64 260706, was 55 48 89 E5 41 57 41 56 49 89 F6 31 F6)
 		Symbol::FromSignature("\x55\x8B\xEC\x83\xEC\x20\x8B*****\x6A*\x8B\x01\xFF"), // 55 8B EC 83 EC 20 8B ?? ?? ?? ?? ?? 6A ?? 8B 01 FF
 	};
 
@@ -775,7 +775,7 @@ namespace Symbols
 
 	const std::vector<Symbol> CSteam3Server_SendUpdatedServerDetailsSym = { // 64x = "steamblocking:%d"
 		Symbol::FromName("_ZN13CSteam3Server24SendUpdatedServerDetailsEv"),
-		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x49\x89\xFC\x53\x48\x83\xEC\x68\x64\x48\x8B\x04\x25\x28"), // 55 48 89 E5 41 57 41 56 41 55 41 54 49 89 FC 53 48 83 EC 68 64 48 8B 04 25 28
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x49\x89\xFE\x41\x55\x48\x8D\x3D\x2A\x2A\x2A\x2A\x41\x54\x53\x48\x83\xEC"), // 55 48 89 E5 41 57 41 56 49 89 FE 41 55 48 8D 3D ? ? ? ? 41 54 53 48 83 EC (x64 260706, "steamblocking:%d" LEA disp wildcarded)
 		Symbol::FromSignature("\x55\x8B\xEC\x83\xEC\x48\x8B\xC1\x89\x45\xE4"), // 55 8B EC 83 EC 48 8B C1 89 45 E4
 		Symbol::FromSignature("\x4C\x8B\xDC\x56\x48\x81\xEC\x90\x00\x00\x00"), // 4C 8B DC 56 48 81 EC 90 00 00 00
 	};
@@ -798,6 +798,7 @@ namespace Symbols
 
 	const std::vector<Symbol> CVoiceGameMgrHelper_CanPlayerHearPlayerSym = { // Good luck.
 		Symbol::FromName("_ZN19CVoiceGameMgrHelper19CanPlayerHearPlayerEP11CBasePlayerS1_Rb"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x53\x48\x83\xEC\x08\x4C"), // 55 48 89 E5 41 57 41 56 41 55 41 54 53 48 83 EC 08 4C (x64 260706, _ZTV19CVoiceGameMgrHelper slot 2)
 		// Needs all other platforms.
 	};
 
@@ -1008,7 +1009,7 @@ namespace Symbols
 
 	const std::vector<Symbol> CBaseClient_SetSignonStateSym = {
 		Symbol::FromName("_ZN11CBaseClient14SetSignonStateEii"),
-		Symbol::FromSignature("\x55\x8B\x87\xA8\x01\x00\x00"), // 55 8B 87 A8 01 00 00
+		Symbol::FromSignature("\x55\x8B\x87\xA0\x01\x00\x00\x48"), // 55 8B 87 A0 01 00 00 48 (x64 260706, m_nSignonState [rdi+0x1A0]; was +0x1A8)
 	};
 
 	const std::vector<Symbol> CBaseServer_IsMultiplayerSym = {
