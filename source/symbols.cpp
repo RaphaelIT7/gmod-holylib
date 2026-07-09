@@ -997,14 +997,17 @@ namespace Symbols
 
 	const std::vector<Symbol> CServerPlugin_ClientSettingsChangedSym = {
 		Symbol::FromName("_ZN13CServerPlugin21ClientSettingsChangedEP7edict_t"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x55\x49\x89\xF5\x41\x54\x49\x89\xFC\x53\x31\xDB\x48\x83\xEC\x08\x8B\x47\x18\x85\xC0\x7E\x39\x0F\x1F\x40\x00\x49\x8B\x44\x24\x08\x48\x8B\x34\xD8\x80\xBE\x80\x00\x00\x00\x00\x75\x15\x48\x8B\xBE\x88\x00\x00\x00\x48\x85\xFF\x74\x3A\x48\x8B\x07\x4C\x89\xEE\xFF\x50\x68"), // 55 48 89 E5 41 55 49 89 F5 41 54 49 89 FC 53 31 DB 48 83 EC 08 8B 47 18 85 C0 7E 39 0F 1F 40 00 49 8B 44 24 08 48 8B 34 D8 80 BE 80 00 00 00 00 75 15 48 8B BE 88 00 00 00 48 85 FF 74 3A 48 8B 07 4C 89 EE FF 50 68 (x64 260706, _ZTV13CServerPlugin slot 11; len 71 to pass identical sibling dispatchers, ends at call *0x68)
 	};
 
 	const std::vector<Symbol> CSteam3Server_ClientFindFromSteamIDSym = {
 		Symbol::FromName("_ZN13CSteam3Server21ClientFindFromSteamIDER8CSteamID"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x57\x41\x56\x41\x55\x41\x54\x45\x31\xE4\x53\x31"), // 55 48 89 E5 41 57 41 56 41 55 41 54 45 31 E4 53 31 (x64 260706, non-virtual; anchored via first call of OnComputeNewPlayerCompatibilityResponse, body = client loop w/ 2x vtable offsets 0xC8/0xE0)
 	};
 
 	const std::vector<Symbol> CVEngineServer_GMOD_SendToClientSym = {
 		Symbol::FromName("_ZN14CVEngineServer17GMOD_SendToClientEiPvi"),
+		Symbol::FromSignature("\x55\x48\x63\xF6\x48\x89\xE5\x41\x57"), // 55 48 63 F6 48 89 E5 41 57 (x64 260706, _ZTV14CVEngineServer slot 120; movslq esi = arg handling)
 	};
 
 	const std::vector<Symbol> CBaseClient_SetSignonStateSym = {
