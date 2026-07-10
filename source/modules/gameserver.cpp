@@ -2868,19 +2868,33 @@ static void hook_CVEngineServer_GMOD_SendToClient(void* _this, int client, void 
 		return;
 	}
 
-	CBaseServer* pServer = (CBaseServer*)Util::server;
-	client -= pServer->m_nMaxclients;
-	if (client >= g_pQueueClients.size())
+	/*
+	 * Queue slots are handed out as maxClients + insertion index, but vector order
+	 * stops matching slot order after any erase (AddToServerList /
+	 * RemoveFromAllLists). Resolve by slot instead of indexing.
+	 */
+	CBaseClient* pClient = nullptr;
+	for (CGameClient* pQueueClient : g_pQueueClients)
+	{
+		if (pQueueClient->m_nClientSlot == client)
+		{
+			pClient = (CBaseClient*)pQueueClient;
+			break;
+		}
+	}
+
+	if (!pClient)
 		return; // Invalid?
 
-	CBaseClient* pClient = g_pQueueClients[client];
 	if (pClient->IsFakeClient())
 	{
 		DevMsg(PROJECT_NAME " - gameserver: Not sending to fake client '%s'.\n", pClient->GetClientName());
 		return;
 	}
 
-	if (!pClient->IsConnected())
+	// IsConnected() does NOT imply a live channel (same bug class as the old
+	// GetFreeQueueClient null-netchannel crash) - check both before SendNetMsg.
+	if (!pClient->IsConnected() || !pClient->m_NetChannel)
 	{
 		Msg(PROJECT_NAME " - gameserver: Not sending to null client.\n");
 		return;
@@ -2899,7 +2913,13 @@ static void hook_CVEngineServer_GMOD_SendToClient(void* _this, int client, void 
 
 static void SendPendingServerInfos(CBaseServer* pServer)
 {
-	for (CBaseClient* pClient : g_pQueueClients)
+	if (g_pQueueClients.empty())
+		return;
+
+	// SendServerInfo can fail internally and Disconnect the client; Lua hooks
+	// running off that may mutate g_pQueueClients - iterate a snapshot.
+	std::vector<CGameClient*> pQueueSnapshot(g_pQueueClients);
+	for (CBaseClient* pClient : pQueueSnapshot)
 	{
 		if (pClient->m_bSendServerInfo)
 		{
@@ -2923,7 +2943,15 @@ static void SendPendingServerInfos(CBaseServer* pServer)
 
 static void SendClientMessages()
 {
-	for (CBaseClient* pClient : g_pQueueClients)
+	if (g_pQueueClients.empty())
+		return;
+
+	// ShouldSendMessages() Disconnects the client internally when its reliable
+	// channel overflowed - Lua hooks running off that may mutate g_pQueueClients,
+	// so iterate a snapshot. (hook_CNetChan_D1 below scrubs dying channels off
+	// every entry, so the m_NetChannel re-checks here stay trustworthy.)
+	std::vector<CGameClient*> pQueueSnapshot(g_pQueueClients);
+	for (CBaseClient* pClient : pQueueSnapshot)
 	{
 		if (!pClient->ShouldSendMessages() || !pClient->m_NetChannel)
 			continue;
@@ -2931,6 +2959,47 @@ static void SendClientMessages()
 		pClient->m_NetChannel->Transmit();
 		pClient->UpdateSendState();
 	}
+}
+
+static Detouring::Hook detour_CNetChan_D1;
+static void hook_CNetChan_D1(void* pChan)
+{
+	/*
+	 * A CNetChan is being destroyed. Queue clients live outside m_Clients, so no
+	 * engine bookkeeping ever scrubs their m_NetChannel - any alias left behind
+	 * (relocation windows, teardown paths racing Lua, reconnect churn) becomes a
+	 * dangling pointer that CGameServerModule::Think later dereferences through a
+	 * stale vtable: the x64 queue-servicing UAF (wild jump, crash logs show
+	 * rip=0 / rip inside libtier0). Scrub every reference by pointer identity.
+	 * pChan is mid-teardown and must never be dereferenced here.
+	 */
+	for (CGameClient* pClient : g_pQueueClients)
+	{
+		if ((void*)pClient->m_NetChannel == pChan)
+		{
+			if (g_pGameServerModule.InDebug())
+				Msg(PROJECT_NAME " - gameserver: scrubbed dying netchannel off queue client (slot %i)\n", pClient->m_nClientSlot);
+
+			pClient->m_NetChannel = nullptr;
+		}
+	}
+
+	if (Util::server)
+	{
+		// A client mid-Disconnect still points at its channel while the channel
+		// destructs (Shutdown -> NET_RemoveNetChannel -> delete) - nulling early
+		// is harmless there, and fatal to skip everywhere else (relocation
+		// leftovers on real slots).
+		int count = Util::server->GetClientCount();
+		for (int i = 0; i < count; ++i)
+		{
+			CBaseClient* pClient = (CBaseClient*)Util::server->GetClient(i);
+			if ((void*)pClient->m_NetChannel == pChan)
+				pClient->m_NetChannel = nullptr;
+		}
+	}
+
+	detour_CNetChan_D1.GetTrampoline<Symbols::CNetChan_D1>()(pChan);
 }
 
 // Since the Engine can't handle our queue clients, we instead handle them ourselves. Take that engine >:3c
@@ -3229,6 +3298,63 @@ static void hook_CBaseServer_CheckTimeouts(CBaseServer* srv)
 			cl->Disconnect( "Client %d overflowed reliable channel.", i );
 		}
 	}
+
+	/*
+	 * Queue clients live in g_pQueueClients, not m_Clients - the loops above never
+	 * reach them. Without this, a parked client whose socket died (crashed client,
+	 * alt-F4 on the queue screen) is NEVER timed out: Think keeps pumping its
+	 * reliable stream until it overflows, and the overflow-disconnect then fires
+	 * from inside the send loop, at the worst possible moment. Reap them here with
+	 * the same semantics; HolyLib:OnClientTimeout fires like above so Lua can
+	 * extend queue waits (which never worked for parked clients before).
+	 */
+	std::vector<CGameClient*> pQueueSnapshot(g_pQueueClients); // Disconnect -> Lua may mutate the vector
+	for (CBaseClient* cl : pQueueSnapshot)
+	{
+		if ( cl->IsFakeClient() || !cl->IsConnected() )
+			continue;
+
+		INetChannel *netchan = cl->GetNetChannel();
+		if ( !netchan )
+			continue;
+
+		if ( netchan->IsTimedOut() )
+		{
+			if (Lua::PushHook("HolyLib:OnClientTimeout"))
+			{
+				Push_CBaseClient(g_Lua, cl);
+				if (g_Lua->CallFunctionProtected(2, 1, true))
+				{
+					float timeoutIncrease = (float)g_Lua->CheckNumberOpt(-1, 0);
+					g_Lua->Pop(1);
+					if (timeoutIncrease > 0)
+					{
+						netchan->SetTimeout(netchan->GetTimeoutSeconds() + timeoutIncrease);
+						continue;
+					}
+				}
+			}
+			cl->Disconnect( CLIENTNAME_TIMED_OUT, cl->GetClientName() );
+			continue;
+		}
+
+		if ( netchan->IsOverflowed() )
+		{
+			if (Lua::PushHook("HolyLib:OnChannelOverflow"))
+			{
+				Push_CBaseClient(g_Lua, cl);
+				if (g_Lua->CallFunctionProtected(2, 1, true))
+				{
+					bool bCancel = g_Lua->GetBool(-1);
+					g_Lua->Pop(1);
+					if (bCancel)
+						continue;
+				}
+			}
+
+			cl->Disconnect( "Client %d overflowed reliable channel.", ((CBaseClient*)cl)->m_nClientSlot );
+		}
+	}
 }
 
 class CExtendedNetMessage : public CNetMessage
@@ -3354,6 +3480,19 @@ static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* tar
 		g_Lua->PushNumber(origin->m_nClientSlot);
 		g_Lua->PushNumber(target->m_nClientSlot);
 		g_Lua->CallFunctionProtected(3, 0, true);
+	}
+
+	/*
+	 * target->Connect() above fires the player_connect gameevents - Lua runs
+	 * synchronously in that window (and again in the hook right here) and can tear
+	 * either client down (dup-SteamID kicks & co). If the handed-over channel died,
+	 * hook_CNetChan_D1 has scrubbed our pointers - don't touch the dead client
+	 * any further.
+	 */
+	if (!target->m_NetChannel)
+	{
+		Warning(PROJECT_NAME " - gameserver: relocation target lost its netchannel mid-move! Skipping post-move client update.\n");
+		return;
 	}
 
 	/*
@@ -3664,6 +3803,7 @@ DETOUR_THISCALL_START()
 	DETOUR_THISCALL_ADDRETFUNC1(hook_CSteam3Server_ClientFindFromSteamID, CBaseClient*, Steam_ClientFindFromSteamID, void*, CSteamID*);
 	DETOUR_THISCALL_ADDFUNC1(hook_CGameServer_RemoveClientFromGame, Game_RemoveClientFromGame, CBaseServer*, CBaseClient*);
 	DETOUR_THISCALL_ADDFUNC3(hook_CVEngineServer_GMOD_SendToClient, Engine_GMOD_SendToClient, IVEngineServer*, int, void*, int);
+	DETOUR_THISCALL_ADDFUNC0(hook_CNetChan_D1, NetChan_D1, void*);
 	DETOUR_THISCALL_ADDFUNC0(hook_CSteam3Server_SendUpdatedServerDetails, Steam_SendUpdatedServerDetails, void*);
 	DETOUR_THISCALL_ADDFUNC0(hook_CBaseServer_CheckTimeouts, CheckTimeouts, CBaseServer*);
 	DETOUR_THISCALL_ADDFUNC0(hook_CGameClient_SpawnPlayer, SpawnPlayer, CGameClient*);
@@ -3726,6 +3866,12 @@ void CGameServerModule::InitDetour(bool bPreServer)
 		&detour_CVEngineServer_GMOD_SendToClient, "CVEngineServer::GMOD_SendToClient",
 		engine_loader.GetModule(), Symbols::CVEngineServer_GMOD_SendToClientSym,
 		(void*)DETOUR_THISCALL(hook_CVEngineServer_GMOD_SendToClient, Engine_GMOD_SendToClient), m_pID
+	);
+
+	Detour::Create(
+		&detour_CNetChan_D1, "CNetChan::~CNetChan",
+		engine_loader.GetModule(), Symbols::CNetChan_D1Sym,
+		(void*)DETOUR_THISCALL(hook_CNetChan_D1, NetChan_D1), m_pID
 	);
 
 	Detour::Create(

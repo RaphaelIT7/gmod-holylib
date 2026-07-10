@@ -690,6 +690,9 @@ namespace Symbols
 	using CVEngineServer_GMOD_SendToClient = void (GMCOMMON_CALLING_CONVENTION*)(void*, int client, void *data, int dataSize);
 	extern const std::vector<Symbol> CVEngineServer_GMOD_SendToClientSym;
 
+	using CNetChan_D1 = void (GMCOMMON_CALLING_CONVENTION*)(void* chan);
+	extern const std::vector<Symbol> CNetChan_D1Sym;
+
 	using CSteam3Server_SendUpdatedServerDetails = void (GMCOMMON_CALLING_CONVENTION*)(void*);
 	extern const std::vector<Symbol> CSteam3Server_SendUpdatedServerDetailsSym;
 
