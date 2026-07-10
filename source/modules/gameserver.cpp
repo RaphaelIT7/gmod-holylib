@@ -3262,6 +3262,14 @@ static void hook_CBaseServer_CheckTimeouts(CBaseServer* srv)
 				{
 					float timeoutIncrease = (float)g_Lua->CheckNumberOpt(-1, 0);
 					g_Lua->Pop(1);
+
+					// The hook can Disconnect clients (this one included) - the local
+					// would then dangle. hook_CNetChan_D1 nulls m_NetChannel on channel
+					// destruction, so a re-fetch is authoritative.
+					netchan = cl->GetNetChannel();
+					if (!netchan)
+						continue;
+
 					if (timeoutIncrease > 0)
 					{
 						netchan->SetTimeout(netchan->GetTimeoutSeconds() + timeoutIncrease);
@@ -3293,6 +3301,10 @@ static void hook_CBaseServer_CheckTimeouts(CBaseServer* srv)
 					if (bCancel)
 						continue;
 				}
+
+				// The hook can Disconnect clients - don't double-drop.
+				if (!cl->IsConnected())
+					continue;
 			}
 
 			cl->Disconnect( "Client %d overflowed reliable channel.", i );
@@ -3327,6 +3339,21 @@ static void hook_CBaseServer_CheckTimeouts(CBaseServer* srv)
 				{
 					float timeoutIncrease = (float)g_Lua->CheckNumberOpt(-1, 0);
 					g_Lua->Pop(1);
+
+					/*
+					 * The hook runs arbitrary Lua that can Disconnect this (or any)
+					 * client - the pre-hook local then points at a freed channel and
+					 * SetTimeout below dispatches through a stale vtable (this exact
+					 * loop crashed live: crash_2026-07-10_21:07:07). This hook had
+					 * never fired for parked clients before, so the queue-side Lua
+					 * handlers were unexercised territory. hook_CNetChan_D1 nulls
+					 * m_NetChannel on channel destruction, so a re-fetch is
+					 * authoritative.
+					 */
+					netchan = cl->GetNetChannel();
+					if (!netchan)
+						continue;
+
 					if (timeoutIncrease > 0)
 					{
 						netchan->SetTimeout(netchan->GetTimeoutSeconds() + timeoutIncrease);
@@ -3350,6 +3377,10 @@ static void hook_CBaseServer_CheckTimeouts(CBaseServer* srv)
 					if (bCancel)
 						continue;
 				}
+
+				// The hook can Disconnect clients - don't double-drop.
+				if (!cl->IsConnected())
+					continue;
 			}
 
 			cl->Disconnect( "Client %d overflowed reliable channel.", ((CBaseClient*)cl)->m_nClientSlot );
