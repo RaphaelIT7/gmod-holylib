@@ -37,6 +37,15 @@ IModule* pGameServerModule = &g_pGameServerModule;
 
 static std::vector<CGameClient*> g_pQueueClients;
 
+// Set by InitDetour when the compiled CBaseClient mirror disagrees with the
+// engine's real field layout (read from the SetSignonState prologue). Every
+// direct field access (m_nSignonState slot-scans, m_NetChannel guards, the
+// m_SteamID compare in ClientFindFromSteamID) would hit the wrong memory -
+// on GMod x64 build 260709 a stale mirror made occupied slots scan as free,
+// relocating queue clients onto live players (the 2026-07-10 crash class).
+// With this set we refuse to create/park queue clients entirely.
+static bool g_bClientLayoutMismatch = false;
+
 double net_time;
 class SVC_CustomMessage : public CNetMessage
 {
@@ -2458,6 +2467,9 @@ LUA_FUNCTION_STATIC(gameserver_CreateFakeQueueClient)
 	if (!Util::server || !Util::server->IsActive())
 		return 0;
 
+	if (g_bClientLayoutMismatch)
+		return 0; // see g_bClientLayoutMismatch - direct field writes below would corrupt engine state
+
 	const char* pName = LUA->CheckString(1);
 	CBaseServer* pServer = (CBaseServer*)Util::server;
 
@@ -2763,6 +2775,9 @@ void CGameServerModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 static ConVar gameserver_maxplayers("holylib_gameserver_maxplayers", "128", 0, "Experimental - max client limit (above 255 cannot be networked, though may work if they remain purely as a CGameClient)", true, 1, true, 8192);
 static CBaseClient* GetFreeQueueClient(CBaseServer* _this, netadr_t& adr)
 {
+	if (g_bClientLayoutMismatch)
+		return nullptr; // parking disabled: see comment on g_bClientLayoutMismatch
+
 	CBaseClient* freeclient = nullptr;
 	for (CBaseClient* pClient : g_pQueueClients)
 	{
@@ -3860,6 +3875,44 @@ void CGameServerModule::InitDetour(bool bPreServer)
 
 	DETOUR_PREPARE_THISCALL();
 	SourceSDK::FactoryLoader engine_loader("engine");
+
+#if PLATFORM_64BITS
+	/*
+	 * Verify our compiled CBaseClient mirror against the engine's REAL layout
+	 * before any queue-client machinery runs. CBaseClient::SetSignonState's very
+	 * first instructions on the x86-64 branch are `push rbp; mov eax, [rdi+disp32]`
+	 * (55 8B 87 xx xx xx xx) where disp32 IS the engine's m_nSignonState offset -
+	 * the engine tells us the truth directly. A stale mirror (e.g. the removed
+	 * avatar-data pad, +0x60 shift on build 260709) makes occupied slots scan as
+	 * free and corrupts everything downstream, so on mismatch we disable queue
+	 * parking instead of running with wrong offsets. Must run BEFORE the
+	 * SetSignonState detour below patches this prologue.
+	 */
+	{
+		void* pSetSignonState = Detour::GetFunction(engine_loader.GetModule(), Symbols::CBaseClient_SetSignonStateSym);
+		if (pSetSignonState)
+		{
+			const unsigned char* pBytes = (const unsigned char*)pSetSignonState;
+			if (pBytes[0] == 0x55 && pBytes[1] == 0x8B && pBytes[2] == 0x87)
+			{
+				int32_t nEngineOffset = 0;
+				memcpy(&nEngineOffset, pBytes + 3, sizeof(nEngineOffset));
+				int32_t nMirrorOffset = (int32_t)(size_t)&(((CBaseClient*)0)->m_nSignonState);
+				if (nEngineOffset != nMirrorOffset)
+				{
+					g_bClientLayoutMismatch = true;
+					Warning(PROJECT_NAME " - gameserver: CBaseClient layout MISMATCH! engine m_nSignonState=0x%X, compiled mirror=0x%X\n", nEngineOffset, nMirrorOffset);
+					Warning(PROJECT_NAME " - gameserver: queue-client parking DISABLED - update sourcesdk/baseclient.h for this engine build!\n");
+				} else {
+					Msg(PROJECT_NAME " - gameserver: verified CBaseClient layout (m_nSignonState @ 0x%X)\n", nEngineOffset);
+				}
+			} else {
+				Warning(PROJECT_NAME " - gameserver: could not verify CBaseClient layout (unexpected SetSignonState prologue) - re-verify field offsets against this engine build!\n");
+			}
+		}
+	}
+#endif
+
 	Detour::Create(
 		&detour_CBaseServer_GetFreeClient, "CBaseServer::GetFreeClient",
 		engine_loader.GetModule(), Symbols::CBaseServer_GetFreeClientSym,
