@@ -245,8 +245,30 @@ static int TraceRecord_TypeID(lua_TraceRecorder* rec)
 	return -1; // Abort with NYI
 }
 
+/*
+	GMod's own TypeID resolves the userdata type byte through raw lua_touserdata which returns NULL for
+	cdata, so bridge-registered FFI Vectors/Angles degrade to TYPE_USERDATA (7) breaking every TypeID
+	dispatcher (net.WriteType/net.WriteTable, pac3-style StringStream writers, ...).
+	This replacement resolves userdata AND bridge-registered cdata through the same logic our hooked
+	CLuaInterface::GetType uses, keeping GMod's fallback (plain/unresolvable userdata stays TYPE_USERDATA).
+*/
+LUA_FUNCTION_STATIC(hook_TypeID)
+{
+	int type = lua_type(LUA->GetState(), 1);
+	if (type == GarrysMod::Lua::Type::UserData)
+	{
+		int actualType = Lua::GetUserDataTypeID(LUA, 1);
+		if (actualType != -1)
+			type = actualType;
+	}
+
+	LUA->PushNumber(type);
+	return 1;
+}
+
 static lua_CFunctionInfo ASMINFO_TypeID = [] { \
 	lua_CFunctionInfo info{}; \
+	info.func = hook_TypeID; \
 	info.traceFunc = TraceRecord_TypeID; \
 	return info; \
 }();
@@ -369,10 +391,14 @@ void CLuaJITModule::PostLuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 
 	pLua->GetField(LUA_GLOBALSINDEX, "TypeID");
 	if (pLua->IsType(-1, GarrysMod::Lua::Type::Function)) {
-		lua_settracablecclosure(pLua->GetState(), -1, (lua_CFunctionInfo*)&ASMINFO_TypeID);
+		pLua->SetField(LUA_GLOBALSINDEX, "GMOD_TypeID"); // Keep the original around, like GMOD_Vector/GMOD_Angle
+		// Replace it with our cdata-aware version (see hook_TypeID) wired to the same trace recorder.
+		lua_pushtracablecclosure(pLua->GetState(), &ASMINFO_TypeID);
+		pLua->SetField(LUA_GLOBALSINDEX, "TypeID");
 		Msg(PROJECT_NAME " - jit: Added JIT support for TypeID\n");
+	} else {
+		pLua->Pop(1);
 	}
-	pLua->Pop(1);
 }
 
 void CLuaJITModule::InitDetour(bool bPreServer)

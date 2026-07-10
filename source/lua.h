@@ -513,6 +513,10 @@ namespace Lua
 	extern bool CheckHolyLibType(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos, int nType, LuaUserData** pUserData);
 	extern LuaUserData* GetHolyLibUserData(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos);
 
+	// Resolves the actual GMod type ID (Type::Vector, ...) for userdata / bridge-registered cdata at the given stack position.
+	// Returns -1 if it cannot be resolved.
+	extern int GetUserDataTypeID(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos);
+
 	extern bool FindOnObjectsMetaTable(lua_State* L, int nStackPos, int nKeyPos);
 
 	// GMod specific fast type check

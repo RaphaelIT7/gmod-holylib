@@ -28,7 +28,9 @@ local function Vector(x, y, z)
         return CreateVector(vec.x, vec.y, vec.z)
     end
 
-    if isstring(vec) then
+    if isstring(vec) and y == nil and z == nil then
+        -- Vector("x y z") packed-string form.
+        -- Only when y/z are absent! Vector("1", "2", "3") must coerce each argument like GMod does.
         local vals = vec:Split(" ")
         x = vals[1] or 0
         y = vals[2] or 0
