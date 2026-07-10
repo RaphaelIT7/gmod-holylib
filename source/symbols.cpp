@@ -1015,11 +1015,6 @@ namespace Symbols
 		Symbol::FromSignature("\x55\x48\x63\xF6\x48\x89\xE5\x41\x57"), // 55 48 63 F6 48 89 E5 41 57 (x64 260706, _ZTV14CVEngineServer slot 120; movslq esi = arg handling)
 	};
 
-	const std::vector<Symbol> CNetChan_D1Sym = {
-		Symbol::FromName("_ZN8CNetChanD1Ev"),
-		Symbol::FromSignature("\x55\x48\x8D\x05****\x48\x89\xE5\x41\x55\x41\x54\x49\x89\xFC\x53\x48\x83\xEC\x08\x48\x89\x07\x8B\x87\xB8\x00\x00\x00\x85\xC0\x78\x0C"), // 55 48 8D 05 ?? ?? ?? ?? 48 89 E5 41 55 41 54 49 89 FC 53 48 83 EC 08 48 89 07 8B 87 B8 00 00 00 85 C0 78 0C (x64 260709, _ZTV8CNetChan slot 26 via RTTI walk; LEA vtable disp wildcarded, m_Socket [rdi+0xB8]; unique in .text)
-	};
-
 	const std::vector<Symbol> CBaseClient_SetSignonStateSym = {
 		Symbol::FromName("_ZN11CBaseClient14SetSignonStateEii"),
 		Symbol::FromSignature("\x55\x8B\x87\xA0\x01\x00\x00\x48"), // 55 8B 87 A0 01 00 00 48 (x64 260706, m_nSignonState [rdi+0x1A0]; was +0x1A8)
