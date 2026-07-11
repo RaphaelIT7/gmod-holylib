@@ -2755,19 +2755,37 @@ void CPhysEnvModule::InitDetour(bool bPreServer)
 #if PHYSENV_INCLUDEIVPFALLBACK
 	if (g_pFullFileSystem)
 	{
-		FileHandle_t fileHandle = g_pFullFileSystem->Open("bin/vphysics_srv.so", "rb", "BASE_PATH");
-		if (fileHandle)
+		struct PhysicsPathPair
 		{
+			const char *pVPhysicsPath;
+			const char *pJoltPattern;
+		};
+
+		static const PhysicsPathPair physicsPaths[] = {
+			{ "bin/vphysics_srv.so", "bin/vphysics_jolt_*.*" },
+			{ "bin/linux64/vphysics.so", "bin/linux64/vphysics_jolt_*.*" },
+		};
+
+		bIsJoltPhysics = false;
+		for (const PhysicsPathPair &pathPair : physicsPaths)
+		{
+			FileHandle_t fileHandle = g_pFullFileSystem->Open(pathPair.pVPhysicsPath, "rb", "BASE_PATH");
+			if (!fileHandle)
+				continue;
+
 			int size = g_pFullFileSystem->Size(fileHandle);
 			g_pFullFileSystem->Close(fileHandle);
 
-			if (size < (500 * 1024)) // It's smaller than 500kb? Sus. Let's check for jolt.
-			{
-				FileFindHandle_t findHandle;
-				const char *pFilename = g_pFullFileSystem->FindFirstEx("bin/vphysics_jolt_*.*", "BASE_PATH", &findHandle);
-				bIsJoltPhysics = pFilename != nullptr;
-				g_pFullFileSystem->FindClose(findHandle);
-			}
+			if (size >= (500 * 1024))
+				continue;
+
+			FileFindHandle_t findHandle;
+			const char *pFilename = g_pFullFileSystem->FindFirstEx(pathPair.pJoltPattern, "BASE_PATH", &findHandle);
+			bIsJoltPhysics = pFilename != nullptr;
+			g_pFullFileSystem->FindClose(findHandle);
+
+			if (bIsJoltPhysics)
+				break;
 		}
 
 		if (bIsJoltPhysics)
