@@ -1,124 +1,180 @@
-# Holylib
+# HolyLib
 
-A library that contains some functions and optimizations for gmod.<br>
-If you need any function, make an issue for it, and I'll look into it.<br>
-When HolyLib was installed correctly, the variable `_HOLYLIB` should be set to `true` in Lua. (NOTE: This was **added** in the upcoming `0.8` release)<br>
+An NCG-maintained fork of [RaphaelIT7/gmod-holylib](https://github.com/RaphaelIT7/gmod-holylib).
+HolyLib is a native Garry's Mod extension that exposes lower-level Source engine APIs,
+adds diagnostics, fixes engine edge cases, and provides optional performance-focused
+modules for dedicated servers and advanced addons.
 
-## Windows & Linux
-Linux 32 is the main targeted platform, with Linux 64x being the second target.<br>
-On Linux the focus lies on the dedicated servers, not Linux clients.<br>
+This fork tracks upstream while carrying NCG deployment fixes, including refreshed
+x86-64 engine signatures for the GMod build used by NCG infrastructure.
 
-On Windows things are different.
-There the Windows **client** is targeted, not dedicated server builds.<br>
-Windows does not have the main attention, though it still is supported.<br>
-Does anyone even use windows srcds for actual servers?<br>
+> [!CAUTION]
+> HolyLib runs inside the Source engine and exposes operations that are not safe for
+> untrusted Lua. A wrong binary, stale signature, incompatible engine branch, or invalid
+> API call can crash or corrupt the process. Test on staging, keep backups, and never mix
+> client/server or x86/x64 artifacts.
 
-> [!NOTE]
-> I'm not actively testing windows, so if I accidentally broke it, open a issue since I most likely didn't know about it.<br>
+## Support matrix
 
-## How to Install (Linux 32x)
-1. Download the `ghostinj.dll`, `holyliblinux.vdf` and `gmsv_holylib_linux.so` from the latest release.<br>
-2. Put the `ghostinj.dll` into the main directory where `srcds_linux` is located.<br>
-3. Put the `holylib_linux.vdf` into the `garrysmod/addons/` directory.<br>
-4. Put the `gmsv_holylib_linux.so` into the `garrysmod/lua/bin/` directory.
-5. Add `-usegh` to the servers startup params.<br>
-If you use a panel like Pterodactyl or something similar, you can use the gamemode field (in most cases) like this: `sandbox -usegh`<br>
+| Target | Support level | Notes |
+|---|---|---|
+| Linux dedicated, x86 | Primary upstream target | Uses GhostInj and `-usegh` |
+| Linux dedicated, x86-64 | Supported | NCG fork carries current x64 signature hardening |
+| Windows client, x86/x64 | Supported | Less frequently tested than Linux dedicated |
+| Windows dedicated, x86/x64 | Supported | Requires dedicated-server artifact and VDF |
+| Linux client | Not a target | No supported client workflow |
 
-If you already had a `ghostinj.dll`, you can rename it to `ghostinj2.dll` and it will be loaded by holylib's ghostinj.<br>
+Development artifacts may target GMod `dev`, `prerelease`, or `x86-64` rather than
+`public`. Match the artifact to the exact branch and architecture. "Latest" is not a
+compatibility guarantee.
 
-## How to Install (Linux 64x)
-1. Download the `holylib_linux_64.vdf` and `gmsv_holylib_linux.so` from the latest release.<br>
-2. Put the `holylib_linux_64.vdf` into the `garrysmod/addons/` directory.<br>
-3. Put the `gmsv_holylib_linux.so` into the `garrysmod/lua/bin/` directory.<br>
+When HolyLib loads successfully, `_HOLYLIB` is set to `true` in Lua on current builds.
 
-## How to Install (Windows dedicated)
-1. Download the `holylib_win.vdf`(or the `_64` one) and `gmsv_holylib_[win32/win64].dll` from the latest release.<br>
-2. Put the `holylib_win.vdf` into the `garrysmod/addons/` directory.<br>
-3. Put the `gmsv_holylib_[win32/win64].dll` into the `garrysmod/lua/bin/` directory.<br>
+## What HolyLib provides
 
-> [!NOTE]
-> If you try to run a Windows client build on a dedicated server it will refuse to load.
+- A large Lua API for engine, networking, filesystem, physics, profiling, voice, and
+  server internals.
+- Engine fixes and safer failure handling for several Source/GMod edge cases.
+- Networking and `CheckTransmit` optimizations for high-population servers.
+- Filesystem and ConVar lookup improvements.
+- VProf integration for Lua hooks and high-volume profiling.
+- Optional updated LuaJIT support.
+- Server-to-server net-channel access and player-queue primitives.
+- Crash diagnostics, auto-refresh, data-pack, physics, PVS, and SourceTV utilities.
 
-## How to Install (Windows client)
-1. Download the `gmsv_holylib_[win32/win64].dll` from the latest release.<br>
-2. Put the `gmsv_holylib_[win32/win64].dll` into the `garrysmod/lua/bin/` directory.<br>
-3. Add into `garrysmod/lua/menu/menu.lua` at the end `require('holylib')`
+Modules are independently configurable; do not enable modules simply because they
+exist. Start from defaults and validate each non-default module against the actual
+game branch and addon stack.
 
-> [!NOTE]
-> If you try to run a Windows dedicated build on a Windows client it will refuse to load.
+## Installation
 
-## Custom Builds (Linux Only)
-You can fork this repository and use the `Build Custom Version` to create a custom HolyLib version that only contains specific functions.<br>
-I heard from some that they don't want a huge DLL of which they only use a few functions of,<br>
-so by making a custom build, anyone can include just the stuff they actually want and need, nothing else.<br>
+Use either a tagged upstream release or a successful artifact from this fork's
+[GitHub Actions](https://github.com/ncgst/gmod-holylib/actions). Select the exact
+runtime target:
 
-## Dev Builds
-Every commit triggers a compile workflow, resulting in a dev build<br>
-All of those can be found under the `Actions` tab -> https://github.com/RaphaelIT7/gmod-holylib/actions<br>
+| Runtime | Loader/config | Native module |
+|---|---|---|
+| Linux dedicated x86 | `ghostinj.dll`, `holylib_linux.vdf` | `gmsv_holylib_linux.so` |
+| Linux dedicated x86-64 | `holylib_linux_64.vdf` | `gmsv_holylib_linux64.so` |
+| Windows dedicated x86 | `holylib_win.vdf` | `gmsv_holylib_win32.dll` |
+| Windows dedicated x64 | `holylib_win_64.vdf` | `gmsv_holylib_win64.dll` |
+| Windows client x86/x64 | loaded from `menu.lua` | matching `gmsv_holylib_*.dll` |
 
-> [!IMPORTANT]
-> These builds focus on the GMod `dev` branch currently.<br>
-> If you attempt to use a build on a server running on the `public` branch you **may** experience issues or even crashes.<br>
+### Linux dedicated x86
 
-## How to update
+1. Stop the server.
+2. Place `ghostinj.dll` beside `srcds_linux`.
+3. Place `holylib_linux.vdf` in `garrysmod/addons/`.
+4. Place `gmsv_holylib_linux.so` in `garrysmod/lua/bin/`.
+5. Add `-usegh` to the server startup arguments.
 
-> [!NOTE]
-> Don't try to use plugin_unload since it might not work because of things like the networking module which currently can't be unloaded.<br>
-> To update holylib you will always need to shutdown the server.<br>
+If another `ghostinj.dll` is already present, rename it to `ghostinj2.dll`; HolyLib's
+GhostInj loader will chain-load it.
 
-1. Append `_updated` to the new file to have a result like this `gmsv_holylib_linux_updated.so`.<br>
-2. Upload the file into the `lua/bin` folder
-3. Restart the server normally.<br>
-On the next startup, the ghostinj will update holylib to use the new file.<br>
-This is done by first deleting the current `gmsv_holylib_linux[64].so` and then renaming the `_updated.so` essentially replacing the original file.<br>
+### Linux dedicated x86-64
 
-## What noticeable things does HolyLib bring?
-\- A huge Lua API providing deep access to the engine.<br>
-\- Implements some bug fixes (some bug fixes were brought into gmod itself).<br>
-\- \- `ShouldCollide` won't break the entire physics engine and instead a warning is thrown `holylib: Someone forgot to call Entity:CollisionRulesChanged!`.<br>
-\- Lua Hooks are shown in vprof results (done in the `vprof` module)<br>
-\- Ported a networking improvement over from [sigsegv-mvm](https://github.com/rafradek/sigsegv-mvm/blob/910b92456c7578a3eb5dff2a7e7bf4bc906677f7/src/mod/perf/sendprop_optimize.cpp#L35-L144) improving performance & memory usage (done in the `networking` module)<br>
-\- Ported [Momentum Mod](https://github.com/momentum-mod)'s surfing improvements (done in the `surffix` module)<br>
-\- Heavily improved the filesystem (done in the `filesystem` module)<br>
-\- Greatly improved Gmod's `GMod::Util::IsPhysicsObjectValid` function improving performance especially when many physics objects exist (done in the `physenv` module)<br>
-\- (Disabled by default) Updated LuaJIT version (done in the `luajit` module)<br>
-\- Improved ConVar's find code improving performance (done in the `cvars` module)<br>
-\- Server <-> Server connections using net channels (done in the `gameserver` module)<br>
-\- Noticeably improved `CServerGameEnts::CheckTransmit` (done in the `networking` module)<br>
+1. Stop the server.
+2. Place `holylib_linux_64.vdf` in `garrysmod/addons/`.
+3. Place `gmsv_holylib_linux64.so` in `garrysmod/lua/bin/`.
 
-> [!NOTE]
-> The threadpoolfix module currently does nothing as all of the fixes it contained were implemented into the Garry's Mod itself.
+### Windows dedicated
 
-> [!IMPORTANT]
-> Since HolyLib provides and exposes deep engine functions, it is not guaranteed to be safe, not all functions validate given input!<br>
-> There are plans to improve safety by locking things behind the `-holylib_allowunsafe` commandline argument which was only added recently and is barelly implemented!<br>
-> If there are any functions that should be locked behind it, please let me know as I might miss them.<br>
-> On Linux unsafe code is allowed by default, on windows it is blocked as were on a client and do not want to risk anything.<br>
-> You can disable unsafe code on linux using `-holylib_denyunsafe`<br>
+1. Stop the server.
+2. Place the matching `holylib_win*.vdf` in `garrysmod/addons/`.
+3. Place the matching `gmsv_holylib_win*.dll` in `garrysmod/lua/bin/`.
 
-## Reporting issues / asking Questions
-If you have encountered a bug or crash, please open an issue, if you only have a question or are unsure if something is a bug, then open a discussion.<br>
-There is also a discord(https://discord.gg/Cz3ZQvjcQs) since people seem to prefer it a lot more than GitHub for asking questions xD<br>
-Any announcement or poll will still be posted on GitHub but also mentioned in Discord- I still prefer GitHub since it's open for anyone.<br>
+Client and dedicated Windows builds are intentionally distinct and refuse to load in
+the wrong realm.
 
-## Clarification about HolyLib & its maintenance
-HolyLib has been a hobby project since the very beginning.<br>
-I've made it as a fun project to expose engine functions, optimize the engine, and other things just for mainly my own curiosity or because someone asked for it.<br>
-When I started it, I had lots of free time as I had no active work, though not too long after that I did get a job and since then have had far less time to spend on it, which is how it currently reached this slow pace.<br>
-I've maintained and worked on it for fun, but I do not promise constant/permanent maintenance, as there is really no incentive to always continue since this project never was aimed to provide me any real benefit and it never gave me any benefit other than satisfying my fun / curiosity while everyone can benefit themselves from HolyLib binaries.<br>
-You can sponsor the project to support its development, though it will never be a requirement to do so for continued maintainance- while it does provide incentive and perhaps in the future allows me to spend more time on it, I won't make HolyLib depend on sponsors and to be clear sponsoring does not provide any additional rights or special benefits.<br>
+### Windows client
 
-## HolyLib config
-You can find HolyLib's config files under `garrysmod/holylib/cfg/[x86 or x64]/`<br>
+1. Place the matching x86/x64 module in `garrysmod/lua/bin/`.
+2. Add `require("holylib")` to the end of `garrysmod/lua/menu/menu.lua`.
 
-### modules.json
-In this file, you find all modules and their configs. <br>
-`enabledByDefault` - Do not modify this one, this is used by HolyLib to keep track of if a module was enabled/disabled with a HolyLib update. <br>
-`enabled` - With this you can freely control if a module is enabled or disabled. <br>
-`debugLevel` - Controls which debug level the module will start in. <br>
-There may be further options which will control other module specific functions.<br>
+## Updating and rollback
 
-## Next Update
+Do not hot-unload HolyLib. Several modules cannot be safely unloaded, so every update
+requires a full process stop/restart.
+
+For GhostInj-managed Linux installs, upload the replacement with `_updated` before the
+extension—for example, `gmsv_holylib_linux_updated.so`—then restart. GhostInj replaces
+the active binary during startup. Keep the previous known-good artifact available for
+rollback.
+
+After every update, confirm the engine branch/build, startup log, `_HOLYLIB`, enabled
+module set, and the server's normal boot/round/shutdown path on staging.
+
+## Configuration
+
+HolyLib configuration lives under:
+
+```text
+garrysmod/holylib/cfg/<x86-or-x64>/
+```
+
+The main `modules.json` fields are:
+
+| Field | Meaning |
+|---|---|
+| `enabledByDefault` | Maintainer-owned default tracking; do not edit |
+| `enabled` | Local module enable/disable override |
+| `debugLevel` | Module startup diagnostics level |
+
+Individual modules may add more settings. Record non-default values in bug reports.
+
+Unsafe engine access is currently not uniformly gated. Linux allows unsafe operations
+by default; use `-holylib_denyunsafe` to deny them. Windows client builds block unsafe
+operations by default. Treat `-holylib_allowunsafe` as an explicit trust decision, not
+as a troubleshooting shortcut.
+
+## VPhysics Jolt compatibility
+
+HolyLib's `physenv` module depends on extended VPhysics-Jolt behavior and is the area
+most likely to expose integration defects. NCG deployments should use
+[`Avrena/VPhysics-Jolt`](https://github.com/Avrena/VPhysics-Jolt), which descends from
+the supported RaphaelIT7 fork. Validate object lifetime, `IsValidPhysicsObject`,
+constraints, cleanup, map transitions, and shutdown before production use.
+
+Most non-physics HolyLib modules are independent of the replacement physics engine.
+
+## Builds and development
+
+- [`BUILD.md`](BUILD.md) documents the local build layout.
+- [GitHub Actions](https://github.com/ncgst/gmod-holylib/actions) publishes development
+  artifacts for commits and pull requests.
+- The `Build Custom Version` workflow can produce Linux builds containing only a
+  selected module set.
+- The public API reference continues below; the newer upstream documentation is at
+  [holylib.raphaelit7.com](https://holylib.raphaelit7.com/).
+
+## Reporting and contributing
+
+Use the repository issue forms for reproducible bugs and scoped feature requests.
+Reports must identify the HolyLib commit, GMod branch/build, OS, architecture, realm,
+enabled modules, minimal reproduction, and redacted diagnostics.
+
+Pull requests should document engine signatures/layout assumptions, tested targets,
+runtime validation, provenance, unsafe input handling, and rollback. Do not commit
+generated projects, binaries, secrets, dumps, or player data.
+
+Questions and uncertain reports belong in
+[upstream discussions](https://github.com/RaphaelIT7/gmod-holylib/discussions).
+
+## Maintenance and upstream
+
+HolyLib began as RaphaelIT7's hobby project and remains upstream-led. This fork does
+not claim to replace upstream maintenance; it carries reviewed compatibility changes
+needed by NCG deployments and should be rebased or cherry-picked deliberately.
+
+## Upstream development snapshot
+
+The following upstream notes describe work planned for the next HolyLib release. They
+are retained here because the API reference below still documents that development
+line; verify completion against the current commit before relying on an item.
+
+<details>
+<summary>Show retained upstream pre-release notes</summary>
+
 \- [+] Support `dev` branch x64 on Windows<br>
 \- [+] Added new functions & hooks to `gameserver` module<br>
 \- \-> `CBaseClient:FillServerInfo`, `:MoveIntoClient`, `:AddToQueueList`, `:RemoveFromAllLists`<br>
@@ -185,7 +241,12 @@ None
 ### QoL updates
 \- [#] Unified module dumping code & fixed names being too long by 1.<br>
 
-## ToDo
+</details>
+
+## Upstream backlog
+
+<details>
+<summary>Show retained upstream backlog</summary>
 
 \- Finish 64x (`pvs`, `sourcetv`, `surffix`)<br>
 \- Find out why ConVars are so broken. (Serverside `path` command breaks :<)<br>
@@ -199,75 +260,27 @@ None
 \- Check out `holylib_filesystem_predictexistance` as it seamingly broke, reportedly works in `0.6`.<br>
 \- `IModule::ServerActivate` is not called when were loaded using `require("holylib")`<br>
 
-# New Documentation
-Currently I'm working on implementing a better wiki that will replace this huge readme later.<br>
-It may already contain a few more details to some functions than this readme.<br>
-Wiki: https://holylib.raphaelit7.com/
+</details>
 
-> [!NOTE]
-> The Wiki is still in development currently, **but** most/all of the documentation is **already** done.<br>
+## API documentation
 
-# The Navigator<br>
-[Modules](https://github.com/RaphaelIT7/gmod-holylib#modules)<br>
-\- [holylib](https://github.com/RaphaelIT7/gmod-holylib#holylib-1)<br>
-\- [gameevent](https://github.com/RaphaelIT7/gmod-holylib#gameevent)<br>
-\- [threadpoolfix](https://github.com/RaphaelIT7/gmod-holylib#threadpoolfix)<br>
-\- [precachefix](https://github.com/RaphaelIT7/gmod-holylib#precachefix)<br>
-\- [stringtable](https://github.com/RaphaelIT7/gmod-holylib#stringtable)<br>
-\- \- [INetworkStringTable](https://github.com/RaphaelIT7/gmod-holylib#inetworkstringtable)<br>
-\- [pvs](https://github.com/RaphaelIT7/gmod-holylib#pvs)<br>
-\- [surffix](https://github.com/RaphaelIT7/gmod-holylib#surffix)<br>
-\- [filesystem](https://github.com/RaphaelIT7/gmod-holylib#filesystem)<br>
-\- [util](https://github.com/RaphaelIT7/gmod-holylib#util)<br>
-\- [concommand](https://github.com/RaphaelIT7/gmod-holylib#concommand)<br>
-\- [vprof](https://github.com/RaphaelIT7/gmod-holylib#vprof)<br>
-\- \- [VProfCounter](https://github.com/RaphaelIT7/gmod-holylib#vprofcounter)<br>
-\- \- [VProfNode](https://github.com/RaphaelIT7/gmod-holylib#vprofnode)<br>
-\- [sourcetv](https://github.com/RaphaelIT7/gmod-holylib#sourcetv)<br>
-\- \- [CHLTVClient](https://github.com/RaphaelIT7/gmod-holylib#chltvclient)<br>
-\- [bitbuf](https://github.com/RaphaelIT7/gmod-holylib#bitbuf)<br>
-\- \- [bf_read](https://github.com/RaphaelIT7/gmod-holylib#bf_read)<br>
-\- \- [bf_write](https://github.com/RaphaelIT7/gmod-holylib#bf_write)<br>
-\- [networking](https://github.com/RaphaelIT7/gmod-holylib#networking)<br>
-\- [steamworks](https://github.com/RaphaelIT7/gmod-holylib#steamworks)<br>
-\- [systimer](https://github.com/RaphaelIT7/gmod-holylib#systimer)<br>
-\- [pas](https://github.com/RaphaelIT7/gmod-holylib#pas)<br>
-\- [voicechat](https://github.com/RaphaelIT7/gmod-holylib#voicechat)<br>
-\- \- [VoiceData](https://github.com/RaphaelIT7/gmod-holylib#voicedata)<br>
-\- [physenv](https://github.com/RaphaelIT7/gmod-holylib#physenv)<br>
-\- \- [CPhysCollide](https://github.com/RaphaelIT7/gmod-holylib#cphyscollide)<br>
-\- \- [CPhysPolySoup](https://github.com/RaphaelIT7/gmod-holylib#cphyspolysoup)<br>
-\- \- [CPhysConvex](https://github.com/RaphaelIT7/gmod-holylib#cphysconvex)<br>
-\- \- [IPhysicsCollisionSet](https://github.com/RaphaelIT7/gmod-holylib#iphysicscollisionset)<br>
-\- \- [IPhysicsEnvironment](https://github.com/RaphaelIT7/gmod-holylib#iphysicsenvironment)<br>
-\- [bass](https://github.com/RaphaelIT7/gmod-holylib#bass)<br>
-\- \- [IGModAudioChannel](https://github.com/RaphaelIT7/gmod-holylib#igmodaudiochannel)<br>
-\- [entitylist](https://github.com/RaphaelIT7/gmod-holylib#entitylist)<br>
-\- [httpserver](https://github.com/RaphaelIT7/gmod-holylib#httpserver)<br>
-\- \- [HttpServer](https://github.com/RaphaelIT7/gmod-holylib#httpserver)<br>
-\- \- [HttpRequest](https://github.com/RaphaelIT7/gmod-holylib#httprequest)<br>
-\- \- [HttpResponse](https://github.com/RaphaelIT7/gmod-holylib#httpresponse)<br>
-\- [luajit](https://github.com/RaphaelIT7/gmod-holylib#luajit)<br>
-\- [gameserver](https://github.com/RaphaelIT7/gmod-holylib#gameserver)<br>
-\- \- [CBaseClient](https://github.com/RaphaelIT7/gmod-holylib#cbaseclient)<br>
-\- \- [CGameClient](https://github.com/RaphaelIT7/gmod-holylib#cgameclient)<br>
-\- \- [Singleplayer](https://github.com/RaphaelIT7/gmod-holylib#singleplayer)<br>
-\- \- [128+ Players](https://github.com/RaphaelIT7/gmod-holylib#128-players)<br>
-\- [autorefresh](https://github.com/RaphaelIT7/gmod-holylib#autorefresh)<br>
-\- [soundscape](https://github.com/RaphaelIT7/gmod-holylib#soundscape)<br>
-\- [networkthreading](https://github.com/RaphaelIT7/gmod-holylib#networkthreading)<br>
-\- [luagc](https://github.com/RaphaelIT7/gmod-holylib#luagc)<br>
-\- [crashhandler](https://github.com/RaphaelIT7/gmod-holylib#crashhandler)<br>
-\- [gmoddatapack](https://github.com/RaphaelIT7/gmod-holylib#gmoddatapack)<br>
-\- [unholylib](https://github.com/RaphaelIT7/gmod-holylib#unholylib)<br>
+The maintained upstream API documentation is available at
+[holylib.raphaelit7.com](https://holylib.raphaelit7.com/). The in-repository reference
+below remains useful for source-adjacent details and historical APIs.
 
-[Unfinished Modules](https://github.com/RaphaelIT7/gmod-holylib#unfinished-modules)<br>
-\- [serverplugins](https://github.com/RaphaelIT7/gmod-holylib#serverplugins)<br>
+# API reference
 
-[Issues implemented / fixed](https://github.com/RaphaelIT7/gmod-holylib/edit/main/README.md#issues-implemented--fixed)<br>
-[Some things for later](https://github.com/RaphaelIT7/gmod-holylib/edit/main/README.md#some-things-for-later)<br>
+| Area | Modules and types |
+|---|---|
+| Core and events | [`holylib`](#holylib), [`gameevent`](#gameevent), [`entitylist`](#entitylist), [`autorefresh`](#autorefresh) |
+| Networking | [`networking`](#networking), [`stringtable`](#stringtable), [`bitbuf`](#bitbuf), [`pvs`](#pvs), [`pas`](#pas), [`gameserver`](#gameserver), [`networkthreading`](#networkthreading) |
+| Engine and diagnostics | [`filesystem`](#filesystem), [`vprof`](#vprof), [`sourcetv`](#sourcetv), [`crashhandler`](#crashhandler), [`gmoddatapack`](#gmoddatapack) |
+| Runtime and utilities | [`util`](#util), [`concommand`](#concommand), [`steamworks`](#steamworks), [`systimer`](#systimer), [`luajit`](#luajit), [`luagc`](#luagc), [`unholylib`](#unholylib) |
+| Media and gameplay | [`voicechat`](#voicechat), [`bass`](#experimental-bass), [`soundscape`](#soundscape), [`surffix`](#surffix) |
+| Physics | [`physenv`](#physenv), [`CPhysCollide`](#cphyscollide), [`CPhysConvex`](#cphysconvex), [`IPhysicsEnvironment`](#iphysicsenvironment) |
+| Compatibility/legacy | [`threadpoolfix`](#threadpoolfix), [`precachefix`](#precachefix), [unfinished modules](#unfinished-modules) |
 
-# Possible Issues
+# Known issues and compatibility notes
 
 ## Models have prediction errors/don't load properly
 This is most likely cause by the filesystem prediction.<br>
@@ -5732,7 +5745,14 @@ local fileTable = string.Split(fileData, ":")
 PrintTable(fileTable)
 ```
 
-## Usage with vphysics jolt
-Currently there might be bugs when combining holylib with VPhysics-Jolt.<br>
-This mainly affects the `physenv` module and most other modules should be completely fine.<br>
-Only VPhysics-Jolt builds from https://github.com/RaphaelIT7/VPhysics-Jolt will be supported for now due to holylib requiring extended functionality.<br>
+## Usage with VPhysics Jolt
+
+HolyLib can run alongside VPhysics Jolt, but the `physenv` module depends on extended
+interfaces that are not present in every fork. NCG supports
+[`Avrena/VPhysics-Jolt`](https://github.com/Avrena/VPhysics-Jolt), derived from the
+RaphaelIT7 implementation. Other HolyLib modules are generally independent of the
+replacement physics engine.
+
+Treat the combination as compatibility-sensitive: validate physics-object lifetime,
+`IsValidPhysicsObject`, constraints, map transitions, cleanup, and shutdown on the exact
+GMod build before production use.
