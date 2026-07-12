@@ -10,6 +10,7 @@
 #include "sourcesdk/net_chan.h"
 #include <framesnapshot.h>
 #include <netadr_new.h> // Better than the normal sdk one as this one actually sets stuff properly.
+#include <shareddefs.h>
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -36,6 +37,7 @@ static CGameServerModule g_pGameServerModule;
 IModule* pGameServerModule = &g_pGameServerModule;
 
 static std::vector<CGameClient*> g_pQueueClients;
+extern CGlobalVars* gpGlobals;
 
 // Set by InitDetour when the compiled CBaseClient mirror disagrees with the
 // engine's real field layout (read from the SetSignonState prologue). Every
@@ -403,6 +405,14 @@ LUA_FUNCTION_STATIC(CBaseClient_IsHearingClient)
 {
 	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
 	int nPlayerSlot = (int)LUA->CheckNumber(2);
+	const int nRealPlayerSlots = gpGlobals ? MIN(gpGlobals->maxClients, MAX_PLAYERS) : 0;
+
+	if (pClient->GetPlayerSlot() < 0 || pClient->GetPlayerSlot() >= nRealPlayerSlots ||
+		nPlayerSlot < 0 || nPlayerSlot >= nRealPlayerSlots)
+	{
+		LUA->PushBool(false);
+		return 1;
+	}
 
 	LUA->PushBool(pClient->IsHearingClient(nPlayerSlot));
 	return 1;
@@ -412,6 +422,14 @@ LUA_FUNCTION_STATIC(CBaseClient_IsProximityHearingClient)
 {
 	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
 	int nPlayerSlot = (int)LUA->CheckNumber(2);
+	const int nRealPlayerSlots = gpGlobals ? MIN(gpGlobals->maxClients, MAX_PLAYERS) : 0;
+
+	if (pClient->GetPlayerSlot() < 0 || pClient->GetPlayerSlot() >= nRealPlayerSlots ||
+		nPlayerSlot < 0 || nPlayerSlot >= nRealPlayerSlots)
+	{
+		LUA->PushBool(false);
+		return 1;
+	}
 
 	LUA->PushBool(pClient->IsProximityHearingClient(nPlayerSlot));
 	return 1;
@@ -523,7 +541,6 @@ LUA_FUNCTION_STATIC(CBaseClient_SendServerInfo)
 	return 0;
 }
 
-extern CGlobalVars* gpGlobals;
 LUA_FUNCTION_STATIC(CBaseClient_FillServerInfo)
 {
 	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
@@ -2607,7 +2624,6 @@ LUA_FUNCTION_STATIC(gameserver_GetLastRandomNonce)
 	return 1;
 }
 
-extern CGlobalVars* gpGlobals;
 static ConVar* sv_stressbots;
 void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
@@ -2771,16 +2787,56 @@ void CGameServerModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 	DeleteAll_CNetChan(pLua);
 }
 
-#define MAX_PLAYERS 128
-static ConVar gameserver_maxplayers("holylib_gameserver_maxplayers", "128", 0, "Experimental - max client limit (above 255 cannot be networked, though may work if they remain purely as a CGameClient)", true, 1, true, 8192);
+// This is a total CGameClient-object limit, not a real-player limit. The engine's
+// gpGlobals->maxClients / m_nMaxclients and edict range stay unchanged; objects
+// above that range are parked queue clients. Client slots are networked in a
+// byte and ABSOLUTE_PLAYER_LIMIT is a count, so the highest valid slot is 254.
+static ConVar gameserver_maxplayers("holylib_gameserver_maxplayers", "128", 0,
+	"Experimental - total real + parked client limit. Real players remain capped by the engine; parked client slots are capped at 254.",
+	true, 1, true, ABSOLUTE_PLAYER_LIMIT);
+
+static inline int GetConfiguredClientLimit(int nRealMaxClients)
+{
+	return clamp(gameserver_maxplayers.GetInt(), nRealMaxClients, ABSOLUTE_PLAYER_LIMIT);
+}
+
+static int FindFreeQueueClientSlot(int nFirstQueueSlot, int nClientLimit)
+{
+	for (int nSlot = nFirstQueueSlot; nSlot < nClientLimit; ++nSlot)
+	{
+		bool bUsed = false;
+		for (CGameClient* pClient : g_pQueueClients)
+		{
+			if (pClient && pClient->m_nClientSlot == nSlot)
+			{
+				bUsed = true;
+				break;
+			}
+		}
+
+		if (!bUsed)
+			return nSlot;
+	}
+
+	return -1;
+}
+
 static CBaseClient* GetFreeQueueClient(CBaseServer* _this, netadr_t& adr)
 {
 	if (g_bClientLayoutMismatch)
 		return nullptr; // parking disabled: see comment on g_bClientLayoutMismatch
 
+	const int nFirstQueueSlot = gpGlobals->maxClients;
+	const int nClientLimit = GetConfiguredClientLimit(nFirstQueueSlot);
 	CBaseClient* freeclient = nullptr;
 	for (CBaseClient* pClient : g_pQueueClients)
 	{
+		// Lowering the ConVar must not recycle an already-created object whose slot
+		// is now outside the configured/networkable range. Connected clients in that
+		// range are allowed to finish disconnecting but will not be reused.
+		if (!pClient || pClient->m_nClientSlot < nFirstQueueSlot || pClient->m_nClientSlot >= nClientLimit)
+			continue;
+
 		if (pClient->IsFakeClient())
 			continue;
 
@@ -2802,11 +2858,17 @@ static CBaseClient* GetFreeQueueClient(CBaseServer* _this, netadr_t& adr)
 
 	if (!freeclient)
 	{
-		// IMPORTANT: Queue slots MUST be above maxClients!
-		if ((gpGlobals->maxClients + g_pQueueClients.size()) > gameserver_maxplayers.GetInt())
+		// Queue slots MUST be above maxClients. Do not derive the slot from vector
+		// size: promotion/removal leaves holes and would otherwise duplicate a live
+		// queue slot. The configured value is a count, hence slot == limit is invalid.
+		const int nQueueSlot = FindFreeQueueClientSlot(nFirstQueueSlot, nClientLimit);
+		if (nQueueSlot < 0)
 			return nullptr;
 
-		freeclient = _this->CreateNewClient(gpGlobals->maxClients + g_pQueueClients.size());
+		freeclient = _this->CreateNewClient(nQueueSlot);
+		if (!freeclient)
+			return nullptr;
+
 		g_pQueueClients.push_back((CGameClient*)freeclient);
 	}
 	// We do not register it to m_Clients of the CBaseServer
@@ -3006,7 +3068,10 @@ static void SendClientMessages()
 	std::vector<CGameClient*> pQueueSnapshot(g_pQueueClients);
 	for (CBaseClient* pClient : pQueueSnapshot)
 	{
-		if (!pClient->ShouldSendMessages() || !pClient->m_NetChannel)
+		// Queue clients are outside the engine's client list, so establish channel
+		// liveness before entering even our guarded ShouldSendMessages path, then
+		// re-check after it because overflow handling can Disconnect synchronously.
+		if (!pClient->m_NetChannel || !pClient->ShouldSendMessages() || !pClient->m_NetChannel)
 			continue;
 
 		pClient->m_NetChannel->Transmit();
@@ -3033,7 +3098,7 @@ static void hook_CSteam3Server_SendUpdatedServerDetails(void* _this)
 {
 	CBaseServer* pServer = (CBaseServer*)Util::server;
 	int nOrigMaxClients = pServer->m_nMaxclients;
-	pServer->m_nMaxclients = clamp(gameserver_maxplayers.GetInt(), nOrigMaxClients, ABSOLUTE_PLAYER_LIMIT);
+	pServer->m_nMaxclients = GetConfiguredClientLimit(nOrigMaxClients);
 
 	detour_CSteam3Server_SendUpdatedServerDetails.GetTrampoline<Symbols::CSteam3Server_SendUpdatedServerDetails>()(_this);
 
@@ -3178,6 +3243,22 @@ static bool hook_GModDataPack_IsSingleplayer(void* dataPack)
 static Detouring::Hook detour_CBaseClient_ShouldSendMessages;
 static bool hook_CBaseClient_ShouldSendMessages(CGameClient* cl) // NOTE: We use a CGameClient so that in a debug break I can verify the class here xd
 {
+#if PLATFORM_64BITS
+	/*
+	 * Before the queue-UAF hardening, x64 real clients ran the engine's own
+	 * implementation. Keep that engine-parity path for slots backed by real
+	 * players: it avoids making their snapshot cadence depend on our partial
+	 * CBaseClient mirror. The detour remains installed and the guarded HolyLib
+	 * implementation below remains mandatory for parked clients, which the
+	 * engine does not service and whose netchannels are protected by the D2
+	 * destructor sweep. This preserves the queue-UAF fix without replacing a
+	 * healthy engine hot path for all real x64 clients.
+	 */
+	const int nPlayerSlot = cl->GetPlayerSlot();
+	if (gpGlobals && nPlayerSlot >= 0 && nPlayerSlot < gpGlobals->maxClients)
+		return detour_CBaseClient_ShouldSendMessages.GetTrampoline<Symbols::CBaseClient_ShouldSendMessages>()(cl);
+#endif
+
 	if ( !cl->IsConnected() )
 		return false;
 
