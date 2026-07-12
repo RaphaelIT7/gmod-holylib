@@ -2194,6 +2194,28 @@ static bool g_bIsPlayerTalking[MAX_PLAYERS] = {0};
 static double g_fLastPlayerTalked[MAX_PLAYERS] = {0};
 static ConVar voicechat_stopdelay("holylib_voicechat_stopdelay", "1", FCVAR_ARCHIVE, "How many seconds before a player is marked as stopped talking");
 
+// MAX_PLAYERS is the fixed capacity used by both the game DLL and HolyLib's
+// per-player tables. gpGlobals->maxClients is the current real-player count.
+// gameserver queue clients deliberately live at slots >= maxClients and must
+// never enter either class of table until they are promoted into a real slot.
+static inline bool IsPlayerSlotInBounds(int nPlayerSlot)
+{
+	return nPlayerSlot >= 0 && nPlayerSlot < MAX_PLAYERS;
+}
+
+static inline int GetRealPlayerSlotCount()
+{
+	if (!gpGlobals || gpGlobals->maxClients <= 0)
+		return 0;
+
+	return MIN(gpGlobals->maxClients, MAX_PLAYERS);
+}
+
+static inline bool IsRealPlayerSlot(int nPlayerSlot)
+{
+	return IsPlayerSlotInBounds(nPlayerSlot) && nPlayerSlot < GetRealPlayerSlotCount();
+}
+
 // PlayerCanHearPlayersVoice C-side result cache.
 // The engine resolves voice hearability through CVoiceGameMgrHelper::CanPlayerHearPlayer,
 // which enters the Lua PlayerCanHearPlayersVoice hook chain on EVERY query. GMod already
@@ -2240,6 +2262,9 @@ static inline void ClearHearCacheForSlot(int nPlayerSlot)
 
 static void CheckTalkingState(int nPlayerSlot, bool bIsTalking)
 {
+	if (!IsRealPlayerSlot(nPlayerSlot))
+		return;
+
 	if (bIsTalking)
 	{
 		if (!g_bIsPlayerTalking[nPlayerSlot]) // Started to talk
@@ -2285,23 +2310,27 @@ namespace ThreadedVoiceFX { static void FreeSlot(int slot); static void StopWork
 
 void CVoiceChatModule::ClientDisconnect(edict_t* pClient)
 {
-	if (pClient->m_EdictIndex > MAX_PLAYERS)
+	if (!pClient)
+		return;
+
+	const int nPlayerSlot = pClient->m_EdictIndex - 1;
+	if (!IsPlayerSlotInBounds(nPlayerSlot))
 		return;
 
 	// We gotta prevent the hook from firing when the player already disconnected, so we reset these here
-	g_bIsPlayerTalking[pClient->m_EdictIndex-1] = false;
-	g_bIsPlayerMuted[pClient->m_EdictIndex-1] = false;
-	g_bIsPlayerDeafened[pClient->m_EdictIndex-1] = false;
-	g_fLastPlayerTalked[pClient->m_EdictIndex-1] = 0.0;
-	ClearHearCacheForSlot(pClient->m_EdictIndex-1);
-	VoiceEffects::ResetPlayerEffectState(pClient->m_EdictIndex-1);
-	VoiceEffects::FreeLiveCodec(pClient->m_EdictIndex-1);
-	ThreadedVoiceFX::FreeSlot(pClient->m_EdictIndex-1);
+	g_bIsPlayerTalking[nPlayerSlot] = false;
+	g_bIsPlayerMuted[nPlayerSlot] = false;
+	g_bIsPlayerDeafened[nPlayerSlot] = false;
+	g_fLastPlayerTalked[nPlayerSlot] = 0.0;
+	ClearHearCacheForSlot(nPlayerSlot);
+	VoiceEffects::ResetPlayerEffectState(nPlayerSlot);
+	VoiceEffects::FreeLiveCodec(nPlayerSlot);
+	ThreadedVoiceFX::FreeSlot(nPlayerSlot);
 }
 
 void CVoiceChatModule::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
 {
-	for (int i = 0; i < gpGlobals->maxClients; ++i)
+	for (int i = 0; i < MAX_PLAYERS; ++i)
 	{
 		g_bIsPlayerTalking[i] = false;
 		g_bIsPlayerMuted[i] = false;
@@ -2320,7 +2349,7 @@ void CVoiceChatModule::ServerActivate(edict_t* pEdictList, int edictCount, int c
 
 void CVoiceChatModule::LevelShutdown()
 {
-	for (int i = 0; i < gpGlobals->maxClients; ++i)
+	for (int i = 0; i < MAX_PLAYERS; ++i)
 	{
 		g_bIsPlayerTalking[i] = false;
 		g_bIsPlayerMuted[i] = false;
@@ -2341,6 +2370,13 @@ static Detouring::Hook detour_CVoiceGameMgrHelper_CanPlayerHearPlayer;
 static bool hook_CVoiceGameMgrHelper_CanPlayerHearPlayer(void* voicegamemgrhelper, CBasePlayer* listener, CBasePlayer* talker, bool& bProximity)
 {
 	int nListenerSlot = listener->edict()->m_EdictIndex-1;
+	int nTalkerSlot = talker->edict()->m_EdictIndex-1;
+	if (!IsRealPlayerSlot(nListenerSlot) || !IsRealPlayerSlot(nTalkerSlot))
+	{
+		bProximity = false;
+		return false;
+	}
+
 	if (g_bIsPlayerDeafened[nListenerSlot])
 	{
 		if (g_pVoiceChatModule.InDebug() == 1)
@@ -2351,8 +2387,7 @@ static bool hook_CVoiceGameMgrHelper_CanPlayerHearPlayer(void* voicegamemgrhelpe
 	}
 
 	double fCacheTTL = voicechat_hearcache.GetFloat();
-	int nTalkerSlot = talker->edict()->m_EdictIndex-1;
-	if (fCacheTTL <= 0 || nListenerSlot < 0 || nListenerSlot >= MAX_PLAYERS || nTalkerSlot < 0 || nTalkerSlot >= MAX_PLAYERS)
+	if (fCacheTTL <= 0)
 		return detour_CVoiceGameMgrHelper_CanPlayerHearPlayer.GetTrampoline<Symbols::CVoiceGameMgrHelper_CanPlayerHearPlayer>()(voicegamemgrhelper, listener, talker, bProximity);
 
 	// An idle talker's result is unused until they speak (their column is flushed on the
@@ -2384,10 +2419,22 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 {
 	VPROF_BUDGET("HolyLib - SV_BroadcastVoiceData", VPROF_BUDGETGROUP_HOLYLIB);
 
-	if (g_bIsPlayerMuted[pClient->GetPlayerSlot()])
+	if (!pClient)
+		return;
+
+	const int nPlayerSlot = pClient->GetPlayerSlot();
+	if (!IsRealPlayerSlot(nPlayerSlot))
+	{
+		if (g_pVoiceChatModule.InDebug() >= 1)
+			Msg(PROJECT_NAME " - voicechat: dropped voice packet from non-player queue slot %i\n", nPlayerSlot);
+
+		return;
+	}
+
+	if (g_bIsPlayerMuted[nPlayerSlot])
 	{
 		if (g_pVoiceChatModule.InDebug() == 1)
-			Msg(PROJECT_NAME " - voicechat: client %i voice packet was skipped since their muted!\n", pClient->GetPlayerSlot());
+			Msg(PROJECT_NAME " - voicechat: client %i voice packet was skipped since their muted!\n", nPlayerSlot);
 
 		return;
 	}
@@ -2395,7 +2442,7 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 	if (g_pVoiceChatModule.InDebug() >= 2)
 		Msg(PROJECT_NAME " - voicechat: cl: %p\nbytes: %i\ndata: %p\n", pClient, nBytes, data);
 
-	CheckTalkingState(pClient->GetPlayerSlot(), true);
+	CheckTalkingState(nPlayerSlot, true);
 
 	if (!voicechat_hooks.GetBool())
 	{
@@ -2407,7 +2454,7 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 	{
 		VoiceData* pVoiceData = new VoiceData;
 		pVoiceData->SetData(data, nBytes);
-		pVoiceData->iPlayerSlot = pClient->GetPlayerSlot();
+		pVoiceData->iPlayerSlot = nPlayerSlot;
 		pVoiceData->MarkTemp();
 
 		CBaseEntity* pPlayer = (CBaseEntity*)Util::GetPlayerByClient((CBaseClient*)pClient);
@@ -2428,7 +2475,8 @@ static void hook_SV_BroadcastVoiceData(IClient* pClient, int nBytes, char* data,
 
 		delete pVoiceData;
 
-		Util::servergameclients->GMOD_OnReceivedVoicePacket( pPlayer->edict() );
+		if (pPlayer)
+			Util::servergameclients->GMOD_OnReceivedVoicePacket( pPlayer->edict() );
 
 		if (bHandled)
 			return;
@@ -2601,12 +2649,12 @@ namespace ThreadedVoiceFX
 	}
 
 	// Main thread. Snapshots the compressed packet + effect chain and queues it to the slot's worker.
-	static void Enqueue(int slot, const char* data, int len, const VoiceEffects::VoiceEffectData* fx, int nfx)
+	static bool Enqueue(int slot, const char* data, int len, const VoiceEffects::VoiceEffectData* fx, int nfx)
 	{
-		if (slot < 0 || slot >= MAX_PLAYERS || nfx <= 0)
-			return;
+		if (!IsRealPlayerSlot(slot) || nfx <= 0)
+			return false;
 		if (len <= 0 || len > g_nCompressedSize)
-			return; // oversized/empty packet -> skip FX (extremely rare; engine still sent nothing extra)
+			return false; // oversized/empty packet -> skip FX (extremely rare; engine still sent nothing extra)
 
 		EnsureWorkers();
 
@@ -2629,6 +2677,7 @@ namespace ThreadedVoiceFX
 			w.q.push_back(j);
 		}
 		w.cv.notify_one();
+		return true;
 	}
 
 	// Main thread. Queue an in-band teardown so the owning worker frees this slot's codec/state.
@@ -2679,9 +2728,15 @@ namespace ThreadedVoiceFX
 LUA_FUNCTION_STATIC(voicechat_SendEmptyData)
 {
 	CBaseClient* pClient = Util::Get_Client(LUA, 1, true);
+	int nFromPlayerSlot = (int)LUA->CheckNumberOpt(2, pClient->GetPlayerSlot());
+	if (!IsPlayerSlotInBounds(nFromPlayerSlot))
+	{
+		LUA->ArgError(2, "Voice sender slot is outside the real-player table");
+		return 0;
+	}
 
 	SVC_VoiceData voiceData;
-	voiceData.m_nFromClient = (int)LUA->CheckNumberOpt(2, pClient->GetPlayerSlot());
+	voiceData.m_nFromClient = nFromPlayerSlot;
 	voiceData.m_nLength = 0;
 	voiceData.m_DataOut = nullptr; // Will possibly crash?
 	voiceData.m_xuid = 0;
@@ -2695,6 +2750,11 @@ LUA_FUNCTION_STATIC(voicechat_SendVoiceData)
 {
 	CBaseClient* pClient = Util::Get_Client(LUA, 1, true);
 	VoiceData* pData = Get_VoiceData(LUA, 2, true);
+	if (!IsPlayerSlotInBounds(pData->iPlayerSlot))
+	{
+		LUA->ArgError(2, "Voice sender slot is outside the real-player table");
+		return 0;
+	}
 
 	SVC_VoiceData voiceData;
 	voiceData.m_nFromClient = pData->iPlayerSlot;
@@ -2711,6 +2771,11 @@ LUA_FUNCTION_STATIC(voicechat_SendVoiceData)
 LUA_FUNCTION_STATIC(voicechat_BroadcastVoiceData)
 {
 	VoiceData* pData = Get_VoiceData(LUA, 1, true);
+	if (!IsPlayerSlotInBounds(pData->iPlayerSlot))
+	{
+		LUA->ArgError(1, "Voice sender slot is outside the real-player table");
+		return 0;
+	}
 
 	SVC_VoiceData voiceData;
 	voiceData.m_nFromClient = pData->iPlayerSlot;
@@ -2759,6 +2824,12 @@ LUA_FUNCTION_STATIC(voicechat_BroadcastVoiceData)
 LUA_FUNCTION_STATIC(voicechat_BroadcastVoiceDataChannel)
 {
 	VoiceData* pData = Get_VoiceData(LUA, 1, true);
+	if (!IsPlayerSlotInBounds(pData->iPlayerSlot))
+	{
+		LUA->ArgError(1, "Voice sender slot is outside the real-player table");
+		return 0;
+	}
+
 	LUA->CheckType(2, GarrysMod::Lua::Type::Table);
 	int channel = (int)LUA->CheckNumberOpt(3, 0);
 
@@ -2791,6 +2862,11 @@ LUA_FUNCTION_STATIC(voicechat_ProcessVoiceData)
 {
 	CBaseClient* pClient = Util::Get_Client(LUA, 1, true);
 	VoiceData* pData = Get_VoiceData(LUA, 2, true);
+	if (!IsRealPlayerSlot(pClient->GetPlayerSlot()))
+	{
+		LUA->ArgError(1, "Voice data can only be processed for a client in a real player slot");
+		return 0;
+	}
 
 	if (!DETOUR_ISVALID(detour_SV_BroadcastVoiceData))
 		LUA->ThrowError("Missing valid detour for SV_BroadcastVoiceData!\n");
@@ -2836,6 +2912,11 @@ LUA_FUNCTION_STATIC(voicechat_IsHearingClient)
 {
 	CBaseClient* pClient = Util::Get_Client(LUA, 1, true);
 	CBaseClient* pTargetClient = Util::Get_Client(LUA, 2, true);
+	if (!IsRealPlayerSlot(pClient->GetPlayerSlot()) || !IsRealPlayerSlot(pTargetClient->GetPlayerSlot()))
+	{
+		LUA->PushBool(false);
+		return 1;
+	}
 
 	LUA->PushBool(pClient->IsHearingClient(pTargetClient->GetPlayerSlot()));
 
@@ -2846,6 +2927,11 @@ LUA_FUNCTION_STATIC(voicechat_IsProximityHearingClient)
 {
 	CBaseClient* pClient = Util::Get_Client(LUA, 1, true);
 	CBaseClient* pTargetClient = Util::Get_Client(LUA, 2, true);
+	if (!IsRealPlayerSlot(pClient->GetPlayerSlot()) || !IsRealPlayerSlot(pTargetClient->GetPlayerSlot()))
+	{
+		LUA->PushBool(false);
+		return 1;
+	}
 
 	LUA->PushBool(pClient->IsProximityHearingClient(pTargetClient->GetPlayerSlot()));
 
@@ -3166,6 +3252,8 @@ LUA_FUNCTION_STATIC(voicechat_SaveVoiceStream)
 LUA_FUNCTION_STATIC(voicechat_IsPlayerTalking)
 {
 	int iClient = Util::Get_ClientIndex(LUA, 1, true);
+	if (!IsPlayerSlotInBounds(iClient))
+		return 0;
 
 	LUA->PushBool(g_bIsPlayerTalking[iClient]);
 	return 1;
@@ -3174,6 +3262,8 @@ LUA_FUNCTION_STATIC(voicechat_IsPlayerTalking)
 LUA_FUNCTION_STATIC(voicechat_LastPlayerTalked)
 {
 	int iClient = Util::Get_ClientIndex(LUA, 1, true);
+	if (!IsPlayerSlotInBounds(iClient))
+		return 0;
 
 	LUA->PushNumber(g_fLastPlayerTalked[iClient]);
 	return 1;
@@ -3429,8 +3519,7 @@ LUA_FUNCTION_STATIC(voicechat_ApplyEffectThreaded)
 		return 1;
 	}
 
-	ThreadedVoiceFX::Enqueue(pClient->GetPlayerSlot(), raw, rawLen, effects, nEffects);
-	LUA->PushBool(true);
+	LUA->PushBool(ThreadedVoiceFX::Enqueue(pClient->GetPlayerSlot(), raw, rawLen, effects, nEffects));
 	return 1;
 }
 
@@ -3515,6 +3604,9 @@ LUA_FUNCTION_STATIC(voicechat_ApplyEffectChannel)
 LUA_FUNCTION_STATIC(voicechat_IsPlayerMuted)
 {
 	int iClient = Util::Get_ClientIndex(LUA, 1, true);
+	if (!IsPlayerSlotInBounds(iClient))
+		return 0;
+
 	LUA->PushBool(g_bIsPlayerMuted[iClient]);
 	return 1;
 }
@@ -3522,6 +3614,9 @@ LUA_FUNCTION_STATIC(voicechat_IsPlayerMuted)
 LUA_FUNCTION_STATIC(voicechat_SetPlayerMuted)
 {
 	int iClient = Util::Get_ClientIndex(LUA, 1, true);
+	if (!IsPlayerSlotInBounds(iClient))
+		return 0;
+
 	g_bIsPlayerMuted[iClient] = LUA->GetBool(2);
 	return 0;
 }
@@ -3529,6 +3624,9 @@ LUA_FUNCTION_STATIC(voicechat_SetPlayerMuted)
 LUA_FUNCTION_STATIC(voicechat_IsPlayerDeaf)
 {
 	int iClient = Util::Get_ClientIndex(LUA, 1, true);
+	if (!IsPlayerSlotInBounds(iClient))
+		return 0;
+
 	LUA->PushBool(g_bIsPlayerDeafened[iClient]);
 	return 1;
 }
@@ -3536,6 +3634,9 @@ LUA_FUNCTION_STATIC(voicechat_IsPlayerDeaf)
 LUA_FUNCTION_STATIC(voicechat_SetPlayerDeaf)
 {
 	int iClient = Util::Get_ClientIndex(LUA, 1, true);
+	if (!IsPlayerSlotInBounds(iClient))
+		return 0;
+
 	g_bIsPlayerDeafened[iClient] = LUA->GetBool(2);
 	return 0;
 }
@@ -3549,7 +3650,7 @@ void CVoiceChatModule::LuaThink(GarrysMod::Lua::ILuaInterface* pLua)
 	if (!pData)
 		return;
 
-	for (int i=0; i<gpGlobals->maxClients; ++i)
+	for (int i = 0; i < GetRealPlayerSlotCount(); ++i)
 		CheckTalkingState(i, false);
 
 	for (auto it = pData->pVoiceStreamTasks.begin(); it != pData->pVoiceStreamTasks.end(); )

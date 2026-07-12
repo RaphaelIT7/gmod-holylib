@@ -5171,8 +5171,9 @@ If enabled, `CGameClient` that are empty / have no active player are still consi
 > If you want to use a function on a Empty but not Invalid client please open a issue and request that the function supports that.<br>
 
 #### holylib_gameserver_maxplayers (default `128`)
-The amount of max players a server can have.<br>
-Going above `128` will result in queue slots, which are slots into which players can join but won't be able to spawn as.<br>
+The total number of real and parked `CGameClient` objects the server accepts (maximum `255`).<br>
+This does **not** change `gpGlobals->maxClients`, the game DLL's real-player limit, or the player-edict range. Values above the engine limit create queue-only client slots from `gpGlobals->maxClients` through `holylib_gameserver_maxplayers - 1` (for example, `128..254` when set to `255`).<br>
+Queue clients are network connections, not players. They cannot spawn or enter fixed `MAX_PLAYERS` game/voice tables until they are promoted into a free real slot; voice packets sent while parked are discarded.<br>
 
 ### sv_filter_nobanresponse (default `0`)
 If enabled, a blocked ip won't be informed that its even blocked.
