@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: HolyLib documentation
+    url: https://holylib.raphaelit7.com/
+    about: Check the API and module documentation before opening a support request.
+  - name: Upstream discussions
+    url: https://github.com/RaphaelIT7/gmod-holylib/discussions
+    about: Ask questions or discuss reports that are not yet reproducible bugs.

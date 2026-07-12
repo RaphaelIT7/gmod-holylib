@@ -1,0 +1,64 @@
+name: Feature request
+description: Propose a focused HolyLib API, module, compatibility, or performance improvement.
+title: "[Feature]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the problem before prescribing an implementation. Requests that expose deeper engine access must include a concrete safety model.
+  - type: input
+    id: module
+    attributes:
+      label: Affected module or area
+      placeholder: networking, physenv, Lua API, build system
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: Who needs this, and what cannot be done safely or efficiently today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed behavior
+      description: Describe inputs, outputs, failure behavior, configuration, and a small usage example when applicable.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Include existing engine, Lua, addon, or HolyLib facilities you evaluated.
+  - type: textarea
+    id: compatibility
+    attributes:
+      label: Compatibility and validation plan
+      description: Identify Garry's Mod branches, operating systems, architectures, and client/server realms affected, plus how the change can be tested.
+    validations:
+      required: true
+  - type: textarea
+    id: risk
+    attributes:
+      label: Safety and performance considerations
+      description: Cover untrusted Lua input, memory/object lifetime, threading, unload/shutdown, denial-of-service potential, and expected hot-path cost as relevant.
+    validations:
+      required: true
+  - type: textarea
+    id: provenance
+    attributes:
+      label: References and provenance
+      description: Link relevant SDK code, research, benchmarks, or other implementations and state their licenses.
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: I searched existing issues and discussions for this request.
+          required: true
+        - label: This request does not depend on redistributing proprietary or license-incompatible code.
+          required: true
+        - label: I have identified any unsafe capability and proposed an appropriate guard or opt-in.
+          required: true
