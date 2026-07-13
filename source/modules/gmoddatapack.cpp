@@ -8,6 +8,7 @@
 #include "sourcesdk/iluashared.h"
 #include "sourcesdk/baseclient.h"
 #include "sourcesdk/net_chan.h"
+#include "modules/gmoddatapack_luapack.h"
 #include "networkstringtable.h"
 #include "picosha2/picosha2.h"
 #include <atomic>
@@ -25,11 +26,17 @@
 class CGModDataPackModule : public IModule
 {
 public:
+	void Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn) override;
 	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) override;
 	void LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua) override;
+	void Shutdown() override;
 	void LevelShutdown() override;
 	void Think(bool bSimulating) override;
 	void InitDetour(bool bPreServer) override;
+	void ClientActive(edict_t* pClient) override;
+	void ClientDisconnect(edict_t* pClient) override;
+	MODULE_RESULT ClientConnect(bool* bAllowConnect, edict_t* pClient, const char* pszName, const char* pszAddress, char* reject, int maxrejectlen) override;
+	MODULE_RESULT ClientCommand(edict_t* pClient, const CCommand* args) override;
 	void OnClientDisconnect(CBaseClient* pClient) override;
 	const char* Name() override { return "gmoddatapack"; };
 	int Compatibility() override { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
@@ -42,6 +49,14 @@ static ConVar gmoddatapack_fastnetworking("holylib_gmoddatapack_fastnetworking",
 
 static CGModDataPackModule g_pGModDataPackModule;
 IModule* pGModDataPackModule = &g_pGModDataPackModule;
+
+static int ClientSlotFromEdict(edict_t* pClient)
+{
+	if (!pClient)
+		return -1;
+
+	return pClient->m_EdictIndex - 1;
+}
 
 #define TK_LIST \
 	TK(TK_INVALID) \
@@ -1453,11 +1468,14 @@ void CGModDataPackModule::OnClientDisconnect(CBaseClient* pClient)
 		return;
 
 	g_pLuaDataPack.m_pPlayerQueue[slot].Clear();
+	HolyLib::LuaPack::ClientDisconnect(slot);
 }
 
 static double g_nLastSend = 0;
 void CGModDataPackModule::Think(bool bSimulating)
 {
+	HolyLib::LuaPack::Think();
+
 	{
 		// We do this since SetStringUserData isn't thread safe and may crash in very rare race conditions
 		std::lock_guard<std::mutex> lock(g_pLuaDataPack.m_pStringTableUpdateQueueMutex);
@@ -1570,6 +1588,39 @@ DETOUR_THISCALL_START()
 DETOUR_THISCALL_FINISH()
 #endif
 
+void CGModDataPackModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn)
+{
+	(void)gamefn;
+	HolyLib::LuaPack::Init(appfn);
+}
+
+MODULE_RESULT CGModDataPackModule::ClientConnect(bool* bAllowConnect, edict_t* pClient, const char* pszName, const char* pszAddress, char* reject, int maxrejectlen)
+{
+	(void)bAllowConnect;
+	(void)pszName;
+	(void)pszAddress;
+	(void)reject;
+	(void)maxrejectlen;
+
+	HolyLib::LuaPack::ClientConnect(ClientSlotFromEdict(pClient));
+	return MODULE_RESULT::CONTINUE;
+}
+
+void CGModDataPackModule::ClientActive(edict_t* pClient)
+{
+	HolyLib::LuaPack::ClientActive(ClientSlotFromEdict(pClient));
+}
+
+void CGModDataPackModule::ClientDisconnect(edict_t* pClient)
+{
+	HolyLib::LuaPack::ClientDisconnect(ClientSlotFromEdict(pClient));
+}
+
+MODULE_RESULT CGModDataPackModule::ClientCommand(edict_t* pClient, const CCommand* args)
+{
+	return HolyLib::LuaPack::ClientCommand(ClientSlotFromEdict(pClient), args);
+}
+
 void CGModDataPackModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
@@ -1592,6 +1643,8 @@ void CGModDataPackModule::InitDetour(bool bPreServer)
 
 void CGModDataPackModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
+	HolyLib::LuaPack::LuaInit(pLua, bServerInit);
+
 	if (bServerInit)
 		return;
 
@@ -1617,5 +1670,11 @@ void CGModDataPackModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 
 void CGModDataPackModule::LevelShutdown()
 {
+	HolyLib::LuaPack::LevelShutdown();
 	g_pLuaDataPack.Shutdown();
+}
+
+void CGModDataPackModule::Shutdown()
+{
+	HolyLib::LuaPack::Shutdown();
 }
