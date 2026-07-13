@@ -12,7 +12,6 @@
 #include "networkstringtabledefs.h"
 #include "picosha2/picosha2.h"
 #include "tier1/convar.h"
-#include "httplib.h"
 
 #undef isalnum
 #undef isalpha
@@ -350,8 +349,16 @@ do
 end
 )HOLYLUAPACK";
 
-	static const char* serverBridge = R"HOLYLUAPACKSERVER(
+	static const char* serverBridge = R"HLPACKSERVER(
 util.AddNetworkString("gmsv_holylib_luapack_autorefresh")
+concommand.Add("holylib_gmoddatapack_luapack_kill", function(caller)
+	if IsValid(caller) and not caller:IsSuperAdmin() then
+		caller:ChatPrint("HolyLib luapack kill-switch requires superadmin")
+		return
+	end
+	RunConsoleCommand("holylib_gmoddatapack_luapack_enable", "0")
+	Msg("[HolyLib luapack] kill-switch activated; all clients now use vanilla Lua delivery\n")
+end, nil, "Immediately disable bundled delivery and restore per-file vanilla Lua networking", FCVAR_DONTRECORD)
 hook.Add("HolyLib:LuaPackPublished", "HolyLib:LuaPackAutorefreshBridge", function(generation, manifest, recipients, changedPaths)
 	local targets = {}
 	for _, index in ipairs(recipients or {}) do
@@ -368,7 +375,7 @@ hook.Add("HolyLib:LuaPackPublished", "HolyLib:LuaPackAutorefreshBridge", functio
 		for index = 1, math.min(#changedPaths, 65535) do net.WriteString(changedPaths[index]) end
 	net.Send(targets)
 end)
-)HOLYLUAPACKSERVER";
+)HLPACKSERVER";
 
 	static std::string NormalizePath(std::string path)
 	{
