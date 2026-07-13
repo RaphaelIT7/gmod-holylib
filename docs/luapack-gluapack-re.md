@@ -24,7 +24,7 @@ The exported symbols are `_ZN12GModDataPack16SendFileToClientEii` on both target
 
 No server-side per-file counter or end-of-list state is mutated in this function. The barrier advances because the requested file ID receives a syntactically normal `LuaFileDownload`. Suppressing the function without a replacement message can therefore strand the client at Requesting Lua.
 
-Implementation decision: a ready client receives a normally framed, SHA-256-prefixed/LZMA-compressed stub for that exact ID. Every other client continues through HolyLib's existing async-compressed real-file path; if that path itself cannot produce a payload while luapack is active, the native trampoline is the last-resort fallback.
+Implementation decision: the full init file uses HolyLib's existing async-compressed real-file path so it can carry the bootstrap. A ready client then receives a normally framed, SHA-256-prefixed/LZMA-compressed stub for an eligible requested ID. Any other post-bootstrap request invokes the native trampoline directly, preserving the engine contract without reproducing its internal state transitions.
 
 ### 2. Global suppression versus hidden per-client state — OPEN for the incumbent
 
