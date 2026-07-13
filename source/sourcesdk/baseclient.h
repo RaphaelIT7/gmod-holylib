@@ -205,12 +205,18 @@ public:
 	char			m_Name[MAX_PLAYER_NAME_LENGTH];			// for printing to other people
 	char			m_GUID[SIGNED_GUID_LEN + 1]; // the clients CD key
 
-#if PLATFORM_64BITS
-	// CNETMsg_PlayerAvatarData_t m_msgAvatarData;	// Client avatar
-	// RaphaelIT7: This are the offsets for the variable above. Why not add it directly? Because it depends on sooo much it would be a pain to do. Maybe if I'm bored I'll do it.
-	int _offset[23];
-	char _offset2;
-#endif
+	// NOTE: Older x86-64 GMod builds had `CNETMsg_PlayerAvatarData_t m_msgAvatarData`
+	// here, previously mirrored as a 93-byte pad (int _offset[23]; char _offset2).
+	// Current x86-64 builds no longer carry it - verified live on build 260709/260710
+	// straight from engine.so disasm: m_NetChannel @ 0x198 (ShouldSendMessages reads
+	// [rbx+0x198]) and m_nSignonState @ 0x1A0 (SetSignonState prologue reads
+	// [rdi+0x1A0]). With the stale pad, every field from m_SteamID down was shifted
+	// +0x60: the queue slot-scan read baseline bits as m_nSignonState (occupied slots
+	// looked free -> slot stomps), the netchannel guards/sweeps read garbage, and
+	// ClientFindFromSteamID compared garbage SteamIDs - the entire x64 queue
+	// corruption class. CGameServerModule::InitDetour now verifies this layout
+	// against the engine's own SetSignonState prologue at boot and disables queue
+	// parking on mismatch instead of corrupting engine state.
 
 	CSteamID		m_SteamID;			// This is valid when the client is authenticated
 	

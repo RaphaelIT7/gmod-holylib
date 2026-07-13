@@ -834,8 +834,14 @@ namespace Symbols
 
 	const std::vector<Symbol> GMod_Util_IsPhysicsObjectValidSym = { // PhysObject [%s][Entity %d] or "Tried to use a NULL physics object!""
 		Symbol::FromName("_ZN4GMod4Util20IsPhysicsObjectValidEP14IPhysicsObject"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x56\x41\x55\x41\x54\x53\x48\x89\xFB\x48\x83\xEC\x10\x4C\x8B\x25****\x41\x8B\x8C\x24\x0C\x10\x00\x00\x85\xC9\x41\x0F\x95\xC5\x0F\x85****\x48\x8B\x05****\xC7\x45\xDC\x00\x00\x00\x00\x48\x8D\x75\xDC\x48\x8B\x38\x48\x8B\x07\xFF\x90\x80\x01\x00\x00"), // x86-64 build 260709
 		Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x89\xFB\x48\x8D\x75\xEC"), // 55 48 89 E5 53 48 89 FB 48 8D 75 EC
 		Symbol::FromSignature("\x55\x8B\xEC\x51\x8B*****\x8D\x55\xFC\xC7\x45\xFC\x00\x00\x00\x00"), // 55 8B EC 51 8B ?? ?? ?? ?? ?? 8D 55 FC C7 45 FC 00 00 00 00
+	};
+
+	const std::vector<Symbol> PhysCreateBboxSym = { // physcollision->BBoxToCollide + g_pPhysSaveRestoreManager->NoteBBox (inlined)
+		Symbol::FromName("_Z14PhysCreateBboxRK6VectorS1_"),
+		Symbol::FromSignature("\x55\x48\x89\xE5\x41\x55\x41\x54\x4C\x8D\x65\xD0\x53\x48\x8D\x5D\xC0\x4C\x89\xE2\x48\x83\xEC\x28"), // 55 48 89 E5 41 55 41 54 4C 8D 65 D0 53 48 8D 5D C0 4C 89 E2 48 83 EC 28 (x86-64 build 260706, slot-shape capture)
 	};
 
 	const std::vector<Symbol> CPhysicsHook_FrameUpdatePostEntityThinkSym = { // "CPhysicsHook::FrameUpdatePostEntityThink" - VPROF Call

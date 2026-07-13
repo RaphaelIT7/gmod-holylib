@@ -612,6 +612,46 @@ bool Lua::CheckGModType(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos, int n
 	return false;
 }
 
+int Lua::GetUserDataTypeID(GarrysMod::Lua::ILuaInterface* LUA, int nStackPos)
+{
+	lua_State* L = LUA->GetState();
+	TValue* val = Lua::index2adr(L, nStackPos);
+	if (!val)
+		return -1;
+
+	if (!tvisudata(val))
+	{
+#if LUA_CDATA_SUPPORT
+		if (tviscdata(val))
+		{
+			RawLua::CDataBridge& pBridge = Lua::GetLuaData(LUA)->GetCDataBridge();
+			if (pBridge.IsRegistered(val))
+			{
+				auto uData = (GarrysMod::Lua::ILuaBase::UserData*)lj_obj_ptr(G(L), val);
+				if (uData)
+				{
+					return uData->type;
+				}
+			}
+		}
+#endif
+
+		return -1;
+	}
+
+	LuaUserData* luaData = (LuaUserData*)udataV(val); // Very "safe" I know :3
+	if (luaData->GetType() >= GarrysMod::Lua::Type::UserData)
+	{
+		return luaData->GetType();
+	}
+
+	GarrysMod::Lua::ILuaBase::UserData* uData = (GarrysMod::Lua::ILuaBase::UserData*)luaData->GetGModData(LUA);
+	if (!uData)
+		return -1;
+
+	return uData->type;
+}
+
 const char* Lua::TValueToString(TValue* pVal)
 {
 	static thread_local char pBuffer[300];
@@ -737,42 +777,7 @@ public:
 
 	int GetUserDataType(int iStackPos)
 	{
-		lua_State* L = This()->GetState();
-		TValue* val = Lua::index2adr(L, iStackPos);
-		if (!val)
-			return -1;
-
-		if (!tvisudata(val))
-		{
-#if LUA_CDATA_SUPPORT
-			if (tviscdata(val))
-			{
-				RawLua::CDataBridge& pBridge = Lua::GetLuaData(This())->GetCDataBridge();
-				if (pBridge.IsRegistered(val))
-				{
-					auto uData = (GarrysMod::Lua::ILuaBase::UserData*)lj_obj_ptr(G(L), val);
-					if (uData)
-					{
-						return uData->type;
-					}
-				}
-			}
-#endif
-
-			return -1;
-		}
-
-		LuaUserData* luaData = (LuaUserData*)udataV(val); // Very "safe" I know :3
-		if (luaData->GetType() >= GarrysMod::Lua::Type::UserData)
-		{
-			return luaData->GetType();
-		}
-
-		GarrysMod::Lua::ILuaBase::UserData* uData = (GarrysMod::Lua::ILuaBase::UserData*)luaData->GetGModData(This());
-		if (!uData)
-			return -1;
-
-		return uData->type;
+		return Lua::GetUserDataTypeID(This(), iStackPos);
 	}
 
 	virtual void* GetUserdata(int iStackPos)

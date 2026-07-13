@@ -627,6 +627,9 @@ namespace Symbols
 	using GMod_Util_IsPhysicsObjectValid = bool (*)(IPhysicsObject* obj);
 	extern const std::vector<Symbol> GMod_Util_IsPhysicsObjectValidSym;
 
+	using PhysCreateBbox = CPhysCollide* (*)(const Vector& mins, const Vector& maxs);
+	extern const std::vector<Symbol> PhysCreateBboxSym;
+
 	using CPhysicsHook_FrameUpdatePostEntityThink = void (GMCOMMON_CALLING_CONVENTION*)(void* CPhysicsHook);
 	extern const std::vector<Symbol> CPhysicsHook_FrameUpdatePostEntityThinkSym;
 

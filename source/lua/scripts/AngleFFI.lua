@@ -28,7 +28,9 @@ local function Angle(x, y, z)
         return CreateAngle(ang.x, ang.y, ang.z)
     end
 
-    if isstring(ang) then
+    if isstring(ang) and y == nil and z == nil then
+        -- Angle("p y r") packed-string form.
+        -- Only when y/z are absent! Angle("1", "2", "3") must coerce each argument like GMod does.
         local vals = ang:Split(" ")
         x = vals[1] or 0
         y = vals[2] or 0
