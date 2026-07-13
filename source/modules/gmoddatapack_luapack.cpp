@@ -9,6 +9,7 @@
 #include "module.h"
 #include "sourcesdk/iluashared.h"
 #include "sourcesdk/tier2.h"
+#include "networkstringtabledefs.h"
 
 #undef isalnum
 #undef isalpha
@@ -80,6 +81,10 @@ namespace HolyLib::LuaPack
 		std::map<std::string, Generation> generations;
 		std::string currentGeneration;
 		std::string salt;
+		INetworkStringTableContainer* stringTables = nullptr;
+		INetworkStringTable* downloadables = nullptr;
+		std::string lockedDownloadUrl;
+		bool downloadUrlLocked = false;
 	};
 
 	static State state;
@@ -336,6 +341,83 @@ namespace HolyLib::LuaPack
 		Util::StartThreadPool(state.buildPool, 1);
 	}
 
+	static ConVar* DownloadUrlConVar()
+	{
+		return g_pCVar ? g_pCVar->FindVar("sv_downloadurl") : nullptr;
+	}
+
+	static bool CoordinateDownloadUrl(bool publishing)
+	{
+		const Config& currentConfig = GetConfig();
+		ConVar* downloadUrl = DownloadUrlConVar();
+		if (!downloadUrl)
+		{
+			if (publishing)
+				Warning(PROJECT_NAME " - luapack: sv_downloadurl is unavailable; refusing to publish a FastDL generation\n");
+			return false;
+		}
+
+		if (V_stricmp(currentConfig.downloadUrlPolicy.c_str(), "require") == 0)
+		{
+			if (downloadUrl->GetString()[0] == '\0')
+			{
+				if (publishing)
+					Warning(PROJECT_NAME " - luapack: sv_downloadurl is empty and policy=require; generation remains unpublished\n");
+				return false;
+			}
+			return true;
+		}
+
+		if (V_stricmp(currentConfig.downloadUrlPolicy.c_str(), "lock") == 0)
+		{
+			if (!state.downloadUrlLocked)
+			{
+				state.lockedDownloadUrl = downloadUrl->GetString();
+				state.downloadUrlLocked = true;
+			}
+			else if (state.lockedDownloadUrl != downloadUrl->GetString())
+			{
+				Warning(PROJECT_NAME " - luapack: restoring operator sv_downloadurl while policy=lock\n");
+				downloadUrl->SetValue(state.lockedDownloadUrl.c_str());
+			}
+		}
+		else if (V_stricmp(currentConfig.downloadUrlPolicy.c_str(), "respect") != 0)
+		{
+			if (publishing)
+				Warning(PROJECT_NAME " - luapack: unknown download URL policy '%s'; expected respect, require, or lock\n",
+					currentConfig.downloadUrlPolicy.c_str());
+			return false;
+		}
+
+		return true;
+	}
+
+	static bool RegisterDownloadable(const std::string& resourcePath)
+	{
+		if (!state.stringTables)
+			return false;
+
+		if (!state.downloadables)
+			state.downloadables = state.stringTables->FindTable("downloadables");
+		if (!state.downloadables)
+		{
+			Warning(PROJECT_NAME " - luapack: downloadables string table is not available\n");
+			return false;
+		}
+
+		int index = state.downloadables->FindStringIndex(resourcePath.c_str());
+		if (index == INVALID_STRING_INDEX)
+			index = state.downloadables->AddString(true, resourcePath.c_str());
+
+		if (index == INVALID_STRING_INDEX)
+		{
+			Warning(PROJECT_NAME " - luapack: failed to register '%s' in downloadables\n", resourcePath.c_str());
+			return false;
+		}
+
+		return true;
+	}
+
 	static void StartBuild()
 	{
 		BuildTask* task = new BuildTask;
@@ -423,7 +505,16 @@ namespace HolyLib::LuaPack
 
 	void Init(CreateInterfaceFn* appfn)
 	{
-		(void)appfn;
+		if (appfn && appfn[0])
+			state.stringTables = static_cast<INetworkStringTableContainer*>(appfn[0](INTERFACENAME_NETWORKSTRINGTABLESERVER, nullptr));
+		else
+		{
+			SourceSDK::FactoryLoader engineLoader("engine");
+			state.stringTables = engineLoader.GetInterface<INetworkStringTableContainer>(INTERFACENAME_NETWORKSTRINGTABLESERVER);
+		}
+
+		if (!state.stringTables)
+			Warning(PROJECT_NAME " - luapack: INetworkStringTableContainer is unavailable; FastDL publishing will stay fail-open\n");
 		RefreshConfig();
 	}
 
@@ -443,6 +534,9 @@ namespace HolyLib::LuaPack
 		state.generations.clear();
 		state.currentGeneration.clear();
 		state.salt.clear();
+		state.downloadables = nullptr;
+		state.lockedDownloadUrl.clear();
+		state.downloadUrlLocked = false;
 	}
 
 	void LevelShutdown()
@@ -465,6 +559,10 @@ namespace HolyLib::LuaPack
 				if (!WriteImmutableObject(task, resourcePath))
 				{
 					Warning(PROJECT_NAME " - luapack: Failed to atomically write pack %s\n", task->md5.c_str());
+				} else if (!CoordinateDownloadUrl(true) || !RegisterDownloadable(resourcePath)) {
+					Warning(PROJECT_NAME " - luapack: Pack %s exists but was not published; clients remain on vanilla delivery\n", task->md5.c_str());
+					std::lock_guard<std::mutex> lock(state.registryMutex);
+					state.buildRequested = true;
 				} else {
 					Generation generation;
 					generation.id = task->md5;
@@ -483,7 +581,14 @@ namespace HolyLib::LuaPack
 			delete task;
 		}
 
-		if (!IsEnabled() || state.activeBuild)
+		if (!IsEnabled())
+		{
+			state.downloadUrlLocked = false;
+			return;
+		}
+
+		CoordinateDownloadUrl(false);
+		if (state.activeBuild)
 			return;
 
 		bool shouldBuild = false;
