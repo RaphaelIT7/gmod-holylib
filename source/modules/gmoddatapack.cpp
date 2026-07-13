@@ -1136,6 +1136,8 @@ void LuaDataPack::Initialize()
 			if (!luaFile)
 				continue;
 
+			HolyLib::LuaPack::CaptureFile(luaFile);
+
 			LuaPackEntry* pEntry = GetPackEntry(fileID);
 			if (!pEntry || pEntry->IsReady())
 				continue;
@@ -1173,6 +1175,7 @@ static Detouring::Hook detour_GModDataPack_AddOrUpdateFile;
 static void hook_GModDataPack_AddOrUpdateFile(GModDataPack* pDataPack, GarrysMod::Lua::LuaFile* file, bool bReCompress)
 {
 	g_pDataPack = pDataPack;
+	HolyLib::LuaPack::CaptureFile(file);
 	g_pLuaDataPack.AddFileContents(file->GetName(), file->GetContents());
 	/*
 	if (g_Lua && Lua::PushHook("HolyLib:AddOrUpdateFileToDataPack")) // Allows one to override the clientside content

@@ -17,11 +17,43 @@
 
 #include "util.h"
 
+#include <algorithm>
+#include <mutex>
+#include <unordered_map>
+#include <vector>
+
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
 
 namespace HolyLib::LuaPack
 {
+	struct FileRecord
+	{
+		std::string virtualPath;
+		std::string sourcePath;
+		std::string contents;
+		unsigned long long revision = 0;
+	};
+
+	struct State
+	{
+		std::mutex registryMutex;
+		std::unordered_map<std::string, FileRecord> files;
+		unsigned long long revision = 0;
+		bool buildRequested = false;
+	};
+
+	static State state;
+
+	static std::string NormalizePath(std::string path)
+	{
+		std::replace(path.begin(), path.end(), '\\', '/');
+		while (!path.empty() && (path[0] == '@' || path[0] == '/'))
+			path.erase(path.begin());
+
+		return path;
+	}
+
 	static ConVar luapack_enable(
 		"holylib_gmoddatapack_luapack_enable", "0", FCVAR_ARCHIVE,
 		"Bundle clientside Lua for FastDL delivery. Disabled by default; vanilla Lua delivery remains the fallback");
@@ -76,8 +108,19 @@ namespace HolyLib::LuaPack
 		RefreshConfig();
 	}
 
-	void Shutdown() {}
-	void LevelShutdown() {}
+	void Shutdown()
+	{
+		std::lock_guard<std::mutex> lock(state.registryMutex);
+		state.files.clear();
+		state.buildRequested = false;
+	}
+
+	void LevelShutdown()
+	{
+		std::lock_guard<std::mutex> lock(state.registryMutex);
+		state.files.clear();
+		state.buildRequested = false;
+	}
 	void Think() {}
 	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 	{
@@ -87,7 +130,24 @@ namespace HolyLib::LuaPack
 
 	void CaptureFile(const GarrysMod::Lua::LuaFile* file)
 	{
-		(void)file;
+		if (!file)
+			return;
+
+		const std::string virtualPath = NormalizePath(file->name);
+		if (virtualPath.empty())
+			return;
+
+		std::lock_guard<std::mutex> lock(state.registryMutex);
+		FileRecord& record = state.files[virtualPath];
+		const std::string sourcePath = NormalizePath(file->source.empty() ? file->name : file->source);
+		if (record.contents == file->contents && record.sourcePath == sourcePath)
+			return;
+
+		record.virtualPath = virtualPath;
+		record.sourcePath = sourcePath;
+		record.contents = file->contents;
+		record.revision = ++state.revision;
+		state.buildRequested = true;
 	}
 
 	void ClientConnect(int slot)
