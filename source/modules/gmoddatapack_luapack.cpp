@@ -10,6 +10,8 @@
 #include "sourcesdk/iluashared.h"
 #include "sourcesdk/tier2.h"
 #include "networkstringtabledefs.h"
+#include "picosha2/picosha2.h"
+#include "tier1/convar.h"
 
 #undef isalnum
 #undef isalpha
@@ -28,6 +30,7 @@
 #include <cstring>
 #include <limits>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <sstream>
 #include <unordered_map>
@@ -54,6 +57,19 @@ namespace HolyLib::LuaPack
 		std::string resourcePath;
 		unsigned long long sourceRevision = 0;
 		double publishedAt = 0.0;
+		std::shared_ptr<Bootil::AutoBuffer> compressedStub;
+		std::unordered_map<std::string, bool> files;
+		unsigned int pins = 0;
+	};
+
+	struct ClientPin
+	{
+		std::string generation;
+		double deadline = 0.0;
+		bool ready = false;
+		bool active = false;
+		bool fallback = true;
+		bool holdsPin = false;
 	};
 
 	struct BuildTask
@@ -85,6 +101,7 @@ namespace HolyLib::LuaPack
 		INetworkStringTable* downloadables = nullptr;
 		std::string lockedDownloadUrl;
 		bool downloadUrlLocked = false;
+		ClientPin clients[ABSOLUTE_PLAYER_LIMIT];
 	};
 
 	static State state;
@@ -266,6 +283,57 @@ namespace HolyLib::LuaPack
 
 		task->success = true;
 		task->complete.store(true);
+	}
+
+	static std::shared_ptr<Bootil::AutoBuffer> BuildCompressedStub(const std::string& generation)
+	{
+		const std::string source = "return __holypack(\"" + generation + "\")()";
+		std::vector<unsigned char> hash(32);
+		picosha2::hash256_one_by_one hasher;
+		hasher.process(source.c_str(), source.c_str() + source.length() + 1);
+		hasher.finish();
+		hasher.get_hash_bytes(hash.begin(), hash.end());
+
+		auto output = std::make_shared<Bootil::AutoBuffer>();
+		output->Write(hash.data(), hash.size());
+		if (!Bootil::Compression::LZMA::Compress(source.c_str(), source.length() + 1, *output, 9))
+			return nullptr;
+
+		return output;
+	}
+
+	static double ServerTime()
+	{
+		return Util::engineserver ? Util::engineserver->Time() : 0.0;
+	}
+
+	static void ReleaseGenerationReference(ClientPin& client)
+	{
+		if (client.holdsPin && !client.generation.empty())
+		{
+			auto generation = state.generations.find(client.generation);
+			if (generation != state.generations.end() && generation->second.pins > 0)
+				--generation->second.pins;
+		}
+		client.holdsPin = false;
+	}
+
+	static void ReleasePin(ClientPin& client)
+	{
+		ReleaseGenerationReference(client);
+		client = ClientPin();
+	}
+
+	static void MarkFallback(ClientPin& client)
+	{
+		ReleaseGenerationReference(client);
+		client.ready = false;
+		client.fallback = true;
+	}
+
+	static bool IsValidSlot(int slot)
+	{
+		return slot >= 0 && slot < ABSOLUTE_PLAYER_LIMIT;
 	}
 
 	static std::string DataDirectory(const std::string& packDirectory)
@@ -580,6 +648,8 @@ namespace HolyLib::LuaPack
 		state.downloadables = nullptr;
 		state.lockedDownloadUrl.clear();
 		state.downloadUrlLocked = false;
+		for (ClientPin& client : state.clients)
+			client = ClientPin();
 		luapack_manifest.SetValue("");
 	}
 
@@ -614,7 +684,16 @@ namespace HolyLib::LuaPack
 					generation.salt = task->salt;
 					generation.resourcePath = resourcePath;
 					generation.sourceRevision = task->sourceRevision;
-					generation.publishedAt = Util::engineserver ? Util::engineserver->Time() : 0.0;
+					generation.publishedAt = ServerTime();
+					generation.compressedStub = BuildCompressedStub(generation.id);
+					for (const FileRecord& file : task->files)
+						generation.files[NormalizePath(file.virtualPath)] = true;
+					if (!generation.compressedStub)
+					{
+						Warning(PROJECT_NAME " - luapack: Failed to build generation stub; pack remains unpublished\n");
+						delete task;
+						return;
+					}
 					state.generations[generation.id] = generation;
 					state.currentGeneration = generation.id;
 					PublishManifest();
@@ -629,12 +708,25 @@ namespace HolyLib::LuaPack
 		if (!IsEnabled())
 		{
 			state.downloadUrlLocked = false;
+			for (ClientPin& client : state.clients)
+			{
+				if (!client.generation.empty())
+					ReleasePin(client);
+			}
 			if (luapack_manifest.GetString()[0] != '\0')
 				luapack_manifest.SetValue("");
 			return;
 		}
 
 		CoordinateDownloadUrl(false);
+		const double now = ServerTime();
+		for (ClientPin& client : state.clients)
+		{
+			if (!client.generation.empty() && !client.ready && !client.fallback && now > client.deadline)
+			{
+				MarkFallback(client);
+			}
+		}
 		if (luapack_manifest.GetString()[0] == '\0' && !state.currentGeneration.empty())
 			PublishManifest();
 		if (state.activeBuild)
@@ -676,25 +768,82 @@ namespace HolyLib::LuaPack
 		state.buildRequested = true;
 	}
 
+	const Bootil::AutoBuffer* StubForClient(int slot, const std::string& virtualPath)
+	{
+		if (!IsEnabled() || !IsValidSlot(slot))
+			return nullptr;
+
+		ClientPin& client = state.clients[slot];
+		if (!client.ready || client.fallback || client.generation.empty())
+			return nullptr;
+		auto generation = state.generations.find(client.generation);
+		if (generation == state.generations.end() || !generation->second.compressedStub)
+			return nullptr;
+
+		const std::string path = NormalizePath(virtualPath);
+		if (path == "includes/init.lua" || path == "lua/includes/init.lua" || generation->second.files.find(path) == generation->second.files.end())
+			return nullptr;
+
+		return generation->second.compressedStub.get();
+	}
+
 	void ClientConnect(int slot)
 	{
-		(void)slot;
+		if (!IsValidSlot(slot))
+			return;
+
+		ReleasePin(state.clients[slot]);
+		ClientPin& client = state.clients[slot];
+		if (!IsEnabled() || state.currentGeneration.empty())
+			return;
+
+		auto generation = state.generations.find(state.currentGeneration);
+		if (generation == state.generations.end())
+			return;
+
+		client.generation = generation->first;
+		client.deadline = ServerTime() + GetConfig().readyDeadlineSeconds;
+		client.fallback = false;
+		client.holdsPin = true;
+		++generation->second.pins;
 	}
 
 	void ClientActive(int slot)
 	{
-		(void)slot;
+		if (!IsValidSlot(slot))
+			return;
+
+		ClientPin& client = state.clients[slot];
+		client.active = true;
+		ReleaseGenerationReference(client);
 	}
 
 	void ClientDisconnect(int slot)
 	{
-		(void)slot;
+		if (IsValidSlot(slot))
+			ReleasePin(state.clients[slot]);
 	}
 
 	MODULE_RESULT ClientCommand(int slot, const CCommand* args)
 	{
-		(void)slot;
-		(void)args;
-		return MODULE_RESULT::CONTINUE;
+		if (!args || args->ArgC() < 1 || V_stricmp(args->Arg(0), "holylib_luapack_ready") != 0)
+			return MODULE_RESULT::CONTINUE;
+
+		// Always consume our private acknowledgement command, including forged or stale generations.
+		if (!IsEnabled() || !IsValidSlot(slot) || args->ArgC() != 3)
+			return MODULE_RESULT::STOP;
+
+		ClientPin& client = state.clients[slot];
+		const std::string generationId = args->Arg(1);
+		const std::string md5 = args->Arg(2);
+		auto generation = state.generations.find(client.generation);
+		if (!client.fallback && !client.generation.empty() && ServerTime() <= client.deadline &&
+			generation != state.generations.end() && generationId == client.generation && md5 == generation->second.md5)
+		{
+			client.ready = true;
+			Msg(PROJECT_NAME " - luapack: client slot %i acknowledged pinned generation %s\n", slot, generationId.c_str());
+		}
+
+		return MODULE_RESULT::STOP;
 	}
 }

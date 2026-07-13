@@ -15,6 +15,11 @@ namespace GarrysMod::Lua
 	struct LuaFile;
 }
 
+namespace Bootil
+{
+	class AutoBuffer;
+}
+
 namespace HolyLib::LuaPack
 {
 	struct Config
@@ -38,6 +43,7 @@ namespace HolyLib::LuaPack
 	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit);
 
 	void CaptureFile(const GarrysMod::Lua::LuaFile* file);
+	const Bootil::AutoBuffer* StubForClient(int slot, const std::string& virtualPath);
 	void ClientConnect(int slot);
 	void ClientActive(int slot);
 	void ClientDisconnect(int slot);
