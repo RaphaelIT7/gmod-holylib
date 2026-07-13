@@ -32,7 +32,7 @@ The native plugin was unavailable, so the suspected global `pack active => suppr
 
 What would settle it: the stripped plugin's `SendFileToClient` detour or a runtime trace of two simultaneous clients with different pack outcomes.
 
-Implementation decision: HolyLib does not depend on this inference. Stub delivery requires an exact per-slot `READY(generation, md5)` acknowledgement before every optimized send.
+Implementation decision: HolyLib does not depend on this inference. Stub delivery requires an exact per-slot `READY(generation, md5)` acknowledgement before every optimized send. Once the full bootstrap/init file has run, any request that does not qualify for a stub is passed to the recovered native `SendFileToClient` trampoline.
 
 ### 3. `AddOrUpdateFile` identity and bytes — CONFIRMED for HolyLib and target engine
 
@@ -128,4 +128,3 @@ What would settle it: provide both stripped plugin architectures plus the exact 
 - `// TODO(review):` capture a target-branch join to verify `includes/init.lua` is processed before any file that could receive a stub.
 - `// TODO(review):` capture one fallback and one ready join to confirm the client accepts a requested file whose normal string-table hash describes the real source while its delivered payload is the stub.
 - `// TODO(review):` if the stripped plugin is supplied, complete native findings 2, 3 (incumbent half), 4 (exact stub), 5 (producer), 7 (registration), 8 (set timing), 9 (pinning), 10 (detours), and 12 (signature comparison) before claiming binary equivalence.
-

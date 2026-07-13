@@ -8,7 +8,7 @@ The feature is experimental and defaults off. The `gmoddatapack` module itself m
 
 - A connecting slot is pinned to the current immutable generation.
 - The client mounts and validates downloaded packs before sending `READY(generation, md5)`.
-- Only a ready slot receives tiny per-file stubs. A non-ready, expired, corrupt, downloads-disabled, or otherwise uncertain slot receives normal HolyLib/vanilla client Lua.
+- Only a ready slot receives tiny per-file stubs. The full init file first follows HolyLib's existing path so it can carry the bootstrap; after that, a non-ready, expired, corrupt, downloads-disabled, or otherwise uncertain slot is handed directly to the native `GModDataPack::SendFileToClient` implementation.
 - Every stub is an ordinary reliable `LuaFileDownload` for the requested file ID, so the Requesting Lua barrier advances.
 - Publishing creates the object and registers it in `downloadables` before replacing the one replicated manifest snapshot.
 - Old generations remain addressable until pins drain and their retention TTL passes. Content-addressed files remain on disk for operator/CDN cache policy.
@@ -66,8 +66,8 @@ Mirror `garrysmod/data/<packdir>/` into the same relative `data/<packdir>/` path
 4. Off-peak, set `holylib_gmoddatapack_luapack_enable 1`. Confirm the log reports one immutable generation, the object exists on FastDL, and the manifest is non-empty.
 5. Join with downloads enabled. Confirm one `.bsp` HTTP object, a READY log for the pinned generation, and successful completion of Requesting Lua.
 6. Start a throttled join on generation G1, modify a registered Lua file to publish G2, and confirm that join still acknowledges/uses G1 while new joins use G2.
-7. Join with `cl_downloadfilter none`. Confirm the client prints guidance, sends no READY, receives normal per-file Lua, and reaches the game rather than remaining in limbo.
-8. Corrupt or remove the FastDL object and repeat. Confirm MD5/decompression/missing failures stay vanilla.
+7. Join with `cl_downloadfilter none`. Confirm the client prints guidance, sends no READY, receives native per-file Lua after the full bootstrap/init file, and reaches the game rather than remaining in limbo.
+8. Corrupt or remove the FastDL object and repeat. Confirm MD5/decompression/missing failures take the same native fallback.
 9. Exercise the kill switch during a join and confirm subsequent requests are real files, not stubs.
 10. Watch netchannel and HTTP byte counts at production population before expanding rollout.
 
@@ -78,4 +78,3 @@ Clientside Lua is in every player's join path, so this has the highest practical
 This feature does not change the pack body delivery channel, does not use `sv_allowdownload`, and does not add a netchannel body fallback. Tiny READY and autorefresh metadata messages are control-plane only. CDN reachability, overseas edge behavior, TTL, purge, and origin upload policy remain outside the module.
 
 See [the clean-room functional analysis](luapack-gluapack-re.md) for evidence and open runtime questions.
-

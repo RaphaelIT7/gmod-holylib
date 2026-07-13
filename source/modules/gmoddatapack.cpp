@@ -1292,6 +1292,15 @@ static void hook_GModDataPack_SendFileToClient(GModDataPack* pDataPack, int clie
 		return;
 	}
 
+	if (HolyLib::LuaPack::IsEnabled() && fileName != "includes/init.lua" && fileName != "lua/includes/init.lua")
+	{
+		// The init file must take HolyLib's normal full-file path because it carries the bootstrap.
+		// Every other uncertain/non-ready request goes through the engine implementation itself;
+		// this is the fail-open invariant and deliberately bypasses all luapack decisions.
+		SendOriginalLuaFile(pDataPack, clientIdx, fileID);
+		return;
+	}
+
 	LuaDataPack::LuaPackEntry* pEntry;
 	{
 		pEntry = g_pLuaDataPack.GetPackEntry(fileID);
