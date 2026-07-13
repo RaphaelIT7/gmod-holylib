@@ -1523,6 +1523,19 @@ void CGModDataPackModule::Think(bool bSimulating)
 	HolyLib::LuaPack::Think();
 	if (HolyLib::LuaPack::ConsumeBootstrapRefresh() && Lua::GetShared())
 	{
+		// Capture was intentionally dormant while the master flag was off. Re-snapshot the
+		// existing string table when it is toggled on so disabled servers keep stock memory use.
+		if (HolyLib::LuaPack::IsEnabled() && g_pDataPack && g_pDataPack->m_pClientLuaFiles)
+		{
+			for (int fileID = 0; fileID < g_pDataPack->m_pClientLuaFiles->GetNumStrings(); ++fileID)
+			{
+				const char* fileName = g_pDataPack->m_pClientLuaFiles->GetString(fileID);
+				GarrysMod::Lua::LuaFile* file = Lua::GetShared()->GetCache(fileName);
+				if (file)
+					HolyLib::LuaPack::CaptureFile(file);
+			}
+		}
+
 		GarrysMod::Lua::LuaFile* initFile = Lua::GetShared()->GetCache("includes/init.lua");
 		if (!initFile)
 			initFile = Lua::GetShared()->GetCache("lua/includes/init.lua");

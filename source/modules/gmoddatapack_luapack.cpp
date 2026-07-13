@@ -1106,6 +1106,13 @@ end)
 			{
 				std::lock_guard<std::mutex> lock(state.registryMutex);
 				state.buildRequested = true;
+			} else {
+				// The disabled state must not retain a second copy of all registered Lua. Clearing
+				// also prevents a runtime re-enable from publishing a stale pre-refresh snapshot.
+				std::lock_guard<std::mutex> lock(state.registryMutex);
+				state.files.clear();
+				state.pendingChanges.clear();
+				state.buildRequested = false;
 			}
 		}
 
@@ -1246,7 +1253,7 @@ end)
 
 	void CaptureFile(const GarrysMod::Lua::LuaFile* file)
 	{
-		if (!file)
+		if (!IsEnabled() || !file)
 			return;
 
 		const std::string virtualPath = NormalizePath(file->name);
