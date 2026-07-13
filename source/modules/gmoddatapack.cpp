@@ -816,6 +816,7 @@ public:
 			processed = false;
 			removeServerCode = false;
 			removeComments = false;
+			luapackBootstrap = false;
 		}
 
 		std::string sourceContent = "";
@@ -826,6 +827,7 @@ public:
 		bool processed = false;
 		bool removeServerCode = false;
 		bool removeComments = false;
+		bool luapackBootstrap = false;
 	};
 
 	void Initialize();
@@ -850,8 +852,10 @@ public:
 		std::lock_guard<std::shared_mutex> lock(pEntry.mutex);
 		bool bRemoveServerCode = gmoddatapack_removeserverif.GetBool();
 		bool bRemoveComments = gmoddatapack_removecomments.GetBool();
+		bool bLuaPackBootstrap = HolyLib::LuaPack::IsEnabled();
 		bool bSameSource = pEntry.hasSourceContent && pEntry.sourceContent == content;
-		bool bSameProcessConfig = pEntry.removeServerCode == bRemoveServerCode && pEntry.removeComments == bRemoveComments;
+		bool bSameProcessConfig = pEntry.removeServerCode == bRemoveServerCode && pEntry.removeComments == bRemoveComments &&
+			pEntry.luapackBootstrap == bLuaPackBootstrap;
 		if (bSameSource && pEntry.IsContentReady() && bSameProcessConfig) // Nothing changed
 		{
 			std::vector<unsigned char> pHash = HashString(pEntry.content.c_str(), pEntry.content.length() + 1);
@@ -863,9 +867,10 @@ public:
 		pEntry.compressed.Clear();
 		pEntry.hasSourceContent = true;
 		pEntry.sourceContent = content;
-		pEntry.content = content;
+		pEntry.content = HolyLib::LuaPack::PrepareVanillaFile(fileName, content);
 		pEntry.removeServerCode = bRemoveServerCode;
 		pEntry.removeComments = bRemoveComments;
+		pEntry.luapackBootstrap = bLuaPackBootstrap;
 		pEntry.processed = false;
 
 		if (g_pGModDataPackModule.InDebug())
@@ -1507,6 +1512,16 @@ static double g_nLastSend = 0;
 void CGModDataPackModule::Think(bool bSimulating)
 {
 	HolyLib::LuaPack::Think();
+	if (HolyLib::LuaPack::ConsumeBootstrapRefresh() && Lua::GetShared())
+	{
+		GarrysMod::Lua::LuaFile* initFile = Lua::GetShared()->GetCache("includes/init.lua");
+		if (!initFile)
+			initFile = Lua::GetShared()->GetCache("lua/includes/init.lua");
+		if (initFile)
+			g_pLuaDataPack.AddFileContents(initFile->GetName(), initFile->GetContents());
+		else
+			Warning(PROJECT_NAME " - luapack: includes/init.lua is not cached; bootstrap refresh will wait for AddOrUpdateFile\n");
+	}
 
 	{
 		// We do this since SetStringUserData isn't thread safe and may crash in very rare race conditions

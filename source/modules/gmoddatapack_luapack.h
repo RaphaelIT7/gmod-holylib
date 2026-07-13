@@ -43,6 +43,8 @@ namespace HolyLib::LuaPack
 	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit);
 
 	void CaptureFile(const GarrysMod::Lua::LuaFile* file);
+	std::string PrepareVanillaFile(const std::string& virtualPath, const std::string& contents);
+	bool ConsumeBootstrapRefresh();
 	const Bootil::AutoBuffer* StubForClient(int slot, const std::string& virtualPath);
 	void ClientConnect(int slot);
 	void ClientActive(int slot);

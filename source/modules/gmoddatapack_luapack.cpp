@@ -103,9 +103,172 @@ namespace HolyLib::LuaPack
 		std::string lockedDownloadUrl;
 		bool downloadUrlLocked = false;
 		ClientPin clients[ABSOLUTE_PLAYER_LIMIT];
+		bool featureEnabledLastFrame = false;
+		bool bootstrapRefresh = false;
 	};
 
 	static State state;
+
+	static const char* clientBootstrap = R"HOLYLUAPACK(
+-- HolyLib luapack bootstrap. The server does not send pack bodies through the netchannel.
+do
+	local function bootstrap()
+		if _G.__holypack_bootstrapped then return end
+
+		local flags = (FCVAR_REPLICATED or 0) + (FCVAR_PROTECTED or 0) +
+			(FCVAR_DONTRECORD or 0) + (FCVAR_UNLOGGED or 0) + (FCVAR_UNREGISTERED or 0)
+		local ok, manifestConVar = pcall(CreateConVar, "holylib_gmoddatapack_luapack_manifest", "", flags)
+		manifestConVar = ok and manifestConVar or GetConVar("holylib_gmoddatapack_luapack_manifest")
+		local snapshot = manifestConVar and manifestConVar:GetString() or ""
+		if snapshot == "" then return end
+
+		local function warn(message)
+			MsgC(Color(255, 170, 40), "[HolyLib luapack] ", color_white, message .. "\n")
+		end
+
+		local function fromHex(value)
+			if #value % 2 ~= 0 or value:find("[^0-9a-fA-F]") then return nil end
+			return (value:gsub("..", function(pair) return string.char(tonumber(pair, 16)) end))
+		end
+
+		local function toHex(value)
+			return (value:gsub(".", function(byte) return string.format("%02x", string.byte(byte)) end))
+		end
+
+		local version, currentGeneration, packDirectoryHex, generationList = snapshot:match("^(%d+)|([^|]+)|([^|]*)|(.*)$")
+		local packDirectory = packDirectoryHex and fromHex(packDirectoryHex)
+		if version ~= "1" or not currentGeneration or not packDirectory then
+			warn("ignored an invalid manifest snapshot; vanilla Lua delivery remains active")
+			return
+		end
+
+		local manifests = {}
+		for entry in string.gmatch(generationList or "", "[^;]+") do
+			local generation, md5, saltHex, resourceHex = entry:match("^([^,]+),([^,]+),([^,]+),([^,]+)$")
+			local salt, resource = saltHex and fromHex(saltHex), resourceHex and fromHex(resourceHex)
+			if generation and md5 and salt and resource then
+				manifests[generation] = {generation = generation, md5 = string.lower(md5), salt = salt, resource = resource}
+			end
+		end
+
+		local function parsePack(contents, manifest)
+			if #contents < 1 or string.byte(contents, 1) ~= 1 then return nil, "unsupported pack version" end
+			local pack = {vfs = {}, vfsLCL = {}, salt = manifest.salt, manifest = manifest}
+			local cursor = 2
+			while cursor <= #contents do
+				if #contents - cursor + 1 < 52 then return nil, "truncated entry header" end
+				local sourceKey = toHex(string.sub(contents, cursor, cursor + 15)); cursor = cursor + 16
+				local localKeyOne = toHex(string.sub(contents, cursor, cursor + 15)); cursor = cursor + 16
+				local localKeyTwo = toHex(string.sub(contents, cursor, cursor + 15)); cursor = cursor + 16
+				local a, b, c, d = string.byte(contents, cursor, cursor + 3); cursor = cursor + 4
+				local length = a * 16777216 + b * 65536 + c * 256 + d
+				if length < 0 or cursor + length - 1 > #contents then return nil, "truncated entry payload" end
+				local source = string.sub(contents, cursor, cursor + length - 1); cursor = cursor + length
+				pack.vfs[sourceKey] = source
+				pack.vfsLCL[localKeyOne] = source
+				pack.vfsLCL[localKeyTwo] = source
+			end
+			return pack
+		end
+
+		local packs = {}
+		local downloadFilter = GetConVar("cl_downloadfilter")
+		for generation, manifest in pairs(manifests) do
+			local compressed = file.Read("download/" .. manifest.resource, "GAME")
+			if not compressed then
+				if downloadFilter and downloadFilter:GetString() == "none" then
+					warn("pack " .. generation .. " is missing because downloads are disabled; set cl_downloadfilter to mapsonly or all. This join will use vanilla Lua delivery")
+				else
+					warn("pack " .. generation .. " is unavailable; this join will use vanilla Lua delivery")
+				end
+			else
+				local contents = util.Decompress(compressed)
+				if not contents then
+					warn("pack " .. generation .. " could not be decompressed; this join will use vanilla Lua delivery")
+				elseif string.lower(util.MD5(contents)) ~= manifest.md5 then
+					warn("pack " .. generation .. " failed its generation MD5 check; this join will use vanilla Lua delivery")
+				else
+					local pack, parseError = parsePack(contents, manifest)
+					if pack then packs[generation] = pack else warn("pack " .. generation .. " is invalid (" .. parseError .. "); this join will use vanilla Lua delivery") end
+				end
+			end
+		end
+
+		if not next(packs) then return end
+		_G.__holypack_bootstrapped = true
+		_G.__holypack_packs = packs
+
+		local originalCompileFile, originalInclude, originalRunString = CompileFile, include, RunString
+		local selectedGeneration
+
+		local function normalizedForms(path)
+			path = string.gsub(path or "", "^@", "")
+			path = string.gsub(path, "\\", "/")
+			local first = string.gsub(path, "^addons/[^/]+/", "")
+			first = string.gsub(first, "^gamemodes/[^/]+/entities/", "")
+			first = string.gsub(first, "^gamemodes/", "")
+			first = string.gsub(first, "^lua/", "")
+			local second = string.gsub(path, "^addons/[^/]+/", "")
+			second = string.gsub(second, "^gamemodes/", "")
+			second = string.gsub(second, "^lua/", "")
+			return path, first, second
+		end
+
+		local function findSource(pack, path)
+			local sourcePath, first, second = normalizedForms(path)
+			local salted = function(value) return string.lower(util.MD5(pack.salt .. value)) end
+			return pack.vfs[salted(sourcePath)] or pack.vfsLCL[salted(first)] or pack.vfsLCL[salted(second)]
+		end
+
+		local function compilePacked(pack, path)
+			local source = findSource(pack, path)
+			if not source then return nil end
+			local compiled = CompileString(source, path, false)
+			if type(compiled) ~= "function" then
+				warn("failed to compile packed file " .. tostring(path) .. ": " .. tostring(compiled))
+				return nil
+			end
+			return compiled
+		end
+
+		function _G.__holypack(generation)
+			local pack = packs[generation]
+			if not pack then error("HolyLib luapack generation is not mounted: " .. tostring(generation), 2) end
+			selectedGeneration = generation
+			local info = debug.getinfo(2, "S")
+			local sourcePath = info and info.source or ""
+			local compiled = compilePacked(pack, string.gsub(sourcePath, "^@", ""))
+			if not compiled then error("HolyLib luapack has no entry for " .. tostring(sourcePath), 2) end
+			return compiled
+		end
+
+		function _G.CompileFile(path)
+			local pack = selectedGeneration and packs[selectedGeneration]
+			return (pack and compilePacked(pack, path)) or originalCompileFile(path)
+		end
+
+		function _G.include(path)
+			local pack = selectedGeneration and packs[selectedGeneration]
+			local compiled = pack and compilePacked(pack, path)
+			if compiled then return compiled() end
+			return originalInclude(path)
+		end
+
+		function _G.RunString(code, identifier, handleError)
+			local pack = selectedGeneration and packs[selectedGeneration]
+			local packed = pack and identifier and findSource(pack, identifier)
+			return originalRunString(packed or code, identifier, handleError)
+		end
+
+		for generation, pack in pairs(packs) do
+			RunConsoleCommand("holylib_luapack_ready", generation, pack.manifest.md5)
+		end
+	end
+
+	local ok, message = xpcall(bootstrap, debug.traceback)
+	if not ok then MsgC(Color(255, 80, 80), "[HolyLib luapack] bootstrap failed; vanilla Lua delivery remains active: " .. tostring(message) .. "\n") end
+end
+)HOLYLUAPACK";
 
 	static std::string NormalizePath(std::string path)
 	{
@@ -628,6 +791,7 @@ namespace HolyLib::LuaPack
 		if (!state.stringTables)
 			Warning(PROJECT_NAME " - luapack: INetworkStringTableContainer is unavailable; FastDL publishing will stay fail-open\n");
 		RefreshConfig();
+		state.featureEnabledLastFrame = IsEnabled();
 	}
 
 	void Shutdown()
@@ -649,6 +813,8 @@ namespace HolyLib::LuaPack
 		state.downloadables = nullptr;
 		state.lockedDownloadUrl.clear();
 		state.downloadUrlLocked = false;
+		state.featureEnabledLastFrame = false;
+		state.bootstrapRefresh = false;
 		for (ClientPin& client : state.clients)
 			client = ClientPin();
 		luapack_manifest.SetValue("");
@@ -661,6 +827,18 @@ namespace HolyLib::LuaPack
 
 	void Think()
 	{
+		const bool enabled = IsEnabled();
+		if (enabled != state.featureEnabledLastFrame)
+		{
+			state.featureEnabledLastFrame = enabled;
+			state.bootstrapRefresh = true;
+			if (enabled)
+			{
+				std::lock_guard<std::mutex> lock(state.registryMutex);
+				state.buildRequested = true;
+			}
+		}
+
 		if (state.activeBuild && state.activeBuild->complete.load())
 		{
 			BuildTask* task = state.activeBuild;
@@ -795,6 +973,22 @@ namespace HolyLib::LuaPack
 		record.contents = file->contents;
 		record.revision = ++state.revision;
 		state.buildRequested = true;
+	}
+
+	std::string PrepareVanillaFile(const std::string& virtualPath, const std::string& contents)
+	{
+		const std::string path = NormalizePath(virtualPath);
+		if (!IsEnabled() || (path != "includes/init.lua" && path != "lua/includes/init.lua"))
+			return contents;
+
+		return std::string(clientBootstrap) + "\n" + contents;
+	}
+
+	bool ConsumeBootstrapRefresh()
+	{
+		const bool refresh = state.bootstrapRefresh;
+		state.bootstrapRefresh = false;
+		return refresh;
 	}
 
 	const Bootil::AutoBuffer* StubForClient(int slot, const std::string& virtualPath)
