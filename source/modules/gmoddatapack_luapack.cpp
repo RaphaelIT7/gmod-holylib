@@ -12,6 +12,7 @@
 #include "networkstringtabledefs.h"
 #include "picosha2/picosha2.h"
 #include "tier1/convar.h"
+#include "httplib.h"
 
 #undef isalnum
 #undef isalpha
@@ -88,6 +89,19 @@ namespace HolyLib::LuaPack
 		bool success = false;
 	};
 
+	struct UploadTask
+	{
+		std::string url;
+		std::string method;
+		std::string md5;
+		std::string resourcePath;
+		std::string body;
+		std::string error;
+		int status = 0;
+		bool success = false;
+		std::atomic<bool> complete{false};
+	};
+
 	struct State
 	{
 		std::mutex registryMutex;
@@ -95,7 +109,9 @@ namespace HolyLib::LuaPack
 		unsigned long long revision = 0;
 		bool buildRequested = false;
 		IThreadPool* buildPool = nullptr;
+		IThreadPool* uploadPool = nullptr;
 		BuildTask* activeBuild = nullptr;
+		std::vector<UploadTask*> uploads;
 		std::map<std::string, Generation> generations;
 		std::string currentGeneration;
 		std::string salt;
@@ -657,6 +673,108 @@ end)
 		Util::StartThreadPool(state.buildPool, 1);
 	}
 
+	static void EnsureUploadPool()
+	{
+		if (state.uploadPool)
+			return;
+
+		state.uploadPool = V_CreateThreadPool();
+		Util::StartThreadPool(state.uploadPool, 1);
+	}
+
+	static void UploadPack(UploadTask*& task)
+	{
+		if (!task)
+			return;
+
+		const size_t scheme = task->url.find("://");
+		const size_t pathStart = scheme == std::string::npos ? std::string::npos : task->url.find('/', scheme + 3);
+		if (scheme == std::string::npos)
+		{
+			task->error = "ingest URL has no scheme";
+			task->complete.store(true);
+			return;
+		}
+
+		const std::string origin = pathStart == std::string::npos ? task->url : task->url.substr(0, pathStart);
+		const std::string path = pathStart == std::string::npos ? "/" : task->url.substr(pathStart);
+		if (origin.compare(0, strlen("http://"), "http://") != 0)
+		{
+			// cpp-httplib is not linked to OpenSSL in HolyLib. Keeping this explicit avoids silently
+			// downgrading an operator-configured HTTPS ingest endpoint.
+			task->error = "this build supports http:// ingest only (HTTPS is never downgraded)";
+			task->complete.store(true);
+			return;
+		}
+
+		httplib::Client client(origin);
+		client.set_connection_timeout(10, 0);
+		client.set_read_timeout(30, 0);
+		client.set_write_timeout(30, 0);
+
+		httplib::Request request;
+		request.method = task->method;
+		request.path = path;
+		request.body = task->body;
+		request.headers.emplace("Content-Type", "application/octet-stream");
+		request.headers.emplace("X-HolyLib-LuaPack-MD5", task->md5);
+		request.headers.emplace("X-HolyLib-LuaPack-Path", task->resourcePath);
+
+		auto response = client.send(request);
+		if (!response)
+		{
+			task->error = httplib::to_string(response.error());
+			task->complete.store(true);
+			return;
+		}
+
+		task->status = response->status;
+		task->success = response->status >= 200 && response->status < 300;
+		if (!task->success)
+			task->error = "HTTP status " + std::to_string(response->status);
+		task->complete.store(true);
+	}
+
+	static void QueueIngest(const BuildTask* build, const Generation& generation)
+	{
+		const Config& currentConfig = GetConfig();
+		if (currentConfig.ingestUrl.empty())
+			return;
+
+		std::string method = currentConfig.ingestMethod;
+		std::transform(method.begin(), method.end(), method.begin(), [](unsigned char value) {
+			return static_cast<char>(std::toupper(value));
+		});
+		if (method.empty() || method.find_first_not_of("ABCDEFGHIJKLMNOPQRSTUVWXYZ") != std::string::npos)
+		{
+			Warning(PROJECT_NAME " - luapack: Ignoring invalid ingest method\n");
+			return;
+		}
+
+		UploadTask* upload = new UploadTask;
+		upload->url = currentConfig.ingestUrl;
+		upload->method = method;
+		upload->md5 = generation.md5;
+		upload->resourcePath = generation.resourcePath;
+		upload->body.assign(static_cast<const char*>(build->compressed.GetBase()), build->compressed.GetWritten());
+		EnsureUploadPool();
+		state.uploads.push_back(upload);
+		state.uploadPool->QueueCall(&UploadPack, upload);
+	}
+
+	static void NotifyPackBuilt(const BuildTask* build, const Generation& generation)
+	{
+		if (g_Lua && Lua::PushHook("HolyLib:OnLuaPackBuilt"))
+		{
+			g_Lua->PushString(generation.id.c_str());
+			g_Lua->PushString(generation.resourcePath.c_str());
+			g_Lua->PushString(generation.md5.c_str());
+			g_Lua->PushNumber(build->compressed.GetWritten());
+			g_Lua->CallFunctionProtected(5, 0, true);
+		}
+		QueueIngest(build, generation);
+	}
+
 	static ConVar* DownloadUrlConVar()
 	{
 		return g_pCVar ? g_pCVar->FindVar("sv_downloadurl") : nullptr;
@@ -937,8 +1055,16 @@ end)
 			Util::DestroyThreadPool(state.buildPool);
 			state.buildPool = nullptr;
 		}
+		if (state.uploadPool)
+		{
+			Util::DestroyThreadPool(state.uploadPool);
+			state.uploadPool = nullptr;
+		}
 		delete state.activeBuild;
 		state.activeBuild = nullptr;
+		for (UploadTask* upload : state.uploads)
+			delete upload;
+		state.uploads.clear();
 
 		std::lock_guard<std::mutex> lock(state.registryMutex);
 		state.files.clear();
@@ -974,6 +1100,24 @@ end)
 				std::lock_guard<std::mutex> lock(state.registryMutex);
 				state.buildRequested = true;
 			}
+		}
+
+		for (auto upload = state.uploads.begin(); upload != state.uploads.end();)
+		{
+			UploadTask* task = *upload;
+			if (!task->complete.load())
+			{
+				++upload;
+				continue;
+			}
+
+			if (task->success)
+				Msg(PROJECT_NAME " - luapack: Optional ingest accepted %s (HTTP %i)\n", task->md5.c_str(), task->status);
+			else
+				Warning(PROJECT_NAME " - luapack: Optional ingest failed for %s: %s (pack remains published locally)\n",
+					task->md5.c_str(), task->error.c_str());
+			delete task;
+			upload = state.uploads.erase(upload);
 		}
 
 		if (state.activeBuild && state.activeBuild->complete.load())
@@ -1026,6 +1170,7 @@ end)
 					state.currentGeneration = generation.id;
 					PublishManifest();
 					NotifyAutorefresh(previousGeneration, task);
+					NotifyPackBuilt(task, generation);
 					Msg(PROJECT_NAME " - luapack: Built immutable generation %s (%u compressed bytes, %u files)\n",
 						generation.id.c_str(), task->compressed.GetWritten(), static_cast<unsigned int>(task->files.size()));
 				}
