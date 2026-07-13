@@ -11,7 +11,7 @@ Evidence that was available:
 - Target Linux x86-64 `server.so`: SHA-256 `7371bc3cbbfb53796651ef80c775c88e5266c1b0d8c3bbe7537a05ceb382d4be`, GNU build ID `f7c8ebd81215316e3fd15fe93db5337043c5c0fc`.
 - Target Linux x86 `server.so`: SHA-256 `562bf00dd2b26befa29df5aac88e2366971fb19e88f586520037572943875f64`, GNU build ID `ff7e4cfaa49a08c6be8c0f79d85c7203eb38e788`.
 - HolyLib's complete `source/modules/gmoddatapack.cpp`, symbols, module manager, filesystem, string-table, thread-pool, and build integration.
-- A publicly committed, stolen-at-runtime incumbent bootstrap at `eoan-ermine/urfim_ww2`, commit `2bb21fc383301c125753ef95640078bdf158f7ef`, path `addons/urf_plib/lua/includes/init.lua`. It is used only as behavioral evidence. HolyLib's bootstrap was written independently.
+- A publicly committed recovered incumbent bootstrap at `eoan-ermine/urfim_ww2`, commit `2bb21fc383301c125753ef95640078bdf158f7ef`, path `addons/urf_plib/lua/includes/init.lua`. It is used only as behavioral evidence. HolyLib's bootstrap was written independently.
 - `danielga/sourcesdk-minimal` public interfaces for signon states, cvar flags, string tables, and GMod client messages.
 
 Offsets below are ELF virtual addresses in the two target `server.so` files, not stable signatures.
@@ -114,7 +114,7 @@ What would settle it: provide both stripped plugin architectures plus the exact 
 | HolyLib choice | Evidence |
 |---|---|
 | Normal compressed stub message, never suppression | Findings 1 and 4 |
-| Per-client READY gate and native last-resort fallback | Findings 1, 2, and 11 |
+| Per-client READY gate and native fallback | Findings 1, 2, and 11 |
 | Existing module/detours and worker infrastructure | Findings 3 and 12 |
 | Three salted path keys, versioned entry stream | Findings 5 and 6 |
 | No encryption or secret | Finding 5; clean-room/no-DRM requirement |
