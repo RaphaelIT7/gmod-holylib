@@ -57,6 +57,7 @@ namespace HolyLib::LuaPack
 		std::string resourcePath;
 		unsigned long long sourceRevision = 0;
 		double publishedAt = 0.0;
+		double retireAfter = 0.0;
 		std::shared_ptr<Bootil::AutoBuffer> compressedStub;
 		std::unordered_map<std::string, bool> files;
 		unsigned int pins = 0;
@@ -694,6 +695,17 @@ namespace HolyLib::LuaPack
 						delete task;
 						return;
 					}
+					auto existing = state.generations.find(generation.id);
+					if (existing != state.generations.end())
+						generation.pins = existing->second.pins;
+
+					if (!state.currentGeneration.empty() && state.currentGeneration != generation.id)
+					{
+						auto previous = state.generations.find(state.currentGeneration);
+						if (previous != state.generations.end())
+							previous->second.retireAfter = ServerTime() + GetConfig().generationRetentionSeconds;
+					}
+
 					state.generations[generation.id] = generation;
 					state.currentGeneration = generation.id;
 					PublishManifest();
@@ -727,6 +739,23 @@ namespace HolyLib::LuaPack
 				MarkFallback(client);
 			}
 		}
+
+		bool retiredGeneration = false;
+		for (auto generation = state.generations.begin(); generation != state.generations.end();)
+		{
+			if (generation->first != state.currentGeneration && generation->second.pins == 0 &&
+				generation->second.retireAfter > 0.0 && now >= generation->second.retireAfter)
+			{
+				Msg(PROJECT_NAME " - luapack: Retired unpinned generation %s (content-addressed object retained on disk)\n",
+					generation->first.c_str());
+				generation = state.generations.erase(generation);
+				retiredGeneration = true;
+				continue;
+			}
+			++generation;
+		}
+		if (retiredGeneration)
+			PublishManifest();
 		if (luapack_manifest.GetString()[0] == '\0' && !state.currentGeneration.empty())
 			PublishManifest();
 		if (state.activeBuild)
