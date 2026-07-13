@@ -478,8 +478,51 @@ namespace HolyLib::LuaPack
 		"holylib_gmoddatapack_luapack_ready_deadline", "30", FCVAR_ARCHIVE,
 		"Seconds a connecting client has to acknowledge its pinned generation before using vanilla delivery",
 		true, 1.0f, true, 300.0f);
+	// FCVAR_PROTECTED cannot be used here: Source transmits protected replicated cvars as a boolean,
+	// which would destroy the manifest snapshot. The client-created mirror adds the non-server flags.
+	static ConVar luapack_manifest(
+		"holylib_gmoddatapack_luapack_manifest", "", FCVAR_REPLICATED | FCVAR_DONTRECORD | FCVAR_UNLOGGED,
+		"Atomic retained-generation manifest used by the client bootstrap");
 
 	static Config config;
+
+	static std::string HexEncode(const std::string& value)
+	{
+		static const char digits[] = "0123456789abcdef";
+		std::string output;
+		output.reserve(value.length() * 2);
+		for (unsigned char byte : value)
+		{
+			output.push_back(digits[(byte >> 4) & 0x0f]);
+			output.push_back(digits[byte & 0x0f]);
+		}
+		return output;
+	}
+
+	static void PublishManifest()
+	{
+		if (!IsEnabled() || state.currentGeneration.empty())
+		{
+			luapack_manifest.SetValue("");
+			return;
+		}
+
+		std::ostringstream manifest;
+		manifest << "1|" << state.currentGeneration << '|' << HexEncode(GetConfig().packDirectory) << '|';
+		bool first = true;
+		for (const auto& pair : state.generations)
+		{
+			const Generation& generation = pair.second;
+			if (!first)
+				manifest << ';';
+			first = false;
+			manifest << generation.id << ',' << generation.md5 << ',' << HexEncode(generation.salt) << ','
+				<< HexEncode(generation.resourcePath);
+		}
+
+		// One SetValue call is the publication barrier: clients never observe a partially-updated generation.
+		luapack_manifest.SetValue(manifest.str().c_str());
+	}
 
 	static void RefreshConfig()
 	{
@@ -537,6 +580,7 @@ namespace HolyLib::LuaPack
 		state.downloadables = nullptr;
 		state.lockedDownloadUrl.clear();
 		state.downloadUrlLocked = false;
+		luapack_manifest.SetValue("");
 	}
 
 	void LevelShutdown()
@@ -573,6 +617,7 @@ namespace HolyLib::LuaPack
 					generation.publishedAt = Util::engineserver ? Util::engineserver->Time() : 0.0;
 					state.generations[generation.id] = generation;
 					state.currentGeneration = generation.id;
+					PublishManifest();
 					Msg(PROJECT_NAME " - luapack: Built immutable generation %s (%u compressed bytes, %u files)\n",
 						generation.id.c_str(), task->compressed.GetWritten(), static_cast<unsigned int>(task->files.size()));
 				}
@@ -584,10 +629,14 @@ namespace HolyLib::LuaPack
 		if (!IsEnabled())
 		{
 			state.downloadUrlLocked = false;
+			if (luapack_manifest.GetString()[0] != '\0')
+				luapack_manifest.SetValue("");
 			return;
 		}
 
 		CoordinateDownloadUrl(false);
+		if (luapack_manifest.GetString()[0] == '\0' && !state.currentGeneration.empty())
+			PublishManifest();
 		if (state.activeBuild)
 			return;
 
