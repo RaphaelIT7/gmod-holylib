@@ -83,6 +83,7 @@ namespace HolyLib::LuaPack
 		Bootil::AutoBuffer compressed;
 		std::string md5;
 		std::string error;
+		std::vector<std::string> changedPaths;
 		std::atomic<bool> complete{false};
 		bool success = false;
 	};
@@ -98,6 +99,7 @@ namespace HolyLib::LuaPack
 		std::map<std::string, Generation> generations;
 		std::string currentGeneration;
 		std::string salt;
+		std::unordered_map<std::string, bool> pendingChanges;
 		INetworkStringTableContainer* stringTables = nullptr;
 		INetworkStringTable* downloadables = nullptr;
 		std::string lockedDownloadUrl;
@@ -148,6 +150,18 @@ do
 			local salt, resource = saltHex and fromHex(saltHex), resourceHex and fromHex(resourceHex)
 			if generation and md5 and salt and resource then
 				manifests[generation] = {generation = generation, md5 = string.lower(md5), salt = salt, resource = resource}
+			end
+		end
+
+		local function manifestFromSnapshot(value, wantedGeneration)
+			local refreshVersion, _, _, refreshList = value:match("^(%d+)|([^|]+)|([^|]*)|(.*)$")
+			if refreshVersion ~= "1" then return nil end
+			for entry in string.gmatch(refreshList or "", "[^;]+") do
+				local generation, md5, saltHex, resourceHex = entry:match("^([^,]+),([^,]+),([^,]+),([^,]+)$")
+				if generation == wantedGeneration then
+					local salt, resource = fromHex(saltHex), fromHex(resourceHex)
+					if salt and resource then return {generation = generation, md5 = string.lower(md5), salt = salt, resource = resource} end
+				end
 			end
 		end
 
@@ -260,6 +274,56 @@ do
 			return originalRunString(packed or code, identifier, handleError)
 		end
 
+		net.Receive("gmsv_holylib_luapack_autorefresh", function()
+			local generation = net.ReadString()
+			local refreshSnapshot = net.ReadString()
+			local downloadUrl = net.ReadString()
+			local changedPaths = {}
+			for index = 1, net.ReadUInt(16) do changedPaths[index] = net.ReadString() end
+
+			local manifest = manifestFromSnapshot(refreshSnapshot, generation)
+			if not manifest or downloadUrl == "" then
+				warn("autorefresh generation " .. tostring(generation) .. " has no usable FastDL manifest; future files will use vanilla delivery")
+				return
+			end
+
+			local url = string.gsub(downloadUrl, "/+$", "") .. "/" .. string.gsub(manifest.resource, "^/+", "")
+			http.Fetch(url, function(compressed)
+				local contents = util.Decompress(compressed or "")
+				if not contents or string.lower(util.MD5(contents)) ~= manifest.md5 then
+					warn("autorefresh generation " .. generation .. " failed decompression or MD5 validation; future files will use vanilla delivery")
+					return
+				end
+
+				local pack, parseError = parsePack(contents, manifest)
+				if not pack then
+					warn("autorefresh generation " .. generation .. " is invalid (" .. tostring(parseError) .. "); future files will use vanilla delivery")
+					return
+				end
+
+				local previous = selectedGeneration and packs[selectedGeneration]
+				if previous then
+					for _, path in ipairs(changedPaths) do
+						local sourcePath, first, second = normalizedForms(path)
+						local salted = function(value) return string.lower(util.MD5(previous.salt .. value)) end
+						previous.vfs[salted(sourcePath)] = nil
+						previous.vfsLCL[salted(first)] = nil
+						previous.vfsLCL[salted(second)] = nil
+					end
+				end
+
+				packs[generation] = pack
+				selectedGeneration = generation
+				RunConsoleCommand("holylib_luapack_ready", generation, manifest.md5)
+				for _, path in ipairs(changedPaths) do
+					local _, localPath = normalizedForms(path)
+					if string.find(localPath, "^autorun/") then include(localPath) end
+				end
+			end, function(message)
+				warn("autorefresh FastDL fetch failed for generation " .. generation .. ": " .. tostring(message) .. "; future files will use vanilla delivery")
+			end)
+		end)
+
 		for generation, pack in pairs(packs) do
 			RunConsoleCommand("holylib_luapack_ready", generation, pack.manifest.md5)
 		end
@@ -269,6 +333,26 @@ do
 	if not ok then MsgC(Color(255, 80, 80), "[HolyLib luapack] bootstrap failed; vanilla Lua delivery remains active: " .. tostring(message) .. "\n") end
 end
 )HOLYLUAPACK";
+
+	static const char* serverBridge = R"HOLYLUAPACKSERVER(
+util.AddNetworkString("gmsv_holylib_luapack_autorefresh")
+hook.Add("HolyLib:LuaPackPublished", "HolyLib:LuaPackAutorefreshBridge", function(generation, manifest, recipients, changedPaths)
+	local targets = {}
+	for _, index in ipairs(recipients or {}) do
+		local target = Player(index)
+		if IsValid(target) then targets[#targets + 1] = target end
+	end
+	if #targets == 0 then return end
+
+	net.Start("gmsv_holylib_luapack_autorefresh")
+		net.WriteString(generation)
+		net.WriteString(manifest)
+		net.WriteString(GetConVar("sv_downloadurl"):GetString())
+		net.WriteUInt(math.min(#changedPaths, 65535), 16)
+		for index = 1, math.min(#changedPaths, 65535) do net.WriteString(changedPaths[index]) end
+	net.Send(targets)
+end)
+)HOLYLUAPACKSERVER";
 
 	static std::string NormalizePath(std::string path)
 	{
@@ -670,6 +754,9 @@ end
 
 				task->files.push_back(pair.second);
 			}
+			for (const auto& change : state.pendingChanges)
+				task->changedPaths.push_back(change.first);
+			state.pendingChanges.clear();
 			task->sourceRevision = state.revision;
 			state.buildRequested = false;
 		}
@@ -756,6 +843,55 @@ end
 		luapack_manifest.SetValue(manifest.str().c_str());
 	}
 
+	static void NotifyAutorefresh(const std::string& previousGeneration, const BuildTask* task)
+	{
+		if (!g_Lua || previousGeneration.empty() || previousGeneration == state.currentGeneration ||
+			!task || task->changedPaths.empty())
+			return;
+
+		std::vector<int> recipients;
+		for (int slot = 0; slot < ABSOLUTE_PLAYER_LIMIT; ++slot)
+		{
+			const ClientPin& client = state.clients[slot];
+			if (client.active && client.ready && !client.fallback && client.generation == previousGeneration)
+				recipients.push_back(slot);
+		}
+		if (recipients.empty() || !Lua::PushHook("HolyLib:LuaPackPublished"))
+			return;
+
+		auto generation = state.generations.find(state.currentGeneration);
+		if (generation == state.generations.end())
+			return;
+
+		for (int slot : recipients)
+		{
+			ClientPin& client = state.clients[slot];
+			ReleaseGenerationReference(client);
+			client.generation = state.currentGeneration;
+			client.deadline = ServerTime() + GetConfig().readyDeadlineSeconds;
+			client.ready = false;
+			client.fallback = false;
+			client.holdsPin = true;
+			++generation->second.pins;
+		}
+
+		g_Lua->PushString(state.currentGeneration.c_str());
+		g_Lua->PushString(luapack_manifest.GetString());
+		g_Lua->PreCreateTable(recipients.size(), 0);
+		for (size_t index = 0; index < recipients.size(); ++index)
+		{
+			g_Lua->PushNumber(recipients[index] + 1);
+			Util::RawSetI(g_Lua, -2, index + 1);
+		}
+		g_Lua->PreCreateTable(task->changedPaths.size(), 0);
+		for (size_t index = 0; index < task->changedPaths.size(); ++index)
+		{
+			g_Lua->PushString(task->changedPaths[index].c_str());
+			Util::RawSetI(g_Lua, -2, index + 1);
+		}
+		g_Lua->CallFunctionProtected(5, 0, true);
+	}
+
 	static void RefreshConfig()
 	{
 		config.enabled = luapack_enable.GetBool();
@@ -806,6 +942,7 @@ end
 
 		std::lock_guard<std::mutex> lock(state.registryMutex);
 		state.files.clear();
+		state.pendingChanges.clear();
 		state.buildRequested = false;
 		state.generations.clear();
 		state.currentGeneration.clear();
@@ -877,9 +1014,10 @@ end
 					if (existing != state.generations.end())
 						generation.pins = existing->second.pins;
 
-					if (!state.currentGeneration.empty() && state.currentGeneration != generation.id)
+					const std::string previousGeneration = state.currentGeneration;
+					if (!previousGeneration.empty() && previousGeneration != generation.id)
 					{
-						auto previous = state.generations.find(state.currentGeneration);
+						auto previous = state.generations.find(previousGeneration);
 						if (previous != state.generations.end())
 							previous->second.retireAfter = ServerTime() + GetConfig().generationRetentionSeconds;
 					}
@@ -887,6 +1025,7 @@ end
 					state.generations[generation.id] = generation;
 					state.currentGeneration = generation.id;
 					PublishManifest();
+					NotifyAutorefresh(previousGeneration, task);
 					Msg(PROJECT_NAME " - luapack: Built immutable generation %s (%u compressed bytes, %u files)\n",
 						generation.id.c_str(), task->compressed.GetWritten(), static_cast<unsigned int>(task->files.size()));
 				}
@@ -949,8 +1088,8 @@ end
 	}
 	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 	{
-		(void)pLua;
-		(void)bServerInit;
+		if (!bServerInit && pLua == g_Lua)
+			pLua->RunString("HolyLib luapack server bridge", "", serverBridge, true, true);
 	}
 
 	void CaptureFile(const GarrysMod::Lua::LuaFile* file)
@@ -973,6 +1112,7 @@ end
 		record.contents = file->contents;
 		record.revision = ++state.revision;
 		state.buildRequested = true;
+		state.pendingChanges[virtualPath] = true;
 	}
 
 	std::string PrepareVanillaFile(const std::string& virtualPath, const std::string& contents)
@@ -1064,6 +1204,8 @@ end
 			generation != state.generations.end() && generationId == client.generation && md5 == generation->second.md5)
 		{
 			client.ready = true;
+			if (client.active)
+				ReleaseGenerationReference(client);
 			Msg(PROJECT_NAME " - luapack: client slot %i acknowledged pinned generation %s\n", slot, generationId.c_str());
 		}
 
