@@ -147,6 +147,10 @@ Most non-physics HolyLib modules are independent of the replacement physics engi
 - The public API reference continues below; the newer upstream documentation is at
   [holylib.raphaelit7.com](https://holylib.raphaelit7.com/).
 
+The optional `gmoddatapack` bundled-Lua FastDL path is documented in
+[`docs/luapack.md`](docs/luapack.md). It defaults off and retains normal per-file Lua
+delivery as the per-client fallback.
+
 ## Reporting and contributing
 
 Use the repository issue forms for reproducible bugs and scoped feature requests.
