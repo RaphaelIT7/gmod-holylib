@@ -89,8 +89,8 @@ class CSearchPath
 	const char* GetPathIDString() const;
 
 	int32_t m_storeId;
-	CPathIDInfo *m_pPathIDInfo;
 	uint32_t _flag0;
+	CPathIDInfo *m_pPathIDInfo;
 	CPathGroupName_t m_GroupID;
 	CUtlSymbol m_Path;
 	const char *m_pDebugPath;
