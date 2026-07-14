@@ -2532,16 +2532,48 @@ Returns when the player last talked.
 #### bool voicechat.ApplyEffect(table effectData, VoiceStream/VoiceData stream, function callback = nil)
 callback = `function(VoiceStream/Voicedata data, bool success)`
 
-Example effectData:
+`effectData` is EITHER a single effect table OR an **array of effect tables** that are applied
+in order in a single decompress/recompress pass (so a "preset" = a chain of primitives without
+repeated codec round-trips, capped at 16 entries).
+
+Example single effect:
 ```lua
 {
-	ContinueOnFailure = true, -- If you process a VoiceStream and it fails to apply a effect for some reason it will still proceed and ignore the failure
+	ContinueOnFailure = true, -- If you process a VoiceStream and an effect fails it will still proceed and ignore the failure
 
-	-- Volume effect
 	EffectName = "Volume",
 	Volume = 1.0, -- The volume for the audio
 }
 ```
+
+Example effect chain (an "HL2 radio" preset):
+```lua
+{
+	{ EffectName = "Highpass",   freq = 400,  q = 0.7 },
+	{ EffectName = "Lowpass",    freq = 3400, q = 0.7 },
+	{ EffectName = "Distortion", drive = 2.5, mix = 0.5, makeup = 1.1 },
+}
+```
+
+Available effects:
+
+| EffectName | Parameters | Notes |
+| --- | --- | --- |
+| `Volume` / `Gain` | `Volume`/`volume` (number, default 1.0) | `Gain` is an alias of `Volume`. |
+| `Lowpass` | `freq` (Hz), `q` (default 0.707) | RBJ biquad low-pass. |
+| `Highpass` | `freq` (Hz), `q` (default 0.707) | RBJ biquad high-pass. |
+| `Bandpass` | `freq` (Hz), `q` (default 0.707) | RBJ biquad band-pass, constant 0 dB peak gain. |
+| `Distortion` | `drive` (>=1), `mix` (0..1), `makeup` | Soft-clip: `makeup * ((1-mix)*x + mix*tanh(drive*x))`. |
+| `RingMod` | `carrier` (Hz), `mix` (0..1) | `sample * sin(2*pi*carrier*n/fs)`. |
+
+All DSP runs at `fs = SAMPLERATE_GMOD_OPUS` on the mono int16 PCM, in place.
+
+The biquads and `RingMod` are **stateful** (IIR delay line / phase accumulator). For the live
+`HolyLib:PreProcessVoiceChat` path the filter state is kept **per player slot** and is reset on
+`HolyLib:OnPlayerStartTalking` (and on disconnect / level change), so a multi-frame talk burst is
+filtered as one continuous signal with no clicks at frame boundaries. When applied to a
+`VoiceStream` the state is carried across the stream's ticks instead. State is keyed by
+`VoiceData:GetPlayerSlot()` on the live path.
 
 Applies the given effectData to the given Data/Stream.<br>
 If a `callback` is specified it **WONT** return **anything** and the `callback` will be called, as it will execute everything **async**.<br>
@@ -2549,6 +2581,13 @@ If you want it to **not** run async, simply provide **no** callback function, it
 
 > [!NOTE]
 > It should be safe to modify/use the VoiceStream while it's being modified async **BUT** you should try to avoid doing that.
+
+> [!WARNING]
+> When you pass a **VoiceData** with a `callback` (async), the effect runs on a worker thread and
+> mutates that same object's buffers. Do **NOT** read or modify the VoiceData from Lua (`:GetData`,
+> `:SetData`, `:GetUncompressedData`, `:Empty`, …) until the callback fires, or you risk a data race
+> on its internal buffers. The live voice-FX path uses the **synchronous** form (no callback), which
+> runs on the main thread and is unaffected.
 
 #### voicechat.IsPlayerMuted(Player ply/number playerSlot)
 Returns `true` if the given player was muted using `voicechat.SetPlayerMuted`<br>
@@ -5149,8 +5188,9 @@ If enabled, `CGameClient` that are empty / have no active player are still consi
 > If you want to use a function on a Empty but not Invalid client please open a issue and request that the function supports that.<br>
 
 #### holylib_gameserver_maxplayers (default `128`)
-The amount of max players a server can have.<br>
-Going above `128` will result in queue slots, which are slots into which players can join but won't be able to spawn as.<br>
+The total number of real and parked `CGameClient` objects the server accepts (maximum `255`).<br>
+This does **not** change `gpGlobals->maxClients`, the game DLL's real-player limit, or the player-edict range. Values above the engine limit create queue-only client slots from `gpGlobals->maxClients` through `holylib_gameserver_maxplayers - 1` (for example, `128..254` when set to `255`).<br>
+Queue clients are network connections, not players. They cannot spawn or enter fixed `MAX_PLAYERS` game/voice tables until they are promoted into a free real slot; voice packets sent while parked are discarded.<br>
 
 ### sv_filter_nobanresponse (default `0`)
 If enabled, a blocked ip won't be informed that its even blocked.

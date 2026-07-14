@@ -10,6 +10,7 @@
 #include "sourcesdk/net_chan.h"
 #include <framesnapshot.h>
 #include <netadr_new.h> // Better than the normal sdk one as this one actually sets stuff properly.
+#include <shareddefs.h>
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -36,6 +37,16 @@ static CGameServerModule g_pGameServerModule;
 IModule* pGameServerModule = &g_pGameServerModule;
 
 static std::vector<CGameClient*> g_pQueueClients;
+extern CGlobalVars* gpGlobals;
+
+// Set by InitDetour when the compiled CBaseClient mirror disagrees with the
+// engine's real field layout (read from the SetSignonState prologue). Every
+// direct field access (m_nSignonState slot-scans, m_NetChannel guards, the
+// m_SteamID compare in ClientFindFromSteamID) would hit the wrong memory -
+// on GMod x64 build 260709 a stale mirror made occupied slots scan as free,
+// relocating queue clients onto live players (the 2026-07-10 crash class).
+// With this set we refuse to create/park queue clients entirely.
+static bool g_bClientLayoutMismatch = false;
 
 double net_time;
 class SVC_CustomMessage : public CNetMessage
@@ -394,6 +405,14 @@ LUA_FUNCTION_STATIC(CBaseClient_IsHearingClient)
 {
 	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
 	int nPlayerSlot = (int)LUA->CheckNumber(2);
+	const int nRealPlayerSlots = gpGlobals ? MIN(gpGlobals->maxClients, MAX_PLAYERS) : 0;
+
+	if (pClient->GetPlayerSlot() < 0 || pClient->GetPlayerSlot() >= nRealPlayerSlots ||
+		nPlayerSlot < 0 || nPlayerSlot >= nRealPlayerSlots)
+	{
+		LUA->PushBool(false);
+		return 1;
+	}
 
 	LUA->PushBool(pClient->IsHearingClient(nPlayerSlot));
 	return 1;
@@ -403,6 +422,14 @@ LUA_FUNCTION_STATIC(CBaseClient_IsProximityHearingClient)
 {
 	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
 	int nPlayerSlot = (int)LUA->CheckNumber(2);
+	const int nRealPlayerSlots = gpGlobals ? MIN(gpGlobals->maxClients, MAX_PLAYERS) : 0;
+
+	if (pClient->GetPlayerSlot() < 0 || pClient->GetPlayerSlot() >= nRealPlayerSlots ||
+		nPlayerSlot < 0 || nPlayerSlot >= nRealPlayerSlots)
+	{
+		LUA->PushBool(false);
+		return 1;
+	}
 
 	LUA->PushBool(pClient->IsProximityHearingClient(nPlayerSlot));
 	return 1;
@@ -514,7 +541,6 @@ LUA_FUNCTION_STATIC(CBaseClient_SendServerInfo)
 	return 0;
 }
 
-extern CGlobalVars* gpGlobals;
 LUA_FUNCTION_STATIC(CBaseClient_FillServerInfo)
 {
 	CBaseClient* pClient = Get_CBaseClient(LUA, 1, true);
@@ -1556,6 +1582,39 @@ static void hook_CNetChan_D2(CNetChan* pNetChan)
 	if (g_Lua)
 		Delete_CNetChan(g_Lua, pNetChan);
 
+	/*
+	 * Scrub every client-side reference to the dying channel by pointer identity.
+	 * Queue clients live outside m_Clients, so no engine bookkeeping ever nulls
+	 * their m_NetChannel - any alias left behind (relocation windows, teardown
+	 * paths racing Lua, reconnect churn) becomes a dangling pointer that
+	 * CGameServerModule::Think later dispatches through a stale vtable (the x64
+	 * queue-servicing UAF: wild jumps, rip=0 / rip inside libtier0). A client
+	 * mid-Disconnect still points at its channel while it destructs - nulling
+	 * early there is harmless; keeping a stale pointer anywhere else is fatal.
+	 * pNetChan is mid-teardown and must never be dereferenced here.
+	 */
+	for (CGameClient* pClient : g_pQueueClients)
+	{
+		if (pClient->m_NetChannel == (INetChannel*)pNetChan)
+		{
+			if (g_pGameServerModule.InDebug())
+				Msg(PROJECT_NAME " - gameserver: scrubbed dying netchannel off queue client (slot %i)\n", pClient->m_nClientSlot);
+
+			pClient->m_NetChannel = nullptr;
+		}
+	}
+
+	if (Util::server)
+	{
+		int count = Util::server->GetClientCount();
+		for (int i = 0; i < count; ++i)
+		{
+			CBaseClient* pClient = (CBaseClient*)Util::server->GetClient(i);
+			if (pClient->m_NetChannel == (INetChannel*)pNetChan)
+				pClient->m_NetChannel = nullptr;
+		}
+	}
+
 	detour_CNetChan_D2.GetTrampoline<Symbols::CNetChan_D2>()(pNetChan);
 }
 
@@ -2425,6 +2484,9 @@ LUA_FUNCTION_STATIC(gameserver_CreateFakeQueueClient)
 	if (!Util::server || !Util::server->IsActive())
 		return 0;
 
+	if (g_bClientLayoutMismatch)
+		return 0; // see g_bClientLayoutMismatch - direct field writes below would corrupt engine state
+
 	const char* pName = LUA->CheckString(1);
 	CBaseServer* pServer = (CBaseServer*)Util::server;
 
@@ -2562,7 +2624,6 @@ LUA_FUNCTION_STATIC(gameserver_GetLastRandomNonce)
 	return 1;
 }
 
-extern CGlobalVars* gpGlobals;
 static ConVar* sv_stressbots;
 void CGameServerModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 {
@@ -2726,13 +2787,56 @@ void CGameServerModule::LuaShutdown(GarrysMod::Lua::ILuaInterface* pLua)
 	DeleteAll_CNetChan(pLua);
 }
 
-#define MAX_PLAYERS 128
-static ConVar gameserver_maxplayers("holylib_gameserver_maxplayers", "128", 0, "Experimental - max client limit (above 255 cannot be networked, though may work if they remain purely as a CGameClient)", true, 1, true, 8192);
+// This is a total CGameClient-object limit, not a real-player limit. The engine's
+// gpGlobals->maxClients / m_nMaxclients and edict range stay unchanged; objects
+// above that range are parked queue clients. Client slots are networked in a
+// byte and ABSOLUTE_PLAYER_LIMIT is a count, so the highest valid slot is 254.
+static ConVar gameserver_maxplayers("holylib_gameserver_maxplayers", "128", 0,
+	"Experimental - total real + parked client limit. Real players remain capped by the engine; parked client slots are capped at 254.",
+	true, 1, true, ABSOLUTE_PLAYER_LIMIT);
+
+static inline int GetConfiguredClientLimit(int nRealMaxClients)
+{
+	return clamp(gameserver_maxplayers.GetInt(), nRealMaxClients, ABSOLUTE_PLAYER_LIMIT);
+}
+
+static int FindFreeQueueClientSlot(int nFirstQueueSlot, int nClientLimit)
+{
+	for (int nSlot = nFirstQueueSlot; nSlot < nClientLimit; ++nSlot)
+	{
+		bool bUsed = false;
+		for (CGameClient* pClient : g_pQueueClients)
+		{
+			if (pClient && pClient->m_nClientSlot == nSlot)
+			{
+				bUsed = true;
+				break;
+			}
+		}
+
+		if (!bUsed)
+			return nSlot;
+	}
+
+	return -1;
+}
+
 static CBaseClient* GetFreeQueueClient(CBaseServer* _this, netadr_t& adr)
 {
+	if (g_bClientLayoutMismatch)
+		return nullptr; // parking disabled: see comment on g_bClientLayoutMismatch
+
+	const int nFirstQueueSlot = gpGlobals->maxClients;
+	const int nClientLimit = GetConfiguredClientLimit(nFirstQueueSlot);
 	CBaseClient* freeclient = nullptr;
 	for (CBaseClient* pClient : g_pQueueClients)
 	{
+		// Lowering the ConVar must not recycle an already-created object whose slot
+		// is now outside the configured/networkable range. Connected clients in that
+		// range are allowed to finish disconnecting but will not be reused.
+		if (!pClient || pClient->m_nClientSlot < nFirstQueueSlot || pClient->m_nClientSlot >= nClientLimit)
+			continue;
+
 		if (pClient->IsFakeClient())
 			continue;
 
@@ -2754,11 +2858,17 @@ static CBaseClient* GetFreeQueueClient(CBaseServer* _this, netadr_t& adr)
 
 	if (!freeclient)
 	{
-		// IMPORTANT: Queue slots MUST be above maxClients!
-		if ((gpGlobals->maxClients + g_pQueueClients.size()) > gameserver_maxplayers.GetInt())
+		// Queue slots MUST be above maxClients. Do not derive the slot from vector
+		// size: promotion/removal leaves holes and would otherwise duplicate a live
+		// queue slot. The configured value is a count, hence slot == limit is invalid.
+		const int nQueueSlot = FindFreeQueueClientSlot(nFirstQueueSlot, nClientLimit);
+		if (nQueueSlot < 0)
 			return nullptr;
 
-		freeclient = _this->CreateNewClient(gpGlobals->maxClients + g_pQueueClients.size());
+		freeclient = _this->CreateNewClient(nQueueSlot);
+		if (!freeclient)
+			return nullptr;
+
 		g_pQueueClients.push_back((CGameClient*)freeclient);
 	}
 	// We do not register it to m_Clients of the CBaseServer
@@ -2830,12 +2940,17 @@ static void hook_CGameServer_RemoveClientFromGame(CBaseServer* _this, CBaseClien
 	detour_CGameServer_RemoveClientFromGame.GetTrampoline<Symbols::CGameServer_RemoveClientFromGame>()(_this, pClient);
 }
 
+static ConVar gameserver_steamlookup_queueclients("holylib_gameserver_steamlookup_queueclients", "1", 0, "If enabled, CSteam3Server::ClientFindFromSteamID also resolves queue clients so Steam auth callbacks reach them. Disable to keep engine Steam3 code (dup-session handling, GC deny/kick) away from clients in slots >= maxclients if it misbehaves on them.");
+
 static Detouring::Hook detour_CSteam3Server_ClientFindFromSteamID;
 static CBaseClient* hook_CSteam3Server_ClientFindFromSteamID(void* _this, CSteamID* steamID)
 {
 	CBaseClient* pFoundClient = detour_CSteam3Server_ClientFindFromSteamID.GetTrampoline<Symbols::CSteam3Server_ClientFindFromSteamID>()(_this, steamID);
 	if (pFoundClient)
 		return pFoundClient;
+
+	if (!gameserver_steamlookup_queueclients.GetBool())
+		return nullptr;
 
 	for (CBaseClient* pClient : g_pQueueClients)
 	{
@@ -2868,19 +2983,33 @@ static void hook_CVEngineServer_GMOD_SendToClient(void* _this, int client, void 
 		return;
 	}
 
-	CBaseServer* pServer = (CBaseServer*)Util::server;
-	client -= pServer->m_nMaxclients;
-	if (client >= g_pQueueClients.size())
+	/*
+	 * Queue slots are handed out as maxClients + insertion index, but vector order
+	 * stops matching slot order after any erase (AddToServerList /
+	 * RemoveFromAllLists). Resolve by slot instead of indexing.
+	 */
+	CBaseClient* pClient = nullptr;
+	for (CGameClient* pQueueClient : g_pQueueClients)
+	{
+		if (pQueueClient->m_nClientSlot == client)
+		{
+			pClient = (CBaseClient*)pQueueClient;
+			break;
+		}
+	}
+
+	if (!pClient)
 		return; // Invalid?
 
-	CBaseClient* pClient = g_pQueueClients[client];
 	if (pClient->IsFakeClient())
 	{
 		DevMsg(PROJECT_NAME " - gameserver: Not sending to fake client '%s'.\n", pClient->GetClientName());
 		return;
 	}
 
-	if (!pClient->IsConnected())
+	// IsConnected() does NOT imply a live channel (same bug class as the old
+	// GetFreeQueueClient null-netchannel crash) - check both before SendNetMsg.
+	if (!pClient->IsConnected() || !pClient->m_NetChannel)
 	{
 		Msg(PROJECT_NAME " - gameserver: Not sending to null client.\n");
 		return;
@@ -2899,7 +3028,13 @@ static void hook_CVEngineServer_GMOD_SendToClient(void* _this, int client, void 
 
 static void SendPendingServerInfos(CBaseServer* pServer)
 {
-	for (CBaseClient* pClient : g_pQueueClients)
+	if (g_pQueueClients.empty())
+		return;
+
+	// SendServerInfo can fail internally and Disconnect the client; Lua hooks
+	// running off that may mutate g_pQueueClients - iterate a snapshot.
+	std::vector<CGameClient*> pQueueSnapshot(g_pQueueClients);
+	for (CBaseClient* pClient : pQueueSnapshot)
 	{
 		if (pClient->m_bSendServerInfo)
 		{
@@ -2923,9 +3058,20 @@ static void SendPendingServerInfos(CBaseServer* pServer)
 
 static void SendClientMessages()
 {
-	for (CBaseClient* pClient : g_pQueueClients)
+	if (g_pQueueClients.empty())
+		return;
+
+	// ShouldSendMessages() Disconnects the client internally when its reliable
+	// channel overflowed - Lua hooks running off that may mutate g_pQueueClients,
+	// so iterate a snapshot. (hook_CNetChan_D2 scrubs dying channels off every
+	// entry, so the m_NetChannel re-checks here stay trustworthy.)
+	std::vector<CGameClient*> pQueueSnapshot(g_pQueueClients);
+	for (CBaseClient* pClient : pQueueSnapshot)
 	{
-		if (!pClient->ShouldSendMessages() || !pClient->m_NetChannel)
+		// Queue clients are outside the engine's client list, so establish channel
+		// liveness before entering even our guarded ShouldSendMessages path, then
+		// re-check after it because overflow handling can Disconnect synchronously.
+		if (!pClient->m_NetChannel || !pClient->ShouldSendMessages() || !pClient->m_NetChannel)
 			continue;
 
 		pClient->m_NetChannel->Transmit();
@@ -2952,7 +3098,7 @@ static void hook_CSteam3Server_SendUpdatedServerDetails(void* _this)
 {
 	CBaseServer* pServer = (CBaseServer*)Util::server;
 	int nOrigMaxClients = pServer->m_nMaxclients;
-	pServer->m_nMaxclients = clamp(gameserver_maxplayers.GetInt(), nOrigMaxClients, ABSOLUTE_PLAYER_LIMIT);
+	pServer->m_nMaxclients = GetConfiguredClientLimit(nOrigMaxClients);
 
 	detour_CSteam3Server_SendUpdatedServerDetails.GetTrampoline<Symbols::CSteam3Server_SendUpdatedServerDetails>()(_this);
 
@@ -3003,9 +3149,56 @@ static bool hook_CBaseServer_ProcessConnectionlessPacket(IServer* server, netpac
 #if MODULE_EXISTS_GMODDATAPACK
 extern bool GMODDataPack_SetSignOnState(CBaseClient* cl, int state);
 #endif
+/*
+ * NCG: validity guard for the client-lifecycle detours below.
+ *
+ * During a mass-disconnect storm (20-30+ clients dropped in the same frame —
+ * e.g. gluapack kicking every mid-download client at repack start, or a queue
+ * eviction burst), these detours can be handed a CBaseClient pointer that no
+ * live container owns anymore. Any dereference of such a pointer — the virtual
+ * GetServer() call, name/SteamID reads for the Lua push — is a use-after-free;
+ * through a freed vtable it produces the recurring `segfault at 0 ip 0` /
+ * libc GPF crash pair seen during hotfix autorefresh storms.
+ *
+ * This helper establishes liveness WITHOUT dereferencing the candidate: it is
+ * a pure pointer-IDENTITY scan over the two containers that own every client
+ * this module works with (the main server's client list + our queue list).
+ * Engine slot clients persist in m_Clients across disconnects, so normal
+ * clients always pass — behavior is unchanged for them. A freed-then-reused
+ * allocation also passes, but then the pointer refers to a valid live object
+ * again and dereferencing it is memory-safe (worst case a hook sees the
+ * successor client — a bookkeeping error, not a crash).
+ */
+static bool IsKnownClient(CBaseClient* pClient)
+{
+	if (!pClient)
+		return false;
+
+	for (CBaseClient* pQueueClient : g_pQueueClients)
+		if (pQueueClient == pClient)
+			return true;
+
+	if (!Util::server)
+		return false;
+
+	int count = Util::server->GetClientCount();
+	for (int i = 0; i < count; ++i)
+		if ((CBaseClient*)Util::server->GetClient(i) == pClient)
+			return true;
+
+	return false;
+}
+
 static Detouring::Hook detour_CBaseClient_SetSignonState;
 static bool hook_CBaseClient_SetSignonState(CBaseClient* cl, int state, int spawncount)
 {
+	// NCG: UAF guard (see IsKnownClient above). An unknown pointer is handed
+	// straight to the engine untouched — HolyLib (Lua hook + datapack) stays
+	// off it entirely. Note this also skips clients owned by other server
+	// instances (HLTV); we don't run SourceTV.
+	if (!IsKnownClient(cl))
+		return detour_CBaseClient_SetSignonState.GetTrampoline<Symbols::CBaseClient_SetSignonState>()(cl, state, spawncount);
+
 	if (Lua::PushHook("HolyLib:OnSetSignonState"))
 	{
 		Push_CBaseClient(g_Lua, cl);
@@ -3050,6 +3243,22 @@ static bool hook_GModDataPack_IsSingleplayer(void* dataPack)
 static Detouring::Hook detour_CBaseClient_ShouldSendMessages;
 static bool hook_CBaseClient_ShouldSendMessages(CGameClient* cl) // NOTE: We use a CGameClient so that in a debug break I can verify the class here xd
 {
+#if PLATFORM_64BITS
+	/*
+	 * Before the queue-UAF hardening, x64 real clients ran the engine's own
+	 * implementation. Keep that engine-parity path for slots backed by real
+	 * players: it avoids making their snapshot cadence depend on our partial
+	 * CBaseClient mirror. The detour remains installed and the guarded HolyLib
+	 * implementation below remains mandatory for parked clients, which the
+	 * engine does not service and whose netchannels are protected by the D2
+	 * destructor sweep. This preserves the queue-UAF fix without replacing a
+	 * healthy engine hot path for all real x64 clients.
+	 */
+	const int nPlayerSlot = cl->GetPlayerSlot();
+	if (gpGlobals && nPlayerSlot >= 0 && nPlayerSlot < gpGlobals->maxClients)
+		return detour_CBaseClient_ShouldSendMessages.GetTrampoline<Symbols::CBaseClient_ShouldSendMessages>()(cl);
+#endif
+
 	if ( !cl->IsConnected() )
 		return false;
 
@@ -3068,6 +3277,13 @@ static bool hook_CBaseClient_ShouldSendMessages(CGameClient* cl) // NOTE: We use
 				bKick = !g_Lua->GetBool(-1);
 				g_Lua->Pop(1);
 			}
+
+			// The hook can Disconnect clients - the pre-hook local would then
+			// dangle (hook_CNetChan_D2 nulls m_NetChannel on destruction, so a
+			// re-fetch is authoritative).
+			netChannel = cl->GetNetChannel();
+			if (!netChannel)
+				return false;
 		}
 
 		if (bKick)
@@ -3146,6 +3362,14 @@ static void hook_CBaseServer_CheckTimeouts(CBaseServer* srv)
 				{
 					float timeoutIncrease = (float)g_Lua->CheckNumberOpt(-1, 0);
 					g_Lua->Pop(1);
+
+					// The hook can Disconnect clients (this one included) - the local
+					// would then dangle. hook_CNetChan_D2 nulls m_NetChannel on channel
+					// destruction, so a re-fetch is authoritative.
+					netchan = cl->GetNetChannel();
+					if (!netchan)
+						continue;
+
 					if (timeoutIncrease > 0)
 					{
 						netchan->SetTimeout(netchan->GetTimeoutSeconds() + timeoutIncrease);
@@ -3177,9 +3401,89 @@ static void hook_CBaseServer_CheckTimeouts(CBaseServer* srv)
 					if (bCancel)
 						continue;
 				}
+
+				// The hook can Disconnect clients - don't double-drop.
+				if (!cl->IsConnected())
+					continue;
 			}
 
 			cl->Disconnect( "Client %d overflowed reliable channel.", i );
+		}
+	}
+
+	/*
+	 * Queue clients live in g_pQueueClients, not m_Clients - the loops above never
+	 * reach them. Without this, a parked client whose socket died (crashed client,
+	 * alt-F4 on the queue screen) is NEVER timed out: Think keeps pumping its
+	 * reliable stream until it overflows, and the overflow-disconnect then fires
+	 * from inside the send loop, at the worst possible moment. Reap them here with
+	 * the same semantics; HolyLib:OnClientTimeout fires like above so Lua can
+	 * extend queue waits (which never worked for parked clients before).
+	 */
+	std::vector<CGameClient*> pQueueSnapshot(g_pQueueClients); // Disconnect -> Lua may mutate the vector
+	for (CBaseClient* cl : pQueueSnapshot)
+	{
+		if ( cl->IsFakeClient() || !cl->IsConnected() )
+			continue;
+
+		INetChannel *netchan = cl->GetNetChannel();
+		if ( !netchan )
+			continue;
+
+		if ( netchan->IsTimedOut() )
+		{
+			if (Lua::PushHook("HolyLib:OnClientTimeout"))
+			{
+				Push_CBaseClient(g_Lua, cl);
+				if (g_Lua->CallFunctionProtected(2, 1, true))
+				{
+					float timeoutIncrease = (float)g_Lua->CheckNumberOpt(-1, 0);
+					g_Lua->Pop(1);
+
+					/*
+					 * The hook runs arbitrary Lua that can Disconnect this (or any)
+					 * client - the pre-hook local then points at a freed channel and
+					 * SetTimeout below dispatches through a stale vtable (this exact
+					 * loop crashed live: crash_2026-07-10_21:07:07). This hook had
+					 * never fired for parked clients before, so the queue-side Lua
+					 * handlers were unexercised territory. hook_CNetChan_D2 nulls
+					 * m_NetChannel on channel destruction, so a re-fetch is
+					 * authoritative.
+					 */
+					netchan = cl->GetNetChannel();
+					if (!netchan)
+						continue;
+
+					if (timeoutIncrease > 0)
+					{
+						netchan->SetTimeout(netchan->GetTimeoutSeconds() + timeoutIncrease);
+						continue;
+					}
+				}
+			}
+			cl->Disconnect( CLIENTNAME_TIMED_OUT, cl->GetClientName() );
+			continue;
+		}
+
+		if ( netchan->IsOverflowed() )
+		{
+			if (Lua::PushHook("HolyLib:OnChannelOverflow"))
+			{
+				Push_CBaseClient(g_Lua, cl);
+				if (g_Lua->CallFunctionProtected(2, 1, true))
+				{
+					bool bCancel = g_Lua->GetBool(-1);
+					g_Lua->Pop(1);
+					if (bCancel)
+						continue;
+				}
+
+				// The hook can Disconnect clients - don't double-drop.
+				if (!cl->IsConnected())
+					continue;
+			}
+
+			cl->Disconnect( "Client %d overflowed reliable channel.", ((CBaseClient*)cl)->m_nClientSlot );
 		}
 	}
 }
@@ -3262,24 +3566,33 @@ static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* tar
 	 * Update CNetChan and CNetMessage's properly to not crash.
 	 */
 
+	// NCG: guard the netchannel deref. origin->m_NetChannel is handed to target
+	// via Connect() above; if the origin was a queue client in a transient
+	// half-connected state its channel can be NULL, and dereferencing
+	// chan->m_MessageHandler segfaults. The SpawnPlayer detour below refuses a
+	// null-channel client before reaching here, but MoveCGameClientIntoCGameClient
+	// is also reachable via the MoveIntoClient Lua binding, so guard defensively.
 	CNetChan* chan = (CNetChan*)target->m_NetChannel;
-	chan->m_MessageHandler = (INetChannelHandler*)target;
-
-	FOR_EACH_VEC(chan->m_NetMessages, i)
+	if (chan)
 	{
-		CExtendedNetMessage* msg = (CExtendedNetMessage*)chan->m_NetMessages[i];
-		if (!msg)
-			continue;
+		chan->m_MessageHandler = (INetChannelHandler*)target;
 
-		msg->m_pMessageHandler = target;
-
-		if (msg->GetType() == clc_CmdKeyValues)
+		FOR_EACH_VEC(chan->m_NetMessages, i)
 		{
-			Base_CmdKeyValues* keyVal = (Base_CmdKeyValues*)msg;
-			if (keyVal->m_pKeyValues)
+			CExtendedNetMessage* msg = (CExtendedNetMessage*)chan->m_NetMessages[i];
+			if (!msg)
+				continue;
+
+			msg->m_pMessageHandler = target;
+
+			if (msg->GetType() == clc_CmdKeyValues)
 			{
-				keyVal->m_pKeyValues = nullptr; // Will leak memory but we can't safely delete it currently.
-				// ToDo: Fix this small memory leak.
+				Base_CmdKeyValues* keyVal = (Base_CmdKeyValues*)msg;
+				if (keyVal->m_pKeyValues)
+				{
+					keyVal->m_pKeyValues = nullptr; // Will leak memory but we can't safely delete it currently.
+					// ToDo: Fix this small memory leak.
+				}
 			}
 		}
 	}
@@ -3298,6 +3611,19 @@ static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* tar
 		g_Lua->PushNumber(origin->m_nClientSlot);
 		g_Lua->PushNumber(target->m_nClientSlot);
 		g_Lua->CallFunctionProtected(3, 0, true);
+	}
+
+	/*
+	 * target->Connect() above fires the player_connect gameevents - Lua runs
+	 * synchronously in that window (and again in the hook right here) and can tear
+	 * either client down (dup-SteamID kicks & co). If the handed-over channel died,
+	 * hook_CNetChan_D2 has scrubbed our pointers - don't touch the dead client
+	 * any further.
+	 */
+	if (!target->m_NetChannel)
+	{
+		Warning(PROJECT_NAME " - gameserver: relocation target lost its netchannel mid-move! Skipping post-move client update.\n");
+		return;
 	}
 
 	/*
@@ -3390,6 +3716,17 @@ static bool hook_CGameClient_SpawnPlayer(CGameClient* client)
 		return false;
 	}
 
+	// NCG: a queue client can lose its netchannel (mid-disconnect / already nuked)
+	// while still passing IsConnected(). MoveCGameClientIntoCGameClient hands
+	// origin->m_NetChannel to the target slot and then dereferences it unguarded
+	// (target->m_NetChannel->m_MessageHandler = ...) -> segfault. Refuse the spawn;
+	// the ply_queue PendingMoves/RecoverFailedSpawn path re-queues it cleanly.
+	if (!client->m_NetChannel)
+	{
+		Warning(PROJECT_NAME ": Refusing spawn - client has NULL netchannel! (slot %i, uid %i)\n", client->m_nClientSlot, client->GetUserID());
+		return false;
+	}
+
 	MoveCGameClientIntoCGameClient(client, pClient);
 	return false;
 	//detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(pClient);
@@ -3420,6 +3757,14 @@ static void hook_CGameClient_SpawnPlayer(CGameClient* client)
 		return;
 	}
 
+	// NCG: see 64-bit variant above — refuse to relocate a client with no
+	// netchannel, which MoveCGameClientIntoCGameClient would dereference unguarded.
+	if (!client->m_NetChannel)
+	{
+		Warning(PROJECT_NAME ": Refusing spawn - client has NULL netchannel! (slot %i, uid %i)\n", client->m_nClientSlot, client->GetUserID());
+		return;
+	}
+
 	MoveCGameClientIntoCGameClient(client, pClient);
 	//detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(pClient);
 }
@@ -3428,6 +3773,14 @@ static void hook_CGameClient_SpawnPlayer(CGameClient* client)
 // Called by Util from CSteam3Server::NotifyClientDisconnect
 void CGameServerModule::OnClientDisconnect(CBaseClient* pClient)
 {
+	// NCG: UAF guard (see IsKnownClient) — pClient->GetServer() below is a
+	// virtual call, i.e. a jump through the vtable of possibly-freed memory
+	// (`segfault at 0 ip 0`). Establish pointer liveness before ANY deref.
+	// Membership normally implies GetServer()==Util::server, but keep the
+	// original check for its fake/HLTV edge semantics.
+	if (!IsKnownClient(pClient))
+		return;
+
 	if (pClient->GetServer() != Util::server) // Not our main server
 		return;
 
@@ -3603,6 +3956,44 @@ void CGameServerModule::InitDetour(bool bPreServer)
 
 	DETOUR_PREPARE_THISCALL();
 	SourceSDK::FactoryLoader engine_loader("engine");
+
+#if PLATFORM_64BITS
+	/*
+	 * Verify our compiled CBaseClient mirror against the engine's REAL layout
+	 * before any queue-client machinery runs. CBaseClient::SetSignonState's very
+	 * first instructions on the x86-64 branch are `push rbp; mov eax, [rdi+disp32]`
+	 * (55 8B 87 xx xx xx xx) where disp32 IS the engine's m_nSignonState offset -
+	 * the engine tells us the truth directly. A stale mirror (e.g. the removed
+	 * avatar-data pad, +0x60 shift on build 260709) makes occupied slots scan as
+	 * free and corrupts everything downstream, so on mismatch we disable queue
+	 * parking instead of running with wrong offsets. Must run BEFORE the
+	 * SetSignonState detour below patches this prologue.
+	 */
+	{
+		void* pSetSignonState = Detour::GetFunction(engine_loader.GetModule(), Symbols::CBaseClient_SetSignonStateSym);
+		if (pSetSignonState)
+		{
+			const unsigned char* pBytes = (const unsigned char*)pSetSignonState;
+			if (pBytes[0] == 0x55 && pBytes[1] == 0x8B && pBytes[2] == 0x87)
+			{
+				int32_t nEngineOffset = 0;
+				memcpy(&nEngineOffset, pBytes + 3, sizeof(nEngineOffset));
+				int32_t nMirrorOffset = (int32_t)(size_t)&(((CBaseClient*)0)->m_nSignonState);
+				if (nEngineOffset != nMirrorOffset)
+				{
+					g_bClientLayoutMismatch = true;
+					Warning(PROJECT_NAME " - gameserver: CBaseClient layout MISMATCH! engine m_nSignonState=0x%X, compiled mirror=0x%X\n", nEngineOffset, nMirrorOffset);
+					Warning(PROJECT_NAME " - gameserver: queue-client parking DISABLED - update sourcesdk/baseclient.h for this engine build!\n");
+				} else {
+					Msg(PROJECT_NAME " - gameserver: verified CBaseClient layout (m_nSignonState @ 0x%X)\n", nEngineOffset);
+				}
+			} else {
+				Warning(PROJECT_NAME " - gameserver: could not verify CBaseClient layout (unexpected SetSignonState prologue) - re-verify field offsets against this engine build!\n");
+			}
+		}
+	}
+#endif
+
 	Detour::Create(
 		&detour_CBaseServer_GetFreeClient, "CBaseServer::GetFreeClient",
 		engine_loader.GetModule(), Symbols::CBaseServer_GetFreeClientSym,
@@ -3657,13 +4048,16 @@ void CGameServerModule::InitDetour(bool bPreServer)
 		(void*)DETOUR_THISCALL(hook_CBaseClient_SetSignonState, SetSignonState), m_pID
 	);
 
-#if ARCHITECTURE_IS_X86
+	// Previously x86-gated; the x64 signature resolves (verified unique on GMod
+	// x86-64 build 260709, function base 0x61f30 = the exact frame in the
+	// 2026-07-10 19:39 queue-servicing crash). Without this detour, x64 ran the
+	// RAW engine ShouldSendMessages: no OnChannelOverflow hook, and the raw
+	// m_NetChannel field access the hook was written to avoid.
 	Detour::Create(
 		&detour_CBaseClient_ShouldSendMessages, "CBaseClient::ShouldSendMessages",
 		engine_loader.GetModule(), Symbols::CBaseClient_ShouldSendMessagesSym,
 		(void*)DETOUR_THISCALL(hook_CBaseClient_ShouldSendMessages, ShouldSendMessages), m_pID
 	);
-#endif
 
 	Detour::Create(
 		&detour_CBaseServer_CheckTimeouts, "CBaseServer::CheckTimeouts",
