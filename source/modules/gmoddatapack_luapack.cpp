@@ -131,16 +131,26 @@ namespace HolyLib::LuaPack
 	static const char* clientBootstrap = R"HOLYLUAPACK(
 -- HolyLib luapack bootstrap. The server does not send pack bodies through the netchannel.
 -- This chunk is prepended to lua/includes/init.lua, so it runs before ANY pure-Lua base
--- library exists (util.lua, extensions/net.lua, modules/*.lua are included later by this
+-- library exists (util.lua, extensions/*.lua, modules/*.lua are included later by this
 -- very file). Only engine-registered C functions may be used here: Msg, CreateConVar,
--- GetConVar_Internal, file.*, util.MD5/Decompress, CompileString, RunConsoleCommand,
--- string.*, debug.*. In particular GetConVar, Color and net.Receive do NOT exist yet.
+-- GetConVar_Internal, file.Open, util.MD5/Decompress, CompileString, RunConsoleCommand,
+-- string.*, debug.*. In particular GetConVar, Color, file.Read (an extensions/file.lua
+-- wrapper) and net.Receive do NOT exist yet.
 do
 	local getConVar = GetConVar_Internal or GetConVar
 	local installReceiver -- assigned by bootstrap(); installed later once net.Receive exists
 
 	local function warn(message)
 		Msg("[HolyLib luapack] " .. message .. "\n")
+	end
+
+	-- file.Read is defined later by extensions/file.lua; only file.Open exists here.
+	local function readFile(path)
+		local handle = file.Open(path, "rb", "GAME")
+		if not handle then return nil end
+		local contents = handle:Read(handle:Size())
+		handle:Close()
+		return contents or ""
 	end
 
 	local function bootstrap()
@@ -213,7 +223,7 @@ do
 		local packs = {}
 		local downloadFilter = getConVar("cl_downloadfilter")
 		for generation, manifest in pairs(manifests) do
-			local compressed = file.Read("download/" .. manifest.resource, "GAME")
+			local compressed = readFile("download/" .. manifest.resource)
 			if not compressed then
 				if downloadFilter and downloadFilter:GetString() == "none" then
 					warn("pack " .. generation .. " is missing because downloads are disabled; set cl_downloadfilter to mapsonly or all. This join will use vanilla Lua delivery")
