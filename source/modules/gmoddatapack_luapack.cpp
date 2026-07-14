@@ -172,32 +172,36 @@ do
 			return (value:gsub(".", function(byte) return string.format("%02x", string.byte(byte)) end))
 		end
 
-		local version, currentGeneration, packDirectoryHex, generationList = snapshot:match("^(%d+)|([^|]+)|([^|]*)|(.*)$")
-		local packDirectory = packDirectoryHex and fromHex(packDirectoryHex)
-		if version ~= "1" or not currentGeneration or not packDirectory then
+		-- The client engine truncates replicated convar values to 255 characters, so the
+		-- snapshot only carries what cannot be derived: a generation id doubles as the
+		-- content MD5 and the FastDL object basename, and every generation published in
+		-- one server lifecycle shares the salt.
+		local function parseSnapshot(value)
+			local version, currentGeneration, packDirectoryHex, saltHex, generationList =
+				value:match("^(%d+)|([^|]+)|([^|]*)|([^|]*)|(.*)$")
+			local packDirectory = packDirectoryHex and fromHex(packDirectoryHex)
+			local salt = saltHex and fromHex(saltHex)
+			if version ~= "1" or not currentGeneration or not packDirectory or not salt then return nil end
+
+			local manifests = {}
+			for entry in string.gmatch(generationList or "", "[^;]+") do
+				if #entry == 32 and not entry:find("[^0-9a-fA-F]") then
+					manifests[entry] = {generation = entry, md5 = string.lower(entry), salt = salt,
+						resource = "data/" .. packDirectory .. "/" .. entry .. ".bsp"}
+				end
+			end
+			return currentGeneration, manifests
+		end
+
+		local currentGeneration, manifests = parseSnapshot(snapshot)
+		if not currentGeneration then
 			warn("ignored an invalid manifest snapshot; vanilla Lua delivery remains active")
 			return
 		end
 
-		local manifests = {}
-		for entry in string.gmatch(generationList or "", "[^;]+") do
-			local generation, md5, saltHex, resourceHex = entry:match("^([^,]+),([^,]+),([^,]+),([^,]+)$")
-			local salt, resource = saltHex and fromHex(saltHex), resourceHex and fromHex(resourceHex)
-			if generation and md5 and salt and resource then
-				manifests[generation] = {generation = generation, md5 = string.lower(md5), salt = salt, resource = resource}
-			end
-		end
-
 		local function manifestFromSnapshot(value, wantedGeneration)
-			local refreshVersion, _, _, refreshList = value:match("^(%d+)|([^|]+)|([^|]*)|(.*)$")
-			if refreshVersion ~= "1" then return nil end
-			for entry in string.gmatch(refreshList or "", "[^;]+") do
-				local generation, md5, saltHex, resourceHex = entry:match("^([^,]+),([^,]+),([^,]+),([^,]+)$")
-				if generation == wantedGeneration then
-					local salt, resource = fromHex(saltHex), fromHex(resourceHex)
-					if salt and resource then return {generation = generation, md5 = string.lower(md5), salt = salt, resource = resource} end
-				end
-			end
+			local _, refreshManifests = parseSnapshot(value)
+			return refreshManifests and refreshManifests[wantedGeneration] or nil
 		end
 
 		local function parsePack(contents, manifest)
@@ -392,21 +396,26 @@ do
 
 		if next(pendingManifests) and timer and timer.Create then
 			local attempts = 0
+			local lastFailure = {}
 			timer.Create("HolyLibLuaPackMount", 5, 60, function()
 				attempts = attempts + 1
 				for generation, manifest in pairs(pendingManifests) do
-					if tryMount(manifest) then
+					local mountedNow, failure = tryMount(manifest)
+					if mountedNow then
 						pendingManifests[generation] = nil
+						lastFailure[generation] = nil
 						activate()
 						RunConsoleCommand("holylib_luapack_ready", generation, manifest.md5)
 						warn("pack " .. generation .. " mounted after its FastDL download completed")
+					else
+						lastFailure[generation] = failure
 					end
 				end
 				if not next(pendingManifests) then
 					timer.Remove("HolyLibLuaPackMount")
 				elseif attempts >= 60 then
 					for generation in pairs(pendingManifests) do
-						warn("pack " .. generation .. " never became readable; this session stays on vanilla Lua delivery")
+						warn("pack " .. generation .. " could not be mounted after five minutes (last failure: " .. tostring(lastFailure[generation]) .. "); this session stays on vanilla Lua delivery")
 					end
 				end
 			end)
@@ -1012,6 +1021,12 @@ end)
 		return output;
 	}
 
+	// The client engine truncates replicated convar values to 255 characters. The snapshot
+	// therefore only carries what the bootstrap cannot derive: a generation id doubles as
+	// the content MD5 and the FastDL object basename, and every generation in one server
+	// lifecycle shares the salt (state.generations and state.salt reset together).
+	static const size_t MAXIMUM_MANIFEST_LENGTH = 255;
+
 	static void PublishManifest()
 	{
 		if (!IsEnabled() || state.currentGeneration.empty())
@@ -1020,21 +1035,53 @@ end)
 			return;
 		}
 
-		std::ostringstream manifest;
-		manifest << "1|" << state.currentGeneration << '|' << HexEncode(GetConfig().packDirectory) << '|';
-		bool first = true;
+		auto current = state.generations.find(state.currentGeneration);
+		if (current == state.generations.end())
+		{
+			luapack_manifest.SetValue("");
+			return;
+		}
+
+		const std::string& packDirectory = GetConfig().packDirectory;
+		if (current->second.resourcePath != DataDirectory(packDirectory) + "/" + state.currentGeneration + ".bsp")
+		{
+			// The pack directory changed after this generation was built; a derived client
+			// path would point at nothing. The next build publishes under the new directory.
+			Warning(PROJECT_NAME " - luapack: pack directory changed after generation %s was built; refusing publication until the next build\n",
+				state.currentGeneration.c_str());
+			luapack_manifest.SetValue("");
+			return;
+		}
+
+		std::ostringstream header;
+		header << "1|" << state.currentGeneration << '|' << HexEncode(packDirectory)
+			<< '|' << HexEncode(current->second.salt) << '|' << state.currentGeneration;
+		std::string serialized = header.str();
+		if (serialized.length() > MAXIMUM_MANIFEST_LENGTH)
+		{
+			Warning(PROJECT_NAME " - luapack: pack directory '%s' pushes the replicated manifest over %u characters; refusing publication\n",
+				packDirectory.c_str(), static_cast<unsigned>(MAXIMUM_MANIFEST_LENGTH));
+			luapack_manifest.SetValue("");
+			return;
+		}
+
 		for (const auto& pair : state.generations)
 		{
-			const Generation& generation = pair.second;
-			if (!first)
-				manifest << ';';
-			first = false;
-			manifest << generation.id << ',' << generation.md5 << ',' << HexEncode(generation.salt) << ','
-				<< HexEncode(generation.resourcePath);
+			if (pair.first == state.currentGeneration)
+				continue;
+			// A retained generation that no longer fits, or that was built under a different
+			// directory or salt, stays valid server-side for late acknowledgements; new
+			// bootstraps only ever need the current generation.
+			if (pair.second.salt != current->second.salt ||
+				pair.second.resourcePath != DataDirectory(packDirectory) + "/" + pair.first + ".bsp" ||
+				serialized.length() + 1 + pair.first.length() > MAXIMUM_MANIFEST_LENGTH)
+				continue;
+			serialized += ';';
+			serialized += pair.first;
 		}
 
 		// One SetValue call is the publication barrier: clients never observe a partially-updated generation.
-		luapack_manifest.SetValue(manifest.str().c_str());
+		luapack_manifest.SetValue(serialized.c_str());
 	}
 
 	static void NotifyAutorefresh(const std::string& previousGeneration, const BuildTask* task)

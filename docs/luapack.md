@@ -28,6 +28,8 @@ The feature is experimental and defaults off. The `gmoddatapack` module itself m
 | `holylib_gmoddatapack_luapack_ready_deadline` | `180` | Seconds a silent connecting slot keeps its generation pinned in memory. A matching late acknowledgement is still accepted afterwards while the generation remains retained. |
 | `holylib_gmoddatapack_luapack_manifest` | empty | Internal atomic replicated snapshot; do not set manually. |
 
+The client engine truncates replicated convar values to 255 characters, so the snapshot carries only generation ids (the id doubles as the content MD5 and the FastDL object basename), the pack directory, and the shared per-lifecycle salt; the client derives `data/<packdir>/<id>.bsp` itself. Retained generations that no longer fit are dropped from the snapshot but stay valid server-side for late acknowledgements.
+
 `sv_downloadurl` remains operator-owned:
 
 - `respect` never writes it.
