@@ -1300,7 +1300,7 @@ static void hook_GModDataPack_SendFileToClient(GModDataPack* pDataPack, int clie
 		return;
 	}
 
-	if (const Bootil::AutoBuffer* stub = HolyLib::LuaPack::StubForClient(clientIdx, fileName))
+	if (const Bootil::AutoBuffer* stub = HolyLib::LuaPack::StubForClient(clientIdx, fileName, luaFile->contents.length()))
 	{
 		// A stub is a normal, reliably delivered LuaFileDownload. It preserves the engine's
 		// per-file barrier contract while the multi-megabyte payload stays exclusively on FastDL.

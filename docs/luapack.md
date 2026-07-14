@@ -26,6 +26,10 @@ The feature is experimental and defaults off. The `gmoddatapack` module itself m
 | `holylib_gmoddatapack_luapack_ingest_method` | `PUT` | Method used by the optional ingest request. |
 | `holylib_gmoddatapack_luapack_retention_ttl` | `300` | Seconds an unpinned superseded manifest entry remains retained. |
 | `holylib_gmoddatapack_luapack_ready_deadline` | `180` | Seconds a silent connecting slot keeps its generation pinned in memory. A matching late acknowledgement is still accepted afterwards while the generation remains retained. |
+| `holylib_gmoddatapack_luapack_optimistic` | `0` | Speculatively stub large joins before the READY acknowledgement. See below. |
+| `holylib_gmoddatapack_luapack_optimistic_prefix_files` | `256` | Files delivered natively at the start of a join before speculation may begin. |
+| `holylib_gmoddatapack_luapack_optimistic_prefix_bytes` | `262144` | Native Lua source bytes delivered at the start of a join before speculation may begin. |
+| `holylib_gmoddatapack_luapack_unready_ttl` | `900` | Seconds an account that failed a speculative join keeps receiving native files on new connections. |
 | `holylib_gmoddatapack_luapack_manifest` | empty | Internal atomic replicated snapshot; do not set manually. |
 
 The client engine truncates replicated convar values to 255 characters, so the snapshot carries only generation ids (the id doubles as the content MD5 and the FastDL object basename), the pack directory, and the shared per-lifecycle salt; the client derives `data/<packdir>/<id>.bsp` itself. Retained generations that no longer fit are dropped from the snapshot but stay valid server-side for late acknowledgements.
@@ -40,6 +44,39 @@ While luapack is enabled, `holylib_gmoddatapack_removeserverif` and `holylib_gmo
 
 The ingest worker is asynchronous and non-fatal. This repository's `cpp-httplib` build is not linked to OpenSSL, so built-in ingestion accepts `http://` only and refuses to downgrade `https://`. Operators needing HTTPS can handle the pluggable server hook `HolyLib:OnLuaPackBuilt(generation, resourcePath, md5, compressedSize)` in their existing trusted uploader. Do not place credentials in archived cvars or commit them to configuration.
 
+## Optimistic join stubbing
+
+The READY acknowledgement is sent from the client bootstrap, but the engine only flushes
+queued client commands after signon completes — so on a real join it arrives after the
+Requesting Lua phase already delivered everything natively. The base feature therefore saves
+almost nothing on first joins. `holylib_gmoddatapack_luapack_optimistic` closes that gap by
+speculating per connection instead of waiting for proof:
+
+- The first `optimistic_prefix_files` requested files (and at least `optimistic_prefix_bytes`
+  of Lua source) are always delivered natively. Warm reconnects request few files, never
+  cross the prefix, and never speculate; the prefix also progressively re-natives files for
+  clients that cached stubs from an earlier session.
+- Once a connection crosses both thresholds without having acknowledged, the remaining
+  requested files that exist in its pinned generation are answered with generation stubs.
+  Files missing from the generation (changed since publication), the init file, fallback
+  slots, and every existing fail-open path stay native.
+
+Recovery is what makes speculation safe. If a stub executes client-side and no pack can
+serve it, the bootstrap first attempts one synchronous mount of the already-downloaded
+object (the FastDL fetch may have finished mid-join). If that fails, the session cannot be
+repaired in place: the client sends `holylib_luapack_unready`, stops acknowledging, and
+issues one `retry`. The server latches that account (by engine network ID) to native
+delivery for `unready_ttl` seconds — and it also sets the same latch on its own whenever a
+connection that received speculative stubs disconnects without acknowledging, so a recovery
+command lost in the reconnect teardown still converges. A matching READY clears the latch.
+The worst case per affected account is one wasted stub join plus one full native join;
+a server restart between the failure and the retry forgets the latch and costs one more such
+cycle. Latches are held in memory only and reset with the level.
+
+Every join logs one summary line at activation (native files/bytes, speculative stubs,
+acknowledged stubs, latch and fallback state). Run with speculation off first and use these
+lines to validate prefix sizing against real traffic before enabling the flag.
+
 ## Kill switch
 
 Run this from the server console/RCON, or as a superadmin player:
@@ -49,6 +86,8 @@ holylib_gmoddatapack_luapack_kill
 ```
 
 The command sets the master switch to `0`. Stub decisions stop immediately; the next frame clears the replicated manifest. Existing and new file requests use normal Lua networking without a restart.
+
+Optimistic join stubbing has its own independent switch: setting `holylib_gmoddatapack_luapack_optimistic 0` stops speculation on the next file request while leaving acknowledged-stub delivery and the rest of the feature untouched.
 
 ## FastDL layout
 
