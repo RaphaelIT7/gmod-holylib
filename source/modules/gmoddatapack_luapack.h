@@ -31,6 +31,10 @@ namespace HolyLib::LuaPack
 		std::string ingestMethod;
 		double generationRetentionSeconds = 300.0;
 		double readyDeadlineSeconds = 30.0;
+		bool optimisticStubbing = false;
+		unsigned int optimisticPrefixFiles = 256;
+		unsigned long long optimisticPrefixBytes = 262144;
+		double unreadyTtlSeconds = 900.0;
 	};
 
 	const Config& GetConfig();
@@ -45,7 +49,7 @@ namespace HolyLib::LuaPack
 	void CaptureFile(const GarrysMod::Lua::LuaFile* file);
 	std::string PrepareVanillaFile(const std::string& virtualPath, const std::string& contents);
 	bool ConsumeBootstrapRefresh();
-	const Bootil::AutoBuffer* StubForClient(int slot, const std::string& virtualPath);
+	const Bootil::AutoBuffer* StubForClient(int slot, const std::string& virtualPath, size_t nativeSourceBytes);
 	void ClientConnect(int slot);
 	void ClientActive(int slot);
 	void ClientDisconnect(int slot);
