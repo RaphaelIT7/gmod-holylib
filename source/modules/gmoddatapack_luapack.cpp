@@ -373,15 +373,21 @@ do
 
 		-- Boot mount pass. Acknowledge whatever is already on disk; stub delivery is gated
 		-- server-side on this exact ACK and must not depend on anything loaded later in init.
+		-- Only the current generation was in this join's downloadables, so only it warrants
+		-- warnings; retained generations mount opportunistically (a client that connected
+		-- during a publish may hold the previous generation's object instead).
 		local pendingManifests = {}
 		local downloadFilter = getConVar("cl_downloadfilter")
+		local downloadsDisabled = downloadFilter and downloadFilter:GetString() == "none"
 		for generation, manifest in pairs(manifests) do
 			local mountedNow, failure = tryMount(manifest)
-			if not mountedNow then
-				if downloadFilter and downloadFilter:GetString() == "none" then
+			if not mountedNow and not downloadsDisabled then
+				pendingManifests[generation] = manifest
+			end
+			if not mountedNow and generation == currentGeneration then
+				if downloadsDisabled then
 					warn("pack " .. generation .. " is missing and downloads are disabled; set cl_downloadfilter to mapsonly or all. This join will use vanilla Lua delivery")
 				else
-					pendingManifests[generation] = manifest
 					warn("pack " .. generation .. " " .. failure .. "; staying on vanilla Lua delivery while the FastDL download finishes in the background")
 				end
 			end
@@ -414,8 +420,8 @@ do
 				if not next(pendingManifests) then
 					timer.Remove("HolyLibLuaPackMount")
 				elseif attempts >= 60 then
-					for generation in pairs(pendingManifests) do
-						warn("pack " .. generation .. " could not be mounted after five minutes (last failure: " .. tostring(lastFailure[generation]) .. "); this session stays on vanilla Lua delivery")
+					if pendingManifests[currentGeneration] then
+						warn("pack " .. currentGeneration .. " could not be mounted after five minutes (last failure: " .. tostring(lastFailure[currentGeneration]) .. "); this session stays on vanilla Lua delivery")
 					end
 				end
 			end)
