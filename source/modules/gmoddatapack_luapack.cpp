@@ -321,7 +321,10 @@ do
 			second = string.gsub(second, "^lua/", "")
 			return path, first, second
 		end
-
+)HOLYLUAPACK"
+	// MSVC caps a single string literal at 16380 characters (C2026), which the bootstrap
+	// outgrew; adjacent raw literals concatenate at compile time (total cap 65535).
+	R"HOLYLUAPACK(
 		local function findSource(pack, path)
 			local sourcePath, first, second = normalizedForms(path)
 			local salted = function(value) return string.lower(util.MD5(pack.salt .. value)) end
