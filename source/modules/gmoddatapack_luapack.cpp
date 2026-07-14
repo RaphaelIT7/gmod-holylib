@@ -1288,19 +1288,29 @@ end)
 		if (virtualPath.empty())
 			return;
 
-		std::lock_guard<std::mutex> lock(state.registryMutex);
-		FileRecord& record = state.files[virtualPath];
-		const std::string sourcePath = NormalizePath(file->source.empty() ? file->name : file->source);
-		if (record.contents == file->contents && record.sourcePath == sourcePath)
-			return;
+		{
+			std::lock_guard<std::mutex> lock(state.registryMutex);
+			FileRecord& record = state.files[virtualPath];
+			const std::string sourcePath = NormalizePath(file->source.empty() ? file->name : file->source);
+			if (record.contents == file->contents && record.sourcePath == sourcePath)
+				return;
 
-		record.virtualPath = virtualPath;
-		record.sourcePath = sourcePath;
-		record.contents = file->contents;
-		record.revision = ++state.revision;
-		state.buildRequested = true;
-		state.pendingChanges[virtualPath] = true;
-		state.lastCaptureAt = ServerTime(); // quiesce window: batch deploys build once, not per file
+			record.virtualPath = virtualPath;
+			record.sourcePath = sourcePath;
+			record.contents = file->contents;
+			record.revision = ++state.revision;
+			state.buildRequested = true;
+			state.pendingChanges[virtualPath] = true;
+			state.lastCaptureAt = ServerTime(); // quiesce window: batch deploys build once, not per file
+		}
+
+		// A changed file must stop being stubbed immediately: every retained generation's
+		// pack body still holds the previous contents, so a stub would make the engine's
+		// autorefresh re-send re-run STALE code on ready clients. Excluding the path here
+		// routes those sends through the real updated file; the next published generation
+		// restores stub coverage. Main thread only, like all generation-map access.
+		for (auto& pair : state.generations)
+			pair.second.files.erase(virtualPath);
 	}
 
 	std::string PrepareVanillaFile(const std::string& virtualPath, const std::string& contents)
