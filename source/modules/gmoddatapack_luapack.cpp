@@ -221,34 +221,25 @@ do
 		end
 
 		local packs = {}
-		local downloadFilter = getConVar("cl_downloadfilter")
-		for generation, manifest in pairs(manifests) do
+		-- The engine can fetch FastDL downloadables in the background of the join instead of
+		-- blocking the loading screen, so a generation missing right now may simply not have
+		-- finished downloading. tryMount() reports failures without warning; the boot pass
+		-- warns once, then a timer retries for five minutes and acknowledges late arrivals
+		-- (the server accepts a matching late READY).
+		local function tryMount(manifest)
 			local compressed = readFile("download/" .. manifest.resource)
-			if not compressed then
-				if downloadFilter and downloadFilter:GetString() == "none" then
-					warn("pack " .. generation .. " is missing because downloads are disabled; set cl_downloadfilter to mapsonly or all. This join will use vanilla Lua delivery")
-				else
-					warn("pack " .. generation .. " is unavailable; this join will use vanilla Lua delivery")
-				end
-			else
-				local contents = util.Decompress(compressed)
-				if not contents then
-					warn("pack " .. generation .. " could not be decompressed; this join will use vanilla Lua delivery")
-				elseif string.lower(util.MD5(contents)) ~= manifest.md5 then
-					warn("pack " .. generation .. " failed its generation MD5 check; this join will use vanilla Lua delivery")
-				else
-					local pack, parseError = parsePack(contents, manifest)
-					if pack then packs[generation] = pack else warn("pack " .. generation .. " is invalid (" .. parseError .. "); this join will use vanilla Lua delivery") end
-				end
-			end
+			if not compressed then return false, "is unavailable" end
+			local contents = util.Decompress(compressed)
+			if not contents then return false, "could not be decompressed" end
+			if string.lower(util.MD5(contents)) ~= manifest.md5 then return false, "failed its generation MD5 check" end
+			local pack, parseError = parsePack(contents, manifest)
+			if not pack then return false, "is invalid (" .. tostring(parseError) .. ")" end
+			packs[manifest.generation] = pack
+			return true
 		end
 
-		if not next(packs) then return end
-		_G.__holypack_bootstrapped = true
-		_G.__holypack_packs = packs
-
-		local originalCompileFile, originalInclude = CompileFile, include
 		local selectedGeneration
+		local activate -- defined after the overrides below
 
 		local function normalizedForms(path)
 			path = string.gsub(path or "", "^@", "")
@@ -280,41 +271,45 @@ do
 			return compiled
 		end
 
-		function _G.__holypack(generation)
-			local pack = packs[generation]
-			if not pack then error("HolyLib luapack generation is not mounted: " .. tostring(generation), 2) end
-			selectedGeneration = generation
-			local info = debug.getinfo(2, "S")
-			local sourcePath = info and info.source or ""
-			local compiled = compilePacked(pack, string.gsub(sourcePath, "^@", ""))
-			if not compiled then error("HolyLib luapack has no entry for " .. tostring(sourcePath), 2) end
-			return compiled
-		end
+		local overridesInstalled = false
+		local function installOverrides()
+			if overridesInstalled then return end
+			overridesInstalled = true
+			_G.__holypack_bootstrapped = true
+			_G.__holypack_packs = packs
 
-		function _G.CompileFile(path)
-			local pack = selectedGeneration and packs[selectedGeneration]
-			return (pack and compilePacked(pack, path)) or originalCompileFile(path)
-		end
+			local originalCompileFile, originalInclude = CompileFile, include
 
-		function _G.include(path)
-			-- extensions/net.lua (which defines net.Receive) is included later by this same
-			-- init file, so the autorefresh receiver is installed lazily from here.
-			if installReceiver and net and net.Receive then
-				local install = installReceiver
-				installReceiver = nil
-				local installed, message = pcall(install)
-				if not installed then warn("autorefresh receiver failed to install: " .. tostring(message)) end
+			function _G.__holypack(generation)
+				local pack = packs[generation]
+				if not pack then error("HolyLib luapack generation is not mounted: " .. tostring(generation), 2) end
+				selectedGeneration = generation
+				local info = debug.getinfo(2, "S")
+				local sourcePath = info and info.source or ""
+				local compiled = compilePacked(pack, string.gsub(sourcePath, "^@", ""))
+				if not compiled then error("HolyLib luapack has no entry for " .. tostring(sourcePath), 2) end
+				return compiled
 			end
-			local pack = selectedGeneration and packs[selectedGeneration]
-			local compiled = pack and compilePacked(pack, path)
-			if compiled then return compiled() end
-			return originalInclude(path)
-		end
 
-		-- Acknowledge the mounted immutable generations immediately; stub delivery is gated
-		-- server-side on this exact ACK and must not depend on anything loaded later in init.
-		for generation, pack in pairs(packs) do
-			RunConsoleCommand("holylib_luapack_ready", generation, pack.manifest.md5)
+			function _G.CompileFile(path)
+				local pack = selectedGeneration and packs[selectedGeneration]
+				return (pack and compilePacked(pack, path)) or originalCompileFile(path)
+			end
+
+			function _G.include(path)
+				-- extensions/net.lua (which defines net.Receive) is included later by this same
+				-- init file, so the autorefresh receiver is installed lazily from here.
+				if installReceiver and net and net.Receive then
+					local install = installReceiver
+					installReceiver = nil
+					local installed, message = pcall(install)
+					if not installed then warn("autorefresh receiver failed to install: " .. tostring(message)) end
+				end
+				local pack = selectedGeneration and packs[selectedGeneration]
+				local compiled = pack and compilePacked(pack, path)
+				if compiled then return compiled() end
+				return originalInclude(path)
+			end
 		end
 
 		installReceiver = function()
@@ -357,6 +352,63 @@ do
 				end, function(message)
 					warn("autorefresh FastDL fetch failed for generation " .. generation .. ": " .. tostring(message) .. "; future files will use vanilla delivery")
 				end)
+			end)
+		end
+
+		activate = function()
+			installOverrides()
+			-- On late activation (after init has finished) net.Receive already exists, so the
+			-- receiver installs here; during init the include override installs it instead.
+			if installReceiver and net and net.Receive then
+				local install = installReceiver
+				installReceiver = nil
+				local installed, message = pcall(install)
+				if not installed then warn("autorefresh receiver failed to install: " .. tostring(message)) end
+			end
+		end
+
+		-- Boot mount pass. Acknowledge whatever is already on disk; stub delivery is gated
+		-- server-side on this exact ACK and must not depend on anything loaded later in init.
+		local pendingManifests = {}
+		local downloadFilter = getConVar("cl_downloadfilter")
+		for generation, manifest in pairs(manifests) do
+			local mountedNow, failure = tryMount(manifest)
+			if not mountedNow then
+				if downloadFilter and downloadFilter:GetString() == "none" then
+					warn("pack " .. generation .. " is missing and downloads are disabled; set cl_downloadfilter to mapsonly or all. This join will use vanilla Lua delivery")
+				else
+					pendingManifests[generation] = manifest
+					warn("pack " .. generation .. " " .. failure .. "; staying on vanilla Lua delivery while the FastDL download finishes in the background")
+				end
+			end
+		end
+
+		if next(packs) then
+			activate()
+			for generation, pack in pairs(packs) do
+				RunConsoleCommand("holylib_luapack_ready", generation, pack.manifest.md5)
+			end
+		end
+
+		if next(pendingManifests) and timer and timer.Create then
+			local attempts = 0
+			timer.Create("HolyLibLuaPackMount", 5, 60, function()
+				attempts = attempts + 1
+				for generation, manifest in pairs(pendingManifests) do
+					if tryMount(manifest) then
+						pendingManifests[generation] = nil
+						activate()
+						RunConsoleCommand("holylib_luapack_ready", generation, manifest.md5)
+						warn("pack " .. generation .. " mounted after its FastDL download completed")
+					end
+				end
+				if not next(pendingManifests) then
+					timer.Remove("HolyLibLuaPackMount")
+				elseif attempts >= 60 then
+					for generation in pairs(pendingManifests) do
+						warn("pack " .. generation .. " never became readable; this session stays on vanilla Lua delivery")
+					end
+				end
 			end)
 		end
 	end
