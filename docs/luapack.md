@@ -30,6 +30,8 @@ The feature is experimental and defaults off. The `gmoddatapack` module itself m
 
 The client engine truncates replicated convar values to 255 characters, so the snapshot carries only generation ids (the id doubles as the content MD5 and the FastDL object basename), the pack directory, and the shared per-lifecycle salt; the client derives `data/<packdir>/<id>.bsp` itself. Retained generations that no longer fit are dropped from the snapshot but stay valid server-side for late acknowledgements.
 
+While luapack is enabled, `holylib_gmoddatapack_removeserverif` and `holylib_gmoddatapack_removecomments` are ignored (a one-time warning is logged). Luapack requires a single canonical byte stream per file: the stringtable hash is computed from the processed content, while pack capture and the engine-native fallback path carry the raw file bytes — stripping would make those disagree.
+
 `sv_downloadurl` remains operator-owned:
 
 - `respect` never writes it.

@@ -853,6 +853,21 @@ public:
 		bool bRemoveServerCode = gmoddatapack_removeserverif.GetBool();
 		bool bRemoveComments = gmoddatapack_removecomments.GetBool();
 		bool bLuaPackBootstrap = HolyLib::LuaPack::IsEnabled();
+		if (bLuaPackBootstrap && (bRemoveServerCode || bRemoveComments))
+		{
+			// Luapack requires one canonical byte stream: the stringtable hash comes from this
+			// processed content, but pack capture and the engine-native send path both carry the
+			// raw file bytes. Stripping here would make those three disagree, so the strip flags
+			// are inert while luapack is enabled.
+			static bool s_bWarnedStripConflict = false;
+			if (!s_bWarnedStripConflict)
+			{
+				s_bWarnedStripConflict = true;
+				Warning(PROJECT_NAME " - gmoddatapack: removeserverif/removecomments are ignored while luapack is enabled (stripped bytes would diverge from pack and native delivery)\n");
+			}
+			bRemoveServerCode = false;
+			bRemoveComments = false;
+		}
 		bool bSameSource = pEntry.hasSourceContent && pEntry.sourceContent == content;
 		bool bSameProcessConfig = pEntry.removeServerCode == bRemoveServerCode && pEntry.removeComments == bRemoveComments &&
 			pEntry.luapackBootstrap == bLuaPackBootstrap;
