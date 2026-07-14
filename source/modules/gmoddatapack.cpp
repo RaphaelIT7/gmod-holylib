@@ -1268,9 +1268,10 @@ static void hook_GModDataPack_SendFileToClient(GModDataPack* pDataPack, int clie
 	INetworkStringTable* clientFiles = pDataPack->m_pClientLuaFiles;
 	if (fileID <= 0 || fileID >= clientFiles->GetNumStrings()) // NOTE: GMod only checks < 0 BUT the index 0 is used for paths... too lazy to report it rn
 	{
+		// Deliberately NOT forwarded to the engine when luapack is enabled: a legitimate
+		// client never requests an out-of-range ID, and index 0 reaches engine code that
+		// treats it as the path table. Dropping it cannot strand a real join.
 		Warning(PROJECT_NAME " - gmoddatapack: Client requesting crazy file number (%i)\n", fileID);
-		if (HolyLib::LuaPack::IsEnabled())
-			SendOriginalLuaFile(pDataPack, clientIdx, fileID);
 		return;
 	}
 

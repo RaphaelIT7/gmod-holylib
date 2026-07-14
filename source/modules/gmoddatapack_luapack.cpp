@@ -122,26 +122,36 @@ namespace HolyLib::LuaPack
 		ClientPin clients[ABSOLUTE_PLAYER_LIMIT];
 		bool featureEnabledLastFrame = false;
 		bool bootstrapRefresh = false;
+		double lastCaptureAt = 0.0; // guarded by registryMutex
+		double nextBuildAllowed = 0.0;
 	};
 
 	static State state;
 
 	static const char* clientBootstrap = R"HOLYLUAPACK(
 -- HolyLib luapack bootstrap. The server does not send pack bodies through the netchannel.
+-- This chunk is prepended to lua/includes/init.lua, so it runs before ANY pure-Lua base
+-- library exists (util.lua, extensions/net.lua, modules/*.lua are included later by this
+-- very file). Only engine-registered C functions may be used here: Msg, CreateConVar,
+-- GetConVar_Internal, file.*, util.MD5/Decompress, CompileString, RunConsoleCommand,
+-- string.*, debug.*. In particular GetConVar, Color and net.Receive do NOT exist yet.
 do
+	local getConVar = GetConVar_Internal or GetConVar
+	local installReceiver -- assigned by bootstrap(); installed later once net.Receive exists
+
+	local function warn(message)
+		Msg("[HolyLib luapack] " .. message .. "\n")
+	end
+
 	local function bootstrap()
 		if _G.__holypack_bootstrapped then return end
 
 		local flags = (FCVAR_REPLICATED or 0) + (FCVAR_PROTECTED or 0) +
 			(FCVAR_DONTRECORD or 0) + (FCVAR_UNLOGGED or 0) + (FCVAR_UNREGISTERED or 0)
 		local ok, manifestConVar = pcall(CreateConVar, "holylib_gmoddatapack_luapack_manifest", "", flags)
-		manifestConVar = ok and manifestConVar or GetConVar("holylib_gmoddatapack_luapack_manifest")
+		manifestConVar = ok and manifestConVar or getConVar("holylib_gmoddatapack_luapack_manifest")
 		local snapshot = manifestConVar and manifestConVar:GetString() or ""
 		if snapshot == "" then return end
-
-		local function warn(message)
-			MsgC(Color(255, 170, 40), "[HolyLib luapack] ", color_white, message .. "\n")
-		end
 
 		local function fromHex(value)
 			if #value % 2 ~= 0 or value:find("[^0-9a-fA-F]") then return nil end
@@ -201,7 +211,7 @@ do
 		end
 
 		local packs = {}
-		local downloadFilter = GetConVar("cl_downloadfilter")
+		local downloadFilter = getConVar("cl_downloadfilter")
 		for generation, manifest in pairs(manifests) do
 			local compressed = file.Read("download/" .. manifest.resource, "GAME")
 			if not compressed then
@@ -227,7 +237,7 @@ do
 		_G.__holypack_bootstrapped = true
 		_G.__holypack_packs = packs
 
-		local originalCompileFile, originalInclude, originalRunString = CompileFile, include, RunString
+		local originalCompileFile, originalInclude = CompileFile, include
 		local selectedGeneration
 
 		local function normalizedForms(path)
@@ -277,75 +287,72 @@ do
 		end
 
 		function _G.include(path)
+			-- extensions/net.lua (which defines net.Receive) is included later by this same
+			-- init file, so the autorefresh receiver is installed lazily from here.
+			if installReceiver and net and net.Receive then
+				local install = installReceiver
+				installReceiver = nil
+				local installed, message = pcall(install)
+				if not installed then warn("autorefresh receiver failed to install: " .. tostring(message)) end
+			end
 			local pack = selectedGeneration and packs[selectedGeneration]
 			local compiled = pack and compilePacked(pack, path)
 			if compiled then return compiled() end
 			return originalInclude(path)
 		end
 
-		function _G.RunString(code, identifier, handleError)
-			local pack = selectedGeneration and packs[selectedGeneration]
-			local packed = pack and identifier and findSource(pack, identifier)
-			return originalRunString(packed or code, identifier, handleError)
-		end
-
-		net.Receive("gmsv_holylib_luapack_autorefresh", function()
-			local generation = net.ReadString()
-			local refreshSnapshot = net.ReadString()
-			local downloadUrl = net.ReadString()
-			local changedPaths = {}
-			for index = 1, net.ReadUInt(16) do changedPaths[index] = net.ReadString() end
-
-			local manifest = manifestFromSnapshot(refreshSnapshot, generation)
-			if not manifest or downloadUrl == "" then
-				warn("autorefresh generation " .. tostring(generation) .. " has no usable FastDL manifest; future files will use vanilla delivery")
-				return
-			end
-
-			local url = string.gsub(downloadUrl, "/+$", "") .. "/" .. string.gsub(manifest.resource, "^/+", "")
-			http.Fetch(url, function(compressed)
-				local contents = util.Decompress(compressed or "")
-				if not contents or string.lower(util.MD5(contents)) ~= manifest.md5 then
-					warn("autorefresh generation " .. generation .. " failed decompression or MD5 validation; future files will use vanilla delivery")
-					return
-				end
-
-				local pack, parseError = parsePack(contents, manifest)
-				if not pack then
-					warn("autorefresh generation " .. generation .. " is invalid (" .. tostring(parseError) .. "); future files will use vanilla delivery")
-					return
-				end
-
-				local previous = selectedGeneration and packs[selectedGeneration]
-				if previous then
-					for _, path in ipairs(changedPaths) do
-						local sourcePath, first, second = normalizedForms(path)
-						local salted = function(value) return string.lower(util.MD5(previous.salt .. value)) end
-						previous.vfs[salted(sourcePath)] = nil
-						previous.vfsLCL[salted(first)] = nil
-						previous.vfsLCL[salted(second)] = nil
-					end
-				end
-
-				packs[generation] = pack
-				selectedGeneration = generation
-				RunConsoleCommand("holylib_luapack_ready", generation, manifest.md5)
-				for _, path in ipairs(changedPaths) do
-					local _, localPath = normalizedForms(path)
-					if string.find(localPath, "^autorun/") then include(localPath) end
-				end
-			end, function(message)
-				warn("autorefresh FastDL fetch failed for generation " .. generation .. ": " .. tostring(message) .. "; future files will use vanilla delivery")
-			end)
-		end)
-
+		-- Acknowledge the mounted immutable generations immediately; stub delivery is gated
+		-- server-side on this exact ACK and must not depend on anything loaded later in init.
 		for generation, pack in pairs(packs) do
 			RunConsoleCommand("holylib_luapack_ready", generation, pack.manifest.md5)
+		end
+
+		installReceiver = function()
+			net.Receive("gmsv_holylib_luapack_autorefresh", function()
+				local generation = net.ReadString()
+				local refreshSnapshot = net.ReadString()
+				local downloadUrl = net.ReadString()
+
+				local manifest = manifestFromSnapshot(refreshSnapshot, generation)
+				if not manifest or downloadUrl == "" then
+					warn("autorefresh generation " .. tostring(generation) .. " has no usable FastDL manifest; future files will use vanilla delivery")
+					return
+				end
+				if packs[generation] then
+					selectedGeneration = generation
+					RunConsoleCommand("holylib_luapack_ready", generation, manifest.md5)
+					return
+				end
+
+				local url = string.gsub(downloadUrl, "/+$", "") .. "/" .. string.gsub(manifest.resource, "^/+", "")
+				http.Fetch(url, function(compressed)
+					local contents = util.Decompress(compressed or "")
+					if not contents or string.lower(util.MD5(contents)) ~= manifest.md5 then
+						warn("autorefresh generation " .. generation .. " failed decompression or MD5 validation; future files will use vanilla delivery")
+						return
+					end
+
+					local pack, parseError = parsePack(contents, manifest)
+					if not pack then
+						warn("autorefresh generation " .. generation .. " is invalid (" .. tostring(parseError) .. "); future files will use vanilla delivery")
+						return
+					end
+
+					-- Retained packs are immutable: the previous generation keeps resolving any
+					-- stubs that were issued against it. The engine's own autorefresh re-send
+					-- re-executes changed files, so nothing is re-included from here.
+					packs[generation] = pack
+					selectedGeneration = generation
+					RunConsoleCommand("holylib_luapack_ready", generation, manifest.md5)
+				end, function(message)
+					warn("autorefresh FastDL fetch failed for generation " .. generation .. ": " .. tostring(message) .. "; future files will use vanilla delivery")
+				end)
+			end)
 		end
 	end
 
 	local ok, message = xpcall(bootstrap, debug.traceback)
-	if not ok then MsgC(Color(255, 80, 80), "[HolyLib luapack] bootstrap failed; vanilla Lua delivery remains active: " .. tostring(message) .. "\n") end
+	if not ok then Msg("[HolyLib luapack] bootstrap failed; vanilla Lua delivery remains active: " .. tostring(message) .. "\n") end
 end
 )HOLYLUAPACK";
 
@@ -362,17 +369,17 @@ end, nil, "Immediately disable bundled delivery and restore per-file vanilla Lua
 hook.Add("HolyLib:LuaPackPublished", "HolyLib:LuaPackAutorefreshBridge", function(generation, manifest, recipients, changedPaths)
 	local targets = {}
 	for _, index in ipairs(recipients or {}) do
-		local target = Player(index)
-		if IsValid(target) then targets[#targets + 1] = target end
+		-- recipients carries entity indices (client slot + 1), not UserIDs.
+		local target = Entity(index)
+		if IsValid(target) and target:IsPlayer() then targets[#targets + 1] = target end
 	end
 	if #targets == 0 then return end
 
+	local downloadUrl = GetConVar("sv_downloadurl")
 	net.Start("gmsv_holylib_luapack_autorefresh")
 		net.WriteString(generation)
 		net.WriteString(manifest)
-		net.WriteString(GetConVar("sv_downloadurl"):GetString())
-		net.WriteUInt(math.min(#changedPaths, 65535), 16)
-		for index = 1, math.min(#changedPaths, 65535) do net.WriteString(changedPaths[index]) end
+		net.WriteString(downloadUrl and downloadUrl:GetString() or "")
 	net.Send(targets)
 end)
 )HLPACKSERVER";
@@ -919,9 +926,9 @@ end)
 		"Minimum seconds to retain an immutable generation after its last pinned client leaves",
 		true, 30.0f, true, 86400.0f);
 	static ConVar luapack_ready_deadline(
-		"holylib_gmoddatapack_luapack_ready_deadline", "30", FCVAR_ARCHIVE,
-		"Seconds a connecting client has to acknowledge its pinned generation before using vanilla delivery",
-		true, 1.0f, true, 300.0f);
+		"holylib_gmoddatapack_luapack_ready_deadline", "180", FCVAR_ARCHIVE,
+		"Seconds a silent connecting client keeps its generation pinned; a matching late acknowledgement is still accepted afterwards",
+		true, 1.0f, true, 3600.0f);
 	// FCVAR_PROTECTED cannot be used here: Source transmits protected replicated cvars as a boolean,
 	// which would destroy the manifest snapshot. The client-created mirror adds the non-server flags.
 	static ConVar luapack_manifest(
@@ -1085,6 +1092,8 @@ end)
 		state.downloadUrlLocked = false;
 		state.featureEnabledLastFrame = false;
 		state.bootstrapRefresh = false;
+		state.lastCaptureAt = 0.0;
+		state.nextBuildAllowed = 0.0;
 		for (ClientPin& client : state.clients)
 			client = ClientPin();
 		luapack_manifest.SetValue("");
@@ -1139,6 +1148,7 @@ end)
 			BuildTask* task = state.activeBuild;
 			state.activeBuild = nullptr;
 
+			state.nextBuildAllowed = ServerTime() + 5.0;
 			if (!task->success)
 			{
 				Warning(PROJECT_NAME " - luapack: Failed to build pack: %s\n", task->error.c_str());
@@ -1149,6 +1159,7 @@ end)
 					Warning(PROJECT_NAME " - luapack: Failed to atomically write pack %s\n", task->md5.c_str());
 				} else if (!CoordinateDownloadUrl(true) || !RegisterDownloadable(resourcePath)) {
 					Warning(PROJECT_NAME " - luapack: Pack %s exists but was not published; clients remain on vanilla delivery\n", task->md5.c_str());
+					state.nextBuildAllowed = ServerTime() + 15.0;
 					std::lock_guard<std::mutex> lock(state.registryMutex);
 					state.buildRequested = true;
 				} else {
@@ -1240,14 +1251,21 @@ end)
 		bool shouldBuild = false;
 		{
 			std::lock_guard<std::mutex> lock(state.registryMutex);
-			shouldBuild = state.buildRequested;
+			// The quiesce window batches multi-file deploys/refreshes into one whole-pack
+			// build instead of one per touched file; nextBuildAllowed backs off retries so a
+			// failed publish cannot degenerate into a per-frame LZMA loop.
+			shouldBuild = state.buildRequested && now >= state.nextBuildAllowed &&
+				now - state.lastCaptureAt >= 2.0;
 		}
 		if (shouldBuild)
 			StartBuild();
 	}
 	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit)
 	{
-		if (!bServerInit && pLua == g_Lua)
+		// bServerInit == false fires from InitLuaClasses, before includes/init.lua has run —
+		// the pure-Lua concommand/hook libraries the bridge needs do not exist yet. The
+		// bServerInit == true pass happens at ServerActivate, after the gamemode loaded.
+		if (bServerInit && pLua == g_Lua)
 			pLua->RunString("HolyLib luapack server bridge", "", serverBridge, true, true);
 	}
 
@@ -1272,6 +1290,7 @@ end)
 		record.revision = ++state.revision;
 		state.buildRequested = true;
 		state.pendingChanges[virtualPath] = true;
+		state.lastCaptureAt = ServerTime(); // quiesce window: batch deploys build once, not per file
 	}
 
 	std::string PrepareVanillaFile(const std::string& virtualPath, const std::string& contents)
@@ -1359,10 +1378,20 @@ end)
 		const std::string generationId = args->Arg(1);
 		const std::string md5 = args->Arg(2);
 		auto generation = state.generations.find(client.generation);
-		if (!client.fallback && !client.generation.empty() && ServerTime() <= client.deadline &&
-			generation != state.generations.end() && generationId == client.generation && md5 == generation->second.md5)
+		// A matching acknowledgement is definitive evidence that the client mounted this exact
+		// immutable object, so it is accepted even after the deadline released the pin (heavy
+		// first joins routinely outlive any fixed window). The deadline only bounds how long a
+		// silent slot keeps a superseded generation pinned in memory.
+		if (!client.generation.empty() && generation != state.generations.end() &&
+			generationId == client.generation && md5 == generation->second.md5)
 		{
 			client.ready = true;
+			client.fallback = false;
+			if (!client.active && !client.holdsPin)
+			{
+				client.holdsPin = true;
+				++generation->second.pins;
+			}
 			if (client.active)
 				ReleaseGenerationReference(client);
 			Msg(PROJECT_NAME " - luapack: client slot %i acknowledged pinned generation %s\n", slot, generationId.c_str());

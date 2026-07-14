@@ -25,7 +25,7 @@ The feature is experimental and defaults off. The `gmoddatapack` module itself m
 | `holylib_gmoddatapack_luapack_ingest_url` | empty | Optional HTTP endpoint receiving the compressed object body. |
 | `holylib_gmoddatapack_luapack_ingest_method` | `PUT` | Method used by the optional ingest request. |
 | `holylib_gmoddatapack_luapack_retention_ttl` | `300` | Seconds an unpinned superseded manifest entry remains retained. |
-| `holylib_gmoddatapack_luapack_ready_deadline` | `30` | Maximum seconds to accept a connecting/refresh READY acknowledgement. |
+| `holylib_gmoddatapack_luapack_ready_deadline` | `180` | Seconds a silent connecting slot keeps its generation pinned in memory. A matching late acknowledgement is still accepted afterwards while the generation remains retained. |
 | `holylib_gmoddatapack_luapack_manifest` | empty | Internal atomic replicated snapshot; do not set manually. |
 
 `sv_downloadurl` remains operator-owned:
