@@ -1097,7 +1097,7 @@ end)
 		true, 30.0f, true, 86400.0f);
 	static ConVar luapack_ready_deadline(
 		"holylib_gmoddatapack_luapack_ready_deadline", "180", FCVAR_ARCHIVE,
-		"Seconds a silent connecting client keeps its generation pinned; a matching late acknowledgement is still accepted afterwards",
+		"Seconds a silent spawned client keeps its generation pinned (the clock starts at activation, not connect); a matching late acknowledgement is still accepted afterwards",
 		true, 1.0f, true, 3600.0f);
 	static ConVar luapack_optimistic(
 		"holylib_gmoddatapack_luapack_optimistic", "0", FCVAR_ARCHIVE,
@@ -1452,7 +1452,12 @@ end)
 		const double now = ServerTime();
 		for (ClientPin& client : state.clients)
 		{
-			if (!client.generation.empty() && !client.ready && !client.fallback && now > client.deadline)
+			// The deadline only runs for spawned clients. A connecting client can legitimately
+			// spend many minutes in map load + the Requesting-Lua burst before its Lua state even
+			// exists; expiring the pin there would mark exactly the joins that matter fallback
+			// before their first file request arrives. ClientActive re-arms the deadline.
+			if (!client.generation.empty() && !client.ready && !client.fallback && client.active &&
+				now > client.deadline)
 			{
 				MarkFallback(client);
 			}
@@ -1666,6 +1671,11 @@ end)
 		ClientPin& client = state.clients[slot];
 		client.active = true;
 		ReleaseGenerationReference(client);
+
+		// The acknowledgement window starts now, not at connect: queued client commands only
+		// flush post-signon, so a pin must survive the whole download phase to be ackable at all.
+		if (!client.ready && !client.fallback && !client.generation.empty())
+			client.deadline = ServerTime() + GetConfig().readyDeadlineSeconds;
 
 		if (IsEnabled() && !client.joinSummaryLogged &&
 			(client.joinNativeFiles > 0 || client.joinOptimisticStubs > 0 || client.joinReadyStubs > 0))
