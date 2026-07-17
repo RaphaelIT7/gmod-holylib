@@ -271,7 +271,7 @@ CLuaInterface::~CLuaInterface()
 	}
 
 	// This is just for safety to ensure no memory leaks.
-	for (int i=0; i<255; ++i) {
+	for (int i=0; i<MAX_METATABLES; ++i) {
 		if (m_pMetaTables[i])
 		{
 			DestroyObject(m_pMetaTables[i]);
@@ -620,7 +620,7 @@ void CLuaInterface::CreateMetaTableType(const char* strName, int iType)
 {
 	LuaDebugPrint(1, "CLuaInterface::CreateMetaTableType(%s, %i)\n", strName, iType);
 	int ret = luaL_newmetatable_type(state, strName, iType);
-	if (ret && iType >= 0 && iType < (int)(sizeof(m_pMetaTables) / sizeof(m_pMetaTables[0])))
+	if (ret && iType >= 0 && iType < MAX_METATABLES)
 	{
 		GarrysMod::Lua::ILuaObject* pObject = m_pMetaTables[iType];
 		if (!pObject)
@@ -745,7 +745,7 @@ int CLuaInterface::CreateMetaTable(const char* strName) // Return value is proba
 bool CLuaInterface::PushMetaTable(int iType)
 {
 	LuaDebugPrint(2, "CLuaInterface::PushMetaTable %i\n", iType);
-	if (iType >= 0 && iType < (int)(sizeof(m_pMetaTables) / sizeof(m_pMetaTables[0])))
+	if (iType >= 0 && iType < MAX_METATABLES)
 	{
 		GarrysMod::Lua::ILuaObject* pMetaObject = m_pMetaTables[iType];
 		if (pMetaObject)
@@ -803,7 +803,7 @@ bool CLuaInterface::Init( GarrysMod::Lua::ILuaGameCallback* callback, bool bIsSe
 	}
 
 	m_iMetaTableIDCounter = GarrysMod::Lua::Type::Type_Count;
-	for (int i=0; i<=254; ++i)
+	for (int i=0; i<MAX_METATABLES; ++i)
 		m_pMetaTables[i] = nullptr;
 
 	m_iCurrentTempObject = 0;
@@ -905,7 +905,7 @@ void CLuaInterface::Shutdown()
 	lua_close(state);
 	state = nullptr;
 
-	for (int i=0; i<255; ++i) {
+	for (int i=0; i<MAX_METATABLES; ++i) {
 		if (m_pMetaTables[i])
 		{
 			DestroyObject(m_pMetaTables[i]);

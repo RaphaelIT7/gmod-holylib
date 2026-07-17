@@ -295,7 +295,7 @@ static SIMPLETHREAD_RETURNVALUE NetworkThread(void* pThreadData)
 			} 
 
 			// check for connectionless packet (0xffffffff) first
-			if (packet->size > (int)sizeof(unsigned int) && LittleLong(*(unsigned int *)packet->data) == CONNECTIONLESS_HEADER)
+			if (LittleLong(*(unsigned int *)packet->data) == CONNECTIONLESS_HEADER)
 			{
 				packet->message.SeekRelative(sizeof(long)*8);	// read the -1
 				int nPacketType = IsValidConnectionlessPacket(packet, false);
@@ -308,7 +308,7 @@ static SIMPLETHREAD_RETURNVALUE NetworkThread(void* pThreadData)
 				packet->message.StartReading( packet->data, packet->size ); // Reset buffer
 				packet->message.SeekRelative(sizeof(long)*8); // Read it again
 				if (net_showudp.GetInt())
-					Msg("UDP <- %s: sz=%i OOB '%c' wire=%i\n", packet->from.ToString(), packet->size, packet->size > 4 ? packet->data[4] : '\0', packet->wiresize);
+					Msg("UDP <- %s: sz=%i OOB '%c' wire=%i\n", packet->from.ToString(), packet->size, packet->data[4], packet->wiresize);
 
 				HandleStatus pStatus = ShouldHandlePacket(packet, true);
 				if (pStatus == HandleStatus::DISCARD)
