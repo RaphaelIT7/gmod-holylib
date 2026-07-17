@@ -11,6 +11,7 @@
 #include "scripts/AngleFFI.h"
 #include "scripts/HolyLibUserDataFFI.h"
 #include "scripts/VoiceDataFFI.h"
+#include "scripts/FFIOverrideCompat.h"
 
 extern "C"
 {
@@ -398,6 +399,16 @@ void CLuaJITModule::PostLuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		Msg(PROJECT_NAME " - jit: Added JIT support for TypeID\n");
 	} else {
 		pLua->Pop(1);
+	}
+
+	if (g_pLuaJITModule.m_bEnableFFIOverrides)
+	{
+		if (!pLua->RunStringEx("HolyLib:FFIOverrideCompat.lua", "", luaFFIOverrideCompat, true, true, true, true))
+		{
+			Warning(PROJECT_NAME " - luajit: Failed to install FFI Vector/Angle compatibility checks!\n");
+		}
+
+		Warning(PROJECT_NAME " - luajit: enableFFIOverrides uses FFI cdata Vector/Angle metatables; metatable identity checks against FindMetaTable(\"Vector\"/\"Angle\") are incompatible. Use isvector/isangle or TypeID instead.\n");
 	}
 }
 

@@ -1,0 +1,102 @@
+name: Bug or crash report
+description: Report a reproducible HolyLib defect, regression, hang, or crash.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a problem.
+
+        > **Caution:** HolyLib runs inside the Source engine and some APIs are intentionally unsafe. Reproduce on an expendable instance with backups. Do not upload unredacted tokens, passwords, RCON details, private IP addresses, player data, or full memory dumps.
+
+        Questions and uncertain reports should start in the project's discussion channel rather than this form.
+  - type: input
+    id: version
+    attributes:
+      label: HolyLib version or commit
+      description: Provide a release name or full commit SHA. Do not write only "latest."
+      placeholder: Release0.8-pre3 or 0123456789abcdef...
+    validations:
+      required: true
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Runtime target
+      options:
+        - Linux dedicated server (32-bit)
+        - Linux dedicated server (64-bit)
+        - Windows dedicated server (32-bit)
+        - Windows dedicated server (64-bit)
+        - Windows client (32-bit)
+        - Windows client (64-bit)
+        - Other or unknown
+    validations:
+      required: true
+  - type: dropdown
+    id: gmod_branch
+    attributes:
+      label: Garry's Mod branch
+      options:
+        - public
+        - dev
+        - prerelease
+        - x86-64
+        - Other or unknown
+    validations:
+      required: true
+  - type: input
+    id: modules
+    attributes:
+      label: Enabled HolyLib modules
+      description: List changed or non-default module settings too.
+      placeholder: networking, physenv; networking debugLevel=2
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Give exact steps, commands, Lua snippets, map, and timing. State whether it reproduces without other addons.
+      placeholder: |
+        1. Start a clean dedicated server with ...
+        2. Run ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include frequency and whether this is a regression. If known, name the last working version.
+    validations:
+      required: true
+  - type: textarea
+    id: diagnostics
+    attributes:
+      label: Redacted diagnostics
+      description: Paste relevant console output and stack traces. Link large sanitized crash artifacts instead of pasting a full dump.
+      render: shell
+  - type: textarea
+    id: environment
+    attributes:
+      label: Additional environment details
+      description: Include OS/distribution, CPU, startup arguments, installation method, and relevant addons or binary modules.
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: I searched existing issues and did not find the same report.
+          required: true
+        - label: I identified the exact HolyLib and Garry's Mod versions used.
+          required: true
+        - label: I tested safely on a disposable instance or have a backup and recovery plan.
+          required: true
+        - label: I removed secrets, private addresses/paths, and player-identifying data from every attachment.
+          required: true
