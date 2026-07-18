@@ -418,12 +418,20 @@ public:	// member vars are public for faster handling
 	const char	*m_szMapName;	// name of current map 
 	const char	*m_szSkyName;	// name of current skybox 
 	const char	*m_szHostName;	// server name
+	
+	// GMOD
+	const char *m_szLoadURL;
+	const char *m_szGamemode;
 
 private:
 	char		m_szGameDirBuffer[MAX_OSPATH];// game directory eg "tf2"
 	char		m_szMapNameBuffer[MAX_OSPATH];// name of current map 
 	char		m_szSkyNameBuffer[MAX_OSPATH];// name of current skybox 
 	char		m_szHostNameBuffer[MAX_OSPATH];// name of current skybox 
+
+	// GMOD
+	char		m_szLoadURLBuffer[MAX_OSPATH];
+	char		m_szGamemodeBuffer[MAX_OSPATH];
 };
 
 class SVC_SendTable : public CNetMessage
