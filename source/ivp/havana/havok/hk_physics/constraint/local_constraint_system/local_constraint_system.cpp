@@ -278,7 +278,7 @@ void hk_Local_Constraint_System::apply_effector_PSI(hk_PSI_Info& pi, hk_Array<hk
 	for (int i = 0; i < m_n_iterations; i++)
 	{
 		// do the steps
-		for (int x = 0; x < 2 && hk_Math::almost_zero(taus[x]); x++)
+		for (int x = 0; x < 2 && !hk_Math::almost_zero(taus[x]); x++)
 		{
 			for (int ii = m_constraints.length() - 1; ii >= 0; ii--) {
 				m_constraints.element_at(ii)->step_constraint(pi, vmq_buffers[ii], taus[x], damps[x]);
