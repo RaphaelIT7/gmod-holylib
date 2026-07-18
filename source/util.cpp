@@ -1002,7 +1002,7 @@ void Util::AddDetour()
 		::close(gmodVersionDescriptor);
 
 		strncpy(g_pGModBranch, readData[2], sizeof(g_pGModBranch));
-		g_pGModVersionNum = strtoull(readData[0], nullptr, 10);
+		g_pGModVersion = strtoull(readData[0], nullptr, 10);
 	}
 }
 
@@ -1168,7 +1168,7 @@ void Util::CheckVersion(bool bAutoUpdate) // This is called only when holylib is
 
 uint64_t Util::GetGModVersionNum()
 {
-	return g_pGModVersionNum;
+	return g_pGModVersion;
 }
 
 extern void LoadDLLs(); // From the dllsystem.cpp
