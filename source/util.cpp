@@ -750,6 +750,7 @@ DETOUR_THISCALL_START()
 DETOUR_THISCALL_FINISH();
 #endif
 
+static bool g_bLoadedGModVersion = false;
 static char g_pGModBranch[64] = {0};
 static uint64_t g_pGModVersion = 0;
 
@@ -967,43 +968,6 @@ void Util::AddDetour()
 
 	// Load GMod version
 	// Copied this code from the crashhandler
-	int gmodVersionDescriptor = ::open("garrysmod/garrysmod.ver", O_RDONLY);
-	if (gmodVersionDescriptor > 0)
-	{
-		char readBuffer[128];
-		char readData[3][32] = {0}; // 0 = versionDate, 1 = verionNum, 2 = branch
-		int readDataLength[3] = {0};
-
-		int currentLine = 0;
-		while (currentLine < 3)
-		{
-			ssize_t readNum = ::read(gmodVersionDescriptor, readBuffer, sizeof(readBuffer));
-			if (readNum <= 0)
-				break;
-
-			for (ssize_t i=0; i<readNum; ++i)
-			{
-				char c = readBuffer[i];
-				if (c == '\n')
-				{
-					if (currentLine < 3)
-						readData[currentLine][readDataLength[currentLine]] = '\0';
-
-					currentLine++;
-					if (currentLine >= 3)
-						break;
-				} else {
-					if (currentLine < 3 && readDataLength[currentLine] < 31)
-						readData[currentLine][readDataLength[currentLine]++] = c;
-				}
-			}
-		}
-
-		::close(gmodVersionDescriptor);
-
-		strncpy(g_pGModBranch, readData[2], sizeof(g_pGModBranch));
-		g_pGModVersion = strtoull(readData[0], nullptr, 10);
-	}
 }
 
 void Util::RemoveDetour()
@@ -1168,6 +1132,49 @@ void Util::CheckVersion(bool bAutoUpdate) // This is called only when holylib is
 
 uint64_t Util::GetGModVersionNum()
 {
+	if (!g_bLoadedGModVersion)
+	{
+		int gmodVersionDescriptor = ::open("garrysmod/garrysmod.ver", O_RDONLY);
+		if (gmodVersionDescriptor > 0)
+		{
+			char readBuffer[128];
+			char readData[3][32] = {0}; // 0 = versionDate, 1 = verionNum, 2 = branch
+			int readDataLength[3] = {0};
+
+			int currentLine = 0;
+			while (currentLine < 3)
+			{
+				ssize_t readNum = ::read(gmodVersionDescriptor, readBuffer, sizeof(readBuffer));
+				if (readNum <= 0)
+					break;
+
+				for (ssize_t i=0; i<readNum; ++i)
+				{
+					char c = readBuffer[i];
+					if (c == '\n')
+					{
+						if (currentLine < 3)
+							readData[currentLine][readDataLength[currentLine]] = '\0';
+
+						currentLine++;
+						if (currentLine >= 3)
+							break;
+					} else {
+						if (currentLine < 3 && readDataLength[currentLine] < 31)
+							readData[currentLine][readDataLength[currentLine]++] = c;
+					}
+				}
+			}
+
+			::close(gmodVersionDescriptor);
+
+			strncpy(g_pGModBranch, readData[2], sizeof(g_pGModBranch));
+			g_pGModVersion = strtoull(readData[0], nullptr, 10);
+			Msg(PROJECT_NAME " - Found GMod Version: %llu\n", g_pGModVersion);
+		}
+		g_bLoadedGModVersion = true;
+	}
+
 	return g_pGModVersion;
 }
 
