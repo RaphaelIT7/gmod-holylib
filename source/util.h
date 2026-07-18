@@ -301,6 +301,7 @@ namespace Util
 
 	extern bool ShouldLoad();
 	extern void CheckVersion(bool bAutoUpdate);
+	extern uint64_t GetGModVersionNum();
 
 	// The main load/unload functions
 	extern void Load();

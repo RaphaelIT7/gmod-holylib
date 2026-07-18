@@ -76,7 +76,7 @@ enum CPathGroupName_t
 class CPackFile;
 class CPackedStore;
 class CSearchPath
-	{
+{
 	public:
 					CSearchPath( void );
 					~CSearchPath( void );
@@ -91,6 +91,29 @@ class CSearchPath
 	int32_t m_storeId;
 	uint32_t _flag0;
 	CPathIDInfo *m_pPathIDInfo;
+	CPathGroupName_t m_GroupID;
+	CUtlSymbol m_Path;
+	const char *m_pDebugPath;
+	CPackFile *m_pPackFile;
+	CPackedStore *m_pPackFile2;
+};
+
+class CSearchPathOld
+{
+	public:
+					CSearchPathOld( void );
+					~CSearchPathOld( void );
+
+	const char* GetPathString() const;
+	const char* GetDebugString() const;
+		
+	// Path ID ("game", "mod", "gamebin") accessors.
+	const CUtlSymbol& GetPathID() const;
+	const char* GetPathIDString() const;
+
+	int32_t m_storeId;
+	CPathIDInfo *m_pPathIDInfo;
+	uint32_t _flag0;
 	CPathGroupName_t m_GroupID;
 	CUtlSymbol m_Path;
 	const char *m_pDebugPath;

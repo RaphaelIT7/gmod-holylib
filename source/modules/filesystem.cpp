@@ -1853,6 +1853,14 @@ inline const char* CPathIDInfo::GetPathIDString() const
 
 inline const char* CSearchPath::GetPathIDString() const
 {
+	if (Util::GetGModVersionNum() < 260718)
+	{
+		if (((CSearchPathOld*)this)->m_pPathIDInfo)
+			return ((CSearchPathOld*)this)->m_pPathIDInfo->GetPathIDString();
+
+		return nullptr;
+	}
+
 	if (m_pPathIDInfo)
 		return m_pPathIDInfo->GetPathIDString(); // When can we nuke it :>
 
