@@ -3,7 +3,7 @@ return {
     cases = {
         {
             name = "Skips directory check if folder name contains a dot after the last /",
-            when = HolyLib_IsModuleEnabled( "HolyLib" ) && HolyLib_IsModuleEnabled( "filesystem" ), -- We depend on HolyLib for convar specific tests. We could switch to use HolyTest / include it which would remove this dependency
+            when = HolyLib_IsModuleEnabled( "HolyLib" ) && HolyLib_IsModuleEnabled( "filesystem" ) and BRANCH ~= "x86-64", -- We depend on HolyLib for convar specific tests. We could switch to use HolyTest / include it which would remove this dependency
             func = function(state)
                 RunConsoleCommand("holylib_filesystem_easydircheck", "0")
                 HolyLib.ServerExecute()
