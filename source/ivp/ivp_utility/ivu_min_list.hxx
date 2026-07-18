@@ -10,8 +10,8 @@ typedef float IVP_U_MINLIST_FIXED_POINT;
 #define IVP_U_MINLIST_USELONG
 typedef unsigned int IVP_U_MINLIST_INDEX;
 
-#define IVP_U_MINLIST_UNUSED ( (1<<16) -1 )
-#define IVP_U_MINLIST_LONG_UNUSED ( (1<<16) -2 )
+#define IVP_U_MINLIST_UNUSED ( (1<<20) -1 )
+#define IVP_U_MINLIST_LONG_UNUSED ( (1<<20) -2 )
 #define IVP_U_MINLIST_MAX_ALLOCATION ( (1<<20) - 4 )
 
 
