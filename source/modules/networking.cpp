@@ -632,14 +632,14 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 				Msg("    %i: %s[%i]\n", i, pPVSEntityList[i]->GetClassname(), pPVSEntityList[i]->edict()->m_EdictIndex);
 
 			Msg("Never:\n");
-			for (int i=0; i<=pNeverTransmitBits.GetNumBits(); ++i)
+			for (int i=0; i<pNeverTransmitBits.GetNumBits(); ++i)
 			{
 				if (pNeverTransmitBits.IsBitSet(i))
 					Msg("    %i\n", i);
 			}
 
 			Msg("Always:\n");
-			for (int i=0; i<=pAlwaysTransmitBits.GetNumBits(); ++i)
+			for (int i=0; i<pAlwaysTransmitBits.GetNumBits(); ++i)
 			{
 				if (pAlwaysTransmitBits.IsBitSet(i))
 					Msg("    %i\n", i);
@@ -763,7 +763,8 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 				if (i < (pArea.nCount - 1))
 					memmove(&pArea.pEntities[i], &pArea.pEntities[i + 1], (pArea.nCount - i - 1) * sizeof(CBaseEntity*));
 
-				pArea.pEntities[pArea.nCount--] = nullptr;
+				--pArea.nCount;
+				pArea.pEntities[pArea.nCount] = nullptr;
 				break;
 			}
 		}

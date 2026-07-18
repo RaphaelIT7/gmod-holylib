@@ -899,7 +899,8 @@ LUA_FUNCTION_STATIC(bitbuf_CreateReadBuffer)
 	
 	// The buffer is part of the userdata, appended after the bf_read
 	void* bufferData = (void*)((char*)pNewBF + sizeof(bf_read));
-	memcpy(bufferData, pData, iLength);
+	if (iLength > 0)
+		memcpy(bufferData, pData, MIN(iLength, (size_t)iNewLength));
 
 	pNewBF->StartReading(bufferData, iNewLength);
 
@@ -956,7 +957,8 @@ LUA_FUNCTION_STATIC(bitbuf_CreateWriteBuffer)
 	
 	// The buffer is part of the userdata, appended after the bf_write
 	void* bufferData = (void*)((char*)pNewBF + sizeof(bf_write));
-	memcpy(bufferData, pData, iDataLength);
+	if (iDataLength > 0)
+		memcpy(bufferData, pData, MIN(iDataLength, iBufferLength));
 
 	pNewBF->StartWriting(bufferData, iBufferLength);
 
@@ -986,7 +988,8 @@ LUA_FUNCTION_STATIC(bitbuf_CreateStackWriteBuffer)
 			LUA->ThrowError("Cannot stackalloc at this size!");
 
 		cData = (unsigned char*)_alloca(nSize);
-		memcpy(cData, pData, iLength);
+		if (iLength > 0)
+			memcpy(cData, pData, MIN(iLength, (size_t)nSize));
 	}
 
 	bf_write pNewBf(cData, nSize);

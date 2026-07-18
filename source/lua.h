@@ -475,7 +475,7 @@ namespace Lua
 				{
 					const char* pError = pLua->GetString(-1);
 					pLua->Pop(1);
-					pLua->ErrorFromLua(pError);
+					pLua->ErrorFromLua("%s", pError ? pError : "<lua error>");
 				} else {
 					pLua->Pop(1);
 				}

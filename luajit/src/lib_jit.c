@@ -91,13 +91,13 @@ LJLIB_CF(jit_flush)
 LJLIB_CF(jit_enablecheckhook)
 {
   L2J(L)->additionalflags |= JIT_AF_CHECKHOOK;
-  setjitmode(L, LUAJIT_MODE_FLUSH);
+  return setjitmode(L, LUAJIT_MODE_FLUSH);
 }
 
 LJLIB_CF(jit_disablecheckhook)
 {
   L2J(L)->additionalflags &= ~JIT_AF_CHECKHOOK;
-  setjitmode(L, LUAJIT_MODE_FLUSH);
+  return setjitmode(L, LUAJIT_MODE_FLUSH);
 }
 
 #if LJ_HASJIT

@@ -357,6 +357,9 @@ LUA_FUNCTION_STATIC(sourcetv_FireEvent)
 
 LUA_FUNCTION_STATIC(sourcetv_SetCameraMan)
 {
+	if (!hltv || !hltv->IsActive())
+		return 0;
+
 	int iTarget = 0;
 	if (LUA->IsType(1, GarrysMod::Lua::Type::Number))
 		iTarget = LUA->GetNumber(1);

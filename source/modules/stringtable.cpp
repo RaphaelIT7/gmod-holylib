@@ -838,7 +838,7 @@ static inline void UpdateCGameServerStringTables(INetworkStringTable* pTable)
 		{
 			pServer->m_pLightStyleTable = pTable;
 		}
-		else if (!Q_stricmp(LIGHT_STYLES_TABLENAME, pTable->GetTableName()) && !pServer->m_pUserInfoTable)
+		else if (!Q_stricmp(USER_INFO_TABLENAME, pTable->GetTableName()) && !pServer->m_pUserInfoTable)
 		{
 			pServer->m_pUserInfoTable = pTable;
 		}

@@ -725,7 +725,7 @@ LUA_FUNCTION_STATIC(pvs_AddEntityToTransmit)
 	} else if (Is_EntityList(LUA, 1)) {
 		EntityList* entList = Get_EntityList(LUA, 1, true);
 		for (CBaseEntity* ent : entList->GetEntities())
-			AddEntityToTransmit(LUA, ent, true);
+			AddEntityToTransmit(LUA, ent, force);
 #endif
 	} else {
 		CBaseEntity* ent = Util::Get_Entity(LUA, 1, true);
@@ -742,9 +742,16 @@ LUA_FUNCTION_STATIC(pvs_SetPreventTransmitBulk)
 	if (LUA->IsType(2, GarrysMod::Lua::Type::RecipientFilter))
 	{
 		CRecipientFilter* filter = (CRecipientFilter*)Get_IRecipientFilter(LUA, 2, true);
-		for (int i=0; i<gpGlobals->maxClients; ++i)
-			if (filter->GetRecipientIndex(i) != -1)
-				filterplys.push_back(UTIL_PlayerByIndex(i));
+		for (int i=0; i<filter->GetRecipientCount(); ++i)
+		{
+			int iPlayerIndex = filter->GetRecipientIndex(i);
+			if (iPlayerIndex > 0)
+			{
+				CBasePlayer* pPlayer = UTIL_PlayerByIndex(iPlayerIndex);
+				if (pPlayer)
+					filterplys.push_back(pPlayer);
+			}
+		}
 	}
 	else if (LUA->IsType(2, GarrysMod::Lua::Type::Table))
 	{

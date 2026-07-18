@@ -9,6 +9,7 @@
 #include "tier1/utlstack.h"
 #include <atomic>
 
+#undef max
 #define GMOD
 
 #ifdef BUILD_GMOD
@@ -200,7 +201,10 @@ public: // We keep gmod's structure in case any modules depend on it.
 	GarrysMod::Lua::ILuaObject* m_pStringPool = nullptr;
 	// But wait, theres more. In the next fields the metatables objects are saved but idk if it just has a field for each metatable or if it uses a map.
 	unsigned char m_iMetaTableIDCounter = GarrysMod::Lua::Type::COUNT;
-	GarrysMod::Lua::ILuaObject* m_pMetaTables[255] = {nullptr}; // Their index is based off their type. means m_MetaTables[Type::Entity] returns the Entity metatable.
+	// Max number of metatables
+	static inline constexpr unsigned char MAX_METATABLES = 255; // Could use this but would be overkill: std::numeric_limits<decltype(m_iMetaTableIDCounter)>::max();
+	GarrysMod::Lua::ILuaObject* m_pMetaTables[MAX_METATABLES] = {nullptr}; // Their index is based off their type. means m_MetaTables[Type::Entity] returns the Entity metatable.
+
 private: // NOT GMOD stuff
 	CThreadFastMutex m_pThreadedCallsMutex;
 	std::atomic<bool> m_bShutDownThreadedCalls = false;
