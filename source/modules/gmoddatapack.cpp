@@ -1308,7 +1308,7 @@ static void hook_GModDataPack_SendFileToClient(GModDataPack* pDataPack, int clie
 		return;
 	}
 
-	if (HolyLib::LuaPack::IsEnabled() && fileName != "includes/init.lua" && fileName != "lua/includes/init.lua")
+	if (HolyLib::LuaPack::IsEnabled() && !HolyLib::LuaPack::IsInitFile(fileName))
 	{
 		// The init file must take HolyLib's normal full-file path because it carries the bootstrap.
 		// Every other uncertain/non-ready request goes through the engine implementation itself;
@@ -1552,13 +1552,31 @@ void CGModDataPackModule::Think(bool bSimulating)
 			}
 		}
 
-		GarrysMod::Lua::LuaFile* initFile = Lua::GetShared()->GetCache("includes/init.lua");
+		// The registered init entry may carry an addon path (e.g. addons/dash/lua/includes/init.lua),
+		// so resolve its actual stringtable name before consulting the shared-Lua cache.
+		const char* registeredInitName = nullptr;
+		if (g_pDataPack && g_pDataPack->m_pClientLuaFiles)
+		{
+			for (int fileID = 0; fileID < g_pDataPack->m_pClientLuaFiles->GetNumStrings(); ++fileID)
+			{
+				const char* fileName = g_pDataPack->m_pClientLuaFiles->GetString(fileID);
+				if (fileName && HolyLib::LuaPack::IsInitFile(fileName))
+				{
+					registeredInitName = fileName;
+					break;
+				}
+			}
+		}
+
+		GarrysMod::Lua::LuaFile* initFile = registeredInitName ? Lua::GetShared()->GetCache(registeredInitName) : nullptr;
+		if (!initFile)
+			initFile = Lua::GetShared()->GetCache("includes/init.lua");
 		if (!initFile)
 			initFile = Lua::GetShared()->GetCache("lua/includes/init.lua");
 		if (initFile)
 			g_pLuaDataPack.AddFileContents(initFile->GetName(), initFile->GetContents());
 		else
-			Warning(PROJECT_NAME " - luapack: includes/init.lua is not cached; bootstrap refresh will wait for AddOrUpdateFile\n");
+			Warning(PROJECT_NAME " - luapack: the init file is not cached; bootstrap refresh will wait for AddOrUpdateFile\n");
 	}
 
 	{

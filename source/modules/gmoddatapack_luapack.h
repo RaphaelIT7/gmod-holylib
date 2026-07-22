@@ -39,6 +39,7 @@ namespace HolyLib::LuaPack
 
 	const Config& GetConfig();
 	bool IsEnabled();
+	bool IsInitFile(const std::string& virtualPath);
 
 	void Init(CreateInterfaceFn* appfn);
 	void Shutdown();
