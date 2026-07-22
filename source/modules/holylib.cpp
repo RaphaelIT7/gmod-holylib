@@ -27,6 +27,13 @@ public:
 	const char* Name() override { return "holylib"; };
 	int Compatibility() override { return LINUX32 | LINUX64 | WINDOWS32 | WINDOWS64; };
 	bool SupportsMultipleLuaStates() override { return true; };
+	void OnConfigLoad(Bootil::Data::Tree& pConfig) override
+	{
+		m_bDiagnosticDisableLuaRunStringHook = pConfig.EnsureChildVar<bool>("diagnosticDisableLuaRunStringHook", m_bDiagnosticDisableLuaRunStringHook);
+	};
+
+public:
+	bool m_bDiagnosticDisableLuaRunStringHook = false;
 };
 
 static CHolyLibModule g_pHolyLibModule;
@@ -577,11 +584,15 @@ void CHolyLibModule::InitDetour(bool bPreServer)
 #endif
 
 	SourceSDK::ModuleLoader lua_loader("lua_shared");
-	Detour::Create(
-		&detour_CLuaInterface_RunStringEx, "CLuaInterface::RunStringEx",
-		lua_loader.GetModule(), Symbols::CLuaInterface_RunStringExSym,
-		(void*)DETOUR_THISCALL(hook_CLuaInterface_RunStringEx, RunStringEx), m_pID
-	);
+	Msg(PROJECT_NAME " - holylib diagnostics: luaRunStringHook=%s (diagnosticDisableLuaRunStringHook=%i)\n", m_bDiagnosticDisableLuaRunStringHook ? "disabled" : "enabled", m_bDiagnosticDisableLuaRunStringHook ? 1 : 0);
+	if (!m_bDiagnosticDisableLuaRunStringHook)
+	{
+		Detour::Create(
+			&detour_CLuaInterface_RunStringEx, "CLuaInterface::RunStringEx",
+			lua_loader.GetModule(), Symbols::CLuaInterface_RunStringExSym,
+			(void*)DETOUR_THISCALL(hook_CLuaInterface_RunStringEx, RunStringEx), m_pID
+		);
+	}
 
 	func_CBaseAnimating_InvalidateBoneCache = (Symbols::CBaseAnimating_InvalidateBoneCache)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseAnimating_InvalidateBoneCacheSym);
 	Detour::CheckFunction((void*)func_CBaseAnimating_InvalidateBoneCache, "CBaseAnimating::InvalidateBoneCache");

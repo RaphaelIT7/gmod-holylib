@@ -1092,7 +1092,7 @@ void CLuaGCModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit
 	Util::StartTable(pLua);
 #if MODULE_EXISTS_LUAJIT
 		IModuleWrapper* pWrapper = g_pModuleManager.GetModuleByID(pLuaJITModule->m_pID);
-		if (pWrapper && pWrapper->IsEnabled())
+		if (pWrapper && pWrapper->IsEnabled() && Lua::g_bUsingLuaJIT)
 		{
 			Util::AddFunc(pLua, luajit_luagc_GetGCCount, "GetGCCount"); // GCobj count
 			Util::AddFunc(pLua, luajit_luagc_GetReferences, "GetReferences"); // A table containing all GCobjs that reference the given GCobj

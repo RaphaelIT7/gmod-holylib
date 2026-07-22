@@ -28,6 +28,7 @@ class CLuaJITModule : public IModule
 public:
 	void LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) override;
 	void PostLuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerInit) override;
+	void ServerActivate(edict_t* pEdictList, int edictCount, int clientMax) override;
 	void InitDetour(bool bPreServer) override;
 	const char* Name() override { return "luajit"; };
 	int Compatibility() override { return LINUX32 | LINUX64; };
@@ -37,6 +38,10 @@ public:
 		m_bAllowFFI = pConfig.EnsureChildVar<bool>("enableFFI", m_bAllowFFI);
 		m_bEnableFFIOverrides = pConfig.EnsureChildVar<bool>("enableFFIOverrides", m_bEnableFFIOverrides);
 		m_bKeepRemovedDebugFunctions = pConfig.EnsureChildVar<bool>("keepRemovedDebugFunctions", m_bKeepRemovedDebugFunctions);
+		m_bDiagnosticDisableFastFunctions = pConfig.EnsureChildVar<bool>("diagnosticDisableFastFunctions", m_bDiagnosticDisableFastFunctions);
+		m_bDiagnosticDisableFFICompatIncludeWrapper = pConfig.EnsureChildVar<bool>("diagnosticDisableFFICompatIncludeWrapper", m_bDiagnosticDisableFFICompatIncludeWrapper);
+		m_bDiagnosticUseStockLuaJITRuntime = pConfig.EnsureChildVar<bool>("diagnosticUseStockLuaJITRuntime", m_bDiagnosticUseStockLuaJITRuntime);
+		m_bDiagnosticSuspendGCThroughBoot = pConfig.EnsureChildVar<bool>("diagnosticSuspendGCThroughBoot", m_bDiagnosticSuspendGCThroughBoot);
 	};
 	bool CanEnableAtRuntime() override { return false; };
 	bool CanDisableAtRuntime() override { return false; };
@@ -45,6 +50,11 @@ public:
 	bool m_bAllowFFI = false;
 	bool m_bEnableFFIOverrides = true;
 	bool m_bKeepRemovedDebugFunctions = false;
+	bool m_bDiagnosticDisableFastFunctions = false;
+	bool m_bDiagnosticDisableFFICompatIncludeWrapper = false;
+	bool m_bDiagnosticUseStockLuaJITRuntime = false;
+	bool m_bDiagnosticSuspendGCThroughBoot = false;
+	bool m_bDiagnosticGCSuspended = false;
 	bool m_bIsEnabled = false;
 };
 
@@ -282,6 +292,8 @@ void CLuaJITModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 {
 	if (bServerInit || pLua != g_Lua) // Don't init for non-gmod states
 		return;
+	if (m_bDiagnosticUseStockLuaJITRuntime)
+		return;
 
 	if (!bOpenLibs)
 	{
@@ -293,6 +305,13 @@ void CLuaJITModule::LuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServerIni
 	}
 
 	lua_State* L = pLua->GetState();
+	if (m_bDiagnosticSuspendGCThroughBoot)
+	{
+		lua_gc(L, LUA_GCSTOP, 0);
+		m_bDiagnosticGCSuspended = true;
+		Msg(PROJECT_NAME " - luajit diagnostics: suspended GC through server boot\n");
+	}
+
 	lua_getfield(L, LUA_GLOBALSINDEX, "debug");
 	if (lua_istable(L, -1))
 	{
@@ -340,6 +359,8 @@ void CLuaJITModule::PostLuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 {
 	if (bServerInit || pLua != g_Lua) // Don't init for non-gmod states
 		return;
+	if (m_bDiagnosticUseStockLuaJITRuntime)
+		return;
 
 	lua_State* L = pLua->GetState();
 	if (!g_pLuaJITModule.m_bAllowFFI)
@@ -383,39 +404,78 @@ void CLuaJITModule::PostLuaInit(GarrysMod::Lua::ILuaInterface* pLua, bool bServe
 		overrideFFIReference = -1;
 	}
 
-	pLua->GetField(LUA_GLOBALSINDEX, "SysTime");
-	if (pLua->IsType(-1, GarrysMod::Lua::Type::Function)) {
-		lua_settracablecclosure(pLua->GetState(), -1, (lua_CFunctionInfo*)&ASMINFO_SysTime);
-		Msg(PROJECT_NAME " - jit: Added JIT support for SysTime\n");
-	}
-	pLua->Pop(1);
-
-	pLua->GetField(LUA_GLOBALSINDEX, "TypeID");
-	if (pLua->IsType(-1, GarrysMod::Lua::Type::Function)) {
-		pLua->SetField(LUA_GLOBALSINDEX, "GMOD_TypeID"); // Keep the original around, like GMOD_Vector/GMOD_Angle
-		// Replace it with our cdata-aware version (see hook_TypeID) wired to the same trace recorder.
-		lua_pushtracablecclosure(pLua->GetState(), &ASMINFO_TypeID);
-		pLua->SetField(LUA_GLOBALSINDEX, "TypeID");
-		Msg(PROJECT_NAME " - jit: Added JIT support for TypeID\n");
-	} else {
+	if (!m_bDiagnosticDisableFastFunctions)
+	{
+		pLua->GetField(LUA_GLOBALSINDEX, "SysTime");
+		if (pLua->IsType(-1, GarrysMod::Lua::Type::Function)) {
+			lua_settracablecclosure(pLua->GetState(), -1, (lua_CFunctionInfo*)&ASMINFO_SysTime);
+			Msg(PROJECT_NAME " - jit: Added JIT support for SysTime\n");
+		}
 		pLua->Pop(1);
+
+		pLua->GetField(LUA_GLOBALSINDEX, "TypeID");
+		if (pLua->IsType(-1, GarrysMod::Lua::Type::Function)) {
+			pLua->SetField(LUA_GLOBALSINDEX, "GMOD_TypeID"); // Keep the original around, like GMOD_Vector/GMOD_Angle
+			// Replace it with our cdata-aware version (see hook_TypeID) wired to the same trace recorder.
+			lua_pushtracablecclosure(pLua->GetState(), &ASMINFO_TypeID);
+			pLua->SetField(LUA_GLOBALSINDEX, "TypeID");
+			Msg(PROJECT_NAME " - jit: Added JIT support for TypeID\n");
+		} else {
+			pLua->Pop(1);
+		}
 	}
 
 	if (g_pLuaJITModule.m_bEnableFFIOverrides)
 	{
+		pLua->PushBool(true);
+		pLua->SetField(GarrysMod::Lua::INDEX_GLOBAL, "__HOLYLIB_ENABLE_FFI_OVERRIDES");
+		pLua->PushBool(!m_bDiagnosticDisableFFICompatIncludeWrapper);
+		pLua->SetField(GarrysMod::Lua::INDEX_GLOBAL, "__HOLYLIB_FFI_COMPAT_WRAP_INCLUDE");
+
 		if (!pLua->RunStringEx("HolyLib:FFIOverrideCompat.lua", "", luaFFIOverrideCompat, true, true, true, true))
 		{
 			Warning(PROJECT_NAME " - luajit: Failed to install FFI Vector/Angle compatibility checks!\n");
 		}
 
+		pLua->PushNil();
+		pLua->SetField(GarrysMod::Lua::INDEX_GLOBAL, "__HOLYLIB_ENABLE_FFI_OVERRIDES");
+		pLua->PushNil();
+		pLua->SetField(GarrysMod::Lua::INDEX_GLOBAL, "__HOLYLIB_FFI_COMPAT_WRAP_INCLUDE");
+
 		Warning(PROJECT_NAME " - luajit: enableFFIOverrides uses FFI cdata Vector/Angle metatables; metatable identity checks against FindMetaTable(\"Vector\"/\"Angle\") are incompatible. Use isvector/isangle or TypeID instead.\n");
 	}
+}
+
+void CLuaJITModule::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
+{
+	(void)pEdictList;
+	(void)edictCount;
+	(void)clientMax;
+
+	if (!m_bDiagnosticGCSuspended || !g_Lua)
+		return;
+
+	lua_gc(g_Lua->GetState(), LUA_GCRESTART, 0);
+	m_bDiagnosticGCSuspended = false;
+	Msg(PROJECT_NAME " - luajit diagnostics: restarted GC after server boot\n");
 }
 
 void CLuaJITModule::InitDetour(bool bPreServer)
 {
 	if (bPreServer)
 		return;
+
+	const bool useCustomRuntime = !m_bDiagnosticUseStockLuaJITRuntime;
+	Msg(PROJECT_NAME " - luajit diagnostics: customRuntime=%s (diagnosticUseStockLuaJITRuntime=%i)\n", useCustomRuntime ? "enabled" : "disabled", m_bDiagnosticUseStockLuaJITRuntime ? 1 : 0);
+	Msg(PROJECT_NAME " - luajit diagnostics: fastFunctions=%s (diagnosticDisableFastFunctions=%i)\n", useCustomRuntime && !m_bDiagnosticDisableFastFunctions ? "enabled" : "disabled", m_bDiagnosticDisableFastFunctions ? 1 : 0);
+	Msg(PROJECT_NAME " - luajit diagnostics: ffiCompatIncludeWrapper=%s (enableFFIOverrides=%i, diagnosticDisableFFICompatIncludeWrapper=%i)\n", useCustomRuntime && m_bEnableFFIOverrides && !m_bDiagnosticDisableFFICompatIncludeWrapper ? "enabled" : "disabled", m_bEnableFFIOverrides ? 1 : 0, m_bDiagnosticDisableFFICompatIncludeWrapper ? 1 : 0);
+	Msg(PROJECT_NAME " - luajit diagnostics: suspendGCThroughBoot=%s (diagnosticSuspendGCThroughBoot=%i)\n", useCustomRuntime && m_bDiagnosticSuspendGCThroughBoot ? "enabled" : "disabled", m_bDiagnosticSuspendGCThroughBoot ? 1 : 0);
+
+	if (!useCustomRuntime)
+	{
+		Msg(PROJECT_NAME " - luajit diagnostics: using the stock lua_shared LuaJIT runtime; custom load/compiler, allocator and GC paths are inactive\n");
+		return;
+	}
 
 	SourceSDK::ModuleLoader lua_shared_loader("lua_shared");
 	//Override(luaJIT_version_2_0_4);
