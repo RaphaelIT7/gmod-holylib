@@ -607,6 +607,15 @@ end)
 		return path;
 	}
 
+	// The engine's registered init file can be provided by an addon (dash ships
+	// addons/dash/lua/includes/init.lua, which shadows the base file and becomes the datapack
+	// entry). Every init-file decision must therefore match by normalized key, not exact name,
+	// or the client bootstrap is never injected on such servers.
+	bool IsInitFile(const std::string& virtualPath)
+	{
+		return LocalKeyFormTwo(virtualPath) == "includes/init.lua";
+	}
+
 	static bool HexToBytes(const std::string& hex, unsigned char* output, size_t outputLength)
 	{
 		if (hex.length() != outputLength * 2)
@@ -1051,7 +1060,7 @@ end)
 			for (const auto& pair : state.files)
 			{
 				// The bootstrap must always arrive as a real file; it cannot resolve itself from the pack.
-				if (pair.first == "includes/init.lua" || pair.first == "lua/includes/init.lua")
+				if (IsInitFile(pair.first))
 					continue;
 
 				task->files.push_back(pair.second);
@@ -1549,8 +1558,7 @@ end)
 
 	std::string PrepareVanillaFile(const std::string& virtualPath, const std::string& contents)
 	{
-		const std::string path = NormalizePath(virtualPath);
-		if (!IsEnabled() || (path != "includes/init.lua" && path != "lua/includes/init.lua"))
+		if (!IsEnabled() || !IsInitFile(virtualPath))
 			return contents;
 
 		return std::string(clientBootstrap) + "\n" + contents;
@@ -1576,7 +1584,7 @@ end)
 			return nullptr;
 
 		const std::string path = NormalizePath(virtualPath);
-		const bool stubbable = path != "includes/init.lua" && path != "lua/includes/init.lua" &&
+		const bool stubbable = !IsInitFile(path) &&
 			generation->second.files.find(path) != generation->second.files.end();
 
 		if (client.ready)
