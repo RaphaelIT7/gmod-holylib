@@ -1879,6 +1879,7 @@ static CSharedEdictChangeInfo* g_SharedEdictChangeInfo = nullptr;
 static ServerClassCache *player_class_cache = nullptr;
 #if ARCHITECTURE_X86_64
 static ConVar networking_enableunsafe64x("holylib_networking_enableunsafe64x", "0", 0, "(only affects 64x) Enables 64x the full module code though it may crash on 64x.");
+static ConVar networking_enabletransmit64x("holylib_networking_enabletransmit64x", "1", 0, "(only affects 64x) Enables the CheckTransmit fast path on 64x. Unlike enableunsafe64x this only covers the transmit code, which does not touch the broken CGameClient offsets.");
 #endif
 void CNetworkingModule::InitDetour(bool bPreServer)
 {
@@ -1898,6 +1899,64 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 	);
 #endif
 
+	DETOUR_PREPARE_THISCALL();
+	SourceSDK::FactoryLoader server_loader("server");
+
+	/*
+	 * The transmit fast path (CServerGameEnts::CheckTransmit and everything it reads) does not touch
+	 * CGameClient::m_pCurrentFrame, which is the member the 64x CBaseClient offsets get wrong. That
+	 * single broken read lives in PackEntities_Normal, below the enableunsafe64x gate, so the transmit
+	 * side can be installed on 64x independently of it.
+	 *
+	 * The GMOD_*ShouldPreventTransmitToPlayer pair must stay with it: they maintain g_pShouldPrevent,
+	 * which New_CServerGameEnts_CheckTransmit reads. Installing the transmit path without them would
+	 * silently leak entities that Lua hid via Entity:SetPreventTransmit.
+	 */
+#if ARCHITECTURE_X86_64
+	if (networking_enabletransmit64x.GetBool() || networking_enableunsafe64x.GetBool())
+#endif
+	{
+		Detour::Create(
+			&detour_CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer, "CBaseEntity::GMOD_SetShouldPreventTransmitToPlayer",
+			server_loader.GetModule(), Symbols::CBaseEntity_GMOD_SetShouldPreventTransmitToPlayerSym,
+			(void*)DETOUR_THISCALL(hook_CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer, GMOD_SetShouldPreventTransmitToPlayer), m_pID
+		);
+
+		Detour::Create(
+			&detour_CBaseEntity_GMOD_ShouldPreventTransmitToPlayer, "CBaseEntity::GMOD_ShouldPreventTransmitToPlayer",
+			server_loader.GetModule(), Symbols::CBaseEntity_GMOD_ShouldPreventTransmitToPlayerSym,
+			(void*)DETOUR_THISCALL(hook_CBaseEntity_GMOD_ShouldPreventTransmitToPlayer, GMOD_ShouldPreventTransmitToPlayer), m_pID
+		);
+
+		Detour::Create(
+			&detour_CBaseCombatCharacter_SetTransmit, "CBaseCombatCharacter::SetTransmit",
+			server_loader.GetModule(), Symbols::CBaseCombatCharacter_SetTransmitSym,
+			(void*)DETOUR_THISCALL(hook_CBaseCombatCharacter_SetTransmit, SetTransmit), m_pID
+		);
+
+#if MODULE_EXISTS_PVS
+		IModuleWrapper* pPVS = g_pModuleManager.GetModuleByID(HOLYLIB_MODULEID_PVS);
+		if (pPVS && !pPVS->IsEnabled())
+#endif
+		{
+			Detour::Create(
+				&detour_CServerGameEnts_CheckTransmit, "CServerGameEnts::CheckTransmit",
+				server_loader.GetModule(), Symbols::CServerGameEnts_CheckTransmitSym,
+				(void*)DETOUR_THISCALL(hook_CServerGameEnts_CheckTransmit, CheckTransmit), m_pID
+			);
+		}
+
+		SourceSDK::FactoryLoader datacache_loader("datacache");
+		mdlcache = datacache_loader.GetInterface<IMDLCache>(MDLCACHE_INTERFACE_VERSION);
+
+		func_CBaseAnimating_SetTransmit = (Symbols::CBaseCombatCharacter_SetTransmit)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseAnimating_SetTransmitSym);
+		Detour::CheckFunction((void*)func_CBaseAnimating_SetTransmit, "CBaseAnimating::SetTransmit");
+
+		g_pReplaceCServerGameEnts_CheckTransmit = true;
+	}
+
+	// Everything below still touches the 64x-broken CBaseClient/CGameClient layout or has no 64x
+	// signature at all (InvalidateSharedEdictChangeInfos is called unguarded by the packing path).
 #if ARCHITECTURE_X86_64
 	if (!networking_enableunsafe64x.GetBool()) // It exists so that when I get to working on it, I can easily test it.
 		return;
@@ -1909,43 +1968,11 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 		(void*)hook_SendTable_CullPropsFromProxies, m_pID
 	);
 
-	DETOUR_PREPARE_THISCALL();
-	SourceSDK::FactoryLoader server_loader("server");
-	Detour::Create(
-		&detour_CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer, "CBaseEntity::GMOD_SetShouldPreventTransmitToPlayer",
-		server_loader.GetModule(), Symbols::CBaseEntity_GMOD_SetShouldPreventTransmitToPlayerSym,
-		(void*)DETOUR_THISCALL(hook_CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer, GMOD_SetShouldPreventTransmitToPlayer), m_pID
-	);
-
-	Detour::Create(
-		&detour_CBaseEntity_GMOD_ShouldPreventTransmitToPlayer, "CBaseEntity::GMOD_ShouldPreventTransmitToPlayer",
-		server_loader.GetModule(), Symbols::CBaseEntity_GMOD_ShouldPreventTransmitToPlayerSym,
-		(void*)DETOUR_THISCALL(hook_CBaseEntity_GMOD_ShouldPreventTransmitToPlayer, GMOD_ShouldPreventTransmitToPlayer), m_pID
-	);
-
 	Detour::Create(
 		&detour_CGMOD_Player_CreateViewModel, "CGMOD_Player::CreateViewModel",
 		server_loader.GetModule(), Symbols::CGMOD_Player_CreateViewModelSym,
 		(void*)DETOUR_THISCALL(hook_CGMOD_Player_CreateViewModel, CreateViewModel), m_pID
 	);
-
-	Detour::Create(
-		&detour_CBaseCombatCharacter_SetTransmit, "CBaseCombatCharacter::SetTransmit",
-		server_loader.GetModule(), Symbols::CBaseCombatCharacter_SetTransmitSym,
-		(void*)DETOUR_THISCALL(hook_CBaseCombatCharacter_SetTransmit, SetTransmit), m_pID
-	);
-
-#if MODULE_EXISTS_PVS
-	IModuleWrapper* pPVS = g_pModuleManager.GetModuleByID(HOLYLIB_MODULEID_PVS);
-	if (pPVS && !pPVS->IsEnabled())
-#endif
-	{
-		Detour::Create(
-			&detour_CServerGameEnts_CheckTransmit, "CServerGameEnts::CheckTransmit",
-			server_loader.GetModule(), Symbols::CServerGameEnts_CheckTransmitSym,
-			(void*)DETOUR_THISCALL(hook_CServerGameEnts_CheckTransmit, CheckTransmit), m_pID
-		);
-	}
 
 #if SYSTEM_LINUX
 	Detour::Create(
@@ -1978,9 +2005,6 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 			g_PropTypeFns[i] = pPropTypeFns[i]; // Crash any% speed run. I don't believe this will work
 	}
 
-	SourceSDK::FactoryLoader datacache_loader("datacache");
-	mdlcache = datacache_loader.GetInterface<IMDLCache>(MDLCACHE_INTERFACE_VERSION);
-
 #if SYSTEM_WINDOWS
 	func_SV_PackEntity = (Symbols::SV_PackEntity)Detour::GetFunction(engine_loader.GetModule(), Symbols::SV_PackEntitySym);
 	Detour::CheckFunction((void*)func_SV_PackEntity, "SV_PackEntity");
@@ -1994,14 +2018,9 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 	Detour::CheckFunction((void*)func_PackWork_t_Process, "PackWork_t::Process");
 #endif
 
-	func_CBaseAnimating_SetTransmit = (Symbols::CBaseCombatCharacter_SetTransmit)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseAnimating_SetTransmitSym);
-	Detour::CheckFunction((void*)func_CBaseAnimating_SetTransmit, "CBaseAnimating::SetTransmit");
-
 #if SYSTEM_WINDOWS // BUG: On Windows IModule::ServerActivate is not called if HolyLib gets loaded using: require("holylib")
 	world_edict = Util::engineserver->PEntityOfEntIndex(0);
 #endif
-
-	g_pReplaceCServerGameEnts_CheckTransmit = true;
 }
 
 void CNetworkingModule::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
