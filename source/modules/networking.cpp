@@ -395,6 +395,9 @@ static inline void CBitVec_AndNot(CBitVec<MAX_EDICTS>* a, const CBitVec<MAX_EDIC
  */
 static ConVar* sv_force_transmit_ents = nullptr;
 static CBaseEntity* g_pEntityCache[MAX_EDICTS] = {nullptr};
+#if defined(SYSTEM_LINUX) && defined(ARCHITECTURE_X86_64)
+static bool g_bEntityCacheSeeded = false;
+#endif
 bool g_pReplaceCServerGameEnts_CheckTransmit = false;
 static edict_t* world_edict = nullptr;
 
@@ -463,7 +466,7 @@ static inline CBaseEntity* EHandleToEntity(const CBaseHandle* pHandle)
 }
 
 // Resolves an edict index straight from the engine, bypassing g_pEntityCache.
-// Used to rebuild the cache on 64x where the entity listener never fires (see UpdateEntities).
+// Used to rebuild the cache when the entity listener could not be registered (see UpdateEntities).
 // Deliberately goes through PEntityOfEntIndex rather than indexing world_edict directly: slots past
 // sv.num_edicts are zeroed, so IsFree() reads false for them and we would hand a zeroed edict to
 // EdictToBaseEntity. PEntityOfEntIndex bounds-checks against num_edicts *and* rejects free edicts.
@@ -473,23 +476,31 @@ static inline CBaseEntity* EdictIndexToEntity(const int nEntIndex)
 }
 
 // Without g_pEntityList we never registered the entity listener (util.cpp), so OnEntityCreated /
-// OnEntityDeleted never fire and g_pEntityCache is frozen at whatever ServerActivate left there -
-// missing every player and every runtime spawn, dangling for everything since removed.
-// Rebuilt in full rather than only for the edict indices CheckTransmit hands us: EHandleToEntity also
-// resolves weapons, viewmodels and hands, whose edict indices need not appear in that list at all.
-// A partial rebuild would leave those slots dangling and GetRefEHandle() would then read freed memory.
+// OnEntityDeleted never fire and the cache must be rebuilt every tick. On Linux 64x, do one initial
+// rebuild even with a listener: plugin_load can happen after ServerActivate and AddListenerEntity
+// does not replay entities that already exist. A partial rebuild is not sufficient because handle
+// resolution also needs weapons, viewmodels and hands that need not occur in CheckTransmit's edict list.
 static inline void RebuildEntityCacheForTick()
 {
-	if (g_pEntityList) // 32x keeps the cache live through the entity listener, no rebuild needed.
+#if defined(SYSTEM_LINUX) && defined(ARCHITECTURE_X86_64)
+	if (g_pEntityList && g_bEntityCacheSeeded)
 		return;
+#else
+	if (g_pEntityList)
+		return;
+#endif
 
 	for (int i = 0; i < MAX_EDICTS; ++i)
 		g_pEntityCache[i] = EdictIndexToEntity(i);
+
+#if defined(SYSTEM_LINUX) && defined(ARCHITECTURE_X86_64)
+	g_bEntityCacheSeeded = g_pEntityList != nullptr;
+#endif
 }
 
 // CCServerNetworkProperty::GetNetworkParent() calls m_hParent.Get(), which is the SDK's own inline
-// and dereferences g_pEntityList *unconditionally*. On 64x g_pEntityList is always nullptr (the
-// gEntList sigscan fails - see util.cpp), so calling it faults. Route through the cache instead.
+// and dereferences g_pEntityList *unconditionally*. If gEntList resolution fails, calling it faults,
+// so route through the safe handle fallback instead.
 static inline CCServerNetworkProperty* GetNetworkParentSafe(CCServerNetworkProperty* pProp)
 {
 	if (!pProp || !pProp->m_hParent.IsValid())
@@ -1565,9 +1576,9 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	const bool bFirstTransmit = g_pGlobalTransmitTickCache.IsNewTick(nCurrentTick);
 	if (bFirstTransmit)
 	{
-		// Has to happen before anything reads g_pEntityCache. On 64x the cache is only ever as fresh as the
-		// last rebuild, so doing this inside UpdateEntities (below) left the player loop reading entries a
-		// tick out of date - a player removed during the previous tick would be handed to NextTick() freed.
+		// Has to happen before anything reads g_pEntityCache. If gEntList resolution failed, the cache is
+		// only ever as fresh as the last rebuild. Doing this inside UpdateEntities (below) left the player
+		// loop reading entries a tick out of date and could hand a removed player to NextTick() freed.
 		RebuildEntityCacheForTick();
 
 		if (bFastPath)
@@ -1688,8 +1699,8 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	{
 		CBaseEntity* pEnt = g_nEntityTransmitCache.pPVSEntityList[i];
 
-		// EntityRemoved() only runs off the entity listener, which is never registered on 64x, so an entity
-		// removed while we are still networking this tick stays in the list. Same guard as the full list above.
+		// EntityRemoved() only runs off the entity listener. Keep the guard for the resolution-failure fallback,
+		// where an entity removed while we are still networking this tick can stay in the list.
 		edict_t* pEdict = pEnt ? pEnt->edict() : nullptr;
 		if (!pEdict)
 			continue;
@@ -1996,6 +2007,9 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 		return;
 
 	Plat_FastMemset(g_pEntityCache, 0, sizeof(g_pEntityCache));
+#if defined(SYSTEM_LINUX) && defined(ARCHITECTURE_X86_64)
+	g_bEntityCacheSeeded = false;
+#endif
 	for (int i=0; i<MAX_PLAYERS; ++i)
 		g_pShouldPrevent[i].ClearAll();
 
@@ -2157,6 +2171,10 @@ void CNetworkingModule::ServerActivate(edict_t* pEdictList, int edictCount, int 
 		for (int i=0; i<edictCount; ++i)
 			g_pEntityCache[i] = Util::GetCBaseEntityFromEdict(&pEdictList[i]);
 	}
+
+#if defined(SYSTEM_LINUX) && defined(ARCHITECTURE_X86_64)
+	g_bEntityCacheSeeded = pEdictList != nullptr && g_pEntityList != nullptr;
+#endif
 
 	if (g_pCVar)
 		sv_force_transmit_ents = g_pCVar->FindVar("sv_force_transmit_ents");

@@ -1,3 +1,7 @@
+#if defined(__linux__) && defined(__x86_64__) && !defined(_GNU_SOURCE)
+#define _GNU_SOURCE
+#endif
+
 #include "httplib.h"
 #include "util.h"
 #include "GarrysMod/Lua/LuaObject.h"
@@ -13,6 +17,14 @@
 #include "GarrysMod/IGet.h"
 #include <lua.h>
 #include "versioninfo.h"
+
+#if defined(SYSTEM_LINUX) && defined(ARCHITECTURE_X86_64)
+#include <detouring/helpers.hpp>
+#include <link.h>
+#include <unistd.h>
+#endif
+#include <cstdint>
+#include <cstring>
 
 // memdbgon must be the last include file in a .cpp file!!!
 #include "tier0/memdbgon.h"
@@ -503,6 +515,600 @@ public:
 };
 static HolyEntityListener pHolyEntityListener;
 
+#if defined(SYSTEM_LINUX) && defined(ARCHITECTURE_X86_64)
+namespace
+{
+	struct LinuxModuleSegment
+	{
+		uintptr_t nBegin;
+		uintptr_t nEnd;
+		ElfW(Word) nFlags;
+
+		bool Contains(uintptr_t nAddress, size_t nLength, ElfW(Word) nRequiredFlags) const
+		{
+			if ((nFlags & nRequiredFlags) != nRequiredFlags || nAddress < nBegin || nAddress > nEnd)
+				return false;
+
+			return nLength <= nEnd - nAddress;
+		}
+	};
+
+	struct FindLinuxModuleContext
+	{
+		uintptr_t nAnchor;
+		std::vector<LinuxModuleSegment>* pSegments;
+		bool bFound;
+		bool bInvalid;
+	};
+
+	static bool GetLinuxSegmentRange(const dl_phdr_info* pInfo, const ElfW(Phdr)& pHeader, uintptr_t& nBegin, uintptr_t& nEnd)
+	{
+		const uintptr_t nLoadAddress = (uintptr_t)pInfo->dlpi_addr;
+		if ((uintptr_t)pHeader.p_vaddr > UINTPTR_MAX - nLoadAddress)
+			return false;
+
+		nBegin = nLoadAddress + (uintptr_t)pHeader.p_vaddr;
+		if ((uintptr_t)pHeader.p_memsz > UINTPTR_MAX - nBegin)
+			return false;
+
+		nEnd = nBegin + (uintptr_t)pHeader.p_memsz;
+		return true;
+	}
+
+	static void RemoveLinuxSegmentWritePermission(
+		std::vector<LinuxModuleSegment>& pSegments,
+		uintptr_t nReadOnlyBegin,
+		uintptr_t nReadOnlyEnd
+	)
+	{
+		std::vector<LinuxModuleSegment> pSplitSegments;
+		for (const LinuxModuleSegment& pSegment : pSegments)
+		{
+			if (pSegment.nEnd <= nReadOnlyBegin || pSegment.nBegin >= nReadOnlyEnd)
+			{
+				pSplitSegments.push_back(pSegment);
+				continue;
+			}
+
+			const uintptr_t nOverlapBegin = pSegment.nBegin > nReadOnlyBegin ? pSegment.nBegin : nReadOnlyBegin;
+			const uintptr_t nOverlapEnd = pSegment.nEnd < nReadOnlyEnd ? pSegment.nEnd : nReadOnlyEnd;
+			if (pSegment.nBegin < nOverlapBegin)
+				pSplitSegments.push_back({pSegment.nBegin, nOverlapBegin, pSegment.nFlags});
+
+			pSplitSegments.push_back({nOverlapBegin, nOverlapEnd, pSegment.nFlags & ~PF_W});
+			if (nOverlapEnd < pSegment.nEnd)
+				pSplitSegments.push_back({nOverlapEnd, pSegment.nEnd, pSegment.nFlags});
+		}
+
+		pSegments.swap(pSplitSegments);
+	}
+
+	static int FindLinuxModuleSegments(dl_phdr_info* pInfo, size_t, void* pData)
+	{
+		FindLinuxModuleContext* pContext = (FindLinuxModuleContext*)pData;
+		bool bContainsAnchor = false;
+
+		for (ElfW(Half) i = 0; i < pInfo->dlpi_phnum; ++i)
+		{
+			const ElfW(Phdr)& pHeader = pInfo->dlpi_phdr[i];
+			if (pHeader.p_type != PT_LOAD || pHeader.p_memsz == 0)
+				continue;
+
+			uintptr_t nBegin;
+			uintptr_t nEnd;
+			if (!GetLinuxSegmentRange(pInfo, pHeader, nBegin, nEnd))
+				continue;
+
+			if (pContext->nAnchor >= nBegin && pContext->nAnchor < nEnd)
+			{
+				bContainsAnchor = true;
+				break;
+			}
+		}
+
+		if (!bContainsAnchor)
+			return 0;
+
+		pContext->bFound = true;
+		for (ElfW(Half) i = 0; i < pInfo->dlpi_phnum; ++i)
+		{
+			const ElfW(Phdr)& pHeader = pInfo->dlpi_phdr[i];
+			if (pHeader.p_type != PT_LOAD || pHeader.p_memsz == 0)
+				continue;
+
+			uintptr_t nBegin;
+			uintptr_t nEnd;
+			if (!GetLinuxSegmentRange(pInfo, pHeader, nBegin, nEnd))
+			{
+				pContext->bInvalid = true;
+				return 1;
+			}
+
+			pContext->pSegments->push_back({nBegin, nEnd, pHeader.p_flags});
+		}
+
+		#ifdef PT_GNU_RELRO
+		for (ElfW(Half) i = 0; i < pInfo->dlpi_phnum; ++i)
+		{
+			const ElfW(Phdr)& pHeader = pInfo->dlpi_phdr[i];
+			if (pHeader.p_type != PT_GNU_RELRO || pHeader.p_memsz == 0)
+				continue;
+
+			uintptr_t nBegin;
+			uintptr_t nEnd;
+			if (!GetLinuxSegmentRange(pInfo, pHeader, nBegin, nEnd))
+			{
+				pContext->bInvalid = true;
+				return 1;
+			}
+
+			RemoveLinuxSegmentWritePermission(*pContext->pSegments, nBegin, nEnd);
+		}
+		#endif
+
+		return 1;
+	}
+
+	static bool GetLinuxModuleSegments(const SourceSDK::FactoryLoader& pLoader, std::vector<LinuxModuleSegment>& pSegments)
+	{
+		void* pAnchor = pLoader.GetSymbol("CreateInterface");
+		if (!pAnchor)
+			return false;
+
+		FindLinuxModuleContext pContext = {(uintptr_t)pAnchor, &pSegments, false, false};
+		dl_iterate_phdr(FindLinuxModuleSegments, &pContext);
+		return pContext.bFound && !pContext.bInvalid && !pSegments.empty();
+	}
+
+	static const LinuxModuleSegment* FindLinuxModuleSegment(
+		const std::vector<LinuxModuleSegment>& pSegments,
+		uintptr_t nAddress,
+		size_t nLength,
+		ElfW(Word) nRequiredFlags
+	)
+	{
+		for (const LinuxModuleSegment& pSegment : pSegments)
+		{
+			if (pSegment.Contains(nAddress, nLength, nRequiredFlags))
+				return &pSegment;
+		}
+
+		return nullptr;
+	}
+
+	template<typename T>
+	static bool ReadLinuxModuleValue(
+		const std::vector<LinuxModuleSegment>& pSegments,
+		uintptr_t nAddress,
+		T& pValue
+	)
+	{
+		if (!FindLinuxModuleSegment(pSegments, nAddress, sizeof(T), PF_R))
+			return false;
+
+		memcpy(&pValue, (const void*)nAddress, sizeof(T));
+		return true;
+	}
+
+	static void AddUniqueAddress(std::vector<uintptr_t>& pAddresses, uintptr_t nAddress)
+	{
+		for (uintptr_t nExistingAddress : pAddresses)
+		{
+			if (nExistingAddress == nAddress)
+				return;
+		}
+
+		pAddresses.push_back(nAddress);
+	}
+
+	static void FindLinuxModuleString(
+		const std::vector<LinuxModuleSegment>& pSegments,
+		const char* pString,
+		size_t nLength,
+		std::vector<uintptr_t>& pMatches
+	)
+	{
+		for (const LinuxModuleSegment& pSegment : pSegments)
+		{
+			// server.so maps .text and .rodata into the same R-X PT_LOAD, so PF_X cannot be
+			// excluded. String literals cannot live in a writable segment, though, and skipping
+			// those ranges avoids scanning .data and .bss.
+			if ((pSegment.nFlags & PF_R) == 0 ||
+				(pSegment.nFlags & PF_W) != 0 ||
+				pSegment.nEnd - pSegment.nBegin < nLength)
+			{
+				continue;
+			}
+
+			const uintptr_t nSearchEnd = pSegment.nEnd - nLength + 1;
+			uintptr_t nAddress = pSegment.nBegin;
+			while (nAddress < nSearchEnd)
+			{
+				const void* pMatch = memchr((const void*)nAddress, pString[0], nSearchEnd - nAddress);
+				if (!pMatch)
+					break;
+
+				const uintptr_t nMatch = (uintptr_t)pMatch;
+				if (memcmp(pMatch, pString, nLength) == 0)
+					AddUniqueAddress(pMatches, nMatch);
+
+				nAddress = nMatch + 1;
+			}
+		}
+	}
+
+	static void FindLinuxModulePointer(
+		const std::vector<LinuxModuleSegment>& pSegments,
+		uintptr_t nValue,
+		ElfW(Word) nRequiredFlags,
+		std::vector<uintptr_t>& pMatches
+	)
+	{
+		const uintptr_t nAlignmentMask = sizeof(uintptr_t) - 1;
+		for (const LinuxModuleSegment& pSegment : pSegments)
+		{
+			if ((pSegment.nFlags & nRequiredFlags) != nRequiredFlags || pSegment.nEnd - pSegment.nBegin < sizeof(uintptr_t))
+				continue;
+
+			const uintptr_t nFirstAddress = (pSegment.nBegin + nAlignmentMask) & ~nAlignmentMask;
+			const uintptr_t nLastAddress = pSegment.nEnd - sizeof(uintptr_t);
+			for (uintptr_t nAddress = nFirstAddress; nAddress <= nLastAddress; nAddress += sizeof(uintptr_t))
+			{
+				uintptr_t nCurrentValue;
+				memcpy(&nCurrentValue, (const void*)nAddress, sizeof(nCurrentValue));
+				if (nCurrentValue == nValue)
+					AddUniqueAddress(pMatches, nAddress);
+			}
+		}
+	}
+
+	static bool IsLinuxReadableMappedRange(uintptr_t nAddress, size_t nLength)
+	{
+		if (nAddress == 0 || nLength == 0 || nLength > UINTPTR_MAX - nAddress)
+			return false;
+
+		const long nPageSize = sysconf(_SC_PAGESIZE);
+		if (nPageSize <= 0)
+			return false;
+
+		const uintptr_t nEnd = nAddress + nLength;
+		const uintptr_t nPageLength = (uintptr_t)nPageSize;
+		while (nAddress < nEnd)
+		{
+			const uintptr_t nBytesInPage = nPageLength - nAddress % nPageLength;
+			const uintptr_t nRemaining = nEnd - nAddress;
+			const uintptr_t nChunkLength = nBytesInPage < nRemaining ? nBytesInPage : nRemaining;
+			const uintptr_t nLastAddress = nAddress + nChunkLength - 1;
+
+			if ((Detouring::GetMemoryProtection((void*)nAddress) & Detouring::MemoryProtection::Read) == 0 ||
+				(Detouring::GetMemoryProtection((void*)nLastAddress) & Detouring::MemoryProtection::Read) == 0)
+			{
+				return false;
+			}
+
+			nAddress += nChunkLength;
+		}
+
+		return true;
+	}
+
+	struct LinuxEntityListenerVectorHeader
+	{
+		uintptr_t nMemory;
+		int nAllocationCount;
+		int nGrowSize;
+		int nElementCount;
+		int nPadding;
+		uintptr_t nElements;
+	};
+
+	static bool ValidateLinux64EntityListenerVector(
+		const std::vector<LinuxModuleSegment>& pSegments,
+		uintptr_t nCandidate
+	)
+	{
+		using EntityListenerVector = CUtlVector<IEntityListener*>;
+		constexpr size_t nVectorAlignment = alignof(EntityListenerVector);
+		constexpr size_t nUnalignedVectorOffset =
+			sizeof(CBaseEntityList) + sizeof(int) * 3 + sizeof(bool);
+		constexpr size_t nVectorOffset =
+			(nUnalignedVectorOffset + nVectorAlignment - 1) & ~(nVectorAlignment - 1);
+		constexpr int nMaxReasonableEntityListeners = 1024;
+
+		static_assert((nVectorAlignment & (nVectorAlignment - 1)) == 0, "Unexpected CUtlVector alignment");
+		static_assert(
+			nVectorOffset + sizeof(EntityListenerVector) == sizeof(CGlobalEntityList),
+			"Unexpected CGlobalEntityList listener-vector layout"
+		);
+		static_assert(
+			sizeof(LinuxEntityListenerVectorHeader) == sizeof(EntityListenerVector),
+			"Unexpected x86-64 CUtlVector header size"
+		);
+		static_assert(
+			__builtin_offsetof(LinuxEntityListenerVectorHeader, nMemory) == 0,
+			"Unexpected CUtlVector memory offset"
+		);
+		static_assert(
+			__builtin_offsetof(LinuxEntityListenerVectorHeader, nAllocationCount) == sizeof(uintptr_t),
+			"Unexpected CUtlVector allocation-count offset"
+		);
+		static_assert(
+			__builtin_offsetof(LinuxEntityListenerVectorHeader, nGrowSize) == sizeof(uintptr_t) + sizeof(int),
+			"Unexpected CUtlVector grow-size offset"
+		);
+		static_assert(
+			__builtin_offsetof(LinuxEntityListenerVectorHeader, nElementCount) == sizeof(uintptr_t) + sizeof(int) * 2,
+			"Unexpected CUtlVector element-count offset"
+		);
+		static_assert(
+			__builtin_offsetof(LinuxEntityListenerVectorHeader, nElements) == sizeof(uintptr_t) * 3,
+			"Unexpected CUtlVector debug-pointer offset"
+		);
+
+		LinuxEntityListenerVectorHeader pHeader;
+		if (!ReadLinuxModuleValue(pSegments, nCandidate + nVectorOffset, pHeader))
+			return false;
+
+		const bool bCountsValid =
+			pHeader.nElementCount >= 0 &&
+			pHeader.nElementCount <= nMaxReasonableEntityListeners &&
+			pHeader.nAllocationCount >= pHeader.nElementCount &&
+			pHeader.nAllocationCount <= nMaxReasonableEntityListeners &&
+			pHeader.nGrowSize >= 0 &&
+			pHeader.nGrowSize <= nMaxReasonableEntityListeners;
+		const bool bPointersMatch = pHeader.nMemory == pHeader.nElements;
+		const bool bEmptyAllocationValid =
+			pHeader.nAllocationCount != 0 ||
+			(pHeader.nMemory == 0 && pHeader.nElements == 0);
+		const bool bAllocatedMemoryValid =
+			bCountsValid &&
+			(pHeader.nAllocationCount == 0 ||
+				(pHeader.nMemory != 0 &&
+				(pHeader.nMemory & (alignof(IEntityListener*) - 1)) == 0 &&
+				IsLinuxReadableMappedRange(
+					pHeader.nMemory,
+					(size_t)pHeader.nAllocationCount * sizeof(IEntityListener*)
+				)));
+
+		if (bCountsValid && bPointersMatch && bEmptyAllocationValid && bAllocatedMemoryValid)
+			return true;
+
+		Warning(PROJECT_NAME " - core: Rejected gEntList candidate %p because its m_entityListeners "
+			"CUtlVector header was invalid (count=%i allocation=%i grow=%i memory=%p elements=%p).\n",
+			(void*)nCandidate,
+			pHeader.nElementCount,
+			pHeader.nAllocationCount,
+			pHeader.nGrowSize,
+			(void*)pHeader.nMemory,
+			(void*)pHeader.nElements);
+		return false;
+	}
+
+	static bool IsEntityInfoPointer(uintptr_t nPointer, uintptr_t nFirstEntityInfo, uintptr_t nLastEntityInfo, int nFirstIndex)
+	{
+		if (nPointer == 0)
+			return true;
+
+		if (nPointer < nFirstEntityInfo || nPointer >= nLastEntityInfo)
+			return false;
+
+		const uintptr_t nOffset = nPointer - nFirstEntityInfo;
+		return nOffset % sizeof(CEntInfo) == 0 && nOffset / sizeof(CEntInfo) >= (uintptr_t)nFirstIndex;
+	}
+
+	static bool ValidateLinux64EntityListCandidate(
+		const std::vector<LinuxModuleSegment>& pSegments,
+		uintptr_t nCandidate,
+		uintptr_t nExpectedVTable = 0,
+		bool bRequireRTTI = true
+	)
+	{
+		static_assert(sizeof(CGlobalEntityList) >= 512 * 1024, "Unexpected x86-64 CGlobalEntityList layout");
+		static_assert(
+			sizeof(CBaseEntityList) >= sizeof(uintptr_t) + sizeof(CEntInfo) * NUM_ENT_ENTRIES + sizeof(uintptr_t) * 4,
+			"Unexpected x86-64 CBaseEntityList layout"
+		);
+
+		if ((nCandidate & (alignof(uintptr_t) - 1)) != 0 ||
+			!FindLinuxModuleSegment(pSegments, nCandidate, sizeof(CGlobalEntityList), PF_R | PF_W))
+		{
+			return false;
+		}
+
+		uintptr_t nVTable;
+		if (!ReadLinuxModuleValue(pSegments, nCandidate, nVTable) ||
+			nVTable < sizeof(uintptr_t) * 2 ||
+			!FindLinuxModuleSegment(
+				pSegments,
+				nVTable - sizeof(uintptr_t) * 2,
+				sizeof(uintptr_t) * 4,
+				PF_R
+			) ||
+			(nExpectedVTable != 0 && nVTable != nExpectedVTable))
+		{
+			return false;
+		}
+
+		intptr_t nOffsetToTop;
+		uintptr_t nTypeInfo;
+		uintptr_t nFirstVirtual;
+		uintptr_t nSecondVirtual;
+		if (!ReadLinuxModuleValue(pSegments, nVTable - sizeof(uintptr_t) * 2, nOffsetToTop) ||
+			!ReadLinuxModuleValue(pSegments, nVTable - sizeof(uintptr_t), nTypeInfo) ||
+			!ReadLinuxModuleValue(pSegments, nVTable, nFirstVirtual) ||
+			!ReadLinuxModuleValue(pSegments, nVTable + sizeof(uintptr_t), nSecondVirtual) ||
+			nOffsetToTop != 0 ||
+			!FindLinuxModuleSegment(pSegments, nFirstVirtual, 1, PF_X) ||
+			!FindLinuxModuleSegment(pSegments, nSecondVirtual, 1, PF_X))
+		{
+			return false;
+		}
+
+		if (bRequireRTTI)
+		{
+			uintptr_t nTypeInfoVTable;
+			uintptr_t nTypeInfoName;
+			if (!FindLinuxModuleSegment(pSegments, nTypeInfo, sizeof(uintptr_t) * 2, PF_R) ||
+				!ReadLinuxModuleValue(pSegments, nTypeInfo, nTypeInfoVTable) ||
+				!ReadLinuxModuleValue(pSegments, nTypeInfo + sizeof(uintptr_t), nTypeInfoName) ||
+				nTypeInfoVTable == 0)
+			{
+				return false;
+			}
+
+			static const char pTypeInfoName[] = "17CGlobalEntityList";
+			if (!FindLinuxModuleSegment(pSegments, nTypeInfoName, sizeof(pTypeInfoName), PF_R) ||
+				memcmp((const void*)nTypeInfoName, pTypeInfoName, sizeof(pTypeInfoName)) != 0)
+			{
+				return false;
+			}
+		}
+
+		const uintptr_t nFirstEntityInfo = nCandidate + sizeof(uintptr_t);
+		const uintptr_t nLastEntityInfo = nFirstEntityInfo + sizeof(CEntInfo) * NUM_ENT_ENTRIES;
+		uintptr_t nActiveHead;
+		uintptr_t nActiveTail;
+		uintptr_t nFreeHead;
+		uintptr_t nFreeTail;
+		if (!ReadLinuxModuleValue(pSegments, nLastEntityInfo, nActiveHead) ||
+			!ReadLinuxModuleValue(pSegments, nLastEntityInfo + sizeof(uintptr_t), nActiveTail) ||
+			!ReadLinuxModuleValue(pSegments, nLastEntityInfo + sizeof(uintptr_t) * 2, nFreeHead) ||
+			!ReadLinuxModuleValue(pSegments, nLastEntityInfo + sizeof(uintptr_t) * 3, nFreeTail) ||
+			(nActiveHead == 0) != (nActiveTail == 0) ||
+			(nFreeHead == 0) != (nFreeTail == 0) ||
+			!IsEntityInfoPointer(nActiveHead, nFirstEntityInfo, nLastEntityInfo, 0) ||
+			!IsEntityInfoPointer(nActiveTail, nFirstEntityInfo, nLastEntityInfo, 0) ||
+			!IsEntityInfoPointer(nFreeHead, nFirstEntityInfo, nLastEntityInfo, MAX_EDICTS) ||
+			!IsEntityInfoPointer(nFreeTail, nFirstEntityInfo, nLastEntityInfo, MAX_EDICTS))
+		{
+			return false;
+		}
+
+		const uintptr_t nStateAddress = nCandidate + sizeof(CBaseEntityList);
+		int nHighestEntity;
+		int nEntityCount;
+		int nEdictCount;
+		unsigned char bClearingEntities;
+		if (!ReadLinuxModuleValue(pSegments, nStateAddress, nHighestEntity) ||
+			!ReadLinuxModuleValue(pSegments, nStateAddress + sizeof(int), nEntityCount) ||
+			!ReadLinuxModuleValue(pSegments, nStateAddress + sizeof(int) * 2, nEdictCount) ||
+			!ReadLinuxModuleValue(pSegments, nStateAddress + sizeof(int) * 3, bClearingEntities))
+		{
+			return false;
+		}
+
+		if (nHighestEntity < -1 || nHighestEntity >= NUM_ENT_ENTRIES ||
+			nEntityCount < 0 || nEntityCount > NUM_ENT_ENTRIES ||
+			nEdictCount < 0 || nEdictCount > MAX_EDICTS ||
+			bClearingEntities > 1)
+		{
+			return false;
+		}
+
+		return ValidateLinux64EntityListenerVector(pSegments, nCandidate);
+	}
+
+	static CGlobalEntityList* ResolveLinux64EntityListFromRTTI(const SourceSDK::FactoryLoader& pLoader)
+	{
+		std::vector<LinuxModuleSegment> pSegments;
+		if (!GetLinuxModuleSegments(pLoader, pSegments))
+		{
+			Warning(PROJECT_NAME " - core: Failed to enumerate server.so segments for gEntList RTTI resolution.\n");
+			return nullptr;
+		}
+
+		static const char pTypeInfoName[] = "17CGlobalEntityList";
+		std::vector<uintptr_t> pTypeInfoNames;
+		FindLinuxModuleString(pSegments, pTypeInfoName, sizeof(pTypeInfoName), pTypeInfoNames);
+		if (pTypeInfoNames.empty())
+		{
+			Warning(PROJECT_NAME " - core: Failed to find CGlobalEntityList's RTTI name in server.so.\n");
+			return nullptr;
+		}
+
+		std::vector<uintptr_t> pTypeInfos;
+		for (uintptr_t nTypeInfoName : pTypeInfoNames)
+		{
+			std::vector<uintptr_t> pNameReferences;
+			FindLinuxModulePointer(pSegments, nTypeInfoName, PF_R, pNameReferences);
+			for (uintptr_t nNameReference : pNameReferences)
+			{
+				if (nNameReference < sizeof(uintptr_t))
+					continue;
+
+				uintptr_t nTypeInfoVTable;
+				const uintptr_t nTypeInfo = nNameReference - sizeof(uintptr_t);
+				if (ReadLinuxModuleValue(pSegments, nTypeInfo, nTypeInfoVTable) && nTypeInfoVTable != 0)
+					AddUniqueAddress(pTypeInfos, nTypeInfo);
+			}
+		}
+
+		std::vector<uintptr_t> pVTables;
+		for (uintptr_t nTypeInfo : pTypeInfos)
+		{
+			std::vector<uintptr_t> pTypeInfoReferences;
+			FindLinuxModulePointer(pSegments, nTypeInfo, PF_R, pTypeInfoReferences);
+			for (uintptr_t nTypeInfoReference : pTypeInfoReferences)
+			{
+				if (nTypeInfoReference < sizeof(uintptr_t))
+					continue;
+
+				intptr_t nOffsetToTop;
+				uintptr_t nFirstVirtual;
+				uintptr_t nSecondVirtual;
+				const uintptr_t nVTable = nTypeInfoReference + sizeof(uintptr_t);
+				if (ReadLinuxModuleValue(pSegments, nTypeInfoReference - sizeof(uintptr_t), nOffsetToTop) &&
+					ReadLinuxModuleValue(pSegments, nVTable, nFirstVirtual) &&
+					ReadLinuxModuleValue(pSegments, nVTable + sizeof(uintptr_t), nSecondVirtual) &&
+					nOffsetToTop == 0 &&
+					FindLinuxModuleSegment(pSegments, nFirstVirtual, 1, PF_X) &&
+					FindLinuxModuleSegment(pSegments, nSecondVirtual, 1, PF_X))
+				{
+					AddUniqueAddress(pVTables, nVTable);
+				}
+			}
+		}
+
+		std::vector<uintptr_t> pCandidates;
+		for (uintptr_t nVTable : pVTables)
+		{
+			std::vector<uintptr_t> pVTableReferences;
+			FindLinuxModulePointer(pSegments, nVTable, PF_R | PF_W, pVTableReferences);
+			for (uintptr_t nCandidate : pVTableReferences)
+			{
+				if (ValidateLinux64EntityListCandidate(pSegments, nCandidate, nVTable))
+					AddUniqueAddress(pCandidates, nCandidate);
+			}
+		}
+
+		if (pCandidates.size() != 1)
+		{
+			Warning(PROJECT_NAME " - core: gEntList RTTI resolution failed or was ambiguous "
+				"(names=%zu typeinfos=%zu vtables=%zu candidates=%zu).\n",
+				pTypeInfoNames.size(), pTypeInfos.size(), pVTables.size(), pCandidates.size());
+			return nullptr;
+		}
+
+		uintptr_t nVTable = 0;
+		ReadLinuxModuleValue(pSegments, pCandidates[0], nVTable);
+		Msg(PROJECT_NAME " - core: Resolved gEntList through Linux RTTI at %p (vtable %p).\n",
+			(void*)pCandidates[0], (void*)nVTable);
+		return (CGlobalEntityList*)pCandidates[0];
+	}
+
+	static bool ValidateLinux64ResolvedEntityList(
+		const SourceSDK::FactoryLoader& pLoader,
+		CGlobalEntityList* pCandidate
+	)
+	{
+		std::vector<LinuxModuleSegment> pSegments;
+		return pCandidate &&
+			GetLinuxModuleSegments(pLoader, pSegments) &&
+			ValidateLinux64EntityListCandidate(pSegments, (uintptr_t)pCandidate, 0, false);
+	}
+}
+#endif
+
 static Detouring::Hook detour_CSteam3Server_NotifyClientDisconnect;
 static void hook_CSteam3Server_NotifyClientDisconnect(void* pServer, CBaseClient* pClient)
 {
@@ -851,24 +1457,56 @@ void Util::AddDetour()
 	else
 		serverTools = server_loader.GetInterface<IServerTools>(VSERVERTOOLS_INTERFACE_VERSION);
 
+	CGlobalEntityList* pResolvedEntityList = nullptr;
 	if (serverTools)
 	{
-		entitylist = serverTools->GetEntityList();
-	}
+		pResolvedEntityList = serverTools->GetEntityList();
 
-	if (!entitylist)
-	{
-		#if defined(ARCHITECTURE_X86)
-			entitylist = Detour::ResolveSymbol<CGlobalEntityList>(server_loader, Symbols::gEntListSym);
-		#else
-			entitylist = Detour::ResolveSymbolWithOffset<CGlobalEntityList>(server_loader.GetModule(), Symbols::gEntListSym);
+		#if defined(SYSTEM_LINUX) && defined(ARCHITECTURE_X86_64)
+			if (pResolvedEntityList &&
+				!ValidateLinux64ResolvedEntityList(server_loader, pResolvedEntityList))
+			{
+				Warning(PROJECT_NAME " - core: Rejected gEntList from IServerTools because its "
+					"vtable or CGlobalEntityList structure was invalid.\n");
+				pResolvedEntityList = nullptr;
+			}
 		#endif
 	}
 
-	Detour::CheckValue("get class", "gEntList", entitylist != nullptr);
-	g_pEntityList = entitylist;
-	if (entitylist)
-		entitylist->AddListenerEntity(&pHolyEntityListener);
+	if (!pResolvedEntityList)
+	{
+		#if defined(ARCHITECTURE_X86)
+			pResolvedEntityList = Detour::ResolveSymbol<CGlobalEntityList>(server_loader, Symbols::gEntListSym);
+		#else
+			#if defined(SYSTEM_LINUX) && defined(ARCHITECTURE_X86_64)
+				pResolvedEntityList = ResolveLinux64EntityListFromRTTI(server_loader);
+			#endif
+
+			if (!pResolvedEntityList)
+			{
+				pResolvedEntityList = Detour::ResolveSymbolWithOffset<CGlobalEntityList>(
+					server_loader.GetModule(),
+					Symbols::gEntListSym
+				);
+
+				#if defined(SYSTEM_LINUX) && defined(ARCHITECTURE_X86_64)
+					if (pResolvedEntityList &&
+						!ValidateLinux64ResolvedEntityList(server_loader, pResolvedEntityList))
+					{
+						Warning(PROJECT_NAME " - core: Rejected gEntList from the byte signature because its "
+							"vtable or CGlobalEntityList structure was invalid.\n");
+						pResolvedEntityList = nullptr;
+					}
+				#endif
+			}
+		#endif
+	}
+
+	Detour::CheckValue("get class", "gEntList", pResolvedEntityList != nullptr);
+	entitylist = pResolvedEntityList;
+	g_pEntityList = pResolvedEntityList;
+	if (pResolvedEntityList)
+		pResolvedEntityList->AddListenerEntity(&pHolyEntityListener);
 
 #ifdef ARCHITECTURE_X86 // We don't use it on 64x, do we. Look into pas_FindInPAS to see how we do it ^^
 	get = Detour::ResolveSymbol<IGet>(server_loader, Symbols::CGetSym);
