@@ -1916,17 +1916,35 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 	if (networking_enabletransmit64x.GetBool() || networking_enableunsafe64x.GetBool())
 #endif
 	{
-		Detour::Create(
-			&detour_CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer, "CBaseEntity::GMOD_SetShouldPreventTransmitToPlayer",
-			server_loader.GetModule(), Symbols::CBaseEntity_GMOD_SetShouldPreventTransmitToPlayerSym,
-			(void*)DETOUR_THISCALL(hook_CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer, GMOD_SetShouldPreventTransmitToPlayer), m_pID
-		);
+		/*
+		 * These two MUST be installed as a pair or not at all.
+		 *
+		 * hook_CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer does NOT call the trampoline: it
+		 * records into g_pShouldPrevent and fully replaces the engine's own bookkeeping. If the
+		 * matching reader (GMOD_ShouldPreventTransmitToPlayer) is not hooked, the engine keeps
+		 * consulting its own state, which we then never write -> Entity:SetPreventTransmit silently
+		 * becomes a no-op. Resolve both up-front and only hook when both are available, so a stale
+		 * signature degrades to stock behaviour instead of a silent correctness bug.
+		 */
+		void* pGMODShouldPrevent = Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseEntity_GMOD_ShouldPreventTransmitToPlayerSym);
+		void* pGMODSetShouldPrevent = Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseEntity_GMOD_SetShouldPreventTransmitToPlayerSym);
+		if (pGMODShouldPrevent && pGMODSetShouldPrevent)
+		{
+			Detour::Create(
+				&detour_CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer, "CBaseEntity::GMOD_SetShouldPreventTransmitToPlayer",
+				server_loader.GetModule(), Symbols::CBaseEntity_GMOD_SetShouldPreventTransmitToPlayerSym,
+				(void*)DETOUR_THISCALL(hook_CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer, GMOD_SetShouldPreventTransmitToPlayer), m_pID
+			);
 
-		Detour::Create(
-			&detour_CBaseEntity_GMOD_ShouldPreventTransmitToPlayer, "CBaseEntity::GMOD_ShouldPreventTransmitToPlayer",
-			server_loader.GetModule(), Symbols::CBaseEntity_GMOD_ShouldPreventTransmitToPlayerSym,
-			(void*)DETOUR_THISCALL(hook_CBaseEntity_GMOD_ShouldPreventTransmitToPlayer, GMOD_ShouldPreventTransmitToPlayer), m_pID
-		);
+			Detour::Create(
+				&detour_CBaseEntity_GMOD_ShouldPreventTransmitToPlayer, "CBaseEntity::GMOD_ShouldPreventTransmitToPlayer",
+				server_loader.GetModule(), Symbols::CBaseEntity_GMOD_ShouldPreventTransmitToPlayerSym,
+				(void*)DETOUR_THISCALL(hook_CBaseEntity_GMOD_ShouldPreventTransmitToPlayer, GMOD_ShouldPreventTransmitToPlayer), m_pID
+			);
+		} else {
+			Warning(PROJECT_NAME " - networking: GMOD_(Set)ShouldPreventTransmitToPlayer did not both resolve "
+				"(set=%p should=%p) - leaving prevent-transmit to the engine.\n", pGMODSetShouldPrevent, pGMODShouldPrevent);
+		}
 
 		Detour::Create(
 			&detour_CBaseCombatCharacter_SetTransmit, "CBaseCombatCharacter::SetTransmit",
