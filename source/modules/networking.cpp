@@ -444,16 +444,12 @@ static inline CBaseEntity* EHandleToEntity(const CBaseHandle* pHandle)
 
 // Resolves an edict index straight from the engine, bypassing g_pEntityCache.
 // Used to rebuild the cache on 64x where the entity listener never fires (see UpdateEntities).
+// Deliberately goes through PEntityOfEntIndex rather than indexing world_edict directly: slots past
+// sv.num_edicts are zeroed, so IsFree() reads false for them and we would hand a zeroed edict to
+// EdictToBaseEntity. PEntityOfEntIndex bounds-checks against num_edicts *and* rejects free edicts.
 static inline CBaseEntity* EdictIndexToEntity(const int nEntIndex)
 {
-	if (nEntIndex < 0 || nEntIndex >= MAX_EDICTS || !world_edict)
-		return nullptr;
-
-	edict_t* pEdict = &world_edict[nEntIndex];
-	if (pEdict->IsFree())
-		return nullptr;
-
-	return Util::GetCBaseEntityFromEdict(pEdict);
+	return Util::GetCBaseEntityFromIndex(nEntIndex);
 }
 
 // CCServerNetworkProperty::GetNetworkParent() calls m_hParent.Get(), which is the SDK's own inline
