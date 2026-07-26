@@ -421,6 +421,9 @@ static inline CBaseEntity* IndexToEntity(const int nEntIndex)
 	if (nEntIndex < 0 || nEntIndex >= MAX_EDICTS)
 		return nullptr;
 
+	if (!g_pEntityList)
+		return Util::GetCBaseEntityFromIndex(nEntIndex); // The cache can outlive the entity, see EHandleToEntity.
+
 	return g_pEntityCache[nEntIndex];
 }
 
@@ -432,8 +435,25 @@ static inline CBaseEntity* EHandleToEntity(const CBaseHandle* pHandle)
 		if (nEntIndex < 0 || nEntIndex >= MAX_EDICTS)
 			return nullptr;
 
-		CBaseEntity* pEnt = g_pEntityCache[nEntIndex];
-		if (pEnt && pEnt->GetRefEHandle() != *pHandle) // To compare the serial number mimicking CBaseEntityList::LookupEntity
+		// Resolve through the engine instead of reading g_pEntityCache.
+		//
+		// Without gEntList nothing scrubs a cache slot when its entity is freed, and this function can be
+		// reached from hook_CBaseCombatCharacter_SetTransmit on a tick where our CheckTransmit never ran,
+		// so the slot need not have been rebuilt. The serial-number test below is a *virtual* call, so a
+		// freed entity faults while dereferencing its own vtable pointer - before the test can reject it.
+		// Validating a pointer by calling a virtual on that same pointer is circular; that is exactly the
+		// 2026-07-26 21:08 segfault (jumped to non-executable memory out of a stale vtable).
+		//
+		// PEntityOfEntIndex bounds-checks against num_edicts and rejects free edicts, and EdictToBaseEntity
+		// reads the edict - engine-owned memory that is never freed - not the entity. What comes back is
+		// therefore always either a live entity or nullptr, which makes GetRefEHandle() safe to call.
+		// 32x keeps the fast array lookup: there CBaseHandle::Get() goes through CBaseEntityList and
+		// validates the serial against the CEntInfo array without ever touching the object.
+		CBaseEntity* pEnt = Util::GetCBaseEntityFromIndex(nEntIndex);
+		if (!pEnt)
+			return nullptr;
+
+		if (pEnt->GetRefEHandle() != *pHandle) // To compare the serial number mimicking CBaseEntityList::LookupEntity
 			return nullptr;
 
 		return pEnt;
