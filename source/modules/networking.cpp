@@ -558,7 +558,17 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 		nPVSEdictCount = -1;
 		nFullEdictCount = -1; // -1 so that we can use preincrement :hehe:
 		Plat_FastMemset(pPVSEntityList, 0, sizeof(pPVSEntityList) * 2); // * 2 to also clear nFullEdictList which lies directly after it in memory. I know. very "safe" but I want this in 1 call
-		Plat_FastMemset(nAreaEntities, 0, sizeof(nAreaEntities));
+
+		// nAreaEntities is ~1 MB (255 areas x 512 entities) and only AddPVSEntity ever fills it, which only
+		// runs with areasplit enabled. Clearing it unconditionally every tick evicts a megabyte of cache
+		// immediately before the transmit loop wants that cache. The flag keeps a runtime 1 -> 0 flip
+		// correct: we still do one final clear, so EntityRemoved never walks a stale nCount.
+		const bool bAreaSplit = networking_areasplit.GetBool();
+		if (bAreaSplit || m_bAreaCacheFilled)
+		{
+			Plat_FastMemset(nAreaEntities, 0, sizeof(nAreaEntities));
+			m_bAreaCacheFilled = bAreaSplit;
+		}
 
 		// NOTE: g_pEntityCache was already rebuilt for this tick by the caller, before it touched
 		//       g_pPlayerTransmitCache - see RebuildEntityCacheForTick.
@@ -916,6 +926,7 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 	}
 
 	bool m_bIsActivelyNetworking = false;
+	bool m_bAreaCacheFilled = false; // Whether nAreaEntities holds anything worth clearing (see UpdateEntities).
 
 	CBitVec<MAX_EDICTS> pAlwaysTransmitBits;
 	CBitVec<MAX_EDICTS> pNeverTransmitBits;
