@@ -452,6 +452,21 @@ static inline CBaseEntity* EdictIndexToEntity(const int nEntIndex)
 	return Util::GetCBaseEntityFromIndex(nEntIndex);
 }
 
+// Without g_pEntityList we never registered the entity listener (util.cpp), so OnEntityCreated /
+// OnEntityDeleted never fire and g_pEntityCache is frozen at whatever ServerActivate left there -
+// missing every player and every runtime spawn, dangling for everything since removed.
+// Rebuilt in full rather than only for the edict indices CheckTransmit hands us: EHandleToEntity also
+// resolves weapons, viewmodels and hands, whose edict indices need not appear in that list at all.
+// A partial rebuild would leave those slots dangling and GetRefEHandle() would then read freed memory.
+static inline void RebuildEntityCacheForTick()
+{
+	if (g_pEntityList) // 32x keeps the cache live through the entity listener, no rebuild needed.
+		return;
+
+	for (int i = 0; i < MAX_EDICTS; ++i)
+		g_pEntityCache[i] = EdictIndexToEntity(i);
+}
+
 // CCServerNetworkProperty::GetNetworkParent() calls m_hParent.Get(), which is the SDK's own inline
 // and dereferences g_pEntityList *unconditionally*. On 64x g_pEntityList is always nullptr (the
 // gEntList sigscan fails - see util.cpp), so calling it faults. Route through the cache instead.
@@ -545,17 +560,8 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 		Plat_FastMemset(pPVSEntityList, 0, sizeof(pPVSEntityList) * 2); // * 2 to also clear nFullEdictList which lies directly after it in memory. I know. very "safe" but I want this in 1 call
 		Plat_FastMemset(nAreaEntities, 0, sizeof(nAreaEntities));
 
-		// Without g_pEntityList we never registered the entity listener (util.cpp), so OnEntityCreated /
-		// OnEntityDeleted never fire and g_pEntityCache is frozen at whatever ServerActivate left there -
-		// missing every player and every runtime spawn, dangling for everything since removed.
-		// Rebuilt in full rather than only for pEdictIndices: EHandleToEntity also resolves weapons,
-		// viewmodels and hands, whose edict indices need not appear in pEdictIndices at all. A partial
-		// rebuild would leave those slots dangling and GetRefEHandle() would then read freed memory.
-		if (!g_pEntityList)
-		{
-			for (int i = 0; i < MAX_EDICTS; ++i)
-				g_pEntityCache[i] = EdictIndexToEntity(i);
-		}
+		// NOTE: g_pEntityCache was already rebuilt for this tick by the caller, before it touched
+		//       g_pPlayerTransmitCache - see RebuildEntityCacheForTick.
 
 		// First we build data based off all players
 		bool bBindGmodHandsToPlayer = networking_bind_gmodhands_to_player.GetBool();
@@ -1483,8 +1489,9 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	vec_t maxTransmitRange = g_nTransmitRange;
 	g_nTransmitRange = -1.0f;
 
-	if (!networking_fasttransmit.GetBool() || !gpGlobals || !engine || !mdlcache || !func_CBaseAnimating_SetTransmit || !world_edict)
-		return false; // Fail-safe: the engine's own CheckTransmit runs instead.
+	if (!networking_fasttransmit.GetBool() || !gpGlobals || !engine || !func_CBaseAnimating_SetTransmit || !world_edict)
+		return false; // Fail-safe: the engine's own CheckTransmit runs instead. (mdlcache is deliberately not
+		              //            required anymore, see the MDLCACHE_CRITICAL_SECTION note further down.)
 
 	// get recipient player's skybox: 3670181
 	CBaseEntity *pRecipientEntity = Util::servergameents->EdictToBaseEntity(pInfo->m_pClientEnt);
@@ -1510,7 +1517,14 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	// ToDo: Bring over's CS:GO code for InitialSpawnTime
 	//const bool bIsFreshlySpawned = pRecipientPlayer->GetInitialSpawnTime()+3.0f > gpGlobals->curtime;
 
-	MDLCACHE_CRITICAL_SECTION();
+	// Deliberately NO MDLCACHE_CRITICAL_SECTION() here.
+	// IMDLCache as declared in sourcesdk-minimal puts BeginLock/EndLock at vtable slots 33/34, but GMod's
+	// shipped datacache.so - linux32 and linux64 alike - has them at 41/42. Going through the header therefore
+	// dispatched EndLock into CMDLCache's real slot 34, a method taking (MDLHandle_t, int, float): it indexed
+	// m_MDLDict with whatever was left in rsi and segfaulted inside datacache.so on every call. Slot 33 is
+	// worse still - it looks like a lock acquire, so we were taking a lock we then never released.
+	// Nothing is lost by dropping it: GMod's own BeginLock/EndLock are empty stubs in both binaries, and the
+	// engine already wraps the whole CheckTransmit pass in its own critical section in SV_ComputeClientPacks.
 
 	// pRecipientPlayer->IsHLTV(); Why do we not use IsHLTV()? Because its NOT a virtual function & the variables are fked
 	const int nCurrentTick = gpGlobals->tickcount;
@@ -1519,6 +1533,11 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	const bool bFirstTransmit = g_pGlobalTransmitTickCache.IsNewTick(nCurrentTick);
 	if (bFirstTransmit)
 	{
+		// Has to happen before anything reads g_pEntityCache. On 64x the cache is only ever as fresh as the
+		// last rebuild, so doing this inside UpdateEntities (below) left the player loop reading entries a
+		// tick out of date - a player removed during the previous tick would be handed to NextTick() freed.
+		RebuildEntityCacheForTick();
+
 		if (bFastPath)
 			Plat_FastMemset(g_pPlayerTransmitTickCache, 0, sizeof(g_pPlayerTransmitTickCache));
 
