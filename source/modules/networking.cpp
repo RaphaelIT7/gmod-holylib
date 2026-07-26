@@ -442,6 +442,35 @@ static inline CBaseEntity* EHandleToEntity(const CBaseHandle* pHandle)
 	return (CBaseEntity*)pHandle->Get();
 }
 
+// Resolves an edict index straight from the engine, bypassing g_pEntityCache.
+// Used to rebuild the cache on 64x where the entity listener never fires (see UpdateEntities).
+static inline CBaseEntity* EdictIndexToEntity(const int nEntIndex)
+{
+	if (nEntIndex < 0 || nEntIndex >= MAX_EDICTS || !world_edict)
+		return nullptr;
+
+	edict_t* pEdict = &world_edict[nEntIndex];
+	if (pEdict->IsFree())
+		return nullptr;
+
+	return Util::GetCBaseEntityFromEdict(pEdict);
+}
+
+// CCServerNetworkProperty::GetNetworkParent() calls m_hParent.Get(), which is the SDK's own inline
+// and dereferences g_pEntityList *unconditionally*. On 64x g_pEntityList is always nullptr (the
+// gEntList sigscan fails - see util.cpp), so calling it faults. Route through the cache instead.
+static inline CCServerNetworkProperty* GetNetworkParentSafe(CCServerNetworkProperty* pProp)
+{
+	if (!pProp || !pProp->m_hParent.IsValid())
+		return nullptr;
+
+	if (g_pEntityList)
+		return pProp->GetNetworkParent(); // 32x: the SDK path is safe, keep it.
+
+	CBaseEntity* pParent = EHandleToEntity(&pProp->m_hParent);
+	return pParent ? (CCServerNetworkProperty*)pParent->NetworkProp() : nullptr;
+}
+
 static DTVarByOffset m_Hands_Offset("DT_GMOD_Player", "m_Hands");
 static inline CBaseEntity* GetGMODPlayerHands(const void* pPlayer)
 {
@@ -501,6 +530,9 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 	// Updates the cache for the current tick
 	void UpdateEntities(const unsigned short *pEdictIndices, const int nEdicts)
 	{
+		if (!world_edict || !gpGlobals) // ServerActivate may never have run (require("holylib") / runtime enable)
+			return;
+
 		m_bIsActivelyNetworking = true;
 
 #if NETWORKING_STATE_DEBUGGING
@@ -517,6 +549,18 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 		Plat_FastMemset(pPVSEntityList, 0, sizeof(pPVSEntityList) * 2); // * 2 to also clear nFullEdictList which lies directly after it in memory. I know. very "safe" but I want this in 1 call
 		Plat_FastMemset(nAreaEntities, 0, sizeof(nAreaEntities));
 
+		// Without g_pEntityList we never registered the entity listener (util.cpp), so OnEntityCreated /
+		// OnEntityDeleted never fire and g_pEntityCache is frozen at whatever ServerActivate left there -
+		// missing every player and every runtime spawn, dangling for everything since removed.
+		// Rebuilt in full rather than only for pEdictIndices: EHandleToEntity also resolves weapons,
+		// viewmodels and hands, whose edict indices need not appear in pEdictIndices at all. A partial
+		// rebuild would leave those slots dangling and GetRefEHandle() would then read freed memory.
+		if (!g_pEntityList)
+		{
+			for (int i = 0; i < MAX_EDICTS; ++i)
+				g_pEntityCache[i] = EdictIndexToEntity(i);
+		}
+
 		// First we build data based off all players
 		bool bBindGmodHandsToPlayer = networking_bind_gmodhands_to_player.GetBool();
 		bool bBindViewModelsToPlayer = networking_bind_viewmodels_to_player.GetBool();
@@ -531,8 +575,9 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 				if (bBindGmodHandsToPlayer)
 				{
 					CBaseEntity* pHands = GetGMODPlayerHands(pPlayer);
-					if (pHands)
-						pNeverTransmitBits.Set(pHands->edict()->m_EdictIndex); // We make hands never transmit by default simply to save performance by reducing PVS checks.
+					edict_t* pHandsEdict = pHands ? pHands->edict() : nullptr;
+					if (pHandsEdict)
+						pNeverTransmitBits.Set(pHandsEdict->m_EdictIndex); // We make hands never transmit by default simply to save performance by reducing PVS checks.
 				}
 
 				if (bBindViewModelsToPlayer)
@@ -540,8 +585,9 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 					for (int i=0; i<MAX_VIEWMODELS; ++i)
 					{
 						CBaseEntity* pViewModel = GetViewModel(pPlayer, i);
-						if (pViewModel)
-							pNeverTransmitBits.Set(pViewModel->edict()->m_EdictIndex);
+						edict_t* pViewModelEdict = pViewModel ? pViewModel->edict() : nullptr;
+						if (pViewModelEdict)
+							pNeverTransmitBits.Set(pViewModelEdict->m_EdictIndex);
 					}
 				}
 
@@ -549,8 +595,9 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 				for (int i=0; i<MAX_WEAPONS; ++i)
 				{
 					CBaseEntity *pWeapon = GetMyWeapon(pPlayer, i);
-					if (pWeapon)
-						pNeverTransmitBits.Set(pWeapon->edict()->m_EdictIndex);
+					edict_t* pWeaponEdict = pWeapon ? pWeapon->edict() : nullptr;
+					if (pWeaponEdict)
+						pNeverTransmitBits.Set(pWeaponEdict->m_EdictIndex);
 				}
 			}
 		}
@@ -581,7 +628,7 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 					if (!pEnt)
 						break;
 
-					CCServerNetworkProperty *pParent = pEnt->GetNetworkParent();
+					CCServerNetworkProperty *pParent = GetNetworkParentSafe(pEnt);
 					if (!pParent)
 						break;
 
@@ -1244,8 +1291,11 @@ static void TransmitFastPathPlayer(CBasePlayer* pRecipientPlayer, int clientInde
 		nOtherCache.pClientBitVec.CopyTo(pInfo->m_pTransmitAlways);
 
 	// g_pPlayerTransmitCacheBitVec won't contain any information about the client the cache was build upon, so we need to call SetTransmit ourselves.
-	// & yes, using the g_pEntityCache like this is safe, even if it doesn't look save - Time to see how long it'll take until I regret writing this
-	g_pEntityCache[iOtherClient+1]->SetTransmit(pInfo, true);
+	// RaphaelIT7 called this safe "even if it doesn't look safe"; it isn't - the slot is empty whenever that
+	// client has no entity this tick, which is every tick on 64x before the cache rebuild landed.
+	CBaseEntity* pOtherPlayer = IndexToEntity(iOtherClient + 1);
+	if (pOtherPlayer)
+		pOtherPlayer->SetTransmit(pInfo, true);
 	pRecipientPlayer->SetTransmit(pInfo, true);
 	// ENGINE BUG: CBaseCombatCharacter::SetTransmit doesn't network the player's viewmodel! So we need to do it ourself.
 	// This was probably done since CBaseViewModel::ShouldTransmit determines if it would be sent or not.
@@ -1355,7 +1405,7 @@ static inline void DoTransmitPVSCheck(
 
 	// If the entity is marked "check PVS" but it's in hierarchy, walk up the hierarchy looking for the
 	//  for any parent which is also in the PVS.  If none are found, then we don't need to worry about sending ourself
-	CCServerNetworkProperty *check = netProp->GetNetworkParent();
+	CCServerNetworkProperty *check = GetNetworkParentSafe(netProp);
 
 	// BUG BUG:  I think it might be better to build up a list of edict indices which "depend" on other answers and then
 	// resolve them in a second pass.  Not sure what happens if an entity has two parents who both request PVS check?
@@ -1366,6 +1416,8 @@ static inline void DoTransmitPVSCheck(
 			return;
 
 		int checkIndex = checkEdict->m_EdictIndex;
+		if (checkIndex < 0 || checkIndex >= MAX_EDICTS)
+			return; // Garbage edict - indexing the cache or the bitvec with this reads out of bounds.
 
 		// Parent already being sent
 		if ( pInfo->m_pTransmitEdict->Get( checkIndex ) )
@@ -1424,7 +1476,7 @@ static inline void DoTransmitPVSCheck(
 		}
 
 		// Continue up chain just in case the parent itself has a parent that's in the PVS...
-		check = check->GetNetworkParent();
+		check = GetNetworkParentSafe(check);
 	}
 }
 
@@ -1435,8 +1487,8 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	vec_t maxTransmitRange = g_nTransmitRange;
 	g_nTransmitRange = -1.0f;
 
-	if (!networking_fasttransmit.GetBool() || !gpGlobals || !engine || !mdlcache || !func_CBaseAnimating_SetTransmit)
-		return false;
+	if (!networking_fasttransmit.GetBool() || !gpGlobals || !engine || !mdlcache || !func_CBaseAnimating_SetTransmit || !world_edict)
+		return false; // Fail-safe: the engine's own CheckTransmit runs instead.
 
 	// get recipient player's skybox: 3670181
 	CBaseEntity *pRecipientEntity = Util::servergameents->EdictToBaseEntity(pInfo->m_pClientEnt);
@@ -1511,7 +1563,8 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 
 	const int clientEntIndex = pInfo->m_pClientEnt->m_EdictIndex;
 	static CBitVec<MAX_EDICTS> pClientCache; // Temporary cache used when we are calculating the transmit to the current pRecipientPlayer
-	const bool bForceTransmit = sv_force_transmit_ents->GetBool();
+	pClientCache.ClearAll(); // It is static, so without this it carries the previous recipient's bits into the Xor below.
+	const bool bForceTransmit = sv_force_transmit_ents && sv_force_transmit_ents->GetBool(); // Only set when g_pCVar existed at ServerActivate
 	bool bWasTransmitToPlayer = false;
 	// pInfo->m_pTransmitEdict->Or(g_pGlobalTransmitTickCache.g_pAlwaysTransmitCacheBitVec, pInfo->m_pTransmitEdict);
 	pInfo->m_pTransmitEdict->Or(g_nEntityTransmitCache.pAlwaysTransmitBits, pInfo->m_pTransmitEdict);
@@ -1522,7 +1575,11 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	{
 		CBaseEntity* pEnt = g_nEntityTransmitCache.pFullEntityList[i];
 
-		const int iEdict = pEnt->edict()->m_EdictIndex;
+		edict_t* pEntEdict = pEnt ? pEnt->edict() : nullptr;
+		if (!pEntEdict)
+			continue;
+
+		const int iEdict = pEntEdict->m_EdictIndex;
 		if (iEdict == clientEntIndex) {
 			pInfo->m_pTransmitEdict->CopyTo(&pClientCache);
 			bWasTransmitToPlayer = true;

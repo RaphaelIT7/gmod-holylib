@@ -428,7 +428,7 @@ CBaseEntity* Util::GetCBaseEntityFromEdict(const edict_t* edict)
 
 CBaseEntity* Util::GetCBaseEntityFromIndex(int nEntIndex)
 {
-	if (nEntIndex < 0 || nEntIndex > MAX_EDICTS)
+	if (nEntIndex < 0 || nEntIndex >= MAX_EDICTS)
 		return nullptr;
 
 	return Util::servergameents->EdictToBaseEntity(Util::engineserver->PEntityOfEntIndex(nEntIndex));
@@ -441,6 +441,9 @@ CBaseEntity* Util::GetCBaseEntityFromHandle(const CBaseHandle& pHandle)
 
 	// BUG! We cannot add server-only entities without g_pEntityList!
 	CBaseEntity* pEntity = Util::GetCBaseEntityFromIndex(pHandle.GetEntryIndex());
+	if (!pEntity) // GetCBaseEntityFromIndex returns nullptr for a free or out-of-range edict.
+		return nullptr;
+
 	if (pEntity->GetRefEHandle() != pHandle) // Serial number may not match! A Handle can contain an outdated entity!
 		return nullptr;
 
