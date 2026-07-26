@@ -1155,8 +1155,9 @@ static ConVar networking_fasttransmit("holylib_networking_fasttransmit", "1", 0,
 static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharacter, CCheckTransmitInfo *pInfo, bool bAlways)
 {
 	// IMPORANT: Apparently CBaseCombatCharacter is inherited by more than just the player, so we MUST check m_EdictIndex!
+	// The !pCharacterEdict test has to come first - it is what makes the m_EdictIndex reads below safe.
 	edict_t* pCharacterEdict = pCharacter->edict();
-	if (!func_CBaseAnimating_SetTransmit || !networking_fasttransmit.GetBool() || !networking_fastcharactertransmit.GetBool() || pCharacterEdict->m_EdictIndex <= 0 || pCharacterEdict->m_EdictIndex > gpGlobals->maxClients)
+	if (!pCharacterEdict || !func_CBaseAnimating_SetTransmit || !networking_fasttransmit.GetBool() || !networking_fastcharactertransmit.GetBool() || pCharacterEdict->m_EdictIndex <= 0 || pCharacterEdict->m_EdictIndex > gpGlobals->maxClients)
 	{
 		// Without it we won't do shit, simply because possibly missing a transmit can cause quite the issues.
 		detour_CBaseCombatCharacter_SetTransmit.GetTrampoline<Symbols::CBaseCombatCharacter_SetTransmit>()(pCharacter, pInfo, bAlways);
@@ -1656,7 +1657,12 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	{
 		CBaseEntity* pEnt = g_nEntityTransmitCache.pPVSEntityList[i];
 
-		edict_t* pEdict = pEnt->edict();
+		// EntityRemoved() only runs off the entity listener, which is never registered on 64x, so an entity
+		// removed while we are still networking this tick stays in the list. Same guard as the full list above.
+		edict_t* pEdict = pEnt ? pEnt->edict() : nullptr;
+		if (!pEdict)
+			continue;
+
 		const int iEdict = pEdict->m_EdictIndex;
 		if (pInfo->m_pTransmitEdict->Get(iEdict) || g_pDontTransmitCache.Get(iEdict))
 			continue;
