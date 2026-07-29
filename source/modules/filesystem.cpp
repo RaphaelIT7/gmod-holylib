@@ -1711,17 +1711,18 @@ void CFileSystemModule::Init(CreateInterfaceFn* appfn, CreateInterfaceFn* gamefn
 		// Humongus size because you can have a huge amount of searchpaths.
 		constexpr int iSize = 1 << 16;
 		char* pChar = new char[iSize];
-		int iLength = g_pFullFileSystem->GetSearchPath("GAME", true, pChar, iSize);
+		CBaseFileSystem* pSystem = (CBaseFileSystem*)g_pFullFileSystem;
+		int iLength = pSystem->GetSearchPath("GAME", true, pChar, iSize);
 		if (iSize <= iLength)
 			Warning(PROJECT_NAME ": Not enough space for search paths! please report this.\n");
 
 		std::string pStr = pChar;
 		pStr = pStr.substr(0, iLength);
 		std::vector<std::string> pSearchPaths = splitString(pStr, ";");
-		g_pFullFileSystem->RemoveSearchPaths("GAME"); // Yes. Were gonna reapply them. Should we also do it for lsv?
+		pSystem->RemoveSearchPaths("GAME"); // Yes. Were gonna reapply them. Should we also do it for lsv?
 		for (std::string pSearchPath : pSearchPaths)
 		{
-			g_pFullFileSystem->AddSearchPath(pSearchPath.c_str(), "GAME", SearchPathAdd_t::PATH_ADD_TO_TAIL);
+			pSystem->AddSearchPath(pSearchPath.c_str(), "GAME", SearchPathAdd_t::PATH_ADD_TO_TAIL);
 			
 			if (g_pFileSystemModule.InDebug())
 				Msg("Recreate Path: %s\n", pSearchPath.c_str());
