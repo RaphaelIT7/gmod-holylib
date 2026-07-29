@@ -9,6 +9,9 @@
 ERRDEF(ERRMEM,	"not enough memory")
 ERRDEF(ERRERR,	"error in error handling")
 ERRDEF(ERRCPP,	"C++ exception")
+#if !defined(LJ_NO_SANDBOX)
+ERRDEF(ERRSBOX,	"action is restricted by sandbox")
+#endif
 
 /* Allocations. */
 ERRDEF(STROV,	"string length overflow")
@@ -149,6 +152,8 @@ ERRDEF(XLUNDEF,	"undefined label " LUA_QS)
 ERRDEF(XLDUP,	"duplicate label " LUA_QS)
 ERRDEF(XGSCOPE,	"<goto %s> jumps into the scope of local " LUA_QS)
 ERRDEF(XCSCOPE,	"<continue> jumps into the scope of local " LUA_QS)
+ERRDEF(XCONSTA,	"attempt to assign to const variable " LUA_QS)
+ERRDEF(XCONSTR,	"attempt to re-declare const variable " LUA_QS)
 
 /* Bytecode reader errors. */
 ERRDEF(BCFMT,	"cannot load incompatible bytecode")

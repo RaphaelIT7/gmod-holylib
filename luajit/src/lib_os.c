@@ -37,7 +37,8 @@
 
 #define LJLIB_MODULE_os
 
-LJLIB_CF(os_execute)
+#if defined(LJ_NO_SANDBOX)
+LJLIB_NOREG LJLIB_CF(os_execute)
 {
 #if LJ_NO_SYSTEM
 #if LJ_52
@@ -61,20 +62,20 @@ LJLIB_CF(os_execute)
 #endif
 }
 
-LJLIB_CF(os_remove)
+LJLIB_NOREG LJLIB_CF(os_remove)
 {
   const char *filename = luaL_checkstring(L, 1);
   return luaL_fileresult(L, remove(filename) == 0, filename);
 }
 
-LJLIB_CF(os_rename)
+LJLIB_NOREG LJLIB_CF(os_rename)
 {
   const char *fromname = luaL_checkstring(L, 1);
   const char *toname = luaL_checkstring(L, 2);
   return luaL_fileresult(L, rename(fromname, toname) == 0, fromname);
 }
 
-LJLIB_CF(os_tmpname)
+LJLIB_NOREG LJLIB_CF(os_tmpname)
 {
 #if LJ_TARGET_PS3 || LJ_TARGET_PS4 || LJ_TARGET_PS5 || LJ_TARGET_PSVITA || LJ_TARGET_NX
   lj_err_caller(L, LJ_ERR_OSUNIQF);
@@ -99,7 +100,7 @@ LJLIB_CF(os_tmpname)
 #endif
 }
 
-LJLIB_CF(os_getenv)
+LJLIB_NOREG LJLIB_CF(os_getenv)
 {
 #if LJ_TARGET_CONSOLE
   lua_pushnil(L);
@@ -109,7 +110,7 @@ LJLIB_CF(os_getenv)
   return 1;
 }
 
-LJLIB_CF(os_exit)
+LJLIB_NOREG LJLIB_CF(os_exit)
 {
   int status;
   if (L->base < L->top && tvisbool(L->base))
@@ -121,6 +122,7 @@ LJLIB_CF(os_exit)
   exit(status);
   return 0;  /* Unreachable. */
 }
+#endif
 
 LJLIB_CF(os_clock)
 {
@@ -230,6 +232,7 @@ LJLIB_CF(os_date)
 LJLIB_CF(os_time)
 {
   time_t t;
+  errno = 0;
   if (lua_isnoneornil(L, 1)) {  /* called without args? */
     t = time(NULL);  /* get current time */
   } else {
@@ -243,7 +246,6 @@ LJLIB_CF(os_time)
     ts.tm_mon = (int)((unsigned int)getfield(L, "month", -1) - 1u);
     ts.tm_year = (int)((unsigned int)getfield(L, "year", -1) - 1900u);
     ts.tm_isdst = getboolfield(L, "isdst");
-    errno = 0;
     t = mktime(&ts);
   }
   if (t == (time_t)(-1) && errno != 0)
@@ -263,7 +265,8 @@ LJLIB_CF(os_difftime)
 
 /* ------------------------------------------------------------------------ */
 
-LJLIB_CF(os_setlocale)
+#if defined(LJ_NO_SANDBOX)
+LJLIB_NOREG LJLIB_CF(os_setlocale)
 {
 #if LJ_TARGET_PSVITA
   lua_pushliteral(L, "C");
@@ -282,6 +285,7 @@ LJLIB_CF(os_setlocale)
 #endif
   return 1;
 }
+#endif
 
 /* ------------------------------------------------------------------------ */
 

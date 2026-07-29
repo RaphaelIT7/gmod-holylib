@@ -453,6 +453,7 @@ typedef struct GCproto {
 #define PROTO_FFI		0x04	/* Uses BC_KCDATA for FFI datatypes. */
 #define PROTO_NOJIT		0x08	/* JIT disabled for this function. */
 #define PROTO_ILOOP		0x10	/* Patched bytecode with ILOOP etc. */
+#define PROTO_BITOP		0x80	/* Uses bit operator bytecodes. */
 /* Only used during parsing. */
 #define PROTO_HAS_RETURN	0x20	/* Already emitted a return. */
 #define PROTO_FIXUP_RETURN	0x40	/* Need to fixup emitted returns. */
@@ -729,7 +730,7 @@ typedef struct global_State {
   MRef ctype_state;	/* Pointer to C type state. */
   PRNGState prng;	/* Global PRNG state. */
   GCRef gcroot[GCROOT_MAX];  /* GC roots. */
-  uint32_t mxcsr;
+  uint32_t mxcsr; /* Holds the last MXCSR state when we entered Lua (unused for now) */
 } global_State;
 
 #define mainthread(g)	(&gcref(g->mainthref)->th)

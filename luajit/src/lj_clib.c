@@ -18,6 +18,7 @@
 #include "lj_clib.h"
 #include "lj_strfmt.h"
 
+#if defined(LJ_NO_SANDBOX)
 /* -- OS-specific functions ----------------------------------------------- */
 
 #if LJ_TARGET_DLOPEN
@@ -393,6 +394,23 @@ TValue *lj_clib_index(lua_State *L, CLibrary *cl, GCstr *name)
   return tv;
 }
 
+#else
+
+#define CLIB_DEFHANDLE	NULL
+
+/* Index a C library by name. */
+TValue *lj_clib_index(lua_State *L, CLibrary *cl, GCstr *name)
+{
+  TValue *tv = lj_tab_setstr(L, cl->cache, name);
+  if (LJ_UNLIKELY(tvisnil(tv))) {
+    /* Disallow lookup! If something is not in the cache then you were never supposed to have it. */
+    lj_err_caller(L, LJ_ERR_ERRSBOX);
+  }
+  return tv;
+}
+
+#endif
+
 /* -- C library management ------------------------------------------------ */
 
 /* Create a new CLibrary object and push it on the stack. */
@@ -409,6 +427,7 @@ static CLibrary *clib_new(lua_State *L, GCtab *mt)
   return cl;
 }
 
+#if defined(LJ_NO_SANDBOX)
 /* Load a C library. */
 void lj_clib_load(lua_State *L, GCtab *mt, GCstr *name, int global)
 {
@@ -416,11 +435,14 @@ void lj_clib_load(lua_State *L, GCtab *mt, GCstr *name, int global)
   CLibrary *cl = clib_new(L, mt);
   cl->handle = handle;
 }
+#endif
 
 /* Unload a C library. */
 void lj_clib_unload(CLibrary *cl)
 {
+#if defined(LJ_NO_SANDBOX)
   clib_unloadlib(cl);
+#endif
   cl->handle = NULL;
 }
 

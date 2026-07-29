@@ -287,6 +287,7 @@ LUA_API lua_State *lua_newstate(lua_Alloc allocf, void *allocd)
   g->allocf = allocf;
   g->allocd = allocd;
   g->prng = prng;
+  g->mxcsr = 0;
 #ifndef LUAJIT_USE_SYSMALLOC
   if (allocf == lj_alloc_f) {
     lj_alloc_setprng(allocd, &g->prng);

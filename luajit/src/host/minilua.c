@@ -124,7 +124,7 @@ VCALL,
 VVARARG
 }expkind;
 enum RESERVED{
-TK_AND=257,TK_BREAK,TK_CONTINUE,
+TK_AND=257,TK_BREAK,
 TK_DO,TK_ELSE,TK_ELSEIF,TK_END,TK_FALSE,TK_FOR,TK_FUNCTION,
 TK_IF,TK_IN,TK_LOCAL,TK_NIL,TK_NOT,TK_OR,TK_REPEAT,
 TK_RETURN,TK_THEN,TK_TRUE,TK_UNTIL,TK_WHILE,
@@ -2661,7 +2661,7 @@ opmode(0,1,OpArgR,OpArgN,iABC)
 #define next(ls)(ls->current=zgetc(ls->z))
 #define currIsNewline(ls)(ls->current=='\n'||ls->current=='\r')
 static const char*const luaX_tokens[]={
-"and","break","continue","do","else","elseif",
+"and","break","do","else","elseif",
 "end","false","for","function","if",
 "in","local","nil","not","or","repeat",
 "return","then","true","until","while",
@@ -3659,7 +3659,6 @@ fs->freereg=base+1;
 typedef struct BlockCnt{
 struct BlockCnt*previous;
 int breaklist;
-int continuelist;
 lu_byte nactvar;
 lu_byte upval;
 lu_byte isbreakable;
@@ -3842,26 +3841,11 @@ luaX_lexerror(ls,"chunk has too many syntax levels",0);
 #define leavelevel(ls)((ls)->L->nCcalls--)
 static void enterblock(FuncState*fs,BlockCnt*bl,lu_byte isbreakable){
 bl->breaklist=(-1);
-bl->continuelist=(-1);
 bl->isbreakable=isbreakable;
 bl->nactvar=fs->nactvar;
 bl->upval=0;
 bl->previous=fs->bl;
 fs->bl=bl;
-}
-static void continuestat(LexState*ls){
-FuncState*fs=ls->fs;
-BlockCnt*bl=fs->bl;
-int upval=0;
-while(bl&&!bl->isbreakable){
-upval|=bl->upval;
-bl=bl->previous;
-}
-if(!bl)
-luaX_syntaxerror(ls,"no loop to continue");
-if(upval)
-luaK_codeABC(fs,OP_CLOSE,bl->nactvar,0,0);
-luaK_concat(fs,&bl->continuelist,luaK_jump(fs));
 }
 static void leaveblock(FuncState*fs){
 BlockCnt*bl=fs->bl;
@@ -4419,7 +4403,6 @@ condexit=cond(ls);
 enterblock(fs,&bl,1);
 checknext(ls,TK_DO);
 block(ls);
-luaK_patchlist(fs,bl.continuelist,whileinit);
 luaK_patchlist(fs,luaK_jump(fs),whileinit);
 check_match(ls,TK_END,TK_WHILE,line);
 leaveblock(fs);
@@ -4469,7 +4452,6 @@ luaK_reserveregs(fs,nvars);
 block(ls);
 leaveblock(fs);
 luaK_patchtohere(fs,prep);
-luaK_patchtohere(fs,bl.previous->continuelist);
 endfor=(isnum)?luaK_codeAsBx(fs,OP_FORLOOP,base,(-1)):
 luaK_codeABC(fs,OP_TFORLOOP,base,0,nvars);
 luaK_fixline(fs,line);
@@ -4686,11 +4668,6 @@ return 1;
 case TK_BREAK:{
 luaX_next(ls);
 breakstat(ls);
-return 1;
-}
-case TK_CONTINUE:{
-luaX_next(ls);
-continuestat(ls);
 return 1;
 }
 default:{

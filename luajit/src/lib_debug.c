@@ -23,11 +23,13 @@
 
 #define LJLIB_MODULE_debug
 
-LJLIB_CF(debug_getregistry)
+#if defined(LJ_NO_SANDBOX)
+LJLIB_NOREG LJLIB_CF(debug_getregistry)
 {
   copyTV(L, L->top++, registry(L));
   return 1;
 }
+#endif
 
 LJLIB_CF(debug_getmetatable)	LJLIB_REC(.)
 {
@@ -206,7 +208,8 @@ LJLIB_CF(debug_getlocal)
   }
 }
 
-LJLIB_CF(debug_setlocal)
+#if defined(LJ_NO_SANDBOX)
+LJLIB_NOREG LJLIB_CF(debug_setlocal)
 {
   int arg;
   lua_State *L1 = getthread(L, &arg);
@@ -219,6 +222,7 @@ LJLIB_CF(debug_setlocal)
   lua_pushstring(L, lua_setlocal(L1, &ar, lj_lib_checkint(L, arg+2)));
   return 1;
 }
+#endif
 
 static int debug_getupvalue(lua_State *L, int get)
 {
@@ -241,13 +245,14 @@ LJLIB_CF(debug_getupvalue)
   return debug_getupvalue(L, 1);
 }
 
-LJLIB_CF(debug_setupvalue)
+#if defined(LJ_NO_SANDBOX)
+LJLIB_NOREG LJLIB_CF(debug_setupvalue)
 {
   lj_lib_checkany(L, 3);
   return debug_getupvalue(L, 0);
 }
 
-LJLIB_CF(debug_upvalueid)
+LJLIB_NOREG LJLIB_CF(debug_upvalueid)
 {
   GCfunc *fn = lj_lib_checkfunc(L, 1);
   blockDebug(L, fn);
@@ -259,7 +264,7 @@ LJLIB_CF(debug_upvalueid)
   return 1;
 }
 
-LJLIB_CF(debug_upvaluejoin)
+LJLIB_NOREG LJLIB_CF(debug_upvaluejoin)
 {
   GCfunc *fn[2];
   GCRef *p[2];
@@ -279,6 +284,7 @@ LJLIB_CF(debug_upvaluejoin)
   lj_gc_objbarrier(L, fn[0], gcref(*p[1]));
   return 0;
 }
+#endif
 
 #if LJ_52
 LJLIB_CF(debug_getuservalue)

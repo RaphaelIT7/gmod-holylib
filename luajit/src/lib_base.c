@@ -448,12 +448,13 @@ LJLIB_CF(load)
   return load_aux(L, status, 4);
 }
 
-LJLIB_CF(loadstring)
+#if defined(LJ_NO_SANDBOX)
+LJLIB_NOREG LJLIB_CF(loadstring)
 {
   return lj_cf_load(L);
 }
 
-LJLIB_CF(dofile)
+LJLIB_NOREG LJLIB_CF(dofile)
 {
   GCstr *fname = lj_lib_optstr(L, 1);
   setnilV(L->top);
@@ -463,6 +464,7 @@ LJLIB_CF(dofile)
   lua_call(L, 0, LUA_MULTRET);
   return (int)(L->top - L->base) - 1;
 }
+#endif
 
 /* -- Base library: GC control -------------------------------------------- */
 

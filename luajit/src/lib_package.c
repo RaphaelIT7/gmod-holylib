@@ -41,12 +41,14 @@ static void ll_unloadlib(void *lib)
   dlclose(lib);
 }
 
+#if defined(LJ_NO_SANDBOX)
 static void *ll_load(lua_State *L, const char *path, int gl)
 {
   void *lib = dlopen(path, RTLD_NOW | (gl ? RTLD_GLOBAL : RTLD_LOCAL));
   if (lib == NULL) lua_pushstring(L, dlerror());
   return lib;
 }
+#endif
 
 static lua_CFunction ll_sym(lua_State *L, void *lib, const char *sym)
 {
@@ -55,6 +57,7 @@ static lua_CFunction ll_sym(lua_State *L, void *lib, const char *sym)
   return f;
 }
 
+#if defined(LJ_NO_SANDBOX)
 static const char *ll_bcsym(void *lib, const char *sym)
 {
 #if defined(RTLD_DEFAULT) && !defined(NO_RTLD_DEFAULT)
@@ -64,6 +67,7 @@ static const char *ll_bcsym(void *lib, const char *sym)
 #endif
   return (const char *)dlsym(lib, sym);
 }
+#endif
 
 #elif LJ_TARGET_WINDOWS
 
@@ -76,6 +80,7 @@ static const char *ll_bcsym(void *lib, const char *sym)
 BOOL WINAPI GetModuleHandleExA(DWORD, LPCSTR, HMODULE*);
 #endif
 
+#if defined(LJ_NO_SANDBOX)
 #if LJ_TARGET_UWP
 void *LJ_WIN_LOADLIBA(const char *path)
 {
@@ -106,6 +111,7 @@ static void setprogdir(lua_State *L)
     lua_remove(L, -2);  /* remove original string */
   }
 }
+#endif
 
 static void pusherror(lua_State *L)
 {
@@ -131,6 +137,7 @@ static void ll_unloadlib(void *lib)
   FreeLibrary((HINSTANCE)lib);
 }
 
+#if defined(LJ_NO_SANDBOX)
 static void *ll_load(lua_State *L, const char *path, int gl)
 {
   HINSTANCE lib = LJ_WIN_LOADLIBA(path);
@@ -138,6 +145,7 @@ static void *ll_load(lua_State *L, const char *path, int gl)
   UNUSED(gl);
   return lib;
 }
+#endif
 
 static lua_CFunction ll_sym(lua_State *L, void *lib, const char *sym)
 {
@@ -145,6 +153,8 @@ static lua_CFunction ll_sym(lua_State *L, void *lib, const char *sym)
   if (f == NULL) pusherror(L);
   return f;
 }
+
+#if defined(LJ_NO_SANDBOX)
 
 #if LJ_TARGET_UWP
 EXTERN_C IMAGE_DOS_HEADER __ImageBase;
@@ -167,25 +177,30 @@ static const char *ll_bcsym(void *lib, const char *sym)
 #endif
   }
 }
+#endif
 
 #else
 
+#if defined(LJ_NO_SANDBOX)
 #undef PACKAGE_LIB_FAIL
 #define PACKAGE_LIB_FAIL	"absent"
 
 #define DLMSG	"dynamic libraries not enabled; no support for target OS"
+#endif
 
 static void ll_unloadlib(void *lib)
 {
   UNUSED(lib);
 }
 
+#if defined(LJ_NO_SANDBOX)
 static void *ll_load(lua_State *L, const char *path, int gl)
 {
   UNUSED(path); UNUSED(gl);
   lua_pushliteral(L, DLMSG);
   return NULL;
 }
+#endif
 
 static lua_CFunction ll_sym(lua_State *L, void *lib, const char *sym)
 {
@@ -193,6 +208,8 @@ static lua_CFunction ll_sym(lua_State *L, void *lib, const char *sym)
   lua_pushliteral(L, DLMSG);
   return NULL;
 }
+
+#if defined(LJ_NO_SANDBOX)
 
 static const char *ll_bcsym(void *lib, const char *sym)
 {
@@ -283,6 +300,7 @@ static int lj_cf_package_loadlib(lua_State *L)
     return 3;  /* return nil, error message, and where */
   }
 }
+#endif
 
 static int lj_cf_package_unloadlib(lua_State *L)
 {
@@ -300,6 +318,8 @@ static int lj_cf_package_unloadlib(lua_State *L)
   *lib = NULL;  /* mark library as closed */
   return 0;
 }
+
+#if defined(LJ_NO_SANDBOX)
 
 /* ------------------------------------------------------------------------ */
 
@@ -483,6 +503,8 @@ static int lj_cf_package_require(lua_State *L)
   return 1;
 }
 
+#endif
+
 /* ------------------------------------------------------------------------ */
 
 static void setfenv(lua_State *L)
@@ -554,6 +576,7 @@ static int lj_cf_package_seeall(lua_State *L)
 
 /* ------------------------------------------------------------------------ */
 
+#if defined(LJ_NO_SANDBOX)
 #define AUXMARK		"\1"
 
 static void setpath(lua_State *L, const char *fieldname, const char *envname,
@@ -576,33 +599,42 @@ static void setpath(lua_State *L, const char *fieldname, const char *envname,
   setprogdir(L);
   lua_setfield(L, -2, fieldname);
 }
+#endif
 
 static const luaL_Reg package_lib[] = {
+#if defined(LJ_NO_SANDBOX)
   { "loadlib",	lj_cf_package_loadlib },
   { "searchpath",  lj_cf_package_searchpath },
+#endif
   { "seeall",	lj_cf_package_seeall },
   { NULL, NULL }
 };
 
 static const luaL_Reg package_global[] = {
   { "module",	lj_cf_package_module },
+#if defined(LJ_NO_SANDBOX)
   { "require",	lj_cf_package_require },
+#endif
   { NULL, NULL }
 };
 
 static const lua_CFunction package_loaders[] =
 {
+#if defined(LJ_NO_SANDBOX)
   lj_cf_package_loader_preload,
   lj_cf_package_loader_lua,
   lj_cf_package_loader_c,
   lj_cf_package_loader_croot,
+#endif
   NULL
 };
 
 LUALIB_API int luaopen_package(lua_State *L)
 {
   int i;
+#if defined(LJ_NO_SANDBOX)
   int noenv;
+#endif
   luaL_newmetatable(L, "_LOADLIB");
   lj_lib_pushcf(L, lj_cf_package_unloadlib, 1);
   lua_setfield(L, -2, "__gc");
@@ -618,11 +650,13 @@ LUALIB_API int luaopen_package(lua_State *L)
   lua_setfield(L, -3, "searchers");
 #endif
   lua_setfield(L, -2, "loaders");
+#if defined(LJ_NO_SANDBOX)
   lua_getfield(L, LUA_REGISTRYINDEX, "LUA_NOENV");
   noenv = lua_toboolean(L, -1);
   lua_pop(L, 1);
   setpath(L, "path", LUA_PATH, LUA_PATH_DEFAULT, noenv);
   setpath(L, "cpath", LUA_CPATH, LUA_CPATH_DEFAULT, noenv);
+#endif
   lua_pushliteral(L, LUA_PATH_CONFIG);
   lua_setfield(L, -2, "config");
   luaL_findtable(L, LUA_REGISTRYINDEX, "_LOADED", 16);

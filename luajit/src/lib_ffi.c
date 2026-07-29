@@ -390,7 +390,8 @@ LJLIB_CF(ffi_clib___index)	LJLIB_REC(clib_index 1)
   return 1;
 }
 
-LJLIB_CF(ffi_clib___newindex)	LJLIB_REC(clib_index 0)
+#if defined(LJ_NO_SANDBOX)
+LJLIB_NOREG LJLIB_CF(ffi_clib___newindex)	LJLIB_REC(clib_index 0)
 {
   TValue *tv = ffi_clib_index(L);
   TValue *o = L->base+2;
@@ -414,6 +415,7 @@ LJLIB_CF(ffi_clib___newindex)	LJLIB_REC(clib_index 0)
   lj_err_caller(L, LJ_ERR_FFI_WRCONST);
   return 0;  /* unreachable */
 }
+#endif
 
 LJLIB_CF(ffi_clib___gc)
 {
@@ -454,16 +456,18 @@ static int ffi_callback_set(lua_State *L, GCfunc *fn)
   return 0;
 }
 
-LJLIB_CF(ffi_callback_free)
+#if defined(LJ_NO_SANDBOX)
+LJLIB_NOREG LJLIB_CF(ffi_callback_free)
 {
   return ffi_callback_set(L, NULL);
 }
 
-LJLIB_CF(ffi_callback_set)
+LJLIB_NOREG LJLIB_CF(ffi_callback_set)
 {
   GCfunc *fn = lj_lib_checkfunc(L, 2);
   return ffi_callback_set(L, fn);
 }
+#endif
 
 LJLIB_PUSH(top-1) LJLIB_SET(__index)
 
@@ -527,7 +531,8 @@ LJLIB_CF(ffi_new)	LJLIB_REC(.)
   return 1;
 }
 
-LJLIB_CF(ffi_cast)	LJLIB_REC(ffi_new)
+#if defined(LJ_NO_SANDBOX)
+LJLIB_NOREG LJLIB_CF(ffi_cast)	LJLIB_REC(ffi_new)
 {
   CTState *cts = ctype_cts(L);
   CTypeID id = ffi_checkctype(L, cts, NULL);
@@ -544,6 +549,7 @@ LJLIB_CF(ffi_cast)	LJLIB_REC(ffi_new)
   }
   return 1;
 }
+#endif
 
 LJLIB_CF(ffi_typeof)	LJLIB_REC(.)
 {
@@ -676,7 +682,8 @@ LJLIB_CF(ffi_errno)	LJLIB_REC(.)
   return 1;
 }
 
-LJLIB_CF(ffi_string)	LJLIB_REC(.)
+#if defined(LJ_NO_SANDBOX)
+LJLIB_NOREG LJLIB_CF(ffi_string)	LJLIB_REC(.)
 {
   CTState *cts = ctype_cts(L);
   TValue *o = lj_lib_checkany(L, 1);
@@ -697,7 +704,7 @@ LJLIB_CF(ffi_string)	LJLIB_REC(.)
   return 1;
 }
 
-LJLIB_CF(ffi_copy)	LJLIB_REC(.)
+LJLIB_NOREG LJLIB_CF(ffi_copy)	LJLIB_REC(.)
 {
   void *dp = ffi_checkptr(L, 1, CTID_P_VOID);
   void *sp = ffi_checkptr(L, 2, CTID_P_CVOID);
@@ -711,7 +718,7 @@ LJLIB_CF(ffi_copy)	LJLIB_REC(.)
   return 0;
 }
 
-LJLIB_CF(ffi_fill)	LJLIB_REC(.)
+LJLIB_NOREG LJLIB_CF(ffi_fill)	LJLIB_REC(.)
 {
   void *dp = ffi_checkptr(L, 1, CTID_P_VOID);
   CTSize len = (CTSize)ffi_checkint(L, 2);
@@ -720,6 +727,7 @@ LJLIB_CF(ffi_fill)	LJLIB_REC(.)
   memset(dp, fill, len);
   return 0;
 }
+#endif
 
 /* Test ABI string. */
 LJLIB_CF(ffi_abi)	LJLIB_REC(.)
@@ -810,13 +818,15 @@ LJLIB_CF(ffi_gc)	LJLIB_REC(.)
 
 LJLIB_PUSH(top-5) LJLIB_SET(!)  /* Store clib metatable in func environment. */
 
-LJLIB_CF(ffi_load)
+#if defined(LJ_NO_SANDBOX)
+LJLIB_NOREG LJLIB_CF(ffi_load)
 {
   GCstr *name = lj_lib_checkstr(L, 1);
   int global = (L->base+1 < L->top && tvistruecond(L->base+1));
   lj_clib_load(L, tabref(curr_func(L)->c.env), name, global);
   return 1;
 }
+#endif
 
 LJLIB_PUSH(top-4) LJLIB_SET(C)
 LJLIB_PUSH(top-3) LJLIB_SET(os)
