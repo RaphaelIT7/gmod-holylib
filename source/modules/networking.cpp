@@ -2007,6 +2007,7 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 		return;
 
 	Plat_FastMemset(g_pEntityCache, 0, sizeof(g_pEntityCache));
+	g_pReplaceCServerGameEnts_CheckTransmit = false;
 #if defined(SYSTEM_LINUX) && defined(ARCHITECTURE_X86_64)
 	g_bEntityCacheSeeded = false;
 #endif
@@ -2039,6 +2040,8 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 	if (networking_enabletransmit64x.GetBool() || networking_enableunsafe64x.GetBool())
 #endif
 	{
+		bool bPreventTransmitHooksActive = false;
+
 		/*
 		 * These two MUST be installed as a pair or not at all.
 		 *
@@ -2064,36 +2067,57 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 				server_loader.GetModule(), Symbols::CBaseEntity_GMOD_ShouldPreventTransmitToPlayerSym,
 				(void*)DETOUR_THISCALL(hook_CBaseEntity_GMOD_ShouldPreventTransmitToPlayer, GMOD_ShouldPreventTransmitToPlayer), m_pID
 			);
+
+			bPreventTransmitHooksActive =
+				detour_CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer.IsEnabled() &&
+				detour_CBaseEntity_GMOD_ShouldPreventTransmitToPlayer.IsEnabled();
+			if (!bPreventTransmitHooksActive)
+			{
+				const bool bSetHookEnabled = detour_CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer.IsEnabled();
+				const bool bShouldHookEnabled = detour_CBaseEntity_GMOD_ShouldPreventTransmitToPlayer.IsEnabled();
+				if (bSetHookEnabled)
+					Detour::DisableHook(&detour_CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer);
+				if (bShouldHookEnabled)
+					Detour::DisableHook(&detour_CBaseEntity_GMOD_ShouldPreventTransmitToPlayer);
+
+				Warning(PROJECT_NAME " - networking: GMOD_(Set)ShouldPreventTransmitToPlayer did not install "
+					"as a pair (set=%i should=%i) - leaving the entire transmit path to the engine.\n",
+					bSetHookEnabled, bShouldHookEnabled);
+			}
 		} else {
 			Warning(PROJECT_NAME " - networking: GMOD_(Set)ShouldPreventTransmitToPlayer did not both resolve "
-				"(set=%p should=%p) - leaving prevent-transmit to the engine.\n", pGMODSetShouldPrevent, pGMODShouldPrevent);
+				"(set=%p should=%p) - leaving the entire transmit path to the engine.\n",
+				pGMODSetShouldPrevent, pGMODShouldPrevent);
 		}
 
-		Detour::Create(
-			&detour_CBaseCombatCharacter_SetTransmit, "CBaseCombatCharacter::SetTransmit",
-			server_loader.GetModule(), Symbols::CBaseCombatCharacter_SetTransmitSym,
-			(void*)DETOUR_THISCALL(hook_CBaseCombatCharacter_SetTransmit, SetTransmit), m_pID
-		);
-
-#if MODULE_EXISTS_PVS
-		IModuleWrapper* pPVS = g_pModuleManager.GetModuleByID(HOLYLIB_MODULEID_PVS);
-		if (pPVS && !pPVS->IsEnabled())
-#endif
+		if (bPreventTransmitHooksActive)
 		{
 			Detour::Create(
-				&detour_CServerGameEnts_CheckTransmit, "CServerGameEnts::CheckTransmit",
-				server_loader.GetModule(), Symbols::CServerGameEnts_CheckTransmitSym,
-				(void*)DETOUR_THISCALL(hook_CServerGameEnts_CheckTransmit, CheckTransmit), m_pID
+				&detour_CBaseCombatCharacter_SetTransmit, "CBaseCombatCharacter::SetTransmit",
+				server_loader.GetModule(), Symbols::CBaseCombatCharacter_SetTransmitSym,
+				(void*)DETOUR_THISCALL(hook_CBaseCombatCharacter_SetTransmit, SetTransmit), m_pID
 			);
+
+#if MODULE_EXISTS_PVS
+			IModuleWrapper* pPVS = g_pModuleManager.GetModuleByID(HOLYLIB_MODULEID_PVS);
+			if (pPVS && !pPVS->IsEnabled())
+#endif
+			{
+				Detour::Create(
+					&detour_CServerGameEnts_CheckTransmit, "CServerGameEnts::CheckTransmit",
+					server_loader.GetModule(), Symbols::CServerGameEnts_CheckTransmitSym,
+					(void*)DETOUR_THISCALL(hook_CServerGameEnts_CheckTransmit, CheckTransmit), m_pID
+				);
+			}
+
+			SourceSDK::FactoryLoader datacache_loader("datacache");
+			mdlcache = datacache_loader.GetInterface<IMDLCache>(MDLCACHE_INTERFACE_VERSION);
+
+			func_CBaseAnimating_SetTransmit = (Symbols::CBaseCombatCharacter_SetTransmit)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseAnimating_SetTransmitSym);
+			Detour::CheckFunction((void*)func_CBaseAnimating_SetTransmit, "CBaseAnimating::SetTransmit");
+
+			g_pReplaceCServerGameEnts_CheckTransmit = true;
 		}
-
-		SourceSDK::FactoryLoader datacache_loader("datacache");
-		mdlcache = datacache_loader.GetInterface<IMDLCache>(MDLCACHE_INTERFACE_VERSION);
-
-		func_CBaseAnimating_SetTransmit = (Symbols::CBaseCombatCharacter_SetTransmit)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseAnimating_SetTransmitSym);
-		Detour::CheckFunction((void*)func_CBaseAnimating_SetTransmit, "CBaseAnimating::SetTransmit");
-
-		g_pReplaceCServerGameEnts_CheckTransmit = true;
 	}
 
 	// Everything below still touches the 64x-broken CBaseClient/CGameClient layout or has no 64x
