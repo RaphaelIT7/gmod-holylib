@@ -395,6 +395,9 @@ static inline void CBitVec_AndNot(CBitVec<MAX_EDICTS>* a, const CBitVec<MAX_EDIC
  */
 static ConVar* sv_force_transmit_ents = nullptr;
 static CBaseEntity* g_pEntityCache[MAX_EDICTS] = {nullptr};
+#if defined(SYSTEM_LINUX) && defined(ARCHITECTURE_X86_64)
+static bool g_bEntityCacheSeeded = false;
+#endif
 bool g_pReplaceCServerGameEnts_CheckTransmit = false;
 static edict_t* world_edict = nullptr;
 
@@ -421,6 +424,9 @@ static inline CBaseEntity* IndexToEntity(const int nEntIndex)
 	if (nEntIndex < 0 || nEntIndex >= MAX_EDICTS)
 		return nullptr;
 
+	if (!g_pEntityList)
+		return Util::GetCBaseEntityFromIndex(nEntIndex); // The cache can outlive the entity, see EHandleToEntity.
+
 	return g_pEntityCache[nEntIndex];
 }
 
@@ -432,14 +438,79 @@ static inline CBaseEntity* EHandleToEntity(const CBaseHandle* pHandle)
 		if (nEntIndex < 0 || nEntIndex >= MAX_EDICTS)
 			return nullptr;
 
-		CBaseEntity* pEnt = g_pEntityCache[nEntIndex];
-		if (pEnt && pEnt->GetRefEHandle() != *pHandle) // To compare the serial number mimicking CBaseEntityList::LookupEntity
+		// Resolve through the engine instead of reading g_pEntityCache.
+		//
+		// Without gEntList nothing scrubs a cache slot when its entity is freed, and this function can be
+		// reached from hook_CBaseCombatCharacter_SetTransmit on a tick where our CheckTransmit never ran,
+		// so the slot need not have been rebuilt. The serial-number test below is a *virtual* call, so a
+		// freed entity faults while dereferencing its own vtable pointer - before the test can reject it.
+		// Validating a pointer by calling a virtual on that same pointer is circular; that is exactly the
+		// 2026-07-26 21:08 segfault (jumped to non-executable memory out of a stale vtable).
+		//
+		// PEntityOfEntIndex bounds-checks against num_edicts and rejects free edicts, and EdictToBaseEntity
+		// reads the edict - engine-owned memory that is never freed - not the entity. What comes back is
+		// therefore always either a live entity or nullptr, which makes GetRefEHandle() safe to call.
+		// 32x keeps the fast array lookup: there CBaseHandle::Get() goes through CBaseEntityList and
+		// validates the serial against the CEntInfo array without ever touching the object.
+		CBaseEntity* pEnt = Util::GetCBaseEntityFromIndex(nEntIndex);
+		if (!pEnt)
+			return nullptr;
+
+		if (pEnt->GetRefEHandle() != *pHandle) // To compare the serial number mimicking CBaseEntityList::LookupEntity
 			return nullptr;
 
 		return pEnt;
 	}
 
 	return (CBaseEntity*)pHandle->Get();
+}
+
+// Resolves an edict index straight from the engine, bypassing g_pEntityCache.
+// Used to rebuild the cache when the entity listener could not be registered (see UpdateEntities).
+// Deliberately goes through PEntityOfEntIndex rather than indexing world_edict directly: slots past
+// sv.num_edicts are zeroed, so IsFree() reads false for them and we would hand a zeroed edict to
+// EdictToBaseEntity. PEntityOfEntIndex bounds-checks against num_edicts *and* rejects free edicts.
+static inline CBaseEntity* EdictIndexToEntity(const int nEntIndex)
+{
+	return Util::GetCBaseEntityFromIndex(nEntIndex);
+}
+
+// Without g_pEntityList we never registered the entity listener (util.cpp), so OnEntityCreated /
+// OnEntityDeleted never fire and the cache must be rebuilt every tick. On Linux 64x, do one initial
+// rebuild even with a listener: plugin_load can happen after ServerActivate and AddListenerEntity
+// does not replay entities that already exist. A partial rebuild is not sufficient because handle
+// resolution also needs weapons, viewmodels and hands that need not occur in CheckTransmit's edict list.
+static inline void RebuildEntityCacheForTick()
+{
+#if defined(SYSTEM_LINUX) && defined(ARCHITECTURE_X86_64)
+	if (g_pEntityList && g_bEntityCacheSeeded)
+		return;
+#else
+	if (g_pEntityList)
+		return;
+#endif
+
+	for (int i = 0; i < MAX_EDICTS; ++i)
+		g_pEntityCache[i] = EdictIndexToEntity(i);
+
+#if defined(SYSTEM_LINUX) && defined(ARCHITECTURE_X86_64)
+	g_bEntityCacheSeeded = g_pEntityList != nullptr;
+#endif
+}
+
+// CCServerNetworkProperty::GetNetworkParent() calls m_hParent.Get(), which is the SDK's own inline
+// and dereferences g_pEntityList *unconditionally*. If gEntList resolution fails, calling it faults,
+// so route through the safe handle fallback instead.
+static inline CCServerNetworkProperty* GetNetworkParentSafe(CCServerNetworkProperty* pProp)
+{
+	if (!pProp || !pProp->m_hParent.IsValid())
+		return nullptr;
+
+	if (g_pEntityList)
+		return pProp->GetNetworkParent(); // 32x: the SDK path is safe, keep it.
+
+	CBaseEntity* pParent = EHandleToEntity(&pProp->m_hParent);
+	return pParent ? (CCServerNetworkProperty*)pParent->NetworkProp() : nullptr;
 }
 
 static DTVarByOffset m_Hands_Offset("DT_GMOD_Player", "m_Hands");
@@ -501,6 +572,9 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 	// Updates the cache for the current tick
 	void UpdateEntities(const unsigned short *pEdictIndices, const int nEdicts)
 	{
+		if (!world_edict || !gpGlobals) // ServerActivate may never have run (require("holylib") / runtime enable)
+			return;
+
 		m_bIsActivelyNetworking = true;
 
 #if NETWORKING_STATE_DEBUGGING
@@ -515,7 +589,20 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 		nPVSEdictCount = -1;
 		nFullEdictCount = -1; // -1 so that we can use preincrement :hehe:
 		Plat_FastMemset(pPVSEntityList, 0, sizeof(pPVSEntityList) * 2); // * 2 to also clear nFullEdictList which lies directly after it in memory. I know. very "safe" but I want this in 1 call
-		Plat_FastMemset(nAreaEntities, 0, sizeof(nAreaEntities));
+
+		// nAreaEntities is ~1 MB (255 areas x 512 entities) and only AddPVSEntity ever fills it, which only
+		// runs with areasplit enabled. Clearing it unconditionally every tick evicts a megabyte of cache
+		// immediately before the transmit loop wants that cache. The flag keeps a runtime 1 -> 0 flip
+		// correct: we still do one final clear, so EntityRemoved never walks a stale nCount.
+		const bool bAreaSplit = networking_areasplit.GetBool();
+		if (bAreaSplit || m_bAreaCacheFilled)
+		{
+			Plat_FastMemset(nAreaEntities, 0, sizeof(nAreaEntities));
+			m_bAreaCacheFilled = bAreaSplit;
+		}
+
+		// NOTE: g_pEntityCache was already rebuilt for this tick by the caller, before it touched
+		//       g_pPlayerTransmitCache - see RebuildEntityCacheForTick.
 
 		// First we build data based off all players
 		bool bBindGmodHandsToPlayer = networking_bind_gmodhands_to_player.GetBool();
@@ -531,8 +618,9 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 				if (bBindGmodHandsToPlayer)
 				{
 					CBaseEntity* pHands = GetGMODPlayerHands(pPlayer);
-					if (pHands)
-						pNeverTransmitBits.Set(pHands->edict()->m_EdictIndex); // We make hands never transmit by default simply to save performance by reducing PVS checks.
+					edict_t* pHandsEdict = pHands ? pHands->edict() : nullptr;
+					if (pHandsEdict)
+						pNeverTransmitBits.Set(pHandsEdict->m_EdictIndex); // We make hands never transmit by default simply to save performance by reducing PVS checks.
 				}
 
 				if (bBindViewModelsToPlayer)
@@ -540,8 +628,9 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 					for (int i=0; i<MAX_VIEWMODELS; ++i)
 					{
 						CBaseEntity* pViewModel = GetViewModel(pPlayer, i);
-						if (pViewModel)
-							pNeverTransmitBits.Set(pViewModel->edict()->m_EdictIndex);
+						edict_t* pViewModelEdict = pViewModel ? pViewModel->edict() : nullptr;
+						if (pViewModelEdict)
+							pNeverTransmitBits.Set(pViewModelEdict->m_EdictIndex);
 					}
 				}
 
@@ -549,8 +638,9 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 				for (int i=0; i<MAX_WEAPONS; ++i)
 				{
 					CBaseEntity *pWeapon = GetMyWeapon(pPlayer, i);
-					if (pWeapon)
-						pNeverTransmitBits.Set(pWeapon->edict()->m_EdictIndex);
+					edict_t* pWeaponEdict = pWeapon ? pWeapon->edict() : nullptr;
+					if (pWeaponEdict)
+						pNeverTransmitBits.Set(pWeaponEdict->m_EdictIndex);
 				}
 			}
 		}
@@ -581,7 +671,7 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 					if (!pEnt)
 						break;
 
-					CCServerNetworkProperty *pParent = pEnt->GetNetworkParent();
+					CCServerNetworkProperty *pParent = GetNetworkParentSafe(pEnt);
 					if (!pParent)
 						break;
 
@@ -867,6 +957,7 @@ struct EntityTransmitCache // Well.... Still kinda acts as a tick-based cache, t
 	}
 
 	bool m_bIsActivelyNetworking = false;
+	bool m_bAreaCacheFilled = false; // Whether nAreaEntities holds anything worth clearing (see UpdateEntities).
 
 	CBitVec<MAX_EDICTS> pAlwaysTransmitBits;
 	CBitVec<MAX_EDICTS> pNeverTransmitBits;
@@ -1106,8 +1197,9 @@ static ConVar networking_fasttransmit("holylib_networking_fasttransmit", "1", 0,
 static void hook_CBaseCombatCharacter_SetTransmit(CBaseCombatCharacter* pCharacter, CCheckTransmitInfo *pInfo, bool bAlways)
 {
 	// IMPORANT: Apparently CBaseCombatCharacter is inherited by more than just the player, so we MUST check m_EdictIndex!
+	// The !pCharacterEdict test has to come first - it is what makes the m_EdictIndex reads below safe.
 	edict_t* pCharacterEdict = pCharacter->edict();
-	if (!func_CBaseAnimating_SetTransmit || !networking_fasttransmit.GetBool() || !networking_fastcharactertransmit.GetBool() || pCharacterEdict->m_EdictIndex <= 0 || pCharacterEdict->m_EdictIndex > gpGlobals->maxClients)
+	if (!pCharacterEdict || !func_CBaseAnimating_SetTransmit || !networking_fasttransmit.GetBool() || !networking_fastcharactertransmit.GetBool() || pCharacterEdict->m_EdictIndex <= 0 || pCharacterEdict->m_EdictIndex > gpGlobals->maxClients)
 	{
 		// Without it we won't do shit, simply because possibly missing a transmit can cause quite the issues.
 		detour_CBaseCombatCharacter_SetTransmit.GetTrampoline<Symbols::CBaseCombatCharacter_SetTransmit>()(pCharacter, pInfo, bAlways);
@@ -1244,8 +1336,11 @@ static void TransmitFastPathPlayer(CBasePlayer* pRecipientPlayer, int clientInde
 		nOtherCache.pClientBitVec.CopyTo(pInfo->m_pTransmitAlways);
 
 	// g_pPlayerTransmitCacheBitVec won't contain any information about the client the cache was build upon, so we need to call SetTransmit ourselves.
-	// & yes, using the g_pEntityCache like this is safe, even if it doesn't look save - Time to see how long it'll take until I regret writing this
-	g_pEntityCache[iOtherClient+1]->SetTransmit(pInfo, true);
+	// RaphaelIT7 called this safe "even if it doesn't look safe"; it isn't - the slot is empty whenever that
+	// client has no entity this tick, which is every tick on 64x before the cache rebuild landed.
+	CBaseEntity* pOtherPlayer = IndexToEntity(iOtherClient + 1);
+	if (pOtherPlayer)
+		pOtherPlayer->SetTransmit(pInfo, true);
 	pRecipientPlayer->SetTransmit(pInfo, true);
 	// ENGINE BUG: CBaseCombatCharacter::SetTransmit doesn't network the player's viewmodel! So we need to do it ourself.
 	// This was probably done since CBaseViewModel::ShouldTransmit determines if it would be sent or not.
@@ -1355,7 +1450,7 @@ static inline void DoTransmitPVSCheck(
 
 	// If the entity is marked "check PVS" but it's in hierarchy, walk up the hierarchy looking for the
 	//  for any parent which is also in the PVS.  If none are found, then we don't need to worry about sending ourself
-	CCServerNetworkProperty *check = netProp->GetNetworkParent();
+	CCServerNetworkProperty *check = GetNetworkParentSafe(netProp);
 
 	// BUG BUG:  I think it might be better to build up a list of edict indices which "depend" on other answers and then
 	// resolve them in a second pass.  Not sure what happens if an entity has two parents who both request PVS check?
@@ -1366,6 +1461,8 @@ static inline void DoTransmitPVSCheck(
 			return;
 
 		int checkIndex = checkEdict->m_EdictIndex;
+		if (checkIndex < 0 || checkIndex >= MAX_EDICTS)
+			return; // Garbage edict - indexing the cache or the bitvec with this reads out of bounds.
 
 		// Parent already being sent
 		if ( pInfo->m_pTransmitEdict->Get( checkIndex ) )
@@ -1424,7 +1521,7 @@ static inline void DoTransmitPVSCheck(
 		}
 
 		// Continue up chain just in case the parent itself has a parent that's in the PVS...
-		check = check->GetNetworkParent();
+		check = GetNetworkParentSafe(check);
 	}
 }
 
@@ -1435,8 +1532,9 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	vec_t maxTransmitRange = g_nTransmitRange;
 	g_nTransmitRange = -1.0f;
 
-	if (!networking_fasttransmit.GetBool() || !gpGlobals || !engine || !mdlcache || !func_CBaseAnimating_SetTransmit)
-		return false;
+	if (!networking_fasttransmit.GetBool() || !gpGlobals || !engine || !func_CBaseAnimating_SetTransmit || !world_edict)
+		return false; // Fail-safe: the engine's own CheckTransmit runs instead. (mdlcache is deliberately not
+		              //            required anymore, see the MDLCACHE_CRITICAL_SECTION note further down.)
 
 	// get recipient player's skybox: 3670181
 	CBaseEntity *pRecipientEntity = Util::servergameents->EdictToBaseEntity(pInfo->m_pClientEnt);
@@ -1462,7 +1560,14 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	// ToDo: Bring over's CS:GO code for InitialSpawnTime
 	//const bool bIsFreshlySpawned = pRecipientPlayer->GetInitialSpawnTime()+3.0f > gpGlobals->curtime;
 
-	MDLCACHE_CRITICAL_SECTION();
+	// Deliberately NO MDLCACHE_CRITICAL_SECTION() here.
+	// IMDLCache as declared in sourcesdk-minimal puts BeginLock/EndLock at vtable slots 33/34, but GMod's
+	// shipped datacache.so - linux32 and linux64 alike - has them at 41/42. Going through the header therefore
+	// dispatched EndLock into CMDLCache's real slot 34, a method taking (MDLHandle_t, int, float): it indexed
+	// m_MDLDict with whatever was left in rsi and segfaulted inside datacache.so on every call. Slot 33 is
+	// worse still - it looks like a lock acquire, so we were taking a lock we then never released.
+	// Nothing is lost by dropping it: GMod's own BeginLock/EndLock are empty stubs in both binaries, and the
+	// engine already wraps the whole CheckTransmit pass in its own critical section in SV_ComputeClientPacks.
 
 	// pRecipientPlayer->IsHLTV(); Why do we not use IsHLTV()? Because its NOT a virtual function & the variables are fked
 	const int nCurrentTick = gpGlobals->tickcount;
@@ -1471,6 +1576,11 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	const bool bFirstTransmit = g_pGlobalTransmitTickCache.IsNewTick(nCurrentTick);
 	if (bFirstTransmit)
 	{
+		// Has to happen before anything reads g_pEntityCache. If gEntList resolution failed, the cache is
+		// only ever as fresh as the last rebuild. Doing this inside UpdateEntities (below) left the player
+		// loop reading entries a tick out of date and could hand a removed player to NextTick() freed.
+		RebuildEntityCacheForTick();
+
 		if (bFastPath)
 			Plat_FastMemset(g_pPlayerTransmitTickCache, 0, sizeof(g_pPlayerTransmitTickCache));
 
@@ -1511,7 +1621,8 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 
 	const int clientEntIndex = pInfo->m_pClientEnt->m_EdictIndex;
 	static CBitVec<MAX_EDICTS> pClientCache; // Temporary cache used when we are calculating the transmit to the current pRecipientPlayer
-	const bool bForceTransmit = sv_force_transmit_ents->GetBool();
+	pClientCache.ClearAll(); // It is static, so without this it carries the previous recipient's bits into the Xor below.
+	const bool bForceTransmit = sv_force_transmit_ents && sv_force_transmit_ents->GetBool(); // Only set when g_pCVar existed at ServerActivate
 	bool bWasTransmitToPlayer = false;
 	// pInfo->m_pTransmitEdict->Or(g_pGlobalTransmitTickCache.g_pAlwaysTransmitCacheBitVec, pInfo->m_pTransmitEdict);
 	pInfo->m_pTransmitEdict->Or(g_nEntityTransmitCache.pAlwaysTransmitBits, pInfo->m_pTransmitEdict);
@@ -1522,7 +1633,11 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	{
 		CBaseEntity* pEnt = g_nEntityTransmitCache.pFullEntityList[i];
 
-		const int iEdict = pEnt->edict()->m_EdictIndex;
+		edict_t* pEntEdict = pEnt ? pEnt->edict() : nullptr;
+		if (!pEntEdict)
+			continue;
+
+		const int iEdict = pEntEdict->m_EdictIndex;
 		if (iEdict == clientEntIndex) {
 			pInfo->m_pTransmitEdict->CopyTo(&pClientCache);
 			bWasTransmitToPlayer = true;
@@ -1584,7 +1699,12 @@ bool New_CServerGameEnts_CheckTransmit(IServerGameEnts* gameents, CCheckTransmit
 	{
 		CBaseEntity* pEnt = g_nEntityTransmitCache.pPVSEntityList[i];
 
-		edict_t* pEdict = pEnt->edict();
+		// EntityRemoved() only runs off the entity listener. Keep the guard for the resolution-failure fallback,
+		// where an entity removed while we are still networking this tick can stay in the list.
+		edict_t* pEdict = pEnt ? pEnt->edict() : nullptr;
+		if (!pEdict)
+			continue;
+
 		const int iEdict = pEdict->m_EdictIndex;
 		if (pInfo->m_pTransmitEdict->Get(iEdict) || g_pDontTransmitCache.Get(iEdict))
 			continue;
@@ -1879,6 +1999,7 @@ static CSharedEdictChangeInfo* g_SharedEdictChangeInfo = nullptr;
 static ServerClassCache *player_class_cache = nullptr;
 #if ARCHITECTURE_X86_64
 static ConVar networking_enableunsafe64x("holylib_networking_enableunsafe64x", "0", 0, "(only affects 64x) Enables 64x the full module code though it may crash on 64x.");
+static ConVar networking_enabletransmit64x("holylib_networking_enabletransmit64x", "1", 0, "(only affects 64x) Enables the CheckTransmit fast path on 64x. Unlike enableunsafe64x this only covers the transmit code, which does not touch the broken CGameClient offsets.");
 #endif
 void CNetworkingModule::InitDetour(bool bPreServer)
 {
@@ -1886,6 +2007,10 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 		return;
 
 	Plat_FastMemset(g_pEntityCache, 0, sizeof(g_pEntityCache));
+	g_pReplaceCServerGameEnts_CheckTransmit = false;
+#if defined(SYSTEM_LINUX) && defined(ARCHITECTURE_X86_64)
+	g_bEntityCacheSeeded = false;
+#endif
 	for (int i=0; i<MAX_PLAYERS; ++i)
 		g_pShouldPrevent[i].ClearAll();
 
@@ -1898,6 +2023,105 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 	);
 #endif
 
+	DETOUR_PREPARE_THISCALL();
+	SourceSDK::FactoryLoader server_loader("server");
+
+	/*
+	 * The transmit fast path (CServerGameEnts::CheckTransmit and everything it reads) does not touch
+	 * CGameClient::m_pCurrentFrame, which is the member the 64x CBaseClient offsets get wrong. That
+	 * single broken read lives in PackEntities_Normal, below the enableunsafe64x gate, so the transmit
+	 * side can be installed on 64x independently of it.
+	 *
+	 * The GMOD_*ShouldPreventTransmitToPlayer pair must stay with it: they maintain g_pShouldPrevent,
+	 * which New_CServerGameEnts_CheckTransmit reads. Installing the transmit path without them would
+	 * silently leak entities that Lua hid via Entity:SetPreventTransmit.
+	 */
+#if ARCHITECTURE_X86_64
+	if (networking_enabletransmit64x.GetBool() || networking_enableunsafe64x.GetBool())
+#endif
+	{
+		bool bPreventTransmitHooksActive = false;
+
+		/*
+		 * These two MUST be installed as a pair or not at all.
+		 *
+		 * hook_CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer does NOT call the trampoline: it
+		 * records into g_pShouldPrevent and fully replaces the engine's own bookkeeping. If the
+		 * matching reader (GMOD_ShouldPreventTransmitToPlayer) is not hooked, the engine keeps
+		 * consulting its own state, which we then never write -> Entity:SetPreventTransmit silently
+		 * becomes a no-op. Resolve both up-front and only hook when both are available, so a stale
+		 * signature degrades to stock behaviour instead of a silent correctness bug.
+		 */
+		void* pGMODShouldPrevent = Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseEntity_GMOD_ShouldPreventTransmitToPlayerSym);
+		void* pGMODSetShouldPrevent = Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseEntity_GMOD_SetShouldPreventTransmitToPlayerSym);
+		if (pGMODShouldPrevent && pGMODSetShouldPrevent)
+		{
+			Detour::Create(
+				&detour_CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer, "CBaseEntity::GMOD_SetShouldPreventTransmitToPlayer",
+				server_loader.GetModule(), Symbols::CBaseEntity_GMOD_SetShouldPreventTransmitToPlayerSym,
+				(void*)DETOUR_THISCALL(hook_CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer, GMOD_SetShouldPreventTransmitToPlayer), m_pID
+			);
+
+			Detour::Create(
+				&detour_CBaseEntity_GMOD_ShouldPreventTransmitToPlayer, "CBaseEntity::GMOD_ShouldPreventTransmitToPlayer",
+				server_loader.GetModule(), Symbols::CBaseEntity_GMOD_ShouldPreventTransmitToPlayerSym,
+				(void*)DETOUR_THISCALL(hook_CBaseEntity_GMOD_ShouldPreventTransmitToPlayer, GMOD_ShouldPreventTransmitToPlayer), m_pID
+			);
+
+			bPreventTransmitHooksActive =
+				detour_CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer.IsEnabled() &&
+				detour_CBaseEntity_GMOD_ShouldPreventTransmitToPlayer.IsEnabled();
+			if (!bPreventTransmitHooksActive)
+			{
+				const bool bSetHookEnabled = detour_CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer.IsEnabled();
+				const bool bShouldHookEnabled = detour_CBaseEntity_GMOD_ShouldPreventTransmitToPlayer.IsEnabled();
+				if (bSetHookEnabled)
+					Detour::DisableHook(&detour_CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer);
+				if (bShouldHookEnabled)
+					Detour::DisableHook(&detour_CBaseEntity_GMOD_ShouldPreventTransmitToPlayer);
+
+				Warning(PROJECT_NAME " - networking: GMOD_(Set)ShouldPreventTransmitToPlayer did not install "
+					"as a pair (set=%i should=%i) - leaving the entire transmit path to the engine.\n",
+					bSetHookEnabled, bShouldHookEnabled);
+			}
+		} else {
+			Warning(PROJECT_NAME " - networking: GMOD_(Set)ShouldPreventTransmitToPlayer did not both resolve "
+				"(set=%p should=%p) - leaving the entire transmit path to the engine.\n",
+				pGMODSetShouldPrevent, pGMODShouldPrevent);
+		}
+
+		if (bPreventTransmitHooksActive)
+		{
+			Detour::Create(
+				&detour_CBaseCombatCharacter_SetTransmit, "CBaseCombatCharacter::SetTransmit",
+				server_loader.GetModule(), Symbols::CBaseCombatCharacter_SetTransmitSym,
+				(void*)DETOUR_THISCALL(hook_CBaseCombatCharacter_SetTransmit, SetTransmit), m_pID
+			);
+
+#if MODULE_EXISTS_PVS
+			IModuleWrapper* pPVS = g_pModuleManager.GetModuleByID(HOLYLIB_MODULEID_PVS);
+			if (pPVS && !pPVS->IsEnabled())
+#endif
+			{
+				Detour::Create(
+					&detour_CServerGameEnts_CheckTransmit, "CServerGameEnts::CheckTransmit",
+					server_loader.GetModule(), Symbols::CServerGameEnts_CheckTransmitSym,
+					(void*)DETOUR_THISCALL(hook_CServerGameEnts_CheckTransmit, CheckTransmit), m_pID
+				);
+			}
+
+			SourceSDK::FactoryLoader datacache_loader("datacache");
+			mdlcache = datacache_loader.GetInterface<IMDLCache>(MDLCACHE_INTERFACE_VERSION);
+
+			func_CBaseAnimating_SetTransmit = (Symbols::CBaseCombatCharacter_SetTransmit)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseAnimating_SetTransmitSym);
+			Detour::CheckFunction((void*)func_CBaseAnimating_SetTransmit, "CBaseAnimating::SetTransmit");
+
+			g_pReplaceCServerGameEnts_CheckTransmit = true;
+		}
+	}
+
+	// Everything below still touches the 64x-broken CBaseClient/CGameClient layout or has no 64x
+	// signature at all (InvalidateSharedEdictChangeInfos is called unguarded by the packing path).
 #if ARCHITECTURE_X86_64
 	if (!networking_enableunsafe64x.GetBool()) // It exists so that when I get to working on it, I can easily test it.
 		return;
@@ -1909,43 +2133,11 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 		(void*)hook_SendTable_CullPropsFromProxies, m_pID
 	);
 
-	DETOUR_PREPARE_THISCALL();
-	SourceSDK::FactoryLoader server_loader("server");
-	Detour::Create(
-		&detour_CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer, "CBaseEntity::GMOD_SetShouldPreventTransmitToPlayer",
-		server_loader.GetModule(), Symbols::CBaseEntity_GMOD_SetShouldPreventTransmitToPlayerSym,
-		(void*)DETOUR_THISCALL(hook_CBaseEntity_GMOD_SetShouldPreventTransmitToPlayer, GMOD_SetShouldPreventTransmitToPlayer), m_pID
-	);
-
-	Detour::Create(
-		&detour_CBaseEntity_GMOD_ShouldPreventTransmitToPlayer, "CBaseEntity::GMOD_ShouldPreventTransmitToPlayer",
-		server_loader.GetModule(), Symbols::CBaseEntity_GMOD_ShouldPreventTransmitToPlayerSym,
-		(void*)DETOUR_THISCALL(hook_CBaseEntity_GMOD_ShouldPreventTransmitToPlayer, GMOD_ShouldPreventTransmitToPlayer), m_pID
-	);
-
 	Detour::Create(
 		&detour_CGMOD_Player_CreateViewModel, "CGMOD_Player::CreateViewModel",
 		server_loader.GetModule(), Symbols::CGMOD_Player_CreateViewModelSym,
 		(void*)DETOUR_THISCALL(hook_CGMOD_Player_CreateViewModel, CreateViewModel), m_pID
 	);
-
-	Detour::Create(
-		&detour_CBaseCombatCharacter_SetTransmit, "CBaseCombatCharacter::SetTransmit",
-		server_loader.GetModule(), Symbols::CBaseCombatCharacter_SetTransmitSym,
-		(void*)DETOUR_THISCALL(hook_CBaseCombatCharacter_SetTransmit, SetTransmit), m_pID
-	);
-
-#if MODULE_EXISTS_PVS
-	IModuleWrapper* pPVS = g_pModuleManager.GetModuleByID(HOLYLIB_MODULEID_PVS);
-	if (pPVS && !pPVS->IsEnabled())
-#endif
-	{
-		Detour::Create(
-			&detour_CServerGameEnts_CheckTransmit, "CServerGameEnts::CheckTransmit",
-			server_loader.GetModule(), Symbols::CServerGameEnts_CheckTransmitSym,
-			(void*)DETOUR_THISCALL(hook_CServerGameEnts_CheckTransmit, CheckTransmit), m_pID
-		);
-	}
 
 #if SYSTEM_LINUX
 	Detour::Create(
@@ -1978,9 +2170,6 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 			g_PropTypeFns[i] = pPropTypeFns[i]; // Crash any% speed run. I don't believe this will work
 	}
 
-	SourceSDK::FactoryLoader datacache_loader("datacache");
-	mdlcache = datacache_loader.GetInterface<IMDLCache>(MDLCACHE_INTERFACE_VERSION);
-
 #if SYSTEM_WINDOWS
 	func_SV_PackEntity = (Symbols::SV_PackEntity)Detour::GetFunction(engine_loader.GetModule(), Symbols::SV_PackEntitySym);
 	Detour::CheckFunction((void*)func_SV_PackEntity, "SV_PackEntity");
@@ -1994,14 +2183,9 @@ void CNetworkingModule::InitDetour(bool bPreServer)
 	Detour::CheckFunction((void*)func_PackWork_t_Process, "PackWork_t::Process");
 #endif
 
-	func_CBaseAnimating_SetTransmit = (Symbols::CBaseCombatCharacter_SetTransmit)Detour::GetFunction(server_loader.GetModule(), Symbols::CBaseAnimating_SetTransmitSym);
-	Detour::CheckFunction((void*)func_CBaseAnimating_SetTransmit, "CBaseAnimating::SetTransmit");
-
 #if SYSTEM_WINDOWS // BUG: On Windows IModule::ServerActivate is not called if HolyLib gets loaded using: require("holylib")
 	world_edict = Util::engineserver->PEntityOfEntIndex(0);
 #endif
-
-	g_pReplaceCServerGameEnts_CheckTransmit = true;
 }
 
 void CNetworkingModule::ServerActivate(edict_t* pEdictList, int edictCount, int clientMax)
@@ -2011,6 +2195,10 @@ void CNetworkingModule::ServerActivate(edict_t* pEdictList, int edictCount, int 
 		for (int i=0; i<edictCount; ++i)
 			g_pEntityCache[i] = Util::GetCBaseEntityFromEdict(&pEdictList[i]);
 	}
+
+#if defined(SYSTEM_LINUX) && defined(ARCHITECTURE_X86_64)
+	g_bEntityCacheSeeded = pEdictList != nullptr && g_pEntityList != nullptr;
+#endif
 
 	if (g_pCVar)
 		sv_force_transmit_ents = g_pCVar->FindVar("sv_force_transmit_ents");
