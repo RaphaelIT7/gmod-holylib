@@ -1238,7 +1238,7 @@ end)
 		"holylib_gmoddatapack_luapack_ingest_method", "PUT", FCVAR_ARCHIVE,
 		"HTTP method for the optional pack ingest hook");
 	static ConVar luapack_downloadable_limit(
-		"holylib_gmoddatapack_luapack_downloadable_limit", "2", FCVAR_ARCHIVE,
+		"holylib_gmoddatapack_luapack_downloadable_limit", "1", FCVAR_ARCHIVE,
 		"Maximum immutable pack objects appended to the level-lifetime downloadables table; later generations use post-spawn HTTP handoff",
 		true, 0.0f, true, 64.0f);
 	static ConVar luapack_retention_ttl(
