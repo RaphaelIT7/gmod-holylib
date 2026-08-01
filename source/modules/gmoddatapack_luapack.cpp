@@ -27,6 +27,7 @@
 #include <atomic>
 #include <cctype>
 #include <chrono>
+#include <ctime>
 #include <cstdlib>
 #include <cstring>
 #include <limits>
@@ -105,6 +106,7 @@ namespace HolyLib::LuaPack
 		std::string md5;
 		std::string resourcePath;
 		std::string body;
+		double objectRetentionSeconds = 0.0;
 		std::string error;
 		int status = 0;
 		bool success = false;
@@ -852,9 +854,16 @@ end)
 		const int written = g_pFullFileSystem->Write(task->compressed.GetBase(), expected, output);
 		g_pFullFileSystem->Close(output);
 		if (written != expected)
+		{
+			g_pFullFileSystem->RemoveFile(temporaryPath.c_str(), "MOD");
 			return false;
+		}
 
-		return g_pFullFileSystem->RenameFile(temporaryPath.c_str(), resourcePath.c_str(), "MOD");
+		if (g_pFullFileSystem->RenameFile(temporaryPath.c_str(), resourcePath.c_str(), "MOD"))
+			return true;
+
+		g_pFullFileSystem->RemoveFile(temporaryPath.c_str(), "MOD");
+		return false;
 	}
 
 	static void EnsureBuildPool()
@@ -912,6 +921,8 @@ end)
 		request.headers.emplace("Content-Type", "application/octet-stream");
 		request.headers.emplace("X-HolyLib-LuaPack-MD5", task->md5);
 		request.headers.emplace("X-HolyLib-LuaPack-Path", task->resourcePath);
+		request.headers.emplace("X-HolyLib-LuaPack-Retention-Seconds",
+			std::to_string(static_cast<unsigned long long>(task->objectRetentionSeconds)));
 
 		auto response = client.send(request);
 		if (!response)
@@ -950,6 +961,7 @@ end)
 		upload->md5 = generation.md5;
 		upload->resourcePath = generation.resourcePath;
 		upload->body.assign(static_cast<const char*>(build->compressed.GetBase()), build->compressed.GetWritten());
+		upload->objectRetentionSeconds = currentConfig.objectRetentionSeconds;
 		EnsureUploadPool();
 		state.uploads.push_back(upload);
 		state.uploadPool->QueueCall(&UploadPack, upload);
@@ -1019,22 +1031,28 @@ end)
 		return true;
 	}
 
-	static bool RegisterDownloadable(const std::string& resourcePath)
+	static INetworkStringTable* DownloadablesTable()
 	{
 		if (!state.stringTables)
-			return false;
+			return nullptr;
 
 		if (!state.downloadables)
 			state.downloadables = state.stringTables->FindTable("downloadables");
-		if (!state.downloadables)
+		return state.downloadables;
+	}
+
+	static bool RegisterDownloadable(const std::string& resourcePath)
+	{
+		INetworkStringTable* downloadables = DownloadablesTable();
+		if (!downloadables)
 		{
 			Warning(PROJECT_NAME " - luapack: downloadables string table is not available\n");
 			return false;
 		}
 
-		int index = state.downloadables->FindStringIndex(resourcePath.c_str());
+		int index = downloadables->FindStringIndex(resourcePath.c_str());
 		if (index == INVALID_STRING_INDEX)
-			index = state.downloadables->AddString(true, resourcePath.c_str());
+			index = downloadables->AddString(true, resourcePath.c_str());
 
 		if (index == INVALID_STRING_INDEX)
 		{
@@ -1043,6 +1061,83 @@ end)
 		}
 
 		return true;
+	}
+
+	static bool IsGenerationObjectName(const std::string& filename)
+	{
+		if (filename.length() != 36 || filename.compare(32, 4, ".bsp") != 0)
+			return false;
+		return std::all_of(filename.begin(), filename.begin() + 32, [](unsigned char value) {
+			return (value >= '0' && value <= '9') || (value >= 'a' && value <= 'f');
+		});
+	}
+
+	static bool IsProtectedObject(const std::string& resourcePath)
+	{
+		for (const auto& pair : state.generations)
+		{
+			if (pair.second.resourcePath == resourcePath)
+				return true;
+		}
+
+		INetworkStringTable* downloadables = DownloadablesTable();
+		return downloadables && downloadables->FindStringIndex(resourcePath.c_str()) != INVALID_STRING_INDEX;
+	}
+
+	static void HousekeepObjects()
+	{
+		const Config& currentConfig = GetConfig();
+		if (currentConfig.objectRetentionSeconds <= 0.0 || currentConfig.packDirectory.empty())
+			return;
+
+		const std::string directory = DataDirectory(currentConfig.packDirectory);
+		const std::string wildcard = directory + "/*.bsp";
+		const std::time_t now = std::time(nullptr);
+		unsigned int scanned = 0;
+		unsigned int protectedObjects = 0;
+		unsigned int youngObjects = 0;
+		unsigned int removed = 0;
+		unsigned int failed = 0;
+		unsigned long long removedBytes = 0;
+
+		FileFindHandle_t findHandle;
+		const char* found = g_pFullFileSystem->FindFirstEx(wildcard.c_str(), "MOD", &findHandle);
+		while (found)
+		{
+			const std::string filename = found;
+			const std::string resourcePath = directory + "/" + filename;
+			if (!g_pFullFileSystem->FindIsDirectory(findHandle) && IsGenerationObjectName(filename))
+			{
+				++scanned;
+				if (IsProtectedObject(resourcePath))
+				{
+					++protectedObjects;
+				} else {
+					const long fileTime = g_pFullFileSystem->GetFileTime(resourcePath.c_str(), "MOD");
+					if (fileTime <= 0 || now < fileTime ||
+						static_cast<double>(now - fileTime) < currentConfig.objectRetentionSeconds)
+					{
+						++youngObjects;
+					} else {
+						const unsigned int size = g_pFullFileSystem->Size(resourcePath.c_str(), "MOD");
+						g_pFullFileSystem->RemoveFile(resourcePath.c_str(), "MOD");
+						if (g_pFullFileSystem->FileExists(resourcePath.c_str(), "MOD"))
+						{
+							++failed;
+							Warning(PROJECT_NAME " - luapack: Housekeeping failed to remove '%s'\n", resourcePath.c_str());
+						} else {
+							++removed;
+							removedBytes += size;
+						}
+					}
+				}
+			}
+			found = g_pFullFileSystem->FindNext(findHandle);
+		}
+		g_pFullFileSystem->FindClose(findHandle);
+
+		Msg(PROJECT_NAME " - luapack: Housekeeping scanned %u objects, protected %u active, kept %u within TTL, removed %u (%llu bytes), failed %u\n",
+			scanned, protectedObjects, youngObjects, removed, removedBytes, failed);
 	}
 
 	static void StartBuild()
@@ -1104,6 +1199,10 @@ end)
 		"holylib_gmoddatapack_luapack_retention_ttl", "300", FCVAR_ARCHIVE,
 		"Minimum seconds to retain an immutable generation after its last pinned client leaves",
 		true, 30.0f, true, 86400.0f);
+	static ConVar luapack_object_retention_ttl(
+		"holylib_gmoddatapack_luapack_object_retention_ttl", "604800", FCVAR_ARCHIVE,
+		"Seconds before an unreferenced immutable pack object is eligible for local and compatible-ingest housekeeping; 0 disables housekeeping",
+		true, 0.0f, true, 31536000.0f);
 	static ConVar luapack_ready_deadline(
 		"holylib_gmoddatapack_luapack_ready_deadline", "180", FCVAR_ARCHIVE,
 		"Seconds a silent spawned client keeps its generation pinned (the clock starts at activation, not connect); a matching late acknowledgement is still accepted afterwards",
@@ -1264,6 +1363,9 @@ end)
 		config.ingestUrl = luapack_ingest_url.GetString();
 		config.ingestMethod = luapack_ingest_method.GetString();
 		config.generationRetentionSeconds = luapack_retention_ttl.GetFloat();
+		config.objectRetentionSeconds = luapack_object_retention_ttl.GetFloat();
+		if (config.objectRetentionSeconds > 0.0)
+			config.objectRetentionSeconds = std::max(config.objectRetentionSeconds, config.generationRetentionSeconds);
 		config.readyDeadlineSeconds = luapack_ready_deadline.GetFloat();
 		config.optimisticStubbing = luapack_optimistic.GetBool();
 		config.optimisticPrefixFiles = static_cast<unsigned int>(luapack_optimistic_prefix_files.GetInt());
@@ -1433,6 +1535,7 @@ end)
 					PublishManifest();
 					NotifyAutorefresh(previousGeneration, task);
 					NotifyPackBuilt(task, generation);
+					HousekeepObjects();
 					Msg(PROJECT_NAME " - luapack: Built immutable generation %s (%u compressed bytes, %u files)\n",
 						generation.id.c_str(), task->compressed.GetWritten(), static_cast<unsigned int>(task->files.size()));
 				}
@@ -1486,7 +1589,7 @@ end)
 			if (generation->first != state.currentGeneration && generation->second.pins == 0 &&
 				generation->second.retireAfter > 0.0 && now >= generation->second.retireAfter)
 			{
-				Msg(PROJECT_NAME " - luapack: Retired unpinned generation %s (content-addressed object retained on disk)\n",
+				Msg(PROJECT_NAME " - luapack: Retired unpinned generation %s; object remains protected while registered and is later eligible for housekeeping\n",
 					generation->first.c_str());
 				generation = state.generations.erase(generation);
 				retiredGeneration = true;

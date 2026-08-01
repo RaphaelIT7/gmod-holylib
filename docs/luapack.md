@@ -11,7 +11,7 @@ The feature is experimental and defaults off. The `gmoddatapack` module itself m
 - Only a ready slot receives tiny per-file stubs. The full init file first follows HolyLib's existing path so it can carry the bootstrap; after that, a non-ready, expired, corrupt, downloads-disabled, or otherwise uncertain slot is handed directly to the native `GModDataPack::SendFileToClient` implementation.
 - Every stub is an ordinary reliable `LuaFileDownload` for the requested file ID, so the Requesting Lua barrier advances.
 - Publishing creates the object and registers it in `downloadables` before replacing the one replicated manifest snapshot.
-- Old generations remain addressable until pins drain and their retention TTL passes. Content-addressed files remain on disk for operator/CDN cache policy.
+- Old generations remain addressable until pins drain and their manifest-retention TTL passes. A separate object TTL prunes only files that are no longer retained **and** no longer present in the active `downloadables` table, so hotfix rebuilds cannot strand current-session joins.
 - Encryption, DRM, licensing, telemetry, and external defaults do not exist. The only optional outbound request is the operator-configured ingest hook.
 
 ## Configuration
@@ -25,6 +25,7 @@ The feature is experimental and defaults off. The `gmoddatapack` module itself m
 | `holylib_gmoddatapack_luapack_ingest_url` | empty | Optional HTTP endpoint receiving the compressed object body. |
 | `holylib_gmoddatapack_luapack_ingest_method` | `PUT` | Method used by the optional ingest request. |
 | `holylib_gmoddatapack_luapack_retention_ttl` | `300` | Seconds an unpinned superseded manifest entry remains retained. |
+| `holylib_gmoddatapack_luapack_object_retention_ttl` | `604800` | Minimum age in seconds before an unreferenced local object may be removed. `0` disables housekeeping. The effective value is never lower than `retention_ttl`; active `downloadables` and retained generations are always protected. Compatible ingest endpoints receive the same value in `X-HolyLib-LuaPack-Retention-Seconds`. |
 | `holylib_gmoddatapack_luapack_ready_deadline` | `180` | Seconds a silent **spawned** slot keeps its generation pinned in memory. The clock starts at client activation, not at connect: a fresh client can spend many minutes in map load and the Requesting-Lua burst before its Lua state exists, and the pin must survive all of it. A matching late acknowledgement is still accepted afterwards while the generation remains retained. |
 | `holylib_gmoddatapack_luapack_optimistic` | `0` | Speculatively stub large joins before the READY acknowledgement. See below. |
 | `holylib_gmoddatapack_luapack_optimistic_prefix_files` | `256` | Files delivered natively at the start of a join before speculation may begin. |
@@ -42,7 +43,7 @@ While luapack is enabled, `holylib_gmoddatapack_removeserverif` and `holylib_gmo
 - `require` refuses optimized publication while it is empty.
 - `lock` remembers its value while luapack is active and restores accidental changes. It does not invent a URL.
 
-The ingest worker is asynchronous and non-fatal. This repository's `cpp-httplib` build is not linked to OpenSSL, so built-in ingestion accepts `http://` only and refuses to downgrade `https://`. Operators needing HTTPS can handle the pluggable server hook `HolyLib:OnLuaPackBuilt(generation, resourcePath, md5, compressedSize)` in their existing trusted uploader. Do not place credentials in archived cvars or commit them to configuration.
+The ingest worker is asynchronous and non-fatal. Requests carry the object path, MD5, and the configured object-retention TTL; a compatible endpoint may use that TTL to prune its own immutable-object store after preserving the newly uploaded object. This repository's `cpp-httplib` build is not linked to OpenSSL, so built-in ingestion accepts `http://` only and refuses to downgrade `https://`. Operators needing HTTPS can handle the pluggable server hook `HolyLib:OnLuaPackBuilt(generation, resourcePath, md5, compressedSize)` in their existing trusted uploader. Do not place credentials in archived cvars or commit them to configuration.
 
 ## Optimistic join stubbing
 
@@ -99,7 +100,7 @@ downloadables entry: data/<packdir>/abc....bsp
 client cache: download/data/<packdir>/abc....bsp
 ```
 
-Mirror `garrysmod/data/<packdir>/` into the same relative `data/<packdir>/` path below the configured FastDL origin. CDN replication, overseas routing, cache invalidation, and `.bz2` generation are operator responsibilities. Do not configure a pipeline that removes a generation while it can still appear in the retained manifest.
+Mirror `garrysmod/data/<packdir>/` into the same relative `data/<packdir>/` path below the configured FastDL origin. CDN replication, overseas routing, cache invalidation, and `.bz2` generation are operator responsibilities. Do not configure a pipeline that removes a generation while it can still appear in the retained manifest. Local housekeeping runs after a successful publish and also preserves every object still registered in the current level's `downloadables` table; superseded hotfix objects therefore become removable only after both the TTL and a level lifecycle boundary make them safe.
 
 ## Rollout and verification
 
@@ -118,6 +119,6 @@ Mirror `garrysmod/data/<packdir>/` into the same relative `data/<packdir>/` path
 
 Clientside Lua is in every player's join path, so this has the highest practical blast radius in the module. Engine interfaces, exported names, and init ordering can drift between GMod branches; stage every engine update and retain the kill switch.
 
-This feature does not change the pack body delivery channel, does not use `sv_allowdownload`, and does not add a netchannel body fallback. Tiny READY and autorefresh metadata messages are control-plane only. CDN reachability, overseas edge behavior, TTL, purge, and origin upload policy remain outside the module.
+This feature does not change the pack body delivery channel, does not use `sv_allowdownload`, and does not add a netchannel body fallback. Tiny READY and autorefresh metadata messages are control-plane only. CDN reachability, overseas edge behavior, and origin policy remain operator concerns; the ingest TTL header is advisory and only endpoints that explicitly implement it perform remote housekeeping.
 
 See [the clean-room functional analysis](luapack-gluapack-re.md) for evidence and open runtime questions.

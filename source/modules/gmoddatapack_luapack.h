@@ -30,6 +30,7 @@ namespace HolyLib::LuaPack
 		std::string ingestUrl;
 		std::string ingestMethod;
 		double generationRetentionSeconds = 300.0;
+		double objectRetentionSeconds = 604800.0;
 		double readyDeadlineSeconds = 30.0;
 		bool optimisticStubbing = false;
 		unsigned int optimisticPrefixFiles = 256;
