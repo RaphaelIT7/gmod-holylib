@@ -1449,6 +1449,36 @@ end)
 			client.nextHandoffAt = ServerTime() + 10.0;
 	}
 
+	static void CatchUpClient(int slot)
+	{
+		if (!IsValidSlot(slot) || state.currentGeneration.empty())
+			return;
+
+		ClientPin& client = state.clients[slot];
+		if (!client.active || !client.ready || client.fallback || client.generation.empty() ||
+			client.generation == state.currentGeneration)
+			return;
+
+		auto generation = state.generations.find(state.currentGeneration);
+		if (generation == state.generations.end() ||
+			!SendGenerationHandoff(state.currentGeneration, std::vector<int>{slot}, std::vector<std::string>()))
+		{
+			return;
+		}
+
+		const std::string previousGeneration = client.generation;
+		ReleaseGenerationReference(client);
+		client.generation = state.currentGeneration;
+		client.deadline = ServerTime() + GetConfig().readyDeadlineSeconds;
+		client.nextHandoffAt = ServerTime() + 10.0;
+		client.ready = false;
+		client.fallback = false;
+		client.holdsPin = true;
+		++generation->second.pins;
+		Msg(PROJECT_NAME " - luapack: client slot %i catching up from acknowledged generation %s to current generation %s\n",
+			slot, previousGeneration.c_str(), state.currentGeneration.c_str());
+	}
+
 	static void RefreshConfig()
 	{
 		config.enabled = luapack_enable.GetBool();
@@ -1674,6 +1704,11 @@ end)
 		for (int slot = 0; slot < ABSOLUTE_PLAYER_LIMIT; ++slot)
 		{
 			ClientPin& client = state.clients[slot];
+			if (client.active && client.ready && !client.fallback &&
+				!client.generation.empty() && client.generation != state.currentGeneration)
+			{
+				CatchUpClient(slot);
+			}
 			if (!client.generation.empty() && !client.ready && !client.fallback && client.active &&
 				now >= client.nextHandoffAt)
 			{
@@ -2006,6 +2041,7 @@ end)
 			if (client.active)
 				ReleaseGenerationReference(client);
 			Msg(PROJECT_NAME " - luapack: client slot %i acknowledged pinned generation %s\n", slot, generationId.c_str());
+			CatchUpClient(slot);
 		}
 
 		return MODULE_RESULT::STOP;

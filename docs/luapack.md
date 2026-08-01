@@ -8,6 +8,7 @@ The feature is experimental and defaults off. The `gmoddatapack` module itself m
 
 - A connecting slot is pinned to the current immutable generation.
 - The client mounts and validates downloaded packs before sending `READY(generation, md5)`.
+- A delayed READY for a superseded pin is accepted, then the active client is immediately handed the latest generation. The handoff retries until acknowledged, so back-to-back hotfixes converge instead of leaving a client ready on an intermediate pack.
 - Only a ready slot receives tiny per-file stubs. The full init file first follows HolyLib's existing path so it can carry the bootstrap; after that, a non-ready, expired, corrupt, downloads-disabled, or otherwise uncertain slot is handed directly to the native `GModDataPack::SendFileToClient` implementation.
 - Every stub is an ordinary reliable `LuaFileDownload` for the requested file ID, so the Requesting Lua barrier advances.
 - Publishing creates the immutable object before replacing the one replicated manifest snapshot. At most `downloadable_limit` LuaPack objects are appended to Source's non-removable, level-lifetime `downloadables` table; later hotfix generations use the same validated HTTP handoff as connected-client autorefresh once a new join has spawned.
