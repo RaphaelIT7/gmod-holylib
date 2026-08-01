@@ -10,8 +10,8 @@ The feature is experimental and defaults off. The `gmoddatapack` module itself m
 - The client mounts and validates downloaded packs before sending `READY(generation, md5)`.
 - Only a ready slot receives tiny per-file stubs. The full init file first follows HolyLib's existing path so it can carry the bootstrap; after that, a non-ready, expired, corrupt, downloads-disabled, or otherwise uncertain slot is handed directly to the native `GModDataPack::SendFileToClient` implementation.
 - Every stub is an ordinary reliable `LuaFileDownload` for the requested file ID, so the Requesting Lua barrier advances.
-- Publishing creates the object and registers it in `downloadables` before replacing the one replicated manifest snapshot.
-- Old generations remain addressable until pins drain and their manifest-retention TTL passes. A separate object TTL prunes only files that are no longer retained **and** no longer present in the active `downloadables` table, so hotfix rebuilds cannot strand current-session joins.
+- Publishing creates the immutable object before replacing the one replicated manifest snapshot. At most `downloadable_limit` LuaPack objects are appended to Source's non-removable, level-lifetime `downloadables` table; later hotfix generations use the same validated HTTP handoff as connected-client autorefresh once a new join has spawned.
+- Old generations remain addressable until pins drain and their manifest-retention TTL passes. A separate object TTL prunes only files that are no longer retained **and** no longer present in the active `downloadables` table, so hotfix rebuilds cannot strand current-session joins. New joins are never offered an unbounded history of hotfix packs.
 - Encryption, DRM, licensing, telemetry, and external defaults do not exist. The only optional outbound request is the operator-configured ingest hook.
 
 ## Configuration
@@ -24,6 +24,7 @@ The feature is experimental and defaults off. The `gmoddatapack` module itself m
 | `holylib_gmoddatapack_luapack_downloadurl_policy` | `respect` | `respect`, `require`, or `lock` as described below. |
 | `holylib_gmoddatapack_luapack_ingest_url` | empty | Optional HTTP endpoint receiving the compressed object body. |
 | `holylib_gmoddatapack_luapack_ingest_method` | `PUT` | Method used by the optional ingest request. |
+| `holylib_gmoddatapack_luapack_downloadable_limit` | `2` | Maximum LuaPack objects appended to Source's level-lifetime `downloadables` table. `0` makes every generation post-spawn HTTP-only. Once exhausted, publication and autorefresh continue; new joins use native Lua during signon, then fetch and acknowledge their pinned generation after activation. |
 | `holylib_gmoddatapack_luapack_retention_ttl` | `300` | Seconds an unpinned superseded manifest entry remains retained. |
 | `holylib_gmoddatapack_luapack_object_retention_ttl` | `604800` | Minimum age in seconds before an unreferenced local object may be removed. `0` disables housekeeping. The effective value is never lower than `retention_ttl`; active `downloadables` and retained generations are always protected. Compatible ingest endpoints receive the same value in `X-HolyLib-LuaPack-Retention-Seconds`. |
 | `holylib_gmoddatapack_luapack_ready_deadline` | `180` | Seconds a silent **spawned** slot keeps its generation pinned in memory. The clock starts at client activation, not at connect: a fresh client can spend many minutes in map load and the Requesting-Lua burst before its Lua state exists, and the pin must survive all of it. A matching late acknowledgement is still accepted afterwards while the generation remains retained. |
@@ -61,6 +62,9 @@ speculating per connection instead of waiting for proof:
   requested files that exist in its pinned generation are answered with generation stubs.
   Files missing from the generation (changed since publication), the init file, fallback
   slots, and every existing fail-open path stay native.
+- A generation omitted from `downloadables` because the per-level budget is exhausted is
+  never speculatively stubbed. That join stays native until its post-spawn HTTP handoff is
+  validated and acknowledged; normal ready-client stubbing and later autorefresh then resume.
 
 Recovery is what makes speculation safe. If a stub executes client-side and no pack can
 serve it, the bootstrap first attempts one synchronous mount of the already-downloaded
@@ -92,7 +96,8 @@ Optimistic join stubbing has its own independent switch: setting `holylib_gmodda
 
 ## FastDL layout
 
-For a generation with MD5 `abc...`, HolyLib writes and registers:
+For a generation with MD5 `abc...`, HolyLib always writes the immutable object and, while
+the per-level budget remains, registers it:
 
 ```text
 garrysmod/data/<packdir>/abc....bsp
@@ -100,7 +105,7 @@ downloadables entry: data/<packdir>/abc....bsp
 client cache: download/data/<packdir>/abc....bsp
 ```
 
-Mirror `garrysmod/data/<packdir>/` into the same relative `data/<packdir>/` path below the configured FastDL origin. CDN replication, overseas routing, cache invalidation, and `.bz2` generation are operator responsibilities. Do not configure a pipeline that removes a generation while it can still appear in the retained manifest. Local housekeeping runs after a successful publish and also preserves every object still registered in the current level's `downloadables` table; superseded hotfix objects therefore become removable only after both the TTL and a level lifecycle boundary make them safe.
+Source string-table entries cannot be removed safely during a level, which is why `downloadable_limit` exists. Once the budget is exhausted, additional generations are not appended and JIP clients receive the current object through a retried post-spawn HTTP handoff. Mirror `garrysmod/data/<packdir>/` into the same relative `data/<packdir>/` path below the configured FastDL origin. CDN replication, overseas routing, cache invalidation, and `.bz2` generation are operator responsibilities. Do not configure a pipeline that removes a generation while it can still appear in the retained manifest. Local housekeeping runs after a successful publish and also preserves every object still registered in the current level's `downloadables` table; superseded hotfix objects therefore become removable only after both the TTL and a level lifecycle boundary make them safe.
 
 ## Rollout and verification
 

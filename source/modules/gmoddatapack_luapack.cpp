@@ -60,6 +60,7 @@ namespace HolyLib::LuaPack
 		unsigned long long sourceRevision = 0;
 		double publishedAt = 0.0;
 		double retireAfter = 0.0;
+		bool engineDownloadable = false;
 		std::shared_ptr<Bootil::AutoBuffer> compressedStub;
 		std::unordered_map<std::string, bool> files;
 		unsigned int pins = 0;
@@ -69,6 +70,7 @@ namespace HolyLib::LuaPack
 	{
 		std::string generation;
 		double deadline = 0.0;
+		double nextHandoffAt = 0.0;
 		bool ready = false;
 		bool active = false;
 		bool fallback = true;
@@ -464,9 +466,9 @@ do
 
 		-- Boot mount pass. Acknowledge whatever is already on disk; stub delivery is gated
 		-- server-side on this exact ACK and must not depend on anything loaded later in init.
-		-- Only the current generation was in this join's downloadables, so only it warrants
-		-- warnings; retained generations mount opportunistically (a client that connected
-		-- during a publish may hold the previous generation's object instead).
+		-- The bounded level-lifetime downloadables table may contain an earlier retained
+		-- generation, while the current generation can require the post-spawn HTTP handoff.
+		-- Mount every available retained object opportunistically, but only warn for current.
 		local pendingManifests = {}
 		local downloadFilter = getConVar("cl_downloadfilter")
 		local downloadsDisabled = downloadFilter and downloadFilter:GetString() == "none"
@@ -1041,28 +1043,6 @@ end)
 		return state.downloadables;
 	}
 
-	static bool RegisterDownloadable(const std::string& resourcePath)
-	{
-		INetworkStringTable* downloadables = DownloadablesTable();
-		if (!downloadables)
-		{
-			Warning(PROJECT_NAME " - luapack: downloadables string table is not available\n");
-			return false;
-		}
-
-		int index = downloadables->FindStringIndex(resourcePath.c_str());
-		if (index == INVALID_STRING_INDEX)
-			index = downloadables->AddString(true, resourcePath.c_str());
-
-		if (index == INVALID_STRING_INDEX)
-		{
-			Warning(PROJECT_NAME " - luapack: failed to register '%s' in downloadables\n", resourcePath.c_str());
-			return false;
-		}
-
-		return true;
-	}
-
 	static bool IsGenerationObjectName(const std::string& filename)
 	{
 		if (filename.length() != 36 || filename.compare(32, 4, ".bsp") != 0)
@@ -1070,6 +1050,68 @@ end)
 		return std::all_of(filename.begin(), filename.begin() + 32, [](unsigned char value) {
 			return (value >= '0' && value <= '9') || (value >= 'a' && value <= 'f');
 		});
+	}
+
+	enum class DownloadableRegistration
+	{
+		Registered,
+		BudgetExhausted,
+		Failed,
+	};
+
+	static unsigned int RegisteredPackObjectCount(INetworkStringTable* downloadables, const std::string& packDirectory)
+	{
+		if (!downloadables)
+			return 0;
+
+		const std::string prefix = DataDirectory(packDirectory) + "/";
+		unsigned int count = 0;
+		for (int index = 0; index < downloadables->GetNumStrings(); ++index)
+		{
+			const char* value = downloadables->GetString(index);
+			if (!value)
+				continue;
+
+			const std::string resourcePath = value;
+			if (resourcePath.compare(0, prefix.length(), prefix) != 0)
+				continue;
+			if (IsGenerationObjectName(resourcePath.substr(prefix.length())))
+				++count;
+		}
+		return count;
+	}
+
+	static DownloadableRegistration RegisterDownloadable(const std::string& resourcePath,
+		const std::string& packDirectory, unsigned int limit)
+	{
+		INetworkStringTable* downloadables = DownloadablesTable();
+		if (!downloadables)
+		{
+			Warning(PROJECT_NAME " - luapack: downloadables string table is not available\n");
+			return DownloadableRegistration::Failed;
+		}
+
+		int index = downloadables->FindStringIndex(resourcePath.c_str());
+		if (index != INVALID_STRING_INDEX)
+			return DownloadableRegistration::Registered;
+
+		const unsigned int registered = RegisteredPackObjectCount(downloadables, packDirectory);
+		if (registered >= limit)
+		{
+			Msg(PROJECT_NAME " - luapack: downloadables budget exhausted (%u/%u); generation '%s' will use the post-spawn HTTP handoff for new joins\n",
+				registered, limit, resourcePath.c_str());
+			return DownloadableRegistration::BudgetExhausted;
+		}
+
+		index = downloadables->AddString(true, resourcePath.c_str());
+
+		if (index == INVALID_STRING_INDEX)
+		{
+			Warning(PROJECT_NAME " - luapack: failed to register '%s' in downloadables\n", resourcePath.c_str());
+			return DownloadableRegistration::Failed;
+		}
+
+		return DownloadableRegistration::Registered;
 	}
 
 	static bool IsProtectedObject(const std::string& resourcePath)
@@ -1195,6 +1237,10 @@ end)
 	static ConVar luapack_ingest_method(
 		"holylib_gmoddatapack_luapack_ingest_method", "PUT", FCVAR_ARCHIVE,
 		"HTTP method for the optional pack ingest hook");
+	static ConVar luapack_downloadable_limit(
+		"holylib_gmoddatapack_luapack_downloadable_limit", "2", FCVAR_ARCHIVE,
+		"Maximum immutable pack objects appended to the level-lifetime downloadables table; later generations use post-spawn HTTP handoff",
+		true, 0.0f, true, 64.0f);
 	static ConVar luapack_retention_ttl(
 		"holylib_gmoddatapack_luapack_retention_ttl", "300", FCVAR_ARCHIVE,
 		"Minimum seconds to retain an immutable generation after its last pinned client leaves",
@@ -1248,6 +1294,23 @@ end)
 	// the content MD5 and the FastDL object basename, and every generation in one server
 	// lifecycle shares the salt (state.generations and state.salt reset together).
 	static const size_t MAXIMUM_MANIFEST_LENGTH = 255;
+
+	static std::string SingleGenerationManifest(const std::string& generationId)
+	{
+		auto generation = state.generations.find(generationId);
+		if (generation == state.generations.end())
+			return "";
+
+		const std::string packDirectory = GetConfig().packDirectory;
+		if (generation->second.resourcePath != DataDirectory(packDirectory) + "/" + generationId + ".bsp")
+			return "";
+
+		std::ostringstream serialized;
+		serialized << "1|" << generationId << '|' << HexEncode(packDirectory)
+			<< '|' << HexEncode(generation->second.salt) << '|' << generationId;
+		const std::string value = serialized.str();
+		return value.length() <= MAXIMUM_MANIFEST_LENGTH ? value : "";
+	}
 
 	static void PublishManifest()
 	{
@@ -1306,6 +1369,37 @@ end)
 		luapack_manifest.SetValue(serialized.c_str());
 	}
 
+	static bool SendGenerationHandoff(const std::string& generationId, const std::vector<int>& recipients,
+		const std::vector<std::string>& changedPaths)
+	{
+		if (!g_Lua || recipients.empty())
+			return false;
+
+		auto generation = state.generations.find(generationId);
+		if (generation == state.generations.end())
+			return false;
+		const std::string manifest = SingleGenerationManifest(generationId);
+		if (manifest.empty() || !Lua::PushHook("HolyLib:LuaPackPublished"))
+			return false;
+
+		g_Lua->PushString(generationId.c_str());
+		g_Lua->PushString(manifest.c_str());
+		g_Lua->PreCreateTable(recipients.size(), 0);
+		for (size_t index = 0; index < recipients.size(); ++index)
+		{
+			g_Lua->PushNumber(recipients[index] + 1);
+			Util::RawSetI(g_Lua, -2, index + 1);
+		}
+		g_Lua->PreCreateTable(changedPaths.size(), 0);
+		for (size_t index = 0; index < changedPaths.size(); ++index)
+		{
+			g_Lua->PushString(changedPaths[index].c_str());
+			Util::RawSetI(g_Lua, -2, index + 1);
+		}
+		g_Lua->CallFunctionProtected(5, 0, true);
+		return true;
+	}
+
 	static void NotifyAutorefresh(const std::string& previousGeneration, const BuildTask* task)
 	{
 		if (!g_Lua || previousGeneration.empty() || previousGeneration == state.currentGeneration ||
@@ -1319,11 +1413,13 @@ end)
 			if (client.active && client.ready && !client.fallback && client.generation == previousGeneration)
 				recipients.push_back(slot);
 		}
-		if (recipients.empty() || !Lua::PushHook("HolyLib:LuaPackPublished"))
+		if (recipients.empty())
 			return;
 
 		auto generation = state.generations.find(state.currentGeneration);
 		if (generation == state.generations.end())
+			return;
+		if (!SendGenerationHandoff(state.currentGeneration, recipients, task->changedPaths))
 			return;
 
 		for (int slot : recipients)
@@ -1332,27 +1428,25 @@ end)
 			ReleaseGenerationReference(client);
 			client.generation = state.currentGeneration;
 			client.deadline = ServerTime() + GetConfig().readyDeadlineSeconds;
+			client.nextHandoffAt = ServerTime() + 10.0;
 			client.ready = false;
 			client.fallback = false;
 			client.holdsPin = true;
 			++generation->second.pins;
 		}
+	}
 
-		g_Lua->PushString(state.currentGeneration.c_str());
-		g_Lua->PushString(luapack_manifest.GetString());
-		g_Lua->PreCreateTable(recipients.size(), 0);
-		for (size_t index = 0; index < recipients.size(); ++index)
-		{
-			g_Lua->PushNumber(recipients[index] + 1);
-			Util::RawSetI(g_Lua, -2, index + 1);
-		}
-		g_Lua->PreCreateTable(task->changedPaths.size(), 0);
-		for (size_t index = 0; index < task->changedPaths.size(); ++index)
-		{
-			g_Lua->PushString(task->changedPaths[index].c_str());
-			Util::RawSetI(g_Lua, -2, index + 1);
-		}
-		g_Lua->CallFunctionProtected(5, 0, true);
+	static void NotifyJoiningClient(int slot)
+	{
+		if (!IsValidSlot(slot))
+			return;
+
+		ClientPin& client = state.clients[slot];
+		if (!client.active || client.ready || client.fallback || client.generation.empty())
+			return;
+
+		if (SendGenerationHandoff(client.generation, std::vector<int>{slot}, std::vector<std::string>()))
+			client.nextHandoffAt = ServerTime() + 10.0;
 	}
 
 	static void RefreshConfig()
@@ -1362,6 +1456,7 @@ end)
 		config.downloadUrlPolicy = luapack_downloadurl_policy.GetString();
 		config.ingestUrl = luapack_ingest_url.GetString();
 		config.ingestMethod = luapack_ingest_method.GetString();
+		config.downloadableLimit = static_cast<unsigned int>(luapack_downloadable_limit.GetInt());
 		config.generationRetentionSeconds = luapack_retention_ttl.GetFloat();
 		config.objectRetentionSeconds = luapack_object_retention_ttl.GetFloat();
 		if (config.objectRetentionSeconds > 0.0)
@@ -1496,17 +1591,31 @@ end)
 				if (!WriteImmutableObject(task, resourcePath))
 				{
 					Warning(PROJECT_NAME " - luapack: Failed to atomically write pack %s\n", task->md5.c_str());
-				} else if (!CoordinateDownloadUrl(true) || !RegisterDownloadable(resourcePath)) {
+				} else if (!CoordinateDownloadUrl(true)) {
 					Warning(PROJECT_NAME " - luapack: Pack %s exists but was not published; clients remain on vanilla delivery\n", task->md5.c_str());
 					state.nextBuildAllowed = ServerTime() + 15.0;
 					std::lock_guard<std::mutex> lock(state.registryMutex);
 					state.buildRequested = true;
 				} else {
+					const Config& currentConfig = GetConfig();
+					const DownloadableRegistration registration = RegisterDownloadable(resourcePath,
+						currentConfig.packDirectory, currentConfig.downloadableLimit);
+					if (registration == DownloadableRegistration::Failed)
+					{
+						Warning(PROJECT_NAME " - luapack: Pack %s exists but was not published; clients remain on vanilla delivery\n", task->md5.c_str());
+						state.nextBuildAllowed = ServerTime() + 15.0;
+						std::lock_guard<std::mutex> lock(state.registryMutex);
+						state.buildRequested = true;
+						delete task;
+						return;
+					}
+
 					Generation generation;
 					generation.id = task->md5;
 					generation.md5 = task->md5;
 					generation.salt = task->salt;
 					generation.resourcePath = resourcePath;
+					generation.engineDownloadable = registration == DownloadableRegistration::Registered;
 					generation.sourceRevision = task->sourceRevision;
 					generation.publishedAt = ServerTime();
 					generation.compressedStub = BuildCompressedStub(generation.id);
@@ -1562,8 +1671,15 @@ end)
 
 		CoordinateDownloadUrl(false);
 		const double now = ServerTime();
-		for (ClientPin& client : state.clients)
+		for (int slot = 0; slot < ABSOLUTE_PLAYER_LIMIT; ++slot)
 		{
+			ClientPin& client = state.clients[slot];
+			if (!client.generation.empty() && !client.ready && !client.fallback && client.active &&
+				now >= client.nextHandoffAt)
+			{
+				NotifyJoiningClient(slot);
+			}
+
 			// The deadline only runs for spawned clients. A connecting client can legitimately
 			// spend many minutes in map load + the Requesting-Lua burst before its Lua state even
 			// exists; expiring the pin there would mark exactly the joins that matter fallback
@@ -1707,7 +1823,8 @@ end)
 		const Config& currentConfig = GetConfig();
 		const bool prefixDelivered = client.joinNativeFiles >= currentConfig.optimisticPrefixFiles &&
 			client.joinNativeBytes >= currentConfig.optimisticPrefixBytes;
-		if (!currentConfig.optimisticStubbing || client.nativeLatched || !stubbable || !prefixDelivered)
+		if (!currentConfig.optimisticStubbing || !generation->second.engineDownloadable ||
+			client.nativeLatched || !stubbable || !prefixDelivered)
 		{
 			// Counted even while speculation is off or latched: the join summary is the
 			// measurement that sizes the prefix thresholds in the first place.
@@ -1804,6 +1921,12 @@ end)
 				client.nativeLatched ? "yes" : "no",
 				client.fallback ? "yes" : "no");
 		}
+
+		// A generation published after the level's bounded downloadables budget is exhausted
+		// is intentionally absent from the engine download queue. Once the Lua state is active,
+		// hand the pinned generation to the same validated HTTP path used by autorefresh. This is
+		// also a harmless retry when the engine-downloaded object mounted but READY is still queued.
+		NotifyJoiningClient(slot);
 	}
 
 	void ClientDisconnect(int slot)
