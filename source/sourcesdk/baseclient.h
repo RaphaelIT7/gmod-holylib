@@ -226,9 +226,6 @@ public:
 	KeyValues		*m_ConVars;			// stores all client side convars
 	CBaseServer		*m_Server;			// pointer to server object
 	bool			m_bConVarsChanged;	// true if convars updated and not changes process yet
-#if PLATFORM_64BITS
-	bool			m_bInitialConVarsSet; // Has the client sent their initial set of convars
-#endif
 	bool			m_bSendServerInfo;	// true if we need to send server info packet to start connect
 	bool			m_bIsHLTV;			// if this a HLTV proxy ?
 #if defined( REPLAY_ENABLED )

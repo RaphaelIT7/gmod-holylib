@@ -39,6 +39,40 @@ IModule* pGameServerModule = &g_pGameServerModule;
 static std::vector<CGameClient*> g_pQueueClients;
 extern CGlobalVars* gpGlobals;
 
+/*
+ * Queue CGameClients use slots at/above gpGlobals->maxClients, but the engine's
+ * CGameClient::Connect still derives an edict from slot + 1. Those edicts are
+ * map entities, not players. In particular, slot 128 aliases the first edict
+ * after the reserved player range.
+ *
+ * Never classify a parked client against CBaseServer::m_nMaxclients. HolyLib
+ * temporarily raises that field while publishing the extended queue capacity
+ * to Steam, so a re-entrant teardown can otherwise pass a 128+ client into
+ * CGameServer::RemoveClientFromGame. The engine then forwards the aliased
+ * edict to the game DLL's ClientDisconnect path and removes/corrupts an
+ * unrelated map entity (observed live with the singleton soundent).
+ *
+ * Do not clear the parked client's edict here. Engine sign-on handlers still
+ * use it while a queued client is held at PRESPAWN and later promoted. The
+ * queue safety boundary is suppressing game-DLL removal, not changing the
+ * CGameClient's internal lifecycle state.
+ */
+static bool IsParkedQueueClient(CBaseClient* pCandidate)
+{
+	if (!pCandidate || !gpGlobals)
+		return false;
+
+	for (CGameClient* pQueueClient : g_pQueueClients)
+	{
+		// Establish ownership by pointer identity before dereferencing. This also
+		// keeps stale/foreign pointers away from the direct field reads below.
+		if (pQueueClient == pCandidate)
+			return pQueueClient->m_nClientSlot >= gpGlobals->maxClients;
+	}
+
+	return false;
+}
+
 // Set by InitDetour when the compiled CBaseClient mirror disagrees with the
 // engine's real field layout (read from the SetSignonState prologue). Every
 // direct field access (m_nSignonState slot-scans, m_NetChannel guards, the
@@ -2934,7 +2968,13 @@ static void hook_CBaseServer_UserInfoChanged(CBaseServer* _this, int nClientInde
 static Detouring::Hook detour_CGameServer_RemoveClientFromGame;
 static void hook_CGameServer_RemoveClientFromGame(CBaseServer* _this, CBaseClient* pClient)
 {
-	if (pClient->m_nClientSlot >= _this->m_nMaxclients)
+	// m_nMaxclients is temporarily raised to the advertised queue capacity in
+	// hook_CSteam3Server_SendUpdatedServerDetails. It is therefore not a safe
+	// real-player boundary for teardown. A parked client's edict aliases a map
+	// entity, so make the ownership test authoritative and keep the game DLL
+	// from receiving it. The engine itself must retain the edict for later
+	// sign-on-state transitions.
+	if (IsParkedQueueClient(pClient))
 		return;
 
 	detour_CGameServer_RemoveClientFromGame.GetTrampoline<Symbols::CGameServer_RemoveClientFromGame>()(_this, pClient);
@@ -3968,6 +4008,13 @@ void CGameServerModule::InitDetour(bool bPreServer)
 	 * free and corrupts everything downstream, so on mismatch we disable queue
 	 * parking instead of running with wrong offsets. Must run BEFORE the
 	 * SetSignonState detour below patches this prologue.
+	 *
+	 * The CONNECTED branch in the same function also contains
+	 * `mov byte ptr [rdi+disp32], 1` (C6 87 xx xx xx xx 01), where disp32 is
+	 * m_bSendServerInfo. Verify that field independently: its neighbouring bools
+	 * do not affect the aligned m_NetChannel/m_nSignonState offsets, so a
+	 * one-field drift can pass the signon-state check while queue clients remain
+	 * stuck at CONNECTED forever.
 	 */
 	{
 		void* pSetSignonState = Detour::GetFunction(engine_loader.GetModule(), Symbols::CBaseClient_SetSignonStateSym);
@@ -3987,9 +4034,35 @@ void CGameServerModule::InitDetour(bool bPreServer)
 				} else {
 					Msg(PROJECT_NAME " - gameserver: verified CBaseClient layout (m_nSignonState @ 0x%X)\n", nEngineOffset);
 				}
+
+				int32_t nEngineServerInfoOffset = -1;
+				int nServerInfoOffsetMatches = 0;
+				for (size_t i = 7; i + 7 <= 0x60; ++i)
+				{
+					if (pBytes[i] == 0xC6 && pBytes[i + 1] == 0x87 && pBytes[i + 6] == 0x01)
+					{
+						memcpy(&nEngineServerInfoOffset, pBytes + i + 2, sizeof(nEngineServerInfoOffset));
+						++nServerInfoOffsetMatches;
+					}
+				}
+
+				int32_t nMirrorServerInfoOffset = (int32_t)(size_t)&(((CBaseClient*)0)->m_bSendServerInfo);
+				if (nServerInfoOffsetMatches != 1 || nEngineServerInfoOffset != nMirrorServerInfoOffset)
+				{
+					g_bClientLayoutMismatch = true;
+					Warning(PROJECT_NAME " - gameserver: CBaseClient layout MISMATCH! engine m_bSendServerInfo=0x%X (%d matches), compiled mirror=0x%X\n", nEngineServerInfoOffset, nServerInfoOffsetMatches, nMirrorServerInfoOffset);
+					Warning(PROJECT_NAME " - gameserver: queue-client parking DISABLED - update sourcesdk/baseclient.h for this engine build!\n");
+				} else {
+					Msg(PROJECT_NAME " - gameserver: verified CBaseClient layout (m_bSendServerInfo @ 0x%X)\n", nEngineServerInfoOffset);
+				}
 			} else {
+				g_bClientLayoutMismatch = true;
 				Warning(PROJECT_NAME " - gameserver: could not verify CBaseClient layout (unexpected SetSignonState prologue) - re-verify field offsets against this engine build!\n");
+				Warning(PROJECT_NAME " - gameserver: queue-client parking DISABLED until the layout can be verified!\n");
 			}
+		} else {
+			g_bClientLayoutMismatch = true;
+			Warning(PROJECT_NAME " - gameserver: could not resolve CBaseClient::SetSignonState - queue-client parking DISABLED!\n");
 		}
 	}
 #endif
