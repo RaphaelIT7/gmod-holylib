@@ -52,25 +52,20 @@ extern CGlobalVars* gpGlobals;
  * edict to the game DLL's ClientDisconnect path and removes/corrupts an
  * unrelated map entity (observed live with the singleton soundent).
  *
- * Do not clear the parked client's edict here. Engine sign-on handlers still
- * use it while a queued client is held at PRESPAWN and later promoted. The
- * queue safety boundary is suppressing game-DLL removal, not changing the
- * CGameClient's internal lifecycle state.
+ * Do not clear the parked client's edict while it is held at PRESPAWN. Engine
+ * sign-on handlers still use it until the client is promoted. The relocation
+ * path clears the alias only at the final retirement boundary, immediately
+ * before Inactivate/Clear.
  */
 static bool IsParkedQueueClient(CBaseClient* pCandidate)
 {
 	if (!pCandidate || !gpGlobals)
 		return false;
 
-	for (CGameClient* pQueueClient : g_pQueueClients)
-	{
-		// Establish ownership by pointer identity before dereferencing. This also
-		// keeps stale/foreign pointers away from the direct field reads below.
-		if (pQueueClient == pCandidate)
-			return pQueueClient->m_nClientSlot >= gpGlobals->maxClients;
-	}
-
-	return false;
+	// RemoveClientFromGame is called by the engine with a live CBaseClient. Slot
+	// ownership is the authoritative boundary here: vector membership is only
+	// bookkeeping and can change during re-entrant disconnect/promotion hooks.
+	return pCandidate->m_nClientSlot >= gpGlobals->maxClients;
 }
 
 // Set by InitDetour when the compiled CBaseClient mirror disagrees with the
@@ -3747,6 +3742,17 @@ static void MoveCGameClientIntoCGameClient(CGameClient* origin, CGameClient* tar
 
 	origin->m_NetChannel = nullptr; // Nuke the net channel or else it might touch it.
 	//origin->m_ConVars = nullptr; // Same here
+	if (IsParkedQueueClient(origin))
+	{
+		// CGameClient::Connect derives edict from slot + 1 even for queue slots,
+		// so this points at a map entity rather than a player. The origin is being
+		// retired now and no longer needs the alias. Clearing both references makes
+		// Inactivate skip CGameServer::RemoveClientFromGame even if its detour was
+		// disabled or a re-entrant hook changed queue-list bookkeeping.
+		Msg(PROJECT_NAME " - gameserver: detached aliased edict before promoting queue slot %i\n", origin->m_nClientSlot);
+		origin->edict = nullptr;
+		origin->m_PackInfo.m_pClientEnt = nullptr;
+	}
 	origin->Inactivate();
 	origin->Clear();
 
@@ -4220,6 +4226,11 @@ void CGameServerModule::InitDetour(bool bPreServer)
 		engine_loader.GetModule(), Symbols::CGameServer_RemoveClientFromGameSym,
 		(void*)DETOUR_THISCALL(hook_CGameServer_RemoveClientFromGame, Game_RemoveClientFromGame), m_pID
 	);
+	if (!detour_CGameServer_RemoveClientFromGame.IsEnabled())
+	{
+		g_bClientLayoutMismatch = true;
+		Warning(PROJECT_NAME " - gameserver: failed to install the queue edict-removal guard - queue-client parking DISABLED!\n");
+	}
 
 	Detour::Create(
 		&detour_CServerPlugin_ClientSettingsChanged, "CServerPlugin::ClientSettingsChanged",
