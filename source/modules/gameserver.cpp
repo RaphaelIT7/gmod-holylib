@@ -752,7 +752,7 @@ LUA_FUNCTION_STATIC(CBaseClient_PromoteFromQueue)
 	// A queue userdata must never be promoted if the same authenticated Steam
 	// identity already owns a real client.  Lua checks CBasePlayers too, but the
 	// native scan also covers in-flight real-slot loaders.
-	const int nRealClientCount = min(pServer->GetClientCount(), gpGlobals->maxClients);
+	const int nRealClientCount = std::min(pServer->GetClientCount(), gpGlobals->maxClients);
 	for (int i = 0; i < nRealClientCount; ++i)
 	{
 		CBaseClient* pRealClient = (CBaseClient*)pServer->GetClient(i);
