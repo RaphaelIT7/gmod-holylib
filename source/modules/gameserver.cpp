@@ -3878,12 +3878,13 @@ static int FindFreeClientSlot()
 
 static Detouring::Hook detour_CGameClient_SpawnPlayer;
 #if PLATFORM_64BITS
-static bool hook_CGameClient_SpawnPlayer(CGameClient* client)
+static void hook_CGameClient_SpawnPlayer(CGameClient* client)
 {
 	// m_nClientSlot = player slot! (entIndex - 1)
 	if (client->m_nClientSlot < gpGlobals->maxClients || gameserver_disablespawnsafety.GetBool())
 	{
-		return detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(client);;
+		detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(client);
+		return;
 	}
 
 	// ent index! can be 128!
@@ -3891,7 +3892,7 @@ static bool hook_CGameClient_SpawnPlayer(CGameClient* client)
 	if (nextFreeEntity > gpGlobals->maxClients)
 	{
 		Warning(PROJECT_NAME ": Failed to find a valid player slot to use! Stopping client spawn! (%i, %i, %i)\n", client->m_nClientSlot, client->GetUserID(), nextFreeEntity);
-		return false;
+		return;
 	}
 
 	CGameClient* pClient = (CGameClient*)Util::GetClientByIndex(nextFreeEntity - 1);
@@ -3899,7 +3900,7 @@ static bool hook_CGameClient_SpawnPlayer(CGameClient* client)
 	{
 		// It really didn't like what we had planned.
 		Warning(PROJECT_NAME ": Client collision! fk. Client will be refused to spawn! (%i - %s, %i - %s)\n", pClient->m_nClientSlot, pClient->GetClientName(), client->m_nClientSlot, client->GetClientName());
-		return false;
+		return;
 	}
 
 	// NCG: a queue client can lose its netchannel (mid-disconnect / already nuked)
@@ -3910,12 +3911,10 @@ static bool hook_CGameClient_SpawnPlayer(CGameClient* client)
 	if (!client->m_NetChannel)
 	{
 		Warning(PROJECT_NAME ": Refusing spawn - client has NULL netchannel! (slot %i, uid %i)\n", client->m_nClientSlot, client->GetUserID());
-		return false;
+		return;
 	}
 
 	MoveCGameClientIntoCGameClient(client, pClient);
-	return false;
-	//detour_CGameClient_SpawnPlayer.GetTrampoline<Symbols::CGameClient_SpawnPlayer>()(pClient);
 }
 #else
 static void hook_CGameClient_SpawnPlayer(CGameClient* client)
@@ -4325,6 +4324,11 @@ void CGameServerModule::InitDetour(bool bPreServer)
 		engine_loader.GetModule(), Symbols::CGameClient_SpawnPlayerSym,
 		(void*)DETOUR_THISCALL(hook_CGameClient_SpawnPlayer, SpawnPlayer), m_pID
 	);
+	if (!detour_CGameClient_SpawnPlayer.IsEnabled())
+	{
+		g_bClientLayoutMismatch = true;
+		Warning(PROJECT_NAME " - gameserver: failed to install the queue SpawnPlayer relocation hook - queue-client parking DISABLED!\n");
+	}
 
 	Detour::Create(
 		&detour_NET_SetTime, "NET_SetTime",

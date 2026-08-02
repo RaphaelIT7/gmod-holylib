@@ -1054,7 +1054,15 @@ namespace Symbols
 
 	const std::vector<Symbol> CGameClient_SpawnPlayerSym = {
 		Symbol::FromName("_ZN11CGameClient11SpawnPlayerEv"),
-		Symbol::FromSignature("\x55\x31\xC0\x48\x89\xE5\x53\x48\x89\xFB\x48\x8D\x3D\x2A\x2A\x2A\x2A\x48\x83\xEC\x78"), // 55 31 C0 48 89 E5 53 48 89 FB 48 8D 3D ? ? ? ? 48 83 EC 78
+#if defined(SYSTEM_LINUX) && defined(ARCHITECTURE_X86_64)
+		// GMod x86-64 build 260709. The previous signature resolved uniquely to
+		// CBaseClient::SpawnPlayer at engine.so+0x63E90, leaving the real
+		// CGameClient::SpawnPlayer at +0xB11D0 unhooked. A queue client could then
+		// run stock FreeContainingEntity on its aliased map edict.
+		Symbol::FromSignature("\x55\x48\x89\xE5\x53\x48\x89\xFB\x48\x83\xEC\x38\x48\x8B\x3D\x2A\x2A\x2A\x2A\x80\xBF\x96\x01\x00\x00\x00"), // 55 48 89 E5 53 48 89 FB 48 83 EC 38 48 8B 3D ? ? ? ? 80 BF 96 01 00 00 00
+#else
+		Symbol::FromSignature("\x55\x31\xC0\x48\x89\xE5\x53\x48\x89\xFB\x48\x8D\x3D\x2A\x2A\x2A\x2A\x48\x83\xEC\x78"), // legacy non-Linux-x86-64 fallback
+#endif
 	};
 
 	const std::vector<Symbol> CBaseServer_ProcessConnectionlessPacketSym = { // Search for "Source Engine Query" to find CHLTVServer::ProcessConnectionlessPacket which will call CBaseServer::ProcessConnectionlessPacket
